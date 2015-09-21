@@ -20,18 +20,23 @@ subroutine wrrestart
   numnodes = local_nodes()
   numelms = local_elements()
   mmnn18 = 0
-  call m3dc1_field_getnumlocaldof(num_fields, ndofs)
-  allocate (data_buff(ndofs))
   
   if(ifirstrs .ne. 1) call rename(fname, oldfname)
   ifirstrs = 0
+
+ if (myrank .eq. 0) &
+      write(*,*) '[P',myrank,'] write file ',fname
 
   open(56,file=fname,form='unformatted',status='replace', action='write')
   ! first put in information to check on run information
   write(56) numnodes
   write(56) numelms
-  write(56) mmnn18
-  write(56) numvar
+  call m3dc1_field_getnumlocaldof(num_fields, ndofs)
+  write(56) ndofs
+  call m3dc1_field_getnumlocaldof(1,ndofs)
+  write(56) ndofs
+!  write(56) mmnn18
+!  write(56) numvar
   write(56) iper
   write(56) jper 
   write(56) myrank
@@ -39,7 +44,9 @@ subroutine wrrestart
   write(56) eqsubtract
   write(56) linear
   write(56) icomplex
- 
+
+  call m3dc1_field_getnumlocaldof(num_fields, ndofs)
+  allocate (data_buff(ndofs)) 
   call m3dc1_field_retrieve (field_vec%id, data_buff, ndofs) 
   do j1=1,ndofs 
      write(56) data_buff(j1)
@@ -98,7 +105,6 @@ subroutine wrrestart
 #endif
 
 end subroutine wrrestart
-
 !============================================================
 subroutine rdrestart
   use mesh_mod
@@ -109,7 +115,7 @@ subroutine rdrestart
   use pellet
 
   implicit none
-  
+
 #ifdef USESCOREC
 
   integer :: j1, numnodes, inumnodes
@@ -120,6 +126,28 @@ subroutine rdrestart
   integer :: iversion
   real :: vloopsave
   vectype, allocatable :: data_buff(:)
+
+  ! check if 2D-to-3D case
+  open(76,file='C1restart00000',form='unformatted',status='unknown')
+    read(76) inumnodes
+    read(76) inumelms
+    read(76) immnn18
+    read(76) inumvar
+    read(76) iiper
+    read(76) ijper
+    read(76) imyrank
+    read(76) imaxrank
+  close(76)
+
+if (imaxrank .ne. maxrank) then
+    if (myrank .eq. 0) &
+      print *, '[M3D-C1 INFO] 3D Simulation with restart files: #ranks - 2D ', imaxrank
+    call rdrestart_2d23d
+else
+   if (myrank .eq. 0 .and. nplanes .eq. 1) &
+     print *, '[M3D-C1 INFO] 2D Simulation with restart files: #ranks - ',maxrank
+   if (myrank .eq. 0 .and. nplanes .ne. 1) &
+     print *, '[M3D-C1 INFO] 3D Simulation with restart files: #ranks - ',maxrank
 
   call createfilename(fname, oldfname)
   call m3dc1_field_getnumlocaldof(num_fields, ndofs)
@@ -132,7 +160,7 @@ subroutine rdrestart
   read(56) immnn18
   read(56) inumvar
   read(56) iiper
-  read(56) ijper 
+  read(56) ijper
   read(56) imyrank
   read(56) imaxrank
   read(56) ieqsubtract
@@ -145,10 +173,10 @@ subroutine rdrestart
      write(*,*) 'Restart file information does not match!'
      close(56)
      if(inumnodes .ne. numnodes) then
-        write(*,*) 'numnodes ',inumnodes, numnodes, myrank 
+        write(*,*) 'numnodes ',inumnodes, numnodes, myrank
      endif
      if(inumelms .ne. numelms) then
-        write(*,*) 'numelms ',inumnodes, numnodes, myrank 
+        write(*,*) 'numelms ',inumnodes, numnodes, myrank
      endif
      if(iiper .ne. iper) then
         write(*,*) 'iper',iiper, iper, myrank
@@ -167,15 +195,15 @@ subroutine rdrestart
 
   allocate (data_buff(ndofs))
 
-  do j1=1,ndofs 
+  do j1=1,ndofs
      read(56) data_buff(j1)
   enddo
   call m3dc1_field_set(field_vec%id, data_buff, ndofs)
-  do j1=1,ndofs 
+  do j1=1,ndofs
      read(56) data_buff(j1)
   enddo
   call m3dc1_field_set(field0_vec%id, data_buff,ndofs)
-                         
+
   ! If we are running a linear simulation, but the restart file was
   ! a nonlinear simulation, make the restart data be the equilibrium
   if(linear.eq.1 .and. ilinear.eq.0) then
@@ -195,11 +223,11 @@ subroutine rdrestart
   deallocate (data_buff)
   call m3dc1_field_getnumlocaldof(1, ndofs)
   allocate (data_buff(ndofs))
-  do j1=1,ndofs 
+  do j1=1,ndofs
      read(56,END=1199) data_buff(j1)
   enddo
   call m3dc1_field_set(bf_field(1)%vec%id, data_buff,ndofs)
-  do j1=1,ndofs 
+  do j1=1,ndofs
      read(56,END=1199) data_buff(j1)
   enddo
   call m3dc1_field_set(bf_field(0)%vec%id, data_buff, ndofs)
@@ -212,7 +240,7 @@ subroutine rdrestart
   if(version.ge.7) then
      read(56, END=1199) icsubtract
      if(icsubtract.eq.1) then
-        do j1=1,ndofs 
+        do j1=1,ndofs
            read(56,END=1199) data_buff(j1)
         enddo
         call m3dc1_field_set(psi_coil_field%vec%id, data_buff, ndofs)
@@ -225,15 +253,15 @@ subroutine rdrestart
         call create_field(psi_ext)
         call create_field(bz_ext)
         call create_field(bf_ext)
-        do j1=1,ndofs 
+        do j1=1,ndofs
            read(56,END=1199) data_buff(j1)
         enddo
         call m3dc1_field_set(psi_ext%vec%id, data_buff, ndofs)
-        do j1=1,ndofs 
+        do j1=1,ndofs
            read(56,END=1199) data_buff(j1)
         enddo
         call m3dc1_field_set(bz_ext%vec%id, data_buff, ndofs)
-        do j1=1,ndofs 
+        do j1=1,ndofs
            read(56,END=1199) data_buff(j1)
         enddo
         call m3dc1_field_set(bf_ext%vec%id, data_buff, ndofs)
@@ -243,11 +271,226 @@ subroutine rdrestart
   deallocate (data_buff)
   goto 1200
 1199 if(myrank.eq.0) &
-          print *, 'Warning: reading from a previous restart version'
+        print *, '[M3D-C1 ERROR] failed reading restart file'
 1200 close(56)
-
+endif
 #endif
 end subroutine rdrestart
+
+!============================================================
+subroutine rdrestart_2d23d
+  use mesh_mod
+  use basic
+  use arrays
+  use diagnostics
+  use time_step
+  use pellet
+
+  implicit none
+  integer :: i, j, numnodes, prev_numnodes, iversion
+  integer :: prev_numelms, prev_mmnn18, prev_numvar, prev_iper, prev_jper, prev_myrank
+  integer :: prev_maxrank, numelms, prev_eqsubtract, prev_linear, prev_comp
+  character (len=30) :: fname, oldfname
+  integer :: prev_ndofs1, ndofs1, prev_ndofs2, ndofs2, group_rank
+  integer :: prev_ndofs1_pernode, prev_ndofs2_pernode, cur_ndofs1_pernode, cur_ndofs2_pernode 
+  real :: vloopsave
+ real, allocatable :: data_buf(:) 
+  real, dimension(num_fields*12*2):: dofs_node ! buffer for dofs per node
+
+  call get2dfilename(fname)
+  group_rank = modulo(myrank, maxrank/nplanes)
+  numnodes = local_nodes()
+  numelms = local_elements()
+
+  open(56,file=fname,form='unformatted',status='unknown')
+  read(56) prev_numnodes
+  read(56) prev_numelms
+  read(56) prev_ndofs1
+  read(56) prev_ndofs2
+  read(56) prev_iper
+  read(56) prev_jper 
+  read(56) prev_myrank
+  read(56) prev_maxrank
+  read(56) prev_eqsubtract
+  read(56) prev_linear
+  read(56) prev_comp
+  
+  if ((prev_numnodes*2 .ne. numnodes .and. prev_numnodes .ne. numnodes) .or. &
+       prev_iper .ne. iper .or. prev_jper .ne. jper) then
+     write(*,*) 'restart file information does not match!'
+     close(56)
+     if (prev_numnodes*2 .ne. numnodes .and. prev_numnodes .ne. numnodes) then
+        write(*,*) 'numnodes: prev ',prev_numnodes, ', cur ', numnodes, myrank 
+     endif
+     if (prev_iper .ne. iper) then
+        write(*,*) 'iper: prev ',prev_iper, ', cur ',iper, myrank
+     endif
+     if (prev_jper .ne. jper) then
+        write(*,*) 'jper: prev ',prev_jper, ', cur ',jper, myrank
+     endif
+     call safestop(2)
+  endif
+
+! Allocate space for the arrays tmp_
+  call m3dc1_field_getnumlocaldof(num_fields,ndofs1)
+  call m3dc1_field_getnumlocaldof(1,ndofs2)
+
+    prev_ndofs1_pernode = prev_ndofs1/prev_numnodes
+    cur_ndofs1_pernode = ndofs1/numnodes
+    allocate(data_buf(prev_ndofs1))
+    !fill field_vec
+    do i=1,prev_ndofs1
+      read(56) data_buf(i)
+    enddo
+    call m3dc1_field_assign(field_vec%id, 0., 0)
+    do i=1,prev_numnodes
+       dofs_node =0.
+       do j=0, prev_ndofs1_pernode/6-1
+          dofs_node(1+j*12:j*12+6) &
+            = data_buf((i-1)*prev_ndofs1_pernode+1+j*6:(i-1)*prev_ndofs1_pernode+j*6+6)
+       end do
+       call m3dc1_ent_setdofdata (0, i-1, field_vec%id, cur_ndofs1_pernode, dofs_node(1:cur_ndofs1_pernode))
+    enddo
+    !call m3dc1_field_printcompnorm(field_vec%id, "field_vec before sync "//char(0))
+    call m3dc1_field_sync (field_vec%id)
+    !call m3dc1_field_printcompnorm(field_vec%id, "field_vec after sync "//char(0))
+    !fill field0_vec 
+    do i=1,prev_ndofs1
+      read(56) data_buf(i)
+    enddo 
+    call m3dc1_field_assign(field0_vec%id, 0., 0)
+    do i=1,prev_numnodes
+       dofs_node =0.
+       do j=0, prev_ndofs1_pernode/6-1
+           dofs_node(1+j*12:j*12+6)  &
+            = data_buf((i-1)*prev_ndofs1_pernode+1+j*6:(i-1)*prev_ndofs1_pernode+j*6+6)
+       end do
+       call m3dc1_ent_setdofdata (0, i-1, field0_vec%id, cur_ndofs1_pernode, dofs_node(1:cur_ndofs1_pernode))
+    enddo
+    !call m3dc1_field_printcompnorm(field0_vec%id, "field0_vec before sync "//char(0))
+    call m3dc1_field_sync (field0_vec%id)
+    !call m3dc1_field_printcompnorm(field0_vec%id, "field0_vec after sync "//char(0)) 
+
+  deallocate(data_buf)
+
+  ! If we are running a linear simulation, but the restart file was
+  ! a nonlinear simulation, make the restart data be the equilibrium
+  if(linear.eq.1 .and. prev_linear.eq.0) then
+     call m3dc1_field_add(field0_vec%id, field_vec%id)
+     call m3dc1_field_assign (field_vec%id, 0., 0)
+  endif
+
+  vloopsave = vloop
+  read(56) ntime,time,dt
+  read(56) totcur0,tflux0,gbound,ptot,vloop,   &
+          i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
+  read(56,END=1199) psimin,psilim,psibound
+  read(56,END=1199) xnull,znull
+  read(56,END=1199) xmag,zmag
+  if (control_type .eq. -1) &
+      vloop = vloopsave  ! use vloop from input if no control on I
+
+  if (myrank .eq. 0) then 
+      write(*,*) '[M3DC1 INFO] Setting 3D fields from 2D restart files and initializing timestep (ntime=0)'
+      write(*,*) '      #ranks: prev ', prev_maxrank, ', cur ', maxrank
+      write(*,*) '      #nodes: prev ', prev_numnodes, ', cur ', numnodes
+      write(*,*) '	#dofs1: prev ',prev_ndofs1, ', cur ',ndofs1
+      write(*,*) '      #dofs1: prev ',prev_ndofs2, ', cur ',ndofs2
+  endif
+  ntime=0
+
+    prev_ndofs2_pernode = prev_ndofs2/prev_numnodes
+    cur_ndofs2_pernode = ndofs2/numnodes
+    allocate(data_buf(prev_ndofs2))
+    do i=1,prev_ndofs2
+      read(56,END=1199) data_buf(i)
+    enddo
+    do i=1,prev_numnodes
+      dofs_node=0.
+      dofs_node(1:prev_ndofs2_pernode)&
+         = data_buf((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
+      call m3dc1_ent_setdofdata (0, i-1, bf_field(1)%vec%id, cur_ndofs2_pernode, dofs_node(1:cur_ndofs2_pernode))
+    enddo
+    call m3dc1_field_sync (bf_field(1)%vec%id)
+    do i=1,prev_ndofs2
+      read(56,END=1199) data_buf(i)
+    enddo
+    do i=1,prev_numnodes
+      dofs_node=0.
+      dofs_node(1:prev_ndofs2_pernode)&
+         = data_buf((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
+      call m3dc1_ent_setdofdata (0, i-1, bf_field(0)%vec%id, cur_ndofs2_pernode, dofs_node(1:cur_ndofs2_pernode))
+    enddo
+    call m3dc1_field_sync (bf_field(0)%vec%id)
+
+  read(56, END=1199) pellet_x, pellet_phi, pellet_z, &
+       pellet_velx, pellet_velphi, pellet_velz, pellet_var
+
+  read(56, END=1199) iversion
+
+  if(version.ge.7) then
+     read(56, END=1199) icsubtract
+     if(icsubtract.eq.1) then
+          do i=1,prev_ndofs2
+            read(56,END=1199) data_buf(i)
+          enddo
+          do i=1,prev_numnodes
+            dofs_node =0.
+            dofs_node(1:prev_ndofs2_pernode) &
+              = data_buf((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
+            call m3dc1_ent_setdofdata (0, i-1, psi_coil_field%vec%id, cur_ndofs2_pernode, dofs_node(1:cur_ndofs2_pernode))
+          end do
+          call m3dc1_field_printcompnorm(psi_coil_field%vec%id, "psi_coil_field before sync "//char(0))
+          call m3dc1_field_sync (psi_coil_field%vec%id)
+          call m3dc1_field_printcompnorm(psi_coil_field%vec%id, "psi_coil_field after sync "//char(0))
+     end if
+  end if
+
+  if(version.ge.10) then
+     read(56, END=1199) extsubtract, use_external_fields
+     if(use_external_fields) then
+        call create_field(psi_ext)
+        call create_field(bz_ext)
+        call create_field(bf_ext)
+          do i=1,prev_ndofs2
+            read(56,END=1199) data_buf(i)
+          enddo
+          do i=1,prev_numnodes
+            dofs_node =0.
+            dofs_node(1:prev_ndofs2_pernode) &
+                = data_buf((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
+            call m3dc1_ent_setdofdata (0, i-1, psi_ext%vec%id, cur_ndofs2_pernode, dofs_node(1:cur_ndofs2_pernode))
+          enddo
+          call m3dc1_field_sync (psi_ext%vec%id)
+          do i=1,prev_ndofs2
+            read(56,END=1199) data_buf(i)
+          enddo
+          do i=1,prev_numnodes
+            dofs_node =0.
+            dofs_node(1:prev_ndofs2_pernode) &
+                = data_buf((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
+             call m3dc1_ent_setdofdata (0, i-1, bz_ext%vec%id, cur_ndofs2_pernode, dofs_node(1:cur_ndofs2_pernode))
+          enddo
+          call m3dc1_field_sync (bz_ext%vec%id)
+          do i=1,prev_ndofs2
+            read(56,END=1199) data_buf(i)
+          enddo
+          do i=1,prev_numnodes
+            dofs_node =0.
+            dofs_node(1:prev_ndofs2_pernode) &
+                = data_buf((i-1)*prev_ndofs2_pernode+1:(i-1)*prev_ndofs2_pernode+prev_ndofs2_pernode)
+             call m3dc1_ent_setdofdata (0, i-1, bf_ext%vec%id, cur_ndofs2_pernode, dofs_node(1:cur_ndofs2_pernode))
+          enddo
+          call m3dc1_field_sync (bf_ext%vec%id)
+     end if
+  end if
+
+  deallocate(data_buf)
+  goto 1200
+1199 if (myrank.eq.0) &
+          print *, '[M3D-C1 ERROR] failed reading restart file'
+1200 close(56)
+end subroutine rdrestart_2d23d
 
 !============================================================
 subroutine rdrestart_cplx
@@ -398,7 +641,7 @@ subroutine rdrestart_cplx
   deallocate(data_buff)
   goto 1200
 1199 if(myrank.eq.0) &
-          print *, 'Warning: reading from a previous restart version'
+print *, '[M3D-C1 ERROR] failed reading restart file'
 1200 close(56)
 
 #endif
@@ -450,6 +693,51 @@ subroutine createfilename(filename, oldfilename)
   
   return
 end subroutine createfilename
+
+!============================================================
+subroutine get2dfilename(filename)
+  use basic
+
+  implicit none
+
+  include 'mpif.h'
+  character (len=30) :: filename
+  character (len=5) :: charprocnum
+  integer ::j, ier, i, group_rank
+
+  group_rank = modulo(myrank, maxrank/nplanes)
+                                ! initialize the SUPERLU process grid
+  do j=1,5
+     i = (group_rank / 10**(5-j)) - (group_rank / 10**(6-j)) * 10
+     select case(i)
+     case(0)
+        charprocnum(j:j) = '0'
+     case(1)
+        charprocnum(j:j) = '1'
+     case(2)
+        charprocnum(j:j) = '2'
+     case(3)
+        charprocnum(j:j) = '3'
+     case(4)
+        charprocnum(j:j) = '4'
+     case(5)
+        charprocnum(j:j) = '5'
+     case(6)
+        charprocnum(j:j) = '6'
+     case(7)
+        charprocnum(j:j) = '7'
+     case(8)
+        charprocnum(j:j) = '8'
+     case(9)
+        charprocnum(j:j) = '9'
+     end select
+  enddo
+
+  filename = 'C1restart'//charprocnum
+  !write(*,*) '[P',myrank,'] group_rank: ', group_rank,' get2dfilename: ',filename
+  return
+end subroutine get2dfilename
+
 !============================================================
 subroutine wrrestartglobal
   use mesh_mod
@@ -672,7 +960,7 @@ subroutine rdrestartglobal
   read(56,END=1199) xmag,zmag
   goto 1200
 1199 if(myrank.eq.0) &
-          print *, 'Warning: reading from a previous restart version'
+print *, '[M3D-C1 ERROR] failed reading restart file'
 1200 close(56)
   deallocate (data_buff)
   deallocate (data_buff2)
