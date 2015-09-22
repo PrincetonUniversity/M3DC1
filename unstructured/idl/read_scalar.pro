@@ -169,6 +169,12 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = 'Angular Momentum'
        symbol = '!8L!D!9P!N!X'
        d = dimensions(/energy,/t0, _EXTRA=extra)
+   endif else if $
+     (strcmp("time", scalarname, /fold_case) eq 1) then begin
+       data = s.time._data
+       title = 'Angular Momentum'
+       symbol = '!8t!X'
+       d = dimensions(/t0, _EXTRA=extra)
    endif else if (strcmp("circulation", scalarname, /fold_case) eq 1) or $
      (strcmp("vorticity", scalarname, /fold_case) eq 1) then begin
        data = s.circulation._data
