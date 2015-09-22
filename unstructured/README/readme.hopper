@@ -6,8 +6,8 @@ Sun Apr 12 22:41:24 EDT 2015
 2. code
 
 3. module load
-
 	module swap PrgEnv-pgi PrgEnv-cray
+	module load cray-trilinos
 	module load cmake
 	module load cray-hdf5-parallel
 	module load fftw
@@ -16,7 +16,7 @@ Sun Apr 12 22:41:24 EDT 2015
 	module load idl
 	module load adios
 	module load cray-tpsl
-	module load cray-trilinos
+	module load subversion
 	module load cray-petsc # or module load cray-petsc-complex
 
 4. compile code
@@ -41,11 +41,11 @@ Sun Apr 12 22:41:24 EDT 2015
       
         #2D complex
         (for regular i/o) aprun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
-        (for adios i/o)   prun -n 8 m3dc1_2d_complex_adios -pc_factor_mat_solver_package mumps 
+        (for adios i/o)   aprun -n 8 m3dc1_2d_complex_adios -pc_factor_mat_solver_package mumps 
 
         #2D real
         (for regular i/o) aprun -n 8 m3dc1_2d
-        (for adios i/o)   prun -n 8 m3dc1_2d_adios
+        (for adios i/o)   aprun -n 8 m3dc1_2d_adios
  
         #3D real
         (for regular i/o) aprun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi

@@ -22,16 +22,23 @@ endif
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
 
-SCORECDIR = /global/project/projectdirs/mp288/hopper/scorec/May2015
+#SCORECDIR = /global/project/projectdirs/mp288/hopper/scorec/May2015
+SCORECDIR = /global/project/projectdirs/mp288/hopper/scorec/Sep2015
 ifeq ($(COM),1)
   SCORECLIB=-lapf -lgmi -lm3dc1_scorec_complex -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
 else
   SCORECLIB=-lapf -lgmi -lm3dc1_scorec -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
 endif
-SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group $(SCORECLIB) -Wl,--end-group
+#SCOREC_LIBS =-L$(SCORECDIR)/lib -Wl,--start-group $(SCORECLIB) -Wl,--end-group
+SCOREC_LIBS =-L$(SCORECDIR)/lib/$(PE_ENV) -Wl,--start-group $(SCORECLIB) -Wl,--end-group
 INCLUDE := $(INCLUDE) -I$(SCORECDIR)/include
 LIBS := $(LIBS) $(SCOREC_LIBS) #-lC -lstd
 
+ifeq ($(PE_ENV), PGI)
+  Zoltan_HOME=$(SCORECDIR)/lib/$(PE_ENV)
+else
+  Zotlan_HOME=$(CRAY_TRILINOS_PREFIX_DIR)/lib
+endif
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
 OPTS := $(OPTS) -DPetscDEV -DxUSEADIOS -DKSPITS -DNO_STOP_MESSAGE=1 -DPetscOLD #-DUSEHYBRID -DCJ_MATRIX_DUMP
@@ -52,6 +59,7 @@ INCLUDE := $(INCLUDE) -I$(HDF5_INCLUDE_OPTS) $(FFTW_INCLUDE_OPTS) \
 
 LIBS := $(LIBS) $(HDF5_POST_LINK_OPTS) -lhdf5_fortran -lhdf5 \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
+        $(Zoltan_HOME) -lzoltan \
 	$(HYPRE) $(MUMPS) $(PARMETIS) -ldl \
         $(HYBRID_LIBS) \
         $(ADIOS_FLIB) \
