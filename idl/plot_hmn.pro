@@ -1,0 +1,83 @@
+pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
+                yrange=yrange, smooth=sm, _EXTRA=extra, ke=ke, me=me
+   if(n_elements(filename) eq 0) then filename = 'C1.h5'
+   if(hdf5_file_test(filename) eq 0) then return
+
+   ; read harmonics [N, ntimes]
+   file_id = h5f_open(filename)
+   root_id = h5g_open(file_id, "/")
+   data = h5_parse(root_id, "keharmonics", /read_data)
+   h5g_close, root_id
+   h5f_close, file_id
+   if(keyword_set(me)) then begin
+      name = 'Magnetic Energy'
+      kehmn = data.BHARMONICS._DATA
+   endif else begin
+      name = 'Kinetic Energy'
+      kehmn = data.KEHARMONICS._DATA
+   end
+   dimn = size(kehmn, /dim)
+   print, 'total number of Fourier harmonics and timesteps = ', dimn
+
+   ; read times, timestep [ntimes]
+   time = read_scalar('time', filename=filename, units=u, _EXTRA=extra)
+   xtitle = '!8t !6(' + u + ')!X'
+
+   ; write harmonics [N, ntimes] into "outfile"
+      if(keyword_set(outfile)) then begin
+         ;format=string(39B)+'(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'+string(39B)
+         format='(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'
+         print, format
+         openw,ifile,outfile,/get_lun
+         printf,ifile,format=format,[transpose(time),kehmn]
+         free_lun, ifile
+      endif
+
+   ; get the maximum number of fourier harmonics to be plotted, default to dim[0]
+   if(n_elements(maxn) eq 0) then maxn = dimn[0]
+
+   ntimes = dimn[1]
+   print, 'max number of Fourier harmonics to be plotted = ', maxn, ntimes
+   ke = fltarr(maxn, ntimes)
+   grate=fltarr(maxn ,ntimes)
+   for n=0, maxn-1 do begin
+      ke[n,*] = kehmn[n:n+(ntimes-1)*dimn[0]:dimn[0]]
+      grate[n,*] = deriv(time, alog(ke[n,*]))/2.
+   endfor
+
+   ; plot range 1:ntimes
+   if(keyword_set(growth)) then begin
+      tmp = grate
+      ytitle='!6Growth Rate!X'
+   endif else begin
+      tmp = ke
+      ytitle='!6' + name + '!X'
+   endelse
+
+   ; smooth data
+   if(n_elements(sm) ne 0) then begin
+      for n=0,maxn-1 do tmp[n,*] = smooth(tmp[n,*], sm)
+   end
+
+   ; get plot's yrange, default to minmax(...)
+   if(n_elements(yrange) eq 0) then yrange=[min(tmp), max(tmp)]
+
+
+   c = get_colors(n)
+   for n=0, maxn-1 do begin
+
+      if(n lt 1) then begin
+         plot, time[1:ntimes-1], tmp[n,1:ntimes-1], $
+               xtitle=xtitle, ytitle=ytitle, yrange=yrange, $
+               _EXTRA=extra
+      endif else begin
+         oplot, time, tmp[n,*], linestyle=0, color=c[n]
+      endelse
+
+      numberAsString = STRTRIM(n, 2)
+      xyouts, time[ntimes/2], tmp[n,ntimes/2], numberAsString, color=c[n]
+   endfor
+   plot_legend, string(format='("!8n!6=",I0,"!X")',indgen(maxn)), $
+                color=c, _EXTRA=extra
+
+end

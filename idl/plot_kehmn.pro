@@ -74,7 +74,8 @@ function minmax,array,NAN=nan, DIMEN=dimen, $
  endelse
  end
 
-pro plot_kehmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog=ylog, growth=growth, outfile=outfile
+pro plot_kehmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
+                yrange=yrange, smooth=sm, _EXTRA=extra
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
    if(hdf5_file_test(filename) eq 0) then return
 
@@ -89,9 +90,8 @@ pro plot_kehmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog
    print, 'total number of Fourier harmonics and timesteps = ', dimn
 
    ; read times, timestep [ntimes]
-   s = read_scalars(filename=filename)
-   time = s.time._data
-   dt = s.dt._data
+   time = read_scalar('time', filename=filename, units=u, _EXTRA=extra)
+   xtitle = '!8t !6(' + u + ')!X'
 
    ; write harmonics [N, ntimes] into "outfile"
       if(keyword_set(outfile)) then begin
@@ -104,71 +104,52 @@ pro plot_kehmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog
       endif
 
    ; get the maximum number of fourier harmonics to be plotted, default to dim[0]
-   if(n_elements(maxn) eq 0) then begin
-   maxn = dimn[0]
-   end
+   if(n_elements(maxn) eq 0) then maxn = dimn[0]
+
    ntimes = dimn[1]
    print, 'max number of Fourier harmonics to be plotted = ', maxn, ntimes
-   
-   ; if growth rate to be plotted
-   grate=fltarr( maxn , (ntimes-1) )
+   ke = fltarr(maxn, ntimes)
+   grate=fltarr(maxn ,ntimes)
    for n=0, maxn-1 do begin
-      for t=0, ntimes-2 do begin
-         ind = n + t*dimn[0]
-         ind1 = n + (t+1)*dimn[0]
-         ;print, n, t, ind, ind1, kehmn[ind] , kehmn[ind1]
-         grate[n,t] = 2. / (kehmn[ind1] + kehmn[ind]) * (kehmn[ind1] - kehmn[ind]) / dt[t+1]
-      endfor
+      ke[n,*] = kehmn[n:n+(ntimes-1)*dimn[0]:dimn[0]]
+      grate[n,*] = deriv(time, alog(ke[n,*]))/2.
    endfor
+
+   ; plot range 1:ntimes
+   if(keyword_set(growth)) then begin
+      tmp = grate
+      ytitle='!6Growth Rate!X'
+   endif else begin
+      tmp = ke
+      ytitle='!6Kinetic Energy!X'
+   endelse
+
+   ; smooth data
+   if(n_elements(sm) ne 0) then begin
+      for n=0,maxn-1 do tmp[n,*] = smooth(tmp[n,*], sm)
+   end
 
    ; get plot's yrange, default to minmax(...)
    if(n_elements(yrange) eq 0) then begin
-      if(keyword_set(growth)) then begin
-         grate_minmax = minmax(grate)
-         yrange=[grate_minmax[0], grate_minmax[1]]
-      endif else begin
-         kehmn_minmax = minmax(kehmn)
-         yrange=[kehmn_minmax[0], kehmn_minmax[1]]
-      endelse
+      mm = minmax(tmp[*,1:ntimes-1])
+      yrange=[mm[0], mm[1]]
    end
-   ;print, 'plot yrange = ', yrange[0], yrange[1]
-   ; get plot's xrange, default to [time[1],time[ntimes]]
-   if(n_elements(xrange) eq 0) then begin
-         xrange=[time[1], time[dimn[1]-1]]
-   end
-   ;print, 'plot xrange = ', xrange[0], xrange[1]
 
-   ; plot range 1:ntimes
-   x = fltarr(ntimes-1)
-   tmp = fltarr(ntimes-1)
-
+   c = get_colors(n)
    for n=0, maxn-1 do begin
-      for t=0, ntimes-2 do begin
-         if(keyword_set(growth)) then begin
-            ind = n + t*maxn
-            tmp[t] = grate[ind]
-            title='growth rate for each harmonics'
-         endif else begin
-            ind = n + (t+1)*dimn[0]
-            tmp[t] = kehmn[ind]
-            title='kinetic energy for each harmonics'
-         endelse
-            x[t] = time[t+1]
-      endfor
 
       if(n lt 1) then begin
-         if(keyword_set(ylog)) then begin
-         plot, x, tmp, xrange=xrange, yrange=yrange, /ylog, TITLE=title, linestyle=0
-         endif else begin
-         plot, x, tmp, xrange=xrange, yrange=yrange, TITLE=title, linestyle=0
-         endelse
+         plot, time[1:ntimes-1], tmp[n,1:ntimes-1], xtitle=xtitle, ytitle=ytitle, yrange=yrange, $
+               _EXTRA=extra
       endif else begin
-         oplot, x, tmp, linestyle=0
+         oplot, time, tmp[n,*], linestyle=0, color=c[n]
       endelse
 
       numberAsString = STRTRIM(n, 2)
-      xyouts, x[ntimes/2], tmp[ntimes/2], numberAsString
+      xyouts, time[ntimes/2], tmp[n,ntimes/2], numberAsString, color=c[n]
    endfor
+   plot_legend, string(format='("!8n!6=",I0,"!X")',indgen(maxn)), $
+                ylog=ylog, color=c
 
 end
 
