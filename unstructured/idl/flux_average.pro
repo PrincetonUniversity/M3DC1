@@ -38,7 +38,8 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
    endif
 
    if(not isa(fc)) then begin
-      fc = flux_coordinates(/fast,filename=filename,tbins=bins,fbins=bins,_EXTRA=extra)
+      fc = flux_coordinates(/fast,points=points,filename=filename,$
+                            tbins=bins,fbins=bins,_EXTRA=extra)
    end
 
    if(type eq 7) then begin ; named field
