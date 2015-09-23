@@ -342,6 +342,8 @@ module basic
   integer :: iread_ne      
   integer :: iread_te
   integer :: iread_p
+  integer :: iread_heatsource ! 1 = read heat source profile (in terms of Psi normalized), source is scaled with ghs_rate
+  integer :: iread_particlesource ! 1 = read particle source profile (in terms of Psi normalized), source is scaled with pellet_rate
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
   integer :: iwrite_restart ! 0 = don't write restart files
