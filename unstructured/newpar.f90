@@ -274,7 +274,7 @@ Program Reducedquintic
              i_control%target_val, i_control%err_p_old, i_control%err_i
      endif
 
-     if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .gt. 0) then
+     if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .ge. 0) then
      ! feedback control on density source
        call control(totden, pellet_rate, n_control, dt)
      endif
