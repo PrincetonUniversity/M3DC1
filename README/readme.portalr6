@@ -16,6 +16,7 @@ Updated
 
         setenv PETSC_DIR /p/swim/jchen/PETSC/petsc-3.5.3
         setenv PETSC_ARCH portalr6-intel-openmpi-1.8.4
+        setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/portalr6
 
 
 4. compile code

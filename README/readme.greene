@@ -30,3 +30,5 @@ netcdf/3.6.3
       module unload idl
       module load idl/8.1
 
+setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/greene
+
