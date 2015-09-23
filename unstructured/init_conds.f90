@@ -2155,12 +2155,14 @@ subroutine eqdsk_init()
   end if
 
   ! create spline containing q profile as function of psi_N
-  allocate(nflux(nw))
-  do l=1, nw
-     nflux(l) = l / (nw-1.)
-  end do
-  call create_spline(q_spline,nw,nflux,qpsi)
-  deallocate(nflux)
+  if( .not. isnan(qpsi(nw))) then
+    allocate(nflux(nw))
+    do l=1, nw
+       nflux(l) = l / (nw-1.)
+    end do
+    call create_spline(q_spline,nw,nflux,qpsi)
+    deallocate(nflux)
+  endif
 
   if(current.lt.0 .and. iflip_j.eq.1) then
      if(myrank.eq.0) then 
@@ -2245,12 +2247,18 @@ subroutine eqdsk_init()
                 *sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
-        call create_rho_from_q(nw,flux,qpsi)
+        
+        if(.not. isnan(qpsi(nw))) then
+           call create_rho_from_q(nw,flux,qpsi)
+        else
+           if(myrank.eq.0) print *, "toroidal flux not defined"
+           flux=0
+        endif
         if(myrank.eq.0 .and. iprint.ge.1) then
            open(unit=77,file="debug-out",status="unknown")
            write(77,2010) sibry,simag,tcuro,xmag,zmag
 2010       format("sibry,simag,tcuro,xmag,zmag =",1p5e12.4,/,  &
-                "  l   press       pprime      fpol        ffprim      ffp2        pp2         flux")
+                "  l   press       pprime      fpol        ffprim      ffp2        pp2         flux        qpsi")
            do l=1,nw
               if(l.gt.1 .and. l.lt.nw)  then
                 ffp2 = fpol(l)*(fpol(l+1)-fpol(l-1))/(2*dpsi)
@@ -2259,9 +2267,9 @@ subroutine eqdsk_init()
                 ffp2 = 0
                 pp2 = 0
               endif
-              write(77,2011) l,press(l),pprime(l),fpol(l),ffprim(l),ffp2,pp2,flux(l)
+              write(77,2011) l,press(l),pprime(l),fpol(l),ffprim(l),ffp2,pp2,flux(l),qpsi(l)
            enddo
-2011       format(i3,1p7e12.4)
+2011       format(i3,1p8e12.4)
            close(77)
         endif
         deallocate(flux)
