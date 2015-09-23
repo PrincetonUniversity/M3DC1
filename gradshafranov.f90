@@ -787,7 +787,7 @@ subroutine define_profiles
   call unload_iterdb
 
   ! output profiles
-  if(myrank.eq.0) call write_profile
+  if(myrank.eq.0 .and. iprint.ge.1) call write_profile
 
   if(myrank.eq.0) then
      print *, 'pprime at max psi: ', &
@@ -988,7 +988,7 @@ subroutine gradshafranov_solve
   integer :: iedge, idim(3)
 
   if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, "Calculating Grad-Shafranov Equilibrium"
+       print *, "Calculating GS- Equilil,    use_norm_psi=", use_norm_psi
 
   if(imulti_region.eq.1) then
      int_tor = 5
@@ -1789,7 +1789,7 @@ subroutine fundef
 
   vectype, dimension(dofs_per_node) :: temp, temp2
 
-  dpsii = 1./(psibound - psimin)
+  dpsii =  (1./(psibound - psimin))
 
   numnodes = owned_nodes()
   do inode=1,numnodes
@@ -2008,9 +2008,16 @@ subroutine fundef2(error)
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
   integer :: magnetic_region, izone, mr
-  real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np, f
+  real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np, f, f1
 
-  dpsii = 1./(psibound - psimin)
+  dpsii =  (1./(psibound - psimin))
+!
+!  Change made 9/23/2015    scj
+   f1 = 1
+   if(iread_eqdsk.eq.1 .and. dpsii.gt.0) f1 = -1
+   if(myrank.eq.0 .and. iprint.ge.1) print *,     &
+       'f,dpsii,use_norm_psi',f1,dpsii,use_norm_psi
+
   fun1_vec = 0.
   fun2_vec = 0.
   fun3_vec = 0.
@@ -2095,10 +2102,11 @@ subroutine fundef2(error)
            temp79e(i) = p
         end if
      end do
+
      
      ! convert from normalized to real flux
-     temp79a = temp79a*dpsii**use_norm_psi
-     temp79b = temp79b*dpsii**use_norm_psi
+     temp79a = f1*temp79a*dpsii**use_norm_psi    
+     temp79b = f1*temp79b*dpsii**use_norm_psi    
      if(irot.eq.1) temp79d = temp79d*dpsii
      
      ! p(R, psi) = p0(psi)*Exp[ alpha(psi) * (R^2-R0^2)/R0^2 ]
@@ -2361,7 +2369,7 @@ end subroutine readpgfiles
    g0    = 0.5*(f**2 - f(n)**2)
    ffn   = ffp*(flux(n) - flux(1))  ! convert to derivative wrt normalized psi
    ppn   = pp *(flux(n) - flux(1))  ! convert to derivative wrt normalized psi
-   dpsii = 1./(flux(n) - flux(1))
+   dpsii =  (1./(flux(n) - flux(1)))
    psinorm = (flux - flux(1)) * dpsii
 
    if(igs_pp_ffp_rescale.eq.1) then
@@ -2407,14 +2415,14 @@ end subroutine readpgfiles
    implicit none
 
    integer :: j
-   real :: y, yp, ypp, yppp
+   real :: y, yp, yp_p, ypp, yppp
 
    open(unit=75,file="testout",status="unknown")
    do j=1, 1000
       yppp = (j-1.)/(1000.-1.)
-      call evaluate_spline(p0_spline, yppp, y)
+      call evaluate_spline(p0_spline, yppp, y, yp_p)
       call evaluate_spline(pprime_spline, yppp, yp, ypp)
-      write(75,'(4e12.5)') yppp, y, yp, ypp
+      write(75,'(5e12.5)') yppp, y, yp_p, yp, ypp
    enddo
    close(75)
 
@@ -2432,12 +2440,26 @@ end subroutine readpgfiles
    enddo
    close(77)
 
-   open(unit=78,file="profilesdb-w",status="unknown")
-   do j=1, omega_spline%n
-      call evaluate_spline(omega_spline, omega_spline%x(j), y, yp, ypp, yppp)
-      write(78,802) j, omega_spline%x(j), y, yp, ypp, yppp
+   open(unit=78,file="profilesdb-pprime",status="unknown")
+   do j=1, pprime_spline%n
+      call evaluate_spline(pprime_spline, pprime_spline%x(j), y, yp, ypp, yppp)
+      write(78,802) j, pprime_spline%x(j), y, yp, ypp, yppp
    enddo
    close(78)
+   
+   open(unit=79,file="profilesdb-ffprime",status="unknown")
+   do j=1, ffprime_spline%n
+      call evaluate_spline(ffprime_spline, ffprime_spline%x(j), y, yp, ypp, yppp)
+      write(79,802) j, ffprime_spline%x(j), y, yp, ypp, yppp
+   enddo
+   close(79)
+
+   open(unit=80,file="profilesdb-w",status="unknown")
+   do j=1, omega_spline%n
+      call evaluate_spline(omega_spline, omega_spline%x(j), y, yp, ypp, yppp)
+      write(80,802) j, omega_spline%x(j), y, yp, ypp, yppp
+   enddo
+   close(80)
 
 802 format(i5,1p6e18.9)   
  end subroutine write_profile
