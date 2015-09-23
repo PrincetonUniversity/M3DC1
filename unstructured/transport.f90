@@ -3,6 +3,8 @@ module transport_coefficients
 
   type(spline1d), private :: kappa_spline
   type(spline1d), private :: amu_spline
+  type(spline1d), private :: heatsource_spline
+  type(spline1d), private :: particlesource_spline
 
 contains
 
@@ -15,12 +17,16 @@ vectype function sigma_func(i)
   use diagnostics
   use neutral_beam
   use pellet
+  use read_ascii
 
   implicit none
 
   integer, intent(in) :: i
   vectype :: temp
   integer :: iregion, j, magnetic_region
+  integer :: nvals
+  real :: val, valp, valpp, pso
+  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
@@ -53,6 +59,31 @@ vectype function sigma_func(i)
      temp79a = neutral_beam_deposition(x_79,z_79)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   end if
+
+  ! Read numerical particle source profile
+  if(iread_particlesource.eq.1) then
+     if(.not.allocated(particlesource_spline%x)) then
+        nvals = 0
+        call read_ascii_column('profile_particlesource', xvals, nvals, icol=1)
+        call read_ascii_column('profile_particlesource', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(6)
+        call create_spline(particlesource_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+
+     do j=1, npoints
+        if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
+             then
+           pso = 1.
+        else
+           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+        end if
+        call evaluate_spline(particlesource_spline,pso,val,valp,valpp)
+        temp79a(j) = val * pellet_rate
+     end do
+
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+  endif 
 
   ! Localized sink(s)
   if(isink.ge.1) then
@@ -218,11 +249,15 @@ vectype function q_func(i)
   use m3dc1_nint
   use diagnostics
   use neutral_beam
+  use read_ascii
 
   implicit none
 
   integer, intent(in) :: i
   vectype :: temp
+  integer :: nvals, j, magnetic_region
+  real :: val, valp, valpp, pso
+  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
@@ -247,6 +282,32 @@ vectype function q_func(i)
              - 2.*nb_v*int4(r_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1)) &
              + int5(r2_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
      endif
+  endif
+
+  ! Read numerical heat source profile
+  if(iread_heatsource.eq.1) then
+     if(.not.allocated(heatsource_spline%x)) then
+        nvals = 0
+        call read_ascii_column('profile_heatsource', xvals, nvals, icol=1)
+        call read_ascii_column('profile_heatsource', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(6)
+           yvals = yvals * ghs_rate
+        call create_spline(heatsource_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+
+     do j=1, npoints
+        if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
+             then
+           pso = 1.
+        else
+           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+        end if
+        call evaluate_spline(heatsource_spline,pso,val,valp,valpp)
+        temp79a(j) = val
+     end do
+
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   q_func = temp
