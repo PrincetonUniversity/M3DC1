@@ -131,9 +131,9 @@
 
 ! Grad-Shafranov Options
 ! ======================
-	xlim = 1.018	! limiting value of x
+	xlim = 0.	! limiting value of x
 	zlim = 0.	! limiting value of z
-	xlim2 = 2.365	! limiting value of x
+	xlim2 = 0.	! limiting value of x
 	zlim2 = 0.	! limiting value of z
 	th_gs = 0.5
 	igs = 100	! number of grad-shafranov iterations
