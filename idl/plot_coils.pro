@@ -96,10 +96,10 @@ pro plot_coils, filename=file, directory=dir, overplot=overplot, rmp=rmp, $
                end
            end
            oplot, xc, zc, psym=3, color=color(6)
-        endif else begin
+       endif else begin
            oplot, [xp, xp[0]], [zp, zp[0]], color=color(7), psym=6, $
                   thick=3
         end
+       xyouts, xp[0], zp[0], string(format='(I0)',i+1)
    end
-
 end
