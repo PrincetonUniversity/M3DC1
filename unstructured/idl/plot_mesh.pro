@@ -25,7 +25,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    convert_units, fac, dimensions(/l0), b0, n0, l0, zeff, mi, _EXTRA=ex
 
    ct3
-   col = color(1,10)
+   col = color(9,16)
  
    version = read_parameter('version', _EXTRA=ex)
    if(version eq 0) then begin

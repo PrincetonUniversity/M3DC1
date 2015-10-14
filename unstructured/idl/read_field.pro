@@ -2507,7 +2507,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                         linear=linear, phi=phi0)
            end
 
-       endif else if(icomplex eq 1) then begin
+       endif else if(icomplex eq 1 and time ge 0) then begin
            f_r = read_field('f', x, y, t, mesh=mesh, operation=2, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
@@ -2559,7 +2559,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                  linear=linear, phi=phi0)
            end
 
-       endif else if(icomplex eq 1) then begin
+       endif else if(icomplex eq 1 and time ge 0) then begin
            f_z = read_field('f', x, y, t, mesh=mesh, operation=3, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
