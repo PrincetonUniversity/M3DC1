@@ -26,13 +26,12 @@ double Z0 = 0.;
 double angle = 0.;
 bool qout = true;
 bool pout = true;
+bool reverse = false;
 double ds = 0.;
 int nplanes = 1;
 
 bool R0_set = false;
 bool Z0_set = false;
-double phase_set = false;
-
 
 void print_help();
 void print_parameters();
@@ -59,6 +58,7 @@ int main(int argc, char* argv[])
 
   tracer.plane = angle;
   tracer.nplanes = nplanes;
+  tracer.set_reverse(reverse);
 
   if(tracer.sources.size() == 0) {
     std::cerr << "No sources specified.  Returning." << std::endl;
@@ -204,8 +204,7 @@ int main(int argc, char* argv[])
     int tt = 0;
     result = false;
     for(int k=0; k<n; k++) {   
-      if(phase_set) Phi = Phi0;
-      else Phi = tracer.find_min_bn(rr[k],zz[k]);
+      Phi = Phi0;
 
       std::cerr << atan2(zz[k] - Z_axis, rr[k] - R_axis) << "\t";
       //      dfile << rr[k] << '\t' <<  zz[k] << '\t';
@@ -338,12 +337,13 @@ void delete_sources()
 bool process_command_line(int argc, char* argv[])
 {
   const int max_args = 4;
-  const int num_opts = 16;
+  const int num_opts = 17;
   std::string arg_list[num_opts] = 
     { "-geqdsk", "-m3dc1", "-diiid-i",
       "-dR", "-dZ", "-dR0", "-dZ0", 
       "-ds", "-p", "-t", "-s", "-a",
-      "-pout", "-qout", "-phi0", "-n" };
+      "-pout", "-qout", "-phi0", "-n", 
+      "-reverse" };
   std::string opt = "";
   std::string arg[max_args];
   int args = 0;
@@ -451,7 +451,6 @@ bool process_line(const std::string& opt, const int argc, const std::string argv
   } else if(opt=="-phi0") {
     if(argc==1) {
       Phi0 = atof(argv[0].c_str())*M_PI/180.;
-      phase_set = true;
     } else argc_err = true;
   } else if(opt=="-n") {
     if(argc==1) nplanes = atoi(argv[0].c_str());
@@ -462,7 +461,9 @@ bool process_line(const std::string& opt, const int argc, const std::string argv
   } else if(opt=="-qout") {
     if(argc==1) qout = (atoi(argv[0].c_str()) == 1);
     else argc_err = true;
-
+  } else if(opt=="-reverse") {
+    if(argc==0) reverse = true;
+    else argc_err = true;
   } else {
     std::cerr << "Unrecognized option " << opt << std::endl;
     return false;

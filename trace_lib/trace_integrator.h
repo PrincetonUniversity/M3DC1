@@ -10,6 +10,7 @@ class trace_integrator : private trace_field_source {
   double R, Phi, Z;
 
   double dr[4], dz[4];
+  bool reverse;
 
   std::fstream file;
 
@@ -43,7 +44,7 @@ class trace_integrator : private trace_field_source {
 			   const double ds, double** r, double** z, int* n);
 
 
-  double find_min_bn(const double, const double);
+  void set_reverse(const bool r);
 
   bool set_pos(const double r, const double phi, const double z);
   void get_pos(double *r, double* phi, double* z) const

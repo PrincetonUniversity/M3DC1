@@ -6,6 +6,7 @@
 
 trace_integrator::trace_integrator()
 {
+  reverse = false;
   toroidal = true;
   period = 2.*M_PI;
   plane = 0.;
@@ -111,6 +112,11 @@ bool trace_integrator::close_file()
   return true;
 }
 
+void trace_integrator::set_reverse(const bool r)
+{
+  reverse = r;
+}
+
 bool trace_integrator::set_pos(const double r,const double phi,const double z)
 {
   R = r;
@@ -175,49 +181,6 @@ bool trace_integrator::extent(double* r0, double* r1, double* z0, double* z1)
   return result;
 }
 
-double trace_integrator::find_min_bn(const double r, const double z)
-{
-  const int steps = 100;
-  double dphi = period/(double)steps;
-  double br, bphi, bz, bnorm, bpar, br0 = 0., bphi0=0., bz0 = 0.;
-  double theta2, min_theta2;
-  int min_i = 0;
-  double R0, Z0;
-
-  if(!center(&R0, &Z0))
-    return 0;
-
-  for(int i=0; i<steps; i++) {
-    if(!eval(r,dphi*i,z,&br,&bphi,&bz))
-      return 0.;
-    br0 += br;
-    bphi0 += bphi;
-    bz0 += bz;
-  }
-  br0 /= (double)steps;
-  bphi0 /= (double)steps;
-  bz0 /= (double)steps;
-  
-  for(int i=0; i<steps; i++) {
-    if(!eval(r,dphi*i,z,&br,&bphi,&bz))
-      return 0.;
-    bpar  = -((br-br0)*br0 + (bz-bz0)*bz0); // + (bphi-bphi0)*bphi0;
-    bnorm = -((bz-bz0)*br0 - (br-br0)*bz0);
-
-    theta2 = atan2(bpar, bnorm);
-
-    //    std::cout << r << " " << dphi*i << " " << theta2 << std::endl;
-
-    theta2 *= theta2;
-    if(i==0 || theta2 < min_theta2) {
-      min_i = i;
-      min_theta2 = theta2;
-    }
-  }
-
-  return dphi*min_i;
-}
-
 bool trace_integrator::integrate(int transits, int steps_per_transit, 
 				 integrator_data* data)
 {
@@ -228,6 +191,7 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
   bool ptrans, add = false;
   double avg_steps_per_pol_transit;
   double steps_since_pol_transit;
+  double pd = (reverse ? -period : period);
 
   if(data) {
     data->toroidal_transits = 0;
@@ -244,12 +208,21 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
   double psi_axis, psi_lcfs;
   bool use_psinorm = psibound(&psi_axis, &psi_lcfs);
 
+  dphi = pd/(double)steps_per_transit;
+
   for(i=0; i<steps; i++) {
-    dphi = period/(double)steps_per_transit;
+
     double next_Phi = Phi + dphi;
-    if(next_Phi >= period) {
-      next_Phi -= period;
-      Phi -= period;
+    if(reverse) {
+      if(next_Phi <= pd) {
+	next_Phi -= pd;
+	Phi -= pd;
+      }
+    } else {
+      if(next_Phi >= pd) {
+	next_Phi -= pd;
+	Phi -= pd;
+      }
     }
 
     double last_R = R;
@@ -259,12 +232,20 @@ bool trace_integrator::integrate(int transits, int steps_per_transit,
 
     // if Phi will pass through the plotting plane on this step, plot intercept
     if(nplanes <=1) {
-      plot = (Phi < plane && next_Phi >= plane);
+      if(reverse) {
+	plot = (Phi > plane && next_Phi <= plane);
+      } else  {
+	plot = (Phi < plane && next_Phi >= plane);
+      }
       pl = plane;
     } else {
       for(int j=0; j<nplanes; j++) {
-	pl = period*(double)j/(double)nplanes + plane;
-	plot = (Phi < pl && next_Phi >= pl);
+	pl = pd*(double)j/(double)nplanes + plane;
+	if(reverse) {
+	  plot = (Phi > pl && next_Phi <= pl);
+	} else {
+	  plot = (Phi < pl && next_Phi >= pl);
+	}
 	if(plot) break;
       }
     }
