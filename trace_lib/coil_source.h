@@ -48,6 +48,7 @@ class coil_source : public trace_field_source, public std::list<coil_segment> {
 
  public:
   coil_source();
+  
   virtual ~coil_source();
 
   bool load();

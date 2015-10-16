@@ -16,6 +16,7 @@ class m3dc1_source : public trace_field_source {
   double bzero, rzero;
   double R_axis, Z_axis;
   double psi_axis, psi_lcfs;
+  double period;
 
  public:
   std::string filename;
@@ -34,6 +35,8 @@ class m3dc1_source : public trace_field_source {
   bool psibound(double* psi0, double* psi1) const;
   virtual bool center(double* r0, double* z0) const;
   virtual bool extent(double* r0, double* r1, double* z0, double* z1) const;
+  virtual double get_period() const
+  { return period; }
 };
 
 #endif

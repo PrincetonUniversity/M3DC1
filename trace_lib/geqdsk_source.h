@@ -13,7 +13,7 @@ class geqdsk_source : public trace_field_source {
   double rleft, zmid;
 
   double* psi;
-  double* psirz;
+  double** psirz;
   double* fpol;
   
 

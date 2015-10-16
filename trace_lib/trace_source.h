@@ -8,9 +8,8 @@ class trace_field_source {
  public:
   bool interpolate;
   bool toroidal;
-  double period;
 
-  trace_field_source() { interpolate = false; toroidal=true; period=2.*M_PI; }
+  trace_field_source() { interpolate = false; toroidal=true; }
   virtual ~trace_field_source() { }
 
   virtual bool load() = 0;
@@ -28,6 +27,8 @@ class trace_field_source {
 
   virtual bool get_surface(const double r0, const double phi0, const double z0,
 			   double ds, double** r, double** z, int* n);
+  virtual double get_period() const
+  { return 2.*M_PI; }
 };
 
 typedef std::deque<trace_field_source*> trace_source_list;

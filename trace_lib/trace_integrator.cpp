@@ -66,7 +66,9 @@ bool trace_integrator::load()
   if(sources.size() == 0) return false;
 
   toroidal = sources[0]->toroidal;
-  period = sources[0]->period;
+  period = sources[0]->get_period();
+  std::cout << "Toroidal " << toroidal << std::endl;
+  std::cout << "Period " << period << std::endl;
 
   return true;
 }

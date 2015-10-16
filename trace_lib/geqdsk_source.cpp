@@ -1,13 +1,16 @@
 #include "geqdsk_source.h"
+#include "interpolate.h"
 
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 
+/*
 extern "C" {
   void bicubic_interpolation_coeffs_(double*, int*, int*, int*, int*, double*);
   void cubic_interpolation_(int*, double*, double*, double*, double*);
 }
+*/
 
 static double pow(double x, int p)
 {
@@ -24,7 +27,10 @@ geqdsk_source::geqdsk_source()
 
 geqdsk_source::~geqdsk_source()
 {
-  if(psirz) delete[] psirz;
+  if(psirz) {
+    for(int i=0; i<nh; i++) delete[] psirz[i];
+    delete[] psirz;
+  }
   if(fpol) delete[] fpol;
   if(psi) delete[] psi;
 }
@@ -59,14 +65,16 @@ bool geqdsk_source::load()
   std::cout << "rdim = " << rdim << ", zdim = " << zdim << std::endl;
   std::cout << "simag = " << simag << std::endl;
 
-  psirz = new double[nw*nh];
+  psirz = new double*[nh];
+  for(int i=0; i<nh; i++) psirz[i] = new double[nw];
   fpol = new double[nw];  
 
   for(int i=0; i<nw; i++) gfile >> std::setw(16) >> fpol[i];
   for(int i=0; i<nw; i++) gfile >> std::setw(16) >> dum;      // press
   for(int i=0; i<nw; i++) gfile >> std::setw(16) >> dum;      // ffprime
   for(int i=0; i<nw; i++) gfile >> std::setw(16) >> dum;      // pprime
-  for(int i=0; i<nw*nh; i++) gfile >> std::setw(16) >> psirz[i];
+  for(int i=0; i<nh; i++) 
+    for(int j=0; j<nw; j++) gfile >> std::setw(16) >> psirz[i][j];
 
   gfile.close();
 
@@ -86,38 +94,43 @@ bool geqdsk_source::load()
 bool geqdsk_source::eval(const double r, const double phi, const double z,
 			 double* b_r, double* b_phi, double* b_z)
 {
-  double a[16];
+  double a[4][4];
 
   double p = (r-rleft)/dx;
   double q = (z-zmid)/dz + (double)nh/2.;
   int i = (int)p;
   int j = (int)q;
 
-  if(i < 1 || i > nw) return false;
-  if(j < 1 || j > nh) return false;
-
+  /*
   // convert i, j to fortran indices
   i++; j++; p++; q++;
   bicubic_interpolation_coeffs_(psirz,&nw,&nh,&i,&j,a);
+  */
+
+  bool result=bicubic_interpolation_coeffs((const double**)psirz,nh,nw,j,i,a);
+  if(!result) return false;
 
   double temp;
   double si = 0.;
+  double dw = p-(double)i;
+  double dh = q-(double)j;
+  //  for(int n=0; n<4; n++) {
+  //    for(int m=0; m<4; m++) {
   for(int n=0; n<4; n++) {
     for(int m=0; m<4; m++) {
-      int index = m*4 + n;
-
-      si += a[index]*pow(p-i,n)*pow(q-j,m);
+      si += a[m][n]*pow(dw,n)*pow(dh,m);
       
-      temp = a[index]*n*pow(p-i,n-1)*pow(q-j,m  );
+      temp = a[m][n]*n*pow(dw,n-1)*pow(dh,m);
       *b_z -= temp/(r*dx);
 
-      temp = a[index]*m*pow(p-i,n  )*pow(q-j,m-1);
+      temp = a[m][n]*m*pow(dw,n)*pow(dh,m-1);
       *b_r += temp/(r*dz);
     }
   }
 
   double f;
-  cubic_interpolation_(&nw, psi, &si, fpol, &f);
+  //  cubic_interpolation_(&nw, psi, &si, fpol, &f);
+  cubic_interpolation(nw, psi, si, fpol, &f);
 
   *b_phi += f/r;
   
