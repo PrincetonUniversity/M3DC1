@@ -1125,13 +1125,12 @@ subroutine rdrestart_adios
   integer                      :: vartype, ndim, timedim ! adios_inq_var()
   integer*8, dimension(2)      :: dims                   ! adios_inq_var()
   integer                      :: elemsize               ! double complex or double
-  integer :: prev_useext, prev_version, group_size, local_planeid, group_rank
+  integer :: prev_useext, prev_version, group_size, group_rank
   integer :: prev_ndofs1_pernode, prev_ndofs2_pernode, cur_ndofs1_pernode, cur_ndofs2_pernode
   integer :: vec_created
  
   real, dimension(num_fields*12*2):: dofs_node1, dofs_node2, dofs_node3 ! buffer for dofs per node
   group_size = maxrank/nplanes
-  local_planeid = myrank/group_size
   group_rank = modulo(myrank, group_size)
 
   fname="restart.bp"
@@ -1165,6 +1164,9 @@ subroutine rdrestart_adios
     !  read the group_rank'th value of the scalar from the file
     call adios_read_local_var (gh, "numnodes",   group_rank, start, readsize, prev_nnodes, read_bytes)
     call adios_read_local_var (gh, "numelms",    group_rank, start, readsize, prev_nelms, read_bytes)
+    if (prev_nnodes .eq. cur_nnodes .and. prev_nelms .eq. cur_nelms) then !2d to 2d or 3d to 3d
+      group_rank = myrank ! turn the rank back to myrank
+    endif
     call adios_read_local_var (gh, "mmnn18",     group_rank, start, readsize, prev_mmnn18, read_bytes)
     call adios_read_local_var (gh, "numvar",     group_rank, start, readsize, prev_numvar, read_bytes)
     call adios_read_local_var (gh, "iper",       group_rank, start, readsize, prev_iper, read_bytes)
