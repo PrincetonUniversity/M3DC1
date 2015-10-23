@@ -2131,16 +2131,19 @@ subroutine eqdsk_init()
   use sparse
   use diagnostics
   use mesh_mod
+  use m3dc1_nint
 
   implicit none
 
-  integer :: l, ll, numnodes, icounter_tt, ierr
+  integer :: l, ll, ierr, itri, k, numelms, i
   real :: x, phi, z , dpsi, ffp2, pp2
   vectype, parameter ::  negone = -1
+  vectype, dimension(dofs_per_element) :: dofs
+  type(field_type) :: psi_vec, bz_vec, den_vec, p_vec
 
   real, allocatable :: flux(:), nflux(:)
 
-  numnodes = owned_nodes()
+!!$  numnodes = owned_nodes()
 
   if(myrank.eq.0 .and. iprint.gt.0) print *, "before load_eqdsk", iread_eqdsk
   call load_eqdsk(ierr)
@@ -2208,19 +2211,83 @@ subroutine eqdsk_init()
      endif
    
   else
-     do icounter_tt=1,numnodes
-        l = nodes_owned(icounter_tt)
-        call get_node_pos(l, x, phi, z)
-        
-        if(iflip_z.eq.1) z = -z
-        
-        call get_local_vals(l)
-        
-        call eqdsk_equ(x, z)
-        call eqdsk_per(x, z)
-        
-        call set_local_vals(l)
-     enddo
+     
+    if(myrank.eq.0 .and. iprint.ge.1) &
+         print *, "Interpolating geqdsk Equilibrium"
+
+    call create_field(psi_vec)
+    call create_field(bz_vec)
+    call create_field(p_vec)
+    call create_field(den_vec)
+
+    numelms = local_elements()
+
+    do k=0,1
+       psi_vec = 0.
+       bz_vec = 0.
+       p_vec = 0.
+       den_vec = 0.
+       
+       do itri=1,numelms
+          call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+          call define_fields(itri,0,1,0)
+
+          if(k.eq.0) then 
+             ! calculate equilibrium fields
+             call eqdsk_equ
+          else
+             ! calculate perturbed fields
+             call eqdsk_per
+          end if
+
+          ! populate vectors for solves
+
+          ! psi
+          do i=1, dofs_per_element
+             dofs(i) = int2(mu79(:,OP_1,i),ps079(:,OP_1))
+          end do
+          call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
+          
+          ! bz
+          do i=1, dofs_per_element
+             dofs(i) = int2(mu79(:,OP_1,i),bz079(:,OP_1))
+          end do
+          call vector_insert_block(bz_vec%vec,itri,1,dofs,VEC_ADD)
+          
+          ! p
+          do i=1, dofs_per_element
+             dofs(i) = int2(mu79(:,OP_1,i),p079(:,OP_1))
+          end do
+          call vector_insert_block(p_vec%vec,itri,1,dofs,VEC_ADD)
+          
+          ! den
+          do i=1, dofs_per_element
+             dofs(i) = int2(mu79(:,OP_1,i),n079(:,OP_1))
+          end do
+          call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+       end do
+
+       ! do solves
+       call newvar_solve(psi_vec%vec,mass_mat_lhs)
+       psi_field(k) = psi_vec
+       
+       call newvar_solve(bz_vec%vec,mass_mat_lhs)
+       bz_field(k) = bz_vec
+       
+       call newvar_solve(p_vec%vec,mass_mat_lhs)
+       p_field(k) = p_vec
+       pe_field(k) = p_vec
+       call mult(pe_field(k), pefac)
+       
+       call newvar_solve(den_vec%vec,mass_mat_lhs)
+       den_field(k) = den_vec
+    end do
+
+    call destroy_field(psi_vec)
+    call destroy_field(bz_vec)
+    call destroy_field(den_vec)
+    call destroy_field(p_vec)
+
   end if
 !
 ! Bateman scaling parameter reintroduced
@@ -2290,12 +2357,6 @@ subroutine eqdsk_init()
   ! flip psi sign convention
   ! (iread_eqdsk==3 does not use the eqdsk psi)
   if(iread_eqdsk.eq.1 .or. iread_eqdsk.eq.2) then
-!!$     do l=1, numnodes
-!!$        call get_local_vals(l)
-!!$        psi0_l = -psi0_l
-!!$        psi1_l = -psi1_l
-!!$        call set_local_vals(l)
-!!$     end do
      call mult(psi_field(0), negone)
      call mult(psi_field(1), negone)
      if(icsubtract.eq.1) call mult(psi_coil_field, negone)
@@ -2310,17 +2371,17 @@ subroutine eqdsk_init()
 
 end subroutine eqdsk_init
 
-subroutine eqdsk_equ(x, z)
+subroutine eqdsk_equ()
   use basic
   use arrays
+  use m3dc1_nint
 
   use eqdsk
 
   implicit none
 
-  real, intent(in) :: x, z
   real :: p, q
-  integer :: i, j, n, m
+  integer :: i, j, n, m, k
 
   real :: dx, dz, temp, dpsi
   real, dimension(4,4) :: a
@@ -2328,138 +2389,78 @@ subroutine eqdsk_equ(x, z)
   
   dx = rdim/(nw - 1.)
   dz = zdim/(nh - 1.)
-  p = (x-rleft)/dx + 1.
-  q = (z-zmid)/dz + nh/2. + .5
-  i = p
-  j = q
 
-  call bicubic_interpolation_coeffs(psirz,nw,nh,i,j,a)
+  ps079(:,OP_1) = 0.
+  p079(:,OP_1) = 0.
+  n079(:,OP_1) = 0.
+  bz079(:,OP_1) = 0.
 
-  psi0_l = 0.
-  do n=1, 4
-     do m=1, 4
-        temp = a(n,m)
-        if(n.gt.1) temp = temp*(p-i)**(n-1)
-        if(m.gt.1) temp = temp*(q-j)**(m-1)
-        psi0_l(1) = psi0_l(1) + temp
+  do k=1, npoints
+     p = (x_79(k)-rleft)/dx + 1.
+     q = (z_79(k)-zmid)/dz + nh/2. + .5
+     i = p
+     j = q
 
-        temp = a(n,m)*(n-1)
-        if(n.gt.2) temp = temp*(p-i)**(n-2)
-        if(m.gt.1) temp = temp*(q-j)**(m-1)
-        psi0_l(2) = psi0_l(2) + temp/dx
+     call bicubic_interpolation_coeffs(psirz,nw,nh,i,j,a)
 
-        temp = a(n,m)*(m-1)
-        if(n.gt.1) temp = temp*(p-i)**(n-1)
-        if(m.gt.2) temp = temp*(q-j)**(m-2)
-        psi0_l(3) = psi0_l(3) + temp/dz
-
-        temp = a(n,m)*(n-1)*(n-2)
-        if(n.gt.3) temp = temp*(p-i)**(n-3)
-        if(m.gt.1) temp = temp*(q-j)**(m-1)
-        psi0_l(4) = psi0_l(4) + temp/dx**2
-
-        temp = a(n,m)*(n-1)*(m-1)
-        if(n.gt.2) temp = temp*(p-i)**(n-2)
-        if(m.gt.2) temp = temp*(q-j)**(m-2)
-        psi0_l(5) = psi0_l(5) + temp/(dx*dz)
-
-        temp = a(n,m)*(m-1)*(m-2)
-        if(n.gt.1) temp = temp*(p-i)**(n-1)
-        if(m.gt.3) temp = temp*(q-j)**(m-3)
-        psi0_l(6) = psi0_l(6) + temp/dz**2
+     do n=1, 4
+        do m=1, 4
+           temp = a(n,m)
+           if(n.gt.1) temp = temp*(p-i)**(n-1)
+           if(m.gt.1) temp = temp*(q-j)**(m-1)
+           ps079(k,OP_1) = ps079(k,OP_1) + temp
+        end do
      end do
+
+     ! calculation of p
+     ! ~~~~~~~~~~~~~~~~
+     dpsi = (sibry - simag)/(nw - 1.)
+     p = (ps079(k,OP_1) - simag)/dpsi + 1.
+     i = p
+
+     if(i.gt.nw) then
+        p079(k,OP_1) = press(nw)
+        bz079(k,OP_1) = fpol(nw)
+     else
+        ! use press and fpol to calculate values of p and I
+        call cubic_interpolation_coeffs(press,nw,i,b)
+        call cubic_interpolation_coeffs(fpol,nw,i,c)
+
+        do n=1,4
+           temp = b(n)
+           if(n.gt.1) temp = temp*(p-i)**(n-1)
+           p079(k,OP_1) = p079(k,OP_1) + temp
+           
+           temp = c(n)
+           if(n.gt.1) temp = temp*(p-i)**(n-1)
+           bz079(k,OP_1) = bz079(k,OP_1) + temp
+        end do
+     endif
   end do
 
-  ! calculation of p
-  ! ~~~~~~~~~~~~~~~~
-  dpsi = (sibry - simag)/(nw - 1.)
-  p = (psi0_l(1) - simag)/dpsi + 1.
-  i = p
+  if(pedge.ge.0.) p079(:,OP_1) = p079(:,OP_1) + pedge
 
-  if(i.gt.nw) then
-     call constant_field(p0_l, press(nw))
-     call constant_field(bz0_l, fpol(nw))
-  else
+  where(real(p079(:,OP_1)).lt.0.) p079(:,OP_1) = 0.
 
-     ! use press and fpol to calculate values of p and I
-     call cubic_interpolation_coeffs(press,nw,i,b)
-     call cubic_interpolation_coeffs(fpol,nw,i,c)
-
-     do n=1,4
-        temp = b(n)
-        if(n.gt.1) temp = temp*(p-i)**(n-1)
-        p0_l(1) = p0_l(1) + temp
-
-        temp = c(n)
-        if(n.gt.1) temp = temp*(p-i)**(n-1)
-        bz0_l(1) = bz0_l(1) + temp
-     end do
-
-     ! use pprime and ffprime to calculate derivatives
-     call cubic_interpolation_coeffs(pprime,nw,i,b)
-     call cubic_interpolation_coeffs(ffprim,nw,i,c)
-
-     do n=1,4
-        temp = b(n)
-        if(n.gt.1) temp = temp*(p-i)**(n-1)
-        p0_l(2) = p0_l(2) + temp*psi0_l(2)
-        p0_l(3) = p0_l(3) + temp*psi0_l(3)
-        
-        temp = b(n)*(n-1)
-        if(n.gt.2) temp = temp*(p-i)**(n-2)
-        p0_l(4) = p0_l(4) + temp*psi0_l(4)
-        p0_l(5) = p0_l(5) + temp*psi0_l(5)
-        p0_l(6) = p0_l(6) + temp*psi0_l(6)
-
-        temp = c(n)/bz0_l(1)
-        if(n.gt.1) temp = temp*(p-i)**(n-1)
-        bz0_l(2) = bz0_l(2) + temp*psi0_l(2)
-        bz0_l(3) = bz0_l(3) + temp*psi0_l(3)
-        
-        temp = c(n)*(n-1)/bz0_l(1)
-        if(n.gt.2) temp = temp*(p-i)**(n-2)
-        bz0_l(4) = bz0_l(4) + temp*psi0_l(4)
-        bz0_l(5) = bz0_l(5) + temp*psi0_l(5)
-        bz0_l(6) = bz0_l(6) + temp*psi0_l(6)
-     end do
-  endif
-
-  if(pedge.ge.0.) p0_l = p0_l + pedge
-
-  where(real(p0_l).lt.0.) p0_l = 0.
-
-  ! Set electron pressure and density
-  pe0_l = pefac*p0_l
-
+  ! Set density
   if(expn.eq.0.) then
-     call constant_field(den0_l,1.)
+     n079(:,OP_1) = 1.
   else
-     den0_l = (p0_l/p0)**expn
+     n079(:,OP_1) = (p079(:,OP_1)/p0)**expn
   end if
-
-  u0_l = 0.
-  vz0_l = 0.
-  chi0_l = 0.
-
 end subroutine eqdsk_equ
 
-
-subroutine eqdsk_per(x, z)
+subroutine eqdsk_per
   use basic
   use arrays
+  use m3dc1_nint
 
   implicit none
 
-  real, intent(in) :: x, z
-
-  u1_l = 0.
-  vz1_l = 0.
-  chi1_l = 0.
-  psi1_l = 0.
-  bz1_l = 0.
-  pe1_l = 0.
-  den1_l = 0.
-  p1_l = 0.
+  p079(:,OP_1) = 0.
+  ps079(:,OP_1) = 0.
+  bz079(:,OP_1) = 0.
+  n079(:,OP_1) = 0.
 
 end subroutine eqdsk_per
   
