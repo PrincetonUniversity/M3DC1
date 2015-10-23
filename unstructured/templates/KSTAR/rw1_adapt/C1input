@@ -149,8 +149,8 @@
 
 	igs_extend_p = 1
 
-	gs_vertical_feedback(5)  =  2000.
-	gs_vertical_feedback(12) = -2000.
+	gs_vertical_feedback(15) =  1000.
+	gs_vertical_feedback(17) = -1000.
 	gs_radial_feedback(7)  = 2000.
 	gs_radial_feedback(14) = 2000.
 
