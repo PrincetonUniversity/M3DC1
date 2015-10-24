@@ -198,11 +198,6 @@ subroutine get_flux_mask(itri, imask)
   integer, intent(out), dimension(dofs_per_element) :: imask
   integer :: ibound
 
-!!$  if(eta_wall.eq.0.) then 
-     ibound = BOUNDARY_DIRICHLET
-!!$  else
-!!$     ibound = BOUNDARY_RESISTIVE_WALL
-!!$  end if
   if(inocurrent_tor.eq.1) ibound = ior(ibound, BOUNDARY_LAPLACIAN)
   if(inocurrent_norm.eq.1) then
      if(i3d.eq.1) then
@@ -224,10 +219,8 @@ subroutine get_bz_mask(itri, imask)
   integer :: ibound
 
   ibound = 0
-!  if(eta_wall.ne.0.) ibound = ior(ibound, BOUNDARY_RESISTIVE_WALL)
   if(inocurrent_pol.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(inocurrent_norm.eq.1 .or. iconst_bz.eq.1) &
-       ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  if(iconst_bz.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   call get_boundary_mask(itri, ibound, imask)
 end subroutine get_bz_mask
 
