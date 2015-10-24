@@ -759,6 +759,18 @@ integer function magnetic_region(psi, x, z)
      if(al*dpsii/abs(dpsii) .lt. 0.3) then
         magnetic_region = 2
      end if
+
+     ! if z is far above or below x-point, we're in provate flux region
+     if(znull.ne.0.) then
+        if((z-zmag)/(znull-zmag).gt.1.03) then
+           magnetic_region = 2
+        endif
+     end if
+     if(znull2.ne.0.) then
+        if((z-zmag)/(znull2-zmag).gt.1.03) then
+           magnetic_region = 2
+        endif
+     end if
   end if
 end function magnetic_region
 
