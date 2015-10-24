@@ -206,28 +206,24 @@ subroutine write_feedback(filename)
   integer, parameter :: ifile = 123
   integer :: out
   
-  if(myrank.ne.0) return
+  if(myrank.ne.0 .or. numcoils_vac.eq.0) return
 
   open(unit=ifile,file=filename,action='write',status='replace')
 
   ic = coil_mask(1)
   subcoils = 0
   do i=1, numcoils_vac
-     subcoils = subcoils + 1
-     if(i.eq.numcoils_vac) then
-        out = i
-     else if(coil_mask(i).ne.ic) then
-        out = i-1
-        subcoils = subcoils - 1
-     else 
-        cycle
+     if(coil_mask(i).ne.ic) then
+        write(ifile, '(2F12.4)') &
+             real(ic_out(i-1))*twopi/(1000.*amu0)*subcoils, 0.0
+        ic = coil_mask(i)
+        subcoils = 0
      end if
-
-     write(ifile, '(2F12.4)') &
-          real(ic_out(out))*twopi/(1000.*amu0)*subcoils, 0.0
-     ic = coil_mask(i)
-     subcoils = 1
+     
+     subcoils = subcoils + 1
   end do
+  write(ifile, '(2F12.4)') &
+       real(ic_out(numcoils_vac))*twopi/(1000.*amu0)*subcoils, 0.0
 
   close(ifile)
 end subroutine write_feedback
@@ -274,41 +270,7 @@ subroutine pf_coil_field(ierr)
      ic_vac = ic
      numcoils_vac = numcoils
      
-  case(1) ! CDX-U
-     if(myrank.eq.0) print *, "Using standard CDX-U configuration"
-     numcoils = 4
-     xc(1) = 0.846
-     zc(1) = 0.360
-     xc(2) = 0.846
-     zc(2) =-0.360
-     xc(3) = 0.381
-     zc(3) = 0.802
-     xc(4) = 0.381
-     zc(4) =-0.802
-     ic = -.2*fac
-     
-  case(2) ! NSTX
-     if(myrank.eq.0) print *, "Using standard NSTX configuration"
-     numcoils = NSTX_coils
-     xc(1:NSTX_coils) = NSTX_r
-     zc(1:NSTX_coils) = NSTX_z
-     ic(1:NSTX_coils) = fac*NSTX_I
-
-  case(3) ! ITER
-     if(myrank.eq.0) print *, "Using standard ITER configuration"
-     numcoils = ITER_coils
-     xc(1:ITER_coils) = ITER_r
-     zc(1:ITER_coils) = ITER_z
-     ic(1:ITER_coils) = fac*ITER_I
-     
-  case(4) ! DIII
-     if(myrank.eq.0) print *, "Using standard DIII-D configuration"
-     numcoils = DIII_coils
-     xc(1:DIII_coils) = DIII_r
-     zc(1:DIII_coils) = DIII_z
-     ic(1:DIII_coils) = fac*DIII_I
-     
-  case default ! Generic
+  case(0) ! Generic
 
      if(myrank.eq.0) print *, "Using generic (dipole) configuration"
 
@@ -317,6 +279,41 @@ subroutine pf_coil_field(ierr)
      zc(1) = rnorm
      ipole = 1
      ic = bv*fac2
+
+!!$  case(1) ! CDX-U
+!!$     if(myrank.eq.0) print *, "Using standard CDX-U configuration"
+!!$     numcoils = 4
+!!$     xc(1) = 0.846
+!!$     zc(1) = 0.360
+!!$     xc(2) = 0.846
+!!$     zc(2) =-0.360
+!!$     xc(3) = 0.381
+!!$     zc(3) = 0.802
+!!$     xc(4) = 0.381
+!!$     zc(4) =-0.802
+!!$     ic = -.2*fac
+!!$     
+!!$  case(2) ! NSTX
+!!$     if(myrank.eq.0) print *, "Using standard NSTX configuration"
+!!$     numcoils = NSTX_coils
+!!$     xc(1:NSTX_coils) = NSTX_r
+!!$     zc(1:NSTX_coils) = NSTX_z
+!!$     ic(1:NSTX_coils) = fac*NSTX_I
+!!$
+!!$  case(3) ! ITER
+!!$     if(myrank.eq.0) print *, "Using standard ITER configuration"
+!!$     numcoils = ITER_coils
+!!$     xc(1:ITER_coils) = ITER_r
+!!$     zc(1:ITER_coils) = ITER_z
+!!$     ic(1:ITER_coils) = fac*ITER_I
+!!$     
+!!$  case(4) ! DIII
+!!$     if(myrank.eq.0) print *, "Using standard DIII-D configuration"
+!!$     numcoils = DIII_coils
+!!$     xc(1:DIII_coils) = DIII_r
+!!$     zc(1:DIII_coils) = DIII_z
+!!$     ic(1:DIII_coils) = fac*DIII_I
+     
   end select
 
   ! Field due to coil currents
@@ -1111,7 +1108,7 @@ subroutine gradshafranov_solve
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, 'Coil feedback, xmag0, zmag0= ', do_feedback, xmag0, zmag0
 
-  if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0, &
+  if(igs.ne.0) call lcfs(psi_vec, iwall_is_limiter.eq.1, &
        igs_start_xpoint_search.eq.0)
 
   error2 = 0.
@@ -1183,7 +1180,7 @@ subroutine gradshafranov_solve
      endif
 
      ! Find new magnetic axis and lcfs
-     call lcfs(psi_vec,imulti_region.eq.0, &
+     call lcfs(psi_vec,iwall_is_limiter.eq.1, &
           itnum.ge.igs_start_xpoint_search)
      if(psibound.eq.psimin) then
         if(myrank.eq.0) print *, 'ERROR: psimin = psilim = ', psibound
@@ -1256,7 +1253,7 @@ subroutine gradshafranov_solve
 !  if(itnum.eq.igs) call safestop(3)
 
   ! recalculate lcfs
-  if(igs.ne.0) call lcfs(psi_vec, imulti_region.eq.0)
+  if(igs.ne.0) call lcfs(psi_vec, iwall_is_limiter.eq.1)
 
   ! Define equilibrium fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
