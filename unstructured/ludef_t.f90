@@ -1535,6 +1535,14 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      return
   end if
 
+  ! Regularization term
+  ! ~~~~~~~~~~~~~~~~~~~
+  if(iconst_bn.eq.0 .and. (.not.surface_int)) then
+     temp = -regular*int2(trial(:,OP_1),lin(:,OP_1))
+     ssterm(psi_g) = ssterm(psi_g) + temp
+     ddterm(psi_g) = ddterm(psi_g) + temp*bdf
+  end if
+
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   temp = b1psieta(trial,lin,eta79,hf,eta_mod.eq.1)
