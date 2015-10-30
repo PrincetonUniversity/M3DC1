@@ -4574,7 +4574,7 @@ call create_field(p_vec)
 
 
  !input variables:
-  bz_qp = bzero
+  bz_qp = bzero*rzero
   r0_qp = alpha0
   q0_qp = q0
   q2_qp = alpha1
@@ -4595,18 +4595,20 @@ do icounter_tt=1,numnodes
 
    call get_node_pos(l,x,phi,z)
 
-   call constant_field(den0_l,1.)
-!   call constant_field(bz0_l,bzero)
+         call constant_field(den0_l,1.)
+!   call constant_field(bz0_l,bz_qp)
 !   call constant_field(p0_l,p0)
 
-   call set_node_data(den_field(0),l,den0_l)
+         call set_node_data(den_field(0),l,den0_l)
 !   call set_node_data(bz_field(0),l,bz0_l)
 !   call set_node_data(p_field(0),l,p0_l)
    
-   call constant_field(u1_l,0.)
-   call int_kink_per(x, phi, z)
-   call set_node_data(u_field(1),l,u1_l)
+         call constant_field(u1_l,0.)
+         call int_kink_per(x, phi, z)
+         call set_node_data(u_field(1),l,u1_l)
 enddo
+
+if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before loop over elements"
 
 nelms = local_elements()
 do itri=1,nelms
@@ -4818,11 +4820,11 @@ endif
 if(itaylor_qp .eq.25) then
    qfunc = (q0_qp) + psi*(q2_qp + q4_qp*psi)
    return
+endif
+
 if(itaylor_qp .eq. 26) then
    qfunc = q0_qp*(1. + (psi/q2_qp)**q4_qp )**(1./q4_qp)
    return
-endif
-
 endif
 
 return
@@ -4849,13 +4851,13 @@ if(itaylor_qp .eq. 22) then
 endif
 
 if(itaylor_qp .eq.25) then
-   qpfunc = (q0_qp) + (q2_qp + 2.*q4_qp*psi)
+   qpfunc = (q2_qp + 2.*q4_qp*psi)
    return
 endif
 
 if(itaylor_qp .eq. 26) then
    qpfunc = q0_qp*(1. + (psi/q2_qp)**q4_qp )**((1.-q4_qp)/q4_qp)       &
-                *(1./q2_qp)**q4_qp*psi**(q4_qp-1)
+                *(1./q2_qp)**q4_qp*q4_qp*psi**(q4_qp-1)
    return
 endif
 
