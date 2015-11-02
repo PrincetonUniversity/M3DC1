@@ -154,7 +154,7 @@ m3dc1 : $(BIN)
 	ln -s $< $@
 
 readgato :  $(READGATO_OBJS)
-	$(F90) $(READGATO_OBJS) -L$(PSPLINE_DIR)/lib -lpspline -o $@
+	$(F90) $(READGATO_OBJS) -L$(NTCCHOME)/lib -lpspline -o $@
 
 read_jsolver : $(READJSOLVER_OBJS)
 	$(F90) $(READJSOLVER_OBJS) -L$(PSPLINE_DIR)/lib -lpspline -o $@
