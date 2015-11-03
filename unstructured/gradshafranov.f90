@@ -356,6 +356,7 @@ subroutine vacuum_field()
   real, dimension(6) :: g1, g2
   integer, parameter :: rnorm = 10.
   
+  gnorm = 0
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, " calculating vacuum field...."
 
@@ -1196,24 +1197,25 @@ subroutine gradshafranov_solve
         call fundef
      end if
 
-     ! Calculate error in new solution
-     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating error'
-     call calculate_error(error,error2,b1vecini_vec)
-     if(constraint) error = error3
+     if(itnum.gt.1) then
+        ! Calculate error in new solution
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating error'
+        call calculate_error(error,error2,b1vecini_vec)
+        if(constraint) error = error3
 
-     if(myrank.eq.0 .and. iprint.ge.1) then
-        write(*,'(A,1p4e12.4)') ' Error in GS solution: ', error, error2, xmag, zmag
-     endif
-     ! if error is NaN, quit
-     if(error.ne.error) call safestop(11)
+        if(myrank.eq.0 .and. iprint.ge.1) then
+           write(*,'(A,1p4e12.4)') ' Error in GS solution: ', error, error2, xmag, zmag
+        endif
+        ! if error is NaN, quit
+        if(error.ne.error) call safestop(11)
 
-     ! if error is sufficiently small, stop iterating
-     if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
-    
+        ! if error is sufficiently small, stop iterating
+        if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
+    endif
      ! calculate gammas to constrain current, etc.
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating gammas'
      call calculate_gamma(gamma2,gamma3,gamma4)
-     !print *, "gamma2,gamma3,gamma4", gamma2,gamma3,gamma4
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "gamma2,gamma3,gamma4", gamma2,gamma3,gamma4
      ! do feedback
      if(do_feedback) call coil_feedback
 
