@@ -18,7 +18,7 @@
       REAL*8, ALLOCATABLE :: psinormt(:), g4big0t(:), g4bigt(:), g4bigp(:),g4bigpp(:)
       REAL*8, ALLOCATABLE :: fbig0t(:), fbigt(:), fbigp(:), fbigpp(:)
       REAL*8, ALLOCATABLE :: psinorm(:), g4big0(:), g4big(:), fbig0(:), fbig(:)
-      INTEGER :: i,j,ngato, nthet, npsi, nt, np, jjold, jstart, jj
+      INTEGER :: i,j,ngato, nthet, npsi, nt, np, jjold, jstart, jj, npsip, nthep
       INTEGER :: ii, im, iz, iiold, istart, nthe, iprint, isym
       REAL*8, allocatable :: fspl(:,:)
       REAL*8 :: bcxmin,bcxmax,fval(3),gzero,g1,g4bigim1,g4save
@@ -54,21 +54,23 @@
       else
         nthe = 2*(nthet-1)
       endif
+      nthep = nthe+1
+      npsip = npsi+1
       write(*,50) isym,npsi, nthet, nthe
       write(*,51) rcgato, btorgato, curtot
 !
-      allocate(psiflux(npsi))
-      allocate(fnorm(npsi))
-      allocate(ffpnorm(npsi))
-      allocate(ponly(npsi))
-      allocate(pponly(npsi))
-      allocate(qsf(npsi))
-      allocate(dnorm(npsi))
-      allocate(dpdz(nthe))
-      allocate(dpdr(nthe))
-      allocate(xnorm(npsi,nthe))
-      allocate(znorm(npsi,nthe))
-      allocate(snorm(npsi),sn(np))
+      allocate(psiflux(npsip))
+      allocate(fnorm(npsip))
+      allocate(ffpnorm(npsip))
+      allocate(ponly(npsip))
+      allocate(pponly(npsip))
+      allocate(qsf(npsip))
+      allocate(dnorm(npsip))
+      allocate(dpdz(nthep))
+      allocate(dpdr(nthep))
+      allocate(xnorm(npsip,nthep))
+      allocate(znorm(npsip,nthep))
+      allocate(snorm(npsip),sn(np))
       allocate(xn(np,nthe),zn(np,nthe),snorm2(nthe+1),xnew(np,nt),znew(np,nt))
       allocate(norm(2,nthe))
       allocate(curv(nthe))
