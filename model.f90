@@ -198,6 +198,7 @@ subroutine get_flux_mask(itri, imask)
   integer, intent(out), dimension(dofs_per_element) :: imask
   integer :: ibound
 
+  ibound = 0
   if(inocurrent_tor.eq.1) ibound = ior(ibound, BOUNDARY_LAPLACIAN)
   if(inocurrent_norm.eq.1) then
      if(i3d.eq.1) then
