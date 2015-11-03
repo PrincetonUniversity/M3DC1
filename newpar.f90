@@ -17,6 +17,7 @@ Program Reducedquintic
   use pellet
   use scorec_mesh_mod
   use adapt
+  use particles
 
   implicit none
 
@@ -232,6 +233,11 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
   call initialize_timestep
 
+
+  if (0.eq.1) then
+     call particle_test
+     call safestop(0)
+  endif
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
