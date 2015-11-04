@@ -3404,6 +3404,56 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(/p0)
        symbol = '!6Beam Torque!X'
 
+   ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('JxB_x', name, /fold_case) eq 1) then begin
+      by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      bz = read_field('bz',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      jz = read_field('jz',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      
+      data = (jy*bz - jz*by)
+      d = dimensions(/p0, l0=-1)
+      symbol = '!5J!9X!5B!9.!8R!X'
+
+   ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('JxB_y', name, /fold_case) eq 1) then begin
+      bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      bz = read_field('bz',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      jz = read_field('jz',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      
+      data = (jz*bx - jx*bz)
+      d = dimensions(/p0, l0=-1)
+      symbol = '!5J!9X!5B!9.!9P!X'
+
+   ;===========================================
+   ; toroidal angular momentum flux
+   ;===========================================
+   endif else if(strcmp('JxB_z', name, /fold_case) eq 1) then begin
+      bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts)
+      
+      data = (jx*by - jy*bx)
+      d = dimensions(/p0, l0=-1)
+      symbol = '!5J!9X!5B!9.!8Z!X'
 
    ;===========================================
    ; toroidal angular momentum flux

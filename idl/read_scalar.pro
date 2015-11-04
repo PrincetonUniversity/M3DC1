@@ -48,6 +48,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8I!DW!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
    endif else $
+     if(strcmp("total current", scalarname, /fold_case) eq 1) or $
+       (strcmp("itot", scalarname, /fold_case) eq 1) then begin
+       data = s.toroidal_current_w._data + $
+              s.toroidal_current._data
+       title = 'Total Current'
+       symbol = '!8I!D!9P!N!X'
+       d = dimensions(/j0, l0=2, _EXTRA=extra)
+   endif else $
      if(strcmp("volume", scalarname, /fold_case) eq 1) then begin
        data = s.volume_p._data
        title = 'Plasma Volume'
