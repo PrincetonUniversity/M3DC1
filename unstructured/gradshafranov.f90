@@ -33,9 +33,6 @@ module gradshafranov
 
   integer, private :: int_tor
 
-  ! if use_norm_psi==1, pprime and ffprime are derivs wrt normalized flux
-  integer, private :: use_norm_psi = 1
-
   integer :: igs_feedfac
 
   real, dimension(maxfilaments), private :: xc_vac, zc_vac
@@ -810,7 +807,7 @@ subroutine calc_omega_profile
   call copy_spline(omega_spline, omega_spline_0)
 
   if((iread_omega_e.ne.0 .or. iread_omega_ExB.ne.0) .and. db.ne.0.) then 
-     if(use_norm_psi.eq.1 .and. dpsii.eq.0.) then
+     if(dpsii.eq.0.) then
         if(myrank.eq.0) then
            print *, 'Error: psi bounds are required when reading omega_e'
         end if
@@ -847,11 +844,7 @@ subroutine calc_omega_profile
         if(iflip_j.eq.1) dia = -dia
         if(iflip_v.eq.1) dia = -dia
         
-        if(use_norm_psi.eq.1) then 
-           omega_spline%y(i) = omega_spline_0%y(i) - dpsii*dia
-        else
-           omega_spline%y(i) = omega_spline_0%y(i) - dia
-        endif
+        omega_spline%y(i) = omega_spline_0%y(i) - dpsii*dia
      end do
   end if
   
@@ -986,7 +979,7 @@ subroutine gradshafranov_solve
   integer :: iedge, idim(3)
 
   if(myrank.eq.0 .and. iprint.gt.0) &
-       print *, "Calculating GS- Equilil,    use_norm_psi=", use_norm_psi
+       print *, "Calculating GS- Equilibrium"
 
   if(imulti_region.eq.1) then
      int_tor = 5
@@ -1824,9 +1817,9 @@ subroutine fundef
            fbigpp = 0.
         else
            ! convert from normalized to real flux
-           fbig = fbig*dpsii**(use_norm_psi)
-           fbigp = fbigp*dpsii**(use_norm_psi+1)
-           fbigpp = fbigpp*dpsii**(use_norm_psi+2)
+           fbig = fbig*dpsii
+           fbigp = fbigp*dpsii**2
+           fbigpp = fbigpp*dpsii**3
         end if
 
         if(irot.eq.1) then
@@ -1931,9 +1924,9 @@ subroutine fundef
            g4bigpp = 0.
         else
            ! convert from normalized to real flux
-           g4big = g4big*dpsii**use_norm_psi
-           g4bigp = g4bigp*dpsii**(use_norm_psi+1)
-           g4bigpp = g4bigpp*dpsii**(use_norm_psi+2)
+           g4big = g4big*dpsii
+           g4bigp = g4bigp*dpsii**2
+           g4bigpp = g4bigpp*dpsii**3
         end if
         
         temp(1) = g4big/x
@@ -1950,12 +1943,12 @@ subroutine fundef
            call evaluate_spline(g2_spline, pso, g2big, g2bigp, g2bigpp)
            call evaluate_spline(g3_spline, pso, g3big, g3bigp, g3bigpp)
            ! convert from normalized to real flux
-           g2big = g2big*dpsii**use_norm_psi
-           g2bigp = g2bigp*dpsii**(use_norm_psi+1)
-           g2bigpp = g2bigpp*dpsii**(use_norm_psi+2)
-           g3big = g3big*dpsii**use_norm_psi
-           g3bigp = g3bigp*dpsii**(use_norm_psi+1)
-           g3bigpp = g3bigpp*dpsii**(use_norm_psi+2)
+           g2big = g2big*dpsii
+           g2bigp = g2bigp*dpsii**2
+           g2bigpp = g2bigpp*dpsii**3
+           g3big = g3big*dpsii
+           g3bigp = g3bigp*dpsii**2
+           g3bigpp = g3bigpp*dpsii**3
         
            temp(1) = g2big/x
            temp(2) = g2bigp*pspx/x - g2big/x**2
@@ -2013,9 +2006,7 @@ subroutine fundef2(error)
 !
 !  Change made 9/23/2015    scj
    f1 = 1
-   if(iread_eqdsk.eq.1 .and. dpsii.gt.0) f1 = -1
-   if(myrank.eq.0 .and. iprint.ge.1) print *,     &
-       'f,dpsii,use_norm_psi',f1,dpsii,use_norm_psi
+   if(dpsii.gt.0) f1 = -1
 
   fun1_vec = 0.
   fun2_vec = 0.
@@ -2104,8 +2095,8 @@ subroutine fundef2(error)
 
      
      ! convert from normalized to real flux
-     temp79a = f1*temp79a*dpsii**use_norm_psi    
-     temp79b = f1*temp79b*dpsii**use_norm_psi    
+     temp79a = f1*temp79a*dpsii
+     temp79b = f1*temp79b*dpsii
      if(irot.eq.1) temp79d = temp79d*dpsii
      
      ! p(R, psi) = p0(psi)*Exp[ alpha(psi) * (R^2-R0^2)/R0^2 ]
@@ -2156,10 +2147,13 @@ subroutine readpgfiles
 
   integer :: j, n
   real :: dum
+!  real :: y, yp, fac
+  real :: dpsidpsin, ptot
   real, allocatable :: psinorm(:), pres0(:), g0(:), ffn(:), ppn(:)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Reading profiles files"
 
+  ! Read p and p' profiles
   open(unit=76,file="profiles-p",status="old")
   read(76,803) n
   allocate(psinorm(n), pres0(n), ppn(n))
@@ -2169,11 +2163,22 @@ subroutine readpgfiles
   close(76)
 
   p0 = pres0(1)
-
   call create_spline(p0_spline, n, psinorm, pres0)
   call create_spline(pprime_spline, n, psinorm, ppn)
+
+  ! calculate dpsidpsin
+  ptot = 0.
+  do j=2, n
+     ptot = ptot + (psinorm(j)-psinorm(j-1))*(ppn(j)+ppn(j-1))/2.
+  end do
+  dpsidpsin = (pres0(n) - pres0(1)) / ptot
+  dpsii = 1./dpsidpsin
+  print * , 'PTOT, DPSIDPSIN = ', pres0(n) - pres0(1), &
+       dpsidpsin
+
   deallocate(psinorm, pres0, ppn)
 
+  ! Read g and FF' profiles
   open(unit=77,file="profiles-g",status="old")
   read(77,804) n
   allocate(psinorm(n), g0(n), ffn(n))
@@ -2188,9 +2193,10 @@ subroutine readpgfiles
 
   constraint = .true.
   
-  ! in this case, ffprime and pprime are derivatives wrt actual flux
-  use_norm_psi = 0
-
+  ! Change p' and FF' profiles to use derivatives wrt. psi_norm
+  pprime_spline%y = pprime_spline%y * dpsidpsin
+  ffprime_spline%y = ffprime_spline%y * dpsidpsin
+  
 return
   802 format(5x,5e18.9)
   803 format(i5)
