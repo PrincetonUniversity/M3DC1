@@ -1559,13 +1559,15 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    endif else if(strcmp('jphi', name, /fold_case) eq 1) then begin
 
        psi_lp = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange, op=7)
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange, op=7, $
+                          complex=complex, phi=phi0)
        data = psi_lp
        if(itor eq 1) then begin
            psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
-                              filename=filename, points=pts, $
-                              rrange=xrange, zrange=yrange, op=2)
+                              filename=filename, points=pts, linear=linear, $
+                              rrange=xrange, zrange=yrange, op=2, $
+                             complex=complex, phi=phi0)
            r = radius_matrix(x,y,t)
            data = data - psi_r / r
        end
