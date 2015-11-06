@@ -264,7 +264,8 @@ module adapt
       if (myrank .eq. 0) print *, "estimated error in engergy norm, solution in energy norm", max_error, solutionH2Norm
     end if
     if (myrank .eq. 0) print *, "estimated error in engergy norm, solution in energy norm", max_error, solutionH2Norm
-    if (iadapt .eq. 2 .and. (max_error(1) .gt. error_tol * adapt_target_error .or. max_error(2) .gt. error_tol * adapt_target_error)) then
+    if (iadapt .eq. 2 .and. (max_error(1) .gt. error_tol * adapt_target_error .or. max_error(2) &
+.gt. error_tol * adapt_target_error)) then
        if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
        call straighten_fields()
        abs_size(1) = adapt_hmin
@@ -276,7 +277,8 @@ module adapt
 #ifdef LATESTSCOREC
        call set_adapt_p(iadapt_order_p)
 #endif
-       call adapt_by_error_field(sqrt(node_error(1,:)**2+node_error(2,:)**2), adapt_target_error, iadapt_max_node, adapt_control);
+       call adapt_by_error_field(sqrt(node_error(1,:)**2+node_error(2,:)**2), adapt_target_error, &
+iadapt_max_node, adapt_control);
        if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0)
        if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1)
        call space(0)

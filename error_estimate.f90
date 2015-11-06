@@ -181,7 +181,8 @@ module error_estimate
              call laplace_gs_z (psi_bar, fn_eval_tmp2, icylinder, 0)
              fn_eval=eetar79(:,EOP_1)*(fn_eval_tmp*normal(1,iedge)+ fn_eval_tmp2*normal(2,iedge))
             if(edge_dir(iedge) .eq. 0) call reverse_fn(fn_eval(1:npoint_int),npoint_int)
-            edge_jump(1:npoint_int,edges(iedge)+1, LPPSIN)= edge_jump(1:npoint_int,edges(iedge)+1, LPPSIN)+ fn_eval(1:npoint_int)
+            edge_jump(1:npoint_int,edges(iedge)+1, LPPSIN)= edge_jump(1:npoint_int,edges(iedge)+1, LPPSIN)+ &
+fn_eval(1:npoint_int)
           end if
           !print *, edges(iedge), 'dir',edge_dir(iedge)
           !print *, fn_eval(1:5)
@@ -201,7 +202,8 @@ module error_estimate
           fn_eval = fn_eval_tmp*(-psi_tmp2(:,EOP_DX)*normal(2,iedge)+psi_tmp2(:,EOP_DY)*normal(1,iedge))
           fn_eval = fn_eval + fn_eval_tmp2*(-psi_tmp(:,EOP_DX)*normal(2,iedge)+psi_tmp(:,EOP_DY)*normal(1,iedge))
           if(edge_dir(iedge) .eq. 0) call reverse_fn(fn_eval(1:npoint_int),npoint_int)
-          edge_jump(1:npoint_int,edges(iedge)+1, LPPSPST)=edge_jump(1:npoint_int,edges(iedge)+1,LPPSPST)+0.5*fn_eval(1:npoint_int)
+          edge_jump(1:npoint_int,edges(iedge)+1, LPPSPST)=edge_jump(1:npoint_int,edges(iedge)+1,LPPSPST)&
++0.5*fn_eval(1:npoint_int)
 
           !lp_U
           call laplace_gs (U_bar, fn_eval_tmp, icylinder, 0)
@@ -269,13 +271,16 @@ module error_estimate
              call reverse_fn(fn_eval(1:npoint_int),npoint_int)
           end if
           !if(isplitstep .eq. 1) then
-            edge_jump(1:npoint_int,edges(iedge)+1, CPSIU) = edge_jump(1:npoint_int,edges(iedge)+1, CPSIU) + 0.5*fn_eval(1:npoint_int) 
+            edge_jump(1:npoint_int,edges(iedge)+1, CPSIU) = edge_jump(1:npoint_int,edges(iedge)+1, CPSIU)&
+ + 0.5*fn_eval(1:npoint_int) 
           !else
             !edge_jump(1:npoint_int,edges(iedge)+1, TSQ) = edge_jump(1:npoint_int,edges(iedge)+1, TSQ) + dt*fn_eval(1:npoint_int)
 
           !end if
-          edge_jump(1:npoint_int,edges(iedge)+1,R2U) =  edge_jump(1:npoint_int,edges(iedge)+1, LPUN) + edge_jump(1:npoint_int,edges(iedge)+1, LPUT) - edge_jump(1:npoint_int,edges(iedge)+1, LPPSPST) 
-          edge_jump(1:npoint_int,edges(iedge)+1,R2PSI) =  edge_jump(1:npoint_int,edges(iedge)+1, CPSIU) + edge_jump(1:npoint_int,edges(iedge)+1, LPPSIN)
+          edge_jump(1:npoint_int,edges(iedge)+1,R2U) =  edge_jump(1:npoint_int,edges(iedge)+1, LPUN) &
++ edge_jump(1:npoint_int,edges(iedge)+1, LPUT) - edge_jump(1:npoint_int,edges(iedge)+1, LPPSPST) 
+          edge_jump(1:npoint_int,edges(iedge)+1,R2PSI) =  edge_jump(1:npoint_int,edges(iedge)+1, CPSIU) &
++ edge_jump(1:npoint_int,edges(iedge)+1, LPPSIN)
 
           !if(isplitstep .eq. 1) then
             !edge_jump(1:npoint_int,edges(iedge)+1,R1) = edge_jump(1:npoint_int,edges(iedge)+1,R1) + edge_jump(1:npoint_int,edges(iedge)+1, TSQ)
@@ -316,7 +321,8 @@ module error_estimate
           call get_edge_data (edges(iedge), normal(:,1), edge_len(1))
           do ii=1, NUMTERM
 #ifdef USECOMPLEX
-             edge_error(edges(iedge)+1,ii)=int1(edge_jump(1:npoint_int,edges(iedge)+1,ii)*CONJG(edge_jump(1:npoint_int,edges(iedge)+1,ii)))
+             edge_error(edges(iedge)+1,ii)=int1(edge_jump(1:npoint_int,edges(iedge)+1,ii)&
+*CONJG(edge_jump(1:npoint_int,edges(iedge)+1,ii)))
              !edge_error(edges(iedge)+1,ii)=real(int1(edge_jump(1:npoint_int,edges(iedge)+1,ii)))**2
 #else
              edge_error(edges(iedge)+1,ii)=int1(edge_jump(1:npoint_int,edges(iedge)+1,ii)**2)
@@ -832,16 +838,26 @@ module error_estimate
     val(:, EOP_DXY) = valCopy(:, EOP_DXX)*c*s + valCopy(:, EOP_DXY)*(c**2-s**2) - valCopy(:, EOP_DYY)*s*c
     val(:, EOP_DYY) = valCopy(:, EOP_DXX)*s**2 + 2.*valCopy(:, EOP_DXY)*s*c+valCopy(:, EOP_DYY)*c**2
 
-    val(:, EOP_DXXX) = valCopy(:, EOP_DXXX)*c**3 - 3.*valCopy(:, EOP_DXXY)*s*c*c+3.*valCopy(:, EOP_DXYY)*s*s*c - valCopy(:, EOP_DYYY)*s**3
-    val(:, EOP_DXXY) = valCopy(:, EOP_DXXX)*c*c*s + valCopy(:, EOP_DXXY)*(c**3-2*s*s*c) + valCopy(:, EOP_DXYY)*(s**3-2*s*c*c) + valCopy(:, EOP_DYYY)*s*s*c
-    val(:, EOP_DXYY) = valCopy(:, EOP_DXXX)*c*s*s + valCopy(:, EOP_DXXY)*(-s**3+2*s*c*c) + valCopy(:, EOP_DXYY)*(c**3-2*s*s*c) - valCopy(:, EOP_DYYY)*s*c*c
-    val(:, EOP_DYYY) = valCopy(:, EOP_DXXX)*s**3 + 3.*valCopy(:, EOP_DXXY)*s*s*c+3.*valCopy(:, EOP_DXYY)*s*c*c + valCopy(:, EOP_DYYY)*c**3
+    val(:, EOP_DXXX) = valCopy(:, EOP_DXXX)*c**3 - 3.*valCopy(:, EOP_DXXY)*s*c*c+3.*valCopy(:, EOP_DXYY)*s*s*c &
+- valCopy(:, EOP_DYYY)*s**3
+    val(:, EOP_DXXY) = valCopy(:, EOP_DXXX)*c*c*s + valCopy(:, EOP_DXXY)*(c**3-2*s*s*c) + valCopy(:, EOP_DXYY)&
+*(s**3-2*s*c*c) + valCopy(:, EOP_DYYY)*s*s*c
+    val(:, EOP_DXYY) = valCopy(:, EOP_DXXX)*c*s*s + valCopy(:, EOP_DXXY)*(-s**3+2*s*c*c) + valCopy(:, EOP_DXYY)&
+*(c**3-2*s*s*c) - valCopy(:, EOP_DYYY)*s*c*c
+    val(:, EOP_DYYY) = valCopy(:, EOP_DXXX)*s**3 + 3.*valCopy(:, EOP_DXXY)*s*s*c+3.*valCopy(:, EOP_DXYY)*s*c*c &
++ valCopy(:, EOP_DYYY)*c**3
 
-    val(:, EOP_DXXXX) = valCopy(:, EOP_DXXXX)*c**4 - 4.*valCopy(:, EOP_DXXXY)*s*c*c*c+6.*valCopy(:, EOP_DXXYY)*s*s*c*c - 4.*valCopy(:, EOP_DXYYY)*c*s**3+valCopy(:, EOP_DYYYY)*s**4
-    val(:, EOP_DXXXY) = valCopy(:, EOP_DXXXX)*c**3*s + valCopy(:, EOP_DXXXY)*(c**4-3.*s*s*c*c) + 3.*valCopy(:, EOP_DXXYY)*(-c**3*s+c*s**3) + valCopy(:, EOP_DXYYY)*(3.*c*c*s*s-s**4) -valCopy(:, EOP_DYYYY)*s**3*c
-    val(:, EOP_DXXYY) = valCopy(:, EOP_DXXXX)*c*c*s*s + valCopy(:, EOP_DXXXY)*(2.*s*c**3-2.*s**3*c) + valCopy(:, EOP_DXXYY)*(c**4+s**4-4.*s*s*c*c) + valCopy(:, EOP_DXYYY)*(2.*c*s*s*s-2*s*c**3) +valCopy(:, EOP_DYYYY)*s*s*c*c
-    val(:, EOP_DXYYY) = valCopy(:, EOP_DXXXX)*s**3*c + valCopy(:, EOP_DXXXY)*(-s**4+3.*s*s*c*c) + 3.*valCopy(:, EOP_DXXYY)*(-s**3*c+s*c**3) + valCopy(:, EOP_DXYYY)*(-3.*c*c*s*s+c**4) -valCopy(:, EOP_DYYYY)*c**3*s
-    val(:, EOP_DYYYY) = valCopy(:, EOP_DXXXX)*s**4 + 4.*valCopy(:, EOP_DXXXY)*c*s*s*s+6.*valCopy(:, EOP_DXXYY)*s*s*c*c + 4.*valCopy(:, EOP_DXYYY)*s*c**3+valCopy(:, EOP_DYYYY)*c**4
+    val(:, EOP_DXXXX) = valCopy(:, EOP_DXXXX)*c**4 - 4.*valCopy(:, EOP_DXXXY)*s*c*c*c+6.*valCopy(:, EOP_DXXYY)*s*s*c*c &
+- 4.*valCopy(:, EOP_DXYYY)*c*s**3+valCopy(:, EOP_DYYYY)*s**4
+    val(:, EOP_DXXXY) = valCopy(:, EOP_DXXXX)*c**3*s + valCopy(:, EOP_DXXXY)*(c**4-3.*s*s*c*c) &
++ 3.*valCopy(:, EOP_DXXYY)*(-c**3*s+c*s**3) + valCopy(:, EOP_DXYYY)*(3.*c*c*s*s-s**4) -valCopy(:, EOP_DYYYY)*s**3*c
+    val(:, EOP_DXXYY) = valCopy(:, EOP_DXXXX)*c*c*s*s + valCopy(:, EOP_DXXXY)*(2.*s*c**3-2.*s**3*c) &
++ valCopy(:, EOP_DXXYY)*(c**4+s**4-4.*s*s*c*c) + valCopy(:, EOP_DXYYY)*(2.*c*s*s*s-2*s*c**3) +valCopy(:, EOP_DYYYY)*s*s*c*c
+    val(:, EOP_DXYYY) = valCopy(:, EOP_DXXXX)*s**3*c + valCopy(:, EOP_DXXXY)*(-s**4+3.*s*s*c*c) &
++ 3.*valCopy(:, EOP_DXXYY)*(-s**3*c+s*c**3) + valCopy(:, EOP_DXYYY)*(-3.*c*c*s*s+c**4) &
+-valCopy(:, EOP_DYYYY)*c**3*s
+    val(:, EOP_DYYYY) = valCopy(:, EOP_DXXXX)*s**4 + 4.*valCopy(:, EOP_DXXXY)*c*s*s*s &
++6.*valCopy(:, EOP_DXXYY)*s*s*c*c + 4.*valCopy(:, EOP_DXYYY)*s*c**3+valCopy(:, EOP_DYYYY)*c**4
   end subroutine rotate_field 
   
   subroutine laplace_gs (val, ans, cylinder, gs)
@@ -942,7 +958,8 @@ module error_estimate
     ans(:)=val(:, EOP_DXXXX)+val(:, EOP_DYYYY)+2*val(:, EOP_DXXYY)
     if(cylinder .eq. 1) then
       if(gs .eq. 0) then
-        ans(:)=ans(:)+2./er_79*val(:,EOP_DXXX)-val(:, EOP_DXX)+1./er_79*val(:, EOP_DX)+ 1./er_79 * (val(:, EOP_DXYY)+val(:, EOP_DXYY))
+        ans(:)=ans(:)+2./er_79*val(:,EOP_DXXX)-val(:, EOP_DXX)+1./er_79*val(:, EOP_DX)+ 1./er_79&
+* (val(:, EOP_DXYY)+val(:, EOP_DXYY))
      else
         ans(:)=ans(:)+val(:, EOP_DXX)-1./er_79*val(:, EOP_DX)+ 1./er_79 * (val(:, EOP_DXYY)-val(:, EOP_DXYY))
      end if
