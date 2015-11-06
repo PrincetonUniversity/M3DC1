@@ -68,10 +68,16 @@ endif
 OPTS := $(OPTS) -DMAX_PTS=$(MAX_PTS)
 BIN_POSTFIX := $(BIN_POSTFIX)-$(MAX_PTS)
 
+ifeq ($(TRILINOS),1)
+  OPTS := $(OPTS) -DM3DC1_TRILINOS
+  BIN_POSTFIX := $(BIN_POSTFIX)-trilinos
+endif
+
 ifeq ($(USEADIOS), 1)
   BIN_POSTFIX := $(BIN_POSTFIX)-adios
 endif
 OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
+
 
 # add date stamp
 OPTS := $(OPTS) -DDATE_BUILT="'$(shell date)'" -DBUILD_INFO="'$(shell svn info)'" -DRELEASE_VERSION="'$(shell cat release_version)'"
@@ -104,6 +110,9 @@ ifeq ($(3D), 1)
   BIN := $(BIN)_3d
 else
   BIN := $(BIN)_2d
+endif
+ifeq ($(TRILINOS),1)
+  BIN := $(BIN)_trilinos
 endif
 ifeq ($(COM), 1)
   BIN := $(BIN)_complex

@@ -139,7 +139,12 @@ contains
        call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
        if(flg_solve2.eq.PETSC_TRUE) flg_petsc=PETSC_TRUE
     endif
+
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
+#else
     call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
+#endif
   end subroutine scorec_matrix_create
 
 
@@ -152,7 +157,11 @@ contains
     implicit none
 
     type(scorec_matrix), intent(inout) :: mat
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_delete (mat%imatrix)
+#else
     call m3dc1_matrix_delete (mat%imatrix)
+#endif
     call create_mat(mat,mat%m,mat%n,mat%icomplex,mat%lhs)
   end subroutine scorec_matrix_clear
 
@@ -166,7 +175,11 @@ contains
     implicit none
     
     type(scorec_matrix) :: mat
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_delete (mat%imatrix)
+#else
     call m3dc1_matrix_delete (mat%imatrix)
+#endif
   end subroutine scorec_matrix_destroy
 
 
@@ -214,8 +227,11 @@ contains
        vout_ptr => temp_out
     endif
 
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_multiply(mat%imatrix,vin_ptr%id,vout_ptr%id)
+#else
     call m3dc1_matrix_multiply(mat%imatrix,vin_ptr%id,vout_ptr%id)
-
+#endif
     nullify(vin_ptr, vout_ptr)
 
     if(vin%isize .ne. mat%isize) call destroy_vector(temp_in)
@@ -278,8 +294,11 @@ contains
     type(scorec_matrix), intent(in) :: mat
     real, intent(in) :: val
     integer, intent(in) :: i, j, iop
-
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_insert(mat%imatrix, val, i-1, j-1, 0,val, iop)
+#else
     call m3dc1_matrix_insert(mat%imatrix, val, i-1, j-1, 0,val, iop)
+#endif
   end subroutine scorec_matrix_insert_global_real
 
 
@@ -297,8 +316,11 @@ contains
     type(scorec_matrix), intent(in) :: mat
     complex, intent(in) :: val
     integer, intent(in) :: i, j, iop
-
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epertra_insert(mat%imatrix, val, i-1, j-1, 1,val, iop)
+#else
     call m3dc1_matrix_insert(mat%imatrix, val, i-1, j-1, 1,val, iop)
+#endif
   end subroutine scorec_matrix_insert_global_complex
 #endif
 
@@ -325,12 +347,20 @@ contains
 #else
     PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
 #endif
+#ifdef M3DC1_TRILINOS
+    call m3dc1_solver_aztec(mat%imatrix,v%id,v%id)
+#else
     call m3dc1_matrix_solve(mat%imatrix,v%id)
+#endif
     ierr = 0
 
 #ifdef KSPITS
+#ifdef M3DC1_TRILINOS
+    call m3dc1_solver_getnumiter(mat%imatrix,num_iter)
+#else
        !2013-jan-17 only for hopper
-       call m3dc1_matrix_getiternum( mat%imatrix, num_iter )
+    call m3dc1_matrix_getiternum(mat%imatrix,num_iter)
+#endif
 #else
        !2013-jan-17 fake numbers on other systems
        num_iter=mat%imatrix
@@ -349,8 +379,11 @@ contains
   subroutine scorec_matrix_finalize(mat)
     implicit none
     type(scorec_matrix) :: mat   
-
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_freeze(mat%imatrix)
+#else
     call m3dc1_matrix_freeze(mat%imatrix)
+#endif
   end subroutine scorec_matrix_finalize
 
 
@@ -362,7 +395,6 @@ contains
   subroutine scorec_matrix_flush(mat)
     implicit none
     type(scorec_matrix) :: mat
-    !call m3dc1_matrix_flush(mat%imatrix)
   end subroutine scorec_matrix_flush
 
   !======================================================================
@@ -466,8 +498,11 @@ contains
        call abort()
     end if
     call get_element_indices(mat, itri, irow, icol)
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_addblock(mat%imatrix, itri-1, m-1, n-1, TRANSPOSE(val));
+#else
     call m3dc1_matrix_insertblock(mat%imatrix, itri-1, m-1, n-1, TRANSPOSE(val));
-
+#endif
   end subroutine scorec_matrix_insert_block
 
   subroutine identity_row(mat, irow)
@@ -475,8 +510,11 @@ contains
     type(scorec_matrix) :: mat
     integer, intent(in) :: irow
 
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_setbc (mat%imatrix, irow-1)
+#else
     call m3dc1_matrix_setbc (mat%imatrix, irow-1)
-    
+#endif    
   end subroutine identity_row
 
   subroutine set_row_vals(mat, irow, ncols, icols, vals)
@@ -486,7 +524,11 @@ contains
     integer, intent(in) :: irow, ncols
     integer, intent(in), dimension(ncols) :: icols
     vectype, intent(in), dimension(ncols) :: vals
+#ifdef M3DC1_TRILINOS
+    call m3dc1_epetra_setlaplacebc(mat%imatrix, irow-1, ncols, icols-1, vals)
+#else
     call m3dc1_matrix_setlaplacebc(mat%imatrix, irow-1, ncols, icols-1, vals)
+#endif
   end subroutine set_row_vals
 
   subroutine scorec_matrix_write(mat, file)

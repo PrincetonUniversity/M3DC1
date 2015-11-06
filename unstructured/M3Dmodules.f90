@@ -618,7 +618,11 @@ contains
     if(.not. sparse_initialized) return
 
     do i=1, num_matrices
+#ifdef M3DC1_TRILINOS
+       call m3dc1_epetra_delete(i)
+#else
        call m3dc1_matrix_delete(i)
+#endif
     end do
 #endif
   end subroutine delete_matrices
