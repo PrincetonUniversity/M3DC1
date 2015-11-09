@@ -15,7 +15,6 @@ module load gsl/1.16
 module load cray-tpsl
 module load cray-petsc/3.5.3.2
 module load boost
-module unload cray-libsci
 module load cray-trilinos
 
 export CRAY_TRILINOS_PREFIX_DIR=/opt/cray/trilinos/11.12.1.5/INTEL/14.0/x86_64
