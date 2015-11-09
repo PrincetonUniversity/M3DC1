@@ -1,0 +1,61 @@
+1. login 
+	ssh your_id@cori.nersc.gov
+
+2. code
+
+3. load modules
+
+module load subversion
+module load cmake
+module load cray-netcdf-hdf5parallel/4.3.3.1
+module load cray-parallel-netcdf
+module load cray-hdf5-parallel/1.8.14
+module load fftw
+module load gsl/1.16
+module load cray-tpsl
+module load cray-petsc/3.5.3.2
+module load boost
+module unload cray-libsci
+module load cray-trilinos
+
+export CRAY_TRILINOS_PREFIX_DIR=/opt/cray/trilinos/11.12.1.5/INTEL/14.0/x86_64
+export HDF5_DIR=/opt/cray/hdf5-parallel/1.8.14/INTEL/14.0
+
+4. compile code
+	make OPT=1 RL=1 MAX_PTS=25
+	make OPT=1 COM=1 MAX_PTS=25
+	make 3D=1 OPT=1 MAX_PTS=60
+
+5. mesh utility
+        /global/project/projectdirs/mp288/cori/scorec/utilities
+
+6. run jobscript
+
+        #PBS -q debug
+        #PBS -l mppwidth=256
+        #PBS -l walltime=00:30:00
+        #PBS -N m3dc1_3d
+        #PBS -e $PBS_JOBID.err
+        #PBS -o $PBS_JOBID.out
+        #PBS -V
+
+        cd $PBS_O_WORKDIR
+      
+        #2D complex
+        (for regular i/o) aprun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+
+        #2D real
+        (for regular i/o) aprun -n 8 m3dc1_2d
+ 
+        #3D real
+        (for regular i/o) aprun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi
+
+7. submit job
+	qsub job_script
+
+8. list all curent jobs for a user
+	qstat -u your_id
+
+9. delete a job
+   	qdel job_id
+

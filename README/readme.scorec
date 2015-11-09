@@ -1,0 +1,23 @@
+[To connect]
+
+Do ssh -X your_id@jumpgate.scorec.rpi.edu
+Do ssh -X your_machine
+
+[To compile]
+
+Copy "scorec.mk" to "your_machine.mk" and do "make". 
+  - For instance, for the machine "piglet", copy "scorec.mk" to "piglet.mk".
+  - Modify machine_name.mk as needed
+2D: make OPT=1
+2D complex: make OPT=1 COM=1
+3D: make OPT=1 3D=1 MAX_PTS=60 
+
+[To run] 
+
+export LD_LIBRARY_PATH=:/usr/local/intel/latest/lib:/usr/local/intel/mkl72/lib/32:/users/granzb/lib64:/usr/lib64:/lore/fzhang/petsc-real/petsc-3.5.1/test/lib:/usr/local/trilinos/latest/lib
+
+cd /fasttmp/seol/TEST/2d/2p
+/usr/local/openmpi/latest/bin/mpirun -np 2 ~/develop/m3dc1/_avatar-opt-25/m3dc1_2d 
+
+cd /fasttmp/seol/TEST/3d/16p
+/usr/local/openmpi/latest/bin/mpirun -np 16 ~/develop/m3dc1/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options_file options_bjacobi
