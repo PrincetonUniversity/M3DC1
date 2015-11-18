@@ -1,42 +1,94 @@
 ! Kinetic energetic ion module, J. Breslau, 2015
 module particles
+  use mesh_mod
   implicit none
 
-  real, parameter :: csquared = 8.98740441e+16  !Speed of light in m/s, squared
-  real, parameter :: m_proton = 1.6726e-27  !Proton mass in kg
-  real, parameter :: qm_proton = 9.5791e+07 !Proton charge/mass ratio in C/kg
-  real, parameter :: vp1eV = 1.3841e+04     !Thermal speed of a 1 eV proton in m/s
-  integer, parameter :: vspdims = 2         !Dimensions in velocity space (2=gk; 3=full)
+  real, parameter :: e_mks = 1.6022e-19      !Elementary charge, in Coulombs
+  real, parameter :: m_proton = 1.6726e-27   !Proton mass in kg
+  real, parameter :: A_deuteron = 1.9990075  !Deuteron/proton mass ratio
+  real, parameter :: A_alpha = 3.972599689   !alpha/proton mass ratio
+  real, parameter :: qm_proton = e_mks/m_proton  !Proton charge/mass ratio in C/kg
+  real, parameter :: vp1eV = 1.3841e+04      !Thermal speed of a 1 eV proton in m/s
+  integer, parameter :: vspdims = 2          !Dimensions in velocity space (2=gk; 3=full)
+  integer, parameter :: nneighbors = 3       !Max # of nearest neighbors of an element
+
+  type elfield
+     vectype, dimension(coeffs_per_element) :: psiv0, psiv1, Bzv0, Bzv1
+     vectype, dimension(coeffs_per_element) :: er, ephi, ez
+     integer :: itri
+  end type elfield
+
+  type xgeomterms
+     real, dimension(coeffs_per_element) :: g, dr, dz
+     real, dimension(coeffs_per_element) :: drr, drz, dzz
+  end type xgeomterms
 
   type particle
-     real, dimension(3)       :: x              !Position in cylindrical coords
-     real, dimension(vspdims) :: v              !Velocity
-     real                     :: wt             !Particle weighting in delta-f scheme
-     real                     :: tlast, dtlast  !Time, time increment
-     integer                  :: fh             !file unit handle
+     real, dimension(3)       :: x           !Position in cylindrical coords
+     real, dimension(vspdims) :: v           !Velocity
+     real                     :: wt          !Particle weighting in delta-f scheme
+     real                     :: tlast       !Time
+     integer                  :: gid         !Unique global particle index
   end type particle
 
-  type(particle), dimension(:), allocatable :: ion
-  real, dimension(3+vspdims) :: partscale
-  real :: qm_ion
-  real :: dbtime !For debugging purposes
-  integer, dimension(:), allocatable :: llpid, lpcount !Lost particle tracking arrays
+  type elplist !Inventory of particles within a finite element
+     integer :: np
+     type(particle), dimension(:), allocatable :: ion
+  end type elplist
+
+  type(elplist), dimension(:), allocatable :: pdata
+  real :: m_ion, q_ion, qm_ion, dt_ion
+  integer, dimension(:,:), allocatable :: neighborlist
+  integer, dimension(:), allocatable :: llpel, llpid, lpcount !Lost particle tracking arrays
   integer :: nparticles, locparts
   integer :: mpi_particle !User-defined MPI datatype for particle communication
 
 contains
 
+  !Define MPI datatype for particle communication
+  subroutine define_mpi_particle
+    implicit none
+
+    include 'mpif.h'
+
+    integer, parameter :: pnvars = 5
+    integer, dimension(pnvars), parameter :: pblklen=(/3, vspdims, 1, 1, 1/)
+    integer(kind=MPI_ADDRESS_KIND), dimension(pnvars) :: pdspls
+    integer, dimension(pnvars), parameter :: ptyps = (/MPI_DOUBLE, MPI_DOUBLE, &
+         MPI_DOUBLE, MPI_DOUBLE, MPI_INTEGER/)
+
+    type(particle) :: dumpar
+    integer ::        ierr
+
+    !Set up component displacements array
+    call mpi_get_address(dumpar%x, pdspls(1), ierr)
+    call mpi_get_address(dumpar%v, pdspls(2), ierr)
+    pdspls(2) = pdspls(2) - pdspls(1)
+    call mpi_get_address(dumpar%wt, pdspls(3), ierr)
+    pdspls(3) = pdspls(3) - pdspls(1)
+    call mpi_get_address(dumpar%tlast, pdspls(4), ierr)
+    pdspls(4) = pdspls(4) - pdspls(1)
+    call mpi_get_address(dumpar%gid, pdspls(5), ierr)
+    pdspls(5) = pdspls(5) - pdspls(1)
+    pdspls(1) = 0
+
+    call mpi_type_create_struct(pnvars, pblklen, pdspls, ptyps, mpi_particle, ierr)
+    call mpi_type_commit(mpi_particle, ierr)
+  end subroutine define_mpi_particle
+
+!---------------------------------------------------------------------------
   subroutine particle_test
     use basic
-    use arrays
     use diagnostics
     use auxiliary_fields
     implicit none
 
+    include 'mpif.h'
+
+    character(len=32) :: line
     real, parameter :: JpereV = 1.6022e-19
-    real :: fv, fv2, pdt, keeV, pphi
-    integer :: itri=0, ierr, istep, ipart
-    logical :: lop
+    real :: pdt, keeV, pphi
+    integer :: ierr, ip, istep=0, trid, trunit=120
 
     if (myrank.eq.0) then
        print *,'xlim2 = ',xlim2
@@ -50,49 +102,57 @@ contains
        print *,'rfac = ',rfac
     endif
 
-    itri = 0
-    call evaluate(xmag, 0.0, zmag, fv, fv2, bz_field(0), itri, ierr)
-    if (ierr.eq.0.and.itri.ge.0) then
-       print *,myrank,': bz vals = ',fv, fv2
-    endif
-
+    !Precompute electric field components (do it this way for testing only!)
     call calculate_auxiliary_fields(eqsubtract)
 
     !Initialize particle population
     call init_particles
 
-    if (myrank.eq.3 .and. locparts.gt.1) then
-       ion(2)%fh = 120
-       open(unit=ion(2)%fh, file='ptraj3_2', status='replace', action='write')
-       write(ion(2)%fh,*)'x  y  z  t  KE  Pphi'
-       !write(ion(2)%fh,*)'x  y  z  t  B0  RB0'
-    endif
+    !Create particle trajectory output text file?
+    trid = 3778
+    write(line,'(A,I8.8)'),'ptraj_',trid
+    do ierr=1,size(pdata)
+       do ip=1,pdata(ierr)%np
+          if (pdata(ierr)%ion(ip)%gid.eq.trid) then
+             print *,myrank,': ielm,ip = ',ierr,ip,': gid = ',pdata(ierr)%ion(1)%gid
+             open(unit=trunit, file=trim(line), status='replace', action='write')
+             write(trunit,*)'x  y  z  t  KE  Pphi'
+             keeV = getke(pdata(ierr)%ion(ip))/JpereV
+             pphi = getPphi(pdata(ierr)%ion(ip))/JpereV
+             write(trunit,'(3f14.8,3e18.8)') &
+                  pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
+                  pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
+                  pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi
+             close(trunit)
+             exit
+          endif
+       enddo !ip
+    enddo !ierr
 
     !Advance particle positions
-    pdt = 9.625e-7
-    dbtime = 0.0
-    do istep=1,128
+    pdt = 1.0e-6
+    do istep=1,2000
        call advance_particles(pdt)
-       dbtime = dbtime + pdt
-       do ipart=1,locparts
-          if (ion(ipart)%fh.ge.0) then
-             keeV = getke(ion(ipart))/JpereV
-             pphi = getPphi(ion(ipart))/JpereV
-             write(ion(ipart)%fh,'(3f14.8,3e18.8)')ion(ipart)%x(1)*cos(ion(ipart)%x(2)), &
-                  ion(ipart)%x(1)*sin(ion(ipart)%x(2)), ion(ipart)%x(3), &
-                  pdt*istep, keeV, pphi
-             if (istep.eq.128) print *,'dtlast =',ion(ipart)%dtlast
-          endif
-       enddo !ipart
-    enddo !istep
 
-    !Close any open particle trajectory output files
-    do ipart=1,locparts
-       if (ion(ipart)%fh.ge.0) then
-          inquire(ion(ipart)%fh, opened=lop)
-          if (lop) close(ion(ipart)%fh)
-       endif
-    enddo
+       do ierr=1,size(pdata)
+          do ip=1,pdata(ierr)%np
+             if (pdata(ierr)%ion(ip)%gid.eq.trid) then
+                print *,myrank,' reopening trajectory file.'
+                !write(line,'(A,I8.8)'),'ptraj_',trid
+                open(unit=trunit, file=trim(line), status='old', action='write', &
+                     position='append')
+                keeV = getke(pdata(ierr)%ion(ip))/JpereV
+                pphi = getPphi(pdata(ierr)%ion(ip))/JpereV
+                write(trunit,'(3f14.8,3e18.8)') &
+                     pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
+                     pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
+                     pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi
+                close(trunit)
+                exit
+             endif
+          enddo !ip
+       enddo !ierr
+    enddo !istep
 
     !Clean up
     call finalize_particles
@@ -100,145 +160,323 @@ contains
 
 !---------------------------------------------------------------------------
   subroutine init_particles
-    use mesh_mod
     use basic
     implicit none
 
     include 'mpif.h'
 
     real, parameter :: c_mks = 2.9979e+8
-    integer, dimension(6), parameter :: pblklen=(/3, vspdims, 1, 1, 1, 1/)
-    integer(kind=MPI_ADDRESS_KIND), dimension(6) :: pdspls
-    integer, dimension(6), parameter :: ptyps = (/MPI_DOUBLE, MPI_DOUBLE, &
-         MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE, MPI_INTEGER/)
+    type(particle) :: dpar  !Dummy particle
+    type(elfield), dimension(nneighbors+1) :: elcoefs
+    type(xgeomterms) :: geomterms
+    real, dimension(3) :: Bcyl
+    real    :: x1, x2, z1, z2, pdx, pdz, pdl, xi, zi, vpar, vperp
+    real    :: Eev, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
+    real    :: gyroperiod, gfrac=5.0e-3, gkfrac=8.0, dtp, ldtmin
+    integer :: npr, npz, npe, npmu, ir, iz, ie, imu, ip
+    integer :: nelms, ielm, ierr, lc, noc, tridex, itri
 
-    type(particle) :: dumpar
-    real, dimension(3) :: x_part, Bcyl
-    real, dimension(coeffs_per_element):: gterm, drterm, dzterm
-    real, dimension(vspdims) :: v_part
-    real :: A_ion, Z_ion, m_ion, speed, vperp, vpar, EeV, B0
-    real :: pitch_angle, gfrac=5.0e-3, gkfrac=32.0, Rinv=1.0
-    integer :: itri=0, jj, globparts, ierr
+    !Set up 'neighborlist' table of element neighbors
+    call find_element_neighbors
 
-    nparticles = 2
-    allocate(ion(nparticles))
-    allocate(llpid(nparticles))
-    allocate(lpcount(maxrank))
+    !Allocate local storage for particle data
+    nelms = local_elements()
+    !print *,myrank,': ',nelms,' local elements,',&
+    !     coeffs_per_element,' coeffs per element.'
+    allocate(pdata(nelms))
+    do ie=1,nelms
+       pdata(ie)%np = 0
+    enddo !ie
 
-    EeV = 100.0                          !Ion kinetic energy in eV
-    A_ion = 1.0                         !Ion atomic mass number
-    Z_ion = 1.0                         !Ion atomic number (charge state)
-    m_ion = A_ion * m_proton            !Ion mass
-    qm_ion = Z_ion*qm_proton/A_ion      !Ion charge/mass ratio
-    speed = sqrt(EeV / A_ion) * vp1eV   !Ion speed
-    if(myrank.eq.0)print *,'ion speed = ',speed,' m/s = ',speed/c_mks,' c.'
-    !mu_max = 0.5 * m_ion * speed**2 / B0
+    npr = 64;  npz = 64;  npe = 1;  npmu = 2
 
-    !Particle dimension scale sizes
-    if (vspdims.eq.3) then !full orbit
-       partscale(1) = speed/(qm_ion * B0)
-       partscale(2) = partscale(1)
-       partscale(3) = partscale(1)
-       partscale(4) = speed
-       partscale(5) = speed
-       partscale(6) = speed
-    else !drift kinetic
-       partscale(1) = xlim
-       partscale(2) = 6.283
-       partscale(3) = partscale(1)
-       partscale(4) = speed
-       partscale(5) = 1.0
-    endif
 
+    !Particle spatial ranges
+    call get_bounding_box(x1, z1, x2, z2)
+    !if (myrank.eq.0) print *,'bb = ',x1,z1,x2,z2
+    pdx = (x2 - x1)/real(npr);  pdz = (z2 - z1)/real(npz)
+
+    !Particle velocity space ranges
+    Eev = 100.0                                 !Ion kinetic energy in eV
+    A_ion = 1.0                                 !Ion atomic mass number
+    m_ion = A_ion * m_proton                    !Ion mass in kg
+    Z_ion = 1.0                                 !Ion atomic number (charge state)
+    q_ion = Z_ion * e_mks                       !Ion charge in C
+    qm_ion = q_ion / m_ion                      !Ion charge/mass ratio
+    speed = sqrt(EeV / A_ion) * vp1eV           !Ion speed in m/s
+    if (myrank.eq.0) print *,'ion speed = ',speed,' m/s = ',speed/c_mks,' c.'
+
+    lambda_min = 0.0                            !Minimum particle pitch angle
+    lambda_max = 0.8                            !Maximum particle pitch angle
+    pdl = (lambda_max - lambda_min)/(npmu - 1)
+
+
+    !First pass: assign particles to processors, elements
     locparts = 0
-    do jj=1,nparticles
-       !Realspace position in cylindrical coordinates
-       x_part(1) = xmag + 0.1
-       x_part(2) = 0.0
-       x_part(3) = zmag + 0.2
+    dpar%x(2) = 0.0
+    do iz=1,npz !Loop over z positions
+       dpar%x(3) = z1 + (iz - 0.5)*pdz
 
-       !Find the mesh domain and element containing this point, compute terms
-       call get_geom_terms(x_part, itri, gterm, drterm, dzterm)
+       do ir=1,npr !Loop over major radius positions
+          dpar%x(1) = x1 + (ir - 0.5)*pdx
 
-       if (itri.ge.0) then
-          locparts = locparts + 1
-          ion(locparts)%x = x_part
-          !print *
-          !print *,'x = ',x_part,':'
-          !print *,'Particle ',jj,' is in element ',itri,' on PE ',myrank
-          !print *,x_part(1:3:2),' -> ',si,zi
+          !Check for local residence
+          ielm = 0
+          call whattri(dpar%x(1), dpar%x(2), dpar%x(3), ielm, xi, zi)
+          if (ielm.gt.0) then
+             !print *,myrank,'part',dpar%x(1:3:2),' is in elm',ielm
 
-          !pitch_angle = 1.570796*(jj-1.0)/(nparticles-1.0)
-          !pitch_angle = 1.570796e-1*(jj-1.0)/(nparticles-1.0)
-          pitch_angle = 0.8 *(jj-1.0)/(nparticles-1.0)
-          vpar  = speed * cos(pitch_angle)
-          vperp = speed * sin(pitch_angle)
+             do ie=1,npe !Loop over kinetic energies
+                dpar%v(1) = speed  !monoenergetic, for now
 
-          !Need B to get v components from lambda
-          if (itor.eq.1) Rinv = 1.0/x_part(1)
-          call getBcyl(itri, gterm, drterm, dzterm, Rinv, x_part(2), Bcyl)
+                do imu=1,npmu  !Loop over pitch angles
+                   dpar%v(2) = lambda_min + (imu - 1.0)*pdl
+
+                   dpar%gid = npmu*(npe*(npr*(iz-1) + (ir-1)) + (ie-1)) + (imu-1)
+                   !print *,myrank,': gid =',dpar%gid
+                   !if (dpar%gid.eq.0) then
+                   !   print *,myrank,': x = ',dpar%x,' is in el',ielm
+                   !endif
+
+                   call add_particle(ielm, dpar, ierr)
+                   if (ierr.ne.0) cycle
+
+                   locparts = locparts + 1
+                enddo !imu
+             enddo !ie
+
+          endif !ielm
+       enddo !ir
+    enddo !iz
+
+    write(0,'(I6,A,I7,A,f8.2,A)')myrank,':',locparts,' local particle(s). (avg',&
+         locparts/real(nelms),' per cell)'
+    lc = sum(pdata(:)%np)
+    if (lc.ne.locparts) print *,myrank,': mismatch in local particle count.'
+
+    call mpi_allreduce(locparts, nparticles, 1, MPI_INTEGER, MPI_SUM, &
+         MPI_COMM_WORLD, ierr)
+    if (myrank.eq.0) then
+       write(0,'(I8,A,I8,A)')nparticles,' particle(s) assigned out of ',&
+            npr*npz*npe*npmu,' candidates.'
+    endif
+    allocate(llpel(nparticles), llpid(nparticles), lpcount(maxrank))
+
+
+    !2nd pass: initialize velocity components
+    noc = 0
+    ldtmin = +1.0e+4
+    do ielm=1,nelms
+       if (pdata(ielm)%np.eq.0) cycle
+
+       !Load scalar fields for this element
+       call get_field_coefs(ielm, elcoefs(1), 0)
+
+       !Loop over particles inside
+       do ip=1,pdata(ielm)%np
+          vpar = pdata(ielm)%ion(ip)%v(1) * cos(pdata(ielm)%ion(ip)%v(2))
+          vperp = pdata(ielm)%ion(ip)%v(1) * sin(pdata(ielm)%ion(ip)%v(2))
+
+          itri = ielm
+          call get_geom_terms(pdata(ielm)%ion(ip)%x, itri, elcoefs, tridex, &
+               geomterms, .false., ierr)
+          if (tridex.ne.1.or.itri.ne.elcoefs(tridex)%itri) ierr = 1
+          if (ierr.ne.0) then
+             print *,myrank,': get_geom_terms call failed for particle',ip,&
+                  ' of element',ielm
+             cycle
+          endif !ierr
+
+          call getBcyl(pdata(ielm)%ion(ip)%x, elcoefs(1), geomterms, Bcyl)
           B0 = sqrt(dot_product(Bcyl, Bcyl))
-          !print *,'B0 ~ ',B0,' T.'
+          gyroperiod = 6.283185307 / (qm_ion * B0)
+          !print *,'Estimated gyroperiod = ',1.0e+9*gyroperiod,' ns.'
 
           if (vspdims.eq.3) then !full orbit
-             v_part(1) = vpar*Bcyl(1)/B0 - vperp*Bcyl(2)/sqrt(Bcyl(1)**2 + Bcyl(2)**2)
-             v_part(2) = vpar*Bcyl(2)/B0 + vperp*Bcyl(1)/sqrt(Bcyl(1)**2 + Bcyl(2)**2)
-             v_part(3) = vpar*Bcyl(3)/B0
-             !PRINT *,'v(R,phi,z) = ',v_part
-             !print *,'speedrat = ',sqrt(dot_product(v_part,v_part))/speed
-             !print *,'v . bhat = ',dot_product(v_part, Bcyl)/B0
-             ion(locparts)%v = v_part
+             B1 = sqrt(Bcyl(1)**2 + Bcyl(2)**2)
 
-             ion(locparts)%dtlast = gfrac * (6.2831853 / (qm_ion * B0))
-             print *,'Estimated gyroperiod = ',1.0e+9*ion(locparts)%dtlast/gfrac,' ns.'
+             pdata(ielm)%ion(ip)%v(1) = vpar*Bcyl(1)/B0 - vperp*Bcyl(2)/B1
+             pdata(ielm)%ion(ip)%v(2) = vpar*Bcyl(2)/B0 + vperp*Bcyl(1)/B1
+             pdata(ielm)%ion(ip)%v(3) = vpar*Bcyl(3)/B0
+
+             dtp = gfrac * gyroperiod
           else !gyro- or drift kinetic
-             ion(locparts)%v(1) = vpar                        !v_parallel
-             ion(locparts)%v(2) = (0.5*vperp**2)/(qm_ion*B0)  !mu/q
+             pdata(ielm)%ion(ip)%v(1) = vpar                        !v_parallel
+             pdata(ielm)%ion(ip)%v(2) = (0.5*vperp**2)/(qm_ion*B0)  !mu/q
 
-             ion(locparts)%dtlast = gkfrac * (6.2831853 / (qm_ion * B0))
-          endif
+             dtp = gkfrac * gyroperiod
+          endif !vspdims
 
-          ion(locparts)%fh = -1
-       endif !itri...
-    end do !jj
+          if (ldtmin.gt.dtp) ldtmin = dtp
+       enddo !ip
 
-    print *,myrank,': ',locparts,' local particles.'
+       noc = noc + 1
+    enddo !ielm
+    print *,myrank,':',noc,' / ',nelms,' elements occupied.'
+    !print *,myrank,': ldtmin = ',ldtmin
 
-    call mpi_reduce(locparts, globparts, 1, MPI_INTEGER, MPI_SUM, &
-         0, MPI_COMM_WORLD, ierr)
-    if (myrank.eq.0 .and. globparts.ne.nparticles) then
-       print *,'Warning: inconsistent particle count in init_particles!'
+    call mpi_allreduce(ldtmin, dt_ion, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, ierr)
+    if (myrank.eq.0) print *,'Particle dt = ',dt_ion,' s.'
+
+    call define_mpi_particle
+  end subroutine init_particles
+
+!---------------------------------------------------------------------------
+  subroutine add_particle(ielm, part, ierr)
+    implicit none
+
+    integer, intent(in) :: ielm
+    type(particle), intent(in) :: part
+    integer, intent(out) :: ierr
+
+    integer, parameter :: mininc = 8
+    type(particle), dimension(:), allocatable :: tmparr
+    integer :: origsize
+
+    ierr = 1
+
+    if (.not.allocated(pdata)) return
+    if (ielm.lt.1.or.ielm.gt.size(pdata)) return
+
+    if (.not.allocated(pdata(ielm)%ion)) then
+       allocate(pdata(ielm)%ion(mininc))
+       pdata(ielm)%np = 0
     endif
 
-    !Define MPI datatype for particle communication
-    call mpi_get_address(dumpar%x, pdspls(1), ierr)
-    call mpi_get_address(dumpar%v, pdspls(2), ierr)
-    pdspls(2) = pdspls(2) - pdspls(1)
-    call mpi_get_address(dumpar%wt, pdspls(3), ierr)
-    pdspls(3) = pdspls(3) - pdspls(1)
-    call mpi_get_address(dumpar%tlast, pdspls(4), ierr)
-    pdspls(4) = pdspls(4) - pdspls(1)
-    call mpi_get_address(dumpar%dtlast, pdspls(5), ierr)
-    pdspls(5) = pdspls(5) - pdspls(1)
-    call mpi_get_address(dumpar%fh, pdspls(6), ierr)
-    pdspls(6) = pdspls(6) - pdspls(1)
-    pdspls(1) = 0
-    !if (myrank.eq.0) print *,'pdspls = ',pdspls
+    pdata(ielm)%np = pdata(ielm)%np + 1
+    origsize = size(pdata(ielm)%ion)
 
-    call mpi_type_create_struct(6, pblklen, pdspls, ptyps, mpi_particle, ierr)
-    call mpi_type_commit(mpi_particle, ierr)
-  end subroutine init_particles
+    if (pdata(ielm)%np.gt.origsize) then
+       allocate(tmparr(origsize))
+       tmparr = pdata(ielm)%ion
+       deallocate(pdata(ielm)%ion)
+       allocate(pdata(ielm)%ion(origsize + mininc))
+       pdata(ielm)%ion(1:origsize) = tmparr
+       deallocate(tmparr)
+    endif
+
+    pdata(ielm)%ion(pdata(ielm)%np) = part
+
+    ierr = 0
+  end subroutine add_particle
+
+!---------------------------------------------------------------------------
+  subroutine delete_particle(ielm, ipart, ierr)
+    implicit none
+    intrinsic cshift
+
+    integer, intent(in)  :: ielm, ipart
+    integer, intent(out) :: ierr
+
+    integer :: np
+
+    !Error checking
+    ierr = 1; if (.not.allocated(pdata)) return
+    ierr = 2; if (ielm.lt.1.or.ielm.gt.size(pdata)) return
+    np = pdata(ielm)%np
+    ierr = 3; if (ipart.lt.1.or.ipart.gt.np) return
+
+    !Use intrinsic circular shift function to get rid of this particle
+    pdata(ielm)%ion(ipart:np) = cshift(pdata(ielm)%ion(ipart:np), 1)
+    pdata(ielm)%np = np - 1
+
+    ierr = 0
+  end subroutine delete_particle
 
 !---------------------------------------------------------------------------
   subroutine finalize_particles
     implicit none
 
-    if (allocated(ion)) deallocate(ion)
+    integer :: nelms, ielm
+
+    if (allocated(neighborlist)) deallocate(neighborlist)
+
+    if (allocated(pdata)) then
+       nelms = size(pdata)
+       do ielm=1,nelms
+          if (allocated(pdata(ielm)%ion)) deallocate(pdata(ielm)%ion)
+       enddo !ielm
+
+       deallocate(pdata)
+    endif
+
+    if (allocated(llpel)) deallocate(llpel)
     if (allocated(llpid)) deallocate(llpid)
     if (allocated(lpcount)) deallocate(lpcount)
-    !Free up particle MPI type?
-
   end subroutine finalize_particles
+
+!---------------------------------------------------------------------------
+  subroutine find_element_neighbors
+    use basic
+    implicit none
+
+    integer, parameter :: maxconnect = 8  !Max # of edges converging on any mesh node
+
+    type d_edge
+       integer :: el0, v, side
+    end type d_edge
+
+    type edge
+       type(d_edge), dimension(maxconnect) :: o
+       integer :: n
+    end type edge
+
+    type(edge), dimension(:), allocatable :: edgelist
+    integer, dimension(nodes_per_element) :: enode
+    integer :: nelms, lnodes, ielm, side, v1, v2, vtmp, iedg
+    logical :: ep
+
+    nelms = local_elements();  lnodes = local_nodes()
+    if (nelms.lt.1) return
+    allocate(neighborlist(nneighbors,nelms))
+    neighborlist = -1
+
+    if (nodes_per_element.eq.3) then !triangles
+       allocate(edgelist(lnodes-1))
+       edgelist(:)%n = 0
+
+       !Loop over local elements
+       do ielm=1,nelms
+          call get_element_nodes(ielm, enode)
+
+          !Loop over edges of this element
+          do side=1,3
+             !Sort vertices of this edge, smaller index first
+             v1 = enode(side);  v2 = enode(mod(side,3)+1)
+             if (v1.gt.v2) then
+                vtmp = v1;  v1 = v2;  v2 = vtmp
+             endif !v1 > v2
+
+             !Search if the edge is already present
+             ep = .false.
+             do iedg=1,edgelist(v1)%n
+                if (edgelist(v1)%o(iedg)%v .eq. v2) then !Yes, update neighbor table
+                   neighborlist(side,ielm) = edgelist(v1)%o(iedg)%el0
+                   neighborlist(edgelist(v1)%o(iedg)%side, edgelist(v1)%o(iedg)%el0) = ielm
+                   ep = .true.
+                   exit
+                endif
+             enddo !iedg
+
+             if (.not.ep) then !Edge was not present; add it.
+                edgelist(v1)%n = edgelist(v1)%n + 1
+                if (edgelist(v1)%n.gt.maxconnect) then
+                   print *,'Too many connections in find_element_neighbors.'
+                   deallocate(edgelist, neighborlist)
+                   return
+                endif
+                edgelist(v1)%o(edgelist(v1)%n)%v = v2
+                edgelist(v1)%o(edgelist(v1)%n)%el0 = ielm
+                edgelist(v1)%o(edgelist(v1)%n)%side = side
+             endif
+          enddo !side
+       enddo !ielm
+
+       deallocate(edgelist)
+    else
+       print *,nodes_per_element,' nodes per element; cannot find neighbors.'
+    endif !nodes_per_element...
+  end subroutine find_element_neighbors
 
 !---------------------------------------------------------------------------
   subroutine advance_particles(tinc)
@@ -248,122 +486,152 @@ contains
 
     real, intent(in) :: tinc  !Time increment for particle advance
 
-    real, parameter :: epsilon = 1.0e-6
-
     type(particle) :: testpart
-    real           :: dtp, trem, dtnext, xi, zi
-    integer        :: nexit, ipart, nstep, ierr, ipe, itri, globparts, uid
-    logical        :: lop
+    type(elfield), dimension(nneighbors+1) :: elcoefs
+    real    :: dtp, trem, xi, zi
+    integer :: nelms, ielm, itri, ipart, ip, ierr
+    integer :: nlost, ipe, lunf, gunf
+    !integer :: nstep, nhop, thop, nreas, treas  !Stats on ptcle movement w/in local domain
 
-    do ipart=1,locparts
-       ion(ipart)%tlast = 0.0
+    nelms = size(pdata)
+
+    do ielm=1,nelms
+       do ipart=1,pdata(ielm)%np
+          pdata(ielm)%ion(ipart)%tlast = 0.0
+       enddo
     enddo
 
+    elcoefs(:)%itri = 0
+
     do !Iterate until all particles are in the correct domain
+       !thop = 0;  treas = 0
+       nlost = 0;  lunf = 0
 
-       nexit = 0  !Number of local particles exiting domain during advance
+       !Loop over all local elements (good candidate for OMP parallelization)
+       do ielm=1,nelms
+          if (pdata(ielm)%np.eq.0) cycle  !Skip if element is empty
+          !nhop = 0;  nreas = 0
 
-       !Advance particles within local domain
-       do ipart=1,locparts !For each local particle...
-          nstep = 0
-          dtp = ion(ipart)%dtlast
-          dtnext = dtp
+          !Load scalar fields for this element & its nearest neighbors
+          call update_coef_ensemble(elcoefs, ielm)
 
-          do !Advance particle by tinc
-             trem = tinc - ion(ipart)%tlast  !time remaining to advance
-             if (trem.le.0.) exit
-             if (dtp.gt.trem) dtp = trem
+          !Advance particles within this element
+          ipart = 1
+          do !For each particle ipart
+             !nstep = 0
+             dtp = dt_ion;  itri = ielm
 
-             call rk4(ion(ipart), dtp, ierr)
-             !call rk5qs(ion(ipart), dtp, epsilon, partscale, dtnext, ierr)
+             do !Advance particle by tinc
+                trem = tinc - pdata(ielm)%ion(ipart)%tlast  !time remaining to advance
+                if (trem.le.0.) exit
+                if (dtp.gt.trem) dtp = trem
 
-             select case (ierr)
-             case (1) ! Particle exited local domain
-                !PRINT *,myrank,': Particle ',ipart,' exited at t=',ion(ipart)%tlast
+                call rk4(pdata(ielm)%ion(ipart), dtp, elcoefs, itri, ierr)
+                !call rk5ck(pdata(ielm)%ion(ipart), dtp, elcoefs, itri, ierr)
 
-                !Record particle ID and last time in table
-                nexit = nexit + 1
-                if (nexit.gt.nparticles) stop
-                llpid(nexit) = ipart
-
-                exit  !Break out of this loop, go to next particle.
-
-             case (2) ! Adaptive integration step shrank to zero
-                PRINT *,myrank,': Integration failed for particle ',ipart
-                stop
-
-             case default !ierr==0 -> Success
-                ion(ipart)%tlast = ion(ipart)%tlast + ion(ipart)%dtlast
-                dtp = dtnext
-                nstep = nstep + 1
-             end select
-          enddo !tinc advance
-
-          ion(ipart)%dtlast = dtp
-
-          !if (myrank.eq.3) print *,myrank,': Advanced particle ',&
-          !     ipart,nstep,' steps to t=',ion(ipart)%tlast,'/',tinc,&
-          !     ', dtpf = ',dtp
-       enddo !ipart
-
-       !Reassign particles that have migrated out of local domain
-       if (nexit.gt.0) print *,myrank,': nexit = ',nexit,':',llpid(1:nexit)
-       call mpi_allgather(nexit, 1, MPI_INTEGER, lpcount, 1, MPI_INTEGER, &
-            MPI_COMM_WORLD, ierr)
-       if (SUM(lpcount).eq.0) exit !No more particles to reassign
-
-       !Reassign transiting particles
-       if (myrank.eq.0) print *,'reassigning ',SUM(lpcount),' particles.'
-       do ipe=0,maxrank-1
-          !print *,myrank,': awaiting ',lpcount(ipe+1),' particles from PE ',ipe
-          do ipart=lpcount(ipe+1),1,-1
-             if (myrank.eq.ipe) then
-                !print *,myrank,': sending llpid = ',llpid(ipart)
-                testpart = ion(llpid(ipart))
-             endif
-             call mpi_bcast(testpart, 1, mpi_particle, ipe, MPI_COMM_WORLD, ierr)
-             !PRINT *,myrank,': x = ',testpart%x
-
-             if (myrank.eq.ipe) then !Delete particle from local list
-                !Close associated open output file, if present
-                uid = ion(llpid(ipart))%fh
-                if (uid.ge.0) then
-                   inquire(uid, opened=lop)
-                   if (lop) close(uid)
+                if (ierr.eq.1) then ! Particle exited local domain
+                   nlost = nlost + 1
+                   if (nlost.gt.nparticles) then
+                      print *,myrank,'nlost out of range in advance_particles().'
+                      return
+                   endif
+                   llpel(nlost) = ielm
+                   llpid(nlost) = pdata(ielm)%ion(ipart)%gid
+                   lunf = 1
+                   exit !Break out of tinc loop, go to next particle.
                 endif
 
-                do itri=llpid(ipart),locparts-1
-                   ion(itri) = ion(itri+1)
-                enddo
+                pdata(ielm)%ion(ipart)%tlast = pdata(ielm)%ion(ipart)%tlast + dtp
+                !nstep = nstep + 1
+ 
+                if (itri.ne.ielm) then !Particle has moved to a new element
+                   !if (ierr.eq.2) then ! Particle exited current element ensemble
+                   !   nhop = nhop + 1
+                   !else                ! Particle moved within current element ensemble
+                   !   nreas = nreas + 1
+                   !endif
+                   if (pdata(ielm)%ion(ipart)%tlast.lt.tinc) lunf = 1
+
+                   !Add it to the new element
+                   call add_particle(itri, pdata(ielm)%ion(ipart), ierr)
+                   if (ierr.ne.0) print *,myrank,': error in add_particle!'
+
+                   !Remove it from the current one
+                   call delete_particle(ielm, ipart, ierr)
+                   if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
+
+                   ipart = ipart - 1
+                   exit !Break out of tinc loop, go to next particle.
+                endif !itri.ne.ielm
+             enddo !tinc advance
+
+             ipart = ipart + 1
+             if (ipart.gt.pdata(ielm)%np) exit
+          enddo !ipart
+
+          !thop = thop + nhop
+          !treas = treas + nreas
+       enddo !ielm
+
+       !print *,myrank,':',nlost,' / ',locparts,' total exited.'
+       !print *,myrank,':',thop,' / ',locparts,' total hopped.'
+       !print *,myrank,':',treas,' / ',locparts,' total reassigned.'
+
+       call mpi_allreduce(lunf, gunf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+       if (gunf.le.0) exit ! All particles have reached target time
+
+       !Tabulate particles that have migrated out of local domain
+       call mpi_allgather(nlost, 1, MPI_INTEGER, lpcount, 1, MPI_INTEGER, &
+            MPI_COMM_WORLD, ierr)
+
+       !Reassign transiting particles
+       do ipe=0,maxrank-1
+          do ipart=1,lpcount(ipe+1)
+             if (myrank.eq.ipe) then
+                do ip=1,pdata(llpel(ipart))%np
+                   if (pdata(llpel(ipart))%ion(ip)%gid.eq.llpid(ipart)) exit
+                enddo !ip
+                if (ip.gt.pdata(llpel(ipart))%np) then
+                   print *,'particle not found for reassignment.'
+                   return
+                endif
+                testpart = pdata(llpel(ipart))%ion(ip)
+             endif
+             call mpi_bcast(testpart, 1, mpi_particle, ipe, MPI_COMM_WORLD, ierr)
+
+             if (myrank.eq.ipe) then !Delete particle from local list
+                call delete_particle(llpel(ipart), ip, ierr)
+                if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
                 locparts = locparts - 1
-                !print *,myrank,': locparts =',locparts
-                !llpid(ipart+1:nexit) = llpid(ipart+1:nexit) - 1
              else
                 call whattri(testpart%x(1), testpart%x(2), testpart%x(3), &
                      itri, xi, zi)
-                if (itri.gt.0) then
+                if (itri.gt.0) then !Add particle to local list
+                   call add_particle(itri, testpart, ierr)
+                   if (ierr.ne.0) print *,myrank,': error in add_particle!'
                    locparts = locparts + 1
-                   if (locparts.gt.nparticles) stop
-                   ion(locparts) = testpart
-                   print *,'Particle moved to PE ',myrank,':',ion(locparts)%x
-
-                   !Open associated file, if available
-                   if (ion(locparts)%fh.ge.0) then
-                      print *,myrank,': reopening file for appending...'
-                      open(unit=ion(locparts)%fh, file='ptraj3_2', action='write', &
-                           position='append')
-                   endif
                 endif !itri...
              endif !myrank...
-          enddo !ipart          
+          enddo !ipart
        enddo !ipe
-
-       call mpi_reduce(locparts, globparts, 1, MPI_INTEGER, MPI_SUM, &
-            0, MPI_COMM_WORLD, ierr)
-       if (myrank.eq.0) &
-            print *,globparts,' particle(s) remaining after reassignment.'
     enddo !outer loop
 
+    call mpi_allreduce(locparts, nparticles, 1, MPI_INTEGER, MPI_SUM, &
+         MPI_COMM_WORLD, ierr)
+    if (myrank.eq.0) &
+         print *,nparticles,' particle(s) remaining after advance step.'
+    if (myrank.eq.3) then
+       if (locparts.gt.0) then
+          do ielm=1,nelms
+             if (pdata(ielm)%np.gt.0) then
+                print *,'1st remaining on 3 is ',pdata(ielm)%ion(1)%gid
+                exit
+             endif
+          enddo
+       else
+          print *,'None remaining on 3.'
+       endif
+    endif
   end subroutine advance_particles
 
 !---------------------------------------------------------------------------
@@ -371,110 +639,59 @@ contains
 !  Four derivative evaluations per step.
 ! (Adapted from Numerical Recipes in C, 2nd edition, 1994, pp. 712-713).
 !
-  subroutine rk4(part, dt, ierr)
+  subroutine rk4(part, dt, fh, itri, ierr)
     implicit none
 
     type(particle), intent(inout) :: part
     real, intent(in) :: dt
+    type(elfield), dimension(nneighbors+1), intent(in) :: fh
+    integer, intent(inout) :: itri
     integer, intent(out) :: ierr
 
     real, parameter :: onethird = 1.0/3.0
     real, dimension(3) :: k1, k2, k3, k4, y1
     real, dimension(vspdims) :: l1, l2, l3, l4, z1
-    real :: hh
+    real :: hh, m1, m2, m3, m4, w1
 
     ierr = 0
     hh = 0.5*dt
 
     !1st step
-    call fdot(part%x, part%v, k1, l1, ierr)
-    if (ierr.ne.0) return
-    y1 = part%x + hh*k1;  z1 = part%v + hh*l1
+    call fdot(part%x, part%v, part%wt, k1, l1, m1, fh, itri, ierr)
+    if (ierr.eq.1) return
+    y1 = part%x + hh*k1;  z1 = part%v + hh*l1;  w1 = part%wt + hh*m1
 
     !2nd step
-    call fdot(y1, z1, k2, l2, ierr)
-    if (ierr.ne.0) return
-    y1 = part%x + hh*k2;  z1 = part%v + hh*l2
+    call fdot(y1, z1, w1, k2, l2, m2, fh, itri, ierr)
+    if (ierr.eq.1) return
+    y1 = part%x + hh*k2;  z1 = part%v + hh*l2;  w1 = part%wt + hh*m2
 
     !3rd step
-    call fdot(y1, z1, k3, l3, ierr)
-    if (ierr.ne.0) return
-    y1 = part%x + dt*k3;  z1 = part%v + dt*l3
+    call fdot(y1, z1, w1, k3, l3, m3, fh, itri, ierr)
+    if (ierr.eq.1) return
+    y1 = part%x + dt*k3;  z1 = part%v + dt*l3;  w1 = part%wt + hh*m3
 
     !4th step
-    call fdot(y1, z1, k4, l4, ierr)
-    if (ierr.ne.0) return
-    part%x = part%x + onethird*dt*(k2 + k3 + 0.5*(k1 + k4))
-    part%v = part%v + onethird*dt*(l2 + l3 + 0.5*(l1 + l4))
-    part%dtlast = dt
+    call fdot(y1, z1, w1, k4, l4, m4, fh, itri, ierr)
+    if (ierr.eq.1) return
+    part%x  = part%x  + onethird*dt*(k2 + k3 + 0.5*(k1 + k4))
+    part%v  = part%v  + onethird*dt*(l2 + l3 + 0.5*(l1 + l4))
+    part%wt = part%wt + onethird*dt*(m2 + m3 + 0.5*(m1 + m4))
   end subroutine rk4
-
-!----------------------------------------------------------------------------
-! 5th-order Runge-Kutta step with monitoring of truncation error for accuracy,
-! step size adjustment.
-! (Adapted from Numerical Recipes in C, 2nd edition, 1994, p. 719).
-!
-  subroutine rk5qs(part0, htry, eps, yscal, hnext, ierr)
-    implicit none
-
-    type(particle), intent(inout) :: part0
-    real, intent(in) :: htry, eps
-    real, dimension(3+vspdims), intent(in) :: yscal
-    real, intent(out) :: hnext
-    integer, intent(out) :: ierr
-
-    real, parameter :: safety = 0.9, pshrnk = -0.25, pgrow = -0.2
-    real, parameter :: errcon = (5.0/safety)**(1.0/pgrow)
-
-    type(particle) :: ptemp
-    real, dimension(3+vspdims) :: perr
-    real :: h, errmax, htemp
-
-    ierr = 0
-    ptemp = part0  !Copy over any particle data aside from x,v
-
-    h = htry  !Set step size to initial trial value
-    do
-       call rk5ck(part0, h, ptemp, perr, ierr)
-       if (ierr.ne.0) return
-       errmax = MAXVAL(ABS(perr/yscal))/eps
-       if (errmax.le.1.0) exit  !Step succeeded.
-
-       !Error too large -> step failed.
-       !Reduce step size by no more than 10x, retry.
-       htemp = safety*h*(errmax**pshrnk)
-       h = 0.1*h
-       if (htemp.gt.h) h = htemp
-
-       if (htry+h.eq.htry) then !Step size underflow condition
-          ierr = 2
-          return
-       endif
-    enddo
-
-    !Increase step size by no more than 5x.
-    if (errmax.gt.errcon) then
-       hnext = safety*h*(errmax**pgrow)
-    else
-       hnext = 5.0*h
-    endif
-
-    part0 = ptemp
-    part0%dtlast = h
-  end subroutine rk5qs
 
 !----------------------------------------------------------------------------------
 ! 5th-order Cash-Karp Runge-Kutta integrator with embedded 4th-order error estimate.
 !  Six derivative evaluations per call.
 ! (Adapted from Numerical Recipes in C, 2nd edition, 1994, pp. 719-720).
 !
-  subroutine rk5ck(part0, dt, part1, perr, ierr)
+  subroutine rk5ck(part, dt, fh, itri, ierr)
     implicit none
 
-    type(particle), intent(in) :: part0
+    type(particle), intent(inout) :: part
     real, intent(in) :: dt
-    type(particle), intent(out) :: part1
-    real, dimension(3+vspdims), intent(out) :: perr
+    type(elfield), dimension(nneighbors+1), intent(in) :: fh
+    integer, intent(inout) :: itri
+    !real, dimension(4+vspdims), intent(out) :: perr
     integer, intent(out) :: ierr
 
     real, parameter :: b21=0.2, b31=0.075, b32=0.225
@@ -483,101 +700,114 @@ contains
     real, parameter :: b61=1631.0/55296.0, b62=175.0/512.0
     real, parameter :: b63=575.0/13824.0, b64=44275.0/110592.0, b65=253.0/4096.0
     real, parameter :: c1=37.0/378.0, c3=250.0/621.0, c4=125.0/594.0
-    real, parameter :: c6=512.0/1771.0, dc5=-277.0/14336.0
-    real, parameter :: dc1=c1-2825.0/27648.0, dc3=c3-18575.0/48384.0
-    real, parameter :: dc4=c4-13525.0/55296.0, dc6=c6-0.25
+    real, parameter :: c6=512.0/1771.0
+    !real, parameter :: dc1=c1-2825.0/27648.0, dc3=c3-18575.0/48384.0
+    !real, parameter :: dc4=c4-13525.0/55296.0, dc5=-277.0/14336.0, dc6=c6-0.25
 
     real, dimension(3)       :: xdot, y1, ak2, ak3, ak4, ak5, ak6
     real, dimension(vspdims) :: vdot, z1, bk2, bk3, bk4, bk5, bk6
+    real                     :: wdot, w1, ck2, ck3, ck4, ck5, ck6
 
     ierr = 0
 
     !1st step
-    call fdot(part0%x, part0%v, xdot, vdot, ierr)
-    if (ierr.ne.0) return
-    y1 = part0%x + b21*dt*xdot
-    z1 = part0%v + b21*dt*vdot
+    call fdot(part%x, part%v, part%wt, xdot, vdot, wdot, fh, itri, ierr)
+    if (ierr.eq.1) return
+    y1 = part%x  + b21*dt*xdot
+    z1 = part%v  + b21*dt*vdot
+    w1 = part%wt + b21*dt*wdot
 
     !2nd step
-    call fdot(y1, z1, ak2, bk2, ierr)
-    if (ierr.ne.0) return
-    y1 = part0%x + dt*(b31*xdot + b32*ak2)
-    z1 = part0%v + dt*(b31*vdot + b32*bk2)
+    call fdot(y1, z1, w1, ak2, bk2, ck2, fh, itri, ierr)
+    if (ierr.eq.1) return
+    y1 = part%x  + dt*(b31*xdot + b32*ak2)
+    z1 = part%v  + dt*(b31*vdot + b32*bk2)
+    w1 = part%wt + dt*(b31*wdot + b32*ck2)
 
     !3rd step
-    call fdot(y1, z1, ak3, bk3, ierr)
-    if (ierr.ne.0) return
-    y1 = part0%x + dt*(b41*xdot + b42*ak2 + b43*ak3)
-    z1 = part0%v + dt*(b41*vdot + b42*bk2 + b43*bk3)
+    call fdot(y1, z1, w1, ak3, bk3, ck3, fh, itri, ierr)
+    if (ierr.eq.1) return
+    y1 = part%x  + dt*(b41*xdot + b42*ak2 + b43*ak3)
+    z1 = part%v  + dt*(b41*vdot + b42*bk2 + b43*bk3)
+    w1 = part%wt + dt*(b41*wdot + b42*ck2 + b43*ck3)
 
     !4th step
-    call fdot(y1, z1, ak4, bk4, ierr)
-    if (ierr.ne.0) return
-    y1 = part0%x + dt*(b51*xdot + b52*ak2 + b53*ak3 + b54*ak4)
-    z1 = part0%v + dt*(b51*vdot + b52*bk2 + b53*bk3 + b54*bk4)
+    call fdot(y1, z1, w1, ak4, bk4, ck4, fh, itri, ierr)
+    if (ierr.eq.1) return
+    y1 = part%x  + dt*(b51*xdot + b52*ak2 + b53*ak3 + b54*ak4)
+    z1 = part%v  + dt*(b51*vdot + b52*bk2 + b53*bk3 + b54*bk4)
+    w1 = part%wt + dt*(b51*wdot + b52*ck2 + b53*ck3 + b54*ck4)
 
     !5th step
-    call fdot(y1, z1, ak5, bk5, ierr)
-    if (ierr.ne.0) return
-    y1 = part0%x + dt*(b61*xdot + b62*ak2 + b63*ak3 + b64*ak4 + b65*ak5)
-    z1 = part0%v + dt*(b61*vdot + b62*bk2 + b63*bk3 + b64*bk4 + b65*bk5)
+    call fdot(y1, z1, w1, ak5, bk5, ck5, fh, itri, ierr)
+    if (ierr.eq.1) return
+    y1 = part%x  + dt*(b61*xdot + b62*ak2 + b63*ak3 + b64*ak4 + b65*ak5)
+    z1 = part%v  + dt*(b61*vdot + b62*bk2 + b63*bk3 + b64*bk4 + b65*bk5)
+    w1 = part%wt + dt*(b61*wdot + b62*ck2 + b63*ck3 + b64*ck4 + b65*ck5)
 
     !6th step
-    call fdot(y1, z1, ak6, bk6, ierr)
-    if (ierr.ne.0) return
-    part1%x = part0%x + dt*(c1*xdot + c3*ak3 + c4*ak4 + c6*ak6)
-    part1%v = part0%v + dt*(c1*vdot + c3*bk3 + c4*bk4 + c6*bk6)
+    call fdot(y1, z1, w1, ak6, bk6, ck6, fh, itri, ierr)
+    if (ierr.eq.1) return
+    part%x  = part%x  + dt*(c1*xdot + c3*ak3 + c4*ak4 + c6*ak6)
+    part%v  = part%v  + dt*(c1*vdot + c3*bk3 + c4*bk4 + c6*bk6)
+    part%wt = part%wt + dt*(c1*wdot + c3*ck3 + c4*ck4 + c6*ck6)
 
     !Error estimate
-    perr(1:3) = dt*(dc1*xdot + dc3*ak3 + dc4*ak4 + dc5*ak5 + dc6*ak6)
-    perr(4:3+vspdims) = dt*(dc1*vdot + dc3*bk3 + dc4*bk4 + dc5*bk5 + dc6*bk6)
+    !perr(1:3) = dt*(dc1*xdot + dc3*ak3 + dc4*ak4 + dc5*ak5 + dc6*ak6)
+    !perr(4:3+vspdims) = dt*(dc1*vdot + dc3*bk3 + dc4*bk4 + dc5*bk5 + dc6*bk6)
+    !perr(4+vspdims) = dt*(dc1*wdot + dc3*ck3 + dc4*ck4 + dc5*ck5 + dc6*ck6)
   end subroutine rk5ck
 
 !---------------------------------------------------------------------------
-  subroutine fdot(x, v, dxdt, dvdt, ierr)
-    use mesh_mod
+  subroutine fdot(x, v, w, dxdt, dvdt, dwdt, fh, itri, ierr)
     use basic
     implicit none
 
-    real, dimension(3), intent(in)        :: x
-    real, dimension(3), intent(out)       :: dxdt
-    real, dimension(vspdims), intent(in)  :: v
-    real, dimension(vspdims), intent(out) :: dvdt
-    integer, intent(out)                  :: ierr
+    real, dimension(3), intent(in)                     :: x
+    real, dimension(3), intent(out)                    :: dxdt
+    real, dimension(vspdims), intent(in)               :: v
+    real, dimension(vspdims), intent(out)              :: dvdt
+    real, intent(in)                                   :: w
+    real, intent(out)                                  :: dwdt
+    type(elfield), dimension(nneighbors+1), intent(in) :: fh
+    integer, intent(inout)                             :: itri
+    integer, intent(out)                               :: ierr
 
     real, parameter :: g_mks = 9.8067 ! earth avg surf grav accel in m/s/s
-    real, dimension(coeffs_per_element):: gterm, drterm, dzterm
-    real, dimension(coeffs_per_element):: drrterm, drzterm, dzzterm
+    type(elfield) :: fh_hop
+    type(xgeomterms) :: geomterms
     real, dimension(3) :: B_cyl, E_cyl, bhat, svec, Bstar
     real, dimension(3) :: dBdR, dBdphi, dBdz, gradB0
     real :: Rinv = 1.0, B0, Bss
-    integer :: itri=0
+    integer :: tridex
 
     ierr = 0
 
-    !Need fields to calculate acceleration
-    if (vspdims.eq.3) then
-       call get_geom_terms(x, itri, gterm, drterm, dzterm)
-    else
-       call get_geom_terms2(x, itri, gterm, drterm, dzterm,&
-            drrterm, drzterm, dzzterm)
+    !Need terms to compute fields to calculate acceleration
+    call get_geom_terms(x, itri, fh, tridex, geomterms, vspdims.eq.2, ierr)
+    if (ierr.ne.0) return
+    if (tridex.le.0) then !Not part of local ensemble!
+       ierr = 2
+       call get_field_coefs(itri, fh_hop, 1)
     endif
-    if (itri.le.0) then
-       !print *,myrank,': particle exited local domain!'
-       ierr = 1
-       return
-    endif
-    !if (myrank.eq.3) print *,'dbt=',dbtime,': itri = ',itri !DEBUG
 
     !Get magnetic, electric field components
     if (itor.eq.1) Rinv = 1.0/x(1)
-    call getEcyl(itri, gterm, x(2), E_cyl)
+    if (tridex.gt.0) then
+       call getEcyl(x, fh(tridex), geomterms, E_cyl)
+    else
+       call getEcyl(x, fh_hop, geomterms, E_cyl)
+    endif
     !E_cyl = 0. !DEBUG ONLY!!!
 
     if (vspdims.eq.3) then !full orbit: ma = q(E + vxB) + mg
        dxdt(1:vspdims) = v
 
-       call getBcyl(itri, gterm, drterm, dzterm, Rinv, x(2), B_cyl)
+       if (tridex.gt.0) then
+          call getBcyl(x, fh(tridex), geomterms, B_cyl)
+       else
+          call getBcyl(x, fh_hop, geomterms, B_cyl)
+       endif
 
        dvdt(1) = qm_ion*(E_cyl(1) + v(2)*B_cyl(3) - v(3)*B_cyl(2))
        dvdt(2) = qm_ion*(E_cyl(2) + v(3)*B_cyl(1) - v(1)*B_cyl(3))
@@ -588,8 +818,11 @@ contains
        !   dvdt(2) = dvdt(2) - 2.0*Rinv*v(1)*v(2)  !Coriolis effect
        !endif
     else ! Drift-kinetic equation
-       call getBcyl2(itri, gterm, drterm, dzterm, drrterm, drzterm, dzzterm, &
-            Rinv, x(2), B_cyl, dBdR, dBdphi, dBdz)
+       if (tridex.gt.0) then
+          call getBcylprime(x, fh(tridex), geomterms, B_cyl, dBdR, dBdphi, dBdz)
+       else
+          call getBcylprime(x, fh_hop, geomterms, B_cyl, dBdR, dBdphi, dBdz)
+       endif
 
        B0 = sqrt(dot_product(B_cyl, B_cyl))
        bhat = B_cyl / B0
@@ -626,160 +859,222 @@ contains
     endif
 
     dxdt(2) = Rinv*dxdt(2)  !phi-dot = v_phi / R for cylindrical case
+    dwdt = 0.
   end subroutine fdot
 
 !---------------------------------------------------------------------------
 ! Compute terms for a function and its partial derivatives with respect to
 !  R and z in the reduced quintic expansion at position x.
-  subroutine get_geom_terms(x, itri, gterm, drterm, dzterm)
-    use mesh_mod
+  subroutine get_geom_terms(x, ielm, fh, tridex, gh, ic2, ierr)
     implicit none
 
     real, dimension(3), intent(in) :: x
-    integer, intent(out) :: itri
-    real, dimension(coeffs_per_element), intent(out) :: gterm, drterm, dzterm
+    integer, intent(inout) :: ielm
+    type(elfield), dimension(nneighbors+1), intent(in) :: fh
+    type(xgeomterms), intent(out) :: gh  !Geometric terms handle
+    logical, intent(in)  :: ic2          !Compute 2nd derivative terms?
+    integer, intent(out) :: tridex, ierr
 
     type(element_data) :: eldat
     real :: xi, zi, eta, dxi, deta
+    real :: d2xi, d2eta, dxieta
     integer :: pp
 
-    itri = 0
-    call whattri(x(1),x(2),x(3),itri,xi,zi)
-    if (itri.le.0) return
+    ierr = 0;  tridex = -1
 
-    call get_element_data(itri, eldat)
+    call whattri(x(1),x(2),x(3),ielm,xi,zi)
+    if (ielm.le.0) then !The triangle is not in the local partition
+       ierr = 1
+       return
+    endif
+
+    tridex = ensemble_index(fh, ielm)
+
+    call get_element_data(ielm, eldat)
     call global_to_local(eldat, x(1), x(2), x(3), xi, zi, eta)
-    !print *,'Coords in element: xi,eta =',xi,eta
 
-    drterm = 0.;  dzterm = 0.
+    gh%dr = 0.;  gh%dz = 0.
     do pp=1,coeffs_per_element
-       gterm(pp) = xi**mi(pp) * eta**ni(pp)
+       gh%g(pp) = xi**mi(pp) * eta**ni(pp)
 
        if (mi(pp).gt.0) then
           dxi = mi(pp) * xi**(mi(pp)-1) * eta**ni(pp)
 
-          drterm(pp) = drterm(pp) + eldat%co*dxi
-          dzterm(pp) = dzterm(pp) + eldat%sn*dxi
+          gh%dr(pp) = gh%dr(pp) + eldat%co*dxi
+          gh%dz(pp) = gh%dz(pp) + eldat%sn*dxi
        endif
 
        if (ni(pp).gt.0) then
           deta = xi**mi(pp) * ni(pp)*eta**(ni(pp)-1)
 
-          drterm(pp) = drterm(pp) - eldat%sn*deta
-          dzterm(pp) = dzterm(pp) + eldat%co*deta
+          gh%dr(pp) = gh%dr(pp) - eldat%sn*deta
+          gh%dz(pp) = gh%dz(pp) + eldat%co*deta
        endif
     enddo !pp
 
-  end subroutine get_geom_terms
+    if (ic2) then !2nd derivative terms
+       gh%drr = 0.;  gh%drz = 0.;  gh%dzz = 0.
+       do pp=1,coeffs_per_element
+          if (mi(pp).gt.0) then
+             if (mi(pp).gt.1) then
+                d2xi = mi(pp)*(mi(pp)-1)*xi**(mi(pp)-2) * eta**ni(pp)
 
-!---------------------------------------------------------------------------
-! Compute 2nd partial derivative terms as well.
-  subroutine get_geom_terms2(x, itri, gterm, drterm, dzterm, drr, drz, dzz)
-    use mesh_mod
-    implicit none
+                gh%drr(pp) = gh%drr(pp) + d2xi*eldat%co**2
+                gh%drz(pp) = gh%drz(pp) + d2xi*eldat%co*eldat%sn
+                gh%dzz(pp) = gh%dzz(pp) + d2xi*eldat%sn**2
+             endif !mi > 1
 
-    real, dimension(3), intent(in) :: x
-    integer, intent(out) :: itri
-    real, dimension(coeffs_per_element), intent(out) :: gterm, drterm, dzterm
-    real, dimension(coeffs_per_element), intent(out) :: drr, drz, dzz
+             if (ni(pp).gt.0) then
+                dxieta = mi(pp)*ni(pp) * xi**(mi(pp)-1) * eta**(ni(pp)-1)
 
-    type(element_data) :: eldat
-    real :: xi, zi, eta, dxi, deta, d2xi, d2eta, dxieta
-    integer :: pp
-
-    itri = 0
-    call whattri(x(1),x(2),x(3),itri,xi,zi)
-    if (itri.le.0) return
-
-    call get_element_data(itri, eldat)
-    call global_to_local(eldat, x(1), x(2), x(3), xi, zi, eta)
-
-    drterm = 0.;  dzterm = 0.;  drr = 0.;  drz = 0.;  dzz = 0.
-
-    do pp=1,coeffs_per_element
-       gterm(pp) = xi**mi(pp) * eta**ni(pp)
-
-       if (mi(pp).gt.0) then
-          dxi = mi(pp) * xi**(mi(pp)-1) * eta**ni(pp)
-
-          drterm(pp) = drterm(pp) + eldat%co*dxi
-          dzterm(pp) = dzterm(pp) + eldat%sn*dxi
-
-          if (mi(pp).gt.1) then
-             d2xi = mi(pp)*(mi(pp)-1)*xi**(mi(pp)-2) * eta**ni(pp)
-
-             drr(pp) = drr(pp) + d2xi*eldat%co**2
-             drz(pp) = drz(pp) + d2xi*eldat%co*eldat%sn
-             dzz(pp) = dzz(pp) + d2xi*eldat%sn**2
-          endif
-
-          if (ni(pp).gt.0) then
-             dxieta = mi(pp)*ni(pp) * xi**(mi(pp)-1) * eta**(ni(pp)-1)
-
-             drr(pp) = drr(pp) - 2.0*dxieta*eldat%co*eldat%sn
-             drz(pp) = drz(pp) + dxieta*(2.0*eldat%co**2 - 1.0)
-             dzz(pp) = dzz(pp) + 2.0*dxieta*eldat%co*eldat%sn
-          endif
-       endif
-
-       if (ni(pp).gt.0) then
-          deta = xi**mi(pp) * ni(pp)*eta**(ni(pp)-1)
-
-          drterm(pp) = drterm(pp) - eldat%sn*deta
-          dzterm(pp) = dzterm(pp) + eldat%co*deta
+                gh%drr(pp) = gh%drr(pp) - 2.0*dxieta*eldat%co*eldat%sn
+                gh%drz(pp) = gh%drz(pp) + dxieta*(2.0*eldat%co**2 - 1.0)
+                gh%dzz(pp) = gh%dzz(pp) + 2.0*dxieta*eldat%co*eldat%sn
+             endif !ni > 0
+          endif !mi > 0
 
           if (ni(pp).gt.1) then
              d2eta = xi**mi(pp) * ni(pp)*(ni(pp)-1)*eta**(ni(pp)-2)
 
-             drr(pp) = drr(pp) + d2eta*eldat%sn**2
-             drz(pp) = drz(pp) - d2eta*eldat%co*eldat%sn
-             dzz(pp) = dzz(pp) + d2eta*eldat%co**2
-          endif
-       endif
-    enddo !pp
-
-  end subroutine get_geom_terms2
+             gh%drr(pp) = gh%drr(pp) + d2eta*eldat%sn**2
+             gh%drz(pp) = gh%drz(pp) - d2eta*eldat%co*eldat%sn
+             gh%dzz(pp) = gh%dzz(pp) + d2eta*eldat%co**2
+          endif !ni > 1
+       enddo !pp
+    endif !ic2
+  end subroutine get_geom_terms
 
 !---------------------------------------------------------------------------
-  subroutine getBcyl(itri, gterm, drterm, dzterm, Rinv, phi, Bcyl)
+  subroutine update_coef_ensemble(ensemble, itri)
+    implicit none
+
+    type(elfield), dimension(nneighbors+1), intent(inout) :: ensemble
+    integer, intent(in) :: itri
+
+    logical, dimension(nneighbors+1) :: ladd, ldel
+    integer :: tridex, nbr, jtri
+
+    !Determine which elements need to be added, which can be deleted
+    ladd = .false.;  ldel = .true.
+    tridex = ensemble_index(ensemble, itri)
+    if (tridex.lt.1) then
+       ladd(1) = .true.
+    else
+       ldel(tridex) = .false.
+    endif
+    do nbr=1,nneighbors
+       jtri = neighborlist(nbr,itri) !Look up the jth neighbor of this element
+       if (jtri.gt.0) then         !If the neighbor exists,
+          tridex = ensemble_index(ensemble, jtri) !See if it is loaded already
+          if (tridex.lt.1) then !Not loaded; schedule it for addition
+             ladd(nbr+1) = .true.
+          else                  !Already loaded; prevent deletion
+             ldel(tridex) = .false.
+          endif
+       endif
+    enddo !nbr
+
+    !Load elements as necessary
+    tridex = 1
+    do !Find first available space
+       if (ldel(tridex)) exit
+       tridex = tridex + 1
+    enddo
+    if (ladd(1)) then !Load central element here
+       call get_field_coefs(itri, ensemble(tridex), 1)
+       tridex = tridex + 1
+    endif !ladd(1)
+    do nbr=1,nneighbors !Loop through adjacent elements
+       if (ladd(nbr+1)) then
+          do !Find next available space
+             if (ldel(tridex)) exit
+             tridex = tridex + 1
+          enddo
+
+          !Load jth neighbor here
+          call get_field_coefs(neighborlist(nbr,itri), ensemble(tridex), 1)
+          tridex = tridex + 1
+       endif !ladd
+    enddo !nbr
+  end subroutine update_coef_ensemble
+
+!---------------------------------------------------------------------------
+  integer function ensemble_index(ensemble, itri)
+    implicit none
+
+    type(elfield), dimension(nneighbors+1), intent(in) :: ensemble
+    integer, intent(in) :: itri
+
+    integer :: idx
+
+    ensemble_index = -1
+
+    do idx=1,nneighbors+1
+       if (ensemble(idx)%itri.eq.itri) then
+          ensemble_index = idx
+          return
+       endif
+    enddo !idx
+  end function ensemble_index
+
+!---------------------------------------------------------------------------
+  subroutine get_field_coefs(ielm, fh, getE)
     use arrays
+    use basic
+    use auxiliary_fields
+    implicit none
+
+    type(elfield), intent(out) :: fh  !Field handle
+    integer, intent(in) :: ielm, getE
+
+    !Always get magnetic field components
+    call calcavector(ielm, psi_field(0), fh%psiv0)
+    call calcavector(ielm, bz_field(0), fh%Bzv0)
+    if (linear.eq.1) then
+       call calcavector(ielm, psi_field(1), fh%psiv1)
+       call calcavector(ielm, bz_field(1), fh%Bzv1)
+    endif !linear
+
+    !Get electric field components if needed
+    if (getE.gt.0) then
+       call calcavector(ielm, ef_r, fh%er)
+       call calcavector(ielm, ef_phi, fh%ephi)
+       call calcavector(ielm, ef_z, fh%ez)
+    endif
+
+    fh%itri = ielm
+  end subroutine get_field_coefs
+
+!---------------------------------------------------------------------------
+  subroutine getBcyl(x, fh, gh, Bcyl)
     use basic
     implicit none
 
-    integer, intent(in) :: itri
-    real, dimension(coeffs_per_element), intent(in) :: gterm, drterm, dzterm
-    real, intent(in) :: Rinv, phi
-    real, dimension(3), intent(out) :: Bcyl
+    real, dimension(3), intent(in) :: x      !Position
+    type(elfield), intent(in) :: fh          !Field handle
+    type(xgeomterms), intent(in) :: gh       !Geometric terms handle
+    real, dimension(3), intent(out) :: Bcyl  !Output magnetic field
 
-    vectype, dimension(coeffs_per_element) :: avector
     vectype, dimension(3) :: temp
+    real :: Rinv=1.0
 
-    if(itri.eq.0) return
+    if (itor.eq.1) Rinv = 1.0/x(1)
 
     !Equilibrium part
     !B_poloidal = grad psi x grad phi
-    call calcavector(itri, psi_field(0), avector)
-    Bcyl(1) = -Rinv*dot_product(avector, dzterm)
-    Bcyl(3) =  Rinv*dot_product(avector, drterm)
+    Bcyl(1) = -Rinv*dot_product(fh%psiv0, gh%dz)
+    Bcyl(3) =  Rinv*dot_product(fh%psiv0, gh%dr)
 
     !B_toroidal = B_Z / R
-    call calcavector(itri, bz_field(0), avector)
-    Bcyl(2) = Rinv*dot_product(avector, gterm)
+    Bcyl(2) = Rinv*dot_product(fh%Bzv0, gh%g)
 
     if (linear.eq.1) then
        !Perturbed part
-
-       !B_poloidal = grad psi x grad phi
-       call calcavector(itri, psi_field(1), avector)
-       temp(1) = -Rinv*dot_product(avector, dzterm)
-       temp(3) =  Rinv*dot_product(avector, drterm)
-
-       !B_toroidal = B_Z / R
-       call calcavector(itri, bz_field(1), avector)
-       temp(2) = Rinv*dot_product(avector, gterm)
-
+       temp(1) = -Rinv*dot_product(fh%psiv1, gh%dz)
+       temp(3) =  Rinv*dot_product(fh%psiv1, gh%dr)
+       temp(2) =  Rinv*dot_product(fh%Bzv1,  gh%g)
 #ifdef USECOMPLEX
-       Bcyl = Bcyl + real(temp * exp(rfac*phi))
+       Bcyl = Bcyl + real(temp * exp(rfac*x(2)))
 #else
        Bcyl = Bcyl + temp
 #endif
@@ -787,41 +1082,36 @@ contains
   end subroutine getBcyl
 
 !---------------------------------------------------------------------------
-  subroutine getBcyl2(itri, gterm, drterm, dzterm, drr, drz, dzz, Rinv, phi, &
-       Bcyl, dBdR, dBdphi, dBdz)
-    use arrays
+  subroutine getBcylprime(x, fh, gh, Bcyl, dBdR, dBdphi, dBdz)
     use basic
     implicit none
 
-    integer, intent(in) :: itri
-    real, dimension(coeffs_per_element), intent(in) :: gterm, drterm, dzterm
-    real, dimension(coeffs_per_element), intent(in) :: drr, drz, dzz
-    real, intent(in) :: Rinv, phi
+    real, dimension(3), intent(in) :: x
+    type(elfield), intent(in) :: fh
+    type(xgeomterms), intent(in) ::gh
     real, dimension(3), intent(out) :: Bcyl, dBdR, dBdphi, dBdz
 
-    vectype, dimension(coeffs_per_element) :: avector
     vectype, dimension(3) :: temp, tempR, tempz
+    real :: Rinv=1.0
 
-    if(itri.eq.0) return
+    if (itor.eq.1) Rinv = 1.0/x(1)
 
     !Equilibrium part
     !B_poloidal = grad psi x grad phi
-    call calcavector(itri, psi_field(0), avector)
-    Bcyl(1) = -Rinv*dot_product(avector, dzterm)
-    Bcyl(3) =  Rinv*dot_product(avector, drterm)
+    Bcyl(1) = -Rinv*dot_product(fh%psiv0, gh%dz)
+    Bcyl(3) =  Rinv*dot_product(fh%psiv0, gh%dr)
 
-    dBdR(1) = -Rinv*dot_product(avector, drz)
-    dBdR(3) =  Rinv*dot_product(avector, drr)
+    dBdR(1) = -Rinv*dot_product(fh%psiv0, gh%drz)
+    dBdR(3) =  Rinv*dot_product(fh%psiv0, gh%drr)
 
-    dBdz(1) = -Rinv*dot_product(avector, dzz)
-    dBdz(3) =  Rinv*dot_product(avector, drz)
+    dBdz(1) = -Rinv*dot_product(fh%psiv0, gh%dzz)
+    dBdz(3) =  Rinv*dot_product(fh%psiv0, gh%drz)
 
     !B_toroidal = B_Z / R
-    call calcavector(itri, bz_field(0), avector)
-    Bcyl(2) = Rinv*dot_product(avector, gterm)
+    Bcyl(2) = Rinv*dot_product(fh%Bzv0, gh%g)
 
-    dBdR(2) = Rinv*dot_product(avector, drterm)
-    dBdz(2) = Rinv*dot_product(avector, dzterm)
+    dBdR(2) = Rinv*dot_product(fh%Bzv0, gh%dr)
+    dBdz(2) = Rinv*dot_product(fh%Bzv0, gh%dz)
 
     if (itor.eq.1) dBdR = dBdR - Rinv*Bcyl
 
@@ -830,175 +1120,137 @@ contains
     if (linear.eq.1) then
        !Perturbed part
        !B_poloidal = grad psi x grad phi
-       call calcavector(itri, psi_field(1), avector)
-       temp(1) = -Rinv*dot_product(avector, dzterm)
-       temp(3) =  Rinv*dot_product(avector, drterm)
+       temp(1) = -Rinv*dot_product(fh%psiv1, gh%dz)
+       temp(3) =  Rinv*dot_product(fh%psiv1, gh%dr)
 
-       tempR(1) = -Rinv*dot_product(avector, drz)
-       tempR(3) =  Rinv*dot_product(avector, drr)
+       tempR(1) = -Rinv*dot_product(fh%psiv1, gh%drz)
+       tempR(3) =  Rinv*dot_product(fh%psiv1, gh%drr)
 
-       tempz(1) = -Rinv*dot_product(avector, dzz)
-       tempz(3) =  Rinv*dot_product(avector, drz)
+       tempz(1) = -Rinv*dot_product(fh%psiv1, gh%dzz)
+       tempz(3) =  Rinv*dot_product(fh%psiv1, gh%drz)
 
        !B_toroidal = B_Z / R
-       call calcavector(itri, bz_field(1), avector)
-       temp(2) = Rinv*dot_product(avector, gterm)
+       temp(2) = Rinv*dot_product(fh%Bzv1, gh%g)
 
-       tempR(2) = Rinv*dot_product(avector, drterm)
-       tempz(2) = Rinv*dot_product(avector, dzterm)
+       tempR(2) = Rinv*dot_product(fh%Bzv1, gh%dr)
+       tempz(2) = Rinv*dot_product(fh%Bzv1, gh%dz)
 
        if (itor.eq.1) tempR = tempR - Rinv*temp
 
 #ifdef USECOMPLEX
-       Bcyl = Bcyl + real(temp * exp(rfac*phi))
-       dBdR = dBdR + real(tempR * exp(rfac*phi))
-       dBdz = dBdz + real(tempz * exp(rfac*phi))
-       dBdphi = real(temp * rfac * exp(rfac*phi))
+       Bcyl = Bcyl + real(temp * exp(rfac*x(2)))
+       dBdR = dBdR + real(tempR * exp(rfac*x(2)))
+       dBdz = dBdz + real(tempz * exp(rfac*x(2)))
+       dBdphi = real(temp * rfac * exp(rfac*x(2)))
 #else
        Bcyl = Bcyl + temp
        dBdR = dBdR + tempR
        dBdz = dBdz + tempz
 #endif
     endif !linear
-  end subroutine getBcyl2
+  end subroutine getBcylprime
 
- !---------------------------------------------------------------------------
-  subroutine getEcyl(itri, gterm, phi, Ecyl)
+!---------------------------------------------------------------------------
+  subroutine getEcyl(x, fh, gh, Ecyl)
     use arrays
     use basic
     use auxiliary_fields
     implicit none
 
-    integer, intent(in) :: itri
-    real, dimension(coeffs_per_element), intent(in) :: gterm
-    real, intent(in) :: phi
+    real, dimension(3), intent(in) :: x
+    type(elfield), intent(in) :: fh
+    type(xgeomterms), intent(in) :: gh
     real, dimension(3), intent(out) :: Ecyl
 
-    vectype, dimension(coeffs_per_element) :: avector
     vectype, dimension(3) :: temp
 
-    if(itri.eq.0) return
-
-    call calcavector(itri, ef_r, avector)
-    temp(1) = dot_product(avector, gterm)
-
-    call calcavector(itri, ef_phi, avector)
-    temp(2) = dot_product(avector, gterm)
-
-    call calcavector(itri, ef_z, avector)
-    temp(3) = dot_product(avector, gterm)
+    temp(1) = dot_product(fh%er, gh%g)
+    temp(2) = dot_product(fh%ephi, gh%g)
+    temp(3) = dot_product(fh%ez, gh%g)
 
 #ifdef USECOMPLEX
-    Ecyl = real(temp) ! * exp(rfac*phi))
+    Ecyl = real(temp) ! * exp(rfac*x(2)))
 #else
     Ecyl = temp
 #endif
   end subroutine getEcyl
 
 !---------------------------------------------------------------------------
-! Return mod B in Tesla
-  function getB0(x)
-    use basic
-    implicit none
-
-    real :: getB0
-    real, dimension(3), intent(in) :: x
-
-    real, dimension(coeffs_per_element):: gterm, drterm, dzterm
-    real, dimension(3) :: B_cyl
-    real :: Rinv = 1.0
-    integer :: itri
-
-    call get_geom_terms(x, itri, gterm, drterm, dzterm)
-    if (itri.le.0) then
-       getB0 = -1.0
-       return
-    endif
-
-    if (itor.eq.1) Rinv = 1.0/x(1)
-    call getBcyl(itri, gterm, drterm, dzterm, Rinv, x(2), B_cyl)
-    getB0 = sqrt(dot_product(B_cyl, B_cyl))
-  end function getB0
-
-!---------------------------------------------------------------------------
 ! Return particle kinetic energy, in Joules
-  function getke(p)
+  real function getke(p)
     use basic
     implicit none
 
-    real :: getke
     type(particle), intent(in) :: p
 
-    real, parameter :: e_p = 1.6022e-19  !Elementary charge, in Coulombs
-    real, dimension(coeffs_per_element):: gterm, drterm, dzterm
-    real, dimension(3) :: B_cyl
-    real :: Rinv = 1.0, B0
-    integer :: itri
+    type(elfield), dimension(nneighbors+1) :: elcoefs
+    type(xgeomterms)                       :: geomterms
+    real, dimension(3)                     :: B_cyl
+    real                                   :: B0
+    integer                                :: itri, tridex, ierr
 
     if (vspdims.eq.3) then
-       getke = 0.5*e_p*dot_product(p%v, p%v)/qm_ion
+       getke = 0.5*e_mks*dot_product(p%v, p%v)/qm_ion
     else
-       call get_geom_terms(p%x, itri, gterm, drterm, dzterm)
-       if (itri.le.0) then
+       elcoefs(:)%itri = 0
+       call get_geom_terms(p%x, itri, elcoefs, tridex, geomterms, .false., ierr)
+       if (ierr.ne.0) then
           getke = -1.0
           return
        endif
 
-       if (itor.eq.1) Rinv = 1.0/p%x(1)
-       call getBcyl(itri, gterm, drterm, dzterm, Rinv, p%x(2), B_cyl)
-       B0 = sqrt(dot_product(B_cyl, B_cyl))
+       call get_field_coefs(itri, elcoefs(1), 0)
+       call getBcyl(p%x, elcoefs(1), geomterms, B_cyl)
 
-       getke = e_p*(0.5*p%v(1)**2/qm_ion + p%v(2)*B0)
+       B0 = sqrt(dot_product(B_cyl, B_cyl))
+       getke = e_mks*(0.5*p%v(1)**2/qm_ion + p%v(2)*B0)
     endif
   end function getke
 
 !---------------------------------------------------------------------------
 ! Return particle canonical angular momentum in kg-m**2/s
-  function getPphi(p)
+  real function getPphi(p)
     use arrays
     use basic
     implicit none
 
-    real :: getPphi
     type(particle), intent(in) :: p
 
-    real, parameter :: e_p = 1.6022e-19  !Elementary charge, in Coulombs
-    vectype, dimension(coeffs_per_element) :: avector
-    vectype :: psi
-    real, dimension(coeffs_per_element):: gterm, drterm, dzterm
-    real, dimension(3) :: B_cyl
-    real :: Rinv=1.0, B0
-    integer :: itri
+    vectype                                :: psi
+    type(elfield), dimension(nneighbors+1) :: elcoefs
+    type(xgeomterms)                       :: geomterms
+    real, dimension(3)                     :: B_cyl
+    real                                   :: B0
+    integer                                :: itri, tridex, ierr
 
-    call get_geom_terms(p%x, itri, gterm, drterm, dzterm)
-    if (itri.le.0) then
+    elcoefs(:)%itri = 0
+    call get_geom_terms(p%x, itri, elcoefs, tridex, geomterms, .false., ierr)
+    if (ierr.ne.0) then
        getPphi = -1.0
        return
     endif
 
+    call get_field_coefs(itri, elcoefs(1), 0)
+
     ! Poloidal magnetic flux
-    call calcavector(itri, psi_field(0), avector)
-    getPphi = e_p * dot_product(avector, gterm)
+    getPphi = e_mks * dot_product(elcoefs(1)%psiv0, geomterms%g)
 
     if (linear.eq.1) then
-       call calcavector(itri, psi_field(1), avector)
-       psi = dot_product(avector, gterm)
+       psi = dot_product(elcoefs(1)%psiv1, geomterms%g)
 #ifdef USECOMPLEX
-       getPphi = getPphi + e_p * real(psi * exp(rfac*p%x(2)))
+       getPphi = getPphi + e_mks * real(psi * exp(rfac*p%x(2)))
 #else
-       getPphi = getPphi + e_p * psi
+       getPphi = getPphi + e_mks * real(psi)
 #endif
     endif !linear
-    !if (myrank.eq.3) print *,'psi = ',getPphi/e_p
 
     if (vspdims.eq.3) then
-       getPphi = getPphi + (e_p/qm_ion) * p%v(2) * p%x(1)
+       getPphi = getPphi + (e_mks/qm_ion) * p%v(2) * p%x(1)
     else
-       if (itor.eq.1) Rinv = 1.0/p%x(1)
-       call getBcyl(itri, gterm, drterm, dzterm, Rinv, p%x(2), B_cyl)
+       call getBcyl(p%x, elcoefs(1), geomterms, B_cyl)
        B0 = sqrt(dot_product(B_cyl, B_cyl))
 
-       getPphi = getPphi + (e_p/qm_ion) * p%v(1) * B_cyl(2) * p%x(1) / B0
+       getPphi = getPphi + (e_mks/qm_ion) * p%v(1) * B_cyl(2) * p%x(1) / B0
     endif
   end function getPphi
 end module particles
