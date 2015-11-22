@@ -1,4 +1,4 @@
-dirs = DIII-D NSTX-U
+dirs = AUG DIII-D NSTX-U KSTAR
 
 .PHONY : $(dirs) clean all
 
