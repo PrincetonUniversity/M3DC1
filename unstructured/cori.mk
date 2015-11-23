@@ -23,33 +23,27 @@ endif
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
 SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Nov2015
 SCOREC_CORE = -lapf -lgmi -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
-HDF5_DIR = /opt/cray/hdf5-parallel/1.8.14/INTEL/14.0
 
 ifeq ($(COM), 1)
-      SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
-      PETSC_LIB = -lcraypetsc_intel_complex
+      SCOREC_LIBS=-L$(SCOREC_DIR)/lib/$(PE_ENV) -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
+      PETSC_LIB = -lcraypetsc_cray_complex
 else
-      SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
-      PETSC_LIB = -lcraypetsc_intel_real
+      SCOREC_LIBS=-L$(SCOREC_DIR)/lib/$(PE_ENV) -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
+      PETSC_LIB = -lcraypetsc_cray_real
 endif
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include
 
-PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lHYPRE -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lsundials_cvode -lsundials_cvodes -lsundials_ida -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial -lpthread -lssl -lcrypto -lstdc++
+PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.5.2/CRAY/8.3/haswell/lib -lHYPRE -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr  -lsundials_cvode -lsundials_cvodes -lsundials_ida -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial -lpthread -lssl -lcrypto -lstdc++
 INCLUDE := $(INCLUDE) -I$(PETSC_DIR)/include
 
 LIBS := $(LIBS) \
-        -L$(SCOREC_DIR)/lib $(SCOREC_LIBS) \
+        $(SCOREC_LIBS) \
         -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(PETSC_LIB) $(PETSC_EXTERNAL_LIB_BASIC) \
         -L$(CRAY_TRILINOS_PREFIX)/lib -lzoltan \
-        -lstdc++
+        -lstdc++ 
 
 ifeq ($(USEADIOS), 1)
   OPTS := $(OPTS) -DUSEADIOS
-endif
-
-AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
-
-OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
@@ -59,12 +53,16 @@ ADIOS_DIR=/usr/common/usg/adios/1.4.1
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
              -L/usr/lib64/ -llustreapi
+endif
+
+AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
+
+OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	-I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
-
 LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
@@ -72,15 +70,17 @@ LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 #        $(HYBRID_LIBS) \
 
 
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
+#FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
+
+FOPTS = -c -s real64 -fPIC -static -e F -e m -rm $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
 CCOPTS  = -c $(OPTS)
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS)
-  FOPTS  := $(FOPTS)  -O3
-  CCOPTS := $(CCOPTS) -O3
+  LDOPTS := $(LDOPTS) -Wl,-z,muldefs
+  FOPTS  := $(FOPTS)  -O3 -Wl,-z,muldefs
+  CCOPTS := $(CCOPTS) -O3 -Wl,-z,muldefs
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)  
