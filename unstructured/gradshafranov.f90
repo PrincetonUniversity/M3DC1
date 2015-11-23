@@ -2000,13 +2000,9 @@ subroutine fundef2(error)
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
   integer :: magnetic_region, izone, mr
-  real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np, f, f1
+  real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np, f
 
   dpsii =  (1./(psibound - psimin))
-!
-!  Change made 9/23/2015    scj
-   f1 = 1
-   if(dpsii.gt.0) f1 = -1
 
   fun1_vec = 0.
   fun2_vec = 0.
@@ -2095,8 +2091,8 @@ subroutine fundef2(error)
 
      
      ! convert from normalized to real flux
-     temp79a = f1*temp79a*dpsii
-     temp79b = f1*temp79b*dpsii
+     temp79a = temp79a*dpsii
+     temp79b = temp79b*dpsii
      if(irot.eq.1) temp79d = temp79d*dpsii
      
      ! p(R, psi) = p0(psi)*Exp[ alpha(psi) * (R^2-R0^2)/R0^2 ]
