@@ -24,7 +24,7 @@ subroutine load_eqdsk(ierr)
 
   integer, parameter :: neqdsk = 20
   integer :: idum, i, j
-  real :: xdum, ffp2, pp2, dpsi
+  real :: xdum, ffp2, pp2, dpsi, meanpp
   integer :: ibuff(2)
   real :: rbuff(20)
 
@@ -105,6 +105,16 @@ subroutine load_eqdsk(ierr)
         simag = -simag
         sibry = -sibry
         psirz = -psirz
+        pprime = -pprime
+        ffprim = -ffprim
+     end if
+
+     meanpp = 0.
+     do i=1, nw
+        meanpp = meanpp + pprime(i)
+     end do
+     if(meanpp*(sibry-simag).gt.0) then
+        print *, "Warning: <dp/dPsi> > 0.  Flipping p' and FF'"
         pprime = -pprime
         ffprim = -ffprim
      end if
