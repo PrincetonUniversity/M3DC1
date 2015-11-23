@@ -11,31 +11,11 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
 
   ; calculate flux averages
   psi = read_field('psi',x,z,t,mesh=mesh,/equilibrium,_EXTRA=extra)
-  psi_r = read_field('psi',x,z,t,mesh=mesh,/equilibrium,op=2,_EXTRA=extra)
-  psi_z = read_field('psi',x,z,t,mesh=mesh,/equilibrium,op=3,_EXTRA=extra)
-  psi_lp= read_field('psi',x,z,t,/equilibrium,op=7,_EXTRA=extra)
-  p0 = read_field('p',x,z,t,/equilibrium,_EXTRA=extra)
-  p0_r = read_field('p',x,z,t,/equilibrium,op=2,_EXTRA=extra)
-  p0_z = read_field('p',x,z,t,/equilibrium,op=3,_EXTRA=extra)
-  I0 = read_field('I',x,z,t,/equilibrium,_EXTRA=extra)
-  I0_r = read_field('I',x,z,t,/equilibrium,op=2,_EXTRA=extra)
-  I0_z = read_field('I',x,z,t,/equilibrium,op=3,_EXTRA=extra)
   r = radius_matrix(x,z,t)
-  beta = r^2*2.*p0/(s_bracket(psi,psi,x,z) + I0^2)
-  beta0 = mean(2.*p0*r^2/(bzero*rzero)^2)
-  b2 = (s_bracket(psi,psi,x,z) + I0^2)/r^2
-  dx = (max(x)-min(x))/(n_elements(x) - 1.)
-  dz = (max(z)-min(z))/(n_elements(z) - 1.)
-  jphi = psi_lp - psi_r/r
-  tcur = read_scalar('ip',_EXTRA=extra,/mks)
-  print, 'current = ', tcur[0]
-
-  ; calculate magnetic axis and xpoint
-  lcfs_psi = lcfs(psi,x,z, axis=axis, xpoint=xpoint, $
-                  flux0=flux0, _EXTRA=extra)
 
   ; plot psi
-  contour_and_legend, psi, x, z
+  window, 1
+  contour_and_legend, psi, x, z, /iso
 
   ; calculate wall points
   bound_xy = get_boundary_path(mesh=mesh, _EXTRA=extra)
@@ -44,9 +24,15 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
   zwall = fltarr(nwall)
   rwall[*] = bound_xy[0,*]
   zwall[*] = bound_xy[1,*]
+  oplot, rwall, zwall, psym=6
 
   ifixedb = read_parameter('ifixedb', _EXTRA=extra)
   print, 'ifixedb = ', ifixedb
+
+  ; calculate magnetic axis and xpoint
+  lcfs_psi = lcfs(psi,x,z, axis=axis, xpoint=xpoint, $
+                  flux0=flux0, _EXTRA=extra)
+
 
   if(ifixedb eq 1) then begin
       psilim = 0.
@@ -66,7 +52,6 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
       print, 'lcfs_psi = ', lcfs_psi
       print, 'psilim = ', psilim
       
-      window, 0
       lcfs_xy = path_at_flux(psi,x,z,t,psilim,/contiguous)
 
       ; count only points on separatrix above the xpoint
@@ -117,7 +102,25 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
   end
       
   oplot, rlim, zlim, psym=4
-  oplot, rwall, zwall, psym=6
+
+; calculate additional fields
+  psi_r = read_field('psi',x,z,t,mesh=mesh,/equilibrium,op=2,_EXTRA=extra)
+  psi_z = read_field('psi',x,z,t,mesh=mesh,/equilibrium,op=3,_EXTRA=extra)
+  psi_lp= read_field('psi',x,z,t,/equilibrium,op=7,_EXTRA=extra)
+  p0 = read_field('p',x,z,t,/equilibrium,_EXTRA=extra)
+  p0_r = read_field('p',x,z,t,/equilibrium,op=2,_EXTRA=extra)
+  p0_z = read_field('p',x,z,t,/equilibrium,op=3,_EXTRA=extra)
+  I0 = read_field('I',x,z,t,/equilibrium,_EXTRA=extra)
+  I0_r = read_field('I',x,z,t,/equilibrium,op=2,_EXTRA=extra)
+  I0_z = read_field('I',x,z,t,/equilibrium,op=3,_EXTRA=extra)
+  beta = r^2*2.*p0/(s_bracket(psi,psi,x,z) + I0^2)
+  beta0 = mean(2.*p0*r^2/(bzero*rzero)^2)
+  b2 = (s_bracket(psi,psi,x,z) + I0^2)/r^2
+  dx = (max(x)-min(x))/(n_elements(x) - 1.)
+  dz = (max(z)-min(z))/(n_elements(z) - 1.)
+  jphi = psi_lp - psi_r/r
+  tcur = read_scalar('ip',_EXTRA=extra,/mks)
+  print, 'current = ', tcur[0]
  
   r2bp = psi_r^2 + psi_z^2
 
@@ -287,7 +290,7 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
 
   close, file
 
-  window, 1
+  window, 0
 ;  contour_and_legend, psi,x,z, /iso
 ;  loadct,12
 ;  oplot, rlim, zlim, color=color(1,3), thick=3.0
@@ -308,7 +311,5 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
 
  
   !p.multi=0
-
-  window, 0
 
 end
