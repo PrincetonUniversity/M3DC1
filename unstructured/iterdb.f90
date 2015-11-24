@@ -37,7 +37,7 @@ contains
     integer, intent(out) :: ierr
     
     integer :: ifile = 12
-    integer :: size, rank, i
+    integer :: size, rank
 
     call MPI_comm_size(MPI_COMM_WORLD,size,ierr)
     call MPI_comm_rank(MPI_COMM_WORLD,rank,ierr)

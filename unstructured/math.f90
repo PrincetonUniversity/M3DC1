@@ -157,5 +157,12 @@ real function bessel_Y(n, x)
   call gsl_bessel_y(n,x,bessel_Y)
 end function bessel_Y
 
+real function erf(x)
+  implicit none
+  real, intent(in) :: x
+
+  call gsl_erf(x,erf)
+end function erf
+
   
 end module math

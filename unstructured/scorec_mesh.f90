@@ -28,16 +28,19 @@ module scorec_mesh_mod
   integer :: imatassemble  
   integer :: imulti_region
 
+  real :: toroidal_pack_factor
+  real :: toroidal_pack_angle
+
   integer, dimension (:), allocatable :: nodes_owned
 contains
 
   subroutine load_mesh()
     use math
     implicit none
-    integer :: inode, inode2, numnodes, own_process, myrank, maxrank, ier
+    integer :: myrank, maxrank, ier
     include 'mpif.h'
 #ifdef USE3D
-    real :: minphi, maxphi
+    real :: angle
     integer :: i,procs_per_plane, full_group, plane_group
     integer, allocatable :: ranks(:)
 #endif
@@ -99,6 +102,16 @@ contains
 
     if(myrank.eq.0) print *, 'setting up 3D mesh...'
     call m3dc1_mesh_build3d(0,0,0)
+
+    ! set up toroidal angles
+!!$    do i=0, nplanes-1
+!!$       angle = toroidal_pack_angle + &
+!!$            pi*(1. + &
+!!$            erf(toroidal_pack_factor*(real(i)/real(nplanes) - 0.5)) / &
+!!$            erf(toroidal_pack_factor/2.))
+!!$       call m3dc1_mesh_setPhi(i, angle)
+!!$       if(myrank.eq.0) print *, 'Plane ', i, 'at angle ', angle
+!!$    end do
 
     ! set up communications groups
     allocate(ranks(procs_per_plane))
