@@ -90,7 +90,7 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS)  -O3
   CCOPTS := $(CCOPTS) -O3
 else
-  FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
+  FOPTS := $(FOPTS) -g -Mbounds -check all -check noarg-temp-created -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)  
 endif
 

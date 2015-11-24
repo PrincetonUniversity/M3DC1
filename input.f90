@@ -571,6 +571,7 @@ subroutine set_defaults
        "Initial vertical position of the pellet", source_grp)
   call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
   call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
+  call add_var_double("pellet_var_tor", pellet_var_tor, 0., "", source_grp)
   call add_var_double("pellet_velx", pellet_velx, 0., &
        "Radial velocity of the pellet", source_grp)
   call add_var_double("pellet_velphi", pellet_velphi, 0., &
@@ -757,6 +758,10 @@ subroutine set_defaults
 
   call add_var_int("imulti_region", imulti_region, 0, &
        "1 = Mesh has multiple physical regions", mesh_grp)
+  call add_var_double("toroidal_pack_factor", toroidal_pack_factor, 0., &
+       "toroidal mesh packing factor", mesh_grp)
+  call add_var_double("toroidal_pack_angle", toroidal_pack_angle, 0., &
+       "toroidal angle of maximum mesh packing", mesh_grp)
   
   ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)

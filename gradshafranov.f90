@@ -2002,7 +2002,7 @@ subroutine fundef2(error)
   integer :: magnetic_region, izone, mr
   real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np, f
 
-  dpsii =  (1./(psibound - psimin))
+  dpsii =  1./(psibound - psimin)
 
   fun1_vec = 0.
   fun2_vec = 0.

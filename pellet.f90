@@ -8,6 +8,7 @@ module pellet
   real :: pellet_z    ! z coordinate of pellet
   real :: pellet_rate ! amplitude of pellet density source
   real :: pellet_var  ! spatial dispersion of density source 
+  real :: pellet_var_tor  ! spatial dispersion of density source 
 
   real :: pellet_velx 
   real :: pellet_velphi
@@ -18,6 +19,8 @@ contains
   subroutine pellet_init()
     use basic
     implicit none
+
+    if(pellet_var_tor.le.0) pellet_var_tor = pellet_var
 
     ! convert to m/s
     pellet_velx = pellet_velx/v0_norm * l0_norm
@@ -36,9 +39,16 @@ contains
     ! gaussian pellet source
     case(1)
 #ifdef USE3D
-       pellet_deposition = pellet_rate/(sqrt(2.*pi)*pellet_var)**3 & 
-            *exp(-(r**2 + pellet_x**2 -2.*r*pellet_x*cos(phi-pellet_phi) &
-            + (z - pellet_z)**2) / (2.*pellet_var**2))
+!!$       pellet_deposition = pellet_rate/(sqrt(2.*pi)*pellet_var)**3 & 
+!!$            *exp(-(r**2 + pellet_x**2 -2.*r*pellet_x*cos(phi-pellet_phi) &
+!!$            + (z - pellet_z)**2) / (2.*pellet_var**2))
+       pellet_deposition = pellet_rate/ &
+            (sqrt(2.*pi)**3*pellet_var**2*pellet_var_tor) & 
+            *exp(-((r-pellet_x)**2 + (z-pellet_z)**2) &
+                  /(2.*pellet_var**2) &
+                 -2.*r*pellet_x*(1.-cos(phi-pellet_phi)) &
+                  /(2.*pellet_var_tor**2))
+
 #else
        pellet_deposition = pellet_rate/(r*2.*pi*pellet_var**2) & 
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &

@@ -666,7 +666,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
 
   ! psi_plasma
-  if(icsubtract.eq.1) then
+  if(icsubtract.eq.1 .or. &
+       (extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0))) then
      do i=1, nelms
         call calcavector(i, psi_field(ilin), dum(:,i))
      end do
