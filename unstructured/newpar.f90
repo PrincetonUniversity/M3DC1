@@ -56,7 +56,7 @@ Program Reducedquintic
      print *, '=============================================================='
      print *, 'RELEASE VERSION: ', RELEASE_VERSION
      print *, 'BUILD DATE: ', DATE_BUILT
-     print *, BUILD_INFO
+!     print *, BUILD_INFO
      call date_and_time( datec, timec)
      write(*,1001) datec(1:4),datec(5:6),datec(7:8), &
           timec(1:2),timec(3:4),timec(5:8)
