@@ -5,56 +5,56 @@
 
 3. load modules
 
-module unload PrgEnv-intel
-module load PrgEnv-cray
-module unload darshan
-module load subversion
-module load cmake
-module load cray-netcdf-hdf5parallel/4.3.3.1
-module load cray-parallel-netcdf
-module load cray-hdf5-parallel/1.8.14
-module load fftw
-module load gsl/1.16
-module load cray-tpsl
-module load cray-petsc/3.5.3.2
-module load boost
-module load cray-trilinos
+	module unload PrgEnv-intel 
+        module unload darshan
+	module load PrgEnv-cray
+	module load subversion
+	module load cmake
+	module load cray-netcdf-hdf5parallel/4.3.3.1
+	module load cray-parallel-netcdf
+	module load cray-hdf5-parallel/1.8.14
+	module load fftw
+	module load gsl/1.16
 
 4. compile code
-	make OPT=1 RL=1 MAX_PTS=25
-	make OPT=1 COM=1 MAX_PTS=25
-	make 3D=1 OPT=1 MAX_PTS=60
+	make OPT=1 RL=1 MAX_PTS=25 
+	make OPT=1 COM=1 MAX_PTS=25 
+	make 3D=1 OPT=1 MAX_PTS=60 
 
 5. mesh utility
         /global/project/projectdirs/mp288/cori/scorec/utilities
 
 6. run jobscript
+	#!/bin/bash -l
+	#SBATCH --partition debug     
+	#SBATCH --nodes 24 
+	#SBATCH --ntasks-per-node 48
+	#SBATCH --cpus-per-task 1
+	#SBATCH --time 00:10:00  
 
-        #PBS -q debug
-        #PBS -l mppwidth=256
-        #PBS -l walltime=00:30:00
-        #PBS -N m3dc1_3d
-        #PBS -e $PBS_JOBID.err
-        #PBS -o $PBS_JOBID.out
-        #PBS -V
+	cd $SLURM_SUBMIT_DIR
 
-        cd $PBS_O_WORKDIR
-      
+	#export OMP_NUM_THREADS=30
+	#export KMP_AFFINITY=balanced
+
         #2D complex
-        (for regular i/o) aprun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+        (for regular i/o) srun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+        (for adios i/o)   NOT AVAILABLE
 
         #2D real
-        (for regular i/o) aprun -n 8 m3dc1_2d
+        (for regular i/o) srun -n 8 m3dc1_2d
+        (for adios i/o)   NOT AVAILABLE
  
         #3D real
-        (for regular i/o) aprun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi
+        (for regular i/o) srun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi
+        (for adios i/o)   NOT AVAILABLE
 
 7. submit job
-	qsub job_script
+	sbatch job_script
 
 8. list all curent jobs for a user
-	qstat -u your_id
+	squeue -u your_id
 
 9. delete a job
-   	qdel job_id
+   	scancel job_id
 
