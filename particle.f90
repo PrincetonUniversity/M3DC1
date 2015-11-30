@@ -118,7 +118,7 @@ contains
 
     !Create particle trajectory output text file?
     trid = 3778
-    write(line,'(A,I8.8)'),'ptraj_',trid
+    write(line,'(A,I8.8)') 'ptraj_',trid
     do ierr=1,size(pdata)
        do ip=1,pdata(ierr)%np
           if (pdata(ierr)%ion(ip)%gid.eq.trid) then
