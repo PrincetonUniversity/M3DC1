@@ -10,7 +10,11 @@ module particles
   real, parameter :: qm_proton = e_mks/m_proton  !Proton charge/mass ratio in C/kg
   real, parameter :: vp1eV = 1.3841e+04      !Thermal speed of a 1 eV proton in m/s
   integer, parameter :: vspdims = 2          !Dimensions in velocity space (2=gk; 3=full)
-  integer, parameter :: nneighbors = 3       !Max # of nearest neighbors of an element
+#ifdef USE3D
+  integer, parameter :: nneighbors = 5       !Max # of nearest neighbors of a prism
+#else
+  integer, parameter :: nneighbors = 3       !Max # of nearest neighbors of a triangle
+#endif
 
   type elfield
      vectype, dimension(coeffs_per_element) :: psiv0, psiv1, Bzv0, Bzv1
@@ -21,6 +25,10 @@ module particles
   type xgeomterms
      real, dimension(coeffs_per_element) :: g, dr, dz
      real, dimension(coeffs_per_element) :: drr, drz, dzz
+#ifdef USE3D
+     real, dimension(coeffs_per_element) :: dphi, drphi, dzphi
+     real, dimension(coeffs_per_element) :: drrphi, drzphi, dzzphi
+#endif
   end type xgeomterms
 
   type particle
@@ -32,7 +40,7 @@ module particles
   end type particle
 
   type elplist !Inventory of particles within a finite element
-     integer :: np
+     integer :: np = 0
      type(particle), dimension(:), allocatable :: ion
   end type elplist
 
@@ -176,17 +184,14 @@ contains
     integer :: npr, npz, npe, npmu, ir, iz, ie, imu, ip
     integer :: nelms, ielm, ierr, lc, noc, tridex, itri
 
-    !Set up 'neighborlist' table of element neighbors
-    call find_element_neighbors
-
     !Allocate local storage for particle data
     nelms = local_elements()
     !print *,myrank,': ',nelms,' local elements,',&
     !     coeffs_per_element,' coeffs per element.'
     allocate(pdata(nelms))
-    do ie=1,nelms
-       pdata(ie)%np = 0
-    enddo !ie
+
+    !Set up 'neighborlist' table of element neighbors
+    call find_element_neighbors
 
     npr = 64;  npz = 64;  npe = 1;  npmu = 2
 
@@ -231,20 +236,13 @@ contains
 
                 do imu=1,npmu  !Loop over pitch angles
                    dpar%v(2) = lambda_min + (imu - 1.0)*pdl
-
                    dpar%gid = npmu*(npe*(npr*(iz-1) + (ir-1)) + (ie-1)) + (imu-1)
                    !print *,myrank,': gid =',dpar%gid
-                   !if (dpar%gid.eq.0) then
-                   !   print *,myrank,': x = ',dpar%x,' is in el',ielm
-                   !endif
 
                    call add_particle(ielm, dpar, ierr)
-                   if (ierr.ne.0) cycle
-
-                   locparts = locparts + 1
+                   if (ierr.eq.0) locparts = locparts + 1
                 enddo !imu
              enddo !ie
-
           endif !ielm
        enddo !ir
     enddo !iz
@@ -266,11 +264,12 @@ contains
     !2nd pass: initialize velocity components
     noc = 0
     ldtmin = +1.0e+4
+    elcoefs(:)%itri = 0
     do ielm=1,nelms
        if (pdata(ielm)%np.eq.0) cycle
 
        !Load scalar fields for this element
-       call get_field_coefs(ielm, elcoefs(1), 0)
+       call get_field_coefs(ielm, elcoefs(1), .false.)
 
        !Loop over particles inside
        do ip=1,pdata(ielm)%np
@@ -338,10 +337,7 @@ contains
     if (.not.allocated(pdata)) return
     if (ielm.lt.1.or.ielm.gt.size(pdata)) return
 
-    if (.not.allocated(pdata(ielm)%ion)) then
-       allocate(pdata(ielm)%ion(mininc))
-       pdata(ielm)%np = 0
-    endif
+    if (.not.allocated(pdata(ielm)%ion)) allocate(pdata(ielm)%ion(mininc))
 
     pdata(ielm)%np = pdata(ielm)%np + 1
     origsize = size(pdata(ielm)%ion)
@@ -410,73 +406,111 @@ contains
     use basic
     implicit none
 
+#ifdef USE3D
+    integer, parameter :: maxconnect = 24 !Max # of faces converging on any mesh node
+    integer, parameter :: ifverts = 4     !3 or 4 verts define a face
+#else
     integer, parameter :: maxconnect = 8  !Max # of edges converging on any mesh node
+    integer, parameter :: ifverts = 2     !Two verts define an edge
+#endif
 
-    type d_edge
-       integer :: el0, v, side
-    end type d_edge
+    type d_face
+       integer :: el0, side
+       integer, dimension(ifverts-1) :: v
+    end type d_face
 
-    type edge
-       type(d_edge), dimension(maxconnect) :: o
-       integer :: n
-    end type edge
+    type face
+       type(d_face), dimension(maxconnect) :: o
+       integer :: n = 0
+    end type face
 
-    type(edge), dimension(:), allocatable :: edgelist
-    integer, dimension(nodes_per_element) :: enode
-    integer :: nelms, lnodes, ielm, side, v1, v2, vtmp, iedg
+    type(face), dimension(:), allocatable  :: facelist
+    integer, dimension(nodes_per_element)  :: enode
+    integer, dimension(ifverts,nneighbors) :: sidevecsub !Vector subscripts for iface IDs
+    integer, dimension(ifverts) :: iface
+    integer, dimension(1) :: ml
+    integer :: nelms, lnodes, ielm, side, v1, ivrt
     logical :: ep
 
     nelms = local_elements();  lnodes = local_nodes()
     if (nelms.lt.1) return
-    allocate(neighborlist(nneighbors,nelms))
-    neighborlist = -1
+    if (myrank.eq.0) print *,'find_element_neighbors: lnodes =',lnodes
 
+#ifdef USE3D
+    if (nodes_per_element.eq.6) then !prisms
+       !Define prism faces in terms of nodes
+       sidevecsub(:,1) = (/ 1, 2, 3, 1 /)
+       sidevecsub(:,2) = (/ 1, 4, 5, 2 /)
+       sidevecsub(:,3) = (/ 2, 5, 6, 3 /)
+       sidevecsub(:,4) = (/ 3, 6, 4, 1 /)
+       sidevecsub(:,5) = (/ 4, 6, 5, 4 /)
+#else
     if (nodes_per_element.eq.3) then !triangles
-       allocate(edgelist(lnodes-1))
-       edgelist(:)%n = 0
+       !Define triangle edges in terms of nodes
+       sidevecsub(:,1) = (/ 1, 2 /)
+       sidevecsub(:,2) = (/ 2, 3 /)
+       sidevecsub(:,3) = (/ 3, 1 /)
+#endif
+       !Allocate storage, initialize
+       allocate(neighborlist(nneighbors,nelms), facelist(lnodes-1))
+       neighborlist = -1
 
        !Loop over local elements
        do ielm=1,nelms
           call get_element_nodes(ielm, enode)
 
-          !Loop over edges of this element
-          do side=1,3
-             !Sort vertices of this edge, smaller index first
-             v1 = enode(side);  v2 = enode(mod(side,3)+1)
-             if (v1.gt.v2) then
-                vtmp = v1;  v1 = v2;  v2 = vtmp
-             endif !v1 > v2
+          !Loop over faces of this element
+          do side=1,nneighbors
+             iface = enode(sidevecsub(:,side))
+             ml = minloc(iface)
+             iface = cshift(iface, ml(1)-1)  !Arrange so lowest-indexed node comes 1st
+             v1 = iface(1)
 
-             !Search if the edge is already present
+             !Search if the face is already present
              ep = .false.
-             do iedg=1,edgelist(v1)%n
-                if (edgelist(v1)%o(iedg)%v .eq. v2) then !Yes, update neighbor table
-                   neighborlist(side,ielm) = edgelist(v1)%o(iedg)%el0
-                   neighborlist(edgelist(v1)%o(iedg)%side, edgelist(v1)%o(iedg)%el0) = ielm
+             do ivrt=1,facelist(v1)%n
+                if (veceq(facelist(v1)%o(ivrt)%v, iface(2:))) then
+                   !Yes, update neighbor table
+                   neighborlist(side,ielm) = facelist(v1)%o(ivrt)%el0
+                   neighborlist(facelist(v1)%o(ivrt)%side, facelist(v1)%o(ivrt)%el0) = ielm
                    ep = .true.
                    exit
-                endif
-             enddo !iedg
+                endif !veceq...
+             enddo !ivrt
 
-             if (.not.ep) then !Edge was not present; add it.
-                edgelist(v1)%n = edgelist(v1)%n + 1
-                if (edgelist(v1)%n.gt.maxconnect) then
-                   print *,'Too many connections in find_element_neighbors.'
-                   deallocate(edgelist, neighborlist)
+             if (.not.ep) then !Face was not present; add it.
+                facelist(v1)%n = facelist(v1)%n + 1
+                if (facelist(v1)%n.gt.maxconnect) then !out of range
+                   print *,'Error: too many connections in find_element_neighbors.'
+                   deallocate(facelist, neighborlist)
                    return
-                endif
-                edgelist(v1)%o(edgelist(v1)%n)%v = v2
-                edgelist(v1)%o(edgelist(v1)%n)%el0 = ielm
-                edgelist(v1)%o(edgelist(v1)%n)%side = side
+                endif !n out-of-range
+                facelist(v1)%o(facelist(v1)%n)%v = iface(2:)
+                facelist(v1)%o(facelist(v1)%n)%el0 = ielm
+                facelist(v1)%o(facelist(v1)%n)%side = side
              endif
           enddo !side
        enddo !ielm
 
-       deallocate(edgelist)
+       deallocate(facelist)
     else
-       print *,nodes_per_element,' nodes per element; cannot find neighbors.'
+       if(myrank.eq.0)print *,nodes_per_element,' nodes per element; cannot find neighbors.'
     endif !nodes_per_element...
   end subroutine find_element_neighbors
+
+!---------------------------------------------------------------------------
+  logical function veceq(v1, v2)
+    use basic
+    implicit none
+
+#ifdef USE3D
+    integer, dimension(3), intent(in) :: v1, v2
+    veceq = (v1(1).eq.v2(3) .and. v1(2).eq.v2(2) .and. v1(3).eq.v2(1))
+#else
+    integer, dimension(1), intent(in) :: v1, v2
+    veceq = (v1(1).eq.v2(1))
+#endif
+  end function veceq
 
 !---------------------------------------------------------------------------
   subroutine advance_particles(tinc)
@@ -620,6 +654,7 @@ contains
          MPI_COMM_WORLD, ierr)
     if (myrank.eq.0) &
          print *,nparticles,' particle(s) remaining after advance step.'
+
     if (myrank.eq.3) then
        if (locparts.gt.0) then
           do ielm=1,nelms
@@ -782,24 +817,22 @@ contains
     integer :: tridex
 
     ierr = 0
+    if (itor.eq.1) Rinv = 1.0/x(1)
 
     !Need terms to compute fields to calculate acceleration
     call get_geom_terms(x, itri, fh, tridex, geomterms, vspdims.eq.2, ierr)
     if (ierr.ne.0) return
+
+    !Get electric field components
     if (tridex.le.0) then !Not part of local ensemble!
        ierr = 2
-       call get_field_coefs(itri, fh_hop, 1)
-    endif
-
-    !Get magnetic, electric field components
-    if (itor.eq.1) Rinv = 1.0/x(1)
-    if (tridex.gt.0) then
-       call getEcyl(x, fh(tridex), geomterms, E_cyl)
-    else
+       call get_field_coefs(itri, fh_hop, .true.)
        call getEcyl(x, fh_hop, geomterms, E_cyl)
+    else
+       call getEcyl(x, fh(tridex), geomterms, E_cyl)
     endif
-    !E_cyl = 0. !DEBUG ONLY!!!
 
+    !Calculate time derivatives
     if (vspdims.eq.3) then !full orbit: ma = q(E + vxB) + mg
        dxdt(1:vspdims) = v
 
@@ -824,15 +857,15 @@ contains
           call getBcylprime(x, fh_hop, geomterms, B_cyl, dBdR, dBdphi, dBdz)
        endif
 
-       B0 = sqrt(dot_product(B_cyl, B_cyl))
-       bhat = B_cyl / B0
+       B0 = sqrt(dot_product(B_cyl, B_cyl))  !Magnitude of B
+       bhat = B_cyl / B0                     !Unit vector in b direction
 
-       ! Gradient of mod B
+       ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
        gradB0(1) = dot_product(bhat, dBdR)
        gradB0(2) = Rinv*dot_product(bhat, dBdphi)
        gradB0(3) = dot_product(bhat, dBdz)
 
-       ! Curl of bhat
+       ! Curl of bhat = curl(B/B0) = curl(B)/B0 - (grad B0 x B)/(B0**2)
        svec(1) = (Rinv*dBdphi(3) - dBdz(2) + &
             (B_cyl(2)*gradB0(3) - B_cyl(3)*gradB0(2))/B0)/B0
        svec(2) = (dBdz(1) - dBdR(3) + &
@@ -858,8 +891,8 @@ contains
        dvdt(2) = 0. !magnetic moment is conserved.
     endif
 
-    dxdt(2) = Rinv*dxdt(2)  !phi-dot = v_phi / R for cylindrical case
-    dwdt = 0.
+    dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
+    dwdt = 0. !Evolution of delta-f weights not yet implemented!
   end subroutine fdot
 
 !---------------------------------------------------------------------------
@@ -879,6 +912,10 @@ contains
     real :: xi, zi, eta, dxi, deta
     real :: d2xi, d2eta, dxieta
     integer :: pp
+#ifdef USE3D
+    real    :: gtmp, drtmp, dztmp, zpow
+    integer :: ii, jj
+#endif
 
     ierr = 0;  tridex = -1
 
@@ -893,8 +930,9 @@ contains
     call get_element_data(ielm, eldat)
     call global_to_local(eldat, x(1), x(2), x(3), xi, zi, eta)
 
+    !Compute terms for function and 1st derivatives
     gh%dr = 0.;  gh%dz = 0.
-    do pp=1,coeffs_per_element
+    do pp=1,coeffs_per_tri
        gh%g(pp) = xi**mi(pp) * eta**ni(pp)
 
        if (mi(pp).gt.0) then
@@ -910,11 +948,35 @@ contains
           gh%dr(pp) = gh%dr(pp) - eldat%sn*deta
           gh%dz(pp) = gh%dz(pp) + eldat%co*deta
        endif
+
+#ifdef USE3D
+       gtmp = gh%g(pp);  drtmp = gh%dr(pp);  dztmp = gh%dz(pp)
+       do ii=1,coeffs_per_dphi
+          jj = pp  + (ii - 1)*coeffs_per_tri
+          zpow = zi**li(ii)
+
+          gh%g(jj)  = gtmp  * zpow
+          gh%dr(jj) = drtmp * zpow
+          gh%dz(jj) = dztmp * zpow
+
+          !First toroidal derivative
+          if (li(ii).gt.0) then
+             zpow = li(ii) * zi**(li(ii) - 1)
+             gh%dphi(jj)  = gtmp  * zpow
+             gh%drphi(jj) = drtmp * zpow
+             gh%dzphi(jj) = dztmp * zpow
+          else
+             gh%dphi(jj)  = 0.
+             gh%drphi(jj) = 0.
+             gh%dzphi(jj) = 0.
+          endif
+       enddo !ii
+#endif
     enddo !pp
 
     if (ic2) then !2nd derivative terms
        gh%drr = 0.;  gh%drz = 0.;  gh%dzz = 0.
-       do pp=1,coeffs_per_element
+       do pp=1,coeffs_per_tri
           if (mi(pp).gt.0) then
              if (mi(pp).gt.1) then
                 d2xi = mi(pp)*(mi(pp)-1)*xi**(mi(pp)-2) * eta**ni(pp)
@@ -940,6 +1002,29 @@ contains
              gh%drz(pp) = gh%drz(pp) - d2eta*eldat%co*eldat%sn
              gh%dzz(pp) = gh%dzz(pp) + d2eta*eldat%co**2
           endif !ni > 1
+#ifdef USE3D
+          gtmp = gh%drr(pp);  drtmp = gh%drz(pp);  dztmp = gh%dzz(pp)
+          do ii=1,coeffs_per_dphi
+             jj = pp  + (ii - 1)*coeffs_per_tri
+             zpow = zi**li(ii)
+
+             gh%drr(jj) = gtmp  * zpow
+             gh%drz(jj) = drtmp * zpow
+             gh%dzz(jj) = dztmp * zpow
+
+             !First toroidal derivative
+             if (li(ii).gt.0) then
+                zpow = li(ii) * zi**(li(ii) - 1)
+                gh%drrphi(jj) = gh%drr(pp) * zpow
+                gh%drzphi(jj) = gh%drz(pp) * zpow
+                gh%dzzphi(jj) = gh%dzz(pp) * zpow
+             else
+                gh%drrphi(jj) = 0.
+                gh%drzphi(jj) = 0.
+                gh%dzzphi(jj) = 0.
+             endif
+          enddo !ii
+#endif
        enddo !pp
     endif !ic2
   end subroutine get_geom_terms
@@ -981,7 +1066,7 @@ contains
        tridex = tridex + 1
     enddo
     if (ladd(1)) then !Load central element here
-       call get_field_coefs(itri, ensemble(tridex), 1)
+       call get_field_coefs(itri, ensemble(tridex), .true.)
        tridex = tridex + 1
     endif !ladd(1)
     do nbr=1,nneighbors !Loop through adjacent elements
@@ -992,7 +1077,7 @@ contains
           enddo
 
           !Load jth neighbor here
-          call get_field_coefs(neighborlist(nbr,itri), ensemble(tridex), 1)
+          call get_field_coefs(neighborlist(nbr,itri), ensemble(tridex), .true.)
           tridex = tridex + 1
        endif !ladd
     enddo !nbr
@@ -1025,7 +1110,8 @@ contains
     implicit none
 
     type(elfield), intent(out) :: fh  !Field handle
-    integer, intent(in) :: ielm, getE
+    integer, intent(in) :: ielm
+    logical, intent(in) :: getE
 
     !Always get magnetic field components
     call calcavector(ielm, psi_field(0), fh%psiv0)
@@ -1036,7 +1122,7 @@ contains
     endif !linear
 
     !Get electric field components if needed
-    if (getE.gt.0) then
+    if (getE) then
        call calcavector(ielm, ef_r, fh%er)
        call calcavector(ielm, ef_phi, fh%ephi)
        call calcavector(ielm, ef_z, fh%ez)
@@ -1060,7 +1146,7 @@ contains
 
     if (itor.eq.1) Rinv = 1.0/x(1)
 
-    !Equilibrium part
+    !Total/Equilibrium part
     !B_poloidal = grad psi x grad phi
     Bcyl(1) = -Rinv*dot_product(fh%psiv0, gh%dz)
     Bcyl(3) =  Rinv*dot_product(fh%psiv0, gh%dr)
@@ -1086,9 +1172,9 @@ contains
     use basic
     implicit none
 
-    real, dimension(3), intent(in) :: x
-    type(elfield), intent(in) :: fh
-    type(xgeomterms), intent(in) ::gh
+    real, dimension(3), intent(in)  :: x
+    type(elfield), intent(in)       :: fh
+    type(xgeomterms), intent(in)    :: gh
     real, dimension(3), intent(out) :: Bcyl, dBdR, dBdphi, dBdz
 
     vectype, dimension(3) :: temp, tempR, tempz
@@ -1096,20 +1182,18 @@ contains
 
     if (itor.eq.1) Rinv = 1.0/x(1)
 
-    !Equilibrium part
+    !Total/Equilibrium part
     !B_poloidal = grad psi x grad phi
     Bcyl(1) = -Rinv*dot_product(fh%psiv0, gh%dz)
-    Bcyl(3) =  Rinv*dot_product(fh%psiv0, gh%dr)
-
     dBdR(1) = -Rinv*dot_product(fh%psiv0, gh%drz)
-    dBdR(3) =  Rinv*dot_product(fh%psiv0, gh%drr)
-
     dBdz(1) = -Rinv*dot_product(fh%psiv0, gh%dzz)
+
+    Bcyl(3) =  Rinv*dot_product(fh%psiv0, gh%dr)
+    dBdR(3) =  Rinv*dot_product(fh%psiv0, gh%drr)
     dBdz(3) =  Rinv*dot_product(fh%psiv0, gh%drz)
 
     !B_toroidal = B_Z / R
     Bcyl(2) = Rinv*dot_product(fh%Bzv0, gh%g)
-
     dBdR(2) = Rinv*dot_product(fh%Bzv0, gh%dr)
     dBdz(2) = Rinv*dot_product(fh%Bzv0, gh%dz)
 
@@ -1120,18 +1204,16 @@ contains
     if (linear.eq.1) then
        !Perturbed part
        !B_poloidal = grad psi x grad phi
-       temp(1) = -Rinv*dot_product(fh%psiv1, gh%dz)
-       temp(3) =  Rinv*dot_product(fh%psiv1, gh%dr)
-
+       temp(1)  = -Rinv*dot_product(fh%psiv1, gh%dz)
        tempR(1) = -Rinv*dot_product(fh%psiv1, gh%drz)
-       tempR(3) =  Rinv*dot_product(fh%psiv1, gh%drr)
-
        tempz(1) = -Rinv*dot_product(fh%psiv1, gh%dzz)
+
+       temp(3)  =  Rinv*dot_product(fh%psiv1, gh%dr)
+       tempR(3) =  Rinv*dot_product(fh%psiv1, gh%drr)
        tempz(3) =  Rinv*dot_product(fh%psiv1, gh%drz)
 
        !B_toroidal = B_Z / R
-       temp(2) = Rinv*dot_product(fh%Bzv1, gh%g)
-
+       temp(2)  = Rinv*dot_product(fh%Bzv1, gh%g)
        tempR(2) = Rinv*dot_product(fh%Bzv1, gh%dr)
        tempz(2) = Rinv*dot_product(fh%Bzv1, gh%dz)
 
@@ -1199,7 +1281,7 @@ contains
           return
        endif
 
-       call get_field_coefs(itri, elcoefs(1), 0)
+       call get_field_coefs(itri, elcoefs(1), .false.)
        call getBcyl(p%x, elcoefs(1), geomterms, B_cyl)
 
        B0 = sqrt(dot_product(B_cyl, B_cyl))
@@ -1230,7 +1312,7 @@ contains
        return
     endif
 
-    call get_field_coefs(itri, elcoefs(1), 0)
+    call get_field_coefs(itri, elcoefs(1), .false.)
 
     ! Poloidal magnetic flux
     getPphi = e_mks * dot_product(elcoefs(1)%psiv0, geomterms%g)
