@@ -201,7 +201,7 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, ' Done calculating temperatures'
   
-  end subroutine calculate_temperatures
+end subroutine calculate_temperatures
 
 subroutine calculate_auxiliary_fields(ilin)
   use math
