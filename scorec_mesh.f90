@@ -429,163 +429,163 @@ contains
     end do
   end subroutine whattri
 
-  !============================================================
-  ! whattri2
-  subroutine whattri2(x,phi,z,ielm,xref,zref,nophi)
-    implicit none
-    
-    real, intent(in) :: x, phi, z
-    integer, intent(inout) :: ielm
-    real, intent(out) :: xref, zref
-    logical, intent(in), optional :: nophi
-    
-    integer :: nelms, i
-    type(element_data) :: d
-
-    ! first, try ielm
-    if(ielm.gt.0) then
-       call get_element_data(ielm,d)
-       if(is_in_element_notol(ielm,d,x,phi,z,nophi)) then
-          xref = d%R
-          zref = d%Z
-          return
-       endif
-    endif
-
-    ! try all elements
-    ielm = -1
-    nelms = local_elements()
-    do i=1, nelms
-       call get_element_data(i,d)
-       if(is_in_element_notol(i,d,x,phi,z,nophi)) then
-          xref = d%R
-          zref = d%Z
-          ielm = i
-          return
-       endif
-    end do
-  end subroutine whattri2
-
-  !! This is almost same with is_in_element.
-  !! However, tol in is_in_element is relavtive tolerance.
-  !! Therefore, overlapping region cannot be calculated with local information
-  logical function is_in_element_notol(itri,d, R, phi, z, nophi)
-     implicit none
-     integer, intent(in) :: itri
-     type(element_data), intent(in) :: d
-     real, intent(in) :: R, Phi, Z
-     logical, intent(in), optional :: nophi
-
-     real :: f, xi, zi, eta
-     logical :: np
-     real, parameter :: zero = 0e0
-     integer :: edge3, edge1, edge2, edge_sum
-     integer :: ent_dim, loc_indx
-
-     call global_to_local(d, R, Phi, Z, xi, zi, eta)
-
-     is_in_element_notol = .false.
-     edge1 = 0
-     edge2 = 0
-     edge3 = 0 
-     if(eta.lt.zero) then
-        return
-     elseif(eta .lt. epsilon(zero))
-        edge3 = 1
-     endif
-     if(eta.gt.d%c) return
-
-     f = 1. - eta/d%c
-     if(xi.lt.-f*d%b) then
-        return
-     elseif(xi .lt. -f*d%b+epsilon(zero))
-        edge2 = 1
-     endif   
-        
-     if(xi.gt. f*d%a) then
-        return
-     elseif (xi .gt. f*d%a-epsilon(zero))
-        edge1 = 1
-     endif   
-     
-#ifdef USE3D
-     if(present(nophi)) then
-        np=nophi 
-     else 
-        np=.false.
-     endif
-
-     !! i.e. [0, d%d) : mine
-     if(.not.np) then 
-        if(zi.lt.zero) return
-        if(zi.ge.d%d) return
-     end if
-#endif
-
-     edge_sum = edge1+edge2+edge3
-     if(edge_sum .ne. 0) then
-        !! need tie treatment, edge_sum should be 1(edge) or 2(node)
-        ent_dim = 2-edge_sum
-        if(edge1 .eq. 1 ) then
-           if(edge2 .eq. 1 ) then
-              loc_indx=3  !!node
-           elseif(edge3 .eq. 1) then
-              loc_indx=2  !!node
-           else
-              loc_indx=1  !!edge
-           endif
-        else
-           if(edge2 .eq. 1) then
-              if(edge3 .eq. 1) then
-                 loc_indx=1 !!node
-              else
-                 loc_indx=2 !!edge
-              endif
-           else
-              loc_indx=3 !!edge
-           endif
-        endif
-        if(is_shared_ent_others(itri,ent_dim,loc_indx)) return
-     endif   
-
-     is_in_element_notol = .true.
-  end function is_in_element_notol
-
-  logical function is_shared_ent_others(itri,ent_dim,loc_indx)
-     implicit none
-     integer, intent(in) :: itri, ent_dim, loc_indx
-
-     integer :: nodeids(nodes_per_element)
-     integer :: edgeids(edges_per_element)
-     integer :: ent_indx, mine, num_adj_ent, node1, node2, i
-     integer :: iedge(edges_per_element)
-
-     if(ent_dim .eq. 0) then
-        call get_element_nodes(itri, nodeids)
-        ent_indx=nodeids(loc_indx)
-     else
-        call m3dc1_ent_getadj (2, itri-1, 1, iedge, edges_per_element, num_adj_ent)
-        node1 = mod(loc_indx+1,3)-1
-        node2 = mod(loc_indx+2,3)-1
-        do i=1,edges_per_element
-           call m3dc1_ent_getadj (1, itri-1, 0, inodes, nodes_per_element, num_adj_ent)
-           if(node1 .eq. inodes(1) .and. node2 .eq. inodes(2) .or. &
-              node2 .eq. inodes(1) .and. node1 .eq. inodes(2) ) then
-              ent_indx=iedge(i)+1 
-           endif   
-        enddo   
-     endif
-     !! check if the given entity(dim, indx) is shared
-     !! if shared(actually, should be shared), check remote ranks with mine
-     !! if mine, return false
-     !! if NOT mine, return true
-     call m3dc1_ent_ismine(ent_dim, ent_indx, mine)
-     if(mine == 1) then
-        is_shared_ent_others = .false.
-     else
-        is_shared_ent_others = .true.
-     endif   
-  end function is_shared_ent_others
+!!  !============================================================
+!!  ! whattri2
+!!  subroutine whattri2(x,phi,z,ielm,xref,zref,nophi)
+!!    implicit none
+!!    
+!!    real, intent(in) :: x, phi, z
+!!    integer, intent(inout) :: ielm
+!!    real, intent(out) :: xref, zref
+!!    logical, intent(in), optional :: nophi
+!!    
+!!    integer :: nelms, i
+!!    type(element_data) :: d
+!!
+!!    ! first, try ielm
+!!    if(ielm.gt.0) then
+!!       call get_element_data(ielm,d)
+!!       if(is_in_element_notol(ielm,d,x,phi,z,nophi)) then
+!!          xref = d%R
+!!          zref = d%Z
+!!          return
+!!       endif
+!!    endif
+!!
+!!    ! try all elements
+!!    ielm = -1
+!!    nelms = local_elements()
+!!    do i=1, nelms
+!!       call get_element_data(i,d)
+!!       if(is_in_element_notol(i,d,x,phi,z,nophi)) then
+!!          xref = d%R
+!!          zref = d%Z
+!!          ielm = i
+!!          return
+!!       endif
+!!    end do
+!!  end subroutine whattri2
+!!
+!!  !! This is almost same with is_in_element.
+!!  !! However, tol in is_in_element is relavtive tolerance.
+!!  !! Therefore, overlapping region cannot be calculated with local information
+!!  logical function is_in_element_notol(itri,d, R, phi, z, nophi)
+!!     implicit none
+!!     integer, intent(in) :: itri
+!!     type(element_data), intent(in) :: d
+!!     real, intent(in) :: R, Phi, Z
+!!     logical, intent(in), optional :: nophi
+!!
+!!     real :: f, xi, zi, eta
+!!     logical :: np
+!!     real, parameter :: zero = 0e0
+!!     integer :: edge3, edge1, edge2, edge_sum
+!!     integer :: ent_dim, loc_indx
+!!
+!!     call global_to_local(d, R, Phi, Z, xi, zi, eta)
+!!
+!!     is_in_element_notol = .false.
+!!     edge1 = 0
+!!     edge2 = 0
+!!     edge3 = 0 
+!!     if(eta.lt.zero) then
+!!        return
+!!     elseif(eta .lt. epsilon(zero))
+!!        edge3 = 1
+!!     endif
+!!     if(eta.gt.d%c) return
+!!
+!!     f = 1. - eta/d%c
+!!     if(xi.lt.-f*d%b) then
+!!        return
+!!     elseif(xi .lt. -f*d%b+epsilon(zero))
+!!        edge2 = 1
+!!     endif   
+!!        
+!!     if(xi.gt. f*d%a) then
+!!        return
+!!     elseif (xi .gt. f*d%a-epsilon(zero))
+!!        edge1 = 1
+!!     endif   
+!!     
+!!#ifdef USE3D
+!!     if(present(nophi)) then
+!!        np=nophi 
+!!     else 
+!!        np=.false.
+!!     endif
+!!
+!!     !! i.e. [0, d%d) : mine
+!!     if(.not.np) then 
+!!        if(zi.lt.zero) return
+!!        if(zi.ge.d%d) return
+!!     end if
+!!#endif
+!!
+!!     edge_sum = edge1+edge2+edge3
+!!     if(edge_sum .ne. 0) then
+!!        !! need tie treatment, edge_sum should be 1(edge) or 2(node)
+!!        ent_dim = 2-edge_sum
+!!        if(edge1 .eq. 1 ) then
+!!           if(edge2 .eq. 1 ) then
+!!              loc_indx=3  !!node
+!!           elseif(edge3 .eq. 1) then
+!!              loc_indx=2  !!node
+!!           else
+!!              loc_indx=1  !!edge
+!!           endif
+!!        else
+!!           if(edge2 .eq. 1) then
+!!              if(edge3 .eq. 1) then
+!!                 loc_indx=1 !!node
+!!              else
+!!                 loc_indx=2 !!edge
+!!              endif
+!!           else
+!!              loc_indx=3 !!edge
+!!           endif
+!!        endif
+!!        if(is_shared_ent_others(itri,ent_dim,loc_indx)) return
+!!     endif   
+!!
+!!     is_in_element_notol = .true.
+!!  end function is_in_element_notol
+!!
+!!  logical function is_shared_ent_others(itri,ent_dim,loc_indx)
+!!     implicit none
+!!     integer, intent(in) :: itri, ent_dim, loc_indx
+!!
+!!     integer :: nodeids(nodes_per_element)
+!!     integer :: edgeids(edges_per_element)
+!!     integer :: ent_indx, mine, num_adj_ent, node1, node2, i
+!!     integer :: iedge(edges_per_element)
+!!
+!!     if(ent_dim .eq. 0) then
+!!        call get_element_nodes(itri, nodeids)
+!!        ent_indx=nodeids(loc_indx)
+!!     else
+!!        call m3dc1_ent_getadj (2, itri-1, 1, iedge, edges_per_element, num_adj_ent)
+!!        node1 = mod(loc_indx+1,3)-1
+!!        node2 = mod(loc_indx+2,3)-1
+!!        do i=1,edges_per_element
+!!           call m3dc1_ent_getadj (1, itri-1, 0, inodes, nodes_per_element, num_adj_ent)
+!!           if(node1 .eq. inodes(1) .and. node2 .eq. inodes(2) .or. &
+!!              node2 .eq. inodes(1) .and. node1 .eq. inodes(2) ) then
+!!              ent_indx=iedge(i)+1 
+!!           endif   
+!!        enddo   
+!!     endif
+!!     !! check if the given entity(dim, indx) is shared
+!!     !! if shared(actually, should be shared), check remote ranks with mine
+!!     !! if mine, return false
+!!     !! if NOT mine, return true
+!!     call m3dc1_ent_ismine(ent_dim, ent_indx, mine)
+!!     if(mine == 1) then
+!!        is_shared_ent_others = .false.
+!!     else
+!!        is_shared_ent_others = .true.
+!!     endif   
+!!  end function is_shared_ent_others
 
   !=========================================
   ! is_boundary_node
