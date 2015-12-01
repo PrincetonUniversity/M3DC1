@@ -34,7 +34,7 @@ int geqdsk_source::open(const char* filename)
 
   if(!gfile) {
     std::cerr << "Error: cannot open file " << filename << std::endl;
-    return 1;
+    return FIO_FILE_ERROR;
   }
 
   double rdim, zdim, rcentr;
@@ -53,7 +53,9 @@ int geqdsk_source::open(const char* filename)
   std::cout << "rdim = " << rdim << ", zdim = " << zdim << std::endl;
   std::cout << "simag = " << simag << std::endl;
 
-  psirz = new double[nw*nh];
+  psirz = new double*[nh];
+  for(int i=0; i<nh; i++)
+    psirz[i] = new double[nw];
   ffprime = new double[nw];
   fpol = new double[nw];
   press = new double[nw];
@@ -62,7 +64,9 @@ int geqdsk_source::open(const char* filename)
   for(int i=0; i<nw; i++) gfile >> std::setw(16) >> press[i];
   for(int i=0; i<nw; i++) gfile >> std::setw(16) >> ffprime[i];
   for(int i=0; i<nw; i++) gfile >> std::setw(16) >> dum;      // pprime
-  for(int i=0; i<nw*nh; i++) gfile >> std::setw(16) >> psirz[i];
+  for(int i=0; i<nh; i++) 
+    for(int j=0; j<nw; j++)
+      gfile >> std::setw(16) >> psirz[i][j];
 
   gfile.close();
 
@@ -75,12 +79,16 @@ int geqdsk_source::open(const char* filename)
   for(int i=0; i<nw; i++) 
     psi[i] = (sibry - simag)*(double)i/(double)(nw - 1) + simag;
 
-  return 0;
+  return FIO_SUCCESS;
 }
 
 int geqdsk_source::close()
 {
-  if(psirz) delete[] psirz;
+  if(psirz) {
+    for(int i=0; i<nh; i++)
+      delete[] psirz[i];
+    delete[] psirz;
+  }
   if(fpol) delete[] fpol;
   if(ffprime) delete[] ffprime;
   if(press) delete[] press;
@@ -160,24 +168,23 @@ int geqdsk_source::get_field(const field_type t,fio_field** f,
 int geqdsk_source::interpolate_psi(const double r0, const double z0,
 				   double* si) const
 {
-  double a[16];
+  double a[4][4];
 
   double p = (r0-rleft)/dx;
   double q = (z0-zmid)/dz + (double)nh/2.;
   int i = (int)p;
   int j = (int)q;
-  int ierr;
 
   if(i < 1 || i > nw) return FIO_OUT_OF_BOUNDS;
   if(j < 1 || j > nh) return FIO_OUT_OF_BOUNDS;
 
   // convert i, j to fortran indices
   i++; j++; p++; q++;
-  bicubic_interpolation_coeffs_(psirz,&nw,&nh,&p,&q,a,&ierr);
-  if(ierr!=0) {
-    std::cerr << "Interpolation error" << std::endl;
-    return ierr;
-  }
+  bool result = 
+    bicubic_interpolation_coeffs((const double**)psirz,nh,nw,q,p,a);
+
+  if(!result)
+    return FIO_OUT_OF_BOUNDS;
 
   for(int n=0; n<6; n++)
     si[i] = 0.;
@@ -185,23 +192,21 @@ int geqdsk_source::interpolate_psi(const double r0, const double z0,
   double temp;
   for(int n=0; n<4; n++) {
     for(int m=0; m<4; m++) {
-      int index = m*4 + n;
-
-      si[0] += a[index]      *pow(p-i,n  )*pow(q-j,m  );
+      si[0] += a[m][n]      *pow(p-i,n  )*pow(q-j,m  );
       
-      temp = a[index]      *n*pow(p-i,n-1)*pow(q-j,m  );
+      temp = a[m][n]      *n*pow(p-i,n-1)*pow(q-j,m  );
       si[1] += temp/dx;
 
-      temp = a[index]      *m*pow(p-i,n  )*pow(q-j,m-1);
+      temp = a[m][n]      *m*pow(p-i,n  )*pow(q-j,m-1);
       si[2] += temp/dz;
 
-      temp = a[index]*n*(n-1)*pow(p-i,n-2)*pow(q-j,m  );
+      temp = a[m][n]*n*(n-1)*pow(p-i,n-2)*pow(q-j,m  );
       si[3] += temp/(dx*dx);
 
-      temp = a[index]    *m*n*pow(p-i,n-1)*pow(q-j,m-1);
+      temp = a[m][n]    *m*n*pow(p-i,n-1)*pow(q-j,m-1);
       si[4] += temp/(dx*dz);
 
-      temp = a[index]*m*(m-1)*pow(p-i,n  )*pow(q-j,m-2);
+      temp = a[m][n]*m*(m-1)*pow(p-i,n  )*pow(q-j,m-2);
       si[5] += temp/(dz*dz);
     }
   }

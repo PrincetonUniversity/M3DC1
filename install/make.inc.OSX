@@ -1,5 +1,5 @@
 CC = mpicc
-CXX = mpic++
+CXX = mpicxx
 CFLAGS = -Wall -fPIC
 
 F90 = mpif90
@@ -11,8 +11,8 @@ LDD = $(CXX) -shared
 LD = $(CXX)
 LDFLAGS = -fPIC
 
-INCLUDE = -I/usr/local/include
+INCLUDE = -I/opt/local/include
 
-LIBS = -L/usr/lib -lgfortran
+LIBS = -L/opt/local/lib
 
 HDF5_LIBS = -lhdf5 -lz

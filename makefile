@@ -1,5 +1,5 @@
-dirs = m3dc1_lib fusion_io trace_lib
-#dirs = m3dc1_lib fusion_io
+#dirs = m3dc1_lib fusion_io trace_lib
+dirs = m3dc1_lib fusion_io
 alldirs = $(dirs) examples
 
 .PHONY : install clean $(alldirs)
@@ -7,6 +7,10 @@ alldirs = $(dirs) examples
 all : $(dirs)
 
 install : $(dirs)
+
+fio.tar.gz :
+	tar c m3dc1_lib/*.h m3dc1_lib/*.cpp m3dc1_lib/makefile fusion_io/*.cpp fusion_io/*.h fusion_io/*.f90 fusion_io/*.F90 fusion_io/makefile install/* makefile > fio.tar
+	gzip fio.tar
 
 shared : $(dirs)
 

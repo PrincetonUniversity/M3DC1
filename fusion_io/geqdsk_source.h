@@ -14,7 +14,7 @@ class geqdsk_source : public fio_source {
   double rleft, zmid;
 
   double* psi;
-  double* psirz;
+  double** psirz;
   double* fpol;
   double* ffprime;
   double* press;
