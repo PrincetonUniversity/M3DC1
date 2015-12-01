@@ -44,7 +44,7 @@ templates :
 	cd templates; make
 
 .PHONY: install
-install : templates
+install :
 	echo $(ARCH)
 	mkdir -p $(INSTALL_DIR)
 	mkdir -p $(INSTALL_DIR)/idl
@@ -57,4 +57,7 @@ install : templates
 	cp _$(ARCH)-opt-25/m3dc1_2d $(INSTALL_DIR)/bin
 	cp _$(ARCH)-complex-opt-25/m3dc1_2d_complex $(INSTALL_DIR)/bin
 	cp _$(ARCH)-3d-opt-60/m3dc1_3d $(INSTALL_DIR)/bin
+
+.PHONY: install_templates
+install_templates : templates
 	cp -r templates $(INSTALL_DIR)/
