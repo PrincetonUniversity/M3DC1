@@ -71,4 +71,4 @@ install_templates : templates
 	find $(INSTALL_DIR) -type d -exec chmod 755 {} \;
 	echo $(INSTALL_DIR)/templates/*/*_adapt | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.adapt
 	echo $(INSTALL_DIR)/templates/*/*_response $(INSTALL_DIR)/templates/*/*_stability | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.2d_complex
-	find $(INSTALL_DIR) -type f -exec chmod 644 {} \;
+	find $(INSTALL_DIR)/templates -type f -exec chmod 644 {} \;
