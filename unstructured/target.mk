@@ -46,20 +46,29 @@ templates :
 .PHONY: install
 install :
 	echo $(ARCH)
-	mkdir -p $(INSTALL_DIR)
-	mkdir -p $(INSTALL_DIR)/idl
+	mkdir -m 755 -p $(INSTALL_DIR)
+	mkdir -m 755 -p $(INSTALL_DIR)/idl
 	cp idl/*.pro $(INSTALL_DIR)/idl
-	mkdir -p $(INSTALL_DIR)/batch
+	chmod 644 $(INSTALL_DIR)/idl/*.pro
+	mkdir -m 755 -p $(INSTALL_DIR)/batch
 	-cp sbin/$(M3DC1_ARCH)/batch_script.* $(INSTALL_DIR)/batch
-	mkdir -p $(INSTALL_DIR)/bin
+	chmod 644 $(INSTALL_DIR)/batch/batch_script.* 
+	mkdir -m 755 -p $(INSTALL_DIR)/bin
 	cp sbin/extract_profiles.sh $(INSTALL_DIR)/bin
+	chmod 755 $(INSTALL_DIR)/bin/extract_profiles.sh
 	cp sbin/$(M3DC1_ARCH)/*.sh $(INSTALL_DIR)/bin
+	chmod 755 $(INSTALL_DIR)/bin/*.sh
 	-cp _$(ARCH)-opt-25/m3dc1_2d $(INSTALL_DIR)/bin
+	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d
 	-cp _$(ARCH)-complex-opt-25/m3dc1_2d_complex $(INSTALL_DIR)/bin
+	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d_complex
 	-cp _$(ARCH)-3d-opt-60/m3dc1_3d $(INSTALL_DIR)/bin
+	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_3d
 
 .PHONY: install_templates
 install_templates : templates
 	cp -r templates $(INSTALL_DIR)/
+	find $(INSTALL_DIR) -type d -exec chmod 755 {} \;
 	echo $(INSTALL_DIR)/templates/*/*_adapt | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.adapt
 	echo $(INSTALL_DIR)/templates/*/*_response $(INSTALL_DIR)/templates/*/*_stability | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.2d_complex
+	find $(INSTALL_DIR) -type f -exec chmod 644 {} \;
