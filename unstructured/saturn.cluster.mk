@@ -37,12 +37,10 @@ FFTW_HOME = /fusion/usc/opt/fftw/fftw-3.3.4/mpich-gcc-4.7.2
 ifeq ($(COM), 1)
   SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
   PETSC_DIR = /fusion/usc/opt/petsc/petsc-3.5.4
-#  PETSC_ARCH = linux-mpich-gcc-4.7.2
-  PETSC_ARCH = linux-mpich-gcc-4.7.2-hdf5-netcdf-hypre
+  PETSC_ARCH = linux-mpich-gcc-4.7.2-hdf5-netcdf-complex
 else
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
   PETSC_DIR = /fusion/usc/opt/petsc/petsc-3.5.4
-#  PETSC_ARCH = linux-mpich-gcc-4.7.2
   PETSC_ARCH = linux-mpich-gcc-4.7.2-hdf5-netcdf-hypre
 endif
 
