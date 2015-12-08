@@ -441,7 +441,7 @@ contains
 !!    
 !!    integer :: nelms, i
 !!    type(element_data) :: d
-!!
+!! 
 !!    ! first, try ielm
 !!    if(ielm.gt.0) then
 !!       call get_element_data(ielm,d)
@@ -451,7 +451,7 @@ contains
 !!          return
 !!       endif
 !!    endif
-!!
+!! 
 !!    ! try all elements
 !!    ielm = -1
 !!    nelms = local_elements()
@@ -464,8 +464,9 @@ contains
 !!          return
 !!       endif
 !!    end do
+!! 
 !!  end subroutine whattri2
-!!
+!! 
 !!  !! This is almost same with is_in_element.
 !!  !! However, tol in is_in_element is relavtive tolerance.
 !!  !! Therefore, overlapping region cannot be calculated with local information
@@ -473,55 +474,57 @@ contains
 !!     implicit none
 !!     integer, intent(in) :: itri
 !!     type(element_data), intent(in) :: d
-!!     real, intent(in) :: R, Phi, Z
+!!     real, intent(in) :: R, phi, Z
 !!     logical, intent(in), optional :: nophi
-!!
+!! 
 !!     real :: f, xi, zi, eta
-!!     logical :: np
 !!     real, parameter :: zero = 0e0
 !!     integer :: edge3, edge1, edge2, edge_sum
 !!     integer :: ent_dim, loc_indx
-!!
+!! #ifdef USE3D    
+!!     logical :: np
+!! #endif    
+!! 
 !!     call global_to_local(d, R, Phi, Z, xi, zi, eta)
-!!
+!! 
 !!     is_in_element_notol = .false.
 !!     edge1 = 0
 !!     edge2 = 0
 !!     edge3 = 0 
 !!     if(eta.lt.zero) then
 !!        return
-!!     elseif(eta .lt. epsilon(zero))
+!!     elseif(eta .lt. epsilon(zero)) then
 !!        edge3 = 1
 !!     endif
 !!     if(eta.gt.d%c) return
-!!
+!! 
 !!     f = 1. - eta/d%c
 !!     if(xi.lt.-f*d%b) then
 !!        return
-!!     elseif(xi .lt. -f*d%b+epsilon(zero))
+!!     elseif(xi .lt. -f*d%b+epsilon(zero)) then
 !!        edge2 = 1
 !!     endif   
 !!        
 !!     if(xi.gt. f*d%a) then
 !!        return
-!!     elseif (xi .gt. f*d%a-epsilon(zero))
+!!     elseif (xi .gt. f*d%a-epsilon(zero)) then
 !!        edge1 = 1
 !!     endif   
 !!     
-!!#ifdef USE3D
+!! #ifdef USE3D
 !!     if(present(nophi)) then
 !!        np=nophi 
 !!     else 
 !!        np=.false.
 !!     endif
-!!
+!! 
 !!     !! i.e. [0, d%d) : mine
 !!     if(.not.np) then 
 !!        if(zi.lt.zero) return
 !!        if(zi.ge.d%d) return
 !!     end if
-!!#endif
-!!
+!! #endif
+!! 
 !!     edge_sum = edge1+edge2+edge3
 !!     if(edge_sum .ne. 0) then
 !!        !! need tie treatment, edge_sum should be 1(edge) or 2(node)
@@ -547,19 +550,19 @@ contains
 !!        endif
 !!        if(is_shared_ent_others(itri,ent_dim,loc_indx)) return
 !!     endif   
-!!
+!! 
 !!     is_in_element_notol = .true.
 !!  end function is_in_element_notol
-!!
+!! 
 !!  logical function is_shared_ent_others(itri,ent_dim,loc_indx)
 !!     implicit none
 !!     integer, intent(in) :: itri, ent_dim, loc_indx
-!!
+!! 
 !!     integer :: nodeids(nodes_per_element)
-!!     integer :: edgeids(edges_per_element)
 !!     integer :: ent_indx, mine, num_adj_ent, node1, node2, i
 !!     integer :: iedge(edges_per_element)
-!!
+!!     integer :: inodes(2)
+!! 
 !!     if(ent_dim .eq. 0) then
 !!        call get_element_nodes(itri, nodeids)
 !!        ent_indx=nodeids(loc_indx)
