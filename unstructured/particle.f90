@@ -18,6 +18,7 @@ module particles
 
   type elfield
      vectype, dimension(coeffs_per_element) :: psiv0, psiv1, Bzv0, Bzv1
+     vectype, dimension(coeffs_per_element) :: Bfv
      vectype, dimension(coeffs_per_element) :: er, ephi, ez
      integer :: itri
   end type elfield
@@ -28,13 +29,14 @@ module particles
 #ifdef USE3D
      real, dimension(coeffs_per_element) :: dphi, drphi, dzphi
      real, dimension(coeffs_per_element) :: drrphi, drzphi, dzzphi
+     real, dimension(coeffs_per_element) :: drphiphi, dzphiphi
 #endif
   end type xgeomterms
 
   type particle
      real, dimension(3)       :: x           !Position in cylindrical coords
      real, dimension(vspdims) :: v           !Velocity
-     real                     :: wt          !Particle weighting in delta-f scheme
+     real                     :: wt = 1.0    !Particle weighting in delta-f scheme
      real                     :: tlast       !Time
      integer                  :: gid         !Unique global particle index
   end type particle
@@ -66,7 +68,7 @@ contains
          MPI_DOUBLE, MPI_DOUBLE, MPI_INTEGER/)
 
     type(particle) :: dumpar
-    integer ::        ierr
+    integer        :: ierr
 
     !Set up component displacements array
     call mpi_get_address(dumpar%x, pdspls(1), ierr)
@@ -382,6 +384,7 @@ contains
 !---------------------------------------------------------------------------
   subroutine finalize_particles
     implicit none
+    include 'mpif.h'
 
     integer :: nelms, ielm
 
@@ -399,6 +402,8 @@ contains
     if (allocated(llpel)) deallocate(llpel)
     if (allocated(llpid)) deallocate(llpid)
     if (allocated(lpcount)) deallocate(lpcount)
+
+    call mpi_type_free(mpi_particle, ielm)
   end subroutine finalize_particles
 
 !---------------------------------------------------------------------------
@@ -826,10 +831,10 @@ contains
     !Get electric field components
     if (tridex.le.0) then !Not part of local ensemble!
        ierr = 2
-       call get_field_coefs(itri, fh_hop, .true.)
-       call getEcyl(x, fh_hop, geomterms, E_cyl)
+       call get_field_coefs(itri, fh_hop, .true.) !Load field into temp. buffer
+       call getEcyl(fh_hop, geomterms, E_cyl)
     else
-       call getEcyl(x, fh(tridex), geomterms, E_cyl)
+       call getEcyl(fh(tridex), geomterms, E_cyl)
     endif
 
     !Calculate time derivatives
@@ -892,7 +897,8 @@ contains
     endif
 
     dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
-    dwdt = 0. !Evolution of delta-f weights not yet implemented!
+
+    dwdt = 0.0*w !Evolution of delta-f weights not yet implemented!
   end subroutine fdot
 
 !---------------------------------------------------------------------------
@@ -965,10 +971,22 @@ contains
              gh%dphi(jj)  = gtmp  * zpow
              gh%drphi(jj) = drtmp * zpow
              gh%dzphi(jj) = dztmp * zpow
+
+             !Second toroidal derivative
+             if (li(ii).gt.1) then
+                zpow = li(ii) * (li(ii) - 1) * zi**(li(ii) - 2)
+                gh%drphiphi(jj) = drtmp * zpow
+                gh%dzphiphi(jj) = dztmp * zpow
+             else
+                gh%drphiphi(jj) = 0.
+                gh%dzphiphi(jj) = 0.
+             endif
           else
-             gh%dphi(jj)  = 0.
-             gh%drphi(jj) = 0.
-             gh%dzphi(jj) = 0.
+             gh%dphi(jj)     = 0.
+             gh%drphi(jj)    = 0.
+             gh%dzphi(jj)    = 0.
+             gh%drphiphi(jj) = 0.
+             gh%dzphiphi(jj) = 0.
           endif
        enddo !ii
 #endif
@@ -1113,9 +1131,18 @@ contains
     integer, intent(in) :: ielm
     logical, intent(in) :: getE
 
+    logical :: use_f = .false.
+#ifdef USECOMPLEX
+    use_f = .true.
+#endif
+#ifdef USE3D
+    use_f = .true.
+#endif
+
     !Always get magnetic field components
     call calcavector(ielm, psi_field(0), fh%psiv0)
     call calcavector(ielm, bz_field(0), fh%Bzv0)
+    if (use_f) call calcavector(ielm, bf_field(linear), fh%Bfv)
     if (linear.eq.1) then
        call calcavector(ielm, psi_field(1), fh%psiv1)
        call calcavector(ielm, bz_field(1), fh%Bzv1)
@@ -1147,9 +1174,14 @@ contains
     if (itor.eq.1) Rinv = 1.0/x(1)
 
     !Total/Equilibrium part
-    !B_poloidal = grad psi x grad phi
+    !B_poloidal_axisymmetric = grad psi x grad phi
     Bcyl(1) = -Rinv*dot_product(fh%psiv0, gh%dz)
     Bcyl(3) =  Rinv*dot_product(fh%psiv0, gh%dr)
+#ifdef USE3D
+    !Non-axisymmetric B_poloidal term: - grad f'
+    Bcyl(1) = Bcyl(1) - dot_product(fh%Bfv, gh%drphi)
+    Bcyl(3) = Bcyl(3) - dot_product(fh%Bfv, gh%dzphi)
+#endif
 
     !B_toroidal = B_Z / R
     Bcyl(2) = Rinv*dot_product(fh%Bzv0, gh%g)
@@ -1160,6 +1192,8 @@ contains
        temp(3) =  Rinv*dot_product(fh%psiv1, gh%dr)
        temp(2) =  Rinv*dot_product(fh%Bzv1,  gh%g)
 #ifdef USECOMPLEX
+       temp(1) = temp(1) - dot_product(fh%Bfv, gh%dr) * rfac
+       temp(3) = temp(3) - dot_product(fh%Bfv, gh%dz) * rfac
        Bcyl = Bcyl + real(temp * exp(rfac*x(2)))
 #else
        Bcyl = Bcyl + temp
@@ -1183,7 +1217,7 @@ contains
     if (itor.eq.1) Rinv = 1.0/x(1)
 
     !Total/Equilibrium part
-    !B_poloidal = grad psi x grad phi
+    !B_poloidal_axisym = grad psi x grad phi
     Bcyl(1) = -Rinv*dot_product(fh%psiv0, gh%dz)
     dBdR(1) = -Rinv*dot_product(fh%psiv0, gh%drz)
     dBdz(1) = -Rinv*dot_product(fh%psiv0, gh%dzz)
@@ -1199,7 +1233,22 @@ contains
 
     if (itor.eq.1) dBdR = dBdR - Rinv*Bcyl
 
+#ifdef USE3D
+    !Non-axisymmetric B_poloidal term: - grad f'
+    Bcyl(1) = Bcyl(1) - dot_product(fh%Bfv, gh%drphi)
+    dBdR(1) = dBdR(1) - dot_product(fh%Bfv, gh%drrphi)
+    dBdphi(1) = -Rinv*dot_product(fh%psiv0, gh%dzphi) - dot_product(fh%Bfv, gh%drphiphi)
+    dBdz(1) = dBdz(1) - dot_product(fh%Bfv, gh%drzphi)
+
+    Bcyl(3) = Bcyl(3) - dot_product(fh%Bfv, gh%dzphi)
+    dBdR(3) = dBdR(3) - dot_product(fh%Bfv, gh%drzphi)
+    dBdphi(3) = Rinv*dot_product(fh%psiv0, gh%drphi) - dot_product(fh%Bfv, gh%dzphiphi)
+    dBdz(3) = dBdz(3) - dot_product(fh%Bfv, gh%dzzphi)
+
+    dBdphi(2) = Rinv*dot_product(fh%Bzv0, gh%dphi)
+#else
     dBdphi = 0.
+#endif
 
     if (linear.eq.1) then
        !Perturbed part
@@ -1220,9 +1269,18 @@ contains
        if (itor.eq.1) tempR = tempR - Rinv*temp
 
 #ifdef USECOMPLEX
+       temp(1) = temp(1) - dot_product(fh%Bfv, gh%dr) * rfac
+       temp(3) = temp(3) - dot_product(fh%Bfv, gh%dz) * rfac
        Bcyl = Bcyl + real(temp * exp(rfac*x(2)))
+
+       tempR(1) = tempR(1) - dot_product(fh%Bfv, gh%drr) * rfac
+       tempR(3) = tempR(3) - dot_product(fh%Bfv, gh%drz) * rfac
        dBdR = dBdR + real(tempR * exp(rfac*x(2)))
+
+       tempz(1) = tempz(1) - dot_product(fh%Bfv, gh%drz) * rfac
+       tempz(3) = tempz(3) - dot_product(fh%Bfv, gh%dzz) * rfac
        dBdz = dBdz + real(tempz * exp(rfac*x(2)))
+
        dBdphi = real(temp * rfac * exp(rfac*x(2)))
 #else
        Bcyl = Bcyl + temp
@@ -1233,13 +1291,12 @@ contains
   end subroutine getBcylprime
 
 !---------------------------------------------------------------------------
-  subroutine getEcyl(x, fh, gh, Ecyl)
+  subroutine getEcyl(fh, gh, Ecyl)
     use arrays
     use basic
     use auxiliary_fields
     implicit none
 
-    real, dimension(3), intent(in) :: x
     type(elfield), intent(in) :: fh
     type(xgeomterms), intent(in) :: gh
     real, dimension(3), intent(out) :: Ecyl
@@ -1251,7 +1308,7 @@ contains
     temp(3) = dot_product(fh%ez, gh%g)
 
 #ifdef USECOMPLEX
-    Ecyl = real(temp) ! * exp(rfac*x(2)))
+    Ecyl = real(temp)
 #else
     Ecyl = temp
 #endif
