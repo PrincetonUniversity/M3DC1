@@ -995,13 +995,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                          filename=filename, points=pts, mask=mask, $
                          rrange=xrange, zrange=yrange, linear=linear, $
                       complex=complex,phi=phi0)
-       psir = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
-                         filename=filename, points=pts, mask=mask, $
-                         rrange=xrange, zrange=yrange, linear=linear, $
-                        complex=complex,phi=phi0)
-
 
        if(itor eq 1) then begin
+          psir = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
+                            filename=filename, points=pts, mask=mask, $
+                            rrange=xrange, zrange=yrange, linear=linear, $
+                            complex=complex,phi=phi0)
+
            r = radius_matrix(x,y,t)
            data = -(lp - psir/r)/r
        endif else data = -lp
