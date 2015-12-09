@@ -746,15 +746,18 @@ integer function magnetic_region(psi, x, z)
 
   vectype, intent(in), dimension(dofs_per_node) :: psi
   real, intent(in) :: x, z 
-  real :: dpsii, pl, rl, al
+  real :: psii, dpsii, pl, rl, al
 
   magnetic_region = 0
 
   dpsii = psibound - psimin
 
-  if((real(psi(1)) - psimin)/dpsii .gt. 1.) then
+  psii = (real(psi(1)) - psimin)/dpsii
+  if(psii .gt. 1.) then
      ! if Psi > 1, we are in scrape-off layer
      magnetic_region = 1
+  else if(psii .lt. 0.) then
+     magnetic_region = 0
   else
      ! if Psi < 1, but flux is increasing, we are in private flux region
      pl = sqrt(real(psi(2))**2 + real(psi(3))**2)

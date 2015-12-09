@@ -2169,8 +2169,10 @@ subroutine readpgfiles
   end do
   dpsidpsin = (pres0(n) - pres0(1)) / ptot
   dpsii = 1./dpsidpsin
-  print * , 'PTOT, DPSIDPSIN = ', pres0(n) - pres0(1), &
-       dpsidpsin
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     print * , 'PTOT, DPSIDPSIN = ', pres0(n) - pres0(1), &
+          dpsidpsin
+  end if
 
   deallocate(psinorm, pres0, ppn)
 
@@ -2192,7 +2194,7 @@ subroutine readpgfiles
   ! Change p' and FF' profiles to use derivatives wrt. psi_norm
   pprime_spline%y = pprime_spline%y * dpsidpsin
   ffprime_spline%y = ffprime_spline%y * dpsidpsin
-  
+
 return
   802 format(5x,5e18.9)
   803 format(i5)
