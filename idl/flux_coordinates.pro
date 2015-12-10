@@ -159,8 +159,10 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
 
   ; find pest angle
   if(psi_s lt flux0) then begin
+     print, 'grad(psi) is inward'
      fac = -1.
   endif else begin
+     print, 'grad(psi) is outward'
      fac = 1.
   endelse
   theta_sfl = fltarr(m,n)
@@ -229,7 +231,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      ; sanity checks
      if(V[j] lt 0) then begin
         print, 'ERROR, volume is negative'
-        return, 0
+        print, j, V[j], dV[j], psi[j]-flux0, bp[j]
+;        return, 0
      end
      if(not keyword_set(fast)) then begin
         if(theta_sfl[0,j] gt theta_sfl[m-1,j]) then begin

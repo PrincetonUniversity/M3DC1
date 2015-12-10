@@ -18,13 +18,14 @@ Program Reducedquintic
   use scorec_mesh_mod
   use adapt
   use particles
+  use math
 
   implicit none
 
 #include "finclude/petsc.h"
 
   integer :: ier, i, adapt_flag
-  real :: tstart, tend, dtsave
+  real :: tstart, tend, dtsave, period
   character*10 :: datec, timec
   character*256 :: arg
 
@@ -92,7 +93,12 @@ Program Reducedquintic
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
   call m3dc1_matrix_setassembleoption(imatassemble)
-  call load_mesh
+  if(itor.eq.0) then 
+     period = twopi*rzero
+  else
+     period = twopi
+  end if
+  call load_mesh(period)
 
 !  call print_node_data
 !  call safestop(1)

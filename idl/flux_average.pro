@@ -40,6 +40,10 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
    if(not isa(fc)) then begin
       fc = flux_coordinates(/fast,points=points,filename=filename,$
                             tbins=bins,fbins=bins,_EXTRA=extra)
+      if(isa(fc, /int)) then begin
+         print, 'Error calculating flux coordinates'
+         return, 0
+      end
    end
 
    if(type eq 7) then begin ; named field
@@ -179,9 +183,16 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            if(n_elements(i0) le 1) then begin
                i0 = read_field('I', x, z, t, points=points, filename=filename, _EXTRA=extra)
            endif
+           
+           itor = read_parameter('itor', filename=filename)
 
            r = radius_matrix(x,z,t)
-           field = i0/(2.*!pi*r^2)
+
+           if(itor eq 1) then begin
+              field = i0/(2.*!pi*r^2)
+           endif else begin
+              field = i0/(2.*!pi)
+           endelse
 
            units = ''
            name = '!6Toroidal Flux!X'
