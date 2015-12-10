@@ -30,13 +30,17 @@ module scorec_mesh_mod
 
   real :: toroidal_pack_factor
   real :: toroidal_pack_angle
+  real :: toroidal_period
 
   integer, dimension (:), allocatable :: nodes_owned
 contains
 
-  subroutine load_mesh()
+  subroutine load_mesh(period)
     use math
     implicit none
+
+    real, intent(in) :: period
+
     integer :: myrank, maxrank, ier
     include 'mpif.h'
 #ifdef USE3D
@@ -81,7 +85,7 @@ contains
     ! load mesh
     call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
-#ifdef USE3D
+#ifdef USE3D   
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes
     call m3dc1_model_setnumplane(nplanes)
 
@@ -104,14 +108,19 @@ contains
     call m3dc1_mesh_build3d(0,0,0)
 
     ! set up toroidal angles
-!!$    do i=0, nplanes-1
-!!$       angle = toroidal_pack_angle + &
-!!$            pi*(1. + &
-!!$            erf(toroidal_pack_factor*(real(i)/real(nplanes) - 0.5)) / &
-!!$            erf(toroidal_pack_factor/2.))
-!!$       call m3dc1_mesh_setPhi(i, angle)
-!!$       if(myrank.eq.0) print *, 'Plane ', i, 'at angle ', angle
-!!$    end do
+    toroidal_period = period
+    do i=0, nplanes-1
+       if(toroidal_pack_factor.gt.0.) then
+          angle = toroidal_pack_angle + &
+               (toroidal_period/2.)*(1. + &
+               erf(toroidal_pack_factor*(real(i)/real(nplanes) - 0.5)) / &
+               erf(toroidal_pack_factor/2.))
+       else
+          angle = toroidal_period*real(i)/real(nplanes)
+       end if
+       call m3dc1_plane_setphi(i, angle)
+       if(myrank.eq.0) print *, 'Plane ', i, 'at angle ', angle
+    end do
 
     ! set up communications groups
     allocate(ranks(procs_per_plane))
@@ -379,7 +388,7 @@ contains
 #ifdef USE3D
     call get_node_pos(nodeids(4), x2, phi2, z2)
     d%d = phi2 - d%Phi
-    if(d%d .le. 0.) d%d = d%d + twopi
+    if(d%d .le. 0.) d%d = d%d + toroidal_period
 #else
     d%d = 0.
 #endif

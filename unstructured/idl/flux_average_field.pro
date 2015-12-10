@@ -28,7 +28,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
     endelse
 
   ; if flux coordinates structure is provided, use it
-  if(isa(fc)) then begin
+  if(isa(fc) and not isa(fc, /int)) then begin
      print, 'FLUX_AVERAGE_FIELD using provided fc'
      
      f = field_at_point(field, x, z, fc.r, fc.z)

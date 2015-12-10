@@ -2012,7 +2012,7 @@ subroutine fundef2(error)
   error = 0.
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  In fundef2'
-  if(myrank.eq.0 .and. iprint.ge.1) print *, '   populating...'
+
   numelms = local_elements()
   do itri=1,numelms
 
@@ -2112,7 +2112,7 @@ subroutine fundef2(error)
      call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
      call vector_insert_block(fun4_vec%vec,itri,1,temp4,VEC_ADD)
      
-     ! Del*[psi] + R^2 dp/dpsi + FF' = 0 
+     ! Del*[psi] + R^2 p' + FF' = 0 
      temp79c = ps079(:,OP_GS) + r2_79*temp79a + temp79b
      
      norm = norm + abs(int2(ri_79,ps079(:,OP_GS)))

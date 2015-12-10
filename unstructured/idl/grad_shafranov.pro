@@ -18,15 +18,15 @@ pro grad_shafranov, _EXTRA=extra, nterms=nterms, terms=term, names=names, $
   d = size(i,/dim)
   term = complexarr(nterms,d[1],d[2])
      
-  ; dV / dt
+  ; del*(psi)
   print, 'defining del*(psi)'
   term[0,*,*] = -r*jy
 
-  ; -JxB
+  ; R^2 p'
   print, "defining p'"
   term[1,*,*] = r^2 * (p_r*psi_r + p_z*psi_z) / (psi_r^2 + psi_z^2)
 
-  ; Grad(p)
+  ; FF'
   print, "defining FF'"
   term[2,*,*] = i*(i_r*psi_r + i_z*psi_z) / (psi_r^2 + psi_z^2)
 end
