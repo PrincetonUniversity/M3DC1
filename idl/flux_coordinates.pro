@@ -19,9 +19,18 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
                            plot=makeplot, fast=fast0, psi0=psi0, $
                            i0=i0, x=x, z=z, fbins=fbins, $
                            tbins=tbins, boozer=boozer, hamada=hamada, $
-                           njac=njac
+                           njac=njac, itor=itor, psin_range=psin_range, $
+                           r0=r0
 
   if(n_elements(fast0) eq 0) then fast0 = 0
+  if(n_elements(itor) eq 0) then itor = 1
+  if(n_elements(r0) eq 0) then r0 = 1.
+  if(itor eq 0) then begin
+     period = 2.*!pi*r0
+  endif else begin
+     period = 2.*!pi
+  end
+  help, r0, itor
   fast = fast0
 
   if(n_elements(pts) eq 0) then begin
@@ -70,11 +79,22 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   psi_s = lcfs(psi0, x, z, $
           axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra)
 
+  print, 'Magnetic axis = ', axis
+
   m = tbins  ; number of poloidal points
   n = fbins  ; number of radial points
   
-  psi = (psi_s - flux0)*(findgen(n)+.5)/n + flux0
-  psi_norm = (psi - flux0)/(psi_s - flux0)
+  help, psin_range
+  if(n_elementS(psin_range) eq 0) then begin
+     psi = (psi_s - flux0)*(findgen(n)+.5)/n + flux0
+     psi_norm = (psi - flux0)/(psi_s - flux0)
+  endif else begin
+     dpsi = psi_s - flux0
+     p0 = flux0 + (psi_s - flux0)*psin_range[0]
+     p1 = flux0 + (psi_s - flux0)*psin_range[1]
+     psi = (p1 - p0)*(findgen(n)+.5)/n + p0
+     psi_norm = (psi - flux0)/(psi_s - flux0)
+  endelse
 
   theta = 2.*!pi*findgen(m)/m
   rpath = fltarr(m,n)
@@ -157,7 +177,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   print, 'Total Newton iterations ', tot
   print, 'Average Newton iterations ', float(tot)/float(long(m)*long(n))
 
-  ; find pest angle
+;  find pest angle
   if(psi_s lt flux0) then begin
      print, 'grad(psi) is inward'
      fac = -1.
@@ -171,6 +191,10 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   dthetadl = fltarr(m)
   bp = fltarr(m)
   gradpsi = sqrt(psi0_r^2 + psi0_z^2)
+
+  rp = rpath
+  if(itor eq 0) then rp[*,*] = 1.
+
   for j=0, n-1 do begin
      rx = [rpath[m-1,j],rpath[*,j],rpath[0,j]]
      zx = [zpath[m-1,j],zpath[*,j],zpath[0,j]]
@@ -178,20 +202,20 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      dl = dlx[1:m]
      
      for i=0, m-1 do begin
-        bp[i] = fac*field_at_point(gradpsi,x,z,rpath[i,j],zpath[i,j]) $
-                / rpath[i,j]
+
+        bp[i] = fac*field_at_point(gradpsi,x,z,rpath[i,j],zpath[i,j]) / rp[i,j]
 
         if(not keyword_set(fast)) then begin
            ix = field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
            ; dtheta/dl = -1./(Bp*Jac)
            if(keyword_set(pest)) then begin
-              dthetadl[i] = -ix/(rpath[i,j]^2*bp[i])
+              dthetadl[i] = -ix/(rp[i,j]^2*bp[i])
            endif else if(keyword_set(boozer)) then begin
-              dthetadl[i] = -(bp[i]^2 + (ix/rpath[i,j])^2) / bp[i]
+              dthetadl[i] = -(bp[i]^2 + (ix/rp[i,j])^2) / bp[i]
            endif else if(keyword_set(hamada)) then begin
               dthetadl[i] = -1./bp[i]
            endif
-           fjr2[i] = -ix/(rpath[i,j]^2*bp[i])
+           fjr2[i] = -ix/(rp[i,j]^2*bp[i])
            
            if(i eq 0) then begin
               theta_sfl[i,j] = 0.
@@ -203,8 +227,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         end
      end
      
-     area[j] = 2.*!pi*total(dl*rpath[*,j])
-     dV[j] = 2.*!pi*total(dl/bp)
+     area[j] = period*total(dl*rp[*,j])
+     dV[j] = period*total(dl/bp)
      if(j eq 0) then begin
         V[j] = dV[j]*(psi[j]-flux0)
      endif else begin
@@ -218,7 +242,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
            f[j] = total(dthetadl*dl)/(2.*!pi)
            theta_sfl[*,j] = theta_sfl[*,j]/f[j]
         end
-        q[j] = total(fjr2*dl)/(2.*!pi)
+        q[j] = total(fjr2*dl)/period
            
         ; calculate toroidal flux
         if(j eq 0) then begin
@@ -232,7 +256,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      if(V[j] lt 0) then begin
         print, 'ERROR, volume is negative'
         print, j, V[j], dV[j], psi[j]-flux0, bp[j]
-;        return, 0
+        return, 0
      end
      if(not keyword_set(fast)) then begin
         if(theta_sfl[0,j] gt theta_sfl[m-1,j]) then begin
@@ -260,13 +284,13 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         ; use analytic expression for Jacobian
         if(keyword_set(pest)) then begin
            for i=0,m-1 do begin
-              jac[i,j] = rpath[i,j]^2*q[j] / $
+              jac[i,j] = rp[i,j]^2*q[j] / $
                          field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
            end
         endif else if(keyword_set(boozer)) then begin
            b2r2 = i0^2 + psi0_r^2 + psi0_z^2
            for i=0,m-1 do begin
-              jac[i,j] = f[j]*rpath[i,j]^2 / $
+              jac[i,j] = f[j]*rp[i,j]^2 / $
                          field_at_point(b2r2,x,z,rpath[i,j],zpath[i,j])
            end
         endif else if(keyword_set(hamada)) then begin
@@ -276,7 +300,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      
   endif 
 
-  ; Calculate Jacobian if requested (or if analytic expression isn't available)
+  ;  Calculate Jacobian if requested (or if analytic expression isn't available)
   if(geo eq 1 or keyword_set(njac)) then begin
      print, 'Calculating Jacobian numerically'
      ; calculate jacobian
@@ -300,7 +324,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      and not keyword_set(fast)) then begin
      for j=0, n-1 do begin
         for i=0, m-1 do begin
-           jac_pest = rpath[i,j]^2*q[j] / $
+           jac_pest = rp^2*q[j] / $
                       field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
            if(i eq 0) then begin
               omega[i,j] = 0.
@@ -316,11 +340,12 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      end
   end
 
-  ; define flux coordinates structure
+  ; Define flux coordinates structure
   fc = { m:m, n:n, r:rpath, z:zpath, r0:axis[0], z0:axis[1], omega:omega, $
          psi1:psi_s, psi0:flux0, psi:psi, psi_norm:psi_norm, theta:theta, $
          j:jac, q:q, area:area, dV:dV, pest:keyword_set(pest), $
-         V:V, phi:phi, phi_norm:phi/phi[n-1], rho:sqrt(phi/phi[n-1]) }
+         V:V, phi:phi, phi_norm:phi/phi[n-1], rho:sqrt(phi/phi[n-1]), $
+         period:period, itor:itor}
 
   if(keyword_set(makeplot)) then begin
 

@@ -38,8 +38,11 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
    endif
 
    if(not isa(fc)) then begin
+      itor = read_parameter('itor', filename=filename)
+      r0 =read_parameter('rzero', filename=filename)
       fc = flux_coordinates(/fast,points=points,filename=filename,$
-                            tbins=bins,fbins=bins,_EXTRA=extra)
+                            tbins=bins,fbins=bins,itor=itor,r0=r0, $
+                            _EXTRA=extra)
       if(isa(fc, /int)) then begin
          print, 'Error calculating flux coordinates'
          return, 0
@@ -58,7 +61,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            name = '!6Safety Factor!X'
            symbol = '!8q!X'
 
-           return, abs(deriv(flux, flux_t))/(2.*!pi)
+           return, abs(deriv(flux, flux_t))/fc.period
 
        endif else $
          if(strcmp(field, 'alpha', /fold_case) eq 1) then begin
@@ -189,9 +192,9 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            r = radius_matrix(x,z,t)
 
            if(itor eq 1) then begin
-              field = i0/(2.*!pi*r^2)
+              field = i0/(fc.period*r^2)
            endif else begin
-              field = i0/(2.*!pi)
+              field = i0/(fc.period)
            endelse
 
            units = ''
