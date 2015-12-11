@@ -135,7 +135,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                      name=title, symbol=symbol, units=units, bins=bins, $
                      psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, fac=fac, $
                      mks=mks, cgs=cgs, area=area, integrate=integrate, $
-                     linfac=linfac, sum=sum, $
+                     linfac=linfac, sum=sum, _EXTRA=extra, $
                      complex=complex, abs=abs, phase=phase, stotal=total)
 
    if(n_elements(fa) le 1) then begin
