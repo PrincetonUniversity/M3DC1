@@ -1,23 +1,82 @@
-[To connect]
+This document describes how to install and run M3D-C1 on SCOREC linux machines:
+ 
+1. INSTALL SCOREC CORE
 
-Do ssh -X your_id@jumpgate.scorec.rpi.edu
-Do ssh -X your_machine
+git clone https://github.com/SCOREC/core.git 
+cd core
+cp ~seol/public/core-config.sh .
+EDIT core-config.sh
+mkdir build
+cd build
+../core-config.sh
+make
+make install
 
-[To compile]
+2. INSTALL M3DC1_SCOREC
 
-Copy "scorec.mk" to "your_machine.mk" and do "make". 
-  - For instance, for the machine "piglet", copy "scorec.mk" to "piglet.mk".
-  - Modify machine_name.mk as needed
-2D: make OPT=1
-2D complex: make OPT=1 COM=1
-3D: make OPT=1 3D=1 MAX_PTS=60 
+svn co http://redmine.scorec.rpi.edu/svn/pafs/trunk m3dc1_scorec
+cd m3dc1_scorec
+In LINE 39 of CMakeLists.txt, modify the machine "avatar" to your host 
+copy ~seol/public/m3dc1_scorec-config.sh 
+modify m3dc1_scorec-config.sh
+mkdir build
+cd build
+../m3dc1_scorec-config.sh
+make
+make install
 
-[To run] 
+[Notes] 
+  - in config.sh, -DENABLE_TRILINOS and -DENABLE_COMPLEX are OFF by default
+  - the target library name is m3dc1_scorec by default
+  - if -DENABLE_COMPLEX=ON, "_complex" is appended to the target library name
+  - if -DENABLE_COMPLEX=ON, "_trilinos" is appended to the target library name
+  - PUMI and m3dc1_scorec should be installed in the same folder
+
+3. INSTALL M3DC1
+
+copy ~seol/public/m3dc1.tar
+copy scorec.mk to "hostname.mk". For instance, if you install on "piglet", "cp scorec.mk piglet.mk"
+In hostname.mk, MODIFY SCOREC_HOME to your path to SCOREC install 
+
+To compile M3D-C1 with PETSc
+  - 2D real: make OPT=1
+    (the executable program is $PWD/_hostname-opt-25/m3dc1_2d)
+  - 2D complex: make OPT=1 COM=1
+  - 3D real: make OPT=1 MAX_PTS=60 3D=1
+    (the executable program is $PWD/_hostname-opt-60/m3dc1_3d)
+
+To compile M3D-C1 with Trilinos
+  - compile m3dc1_scorec with -DENABLE_TRILINOS=ON
+  - in scorec.mk, append "_trilinos" to the m3dc1_scorec library name. For instance, "m3dc1_scorec_trilinos" 
+    (Sorry for this. I will modify .mk soon to avoid this manual job)
+  - 2D real: make OPT=1 TRILINOS=1
+    (the executable program is $PWD/_hostname-opt-25-trilinos/m3dc1_2d_trilinos)
+  - 2D complex: NOT AVAILABLE
+  - 3D real: make OPT=1 MAX_PTS=60 3D=1 TRILINOS=1
+    (the executable program is $PWD/_hostname-3d-opt-60-trilinos/m3dc1_3d_trilinos)
+
+4. RUN M3DC1
 
 export LD_LIBRARY_PATH=:/usr/local/intel/latest/lib:/usr/local/intel/mkl72/lib/32:/users/granzb/lib64:/usr/lib64:/lore/fzhang/petsc-real/petsc-3.5.1/test/lib:/usr/local/trilinos/latest/lib
 
-cd /fasttmp/seol/TEST/2d/2p
-/usr/local/openmpi/latest/bin/mpirun -np 2 ~/develop/m3dc1/_avatar-opt-25/m3dc1_2d 
+copy test cases from /fasttmp/seol/TEST
 
-cd /fasttmp/seol/TEST/3d/16p
+[to run 2d real test]
+cd 2d/2p
+modify the file "C1input" to change the input parameters
+/usr/local/openmpi/latest/bin/mpirun -np 2 ~/develop/m3dc1/_avatar-opt-25/m3dc1_2d 
+/usr/local/openmpi/latest/bin/mpirun -np 2 ~/develop/m3dc1/_avatar-opt-25-trilinos/m3dc1_2d_trilinos
+
+[to run 2d complex test]
+cd complex/nate-48p
+modify the file "C1input" to change the input parameters
+/usr/local/openmpi/latest/bin/mpirun -np 48 ~/develop/m3dc1/_avatar-complex-opt-25/m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+
+[to run 3d test]
+cd 3d/16p
+modify the file "C1input" to change the input parameters 
 /usr/local/openmpi/latest/bin/mpirun -np 16 ~/develop/m3dc1/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options_file options_bjacobi
+/usr/local/openmpi/latest/bin/mpirun -np 16 ~/develop/m3dc1/_avatar-3d-opt-60-trilinos/m3dc1_3d_trilinos
+
+For complete information on M3D-C1, see User's Guide available in http://w3.pppl.gov/~jardin/M3DC1/NEWDOC-latest.pdf
+
