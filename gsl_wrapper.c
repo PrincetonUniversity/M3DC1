@@ -1,4 +1,5 @@
 #include <gsl/gsl_sf_bessel.h>
+#include <gsl/gsl_sf_erf.h>
 
 void gsl_bessel_i_(const int* n, const double* x, double *out)
 {
