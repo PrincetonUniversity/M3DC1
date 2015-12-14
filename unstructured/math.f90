@@ -137,31 +137,39 @@ real function bessel_I(n, x)
   implicit none
   integer, intent(in) :: n
   real, intent(in) :: x
+  real :: tmp
 
-  call gsl_bessel_i(n,x,bessel_I)
+  call gsl_bessel_i(n,x,tmp)
+  bessel_I = tmp
 end function bessel_I
 
 real function bessel_J(n, x)
   implicit none
   integer, intent(in) :: n
   real, intent(in) :: x
+  real :: tmp
 
-  call gsl_bessel_j(n,x,bessel_J)
+  call gsl_bessel_j(n,x,tmp)
+  bessel_J = tmp
 end function bessel_J
 
 real function bessel_Y(n, x)
   implicit none
   integer, intent(in) :: n
   real, intent(in) :: x
+  real :: tmp
 
-  call gsl_bessel_y(n,x,bessel_Y)
+  call gsl_bessel_y(n,x,tmp)
+  bessel_Y = tmp
 end function bessel_Y
 
 real function erf(x)
   implicit none
   real, intent(in) :: x
+  real :: tmp
 
-  call gsl_erf(x,erf)
+  call gsl_erf(x,tmp)
+  erf = tmp
 end function erf
 
   

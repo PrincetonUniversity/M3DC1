@@ -44,7 +44,7 @@ contains
     integer :: myrank, maxrank, ier
     include 'mpif.h'
 #ifdef USE3D
-    real :: angle
+    real :: angle, beta
     integer :: i,procs_per_plane, full_group, plane_group
     integer, allocatable :: ranks(:)
 #endif
@@ -110,11 +110,12 @@ contains
     ! set up toroidal angles
     toroidal_period = period
     do i=0, nplanes-1
-       if(toroidal_pack_factor.gt.0.) then
+       if(toroidal_pack_factor.gt.1. .and. i.gt.0) then
+          beta = 2.*sqrt(alog(toroidal_pack_factor))
           angle = toroidal_pack_angle + &
                (toroidal_period/2.)*(1. + &
-               erf(toroidal_pack_factor*(real(i)/real(nplanes) - 0.5)) / &
-               erf(toroidal_pack_factor/2.))
+               erf(beta*(real(i)/real(nplanes) - 0.5)) / &
+               erf(beta/2.))
        else
           angle = toroidal_period*real(i)/real(nplanes)
        end if
@@ -389,6 +390,7 @@ contains
     call get_node_pos(nodeids(4), x2, phi2, z2)
     d%d = phi2 - d%Phi
     if(d%d .le. 0.) d%d = d%d + toroidal_period
+!    if(itri.eq.1) print *, 'd%phi = ', d%phi
 #else
     d%d = 0.
 #endif
