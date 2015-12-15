@@ -104,9 +104,6 @@ contains
     write(name_buff,"(A,A)")  mesh_filename(1:len_trim(mesh_filename)),0
     call m3dc1_mesh_load (name_buff)
 
-    if(myrank.eq.0) print *, 'setting up 3D mesh...'
-    call m3dc1_mesh_build3d(0,0,0)
-
     ! set up toroidal angles
     toroidal_period = period
     do i=0, nplanes-1
@@ -122,6 +119,10 @@ contains
        call m3dc1_plane_setphi(i, angle)
        if(myrank.eq.0) print *, 'Plane ', i, 'at angle ', angle
     end do
+
+    ! build mesh
+    if(myrank.eq.0) print *, 'setting up 3D mesh...'
+    call m3dc1_mesh_build3d(0,0,0)
 
     ! set up communications groups
     allocate(ranks(procs_per_plane))

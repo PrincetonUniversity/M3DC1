@@ -35,7 +35,16 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        zzero = 0.
        xmin = 0.
        ymin = 0.
-   endelse
+    endelse
+
+   ; clamp phi0 to period
+   if(version ge 11) then begin
+      period = mesh.period._data
+   endif else begin
+      period = 2.*!pi
+   end
+   phi0 = phi0 - floor(phi0/period)*period
+   
 
    ; find minimum and maximum node coordinates
    if(n_elements(xrange) lt 2 or n_elements(yrange) lt 2) then begin
