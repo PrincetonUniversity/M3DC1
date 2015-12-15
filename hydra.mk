@@ -43,17 +43,6 @@ PARMETIS_HOME=$(PETSC_DIR)
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
         -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
-LIBS =  $(PETSC_LIBS) \
-        $(SUPERLU_LIBS) \
-        $(PARMETIS_LIBS) \
-        -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
-        -L$(FFTW_HOME)/lib -lfftw3 -lfftw3_mpi -lfftw3_threads \
-        -L$(MKL_HOME)/lib/intel64 -lmkl_intel_lp64 -lmkl_lapack95_lp64 \
-        -Wl,-rpath -Wl,$(HDF5_HOME)/lib \
-        -L$(ZLIB_HOME) -lz \
-        -L$(GSL_HOME)/lib -lgsl \
-        -L/usr/X11R6/lib -lX11
-
 SCORECDIR = /hydra/u/m3dc1/scorec/Dec2015/lib
 INCLUDE := -I/hydra/u/m3dc1/scorec/Dec2015/include \
         $(INCLUDE)
@@ -66,9 +55,19 @@ else
   SCOREC_LIBS =-L$(SCORECDIR) -Wl,--start-group -lapf -lgmi -lmds -lpcu \
               -lspr -lapf_zoltan -lma -lparma -lph -lm3dc1_scorec \
               -Wl,--end-group -lzoltan
-  LIBS := $(SCOREC_LIBS) $(LIBS)
 endif
 
+LIBS =  $(PETSC_LIBS) \
+        $(SUPERLU_LIBS) \
+        $(SCOREC_LIBS) \
+        $(PARMETIS_LIBS) \
+        -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
+        -L$(FFTW_HOME)/lib -lfftw3 -lfftw3_mpi -lfftw3_threads \
+        -L$(MKL_HOME)/lib/intel64 -lmkl_intel_lp64 -lmkl_lapack95_lp64 \
+        -Wl,-rpath -Wl,$(HDF5_HOME)/lib \
+        -L$(ZLIB_HOME) -lz \
+        -L$(GSL_HOME)/lib -lgsl \
+        -L/usr/X11R6/lib -lX11
 
 %.o : %.cpp
 	$(CPP)  $(CCOPTS) $(INCLUDE) $< -o $@
