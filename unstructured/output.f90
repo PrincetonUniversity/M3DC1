@@ -590,6 +590,8 @@ subroutine output_mesh(time_group_id, nelms, error)
 #else
   call write_int_attr(mesh_group_id, "3D", 0, error)
 #endif
+  call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
+  call write_real_attr(mesh_group_id, "period", toroidal_period, error)
 
   ! Output the mesh data
   do i=1, nelms
