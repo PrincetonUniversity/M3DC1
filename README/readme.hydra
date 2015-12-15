@@ -12,7 +12,7 @@ module load cmake
 module load subversion
 module load matlab
 module load idl
-module load petsc-real/3.5.2  OR module load petsc-cplx
+module load petsc-real/3.5.3  OR module load petsc-cplx/3.5.3
 module load fftw
 module load gsl
 module load hdf5-mpi
