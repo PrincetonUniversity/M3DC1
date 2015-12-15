@@ -28,8 +28,7 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 
 SUPERLU_DIST_HOME = $(PETSC_DIR)
 INCLUDE = -I$(MPIHOME)/include \
-        -I$(PETSC_DIR)/include -I$(PETSC_DIR)/include/petsc \
-        -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+        -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(SUPERLU_DIST_HOME)/include \
         -I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
         -I$(GSL_HOME)/include \
         -I$(FFTW_HOME)/include
@@ -37,19 +36,15 @@ INCLUDE = -I$(MPIHOME)/include \
 PETSC_LIBS = -L$(PETSC_DIR)/lib \
    -lpetsc \
 
-SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3
-ifeq ($(COM), 1)
-  SUPERLU_DIST_LIBS = -L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_4.0
-else
-  SUPERLU_DIST_LIBS = -L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3
-endif
+SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3 \
+        -L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 \
 
 PARMETIS_HOME=$(PETSC_DIR)
 PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
         -Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
 LIBS =  $(PETSC_LIBS) \
-        $(SUPERLU_LIBS) $(SUPERLU_DIST_LIBS) \
+        $(SUPERLU_LIBS) \
         $(PARMETIS_LIBS) \
         -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
         -L$(FFTW_HOME)/lib -lfftw3 -lfftw3_mpi -lfftw3_threads \
@@ -59,8 +54,8 @@ LIBS =  $(PETSC_LIBS) \
         -L$(GSL_HOME)/lib -lgsl \
         -L/usr/X11R6/lib -lX11
 
-SCORECDIR = /hydra/u/m3dc1/scorec/Sep2015/lib
-INCLUDE := -I/hydra/u/m3dc1/scorec/Sep2015/include \
+SCORECDIR = /hydra/u/m3dc1/scorec/Dec2015/lib
+INCLUDE := -I/hydra/u/m3dc1/scorec/Dec2015/include \
         $(INCLUDE)
 
 ifeq ($(COM), 1)
@@ -74,11 +69,12 @@ else
   LIBS := $(SCOREC_LIBS) $(LIBS)
 endif
 
-%.o : %.c
-	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o : %.cpp
 	$(CPP)  $(CCOPTS) $(INCLUDE) $< -o $@
+
+%.o : %.c
+	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f
 	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
