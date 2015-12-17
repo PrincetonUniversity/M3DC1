@@ -1331,7 +1331,7 @@ contains
     if (vspdims.eq.3) then
        getke = 0.5*e_mks*dot_product(p%v, p%v)/qm_ion
     else
-       elcoefs(:)%itri = 0
+       itri = 0;  elcoefs(:)%itri = 0
        call get_geom_terms(p%x, itri, elcoefs, tridex, geomterms, .false., ierr)
        if (ierr.ne.0) then
           getke = -1.0
@@ -1362,7 +1362,7 @@ contains
     real                                   :: B0
     integer                                :: itri, tridex, ierr
 
-    elcoefs(:)%itri = 0
+    itri = 0;  elcoefs(:)%itri = 0
     call get_geom_terms(p%x, itri, elcoefs, tridex, geomterms, .false., ierr)
     if (ierr.ne.0) then
        getPphi = -1.0
