@@ -42,12 +42,13 @@ FFTW_HOME = /fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2
 
 ifeq ($(COM), 1)
   SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
-  PETSC_ARCH=complex
+  PETSC_DIR=/fusion/projects/codes/m3dc1/petsc-3.5.4-complex
 else
   SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
-  PETSC_ARCH=real
+  PETSC_DIR=/fusion/projects/codes/m3dc1/petsc-3.5.4-real
   HYPRE_LIB=-lHYPRE
 endif
+PETSC_ARCH=mpich-gcc4.7.2
 
 PETSC_EXTERNAL_LIB_BASIC = \
        -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
