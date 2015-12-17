@@ -1,0 +1,30 @@
+Sun Apr 12 22:41:24 EDT 2015
+
+1. login 
+	ssh your_id@saturn.gat.com
+
+2. code
+
+3. load modules
+
+	module load fftw
+	module load idl
+
+4. compile code
+	make OPT=1 RL=1 MAX_PTS=25
+	make OPT=1 COM=1 MAX_PTS=25
+	make 3D=1 OPT=1 MAX_PTS=60
+
+5. mesh utility (NOT SUPPORTED YET)
+        /fusion/projects/codes/m3dc1/scorec/tools
+
+6. run 
+
+  #2D complex
+     /act/mpich/gcc-4.7.2/bin/mpiexec -n N ./_saturn.cluster-complex-opt-25/m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+ 
+  #2D real
+     /act/mpich/gcc-4.7.2/bin/mpiexec -n N ./_saturn.cluster-opt-25/m3dc1_2d
+
+  #3D real
+     /act/mpich/gcc-4.7.2/bin/mpiexec -n N ./_saturn.cluster-3d-opt-60/m3dc1_3d  -ipetsc -options_file options_bjacobi  
