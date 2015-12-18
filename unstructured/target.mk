@@ -52,12 +52,12 @@ install :
 	chmod 644 $(INSTALL_DIR)/idl/*.pro
 	mkdir -m 755 -p $(INSTALL_DIR)/batch
 	-cp sbin/$(M3DC1_ARCH)/batch_script.* $(INSTALL_DIR)/batch
-	chmod 644 $(INSTALL_DIR)/batch/batch_script.* 
+	-chmod 644 $(INSTALL_DIR)/batch/batch_script.* 
 	mkdir -m 755 -p $(INSTALL_DIR)/bin
 	cp sbin/extract_profiles.sh $(INSTALL_DIR)/bin
 	chmod 755 $(INSTALL_DIR)/bin/extract_profiles.sh
-	cp sbin/$(M3DC1_ARCH)/*.sh $(INSTALL_DIR)/bin
-	chmod 755 $(INSTALL_DIR)/bin/*.sh
+	-cp sbin/$(M3DC1_ARCH)/*.sh $(INSTALL_DIR)/bin
+	-chmod 755 $(INSTALL_DIR)/bin/*.sh
 	-cp _$(ARCH)-opt-25/m3dc1_2d $(INSTALL_DIR)/bin
 	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d
 	-cp _$(ARCH)-complex-opt-25/m3dc1_2d_complex $(INSTALL_DIR)/bin
