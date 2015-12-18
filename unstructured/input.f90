@@ -167,6 +167,7 @@ subroutine set_defaults
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
   call add_var_int("iread_p", iread_p, 0, "", input_grp)
   call add_var_int("iread_heatsource", iread_heatsource, 0, "", input_grp)
+  call add_var_int("iheat_sink", iheat_sink, 0, "", input_grp)
   call add_var_int("iread_particlesource", iread_particlesource, 0, "", input_grp)
   call add_var_int("iread_neo", iread_neo, 0, &
        "Read velocity data from NEO output", input_grp)
@@ -638,6 +639,7 @@ subroutine set_defaults
 
   call add_var_int("ionization", ionization, 0, "", source_grp)
   call add_var_double("ionization_rate", ionization_rate, 0., "", source_grp)
+  call add_var_double("coolrate", coolrate, 0., "", source_grp)
   call add_var_double("ionization_temp", ionization_temp, 0.01, "", source_grp)
   call add_var_double("ionization_depth", ionization_depth, 0.01, "", source_grp)
   
@@ -1049,7 +1051,7 @@ subroutine validate_input
                            .or. ibeam.eq.2 .or. iread_particlesource.eq.1)
   momentum_source = (ibeam.eq.1 .or. ibeam.eq.4)
   heat_source = (numvar.ge.3 .or. ipres.eq.1) .and. &
-       (igaussian_heat_source.eq.1 .or. ibeam.ge.1 .or. iread_heatsource.eq.1)
+       (igaussian_heat_source.eq.1 .or. ibeam.ge.1 .or. iread_heatsource.eq.1 .or. iheat_sink.eq.1)
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
      print *, 'Density source: ', density_source

@@ -110,6 +110,7 @@ module basic
   ! density sources
   integer :: ionization     ! 1 = include edge reionization
   real :: ionization_rate   ! rate of ionization
+  real :: coolrate    !  cooling rate for iheat_sink=1 and itaylor=27
   real :: ionization_temp   ! temperature above which ionization occurs
   real :: ionization_depth  ! temperature scale of neutral burnout
   integer :: nosig          ! 1 = drop sigma terms from momentum eqn
@@ -344,6 +345,7 @@ module basic
   integer :: iread_p
   integer :: iread_heatsource ! 1 = read heat source profile (in terms of Psi normalized), source is scaled with ghs_rate
   integer :: iread_particlesource ! 1 = read particle source profile (in terms of Psi normalized), source is scaled with pellet_rate
+  integer :: iheat_sink   !  add a sink term in p equation (initially for itaylor=27)
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
   integer :: iwrite_restart ! 0 = don't write restart files

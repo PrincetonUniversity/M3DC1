@@ -4287,7 +4287,7 @@ subroutine initial_conditions()
            call int_kink_init()
         case(20)
            call kstar_profiles()
-        case(21,22,25,26)
+        case(21,22,25,26,27)
            call fixed_q_profiles()
         case(23)
            call frs1_init()
@@ -4693,7 +4693,8 @@ end subroutine kstar_profiles
 
 module basicq
 implicit none
-real :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, q2_qp, q4_qp
+real :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, q2_qp, q4_qp, pedge_qp
+real :: kappa_qp, kappae_qp, coolrate_qp
 integer :: myrank_qp, iprint_qp, itaylor_qp
 end module basicq
 module LZeqbm
@@ -4761,9 +4762,13 @@ call create_field(p_vec)
   q4_qp = alpha2
   rzero_qp = rzero
   p0_qp = p0
+  pedge_qp = pedge
+  kappa_qp = kappa0
+  kappae_qp = alpha3
   iprint_qp = iprint
   myrank_qp = myrank
   itaylor_qp = itaylor
+  coolrate_qp = coolrate
 if(myrank.eq.0 .and. iprint.ge.1) write (*,*) "bz,r0,q0,rzero,p0",   &
                 bz_qp, r0_qp, q0_qp, rzero_qp, p0_qp
 if(itaylor.eq.22) call setupLZeqbm
@@ -4980,33 +4985,40 @@ end function cubicinterp
 function qfunc(psi)    !   q  (safety factor)
 use basicq
 real :: psi,qfunc,q_LZ  !  note:  psi = r**2
-real :: c0,c1,c2,c3,c4   
+real :: c0,c1,c2,c3,c4 
+real :: asq, bigA, bigB  
 
-if(itaylor_qp .eq.21) then
+select case(itaylor_qp)
+
+case(21)
    c0 = 4.179343
    c1 = -0.080417
    c2=-8.659146
    c3 = 10.668674
    c4 = -4.108323
    qfunc = (q0_qp) + psi**2*(c0+c1*psi+c2*psi**2+c3*psi**3+c4*psi**4)
-   return
-endif
 
-if(itaylor_qp .eq. 22) then
-  qfunc = q_LZ(psi)
-  return
-endif
+case(22)
+   qfunc = q_LZ(psi)
 
-if(itaylor_qp .eq.25) then
+case(25)
    qfunc = (q0_qp) + psi*(q2_qp + q4_qp*psi)
-   return
-endif
 
-if(itaylor_qp .eq. 26) then
+case(26)
    qfunc = q0_qp*(1. + (psi/q2_qp)**q4_qp )**(1./q4_qp)
-   return
-endif
+ 
+case(27)
+!new coding
+   asq = q4_qp**2
+   bigA = (-2. + 3.*q0_qp/q2_qp)/asq 
+   bigB = (1. -  2.*q0_qp/q2_qp)/asq**2
+   if(psi .le. asq) then
+     qfunc = q0_qp/(1. + bigA*psi + bigB*psi**2)
+   else
+     qfunc = q2_qp*psi/asq
+   endif
 
+end select
 return
 end function qfunc
 
@@ -5014,58 +5026,91 @@ function qpfunc(psi)   !   derivative of q wrt psi
 use basicq
 real :: psi,qpfunc,qprime_LZ   !  note:  psi=r^2
 real :: c0,c1,c2,c3,c4   
+real :: asq, bigA, bigB  
 
-if(itaylor_qp .eq. 21) then
+select case (itaylor_qp)
+
+case(21)
    c0 = 4.179343
    c1 = -0.080417
    c2=-8.659146
    c3 = 10.668674
    c4 = -4.108323
    qpfunc =  psi*(2.*c0+3.*c1*psi+4.*c2*psi**2+5.*c3*psi**3+6.*c4*psi**4)
-   return
-endif
 
-if(itaylor_qp .eq. 22) then
+case(22)
   qpfunc = qprime_LZ(psi)
-  return
-endif
 
-if(itaylor_qp .eq.25) then
+case(25)
    qpfunc = (q2_qp + 2.*q4_qp*psi)
-   return
-endif
 
-if(itaylor_qp .eq. 26) then
+case(26)
    qpfunc = q0_qp*(1. + (psi/q2_qp)**q4_qp )**((1.-q4_qp)/q4_qp)       &
                 *(1./q2_qp)**q4_qp*q4_qp*psi**(q4_qp-1)
-   return
-endif
+case(27)
+!new coding
+   asq = q4_qp**2
+   bigA = (-2. + 3.*q0_qp/q2_qp)/asq 
+   bigB = (1. -  2.*q0_qp/q2_qp)/asq**2
+   if(psi .le. asq) then
+     qpfunc = -q0_qp*(bigA + 2.*bigB*psi)/(1. + bigA*psi + bigB*psi**2)**2
+   else
+     qpfunc = q2_qp/asq
+   endif
+end select
+return
 
 end function qpfunc
 
 function pfunc(psi)    !   p  (pressure)
 use basicq
 real :: psi,pfunc,p_LZ   !  note:  psi=r^2
+real :: asq, bigA, bigB 
+select case(itaylor_qp)
 
-if(itaylor_qp .eq. 22) then
+case(21,25,26)
+ pfunc = p0_qp * (1. - 3.2*psi + 4.16*psi**2 - 2.56*psi**3 + 0.64*psi**4)
+
+case(22)
   pfunc = p_LZ(psi)
-  return
-endif
 
-pfunc = p0_qp * (1. - 3.2*psi + 4.16*psi**2 - 2.56*psi**3 + 0.64*psi**4)
+case(27)
+!new coding
+   asq = q4_qp**2
+   bigA = (-4. + 6.*q0_qp/q2_qp)/asq 
+   bigB = (3. -  6.*q0_qp/q2_qp)/asq**2
+   if(psi .le. asq) then
+     pfunc = p0_qp*(1+ bigA*psi + bigB*psi**2)**(2./3.) + pedge_qp
+   else
+     pfunc = pedge_qp
+   endif
+
+end select
 return
 end function pfunc
 
 function ppfunc(psi)    !  derivative of p wrt psi
 use basicq
 real :: psi,ppfunc,pprime_LZ   !  note:  psi=r^2
+real :: asq, bigA, bigB 
+select case(itaylor_qp)
 
-if(itaylor_qp .eq. 22) then
+case(21,25,26)
+  ppfunc = p0_qp * (-3.2 + 8.32*psi - 7.68*psi**2 + 2.56*psi**3)
+case(22)
   ppfunc = pprime_LZ(psi)
-  return
-endif
+case(27)
+   asq = q4_qp**2
+   bigA = (-4. + 6.*q0_qp/q2_qp)/asq 
+   bigB = ( 3. - 6.*q0_qp/q2_qp)/asq**2
+   if(psi .lt. asq) then
+     ppfunc = p0_qp*(2./3.)*(1+ bigA*psi + bigB*psi**2)**(-1./3.)    &
+                           *(bigA + 2.*bigB*psi)
+   else
+     ppfunc = 0.
+   endif
 
-ppfunc = p0_qp * (-3.2 + 8.32*psi - 7.68*psi**2 + 2.56*psi**3)
+end select
 return
 end function ppfunc
 
@@ -5187,3 +5232,37 @@ end function ppfunc
 
     qprime_LZ = 0.5*dqdr/rmin
   end function qprime_LZ
+function get_kappa(psi)  ! thermal conductivity for itaylor=27, ikappafunc=12
+use basicq
+real :: psi,get_kappa   !  note:  psi=r^2
+real :: asq, bigA, bigB, num1, num2, denom, jedge
+
+   asq = q4_qp**2
+   bigA = (1. - 1.5*q0_qp/q2_qp)/asq 
+   bigB = (1. -  2.*q0_qp/q2_qp)/asq**2
+   jedge = (pedge_qp/p0_qp)**1.5
+   if(psi .gt. asq) psi = asq    !     temporary fix
+   if(psi .le. asq) then
+     num1 = 1. - 2*psi*bigA + psi**2*bigB + jedge
+     num2 = (1. - 4.*psi*bigA + 3.*psi**2*bigB + jedge )**(1./3.)
+     denom =  asq*(bigA - 1.5*psi*bigB)
+     get_kappa = kappa_qp*num1*num2/denom
+   else
+     get_kappa = kappae_qp
+   endif
+
+return
+end function get_kappa
+
+function hsink_qp(psi)
+use basicq
+real :: psi, hsink_qp
+  if(psi .ge. q4_qp**2) then
+    hsink_qp = coolrate_qp
+  else
+    hsink_qp = 0
+  endif
+
+return
+
+end function hsink_qp
