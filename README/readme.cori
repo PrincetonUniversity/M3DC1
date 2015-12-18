@@ -1,6 +1,6 @@
 1. login 
-	ssh your_id@cori.nersc.gov
 
+	ssh your_id@cori.nersc.gov
 2. code
 
 3. load modules

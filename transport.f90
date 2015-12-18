@@ -256,7 +256,7 @@ vectype function q_func(i)
   integer, intent(in) :: i
   vectype :: temp
   integer :: nvals, j, magnetic_region
-  real :: val, valp, valpp, pso
+  real :: val, valp, valpp, pso, rsq, coef, hsink_qp
   real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
@@ -307,6 +307,16 @@ vectype function q_func(i)
         temp79a(j) = val
      end do
 
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+  endif
+
+! Heat sink for use with itaylor=27
+  if(iheat_sink.eq.1 .and. itaylor.eq.27) then
+     do j=1,npoints
+        rsq = (x_79(j)-xmag)**2 + (z_79(j)-zmag)**2
+        coef= hsink_qp(rsq)
+        temp79a(j) = coef*(pedge - pt79(j,OP_1))
+     end do
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
@@ -546,7 +556,7 @@ vectype function kappa_func(i)
   
   integer, intent(in) :: i
   integer :: nvals, j, iregion
-  real :: val, valp, valpp, pso
+  real :: val, valp, valpp, pso, rsq, get_kappa
   real, allocatable :: xvals(:), yvals(:)
   vectype :: temp
   integer :: magnetic_region
@@ -636,7 +646,13 @@ vectype function kappa_func(i)
         call evaluate_spline(kappa_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
-     
+
+  case(12)          !  option to go with itaylor=27, iresfunc=4
+     do j=1, npoints
+        rsq = (x_79(j)-xmag)**2+(z_79(j)-zmag)**2  
+        val = get_kappa(rsq)
+        temp79a(j) = val
+     end do
   case default
      temp79a = 0.
   end select
