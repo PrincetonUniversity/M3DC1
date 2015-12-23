@@ -1,0 +1,21 @@
+CC = mpicc
+CXX = mpicxx
+CFLAGS = -O3 -fPIC
+
+F90 = mpif90
+F90FLAGS = -O3 -r8 -fPIC
+
+LD = $(CC)
+LDFLAGS =
+
+ARCH = ar cr
+LDD = $(CC) --shared
+
+PYTHON = python
+
+LAPACK = -llapack
+
+HDF5_LIBS = -L$(HDF5_HOME)/lib -lhdf5 -lz
+HDF5_INCLUDE = -I$(HDF5_HOME)/include
+
+LIBS = -lstdc++ -lifcore -Wl,-rpath,$(M3DC1_INSTALL_DIR)/lib/_$(M3DC1_ARCH)

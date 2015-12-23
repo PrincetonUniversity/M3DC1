@@ -1,5 +1,4 @@
-#dirs = m3dc1_lib fusion_io trace_lib
-dirs = m3dc1_lib fusion_io
+dirs = m3dc1_lib fusion_io trace_lib
 alldirs = $(dirs) examples
 
 .PHONY : install clean $(alldirs)
