@@ -5,16 +5,13 @@
 
 3. load modules
 
-	module unload PrgEnv-intel 
-        module unload darshan
-	module load PrgEnv-cray
 	module load subversion
 	module load cmake
-	module load cray-netcdf-hdf5parallel/4.3.3.1
-	module load cray-parallel-netcdf
-	module load cray-hdf5-parallel/1.8.14
 	module load fftw
 	module load gsl/1.16
+        module load cray-hdf5-parallel/1.8.14
+	module load idl
+	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
 
 4. compile code
 	make OPT=1 RL=1 MAX_PTS=25 
@@ -26,11 +23,14 @@
 
 6. run jobscript
 	#!/bin/bash -l
-	#SBATCH --partition debug     
-	#SBATCH --nodes 24 
-	#SBATCH --ntasks-per-node 48
-	#SBATCH --cpus-per-task 1
-	#SBATCH --time 00:10:00  
+	#SBATCH --partition=debug     
+	#SBATCH --nodes=24 
+	#SBATCH --ntasks-per-node=32
+	#SBATCH --cpus-per-task=1
+	#SBATCH --time=00:10:00
+	#SBATCH --job-name=MYJOB      #<==
+	#SBATCH --mail-type=END
+	#SBATCH --mail-user=YOUR-EMAIL   #<==
 
 	cd $SLURM_SUBMIT_DIR
 
@@ -58,3 +58,7 @@
 9. delete a job
    	scancel job_id
 
+10. setup idl
+    In your home directory, create a subdirectory "idl" with a single file .startup
+    that contains the following line:
+    device, retain=2, decomposed=0, true_color=24

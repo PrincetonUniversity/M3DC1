@@ -21,28 +21,20 @@ endif
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
-SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2015
+SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Jan2015
 SCOREC_CORE = -lapf -lgmi -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
-PETSC_ARCH =cray-mpich-7.2
-
+PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
 ifeq ($(COM), 1)
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
-      PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4-complex
+      PETSC_ARCH = complex-intel-mpich7.2
 else
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
-      PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4-real
+      PETSC_ARCH = real-intel-mpich7.2
+      HYPRE_LIB = -lHYPRE
 endif
-PETSC_ARCH =cray-mpich-7.2
 PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 \
-       -lzoltan -lparmetis -lmetis -lm -lpthread -lssl -lcrypto \
-       -ldl -stdc++
-
-LIBS := $(LIBS) \
-        $(SCOREC_LIBS) \
-        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc $(PETSC_EXTERNAL_LIB_BASIC) \
-        -lstdc++ \
-        -L$(MPICH_DIR)/lib -lmpichcxx_cray -lmpichcxx
+       $(HYPRE_LIB)  -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 \
+       -lsuperlu_dist_3.3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++
 
 ifeq ($(USEADIOS), 1)
   OPTS := $(OPTS) -DUSEADIOS
@@ -61,31 +53,34 @@ AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
 OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
-INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
+INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
+           $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	-I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 #
-LIBS := $(LIBS) -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
+LIBS := $(LIBS) \
+        $(SCOREC_LIBS) \
+        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc $(PETSC_EXTERNAL_LIB_BASIC) \
+        -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB)
 #        $(HYBRID_LIBS) \
 
-FOPTS = -c  -s real64 -fPIC -static -e F -e m -rm $(OPTS) \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
+        -Dglobalinsertval=insertval -Dglobalentdofs=entdofs
 CCOPTS  = -c $(OPTS)
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -Wl,-z,muldefs
-  FOPTS  := $(FOPTS)  -O3 -Wl,-z,muldefs
-  CCOPTS := $(CCOPTS) -O3 -Wl,-z,muldefs
+  LDOPTS := $(LDOPTS)
+  FOPTS  := $(FOPTS)  -O3
+  CCOPTS := $(CCOPTS) -O3
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
-  CCOPTS := $(CCOPTS)  
+  CCOPTS := $(CCOPTS)
 endif
-
 
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
