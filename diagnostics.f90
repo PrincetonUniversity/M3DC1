@@ -541,14 +541,30 @@ subroutine calculate_scalars()
 
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3),tpifac
+  real :: n(2,3),tpifac,tpirzero
   integer :: iedge, idim(3), izone, izonedim, i
   integer :: magnetic_region
   real :: dum1, dum2
   vectype, dimension(MAX_PTS) :: mr
 
-  tpifac = 1.
-  if(nplanes.gt.1) tpifac = twopi
+ !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
+  if(nplanes.eq.1) then
+    if(itor.eq.1) then
+      tpifac = 1.
+      tpirzero = 1.
+    else
+      tpifac = 1./rzero
+      tpirzero = 1.
+    endif
+  else
+    if(itor.eq.1) then
+      tpifac = twopi
+      tpirzero = twopi
+    else
+      tpifac = twopi
+      tpirzero = twopi*rzero
+    endif
+  endif
 
   ptoto = ptot
 
@@ -673,25 +689,25 @@ subroutine calculate_scalars()
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
      ! extra factor of 1/r comes from delta function in toroidal coordinate)
-     area   = area   + int1(ri_79)/tpifac
-     parea  = parea  + int2(ri_79,mr)/tpifac
+     area   = area   + int1(ri_79)/tpirzero
+     parea  = parea  + int2(ri_79,mr)/tpirzero
 
      ! toroidal current
-     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
-     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpifac
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
+     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero
 
      ! toroidal flux
-     tflux = tflux + int2(ri2_79,bzt79(:,OP_1))/tpifac
-     pflux = pflux + int3(ri2_79,bzt79(:,OP_1),mr)/tpifac
+     tflux = tflux + int2(ri2_79,bzt79(:,OP_1))/tpirzero
+     pflux = pflux + int3(ri2_79,bzt79(:,OP_1),mr)/tpirzero
      
      ! enstrophy
      select case(ivform)
      case(0)
-        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS))/tpifac
+        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS))/tpirzero
      case(1)
         tvor   = tvor &
              -    (int1(pht79(:,OP_LP)) &
-             + 2.*int2(ri4_79,cht79(:,OP_DZ)))/tpifac
+             + 2.*int2(ri4_79,cht79(:,OP_DZ)))/tpirzero
      end select
 
      ! volume

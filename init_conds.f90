@@ -4718,6 +4718,7 @@ module LZeqbm
   REAL r_interior                         ! Radius to interior of bndry layer
   REAL prat                               ! Ratio pf plas to vac pressure
   REAL p_interior                         ! Pressure in bulk plasma
+
   REAL p_vacuum                           ! Pressure in vacuum region
   REAL q0R0                               ! Central safety factor * major radius
   REAL Jdenom                             ! Intermediate derived quantity
@@ -4725,6 +4726,26 @@ module LZeqbm
   REAL gamma                              ! Pressure gradient in bndry layer
 end module LZeqbm
 
+ subroutine init_qp
+use basic
+use basicq
+implicit none
+ !input variables:
+  bz_qp = bzero
+  r0_qp = alpha0
+  q0_qp = q0
+  q2_qp = alpha1
+  q4_qp = alpha2
+  rzero_qp = rzero
+  p0_qp = p0
+  pedge_qp = pedge
+  kappa_qp = kappa0
+  kappae_qp = alpha3
+  iprint_qp = iprint
+  myrank_qp = myrank
+  itaylor_qp = itaylor
+  coolrate_qp = coolrate
+end subroutine init_qp
 subroutine fixed_q_profiles()
 
 use basic
@@ -4754,21 +4775,6 @@ call create_field(bz_vec)
 call create_field(p_vec)
 
 
- !input variables:
-  bz_qp = bzero*rzero
-  r0_qp = alpha0
-  q0_qp = q0
-  q2_qp = alpha1
-  q4_qp = alpha2
-  rzero_qp = rzero
-  p0_qp = p0
-  pedge_qp = pedge
-  kappa_qp = kappa0
-  kappae_qp = alpha3
-  iprint_qp = iprint
-  myrank_qp = myrank
-  itaylor_qp = itaylor
-  coolrate_qp = coolrate
 if(myrank.eq.0 .and. iprint.ge.1) write (*,*) "bz,r0,q0,rzero,p0",   &
                 bz_qp, r0_qp, q0_qp, rzero_qp, p0_qp
 if(itaylor.eq.22) call setupLZeqbm
@@ -5256,12 +5262,8 @@ end function get_kappa
 
 function hsink_qp(psi)
 use basicq
-real :: psi, hsink_qp
-  if(psi .ge. q4_qp**2) then
-    hsink_qp = coolrate_qp
-  else
-    hsink_qp = 0
-  endif
+real :: psi, hsink_qp, pfunc
+    hsink_qp = coolrate_qp*pfunc(psi)
 
 return
 
