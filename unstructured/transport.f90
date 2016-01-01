@@ -256,7 +256,7 @@ vectype function q_func(i)
   integer, intent(in) :: i
   vectype :: temp
   integer :: nvals, j, magnetic_region
-  real :: val, valp, valpp, pso, rsq, coef, hsink_qp
+  real :: val, valp, valpp, pso, rsq, coef, pfunc
   real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
@@ -314,8 +314,7 @@ vectype function q_func(i)
   if(iheat_sink.eq.1 .and. itaylor.eq.27) then
      do j=1,npoints
         rsq = (x_79(j)-xmag)**2 + (z_79(j)-zmag)**2
-        coef= hsink_qp(rsq)
-        temp79a(j) = coef*(pedge - pt79(j,OP_1))
+        temp79a(j) = coolrate*(pfunc(rsq)-pt79(j,OP_1))
      end do
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
