@@ -44,12 +44,9 @@ templates :
 	cd templates; make
 
 .PHONY: install
-install :
+install : install_idl install_doc
 	echo $(ARCH)
 	mkdir -m 755 -p $(INSTALL_DIR)
-	mkdir -m 755 -p $(INSTALL_DIR)/idl
-	cp idl/*.pro $(INSTALL_DIR)/idl
-	chmod 644 $(INSTALL_DIR)/idl/*.pro
 	mkdir -m 755 -p $(INSTALL_DIR)/batch
 	-cp sbin/$(M3DC1_ARCH)/batch_script.* $(INSTALL_DIR)/batch
 	-chmod 644 $(INSTALL_DIR)/batch/batch_script.* 
@@ -64,6 +61,18 @@ install :
 	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d_complex
 	-cp _$(ARCH)-3d-opt-60/m3dc1_3d $(INSTALL_DIR)/bin
 	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_3d
+
+.PHONY: install_idl
+install_idl : 
+	mkdir -m 755 -p $(INSTALL_DIR)/idl
+	cp idl/*.pro $(INSTALL_DIR)/idl
+	chmod 644 $(INSTALL_DIR)/idl/*.pro
+
+.PHONY: install_doc
+install_doc :
+	mkdir -m 755 $(INSTALL_DIR)/doc
+	cp doc/* $(INSTALL_DIR)/doc
+	-chmod 644 $(INSTALL_DIR)/doc/*
 
 .PHONY: install_templates
 install_templates : templates
