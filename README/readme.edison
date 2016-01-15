@@ -1,5 +1,3 @@
-Sun Apr 12 22:41:24 EDT 2015
-
 1. login 
 	ssh your_id@edison.nersc.gov
 
@@ -7,17 +5,28 @@ Sun Apr 12 22:41:24 EDT 2015
 
 3. load modules
 
-	module load cmake
+	module unload cray-mpich
+	module unload cray-shmem
+	module unload gcc
+	module load gcc/4.8.0
+	module load cray-mpich/7.2.5
+	module load cray-shmem/7.2.5
 	module load subversion
-	module load cray-hdf5-parallel/1.8.13
+	module load cmake
+	module load cray-hdf5-parallel/1.8.14
 	module load fftw
 	module load gsl/1.16
 	module load idl
-	module load adios/1.4.1
-	module load cray-tpsl
-	module load cray-trilinos
-	setenv CRAY_ROOFTS DSL
-	module load cray-petsc   # or module load cray-petsc-complex
+
+   For real type, load the following additionally:
+
+	module load cray-tpsl/1.5.0
+	module load cray-trilinos/11.10.1.0
+	module load cray-petsc/3.5.3.1
+
+   To use adios, load the following additionally:
+
+        module load adios/1.4.1
 
 4. compile code
 	make OPT=1 RL=1 MAX_PTS=25 (USEADIOS=1 to use adios)
@@ -29,34 +38,33 @@ Sun Apr 12 22:41:24 EDT 2015
 
 6. run jobscript
 
-        #PBS -q debug
-        #PBS -l mppwidth=256
-        #PBS -l walltime=00:30:00
-        #PBS -N m3dc1_3d
-        #PBS -e $PBS_JOBID.err
-        #PBS -o $PBS_JOBID.out
-        #PBS -V
+       	#!/bin/bash -l
+        #SBATCH -p regular
+        #SBATCH -N 2
+	#SBATCH -t 04:00:00
+        #SBATCH -J my_job
+        #SBATCH -o my_job.o%j
 
-        cd $PBS_O_WORKDIR
-      
+        #Edison has 24 cores per compute node
+        srun -n 48 my_executable 
+
         #2D complex
-        (for regular i/o) aprun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
-        (for adios i/o)   prun -n 8 m3dc1_2d_complex_adios -pc_factor_mat_solver_package mumps 
+        (for regular i/o) srun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+        (for adios i/o)   srun -n 8 m3dc1_2d_complex_adios -pc_factor_mat_solver_package mumps 
 
         #2D real
-        (for regular i/o) aprun -n 8 m3dc1_2d
-        (for adios i/o)   prun -n 8 m3dc1_2d_adios
+        (for regular i/o) srun -n 8 m3dc1_2d
+        (for adios i/o)   srun -n 8 m3dc1_2d_adios
  
         #3D real
-        (for regular i/o) aprun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi
-        (for adios i/o)   aprun -n 256 m3dc1_3d_adios -ipetsc -options_file options_bjacobi
+        (for regular i/o) srun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi
+        (for adios i/o)   srun -n 256 m3dc1_3d_adios -ipetsc -options_file options_bjacobi
 
 7. submit job
-	qsub job_script
+	sbatch job_script
 
 8. list all curent jobs for a user
-	qstat -u your_id
+	squeue -u your_id
 
 9. delete a job
-   	qdel job_id
-
+   	scancel job_id
