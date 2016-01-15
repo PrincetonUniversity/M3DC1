@@ -4287,7 +4287,7 @@ subroutine initial_conditions()
            call int_kink_init()
         case(20)
            call kstar_profiles()
-        case(21,22,25,26,27)
+        case(21,22,25,26,27,28)
            call fixed_q_profiles()
         case(23)
            call frs1_init()
@@ -4694,6 +4694,7 @@ end subroutine kstar_profiles
 module basicq
 implicit none
 real :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, q2_qp, q4_qp, pedge_qp
+real :: q6_qp, q8_qp, q10_qp, q12_qp, q14_qp
 real :: kappa_qp, kappae_qp, coolrate_qp
 integer :: myrank_qp, iprint_qp, itaylor_qp
 end module basicq
@@ -4745,6 +4746,11 @@ implicit none
   myrank_qp = myrank
   itaylor_qp = itaylor
   coolrate_qp = coolrate
+  q6_qp = libetap
+  q8_qp = p1
+  q10_qp = p0
+  q12_qp = djdpsi
+  q14_qp = divcur
 end subroutine init_qp
 subroutine fixed_q_profiles()
 
@@ -5024,6 +5030,12 @@ case(27)
      qfunc = q2_qp*psi/asq
    endif
 
+case(28)
+   qfunc = (1+q6_qp/E**((Sqrt(psi)-r0_qp)**2/q2_qp**2))*q0_qp*     &
+           (1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))**(q12_qp+q14_qp*q4_qp**2))**  &
+           (1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)**(psi*q14_qp+q12_qp))**  &
+           (1/(psi*q14_qp+q12_qp))
+
 end select
 return
 end function qfunc
@@ -5063,6 +5075,25 @@ case(27)
    else
      qpfunc = q2_qp/asq
    endif
+
+case(28)
+   qpfunc = (1+q6_qp/E**((Sqrt(psi)-r0_qp)**2/q2_qp**2))*q0_qp* &
+            (1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))**(q12_qp+q14_qp*q4_qp**2))** &
+            (1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)**(psi*q14_qp+q12_qp))** &
+            (1/(psi*q14_qp+q12_qp))*(-((Log(1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))** &
+            (q12_qp+q14_qp*q4_qp**2))**(1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)** &
+            (psi*q14_qp+q12_qp))*q14_qp)/(psi*q14_qp+q12_qp)**2)+ &
+            ((Log((psi*(-1+(q8_qp/(q10_qp*q0_qp))**(q12_qp+q14_qp*q4_qp**2))** &
+            (1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)*q14_qp+(psi*q14_qp+q12_qp)/psi)* &
+            ((psi*(-1+(q8_qp/(q10_qp*q0_qp))**(q12_qp+q14_qp*q4_qp**2))** &
+            (1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)**(psi*q14_qp+q12_qp))/ &
+            ((psi*q14_qp+q12_qp)*(1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))** &
+            (q12_qp+q14_qp*q4_qp**2))**(1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)** &
+            (psi*q14_qp+q12_qp))))-(q6_qp*q0_qp*(1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))** &
+            (q12_qp+q14_qp*q4_qp**2))**(1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)** &
+            (psi*q14_qp+q12_qp))**(1/(psi*q14_qp+q12_qp))*(Sqrt(psi)-r0_qp))/ &
+            (E**((Sqrt(psi)-r0_qp)**2/q2_qp**2)*Sqrt(psi)*q2_qp**2)
+
 end select
 return
 
