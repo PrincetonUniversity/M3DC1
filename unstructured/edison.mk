@@ -21,7 +21,7 @@ endif
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
-SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/Oct2015
+SCORECDIR = /global/project/projectdirs/mp288/edison/scorec/Jan2016-mpich7.2.5
 
 ifeq ($(COM), 1)
       SCORECLIB=-lapf -lgmi -lm3dc1_scorec_complex -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
@@ -47,26 +47,22 @@ else
 LIBS := $(LIBS) \
         -L$(SCORECDIR)/lib $(SCOREC_LIBS) \
         -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_real $(PETSC_EXTERNAL_LIB_BASIC)  $(SCOREC_LIBS) \
-        -L$(CRAY_TRILINOS_PREFIX)/lib -lzoltan \
+        -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan \
         -lstdc++
 endif
 
 ifeq ($(USEADIOS), 1)
   OPTS := $(OPTS) -DUSEADIOS
+  ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
+             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
+             -L/usr/lib64/ -llustreapi
+else
+  ADIOS_FLIB =
 endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
 OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
-
-#only define them if adios-1.3 is used; otherwise use hopper default
-#ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
-#ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
-#ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
-ADIOS_DIR=/usr/common/usg/adios/1.4.1
-ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
-             -L/usr/lib64/ -llustreapi
 
 INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
 	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
