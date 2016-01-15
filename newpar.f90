@@ -220,6 +220,7 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~
 #ifdef USESCOREC
   if (iadapt .eq. 1) then
+   if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi call:  psibound, psimin", psibound, psimin
     call adapt_by_psi
   end if
 #endif
