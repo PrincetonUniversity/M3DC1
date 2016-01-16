@@ -43,7 +43,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
       fc = flux_coordinates(/fast,points=points,filename=filename,$
                             tbins=bins,fbins=bins,itor=itor,r0=r0, $
                             _EXTRA=extra)
-      if(isa(fc, /int)) then begin
+      if(isa(fc, "Int")) then begin
          print, 'Error calculating flux coordinates'
          return, 0
       end
