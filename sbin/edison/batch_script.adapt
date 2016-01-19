@@ -1,11 +1,8 @@
-#PBS -q regular
-#PBS -l mppwidth=1
-#PBS -l walltime=00:30:00
-#PBS -N m3dc1_adapt
-#PBS -e $PBS_JOBID.err
-#PBS -o $PBS_JOBID.out
-#PBS -V
+#!/bin/bash -l
+#SBATCH -p regular
+#SBATCH -N 1
+#SBATCH -t 00:30:00
+#SBATCH -J m3dc1_adapt
 
-cd $PBS_O_WORKDIR
 rm C1stdout
-aprun -n 1 m3dc1_2d -pc_factor_mat_solver_package mumps > C1stdout
+srun -n 1 m3dc1_2d -pc_factor_mat_solver_package mumps > C1stdout
