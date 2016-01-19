@@ -8,4 +8,4 @@ if [ ! -e $SEED_MESH ]; then
     cp $SCOREC_DIR/$SEED_MESH .
 fi
 
-aprun -n 1 $SCOREC_DIR/$CREATE_SMB $1 $2
+srun -n 1 $SCOREC_DIR/$CREATE_SMB $1 $2
