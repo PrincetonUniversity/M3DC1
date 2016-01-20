@@ -4693,7 +4693,7 @@ end subroutine kstar_profiles
 
 module basicq
 implicit none
-real :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, q2_qp, q4_qp, pedge_qp
+real :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, r1_qp, q2_qp, q4_qp, pedge_qp
 real :: q6_qp, q8_qp, q10_qp, q12_qp, q14_qp
 real :: kappa_qp, kappae_qp, coolrate_qp
 integer :: myrank_qp, iprint_qp, itaylor_qp
@@ -4734,6 +4734,7 @@ implicit none
  !input variables:
   bz_qp = bzero
   r0_qp = alpha0
+  r1_qp = th_gs
   q0_qp = q0
   q2_qp = alpha1
   q4_qp = alpha2
@@ -4748,7 +4749,7 @@ implicit none
   coolrate_qp = coolrate
   q6_qp = libetap
   q8_qp = p1
-  q10_qp = p0
+  q10_qp = p2
   q12_qp = djdpsi
   q14_qp = divcur
 end subroutine init_qp
@@ -4781,11 +4782,53 @@ call create_field(bz_vec)
 call create_field(p_vec)
 
 
-if(myrank.eq.0 .and. iprint.ge.1) write (*,*) "bz,r0,q0,rzero,p0",   &
-                bz_qp, r0_qp, q0_qp, rzero_qp, p0_qp
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2000) bz_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2001) r0_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2002) q0_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2003) q2_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2004) q4_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2005) rzero_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2006) p0_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2007) pedge_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2008) kappa_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2009) kappae_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2010) iprint_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2011) myrank_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2012) itaylor_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2013) coolrate_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2014) q6_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2015) q8_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2016) q10_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2017) q12_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2018) q14_qp 
+ if(myrank.eq.0 .and. iprint.ge.1) write (*,2019) r1_qp
+
+ 2000 format( 'bz_qp =', 1pe12.4)
+ 2001 format( 'r0_qp =', 1pe12.4)
+ 2002 format( 'q0_qp =', 1pe12.4)
+ 2003 format( 'q2_qp =', 1pe12.4)
+ 2004 format( 'q4_qp =', 1pe12.4)
+ 2005 format( 'rzero_qp =', 1pe12.4)
+ 2006 format( 'p0_qp =', 1pe12.4)
+ 2007 format( 'pedge_qp =', 1pe12.4)
+ 2008 format( 'kappa_qp =', 1pe12.4)
+ 2009 format( 'kappae_qp =', 1pe12.4)
+ 2010 format( 'iprint_qp =', i5)
+ 2011 format( 'myrank_qp =', i5)
+ 2012 format( 'itaylor_qp =', i5)
+ 2013 format( 'coolrate_qp =', 1pe12.4)
+ 2014 format( 'q6_qp =', 1pe12.4)
+ 2015 format( 'q8_qp =', 1pe12.4)
+ 2016 format( 'q10_qp =', 1pe12.4)
+ 2017 format( 'q12_qp =', 1pe12.4)
+ 2018 format( 'q14_qp =', 1pe12.4)
+ 2019 format( 'r1_qp  =', 1pe12.4)
+
 if(itaylor.eq.22) call setupLZeqbm
 
 numnodes = owned_nodes()
+
+if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "numnodes = ", numnodes
 
 do icounter_tt=1,numnodes
    l = nodes_owned(icounter_tt)
@@ -4801,7 +4844,7 @@ do icounter_tt=1,numnodes
 !   call set_node_data(p_field(0),l,p0_l)
    
          call constant_field(u1_l,0.)
-         call int_kink_per(x, phi, z)
+           call int_kink_per(x, phi, z)
          call set_node_data(u_field(1),l,u1_l)
 enddo
 
@@ -4884,12 +4927,17 @@ if(ifirstq.eq.1) then
    dpsi = 1./N
    do j=0,N
       psi(j) = j*dpsi
+!  DEBUG
+   if(iprint_qp .ge.1 .and. myrank_qp .eq.0) write(*,4000) j, psi(j), qfunc(psi(j))
+ 4000 format('j   psi   qfunc(psi)', i5, 1p2e12.4)
    enddo
 
 !  boundary condition at edge
    btor(N) = bz_qp
    bpsi(N) = 0.
    bpolor(N) = btor(N)/(2.*A_qp*qfunc(psi(N)))
+   if(myrank_qp.eq.0 .and. iprint_qp.ge.1) write(*,3000) btor(N),bpsi(N),bpolor(N)
+ 3000 format( 'btor(N), bpsi(N), bpolor(N) =',1p3e12.4)
    if(myrank_qp.eq.0 .and. iprint_qp.ge.1) write(*,*) "diagnostics to follow"
 !  integrate first order ode from boundary in
    do j=N,1,-1
@@ -4998,7 +5046,8 @@ function qfunc(psi)    !   q  (safety factor)
 use basicq
 real :: psi,qfunc,q_LZ  !  note:  psi = r**2
 real :: c0,c1,c2,c3,c4 
-real :: asq, bigA, bigB  
+real :: asq, bigA, bigB,psis  
+complex ra0
 
 select case(itaylor_qp)
 
@@ -5031,10 +5080,8 @@ case(27)
    endif
 
 case(28)
-   qfunc = (1+q6_qp/E**((Sqrt(psi)-r0_qp)**2/q2_qp**2))*q0_qp*     &
-           (1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))**(q12_qp+q14_qp*q4_qp**2))**  &
-           (1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)**(psi*q14_qp+q12_qp))**  &
-           (1/(psi*q14_qp+q12_qp))
+   ra0 = q4_qp*abs(((q8_qp/q10_qp/q0_qp)**(q12_qp+q14_qp*q4_qp**2)-1)**(-1/2/(q12_qp+q14_qp*q4_qp**2)))
+   qfunc = (1+(psi/ra0**2)**(q12_qp+psi*q14_qp))**(1/(q12_qp+psi*q14_qp))*q0_qp*(1+q6_qp/exp((sqrt(psi)-r1_qp)**2/q2_qp**2))
 
 end select
 return
@@ -5045,6 +5092,7 @@ use basicq
 real :: psi,qpfunc,qprime_LZ   !  note:  psi=r^2
 real :: c0,c1,c2,c3,c4   
 real :: asq, bigA, bigB  
+complex ra0
 
 select case (itaylor_qp)
 
@@ -5077,22 +5125,9 @@ case(27)
    endif
 
 case(28)
-   qpfunc = (1+q6_qp/E**((Sqrt(psi)-r0_qp)**2/q2_qp**2))*q0_qp* &
-            (1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))**(q12_qp+q14_qp*q4_qp**2))** &
-            (1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)**(psi*q14_qp+q12_qp))** &
-            (1/(psi*q14_qp+q12_qp))*(-((Log(1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))** &
-            (q12_qp+q14_qp*q4_qp**2))**(1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)** &
-            (psi*q14_qp+q12_qp))*q14_qp)/(psi*q14_qp+q12_qp)**2)+ &
-            ((Log((psi*(-1+(q8_qp/(q10_qp*q0_qp))**(q12_qp+q14_qp*q4_qp**2))** &
-            (1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)*q14_qp+(psi*q14_qp+q12_qp)/psi)* &
-            ((psi*(-1+(q8_qp/(q10_qp*q0_qp))**(q12_qp+q14_qp*q4_qp**2))** &
-            (1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)**(psi*q14_qp+q12_qp))/ &
-            ((psi*q14_qp+q12_qp)*(1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))** &
-            (q12_qp+q14_qp*q4_qp**2))**(1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)** &
-            (psi*q14_qp+q12_qp))))-(q6_qp*q0_qp*(1+((psi*(-1+(q8_qp/(q10_qp*q0_qp))** &
-            (q12_qp+q14_qp*q4_qp**2))**(1/(q12_qp+q14_qp*q4_qp**2)))/q4_qp**2)** &
-            (psi*q14_qp+q12_qp))**(1/(psi*q14_qp+q12_qp))*(Sqrt(psi)-r0_qp))/ &
-            (E**((Sqrt(psi)-r0_qp)**2/q2_qp**2)*Sqrt(psi)*q2_qp**2)
+   psis = max(1.e-5,psi)
+   ra0 = q4_qp*abs(((q8_qp/q10_qp/q0_qp)**(q12_qp+q14_qp*q4_qp**2)-1)**(-1/2/(q12_qp+q14_qp*q4_qp**2)))
+   qpfunc = (1+(psis/ra0**2)**(q12_qp+psis*q14_qp))**(1/(q12_qp+psis*q14_qp))*q0_qp*(-((log(1+(psis/ra0**2)**(q12_qp+psis*q14_qp))*q14_qp)/(q12_qp+psis*q14_qp)**2)+((psis/ra0**2)**(q12_qp+psis*q14_qp)*(log(psis/ra0**2)*q14_qp+(q12_qp+psis*q14_qp)/psis))/((1+(psis/ra0**2)**(q12_qp+psis*q14_qp))*(q12_qp+psis*q14_qp)))*(1+q6_qp/exp((sqrt(psis)-r1_qp)**2/q2_qp**2))-((1+(psis/ra0**2)**(q12_qp+psis*q14_qp))**(1/(q12_qp+psis*q14_qp))*q0_qp*q6_qp*(sqrt(psis)-r1_qp))/(exp((sqrt(psis)-r1_qp)**2/q2_qp**2)*sqrt(psis)*q2_qp**2)
 
 end select
 return
