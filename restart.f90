@@ -98,6 +98,7 @@ subroutine wrrestart
         write(56) data_buff(j1)
      enddo
   end if
+  write(56) pellet_rate
 
   deallocate(data_buff)
   close(56)
@@ -124,7 +125,7 @@ subroutine rdrestart
   character (len=30) :: fname, oldfname
   integer :: ndofs
   integer :: iversion
-  real :: vloopsave
+  real :: vloopsave, pelletratesave
   vectype, allocatable :: data_buff(:)
 
   ! check if 2D-to-3D case
@@ -237,7 +238,7 @@ else
 
   read(56, END=1199) iversion
 
-  if(version.ge.7) then
+  if(iversion.ge.7) then
      read(56, END=1199) icsubtract
      if(icsubtract.eq.1) then
         do j1=1,ndofs
@@ -247,7 +248,7 @@ else
      end if
   end if
 
-  if(version.ge.10) then
+  if(iversion.ge.10) then
      read(56, END=1199) extsubtract, use_external_fields
      if(use_external_fields) then
         call create_field(psi_ext)
@@ -266,6 +267,13 @@ else
         enddo
         call m3dc1_field_set(bf_ext%vec%id, data_buff, ndofs)
      end if
+  end if
+
+  if(iversion.ge.12) then 
+     pelletratesave = pellet_rate
+     read(56,END=1199) pellet_rate
+     ! use pellet_rate from input if no control
+     if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
   end if
 
   deallocate (data_buff)
@@ -1159,6 +1167,8 @@ subroutine rdrestart_adios
     start = 0
     readsize = 1 ! number of elements of a type, not bytes!
     vloopsave = vloop
+    pelletratesave = pellet_rate
+
 
     ! These scalars are varying over processors so we use adios_read_local_var() to 
     !  read the group_rank'th value of the scalar from the file
@@ -1206,7 +1216,12 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "pellet_velz",group_rank, start, readsize, pellet_velz, read_bytes)
     call adios_read_local_var (gh, "pellet_var", group_rank, start, readsize, pellet_var, read_bytes)
     call adios_read_local_var (gh, "version",    group_rank, start, readsize, prev_version, read_bytes)
+    if(prev_version.ge.12) then
+       call adios_read_local_var (gh, "pellet_rate", group_rank, start, readsize, pellet_rate, read_bytes)
+    end if
+
     if(control_type .eq. -1) vloop = vloopsave  !  vloop from input if no I control
+    if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  !  vloop from input if no I control
 
   if (numvar .ne. prev_numvar .or. prev_myrank .ne. group_rank .or. &
       prev_iper .ne. iper .or. prev_jper .ne. jper) then
