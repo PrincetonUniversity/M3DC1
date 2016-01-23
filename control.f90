@@ -20,10 +20,11 @@ contains
 
     real :: err_p, err_d
 
-    if(dt.eq.0.) return
       err_p = val - pid%target_val
       pid%err_i = pid%err_i + err_p*dt
-      err_d = (err_p - pid%err_p_old)/dt
+      if(dt.gt.0) then
+         err_d = (err_p - pid%err_p_old)/dt
+      endif
 
     select case (pid%icontrol_type)
     case(0)   ! this was the original coding and is the default
@@ -42,7 +43,7 @@ contains
     end select
 
 
-    
+    if(dt.eq.0) return
     pid%err_p_old = err_p
 
   end subroutine control

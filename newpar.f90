@@ -190,6 +190,7 @@ Program Reducedquintic
   ! zero-out scalar data
   call reset_scalars
 
+
   if(itimer.eq.1) call reset_timings
 
   ! output simulation parameters and equilibrium
@@ -272,23 +273,34 @@ Program Reducedquintic
  1002 format(" LOOP TIME", i5,1p3e16.8)
      endif
 
-
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. i_control%icontrol_type .ge. 0) then
      ! feedback control on toroidal current
           if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, " Applying feedback", &
+             print *, " Applying current feedback", &
              vloop, totcur, i_control%p, &
              i_control%target_val, i_control%err_p_old, i_control%err_i
+
           call control(totcur, vloop,       i_control, dt)
+
           if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, " After    feedback", &
+             print *, " After current feedback", &
              vloop, totcur, i_control%p, &
              i_control%target_val, i_control%err_p_old, i_control%err_i
      endif
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .ge. 0) then
      ! feedback control on density source
-       call control(totden, pellet_rate, n_control, dt)
+          if(myrank.eq.0 .and. iprint.ge.1) &
+             print *, " Applying density feedback", &
+             pellet_rate, totden, n_control%p, &
+             n_control%target_val, n_control%err_p_old, n_control%err_i
+
+          call control(totden, pellet_rate, n_control, dt)
+
+          if(myrank.eq.0 .and. iprint.ge.1) &
+             print *, " After density feedback", &
+             pellet_rate, totden, n_control%p, &
+             n_control%target_val, n_control%err_p_old, n_control%err_i
      endif
 
      ! Write output
