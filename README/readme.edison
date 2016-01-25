@@ -13,7 +13,7 @@
 	module load cray-shmem/7.2.5
 	module load subversion
 	module load cmake
-	module load cray-hdf5-parallel/1.8.14
+	module load netcdf-hdf5parallel/4.3.0
 	module load fftw
 	module load gsl/1.16
 	module load idl
