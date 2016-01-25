@@ -8335,20 +8335,34 @@ end function b3pe
 
 ! B3q
 ! ===
-vectype function b3q(e,f)
+vectype function b3q(e,f,g,h)
 
   use basic
+  use basicq
   use m3dc1_nint
 
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  real, intent(in), dimension(MAX_PTS) :: g,h
+  real, dimension(MAX_PTS) :: r
+  vectype, dimension(MAX_PTS) :: maskv
   vectype :: temp
+  real :: a1, delt
+  integer :: i
 
+
+  maskv = 1.
+  if(itaylor.eq.27) then
+      a1 = q6_qp
+      delt = q8_qp
+      r = sqrt((g-xmag)**2 + (h-zmag)**2)
+      maskv = (1. + tanh((r-a1)/delt))
+  endif
   if(surface_int) then
      temp = 0.
   else
-     temp = int2(e(:,OP_1),f(:,OP_1))
+     temp = int3(e(:,OP_1),f(:,OP_1),maskv)
   end if
 
   b3q = temp

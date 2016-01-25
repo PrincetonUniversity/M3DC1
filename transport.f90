@@ -314,7 +314,8 @@ vectype function q_func(i)
   if(iheat_sink.eq.1 .and. itaylor.eq.27) then
      do j=1,npoints
         rsq = (x_79(j)-xmag)**2 + (z_79(j)-zmag)**2
-        temp79a(j) = coolrate*(pfunc(rsq)-pt79(j,OP_1))
+!       temp79a(j) = coolrate*(pfunc(rsq)-pt79(j,OP_1))
+        temp79a(j) = coolrate*(pfunc(rsq)) ! now use new time p in pressure_lin
      end do
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
@@ -744,7 +745,7 @@ subroutine define_transport_coefficients()
   visc_field = 0.
   if(density_source) sigma_field = 0.  
   if(momentum_source) Fphi_field = 0.
-  if(heat_source) q_field = 0.
+  if(heat_source) Q_field = 0.
   if(icd_source .gt. 0) cd_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
   if(ipforce.gt.0) pforce_field = 0.
@@ -832,7 +833,7 @@ subroutine define_transport_coefficients()
            if(.not.solve_q) solve_q = dofs(i).ne.0.
         end do
         if(solve_q) &
-             call vector_insert_block(q_field%vec,itri,1,dofs,VEC_ADD)
+             call vector_insert_block(Q_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
     if(icd_source .gt. 0) then
@@ -915,7 +916,7 @@ subroutine define_transport_coefficients()
 
   if(solve_q) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Q'
-     call newvar_solve(q_field%vec, mass_mat_lhs)
+     call newvar_solve(Q_field%vec, mass_mat_lhs)
   endif
 
   if(solve_cd) then

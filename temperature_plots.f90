@@ -475,8 +475,8 @@ subroutine f3eplot_sub(i,term)
                   + teffkappar  (mu79(:,:,i),bftx79,bftx79,tet79,b2i79,kar79)
              term = term + temp
 !source terms
-             temp = (gam-1.)*b3q(mu79(:,:,i),q79)
-             term = term + temp
+             temp = (gam-1.)*b3q(mu79(:,:,i),q79,x_79,z_79)
+!            term = term + temp
 
           endif
   endif

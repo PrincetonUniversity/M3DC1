@@ -4837,7 +4837,7 @@ use basicq
 real :: psi,qfunc,q_LZ  !  note:  psi = r**2
 real :: c0,c1,c2,c3,c4 
 real :: asq, bigA, bigB,psis  
-complex ra0
+real ra0
 
 select case(itaylor_qp)
 
@@ -4850,7 +4850,7 @@ case(21)
    qfunc = (q0_qp) + psi**2*(c0+c1*psi+c2*psi**2+c3*psi**3+c4*psi**4)
 
 case(22)
-   qfunc = q_LZ(psi)
+    qfunc = q_LZ(psi)
 
 case(25)
    qfunc = (q0_qp) + psi*(q2_qp + q4_qp*psi)
@@ -4870,7 +4870,7 @@ case(27)
    endif
 
 case(28)
-   ra0 = q4_qp*abs(((q8_qp/q10_qp/q0_qp)**(q12_qp+q14_qp*q4_qp**2)-1)**(-1/2/(q12_qp+q14_qp*q4_qp**2)))
+   ra0 = q4_qp*abs(((q8_qp/q10_qp/q0_qp)**(q12_qp+q14_qp*q4_qp**2)-(1.,0.))**(-0.5/(q12_qp+q14_qp*q4_qp**2)))
    qfunc = (1+(psi/ra0**2)**(q12_qp+psi*q14_qp))**(1/(q12_qp+psi*q14_qp))*q0_qp*(1+q6_qp/exp((sqrt(psi)-r1_qp)**2/q2_qp**2))
 
 end select
@@ -4882,7 +4882,7 @@ use basicq
 real :: psi,qpfunc,qprime_LZ   !  note:  psi=r^2
 real :: c0,c1,c2,c3,c4   
 real :: asq, bigA, bigB  
-complex ra0
+real ra0
 
 select case (itaylor_qp)
 
@@ -4895,7 +4895,7 @@ case(21)
    qpfunc =  psi*(2.*c0+3.*c1*psi+4.*c2*psi**2+5.*c3*psi**3+6.*c4*psi**4)
 
 case(22)
-  qpfunc = qprime_LZ(psi)
+   qpfunc = qprime_LZ(psi)
 
 case(25)
    qpfunc = (q2_qp + 2.*q4_qp*psi)
@@ -4916,7 +4916,7 @@ case(27)
 
 case(28)
    psis = max(1.e-5,psi)
-   ra0 = q4_qp*abs(((q8_qp/q10_qp/q0_qp)**(q12_qp+q14_qp*q4_qp**2)-1)**(-1/2/(q12_qp+q14_qp*q4_qp**2)))
+   ra0 = q4_qp*abs(((q8_qp/q10_qp/q0_qp)**(q12_qp+q14_qp*q4_qp**2)-(1.,0.))**(-0.5/(q12_qp+q14_qp*q4_qp**2)))
    qpfunc = (1+(psis/ra0**2)**(q12_qp+psis*q14_qp))**(1/(q12_qp+psis*q14_qp))*q0_qp*(-((log(1+(psis/ra0**2)**(q12_qp+psis*q14_qp))*q14_qp)/(q12_qp+psis*q14_qp)**2)+((psis/ra0**2)**(q12_qp+psis*q14_qp)*(log(psis/ra0**2)*q14_qp+(q12_qp+psis*q14_qp)/psis))/((1+(psis/ra0**2)**(q12_qp+psis*q14_qp))*(q12_qp+psis*q14_qp)))*(1+q6_qp/exp((sqrt(psis)-r1_qp)**2/q2_qp**2))-((1+(psis/ra0**2)**(q12_qp+psis*q14_qp))**(1/(q12_qp+psis*q14_qp))*q0_qp*q6_qp*(sqrt(psis)-r1_qp))/(exp((sqrt(psis)-r1_qp)**2/q2_qp**2)*sqrt(psis)*q2_qp**2)
 
 end select
