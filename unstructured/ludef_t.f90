@@ -2871,6 +2871,12 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   if(izone.ne.1) return
 
+  ! special to peg pressure for itaylor=27
+  if(iheat_sink.eq.1 .and. itaylor.eq.27) then
+      temp = b3q(trial,lin,x_79,z_79)
+      ssterm(pp_g) = ssterm(pp_g) + dt*(gam-1)*coolrate*temp
+  end if
+
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
   if(linear.eq.0) then
@@ -3966,7 +3972,7 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
   ! source terms
   ! ~~~~~~~~~~~~
   if(gam.ne.1.) then
-     r4term = r4term + dt*(gam-1.)*b3q(trial,q79)
+     r4term = r4term + dt*(gam-1.)*b3q(trial,q79,x_79,z_79)
 
      ! hyper-ohmic heating
      if(db.ne.0.) then 
