@@ -8338,7 +8338,6 @@ end function b3pe
 vectype function b3q(e,f,g,h)
 
   use basic
-  use basicq
   use m3dc1_nint
 
   implicit none
@@ -8354,8 +8353,8 @@ vectype function b3q(e,f,g,h)
 
   maskv = 1.
   if(itaylor.eq.27) then
-      a1 = q6_qp
-      delt = q8_qp
+      a1 = libetap
+      delt = p1
       r = sqrt((g-xmag)**2 + (h-zmag)**2)
       maskv = (1. + tanh((r-a1)/delt))
   endif
