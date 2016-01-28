@@ -124,18 +124,25 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
  
   r2bp = psi_r^2 + psi_z^2
 
+  ; calculate flux coordinates
+  fc = flux_coordinates(psi0=psi, i0=i0, x=x, z=z, _EXTRA=extra)
+
   ; calculate flux averages
-  p = flux_average_field(p0,psi,x,z,flux=flux,nflux=nflux,_EXTRA=extra)
+  p = flux_average_field(p0,psi,x,z,flux=flux,nflux=nflux,fc=fc,_EXTRA=extra)
   pp = (p0_r*psi_r + p0_z*psi_z)/r2bp
-  pprime = flux_average_field(pp,psi,x,z,nflux=nflux,flux=flux,_EXTRA=extra)
-  I = flux_average_field(I0,psi,x,z,flux=flux,nflux=nflux,_EXTRA=extra)
+  pprime = flux_average_field(pp,psi,x,z,nflux=nflux,flux=flux,fc=fc,$
+                              _EXTRA=extra)
+  I = flux_average_field(I0,psi,x,z,flux=flux,nflux=nflux,fc=fc,$
+                         _EXTRA=extra)
   ffp = I0*(I0_r*psi_r + I0_z*psi_z)/r2bp
-  ffprim = flux_average_field(ffp,psi,x,z,flux=flux,nflux=nflux,_EXTRA=extra)
-  q = flux_average('q',slice=time,psi=psi,x=x,z=z,t=t,flux=flux,nflux=nflux,_EXTRA=extra)
-;  q = smooth(q,5,/edge)
+  ffprim = flux_average_field(ffp,psi,x,z,flux=flux,nflux=nflux,fc=fc, $
+                              _EXTRA=extra)
+  q = abs(fc.q)
   jb = (I0_z*psi_r - I0_r*psi_z - jphi*I0)/r^2
-  jdotb = flux_average_field(jb,psi,x,z,t,flux=flux,nflux=nflux,_EXTRA=extra)
-  r2i = flux_average_field(1./r^2,psi,x,z,flux=flux,nflux=nflux,_EXTRA=extra)
+  jdotb = flux_average_field(jb,psi,x,z,t,flux=flux,nflux=nflux,fc=fc,$
+                             _EXTRA=extra)
+  r2i = flux_average_field(1./r^2,psi,x,z,flux=flux,nflux=nflux,fc=fc, $
+                           _EXTRA=extra)
 
   betacent = field_at_point(beta[0,*,*], x, z, axis[0], axis[1])
 
@@ -214,6 +221,9 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
 
 
   ; output to eqdsk file
+  print, 'nr, nz, nlim, nwall'
+  print, nr, nz, nlim, nwall
+  help, i, p, ffprim, pprime, psi, q, rlim, zlim, rwall, zwall
   print, 'outputting to eqdsk format...'
   file = 1
   

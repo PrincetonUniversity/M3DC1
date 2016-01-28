@@ -2,6 +2,7 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
               ytitle=ytitle, width=width, current=cur, $
               bmncdf=bmncdf, chirikov=chi, sum_files=sum_files, $
               color=c, overplot=overplot, monochrome=bw, $
+              linestyle=linestyle, $
               _EXTRA=extra
 
    if(n_elements(cur) eq 0) then cur=1.
@@ -65,18 +66,22 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
    ct3
    if(n_elements(c) eq 0) then begin
        if(n_elements(filename) gt 1) then begin
-           c = shift(get_colors(n_elements(filename)),-1)
+          c = shift(get_colors(n_elements(filename)),-1)
        endif else begin
-           c = get_colors()
-        endelse
+          c = get_colors()
+       endelse
     end
+   if(n_elements(linestyle) eq 0) then linestyle = 0
+   if(n_elements(linestyle) lt n_elements(filename)) then begin
+      linestyle = replicate(linestyle, n_elements(filename))
+   end
    sym = [4, 5, 6, 7]
    if(not keyword_set(overplot)) then begin
        plot, psin, bmn, /nodata, $
          xtitle=xtitle, ytitle=ytitle, _EXTRA=extra
    end
    for i=0, n_elements(bmn[*,0])-1 do begin
-       oplot, psin[i,*], bmn[i,*], color=c[i]
+       oplot, psin[i,*], bmn[i,*], color=c[i], linestyle=linestyle[i]
        oplot, psin[i,*], bmn[i,*], color=c[i], psym=sym[i mod 4]
    end
 
