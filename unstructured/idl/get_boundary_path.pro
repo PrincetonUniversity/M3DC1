@@ -1,4 +1,5 @@
-function find_next_boundary_point, list, xy, mesh=mesh, index=index
+function find_next_boundary_point, list, xy, mesh=mesh, index=index, $
+                                   imultiregion=imulti
    tol = 1.e-6
    n = n_elements(list)
 
@@ -25,7 +26,12 @@ function find_next_boundary_point, list, xy, mesh=mesh, index=index
        
        if((bound and 1) eq 1) then begin
           izone = (bound and 120)/2^3 + 1
-          if(izone eq 1 or izone eq 2) then begin
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then begin
              if(n_elements(xy) eq 0) then return, p1
              if(abs(p1[0] - xy[0]) lt tol and $
                 abs(p1[1] - xy[1]) lt tol) then begin
@@ -35,7 +41,12 @@ function find_next_boundary_point, list, xy, mesh=mesh, index=index
        endif
        if((bound and 2) eq 2) then begin
           izone = (bound and 1920)/2^7 + 1
-          if(izone eq 1 or izone eq 2) then begin
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then begin
              if(n_elements(xy) eq 0) then return, p2
              if(abs(p2[0] - xy[0]) lt tol and $
                 abs(p2[1] - xy[1]) lt tol) then begin
@@ -45,7 +56,12 @@ function find_next_boundary_point, list, xy, mesh=mesh, index=index
        endif
        if((bound and 4) eq 4) then begin
           izone = (bound and 30720)/2^11 + 1
-          if(izone eq 1 or izone eq 2) then begin
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then begin
              if(n_elements(xy) eq 0) then return, p3
              if(abs(p3[0] - xy[0]) lt tol and $
                 abs(p3[1] - xy[1]) lt tol) then begin
@@ -59,8 +75,11 @@ function find_next_boundary_point, list, xy, mesh=mesh, index=index
    return, xy
 end
 
-function get_boundary_path, mesh=mesh, _EXTRA=extra
+function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=extra
   tol = 1e-6
+  if(n_elements(imulti) eq 0) then $
+     imulti=read_parameter('imulti_region', _EXTRA=ex)
+  
 
    if(n_elements(mesh) eq 0) then mesh = read_mesh(_EXTRA=ex)
    if(n_tags(mesh) eq 0) then return, [0,0]
@@ -72,15 +91,30 @@ function get_boundary_path, mesh=mesh, _EXTRA=extra
        bound = fix(mesh.elements._data[6,i])
        if((bound and 1) eq 1) then begin
           izone = (bound and 30720)/2^3 + 1 
-          if(izone eq 1 or izone eq 2) then nbound = nbound + 1
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then nbound = nbound + 1
        end
        if((bound and 2) eq 2) then begin
           izone = (bound and 30720)/2^7 + 1 
-          if(izone eq 1 or izone eq 2) then nbound = nbound + 1
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then nbound = nbound + 1
        end
        if((bound and 4) eq 4) then begin
           izone = (bound and 30720)/2^11 + 1 
-          if(izone eq 1 or izone eq 2) then nbound = nbound + 1
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then nbound = nbound + 1
        end
     end
    print, 'Number of boundary points: ', nbound
@@ -90,21 +124,36 @@ function get_boundary_path, mesh=mesh, _EXTRA=extra
        bound = fix(mesh.elements._data[6,i])
        if((bound and 1) eq 1) then begin
           izone = (bound and 30720)/2^3 + 1 
-          if(izone eq 1 or izone eq 2) then begin
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then begin
              list[j] = i
              j = j+1
           end
        end
        if((bound and 2) eq 2) then begin
           izone = (bound and 30720)/2^7 + 1 
-          if(izone eq 1 or izone eq 2) then begin
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then begin
              list[j] = i
              j = j+1
           end
        end
        if((bound and 4) eq 4) then begin
           izone = (bound and 30720)/2^11 + 1 
-          if(izone eq 1 or izone eq 2) then begin
+          if(imulti eq 1) then begin
+             ibound = izone eq 1 or izone eq 2
+          endif else begin
+             ibound = izone ne 0
+          end
+          if(ibound) then begin
              list[j] = i
              j = j+1
           end
@@ -113,11 +162,13 @@ function get_boundary_path, mesh=mesh, _EXTRA=extra
 
    xy = fltarr(2,nbound)
 
-   xy[*,0] = find_next_boundary_point(list,mesh=mesh,index=index)
+   xy[*,0] = find_next_boundary_point(list,mesh=mesh,index=index, $
+                                      imultiregion=imulti)
 
    j = 1
    for i=1, nbound-1 do begin
-      tmp = find_next_boundary_point(list,xy[*,j-1],mesh=mesh,index=index)
+      tmp = find_next_boundary_point(list,xy[*,j-1],mesh=mesh,index=index, $
+                                    imultiregion=imulti)
 
       if(j ge 2) then begin
          if(abs(tmp[0] - xy[0,j-2]) lt tol and $

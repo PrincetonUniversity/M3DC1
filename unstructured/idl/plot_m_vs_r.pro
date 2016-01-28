@@ -6,6 +6,7 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
                ntor=ntor
 
   if(n_elements(mrange) eq 0) then mrange=[-5,5]
+  if(mrange[1] lt mrange[0]) then mrange=reverse(mrange)
 
   if(keyword_set(srnorm)) then begin
      xtitle = '!9r!7W!X'
@@ -22,7 +23,7 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
   mm = indgen(n) + mrange[0]
   qq = float(mm)/float(ntor)
 
-  psin = flux_at_q(qq,q=q,flux=psi)
+  psin = flux_at_q(abs(qq),q=abs(q),flux=psi)
 
   ct3
   c = intarr(n)

@@ -40,8 +40,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         pts=sqrt(n_elements(x)*n_elements(z))
      endelse
   end
-  if(n_elements(fbins) eq 0) then fbins=200
-  if(n_elements(tbins) eq 0) then tbins=200
+  if(n_elements(fbins) eq 0) then fbins=pts
+  if(n_elements(tbins) eq 0) then tbins=pts
 
   geo = 0
   if(keyword_set(pest)) then begin
