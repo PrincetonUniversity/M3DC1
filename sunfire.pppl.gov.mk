@@ -83,16 +83,16 @@ BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group \
 	-lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core \
 	-Wl,--end-group
 
-SCORECDIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Dec2015
+SCOREC_DIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Jan2016
+PUMI_LIB = -lapf -lapf_zoltan -lapf_omega_h -lgmi -llion -lma -lmds -lmth -lomega_h -lparma -lpcu -lph -lsam -lspr -lzoltan
 ifeq ($(COM), 1)
-  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
-             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lzoltan -lm3dc1_scorec_complex \
-             -Wl,--end-group
+  SCOREC_LIB=-lm3dc1_scorec_complex
 else
-  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
-             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lzoltan -lm3dc1_scorec \
-             -Wl,--end-group
+  SCOREC_LIB=-lm3dc1_scorec
 endif
+
+SCORECLIB= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+             $(PUMI_LIB) $(SCOREC_LIB) -Wl,--end-group
 
 LIBS = 	\
 	$(SCORECLIB) \
