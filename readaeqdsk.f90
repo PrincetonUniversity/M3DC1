@@ -2,6 +2,7 @@ module eqdsk_a
 
   implicit none
 
+  character(len=1) :: dum
   integer, parameter, private :: magpri67=29, magpri322=31, magprirdp=8
 !  integer, parameter, private :: magpri=magpri67+magpri322+magprirdp
   integer, parameter, private :: magpri=76
@@ -102,7 +103,7 @@ subroutine load_eqdsk_a(filename)
      write(0,*) ' SHOT, time = ', ishot, ktime1
 
      do jj=1, ktime1
-        read (neqdsk,1060) time(jj),jflag(jj),lflag,limloc(jj), &
+        read (neqdsk,1060) dum,time(jj),jflag(jj),lflag,limloc(jj), &
              mco2v,mco2r,qmflag,nlold,nlnew
         if(mco2v.gt.nco2v) then 
            write(0,*) 'Warning: mco2v > nco2v', mco2v
@@ -188,7 +189,7 @@ subroutine load_eqdsk_a(filename)
 1050 format (1x,i5,11x,i5)
 1053 format (1x,i6,11x,i5)
 1055 format (1x,a10,2a5)
-1060 format (1h*,f7.2,10x,i5,11x,i5,1x,a3,1x,i3,1x,i3,1x,a3,1x,2i5)
+1060 format (1a1,f7.2,10x,i5,11x,i5,1x,a3,1x,i3,1x,i3,1x,a3,1x,2i5)
 
   write(*,1100) ccbrsp( 4,1)/1000.
   write(*,1100) ccbrsp( 3,1)/1000.
