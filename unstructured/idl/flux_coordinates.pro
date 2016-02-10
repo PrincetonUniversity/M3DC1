@@ -23,8 +23,12 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
                            r0=r0
 
   if(n_elements(fast0) eq 0) then fast0 = 0
-  if(n_elements(itor) eq 0) then itor = 1
-  if(n_elements(r0) eq 0) then r0 = 1.
+  if(n_elements(itor) eq 0) then itor = read_parameter('itor',_EXTRA=extra)
+  if(n_elements(r0) eq 0) then r0 = read_parameter('rzero',_EXTRA=extra)
+  if(r0 eq 0) then begin
+     print, 'Error: r0 = 0. Using r0 = 1'
+     r0 = 1.
+  end
   if(itor eq 0) then begin
      period = 2.*!pi*r0
   endif else begin
@@ -316,7 +320,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         dr_dtheta[*,j] = deriv(theta, rpath[*,j])
         dz_dtheta[*,j] = deriv(theta, zpath[*,j])
      end
-     jac = rpath*(dr_dtheta*dz_dpsi - dr_dpsi*dz_dtheta)
+     jac = dr_dtheta*dz_dpsi - dr_dpsi*dz_dtheta
+     if(itor eq 1) then jac = jac*rpath
   end
 
   ; calculate deviation of toroidal angle from geometric toroidal angle
