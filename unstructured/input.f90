@@ -105,6 +105,7 @@ subroutine set_defaults
   use gradshafranov
   use adapt
   use error_estimate
+  use hdf5_output
 
   implicit none
 
@@ -691,6 +692,8 @@ subroutine set_defaults
        "1: Output additional temperature plots", output_grp)
   call add_var_int("ibdgp", ibdgp, 0, &
        "ne.0: bdgp plot contains only partial results ", output_grp)
+  call add_var_int("idouble_out", idouble_out, 0, &
+       "1: Use double-precision floating points in output", output_grp)
 
   call add_var_int("iveldif", iveldif, 0, &
        "ne.0: veldif plot contains only partial results ", output_grp)
