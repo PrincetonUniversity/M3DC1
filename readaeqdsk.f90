@@ -57,10 +57,11 @@ module eqdsk_a
        zuperts,cjor99,psurfa,dolubaf, &
        cj1ave,rmidin,rmidout
 
-  real, private, dimension(nsilop,ntime) :: csilop
-  real, private, dimension(magpri,ntime) :: cmpr2
-  real, private, dimension(nfcoil,ntime) :: ccbrsp
-  real, private, dimension(nesum,ntime) :: eccurt
+  real, private, allocatable :: csilop(:,:)
+  real, private, allocatable :: cmpr2(:,:)
+  real, private, allocatable :: ccbrsp(:,:)
+  real, private, allocatable :: eccurt(:,:)
+
   character(len=4), dimension(ntime) :: limloc
 
   real, private :: rco2r(nco2r,ntime),rco2v(nco2v,ntime),chordv(nco2v)
@@ -140,20 +141,24 @@ subroutine load_eqdsk_a(filename)
         read (neqdsk,1041) nsilop0,magpri0,nfcoil0,nesum0
         if(nsilop0.gt.nsilop) then 
            write(0,*) 'Warning: nsilop0 > nsilop', nsilop0
-           nsilop0 = nsilop
+!           nsilop0 = nsilop
         end if
         if(magpri0.gt.magpri) then 
            write(0,*) 'Warning: magpri0 > magpri', magpri0
-           magpri0 = magpri
+!           magpri0 = magpri
         end if
         if(nfcoil0.gt.nfcoil) then 
            write(0,*) 'Warning: nfcoil0 > nfcoil', nfcoil0
-           nfcoil0 = nfcoil
+!           nfcoil0 = nfcoil
         end if
         if(nesum0.gt.nesum) then 
            write(0,*) 'Warning: nesum0 > nesum', nesum0
-           nesum0 = nesum
+!           nesum0 = nesum
         end if
+        allocate(csilop(nsilop0,ntime))
+        allocate(cmpr2(magpri0,ntime))
+        allocate(ccbrsp(nfcoil0,ntime))
+        allocate(eccurt(nesum0,ntime))
 
         read (neqdsk,1040,end=98) (csilop(k,jj),k=1,nsilop0), (cmpr2(k,jj),k=1,magpri0)
         read (neqdsk,1040,end=98) (ccbrsp(k,jj),k=1,nfcoil0)
@@ -191,24 +196,94 @@ subroutine load_eqdsk_a(filename)
 1055 format (1x,a10,2a5)
 1060 format (1a1,f7.2,10x,i5,11x,i5,1x,a3,1x,i3,1x,i3,1x,a3,1x,2i5)
 
-  write(*,1100) ccbrsp( 4,1)/1000.
-  write(*,1100) ccbrsp( 3,1)/1000.
-  write(*,1100) ccbrsp( 2,1)/1000.
-  write(*,1100) ccbrsp( 1,1)/1000.
-  write(*,1100) ccbrsp(10,1)/1000.
-  write(*,1100) ccbrsp(11,1)/1000.
-  write(*,1100) ccbrsp(12,1)/1000.
-  write(*,1100) ccbrsp(13,1)/1000.
-  write(*,1100) ccbrsp( 5,1)/1000.
-  write(*,1100) ccbrsp(14,1)/1000.
-  write(*,1100) ccbrsp( 8,1)/1000.
-  write(*,1100) ccbrsp(17,1)/1000.
-  write(*,1100) ccbrsp( 9,1)/1000.
-  write(*,1100) ccbrsp(18,1)/1000.
-  write(*,1100) ccbrsp( 7,1)/1000.
-  write(*,1100) ccbrsp(16,1)/1000.
-  write(*,1100) ccbrsp( 6,1)/1000.
-  write(*,1100) ccbrsp(15,1)/1000.
+  if(nfcoil0.eq.18) then 
+     write(0,*) 'Assuming DIII-D'
+     write(*,1100) ccbrsp( 4,1)/1000.
+     write(*,1100) ccbrsp( 3,1)/1000.
+     write(*,1100) ccbrsp( 2,1)/1000.
+     write(*,1100) ccbrsp( 1,1)/1000.
+     write(*,1100) ccbrsp(10,1)/1000.
+     write(*,1100) ccbrsp(11,1)/1000.
+     write(*,1100) ccbrsp(12,1)/1000.
+     write(*,1100) ccbrsp(13,1)/1000.
+     write(*,1100) ccbrsp( 5,1)/1000.
+     write(*,1100) ccbrsp(14,1)/1000.
+     write(*,1100) ccbrsp( 8,1)/1000.
+     write(*,1100) ccbrsp(17,1)/1000.
+     write(*,1100) ccbrsp( 9,1)/1000.
+     write(*,1100) ccbrsp(18,1)/1000.
+     write(*,1100) ccbrsp( 7,1)/1000.
+     write(*,1100) ccbrsp(16,1)/1000.
+     write(*,1100) ccbrsp( 6,1)/1000.
+     write(*,1100) ccbrsp(15,1)/1000.
+  else if(nfcoil0.eq.52) then
+     write(0,*) 'Assuming NSTX'
+     write(*,1100) 0.                  ! OH1U
+     write(*,1100) 0.                  ! OH2U
+     write(*,1100) 0.                  ! OH3U
+     write(*,1100) 0.                  ! OH4U
+     write(*,1100) 0.                  ! OH4L
+     write(*,1100) 0.                  ! OH3L
+     write(*,1100) 0.                  ! OH2L
+     write(*,1100) 0.                  ! OH1L
+     write(*,1100) ccbrsp( 1,1)*20/1000.  ! PF1AU
+     write(*,1100) ccbrsp( 2,1)*14/1000.  ! PF2U1
+     write(*,1100) ccbrsp( 2,1)*14/1000.  ! PF2U2
+     write(*,1100) ccbrsp( 3,1)*15/1000.  ! PF3U1
+     write(*,1100) ccbrsp( 3,1)*15/1000.  ! PF3U2
+     write(*,1100) ccbrsp( 4,1)*9 /1000.  ! PF4U1
+     write(*,1100) ccbrsp( 4,1)*8 /1000.  ! PF4U2
+     write(*,1100) ccbrsp( 5,1)*12/1000.  ! PF5U1
+     write(*,1100) ccbrsp( 5,1)*12/1000.  ! PF5U2
+     write(*,1100) ccbrsp( 6,1)*12/1000.  ! PF5L2
+     write(*,1100) ccbrsp( 6,1)*12/1000.  ! PF5L1
+     write(*,1100) ccbrsp( 7,1)*8 /1000.  ! PF4L2
+     write(*,1100) ccbrsp( 7,1)*9 /1000.  ! PF4L1
+     write(*,1100) ccbrsp( 8,1)*15/1000.  ! PF3L2
+     write(*,1100) ccbrsp( 8,1)*15/1000.  ! PF3L1
+     write(*,1100) ccbrsp( 9,1)*14/1000.  ! PF2L2
+     write(*,1100) ccbrsp( 9,1)*14/1000.  ! PF2L1
+     write(*,1100) ccbrsp(10,1)*20/1000.  ! PF1AL
+     write(*,1100) ccbrsp(11,1)*32/1000.  ! PF1B
+     write(*,1100) ccbrsp(12,1)* 1/1000.  ! TFUI
+     write(*,1100) ccbrsp(13,1)* 1/1000.  ! TFUO
+     write(*,1100) ccbrsp(15,1)* 1/1000.  ! TFLO
+     write(*,1100) ccbrsp(14,1)* 1/1000.  ! TFLI
+     write(*,1100) ccbrsp(16,1)*48/1000.  ! PFAB1
+     write(*,1100) ccbrsp(17,1)*48/1000.  ! PFAB2
+  else if(nfcoil0.eq.54) then
+     write(0,*) 'Assuming NSTX-U'
+     write(*,1100) 0.                  ! OH1U
+     write(*,1100) 0.                  ! OH2U
+     write(*,1100) 0.                  ! OH3U
+     write(*,1100) 0.                  ! OH4U
+     write(*,1100) 0.                  ! OH4L
+     write(*,1100) 0.                  ! OH3L
+     write(*,1100) 0.                  ! OH2L
+     write(*,1100) 0.                  ! OH1L
+     write(*,1100) ccbrsp( 1,1)*64/1000.  ! PF1AU
+     write(*,1100) ccbrsp( 2,1)*32/1000.  ! PF1BU
+     write(*,1100) ccbrsp( 3,1)*20/1000.  ! PF1CU
+     write(*,1100) ccbrsp( 4,1)*14/1000.  ! PF2U1
+     write(*,1100) ccbrsp( 4,1)*14/1000.  ! PF2U2
+     write(*,1100) ccbrsp( 5,1)*15/1000.  ! PF3U1
+     write(*,1100) ccbrsp( 5,1)*15/1000.  ! PF3U2
+     write(*,1100) ccbrsp( 6,1)*9 /1000.  ! PF4U1
+     write(*,1100) ccbrsp( 6,1)*8 /1000.  ! PF4U2
+     write(*,1100) ccbrsp( 7,1)*12/1000.  ! PF5U1
+     write(*,1100) ccbrsp( 7,1)*12/1000.  ! PF5U2
+     write(*,1100) ccbrsp( 8,1)*12/1000.  ! PF5L1
+     write(*,1100) ccbrsp( 8,1)*12/1000.  ! PF5L2
+     write(*,1100) ccbrsp( 9,1)*9 /1000.  ! PF4L1
+     write(*,1100) ccbrsp( 9,1)*8 /1000.  ! PF4L2
+     write(*,1100) ccbrsp(10,1)*15/1000.  ! PF3L1
+     write(*,1100) ccbrsp(10,1)*15/1000.  ! PF3L2
+     write(*,1100) ccbrsp(11,1)*14/1000.  ! PF2L1
+     write(*,1100) ccbrsp(11,1)*14/1000.  ! PF2L2
+     write(*,1100) ccbrsp(12,1)*20/1000.  ! PF1CL
+     write(*,1100) ccbrsp(13,1)*32/1000.  ! PF1BL
+     write(*,1100) ccbrsp(14,1)*64/1000.  ! PF1AL
+  end if
 
 1100 format (f12.4)
 
