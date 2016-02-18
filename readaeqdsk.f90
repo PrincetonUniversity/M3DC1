@@ -251,6 +251,75 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp(14,1)* 1/1000.  ! TFLI
      write(*,1100) ccbrsp(16,1)*48/1000.  ! PFAB1
      write(*,1100) ccbrsp(17,1)*48/1000.  ! PFAB2
+     write(*,1100) ccbrsp(18,1)* 1/1000.  ! VS1U
+     write(*,1100) ccbrsp(19,1)* 1/1000.  ! VS2U
+     write(*,1100) ccbrsp(20,1)* 1/1000.  ! VS3U
+     write(*,1100) ccbrsp(21,1)*.5/1000.  ! VS4U
+     write(*,1100) ccbrsp(21,1)*.5/1000.  ! VS4U
+     write(*,1100) ccbrsp(22,1)* 1/1000.  ! VS5U
+     write(*,1100) ccbrsp(23,1)*.5/1000.  ! VS6U
+     write(*,1100) ccbrsp(23,1)*.5/1000.  ! VS6U
+     write(*,1100) ccbrsp(24,1)*.3333/1000.  ! VS7U
+     write(*,1100) ccbrsp(24,1)*.3333/1000.  ! VS7U
+     write(*,1100) ccbrsp(24,1)*.3333/1000.  ! VS7U
+     write(*,1100) ccbrsp(25,1)*.1250/1000.  ! VS8U
+     write(*,1100) ccbrsp(25,1)*.1250/1000.  ! VS8U
+     write(*,1100) ccbrsp(25,1)*.1250/1000.  ! VS8U
+     write(*,1100) ccbrsp(25,1)*.1250/1000.  ! VS8U
+     write(*,1100) ccbrsp(25,1)*.1250/1000.  ! VS8U
+     write(*,1100) ccbrsp(25,1)*.1250/1000.  ! VS8U
+     write(*,1100) ccbrsp(25,1)*.1250/1000.  ! VS8U
+     write(*,1100) ccbrsp(25,1)*.1250/1000.  ! VS8U
+     write(*,1100) ccbrsp(26,1)*.2/1000.  ! VS9U
+     write(*,1100) ccbrsp(26,1)*.2/1000.  ! VS9U
+     write(*,1100) ccbrsp(26,1)*.2/1000.  ! VS9U
+     write(*,1100) ccbrsp(26,1)*.2/1000.  ! VS9U
+     write(*,1100) ccbrsp(26,1)*.2/1000.  ! VS9U
+     write(*,1100) ccbrsp(27,1)*.5/1000.  ! VS10U
+     write(*,1100) ccbrsp(27,1)*.5/1000.  ! VS10U
+     write(*,1100) ccbrsp(28,1)*.3333/1000.  ! VS11U
+     write(*,1100) ccbrsp(28,1)*.3333/1000.  ! VS11U
+     write(*,1100) ccbrsp(28,1)*.3333/1000.  ! VS11U
+     write(*,1100) ccbrsp(29,1)* 1/1000.  ! VS12U
+     write(*,1100) ccbrsp(30,1)* 1/1000.  ! VS13U
+     write(*,1100) ccbrsp(31,1)* 1/1000.  ! VS13L
+     write(*,1100) ccbrsp(32,1)* 1/1000.  ! VS12L
+     write(*,1100) ccbrsp(33,1)*.3333/1000.  ! VS11L
+     write(*,1100) ccbrsp(33,1)*.3333/1000.  ! VS11L
+     write(*,1100) ccbrsp(33,1)*.3333/1000.  ! VS11L
+     write(*,1100) ccbrsp(34,1)*.5/1000.  ! VS10L
+     write(*,1100) ccbrsp(34,1)*.5/1000.  ! VS10L
+     write(*,1100) ccbrsp(35,1)*.2/1000.  ! VS9L
+     write(*,1100) ccbrsp(35,1)*.2/1000.  ! VS9L
+     write(*,1100) ccbrsp(35,1)*.2/1000.  ! VS9L
+     write(*,1100) ccbrsp(35,1)*.2/1000.  ! VS9L
+     write(*,1100) ccbrsp(35,1)*.2/1000.  ! VS9L
+     write(*,1100) ccbrsp(36,1)*.2/1000.  ! VS8L
+     write(*,1100) ccbrsp(36,1)*.2/1000.  ! VS8L
+     write(*,1100) ccbrsp(36,1)*.2/1000.  ! VS8L
+     write(*,1100) ccbrsp(36,1)*.2/1000.  ! VS8L
+     write(*,1100) ccbrsp(36,1)*.2/1000.  ! VS8L
+     write(*,1100) ccbrsp(37,1)*.5/1000.  ! VS6L
+     write(*,1100) ccbrsp(37,1)*.5/1000.  ! VS6L
+     write(*,1100) ccbrsp(38,1)* 1/1000.  ! VS5L
+     write(*,1100) ccbrsp(39,1)*.5/1000.  ! VS4L
+     write(*,1100) ccbrsp(39,1)*.5/1000.  ! VS4L
+     write(*,1100) ccbrsp(40,1)* 1/1000.  ! VS3L
+     write(*,1100) ccbrsp(41,1)* 1/1000.  ! VS2L
+     write(*,1100) ccbrsp(42,1)* 1/1000.  ! VS1L
+     write(*,1100) ccbrsp(43,1)*.5/1000.  ! DPU1
+     write(*,1100) ccbrsp(43,1)*.5/1000.  ! DPU1
+     write(*,1100) ccbrsp(44,1)*.5/1000.  ! DPL1
+     write(*,1100) ccbrsp(44,1)*.5/1000.  ! DPL1
+     write(*,1100) ccbrsp(45,1)* 1/1000.  ! PPSIUU
+     write(*,1100) ccbrsp(46,1)* 1/1000.  ! PPSIUL
+     write(*,1100) ccbrsp(47,1)* 1/1000.  ! PPPOUU
+     write(*,1100) ccbrsp(48,1)* 1/1000.  ! PPPOUL
+     write(*,1100) ccbrsp(49,1)* 1/1000.  ! PPPOLU
+     write(*,1100) ccbrsp(50,1)* 1/1000.  ! PPPOLL
+     write(*,1100) ccbrsp(51,1)* 1/1000.  ! PPSILU
+     write(*,1100) ccbrsp(52,1)* 1/1000.  ! PPSILL
+
   else if(nfcoil0.eq.54) then
      write(0,*) 'Assuming NSTX-U'
      write(*,1100) 0.                  ! OH1U
