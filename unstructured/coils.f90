@@ -2,7 +2,7 @@ module coils
   implicit none
 
   integer, parameter :: maxfilaments = 10000
-  integer, parameter :: maxcoils = 100
+  integer, parameter :: maxcoils = 200
 
 contains
 
@@ -15,6 +15,7 @@ contains
  subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename, &
       ntor, coil_mask, filaments)
    use math
+   use read_ascii
 
    implicit none
 
@@ -28,10 +29,15 @@ contains
    integer, intent(out), dimension(maxfilaments), optional :: coil_mask
    integer, intent(out), dimension(maxfilaments), optional :: filaments
 
-   real :: x, z, w, h, a1, a2, c, phase
+   integer, parameter :: fcoil = 34
 
-   integer :: fcoil, fcurr, i, j, k, s, ier, rank, subx, suby, ierr
-   real :: dx, dz
+   integer :: i, j, k, s, ier, rank
+   integer :: coil_style, ncur, ncoil
+   real :: dx, dz, a1, a2
+
+   real, allocatable :: xv(:), zv(:), wv(:), hv(:), a1v(:), a2v(:), &
+        cv(:), phasev(:), turnsv(:), dum(:)
+   integer, allocatable :: sxv(:), syv(:)
 
    call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
 
@@ -39,96 +45,129 @@ contains
    zc = 0.
    ic = 0.
    numcoils = 0
-   ierr = 0
+   ncur = 0
+   ncoil = 0
 
-   if(rank.eq.0) then
-      ! Read coil data
-      print *, "Reading coil data..", coil_filename
+   ! determine formatting of coil file
+   if(rank.eq.0) then 
+      open(unit=fcoil, file=coil_filename, status='old', action='read')
+      read(fcoil, *, err=11) dx
+      coil_style=0
+      goto 20
+11    coil_style=1
+20    close(fcoil)
+      print *, 'Coil file style = ', coil_style
+   end if
+   call MPI_bcast(coil_style, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ier)
 
-      fcoil = 10
-      open(unit=fcoil,file=coil_filename,status="old",err=200,action='read')
-      fcurr = 20
-      open(unit=fcurr,file=current_filename,status="old",err=201,action='read')
 
-      s = 0
-      i = 0
-      do
-         read(fcoil,'(6F12.4,2I5)',end=100) x, z, w, h, a1, a2, subx, suby
-         if(subx.lt.1) subx = 1
-         if(suby.lt.1) suby = 1
-         write(*,'(6F12.4,2I5)') x, z, w, h, a1, a2, subx, suby
-         read(fcurr,'(2F12.4)',end=100) c, phase
-         write(*,'(A,2F12.4)') "current (kA), phase (deg): ", c, phase
-         
-         a1 = a1*pi/180.
-         a2 = a2*pi/180.
-         if(a2.ne.0.) a2 = a2 + pi/2.
-         a1 = tan(a1)
-         a2 = tan(a2)
+   if(coil_style.eq.0) then
+      call read_ascii_column(coil_filename, xv,  ncoil, 0, 1)
+      call read_ascii_column(coil_filename, zv,  ncoil, 0, 2)
+      call read_ascii_column(coil_filename, wv,  ncoil, 0, 3)
+      call read_ascii_column(coil_filename, hv,  ncoil, 0, 4)
+      call read_ascii_column(coil_filename, a1v, ncoil, 0, 5)
+      call read_ascii_column(coil_filename, a2v, ncoil, 0, 6)
+      call read_ascii_column(coil_filename, dum, ncoil, 0, 7)
+      sxv = nint(dum)
+      call read_ascii_column(coil_filename, dum, ncoil, 0, 8)
+      syv = nint(dum)
+      deallocate(dum)
+   else if(coil_style.eq.1) then
+      call read_ascii_column(coil_filename, xv,     ncoil, 0, 4)
+      call read_ascii_column(coil_filename, zv,     ncoil, 0, 5)
+      call read_ascii_column(coil_filename, wv,     ncoil, 0, 6)
+      call read_ascii_column(coil_filename, hv,     ncoil, 0, 7)
+      call read_ascii_column(coil_filename, a1v,    ncoil, 0, 8)
+      call read_ascii_column(coil_filename, a2v,    ncoil, 0, 9)
+      call read_ascii_column(coil_filename, turnsv, ncoil, 0, 10)
 
-         c = amu0 * 1000. * c / (subx*suby) / twopi
-         
-         ! divide coils into sub-coils
-         do j=1, subx
-            do k=1, suby
-               s = s + 1
-               if(s.gt.maxfilaments) then
-                  print *, 'Too many filaments.', s, maxfilaments
-                  ierr = 1
-                  goto 300
-               end if
-               if(subx.eq.1) then 
-                  dx = 0.
-               else
-                  dx = w*(j-1.)/(subx-1.) - w/2.
-               end if
-               if(suby.eq.1) then 
-                  dz = 0.
-               else
-                  dz = h*(k-1.)/(suby-1.) - h/2.
-               end if
-
-               xc(s) = x + dx - dz*a2
-               zc(s) = z + dz + dx*a1
-               
-               ic(s) = c*(cos(pi*phase/180.) &
-                    - (0.,1.)*sin(pi*phase/180.))
-
-               if(present(coil_mask)) coil_mask(s) = i+1
-               if(present(filaments)) filaments(s) = subx*suby
-            end do
-         end do
-         i = i + 1
-         if(i.gt.maxcoils) then 
-            print *, 'Too many coils.', i, maxcoils
-            ierr = 1
-            goto 300
+      allocate(sxv(ncoil), syv(ncoil))
+      do i=1, ncoil
+         if(wv(i).lt.hv(i)) then
+            sxv(i) = nint(sqrt(turnsv(i))*wv(i)/hv(i))
+            if(sxv(i).lt.1) sxv(i) = 1
+            syv(i) = turnsv(i) / sxv(i)
+         else
+            syv(i) = nint(sqrt(turnsv(i))*hv(i)/wv(i))
+            if(syv(i).lt.1) syv(i) = 1
+            sxv(i) = turnsv(i) / syv(i)
          end if
       end do
+      deallocate(turnsv)
+   end if
+
+   call read_ascii_column(current_filename, cv,     ncur, 0, 1)
+   call read_ascii_column(current_filename, phasev, ncur, 0, 2)
+   if(ncur.ne.ncoil) then
+      if(rank.eq.0) print *, "Error: number of coils != number of currents"
+      call safestop(301)
+   end if
+   if(ncoil.gt.maxcoils) then
+      if(rank.eq.0) print *, "Error: too many coils ", ncoil
+      call safestop(301)
+   end if
+
+   do i=1, ncoil
+      if(sxv(i).lt.1) sxv(i) = 1
+      if(syv(i).lt.1) syv(i) = 1
+   end do
+
+   cv = amu0 * 1000. * cv / (sxv*syv) / twopi
+
+   ! divide coils into sub-coils
+   s = 0
+   do i=1, ncoil
+      a1 = a1v(i)*pi/180.
+      a2 = a2v(i)*pi/180.
+      if(a2.ne.0.) a2 = a2 + pi/2.
+      a1 = tan(a1)
+      a2 = tan(a2)
+
+      if(rank.eq.0) then 
+         print *, 'Coil ', i
+         write(*,'(6F12.4,2I5)') xv(i), zv(i), wv(i), hv(i), a1, a2, sxv(i), syv(i)
+         write(*,'(A,2F12.4)') "current (kA), phase (deg): ", cv(i), phasev(i)
+      end if
+
+      do j=1, sxv(i)
+         do k=1, syv(i)
+            s = s + 1
+            
+            if(s.gt.maxfilaments) then
+               print *, 'Too many filaments.', s, maxfilaments
+               call safestop(301)
+            end if
+            if(sxv(i).eq.1) then 
+               dx = 0.
+            else
+               dx = wv(i)*(j-1.)/(sxv(i)-1.) - wv(i)/2.
+            end if
+            if(syv(i).eq.1) then 
+               dz = 0.
+            else
+               dz = hv(i)*(k-1.)/(syv(i)-1.) - hv(i)/2.
+            end if
+
+            xc(s) = xv(i) + dx - dz*a2
+            zc(s) = zv(i) + dz + dx*a1
+            
+            ic(s) = cv(i)*(cos(pi*phasev(i)/180.) &
+                 - (0.,1.)*sin(pi*phasev(i)/180.))
+            
+            if(present(coil_mask)) coil_mask(s) = i+1
+            if(present(filaments)) filaments(s) = sxv(i)*syv(i)
+         end do
+      end do
+   end do
+
 
 
 100   numcoils = s
       print *, "Read ", i, " coil groups; ", numcoils, " total coils."   
-      goto 300
 
-200   if(rank.eq.0) print *, "Error reading ", coil_filename
-      ierr = 1
-      goto 300
-201   if(rank.eq.0) print *, "Error reading ", current_filename
-      ierr = 1
-      
-300   close(fcoil)
-      close(fcurr)
-   end if
+      deallocate(xv, zv, wv, hv, a1v, a2v, sxv, syv)
 
-   call mpi_bcast(ierr, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ier)
-   if(ierr.ne.0) call safestop(301)
-
-   ! share coil data
-   call mpi_bcast(numcoils, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ier)
-   call mpi_bcast(xc, numcoils, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ier)
-   call mpi_bcast(zc, numcoils, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ier)
-   call mpi_bcast(ic, numcoils, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD, ier)
  end subroutine load_coils
 
 
