@@ -11,7 +11,6 @@ module hdf5_output
   character(LEN=7), parameter, private :: hdf5_filename = "C1.h5"
 
   integer :: idouble_out
-  integer, private :: precision
 
 contains
 
@@ -43,12 +42,6 @@ contains
 
     integer(HID_T) :: root_id, plist_id
     integer :: info
-
-    if(idouble_out.eq.1) then
-       precision = H5T_NATIVE_DOUBLE
-    else
-       precision = H5T_NATIVE_REAL
-    end if
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -282,8 +275,13 @@ contains
            write(*,*) error,rank," after h5screate_simple_f"
            call safestop(101)
          endif
-    call h5dcreate_f(parent_id, name, precision, filespace, &
-         dset_id, error)
+    if(idouble_out.eq.1) then
+       call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, filespace, &
+            dset_id, error)
+    else
+       call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, &
+            dset_id, error)
+    end if
          if(error.ne.0) then
            write(*,*) error,rank," after h5dcreate_f"
            call safestop(101)
@@ -392,8 +390,13 @@ contains
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)
-       call h5dcreate_f(parent_id, name, precision, &
-            filespace, dset_id, error, p_id)
+       if(idouble_out.eq.1) then
+          call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, &
+               filespace, dset_id, error, p_id)
+       else
+          call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, &
+               filespace, dset_id, error, p_id)
+       end if
        call h5pclose_f(p_id, error)
        call h5sclose_f(filespace, error)
     else
@@ -456,8 +459,13 @@ contains
            write(*,*) error,rank," after h5sceate_simple_f"
            call safestop(101)
          endif
-    call h5dcreate_f(parent_id, name, precision, filespace, &
-         dset_id, error)
+    if(idouble_out.eq.1) then 
+       call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, filespace, &
+            dset_id, error)
+    else
+       call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, &
+            dset_id, error)
+    end if
          if(error.ne.0) then
            write(*,*) error,rank," after h5dcreate_f"
            call safestop(101)
@@ -573,8 +581,13 @@ contains
        call h5screate_simple_f(rank, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, rank, chunk_size, error)
-       call h5dcreate_f(parent_id, name, precision, &
-            filespace, dset_id, error, p_id)
+       if(idouble_out.eq.1) then
+          call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, &
+               filespace, dset_id, error, p_id)
+       else
+          call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, &
+               filespace, dset_id, error, p_id)
+       end if
        call h5pclose_f(p_id, error)
        call h5sclose_f(filespace, error)
     else
