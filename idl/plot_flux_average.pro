@@ -68,6 +68,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nfiles)
        if(n_elements(multiply_flux) eq 1) then $
          multiply_flux = replicate(multiply_flux,nfiles)
+       if(n_elements(outfile) eq 0) then outfile = replicate('',nfiles)
 
        for i=0, nfiles-1 do begin
            newfield = field
@@ -79,7 +80,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
              stotal=total, q_contours=q_contours, rho=rho, nolegend=nolegend, $
-             linfac=linfac[i]
+             linfac=linfac[i], out=outfile[i]
        end
        if(n_elements(names) gt 0 and not keyword_set(nolegend)) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -225,17 +226,19 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    endif
 
    if(n_elements(outfile) eq 1) then begin
-       openw, ifile, outfile, /get_lun
-       if(keyword_set(complex)) then begin
-           printf, ifile, format='(3E16.6)', $
-             transpose([[reform(flux[0,*])], $
-                        [reform(real_part(fa[0,*]))], $
-                        [reform(imaginary(fa[0,*]))]])
-       endif else begin
-          for i=0, n_elements(flux)-1 do begin
-             printf, ifile, format='(2E16.6)', flux[i], fa[i]
-          end
-       endelse
-       free_lun, ifile
+      if(strlen(outfile) ge 1) then begin
+         openw, ifile, outfile, /get_lun
+         if(keyword_set(complex)) then begin
+            for i=0, n_elements(flux)-1 do begin
+               printf, ifile, format='(3E16.6)', $
+                       flux[i], real_part(fa[0,i]), imaginary(fa[0,i])
+            end
+         endif else begin
+            for i=0, n_elements(flux)-1 do begin
+               printf, ifile, format='(2E16.6)', flux[i], fa[i]
+            end
+         endelse
+         free_lun, ifile
+      end
    endif
 end

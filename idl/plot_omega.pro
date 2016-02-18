@@ -1,5 +1,5 @@
 pro plot_omega, filename=filename, slice=time, points=pts, $
-                yrange=yrange, q_val=q_val, $
+                yrange=yrange, q_val=q_val, out=out, $
                 mtop=mtop, mslope=mslope, _EXTRA=extra, $
                 plot_wstar=plot_wstar, plot_wi=plot_wi, plot_we=plot_we
 
@@ -68,7 +68,7 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   plot, nflux, omega_ExB_fa, yrange=yrange, xtitle=xtitle, ytitle=ytitle, $
     _EXTRA=extra
   names = '!7x!6!DE!9X!6B!N!X'
-  col = color(0)
+  col = color(0)        
   if(keyword_set(plot_wi)) then begin
       oplot, nflux, v_omega_fa, color=color(1)
       names = [names, '!7x!X']
@@ -87,6 +87,18 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   oplot, !x.crange, [0,0], linestyle=2
 
   plot_legend, names, color=col, _EXTRA=extra
+
+  if(n_elements(out) ne 0) then begin
+     openw, ifile, out, /get_lun
+     printf, ifile, format='(5A14)', $
+             'psi_N', 'omega_ExB', 'omega_i', 'omega_e', 'omega_*i'
+     for i=0, n_elements(nflux)-1 do begin
+        printf, ifile, format='(5E14.5)', $
+               nflux[i], omega_ExB_fa[i], $
+                v_omega_fa[i], ve_omega_fa[i], w_star_i_fa[i]
+     end
+     free_lun, ifile
+  end
 
   if(n_elements(q_val) ne 0) then begin
       ntor = read_parameter('ntor', filename=filename)
