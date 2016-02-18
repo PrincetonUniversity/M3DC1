@@ -1,33 +1,101 @@
-0.114427    1.084386    0.010008    2.168773    0            0          1    20
-0.12606     1.070064    0.010008    2.140128    0            0          1    20
-0.127693    1.060148    0.010008    2.120297    0            0          1    20
-0.149327    1.043623    0.010008    2.087245    0            0          1    20
-0.149327    -1.043623   0.010008    2.087245    0            0          1    20
-0.127693    -1.060148   0.010008    2.120297    0            0          1    20
-0.12606     -1.070064   0.010008    2.140128    0            0          1    20
-0.114427    -1.084386   0.010008    2.168773    0            0          1    20
-0.18034     1.44827     0.041605    0.538759    0            0          4    16
-0.79917     1.85264     0.162712    0.06797     0            0          7    2
-0.79917     1.93351     0.162712    0.06797     0            0          7    2
-1.49446     1.55264     0.186436    0.06797     0            0          7    2
-1.49446     1.63351     0.186436    0.06797     0            0          7    2
-1.8065      0.8881      0.115265    0.06797     0            0          4    2
-1.7946      0.8072      0.091542    0.06797     0            0          4    2
-2.0118      0.6489      0.1359      0.0685      0            0          6    2
-2.0118      0.5751      0.1359      0.0685      0            0          6    2
-2.0118      -0.5751     0.1359      0.0685      0            0          6    2
-2.0118      -0.6489     0.1359      0.0685      0            0          6    2
-1.7946      -0.8072     0.091542    0.06797     0            0          4    2
-1.8065      -0.8881     0.115265    0.06797     0            0          4    2
-1.49446     -1.63351    0.186436    0.06797     0            0          7    2
-1.49446     -1.55264    0.186436    0.06797     0            0          7    2
-0.79117     -1.93351    0.162712    0.06797     0            0          7    2
-0.79917     -1.85264    0.162712    0.06797     0            0          7    2
-0.18034     -1.44827    0.041605    0.538759    0            0          4    16
-0.30421     -1.82517    0.08396     0.190576    0            0          4    6
-0.7         2.82        0.1         0.0254      0            0          5    2
-0.7         2.32        0.1         0.0254      0            0          5    2
-0.7         -2.32       0.1         0.0254      0            0          5    2
-0.7         -2.82       0.1         0.0254      0            0          5    2
-0.4306      1.7565      0.0218      0.0679      0            0          1    4
-0.6318      1.9259      0.0218      0.0679      0            0          1    4
+ OH1U    OH   1  0.114427  1.084386  1.0008e-2 2.168773    0.0000     0.0000  122.625  30   Copper  ;Upper OH coil layer 1
+ OH2U    OH   1  0.126060  1.070064  1.0008e-2 2.140128    0.0000     0.0000  121.000  30   Copper  ;Upper OH coil layer 2
+ OH3U    OH   1  0.137693  1.060148  1.0008e-2 2.120297    0.0000     0.0000  119.875  30   Copper  ;Upper OH coil layer 3
+ OH4U    OH   1  0.149327  1.043623  1.0008e-2 2.087245    0.0000     0.0000  118.000  30   Copper  ;Upper OH coil layer 4
+ OH4L    OH   1  0.149327 -1.043623  1.0008e-2 2.087245    0.0000     0.0000  118.000  30   Copper  ;Lower OH coil layer 4
+ OH3L    OH   1  0.137693 -1.060148  1.0008e-2 2.120297    0.0000     0.0000  119.875  30   Copper  ;Lower OH coil layer 3
+ OH2L    OH   1  0.126060 -1.070064  1.0008e-2 2.140128    0.0000     0.0000  121.000  30   Copper  ;Lower OH coil layer 2
+ OH1L    OH   1  0.114427 -1.084386  1.0008e-2 2.168773    0.0000     0.0000  122.625  30   Copper  ;Lower OH coil layer 1
+ PF1AU   SC   1  0.18390   1.59059   0.041313  0.233223    0.0000     0.0000   20.0     1   Copper  ;Upper shaping coil 1AU
+ PF2U1   SC   2  0.79917   1.85264   0.162712  0.06797     0.0000     0.0000   14.0     1   Copper  ;Upper shaping coil 2U
+ PF2U2   SC   2  0.79917   1.93351   0.162712  0.06797     0.0000     0.0000   14.0     1   Copper  ;Upper shaping coil 2U
+ PF3U1   SC   3  1.49446   1.55264   0.186436  0.06797     0.0000     0.0000   15.0     1   Copper  ;Upper shaping coil 3U
+ PF3U2   SC   3  1.49446   1.63351   0.186436  0.06797     0.0000     0.0000   15.0     1   Copper  ;Upper shaping coil 3U
+ PF4U1   SC   4  1.8065    0.8881    0.115265  0.06797     0.0000     0.0000    9.0     1   Copper  ;Upper shaping coil 4U
+ PF4U2   SC   4  1.7946    0.8072    0.091542  0.06797     0.0000     0.0000    8.0     1   Copper  ;Upper shaping coil 4U
+ PF5U1   SC   5  2.0118    0.6489    0.1359    0.0685      0.0000     0.0000   12.0     1   Copper  ;Upper shaping coil 5U
+ PF5U2   SC   5  2.0118    0.5751    0.1359    0.0685      0.0000     0.0000   12.0     1   Copper  ;Upper shaping coil 5U
+ PF5L1   SC   6  2.0118   -0.6489    0.1359    0.0685      0.0000     0.0000   12.0     1   Copper  ;Lower shaping coil 5L
+ PF5L2   SC   6  2.0118   -0.5751    0.1359    0.0685      0.0000     0.0000   12.0     1   Copper  ;Lower shaping coil 5L
+ PF4L1   SC   7  1.8065   -0.8881    0.115265  0.06797     0.0000     0.0000    9.0     1   Copper  ;Lower shaping coil 4L
+ PF4L2   SC   7  1.7946   -0.8072    0.091542  0.06797     0.0000     0.0000    8.0     1   Copper  ;Lower shaping coil 4L
+ PF3L1   SC   8  1.49446  -1.55264   0.186436  0.06797     0.0000     0.0000   15.0     1   Copper  ;Lower shaping coil 3L
+ PF3L2   SC   8  1.49446  -1.63351   0.186436  0.06797     0.0000     0.0000   15.0     1   Copper  ;Lower shaping coil 3L
+ PF2L1   SC   9  0.79917  -1.85264   0.162712  0.06797     0.0000     0.0000   14.0     1   Copper  ;Lower shaping coil 2L
+ PF2L2   SC   9  0.79917  -1.93351   0.162712  0.06797     0.0000     0.0000   14.0     1   Copper  ;Lower shaping coil 2L
+ PF1AL1  SC  10  0.18390  -1.59059   0.041313  0.233223    0.0000     0.0000   20.0     1   Copper  ;Lower shaping coil 1AL
+ PF1B    SC  11  0.30421  -1.82517   0.083960  0.190576    0.0000     0.0000   32.0     1   Copper  ;Lower shaping coil 1B
+ TFUI    SC  12  0.7000    2.8200    0.1000    0.0254      0.0000     0.0000    1.0     1   Copper  ;TF residual (inner) upper
+ TFUO    SC  13  0.7000    2.3200    0.1000    0.0254      0.0000     0.0000    1.0     1   Copper  ;TF residual (outer) upper
+ TFLO    SC  14  0.7000   -2.3200    0.1000    0.0254      0.0000     0.0000    1.0     1   Copper  ;TF residual (outer) lower
+ TFLI    SC  15  0.7000   -2.8200    0.1000    0.0254      0.0000     0.0000    1.0     1   Copper  ;TF residual (inner) lower
+ PFAB1   SC  16  0.4306    1.7565    0.0218    0.0679      0.0000     0.0000   48.0     1   Copper  ;Upper shaping coil AB1
+ PFAB2   SC  17  0.6318    1.9259    0.0218    0.0679      0.0000     0.0000   48.0     1   Copper  ;Upper shaping coil AB2
+ VCS1U   VV   1  0.1691    0.2670    0.0040    0.5339    0.0000    0.0000    1.0000    1    Inconel ;CS casing upper segment 1
+ VCS2U   VV   2  0.1691    0.8008    0.0040    0.5338    0.0000    0.0000    1.0000    1    Inconel ;CS casing upper segment 2
+ VCS3U   VV   3  0.2094    1.1095    0.0765    0.0627   60.0000    0.0000    1.0000    1    Inconel ;Upper sleeve region 3
+ VCS4U   VV   4  0.2508    1.4283    0.0064    0.5026    0.0000    0.0000    0.5000    1    Inconel ;Upper CS casing
+ VCS5U   VV   4  0.2695    1.6272    0.0311    0.0539    0.0000    0.0000    0.5000    1    Inconel ;Upper divertor flange taper
+ VDF1U   VV   5  0.3334    1.6669    0.1588    0.0254    0.0000    0.0000    1.0000    1    Inconel ;Upper divertor flange
+ VDF1U2  VV   6  0.4859    1.6669    0.1461    0.0254    0.0000    0.0000    0.5000    1    Inconel ;Upper divertor flange
+ VCBSRU  VV   6  0.4647    1.7756    0.0254    0.1953    0.0000    0.0000    0.5000    1    Inconel ;Ceramic insulator sealing ring
+ VPFAB1L VV   7  0.4166    1.6978    0.0508    0.0365    0.0000    0.0000    0.3333    1     SS304  ;PFAB1 support block lower
+ VPFAB1M VV   7  0.4025    1.7565    0.0227    0.0774    0.0000    0.0000    0.3333    1     SS304  ;PFAB1 support block middle
+ VPFAB1U VV   7  0.4166    1.8230    0.0508    0.0524    0.0000    0.0000    0.3333    1     SS304  ;PFAB1 support block upper
+ VCBTFUL VV   8  0.4243    1.9407    0.0445    0.0508    0.0000    0.0000    0.1250    1     SS304  ;Ceramic insulator top flange left
+ VCBTFUR VV   8  0.5203    1.9534    0.1461    0.0254    0.0000    0.0000    0.1250    1     SS304  ;Ceramic insulator top flange right
+ VPFAB2B VV   8  0.6314    1.8792    0.0635    0.0127    0.0000    0.0000    0.1250    1     SS304  ;PFAB2 bottom support ring
+ VBFUT   VV   8  0.6282    1.8438    0.0683    0.0238    0.0000    0.0000    0.1250    1     SS304  ;Bellows vessel flange top
+ VBFUM   VV   8  0.5838    1.8050    0.0191    0.1032    0.0000    0.0000    0.1250    1     SS304  ;Bellows vessel flange middle
+ VBFUB   VV   8  0.5608    1.7407    0.0651    0.0222    0.0000    0.0000    0.1250    1     SS304  ;Bellows vessel flange bottom
+ VDF1U   VV   8  0.6314    1.8184    0.0619    0.0238    0.0000    0.0000    0.1250    1     SS304  ;Upper dome flange lip
+ VDF2U   VV   8  0.6124    1.7613    0.0238    0.0873    0.0000    0.0000    0.1250    1     SS304  ;Upper dome flange cylinder
+ VDS1U   VV   9  0.7645    1.6876    0.2780    0.0167  -17.7000    0.0000    0.2000    1     SS304  ;Upper dome segment 1
+ VDS2U   VV   9  1.0296    1.5879    0.2522    0.0173  -23.5400    0.0000    0.2000    1     SS304  ;Upper dome segment 2
+ DRIU    VV   9  0.6921    1.6811    0.0381    0.0397  -21.0000    0.0000    0.2000    1     SS304  ;Upper outer divertor - inner ring
+ DRMU    VV   9  0.9081    1.6032    0.0381    0.0540  -21.0000    0.0000    0.2000    1     SS304  ;Upper outer divertor - middle ring
+ DROU    VV   9  1.1366    1.5084    0.0381    0.0445  -21.0000    0.0000    0.2000    1     SS304  ;Upper outer divertor - outer ring
+ VDS3U   VV  10  1.2779    1.4568    0.2444    0.0187  -32.0000    0.0000    0.50000   1     SS304  ;Upper dome segment 3
+ VDS4U   VV  10  1.4986    1.3144    0.1970    0.0191  -33.8300    0.0000    0.50000   1     SS304  ;Upper dome segment 4
+ VDS5U   VV  11  1.6287    1.2080    0.0631    0.0258  -51.9433    0.0000    0.33333   1     SS304  ;Upper dome segment 5
+ VDS6U   VV  11  1.6869    1.1100    0.0166    0.1200    0.0000  107.0490    0.33333   1     SS304  ;Upper dome segment 6
+ VOS1U   VV  11  1.7049    0.8750    0.0159    0.3500    0.0000    0.0000    0.33333   1     SS304  ;Upper vessel segment 1
+ VOS2U   VV  12  1.7049    0.5250    0.0159    0.3500    0.0000    0.0000    1.0000    1     SS304  ;Upper vessel segment 2
+ VOS3U   VV  13  1.7049    0.1750    0.0159    0.3500    0.0000    0.0000    1.0000    1     SS304  ;Upper vessel segment 3
+ VOS3L   VV  14  1.7049   -0.1750    0.0159    0.3500    0.0000    0.0000    1.0000    1     SS304  ;Lower vessel segment 3
+ VOS2L   VV  15  1.7049   -0.5250    0.0159    0.3500    0.0000    0.0000    1.0000    1     SS304  ;Lower vessel segment 2
+ VOS1L   VV  16  1.7049   -0.8750    0.0159    0.3500    0.0000    0.0000    0.33333   1     SS304  ;Lower vessel segment 1
+ VDS6L   VV  16  1.6869   -1.1100    0.0166    0.1200    0.0000 -107.0490    0.33333   1     SS304  ;Lower dome segment 6
+ VDS5L   VV  16  1.6287   -1.2080    0.0631    0.0258   51.9433    0.0000    0.33333   1     SS304  ;Lower dome segment 5
+ VDS4L   VV  17  1.4986   -1.3144    0.1970    0.0191   33.8300    0.0000    0.50000   1     SS304  ;Lower dome segment 4
+ VDS3L   VV  17  1.2779   -1.4568    0.2444    0.0187   32.0000    0.0000    0.50000   1     SS304  ;Lower dome segment 3
+ DROL    VV  18  1.1366   -1.5084    0.0381    0.0445   21.0000    0.0000    0.2000    1     SS304  ;Lower outer divertor - outer ring
+ DRML    VV  18  0.9081   -1.6032    0.0381    0.0540   21.0000    0.0000    0.2000    1     SS304  ;Lower outer divertor - middle ring
+ DRIL    VV  18  0.6921   -1.6811    0.0381    0.0397   21.0000    0.0000    0.2000    1     SS304  ;Lower outer divertor - inner ring
+ VDS2L   VV  18  1.0296   -1.5879    0.2522    0.0173   23.5400    0.0000    0.2000    1     SS304  ;Lower dome segment 2
+ VDS1L   VV  18  0.7645   -1.6876    0.2780    0.0167   17.7000    0.0000    0.2000    1     SS304  ;Lower dome segment 1
+ VDF2L   VV  19  0.6128   -1.7774    0.0254    0.1334    0.0000    0.0000    0.20000   1     SS304  ;Lower dome flange cylinder
+ VDF1L   VV  19  0.6446   -1.8313    0.0381    0.0254    0.0000    0.0000    0.20000   1     SS304  ;Lower dome flange lip
+ VCB1L   VV  19  0.5778   -1.8647    0.1715    0.0413    0.0000    0.0000    0.20000   1     SS304  ;Lower ceramic break upper ring
+ VCB2L   VV  19  0.5572   -1.9441    0.1302    0.0667    0.0000    0.0000    0.20000   1     SS304  ;Lower ceramic break lower ring
+ VBF2L   VV  19  0.4529   -1.9648    0.0784    0.0254    0.0000    0.0000    0.20000   1     SS304  ;Lower bellows-break mating flange
+ VBF1L   VV  20  0.4347   -1.9394    0.0419    0.0254    0.0000    0.0000    0.50000   1    Inconel ;Lower bellows flange
+ VDF1L2  VV  20  0.4859   -1.6669    0.1461    0.0254    0.0000    0.0000    0.50000   1    Inconel ;Lower divertor flange
+ VDF1L   VV  21  0.3334   -1.6669    0.1588    0.0254    0.0000    0.0000    1.0000    1    Inconel ;Lower divertor flange
+ VCS5L   VV  22  0.2695   -1.6272    0.0311    0.0539    0.0000    0.0000    0.5000    1    Inconel ;Lower divertor flange taper
+ VCS4L   VV  22  0.2508   -1.4283    0.0064    0.5026    0.0000    0.0000    0.5000    1    Inconel ;Lower CS casing
+ VCS3L   VV  23  0.2094   -1.1095    0.0765    0.0627  -60.0000    0.0000    1.0000    1    Inconel ;Lower sleeve region 3
+ VCS2L   VV  24  0.1691   -0.8008    0.0040    0.5338    0.0000    0.0000    1.0000    1    Inconel ;CS casing lower segment 1
+ VCS1L   VV  25  0.1691   -0.2670    0.0040    0.5339    0.0000    0.0000    1.0000    1    Inconel ;CS casing lower segment 2
+ DPIU    DP   1  0.7707    1.6084    0.2887    0.0273  -21.4983    0.0000    0.5000    1    Copper  ;Inner upper divertor plate
+ DPOU    DP   1  1.0594    1.4947    0.2887    0.0273  -21.4983    0.0000    0.5000    1    Copper  ;Outer upper divertor plate
+ DPOL    DP   2  1.0594   -1.4947    0.2887    0.0273   21.4983    0.0000    0.5000    1    Copper  ;Outer lower divertor plate
+ DPIL    DP   2  0.7707   -1.6084    0.2887    0.0273   21.4983    0.0000    0.5000    1    Copper  ;Inner lower divertor plate
+ PPSIUU  SP   1  1.1792    1.2810    0.0156    0.1511    0.0000  125.2505    1.0000    1    Copper  ;Inner upper passive plate upper (secondary)
+ PPSIUL  SP   2  1.2870    1.1299    0.0156    0.1511    0.0000  125.2505    1.0000    1    Copper  ;Inner upper passive plate lower (secondary)
+ PPPOUU  SP   3  1.4039    0.8926    0.0134    0.2263    0.0000  108.2500    1.0000    1    Copper  ;Outer upper passive plate upper (primary)
+ PPPOUL  SP   4  1.4785    0.6663    0.0134    0.2263    0.0000  108.2500    1.0000    1    Copper  ;Outer upper passive plate lower (primary)
+ PPPOLU  SP   5  1.4785   -0.6663    0.0134    0.2263    0.0000 -108.2500    1.0000    1    Copper  ;Outer lower passive plate upper (primary) 
+ PPPOLL  SP   6  1.4039   -0.8926    0.0134    0.2263    0.0000 -108.2500    1.0000    1    Copper  ;Outer lower passive plate lower (primary)
+ PPSILL  SP   7  1.2870   -1.1299    0.0156    0.1511    0.0000 -125.2505    1.0000    1    Copper  ;Inner lower passive plate upper (secondary)
+ PPSILU  SP   8  1.1792   -1.2810    0.0156    0.1511    0.0000 -125.2505    1.0000    1    Copper  ;Inner lower passive plate lower (secondary)
