@@ -55,6 +55,8 @@ install : install_idl install_doc
 	chmod 755 $(INSTALL_DIR)/bin/extract_profiles.sh
 	-cp sbin/$(M3DC1_ARCH)/*.sh $(INSTALL_DIR)/bin
 	-chmod 755 $(INSTALL_DIR)/bin/*.sh
+	-cp _$(ARCH)/a2cc $(INSTALL_DIR)/bin
+	-chmod 755 $(INSTALL_DIR)/bin/a2cc
 	-cp _$(ARCH)-opt-25/m3dc1_2d $(INSTALL_DIR)/bin
 	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d
 	-cp _$(ARCH)-complex-opt-25/m3dc1_2d_complex $(INSTALL_DIR)/bin
