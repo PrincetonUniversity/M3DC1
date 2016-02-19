@@ -9,7 +9,13 @@ function read_coil_data, directory=dir, rmp=rmp
       curr = read_ascii(dir+'/current.dat')
    end
 
-   n = n_elements(coil.field1[0,*])
+   coil_data_style = strmatch('field01', tag_names(coil), /fold_case)
+
+   if(coil_data_style eq 1) then begin
+      n = n_elements(coil.field01[0,*])
+   endif else begin
+      n = n_elements(coil.field1[0,*])
+   end
    m = n_elements(size(curr.field1, /dim))
    print, 'n, m = ', n, m
 
@@ -20,8 +26,14 @@ function read_coil_data, directory=dir, rmp=rmp
        f[1,*] = curr.field1[1,*]
    endif else f[1,*] = curr.field1[1,*]
 
-   l = n_elements(coil.field1[*,0])
-   f[2:l+1,*] = coil.field1[0:l-1,*]
+   if(coil_data_style eq 1) then begin
+      f[2:7,*] = coil.field01[3:8,*]
+      f[8,*] = 1
+      f[9,*] = 1
+   endif else begin
+      l = n_elements(coil.field1[*,0])
+      f[2:l+1,*] = coil.field1[0:l-1,*]
+   endelse
    print, f
 
    return, f
@@ -73,33 +85,32 @@ pro plot_coils, filename=file, directory=dir, overplot=overplot, rmp=rmp, $
 ;       continue
        
        if(m gt 1) then begin
-           xc = fltarr(m)
-           zc = fltarr(m)
+          xc = fltarr(m)
+          zc = fltarr(m)
 
-           s = 0
-           for j=1, dat[8,i] do begin
-               for k=1, dat[9,i] do begin
-                   if(dat[8,i] eq 1) then begin
-                       dx = 0.
-                   endif else begin
-                       dx = dat[4,i]*(j-1.)/(dat[8,i]-1.) - dat[4,i]/2.
-                   end
-                   if(dat[9,i] eq 1) then begin
-                       dz = 0.
-                   endif else begin
-                       dz = dat[5,i]*(k-1.)/(dat[9,i]-1.) - dat[5,i]/2.
-                   end
-
-                   xc[s] = dat[2,i] + dx - dz*a2
-                   zc[s] = dat[3,i] + dz + dx*a1
-                   s = s + 1
-               end
-           end
-           oplot, xc, zc, psym=3, color=color(6)
+          s = 0
+          for j=1, dat[8,i] do begin
+             for k=1, dat[9,i] do begin
+                if(dat[8,i] eq 1) then begin
+                   dx = 0.
+                endif else begin
+                   dx = dat[4,i]*(j-1.)/(dat[8,i]-1.) - dat[4,i]/2.
+                end
+                if(dat[9,i] eq 1) then begin
+                   dz = 0.
+                endif else begin
+                   dz = dat[5,i]*(k-1.)/(dat[9,i]-1.) - dat[5,i]/2.
+                end
+                
+                xc[s] = dat[2,i] + dx - dz*a2
+                zc[s] = dat[3,i] + dz + dx*a1
+                s = s + 1
+             end
+          end
+          oplot, xc, zc, psym=3, color=color(6)
        endif else begin
-           oplot, [xp, xp[0]], [zp, zp[0]], color=color(7), psym=6, $
-                  thick=3
-        end
+          oplot, [xp, xp[0]], [zp, zp[0]], color=color(7)
+       end
 ;       xyouts, xp[0], zp[0], string(format='(I0)',i+1)
    end
 end
