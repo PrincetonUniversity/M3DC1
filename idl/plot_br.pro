@@ -1,6 +1,6 @@
 pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
              subtract_vacuum=subtract_vacuum, ntor=ntor, $
-             plotbn=plotbn, slice=slice, extsubtract=extsubtract, $
+             slice=slice, extsubtract=extsubtract, $
              overplot=overplot, filename=filename, scale=scale, $
              linfac=linfac, sum=sum
 
@@ -30,14 +30,14 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
       n_elements(scale) gt 0) then linfac=scale
 
    if(threed eq 1) then begin
-      psi0 = read_field_3d('psi',x,z,t,slice=-1,_EXTRA=extra, $
-                           filename=filename[0], ntor=0)
-      psi0_r = read_field_3d('psi',x,z,t,slice=-1,_EXTRA=extra,op=2, $
-                             filename=filename[0], ntor=0)
-      psi0_z = read_field_3d('psi',x,z,t,slice=-1,_EXTRA=extra,op=3, $
-                             filename=filename[0], ntor=0)
-      i0   = read_field_3d('i'  ,x,z,t,slice=-1,_EXTRA=extra, $
-                           filename=filename[0], ntor=0)
+      psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra, $
+                           filename=filename[0])
+      psi0_r = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=2, $
+                             filename=filename[0])
+      psi0_z = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=3, $
+                             filename=filename[0])
+      i0   = read_field('i'  ,x,z,t,slice=-1,_EXTRA=extra, $
+                           filename=filename[0])
 
       bx = read_field_3d('bx',phi,x,z,t,last=last,slice=slice, $
                          /linear,_EXTRA=extra, ntor=ntor, $
