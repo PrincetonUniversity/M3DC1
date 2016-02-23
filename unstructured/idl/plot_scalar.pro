@@ -3,7 +3,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  ylog=ylog, xlog=xlog, absolute_value=absolute, $
                  power_spectrum=pspec, per_length=per_length, $
                  growth_rate=growth_rate, bw=bw, nolegend=nolegend, $
-                 cgs=cgs,mks=mks,linestyle=ls, color=co, outfile=outfile
+                 cgs=cgs,mks=mks,linestyle=ls, color=co, outfile=outfile, $
+                 smooth=sm
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -89,6 +90,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   end
 
   if(keyword_set(absolute)) then data = abs(data)
+
+  if(keyword_set(sm)) then data = smooth(data, sm)
 
   if(n_elements(x) eq 0) then begin   
       if(not keyword_set(overplot)) then begin
