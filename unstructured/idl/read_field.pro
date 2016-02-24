@@ -14,10 +14,19 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    if(n_elements(slices) ne 0) then time=slices else time=0
    is_nonlinear = 0
 
+   if(n_elements(phi0) ne 0) then print, 'phi0 = ', phi0
+
    if(keyword_set(taverage)) then begin
        data = 0
        if(taverage eq 1) then taverage=16
-       phi = 360.*findgen(taverage) / (taverage - 1.)
+       itor = read_parameter('itor', filename=filename)
+       if(itor eq 1) then begin
+          period = 360.
+       endif else begin
+          rzero = read_parameter('rzero', filename=filename)
+          period = 2.*!pi*rzero
+       end
+       phi = period*findgen(taverage) / taverage
        for i=0, taverage-1 do begin
            data = data + $
              read_field(name, x, y, t, slices=time, mesh=mesh, $
@@ -265,8 +274,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            h5g_close, time_group_id
            h5f_close, file_id
                
-           if(n_elements(phi0) eq 0) then phi_rad=0. $
-           else phi0_rad = phi0*!pi/180.
+           if(n_elements(phi0) eq 0) then begin
+              phi0_rad=0.
+           endif else begin
+              if(itor eq 1) then phi0_rad = phi0*!pi/180. else phi0_rad = phi0
+           end
   
            data[0,*,*] = $
              eval_field(field._data, mesh, points=pts, $

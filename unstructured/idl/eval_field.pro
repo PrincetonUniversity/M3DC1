@@ -41,7 +41,13 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    if(version ge 11) then begin
       period = mesh.period._data
    endif else begin
-      period = 2.*!pi
+      itor = read_parameter('itor', filename=filename)
+      if(itor eq 1) then begin
+         period = 2.*!pi
+      endif else begin
+         rzero = read_parameter('rzero', filename=filename)
+         period = 2.*!pi*rzero
+      end
    end
    phi0 = phi0 - floor(phi0/period)*period
    
