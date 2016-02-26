@@ -62,7 +62,7 @@ LIBS = 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lmumps_common -ldmumps -lcmumps -lzmum
 	-L$(CCHOME)/lib/intel64 -lguide \
 	-L/usr/X11R6/lib -lX11
 
-  SCORECDIR=/p/tsc/m3dc1/lib/SCORECLib/rhel5/May2015
+  SCORECDIR=/p/tsc/m3dc1/lib/SCORECLib/rhel5/Dec2015
 ifeq ($(COM), 1)
   SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
              -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lm3dc1_scorec_complex \
