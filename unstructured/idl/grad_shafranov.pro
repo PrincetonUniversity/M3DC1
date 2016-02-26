@@ -3,6 +3,8 @@ pro grad_shafranov, _EXTRA=extra, nterms=nterms, terms=term, names=names, $
   title = 'Grad Shafranov Equation'
   nterms = 3
   names = ['del*(psi)',"R^2 p'","FF'"]
+
+  itor = read_parameter('itor', _EXTRA=extra)
   
   psi_r = read_field('psi',x,z,t,_EXTRA=extra,/equilibrium,op=2)
   psi_z = read_field('psi',x,z,t,_EXTRA=extra,/equilibrium,op=3)
@@ -13,7 +15,11 @@ pro grad_shafranov, _EXTRA=extra, nterms=nterms, terms=term, names=names, $
   i = read_field('i',x,z,t,_EXTRA=extra,/equilibrium)
   jy = read_field('jy',x,z,t,_EXTRA=extra,/equilibrium)
 
-  r = radius_matrix(x,z,t)
+  if(itor eq 1) then begin
+     r = radius_matrix(x,z,t)
+  endif else begin
+     r = 1.
+  endelse
 
   d = size(i,/dim)
   term = complexarr(nterms,d[1],d[2])
