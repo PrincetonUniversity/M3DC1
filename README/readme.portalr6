@@ -30,10 +30,9 @@ Updated
 6. prepare jobscript
 	#!/bin/bash -vx
 	#SBATCH --partition=mque_r6
-        #SBATCH --nodes=1
-	#SBATCH --ntasks 8
+	#SBATCH --ntasks 8 (max=64)
 	#SBATCH -J m3dc1_2d
-	#SBATCH -t 10:05:00
+	#SBATCH -t 10:00:00
         #SBATCH --mail-type=END
         #SBATCH --mail-user=<username>@pppl.gov
 
@@ -45,7 +44,6 @@ Updated
 
 
 	#3D real
-	srun -n 32 ./m3dc1_3d >& m3dc1_3d.out
 	mpiexec -np 32  ./m3dc1_3d -ipetsc -options_file options_bjacobi
 
 7. submit job

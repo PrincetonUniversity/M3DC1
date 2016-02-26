@@ -102,6 +102,7 @@ subroutine set_defaults
   use element
   use pellet
   use mesh_mod
+  use vector_mod
   use gradshafranov
   use adapt
   use error_estimate
@@ -119,6 +120,7 @@ subroutine set_defaults
   integer :: hyper_grp
   integer :: time_grp
   integer :: mesh_grp
+  integer :: solver_grp
   integer :: adapt_grp
   integer :: input_grp
   integer :: output_grp
@@ -137,6 +139,7 @@ subroutine set_defaults
   call add_group("Boundary Conditions", bc_grp)
   call add_group("Time Step", time_grp)
   call add_group("Mesh", mesh_grp)
+  call add_group("Solver", solver_grp)
   call add_group("Mesh Adaptation", adapt_grp)
   call add_group("Numerical Options", num_grp)
   call add_group("Input", input_grp)
@@ -767,7 +770,9 @@ subroutine set_defaults
        "ratio of longest to shortest toroidal element", mesh_grp)
   call add_var_double("toroidal_pack_angle", toroidal_pack_angle, 0., &
        "toroidal angle of maximum mesh packing", mesh_grp)
-  
+  ! Solver 
+  call add_var_double("solver_tol", solver_tol,0.000000001,&
+       "solver tolerance", solver_grp) 
   ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)
   call add_var_int("igs_method", igs_method, -1, "", gs_grp)

@@ -1,4 +1,4 @@
-FOPTS = -c  -fdefault-real-8 -Wall -cpp -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC
+FOPTS = -c  -fdefault-real-8 -Wall -cpp -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) 
 CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
@@ -21,7 +21,7 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 
 ifeq ($(COM), 1)
   PETSC_DIR = /fasttmp/seol/petsc-3.5.4-complex
-  else
+else
   PETSC_DIR = /fasttmp/seol/petsc-3.5.4-real
 endif
 PETSC_ARCH = openmpi1.6.5
@@ -32,9 +32,9 @@ HDF5_HOME =  $(PETSC_DIR)/$(PETSC_ARCH)
 GSL_HOME = /usr/lib64
 ZLIB_HOME = /usr/lib64
 FFTW_HOME = /usr/lib64
-SCOREC_HOME = /users/seol/public
-TRILINOS_HOME = /usr/local/trilinos/latest
-STDCPP_HOME = /users/granzb/lib64
+SCOREC_HOME = /fasttmp/seol/openmpi-gcc4.7.0-install
+TRILINOS_HOME = /fasttmp/seol/openmpi-gcc4.7.0-install
+STDCPP_HOME = /usr/local/gcc/4.7.0/lib64
 
 INCLUDE = -I$(MPI_HOME)/include \
 	  -I$(HDF5_HOME)/include \
@@ -43,9 +43,9 @@ INCLUDE = -I$(MPI_HOME)/include \
           -I$(SCOREC_HOME)/include
 
 ifeq ($(COM), 1)
-  PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib  -lpetsc -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu_dist_3.3 -lsuperlu_4.3 -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -L$(MPI_HOME)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L$(MPI_HOME)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L$(MPI_HOME)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+  PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib  -lpetsc -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu_dist_3.3 -lsuperlu_4.3 -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -L$(MPI_HOME)/lib -L/usr/lib/x86_64-linux-gnu -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L$(MPI_HOME)/lib -L/usr/local/gcc/4.7.0/lib64 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L$(MPI_HOME)/lib -L/usr/local/gcc/4.7.0/lib64 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
 else
-  PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib  -lpetsc -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu_dist_3.3 -lsuperlu_4.3 -lHYPRE -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -L$(MPI_HOME)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L$(MPI_HOME)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L$(MPI_HOME)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+  PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib  -lpetsc -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu_dist_3.3 -lsuperlu_4.3 -lHYPRE -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -L$(MPI_HOME)/lib -L/usr/lib/x86_64-linux-gnu -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L$(MPI_HOME)/lib -L/usr/local/gcc/4.7.0/lib64 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L$(MPI_HOME)/lib -L/usr/local/gcc/4.7.0/lib64 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
 endif
 
 BLASLAPACK_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
@@ -62,19 +62,20 @@ else
   ifeq ($(TRILINOS), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
   else
-    M3DC1_SCOREC_LIB = m3dc1_scorec 
+    M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
   endif 
 endif
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_HOME)/lib -L$(SCOREC_HOME)/lib \
-               -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -l$(M3DC1_SCOREC_LIB) \
-               -Wl,--end-group
-ifeq ($(TRILINOS), 1)
+              -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lapf_zoltan -lparma -lmds \
+             -lapf -llion -lmth -lgmi -lpcu -l$(M3DC1_SCOREC_LIB) \
+             -Wl,--end-group
+#ifeq ($(TRILINOS), 1)
 TRILINOS_LIBS = -Wl,--start-group,-rpath,$(TRILINOS_HOME)/lib -L$(TRILINOS_HOME)/lib \
-                -lamesos2 -lamesos -ltpetra -lkokkosnodeapi -ltpi -laztecoo -lepetra \
+                -lamesos -ltpetra -lkokkosnodeapi -ltpi -laztecoo -lepetra \
                 -lsacado -lteuchosparameterlist -lteuchoscomm -lteuchoscore -lteuchosnumerics \
                 -lteuchosremainder -Wl,--end-group
-endif
+#endif
 
 LIBS = 	\
 	$(SCOREC_LIBS) \

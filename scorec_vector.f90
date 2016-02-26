@@ -8,6 +8,7 @@ module scorec_vector_mod
 
   integer, parameter :: VEC_SET = 0
   integer, parameter :: VEC_ADD = 1
+  real :: solver_tol
 
   interface assignment(=)
      module procedure scorec_vector_copy
