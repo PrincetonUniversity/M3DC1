@@ -4,6 +4,14 @@ Sun Apr 12 22:41:24 EDT 2015
 	ssh your_id@saturn.gat.com
 
 2. code
+  # petsc real
+  ./configure --with-mpi=1 --with-mpi-dir=/act/mpich/gcc-4.7.2 --with-mpi-compilers=1 --with-debugging=1 --with-c++-support --with-fortran-interfaces=1 --with-shared-libraries=0 --with-x=0 --download-metis --download-parmetis --download-fblaslapack --download-blacs --download-scalapack --download-mumps --download-superlu_dist --download-superlu --download-hdf5=yes --download-netcdf=yes --download-hypre --with-scalar-type=real PETSC_ARCH=mpich-gcc4.7.2
+
+  # petsc complex:
+  ./configure --with-mpi=1 --with-mpi-dir=/act/mpich/gcc-4.7.2 --with-mpi-compilers=1 --with-debugging=1 --with-c++-support --with-fortran-interfaces=1 --with-shared-libraries=0 --with-x=0 --download-metis --download-parmetis --download-fblaslapack --download-blacs --download-scalapack --download-mumps --download-superlu_dist --download-superlu --download-hdf5=yes --download-netcdf=yes --with-scalar-type=complex PETSC_ARCH=mpich-gcc4.7.2
+
+  # zoltan: 
+  ../configure -prefix="/fusion/projects/codes/m3dc1/scorec/Dec2015-petsc" -with-parmetis -with-parmetis-incdir="/fusion/projects/codes/m3dc1/petsc-3.5.4-real/mpich-gcc4.7.2/include" -with-parmetis-libdir="/fusion/projects/codes/m3dc1/petsc-3.5.4-real/mpich-gcc4.7.2/lib" CC="/act/mpich/gcc-4.7.2/bin/mpicc" CXX="/act/mpich/gcc-4.7.2/bin/mpic++" --enable-mpi --disable-examples --with-gnumake
 
 3. load modules
 
