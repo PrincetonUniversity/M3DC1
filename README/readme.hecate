@@ -47,10 +47,10 @@
 	module load mpt/intel
 
 	#2D complex
-	srun -n 8 m3dc1_2d_com -pc_factor_mat_solver_package mumps
+	srun -n 8 ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps
 
 	#2D real
-	srun -n 8 m3dc1_2d
+	srun -n 8 ./m3dc1_2d
 
 	#3D real
 	srun -n 16 ./m3dc1_3d -ipetsc -options_file options_bjacobi
