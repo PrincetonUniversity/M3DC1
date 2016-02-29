@@ -28,14 +28,25 @@ F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
 
+SCOREC_HOME=/p/tsc/m3dc1/lib/SCORECLib/rhel5/Mar2016
+ifeq ($(COM), 1)
+    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+else
+    M3DC1_SCOREC_LIB = m3dc1_scorec
+endif
+
+SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_HOME)/lib -L$(SCOREC_HOME)/lib \
+    -l$(M3DC1_SCOREC_LIB) \
+    -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu \
+    -Wl,--end-group
+
 # define where you want to locate the mesh adapt libraries
 HYBRID_HOME = /p/swim/jchen/pdslin_0.0
-#HYBRID_HOME = /p/swim/jchen/hybrid.test
-#HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
 INCLUDE = -I$(MPIHOME)/include \
 	  -I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+          -I$(SCOREC_HOME)/include \
 	  -I$(PARMETIS_HOME)/include \
 	  -I$(FFTWHOME)/include \
 	  -I$(SUPERLU_DIST_HOME)/include -I$(SUPERLUHOME)/include \
@@ -45,38 +56,19 @@ INCLUDE = -I$(MPIHOME)/include \
 	  -I$(HDF5_HOME)/include \
 	  -I$(NCARG_ROOT)/include
 
-#	-L$(MUMPS_HOME)/lib -ldmumps -lmumps_common -lpord \
-#	-L$(SCALAPACK_HOME) -lscalapack \
-#	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacs -lmpiblacsCinit -lmpiblacs
-
-LIBS = 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lmumps_common -ldmumps -lcmumps -lzmumps -lsmumps -lpord -lpetsc \
+LIBS = 	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -ldmumps -lmumps_common -lcmumps -lzmumps -lsmumps -lpord \
+        -L$(SCOREC_LIBS) \
+        -L$(ZOLTAN_HOME)/lib -lzoltan \
         -L$(PARMETIS_HOME)/lib -lparmetis -lmetis \
 	-L$(FFTWHOME)/lib -lfftw3 -lfftw3_mpi -lfftw3_threads \
 	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 -L$(SUPERLUHOME)/lib -lsuperlu_4.3 \
 	-L$(SCALAPACK_HOME)/lib -lscalapack -L$(BLACS_HOME)/lib -lmpiblacs -lmpiblacsCinit -lmpiblacsF77init \
-        -L$(Zoltan_HOME)/lib -lzoltan \
 	-L$(GSLHOME)/lib -lgsl \
         -L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
         -L$(CCHOME)/mkl/lib/em64t -lmkl -lmkl_lapack \
 	-L$(CCHOME)/lib/intel64 -lguide \
 	-L/usr/X11R6/lib -lX11
-
-  SCORECDIR=/p/tsc/m3dc1/lib/SCORECLib/rhel5/Dec2015
-ifeq ($(COM), 1)
-  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
-             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lm3dc1_scorec_complex \
-             -Wl,--start-group
-else
-  SCORECLIB= -Wl,--start-group,-rpath,$(SCORECDIR)/lib -L$(SCORECDIR)/lib \
-             -lapf -lgmi -lma -lparma -lph -lmds -lpcu -lspr -lapf_zoltan -lm3dc1_scorec \
-             -Wl,--start-group
-endif
-
-  LIBS := $(SCORECLIB) \
-	$(LIBS) 
-  INCLUDE := -I$(SCORECDIR)/include \
-        $(INCLUDE)
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
