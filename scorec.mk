@@ -62,7 +62,7 @@ else
   ifeq ($(TRILINOS), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
   else
-    M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
+    M3DC1_SCOREC_LIB = m3dc1_scorec
   endif 
 endif
 
