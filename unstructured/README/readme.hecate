@@ -1,7 +1,5 @@
-Sun Apr 12 20:41:20 EDT 2015
-
 1. login
-	ssh -l jinchen hecate.princeton.edu
+	ssh -l your_id hecate.princeton.edu
 
 2. code
 	svn co svn+ssh://username@portal.pppl.gov/p/tsc/C1/svn
@@ -26,26 +24,46 @@ Sun Apr 12 20:41:20 EDT 2015
 5. mesh utility
 	/home/jinchen/lib/scorec/utilities
 
-6. run jobscript
+6. run a job
+(1) interactive mode
+
+	salloc --ntasks=N --ntasks-per-socket=6 -t 00:30:00
+        srun -n P your_exe
+
+        Note N>=P and N should be in blocks of 6 
+
+(2) batch mode
+
 	#!/bin/bash
-	#SBATCH --ntasks=12
+        # parallel job running on 16 ranks 
+        # Note that your jobs has to be scheduled in blocks of 6 cores only.
+        # For instance, if you need 16 cores, then ask for 18.
+	#SBATCH --ntasks=18
 	#SBATCH --ntasks-per-socket=6
-	#SBATCH -t 00:10:00
+	#SBATCH -t 00:30:00
+	#SBATCH --mail-type=END
+	#SBATCH --mail-user=your_email
 
 	module load mpt/intel
 
 	#2D complex
-	srun -n 8 m3dc1.x -pc_factor_mat_solver_package mumps
+	srun -n 8 m3dc1_2d_com -pc_factor_mat_solver_package mumps
 
 	#2D real
-	srun -n 8 m3dc1.x
+	srun -n 8 m3dc1_2d
 
 	#3D real
-	srun -n 32 ./m3dc1_3d -ipetsc -options_file options_bjacobi
+	srun -n 16 ./m3dc1_3d -ipetsc -options_file options_bjacobi
 
-7. submit job
+ To submit job, do
 
-8. list all curent jobs for a user
+	sbatch batch_script
 
-9. delete a job
+ To delete job, do 
+ 
+ 	scancel job_id
+  
+7. To list all curent jobs for a user
+
+      	squeue -u your_id
 
