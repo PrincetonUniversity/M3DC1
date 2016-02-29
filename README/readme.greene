@@ -1,10 +1,14 @@
+1. login
+
+2. code
+
+3. load modules
+
 module load intel/11.0.081 
 module load openmpi/1.4.3-qlogic
-#module load petsc/3.4.5-complex    
-module load petsc/3.4.5-real
+module load petsc/3.4.5-real OR petsc/3.4.5-complex
 module load parmetis/4.0.3 
 module load metis/5.1.0  
-#module load fftw/3.3
 module load fftw/3.3.2 
 module load superlu_dist/3.3
 module load superlu/4.3-20141222
@@ -16,19 +20,34 @@ module load gsl
 module load hdf5-parallel/1.8.6
 module load ncarg
 
-netcdf/3.6.3
-
-
-
-
-
-      module load tv80
-      module load ntcc
-      module load nag
-      module load globus
-      module load mdsplus
-      module unload idl
-      module load idl/8.1
+module load netcdf/3.6.3
+module load tv80
+module load ntcc
+module load nag
+module load globus
+module load mdsplus
+module unload idl
+module load idl/8.1
 
 setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/greene
+
+4. compile code
+	make OPT=1 RL=1 MAX_PTS=25
+	make OPT=1 COM=1 MAX_PTS=25
+	make 3D=1 OPT=1 MAX_PTS=60
+
+5. mesh utility
+	/p/tsc/m3dc1/lib/SCORECLib/rhel5/utilities/
+
+6. running 
+
+     	#2D complex
+	mpirun -np 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+
+	#2D real
+        mpirun -np 8 m3dc1_2d
+
+	#3D real
+	mpirun -np 16 /u/sseol/develop/m3dc1/_greene-3d-opt-60/m3dc1_3d  -ipetsc -options_file options_bjacobi 
+
 
