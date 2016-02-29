@@ -348,7 +348,8 @@ contains
     PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
 #endif
 #ifdef M3DC1_TRILINOS
-    call m3dc1_solver_aztec(mat%imatrix,v%id,v%id)
+    num_iter=100
+    call m3dc1_solver_aztec(mat%imatrix,v%id,v%id,num_iter,solver_tol)
 #else
     call m3dc1_matrix_solve(mat%imatrix,v%id)
 #endif
