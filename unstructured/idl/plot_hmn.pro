@@ -6,16 +6,18 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    ; read harmonics [N, ntimes]
    file_id = h5f_open(filename)
    root_id = h5g_open(file_id, "/")
-   data = h5_parse(root_id, "keharmonics", /read_data)
-   h5g_close, root_id
-   h5f_close, file_id
    if(keyword_set(me)) then begin
+      data = h5_parse(root_id, "bharmonics", /read_data)
       name = 'Magnetic Energy'
       kehmn = data.BHARMONICS._DATA
    endif else begin
+      data = h5_parse(root_id, "keharmonics", /read_data)
       name = 'Kinetic Energy'
       kehmn = data.KEHARMONICS._DATA
    end
+   h5g_close, root_id
+   h5f_close, file_id
+
    dimn = size(kehmn, /dim)
    print, 'total number of Fourier harmonics and timesteps = ', dimn
 
