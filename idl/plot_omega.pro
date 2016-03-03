@@ -1,34 +1,46 @@
 pro plot_omega, filename=filename, slice=time, points=pts, $
                 yrange=yrange, q_val=q_val, out=out, $
-                mtop=mtop, mslope=mslope, _EXTRA=extra, $
-                plot_wstar=plot_wstar, plot_wi=plot_wi, plot_we=plot_we
+                mtop=mtop, mslope=mslope, _EXTRA=extra
 
   if(n_elements(pts) eq 0) then pts=200
-  if(n_elements(plot_wi) eq 0) then plot_wi=1
-  if(n_elements(plot_wstar) eq 0) then plot_wstar=1
-  if(n_elements(plot_we) eq 0) then plot_we=1
+  if(n_elements(time) eq 0) then time=-1
 
   db = read_parameter('db', filename=filename)
   itor = read_parameter('itor', filename=filename)
   print, 'db = ', db
 
   omega = read_field('omega', x, y,t,slices=time,filename=filename,points=pts)
-  p = read_field('p', x, y, t, slices=time, filename=filename, points=pts)
-  pe = read_field('pe', x, y, t, slices=time, filename=filename, points=pts)
-  u = read_field('phi', x, y, t, slices=time, filename=filename, points=pts)
-  chi = read_field('chi', x, y, t, slices=time, filename=filename, points=pts)
-  psi = read_field('psi', x, y, t, slices=time, filename=filename, points=pts)
-  i = read_field('I', x, y, t, slices=time, filename=filename, points=pts)
-  den = read_field('den', x, y, t, slices=time, filename=filename, points=pts)
+  p_r = read_field('p', x, y, t, slices=time, filename=filename, points=pts, op=2)
+  p_z = read_field('p', x, y, t, slices=time, filename=filename, points=pts, op=3)
+  pe_r = read_field('pe', x, y, t, slices=time, filename=filename, points=pts, op=2)
+  pe_z = read_field('pe', x, y, t, slices=time, filename=filename, points=pts, op=3)
+;  u_r = read_field('phi', x, y, t, slices=time, filename=filename, points=pts, op=2)
+;  u_z = read_field('phi', x, y, t, slices=time, filename=filename, points=pts, op=3)
+;  chi_r = read_field('chi', x, y, t, slices=time, filename=filename, points=pts, op=2)
+;  chi_z = read_field('chi', x, y, t, slices=time, filename=filename, points=pts, op=3)
+  psi = read_field('psi', x, y, t, slices=time, filename=filename, points=pts, /equilibrium)
+  psi_r = read_field('psi', x, y, t, slices=time, filename=filename, points=pts, /equilibrium, op=2)
+  psi_z = read_field('psi', x, y, t, slices=time, filename=filename, points=pts, /equilibrium, op=3)
+  i = read_field('I', x, y, t, slices=time, filename=filename, points=pts, /equilibrium)
+  den = read_field('den', x, y, t, slices=time, filename=filename, points=pts, /equilibrium)
+
+  fc = flux_coordinates(_EXTRA=extra, points=pts, psi0=psi, i0=i, x=x, z=y, filename=filename, slice=time)
 
   if(itor eq 1) then begin
       r = radius_matrix(x,y,t)
   endif else r = 1.
-       
-  v_omega = omega - i/(r^2*s_bracket(psi,psi,x,y)) * $
-    (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r)
-  w_star_i = db*s_bracket(p-pe,psi,x,y)/s_bracket(psi,psi,x,y) / den
-  w_star_e = -db*s_bracket(pe,psi,x,y)/s_bracket(psi,psi,x,y) / den
+  
+  psipsi = psi_r^2 + psi_z^2
+  pprime = (p_r*psi_r + p_z*psi_z)/psipsi
+  peprime = (pe_r*psi_r + pe_z*psi_z)/psipsi
+  piprime = pprime - peprime
+
+  v_omega = omega ; $
+;            - i/(r^2*psipsi) * $
+;            (r^2*(u_r*psi_r + u_z*psi_z) + $
+;             (chi_z*psi_r - chi_r*psi_z)/r)
+  w_star_i = db*piprime / den
+  w_star_e = -db*peprime / den
 
   get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, $
     zeff=zeff, ion_mass=ion_mass, filename=filename
@@ -43,13 +55,13 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   ve_omega = omega_ExB + w_star_e
 
   v_omega_fa = flux_average_field(v_omega, psi, x, y, t, file=filename, $
-                           nflux=nflux, bins=pts, _EXTRA=extra)
+                           nflux=nflux, bins=pts, fc=fc, _EXTRA=extra)
   w_star_i_fa = flux_average_field(w_star_i, psi, x, y, t, file=filename, $
-                           nflux=nflux, bins=pts, _EXTRA=extra)
+                           nflux=nflux, bins=pts, fc=fc, _EXTRA=extra)
   omega_ExB_fa = flux_average_field(omega_ExB, psi, x, y, t, file=filename, $
-                           nflux=nflux, bins=pts, _EXTRA=extra)
+                           nflux=nflux, bins=pts, fc=fc, _EXTRA=extra)
   ve_omega_fa = flux_average_field(ve_omega, psi, x, y, t, file=filename, $
-                           nflux=nflux, bins=pts, _EXTRA=extra)
+                           nflux=nflux, bins=pts, fc=fc, _EXTRA=extra)
 
   xtitle = '!7W!X'
   ytitle = '!6krad/s!X'
@@ -69,21 +81,22 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
     _EXTRA=extra
   names = '!7x!6!DE!9X!6B!N!X'
   col = color(0)        
-  if(keyword_set(plot_wi)) then begin
-      oplot, nflux, v_omega_fa, color=color(1)
-      names = [names, '!7x!X']
-      col = [col, color(1)]
-  end
-  if(keyword_set(plot_we)) then begin
-      oplot, nflux, ve_omega_fa, color=color(2)
-      names = [names, '!7x!D!8e!N!X']
-      col = [col, color(2)]
-  end
-  if(keyword_set(plot_wstar)) then begin
-      oplot, nflux, w_star_i_fa, color=color(3)
-      names = [names, '!7x!6!D*!8i!N!X']
-      col = [col, color(3)]
-  end
+
+  ; omega_i
+  oplot, nflux, v_omega_fa, color=color(1)
+  names = [names, '!7x!X']
+  col = [col, color(1)]
+
+  ; omega_e
+  oplot, nflux, ve_omega_fa, color=color(2)
+  names = [names, '!7x!D!8e!N!X']
+  col = [col, color(2)]
+
+  ; omega_*i
+  oplot, nflux, w_star_i_fa, color=color(3)
+  names = [names, '!7x!6!D*!8i!N!X']
+  col = [col, color(3)]
+
   oplot, !x.crange, [0,0], linestyle=2
 
   plot_legend, names, color=col, _EXTRA=extra
