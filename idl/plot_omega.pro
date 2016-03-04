@@ -14,10 +14,10 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   p_z = read_field('p', x, y, t, slices=time, filename=filename, points=pts, op=3)
   pe_r = read_field('pe', x, y, t, slices=time, filename=filename, points=pts, op=2)
   pe_z = read_field('pe', x, y, t, slices=time, filename=filename, points=pts, op=3)
-;  u_r = read_field('phi', x, y, t, slices=time, filename=filename, points=pts, op=2)
-;  u_z = read_field('phi', x, y, t, slices=time, filename=filename, points=pts, op=3)
-;  chi_r = read_field('chi', x, y, t, slices=time, filename=filename, points=pts, op=2)
-;  chi_z = read_field('chi', x, y, t, slices=time, filename=filename, points=pts, op=3)
+  u_r = read_field('phi', x, y, t, slices=time, filename=filename, points=pts, op=2)
+  u_z = read_field('phi', x, y, t, slices=time, filename=filename, points=pts, op=3)
+  chi_r = read_field('chi', x, y, t, slices=time, filename=filename, points=pts, op=2)
+  chi_z = read_field('chi', x, y, t, slices=time, filename=filename, points=pts, op=3)
   psi = read_field('psi', x, y, t, slices=time, filename=filename, points=pts, /equilibrium)
   psi_r = read_field('psi', x, y, t, slices=time, filename=filename, points=pts, /equilibrium, op=2)
   psi_z = read_field('psi', x, y, t, slices=time, filename=filename, points=pts, /equilibrium, op=3)
@@ -35,10 +35,10 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   peprime = (pe_r*psi_r + pe_z*psi_z)/psipsi
   piprime = pprime - peprime
 
-  v_omega = omega ; $
-;            - i/(r^2*psipsi) * $
-;            (r^2*(u_r*psi_r + u_z*psi_z) + $
-;             (chi_z*psi_r - chi_r*psi_z)/r)
+  v_omega = omega  $
+            - i/(r^2*psipsi) * $
+            (r^2*(u_r*psi_r + u_z*psi_z) + $
+             (chi_z*psi_r - chi_r*psi_z)/r)
   w_star_i = db*piprime / den
   w_star_e = -db*peprime / den
 
@@ -83,17 +83,17 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   col = color(0)        
 
   ; omega_i
-  oplot, nflux, v_omega_fa, color=color(1)
+  oplot, nflux, v_omega_fa, color=color(1), _EXTRA=extra
   names = [names, '!7x!X']
   col = [col, color(1)]
 
   ; omega_e
-  oplot, nflux, ve_omega_fa, color=color(2)
+  oplot, nflux, ve_omega_fa, color=color(2), _EXTRA=extra
   names = [names, '!7x!D!8e!N!X']
   col = [col, color(2)]
 
   ; omega_*i
-  oplot, nflux, w_star_i_fa, color=color(3)
+  oplot, nflux, w_star_i_fa, color=color(3), _EXTRA=extra
   names = [names, '!7x!6!D*!8i!N!X']
   col = [col, color(3)]
 
