@@ -36,18 +36,43 @@ setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/greene
 	make OPT=1 COM=1 MAX_PTS=25
 	make 3D=1 OPT=1 MAX_PTS=60
 
+   start from March 04, 2016,
+   cross-compiling on greene_r6 from portalr6 is needed 
+   to run on greene_r6 without encounter the end of run matrices cleanup error.
+   sample script:
+        #!/bin/bash
+        #SBATCH --partition=greene_r6
+        #SBATCH --nodes=1
+        #SBATCH --ntasks-per-node=1
+        #SBATCH --exclude=greene033
+        #SBATCH -J Make3D
+        #SBATCH --time=00:40:00
+        make 3D=1 OPT=1 MAX_PTS=60 
+
 5. mesh utility
 	/p/tsc/m3dc1/lib/SCORECLib/rhel5/utilities/
 
 6. running 
 
      	#2D complex
-	mpirun -np 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+        mpiexec --report-bindings --bind-to none -np 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
 
 	#2D real
-        mpirun -np 8 m3dc1_2d
+        mpiexec --report-bindings --bind-to none -np 8 m3dc1_2d
 
 	#3D real
-	mpirun -np 16 /u/sseol/develop/m3dc1/_greene-3d-opt-60/m3dc1_3d  -ipetsc -options_file options_bjacobi 
+        mpiexec --report-bindings --bind-to none -np 16 m3dc1_3d -ipetsc -options_file options_bjacobi 
+
+   sample script: 
+        #!/bin/bash
+        #SBATCH --partition=greene_r6
+        #SBATCH --nodes=8
+        #SBATCH --ntasks-per-node=16
+        #SBATCH --exclude=greene033
+        #SBATCH --mem-per-cpu=8000
+        #SBATCH -J Run3D
+        #SBATCH --time=00:30:00
+        mpiexec --report-bindings --bind-to none -np 128 ./m3dc1_3d -ipetsc -options_file options_bjacobi
+
 
 

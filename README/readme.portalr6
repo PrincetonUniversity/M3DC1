@@ -28,6 +28,9 @@ Updated
 	/p/tsc/m3dc1/lib/SCORECLib/sunfire/utilities/
 
 6. prepare jobscript
+   ganesh22 has only 1 node (CPUTot=64 : CoresPerSocket=16  Sockets=4  )
+   in mque_r6 -- so you need to specify  --nodes=1
+
 	#!/bin/bash -vx
 	#SBATCH --partition=mque_r6
 	#SBATCH --ntasks 8 (max=64)
