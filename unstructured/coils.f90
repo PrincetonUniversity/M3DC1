@@ -36,7 +36,7 @@ contains
    real :: dx, dz, a1, a2
 
    real, allocatable :: xv(:), zv(:), wv(:), hv(:), a1v(:), a2v(:), &
-        cv(:), phasev(:), turnsv(:), dum(:)
+        cv(:), phasev(:), turnsv(:)
    integer, allocatable :: sxv(:), syv(:)
 
    call MPI_Comm_rank(MPI_COMM_WORLD, rank, ier)
@@ -68,11 +68,8 @@ contains
       call read_ascii_column(coil_filename, hv,  ncoil, 0, 4)
       call read_ascii_column(coil_filename, a1v, ncoil, 0, 5)
       call read_ascii_column(coil_filename, a2v, ncoil, 0, 6)
-      call read_ascii_column(coil_filename, dum, ncoil, 0, 7)
-      sxv = nint(dum)
-      call read_ascii_column(coil_filename, dum, ncoil, 0, 8)
-      syv = nint(dum)
-      deallocate(dum)
+      call read_ascii_column(coil_filename, sxv, ncoil, 0, 7)
+      call read_ascii_column(coil_filename, syv, ncoil, 0, 8)
    else if(coil_style.eq.1) then
       call read_ascii_column(coil_filename, xv,     ncoil, 0, 4)
       call read_ascii_column(coil_filename, zv,     ncoil, 0, 5)
@@ -84,15 +81,10 @@ contains
 
       allocate(sxv(ncoil), syv(ncoil))
       do i=1, ncoil
-         if(wv(i).lt.hv(i)) then
-            sxv(i) = nint(sqrt(turnsv(i))*wv(i)/hv(i))
-            if(sxv(i).lt.1) sxv(i) = 1
-            syv(i) = turnsv(i) / sxv(i)
-         else
-            syv(i) = nint(sqrt(turnsv(i))*hv(i)/wv(i))
-            if(syv(i).lt.1) syv(i) = 1
-            sxv(i) = turnsv(i) / syv(i)
-         end if
+         sxv(i) = nint(wv(i)/0.01)
+         syv(i) = nint(hv(i)/0.01)
+         if(sxv(i).lt.1) sxv(i) = 1
+         if(syv(i).lt.1) syv(i) = 1
       end do
       deallocate(turnsv)
    end if
@@ -160,8 +152,6 @@ contains
          end do
       end do
    end do
-
-
 
 100   numcoils = s
       print *, "Read ", i, " coil groups; ", numcoils, " total coils."   
