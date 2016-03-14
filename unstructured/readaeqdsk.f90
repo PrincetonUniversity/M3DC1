@@ -80,7 +80,7 @@ subroutine load_eqdsk_a(filename)
 
   integer, parameter :: neqdsk = 12
   integer :: size, rank, ierr
-  integer :: j, k, jj, ios
+  integer :: i, j, k, jj, ios
   real :: xdum
 
   character(len=3) :: qmflag
@@ -218,14 +218,15 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp(15,1)/1000.
   else if(nfcoil0.eq.52) then
      write(0,*) 'Assuming NSTX'
-     write(*,1100) 0.                  ! OH1U
-     write(*,1100) 0.                  ! OH2U
-     write(*,1100) 0.                  ! OH3U
-     write(*,1100) 0.                  ! OH4U
-     write(*,1100) 0.                  ! OH4L
-     write(*,1100) 0.                  ! OH3L
-     write(*,1100) 0.                  ! OH2L
-     write(*,1100) 0.                  ! OH1L
+     write(0,*) 'nesum0 = ', nesum0
+     write(*,1100) eccurt(1,1)*122.625/1000.  ! OH1U
+     write(*,1100) eccurt(1,1)*121.000/1000.  ! OH2U
+     write(*,1100) eccurt(1,1)*119.875/1000.  ! OH3U
+     write(*,1100) eccurt(1,1)*118.000/1000.  ! OH4U
+     write(*,1100) eccurt(1,1)*118.000/1000.  ! OH4L
+     write(*,1100) eccurt(1,1)*119.875/1000.  ! OH3L
+     write(*,1100) eccurt(1,1)*121.000/1000.  ! OH2L
+     write(*,1100) eccurt(1,1)*122.625/1000.  ! OH1L
      write(*,1100) ccbrsp( 1,1)*20/1000.  ! PF1AU
      write(*,1100) ccbrsp( 2,1)*14/1000.  ! PF2U1
      write(*,1100) ccbrsp( 2,1)*14/1000.  ! PF2U2
@@ -235,14 +236,14 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp( 4,1)*8 /1000.  ! PF4U2
      write(*,1100) ccbrsp( 5,1)*12/1000.  ! PF5U1
      write(*,1100) ccbrsp( 5,1)*12/1000.  ! PF5U2
-     write(*,1100) ccbrsp( 6,1)*12/1000.  ! PF5L2
      write(*,1100) ccbrsp( 6,1)*12/1000.  ! PF5L1
-     write(*,1100) ccbrsp( 7,1)*8 /1000.  ! PF4L2
+     write(*,1100) ccbrsp( 6,1)*12/1000.  ! PF5L2
      write(*,1100) ccbrsp( 7,1)*9 /1000.  ! PF4L1
-     write(*,1100) ccbrsp( 8,1)*15/1000.  ! PF3L2
+     write(*,1100) ccbrsp( 7,1)*8 /1000.  ! PF4L2
      write(*,1100) ccbrsp( 8,1)*15/1000.  ! PF3L1
-     write(*,1100) ccbrsp( 9,1)*14/1000.  ! PF2L2
+     write(*,1100) ccbrsp( 8,1)*15/1000.  ! PF3L2
      write(*,1100) ccbrsp( 9,1)*14/1000.  ! PF2L1
+     write(*,1100) ccbrsp( 9,1)*14/1000.  ! PF2L2
      write(*,1100) ccbrsp(10,1)*20/1000.  ! PF1AL
      write(*,1100) ccbrsp(11,1)*32/1000.  ! PF1B
      write(*,1100) ccbrsp(12,1)* 1/1000.  ! TFUI
@@ -352,6 +353,85 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp(12,1)*20/1000.  ! PF1CL
      write(*,1100) ccbrsp(13,1)*32/1000.  ! PF1BL
      write(*,1100) ccbrsp(14,1)*64/1000.  ! PF1AL
+     write(*,1100) ccbrsp(15,1)*.5/1000.  ! VS1U
+     write(*,1100) ccbrsp(15,1)*.5/1000.  ! VS1U
+     write(*,1100) ccbrsp(16,1)*.5/1000.  ! VS2U
+     write(*,1100) ccbrsp(16,1)*.5/1000.  ! VS2U
+     write(*,1100) ccbrsp(17,1)* 1/1000.  ! VS3U
+     write(*,1100) ccbrsp(18,1)* 1/1000.  ! VS4U
+     write(*,1100) ccbrsp(19,1)*.3333/1000.  ! VS5U
+     write(*,1100) ccbrsp(19,1)*.3333/1000.  ! VS5U
+     write(*,1100) ccbrsp(19,1)*.3333/1000.  ! VS5U
+     do i=1, 16
+        write(*,1100) ccbrsp(20,1)*.0625/1000.  ! VS6U
+     end do
+     do i=1, 5
+        write(*,1100) ccbrsp(21,1)*.2000/1000.  ! VS7U
+     end do
+     do i=1, 4
+        write(*,1100) ccbrsp(22,1)*.2500/1000.  ! VS8U
+     end do
+     do i=1, 24
+        write(*,1100) ccbrsp(23,1)*.041667/1000.  ! VS9U
+     end do
+     write(*,1100) ccbrsp(24,1)*.5/1000.  ! VS10U
+     write(*,1100) ccbrsp(24,1)*.5/1000.  ! VS10U
+     do i=1, 5
+        write(*,1100) ccbrsp(25,1)*.2/1000.  ! VS11U
+     end do
+     write(*,1100) ccbrsp(26,1)*.5/1000.  ! VS12U
+     write(*,1100) ccbrsp(26,1)*.5/1000.  ! VS12U
+     write(*,1100) ccbrsp(27,1)*.3333/1000.  ! VS13U
+     write(*,1100) ccbrsp(27,1)*.3333/1000.  ! VS13U
+     write(*,1100) ccbrsp(27,1)*.3333/1000.  ! VS13U
+     write(*,1100) ccbrsp(28,1)*1/1000.   ! VS14U
+     write(*,1100) ccbrsp(29,1)*1/1000.   ! VS15U
+     write(*,1100) ccbrsp(30,1)*1/1000.   ! VS15L
+     write(*,1100) ccbrsp(31,1)*1/1000.   ! VS14L
+     write(*,1100) ccbrsp(32,1)*.3333/1000.  ! VS13L
+     write(*,1100) ccbrsp(32,1)*.3333/1000.  ! VS13L
+     write(*,1100) ccbrsp(32,1)*.3333/1000.  ! VS13L
+     write(*,1100) ccbrsp(33,1)*.5/1000.  ! VS12L
+     write(*,1100) ccbrsp(33,1)*.5/1000.  ! VS12L
+     do i=1, 5
+        write(*,1100) ccbrsp(34,1)*.2/1000.  ! VS11L
+     end do
+     write(*,1100) ccbrsp(35,1)*.5/1000.  ! VS10L
+     write(*,1100) ccbrsp(35,1)*.5/1000.  ! VS10L
+     do i=1, 24
+        write(*,1100) ccbrsp(36,1)*.041667/1000.  ! VS9L
+     end do
+     do i=1, 16
+        write(*,1100) ccbrsp(37,1)*.0625/1000.  ! VS8L
+     end do
+     do i=1, 4
+        write(*,1100) ccbrsp(38,1)*.25/1000.  ! VS7L
+     end do
+     do i=1, 5
+        write(*,1100) ccbrsp(39,1)*.2/1000.   ! VS6L
+     end do
+     write(*,1100) ccbrsp(40,1)*.3333/1000.  ! VS5L
+     write(*,1100) ccbrsp(40,1)*.3333/1000.  ! VS5L
+     write(*,1100) ccbrsp(40,1)*.3333/1000.  ! VS5L
+     write(*,1100) ccbrsp(41,1)* 1/1000.  ! VS4L
+     write(*,1100) ccbrsp(42,1)* 1/1000.  ! VS3L
+     write(*,1100) ccbrsp(43,1)*.5/1000.  ! VS2L
+     write(*,1100) ccbrsp(43,1)*.5/1000.  ! VS2L
+     write(*,1100) ccbrsp(44,1)*.5/1000.  ! VS1L
+     write(*,1100) ccbrsp(44,1)*.5/1000.  ! VS1L
+
+     write(*,1100) ccbrsp(45,1)*.5/1000.  ! DPU1
+     write(*,1100) ccbrsp(45,1)*.5/1000.  ! DPU1
+     write(*,1100) ccbrsp(46,1)*.5/1000.  ! DPL1
+     write(*,1100) ccbrsp(46,1)*.5/1000.  ! DPL1
+     write(*,1100) ccbrsp(47,1)* 1/1000.  ! PPSIUU
+     write(*,1100) ccbrsp(48,1)* 1/1000.  ! PPSIUL
+     write(*,1100) ccbrsp(49,1)* 1/1000.  ! PPPOUU
+     write(*,1100) ccbrsp(50,1)* 1/1000.  ! PPPOUL
+     write(*,1100) ccbrsp(51,1)* 1/1000.  ! PPPOLU
+     write(*,1100) ccbrsp(52,1)* 1/1000.  ! PPPOLL
+     write(*,1100) ccbrsp(53,1)* 1/1000.  ! PPSILU
+     write(*,1100) ccbrsp(54,1)* 1/1000.  ! PPSILL
   end if
 
 1100 format (f12.4)
