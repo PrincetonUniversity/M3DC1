@@ -1,6 +1,11 @@
 module read_ascii
   implicit none
 
+  interface read_ascii_column
+     module procedure read_ascii_column_real
+     module procedure read_ascii_column_int
+  end interface
+
 contains
 
   subroutine get_token(line, m, tok, ierr)
@@ -47,7 +52,7 @@ contains
   ! skip = number of header rows to skip (default = 0)
   ! xrow = column to read (default = 1)
   !======================================================================
-  subroutine read_ascii_column(filename, x, n, skip, icol, read_until)
+  subroutine read_ascii_column_real(filename, x, n, skip, icol, read_until)
     implicit none
 
     include 'mpif.h'
@@ -152,5 +157,23 @@ contains
 
     ! Share data with other processes
     call MPI_bcast(x, n, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr)
-  end subroutine read_ascii_column
+  end subroutine read_ascii_column_real
+
+  subroutine read_ascii_column_int(filename, x, n, skip, icol, read_until)
+    implicit none
+
+    character(len=*), intent(in) :: filename
+    integer, allocatable :: x(:)
+    integer, intent(inout) :: n
+    integer, optional :: skip, icol
+    character(len=*), intent(in), optional :: read_until
+
+    real, allocatable :: y(:)
+
+    call read_ascii_column_real(filename, y, n, skip, icol, read_until)
+
+    allocate(x(n))
+    x = nint(y)
+    deallocate(y)
+  end subroutine read_ascii_column_int
 end module read_ascii
