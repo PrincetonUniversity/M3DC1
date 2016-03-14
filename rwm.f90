@@ -97,6 +97,10 @@ contains
        den_field(k) = den_vec
        
     end do
+
+    vz_field(0) = p_field(0)
+    call add(vz_field(0), -pedge)
+    call mult(vz_field(0), alpha0)
       
     call destroy_field(psi_vec)
     call destroy_field(bz_vec)
