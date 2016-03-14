@@ -789,7 +789,7 @@ integer function magnetic_region(psi, x, z)
         magnetic_region = 2
      end if
 
-     ! if z is far above or below x-point, we're in provate flux region
+     ! if z is far above or below x-point, we're in private flux region
      if(znull.ne.0. .and. xnull.gt.0.) then
         if((z-zmag)/(znull-zmag).gt.1.03) then
            magnetic_region = 2
