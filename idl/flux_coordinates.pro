@@ -88,7 +88,6 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   m = tbins  ; number of poloidal points
   n = fbins  ; number of radial points
   
-  help, psin_range
   if(n_elementS(psin_range) eq 0) then begin
      psi = (psi_s - flux0)*(findgen(n)+.5)/n + flux0
      psi_norm = (psi - flux0)/(psi_s - flux0)
@@ -269,6 +268,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         end
         if(fac*q[j]*ix gt 0.) then begin
            print, 'ERROR, q has wrong sign'
+           stop
            return, 0
         end
         if(phi[j]*ix lt 0.) then begin
