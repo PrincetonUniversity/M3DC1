@@ -100,59 +100,11 @@ end subroutine gradshafranov_init
 ! Imposes perturbations on GS solution
 !==============================================================
 subroutine gradshafranov_per()
-
-  use basic
-  use arrays
-  use diagnostics
-  use mesh_mod
+  use init_common
 
   implicit none
 
-  integer :: i, numnodes
-  real :: x, phi, z
-  vectype, dimension(dofs_per_node) :: vmask
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'in gradshafranov_per'
-
-  numnodes = owned_nodes()
-
-  do i=1, numnodes
-
-     call get_node_pos(nodes_owned(i), x, phi, z)
-
-     call get_local_vals(nodes_owned(i))
-
-     vmask = 1.
-     vmask(1:6) = p0_l(1:6)/p0
-     vmask(1) = vmask(1) - pedge/p0
-     
-     ! initial parallel rotation
-     u1_l = phizero*vmask
-     ! initial vertical motion
-     u1_l(1) = u1_l(1) + x*verzero*vmask(1)
-     u1_l(2) = u1_l(2) + x*verzero*vmask(2)+verzero*vmask(1)
-     u1_l(3) = u1_l(3) + x*verzero*vmask(3)
-     u1_l(4) = u1_l(4) + x*verzero*vmask(4)+2.*verzero*vmask(2)
-     u1_l(5) = u1_l(5) + x*verzero*vmask(5)+   verzero*vmask(3)
-     u1_l(6) = u1_l(6) + x*verzero*vmask(6)
-
-     ! allow for initial toroidal rotation
-     vz1_l = 0.
-     if(vzero.ne.0) call add_angular_velocity(vz1_l, x+xzero, vzero*vmask)
-
-     ! add random perturbations
-     if(nonrect.eq.0) then
-        vmask(1) = 1.
-        vmask(2:6) = 0.
-     endif
-     call random_per(x,phi,z,vmask)
-
-     call set_local_vals(nodes_owned(i))
-  enddo
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'end of gradshafranov_per'
-  call finalize(field_vec)
-
+  call init_perturbations
 end subroutine gradshafranov_per
 
 subroutine coil_feedback()
@@ -1366,33 +1318,10 @@ subroutine gradshafranov_solve
      call mult(pe_field(0), pefac)
   end if
 
-  ! Define te field
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Te...'
+  ! Define Ti and Te field
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Ti and Te...'
   b1vecini_vec = 0.
-  do itri=1,numelms
-     call define_element_quadrature(itri, int_pts_main, int_tor)
-     call define_fields(itri, 0, 1, 0)
-     
-     call eval_ops(itri, pe_field(0), pe079)
-     call eval_ops(itri, den_field(0), n079)
-     
-     do i=1, npoints 
-        call calc_electron_temperature(te,pe079(i,:), n079(i,:))
-        temp79a(i) = te(1)
-     end do
-     
-     do i=1, dofs_per_element
-        temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
-     end do
-     call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
-  end do
-  
-  call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
-  te_field(0) = b1vecini_vec
-
-  ! Define ti field
-  if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating Ti...'
-  b1vecini_vec = 0.
+  b2vecini_vec = 0.
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_main, int_tor)
      call define_fields(itri, 0, 1, 0)
@@ -1401,19 +1330,21 @@ subroutine gradshafranov_solve
      call eval_ops(itri, pe_field(0), pe079)
      call eval_ops(itri, den_field(0), n079)
      
-     do i=1, npoints 
-        call calc_ion_temperature(te,p079(i,:),pe079(i,:),n079(i,:))
-        temp79a(i) = te(1)
-     end do
+     temp79a = (pe079(:,OP_1)) / (zeff*n079(:,OP_1))
+     temp79b = (p079(:,OP_1) - pe079(:,OP_1)) / n079(:,OP_1)
      
      do i=1, dofs_per_element
         temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
+        temp(i,2) = int2(mu79(:,OP_1,i),temp79b)
      end do
      call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+     call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
   end do
-  
+
   call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
-  ti_field(0) = b1vecini_vec
+  te_field(0) = b1vecini_vec  
+  call newvar_solve(b2vecini_vec%vec,mass_mat_lhs)
+  ti_field(0) = b2vecini_vec
 
   call finalize(field0_vec)
 
@@ -2040,6 +1971,7 @@ subroutine fundef2(error)
         
         pso = (ps079(i,OP_1)-psimin)*dpsii
         psm = pso
+        f = 1.
         ! if we are in private flux region, make sure Psi > 1
         mr = magnetic_region(ps079(i,:),x_79(i),z_79(i))
         

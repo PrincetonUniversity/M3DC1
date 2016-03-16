@@ -138,6 +138,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	read_schaffer_field.o pellet.o neutral_beam.o \
 	coils.o coil_sets.o model.o \
 	fit_magnetics.o \
+	init_common.o \
 	gradshafranov.o transport.o \
 	auxiliary_fields.o  \
 	particle.o \
@@ -146,7 +147,6 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o readgeqdsk.o read_dskbal.o \
 	read_jsolver.o \
-	init_common.o \
 	ic_resistive_wall.o \
 	rwm.o solovev.o \
 	init_conds.o \
