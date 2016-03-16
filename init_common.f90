@@ -111,5 +111,71 @@ subroutine init_random(x,phi,z,outarr)
   end select
 end subroutine init_random
 
+subroutine init_perturbations
+  use basic
+  use arrays
+  use field
+  use m3dc1_nint
+  use newvar_mod
+
+  implicit none
+
+  type(field_type) :: psi_vec, phi_vec
+  integer :: itri, numelms, i
+  vectype, dimension(dofs_per_element) :: dofs
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations'
+
+  call create_field(psi_vec)
+  call create_field(phi_vec)
+
+  psi_vec = 0.
+  phi_vec = 0.
+
+  numelms = local_elements()
+  
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,0,1,0)
+
+     call eval_ops(itri, p_field(0), p079)
+     
+     temp79a = (p079(:,OP_1) - pedge)/p0
+
+     ps179 = 0.
+     ph179 = 0.
+
+     ! calculate perturbed fields
+     call init_random(x_79-xmag, phi_79, z_79, ph179(:,OP_1))
+
+     ph179(:,OP_1) = ph179(:,OP_1) + r_79*verzero
+     
+     ph179(:,OP_1) = ph179(:,OP_1)*temp79a
+
+     ! populate vectors for solves
+        
+     ! psi
+     do i=1, dofs_per_element
+        dofs(i) = int2(mu79(:,OP_1,i),ps179(:,OP_1))
+     end do
+     call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
+     
+     ! phi
+     do i=1, dofs_per_element
+        dofs(i) = int2(mu79(:,OP_1,i),ph179(:,OP_1))
+     end do
+     call vector_insert_block(phi_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+     
+  ! do solves
+  call newvar_solve(psi_vec%vec,mass_mat_lhs)
+  psi_field(1) = psi_vec
+  
+  call newvar_solve(phi_vec%vec,mass_mat_lhs)
+  u_field(1) = phi_vec
+
+  call destroy_field(psi_vec)
+  call destroy_field(phi_vec)
+end subroutine init_perturbations
 
 end module init_common
