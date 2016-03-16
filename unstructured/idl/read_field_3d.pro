@@ -25,13 +25,22 @@ function read_field_3d, name, phi, x, z, t, points=points, tpoints=tpoints, $
   if(n_elements(ntor) eq 0) then begin
      return, field
   endif else begin
-     fftfield = complexarr(tpoints,points,points)
+     if(ntor eq 0) then begin
+        fftfield = fltarr(tpoints,points,points)
+        lastfield = fltarr(1,points,points)
+     endif else begin
+        fftfield = complexarr(tpoints,points,points)
+        lastfield = complexarr(1,points,points)
+     endelse
      for i=0, points-1 do begin
         for j=0, points-1 do begin
-           fftfield[*,i,j] = fft(field[*,i,j])
+           if(ntor eq 0) then begin
+              fftfield[*,i,j] = real_part(fft(field[*,i,j]))
+           endif else begin
+              fftfield[*,i,j] = fft(field[*,i,j])
+           endelse
         end
      end
-     lastfield = complexarr(1,points,points)
      lastfield = fftfield[ntor, *, *]
      return, lastfield
   end
