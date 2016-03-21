@@ -29,7 +29,7 @@ width 2.0
 height 4.0 
 
 ! offset in x direction
-offsetX 0.2
+offsetX 0.25
 
 ! offset in y direction
 offsetY 0.0

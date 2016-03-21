@@ -138,17 +138,22 @@
 	pedge = 5e-4
 	expn = 0.
 	xnull = 0.4
-	znull = -0.7
+	znull = -1.4
 	xnull2 = 0.4
-	znull2 = 0.7
-	sigma0 = 0.2
+	znull2 = 1.4
+	sigma0 = 0.4
 
 	igs_extend_p = 1
 
-        gs_vertical_feedback(14) = -200.
-        gs_vertical_feedback(15) = -200.
-        gs_vertical_feedback(20) =  200.
-        gs_vertical_feedback(21) =  200.
+        gs_vertical_feedback(12) = -200.
+        gs_vertical_feedback(13) = -200.
+        gs_vertical_feedback(22) =  200.
+        gs_vertical_feedback(23) =  200.
+
+	gs_radial_feedback(14) = -200.
+	gs_radial_feedback(15) = -200.
+	gs_radial_feedback(20) = -200.
+	gs_radial_feedback(21) = -200.
 
 	ntor = 1
 
