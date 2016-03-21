@@ -96,9 +96,10 @@ contains
     include 'mpif.h'
 
     character(len=32) :: line
+    integer, dimension(4), parameter :: trid = (/ 75, 105, 206, 29 /)
     real, parameter :: JpereV = 1.6022e-19
     real :: pdt, keeV, pphi
-    integer :: ierr, ip, istep=0, trid, trunit=120
+    integer :: ierr, ip, istep=0, itr, trunit=120
 
     if (myrank.eq.0) then
        print *,'xlim2 = ',xlim2
@@ -116,66 +117,77 @@ contains
     call calculate_auxiliary_fields(eqsubtract)
 
     !Initialize particle population
-    call init_particles
+    call init_particles(ierr)
+    if (ierr.ne.0) return
+    if (myrank.eq.0) print *,'particles initialized.'
 
     !Create particle trajectory output text file?
-    trid = 3778
-    write(line,'(A,I8.8)') 'ptraj_',trid
-    do ierr=1,size(pdata)
-       do ip=1,pdata(ierr)%np
-          if (pdata(ierr)%ion(ip)%gid.eq.trid) then
-             print *,myrank,': ielm,ip = ',ierr,ip,': gid = ',pdata(ierr)%ion(1)%gid
-             open(unit=trunit, file=trim(line), status='replace', action='write')
-             write(trunit,*)'x  y  z  t  KE  Pphi'
-             keeV = getke(pdata(ierr)%ion(ip))/JpereV
-             pphi = getPphi(pdata(ierr)%ion(ip))/JpereV
-             write(trunit,'(3f14.8,3e18.8)') &
-                  pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
-                  pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
-                  pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi
-             close(trunit)
-             exit
-          endif
-       enddo !ip
-    enddo !ierr
-
-    !Advance particle positions
-    pdt = 1.0e-6
-    do istep=1,2000
-       call advance_particles(pdt)
-
+    do itr=1,size(trid)
        do ierr=1,size(pdata)
           do ip=1,pdata(ierr)%np
-             if (pdata(ierr)%ion(ip)%gid.eq.trid) then
-                print *,myrank,' reopening trajectory file.'
-                !write(line,'(A,I8.8)'),'ptraj_',trid
-                open(unit=trunit, file=trim(line), status='old', action='write', &
-                     position='append')
+             if (pdata(ierr)%ion(ip)%gid.eq.trid(itr)) then
+                print *,myrank,': ielm,ip = ',ierr,ip,': gid = ',pdata(ierr)%ion(1)%gid
+                write(line,'(A,I8.8)') 'ptraj_',trid(itr)
+                open(unit=trunit, file=trim(line), status='replace', action='write')
+                write(trunit,*)'x  y  z  t  KE  Pphi  rank'
                 keeV = getke(pdata(ierr)%ion(ip))/JpereV
                 pphi = getPphi(pdata(ierr)%ion(ip))/JpereV
-                write(trunit,'(3f14.8,3e18.8)') &
+                write(trunit,'(3f14.8,3e18.8,I6)') &
                      pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
                      pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
-                     pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi
+                     pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi, myrank
                 close(trunit)
+                print *,myrank,': trajectory file ',trim(line),' created.'
                 exit
              endif
           enddo !ip
        enddo !ierr
+    enddo !itr
+
+    !Advance particle positions
+    pdt = 2.0e-7
+    do istep=1,2400
+       call advance_particles(pdt)
+       if (myrank.eq.0) print *,'particle advance',istep,' complete.'
+
+       do itr=1,size(trid)
+          do ierr=1,size(pdata)
+             do ip=1,pdata(ierr)%np
+                if (pdata(ierr)%ion(ip)%gid.eq.trid(itr)) then
+                   write(line,'(A,I8.8)'),'ptraj_',trid(itr)
+                   open(unit=trunit, file=trim(line), status='old', action='write', &
+                        position='append')
+                   keeV = getke(pdata(ierr)%ion(ip))/JpereV
+                   pphi = getPphi(pdata(ierr)%ion(ip))/JpereV
+                   write(trunit,'(3f14.8,3e18.8,I6)') &
+                        pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
+                        pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
+                        pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi, myrank
+                   close(trunit)
+                   exit
+                endif
+             enddo !ip
+          enddo !ierr
+       enddo !itr
     enddo !istep
+
+    call m3dc1_ghost_delete
 
     !Clean up
     call finalize_particles
   end subroutine particle_test
 
 !---------------------------------------------------------------------------
-  subroutine init_particles
+  subroutine init_particles(ierr)
     use basic
     implicit none
 
     include 'mpif.h'
 
+    integer, intent(out) :: ierr
+
     real, parameter :: c_mks = 2.9979e+8
+    integer, parameter :: nglayers = 2 !# of layers of ghost zones around each mesh domain
     type(particle) :: dpar  !Dummy particle
     type(elfield), dimension(nneighbors+1) :: elcoefs
     type(xgeomterms) :: geomterms
@@ -184,18 +196,43 @@ contains
     real    :: Eev, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
     real    :: gyroperiod, gfrac=5.0e-3, gkfrac=8.0, dtp, ldtmin
     integer :: npr, npz, npe, npmu, ir, iz, ie, imu, ip
-    integer :: nelms, ielm, ierr, lc, noc, tridex, itri
+    integer :: nelms, ielm, lc, noc, tridex, itri
+    integer :: gfx, isghost, nle=0, nge=0
+
+    !Load a ghost mesh with nglayers layers, query dimensions
+    call m3dc1_ghost_load(nglayers)
+    call mpi_barrier(MPI_COMM_WORLD, ierr)
+    if (myrank.eq.0) print *,'Set up ghost mesh with',nglayers,' layers.'
+    call m3dc1_mesh_getnument(2, nelms)
+    do gfx=1,nelms
+       call m3dc1_ent_isghost(2, gfx-1, isghost)
+       if (isghost.eq.1) then
+          nge = nge + 1
+       else
+          nle = nle + 1
+       endif
+    enddo !gfx
+    print *,myrank,':',nle,' local elements;',nge,' ghost elements.'
+
+    !Recompute triangle coefficients
+    nelms = local_elements()
+    print *,myrank,': ',nelms,' local+ghost elements,',&
+         coeffs_per_element,' coeffs per element.'
+    deallocate(gtri,htri)
+    if(iprecompute_metric.eq.1) deallocate(ctri)
+    allocate(gtri(coeffs_per_tri,dofs_per_tri,nelms))
+    allocate(htri(coeffs_per_dphi,dofs_per_dphi,nelms))
+    if(iprecompute_metric.eq.1) &
+         allocate(ctri(dofs_per_element,coeffs_per_element,nelms))
+    call tridef
 
     !Allocate local storage for particle data
-    nelms = local_elements()
-    !print *,myrank,': ',nelms,' local elements,',&
-    !     coeffs_per_element,' coeffs per element.'
     allocate(pdata(nelms))
 
     !Set up 'neighborlist' table of element neighbors
     call find_element_neighbors
 
-    npr = 64;  npz = 64;  npe = 1;  npmu = 2
+    npr = 12;  npz = 12;  npe = 1;  npmu = 2
 
 
     !Particle spatial ranges
@@ -230,27 +267,26 @@ contains
           !Check for local residence
           ielm = 0
           call whattri(dpar%x(1), dpar%x(2), dpar%x(3), ielm, xi, zi)
-          if (ielm.gt.0) then
-             !print *,myrank,'part',dpar%x(1:3:2),' is in elm',ielm
+          if (ielm.le.0) cycle     !Not in local partition; skip.
+          call m3dc1_ent_isghost(2, ielm-1, isghost)
+          if (isghost.eq.1) cycle  !In ghost layer; skip.
 
-             do ie=1,npe !Loop over kinetic energies
-                dpar%v(1) = speed  !monoenergetic, for now
+          do ie=1,npe !Loop over kinetic energies
+             dpar%v(1) = speed  !monoenergetic, for now
 
-                do imu=1,npmu  !Loop over pitch angles
-                   dpar%v(2) = lambda_min + (imu - 1.0)*pdl
-                   dpar%gid = npmu*(npe*(npr*(iz-1) + (ir-1)) + (ie-1)) + (imu-1)
-                   !print *,myrank,': gid =',dpar%gid
+             do imu=1,npmu  !Loop over pitch angles
+                dpar%v(2) = lambda_min + (imu - 1.0)*pdl
+                dpar%gid = npmu*(npe*(npr*(iz-1) + (ir-1)) + (ie-1)) + (imu-1)
 
-                   call add_particle(ielm, dpar, ierr)
-                   if (ierr.eq.0) locparts = locparts + 1
-                enddo !imu
-             enddo !ie
-          endif !ielm
+                call add_particle(ielm, dpar, ierr)
+                if (ierr.eq.0) locparts = locparts + 1
+             enddo !imu
+          enddo !ie
        enddo !ir
     enddo !iz
 
     write(0,'(I6,A,I7,A,f8.2,A)')myrank,':',locparts,' local particle(s). (avg',&
-         locparts/real(nelms),' per cell)'
+         locparts/real(nle),' per cell)'
     lc = sum(pdata(:)%np)
     if (lc.ne.locparts) print *,myrank,': mismatch in local particle count.'
 
@@ -291,14 +327,13 @@ contains
           call getBcyl(pdata(ielm)%ion(ip)%x, elcoefs(1), geomterms, Bcyl)
           B0 = sqrt(dot_product(Bcyl, Bcyl))
           gyroperiod = 6.283185307 / (qm_ion * B0)
-          !print *,'Estimated gyroperiod = ',1.0e+9*gyroperiod,' ns.'
 
           if (vspdims.eq.3) then !full orbit
              B1 = sqrt(Bcyl(1)**2 + Bcyl(2)**2)
 
-             pdata(ielm)%ion(ip)%v(1) = vpar*Bcyl(1)/B0 - vperp*Bcyl(2)/B1
-             pdata(ielm)%ion(ip)%v(2) = vpar*Bcyl(2)/B0 + vperp*Bcyl(1)/B1
-             pdata(ielm)%ion(ip)%v(3) = vpar*Bcyl(3)/B0
+             pdata(ielm)%ion(ip)%v(1) = vpar*Bcyl(1)/B0 - vperp*Bcyl(2)/B1  !v_R
+             pdata(ielm)%ion(ip)%v(2) = vpar*Bcyl(2)/B0 + vperp*Bcyl(1)/B1  !v_phi
+             pdata(ielm)%ion(ip)%v(3) = vpar*Bcyl(3)/B0                     !v_z
 
              dtp = gfrac * gyroperiod
           else !gyro- or drift kinetic
@@ -314,12 +349,17 @@ contains
        noc = noc + 1
     enddo !ielm
     print *,myrank,':',noc,' / ',nelms,' elements occupied.'
-    !print *,myrank,': ldtmin = ',ldtmin
+    print *,myrank,': ldtmin = ',ldtmin
 
     call mpi_allreduce(ldtmin, dt_ion, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, ierr)
     if (myrank.eq.0) print *,'Particle dt = ',dt_ion,' s.'
+    if (dt_ion.le.0.0) then
+       ierr = 1
+       return
+    endif
 
     call define_mpi_particle
+    ierr = 0
   end subroutine init_particles
 
 !---------------------------------------------------------------------------
@@ -439,7 +479,6 @@ contains
 
     nelms = local_elements();  lnodes = local_nodes()
     if (nelms.lt.1) return
-    if (myrank.eq.0) print *,'find_element_neighbors: lnodes =',lnodes
 
 #ifdef USE3D
     if (nodes_per_element.eq.6) then !prisms
@@ -528,9 +567,12 @@ contains
     type(particle) :: testpart
     type(elfield), dimension(nneighbors+1) :: elcoefs
     real    :: dtp, trem, xi, zi
-    integer :: nelms, ielm, itri, ipart, ip, ierr
+    integer :: nelms, ielm, itri, ipart, ierr
     integer :: nlost, ipe, lunf, gunf
-    !integer :: nstep, nhop, thop, nreas, treas  !Stats on ptcle movement w/in local domain
+    integer :: nstep, nhop, thop, nreas, treas  !Stats on ptcle movement w/in local domain
+    integer :: njump, nrec, isghost
+
+    !if (myrank.eq.0) print *,'advancing particles by ',tinc
 
     nelms = size(pdata)
 
@@ -543,13 +585,13 @@ contains
     elcoefs(:)%itri = 0
 
     do !Iterate until all particles are in the correct domain
-       !thop = 0;  treas = 0
-       nlost = 0;  lunf = 0
+       thop = 0;  treas = 0;  nlost = 0;  lunf = 0
+       njump = 0
 
        !Loop over all local elements (good candidate for OMP parallelization)
        do ielm=1,nelms
           if (pdata(ielm)%np.eq.0) cycle  !Skip if element is empty
-          !nhop = 0;  nreas = 0
+          nhop = 0;  nreas = 0
 
           !Load scalar fields for this element & its nearest neighbors
           call update_coef_ensemble(elcoefs, ielm)
@@ -557,7 +599,7 @@ contains
           !Advance particles within this element
           ipart = 1
           do !For each particle ipart
-             !nstep = 0
+             nstep = 0
              dtp = dt_ion;  itri = ielm
 
              do !Advance particle by tinc
@@ -568,87 +610,110 @@ contains
                 call rk4(pdata(ielm)%ion(ipart), dtp, elcoefs, itri, ierr)
                 !call rk5ck(pdata(ielm)%ion(ipart), dtp, elcoefs, itri, ierr)
 
-                if (ierr.eq.1) then ! Particle exited local domain
-                   nlost = nlost + 1
-                   if (nlost.gt.nparticles) then
-                      print *,myrank,'nlost out of range in advance_particles().'
-                      return
+                if (ierr.eq.1) then ! Particle exited local+ghost domain -> lost
+                   !print *,myrank,': el',ielm,', p',ipart,' exited extended domain'
+                   call delete_particle(ielm, ipart, ierr)
+                   if (ierr.ne.0) then
+                      print *,myrank,': error',ierr,' deleting lost particle',&
+                           pdata(ielm)%ion(ipart)%gid,' from elm',ielm
                    endif
-                   llpel(nlost) = ielm
-                   llpid(nlost) = pdata(ielm)%ion(ipart)%gid
-                   lunf = 1
+                   nlost = nlost + 1
+                   ipart = ipart - 1
                    exit !Break out of tinc loop, go to next particle.
                 endif
 
                 pdata(ielm)%ion(ipart)%tlast = pdata(ielm)%ion(ipart)%tlast + dtp
-                !nstep = nstep + 1
+                nstep = nstep + 1
  
-                if (itri.ne.ielm) then !Particle has moved to a new element
-                   !if (ierr.eq.2) then ! Particle exited current element ensemble
-                   !   nhop = nhop + 1
-                   !else                ! Particle moved within current element ensemble
-                   !   nreas = nreas + 1
-                   !endif
-                   if (pdata(ielm)%ion(ipart)%tlast.lt.tinc) lunf = 1
+                if (itri.eq.ielm) cycle !Continue push within element
 
-                   !Add it to the new element
-                   call add_particle(itri, pdata(ielm)%ion(ipart), ierr)
-                   if (ierr.ne.0) print *,myrank,': error in add_particle!'
+                !Particle has moved to a new element -> outer loop must repeat.
+                lunf = 1
 
-                   !Remove it from the current one
-                   call delete_particle(ielm, ipart, ierr)
-                   if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
+                !Test whether new element is in ghost layer
+                call m3dc1_ent_isghost(2, itri-1, isghost)
+                if (isghost.eq.1) then !It is -> schedule move to new PE
+                   njump = njump + 1
+                   if (njump.gt.nparticles) then
+                      print *,myrank,'njump out of range in advance_particles().'
+                      return
+                   endif
+                   llpel(njump) = ielm
+                   llpid(njump) = ipart
+                   exit !Skip to next particle.
+                endif
 
-                   ipart = ipart - 1
-                   exit !Break out of tinc loop, go to next particle.
-                endif !itri.ne.ielm
+                !Particle is still on local domain
+                if (ierr.eq.2) then ! Particle exited current element ensemble
+                   nhop = nhop + 1
+                else                ! Particle moved within current element ensemble
+                   nreas = nreas + 1
+                endif
+
+                !Add it to the new element
+                call add_particle(itri, pdata(ielm)%ion(ipart), ierr)
+                if (ierr.ne.0) print *,myrank,': error in add_particle!'
+
+                !Remove it from the current one
+                call delete_particle(ielm, ipart, ierr)
+                if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
+
+                ipart = ipart - 1
+                exit !Break out of tinc loop, go to next particle.
              enddo !tinc advance
 
              ipart = ipart + 1
              if (ipart.gt.pdata(ielm)%np) exit
           enddo !ipart
 
-          !thop = thop + nhop
-          !treas = treas + nreas
+          thop = thop + nhop
+          treas = treas + nreas
        enddo !ielm
 
-       !print *,myrank,':',nlost,' / ',locparts,' total exited.'
-       !print *,myrank,':',thop,' / ',locparts,' total hopped.'
-       !print *,myrank,':',treas,' / ',locparts,' total reassigned.'
+       print *,myrank,':',nlost,' / ',locparts,' total lost.'
+#ifdef JBDEBUG
+       print *,myrank,':',thop,' / ',locparts,' total hopped to new ensemble.'
+       print *,myrank,':',treas,' / ',locparts,' total reassigned within ensemble.'
+       print *,myrank,':',njump,' / ',locparts,' total jumped to new domain.'
+#endif
+
+       locparts = locparts - nlost
 
        call mpi_allreduce(lunf, gunf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
        if (gunf.le.0) exit ! All particles have reached target time
 
        !Tabulate particles that have migrated out of local domain
-       call mpi_allgather(nlost, 1, MPI_INTEGER, lpcount, 1, MPI_INTEGER, &
+       call mpi_allgather(njump, 1, MPI_INTEGER, lpcount, 1, MPI_INTEGER, &
             MPI_COMM_WORLD, ierr)
 
        !Reassign transiting particles
+       !(This way is serial and very inefficient; particles should be sorted
+       ! by destination and communicated point-to-point once global ghost indexing
+       ! has been implemented! - JB 3-10-2016)
+       nrec = 0
        do ipe=0,maxrank-1
           do ipart=1,lpcount(ipe+1)
-             if (myrank.eq.ipe) then
-                do ip=1,pdata(llpel(ipart))%np
-                   if (pdata(llpel(ipart))%ion(ip)%gid.eq.llpid(ipart)) exit
-                enddo !ip
-                if (ip.gt.pdata(llpel(ipart))%np) then
-                   print *,'particle not found for reassignment.'
-                   return
-                endif
-                testpart = pdata(llpel(ipart))%ion(ip)
-             endif
+             if (myrank.eq.ipe) testpart = pdata(llpel(ipart))%ion(llpid(ipart))
              call mpi_bcast(testpart, 1, mpi_particle, ipe, MPI_COMM_WORLD, ierr)
 
              if (myrank.eq.ipe) then !Delete particle from local list
-                call delete_particle(llpel(ipart), ip, ierr)
-                if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
+                call delete_particle(llpel(ipart), llpid(ipart), ierr)
+                if (ierr.ne.0) print *,myrank,': jump error',ierr,'in delete_particle!'
+                where (llpel(ipart+1:njump).eq.llpel(ipart)) &
+                     llpid(ipart+1:njump) = llpid(ipart+1:njump) - 1
                 locparts = locparts - 1
              else
                 call whattri(testpart%x(1), testpart%x(2), testpart%x(3), &
                      itri, xi, zi)
-                if (itri.gt.0) then !Add particle to local list
-                   call add_particle(itri, testpart, ierr)
-                   if (ierr.ne.0) print *,myrank,': error in add_particle!'
-                   locparts = locparts + 1
+                if (itri.gt.0) then !Zone found
+                   call m3dc1_ent_isghost(2, itri-1, isghost) !Ghost layer?
+                   if (isghost.ne.1) then
+                      !Add particle to local list
+                      call add_particle(itri, testpart, ierr)
+                      if (ierr.ne.0) print *,myrank,': jump error in add_particle!'
+                      locparts = locparts + 1
+                      nrec = nrec + 1
+                   endif !isghost...
                 endif !itri...
              endif !myrank...
           enddo !ipart
@@ -660,18 +725,6 @@ contains
     if (myrank.eq.0) &
          print *,nparticles,' particle(s) remaining after advance step.'
 
-    if (myrank.eq.3) then
-       if (locparts.gt.0) then
-          do ielm=1,nelms
-             if (pdata(ielm)%np.gt.0) then
-                print *,'1st remaining on 3 is ',pdata(ielm)%ion(1)%gid
-                exit
-             endif
-          enddo
-       else
-          print *,'None remaining on 3.'
-       endif
-    endif
   end subroutine advance_particles
 
 !---------------------------------------------------------------------------
@@ -1392,4 +1445,55 @@ contains
        getPphi = getPphi + (e_mks/qm_ion) * p%v(1) * B_cyl(2) * p%x(1) / B0
     endif
   end function getPphi
+
+!---------------------------------------------------------------------------
+! Integrate over velocity space to compute kinetic ion contributions to
+! parallel and perpendicular components of pressure tensor.
+  subroutine particle_pressure
+    implicit none
+
+    real, dimension(3) :: B_part
+    type(elfield), dimension(nneighbors+1) :: elcoefs
+    type(xgeomterms)   :: geomterms
+    real               :: B0, ppar, pperp
+    integer            :: ierr, nelms, ielm, ipart, itri, tridex
+
+    nelms = size(pdata)
+    elcoefs(:)%itri = 0
+
+    !Loop over all local elements
+    do ielm=1,nelms
+
+       !Need B at particle locations -> Load scalar fields for this element
+       call get_field_coefs(ielm, elcoefs(1), .false.)
+
+       !Sum over particles within this element
+       do ipart=1,pdata(ielm)%np
+
+          !Calculate B field at particle location
+          itri = ielm
+          call get_geom_terms(pdata(ielm)%ion(ipart)%x, itri, elcoefs, tridex, &
+               geomterms, .false., ierr)
+          if (ierr.ne.0) then
+          endif
+          if (itri.ne.ielm) then
+          endif
+          call getBcyl(pdata(ielm)%ion(ipart)%x, elcoefs(tridex), geomterms, B_part)
+          B0 = sqrt(dot_product(B_part, B_part))
+
+          !Contribution of particle velocity to parallel pressure
+          if (vspdims.eq.2) then !drift-kinetic: v_|| = v(1)
+             ppar = m_ion*pdata(ielm)%ion(ipart)%v(1)**2
+          else                   !full orbit: v_|| = v.B/|B|
+          endif
+
+          !Contribution of particle velocity to perpendicular pressure
+          if (vspdims.eq.2) then !drift-kinetic:
+             pperp = q_ion*pdata(ielm)%ion(ipart)%v(2)*B0
+          else                   !full orbit:
+          endif
+
+       enddo !ipart
+    enddo !ielm
+  end subroutine particle_pressure
 end module particles
