@@ -27,6 +27,7 @@ PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
 ifeq ($(COM), 1)
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
       PETSC_ARCH = complex-intel-mpich7.2
+      HYPRE_LIB = 
 else
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
       PETSC_ARCH = real-intel-mpich7.2

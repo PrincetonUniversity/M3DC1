@@ -55,6 +55,8 @@ module particles
 
 contains
 
+#ifdef USEPARTICLES
+
   !Define MPI datatype for particle communication
   subroutine define_mpi_particle
     implicit none
@@ -1496,4 +1498,9 @@ contains
        enddo !ipart
     enddo !ielm
   end subroutine particle_pressure
+
+#endif
+
 end module particles
+
+
