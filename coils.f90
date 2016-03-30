@@ -147,7 +147,7 @@ contains
             ic(s) = cv(i)*(cos(pi*phasev(i)/180.) &
                  - (0.,1.)*sin(pi*phasev(i)/180.))
             
-            if(present(coil_mask)) coil_mask(s) = i+1
+            if(present(coil_mask)) coil_mask(s) = i
             if(present(filaments)) filaments(s) = sxv(i)*syv(i)
          end do
       end do
