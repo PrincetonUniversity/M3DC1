@@ -34,7 +34,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   endif else begin
      period = 2.*!pi
   end
-  help, r0, itor
+  help, r0, itor, period
   fast = fast0
 
   if(n_elements(pts) eq 0) then begin
@@ -284,6 +284,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         newm = interpol(findgen(m),theta_sfl[*,j],theta)
         rpath[*,j] = interpolate(rpath[*,j],newm)
         zpath[*,j] = interpolate(zpath[*,j],newm)
+        if(itor eq 1) then rp[*,j] = rpath[*,j]
         
         ; use analytic expression for Jacobian
         if(keyword_set(pest)) then begin
@@ -329,7 +330,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      and not keyword_set(fast)) then begin
      for j=0, n-1 do begin
         for i=0, m-1 do begin
-           jac_pest = rp^2*q[j] / $
+           jac_pest = rp[i,j]^2*q[j] / $
                       field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
            if(i eq 0) then begin
               omega[i,j] = 0.
