@@ -367,6 +367,7 @@ subroutine define_profiles
 
   ! define pressure profile
   ! ~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' defining pressure profile'
   ierr = 0
   select case(iread_p)
      
@@ -412,6 +413,7 @@ subroutine define_profiles
   end if
 
   ! scale profiles
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' scaling profiles'
   p0_spline%y = p0_spline%y*pscale
   pprime_spline%y = pprime_spline%y*pscale
   g0_spline%y = g0_spline%y*bscale**2
@@ -493,6 +495,7 @@ subroutine define_profiles
 
   ! define Te profile
   ! ~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' defining temperature profile'
   ierr = 0
   select case(iread_te)
      
@@ -554,7 +557,7 @@ subroutine define_profiles
 
   ! define density profile
   ! ~~~~~~~~~~~~~~~~~~~~~~
-
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' defining density profile'
   ! If Te is specified but pe equation is not included
   ! then define density based on p and Te
   if(ipres.eq.0 .and. allocated(te_spline%y) .and. eqsubtract.eq.0) then
@@ -652,6 +655,7 @@ subroutine define_profiles
 
   ! define rotation profile
   ! ~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' defining rotation profile'
   if(irot.ne.0) then
      ierr = 0
      select case(iread_omega)
@@ -716,6 +720,7 @@ subroutine define_profiles
 
      case default
         call default_omega
+        call copy_spline(omega_spline_0, omega_spline)
      end select
 
      if(allocated(yvals)) then
@@ -2205,7 +2210,12 @@ end subroutine readpgfiles
    real :: psii, pres, dens, alpha
    real, allocatable :: omega(:), psinorm(:)
 
-   if(myrank.eq.0) print *, "Using analytic alpha profile"
+   if(myrank.eq.0 .and. iprint.ge.1) print *, "Using analytic alpha profile"
+
+   if(.not.allocated(p0_spline%y) .or. .not.allocated(n0_spline%y)) then
+      print *, 'Error: p and n profiles not allocated'
+      call safestop(53)
+   end if
 
    npsi = 100
    allocate(omega(npsi), psinorm(npsi))
@@ -2219,16 +2229,19 @@ end subroutine readpgfiles
       call evaluate_spline(p0_spline, psii, pres)
       call evaluate_spline(n0_spline, psii, dens)
       if(iscale_rot_by_p.eq.0) alpha = alpha * dens/pres
-      if (iscale_rot_by_p.eq.2) then
+      if(iscale_rot_by_p.eq.2) then
         alpha = alpha0 + alpha1*exp(-((psii-alpha2)/alpha3)**2)
         alpha = alpha * dens/pres
       end if   
       omega(j) = sqrt(2./rzero**2 * alpha * pres/dens)
    end do
+   if(iscale_rot_by_p.eq.1) omega = omega - omega(npsi)
 
    call create_spline(omega_spline, npsi, psinorm, omega)
 
    deallocate(omega, psinorm)
+
+   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done defining alpha"
  end subroutine default_omega
 
  !=======================================================================
