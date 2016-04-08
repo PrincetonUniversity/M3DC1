@@ -328,7 +328,7 @@ contains
 ! (x,z).  itri is the element containing (x,z).  (If this
 ! element does not reside on this process, itri=-1).
 !============================================================
-subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
+subroutine evaluate(x,phi,z,ans,fin,itri,ierr)
   
   use mesh_mod
   use basic
@@ -344,15 +344,12 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
   type(field_type), intent(in) :: fin
   integer, intent(out) :: ierr ! = 0 on success
 
-  real, intent(out) :: ans, ans2
+  real, intent(out), dimension(OP_NUM) :: ans
 
   type(element_data) :: d
-  integer :: p, nodeids(nodes_per_element), ier
+  integer :: nodeids(nodes_per_element), ier
   real :: x1, phi1, z1
-  vectype, dimension(coeffs_per_element) :: avector
-  real :: ri, si, zi, eta
-  vectype :: term1, term2
-  vectype, dimension(2) :: temp1, temp2
+  vectype, dimension(OP_NUM) :: temp1, temp2
   integer :: hasval, tothasval
 
   ! evaluate the solution to get the value [ans] at one point (x,z)
@@ -368,9 +365,9 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
      call get_node_pos(nodeids(1), x1, phi1, z1)
   endif
 
+  temp1 = 0.
+  temp2 = 0.
   ans = 0.
-  ans2 = 0.
-
 
   ! if this process contains the point, evaluate the field at that point.
   if(itri.gt.0) then
@@ -378,47 +375,24 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
      call get_element_data(itri, d)
 
      ! calculate local coordinates
-     call global_to_local(d, x, phi, z, si, zi, eta)
+     call global_to_local(d, x, phi, z, xi_79(1), zi_79(1), eta_79(1))
 
      ! calculate the inverse radius
      if(itor.eq.1) then
-        ri = 1./x
+        ri_79(1) = 1./x
      else
-        ri = 1.
+        ri_79(1) = 1.
      endif
 
+     call precalculate_terms(xi_79, zi_79, eta_79, d%co, d%sn, ri_79, 1)
+     call define_basis(itri)
+
      ! calculate the value of the function
-     call calcavector(itri, fin, avector)
+     call eval_ops(itri, fin, tm79, rfac)
      
-     do p=1,20
-     
-        term1 = si**mi(p)*eta**ni(p)
-        term2 = 0.
-        
-        if(mi(p).ge.1) then
-           if(itor.eq.1) then
-              term2 = term2 - 2.*d%co*(mi(p)*si**(mi(p)-1) * eta**ni(p))*ri
-           endif
-           
-           if(mi(p).ge.2) then
-              term2 = term2 + si**(mi(p)-2)*(mi(p)-1)*mi(p) * eta**ni(p)
-           endif
-        endif
-     
-        if(ni(p).ge.1) then
-           if(itor.eq.1) then
-              term2 = term2 + 2.*d%sn*(si**mi(p) * eta**(ni(p)-1)*ni(p))*ri
-           endif
-           
-           if(ni(p).ge.2) then
-              term2 = term2 + si**mi(p) * eta**(ni(p)-2)*(ni(p)-1)*ni(p)
-           endif
-        endif
-     
-        ans = ans + avector(p)*term1
-        ans2 = ans2 + avector(p)*term2
-        hasval = 1
-     enddo
+     temp1 = tm79(1,:)
+
+     hasval = 1
   else
      hasval = 0
   endif
@@ -444,18 +418,14 @@ subroutine evaluate(x,phi,z,ans,ans2,fin,itri,ierr)
   if(maxrank.gt.1) then
      ! Find the average value at this point over all processes containing
      ! the point.  (Each value should be identical.)
-     temp1(1) = ans
-     temp1(2) = ans2
 #ifdef USECOMPLEX
-     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_COMPLEX, MPI_SUM, &
+     call mpi_allreduce(temp1, temp2, OP_NUM, MPI_DOUBLE_COMPLEX, MPI_SUM, &
           MPI_COMM_WORLD, ier)
-     ans = real(temp2(1)*exp(rfac*phi))/tothasval
-     ans2 = real(temp2(2)*exp(rfac*phi))/tothasval
+     ans = real(temp2*exp(rfac*phi))/tothasval
 #else
-     call mpi_allreduce(temp1, temp2, 2, MPI_DOUBLE_PRECISION, MPI_SUM, &
+     call mpi_allreduce(temp1, temp2, OP_NUM, MPI_DOUBLE_PRECISION, MPI_SUM, &
           MPI_COMM_WORLD, ier)
-     ans = temp2(1)/tothasval
-     ans2 = temp2(2)/tothasval
+     ans = temp2/tothasval
 #endif
   endif
 
@@ -476,11 +446,12 @@ end subroutine evaluate
     use basic
     use arrays
     use mesh_mod
+    use m3dc1_nint
   
     implicit none
 
     real :: alx, alz, xrel, zrel
-    real, dimension(2) :: temp, temp2
+    real, dimension(OP_NUM) :: temp, temp2
     integer :: itri, ierr
 
     call get_bounding_box_size(alx,alz)
@@ -489,14 +460,14 @@ end subroutine evaluate
     itri = 0
     xrel = xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,0.,zrel,temp(1),temp2(1),psi_field(1),itri,ierr)
+    call evaluate(xrel,0.,zrel,temp,psi_field(1),itri,ierr)
 
     itri = 0
     xrel = alx/2. + xzero
     zrel = alz/2. + zzero
-    call evaluate(xrel,0.,zrel,temp(2),temp2(2),psi_field(1),itri,ierr)
+    call evaluate(xrel,0.,zrel,temp2,psi_field(1),itri,ierr)
 
-    reconnected_flux = 0.5*(temp(2)-temp(1))
+    reconnected_flux = 0.5*(temp2(OP_1)-temp(OP_1))
 
     return
   end function reconnected_flux
@@ -544,7 +515,7 @@ subroutine calculate_scalars()
   real :: n(2,3),tpifac,tpirzero
   integer :: iedge, idim(3), izone, izonedim, i
   integer :: magnetic_region
-  real :: dum1, dum2
+  real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
 
  !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
@@ -854,8 +825,8 @@ subroutine calculate_scalars()
 
     ! psi on axis
     itri = 0
-    call evaluate(xmag,0.,zmag,dum1,dum2,psi_field(1),itri,ier)
-    psi0 = dum1
+    call evaluate(xmag,0.,zmag,dum1,psi_field(1),itri,ier)
+    psi0 = dum1(OP_1)
 
 #ifdef USE3D
   if(ike_harmonics .gt. 0) call calculate_ke()
@@ -1307,10 +1278,11 @@ subroutine lcfs(psi, test_wall, findx)
 
   type(field_type) :: temp_field
   real :: psix, psix2, psib, psim
-  real :: x, z, temp1, temp2, temp_min, temp_max, ajlim
+  real :: x, z, temp1, temp2, temp_min, temp_max
   integer :: ier, ier2, numnodes, inode, izone, izonedim, itri, icounter_t
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
+  real, dimension(OP_NUM) :: dum1
   real :: curv
   logical :: tw, fx
   vectype, dimension(dofs_per_node) :: data
@@ -1332,7 +1304,7 @@ subroutine lcfs(psi, test_wall, findx)
 
   ! Find magnetic axis
   ! ~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding magnetic axis'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding magnetic axis.  FX = ', fx
   call magaxis(xmag,zmag,temp_field,psim,0,ier)
   if(ier.eq.0) then
      psimin = psim
@@ -1410,14 +1382,20 @@ subroutine lcfs(psi, test_wall, findx)
      if(xnull2 .gt. 0.) call magaxis(xnull2,znull2,temp_field,psix2,1,ier2)
   else
      itri = 0.
-     if(xnull.gt.0.) &
-          call evaluate(xnull,0.,znull,psix,ajlim,temp_field,itri,ier)
-     if(xnull2.gt.0.) &
-          call evaluate(xnull2,0.,znull2,psix,ajlim,temp_field,itri,ier2)
+     if(xnull.gt.0.) then
+        call evaluate(xnull,0.,znull,dum1,temp_field,itri,ier)
+        psix = dum1(OP_1)
+     end if
+     if(xnull2.gt.0.) then
+        call evaluate(xnull2,0.,znull2,dum1,temp_field,itri,ier2)
+        psix = dum1(OP_1)
+     end if
+     
   end if
   if(ier.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) then
         write(*,'(A,2E12.4)') '  X-point found at ', xnull, znull
+        write(*,'(A,2E12.4)') '   Psi_x = ', psix
      end if
   else 
      psix = psib
@@ -1429,8 +1407,14 @@ subroutine lcfs(psi, test_wall, findx)
      if(ier2.eq.0) then
         if(myrank.eq.0 .and. iprint.ge.1) then
            write(*,'(A,2E12.4)') '  X-point found at ', xnull2, znull2
+           write(*,'(A,2E12.4)') '   Psi_x = ', psix2
         end if
-        if(abs(psix2 - psimin).lt.abs(psix - psimin)) psix = psix2
+        if(abs(psix2 - psimin).lt.abs(psix - psimin)) then
+           psix = psix2
+           if(myrank.eq.0 .and. iprint.ge.1) print *, '  X-point 2 is active '
+        else
+           if(myrank.eq.0 .and. iprint.ge.1) print *, '  X-point 1 is active '
+        end if
      else 
         psix2 = psib
         if(myrank.eq.0 .and. iprint.ge.1) then 
@@ -1457,13 +1441,15 @@ subroutine lcfs(psi, test_wall, findx)
      psilim2 = psilim
   else
      itri = 0
-     call evaluate(xlim,0.,zlim,psilim,ajlim,temp_field,itri,ier)
+     call evaluate(xlim,0.,zlim,dum1,temp_field,itri,ier)
+     psilim = dum1(OP_1)
      if(ier.ne.0) psilim = psibound
      
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
         itri = 0
-        call evaluate(xlim2,0.,zlim2,psilim2,ajlim,temp_field,itri,ier)
+        call evaluate(xlim2,0.,zlim2,dum1,temp_field,itri,ier)
+        psilim2 = dum1(OP_1)
         if(ier.ne.0) psilim = psibound
      else
         psilim2 = psilim
@@ -2439,7 +2425,7 @@ subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
   type(element_data) :: d
   integer :: inews
   integer :: i, ier, in_domain, converged
-  real :: x1, z1, x, z, si, zi, eta, h, phi, nophi
+  real :: x1, z1, x, z, si, zi, eta, h, phi
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
   real :: pt, pt1, pt2, p11, p22, p12
