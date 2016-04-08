@@ -280,81 +280,51 @@ subroutine den_eq
   use diagnostics
   use math
   use mesh_mod
+  use m3dc1_nint
+  use newvar_mod
 
-  integer :: numnodes, inode, icounter_tt
-  real :: temp(6), k, kx, x, phi, z
+  type(field_type) :: den_vec
+  integer :: itri, numelms, i, def_fields
+  vectype, dimension(dofs_per_element) :: dofs
+
+  real :: k, kx
   
   if(idenfunc.eq.0) return
 
-  numnodes = owned_nodes()
+  call create_field(den_vec)
   
-  select case(idenfunc)
-  case(1)      ! added 08/05/08 for stability benchmarking
+  def_fields = FIELD_PSI + FIELD_N
 
-     do icounter_tt=1,numnodes
-        inode = nodes_owned(icounter_tt)
-        call get_local_vals(inode)
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
 
-        den0_l(1) = den0*.5* &
+     select case(idenfunc)
+     case(1)
+        n079(:,OP_1) = den0*.5* &
              (1. + &
-             tanh((real(psi0_l(1))-(psibound+denoff*(psibound-psimin)))&
+             tanh((real(ps079(:,OP_1))-(psibound+denoff*(psibound-psimin)))&
              /(dendelt*(psibound-psimin))))
-
-        call set_local_vals(inode)
-     end do
         
-  case(2)
-     do icounter_tt=1,numnodes
-        inode = nodes_owned(icounter_tt)
-        call get_local_vals(inode)
-        
-        temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
-        temp(2:6) = real(psi0_l(2:6))/(psibound-psimin)
-        
+     case(2)
         k = 1./dendelt
-        kx = k*(temp(1) - denoff)
+        kx = k*(real((psi0_l(1)-psimin)/(psibound-psimin)) - denoff)
         
-        den0_l(1) = 1. + tanh(kx)
-        den0_l(2) = k*sech(kx)**2 * temp(2)
-        den0_l(3) = k*sech(kx)**2 * temp(3)
-        den0_l(4) = k*sech(kx)**2 * temp(4) &
-             -2.*k**2*sech(kx)**2*tanh(kx) * temp(2)**2
-        den0_l(5) = k*sech(kx)**2 * temp(5) &
-             -2.*k**2*sech(kx)**2*tanh(kx) * temp(2)*temp(3)
-        den0_l(6) = k*sech(kx)**2 * temp(6) &
-             -2.*k**2*sech(kx)**2*tanh(kx) * temp(3)**2
-        
-        den0_l = den0_l * 0.5*(den_edge-den0)
-        den0_l(1) = den0_l(1) + den0
+        n079(:,OP_1) = 1. + tanh(kx)
+     end select
 
-        call set_local_vals(inode)
+     do i=1, dofs_per_element
+        dofs(i) = int2(mu79(:,OP_1,i),n079(:,OP_1))
      end do
-     
-  case(3)
-     do icounter_tt=1,numnodes
-        inode = nodes_owned(icounter_tt)
-        call get_local_vals(inode)
-        call get_node_pos(inode, x, phi, z)
-        
-        temp(1) = real((psi0_l(1)-psimin)/(psibound-psimin))
-        temp(2) = (psi0_l(2)*(x - xmag) &
-             +     psi0_l(3)*(z - zmag))*(psibound-psimin)
-        
-        if(temp(1).lt.denoff .and. temp(2).gt.0.) then
-           call constant_field(den0_l, den0)
-        else
-           call constant_field(den0_l, den_edge)
-        end if
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
 
-        call set_local_vals(inode)
-     end do
-     
-  case default
-     if(myrank.eq.0) print *, "idenfunc = ", idenfunc, "not supported."
-     call safestop(12)
-     
-  end select
-  
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  den_field(0) = den_vec
+
+  call destroy_field(den_vec)
+
 end subroutine den_eq
 
 subroutine den_per
