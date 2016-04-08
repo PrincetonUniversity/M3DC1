@@ -1,0 +1,154 @@
+&inputnl
+
+! I/O Options
+! ===========
+	ntimemax = 0	! number of time steps
+	ntimepr = 1	! number of time steps per output
+	iprint = 0	! 1 = print detailed debug info
+	itimer = 0	! 1 = print timing info
+
+	iread_eqdsk = 1
+	iwrite_restart = 0
+
+	iadapt = 1
+	adapt_smooth = 0.01
+
+
+! Numerical Method Options
+! ========================
+	dt = 1.		! time step
+
+	thimp = 0.6	! implicitness parameter for CN
+	imp_mod = 0
+	isplitstep = 0
+
+	int_pts_main = 25
+	int_pts_aux = 25
+	int_pts_diag = 25
+
+	ivform = 1
+	jadv = 1
+	isurface = 0
+
+	max_ke = 0.
+
+	itime_independent = 1
+	imp_bf = 1
+
+	regular = 1e-8
+
+	iset_pe_floor = 1
+	pe_floor = 1e-10
+	
+
+! Model Options
+! =============
+	itor = 1	! 1 = toroidal geometry, 0 = slab geometry
+
+	linear = 1	! 0 = nonlinear; 1 = linear
+	eqsubtract = 1	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 3	! 1 = 2-field; 2 = 4-field; 3 = 6-field
+      	idens = 1	! 1 = advance density
+	ipres = 0       ! 1 = include electron pressure equation
+	gyro = 0
+
+	inertia = 1
+
+	ion_mass = 2.
+	zeff = 1.
+
+
+! Equilibrium Options
+! ===================
+      	itaylor = 1	! determines initial conditions
+			! 0: Tilting Cylinder
+			! 1: Taylor reconnection
+			! 2: Force-free Taylor state
+			! 3: GEM-reconnection
+			! 4: Wave propagation
+	idevice = 4	! when itor=1 and itaylor=1
+			! 0: vertical field
+			! 1: CDX-U
+			! 2: NSTX
+			! 3: ITER
+			! 4: DIII-D
+
+	p0 = 1.		! total pressure
+	pi0 = 0.5	! ion pressure
+
+	eps = 0.
+
+	irot = 0
+	iread_omega_ExB = 0
+
+	iread_ne = 0
+	iread_te = 0
+
+
+! Transport Parameters
+! ====================
+	iresfunc = 4
+	eta0 = 1e-4
+	etar = 1e-8	! resistivity = etar + eta0/T^(3/2)
+      	amu = 1e-6	! kinematic viscosity 
+	amuc = 0.
+	amupar = 0.
+	denm = 1e-6	! density diffusion
+	kappat = 1e-6	! isotropic thermal conductivity
+	kappa0 = 0.	!  kappa = kappat + kappa0*p/T^(3/2)
+	kappar = 1.	! field-aligned thermal conductivity
+	ikapscale = 0
+
+	gam = 1.66666666666667	! adiabatic constant
+
+	db = 0.0322	! ion skin depth
+
+
+! Boundary Conditions
+! ===================
+	iper = 0	! 1 = periodic in r
+        jper = 0	! 1 = periodic in z
+
+	nonrect = 1
+
+	inoslip_pol = 1
+	inoslip_tor = 1
+	inonormalflow = 1
+	inocurrent_norm = 0
+	inocurrent_tor = 0
+	inocurrent_pol = 1
+	iconst_bz = 0
+	iconst_bn = 1
+
+	iconst_n = 1
+	iconst_p = 1
+
+	mesh_filename = 'AnalyticModel.smb'
+	mesh_model = 'AnalyticModel'
+
+
+! Grad-Shafranov Options
+! ======================
+	xlim = 0.	! limiting value of x
+	zlim = 0.	! limiting value of z
+	xlim2 = 0.	! limiting value of x
+	zlim2 = 0.	! limiting value of z
+	th_gs = 0.8
+	igs = 30	! number of grad-shafranov iterations
+	pedge = 2e-4
+	expn = 0.
+	divertors = 0
+	xnull = 4.9
+	znull = -3.5
+	xnull2 = 4.5
+	znull2 = 4.5
+	sigma0 = 0.4
+
+	igs_extend_p = 1
+
+	ntor = 1
+
+	b0_norm = 1.e4
+	n0_norm = 1e14
+	l0_norm = 100.
+ /
