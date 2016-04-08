@@ -20,18 +20,19 @@ contains
 
     i = 1
     n = len_trim(line)
+    print *, 'len = ', n
 
     nc = 0
     ierr = 1
     
     do while(i.le.n)
-       do while(line(i:i).eq.' ') 
+       do while(line(i:i).eq.' ' .or. line(i:i).eq.achar(9)) 
           i = i + 1
           if(i.gt.n) return
        enddo
        i0 = i
        nc = nc + 1
-       do while(line(i:i).ne.' ')
+       do while(line(i:i).ne.' ' .and. line(i:i).ne.achar(9))
           i = i + 1
           if(i.gt.n) exit
        enddo
