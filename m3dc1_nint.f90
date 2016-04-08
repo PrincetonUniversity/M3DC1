@@ -622,15 +622,19 @@ contains
 
        if(ieqsub.eq.1) then
           if(idenfunc.eq.3) then
-             temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
-             temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
-                  +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
              n079 = 0.
-             where(real(temp79a).lt.denoff .and. real(temp79b).gt.0.)
-                n079(:,OP_1) = den0
-             elsewhere
+             if(izone.gt.1) then
                 n079(:,OP_1) = den_edge
-             end where
+             else 
+                temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+                temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
+                     +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+                where(real(temp79a).lt.denoff .and. real(temp79b).gt.0.)
+                   n079(:,OP_1) = den0
+                elsewhere
+                   n079(:,OP_1) = den_edge
+                end where
+             end if
           else
              call eval_ops(itri, den_field(0), n079)
           end if
