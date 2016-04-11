@@ -46,11 +46,12 @@ module particles
      type(particle), dimension(:), allocatable :: ion
   end type elplist
 
-  type(elplist), dimension(:), allocatable :: pdata
+  type(elplist), dimension(:), allocatable :: pdata, jmppar  !Particle arrays
+  type(particle), dimension(:), allocatable :: jinbuf        !Receive buffer for jumping particles
   real :: m_ion, q_ion, qm_ion, dt_ion
   integer, dimension(:,:), allocatable :: neighborlist
-  integer, dimension(:), allocatable :: llpel, llpid, lpcount !Lost particle tracking arrays
-  integer :: nparticles, locparts
+  integer, dimension(:), allocatable :: dnbr, dnlist         !Domain neighbor tracking arrays
+  integer :: nparticles, locparts, ndnbr
   integer :: mpi_particle !User-defined MPI datatype for particle communication
 
 contains
@@ -58,33 +59,34 @@ contains
 #ifdef USEPARTICLES
 
   !Define MPI datatype for particle communication
-  subroutine define_mpi_particle
+  subroutine define_mpi_particle(ierr)
     implicit none
 
     include 'mpif.h'
 
+    integer, intent(out) :: ierr
     integer, parameter :: pnvars = 5
     integer, dimension(pnvars), parameter :: pblklen=(/3, vspdims, 1, 1, 1/)
     integer(kind=MPI_ADDRESS_KIND), dimension(pnvars) :: pdspls
     integer, dimension(pnvars), parameter :: ptyps = (/MPI_DOUBLE, MPI_DOUBLE, &
          MPI_DOUBLE, MPI_DOUBLE, MPI_INTEGER/)
 
-    type(particle) :: dumpar
-    integer        :: ierr
+    type(particle) :: dum_par
 
     !Set up component displacements array
-    call mpi_get_address(dumpar%x, pdspls(1), ierr)
-    call mpi_get_address(dumpar%v, pdspls(2), ierr)
+    call mpi_get_address(dum_par%x, pdspls(1), ierr)
+    call mpi_get_address(dum_par%v, pdspls(2), ierr)
     pdspls(2) = pdspls(2) - pdspls(1)
-    call mpi_get_address(dumpar%wt, pdspls(3), ierr)
+    call mpi_get_address(dum_par%wt, pdspls(3), ierr)
     pdspls(3) = pdspls(3) - pdspls(1)
-    call mpi_get_address(dumpar%tlast, pdspls(4), ierr)
+    call mpi_get_address(dum_par%tlast, pdspls(4), ierr)
     pdspls(4) = pdspls(4) - pdspls(1)
-    call mpi_get_address(dumpar%gid, pdspls(5), ierr)
+    call mpi_get_address(dum_par%gid, pdspls(5), ierr)
     pdspls(5) = pdspls(5) - pdspls(1)
     pdspls(1) = 0
 
     call mpi_type_create_struct(pnvars, pblklen, pdspls, ptyps, mpi_particle, ierr)
+    if (ierr.ne.0) return
     call mpi_type_commit(mpi_particle, ierr)
   end subroutine define_mpi_particle
 
@@ -216,10 +218,17 @@ contains
     enddo !gfx
     print *,myrank,':',nle,' local elements;',nge,' ghost elements.'
 
-    !Recompute triangle coefficients
+    !Set up domain neighbor lookup table for fast particle communication
+    call init_ndlookup(ierr)
+    if (ierr.ne.0) then
+       print *,'Error',ierr,' in init_ndlookup.'
+       return
+    endif
+
+    !Recompute triangle coefficients to include ghost elements
     nelms = local_elements()
-    print *,myrank,': ',nelms,' local+ghost elements,',&
-         coeffs_per_element,' coeffs per element.'
+    print *,myrank,': ',nelms,' local+ghost elements.'
+    !if (myrank.eq.0) print *,coeffs_per_element,' coeffs per element.'
     deallocate(gtri,htri)
     if(iprecompute_metric.eq.1) deallocate(ctri)
     allocate(gtri(coeffs_per_tri,dofs_per_tri,nelms))
@@ -229,9 +238,9 @@ contains
     call tridef
 
     !Allocate local storage for particle data
-    allocate(pdata(nelms))
+    allocate(pdata(nelms), jmppar(ndnbr), jinbuf(32))
 
-    !Set up 'neighborlist' table of element neighbors
+    !Set up 'neighborlist' table of element neighbors for ensemble tracking
     call find_element_neighbors
 
     npr = 12;  npz = 12;  npe = 1;  npmu = 2
@@ -280,7 +289,7 @@ contains
                 dpar%v(2) = lambda_min + (imu - 1.0)*pdl
                 dpar%gid = npmu*(npe*(npr*(iz-1) + (ir-1)) + (ie-1)) + (imu-1)
 
-                call add_particle(ielm, dpar, ierr)
+                call add_particle(pdata, nelms, ielm, dpar, ierr)
                 if (ierr.eq.0) locparts = locparts + 1
              enddo !imu
           enddo !ie
@@ -298,7 +307,6 @@ contains
        write(0,'(I8,A,I8,A)')nparticles,' particle(s) assigned out of ',&
             npr*npz*npe*npmu,' candidates.'
     endif
-    allocate(llpel(nparticles), llpid(nparticles), lpcount(maxrank))
 
 
     !2nd pass: initialize velocity components
@@ -360,65 +368,155 @@ contains
        return
     endif
 
-    call define_mpi_particle
-    ierr = 0
+    call define_mpi_particle(ierr)
   end subroutine init_particles
 
 !---------------------------------------------------------------------------
-  subroutine add_particle(ielm, part, ierr)
+! Initialize lookup table for neighboring domains
+  subroutine init_ndlookup(ierr)
+    use basic
+    implicit none
+    include 'mpif.h'
+
+    integer, intent(out) :: ierr
+    integer, dimension(:), allocatable :: scratch
+    integer :: ngel, nlel, ipe, iel, isghost, gid
+
+    ierr = 0
+
+    !Find number of global elements, set up scratch array for tabulation
+    call m3dc1_mesh_getnumglobalent(2, ngel)
+    if (ngel.lt.1) then
+       ierr = 1;  return
+    endif
+    allocate(scratch(ngel))
+
+    !Find number of local+ghost elements, set up array for lookup
+    call m3dc1_mesh_getnument(2, nlel)
+    if (nlel.lt.1) then
+       ierr = 2;  return
+    endif
+    allocate(dnbr(nlel), dnlist(maxrank))
+    dnbr = -1;  ndnbr = 0
+
+    !Main loop (serial): map ghost zones to neighboring PEs
+    do ipe=0,maxrank-1
+       !Fill in locally owned segment of table for this PE
+       if (myrank.eq.ipe) then
+          scratch = 0
+          do iel=1,nlel
+             call m3dc1_ent_isghost(2, iel-1, isghost)
+             if (isghost.ne.1) then !true local element
+                call m3dc1_ent_getglobalid(2, iel-1, gid)
+                if (gid.lt.0.or.gid.ge.ngel) then
+                   ierr = 3;  return
+                endif
+                scratch(gid+1) = 1
+             endif !isghost.ne...
+          enddo !iel
+       endif !myrank.eq...
+       call mpi_barrier(MPI_COMM_WORLD, ierr)
+
+       !Communicate this table to all PEs
+       call MPI_Bcast(scratch, ngel, mpi_integer, ipe, MPI_COMM_WORLD, ierr)
+
+       !Update neighbor table
+       if (myrank.ne.ipe) then
+          do iel=1,nlel
+             call m3dc1_ent_isghost(2, iel-1, isghost)
+             if (isghost.eq.1) then
+                call m3dc1_ent_getglobalid(2, iel-1, gid)
+                if (gid.lt.0.or.gid.ge.ngel) then
+                   ierr = 4;  return
+                endif
+                if (scratch(gid+1).eq.1) dnbr(iel) = ipe
+             endif !isghost.eq...
+          enddo !iel
+       endif !myrank.ne...
+    enddo !ipe
+    deallocate(scratch)
+
+    !Tabulate neighbors
+    do iel=1,nlel
+       call m3dc1_ent_isghost(2, iel-1, isghost)
+       if (isghost.eq.1) then
+          if (dnbr(iel).lt.0) then
+             print *,myrank,': Unmapped ghost zone',iel,' in init_ndlookup.'
+             ierr = 5;  return
+          else !Zone is mapped; look it up in the neighbor list.
+             do ipe=1,ndnbr
+                if (dnlist(ipe).eq.dnbr(iel)) exit
+             enddo !ipe
+             if (ipe.gt.ndnbr) then !Not found; add new entry
+                ndnbr = ndnbr + 1
+                if (ndnbr.gt.maxrank) then
+                   ierr = 6;  return
+                endif
+                dnlist(ndnbr) = dnbr(iel)
+             endif !ipe.gt...
+             dnbr(iel) = ipe !Remap from PE index to neighbor list position
+          endif !dnbr...
+       endif !isghost.eq...
+    enddo !iel
+
+    print *,myrank,':',ndnbr,' domain neighbor(s).' !:',dnlist(1:ndnbr)
+  end subroutine init_ndlookup
+
+!---------------------------------------------------------------------------
+  subroutine add_particle(pbuf, buflen, ient, part, ierr)
     implicit none
 
-    integer, intent(in) :: ielm
+    integer, intent(in) :: buflen, ient
+    type(elplist), dimension(buflen), intent(inout) :: pbuf
     type(particle), intent(in) :: part
     integer, intent(out) :: ierr
 
-    integer, parameter :: mininc = 8
+    integer, parameter :: mininc = 64
     type(particle), dimension(:), allocatable :: tmparr
-    integer :: origsize
+    integer origsize
 
     ierr = 1
 
-    if (.not.allocated(pdata)) return
-    if (ielm.lt.1.or.ielm.gt.size(pdata)) return
+    if (ient.lt.1.or.ient.gt.buflen) return
 
-    if (.not.allocated(pdata(ielm)%ion)) allocate(pdata(ielm)%ion(mininc))
+    if (.not.allocated(pbuf(ient)%ion)) allocate(pbuf(ient)%ion(mininc))
 
-    pdata(ielm)%np = pdata(ielm)%np + 1
-    origsize = size(pdata(ielm)%ion)
+    pbuf(ient)%np = pbuf(ient)%np + 1
+    origsize = size(pbuf(ient)%ion)
 
-    if (pdata(ielm)%np.gt.origsize) then
+    if (pbuf(ient)%np.gt.origsize) then !expand particle array
        allocate(tmparr(origsize))
-       tmparr = pdata(ielm)%ion
-       deallocate(pdata(ielm)%ion)
-       allocate(pdata(ielm)%ion(origsize + mininc))
-       pdata(ielm)%ion(1:origsize) = tmparr
+       tmparr = pbuf(ient)%ion
+       deallocate(pbuf(ient)%ion)
+       allocate(pbuf(ient)%ion(origsize + mininc))
+       pbuf(ient)%ion(1:origsize) = tmparr
        deallocate(tmparr)
     endif
 
-    pdata(ielm)%ion(pdata(ielm)%np) = part
+    pbuf(ient)%ion(pbuf(ient)%np) = part
 
     ierr = 0
   end subroutine add_particle
 
 !---------------------------------------------------------------------------
-  subroutine delete_particle(ielm, ipart, ierr)
+  subroutine delete_particle(pbuf, buflen, ient, ipart, ierr)
     implicit none
     intrinsic cshift
 
-    integer, intent(in)  :: ielm, ipart
+    integer, intent(in) :: buflen, ient, ipart
+    type(elplist), dimension(buflen), intent(inout) :: pbuf
     integer, intent(out) :: ierr
 
-    integer :: np
+    integer np
 
     !Error checking
-    ierr = 1; if (.not.allocated(pdata)) return
-    ierr = 2; if (ielm.lt.1.or.ielm.gt.size(pdata)) return
-    np = pdata(ielm)%np
-    ierr = 3; if (ipart.lt.1.or.ipart.gt.np) return
+    ierr = 1; if (ient.lt.1.or.ient.gt.buflen) return
+    np = pbuf(ient)%np
+    ierr = 2; if (ipart.lt.1.or.ipart.gt.np) return
 
     !Use intrinsic circular shift function to get rid of this particle
-    pdata(ielm)%ion(ipart:np) = cshift(pdata(ielm)%ion(ipart:np), 1)
-    pdata(ielm)%np = np - 1
+    pbuf(ient)%ion(ipart:np) = cshift(pbuf(ient)%ion(ipart:np), 1)
+    pbuf(ient)%np = np - 1
 
     ierr = 0
   end subroutine delete_particle
@@ -441,9 +539,18 @@ contains
        deallocate(pdata)
     endif
 
-    if (allocated(llpel)) deallocate(llpel)
-    if (allocated(llpid)) deallocate(llpid)
-    if (allocated(lpcount)) deallocate(lpcount)
+    if (allocated(jmppar)) then
+       nelms = size(jmppar)
+       do ielm=1,nelms
+          if (allocated(jmppar(ielm)%ion)) deallocate(jmppar(ielm)%ion)
+       enddo !ielm
+
+       deallocate(jmppar)
+    endif
+
+    if (allocated(jinbuf)) deallocate(jinbuf)
+    if (allocated(dnbr)) deallocate(dnbr)
+    if (allocated(dnlist)) deallocate(dnlist)
 
     call mpi_type_free(mpi_particle, ielm)
   end subroutine finalize_particles
@@ -559,6 +666,7 @@ contains
   end function veceq
 
 !---------------------------------------------------------------------------
+!#define JBDEBUG
   subroutine advance_particles(tinc)
     use basic  !For MPI variables
     implicit none
@@ -566,13 +674,14 @@ contains
 
     real, intent(in) :: tinc  !Time increment for particle advance
 
-    type(particle) :: testpart
     type(elfield), dimension(nneighbors+1) :: elcoefs
     real    :: dtp, trem, xi, zi
     integer :: nelms, ielm, itri, ipart, ierr
-    integer :: nlost, ipe, lunf, gunf
-    integer :: nstep, nhop, thop, nreas, treas  !Stats on ptcle movement w/in local domain
-    integer :: njump, nrec, isghost
+    integer :: nlost, ipe, lunf, gunf, nstep
+    integer :: nhop, thop, nreas, treas  !Stats on ptcle movement w/in local domain
+    integer :: nrec, isghost, maxin
+    integer, dimension(ndnbr) :: npin
+    integer, dimension(MPI_STATUS_SIZE) :: status
 
     !if (myrank.eq.0) print *,'advancing particles by ',tinc
 
@@ -587,8 +696,9 @@ contains
     elcoefs(:)%itri = 0
 
     do !Iterate until all particles are in the correct domain
-       thop = 0;  treas = 0;  nlost = 0;  lunf = 0
-       njump = 0
+       thop = 0;  treas = 0
+       nlost = 0;  lunf = 0
+       jmppar(:)%np = 0  !Clear jumping particle buffer
 
        !Loop over all local elements (good candidate for OMP parallelization)
        do ielm=1,nelms
@@ -613,14 +723,14 @@ contains
                 !call rk5ck(pdata(ielm)%ion(ipart), dtp, elcoefs, itri, ierr)
 
                 if (ierr.eq.1) then ! Particle exited local+ghost domain -> lost
-                   !print *,myrank,': el',ielm,', p',ipart,' exited extended domain'
-                   call delete_particle(ielm, ipart, ierr)
+                   !print *,myrank,': el',ielm,', p',ipart,pdata(ielm)%ion(ipart)%gid,&
+                   !     ' exited domain'
+                   call delete_particle(pdata, nelms, ielm, ipart, ierr)
                    if (ierr.ne.0) then
                       print *,myrank,': error',ierr,' deleting lost particle',&
                            pdata(ielm)%ion(ipart)%gid,' from elm',ielm
                    endif
-                   nlost = nlost + 1
-                   ipart = ipart - 1
+                   nlost = nlost + 1;  ipart = ipart - 1
                    exit !Break out of tinc loop, go to next particle.
                 endif
 
@@ -635,29 +745,24 @@ contains
                 !Test whether new element is in ghost layer
                 call m3dc1_ent_isghost(2, itri-1, isghost)
                 if (isghost.eq.1) then !It is -> schedule move to new PE
-                   njump = njump + 1
-                   if (njump.gt.nparticles) then
-                      print *,myrank,'njump out of range in advance_particles().'
-                      return
+                   !Add particle to jump list for target PE
+                   call add_particle(jmppar, ndnbr, dnbr(itri), &
+                        pdata(ielm)%ion(ipart), ierr)
+                   if (ierr.ne.0) print *,myrank,': error in jmp add_particle!'
+                else  !Particle is still on local domain
+                   if (ierr.eq.2) then ! Particle exited current element ensemble
+                      nhop = nhop + 1
+                   else                ! Particle moved within current element ensemble
+                      nreas = nreas + 1
                    endif
-                   llpel(njump) = ielm
-                   llpid(njump) = ipart
-                   exit !Skip to next particle.
+
+                   !Add it to the new element
+                   call add_particle(pdata, nelms, itri, pdata(ielm)%ion(ipart), ierr)
+                   if (ierr.ne.0) print *,myrank,': error in add_particle!'
                 endif
 
-                !Particle is still on local domain
-                if (ierr.eq.2) then ! Particle exited current element ensemble
-                   nhop = nhop + 1
-                else                ! Particle moved within current element ensemble
-                   nreas = nreas + 1
-                endif
-
-                !Add it to the new element
-                call add_particle(itri, pdata(ielm)%ion(ipart), ierr)
-                if (ierr.ne.0) print *,myrank,': error in add_particle!'
-
-                !Remove it from the current one
-                call delete_particle(ielm, ipart, ierr)
+                !Remove particle from the current element
+                call delete_particle(pdata, nelms, ielm, ipart, ierr)
                 if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
 
                 ipart = ipart - 1
@@ -672,61 +777,72 @@ contains
           treas = treas + nreas
        enddo !ielm
 
-       print *,myrank,':',nlost,' / ',locparts,' total lost.'
 #ifdef JBDEBUG
+       print *,myrank,':',nlost,' / ',locparts,' total lost.'
        print *,myrank,':',thop,' / ',locparts,' total hopped to new ensemble.'
        print *,myrank,':',treas,' / ',locparts,' total reassigned within ensemble.'
-       print *,myrank,':',njump,' / ',locparts,' total jumped to new domain.'
+       print *,myrank,':',sum(jmppar(:)%np),' / ',locparts,' total jumped to new domain.'
+       print *,myrank,': jump by dest:',jmppar(:)%np
 #endif
-
        locparts = locparts - nlost
 
        call mpi_allreduce(lunf, gunf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
        if (gunf.le.0) exit ! All particles have reached target time
 
-       !Tabulate particles that have migrated out of local domain
-       call mpi_allgather(njump, 1, MPI_INTEGER, lpcount, 1, MPI_INTEGER, &
-            MPI_COMM_WORLD, ierr)
-
        !Reassign transiting particles
-       !(This way is serial and very inefficient; particles should be sorted
-       ! by destination and communicated point-to-point once global ghost indexing
-       ! has been implemented! - JB 3-10-2016)
-       nrec = 0
-       do ipe=0,maxrank-1
-          do ipart=1,lpcount(ipe+1)
-             if (myrank.eq.ipe) testpart = pdata(llpel(ipart))%ion(llpid(ipart))
-             call mpi_bcast(testpart, 1, mpi_particle, ipe, MPI_COMM_WORLD, ierr)
+       !Tally particles to be received from each neighboring domain
+       nrec = 0;  maxin = 0
+       call MPI_Barrier(MPI_COMM_WORLD, ierr)
+       do ipe=1,ndnbr
+          call MPI_SendRecv(jmppar(ipe)%np, 1, MPI_INTEGER, dnlist(ipe), 42, &
+                            npin(ipe), 1, MPI_INTEGER, dnlist(ipe), 42, &
+                            MPI_COMM_WORLD, status, ierr)
+          if (ierr.ne.0) then
+             print *,myrank,'MPI_SendRecv error',ierr
+          endif
+          if (npin(ipe).gt.maxin) maxin = npin(ipe)
+          locparts = locparts - jmppar(ipe)%np
+       enddo !ipe
+       call MPI_Barrier(MPI_COMM_WORLD, ierr)
 
-             if (myrank.eq.ipe) then !Delete particle from local list
-                call delete_particle(llpel(ipart), llpid(ipart), ierr)
-                if (ierr.ne.0) print *,myrank,': jump error',ierr,'in delete_particle!'
-                where (llpel(ipart+1:njump).eq.llpel(ipart)) &
-                     llpid(ipart+1:njump) = llpid(ipart+1:njump) - 1
-                locparts = locparts - 1
-             else
-                call whattri(testpart%x(1), testpart%x(2), testpart%x(3), &
-                     itri, xi, zi)
-                if (itri.gt.0) then !Zone found
-                   call m3dc1_ent_isghost(2, itri-1, isghost) !Ghost layer?
-                   if (isghost.ne.1) then
-                      !Add particle to local list
-                      call add_particle(itri, testpart, ierr)
-                      if (ierr.ne.0) print *,myrank,': jump error in add_particle!'
-                      locparts = locparts + 1
-                      nrec = nrec + 1
-                   endif !isghost...
-                endif !itri...
-             endif !myrank...
+       !Make sure receive buffer for incoming particles is large enough.
+       if (size(jinbuf).lt.maxin) then
+          deallocate(jinbuf)
+          allocate(jinbuf(maxin))
+       endif
+
+       !Send/receive particle data
+       do ipe=1,ndnbr
+          call MPI_SendRecv(jmppar(ipe)%ion, jmppar(ipe)%np, mpi_particle, dnlist(ipe), 43, &
+               jinbuf, npin(ipe), mpi_particle, dnlist(ipe), 43, &
+               MPI_COMM_WORLD, status, ierr)
+
+          do ipart=1,npin(ipe)
+             call whattri(jinbuf(ipart)%x(1), jinbuf(ipart)%x(2), jinbuf(ipart)%x(3), &
+                  itri, xi, zi)
+             if (itri.gt.0) then !Zone found
+                call m3dc1_ent_isghost(2, itri-1, isghost) !Ghost layer?
+                if (isghost.ne.1) then
+                   !Add particle to local list
+                   call add_particle(pdata, nelms, itri, jinbuf(ipart), ierr)
+                   if (ierr.ne.0) print *,myrank,': jump error in add_particle!'
+                   locparts = locparts + 1
+                   nrec = nrec + 1
+                endif !not ghost
+             endif !itri.gt.0
           enddo !ipart
        enddo !ipe
+       call MPI_Barrier(MPI_COMM_WORLD, ierr)
+
+       if (nrec.ne.sum(npin)) then
+          print *,myrank,': error:',nrec,'/',sum(npin),' jumps receieved.'
+       endif
     enddo !outer loop
 
     call mpi_allreduce(locparts, nparticles, 1, MPI_INTEGER, MPI_SUM, &
          MPI_COMM_WORLD, ierr)
     if (myrank.eq.0) &
          print *,nparticles,' particle(s) remaining after advance step.'
-
   end subroutine advance_particles
 
 !---------------------------------------------------------------------------
@@ -1502,5 +1618,3 @@ contains
 #endif
 
 end module particles
-
-
