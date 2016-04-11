@@ -4533,7 +4533,7 @@ implicit none
 vectype, dimension (dofs_per_node) :: vec_l
 vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr
 real , dimension(npoints) :: rtemp79a, rtemp79b, rtemp79c
-real :: x, phi, z, r
+real :: x, phi, z, r, dum1, dum2
 integer :: numnodes, nelms, l, itri, i, j, ier, icounter_tt
 type (field_type) :: psi_vec, bz_vec, p_vec
 
@@ -4643,10 +4643,12 @@ enddo
 
 ! solve for psi
  if(myrank.eq.0 .and. iprint.ge.1) print *, "solving psi"
- 
   call newvar_solve(psi_vec%vec,mass_mat_lhs)
+ if(myrank.eq.0 .and. iprint.ge.1) print *, "solving bz"
   call newvar_solve(bz_vec%vec ,mass_mat_lhs)
+ if(myrank.eq.0 .and. iprint.ge.1) print *, "solving p"
   call newvar_solve(p_vec%vec  ,mass_mat_lhs)
+
  if(eqsubtract.eq.1) then
    psi_field(0) = psi_vec
    bz_field(0)  = bz_vec
@@ -4666,6 +4668,15 @@ enddo
  call destroy_field(p_vec)
 
   call finalize(field_vec)
+
+  if(itaylor.eq.27) then
+     call getvals_qsolver(0.,psimin,dum1,dum2)
+     call getvals_qsolver(q4_qp,psibound,dum1,dum2)
+     if(myrank.eq.0) write(*,3001) psimin,psibound
+ 3001 format("psimin,psibound = ", 1p2e12.4)
+  endif
+
+ if(myrank.eq.0 .and. iprint.ge.1) print *, "end fixed_q_profiles"
 end subroutine fixed_q_profiles
 
 subroutine getvals_qsolver(rval,bpsival,ival,pval)
@@ -4688,7 +4699,7 @@ if(ifirstq.eq.1) then
    do j=0,N
       psi(j) = j*dpsi
 !  DEBUG
-   if(iprint_qp .ge.1 .and. myrank_qp .eq.0) write(*,4000) j, psi(j), qfunc(psi(j))
+!   if(iprint_qp .ge.1 .and. myrank_qp .eq.0) write(*,4000) j, psi(j), qfunc(psi(j))
  4000 format('j   psi   qfunc(psi)', i5, 1p2e12.4)
    enddo
 
@@ -4735,13 +4746,13 @@ if(ifirstq.eq.1) then
      pary(0) =  pfunc(psi(0))
      pary(N) =  pfunc(psi(N))
 !
-if(myrank_qp .eq. 0 .and. iprint_qp .ge. 1) then
+if(myrank_qp .eq. 0 .and. iprint_qp .ge. 2) then
    write(6,1001)
  1001 format(" j       r**2       bpsi        btor         p          equil")
    do j=0,N
      write(6,1000) j,psi(j),bpsi(j),btor(j),pary(j),equor(j)
    enddo
-1000 format(i3,1p7e12.4)
+1000 format(i4,1p7e12.4)
 endif
 
 endif !   end of initialization

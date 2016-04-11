@@ -12492,6 +12492,11 @@ vectype function tebbkapparl(e,f,g,h,i,j)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
   vectype :: temp
   
+  if(gam.le.1.) then
+     tebbkapparl = 0.
+     return
+  end if
+
 
 #if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
