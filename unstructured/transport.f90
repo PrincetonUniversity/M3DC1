@@ -10,7 +10,7 @@ contains
 
 ! Density Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~~~~
-vectype function sigma_func(i)
+vectype function sigma_func(i, izone)
   use math
   use basic
   use m3dc1_nint
@@ -21,7 +21,7 @@ vectype function sigma_func(i)
 
   implicit none
 
-  integer, intent(in) :: i
+  integer, intent(in) :: i, izone
   vectype :: temp
   integer :: iregion, j, magnetic_region
   integer :: nvals
@@ -29,6 +29,9 @@ vectype function sigma_func(i)
   real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
+
+  ! Don't allow particle source in wall or vacuum region
+  if(izone.ne.1) return
 
   ! Pellet injection model
   if(ipellet.gt.0) then
@@ -120,7 +123,7 @@ end function sigma_func
 
 ! Momentum Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~~~~~
-vectype function force_func(i)
+vectype function force_func(i, izone)
   use math
   use basic
   use m3dc1_nint
@@ -129,10 +132,13 @@ vectype function force_func(i)
 
   implicit none
 
-  integer, intent(in) :: i
+  integer, intent(in) :: i, izone
   vectype :: temp
 
   temp = 0.
+
+  ! Don't allow momentum source in wall or vacuum region
+  if(izone.ne.1) return
 
   ! Beam source
   if(ibeam.eq.1 .or. ibeam.eq.4) then
@@ -241,25 +247,35 @@ vectype function pmach_func(i)
 end function pmach_func
 
 
+! ==================================================
 ! Heat Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~
-vectype function q_func(i)
+!
+! NOTE: When adding heat source, make sure that
+! heat_source is set to .true.
+! ==================================================
+vectype function q_func(i, izone)
   use math
   use basic
   use m3dc1_nint
   use diagnostics
   use neutral_beam
   use read_ascii
+  use radiation
 
   implicit none
 
-  integer, intent(in) :: i
+  integer, intent(in) :: i, izone
   vectype :: temp
-  integer :: nvals, j, magnetic_region
+  integer :: nvals, j, magnetic_region, ierr, ier
   real :: val, valp, valpp, pso, rsq, coef, pfunc
   real, allocatable :: xvals(:), yvals(:)
+  real, dimension(MAX_PTS) :: r
 
   temp = 0.
+
+  ! Don't allow heating in wall or vacuum region
+  if(izone.ne.1) return
 
   ! Pellet injection model
   if(igaussian_heat_source.eq.1) then
@@ -310,18 +326,45 @@ vectype function q_func(i)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
-! Heat sink for use with itaylor=27
+  ! Heat sink for use with itaylor=27
   if(iheat_sink.eq.1 .and. itaylor.eq.27) then
+     r = sqrt((x_79-xmag)**2 + (z_79-zmag)**2)
      do j=1,npoints
-        rsq = (x_79(j)-xmag)**2 + (z_79(j)-zmag)**2
+        rsq = r(j)**2
 !       temp79a(j) = coolrate*(pfunc(rsq)-pt79(j,OP_1))
         temp79a(j) = coolrate*(pfunc(rsq)) ! now use new time p in pressure_lin
      end do
+     temp79a = temp79a*(1. + tanh((r-libetap)/p1))
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
+  ! Radiation
+  if(iprad.eq.1) then
+     if(itemp.eq.1) then
+        temp79b = tet79(:,OP_1)
+     else
+        temp79b = pet79(:,OP_1)/net79(:,OP_1)
+     end if
+
+     ! convert temperature to keV
+     temp79b = temp79b * (p0_norm / n0_norm) / 1.6022e-12 / 1000.
+
+     ! convert density to /m^3
+     temp79c = net79(:,OP_1) * n0_norm * 1e6
+
+     ier = 0
+     do j=1, npoints
+        call get_Prad_simple(temp79a(j), temp79b(j), prad_fz*temp79c(j), &
+             prad_z, temp79c(j), ierr)
+     end do
+
+     ! convert output to normalized units
+     temp79a = temp79a * 10. / (p0_norm / t0_norm)
+     
+     temp = temp - int2(mu79(:,OP_1,i),temp79a)
+  end if
+
   q_func = temp
-  return
 end function q_func
 
 ! Current Drive sources
@@ -710,7 +753,7 @@ subroutine define_transport_coefficients()
 
   include 'mpif.h'
 
-  integer :: i, itri
+  integer :: i, itri, izone
   integer :: numelms, def_fields,ier
 
   logical, save :: first_time = .true.
@@ -772,6 +815,8 @@ subroutine define_transport_coefficients()
      call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, def_fields, 1, linear)
 
+     call get_zone(itri, izone)
+
      do i=1, dofs_per_element
         dofs(i) = resistivity_func(i)
         if(.not.solve_resistivity) solve_resistivity = dofs(i).ne.0.
@@ -788,7 +833,7 @@ subroutine define_transport_coefficients()
 
      if(density_source) then
         do i=1, dofs_per_element
-           dofs(i) = sigma_func(i)
+           dofs(i) = sigma_func(i, izone)
            if(.not.solve_sigma) solve_sigma = dofs(i).ne.0.
         end do
         if(solve_sigma) &
@@ -804,7 +849,7 @@ subroutine define_transport_coefficients()
 
      if(momentum_source) then 
         do i=1, dofs_per_element
-           dofs(i) = force_func(i)
+           dofs(i) = force_func(i, izone)
            if(.not.solve_f) solve_f = dofs(i).ne.0.
         end do
         if(solve_f) &
@@ -829,7 +874,7 @@ subroutine define_transport_coefficients()
 
      if(heat_source) then
         do i=1, dofs_per_element
-           dofs(i) = q_func(i)
+           dofs(i) = q_func(i, izone)
            if(.not.solve_q) solve_q = dofs(i).ne.0.
         end do
         if(solve_q) &
@@ -896,7 +941,7 @@ subroutine define_transport_coefficients()
 
   if(solve_sigma) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  sigma'
-     call newvar_solve(sigma_field%vec, mass_mat_lhs)
+     call newvar_solve(sigma_field%vec, mass_mat_lhs_dc)
   endif
 
   if(solve_visc) then
@@ -911,12 +956,12 @@ subroutine define_transport_coefficients()
 
   if(solve_f) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  fphi'
-     call newvar_solve(Fphi_field%vec, mass_mat_lhs)
+     call newvar_solve(Fphi_field%vec, mass_mat_lhs_dc)
   endif
 
   if(solve_q) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Q'
-     call newvar_solve(Q_field%vec, mass_mat_lhs)
+     call newvar_solve(Q_field%vec, mass_mat_lhs_dc)
   endif
 
   if(solve_cd) then

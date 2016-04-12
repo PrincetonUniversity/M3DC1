@@ -71,22 +71,20 @@ subroutine input
 
   call set_defaults
 
+  if(print_help) then
+     if(myrank.eq.0) call print_variables(3)
+     call safestop(0)
+  end if
+
   ! Read input file
   ! ~~~~~~~~~~~~~~~
-  if(.not.print_help) then
-     call read_namelist("C1input"//char(0), ierr)
-     if(ierr.ne.0) call safestop(3)
-  end if
+  call read_namelist("C1input"//char(0), ierr)
+  if(ierr.ne.0) call safestop(3)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " validating input"
   call validate_input
 
-  if(print_help) then
-     if(myrank.eq.0) call print_variables(3)
-     call safestop(0)
-  else
-     if(myrank.eq.0) call print_variables(0)
-  end if
+  if(myrank.eq.0) call print_variables(0)
 end subroutine input
 
 
@@ -178,6 +176,13 @@ subroutine set_defaults
   call add_var_int("ineo_subtract_diamag", ineo_subtract_diamag, 0, &
        "Subtract diamag. term from input vel. when reading NEO vel.", &
        input_grp)
+
+  call add_var_int("iprad", iprad, 0, &
+       "1: Teng's PRad module with one impurity species", input_grp)
+  call add_var_int("prad_z", prad_z, 1, &
+       "Z of impurity species in PRad module", input_grp)
+  call add_var_double("prad_fz", prad_fz, 1., &
+       "Density of impurity species in PRad module, as fraction of ne", input_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -1059,7 +1064,11 @@ subroutine validate_input
                            .or. ibeam.eq.2 .or. iread_particlesource.eq.1)
   momentum_source = (ibeam.eq.1 .or. ibeam.eq.4)
   heat_source = (numvar.ge.3 .or. ipres.eq.1) .and. &
-       (igaussian_heat_source.eq.1 .or. ibeam.ge.1 .or. iread_heatsource.eq.1 .or. iheat_sink.eq.1)
+       (igaussian_heat_source.eq.1 .or. &
+       ibeam.ge.1 .or. &
+       iread_heatsource.eq.1 .or. &
+       iheat_sink.eq.1 .or. &
+       iprad.ne.0)
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
      print *, 'Density source: ', density_source
