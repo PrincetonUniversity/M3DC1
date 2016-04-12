@@ -127,6 +127,11 @@ module basic
   integer :: igaussian_heat_source
   real :: ghs_x, ghs_z, ghs_rate, ghs_var
 
+  integer :: iprad    ! Use Qian Teng's prad module
+  integer :: prad_z   ! Z of impurity species in prad module
+  real    :: prad_fz  ! density of impurity species as fraction of electron density 
+  
+
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition
                       ! 2 = reads restart file to initialize GS solve

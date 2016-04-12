@@ -8333,9 +8333,9 @@ vectype function b3pe(e,f)
   return
 end function b3pe
 
-! B3q
-! ===
-vectype function b3q(e,f,g,h)
+! B3pe27
+! ======
+vectype function b3pe27(e,f)
 
   use basic
   use m3dc1_nint
@@ -8343,25 +8343,37 @@ vectype function b3q(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  real, intent(in), dimension(MAX_PTS) :: g,h
-  real, dimension(MAX_PTS) :: r
-  vectype, dimension(MAX_PTS) :: maskv
   vectype :: temp
-  real :: a1, delt
-  integer :: i
 
-
-  maskv = 1.
-  if(itaylor.eq.27) then
-      a1 = libetap
-      delt = p1
-      r = sqrt((g-xmag)**2 + (h-zmag)**2)
-      maskv = (1. + tanh((r-a1)/delt))
-  endif
   if(surface_int) then
      temp = 0.
   else
-     temp = int3(e(:,OP_1),f(:,OP_1),maskv)
+     temp79a = sqrt((x_79-xmag)**2 + (z_79-zmag)**2)
+     temp79b = 1. + tanh((temp79a-libetap)/p1)
+
+     temp = int3(e(:,OP_1),f(:,OP_1),temp79b)
+  end if
+
+  b3pe27 = temp
+end function b3pe27
+
+
+! B3q
+! ===
+vectype function b3q(e,f)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int2(e(:,OP_1),f(:,OP_1))
   end if
 
   b3q = temp
