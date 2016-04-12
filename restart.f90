@@ -508,6 +508,7 @@ subroutine rdrestart_cplx
   use diagnostics
   use time_step
   use pellet
+  use init_common
 
   implicit none
   
@@ -651,6 +652,9 @@ subroutine rdrestart_cplx
 1199 if(myrank.eq.0) &
 print *, '[M3D-C1 ERROR] failed reading restart file'
 1200 close(56)
+  ntime = 0
+  time = 0
+  call init_perturbations
 
 #endif
 end subroutine rdrestart_cplx

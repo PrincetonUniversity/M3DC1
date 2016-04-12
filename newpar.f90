@@ -178,7 +178,11 @@ Program Reducedquintic
 
   case(3)
 !....read 2D real RL=1 restart file to start 2D complex COM=1 run
+!
+!....save timestep from input file
+     dtsave = dt
         call rdrestart_cplx
+     dt = dtsave
 
   end select                     !  end of the branch on restart/no restart
 
