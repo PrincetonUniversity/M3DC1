@@ -8344,12 +8344,13 @@ vectype function b3pe27(e,f)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
   vectype :: temp
+  real, dimension(MAX_PTS) :: r
 
   if(surface_int) then
      temp = 0.
   else
-     temp79a = sqrt((x_79-xmag)**2 + (z_79-zmag)**2)
-     temp79b = 1. + tanh((temp79a-libetap)/p1)
+     r = sqrt((x_79-xmag)**2 + (z_79-zmag)**2)
+     temp79b = 1. + tanh((r-libetap)/p1)
 
      temp = int3(e(:,OP_1),f(:,OP_1),temp79b)
   end if
