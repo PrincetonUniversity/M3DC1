@@ -313,6 +313,9 @@ subroutine set_defaults
        "Size of time step", time_grp)
   call add_var_double("ddt", ddt, 0., "", time_grp)
 
+  call add_var_double("frequency", frequency, 0., &
+       "Frequency in time-independent calculations", time_grp)
+
   ! variable_timestep parameters
 
   call add_var_double("dtmin",dtmin,4.0,"minimum time step",time_grp)
@@ -977,7 +980,18 @@ subroutine validate_input
 
   if(itime_independent.eq.1) then
      thimp = 1.
-  end if
+
+     if(.not.linear) then
+        if(myrank.eq.0) &
+             print *, 'itime_independent=1 only available when linear=1'
+        call safestop(1)
+     end if
+  else
+     if(frequency.ne.0) then
+        if(myrank.eq.0) &
+             print *, 'Warning: "frequency" ignored in time-dependent calculations'
+     end if
+  end if  
       
   if(iflip.eq.1) then
      vloop = -vloop

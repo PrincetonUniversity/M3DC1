@@ -1,0 +1,45 @@
+#%Module1.0
+##
+
+## Required internal variables
+
+set             name            m3dc1
+set             version         __VERSION__
+set             root            __ROOT__
+
+## List conflicting modules here
+
+conflict $name
+
+## List prerequisite modules here
+
+#prereq intel/2015.u1
+#prereq openmpi/1.8.4
+#prereq gsl
+
+
+set             fullname        M3D-C1
+set             externalurl     http://theorycodes.pppl.wikispaces.net/M3D-C1
+set             description     "M3D-C1 is an extended-MHD code"
+
+## Required for "module help ..."
+
+proc ModulesHelp { } {
+  global description externalurl
+  puts stderr "Description - $description"
+  puts stderr "Other Docs  - $externalurl"
+}
+
+## Required for "module display ..." and SWDB
+
+module-whatis                   "$description"
+
+## Software-specific settings exported to user environment
+
+setenv          M3DC1_VERSION   $version
+setenv          M3DC1_DIR       $root
+setenv		M3DC1_ARCH	__ARCH__
+
+#prepend-path    MANPATH         __MANPATH_
+prepend-path    PATH             $root/bin
+prepend-path    IDL_PATH         $root/idl
