@@ -1,7 +1,7 @@
 pro plot_equation, equation, cutz=cutz, _EXTRA=extra, $
                    func=func
 
-  call_procedure, equation, nterms=nterms, names=names, term=term, $
+  call_procedure, 'eqn_' + equation, nterms=nterms, names=names, term=term, $
                   title=title, x=x, z=z, _EXTRA=extra
 
   total = term[0,*,*]*0.
