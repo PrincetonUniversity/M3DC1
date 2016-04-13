@@ -20,7 +20,6 @@ contains
 
     i = 1
     n = len_trim(line)
-    print *, 'len = ', n
 
     nc = 0
     ierr = 1
@@ -75,10 +74,6 @@ contains
        ix = icol
     else
        ix = 1
-    end if
-
-    if(myrank.eq.0) then
-       print *, 'Reading column ', ix, ' of ', filename, '...'
     end if
 
     if(n.le.0) then
