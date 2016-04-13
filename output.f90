@@ -249,6 +249,7 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "delta_wall" , delta_wall, error)
   call write_real_attr(root_id, "zeff"       , zeff,       error)
   call write_real_attr(root_id, "ion_mass"   , ion_mass,   error)
+  call write_real_attr(root_id, "frequency"  , frequency,  error)
 
   call h5gclose_f(root_id, error)
 

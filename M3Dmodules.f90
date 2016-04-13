@@ -286,6 +286,7 @@ module basic
   real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
   real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
   real :: pe_floor
+  real :: frequency      ! frequency in time-independent calculation
 
   ! poloidal force parameters
   integer :: ipforce     ! 1 = include poloidal momentum source

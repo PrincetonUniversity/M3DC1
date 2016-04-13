@@ -21,6 +21,8 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   vectype :: temp
   real :: ththm, nv, thimp_bf
 
+  vectype :: freq_fac
+
   if(numvar.eq.1) then
      nv = 1.
   else
@@ -43,6 +45,16 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   case default
      ththm = (1.-thimp*bdf)*thimp
   end select
+
+  if(itime_independent.eq.1) then
+#ifdef USECOMPLEX
+     freq_fac = (0,1)*frequency*dt
+#else
+     freq_fac = 0.
+#endif
+  else
+     freq_fac = 1.
+  end if
 
   ssterm = 0.
   ddterm = 0.
@@ -85,15 +97,14 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
-     temp = v1un(trial,lin,nt79)
-     ssterm(u_g) = ssterm(u_g) + temp
-     ddterm(u_g) = ddterm(u_g) + temp*bdf
-     if(numvar.ge.3) then
-        temp = v1chin(trial,lin,nt79)*chiiner
-        ssterm(chi_g) = ssterm(chi_g) + temp
-        ddterm(chi_g) = ddterm(chi_g) + temp*bdf
-     end if
+  temp = v1un(trial,lin,nt79)*freq_fac
+  ssterm(u_g) = ssterm(u_g) + temp
+  ddterm(u_g) = ddterm(u_g) + temp*bdf
+  
+  if(numvar.ge.3) then
+     temp = v1chin(trial,lin,nt79)*chiiner*freq_fac
+     ssterm(chi_g) = ssterm(chi_g) + temp
+     ddterm(chi_g) = ddterm(chi_g) + temp*bdf
   end if
 
   ! Viscosity
@@ -560,6 +571,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   integer, intent(in) :: izone
   vectype :: temp
   real :: ththm, thimp_bf
+  vectype :: freq_fac
 
   vectype, dimension(MAX_PTS, OP_NUM) :: hv
   hv = hypv*sz79
@@ -579,6 +591,16 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      thimp_bf = thimp
   else
      thimp_bf = 0.
+  end if
+
+  if(itime_independent.eq.1) then
+#ifdef USECOMPLEX
+     freq_fac = (0,1)*frequency*dt
+#else
+     freq_fac = 0.
+#endif
+  else
+     freq_fac = 1.
   end if
 
   ssterm = 0.
@@ -605,11 +627,10 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
-     temp = v2vn(trial,lin,nt79)
-     ssterm(vz_g) = ssterm(vz_g) + temp
-     ddterm(vz_g) = ddterm(vz_g) + temp*bdf
-  end if
+  temp = v2vn(trial,lin,nt79)*freq_fac
+  ssterm(vz_g) = ssterm(vz_g) + temp
+  ddterm(vz_g) = ddterm(vz_g) + temp*bdf
+
 
   if(izone.ne.1) return
 
@@ -1005,6 +1026,8 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   vectype :: temp
   real :: ththm, thimp_bf
 
+  vectype :: freq_fac
+
   select case(imp_mod)
   case(0)
      ththm = (1.-thimp*bdf)*thimp
@@ -1020,6 +1043,16 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      thimp_bf = thimp
   else
      thimp_bf = 0.
+  end if
+
+  if(itime_independent.eq.1) then
+#ifdef USECOMPLEX
+     freq_fac = (0,1)*frequency*dt
+#else
+     freq_fac = 0.
+#endif
+  else
+     freq_fac = 1.
   end if
 
   ssterm = 0.
@@ -1072,15 +1105,13 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Time Derivatives
   ! ~~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
-     temp = v3un(trial,lin,nt79)
-     ssterm(u_g) = ssterm(u_g) + temp
-     ddterm(u_g) = ddterm(u_g) + temp*bdf
+  temp = v3un(trial,lin,nt79)*freq_fac
+  ssterm(u_g) = ssterm(u_g) + temp
+  ddterm(u_g) = ddterm(u_g) + temp*bdf
      
-     temp = v3chin(trial,lin,nt79)*chiiner
-     ssterm(chi_g) = ssterm(chi_g) + temp
-     ddterm(chi_g) = ddterm(chi_g) + temp*bdf
-  end if
+  temp = v3chin(trial,lin,nt79)*chiiner*freq_fac
+  ssterm(chi_g) = ssterm(chi_g) + temp
+  ddterm(chi_g) = ddterm(chi_g) + temp*bdf
 
   ! Viscosity
   ! ~~~~~~~~~
@@ -1496,6 +1527,8 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   vectype :: temp, temp2
   real :: thimpb, thimpf, thimpe, thimp_bf, nv
 
+  vectype :: freq_fac
+
   vectype, dimension(MAX_PTS, OP_NUM) :: hf
   hf = hypf*sz79
 
@@ -1519,6 +1552,16 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   else
      nv = 0.5
   endif
+
+  if(itime_independent.eq.1) then
+#ifdef USECOMPLEX
+     freq_fac = (0,1)*frequency*dt
+#else
+     freq_fac = 0.
+#endif
+  else
+     freq_fac = 1.
+  end if
 
   ssterm = 0.
   ddterm = 0.
@@ -1583,12 +1626,11 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Time Derivatives
   ! ~~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
-     temp = b1psi (trial,lin) &
-          - b1psid(trial,lin,ni79)   ! electron mass term
-     ssterm(psi_g) = ssterm(psi_g) + temp
-     ddterm(psi_g) = ddterm(psi_g) + temp*bdf
-  end if
+  temp = (b1psi (trial,lin) &
+       -  b1psid(trial,lin,ni79)) &  ! electron mass term
+       * freq_fac
+  ssterm(psi_g) = ssterm(psi_g) + temp
+  ddterm(psi_g) = ddterm(psi_g) + temp*bdf
 
   ! Zone 2: E = eta J
   if(izone.ne.1) return
@@ -2243,6 +2285,8 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   vectype :: temp, temp2
   real :: thimpb, thimpf, thimp_bf
 
+  vectype :: freq_fac
+
   vectype, dimension(MAX_PTS, OP_NUM) :: hi
   hi = hypi*sz79
 
@@ -2258,6 +2302,16 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      thimp_bf = thimpf
   else
      thimp_bf = 0.
+  end if
+
+  if(itime_independent.eq.1) then
+#ifdef USECOMPLEX
+     freq_fac = (0,1)*frequency*dt
+#else
+     freq_fac = 0.
+#endif
+  else
+     freq_fac = 1.
   end if
 
   ssterm = 0.
@@ -2307,12 +2361,11 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
-     temp = b2b (trial,lin) &
-          - b2bd(trial,lin,ni79)   ! electron mass term
-     ssterm(bz_g) = ssterm(bz_g) + temp
-     ddterm(bz_g) = ddterm(bz_g) + temp*bdf
-  end if
+  temp = (b2b (trial,lin) &
+       -  b2bd(trial,lin,ni79)) &   ! electron mass term
+       * freq_fac
+  ssterm(bz_g) = ssterm(bz_g) + temp
+  ddterm(bz_g) = ddterm(bz_g) + temp*bdf
 
   if(izone.ne.1) return
 
@@ -2817,6 +2870,8 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   type(element_data) :: d
   integer :: itri
 
+  vectype :: freq_fac
+
   vectype, dimension(MAX_PTS, OP_NUM) :: hp, pp079, pp179, ppt79
   vectype :: temp
   real :: thimpb, thimp_bf, nv, h, coefeq
@@ -2855,6 +2910,16 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      nv = 1./3.
   end if
 
+  if(itime_independent.eq.1 .and. izone.eq.1) then
+#ifdef USECOMPLEX
+     freq_fac = (0,1)*frequency*dt
+#else
+     freq_fac = 0.
+#endif
+  else
+     freq_fac = 1.
+  end if
+
   ssterm = 0.
   ddterm = 0.
   q_ni = 0.
@@ -2863,11 +2928,10 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0 .or. izone.ne.1) then
-     temp = b3pe(trial,lin)
-     ssterm(pp_g) = ssterm(pp_g) + temp
-     ddterm(pp_g) = ddterm(pp_g) + temp*bdf
-  end if
+  temp = b3pe(trial,lin)*freq_fac
+  ssterm(pp_g) = ssterm(pp_g) + temp
+  ddterm(pp_g) = ddterm(pp_g) + temp*bdf
+
 
   if(izone.ne.1) return
 
@@ -3471,6 +3535,8 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   type(element_data) :: d
   integer :: itri
 
+  vectype :: freq_fac
+
   vectype, dimension(MAX_PTS, OP_NUM) :: hp, pp079, pp179
   vectype :: temp
   real :: thimpb, thimp_bf, nv, h, coefeq, ohfac
@@ -3507,6 +3573,16 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      nv = 1./3.
   end if
 
+  if(itime_independent.eq.1 .and. izone.eq.1) then
+#ifdef USECOMPLEX
+     freq_fac = (0,1)*frequency*dt
+#else
+     freq_fac = 0.
+#endif
+  else
+     freq_fac = 1.
+  end if
+
   ssterm = 0.
   ddterm = 0.
   q_ni = 0.
@@ -3516,11 +3592,9 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  if(itime_independent.eq.0) then
-     temp = t3tn(trial,lin,nt79)
-     ssterm(pp_g) = ssterm(pp_g) + temp
-     ddterm(pp_g) = ddterm(pp_g) + temp*bdf
-  end if
+  temp = t3tn(trial,lin,nt79)*freq_fac
+  ssterm(pp_g) = ssterm(pp_g) + temp
+  ddterm(pp_g) = ddterm(pp_g) + temp*bdf
 
   if(izone.ne.1) return
 
@@ -5024,6 +5098,8 @@ subroutine ludefden_n(itri)
 
   vectype :: temp
 
+  vectype :: freq_fac
+
   type(matrix_type), pointer :: nn1, nn0, nv1, nv0
   type(vector_type), pointer :: nsource
   real :: thimpb
@@ -5039,6 +5115,16 @@ subroutine ludefden_n(itri)
   else
      thimpb = 1.
   endif
+
+  if(itime_independent.eq.1 .and. izone.eq.1) then
+#ifdef USECOMPLEX
+     freq_fac = (0,1)*frequency*dt
+#else
+     freq_fac = 0.
+#endif
+  else
+     freq_fac = 1.
+  end if
 
   if(isplitstep.ge.1) then
      nn1 => s8_mat
@@ -5076,12 +5162,10 @@ subroutine ludefden_n(itri)
 
         ! NUMVAR = 1
         ! ~~~~~~~~~~
-        if(itime_independent.eq.0 .or. izone.ne.1) then
-           temp = n1n(mu79(:,:,i),nu79(:,:,j))
-           ssterm(i,j) = ssterm(i,j) + temp    
-           ddterm(i,j) = ddterm(i,j) + temp*bdf
-        end if
-
+        temp = n1n(mu79(:,:,i),nu79(:,:,j))*freq_fac
+        ssterm(i,j) = ssterm(i,j) + temp    
+        ddterm(i,j) = ddterm(i,j) + temp*bdf
+        
         if(izone.ne.1) cycle
  
         tm79 = 0.
