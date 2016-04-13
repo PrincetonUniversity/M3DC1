@@ -1,4 +1,4 @@
-pro grad_shafranov, _EXTRA=extra, nterms=nterms, terms=term, names=names, $
+pro eqn_gradshafranov, _EXTRA=extra, nterms=nterms, terms=term, names=names, $
                title=title, x=x, z=z
   title = 'Grad Shafranov Equation'
   nterms = 3

@@ -1,4 +1,4 @@
-pro momentum_z, _EXTRA=extra, nterms=nterms, terms=term, names=names, $
+pro eqn_momentum_z, _EXTRA=extra, nterms=nterms, terms=term, names=names, $
                title=title, x=x, z=z
   title = 'Momentum Equation: Z'
   nterms = 3
