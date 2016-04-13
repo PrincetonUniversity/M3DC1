@@ -154,9 +154,7 @@ contains
    end do
 
 100   numcoils = s
-      print *, "Read ", i, " coil groups; ", numcoils, " total coils."   
-
-      deallocate(xv, zv, wv, hv, a1v, a2v, sxv, syv)
+   deallocate(xv, zv, wv, hv, a1v, a2v, sxv, syv)
 
  end subroutine load_coils
 
