@@ -632,29 +632,29 @@ subroutine calculate_scalars()
 
      ! Calculate energy
      ! ~~~~~~~~~~~~~~~~
-     ekinp  = ekinp  + energy_kp ()
-     ekinpd = ekinpd + energy_kpd()
-     ekinph = ekinph + energy_kph()
+     ekinp  = ekinp  + twopi*energy_kp ()/tpifac
+     ekinpd = ekinpd + twopi*energy_kpd()/tpifac
+     ekinph = ekinph + twopi*energy_kph()/tpifac
 
-     ekint  = ekint  + energy_kt ()
-     ekintd = ekintd + energy_ktd()
-     ekinth = ekinth + energy_kth()
+     ekint  = ekint  + twopi*energy_kt ()/tpifac
+     ekintd = ekintd + twopi*energy_ktd()/tpifac
+     ekinth = ekinth + twopi*energy_kth()/tpifac
 
-     ekin3  = ekin3  + energy_k3 ()
-     ekin3d = ekin3d + energy_k3d()
-     ekin3h = ekin3h + energy_k3h()
+     ekin3  = ekin3  + twopi*energy_k3 ()/tpifac
+     ekin3d = ekin3d + twopi*energy_k3d()/tpifac
+     ekin3h = ekin3h + twopi*energy_k3h()/tpifac
 
      if(ike_only.eq.1) cycle
 
-     emagp  = emagp  + energy_mp ()
-     emagpd = emagpd + energy_mpd()
-     emagph = emagph - qpsipsieta(tm79)
+     emagp  = emagp  + twopi*energy_mp ()/tpifac
+     emagpd = emagpd + twopi*energy_mpd()/tpifac
+     emagph = emagph - twopi*qpsipsieta(tm79)/tpifac
 
-     emagt  = emagt  + energy_mt ()
-     emagtd = emagtd + energy_mtd()
-     emagth = emagth - qbbeta(tm79)
+     emagt  = emagt  + twopi*energy_mt ()/tpifac
+     emagtd = emagtd + twopi*energy_mtd()/tpifac
+     emagth = emagth - twopi*qbbeta(tm79)/tpifac
 
-     emag3 = emag3 + energy_p()
+     emag3 = emag3 + twopi*energy_p()/tpifac
 
 
      ! Calculate Scalars
@@ -799,13 +799,6 @@ subroutine calculate_scalars()
   end do
 
   call distribute_scalars
-
-  emagp = emagp*twopi/tpifac
-  emagt = emagt*twopi/tpifac
-  emag3 = emag3*twopi/tpifac
-  ekinp = ekinp*twopi/tpifac
-  ekint = ekint*twopi/tpifac
-  ekin3 = ekin3*twopi/tpifac
 
   ekin = ekinp + ekint + ekin3
   emag = emagp + emagt + emag3
