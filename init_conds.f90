@@ -5084,7 +5084,7 @@ real :: asq, bigA, bigB, num1, num2, denom, jedge
    bigA = (1. - 1.5*q0_qp/q2_qp)/asq 
    bigB = (1. -  2.*q0_qp/q2_qp)/asq**2
    jedge = (pedge_qp/p0_qp)**1.5
-   if(psi .gt. asq) psi = asq    !     temporary fix
+!   if(psi .gt. asq) psi = asq    !     temporary fix
    if(psi .le. asq) then
      num1 = 1. - 2*psi*bigA + psi**2*bigB + jedge
      num2 = (1. - 4.*psi*bigA + 3.*psi**2*bigB + jedge )**(1./3.)
