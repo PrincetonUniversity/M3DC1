@@ -105,6 +105,7 @@ subroutine set_defaults
   use adapt
   use error_estimate
   use hdf5_output
+  use bootstrap
 
   implicit none
 
@@ -287,6 +288,11 @@ subroutine set_defaults
        "1 = Wall acts as limiter", model_grp)
   call add_var_int("no_vdg_T", no_vdg_T,0, &
        "1: do not include V dot grad T in Temp equation (debug)",model_grp)
+
+  call add_var_int("ibootstrap_model", ibootstrap_model, 0, &
+       "1: J_BS = alpha F <p,psi> B", model_grp)
+  call add_var_double("bootstrap_alpha", bootstrap_alpha, 0., &
+       "alpha parameter in bootstrap current model", model_grp)
     
   ! Time step options
   call add_var_int("ntimemax", ntimemax, 20, &
@@ -1003,6 +1009,12 @@ subroutine validate_input
         igs_forcefree_lcfs = 2
      else
         igs_forcefree_lcfs = 0
+     end if
+  end if
+
+  if(imulti_region.eq.1) then
+     if(eta_wall .gt. eta_vac) then 
+        if(myrank.eq.0) print *, 'Warning: eta_wall > eta_vac.'       
      end if
   end if
 

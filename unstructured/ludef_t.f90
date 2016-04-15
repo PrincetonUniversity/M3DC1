@@ -1516,6 +1516,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   use metricterms_new
   use two_fluid
   use harned_mikic_mod
+  use bootstrap
 
   implicit none
 
@@ -2191,6 +2192,10 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   end if  
 
   end select        
+
+  if(ibootstrap_model.eq.1) then 
+     call bootstrap_flux(trial, lin, ssterm, ddterm, r_bf, q_bf, thimpf, thimp_bf)
+  end if
 end subroutine flux_lin
 
 
@@ -2274,6 +2279,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   use metricterms_new
   use two_fluid
   use harned_mikic_mod
+  use bootstrap
 
   implicit none
 
@@ -2798,6 +2804,11 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      end if
   end if  
   end select
+
+  if(ibootstrap_model.eq.1) then 
+     call bootstrap_axial_field(trial, lin, ssterm, ddterm, r_bf, q_bf, thimpf, thimp_bf)
+  end if
+
 end subroutine axial_field_lin
 
 
@@ -2858,6 +2869,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   use arrays
   use m3dc1_nint
   use metricterms_new
+  use bootstrap
 
   implicit none
 
@@ -3510,6 +3522,10 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
      ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
   endif
+
+  if(ibootstrap_model.eq.1) then
+     call bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimp)
+  end if
 end subroutine pressure_lin
 
 !======================================================================
