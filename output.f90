@@ -167,6 +167,7 @@ subroutine hdf5_write_parameters(error)
   use hdf5_output
   use basic
   use pellet
+  use bootstrap
 
   implicit none
 
@@ -250,6 +251,8 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "zeff"       , zeff,       error)
   call write_real_attr(root_id, "ion_mass"   , ion_mass,   error)
   call write_real_attr(root_id, "frequency"  , frequency,  error)
+  call write_int_attr (root_id, "ibootstrap_model", ibootstrap_model, error)
+  call write_real_attr(root_id, "bootstrap_alpha", bootstrap_alpha, error)
 
   call h5gclose_f(root_id, error)
 

@@ -7,6 +7,7 @@ module bootstrap
   integer :: ibootstrap_model
   ! 1 : add -eta*J_BS term to Ohm's law
   !     where J_BS = alpha I <p, psi> B
+  !     In Sauter model, alpha = L31 / (p B^2 |Grad(psi)|^2)
 
   real :: bootstrap_alpha
 
@@ -191,8 +192,8 @@ contains
           temp79a = eta79(:,OP_1)*h(:,OP_1)* &
                (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
 
-          temp = int4(ri3_79,e(:,OP_DRP),temp79a,g(:,OP_DZP)) &
-               - int4(ri3_79,e(:,OP_DZP),temp79a,g(:,OP_DRP))
+          temp = int4(ri3_79,e(:,OP_DRP),temp79a,g(:,OP_DZ)) &
+               - int4(ri3_79,e(:,OP_DZP),temp79a,g(:,OP_DR))
 
 #ifdef USECOMPLEX
           temp = temp - rfac* &
@@ -351,11 +352,11 @@ contains
          + ri2_79*(bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR))
 #if defined(USE3D) || defined(USECOMPLEX)
     temp79b = temp79b &
-         + ri2_79*(bft79(:,OP_DZ)*pst79(:,OP_DZ) + bft79(:,OP_DR)*pst79(:,OP_DZ)) &
-         + ri_79*(bzt79(:,OP_DZ)*bft79(:,OP_DRP) - bzt79(:,OP_DR)*bft79(:,OP_DZP)) &
-         + ri_79*(bft79(:,OP_DZPP)*bft79(:,OP_DRP)-bft79(:,OP_DRPP)*bft79(:,OP_DZP)) &
-         - ri3_79*(pst79(:,OP_DZ)*pst79(:,OP_DRP) - pst79(:,OP_DR)*pst79(:,OP_DZP)) &
-         - ri2_79*(bft79(:,OP_DZP)*pst79(:,OP_DZP) + bft79(:,OP_DRP)*pst79(:,OP_DRP))
+         + ri2_79*(bft79(:,OP_DZPP)*pst79(:,OP_DZ)  + bft79(:,OP_DRPP)*pst79(:,OP_DR)) &
+         + ri_79 *(bzt79(:,OP_DZ)*  bft79(:,OP_DRP) - bzt79(:,OP_DR)*  bft79(:,OP_DZP)) &
+         + ri_79 *(bft79(:,OP_DZPP)*bft79(:,OP_DRP) - bft79(:,OP_DRPP)*bft79(:,OP_DZP)) &
+         - ri3_79*(pst79(:,OP_DZ)*  pst79(:,OP_DRP) - pst79(:,OP_DR)*  pst79(:,OP_DZP)) &
+         - ri2_79*(bft79(:,OP_DZP)* pst79(:,OP_DZP) + bft79(:,OP_DRP)* pst79(:,OP_DRP))
 #endif
 
     temp = int2(temp79a, temp79b)
