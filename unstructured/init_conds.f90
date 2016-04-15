@@ -286,8 +286,6 @@ subroutine den_eq
   type(field_type) :: den_vec
   integer :: itri, numelms, i, def_fields
   vectype, dimension(dofs_per_element) :: dofs
-
-  real :: k, kx
   
   if(idenfunc.eq.0) return
 
@@ -308,10 +306,9 @@ subroutine den_eq
              /(dendelt*(psibound-psimin))))
         
      case(2)
-        k = 1./dendelt
-        kx = k*(real((psi0_l(1)-psimin)/(psibound-psimin)) - denoff)
+        temp79a = ((real(ps079(:,OP_1))-psimin)/(psibound-psimin) - denoff)/dendelt
         
-        n079(:,OP_1) = 1. + tanh(kx)
+        n079(:,OP_1) = 0.5*(den_edge-den0)*(1. + tanh(real(temp79a))) + den0
      end select
 
      do i=1, dofs_per_element
