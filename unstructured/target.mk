@@ -53,6 +53,8 @@ install : install_idl install_doc
 	mkdir -m 755 -p $(INSTALL_DIR)/bin
 	cp sbin/extract_profiles.sh $(INSTALL_DIR)/bin
 	chmod 755 $(INSTALL_DIR)/bin/extract_profiles.sh
+	cp sbin/m3dc1_units.sh $(INSTALL_DIR)/bin
+	chmod 755 $(INSTALL_DIR)/bin/m3dc1_units.sh
 	-cp sbin/$(M3DC1_ARCH)/*.sh $(INSTALL_DIR)/bin
 	-chmod 755 $(INSTALL_DIR)/bin/*.sh
 	-cp _$(ARCH)/a2cc $(INSTALL_DIR)/bin

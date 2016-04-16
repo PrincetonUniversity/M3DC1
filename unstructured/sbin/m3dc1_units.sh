@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Check if C1input exists
+if [ ! -f C1input ]; then
+    echo 'C1input not found.'
+    return
+fi
+
+# Parse C1input for normalizations
+BLINE=`grep b0_norm C1input`
+if [ $? == 0 ]; then
+    B0=`echo $BLINE | awk '{ print $3 }'`
+else
+    echo "b0_norm not found.  Using default value"
+    B0=1e4
+fi
+NLINE=`grep n0_norm C1input`
+if [ $? == 0 ]; then
+    N0=`echo $NLINE | awk '{ print $3 }'`
+else
+    echo "n0_norm not found.  Using default value"
+    N0=1e14
+fi
+LLINE=`grep l0_norm C1input`
+if [ $? == 0 ]; then
+    L0=`echo $LLINE | awk '{ print $3 }'`
+else
+    echo "l0_norm not found.  Using default value"
+    L0=100.
+fi
+MULINE=`grep ion_mass C1input`
+if [ $? == 0 ]; then
+    MU=`echo $MULINE | awk '{ print $3 }'`
+else
+    echo "ion_mass not found.  Using default value"
+    MU=1.
+fi
+ZLINE=`grep zeff C1input`
+if [ $? == 0 ]; then
+    ZEFF=`echo $ZLINE | awk '{ print $3 }'`
+else
+    echo "zeff not found.  Using default value"
+    ZEFF=1.
+fi
+
+
+PI=3.14159265359
+C=2.9979e10
+MP=1.6726e-24
+E=4.8032e-10
+
+B0_MKS=$(echo | awk "{ print $B0/1.e4 }" )
+N0_MKS=$(echo | awk "{ print $N0*1.e6 }" )
+L0_MKS=$(echo | awk "{ print $L0/100. }" )
+
+V0=$(echo - | awk "{ print $B0/sqrt(4.*$PI*$MU*$MP*$N0) }" )
+V0_MKS=$(echo | awk "{ print $V0/100. }" )
+
+P0=$(echo - | awk "{ print $B0*$B0/(4.*$PI) }" )
+P0_MKS=$(echo - | awk "{ print $P0/10. }" )
+
+T0=$(echo - | awk "{ print $L0/$V0 }" )
+
+W0=$(echo - | awk "{ print $P0/$N0 }" )
+W0_MKS=$(echo - | awk "{ print $W0/1e7 }" )
+W0_EV=$(echo - | awk "{ print $W0/1.6022e-12 }" )
+
+echo "ion mass = $MU m_p"
+echo "Zeff = $ZEFF"
+echo "B0 = $B0 G = $B0_MKS (T)"
+echo "n0 = $N0 /cm^3 = $N0_MKS /m^3"
+echo "L0 = $L0 cm = $L0_MKS  m"
+echo "t0 = $T0 s"
+echo "v0 = $V0 cm/s = $V0_MKS m/s"
+echo "p0 = $P0 dyne/cm^2 = $P0_MKS pascal"
+echo "T0 = $W0_EV eV"
