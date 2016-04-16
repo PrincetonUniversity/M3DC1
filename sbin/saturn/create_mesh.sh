@@ -6,6 +6,6 @@ NAME=$POINTNAME$THICKNESS
 
 echo $NAME
 
-echo "SCOREC create_mesh utility not available on EDISON"
+echo "SCOREC create_mesh utility not available on SATURN"
 #/global/project/projectdirs/mp288/edison/scorec/utilities/create_mesh/create_smb
 #/global/project/projectdirs/mp288/edison/scorec/utilities/create_mesh/convert_sim_sms $NAME.smd $NAME.sms $NAME.smb
