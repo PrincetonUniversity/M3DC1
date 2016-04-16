@@ -359,7 +359,7 @@ contains
     integer, intent(in) :: itri, fields, gdef, ilin
     integer, intent(in), optional :: ieqs
 
-    real :: fac
+    real :: fac, efac
     integer :: i, izone, ieqsub
     type(element_data) :: d
     vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
@@ -838,13 +838,21 @@ contains
            eta79 = eta79*eta_fac
            !     else if(iresfunc.eq.0 .or. iresfunc.eq.4) then
         else if(iresfunc.eq.4) then
+           efac = eta_fac * &
+                3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
+                *zeff*lambda_coulomb*sqrt(ion_mass)
+           
            eta79 = 0.
-           temp79b = pet79(:,OP_1)/net79(:,OP_1)
+           eta79(:,OP_1) = eta_vac / efac
+
+           ! Te
+           temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
 #ifdef USE3D
+           ! dTe/dphi
            temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
                 pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
 #endif
-           where(real(temp79b).gt.0.) 
+           where(real(temp79b).gt.(eta_vac/efac)**(-2./3.))
               temp79a = sqrt(temp79b)
               eta79(:,OP_1 ) = 1. / temp79a**3
               eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &
@@ -886,9 +894,7 @@ contains
 #endif
            end where
 
-           eta79 = eta79 * eta_fac * &
-                3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
-                *zeff*lambda_coulomb*sqrt(ion_mass)
+           eta79 = eta79 * efac
         else
            call eval_ops(itri, resistivity_field, eta79)
         end if

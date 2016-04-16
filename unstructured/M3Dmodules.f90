@@ -46,6 +46,7 @@ module basic
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: eta_fac
   integer :: eta_mod
+  real :: eta_te_offset  ! offset in Te when calculating eta
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
   real :: amuoff, amudelt, amuoff2, amudelt2
