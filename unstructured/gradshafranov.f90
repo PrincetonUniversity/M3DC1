@@ -303,7 +303,7 @@ subroutine vacuum_field()
   complex, dimension(maxfilaments) :: ic
   integer :: ierr
   real, dimension(6) :: g1, g2
-  integer, parameter :: rnorm = 10.
+  real, parameter :: rnorm = 10.
   
   gnorm = 0
   if(myrank.eq.0 .and. iprint.gt.0) &

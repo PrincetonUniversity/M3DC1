@@ -38,8 +38,6 @@ NETCDF_DIR=/fusion/projects/codes/m3dc1/petsc-3.5.4
 SCOREC_DIR = /fusion/projects/codes/m3dc1/scorec/Dec2015-petsc
 SCOREC_CORE = -lapf -lgmi -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
 
-FFTW_HOME = /fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2
-
 ifeq ($(COM), 1)
   SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
   PETSC_DIR=/fusion/projects/codes/m3dc1/petsc-3.5.4-complex
@@ -58,7 +56,7 @@ PETSC_EXTERNAL_LIB_BASIC = \
 NETCDF_LIB= -Wl,-rpath,$(NETCDF_DIR)/lib -L$(NETCDF_DIR)/lib -lnetcdf 
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
-	-I$(FFTW_HOME)/include \
+	-I$(FFTW_DIR)/include \
         -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 
@@ -67,7 +65,7 @@ LIBS := $(LIBS) \
         -L$(SCOREC_DIR)/lib -lzoltan \
         -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc $(PETSC_EXTERNAL_LIB_BASIC) \
         $(NETCDF_LIB) \
-	-L$(FFTW_HOME)/lib -lfftw3 \
+	-L$(FFTW_DIR)/lib -lfftw3 \
 	-lgsl -lgslcblas -lhugetlbfs \
 	-lstdc++
 

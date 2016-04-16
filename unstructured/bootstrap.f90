@@ -149,7 +149,7 @@ contains
     end if
   end subroutine bootstrap_axial_field
 
-  subroutine bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimp)
+  subroutine bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimpi)
     use basic
     use arrays
     use m3dc1_nint
@@ -159,13 +159,13 @@ contains
     vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
     vectype, dimension(num_fields), intent(inout) :: ssterm, ddterm
     integer, intent(in) :: pp_g
-    real, intent(in) :: thimp
+    real, intent(in) :: thimpi
 
     vectype :: temp
 
     temp = bs_b3pe(trial,lin)
-    ssterm(pp_g) = ssterm(pp_g) -       thimp     *dt*temp
-    ddterm(pp_g) = ddterm(pp_g) + (1. - thimp*bdf)*dt*temp
+    ssterm(pp_g) = ssterm(pp_g) -       thimpi     *dt*temp
+    ddterm(pp_g) = ddterm(pp_g) + (1. - thimpi*bdf)*dt*temp
   end subroutine bootstrap_pressure
 
   

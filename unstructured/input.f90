@@ -989,7 +989,7 @@ subroutine validate_input
   if(itime_independent.eq.1) then
      thimp = 1.
 
-     if(.not.linear) then
+     if(linear.ne.1) then
         if(myrank.eq.0) &
              print *, 'itime_independent=1 only available when linear=1'
         call safestop(1)
