@@ -420,13 +420,13 @@ vectype function resistivity_func(i)
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
      if(eta0.ne.0.) then
         if(linear.eq.1) then
-           temp79a = eta_fac*eta0*sqrt((ne079(:,OP_1)/pe079(:,OP_1))**3)
+           temp79a = eta_fac*eta0*sqrt((ne079(:,OP_1)/pe079(:,OP_1) - eta_te_offset)**3)
         else
            if(itemp.eq.1) then
-              temp79a = eta_fac*eta0*tet79(:,OP_1)**(-1.5)
+              temp79a = eta_fac*eta0*(tet79(:,OP_1) - eta_te_offset)**(-1.5)
            else
               temp79b = max(pedge*pefac,real(pet79(:,OP_1)))
-              temp79a = eta_fac*eta0*sqrt((net79(:,OP_1)/temp79b)**3)
+              temp79a = eta_fac*eta0*sqrt((net79(:,OP_1)/temp79b - eta_te_offset)**3)
            endif
         endif
      else

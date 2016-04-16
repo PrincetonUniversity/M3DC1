@@ -253,6 +253,7 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "frequency"  , frequency,  error)
   call write_int_attr (root_id, "ibootstrap_model", ibootstrap_model, error)
   call write_real_attr(root_id, "bootstrap_alpha", bootstrap_alpha, error)
+  call write_real_attr(root_id, "eta_te_offset", eta_te_offset, error)
 
   call h5gclose_f(root_id, error)
 

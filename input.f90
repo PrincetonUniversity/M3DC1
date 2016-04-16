@@ -210,6 +210,8 @@ subroutine set_defaults
        "Uniform resistivity multiplier", transp_grp)
   call add_var_int("eta_mod", eta_mod, 0, &
        "1 = remove d/dphi terms in resistivity", transp_grp)
+  call add_var_double("eta_te_offset", eta_te_offset, 0., &
+       "Offset in Te when calculating eta", transp_grp)
 
   call add_var_int("ikappafunc", ikappafunc, 0, "", transp_grp)
   call add_var_int("ikapscale", ikapscale, 0, "", transp_grp)
