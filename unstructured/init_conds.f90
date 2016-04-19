@@ -2110,8 +2110,6 @@ subroutine eqdsk_init()
 
   real, allocatable :: flux(:), nflux(:)
 
-!!$  numnodes = owned_nodes()
-
   if(myrank.eq.0 .and. iprint.gt.0) print *, "before load_eqdsk", iread_eqdsk
   call load_eqdsk(ierr)
   if(ierr.ne.0) call safestop(1)
@@ -3079,16 +3077,14 @@ subroutine frs_init()
 
   implicit none
 
-  integer :: l, numnodes,m, icounter_tt
-  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
+  integer :: l, numnodes, icounter_tt
+  real :: x, phi, z
 
 
   numnodes = owned_nodes()
   do icounter_tt=1,numnodes
      l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
-
-!     z = z - alz*.5
 
      call get_local_vals(l)
 
@@ -3112,7 +3108,7 @@ subroutine frs_equ(x, z)
   implicit none
 
   real, intent(in) :: x, z
-  real :: r,Bp0,dpsidr,d2psidr,integral,rs, Bz_edge,Bz,dBzdx,dBzdz,beta0,r0
+  real :: r,Bp0,integral,rs, Bz_edge,Bz,dBzdx,dBzdz,r0
   integer :: m,n
 
 
@@ -3192,15 +3188,13 @@ subroutine frs1_init()
 
   implicit none
 
-  integer :: l, numnodes,m
-  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
+  integer :: l, numnodes
+  real :: x, phi, z
 
 
   numnodes = owned_nodes()
   do l=1, numnodes
      call get_node_pos(l, x, phi, z)
-
-!     z = z - alz*.5
 
      call get_local_vals(l)
 
@@ -3222,8 +3216,7 @@ subroutine frs1_equ(x, z)
   implicit none
 
   real, intent(in) :: x, z
-  real :: r,Bp0,dpsidr,d2psidr,integral,rs, Bz_edge,Bz,dBzdx,dBzdz,beta0,r0
-  integer :: m,n
+  real :: r, Bz, Bz_edge
 
   Bz_edge=rzero
 
@@ -3271,7 +3264,7 @@ subroutine frs_per(x, phi, z)
 
   implicit none
 
-  integer :: i, numnodes
+  integer :: i
   real :: x, phi, z
   vectype, dimension(dofs_per_node) :: vmask
 
@@ -3316,17 +3309,13 @@ subroutine ftz_init()
 
   implicit none
 
-  integer :: l, numnodes,m, icounter_tt
-  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
-
-
+  integer :: l, numnodes, icounter_tt
+  real :: x, phi, z
 
   numnodes = owned_nodes()
   do icounter_tt=1,numnodes
      l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
-
-!     z = z - alz*.5
 
      call get_local_vals(l)
 
@@ -3349,9 +3338,7 @@ subroutine ftz_equ(x, z)
   implicit none
 
   real, intent(in) :: x, z
-  real :: r,Bp0,dpsidr,d2psidr,integral,rs, Bz_edge,Bz,dBzdx,dBzdz,beta0,r0,j0
-  integer :: m,n
-
+  real :: r, j0
 
   call constant_field(den0_l, 1.)
   
@@ -3410,7 +3397,6 @@ subroutine ftz_per(x, phi, z)
 
   implicit none
 
-  integer :: i, numnodes
   real :: x, phi, z
   vectype, dimension(dofs_per_node) :: vmask
 !!$
@@ -3458,16 +3444,14 @@ subroutine eigen_init()
 
   implicit none
 
-  integer :: l, numnodes,m, icounter_tt
-  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
+  integer :: l, numnodes, icounter_tt
+  real :: x, phi, z
 
 
   numnodes = owned_nodes()
   do icounter_tt=1,numnodes
      l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
-
-!     z = z - alz*.5
 
      call get_local_vals(l)
 
@@ -3516,7 +3500,6 @@ subroutine eigen_per(x, phi, z)
 
   implicit none
 
-  integer :: i, numnodes
   real :: x, phi, z
   vectype, dimension(dofs_per_node) :: vmask
 !!$
@@ -3563,8 +3546,8 @@ subroutine int_kink_init()
 
   implicit none
 
-  integer :: l, numnodes,m, icounter_tt
-  real :: x, phi, z, alx, alz, Bp0,r0,rs,Bz_edge
+  integer :: l, numnodes, icounter_tt
+  real :: x, phi, z
 
 
   numnodes = owned_nodes()
@@ -3940,7 +3923,6 @@ subroutine int_kink_per(x, phi, z)
 
   implicit none
 
-  integer :: i, numnodes
   real :: x, phi, z
   vectype, dimension(dofs_per_node) :: vmask
 
@@ -4527,11 +4509,10 @@ use basicq
 implicit none
 
 
-vectype, dimension (dofs_per_node) :: vec_l
 vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr
 real , dimension(npoints) :: rtemp79a, rtemp79b, rtemp79c
 real :: x, phi, z, r, dum1, dum2
-integer :: numnodes, nelms, l, itri, i, j, ier, icounter_tt
+integer :: numnodes, nelms, l, itri, i, j, icounter_tt
 type (field_type) :: psi_vec, bz_vec, p_vec
 
 call create_field(psi_vec)
@@ -4814,8 +4795,8 @@ function qfunc(psi)    !   q  (safety factor)
 use basicq
 real :: psi,qfunc,q_LZ  !  note:  psi = r**2
 real :: c0,c1,c2,c3,c4 
-real :: asq, bigA, bigB,psis  
-real ra0
+real :: asq, bigA, bigB
+real :: ra0
 
 select case(itaylor_qp)
 
@@ -4860,7 +4841,7 @@ use basicq
 real :: psi,qpfunc,qprime_LZ   !  note:  psi=r^2
 real :: c0,c1,c2,c3,c4   
 real :: asq, bigA, bigB  
-real ra0
+real :: ra0, psis
 
 select case (itaylor_qp)
 
