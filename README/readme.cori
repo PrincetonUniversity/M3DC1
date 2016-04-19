@@ -1,18 +1,14 @@
 1. login 
-
 	ssh your_id@cori.nersc.gov
+
 2. code
 
 3. load modules
-
-	module load subversion
-	module load cmake
 	module load fftw
 	module load gsl/1.16
         module load cray-hdf5-parallel/1.8.14
 	module load idl
 	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
-        module swap cray-mpich cray-mpich/7.2.5
 
 4. compile code
 	make OPT=1 RL=1 MAX_PTS=25 

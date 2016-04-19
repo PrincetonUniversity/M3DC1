@@ -21,21 +21,21 @@ endif
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
-SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Jan2016
-SCOREC_CORE = -lapf -lgmi -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr
+SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Apr2016-mpich7.3.1
+SCOREC_CORE = -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
 PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
 ifeq ($(COM), 1)
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
-      PETSC_ARCH = complex-intel-mpich7.2
+      PETSC_ARCH = complex-intel-mpich7.3
       HYPRE_LIB = 
 else
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
-      PETSC_ARCH = real-intel-mpich7.2
+      PETSC_ARCH = real-intel-mpich7.3
       HYPRE_LIB = -lHYPRE
 endif
-PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-       $(HYPRE_LIB)  -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 \
-       -lsuperlu_dist_3.3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++
+PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 \
+       -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
 
 ifeq ($(USEADIOS), 1)
   OPTS := $(OPTS) -DUSEADIOS
@@ -56,12 +56,13 @@ OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
            $(FFTW_INCLUDE_OPTS) \
-	-I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-	-I$(GSL_DIR)/include # \
+    	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
+	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 #
 LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
+        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan \
         -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc $(PETSC_EXTERNAL_LIB_BASIC) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
