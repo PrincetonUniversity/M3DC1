@@ -13,7 +13,8 @@
 	module load cray-shmem/7.2.5
 	module load subversion
 	module load cmake
-	module load netcdf-hdf5parallel/4.3.0
+        module load cray-parallel-netcdf
+        module load cray-hdf5-parallel/1.8.14
 	module load fftw
 	module load gsl/1.16
 	module load idl
@@ -23,15 +24,21 @@
 	module load cray-tpsl/1.5.0
 	module load cray-trilinos/11.10.1.0
 	module load cray-petsc/3.5.3.1
+        module load boost (Trilinos only)
 
    To use adios, load the following additionally:
 
         module load adios/1.4.1
 
 4. compile code
-	make OPT=1 RL=1 MAX_PTS=25 (USEADIOS=1 to use adios)
-	make OPT=1 COM=1 MAX_PTS=25 (USEADIOS=1 to use adios)
-	make 3D=1 OPT=1 MAX_PTS=60 (USEADIOS=1 to use adios)
+	2D real: make OPT=1 
+            - add USEADIOS=1 to use adios
+            - add TRILINOS=1 to use Trilinos
+	2D complex: make OPT=1 COM=1 
+            - add USEADIOS=1 to use adios
+	3D real: make 3D=1 OPT=1 MAX_PTS=60 
+            - add USEADIOS=1 to use adios
+            - add TRILINOS=1 to use Trilinos
 
 5. mesh utility
         /global/project/projectdirs/mp288/edison/scorec/utilities
@@ -52,13 +59,23 @@
         (for regular i/o) srun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
         (for adios i/o)   srun -n 8 m3dc1_2d_complex_adios -pc_factor_mat_solver_package mumps 
 
-        #2D real
+        #2D real with petsc
         (for regular i/o) srun -n 8 m3dc1_2d
         (for adios i/o)   srun -n 8 m3dc1_2d_adios
  
-        #3D real
+        #2D real with trilinos
+        (for regular i/o) srun -n 8 m3dc1_2d_trilinos
+        (for adios i/o)   srun -n 8 m3dc1_2d_trilinos_adios
+
+        #3D real with petsc
         (for regular i/o) srun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi
         (for adios i/o)   srun -n 256 m3dc1_3d_adios -ipetsc -options_file options_bjacobi
+
+         #3D real with trilinos
+        (for regular i/o) srun -n 256 m3dc1_3d_trilinos
+        (for adios i/o)   srun -n 256 m3dc1_3d_trilinos_adios
+
+
 
 7. submit job
 	sbatch job_script
