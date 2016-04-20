@@ -39,6 +39,7 @@ module particles
      real                     :: wt = 1.0    !Particle weighting in delta-f scheme
      real                     :: tlast       !Time
      integer                  :: gid         !Unique global particle index
+     integer                  :: jel         !Predicted element of residence
   end type particle
 
   type elplist !Inventory of particles within a finite element
@@ -49,8 +50,8 @@ module particles
   type(elplist), dimension(:), allocatable :: pdata, jmppar  !Particle arrays
   type(particle), dimension(:), allocatable :: jinbuf        !Receive buffer for jumping particles
   real :: m_ion, q_ion, qm_ion, dt_ion
-  integer, dimension(:,:), allocatable :: neighborlist
-  integer, dimension(:), allocatable :: dnbr, dnlist         !Domain neighbor tracking arrays
+  integer, dimension(:,:), allocatable :: neighborlist, dnbr !Neighbor tracking arrays
+  integer, dimension(:), allocatable :: dnlist               !Domain neighbor table
   integer :: nparticles, locparts, ndnbr
   integer :: mpi_particle !User-defined MPI datatype for particle communication
 
@@ -65,11 +66,11 @@ contains
     include 'mpif.h'
 
     integer, intent(out) :: ierr
-    integer, parameter :: pnvars = 5
-    integer, dimension(pnvars), parameter :: pblklen=(/3, vspdims, 1, 1, 1/)
+    integer, parameter :: pnvars = 6
+    integer, dimension(pnvars), parameter :: pblklen=(/3, vspdims, 1, 1, 1, 1/)
     integer(kind=MPI_ADDRESS_KIND), dimension(pnvars) :: pdspls
     integer, dimension(pnvars), parameter :: ptyps = (/MPI_DOUBLE, MPI_DOUBLE, &
-         MPI_DOUBLE, MPI_DOUBLE, MPI_INTEGER/)
+         MPI_DOUBLE, MPI_DOUBLE, MPI_INTEGER, MPI_INTEGER/)
 
     type(particle) :: dum_par
 
@@ -83,6 +84,8 @@ contains
     pdspls(4) = pdspls(4) - pdspls(1)
     call mpi_get_address(dum_par%gid, pdspls(5), ierr)
     pdspls(5) = pdspls(5) - pdspls(1)
+    call mpi_get_address(dum_par%jel, pdspls(6), ierr)
+    pdspls(6) = pdspls(6) - pdspls(1)
     pdspls(1) = 0
 
     call mpi_type_create_struct(pnvars, pblklen, pdspls, ptyps, mpi_particle, ierr)
@@ -100,7 +103,8 @@ contains
     include 'mpif.h'
 
     character(len=32) :: line
-    integer, dimension(4), parameter :: trid = (/ 75, 105, 206, 29 /)
+    logical, parameter :: loutcart = .false. !Output Cartesian particle coords?
+    integer, dimension(3), parameter :: trid = (/ 1979, 3405, 4856 /)
     real, parameter :: JpereV = 1.6022e-19
     real :: pdt, keeV, pphi
     integer :: ierr, ip, istep=0, itr, trunit=120
@@ -133,13 +137,24 @@ contains
                 print *,myrank,': ielm,ip = ',ierr,ip,': gid = ',pdata(ierr)%ion(1)%gid
                 write(line,'(A,I8.8)') 'ptraj_',trid(itr)
                 open(unit=trunit, file=trim(line), status='replace', action='write')
-                write(trunit,*)'x  y  z  t  KE  Pphi  rank'
+                if (loutcart) then !Cartesian
+                   write(trunit,*)'x  y  z  t  KE  Pphi  rank'
+                else !Cylindrical
+                   write(trunit,*)'R  phi  z  t  KE  Pphi  rank'
+                endif
                 keeV = getke(pdata(ierr)%ion(ip))/JpereV
                 pphi = getPphi(pdata(ierr)%ion(ip))/JpereV
-                write(trunit,'(3f14.8,3e18.8,I6)') &
-                     pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
-                     pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
-                     pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi, myrank
+                if (loutcart) then !Cartesian
+                   write(trunit,'(3f14.8,3e18.8,I6)') &
+                        pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
+                        pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
+                        pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi, myrank
+                else !Cylindrical
+                   write(trunit,'(3f14.8,3e18.8,I6)') &
+                        pdata(ierr)%ion(ip)%x(1), &
+                        pdata(ierr)%ion(ip)%x(2), &
+                        pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi, myrank
+                endif
                 close(trunit)
                 print *,myrank,': trajectory file ',trim(line),' created.'
                 exit
@@ -149,8 +164,8 @@ contains
     enddo !itr
 
     !Advance particle positions
-    pdt = 2.0e-7
-    do istep=1,2400
+    pdt = 3.0e-7
+    do istep=1,4800
        call advance_particles(pdt)
        if (myrank.eq.0) print *,'particle advance',istep,' complete.'
 
@@ -163,10 +178,17 @@ contains
                         position='append')
                    keeV = getke(pdata(ierr)%ion(ip))/JpereV
                    pphi = getPphi(pdata(ierr)%ion(ip))/JpereV
-                   write(trunit,'(3f14.8,3e18.8,I6)') &
-                        pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
-                        pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
-                        pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi, myrank
+                   if (loutcart) then !Cartesian
+                      write(trunit,'(3f14.8,3e18.8,I6)') &
+                           pdata(ierr)%ion(ip)%x(1)*cos(pdata(ierr)%ion(ip)%x(2)), &
+                           pdata(ierr)%ion(ip)%x(1)*sin(pdata(ierr)%ion(ip)%x(2)), &
+                           pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi, myrank
+                   else !Cylindrical
+                      write(trunit,'(3f14.8,3e18.8,I6)') &
+                           pdata(ierr)%ion(ip)%x(1), &
+                           pdata(ierr)%ion(ip)%x(2), &
+                           pdata(ierr)%ion(ip)%x(3), pdt*istep, keeV, pphi, myrank
+                   endif
                    close(trunit)
                    exit
                 endif
@@ -197,7 +219,7 @@ contains
     type(xgeomterms) :: geomterms
     real, dimension(3) :: Bcyl
     real    :: x1, x2, z1, z2, pdx, pdz, pdl, xi, zi, vpar, vperp
-    real    :: Eev, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
+    real    :: EeV, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
     real    :: gyroperiod, gfrac=5.0e-3, gkfrac=8.0, dtp, ldtmin
     integer :: npr, npz, npe, npmu, ir, iz, ie, imu, ip
     integer :: nelms, ielm, lc, noc, tridex, itri
@@ -243,8 +265,7 @@ contains
     !Set up 'neighborlist' table of element neighbors for ensemble tracking
     call find_element_neighbors
 
-    npr = 12;  npz = 12;  npe = 1;  npmu = 2
-
+    npr = 64;  npz = 64;  npe = 1;  npmu = 2
 
     !Particle spatial ranges
     call get_bounding_box(x1, z1, x2, z2)
@@ -252,7 +273,7 @@ contains
     pdx = (x2 - x1)/real(npr);  pdz = (z2 - z1)/real(npz)
 
     !Particle velocity space ranges
-    Eev = 100.0                                 !Ion kinetic energy in eV
+    EeV = 100.0                                 !Ion kinetic energy in eV
     A_ion = 1.0                                 !Ion atomic mass number
     m_ion = A_ion * m_proton                    !Ion mass in kg
     Z_ion = 1.0                                 !Ion atomic number (charge state)
@@ -261,8 +282,8 @@ contains
     speed = sqrt(EeV / A_ion) * vp1eV           !Ion speed in m/s
     if (myrank.eq.0) print *,'ion speed = ',speed,' m/s = ',speed/c_mks,' c.'
 
-    lambda_min = 0.0                            !Minimum particle pitch angle
-    lambda_max = 0.8                            !Maximum particle pitch angle
+    lambda_min = 1.50                           !Minimum particle pitch angle
+    lambda_max = 1.64                           !Maximum particle pitch angle
     pdl = (lambda_max - lambda_min)/(npmu - 1)
 
 
@@ -288,6 +309,7 @@ contains
              do imu=1,npmu  !Loop over pitch angles
                 dpar%v(2) = lambda_min + (imu - 1.0)*pdl
                 dpar%gid = npmu*(npe*(npr*(iz-1) + (ir-1)) + (ie-1)) + (imu-1)
+                !dpar%jel = ielm
 
                 call add_particle(pdata, nelms, ielm, dpar, ierr)
                 if (ierr.eq.0) locparts = locparts + 1
@@ -307,7 +329,6 @@ contains
        write(0,'(I8,A,I8,A)')nparticles,' particle(s) assigned out of ',&
             npr*npz*npe*npmu,' candidates.'
     endif
-
 
     !2nd pass: initialize velocity components
     noc = 0
@@ -396,7 +417,7 @@ contains
     if (nlel.lt.1) then
        ierr = 2;  return
     endif
-    allocate(dnbr(nlel), dnlist(maxrank))
+    allocate(dnbr(2,nlel), dnlist(maxrank))
     dnbr = -1;  ndnbr = 0
 
     !Main loop (serial): map ghost zones to neighboring PEs
@@ -411,7 +432,7 @@ contains
                 if (gid.lt.0.or.gid.ge.ngel) then
                    ierr = 3;  return
                 endif
-                scratch(gid+1) = 1
+                scratch(gid+1) = iel
              endif !isghost.ne...
           enddo !iel
        endif !myrank.eq...
@@ -429,7 +450,10 @@ contains
                 if (gid.lt.0.or.gid.ge.ngel) then
                    ierr = 4;  return
                 endif
-                if (scratch(gid+1).eq.1) dnbr(iel) = ipe
+                if (scratch(gid+1).gt.0) then
+                   dnbr(1,iel) = ipe
+                   dnbr(2,iel) = scratch(gid+1)
+                endif
              endif !isghost.eq...
           enddo !iel
        endif !myrank.ne...
@@ -440,21 +464,21 @@ contains
     do iel=1,nlel
        call m3dc1_ent_isghost(2, iel-1, isghost)
        if (isghost.eq.1) then
-          if (dnbr(iel).lt.0) then
+          if (dnbr(1,iel).lt.0) then
              print *,myrank,': Unmapped ghost zone',iel,' in init_ndlookup.'
              ierr = 5;  return
           else !Zone is mapped; look it up in the neighbor list.
              do ipe=1,ndnbr
-                if (dnlist(ipe).eq.dnbr(iel)) exit
+                if (dnlist(ipe).eq.dnbr(1,iel)) exit
              enddo !ipe
              if (ipe.gt.ndnbr) then !Not found; add new entry
                 ndnbr = ndnbr + 1
                 if (ndnbr.gt.maxrank) then
                    ierr = 6;  return
                 endif
-                dnlist(ndnbr) = dnbr(iel)
+                dnlist(ndnbr) = dnbr(1,iel)
              endif !ipe.gt...
-             dnbr(iel) = ipe !Remap from PE index to neighbor list position
+             dnbr(1,iel) = ipe !Remap from PE index to neighbor list position
           endif !dnbr...
        endif !isghost.eq...
     enddo !iel
@@ -675,7 +699,7 @@ contains
     real, intent(in) :: tinc  !Time increment for particle advance
 
     type(elfield), dimension(nneighbors+1) :: elcoefs
-    real    :: dtp, trem, xi, zi
+    real    :: dtp, trem
     integer :: nelms, ielm, itri, ipart, ierr
     integer :: nlost, ipe, lunf, gunf, nstep
     integer :: nhop, thop, nreas, treas  !Stats on ptcle movement w/in local domain
@@ -746,7 +770,8 @@ contains
                 call m3dc1_ent_isghost(2, itri-1, isghost)
                 if (isghost.eq.1) then !It is -> schedule move to new PE
                    !Add particle to jump list for target PE
-                   call add_particle(jmppar, ndnbr, dnbr(itri), &
+                   pdata(ielm)%ion(ipart)%jel = dnbr(2,itri)
+                   call add_particle(jmppar, ndnbr, dnbr(1,itri), &
                         pdata(ielm)%ion(ipart), ierr)
                    if (ierr.ne.0) print *,myrank,': error in jmp add_particle!'
                 else  !Particle is still on local domain
@@ -791,15 +816,13 @@ contains
 
        !Reassign transiting particles
        !Tally particles to be received from each neighboring domain
-       nrec = 0;  maxin = 0
+       maxin = 0
        call MPI_Barrier(MPI_COMM_WORLD, ierr)
        do ipe=1,ndnbr
           call MPI_SendRecv(jmppar(ipe)%np, 1, MPI_INTEGER, dnlist(ipe), 42, &
                             npin(ipe), 1, MPI_INTEGER, dnlist(ipe), 42, &
                             MPI_COMM_WORLD, status, ierr)
-          if (ierr.ne.0) then
-             print *,myrank,'MPI_SendRecv error',ierr
-          endif
+          if (ierr.ne.0) print *,myrank,'MPI_SendRecv error',ierr
           if (npin(ipe).gt.maxin) maxin = npin(ipe)
           locparts = locparts - jmppar(ipe)%np
        enddo !ipe
@@ -812,24 +835,20 @@ contains
        endif
 
        !Send/receive particle data
+       nrec = 0
        do ipe=1,ndnbr
           call MPI_SendRecv(jmppar(ipe)%ion, jmppar(ipe)%np, mpi_particle, dnlist(ipe), 43, &
                jinbuf, npin(ipe), mpi_particle, dnlist(ipe), 43, &
                MPI_COMM_WORLD, status, ierr)
 
           do ipart=1,npin(ipe)
-             call whattri(jinbuf(ipart)%x(1), jinbuf(ipart)%x(2), jinbuf(ipart)%x(3), &
-                  itri, xi, zi)
-             if (itri.gt.0) then !Zone found
-                call m3dc1_ent_isghost(2, itri-1, isghost) !Ghost layer?
-                if (isghost.ne.1) then
-                   !Add particle to local list
-                   call add_particle(pdata, nelms, itri, jinbuf(ipart), ierr)
-                   if (ierr.ne.0) print *,myrank,': jump error in add_particle!'
-                   locparts = locparts + 1
-                   nrec = nrec + 1
-                endif !not ghost
-             endif !itri.gt.0
+             !Add particle to local list
+             call add_particle(pdata, nelms, jinbuf(ipart)%jel, jinbuf(ipart), ierr)
+             if (ierr.eq.0) then
+                nrec = nrec + 1
+             else
+                print *,myrank,': jump error in add_particle!'
+             endif
           enddo !ipart
        enddo !ipe
        call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -837,6 +856,7 @@ contains
        if (nrec.ne.sum(npin)) then
           print *,myrank,': error:',nrec,'/',sum(npin),' jumps receieved.'
        endif
+       locparts = locparts + nrec
     enddo !outer loop
 
     call mpi_allreduce(locparts, nparticles, 1, MPI_INTEGER, MPI_SUM, &
