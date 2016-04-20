@@ -161,6 +161,7 @@
 	sigma0 = 0.4
 
 	igs_extend_p = 1
+	igs_pp_ffp_rescale = 1
 
 	ntor = 1
 
