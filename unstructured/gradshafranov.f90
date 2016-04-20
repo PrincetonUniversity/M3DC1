@@ -51,6 +51,8 @@ module gradshafranov
   logical :: igs_calculate_pf_fields = .false.
   logical :: igs_calculate_ip_fields = .false.
 
+  real :: gs_pf_psi_width
+
 contains
 
 subroutine gradshafranov_init()
@@ -1989,8 +1991,7 @@ subroutine fundef2(error)
         else
            if(mr.eq.2) then
               psm = 1.
-              pso = 2. - pso
-              f = -1.
+              pso = psin_in_pf_region(pso, f)
            else
               f = 1.
            end if
@@ -2579,7 +2580,7 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   end if
 
   ! if we are in private flux region, make sure Psi > 1
-  if(mr.eq.2) psii = 2. - psii
+  if(mr.eq.2) psii = psin_in_pf_region(psii)
 
   call evaluate_spline(p0_spline, psii, p)
 
@@ -2630,7 +2631,7 @@ subroutine calc_density(psi0, dens, x, z, izone)
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
 
   ! if we are in private flux region, make sure Psi > 1
-  if(mr.eq.2) psii = 2. - psii
+  if(mr.eq.2) psii = psin_in_pf_region(psii)
 
   call evaluate_spline(n0_spline, psii, n0)
 
@@ -2674,7 +2675,7 @@ subroutine calc_electron_pressure(psi0, pe, x, z, izone)
         te0 = te_spline%y(te_spline%n)
      else
         psii = (real(psi0(1)) - psimin)/(psibound - psimin)
-        if(magnetic_region(psi0,x,z).eq.2) psii = 2. - psii
+        if(magnetic_region(psi0,x,z).eq.2) psii = psin_in_pf_region(psii)
         call evaluate_spline(te_spline,psii,te0)
      end if
      call calc_density(psi0, n0, x, z, izone)
@@ -2723,7 +2724,7 @@ subroutine calc_rotation(psi0,omega, x, z, izone)
   end if    
 
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
-  if(mr.eq.2) psii = 2. - psii
+  if(mr.eq.2) psii = psin_in_pf_region(psii)
 
   call evaluate_spline(omega_spline,psii,w0)
 
@@ -2862,5 +2863,27 @@ subroutine rho_to_psi(n, rho, psi)
      call evaluate_spline(psi_spline, rho(i), psi(i))
   end do
 end subroutine rho_to_psi
+
+real function psin_in_pf_region(psin, dpsout)
+  implicit none
+
+  real, intent(in) :: psin                ! psi_norm
+  real, intent(out), optional :: dpsout   ! dpsin_in_pf_region / dpsin
+
+  real :: t, dt
+
+  if(gs_pf_psi_width.eq.0.) then 
+     t = 0.
+     dt = 0.
+  else
+     t = tanh((psin - 1.)/gs_pf_psi_width)
+     dt = 1. - t**2
+  end if
+
+  psin_in_pf_region = 2. - psin + 2.*gs_pf_psi_width*t
+  if(present(dpsout)) then 
+     dpsout = -1. + 2.*dt
+  end if
+end function psin_in_pf_region
 
 end module gradshafranov

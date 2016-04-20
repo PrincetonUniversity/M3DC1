@@ -508,6 +508,8 @@ subroutine set_defaults
        "Guess for R-coordinate of inactive x-point", gs_grp)
   call add_var_double("znull2", znull2, 0., &
        "Guess for Z-coordinate of inaxtive x-point", gs_grp)
+  call add_var_double("gs_pf_psi_width", gs_pf_psi_width, 0., &
+       "Width of psi smoothing into private flux region", gs_grp)
 
 
   ! Hyper diffusion
