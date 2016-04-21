@@ -4506,18 +4506,20 @@ use model
 use gradshafranov
 use int_kink
 use basicq
+use init_common
 implicit none
 
 
-vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr
+vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr, dofsden
 real , dimension(npoints) :: rtemp79a, rtemp79b, rtemp79c
 real :: x, phi, z, r, dum1, dum2
-integer :: numnodes, nelms, l, itri, i, j, icounter_tt
-type (field_type) :: psi_vec, bz_vec, p_vec
+integer :: nelms, l, itri, i, j
+type (field_type) :: psi_vec, bz_vec, p_vec, den_vec
 
 call create_field(psi_vec)
 call create_field(bz_vec)
 call create_field(p_vec)
+call create_field(den_vec)
 
 
  if(myrank.eq.0 .and. iprint.ge.1) write (*,2000) bz_qp 
@@ -4564,28 +4566,6 @@ call create_field(p_vec)
 
 if(itaylor.eq.22) call setupLZeqbm
 
-numnodes = owned_nodes()
-
-if(myrank.eq.0 .and. iprint.eq.1) write(*,*) "numnodes = ", numnodes
-
-do icounter_tt=1,numnodes
-   l = nodes_owned(icounter_tt)
-
-   call get_node_pos(l,x,phi,z)
-
-         call constant_field(den0_l,1.)
-!   call constant_field(bz0_l,bz_qp)
-!   call constant_field(p0_l,p0)
-
-         call set_node_data(den_field(0),l,den0_l)
-!   call set_node_data(bz_field(0),l,bz0_l)
-!   call set_node_data(p_field(0),l,p0_l)
-   
-         call constant_field(u1_l,0.)
-           call int_kink_per(x, phi, z)
-         call set_node_data(u_field(1),l,u1_l)
-enddo
-
 if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before loop over elements"
 
 nelms = local_elements()
@@ -4610,13 +4590,16 @@ do itri=1,nelms
       temp79b = rtemp79b
       temp79c = rtemp79c
 #endif
+
       dofsps(i) = int2(mu79(:,OP_1,i),temp79a)
       dofsbz(i) = int2(mu79(:,OP_1,i),temp79b)
       dofspr(i) = int2(mu79(:,OP_1,i),temp79c)
+      dofsden(i) = den0*int1(mu79(:,OP_1,i))
    enddo
    call vector_insert_block(psi_vec%vec,itri,1,dofsps,VEC_ADD)
    call vector_insert_block(bz_vec%vec ,itri,1,dofsbz,VEC_ADD)
    call vector_insert_block(p_vec%vec  ,itri,1,dofspr,VEC_ADD)
+   call vector_insert_block(den_vec%vec,itri,1,dofsden,VEC_ADD)
 enddo
 
 ! solve for psi
@@ -4626,26 +4609,22 @@ enddo
   call newvar_solve(bz_vec%vec ,mass_mat_lhs)
  if(myrank.eq.0 .and. iprint.ge.1) print *, "solving p"
   call newvar_solve(p_vec%vec  ,mass_mat_lhs)
+ if(myrank.eq.0 .and. iprint.ge.1) print *, "solving den"
+  call newvar_solve(den_vec%vec  ,mass_mat_lhs)
 
- if(eqsubtract.eq.1) then
-   psi_field(0) = psi_vec
-   bz_field(0)  = bz_vec
-   p_field(0)   = p_vec
- else
-   psi_field(1) = psi_vec
-   bz_field(1)  = bz_vec
-   p_field(1)   = p_vec
- endif
-   pe_field(0) = p_field(0)
-   pe_field(1) = p_field(1)
-   call mult(pe_field(0),pefac)
-   call mult(pe_field(1),pefac)
+  psi_field(0) = psi_vec
+  bz_field(0)  = bz_vec
+  p_field(0)   = p_vec
+  den_field(0) = den_vec
+  pe_field(0) = p_field(0)
+  call mult(pe_field(0),pefac)
 
- call destroy_field(psi_vec)
- call destroy_field(bz_vec)
- call destroy_field(p_vec)
+  call destroy_field(psi_vec)
+  call destroy_field(bz_vec)
+  call destroy_field(p_vec)
+  call destroy_field(den_vec)
 
-  call finalize(field_vec)
+  call init_perturbations
 
   if(itaylor.eq.27) then
      call getvals_qsolver(0.,psimin,dum1,dum2)
