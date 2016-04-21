@@ -501,58 +501,55 @@ vectype function viscosity_func(i)
   implicit none
 
   integer, intent(in) :: i
-  vectype :: temp
   integer :: iregion, j, nvals
   real :: val, valp, valpp, pso
   real, allocatable :: xvals(:), yvals(:)
   integer :: magnetic_region
   vectype, dimension(MAX_PTS,OP_NUM) :: psi
 
-  temp = 0.
+  temp79a = 0.
 
-  if(amu_edge.ne.0.) then
-
-     select case (ivisfunc)
-     case(0)
-        temp79a = 0.
-
-     case(1)
-        if(linear.eq.1) then
-          temp79a = amu_edge*.5* &
+  select case (ivisfunc)
+  case(0)
+     temp79a = 0.
+     
+  case(1)
+     if(linear.eq.1) then
+        temp79a = amu_edge*.5* &
              (1. + &
              tanh((real(ps079(:,OP_1))-(psibound+amuoff*(psibound-psimin))) &
              /(amudelt*(psibound-psimin))))
-        else
-          temp79a = amu_edge*.5* &
+     else
+        temp79a = amu_edge*.5* &
              (1. + &
              tanh((real(pst79(:,OP_1))-(psibound+amuoff*(psibound-psimin))) &
              /(amudelt*(psibound-psimin))))
-        endif
-
-     case(2)
-        if(linear.eq.1) then
-           psi = ps079
-        else
-           psi = pst79
-        end if
-        temp79b = (psi(:,OP_1)-psimin)/(psibound - psimin)
-
-        do j=1, npoints
-           iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
-           if(iregion.eq.2) temp79b(j) = 2. - temp79b(j)
-        end do
-
-        temp79a = amu_edge*.5* &
-             (1. + tanh((real(temp79b) - amuoff)/amudelt))
-        if(amuoff2.ne.0. .and. amudelt2.ne.0.) then
-           temp79a = temp79a + amu_edge*.5* &
-                (1. + tanh((real(temp79b) - amuoff2)/amudelt2))
-           temp79a = temp79a / 2.
-        endif
-
-     case(3)
-        temp79a = vis79(:,OP_1) - amu
-
+     endif
+     
+  case(2)
+     if(linear.eq.1) then
+        psi = ps079
+     else
+        psi = pst79
+     end if
+     temp79b = (psi(:,OP_1)-psimin)/(psibound - psimin)
+     
+     do j=1, npoints
+        iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
+        if(iregion.eq.2) temp79b(j) = 2. - temp79b(j)
+     end do
+     
+     temp79a = amu_edge*.5* &
+          (1. + tanh((real(temp79b) - amuoff)/amudelt))
+     if(amuoff2.ne.0. .and. amudelt2.ne.0.) then
+        temp79a = temp79a + amu_edge*.5* &
+             (1. + tanh((real(temp79b) - amuoff2)/amudelt2))
+        temp79a = temp79a / 2.
+     endif
+     
+  case(3)
+     temp79a = vis79(:,OP_1) - amu
+     
   case(10,11)
      if(.not.allocated(amu_spline%x)) then
         ! Read in m^2/s (10) or normalized units (11)
@@ -577,13 +574,10 @@ vectype function viscosity_func(i)
         call evaluate_spline(amu_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
+     
+  end select
 
-     end select
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
-  endif
-
-  viscosity_func = temp
-  return
+  viscosity_func = int2(mu79(:,OP_1,i),temp79a)
 end function viscosity_func
 
 ! Kappa
