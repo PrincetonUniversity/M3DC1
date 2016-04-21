@@ -348,7 +348,7 @@ contains
   !=====================================================
   ! define_fields
   !=====================================================
-  subroutine define_fields(itri, fields, gdef, ilin, ieqs)
+  subroutine define_fields(itri, fieldi, gdef, ilin, ieqs)
     use basic
     use mesh_mod
     use arrays
@@ -356,13 +356,15 @@ contains
 
     implicit none
   
-    integer, intent(in) :: itri, fields, gdef, ilin
+    integer, intent(in) :: itri, fieldi, gdef, ilin
     integer, intent(in), optional :: ieqs
 
     real :: fac, efac
-    integer :: i, izone, ieqsub
+    integer :: i, izone, ieqsub, fields
     type(element_data) :: d
     vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
+
+    fields = fieldi
 
     if(present(ieqs)) then
        ieqsub = ieqs
@@ -410,6 +412,18 @@ contains
 
     call precalculate_terms(xi_79,zi_79,eta_79,d%co,d%sn,ri_79,npoints)
     call define_basis(itri)
+
+    ! some field calculations require other field calculation first
+    if(iand(fields, FIELD_N).eq.FIELD_N) then
+       if(idenfunc.eq.3) fields = ior(fields,FIELD_PSI)
+    end if
+    if(iand(fields, FIELD_ETA).eq.FIELD_ETA) then
+       if(iresfunc.eq.2 .or. iresfunc.eq.3) fields = ior(fields,FIELD_PSI)
+       if(iresfunc.eq.4) fields = ior(ior(fields,FIELD_N),FIELD_P)
+    end if
+    if(iand(fields, FIELD_MU).eq.FIELD_MU) then
+       if(ivisfunc.eq.3) fields = ior(fields,FIELD_PSI)
+    end if
 
     ! PHI
     ! ~~~
