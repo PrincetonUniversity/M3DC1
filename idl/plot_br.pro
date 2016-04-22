@@ -2,7 +2,7 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
              subtract_vacuum=subtract_vacuum, ntor=ntor, $
              slice=slice, extsubtract=extsubtract, $
              overplot=overplot, filename=filename, scale=scale, $
-             linfac=linfac, sum=sum
+             linfac=linfac, sum=sum, vacfield=vacfield
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(ntor) eq 0) then begin
@@ -82,6 +82,11 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    ; calculate B.grad(psi)
    br = (bx*psi0_r + bz*psi0_z)
+
+   if(keyword_set(vacfield)) then begin
+      print, 'Using VACFIELD integrand: B.Grad(psi)/|Grad(psi)|'
+      br = br / sqrt(psi0_r^2 + psi0_z^2)
+   end
    
    ; convert to cgs
    get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, _EXTRA=extra, $
@@ -89,6 +94,7 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    br = br*b0_norm
 
    schaffer_plot, br, x, z, t, psi0=psi0,i0=i0, q_val=q_val, $
-     label='!8B!Dn!N!6 (G)!X', points=points, bins=bins, ntor=ntor, $
-     overplot=overplot, filename=filename[0], _EXTRA=extra
+                  label='!8B!Dn!N!6 (G)!X', points=points, bins=bins, ntor=ntor, $
+                  overplot=overplot, filename=filename[0], _EXTRA=extra, $
+                  ignore_jacobian=vacfield
 end
