@@ -106,7 +106,7 @@ contains
     logical, parameter :: loutcart = .false. !Output Cartesian particle coords?
     integer, dimension(3), parameter :: trid = (/ 1979, 3405, 4856 /)
     real, parameter :: JpereV = 1.6022e-19
-    real :: pdt, keeV, pphi
+    real :: pdt, keeV, pphi, tstart, tend
     integer :: ierr, ip, istep=0, itr, trunit=120
 
     if (myrank.eq.0) then
@@ -134,7 +134,7 @@ contains
        do ierr=1,size(pdata)
           do ip=1,pdata(ierr)%np
              if (pdata(ierr)%ion(ip)%gid.eq.trid(itr)) then
-                print *,myrank,': ielm,ip = ',ierr,ip,': gid = ',pdata(ierr)%ion(1)%gid
+                print *,myrank,': ielm,ip = ',ierr,ip,': gid = ',pdata(ierr)%ion(ip)%gid
                 write(line,'(A,I8.8)') 'ptraj_',trid(itr)
                 open(unit=trunit, file=trim(line), status='replace', action='write')
                 if (loutcart) then !Cartesian
@@ -164,6 +164,7 @@ contains
     enddo !itr
 
     !Advance particle positions
+    call second(tstart)
     pdt = 3.0e-7
     do istep=1,4800
        call advance_particles(pdt)
@@ -196,8 +197,15 @@ contains
           enddo !ierr
        enddo !itr
     enddo !istep
+    if (myrank.eq.0) then
+       call second(tend)
+       write(0,'(A,I7,A,f9.2,A)')'Particle advance completed',istep-1,' steps in',&
+            tend-tstart,' seconds.'
+    endif
 
+    !Return to non-ghosted mesh
     call m3dc1_ghost_delete
+    call reset_trimats
 
     !Clean up
     call finalize_particles
@@ -218,7 +226,12 @@ contains
     type(elfield), dimension(nneighbors+1) :: elcoefs
     type(xgeomterms) :: geomterms
     real, dimension(3) :: Bcyl
-    real    :: x1, x2, z1, z2, pdx, pdz, pdl, xi, zi, vpar, vperp
+#ifndef USE3D
+    real, dimension(2) :: mmsa
+#else
+    real xi, zi
+#endif
+    real    :: x1, x2, z1, z2, pdx, pdz, pdl, vpar, vperp
     real    :: EeV, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
     real    :: gyroperiod, gfrac=5.0e-3, gkfrac=8.0, dtp, ldtmin
     integer :: npr, npz, npe, npmu, ir, iz, ie, imu, ip
@@ -239,6 +252,11 @@ contains
        endif
     enddo !gfx
     print *,myrank,':',nle,' local elements;',nge,' ghost elements.'
+    nelms = local_elements()
+    print *,myrank,': ',nelms,' local+ghost elements.'
+
+    !Recompute triangle coefficients to include ghost elements
+    call reset_trimats
 
     !Set up domain neighbor lookup table for fast particle communication
     call init_ndlookup(ierr)
@@ -246,18 +264,6 @@ contains
        print *,'Error',ierr,' in init_ndlookup.'
        return
     endif
-
-    !Recompute triangle coefficients to include ghost elements
-    nelms = local_elements()
-    print *,myrank,': ',nelms,' local+ghost elements.'
-    !if (myrank.eq.0) print *,coeffs_per_element,' coeffs per element.'
-    deallocate(gtri,htri)
-    if(iprecompute_metric.eq.1) deallocate(ctri)
-    allocate(gtri(coeffs_per_tri,dofs_per_tri,nelms))
-    allocate(htri(coeffs_per_dphi,dofs_per_dphi,nelms))
-    if(iprecompute_metric.eq.1) &
-         allocate(ctri(dofs_per_element,coeffs_per_element,nelms))
-    call tridef
 
     !Allocate local storage for particle data
     allocate(pdata(nelms), jmppar(ndnbr), jinbuf(32))
@@ -297,8 +303,14 @@ contains
           dpar%x(1) = x1 + (ir - 0.5)*pdx
 
           !Check for local residence
+#ifdef USE3D
           ielm = 0
           call whattri(dpar%x(1), dpar%x(2), dpar%x(3), ielm, xi, zi)
+#else
+          mmsa = dpar%x(1:3:2)
+          call m3dc1_mesh_search(0, mmsa, ielm)
+          ielm = ielm + 1
+#endif
           if (ielm.le.0) cycle     !Not in local partition; skip.
           call m3dc1_ent_isghost(2, ielm-1, isghost)
           if (isghost.eq.1) cycle  !In ghost layer; skip.
@@ -309,7 +321,7 @@ contains
              do imu=1,npmu  !Loop over pitch angles
                 dpar%v(2) = lambda_min + (imu - 1.0)*pdl
                 dpar%gid = npmu*(npe*(npr*(iz-1) + (ir-1)) + (ie-1)) + (imu-1)
-                !dpar%jel = ielm
+                dpar%jel = ielm
 
                 call add_particle(pdata, nelms, ielm, dpar, ierr)
                 if (ierr.eq.0) locparts = locparts + 1
@@ -782,6 +794,7 @@ contains
                    endif
 
                    !Add it to the new element
+                   pdata(ielm)%ion(ipart)%jel = itri
                    call add_particle(pdata, nelms, itri, pdata(ielm)%ion(ipart), ierr)
                    if (ierr.ne.0) print *,myrank,': error in add_particle!'
                 endif
@@ -1108,15 +1121,25 @@ contains
     type(element_data) :: eldat
     real :: xi, zi, eta, dxi, deta
     real :: d2xi, d2eta, dxieta
-    integer :: pp
+    integer pp
 #ifdef USE3D
     real    :: gtmp, drtmp, dztmp, zpow
     integer :: ii, jj
+#else
+    real, dimension(2) :: mmsa
+    integer ktri
 #endif
 
     ierr = 0;  tridex = -1
 
+#ifdef USE3D
     call whattri(x(1),x(2),x(3),ielm,xi,zi)
+#else
+    mmsa = x(1:3:2)
+    if (ielm.lt.1) ielm = 1
+    call m3dc1_mesh_search(ielm-1, mmsa, ktri)
+    ielm = ktri + 1
+#endif
     if (ielm.le.0) then !The triangle is not in the local partition
        ierr = 1
        return
@@ -1522,7 +1545,7 @@ contains
     if (vspdims.eq.3) then
        getke = 0.5*e_mks*dot_product(p%v, p%v)/qm_ion
     else
-       itri = 0;  elcoefs(:)%itri = 0
+       itri = p%jel;  elcoefs(:)%itri = 0
        call get_geom_terms(p%x, itri, elcoefs, tridex, geomterms, .false., ierr)
        if (ierr.ne.0) then
           getke = -1.0
@@ -1553,7 +1576,7 @@ contains
     real                                   :: B0
     integer                                :: itri, tridex, ierr
 
-    itri = 0;  elcoefs(:)%itri = 0
+    itri = p%jel;  elcoefs(:)%itri = 0
     call get_geom_terms(p%x, itri, elcoefs, tridex, geomterms, .false., ierr)
     if (ierr.ne.0) then
        getPphi = -1.0
@@ -1634,6 +1657,29 @@ contains
        enddo !ipart
     enddo !ielm
   end subroutine particle_pressure
+
+!---------------------------------------------------------------------------
+! Recompute triangle coefficients for new element list
+  subroutine reset_trimats
+    use basic
+    implicit none
+
+    integer nelms
+
+    nelms = local_elements()
+#ifdef JBDEBUG
+    print *,myrank,': redoing tridef for',nelms,' local elements.'
+#endif
+    if (nelms.lt.1) return
+
+    deallocate(gtri,htri)
+    if(iprecompute_metric.eq.1) deallocate(ctri)
+    allocate(gtri(coeffs_per_tri,dofs_per_tri,nelms))
+    allocate(htri(coeffs_per_dphi,dofs_per_dphi,nelms))
+    if(iprecompute_metric.eq.1) &
+         allocate(ctri(dofs_per_element,coeffs_per_element,nelms))
+    call tridef
+  end subroutine reset_trimats
 
 #endif
 
