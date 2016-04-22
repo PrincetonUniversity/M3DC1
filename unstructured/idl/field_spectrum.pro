@@ -14,7 +14,7 @@
 ;  m:   poloidal mode numbers
 ;===========================================================================
 function field_spectrum, field, x, z, psi0=psi0, i0=i0, fc=fc, m=m, $
-                         _EXTRA=extra
+                         ignore_jacobian=nojac, _EXTRA=extra
 
 ;  b = flux_coord_field_new(field, x, z, fc=fc, /pest, _EXTRA=extra)
 
@@ -24,8 +24,15 @@ function field_spectrum, field, x, z, psi0=psi0, i0=i0, fc=fc, m=m, $
   ntor = read_parameter('ntor', _EXTRA=extra)
   print, 'NTOR = ', ntor
 
-  b[0,*,*] = b[0,*,*]*(2.*!pi)^2*fc.j $
-             * exp(complex(0,ntor)*fc.omega)
+  if(keyword_set(ignore_jacobian)) then begin
+     print, 'field_spectrum: Ignoring Jacobian'
+     b[0,*,*] = b[0,*,*]*(2.*!pi)^2 $
+                * exp(complex(0,ntor)*fc.omega)
+  endif else begin
+     print, 'field_spectrum: Including Jacobian'
+     b[0,*,*] = b[0,*,*]*(2.*!pi)^2*fc.j $
+                * exp(complex(0,ntor)*fc.omega)
+  end
 
   c = fft(b, -1, dimension=2)
 
