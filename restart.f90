@@ -99,6 +99,7 @@ subroutine wrrestart
      enddo
   end if
   write(56) pellet_rate
+  write(56) xnull2, znull2
 
   deallocate(data_buff)
   close(56)
@@ -276,6 +277,10 @@ else
      if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
   end if
 
+  if(iversion.ge.13) then
+     read(56,END=1199) xnull2, znull2
+  end if
+
   deallocate (data_buff)
   goto 1200
 1199 if(myrank.eq.0) &
@@ -301,7 +306,7 @@ subroutine rdrestart_2d23d
   character (len=30) :: fname, oldfname
   integer :: prev_ndofs1, ndofs1, prev_ndofs2, ndofs2, group_rank
   integer :: prev_ndofs1_pernode, prev_ndofs2_pernode, cur_ndofs1_pernode, cur_ndofs2_pernode 
-  real :: vloopsave
+  real :: vloopsave, pelletratesave
  real, allocatable :: data_buf(:) 
   real, dimension(num_fields*12*2):: dofs_node ! buffer for dofs per node
 
@@ -493,6 +498,17 @@ subroutine rdrestart_2d23d
      end if
   end if
 
+  if(iversion.ge.12) then 
+     pelletratesave = pellet_rate
+     read(56,END=1199) pellet_rate
+     ! use pellet_rate from input if no control
+     if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
+  end if
+
+  if(iversion.ge.13) then
+     read(56,END=1199) xnull2, znull2
+  end if
+
   deallocate(data_buf)
   goto 1200
 1199 if (myrank.eq.0) &
@@ -520,7 +536,7 @@ subroutine rdrestart_cplx
   character (len=30) :: fname, oldfname
   integer :: ndofs
   integer :: iversion
-  real :: vloopsave
+  real :: vloopsave, pelletratesave
   vectype, allocatable :: data_buff(:)
   real :: tmprestart
 
@@ -647,6 +663,19 @@ subroutine rdrestart_cplx
         call m3dc1_field_set(psi_coil_field%vec%id, data_buff, ndofs)
      end if
   end if
+
+  if(iversion.ge.12) then 
+     pelletratesave = pellet_rate
+     read(56,END=1199) pellet_rate
+     ! use pellet_rate from input if no control
+     if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
+  end if
+
+  if(iversion.ge.13) then
+     read(56,END=1199) xnull2, znull2
+  end if
+
+
   deallocate(data_buff)
   goto 1200
 1199 if(myrank.eq.0) &
@@ -1223,6 +1252,11 @@ subroutine rdrestart_adios
     if(prev_version.ge.12) then
        call adios_read_local_var (gh, "pellet_rate", group_rank, start, readsize, pellet_rate, read_bytes)
     end if
+    if(prev_version.ge.13) then
+       call adios_read_local_var (gh, "xnull2",      group_rank, start, readsize, xnull, read_bytes)
+       call adios_read_local_var (gh, "znull2",      group_rank, start, readsize, znull, read_bytes)
+    end if
+
 
     if(control_type .eq. -1) vloop = vloopsave  !  vloop from input if no I control
     if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  !  vloop from input if no I control

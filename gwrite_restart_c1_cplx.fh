@@ -25,6 +25,8 @@ adios_groupsize = 8 &
                 + 8 &
                 + 8 &
                 + 8 &
+                + 8 &
+                + 8 &
                 + 16 * (ndofs_1) &
                 + 16 * (ndofs_1) &
                 + 16 * (ndofs_2) &
@@ -59,6 +61,8 @@ call adios_write (adios_handle, "psilim", psilim, adios_err)
 call adios_write (adios_handle, "psibound", psibound, adios_err)
 call adios_write (adios_handle, "xnull", xnull, adios_err)
 call adios_write (adios_handle, "znull", znull, adios_err)
+call adios_write (adios_handle, "xnull2", xnull, adios_err)
+call adios_write (adios_handle, "znull2", znull, adios_err)
 call adios_write (adios_handle, "xmag", xmag, adios_err)
 call adios_write (adios_handle, "zmag", zmag, adios_err)
 call adios_write (adios_handle, "ndofs_1", ndofs_1, adios_err)
