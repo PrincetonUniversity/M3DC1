@@ -33,6 +33,8 @@
        <var name="psibound" type="double"/>
        <var name="xnull" type="double"/>
        <var name="znull" type="double"/>
+       <var name="xnull2" type="double"/>
+       <var name="znull2" type="double"/>
        <var name="xmag" type="double"/>
        <var name="zmag" type="double"/>
 

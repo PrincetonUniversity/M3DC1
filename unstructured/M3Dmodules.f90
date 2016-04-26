@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 12
+  integer, parameter :: version = 13
 
   integer :: i3d
 #ifdef USECOMPLEX
@@ -219,6 +219,7 @@ module basic
   integer :: itemp       ! advance pressures for itemp=0, Temperatures for itemp=1
   integer :: imode       ! specifies which of the 4 modes of treating pressure (and temperature) for ipressplit=1
   integer :: imp_bf      ! include bf implicitly
+  integer :: imp_temp    ! include implicit equation for temperature
   integer :: gyro        ! include gyroviscosity
   integer :: jadv        ! 1 = use current density equation, not flux equation
   integer :: isources    ! 1 = include "source" terms in velocity advance
