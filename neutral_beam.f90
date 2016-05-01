@@ -6,6 +6,7 @@ module neutral_beam
                     ! 2 = include beam source but no torque
                     ! 3 = include beam energy only (no torque or particles)
                     ! 4 = include beam energy and torque only (no particles)
+                    ! 5 = include beam torque only (no energy or particles)
   real :: beam_x    ! x coordinate of beam center
   real :: beam_z    ! z coordinate of beam center
   real :: beam_v    ! beam voltage (in volts)
