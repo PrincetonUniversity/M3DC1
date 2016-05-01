@@ -141,7 +141,7 @@ vectype function force_func(i, izone)
   if(izone.ne.1) return
 
   ! Beam source
-  if(ibeam.eq.1 .or. ibeam.eq.4) then
+  if(ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5) then
      temp79a = neutral_beam_deposition(x_79,z_79)
      temp = temp + nb_v*beam_fracpar*int2(mu79(:,OP_1,i),temp79a)
      if(ivform.eq.0) then
@@ -286,7 +286,7 @@ vectype function q_func(i, izone)
   endif
 
   ! Beam source
-  if(ibeam.ge.1) then
+  if(ibeam.ge.1 .and. ibeam.le.4) then
      temp79a = 0.5*neutral_beam_deposition(x_79,z_79)
      temp = temp + (nb_v**2 + nb_dv**2)*int2(mu79(:,OP_1,i),temp79a)
      if(ivform.eq.0) then

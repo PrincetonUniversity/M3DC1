@@ -1092,10 +1092,10 @@ subroutine validate_input
        (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 &
                            .or. idenfloor.gt.0 .or. ibeam.eq.1 &
                            .or. ibeam.eq.2 .or. iread_particlesource.eq.1)
-  momentum_source = (ibeam.eq.1 .or. ibeam.eq.4)
+  momentum_source = (ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5)
   heat_source = (numvar.ge.3 .or. ipres.eq.1) .and. &
        (igaussian_heat_source.eq.1 .or. &
-       ibeam.ge.1 .or. &
+       (ibeam.ge.1 .and. ibeam.le.4) .or. &
        iread_heatsource.eq.1 .or. &
        iheat_sink.eq.1 .or. &
        iprad.ne.0)
