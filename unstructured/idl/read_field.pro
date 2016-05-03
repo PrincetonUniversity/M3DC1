@@ -2626,7 +2626,35 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = psi_r/r - f_zp
        symbol = '!8B!DZ!N!X'
        d = dimensions(/b0, _EXTRA=extra)
+       
+    ;===============================
+    ; Dreicer field
+    ;===============================
+    endif else if(strcmp('dreicer', name, /fold_case) eq 1) then begin
 
+       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts,/mks, $
+                      rrange=xrange, zrange=yrange)
+       Te = read_field('Te', x, y, t, slices=time, mesh=mesh, $
+                       filename=filename, points=pts, /equilibrium, /mks,$
+               rrange=xrange, zrange=yrange)
+
+       lnL = 14.9 - 0.5*ALOG(n/1.e20) + ALOG(Te/1.e3)
+
+       me_rest=511875    ;mc2
+       norm=5.0244e-23   ;q^3/(4*!pi*eps0^2*me*c2)
+
+       Ec = norm*n*lnL
+       data = Ec*me_rest/Te 
+
+       ; convert from mks back to normalized units
+       d = dimensions(/potential,l0=-1,_EXTRA=extra)
+       get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,zeff=zeff,ion=mi
+       e_norm = 1.
+       convert_units, e_norm, d, b0, n0, l0, zeff, mi, /mks
+       data = data / e_norm
+
+       symbol = '!8E!D!6Dreicer!N!X'
 
    ;===========================================
    ; poloidal flow
