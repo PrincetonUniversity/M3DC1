@@ -106,6 +106,7 @@ subroutine set_defaults
   use error_estimate
   use hdf5_output
   use bootstrap
+  use diagnostics
 
   implicit none
 
@@ -274,6 +275,8 @@ subroutine set_defaults
   call add_var_int("ibootstrap", ibootstrap, 0, "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
+  call add_var_int("imp_temp", imp_temp, 0, &
+       "1: Include implicit equation for temperature", model_grp)
   call add_var_int("nosig", nosig, 0, "", model_grp)
   call add_var_int("itor", itor, 0, &
        "1: Use toroidal geometry", model_grp)
@@ -732,6 +735,21 @@ subroutine set_defaults
   call add_var_double("xray_sigma", xray_sigma, 1., &
        "Spread of xray detector chord (degrees)", diagnostic_grp)
 
+  call add_var_int("iflux_loops", iflux_loops, 0, &
+       "Number of flux loops", diagnostic_grp)
+  call add_var_double_array("flux_loop_x", flux_loop_x, iflux_loops_max, 0., &
+       "X-coordinate of flux loops", diagnostic_grp)
+  call add_var_double_array("flux_loop_phi", flux_loop_phi, iflux_loops_max, 0., &
+       "Phi-coordinate of flux loops", diagnostic_grp)
+  call add_var_double_array("flux_loop_z", flux_loop_z, iflux_loops_max, 0., &
+       "Z-coordinate of flux loops", diagnostic_grp)
+  call add_var_double_array("flux_loop_nx", flux_loop_nx, iflux_loops_max, 0., &
+       "X-component of flux loop normal", diagnostic_grp)
+  call add_var_double_array("flux_loop_nphi", flux_loop_nphi, iflux_loops_max, 0., &
+       "Phi-component of flux loop normal", diagnostic_grp)
+  call add_var_double_array("flux_loop_nz", flux_loop_nz, iflux_loops_max, 0., &
+       "Z-component of flux loop normal", diagnostic_grp)
+
   ! 3-D options
   call add_var_int("ntor", ntor, 0, &
        "Toroidal mode number", misc_grp)
@@ -867,6 +885,16 @@ subroutine validate_input
      if(myrank.eq.0) print *, "itemp=1 not allowed with ipressplit=0"
      call safestop(1)
   endif
+
+  if(imp_temp.eq.1) then 
+     if(ipres.eq.0 .and. numvar.lt.3) then
+        if(myrank.eq.0) print *, 'imp_temp=1 not allowed with ipres=0 and numvar<3'
+        call safestop(1)
+     end if
+     if(isplitstep.eq.1) then
+        if(myrank.eq.0) print *, 'imp_temp=1 not allowed with isplitstep=1'
+     end if
+  end if
 
   if(zeff .ne. 1.0 .and. itemp.eq.1) then
      if(myrank.eq.0) print *, "itemp=1 not allowed with zeff .gt. 1"

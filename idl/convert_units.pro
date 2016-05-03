@@ -5,19 +5,24 @@
 ; converts x having dimensions d to cgs units
 ; where b0, n0, and l0 are the normalizations (in cgs units)
 ;===============================================================
-pro convert_units, x, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+pro convert_units, x, d, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks, filename=filename
    if(n_elements(x) eq 0) then return
 
    if(not (keyword_set(cgs) or keyword_set(mks))) then return
 
+   if(n_params() eq 2) then begin
+      print, "Reading dimension from file"
+      get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,zeff=zeff,ion=mi
+   end
+
    if(b0 eq 0 or n0 eq 0 or l0 eq 0 or zeff eq 0 or mi eq 0) then begin
-       print, "Warning: unknown conversion factors."
-       print, "Using l0=100, B0=1e4, n0=1e14."
-       l0 = 100.
-       b0 = 1.e4
-       n0 = 1.e14
-       zeff = 1.
-       mi = 1.
+      print, "Warning: unknown conversion factors."
+      print, "Using l0=100, B0=1e4, n0=1e14."
+      l0 = 100.
+      b0 = 1.e4
+      n0 = 1.e14
+      zeff = 1.
+      mi = 1.
    endif
 
    val = 1.
