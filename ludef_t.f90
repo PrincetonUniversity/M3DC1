@@ -99,12 +99,12 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! ~~~~~~~~~~~~~~~
   temp = v1un(trial,lin,nt79)*freq_fac
   ssterm(u_g) = ssterm(u_g) + temp
-  ddterm(u_g) = ddterm(u_g) + temp*bdf
+  if(itime_independent.eq.0) ddterm(u_g) = ddterm(u_g) + temp*bdf
   
   if(numvar.ge.3) then
      temp = v1chin(trial,lin,nt79)*chiiner*freq_fac
      ssterm(chi_g) = ssterm(chi_g) + temp
-     ddterm(chi_g) = ddterm(chi_g) + temp*bdf
+     if(itime_independent.eq.0) ddterm(chi_g) = ddterm(chi_g) + temp*bdf
   end if
 
   ! Viscosity
@@ -629,7 +629,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! ~~~~~~~~~~~~~~~
   temp = v2vn(trial,lin,nt79)*freq_fac
   ssterm(vz_g) = ssterm(vz_g) + temp
-  ddterm(vz_g) = ddterm(vz_g) + temp*bdf
+  if(itime_independent.eq.0) ddterm(vz_g) = ddterm(vz_g) + temp*bdf
 
 
   if(izone.ne.1) return
@@ -1107,11 +1107,11 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! ~~~~~~~~~~~~~~~~
   temp = v3un(trial,lin,nt79)*freq_fac
   ssterm(u_g) = ssterm(u_g) + temp
-  ddterm(u_g) = ddterm(u_g) + temp*bdf
+  if(itime_independent.eq.0) ddterm(u_g) = ddterm(u_g) + temp*bdf
      
   temp = v3chin(trial,lin,nt79)*chiiner*freq_fac
   ssterm(chi_g) = ssterm(chi_g) + temp
-  ddterm(chi_g) = ddterm(chi_g) + temp*bdf
+  if(itime_independent.eq.0) ddterm(chi_g) = ddterm(chi_g) + temp*bdf
 
   ! Viscosity
   ! ~~~~~~~~~
@@ -1631,7 +1631,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
        -  b1psid(trial,lin,ni79)) &  ! electron mass term
        * freq_fac
   ssterm(psi_g) = ssterm(psi_g) + temp
-  ddterm(psi_g) = ddterm(psi_g) + temp*bdf
+  if(itime_independent.eq.0) ddterm(psi_g) = ddterm(psi_g) + temp*bdf
 
   ! Zone 2: E = eta J
   if(izone.ne.1) return
@@ -2371,7 +2371,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
        -  b2bd(trial,lin,ni79)) &   ! electron mass term
        * freq_fac
   ssterm(bz_g) = ssterm(bz_g) + temp
-  ddterm(bz_g) = ddterm(bz_g) + temp*bdf
+  if(itime_independent.eq.0) ddterm(bz_g) = ddterm(bz_g) + temp*bdf
 
   if(izone.ne.1) return
 
@@ -2942,7 +2942,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! ~~~~~~~~~~~~~~~
   temp = b3pe(trial,lin)*freq_fac
   ssterm(pp_g) = ssterm(pp_g) + temp
-  ddterm(pp_g) = ddterm(pp_g) + temp*bdf
+  if(itime_independent.eq.0) ddterm(pp_g) = ddterm(pp_g) + temp*bdf
 
 
   if(izone.ne.1) return
@@ -3610,7 +3610,7 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! ~~~~~~~~~~~~~~~
   temp = t3tn(trial,lin,nt79)*freq_fac
   ssterm(pp_g) = ssterm(pp_g) + temp
-  ddterm(pp_g) = ddterm(pp_g) + temp*bdf
+  if(itime_independent.eq.0) ddterm(pp_g) = ddterm(pp_g) + temp*bdf
 
   if(izone.ne.1) return
 
@@ -5180,12 +5180,10 @@ subroutine ludefden_n(itri)
         ! ~~~~~~~~~~
         temp = n1n(mu79(:,:,i),nu79(:,:,j))*freq_fac
         ssterm(i,j) = ssterm(i,j) + temp    
-        ddterm(i,j) = ddterm(i,j) + temp*bdf
+        if(itime_independent.eq.0) ddterm(i,j) = ddterm(i,j) + temp*bdf
         
         if(izone.ne.1) cycle
  
-        tm79 = 0.
-        tm79(:,OP_1) = 1.
         temp = n1ndenm(mu79(:,:,i),nu79(:,:,j),denm,hp) &
              + n1nu   (mu79(:,:,i),nu79(:,:,j),pht79)
         ssterm(i,j) = ssterm(i,j) -     thimp     *dt*temp
