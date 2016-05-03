@@ -14,7 +14,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                        q_contours=q_contours, rho=rho, integrate=integrate, $
                        multiply_flux=multiply_flux, abs=abs, phase=phase, $
                        stotal=total, nolegend=nolegend, outfile=outfile, $
-                       val_at_q=val_at_q, flux_at_q=qflux, _EXTRA=extra
+                       val_at_q=val_at_q, flux_at_q=qflux, $
+                       regularize=regularize, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(linfac) eq 0) then linfac = 1.
@@ -46,7 +47,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
              stotal=total, q_contours=qcon, rho=rho, nolegend=nolegend, $
-             linfac=linfac[i]
+             linfac=linfac[i], regularize=regularize
        end
        if(n_elements(names) ne 0) then begin
            plot_legend, names, colors=col, linestyle=ls, _EXTRA=extra
@@ -80,7 +81,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
              stotal=total, q_contours=q_contours, rho=rho, nolegend=nolegend, $
-             linfac=linfac[i], out=outfile[i]
+             linfac=linfac[i], out=outfile[i], regularize=regularize
        end
        if(n_elements(names) gt 0 and not keyword_set(nolegend)) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
@@ -112,7 +113,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              linear=linear, multiply_flux=multiply_flux, mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, asb=aba, phase=phase, $
              stotal=total, rho=rho, nolegend=nolegend, linfac=linfac[i], $
-             q_contours=q_contours
+             q_contours=q_contours, regularize=regularize
            lab = parse_units(dimensions(/t0), cgs=cgs, mks=mks)
            get_normalizations, b0=b0, n0=n0, l0=l0, $
                         zeff=zeff, ion_mass=mi, filename=filename
@@ -187,6 +188,13 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        lcfs_psi = 1.
        xtitle = '!7q!X'
    endif
+
+   if(keyword_set(regularize)) then begin
+      print, 'REGULARIZING'
+      fa = fa/total(fa)
+   endif else begin
+      print, 'NOT REGULARIZING'
+   end
 
    if(n_elements(sm) eq 1) then begin
        fa = smooth(fa,sm)
