@@ -359,7 +359,7 @@ contains
     integer, intent(in) :: itri, fieldi, gdef, ilin
     integer, intent(in), optional :: ieqs
 
-    real :: fac, efac
+    real :: fac, efac, eta_max, thalo, twall
     integer :: i, izone, ieqsub, fields
     type(element_data) :: d
     vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
@@ -855,9 +855,16 @@ contains
            efac = eta_fac * &
                 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
                 *zeff*lambda_coulomb*sqrt(ion_mass)
-           
+           eta_max = eta_vac
+
+           if(eta_te_offset .gt.0) then
+              twall = pedge*pefac/den_edge
+              thalo = twall - eta_te_offset
+              eta_max = efac*(thalo)**(-3./2.)
+           endif
+ 
            eta79 = 0.
-           eta79(:,OP_1) = eta_vac / efac
+           eta79(:,OP_1) = eta_max / efac
 
            ! Te
            temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
@@ -866,7 +873,7 @@ contains
            temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
                 pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
 #endif
-           where(real(temp79b).gt.(eta_vac/efac)**(-2./3.))
+           where(real(temp79b).gt.(eta_max/efac)**(-2./3.))
               temp79a = sqrt(temp79b)
               eta79(:,OP_1 ) = 1. / temp79a**3
               eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &

@@ -24,6 +24,7 @@ endif
 SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Apr2016-mpich7.3.1
 SCOREC_CORE = -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
 PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
+
 ifeq ($(COM), 1)
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
       PETSC_ARCH = complex-intel-mpich7.3
