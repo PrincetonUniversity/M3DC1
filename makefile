@@ -139,7 +139,9 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	coils.o coil_sets.o model.o \
 	fit_magnetics.o \
 	init_common.o \
-	gradshafranov.o transport.o \
+	gradshafranov.o \
+	init_rwm.o init_solovev.o init_circle.o init_basicq.o \
+	transport.o \
 	auxiliary_fields.o  \
 	particle.o \
 	time_step_split.o time_step_unsplit.o \
@@ -148,7 +150,6 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	restart.o readgeqdsk.o read_dskbal.o \
 	read_jsolver.o \
 	ic_resistive_wall.o \
-	init_rwm.o init_solovev.o init_circle.o init_basicq.o \
 	init_conds.o \
 	get_pc_skip_count.o
 
