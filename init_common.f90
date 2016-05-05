@@ -38,8 +38,8 @@ subroutine init_random(x,phi,z,outarr)
   vectype, intent(out), dimension(MAX_PTS) :: outarr
   integer, allocatable :: seed(:)
   integer :: i, j, n
-  real, dimension(MAX_PTS) :: xx, zz, rsq, r, ri, ri3, rexp, co, sn
-  vectype, dimension(MAX_PTS) :: temp
+  real, dimension(MAX_PTS) :: xx, zz, rsq, r, ri, ri3, rexp, theta
+  vectype, dimension(MAX_PTS) :: temp, phase
   real :: alx, alz, kx, kp, kz, random, roundoff
 
   call get_bounding_box_size(alx, alz)
@@ -60,8 +60,12 @@ subroutine init_random(x,phi,z,outarr)
   ri = 1./sqrt(rsq + roundoff)
   ri3 = ri/rsq
   rexp = exp(-rsq/ln)
-  co = cos(phi)
-  sn = sin(phi)
+  theta = atan2(zz,xx)
+#ifdef USECOMPLEX
+  phase = exp((0,1)*(ntor*phi - mpol*theta))
+#else
+  phase = cos(ntor*phi - mpol*theta)
+#endif
   outarr = 0.
 
   select case (icsym)
@@ -106,7 +110,7 @@ subroutine init_random(x,phi,z,outarr)
      end do
 
   case (3)  !   NOT RANDOM....start in (1,1) eigenfunction
-     outarr = eps* r * rexp*(zz*co - xx*sn)
+     outarr = eps*r*rexp*phase
      
   end select
 end subroutine init_random
