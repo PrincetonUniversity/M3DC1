@@ -352,8 +352,6 @@ subroutine init
   n_control%d = n_control_d
   n_control%target_val = n_target
   n_control%icontrol_type = n_control_type
-
-   if(itor.eq.0 .and. itaylor.ge.21) call init_qp
 end subroutine init
 
 
