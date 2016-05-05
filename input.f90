@@ -834,6 +834,7 @@ subroutine validate_input
   PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
 #endif
   integer :: ier
+  real :: twall,thalo
 
   if(myrank.eq.0) then
      print *, "============================================="
@@ -1142,6 +1143,16 @@ subroutine validate_input
         call safestop(1)
      end if
   end if
+
+  if(eta_te_offset .ne. 0) then
+     twall = pedge*pefac/den_edge
+     thalo = twall - eta_te_offset
+     print *, 'twall, thalo =', twall, thalo
+     if(eta_te_offset .ge. twall) then
+        print *, 'Error: eta_te_offset .gt. twall=pedge*pefac/den_edge'
+        call safestop(1)
+     endif
+  endif
 
   v0_norm = b0_norm / sqrt(4.*pi*ion_mass*m_p*n0_norm)
   t0_norm = l0_norm / v0_norm
