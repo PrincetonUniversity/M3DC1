@@ -148,7 +148,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	restart.o readgeqdsk.o read_dskbal.o \
 	read_jsolver.o \
 	ic_resistive_wall.o \
-	rwm.o solovev.o \
+	init_rwm.o init_solovev.o init_circle.o init_basicq.o \
 	init_conds.o \
 	get_pc_skip_count.o
 

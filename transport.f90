@@ -262,13 +262,14 @@ vectype function q_func(i, izone)
   use neutral_beam
   use read_ascii
   use radiation
+  use basicq
 
   implicit none
 
   integer, intent(in) :: i, izone
   vectype :: temp
   integer :: nvals, j, magnetic_region, ierr, ier
-  real :: val, valp, valpp, pso, rsq, coef, pfunc
+  real :: val, valp, valpp, pso, rsq, coef
   real, allocatable :: xvals(:), yvals(:)
   real, dimension(MAX_PTS) :: r
 
@@ -588,12 +589,13 @@ vectype function kappa_func(i)
   use basic
   use m3dc1_nint
   use diagnostics
+  use basicq
   
   implicit none
   
   integer, intent(in) :: i
   integer :: nvals, j, iregion
-  real :: val, valp, valpp, pso, rsq, get_kappa
+  real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
   vectype :: temp
   integer :: magnetic_region
