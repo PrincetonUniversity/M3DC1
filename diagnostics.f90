@@ -53,12 +53,12 @@ module diagnostics
   real :: t_output_cgm, t_output_hdf5, t_output_reset
   real :: t_gs
 
-  integer, parameter :: iflux_loops_max = 100
-  integer :: iflux_loops
-  real, dimension(iflux_loops_max) :: flux_loop_x, flux_loop_phi, flux_loop_z
-  real, dimension(iflux_loops_max) :: flux_loop_nx, flux_loop_nphi, flux_loop_nz
-  real, dimension(iflux_loops_max) :: flux_loop_val
-  integer, dimension(iflux_loops_max) :: flux_loop_itri
+  integer, parameter :: imag_probes_max = 100
+  integer :: imag_probes
+  real, dimension(imag_probes_max) :: mag_probe_x, mag_probe_phi, mag_probe_z
+  real, dimension(imag_probes_max) :: mag_probe_nx, mag_probe_nphi, mag_probe_nz
+  real, dimension(imag_probes_max) :: mag_probe_val
+  integer, dimension(imag_probes_max) :: mag_probe_itri
 
 contains
 
@@ -833,7 +833,7 @@ subroutine calculate_scalars()
   if(ibh_harmonics .gt. 0) call calculate_bh()
 #endif
 
-  call evaluate_flux_loops
+  call evaluate_mag_probes
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
      print *, "Total energy = ", etot
@@ -2581,7 +2581,7 @@ subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
   
 end subroutine te_max_dev
 
-  subroutine evaluate_flux_loops()
+  subroutine evaluate_mag_probes()
     use basic
     use arrays
     use m3dc1_nint
@@ -2592,56 +2592,56 @@ end subroutine te_max_dev
     real, dimension(OP_NUM) :: val
     real :: r
 
-    do i=1, iflux_loops
-       flux_loop_val(i) = 0.
+    do i=1, imag_probes
+       mag_probe_val(i) = 0.
 
        if(itor.eq.1) then
-          r = flux_loop_x(i)
+          r = mag_probe_x(i)
        else
           r = 1.
        end if
 
        ! Read poloidal field
-       if(flux_loop_nx(i).ne.0. .or. flux_loop_nz(i).ne.0.) then
+       if(mag_probe_nx(i).ne.0. .or. mag_probe_nz(i).ne.0.) then
           ! psi
-          call evaluate(flux_loop_x(i),flux_loop_phi(i),flux_loop_z(i), &
-               val,psi_field(1),flux_loop_itri(i),ierr)
+          call evaluate(mag_probe_x(i),mag_probe_phi(i),mag_probe_z(i), &
+               val,psi_field(1),mag_probe_itri(i),ierr)
           if(ierr.ne.0) then
              if(myrank.eq.0) print *, 'Error evaluating flux loop ', i
              cycle
           end if
 
-          flux_loop_val(i) = flux_loop_val(i) &
-               - flux_loop_nx(i)*val(OP_DZ) / r &
-               + flux_loop_nz(i)*val(OP_DR) / r
+          mag_probe_val(i) = mag_probe_val(i) &
+               - mag_probe_nx(i)*val(OP_DZ) / r &
+               + mag_probe_nz(i)*val(OP_DR) / r
 
           ! f
 #if defined(USE3D) || defined(USECOMPLEX)
-          call evaluate(flux_loop_x(i),flux_loop_phi(i),flux_loop_z(i), &
-               val,bf_field(1),flux_loop_itri(i),ierr)      
+          call evaluate(mag_probe_x(i),mag_probe_phi(i),mag_probe_z(i), &
+               val,bf_field(1),mag_probe_itri(i),ierr)      
           if(ierr.ne.0) then
              if(myrank.eq.0) print *, 'Error evaluating flux loop ', i
              cycle
           end if
 
-          flux_loop_val(i) = flux_loop_val(i) &
-               + flux_loop_nx(i)*val(OP_DRP) &
-               + flux_loop_nz(i)*val(OP_DZP)
+          mag_probe_val(i) = mag_probe_val(i) &
+               + mag_probe_nx(i)*val(OP_DRP) &
+               + mag_probe_nz(i)*val(OP_DZP)
 #endif
        end if
        
        ! Read toroidal field
-       if(flux_loop_nphi(i).ne.0.) then
+       if(mag_probe_nphi(i).ne.0.) then
           ! bz
-          call evaluate(flux_loop_x(i),flux_loop_phi(i),flux_loop_z(i), &
-               val,bz_field(1),flux_loop_itri(i),ierr)
+          call evaluate(mag_probe_x(i),mag_probe_phi(i),mag_probe_z(i), &
+               val,bz_field(1),mag_probe_itri(i),ierr)
           if(ierr.ne.0) then
              if(myrank.eq.0) print *, 'Error evaluating flux loop ', i
              cycle
           end if
 
-          flux_loop_val(i) = flux_loop_val(i) + flux_loop_nphi(i)*val(OP_1)*r
+          mag_probe_val(i) = mag_probe_val(i) + mag_probe_nphi(i)*val(OP_1)*r
        end if
     end do
-  end subroutine evaluate_flux_loops
+  end subroutine evaluate_mag_probes
 end module diagnostics
