@@ -195,6 +195,7 @@ Program Reducedquintic
   call reset_scalars
 
   mag_probe_itri = 0
+  flux_loop_itri = 0
   if(itimer.eq.1) call reset_timings
 
   ! output simulation parameters and equilibrium
