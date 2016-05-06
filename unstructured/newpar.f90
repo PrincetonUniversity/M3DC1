@@ -330,6 +330,7 @@ end Program Reducedquintic
 subroutine init
   use basic
   use mesh_mod
+  use basicq
   
   implicit none
  
@@ -353,6 +354,8 @@ subroutine init
   n_control%d = n_control_d
   n_control%target_val = n_target
   n_control%icontrol_type = n_control_type
+
+  call init_qp
 end subroutine init
 
 
