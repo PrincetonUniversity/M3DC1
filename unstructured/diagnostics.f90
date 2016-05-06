@@ -60,6 +60,12 @@ module diagnostics
   real, dimension(imag_probes_max) :: mag_probe_val
   integer, dimension(imag_probes_max) :: mag_probe_itri
 
+  integer, parameter :: iflux_loops_max = 100
+  integer :: iflux_loops
+  real, dimension(iflux_loops_max) :: flux_loop_x, flux_loop_z
+  real, dimension(iflux_loops_max) :: flux_loop_val
+  integer, dimension(iflux_loops_max) :: flux_loop_itri
+
 contains
 
   ! ======================================================================
@@ -834,6 +840,7 @@ subroutine calculate_scalars()
 #endif
 
   call evaluate_mag_probes
+  call evaluate_flux_loops
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
      print *, "Total energy = ", etot
@@ -2644,4 +2651,144 @@ end subroutine te_max_dev
        end if
     end do
   end subroutine evaluate_mag_probes
+
+
+  subroutine evaluate_flux_loops()
+    use basic
+    use arrays
+    
+    implicit none
+
+    integer :: ierr, i
+
+    do i=1, iflux_loops
+       call phi_int(flux_loop_x(i),flux_loop_z(i),flux_loop_val(i),psi_field(1), &
+            flux_loop_itri(i),ierr)
+       if(ierr .ne. 0) then
+          flux_loop_val(i) = 0
+       end if
+    end do
+
+  end subroutine evaluate_flux_loops
+
+
+!============================================================
+! phi_int
+! ~~~~~~~
+! calculates the integral of a field at (R,Z) over phi
+!============================================================
+subroutine phi_int(x,z,ans,fin,itri,ierr)
+  
+  use mesh_mod
+  use basic
+  use m3dc1_nint
+  use field
+
+  implicit none
+
+  include 'mpif.h'
+
+  integer, intent(inout) :: itri
+  real, intent(in) :: x, z
+  type(field_type), intent(in) :: fin
+  integer, intent(out) :: ierr ! = 0 on success
+
+  real, intent(out) :: ans
+
+#if defined(USECOMPLEX)
+  ans = 0.
+  ierr = 0
+
+#elif defined(USE3D)
+
+  type(element_data) :: d
+  integer :: nodeids(nodes_per_element), ier, iplane
+  real :: phi, x1, phi1, z1, my_ans
+  integer :: hasval, tothasval
+
+  iplane = local_plane()
+  call m3dc1_plane_getphi(iplane, phi)
+
+  if(itri.eq.0) then
+     call whattri(x,phi,z,itri,x1,z1)
+  else if(itri.gt.0) then
+     call get_element_nodes(itri,nodeids)
+     call get_node_pos(nodeids(1), x1, phi1, z1)
+  endif
+
+  ans = 0.
+  my_ans = 0.
+
+  ! if this process contains the point, evaluate the field at that point.
+  if(itri.gt.0) then
+
+     call get_element_data(itri, d)
+
+     ! calculate local coordinates
+     call global_to_local(d, x, phi, z, xi_79(1), zi_79(1), eta_79(1))
+
+     weight_79 = 1
+     call extrude_quadrature(d%d, 1, 5)
+
+     ! calculate the inverse radius
+     if(itor.eq.1) then
+        ri_79(1) = 1./x
+     else
+        ri_79(1) = 1.
+     endif
+
+     call precalculate_terms(xi_79, zi_79, eta_79, d%co, d%sn, ri_79, npoints)
+     call define_basis(itri)
+
+     ! calculate the value of the function
+     call eval_ops(itri, fin, tm79, rfac)
+     
+     ! integrate
+     my_ans = int1(tm79(:,OP_1))
+
+     hasval = 1
+  else
+     hasval = 0
+  endif
+
+
+  ! Distribute the result if necessary
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  ! NOT YET DONE -- REDUCE VALUE WITHIN PLANE!
+  
+  if(maxrank.gt.1) then
+     ! Determine number of processes whose domains contain this point
+     call mpi_allreduce(hasval, tothasval, 1, MPI_INTEGER, MPI_SUM, &
+          MPI_COMM_WORLD, ier)
+  else
+     tothasval = hasval
+  end if
+
+  if(tothasval.eq.0) then
+     if(myrank.eq.0 .and. iprint.ge.1) &
+          write(*,'(A,3f12.4)') 'Point not found in domain: ', x, phi, z
+     ierr = 1
+     return
+  end if
+
+  if(maxrank.gt.1) then
+     ! Sum the integrals from each plane
+     call mpi_allreduce(my_ans, ans, 1, MPI_DOUBLE_PRECISION, MPI_SUM, &
+          MPI_COMM_WORLD, ier)
+  endif
+
+  ierr = 0
+
+#else
+  
+  real, dimension(OP_NUM) :: temp
+  call evaluate(x,0.,z,temp,fin,itri,ierr)
+
+  ans = temp(OP_1)*toroidal_period
+#endif
+
+end subroutine phi_int
+
+  
 end module diagnostics

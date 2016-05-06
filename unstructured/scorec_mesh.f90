@@ -49,6 +49,8 @@ contains
     integer, allocatable :: ranks(:)
 #endif
 
+    toroidal_period = period
+
     ! initialize scorec solvers
 
     if(imulti_region.eq.1) then
@@ -105,7 +107,6 @@ contains
     call m3dc1_mesh_load (name_buff)
 
     ! set up toroidal angles
-    toroidal_period = period
     do i=0, nplanes-1
        if(toroidal_pack_factor.gt.1. .and. i.gt.0) then
           beta = 2.*sqrt(alog(toroidal_pack_factor))
