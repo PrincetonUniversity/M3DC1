@@ -735,20 +735,20 @@ subroutine set_defaults
   call add_var_double("xray_sigma", xray_sigma, 1., &
        "Spread of xray detector chord (degrees)", diagnostic_grp)
 
-  call add_var_int("iflux_loops", iflux_loops, 0, &
-       "Number of flux loops", diagnostic_grp)
-  call add_var_double_array("flux_loop_x", flux_loop_x, iflux_loops_max, 0., &
-       "X-coordinate of flux loops", diagnostic_grp)
-  call add_var_double_array("flux_loop_phi", flux_loop_phi, iflux_loops_max, 0., &
-       "Phi-coordinate of flux loops", diagnostic_grp)
-  call add_var_double_array("flux_loop_z", flux_loop_z, iflux_loops_max, 0., &
-       "Z-coordinate of flux loops", diagnostic_grp)
-  call add_var_double_array("flux_loop_nx", flux_loop_nx, iflux_loops_max, 0., &
-       "X-component of flux loop normal", diagnostic_grp)
-  call add_var_double_array("flux_loop_nphi", flux_loop_nphi, iflux_loops_max, 0., &
-       "Phi-component of flux loop normal", diagnostic_grp)
-  call add_var_double_array("flux_loop_nz", flux_loop_nz, iflux_loops_max, 0., &
-       "Z-component of flux loop normal", diagnostic_grp)
+  call add_var_int("imag_probes", imag_probes, 0, &
+       "Number of magnetic probes", diagnostic_grp)
+  call add_var_double_array("mag_probe_x", mag_probe_x, imag_probes_max, 0., &
+       "X-coordinate of magnetic probes", diagnostic_grp)
+  call add_var_double_array("mag_probe_phi", mag_probe_phi, imag_probes_max, 0., &
+       "Phi-coordinate of magnetic probes", diagnostic_grp)
+  call add_var_double_array("mag_probe_z", mag_probe_z, imag_probes_max, 0., &
+       "Z-coordinate of magnetic probes", diagnostic_grp)
+  call add_var_double_array("mag_probe_nx", mag_probe_nx, imag_probes_max, 0., &
+       "X-component of magnetic probe normal", diagnostic_grp)
+  call add_var_double_array("mag_probe_nphi", mag_probe_nphi, imag_probes_max, 0., &
+       "Phi-component of magnetic probe normal", diagnostic_grp)
+  call add_var_double_array("mag_probe_nz", mag_probe_nz, imag_probes_max, 0., &
+       "Z-component of magnetic probe normal", diagnostic_grp)
 
   ! 3-D options
   call add_var_int("ntor", ntor, 0, &

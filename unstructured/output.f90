@@ -255,7 +255,7 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "ibootstrap_model", ibootstrap_model, error)
   call write_real_attr(root_id, "bootstrap_alpha", bootstrap_alpha, error)
   call write_real_attr(root_id, "eta_te_offset", eta_te_offset, error)
-  call write_int_attr (root_id, "iflux_loops", iflux_loops, error)
+  call write_int_attr (root_id, "imag_probes", imag_probes, error)
 
   call h5gclose_f(root_id, error)
 
@@ -281,10 +281,10 @@ subroutine hdf5_write_scalars(error)
 
   if(ntime.eq.0) then
      call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
-     if(iflux_loops.ne.0) call h5gcreate_f(root_id, "flux_loops", fl_group_id, error)
+     if(imag_probes.ne.0) call h5gcreate_f(root_id, "mag_probes", fl_group_id, error)
   else
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
-     if(iflux_loops.ne.0) call h5gopen_f(root_id, "flux_loops", fl_group_id, error)
+     if(imag_probes.ne.0) call h5gopen_f(root_id, "mag_probes", fl_group_id, error)
   endif
 
   call output_scalar(scalar_group_id, "time" , time, ntime, error)
@@ -378,13 +378,13 @@ subroutine hdf5_write_scalars(error)
      call output_scalar(scalar_group_id, "Reconnected_Flux", temp, ntime, error)
   endif
 
-  if(iflux_loops.ne.0) then
-     call output_1dextendarr(fl_group_id, "value", flux_loop_val, iflux_loops, &
+  if(imag_probes.ne.0) then
+     call output_1dextendarr(fl_group_id, "value", mag_probe_val, imag_probes, &
           ntime, error)
   end if
 
   call h5gclose_f(scalar_group_id, error)
-  if(iflux_loops.ne.0) call h5gclose_f(fl_group_id, error)
+  if(imag_probes.ne.0) call h5gclose_f(fl_group_id, error)
 
   call h5gclose_f(root_id, error)
 
