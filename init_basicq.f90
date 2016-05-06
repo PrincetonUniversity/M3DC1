@@ -56,8 +56,6 @@ contains
     integer :: nelms, itri, i, j
     type (field_type) :: psi_vec, bz_vec, p_vec, den_vec
 
-    call init_qp
-
     call create_field(psi_vec)
     call create_field(bz_vec)
     call create_field(p_vec)
