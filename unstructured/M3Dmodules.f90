@@ -249,6 +249,7 @@ module basic
   integer :: iflip_z     ! 1 = flip equilibrium across z=0 plane
   integer :: ieq_bdotgradt ! 1 = include equilibrium parallel T gradient term
   integer :: icsubtract  ! 1 = subtract fields from poloidal field coils
+  integer :: kinetic     ! 1 = use kinetic PIC hot ion pressure tensor
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps

@@ -245,11 +245,12 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
   call initialize_timestep
 
-
-  if (0.eq.1) then
+#ifdef USEPARTICLES
+  if (kinetic.eq.1) then
      call particle_test
      call safestop(0)
   endif
+#endif
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
