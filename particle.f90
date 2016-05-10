@@ -58,6 +58,7 @@ module particles
 contains
 
 #ifdef USEPARTICLES
+!#define JBDEBUG
 
   !Define MPI datatype for particle communication
   subroutine define_mpi_particle(ierr)
@@ -102,6 +103,7 @@ contains
 
     include 'mpif.h'
 
+    type(field_type) :: pi_parallel, pi_perp, pi_parallel_n, pi_perp_n
     character(len=32) :: line
     logical, parameter :: loutcart = .false. !Output Cartesian particle coords?
     integer, dimension(3), parameter :: trid = (/ 1979, 3405, 4856 /)
@@ -124,11 +126,21 @@ contains
     !Precompute electric field components (do it this way for testing only!)
     call calculate_auxiliary_fields(eqsubtract)
 
+    !Particle pressure tensor components
+    call create_field(pi_parallel);  call create_field(pi_perp)
+    call create_field(pi_parallel_n);  call create_field(pi_perp_n)
+
     !Initialize particle population
+    call second(tstart)
     call init_particles(ierr)
     if (ierr.ne.0) return
-    if (myrank.eq.0) print *,'particles initialized.'
+    if (myrank.eq.0) then
+       call second(tend)
+       write(0,'(I12,A,f9.2,A)')nparticles,' particles initialized in',&
+            tend-tstart,' seconds.'
+    endif
 
+    !Test particle push
     !Create particle trajectory output text file?
     do itr=1,size(trid)
        do ierr=1,size(pdata)
@@ -166,7 +178,7 @@ contains
     !Advance particle positions
     call second(tstart)
     pdt = 3.0e-7
-    do istep=1,4800
+    do istep=1,1200
        call advance_particles(pdt)
        if (myrank.eq.0) print *,'particle advance',istep,' complete.'
 
@@ -203,9 +215,29 @@ contains
             tend-tstart,' seconds.'
     endif
 
+    !Test particle pressure tensor component calculation
+    call second(tstart)
+    call particle_pressure(pi_parallel, pi_perp, pi_parallel_n, pi_perp_n)
+    if (myrank.eq.0) then
+       call second(tend)
+       write(0,'(A,f9.2,A)')'Pressure tensor RHS vecs calculated in',tend-tstart,' sec.'
+    endif
+
     !Return to non-ghosted mesh
     call m3dc1_ghost_delete
     call reset_trimats
+
+    !Solve for fields
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
+    call second(tstart)
+    call solve_pi_tensor(pi_parallel, pi_perp, pi_parallel_n, pi_perp_n)
+    if (myrank.eq.0) then
+       call second(tend)
+       write(0,'(A,f9.2,A)')'Pressure tensor LHS vecs calculated in',tend-tstart,' sec.'
+    endif
+
+    call destroy_field(pi_perp);  call destroy_field(pi_parallel)
+    call destroy_field(pi_perp_n);  call destroy_field(pi_parallel_n)
 
     !Clean up
     call finalize_particles
@@ -232,16 +264,18 @@ contains
     real xi, zi
 #endif
     real    :: x1, x2, z1, z2, pdx, pdz, pdl, vpar, vperp
-    real    :: EeV, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
+    real    :: EmaxeV, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
     real    :: gyroperiod, gfrac=5.0e-3, gkfrac=8.0, dtp, ldtmin
     integer :: npr, npz, npe, npmu, ir, iz, ie, imu, ip
     integer :: nelms, ielm, lc, noc, tridex, itri
     integer :: gfx, isghost, nle=0, nge=0
 
-    !Load a ghost mesh with nglayers layers, query dimensions
+    !Load a ghost mesh with nglayers layers
     call m3dc1_ghost_load(nglayers)
     call mpi_barrier(MPI_COMM_WORLD, ierr)
     if (myrank.eq.0) print *,'Set up ghost mesh with',nglayers,' layers.'
+
+    !Query ghost mesh dimensions
     call m3dc1_mesh_getnument(2, nelms)
     do gfx=1,nelms
        call m3dc1_ent_isghost(2, gfx-1, isghost)
@@ -279,17 +313,17 @@ contains
     pdx = (x2 - x1)/real(npr);  pdz = (z2 - z1)/real(npz)
 
     !Particle velocity space ranges
-    EeV = 100.0                                 !Ion kinetic energy in eV
+    EmaxeV = 1000.0                             !Peak ion kinetic energy in eV
     A_ion = 1.0                                 !Ion atomic mass number
     m_ion = A_ion * m_proton                    !Ion mass in kg
     Z_ion = 1.0                                 !Ion atomic number (charge state)
     q_ion = Z_ion * e_mks                       !Ion charge in C
     qm_ion = q_ion / m_ion                      !Ion charge/mass ratio
-    speed = sqrt(EeV / A_ion) * vp1eV           !Ion speed in m/s
-    if (myrank.eq.0) print *,'ion speed = ',speed,' m/s = ',speed/c_mks,' c.'
+    speed = sqrt(EmaxeV / A_ion) * vp1eV        !Peak ion speed in m/s
+    if (myrank.eq.0) print *,'peak ion speed = ',speed,' m/s = ',speed/c_mks,' c.'
 
-    lambda_min = 1.50                           !Minimum particle pitch angle
-    lambda_max = 1.64                           !Maximum particle pitch angle
+    lambda_min = 1.0e-5                          !Minimum particle pitch angle
+    lambda_max = 3.14159                         !Maximum particle pitch angle
     pdl = (lambda_max - lambda_min)/(npmu - 1)
 
 
@@ -316,7 +350,7 @@ contains
           if (isghost.eq.1) cycle  !In ghost layer; skip.
 
           do ie=1,npe !Loop over kinetic energies
-             dpar%v(1) = speed  !monoenergetic, for now
+             dpar%v(1) = sqrt(real(ie)/real(npe)) * speed
 
              do imu=1,npmu  !Loop over pitch angles
                 dpar%v(2) = lambda_min + (imu - 1.0)*pdl
@@ -328,9 +362,12 @@ contains
              enddo !imu
           enddo !ie
        enddo !ir
+#ifdef JBDEBUG
+       if (myrank.eq.0) print *,npr*npe*npmu,' particles assessed for row',iz
+#endif
     enddo !iz
 
-    write(0,'(I6,A,I7,A,f8.2,A)')myrank,':',locparts,' local particle(s). (avg',&
+    write(0,'(I6,A,I9,A,f9.2,A)')myrank,':',locparts,' local particle(s). (avg',&
          locparts/real(nle),' per cell)'
     lc = sum(pdata(:)%np)
     if (lc.ne.locparts) print *,myrank,': mismatch in local particle count.'
@@ -391,8 +428,10 @@ contains
 
        noc = noc + 1
     enddo !ielm
-    print *,myrank,':',noc,' / ',nelms,' elements occupied.'
+#ifdef JBDEBUG
+    print *,myrank,':',noc,' / ',nle,' elements occupied.'
     print *,myrank,': ldtmin = ',ldtmin
+#endif
 
     call mpi_allreduce(ldtmin, dt_ion, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, ierr)
     if (myrank.eq.0) print *,'Particle dt = ',dt_ion,' s.'
@@ -507,7 +546,7 @@ contains
     type(particle), intent(in) :: part
     integer, intent(out) :: ierr
 
-    integer, parameter :: mininc = 64
+    integer, parameter :: mininc = 128
     type(particle), dimension(:), allocatable :: tmparr
     integer origsize
 
@@ -702,7 +741,6 @@ contains
   end function veceq
 
 !---------------------------------------------------------------------------
-!#define JBDEBUG
   subroutine advance_particles(tinc)
     use basic  !For MPI variables
     implicit none
@@ -737,6 +775,7 @@ contains
        jmppar(:)%np = 0  !Clear jumping particle buffer
 
        !Loop over all local elements (good candidate for OMP parallelization)
+!$OMP PARALLEL
        do ielm=1,nelms
           if (pdata(ielm)%np.eq.0) cycle  !Skip if element is empty
           nhop = 0;  nreas = 0
@@ -814,6 +853,7 @@ contains
           thop = thop + nhop
           treas = treas + nreas
        enddo !ielm
+!$OMP END PARALLEL
 
 #ifdef JBDEBUG
        print *,myrank,':',nlost,' / ',locparts,' total lost.'
@@ -1608,25 +1648,60 @@ contains
   end function getPphi
 
 !---------------------------------------------------------------------------
-! Integrate over velocity space to compute kinetic ion contributions to
-! parallel and perpendicular components of pressure tensor.
-  subroutine particle_pressure
+! Integrate over elements to compute kinetic ion contributions to RHS vectors
+! for parallel and perpendicular components of pressure tensor.
+  subroutine particle_pressure(p_par_i, p_perp_i, p_par_n, p_perp_n)
+    use basic
+    use math
+    use field
     implicit none
+    intrinsic matmul
 
+    type(field_type), intent(inout) :: p_par_i, p_perp_i, p_par_n, p_perp_n
+
+    real, dimension(dofs_per_element,coeffs_per_element) :: cl
+    real, dimension(dofs_per_element) :: wnuhere
+    vectype, dimension(dofs_per_element) :: dofspa, dofspe
+#ifdef USECOMPLEX
+    complex, dimension(dofs_per_element) :: dofspan, dofspen
+    complex phfac
+#endif
     real, dimension(3) :: B_part
+    real, dimension(vspdims) :: vperp
     type(elfield), dimension(nneighbors+1) :: elcoefs
-    type(xgeomterms)   :: geomterms
-    real               :: B0, ppar, pperp
-    integer            :: ierr, nelms, ielm, ipart, itri, tridex
+    type(xgeomterms) :: geomterms
+    real             :: B0, vpar, ppar, pperp
+    integer          :: ierr, nelms, ielm, ipart, itri, tridex, isghost
 
     nelms = size(pdata)
     elcoefs(:)%itri = 0
 
-    !Loop over all local elements
+    p_par_i%vec = 0.;  p_perp_i%vec = 0.
+
+    !Loop over all local+ghost elements to construct RHS; ghosts will be empty.
+!$OMP PARALLEL
     do ielm=1,nelms
+       call m3dc1_ent_isghost(2, ielm-1, isghost)
+       if(isghost.eq.1) then
+          if (pdata(ielm)%np.gt.0) print *,myrank,': nonzero ghost particle count!'
+          cycle
+       endif
+       if (pdata(ielm)%np.lt.1) cycle !If no particles, then no pressure
+
+       !Get basis function polynomial expansions
+       if (iprecompute_metric.eq.1) then
+          cl = ctri(:,:,ielm)
+       else
+          call local_coeff_vector(ielm, cl)
+       endif
 
        !Need B at particle locations -> Load scalar fields for this element
        call get_field_coefs(ielm, elcoefs(1), .false.)
+
+       dofspa = 0.;  dofspe = 0.
+#ifdef USECOMPLEX
+       dofspan = 0.;  dofspen = 0.
+#endif
 
        !Sum over particles within this element
        do ipart=1,pdata(ielm)%np
@@ -1636,27 +1711,84 @@ contains
           call get_geom_terms(pdata(ielm)%ion(ipart)%x, itri, elcoefs, tridex, &
                geomterms, .false., ierr)
           if (ierr.ne.0) then
+             print *,myrank,': Bad particle in pressure tensor integral; skipping.'
+             cycle !next particle
           endif
           if (itri.ne.ielm) then
+             print *,myrank,': Particle in wrong element in pressure tensor integral.'
+             cycle !next particle
           endif
           call getBcyl(pdata(ielm)%ion(ipart)%x, elcoefs(tridex), geomterms, B_part)
           B0 = sqrt(dot_product(B_part, B_part))
 
-          !Contribution of particle velocity to parallel pressure
-          if (vspdims.eq.2) then !drift-kinetic: v_|| = v(1)
-             ppar = m_ion*pdata(ielm)%ion(ipart)%v(1)**2
-          else                   !full orbit: v_|| = v.B/|B|
-          endif
-
-          !Contribution of particle velocity to perpendicular pressure
-          if (vspdims.eq.2) then !drift-kinetic:
+          !Use B and v to get parallel and perp components of particle velocity
+          if (vspdims.eq.2) then ! drift-kinetic: v_|| = v(1),  mu = q * v(2)
+             vpar = pdata(ielm)%ion(ipart)%v(1)
              pperp = q_ion*pdata(ielm)%ion(ipart)%v(2)*B0
-          else                   !full orbit:
-          endif
+          else !full orbit: v_|| = v.B/|B|,  v_perp = v - v_||
+             if (B0.gt.0.0) then !non-degenerate
+                vpar = dot_product(pdata(ielm)%ion(ipart)%v, B_part(1:vspdims))/B0
+                vperp = pdata(ielm)%ion(ipart)%v - (vpar/B0)*B_part(1:vspdims)
+             else !degenerate case: no B field, pressure is scalar
+                vpar = 0.0
+                vperp = pdata(ielm)%ion(ipart)%v
+             endif !degenerate?
+             pperp = 0.5 * m_ion * dot_product(vperp, vperp)
+          endif !full-orbit?
+          ppar = m_ion * vpar**2
 
+          !Add particle contribution to RHS vector (should vectorize well).
+          wnuhere = pdata(ielm)%ion(ipart)%wt * matmul(cl, geomterms%g)
+          dofspa = dofspa + ppar*wnuhere
+          dofspe = dofspe + pperp*wnuhere
+#ifdef USECOMPLEX
+          !Extract appropriate Fourier component of particle contribution
+          phfac = exp(rfac*pdata(ielm)%ion(ipart)%x(2))
+          dofspan = dofspan + ppar*phfac*wnuhere
+          dofspen = dofspen + pperp*phfac*wnuhere
+#endif
        enddo !ipart
+
+       !Insert element sums into field data
+       ! Note: this is only correct if the local index ielm refers to the
+       !  same element in meshes with and without ghost zone layers!
+       call vector_insert_block(p_par_i%vec,  ielm, 1, dofspa, VEC_ADD)
+       call vector_insert_block(p_perp_i%vec, ielm, 1, dofspe, VEC_ADD)
+#ifdef USECOMPLEX
+       call vector_insert_block(p_par_n%vec,  ielm, 1, dofspan, VEC_ADD)
+       call vector_insert_block(p_perp_n%vec, ielm, 1, dofspen, VEC_ADD)
+#endif
     enddo !ielm
+!$OMP END PARALLEL
+
+    !Normalize 2D toroidal integrals
+#ifndef USE3D
+    call mult(p_par_i, 1.0/twopi)
+    call mult(p_perp_i, 1.0/twopi)
+#ifdef USECOMPLEX
+    call mult(p_par_n, 1.0/pi)
+    call mult(p_perp_n, 1.0/pi)
+#endif
+#endif
   end subroutine particle_pressure
+
+!---------------------------------------------------------------------------
+  subroutine solve_pi_tensor(p_par_i, p_perp_i, p_par_n, p_perp_n)
+    !use basic
+    use field
+    use newvar_mod
+    implicit none
+
+    type(field_type), intent(inout) :: p_par_i, p_perp_i, p_par_n, p_perp_n
+
+    !print *,myrank,': solving for LHS vector...'
+    call newvar_solve(p_par_i%vec,  mass_mat_lhs)
+    call newvar_solve(p_perp_i%vec, mass_mat_lhs)
+#ifdef USECOMPLEX
+    call newvar_solve(p_par_n%vec,  mass_mat_lhs)
+    call newvar_solve(p_perp_n%vec, mass_mat_lhs)
+#endif
+  end subroutine solve_pi_tensor
 
 !---------------------------------------------------------------------------
 ! Recompute triangle coefficients for new element list
@@ -1674,10 +1806,12 @@ contains
 
     deallocate(gtri,htri)
     if(iprecompute_metric.eq.1) deallocate(ctri)
+
     allocate(gtri(coeffs_per_tri,dofs_per_tri,nelms))
     allocate(htri(coeffs_per_dphi,dofs_per_dphi,nelms))
     if(iprecompute_metric.eq.1) &
          allocate(ctri(dofs_per_element,coeffs_per_element,nelms))
+
     call tridef
   end subroutine reset_trimats
 

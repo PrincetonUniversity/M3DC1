@@ -298,6 +298,8 @@ subroutine set_defaults
        "1: J_BS = alpha F <p,psi> B", model_grp)
   call add_var_double("bootstrap_alpha", bootstrap_alpha, 0., &
        "alpha parameter in bootstrap current model", model_grp)
+  call add_var_int("kinetic", kinetic, 0, &
+       "1: Use kinetic PIC for hot ion pressure", model_grp)
     
   ! Time step options
   call add_var_int("ntimemax", ntimemax, 20, &
@@ -1159,6 +1161,14 @@ subroutine validate_input
         print *, 'Error: eta_te_offset .gt. twall=pedge*pefac/den_edge'
         call safestop(1)
      endif
+  endif
+
+  if(kinetic.eq.1) then !Hybrid model sanity check goes here
+#ifdef USEPARTICLES
+#else
+     print *,'Error: particles module undefined.'
+     call safestop(1)
+#endif
   endif
 
   v0_norm = b0_norm / sqrt(4.*pi*ion_mass*m_p*n0_norm)
