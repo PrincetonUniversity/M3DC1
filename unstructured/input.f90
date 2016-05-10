@@ -171,7 +171,7 @@ subroutine set_defaults
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
   call add_var_int("iread_p", iread_p, 0, "", input_grp)
   call add_var_int("iread_heatsource", iread_heatsource, 0, "", input_grp)
-  call add_var_int("iheat_sink", iheat_sink, 0, "", input_grp)
+  call add_var_int("iheat_sink", iheat_sink, 0, "", source_grp)
   call add_var_int("iread_particlesource", iread_particlesource, 0, "", input_grp)
   call add_var_int("iread_neo", iread_neo, 0, &
        "Read velocity data from NEO output", input_grp)
