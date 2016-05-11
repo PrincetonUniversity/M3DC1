@@ -143,6 +143,9 @@ subroutine circular_field_per
   implicit none
 
   call init_random(x_79, phi_79, z_79, ps079(:,OP_1))
+  n079(:,OP_1) = 0.
+  p079(:,OP_1) = 0.
+  bz079(:,OP_1) = 0.
 
 end subroutine circular_field_per
 
