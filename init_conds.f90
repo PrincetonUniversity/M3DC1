@@ -282,13 +282,18 @@ subroutine den_eq
   use mesh_mod
   use m3dc1_nint
   use newvar_mod
+  use pellet
+
+  implicit none
 
   type(field_type) :: den_vec
   integer :: itri, numelms, i, def_fields
   vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(MAX_PTS) :: n, p
   
-  if(idenfunc.eq.0) return
+  if(idenfunc.eq.0 .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
   
   def_fields = FIELD_PSI + FIELD_N
@@ -310,6 +315,13 @@ subroutine den_eq
         
         n079(:,OP_1) = 0.5*(den_edge-den0)*(1. + tanh(real(temp79a))) + den0
      end select
+
+     if(ipellet.gt.0 .and. linear.eq.1) then
+        n = 0.
+        p = 0.
+        n079(:,OP_1) = n079(:,OP_1) + &
+             pellet_deposition(x_79, phi_79, z_79, p, n)
+     end if
 
      do i=1, dofs_per_element
         dofs(i) = int2(mu79(:,OP_1,i),n079(:,OP_1))
@@ -4129,7 +4141,7 @@ subroutine initial_conditions()
      call set_neo_vel
      call unload_neo
   end if
-     
+
   call den_eq()
   call den_per()
 
