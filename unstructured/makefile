@@ -15,7 +15,11 @@ else
   OPTS := $(OPTS) -DUSESCOREC -Dmesh_mod=scorec_mesh_mod \
 	-Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod \
 	-Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector
-  V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
+  ifeq ($(TRILINOS), 1)
+    V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o
+  else
+    V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
+  endif
   ifeq ($(RW), 1)
     USERW = 1
     OPTS := $(OPTS) -DUSERW

@@ -78,6 +78,7 @@ Program Reducedquintic
   call m3dc1_domain_init()
 #endif
 
+#ifndef M3DC1_TRILINOS
   ! Initialize PETSc
   if(myrank.eq.0) print *, 'Initializing PETSc...'
   call PetscInitialize(PETSC_NULL_CHARACTER, ier)
@@ -85,14 +86,18 @@ Program Reducedquintic
      print *,'Error in PetscInitialize:',ier
      call safestop(1)
   endif
-
+#endif
   ! read input file
   if(myrank.eq.0) print *, ' Reading input'
   call input
 
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
+
+#ifndef M3DC1_TRILINOS
   call m3dc1_matrix_setassembleoption(imatassemble)
+#endif
+
   if(itor.eq.0) then 
      period = twopi*rzero
   else
@@ -425,9 +430,11 @@ subroutine safestop(iarg)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  unloading mesh..."
   call unload_mesh
 
+#ifndef M3DC1_TRILINOS
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  finalizing PETSC..."
   call PetscFinalize(ier)
   if(ier.ne.0) print *, 'Error finalizing PETSC:', ier
+#endif
 
  ! Write time information
   if(myrank.eq.0) then
