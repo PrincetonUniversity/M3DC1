@@ -114,12 +114,14 @@ contains
     integer, intent(in) :: m, n, icomplex
     integer, intent(in) :: lhs
 
+#ifndef M3DC1_TRILINOS
 #include "finclude/petsc.h"
 
 #ifdef PetscDEV
     PetscBool :: flg_petsc, flg_solve2, flg_pdslin
 #else
     PetscBool :: flg_petsc, flg_solve2, flg_pdslin
+#endif
 #endif
     integer :: ierr
 
@@ -133,13 +135,13 @@ contains
     mat%isize = max(m, n)
     mat%icomplex = icomplex
     mat%lhs = lhs
-
+#ifndef M3DC1_TRILINOS
     if(lhs .eq. 1) then
        call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc',flg_petsc,ierr)
        call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ierr)
        if(flg_solve2.eq.PETSC_TRUE) flg_petsc=PETSC_TRUE
     endif
-
+#endif
 #ifdef M3DC1_TRILINOS
     call m3dc1_epetra_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
 #else
@@ -351,7 +353,7 @@ contains
     num_iter=100
     call m3dc1_solver_aztec(mat%imatrix,v%id,v%id,num_iter,solver_tol)
 #else
-    call m3dc1_matrix_solve(mat%imatrix,v%id)
+    call m3dc1_matrix_solve(mat%imatrix,v%id,solver_type,solver_tol)
 #endif
     ierr = 0
 

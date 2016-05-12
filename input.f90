@@ -818,6 +818,8 @@ subroutine set_defaults
   ! Solver 
   call add_var_double("solver_tol", solver_tol,0.000000001,&
        "solver tolerance", solver_grp) 
+  call add_var_int("solver_type", solver_type, 0, "solver type", solver_grp)
+
   ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)
   call add_var_int("igs_method", igs_method, -1, "", gs_grp)
@@ -1111,11 +1113,12 @@ subroutine validate_input
      iread_omega = iread_omega_ExB
   end if
 
+#ifndef M3DC1_TRILINOS
   ! Read PETSc options
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
   call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-pdslin', flg_pdslin,ier)
-  
+#endif
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "petsc arguments: ipetsc, solve2, solve1", flg_petsc, flg_solve2, flg_pdslin
      print *, "petsc true/false", PETSC_TRUE, PETSC_FALSE
