@@ -825,6 +825,7 @@ contains
            else
               tm79 = ((pst79-psimin)/(psibound-psimin) - etaoff) / etadelt
            endif
+           eta79 = 0.
            eta79(:,OP_1 )  = 1. + tanh(real(tm79(:,OP_1)))
            eta79(:,OP_DR)  = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DR)
            eta79(:,OP_DZ)  = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DZ)
@@ -838,7 +839,7 @@ contains
                 - 2.*tanh(real(tm79(:,OP_1)))*sech(real(tm79(:,OP_1)))**2 &
                 * tm79(:,OP_DZ)**2
 
-           eta79 = 0.5*eta79*eta0*eta_fac
+           eta79 = (0.5*eta79*eta0 + etar)*eta_fac
         else if(iresfunc.eq.3) then
            temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
            temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
