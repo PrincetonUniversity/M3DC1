@@ -43,6 +43,7 @@ subroutine init_random(x,phi,z,outarr)
   real :: alx, alz, kx, kp, kz, random, roundoff
 
   call get_bounding_box_size(alx, alz)
+
 !
 ! changed to be consistent with fortran95 7/12/2011 ... scj
   call random_seed(SIZE = n)
@@ -143,8 +144,6 @@ subroutine init_perturbations
      call define_fields(itri,0,1,0)
 
      call eval_ops(itri, p_field(0), p079)
-     
-     temp79a = (p079(:,OP_1) - pedge)/p0
 
      ps179 = 0.
      ph179 = 0.
@@ -153,7 +152,9 @@ subroutine init_perturbations
      call init_random(x_79-xmag, phi_79, z_79, ph179(:,OP_1))
 
      ph179(:,OP_1) = ph179(:,OP_1) + r_79*verzero
-     
+
+     ! apply mask
+     temp79a = (p079(:,OP_1) - pedge)/p0
      ph179(:,OP_1) = ph179(:,OP_1)*temp79a
 
      ! populate vectors for solves
