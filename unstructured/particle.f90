@@ -106,7 +106,7 @@ contains
     type(field_type) :: pi_parallel, pi_perp, pi_parallel_n, pi_perp_n
     character(len=32) :: line
     logical, parameter :: loutcart = .false. !Output Cartesian particle coords?
-    integer, dimension(3), parameter :: trid = (/ 1979, 3405, 4856 /)
+    integer, dimension(3), parameter :: trid = (/ 9364, 14557, 17863 /)
     real, parameter :: JpereV = 1.6022e-19
     real :: pdt, keeV, pphi, tstart, tend
     integer :: ierr, ip, istep=0, itr, trunit=120
@@ -235,6 +235,16 @@ contains
        call second(tend)
        write(0,'(A,f9.2,A)')'Pressure tensor LHS vecs calculated in',tend-tstart,' sec.'
     endif
+
+    !Write final particle distribution
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
+    call second(tstart)
+    call hdf5_write_particles(ierr)
+    if (myrank.eq.0) then
+       call second(tend)
+       write(0,'(A,f9.2,A)')'HDF5 data written in',tend-tstart,' sec.'
+    endif
+
 
     call destroy_field(pi_perp);  call destroy_field(pi_parallel)
     call destroy_field(pi_perp_n);  call destroy_field(pi_parallel_n)
@@ -749,6 +759,7 @@ contains
     real, intent(in) :: tinc  !Time increment for particle advance
 
     type(elfield), dimension(nneighbors+1) :: elcoefs
+    real, parameter :: twopi = 6.283185307179586476925286766559
     real    :: dtp, trem
     integer :: nelms, ielm, itri, ipart, ierr
     integer :: nlost, ipe, lunf, gunf, nstep
@@ -811,7 +822,14 @@ contains
 
                 pdata(ielm)%ion(ipart)%tlast = pdata(ielm)%ion(ipart)%tlast + dtp
                 nstep = nstep + 1
- 
+
+                !Restrict toroidal angle to [0,twopi)
+                if (pdata(ielm)%ion(ipart)%x(2).lt.0.0) then
+                   pdata(ielm)%ion(ipart)%x(2) = pdata(ielm)%ion(ipart)%x(2) + twopi
+                elseif (pdata(ielm)%ion(ipart)%x(2).ge.twopi) then
+                   pdata(ielm)%ion(ipart)%x(2) = pdata(ielm)%ion(ipart)%x(2) - twopi
+                endif
+
                 if (itri.eq.ielm) cycle !Continue push within element
 
                 !Particle has moved to a new element -> outer loop must repeat.
@@ -1814,6 +1832,176 @@ contains
 
     call tridef
   end subroutine reset_trimats
+
+!---------------------------------------------------------------------------
+! Dump particle data for current timeslice
+  subroutine hdf5_write_particles(ierr)
+    use basic
+    use hdf5_output
+    !use particles
+    implicit none
+
+    include 'mpif.h'
+
+    integer, intent(out) :: ierr
+
+    character(LEN=32) :: part_file_name
+    real, dimension(:,:), allocatable :: values
+    integer, parameter :: pdims = vspdims + 5
+    integer(HID_T) :: plist_id, part_file_id, part_root_id, group_id
+    integer(HID_T) :: filespace, memspace, dset_id
+    integer(HSIZE_T), dimension(2) :: local_dims, global_dims
+    integer(HSSIZE_T), dimension(2) :: off_h5
+    integer info, nelms, ielm, poffset, np, ipart
+
+    !Calculate offset of current process
+    call mpi_scan(locparts, poffset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+    poffset = poffset - locparts
+
+    write(part_file_name, '("ions_",I4.4,".h5")') times_output
+
+    !Allocate buffer for element particle data
+    allocate(values(pdims,MAXVAL(pdata(:)%np)))
+
+    !Create new file for timeslice
+    !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    !Set up the file access property list with parallel I/O
+    call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, ierr)
+    info = MPI_INFO_NULL
+    call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, ierr)
+
+    !Open the new file
+    call h5fcreate_f(part_file_name, H5F_ACC_TRUNC_F, part_file_id, ierr, &
+         access_prp = plist_id)
+    if (ierr.lt.0) then
+       if (myrank.eq.0) &
+            print *, "Error: could not open ", part_file_name, &
+            " for HDF5 output.  error = ",ierr
+       return
+    endif
+
+    !Open the root group
+    call h5gopen_f(part_file_id, "/", part_root_id, ierr)
+
+    if(myrank.eq.0 .and. iprint.ge.1) &
+         print *, ' Writing particle time slice file ', part_file_name
+
+    !Write attributes
+    call write_real_attr(part_root_id, "time", time, ierr)
+    call write_int_attr(part_root_id, "velocity space dims", vspdims, ierr)
+    call write_real_attr(part_root_id, "particle delta-t", dt_ion, ierr)
+
+    !Create global dataset
+    call h5gcreate_f(part_root_id, "particles", group_id, ierr)
+    global_dims(1) = pdims;      local_dims(1) = pdims
+    global_dims(2) = nparticles
+    call h5screate_simple_f(2, global_dims, filespace, ierr)
+    if (ierr.ne.0) then
+       print *,myrank,': error',ierr,' after h5screate_simple_f'
+       call safestop(101)
+    endif
+    if(idouble_out.eq.1) then
+       call h5dcreate_f(group_id, "data", H5T_NATIVE_DOUBLE, filespace, dset_id, ierr)
+    else
+       call h5dcreate_f(group_id, "data", H5T_NATIVE_REAL, filespace, dset_id, ierr)
+    endif
+    if (ierr.ne.0) then
+       print *,myrank,': error',ierr,' after h5dcreate_f'
+       call safestop(101)
+    endif
+    call h5sclose_f(filespace, ierr)
+
+    !Add labels, units
+    call write_real_attr(group_id, "atomic number", q_ion/e_mks, ierr)
+    call write_real_attr(group_id, "atomic mass", m_ion/m_proton, ierr)
+    call write_str_attr(group_id, "Col. 1 label", "Global ID", ierr)
+    call write_str_attr(group_id, "Col. 2 label", "R", ierr)
+    call write_str_attr(group_id, "Col. 2 units", "m", ierr)
+    call write_str_attr(group_id, "Col. 3 label", "phi", ierr)
+    call write_str_attr(group_id, "Col. 3 units", "radians", ierr)
+    call write_str_attr(group_id, "Col. 4 label", "z", ierr)
+    call write_str_attr(group_id, "Col. 4 units", "m", ierr)
+    call write_str_attr(group_id, "Col. 5 label", "weight", ierr)
+    if (vspdims.eq.2) then
+       call write_str_attr(group_id, "Col. 6 label", "v_parallel", ierr)
+       call write_str_attr(group_id, "Col. 6 units", "m/s", ierr)
+       call write_str_attr(group_id, "Col. 7 label", "mu/q", ierr)
+       call write_str_attr(group_id, "Col. 7 units", "m**2/s", ierr)
+    else
+       call write_str_attr(group_id, "Col. 6 label", "v_R", ierr)
+       call write_str_attr(group_id, "Col. 6 units", "m/s", ierr)
+       call write_str_attr(group_id, "Col. 7 label", "v_phi", ierr)
+       call write_str_attr(group_id, "Col. 7 units", "m/s", ierr)
+       call write_str_attr(group_id, "Col. 8 label", "v_z", ierr)
+       call write_str_attr(group_id, "Col. 8 units", "m/s", ierr)
+    endif
+
+    !Output the particle data
+    off_h5(1) = 0
+    nelms = size(pdata)
+    do ielm=1,nelms
+       np = pdata(ielm)%np
+       if (np.gt.0) then
+
+          !Select local hyperslab within dataset
+          local_dims(2) = np
+          call h5screate_simple_f(2, local_dims, memspace, ierr)
+          if (ierr.ne.0) then
+             print *,myrank,': error',ierr,' after h5screate_simple_f'
+             call safestop(102)
+          endif
+          call h5dget_space_f(dset_id, filespace, ierr)
+          if (ierr.ne.0) then
+             print *,myrank,': error',ierr,' after h5dget_space_f'
+             call safestop(102)
+          endif
+          off_h5(2) = poffset
+          call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off_h5, &
+               local_dims, ierr)
+          if (ierr.ne.0) then
+             print *,myrank,': error',ierr,' after h5sselect_hyperslab_f'
+             call safestop(102)
+          endif
+
+          !Copy data to buffer
+          do ipart=1,np
+             values(1,ipart) = pdata(ielm)%ion(ipart)%gid
+             values(2,ipart) = pdata(ielm)%ion(ipart)%x(1)
+             values(3,ipart) = pdata(ielm)%ion(ipart)%x(2)
+             values(4,ipart) = pdata(ielm)%ion(ipart)%x(3)
+             values(5,ipart) = pdata(ielm)%ion(ipart)%wt
+             values(6,ipart) = pdata(ielm)%ion(ipart)%v(1)
+             values(7,ipart) = pdata(ielm)%ion(ipart)%v(2)
+             if (pdims.eq.8) values(pdims,ipart) = pdata(ielm)%ion(ipart)%v(vspdims)
+          enddo !ipart
+
+          !Write the dataset
+          call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, ierr, &
+               file_space_id=filespace, mem_space_id=memspace)
+          if (ierr.ne.0) then
+             print *,myrank,': error',ierr,' after h5dwrite_f'
+             call safestop(103)
+          endif
+
+          call h5sclose_f(filespace, ierr)
+          call h5sclose_f(memspace, ierr)
+
+          poffset = poffset + np
+       endif
+    enddo !ielm
+
+    !Close the particle dataset and group
+    call h5dclose_f(dset_id, ierr)
+    call h5gclose_f(group_id, ierr)
+
+    !Close the file
+    call h5gclose_f(part_root_id, ierr)
+    call h5fclose_f(part_file_id, ierr)
+    call h5pclose_f(plist_id, ierr)
+
+    !Free the buffer
+    deallocate(values)
+  end subroutine hdf5_write_particles
 
 #endif
 
