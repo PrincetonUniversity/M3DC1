@@ -147,9 +147,9 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	init_rwm.o init_solovev.o init_circle.o init_basicq.o \
 	transport.o \
 	auxiliary_fields.o  \
-	particle.o \
 	time_step_split.o time_step_unsplit.o \
 	time_step.o hdf5_output.o output.o \
+	particle.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o readgeqdsk.o read_dskbal.o \
 	read_jsolver.o \
