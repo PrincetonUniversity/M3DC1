@@ -207,6 +207,47 @@ contains
     
   end subroutine write_real_attr
 
+  ! write_str_attr
+  ! ===============
+  subroutine write_str_attr(parent_id, name, value, error)
+    use hdf5
+    implicit none
+
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name, value
+    integer, intent(out) :: error
+
+    integer(HID_T) :: dspace_id, dtype_id, attr_id
+    integer(SIZE_T) :: dsize
+    integer(HSIZE_T), dimension(1) :: dims = 1
+
+    call h5screate_f(H5S_SCALAR_F, dspace_id, error)
+    if (error.eq.0) then
+
+       call h5tcopy_f(H5T_FORTRAN_S1, dtype_id, error)
+       if (error.eq.0) then
+
+          dsize = LEN(value)
+          if (dsize.gt.0) then
+             call h5tset_size_f(dtype_id, dsize, error)
+             if (error.eq.0) then
+
+                call h5acreate_f(parent_id, name, dtype_id, dspace_id, &
+                     attr_id, error)
+                if (error.eq.0) then
+
+                   call h5awrite_f(attr_id, dtype_id, value, dims, error)
+                   call h5aclose_f(attr_id, error)
+                endif !attribute created
+             endif !datatype size set
+          endif !Positive length
+
+          call h5tclose_f(dtype_id, error)
+       endif !datatype created
+
+       call h5sclose_f(dspace_id, error)
+    endif !dataspace created
+  end subroutine write_str_attr
 
   ! write_vec_attr
   ! ==============
