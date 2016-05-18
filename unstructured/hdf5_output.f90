@@ -224,7 +224,7 @@ contains
     call h5screate_f(H5S_SCALAR_F, dspace_id, error)
     if (error.eq.0) then
 
-       call h5tcopy_f(H5T_FORTRAN_S1, dtype_id, error)
+       call h5tcopy_f(H5T_NATIVE_CHARACTER, dtype_id, error)
        if (error.eq.0) then
 
           dsize = LEN(value)
