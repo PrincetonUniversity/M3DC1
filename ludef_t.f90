@@ -632,8 +632,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   if(itime_independent.eq.0) ddterm(vz_g) = ddterm(vz_g) + temp*bdf
 
 
-  if(izone.ne.1) return
-
   ! Viscosity
   ! ~~~~~~~~~
   temp = v2umu(trial,lin,vis79,vic79)
@@ -1584,7 +1582,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   if(iconst_bn.eq.0 .and. (.not.surface_int)) then
      temp = -regular*int2(trial(:,OP_1),lin(:,OP_1))
      ssterm(psi_g) = ssterm(psi_g) + temp
-     ddterm(psi_g) = ddterm(psi_g) + temp*bdf
+     if(itime_independent.eq.0) ddterm(psi_g) = ddterm(psi_g) + temp*bdf
   end if
 
   ! Resistive and Hyper Terms
@@ -2922,7 +2920,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      nv = 1./3.
   end if
 
-  if(itime_independent.eq.1 .and. izone.eq.1) then
+  if(itime_independent.eq.1) then
 #ifdef USECOMPLEX
      freq_fac = (0,1)*frequency*dt
 #else
@@ -2938,14 +2936,19 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   r_bf = 0.
   q_bf = 0.
 
+  if(izone.ne.1) then
+     temp = b3pe(trial,lin)
+     ssterm(pp_g) = ssterm(pp_g) + temp
+     ddterm(pp_g) = ddterm(pp_g) + temp*bdf
+     return
+  end if
+
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
   temp = b3pe(trial,lin)*freq_fac
   ssterm(pp_g) = ssterm(pp_g) + temp
   if(itime_independent.eq.0) ddterm(pp_g) = ddterm(pp_g) + temp*bdf
 
-
-  if(izone.ne.1) return
 
   ! special to peg pressure for itaylor=27
   if(iheat_sink.eq.1 .and. itaylor.eq.27) then
@@ -3589,7 +3592,7 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      nv = 1./3.
   end if
 
-  if(itime_independent.eq.1 .and. izone.eq.1) then
+  if(itime_independent.eq.1) then
 #ifdef USECOMPLEX
      freq_fac = (0,1)*frequency*dt
 #else
@@ -3605,14 +3608,18 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   r_bf = 0.
   q_bf = 0.
 
+  if(izone.ne.1) then
+     temp = t3tn(trial,lin,nt79)
+     ssterm(pp_g) = ssterm(pp_g) + temp
+     ddterm(pp_g) = ddterm(pp_g) + temp*bdf
+     return
+  end if
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
   temp = t3tn(trial,lin,nt79)*freq_fac
   ssterm(pp_g) = ssterm(pp_g) + temp
   if(itime_independent.eq.0) ddterm(pp_g) = ddterm(pp_g) + temp*bdf
-
-  if(izone.ne.1) return
 
 !
   ohfac = 1.
@@ -4361,6 +4368,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 
         call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
         call define_fields(itri, def_fields, 1, linear)
+
+!        write(*,'(A,8F10.4)') 'EDGE: ', x_79(1), z_79(1), x_79(5), z_79(5), &
+!           norm79(3,1), norm79(3,2)
+
         if(gyro.eq.1) call gyro_common
 
         if(ivel_def.eq.1) call ludefvel_n(itri)
@@ -5132,7 +5143,7 @@ subroutine ludefden_n(itri)
      thimpb = 1.
   endif
 
-  if(itime_independent.eq.1 .and. izone.eq.1) then
+  if(itime_independent.eq.1) then
 #ifdef USECOMPLEX
      freq_fac = (0,1)*frequency*dt
 #else
@@ -5176,13 +5187,18 @@ subroutine ludefden_n(itri)
 
      do j=1,dofs_per_element
 
+        if(izone.ne.1) then
+           temp = n1n(mu79(:,:,i),nu79(:,:,j))
+           ssterm(i,j) = ssterm(i,j) + temp    
+           ddterm(i,j) = ddterm(i,j) + temp*bdf
+           cycle
+        end if
+
         ! NUMVAR = 1
         ! ~~~~~~~~~~
         temp = n1n(mu79(:,:,i),nu79(:,:,j))*freq_fac
         ssterm(i,j) = ssterm(i,j) + temp    
         if(itime_independent.eq.0) ddterm(i,j) = ddterm(i,j) + temp*bdf
-        
-        if(izone.ne.1) cycle
  
         temp = n1ndenm(mu79(:,:,i),nu79(:,:,j),denm,hp) &
              + n1nu   (mu79(:,:,i),nu79(:,:,j),pht79)
