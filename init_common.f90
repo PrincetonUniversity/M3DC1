@@ -138,7 +138,6 @@ subroutine init_perturbations
   phi_vec = 0.
 
   numelms = local_elements()
-  
   do itri=1,numelms
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,0,1,0)
@@ -166,7 +165,7 @@ subroutine init_perturbations
      call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
      
      ! phi
-     do i=1, dofs_per_element
+     do i=1, dofs_per_element        
         dofs(i) = int2(mu79(:,OP_1,i),ph179(:,OP_1))
      end do
      call vector_insert_block(phi_vec%vec,itri,1,dofs,VEC_ADD)
@@ -175,8 +174,9 @@ subroutine init_perturbations
   ! do solves
   call newvar_solve(psi_vec%vec,mass_mat_lhs)
   psi_field(1) = psi_vec
-  
-  call newvar_solve(phi_vec%vec,mass_mat_lhs)
+
+  ! use dirichlet boundary conditions to avoid perturbations on boundary
+  call newvar_solve(phi_vec%vec,mass_mat_lhs_dc)
   u_field(1) = phi_vec
 
   call destroy_field(psi_vec)
