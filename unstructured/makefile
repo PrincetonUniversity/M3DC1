@@ -143,8 +143,8 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	coils.o coil_sets.o model.o \
 	fit_magnetics.o \
 	init_common.o \
-	gradshafranov.o \
-	init_rwm.o init_solovev.o init_circle.o init_basicq.o \
+	gradshafranov.o rmp.o \
+	init_rwm.o init_solovev.o init_circle.o init_basicq.o init_basicj.o \
 	transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \

@@ -107,6 +107,7 @@ subroutine set_defaults
   use hdf5_output
   use bootstrap
   use diagnostics
+  use basicj
 
   implicit none
 
@@ -405,6 +406,14 @@ subroutine set_defaults
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
   call add_var_double("elongation", elongation, 1., "", eq_grp)
+  call add_var_double("basicj_nu",basicj_nu,1., &
+       "Exponent in basicj equilibrium", eq_grp)
+  call add_var_double("basicj_j0",basicj_j0,1., &
+       "On-axis current density in basicj equilibrium", eq_grp)
+  call add_var_double("basicj_voff",basicj_voff,1., &
+       "Radial extent of flat toroidal rotation in basicj equilibrium", eq_grp)
+  call add_var_double("basicj_vdelt",basicj_vdelt,1., &
+       "Width of velocity drop-off, as fraction of ln, in basicj equilibrium", eq_grp)
   
   ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
