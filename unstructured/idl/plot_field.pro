@@ -60,32 +60,38 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
    end
 
    if(n_elements(cutx) gt 0) then begin
-       dum = min(x-cutx,i,/absolute)
-       data = reform(field[0,i,*])
+       data = field_at_point(field, x, y, replicate(cutx, n_elements(x)), y)
        if(keyword_set(psin)) then begin
            psi = read_field('psi_norm',x,y,t,points=p,/equilibrium,$
                             filename=filename,_EXTRA=ex)
            yy = reform(psi[0,i,*])
-       endif else yy = y
+       endif else begin
+          xtitle=make_label('!8Z!X', /l0, _EXTRA=ex)
+          yy = y
+       end
+       ytitle=units
        if(keyword_set(overplot)) then begin
            oplot, yy, data, _EXTRA=ex
-       endif else plot, yy, field[0,i,*], title=title, _EXTRA=ex
+       endif else plot, yy, data, title=title, xtitle=xtitle, ytitle=ytitle, _EXTRA=ex
        if(n_elements(outfile) eq 1) then begin
            openw, ifile, outfile, /get_lun
            printf, ifile, format='(2E16.6)', transpose([[yy], [data]])
            free_lun, ifile
        endif
    endif else if(n_elements(cutz) gt 0) then begin
-       dum = min(y-cutz,i,/absolute)
-       data = reform(field[0,*,i])
+       data = field_at_point(field, x, y, x, replicate(cutz, n_elements(y)))
        if(keyword_set(psin)) then begin
            psi = read_field('psi_norm',x,y,t,points=p,/equilibrium,$
                             filename=filename,_EXTRA=ex)
            xx = reform(psi[0,*,i])
-       endif else xx = x
+       endif else begin
+          xtitle=make_label('!8R!X', /l0, _EXTRA=ex)
+          xx = x
+       end
+       ytitle=units
        if(keyword_set(overplot)) then begin
            oplot, xx, data, _EXTRA=ex
-       endif else plot, xx, data, title=title, _EXTRA=ex
+       endif else plot, xx, data, title=title, xtitle=xtitle, ytitle=ytitle, _EXTRA=ex
        if(n_elements(outfile) eq 1) then begin
            openw, ifile, outfile, /get_lun
            printf, ifile, format='(2E16.6)', transpose([[xx], [data]])
