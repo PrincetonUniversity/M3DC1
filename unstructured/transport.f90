@@ -106,18 +106,15 @@ vectype function sigma_func(i, izone)
 
   ! Enforce density floor
   if(idenfloor.ge.1) then
-
-  do j=1, npoints
-     temp79a(j) = 0.
-     iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
-     if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
-  end do
+     temp79a = 0.
+     do j=1, npoints
+        iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
+        if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
+     end do
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
-  temp = temp + int2(mu79(:,OP_1,i),temp79a)
-
   sigma_func = temp
-  return
 end function sigma_func
 
 
@@ -498,12 +495,13 @@ vectype function viscosity_func(i)
   use m3dc1_nint
   use diagnostics
   use read_ascii
+  use basicj
 
   implicit none
 
   integer, intent(in) :: i
   integer :: iregion, j, nvals
-  real :: val, valp, valpp, pso
+  real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
   integer :: magnetic_region
   vectype, dimension(MAX_PTS,OP_NUM) :: psi
@@ -575,6 +573,17 @@ vectype function viscosity_func(i)
         call evaluate_spline(amu_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
+
+  case(12)          !  option to go with itaylor=27, iresfunc=4
+     do j=1, npoints
+        rsq = (x_79(j)-xmag)**2+(z_79(j)-zmag)**2
+        if(itaylor.eq.29) then
+           val = amu_edge*basicj_dscale(rsq) - amu
+        end if
+        temp79a(j) = val
+     end do
+  case default
+     temp79a = 0.
      
   end select
 
@@ -590,6 +599,7 @@ vectype function kappa_func(i)
   use m3dc1_nint
   use diagnostics
   use basicq
+  use basicj
   
   implicit none
   
@@ -688,8 +698,12 @@ vectype function kappa_func(i)
 
   case(12)          !  option to go with itaylor=27, iresfunc=4
      do j=1, npoints
-        rsq = (x_79(j)-xmag)**2+(z_79(j)-zmag)**2  
-        val = get_kappa(rsq)
+        rsq = (x_79(j)-xmag)**2+(z_79(j)-zmag)**2
+        if(itaylor.eq.27) then 
+           val = get_kappa(rsq)
+        elseif(itaylor.eq.29) then
+           val = kappa0*basicj_dscale(rsq) - kappat
+        end if
         temp79a(j) = val
      end do
   case default
