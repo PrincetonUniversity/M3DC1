@@ -8968,6 +8968,71 @@ vectype function n1s(e,f)
   n1s = temp
   return
 end function n1s
+vectype function t3tndenm(e,f,g,h,i)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,i
+  real, intent(in) :: h
+  vectype :: temp
+
+  if(surface_int) then
+     if(inograd_n.eq.1) then
+        temp = 0.
+     else
+        temp = -h* &
+             (int4(e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
+             +int4(e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ)))
+     end if
+  else
+     temp =  h* &
+          (int3(e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) + int3(e(:,OP_DR),f(:,OP_1),g(:,OP_DR)) &
+          +int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ)) + int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR)))
+
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = temp - h*int4(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DPP))
+#endif
+
+     if(hypp.ne.0.) then
+        if(ihypkappa.eq.1) then
+           temp = temp + h* (int4(e(:,OP_LP),f(:,OP_1),g(:,OP_LP),i(:,OP_1))   &
+                          +  int4(e(:,OP_1),f(:,OP_LP),g(:,OP_LP),i(:,OP_1))   &
+                          + 2.*int4(e(:,OP_DR),f(:,OP_DR),g(:,OP_LP),i(:,OP_1))&
+                          + 2.*int4(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_LP),i(:,OP_1)))
+        else
+           temp = temp +    (int4(e(:,OP_LP),f(:,OP_1),g(:,OP_LP),i(:,OP_1))   &
+                          +  int4(e(:,OP_1),f(:,OP_LP),g(:,OP_LP),i(:,OP_1))   &
+                          + 2.*int4(e(:,OP_DR),f(:,OP_DR),g(:,OP_LP),i(:,OP_1))&
+                          + 2.*int4(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_LP),i(:,OP_1)))
+        endif
+     endif
+  end if
+
+  t3tndenm = temp
+  return
+end function t3tndenm
+vectype function t3ts(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = -int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))
+  end if
+
+  t3ts = temp
+  return
+end function t3ts
 
 
 
@@ -12827,12 +12892,31 @@ vectype function t3tn(e,f,g)
   if(surface_int) then
      temp = 0.
   else
-     temp = int2(e(:,OP_1),f(:,OP_1))
+     temp = int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))    ! corrected 6/2/2016
   end if
 
   t3tn = temp
   return
 end function t3tn
+vectype function t3t(e,f)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+  else
+     temp = int2(e(:,OP_1),f(:,OP_1))
+  end if
+
+  t3t = temp
+  return
+end function t3t
 vectype function t3tnu(e,f,g,h)
 
   use basic
@@ -12863,9 +12947,8 @@ vectype function t3tnu(e,f,g,h)
                 - int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,2),h(:,OP_DR))
         end if
      else
-        temp = int5(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_DZ)) &
-             - int5(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1),h(:,OP_DR))
-
+           temp = int5(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_DZ)) &
+                - int5(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1),h(:,OP_DR))
         if(itor.eq.1) then
            temp = temp + &
                 2.*(gam-1.)*int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_DZ))
@@ -12902,8 +12985,8 @@ vectype function t3tnv(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
-        temp = - int4(e(:,OP_1),f(:,OP_DP),g(:,OP_1),h(:,OP_1)) &
-             - (gam-1.)*int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_DP))
+        temp = - int4(e(:,OP_1),f(:,OP_DP),g(:,OP_1),h(:,OP_1)) 
+        temp = temp - (gam-1.)*int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_DP))
      endif
   end select
 #else
@@ -12948,10 +13031,9 @@ vectype function t3tnchi(e,f,g,h)
                 - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,2),h(:,OP_DZ))
         endif
      else
-        temp79a = -(f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ))  &
-                  - (gam-1.)*f(:,OP_1)*h(:,OP_GS)
-     
-        temp = int4(ri2_79,temp79a,e(:,OP_1),g(:,OP_1))
+        temp = -int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_DR))  &
+               -int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1),h(:,OP_DZ))
+        temp = temp -(gam-1.)* int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_GS))
      endif
   end select
 
