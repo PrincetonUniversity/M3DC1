@@ -3617,9 +3617,17 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  temp = t3tn(trial,lin,nt79)*freq_fac
-  ssterm(pp_g) = ssterm(pp_g) + temp
-  if(itime_independent.eq.0) ddterm(pp_g) = ddterm(pp_g) + temp*bdf
+!
+! NOTE:  iadiabat=1 is correct form;   adiabat=0 is for backwards compatibility (6/2/16)
+  if(iadiabat.eq.1) then
+     temp = t3tn(trial,lin,nt79)*freq_fac
+     ssterm(pp_g) = ssterm(pp_g) + temp
+     if(itime_independent.eq.0) ddterm(pp_g) = ddterm(pp_g) + temp*bdf
+  else
+     temp = t3t(trial,lin)*freq_fac
+     ssterm(pp_g) = ssterm(pp_g) + temp
+     if(itime_independent.eq.0) ddterm(pp_g) = ddterm(pp_g) + temp*bdf
+  endif
 
 !
   ohfac = 1.
@@ -4018,6 +4026,14 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
      ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
   endif
+
+  ! terms due to time-dependent density
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(idens.eq.1 .and. iadiabat.eq.1) then
+     temp = t3tndenm(trial,lin,nt79,denm,hp) + t3ts(trial,lin,sig79)
+     ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+     ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+  endif
 end subroutine temperature_lin
 
 
@@ -4032,17 +4048,26 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
   vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hv, hc, pp079
+  vectype, dimension(MAX_PTS, OP_NUM) :: hv, hc, hp, pp079
   logical, intent(in) :: total_pressure
 
   hv = hypv*sz79
   hc = hypc*sz79
+  hp = hypp*sz79
 
-  if(total_pressure) then
-     pp079 = p079
+  if(itemp.eq.0) then
+     if(total_pressure) then
+        pp079 = p079
+     else
+        pp079 = pe079
+     end if
   else
-     pp079 = pe079
-  end if
+     if(total_pressure) then
+        pp079 = ti079
+     else
+        pp079 = te079
+     endif
+  endif
   
   r4term = 0.
 
@@ -4115,6 +4140,11 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
              +p1vvs    (trial,vz079,vz079,sig79) &
              +p1chichis(trial,ch079,ch079,sig79) &
              +p1uchis  (trial,ph079,ch079,sig79))
+     endif
+     if(itemp.eq.1 .and. iadiabat.eq.1) then
+        r4term = r4term + dt* &
+             (t3tndenm(trial,pp079,nt79,denm,hp) &
+             +t3ts(trial,pp079,sig79))
      endif
   endif
 
@@ -5004,10 +5034,12 @@ subroutine ludefpres_n(itri)
               call pressure_nolin(mu79(:,:,i),q4(i),.true.)
            endif
            if(ipressplit.eq.1) then
-              if((imode.eq.1 .or. imode.eq.2) .and. k.eq.1)  &
+              if(imode.eq.1 .or. (imode.eq.3 .and. k.eq.1) &
+                            .or. (imode.eq.4 .and. k.eq.2))  then
+                   call pressure_nolin(mu79(:,:,i),q4(i),.true.)
+              else
                    call pressure_nolin(mu79(:,:,i),q4(i),.false.)
-              if((imode.eq.3 .or. imode.eq.4) .and. (k.eq.1 .or. k.eq.2))  &
-                   call pressure_nolin(mu79(:,:,i),q4(i),.false.)
+              endif
            end if
         endif  ! ipressplit
      end do  ! on i

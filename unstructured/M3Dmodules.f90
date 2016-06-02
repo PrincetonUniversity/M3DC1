@@ -217,6 +217,7 @@ module basic
   integer :: ipres       ! evolve total and electron pressures separately
   integer :: ipressplit  ! separate the pressure (or temperature) solves from the field solves
   integer :: itemp       ! advance pressures for itemp=0, Temperatures for itemp=1
+  integer :: iadiabat    ! 1:  takes into account density variation when itemp=1
   integer :: imode       ! specifies which of the 4 modes of treating pressure (and temperature) for ipressplit=1
   integer :: imp_bf      ! include bf implicitly
   integer :: imp_temp    ! include implicit equation for temperature

@@ -266,6 +266,8 @@ subroutine set_defaults
        "1: Separate pressure solves from field solves", model_grp)
   call add_var_int("itemp", itemp, 0, &
        "1: Advance Temperatures rather than Pressures", model_grp)
+  call add_var_int("iadiabat", iadiabat, 0, &
+       "1: Correct itemp=1 for time-varying density", model_grp)
   call add_var_int("gyro", gyro, 0, &
        "1: Include Braginskii gyroviscosity", model_grp)
   call add_var_int("igauge", igauge, 0, "", model_grp)
