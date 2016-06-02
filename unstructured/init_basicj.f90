@@ -11,6 +11,8 @@ module basicj
   real :: basicj_j0
   real :: basicj_voff
   real :: basicj_vdelt
+  real :: basicj_dexp
+  real :: basicj_dvac
 
 contains
 
@@ -224,5 +226,15 @@ contains
 
     if(irmp.ne.2) call init_perturbations
 end subroutine basicj_init
+
+elemental real function basicj_dscale(rsq)
+  use basic
+
+  implicit none
+
+  real, intent(in) :: rsq
+
+  basicj_dscale = (1. + (sqrt(basicj_dvac) - 1.)*(sqrt(rsq)/ln)**basicj_dexp)**2
+end function basicj_dscale
 
 end module basicj

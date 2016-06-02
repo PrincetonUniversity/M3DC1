@@ -414,6 +414,8 @@ subroutine set_defaults
        "Radial extent of flat toroidal rotation in basicj equilibrium", eq_grp)
   call add_var_double("basicj_vdelt",basicj_vdelt,1., &
        "Width of velocity drop-off, as fraction of ln, in basicj equilibrium", eq_grp)
+  call add_var_double("basicj_dexp",basicj_dexp,1.,"", eq_grp)
+  call add_var_double("basicj_dvac",basicj_dvac,1.,"", eq_grp)
   
   ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
