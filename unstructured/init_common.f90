@@ -38,7 +38,7 @@ subroutine init_random(x,phi,z,outarr)
   vectype, intent(out), dimension(MAX_PTS) :: outarr
   integer, allocatable :: seed(:)
   integer :: i, j, n
-  real, dimension(MAX_PTS) :: xx, zz, rsq, r, ri, ri3, rexp, theta
+  real, dimension(MAX_PTS) :: xx, zz, rsq, r, theta
   vectype, dimension(MAX_PTS) :: temp, phase
   real :: alx, alz, kx, kp, kz, random, roundoff
 
@@ -56,11 +56,6 @@ subroutine init_random(x,phi,z,outarr)
 
   xx = x - xzero
   zz = z - zzero
-  rsq = xx**2 + zz**2 + roundoff
-  r = sqrt(rsq)
-  ri = 1./sqrt(rsq + roundoff)
-  ri3 = ri/rsq
-  rexp = exp(-rsq/ln)
   theta = atan2(zz,xx)
 #ifdef USECOMPLEX
   phase = exp((0,1)*(ntor*phi - mpol*theta))
@@ -111,8 +106,12 @@ subroutine init_random(x,phi,z,outarr)
      end do
 
   case (3)  !   NOT RANDOM....start in (1,1) eigenfunction
-     outarr = eps*r*rexp*phase
-     
+     rsq = xx**2 + zz**2 + roundoff
+     r = sqrt(rsq)
+
+     outarr = eps*r*phase
+     if(ln.gt.0.) outarr = outarr*exp(-rsq/ln)
+             
   end select
 end subroutine init_random
 
@@ -170,13 +169,14 @@ subroutine init_perturbations
      end do
      call vector_insert_block(phi_vec%vec,itri,1,dofs,VEC_ADD)
   end do
-     
+
   ! do solves
   call newvar_solve(psi_vec%vec,mass_mat_lhs)
   psi_field(1) = psi_vec
 
   ! use dirichlet boundary conditions to avoid perturbations on boundary
-  call newvar_solve(phi_vec%vec,mass_mat_lhs_dc)
+!  call newvar_solve(phi_vec%vec,mass_mat_lhs_dc)
+  call newvar_solve(phi_vec%vec,mass_mat_lhs)
   u_field(1) = phi_vec
 
   call destroy_field(psi_vec)
