@@ -361,6 +361,8 @@ subroutine init
   n_control%target_val = n_target
   n_control%icontrol_type = n_control_type
 
+  dtold = dt
+
   call init_qp
 end subroutine init
 
