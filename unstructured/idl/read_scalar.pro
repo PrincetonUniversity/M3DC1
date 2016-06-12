@@ -108,6 +108,41 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8V!DL!N!X'
        d = dimensions(/n0, t0=-1, _EXTRA=extra)
    endif else $
+ if (strcmp("pellet ablation rate", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelablr", scalarname, /fold_case) eq 1) then begin
+       data = s.pellet_ablrate._data
+       title = 'Pellet Ablation Rate'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+    endif else $
+     if (strcmp("pellet var", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelvar", scalarname, /fold_case) eq 1) then begin
+       data = s.pellet_var._data
+       title = 'Pellet Var'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+   endif else $
+     if (strcmp("pellet radius", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelrad", scalarname, /fold_case) eq 1) then begin
+       data = s.r_p2._data
+       title = 'Pellet Radius'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+    endif else $
+     if (strcmp("pellet R position", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelrpos", scalarname, /fold_case) eq 1) then begin
+       data = s.pellet_x._data
+       title = 'Pellet R position'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+    endif else $
+     if (strcmp("pellet Z position", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelzpos", scalarname, /fold_case) eq 1) then begin
+       data = s.pellet_z._data
+       title = 'Pellet Z position'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+   endif else $
      if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
        data = scalar_beta(filename=filename)
        title = 'Average Beta'
