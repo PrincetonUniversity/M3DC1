@@ -911,6 +911,11 @@ subroutine validate_input
      call safestop(1)
   endif
 
+ if(iread_te.eq.1 .and. ipres.eq.0) then
+     if(myrank.eq.0) print *, "iread_te=1 not allowed with ipres=0"
+     call safestop(1)
+  endif
+
   if(imp_temp.eq.1) then 
      if(ipres.eq.0 .and. numvar.lt.3) then
         if(myrank.eq.0) print *, 'imp_temp=1 not allowed with ipres=0 and numvar<3'
