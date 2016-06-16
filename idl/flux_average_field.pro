@@ -31,7 +31,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
   if(isa(fc) and not isa(fc, 'Int')) then begin
      print, 'FLUX_AVERAGE_FIELD using provided fc'
      
-     f = field_at_point(field, x, z, fc.r, fc.z)
+     f = reform(field_at_point(field, x, z, fc.r, fc.z))
      
      for j=0, fc.n-1 do begin
         result[0, j] = total(f[*,j]*fc.j[*,j])/total(fc.j[*,j])
