@@ -127,7 +127,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
       ncdf_varput, id, 'rpath', fc.r
       ncdf_varput, id, 'zpath', fc.z
-      ncdf_varput, id, 'Bp', bpval
+      ncdf_varput, id, 'Bp', reform(bpval)
       ncdf_close, id
    end
    
