@@ -100,6 +100,7 @@ subroutine wrrestart
   end if
   write(56) pellet_rate
   write(56) xnull2, znull2
+  write(56) r_p, r_p2
 
   deallocate(data_buff)
   close(56)
@@ -279,6 +280,9 @@ else
 
   if(iversion.ge.13) then
      read(56,END=1199) xnull2, znull2
+  end if
+  if(iversion.ge.14) then
+     read(56,END=1199) r_p, r_p2
   end if
 
   deallocate (data_buff)
@@ -508,6 +512,9 @@ subroutine rdrestart_2d23d
   if(iversion.ge.13) then
      read(56,END=1199) xnull2, znull2
   end if
+  if(iversion.ge.14) then
+     read(56,END=1199) r_p, r_p2
+  end if
 
   deallocate(data_buf)
   goto 1200
@@ -673,6 +680,9 @@ subroutine rdrestart_cplx
 
   if(iversion.ge.13) then
      read(56,END=1199) xnull2, znull2
+  end if
+  if(iversion.ge.14) then
+     read(56,END=1199) r_p, r_p2
   end if
 
 
@@ -1255,6 +1265,10 @@ subroutine rdrestart_adios
     if(prev_version.ge.13) then
        call adios_read_local_var (gh, "xnull2",      group_rank, start, readsize, xnull, read_bytes)
        call adios_read_local_var (gh, "znull2",      group_rank, start, readsize, znull, read_bytes)
+    end if
+    if(prev_version.ge.14) then
+       call adios_read_local_var (gh, "r_p",      group_rank, start, readsize, xnull, read_bytes)
+       call adios_read_local_var (gh, "r_p2",      group_rank, start, readsize, znull, read_bytes)
     end if
 
 
