@@ -7,7 +7,7 @@ adios_groupsize = 35*8 &
                 + 8 * (ndofs_2) &
                 + 8 * (ndofs_2) &
                 + 8 * (ndofs_2) &
-		+ 8 * 9
+		+ 8 * 11
 
 call adios_group_size (adios_handle, adios_groupsize, adios_totalsize, adios_err)
 
@@ -61,5 +61,7 @@ call adios_write (adios_handle, "pellet_velx", pellet_velx, adios_err)
 call adios_write (adios_handle, "pellet_velphi", pellet_velphi, adios_err)
 call adios_write (adios_handle, "pellet_velz", pellet_velz, adios_err)
 call adios_write (adios_handle, "pellet_var", pellet_var, adios_err)
+call adios_write (adios_handle, "r_p", r_p, adios_err)
+call adios_write (adios_handle, "r_p2", r_p2, adios_err)
 call adios_write (adios_handle, "version", version, adios_err)
 call adios_write (adios_handle, "pellet_rate", pellet_rate, adios_err)
