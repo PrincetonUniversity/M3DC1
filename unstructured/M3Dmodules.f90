@@ -131,7 +131,9 @@ module basic
   integer :: iprad    ! Use Qian Teng's prad module
   integer :: prad_z   ! Z of impurity species in prad module
   real    :: prad_fz  ! density of impurity species as fraction of electron density 
-  
+
+  integer :: ipellet_abl, ipellet_spe, ipellet
+  real :: pellet_x, pellet_z, pellet_var, pellet_phi
 
   ! general equilibrium parameters
   integer :: irestart ! 1 = reads restart file as initial condition

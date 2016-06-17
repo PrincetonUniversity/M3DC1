@@ -34,11 +34,34 @@ vectype function sigma_func(i, izone)
   if(izone.ne.1) return
 
   ! Pellet injection model
+
   if(ipellet.gt.0) then
-     temp79a = pellet_deposition(x_79, phi_79, z_79, &
-          real(pt79(:,OP_1)), real(nt79(:,OP_1)))
+
+     if(ipellet_abl.gt.0.) then
+
+        if(pellet_var.lt.1.e-8) then
+           pellet_var = 0.
+           temp79a = 0.
+        else
+           select case(ipellet_abl)
+           case(1)
+              temp79a = pellet_deposition(x_79, phi_79, z_79, &
+                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate1)
+           case(2)
+              temp79a = pellet_deposition(x_79, phi_79, z_79, &
+                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate2)
+           end select
+        endif
+
+      else 
+          temp79a = pellet_deposition(x_79, phi_79, z_79, &
+                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate)
+      endif
+
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
+
   endif
+
 
   ! Ionization model
   if(ionization.eq.1) then

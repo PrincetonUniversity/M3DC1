@@ -22,6 +22,13 @@ module diagnostics
   ! density diagnostics
   real :: nfluxd, nfluxv, nsource
 
+   ! pellets diagnostics                                                                  
+                                                                                                
+  real :: nsource_pel, temp_pel, Lor_vol, q_s, pellet_rate, shield_p, f_b
+  real :: n_g, subl, T_S, Mach, f_l, r_p, pellet_ablrate, pellet_rate1
+  real :: pellet_rate2, C_abl, Xp_abl, Xn_abl, r_p2, a_Te, b_Te, c_Te, d_Te
+  real :: B_Li, te_norm, pellet_volume, pellet_volume_2D, cloud_pel, pellet_var_tor
+
   ! energy diagnostics
   real :: ekin, emag, ekind, emagd, ekino, emago, ekindo, emagdo,      &
        ekint,emagt,ekintd,emagtd,ekinto,emagto,ekintdo,emagtdo,        &
@@ -65,6 +72,9 @@ module diagnostics
   real, dimension(iflux_loops_max) :: flux_loop_x, flux_loop_z
   real, dimension(iflux_loops_max) :: flux_loop_val
   integer, dimension(iflux_loops_max) :: flux_loop_itri
+
+  vectype, dimension(MAX_PTS) :: rhop79
+  vectype, dimension(MAX_PTS) :: Lorentz_pel
 
 contains
 
@@ -200,6 +210,9 @@ contains
     nfluxd = 0.
     nfluxv = 0.
     nsource = 0.
+    nsource_pel = 0.
+    temp_pel = 0.
+    Lor_vol = 0.
 
     bwb2 = 0.
 
@@ -221,7 +234,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 48
+    integer, parameter :: num_scalars = 51
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -275,6 +288,9 @@ contains
        temp(46) = volume
        temp(47) = xray_signal
        temp(48) = wallcur
+       temp(49) = nsource_pel
+       temp(50) = temp_pel
+       temp(51) = Lor_vol
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -328,6 +344,10 @@ contains
        volume  =temp2(46)
        xray_signal=temp2(47)
        wallcur = temp2(48)
+       nsource_pel = temp2(49)
+       temp_pel = temp2(50)
+       Lor_vol = temp2(51)
+
 
     endif !if maxrank .gt. 1
 
@@ -705,6 +725,22 @@ subroutine calculate_scalars()
      ! particle source
      if(idens.eq.1) then        
         nsource = nsource - twopi*int1(sig79)/tpifac
+     
+      ! Pellet radius and density/temperature at the pellet surface
+        if(ipellet.eq.4) then
+
+           rhop79 = sqrt((x_79-pellet_x)**2+(z_79-pellet_z)**2)
+
+           Lorentz_pel = 5.e-3/(PI*((rhop79-pellet_var)**2+(5.e-3)**2))
+
+           Lor_vol = Lor_vol + twopi*int1(Lorentz_pel)/tpifac
+
+           nsource_pel = nsource_pel + twopi*int2(ne079(:,OP_1),Lorentz_pel)/tpifac
+
+           temp_pel = temp_pel + twopi*int2(te079(:,OP_1),Lorentz_pel)/tpifac
+
+        endif
+
      endif
 
      ! gravitational potential energy
@@ -813,6 +849,79 @@ subroutine calculate_scalars()
 
   call distribute_scalars
 
+ if(ipellet.eq.4) then
+
+   ! Pellet ablation rates for Parks models                                                    \
+                                                                                                
+   ! Normalisation of the density/temperature by the Lor volume (to check)                     \
+                                                                                                
+     nsource_pel = nsource_pel/Lor_vol
+     temp_pel = temp_pel/Lor_vol
+
+     if(temp_pel.lt.0.) then
+        temp_pel = 0.
+     endif
+
+     if(nsource_pel.lt.0.) then
+        nsource_pel = 0.
+     endif
+
+     te_norm = b0_norm**2/(4.*PI*n0_norm*1.6022e-12)
+
+   ! First model: Parks NF 94 + Lunsford                                                        
+
+ shield_p = 0.3
+  f_b = 0.5  ! From Parks NF 94                                                              
+                                                                                                
+  f_l = 0.16
+  T_S = 0.14 !in eV                                                                            
+                                                                                                
+  subl = 1.6 !in eV/atom                                                                       
+                                                                                                
+  n_g = 0.534 !in g.cm-3                                                                                                                                                                       
+  Mach = 1.
+
+  q_s = 0.5*nsource_pel*temp_pel*te_norm*sqrt(8.*temp_pel*te_norm/(PI*1.e3*m_p*me_mi))
+  pellet_rate1 = 4.*PI*(l0_norm*pellet_var)**2*q_s*shield_p*f_b*0.906!/(1.e-3*n_g*(subl+10./3.*T_s))                                                                                            
+  pellet_rate1 = dt*t0_norm*pellet_rate1/n0_norm
+
+  r_p = r_p-dt*t0_norm*shield_p*f_b*f_l*1.e-6*1.e-5*sqrt(1.e-5)*q_s*0.906!/&                   
+                                       !(n_g*(subl+T_S*(2.5+0.833*Mach**2)))                                   
+                                                                                                
+
+  ! Second model: Parks 2015 with multienergetic electrons                                     
+                                                                                                
+ B_Li = (1./3.)*sqrt(1./(2.*log(7.69e1*1.97836e-3*sqrt(2.*temp_pel*te_norm)*3.**(-1./3.)/(6e-1))*&
+                           log((2.*temp_pel*te_norm)/(3.33e1)*sqrt(exp(1.)/2.))))
+
+  f_l = 0.2*(1.-0.0946*log((4.**1.3878+1.9155)/(1.9155)))
+
+  Xn_abl = 8.1468e-9*(5./3.-1.)**(1./3.)*f_l**(1./3.)*6.941**(-1./3.)*(r_p2*1.e2)**(4./3.)&
+                     *(n0_norm*nsource_pel)**(1./3.)*(te_norm*temp_pel)**(11./6.)*B_Li**(2./3.)
+
+  Xp_abl = (8.1468e-9/(4.*4.*atan(1.)*0.534))*(5./3.-1.)**(1./3.)*f_l**(1./3.)*6.941**(2./3.)*(r_p2*1.e2)**(-2./3.)&
+                     *(n0_norm*nsource_pel)**(1./3.)*(te_norm*temp_pel)**(11./6.)*B_Li**(2./3.)
+
+  a_Te = 9.0624343*(te_norm*temp_pel/800.)**(log(9.0091993/9.0624343)/log(2.5))
+  b_Te = 1.5915421*(te_norm*temp_pel/800.)**(log(1.1109535/1.5915421)/log(2.5))
+  c_Te = 1.9177788*(te_norm*temp_pel/800.)**(log(1.7309993/1.9177788)/log(2.5))
+  d_Te = 6.6657409*(te_norm*temp_pel/800.)**(log(4.10722254/6.6657409)/log(2.5))
+
+  C_abl = a_Te*log(1.+b_Te*(r_p2*1.e2)**(2./3.)*(nsource_pel/0.45)**(2./3.))/&
+               log(c_Te+d_Te*(r_p2*1.e2)**(2./3.)*(nsource_pel/0.45)**(2./3.))
+
+  pellet_rate2 = C_abl*Xn_abl                                                                  \
+
+  pellet_ablrate = pellet_rate2
+
+  r_p2 = r_p2-dt*t0_norm*C_abl*Xp_abl*1.e-2
+
+  pellet_volume = 16.*atan(1.)*(pellet_var)**2*pellet_var_tor
+
+  pellet_volume_2D = 16.*atan(1.)*(pellet_var)**2*8.*atan(1.)*pellet_x
+
+  endif
+
   ekin = ekinp + ekint + ekin3
   emag = emagp + emagt + emag3
   ekind = ekinpd + ekintd + ekin3d
@@ -852,6 +961,20 @@ subroutine calculate_scalars()
      print *, "  Toroidal flux = ", tflux
      print *, "  Volume = ", volume
      print *, "  Total particles = ", totden
+     if(ipellet_abl.gt.0) then
+        print *, "  nsource = ", nsource
+        print *, "  pellet_rate = ", pellet_ablrate
+        print *, "  pellet particles injected = ", 6.022e23*pellet_rate2*dt*t0_norm
+        print *, "  pellet radius (in m) = ", r_p2
+        print *, "  pellet volume (in m3) = ", pellet_volume
+        print *, "  pellet volume 2D case (in m3) = ", pellet_volume_2D
+        print *, "  Electron temperature around the pellet (in eV) = ", te_norm*temp_pel
+        print *, "  Electron density around the pellet (in ne14) = ", nsource_pel
+        print *, "  Ablation coefficient C_abl = ", C_abl
+        print *, "  Ablation rate (in moles/s) = ", C_abl*Xn_abl
+        print *, "  rpdot (in cm/s) = ", C_abl*Xp_abl
+        print *, "Lor_vol = ", Lor_vol
+     endif
   endif
 
 end subroutine calculate_scalars
