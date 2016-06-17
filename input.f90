@@ -619,6 +619,14 @@ subroutine set_defaults
        "Toroidal velocity of the pellet", source_grp)
   call add_var_double("pellet_velz", pellet_velz, 0., &
        "Vertical velocity of the pellet", source_grp)
+  call add_var_int("ipellet_abl", ipellet_abl, 0, &
+       "1 = include an ablation model", source_grp)
+  call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
+  call add_var_double("r_p2", r_p2, 1.e-3, "", source_grp)
+  call add_var_double("pellet_volume", pellet_volume, 1.e-9, "", source_grp)
+  call add_var_double("pellet_volume_2D", pellet_volume_2D, 1.e-7, "", source_grp)
+  call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)
+
 
   ! beam source
   call add_var_int("ibeam", ibeam, 0, &
@@ -764,7 +772,7 @@ subroutine set_defaults
        "Phi-component of magnetic probe normal", diagnostic_grp)
   call add_var_double_array("mag_probe_nz", mag_probe_nz, imag_probes_max, 0., &
        "Z-component of magnetic probe normal", diagnostic_grp)
-
+ 
   call add_var_int("iflux_loops", iflux_loops, 0, &
        "Number of magnetic probes", diagnostic_grp)
   call add_var_double_array("flux_loop_x", flux_loop_x, iflux_loops_max, 0., &

@@ -320,7 +320,7 @@ subroutine den_eq
         n = 0.
         p = 0.
         n079(:,OP_1) = n079(:,OP_1) + &
-             pellet_deposition(x_79, phi_79, z_79, p, n)
+             pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
      end if
 
      do i=1, dofs_per_element
@@ -340,6 +340,7 @@ subroutine den_per
   use basic
   use arrays
   use pellet
+  use diagnostics
   use field
   use m3dc1_nint
   use newvar_mod
@@ -365,7 +366,7 @@ subroutine den_per
         n = 0.
         p = 0.
         n179(:,OP_1) = n179(:,OP_1) + &
-             pellet_deposition(x_79, phi_79, z_79, p, n)
+             pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
      end if
 
      do i=1, dofs_per_element
