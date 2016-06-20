@@ -83,7 +83,7 @@ BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group \
 	-lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core \
 	-Wl,--end-group
 
-SCOREC_DIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Apr2016/
+SCOREC_DIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/June2016/
 PUMI_LIB = -lapf -lapf_zoltan -lapf_omega_h -lgmi -llion -lma -lmds -lmth -lomega_h -lparma -lpcu -lph -lsam -lspr -lzoltan
 ifeq ($(COM), 1)
   SCOREC_LIB=-lm3dc1_scorec_complex
