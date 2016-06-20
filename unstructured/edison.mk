@@ -18,7 +18,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Apr2016-mpich7.2.5
+SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/June2016-mpich7.2.5
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
 else
