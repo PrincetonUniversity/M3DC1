@@ -787,6 +787,7 @@ integer function magnetic_region(psi, x, z)
   magnetic_region = 0
 
   dpsii = psibound - psimin
+  if(dpsii.eq.0.) return
 
   psii = (real(psi(1)) - psimin)/dpsii
   if(psii .gt. 1.) then
