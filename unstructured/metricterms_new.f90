@@ -5120,11 +5120,11 @@ vectype function b1psi(e,f)
         temp = 0.
      else
         ! this term doesn't seem to make a difference
-        temp = 0.
-!!$        temp = int4(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DR)) &
-!!$             + int4(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ)) &
-!!$             - int4(ri2_79,f(:,OP_1),norm79(:,1),e(:,OP_DR)) &
-!!$             - int4(ri2_79,f(:,OP_1),norm79(:,2),e(:,OP_DZ))
+!        temp = 0.
+        temp = int4(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DR)) &
+             + int4(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ)) &
+             - int4(ri2_79,f(:,OP_1),norm79(:,1),e(:,OP_DR)) &
+             - int4(ri2_79,f(:,OP_1),norm79(:,2),e(:,OP_DZ))
      end if
   else
      if(jadv.eq.0) then
@@ -5549,20 +5549,22 @@ vectype function b1psieta(e,f,g,h,imod)
         if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
            temp = 0.
         else
-           temp = int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DR)) &
-                + int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DZ)) &
-                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,1),e(:,OP_DR)) &
-                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,2),e(:,OP_DZ))
-!!$           temp = 0.
+!!$           temp = int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DR)) &
+!!$                + int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DZ)) &
+!!$                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,1),e(:,OP_DR)) &
+!!$                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,2),e(:,OP_DZ))
+           temp = 0.
         endif
 
 #if defined(USE3D) || defined(USECOMPLEX)
         if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
            temp = temp
         else
-           temp = temp &
-                + int5(ri4_79,e(:,OP_1),norm79(:,1),f(:,OP_DRPP),g(:,OP_1)) &
-                + int5(ri4_79,e(:,OP_1),norm79(:,2),f(:,OP_DZPP),g(:,OP_1))
+           if(.not.imod) then
+              temp = temp &
+                   + int5(ri4_79,e(:,OP_1),norm79(:,1),f(:,OP_DRPP),g(:,OP_1)) &
+                   + int5(ri4_79,e(:,OP_1),norm79(:,2),f(:,OP_DZPP),g(:,OP_1))
+           end if
         endif
 #endif
      else
@@ -8754,6 +8756,56 @@ vectype function b3tekappa(e,f,g,h)
   b3tekappa = (gam-1.)*temp
   return
 end function b3tekappa
+
+! B3pedkappag
+! ===========
+vectype function b3pedkappag(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype :: temp
+
+  if(gam.le.1.) then
+     b3pedkappag = 0.
+     return
+  end if
+
+#ifdef USECOMPLEX
+  temp79a = h(:,OP_DR)*conjg(g(:,OP_DR)) + h(:,OP_DZ)*conjg(g(:,OP_DZ)) &
+       + h(:,OP_DP)*conjg(g(:,OP_DP))*ri2_79
+#else
+  temp79a = h(:,OP_DR)*g(:,OP_DR) + h(:,OP_DZ)*g(:,OP_DZ)
+#endif
+
+#ifdef USE3D
+  temp79a = temp79a + h(:,OP_DP)*g(:,OP_DP)*ri2_79
+#endif
+
+  where(real(temp79a).lt.gradp_crit**2)
+     temp79a = 0.
+  elsewhere
+     temp79a = temp79a - gradp_crit**2
+  end where
+
+  if(surface_int) then
+     temp = int4(e(:,OP_1),norm79(:,1),f(:,OP_DR),temp79a) &
+          + int4(e(:,OP_1),norm79(:,2),f(:,OP_DZ),temp79a)
+  else
+     temp = &
+          - int3(e(:,OP_DZ),f(:,OP_DZ),temp79a) &
+          - int3(e(:,OP_DR),f(:,OP_DR),temp79a)
+  
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = temp + int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
+#endif
+  end if
+
+  b3pedkappag = (gam-1.)*kappag*temp
+end function b3pedkappag
 
 
 

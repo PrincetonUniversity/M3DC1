@@ -57,9 +57,11 @@ module basic
   real :: kappah      ! phenomenological model for H-mode
   real :: kappar      ! coefficient of field-aligned temperature diffusion
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
+  real :: kappag
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
+  real :: gradp_crit
 
 
   ! physical parameters
