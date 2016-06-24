@@ -163,7 +163,6 @@ subroutine calculate_external_fields(sf)
 
 
      case default
-        print *, 'ZERO'
         temp79a = 0.
         temp79b = 0.
         temp79c = 0.
