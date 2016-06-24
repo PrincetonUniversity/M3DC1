@@ -75,7 +75,9 @@ function find_next_boundary_point, list, xy, mesh=mesh, index=index, $
    return, xy
 end
 
-function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=extra
+function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=extra, $
+                            normal=norm, center=center, angle=angle, $
+                            length=length
   tol = 1e-6
   if(n_elements(imulti) eq 0) then $
      imulti=read_parameter('imulti_region', _EXTRA=ex)
@@ -166,23 +168,80 @@ function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=extra
                                       imultiregion=imulti)
 
    j = 1
+   closed = 0
    for i=1, nbound-1 do begin
       tmp = find_next_boundary_point(list,xy[*,j-1],mesh=mesh,index=index, $
                                     imultiregion=imulti)
 
       if(j ge 2) then begin
+         ; if next point is same as previous point, we're backtracking.
          if(abs(tmp[0] - xy[0,j-2]) lt tol and $
             abs(tmp[1] - xy[1,j-2]) lt tol) then begin
             continue
          end
-      end
 
+         ; if next point is same as first point, we're done.
+         if(abs(tmp[0] - xy[0,0]) lt tol and $
+            abs(tmp[1] - xy[1,0]) lt tol) then begin
+            closed = 1
+            break
+         end
+      end
+         
       xy[*,j] = tmp
       j = j+1
    end
    nbound = j
-
    print, 'found ', nbound, ' points'
    
-   return, xy[*,0:nbound-1]
+   xy = xy[*,0:nbound-1]
+
+   if(closed eq 0) then begin
+      print, 'WARNING: boundary path is not closed'
+   end
+
+   center = [(max(xy[0,*]) + min(xy[0,*]))/2., $
+             (max(xy[1,*]) + min(xy[1,*]))/2.]
+
+   angle = reform(atan(xy[1,*] - center[1], xy[0,*] - center[0]))
+
+   ; if angle is decreasing, then reverse order
+   if(median(deriv(angle)) lt 0.) then begin
+      print, 'reversing angle!'
+      angle = reverse(angle)
+      xy = reverse(xy, 2)
+   end
+
+   ; clamp angles to [0, 2pi)
+   i = where(angle lt 0., count)
+   if(count gt 0) then angle[i] = angle[i] + 2.*!pi
+
+   ; shift values to start at minimum angle
+   a0 = min(angle, i)
+   angle = shift(angle, -(i+1))
+   xy[0,*] = shift(xy[0,*], -(i+1))
+   xy[1,*] = shift(xy[1,*], -(i+1))
+
+   ; calculate normals
+   norm = fltarr(2,nbound)
+   for i=0, nbound-1 do begin
+      if(i eq nbound-1) then ip = 0 else ip = i+1
+      if(i eq 0) then im = nbound-1 else im = i-1
+
+      nm = [xy[1,i] - xy[1,im], -(xy[0,i] - xy[0,im])]
+      np = [xy[1,ip] - xy[1,i], -(xy[0,ip] - xy[0,i])]
+      nm = nm / sqrt(nm[0]^2 + nm[1]^2)
+      np = np / sqrt(np[0]^2 + np[1]^2)
+
+      norm[*,i] = (nm + np)/2.
+      norm[*,i] = norm[*,i] / sqrt(norm[0,i]^2 + norm[1,i]^2)
+   end
+
+   length = fltarr(nbound)
+   for i=1, nbound-1 do begin
+      length[i] = length[i-1] + $
+                  sqrt((xy[0,i]-xy[0,i-1])^2 + (xy[1,i]-xy[1,i-1])^2)
+   end
+   
+   return, xy
 end
