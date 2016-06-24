@@ -228,6 +228,10 @@ subroutine set_defaults
        "Parallel thermal conductivity", transp_grp)
   call add_var_double("kappax", kappax, 0., "", transp_grp)
   call add_var_double("kappah", kappah, 0., "", transp_grp)
+  call add_var_double("kappag", kappag, 0., &
+       "Thermal diffusion proportional to pressure gradient", transp_grp)
+  call add_var_double("gradp_crit", gradp_crit, 0., &
+       "Critical pressure gradient in kappag model", transp_grp)
 
   call add_var_double("denm", denm, 0., &
        "Density hyperdiffusion coefficient", transp_grp)
@@ -916,11 +920,6 @@ subroutine validate_input
 
   if(ipressplit.eq.0 .and. itemp.eq.1) then
      if(myrank.eq.0) print *, "itemp=1 not allowed with ipressplit=0"
-     call safestop(1)
-  endif
-
- if(iread_te.eq.1 .and. ipres.eq.0) then
-     if(myrank.eq.0) print *, "iread_te=1 not allowed with ipres=0"
      call safestop(1)
   endif
 
