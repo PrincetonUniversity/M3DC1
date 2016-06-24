@@ -47,10 +47,8 @@ contains
     r = sqrt((x - xmag)**2 + (z - zmag)**2)
     where(r.lt.basicj_voff)
        vz = vzero
-    elsewhere(r.lt.ln)
-       vz = vzero*exp(-(r - basicj_voff)**2/(basicj_vdelt*ln)**2)
     elsewhere
-       vz = 0.
+       vz = vzero*exp(-(r - basicj_voff)**2/(basicj_vdelt*ln)**2)
     end where
   end subroutine basicj_vz
 
