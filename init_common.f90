@@ -125,7 +125,8 @@ subroutine init_perturbations
   implicit none
 
   type(field_type) :: psi_vec, phi_vec
-  integer :: itri, numelms, i
+  integer :: itri, numelms, i, izone, imr
+  integer :: magnetic_region
   vectype, dimension(dofs_per_element) :: dofs
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations'
@@ -138,10 +139,15 @@ subroutine init_perturbations
 
   numelms = local_elements()
   do itri=1,numelms
+     call get_zone(itri, izone)
+
+     if(izone.ne.1) cycle
+
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,0,1,0)
 
      call eval_ops(itri, p_field(0), p079)
+     call eval_ops(itri, psi_field(0), ps079)
 
      ps179 = 0.
      ph179 = 0.
@@ -152,7 +158,14 @@ subroutine init_perturbations
      ph179(:,OP_1) = ph179(:,OP_1) + r_79*verzero
 
      ! apply mask
-     temp79a = (p079(:,OP_1) - pedge)/p0
+     do i=1, npoints
+        imr = magnetic_region(ps079(i,:), x_79(i), z_79(i))
+        if(imr.eq.0) then
+           temp79a(i) = (p079(i,OP_1) - pedge)/p0
+        else
+           temp79a(i) = 0.
+        end if
+     end do
      ph179(:,OP_1) = ph179(:,OP_1)*temp79a
 
      ! populate vectors for solves
