@@ -116,7 +116,7 @@
 	inonormalflow = 1
 	inocurrent_norm = 0
 	inocurrent_tor = 0
-	inocurrent_pol = 1
+	inocurrent_pol = 0
 	iconst_bz = 0
 	iconst_bn = 1
 
