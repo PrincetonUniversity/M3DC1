@@ -580,7 +580,8 @@ subroutine set_defaults
   call add_var_int("inocurrent_pol", inocurrent_pol, 1, "", bc_grp)
   call add_var_int("inocurrent_tor", inocurrent_tor, 0, "", bc_grp)
   call add_var_int("inocurrent_norm", inocurrent_norm, 0, "", bc_grp)
-  call add_var_int("ifbound", ifbound, 2, "", bc_grp)
+  call add_var_int("ifbound", ifbound, 1, &
+       "Boundary condition on 'f' field. 1 = Dirichlet, 2 = Neumann", bc_grp)
   call add_var_int("iconstflux", iconstflux, 0, "", bc_grp)
   call add_var_int("iper", iper, 0, &
        "1: Periodic boundary condition in R direction", bc_grp)
