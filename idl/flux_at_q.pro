@@ -7,7 +7,7 @@ function flux_at_q, qval, normalized_flux=norm, points=pts, $
      fc = flux_coordinates(_EXTRA=extra, points=pts, psi0=psi, x=x, z=z, $
                           /equilibrium)
      q = abs(fc.q)
-     if(keyword_set(norm)) then flux=fc.psi_norm
+     if(keyword_set(norm)) then flux=fc.psi_norm else flux=fc.psi
   end
   
    dq_dpsi = deriv(flux,q)
