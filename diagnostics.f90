@@ -725,18 +725,28 @@ subroutine calculate_scalars()
      
         ! Pellet radius and density/temperature at the pellet surface
         if(ipellet.eq.4) then
-
-           rhop79 = sqrt((x_79-pellet_x)**2+(z_79-pellet_z)**2)
-
-           Lorentz_pel = 5.e-3/(PI*((rhop79-pellet_var)**2+(5.e-3)**2))
-
+           
+#ifdef USE3D
+       
+           Lorentz_pel = 1./ &
+            (sqrt(2.*pi)**3*(pellet_var)**2*pellet_var_tor) &
+            *exp(-((x_79-pellet_x)**2 + (z_79-pellet_z)**2) &
+            /(2.*(pellet_var)**2) &
+            -2.*x_79*pellet_x*(1.-cos(phi_79-pellet_phi)) &
+            /(2.*pellet_var_tor**2))
+#else
+           Lorentz_pel = 1./sqrt(2.*pi*(1.e-3)**2) &
+            *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2) &
+            /(2.*(1.e-3)**2))
+#endif
+           
            Lor_vol = Lor_vol + twopi*int1(Lorentz_pel)/tpifac
 
            nsource_pel = nsource_pel + twopi*int2(ne079(:,OP_1),Lorentz_pel)/tpifac
 
-           temp_pel = temp_pel + twopi*int2(te079(:,OP_1),Lorentz_pel)/tpifac
+           temp_pel = temp_pel + twopi*int2(pe079(:,OP_1)/ne079(:,OP_1),Lorentz_pel)/tpifac
 
-        endif
+       endif
 
      endif
 
@@ -852,17 +862,10 @@ subroutine calculate_scalars()
      ! Normalisation of the density/temperature by the Lor volume (to check)
 
      nsource_pel = nsource_pel/Lor_vol
+
      temp_pel = temp_pel/Lor_vol
 
-     if(temp_pel.lt.0.) then
-        temp_pel = 0.
-     endif
-
-     if(nsource_pel.lt.0.) then
-        nsource_pel = 0.
-     endif
-
-     te_norm = b0_norm**2/(4.*PI*n0_norm*1.6022e-12)
+     te_norm = (p0_norm / n0_norm) / 1.6022e-12  
 
      call calculate_parks_model
   endif
@@ -919,6 +922,7 @@ subroutine calculate_scalars()
         print *, "  Ablation rate (in moles/s) = ", C_abl*Xn_abl
         print *, "  rpdot (in cm/s) = ", C_abl*Xp_abl
         print *, "Lor_vol = ", Lor_vol
+        print *, "X position of granule: ", pellet_x
      endif
   endif
 

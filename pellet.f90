@@ -85,17 +85,12 @@ contains
 #endif
 
     case(4)
-
+       
        select case(ipellet_abl)
        case(1)
           rate_norm = rate
        case(2)
-#ifdef USE3D
-          rate_norm = 6.022e23*rate*dt*t0_norm/(1.e6*pellet_volume*n0_norm)
-#else
-          rate_norm = 6.022e23*rate*dt*t0_norm/(1.e6*pellet_volume_2D*n0_norm)
-#endif
-
+          rate_norm = 6.022e23*rate*dt*t0_norm/(1.e6*n0_norm)
        end select
 
 #ifdef USE3D
@@ -106,7 +101,7 @@ contains
             -2.*r*pellet_x*(1.-cos(phi-pellet_phi)) &
             /(2.*pellet_var_tor**2))
 #else
-       pellet_deposition = rate_norm/(r*2.*pi*(pellet_var)**2) &
+       pellet_deposition = rate_norm/sqrt(2.*pi*(pellet_var)**2) &
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
             /(2.*(pellet_var)**2))
 #endif
