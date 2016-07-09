@@ -4173,7 +4173,7 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
      endif
      if(itemp.eq.1 .and. iadiabat.eq.1) then
         r4term = r4term + dt* &
-             (t3tndenm(trial,pp079,nt79,denm,hp) &
+             (t3tndenm(trial,pp079,n179,denm,hp) &
              +t3ts(trial,pp079,sig79))
      endif
   endif
@@ -5111,18 +5111,18 @@ subroutine ludefpres_n(itri)
            call insert_block(pp0,itri,ieq(k),  te_i,dd(:,:,  te_g),MAT_ADD)
         case(3)
            if(idiff .gt. 0) then
-                                                 dd(:,:, p_g) = dd(:,:, p_g) - ss(:,:, p_g)
-                                                 dd(:,:, pe_g) = dd(:,:, pe_g) - ss(:,:, pe_g)
-                                                 endif
+              dd(:,:, p_g) = dd(:,:, p_g) - ss(:,:, p_g)
+              dd(:,:, pe_g) = dd(:,:, pe_g) - ss(:,:, pe_g)
+           endif
            call insert_block(pp1,itri,ieq(k),  p_i,ss(:,:,  p_g),MAT_ADD)
            call insert_block(pp0,itri,ieq(k),  p_i,dd(:,:,  p_g),MAT_ADD)
            call insert_block(pp1,itri,ieq(k), pe_i,ss(:,:, pe_g),MAT_ADD)
            call insert_block(pp0,itri,ieq(k), pe_i,dd(:,:, pe_g),MAT_ADD)
         case(4)
-        if(idiff .gt. 0) then
-                                              dd(:,:, te_g) = dd(:,:, te_g) - ss(:,:, te_g)
-                                              dd(:,:, ti_g) = dd(:,:, ti_g) - ss(:,:, ti_g)
-                                              endif
+           if(idiff .gt. 0) then
+              dd(:,:, te_g) = dd(:,:, te_g) - ss(:,:, te_g)
+              dd(:,:, ti_g) = dd(:,:, ti_g) - ss(:,:, ti_g)
+           endif
            call insert_block(pp1,itri,ieq(k), te_i,ss(:,:, te_g),MAT_ADD)
            call insert_block(pp0,itri,ieq(k), te_i,dd(:,:, te_g),MAT_ADD)
            call insert_block(pp1,itri,ieq(k), ti_i,ss(:,:, ti_g),MAT_ADD)
