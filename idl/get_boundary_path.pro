@@ -75,7 +75,7 @@ function find_next_boundary_point, list, xy, mesh=mesh, index=index, $
    return, xy
 end
 
-function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=extra, $
+function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
                             normal=norm, center=center, angle=angle, $
                             length=length
   tol = 1e-6
