@@ -1,7 +1,7 @@
 pro plot_at_boundary, name, field=field, angle=ang,  _EXTRA=ex
 
   xy = get_boundary_path(norm=norm, center=center, angle=angle, $
-                         length=length, _EXTRA=extra)
+                         length=length, _EXTRA=ex)
   
   nvec = 0
 
