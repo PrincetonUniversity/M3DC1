@@ -238,8 +238,10 @@ subroutine set_defaults
   
   call add_var_double("gam", gam, 5./3., &
        "Ratio of specific heats", misc_grp)
-  call add_var_double("db", db, 0., &
-       "Collisionless ion skin depth", misc_grp)
+  call add_var_double("db", db, -1., &
+       "Collisionless ion skin depth (overrides db_fac)", misc_grp)
+  call add_var_double("db_fac", db_fac, 0., &
+       "Factor multiplying physical value of ion skin depth", misc_grp)
   call add_var_double("mass_ratio", mass_ratio, 0., "", misc_grp)
   call add_var_double("lambdae", lambdae, 0., "", misc_grp)
   call add_var_double("zeff", zeff, 1., "Z effective", misc_grp)
@@ -904,6 +906,7 @@ subroutine validate_input
       endif
     endif
 
+
   if(amuc.eq.0.) amuc = amu
 
   if(linear.eq.1) then
@@ -1204,6 +1207,17 @@ subroutine validate_input
   t0_norm = l0_norm / v0_norm
   p0_norm = b0_norm**2/(4.*pi)
   e0_norm = v0_norm*b0_norm / c_light
+
+  if(db.lt.0.) then
+     db = c_light / &
+          sqrt(4.*pi*n0_norm*(zeff*e_c)**2/(ion_mass*m_p)) / &
+          l0_norm
+     if(myrank.eq.0 .and. iprint.ge.1) then
+        print *, 'Physical value of db = ', db
+        print *, 'Scaled value of db = ', db*db_fac
+     end if
+     db = db*db_fac
+  end if
   
   if(ibeam.ge.1) call neutral_beam_init
   if(ipellet.ne.0) call pellet_init

@@ -67,6 +67,7 @@ module basic
   ! physical parameters
   integer :: itor     ! 1 = cylindrical coordinates; 0 = cartesian coordinates
   real :: db          ! ion skin depth
+  real :: db_fac      ! factor to scale physical value of db
   real :: gam         ! ratio of specific heats
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
