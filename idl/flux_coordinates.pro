@@ -206,7 +206,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      
      for i=0, m-1 do begin
 
-        bp[i] = fac*field_at_point(gradpsi,x,z,rpath[i,j],zpath[i,j]) / rp[i,j]
+        bp[i] = fac*field_at_point(gradpsi,x,z,rpath[i,j],zpath[i,j])/rp[i,j]
 
         if(not keyword_set(fast)) then begin
            ix = field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
