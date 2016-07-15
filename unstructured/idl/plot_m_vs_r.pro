@@ -1,9 +1,9 @@
 pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
-                 srnorm=srnorm, _EXTRA=extra
+                 srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra
   if(n_elements(factor) eq 0) then factor = 1.
 
   read_bmncdf, file=filename, _EXTRA=extra, bmn=bmn, psi=psi, m=m, q=q, $
-               ntor=ntor
+               rho=rho, ntor=ntor
 
   if(n_elements(mrange) eq 0) then mrange=[-5,5]
   if(mrange[1] lt mrange[0]) then mrange=reverse(mrange)
@@ -11,6 +11,9 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
   if(keyword_set(srnorm)) then begin
      xtitle = '!9r!7W!X'
      psi = sqrt(psi)
+  endif else if(keyword_set(rhonorm)) then begin
+     xtitle = '!7q!X'
+     psi = rho
   endif else xtitle='!7W!X'
 
   modbmn = abs(bmn)*factor
