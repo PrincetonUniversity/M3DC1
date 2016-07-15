@@ -112,7 +112,7 @@
 
 	gam = 1.66666666666667	! adiabatic constant
 
-	db = 0.0322	! ion skin depth
+	db_fac = 1.	! ion skin depth
 
 
 ! Boundary Conditions
@@ -125,7 +125,7 @@
 	inoslip_pol = 1
 	inoslip_tor = 1
 	inonormalflow = 1
-	inocurrent_norm = 0
+	inocurrent_norm = 1
 	inocurrent_tor = 0
 	inocurrent_pol = 0
 	iconst_bz = 0
