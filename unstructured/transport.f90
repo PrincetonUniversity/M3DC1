@@ -687,11 +687,27 @@ vectype function kappa_func(i)
 
   case(4)
      !....added 3/4/2014      scj
+     if(itemp.eq.1) then
         temp79a = kappa0*(1. + kappadelt*(tet79(:,OP_DR)*tet79(:,OP_DR) &
-                                     + tet79(:,OP_DZ)*tet79(:,OP_DZ)))
+             + tet79(:,OP_DZ)*tet79(:,OP_DZ)))
 #if defined(USE3D) || defined(USECOMPLEX)
         if(itor.eq.1) temp79a = temp79a + kappa0*kappadelt*tet79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
 #endif
+     else
+        temp79b = pet79(:,OP_DR)**2 + pet79(:,OP_DZ)**2
+        temp79c = net79(:,OP_DR)**2 + net79(:,OP_DZ)**2
+        temp79d = pet79(:,OP_DR)*net79(:,OP_DR) + pet79(:,OP_DZ)*net79(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp79b = temp79b + pet79(:,OP_DP)**2 * ri2_79
+        temp79c = temp79c + net79(:,OP_DP)**2 * ri2_79
+        temp79d = temp79d + pet79(:,OP_DP)*net79(:,OP_DP) * ri2_79
+#endif
+
+        temp79a = kappa0*(1. + kappadelt* &
+             (temp79b/net79(:,OP_1)**2 &
+             +temp79c*pet79(:,OP_1)**2 / net79(:,OP_1)**4 &
+             -2.*temp79d*pet79(:,OP_1) / net79(:,OP_1)**3))
+     end if
      
   case(10,11)
      if(.not.allocated(kappa_spline%x)) then
