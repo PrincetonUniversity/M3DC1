@@ -24,10 +24,11 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
            print, 'reading bmncdf file'
            for i=0, n_elements(filename)-1 do begin
                read_bmncdf, file=filename[i], bmn=bmn0, psi=psi, m=m, q=q, $
-                 ntor=ntor
+                 ntor=ntor, cur=cur[i]
                if(i eq 0) then begin
-                   minm = fix(q[0] * ntor) 
-                   maxm = fix(q[n_elements(q)-1] * ntor)
+                  v = [fix(q[0] * ntor), fix(q[n_elements(q)-1] * ntor) ]
+                   minm = min(v)
+                   maxm = max(v)
                    if(maxm gt max(m)) then maxm = max(m)
                    m0 = findgen(maxm - minm) + minm
                    q0 = m0/ntor

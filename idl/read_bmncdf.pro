@@ -1,5 +1,7 @@
 pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
-                 rho=rho
+                 rho=rho, cur=cur
+
+  if(n_elements(cur) eq 0) then cur=1.
 
   if(n_elements(filename) eq 1) then begin
 
@@ -21,7 +23,7 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      
      ncdf_close, id
      
-     bmn = complex(bmnr, bmni)
+     bmn = complex(bmnr, bmni)*cur
 
      ; calculate rho
      dflux_tor = deriv(flux_pol)
@@ -34,7 +36,10 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      rho = sqrt(flux_tor / flux_tor(n_elements(flux_pol)-1))
      return
   endif else begin
-     
+
+     if(n_elements(cur) lt n_elements(filename)) then $
+        cur = replicate(cur, n_elementS(filename))
+
      for i=0, n_elements(filename)-1 do begin
         if(i eq 0) then begin
            read_bmncdf, file=filename[i], bmn=bmn, psi=psi, m=m, q=q, $
