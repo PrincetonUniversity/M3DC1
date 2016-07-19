@@ -392,6 +392,8 @@ subroutine set_defaults
   call add_var_double("vzero", vzero, 0., "", eq_grp)
   call add_var_double("phizero", phizero, 0., "", eq_grp)
   call add_var_double("verzero", verzero, 0., "", eq_grp)
+  call add_var_double("v0_cyl", v0_cyl, 0., "", eq_grp)
+  call add_var_double("v1_cyl", v1_cyl, 0., "", eq_grp)
   call add_var_int("idevice", idevice, 0, "", eq_grp)
   call add_var_int("iwave", iwave, 0, "", eq_grp)
   call add_var_double("eps", eps, 0.01, &
