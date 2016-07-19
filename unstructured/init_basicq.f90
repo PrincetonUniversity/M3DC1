@@ -3,7 +3,7 @@ module basicq
 
   real, private :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, r1_qp, q2_qp, q4_qp, pedge_qp
   real, private :: q6_qp, q8_qp, q10_qp, q12_qp, q14_qp
-  real, private :: kappa_qp, kappae_qp, coolrate_qp
+  real, private :: kappa_qp, kappae_qp, coolrate_qp, v0_qp, v1_qp
   integer, private :: myrank_qp, iprint_qp, itaylor_qp
 
 contains
@@ -33,6 +33,8 @@ contains
     q10_qp = p2
     q12_qp = djdpsi
     q14_qp = divcur
+    v0_qp = v0_cyl
+    v1_qp = v1_cyl
   end subroutine init_qp
 
   subroutine fixed_q_profiles()
@@ -50,15 +52,16 @@ contains
     use init_common
     implicit none
 
-    vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr, dofsden
-    real , dimension(npoints) :: rtemp79a, rtemp79b, rtemp79c
-    real :: r, dum1, dum2
+    vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr, dofsvz, dofsden
+    real , dimension(npoints) :: rtemp79a, rtemp79b, rtemp79c, rtemp79d
+    real :: r, dum1, dum2, dum3
     integer :: nelms, itri, i, j
-    type (field_type) :: psi_vec, bz_vec, p_vec, den_vec
+    type (field_type) :: psi_vec, bz_vec, p_vec, vz_vec, den_vec
 
     call create_field(psi_vec)
     call create_field(bz_vec)
     call create_field(p_vec)
+    call create_field(vz_vec)
     call create_field(den_vec)
     
     if(myrank.eq.0 .and. iprint.ge.1) write (*,2000) bz_qp 
@@ -81,6 +84,8 @@ contains
     if(myrank.eq.0 .and. iprint.ge.1) write (*,2017) q12_qp 
     if(myrank.eq.0 .and. iprint.ge.1) write (*,2018) q14_qp 
     if(myrank.eq.0 .and. iprint.ge.1) write (*,2019) r1_qp
+    if(myrank.eq.0 .and. iprint.ge.1) write (*,2020) v0_qp 
+    if(myrank.eq.0 .and. iprint.ge.1) write (*,2021) v1_qp
 
 2000 format( 'bz_qp =', 1pe12.4)
 2001 format( 'r0_qp =', 1pe12.4)
@@ -102,6 +107,8 @@ contains
 2017 format( 'q12_qp =', 1pe12.4)
 2018 format( 'q14_qp =', 1pe12.4)
 2019 format( 'r1_qp  =', 1pe12.4)
+2020 format( 'v0_qp =', 1pe12.4)
+2021 format( 'v1_qp  =', 1pe12.4)
 
     if(itaylor.eq.22) call setupLZeqbm
 
@@ -118,26 +125,30 @@ contains
        do i=1,dofs_per_element
           do j=1,npoints
              r = (sqrt((x_79(j)-xmag)**2 + (z_79(j)-zmag)**2))/r0_qp  ! normalized radius
-             call getvals_qsolver(r,rtemp79a(j),rtemp79b(j),rtemp79c(j))
+             call getvals_qsolver(r,rtemp79a(j),rtemp79b(j),rtemp79c(j),rtemp79d(j))
           enddo
 #ifdef USECOMPLEX
           temp79a = cmplx(rtemp79a)
           temp79b = cmplx(rtemp79b)
           temp79c = cmplx(rtemp79c)
+          temp79d = cmplx(rtemp79d)
 #else
           temp79a = rtemp79a
           temp79b = rtemp79b
           temp79c = rtemp79c
+          temp79d = rtemp79d
 #endif
           
           dofsps(i) = int2(mu79(:,OP_1,i),temp79a)
           dofsbz(i) = int2(mu79(:,OP_1,i),temp79b)
           dofspr(i) = int2(mu79(:,OP_1,i),temp79c)
+          dofsvz(i) = int2(mu79(:,OP_1,i),temp79d)
           dofsden(i) = den0*int1(mu79(:,OP_1,i))
        enddo
        call vector_insert_block(psi_vec%vec,itri,1,dofsps,VEC_ADD)
        call vector_insert_block(bz_vec%vec ,itri,1,dofsbz,VEC_ADD)
        call vector_insert_block(p_vec%vec  ,itri,1,dofspr,VEC_ADD)
+       call vector_insert_block(vz_vec%vec  ,itri,1,dofsvz,VEC_ADD)
        call vector_insert_block(den_vec%vec,itri,1,dofsden,VEC_ADD)
     enddo
     
@@ -148,12 +159,15 @@ contains
     call newvar_solve(bz_vec%vec ,mass_mat_lhs)
     if(myrank.eq.0 .and. iprint.ge.1) print *, "solving p"
     call newvar_solve(p_vec%vec  ,mass_mat_lhs)
+    if(myrank.eq.0 .and. iprint.ge.1) print *, "solving vz"
+    call newvar_solve(vz_vec%vec  ,mass_mat_lhs)
     if(myrank.eq.0 .and. iprint.ge.1) print *, "solving den"
     call newvar_solve(den_vec%vec  ,mass_mat_lhs)
     
     psi_field(0) = psi_vec
     bz_field(0)  = bz_vec
     p_field(0)   = p_vec
+    vz_field(0)  = vz_vec
     den_field(0) = den_vec
     pe_field(0) = p_field(0)
     call mult(pe_field(0),pefac)
@@ -161,13 +175,14 @@ contains
     call destroy_field(psi_vec)
     call destroy_field(bz_vec)
     call destroy_field(p_vec)
+    call destroy_field(vz_vec)
     call destroy_field(den_vec)
     
     call init_perturbations
     
     if(itaylor.eq.27) then
-       call getvals_qsolver(0.,psimin,dum1,dum2)
-       call getvals_qsolver(q4_qp,psibound,dum1,dum2)
+       call getvals_qsolver(0.,psimin,dum1,dum2,dum3)
+       call getvals_qsolver(q4_qp,psibound,dum1,dum2,dum3)
        if(myrank.eq.0) write(*,3001) psimin,psibound
 3001   format("psimin,psibound = ", 1p2e12.4)
     endif
@@ -175,15 +190,15 @@ contains
     if(myrank.eq.0 .and. iprint.ge.1) print *, "end fixed_q_profiles"
   end subroutine fixed_q_profiles
   
-  subroutine getvals_qsolver(rval,bpsival,ival,pval)
+  subroutine getvals_qsolver(rval,bpsival,ival,pval,vval)
     implicit none
     
     integer, parameter :: N=1000  !  (number of intervals)
     integer :: ifirstq = 1
-    real :: dpsi,rval,psival,bpsival,ival,pval
+    real :: dpsi,rval,psival,bpsival,ival,pval,vval
     real :: psimid, qmid, qpmid, ppmid, denom,fterm,gterm,aquad,bquad,cquad,disc,A_qp
     integer :: j
-    real, dimension (0:N) :: bpsi, btor, bpolor, psi, jphi, jthor, gradpor, equor, pary
+    real, dimension (0:N) :: bpsi, btor, bpolor, psi, jphi, jthor, gradpor, equor, pary, vary
     
     if(ifirstq.eq.1) then
        ifirstq = 0
@@ -235,19 +250,22 @@ contains
                - (bpsi(j)-bpsi(j-1))*rzero_qp*qfunc((j-0.5)*dpsi))/(dpsi**2*r0_qp**2)
           gradpor(j) =  ppfunc(j*dpsi)
           pary(j) = pfunc(psi(j))
+          vary(j) = vfunc(psi(j))
           !    error in equilibrium equation
           equor(j) = (jphi(j)*bpolor(j)+jthor(j)*btor(j)+gradpor(j))*sqrt(j*dpsi)
        enddo
        pary(0) =  pfunc(psi(0))
        pary(N) =  pfunc(psi(N))
+       vary(0) =  vfunc(psi(0))
+       vary(N) =  vfunc(psi(N))
        !
        if(myrank_qp .eq. 0 .and. iprint_qp .ge. 2) then
           write(6,1001)
-1001      format(" j       r**2       bpsi        btor         p          equil")
+1001      format(" j       r**2       bpsi        btor         p            v         equil")
           do j=0,N
-             write(6,1000) j,psi(j),bpsi(j),btor(j),pary(j),equor(j)
+             write(6,1000) j,psi(j),bpsi(j),btor(j),pary(j),vary(j), equor(j)
           enddo
-1000      format(i4,1p7e12.4)
+1000      format(i4,1p8e12.4)
        endif
        
     endif !   end of initialization
@@ -256,6 +274,7 @@ contains
     bpsival = cubicinterp(psival,psi,bpsi,N)
     ival = cubicinterp(psival,psi,btor,N)
     pval = cubicinterp(psival,psi,pary,N)
+    vval = cubicinterp(psival,psi,vary,N)
   end subroutine getvals_qsolver
 
   real function cubicinterp(x,xary,yary,N)
@@ -453,6 +472,15 @@ contains
        
     end select
   end function ppfunc
+  real function vfunc(psi)
+    implicit none
+
+    real, intent(in) :: psi !  note:  psi=r^2
+    
+    vfunc = v0_qp + psi*v1_qp
+
+    return
+   end function vfunc
 
   real function get_kappa(psi)  ! thermal conductivity for itaylor=27, ikappafunc=12   
     implicit none
