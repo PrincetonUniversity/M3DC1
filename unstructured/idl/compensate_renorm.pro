@@ -8,11 +8,11 @@ function compensate_renorm, x, i
         ; Rescale
         if(k lt n_elements(x)-2) then begin
            dx = x[k+2] - x[k+1]
-        endif else begin
-           dx = 0.
-        endelse
+        endif else dx = 0.
+        ; this is what x[k] would be assuming exponential growth
+        f = x[k+1]*exp(-dx/(x[k+1]+dx/2.)) 
         for j=0, k do begin
-           y[j] = y[j] * (x[k+1]-dx) / x[k]
+           y[j] = y[j] * f / x[k]
         end
      end
   end
