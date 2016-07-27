@@ -547,6 +547,7 @@ subroutine rdrestart_cplx
   vectype, allocatable :: data_buff(:)
   real :: tmprestart
 
+
   call createfilename(fname, oldfname)
   call m3dc1_field_getnumlocaldof(num_fields, ndofs)
   numnodes = local_nodes()
@@ -668,6 +669,45 @@ subroutine rdrestart_cplx
 #endif
         enddo
         call m3dc1_field_set(psi_coil_field%vec%id, data_buff, ndofs)
+     end if
+  end if
+
+  if(iversion.ge.10) then
+     read(56, END=1199) extsubtract, use_external_fields
+     if(use_external_fields) then
+        call create_field(psi_ext)
+        call create_field(bz_ext)
+        call create_field(bf_ext)
+        do j1=1,ndofs
+!          read(56,END=1199) data_buff(j1)
+           read(56,END=1199) tmprestart
+#ifdef USECOMPLEX
+           data_buff(j1)=cmplx(tmprestart, 0.)
+#else
+           data_buff(j1)=tmprestart
+#endif
+        enddo
+        call m3dc1_field_set(psi_ext%vec%id, data_buff, ndofs)
+        do j1=1,ndofs
+!          read(56,END=1199) data_buff(j1)
+           read(56,END=1199) tmprestart
+#ifdef USECOMPLEX
+           data_buff(j1)=cmplx(tmprestart, 0.)
+#else
+           data_buff(j1)=tmprestart
+#endif
+        enddo
+        call m3dc1_field_set(bz_ext%vec%id, data_buff, ndofs)
+        do j1=1,ndofs
+!          read(56,END=1199) data_buff(j1)
+           read(56,END=1199) tmprestart
+#ifdef USECOMPLEX
+           data_buff(j1)=cmplx(tmprestart, 0.)
+#else
+           data_buff(j1)=tmprestart
+#endif
+        enddo
+        call m3dc1_field_set(bf_ext%vec%id, data_buff, ndofs)
      end if
   end if
 
