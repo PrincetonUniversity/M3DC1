@@ -445,7 +445,7 @@ subroutine rdrestart_2d23d
 
   read(56, END=1199) iversion
 
-  if(version.ge.7) then
+  if(iversion.ge.7) then
      read(56, END=1199) icsubtract
      if(icsubtract.eq.1) then
           do i=1,prev_ndofs2
@@ -657,7 +657,7 @@ subroutine rdrestart_cplx
 
   read(56, END=1199) iversion
 
-  if(version.ge.7) then
+  if(iversion.ge.7) then
      read(56, END=1199) icsubtract
      if(icsubtract.eq.1) then
         do j1=1,ndofs 
