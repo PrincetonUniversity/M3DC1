@@ -106,6 +106,11 @@ else
   CCOPTS := $(CCOPTS)  
 endif
 
+ifeq ($(OMP), 1)
+  LDOPTS := $(LDOPTS) -openmp -Wl,-z,muldefs 
+  FOPTS  := $(FOPTS)  -openmp 
+  CCOPTS := $(CCOPTS) -openmp 
+endif
 
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)

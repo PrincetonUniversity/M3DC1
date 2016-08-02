@@ -80,11 +80,15 @@ endif
 ifeq ($(USEADIOS), 1)
   BIN_POSTFIX := $(BIN_POSTFIX)-adios
 endif
+
+ifeq ($(OMP), 1)
+  BIN_POSTFIX := $(BIN_POSTFIX)-omp
+endif
 OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 
 # add date stamp
-OPTS := $(OPTS) -DDATE_BUILT="'$(shell date)'" -DRELEASE_VERSION="'$(shell cat release_version)'" #-DBUILD_INFO="'$(shell svn info)'"
+OPTS := $(OPTS) -DNOUSE -DDATE_BUILT="'$(shell date)'" -DRELEASE_VERSION="'$(shell cat release_version)'" #-DBUILD_INFO="'$(shell svn info)'"
 
 export OPT
 export OPTS
@@ -129,7 +133,7 @@ READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
 OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
-	subp.o random.o spline.o \
+	stringmod.o subp.o random.o spline.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
