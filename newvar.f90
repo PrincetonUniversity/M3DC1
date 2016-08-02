@@ -201,6 +201,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
   use basic
   use m3dc1_nint
   use boundary_conditions
+  use m3dc1_omp
 
   implicit none
 
@@ -241,6 +242,8 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
      call define_fields(itri,0,1,0)
 
      temp = 0.
+!$OMP PARALLEL DO COLLAPSE(2) &
+!$OMP& DEFAULT(SHARED) PRIVATE(i,j,ithread)
      do i=1,dofs_per_element
         do j=1,dofs_per_element
 
@@ -309,6 +312,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
            end select
         end do
      end do
+!$OMP END PARALLEL DO
 
      select case(ibound)
      case(NV_DCBOUND)

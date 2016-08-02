@@ -868,7 +868,12 @@ subroutine validate_input
 
   implicit none
 
+#ifdef NEXTPetscDEV
+#include "petsc/finclude/petsc.h"
+#else
 #include "finclude/petsc.h"
+#endif
+
 #ifdef PetscDEV
   PetscBool :: flg_petsc, flg_solve2, flg_pdslin
 #else
@@ -1144,19 +1149,19 @@ subroutine validate_input
      iread_omega = iread_omega_ExB
   end if
 
-#ifndef M3DC1_TRILINOS
-  ! Read PETSc options
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
-  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-pdslin', flg_pdslin,ier)
-#endif
-  if(myrank.eq.0 .and. iprint.ge.1) then
-     print *, "petsc arguments: ipetsc, solve2, solve1", flg_petsc, flg_solve2, flg_pdslin
-     print *, "petsc true/false", PETSC_TRUE, PETSC_FALSE
-     if(flg_petsc.eq.PETSC_TRUE) print*, 'Using SCOREC PETSc.'
-     if(flg_solve2.eq.PETSC_TRUE) print*, 'Using PPPL solve2.'
-     if(flg_pdslin.eq.PETSC_TRUE) print*, 'Using PDSLin.'
-  endif
+!#ifndef M3DC1_TRILINOS
+!  ! Read PETSc options
+!  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-ipetsc', flg_petsc,ier)
+!  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-solve2', flg_solve2,ier)
+!  call PetscOptionsHasName(PETSC_NULL_CHARACTER,'-pdslin', flg_pdslin,ier)
+!#endif
+!  if(myrank.eq.0 .and. iprint.ge.1) then
+!     print *, "petsc arguments: ipetsc, solve2, solve1", flg_petsc, flg_solve2, flg_pdslin
+!     print *, "petsc true/false", PETSC_TRUE, PETSC_FALSE
+!     if(flg_petsc.eq.PETSC_TRUE) print*, 'Using SCOREC PETSc.'
+!     if(flg_solve2.eq.PETSC_TRUE) print*, 'Using PPPL solve2.'
+!     if(flg_pdslin.eq.PETSC_TRUE) print*, 'Using PDSLin.'
+!  endif
 
   is_rectilinear = (nonrect.eq.0)
 

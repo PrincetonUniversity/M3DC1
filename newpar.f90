@@ -19,10 +19,15 @@ Program Reducedquintic
   use adapt
   use particles
   use math
+  use m3dc1_omp
 
   implicit none
 
+#ifdef NEXTPetscDEV
+#include "petsc/finclude/petsc.h"
+#else
 #include "finclude/petsc.h"
+#endif
 
   integer :: ier, i, adapt_flag
   real :: tstart, tend, dtsave, period
@@ -73,6 +78,19 @@ Program Reducedquintic
      print *, '2D VERSION'
 #endif
   endif
+
+  ! OPENMP information
+#ifdef _OPENMP
+!$OMP PARALLEL
+     !total number of threads in the group
+     nthreads=OMP_GET_NUM_THREADS()
+     !id of this thread in the group
+     ithread=OMP_GET_THREAD_NUM()
+     if(myrank.eq.0) &
+     write(*,1004) myrank,ithread,nthreads
+1004 format("rank",1x,i4,1x,'has OPENMP: the',1x,i4,1x,'th thread of',1x,i4,1x,'threads in this group.'/)
+!$OMP END PARALLEL
+#endif
 
 #ifdef USESCOREC
   call m3dc1_domain_init()
@@ -412,7 +430,12 @@ subroutine safestop(iarg)
   use auxiliary_fields
 
   implicit none
+
+#ifdef NEXTPetscDEV
+#include "petsc/finclude/petsc.h"
+#else
 #include "finclude/petsc.h"
+#endif
       
   integer, intent(in) :: iarg
   integer :: ier

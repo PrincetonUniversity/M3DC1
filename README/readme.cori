@@ -4,9 +4,13 @@
 2. code
 
 3. load modules
-	module load fftw
-	module load gsl/1.16
-        module load cray-hdf5-parallel/1.8.14
+        module unload gcc  
+        module load gcc-ftg/4.9.2
+        module load fftw
+        module load subversion
+        module load cmake
+        module load gsl
+        module load cray-hdf5-parallel
 	module load idl
 	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
 
@@ -31,7 +35,7 @@
 
 	cd $SLURM_SUBMIT_DIR
 
-	#export OMP_NUM_THREADS=30
+	export OMP_NUM_THREADS=1
 	#export KMP_AFFINITY=balanced
 
         #2D complex

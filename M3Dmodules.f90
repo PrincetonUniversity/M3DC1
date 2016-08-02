@@ -646,3 +646,13 @@ contains
   end subroutine delete_matrices
   
 end module sparse
+
+!cjomp
+module m3dc1_omp
+#ifdef _OPENMP
+  implicit none
+
+  include 'omp_lib.h'
+  integer :: ithread, nthreads
+#endif
+end module m3dc1_omp

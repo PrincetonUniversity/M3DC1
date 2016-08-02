@@ -21,22 +21,35 @@ endif
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
-SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Apr2016-mpich7.3.1
-SCOREC_CORE = -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
-PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
 
 ifeq ($(COM), 1)
+      SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Apr2016-mpich7.3.1
+      SCOREC_CORE = -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
+      PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
       SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
       PETSC_ARCH = complex-intel-mpich7.3
       HYPRE_LIB = 
-else
-      SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
-      PETSC_ARCH = real-intel-mpich7.3
-      HYPRE_LIB = -lHYPRE
-endif
-PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 \
        -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
+else
+      SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Jul2016-mpich7.4.0
+      SCOREC_CORE = -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
+      SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
+#o    PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
+#o    PETSC_ARCH = real-intel-mpich7.3
+      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/master.noomp-nostrumpack
+      PETSC_ARCH = next-noomp-nostrumpack
+#n2      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/master.omp-nostrumpack
+#n2      PETSC_ARCH = next-omp-nostrumpack
+#n3      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/master.omp-strumpack
+#n3      PETSC_ARCH = next-omp-strumpack
+      HYPRE_LIB = -lHYPRE
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist -lstrumpack_sparse \
+       -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++ \
+       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit
+endif
 
 ifeq ($(USEADIOS), 1)
   OPTS := $(OPTS) -DUSEADIOS
@@ -53,7 +66,7 @@ endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV  -DNEXTPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
            $(FFTW_INCLUDE_OPTS) \
@@ -76,13 +89,26 @@ FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
 CCOPTS  = -c $(OPTS)
 
 # Optimization flags
+ifeq ($(VTUNE), 1)
+  LDOPTS := $(LDOPTS) -g -dynamic
+  FOPTS  := $(FOPTS)  -g -dynamic
+  CCOPTS := $(CCOPTS) -g -dynamic
+endif
+
+# Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS)
+  LDOPTS := $(LDOPTS) -dynamic
   FOPTS  := $(FOPTS)  -O3
   CCOPTS := $(CCOPTS) -O3
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
+endif
+
+ifeq ($(OMP), 1)
+  LDOPTS := $(LDOPTS) -fopenmp 
+  FOPTS  := $(FOPTS)  -fopenmp 
+  CCOPTS := $(CCOPTS) -fopenmp 
 endif
 
 F90OPTS = $(F90FLAGS) $(FOPTS)
