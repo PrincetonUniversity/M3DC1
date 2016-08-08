@@ -98,7 +98,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: q179, q079, qt79, qe179, qe079, qet79
 
   ! precalculated terms
-   real, private :: fterm(MAX_PTS, coeffs_per_element, OP_NUM)
+   real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
   
 contains
 
@@ -153,45 +153,45 @@ contains
     
     fterm = 0.
     do p=1, coeffs_per_tri
-       fterm(:,p,OP_1) = xpow(:,mi(p))*ypow(:,ni(p))
+       fterm(:,OP_1,p) = xpow(:,mi(p))*ypow(:,ni(p))
           
        if(mi(p).ge.1) then
           ! d_si terms
           temp = mi(p)*xpow(:,mi(p)-1) * ypow(:,ni(p))
-          fterm(:,p,OP_DR) = fterm(:,p,OP_DR) + co*temp
-          fterm(:,p,OP_DZ) = fterm(:,p,OP_DZ) + sn*temp           
+          fterm(:,OP_DR,p) = fterm(:,OP_DR,p) + co*temp
+          fterm(:,OP_DZ,p) = fterm(:,OP_DZ,p) + sn*temp           
              
           if(mi(p).ge.2) then
              ! d_si^2 terms
              temp = xpow(:,mi(p)-2)*(mi(p)-1)*mi(p) * ypow(:,ni(p))
-             fterm(:,p,OP_DRR) = fterm(:,p,OP_DRR) + co2*temp
-             fterm(:,p,OP_DZZ) = fterm(:,p,OP_DZZ) + sn2*temp
-             fterm(:,p,OP_DRZ) = fterm(:,p,OP_DRZ) + cosn*temp
-             fterm(:,p,OP_LP) = fterm(:,p,OP_LP) + temp
+             fterm(:,OP_DRR,p) = fterm(:,OP_DRR,p) + co2*temp
+             fterm(:,OP_DZZ,p) = fterm(:,OP_DZZ,p) + sn2*temp
+             fterm(:,OP_DRZ,p) = fterm(:,OP_DRZ,p) + cosn*temp
+             fterm(:,OP_LP,p) = fterm(:,OP_LP,p) + temp
           endif
        endif
        if(ni(p).ge.1) then
           ! d_eta terms
           temp = xpow(:,mi(p)) * ypow(:,ni(p)-1)*ni(p)
-          fterm(:,p,OP_DR) = fterm(:,p,OP_DR) - sn*temp
-          fterm(:,p,OP_DZ) = fterm(:,p,OP_DZ) + co*temp
+          fterm(:,OP_DR,p) = fterm(:,OP_DR,p) - sn*temp
+          fterm(:,OP_DZ,p) = fterm(:,OP_DZ,p) + co*temp
           
           if(ni(p).ge.2) then
              ! d_eta^2 terms
              temp = xpow(:,mi(p)) * ypow(:,ni(p)-2)*(ni(p)-1)*ni(p)
-             fterm(:,p,OP_DRR) = fterm(:,p,OP_DRR) + sn2*temp
-             fterm(:,p,OP_DZZ) = fterm(:,p,OP_DZZ) + co2*temp
-             fterm(:,p,OP_DRZ) = fterm(:,p,OP_DRZ) - cosn*temp
-             fterm(:,p,OP_LP) = fterm(:,p,OP_LP) + temp
+             fterm(:,OP_DRR,p) = fterm(:,OP_DRR,p) + sn2*temp
+             fterm(:,OP_DZZ,p) = fterm(:,OP_DZZ,p) + co2*temp
+             fterm(:,OP_DRZ,p) = fterm(:,OP_DRZ,p) - cosn*temp
+             fterm(:,OP_LP,p) = fterm(:,OP_LP,p) + temp
           endif
           
           if(mi(p).ge.1) then
              ! d_eta_si terms
              temp = xpow(:,mi(p)-1)*mi(p) * ypow(:,ni(p)-1)*ni(p)
              
-             fterm(:,p,OP_DRR) = fterm(:,p,OP_DRR) - 2.*cosn*temp
-             fterm(:,p,OP_DZZ) = fterm(:,p,OP_DZZ) + 2.*cosn*temp
-             fterm(:,p,OP_DRZ) = fterm(:,p,OP_DRZ) + (co2-sn2)*temp
+             fterm(:,OP_DRR,p) = fterm(:,OP_DRR,p) - 2.*cosn*temp
+             fterm(:,OP_DZZ,p) = fterm(:,OP_DZZ,p) + 2.*cosn*temp
+             fterm(:,OP_DRZ,p) = fterm(:,OP_DRZ,p) + (co2-sn2)*temp
           endif
        endif
        
@@ -201,64 +201,64 @@ contains
              if(ni(p).ge.1) then
                 ! d_si^2 d_eta terms
                 temp = xpow(:,mi(p)-2)*ypow(:,ni(p)-1)*(mi(p)-1)*mi(p)*ni(p)
-                fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) - sn*temp
-                fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + co*temp
+                fterm(:,OP_LPR,p) = fterm(:,OP_LPR,p) - sn*temp
+                fterm(:,OP_LPZ,p) = fterm(:,OP_LPZ,p) + co*temp
              endif
           endif
           if(ni(p).ge.2) then
              if(mi(p).ge.1) then
                 ! d_eta^2 d_si terms
                 temp = xpow(:,mi(p)-1)*ypow(:,ni(p)-2)*mi(p)*(ni(p)-1)*ni(p)
-                fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) + co*temp
-                fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + sn*temp
+                fterm(:,OP_LPR,p) = fterm(:,OP_LPR,p) + co*temp
+                fterm(:,OP_LPZ,p) = fterm(:,OP_LPZ,p) + sn*temp
              endif
           endif
           
           if(mi(p).ge.3) then
              ! d_si^3 terms
              temp = xpow(:,mi(p)-3)*ypow(:,ni(p))*(mi(p)-2)*(mi(p)-1)*mi(p)
-             fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) + co*temp
-             fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + sn*temp
+             fterm(:,OP_LPR,p) = fterm(:,OP_LPR,p) + co*temp
+             fterm(:,OP_LPZ,p) = fterm(:,OP_LPZ,p) + sn*temp
           endif
           if(ni(p).ge.3) then
              ! d_eta^3 terms
              temp = xpow(:,mi(p))*ypow(:,ni(p)-3)*(ni(p)-2)*(ni(p)-1)*ni(p)
-             fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) - sn*temp
-             fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + co*temp
+             fterm(:,OP_LPR,p) = fterm(:,OP_LPR,p) - sn*temp
+             fterm(:,OP_LPZ,p) = fterm(:,OP_LPZ,p) + co*temp
           endif
        endif
        
        ! Grad-Shafranov operator, and
        ! cylindrical correction to Laplacian
-       fterm(:,p,OP_GS) = fterm(:,p,OP_LP)
+       fterm(:,OP_GS,p) = fterm(:,OP_LP,p)
        if(itor.eq.1) then
-          fterm(:,p,OP_GS) = fterm(:,p,OP_GS) - fterm(:,p,OP_DR)*ri(:)
-          fterm(:,p,OP_LP) = fterm(:,p,OP_LP) + fterm(:,p,OP_DR)*ri(:)
+          fterm(:,OP_GS,p) = fterm(:,OP_GS,p) - fterm(:,OP_DR,p)*ri(:)
+          fterm(:,OP_LP,p) = fterm(:,OP_LP,p) + fterm(:,OP_DR,p)*ri(:)
           
           if(surface_int) then
-             fterm(:,p,OP_LPR) = fterm(:,p,OP_LPR) + fterm(:,p,OP_DRR)*ri(:) &
-                  - fterm(:,p,OP_DR)*ri(:)*ri(:)
-             fterm(:,p,OP_LPZ) = fterm(:,p,OP_LPZ) + fterm(:,p,OP_DRZ)*ri(:)
+             fterm(:,OP_LPR,p) = fterm(:,OP_LPR,p) + fterm(:,OP_DRR,p)*ri(:) &
+                  - fterm(:,OP_DR,p)*ri(:)*ri(:)
+             fterm(:,OP_LPZ,p) = fterm(:,OP_LPZ,p) + fterm(:,OP_DRZ,p)*ri(:)
           endif
        endif      
 
 #ifdef USE3D
        do op=1, OP_NUM_POL
-          temp(:) = fterm(:,p,op)
+          temp(:) = fterm(:,op,p)
 
           do i=1, coeffs_per_dphi
              j = p + (i-1)*coeffs_per_tri
 
-             fterm(:,j,op) = temp(:)*zpow(:,li(i))
+             fterm(:,op,j) = temp(:)*zpow(:,li(i))
 
              ! first toroidal derivative
              if(li(i).ge.1) then
-                fterm(:,j,op+OP_NUM_POL) = temp(:) &
+                fterm(:,op+OP_NUM_POL,j) = temp(:) &
                      *zpow(:,li(i)-1)*li(i)
              endif
              ! second toroidal derivative
              if(li(i).ge.2) then
-                fterm(:,j,op+2*OP_NUM_POL) = temp(:) &
+                fterm(:,op+2*OP_NUM_POL,j) = temp(:) &
                      *zpow(:,li(i)-2)*(li(i)-1)*li(i)
              endif
           end do
@@ -274,18 +274,38 @@ contains
 
     integer, intent(in) :: itri
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
+    integer :: i
+#ifndef USEBLAS
+    integer :: op, p
+#elif defined(USECOMPLEX)
+    real, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: real_mu
+#endif
 
-    integer :: i, p, op
-
-    mu79 = 0.
     call local_coeff_vector(itri, cl)
+
+#ifdef USEBLAS
+
+#ifdef USECOMPLEX
+    call dgemm('N','T',MAX_PTS*OP_NUM,dofs_per_element,coeffs_per_element, &
+               1.,fterm,MAX_PTS*OP_NUM,cl,dofs_per_element, &
+               0.,real_mu,MAX_PTS*OP_NUM)
+    mu79 = real_mu
+#else
+    call dgemm('N','T',MAX_PTS*OP_NUM,dofs_per_element,coeffs_per_element, &
+               1.,fterm,MAX_PTS*OP_NUM,cl,dofs_per_element, &
+               0.,mu79,MAX_PTS*OP_NUM)
+#endif
+
+#else ! USEBLAS not defined
+    mu79 = 0.
     do op=1, OP_NUM
        do i=1, dofs_per_element
           do p=1, coeffs_per_element
-             mu79(:,op,i) = mu79(:,op,i) + fterm(:,p,op)*cl(i,p)
+             mu79(:,op,i) = mu79(:,op,i) + fterm(:,op,p)*cl(i,p)
           end do
        end do
     end do
+#endif
 
 #ifdef USECOMPLEX
     do i=1, dofs_per_element
@@ -324,6 +344,19 @@ contains
 
     call get_element_dofs(fin, itri, dofs)
 
+    ! Calculate outarr = dot(nu79, dofs)
+#ifdef USEBLAS
+
+#ifdef USECOMPLEX
+    call zgemv('N',MAX_PTS*OP_NUM,dofs_per_element,&
+         (1.,0.),nu79,MAX_PTS*OP_NUM,dofs,1,(0.,0.),outarr,1)
+    outarr(:,OP_NUM_POL+1:) = 0.
+#else
+    call dgemv('N',MAX_PTS*OP_NUM,dofs_per_element,&
+         1.,nu79,MAX_PTS*OP_NUM,dofs,1,0.,outarr,1)
+#endif
+
+#else ! USEBLAS not defined
     outarr = 0.
 #ifdef USECOMPLEX
     do op=1, OP_NUM_POL
@@ -331,16 +364,22 @@ contains
           outarr(:,op) = outarr(:,op) + dofs(i)*nu79(:,op,i)
        end do
     end do
-    if(present(rfac)) then
-       outarr(:,OP_DP :OP_GSP ) = outarr(:,OP_1 :OP_GS)*rfac
-       outarr(:,OP_DPP:OP_GSPP) = outarr(:,OP_1 :OP_GS)*rfac**2
-    end if
 #else
     do op=1, OP_NUM
        do i=1, dofs_per_element
           outarr(:,op) = outarr(:,op) + dofs(i)*nu79(:,op,i)
        end do
     end do
+#endif
+
+#endif ! on USEBLAS
+
+
+#ifdef USECOMPLEX
+    if(present(rfac)) then
+       outarr(:,OP_DP :OP_GSP ) = outarr(:,OP_1 :OP_GS)*rfac
+       outarr(:,OP_DPP:OP_GSPP) = outarr(:,OP_1 :OP_GS)*rfac**2
+    end if
 #endif
 
   end subroutine eval_ops
@@ -362,7 +401,6 @@ contains
     real :: fac, efac, eta_max, thalo, twall
     integer :: i, izone, ieqsub, fields
     type(element_data) :: d
-    vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
 
     fields = fieldi
 
