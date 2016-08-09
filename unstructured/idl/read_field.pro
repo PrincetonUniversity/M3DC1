@@ -3059,10 +3059,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                       filename=filename, points=pts, slices=time, $
                       rrange=xrange, zrange=yrange, phi=phi0, $
                       linear=linear, complex=complex, op=7)
-       i1 = read_field('i', x, y, t, mesh=mesh, phi=phi0, $
-                      filename=filename, points=pts, slices=time, $
-                      rrange=xrange, zrange=yrange, $
-                      linear=linear, complex=complex)       
        i1_r = read_field('i', x, y, t, mesh=mesh, phi=phi0, $
                       filename=filename, points=pts, slices=time, $
                       rrange=xrange, zrange=yrange, $
@@ -3224,23 +3220,63 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    endif else if(strcmp('jb', name, /fold_case) eq 1) then begin
 
-       psi0 = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange,op=2)
+       psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+                        filename=filename, points=pts, slices=time, $
+                        rrange=xrange, zrange=yrange,op=3)
+       i0 = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange)
-       jy = read_field('jy', x, y, t, linear=linear, mesh=mesh, $
-                        filename=filename, points=pts, slices=time, $
-                        rrange=xrange, zrange=yrange)
-       i = read_field('i', x, y, t, mesh=mesh, $
+
+       psi1_r = read_field('psi', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, phi=phi0, $
+                      linear=linear, complex=complex, op=2)       
+       psi1_z = read_field('psi', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, phi=phi0, $
+                      linear=linear, complex=complex, op=3)
+       psi1_lp = read_field('psi', x, y, t, mesh=mesh, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, phi=phi0, $
+                      linear=linear, complex=complex, op=7)
+       i1_r = read_field('i', x, y, t, mesh=mesh, phi=phi0, $
                       filename=filename, points=pts, slices=time, $
                       rrange=xrange, zrange=yrange, $
-                      linear=linear, complex=complex)
-       i0 = read_field('i', x, y, t, mesh=mesh, $
+                      linear=linear, complex=complex, op=2)       
+       i1_z = read_field('i', x, y, t, mesh=mesh, phi=phi0, $
                       filename=filename, points=pts, slices=time, $
-                      rrange=xrange, zrange=yrange, /equilibrium, $
-                      complex=complex)
-       
-       r = radius_matrix(x,y,t)
-       data = s_bracket(i,psi0,x,y)/r^2 + jy*i0/r
+                      rrange=xrange, zrange=yrange, $
+                      linear=linear, complex=complex, op=3)
+       f1_r = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, $
+                      linear=linear, complex=complex, op=2)       
+       f1_z = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
+                      filename=filename, points=pts, slices=time, $
+                      rrange=xrange, zrange=yrange, $
+                      linear=linear, complex=complex, op=3)
+       itor = read_parameter('itor', filename=filename)
+       if(itor eq 1) then begin
+          ntor = read_parameter('ntor', filename=filename)
+          rfac = complex(0,ntor)
+          r = radius_matrix(x,y,t)
+       endif else begin
+          rzero = read_parameter('rzero', filename=filename)
+          rfac = complex(0,ntor)/rzero
+          r = 1.
+       endelse
+       f1_rpp = f1_r*rfac^2
+       f1_zpp = f1_z*rfac^2
+       psi1_rp = psi1_r*rfac
+       psi1_zp = psi1_z*rfac
+
+       ; J1.B0
+       data = (-i0*(psi1_lp - itor*psi1_r/r)/r^2 $
+               +(psi0_r*(i1_r+f1_rpp) + psi0_z*(i1_z+f1_zpp))/r^2 $
+               -(psi0_z*psi1_rp - psi0_r*psi1_zp)/r^3)
 
        symbol = '!8J!D!9#!N!8B!X'
        d = dimensions(j0=1,b0=1,_EXTRA=extra)
