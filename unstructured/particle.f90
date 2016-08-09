@@ -1108,7 +1108,7 @@ contains
     type(xgeomterms) :: geomterms
     real, dimension(3) :: B_cyl, E_cyl, bhat, svec, Bstar
     real, dimension(3) :: dBdR, dBdphi, dBdz, gradB0
-    real :: Rinv = 1.0, B0, Bss
+    real :: Rinv = 1.0, B0inv, Bss
     integer :: tridex
 
     ierr = 0
@@ -1152,8 +1152,8 @@ contains
           call getBcylprime(x, fh_hop, geomterms, B_cyl, dBdR, dBdphi, dBdz)
        endif
 
-       B0 = sqrt(dot_product(B_cyl, B_cyl))  !Magnitude of B
-       bhat = B_cyl / B0                     !Unit vector in b direction
+       B0inv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
+       bhat = B_cyl * B0inv                         !Unit vector in b direction
 
        ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
        gradB0(1) = dot_product(bhat, dBdR)
@@ -1162,15 +1162,15 @@ contains
 
        ! Curl of bhat = curl(B/B0) = curl(B)/B0 - (grad B0 x B)/(B0**2)
        svec(1) = (Rinv*dBdphi(3) - dBdz(2) + &
-            (B_cyl(2)*gradB0(3) - B_cyl(3)*gradB0(2))/B0)/B0
+            (B_cyl(2)*gradB0(3) - B_cyl(3)*gradB0(2))*B0inv)*B0inv
        svec(2) = (dBdz(1) - dBdR(3) + &
-            (B_cyl(3)*gradB0(1) - B_cyl(1)*gradB0(3))/B0)/B0
+            (B_cyl(3)*gradB0(1) - B_cyl(1)*gradB0(3))*B0inv)*B0inv
        if (itor.eq.1) then
           svec(3) = (Rinv*B_cyl(2) + dBdR(2) - Rinv*dBdphi(1) + &
-               (B_cyl(1)*gradB0(2) - B_cyl(2)*gradB0(1))/B0)/B0
+               (B_cyl(1)*gradB0(2) - B_cyl(2)*gradB0(1))*B0inv)*B0inv
        else
           svec(3) = (dBdR(2) - dBdphi(1) + &
-               (B_cyl(1)*gradB0(2) - B_cyl(2)*gradB0(1))/B0)/B0
+               (B_cyl(1)*gradB0(2) - B_cyl(2)*gradB0(1))*B0inv)*B0inv
        endif
 
        Bstar = B_cyl + (v(1)/qm_ion)*svec
@@ -1205,7 +1205,7 @@ contains
     integer, intent(out) :: tridex, ierr
 
     type(element_data) :: eldat
-    real :: xi, zi, eta, dxi, deta
+    real :: xi, zi, eta, dxi, deta, co2, sn2
     real :: d2xi, d2eta, dxieta
     integer pp
 #ifdef USE3D
@@ -1215,6 +1215,7 @@ contains
     real, dimension(2) :: mmsa
     integer ktri
 #endif
+    real, dimension(-2:5) :: xipow, etapow
 
     ierr = 0;  tridex = -1
 
@@ -1236,24 +1237,24 @@ contains
     call get_element_data(ielm, eldat)
     call global_to_local(eldat, x(1), x(2), x(3), xi, zi, eta)
 
-    !Compute terms for function and 1st derivatives
+    !Precompute powers
+    xipow(-1) = 0.0;  etapow(-1) = 0.0
+    xipow(0) = 1.0;  etapow(0) = 1.0
+    do pp=1,5
+       xipow(pp) = xi*xipow(pp-1)
+       etapow(pp) = eta*etapow(pp-1)
+    enddo
+
+    !Compute terms for function & 1st derivatives
     gh%dr = 0.;  gh%dz = 0.
     do pp=1,coeffs_per_tri
-       gh%g(pp) = xi**mi(pp) * eta**ni(pp)
+       gh%g(pp) = xipow(mi(pp)) * etapow(ni(pp))
 
-       if (mi(pp).gt.0) then
-          dxi = mi(pp) * xi**(mi(pp)-1) * eta**ni(pp)
+       dxi = mi(pp)*xipow(mi(pp)-1) * etapow(ni(pp))
+       deta = xipow(mi(pp)) * ni(pp)*etapow(ni(pp)-1)
 
-          gh%dr(pp) = gh%dr(pp) + eldat%co*dxi
-          gh%dz(pp) = gh%dz(pp) + eldat%sn*dxi
-       endif
-
-       if (ni(pp).gt.0) then
-          deta = xi**mi(pp) * ni(pp)*eta**(ni(pp)-1)
-
-          gh%dr(pp) = gh%dr(pp) - eldat%sn*deta
-          gh%dz(pp) = gh%dz(pp) + eldat%co*deta
-       endif
+       gh%dr(pp) = gh%dr(pp) + eldat%co*dxi - eldat%sn*deta
+       gh%dz(pp) = gh%dz(pp) + eldat%sn*dxi + eldat%co*deta
 
 #ifdef USE3D
        gtmp = gh%g(pp);  drtmp = gh%dr(pp);  dztmp = gh%dz(pp)
@@ -1293,33 +1294,20 @@ contains
     enddo !pp
 
     if (ic2) then !2nd derivative terms
+       xipow(-2) = 0.0;  etapow(-2) = 0.0
        gh%drr = 0.;  gh%drz = 0.;  gh%dzz = 0.
+       co2 = eldat%co**2;  sn2 = eldat%sn**2
        do pp=1,coeffs_per_tri
-          if (mi(pp).gt.0) then
-             if (mi(pp).gt.1) then
-                d2xi = mi(pp)*(mi(pp)-1)*xi**(mi(pp)-2) * eta**ni(pp)
+          d2xi   = mi(pp)*(mi(pp)-1)*xipow(mi(pp)-2) * etapow(ni(pp))
+          dxieta = mi(pp)*ni(pp) * xipow(mi(pp)-1) * etapow(ni(pp)-1)
+          d2eta  = xipow(mi(pp)) * ni(pp)*(ni(pp)-1)*etapow(ni(pp)-2)
 
-                gh%drr(pp) = gh%drr(pp) + d2xi*eldat%co**2
-                gh%drz(pp) = gh%drz(pp) + d2xi*eldat%co*eldat%sn
-                gh%dzz(pp) = gh%dzz(pp) + d2xi*eldat%sn**2
-             endif !mi > 1
+          gh%drr(pp) = gh%drr(pp) + d2xi*co2 - &
+               (2.0*dxieta*eldat%co - d2eta*eldat%sn)*eldat%sn
+          gh%drz(pp) = gh%drz(pp) + (d2xi - d2eta)*eldat%co*eldat%sn + dxieta*(co2 - sn2)
+          gh%dzz(pp) = gh%dzz(pp) + d2xi*sn2 + &
+               (2.0*dxieta*eldat%sn + d2eta*eldat%co)*eldat%co
 
-             if (ni(pp).gt.0) then
-                dxieta = mi(pp)*ni(pp) * xi**(mi(pp)-1) * eta**(ni(pp)-1)
-
-                gh%drr(pp) = gh%drr(pp) - 2.0*dxieta*eldat%co*eldat%sn
-                gh%drz(pp) = gh%drz(pp) + dxieta*(2.0*eldat%co**2 - 1.0)
-                gh%dzz(pp) = gh%dzz(pp) + 2.0*dxieta*eldat%co*eldat%sn
-             endif !ni > 0
-          endif !mi > 0
-
-          if (ni(pp).gt.1) then
-             d2eta = xi**mi(pp) * ni(pp)*(ni(pp)-1)*eta**(ni(pp)-2)
-
-             gh%drr(pp) = gh%drr(pp) + d2eta*eldat%sn**2
-             gh%drz(pp) = gh%drz(pp) - d2eta*eldat%co*eldat%sn
-             gh%dzz(pp) = gh%dzz(pp) + d2eta*eldat%co**2
-          endif !ni > 1
 #ifdef USE3D
           gtmp = gh%drr(pp);  drtmp = gh%drz(pp);  dztmp = gh%dzz(pp)
           do ii=1,coeffs_per_dphi
