@@ -10,6 +10,7 @@ module math
   real, parameter :: pi    = 3.14159265358979323846
   real, parameter :: twopi = 2.*pi
   real, parameter :: amu0  = pi*4.e-7
+  real, parameter :: deg2rad = pi/180.
 
 contains
   
@@ -162,6 +163,24 @@ real function bessel_Y(n, x)
   call gsl_bessel_y(n,x,tmp)
   bessel_Y = tmp
 end function bessel_Y
+
+real function elliptic_e(x)
+  implicit none
+  real, intent(in) :: x
+  real :: tmp
+
+  call gsl_elliptic_e(x,tmp)
+  elliptic_e = tmp
+end function elliptic_e
+
+real function elliptic_k(x)
+  implicit none
+  real, intent(in) :: x
+  real :: tmp
+
+  call gsl_elliptic_k(x,tmp)
+  elliptic_k = tmp
+end function elliptic_k
 
 real function erf(x)
   implicit none

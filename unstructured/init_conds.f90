@@ -3785,7 +3785,8 @@ subroutine initial_conditions()
   call den_eq()
   call den_per()
 
-  if(irmp.ge.1 .or. iread_ext_field.ge.1) call rmp_per()
+  if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
+       tf_tilt.ne.0. .or. tf_shift.ne.0.) call rmp_per()
 
   ! calculate equilibrium and perturbed temperature profiles
   call calculate_temperatures(0, te_field(0),ti_field(0), 1)
