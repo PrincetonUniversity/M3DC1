@@ -111,8 +111,8 @@ contains
     real, allocatable :: matrix(:,:), work(:), s(:)
     integer :: i,j,m, lwork, rank
     real :: rcond = -1
-    real, dimension(6,n) :: g
-    real, dimension(n) :: xi, zi
+    real, dimension(n,1,6) :: g
+    real, dimension(1) :: xi, zi
 
     ! define the matrix
     nk = 4   ! number of modes to include
@@ -135,9 +135,9 @@ contains
     do j=1, nk
        xi = 101.+j
        zi = 10.
-       call gvect(r,z,xi,zi,n,g,1,ierr)
+       call gvect(r,z,n,xi,zi,1,g,1,ierr)
 
-       matrix(:,j) = -rn*g(3,:)/r + zn*g(2,:)/r
+       matrix(:,j) = -rn*g(:,1,3)/r + zn*g(:,1,2)/r
     end do
 
     ! get least-squares solution
@@ -166,7 +166,7 @@ contains
     vectype, intent(out), dimension(n) :: psi
 
     integer :: i, j, ierr
-    real, dimension(6,n) :: g
+    real, dimension(n,1,6) :: g
     real, dimension(n) :: xi, zi
 
     psi = 0.
@@ -175,9 +175,9 @@ contains
        xi = 101.+j
        zi = 10.
 
-       call gvect(r,z,xi,zi,n,g,1,ierr)
+       call gvect(r,z,n,xi,zi,1,g,1,ierr)
 
-       psi = psi + x(j)*g(1,:)
+       psi = psi + x(j)*g(:,1,1)
     end do    
   end subroutine evaluate_multipole_fields_2D
 

@@ -158,10 +158,12 @@ contains
 
  end subroutine load_coils
 
-
  subroutine field_from_coils(xc, zc, ic, nc, f, ipole, ierr)
+   use basic
    use field
    use mesh_mod
+   use m3dc1_nint
+   use newvar_mod
 
    implicit none
 
@@ -174,59 +176,66 @@ contains
    integer, intent(in) :: ipole                ! type of field to add
    integer, intent(out) :: ierr
 
-   integer :: i, numnodes, k, ier, itmp, icounter_t
-   real :: x, phi, z
-   real, dimension(nc) :: xp, zp
-   real, dimension(dofs_per_node,maxfilaments) :: g
-   vectype, dimension(dofs_per_node) :: data
+   integer :: i, numelms, k, itri
+   type(field_type) :: psi_vec
+   vectype, dimension(dofs_per_element) :: dofs
+   real, allocatable :: g(:,:,:)
 
-   numnodes = owned_nodes()
-   g = 0.
-   do icounter_t=1,numnodes
-      i = nodes_owned(icounter_t) 
-      call get_node_pos(i,x,phi,z)
-      xp = x
-      zp = z
-     
-      ! Field due to coil currents
-      call gvect(xp,zp,xc,zc,nc,g(1:6,:),ipole,ierr)
-      if(ierr.ne.0) exit
+   allocate(g(MAX_PTS,nc,6))
 
-      call get_node_data(f, i, data)
-      do k=1,nc
-         data = data - g(:,k)*ic(k)
-      end do
-      call set_node_data(f, i, data)      
-   end do
+   ierr = 0
 
-   call mpi_allreduce(ierr, itmp, 1, &
-        MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
-   ierr = itmp
-   if(ierr.ne.0) return
+   call create_field(psi_vec)
+   psi_vec = 0.
+   
+   numelms = local_elements()
+   do itri=1,numelms
 
-   call finalize(f%vec)
+       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+       call define_fields(itri,0,1,0)
 
+       ! Field due to coil currents
+       temp79a = 0.
+       call gvect(x_79,z_79,npoints,xc,zc,nc,g(1:npoints,:,:),ipole,ierr)
+       do k=1, nc
+          temp79a = temp79a - g(:,k,1)*ic(k)
+       end do
+
+       do i=1,dofs_per_element
+          dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+       end do
+       call vector_insert_block(psi_vec%vec, itri, 1, dofs, MAT_ADD)
+    enddo
+
+    deallocate(g)
+
+    call sum_shared(psi_vec%vec)
+    call newsolve(mass_mat_lhs%mat,psi_vec%vec,ierr)
+    call add(f, psi_vec)
+
+    call destroy_field(psi_vec)
  end subroutine field_from_coils
 
 !============================================================
-subroutine gvect(r,z,xi,zi,n,g,nmult,ierr)
+subroutine gvect(r,z,npt,xi,zi,n,g,nmult,ierr)
   ! calculates derivatives wrt first argument
   use math
 
   implicit none
 
-  integer, intent(in) :: n, nmult
+  integer, intent(in) :: n, npt, nmult
   integer, intent(out) :: ierr
-  real, dimension(n), intent(in) :: r, z, xi, zi
-  real, dimension(6,n), intent(out) :: g
+  real, dimension(npt), intent(in) :: r, z
+  real, dimension(n), intent(in) :: xi, zi
+  real, dimension(npt,n,6), intent(out) :: g
   
   real :: a0,a1,a2,a3,a4
   real :: b0,b1,b2,b3,b4
   real :: c1,c2,c3,c4
   real :: d1,d2,d3,d4
 
-  real :: rpxi, rxi, zmzi, rk, ce, ck, term1, term2, rz, co
-  real :: rksq, sqrxi, x
+  real, dimension(npt) :: rpxi, rxi, zmzi, rksq, rk, sqrxi, x 
+  real, dimension(npt) :: ce, ck, term1, term2, rz, co
 
   integer :: i, imult
 
@@ -242,44 +251,37 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ierr)
   ierr = 0
   if(nmult.le.0) then
      do i=1,n
-        rpxi=r(i)+xi(i)
-        rxi=r(i)*xi(i)
-        zmzi=z(i)-zi(i)
+        rpxi=r+xi(i)
+        rxi=r*xi(i)
+        zmzi=z-zi(i)
         rksq=4.*rxi/(rpxi**2+zmzi**2)
         rk=sqrt(rksq)
         sqrxi=sqrt(rxi)
         x=1.-rksq
-        if(x.eq.0.) then
-           print *, 'Error: current is precisely on node'
-           g(:,i) = 0.
-           ierr = 1
-           cycle
-        end if
 
-        ce=1.+x*(c1+x*(c2+x*(c3+x*c4)))+                                  &
+        ce=1.+x*(c1+x*(c2+x*(c3+x*c4)))+                               &
              x*(d1+x*(d2+x*(d3+x*d4)))*(-alog(x))
-        ck=a0+x*(a1+x*(a2+x*(a3+x*a4)))+                                  &
+        ck=a0+x*(a1+x*(a2+x*(a3+x*a4)))+                               &
              (b0+x*(b1+x*(b2+x*(b3+x*b4))))*(-alog(x))
 
         term1=2.*ck-2.*ce-ce*rksq/x
         term2=2.*xi(i)-rksq*rpxi
-        
-        g(1,i) =- sqrxi*(2.*ck-2.*ce-ck*rksq)/rk
-        g(2,i)=-rk*0.25/sqrxi*(rpxi*term1                                 &
+           
+        g(:,i,1) =- sqrxi*(2.*ck-2.*ce-ck*rksq)/rk
+        g(:,i,2)=-rk*0.25/sqrxi*(rpxi*term1                            &
              +2.*xi(i)*(ce/x-ck))
-        g(3,i)=-rk*0.25*zmzi/sqrxi*term1
-        g(5,i)=0.0625*zmzi*(rk/sqrxi)**3*(rpxi*term1                      &
-             +(ce-ck+2.*ce*rksq/x)*                                       &
+        g(:,i,3)=-rk*0.25*zmzi/sqrxi*term1
+        g(:,i,5)=0.0625*zmzi*(rk/sqrxi)**3*(rpxi*term1                 &
+             +(ce-ck+2.*ce*rksq/x)*                                    &
              (term2)/x)
-        g(6,i)=-rk*0.25/sqrxi*(term1*                                     &
-             (1.-rksq*zmzi**2/(4.*rxi))+zmzi**2*rksq**2/(4.*rxi*x)        &
+        g(:,i,6)=-rk*0.25/sqrxi*(term1*                                &
+             (1.-rksq*zmzi**2/(4.*rxi))+zmzi**2*rksq**2/(4.*rxi*x)     &
              *(ce-ck+2.*ce*rksq/x))
-        g(4,i)=-rk*0.25/sqrxi*(-rksq*rpxi/(4.*rxi)*                       &
-             (rpxi*term1+2.*xi(i)*(ce/x-ck))+term1-                       &
-             rksq*rpxi/(4.*rxi*x)*(ce-ck+2.*ce*rksq/x)*                   &
-             (term2)+rksq/(2.*r(i)*x)*(2.*ce/x-ck)*term2)
+        g(:,i,4)=-rk*0.25/sqrxi*(-rksq*rpxi/(4.*rxi)*                  &
+             (rpxi*term1+2.*xi(i)*(ce/x-ck))+term1-                    &
+             rksq*rpxi/(4.*rxi*x)*(ce-ck+2.*ce*rksq/x)*                &
+             (term2)+rksq/(2.*r*x)*(2.*ce/x-ck)*term2)
      end do
- 
      return
   endif
      
@@ -293,204 +295,204 @@ subroutine gvect(r,z,xi,zi,n,g,nmult,ierr)
         ierr=39
         return
      endif
-        
+
      select case(imult)
      case(0)
         ! even nullapole
-        g(1,i) = twopi*rz**2
-        g(2,i) = 0.
-        g(3,i) = 0.
-        g(4,i) = 0.
-        g(5,i) = 0.
-        g(6,i) = 0.
-
+        g(:,i,1) = twopi*rz**2
+        g(:,i,2) = 0.
+        g(:,i,3) = 0.
+        g(:,i,4) = 0.
+        g(:,i,5) = 0.
+        g(:,i,6) = 0.
+        
      case(1)
         ! odd nullapole
-        g(1,i) = 0.
-        g(2,i) = 0.
-        g(3,i) = 0.
-        g(4,i) = 0.
-        g(5,i) = 0.
-        g(6,i) = 0.
-
+        g(:,i,1) = 0.
+        g(:,i,2) = 0.
+        g(:,i,3) = 0.
+        g(:,i,4) = 0.
+        g(:,i,5) = 0.
+        g(:,i,6) = 0.
+        
      case(2)
         ! even dipole
-        g(1,i) = twopi*(r(i)**2 - rz**2)/2.
-        g(2,i) = twopi*r(i)
-        g(3,i) = 0.
-        g(5,i) = 0.
-        g(6,i) = 0.
-        g(4,i) = twopi
-
+        g(:,i,1) = twopi*(r**2 - rz**2)/2.
+        g(:,i,2) = twopi*r
+        g(:,i,3) = 0.
+        g(:,i,4) = 0.
+        g(:,i,5) = 0.
+        g(:,i,6) = twopi
+        
      case(3)
         ! odd dipole
         co=twopi/rz
-        g(1,i) = co*(r(i)**2*z(i))
-        g(2,i) = co*(2.*r(i)*z(i))
-        g(3,i) = co*(r(i)**2)
-        g(5,i) = co*2.*r(i)
-        g(6,i) = 0.
-        g(4,i) = co*2*z(i)
-
+        g(:,i,1) = co*(r**2*z)
+        g(:,i,2) = co*(2.*r*z)
+        g(:,i,3) = co*(r**2)
+        g(:,i,5) = co*2.*r
+        g(:,i,6) = 0.
+        g(:,i,4) = co*2*z
+        
      case(4)
         ! even quadrapole
         co=pi/(4.*rz**2)
-        g(1,i) = co*(r(i)**4-4.*r(i)**2*z(i)**2 - 2.*r(i)**2*rz**2+rz**4)
-        g(2,i) = co*(4.*r(i)**3-8.*r(i)*z(i)**2-4.*r(i)*rz**2)
-        g(3,i) = co*(-8.*r(i)**2*z(i))
-        g(5,i) = co*(-16.*r(i)*z(i))
-        g(6,i) = co*(-8.*r(i)**2)
-        g(4,i) = co*(12.*r(i)**2 - 8.*z(i)**2 - 4.*rz**2)
+        g(:,i,1) = co*(r**4-4.*r**2*z**2 - 2.*r**2*rz**2+rz**4)
+        g(:,i,2) = co*(4.*r**3-8.*r*z**2-4.*r*rz**2)
+        g(:,i,3) = co*(-8.*r**2*z)
+        g(:,i,5) = co*(-16.*r*z)
+        g(:,i,6) = co*(-8.*r**2)
+        g(:,i,4) = co*(12.*r**2 - 8.*z**2 - 4.*rz**2)
         
      case(5)
         ! odd quadrapole
         co=pi/(3.*rz**3)
-        g(1,i) = co*r(i)**2*z(i)*(3.*r(i)**2-4.*z(i)**2-3.*rz**2)
-        g(2,i) = co*(12.*r(i)**3*z(i)-8.*r(i)*z(i)**3-6.*r(i)*z(i)*rz**2)
-        g(3,i) = co*(3.*r(i)**4 - 12.*r(i)**2*z(i)**2 - 3.*r(i)**2*rz**2)
-        g(5,i) = co*(12.*r(i)**3-24.*r(i)*z(i)**2 - 6.*r(i)*rz**2)
-        g(6,i) = co*(-24.*r(i)**2*z(i))
-        g(4,i) = co*(36.*r(i)**2*z(i)-8.*z(i)**3-6.*z(i)*rz**2)
+        g(:,i,1) = co*r**2*z*(3.*r**2-4.*z**2-3.*rz**2)
+        g(:,i,2) = co*(12.*r**3*z-8.*r*z**3-6.*r*z*rz**2)
+        g(:,i,3) = co*(3.*r**4 - 12.*r**2*z**2 - 3.*r**2*rz**2)
+        g(:,i,5) = co*(12.*r**3-24.*r*z**2 - 6.*r*rz**2)
+        g(:,i,6) = co*(-24.*r**2*z)
+        g(:,i,4) = co*(36.*r**2*z-8.*z**3-6.*z*rz**2)
 
      case(6)
         ! even hexapole
         co=pi/(12.*rz**4)
-        g(1,i) = co*(r(i)**6 - 12.*r(i)**4*z(i)**2 - 3.*r(i)**4*rz**2       &
-             + 8.*r(i)**2*z(i)**4 + 12.*r(i)**2*z(i)**2*rz**2           &
-             + 3.*r(i)**2*rz**4 - rz**6 )
-        g(2,i)= co*(6.*r(i)**5 - 48.*r(i)**3*z(i)**2                       &
-             - 12.*r(i)**3*rz**2 + 16.*r(i)*z(i)**4                     &
-             + 24.*r(i)*z(i)**2*rz**2 + 6.*r(i)*rz**4 )
-        g(3,i)= co*(-24.*r(i)**4*z(i) + 32.*r(i)**2*z(i)**3                &
-             + 24.*r(i)**2*z(i)*rz**2)
-        g(5,i)=co*(-96.*r(i)**3*z(i)+64.*r(i)*z(i)**3                     &
-             + 48.*r(i)*z(i)*rz**2 )
-        g(4,i)=co*(30.*r(i)**4-144.*r(i)**2*z(i)**2-36.*r(i)**2*rz**2     &
-             + 16.*z(i)**4 + 24.*z(i)**2*rz**2 + 6.*rz**4)
-        g(6,i)=co*(-24.*r(i)**4 + 96.*r(i)**2*z(i)**2 + 24.*r(i)**2*rz**2)
+        g(:,i,1) = co*(r**6 - 12.*r**4*z**2 - 3.*r**4*rz**2       &
+             + 8.*r**2*z**4 + 12.*r**2*z**2*rz**2           &
+             + 3.*r**2*rz**4 - rz**6 )
+        g(:,i,2)= co*(6.*r**5 - 48.*r**3*z**2                       &
+             - 12.*r**3*rz**2 + 16.*r*z**4                     &
+             + 24.*r*z**2*rz**2 + 6.*r*rz**4 )
+        g(:,i,3)= co*(-24.*r**4*z + 32.*r**2*z**3                &
+             + 24.*r**2*z*rz**2)
+        g(:,i,5)=co*(-96.*r**3*z+64.*r*z**3                     &
+             + 48.*r*z*rz**2 )
+        g(:,i,4)=co*(30.*r**4-144.*r**2*z**2-36.*r**2*rz**2     &
+             + 16.*z**4 + 24.*z**2*rz**2 + 6.*rz**4)
+        g(:,i,6)=co*(-24.*r**4 + 96.*r**2*z**2 + 24.*r**2*rz**2)
 
      case(7)
         ! odd hexapole
         co=pi/(30.*rz**5)
-        g(1,i) = co*(15.*r(i)**6*z(i) - 60.*r(i)**4*z(i)**3                 &
-             - 30.*r(i)**4*z(i)*rz**2 + 24.*r(i)**2*z(i)**5             &
-             + 40.*r(i)**2*z(i)**3*rz**2 + 15.*r(i)**2*z(i)*rz**4)
-        g(2,i)= co*(90.*r(i)**5*z(i) - 240.*r(i)**3*z(i)**3                &
-             - 120.*r(i)**3*z(i)*rz**2 + 48.*r(i)*z(i)**5               &
-             + 80.*r(i)*z(i)**3*rz**2 + 30.*r(i)*z(i)*rz**4)
-        g(3,i)= co*(15.*r(i)**6 - 180.*r(i)**4*z(i)**2                     &
-             - 30.*r(i)**4*rz**2 + 120.*r(i)**2*z(i)**4                 &
-             +120.*r(i)**2*z(i)**2*rz**2 + 15.*r(i)**2*rz**4)
-        g(5,i)=co*(90.*r(i)**5 - 720.*r(i)**3*z(i)**2                     &
-             - 120.*r(i)**3*rz**2 + 240.*r(i)*z(i)**4                   &
-             + 240.*r(i)*z(i)**2*rz**2 + 30.*r(i)*rz**4)
-        g(6,i)=co*(-360.*r(i)**4*z(i) + 480.*r(i)**2*z(i)**3              &
-             + 240.*r(i)**2*z(i)*rz**2)
-        g(4,i)=co*(450.*r(i)**4*z(i) - 720.*r(i)**2*z(i)**3               &
-             - 360.*r(i)**2*z(i)*rz**2 + 48.*z(i)**5                    &
-             + 80.*z(i)**3*rz**2 + 30.*z(i)*rz**4)
+        g(:,i,1) = co*(15.*r**6*z - 60.*r**4*z**3                 &
+             - 30.*r**4*z*rz**2 + 24.*r**2*z**5             &
+             + 40.*r**2*z**3*rz**2 + 15.*r**2*z*rz**4)
+        g(:,i,2)= co*(90.*r**5*z - 240.*r**3*z**3                &
+             - 120.*r**3*z*rz**2 + 48.*r*z**5               &
+             + 80.*r*z**3*rz**2 + 30.*r*z*rz**4)
+        g(:,i,3)= co*(15.*r**6 - 180.*r**4*z**2                     &
+             - 30.*r**4*rz**2 + 120.*r**2*z**4                 &
+             +120.*r**2*z**2*rz**2 + 15.*r**2*rz**4)
+        g(:,i,5)=co*(90.*r**5 - 720.*r**3*z**2                     &
+             - 120.*r**3*rz**2 + 240.*r*z**4                   &
+             + 240.*r*z**2*rz**2 + 30.*r*rz**4)
+        g(:,i,6)=co*(-360.*r**4*z + 480.*r**2*z**3              &
+             + 240.*r**2*z*rz**2)
+        g(:,i,4)=co*(450.*r**4*z - 720.*r**2*z**3               &
+             - 360.*r**2*z*rz**2 + 48.*z**5                    &
+             + 80.*z**3*rz**2 + 30.*z*rz**4)
 
      case(8)
         ! even octapole
         co=pi/(160.*rz**6)
-        g(1,i) = co*(5.*r(i)**8 - 120.*r(i)**6*z(i)**2 - 20.*r(i)**6*rz**2  &
-             + 240.*r(i)**4*z(i)**4 + 240.*r(i)**4*z(i)**2*rz**2        &
-             + 30.*r(i)**4*rz**4 - 64.*r(i)**2*z(i)**6                  &
-             - 160.*r(i)**2*z(i)**4*rz**2 - 120.*r(i)**2*z(i)**2*rz**4  &
-             - 20.*r(i)**2*rz**6 + 5.*rz**8)
-        g(2,i)= co*(40.*r(i)**7 - 720.*r(i)**5*z(i)**2 - 120.*r(i)**5*rz**2 &
-             + 960.*r(i)**3*z(i)**4 + 960.*r(i)**3*z(i)**2*rz**2        &
-             + 120.*r(i)**3*rz**4 - 128.*r(i)*z(i)**6                   &
-             - 320.*r(i)*z(i)**4*rz**2 - 240.*r(i)*z(i)**2*rz**4        &
-             - 40.*r(i)*rz**6)
-        g(3,i)= co*(-240.*r(i)**6*z(i) + 960.*r(i)**4*z(i)**3              &
-             + 480.*r(i)**4*z(i)*rz**2 - 384.*r(i)**2*z(i)**5           &
-             - 640.*r(i)**2*z(i)**3*rz**2 - 240.*r(i)**2*z(i)*rz**4)
-        g(5,i)=co*(-1440.*r(i)**5*z(i) + 3840.*r(i)**3*z(i)**3            &
-             + 1920.*r(i)**3*z(i)*rz**2 - 768.*r(i)*z(i)**5             &
-             - 1280.*r(i)*z(i)**3*rz**2 - 480.*r(i)*z(i)*rz**4)
-        g(6,i)=co*(-240.*r(i)**6 + 2880.*r(i)**4*z(i)**2                  &
-             + 480.*r(i)**4*rz**2 - 1920.*r(i)**2*z(i)**4               &
-             - 1920.*r(i)**2*z(i)**2*rz**2 - 240.*r(i)**2*rz**4)
-        g(4,i)=co*(280.*r(i)**6 - 3600.*r(i)**4*z(i)**2                   &
-             - 600.*r(i)**4*rz**2 + 2880.*r(i)**2*z(i)**4               &
-             + 2880.*r(i)**2*z(i)**2*rz**2                              &
-             + 360.*r(i)**2*rz**4 - 128.*z(i)**6                        &
-             - 320.*z(i)**4*rz**2 - 240.*z(i)**2*rz**4 - 40.*rz**6)
+        g(:,i,1) = co*(5.*r**8 - 120.*r**6*z**2 - 20.*r**6*rz**2  &
+             + 240.*r**4*z**4 + 240.*r**4*z**2*rz**2        &
+             + 30.*r**4*rz**4 - 64.*r**2*z**6                  &
+             - 160.*r**2*z**4*rz**2 - 120.*r**2*z**2*rz**4  &
+             - 20.*r**2*rz**6 + 5.*rz**8)
+        g(:,i,2)= co*(40.*r**7 - 720.*r**5*z**2 - 120.*r**5*rz**2 &
+             + 960.*r**3*z**4 + 960.*r**3*z**2*rz**2        &
+             + 120.*r**3*rz**4 - 128.*r*z**6                   &
+             - 320.*r*z**4*rz**2 - 240.*r*z**2*rz**4        &
+             - 40.*r*rz**6)
+        g(:,i,3)= co*(-240.*r**6*z + 960.*r**4*z**3              &
+             + 480.*r**4*z*rz**2 - 384.*r**2*z**5           &
+             - 640.*r**2*z**3*rz**2 - 240.*r**2*z*rz**4)
+        g(:,i,5)=co*(-1440.*r**5*z + 3840.*r**3*z**3            &
+             + 1920.*r**3*z*rz**2 - 768.*r*z**5             &
+             - 1280.*r*z**3*rz**2 - 480.*r*z*rz**4)
+        g(:,i,6)=co*(-240.*r**6 + 2880.*r**4*z**2                  &
+             + 480.*r**4*rz**2 - 1920.*r**2*z**4               &
+             - 1920.*r**2*z**2*rz**2 - 240.*r**2*rz**4)
+        g(:,i,4)=co*(280.*r**6 - 3600.*r**4*z**2                   &
+             - 600.*r**4*rz**2 + 2880.*r**2*z**4               &
+             + 2880.*r**2*z**2*rz**2                              &
+             + 360.*r**2*rz**4 - 128.*z**6                        &
+             - 320.*z**4*rz**2 - 240.*z**2*rz**4 - 40.*rz**6)
 
      case(9)
         ! odd octapole
         co=pi/(140.*rz**7)
-        g(1,i) = co*r(i)**2*z(i)*(35.*r(i)**6 - 280.*r(i)**4*z(i)**2        &
-             - 105.*r(i)**4*rz**2 + 336.*r(i)**2*z(i)**4                &
-             + 420.*r(i)**2*z(i)**2*rz**2 + 105.*r(i)**2*rz**4          &
-             - 64.*z(i)**6 - 168.*z(i)**4*rz**2                         &
-             - 140.*z(i)**2*rz**4 - 35.*rz**6)
-        g(2,i)= co*(280.*r(i)**7*z(i) - 1680.*r(i)**5*z(i)**3              &
-             - 630.*r(i)**5*z(i)*rz**2 + 1344.*r(i)**3*z(i)**5          &
-             + 1680.*r(i)**3*z(i)**3*rz**2 + 420.*r(i)**3*z(i)*rz**4    &
-             - 128.*r(i)*z(i)**7 - 336.*r(i)*z(i)**5*rz**2              &
-             - 280.*r(i)*z(i)**3*rz**4 - 70.*r(i)*z(i)*rz**6)
-        g(3,i)= co*(35.*r(i)**8-840.*r(i)**6*z(i)**2-105.*r(i)**6*rz**2    &
-             + 1680.*r(i)**4*z(i)**4 + 1260.*r(i)**4*z(i)**2*rz**2      &
-             + 105.*r(i)**4*rz**4 - 448.*r(i)**2*z(i)**6                &
-             - 840.*r(i)**2*z(i)**4*rz**2 - 420.*r(i)**2*z(i)**2*rz**4  &
-             - 35.*r(i)**2*rz**6)
-        g(5,i)=co*(280.*r(i)**7 - 5040.*r(i)**5*z(i)**2                   &
-             - 630.*r(i)**5*rz**2 + 6720.*r(i)**3*z(i)**4               &
-             + 5040.*r(i)**3*z(i)**2*rz**2 + 420.*r(i)**3*rz**4         &
-             - 896.*r(i)*z(i)**6 - 1680.*r(i)*z(i)**4*rz**2             &
-             - 840.*r(i)*z(i)**2*rz**4 - 70.*r(i)*rz**6)
-        g(6,i)=co*(-1680.*r(i)**6*z(i) + 6720.*r(i)**4*z(i)**3            &
-             + 2520.*r(i)**4*z(i)*rz**2 - 2688.*r(i)**2*z(i)**5         &
-             - 3360.*r(i)**2*z(i)**3*rz**2 - 840.*r(i)**2*z(i)*rz**4)
-        g(4,i)=co*(1960.*r(i)**6*z(i) - 8400.*r(i)**4*z(i)**3             &
-             - 3150.*r(i)**4*z(i)*rz**2 + 4032.*r(i)**2*z(i)**5         &
-             + 5040.*r(i)**2*z(i)**3*rz**2 + 1260.*r(i)**2*z(i)*rz**4   &
-             - 128.*z(i)**7 - 336.*z(i)**5*rz**2                        &
-             - 280.*z(i)**3*rz**4 - 70.*z(i)*rz**6)
+        g(:,i,1) = co*r**2*z*(35.*r**6 - 280.*r**4*z**2        &
+             - 105.*r**4*rz**2 + 336.*r**2*z**4                &
+             + 420.*r**2*z**2*rz**2 + 105.*r**2*rz**4          &
+             - 64.*z**6 - 168.*z**4*rz**2                         &
+             - 140.*z**2*rz**4 - 35.*rz**6)
+        g(:,i,2)= co*(280.*r**7*z - 1680.*r**5*z**3              &
+             - 630.*r**5*z*rz**2 + 1344.*r**3*z**5          &
+             + 1680.*r**3*z**3*rz**2 + 420.*r**3*z*rz**4    &
+             - 128.*r*z**7 - 336.*r*z**5*rz**2              &
+             - 280.*r*z**3*rz**4 - 70.*r*z*rz**6)
+        g(:,i,3)= co*(35.*r**8-840.*r**6*z**2-105.*r**6*rz**2    &
+             + 1680.*r**4*z**4 + 1260.*r**4*z**2*rz**2      &
+             + 105.*r**4*rz**4 - 448.*r**2*z**6                &
+             - 840.*r**2*z**4*rz**2 - 420.*r**2*z**2*rz**4  &
+             - 35.*r**2*rz**6)
+        g(:,i,5)=co*(280.*r**7 - 5040.*r**5*z**2                   &
+             - 630.*r**5*rz**2 + 6720.*r**3*z**4               &
+             + 5040.*r**3*z**2*rz**2 + 420.*r**3*rz**4         &
+             - 896.*r*z**6 - 1680.*r*z**4*rz**2             &
+             - 840.*r*z**2*rz**4 - 70.*r*rz**6)
+        g(:,i,6)=co*(-1680.*r**6*z + 6720.*r**4*z**3            &
+             + 2520.*r**4*z*rz**2 - 2688.*r**2*z**5         &
+             - 3360.*r**2*z**3*rz**2 - 840.*r**2*z*rz**4)
+        g(:,i,4)=co*(1960.*r**6*z - 8400.*r**4*z**3             &
+             - 3150.*r**4*z*rz**2 + 4032.*r**2*z**5         &
+             + 5040.*r**2*z**3*rz**2 + 1260.*r**2*z*rz**4   &
+             - 128.*z**7 - 336.*z**5*rz**2                        &
+             - 280.*z**3*rz**4 - 70.*z*rz**6)
 
      case(10)
         ! even decapole
         co=pi/(560.*rz**8)
-        g(1,i) = co*(7.*r(i)**10 - 280.*r(i)**8*z(i)**2 - 35.*r(i)**8*rz**2 &
-             + 1120.*r(i)**6*z(i)**4 + 840.*r(i)**6*z(i)**2*rz**2       &
-             + 70.*r(i)**6*rz**4 - 896.*r(i)**4*z(i)**6                 &
-             - 1680.*r(i)**4*z(i)**4*rz**2 - 840.*r(i)**4*z(i)**2*rz**4 &
-             - 70.*r(i)**4*rz**6 + 128.*r(i)**2*z(i)**8                 &
-             + 448.*r(i)**2*z(i)**6*rz**2 + 560.*r(i)**2*z(i)**4*rz**4  &
-             + 280.*r(i)**2*z(i)**2*rz**6 + 35.*r(i)**2*rz**8           &
+        g(:,i,1) = co*(7.*r**10 - 280.*r**8*z**2 - 35.*r**8*rz**2 &
+             + 1120.*r**6*z**4 + 840.*r**6*z**2*rz**2       &
+             + 70.*r**6*rz**4 - 896.*r**4*z**6                 &
+             - 1680.*r**4*z**4*rz**2 - 840.*r**4*z**2*rz**4 &
+             - 70.*r**4*rz**6 + 128.*r**2*z**8                 &
+             + 448.*r**2*z**6*rz**2 + 560.*r**2*z**4*rz**4  &
+             + 280.*r**2*z**2*rz**6 + 35.*r**2*rz**8           &
              - 7.*rz**10)
-        g(2,i)= co*(70.*r(i)**9 - 2240.*r(i)**7*z(i)**2                    &
-             - 280.*r(i)**7*rz**2 + 6720.*r(i)**5*z(i)**4               &
-             + 5040.*r(i)**5*z(i)**2*rz**2 + 420.*r(i)**5*rz**4         &
-             - 3584.*r(i)**3*z(i)**6 - 6720.*r(i)**3*z(i)**4*rz**2      &
-             - 3360.*r(i)**3*z(i)**2*rz**4 - 280.*r(i)**3*rz**6         &
-             + 256.*r(i)*z(i)**8 + 896.*r(i)*z(i)**6*rz**2              &
-             + 1120.*r(i)*z(i)**4*rz**4 + 560.*r(i)*z(i)**2*rz**6       &
-             + 70.*r(i)*rz**8)
-        g(3,i)= co*(-560.*r(i)**8*z(i) + 4480.*r(i)**6*z(i)**3             &
-             + 1680.*r(i)**6*z(i)*rz**2 - 5376.*r(i)**4*z(i)**5         &
-             - 6720.*r(i)**4*z(i)**3*rz**2 - 1680.*r(i)**4*z(i)*rz**4   &
-             + 1024.*r(i)**2*z(i)**7 + 2688.*r(i)**2*z(i)**5*rz**2      &
-             + 2240.*r(i)**2*z(i)**3*rz**4 + 560.*r(i)**2*z(i)*rz**6)
-        g(5,i)=co*(-4480.*r(i)**7*z(i) + 26880.*r(i)**5*z(i)**3           &
-             + 10080.*r(i)**5*z(i)*rz**2 - 21504.*r(i)**3*z(i)**5       &
-             - 26880.*r(i)**3*z(i)**3*rz**2 - 6720.*r(i)**3*z(i)*rz**4  &
-             + 2048.*r(i)*z(i)**7 + 5376.*r(i)*z(i)**5*rz**2            &
-             + 4480.*r(i)*z(i)**3*rz**4 + 1120.*r(i)*z(i)*rz**6)
-        g(6,i)=co*(-560.*r(i)**8 + 13440.*r(i)**6*z(i)**2                 &
-             + 1680.*r(i)**6*rz**2 - 26880.*r(i)**4*z(i)**4             &
-             - 20160.*r(i)**4*z(i)**2*rz**2 - 1680.*r(i)**4*rz**4       &
-             + 7168.*r(i)**2*z(i)**6 + 13440.*r(i)**2*z(i)**4*rz**2     &
-             + 6720.*r(i)**2*z(i)**2*rz**4 + 560.*r(i)**2*rz**6)
-        g(4,i)=co*(630.*r(i)**8 - 15680.*r(i)**6*z(i)**2                  &
-             - 1960.*r(i)**6*rz**2 + 33600*r(i)**4*z(i)**4              &
-             + 25200.*r(i)**4*z(i)**2*rz**2 + 2100.*r(i)**4*rz**4       &
-             - 10752.*r(i)**2*z(i)**6 - 20160.*r(i)**2*z(i)**4*rz**2    &
-             - 10080.*r(i)**2*z(i)**2*rz**4 - 840.*r(i)**2*rz**6        &
-             + 256.*z(i)**8 + 896.*z(i)**6*rz**2                        &
-             + 1120.*z(i)**4*rz**4 + 560.*z(i)**2*rz**6                 &
+        g(:,i,2)= co*(70.*r**9 - 2240.*r**7*z**2                    &
+             - 280.*r**7*rz**2 + 6720.*r**5*z**4               &
+             + 5040.*r**5*z**2*rz**2 + 420.*r**5*rz**4         &
+             - 3584.*r**3*z**6 - 6720.*r**3*z**4*rz**2      &
+             - 3360.*r**3*z**2*rz**4 - 280.*r**3*rz**6         &
+             + 256.*r*z**8 + 896.*r*z**6*rz**2              &
+             + 1120.*r*z**4*rz**4 + 560.*r*z**2*rz**6       &
+             + 70.*r*rz**8)
+        g(:,i,3)= co*(-560.*r**8*z + 4480.*r**6*z**3             &
+             + 1680.*r**6*z*rz**2 - 5376.*r**4*z**5         &
+             - 6720.*r**4*z**3*rz**2 - 1680.*r**4*z*rz**4   &
+             + 1024.*r**2*z**7 + 2688.*r**2*z**5*rz**2      &
+             + 2240.*r**2*z**3*rz**4 + 560.*r**2*z*rz**6)
+        g(:,i,5)=co*(-4480.*r**7*z + 26880.*r**5*z**3           &
+             + 10080.*r**5*z*rz**2 - 21504.*r**3*z**5       &
+             - 26880.*r**3*z**3*rz**2 - 6720.*r**3*z*rz**4  &
+             + 2048.*r*z**7 + 5376.*r*z**5*rz**2            &
+             + 4480.*r*z**3*rz**4 + 1120.*r*z*rz**6)
+        g(:,i,6)=co*(-560.*r**8 + 13440.*r**6*z**2                 &
+             + 1680.*r**6*rz**2 - 26880.*r**4*z**4             &
+             - 20160.*r**4*z**2*rz**2 - 1680.*r**4*rz**4       &
+             + 7168.*r**2*z**6 + 13440.*r**2*z**4*rz**2     &
+             + 6720.*r**2*z**2*rz**4 + 560.*r**2*rz**6)
+        g(:,i,4)=co*(630.*r**8 - 15680.*r**6*z**2                  &
+             - 1960.*r**6*rz**2 + 33600*r**4*z**4              &
+             + 25200.*r**4*z**2*rz**2 + 2100.*r**4*rz**4       &
+             - 10752.*r**2*z**6 - 20160.*r**2*z**4*rz**2    &
+             - 10080.*r**2*z**2*rz**4 - 840.*r**2*rz**6        &
+             + 256.*z**8 + 896.*z**6*rz**2                        &
+             + 1120.*z**4*rz**4 + 560.*z**2*rz**6                 &
              + 70.*rz**8)
 
      case default
