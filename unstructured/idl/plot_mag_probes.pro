@@ -1,5 +1,5 @@
 pro plot_mag_probes, deriv=der, filename=filename, power_spectrum=pspec, $
-                     compensate_renorm=comp, _EXTRA=extra
+                     compensate_renorm=comp, overplot=overplot, _EXTRA=extra
 
   if(n_elements(filename) eq 0) then filename = 'C1.h5'
   if(hdf5_file_test(filename) eq 0) then return
@@ -48,8 +48,10 @@ pro plot_mag_probes, deriv=der, filename=filename, power_spectrum=pspec, $
      tdata = t
   end
 
-  plot, tdata, data, /nodata, $
-        xtitle=xtitle, ytitle=ytitle, _EXTRA=extra
+  if(not keyword_set(overplot)) then begin
+     plot, tdata, data, /nodata, $
+           xtitle=xtitle, ytitle=ytitle, _EXTRA=extra
+  end
 
   c = shift(get_colors(),-1)
   for i=0, ifl-1 do begin
