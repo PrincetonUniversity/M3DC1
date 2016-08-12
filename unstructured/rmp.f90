@@ -1,5 +1,13 @@
 module rmp
 
+  real :: tf_tilt, tf_tilt_angle
+  real :: tf_shift, tf_shift_angle
+
+  ! variables for shift-tilt
+  logical :: st_initialized = .false.
+  real, dimension(3,3) :: st_m
+  real, dimension(3) :: st_b
+
 contains
 
 !=========================================================================
@@ -43,8 +51,12 @@ subroutine calculate_external_fields(sf)
 
 #ifdef USECOMPLEX
   complex :: sfac
+  complex :: tf_tilt_co, tf_tilt_sn
+  complex :: tf_shift_co, tf_shift_sn
 #else
   real, dimension(int_pts_main) :: co, sn
+  real, dimension(int_pts_main) :: tf_tilt_co, tf_tilt_sn
+  real, dimension(int_pts_main) :: tf_shift_co, tf_shift_sn
 #endif
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
@@ -88,6 +100,11 @@ subroutine calculate_external_fields(sf)
         
      call define_element_quadrature(itri,int_pts_main,5)
      call define_fields(itri,0,1,0)
+
+     temp79a = 0.
+     temp79b = 0.
+     temp79c = 0.
+     temp79d = 0.
 
      select case(irmp)
      case(1)
@@ -161,14 +178,29 @@ subroutine calculate_external_fields(sf)
         end if
         temp79d = 0.
 
-
-     case default
-        temp79a = 0.
-        temp79b = 0.
-        temp79c = 0.
-        temp79d = 0.
      end select
 
+     if(tf_tilt.ne.0.) then
+#ifdef USECOMPLEX
+        tf_tilt_co  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )
+        tf_tilt_sn  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )*(0,-1)
+        tf_shift_co = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)
+        tf_shift_sn = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)*(0,-1)
+#else
+        tf_tilt_co  = tf_tilt*deg2rad*cos(phi_79 - tf_tilt_angle*deg2rad)
+        tf_tilt_sn  = tf_tilt*deg2rad*sin(phi_79 - tf_tilt_angle*deg2rad)
+        tf_shift_co = tf_shift*cos(phi_79 - tf_shift_angle*deg2rad)
+        tf_shift_sn = tf_shift*sin(phi_79 - tf_shift_angle*deg2rad)
+#endif
+        temp79a = temp79a + bzero*rzero * ( &
+             - (z_79/x_79**2)*tf_tilt_co    &
+             - (  1./x_79**2)*tf_shift_sn)
+        temp79b = temp79b + bzero*rzero * ( &
+             - (z_79/x_79**2)*tf_tilt_sn    &
+             + (  1./x_79**2)*tf_shift_co)
+        temp79c = temp79c + bzero*rzero * ( &
+             + (  1./x_79   )*tf_tilt_co)
+     end if
 
      if(iread_ext_field.ne.0) then
         do i=1, iread_ext_field 
@@ -315,52 +347,6 @@ subroutine rmp_per
   vectype :: ii
 #endif
 
-!!$  if(irmp.eq.3) then
-!!$     numnodes = owned_nodes()
-!!$     do icounter_tt=1,numnodes
-!!$        l = nodes_owned(icounter_tt)
-!!$
-!!$        call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
-!!$        if(.not.is_boundary) cycle
-!!$
-!!$        call get_local_vals(l)
-!!$
-!!$        dx = x - xmag
-!!$        dz = z - zmag
-!!$        r2 = dx**2 + dz**2
-!!$
-!!$        ! psi = 0.5*bx0*exp( i*2*theta)*exp(i*ntor*phi)
-!!$        !     = 0.5*bx0*(cos(2*theta) + i*sin(2*theta))*exp(i*ntor*phi)
-!!$
-!!$        ! cos(2*theta)
-!!$        psi1_l(1) = (dx**2 - dz**2)/r2
-!!$        psi1_l(2) = 4.*dx*dz**2/r2**2
-!!$        psi1_l(3) =-4.*dz*dx**2/r2**2
-!!$        psi1_l(4) = 4.*dz**2*(1.-4.*dx**2/r2)/r2**2
-!!$        psi1_l(5) = 8.*dx*dz*(dx**2 - dz**2)/r2**3
-!!$        psi1_l(6) =-4.*dx**2*(1.-4.*dz**2/r2)/r2**2
-!!$
-!!$#ifdef USECOMPLEX
-!!$        if(ntor.lt.0) then
-!!$           ii = -(0,1.)
-!!$        else
-!!$           ii =  (0,1.)
-!!$        endif
-!!$        ! sin(2*theta)
-!!$        psi1_l(1) = psi1_l(1) + ii*2.*dx*dz/r2
-!!$        psi1_l(2) = psi1_l(2) + ii*2.*dz*(1. - 2.*dx**2/r2)/r2
-!!$        psi1_l(3) = psi1_l(3) + ii*2.*dx*(1. - 2.*dz**2/r2)/r2
-!!$        psi1_l(4) = psi1_l(4) + ii*4.*dx*dz*(1. - 4.*dz**2/r2)/r2**2
-!!$        psi1_l(5) = psi1_l(5) - ii*2.*(1. - 8.*dx**2*dz**2/r2**2)/r2
-!!$        psi1_l(6) = psi1_l(6) + ii*4.*dx*dz*(1. - 4.*dx**2/r2)/r2**2
-!!$#endif
-!!$        psi1_l = psi1_l*0.5*bx0
-!!$
-!!$        call set_local_vals(l)
-!!$     end do
-!!$     return
-!!$  endif
-
   ! load external field data from schaffer file
   if(iread_ext_field.ge.1) then
      allocate(sf(iread_ext_field))
@@ -393,20 +379,94 @@ subroutine rmp_per
      end do
      deallocate(sf)
   end if
-
-!!$  ! leave perturbation only on the boundary
-!!$  if(irmp.eq.2) then
-!!$     numnodes = owned_nodes()
-!!$     do icounter_tt=1,numnodes
-!!$        l = nodes_owned(icounter_tt)
-!!$        call boundary_node(l,is_boundary,izone,izonedim,normal,curv,x,z)
-!!$        if(.not.is_boundary) then
-!!$           call get_local_vals(l)
-!!$           psi1_l = 0.
-!!$           call set_local_vals(l)
-!!$        endif
-!!$     end do
-!!$  endif
 end subroutine rmp_per
+
+
+subroutine rot_matrix(a,m)
+  implicit none
+  real, intent(in) :: a
+  real, dimension(3,3), intent(out) :: m
+
+  m(1,1) = cos(a)
+  m(1,2) = sin(a)
+  m(1,3) = 0.
+  m(2,1) = -sin(a)
+  m(2,2) = cos(a)
+  m(2,3) = 0.
+  m(3,1) = 0.
+  m(3,2) = 0.
+  m(3,3) = 1.
+end subroutine rot_matrix
+
+! initialize the transformation matrices associated with 
+! the shift-tilt transformation
+subroutine shifttilt_init(d,a,phis,phit)
+  implicit none
+
+  real, intent(in) :: d, a, phis, phit
+
+  st_m(1,1) = cos(a/2.)**2 + sin(a/2.)**2 * cos(2.*phit)
+  st_m(1,2) = (1.-cos(a)) * cos(phit) * sin(phit)
+  st_m(1,3) = -sin(a)*sin(phit)
+  st_m(2,1) = st_m(1,2)
+  st_m(2,2) = cos(a/2.)**2 - sin(a/2.)**2 * cos(2.*phit)
+  st_m(2,3) = sin(a)*cos(phit)
+  st_m(3,1) = -st_m(1,3)
+  st_m(3,2) = -st_m(2,3)
+  st_m(3,3) = cos(a)
+
+  st_b(1) = -d*(cos(a/2.)**2*cos(phis) + sin(a/2.)**2*cos(phis-2.*phit))
+  st_b(2) = -d*(cos(a/2.)**2*sin(phis) - sin(a/2.)**2*sin(phis-2.*phit))
+  st_b(3) = d*sin(a)*sin(phis-phit)
+
+  st_initialized = .true.
+end subroutine shifttilt_init
+
+! given coordinates (r, phi, z) in the lab frame,
+! calculates coordinates (rt,phit,zt) in a shift-tilted frame
+! with shift of magnitude d in direction phi=phis
+! and tilt at angle a along axis directed at phi=phit
+subroutine shifttilt_transformation(r,phi,z,rt,phit,zt, &
+     drt,dphit,dzt,npoints)
+  use basic
+  implicit none
+
+  integer, intent(in) :: npoints
+  real, dimension(npoints), intent(in) :: r, phi, z
+  real, dimension(npoints), intent(out) :: rt, phit, zt
+  real, dimension(npoints, 3), intent(out) :: drt, dphit, dzt
+  
+  real, dimension(npoints) :: x, y, xt, yt
+  real, dimension(3,3) :: m1, m2, r1, r2
+  integer :: i
+
+  if(.not. st_initialized) then
+     if(myrank.eq.0) print *, 'Error: Shift-Tilt matrices not initialized.'
+     call safestop(17)
+     return
+  end if
+
+  ! calculate coordinates in perturbed frame
+  x = r*cos(phi)
+  y = r*sin(phi)
+
+  xt = st_m(1,1)*x + st_m(1,2)*y + st_m(1,3)*z + st_b(1)
+  yt = st_m(2,1)*x + st_m(2,2)*y + st_m(2,3)*z + st_b(2)
+  zt = st_m(3,1)*x + st_m(3,2)*y + st_m(3,3)*z + st_b(3)
+
+  rt = sqrt(xt**2 + yt**2)
+  phit = atan2(yt,xt)
+
+  ! calculate unit vectors in perturbed frame
+  do i=1, npoints
+     call rot_matrix(-phi(i), r1)
+     m1 = matmul(st_m, r1)
+     call rot_matrix(phit(i), r2)
+     m2 = matmul(r2, m1)
+     drt(i,:)   = m2(1,:)
+     dphit(i,:) = m2(2,:)
+     dzt(i,:)   = m2(3,:)
+  end do
+end subroutine shifttilt_transformation
 
 end module rmp

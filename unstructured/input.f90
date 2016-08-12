@@ -108,6 +108,7 @@ subroutine set_defaults
   use bootstrap
   use diagnostics
   use basicj
+  use rmp
 
   implicit none
 
@@ -401,7 +402,15 @@ subroutine set_defaults
   call add_var_int("maxn", maxn, 200, "", eq_grp)
   call add_var_int("irmp", irmp, 0, &
        "1: Apply nonaxisym. fields throughout plasma|&
-       &2: Apply nonaxisym. fields only at boundaries", eq_grp)
+       &2: Apply mpol/ntor vacuum fields (itor=0 only)", eq_grp)
+  call add_var_double("tf_tilt", tf_tilt, 0., &
+       "Angle of TF from vertical (in degrees)", eq_grp)
+  call add_var_double("tf_tilt_angle", tf_tilt_angle, 0., &
+       "Axis of rotation for TF tilt (in degrees)", eq_grp)
+  call add_var_double("tf_shift", tf_shift, 0., &
+       "Horizontal shift of TF coil", eq_grp)
+  call add_var_double("tf_shift_angle", tf_shift_angle, 0., &
+       "Direction of TF shift (in degrees)", eq_grp)
 
   call add_var_int("iread_ext_field", iread_ext_field, 0, &
        "1: Read external field", eq_grp)
@@ -865,6 +874,7 @@ subroutine validate_input
   use pellet
   use math
   use gradshafranov
+  use rmp
 
   implicit none
 
@@ -1185,7 +1195,8 @@ subroutine validate_input
 
   if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
 
-  if(irmp.eq.0 .and. iread_ext_field.eq.0) then
+  if(irmp.eq.0 .and. iread_ext_field.eq.0 &
+       .and. tf_tilt.eq.0 .and. tf_shift.eq.0.) then
      if(extsubtract.ne.0) then
         print *, 'Error: with no external fields, set extsubtract=0'
         call safestop(1)
