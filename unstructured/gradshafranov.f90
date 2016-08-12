@@ -304,7 +304,7 @@ subroutine vacuum_field()
   real, dimension(maxfilaments) :: xp, zp, xc, zc
   complex, dimension(maxfilaments) :: ic
   integer :: ierr
-  real, dimension(6) :: g1, g2
+  real, dimension(1,1,6) :: g1, g2
   real, parameter :: rnorm = 10.
   
   gnorm = 0
@@ -317,11 +317,11 @@ subroutine vacuum_field()
      zc(1) = rnorm
      xp = xlim
      zp = zlim
-     call gvect(xp,zp,xc,zc,1,g1,1,ierr)
+     call gvect(xp,zp,1,xc,zc,1,g1,1,ierr)
      xp = xlim2
      zp = zlim2
-     call gvect(xp,zp,xc,zc,1,g2,1,ierr)
-     gnorm = g1(1) - g2(1)
+     call gvect(xp,zp,1,xc,zc,1,g2,1,ierr)
+     gnorm = g1(1,1,1) - g2(1,1,1)
   endif
 
   if(igs_calculate_pf_fields) then 
@@ -2761,7 +2761,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   integer :: numnodes, ineg
   real :: normal(2), curv
   real :: x, z
-  real, dimension(6) :: g
+  real, dimension(1,1,6) :: g
   real, dimension(1) :: xp, zp, xc, zc
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -2791,8 +2791,8 @@ subroutine boundary_gs(rhs, feedfac, mat)
            zp(1) = z
            xc(1) = 102.
            zc(1) = 10.
-           call gvect(xp,zp,xc,zc,1,g,1,ineg)
-           temp(1:6) = g*feedfac
+           call gvect(xp,zp,1,xc,zc,1,g,1,ineg)
+           temp(1:6) = g(1,1,1:6)*feedfac
            call add(psi_field(0), inode, temp)
         endif
         

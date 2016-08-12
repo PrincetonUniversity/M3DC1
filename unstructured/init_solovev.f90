@@ -235,8 +235,8 @@ contains
 
     real :: rmin, rmax, zmin, zmax
     real :: r0, z0, dr, dz, j0, jphi
-    real, dimension(np) :: rp, zp
-    real, dimension(dofs_per_node,np) :: g
+    real, dimension(1) :: rp, zp
+    real, dimension(np,1,6) :: g
     integer, parameter :: n = 200
     integer, parameter :: ipole = 0
     integer :: ierr, i, j
@@ -262,11 +262,11 @@ contains
           z0 = (j-1)*dz + zmin
           zp = z0
 
-          call gvect(r,z,rp,zp,np,g(1:6,:),ipole,ierr)
+          call gvect(r,z,np,rp,zp,1,g,ipole,ierr)
 
-          psi = psi - g(1,:) * jphi*dr*dz / twopi
-          if(present(br)) br = br + (g(3,:)/r) * jphi*dr*dz / twopi
-          if(present(bz)) bz = bz - (g(2,:)/r) * jphi*dr*dz / twopi
+          psi = psi - g(:,1,1) * jphi*dr*dz / twopi
+          if(present(br)) br = br + (g(:,1,3)/r) * jphi*dr*dz / twopi
+          if(present(bz)) bz = bz - (g(:,1,2)/r) * jphi*dr*dz / twopi
        end do
     end do
   end subroutine psi_vac
