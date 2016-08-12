@@ -49,6 +49,8 @@ else
        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist -lstrumpack_sparse \
        -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++ \
        -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit
+
+      OPTS := $(OPTS) -DNEXTPetscDEV
 endif
 
 ifeq ($(USEADIOS), 1)
@@ -66,11 +68,11 @@ endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV  -DNEXTPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
            $(FFTW_INCLUDE_OPTS) \
-    	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
+	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 #
