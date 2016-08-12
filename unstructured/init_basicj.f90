@@ -48,7 +48,11 @@ contains
     where(r.lt.basicj_voff)
        vz = vzero
     elsewhere
-       vz = vzero*exp(-(r - basicj_voff)**2/(basicj_vdelt*ln)**2)
+       vz = vzero*exp(-(r - basicj_voff)**2/(basicj_vdelt*ln)**2) &
+            + alpha1*exp(-(r**2 - basicj_voff**2)**2/(basicj_vdelt*ln)**4)
+    end where
+    where(r.lt.ln)
+       vz = vz + alpha0*(1.-(r/ln)**2)
     end where
   end subroutine basicj_vz
 
