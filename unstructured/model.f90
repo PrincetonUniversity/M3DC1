@@ -24,121 +24,8 @@ module model
   integer :: den_i, p_i
   integer :: bf_i, e_i
   integer :: te_i, ti_i
-  
-  integer :: icounter_t
 
 contains
-
-subroutine calc_ni(ni_field, n0_field, n1_field)
-!
-!....not sure what this routine is supposed to do, but as far as I can see, it is not called.
-!
-
-  use field
-  use mesh_mod
-
-  implicit none
-
-  type(field_type), intent(inout) :: ni_field
-  type(field_type), intent(in) :: n0_field, n1_field
-
-  integer :: numnodes, inode
-  vectype, dimension(dofs_per_node) :: ninv, n0, n1
-
-  numnodes = owned_nodes()
-
-  do icounter_t=1,numnodes
-     inode = nodes_owned(icounter_t)
-     call get_node_data(n0_field, inode, n0)
-     call get_node_data(n1_field, inode, n1)
-
-     ninv(1) = -n1(1)/n0(1)**2
-     ninv(2) = &
-          -(n1(2)*n0(1) - 2.*n1(1)*n0(2))/n0(1)**3
-     ninv(3) = &
-          -(n1(3)*n0(1) - 2.*n1(1)*n0(3))/n0(1)**3
-     ninv(4) = &
-          -n1(4)/n0(1)**2 &
-          +2.*(2.*n1(2)*n0(2) &
-          +   n1(1)*n0(4))/n0(1)**3 &
-          -6.*n1(1)*n0(2)**2/n0(1)**4
-     ninv(5) = &
-          -n1(5)/n0(1)**2 &
-          +2.*(n1(2)*n0(3) + n1(3)*n0(2) &
-          +n1(1)*n0(5))/n0(1)**3 &
-          -6.*n1(1)*n0(2)*n0(3)/n0(1)**4
-     ninv(6) = &
-          -n1(6)/n0(1)**2 &
-          +2.*(2.*n1(3)*n0(3) &
-          +   n1(1)*n0(6))/n0(1)**3 &
-          -6.*n1(1)*n0(3)**2/n0(1)**4
-
-#if defined(USE3D)
-!   need coding for 7-12
-#endif
-
-     call set_node_data(ni_field, inode, ninv)
-  end do
-end subroutine calc_ni
-
-subroutine calc_b2i(b2i_field, psi0_field, psi1_field, b0_field, b1_field)
-  use basic
-  use field
-  implicit none
-
-  type(field_type), intent(inout) :: b2i_field
-  type(field_type), intent(in) :: psi0_field, psi1_field, b0_field, b1_field
-
-  vectype, dimension(dofs_per_node) :: vec, psi0, psi1, b0, b1
-  vectype, dimension(dofs_per_node) :: b2i
-  vectype :: b20
-  real :: x, phi, z
-  integer :: inode, numnodes
-
-  numnodes = owned_nodes()
-
-  do icounter_t=1,numnodes
-     inode = nodes_owned(icounter_t)
-     call get_node_data(psi0_field, inode, psi0)
-     call get_node_data(psi1_field, inode, psi1)
-     call get_node_data(b0_field, inode, b0)
-     call get_node_data(b1_field, inode, b1)
-
-     if(itor.eq.0) then
-        x = 1.
-     else
-        call get_node_pos(inode, x, phi, z)
-     endif
-
-     b20 = psi0(2)**2 + psi0(3)**2 + b0(1)**2
-
-     b2i(1) = x**2/b20
-     b2i(2) = 2.*x/b20 &
-          - (2.*x**2/b20**2)*(psi0(2)*psi0(4) + psi0(3)*psi0(5) + b0(1)*b0(2))
-     b2i(3) = &
-          - (2.*x**2/b20**2)*(psi0(2)*psi0(5) + psi0(3)*psi0(6) + b0(1)*b0(3))
-     b2i(4:6) = 0.
-     
-     vec(1) = -2.*b2i(1)**2/x**2 * &
-          (b0(1)*b1(1) + psi0(2)*psi1(2) + psi0(3)*psi1(3))
-     vec(2) = -2.*b2i(2)**2/x**2 * &
-          (b0(1)*b1(1) + psi0(2)*psi1(2) + psi0(3)*psi1(3)) &
-          -2.*b2i(1)**2/x**2 * &
-          (b0(2)*b1(1) + psi0(4)*psi1(2) + psi0(5)*psi1(3)  &
-          +b0(1)*b1(2) + psi0(2)*psi1(4) + psi0(3)*psi1(5)) &
-          +4.*b2i(1)**2/x**3 * &
-          (b0(1)*b1(1) + psi0(2)*psi1(2) + psi0(3)*psi1(3))
-     vec(3) = -2.*b2i(3)**2/x**2 * &
-          (b0(1)*b1(1) + psi0(2)*psi1(2) + psi0(3)*psi1(3)) &
-          -2.*b2i(1)**2/x**2 * &
-          (b0(3)*b1(1) + psi0(5)*psi1(2) + psi0(6)*psi1(3)  &
-          +b0(1)*b1(3) + psi0(2)*psi1(5) + psi0(3)*psi1(6))
-     vec(4:6) = 0.
-
-     call set_node_data(b2i_field, inode, vec)
-  end do
-end subroutine calc_b2i
-
 
 subroutine get_den_mask(itri, imask)
   use element
@@ -354,7 +241,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
 
   vectype, dimension(dofs_per_node) :: temp 
   real :: normal(2), curv, x, z
-  integer :: i, izone, izonedim, numnodes
+  integer :: i, izone, izonedim, numnodes, icounter_t
   integer :: i_u, i_vz, i_chi
   logical :: is_boundary
 
@@ -445,7 +332,7 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
 
   vectype, dimension(dofs_per_node) :: temp 
   real :: normal(2), curv, x, z
-  integer :: i, izone, izonedim, numnodes
+  integer :: i, izone, izonedim, numnodes, icounter_t
   integer :: i_u, i_chi
   logical :: is_boundary
 
@@ -522,10 +409,10 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
   type(field_type) :: psi_v, bz_v, bf_v, e_v
   type(matrix_type), optional :: mat
 
-  vectype, dimension(dofs_per_node) :: temp, temp2, temp3
+  vectype, dimension(dofs_per_node) :: temp !, temp2, temp3
   real :: normal(2), curv, x, z
-  integer :: i, izone, izonedim,  numnodes
-  integer :: i_psi, i_bz, i_pe, i_e, i_bf
+  integer :: i, izone, izonedim,  numnodes, icounter_t
+  integer :: i_psi, i_bz, i_e, i_bf !, i_pe
   logical :: is_boundary
 
   if(iper.eq.1 .and. jper.eq.1) return
@@ -626,7 +513,7 @@ subroutine boundary_den(rhs, den_v, mat)
   type(field_type) :: den_v
   type(matrix_type), optional :: mat
   
-  integer :: i, izone, izonedim, numnodes
+  integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -677,7 +564,7 @@ subroutine boundary_te(rhs, te_v, mat)
   type(field_type) :: te_v
   type(matrix_type), optional :: mat
   
-  integer :: i, izone, izonedim, numnodes
+  integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -725,7 +612,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   type(field_type) :: ti_v
   type(matrix_type), optional :: mat
   
-  integer :: i, izone, izonedim, numnodes
+  integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -779,7 +666,7 @@ subroutine boundary_p(rhs, p_v, mat)
   type(field_type) :: p_v
   type(matrix_type), optional :: mat
   
-  integer :: i, izone, izonedim, numnodes
+  integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x, z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -831,7 +718,7 @@ subroutine boundary_pe(rhs, pe_v, mat)
   type(field_type) :: pe_v
   type(matrix_type), optional :: mat
   
-  integer :: i, izone, izonedim, numnodes
+  integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x, z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -872,7 +759,7 @@ end subroutine boundary_pe
   use field
   use mesh_mod
   implicit none
-  integer :: i, numnodes
+  integer :: i, numnodes, icounter_t
   type(field_type) :: den_v, p_v, pe_v
   type(field_type), optional :: te_v, ti_v
    if(numvar.lt.3 .and. ipres.eq.0) return
@@ -943,7 +830,7 @@ end subroutine boundary_pe
   implicit none
   type(field_type) :: den_v, te_v, ti_v, p_v, pe_v
 
-  integer :: i, numnodes
+  integer :: i, numnodes, icounter_t
   
    if(numvar.lt.3 .and. ipres.eq.0) return
 
@@ -1487,26 +1374,22 @@ subroutine calc_lin_pressure(pres1, te0, ti0, n0, te1, ti1, n1)
 
 end subroutine calc_lin_pressure
 
-subroutine calcnorm(temp, nsize, l2norm)
-  use basic
-  use arrays
-  use field
-  use mesh_mod
-  implicit none
-  integer :: nsize, numnodes, i,ii
-  real :: l2norm, sum
-  type(vector_type), intent(in) :: temp
-
-  numnodes = owned_nodes()
-
-  sum = 0.
-  call m3dc1_field_sumsq (temp%id, sum)
-  l2norm = sqrt(sum)
-  return
-  
-
-end subroutine calcnorm
-
+!!$subroutine calcnorm(temp, nsize, l2norm)
+!!$  use basic
+!!$  use arrays
+!!$  use field
+!!$  use mesh_mod
+!!$  implicit none
+!!$  integer :: nsize, numnodes
+!!$  real :: l2norm, sum
+!!$  type(vector_type), intent(in) :: temp
+!!$
+!!$  numnodes = owned_nodes()
+!!$
+!!$  sum = 0.
+!!$  call m3dc1_field_sumsq (temp%id, sum)
+!!$  l2norm = sqrt(sum)
+!!$end subroutine calcnorm
 
 
 end module model
