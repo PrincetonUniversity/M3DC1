@@ -23,7 +23,7 @@ subroutine eqdsk_init()
   implicit none
 
   integer :: l, ll, ierr, itri, k, numelms, i
-  real :: x, phi, z , dpsi, ffp2, pp2
+  real :: dpsi, ffp2, pp2
   vectype, parameter ::  negone = -1
   vectype, dimension(dofs_per_element) :: dofs
   type(field_type) :: psi_vec, bz_vec, den_vec, p_vec

@@ -125,7 +125,7 @@ contains
     implicit none
     REAL qprime_LZ
     REAL, INTENT(IN) :: psi  ! square of minor radius
-    REAL rmin, Btheta, Bthetaprime, dqdr
+    REAL rmin, Btheta, dqdr
 
     rmin = SQRT(psi)
 
