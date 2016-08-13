@@ -148,10 +148,12 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	fit_magnetics.o \
 	init_common.o \
 	gradshafranov.o rmp.o \
-	init_rwm.o init_solovev.o init_circle.o init_basicq.o init_basicj.o \
+	init_rwm.o init_solovev.o init_circle.o init_basicj.o \
 	init_tilt.o init_taylor.o init_force_free.o init_gem.o init_wave.o \
 	init_gmode.o init_strauss.o init_mri.o init_rotating_cylinder.o \
         init_eqdsk.o init_dskbal.o init_jsolver.o \
+	init_3dwave.o init_3ddiffusion.o init_frs.o init_ftz.o init_eigen.o \
+	init_intkink.o init_lz.o init_kstar.o init_basicq.o \
 	transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
