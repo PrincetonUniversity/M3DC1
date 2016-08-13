@@ -411,6 +411,14 @@ subroutine set_defaults
        "Horizontal shift of TF coil", eq_grp)
   call add_var_double("tf_shift_angle", tf_shift_angle, 0., &
        "Direction of TF shift (in degrees)", eq_grp)
+  call add_var_double_array("pf_tilt", pf_tilt, maxcoils, 0., &
+       "Angle of PF from vertical (in degrees)", eq_grp)
+  call add_var_double_array("pf_tilt_angle", pf_tilt_angle, maxcoils, 0., &
+       "Axis of rotation for PF tilt (in degrees)", eq_grp)
+  call add_var_double_array("pf_shift", pf_shift, maxcoils, 0., &
+       "Horizontal shift of PF coil", eq_grp)
+  call add_var_double_array("pf_shift_angle", pf_shift_angle, maxcoils, 0., &
+       "Direction of PF shift (in degrees)", eq_grp)
 
   call add_var_int("iread_ext_field", iread_ext_field, 0, &
        "1: Read external field", eq_grp)
@@ -1196,7 +1204,8 @@ subroutine validate_input
   if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
 
   if(irmp.eq.0 .and. iread_ext_field.eq.0 &
-       .and. tf_tilt.eq.0 .and. tf_shift.eq.0.) then
+       .and. tf_tilt.eq.0. .and. tf_shift.eq.0. &
+       .and. all(pf_tilt.eq.0.) .and. all(pf_shift.eq.0.)) then
      if(extsubtract.ne.0) then
         print *, 'Error: with no external fields, set extsubtract=0'
         call safestop(1)

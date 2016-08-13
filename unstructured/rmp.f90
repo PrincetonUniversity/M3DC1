@@ -1,12 +1,11 @@
 module rmp
 
+  use coils
+
   real :: tf_tilt, tf_tilt_angle
   real :: tf_shift, tf_shift_angle
-
-  ! variables for shift-tilt
-  logical :: st_initialized = .false.
-  real, dimension(3,3) :: st_m
-  real, dimension(3) :: st_b
+  real, dimension(maxcoils) :: pf_tilt, pf_tilt_angle
+  real, dimension(maxcoils) :: pf_shift, pf_shift_angle
 
 contains
 
@@ -22,6 +21,7 @@ subroutine calculate_external_fields(sf)
   use newvar_mod
   use boundary_conditions
   use read_schaffer_field
+  use gradshafranov
 
   implicit none
 
@@ -46,17 +46,19 @@ subroutine calculate_external_fields(sf)
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp, temp_bf
   vectype, dimension(dofs_per_element) :: temp2, temp3, temp4
+  vectype, dimension(MAX_PTS) :: bbr, bbz, drbr, dzbr, drbz, dzbz
 
   type(field_type) :: psi_f, bz_f, p_f
+  real, dimension(MAX_PTS, 1, 6) :: g
 
 #ifdef USECOMPLEX
   complex :: sfac
-  complex :: tf_tilt_co, tf_tilt_sn
-  complex :: tf_shift_co, tf_shift_sn
+  complex :: tilt_co, tilt_sn
+  complex :: shift_co, shift_sn
 #else
   real, dimension(int_pts_main) :: co, sn
-  real, dimension(int_pts_main) :: tf_tilt_co, tf_tilt_sn
-  real, dimension(int_pts_main) :: tf_shift_co, tf_shift_sn
+  real, dimension(int_pts_main) :: tilt_co, tilt_sn
+  real, dimension(int_pts_main) :: shift_co, shift_sn
 #endif
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
@@ -180,27 +182,70 @@ subroutine calculate_external_fields(sf)
 
      end select
 
-     if(tf_tilt.ne.0.) then
+     if(tf_tilt.ne.0. .or. tf_shift.ne.0.) then
 #ifdef USECOMPLEX
-        tf_tilt_co  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )
-        tf_tilt_sn  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )*(0,-1)
-        tf_shift_co = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)
-        tf_shift_sn = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)*(0,-1)
+        tilt_co  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )
+        tilt_sn  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )*(0,-1)
+        shift_co = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)
+        shift_sn = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)*(0,-1)
 #else
-        tf_tilt_co  = tf_tilt*deg2rad*cos(phi_79 - tf_tilt_angle*deg2rad)
-        tf_tilt_sn  = tf_tilt*deg2rad*sin(phi_79 - tf_tilt_angle*deg2rad)
-        tf_shift_co = tf_shift*cos(phi_79 - tf_shift_angle*deg2rad)
-        tf_shift_sn = tf_shift*sin(phi_79 - tf_shift_angle*deg2rad)
+        tilt_co  = tf_tilt*deg2rad*cos(phi_79 - tf_tilt_angle*deg2rad)
+        tilt_sn  = tf_tilt*deg2rad*sin(phi_79 - tf_tilt_angle*deg2rad)
+        shift_co = tf_shift*cos(phi_79 - tf_shift_angle*deg2rad)
+        shift_sn = tf_shift*sin(phi_79 - tf_shift_angle*deg2rad)
 #endif
         temp79a = temp79a + bzero*rzero * ( &
-             - (z_79/x_79**2)*tf_tilt_co    &
-             - (  1./x_79**2)*tf_shift_sn)
+             - (z_79/x_79**2)*tilt_co    &
+             - (  1./x_79**2)*shift_sn)
         temp79b = temp79b + bzero*rzero * ( &
-             - (z_79/x_79**2)*tf_tilt_sn    &
-             + (  1./x_79**2)*tf_shift_co)
+             - (z_79/x_79**2)*tilt_sn    &
+             + (  1./x_79**2)*shift_co)
         temp79c = temp79c + bzero*rzero * ( &
-             + (  1./x_79   )*tf_tilt_co)
+             + (  1./x_79   )*tilt_co)
      end if
+
+     do i=1, numcoils_vac
+        j = coil_mask(i)
+        if(pf_tilt(j).ne.0. .or. pf_shift(j).ne.0.) then
+#ifdef USECOMPLEX
+           tilt_co  = pf_tilt(j)*deg2rad* &
+                exp(-(0,1)*pf_tilt_angle(j)*deg2rad )
+           tilt_sn  = pf_tilt(j)*deg2rad* &
+                exp(-(0,1)*pf_tilt_angle(j)*deg2rad )*(0,-1)
+           shift_co = pf_shift(j)* &
+                exp(-(0,1)*pf_shift_angle(j)*deg2rad)
+           shift_sn = pf_shift(j)* &
+                exp(-(0,1)*pf_shift_angle(j)*deg2rad)*(0,-1)
+#else
+           tilt_co  = pf_tilt(j)*deg2rad* &
+                cos(phi_79 - pf_tilt_angle(j)*deg2rad)
+           tilt_sn  = pf_tilt(j)*deg2rad* &
+                sin(phi_79 - pf_tilt_angle(j)*deg2rad)
+           shift_co = pf_shift(j)* &
+                cos(phi_79 - pf_shift_angle(j)*deg2rad)
+           shift_sn = pf_shift(j)* &
+                sin(phi_79 - pf_shift_angle(j)*deg2rad)
+#endif
+           call gvect(x_79, z_79, npoints, xc_vac(i), zc_vac(i), 1, g, 0, ier)
+           bbr =   ic_vac(i)* g(:,1,3)/x_79
+           bbz =  -ic_vac(i)* g(:,1,2)/x_79
+           drbr =  ic_vac(i)*(g(:,1,5)/x_79 - g(:,1,3)/x_79**2)
+           dzbr =  ic_vac(i)* g(:,1,6)/x_79
+           drbz = -ic_vac(i)*(g(:,1,4)/x_79 - g(:,1,2)/x_79**2)
+           dzbz = -ic_vac(i)* g(:,1,5)/x_79
+
+           temp79a = temp79a + &
+                (-shift_co*drbr &
+                + tilt_sn*(-bbz - x_79*dzbr + z_79*drbr))
+           temp79b = temp79b + &
+                (shift_sn*bbr/x_79 &
+                +tilt_co*(z_79/x_79*bbr - bbz))
+           temp79c = temp79c + &
+                (-shift_co*drbz &
+                + tilt_sn*(bbr - x_79*dzbz + z_79*drbz))
+        end if
+     end do
+
 
      if(iread_ext_field.ne.0) then
         do i=1, iread_ext_field 
@@ -338,14 +383,9 @@ subroutine rmp_per
 
   implicit none
 
-  logical :: is_boundary
-  integer :: izone, izonedim, numnodes, l, ierr, icounter_tt
-  real :: normal(2), curv, x, z, r2, dx, dz
+  integer :: l, ierr
   character(len=13) :: ext_field_name
   type(schaffer_field), allocatable :: sf(:)
-#ifdef USECOMPLEX
-  vectype :: ii
-#endif
 
   ! load external field data from schaffer file
   if(iread_ext_field.ge.1) then
@@ -380,93 +420,5 @@ subroutine rmp_per
      deallocate(sf)
   end if
 end subroutine rmp_per
-
-
-subroutine rot_matrix(a,m)
-  implicit none
-  real, intent(in) :: a
-  real, dimension(3,3), intent(out) :: m
-
-  m(1,1) = cos(a)
-  m(1,2) = sin(a)
-  m(1,3) = 0.
-  m(2,1) = -sin(a)
-  m(2,2) = cos(a)
-  m(2,3) = 0.
-  m(3,1) = 0.
-  m(3,2) = 0.
-  m(3,3) = 1.
-end subroutine rot_matrix
-
-! initialize the transformation matrices associated with 
-! the shift-tilt transformation
-subroutine shifttilt_init(d,a,phis,phit)
-  implicit none
-
-  real, intent(in) :: d, a, phis, phit
-
-  st_m(1,1) = cos(a/2.)**2 + sin(a/2.)**2 * cos(2.*phit)
-  st_m(1,2) = (1.-cos(a)) * cos(phit) * sin(phit)
-  st_m(1,3) = -sin(a)*sin(phit)
-  st_m(2,1) = st_m(1,2)
-  st_m(2,2) = cos(a/2.)**2 - sin(a/2.)**2 * cos(2.*phit)
-  st_m(2,3) = sin(a)*cos(phit)
-  st_m(3,1) = -st_m(1,3)
-  st_m(3,2) = -st_m(2,3)
-  st_m(3,3) = cos(a)
-
-  st_b(1) = -d*(cos(a/2.)**2*cos(phis) + sin(a/2.)**2*cos(phis-2.*phit))
-  st_b(2) = -d*(cos(a/2.)**2*sin(phis) - sin(a/2.)**2*sin(phis-2.*phit))
-  st_b(3) = d*sin(a)*sin(phis-phit)
-
-  st_initialized = .true.
-end subroutine shifttilt_init
-
-! given coordinates (r, phi, z) in the lab frame,
-! calculates coordinates (rt,phit,zt) in a shift-tilted frame
-! with shift of magnitude d in direction phi=phis
-! and tilt at angle a along axis directed at phi=phit
-subroutine shifttilt_transformation(r,phi,z,rt,phit,zt, &
-     drt,dphit,dzt,npoints)
-  use basic
-  implicit none
-
-  integer, intent(in) :: npoints
-  real, dimension(npoints), intent(in) :: r, phi, z
-  real, dimension(npoints), intent(out) :: rt, phit, zt
-  real, dimension(npoints, 3), intent(out) :: drt, dphit, dzt
-  
-  real, dimension(npoints) :: x, y, xt, yt
-  real, dimension(3,3) :: m1, m2, r1, r2
-  integer :: i
-
-  if(.not. st_initialized) then
-     if(myrank.eq.0) print *, 'Error: Shift-Tilt matrices not initialized.'
-     call safestop(17)
-     return
-  end if
-
-  ! calculate coordinates in perturbed frame
-  x = r*cos(phi)
-  y = r*sin(phi)
-
-  xt = st_m(1,1)*x + st_m(1,2)*y + st_m(1,3)*z + st_b(1)
-  yt = st_m(2,1)*x + st_m(2,2)*y + st_m(2,3)*z + st_b(2)
-  zt = st_m(3,1)*x + st_m(3,2)*y + st_m(3,3)*z + st_b(3)
-
-  rt = sqrt(xt**2 + yt**2)
-  phit = atan2(yt,xt)
-
-  ! calculate unit vectors in perturbed frame
-  do i=1, npoints
-     call rot_matrix(-phi(i), r1)
-     m1 = matmul(st_m, r1)
-     call rot_matrix(phit(i), r2)
-     m2 = matmul(r2, m1)
-     drt(i,:)   = m2(1,:)
-     dphit(i,:) = m2(2,:)
-     dzt(i,:)   = m2(3,:)
-  end do
-end subroutine shifttilt_transformation
 
 end module rmp
