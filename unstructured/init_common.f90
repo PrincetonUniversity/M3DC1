@@ -196,4 +196,113 @@ subroutine init_perturbations
   call destroy_field(phi_vec)
 end subroutine init_perturbations
 
+subroutine den_eq
+  use basic
+  use arrays
+  use diagnostics
+  use math
+  use mesh_mod
+  use m3dc1_nint
+  use newvar_mod
+  use pellet
+
+  implicit none
+
+  type(field_type) :: den_vec
+  integer :: itri, numelms, i, def_fields
+  vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(MAX_PTS) :: n, p
+  
+  if(idenfunc.eq.0 .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
+  call create_field(den_vec)
+  
+  def_fields = FIELD_PSI + FIELD_N
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+
+     select case(idenfunc)
+     case(1)
+        n079(:,OP_1) = den0*.5* &
+             (1. + &
+             tanh((real(ps079(:,OP_1))-(psibound+denoff*(psibound-psimin)))&
+             /(dendelt*(psibound-psimin))))
+        
+     case(2)
+        temp79a = ((real(ps079(:,OP_1))-psimin)/(psibound-psimin) - denoff)/dendelt
+        
+        n079(:,OP_1) = 0.5*(den_edge-den0)*(1. + tanh(real(temp79a))) + den0
+     end select
+
+     if(ipellet.gt.0 .and. linear.eq.1) then
+        n = 0.
+        p = 0.
+        n079(:,OP_1) = n079(:,OP_1) + &
+             pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
+     end if
+
+     do i=1, dofs_per_element
+        dofs(i) = int2(mu79(:,OP_1,i),n079(:,OP_1))
+     end do
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  den_field(0) = den_vec
+
+  call destroy_field(den_vec)
+
+end subroutine den_eq
+
+subroutine den_per
+  use basic
+  use arrays
+  use pellet
+  use diagnostics
+  use field
+  use m3dc1_nint
+  use newvar_mod
+  implicit none
+
+  type(field_type) :: den_vec
+  integer :: numelms, itri, i
+  vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(MAX_PTS) :: n, p
+
+  if(ipellet.ge.0) return
+
+  call create_field(den_vec)
+  den_vec = 0.
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,0,1,0)
+
+     n179(:,OP_1) = 0.
+     if(ipellet.lt.0) then
+        n = 0.
+        p = 0.
+        n179(:,OP_1) = n179(:,OP_1) + &
+             pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
+     end if
+
+     do i=1, dofs_per_element
+        dofs(i) = int2(mu79(:,OP_1,i),n179(:,OP_1))
+     end do
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  den_field(1) = den_vec
+
+  call destroy_field(den_vec)
+
+end subroutine den_per
+
+
 end module init_common
