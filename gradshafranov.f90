@@ -35,11 +35,11 @@ module gradshafranov
 
   integer :: igs_feedfac
 
-  real, dimension(maxfilaments), private :: xc_vac, zc_vac
-  complex, dimension(maxfilaments), private :: ic_vac, ic_out
-  integer, private :: numcoils_vac
-  integer, dimension(maxfilaments), private :: coil_mask
-  integer, dimension(maxfilaments), private :: filaments
+  real, dimension(maxfilaments) :: xc_vac, zc_vac
+  complex, dimension(maxfilaments) :: ic_vac, ic_out
+  integer :: numcoils_vac
+  integer, dimension(maxfilaments) :: coil_mask
+  integer, dimension(maxfilaments) :: filaments
 
   real, dimension(maxcoils) :: gs_vertical_feedback
   real, dimension(maxcoils) :: gs_radial_feedback
