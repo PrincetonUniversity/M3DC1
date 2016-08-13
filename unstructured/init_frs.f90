@@ -205,7 +205,6 @@ subroutine frs_per(x, phi, z)
 
   implicit none
 
-  integer :: i
   real :: x, phi, z
   vectype, dimension(dofs_per_node) :: vmask
 
