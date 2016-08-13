@@ -149,6 +149,9 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	init_common.o \
 	gradshafranov.o rmp.o \
 	init_rwm.o init_solovev.o init_circle.o init_basicq.o init_basicj.o \
+	init_tilt.o init_taylor.o init_force_free.o init_gem.o init_wave.o \
+	init_gmode.o init_strauss.o init_mri.o init_rotating_cylinder.o \
+        init_eqdsk.o init_dskbal.o init_jsolver.o \
 	transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
