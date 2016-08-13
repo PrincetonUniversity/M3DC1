@@ -1,4 +1,6 @@
 module basicq
+  use LZeqbm
+
   implicit none
 
   real, private :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, r1_qp, q2_qp, q4_qp, pedge_qp
@@ -329,7 +331,6 @@ contains
     implicit none
 
     real, intent(in) :: psi !  note:  psi = r**2
-    real :: q_LZ  
     real :: c0,c1,c2,c3,c4 
     real :: asq, bigA, bigB
     real :: ra0
@@ -375,7 +376,6 @@ contains
     implicit none
 
     real, intent(in) :: psi !  note:  psi=r^2
-    real :: qprime_LZ   
     real :: c0,c1,c2,c3,c4   
     real :: asq, bigA, bigB  
     real :: ra0, psis
@@ -422,7 +422,6 @@ contains
     implicit none
 
     real, intent(in) :: psi !  note:  psi=r^2
-    real :: p_LZ   
     real :: asq, bigA, bigB 
     select case(itaylor_qp)
        
@@ -451,7 +450,7 @@ contains
     implicit none
     
     real, intent(in) :: psi !  note:  psi=r^2
-    real :: asq, bigA, bigB, pprime_LZ
+    real :: asq, bigA, bigB
 
     select case(itaylor_qp)
        
