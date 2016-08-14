@@ -1,7 +1,7 @@
-nstxu0.020.smb : input
-	create_mesh.sh
+nstxu-0.02-1.80-4.00-8K0.smb : input
+	create_mesh.sh input
 
 .PHONY : clean
 
 clean :
-	rm -f *~ *.smb *.smd *.sms *.txt *.log plot_geo
+	rm -fr *~ *.smb *.smd *.sms *.dmg *.vtk *.txt *.log plot_geo
