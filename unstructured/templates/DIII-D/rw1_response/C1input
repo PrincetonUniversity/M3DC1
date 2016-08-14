@@ -140,7 +140,7 @@
 	iconst_p = 1
 
 	mesh_filename = 'part.smb'
-	mesh_model = 'diiid-0.02-0.00-0.00.txt'
+	mesh_model = 'diiid-0.02-2.50-4.00.txt'
 
 	icsubtract = 1
 	imulti_region = 1

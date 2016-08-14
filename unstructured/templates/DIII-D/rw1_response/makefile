@@ -3,4 +3,4 @@
 all :
 
 clean : 
-	rm -f *~ diiid0.02.txt
+	rm -f *~ diiid-0.02-2.50-4.00.txt
