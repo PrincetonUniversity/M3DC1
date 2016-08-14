@@ -3,4 +3,4 @@
 all :
 
 clean : 
-	rm -f *~ nstxu0.02.txt
+	rm -f *~ *.txt
