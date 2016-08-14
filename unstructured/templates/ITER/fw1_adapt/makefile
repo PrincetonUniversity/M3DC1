@@ -1,6 +1,6 @@
-AnalyticModel0.smb : AnalyticModel
-	create_fixed_mesh.sh AnalyticModel 0.1
+iter-10K0.smb : input
+	create_mesh.sh input
 
 .PHONY : clean
 clean :
-	rm -f AnalyticModel0.* AnalyticModel.* seed0.smb *~
+	rm -fr *.smb *.sms *.smd *.dmg *.vtk *.txt *.log plot_geo *~

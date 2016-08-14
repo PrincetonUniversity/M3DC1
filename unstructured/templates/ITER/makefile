@@ -4,10 +4,10 @@ dirs = fw1_adapt fw1_response fw1_stability \
 .PHONY : $(dirs) clean all
 
 all : $(dirs)
-	cp fw1_adapt/AnalyticModel fw1_response
-	cp fw1_adapt/AnalyticModel fw1_stability
-	cp rw1_adapt/iter0.05.txt rw1_response
-	cp rw1_adapt/iter0.05.txt rw1_stability
+	cp fw1_adapt/iter.txt fw1_response
+	cp fw1_adapt/iter.txt fw1_stability
+	cp rw1_adapt/iter-0.05-6.00-9.00.txt rw1_response
+	cp rw1_adapt/iter-0.05-6.00-9.00.txt rw1_stability
 
 $(dirs) : 
 	cd $@ ; $(MAKE) $(MAKECMDGOALS)

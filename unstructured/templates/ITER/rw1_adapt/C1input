@@ -125,8 +125,8 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'diiid0.02.smb'
-	mesh_model = 'diiid0.02.txt'
+	mesh_filename = 'iter-0.05-6.00-9.00-19K.smb'
+	mesh_model = 'iter-0.05-6.00-9.00.txt'
 
 	icsubtract = 1
 	imulti_region = 1
