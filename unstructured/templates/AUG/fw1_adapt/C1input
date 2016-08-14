@@ -123,8 +123,8 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'AnalyticModel.smb'
-	mesh_model = 'AnalyticModel'
+	mesh_filename = 'aug-8K.smb'
+	mesh_model = 'aug.txt'
 
 
 ! Grad-Shafranov Options

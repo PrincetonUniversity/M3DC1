@@ -125,8 +125,8 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'aug0.02.smb'
-	mesh_model = 'aug0.02.txt'
+	mesh_filename = 'aug-0.02-1.70-2.20-8K.smb'
+	mesh_model = 'aug-0.02-1.70-2.20.txt'
 
 	icsubtract = 1
 	imulti_region = 1
