@@ -125,8 +125,8 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'kstar0.02.smb'
-	mesh_model = 'kstar0.02.txt'
+	mesh_filename = 'kstar-0.02-2.20-3.60-7K.smb'
+	mesh_model = 'kstar-0.02-2.20-3.60.txt'
 
 	icsubtract = 1
 	imulti_region = 1

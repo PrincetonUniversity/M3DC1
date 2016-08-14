@@ -3,4 +3,4 @@
 all :
 
 clean : 
-	rm -f *~ kstar0.02.txt
+	rm -f *~ *.txt
