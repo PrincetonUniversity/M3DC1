@@ -137,7 +137,7 @@
 	iconst_p = 1
 
 	mesh_filename = 'part.smb'
-	mesh_model = 'iter0.05.txt'
+	mesh_model = 'iter-0.05-6.00-9.00.txt'
 
 !	icsubtract = 1
 	imulti_region = 1

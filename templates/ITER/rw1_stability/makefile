@@ -3,4 +3,4 @@
 all :
 
 clean : 
-	rm -f *~ iter0.05.txt
+	rm -f *~ *.txt
