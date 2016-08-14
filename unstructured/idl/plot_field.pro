@@ -75,7 +75,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        endif else plot, yy, data, title=title, xtitle=xtitle, ytitle=ytitle, _EXTRA=ex
        if(n_elements(outfile) eq 1) then begin
            openw, ifile, outfile, /get_lun
-           printf, ifile, format='(2E16.6)', transpose([[yy], [data]])
+           printf, ifile, format='(2E16.6)', transpose([[yy], [reform(data)]])
            free_lun, ifile
        endif
    endif else if(n_elements(cutz) gt 0) then begin
@@ -94,7 +94,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        endif else plot, xx, data, title=title, xtitle=xtitle, ytitle=ytitle, _EXTRA=ex
        if(n_elements(outfile) eq 1) then begin
            openw, ifile, outfile, /get_lun
-           printf, ifile, format='(2E16.6)', transpose([[xx], [data]])
+           printf, ifile, format='(2E16.6)', transpose([[xx], [reform(data)]])
            free_lun, ifile
        endif
    endif else if(keyword_set(magcoord)) then begin
