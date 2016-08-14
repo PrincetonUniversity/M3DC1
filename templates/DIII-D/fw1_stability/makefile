@@ -3,4 +3,4 @@
 all :
 
 clean : 
-	rm -f *~ AnalyticModel
+	rm -f *~ diiid.txt

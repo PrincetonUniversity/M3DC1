@@ -1,4 +1,4 @@
-diiid-0.02-0.00-0.00-9K0.smb : input
+diiid-0.02-2.50-4.00-8K0.smb : input
 	create_mesh.sh input
 
 .PHONY : clean
