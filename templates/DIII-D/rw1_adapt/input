@@ -1,51 +1,37 @@
-!model type: 0: interpoltate AnalyticModel; 1: piece-wise linear; 2: three-region; 3: piece-wise polynomial
-modelType 2
+!simVer: 0   - the latest SimModeler (5.0 as of 06/15/16)
+!        100 - SimModeler 5.0
+!        90  - SimModeler 4.0
+simVer 90
 
-!output model name; if 2, the output file is "modelName+thickness.txt"
-!similar name for vtk, smb mesh files
-modelName diiid
+!model type: 0 - parameterized vacuum
+!            1 - piece-wise linear vacuum; 
+!            2 - piece-wise polynomial vacuum
+!            3 - three-regions  
+modelType 3
 
-!file contain data that describes the geometry, e.g. AnalyticModel or a sequence of counter-clockwise points on the wall
-!pointFile AnalyticModel
-pointFile DIIID
-!pointFile coarseNSTX
-!pointFile linear_pts
-!pointFile ITER
-!pointFile polyNomial
+inFile DIIID
+outFile diiid
 
-!!!the following paras used only when modelType=0
+! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
+meshSize 0.04 0.04 0.1
 
-! if useOriginal=1, mesh is snapped to use AnalyticModel 
-useOriginal 1
+! for parametrized vacuum model only.
+useVacuumParams 1
 
-! number of points to interpolate the AnalyticModel
-numInterPts 20
+! 1 to multiply coord and params of nodes on vacuum boundary by vacuumFactor
+! If vacuumFactor is not specified, the default is 2*PI
+! If adjustVacuumParams=1, using SimModeler for further meshing is not supported and simmmetrix mesh file is not generated
+adjustVacuumParams 1
 
-!!!the following paras used only when modelType=2
+vacuumParams 1.8 1.5 0.4 0.0 2.5
+numVacuumPts 20
 
-! wall thickness;
-thickness 0.02
-
-! vacuum region width
-width 2.5
-
-! vacuum region height
-height 4.0 
-
-! offset in x direction
-offsetX 0.
-
-! offset in y direction
-offsetY 0.0
-
-! License file for Simmetrix software
-SimLic /net/common/meshSim/license/license.txt
-
-! mesh size at three faces
-meshSizes 0.04 0.04 0.1
-
-! if use analytic mesh size function defined in wallMeshSizeFn.h
-useAnalyticSize 0
-
-!mesh gradation rate
+! For 3-region model only.
+! meshGradationRate default 0.3
 meshGradationRate 0.3
+resistive-width 0.02
+plasma-offsetX 0.0
+plasma-offsetY 0.0
+vacuum-width 0
+vacuum-height 0
+
