@@ -3,4 +3,4 @@
 all :
 
 clean : 
-	rm -f *~ nstx0.02.txt
+	rm -f *~ *.txt

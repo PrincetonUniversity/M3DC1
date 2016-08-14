@@ -125,8 +125,8 @@
 	iconst_n = 1
 	iconst_p = 1
 
-	mesh_filename = 'nstx0.02.smb'
-	mesh_model = 'nstx0.02.txt'
+	mesh_filename = 'nstx-0.02-2.00-4.00-8K.smb'
+	mesh_model = 'nstx-0.02-2.00-4.00.txt'
 
 	icsubtract = 1
 	imulti_region = 1

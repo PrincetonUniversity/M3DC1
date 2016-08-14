@@ -121,7 +121,7 @@
 	iconst_p = 1
 
 	mesh_filename = 'part.smb'
-	mesh_model = 'AnalyticModel'
+	mesh_model = 'nstx.txt'
 
 
 ! Grad-Shafranov Options
