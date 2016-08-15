@@ -148,6 +148,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	fit_magnetics.o \
 	init_common.o \
 	gradshafranov.o rmp.o \
+	readgeqdsk.o read_jsolver.o read_dskbal.o \
 	init_rwm.o init_solovev.o init_circle.o init_basicj.o \
 	init_tilt.o init_taylor.o init_force_free.o init_gem.o init_wave.o \
 	init_gmode.o init_strauss.o init_mri.o init_rotating_cylinder.o \
@@ -160,8 +161,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	time_step.o hdf5_output.o output.o \
 	particle.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
-	restart.o readgeqdsk.o read_dskbal.o \
-	read_jsolver.o \
+	restart.o \
 	ic_resistive_wall.o \
 	init_conds.o \
 	get_pc_skip_count.o
