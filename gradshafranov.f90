@@ -138,10 +138,12 @@ subroutine coil_feedback()
 
   ! Field due to coil currents
   if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, "Calculating fields due to coils"
+       print *, "Calculating fields due to coils in feedback loop"
   psi_coil_field = 0.
   call field_from_coils(xc_vac,zc_vac,ic_out,numcoils_vac, &
        psi_coil_field,0,ierr)
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       print *, "Done calculating fields due to coils"
   if(ierr.ne.0) call safestop(5)
  
 end subroutine coil_feedback
@@ -271,6 +273,8 @@ subroutine pf_coil_field(ierr)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to coils"
   call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr)
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, "Done calculating fields due to coils"
   if(ierr.ne.0) call safestop(5)
 
   ! Field due to extra divertor currents
@@ -1557,9 +1561,13 @@ subroutine calculate_gamma(g2, g3, g4)
   
   g2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
   g3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
-  g4 = -(-tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+  if(gsint4.eq.0.) then
+     g4 = 0.
+  else
+     g4 = -(-tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
+  end if
 
-      if(myrank.eq.0 .and. iprint.ge.2) write(79,1079) dpsii,curr,gsint1,gsint2,gsint3,gsint4
+  if(myrank.eq.0 .and. iprint.ge.2) write(79,1079) dpsii,curr,gsint1,gsint2,gsint3,gsint4
 !
  1079 format("dpsii,curr,gsint1,gsint2,gsint3,gsint4",1p6e12.4)
   if(myrank.eq.0 .and. iprint.ge.1) write(*,'(A,1p1e12.4)') ' current = ', curr
