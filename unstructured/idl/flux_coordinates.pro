@@ -121,10 +121,11 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   for i=0, m-1 do begin
      co = cos(theta[i])
      sn = sin(theta[i])
+     dpsi_drho = 0.
      for j=0, n-1 do begin
         ; do newton iterations to find (R,Z) at (psi, theta)
         converged = 0
-        if(j eq 0) then begin
+        if(j eq 0 or dpsi_drho eq 0.) then begin
            rho = 0.001
         endif else begin
            rho = rho + (psi[j]-psi[j-1])/dpsi_drho
