@@ -450,16 +450,21 @@ subroutine evaluate(x,phi,z,ans,fin,itri,ierr)
 #ifdef USECOMPLEX
      call mpi_allreduce(temp1, temp2, OP_NUM, MPI_DOUBLE_COMPLEX, MPI_SUM, &
           MPI_COMM_WORLD, ier)
-     ans = real(temp2*exp(rfac*phi))/tothasval
 #else
      call mpi_allreduce(temp1, temp2, OP_NUM, MPI_DOUBLE_PRECISION, MPI_SUM, &
           MPI_COMM_WORLD, ier)
-     ans = temp2/tothasval
 #endif
+  else
+     temp2 = temp1
   endif
 
-  ierr = 0
+#ifdef USECOMPLEX
+  ans = real(temp2*exp(rfac*phi))/tothasval
+#else
+  ans = temp2/tothasval
+#endif
 
+  ierr = 0
 end subroutine evaluate
 
 
@@ -1523,15 +1528,23 @@ subroutine lcfs(psi, test_wall, findx)
   else
      itri = 0
      call evaluate(xlim,0.,zlim,dum1,temp_field,itri,ier)
-     psilim = dum1(OP_1)
-     if(ier.ne.0) psilim = psibound
+     if(ier.eq.0) then
+        psilim = dum1(OP_1)
+     else
+        psilim = psibound
+        if(myrank.eq.0 .and. iprint.ge.1) print *, 'Limiter #1 not found.'
+     end if
      
      ! calculate psi at a second limiter point as a diagnostic
      if(xlim2.gt.0) then
         itri = 0
         call evaluate(xlim2,0.,zlim2,dum1,temp_field,itri,ier)
-        psilim2 = dum1(OP_1)
-        if(ier.ne.0) psilim = psibound
+        if(ier.eq.0) then
+           psilim2 = dum1(OP_1)
+        else
+           psilim2 = psibound
+           if(myrank.eq.0 .and. iprint.ge.1) print *, 'Limiter #2 not found.'
+        end if
      else
         psilim2 = psilim
      endif
@@ -1546,15 +1559,12 @@ subroutine lcfs(psi, test_wall, findx)
      endif
   endif
 
-!!$  call MPI_BARRIER(MPI_COMM_WORLD, ier)
   if(myrank.eq.0 .and. iprint.ge.1) then
      write(*,'(1A10,6A11)') 'psi at:', &
           'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
      write(*,'(1I10,1p6e11.3)') myrank,  &
           psimin, psib, psix, psilim, psilim2, psibound
   endif
-!!$  call MPI_BARRIER(MPI_COMM_WORLD, ier)
-
 
   ! daignostic output
   if(myrank.eq.0 .and. iprint.ge.1) then
@@ -2644,13 +2654,13 @@ subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
     summax = max(sum,summax)
   end do triangles
 
-     ! select maximum over all processors
-     if(maxrank.gt.1) then
-        temp1 = summax
-        call mpi_allreduce(temp1, temp2, 1, &
-             MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
-        summax   = temp2
-     endif
+  ! select maximum over all processors
+  if(maxrank.gt.1) then
+     temp1 = summax
+     call mpi_allreduce(temp1, temp2, 1, &
+          MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
+     summax   = temp2
+  endif
 
   tem = summax
   ier = 0
