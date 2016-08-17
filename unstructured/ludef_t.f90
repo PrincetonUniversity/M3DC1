@@ -63,7 +63,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(istatic.eq.1) then
      if(.not.surface_int) then
-        temp = int2(trial,lin)
+        temp = int2(trial(:,OP_1),lin(:,OP_1))
         ssterm(u_g) = temp
         ddterm(u_g) = temp
      endif
@@ -610,20 +610,14 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(numvar.lt.2) return
 
-  if(istatic.eq.1) then
+  if(istatic.eq.1 .or. izone.ne.1) then
      if(.not.surface_int) then
-        temp = int2(trial,lin)
+        temp = int2(trial(:,OP_1),lin(:,OP_1))
         ssterm(vz_g) = temp
         ddterm(vz_g) = temp
      endif
      return
   endif
-
-  if(izone.ne.1) then 
-     temp = v2vn(trial,lin,nt79)
-     ssterm(vz_g) = ssterm(vz_g) + temp
-     return
-  end if
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
