@@ -37,7 +37,8 @@ pro tanhfit2, x, a, f, pder
    end
 end
 
-pro extend_profile, filein, psimax=psimax, fitrange=fitrange, minval=minval
+pro extend_profile, filein, psimax=psimax, fitrange=fitrange, minval=minval, $
+                    smooth=sm, _EXTRA=extra
    if(n_elements(psimax) eq 0) then psimax = 1.05
 
    r = read_ascii(filein)
@@ -71,11 +72,11 @@ pro extend_profile, filein, psimax=psimax, fitrange=fitrange, minval=minval
    if(n_elements(minval) eq 0) then begin
        a = [0.98, 1./0.01, max(yf), 0., min(yf)]
        yfit = curvefit(xf, yf, w, a, sig, $
-                       function_name='tanhfit2', itmax=100, tol=1e-5)
+                       function_name='tanhfit2')
    endif else begin
        a = [0.98, 1./0.01, max(yf), 0.]
        yfit = curvefit(xf, yf-minval, w, a, sig, $
-                       function_name='tanhfit', itmax=100, tol=1e-5)
+                       function_name='tanhfit')
    endelse
 
    print, 'Fit center: ', a[0]
@@ -107,7 +108,11 @@ pro extend_profile, filein, psimax=psimax, fitrange=fitrange, minval=minval
        newy[n:n+m-1] = z + minval
    endelse
 
-   plot, newx, newy, xrange=[fitrange[0], psimax]
+   if(n_elements(sm) ne 0) then begin
+      newy = smooth(newy, sm)
+   end
+
+   plot, newx, newy, xrange=[fitrange[0], psimax], _EXTRA=extra
    oplot, xf, yf, psym=4
 
    ; write data
