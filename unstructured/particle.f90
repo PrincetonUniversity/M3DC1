@@ -277,9 +277,10 @@ contains
     real    :: x1, x2, z1, z2, pdx, pdphi, pdz, pdl, vpar, vperp
     real    :: EmaxeV, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
     real    :: gyroperiod, gfrac=5.0e-3, gkfrac=8.0, dtp, ldtmin
-    integer :: npr, npphi, npz, npe, npmu, ir, iphi, iz, ie, imu, ip
+    integer :: npr, npphi, npz, npe, npmu, ir, iphi, iz, ip
     integer :: nelms, ielm, lc, noc, tridex, itri, ielmold=0
-    integer :: gfx, isghost, nle=0, nge=0
+    integer :: gfx, isghost, xid, nle=0, nge=0
+    integer :: ie, imu
 
     !Load a ghost mesh with nglayers layers
     call m3dc1_ghost_load(nglayers)
@@ -364,17 +365,17 @@ contains
              ielmold = ielm - 1
              call m3dc1_ent_isghost(2, ielm-1, isghost)
              if (isghost.eq.1) cycle  !In ghost layer; skip.
-
+             xid = npr*(npphi*(iz-1) + iphi) + ir-1
              do ie=1,npe !Loop over kinetic energies
                 dpar%v(1) = sqrt(real(ie)/real(npe)) * speed
 
                 do imu=1,npmu  !Loop over pitch angles
                    dpar%v(2) = lambda_min + (imu - 1.0)*pdl
-                   dpar%gid = npmu*(npe*(npr*(npphi*(iz-1) + iphi) + (ir-1)) + (ie-1)) + (imu-1)
+                   dpar%gid = npmu*(npe*xid + ie-1) + imu-1
                    dpar%jel = ielm
 
-                   call add_particle(pdata, nelms, ielm, dpar, ierr)
-                   if (ierr.eq.0) locparts = locparts + 1
+                   call add_particle(pdata(ielm), dpar)
+                   locparts = locparts + 1
                 enddo !imu
              enddo !ie
           enddo !ir
@@ -557,59 +558,53 @@ contains
   end subroutine init_ndlookup
 
 !---------------------------------------------------------------------------
-  subroutine add_particle(pbuf, buflen, ient, part, ierr)
+  subroutine add_particle(pbuf, part)
     implicit none
 
-    integer, intent(in) :: buflen, ient
-    type(elplist), dimension(buflen), intent(inout) :: pbuf
+    type(elplist), intent(inout) :: pbuf
     type(particle), intent(in) :: part
-    integer, intent(out) :: ierr
 
     integer, parameter :: mininc = 128
     type(particle), dimension(:), allocatable :: tmparr
     integer origsize
 
-    ierr = 1
+    if (.not.allocated(pbuf%ion)) allocate(pbuf%ion(mininc))
 
-    if (ient.lt.1.or.ient.gt.buflen) return
+    pbuf%np = pbuf%np + 1
+    origsize = size(pbuf%ion)
 
-    if (.not.allocated(pbuf(ient)%ion)) allocate(pbuf(ient)%ion(mininc))
-
-    pbuf(ient)%np = pbuf(ient)%np + 1
-    origsize = size(pbuf(ient)%ion)
-
-    if (pbuf(ient)%np.gt.origsize) then !expand particle array
+    if (pbuf%np.gt.origsize) then !expand particle array
        allocate(tmparr(origsize))
-       tmparr = pbuf(ient)%ion
-       deallocate(pbuf(ient)%ion)
-       allocate(pbuf(ient)%ion(origsize + mininc))
-       pbuf(ient)%ion(1:origsize) = tmparr
+       tmparr = pbuf%ion
+       deallocate(pbuf%ion)
+       allocate(pbuf%ion(origsize + mininc))
+       pbuf%ion(1:origsize) = tmparr
        deallocate(tmparr)
     endif
 
-    pbuf(ient)%ion(pbuf(ient)%np) = part
-
-    ierr = 0
+    pbuf%ion(pbuf%np) = part
   end subroutine add_particle
 
 !---------------------------------------------------------------------------
-  subroutine delete_particle(pbuf, buflen, ient, ipart, ierr)
+  subroutine delete_particle(pbuf, ipart, ierr)
     implicit none
 
-    integer, intent(in) :: buflen, ient, ipart
-    type(elplist), dimension(buflen), intent(inout) :: pbuf
+    integer, intent(in) :: ipart
+    type(elplist), intent(inout) :: pbuf
     integer, intent(out) :: ierr
 
     integer np
 
     !Error checking
-    ierr = 1; if (ient.lt.1.or.ient.gt.buflen) return
-    np = pbuf(ient)%np
-    ierr = 2; if (ipart.lt.1.or.ipart.gt.np) return
+    np = pbuf%np
+    if (ipart.lt.1.or.ipart.gt.np) then
+       ierr = 2
+       return
+    endif
 
     !Replace the particle with the last one in the array
-    pbuf(ient)%ion(ipart) = pbuf(ient)%ion(np)
-    pbuf(ient)%np = np - 1
+    pbuf%ion(ipart) = pbuf%ion(np)
+    pbuf%np = np - 1
 
     ierr = 0
   end subroutine delete_particle
@@ -763,20 +758,25 @@ contains
     use basic  !For MPI variables
     implicit none
     include 'mpif.h'
+#ifdef USE_OMP
+    include 'omp_lib.h'
+#endif
 
     real, intent(in) :: tinc  !Time increment for particle advance
 
     type(elfield), dimension(nneighbors+1) :: elcoefs
+    type(elplist), dimension(ndnbr) :: jmploc
     real, parameter :: twopi = 6.283185307179586476925286766559
     real    :: dtp, trem
     integer :: nelms, ielm, itri, ipart, ierr
     integer :: nlost, ipe, lunf, gunf, nstep
     integer :: nhop, thop, nreas, treas  !Stats on ptcle movement w/in local domain
-    integer :: nrec, isghost, totin
+    integer :: isghost, totin
     integer, dimension(ndnbr) :: npin, jinoffset
     integer, dimension(2*ndnbr) :: nbreq
 
     !if (myrank.eq.0) print *,'advancing particles by ',tinc
+    if (tinc.le.0.0) return
 
     nelms = size(pdata)
 
@@ -787,14 +787,18 @@ contains
     enddo
 
     elcoefs(:)%itri = 0
+    jinoffset(1) = 1
 
     do !Iterate until all particles are in the correct domain
        thop = 0;  treas = 0
        nlost = 0;  lunf = 0
-       jmppar(:)%np = 0  !Clear jumping particle buffer
+       jmppar(:)%np = 0; jmploc(:)%np = 0  !Clear jumping particle buffers
 
        !Loop over all local elements (good candidate for OMP parallelization)
-!$OMP PARALLEL
+!$OMP PARALLEL DEFAULT(FIRSTPRIVATE), &
+!$OMP          SHARED(pdata, tinc, nelms, dnbr, ndnbr, jmppar), &
+!$OMP          REDUCTION(+:thop,treas,nlost,lunf)
+!$OMP DO SCHEDULE(GUIDED,nneighbors+1)
        do ielm=1,nelms
           if (pdata(ielm)%np.eq.0) cycle  !Skip if element is empty
           nhop = 0;  nreas = 0
@@ -819,7 +823,7 @@ contains
                 if (ierr.eq.1) then ! Particle exited local+ghost domain -> lost
                    !print *,myrank,': el',ielm,', p',ipart,pdata(ielm)%ion(ipart)%gid,&
                    !     ' exited domain'
-                   call delete_particle(pdata, nelms, ielm, ipart, ierr)
+                   call delete_particle(pdata(ielm), ipart, ierr)
                    if (ierr.ne.0) then
                       print *,myrank,': error',ierr,' deleting lost particle',&
                            pdata(ielm)%ion(ipart)%gid,' from elm',ielm
@@ -829,6 +833,7 @@ contains
                 endif
 
                 pdata(ielm)%ion(ipart)%tlast = pdata(ielm)%ion(ipart)%tlast + dtp
+                pdata(ielm)%ion(ipart)%jel = itri
                 nstep = nstep + 1
 
                 !Restrict toroidal angle to [0,twopi)
@@ -838,38 +843,32 @@ contains
                    pdata(ielm)%ion(ipart)%x(2) = pdata(ielm)%ion(ipart)%x(2) - twopi
                 endif
 
-                if (itri.eq.ielm) cycle !Continue push within element
+                if (itri.ne.ielm) then  !Particle has moved to a new element
+                   !Test whether new element is in ghost layer
+                   call m3dc1_ent_isghost(2, itri-1, isghost)
+                   if (isghost.eq.1) then !It is -> schedule move to new PE
+                      !Add particle to jump list for target PE
+                      pdata(ielm)%ion(ipart)%jel = dnbr(2,itri)
+                      call add_particle(jmploc(dnbr(1,itri)), pdata(ielm)%ion(ipart))
 
-                !Particle has moved to a new element -> outer loop must repeat.
-                lunf = 1
+                      !Remove particle from the current element
+                      call delete_particle(pdata(ielm), ipart, ierr)
+                      if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
+                      ipart = ipart - 1
+#ifdef JBDEBUG
+                   else  !Particle is still on local domain; save for next pass.
+                      if (ierr.eq.2) then ! Particle exited current element ensemble
+                         nhop = nhop + 1
+                      else                ! Particle moved within current element ensemble
+                         nreas = nreas + 1
+                      endif
+#endif
+                   endif !ghost
 
-                !Test whether new element is in ghost layer
-                call m3dc1_ent_isghost(2, itri-1, isghost)
-                if (isghost.eq.1) then !It is -> schedule move to new PE
-                   !Add particle to jump list for target PE
-                   pdata(ielm)%ion(ipart)%jel = dnbr(2,itri)
-                   call add_particle(jmppar, ndnbr, dnbr(1,itri), &
-                        pdata(ielm)%ion(ipart), ierr)
-                   if (ierr.ne.0) print *,myrank,': error in jmp add_particle!'
-                else  !Particle is still on local domain
-                   if (ierr.eq.2) then ! Particle exited current element ensemble
-                      nhop = nhop + 1
-                   else                ! Particle moved within current element ensemble
-                      nreas = nreas + 1
-                   endif
-
-                   !Add it to the new element
-                   pdata(ielm)%ion(ipart)%jel = itri
-                   call add_particle(pdata, nelms, itri, pdata(ielm)%ion(ipart), ierr)
-                   if (ierr.ne.0) print *,myrank,': error in add_particle!'
-                endif
-
-                !Remove particle from the current element
-                call delete_particle(pdata, nelms, ielm, ipart, ierr)
-                if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
-
-                ipart = ipart - 1
-                exit !Break out of tinc loop, go to next particle.
+                   !Repeat outer loop?
+                   if (pdata(ielm)%ion(ipart)%tlast.lt.tinc) lunf = 1
+                   exit !Break out of tinc loop, go to next particle.
+                endif !new element
              enddo !tinc advance
 
              ipart = ipart + 1
@@ -879,6 +878,16 @@ contains
           thop = thop + nhop
           treas = treas + nreas
        enddo !ielm
+!$OMP END DO
+
+!Reduce jumped particle buffers
+!$OMP CRITICAL
+       do ipe=1,ndnbr
+          do ipart=1,jmploc(ipe)%np
+             call add_particle(jmppar(ipe), jmploc(ipe)%ion(ipart))
+          enddo !ipart
+       enddo !ipe
+!$OMP END CRITICAL
 !$OMP END PARALLEL
 
 #ifdef JBDEBUG
@@ -890,8 +899,21 @@ contains
 #endif
        locparts = locparts - nlost
 
-       call mpi_allreduce(lunf, gunf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-       if (gunf.le.0) exit ! All particles have reached target time
+       !Move reassigned or hopped particles to correct elements
+       do ielm=1,nelms
+         ipart = 1
+         do
+           if (ipart.gt.pdata(ielm)%np) exit
+           itri = pdata(ielm)%ion(ipart)%jel
+           if (itri.ne.ielm) then
+              call add_particle(pdata(itri), pdata(ielm)%ion(ipart))
+              call delete_particle(pdata(ielm), ipart, ierr)
+              if (ierr.ne.0) print *,myrank,': error',ierr,'in delete_particle!'
+              ipart = ipart - 1
+           endif
+           ipart = ipart + 1
+         enddo !ipart
+       enddo !ielm
 
        !Reassign transiting particles using nonblocking communication
        !Tally particles to be received from each neighboring domain
@@ -904,13 +926,12 @@ contains
           call MPI_Isend(jmppar(ipe)%np, 1, MPI_INTEGER, dnlist(ipe), 42, &
                MPI_COMM_WORLD, nbreq(ndnbr+ipe), ierr)
           if (ierr.ne.0) print *,myrank,'MPI_Isend error',ierr
-          locparts = locparts - jmppar(ipe)%np
        enddo !ipe
+       locparts = locparts - sum(jmppar(:)%np)
        call MPI_Waitall(2*ndnbr, nbreq, MPI_STATUSES_IGNORE, ierr)
        if (ierr.ne.0) print *,myrank,'MPI_Waitall error',ierr
 
        ! Compute process offsets in particle receive buffer
-       jinoffset(1) = 1
        do ipe=2,ndnbr
           jinoffset(ipe) = jinoffset(ipe-1) + npin(ipe-1)
        enddo
@@ -933,29 +954,23 @@ contains
                MPI_COMM_WORLD, nbreq(ndnbr+ipe), ierr)
           if (ierr.ne.0) print *,myrank,'MPI_Isend error',ierr
        enddo !ipe
-       nrec = 0
        call MPI_Waitall(2*ndnbr, nbreq, MPI_STATUSES_IGNORE, ierr)
        if (ierr.ne.0) print *,myrank,'MPI_Waitall error',ierr
 
        !Add particles to local list
        do ipart=1,totin
-          call add_particle(pdata, nelms, jinbuf(ipart)%jel, jinbuf(ipart), ierr)
-          if (ierr.eq.0) then
-             nrec = nrec + 1
-          else
-             print *,myrank,': jump error in add_particle!'
-          endif
+          call add_particle(pdata(jinbuf(ipart)%jel), jinbuf(ipart))
        enddo !ipart
 
 #ifdef JBDEBUG
        if (totin.gt.0) then
-          print *,myrank,': ',nrec,'/',totin,' jumps receieved.'
+          print *,myrank,': ',totin,' jumps receieved.'
        endif
 #endif
-       if (nrec.ne.totin) then
-          print *,myrank,': error:',nrec,'/',totin,' jumps receieved.'
-       endif
-       locparts = locparts + nrec
+       locparts = locparts + totin
+
+       call mpi_allreduce(lunf, gunf, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+       if (gunf.le.0) exit ! All particles have reached target time
     enddo !outer loop
 
     call mpi_reduce(locparts, nparticles, 1, MPI_INTEGER, MPI_SUM, 0, &
@@ -982,6 +997,9 @@ contains
     real, dimension(3) :: k1, k2, k3, k4, y1
     real, dimension(vspdims) :: l1, l2, l3, l4, z1
     real :: hh, m1, m2, m3, m4, w1
+#ifndef USE3D
+    integer ktri
+#endif
 
     ierr = 0
     hh = 0.5*dt
@@ -1007,6 +1025,16 @@ contains
     part%x  = part%x  + onethird*dt*(k2 + k3 + 0.5*(k1 + k4))
     part%v  = part%v  + onethird*dt*(l2 + l3 + 0.5*(l1 + l4))
     part%wt = part%wt + onethird*dt*(m2 + m3 + 0.5*(m1 + m4))
+
+    !Determine final particle element location
+#ifdef USE3D
+    call whattri(part%x(1),part%x(2),part%x(3),itri,m1,m2)
+#else
+    k1(1:2) = part%x(1:3:2)
+    call m3dc1_mesh_search(itri-1, k1, ktri)
+    itri = ktri + 1
+#endif
+    if (itri.le.0) ierr = 1
   end subroutine rk4
 
 !----------------------------------------------------------------------------------
@@ -1037,6 +1065,9 @@ contains
     real, dimension(3)       :: xdot, y1, ak2, ak3, ak4, ak5, ak6
     real, dimension(vspdims) :: vdot, z1, bk2, bk3, bk4, bk5, bk6
     real                     :: wdot, w1, ck2, ck3, ck4, ck5, ck6
+#ifndef USE3D
+    integer ktri
+#endif
 
     ierr = 0
 
@@ -1086,6 +1117,16 @@ contains
     !perr(1:3) = dt*(dc1*xdot + dc3*ak3 + dc4*ak4 + dc5*ak5 + dc6*ak6)
     !perr(4:3+vspdims) = dt*(dc1*vdot + dc3*bk3 + dc4*bk4 + dc5*bk5 + dc6*bk6)
     !perr(4+vspdims) = dt*(dc1*wdot + dc3*ck3 + dc4*ck4 + dc5*ck5 + dc6*ck6)
+
+    !Determine final particle element location
+#ifdef USE3D
+    call whattri(part%x(1),part%x(2),part%x(3),itri,ck2,ck3)
+#else
+    y1(1:2) = part%x(1:3:2)
+    call m3dc1_mesh_search(itri-1, y1, ktri)
+    itri = ktri + 1
+#endif
+    if (itri.le.0) ierr = 1
   end subroutine rk5ck
 
 !---------------------------------------------------------------------------
@@ -1109,6 +1150,7 @@ contains
     real, dimension(3) :: B_cyl, E_cyl, bhat, svec, Bstar
     real, dimension(3) :: dBdR, dBdphi, dBdz, gradB0
     real :: Rinv = 1.0, B0inv, Bss
+!$OMP THREADPRIVATE(Rinv)
     integer :: tridex
 
     ierr = 0
@@ -1420,6 +1462,7 @@ contains
     logical, intent(in) :: getE
 
     logical :: use_f = .false.
+!$OMP THREADPRIVATE(use_f)
 #ifdef USECOMPLEX
     use_f = .true.
 #endif
@@ -1458,6 +1501,7 @@ contains
 
     vectype, dimension(3) :: temp
     real :: Rinv=1.0
+!$OMP THREADPRIVATE(Rinv)
 
     if (itor.eq.1) Rinv = 1.0/x(1)
 
@@ -1501,6 +1545,7 @@ contains
 
     vectype, dimension(3) :: temp, tempR, tempz
     real :: Rinv=1.0
+!$OMP THREADPRIVATE(Rinv)
 
     if (itor.eq.1) Rinv = 1.0/x(1)
 
@@ -1713,7 +1758,6 @@ contains
     p_par_i%vec = 0.;  p_perp_i%vec = 0.
 
     !Loop over all local+ghost elements to construct RHS; ghosts will be empty.
-!$OMP PARALLEL
     do ielm=1,nelms
        call m3dc1_ent_isghost(2, ielm-1, isghost)
        if(isghost.eq.1) then
@@ -1793,7 +1837,6 @@ contains
        call vector_insert_block(p_perp_n%vec, ielm, 1, dofspen, VEC_ADD)
 #endif
     enddo !ielm
-!$OMP END PARALLEL
 
     !Normalize integrals
     nrmfac = 1.0/p0_norm
