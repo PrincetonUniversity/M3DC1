@@ -1,17 +1,20 @@
 pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
-                 rho=rho, cur=cur
+                 rho=rho, cur=cur, flux_pol=flux_pol, area=area, bpol=bpol
 
   if(n_elements(cur) eq 0) then cur=1.
 
   if(n_elements(filename) eq 1) then begin
 
      id = ncdf_open(filename)
+
      bmnr_id = ncdf_varid(id, "bmn_real")
      bmni_id = ncdf_varid(id, "bmn_imag")
      psi_id = ncdf_varid(id, "psi")
      m_id = ncdf_varid(id, "m")
      q_id = ncdf_varid(id, "q")
      flux_pol_id = ncdf_varid(id, "flux_pol")
+     area_id = ncdf_varid(id, "area")
+     bp_id = ncdf_varid(id, "Bp")
        
      ncdf_attget, id, "ntor", ntor, /global
      ncdf_varget, id, bmnr_id, bmnr
@@ -19,6 +22,8 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      ncdf_varget, id, psi_id, psi
      ncdf_varget, id, m_id, m
      ncdf_varget, id, q_id, q
+     if(area_id ne -1) then  ncdf_varget, id, area_id, area
+     ncdf_varget, id, bp_id, bpol
      ncdf_varget, id, flux_pol_id, flux_pol
      
      ncdf_close, id
@@ -34,6 +39,7 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
                       (q[i-1]+q[i])*(dflux_tor[i-1] + dflux_tor[i])/4.
      end
      rho = sqrt(flux_tor / flux_tor(n_elements(flux_pol)-1))
+
      return
   endif else begin
 
@@ -43,11 +49,11 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      for i=0, n_elements(filename)-1 do begin
         if(i eq 0) then begin
            read_bmncdf, file=filename[i], bmn=bmn, psi=psi, m=m, q=q, $
-                        ntor=ntor, rho=rho
+                        ntor=ntor, rho=rho, area=area, bpol=bpol
         endif else begin
            read_bmncdf, file=filename[i], $
                         bmn=bmn1, psi=psi1, m=m1, q=q1, ntor=ntor1, $
-                        rho=rho
+                        rho=rho, area=area, bpol=bpol
 
            if(ntor1 ne ntor) then begin
               print, "Error: ntor doesn't match"
