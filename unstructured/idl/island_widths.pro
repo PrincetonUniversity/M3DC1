@@ -1,9 +1,9 @@
 function island_widths, filename, psin=psin, current=cur, q=q, $
-                        sum_files=sum_files
+                        sum_files=sum_files, netcdf=netcdf
 
     result = read_bmn(filename, m, bmn, phase, psin=psin, qval=q, $
                       qprime=qprime, area=area, psiprime=psiprime, $
-                      sum_files=sum_files, factor=cur)
+                      sum_files=sum_files, factor=cur, netcdf=netcdf)
 
     if(result eq 1) then return, 0
 

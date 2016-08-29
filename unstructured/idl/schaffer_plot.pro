@@ -96,6 +96,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
       flux_pol_var = ncdf_vardef(id, 'flux_pol', [n_id], /float)
       q_var = ncdf_vardef(id, 'q', [n_id], /float)
+      area_var = ncdf_vardef(id, 'area', [n_id], /float)
       if(keyword_set(profdata)) then begin
          p_var = ncdf_vardef(id, 'p', [n_id], /float)
          F_var = ncdf_vardef(id, 'F', [n_id], /float)
@@ -115,6 +116,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       ncdf_varput, id, 'flux_pol', flux
       ncdf_varput, id, 'm', m
       ncdf_varput, id, 'q', q
+      ncdf_varput, id, 'area', area
       if(keyword_set(profdata)) then begin
          ncdf_varput, id, 'p', reform(p)
          ncdf_varput, id, 'F', reform(F)
