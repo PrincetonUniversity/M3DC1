@@ -65,7 +65,7 @@ function read_bmn, filename, m, bmn, phase, $
                'Error: m = ', m1[j], ' not found!'
          end
 
-         res_bmn = interpolate(bmn0, j0, i0)
+         res_bmn = interpolate(bmn0, j0, i0)*factor[i]
 
          bmn[i,*] = abs(res_bmn)
          phase[i,*] = atan(imaginary(res_bmn), real_part(res_bmn))
