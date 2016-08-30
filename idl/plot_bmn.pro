@@ -22,31 +22,10 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
        if(n_elements(ytitle) eq 0) then $
          ytitle='!6Chirikov Parameter!X'
    endif else begin
-       if(keyword_set(bmncdf)) then begin
-           print, 'reading bmncdf file'
-           for i=0, n_elements(filename)-1 do begin
-               read_bmncdf, file=filename[i], bmn=bmn0, psi=psi, m=m, q=q, $
-                 ntor=ntor, cur=cur[i], res_bmn=res_bmn, res_psin=res_psin
-               if(i eq 0) then begin
-                   bmn = fltarr(n_elements(filename), n_elements(res_bmn))
-                   psin = fltarr(n_elements(filename), n_elements(res_bmn))
-               end
-               bmn[i,*] = abs(res_bmn)
-               psin[i,*] = res_psin
-           end
-           if(keyword_set(sum_files)) then begin
-               for i=1, n_elements(bmn[*,0])-1 do begin
-                   bmn[0,*] = bmn[0,*] + bmn[i,*]
-               end
-               bmn = bmn[0,*]
-           end
-       endif else begin
-           result = read_bmn(filename,m,bmn,phase,psin=psin,$
-                             sum_files=sum_files,factor=cur, $
-                            netcdf=netcdf)
-       endelse
-      
-       if(n_elements(ytitle) eq 0) then $
+      result = read_bmn(filename,m,bmn,phase,psin=psin,$
+                        sum_files=sum_files,factor=cur, $
+                        netcdf=netcdf)
+      if(n_elements(ytitle) eq 0) then $
          ytitle='!6Total Resonant Field (G/kA)!X'
    endelse
 
@@ -78,13 +57,6 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
                                   sum_files=sum_files, netcdf=netcdf)
        endif else if(keyword_set(chi)) then begin
            bmn_vac = chirikov(vac,cur=cur,psimid=psin_vac, netcdf=netcdf)
-        endif else if(keyword_set(bmncdf)) then begin
-           read_bmncdf, file=vac[0], bmn=bmn, psi=psin, m=m, q=q, $
-                 ntor=ntor, cur=cur[0], res_bmn=res_bmn, res_psin=res_psin
-           bmn_vac = fltarr(n_elements(vac), n_elements(res_bmn))
-           psin_vac = fltarr(n_elements(vac), n_elements(res_psin))
-           bmn_vac[0,*] = abs(res_bmn)
-           psin_vac[0,*] = abs(res_psin)
        endif else begin
           result = read_bmn(vac, m_vac, bmn_vac, phase_vac, psin=psin_vac, $
                             sum_files=sum_files, factor=cur, netcdf=netcdf)
