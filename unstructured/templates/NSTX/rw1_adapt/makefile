@@ -1,4 +1,4 @@
-nstx-0.02-2.00-4.00-8K0.smb : input
+nstx-0.02-2.00-4.00-10K0.smb : input
 	create_mesh.sh input
 
 .PHONY : clean
