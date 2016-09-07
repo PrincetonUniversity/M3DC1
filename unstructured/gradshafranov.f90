@@ -52,6 +52,7 @@ module gradshafranov
   logical :: igs_calculate_ip_fields = .false.
 
   real :: gs_pf_psi_width
+  real :: tiedge
 
 contains
 
@@ -495,7 +496,6 @@ subroutine define_profiles
      call destroy_spline(bscale_spline)
   end if
 
-
   ! add pedge to pressure
   if(pedge.ge.0.) p0_spline%y = p0_spline%y - p0_spline%y(p0_spline%n) + pedge
 
@@ -645,6 +645,25 @@ subroutine define_profiles
 
   if(igs_extend_p.ne.0) call extend_pressure
 
+  ! Set outermost ion temperature to tiedge
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(tiedge.gt.0.) then
+     if(pedge.gt.0. .and. myrank.eq.0) then
+        print *, 'Warning: tiedge is overriding setting for pedge.'
+     end if
+
+     if(allocated(te_spline%y)) then
+        ! pedge = ni*(Zeff*Te + Tiedge)
+        pedge = n0_spline%y(n0_spline%n)* &
+             (Zeff*te_spline%y(te_spline%n) + tiedge)
+     else
+        ! (1-pefac) * pedge = ni*Tiedge
+        pedge = n0_spline%y(n0_spline%n)*tiedge / (1. - pefac)
+     end if
+
+     p0_spline%y = p0_spline%y - p0_spline%y(p0_spline%n) + pedge
+  end if
+
   ! add tedge to temperature
   if(tedge.ge.0.) then
      if(allocated(te_spline%y)) then
@@ -657,6 +676,31 @@ subroutine define_profiles
      if(pedge.lt.0.) then
         p0_spline%y = p0_spline%y + n0_spline%n*(tedge - teold)*zeff
      end if
+  end if
+
+  ! Check for negative values in profiles
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  do i=1, p0_spline%n
+     if(p0_spline%n .le. 0.) then
+        if(myrank.eq.0) print *, 'Error: p profile has negative values'
+        call safestop(33)
+     end if
+  end do
+  if(allocated(n0_spline%y)) then
+     do i=1, n0_spline%n
+        if(n0_spline%n .le. 0.) then
+           if(myrank.eq.0) print *, 'Error: n profile has negative values'
+           call safestop(33)
+        end if
+     end do
+  end if
+  if(allocated(te_spline%y)) then 
+     do i=1, te_spline%n
+        if(te_spline%n .le. 0.) then
+           if(myrank.eq.0) print *, 'Error: Te profile has negative values'
+           call safestop(33)
+        end if
+     end do
   end if
 
   ! define rotation profile

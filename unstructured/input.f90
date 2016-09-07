@@ -486,7 +486,9 @@ subroutine set_defaults
   call add_var_double("pedge", pedge, -1., &
        "Pressure outside separatrix (ignore if < 0)", gs_grp)
   call add_var_double("tedge", tedge, -1., &
-       "Temperature outside separatrix (ignore if < 0)", gs_grp)
+       "Electron temperature outside separatrix (ignore if < 0)", gs_grp)
+  call add_var_double("tiedge", tiedge, 0., &
+       "Outermost ion temperature (ignore if <= 0)", gs_grp)
   call add_var_double("expn", expn, 0., &
        "Density profile = p^expn", gs_grp)
   call add_var_double("q0", q0, 1., "", gs_grp)
@@ -1183,12 +1185,13 @@ subroutine validate_input
 
   is_rectilinear = (nonrect.eq.0)
 
-  density_source = idens.eq.1 .and. &
+  density_source = idens.eq.1 .and. linear.eq.0 .and. &
        (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 &
                            .or. idenfloor.gt.0 .or. ibeam.eq.1 &
                            .or. ibeam.eq.2 .or. iread_particlesource.eq.1)
-  momentum_source = (ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5)
-  heat_source = (numvar.ge.3 .or. ipres.eq.1) .and. &
+  momentum_source = linear.eq.0 .and. &
+       (ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5)
+  heat_source = linear.eq.0 .and. (numvar.ge.3 .or. ipres.eq.1) .and. &
        (igaussian_heat_source.eq.1 .or. &
        (ibeam.ge.1 .and. ibeam.le.4) .or. &
        iread_heatsource.eq.1 .or. &
