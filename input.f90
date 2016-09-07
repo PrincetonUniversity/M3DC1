@@ -518,6 +518,12 @@ subroutine set_defaults
   call add_var_double_array("gs_radial_feedback", gs_radial_feedback, &
        maxcoils, 0., &
        "Proportional feedback of each coil to radial displacements", gs_grp)
+  call add_var_double_array("gs_vertical_feedback_i", gs_vertical_feedback_i, &
+       maxcoils, 0., &
+       "Integral feedback of each coil to vertical displacements", gs_grp)
+  call add_var_double_array("gs_radial_feedback_i", gs_radial_feedback_i, &
+       maxcoils, 0., &
+       "Integral feedback of each coil to radial displacements", gs_grp)
 
   call add_var_int("irot", irot, 0, &
        "Include toroidal rotation", gs_grp)

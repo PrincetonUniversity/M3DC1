@@ -43,7 +43,9 @@ module gradshafranov
 
   real, dimension(maxcoils) :: gs_vertical_feedback
   real, dimension(maxcoils) :: gs_radial_feedback
-  real :: xmag0, zmag0
+  real, dimension(maxcoils) :: gs_vertical_feedback_i
+  real, dimension(maxcoils) :: gs_radial_feedback_i
+  real :: xmag0, zmag0, xmagi, zmagi
 
   integer :: igs_start_xpoint_search
   integer :: igs_forcefree_lcfs
@@ -126,12 +128,17 @@ subroutine coil_feedback()
      print *, 'Doing feedback', xmag-xmag0, zmag-zmag0
   end if
 
+  xmagi = xmagi + (xmag-xmag0)
+  zmagi = zmagi + (zmag-zmag0)
+
   if(myrank.eq.0) then
      do i=1, numcoils_vac
         ic_out(i) = ic_vac(i) &
              + (amu0 * 1000. / twopi) / filaments(i) * &
              (gs_vertical_feedback(coil_mask(i))*(zmag-zmag0) &
-             +gs_radial_feedback(coil_mask(i))*(xmag-xmag0))
+             +gs_radial_feedback(coil_mask(i))*(xmag-xmag0) &
+             +gs_vertical_feedback_i(coil_mask(i))*zmagi &
+             +gs_radial_feedback_i(coil_mask(i))*xmagi)
      end do
   end if
   call mpi_bcast(ic_out, numcoils_vac, &
