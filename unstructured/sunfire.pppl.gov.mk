@@ -1,4 +1,5 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC
+# FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
 CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
@@ -6,6 +7,10 @@ ifeq ($(OPT), 1)
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
+endif
+
+ifeq ($(PAR), 1)
+  FOPTS := $(FOPTS) -DUSEPARTICLES
 endif
 
 ifeq ($(TAU), 1)
@@ -84,8 +89,11 @@ BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group \
 	-Wl,--end-group
 
 SCOREC_DIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Dec2015
-PUMI_LIB = -lapf -lapf_zoltan -lcrv -ldsp -lgmi -lma -lmds -lparma -lpcu -lph -lspr -lzoltan
-# PUMI_LIB = -lapf -lapf_zoltan -lapf_omega_h -lgmi -llion -lma -lmds -lmth -lomega_h -lparma -lpcu -lph -lsam -lspr -lzoltan
+ifeq ($(PAR), 1)
+  PUMI_LIB = -lapf -lapf_zoltan -lapf_omega_h -lgmi -llion -lma -lmds -lmth -lomega_h -lparma -lpcu -lph -lsam -lspr -lzoltan
+else
+  PUMI_LIB = -lapf -lapf_zoltan -lcrv -ldsp -lgmi -lma -lmds -lparma -lpcu -lph -lspr -lzoltan
+endif
 ifeq ($(COM), 1)
   SCOREC_LIB=-lm3dc1_scorec_complex
 else
