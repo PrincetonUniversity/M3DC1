@@ -1,5 +1,5 @@
 pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
-                 srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra
+                 srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra, phase=phase
   if(n_elements(factor) eq 0) then factor = 1.
 
   read_bmncdf, file=filename, _EXTRA=extra, bmn=bmn, psi=psi, m=m, q=q, $
@@ -16,11 +16,17 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
      psi = rho
   endif else xtitle='!7W!X'
 
-  modbmn = abs(bmn)*factor
-  print, max(modbmn)
-  plot, [0,1], [0,max(modbmn)], /nodata, _EXTRA=extra, $
-        xtitle=xtitle, ylog=ylog, $
-        ytitle='!8B!Dmn!N!6 (G/kA)!X'
+  if(keyword_set(phase)) then begin
+     data = atan(imaginary(bmn), real_part(bmn))*180./!pi
+     yran = [-180.,180.]
+     ytitle='!6Phase!X'
+  endif else begin
+     data = abs(bmn)*factor
+     yran = [0, max(data)]
+     ytitle='!8B!Dmn!N!6 (G/kA)!X'
+  endelse
+  plot, [0,1], yran, /nodata, _EXTRA=extra, $
+        xtitle=xtitle, ylog=ylog, ytitle=ytitle
 
   n = mrange[1]-mrange[0]+1
   mm = indgen(n) + mrange[0]
@@ -44,7 +50,7 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
      if(keyword_set(ylog)) then begin
         yrange = 10^!y.crange
      endif else yrange = !y.crange
-     oplot, psi, modbmn[i,*], color=c[j]
+     oplot, psi, data[i,*], color=c[j]
      oplot, [psin[j],psin[j]], yrange, color=c[j], linestyle=2
   end
   plot_legend, name, color=c, ylog=ylog
