@@ -114,7 +114,7 @@
 	inoslip_pol = 1
 	inoslip_tor = 1
 	inonormalflow = 1
-	inocurrent_norm = 1
+	inocurrent_norm = 0
 	inocurrent_tor = 0
 	inocurrent_pol = 0
 	iconst_bz = 0
