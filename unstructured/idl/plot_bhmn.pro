@@ -93,6 +93,13 @@ pro plot_bhmn, filename=filename, xrange=xrange, yrange=yrange, maxn=maxn, ylog=
    time = s.time._data
    dt = s.dt._data
 
+   ;2016-sept-19
+   ;Note that due to the normalizations, 
+   ;this is 2xpi^2 times the actual magnetic energy in each harmonic
+   ;so it is removed here.
+   pi=3.14159265358979323846
+   bhmn = bhmn/2./pi/pi
+
    ; write harmonics [N, ntimes] into "outfile"
       if(keyword_set(outfile)) then begin
          ;format=string(39B)+'(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'+string(39B)
