@@ -109,6 +109,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   V = fltarr(n)
   phi = fltarr(n)
   area = fltarr(n)
+  current = fltarr(n)
 
   tol_psi = 1e-4*abs(psi_s - flux0)
   tol_r = 1e-4*(max(x) - min(x))
@@ -202,8 +203,13 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   for j=0, n-1 do begin
      rx = [rpath[m-1,j],rpath[*,j],rpath[0,j]]
      zx = [zpath[m-1,j],zpath[*,j],zpath[0,j]]
-     dlx = sqrt(deriv(rx)^2 + deriv(zx)^2)
-     dl = dlx[1:m]
+     drx = deriv(rx)
+     dzx = deriv(zx)
+     dr = drx[1:m]
+     dz = dzx[1:m]
+     dl = sqrt(dr^2 + dz^2)
+     br = -field_at_point(psi0_z,x,z,rpath[*,j],zpath[*,j])/rp[*,j]
+     bz =  field_at_point(psi0_r,x,z,rpath[*,j],zpath[*,j])/rp[*,j]
      
      for i=0, m-1 do begin
 
@@ -231,6 +237,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         end
      end
      
+     current[j] = -total(br*dr + bz*dz)
      area[j] = period*total(dl*rp[*,j])
      dV[j] = period*total(dl/bp)
      if(j eq 0) then begin
@@ -307,23 +314,33 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   endif 
 
   ;  Calculate Jacobian if requested (or if analytic expression isn't available)
-  if(geo eq 1 or keyword_set(njac)) then begin
-     print, 'Calculating Jacobian numerically'
-     ; calculate jacobian
-     dr_dpsi = rpath
-     dz_dpsi = zpath
-     dr_dtheta = rpath
-     dz_dtheta = zpath
-     for i=0, m-1 do begin
-        dr_dpsi[i,*] = deriv(psi, rpath[i,*])
-        dz_dpsi[i,*] = deriv(psi, zpath[i,*])
-     end
-     for j=0, n-1 do begin
-        dr_dtheta[*,j] = deriv(theta, rpath[*,j])
-        dz_dtheta[*,j] = deriv(theta, zpath[*,j])
-     end
-     jac = dr_dtheta*dz_dpsi - dr_dpsi*dz_dtheta
-     if(itor eq 1) then jac = jac*rpath
+
+  print, 'Calculating Jacobian numerically'
+                                ; calculate jacobian
+  dr_dpsi = rpath
+  dz_dpsi = zpath
+  dr_dtheta = rpath
+  dz_dtheta = zpath
+  for i=0, m-1 do begin
+     dr_dpsi[i,*] = deriv(psi, rpath[i,*])
+     dz_dpsi[i,*] = deriv(psi, zpath[i,*])
+  end
+  for j=0, n-1 do begin
+     dr_dtheta[*,j] = deriv(theta, rpath[*,j])
+     dz_dtheta[*,j] = deriv(theta, zpath[*,j])
+  end
+  jac_test = dr_dtheta*dz_dpsi - dr_dpsi*dz_dtheta
+  if(itor eq 1) then jac_test = jac_test*rpath
+
+  if(mean(jac_test) lt 0) then begin
+     print, 'ERROR: numerical jacobian is negative!'
+     return, 0
+  end
+  if(geo eq 1 or keyword_set(njac)) then jac = jac_test
+
+  if(mean(jac) lt 0) then begin
+     print, 'ERROR: jacobian is negative!'
+     return, 0
   end
 
   ; calculate deviation of toroidal angle from geometric toroidal angle
@@ -351,8 +368,9 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   fc = { m:m, n:n, r:rpath, z:zpath, r0:axis[0], z0:axis[1], omega:omega, $
          psi1:psi_s, psi0:flux0, psi:psi, psi_norm:psi_norm, theta:theta, $
          j:jac, q:q, area:area, dV:dV, pest:keyword_set(pest), $
+         boozer:keyword_set(boozer), hamada:keyword_set(hamada), $
          V:V, phi:phi, phi_norm:phi/phi[n-1], rho:sqrt(phi/phi[n-1]), $
-         period:period, itor:itor}
+         period:period, itor:itor, current:current}
 
   if(keyword_set(makeplot)) then begin
 
@@ -378,10 +396,11 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
 
      ; plot q
      window, 0
-     !p.multi = [0,2,2]
+     !p.multi = [0,2,3]
      plot, psi_norm, q, xtitle='!7W!X', ytitle='!8q!X'
      plot, psi_norm, V, xtitle='!7W!X', ytitle='!8V!X'
-;     plot, psi_norm, area, xtitle='!7W!X', ytitle='!8A!X'
+     plot, psi_norm, area, xtitle='!7W!X', ytitle='!8A!X'
+     plot, psi_norm, current, xtitle='!7W!X', ytitle='!8I!X'
      plot, psi_norm, omega, xtitle='!7W!X', ytitle='!7x!X'
      plot, psi_norm, phi, xtitle='!7W!X', ytitle='!7u!D!8T!N!X'
      !p.multi=0
