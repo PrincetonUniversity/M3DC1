@@ -640,7 +640,12 @@ subroutine initial_conditions()
   call calculate_temperatures(1, te_field(1),ti_field(1), 1)
 
   if(iflip_b.eq.1) call mult(bz_field(0), -1.)
-  if(iflip_j.gt.0) call mult(psi_field(0), -1.)
+  if(iflip_j.gt.0) then 
+     call mult(psi_field(0), -1.)
+     if(icsubtract.eq.1) call mult(psi_coil_field, -1.)
+     psilim = -psilim
+     psibound = -psibound
+  end if
   if(iflip_v.eq.1) call mult(vz_field(0), -1.)
   if(iflip_v.eq.-1) call mult(vz_field(0), 0.)
 end subroutine initial_conditions
