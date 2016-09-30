@@ -60,6 +60,7 @@ contains
 
 #ifdef USEPARTICLES
 !#define JBDEBUG
+!#define ORIGVDIST
 !#define DELTA_F
 
   !Define MPI datatype for particle communication
@@ -289,12 +290,19 @@ contains
     real xi, zi
 #endif
     real    :: x1, x2, z1, z2, pdx, pdphi, pdz, pdl, vpar, vperp
-    real    :: EmaxeV, A_ion, Z_ion, speed, lambda_min, lambda_max, B0, B1
+    real    :: EmaxeV, A_ion, Z_ion, speed, lambda_min, lambda_max, B0
     real    :: gyroperiod, gfrac=5.0e-3, gkfrac=8.0, dtp, ldtmin
-    integer :: npr, npphi, npz, npe, npmu, ir, iphi, iz, ip
+    integer :: npr, npphi, npz, npe, npmu, nphiv, ir, iphi, iz, ip
     integer :: nelms, ielm, lc, noc, tridex, itri, ielmold=0
     integer :: gfx, isghost, xid, nle=0, nge=0
-    integer :: ie, imu
+    integer :: ie, imu, pperrow
+#ifdef ORIGVDIST
+    real    :: B1
+#else
+    real, dimension(3) :: e1, e2
+    real    :: norm, cs, sn
+    integer :: iphiv
+#endif
 
     !Load a ghost mesh with nglayers layers
     call m3dc1_ghost_load(nglayers)
@@ -334,7 +342,8 @@ contains
     !Set up 'neighborlist' table of element neighbors for ensemble tracking
     call find_element_neighbors
 
-    npr = 32;  npphi = 8;  npz = 16;  npe = 10;  npmu = 6
+    npr = 32;  npphi = 8;  npz = 16;  npe = 10;  npmu = 8
+    nphiv = 4  !Note: full orbit only!
 
     !Particle spatial ranges
     call get_bounding_box(x1, z1, x2, z2)
@@ -355,7 +364,8 @@ contains
     lambda_min = 1.0e-5                          !Minimum particle pitch angle
     lambda_max = 3.14159                         !Maximum particle pitch angle
     pdl = (lambda_max - lambda_min)/(npmu - 1)
-
+    pperrow = npphi*npr*npe*npmu
+    if (vspdims.eq.3) pperrow = pperrow*nphiv
 
     !First pass: assign particles to processors, elements
     locparts = 0
@@ -382,23 +392,47 @@ contains
              ielmold = ielm - 1
              call m3dc1_ent_isghost(2, ielm-1, isghost)
              if (isghost.eq.1) cycle  !In ghost layer; skip.
+             dpar%jel = ielm
              xid = npr*(npphi*(iz-1) + iphi) + ir-1
+
              do ie=1,npe !Loop over kinetic energies
+#ifdef ORIGVDIST
+                !Uniform span of energies, pitch angles
                 dpar%v(1) = sqrt(real(ie)/real(npe)) * speed
 
                 do imu=1,npmu  !Loop over pitch angles
                    dpar%v(2) = lambda_min + (imu - 1.0)*pdl
                    dpar%gid = npmu*(npe*xid + ie-1) + imu-1
-                   dpar%jel = ielm
 
                    call add_particle(pdata(ielm), dpar)
                    locparts = locparts + 1
                 enddo !imu
+#else
+                !Uniform velocity space distribution
+                dpar%v(1) = speed * (((ie - 0.5)/real(npe))**(1.0/3.0))
+
+                do imu=1,npmu  !Loop over pitch angles
+                   dpar%v(2) = acos((npmu + 1 - 2*imu)/real(npmu))
+
+                   if (vspdims.eq.3) then
+                      do iphiv=0,nphiv-1
+                         dpar%v(vspdims) = iphiv*twopi/real(nphiv)
+                         dpar%gid = nphiv*(npmu*(npe*xid + ie-1) + imu-1) + iphiv
+                         call add_particle(pdata(ielm), dpar)
+                         locparts = locparts + 1
+                      enddo !iphiv
+                   else
+                      dpar%gid = npmu*(npe*xid + ie-1) + imu-1
+                      call add_particle(pdata(ielm), dpar)
+                      locparts = locparts + 1
+                   endif
+                enddo !imu
+#endif
              enddo !ie
           enddo !ir
        enddo !iphi
 #ifdef JBDEBUG
-       if (myrank.eq.0) print *,npphi*npr*npe*npmu,' particles assessed for row',iz
+       if (myrank.eq.0) print *,pperrow,' particles assessed for row',iz
 #endif
     enddo !iz
 
@@ -411,7 +445,7 @@ contains
          MPI_COMM_WORLD, ierr)
     if (myrank.eq.0) then
        write(0,'(I8,A,I8,A)')nparticles,' particle(s) assigned out of ',&
-            npr*npphi*npz*npe*npmu,' candidates.'
+            npz*pperrow,' candidates.'
     endif
 
     !2nd pass: initialize velocity components
@@ -444,12 +478,29 @@ contains
           gyroperiod = 6.283185307 / (qm_ion * B0)
 
           if (vspdims.eq.3) then !full orbit
+#ifdef ORIGVDIST
              B1 = sqrt(Bcyl(1)**2 + Bcyl(2)**2)
 
              pdata(ielm)%ion(ip)%v(1) = vpar*Bcyl(1)/B0 - vperp*Bcyl(2)/B1  !v_R
              pdata(ielm)%ion(ip)%v(2) = vpar*Bcyl(2)/B0 + vperp*Bcyl(1)/B1  !v_phi
              pdata(ielm)%ion(ip)%v(3) = vpar*Bcyl(3)/B0                     !v_z
+#else
+             e1(1) = 0.0;  e1(2) = -Bcyl(3);  e1(3) = Bcyl(2)
+             norm = 1.0/sqrt(e1(2)**2 + e1(3)**2)
+             e1 = norm*e1
 
+             e2(1) = -(Bcyl(2)**2 + Bcyl(3)**2)
+             e2(2) = Bcyl(1)*Bcyl(2)
+             e2(3) = Bcyl(1)*Bcyl(3)
+             norm = 1.0/sqrt(e2(1)**2 + e2(2)**2 + e2(3)**2)
+             e2 = norm*e2
+
+             cs = cos(pdata(ielm)%ion(ip)%v(3))
+             sn = sin(pdata(ielm)%ion(ip)%v(3))
+             pdata(ielm)%ion(ip)%v(1) = (vpar/B0)*Bcyl(1) + vperp*(cs*e1(1) + sn*e2(1))
+             pdata(ielm)%ion(ip)%v(2) = (vpar/B0)*Bcyl(2) + vperp*(cs*e1(2) + sn*e2(2))
+             pdata(ielm)%ion(ip)%v(3) = (vpar/B0)*Bcyl(3) + vperp*(cs*e1(3) + sn*e2(3))
+#endif
              dtp = gfrac * gyroperiod
           else !gyro- or drift kinetic
              pdata(ielm)%ion(ip)%v(1) = vpar                        !v_parallel
