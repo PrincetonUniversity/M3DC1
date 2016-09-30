@@ -36,7 +36,7 @@ module particles
   type particle
      real, dimension(3)       :: x           !Position in cylindrical coords
      real, dimension(vspdims) :: v           !Velocity
-     real                     :: wt = 1.0    !Particle weighting in delta-f scheme
+     real                     :: wt = 0.0    !Particle weighting in delta-f scheme
      real                     :: tlast       !Time
      integer                  :: gid         !Unique global particle index
      integer                  :: jel         !Predicted element of residence
@@ -54,13 +54,17 @@ module particles
   integer, dimension(:), allocatable :: dnlist               !Domain neighbor table
   integer :: nparticles, locparts, ndnbr
   integer :: mpi_particle !User-defined MPI datatype for particle communication
+  integer :: ihotionf0    !Switch determining form of hot ion eqbm distribution function
 
 contains
 
 #ifdef USEPARTICLES
 !#define JBDEBUG
+!#define DELTA_F
 
   !Define MPI datatype for particle communication
+  ! Note: any changes to the "particle" user-defined datatype must be reflected
+  !       in the definitions of pnvars, pblklen, ptyps, and pdspls below.
   subroutine define_mpi_particle(ierr)
     implicit none
 
@@ -105,7 +109,7 @@ contains
 
     type(field_type) :: pi_parallel, pi_perp, pi_parallel_n, pi_perp_n
     character(len=32) :: line
-    logical, parameter :: loutcart = .false. !Output Cartesian particle coords?
+    logical, parameter :: loutcart = .true. !Output Cartesian particle coords?
     integer, dimension(3), parameter :: trid = (/ 9364, 14557, 17863 /)
     real, parameter :: JpereV = 1.6022e-19
     real :: pdt, keeV, pphi, tstart, tend
@@ -140,13 +144,18 @@ contains
             tend-tstart,' seconds.'
     endif
 
+#ifdef JBDEBUG
+    !Monitor conservation properties: initial constants of motion
+    call dump_constants('iep0_', trunit)
+#endif
+
     !Test particle push
     !Create particle trajectory output text file?
     do itr=1,size(trid)
        do ierr=1,size(pdata)
           do ip=1,pdata(ierr)%np
              if (pdata(ierr)%ion(ip)%gid.eq.trid(itr)) then
-                print *,myrank,': ielm,ip = ',ierr,ip,': gid = ',pdata(ierr)%ion(ip)%gid
+                !print *,myrank,': ielm,ip = ',ierr,ip,': gid = ',pdata(ierr)%ion(ip)%gid
                 write(line,'(A,I8.8)') 'ptraj_',trid(itr)
                 open(unit=trunit, file=trim(line), status='replace', action='write')
                 if (loutcart) then !Cartesian
@@ -215,6 +224,11 @@ contains
             tend-tstart,' seconds.'
     endif
 
+#ifdef JBDEBUG
+    !Monitor conservation properties: final constants of motion
+    call dump_constants('iepf_', trunit)
+#endif
+
     !Test particle pressure tensor component calculation
     call second(tstart)
     call particle_pressure(pi_parallel, pi_perp, pi_parallel_n, pi_perp_n)
@@ -268,7 +282,7 @@ contains
     type(particle) :: dpar  !Dummy particle
     type(elfield), dimension(nneighbors+1) :: elcoefs
     type(xgeomterms) :: geomterms
-    real, dimension(3) :: Bcyl
+    real, dimension(3) :: Bcyl, deltaB
 #ifndef USE3D
     real, dimension(2) :: mmsa
 #else
@@ -311,6 +325,9 @@ contains
        return
     endif
 
+    !Choose background distribution function for delta-f method
+    ihotionf0 = 0
+
     !Allocate local storage for particle data
     allocate(pdata(nelms), jmppar(ndnbr), jinbuf(32))
 
@@ -321,7 +338,7 @@ contains
 
     !Particle spatial ranges
     call get_bounding_box(x1, z1, x2, z2)
-    !if (myrank.eq.0) print *,'bb = ',x1,z1,x2,z2
+    if (myrank.eq.0) print *,'mesh bounding box = ',x1,x2,z1,z2
     pdx = (x2**2 - x1**2)/real(npr);  pdz = (z2 - z1)/real(npz)
     pdphi = twopi/real(npphi)
 
@@ -422,7 +439,7 @@ contains
              cycle
           endif !ierr
 
-          call getBcyl(pdata(ielm)%ion(ip)%x, elcoefs(1), geomterms, Bcyl)
+          call getBcyl(pdata(ielm)%ion(ip)%x, elcoefs(1), geomterms, Bcyl, deltaB)
           B0 = sqrt(dot_product(Bcyl, Bcyl))
           gyroperiod = 6.283185307 / (qm_ion * B0)
 
@@ -1134,21 +1151,26 @@ contains
     use basic
     implicit none
 
-    real, dimension(3), intent(in)                     :: x
-    real, dimension(3), intent(out)                    :: dxdt
-    real, dimension(vspdims), intent(in)               :: v
-    real, dimension(vspdims), intent(out)              :: dvdt
-    real, intent(in)                                   :: w
-    real, intent(out)                                  :: dwdt
-    type(elfield), dimension(nneighbors+1), intent(in) :: fh
-    integer, intent(inout)                             :: itri
-    integer, intent(out)                               :: ierr
+    real, dimension(3), intent(in)                             :: x
+    real, dimension(3), intent(out)                            :: dxdt
+    real, dimension(vspdims), intent(in)                       :: v
+    real, dimension(vspdims), intent(out)                      :: dvdt
+    real, intent(in)                                           ::  w
+    real, intent(out)                                          :: dwdt
+    type(elfield), dimension(nneighbors+1), target, intent(in) :: fh
+    integer, intent(inout)                                     :: itri
+    integer, intent(out)                                       :: ierr
 
     real, parameter :: g_mks = 9.8067 ! earth avg surf grav accel in m/s/s
-    type(elfield) :: fh_hop
-    type(xgeomterms) :: geomterms
-    real, dimension(3) :: B_cyl, E_cyl, bhat, svec, Bstar
+    type(elfield), target  :: fh_hop
+    type(elfield), pointer :: fhptr
+    type(xgeomterms)   :: geomterms
+    real, dimension(3) :: B_cyl, Jcyl, BxgrdB, deltaB, E_cyl, bhat, svec, Bstar
     real, dimension(3) :: dBdR, dBdphi, dBdz, gradB0
+#ifdef DELTA_F
+    real, dimension(3) :: weqv0, weqv1, weqvD, gradf0
+    real f0, df0de, tmp1, tmp2
+#endif
     real :: Rinv = 1.0, B0inv, Bss
 !$OMP THREADPRIVATE(Rinv)
     integer :: tridex
@@ -1160,24 +1182,23 @@ contains
     call get_geom_terms(x, itri, fh, tridex, geomterms, vspdims.eq.2, ierr)
     if (ierr.ne.0) return
 
-    !Get electric field components
-    if (tridex.le.0) then !Not part of local ensemble!
+    !Associate field handle pointer with correct element data
+    if (tridex.gt.0) then !Part of local ensemble.
+       fhptr => fh(tridex)
+    else                  !Not part of local ensemble!
        ierr = 2
        call get_field_coefs(itri, fh_hop, .true.) !Load field into temp. buffer
-       call getEcyl(fh_hop, geomterms, E_cyl)
-    else
-       call getEcyl(fh(tridex), geomterms, E_cyl)
+       fhptr => fh_hop
     endif
+
+    !Get electric field components
+    call getEcyl(fhptr, geomterms, E_cyl)
 
     !Calculate time derivatives
     if (vspdims.eq.3) then !full orbit: ma = q(E + vxB) + mg
        dxdt(1:vspdims) = v
 
-       if (tridex.gt.0) then
-          call getBcyl(x, fh(tridex), geomterms, B_cyl)
-       else
-          call getBcyl(x, fh_hop, geomterms, B_cyl)
-       endif
+       call getBcyl(x, fhptr, geomterms, B_cyl, deltaB)
 
        dvdt(1) = qm_ion*(E_cyl(1) + v(2)*B_cyl(3) - v(3)*B_cyl(2))
        dvdt(2) = qm_ion*(E_cyl(2) + v(3)*B_cyl(1) - v(1)*B_cyl(3))
@@ -1188,11 +1209,7 @@ contains
        !   dvdt(2) = dvdt(2) - 2.0*Rinv*v(1)*v(2)  !Coriolis effect
        !endif
     else ! Drift-kinetic equation
-       if (tridex.gt.0) then
-          call getBcylprime(x, fh(tridex), geomterms, B_cyl, dBdR, dBdphi, dBdz)
-       else
-          call getBcylprime(x, fh_hop, geomterms, B_cyl, dBdR, dBdphi, dBdz)
-       endif
+       call getBcylprime(x, fhptr, geomterms, B_cyl, deltaB, dBdR, dBdphi, dBdz)
 
        B0inv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
        bhat = B_cyl * B0inv                         !Unit vector in b direction
@@ -1203,17 +1220,16 @@ contains
        gradB0(3) = dot_product(bhat, dBdz)
 
        ! Curl of bhat = curl(B/B0) = curl(B)/B0 - (grad B0 x B)/(B0**2)
-       svec(1) = (Rinv*dBdphi(3) - dBdz(2) + &
-            (B_cyl(2)*gradB0(3) - B_cyl(3)*gradB0(2))*B0inv)*B0inv
-       svec(2) = (dBdz(1) - dBdR(3) + &
-            (B_cyl(3)*gradB0(1) - B_cyl(1)*gradB0(3))*B0inv)*B0inv
-       if (itor.eq.1) then
-          svec(3) = (Rinv*B_cyl(2) + dBdR(2) - Rinv*dBdphi(1) + &
-               (B_cyl(1)*gradB0(2) - B_cyl(2)*gradB0(1))*B0inv)*B0inv
-       else
-          svec(3) = (dBdR(2) - dBdphi(1) + &
-               (B_cyl(1)*gradB0(2) - B_cyl(2)*gradB0(1))*B0inv)*B0inv
-       endif
+       BxgrdB(1) = B_cyl(2)*gradB0(3) - B_cyl(3)*gradB0(2)
+       BxgrdB(2) = B_cyl(3)*gradB0(1) - B_cyl(1)*gradB0(3)
+       BxgrdB(3) = B_cyl(1)*gradB0(2) - B_cyl(2)*gradB0(1)
+
+       Jcyl(1) = Rinv*dBdphi(3) - dBdz(2)
+       Jcyl(2) = dBdz(1) - dBdR(3)
+       Jcyl(3) = dBdR(2) - Rinv*dBdphi(1)
+       if (itor.eq.1) Jcyl(3) = Jcyl(3) + Rinv*B_cyl(2)
+
+       svec = (Jcyl + BxgrdB*B0inv)*B0inv
 
        Bstar = B_cyl + (v(1)/qm_ion)*svec
        Bss = dot_product(Bstar, bhat)
@@ -1230,7 +1246,26 @@ contains
 
     dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
 
+    !Weights evolve in delta-f method only.
+#ifdef DELTA_F
+    ! V1 = (ExB)/(B**2) + U deltaB/B
+    weqv1(1) = ((E_cyl(2)*B_cyl(3) - E_cyl(3)*B_cyl(2))*B0inv + v(1)*deltaB(1))*B0inv
+    weqv1(2) = ((E_cyl(3)*B_cyl(1) - E_cyl(1)*B_cyl(3))*B0inv + v(1)*deltaB(2))*B0inv
+    weqv1(3) = ((E_cyl(1)*B_cyl(2) - E_cyl(2)*B_cyl(1))*B0inv + v(1)*deltaB(3))*B0inv
+
+    ! vD = (1/(e B**3))(M_i U**2 + mu B)(B x grad B) + ((M_i U**2)/(eB**2))*J_perp
+    tmp1 = (v(1)*v(1)) * (B0inv*B0inv)/qm_ion
+    tmp2 = (tmp1*B0inv + v(2))*(B0inv*B0inv)
+    weqvD = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
+    weqv0 = v(1)*bhat + weqvD
+
+    call evalf0(x, v, 1.0/B0inv, fhptr, geomterms, f0, gradf0, df0de)
+
+    dwdt = (w - 1.0)*(dot_product(weqv1, gradf0) - &
+         q_ion*dot_product(weqv0, E_cyl)*df0de)/f0
+#else
     dwdt = 0.0*w !Evolution of delta-f weights not yet implemented!
+#endif
   end subroutine fdot
 
 !---------------------------------------------------------------------------
@@ -1490,14 +1525,15 @@ contains
   end subroutine get_field_coefs
 
 !---------------------------------------------------------------------------
-  subroutine getBcyl(x, fh, gh, Bcyl)
+  subroutine getBcyl(x, fh, gh, Bcyl, deltaB)
     use basic
     implicit none
 
-    real, dimension(3), intent(in) :: x      !Position
-    type(elfield), intent(in) :: fh          !Field handle
-    type(xgeomterms), intent(in) :: gh       !Geometric terms handle
-    real, dimension(3), intent(out) :: Bcyl  !Output magnetic field
+    real, dimension(3), intent(in) :: x       !Position
+    type(elfield), intent(in) :: fh           !Field handle
+    type(xgeomterms), intent(in) :: gh        !Geometric terms handle
+    real, dimension(3), intent(out) :: Bcyl   !Output total magnetic field
+    real, dimension(3), intent(out) :: deltaB !Output perturbed part of Bcyl
 
     vectype, dimension(3) :: temp
     real :: Rinv=1.0
@@ -1526,22 +1562,25 @@ contains
 #ifdef USECOMPLEX
        temp(1) = temp(1) - dot_product(fh%Bfv, gh%dr) * rfac
        temp(3) = temp(3) - dot_product(fh%Bfv, gh%dz) * rfac
-       Bcyl = Bcyl + real(temp * exp(rfac*x(2)))
+       deltaB = real(temp * exp(rfac*x(2)))
 #else
-       Bcyl = Bcyl + temp
+       deltaB = temp
 #endif
+       Bcyl = Bcyl + deltaB
+    else
+       deltaB = 0.0
     endif !linear
   end subroutine getBcyl
 
 !---------------------------------------------------------------------------
-  subroutine getBcylprime(x, fh, gh, Bcyl, dBdR, dBdphi, dBdz)
+  subroutine getBcylprime(x, fh, gh, Bcyl, deltaB, dBdR, dBdphi, dBdz)
     use basic
     implicit none
 
     real, dimension(3), intent(in)  :: x
     type(elfield), intent(in)       :: fh
     type(xgeomterms), intent(in)    :: gh
-    real, dimension(3), intent(out) :: Bcyl, dBdR, dBdphi, dBdz
+    real, dimension(3), intent(out) :: Bcyl, deltaB, dBdR, dBdphi, dBdz
 
     vectype, dimension(3) :: temp, tempR, tempz
     real :: Rinv=1.0
@@ -1604,7 +1643,7 @@ contains
 #ifdef USECOMPLEX
        temp(1) = temp(1) - dot_product(fh%Bfv, gh%dr) * rfac
        temp(3) = temp(3) - dot_product(fh%Bfv, gh%dz) * rfac
-       Bcyl = Bcyl + real(temp * exp(rfac*x(2)))
+       deltaB = real(temp * exp(rfac*x(2)))
 
        tempR(1) = tempR(1) - dot_product(fh%Bfv, gh%drr) * rfac
        tempR(3) = tempR(3) - dot_product(fh%Bfv, gh%drz) * rfac
@@ -1616,10 +1655,13 @@ contains
 
        dBdphi = real(temp * rfac * exp(rfac*x(2)))
 #else
-       Bcyl = Bcyl + temp
+       deltaB = temp
        dBdR = dBdR + tempR
        dBdz = dBdz + tempz
 #endif
+       Bcyl = Bcyl + deltaB
+    else
+       deltaB = 0.0
     endif !linear
   end subroutine getBcylprime
 
@@ -1647,6 +1689,46 @@ contains
 #endif
   end subroutine getEcyl
 
+#ifdef DELTA_F
+!---------------------------------------------------------------------------
+  subroutine evalf0(x, v, modB, fh, gh, f0, gradf0, df0de)
+    implicit none
+
+    real, dimension(3), intent(in)       :: x
+    real, dimension(vspdims), intent(in) :: v
+    real, intent(in)                     :: modB
+    type(elfield), intent(in)            :: fh
+    type(xgeomterms), intent(in)         :: gh
+    real, intent(out)                    :: f0, df0de
+    real, dimension(3), intent(out)      :: gradf0
+
+    real, parameter :: twopi = 6.283185307179586476925286766559
+    real, parameter :: vthermal = 100.0*vp1eV  !Temperature = 10 keV
+    real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
+    real, parameter :: ecoef = -0.5*(vthermal**(-2))
+
+    real spsq !v-squared
+
+    if (vspdims.eq.3) then
+       spsq = dot_product(v, v)
+    else
+       spsq = v(1)*v(1) + 2.0*qm_ion*v(2)*modB
+    endif
+
+    select case (ihotionf0)
+    case (0)
+       !Spatially uniform Maxwellian
+       f0 = nrmfac * exp(ecoef * spsq)
+       gradf0 = 0.0
+       df0de = (2.0*ecoef/m_ion) * f0
+    case default
+       f0 = 1.0
+       gradf0 = 0.0
+       df0de = 0.0
+    end select
+  end subroutine evalf0
+#endif
+
 !---------------------------------------------------------------------------
 ! Return particle kinetic energy, in Joules
   real function getke(p)
@@ -1657,7 +1739,7 @@ contains
 
     type(elfield), dimension(nneighbors+1) :: elcoefs
     type(xgeomterms)                       :: geomterms
-    real, dimension(3)                     :: B_cyl
+    real, dimension(3)                     :: B_cyl, deltaB
     real                                   :: B0
     integer                                :: itri, tridex, ierr
 
@@ -1672,7 +1754,7 @@ contains
        endif
 
        call get_field_coefs(itri, elcoefs(1), .false.)
-       call getBcyl(p%x, elcoefs(1), geomterms, B_cyl)
+       call getBcyl(p%x, elcoefs(1), geomterms, B_cyl, deltaB)
 
        B0 = sqrt(dot_product(B_cyl, B_cyl))
        getke = e_mks*(0.5*p%v(1)**2/qm_ion + p%v(2)*B0)
@@ -1691,7 +1773,7 @@ contains
     vectype                                :: psi
     type(elfield), dimension(nneighbors+1) :: elcoefs
     type(xgeomterms)                       :: geomterms
-    real, dimension(3)                     :: B_cyl
+    real, dimension(3)                     :: B_cyl, deltaB
     real                                   :: B0
     integer                                :: itri, tridex, ierr
 
@@ -1719,7 +1801,7 @@ contains
     if (vspdims.eq.3) then
        getPphi = getPphi + (e_mks/qm_ion) * p%v(2) * p%x(1)
     else
-       call getBcyl(p%x, elcoefs(1), geomterms, B_cyl)
+       call getBcyl(p%x, elcoefs(1), geomterms, B_cyl, deltaB)
        B0 = sqrt(dot_product(B_cyl, B_cyl))
 
        getPphi = getPphi + (e_mks/qm_ion) * p%v(1) * B_cyl(2) * p%x(1) / B0
@@ -1745,7 +1827,7 @@ contains
     complex, dimension(dofs_per_element) :: dofspan, dofspen
     complex phfac
 #endif
-    real, dimension(3) :: B_part
+    real, dimension(3) :: B_part, deltaB
     real, dimension(vspdims) :: vperp
     type(elfield), dimension(nneighbors+1) :: elcoefs
     type(xgeomterms) :: geomterms
@@ -1796,7 +1878,8 @@ contains
              print *,myrank,': Particle in wrong element in pressure tensor integral.'
              cycle !next particle
           endif
-          call getBcyl(pdata(ielm)%ion(ipart)%x, elcoefs(tridex), geomterms, B_part)
+          call getBcyl(pdata(ielm)%ion(ipart)%x, elcoefs(tridex), geomterms, B_part, &
+               deltaB)
           B0 = sqrt(dot_product(B_part, B_part))
 
           !Use B and v to get parallel and perp components of particle velocity
@@ -1826,6 +1909,10 @@ contains
           dofspen = dofspen + pperp*phfac*wnuhere
 #endif
        enddo !ipart
+
+#ifdef DELTA_F
+       !Integrate equilibrium distribution over d3v, basis functions
+#endif
 
        !Insert element sums into field data
        ! Note: this is only correct if the local index ielm refers to the
@@ -2066,6 +2153,29 @@ contains
     !Free the buffer
     deallocate(values)
   end subroutine hdf5_write_particles
+
+!---------------------------------------------------------------------------
+  subroutine dump_constants(prefix, junit)
+    use basic
+    implicit none
+
+    character(len=*), intent(in) :: prefix
+    integer, intent(in) :: junit
+
+    character(len=32) :: line
+    integer :: iel, ip
+
+    write(line,'(A,I6.6)') prefix, myrank
+    open(unit=junit+myrank, file=trim(line), status='replace', action='write')    
+    do iel=1,size(pdata)
+       do ip=1,pdata(iel)%np
+          write(junit+myrank,'(I9,2e20.10)') pdata(iel)%ion(ip)%gid, &
+               getke(pdata(iel)%ion(ip)), getPphi(pdata(iel)%ion(ip))
+       enddo !ip
+    enddo !iel
+    close(junit+myrank)
+
+  end subroutine dump_constants
 
 #endif
 
