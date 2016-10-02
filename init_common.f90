@@ -40,7 +40,7 @@ subroutine init_random(x,phi,z,outarr)
   integer :: i, j, n
   real, dimension(MAX_PTS) :: xx, zz, rsq, r, theta
   vectype, dimension(MAX_PTS) :: temp, phase
-  real :: alx, alz, kx, kp, kz, random, roundoff
+  real :: alx, alz, kx, kp, kz, px, pp, pz, random, roundoff
 
   call get_bounding_box_size(alx, alz)
 
@@ -72,9 +72,15 @@ subroutine init_random(x,phi,z,outarr)
         do j=1, maxn
            kz = j*pi/alz
            kp = j
+           call random_number(px)
+           call random_number(pp)
+           call random_number(pz)
+           px = 2.*pi*px
+           pp = 2.*pi*pp
+           pz = 2.*pi*pz
            call random_number(random)
            call init_planewave(temp,xx,phi,zz,kx,kp,kz,2.*eps*(random-.5), &
-                0.,0.,0.)
+                px,pp,pz)
            outarr = outarr + temp
         end do
      end do
@@ -161,7 +167,11 @@ subroutine init_perturbations
      do i=1, npoints
         imr = magnetic_region(ps079(i,:), x_79(i), z_79(i))
         if(imr.eq.0) then
-           temp79a(i) = (p079(i,OP_1) - pedge)/p0
+           if(p079(i,OP_1).gt.pedge) then
+              temp79a(i) = (p079(i,OP_1) - pedge)/p0
+           else
+              temp79a(i) = 0.
+           end if
         else
            temp79a(i) = 0.
         end if
