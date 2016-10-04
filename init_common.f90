@@ -242,10 +242,14 @@ subroutine den_eq
              tanh((real(ps079(:,OP_1))-(psibound+denoff*(psibound-psimin)))&
              /(dendelt*(psibound-psimin))))
         
-     case(2)
-        temp79a = ((real(ps079(:,OP_1))-psimin)/(psibound-psimin) - denoff)/dendelt
-        
-        n079(:,OP_1) = 0.5*(den_edge-den0)*(1. + tanh(real(temp79a))) + den0
+     case(2)        
+        n079(:,OP_1) = den0
+        if(den0.ne.den_edge) then
+           temp79a = ((real(ps079(:,OP_1))-psimin)/(psibound-psimin) - denoff)&
+                /dendelt
+           n079(:,OP_1) = n079(:,OP_1) &
+                + .5*(den_edge-den0)*(1. + tanh(real(temp79a)))
+        end if
      end select
 
      if(ipellet.gt.0 .and. linear.eq.1) then
