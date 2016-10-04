@@ -167,9 +167,12 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
         end if
         dofs(i) = int2(mu79(:,OP_1,i),temp79a)
      end do
+     where(dofs.ne.dofs)
+        dofs = 0.
+     end where
      call vector_insert_block(te_f%vec,itri,1,dofs,VEC_ADD)
 
-     ! electron temperature
+     ! ion temperature
      do i=1, dofs_per_element
         if(linear.eq.1 .and. ilin.eq.1) then
            temp79a = pi179(:,OP_1)/n079(:,OP_1) &
@@ -186,6 +189,9 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
         end if
         dofs(i) = int2(mu79(:,OP_1,i),temp79a)
      end do
+     where(dofs.ne.dofs)
+        dofs = 0.
+     end where
      call vector_insert_block(ti_f%vec,itri,1,dofs,VEC_ADD)
   end do
 

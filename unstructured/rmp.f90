@@ -263,7 +263,7 @@ subroutine calculate_external_fields(sf)
            temp79b = temp79b + (1e4/b0_norm)*gphi*scale_ext_field
            temp79c = temp79c + (1e4/b0_norm)*gz  *scale_ext_field
            if(sf(i)%vmec) then
-              temp79d = temp79d + p/p0_norm
+              temp79d = temp79d + p/p0_norm + pedge
            end if
 #endif
         end do
