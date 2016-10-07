@@ -13,15 +13,14 @@ subroutine wrrestart
   integer :: mmnn18, j1, numnodes, numelms
   integer :: ndofs
   integer, save :: ifirstrs = 1
-  character (len=30) :: fname, oldfname
+  character (len=30) :: fname
   vectype, allocatable :: data_buff(:)
 
-  call createfilename(fname, oldfname)
+  call createfilename(fname)
   numnodes = local_nodes()
   numelms = local_elements()
   mmnn18 = 0
   
-  if(ifirstrs .ne. 1) call rename(fname, oldfname)
   ifirstrs = 0
 
  if (myrank .eq. 0) &
@@ -124,7 +123,7 @@ subroutine rdrestart
   integer :: j1, numnodes, inumnodes
   integer :: inumelms, immnn18, inumvar, iiper, ijper, imyrank
   integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
-  character (len=30) :: fname, oldfname
+  character (len=30) :: fname
   integer :: ndofs
   integer :: iversion
   real :: vloopsave, pelletratesave
@@ -152,7 +151,7 @@ else
    if (myrank .eq. 0 .and. nplanes .ne. 1) &
      print *, '[M3D-C1 INFO] 3D Simulation with restart files: #ranks - ',maxrank
 
-  call createfilename(fname, oldfname)
+  call createfilename(fname)
   call m3dc1_field_getnumlocaldof(num_fields, ndofs)
   numnodes = local_nodes()
   numelms = local_elements()
@@ -307,7 +306,7 @@ subroutine rdrestart_2d23d
   integer :: i, j, numnodes, prev_numnodes, iversion
   integer :: prev_numelms, prev_mmnn18, prev_numvar, prev_iper, prev_jper, prev_myrank
   integer :: prev_maxrank, numelms, prev_eqsubtract, prev_linear, prev_comp
-  character (len=30) :: fname, oldfname
+  character (len=30) :: fname
   integer :: prev_ndofs1, ndofs1, prev_ndofs2, ndofs2, group_rank
   integer :: prev_ndofs1_pernode, prev_ndofs2_pernode, cur_ndofs1_pernode, cur_ndofs2_pernode 
   real :: vloopsave, pelletratesave
@@ -540,7 +539,7 @@ subroutine rdrestart_cplx
   integer :: j1, numnodes, inumnodes
   integer :: inumelms, immnn18, inumvar, iiper, ijper, imyrank
   integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
-  character (len=30) :: fname, oldfname
+  character (len=30) :: fname
   integer :: ndofs
   integer :: iversion
   real :: vloopsave, pelletratesave
@@ -548,7 +547,7 @@ subroutine rdrestart_cplx
   real :: tmprestart
 
 
-  call createfilename(fname, oldfname)
+  call createfilename(fname)
   call m3dc1_field_getnumlocaldof(num_fields, ndofs)
   numnodes = local_nodes()
   numelms = local_elements()
@@ -739,11 +738,11 @@ print *, '[M3D-C1 ERROR] failed reading restart file'
 end subroutine rdrestart_cplx
 
 !============================================================
-subroutine createfilename(filename, oldfilename)
+subroutine createfilename(filename)
   implicit none
 
   include 'mpif.h'
-  character (len=30) :: filename, oldfilename
+  character (len=30) :: filename
   character (len=5) :: charprocnum
   integer :: myrank, j, ier, i
 
@@ -780,7 +779,6 @@ subroutine createfilename(filename, oldfilename)
   enddo
 
   filename = 'C1restart'//charprocnum
-  oldfilename = 'C1restarto'//charprocnum
   
   return
 end subroutine createfilename
@@ -848,7 +846,6 @@ subroutine wrrestartglobal
   data ifirstrs2/1/
 
   if(ifirstrs2 .ne. 1 .and. myrank .eq. 0) then
-     call rename('C1restart', 'C1restarto')
   endif
 
   ifirstrs2 = 0
@@ -875,7 +872,6 @@ subroutine wrrestartglobal
 #endif
      endfile 56
   else
-     if(ifirstrs2 .ne. 1) call rename('C1restart', 'C1restarto')
      ifirstrs2 = 0
      open(56,file='C1restart',form='unformatted',status='replace', &
           action='write')
@@ -1077,12 +1073,11 @@ subroutine wrrestart_adios
   integer :: mmnn18, j1, numnodes, numelms
   integer :: ndofs_1, ndofs_2, i, j
   integer, save :: ifirstrs = 1
-  character (len=30) :: fname, oldfname
+  character (len=30) :: fname
 
   ! ADIOS variables declarations for matching gwrite_restart_c1.fh 
   integer             :: comm, ierr
   integer                 :: adios_err
-  integer*8               :: adios_groupsize, adios_totalsize
   integer*8               :: adios_handle 
   real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:)
   real, allocatable :: tmp_bf_field_1(:), tmp_bf_field_0(:)
@@ -1092,11 +1087,9 @@ subroutine wrrestart_adios
   integer :: useext
 
   fname="restart.bp"
-  oldfname="restarto.bp"
   numnodes = local_nodes()
   numelms = local_elements()
 
-  if(ifirstrs .ne. 1) call rename(fname, oldfname)
 
   !call numdofs(num_fields, ndofs_1)
   call m3dc1_field_getnumlocaldof(num_fields, ndofs_1)
@@ -1193,7 +1186,7 @@ subroutine rdrestart_adios
   integer :: cur_nnodes, prev_nnodes
   integer :: prev_nelms, prev_mmnn18, prev_numvar, prev_iper, prev_jper, prev_myrank
   integer :: prev_maxrank, cur_nelms, prev_eqsubtract, prev_linear, prev_comp
-  character (len=30) :: fname, oldfname
+  character (len=30) :: fname
   integer :: cur_ndofs1, cur_ndofs2, prev_ndofs1, prev_ndofs2
   real :: vloopsave
 
@@ -1225,7 +1218,6 @@ subroutine rdrestart_adios
   group_rank = modulo(myrank, group_size)
 
   fname="restart.bp"
-  oldfname="restarto.bp"
   cur_nnodes = local_nodes()
   cur_nelms = local_elements() 
   !call numdofs(num_fields, cur_ndofs1)

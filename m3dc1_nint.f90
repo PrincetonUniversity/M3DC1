@@ -894,13 +894,13 @@ contains
            efac = eta_fac * &
                 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
                 *zeff*lambda_coulomb*sqrt(ion_mass)
-           eta_max = eta_vac
+!          eta_max = eta_vac
 
-           if(eta_te_offset .gt.0) then
+!          if(eta_te_offset .gt.0) then
               twall = pedge*pefac/den_edge
               thalo = twall - eta_te_offset
               eta_max = efac*(thalo)**(-3./2.)
-           endif
+!          endif
  
            eta79 = 0.
            eta79(:,OP_1) = eta_max / efac
