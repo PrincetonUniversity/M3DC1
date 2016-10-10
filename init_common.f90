@@ -167,7 +167,7 @@ subroutine init_perturbations
      do i=1, npoints
         imr = magnetic_region(ps079(i,:), x_79(i), z_79(i))
         if(imr.eq.0) then
-           if(p079(i,OP_1).gt.pedge) then
+           if(real(p079(i,OP_1)).gt.pedge) then
               temp79a(i) = (p079(i,OP_1) - pedge)/p0
            else
               temp79a(i) = 0.
