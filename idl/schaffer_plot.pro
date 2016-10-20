@@ -25,7 +25,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        ntor = read_parameter('ntor',_EXTRA=extra)
    endif
 
-   r = radius_matrix(x,z,t)
+   itor = read_parameter('itor', _EXTRA=extra)
+   if(itor eq 1) then begin
+      r = radius_matrix(x,z,t)
+   endif else begin
+      r = 1.
+   endelse
 
    ; From Schaffer 2008
    ; Br_mn = [(2*pi)^2/S] * [J Br]_mn
@@ -37,14 +42,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    d = field_spectrum(field,x,z,psi0=psi0,i0=i0,fc=fc,tbins=bins,fbins=bins, $
                       m=m,pest=pest,boozer=boozer,hamada=hamada,_EXTRA=extra)
-   flux =fc.psi
+
    nflux=fc.psi_norm
-   angle=fc.theta
    q=fc.q
-   area = fc.area
       
    for i=0, fc.m-1 do begin
-      d[0,i,*] = d[0,i,*]/fc.area
+      d[0,i,*] = d[0,i,*]/fc.area/fc.dpsi_dchi
    end 
 
    if(n_elements(bmnfile) ne 0) then begin
@@ -62,12 +65,18 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        free_lun, ifile
    end
 
+   mu0 = !pi*4.e-7
+
    if(n_elements(bmncdf) ne 0) then begin
       if(keyword_set(profdata)) then begin
+         db = read_parameter('db', _EXTRA=extra)
          omega_i = flux_average('v_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
                                 bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra,$
                                fc=fc)
          omega_e = flux_average('ve_omega',flux=qflux,psi=psi0,x=x,z=z,t=t,$
+                                bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra,$
+                               fc=fc)
+         w_star_i = flux_average('omega_*i',flux=qflux,psi=psi0,x=x,z=z,t=t,$
                                 bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra,$
                                fc=fc)
          F = flux_average('I',flux=qflux,psi=psi0,x=x,z=z,t=t,fc=fc,$
@@ -78,25 +87,28 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                            bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
          den_e = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,fc=fc,$
                               bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+         omega_ExB = omega_i - w_star_i
       end
        
       plot, [1.0, 2.3], [-1.5, 1.5], /nodata
       for i=0, n_elements(nflux) - 1, 10 do begin
          oplot, fc.r[i,*], fc.z[i,*]
       end
-      wait, 1
 
       bpval = fltarr(n_elements(m), n_elements(nflux))
       bpval = field_at_point(bp, x, z, fc.r, fc.z)
        
       id = ncdf_create(bmncdf, /clobber)
       ncdf_attput, id, 'ntor', fix(ntor), /short, /global
+      ncdf_attput, id, 'version', 1, /short, /global
       n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
       m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
+      psi_norm_var = ncdf_vardef(id, 'psi_norm', [n_id], /float)
       psi_var = ncdf_vardef(id, 'psi', [n_id], /float)
       flux_pol_var = ncdf_vardef(id, 'flux_pol', [n_id], /float)
       q_var = ncdf_vardef(id, 'q', [n_id], /float)
       area_var = ncdf_vardef(id, 'area', [n_id], /float)
+      current_var = ncdf_vardef(id, 'current', [n_id], /float)
       if(keyword_set(profdata)) then begin
          p_var = ncdf_vardef(id, 'p', [n_id], /float)
          F_var = ncdf_vardef(id, 'F', [n_id], /float)
@@ -104,6 +116,11 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
          ne_var = ncdf_vardef(id, 'ne', [n_id], /float)
          omega_i_var = ncdf_vardef(id, 'omega_i', [n_id], /float)
          omega_e_var = ncdf_vardef(id, 'omega_e', [n_id], /float)
+         omega_e_var = ncdf_vardef(id, 'omega_ExB', [n_id], /float)
+         if(keyword_set(boozer)) then begin
+            alpha_real_var = ncdf_vardef(id, 'alpha_real', [m_id,n_id], /float)
+            alpha_imag_var = ncdf_vardef(id, 'alpha_imag', [m_id,n_id], /float)
+         end
       end
       m_var = ncdf_vardef(id, 'm', [m_id], /short)
       bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
@@ -112,11 +129,13 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       zpath_var = ncdf_vardef(id, 'zpath', [m_id,n_id], /float)
       bp_var = ncdf_vardef(id, 'Bp', [m_id,n_id], /float)
       ncdf_control, id, /endef
-      ncdf_varput, id, 'psi', nflux
-      ncdf_varput, id, 'flux_pol', flux
+      ncdf_varput, id, 'psi_norm', fc.psi_norm
+      ncdf_varput, id, 'psi', fc.psi
+      ncdf_varput, id, 'flux_pol', fc.flux_pol
       ncdf_varput, id, 'm', m
       ncdf_varput, id, 'q', q
-      ncdf_varput, id, 'area', area
+      ncdf_varput, id, 'area', fc.area
+      ncdf_varput, id, 'current', fc.current/mu0
       if(keyword_set(profdata)) then begin
          ncdf_varput, id, 'p', reform(p)
          ncdf_varput, id, 'F', reform(F)
@@ -124,6 +143,18 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
          ncdf_varput, id, 'ne', reform(den_e)
          ncdf_varput, id, 'omega_e', reform(omega_e)
          ncdf_varput, id, 'omega_i', reform(omega_i)
+         ncdf_varput, id, 'omega_ExB', reform(omega_ExB)
+
+         if(keyword_set(boozer)) then begin
+            alpha = reform(d[0,*,*])
+            for i=0, n_elements(m)-1 do begin
+               alpha[i,*] = complex(0,1)*fc.area[i]*alpha[i,*] $
+                            / (m*F[i] + ntor*fc.current[i]*mu0/(2.*!pi)) $
+                            / (2.*!pi)^4
+            end
+            ncdf_varput, id, 'alpha_real', real_part(alpha)
+            ncdf_varput, id, 'alpha_imag', imaginary(alpha)
+         end
       end
       ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
       ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
@@ -225,8 +256,8 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                  interpolate(nflux, indices[i]), $
                  interpolate(abs(q), indices[i]), $
                  interpolate(deriv(nflux, abs(q)), indices[i]), $
-                 interpolate(area, indices[i]), $
-                 interpolate(deriv(nflux, flux), indices[i])
+                 interpolate(fc.area, indices[i]), $
+                 interpolate(deriv(nflux, fc.psi), indices[i])
            end
        end
        if(n_elements(outfile) ne 0) then begin

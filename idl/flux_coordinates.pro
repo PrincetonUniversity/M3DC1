@@ -2,7 +2,11 @@
 ; flux_coordinates
 ; ~~~~~~~~~~~~~~~~
 ; This function calculates flux coordinates and returns a structure
-; containing a description of the coordinate system
+; containing a description of the coordinate system 
+; (psi_norm, theta, zeta)
+; psi_norm increases outward from the axis, 
+; zeta increases counter-clockwise looking down from above
+; theta increases clockwise around magnetic axis
 ;
 ; INPUT
 ;  /pest     : use PEST angle (default is geometric angle)
@@ -85,19 +89,29 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
 
   print, 'Magnetic axis = ', axis
 
+;  ax = find_local_min(psi0, x, z, dfdr=psi0_r, dfdz=psi0_z, guess=axis)
+;  print, 'ax = ', ax
+;  stop
+
   m = tbins  ; number of poloidal points
   n = fbins  ; number of radial points
   
   if(n_elementS(psin_range) eq 0) then begin
      psi = (psi_s - flux0)*(findgen(n)+.5)/n + flux0
-     psi_norm = (psi - flux0)/(psi_s - flux0)
+     psin = (psi - flux0)/(psi_s - flux0)
   endif else begin
      dpsi = psi_s - flux0
      p0 = flux0 + (psi_s - flux0)*psin_range[0]
      p1 = flux0 + (psi_s - flux0)*psin_range[1]
      psi = (p1 - p0)*(findgen(n)+.5)/n + p0
-     psi_norm = (psi - flux0)/(psi_s - flux0)
+     psin = (psi - flux0)/(psi_s - flux0)
   endelse
+  dpsi_dpsin = psi_s - flux0
+  print, 'dpsi_dpsin = ', dpsi_dpsin
+
+  psin0 = (psi0 - flux0) / dpsi_dpsin
+  psin0_r = psi0_r / dpsi_dpsin
+  psin0_z = psi0_z / dpsi_dpsin
 
   theta = 2.*!pi*findgen(m)/m
   rpath = fltarr(m,n)
@@ -111,58 +125,60 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   area = fltarr(n)
   current = fltarr(n)
 
-  tol_psi = 1e-4*abs(psi_s - flux0)
+  tol_psin = 1e-4
   tol_r = 1e-4*(max(x) - min(x))
   maxits = 20
   rho_old = 0.
-  psi_old = 0.
+  psin_old = 0.
 
   tot = long(0)
 
+  ; find points on magnetic surfaces
   for i=0, m-1 do begin
-     co = cos(theta[i])
-     sn = sin(theta[i])
-     dpsi_drho = 0.
+     ; minus sign is because theta increases clockwise about axis
+     co = cos(-theta[i])
+     sn = sin(-theta[i])
+     dpsin_drho = 0.
      for j=0, n-1 do begin
-        ; do newton iterations to find (R,Z) at (psi, theta)
+        ; do newton iterations to find (R,Z) at (psin, theta)
         converged = 0
-        if(j eq 0 or dpsi_drho eq 0.) then begin
+        if(j eq 0 or dpsin_drho eq 0.) then begin
            rho = 0.001
         endif else begin
-           rho = rho + (psi[j]-psi[j-1])/dpsi_drho
+           rho = rho + (psin[j]-psin[j-1])/dpsin_drho
         endelse
         for k=0, maxits-1 do begin
            rpath[i,j] = rho*co + axis[0]
            zpath[i,j] = rho*sn + axis[1]
         
-           psi_x = field_at_point(psi0, x, z, rpath[i,j], zpath[i,j])
+           psin_x = field_at_point(psin0, x, z, rpath[i,j], zpath[i,j])
 
-           if(abs(psi_x - psi[j]) lt tol_psi) then begin
+           if(abs(psin_x - psin[j]) lt tol_psin) then begin
               converged = 1
               break
            endif
 
            if(keyword_set(fast)) then begin
               if((k eq 0 and j eq 0) $
-                 or abs(psi_x - psi_old) lt tol_psi $
+                 or abs(psin_x - psin_old) lt tol_psin $
                  or abs(rho - rho_old) lt tol_r) then begin
-                 psi_r = field_at_point(psi0_r, x, z, rpath[i,j], zpath[i,j])
-                 psi_z = field_at_point(psi0_z, x, z, rpath[i,j], zpath[i,j])
+                 psin_r = field_at_point(psin0_r, x, z, rpath[i,j], zpath[i,j])
+                 psin_z = field_at_point(psin0_z, x, z, rpath[i,j], zpath[i,j])
 
-                 dpsi_drho = psi_r*co + psi_z*sn
+                 dpsin_drho = psin_r*co + psin_z*sn
               endif else begin
-                 dpsi_drho = (psi_x - psi_old) / (rho - rho_old)
+                 dpsin_drho = (psin_x - psin_old) / (rho - rho_old)
               endelse
               rho_old = rho
-              psi_old = psi_x
+              psin_old = psin_x
 
            endif else begin
-              psi_r = field_at_point(psi0_r, x, z, rpath[i,j], zpath[i,j])
-              psi_z = field_at_point(psi0_z, x, z, rpath[i,j], zpath[i,j])
+              psin_r = field_at_point(psin0_r, x, z, rpath[i,j], zpath[i,j])
+              psin_z = field_at_point(psin0_z, x, z, rpath[i,j], zpath[i,j])
                    
-              dpsi_drho = psi_r*co + psi_z*sn
+              dpsin_drho = psin_r*co + psin_z*sn
            end
-           drho = (psi[j] - psi_x)/dpsi_drho
+           drho = (psin[j] - psin_x)/dpsin_drho
            if(rho + drho lt 0.) then begin
               rho = rho / 2.
            endif else begin
@@ -171,7 +187,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         end
         tot = tot + k
         if(converged eq 0) then begin
-           print, 'Error at (psi_n, theta) = ', psi_norm[j], theta[i]
+           print, 'Error at (psi_n, theta) = ', psin[j], theta[i]
            print, 'Did not converge after, ', maxits, ' iterations.', $
                   rho, rpath[i,j], zpath[i,j]
            rho = 0.001
@@ -184,9 +200,11 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
 
 ;  find pest angle
   if(psi_s lt flux0) then begin
+     print, 'Ip > 0'
      print, 'grad(psi) is inward'
      fac = -1.
   endif else begin
+     print, 'Ip < 0'
      print, 'grad(psi) is outward'
      fac = 1.
   endelse
@@ -213,19 +231,19 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      
      for i=0, m-1 do begin
 
-        bp[i] = fac*field_at_point(gradpsi,x,z,rpath[i,j],zpath[i,j])/rp[i,j]
+        bp[i] = field_at_point(gradpsi,x,z,rpath[i,j],zpath[i,j])/rp[i,j]
 
         if(not keyword_set(fast)) then begin
            ix = field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
-           ; dtheta/dl = -1./(Bp*Jac)
+           ; dtheta/dl ~ 1./(Bp*Jac)
            if(keyword_set(pest)) then begin
-              dthetadl[i] = -ix/(rp[i,j]^2*bp[i])
+              dthetadl[i] = -fac*ix/(rp[i,j]^2*bp[i])
            endif else if(keyword_set(boozer)) then begin
-              dthetadl[i] = -(bp[i]^2 + (ix/rp[i,j])^2) / bp[i]
+              dthetadl[i] = -fac*(bp[i]^2 + (ix/rp[i,j])^2) / bp[i]
            endif else if(keyword_set(hamada)) then begin
-              dthetadl[i] = -1./bp[i]
+              dthetadl[i] = -fac*1./bp[i]
            endif
-           fjr2[i] = -ix/(rp[i,j]^2*bp[i])
+           fjr2[i] = -fac*ix/(rp[i,j]^2*bp[i])
            
            if(i eq 0) then begin
               theta_sfl[i,j] = 0.
@@ -237,13 +255,13 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         end
      end
      
-     current[j] = -total(br*dr + bz*dz)
+     current[j] = total(br*dr + bz*dz)
      area[j] = period*total(dl*rp[*,j])
-     dV[j] = period*total(dl/bp)
+     dV[j] = period*total(fac*dpsi_dpsin*dl/bp)
      if(j eq 0) then begin
-        V[j] = dV[j]*(psi[j]-flux0)
+        V[j] = dV[j]*psin[j]/2.
      endif else begin
-        V[j] = V[j-1] + (dV[j]+dV[j-1])*(psi[j]-psi[j-1])/2.
+        V[j] = V[j-1] + (dV[j]+dV[j-1])*(psin[j]-psin[j-1])/2.
      endelse
 
      ; calculate q
@@ -257,9 +275,9 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
            
         ; calculate toroidal flux
         if(j eq 0) then begin
-           phi[j] = -2.*!pi*q[j]*(psi[j]-flux0)
+           phi[j] = -period*q[j]*(psi[j]-flux0)
         endif else begin
-           phi[j] = phi[j-1] - 2.*!pi*(q[j]+q[j-1])*(psi[j]-psi[j-1])/2.
+           phi[j] = phi[j-1] - period*(q[j]+q[j-1])*(psi[j]-psi[j-1])/2.
         endelse
      end
                 
@@ -297,17 +315,17 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         ; use analytic expression for Jacobian
         if(keyword_set(pest)) then begin
            for i=0,m-1 do begin
-              jac[i,j] = rp[i,j]^2*q[j] / $
+              jac[i,j] = -dpsi_dpsin*rp[i,j]^2*q[j] / $
                          field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
            end
         endif else if(keyword_set(boozer)) then begin
            b2r2 = i0^2 + psi0_r^2 + psi0_z^2
            for i=0,m-1 do begin
-              jac[i,j] = f[j]*rp[i,j]^2 / $
+              jac[i,j] = -dpsi_dpsin*f[j]*rp[i,j]^2 / $
                          field_at_point(b2r2,x,z,rpath[i,j],zpath[i,j])
            end
         endif else if(keyword_set(hamada)) then begin
-           jac[*,j] = f[j]
+           jac[*,j] = -dpsi_dpsin*f[j]
         end
      end
      
@@ -322,14 +340,14 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   dr_dtheta = rpath
   dz_dtheta = zpath
   for i=0, m-1 do begin
-     dr_dpsi[i,*] = deriv(psi, rpath[i,*])
-     dz_dpsi[i,*] = deriv(psi, zpath[i,*])
+     dr_dpsi[i,*] = deriv(psin, rpath[i,*])
+     dz_dpsi[i,*] = deriv(psin, zpath[i,*])
   end
   for j=0, n-1 do begin
      dr_dtheta[*,j] = deriv(theta, rpath[*,j])
      dz_dtheta[*,j] = deriv(theta, zpath[*,j])
   end
-  jac_test = dr_dtheta*dz_dpsi - dr_dpsi*dz_dtheta
+  jac_test = -(dr_dpsi*dz_dtheta - dr_dtheta*dz_dpsi)
   if(itor eq 1) then jac_test = jac_test*rpath
 
   if(mean(jac_test) lt 0) then begin
@@ -344,11 +362,21 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   end
 
   ; calculate deviation of toroidal angle from geometric toroidal angle
-  if(not keyword_set(pest) and not keyword_set(geo) $
+  ; omega = zeta - phi
+  if(not keyword_set(geo) $
+;  if(not keyword_set(pest) and not keyword_set(geo) $
      and not keyword_set(fast)) then begin
+     ; q B.Grad(theta) = q*dpsi_dpsin/Jac = B.Grad(zeta)
+     ; q B.Grad(theta_pest) = q*dpsi_dpsin/Jac_pest = B.Grad(phi) = I/R^2
+     ; B.Grad(zeta) - B.Grad(phi) = 1/Jac - 1/Jac_pest = (1-Jac/Jac_pest)/Jac
+
+     ; d(zeta - phi) = (1 - Jac/Jac_pest)/Jac dl
+     ; dtheta = psi'/(Jac*Bp) dl
+     ; d(zeta - phi) = (Bp/psi') * (1 - Jac/Jac_pest)
+
      for j=0, n-1 do begin
         for i=0, m-1 do begin
-           jac_pest = rp[i,j]^2*q[j] / $
+           jac_pest = -dpsi_dpsin*rp[i,j]^2*q[j] / $
                       field_at_point(i0,x,z,rpath[i,j],zpath[i,j])
            if(i eq 0) then begin
               omega[i,j] = 0.
@@ -365,12 +393,14 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   end
 
   ; Define flux coordinates structure
+  ; psi = poloidal flux
+  ; phi = toroidal flux
   fc = { m:m, n:n, r:rpath, z:zpath, r0:axis[0], z0:axis[1], omega:omega, $
-         psi1:psi_s, psi0:flux0, psi:psi, psi_norm:psi_norm, theta:theta, $
-         j:jac, q:q, area:area, dV:dV, pest:keyword_set(pest), $
+         psi:psi, psi_norm:psin, flux_pol:-period*(psi-psi[0]), theta:theta, $
+         j:jac, q:q, area:area, dV_dchi:dV, pest:keyword_set(pest), $
          boozer:keyword_set(boozer), hamada:keyword_set(hamada), $
-         V:V, phi:phi, phi_norm:phi/phi[n-1], rho:sqrt(phi/phi[n-1]), $
-         period:period, itor:itor, current:current}
+         V:V, flux_tor:phi, phi_norm:phi/phi[n-1], rho:sqrt(phi/phi[n-1]), $
+         period:period, itor:itor, current:current, dpsi_dchi:dpsi_dpsin}
 
   if(keyword_set(makeplot)) then begin
 
@@ -388,21 +418,22 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
 
      window, 1
                                 ; plot jacobian
-;     contour, alog10(abs(jac)), theta, psi_norm, $
+;     contour, alog10(abs(jac)), theta, psin, $
 ;              xtitle='!7h!X', ytitle='!7W!X', $
 ;              xrange=[0,2*!pi], xstyle=1, /follow
-     contour_and_legend, jac, theta, psi_norm, table=39, $
-                         xtitle='!7h!X', ytitle='!7W!X', /lines
+     contour_and_legend, jac, theta, psin, table=39, $
+                         xtitle='!7h!X', ytitle='!7W!X', /lines, $
+                         _EXTRA=extra
 
      ; plot q
      window, 0
      !p.multi = [0,2,3]
-     plot, psi_norm, q, xtitle='!7W!X', ytitle='!8q!X'
-     plot, psi_norm, V, xtitle='!7W!X', ytitle='!8V!X'
-     plot, psi_norm, area, xtitle='!7W!X', ytitle='!8A!X'
-     plot, psi_norm, current, xtitle='!7W!X', ytitle='!8I!X'
-     plot, psi_norm, omega, xtitle='!7W!X', ytitle='!7x!X'
-     plot, psi_norm, phi, xtitle='!7W!X', ytitle='!7u!D!8T!N!X'
+     plot, psin, q, xtitle='!7W!X', ytitle='!8q!X'
+     plot, psin, V, xtitle='!7W!X', ytitle='!8V!X'
+     plot, psin, area, xtitle='!7W!X', ytitle='!8A!X'
+     plot, psin, current, xtitle='!7W!X', ytitle='!8I!X'
+     plot, theta, omega[*,20], xtitle='!7W!X', ytitle='!7x!X'
+     plot, psin, phi, xtitle='!7W!X', ytitle='!7u!D!8T!N!X'
      !p.multi=0
   end
 
