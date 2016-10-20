@@ -1,7 +1,7 @@
 function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                            fbins=fbins,  tbins=tbins, flux=flux, angle=angle, $
                            psirange=frange, nflux=nflux, qval=q, pest=pest, $
-                           dV=dV, volume=volume, _EXTRA=extra, qflux=qflux, $
+                           volume=volume, _EXTRA=extra, qflux=qflux, $
                            fc=fc
 
   if(n_elements(field) le 1) then begin
@@ -17,7 +17,6 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                            psi0=psi,i0=i0,/fast,x=x,z=z,pest=pest)
   end
 
-  dV = fc.dV
   volume = fc.v
   flux = fc.psi
   nflux = fc.psi_norm
