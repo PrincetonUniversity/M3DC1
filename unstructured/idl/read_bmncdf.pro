@@ -7,9 +7,20 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
 
      id = ncdf_open(filename)
 
+     result = ncdf_attinq(id, /global, "version")
+     if(result.length eq 0) then begin
+        version = 0
+     endif else begin
+        ncdf_attget, id, /global, "version", version
+     end
+
      bmnr_id = ncdf_varid(id, "bmn_real")
      bmni_id = ncdf_varid(id, "bmn_imag")
-     psi_id = ncdf_varid(id, "psi")
+     if(version eq 0) then begin
+        psi_id = ncdf_varid(id, "psi")
+     endif else begin
+        psi_id = ncdf_varid(id, "psi_norm")
+     end
      m_id = ncdf_varid(id, "m")
      q_id = ncdf_varid(id, "q")
      flux_pol_id = ncdf_varid(id, "flux_pol")

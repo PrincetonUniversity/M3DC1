@@ -2,7 +2,7 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
               ytitle=ytitle, width=width, current=cur, $
               netcdf=netcdf, chirikov=chi, sum_files=sum_files, $
               color=c, overplot=overplot, monochrome=bw, $
-              linestyle=linestyle, $
+              linestyle=linestyle, out=out, $
               _EXTRA=extra
 
    if(n_elements(cur) eq 0) then cur=1.
@@ -49,6 +49,20 @@ pro plot_bmn, filename, vac=vac, names=names, nolegend=nolegend, $
    for i=0, n_elements(bmn[*,0])-1 do begin
        oplot, psin[i,*], bmn[i,*], color=c[i], linestyle=linestyle[i]
        oplot, psin[i,*], bmn[i,*], color=c[i], psym=sym[i mod 4]
+    end
+
+   if(n_elements(out) gt 0) then begin
+      if(n_elements(out) eq 1 and n_elements(bmn[*,0]) gt 1) then begin
+         out = replicate(out, n_elements(bmn[*,0]))
+         out = out + string(indgen(n_elements(bmn[*,0]))+1,format='(I0)')
+      end
+      for i=0, n_elements(bmn[*,0])-1 do begin
+         openw, ifile, out[i], /get_lun
+         for j=1, n_elements(bmn[0,*])-1 do begin
+            printf, ifile, psin[i,j], bmn[i,j]
+         end
+         free_lun, ifile    
+      end
    end
 
    if(n_elements(vac) gt 0) then begin

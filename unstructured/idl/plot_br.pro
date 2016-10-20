@@ -77,7 +77,6 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
    endif
 
 
-   r = radius_matrix(x,z,t)
    y = z_matrix(x,z,t)
 
    ; calculate B.grad(psi)

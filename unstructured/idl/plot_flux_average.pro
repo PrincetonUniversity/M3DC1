@@ -137,7 +137,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                      name=title, symbol=symbol, units=units, bins=bins, $
                      psi=psi,x=x,z=z,t=t,nflux=nflux,linear=linear, fac=fac, $
                      mks=mks, cgs=cgs, area=area, integrate=integrate, $
-                     linfac=linfac, sum=sum, _EXTRA=extra, $
+                     linfac=linfac, sum=sum, _EXTRA=extra, fc=fc, $
                      complex=complex, abs=abs, phase=phase, stotal=total)
 
    if(n_elements(fa) le 1) then begin
@@ -182,9 +182,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
                           mks=mks, cgs=cgs, fac=fac)
        xtitle = '!12<' + xtitle + '!12> !6 ('+units+')!X'
    endif else if(keyword_set(rho)) then begin
-       flux = flux_average('flux_t',points=pts,file=filename,/equilibrium,$
-                           bins=bins,slice=time, fac=fac)
-       flux = sqrt((flux - flux[0])/(flux[n_elements(flux)-1] - flux[0]))
+       flux = fc.rho
        lcfs_psi = 1.
        xtitle = '!7q!X'
    endif
