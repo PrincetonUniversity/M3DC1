@@ -84,14 +84,11 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      end
   endelse
 
-  psi_s = lcfs(psi0, x, z, $
-          axis=axis, xpoint=xpoint, flux0=flux0, _EXTRA=extra)
+  psi_s = lcfs(psi0, x, z, axis=axis, xpoint=xpoint, flux0=flux0, $
+               /refine, _EXTRA=extra)
 
   print, 'Magnetic axis = ', axis
-
-;  ax = find_local_min(psi0, x, z, dfdr=psi0_r, dfdz=psi0_z, guess=axis)
-;  print, 'ax = ', ax
-;  stop
+  print, 'flux0, psi_s = ', flux0, psi_s
 
   m = tbins  ; number of poloidal points
   n = fbins  ; number of radial points
