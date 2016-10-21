@@ -26,6 +26,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
 
    if(n_elements(multiply_flux) eq 0) then multiply_flux = 0.
 
+   if(n_elements(norm) eq 0) then norm=1
+   
    if(n_elements(field) gt 1) then begin
        if(keyword_set(bw)) then begin
            ls = indgen(nfiles)
@@ -168,11 +170,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        end
    end
 
-   if(keyword_set(norm)) then begin
-       flux = nflux
-       xtitle = '!7W!X'
-       lcfs_psi = 1.
-   endif else if(keyword_set(srnorm)) then begin
+   if(keyword_set(srnorm)) then begin
        flux = sqrt(nflux)
        xtitle = '!9r!7W!X'
        lcfs_psi = 1.
@@ -185,7 +183,11 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        flux = fc.rho
        lcfs_psi = 1.
        xtitle = '!7q!X'
-   endif
+   endif else if(norm ne 0) then begin
+       flux = nflux
+       xtitle = '!7W!X'
+       lcfs_psi = 1.
+   end
 
    if(keyword_set(regularize)) then begin
       print, 'REGULARIZING'
