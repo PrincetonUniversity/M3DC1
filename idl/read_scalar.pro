@@ -215,7 +215,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
    endif else if $
      (strcmp("time", scalarname, /fold_case) eq 1) then begin
        data = s.time._data
-       title = 'Angular Momentum'
+       title = 'Time'
        symbol = '!8t!X'
        d = dimensions(/t0, _EXTRA=extra)
    endif else if (strcmp("circulation", scalarname, /fold_case) eq 1) or $
