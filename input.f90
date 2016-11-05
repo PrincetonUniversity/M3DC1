@@ -664,7 +664,7 @@ subroutine set_defaults
 
   ! beam source
   call add_var_int("ibeam", ibeam, 0, &
-       "1: Include neutral beam source", source_grp)
+       "GE 1: Include neutral beam source", source_grp)
   call add_var_double("beam_x", beam_x, 0., &
        "R-coordinate of beam center", source_grp)
   call add_var_double("beam_z", beam_z, 0., &
@@ -1201,13 +1201,15 @@ subroutine validate_input
        (igaussian_heat_source.eq.1 .or. &
        (ibeam.ge.1 .and. ibeam.le.4) .or. &
        iread_heatsource.eq.1 .or. &
-       iheat_sink.eq.1 .or. &
-       iprad.ne.0)
+       iheat_sink.eq.1)
+
+  rad_source = linear.eq.0 .and. (numvar.ge.3 .or. ipres.eq.1) .and. iprad.ne.0
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
      print *, 'Density source: ', density_source
      print *, 'Momentum source: ', momentum_source
      print *, 'Heat source: ', heat_source
+     print *, 'Radiation source: ', rad_source
   end if
 
   if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
@@ -1228,6 +1230,12 @@ subroutine validate_input
      if(eta_te_offset .ge. twall) then
         print *, 'Error: eta_te_offset .gt. twall=pedge*pefac/den_edge'
         call safestop(1)
+     endif
+  endif
+  if(rad_source .and. myrank.eq.0) then
+     if( (prad_z .ne. 6) .and. (prad_z .ne. 18) .and. (prad_z .ne. 26) ) then
+         print *, 'your prad_z =', prad_z
+         print *, 'Warning:  prad only implemented for prad_z=6,18,26'
      endif
   endif
 

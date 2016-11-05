@@ -24,6 +24,7 @@ module basic
   logical :: density_source
   logical :: momentum_source
   logical :: heat_source
+  logical :: rad_source
 
   ! normalizations
   real :: b0_norm     ! magnetic field normalization (in Gauss)
@@ -255,6 +256,7 @@ module basic
   integer :: ieq_bdotgradt ! 1 = include equilibrium parallel T gradient term
   integer :: icsubtract  ! 1 = subtract fields from poloidal field coils
   integer :: kinetic     ! 1 = use kinetic PIC hot ion pressure tensor
+                         ! 2 = CGL form for the pressure tensor
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -431,7 +433,7 @@ module arrays
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
   type(field_type) :: resistivity_field, kappa_field
-  type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
+  type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field, Rad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
 
   type(field_type) :: temporary_field

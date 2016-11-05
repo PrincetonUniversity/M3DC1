@@ -305,6 +305,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
+  call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
@@ -1331,6 +1332,16 @@ subroutine output_fields(time_group_id, equilibrium, error)
           call calcavector(i, Q_field, dum(:,i))
        end do
        call output_field(group_id, "heat_source", real(dum), &
+            coeffs_per_element, nelms, error)
+       nfields = nfields + 1
+    endif
+    
+    ! radiation source
+    if(rad_source) then
+       do i=1, nelms
+          call calcavector(i, Rad_field, dum(:,i))
+       end do
+       call output_field(group_id, "rad_source", real(dum), &
             coeffs_per_element, nelms, error)
        nfields = nfields + 1
     endif

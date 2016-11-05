@@ -302,6 +302,7 @@ iadapt_max_node, adapt_control);
        if(ipforce.gt.0) pmach_field = 0.
        if(momentum_source) Fphi_field = 0.
        if(heat_source) Q_field = 0.
+       if(rad_source) Rad_field = 0.
        if(icd_source.gt.0) cd_field = 0.
        bf_field(0) = 0.
        bf_field(1) = 0.

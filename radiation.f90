@@ -152,8 +152,8 @@ contains
             (/4,6/),(/0./),(/2,1/))
 
     case default
-       print *, 'Z = ', Z, ' not implemented in Prad module.'
-       print *, "Z's implemented: 6, 18, 26"
+       !  print *, 'Z = ', Z, ' not implemented in Prad module.'
+       !  print *, "Z's implemented: 6, 18, 26"
        ierr = 1
        return
 

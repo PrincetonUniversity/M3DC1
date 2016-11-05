@@ -271,8 +271,8 @@ end function pmach_func
 ! Heat Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~
 !
-! NOTE: When adding heat source, make sure that
-! heat_source is set to .true.
+! NOTE: When adding heat source and radiation source, make sure that
+! heat_source and rad_source are set to .true.
 ! ==================================================
 vectype function q_func(i, izone)
   use math
@@ -359,6 +359,31 @@ vectype function q_func(i, izone)
      temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
+
+  q_func = temp
+end function q_func
+vectype function rad_func(i, izone)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+  use read_ascii
+  use radiation
+  use basicq
+
+  implicit none
+
+  integer, intent(in) :: i, izone
+  vectype :: temp
+  integer :: nvals, j, magnetic_region, ierr, ier
+  real :: val, valp, valpp, pso, rsq, coef
+  real, allocatable :: xvals(:), yvals(:)
+  real, dimension(MAX_PTS) :: r
+
+  temp = 0.
+
+
   ! Radiation
   if(iprad.eq.1) then
      if(itemp.eq.1) then
@@ -381,12 +406,13 @@ vectype function q_func(i, izone)
 
      ! convert output to normalized units
      temp79a = temp79a * 10. / (p0_norm / t0_norm)
+!
      
      temp = temp - int2(mu79(:,OP_1,i),temp79a)
   end if
 
-  q_func = temp
-end function q_func
+  rad_func = temp
+end function rad_func
 
 ! Current Drive sources
 ! ~~~~~~~~~~~~~~~~~~
@@ -807,9 +833,9 @@ subroutine define_transport_coefficients()
 
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
-       solve_visc_e, solve_q, solve_cd, solve_f, solve_fp
+       solve_visc_e, solve_q, solve_rad, solve_cd, solve_f, solve_fp
 
-  integer, dimension(9) :: temp, temp2
+  integer, dimension(10) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
   ! transport coefficients are only calculated once in linear mode
@@ -827,6 +853,7 @@ subroutine define_transport_coefficients()
   solve_visc_e = .false.
   solve_f = .false.
   solve_q = .false.
+  solve_rad = .false.
   solve_cd = .false.
   solve_fp = .false.
 
@@ -838,6 +865,7 @@ subroutine define_transport_coefficients()
   if(density_source) sigma_field = 0.  
   if(momentum_source) Fphi_field = 0.
   if(heat_source) Q_field = 0.
+  if(rad_source) Rad_field = 0.
   if(icd_source .gt. 0) cd_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
   if(ipforce.gt.0) pforce_field = 0.
@@ -930,6 +958,16 @@ subroutine define_transport_coefficients()
              call vector_insert_block(Q_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
+     if(rad_source) then
+        do i=1, dofs_per_element
+           dofs(i) = rad_func(i, izone)
+           if(.not.solve_rad) solve_rad = dofs(i).ne.0.
+        end do
+!
+        if(solve_rad) &
+             call vector_insert_block(Rad_field%vec,itri,1,dofs,VEC_ADD)
+     end if
+
     if(icd_source .gt. 0) then
         do i=1, dofs_per_element
            dofs(i) = cd_func(i)
@@ -964,7 +1002,8 @@ subroutine define_transport_coefficients()
      if(solve_q)           temp(7) = 1
      if(solve_fp)          temp(8) = 1
      if(solve_cd)          temp(9) = 1
-     call mpi_allreduce(temp,temp2,9,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+     if(solve_rad)         temp(10) = 1
+     call mpi_allreduce(temp,temp2,10,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
      solve_resistivity = temp2(1).eq.1
      solve_kappa       = temp2(2).eq.1
      solve_sigma       = temp2(3).eq.1
@@ -974,6 +1013,7 @@ subroutine define_transport_coefficients()
      solve_q           = temp2(7).eq.1
      solve_fp          = temp2(8).eq.1
      solve_cd          = temp2(9).eq.1
+     solve_rad         = temp2(10).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -1011,6 +1051,11 @@ subroutine define_transport_coefficients()
   if(solve_q) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Q'
      call newvar_solve(Q_field%vec, mass_mat_lhs_dc)
+  endif
+
+  if(solve_rad) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Rad'
+     call newvar_solve(Rad_field%vec, mass_mat_lhs_dc)
   endif
 
   if(solve_cd) then

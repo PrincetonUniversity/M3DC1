@@ -4120,7 +4120,7 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
   ! ~~~~~~~~~~~~
   if(gam.ne.1.) then
      ! heat source
-     r4term = r4term + dt*(gam-1.)*b3q(trial,q79)
+     r4term = r4term + dt*(gam-1.)*(b3q(trial,q79) + b3q(trial,rad79))
 
      ! hyper-ohmic heating
      if(db.ne.0.) then 
@@ -4367,6 +4367,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PF
   if(heat_source) def_fields = def_fields + FIELD_Q
   if(icd_source.gt.0) def_fields = def_fields + FIELD_CD
+  if(rad_source) def_fields = def_fields + FIELD_RAD
 
   if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0) then
      def_fields = def_fields + FIELD_B2I

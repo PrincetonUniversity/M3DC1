@@ -71,6 +71,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_PF  =2097152
   integer, parameter :: FIELD_ES  =4194304
   integer, parameter :: FIELD_CD  =8388608
+  integer, parameter :: FIELD_RAD  =16777216
 
   vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
@@ -85,7 +86,7 @@ module m3dc1_nint
        pht79, vzt79, cht79, pt79, net79
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, fy79, q79, cd79
+       eta79, sig79, fy79, q79, cd79, rad79
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
@@ -1009,6 +1010,17 @@ contains
      call eval_ops(itri, Q_field, q79)
   else
      q79 = 0.
+  end if
+
+  ! Rad
+  ! ~
+  if((iand(fields, FIELD_RAD).eq.FIELD_RAD) &
+       .and. rad_source) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Rad..."
+
+     call eval_ops(itri, Rad_field, rad79)
+  else
+     rad79 = 0.
   end if
 
   ! cd
