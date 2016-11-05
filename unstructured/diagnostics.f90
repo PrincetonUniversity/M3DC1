@@ -12,7 +12,7 @@ module diagnostics
   real :: tflux0, totcur0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvol
@@ -186,6 +186,7 @@ contains
     wallcur = 0.
     tflux = 0.
     totden = 0.
+    totrad = 0.
     tmom = 0.
     tvor = 0.
     parea = 0.
@@ -230,7 +231,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 51
+    integer, parameter :: num_scalars = 52
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -287,6 +288,7 @@ contains
        temp(49) = nsource_pel
        temp(50) = temp_pel
        temp(51) = Lor_vol
+       temp(52) = totrad
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -343,6 +345,7 @@ contains
        nsource_pel = temp2(49)
        temp_pel = temp2(50)
        Lor_vol = temp2(51)
+       totrad = temp2(52)
 
 
     endif !if maxrank .gt. 1
@@ -613,7 +616,7 @@ subroutine calculate_scalars()
           + FIELD_N + FIELD_NI + FIELD_SIG
      if(numvar.ge.2) def_fields = def_fields + FIELD_I + FIELD_V
      if(numvar.ge.3) then
-        def_fields = def_fields + FIELD_CHI + FIELD_P + FIELD_KAP
+        def_fields = def_fields + FIELD_CHI 
      endif
 
      if(gyro.eq.1 .or. amupar.ne.0) then
@@ -621,8 +624,10 @@ subroutine calculate_scalars()
      endif
 
      if(numvar.ge.3 .or. ipres.eq.1) then
+        def_fields = def_fields + FIELD_P + FIELD_KAP
         if(hyper.eq.0.) def_fields = def_fields + FIELD_J
         if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
+        if(rad_source) def_fields = def_fields + FIELD_RAD
      end if
   endif
 
@@ -723,6 +728,8 @@ subroutine calculate_scalars()
      ! particle number
      totden = totden + twopi*int1(nt79(:,OP_1))/tpifac
      pden = pden + twopi*int2(nt79(:,OP_1),mr)/tpifac
+      ! radiation
+     totrad = totrad + twopi*int1(rad79(:,OP_1))/tpifac
 
      ! particle source
      if(idens.eq.1) then        
@@ -914,6 +921,7 @@ subroutine calculate_scalars()
      print *, "  Toroidal flux = ", tflux
      print *, "  Volume = ", volume
      print *, "  Total particles = ", totden
+     print *, "  Total radiation = ", totrad
      if(ipellet_abl.gt.0) then
         print *, "  nsource = ", nsource
         print *, "  pellet_rate = ", pellet_ablrate
@@ -2588,7 +2596,6 @@ subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
         sum3 = 0.
         sum4 = 0.
         sum5 = 0.
-!DEBUG
     exit newton
         do i=1, coeffs_per_tri
            sum = sum + avector(i)*si**mi(i)*eta**ni(i)
