@@ -811,6 +811,71 @@ vectype function electron_viscosity_func(i)
   electron_viscosity_func = temp
   return
 end function electron_viscosity_func
+vectype function be_func(i, izone)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+
+  implicit none
+
+  integer, intent(in) :: i, izone
+  vectype :: temp
+
+  temp = 0.
+!
+!   need to define this to be p_perp
+
+
+  be_func = temp
+  return
+end function be_func
+vectype function al_func(i, izone)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+
+  implicit none
+
+  integer, intent(in) :: i, izone
+  vectype :: temp
+
+  temp = 0.
+
+!
+!   need to define this as (p_parallel - p_perp)/B**2
+
+  al_func = temp
+  return
+end function al_func
+vectype function bs_func(i, izone)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+
+  implicit none
+
+  integer, intent(in) :: i, izone
+  vectype :: temp
+
+  temp = 0.
+  temp79a = ri2_79* &
+          (pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2 + bztx79(:,OP_1)**2)
+
+#if defined(USECOMPLEX) || defined(USE3D)
+     temp79b = (bftx79(:,OP_DRP)**2 + bftx79(:,OP_DZP)**2) &
+             + 2.*ri_79*(pstx79(:,OP_DZ)*bftx79(:,OP_DRP) - pstx79(:,OP_DR)*bftx79(:,OP_DZP))
+     temp79c(:) =  (temp79a(:) + temp79b(:))
+#else
+     temp79c(:) =  temp79a(:)
+#endif
+  temp = int2(mu79(:,OP_1,i),temp79c)
+
+  bs_func = temp
+  return
+end function bs_func
 
 
 ! define_transport_coefficients
@@ -833,9 +898,9 @@ subroutine define_transport_coefficients()
 
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
-       solve_visc_e, solve_q, solve_rad, solve_cd, solve_f, solve_fp
+       solve_visc_e, solve_q, solve_rad, solve_cd, solve_f, solve_fp, solve_be, solve_al, solve_bs
 
-  integer, dimension(10) :: temp, temp2
+  integer, dimension(13) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
   ! transport coefficients are only calculated once in linear mode
@@ -856,6 +921,9 @@ subroutine define_transport_coefficients()
   solve_rad = .false.
   solve_cd = .false.
   solve_fp = .false.
+  solve_be = .false.
+  solve_al = .false.
+  solve_bs = .false.
 
   ! clear variables
   resistivity_field = 0.
@@ -987,12 +1055,36 @@ subroutine define_transport_coefficients()
      end if
   end do
 
+     if(kinetic.gt.0) then
+        do i=1, dofs_per_element
+           dofs(i) = be_func(i, izone)
+           if(.not.solve_be) solve_be = dofs(i).ne.0.
+        end do
+        if(solve_be) &
+             call vector_insert_block(be_field%vec,itri,1,dofs,VEC_ADD)
+
+        do i=1, dofs_per_element
+           dofs(i) = al_func(i, izone)
+           if(.not.solve_al) solve_al = dofs(i).ne.0.
+        end do
+        if(solve_al) &
+             call vector_insert_block(al_field%vec,itri,1,dofs,VEC_ADD)
+
+        do i=1, dofs_per_element
+           dofs(i) = bs_func(i, izone)
+           if(.not.solve_bs) solve_bs = dofs(i).ne.0.
+        end do
+        if(solve_bs) &
+             call vector_insert_block(bs_field%vec,itri,1,dofs,VEC_ADD)
+     end if
+
   ! Solve all the variables that have been defined
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   ! make sure all processes agree on what needs to be solved
   if(maxrank.gt.1) then 
      temp = 0
+     temp2 = 0
      if(solve_resistivity) temp(1) = 1
      if(solve_kappa)       temp(2) = 1
      if(solve_sigma)       temp(3) = 1
@@ -1003,7 +1095,10 @@ subroutine define_transport_coefficients()
      if(solve_fp)          temp(8) = 1
      if(solve_cd)          temp(9) = 1
      if(solve_rad)         temp(10) = 1
-     call mpi_allreduce(temp,temp2,10,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+     if(solve_be)          temp(11) = 1
+     if(solve_al)          temp(12) = 1
+     if(solve_bs)          temp(13) = 1
+     call mpi_allreduce(temp,temp2,13,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
      solve_resistivity = temp2(1).eq.1
      solve_kappa       = temp2(2).eq.1
      solve_sigma       = temp2(3).eq.1
@@ -1014,6 +1109,9 @@ subroutine define_transport_coefficients()
      solve_fp          = temp2(8).eq.1
      solve_cd          = temp2(9).eq.1
      solve_rad         = temp2(10).eq.1
+     solve_be          = temp2(11).eq.1
+     solve_al          = temp2(12).eq.1
+     solve_bs          = temp2(13).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -1071,6 +1169,23 @@ subroutine define_transport_coefficients()
      call newvar_solve(pmach_field%vec, mass_mat_lhs)
 
   endif
+
+   if(kinetic.gt.0) then
+     if(solve_be) then
+        if(myrank.eq.0 .and. iprint.ge.1) print *, ' be'
+        call newvar_solve(be_field%vec, mass_mat_lhs)
+     endif
+
+     if(solve_al) then
+        if(myrank.eq.0 .and. iprint.ge.1) print *, ' al'
+        call newvar_solve(al_field%vec, mass_mat_lhs)
+     endif
+
+     if(solve_bs) then
+        if(myrank.eq.0 .and. iprint.ge.1) print *, ' cs'
+        call newvar_solve(bs_field%vec, mass_mat_lhs)
+     endif
+   endif
 
   ! the "compressible" viscosity is the same as the "incompressible"
   ! viscosity up to a constant

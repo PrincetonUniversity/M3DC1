@@ -2003,6 +2003,233 @@ vectype function v1psiforce(e,f,g)
   return
 end function v1psiforce
 
+! V1be
+! ===
+vectype function v1be(e,f)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int3(r_79,f(:,OP_DZ),e(:,OP_DR)) &
+             - int3(r_79,f(:,OP_DR),e(:,OP_DZ))
+     end if
+
+
+  v1be = temp
+  return
+end function v1be
+
+! V1albs
+! ===
+vectype function v1albs(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = .5*int4(r_79,f(:,OP_1),g(:,OP_DZ),e(:,OP_DR)) &
+             - .5*int4(r_79,f(:,OP_1),g(:,OP_DR),e(:,OP_DZ))
+     end if
+
+
+  v1albs = temp
+  return
+end function v1albs
+
+! V1alpsipsi
+! ===
+vectype function v1alpsipsi(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int5(ri_79,f(:,OP_DZ),g(:,OP_DR),e(:,OP_DR),h(:,OP_DR)) &
+             + int5(ri_79,f(:,OP_DZ),g(:,OP_DR),e(:,OP_DZ),h(:,OP_DZ)) &
+             - int5(ri_79,f(:,OP_DR),g(:,OP_DZ),e(:,OP_DR),h(:,OP_DR)) &
+             - int5(ri_79,f(:,OP_DR),g(:,OP_DZ),e(:,OP_DZ),h(:,OP_DZ)) &
+             - int5(ri_79,f(:,OP_1), g(:,OP_GS),h(:,OP_DZ),e(:,OP_DR)) &
+             + int5(ri_79,f(:,OP_1), g(:,OP_GS),h(:,OP_DR),e(:,OP_DZ))
+     end if
+
+  v1alpsipsi = temp
+  return
+end function v1alpsipsi
+
+! V1alpsif
+! ===
+vectype function v1alpsif(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = - int4(f(:,OP_DZ),g(:,OP_DR),h(:,OP_DZP),e(:,OP_DR)) &
+               + int4(f(:,OP_DZ),g(:,OP_DR),h(:,OP_DRP),e(:,OP_DZ)) &
+               + int4(f(:,OP_DR),g(:,OP_DZ),h(:,OP_DZP),e(:,OP_DR)) &
+               - int4(f(:,OP_DR),g(:,OP_DZ),h(:,OP_DRP),e(:,OP_DZ)) &
+
+               - int4(f(:,OP_DR),h(:,OP_DRP),e(:,OP_DR),g(:,OP_DR)) &
+               - int4(f(:,OP_DR),h(:,OP_DRP),e(:,OP_DZ),g(:,OP_DZ)) &
+               - int4(f(:,OP_DZ),h(:,OP_DZP),e(:,OP_DR),g(:,OP_DR)) &
+               - int4(f(:,OP_DZ),h(:,OP_DZP),e(:,OP_DZ),g(:,OP_DZ)) &
+
+               - int4(f(:,OP_1), g(:,OP_GS),e(:,OP_DR),h(:,OP_DRP)) &
+               - int4(f(:,OP_1), g(:,OP_GS),e(:,OP_DZ),h(:,OP_DZP))
+#endif
+     end if
+
+
+  v1alpsif = temp
+  return
+end function v1alpsif
+
+! V1alfb
+! ===
+vectype function v1alfb(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = -int5(ri_79,f(:,OP_DP),h(:,OP_1),g(:,OP_DZP),e(:,OP_DR)) &
+               +int5(ri_79,f(:,OP_DP),h(:,OP_1),g(:,OP_DRP),e(:,OP_DZ)) &
+               -int5(ri_79,f(:,OP_1),h(:,OP_1),g(:,OP_DZPP),e(:,OP_DR)) &
+               +int5(ri_79,f(:,OP_1),h(:,OP_1),g(:,OP_DRPP),e(:,OP_DZ))
+#endif
+     end if
+
+
+  v1alfb = temp
+  return
+end function v1alfb
+
+! V1alff
+! ===
+vectype function v1alff(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+         temp = int5(r_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_DZP),e(:,OP_DR)) &
+              - int5(r_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_DRP),e(:,OP_DZ)) &
+              + int5(r_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_DZP),e(:,OP_DR)) &
+              - int5(r_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_DRP),e(:,OP_DZ))
+#endif
+     end if
+
+
+  v1alff = temp
+  return
+end function v1alff
+
+! V1alpsib
+! ===
+vectype function v1alpsib(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = int5(ri2_79,f(:,OP_DP),h(:,OP_1),e(:,OP_DR),g(:,OP_DR)) &
+              +int5(ri2_79,f(:,OP_DP),h(:,OP_1),e(:,OP_DZ),g(:,OP_DZ)) &
+              +int5(ri2_79,f(:,OP_1),h(:,OP_1),e(:,OP_DR),g(:,OP_DRP)) &
+              +int5(ri2_79,f(:,OP_1),h(:,OP_1),e(:,OP_DZ),g(:,OP_DZP))
+#endif
+     end if
+
+
+  v1alpsib = temp
+  return
+end function v1alpsib
+
+! V1albb
+! ===
+vectype function v1albb(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = -int5(ri_79,f(:,OP_1),g(:,OP_1),h(:,OP_DZ),e(:,OP_DR)) &
+               +int5(ri_79,f(:,OP_1),g(:,OP_1),h(:,OP_DR),e(:,OP_DZ))
+     end if
+
+
+  v1albb = temp
+  return
+end function v1albb
+
 !============================================================================
 ! V2 TERMS
 !============================================================================
@@ -3201,6 +3428,224 @@ vectype function v2ff(e,f,g)
   v2ff = temp
   return
 end function v2ff
+
+
+! V2be
+! ===
+vectype function v2be(e,f)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = int2(e(:,OP_1),f(:,OP_DP))
+#endif
+     end if
+
+
+  v2be = temp
+  return
+end function v2be
+
+! V2albs
+! ===
+vectype function v2albs(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = .5*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DP))
+#endif
+     end if
+
+
+  v2albs = temp
+  return
+end function v2albs
+
+! V2alpsipsi
+! ===
+vectype function v2alpsipsi(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = -int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DRP)) &
+               -int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DZP))
+#endif
+     end if
+
+
+  v2alpsipsi = temp
+  return
+end function v2alpsipsi
+
+! V2alpsif
+! ===
+vectype function v2alpsif(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = -int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DRPP)) &
+               +int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DZPP)) &
+               -int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZP),h(:,OP_DRP)) &
+               +int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DRP),h(:,OP_DZP)) 
+#endif
+     end if
+
+
+  v2alpsif = temp
+  return
+end function v2alpsif
+
+! V2alfb
+! ===
+vectype function v2alfb(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = -int4(e(:,OP_1),g(:,OP_1),f(:,OP_DR),h(:,OP_DRP)) &
+               -int4(e(:,OP_1),g(:,OP_1),f(:,OP_DZ),h(:,OP_DZP)) &
+               -int4(e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DRP)) &
+               -int4(e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DZP)) 
+#endif
+     end if
+
+
+  v2alfb = temp
+  return
+end function v2alfb
+
+! V2alff
+! ===
+vectype function v2alff(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = -int4(e(:,OP_1),f(:,OP_1),g(:,OP_DZP),h(:,OP_DZPP)) &
+               -int4(e(:,OP_1),f(:,OP_1),g(:,OP_DZP),h(:,OP_DZPP)) 
+#endif
+     end if
+
+
+  v2alff = temp
+  return
+end function v2alff
+
+! V2alpsib
+! ===
+vectype function v2alpsib(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp =  int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DZ),g(:,OP_DR)) &
+               -int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DR),g(:,OP_DZ)) &
+               -int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DR)) &
+               +int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DZ)) 
+     end if
+
+
+  v2alpsib = temp
+  return
+end function v2alpsib
+
+! V2albb
+! ===
+vectype function v2albb(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp =  int5(ri2_79,e(:,OP_1),f(:,OP_DP),g(:,OP_1),h(:,OP_1))
+#endif
+     end if
+
+
+  v2albb = temp
+  return
+end function v2albb
 
 
 
@@ -5087,6 +5532,235 @@ vectype function v3psiforce(e,f,g)
   v3psiforce = temp
   return
 end function v3psiforce
+
+
+
+! V3be
+! ===
+vectype function v3be(e,f)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = -int3(ri2_79,f(:,OP_DR),e(:,OP_DR)) &
+               -int3(ri2_79,f(:,OP_DZ),e(:,OP_DZ))
+     end if
+
+
+  v3be = temp
+  return
+end function v3be
+
+! V3albs
+! ===
+vectype function v3albs(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = -.5*int4(ri2_79,f(:,OP_1),g(:,OP_DR),e(:,OP_DR)) &
+               -.5*int4(ri2_79,f(:,OP_1),g(:,OP_DZ),e(:,OP_DZ))
+     end if
+
+
+  v3albs = temp
+  return
+end function v3albs
+
+! V3alpsipsi
+! ===
+vectype function v3alpsipsi(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = - int5(ri4_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DZ),h(:,OP_DR)) &
+               + int5(ri4_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DR),h(:,OP_DZ)) &
+               + int5(ri4_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DZ),h(:,OP_DR)) &
+               - int5(ri4_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DR),h(:,OP_DZ)) &
+               + int5(ri4_79,f(:,OP_1), g(:,OP_GS),h(:,OP_DR),e(:,OP_DR)) &
+               + int5(ri4_79,f(:,OP_1), g(:,OP_GS),h(:,OP_DZ),e(:,OP_DZ))
+     end if
+
+  v3alpsipsi = temp
+  return
+end function v3alpsipsi
+
+! V3alpsif
+! ===
+vectype function v3alpsif(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = + int5(ri3_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DR),h(:,OP_DRP)) &
+               + int5(ri3_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DZ),h(:,OP_DZP)) &
+               - int5(ri3_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DR),h(:,OP_DRP)) &
+               - int5(ri3_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DZ),h(:,OP_DZP)) &
+
+               + int5(ri3_79,e(:,OP_DR),h(:,OP_DRP),f(:,OP_DZ),g(:,OP_DR)) &
+               - int5(ri3_79,e(:,OP_DR),h(:,OP_DRP),f(:,OP_DR),g(:,OP_DZ)) &
+               + int5(ri3_79,e(:,OP_DZ),h(:,OP_DZP),f(:,OP_DZ),g(:,OP_DR)) &
+               - int5(ri3_79,e(:,OP_DZ),h(:,OP_DZP),f(:,OP_DR),g(:,OP_DZ)) &
+
+               - int5(ri3_79,f(:,OP_1), g(:,OP_GS),e(:,OP_DR),h(:,OP_DZP)) &
+               + int5(ri3_79,f(:,OP_1), g(:,OP_GS),e(:,OP_DZ),h(:,OP_DRP))
+#endif
+     end if
+
+
+  v3alpsif = temp
+  return
+end function v3alpsif
+
+! V3alfb
+! ===
+vectype function v3alfb(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = +int5(ri4_79,f(:,OP_DP),h(:,OP_1),g(:,OP_DRP),e(:,OP_DR)) &
+               +int5(ri4_79,f(:,OP_DP),h(:,OP_1),g(:,OP_DZP),e(:,OP_DZ)) &
+               +int5(ri4_79,f(:,OP_1),h(:,OP_1),g(:,OP_DRPP),e(:,OP_DR)) &
+               +int5(ri4_79,f(:,OP_1),h(:,OP_1),g(:,OP_DZPP),e(:,OP_DZ))
+#endif
+     end if
+
+
+  v3alfb = temp
+  return
+end function v3alfb
+
+! V3alff
+! ===
+vectype function v3alff(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+         temp = - int5(ri2_79,e(:,OP_DR),g(:,OP_DRP),h(:,OP_DRP),f(:,OP_DR)) &
+                - int5(ri2_79,e(:,OP_DR),g(:,OP_DRP),h(:,OP_DZP),f(:,OP_DZ)) &
+                - int5(ri2_79,e(:,OP_DZ),g(:,OP_DZP),h(:,OP_DRP),f(:,OP_DR)) &
+                - int5(ri2_79,e(:,OP_DZ),g(:,OP_DZP),h(:,OP_DZP),f(:,OP_DZ))
+#endif
+     end if
+
+
+  v3alff = temp
+  return
+end function v3alff
+
+! V3alpsib
+! ===
+vectype function v3alpsib(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = -int5(ri5_79,f(:,OP_DP),h(:,OP_1),e(:,OP_DZ),g(:,OP_DR)) &
+               +int5(ri5_79,f(:,OP_DP),h(:,OP_1),e(:,OP_DR),g(:,OP_DZ)) &
+               -int5(ri5_79,f(:,OP_1),h(:,OP_1),e(:,OP_DZ),g(:,OP_DRP)) &
+               +int5(ri5_79,f(:,OP_1),h(:,OP_1),e(:,OP_DR),g(:,OP_DZP))
+#endif
+     end if
+
+
+  v3alpsib = temp
+  return
+end function v3alpsib
+
+! V3albb
+! ===
+vectype function v3albb(e,f,g,h)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp =  int5(ri4_79,f(:,OP_1),g(:,OP_1),h(:,OP_DR),e(:,OP_DR)) &
+               +int5(ri4_79,f(:,OP_1),g(:,OP_1),h(:,OP_DZ),e(:,OP_DZ))
+     end if
+
+
+  v3albb = temp
+  return
+end function v3albb
 
 !==============================================================================
 ! B1 TERMS
