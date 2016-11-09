@@ -532,6 +532,20 @@ subroutine vorticity_nolin(trial, r4term)
      end if
   end if
 
+  ! kinetic terms
+  ! ~~~~~~~~~~~~~
+  if(kinetic .ge. 0) then
+     r4term = r4term + dt* &
+          (v1be      (trial,be79)  &
+          +v1albs    (trial,al79,bs79) &
+          +v1alpsipsi(trial,al79,pstx79,pstx79)  &
+          +v1alpsif  (trial,al79,pstx79,bftx79)  &
+          +v1alfb    (trial,al79,bftx79,bztx79)  &
+          +v1alff    (trial,al79,bftx79,bftx79)  &
+          +v1alpsib  (trial,al79,pstx79,bztx79)  &
+          +v1albb    (trial,al79,bztx79,bztx79))
+  endif
+
   if(linear.eq.1) return
 
   ! density terms
@@ -991,6 +1005,20 @@ subroutine axial_vel_nolin(trial, r4term)
   if(momentum_source) then
      r4term = r4term + dt*int3(r_79,trial(:,OP_1),fy79(:,OP_1))
   end if
+
+  ! kinetic terms
+  ! ~~~~~~~~~~~~~
+  if(kinetic .ge. 0) then
+     r4term = r4term + dt* &
+          (v2be      (trial,be79)  &
+          +v2albs    (trial,al79,bs79) &
+          +v2alpsipsi(trial,al79,pstx79,pstx79)  &
+          +v2alpsif  (trial,al79,pstx79,bftx79)  &
+          +v2alfb    (trial,al79,bftx79,bztx79)  &
+          +v2alff    (trial,al79,bftx79,bftx79)  &
+          +v2alpsib  (trial,al79,pstx79,bztx79)  &
+          +v2albb    (trial,al79,bztx79,bztx79))
+  endif
 
 end subroutine axial_vel_nolin
 
@@ -1492,6 +1520,20 @@ subroutine compression_nolin(trial, r4term)
           (v3us     (trial,ph079,sig79) &
           +v3chis   (trial,ch079,sig79))
 
+  endif
+
+  ! kinetic terms
+  ! ~~~~~~~~~~~~~
+  if(kinetic .ge. 0) then
+     r4term = r4term + dt* &
+          (v3be      (trial,be79)  &
+          +v3albs    (trial,al79,bs79) &
+          +v3alpsipsi(trial,al79,pstx79,pstx79)  &
+          +v3alpsif  (trial,al79,pstx79,bftx79)  &
+          +v3alfb    (trial,al79,bftx79,bztx79)  &
+          +v3alff    (trial,al79,bftx79,bftx79)  &
+          +v3alpsib  (trial,al79,pstx79,bztx79)  &
+          +v3albb    (trial,al79,bztx79,bztx79))
   endif
 
 end subroutine compression_nolin
@@ -4377,6 +4419,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      if(hyper.eq.0.) def_fields = def_fields + FIELD_J
      if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
   end if
+
+  if(kinetic.gt.0) then
+     def_fields = def_fields + FIELD_KIN
+  endif
 
   if(integrator.eq.1 .and. ntime.gt.1) then
      bdf = 2.

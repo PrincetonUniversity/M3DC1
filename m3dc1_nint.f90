@@ -72,6 +72,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_ES  =4194304
   integer, parameter :: FIELD_CD  =8388608
   integer, parameter :: FIELD_RAD  =16777216
+  integer, parameter :: FIELD_KIN  =33554432
 
   vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
@@ -97,6 +98,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: te179, te079, tet79
   vectype, dimension(MAX_PTS, OP_NUM) :: ti179, ti079, tit79
   vectype, dimension(MAX_PTS, OP_NUM) :: q179, q079, qt79, qe179, qe079, qet79
+  vectype, dimension(MAX_PTS, OP_NUM) :: be79, al79, bs79
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -1075,6 +1077,7 @@ contains
         call eval_ops(itri, pforce_field, for79)
     endif
 
+
     ! TE
     ! ~~~
     if(iand(fields, FIELD_TE).eq.FIELD_TE) then
@@ -1121,6 +1124,17 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   potential..."
        
         call eval_ops(itri, e_field(1), es179)
+    endif
+
+    ! Kinetic Pressure Terms
+    ! ~~~
+    if((iand(fields, FIELD_KIN).eq.FIELD_KIN)   &
+        .and. kinetic .gt. 0) then
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kinetic..."
+       
+        call eval_ops(itri, be_field, be79)
+        call eval_ops(itri, al_field, al79)
+        call eval_ops(itri, bs_field, bs79)
     endif
 
 end subroutine define_fields
