@@ -1932,7 +1932,7 @@ end subroutine calculate_ke
 !======================================================================
 ! calculate_bh
 ! ~~~~~~~~~~~~~~
-! calculates each Fourer harmonics for kinetic energy
+! calculates each Fourer harmonics for magnetic energy
 !======================================================================
 subroutine calculate_bh()
 
