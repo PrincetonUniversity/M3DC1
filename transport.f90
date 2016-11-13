@@ -804,8 +804,8 @@ vectype function electron_viscosity_func(i)
   if(amue.ne.0) then
      temp79f = -amue * r2_79 * &
           (bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR)) &
-          / (nt79(:,OP_1)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 + 1e-1)**2)
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+          / (nt79(:,OP_1)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 + regular)**2)
+     temp = temp + int2(mu79(:,OP_1,i),temp79f)
   endif
 
   electron_viscosity_func = temp
