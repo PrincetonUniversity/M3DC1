@@ -1175,6 +1175,11 @@ subroutine space(ifirstcall)
      if(heat_source) call create_field(Q_field)
      if(icd_source.gt.0) call create_field(cd_field)
      if(rad_source) call create_field(Rad_field)
+     if(kinetic.gt.0) then
+         call create_field(bs_field)
+         call create_field(be_field)
+         call create_field(al_field)
+     endif
      call create_field(bf_field(0))
      call create_field(bf_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)

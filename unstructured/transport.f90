@@ -849,7 +849,7 @@ vectype function al_func(i, izone)
   al_func = temp
   return
 end function al_func
-vectype function bs_func(i, izone)
+vectype function bs_func(i)
   use math
   use basic
   use m3dc1_nint
@@ -857,7 +857,7 @@ vectype function bs_func(i, izone)
 
   implicit none
 
-  integer, intent(in) :: i, izone
+  integer, intent(in) :: i
   vectype :: temp
 
   temp = 0.
@@ -867,9 +867,9 @@ vectype function bs_func(i, izone)
 #if defined(USECOMPLEX) || defined(USE3D)
      temp79b = (bftx79(:,OP_DRP)**2 + bftx79(:,OP_DZP)**2) &
              + 2.*ri_79*(pstx79(:,OP_DZ)*bftx79(:,OP_DRP) - pstx79(:,OP_DR)*bftx79(:,OP_DZP))
-     temp79c(:) =  (temp79a(:) + temp79b(:))
+     temp79c  =  (temp79a  + temp79b )
 #else
-     temp79c(:) =  temp79a(:)
+     temp79c  =  temp79a
 #endif
   temp = int2(mu79(:,OP_1,i),temp79c)
 
@@ -962,6 +962,7 @@ subroutine define_transport_coefficients()
 
      call get_zone(itri, izone)
 
+
      do i=1, dofs_per_element
         dofs(i) = resistivity_func(i)
         if(.not.solve_resistivity) solve_resistivity = dofs(i).ne.0.
@@ -1053,7 +1054,6 @@ subroutine define_transport_coefficients()
         if(solve_visc_e) &
              call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
      end if
-  end do
 
      if(kinetic.gt.0) then
         do i=1, dofs_per_element
@@ -1071,12 +1071,13 @@ subroutine define_transport_coefficients()
              call vector_insert_block(al_field%vec,itri,1,dofs,VEC_ADD)
 
         do i=1, dofs_per_element
-           dofs(i) = bs_func(i, izone)
+           dofs(i) = bs_func(i)
            if(.not.solve_bs) solve_bs = dofs(i).ne.0.
         end do
         if(solve_bs) &
              call vector_insert_block(bs_field%vec,itri,1,dofs,VEC_ADD)
      end if
+  end do
 
   ! Solve all the variables that have been defined
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1183,7 +1184,7 @@ subroutine define_transport_coefficients()
 
      if(solve_bs) then
         if(myrank.eq.0 .and. iprint.ge.1) print *, ' cs'
-        call newvar_solve(bs_field%vec, mass_mat_lhs)
+          call newvar_solve(bs_field%vec, mass_mat_lhs)
      endif
    endif
 
