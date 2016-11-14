@@ -305,7 +305,9 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
-  call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
+  if(rad_source) then
+     call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
+  endif
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
