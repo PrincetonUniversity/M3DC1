@@ -2,7 +2,7 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
              subtract_vacuum=subtract_vacuum, ntor=ntor, $
              slice=slice, extsubtract=extsubtract, $
              overplot=overplot, filename=filename, scale=scale, $
-             linfac=linfac, sum=sum, vacfield=vacfield
+             linfac=linfac, sum=sum, vacfield=vacfield, velocity=velocity
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(ntor) eq 0) then begin
@@ -55,12 +55,21 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
       i0   = read_field('i'  ,x,z,t,slice=-1,_EXTRA=extra, $
                         filename=filename[0])
 
-       bx = read_field('bx',x,z,t,last=last,slice=slice, $
-                       /linear,_EXTRA=extra,/complex, $
-                       filename=filename,linfac=linfac,sum=sum)
-       bz = read_field('bz',x,z,t,last=last,slice=slice, $
-                       /linear,_EXTRA=extra,/complex, $
-                       filename=filename,linfac=linfac,sum=sum)
+      if(keyword_set(velocity)) then begin
+         bx = read_field('vx',x,z,t,last=last,slice=slice, $
+                         /linear,_EXTRA=extra,/complex, $
+                         filename=filename,linfac=linfac,sum=sum)
+         bz = read_field('vz',x,z,t,last=last,slice=slice, $
+                         /linear,_EXTRA=extra,/complex, $
+                         filename=filename,linfac=linfac,sum=sum)         
+      endif else begin
+         bx = read_field('bx',x,z,t,last=last,slice=slice, $
+                         /linear,_EXTRA=extra,/complex, $
+                         filename=filename,linfac=linfac,sum=sum)
+         bz = read_field('bz',x,z,t,last=last,slice=slice, $
+                         /linear,_EXTRA=extra,/complex, $
+                         filename=filename,linfac=linfac,sum=sum)
+      end
    endelse
 
    if(keyword_set(subtract_vacuum)) then begin
