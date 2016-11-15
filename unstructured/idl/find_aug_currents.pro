@@ -1,4 +1,4 @@
-pro find_aug_currents, _EXTRA=extra
+pro find_aug_currents, _EXTRA=extra, out=out
   jy = read_field('jy',x,y,t,_EXTRA=extra, /mks)
   r = radius_matrix(x,y,t)
   z = z_matrix(x,y,t)
@@ -17,4 +17,11 @@ pro find_aug_currents, _EXTRA=extra
 
   print, 'Upper coil current = ', iu/1e3, ' kA-turns'
   print, 'Lower coil current = ', il/1e3, ' kA-turns'
+
+  if(n_elements(out) eq 1) then begin
+     openw, ifile, out, /get_lun
+     printf, ifile, iu/1e3
+     printf, ifile, il/1e3
+     free_lun, ifile
+  end
 end
