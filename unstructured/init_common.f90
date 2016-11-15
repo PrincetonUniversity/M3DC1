@@ -164,19 +164,21 @@ subroutine init_perturbations
      ph179(:,OP_1) = ph179(:,OP_1) + r_79*verzero
 
      ! apply mask
-     do i=1, npoints
-        imr = magnetic_region(ps079(i,:), x_79(i), z_79(i))
-        if(imr.eq.0) then
-           if(real(p079(i,OP_1)).gt.pedge) then
-              temp79a(i) = (p079(i,OP_1) - pedge)/p0
+     if(p0 .gt. 0.) then 
+        do i=1, npoints
+           imr = magnetic_region(ps079(i,:), x_79(i), z_79(i))
+           if(imr.eq.0) then
+              if(real(p079(i,OP_1)).gt.pedge) then
+                 temp79a(i) = (p079(i,OP_1) - pedge)/p0
+              else
+                 temp79a(i) = 0.
+              end if
            else
               temp79a(i) = 0.
            end if
-        else
-           temp79a(i) = 0.
-        end if
-     end do
-     ph179(:,OP_1) = ph179(:,OP_1)*temp79a
+        end do
+        ph179(:,OP_1) = ph179(:,OP_1)*temp79a
+     end if
 
      ! populate vectors for solves
         
