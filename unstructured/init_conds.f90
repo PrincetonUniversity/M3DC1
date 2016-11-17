@@ -619,6 +619,8 @@ subroutine initial_conditions()
            call solovev_init()
         case(24)
            call rwm_init()
+        case(29)
+           call basicj_init()
         end select
      endif
   end if
