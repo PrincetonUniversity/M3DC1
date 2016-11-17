@@ -1,16 +1,23 @@
 pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
-                   psi_val=psi_val, ntor=ntor, label=label, psi0=psi0, i0=i0, $
+                   psi_val=psi_val, ntor=ntor, psi0=psi0, i0=i0, $
                    m_val=m_val, phase=phase, overplot=overplot, $
                    linestyle=linestyle, outfile=outfile, bmnfile=bmnfile, $
                    bmncdf=bmncdf, rhs=rhs, reverse_q=reverse_q, $
                    sqrtpsin=sqrtpsin, profdata=profdata, $
-                   boozer=boozer, pest=pest, hamada=hamada, geo=geo
+                   boozer=boozer, pest=pest, hamada=hamada, geo=geo, $
+                   symbol=symbol, units=units
 
    print, 'Drawing schaffer plot'
    if(not keyword_set(boozer) and not keyword_set(hamada) and $
       not keyword_set(geo)) then pest=1
 
    if(n_elements(sqrtpsin) eq 0) then sqrtpsin=1
+
+   if(n_elements(label) eq 1 and n_elements(units) eq 1) then begin
+      label = symbol + '!6 (' + units + '!6)!X'
+   endif else begin
+      label = ' '
+   end
 
    if(n_elements(psi0) eq 0) then begin
 ;       psi0 = read_field('psi',x,z,t,/equilibrium,_EXTRA=extra)
@@ -100,7 +107,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        
       id = ncdf_create(bmncdf, /clobber)
       ncdf_attput, id, 'ntor', fix(ntor), /short, /global
-      ncdf_attput, id, 'version', 1, /short, /global
+      ncdf_attput, id, 'version', 2, /short, /global
+      print, 'outputting symbol = ', symbol
+      print, 'outputting units = ', units
+      ncdf_attput, id, 'symbol', string(symbol), /global
+      ncdf_attput, id, 'units', string(units), /global
+      print, 'done!'
       n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
       m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
       psi_norm_var = ncdf_vardef(id, 'psi_norm', [n_id], /float)
@@ -125,6 +137,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       m_var = ncdf_vardef(id, 'm', [m_id], /short)
       bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
       bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
+      jac_var = ncdf_vardef(id, 'jacobian', [m_id,n_id], /float)
       rpath_var = ncdf_vardef(id, 'rpath', [m_id,n_id], /float)
       zpath_var = ncdf_vardef(id, 'zpath', [m_id,n_id], /float)
       bp_var = ncdf_vardef(id, 'Bp', [m_id,n_id], /float)
@@ -149,7 +162,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
             alpha = reform(d[0,*,*])
             for i=0, n_elements(m)-1 do begin
                alpha[i,*] = complex(0,1)*fc.area[i]*alpha[i,*] $
-                            / (m*F[i] + ntor*fc.current[i]*mu0/(2.*!pi)) $
+                            / (m[i]*F + ntor*fc.current/(2.*!pi)) $
                             / (2.*!pi)^4
             end
             ncdf_varput, id, 'alpha_real', real_part(alpha)
@@ -158,6 +171,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       end
       ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
       ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
+      ncdf_varput, id, 'jacobian', reform(fc.j)
       ncdf_varput, id, 'rpath', fc.r
       ncdf_varput, id, 'zpath', fc.z
       ncdf_varput, id, 'Bp', reform(bpval)
