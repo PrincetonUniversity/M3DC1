@@ -1,5 +1,6 @@
 pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
-                 rho=rho, cur=cur, flux_pol=flux_pol, area=area, bpol=bpol
+                 rho=rho, cur=cur, flux_pol=flux_pol, area=area, bpol=bpol, $
+                 symbol=symbol, units=units
 
   if(n_elements(cur) eq 0) then cur=1.
 
@@ -20,6 +21,15 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
         psi_id = ncdf_varid(id, "psi")
      endif else begin
         psi_id = ncdf_varid(id, "psi_norm")
+     end
+
+     symbol = "!8B!Dmn!N"
+     units = "G"
+     if(version ge 2) then begin
+        ncdf_attget, id, "symbol", bytes, /global
+        symbol = string(bytes)
+        ncdf_attget, id, "units", bytes, /global
+        units = string(bytes)
      end
      m_id = ncdf_varid(id, "m")
      q_id = ncdf_varid(id, "q")
