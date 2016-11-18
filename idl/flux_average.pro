@@ -188,6 +188,15 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            return, fc.flux_pol
 
+        endif else $
+         if(strcmp(field, 'volume', /fold_case) eq 1) then begin
+
+           units = make_units(l0=3,filename=filename,_EXTRA=extra)
+           name = '!6Volume!X'
+           symbol = '!8V!X'
+
+           return, fc.V
+
        endif else $
          if(strcmp(field, 'beta_pol', /fold_case) eq 1) then begin
            I = read_field('I', x, z, t, points=points, filename=filename, _EXTRA=extra)
