@@ -52,22 +52,22 @@ TRILINOS_LIBS =
 endif
 
 ifeq ($(COM), 1)
-      PETSC_DIR = /global/common/cori/software/petsc/3.7.2-complex/hsw
-      PETSC_ARCH = intel
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 -lzoltan -lparmetis -lmetis -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+      PETSC_DIR = /project/projectdirs/mp288/carl/petsc-3.5.4
+      PETSC_ARCH = intel_complex
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist_3.3 -lparmetis -lmetis
       PETSC_LIB =  -lpetsc
       ZOLTAN_LIB =
 else
-      PETSC_DIR = /global/common/cori/software/petsc/3.7.2/hsw
-      PETSC_ARCH = intel
+      PETSC_DIR = /project/projectdirs/mp288/carl/petsc-3.5.4
+      PETSC_ARCH = intel_real
 ifeq ($(TRILINOS), 1)
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lparmetis -lmetis -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lparmetis -lmetis
       PETSC_LIB =
 else
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lHYPRE -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lsundials_cvode -lsundials_cvodes -lsundials_ida -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
-      PETSC_LIB = -lcraypetsc_intel_real
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr  -lpthread -lssl 
+      PETSC_LIB = -lpetsc
 endif
-      ZOLTAN_LIB = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
+      ZOLTAN_LIB =
 endif
 
 ifeq ($(USEADIOS), 1)
@@ -81,6 +81,7 @@ endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
+HDF5_DIR := /global/project/projectdirs/mp288/carl/hdf5-1.8.18
 
 INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include -I$(MKLROOT)/include/fftw \
         -I$(SCOREC_DIR)/include \
@@ -91,14 +92,13 @@ INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include -I$(MKLROOT)/include/fftw \
 #        -I$(HYBRID_HOME)/include
 
 LIBS := $(LIBS) \
-        $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
         $(TRILINOS_LIBS) \
         -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(PETSC_LIB) \
         $(PETSC_EXTERNAL_LIB_BASIC) -lstdc++ \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
-        -lfftw3 \
-        -L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
+        -L$(GSL_DIR)/lib -lgsl \
+	-L$(MKLROOT)/lib/intel64 -lmkl_intel_lp64 \
         $(ADIOS_FLIB)
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
