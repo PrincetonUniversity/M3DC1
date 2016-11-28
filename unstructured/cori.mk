@@ -18,34 +18,31 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-# define where you want to locate the mesh adapt libraries
-#HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
-#HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
+SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Nov2016-mpich7.4.4
+ifeq ($(COM), 1)
+    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+else
+  ifeq ($(TRILINOS), 1)
+    M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
+  else
+    M3DC1_SCOREC_LIB = m3dc1_scorec
+  endif
+endif
+
+SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
+             -lpcu -lph -lsam -lspr -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
 ifeq ($(COM), 1)
-      SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2015
-      SCOREC_CORE = -lcrv -ldsp -lph -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
-      # SCOREC_CORE = -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
       PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
-      SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec_complex -Wl,--end-group
       PETSC_ARCH = complex-intel-mpich7.3
       HYPRE_LIB = 
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 \
        -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
 else
-      SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2015
-      SCOREC_LIBS=-L$(SCOREC_DIR)/lib -Wl,--start-group $(SCOREC_CORE) -lm3dc1_scorec -Wl,--end-group
-      SCOREC_CORE = -lcrv -ldsp -lph -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
-      # SCOREC_CORE = -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lparma -lapf_zoltan -lmds -lapf -llion -lmth -lgmi -lpcu
-#o    PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
-#o    PETSC_ARCH = real-intel-mpich7.3
       PETSC_DIR = /global/homes/j/jinchen/project/PETSC/master.noomp-nostrumpack
       PETSC_ARCH = next-noomp-nostrumpack
-#n2      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/master.omp-nostrumpack
-#n2      PETSC_ARCH = next-omp-nostrumpack
-#n3      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/master.omp-strumpack
-#n3      PETSC_ARCH = next-omp-strumpack
       HYPRE_LIB = -lHYPRE
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist -lstrumpack_sparse \

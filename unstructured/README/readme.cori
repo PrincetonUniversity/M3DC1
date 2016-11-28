@@ -28,6 +28,8 @@
 	#SBATCH --nodes=24 
 	#SBATCH --ntasks-per-node=32
 	#SBATCH --cpus-per-task=1
+        #SBATCH -L SCRATCH
+        #SBATCH -C haswell
 	#SBATCH --time=00:10:00
 	#SBATCH --job-name=MYJOB      #<==
 	#SBATCH --mail-type=END
