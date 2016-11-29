@@ -1,0 +1,6 @@
+module purge
+module use /usr/common/software/carl_modulefiles
+module load impi
+module load intel
+module load gsl
+module load cmake

@@ -14,7 +14,6 @@
 	module load subversion
 	module load cmake
         module load cray-parallel-netcdf
-#       module load cray-hdf5-parallel/1.8.14
         module load cray-hdf5-parallel
 	module load fftw
 	module load gsl/1.16
