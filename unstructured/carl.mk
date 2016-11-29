@@ -20,8 +20,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Dec2015-mpich7.2.5-stable/
-# SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Aug2016-mpich7.4.1
+SCOREC_DIR = /global/project/projectdirs/mp288/carl/scorec/Nov2016-impi5.1.3
 
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
@@ -34,14 +33,9 @@ else
 endif
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             -lcrv -lph -lsam -lspr -lma \
-             -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -l$(M3DC1_SCOREC_LIB) \
-             -Wl,--end-group
-# Removed -ldsp -lsize in above; original below. These lib files are not part of core anymore as of Sep. 7, 2016.
-#SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             -lcrv -ldsp -lph -lsize -lsam -lspr -lma \
-             -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -l$(M3DC1_SCOREC_LIB) \
-             -Wl,--end-group
+             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
+             -lpcu -lph -lsam -lspr -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+
 ifeq ($(TRILINOS),1)
 TRILINOS_LIBS = -Wl,--start-group,-rpath,$(CRAY_TRILINOS_PREFIX_DIR)/lib -L$(CRAY_TRILINOS_PREFIX_DIR)/lib \
                 -lamesos -ltpetra -lkokkosnodeapi -ltpi -laztecoo -lepetra \

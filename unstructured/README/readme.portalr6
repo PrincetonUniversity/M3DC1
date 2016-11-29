@@ -5,27 +5,39 @@ Updated
 
 2. code
 
-3. load modules
+3. load modules and set enviroments
         module load intel/2015.u1
-        module load openmpi/1.8.4
-        module load cmake
-        module load gsl/1.16
-        module load hdf5-parallel/1.8.14
-        module load hdf/4.2r1
-        module load zlib
-
-        setenv PETSC_DIR /p/swim/jchen/PETSC/petsc-3.5.3
-        setenv PETSC_ARCH portalr6-intel-openmpi-1.8.4
+	module load openmpi/1.10.3
+	module load lapack/3.6.1
+	module load gsl/1.16
+	module load szip/2.1
+	module load hdf5-parallel
+	module load hdf/4.2r1
+	module load zlib
         setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/portalr6
 
+  For PETSc-real
+        setenv PETSC_DIR /p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
+	setenv PETSC_ARCH real-openmpi-1.10.3 
+
+  For PETSc-complex
+        setenv PETSC_DIR /p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
+	setenv PETSC_ARCH complex-openmpi-1.10.3
+ 
+  For Trilinos,
+        module load netcdf
+        module load trilinos/11.12.1
 
 4. compile code
+  For PETSc-real
 	make OPT=1 RL=1 MAX_PTS=25
+        make 3D=1 OPT=1 MAX_PTS=60
+  For PETSc-complex 
 	make OPT=1 COM=1 MAX_PTS=25
-	make 3D=1 OPT=1 MAX_PTS=60
+  For Trilinos-real, add TRILINOS=1
 
 5. mesh utility
-	/p/tsc/m3dc1/lib/SCORECLib/sunfire/utilities/
+	/p/tsc/m3dc1/lib/SCORECLib/rhel6/utilities/
 
 6. prepare jobscript
    ganesh22 has only 1 node (CPUTot=64 : CoresPerSocket=16  Sockets=4  )
