@@ -1228,7 +1228,8 @@ subroutine validate_input
   if(myrank.eq.0) then
      print *, 'Te associated with eta_max = ', (eta_fac * &
           3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
-          *zeff*lambda_coulomb*sqrt(ion_mass) / eta_max)**(2./3.), ' eV'
+          *zeff*lambda_coulomb*sqrt(ion_mass) / eta_max)**(2./3.) &
+          * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
   end if
 
   if(rad_source .and. myrank.eq.0) then
