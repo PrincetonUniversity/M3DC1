@@ -128,10 +128,17 @@ contains
     endif
 
     if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
-       call create_newvar_matrix(bf_mat_lhs, &
-            NV_DCBOUND, NV_BF_MATRIX, 1)
-       call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
-            NV_I_MATRIX,  0)
+       if(ifbound.eq.1) then 
+          call create_newvar_matrix(bf_mat_lhs, &
+               NV_DCBOUND, NV_BF_MATRIX, 1)
+          call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
+               NV_I_MATRIX,  0)
+       else
+          call create_newvar_matrix(bf_mat_lhs, &
+               NV_NMBOUND, NV_BF_MATRIX, 1)
+          call create_newvar_matrix(mass_mat_rhs_bf, NV_NMBOUND, &
+               NV_I_MATRIX,  0)
+       end if
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
        print *, "create_mat newvar mass_mat_rhs_bf", mass_mat_rhs_bf%mat%imatrix     
@@ -264,7 +271,11 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
               
            case(NV_BF_MATRIX)
               temp(i,j,1,1) = int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_LP,j))
-
+              if(ifbound.eq.2) then
+                 temp(i,j,1,1) = temp(i,j,1,1) + &
+                      regular*int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
+              end if
+              
            case(NV_SJ_MATRIX)
               if(is_lhs .eq. 1) then
                  temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))

@@ -28,7 +28,7 @@ subroutine calculate_external_fields(sf)
   include 'mpif.h'
 
   type(schaffer_field), allocatable :: sf(:)
-  type(matrix_type) :: br_mat, bf_mat
+  type(matrix_type) :: br_mat
   type(vector_type) :: psi_vec, bz_vec, p_vec
   integer :: i, j, itri, nelms, ier
 
@@ -44,7 +44,7 @@ subroutine calculate_external_fields(sf)
   integer :: nc_na
   logical :: read_p
 
-  vectype, dimension(dofs_per_element,dofs_per_element) :: temp, temp_bf
+  vectype, dimension(dofs_per_element,dofs_per_element) :: temp
   vectype, dimension(dofs_per_element) :: temp2, temp3, temp4
   vectype, dimension(MAX_PTS) :: bbr, bbz, drbr, dzbr, drbz, dzbz
 
@@ -81,12 +81,6 @@ subroutine calculate_external_fields(sf)
   call create_mat(br_mat, 1, 1, icomplex, 1)
 #ifdef CJ_MATRIX_DUMP
   print *, "create_mat coils br_mat", br_mat%imatrix 
-#endif
-
-  call set_matrix_index(bf_mat, bf_mat_index)
-  call create_mat(bf_mat, 1, 1, icomplex, 0)
-#ifdef CJ_MATRIX_DUMP
-  print *, "create_mat coils bf_mat", bf_mat%imatrix 
 #endif
 
   read_p = .false.
@@ -275,11 +269,6 @@ subroutine calculate_external_fields(sf)
            temp(i,j) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
                 +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
                 + regular*int3(ri4_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
-#if defined(USECOMPLEX) || defined(USE3D)
-           temp_bf(i,j) = &
-             + int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZP,j)) &
-             - int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DRP,j))
-#endif
         end do
 
         ! assemble RHS
@@ -293,7 +282,6 @@ subroutine calculate_external_fields(sf)
      end do
 
      call insert_block(br_mat, itri, 1, 1, temp(:,:), MAT_ADD)
-     call insert_block(bf_mat, itri, 1, 1, temp_bf(:,:), MAT_ADD)
 
      call vector_insert_block(psi_vec, itri, 1, temp2(:), MAT_ADD)
      call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
@@ -302,7 +290,6 @@ subroutine calculate_external_fields(sf)
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'Finalizing...'
   call finalize(br_mat)
-  call finalize(bf_mat)
   call sum_shared(psi_vec)
   call sum_shared(bz_vec)
   if(read_p) call sum_shared(p_vec)
@@ -324,8 +311,8 @@ subroutine calculate_external_fields(sf)
      p_field(1) = p_f
   end if
 
-  ! solve bz
   if(numvar.ge.2) then
+     ! Solve F = R B_phi
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
      call newsolve(mass_mat_lhs%mat,bz_vec,ier)
      if(extsubtract.eq.1) then
@@ -335,21 +322,17 @@ subroutine calculate_external_fields(sf)
      end if
 
 #if defined(USECOMPLEX) || defined(USE3D)
-     ! calculate f and add Grad_perp(f') to RHS
+     ! Solve R^2 del_perp^2 f = F
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f..."
      if(extsubtract.eq.1) then
         bf_ext = 0.
         call solve_newvar1(bf_mat_lhs,bf_ext,mass_mat_rhs_bf, &
              bz_ext, bf_ext)
-        call matvecmult(bf_mat, bf_ext, bz_vec)
      else
         bf_field(1) = 0.
         call solve_newvar1(bf_mat_lhs,bf_field(1),mass_mat_rhs_bf, &
              bz_field(1), bf_field(1))
-        call matvecmult(bf_mat, bf_field(1), bz_vec)
      end if
-
-     call add(psi_vec,bz_vec)
 #endif
   end if
 
@@ -367,7 +350,6 @@ subroutine calculate_external_fields(sf)
   call destroy_vector(bz_vec)
   call destroy_vector(p_vec)
   call destroy_mat(br_mat)
-  call destroy_mat(bf_mat)
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Done calculating error fields"
 end subroutine calculate_external_fields
