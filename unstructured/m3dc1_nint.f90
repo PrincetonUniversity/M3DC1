@@ -401,7 +401,7 @@ contains
     integer, intent(in) :: itri, fieldi, gdef, ilin
     integer, intent(in), optional :: ieqs
 
-    real :: fac, efac, eta_max, thalo, twall
+    real :: fac, efac
     integer :: i, izone, ieqsub, fields
     type(element_data) :: d
 
@@ -894,17 +894,12 @@ contains
            eta79 = eta79*eta_fac
            !     else if(iresfunc.eq.0 .or. iresfunc.eq.4) then
         else if(iresfunc.eq.4) then
+           ! eta = efac / T^1.5
            efac = eta_fac * &
                 3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
                 *zeff*lambda_coulomb*sqrt(ion_mass)
-!          eta_max = eta_vac
 
-!          if(eta_te_offset .gt.0) then
-              twall = pedge*pefac/den_edge
-              thalo = twall - eta_te_offset
-              eta_max = efac*(thalo)**(-3./2.)
-!          endif
- 
+           ! Here eta79 = 1/T^1.5 .  Factor of efac is included later
            eta79 = 0.
            eta79(:,OP_1) = eta_max / efac
 

@@ -215,6 +215,8 @@ subroutine set_defaults
        "1 = remove d/dphi terms in resistivity", transp_grp)
   call add_var_double("eta_te_offset", eta_te_offset, 0., &
        "Offset in Te when calculating eta", transp_grp)
+  call add_var_double("eta_max", eta_max, 0., &
+       "Maximum value of resistivity in the plasma region", transp_grp)
 
   call add_var_int("ikappafunc", ikappafunc, 0, "", transp_grp)
   call add_var_int("ikapscale", ikapscale, 0, "", transp_grp)
@@ -906,7 +908,6 @@ subroutine validate_input
   PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
 #endif
   integer :: ier
-  real :: twall,thalo
 
   if(myrank.eq.0) then
      print *, "============================================="
@@ -1223,15 +1224,13 @@ subroutine validate_input
      end if
   end if
 
-  if(eta_te_offset .ne. 0) then
-     twall = pedge*pefac/den_edge
-     thalo = twall - eta_te_offset
-     print *, 'twall, thalo =', twall, thalo
-     if(eta_te_offset .ge. twall) then
-        print *, 'Error: eta_te_offset .gt. twall=pedge*pefac/den_edge'
-        call safestop(1)
-     endif
-  endif
+  if(eta_max.le.0.) eta_max = eta_vac
+  if(myrank.eq.0) then
+     print *, 'Te associated with eta_max = ', (eta_fac * &
+          3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
+          *zeff*lambda_coulomb*sqrt(ion_mass) / eta_max)**(2./3.), ' eV'
+  end if
+
   if(rad_source .and. myrank.eq.0) then
      if( (prad_z .ne. 6) .and. (prad_z .ne. 18) .and. (prad_z .ne. 26) ) then
          print *, 'your prad_z =', prad_z
