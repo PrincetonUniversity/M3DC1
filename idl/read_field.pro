@@ -3643,15 +3643,19 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('JxB_y', name, /fold_case) eq 1) then begin
       bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts)
+                      rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                     complex=complex)
       bz = read_field('bz',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts)
+                      rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                     complex=complex)
       jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts)
+                      rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                     complex=complex)
       jz = read_field('jz',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts)
+                      rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                     complex=complex)
       
-      data = (jz*bx - jx*bz)
+      data = (jz*conj(bx) - jx*conj(bz))
       d = dimensions(/p0, l0=-1)
       symbol = '!5J!9X!5B!9.!9P!X'
 

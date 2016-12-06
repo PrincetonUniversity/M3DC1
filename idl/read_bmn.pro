@@ -72,7 +72,8 @@ function read_bmn, filename, m, bmn, phase, $
          if(arg_present(psin)) then psin[i,*] = interpolate(psi0, i0)
          if(arg_present(q)) then q[i,*] = q1
          if(arg_present(qprime)) then qprime[i,*] = deriv(psin[i,*], q1)
-         if(arg_present(area)) then area[i,*] = interpolate(area0, i0)
+         if(arg_present(area) and n_elements(area0) gt 1) then $
+            area[i,*] = interpolate(area0, i0)
          if(arg_present(psiprime)) then $
             psiprime[i,*] = deriv(psin[i,*], interpolate(flux0, i0))
       end

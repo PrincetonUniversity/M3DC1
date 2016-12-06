@@ -70,11 +70,13 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      for i=0, n_elements(filename)-1 do begin
         if(i eq 0) then begin
            read_bmncdf, file=filename[i], bmn=bmn, psi=psi, m=m, q=q, $
-                        ntor=ntor, rho=rho, area=area, bpol=bpol
+                        ntor=ntor, rho=rho, area=area, bpol=bpol, $
+                        symbol=symbol, units=units
         endif else begin
            read_bmncdf, file=filename[i], $
                         bmn=bmn1, psi=psi1, m=m1, q=q1, ntor=ntor1, $
-                        rho=rho, area=area, bpol=bpol
+                        rho=rho, area=area, bpol=bpol, $
+                        symbol=symbol, units=units
 
            if(ntor1 ne ntor) then begin
               print, "Error: ntor doesn't match"
