@@ -12,6 +12,7 @@
         module load gsl
         module load cray-hdf5-parallel
 	module load idl
+	module load cray-petsc/3.7.2.1
 	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
 
 4. compile code
