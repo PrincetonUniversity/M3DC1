@@ -4,6 +4,7 @@
 2. code
 
 3. load modules
+   REAL MODEL
         module unload gcc  
         module load gcc-ftg/4.9.2
         module load fftw
@@ -13,25 +14,41 @@
         module load cray-hdf5-parallel
 	module load idl
 	module load cray-petsc/3.7.2.1
-        module load cray-tpsl
+	module load cray-tpsl/16.07.1
+	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
+
+   COMPLEX MODE
+        module unload gcc  
+        module load gcc-ftg/4.9.2
+        module load fftw
+        module load subversion
+        module load cmake
+        module load gsl
+        module load cray-hdf5-parallel
+	module load idl
+	module load cray-petsc-complex/3.7.2.1
+	module load cray-tpsl/16.07.1
 	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
 
 4. compile code
+        cori haswell
 	make OPT=1 RL=1 MAX_PTS=25 
 	make OPT=1 COM=1 MAX_PTS=25 
 	make 3D=1 OPT=1 MAX_PTS=60 
 
+        cori knl
+	make OPT=1 RL=1 MAX_PTS=25 ARCH=cori_knl
+	make OPT=1 COM=1 MAX_PTS=25 ARCH=cori_knl
+	make 3D=1 OPT=1 MAX_PTS=60 ARCH=cori_knl
+
 5. mesh utility
         /global/project/projectdirs/mp288/cori/scorec/utilities
 
-6. run jobscript
-	#!/bin/bash -l
+6. run jobscript: cori knl
+	#!/bin/bash
 	#SBATCH --partition=debug     
-	#SBATCH --nodes=24 
-	#SBATCH --ntasks-per-node=32
-	#SBATCH --cpus-per-task=1
-        #SBATCH -L SCRATCH
-        #SBATCH -C haswell
+	#SBATCH --nodes=16 
+        #SBATCH -C knl,quad,cache
 	#SBATCH --time=00:10:00
 	#SBATCH --job-name=MYJOB      #<==
 	#SBATCH --mail-type=END
@@ -40,19 +57,24 @@
 	cd $SLURM_SUBMIT_DIR
 
 	export OMP_NUM_THREADS=1
-	#export KMP_AFFINITY=balanced
+	export OMP_PLACES=threads
+	export OMP_PROC_BIND=spread
 
         #2D complex
-        (for regular i/o) srun -n 8 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+        (for regular i/o) srun -n 256 -c 16 --cpu_bind=cores m3dc1_2d_complex -pc_factor_mat_solver_package mumps
         (for adios i/o)   NOT AVAILABLE
 
         #2D real
-        (for regular i/o) srun -n 8 m3dc1_2d
+        (for regular i/o) srun -n 256 -c 16 --cpu_bind=cores m3dc1_2d
         (for adios i/o)   NOT AVAILABLE
  
         #3D real
-        (for regular i/o) srun -n 256 m3dc1_3d -ipetsc -options_file options_bjacobi
+        (for regular i/o) srun -n 256 -c 16 --cpu_bind=cores m3dc1_3d -ipetsc -options_file options_bjacobi
         (for adios i/o)   NOT AVAILABLE
+
+   please refer to
+   https://www.nersc.gov/users/computational-systems/cori/running-jobs/general-running-jobs-recommendations/
+   to change "-c" parameters.
 
 7. submit job
 	sbatch job_script

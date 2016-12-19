@@ -36,12 +36,19 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpcu -lph -lsam -lspr -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
 ifeq ($(COM), 1)
-      PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
-      PETSC_ARCH = complex-intel-mpich7.3
+#      PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
+#      PETSC_ARCH = complex-intel-mpich7.3
       HYPRE_LIB = 
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 \
-       -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
+#      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB)
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib \
+       $(HYPRE_LIB) \
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
+       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++
+#todo       -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
+#don't have 2016dec19       -lflapack -lfblas
+
+      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_complex
+      OPTS := $(OPTS) -DNEXTPetscDEV
 else
 #      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/master.noomp-nostrumpack
 #      PETSC_ARCH = next-noomp-nostrumpack
@@ -55,6 +62,7 @@ else
 #don't have 2016dec08 -lstrumpack_sparse \
 #don't have 2016dec08       -lflapack -lfblas
 
+      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_real
       OPTS := $(OPTS) -DNEXTPetscDEV
 endif
 
@@ -85,7 +93,7 @@ INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
         -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan \
-        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_real $(PETSC_EXTERNAL_LIB_BASIC) \
+        $(PETSC_LIB) $(PETSC_EXTERNAL_LIB_BASIC) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
