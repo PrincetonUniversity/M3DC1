@@ -2154,8 +2154,11 @@ subroutine calculate_bh()
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)
 
-     bharmonic(N) = bhtotal / 4.
+     bharmonic(N) = bhtotal / (2.*fac)
   end do
+!    NOTE:  bharmonic must be divided by (2 pi)**2 mu_0 to get actual SI magnetic energy
+!           This is done in the idl routine plot_bhmn.pro
+
 
   if(myrank.eq.0 .and. iprint.ge.1) then
       write(*,1001) ntime
