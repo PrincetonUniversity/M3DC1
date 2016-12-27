@@ -825,7 +825,9 @@ vectype function be_func(i, izone)
   temp = 0.
 !
 !   need to define this to be p_perp
-
+ if(kinetic.eq.2) then
+      temp = int2(mu79(:,OP_1,i),p179(:,OP_1))
+ endif
 
   be_func = temp
   return
@@ -842,9 +844,13 @@ vectype function al_func(i, izone)
   vectype :: temp
 
   temp = 0.
-
 !
 !   need to define this as (p_parallel - p_perp)/B**2
+
+  if(kinetic.eq.2) then
+      temp = int3(mu79(:,OP_1,i),pe179(:,OP_1),b2i79(:,OP_1))   &
+           - int3(mu79(:,OP_1,i), p179(:,OP_1),b2i79(:,OP_1))
+  endif
 
   al_func = temp
   return

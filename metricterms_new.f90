@@ -2230,6 +2230,119 @@ vectype function v1albb(e,f,g,h)
   return
 end function v1albb
 
+vectype function v1par(e,f)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
+
+  vectype :: temp
+
+  temp = 0.
+  select case(ivform)
+  case(0)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0.
+     end if
+
+  case(1)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = - int2(e(:,OP_DZ),f(:,OP_1))
+     end if
+  end select
+
+  v1par = temp
+  return
+end function v1par
+
+vectype function v1parb2ipsipsi(e,f,g,h,i)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h, i
+
+  vectype :: temp
+
+  temp = 0.
+  select case(ivform)
+  case(0)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0.
+     end if
+
+  case(1)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a = f(:,OP_1)*g(:,OP_1)*ri_79
+        temp =  int4(temp79a,e(:,OP_DZ),h(:,OP_DR),i(:,OP_DRR))   &
+             +  int4(temp79a,e(:,OP_DZ),h(:,OP_DZ),i(:,OP_DRZ))   &
+             -  int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_DRZ))   &
+             -  int4(temp79a,e(:,OP_DR),h(:,OP_DZ),i(:,OP_DZZ))   
+
+        temp79b = -f(:,OP_1)*ri_79
+        temp = temp                                                         &
+             +  int5(temp79b,g(:,OP_DZ),h(:,OP_DR),e(:,OP_DR),i(:,OP_DR))   &
+             +  int5(temp79b,g(:,OP_DZ),h(:,OP_DR),e(:,OP_DZ),i(:,OP_DZ))   &
+             -  int5(temp79b,g(:,OP_DR),h(:,OP_DZ),e(:,OP_DR),i(:,OP_DR))   &
+             -  int5(temp79b,g(:,OP_DR),h(:,OP_DZ),e(:,OP_DZ),i(:,OP_DZ))
+
+        temp79c = -g(:,OP_1)*ri_79
+        temp = temp                                                         &
+             +  int5(temp79c,f(:,OP_DZ),h(:,OP_DR),e(:,OP_DR),i(:,OP_DR))   &
+             +  int5(temp79c,f(:,OP_DZ),h(:,OP_DR),e(:,OP_DZ),i(:,OP_DZ))   &
+             -  int5(temp79c,f(:,OP_DR),h(:,OP_DZ),e(:,OP_DR),i(:,OP_DR))   &
+             -  int5(temp79c,f(:,OP_DR),h(:,OP_DZ),e(:,OP_DZ),i(:,OP_DZ))   
+
+        temp79d = -f(:,OP_1)*g(:,OP_1)*h(:,OP_GS)*ri_79
+        temp = temp                                   &
+             +  int3(temp79d,e(:,OP_DZ),i(:,OP_DR))   &
+             -  int3(temp79d,e(:,OP_DR),i(:,OP_DZ))   
+     end if
+  end select
+
+  v1parb2ipsipsi = temp
+  return
+end function v1parb2ipsipsi
+
+vectype function v1parb2ipsib(e,f,g,h,i)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h, i
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp79a = - f(:,OP_DP)*g(:,OP_1)*i(:,OP_1)*ri2_79
+        temp = +int3(temp79a,e(:,OP_DR),h(:,OP_DR)) &
+               +int3(temp79a,e(:,OP_DZ),h(:,OP_DZ))
+#endif
+     end if
+
+
+  v1parb2ipsib = temp
+  return
+end function v1parb2ipsib
+
 !============================================================================
 ! V2 TERMS
 !============================================================================
@@ -5761,6 +5874,119 @@ vectype function v3albb(e,f,g,h)
   v3albb = temp
   return
 end function v3albb
+
+vectype function v3par(e,f)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
+
+  vectype :: temp
+
+  temp = 0.
+  select case(ivform)
+  case(0)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0.
+     end if
+
+  case(1)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = - int3(ri3_79,e(:,OP_DR),f(:,OP_1))
+     end if
+  end select
+
+  v3par = temp
+  return
+end function v3par
+
+vectype function v3parb2ipsipsi(e,f,g,h,i)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h, i
+
+  vectype :: temp
+
+  temp = 0.
+  select case(ivform)
+  case(0)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0.
+     end if
+
+  case(1)
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a = f(:,OP_1)*g(:,OP_1)*ri4_79
+        temp =  int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_DRR))   &
+             +  int4(temp79a,e(:,OP_DR),h(:,OP_DZ),i(:,OP_DRZ))   &
+             +  int4(temp79a,e(:,OP_DZ),h(:,OP_DR),i(:,OP_DRZ))   &
+             +  int4(temp79a,e(:,OP_DZ),h(:,OP_DZ),i(:,OP_DZZ))   
+
+        temp79b = f(:,OP_1)*ri4_79
+        temp = temp                                                         &
+             +  int5(temp79b,g(:,OP_DZ),h(:,OP_DR),e(:,OP_DZ),i(:,OP_DR))   &
+             -  int5(temp79b,g(:,OP_DZ),h(:,OP_DR),e(:,OP_DR),i(:,OP_DZ))   &
+             -  int5(temp79b,g(:,OP_DR),h(:,OP_DZ),e(:,OP_DZ),i(:,OP_DR))   &
+             +  int5(temp79b,g(:,OP_DR),h(:,OP_DZ),e(:,OP_DR),i(:,OP_DZ))
+
+        temp79c = g(:,OP_1)*ri4_79
+        temp = temp                                                         &
+             +  int5(temp79c,f(:,OP_DZ),h(:,OP_DR),e(:,OP_DZ),i(:,OP_DR))   &
+             -  int5(temp79c,f(:,OP_DZ),h(:,OP_DR),e(:,OP_DR),i(:,OP_DZ))   &
+             -  int5(temp79c,f(:,OP_DR),h(:,OP_DZ),e(:,OP_DZ),i(:,OP_DR))   &
+             +  int5(temp79c,f(:,OP_DR),h(:,OP_DZ),e(:,OP_DR),i(:,OP_DZ))   
+
+        temp79d = -f(:,OP_1)*g(:,OP_1)*h(:,OP_GS)*ri4_79
+        temp = temp                                   &
+             +  int3(temp79d,e(:,OP_DR),i(:,OP_DR))   &
+             +  int3(temp79d,e(:,OP_DZ),i(:,OP_DZ))   
+     end if
+  end select
+
+  v3parb2ipsipsi = temp
+  return
+end function v3parb2ipsipsi
+
+vectype function v3parb2ipsib(e,f,g,h,i)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h, i
+
+  vectype :: temp
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp79a = f(:,OP_DP)*g(:,OP_1)*i(:,OP_1)*ri5_79
+        temp = +int3(temp79a,e(:,OP_DZ),h(:,OP_DR)) &
+               -int3(temp79a,e(:,OP_DR),h(:,OP_DZ))
+#endif
+     end if
+
+
+  v3parb2ipsib = temp
+  return
+end function v3parb2ipsib
 
 !==============================================================================
 ! B1 TERMS
@@ -13878,6 +14104,505 @@ vectype function j1b2ipsipsi(e,f,g,h)
 end function j1b2ipsipsi
 
 
+vectype function pparpu(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int4(r_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DR)) &
+             - int4(r_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZ))
+
+     end if
+
+  pparpu = temp
+
+  return
+end function pparpu
+
+vectype function pparpupsipsib2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a = 2.*e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp = - int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DR))  &
+               + int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DZ))
+        temp = temp                                                    &
+               + int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DR)) &
+               + int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DR)) &
+               - int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DZ)) &
+               - int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DZ))
+        if(itor.eq.1) then
+           temp = temp                                                    &
+                  + int5(ri2_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DZ)) &
+                  + int5(ri2_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DZ)) 
+        endif
+     end if
+
+  pparpupsipsib2 = temp
+
+  return
+end function pparpupsipsib2
+
+vectype function pparpubbb2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0
+        if(itor.eq.1) then
+        temp79a = 2.*e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+           temp = temp                                                    &
+                  + int5(ri2_79,temp79a,h(:,OP_1),i(:,OP_1),g(:,OP_DZ)) 
+        endif
+     end if
+
+     pparpubbb2 = temp
+     return
+end function pparpubbb2
 
 ! ===========
+vectype function pparpvpsibb2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a = 2.*e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp = - int5(ri_79,temp79a,g(:,OP_1),h(:,OP_DZ),i(:,OP_DR))  &
+               + int5(ri_79,temp79a,g(:,OP_1),h(:,OP_DR),i(:,OP_DZ))
+     end if
+
+  pparpvpsibb2 = temp
+
+  return
+end function pparpvpsibb2
+
+vectype function pparpv(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+     temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = -int3(e(:,OP_1),f(:,OP_1),g(:,OP_DP)) 
+#endif
+     end if
+
+  pparpv = temp
+
+  return
+end function pparpv
+
+vectype function pparpchi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR)) &
+             + int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ))
+
+     end if
+
+  pparpchi = temp
+
+  return
+end function pparpchi
+vectype function pparchipsipsib2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a = 2.*e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp = - int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DR))  &
+               - int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DZ))
+        temp = temp                                                    &
+               + int4(temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DR)) &
+               + int4(temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DR)) &
+               + int4(temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DZ)) &
+               + int4(temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DZ))
+        if(itor.eq.1) then
+           temp = temp                                                    &
+                  - int5(ri5_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DR)) &
+                  - int5(ri5_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DR)) 
+        endif
+     end if
+
+  pparchipsipsib2 = temp
+
+  return
+end function pparchipsipsib2
+
+vectype function pparpchibbb2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0
+        if(itor.eq.1) then
+        temp79a = 2.*e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+           temp = temp                                                    &
+                  - int5(ri5_79,temp79a,h(:,OP_1),i(:,OP_1),g(:,OP_DR)) 
+        endif
+     end if
+
+     pparpchibbb2 = temp
+     return
+end function pparpchibbb2
+vectype function pperpu(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 2.*int4(r_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DR)) &
+             - 2.*int4(r_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZ)) &
+                + int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR)) &
+                - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ))
+
+     end if
+
+  pperpu = temp
+
+  return
+end function pperpu
+
+vectype function pperpupsipsib2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp = - int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DR))  &
+               + int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DZ))
+        temp = temp                                                    &
+               + int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DR)) &
+               + int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DR)) &
+               - int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DZ)) &
+               - int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DZ))
+        if(itor.eq.1) then
+           temp = temp                                                    &
+                  + int5(ri2_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DZ)) &
+                  + int5(ri2_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DZ)) 
+        endif
+     end if
+
+  pperpupsipsib2 = temp
+
+  return
+end function pperpupsipsib2
+
+vectype function pperpubbb2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0
+        if(itor.eq.1) then
+        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+           temp = temp                                                    &
+                  + int5(ri2_79,temp79a,h(:,OP_1),i(:,OP_1),g(:,OP_DZ)) 
+        endif
+     end if
+
+     pperpubbb2 = temp
+     return
+end function pperpubbb2
+
+! ===========
+vectype function pperpvpsibb2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp = - int5(ri_79,temp79a,g(:,OP_1),h(:,OP_DZ),i(:,OP_DR))  &
+               + int5(ri_79,temp79a,g(:,OP_1),h(:,OP_DR),i(:,OP_DZ))
+     end if
+
+  pperpvpsibb2 = temp
+
+  return
+end function pperpvpsibb2
+
+vectype function pperpv(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+     temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp = -2.*int3(e(:,OP_1),f(:,OP_1),g(:,OP_DP)) 
+#endif
+     end if
+
+  pperpv = temp
+
+  return
+end function pperpv
+
+vectype function pperpchi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else   
+        temp = 2.*int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR)) &
+             + 2.*int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) &
+             + int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR)) &
+             + int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ))
+
+     end if
+
+  pperpchi = temp
+
+  return
+end function pperpchi
+vectype function pperchipsipsib2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp = - int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DR))  &
+               - int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DZ))
+        temp = temp                                                    &
+               + int4(temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DR)) &
+               + int4(temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DR)) &
+               + int4(temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DZ)) &
+               + int4(temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DZ))
+        if(itor.eq.1) then
+           temp = temp                                                    &
+                  - int5(ri5_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DR)) &
+                  - int5(ri5_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DR)) 
+        endif
+     end if
+
+  pperchipsipsib2 = temp
+
+  return
+end function pperchipsipsib2
+
+vectype function pperpchibbb2(e,f,g,h,i,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0
+        if(itor.eq.1) then
+        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+           temp = temp                                                    &
+                  - int5(ri5_79,temp79a,h(:,OP_1),i(:,OP_1),g(:,OP_DR)) 
+        endif
+     end if
+
+     pperpchibbb2 = temp
+     return
+end function pperpchibbb2
+vectype function incvb(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))
+     end if
+
+  incvb = temp
+
+  return
+end function incvb
+vectype function incupsi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR)) &
+             + int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ))
+
+     end if
+
+  incupsi = temp
+
+  return
+end function incupsi
+vectype function incchipsi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+  vectype :: temp
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = int4(ri3_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR)) &
+             - int4(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ))
+
+     end if
+
+  incchipsi = temp
+
+  return
+end function incchipsi
 end module metricterms_new

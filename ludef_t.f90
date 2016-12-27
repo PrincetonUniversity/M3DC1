@@ -534,7 +534,7 @@ subroutine vorticity_nolin(trial, r4term)
 
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .ge. 0) then
+  if(kinetic .eq. 1) then
      r4term = r4term + dt* &
           (v1be      (trial,be79)  &
           +v1albs    (trial,al79,bs79) &
@@ -1008,7 +1008,7 @@ subroutine axial_vel_nolin(trial, r4term)
 
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .ge. 0) then
+  if(kinetic .eq. 1) then
      r4term = r4term + dt* &
           (v2be      (trial,be79)  &
           +v2albs    (trial,al79,bs79) &
@@ -1524,7 +1524,7 @@ subroutine compression_nolin(trial, r4term)
 
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .ge. 0) then
+  if(kinetic .eq. 1) then
      r4term = r4term + dt* &
           (v3be      (trial,be79)  &
           +v3albs    (trial,al79,bs79) &
