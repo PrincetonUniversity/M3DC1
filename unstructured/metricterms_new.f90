@@ -14260,7 +14260,7 @@ vectype function pparpchi(e,f,g)
 
   return
 end function pparpchi
-vectype function pparchipsipsib2(e,f,g,h,i,j)
+vectype function pparpchipsipsib2(e,f,g,h,i,j)
 
   use basic
   use m3dc1_nint
@@ -14289,10 +14289,10 @@ vectype function pparchipsipsib2(e,f,g,h,i,j)
         endif
      end if
 
-  pparchipsipsib2 = temp
+  pparpchipsipsib2 = temp
 
   return
-end function pparchipsipsib2
+end function pparpchipsipsib2
 
 vectype function pparpchibbb2(e,f,g,h,i,j)
 
@@ -14479,7 +14479,7 @@ vectype function pperpchi(e,f,g)
 
   return
 end function pperpchi
-vectype function pperchipsipsib2(e,f,g,h,i,j)
+vectype function pperpchipsipsib2(e,f,g,h,i,j)
 
   use basic
   use m3dc1_nint
@@ -14508,10 +14508,10 @@ vectype function pperchipsipsib2(e,f,g,h,i,j)
         endif
      end if
 
-  pperchipsipsib2 = temp
+  pperpchipsipsib2 = temp
 
   return
-end function pperchipsipsib2
+end function pperpchipsipsib2
 
 vectype function pperpchibbb2(e,f,g,h,i,j)
 
