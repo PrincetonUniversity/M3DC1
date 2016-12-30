@@ -3760,7 +3760,84 @@ vectype function v2albb(e,f,g,h)
   return
 end function v2albb
 
+vectype function v2parpb2ipsipsi(e,f,g,h,i)
+  use basic
+  use arrays
+  use m3dc1_nint
 
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+
+  vectype :: temp
+
+  if(surface_int) then
+     v2parpb2ipsipsi = 0.
+     return
+  end if
+
+  temp = 0.
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = -e(:,OP_1)*f(:,OP_DP)*g(:,OP_1)*ri2_79
+  temp = int3(temp79a,h(:,OP_DR),i(:,OP_DR))    &
+       + int3(temp79a,h(:,OP_DZ),i(:,OP_DZ)) 
+#endif
+
+  v2parpb2ipsipsi = temp
+  return
+end function v2parpb2ipsipsi
+
+vectype function v2parpb2ibb(e,f,g,h,i)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+
+  vectype :: temp
+
+  if(surface_int) then
+     v2parpb2ibb = 0.
+     return
+  end if
+
+  temp = 0.
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = -f(:,OP_DP)*g(:,OP_1)*h(:,OP_1)*i(:,OP_1)*ri2_79
+  temp = temp + int2(temp79a,e(:,OP_1))  
+#endif
+
+  v2parpb2ibb = temp
+  return
+end function v2parpb2ibb
+vectype function v2parpb2ipsib(e,f,g,h,i)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+
+  vectype :: temp
+
+  if(surface_int) then
+     v2parpb2ipsib = 0.
+     return
+  end if
+
+  temp = 0.
+  temp79a =  f(:,OP_1)*g(:,OP_1)*i(:,OP_1)*ri_79
+
+  temp = temp + int3(temp79a,e(:,OP_DZ),h(:,OP_DR))    &
+              - int3(temp79a,e(:,OP_DR),h(:,OP_DZ)) 
+  v2parpb2ipsib = temp
+  return
+end function v2parpb2ipsib
 
 
 !==============================================================================

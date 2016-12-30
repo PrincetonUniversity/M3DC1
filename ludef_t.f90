@@ -401,6 +401,17 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         temp = v1p(trial,lin)
         ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
         ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
+ 
+        ! CGL and PIC (anisotropic pressure)
+        if(kinetic.gt.0) then
+           temp = v1par(trial,lin)    &
+                + v1parb2ipsipsi(trial,lin,b2i79,pstx79,pstx79)  &
+                + v1parb2ipsib(trial,lin,b2i79,pstx79,bztx79)
+           ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
+           ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+           ssterm(p_g)  = ssterm(p_g)  +     thimp     *dt*temp
+           ddterm(p_g)  = ddterm(p_g)  - (1.-thimp*bdf)*dt*temp
+        endif
      end if
   end if
 
@@ -630,6 +641,17 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ssterm(vz_g) = temp
         ddterm(vz_g) = temp
      endif
+     return
+  endif
+
+  ! incompressible constraint for CGL (kinetic.eq.2)
+  if(kinetic.eq.2) then
+     temp = incvb(trial,lin,bztx79)
+     ssterm(vz_g) = temp
+     temp = incupsi(trial,lin,pstx79)
+     ssterm(u_g) = temp
+     temp = incchipsi(trial,lin,pstx79)
+     ssterm(chi_g) = temp
      return
   endif
 
@@ -894,9 +916,20 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      ! Unsplit time-step
      else
-        temp = v2p(trial,lin)
-        ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
-        ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
+        if(kinetic.eq.0) then
+           temp = v2p(trial,lin)
+           ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
+           ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
+        else  ! kinetic.eq.1
+           temp = v2parpb2ipsipsi(trial,lin,b2i79,pstx79,pstx79)   &
+                - v2parpb2ipsib  (trial,lin,b2i79,pstx79,bztx79)
+           ssterm(p_g) = ssterm(p_g) -      thimp*dt*temp
+           ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
+           temp = v2parpb2ibb  (trial,lin,b2i79,bztx79,bztx79)       &
+                + v2parpb2ipsib(trial,lin,b2i79,pstx79,bztx79)
+           ssterm(pe_g) = ssterm(pe_g) -      thimp*dt*temp
+           ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+        endif
      end if
   end if
 
@@ -1389,6 +1422,17 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      temp = v3p(trial,lin) 
      ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
      ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
+ 
+        ! CGL and PIC (anisotropic pressure)
+        if(kinetic.gt.0) then
+           temp = v3par(trial,lin)    &
+                + v3parb2ipsipsi(trial,lin,b2i79,pstx79,pstx79)  &
+                + v3parb2ipsib(trial,lin,b2i79,pstx79,bztx79)
+           ssterm(pe_g) = ssterm(pe_g) -     thimp     *dt*temp
+           ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
+           ssterm(p_g)  = ssterm(p_g)  +     thimp     *dt*temp
+           ddterm(p_g)  = ddterm(p_g)  - (1.-thimp*bdf)*dt*temp
+        endif
   endif
 
 
