@@ -144,7 +144,7 @@ contains
     
     integer(HID_T), intent(in) :: parent_id
     character(LEN=*), intent(in) :: name
-    integer, intent(in)  :: value
+    integer :: value
     integer, intent(out) :: error
     
     integer(HID_T) :: dspace_id, attr_id
@@ -167,7 +167,7 @@ contains
     
     integer(HID_T), intent(in) :: parent_id
     character(LEN=*), intent(in) :: name
-    integer, intent(in)  :: value
+    integer :: value
     integer, intent(out) :: error
     
     integer(HID_T) :: dspace_id, attr_id

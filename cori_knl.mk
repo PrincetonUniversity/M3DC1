@@ -20,7 +20,8 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Nov2016-mpich7.4.4
+#SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2016-mpich7.4.4
+SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2016-mpich7.4.4-knl/cray-petsc
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
 else
@@ -32,37 +33,37 @@ else
 endif
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+             -lpumi -lapf -lapf_zoltan -lzoltan -lgmi -llion -lma -lmds -lmth -lparma \
+             -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
 ifeq ($(COM), 1)
-#      PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc-3.5.4
-#      PETSC_ARCH = complex-intel-mpich7.3
+      PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.4
+      PETSC_ARCH = cori-hsw-knl-cplx
       HYPRE_LIB = 
-#      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB)
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib \
+#      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
        $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu -lsuperlu_dist \
        -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++
-#todo       -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
-#don't have 2016dec19       -lflapack -lfblas
+#       -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
+#don't have 2016dec19      -lflapack -lfblas
 
-      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_complex
+      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
       OPTS := $(OPTS) -DNEXTPetscDEV
 else
-#      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/master.noomp-nostrumpack
-#      PETSC_ARCH = next-noomp-nostrumpack
+      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.7.4
+      PETSC_ARCH = cori-hsw-knl
       HYPRE_LIB = -lHYPRE
-#      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib \
+#      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
         $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
-       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++ \
-       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit
-#don't have 2016dec08 -lstrumpack_sparse \
-#don't have 2016dec08       -lflapack -lfblas
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common  -lpord -lsuperlu -lsuperlu_dist \
+       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++ 
+#       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit
+#       -lstrumpack_sparse \
+#       -lflapack -lfblas 
 
-      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcraypetsc_intel_real
+      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
       OPTS := $(OPTS) -DNEXTPetscDEV
 endif
 
@@ -81,20 +82,20 @@ endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
            $(FFTW_INCLUDE_OPTS) \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
+#           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 #
 LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
-        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan \
+        $(ZOLTAN_LIB) \
         $(PETSC_LIB) $(PETSC_EXTERNAL_LIB_BASIC) \
-        -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
+        -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
 	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB)
