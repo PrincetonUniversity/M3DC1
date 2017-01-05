@@ -1,16 +1,24 @@
 module rmp
 
   use coils
+  use read_schaffer_field
 
   real :: tf_tilt, tf_tilt_angle
   real :: tf_shift, tf_shift_angle
   real, dimension(maxcoils) :: pf_tilt, pf_tilt_angle
   real, dimension(maxcoils) :: pf_shift, pf_shift_angle
 
+  real, dimension(maxfilaments), private :: xc_na, zc_na
+  complex, dimension(maxfilaments), private :: ic_na
+  integer, private :: nc_na
+  logical, private :: read_p
+
+  type(schaffer_field), allocatable, private :: sf(:)
+
 contains
 
 !=========================================================================
-subroutine calculate_external_fields(sf)
+subroutine calculate_external_fields()
   use basic
   use math
   use mesh_mod
@@ -20,46 +28,19 @@ subroutine calculate_external_fields(sf)
   use m3dc1_nint
   use newvar_mod
   use boundary_conditions
-  use read_schaffer_field
-  use gradshafranov
 
   implicit none
 
   include 'mpif.h'
 
-  type(schaffer_field), allocatable :: sf(:)
   type(matrix_type) :: br_mat
   type(vector_type) :: psi_vec, bz_vec, p_vec
   integer :: i, j, itri, nelms, ier
 
-  complex, dimension(int_pts_main) :: fr, fphi, fz
-  complex, dimension(MAX_PTS) :: br, btheta, bz, phase
-  real, dimension(MAX_PTS) :: r, theta, arg
-#ifdef USE3D
-  real, dimension(MAX_PTS) :: gr, gphi, gz, p
-#endif
-
-  real, dimension(maxfilaments) :: xc_na, zc_na
-  complex, dimension(maxfilaments) :: ic_na
-  integer :: nc_na
-  logical :: read_p
-
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp
   vectype, dimension(dofs_per_element) :: temp2, temp3, temp4
-  vectype, dimension(MAX_PTS) :: bbr, bbz, drbr, dzbr, drbz, dzbz
 
   type(field_type) :: psi_f, bz_f, p_f
-  real, dimension(MAX_PTS, 1, 6) :: g
-
-#ifdef USECOMPLEX
-  complex :: sfac
-  complex :: tilt_co, tilt_sn
-  complex :: shift_co, shift_sn
-#else
-  real, dimension(int_pts_main) :: co, sn
-  real, dimension(int_pts_main) :: tilt_co, tilt_sn
-  real, dimension(int_pts_main) :: shift_co, shift_sn
-#endif
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
 
@@ -97,171 +78,9 @@ subroutine calculate_external_fields(sf)
      call define_element_quadrature(itri,int_pts_main,5)
      call define_fields(itri,0,1,0)
 
-     temp79a = 0.
-     temp79b = 0.
-     temp79c = 0.
-     temp79d = 0.
-
-     select case(irmp)
-     case(1)
-        fr   = 0.    ! B_R
-        fphi = 0.    ! B_phi
-        fz   = 0.    ! B_Z
-
-        do i=1, nc_na, 2
-           call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), &
-                npoints_pol,x_79,z_79,ntor,fr,fphi,fz)
-        end do
-
-#ifdef USECOMPLEX
-        temp79a = fr
-        temp79b = fphi
-        temp79c = fz
-        temp79d = 0.
-#else
-        do i=1, npoints_tor
-           co(1:npoints_pol) = &
-                cos(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
-           sn(1:npoints_pol) = &
-                sin(ntor*phi_79((i-1)*npoints_pol+1:i*npoints_pol))
-           temp79a((i-1)*npoints_pol+1:i*npoints_pol) = &
-                real(fr(1:npoints_pol))*co(1:npoints_pol) + &
-                aimag(fr(1:npoints_pol))*sn(1:npoints_pol)
-           temp79b((i-1)*npoints_pol+1:i*npoints_pol) = &
-                real(fphi(1:npoints_pol))*co(1:npoints_pol) + &
-                aimag(fphi(1:npoints_pol))*sn(1:npoints_pol)
-           temp79c((i-1)*npoints_pol+1:i*npoints_pol) = &
-                real(fz(1:npoints_pol))*co(1:npoints_pol) + &
-                aimag(fz(1:npoints_pol))*sn(1:npoints_pol)
-        end do
-#endif
-
-        temp79a = -twopi*temp79a
-        temp79b = -twopi*temp79b
-        temp79c = -twopi*temp79c
-        temp79d = 0.
-
-
-     ! m/n Vacuum fields
-     case(2)
-
-        if(itor.eq.1) then 
-           temp79a = 0.
-           temp79b = 0.
-           temp79c = 0.
-        else
-           r = sqrt((x_79 - xzero)**2 + (z_79 - zzero)**2 + regular**2)
-           theta = -atan2(z_79 - zzero, x_79 - xzero)
-           arg = ntor*r/rzero
-           phase = exp((0,1)*(ntor*phi_79/rzero - mpol*theta))
-           do i=1, npoints
-              br(i)     = 0.5*(Bessel_I(mpol-1, arg(i)) + Bessel_I(mpol+1, arg(i)))
-              btheta(i) = Bessel_I(mpol, arg(i)) / r(i)
-              bz(i)     = Bessel_I(mpol, arg(i))
-           end do
-           br     =        (ntor/rzero)*phase*br     *eps
-           btheta = -(0,1)*mpol        *phase*btheta *eps
-           bz     =  (0,1)*(ntor/rzero)*phase*bz     *eps
-#ifdef USECOMPLEX
-           temp79a =  br*cos(theta) - btheta*sin(theta)
-           temp79b =  bz
-           temp79c = -br*sin(theta) - btheta*cos(theta)
-#else
-           temp79a =  real(br)*cos(theta) - real(btheta)*sin(theta)
-           temp79b =  real(bz)
-           temp79c = -real(br)*sin(theta) - real(btheta)*cos(theta)
-#endif
-        end if
-        temp79d = 0.
-
-     end select
-
-     if(tf_tilt.ne.0. .or. tf_shift.ne.0.) then
-#ifdef USECOMPLEX
-        tilt_co  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )
-        tilt_sn  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )*(0,-1)
-        shift_co = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)
-        shift_sn = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)*(0,-1)
-#else
-        tilt_co  = tf_tilt*deg2rad*cos(phi_79 - tf_tilt_angle*deg2rad)
-        tilt_sn  = tf_tilt*deg2rad*sin(phi_79 - tf_tilt_angle*deg2rad)
-        shift_co = tf_shift*cos(phi_79 - tf_shift_angle*deg2rad)
-        shift_sn = tf_shift*sin(phi_79 - tf_shift_angle*deg2rad)
-#endif
-        temp79a = temp79a + bzero*rzero * ( &
-             - (z_79/x_79**2)*tilt_co    &
-             - (  1./x_79**2)*shift_sn)
-        temp79b = temp79b + bzero*rzero * ( &
-             - (z_79/x_79**2)*tilt_sn    &
-             + (  1./x_79**2)*shift_co)
-        temp79c = temp79c + bzero*rzero * ( &
-             + (  1./x_79   )*tilt_co)
-     end if
-
-     do i=1, numcoils_vac
-        j = coil_mask(i)
-        if(pf_tilt(j).ne.0. .or. pf_shift(j).ne.0.) then
-#ifdef USECOMPLEX
-           tilt_co  = pf_tilt(j)*deg2rad* &
-                exp(-(0,1)*pf_tilt_angle(j)*deg2rad )
-           tilt_sn  = pf_tilt(j)*deg2rad* &
-                exp(-(0,1)*pf_tilt_angle(j)*deg2rad )*(0,-1)
-           shift_co = pf_shift(j)* &
-                exp(-(0,1)*pf_shift_angle(j)*deg2rad)
-           shift_sn = pf_shift(j)* &
-                exp(-(0,1)*pf_shift_angle(j)*deg2rad)*(0,-1)
-#else
-           tilt_co  = pf_tilt(j)*deg2rad* &
-                cos(phi_79 - pf_tilt_angle(j)*deg2rad)
-           tilt_sn  = pf_tilt(j)*deg2rad* &
-                sin(phi_79 - pf_tilt_angle(j)*deg2rad)
-           shift_co = pf_shift(j)* &
-                cos(phi_79 - pf_shift_angle(j)*deg2rad)
-           shift_sn = pf_shift(j)* &
-                sin(phi_79 - pf_shift_angle(j)*deg2rad)
-#endif
-           call gvect(x_79, z_79, npoints, xc_vac(i), zc_vac(i), 1, g, 0, ier)
-           bbr =   ic_vac(i)* g(:,1,3)/x_79
-           bbz =  -ic_vac(i)* g(:,1,2)/x_79
-           drbr =  ic_vac(i)*(g(:,1,5)/x_79 - g(:,1,3)/x_79**2)
-           dzbr =  ic_vac(i)* g(:,1,6)/x_79
-           drbz = -ic_vac(i)*(g(:,1,4)/x_79 - g(:,1,2)/x_79**2)
-           dzbz = -ic_vac(i)* g(:,1,5)/x_79
-
-           temp79a = temp79a + &
-                (-shift_co*drbr &
-                + tilt_sn*(-bbz - x_79*dzbr + z_79*drbr))
-           temp79b = temp79b + &
-                (shift_sn*bbr/x_79 &
-                +tilt_co*(z_79/x_79*bbr - bbz))
-           temp79c = temp79c + &
-                (-shift_co*drbz &
-                + tilt_sn*(bbr - x_79*dzbz + z_79*drbz))
-        end if
-     end do
-
-
-     if(iread_ext_field.ne.0) then
-        do i=1, iread_ext_field 
-#if defined(USECOMPLEX)
-           sfac = exp(-cmplx(0.,1.)*ntor*shift_ext_field(i)*pi/180.)
-           call get_external_field_ft(sf(i),x_79,z_79,fr,fphi,fz,npoints)
-           temp79a = temp79a + (1e4/b0_norm)*fr  *scale_ext_field*sfac
-           temp79b = temp79b + (1e4/b0_norm)*fphi*scale_ext_field*sfac
-           temp79c = temp79c + (1e4/b0_norm)*fz  *scale_ext_field*sfac
-#elif defined(USE3D)
-           call get_external_field(sf(i),&
-                x_79,phi_79-shift_ext_field(i)*pi/180.,z_79,&
-                gr,gphi,gz,p,npoints)
-           temp79a = temp79a + (1e4/b0_norm)*gr  *scale_ext_field
-           temp79b = temp79b + (1e4/b0_norm)*gphi*scale_ext_field
-           temp79c = temp79c + (1e4/b0_norm)*gz  *scale_ext_field
-           if(sf(i)%vmec) then
-              temp79d = temp79d + p/p0_norm + pedge
-           end if
-#endif
-        end do
-     end if
+     call rmp_field(npoints, npoints_tor, npoints_pol, &
+          x_79, phi_79, z_79, &
+          temp79a, temp79b, temp79c, temp79d)
 
      ! assemble matrix
      do i=1,dofs_per_element
@@ -367,7 +186,6 @@ subroutine rmp_per
 
   integer :: l, ierr
   character(len=13) :: ext_field_name
-  type(schaffer_field), allocatable :: sf(:)
 
   ! load external field data from schaffer file
   if(iread_ext_field.ge.1) then
@@ -392,7 +210,7 @@ subroutine rmp_per
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
-  call calculate_external_fields(sf)
+  call calculate_external_fields()
 
   ! unload data
   if(iread_ext_field.ge.1) then
@@ -402,5 +220,207 @@ subroutine rmp_per
      deallocate(sf)
   end if
 end subroutine rmp_per
+
+subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
+  use math
+  use basic
+  use coils
+  use gradshafranov
+
+  implicit none
+
+  integer, intent(in) :: n, nt, np
+  real, intent(in), dimension(n) :: x, phi, z
+  vectype, intent(out), dimension(n) :: br, bphi, bz
+  vectype, intent(out), dimension(n), optional :: p
+
+  integer :: i, j, ier
+
+  complex, dimension(int_pts_main) :: fr, fphi, fz
+  complex, dimension(MAX_PTS) :: brv, bthetav, bzv, phase
+  real, dimension(MAX_PTS) :: r, theta, arg
+#ifdef USE3D
+  real, dimension(MAX_PTS) :: gr, gphi, gz, p
+#endif
+
+  real, dimension(MAX_PTS, 1, 6) :: g
+  vectype, dimension(MAX_PTS) :: bbr, bbz, drbr, dzbr, drbz, dzbz
+
+#ifdef USECOMPLEX
+  complex :: sfac
+  complex :: tilt_co, tilt_sn
+  complex :: shift_co, shift_sn
+#else
+  real, dimension(int_pts_main) :: co, sn
+  real, dimension(int_pts_main) :: tilt_co, tilt_sn
+  real, dimension(int_pts_main) :: shift_co, shift_sn
+#endif
+
+  br = 0.
+  bphi = 0.
+  bz = 0.
+  p = 0.
+
+  select case(irmp)
+  case(1)
+     fr   = 0.    ! B_R
+     fphi = 0.    ! B_phi
+     fz   = 0.    ! B_Z
+     
+     do i=1, nc_na, 2
+        call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), &
+             np,x,z,ntor,fr,fphi,fz)
+     end do
+     
+#ifdef USECOMPLEX
+     br = fr
+     bphi = fphi
+     bz = fz
+     p = 0.
+#else
+     do i=1, nt
+        co(1:np) = &
+             cos(ntor*phi((i-1)*np+1:i*np))
+        sn(1:np) = &
+             sin(ntor*phi((i-1)*np+1:i*np))
+        br((i-1)*np+1:i*np) = &
+             real(fr(1:np))*co(1:np) + &
+             aimag(fr(1:np))*sn(1:np)
+        bphi((i-1)*np+1:i*np) = &
+             real(fphi(1:np))*co(1:np) + &
+             aimag(fphi(1:np))*sn(1:np)
+        bz((i-1)*np+1:i*np) = &
+             real(fz(1:np))*co(1:np) + &
+             aimag(fz(1:np))*sn(1:np)
+     end do
+#endif
+
+     br = -twopi*br
+     bphi = -twopi*bphi
+     bz = -twopi*bz
+     if(present(p)) p = 0.
+          
+     ! m/n Vacuum fields
+  case(2)
+     
+     if(itor.eq.1) then 
+        br = 0.
+        bphi = 0.
+        bz = 0.
+     else
+        r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
+        theta = -atan2(z - zzero, x - xzero)
+        arg = ntor*r/rzero
+        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))
+        do i=1, n
+           brv(i)     = 0.5*(Bessel_I(mpol-1, arg(i)) + Bessel_I(mpol+1, arg(i)))
+           bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
+           bzv(i)     = Bessel_I(mpol, arg(i))
+        end do
+        brv     =        (ntor/rzero)*phase*brv     *eps
+        bthetav = -(0,1)*mpol        *phase*bthetav *eps
+        bzv     =  (0,1)*(ntor/rzero)*phase*bzv     *eps
+#ifdef USECOMPLEX
+        br =  brv*cos(theta) - bthetav*sin(theta)
+        bphi =  bzv
+        bz = -brv*sin(theta) - bthetav*cos(theta)
+#else
+        br =  real(brv)*cos(theta) - real(bthetav)*sin(theta)
+        bphi =  real(bzv)
+        bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
+#endif
+     end if
+     p = 0.
+     
+  end select
+  
+  if(tf_tilt.ne.0. .or. tf_shift.ne.0.) then
+#ifdef USECOMPLEX
+     tilt_co  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )
+     tilt_sn  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )*(0,-1)
+     shift_co = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)
+     shift_sn = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)*(0,-1)
+#else
+     tilt_co  = tf_tilt*deg2rad*cos(phi - tf_tilt_angle*deg2rad)
+     tilt_sn  = tf_tilt*deg2rad*sin(phi - tf_tilt_angle*deg2rad)
+     shift_co = tf_shift*cos(phi - tf_shift_angle*deg2rad)
+     shift_sn = tf_shift*sin(phi - tf_shift_angle*deg2rad)
+#endif
+     br = br + bzero*rzero * ( &
+          - (z/x**2)*tilt_co    &
+          - (  1./x**2)*shift_sn)
+     bphi = bphi + bzero*rzero * ( &
+          - (z/x**2)*tilt_sn    &
+          + (  1./x**2)*shift_co)
+     bz = bz + bzero*rzero * ( &
+          + (  1./x   )*tilt_co)
+  end if
+  
+  do i=1, numcoils_vac
+     j = coil_mask(i)
+     if(pf_tilt(j).ne.0. .or. pf_shift(j).ne.0.) then
+#ifdef USECOMPLEX
+        tilt_co  = pf_tilt(j)*deg2rad* &
+             exp(-(0,1)*pf_tilt_angle(j)*deg2rad )
+        tilt_sn  = pf_tilt(j)*deg2rad* &
+             exp(-(0,1)*pf_tilt_angle(j)*deg2rad )*(0,-1)
+        shift_co = pf_shift(j)* &
+             exp(-(0,1)*pf_shift_angle(j)*deg2rad)
+        shift_sn = pf_shift(j)* &
+             exp(-(0,1)*pf_shift_angle(j)*deg2rad)*(0,-1)
+#else
+        tilt_co  = pf_tilt(j)*deg2rad* &
+             cos(phi - pf_tilt_angle(j)*deg2rad)
+        tilt_sn  = pf_tilt(j)*deg2rad* &
+             sin(phi - pf_tilt_angle(j)*deg2rad)
+        shift_co = pf_shift(j)* &
+             cos(phi - pf_shift_angle(j)*deg2rad)
+        shift_sn = pf_shift(j)* &
+             sin(phi - pf_shift_angle(j)*deg2rad)
+#endif
+        call gvect(x, z, n, xc_vac(i), zc_vac(i), 1, g, 0, ier)
+        bbr =   ic_vac(i)* g(:,1,3)/x
+        bbz =  -ic_vac(i)* g(:,1,2)/x
+        drbr =  ic_vac(i)*(g(:,1,5)/x - g(:,1,3)/x**2)
+        dzbr =  ic_vac(i)* g(:,1,6)/x
+        drbz = -ic_vac(i)*(g(:,1,4)/x - g(:,1,2)/x**2)
+        dzbz = -ic_vac(i)* g(:,1,5)/x
+        
+        br = br + &
+             (-shift_co*drbr &
+             + tilt_sn*(-bbz - x*dzbr + z*drbr))
+        bphi = bphi + &
+             (shift_sn*bbr/x &
+             +tilt_co*(z/x*bbr - bbz))
+        bz = bz + &
+             (-shift_co*drbz &
+             + tilt_sn*(bbr - x*dzbz + z*drbz))
+     end if
+  end do
+
+
+  if(iread_ext_field.ne.0) then
+     do i=1, iread_ext_field 
+#if defined(USECOMPLEX)
+        sfac = exp(-cmplx(0.,1.)*ntor*shift_ext_field(i)*pi/180.)
+        call get_external_field_ft(sf(i),x,z,fr,fphi,fz,n)
+        br = br + (1e4/b0_norm)*fr  *scale_ext_field*sfac
+        bphi = bphi + (1e4/b0_norm)*fphi*scale_ext_field*sfac
+        bz = bz + (1e4/b0_norm)*fz  *scale_ext_field*sfac
+#elif defined(USE3D)
+        call get_external_field(sf(i),&
+             x,phi-shift_ext_field(i)*pi/180.,z,&
+             gr,gphi,gz,q,n)
+        br = br + (1e4/b0_norm)*gr  *scale_ext_field
+        bphi = bphi + (1e4/b0_norm)*gphi*scale_ext_field
+        bz = bz + (1e4/b0_norm)*gz  *scale_ext_field
+        if(sf(i)%vmec .and. present(p)) then
+           p = p + q/p0_norm + pedge
+        end if
+#endif
+     end do
+  end if
+
+end subroutine rmp_field
 
 end module rmp
