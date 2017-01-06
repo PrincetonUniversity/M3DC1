@@ -5976,7 +5976,9 @@ vectype function v3par(e,f)
      if(surface_int) then
         temp = 0.
      else
-        temp = - int3(ri3_79,e(:,OP_DR),f(:,OP_1))
+        if(itor.eq.1) then
+           temp = - int3(ri3_79,e(:,OP_DR),f(:,OP_1))
+        endif
      end if
   end select
 
@@ -6009,10 +6011,15 @@ vectype function v3parb2ipsipsi(e,f,g,h,i)
         temp = 0.
      else
         temp79a = f(:,OP_1)*g(:,OP_1)*ri4_79
-        temp =  int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_DRR))   &
-             +  int4(temp79a,e(:,OP_DR),h(:,OP_DZ),i(:,OP_DRZ))   &
-             +  int4(temp79a,e(:,OP_DZ),h(:,OP_DR),i(:,OP_DRZ))   &
-             +  int4(temp79a,e(:,OP_DZ),h(:,OP_DZ),i(:,OP_DZZ))   
+        temp =  temp                                                 &
+             +  .5*int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_DRR))   &
+             +  .5*int4(temp79a,e(:,OP_DR),h(:,OP_DZ),i(:,OP_DRZ))   &
+             +  .5*int4(temp79a,e(:,OP_DR),h(:,OP_DRR),i(:,OP_DR))   &
+             +  .5*int4(temp79a,e(:,OP_DR),h(:,OP_DRZ),i(:,OP_DZ))   &
+             +  .5*int4(temp79a,e(:,OP_DZ),h(:,OP_DR),i(:,OP_DRZ))   &
+             +  .5*int4(temp79a,e(:,OP_DZ),h(:,OP_DZ),i(:,OP_DZZ))   &
+             +  .5*int4(temp79a,e(:,OP_DZ),h(:,OP_DRZ),i(:,OP_DR))   &
+             +  .5*int4(temp79a,e(:,OP_DZ),h(:,OP_DZZ),i(:,OP_DZ))   
 
         temp79b = f(:,OP_1)*ri4_79
         temp = temp                                                         &
@@ -14219,18 +14226,22 @@ vectype function pparpupsipsib2(e,f,g,h,i,j)
      if(surface_int) then
         temp = 0.
      else
-        temp79a = 2.*e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
-        temp = - int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DR))  &
-               + int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DZ))
+        temp79a = e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp = - 2.*int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DR))  &
+               + 2.*int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DZ))
         temp = temp                                                    &
                + int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DR)) &
                + int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DR)) &
+               + int5(ri_79,temp79a,h(:,OP_DRZ),i(:,OP_DR),g(:,OP_DR)) &
+               + int5(ri_79,temp79a,h(:,OP_DZZ),i(:,OP_DZ),g(:,OP_DR)) &
                - int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DZ)) &
-               - int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DZ))
+               - int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DZ)) &
+               - int5(ri_79,temp79a,h(:,OP_DRR),i(:,OP_DR),g(:,OP_DZ)) &
+               - int5(ri_79,temp79a,h(:,OP_DRZ),i(:,OP_DZ),g(:,OP_DZ))
         if(itor.eq.1) then
            temp = temp                                                    &
-                  + int5(ri2_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DZ)) &
-                  + int5(ri2_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DZ)) 
+                  + 2.*int5(ri2_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DZ)) &
+                  + 2.*int5(ri2_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DZ)) 
         endif
      end if
 
@@ -14351,18 +14362,22 @@ vectype function pparpchipsipsib2(e,f,g,h,i,j)
      if(surface_int) then
         temp = 0.
      else
-        temp79a = 2.*e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
-        temp = - int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DR))  &
-               - int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DZ))
-        temp = temp                                                    &
-               + int4(temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DR)) &
-               + int4(temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DR)) &
-               + int4(temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DZ)) &
-               + int4(temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DZ))
+        temp79a = e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp = - 2.*int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DR))  &
+               - 2.*int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DZ))
+        temp = temp                                                     &
+               + int5(ri4_79,temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DR)) &
+               + int5(ri4_79,temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DR)) &
+               + int5(ri4_79,temp79a,h(:,OP_DRR),i(:,OP_DR),g(:,OP_DR)) &
+               + int5(ri4_79,temp79a,h(:,OP_DRZ),i(:,OP_DZ),g(:,OP_DR)) &
+               + int5(ri4_79,temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DZ)) &
+               + int5(ri4_79,temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DZ)) &
+               + int5(ri4_79,temp79a,h(:,OP_DRZ),i(:,OP_DR),g(:,OP_DZ)) &
+               + int5(ri4_79,temp79a,h(:,OP_DZZ),i(:,OP_DZ),g(:,OP_DZ))
         if(itor.eq.1) then
-           temp = temp                                                    &
-                  - int5(ri5_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DR)) &
-                  - int5(ri5_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DR)) 
+           temp = temp                                                       &
+                  - 2.*int5(ri5_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DR)) &
+                  - 2.*int5(ri5_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DR)) 
         endif
      end if
 
@@ -14413,7 +14428,7 @@ vectype function pperpu(e,f,g)
         temp = 2.*int4(r_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DR)) &
              - 2.*int4(r_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZ)) &
                 + int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR)) &
-                - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ))
+                - int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ))
 
      end if
 
@@ -14436,18 +14451,22 @@ vectype function pperpupsipsib2(e,f,g,h,i,j)
      if(surface_int) then
         temp = 0.
      else
-        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
-        temp = - int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DR))  &
-               + int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DZ))
+        temp79a =  e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp =   int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DR))  &
+               - int5(ri_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DZ))
         temp = temp                                                    &
-               + int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DR)) &
-               + int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DR)) &
-               - int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DZ)) &
-               - int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DZ))
+               - .5*int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DR)) &
+               - .5*int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DR)) &
+               - .5*int5(ri_79,temp79a,h(:,OP_DRZ),i(:,OP_DR),g(:,OP_DR)) &
+               - .5*int5(ri_79,temp79a,h(:,OP_DZZ),i(:,OP_DZ),g(:,OP_DR)) &
+               + .5*int5(ri_79,temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DZ)) &
+               + .5*int5(ri_79,temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DZ)) &
+               + .5*int5(ri_79,temp79a,h(:,OP_DRR),i(:,OP_DR),g(:,OP_DZ)) &
+               + .5*int5(ri_79,temp79a,h(:,OP_DRZ),i(:,OP_DZ),g(:,OP_DZ))
         if(itor.eq.1) then
            temp = temp                                                    &
-                  + int5(ri2_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DZ)) &
-                  + int5(ri2_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DZ)) 
+                  - int5(ri2_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DZ)) &
+                  - int5(ri2_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DZ)) 
         endif
      end if
 
@@ -14472,9 +14491,9 @@ vectype function pperpubbb2(e,f,g,h,i,j)
      else
         temp = 0
         if(itor.eq.1) then
-        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp79a =   e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
            temp = temp                                                    &
-                  + int5(ri2_79,temp79a,h(:,OP_1),i(:,OP_1),g(:,OP_DZ)) 
+                  - int5(ri2_79,temp79a,h(:,OP_1),i(:,OP_1),g(:,OP_DZ)) 
         endif
      end if
 
@@ -14497,9 +14516,9 @@ vectype function pperpvpsibb2(e,f,g,h,i,j)
      if(surface_int) then
         temp = 0.
      else
-        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
-        temp = - int5(ri_79,temp79a,g(:,OP_1),h(:,OP_DZ),i(:,OP_DR))  &
-               + int5(ri_79,temp79a,g(:,OP_1),h(:,OP_DR),i(:,OP_DZ))
+        temp79a =   e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp =   int5(ri_79,temp79a,g(:,OP_1),h(:,OP_DZ),i(:,OP_DR))  &
+               - int5(ri_79,temp79a,g(:,OP_1),h(:,OP_DR),i(:,OP_DZ))
      end if
 
   pperpvpsibb2 = temp
@@ -14570,18 +14589,22 @@ vectype function pperpchipsipsib2(e,f,g,h,i,j)
      if(surface_int) then
         temp = 0.
      else
-        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
-        temp = - int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DR))  &
-               - int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DZ))
+        temp79a =   e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp =   int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DR),g(:,OP_DR))  &
+               + int5(ri4_79,temp79a,h(:,OP_GS),i(:,OP_DZ),g(:,OP_DZ))
         temp = temp                                                    &
-               + int4(temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DR)) &
-               + int4(temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DR)) &
-               + int4(temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DZ)) &
-               + int4(temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DZ))
+               - .5*int5(ri4_79,temp79a,h(:,OP_DR),i(:,OP_DRR),g(:,OP_DR)) &
+               - .5*int5(ri4_79,temp79a,h(:,OP_DZ),i(:,OP_DRZ),g(:,OP_DR)) &
+               - .5*int5(ri4_79,temp79a,h(:,OP_DRR),i(:,OP_DR),g(:,OP_DR)) &
+               - .5*int5(ri4_79,temp79a,h(:,OP_DRZ),i(:,OP_DZ),g(:,OP_DR)) &
+               - .5*int5(ri4_79,temp79a,h(:,OP_DR),i(:,OP_DRZ),g(:,OP_DZ)) &
+               - .5*int5(ri4_79,temp79a,h(:,OP_DZ),i(:,OP_DZZ),g(:,OP_DZ)) &
+               - .5*int5(ri4_79,temp79a,h(:,OP_DRZ),i(:,OP_DR),g(:,OP_DZ)) &
+               - .5*int5(ri4_79,temp79a,h(:,OP_DZZ),i(:,OP_DZ),g(:,OP_DZ))
         if(itor.eq.1) then
            temp = temp                                                    &
-                  - int5(ri5_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DR)) &
-                  - int5(ri5_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DR)) 
+                  + int5(ri5_79,temp79a,h(:,OP_DR),i(:,OP_DR),g(:,OP_DR)) &
+                  + int5(ri5_79,temp79a,h(:,OP_DZ),i(:,OP_DZ),g(:,OP_DR)) 
         endif
      end if
 
@@ -14606,9 +14629,9 @@ vectype function pperpchibbb2(e,f,g,h,i,j)
      else
         temp = 0
         if(itor.eq.1) then
-        temp79a =  - e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
+        temp79a =  e(:,OP_1)*f(:,OP_1)*j(:,OP_1)
            temp = temp                                                    &
-                  - int5(ri5_79,temp79a,h(:,OP_1),i(:,OP_1),g(:,OP_DR)) 
+                  + int5(ri5_79,temp79a,h(:,OP_1),i(:,OP_1),g(:,OP_DR)) 
         endif
      end if
 

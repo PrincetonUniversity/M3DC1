@@ -991,10 +991,14 @@ subroutine validate_input
   end if
   
   ! calculate pfac (pe*pfac = electron pressure)
-  if(p0.gt.0.) then
-     pefac = (p0-pi0)/p0
+  if(kinetic.eq.0) then
+     if(p0.gt.0.) then
+        pefac = (p0-pi0)/p0
+     else
+        pefac = 0.
+     endif
   else
-     pefac = 0.
+     pefac = 1.    ! perp and parallel equilibrium pressures equal
   endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
 
