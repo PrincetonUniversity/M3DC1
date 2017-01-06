@@ -3197,13 +3197,13 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      else   ! on kinetic.eq.0
         if(total_pressure) then
            temp = pperpu(trial,ppt79,lin)  &
-                + pperpupsipsib2(trial,ppt79,lin,ps079,ps079,b2i79)  &
-                + pperpubbb2(trial,ppt79,lin,bz079,bz079,b2i79)
+                + pperpupsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
+                + pperpubbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
            ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
            ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
      
            if(numvar.ge.2) then
-              temp = pperpvpsibb2(trial,ppt79,lin,ps079,bz079,b2i79)  &
+              temp = pperpvpsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
                    + pperpv(trial,ppt79,lin)
               ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
               ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
@@ -3211,20 +3211,20 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      
            if(numvar.ge.3) then
               temp = pperpchi(trial,ppt79,lin)  &
-                   + pperpchipsipsib2(trial,ppt79,lin,ps079,ps079,b2i79)  &
-                   + pperpchibbb2(trial,ppt79,lin,bz079,bz079,b2i79)                
+                   + pperpchipsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
+                   + pperpchibbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
               ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
               ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
            end if
         else   !on total_pressure
            temp = pparpu(trial,ppt79,lin)  &
-                + pparpupsipsib2(trial,ppt79,lin,ps079,ps079,b2i79)  &
-                + pparpubbb2(trial,ppt79,lin,bz079,bz079,b2i79)
+                + pparpupsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
+                + pparpubbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
            ssterm(u_g) = ssterm(u_g) -     thimpb     *dt*temp
            ddterm(u_g) = ddterm(u_g) + (1.-thimpb*bdf)*dt*temp
      
            if(numvar.ge.2) then
-              temp = pparpvpsibb2(trial,ppt79,lin,ps079,bz079,b2i79)  &
+              temp = pparpvpsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
                    + pparpv(trial,ppt79,lin)
               ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
               ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
@@ -3232,8 +3232,8 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      
            if(numvar.ge.3) then
               temp = pparpchi(trial,ppt79,lin)  &
-                   + pparpchipsipsib2(trial,ppt79,lin,ps079,ps079,b2i79)  &
-                   + pparpchibbb2(trial,ppt79,lin,bz079,bz079,b2i79)                
+                   + pparpchipsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
+                   + pparpchibbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
               ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
               ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
            end if
@@ -4502,7 +4502,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(icd_source.gt.0) def_fields = def_fields + FIELD_CD
   if(rad_source) def_fields = def_fields + FIELD_RAD
 
-  if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0) then
+  if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0 .or. kinetic.ne.0) then
      def_fields = def_fields + FIELD_B2I
   endif
 
