@@ -240,7 +240,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   complex, dimension(MAX_PTS) :: brv, bthetav, bzv, phase
   real, dimension(MAX_PTS) :: r, theta, arg
 #ifdef USE3D
-  real, dimension(MAX_PTS) :: gr, gphi, gz, p
+  real, dimension(MAX_PTS) :: gr, gphi, gz, q
 #endif
 
   real, dimension(MAX_PTS, 1, 6) :: g
