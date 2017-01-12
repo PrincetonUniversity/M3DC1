@@ -646,12 +646,16 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! incompressible constraint for CGL (kinetic.eq.2)
   if(kinetic.eq.2) then
-     temp = incvb(trial,lin,bztx79)
-     ssterm(vz_g) = temp
      temp = incupsi(trial,lin,pstx79)
      ssterm(u_g) = temp
-     temp = incchipsi(trial,lin,pstx79)
-     ssterm(chi_g) = temp
+     if(numvar.ge.2) then
+        temp = incvb(trial,lin,bztx79)
+        ssterm(vz_g) = temp
+        if(numvar.ge.3) then
+           temp = incchipsi(trial,lin,pstx79)
+           ssterm(chi_g) = temp
+        endif
+     endif
      return
   endif
 
@@ -920,7 +924,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
            temp = v2p(trial,lin)
            ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
            ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
-        else  ! kinetic.eq.1
+        else  ! kinetic.eq.1 .or. kinetic.eq.3
            temp = v2parpb2ipsipsi(trial,lin,b2i79,pstx79,pstx79)   &
                 - v2parpb2ipsib  (trial,lin,b2i79,pstx79,bztx79)
            ssterm(p_g) = ssterm(p_g) -      thimp*dt*temp
@@ -3204,7 +3208,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      
            if(numvar.ge.2) then
               temp = pperpvpsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
-                   + pperpv(trial,ppt79,lin)
+                   + pperpvbbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
               ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
               ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
            end if
@@ -3212,6 +3216,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
            if(numvar.ge.3) then
               temp = pperpchi(trial,ppt79,lin)  &
                    + pperpchipsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
+                   + pperpchipsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
                    + pperpchibbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
               ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
               ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
@@ -3225,7 +3230,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      
            if(numvar.ge.2) then
               temp = pparpvpsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
-                   + pparpv(trial,ppt79,lin)
+                   + pparpvbbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
               ssterm(vz_g) = ssterm(vz_g) -     thimpb     *dt*temp
               ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb*bdf)*dt*temp
            end if
@@ -3233,6 +3238,7 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
            if(numvar.ge.3) then
               temp = pparpchi(trial,ppt79,lin)  &
                    + pparpchipsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
+                   + pparpchipsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
                    + pparpchibbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
               ssterm(chi_g) = ssterm(chi_g) -     thimpb     *dt*temp
               ddterm(chi_g) = ddterm(chi_g) + (1.-thimpb*bdf)*dt*temp
