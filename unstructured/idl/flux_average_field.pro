@@ -42,7 +42,7 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
 
    if(keyword_set(integrate)) then begin
       val = reform(result[0,*])
-      result[0,0] = val[0]*fc.dV[0]*fc.psi_norm[0]/2.
+      result[0,0] = val[0]*fc.dV_dchi[0]*fc.psi_norm[0]/2.
       for j=1, fc.n-1 do begin
          result[0,j] = result[0,j-1] + $
                        (val[j]*fc.dV_dchi[j]+val[j-1]*fc.dV_dchi[j-1]) $
