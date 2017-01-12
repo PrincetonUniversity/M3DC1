@@ -37,11 +37,15 @@ function read_bmn, filename, m, bmn, phase, $
                       ntor=ntor, m=m0, flux_pol=flux0, area=area0, bp=bp0
 
          ; calculate resonant fields
-         v = [fix(q0[0] * ntor), fix(q0[n_elements(q0)-1] * ntor) ]
-         minm = min(v)
-         maxm = max(v)
+         if(q0[0] gt 0) then begin
+            minm = fix(min(abs(q0))*ntor + 1)
+            maxm = fix(max(abs(q0))*ntor)
+         endif else begin
+            maxm = -fix(min(abs(q0))*ntor + 1)
+            minm = -fix(max(abs(q0))*ntor)
+         end
          if(maxm gt max(m0)) then maxm = max(m0)
-         m1 = findgen(maxm - minm) + minm
+         m1 = findgen(maxm - minm + 1) + minm
          m = m1
 
          if(i eq 0) then begin
