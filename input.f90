@@ -311,7 +311,7 @@ subroutine set_defaults
   call add_var_double("bootstrap_alpha", bootstrap_alpha, 0., &
        "alpha parameter in bootstrap current model", model_grp)
   call add_var_int("kinetic", kinetic, 0, &
-       "1: Use kinetic PIC for hot ion pressure", model_grp)
+       "1: Use kinetic PIC; 2: CGL incompressible; 3: CGL", model_grp)
     
   ! Time step options
   call add_var_int("ntimemax", ntimemax, 20, &
@@ -1242,7 +1242,18 @@ subroutine validate_input
          print *, 'Warning:  prad only implemented for prad_z=6,18,26'
      endif
   endif
-
+  if(kinetic.eq.2 .or. kinetic.eq.3) then
+     if(linear.ne.1 .or.        &
+        isplitstep.ne.0 .or.    &
+        ipres.ne.1      .or.    &
+        itemp.ne.0      .or.    &
+        ivform.ne.1     .or.    &
+        ipressplit.ne.0) then   
+           print *, "for kinetic.eq.2 or 3, must have",     &
+           'linear=1, isplitstep=0, ipres=1,itemp=0,ivform=1,ipressplit=0'
+           call safestop(1)
+      endif
+  endif
   if(kinetic.eq.1) then !Hybrid model sanity check goes here
 #ifdef USEPARTICLES
 #else
