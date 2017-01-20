@@ -58,6 +58,8 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
                            nflux=nflux, bins=pts, fc=fc, _EXTRA=extra)
   w_star_i_fa = flux_average_field(w_star_i, psi, x, y, t, file=filename, $
                            nflux=nflux, bins=pts, fc=fc, _EXTRA=extra)
+  w_star_e_fa = flux_average_field(w_star_e, psi, x, y, t, file=filename, $
+                           nflux=nflux, bins=pts, fc=fc, _EXTRA=extra)
   omega_ExB_fa = flux_average_field(omega_ExB, psi, x, y, t, file=filename, $
                            nflux=nflux, bins=pts, fc=fc, _EXTRA=extra)
   ve_omega_fa = flux_average_field(ve_omega, psi, x, y, t, file=filename, $
@@ -70,45 +72,56 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   v_omega_fa = v_omega_fa / 1000.
   ve_omega_fa = ve_omega_fa / 1000.
   w_star_i_fa = w_star_i_fa / 1000.
+  w_star_e_fa = w_star_e_fa / 1000.
 
   if(n_elements(yrange) eq 0) then begin
       yrange = [min([v_omega_fa, w_star_i_fa, omega_ExB_fa, ve_omega_fa]), $
-                max([v_omega_fa, w_star_i_fa, omega_ExB_fa, ve_omega_fa])]   
+                max([v_omega_fa, w_star_i_fa, omega_ExB_fa, ve_omega_fa])]
   end
 
   ct3
   plot, nflux, omega_ExB_fa, yrange=yrange, xtitle=xtitle, ytitle=ytitle, $
     _EXTRA=extra
   names = '!7x!6!DE!9X!6B!N!X'
-  col = color(0)        
+  col = color(0)
+  ls = 0
 
   ; omega_i
   oplot, nflux, v_omega_fa, color=color(1), _EXTRA=extra
   names = [names, '!7x!X']
   col = [col, color(1)]
+  ls = [ls, 0]
 
   ; omega_e
   oplot, nflux, ve_omega_fa, color=color(2), _EXTRA=extra
   names = [names, '!7x!D!8e!N!X']
   col = [col, color(2)]
+  ls = [ls, 0]
 
   ; omega_*i
-  oplot, nflux, w_star_i_fa, color=color(3), _EXTRA=extra
+  oplot, nflux, w_star_i_fa, color=color(3), _EXTRA=extra, linestyle=1
   names = [names, '!7x!6!D*!8i!N!X']
   col = [col, color(3)]
+  ls = [ls, 1]
+
+  ; omega_*e
+  oplot, nflux, w_star_e_fa, color=color(4), _EXTRA=extra, linestyle=1
+  names = [names, '!7x!6!D*!8e!N!X']
+  col = [col, color(4)]
+  ls = [ls, 1]
 
   oplot, !x.crange, [0,0], linestyle=2
 
-  plot_legend, names, color=col, _EXTRA=extra
+  plot_legend, names, color=col, linestyle=ls, _EXTRA=extra
 
   if(n_elements(out) ne 0) then begin
      openw, ifile, out, /get_lun
-     printf, ifile, format='(5A14)', $
-             'psi_N', 'omega_ExB', 'omega_i', 'omega_e', 'omega_*i'
+     printf, ifile, format='(6A14)', $
+             'psi_N', 'omega_ExB', 'omega_i', 'omega_e', 'omega_*i', 'omega_*e'
      for i=0, n_elements(nflux)-1 do begin
-        printf, ifile, format='(5E14.5)', $
+        printf, ifile, format='(6E14.5)', $
                nflux[i], omega_ExB_fa[i], $
-                v_omega_fa[i], ve_omega_fa[i], w_star_i_fa[i]
+                v_omega_fa[i], ve_omega_fa[i], w_star_i_fa[i], w_star_e_fa[i]
      end
      free_lun, ifile
   end
