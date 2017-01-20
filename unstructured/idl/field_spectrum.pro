@@ -45,6 +45,7 @@ function field_spectrum, field, x, z, psi0=psi0, i0=i0, fc=fc, m=m, $
 
   ; Flip m because we want a ~ exp(i n phi - i m theta)
   m = -m
+  d = conj(d)
 
   return, d
 end
