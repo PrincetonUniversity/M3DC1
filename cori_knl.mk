@@ -20,8 +20,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-#SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2016-mpich7.4.4
-SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2016-mpich7.4.4-knl/cray-petsc
+SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Jan2017-mpich7.4.4/knl
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
 else
@@ -40,13 +39,10 @@ ifeq ($(COM), 1)
       PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.4
       PETSC_ARCH = cori-hsw-knl-cplx
       HYPRE_LIB = 
-#      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
        $(HYPRE_LIB) \
        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu -lsuperlu_dist \
        -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++
-#       -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
-#don't have 2016dec19      -lflapack -lfblas
 
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
       OPTS := $(OPTS) -DNEXTPetscDEV
