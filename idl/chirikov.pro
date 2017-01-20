@@ -1,8 +1,8 @@
 function chirikov, filename, psin=psin, psimid=psimid, current=cur, $
-                   sum_files=sum_files, netcdf=netcdf
+                   sum_files=sum_files, netcdf=netcdf, q=q
 
    width = island_widths(filename, psin=psin, current=cur, $
-                         sum_files=sum_files, netcdf=netcdf)
+                         sum_files=sum_files, netcdf=netcdf, q=q)
 
    chi = fltarr(n_elements(width[*,0]), n_elements(psin[0,*])-1)
    psimid = fltarr(n_elements(psin[*,0]), n_elements(psin[0,*])-1)
