@@ -19,7 +19,7 @@ ifeq ($(HPCTK), 1)
 endif
 
 #SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2016-mpich7.4.4
-SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2016-mpich7.4.4-haswell/cray-petsc
+SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Jan2017-mpich7.4.4/haswell
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
 else

@@ -4,6 +4,9 @@
 2. code
 
 3. load modules
+   FOR KNL
+        module swap craype-haswell craype-mic-knl
+
    REAL AND COMPLEX MODEL
         module load fftw
         module load subversion
@@ -14,12 +17,11 @@
 	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
 
 4. compile code
-        cori haswell
+   FOR HASWELL
 	make OPT=1 RL=1 MAX_PTS=25 
 	make OPT=1 COM=1 MAX_PTS=25 
 	make 3D=1 OPT=1 MAX_PTS=60 
-
-        cori knl
+   FOR KNL
 	make OPT=1 RL=1 MAX_PTS=25 ARCH=cori_knl
 	make OPT=1 COM=1 MAX_PTS=25 ARCH=cori_knl
 	make 3D=1 OPT=1 MAX_PTS=60 ARCH=cori_knl
@@ -28,7 +30,7 @@
         /global/project/projectdirs/mp288/cori/scorec/utilities
 
 6. run jobscript:
-6.1 cori hsw
+   FOR HASWELL
 	#!/bin/bash
 	#SBATCH --partition=debug     
 	#SBATCH --nodes=8 
@@ -55,7 +57,7 @@
         (for regular i/o) srun -n 256 -c 2 --cpu_bind=cores m3dc1_3d -ipetsc -options_file options_bjacobi
         (for adios i/o)   NOT AVAILABLE
 
-6.2 cori knl
+   FOR KNL
 	#!/bin/bash
 	#SBATCH --partition=debug     
 	#SBATCH --nodes=8
