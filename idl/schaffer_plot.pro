@@ -107,7 +107,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        
       id = ncdf_create(bmncdf, /clobber)
       ncdf_attput, id, 'ntor', fix(ntor), /short, /global
-      ncdf_attput, id, 'version', 2, /short, /global
+      ncdf_attput, id, 'version', 3, /short, /global
       print, 'outputting symbol = ', symbol
       print, 'outputting units = ', units
       ncdf_attput, id, 'symbol', string(symbol), /global
