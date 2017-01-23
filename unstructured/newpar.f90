@@ -30,7 +30,7 @@ Program Reducedquintic
 #endif
 
   integer :: ier, i, adapt_flag
-  real :: tstart, tend, dtsave, period
+  real :: tstart, tend, dtsave, period, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg
 
@@ -298,8 +298,10 @@ Program Reducedquintic
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_onestep = t_onestep + tend - tstart
-      write(*,1002) ntime, t_onestep, tend, tstart
- 1002 format(" LOOP TIME", i5,1p3e16.8)
+      t_solve = t_solve_v + t_solve_n + t_solve_p + t_solve_b
+      t_compute = t_onestep - t_solve
+      write(*,1002) ntime, t_onestep, t_compute, t_solve
+ 1002 format(" LOOP TIME",i5, "   Tot",1pe12.4, "   compute",1pe12.4,"   solve",1pe12.4)
      endif
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. i_control%icontrol_type .ge. 0) then
