@@ -304,7 +304,7 @@ subroutine rdrestart_2d23d
 
   implicit none
   integer :: i, j, numnodes, prev_numnodes, iversion
-  integer :: prev_numelms, prev_mmnn18, prev_numvar, prev_iper, prev_jper, prev_myrank
+  integer :: prev_numelms, prev_iper, prev_jper, prev_myrank
   integer :: prev_maxrank, numelms, prev_eqsubtract, prev_linear, prev_comp
   character (len=30) :: fname
   integer :: prev_ndofs1, ndofs1, prev_ndofs2, ndofs2, group_rank
@@ -792,7 +792,7 @@ subroutine get2dfilename(filename)
   include 'mpif.h'
   character (len=30) :: filename
   character (len=5) :: charprocnum
-  integer ::j, ier, i, group_rank
+  integer ::j, i, group_rank
 
   group_rank = modulo(myrank, maxrank/nplanes)
                                 ! initialize the SUPERLU process grid

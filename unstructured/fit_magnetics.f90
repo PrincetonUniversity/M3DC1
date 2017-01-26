@@ -109,7 +109,7 @@ contains
     real, intent(in), dimension(n) :: b      ! value of measurements
     integer, intent(out) :: ierr
     real, allocatable :: matrix(:,:), work(:), s(:)
-    integer :: i,j,m, lwork, rank
+    integer :: j, m, lwork, rank
     real :: rcond = -1
     real, dimension(n,1,6) :: g
     real, dimension(1) :: xi, zi
@@ -165,7 +165,7 @@ contains
     real, intent(in), dimension(n) :: r, z
     vectype, intent(out), dimension(n) :: psi
 
-    integer :: i, j, ierr
+    integer :: j, ierr
     real, dimension(n,1,6) :: g
     real, dimension(n) :: xi, zi
 

@@ -480,7 +480,6 @@ contains
 
     type(scorec_vector), intent(inout) :: f
     integer, intent(in) :: n
-    integer :: ndof
     integer :: dataType
     character(len=32) :: field_name
     call m3dc1_field_genid (f%id)

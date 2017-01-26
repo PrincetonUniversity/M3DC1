@@ -162,7 +162,6 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	particle.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o \
-	ic_resistive_wall.o \
 	init_conds.o \
 	get_pc_skip_count.o
 

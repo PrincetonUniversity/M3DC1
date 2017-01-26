@@ -235,7 +235,7 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
 
   real :: l
 
-  real :: m1(2), m2(2)    ! m are the normal vectors in the local coord sys
+!!$  real :: m1(2), m2(2)    ! m are the normal vectors in the local coord sys
   real, parameter :: epsilon = 1.-1.e-6
 
   l = sqrt((si2-si1)**2 + (eta2-eta1)**2)

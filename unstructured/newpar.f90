@@ -922,16 +922,16 @@ end subroutine rotation
     include 'mpif.h'
   
     type(element_data) :: d
-    integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs, ierr, m, n
-    real, dimension(coeffs_per_tri,coeffs_per_tri) :: ti 
+    integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs, ierr
+    real, dimension(coeffs_per_tri,coeffs_per_tri) :: ti
     real, dimension(dofs_per_tri, dofs_per_tri) :: rot, newrot
-    real :: sum, theta, mean_area, tot_area, mean_len, temp
+    real :: sum, theta, mean_area, tot_area, mean_len
     real :: norm(2), curv, x, z
     integer :: inode(nodes_per_element)
     logical :: is_boundary
     integer :: izone, izonedim
     integer :: tot_elms
-    real, dimension(dofs_per_tri) :: temp_vec, temp_vec2
+    real, dimension(dofs_per_tri) :: temp_vec
 
     real, dimension(nodes_per_element) :: node_sz
 
@@ -1128,7 +1128,7 @@ subroutine space(ifirstcall)
   integer :: numelms
 
 #ifdef USESCOREC
-  integer :: i, maxdofs
+  integer :: i
   character(len=32) :: field_name
 #endif
 

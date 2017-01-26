@@ -402,7 +402,7 @@ contains
     integer, intent(in), optional :: ieqs
 
     real :: fac, efac
-    integer :: i, izone, ieqsub, fields
+    integer :: izone, ieqsub, fields
     type(element_data) :: d
 
     fields = fieldi
