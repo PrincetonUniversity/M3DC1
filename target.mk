@@ -14,7 +14,7 @@ else
 endif
 
 VERSION = $(shell cat release_version)
-INSTALL_DIR = $(M3DC1_INSTALL_DIR)/m3dc1-$(M3DC1_ARCH)-$(VERSION)
+INSTALL_DIR = $(M3DC1_INSTALL_DIR)/m3dc1-$(ARCH)-$(VERSION)
 
 MAKETARGET = $(MAKE) --no-print-directory -C $@ -f $(CURDIR)/makefile \
 	SRCDIR=$(CURDIR) ARCH=$(ARCH) BIN_POSTFIX=$(BIN_POSTFIX) \
@@ -48,14 +48,14 @@ install : install_idl install_doc
 	echo $(ARCH)
 	mkdir -m 755 -p $(INSTALL_DIR)
 	mkdir -m 755 -p $(INSTALL_DIR)/batch
-	-cp sbin/$(M3DC1_ARCH)/batch_script.* $(INSTALL_DIR)/batch
+	-cp sbin/$(ARCH)/batch_script.* $(INSTALL_DIR)/batch
 	-chmod 644 $(INSTALL_DIR)/batch/batch_script.* 
 	mkdir -m 755 -p $(INSTALL_DIR)/bin
 	cp sbin/extract_profiles.sh $(INSTALL_DIR)/bin
 	chmod 755 $(INSTALL_DIR)/bin/extract_profiles.sh
 	cp sbin/m3dc1_units.sh $(INSTALL_DIR)/bin
 	chmod 755 $(INSTALL_DIR)/bin/m3dc1_units.sh
-	-cp sbin/$(M3DC1_ARCH)/*.sh $(INSTALL_DIR)/bin
+	-cp sbin/$(ARCH)/*.sh $(INSTALL_DIR)/bin
 	-chmod 755 $(INSTALL_DIR)/bin/*.sh
 	-cp _$(ARCH)/a2cc $(INSTALL_DIR)/bin
 	-chmod 755 $(INSTALL_DIR)/bin/a2cc
