@@ -161,9 +161,11 @@ contains
     logical, intent(in), optional :: nophi
 
     real :: f, xi, zi, eta
-    logical :: np
-
     real, parameter :: tol = 1e-4
+
+#ifdef USE3D
+    logical :: np
+#endif
 
     call global_to_local(d, R, Phi, Z, xi, zi, eta)
 

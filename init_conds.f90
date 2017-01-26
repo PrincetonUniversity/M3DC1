@@ -501,8 +501,6 @@ subroutine initial_conditions()
   use dskbal_eq
   use jsolver_eq
   use biharmonic
-  use circ_shell_only
-  use resistive_wall_test
   use threed_wave_test
   use threed_diffusion_test
   use frs
@@ -558,9 +556,11 @@ subroutine initial_conditions()
         case(9)
            call biharmonic_init(0)
         case(10,11)
-           call circ_shell_only_init()
+           print *, "Circ_shell_only equilibrium has been deprecated"
+           call safestop(1)
         case(12,13)
-           call resistive_wall_test_init()
+           print *, "Resistive wall test equilibrium has been deprecated"
+           call safestop(1)
         case(14)
            call threed_wave_test_init()
         case(15)
@@ -600,11 +600,11 @@ subroutine initial_conditions()
            call circular_field_init()
            call cartesian_to_cylindrical_all()
         case(10,11)
-           call circ_shell_only_init()
-           call cartesian_to_cylindrical_all()
+           print *, "Circ_shell_only equilibrium has been deprecated"
+           call safestop(1)
         case(12,13)
-           call resistive_wall_test_init()
-           call cartesian_to_cylindrical_all()
+           print *, "Resistive_wall_test equilibrium has been deprecated"
+           call safestop(1)
         case(14)
            call threed_wave_test_init()
         case(15)

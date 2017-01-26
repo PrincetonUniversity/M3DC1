@@ -165,7 +165,6 @@ subroutine write_feedback(filename)
   character(len=*), intent(in) :: filename
   integer :: ic, i, subcoils
   integer, parameter :: ifile = 123
-  integer :: out
   
   if(myrank.ne.0 .or. numcoils_vac.eq.0) return
 
@@ -200,7 +199,7 @@ subroutine pf_coil_field(ierr)
 
   integer, intent(out) :: ierr
 
-  real, dimension(maxfilaments) :: xp, zp, xc, zc
+  real, dimension(maxfilaments) :: xc, zc
   complex, dimension(maxfilaments) :: ic
   integer :: ipole, numcoils
   real :: aminor, bv, rnorm, fac
@@ -240,40 +239,6 @@ subroutine pf_coil_field(ierr)
      zc(1) = rnorm
      ipole = 1
      ic = bv*fac2
-
-!!$  case(1) ! CDX-U
-!!$     if(myrank.eq.0) print *, "Using standard CDX-U configuration"
-!!$     numcoils = 4
-!!$     xc(1) = 0.846
-!!$     zc(1) = 0.360
-!!$     xc(2) = 0.846
-!!$     zc(2) =-0.360
-!!$     xc(3) = 0.381
-!!$     zc(3) = 0.802
-!!$     xc(4) = 0.381
-!!$     zc(4) =-0.802
-!!$     ic = -.2*fac
-!!$     
-!!$  case(2) ! NSTX
-!!$     if(myrank.eq.0) print *, "Using standard NSTX configuration"
-!!$     numcoils = NSTX_coils
-!!$     xc(1:NSTX_coils) = NSTX_r
-!!$     zc(1:NSTX_coils) = NSTX_z
-!!$     ic(1:NSTX_coils) = fac*NSTX_I
-!!$
-!!$  case(3) ! ITER
-!!$     if(myrank.eq.0) print *, "Using standard ITER configuration"
-!!$     numcoils = ITER_coils
-!!$     xc(1:ITER_coils) = ITER_r
-!!$     zc(1:ITER_coils) = ITER_z
-!!$     ic(1:ITER_coils) = fac*ITER_I
-!!$     
-!!$  case(4) ! DIII
-!!$     if(myrank.eq.0) print *, "Using standard DIII-D configuration"
-!!$     numcoils = DIII_coils
-!!$     xc(1:DIII_coils) = DIII_r
-!!$     zc(1:DIII_coils) = DIII_z
-!!$     ic(1:DIII_coils) = fac*DIII_I
      
   end select
 
@@ -372,8 +337,8 @@ subroutine define_profiles
   implicit none
 
   real, allocatable :: xvals(:), yvals(:)
-  real :: teold, pval, ppval, nval, te0, tep, np, dia
-  integer :: nvals, i, ierr, iout
+  real :: teold, pval, ppval
+  integer :: nvals, i, ierr
   type(spline1d) :: fpol_spline, bscale_spline, pscale_spline
   real :: fval, fpval
 
@@ -980,17 +945,16 @@ subroutine gradshafranov_solve
   real :: feedfac
   logical :: do_feedback
 
-  real :: x, phi, z, error, error2, error3 
+  real :: error, error2, error3 
 
   integer, dimension(dofs_per_element) :: imask
 
   vectype :: tf
-  vectype, dimension(dofs_per_element) :: te
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp
 
-  integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3)
-  integer :: iedge, idim(3)
+!!$  integer :: is_edge(3)  ! is inode on boundary
+!!$  real :: n(2,3)
+!!$  integer :: iedge, idim(3)
 
   if(myrank.eq.0 .and. iprint.gt.0) &
        print *, "Calculating GS- Equilibrium"
@@ -1711,12 +1675,10 @@ subroutine gaussianfun(x,z,val,denom,jout)
 
   include 'mpif.h'
 
-  type(element_data) :: d
   real, intent(in) :: x, z, val, denom
-  real :: val2
   type(field_type), intent(inout) :: jout
 
-  integer :: itri, i, j, nelms, ier
+  integer :: itri, i, j, nelms
   real :: befo, rsq
   vectype, dimension(npoints) :: temp
   vectype, dimension(dofs_per_element) :: dofs
@@ -1997,7 +1959,8 @@ subroutine fundef2(error)
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
   integer :: magnetic_region, izone, mr
-  real :: pp0, a0, ap, p, ffp0, w0, wp, n0, np, f
+  real :: pp0, a0, ap, p, ffp0, f
+!!$  real :: w0, wp, n0, np
 
   dpsii =  1./(psibound - psimin)
 
@@ -2616,13 +2579,13 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   real, intent(in) :: x, z
   integer, intent(in) :: izone
 
-  real :: p, n0, w0
+  real :: p
   real :: alpha
   real :: psii     ! normalized flux
+!!$  real :: n0, w0
 
   integer :: magnetic_region, mr
 
-!  if(izone.ne.1) then 
   if(izone.gt.2) then 
      pres = p0_spline%y(p0_spline%n)
      return
@@ -2673,13 +2636,13 @@ subroutine calc_density(psi0, dens, x, z, izone)
   real, intent(in) :: x, z
   integer, intent(in) :: izone
 
-  real :: n0, p, w0
+  real :: n0
   real :: alpha
   real :: psii     ! normalized flux
+!!$  real :: p, w0
 
   integer :: magnetic_region, mr
 
-!  if(izone.ne.1) then
   if(izone.gt.2) then
      dens = n0_spline%y(n0_spline%n)
      return
@@ -2826,10 +2789,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   vectype, dimension(dofs_per_node) :: temp
 
 #ifdef USE3D
-  integer :: iplane, itri, nelms, nvals, j
-  integer, dimension(nodes_per_element) :: inodes
-  integer, dimension(2) :: icol
-  vectype, dimension(2) :: val
+  integer :: j
 #endif
 
   if(iper.eq.1 .and. jper.eq.1) return

@@ -236,17 +236,6 @@ contains
 
 
   !==============================================================
-  ! global_node_id
-  ! ~~~~~~~~~~~~~~
-  !==============================================================
-  integer function global_node_id(inode)
-    implicit none
-    integer, intent(in) :: inode
-    print *, 'global_node_id to be implemented'
-    call safestop(1)
-  end function global_node_id
-
-  !==============================================================
   ! get_element_nodes
   ! ~~~~~~~~~~~~~~~~~
   ! returns the indices of each element node
@@ -752,8 +741,6 @@ contains
     integer :: iedge(3), izonedim, itri, ifaczone,ifaczonedim
     integer :: num_adj_ent
 #ifdef USE3D
-    integer :: ifac(5), iplane
-    !call facregion(itrin,ifac)
     ! the first face must be on the original plane
     call m3dc1_region_getoriginalface (itrin-1, itri)
     itri = itri+1
