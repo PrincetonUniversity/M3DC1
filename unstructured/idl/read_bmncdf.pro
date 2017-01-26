@@ -1,6 +1,6 @@
 pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
                  rho=rho, cur=cur, flux_pol=flux_pol, area=area, bpol=bpol, $
-                 symbol=symbol, units=units
+                 symbol=symbol, units=units, version=version
 
   if(n_elements(cur) eq 0) then cur=1.
 
