@@ -699,7 +699,7 @@ subroutine derived_quantities(ilin)
   ! vector potential stream function
   if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
      if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
-        if(myrank.eq.0 .and. iprint.ge.2) print *, "  f"
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  f", ilin
         if(ilin.eq.0 .and. eqsubtract.eq.1) then
            if(itor.eq.0) then
               temp = bzero
@@ -926,7 +926,7 @@ end subroutine rotation
     real, dimension(coeffs_per_tri,coeffs_per_tri) :: ti
     real, dimension(dofs_per_tri, dofs_per_tri) :: rot, newrot
     real :: sum, theta, mean_area, tot_area, mean_len
-    real :: norm(2), curv, x, z
+    real :: norm(2), curv, x, phi, z
     integer :: inode(nodes_per_element)
     logical :: is_boundary
     integer :: izone, izonedim
@@ -960,7 +960,7 @@ end subroutine rotation
 
        do i=1, 3
           call boundary_node(inode(i), &
-               is_boundary, izone, izonedim, norm, curv, x, z, &
+               is_boundary, izone, izonedim, norm, curv, x, phi, z, &
                all_boundaries)
 
           k = (i-1)*6 + 1

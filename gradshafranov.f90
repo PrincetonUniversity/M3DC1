@@ -1435,11 +1435,9 @@ subroutine calculate_error(error, error2, psinew)
   numnodes = owned_nodes()
   do i=1,numnodes
      inode = nodes_owned(i)
-     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z,&
+     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,phi,z,&
           domain_boundary)
      if(is_boundary) cycle
-
-     call get_node_pos(inode,x,phi,z)
 
      call get_node_data(psi_vec, inode, psi0)
      call get_node_data(psinew, inode, psi1)
@@ -2782,7 +2780,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   integer :: i, inode, izone, izonedim, index
   integer :: numnodes, ineg
   real :: normal(2), curv
-  real :: x, z
+  real :: x, z, phi
   real, dimension(1,1,6) :: g
   real, dimension(1) :: xp, zp, xc, zc
   logical :: is_boundary
@@ -2800,7 +2798,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
      inode = nodes_owned(i)
      index = node_index(rhs, inode, 1)
 
-     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           domain_boundary)
      if(is_boundary) then
 

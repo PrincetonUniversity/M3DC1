@@ -70,7 +70,7 @@ contains
     integer, intent(in) :: bi
     integer :: itri, i, ii, j, numnodes, numelms, ier, inode_t
     integer :: is_edge(3)  ! is inode on boundary
-    real :: n(2,3), sum, sum2, x, z
+    real :: n(2,3), sum, sum2, x, z, phi
     integer :: idim(3), izone, izonedim
     logical :: is_boundary
     real :: normal(2), curv
@@ -164,7 +164,8 @@ contains
     ! define boundary conditions
     do i=1, numnodes
        inode_t = nodes_owned(i)
-       call boundary_node(inode_t,is_boundary,izone,izonedim,normal,curv,x,z)
+       call boundary_node(inode_t,is_boundary,izone,izonedim,normal,curv, &
+            x,phi,z)
 
        if(.not.is_boundary) cycle
 
@@ -319,7 +320,7 @@ contains
     integer :: i, inode_t, izone, izonedim, index
     integer :: numnodes
     real :: normal(2), curv
-    real :: x, z
+    real :: x, phi, z
     logical :: is_boundary
     vectype, dimension(dofs_per_node) :: temp
 
@@ -329,7 +330,8 @@ contains
     numnodes = owned_nodes()
     do i=1, numnodes
        inode_t = nodes_owned(i)
-       call boundary_node(inode_t,is_boundary,izone,izonedim,normal,curv,x,z)
+       call boundary_node(inode_t,is_boundary,izone,izonedim,normal,curv, &
+            x,phi,z)
        if(.not.is_boundary) cycle
        
        index = node_index(rhs, inode_t)

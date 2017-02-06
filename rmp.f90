@@ -17,163 +17,6 @@ module rmp
 
 contains
 
-!=========================================================================
-subroutine calculate_external_fields()
-  use basic
-  use math
-  use mesh_mod
-  use sparse
-  use arrays
-  use coils
-  use m3dc1_nint
-  use newvar_mod
-  use boundary_conditions
-
-  implicit none
-
-  include 'mpif.h'
-
-  type(matrix_type) :: br_mat
-  type(vector_type) :: psi_vec, bz_vec, p_vec
-  integer :: i, j, itri, nelms, ier
-
-  vectype, dimension(dofs_per_element,dofs_per_element) :: temp
-  vectype, dimension(dofs_per_element) :: temp2, temp3, temp4
-
-  type(field_type) :: psi_f, bz_f, p_f
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
-
-  if(irmp.eq.1) then
-     call load_coils(xc_na, zc_na, ic_na, nc_na, &
-          'rmp_coil.dat', 'rmp_current.dat', ntor)
-  end if
-
-  call create_vector(p_vec,1)
-  call associate_field(p_f,p_vec,1)
-
-  call create_vector(psi_vec,1)
-  call associate_field(psi_f,psi_vec,1)
-
-  call create_vector(bz_vec,1)
-  call associate_field(bz_f,bz_vec,1)
-
-  call set_matrix_index(br_mat, br_mat_index)
-  call create_mat(br_mat, 1, 1, icomplex, 1)
-#ifdef CJ_MATRIX_DUMP
-  print *, "create_mat coils br_mat", br_mat%imatrix 
-#endif
-
-  read_p = .false.
-  if(iread_ext_field.ne.0) then
-     do i=1, iread_ext_field 
-        if(sf(i)%vmec) read_p = .true.
-     end do
-  end if
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
-  nelms = local_elements()
-  do itri=1,nelms
-        
-     call define_element_quadrature(itri,int_pts_main,5)
-     call define_fields(itri,0,1,0)
-
-     call rmp_field(npoints, npoints_tor, npoints_pol, &
-          x_79, phi_79, z_79, &
-          temp79a, temp79b, temp79c, temp79d)
-
-     ! assemble matrix
-     do i=1,dofs_per_element
-        do j=1,dofs_per_element
-           temp(i,j) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
-                +      int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
-                + regular*int3(ri4_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
-        end do
-
-        ! assemble RHS
-        temp2(i) = &
-             + int3(ri_79,mu79(:,OP_DR,i),temp79c) &
-             - int3(ri_79,mu79(:,OP_DZ,i),temp79a)
-
-        temp3(i) = int3(r_79,mu79(:,OP_1,i),temp79b)
-
-        if(read_p) temp4(i) = int2(mu79(:,OP_1,i),temp79d)
-     end do
-
-     call insert_block(br_mat, itri, 1, 1, temp(:,:), MAT_ADD)
-
-     call vector_insert_block(psi_vec, itri, 1, temp2(:), MAT_ADD)
-     call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
-     if(read_p) call vector_insert_block(p_vec, itri, 1, temp4(:), MAT_ADD)
-  end do
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'Finalizing...'
-  call finalize(br_mat)
-  call sum_shared(psi_vec)
-  call sum_shared(bz_vec)
-  if(read_p) call sum_shared(p_vec)
- 
-
-  ! create external fields
-  if(extsubtract.eq.1) then
-     call create_field(psi_ext)
-     call create_field(bz_ext)
-     call create_field(bf_ext)
-     use_external_fields = .true.
-  end if
-
-  !solve p
-  if(read_p) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."
-
-     call newsolve(mass_mat_lhs%mat,p_vec,ier)
-     p_field(1) = p_f
-  end if
-
-  if(numvar.ge.2) then
-     ! Solve F = R B_phi
-     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
-     call newsolve(mass_mat_lhs%mat,bz_vec,ier)
-     if(extsubtract.eq.1) then
-        bz_ext = bz_f     
-     else
-        bz_field(1) = bz_f
-     end if
-
-#if defined(USECOMPLEX) || defined(USE3D)
-     ! Solve R^2 del_perp^2 f = F
-     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f..."
-     if(extsubtract.eq.1) then
-        bf_ext = 0.
-        call solve_newvar1(bf_mat_lhs,bf_ext,mass_mat_rhs_bf, &
-             bz_ext, bf_ext)
-     else
-        bf_field(1) = 0.
-        call solve_newvar1(bf_mat_lhs,bf_field(1),mass_mat_rhs_bf, &
-             bz_field(1), bf_field(1))
-     end if
-#endif
-  end if
-
-  ! solve -Del*(psi)/R^2 = Curl(B).Grad(phi)
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi..."
-  call newsolve(br_mat,psi_vec, ier)
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
-  if(extsubtract.eq.1) then
-     psi_ext = psi_f
-  else
-     psi_field(1) = psi_f
-  end if
-
-  call destroy_vector(psi_vec)
-  call destroy_vector(bz_vec)
-  call destroy_vector(p_vec)
-  call destroy_mat(br_mat)
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "Done calculating error fields"
-end subroutine calculate_external_fields
-
-
 !==============================================================================
 subroutine rmp_per
   use basic
@@ -236,30 +79,30 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 
   integer :: i, j, ier
 
-  complex, dimension(int_pts_main) :: fr, fphi, fz
-  complex, dimension(MAX_PTS) :: brv, bthetav, bzv, phase
-  real, dimension(MAX_PTS) :: r, theta, arg
+  complex, dimension(n) :: fr, fphi, fz
+  complex, dimension(n) :: brv, bthetav, bzv, phase
+  real, dimension(n) :: r, theta, arg
 #ifdef USE3D
-  real, dimension(MAX_PTS) :: gr, gphi, gz, q
+  real, dimension(n) :: gr, gphi, gz, q
 #endif
 
-  real, dimension(MAX_PTS, 1, 6) :: g
-  vectype, dimension(MAX_PTS) :: bbr, bbz, drbr, dzbr, drbz, dzbz
+  real, dimension(n, 1, 6) :: g
+  vectype, dimension(n) :: bbr, bbz, drbr, dzbr, drbz, dzbz
 
 #ifdef USECOMPLEX
   complex :: sfac
   complex :: tilt_co, tilt_sn
   complex :: shift_co, shift_sn
 #else
-  real, dimension(int_pts_main) :: co, sn
-  real, dimension(int_pts_main) :: tilt_co, tilt_sn
-  real, dimension(int_pts_main) :: shift_co, shift_sn
+  real, dimension(n) :: co, sn
+  real, dimension(n) :: tilt_co, tilt_sn
+  real, dimension(n) :: shift_co, shift_sn
 #endif
 
   br = 0.
   bphi = 0.
   bz = 0.
-  p = 0.
+  if(present(p)) p = 0.
 
   select case(irmp)
   case(1)
@@ -276,7 +119,6 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
      br = fr
      bphi = fphi
      bz = fz
-     p = 0.
 #else
      do i=1, nt
         co(1:np) = &
@@ -330,10 +172,9 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if
-     p = 0.
      
   end select
-  
+
   if(tf_tilt.ne.0. .or. tf_shift.ne.0.) then
 #ifdef USECOMPLEX
      tilt_co  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )
@@ -398,7 +239,6 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
      end if
   end do
 
-
   if(iread_ext_field.ne.0) then
      do i=1, iread_ext_field 
 #if defined(USECOMPLEX)
@@ -420,7 +260,301 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 #endif
      end do
   end if
-
 end subroutine rmp_field
 
+
+subroutine calculate_external_fields()
+  use basic
+  use math
+  use mesh_mod
+  use sparse
+  use arrays
+  use coils
+  use m3dc1_nint
+  use newvar_mod
+  use boundary_conditions
+
+  implicit none
+
+  include 'mpif.h'
+
+  type(matrix_type) :: br_mat
+  type(vector_type) :: psi_vec, bz_vec, p_vec
+  integer :: i, j, itri, nelms, ier, ibound, ipsibound
+
+  vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
+  vectype, dimension(dofs_per_element,2) :: temp2
+  vectype, dimension(dofs_per_element) :: temp3, temp4
+  integer, dimension(dofs_per_element) :: imask, psimask
+
+  type(field_type) :: psi_f, bz_f, p_f, bf_f
+
+!!$  integer :: is_edge(3)  ! is inode on boundary
+!!$  real :: n(2,3)
+!!$  integer :: iedge, idim(3)
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
+
+  if(irmp.eq.1) then
+     call load_coils(xc_na, zc_na, ic_na, nc_na, &
+          'rmp_coil.dat', 'rmp_current.dat', ntor)
+  end if
+
+  call create_vector(p_vec,1)
+  call associate_field(p_f,p_vec,1)
+
+  call create_vector(psi_vec,2)
+  call associate_field(psi_f,psi_vec,1)
+  call associate_field(bf_f,psi_vec,2)
+
+  call create_vector(bz_vec,1)
+  call associate_field(bz_f,bz_vec,1)
+
+  call set_matrix_index(br_mat, br_mat_index)
+  call create_mat(br_mat, 2, 2, icomplex, 1)
+#ifdef CJ_MATRIX_DUMP
+  print *, "create_mat coils br_mat", br_mat%imatrix 
+#endif
+
+  read_p = .false.
+  if(iread_ext_field.ne.0) then
+     do i=1, iread_ext_field 
+        if(sf(i)%vmec) read_p = .true.
+     end do
+  end if
+ 
+  ! boundary condition on psi
+  ipsibound = BOUNDARY_NONE
+
+  ! Boundary condition on f
+  ibound = BOUNDARY_DIRICHLET
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
+  nelms = local_elements()
+  do itri=1,nelms
+        
+     call define_element_quadrature(itri,int_pts_main,5)
+     call define_fields(itri,0,1,0)
+
+     call get_boundary_mask(itri, ipsibound, psimask, domain_boundary)
+     call get_boundary_mask(itri, ibound, imask, domain_boundary)
+
+     call rmp_field(npoints, npoints_tor, npoints_pol, &
+          x_79, phi_79, z_79, &
+          temp79a, temp79b, temp79c, temp79d)
+
+     ! psi_equation
+     ! ~~~~~~~~~~~~
+     do i=1,dofs_per_element
+
+        if(psimask(i).eq.0) then
+           temp(i,:,1,:) = 0.
+           temp2(i,1) = 0.
+        else
+           do j=1,dofs_per_element
+           ! Mininize BR, BZ
+              temp(i,j,1,1) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
+                   +          int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
+                   + regular* int3(ri4_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
+#if defined(USECOMPLEX) || defined(USE3D)
+              temp(i,j,1,2) = int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DRP,j)) &
+                   -          int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZP,j))
+#else
+              temp(i,j,1,2) = 0.
+#endif
+           ! Jphi
+!!$              temp(i,j,1,1) = -int3(ri2_79,mu79(:,OP_1,i),nu79(:,OP_GS,j))
+!!$              temp(i,j,1,2) = 0.
+              
+        end do
+
+        ! Minimize BR, BZ
+        temp2(i,1) = int3(ri_79,mu79(:,OP_DR,i),temp79c) &
+             -       int3(ri_79,mu79(:,OP_DZ,i),temp79a)
+
+        ! Jphi
+!!$           temp2(i,1) = &
+!!$                + int3(ri_79,mu79(:,OP_DR,i),temp79c) &
+!!$                - int3(ri_79,mu79(:,OP_DZ,i),temp79a)
+!!$           temp2(i,1) = 0.
+        end if
+
+
+        ! f equation
+        ! ~~~~~~~~~~
+        if(imask(i).eq.0) then
+           temp(i,:,2,:) = 0.
+           temp2(i,2) = 0.
+        else
+           do j=1,dofs_per_element
+              temp(i,j,2,1) =  0.
+!              temp(i,j,2,2) = int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_LP,j))
+              temp(i,j,2,2) = &
+                   -int3(r2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
+                   -int3(r2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
+                   -2.*int3(r_79,mu79(:,OP_1,i),nu79(:,OP_DR,j)) &
+                   + regular*int3(ri2_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
+           end do
+           temp2(i,2) = int3(r_79,mu79(:,OP_1,i),temp79b)
+        end if
+        
+        temp3(i) = int3(r_79,mu79(:,OP_1,i),temp79b)
+        
+        if(read_p) temp4(i) = int2(mu79(:,OP_1,i),temp79d)
+     end do
+
+
+     ! add surface terms
+!!$     call boundary_edge(itri, is_edge, n, idim, domain_boundary)
+!!$     
+!!$     do iedge=1,3
+!!$        if(is_edge(iedge).eq.0) cycle
+!!$        if(.not.in_tag_list(domain_boundary, is_edge(iedge))) cycle
+!!$
+!!$        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
+!!$        call define_fields(itri, 0, 1, 0)
+!!$
+!!$        do i=1,dofs_per_element
+!!$           if(psimask(i).ne.0) then
+!!$              temp2(i,1) = temp2(i,1) &
+!!$                   + int4(ri_79,mu79(:,OP_1,i),norm79(:,2),temp79a) &
+!!$                   - int4(ri_79,mu79(:,OP_1,i),norm79(:,1),temp79c)
+!!$           end if
+!!$           if(imask(i).ne.0) then
+!!$              temp2(i,2) = temp2(i,2) &
+!!$                   + int4(r2_79,mu79(:,OP_1,i),norm79(:,1),temp79a)/rfac &
+!!$                   + int4(r2_79,mu79(:,OP_1,i),norm79(:,2),temp79c)/rfac
+!!$           end if
+!!$        end do
+!!$     end do
+
+     call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
+     call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
+     call insert_block(br_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
+     call insert_block(br_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
+
+     call vector_insert_block(psi_vec, itri, 1, temp2(:,1), MAT_ADD)
+     call vector_insert_block(psi_vec, itri, 2, temp2(:,2), MAT_ADD)
+
+     call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
+     if(read_p) call vector_insert_block(p_vec, itri, 1, temp4(:), MAT_ADD)
+  end do
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'Finalizing...'
+  call sum_shared(bz_vec)
+  if(read_p) call sum_shared(p_vec)
+ 
+  ! create external fields
+  if(extsubtract.eq.1) then
+     call create_field(psi_ext)
+     call create_field(bz_ext)
+     call create_field(bf_ext)
+     use_external_fields = .true.
+  end if
+
+  !solve p
+  if(read_p) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."
+
+     call newsolve(mass_mat_lhs%mat,p_vec,ier)
+     p_field(1) = p_f
+  end if
+
+  if(numvar.ge.2) then
+     ! Solve F = R B_phi
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
+     call newsolve(mass_mat_lhs%mat,bz_vec,ier)
+     if(extsubtract.eq.1) then
+        bz_ext = bz_f     
+     else
+        bz_field(1) = bz_f
+     end if
+  end if
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi..."
+  call sum_shared(psi_vec)
+  call boundary_rmp(psi_vec,br_mat)
+  call finalize(br_mat)
+  call newsolve(br_mat,psi_vec,ier)
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
+  if(extsubtract.eq.1) then
+     psi_ext = psi_f
+     bf_ext = bf_f
+  else
+     psi_field(1) = psi_f
+     bf_field(1) = bf_f
+  end if
+
+  call destroy_vector(psi_vec)
+  call destroy_vector(bz_vec)
+  call destroy_vector(p_vec)
+  call destroy_mat(br_mat)
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Done calculating error fields"
+end subroutine calculate_external_fields
+
+!=======================================================
+! boundary_rmp
+! ~~~~~~~~~~~~
+!
+!=======================================================
+subroutine boundary_rmp(rhs, mat)
+  use basic
+  use vector_mod
+  use matrix_mod
+  use boundary_conditions
+
+  implicit none
+
+  type(vector_type) :: rhs
+  type(matrix_type), optional :: mat
+  
+  integer, parameter :: numvarsm = 2
+  integer :: i, izone, izonedim, i_psi, i_f, numnodes, icounter_t
+  real :: normal(2), curv
+  real :: x, z, phi
+  logical :: is_boundary
+!!$  real, dimension(1) :: xv, phiv, zv
+!!$  vectype, dimension(1) :: br, bphi, bz
+!!$  vectype :: bn
+  vectype, dimension(dofs_per_node) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vor called"
+
+  temp = 0.
+
+  numnodes = owned_nodes()
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
+     if(.not.is_boundary) cycle
+
+     i_psi = node_index(rhs, i, 1)
+     i_f = node_index(rhs, i, 2)
+
+!     call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
+
+!!$     if(ifbound.eq.1) then
+     call set_dirichlet_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
+!!$     else if(ifbound.eq.2) then
+!!$        call set_normal_bc(i_f,rhs,temp,normal,curv,izonedim,mat)
+!!$     else if(ifbound.eq.3) then
+!!$        xv(1) = x
+!!$        phiv(1) = phi
+!!$        zv(1) = z
+!!$!        call rmp_field(1, 1, 1, xv, phiv, zv, br, bphi, bz)
+!!$
+!!$        ! set df/dn = -B.n
+!!$!        br(1) = 0.
+!!$!        bz(1) = 0.
+!!$        bn = -(br(1)*normal(1) + bz(1)*normal(2))
+!!$        call set_np_bc(i_f,rhs,bn,izonedim,mat)
+!!$     end if
+  end do
+
+end subroutine boundary_rmp
+
 end module rmp
+
+

@@ -240,7 +240,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   type(matrix_type), optional :: mat
 
   vectype, dimension(dofs_per_node) :: temp 
-  real :: normal(2), curv, x, z
+  real :: normal(2), curv, x, z, phi
   integer :: i, izone, izonedim, numnodes, icounter_t
   integer :: i_u, i_vz, i_chi
   logical :: is_boundary
@@ -251,7 +251,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
 
@@ -331,7 +331,7 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
   type(matrix_type), optional :: mat
 
   vectype, dimension(dofs_per_node) :: temp 
-  real :: normal(2), curv, x, z
+  real :: normal(2), curv, x, z, phi
   integer :: i, izone, izonedim, numnodes, icounter_t
   integer :: i_u, i_chi
   logical :: is_boundary
@@ -343,7 +343,7 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
 
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
 
@@ -410,7 +410,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
   type(matrix_type), optional :: mat
 
   vectype, dimension(dofs_per_node) :: temp !, temp2, temp3
-  real :: normal(2), curv, x, z
+  real :: normal(2), curv, x, z, phi
   integer :: i, izone, izonedim,  numnodes, icounter_t
   integer :: i_psi, i_bz, i_e, i_bf !, i_pe
   logical :: is_boundary
@@ -421,7 +421,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
      if(.not.is_boundary) cycle
 
      i_psi = node_index(psi_v, i)
@@ -430,7 +430,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) i_e = node_index(e_v, i)
      if(imp_bf.eq.1) i_bf = node_index(bf_v, i)
 
-     ! constant normal field = -n.grad(psi)/R - n.grad(f')
+     ! constant normal field = -t.grad(psi)/R - n.grad(f')
      if(iconst_bn.eq.1) then
         call get_node_data(psi_field(1), i, temp)
         ! add loop voltage
@@ -514,7 +514,7 @@ subroutine boundary_den(rhs, den_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x,z
+  real :: normal(2), curv, x,z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -526,7 +526,7 @@ subroutine boundary_den(rhs, den_v, mat)
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
 
@@ -565,7 +565,7 @@ subroutine boundary_te(rhs, te_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x,z
+  real :: normal(2), curv, x,z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -577,7 +577,7 @@ subroutine boundary_te(rhs, te_v, mat)
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
 
@@ -613,7 +613,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x,z
+  real :: normal(2), curv, x,z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -625,7 +625,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
 
@@ -667,7 +667,7 @@ subroutine boundary_p(rhs, p_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x, z
+  real :: normal(2), curv, x, z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -679,7 +679,7 @@ subroutine boundary_p(rhs, p_v, mat)
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
 
@@ -719,7 +719,7 @@ subroutine boundary_pe(rhs, pe_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x, z
+  real :: normal(2), curv, x, phi, z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -731,7 +731,7 @@ subroutine boundary_pe(rhs, pe_v, mat)
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,z, &
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
 

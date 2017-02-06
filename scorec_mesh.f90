@@ -177,12 +177,13 @@ contains
     integer :: i,numnodes
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi, z
 
     numnodes = local_nodes()
 
     do i=1, numnodes
-       call boundary_node(i, is_boundary, izone, izonedim, normal, curv, x, z)
+       call boundary_node(i, is_boundary, izone, izonedim, normal, curv, &
+            x, phi, z)
        if(.not.is_boundary) cycle
        write(*,'(5f12.4)') x, z, normal(1), normal(2), curv
     end do
@@ -328,6 +329,8 @@ contains
     endif
 #ifdef USE3D
     phi = coords(3)
+#else
+    phi = 0.
 #endif
   end subroutine get_node_pos
 
@@ -603,9 +606,10 @@ contains
     type(tag_list), intent(in), optional :: tags
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi, z
 
-    call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z,tags)
+    call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,&
+         x,phi,z,tags)
     is_boundary_node = is_boundary
   end function is_boundary_node
 
@@ -615,8 +619,8 @@ contains
   ! determines if node is on boundary, and returns relevant info
   ! about boundary surface
   !======================================================================
-  subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
-       tags)
+  subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,&
+       x,phi,z,tags)
 
     use math
     
@@ -625,12 +629,12 @@ contains
     integer, intent(in) :: inode              ! node index
     integer, intent(out) :: izone,izonedim    ! zone type/dimension
     real, intent(out) :: normal(2), curv
-    real, intent(out) :: x,z                  ! coordinates of inode
+    real, intent(out) :: x,phi,z              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
     type(tag_list), intent(in), optional :: tags
     
     integer :: ibottom, iright, ileft, itop, ib
-    real :: angler, phi
+    real :: angler
     real, dimension(3) :: norm
 
     curv = 0.
@@ -725,7 +729,7 @@ contains
 
   end subroutine boundary_node
 
-  subroutine boundary_edge(itrin, is_edge, normal, idim)
+  subroutine boundary_edge(itrin, is_edge, normal, idim, tags)
 
     implicit none
     integer, intent(in) :: itrin
@@ -735,11 +739,13 @@ contains
     
     integer :: inode(nodes_per_element), izone, i, j, jj
     integer :: in(2)
-    real :: x, z, c(3)
+    real :: x, phi, z, c(3)
     logical :: is_bound(3), found_edge
 
     integer :: iedge(3), izonedim, itri, ifaczone,ifaczonedim
     integer :: num_adj_ent
+    type(tag_list), intent(in), optional :: tags
+
 #ifdef USE3D
     ! the first face must be on the original plane
     call m3dc1_region_getoriginalface (itrin-1, itri)
@@ -757,8 +763,13 @@ contains
     iedge = iedge+1
     call m3dc1_ent_getgeomclass(2, itri-1, ifaczonedim, ifaczone)
     do i=1,3
-       call boundary_node(inode(i),is_bound(i),izone,idim(i), &
-            normal(:,i),c(i),x,z,all_boundaries)
+       if(present(tags)) then 
+          call boundary_node(inode(i),is_bound(i),izone,idim(i), &
+               normal(:,i),c(i),x,phi,z,tags)
+       else
+          call boundary_node(inode(i),is_bound(i),izone,idim(i), &
+               normal(:,i),c(i),x,phi,z,all_boundaries)
+       end if
     end do
 
     is_edge = 0
@@ -787,7 +798,7 @@ contains
           if(is_edge(j).ne.0) print *, 'Warning: edge counted twice'
           is_edge(j) = izone
 !          call boundary_node(inode(j),is_bound(j),izone,idim(j), &
-!               normal(:,j),c(j),x,z)
+!               normal(:,j),c(j),x,phi,z)
 !          write(*, '(6F10.4)') x, z, normal(:,j)
        else
           print *, 'Error: phantom edge!'

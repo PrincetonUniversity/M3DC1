@@ -827,9 +827,10 @@ contains
     integer, intent(in) :: inode
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi,  z
 
-    call boundary_node(inode, is_boundary, izone, izonedim, normal, curv, x, z)
+    call boundary_node(inode, is_boundary, izone, izonedim, normal, curv, &
+         x, phi, z)
     is_boundary_node = is_boundary
   end function is_boundary_node
 
@@ -839,14 +840,15 @@ contains
   ! determines if node is on boundary, and returns relevant info
   ! about boundary surface
   !======================================================================
-  subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z)
+  subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv, &
+       x,phi,z)
 
     implicit none
     
     integer, intent(in) :: inode              ! node index
     integer, intent(out) :: izone,izonedim    ! zone type/dimension
     real, intent(out) :: normal(2), curv
-    real, intent(out) :: x,z                  ! coordinates of inode
+    real, intent(out) :: x,z,phi              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
 
     is_boundary = local_node(inode)%idim.lt.2
@@ -857,6 +859,7 @@ contains
        normal = local_node(inode)%normal
        curv = local_node(inode)%curv
        x = local_node(inode)%R
+       phi = local_node(inode)%Phi
        z = local_node(inode)%Z
     endif
   end subroutine boundary_node
@@ -871,14 +874,14 @@ contains
     integer, intent(out) :: idim(3)
     
     integer :: inode(nodes_per_element), izone, i, j
-    real :: x, z, c(3)
+    real :: x, phi, z, c(3)
     logical :: is_bound(3)
     
     call get_element_nodes(itri,inode)
     
     do i=1,3
        call boundary_node(inode(i),is_bound(i),izone,idim(i), &
-            normal(:,i),c(i),x,z)
+            normal(:,i),c(i),x,phi,z)
     end do
     
     do i=1,3
