@@ -500,7 +500,7 @@ contains
     integer :: ind(dofs_per_node), i, ierr
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
     Vec :: vl
     logical :: r
@@ -531,7 +531,7 @@ contains
     if(r) then
        ! if node is on boundary, rotate data from n,t to R,Z
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z)
+            normal, curv, x, phi, z)
        if(is_boundary) then
           temp1 = data
           call rotate_dofs(temp1, temp2, normal, curv, -1)
@@ -556,7 +556,7 @@ contains
     integer :: ind(dofs_per_node), i, ierr
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi, z
     vectype, dimension(dofs_per_node) :: temp
     Vec :: vl
     logical :: r
@@ -587,7 +587,7 @@ contains
     if(r) then
        ! if node is on boundary, rotate data from n,t to R,Z
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z)
+            normal, curv, x, phi, z)
        if(is_boundary) then
           call rotate_dofs(data, temp, normal, curv, -1)
           data = temp
@@ -608,7 +608,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, z, phi
     integer :: ind(dofs_per_node), i, ierr
     PetscScalar, dimension(dofs_per_node) :: vals
 
@@ -626,7 +626,7 @@ contains
     ! if node is on boundary, rotate data from R,Z to n,t
     if(r) then
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z)
+            normal, curv, x, phi, z)
        if(is_boundary) then
           temp1 = vals
           call rotate_dofs(temp1, temp2, normal, curv, 1)
@@ -657,7 +657,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, z, phi
     integer :: ind(dofs_per_node), i, ierr
     PetscScalar, dimension(dofs_per_node) :: vals
 
@@ -675,7 +675,7 @@ contains
     ! if node is on boundary, rotate data from R,Z to n,t
     if(r) then
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z)
+            normal, curv, x, phi, z)
        if(is_boundary) then
           temp1 = vals
           call rotate_dofs(temp1, temp2, normal, curv, 1)

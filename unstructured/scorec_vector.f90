@@ -259,7 +259,7 @@ contains
     
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
     vectype, dimension(v%isize*dofs_per_node) :: dofs
     integer :: index, numDofs
@@ -282,7 +282,7 @@ contains
 
        ! if node is on boundary, rotate data from n,t to R,Z
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z, all_boundaries)
+            normal, curv, x, phi, z, all_boundaries)
        if(is_boundary) then
           call rotate_dofs(temp1, temp2, normal, curv, -1)
           data = temp2
@@ -308,7 +308,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2   
     vectype, dimension(v%isize*dofs_per_node) :: dofs
     integer :: index, numDofs
@@ -328,7 +328,7 @@ contains
 
        ! if node is on boundary, rotate data from n,t to R,Z
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z, all_boundaries)
+            normal, curv, x, phi, z, all_boundaries)
        if(is_boundary) then
           call rotate_dofs(temp1, temp2, normal, curv, -1)
           data = temp2
@@ -351,7 +351,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
 
     vectype, dimension(v%isize*dofs_per_node) :: dofs
@@ -369,7 +369,7 @@ contains
     ! if node is on boundary, rotate data from R,Z to n,t
     if(r) then
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z, all_boundaries)
+            normal, curv, x, phi, z, all_boundaries)
        if(is_boundary) then
           temp1 = data
           call rotate_dofs(temp1, temp2, normal, curv, 1)
@@ -395,7 +395,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z
+    real :: normal(2), curv, x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2    
     vectype, dimension(v%isize*dofs_per_node) :: dofs
     integer :: index, numDofs
@@ -412,7 +412,7 @@ contains
     if(r) then
        ! if node is on boundary, rotate data from R,Z to n,t
        call boundary_node(inode, is_boundary, izone, izonedim, &
-            normal, curv, x, z, all_boundaries)
+            normal, curv, x, phi, z, all_boundaries)
        if(is_boundary) then
           temp1 = data
           call rotate_dofs(temp1, temp2, normal, curv, 1)
