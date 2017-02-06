@@ -1372,7 +1372,7 @@ subroutine lcfs(psi, test_wall, findx)
 
   type(field_type) :: temp_field
   real :: psix, psix2, psib, psim
-  real :: x, z, temp1, temp2, temp_min, temp_max
+  real :: x, z, temp1, temp2, temp_min, temp_max, phi
   integer :: ier, ier2, numnodes, inode, izone, izonedim, itri, icounter_t
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
@@ -1429,8 +1429,8 @@ subroutine lcfs(psi, test_wall, findx)
   if(tw .and. (iwall_is_limiter.eq.1)) then
      do icounter_t=1,numnodes
         inode = nodes_owned(icounter_t) 
-        call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,z, &
-             inner_wall)
+        call boundary_node(inode,is_boundary,izone,izonedim,normal,curv, &
+             x,phi,z, inner_wall)
         if(.not.is_boundary) cycle
         
         call get_node_data(temp_field,inode,data)

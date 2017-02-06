@@ -71,14 +71,15 @@ subroutine input
 
   call set_defaults
 
+  ! Read input file
+  ! ~~~~~~~~~~~~~~~
+  call read_namelist("C1input"//char(0), ierr)
+
   if(print_help) then
      if(myrank.eq.0) call print_variables(3)
      call safestop(0)
   end if
 
-  ! Read input file
-  ! ~~~~~~~~~~~~~~~
-  call read_namelist("C1input"//char(0), ierr)
   if(ierr.ne.0) call safestop(3)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, " validating input"
@@ -608,10 +609,10 @@ subroutine set_defaults
   call add_var_int("inoslip_tor", inoslip_tor, 1, &
        "1: No-slip boundary condition on tor. velocity", bc_grp)
   call add_var_int("inostress_tor", inostress_tor, 0, "", bc_grp)
-  call add_var_int("inocurrent_pol", inocurrent_pol, 1, "", bc_grp)
+  call add_var_int("inocurrent_pol", inocurrent_pol, 0, "", bc_grp)
   call add_var_int("inocurrent_tor", inocurrent_tor, 0, "", bc_grp)
   call add_var_int("inocurrent_norm", inocurrent_norm, 0, "", bc_grp)
-  call add_var_int("ifbound", ifbound, 1, &
+  call add_var_int("ifbound", ifbound, -1, &
        "Boundary condition on 'f' field. 1 = Dirichlet, 2 = Neumann", bc_grp)
   call add_var_int("iconstflux", iconstflux, 0, "", bc_grp)
   call add_var_int("iper", iper, 0, &
@@ -1254,6 +1255,15 @@ subroutine validate_input
            call safestop(1)
       endif
   endif
+  if(ifbound.eq.-1) then
+#ifdef USECOMPLEX
+     ifbound = 2
+#else
+     ifbound = 1
+#endif
+  end if
+     
+
   if(kinetic.eq.1) then !Hybrid model sanity check goes here
 #ifdef USEPARTICLES
 #else

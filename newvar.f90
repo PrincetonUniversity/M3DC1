@@ -133,7 +133,7 @@ contains
                NV_DCBOUND, NV_BF_MATRIX, 1)
           call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
                NV_I_MATRIX,  0)
-       else
+       else if(ifbound.eq.2) then 
           call create_newvar_matrix(bf_mat_lhs, &
                NV_NMBOUND, NV_BF_MATRIX, 1)
           call create_newvar_matrix(mass_mat_rhs_bf, NV_NMBOUND, &
@@ -342,6 +342,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
      case(NV_CYBOUND)
         call apply_boundary_mask(itri, & 
              BOUNDARY_DIRICHLET + BOUNDARY_NEUMANN, temp(:,:,1,1), tags=tags)
+
      end select
 
      do m=1,isize

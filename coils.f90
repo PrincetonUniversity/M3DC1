@@ -1,7 +1,7 @@
 module coils
   implicit none
 
-  integer, parameter :: maxfilaments = 10000
+  integer, parameter :: maxfilaments = 40000
   integer, parameter :: maxcoils = 200
 
 contains
