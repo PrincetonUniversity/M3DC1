@@ -281,7 +281,7 @@ subroutine vacuum_field()
   real, dimension(maxfilaments) :: xp, zp, xc, zc
   complex, dimension(maxfilaments) :: ic
   integer :: ierr
-  real, dimension(1,1,6) :: g1, g2
+  real, dimension(1,1) :: g1, g2
   real, parameter :: rnorm = 10.
   
   gnorm = 0
@@ -294,11 +294,11 @@ subroutine vacuum_field()
      zc(1) = rnorm
      xp = xlim
      zp = zlim
-     call gvect(xp,zp,1,xc,zc,1,g1,1,ierr)
+     call gvect0(xp,zp,1,xc,zc,1,g1,1,ierr)
      xp = xlim2
      zp = zlim2
-     call gvect(xp,zp,1,xc,zc,1,g2,1,ierr)
-     gnorm = g1(1,1,1) - g2(1,1,1)
+     call gvect0(xp,zp,1,xc,zc,1,g2,1,ierr)
+     gnorm = g1(1,1) - g2(1,1)
   endif
 
   if(igs_calculate_pf_fields) then 

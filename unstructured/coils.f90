@@ -179,9 +179,9 @@ contains
    integer :: i, numelms, k, itri
    type(field_type) :: psi_vec
    vectype, dimension(dofs_per_element) :: dofs
-   real, allocatable :: g(:,:,:)
+   real, allocatable :: g(:,:)
 
-   allocate(g(MAX_PTS,nc,6))
+   allocate(g(MAX_PTS,nc))
 
    ierr = 0
 
@@ -196,9 +196,9 @@ contains
 
        ! Field due to coil currents
        temp79a = 0.
-       call gvect(x_79,z_79,npoints,xc,zc,nc,g(1:npoints,:,:),ipole,ierr)
+       call gvect0(x_79,z_79,npoints,xc,zc,nc,g(1:npoints,:),ipole,ierr)
        do k=1, nc
-          temp79a = temp79a - g(:,k,1)*ic(k)
+          temp79a = temp79a - g(:,k)*ic(k)
        end do
 
        do i=1,dofs_per_element
@@ -500,6 +500,153 @@ subroutine gvect(r,z,npt,xi,zi,n,g,nmult,ierr)
      end select
   end do
 end subroutine gvect
+
+!============================================================
+! gvect0
+! ~~~~~~
+! This is same as gvect for case when
+! only OP_1 element of g is needed
+!============================================================
+subroutine gvect0(r,z,npt,xi,zi,n,g,nmult,ierr)
+  use math
+
+  implicit none
+
+  integer, intent(in) :: n, npt, nmult
+  integer, intent(out) :: ierr
+  real, dimension(npt), intent(in) :: r, z
+  real, dimension(n), intent(in) :: xi, zi
+  real, dimension(npt,n), intent(out) :: g
+  
+  real :: a0,a1,a2,a3,a4
+  real :: b0,b1,b2,b3,b4
+  real :: c1,c2,c3,c4
+  real :: d1,d2,d3,d4
+
+  real, dimension(npt) :: rpxi, rxi, zmzi, rksq, rk, sqrxi, x 
+  real, dimension(npt) :: ce, ck, rz, co
+
+  integer :: i, imult
+
+  data a0,a1,a2,a3,a4/1.38629436112,9.666344259e-2,                 &
+       3.590092383e-2,3.742563713e-2,1.451196212e-2/
+  data b0,b1,b2,b3,b4/.5,.12498593597,6.880248576e-2,               &
+       3.328355346e-2,4.41787012e-3/
+  data c1,c2,c3,c4/.44325141463,6.260601220e-2,                     &
+       4.757383546e-2,1.736506451e-2/
+  data d1,d2,d3,d4/.24998368310,9.200180037e-2,                     &
+       4.069697526e-2,5.26449639e-3/
+
+  ierr = 0
+  if(nmult.le.0) then
+     do i=1,n
+        rpxi=r+xi(i)
+        rxi=r*xi(i)
+        zmzi=z-zi(i)
+        rksq=4.*rxi/(rpxi**2+zmzi**2)
+        rk=sqrt(rksq)
+        sqrxi=sqrt(rxi)
+        x=1.-rksq
+
+        ce=1.+x*(c1+x*(c2+x*(c3+x*c4)))+                               &
+             x*(d1+x*(d2+x*(d3+x*d4)))*(-alog(x))
+        ck=a0+x*(a1+x*(a2+x*(a3+x*a4)))+                               &
+             (b0+x*(b1+x*(b2+x*(b3+x*b4))))*(-alog(x))
+
+        g(:,i) = -sqrxi*(2.*ck-2.*ce-ck*rksq)/rk
+     end do
+     return
+  endif
+     
+  ! check for multipolar coils
+  do i=1,n
+     if(xi(i) .lt. 100.) cycle
+     rz = zi(i)
+     imult = int(xi(i) - 100.)
+     if(imult .lt. 0 .or. imult.gt.10) then
+        ! error
+        ierr=39
+        return
+     endif
+
+     select case(imult)
+     case(0)
+        ! even nullapole
+        g(:,i) = twopi*rz**2
+        
+     case(1)
+        ! odd nullapole
+        g(:,i) = 0.
+        
+     case(2)
+        ! even dipole
+        g(:,i) = twopi*(r**2 - rz**2)/2.
+        
+     case(3)
+        ! odd dipole
+        co=twopi/rz
+        g(:,i) = co*(r**2*z)
+        
+     case(4)
+        ! even quadrapole
+        co=pi/(4.*rz**2)
+        g(:,i) = co*(r**4-4.*r**2*z**2 - 2.*r**2*rz**2+rz**4)
+        
+     case(5)
+        ! odd quadrapole
+        co=pi/(3.*rz**3)
+        g(:,i) = co*r**2*z*(3.*r**2-4.*z**2-3.*rz**2)
+
+     case(6)
+        ! even hexapole
+        co=pi/(12.*rz**4)
+        g(:,i) = co*(r**6 - 12.*r**4*z**2 - 3.*r**4*rz**2       &
+             + 8.*r**2*z**4 + 12.*r**2*z**2*rz**2           &
+             + 3.*r**2*rz**4 - rz**6 )
+
+     case(7)
+        ! odd hexapole
+        co=pi/(30.*rz**5)
+        g(:,i) = co*(15.*r**6*z - 60.*r**4*z**3                 &
+             - 30.*r**4*z*rz**2 + 24.*r**2*z**5             &
+             + 40.*r**2*z**3*rz**2 + 15.*r**2*z*rz**4)
+
+     case(8)
+        ! even octapole
+        co=pi/(160.*rz**6)
+        g(:,i) = co*(5.*r**8 - 120.*r**6*z**2 - 20.*r**6*rz**2  &
+             + 240.*r**4*z**4 + 240.*r**4*z**2*rz**2        &
+             + 30.*r**4*rz**4 - 64.*r**2*z**6                  &
+             - 160.*r**2*z**4*rz**2 - 120.*r**2*z**2*rz**4  &
+             - 20.*r**2*rz**6 + 5.*rz**8)
+
+     case(9)
+        ! odd octapole
+        co=pi/(140.*rz**7)
+        g(:,i) = co*r**2*z*(35.*r**6 - 280.*r**4*z**2        &
+             - 105.*r**4*rz**2 + 336.*r**2*z**4                &
+             + 420.*r**2*z**2*rz**2 + 105.*r**2*rz**4          &
+             - 64.*z**6 - 168.*z**4*rz**2                         &
+             - 140.*z**2*rz**4 - 35.*rz**6)
+
+     case(10)
+        ! even decapole
+        co=pi/(560.*rz**8)
+        g(:,i) = co*(7.*r**10 - 280.*r**8*z**2 - 35.*r**8*rz**2 &
+             + 1120.*r**6*z**4 + 840.*r**6*z**2*rz**2       &
+             + 70.*r**6*rz**4 - 896.*r**4*z**6                 &
+             - 1680.*r**4*z**4*rz**2 - 840.*r**4*z**2*rz**4 &
+             - 70.*r**4*rz**6 + 128.*r**2*z**8                 &
+             + 448.*r**2*z**6*rz**2 + 560.*r**2*z**4*rz**4  &
+             + 280.*r**2*z**2*rz**6 + 35.*r**2*rz**8           &
+             - 7.*rz**10)
+
+     case default
+        print *, 'Error: unknown multipole ', imult
+     end select
+  end do
+end subroutine gvect0
+
 
 ! Int(cos(2 ntor x)/(1 + k2*sin(x)^2)^(3/2) dx)/pi     0 < x < pi/2
 subroutine integral(npts,k2,ntor,f)
