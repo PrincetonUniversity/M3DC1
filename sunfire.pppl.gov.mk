@@ -1,4 +1,4 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEBLAS
 # FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
 CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
@@ -111,7 +111,7 @@ LIBS = 	\
 	-Wl,-rpath -Wl,$(HDF5_HOME)/lib \
 	-L$(ZLIB_HOME) -lz \
 	-L$(GSLHOME)/lib -lgsl -lgslcblas \
-	-L/usr/lib -lX11
+	-lX11
 
 #	$(SUPERLU_LIBS) \
 #	-L$(Zoltan_HOME)/lib -lzoltan \
