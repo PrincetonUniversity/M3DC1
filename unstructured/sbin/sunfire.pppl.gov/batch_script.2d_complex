@@ -1,10 +1,10 @@
 #!/bin/bash -vx
-#SBATCH --partition=mque_r6
+#SBATCH --partition=mque
 #SBATCH --nodes=1
 #SBATCH --ntasks=16
 #SBATCH -J m3dc1_2d
 #SBATCH -t 2:00:00
-#SBATCH --mem 120000
+#SBATCH --mem 200000
 
 # Partition mesh
 part_mesh.sh adapted.smb $SLURM_NTASKS
