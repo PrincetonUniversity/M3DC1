@@ -1,5 +1,5 @@
 #!/bin/bash -vx
-#SBATCH --partition=mque_r6
+#SBATCH --partition=mque
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH -J m3dc1_2d
