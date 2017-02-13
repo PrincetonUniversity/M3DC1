@@ -902,56 +902,107 @@ contains
            ! Here eta79 = 1/T^1.5 .  Factor of efac is included later
            eta79 = 0.
            eta79(:,OP_1) = eta_max / efac
+           if(linear.eq.0) then
 
-           ! Te
-           temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
+              ! Te
+              temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
 #ifdef USE3D
-           ! dTe/dphi
-           temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
-                pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
+              ! dTe/dphi
+              temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
+                   pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
 #endif
-           where(real(temp79b).gt.(eta_max/efac)**(-2./3.))
-              temp79a = sqrt(temp79b)
-              eta79(:,OP_1 ) = 1. / temp79a**3
-              eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &
-                   (pet79(:,OP_DR)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)
-              eta79(:,OP_DZ) = (-3./2.) / temp79a**5 * &
-                   (pet79(:,OP_DZ)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)
-              eta79(:,OP_DRR) = (15./4.) / temp79a**7 * &
-                   (pet79(:,OP_DR)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)**2 &
-                   + (-3./2.) / temp79a**5 * &
-                   (pet79(:,OP_DRR)/net79(:,OP_1) &
-                   -2.*pet79(:,OP_DR)*net79(:,OP_DR)/net79(:,OP_1)**2 &
-                   -pet79(:,OP_1)*net79(:,OP_DRR)/net79(:,OP_1)**2 &
-                   +2.*pet79(:,OP_1)*net79(:,OP_DR)**2/net79(:,OP_1)**3)
-              eta79(:,OP_DRZ) = (15./4.) / temp79a**7 * &
-                   (pet79(:,OP_DR)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2) &
-                   *(pet79(:,OP_DZ)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2) &
-                   + (-3./2.) / temp79a**5 * &
-                   (pet79(:,OP_DRZ)/net79(:,OP_1) &
-                   -pet79(:,OP_DR)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
-                   -pet79(:,OP_DZ)*net79(:,OP_DR)/net79(:,OP_1)**2 &
-                   -pet79(:,OP_1)*net79(:,OP_DRZ)/net79(:,OP_1)**2 &
-                   +2.*pet79(:,OP_1)*net79(:,OP_DR)*net79(:,OP_DZ) &
-                   /net79(:,OP_1)**3)
-              eta79(:,OP_DZZ) = (15./4.) / temp79a**7 * &
-                   (pet79(:,OP_DZ)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)**2 &
-                   + (-3./2.) / temp79a**5 * &
-                   (pet79(:,OP_DZZ)/net79(:,OP_1) &
-                   -2.*pet79(:,OP_DZ)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
-                   -pet79(:,OP_1)*net79(:,OP_DZZ)/net79(:,OP_1)**2 &
-                   +2.*pet79(:,OP_1)*net79(:,OP_DZ)**2/net79(:,OP_1)**3)
+              where(real(temp79b).gt.(eta_max/efac)**(-2./3.))
+                 temp79a = sqrt(temp79b)
+                 eta79(:,OP_1 ) = 1. / temp79a**3
+                 eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &
+                      (pet79(:,OP_DR)/net79(:,OP_1) &
+                      -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)
+                 eta79(:,OP_DZ) = (-3./2.) / temp79a**5 * &
+                      (pet79(:,OP_DZ)/net79(:,OP_1) &
+                      -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)
+                 eta79(:,OP_DRR) = (15./4.) / temp79a**7 * &
+                      (pet79(:,OP_DR)/net79(:,OP_1) &
+                      -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)**2 &
+                      + (-3./2.) / temp79a**5 * &
+                      (pet79(:,OP_DRR)/net79(:,OP_1) &
+                      -2.*pet79(:,OP_DR)*net79(:,OP_DR)/net79(:,OP_1)**2 &
+                      -pet79(:,OP_1)*net79(:,OP_DRR)/net79(:,OP_1)**2 &
+                      +2.*pet79(:,OP_1)*net79(:,OP_DR)**2/net79(:,OP_1)**3)
+                 eta79(:,OP_DRZ) = (15./4.) / temp79a**7 * &
+                      (pet79(:,OP_DR)/net79(:,OP_1) &
+                      -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2) &
+                      *(pet79(:,OP_DZ)/net79(:,OP_1) &
+                      -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2) &
+                      + (-3./2.) / temp79a**5 * &
+                      (pet79(:,OP_DRZ)/net79(:,OP_1) &
+                      -pet79(:,OP_DR)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
+                      -pet79(:,OP_DZ)*net79(:,OP_DR)/net79(:,OP_1)**2 &
+                      -pet79(:,OP_1)*net79(:,OP_DRZ)/net79(:,OP_1)**2 &
+                      +2.*pet79(:,OP_1)*net79(:,OP_DR)*net79(:,OP_DZ) &
+                      /net79(:,OP_1)**3)
+                 eta79(:,OP_DZZ) = (15./4.) / temp79a**7 * &
+                      (pet79(:,OP_DZ)/net79(:,OP_1) &
+                      -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)**2 &
+                      + (-3./2.) / temp79a**5 * &
+                      (pet79(:,OP_DZZ)/net79(:,OP_1) &
+                      -2.*pet79(:,OP_DZ)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
+                      -pet79(:,OP_1)*net79(:,OP_DZZ)/net79(:,OP_1)**2 &
+                      +2.*pet79(:,OP_1)*net79(:,OP_DZ)**2/net79(:,OP_1)**3)
 #ifdef USE3D
-              eta79(:,OP_DP) = -(3./2.)*temp79c / temp79a**5
+                 eta79(:,OP_DP) = -(3./2.)*temp79c / temp79a**5
 #endif
-           end where
+              end where
+           else   !linear=1 follows
 
+              ! Te
+              temp79b = pe079(:,OP_1)/ne079(:,OP_1) - eta_te_offset
+#ifdef USE3D
+              ! dTe/dphi
+              temp79c = pe079(:,OP_DP)/ne079(:,OP_1) - &
+                   pe079(:,OP_1)*ne079(:,OP_DP)/ne079(:,OP_1)**2
+#endif
+              where(real(temp79b).gt.(eta_max/efac)**(-2./3.))
+                 temp79a = sqrt(temp79b)
+                 eta79(:,OP_1 ) = 1. / temp79a**3
+                 eta79(:,OP_DR) = (-3./2.) / temp79a**5 * &
+                      (pe079(:,OP_DR)/ne079(:,OP_1) &
+                      -pe079(:,OP_1)*ne079(:,OP_DR)/ne079(:,OP_1)**2)
+                 eta79(:,OP_DZ) = (-3./2.) / temp79a**5 * &
+                      (pe079(:,OP_DZ)/ne079(:,OP_1) &
+                      -pe079(:,OP_1)*ne079(:,OP_DZ)/ne079(:,OP_1)**2)
+                 eta79(:,OP_DRR) = (15./4.) / temp79a**7 * &
+                      (pe079(:,OP_DR)/ne079(:,OP_1) &
+                      -pe079(:,OP_1)*ne079(:,OP_DR)/ne079(:,OP_1)**2)**2 &
+                      + (-3./2.) / temp79a**5 * &
+                      (pe079(:,OP_DRR)/ne079(:,OP_1) &
+                      -2.*pe079(:,OP_DR)*ne079(:,OP_DR)/ne079(:,OP_1)**2 &
+                      -pe079(:,OP_1)*ne079(:,OP_DRR)/ne079(:,OP_1)**2 &
+                      +2.*pe079(:,OP_1)*ne079(:,OP_DR)**2/ne079(:,OP_1)**3)
+                 eta79(:,OP_DRZ) = (15./4.) / temp79a**7 * &
+                      (pe079(:,OP_DR)/ne079(:,OP_1) &
+                      -pe079(:,OP_1)*ne079(:,OP_DR)/ne079(:,OP_1)**2) &
+                      *(pe079(:,OP_DZ)/ne079(:,OP_1) &
+                      -pe079(:,OP_1)*ne079(:,OP_DZ)/ne079(:,OP_1)**2) &
+                      + (-3./2.) / temp79a**5 * &
+                      (pe079(:,OP_DRZ)/ne079(:,OP_1) &
+                      -pe079(:,OP_DR)*ne079(:,OP_DZ)/ne079(:,OP_1)**2 &
+                      -pe079(:,OP_DZ)*ne079(:,OP_DR)/ne079(:,OP_1)**2 &
+                      -pe079(:,OP_1)*ne079(:,OP_DRZ)/ne079(:,OP_1)**2 &
+                      +2.*pe079(:,OP_1)*ne079(:,OP_DR)*ne079(:,OP_DZ) &
+                      /ne079(:,OP_1)**3)
+                 eta79(:,OP_DZZ) = (15./4.) / temp79a**7 * &
+                      (pe079(:,OP_DZ)/ne079(:,OP_1) &
+                      -pe079(:,OP_1)*ne079(:,OP_DZ)/ne079(:,OP_1)**2)**2 &
+                      + (-3./2.) / temp79a**5 * &
+                      (pe079(:,OP_DZZ)/ne079(:,OP_1) &
+                      -2.*pe079(:,OP_DZ)*ne079(:,OP_DZ)/ne079(:,OP_1)**2 &
+                      -pe079(:,OP_1)*ne079(:,OP_DZZ)/ne079(:,OP_1)**2 &
+                      +2.*pe079(:,OP_1)*ne079(:,OP_DZ)**2/ne079(:,OP_1)**3)
+#ifdef USE3D
+                 eta79(:,OP_DP) = -(3./2.)*temp79c / temp79a**5
+#endif
+              end where
+           endif
            eta79 = eta79 * efac
         else
            call eval_ops(itri, resistivity_field, eta79)
