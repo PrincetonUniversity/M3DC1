@@ -606,7 +606,7 @@ vectype function viscosity_func(i)
         call read_ascii_column('profile_amu', yvals, nvals, icol=2)
         if(nvals.eq.0) call safestop(6)
         if(ivisfunc.eq.10) then
-           yvals = yvals / (p0_norm * t0_norm)
+           yvals = yvals * 1e4 / (l0_norm * v0_norm)
         end if
         call create_spline(amu_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
@@ -622,6 +622,7 @@ vectype function viscosity_func(i)
         call evaluate_spline(amu_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
+     if(ivisfunc.eq.10) temp79a = temp79a*nt79(:,OP_1)
 
   case(12)          !  option to go with itaylor=27, iresfunc=4
      do j=1, npoints
@@ -747,8 +748,7 @@ vectype function kappa_func(i)
         call read_ascii_column('profile_kappa', yvals, nvals, icol=2)
         if(nvals.eq.0) call safestop(6)
         if(ikappafunc.eq.10) then
-           yvals = yvals / &
-                (l0_norm * b0_norm/sqrt(4.*pi*1.6726e-24*ion_mass*n0_norm))
+           yvals = yvals * 1e4 / (l0_norm * v0_norm)
         end if
         call create_spline(kappa_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
@@ -764,6 +764,7 @@ vectype function kappa_func(i)
         call evaluate_spline(kappa_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
+     if(ikappafunc.eq.10 .and. itemp.eq.0) temp79a = temp79a*nt79(:,OP_1)
 
   case(12)          !  option to go with itaylor=27, iresfunc=4
      do j=1, npoints
