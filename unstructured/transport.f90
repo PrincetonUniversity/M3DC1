@@ -671,11 +671,7 @@ vectype function kappa_func(i)
      if(kappa0.eq.0) then
         temp79a = 0.
      else
-        if(linear.eq.0) then
-           temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
-        else
-           temp79a = kappa0*sqrt(n079(:,OP_1)**3/p079(:,OP_1))
-        endif
+        temp79a = kappa0*sqrt(nt79(:,OP_1)**3/pt79(:,OP_1))
      end if
         
   case(1)
