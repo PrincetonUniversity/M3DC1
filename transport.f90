@@ -189,49 +189,39 @@ vectype function pforce_func(i)
   integer, intent(in) :: i
   integer :: iregion, j, magnetic_region
   real :: psimaxl, psiminl
-  vectype, dimension(MAX_PTS,OP_NUM) :: psi
 
   select case(ipforce)
   case(1)
 
-  if(linear.eq.1) then
-      psi = ps079
-  else
-      psi = pst79
-  end if
-  temp79a = (psi(:,OP_1)-psimin)/(psibound - psimin)
+     temp79a = (pst79(:,OP_1)-psimin)/(psibound - psimin)
 
-  do j=1, npoints
-    temp79b(j) = aforce*(1.-temp79a(j))**nforce  &
-          * dforce**2/((temp79a(j) - xforce)**2 + dforce**2)
-    iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
-    if(iregion.ge.1) temp79b(j) = 0.
-  end do
+     do j=1, npoints
+        temp79b(j) = aforce*(1.-temp79a(j))**nforce  &
+             * dforce**2/((temp79a(j) - xforce)**2 + dforce**2)
+        iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
+        if(iregion.ge.1) temp79b(j) = 0.
+     end do
 
-
-  pforce_func = int2(mu79(:,OP_1,i),temp79b)
+     pforce_func = int2(mu79(:,OP_1,i),temp79b)
   case(2)
 
-  if(linear.eq.1) then
-      psi = ps079
-  else
-      psi = pst79
-  end if
-  temp79a = (psi(:,OP_1)-psibound)/(psimin - psibound)
-  psimaxl = 0.6
-  psiminl = 1.e-3
-  temp79b = 1. - (temp79a - psiminl)/(psimaxl - psiminl)
-  temp79c = atan2(z_79-zmag,x_79-xmag)
-  temp79d = sqrt(max(real((pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)*ri2_79),1.e-6))
-  temp79e =  aforce*temp79b**2*nt79(:,OP_1)*cos(temp79c/2.)/temp79d 
-  do j=1,npoints
-    if(real(temp79a(j)) .lt. psiminl .or. real(temp79a(j)) .gt. psimaxl) temp79e(j) = 0.
-  enddo
+     temp79a = (pst79(:,OP_1)-psibound)/(psimin - psibound)
+     psimaxl = 0.6
+     psiminl = 1.e-3
+     temp79b = 1. - (temp79a - psiminl)/(psimaxl - psiminl)
+     temp79c = atan2(z_79-zmag,x_79-xmag)
+     temp79d = sqrt(max(real((pst79(:,OP_DR)**2 + pst79(:,OP_DZ)**2)*ri2_79),1.e-6))
+     temp79e =  aforce*temp79b**2*nt79(:,OP_1)*cos(temp79c/2.)/temp79d 
+     do j=1,npoints
+        if(real(temp79a(j)) .lt. psiminl .or. real(temp79a(j)) .gt. psimaxl) temp79e(j) = 0.
+     enddo
   
-   pforce_func = int2(mu79(:,OP_1,i),temp79e)
+     pforce_func = int2(mu79(:,OP_1,i),temp79e)
   end select
-  return
+
 end function pforce_func
+
+
 vectype function pmach_func(i)
   use math
   use basic
@@ -288,8 +278,8 @@ vectype function q_func(i, izone)
 
   integer, intent(in) :: i, izone
   vectype :: temp
-  integer :: nvals, j, magnetic_region, ierr, ier
-  real :: val, valp, valpp, pso, rsq, coef
+  integer :: nvals, j, magnetic_region
+  real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
   real, dimension(MAX_PTS) :: r
 
@@ -362,6 +352,7 @@ vectype function q_func(i, izone)
 
   q_func = temp
 end function q_func
+
 vectype function rad_func(i, izone)
   use math
   use basic
@@ -376,13 +367,9 @@ vectype function rad_func(i, izone)
 
   integer, intent(in) :: i, izone
   vectype :: temp
-  integer :: nvals, j, magnetic_region, ierr, ier
-  real :: val, valp, valpp, pso, rsq, coef
-  real, allocatable :: xvals(:), yvals(:)
-  real, dimension(MAX_PTS) :: r
+  integer :: j, ierr
 
   temp = 0.
-
 
   ! Radiation
   if(iprad.eq.1) then
@@ -398,7 +385,7 @@ vectype function rad_func(i, izone)
      ! convert density to /m^3
      temp79c = net79(:,OP_1) * n0_norm * 1e6
 
-     ier = 0
+     ierr = 0
      do j=1, npoints
         call get_Prad_simple(temp79a(j), temp79b(j), prad_fz*temp79c(j), &
              prad_z, temp79c(j), ierr)
@@ -427,29 +414,22 @@ vectype function cd_func(i)
 
   integer, intent(in) :: i
   integer :: iregion, j, magnetic_region
-  vectype, dimension(MAX_PTS,OP_NUM) :: psi
   vectype :: temp
 
   temp = 0.
-  if(linear.eq.1) then
-     psi = ps079
-  else
-     psi = pst79
-  endif
 
   ! Gaussian source
   if(icd_source.eq.1) then
-    do j=1,npoints
-      temp79a(j) = J_0cd * exp( -(x_79(j)-R_0cd)**2/w_cd**2 &
-                               - (z_79(j)-Z_0cd)**2/w_cd**2 ) - delta_cd
-      iregion = magnetic_region(psi(j,:),x_79(j),z_79(j))
-      if(iregion.ge.1) temp79a(j) = 0.
-    enddo
-    temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     do j=1,npoints
+        temp79a(j) = J_0cd * exp( -(x_79(j)-R_0cd)**2/w_cd**2 &
+             - (z_79(j)-Z_0cd)**2/w_cd**2 ) - delta_cd
+        iregion = magnetic_region(pst79(j,:),x_79(j),z_79(j))
+        if(iregion.ge.1) temp79a(j) = 0.
+     enddo
+     temp = temp + int2(mu79(:,OP_1,i),temp79a)
   endif
 
   cd_func = temp
-  return
 end function cd_func
 
 ! Resistivity
@@ -462,46 +442,34 @@ vectype function resistivity_func(i)
   implicit none
 
   integer, intent(in) :: i
+  real :: tmin
 
   select case (iresfunc)
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
      if(eta0.ne.0.) then
-        if(linear.eq.1) then
-           temp79a = eta_fac*eta0*sqrt((ne079(:,OP_1)/pe079(:,OP_1) - eta_te_offset)**3)
+        tmin = (eta_fac*eta0/(eta_max - etar*eta_fac))**(2./3.)
+
+        if(itemp.eq.1) then
+           temp79b = tet79(:,OP_1) - eta_te_offset
         else
-           if(itemp.eq.1) then
-              temp79a = eta_fac*eta0*(tet79(:,OP_1) - eta_te_offset)**(-1.5)
-           else
-              temp79b = max(pedge*pefac,real(pet79(:,OP_1)))
-              temp79a = eta_fac*eta0*sqrt((net79(:,OP_1)/temp79b - eta_te_offset)**3)
-           endif
+           temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
         endif
+        where(real(temp79b).lt.tmin)
+           temp79a = eta_max - etar*eta_fac
+        elsewhere
+           temp79a = eta_fac*eta0*temp79b**(-1.5)
+        end where
      else
         temp79a = 0.
      end if
 
   case(1)      ! added 08/05/08 for stability benchmarking
-     if(linear.eq.1) then
        temp79a = eta_fac*eta0*.5* &
-          (1. + &
-          tanh((real(ps079(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
-          /(etadelt*(psilim-psimin))))
-     else
-       temp79a = eta_fac*eta0*.5* &
-          (1. + &
-          tanh((real(pst79(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
-          /(etadelt*(psilim-psimin))))
-     endif
+            (1. + &
+            tanh((real(pst79(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
+            /(etadelt*(psilim-psimin))))
+
   case(2)
-!!$     if(linear.eq.1) then
-!!$       temp79b = (ps079(:,OP_1)-psimin)/(psibound-psimin)
-!!$       temp79a = eta_fac*eta0*.5* &
-!!$          (1. + tanh((real(temp79b) - etaoff)/etadelt))
-!!$     else
-!!$       temp79b = (pst79(:,OP_1)-psimin)/(psibound-psimin)
-!!$       temp79a = eta_fac*eta0*.5* &
-!!$          (1. + tanh((real(temp79b) - etaoff)/etadelt))
-!!$     endif
      temp79a = eta79(:,OP_1) - etar*eta_fac
 
   case(3)
@@ -513,24 +481,20 @@ vectype function resistivity_func(i)
   case(5)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)/(1 - 2 sqrt(eps))
            ! neoclassical:  Park, et al NF 30 2413 (1990)
      if(eta0.ne.0.) then
-        if(linear.eq.1) then
-           temp79c = eta_fac*eta0*sqrt((ne079(:,OP_1)/pe079(:,OP_1))**3)
+        if(itemp.eq.1) then
+           temp79c = eta_fac*eta0*tet79(:,OP_1)**(-1.5)
         else
-           if(itemp.eq.1) then
-              temp79c = eta_fac*eta0*tet79(:,OP_1)**(-1.5)
-           else
-              temp79b = max(pedge*pefac,real(pet79(:,OP_1)))
-              temp79c = eta_fac*eta0*sqrt((net79(:,OP_1)/temp79b)**3)
-           endif
+           temp79c = eta_fac*eta0*sqrt((net79(:,OP_1)/pet79(:,OP_1))**3)
         endif
      else
         temp79c = 0.
      endif
-        temp79b = sqrt(((x_79 - xmag)**2 + (z_79 - zmag)**2)/rzero**2)
-        temp79a = temp79c/(1. - 1.46*sqrt(temp79b))
+     temp79b = sqrt(((x_79 - xmag)**2 + (z_79 - zmag)**2)/rzero**2)
+     temp79a = temp79c/(1. - 1.46*sqrt(temp79b))
 
   case default
      temp79a = 0.
+
   end select
 
   resistivity_func = int2(mu79(:,OP_1,i),temp79a)
@@ -553,7 +517,6 @@ vectype function viscosity_func(i)
   real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
   integer :: magnetic_region
-  vectype, dimension(MAX_PTS,OP_NUM) :: psi
 
   temp79a = 0.
 
@@ -562,28 +525,16 @@ vectype function viscosity_func(i)
      temp79a = 0.
      
   case(1)
-     if(linear.eq.1) then
-        temp79a = amu_edge*.5* &
-             (1. + &
-             tanh((real(ps079(:,OP_1))-(psibound+amuoff*(psibound-psimin))) &
-             /(amudelt*(psibound-psimin))))
-     else
-        temp79a = amu_edge*.5* &
-             (1. + &
-             tanh((real(pst79(:,OP_1))-(psibound+amuoff*(psibound-psimin))) &
-             /(amudelt*(psibound-psimin))))
-     endif
+     temp79a = amu_edge*.5* &
+          (1. + &
+          tanh((real(pst79(:,OP_1))-(psibound+amuoff*(psibound-psimin))) &
+          /(amudelt*(psibound-psimin))))
      
   case(2)
-     if(linear.eq.1) then
-        psi = ps079
-     else
-        psi = pst79
-     end if
-     temp79b = (psi(:,OP_1)-psimin)/(psibound - psimin)
+     temp79b = (pst79(:,OP_1)-psimin)/(psibound - psimin)
      
      do j=1, npoints
-        iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
+        iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
         if(iregion.eq.2) temp79b(j) = 2. - temp79b(j)
      end do
      
@@ -659,7 +610,6 @@ vectype function kappa_func(i)
   real, allocatable :: xvals(:), yvals(:)
   vectype :: temp
   integer :: magnetic_region
-  vectype, dimension(MAX_PTS,OP_NUM) :: psi
 
   temp = 0.
 
@@ -675,27 +625,16 @@ vectype function kappa_func(i)
      end if
         
   case(1)
-     if(linear.eq.1) then
-        temp79a = kappa0*.5* &
-             (1. + &
-             tanh((real(ps079(:,OP_1))-(psilim+kappaoff*(psilim-psimin)))&
-             /(kappadelt*(psilim-psimin))))
-     else
-        temp79a = kappa0*.5* &
-             (1. + &
-             tanh((real(pst79(:,OP_1))-(psilim+kappaoff*(psilim-psimin)))&
-             /(kappadelt*(psilim-psimin)))) 
-     endif
+     temp79a = kappa0*.5* &
+          (1. + &
+          tanh((real(pst79(:,OP_1))-(psilim+kappaoff*(psilim-psimin)))&
+          /(kappadelt*(psilim-psimin)))) 
+
   case(2)
-     if(linear.eq.1) then
-        psi = ps079
-     else
-        psi = pst79
-     end if
-     temp79b = (psi(:,OP_1)-psimin)/(psibound - psimin)
+     temp79b = (pst79(:,OP_1)-psimin)/(psibound - psimin)
      
      do j=1, npoints
-        iregion = magnetic_region(psi(j,:), x_79(j), z_79(j))
+        iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
         if(iregion.eq.2) temp79b(j) = 2. - temp79b(j)
      end do
 
