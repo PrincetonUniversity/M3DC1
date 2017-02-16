@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -l nodes=1:ppn=16
+#PBS -l walltime=02:00:00
+#PBS -N m3dc1_response
+#PBS -V
+
+cd $PBS_O_WORKDIR
+
+# Partition mesh
+part_mesh.sh adapted.smb 16
+
+# Run M3D-C1
+rm C1stdout
+mpiexec -n 16 m3dc1_2d_complex -pc_factor_mat_solver_package mumps > C1stdout
