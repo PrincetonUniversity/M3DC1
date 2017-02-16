@@ -1,0 +1,12 @@
+#!/bin/bash -vx
+#SBATCH -p debug
+#SBATCH -N 86
+#SBATCH -t 00:30:00
+#SBATCH -J m3dc1_3D
+
+# Edison has 24 cores / node
+
+module list
+
+rm C1stdout
+srun -n 2048 m3dc1_3d -ipetsc -options_file options_bjacobi >& C1stdout
