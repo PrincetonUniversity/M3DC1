@@ -181,6 +181,8 @@ contains
    vectype, dimension(dofs_per_element) :: dofs
    real, allocatable :: g(:,:)
 
+   if(nc.le.0) return
+
    allocate(g(MAX_PTS,nc))
 
    ierr = 0
