@@ -239,6 +239,9 @@ subroutine pf_coil_field(ierr)
      zc(1) = rnorm
      ipole = 1
      ic = bv*fac2
+
+  case default
+     numcoils = 0
      
   end select
 
