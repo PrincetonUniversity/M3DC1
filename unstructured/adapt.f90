@@ -32,11 +32,10 @@ module adapt
     use scorec_mesh_mod
     use m3dc1_nint
 
-    vectype, dimension(dofs_per_node) :: dat
-    integer :: izone, izonedim, inode(nodes_per_element), i, j
-    integer :: numelms, itri, num_adj_ent, ier
+    integer :: izone, izonedim, i, j
+    integer :: numelms, itri
     character(len=32) :: mesh_file_name
-    real :: x, phi, z, q, tmp
+    real :: q, tmp
     integer :: magnetic_region
     integer, dimension(MAX_PTS) :: mr
     vectype, dimension(dofs_per_element) :: dofs
@@ -177,14 +176,11 @@ module adapt
     vectype, allocatable :: edge_error(:,:)
     vectype, allocatable :: elm_error(:,:), elm_error_res(:,:), elm_error_sum(:,:)
     real, allocatable :: node_error(:,:)
-    integer :: num_edge, ii, jj,kk, num_get, num_get2, num_elm, num_node, ier
-    integer, dimension(3) :: nodes
+    integer :: num_edge, ii, jj, num_get, num_elm, num_node, ier
     integer, dimension(256) :: elms 
-    type(element_data) :: d
 
     integer, parameter :: vecsize=1 
-    integer :: ndofs, num_node_total
-    vectype, dimension(vecsize*dofs_per_node) :: dofData
+    integer :: num_node_total
     real, dimension(2):: max_error, buff
     character(len=32) :: mesh_file_name, file_name1, file_name2, file_name3
 

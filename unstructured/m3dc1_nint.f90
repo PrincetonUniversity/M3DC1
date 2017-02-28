@@ -341,8 +341,11 @@ contains
     vectype, dimension(MAX_PTS, OP_NUM), intent(out) :: outarr
     complex, optional :: rfac
 
-    integer :: i, op
     vectype, dimension(dofs_per_element) :: dofs
+
+#ifndef USEBLAS
+    integer :: i, op
+#endif
 
     call get_element_dofs(fin, itri, dofs)
 

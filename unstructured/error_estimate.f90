@@ -95,7 +95,7 @@ module error_estimate
     integer, dimension(3) :: edges, nodes, nodes_edge, edge_dir, idimgeo, idimgeo_t, is_bdy
     real, dimension(3) :: edge_len
     real, dimension(2,3) :: normal, normal_t
-    real, dimension(3) :: coords
+!    real, dimension(3) :: coords
     integer, allocatable :: edge_tag(:)
     type(element_data) :: d
     integer :: ifaczonedim, ifaczone, icylinder
@@ -389,7 +389,6 @@ fn_eval(1:npoint_int)
 
     integer :: i
     type(element_data) :: d
-    vectype, dimension(dofs_per_element,coeffs_per_element) :: cl
 
     ! calculate the major radius, and useful powers
     call get_element_data(itri, d)
@@ -493,7 +492,6 @@ fn_eval(1:npoint_int)
       
     integer, intent(in) :: npoints
     real, dimension(MAX_PTS), intent(in) :: xi, eta 
-    real, dimension(MAX_PTS) :: temp
 
     integer :: p
     real :: xpow(MAX_PTS,-3:5), ypow(MAX_PTS,-3:5)

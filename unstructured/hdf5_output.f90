@@ -599,8 +599,6 @@ contains
     integer(SIZE_T) :: num_elements
     integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
 
-    integer :: j
-
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
     dummy = 0            ! breaking formatting requirements
