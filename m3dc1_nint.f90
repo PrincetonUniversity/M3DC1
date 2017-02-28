@@ -79,7 +79,6 @@ module m3dc1_nint
      ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79, ri8_79
   vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
        temp79d, temp79e, temp79f
-  vectype, dimension(MAX_PTS, OP_NUM) :: sz79
   vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, nei79, b2i79, bi79
   vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
        ph179, vz179, ch179, p179, ne179, pi179
@@ -425,8 +424,6 @@ contains
     hypv = hyperv*fac
     hypc = hyperc*fac
     hypp = hyperp*fac
-
-    call interpolate_size_field(itri)
 
     call get_zone(itri, izone)
 
@@ -1133,52 +1130,5 @@ contains
     endif
 
 end subroutine define_fields
-
-subroutine interpolate_size_field(itri)
-
-  use basic
-  use mesh_mod
-
-  implicit none
-
-  integer, intent(in) :: itri
-
-  type(element_data) :: d
-  double precision, dimension(3) :: node_sz
-  real :: k,l,m,h
-
-     sz79(:,OP_1  ) = 1.
-     sz79(:,OP_DR ) = 0.
-     sz79(:,OP_DZ ) = 0.
-     sz79(:,OP_DRR) = 0.
-     sz79(:,OP_DRZ) = 0.
-     sz79(:,OP_DZZ) = 0.
-!
-!...this coding is redundant as hyper has already been scaled by deex**ihypdx
-     return
-
-  call get_element_data(itri, d)
-  h = d%b / (d%a + d%b)
-
-#ifdef USESCOREC
-  call getelmsizes(itri, node_sz)
-#else
-  node_sz = h
-#endif
-  ! use size**2 field
-  node_sz = node_sz**ihypdx
-
-  m = (node_sz(3) - node_sz(1) - h*(node_sz(2) - node_sz(1))) / d%c
-  l = (node_sz(2) - node_sz(1)) / (d%a + d%b)
-  k = node_sz(1) + l*d%b
-
-  sz79(:,OP_1  ) = k + l*xi_79 + m*eta_79
-  sz79(:,OP_DR ) = k + l*d%co + m*d%sn
-  sz79(:,OP_DZ ) = k - l*d%sn + m*d%co
-  sz79(:,OP_DRR) = 0.
-  sz79(:,OP_DRZ) = 0.
-  sz79(:,OP_DZZ) = 0. 
-
-end subroutine interpolate_size_field
 
 end module m3dc1_nint

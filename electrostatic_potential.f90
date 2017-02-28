@@ -59,14 +59,14 @@ end function b4psieta
 
 ! B4psietahyp
 ! ===========
-vectype function b4psietahyp(e,f,g,h)
+vectype function b4psietahyp(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
 
@@ -102,12 +102,12 @@ if(surface_int) then
      temp = 0.
   else
      if(ihypeta.eq.0) then           
-        temp = int4(ri4_79,e(:,OP_GS),f(:,OP_GSP),h(:,OP_1))
+        temp = hypf*int3(ri4_79,e(:,OP_GS),f(:,OP_GSP))
      else
-        temp =  int5(ri4_79,e(:,OP_GS),f(:,OP_GSP),g(:,OP_1),h(:,OP_1)) &
-             +  int5(ri4_79,e(:,OP_DR),f(:,OP_GSP),g(:,OP_DR),h(:,OP_1)) &
-             +  int5(ri4_79,e(:,OP_DZ),f(:,OP_GSP),g(:,OP_DZ),h(:,OP_1))
-
+        temp =  hypf* &
+             (int4(ri4_79,e(:,OP_GS),f(:,OP_GSP),g(:,OP_1)) &
+             +int4(ri4_79,e(:,OP_DR),f(:,OP_GSP),g(:,OP_DR)) &
+             +int4(ri4_79,e(:,OP_DZ),f(:,OP_GSP),g(:,OP_DZ)))
      endif
   endif
 #else
@@ -145,14 +145,14 @@ end function b4beta
 
 ! B4betahyp
 ! =========
-vectype function b4betahyp(e,f,g,h)
+vectype function b4betahyp(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
 
@@ -185,7 +185,7 @@ vectype function b4betahyp(e,f,g,h)
 !             - 4.*int4(ri5_79,e(:,OP_DZ),f(:,OP_DRPP),h(:,OP_1))
 #endif
      if(ihypeta.eq.1) then
-        temp79a = (e(:,OP_DZ)*g(:,OP_DR) - e(:,OP_DR)*g(:,OP_DZ))*h(:,OP_1)
+        temp79a = hypf*(e(:,OP_DZ)*g(:,OP_DR) - e(:,OP_DR)*g(:,OP_DZ))
         temp = int3(ri3_79,f(:,OP_LP),temp79a)
 #if defined(USE3D) || defined(USECOMPLEX)
         temp = temp + int3(ri5_79,f(:,OP_DPP),temp79a)
@@ -229,14 +229,14 @@ end function b4feta
 
 ! B4fetahyp
 ! =========
-vectype function b4fetahyp(e,f,g,h)
+vectype function b4fetahyp(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
   if(surface_int) then 
@@ -612,9 +612,6 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
   vectype :: temp
   real :: thimp_e, thimpb_e, thimpf_e
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hf
-  hf = hypf*sz79
-
   thimp_e = thimp
 
   if(imp_mod.eq.0) then
@@ -634,7 +631,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
   ssterm(e_g) = b4e(trial,lin)
 
   temp = b4psieta   (trial,lin,eta79) &
-       + b4psietahyp(trial,lin,eta79,hf)
+       + b4psietahyp(trial,lin,eta79)
   ssterm(psi_g) = ssterm(psi_g)      -thimp_e     *temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_e*bdf)*temp
 
@@ -675,7 +672,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
   if(numvar.ge.2) then 
      temp = b4beta   (trial,lin,eta79)    &
-          + b4betahyp(trial,lin,eta79,hf)
+          + b4betahyp(trial,lin,eta79)
      ssterm(bz_g) = ssterm(bz_g)      -thimp_e     *temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_e*bdf)*temp
 
@@ -763,7 +760,7 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
      q_bf = q_bf + &
           (b4feta   (trial,lin,eta79) &
-          +b4fetahyp(trial,lin,eta79,hf))
+          +b4fetahyp(trial,lin,eta79))
   endif
 
 end subroutine potential_lin
