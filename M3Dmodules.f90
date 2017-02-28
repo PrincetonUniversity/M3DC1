@@ -111,7 +111,6 @@ module basic
 
   real :: eta_wall    ! resistivity of boundary
   real :: eta_vac     ! resistivity of vacuum region
-  real :: delta_wall  ! thickness of boundary
 
   ! density sources
   integer :: ionization     ! 1 = include edge reionization

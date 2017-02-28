@@ -86,10 +86,14 @@ subroutine onestep
 
   implicit none
 
-  integer :: calc_matrices, ivel_def, icount, irepeat, maxiter
+  integer :: calc_matrices, ivel_def, irepeat
   logical, save :: first_time = .true.
 
   real :: tstart, tend
+
+#ifdef USE3D
+  integer :: icount, maxiter
+#endif
 
   ! Determine whether matrices should be re-calculated
   if(first_time &
@@ -254,7 +258,11 @@ subroutine variable_timestep
 
   implicit none
   include 'mpif.h'
-  integer :: ierr, maxiter, icount
+  integer :: ierr
+
+#ifdef USE3D
+  integer :: maxiter, icount
+#endif
 
 if(dtkecrit.gt.0) then
   if(myrank.eq.0) then
