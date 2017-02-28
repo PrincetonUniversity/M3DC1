@@ -598,9 +598,6 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   real :: ththm, thimp_bf
   vectype :: freq_fac
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hv
-  hv = hypv*sz79
-
   select case(imp_mod)
   case(0)
      ththm = (1.-thimp*bdf)*thimp
@@ -672,7 +669,7 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ssterm(u_g) = ssterm(u_g) -     thimp     *dt*temp
   ddterm(u_g) = ddterm(u_g) + (1.-thimp*bdf)*dt*temp
 
-  temp = v2vmu(trial,lin,vis79,vic79,hv) &
+  temp = v2vmu(trial,lin,vis79,vic79) &
        + v2vs (trial,lin,sig79)
   ssterm(vz_g) = ssterm(vz_g) -     thimp     *dt*temp
   ddterm(vz_g) = ddterm(vz_g) + (1.-thimp*bdf)*dt*temp
@@ -1612,9 +1609,6 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   vectype :: freq_fac
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hf
-  hf = hypf*sz79
-
   thimpf = thimp
   thimpe = 1.
 
@@ -1671,19 +1665,19 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b1psieta(trial,lin,eta79,hf,eta_mod.eq.1)
+  temp = b1psieta(trial,lin,eta79,eta_mod.eq.1)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
   ! implicit hyperresistivity
   if(jadv.eq.1 .and. imp_hyper.eq.1) then
-     temp = b1jeta(trial,lin,eta79,hf)
+     temp = b1jeta(trial,lin,eta79)
      ssterm(e_g) = ssterm(e_g) - dt*temp
   endif
 
 
   if(numvar.ge.2) then
-     temp = b1beta(trial,lin,eta79,hf)
+     temp = b1beta(trial,lin,eta79)
      ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
      ! implicit hyperresistivity
@@ -2375,9 +2369,6 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   vectype :: freq_fac
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hi
-  hi = hypi*sz79
-
   thimpf = thimp
 
   if(imp_mod.eq.0) then
@@ -2421,16 +2412,16 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b2psieta(trial,lin,eta79,hi)
+  temp = b2psieta(trial,lin,eta79)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
   
-  temp = b2beta(trial,lin,eta79,hi)
+  temp = b2beta(trial,lin,eta79)
   ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
   ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
   if(i3d.eq.1) then
-     temp = b2feta(trial,lin,eta79,hi)
+     temp = b2feta(trial,lin,eta79)
      r_bf = r_bf -     thimp_bf     *dt*temp
      q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
 
@@ -2966,13 +2957,11 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   vectype :: freq_fac
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hp, pp079, pp179, ppt79
+  vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179, ppt79
   vectype :: temp
   real :: thimpb, thimp_bf, nv, h, coefeq
   integer :: pp_g
   coefeq =  3853.*(n0_norm/1.e14)*(l0_norm/100.)**2     ! 3853 = (gam-1)*3 *mu_0*e^2*[1.e20]/M_i   MKS units
-
-  hp = hypp*sz79
 
   if(total_pressure) then
      pp079 = p079
@@ -3371,13 +3360,13 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Perpendicular Heat Flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b3pedkappa(trial,lin,ni79,kap79,hp)
+  temp = b3pedkappa(trial,lin,ni79,kap79)
   ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
   ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
   if(eqsubtract.eq.1) then
      if(idens.eq.1) then
         q_ni(1) = q_ni(1) + dt* &
-             (b3pedkappa(trial,pp079,lin,kap79,hp))
+             (b3pedkappa(trial,pp079,lin,kap79))
      end if
   end if
 
@@ -3719,13 +3708,11 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   vectype :: freq_fac
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hp, pp079, pp179
+  vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179
   vectype :: temp
   real :: thimpb, thimp_bf, nv, h, coefeq, ohfac
   integer :: pp_g
   coefeq =  3853.*(n0_norm/1.e14)*(l0_norm/100.)**2     ! 3853 = (gam-1)*3 *mu_0*e^2*[1.e20]/M_i   MKS units
-
-  hp = hypp*sz79
 
   if(electron_temperature) then
      pp079 = te079
@@ -4034,7 +4021,7 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
      ! Perpendicular Heat Flux
      ! ~~~~~~~~~~~~~~~~~~~~~~~
-     temp = b3tekappa(trial,lin,kap79,hp)
+     temp = b3tekappa(trial,lin,kap79)
      ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
      ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
 
@@ -4193,7 +4180,7 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! terms due to time-dependent density
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(idens.eq.1 .and. iadiabat.eq.1) then
-     temp = t3tndenm(trial,lin,nt79,denm,hp) + t3ts(trial,lin,sig79)
+     temp = t3tndenm(trial,lin,nt79,denm) + t3ts(trial,lin,sig79)
      ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
      ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
   endif
@@ -4211,12 +4198,8 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
   vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out) :: r4term
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: hv, hc, hp, pp079
+  vectype, dimension(MAX_PTS, OP_NUM) :: pp079
   logical, intent(in) :: total_pressure
-
-  hv = hypv*sz79
-  hc = hypc*sz79
-  hp = hypp*sz79
 
   if(itemp.eq.0) then
      if(total_pressure) then
@@ -4272,23 +4255,23 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
      if(total_pressure) then
         if(eqsubtract.eq.1) then
            r4term = r4term - dt*(gam-1.)* &
-                (quumu    (trial,ph079,ph179,vis79,      hc) &
-                +qvvmu    (trial,vz079,vz179,vis79,      hv) &
-                +quchimu  (trial,ph079,ch179,vis79,vic79,hc) &
-                +qchichimu(trial,ch079,ch179,      vic79,hc))
+                (quumu    (trial,ph079,ph179,vis79      ) &
+                +qvvmu    (trial,vz079,vz179,vis79      ) &
+                +quchimu  (trial,ph079,ch179,vis79,vic79) &
+                +qchichimu(trial,ch079,ch179,      vic79))
            r4term = r4term - dt*(gam-1.)* &
-                (quumu    (trial,ph179,ph079,vis79,      hc) &
-                +qvvmu    (trial,vz179,vz079,vis79,      hv) &
-                +quchimu  (trial,ph179,ch079,vis79,vic79,hc) &
-                +qchichimu(trial,ch179,ch079,      vic79,hc))
+                (quumu    (trial,ph179,ph079,vis79      ) &
+                +qvvmu    (trial,vz179,vz079,vis79      ) &
+                +quchimu  (trial,ph179,ch079,vis79,vic79) &
+                +qchichimu(trial,ch179,ch079,      vic79))
            r4term = r4term - dt*(gam-1.)* &
                 (p1vip    (trial))
         else
            r4term = r4term - dt*(gam-1.)* &
-                (quumu    (trial,pht79,pht79,vis79,      hc) &
-                +qvvmu    (trial,vzt79,vzt79,vis79,      hv) &
-                +quchimu  (trial,pht79,cht79,vis79,vic79,hc) &
-                +qchichimu(trial,cht79,cht79,      vic79,hc) &
+                (quumu    (trial,pht79,pht79,vis79      ) &
+                +qvvmu    (trial,vzt79,vzt79,vis79      ) &
+                +quchimu  (trial,pht79,cht79,vis79,vic79) &
+                +qchichimu(trial,cht79,cht79,      vic79) &
                 +p1vip    (trial))
         end if
      endif
@@ -4306,7 +4289,7 @@ subroutine pressure_nolin(trial, r4term, total_pressure)
      endif
      if(itemp.eq.1 .and. iadiabat.eq.1) then
         r4term = r4term + dt* &
-             (t3tndenm(trial,pp079,n179,denm,hp) &
+             (t3tndenm(trial,pp079,n179,denm) &
              +t3ts(trial,pp079,sig79))
      endif
   endif
@@ -5332,9 +5315,6 @@ subroutine ludefden_n(itri)
   real :: thimpb
   integer :: imask(dofs_per_element)
 
-  vectype, dimension(MAX_PTS,OP_NUM) :: hp
-  hp = hypp*sz79
-
   call get_zone(itri, izone)
 
   if(imp_mod.eq.0) then
@@ -5400,7 +5380,7 @@ subroutine ludefden_n(itri)
         ssterm(i,j) = ssterm(i,j) + temp    
         if(itime_independent.eq.0) ddterm(i,j) = ddterm(i,j) + temp*bdf
  
-        temp = n1ndenm(mu79(:,:,i),nu79(:,:,j),denm,hp) &
+        temp = n1ndenm(mu79(:,:,i),nu79(:,:,j),denm) &
              + n1nu   (mu79(:,:,i),nu79(:,:,j),pht79)
         ssterm(i,j) = ssterm(i,j) -     thimp     *dt*temp
         ddterm(i,j) = ddterm(i,j) + (1.-thimp*bdf)*dt*temp

@@ -334,20 +334,18 @@ subroutine f1eplot_sub(i,term)
   implicit none
   vectype, intent(out) :: term
   vectype :: temp
-  vectype, dimension(MAX_PTS, OP_NUM) :: hf
   integer, intent(in) :: i
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  hf = hypi*sz79
-  temp = b2psieta(mu79(:,:,i),pst79,eta79,hf)
+  temp = b2psieta(mu79(:,:,i),pst79,eta79)
   term = temp
   
-  temp = b2beta(mu79(:,:,i),bzt79,eta79,hf)
+  temp = b2beta(mu79(:,:,i),bzt79,eta79)
   term = term + temp
 
   if(i3d.eq.1) then
-     temp = b2feta(mu79(:,:,i),bft79,eta79,hf)
+     temp = b2feta(mu79(:,:,i),bft79,eta79)
      term = term + temp
   end if
 
@@ -395,15 +393,13 @@ subroutine f2eplot_sub(i,term)
   vectype, intent(out) :: term
   integer, intent(in) :: i
   integer :: jadvs
-  vectype, dimension(MAX_PTS, OP_NUM) :: hf
   vectype :: temp
 
       ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   jadvs = jadv
   jadv = 1   ! only for evaluation of this function
-  hf = hypf*sz79
-  temp = b1psieta(mu79(:,:,i),pst79,eta79,hf,eta_mod.eq.1)
+  temp = b1psieta(mu79(:,:,i),pst79,eta79,eta_mod.eq.1)
   jadv = jadvs
 
   term = temp
@@ -438,7 +434,6 @@ subroutine f3eplot_sub(i,term)
   vectype, intent(out) :: term
   integer, intent(in) :: i
   vectype :: temp, ohfac
-  vectype, dimension(MAX_PTS, OP_NUM) :: hf
 
   ohfac = 1.
   if(ipres.eq.0) ohfac = 0.5
@@ -457,8 +452,7 @@ subroutine f3eplot_sub(i,term)
 
 ! Perpendicular Heat Flux
 ! ~~~~~~~~~~~~~~~~~~~~~~~
-       hf = hypp*sz79
-       temp = b3tekappa(mu79(:,:,i),tet79,kap79,hf)
+       temp = b3tekappa(mu79(:,:,i),tet79,kap79)
        term = term + temp
 
 ! Parallel Heat Flux
