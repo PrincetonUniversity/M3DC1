@@ -626,7 +626,6 @@ subroutine set_defaults
        "Resistivity of conducting wall region", misc_grp)
   call add_var_double("eta_vac", eta_vac, 1., &
        "Resistivity of vacuum region", misc_grp)
-  call add_var_double("delta_wall", delta_wall, 1., "", misc_grp)
 
 
   ! loop voltage
