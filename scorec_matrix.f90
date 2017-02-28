@@ -128,7 +128,7 @@ contains
 !    PetscBool :: flg_petsc, flg_solve2, flg_pdslin
 !#endif
 #endif
-    integer :: ierr
+!    integer :: ierr
 
     if(mat%imatrix .le. 0) then
        print*, 'Error: scorec matrix index not set!'
@@ -353,13 +353,6 @@ contains
     integer, intent(out) :: ierr
     integer :: num_iter
 
-#ifdef PetscDEV
-    PetscBool :: flg_petsc, flg_solve2, flg_pdslin
-#else
-    PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
-#endif
-
-
 #ifdef M3DC1_TRILINOS
     num_iter=100
     call m3dc1_solver_aztec(mat%imatrix,v%id,v%id,num_iter,solver_tol)
@@ -505,7 +498,6 @@ contains
 
     integer, dimension(mat%m,dofs_per_element) :: irow
     integer, dimension(mat%n,dofs_per_element) :: icol
-    integer :: i, j
 
     if (iop .ne. MAT_ADD) then
        print *, " mat block insert only supports MAT_ADD"

@@ -467,7 +467,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   integer, intent(in) :: equilibrium
 
   character(LEN=19) :: time_group_name
-  integer(HID_T) :: time_group_id, root_id
+  integer(HID_T) :: root_id
   integer :: nelms
 
   character(LEN=19) :: time_file_name
@@ -1504,7 +1504,7 @@ subroutine output_keharmonics(time_group_id, equilibrium, error)
   integer, intent(in) :: equilibrium
   
   integer(HID_T) :: group_id
-  integer :: i, nelms, nfields, ilin
+  integer :: i, nfields
   real, allocatable :: dum(:)
 
   nfields = 0
@@ -1633,7 +1633,7 @@ subroutine hdf5_write_kspits(error)
 
   implicit none
 
-  integer :: i !, maxnumofsolves
+!  integer :: i, maxnumofsolves
 !  real, allocatable:: kspits(:)
   integer, intent(out) :: error
   integer(HID_T) :: root_id, kspits_group_id

@@ -649,11 +649,10 @@ subroutine step_split(calc_matrices)
 
   integer, intent(in) :: calc_matrices
   real :: tstart, tend, t_bound
-  real :: ans
-  integer :: jer, i, numnodes
+  integer :: jer
   type(vector_type) :: temp, temp2
 
-  type(field_type) :: phip_1, phip_2, phip_3, temp_field_1, temp_field_2
+  type(field_type) :: phip_1, phip_2, phip_3
   call associate_field(phip_1, phip_vec, 1)
   if(numvar.ge.2) call associate_field(phip_2, phip_vec, 2)
   if(numvar.ge.3 .and. ipressplit.eq.0) call associate_field(phip_3, phip_vec, 3)

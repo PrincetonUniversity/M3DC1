@@ -387,12 +387,12 @@ subroutine set_normalp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   integer, intent(in) :: izonedim             ! dimension of boundary
   type(matrix_type), optional :: mat
 
-  vectype, dimension(dofs_per_node) :: bv_rotated
-
 #if defined(USECOMPLEX)
   call set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
 
 #elif defined(USE3D)
+  vectype, dimension(dofs_per_node) :: bv_rotated
+
   call rotate_dofs(bv, bv_rotated, normal, curv, 1)
      
   ! n

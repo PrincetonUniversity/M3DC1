@@ -903,11 +903,11 @@ subroutine validate_input
 #include "finclude/petsc.h"
 #endif
 
-#ifdef PetscDEV
-  PetscBool :: flg_petsc, flg_solve2, flg_pdslin
-#else
-  PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
-#endif
+!#ifdef PetscDEV
+!  PetscBool :: flg_petsc, flg_solve2, flg_pdslin
+!#else
+!  PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
+!#endif
   integer :: ier
 
   if(myrank.eq.0) then
