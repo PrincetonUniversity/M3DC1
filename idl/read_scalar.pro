@@ -239,14 +239,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!6(!5b!9.!3W!9.!5b!6)!U2!N!X'
        d = dimensions(t0=-2,l0=3, _EXTRA=extra)
    endif else if (strcmp("flux", scalarname, /fold_case) eq 1) then begin
-       data = (s.psi_lcfs._data - s.psimin._data)*2.*!pi
+       data = -2.*!pi*(s.psi_lcfs._data - s.psimin._data)
        title = 'Flux'
        symbol = '!7W!X'
        d = dimensions(/b0,l0=2, _EXTRA=extra)
    endif else if (strcmp("li", scalarname, /fold_case) eq 1) then begin
       rzero = read_parameter('rzero', filename=filename)
-       data = abs(2.*(s.psi_lcfs._data - s.psimin._data)*2.*!pi $
-              / s.toroidal_current_p._data / rzero)
+       data = -4.*!pi*(s.psi_lcfs._data - s.psimin._data) $
+              / s.toroidal_current_p._data / rzero
        title = 'Normalized Internal Inductance'
        symbol = '!13l!Di!X'
        d = dimensions(_EXTRA=extra)
