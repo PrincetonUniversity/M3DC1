@@ -109,7 +109,6 @@ module basic
   integer :: ifbound         ! bc on f.  0=none, 1=dirichlet, 2=neumann
   real :: amu_edge    ! factor by which to increase viscosity at boundaries
 
-  real :: eta_wall    ! resistivity of boundary
   real :: eta_vac     ! resistivity of vacuum region
 
   ! density sources
