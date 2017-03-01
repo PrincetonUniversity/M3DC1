@@ -168,6 +168,7 @@ subroutine hdf5_write_parameters(error)
   use pellet
   use bootstrap
   use diagnostics
+  use resistive_wall
 
   implicit none
 

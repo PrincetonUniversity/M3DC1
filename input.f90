@@ -110,6 +110,7 @@ subroutine set_defaults
   use diagnostics
   use basicj
   use rmp
+  use resistive_wall
 
   implicit none
 
@@ -129,6 +130,7 @@ subroutine set_defaults
   integer :: output_grp
   integer :: diagnostic_grp
   integer :: source_grp
+  integer :: rw_grp
   integer :: misc_grp
   integer :: deprec_grp
 
@@ -149,6 +151,7 @@ subroutine set_defaults
   call add_group("Output", output_grp)
   call add_group("Diagnostics", diagnostic_grp)
   call add_group("Sources/Sinks", source_grp)
+  call add_group("Resistive Wall", rw_grp)
   call add_group("Miscellaneous", misc_grp)
   call add_group("Deprecated", deprec_grp)
 
@@ -623,9 +626,25 @@ subroutine set_defaults
   
   ! resistive wall
   call add_var_double("eta_wall", eta_wall, 1e-3, &
-       "Resistivity of conducting wall region", misc_grp)
+       "Resistivity of conducting wall region", rw_grp)
   call add_var_double("eta_vac", eta_vac, 1., &
-       "Resistivity of vacuum region", misc_grp)
+       "Resistivity of vacuum region", rw_grp)
+  call add_var_int("iwall_breaks", iwall_breaks, 0, &
+       "Number of wall break regions", rw_grp)
+  call add_var_double("eta_break", eta_break, 1., &
+       "Resistivity of wall breaks", rw_grp)
+  call add_var_double_array("wall_break_xmin", wall_break_xmin, &
+       imax_wall_breaks, 0., "Minimum x coordinate for wall break", rw_grp)
+  call add_var_double_array("wall_break_xmax", wall_break_xmax, &
+       imax_wall_breaks, 0., "Maximum x coordinate for wall break", rw_grp)
+  call add_var_double_array("wall_break_zmin", wall_break_zmin, &
+       imax_wall_breaks, 0., "Minimum z coordinate for wall break", rw_grp)
+  call add_var_double_array("wall_break_zmax", wall_break_zmax, &
+       imax_wall_breaks, 0., "Maximum z coordinate for wall break", rw_grp)
+  call add_var_double_array("wall_break_phimin", wall_break_phimin, &
+       imax_wall_breaks, 0., "Minimum phi coordinate for wall break", rw_grp)
+  call add_var_double_array("wall_break_phimax", wall_break_phimax, &
+       imax_wall_breaks, 0., "Maximum phi coordinate for wall break", rw_grp)
 
 
   ! loop voltage
@@ -893,6 +912,7 @@ subroutine validate_input
   use math
   use gradshafranov
   use rmp
+  use resistive_wall
 
   implicit none
 

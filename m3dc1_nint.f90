@@ -397,6 +397,7 @@ contains
     use mesh_mod
     use arrays
     use math
+    use resistive_wall
 
     implicit none
   
@@ -858,7 +859,7 @@ contains
         eta79(:,OP_1) = eta_vac
      else if(izone.eq.2) then
         eta79 = 0.
-        eta79(:,OP_1) = eta_wall
+        eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79)
      else 
         if(iresfunc.eq.2) then
            if(linear.eq.1) then
