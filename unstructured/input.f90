@@ -631,8 +631,8 @@ subroutine set_defaults
        "Resistivity of vacuum region", rw_grp)
   call add_var_int("iwall_breaks", iwall_breaks, 0, &
        "Number of wall break regions", rw_grp)
-  call add_var_double("eta_break", eta_break, 1., &
-       "Resistivity of wall breaks", rw_grp)
+  call add_var_double_array("eta_break", eta_break, &
+       imax_wall_breaks, 1., "Resistivity of wall break", rw_grp)
   call add_var_double_array("wall_break_xmin", wall_break_xmin, &
        imax_wall_breaks, 0., "Minimum x coordinate for wall break", rw_grp)
   call add_var_double_array("wall_break_xmax", wall_break_xmax, &
