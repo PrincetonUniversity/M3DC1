@@ -7,7 +7,7 @@ module resistive_wall
   integer, parameter :: imax_wall_breaks = 20
 
   real :: eta_wall
-  real :: eta_break
+  real, dimension(imax_wall_breaks) :: eta_break
   real, dimension(imax_wall_breaks) :: wall_break_xmin, wall_break_xmax
   real, dimension(imax_wall_breaks) :: wall_break_zmin, wall_break_zmax
   real, dimension(imax_wall_breaks) :: wall_break_phimin, wall_break_phimax
@@ -33,7 +33,7 @@ contains
                x.le.wall_break_xmax(i) .and. &
                z.ge.wall_break_zmin(i) .and. &
                z.le.wall_break_zmax(i)) then
-             wall_resistivity = eta_break
+             wall_resistivity = eta_break(i)
              continue
           end if
 #ifdef USE3D
