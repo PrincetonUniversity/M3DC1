@@ -117,9 +117,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              stotal=total, rho=rho, nolegend=nolegend, linfac=linfac[i], $
              q_contours=q_contours, regularize=regularize
            lab = parse_units(dimensions(/t0), cgs=cgs, mks=mks)
-           get_normalizations, b0=b0, n0=n0, l0=l0, $
-                        zeff=zeff, ion_mass=mi, filename=filename
-           convert_units, t, dimensions(/t0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+           t = get_slice_time(filename=filename, slice=time[i], $
+                              cgs=cgs, mks=mks)
            nn[i] = string(format='(%"!8t!6 = %g ",A,"!X")', t, lab)
        end
 
