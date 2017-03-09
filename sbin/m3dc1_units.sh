@@ -69,6 +69,9 @@ W0_EV=$(echo - | awk "{ print $W0/1.6022e-12 }" )
 J0=$(echo - | awk "{ print $C*$B0/(4.*$PI*$L0) }" )
 J0_MKS=$(echo - | awk "{ print $J0 / 3e5 }" )
 
+ETA0=$(echo - | awk "{ print 4*$PI*$T0*$V0*$V0/($C*$C) }" )
+ETA0_MKS=$(echo - | awk "{ print $ETA0*$C*$C/1e11 }" )
+
 echo "ion mass = $MU m_p"
 echo "Zeff = $ZEFF"
 echo "B0 = $B0 G = $B0_MKS (T)"
@@ -81,3 +84,4 @@ echo "v0 = $V0 cm/s = $V0_MKS m/s"
 echo "p0 = $P0 dyne/cm^2 = $P0_MKS pascal"
 echo "T0 = $W0_EV eV"
 echo "J0 = $J0 s.a./cm^2 = $J0_MKS A/m^2"
+echo "ETA0 = $ETA0 s = $ETA0_MKS Ohm-m"
