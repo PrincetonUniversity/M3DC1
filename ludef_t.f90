@@ -1682,7 +1682,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
      ! implicit hyperresistivity
      if(jadv.eq.1 .and. imp_hyper.eq.2) then
-        temp = b1bj(trial,bzt79,lin)
+        temp = b1bj(trial,bzt79,lin) + b1psij(trial,pst79,lin)
         ssterm(e_g) = ssterm(e_g) - dt*temp
      endif
 
@@ -1692,7 +1692,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
         q_bf = q_bf + (1.-thimp_bf*bdf)*dt*temp
         ! implicit hyperrestivity
         if(jadv.eq.1 .and. imp_hyper.eq.2) then
-           temp = b1psij(trial,pst79,lin) + b1fj(trial,bft79,lin)
+           temp = b1fj(trial,bft79,lin)
            ssterm(e_g) = ssterm(e_g) - dt*temp
         endif
      end if
