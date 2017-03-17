@@ -133,6 +133,7 @@ subroutine set_defaults
   integer :: rw_grp
   integer :: misc_grp
   integer :: deprec_grp
+  integer :: trilinos_grp
 
 
   call add_group("Model Options", model_grp)
@@ -154,6 +155,7 @@ subroutine set_defaults
   call add_group("Resistive Wall", rw_grp)
   call add_group("Miscellaneous", misc_grp)
   call add_group("Deprecated", deprec_grp)
+  call add_group("Trilinos Options", trilinos_grp)
 
 
   ! Normalizations
@@ -891,16 +893,39 @@ subroutine set_defaults
        "ratio of longest to shortest toroidal element", mesh_grp)
   call add_var_double("toroidal_pack_angle", toroidal_pack_angle, 0., &
        "toroidal angle of maximum mesh packing", mesh_grp)
+
   ! Solver 
   call add_var_double("solver_tol", solver_tol,0.000000001,&
        "solver tolerance", solver_grp) 
-  call add_var_int("solver_type", solver_type, 0, "solver type", solver_grp)
+  call add_var_int("solver_type", solver_type, 0, "Solver type", solver_grp)
+  call add_var_int("num_iter", num_iter, 100, "Maximum number of iterations", solver_grp)
+
+  ! Trilinos options
+  call add_var_string("krylov_solver", krylov_solver, 50,&
+       "gmres", "Krylov solver", trilinos_grp)
+  call add_var_string("preconditioner", preconditioner, 50,&
+       "dom_decomp", "Preconditioner", trilinos_grp)
+
+  call add_var_string("sub_dom_solver", sub_dom_solver, 50,&
+       "ilu", "Subdomain solver in preconditioner", trilinos_grp)
+  call add_var_int("subdomain_overlap", subdomain_overlap, 1, &
+       "subdomain overlap", trilinos_grp)
+  call add_var_int("graph_fill", graph_fill, 0, "graph fill level",&
+       trilinos_grp)
+  call add_var_double("drop_tolerance", ilu_drop_tol, 0.0, &
+       "ILU drop tolerance", trilinos_grp)
+  call add_var_double("ilu_fill_level", ilu_fill, 1.0, &
+       "ILU fill level", trilinos_grp)
+  call add_var_double("ilu_omega", ilu_omega, 1.0, &
+       "Relaxation parameter for rILU", trilinos_grp)
+  call add_var_int("poly_ord", poly_ord, 1, &
+       "Polynomial order for certain preconditioners", trilinos_grp)
 
   ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)
   call add_var_int("igs_method", igs_method, -1, "", gs_grp)
-end subroutine set_defaults
 
+end subroutine set_defaults
 
 subroutine validate_input
   use basic

@@ -6,10 +6,19 @@ module scorec_vector_mod
      integer :: id
   end type scorec_vector
 
+!!$  type trilinos_options
+!!$     character(len=:), allocatable :: str
+!!$  end type trilinos_options
+
   integer, parameter :: VEC_SET = 0
   integer, parameter :: VEC_ADD = 1
   real :: solver_tol
-  integer:: solver_type
+  character(len=50) :: krylov_solver
+  character(len=50) :: preconditioner
+  character(len=50) :: sub_dom_solver
+  integer :: solver_type, num_iter
+  integer :: graph_fill, subdomain_overlap, poly_ord
+  real :: ilu_drop_tol, ilu_fill, ilu_omega
 
   interface assignment(=)
      module procedure scorec_vector_copy
