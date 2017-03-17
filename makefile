@@ -158,8 +158,8 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
-	time_step.o hdf5_output.o output.o \
 	particle.o \
+	time_step.o hdf5_output.o output.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o \
 	init_conds.o \
