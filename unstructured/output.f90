@@ -674,7 +674,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
   use time_step
   use auxiliary_fields
   use transport_coefficients
-  
+  use particles
+
   implicit none
 
   integer(HID_T), intent(in) :: time_group_id
@@ -946,7 +947,29 @@ subroutine output_fields(time_group_id, equilibrium, error)
           nelms, error)
      nfields = nfields + 1
   end if
-  
+
+  if (kinetic.eq.1) then
+     if (associated(p_i_perp%vec)) then
+        !Perpendicular component of hot ion pressure tensor
+        do i=1, nelms
+           call calcavector(i, p_i_perp, dum(:,i))
+        end do
+        call output_field(group_id, "p_i_perp", real(dum), coeffs_per_element, &
+             nelms, error)
+        nfields = nfields + 1
+     endif
+
+     if (associated(p_i_par%vec)) then
+        !Parallel component of hot ion pressure tensor
+        do i=1, nelms
+           call calcavector(i, p_i_par, dum(:,i))
+        end do
+        call output_field(group_id, "p_i_par", real(dum), coeffs_per_element, &
+             nelms, error)
+        nfields = nfields + 1
+     endif
+  endif
+
   if(use_external_fields) then 
      ! psi_ext
      do i=1, nelms
@@ -986,8 +1009,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
           nelms, error)
      nfields = nfields + 1
 #endif
-  endif
-  
+  endif !(use_external_fields)
+
   if(iwrite_transport_coeffs.eq.1) then
      ! eta
      do i=1, nelms
@@ -1047,7 +1070,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
              nelms, error)
         nfields = nfields + 1
      endif
-  end if
+  end if !(iwrite_transport_coeffs.eq.1)
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_transport_coefsin output_fields'
 
   if(iwrite_aux_vars.eq.1) then 
@@ -1465,7 +1488,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
     nfields = nfields + 1
 #endif
 
- endif
+ endif !(iwrite_aux_vars.eq.1)
 
 !!$  if(equilibrium.eq.1) then
 !!$     ! partition
