@@ -351,11 +351,15 @@ contains
     type(scorec_matrix), intent(in) :: mat
     type(vector_type), intent(inout) :: v
     integer, intent(out) :: ierr
-    integer :: num_iter
 
 #ifdef M3DC1_TRILINOS
-    num_iter=100
-    call m3dc1_solver_aztec(mat%imatrix,v%id,v%id,num_iter,solver_tol)
+    call m3dc1_solver_aztec(mat%imatrix,v%id,v%id,num_iter,&
+         solver_tol,krylov_solver,preconditioner,sub_dom_solver,&
+         subdomain_overlap,graph_fill,ilu_drop_tol,ilu_fill,&
+         ilu_omega,poly_ord)    
+    !! call m3dc1_solver_aztec(mat%imatrix,v%id,v%id,num_iter,&
+    !!     solver_tol,aztec_options)    
+
 #else
     call m3dc1_matrix_solve(mat%imatrix,v%id,solver_type,solver_tol)
 #endif
