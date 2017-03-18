@@ -235,6 +235,7 @@ module basic
   integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)
   integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
+                         ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
   integer :: ihypamu     ! 1 = scale hyper-viscosity with visc
   integer :: ihypkappa   ! 1 = scale hyper-diffusivity with kappa
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
@@ -255,7 +256,8 @@ module basic
   integer :: ieq_bdotgradt ! 1 = include equilibrium parallel T gradient term
   integer :: icsubtract  ! 1 = subtract fields from poloidal field coils
   integer :: kinetic     ! 1 = use kinetic PIC hot ion pressure tensor
-                         ! 2 = CGL form for the pressure tensor
+                         ! 2 = CGL form for the pressure tensor (incompressible)
+                         ! 3 = CGL form for pressure tensor (full)
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
