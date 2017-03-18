@@ -6704,10 +6704,17 @@ vectype function b1psij(e,f,g)
 #if defined(USE3D) || defined(USECOMPLEX)
      temp79a = hypf*(g(:,OP_DRR)+ri2_79*g(:,OP_DPP) +g(:,OP_DZZ))
      if(itor.eq.1) temp79a = temp79a + hypf*ri_79*g(:,OP_DR)
-     if(ihypeta .eq. 1) temp79a = eta79(:,OP_1)*temp79a          &
-                         + hypf*(eta79(:,OP_DR)*g(:,OP_DR)      &
-                         + ri2_79*eta79(:,OP_DP)*g(:,OP_DP)      &
-                                + eta79(:,OP_DZ)*g(:,OP_DZ))
+     if     (ihypeta.eq.1) then
+        temp79a = eta79(:,OP_1)*temp79a          &
+          + hypf*(eta79(:,OP_DR)*g(:,OP_DR)      &
+         + ri2_79*eta79(:,OP_DP)*g(:,OP_DP)      &
+                + eta79(:,OP_DZ)*g(:,OP_DZ))
+     else if(ihypeta.eq.2) then
+        temp79a = pt79(:,OP_1)*temp79a          &
+          + hypf*(pt79(:,OP_DR)*g(:,OP_DR)      &
+         + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
+                + pt79(:,OP_DZ)*g(:,OP_DZ))
+     endif
      temp = -int5(ri3_79,b2i79(:,OP_1),e(:,OP_DZP),f(:,OP_DR),temp79a)    &
             +int5(ri3_79,b2i79(:,OP_1),e(:,OP_DRP),f(:,OP_DZ),temp79a)
      
@@ -6737,12 +6744,19 @@ vectype function b1bj(e,f,g)
      temp79a = temp79a + hypf*ri2_79*g(:,OP_DPP)
 #endif
      if(itor.eq.1) temp79a = temp79a + hypf*ri_79*g(:,OP_DR)
-     if(ihypeta .eq. 1) then             
+     if     (ihypeta.eq.1) then             
          temp79a = eta79(:,OP_1)*temp79a          &
           + hypf*(eta79(:,OP_DR)*g(:,OP_DR)      &
                  + eta79(:,OP_DZ)*g(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
        temp79a = temp79a + hypf*ri2_79*eta79(:,OP_DP)*g(:,OP_DP)
+#endif
+     else if(ihypeta.eq.2) then             
+         temp79a = pt79(:,OP_1)*temp79a          &
+          + hypf*(pt79(:,OP_DR)*g(:,OP_DR)      &
+                 + pt79(:,OP_DZ)*g(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+       temp79a = temp79a + hypf*ri2_79*pt79(:,OP_DP)*g(:,OP_DP)
 #endif
      endif
 
@@ -6767,10 +6781,17 @@ vectype function b1fj(e,f,g)
 #if defined(USE3D) || defined(USECOMPLEX)
      temp79a = hypf*(g(:,OP_DRR)+ri2_79*g(:,OP_DPP) +g(:,OP_DZZ))
      if(itor.eq.1) temp79a = temp79a + hypf*ri_79*g(:,OP_DR)
-     if(ihypeta .eq. 1) temp79a = eta79(:,OP_1)*temp79a          &
-                         + hypf*(eta79(:,OP_DR)*g(:,OP_DR)      &
-                         + ri2_79*eta79(:,OP_DP)*g(:,OP_DP)      &
-                                + eta79(:,OP_DZ)*g(:,OP_DZ))
+     if     (ihypeta.eq.1) then
+        temp79a = eta79(:,OP_1)*temp79a          &
+                + hypf*(eta79(:,OP_DR)*g(:,OP_DR)      &
+               + ri2_79*eta79(:,OP_DP)*g(:,OP_DP)      &
+                      + eta79(:,OP_DZ)*g(:,OP_DZ))
+     else if(ihypeta.eq.2) then
+        temp79a = pt79(:,OP_1)*temp79a          &
+                + hypf*(pt79(:,OP_DR)*g(:,OP_DR)      &
+               + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
+                      + pt79(:,OP_DZ)*g(:,OP_DZ))
+     endif
      temp =  int5(ri2_79,b2i79(:,OP_1),e(:,OP_DRP),f(:,OP_DRP),temp79a)    &
             +int5(ri2_79,b2i79(:,OP_1),e(:,OP_DZP),f(:,OP_DZP),temp79a)
 #else
@@ -8473,10 +8494,14 @@ vectype function b2fj(e,f,g)
   else
      temp = 0
 #if defined(USE3D) || defined(USECOMPLEX)
-        if(ihypeta .eq. 1) then
+        if     (ihypeta.eq.1) then
           temp79a = hypf*eta79(:,OP_1)*g(:,OP_DR)
           temp79b = hypf*eta79(:,OP_1)*g(:,OP_DZ)
           temp79c = hypf*(eta79(:,OP_DP)*g(:,OP_DP) + eta79(:,OP_1)*g(:,OP_DPP))
+        else if(ihypeta.eq.2) then
+          temp79a = hypf*pt79(:,OP_1)*g(:,OP_DR)
+          temp79b = hypf*pt79(:,OP_1)*g(:,OP_DZ)
+          temp79c = hypf*(pt79(:,OP_DP)*g(:,OP_DP) + pt79(:,OP_1)*g(:,OP_DPP))
         else
           temp79a = hypf*g(:,OP_DR)
           temp79b = hypf*g(:,OP_DZ)
@@ -8529,9 +8554,12 @@ vectype function b2psij(e,f,g)
      end if
   else
    
-        if(ihypeta .eq. 1) then
+        if     (ihypeta.eq.1) then
           temp79a = hypf*eta79(:,OP_1)*g(:,OP_DR)
           temp79b = hypf*eta79(:,OP_1)*g(:,OP_DZ)
+        else if(ihypeta.eq.2) then
+          temp79a = hypf*pt79(:,OP_1)*g(:,OP_DR)
+          temp79b = hypf*pt79(:,OP_1)*g(:,OP_DZ)
         else
           temp79a = hypf*g(:,OP_DR)
           temp79b = hypf*g(:,OP_DZ)
@@ -8553,8 +8581,10 @@ vectype function b2psij(e,f,g)
                +2.*int5(b2i79(:,OP_1),ri3_79,e(:,OP_DR ),f(:,OP_DR ),temp79a) &
                +2.*int5(b2i79(:,OP_1),ri3_79,e(:,OP_DZ ),f(:,OP_DZ ),temp79a) 
 #if defined(USE3D) || defined(USECOMPLEX)
-        if(ihypeta .eq. 1) then
+        if     (ihypeta.eq.1) then
            temp79c = hypf*(eta79(:,OP_DP)*g(:,OP_DP) + eta79(:,OP_1)*g(:,OP_DPP))
+        else if(ihypeta.eq.2) then
+           temp79c = hypf*(pt79(:,OP_DP)*g(:,OP_DP) + pt79(:,OP_1)*g(:,OP_DPP))
         else
            temp79c = hypf*g(:,OP_DPP)
         endif
