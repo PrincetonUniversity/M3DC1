@@ -948,6 +948,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      nfields = nfields + 1
   end if
 
+#ifdef USEPARTICLES
   if (kinetic.eq.1) then
      if (associated(p_i_perp%vec)) then
         !Perpendicular component of hot ion pressure tensor
@@ -969,6 +970,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
         nfields = nfields + 1
      endif
   endif
+#endif
 
   if(use_external_fields) then 
      ! psi_ext

@@ -376,8 +376,7 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   if(numvar.ge.3 .or. ipres.eq.1) then
      ! Split time-step
      if(advfield.eq.1) then
-        ddterm(p_g) = ddterm(p_g) + dt*    &
-             v1p(trial,lin)
+        ddterm(p_g) = ddterm(p_g) + dt*v1p(trial,lin)
 
         ! "Parabolization" terms
         temp = v1up(trial,lin,pt79)
@@ -398,12 +397,13 @@ subroutine vorticity_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      ! Unsplit time-step
      else
+        if    (kinetic.le.1) then
         temp = v1p(trial,lin)
         ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
         ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
  
-        ! CGL and PIC (anisotropic pressure)
-        if(kinetic.gt.0) then
+        ! CGL (anisotropic pressure)
+        elseif(kinetic.gt.1) then
            temp = v1par(trial,lin)    &
                 + v1parb2ipsipsi(trial,lin,b2i79,pstx79,pstx79)  &
                 + v1parb2ipsib(trial,lin,b2i79,pstx79,bztx79)
@@ -516,6 +516,7 @@ subroutine vorticity_nolin(trial, r4term)
   use basic
   use m3dc1_nint
   use metricterms_new
+  use particles
 
   implicit none
 
@@ -543,19 +544,19 @@ subroutine vorticity_nolin(trial, r4term)
      end if
   end if
 
+#ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
      r4term = r4term + dt* &
-          (v1be      (trial,be79)  &
-          +v1albs    (trial,al79,bs79) &
-          +v1alpsipsi(trial,al79,pstx79,pstx79)  &
-          +v1alpsif  (trial,al79,pstx79,bftx79)  &
-          +v1alfb    (trial,al79,bftx79,bztx79)  &
-          +v1alff    (trial,al79,bftx79,bftx79)  &
-          +v1alpsib  (trial,al79,pstx79,bztx79)  &
-          +v1albb    (trial,al79,bztx79,bztx79))
+                 (v1par(trial,ppar79)    &
+                + v1parb2ipsipsi(trial,ppar79,b2i79,pstx79,pstx79)  &
+                + v1parb2ipsib(trial,ppar79,b2i79,pstx79,bztx79)    &
+                - v1par(trial,pper79)    &
+                - v1parb2ipsipsi(trial,pper79,b2i79,pstx79,pstx79)  &
+                - v1parb2ipsib(trial,pper79,b2i79,pstx79,bztx79))
   endif
+#endif
 
   if(linear.eq.1) return
 
@@ -917,11 +918,11 @@ subroutine axial_vel_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      ! Unsplit time-step
      else
-        if(kinetic.eq.0) then
+        if(kinetic.le.1) then
            temp = v2p(trial,lin)
            ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
            ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
-        else  ! kinetic.eq.1 .or. kinetic.eq.3
+        elseif(kinetic.eq.3) then  ! full CGL model
            temp = v2parpb2ipsipsi(trial,lin,b2i79,pstx79,pstx79)   &
                 - v2parpb2ipsib  (trial,lin,b2i79,pstx79,bztx79)
            ssterm(p_g) = ssterm(p_g) -      thimp*dt*temp
@@ -1002,6 +1003,7 @@ subroutine axial_vel_nolin(trial, r4term)
   use m3dc1_nint
   use metricterms_new
   use transport_coefficients
+  use particles
 
   implicit none
 
@@ -1040,19 +1042,17 @@ subroutine axial_vel_nolin(trial, r4term)
      r4term = r4term + dt*int3(r_79,trial(:,OP_1),fy79(:,OP_1))
   end if
 
+#ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
      r4term = r4term + dt* &
-          (v2be      (trial,be79)  &
-          +v2albs    (trial,al79,bs79) &
-          +v2alpsipsi(trial,al79,pstx79,pstx79)  &
-          +v2alpsif  (trial,al79,pstx79,bftx79)  &
-          +v2alfb    (trial,al79,bftx79,bztx79)  &
-          +v2alff    (trial,al79,bftx79,bftx79)  &
-          +v2alpsib  (trial,al79,pstx79,bztx79)  &
-          +v2albb    (trial,al79,bztx79,bztx79))
+                 (v2parpb2ipsipsi(trial,pper79,b2i79,pstx79,pstx79)   &
+                - v2parpb2ipsib  (trial,pper79,b2i79,pstx79,bztx79)   &
+                + v2parpb2ibb  (trial,ppar79,b2i79,bztx79,bztx79)       &
+                + v2parpb2ipsib(trial,ppar79,b2i79,pstx79,bztx79))
   endif
+#endif
 
 end subroutine axial_vel_nolin
 
@@ -1420,12 +1420,13 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Unsplit time-step
   else
-     temp = v3p(trial,lin) 
-     ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
-     ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
+     if    (kinetic.le.1) then
+        temp = v3p(trial,lin) 
+        ssterm(p_g) = ssterm(p_g) -     thimp     *dt*temp
+        ddterm(p_g) = ddterm(p_g) + (1.-thimp*bdf)*dt*temp
  
-        ! CGL and PIC (anisotropic pressure)
-        if(kinetic.gt.0) then
+        ! CGL (anisotropic pressure)
+     elseif(kinetic.gt.1) then
            temp = v3par(trial,lin)    &
                 + v3parb2ipsipsi(trial,lin,b2i79,pstx79,pstx79)  &
                 + v3parb2ipsib(trial,lin,b2i79,pstx79,bztx79)
@@ -1433,7 +1434,7 @@ subroutine compression_lin(trial, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
            ddterm(pe_g) = ddterm(pe_g) + (1.-thimp*bdf)*dt*temp
            ssterm(p_g)  = ssterm(p_g)  +     thimp     *dt*temp
            ddterm(p_g)  = ddterm(p_g)  - (1.-thimp*bdf)*dt*temp
-        endif
+     endif
   endif
 
 
@@ -1533,6 +1534,7 @@ subroutine compression_nolin(trial, r4term)
   use basic
   use m3dc1_nint
   use metricterms_new
+  use particles
 
   implicit none
 
@@ -1567,19 +1569,19 @@ subroutine compression_nolin(trial, r4term)
 
   endif
 
+#ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
      r4term = r4term + dt* &
-          (v3be      (trial,be79)  &
-          +v3albs    (trial,al79,bs79) &
-          +v3alpsipsi(trial,al79,pstx79,pstx79)  &
-          +v3alpsif  (trial,al79,pstx79,bftx79)  &
-          +v3alfb    (trial,al79,bftx79,bztx79)  &
-          +v3alff    (trial,al79,bftx79,bftx79)  &
-          +v3alpsib  (trial,al79,pstx79,bztx79)  &
-          +v3albb    (trial,al79,bztx79,bztx79))
+                 (v3par(trial,ppar79)    &
+                + v3parb2ipsipsi(trial,ppar79,b2i79,pstx79,pstx79)  &
+                + v3parb2ipsib(trial,ppar79,b2i79,pstx79,bztx79)    &
+                - v3par(trial,pper79)    &
+                - v3parb2ipsipsi(trial,pper79,b2i79,pstx79,pstx79)  &
+                - v3parb2ipsib(trial,pper79,b2i79,pstx79,bztx79))
   endif
+#endif
 
 end subroutine compression_nolin
 

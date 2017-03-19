@@ -138,7 +138,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o resistive_wall.o \
-	m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
+	 m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
 	electric_field.o pellet.o \
 	temperature_plots.o \
@@ -158,7 +158,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
-        hdf5_output.o particle.o \
+        hdf5_output.o particle.o   \
 	time_step.o output.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o \

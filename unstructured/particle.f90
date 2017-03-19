@@ -51,8 +51,8 @@ module particles
 
   type(elplist), dimension(:), allocatable :: pdata, jmppar  !Particle arrays
   type(particle), dimension(:), allocatable :: jinbuf        !Receive buffer for jumping particles
-  type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
-  type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
+  !  type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
+  !  type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
 
   real :: m_ion, n_ion, q_ion, qm_ion, dt_ion
   integer, dimension(:,:), allocatable :: neighborlist, dnbr !Neighbor tracking arrays
@@ -268,6 +268,7 @@ contains
 !---------------------------------------------------------------------------
   subroutine init_particles(ierr)
     use basic
+   use arrays
     implicit none
     include 'mpif.h'
 
@@ -727,6 +728,7 @@ end subroutine particle_step
 !---------------------------------------------------------------------------
 subroutine update_particle_pressure
   use basic
+   use arrays
   use diagnostics
   implicit none
   include 'mpif.h'
@@ -767,6 +769,7 @@ end subroutine update_particle_pressure
 
 !---------------------------------------------------------------------------
   subroutine finalize_particles
+   use arrays
     implicit none
     include 'mpif.h'
 
@@ -2052,6 +2055,7 @@ end subroutine update_particle_pressure
 ! for parallel and perpendicular components of pressure tensor.
   subroutine particle_pressure_rhs
     use basic
+    use arrays
     use math
     use m3dc1_nint
     implicit none
@@ -2182,6 +2186,7 @@ end subroutine update_particle_pressure
 !---------------------------------------------------------------------------
   subroutine solve_pi_tensor
     use newvar_mod
+    use arrays
     implicit none
 
     call newvar_solve(p_i_par%vec,  mass_mat_lhs)

@@ -436,7 +436,6 @@ module arrays
   type(field_type) :: resistivity_field, kappa_field
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field, Rad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
-  type(field_type) :: be_field, al_field, bs_field
 
   type(field_type) :: temporary_field
   
@@ -463,6 +462,10 @@ module arrays
   type(field_type) :: bf_field(0:1), e_field(0:1)
   type(field_type) :: te_field(0:1), ti_field(0:1)
   type(field_type) :: u_field_pre, psi_field_pre
+#ifdef USEPARTICLES
+   type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
+   type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
+#endif
 
   ! the following pointers point to the locations of the named field within
   ! the respective vector.  set by assign_local_pointers()
