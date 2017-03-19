@@ -1001,28 +1001,6 @@ subroutine define_transport_coefficients()
              call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
-     if(kinetic.gt.0) then
-        do i=1, dofs_per_element
-           dofs(i) = be_func(i, izone)
-           if(.not.solve_be) solve_be = dofs(i).ne.0.
-        end do
-        if(solve_be) &
-             call vector_insert_block(be_field%vec,itri,1,dofs,VEC_ADD)
-
-        do i=1, dofs_per_element
-           dofs(i) = al_func(i, izone)
-           if(.not.solve_al) solve_al = dofs(i).ne.0.
-        end do
-        if(solve_al) &
-             call vector_insert_block(al_field%vec,itri,1,dofs,VEC_ADD)
-
-        do i=1, dofs_per_element
-           dofs(i) = bs_func(i)
-           if(.not.solve_bs) solve_bs = dofs(i).ne.0.
-        end do
-        if(solve_bs) &
-             call vector_insert_block(bs_field%vec,itri,1,dofs,VEC_ADD)
-     end if
   end do
 
   ! Solve all the variables that have been defined
@@ -1117,22 +1095,6 @@ subroutine define_transport_coefficients()
 
   endif
 
-   if(kinetic.gt.0) then
-     if(solve_be) then
-        if(myrank.eq.0 .and. iprint.ge.1) print *, ' be'
-        call newvar_solve(be_field%vec, mass_mat_lhs)
-     endif
-
-     if(solve_al) then
-        if(myrank.eq.0 .and. iprint.ge.1) print *, ' al'
-        call newvar_solve(al_field%vec, mass_mat_lhs)
-     endif
-
-     if(solve_bs) then
-        if(myrank.eq.0 .and. iprint.ge.1) print *, ' cs'
-          call newvar_solve(bs_field%vec, mass_mat_lhs)
-     endif
-   endif
 
   ! the "compressible" viscosity is the same as the "incompressible"
   ! viscosity up to a constant
