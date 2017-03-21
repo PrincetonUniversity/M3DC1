@@ -182,6 +182,27 @@ contains
     
   end subroutine update_int_attr
 
+  ! read_real_attr
+  ! =============
+  subroutine read_real_attr(parent_id, name, value, error)
+    use hdf5
+
+    implicit none
+
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    real, intent(out)  :: value
+    integer, intent(out) :: error
+
+    integer(HID_T) :: attr_id
+    integer(HSIZE_T), dimension(1) :: dims = 1
+
+    call h5aopen_name_f(parent_id, name, attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_DOUBLE, value, dims, error)
+    call h5aclose_f(attr_id, error)
+
+  end subroutine read_real_attr
+
   ! write_real_attr
   ! ===============
   subroutine write_real_attr(parent_id, name, value, error)

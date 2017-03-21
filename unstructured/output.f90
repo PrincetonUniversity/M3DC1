@@ -674,7 +674,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   use time_step
   use auxiliary_fields
   use transport_coefficients
-  use particles
 
   implicit none
 

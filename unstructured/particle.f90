@@ -6,7 +6,8 @@ module particles
 
   real, parameter :: e_mks = 1.6022e-19      !Elementary charge, in Coulombs
   real, parameter :: m_proton = 1.6726e-27   !Proton mass in kg
-  real, parameter :: A_deuteron = 1.9990075  !Deuteron/proton mass ratio
+  real, parameter :: A_deuteron = 1.999      !Deuteron/proton mass ratio
+  real, parameter :: A_triton = 2.9942615    !Triton/proton mass ratio
   real, parameter :: A_alpha = 3.972599689   !alpha/proton mass ratio
   real, parameter :: qm_proton = e_mks/m_proton  !Proton charge/mass ratio in C/kg
   real, parameter :: vp1eV = 1.3841e+04      !Thermal speed of a 1 eV proton in m/s
@@ -51,9 +52,6 @@ module particles
 
   type(elplist), dimension(:), allocatable :: pdata, jmppar  !Particle arrays
   type(particle), dimension(:), allocatable :: jinbuf        !Receive buffer for jumping particles
-  !  type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
-  !  type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
-
   real :: m_ion, n_ion, q_ion, qm_ion, dt_ion
   integer, dimension(:,:), allocatable :: neighborlist, dnbr !Neighbor tracking arrays
   integer, dimension(:), allocatable :: dnlist               !Domain neighbor table
@@ -133,7 +131,7 @@ contains
 
     !Initialize particle population
     call second(tstart)
-    call init_particles(ierr)
+    call init_particles(.true., ierr)
     if (ierr.ne.0) return
     if (myrank.eq.0) then
        call second(tend)
@@ -259,23 +257,44 @@ contains
     enddo !istep
     if (myrank.eq.0) then
        call second(tend)
-       write(0,'(A,I7,A,f9.2,A)')'Particle advance completed',istep-1,' steps in',&
+       write(0,'(A,I7,A,f9.2,A)')'Particle advance completed',istep-1,' step(s) in',&
             tend-tstart,' seconds.'
     endif
   end subroutine trajectory_test
 #endif
 
 !---------------------------------------------------------------------------
-  subroutine init_particles(ierr)
+! Particle physics parameters
+  subroutine get_ion_physics_params(speed)
     use basic
-   use arrays
+    implicit none
+
+    real, intent(out) :: speed
+    real, parameter :: c_mks = 2.9979e+8
+    real EmaxeV, A_ion, Z_ion
+
+    n_ion = 1.0e+17                             !Mean hot ion number density in m^-3
+    EmaxeV = 10000.0                            !Peak ion kinetic energy in eV
+    A_ion = 1.0                                 !Ion atomic mass number
+    m_ion = A_ion * m_proton                    !Ion mass in kg
+    Z_ion = 1.0                                 !Ion atomic number (charge state)
+    q_ion = Z_ion * e_mks                       !Ion charge in C
+    qm_ion = q_ion / m_ion                      !Ion charge/mass ratio
+    speed = sqrt(EmaxeV / A_ion) * vp1eV        !Peak ion speed in m/s
+    if (myrank.eq.0) print *,'peak ion speed = ',speed,' m/s = ',speed/c_mks,' c.'
+  end subroutine get_ion_physics_params
+
+!---------------------------------------------------------------------------
+  subroutine init_particles(lrestart, ierr)
+    use basic
+    use arrays
     implicit none
     include 'mpif.h'
 
+    logical, intent(in) :: lrestart
     integer, intent(out) :: ierr
 
     real, parameter :: twopi = 6.283185307179586476925286766559
-    real, parameter :: c_mks = 2.9979e+8
     type(particle) :: dpar  !Dummy particle
     type(elfield), dimension(nneighbors+1) :: elcoefs
     type(xgeomterms) :: geomterms
@@ -286,7 +305,7 @@ contains
     real xi, zi
 #endif
     real    :: x1, x2, z1, z2, pdx, pdphi, pdz, pdl, vpar, vperp
-    real    :: EmaxeV, A_ion, Z_ion, speed, lambda_min, lambda_max, B0
+    real    :: maxspeed, lambda_min, lambda_max, B0
     real    :: gyroperiod, gfrac=5.0e-3, gkfrac=8.0, dtp, ldtmin
     integer :: npr, npphi, npz, npe, npmu, nphiv, ir, iphi, iz, ip
     integer :: nelms, ielm, lc, noc, tridex, itri, ielmold=0
@@ -300,11 +319,13 @@ contains
     integer :: iphiv
 #endif
 
-    !Particle pressure tensor components
+    !Allocate particle pressure tensor components
     call create_field(p_i_par);    call create_field(p_i_perp)
 #ifdef USECOMPLEX
     call create_field(p_i_par_n);  call create_field(p_i_perp_n)
 #endif
+
+    call get_ion_physics_params(maxspeed)
 
 #ifdef DELTA_F
     ! Initialize scalar equilibrium hot ion pressure field
@@ -349,6 +370,11 @@ contains
     !Set up 'neighborlist' table of element neighbors for ensemble tracking
     call find_element_neighbors
 
+    if (lrestart) then
+       call hdf5_read_particles('ions_0001.h5', ierr)
+       if (myrank.eq.0) print *,'read_parts returned with ierr=',ierr
+    else
+
     npr = 32;  npphi = 8;  npz = 16;  npe = 10;  npmu = 8
     nphiv = 4  !Note: full orbit only!
 
@@ -357,17 +383,6 @@ contains
     if (myrank.eq.0) print *,'mesh bounding box = ',x1,x2,z1,z2
     pdx = (x2**2 - x1**2)/real(npr);  pdz = (z2 - z1)/real(npz)
     pdphi = twopi/real(npphi)
-
-    !Particle physics parameters
-    n_ion = 1.0e+17                             !Mean hot ion number density in m^-3
-    EmaxeV = 10000.0                            !Peak ion kinetic energy in eV
-    A_ion = 1.0                                 !Ion atomic mass number
-    m_ion = A_ion * m_proton                    !Ion mass in kg
-    Z_ion = 1.0                                 !Ion atomic number (charge state)
-    q_ion = Z_ion * e_mks                       !Ion charge in C
-    qm_ion = q_ion / m_ion                      !Ion charge/mass ratio
-    speed = sqrt(EmaxeV / A_ion) * vp1eV        !Peak ion speed in m/s
-    if (myrank.eq.0) print *,'peak ion speed = ',speed,' m/s = ',speed/c_mks,' c.'
 
     lambda_min = 1.0e-5                          !Minimum particle pitch angle
     lambda_max = 3.14159                         !Maximum particle pitch angle
@@ -406,7 +421,7 @@ contains
              do ie=1,npe !Loop over kinetic energies
 #ifdef ORIGVDIST
                 !Uniform span of energies, pitch angles
-                dpar%v(1) = sqrt(real(ie)/real(npe)) * speed
+                dpar%v(1) = sqrt(real(ie)/real(npe)) * maxspeed
 
                 do imu=1,npmu  !Loop over pitch angles
                    dpar%v(2) = lambda_min + (imu - 1.0)*pdl
@@ -417,7 +432,7 @@ contains
                 enddo !imu
 #else
                 !Uniform velocity space distribution
-                dpar%v(1) = speed * (((ie - 0.5)/real(npe))**(1.0/3.0))
+                dpar%v(1) = maxspeed * (((ie - 0.5)/real(npe))**(1.0/3.0))
 
                 do imu=1,npmu  !Loop over pitch angles
                    dpar%v(2) = acos((npmu + 1 - 2*imu)/real(npmu))
@@ -534,6 +549,7 @@ contains
        ierr = 1
        return
     endif
+    endif !!lrestart
 
     !Define custom MPI datatype for particle communication
     call define_mpi_particle(ierr)
@@ -728,7 +744,7 @@ end subroutine particle_step
 !---------------------------------------------------------------------------
 subroutine update_particle_pressure
   use basic
-   use arrays
+  use arrays
   use diagnostics
   implicit none
   include 'mpif.h'
@@ -769,7 +785,7 @@ end subroutine update_particle_pressure
 
 !---------------------------------------------------------------------------
   subroutine finalize_particles
-   use arrays
+    use arrays
     implicit none
     include 'mpif.h'
 
@@ -2363,7 +2379,7 @@ end subroutine update_particle_pressure
              values(5,ipart) = pdata(ielm)%ion(ipart)%wt
              values(6,ipart) = pdata(ielm)%ion(ipart)%v(1)
              values(7,ipart) = pdata(ielm)%ion(ipart)%v(2)
-             if (pdims.eq.8) values(pdims,ipart) = pdata(ielm)%ion(ipart)%v(vspdims)
+             values(pdims,ipart) = pdata(ielm)%ion(ipart)%v(vspdims)
           enddo !ipart
 
           !Write the dataset
@@ -2393,6 +2409,202 @@ end subroutine update_particle_pressure
     !Free the buffer
     deallocate(values)
   end subroutine hdf5_write_particles
+
+!---------------------------------------------------------------------------
+!Read stored HDF5 particle data in parallel.
+  subroutine hdf5_read_particles(filename, ierr)
+    use basic
+    use diagnostics
+    use hdf5_output
+    implicit none
+    include 'mpif.h'
+
+    character(len=*), intent(in) :: filename
+    integer, intent(out) :: ierr
+
+    integer, parameter :: chunksize = 1024 ! # of particles to read in one pass
+    integer, parameter :: ldim = vspdims+5 ! Leading dimension of particle data array
+
+    type(particle) :: dpar
+    real, dimension(ldim, chunksize) :: valbuf
+    real :: tstart, tend
+#ifndef USE3D
+    real, dimension(2) :: mmsa
+#else
+    real xi, zi
+#endif
+    integer(HID_T) :: fileid, access_props, part_root_id, group_id
+    integer(HID_T) :: dset_id, filespace, memspace
+    integer(HSIZE_T), dimension(2) :: pdims, pmaxdims, cdims, off_h5, off_m
+    integer info, vsp_file, datarank, np, ipart
+    integer :: ielm, ielmold=0, isghost
+    logical :: pass=.false.
+
+    locparts = 0
+
+    !Set up the file access property list to use parallel I/O
+    call h5pcreate_f(H5P_FILE_ACCESS_F, access_props, ierr)
+    info = MPI_INFO_NULL
+    call h5pset_fapl_mpio_f(access_props, MPI_COMM_WORLD, info, ierr)
+
+    !Open the file for reading
+    call second(tstart)
+    call h5fopen_f(filename, H5F_ACC_RDONLY_F, fileid, ierr, access_props)
+    if (ierr.lt.0) then
+       if (myrank.eq.0) &
+            print *, "Error: could not open ", filename, &
+            " for HDF5 input.  error = ",ierr
+       return
+    endif
+
+    !Open the root group
+    call h5gopen_f(fileid, "/", part_root_id, ierr)
+
+    !Read global attributes
+    call read_int_attr(part_root_id, "velocity space dims", vsp_file, ierr)
+    if (vsp_file.ne.vspdims) then
+       if (myrank.eq.0) then !Abort if full-orbit vs drift kinetic models do not agree
+          print *,'Error: incompatible velocity space dimensions in restart file!'
+          print *,vsp_file,' vs ',vspdims
+       endif
+       call h5gclose_f(part_root_id, ierr)
+       call h5fclose_f(fileid, ierr)
+       call h5pclose_f(access_props, ierr)
+       ierr = -1
+       return
+    endif
+    call read_real_attr(part_root_id, "particle delta-t", dt_ion, ierr)
+    if(myrank.eq.0) print *,'particle dt from file = ',dt_ion
+
+    !Open the particle group for reading
+    call h5gopen_f(part_root_id, "particles", group_id, ierr)
+    if (ierr.lt.0) then !group not found
+       if (myrank.eq.0) &
+            print *,'Error ',ierr,': particle group not found in restart file!'
+    else
+       !Open the dataset
+       call h5dopen_f(group_id, "data", dset_id, ierr)
+       if (ierr.lt.0) then !dataset not found
+          if (myrank.eq.0) &
+               print *,'Error ',ierr,': dataset not found in restart file!'
+       else
+          !Get a copy of the dataspace for this dataset
+          call h5dget_space_f(dset_id, filespace, ierr)
+          if (ierr.lt.0) then !dataspace not acquired
+             if (myrank.eq.0) &
+                  print *,'Error ',ierr,': dataspace not found in restart file!'
+          else
+             !Query dataspace dimensions
+             call h5sget_simple_extent_ndims_f(filespace, datarank, ierr)
+             if (datarank.ne.2) then
+                if (myrank.eq.0) &
+                     print *,'Error ',ierr,': dataspace has wrong dimensions in restart file!'
+             else
+                call h5sget_simple_extent_dims_f(filespace, pdims, pmaxdims, ierr)
+                if (pdims(1).ne.vspdims+5) then
+                   if (myrank.eq.0) &
+                        print *,'Error ',ierr, &
+                        ': dataspace has wrong dimensions in restart file!'
+                else
+                   if (myrank.eq.0) print *,pdims(2),' particles in restart file.'
+                   np = pdims(2)
+                   cdims(1) = ldim;  cdims(2) = chunksize
+                   call h5screate_simple_f(2, cdims, memspace, ierr)
+                   off_h5(1) = 0;  off_h5(2) = 0
+                   off_m = off_h5
+
+                   !Read the particle data, assign particles to processors
+                   do while (np.gt.0)      !For each chunk...
+                      !Set location to read from
+                      if (np.lt.chunksize) then
+                         cdims(2) = np
+                         call h5sselect_hyperslab_f(memspace, H5S_SELECT_SET_F, &
+                              off_m, cdims, ierr)
+                      endif
+                      call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off_h5, &
+                           cdims, ierr)
+                      if (ierr.lt.0) exit
+                      off_h5(2) = off_h5(2) + cdims(2)
+
+                      !Read ID, phase space coordinates, weight
+                      call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, valbuf, cdims, ierr, &
+                           mem_space_id=memspace, file_space_id=filespace)
+                      if (ierr.lt.0) exit !Read error
+
+                      !Assign particles to local domain as needed
+                      do ipart=1,cdims(2)
+                         !Test for local residence
+#ifdef USE3D
+                         ielm = 0
+                         call whattri(valbuf(2,ipart), valbuf(3,ipart), valbuf(4,ipart), &
+                              ielm, xi, zi)
+#else
+                         mmsa = valbuf(2:4:2,ipart)
+                         call m3dc1_mesh_search(ielmold, mmsa, ielm)
+                         ielm = ielm + 1
+#endif
+                         if (ielm.le.0) cycle     !Not in local partition; skip.
+                         ielmold = ielm - 1
+                         call m3dc1_ent_isghost(2, ielm-1, isghost)
+                         if (isghost.eq.1) cycle  !In ghost layer; skip.
+
+                         !Particle is local -> add it to pdata.
+                         dpar%gid  = valbuf(1,ipart)
+                         dpar%x(1) = valbuf(2,ipart)
+                         dpar%x(2) = valbuf(3,ipart)
+                         dpar%x(3) = valbuf(4,ipart)
+                         dpar%wt   = valbuf(5,ipart)
+                         dpar%v(1) = valbuf(6,ipart)
+                         dpar%v(2) = valbuf(7,ipart)
+                         dpar%v(vspdims) = valbuf(ldim,ipart)
+                         dpar%jel = ielm
+                         call add_particle(pdata(ielm), dpar)
+                         locparts = locparts + 1
+                      enddo
+
+                      np = np - chunksize
+                      !if (np.lt.pdims(2)-10) exit !TMP!!!
+                   enddo !while
+
+                   if (myrank.eq.0) then
+                      call second(tend)
+                      write(0,'(I12,A,f9.2,A)'), &
+                           pdims(2),' particles read, assigned in ',tend-tstart,' sec.'
+                      !print *,'last =', valbuf(1,cdims(2)),valbuf(7,cdims(2))
+                   endif
+                   call h5sclose_f(memspace, ierr)
+
+                   print *,myrank,': ',locparts,' local particles.'
+                   call mpi_reduce(locparts, nparticles, 1, MPI_INTEGER, MPI_SUM, 0, &
+                        MPI_COMM_WORLD, ierr)
+                   if (nparticles.ne.pdims(2)) then
+                      if (myrank.eq.0) print *,&
+                           "Error: ",nparticles," assigned, ",pdims(2)," expected."
+                   else
+                      pass = .true.
+                   endif
+                endif !Wrong leading dimension
+             endif !Wrong number of dimensions
+
+             !Close the dataspace
+             call h5sclose_f(filespace, ierr)
+          endif !dataspace not acquired
+
+          !Close the particle dataset
+          call h5dclose_f(dset_id, ierr)
+       endif !dataset failed to open
+
+       !Close the particle group
+       call h5gclose_f(group_id, ierr)
+    endif !particle group failed to open
+
+    !Close the file along with other open data structures
+    call h5gclose_f(part_root_id, ierr)
+    call h5fclose_f(fileid, ierr)
+    call h5pclose_f(access_props, ierr)
+
+    if (.not.pass) ierr = -42
+  end subroutine hdf5_read_particles
 
 #ifdef JBDEBUG
 !---------------------------------------------------------------------------
