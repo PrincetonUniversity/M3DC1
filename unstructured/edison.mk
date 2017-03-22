@@ -18,8 +18,12 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-#SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Dec2015-mpich7.2.5-stable/
-SCOREC_DIR =/global/project/projectdirs/mp288/edison/scorec/Nov2016-mpich7.2.5
+# SCOREC library choice for PIC and non-PIC
+ifeq ($(PAR), 1)
+  SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Mar2017_PIC-mpich7.2.5
+else
+  SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Mar2017-mpich7.2.5
+endif
 
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
@@ -31,15 +35,18 @@ else
   endif
 endif
 
-SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
-
-# for Dec2015 libraries: 
-#SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             -lcrv -lph -lsam -lspr -lma \
-             -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -l$(M3DC1_SCOREC_LIB) \
-             -Wl,--end-group
+ifeq ($(PAR), 1)
+  SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+               -lapf -lapf_zoltan -lapf_omega_h -lgmi -llion -lma -lmds -lmth \
+               -lomega_h -lparma -lpcu -lph -lsam -lspr -lzoltan \
+               -l$(M3DC1_SCOREC_LIB) \
+               -Wl,--end-group
+else
+  SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+               -lpumi -lcrv -lph -lsam -lspr -lma \
+               -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -l$(M3DC1_SCOREC_LIB) \
+               -Wl,--end-group
+endif
 
 ifeq ($(TRILINOS),1)
 TRILINOS_LIBS = -Wl,--start-group,-rpath,$(CRAY_TRILINOS_PREFIX_DIR)/lib -L$(CRAY_TRILINOS_PREFIX_DIR)/lib \
@@ -103,6 +110,10 @@ LIBS := $(LIBS) \
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
 	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
 CCOPTS  = -c $(OPTS)
+
+ifeq ($(PAR), 1)
+  FOPTS := $(FOPTS) -DUSEPARTICLES
+endif
 
 # Optimization flags
 ifeq ($(OPT), 1)
