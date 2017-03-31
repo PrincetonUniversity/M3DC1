@@ -8,6 +8,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                    symbol=symbol, units=units
 
    print, 'Drawing schaffer plot'
+
    if(not keyword_set(boozer) and not keyword_set(hamada) and $
       not keyword_set(geo)) then pest=1
 
@@ -107,7 +108,8 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
        
       id = ncdf_create(bmncdf, /clobber)
       ncdf_attput, id, 'ntor', fix(ntor), /short, /global
-      ncdf_attput, id, 'version', 3, /short, /global
+      ncdf_attput, id, 'version', 4, /short, /global
+      ; v. 4: changed definition of alpha from ~(2pi)^-4 to ~(2pi)^-2
       print, 'outputting symbol = ', symbol
       print, 'outputting units = ', units
       ncdf_attput, id, 'symbol', string(symbol), /global
@@ -160,10 +162,12 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
          if(keyword_set(boozer)) then begin
             alpha = reform(d[0,*,*])
-            for i=0, n_elements(m)-1 do begin
-               alpha[i,*] = complex(0,1)*fc.area[i]*alpha[i,*] $
-                            / (m[i]*F + ntor*fc.current/(2.*!pi)) $
-                            / (2.*!pi)^4
+            for i=0, n_elements(nflux)-1 do begin
+               for j=0, n_elements(m)-1 do begin
+                  alpha[j,i] = complex(0,1)*fc.area[i]*alpha[j,i] $
+                               / (m[j]*F[i] + ntor*fc.current[i]/(2.*!pi)) $
+                               / (2.*!pi)^2
+               end
             end
             ncdf_varput, id, 'alpha_real', real_part(alpha)
             ncdf_varput, id, 'alpha_imag', imaginary(alpha)

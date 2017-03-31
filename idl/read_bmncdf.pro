@@ -1,6 +1,7 @@
-pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
+pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
                  rho=rho, cur=cur, flux_pol=flux_pol, area=area, bpol=bpol, $
-                 symbol=symbol, units=units, version=version
+                 symbol=symbol, units=units, version=version, boozer=boozer, $
+                 amn=amn, ip=ip, fpol=fpol, jacobian=jacobian
 
   if(n_elements(cur) eq 0) then cur=1.
 
@@ -36,6 +37,8 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      flux_pol_id = ncdf_varid(id, "flux_pol")
      area_id = ncdf_varid(id, "area")
      bp_id = ncdf_varid(id, "Bp")
+     F_id = ncdf_varid(id, "F")
+     ip_id = ncdf_varid(id, "current")
        
      ncdf_attget, id, "ntor", ntor, /global
      ncdf_varget, id, bmnr_id, bmnr
@@ -46,10 +49,22 @@ pro read_bmncdf, file=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      if(area_id ne -1) then  ncdf_varget, id, area_id, area
      ncdf_varget, id, bp_id, bpol
      ncdf_varget, id, flux_pol_id, flux_pol
+     ncdf_varget, id, ip_id, ip
+
+     if(F_id ne -1) then ncdf_varget, id, F_id, fpol
+
+     if(keyword_set(boozer)) then begin
+        alphar_id = ncdf_varid(id, "alpha_real")
+        alphai_id = ncdf_varid(id, "alpha_imag")
+        ncdf_varget, id, alphar_id, amnr
+        ncdf_varget, id, alphai_id, amni
+        amn = complex(amnr, amni)*cur
+     end
      
      ncdf_close, id
      
      bmn = complex(bmnr, bmni)*cur
+
 
      ; calculate rho
      dflux_tor = deriv(flux_pol)

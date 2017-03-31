@@ -36,19 +36,19 @@ function read_bmn, filename, m, bmn, phase, $
          read_bmncdf, file=filename[i], bmn=bmn0, psi=psi0, q=q0, $
                       ntor=ntor, m=m0, flux_pol=flux0, area=area0, bp=bp0
 
-         ; calculate resonant fields
-         if(q0[0] gt 0) then begin
-            minm = fix(min(abs(q0))*ntor + 1)
-            maxm = fix(max(abs(q0))*ntor)
-         endif else begin
-            maxm = -fix(min(abs(q0))*ntor + 1)
-            minm = -fix(max(abs(q0))*ntor)
-         end
-         if(maxm gt max(m0)) then maxm = max(m0)
-         m1 = findgen(maxm - minm + 1) + minm
-         m = m1
-
          if(i eq 0) then begin
+                                ; calculate resonant fields
+            if(q0[0] gt 0) then begin
+               minm = fix(min(abs(q0))*ntor + 1)
+               maxm = fix(max(abs(q0))*ntor)
+            endif else begin
+               maxm = -fix(min(abs(q0))*ntor + 1)
+               minm = -fix(max(abs(q0))*ntor)
+            end
+            if(maxm gt max(m0)) then maxm = max(m0)
+            m1 = findgen(maxm - minm + 1) + minm
+            m = m1
+
             bmn = fltarr(n, n_elements(m))
             phase = fltarr(n, n_elements(m))
             if(arg_present(psin)) then psin = fltarr(n, n_elements(m))
@@ -58,9 +58,10 @@ function read_bmn, filename, m, bmn, phase, $
             if(arg_present(psiprime)) then psiprime = fltarr(n, n_elements(m))
             if(n_elements(factor) eq 0) then factor = 1.
             if(n_elements(factor) lt n) then factor=replicate(factor[0],n)
+
+            q1 = m1/ntor
          endif
 
-         q1 = m1/ntor
          i0 = interpol(findgen(n_elements(q0)), q0, q1)
          j0 = intarr(n_elements(m1))
          for j=0, n_elements(m1)-1 do begin
@@ -68,6 +69,10 @@ function read_bmn, filename, m, bmn, phase, $
             if(count eq 0) then print, $
                'Error: m = ', m1[j], ' not found!'
          end
+
+         ;; print, 'm = ', m
+         ;; print, 'q1 = ', q1
+         ;; print, 'abs(q0) = ', min(abs(q0)), max(abs(q0))
 
          res_bmn = interpolate(bmn0, j0, i0)*factor[i]
 
