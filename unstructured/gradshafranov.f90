@@ -223,7 +223,7 @@ subroutine pf_coil_field(ierr)
   ipole = 0
   select case(idevice)
   case(-1)
-     call load_coils(xc,zc,ic,numcoils,'coil.dat','current.dat',0,coil_mask,&
+     call load_coils(xc,zc,ic,numcoils,'coil.dat','current.dat',coil_mask,&
           filaments)
      xc_vac = xc
      zc_vac = zc

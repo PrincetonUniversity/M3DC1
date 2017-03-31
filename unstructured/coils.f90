@@ -13,7 +13,7 @@ contains
   ! reads coil and current data from file
   !======================================================
  subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename, &
-      ntor, coil_mask, filaments)
+      coil_mask, filaments)
    use math
    use read_ascii
 
@@ -25,7 +25,6 @@ contains
    complex, intent(out), dimension(maxfilaments) :: ic   ! current in each coil
    integer, intent(out) :: numcoils                  ! number of coils read
    character*(*) :: coil_filename, current_filename  ! input files
-   integer, intent(in) :: ntor                       ! toroidal mode number
    integer, intent(out), dimension(maxfilaments), optional :: coil_mask
    integer, intent(out), dimension(maxfilaments), optional :: filaments
 
