@@ -203,6 +203,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   do i=1, numcoils_vac
      j = coil_mask(i)
      if(pf_tilt(j).ne.0. .or. pf_shift(j).ne.0.) then
+
 #ifdef USECOMPLEX
         tilt_co  = pf_tilt(j)*deg2rad* &
              exp(-(0,1)*pf_tilt_angle(j)*deg2rad )
@@ -229,7 +230,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         dzbr =  ic_vac(i)* g(:,1,6)/x
         drbz = -ic_vac(i)*(g(:,1,4)/x - g(:,1,2)/x**2)
         dzbz = -ic_vac(i)* g(:,1,5)/x
-        
+       
         br = br + &
              (-shift_co*drbr &
              + tilt_sn*(-bbz - x*dzbr + z*drbr))
@@ -276,6 +277,7 @@ subroutine calculate_external_fields()
   use m3dc1_nint
   use newvar_mod
   use boundary_conditions
+  use gradshafranov
 
   implicit none
 
@@ -300,7 +302,13 @@ subroutine calculate_external_fields()
 
   if(irmp.eq.1) then
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
-          'rmp_coil.dat', 'rmp_current.dat', ntor)
+          'rmp_coil.dat', 'rmp_current.dat')
+  end if
+  if((tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
+       any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) &
+       .and. numcoils_vac.eq.0) then
+     call load_coils(xc_vac,zc_vac,ic_vac,numcoils_vac, &
+          'coil.dat','current.dat',coil_mask,filaments)
   end if
 
   call create_vector(p_vec,1)
