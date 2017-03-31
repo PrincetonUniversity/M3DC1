@@ -250,6 +250,16 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = 'Normalized Internal Inductance'
        symbol = '!13l!Di!X'
        d = dimensions(_EXTRA=extra)
+   endif else if (strcmp("xmag", scalarname, /fold_case) eq 1) then begin
+       data = s.xmag._data
+       title = '!8R!6-Coordinate of Magnetic Axis!6'
+       symbol = '!8R!D!60!N!X'
+       d = dimensions(/l0,_EXTRA=extra)
+   endif else if (strcmp("zmag", scalarname, /fold_case) eq 1) then begin
+       data = s.zmag._data
+       title = '!8Z!6-Coordinate of Magnetic Axis!6'
+       symbol = '!8Z!D!60!N!X'
+       d = dimensions(/l0,_EXTRA=extra)
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)
@@ -273,6 +283,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
    convert_units, data, d, b0, n0, l0, zeff, mi, _EXTRA=extra
    convert_units, time, dimensions(/t0), b0, n0, l0, zeff, mi, _EXTRA=extra
    units = parse_units(d, _EXTRA=extra)
+
+   if(n_elements(data) gt n_elements(time)) then $
+      data = data[0:n_elements(time)-1]
+   if(n_elements(time) gt n_elements(data)) then $
+      time = time[0:n_elements(data)-1]
 
    return, data
 end
