@@ -1961,16 +1961,45 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('omega_perp_e', name, /fold_case) eq 1) then begin
 
-       omega = read_field('v_omega', x, y, t, slices=time, mesh=mesh, $
+       di = read_parameter('db', filename=filename)
+       print, 'di = ', di
+       omega = read_field('omega', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
-       omega_star = read_field('omega_*', x, y, t, slices=time, mesh=mesh, $
-                       filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange)
+       u = read_field('phi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       psi_lp = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, op=7)
+       i = read_field('I', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange)
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+       
+       omega_e = omega - i/(r^2*s_bracket(psi,psi,x,y)) * $
+         (r^2*s_bracket(u,psi,x,y) + a_bracket(chi,psi,x,y)/r $
+          - (di/den)*s_bracket(i,psi,x,y)) $
+         + (di/den)*(psi_lp - itor*dx(psi,x)/r)/r^2
 
-       data = omega - omega_star
+       Bp = sqrt(s_bracket(psi,psi,x,y))/r
+       B = sqrt(s_bracket(psi,psi,x,y) + i^2)/r
+
+       data = (Bp/B)*omega_e
+
 ;       symbol = '!7x!S!D!9x!N!S!U!8e!N!X'
-       symbol = '!7x!D!8e!N!X'
+       symbol = '!7X!D!8e!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)
 
    ;===========================================
