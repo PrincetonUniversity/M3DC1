@@ -10,7 +10,7 @@ contains
 
 ! Density Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~~~~
-vectype function sigma_func(i, izone)
+function sigma_func(izone)
   use math
   use basic
   use m3dc1_nint
@@ -21,8 +21,9 @@ vectype function sigma_func(i, izone)
 
   implicit none
 
-  integer, intent(in) :: i, izone
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: sigma_func
+  integer, intent(in) :: izone
+  vectype, dimension(dofs_per_element) :: temp
   integer :: iregion, j, magnetic_region
   integer :: nvals
   real :: val, valp, valpp, pso
@@ -58,7 +59,7 @@ vectype function sigma_func(i, izone)
                 real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate)
       endif
 
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
 
   endif
 
@@ -78,12 +79,12 @@ vectype function sigma_func(i, izone)
      
      temp79a = ionization_rate * temp79e * &
           exp(-ionization_temp / temp79d)
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif
 
   if(ibeam.eq.1 .or. ibeam.eq.2) then
      temp79a = neutral_beam_deposition(x_79,z_79)
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   end if
 
   ! Read numerical particle source profile
@@ -108,7 +109,7 @@ vectype function sigma_func(i, izone)
         temp79a(j) = val * pellet_rate
      end do
 
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif 
 
   ! Localized sink(s)
@@ -117,14 +118,14 @@ vectype function sigma_func(i, izone)
           - nt79(:,OP_1)*ri_79*sink1_rate/(2.*pi*sink1_var**2) & 
           *exp(-((x_79 - sink1_x)**2 + (z_79 - sink1_z)**2) &
           /(2.*sink1_var**2))
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif
   if(isink.ge.2) then
      temp79a = &
           - nt79(:,OP_1)*ri_79*sink2_rate/(2.*pi*sink2_var**2) & 
           *exp(-((x_79 - sink2_x)**2 + (z_79 - sink2_z)**2) &
           /(2.*sink2_var**2))
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif
 
   ! Enforce density floor
@@ -134,7 +135,7 @@ vectype function sigma_func(i, izone)
         iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
         if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
      end do
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif
 
   sigma_func = temp
@@ -143,7 +144,7 @@ end function sigma_func
 
 ! Momentum Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~~~~~
-vectype function force_func(i, izone)
+function force_func(izone)
   use math
   use basic
   use m3dc1_nint
@@ -152,8 +153,9 @@ vectype function force_func(i, izone)
 
   implicit none
 
-  integer, intent(in) :: i, izone
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: force_func
+  integer, intent(in) :: izone
+  vectype, dimension(dofs_per_element) :: temp
 
   temp = 0.
 
@@ -163,21 +165,20 @@ vectype function force_func(i, izone)
   ! Beam source
   if(ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5) then
      temp79a = neutral_beam_deposition(x_79,z_79)
-     temp = temp + nb_v*beam_fracpar*int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + nb_v*beam_fracpar*intx2(mu79(:,OP_1,:),temp79a)
      if(ivform.eq.0) then
-        temp = temp - int4(ri_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1))
+        temp = temp - intx4(mu79(:,OP_1,:),ri_79,temp79a,vzt79(:,OP_1))
      else
-        temp = temp - int4(r_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1))
+        temp = temp - intx4(mu79(:,OP_1,:),r_79,temp79a,vzt79(:,OP_1))
      endif
   endif
 
   force_func = temp
-  return
 end function force_func
 
 ! Poloidal Momentum Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~~~~~
-vectype function pforce_func(i)
+function pforce_func
   use math
   use basic
   use m3dc1_nint
@@ -186,7 +187,7 @@ vectype function pforce_func(i)
 
   implicit none
 
-  integer, intent(in) :: i
+  vectype, dimension(dofs_per_element) :: pforce_func
   integer :: iregion, j, magnetic_region
   real :: psimaxl, psiminl
 
@@ -202,7 +203,7 @@ vectype function pforce_func(i)
         if(iregion.ge.1) temp79b(j) = 0.
      end do
 
-     pforce_func = int2(mu79(:,OP_1,i),temp79b)
+     pforce_func = intx2(mu79(:,OP_1,:),temp79b)
   case(2)
 
      temp79a = (pst79(:,OP_1)-psibound)/(psimin - psibound)
@@ -216,13 +217,13 @@ vectype function pforce_func(i)
         if(real(temp79a(j)) .lt. psiminl .or. real(temp79a(j)) .gt. psimaxl) temp79e(j) = 0.
      enddo
   
-     pforce_func = int2(mu79(:,OP_1,i),temp79e)
+     pforce_func = intx2(mu79(:,OP_1,:),temp79e)
   end select
 
 end function pforce_func
 
 
-vectype function pmach_func(i)
+function pmach_func
   use math
   use basic
   use m3dc1_nint
@@ -231,7 +232,7 @@ vectype function pmach_func(i)
 
   implicit none
 
-  integer, intent(in) :: i
+  vectype, dimension(dofs_per_element) :: pmach_func
 !  integer :: j
 
 ! calculate the poloidal mach number
@@ -250,10 +251,7 @@ vectype function pmach_func(i)
          + 2.*ri_79*(cht79(:,OP_DZ)*pht79(:,OP_DR)-cht79(:,OP_DR)*pht79(:,OP_DZ))),1.e-9)
   temp79e = sqrt(temp79d/temp79c)
 
-  pmach_func = int2(mu79(:,OP_1,i),temp79e)
-
-
-  return
+  pmach_func = intx2(mu79(:,OP_1,:),temp79e)
 end function pmach_func
 
 
@@ -264,7 +262,7 @@ end function pmach_func
 ! NOTE: When adding heat source and radiation source, make sure that
 ! heat_source and rad_source are set to .true.
 ! ==================================================
-vectype function q_func(i, izone)
+function q_func(izone)
   use math
   use basic
   use m3dc1_nint
@@ -276,8 +274,9 @@ vectype function q_func(i, izone)
 
   implicit none
 
-  integer, intent(in) :: i, izone
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: q_func
+  integer, intent(in) :: izone
+  vectype, dimension(dofs_per_element) :: temp
   integer :: nvals, j, magnetic_region
   real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
@@ -293,21 +292,21 @@ vectype function q_func(i, izone)
      temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
           *exp(-((x_79 - ghs_x)**2 + (z_79 - ghs_z)**2) &
           /(2.*ghs_var**2))
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif
 
   ! Beam source
   if(ibeam.ge.1 .and. ibeam.le.4) then
      temp79a = 0.5*neutral_beam_deposition(x_79,z_79)
-     temp = temp + (nb_v**2 + nb_dv**2)*int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + (nb_v**2 + nb_dv**2)*intx2(mu79(:,OP_1,:),temp79a)
      if(ivform.eq.0) then
         temp = temp &
-             - 2.*nb_v*int4(ri_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1)) &
-             + int5(ri2_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
+             - 2.*nb_v*intx4(mu79(:,OP_1,:),ri_79,temp79a,vzt79(:,OP_1)) &
+             + intx5(mu79(:,OP_1,:),ri2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
      else
         temp = temp &
-             - 2.*nb_v*int4(r_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1)) &
-             + int5(r2_79,mu79(:,OP_1,i),temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
+             - 2.*nb_v*intx4(mu79(:,OP_1,:),r_79,temp79a,vzt79(:,OP_1)) &
+             + intx5(mu79(:,OP_1,:),r2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
      endif
   endif
 
@@ -334,7 +333,7 @@ vectype function q_func(i, izone)
         temp79a(j) = val
      end do
 
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif
 
   ! Heat sink for use with itaylor=27
@@ -346,14 +345,14 @@ vectype function q_func(i, izone)
         temp79a(j) = coolrate*(pfunc(rsq)) ! now use new time p in pressure_lin
      end do
      temp79a = temp79a*(1. + tanh((r-libetap)/p1))
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif
 
 
   q_func = temp
 end function q_func
 
-vectype function rad_func(i, izone)
+function rad_func
   use math
   use basic
   use m3dc1_nint
@@ -365,8 +364,8 @@ vectype function rad_func(i, izone)
 
   implicit none
 
-  integer, intent(in) :: i, izone
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: rad_func
+  vectype, dimension(dofs_per_element) :: temp
   integer :: j, ierr
 
   temp = 0.
@@ -395,7 +394,7 @@ vectype function rad_func(i, izone)
      temp79a = temp79a * 10. / (p0_norm / t0_norm)
 !
      
-     temp = temp - int2(mu79(:,OP_1,i),temp79a)
+     temp = temp - intx2(mu79(:,OP_1,:),temp79a)
   end if
 
   rad_func = temp
@@ -403,7 +402,7 @@ end function rad_func
 
 ! Current Drive sources
 ! ~~~~~~~~~~~~~~~~~~
-vectype function cd_func(i)
+function cd_func
   use math
   use basic
   use m3dc1_nint
@@ -412,9 +411,9 @@ vectype function cd_func(i)
 
   implicit none
 
-  integer, intent(in) :: i
+  vectype, dimension(dofs_per_element) :: cd_func
   integer :: iregion, j, magnetic_region
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   temp = 0.
 
@@ -426,7 +425,7 @@ vectype function cd_func(i)
         iregion = magnetic_region(pst79(j,:),x_79(j),z_79(j))
         if(iregion.ge.1) temp79a(j) = 0.
      enddo
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   endif
 
   cd_func = temp
@@ -434,14 +433,14 @@ end function cd_func
 
 ! Resistivity
 ! ~~~~~~~~~~~
-vectype function resistivity_func(i)
+function resistivity_func
   use basic
   use m3dc1_nint
   use diagnostics
 
   implicit none
 
-  integer, intent(in) :: i
+  vectype, dimension(dofs_per_element) :: resistivity_func
   real :: tmin
 
   select case (iresfunc)
@@ -497,13 +496,13 @@ vectype function resistivity_func(i)
 
   end select
 
-  resistivity_func = int2(mu79(:,OP_1,i),temp79a)
+  resistivity_func = intx2(mu79(:,OP_1,:),temp79a)
 end function resistivity_func
 
 
 ! Viscosity
 ! ~~~~~~~~~
-vectype function viscosity_func(i)
+function viscosity_func
   use basic
   use m3dc1_nint
   use diagnostics
@@ -512,7 +511,7 @@ vectype function viscosity_func(i)
 
   implicit none
 
-  integer, intent(in) :: i
+  vectype, dimension(dofs_per_element) :: viscosity_func
   integer :: iregion, j, nvals
   real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
@@ -588,12 +587,12 @@ vectype function viscosity_func(i)
      
   end select
 
-  viscosity_func = int2(mu79(:,OP_1,i),temp79a)
+  viscosity_func = intx2(mu79(:,OP_1,:),temp79a)
 end function viscosity_func
 
 ! Kappa
 ! ~~~~~
-vectype function kappa_func(i)
+function kappa_func
   use math
   use read_ascii
   use basic
@@ -601,14 +600,14 @@ vectype function kappa_func(i)
   use diagnostics
   use basicq
   use basicj
-  
+
   implicit none
-  
-  integer, intent(in) :: i
+
+  vectype, dimension(dofs_per_element) :: kappa_func  
   integer :: nvals, j, iregion
   real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
   integer :: magnetic_region
 
   temp = 0.
@@ -714,30 +713,29 @@ vectype function kappa_func(i)
   case default
      temp79a = 0.
   end select
-  temp = temp + int2(mu79(:,OP_1,i),temp79a)
+  temp = temp + intx2(mu79(:,OP_1,:),temp79a)
 
   if(kappah.ne.0.) then
      temp79b = (pst79(:,OP_1) - psimin)/(psibound - psimin)
      temp79a = kappah*tanh((real(temp79b) - 1.)/.2)**2
-     temp = temp + int2(mu79(:,OP_1,i),temp79a)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
   end if
   
   kappa_func = temp
-  return
 end function kappa_func
 
 
 ! Electron viscosity
 ! ~~~~~~~~~~~~~~~~~~
-vectype function electron_viscosity_func(i)
+function electron_viscosity_func
   use basic
   use m3dc1_nint
   use diagnostics
 
   implicit none
 
-  integer, intent(in) :: i
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: electron_viscosity_func
+  vectype, dimension(dofs_per_element) :: temp
 
   temp = 0.
 
@@ -745,13 +743,14 @@ vectype function electron_viscosity_func(i)
      temp79f = -amue * r2_79 * &
           (bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR)) &
           / (nt79(:,OP_1)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 + regular)**2)
-     temp = temp + int2(mu79(:,OP_1,i),temp79f)
+     temp = temp + intx2(mu79(:,OP_1,:),temp79f)
   endif
 
   electron_viscosity_func = temp
-  return
 end function electron_viscosity_func
-vectype function be_func(i, izone)
+
+
+function be_func
   use math
   use basic
   use m3dc1_nint
@@ -759,43 +758,19 @@ vectype function be_func(i, izone)
 
   implicit none
 
-  integer, intent(in) :: i, izone
-  vectype :: temp
-
-  temp = 0.
+  vectype, dimension(dofs_per_element) :: be_func
 !
 !   need to define this to be p_perp
- if(kinetic.eq.2) then
-      temp = int2(mu79(:,OP_1,i),p179(:,OP_1))
- endif
-
-  be_func = temp
-  return
-end function be_func
-vectype function al_func(i, izone)
-  use math
-  use basic
-  use m3dc1_nint
-  use diagnostics
-
-  implicit none
-
-  integer, intent(in) :: i, izone
-  vectype :: temp
-
-  temp = 0.
-!
-!   need to define this as (p_parallel - p_perp)/B**2
-
   if(kinetic.eq.2) then
-      temp = int3(mu79(:,OP_1,i),pe179(:,OP_1),b2i79(:,OP_1))   &
-           - int3(mu79(:,OP_1,i), p179(:,OP_1),b2i79(:,OP_1))
+     be_func = intx2(mu79(:,OP_1,:),p179(:,OP_1))
+  else 
+     be_func = 0.
   endif
 
-  al_func = temp
-  return
-end function al_func
-vectype function bs_func(i)
+end function be_func
+
+
+function al_func
   use math
   use basic
   use m3dc1_nint
@@ -803,10 +778,29 @@ vectype function bs_func(i)
 
   implicit none
 
-  integer, intent(in) :: i
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: al_func
+!
+!   need to define this as (p_parallel - p_perp)/B**2
+  if(kinetic.eq.2) then
+     al_func = intx3(mu79(:,OP_1,:),pe179(:,OP_1),b2i79(:,OP_1))   &
+          - intx3(mu79(:,OP_1,:), p179(:,OP_1),b2i79(:,OP_1))
+  else
+     al_func = 0.
+  endif
 
-  temp = 0.
+end function al_func
+
+
+function bs_func
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: bs_func
+
   temp79a = ri2_79* &
           (pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2 + bztx79(:,OP_1)**2)
 
@@ -817,10 +811,8 @@ vectype function bs_func(i)
 #else
      temp79c  =  temp79a
 #endif
-  temp = int2(mu79(:,OP_1,i),temp79c)
 
-  bs_func = temp
-  return
+  bs_func = intx2(mu79(:,OP_1,:),temp79c)
 end function bs_func
 
 
@@ -839,7 +831,7 @@ subroutine define_transport_coefficients()
 
   include 'mpif.h'
 
-  integer :: i, itri, izone
+  integer :: itri, izone
   integer :: numelms, def_fields,ier
 
   logical, save :: first_time = .true.
@@ -909,98 +901,75 @@ subroutine define_transport_coefficients()
      call get_zone(itri, izone)
 
 
-     do i=1, dofs_per_element
-        dofs(i) = resistivity_func(i)
-        if(.not.solve_resistivity) solve_resistivity = dofs(i).ne.0.
-     end do
+     dofs = resistivity_func()
+     if(.not.solve_resistivity) solve_resistivity = any(dofs.ne.0.)
+
      if(solve_resistivity) &
           call vector_insert_block(resistivity_field%vec,itri,1,dofs,VEC_ADD)
 
-     do i=1, dofs_per_element
-        dofs(i) = kappa_func(i)
-        if(.not.solve_kappa) solve_kappa = dofs(i).ne.0.
-     end do
+     dofs = kappa_func()
+     if(.not.solve_kappa) solve_kappa = any(dofs.ne.0.)
      if(solve_kappa) &
           call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
 
      if(density_source) then
-        do i=1, dofs_per_element
-           dofs(i) = sigma_func(i, izone)
-           if(.not.solve_sigma) solve_sigma = dofs(i).ne.0.
-        end do
+        dofs = sigma_func(izone)
+        if(.not.solve_sigma) solve_sigma = any(dofs.ne.0.)
         if(solve_sigma) &
              call vector_insert_block(sigma_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
-     do i=1, dofs_per_element
-        dofs(i) = viscosity_func(i)
-        if(.not.solve_visc) solve_visc = dofs(i).ne.0.
-     end do
+     dofs = viscosity_func()
+     if(.not.solve_visc) solve_visc = any(dofs.ne.0.)
      if(solve_visc) &
           call vector_insert_block(visc_field%vec,itri,1,dofs,VEC_ADD)
 
      if(momentum_source) then 
-        do i=1, dofs_per_element
-           dofs(i) = force_func(i, izone)
-           if(.not.solve_f) solve_f = dofs(i).ne.0.
-        end do
+        dofs = force_func(izone)
+        if(.not.solve_f) solve_f = any(dofs.ne.0.)
         if(solve_f) &
              call vector_insert_block(Fphi_field%vec,itri,1,dofs,VEC_ADD)
      end if
-
+     
      if(ipforce.gt.0) then
-        do i=1, dofs_per_element
-           dofs(i) = pforce_func(i)
-           if(.not.solve_fp) solve_fp = dofs(i).ne.0.
-        end do
+        dofs = pforce_func()
+        if(.not.solve_fp) solve_fp = any(dofs.ne.0.)
         if(solve_fp) &
              call vector_insert_block(pforce_field%vec,itri,1,dofs,VEC_ADD)
 
-        do i=1, dofs_per_element
-           dofs(i) = pmach_func(i)
-        end do
+        dofs = pmach_func()
         if(solve_fp) &
              call vector_insert_block(pmach_field%vec,itri,1,dofs,VEC_ADD)
-
      end if
 
      if(heat_source) then
-        do i=1, dofs_per_element
-           dofs(i) = q_func(i, izone)
-           if(.not.solve_q) solve_q = dofs(i).ne.0.
-        end do
+        dofs = q_func(izone)
+        if(.not.solve_q) solve_q = any(dofs.ne.0.)
         if(solve_q) &
              call vector_insert_block(Q_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
      if(rad_source) then
-        do i=1, dofs_per_element
-           dofs(i) = rad_func(i, izone)
-           if(.not.solve_rad) solve_rad = dofs(i).ne.0.
-        end do
-!
+        dofs = rad_func()
+        if(.not.solve_rad) solve_rad = any(dofs.ne.0.)
+
         if(solve_rad) &
              call vector_insert_block(Rad_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
-    if(icd_source .gt. 0) then
-        do i=1, dofs_per_element
-           dofs(i) = cd_func(i)
-           if(.not.solve_cd) solve_cd = dofs(i).ne.0
-        end do
+     if(icd_source .gt. 0) then
+        dofs = cd_func()
+        if(.not.solve_cd) solve_cd = any(dofs.ne.0)
         if(solve_cd) &
              call vector_insert_block(cd_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
      if(ibootstrap.ne.0) then
-        do i=1, dofs_per_element
-           dofs(i) = electron_viscosity_func(i)
-           if(.not.solve_visc_e) solve_visc_e = dofs(i).ne.0.
-        end do
+        dofs = electron_viscosity_func()
+        if(.not.solve_visc_e) solve_visc_e = any(dofs.ne.0.)
         if(solve_visc_e) &
              call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
      end if
-
   end do
 
   ! Solve all the variables that have been defined
