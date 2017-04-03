@@ -5298,6 +5298,7 @@ subroutine ludefden_n(itri)
   use metricterms_new
   use time_step
   use model
+  use boundary_conditions
 
   implicit none
 
@@ -5308,7 +5309,8 @@ subroutine ludefden_n(itri)
   vectype, dimension(dofs_per_element, dofs_per_element, 3) :: rrterm, qqterm
   vectype, dimension(dofs_per_element) :: oterm
 
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: tempx
+  vectype, dimension(dofs_per_element,dofs_per_element) :: tempxx
 
   vectype :: freq_fac
 
@@ -5316,6 +5318,7 @@ subroutine ludefden_n(itri)
   type(vector_type), pointer :: nsource
   real :: thimpb
   integer :: imask(dofs_per_element)
+  integer :: ibound
 
   call get_zone(itri, izone)
 
@@ -5355,100 +5358,105 @@ subroutine ludefden_n(itri)
   qqterm = 0.
   oterm = 0.
 
-  call get_den_mask(itri, imask)
+  if(izone.ne.1) then
+     tempxx = n1n(mu79,nu79)
+     ssterm = ssterm + tempxx
+     ddterm = ddterm + tempxx*bdf
+     goto 400
+  end if
 
-  do i=1,dofs_per_element
-     if(imask(i).eq.0) then
-        ssterm(i,:) = 0.
-        ddterm(i,:) = 0.
-        rrterm(i,:,:) = 0.
-        qqterm(i,:,:) = 0.
-        oterm(i) = 0.
-        cycle
+  ! NUMVAR = 1
+  ! ~~~~~~~~~~
+  tempxx = n1n(mu79,nu79)*freq_fac
+  ssterm = ssterm + tempxx
+  if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
+
+  do j=1,dofs_per_element
+     
+     tempx = n1ndenm(mu79,nu79(:,:,j),denm) &
+          +  n1nu   (mu79,nu79(:,:,j),pht79)
+     ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
+     ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+
+     if(linear.eq.0) then
+        tempx = n1nu(mu79,n179,nu79(:,:,j))
+        rrterm(:,j,1) = rrterm(:,j,1) + thimpb*dt*tempx
+        qqterm(:,j,1) = qqterm(:,j,1) - thimpb*dt*tempx*bdf
      endif
 
-     do j=1,dofs_per_element
-
-        if(izone.ne.1) then
-           temp = n1n(mu79(:,:,i),nu79(:,:,j))
-           ssterm(i,j) = ssterm(i,j) + temp    
-           ddterm(i,j) = ddterm(i,j) + temp*bdf
-           cycle
-        end if
-
-        ! NUMVAR = 1
-        ! ~~~~~~~~~~
-        temp = n1n(mu79(:,:,i),nu79(:,:,j))*freq_fac
-        ssterm(i,j) = ssterm(i,j) + temp    
-        if(itime_independent.eq.0) ddterm(i,j) = ddterm(i,j) + temp*bdf
- 
-        temp = n1ndenm(mu79(:,:,i),nu79(:,:,j),denm) &
-             + n1nu   (mu79(:,:,i),nu79(:,:,j),pht79)
-        ssterm(i,j) = ssterm(i,j) -     thimp     *dt*temp
-        ddterm(i,j) = ddterm(i,j) + (1.-thimp*bdf)*dt*temp
-
-        if(linear.eq.0) then
-           temp = n1nu(mu79(:,:,i),n179,nu79(:,:,j))
-           rrterm(i,j,1) = rrterm(i,j,1) + thimpb*dt*temp
-           qqterm(i,j,1) = qqterm(i,j,1) - thimpb*dt*temp*bdf
-        endif
-
-        if(eqsubtract.eq.1) then
-           temp = n1nu(mu79(:,:,i),n079,nu79(:,:,j))
-           rrterm(i,j,1) = rrterm(i,j,1) +     thimpb     *dt*temp
-           qqterm(i,j,1) = qqterm(i,j,1) + (1.-thimpb*bdf)*dt*temp
-        endif
+     if(eqsubtract.eq.1) then
+        tempx = n1nu(mu79,n079,nu79(:,:,j))
+        rrterm(:,j,1) = rrterm(:,j,1) +     thimpb     *dt*tempx
+        qqterm(:,j,1) = qqterm(:,j,1) + (1.-thimpb*bdf)*dt*tempx
+     endif
 
 #if defined(USECOMPLEX) || defined(USE3D)
-        ! NUMVAR = 2
-        ! ~~~~~~~~~~
-        if(numvar.ge.2) then
-           temp = n1nv(mu79(:,:,i),nu79(:,:,j),vzt79)
-           ssterm(i,j) = ssterm(i,j) -     thimp     *dt*temp
-           ddterm(i,j) = ddterm(i,j) + (1.-thimp*bdf)*dt*temp
-           
-           if(linear.eq.0) then 
-              temp = n1nv(mu79(:,:,i),n179,nu79(:,:,j))
-              rrterm(i,j,2) = rrterm(i,j,2) + thimpb*dt*temp
-              qqterm(i,j,2) = qqterm(i,j,2) - thimpb*dt*temp*bdf
-           endif
-
-           if(eqsubtract.eq.1) then
-              temp = n1nv(mu79(:,:,i),n079,nu79(:,:,j))
-              rrterm(i,j,2) = rrterm(i,j,2) +     thimpb     *dt*temp
-              qqterm(i,j,2) = qqterm(i,j,2) + (1.-thimpb*bdf)*dt*temp
-           endif
+     ! NUMVAR = 2
+     ! ~~~~~~~~~~
+     if(numvar.ge.2) then
+        tempx = n1nv(mu79,nu79(:,:,j),vzt79)
+        ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
+        ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+        
+        if(linear.eq.0) then 
+           tempx = n1nv(mu79,n179,nu79(:,:,j))
+           rrterm(:,j,2) = rrterm(:,j,2) + thimpb*dt*tempx
+           qqterm(:,j,2) = qqterm(:,j,2) - thimpb*dt*tempx*bdf
         endif
+        
+        if(eqsubtract.eq.1) then
+           tempx = n1nv(mu79,n079,nu79(:,:,j))
+           rrterm(:,j,2) = rrterm(:,j,2) +     thimpb     *dt*tempx
+           qqterm(:,j,2) = qqterm(:,j,2) + (1.-thimpb*bdf)*dt*tempx
+        endif
+     endif
 #endif
 
-        ! NUMVAR = 3
-        ! ~~~~~~~~~~
-        if(numvar.ge.3) then
-           temp = n1nchi(mu79(:,:,i),nu79(:,:,j),cht79)
-           ssterm(i,j) = ssterm(i,j) -     thimp     *dt*temp
-           ddterm(i,j) = ddterm(i,j) + (1.-thimp*bdf)*dt*temp
-           
-           if(linear.eq.0) then
-              temp = n1nchi(mu79(:,:,i),n179,nu79(:,:,j))
-              rrterm(i,j,3) = rrterm(i,j,3) + thimpb*dt*temp
-              qqterm(i,j,3) = qqterm(i,j,3) - thimpb*dt*temp*bdf
-           endif
-
-           if(eqsubtract.eq.1) then
-              temp = n1nchi(mu79(:,:,i),n079,nu79(:,:,j))
-              rrterm(i,j,3) = rrterm(i,j,3) +     thimpb     *dt*temp
-              qqterm(i,j,3) = qqterm(i,j,3) + (1.-thimpb*bdf)*dt*temp
-           endif
+     ! NUMVAR = 3
+     ! ~~~~~~~~~~
+     if(numvar.ge.3) then
+        tempx = n1nchi(mu79,nu79(:,:,j),cht79)
+        ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
+        ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+        
+        if(linear.eq.0) then
+           tempx = n1nchi(mu79,n179,nu79(:,:,j))
+           rrterm(:,j,3) = rrterm(:,j,3) + thimpb*dt*tempx
+           qqterm(:,j,3) = qqterm(:,j,3) - thimpb*dt*tempx*bdf
         endif
+        
+        if(eqsubtract.eq.1) then
+           tempx = n1nchi(mu79,n079,nu79(:,:,j))
+           rrterm(:,j,3) = rrterm(:,j,3) +     thimpb     *dt*tempx
+           qqterm(:,j,3) = qqterm(:,j,3) + (1.-thimpb*bdf)*dt*tempx
+        endif
+     endif
+  end do
 
-     enddo                     ! on j
-     
-     oterm(i) = dt*n1s(mu79(:,:,i),sig79)
-  enddo                     ! on i
-     
+  ! Source term
+  ! ~~~~~~~~~~~~ 
+  oterm = dt*n1s(mu79,sig79)
+
+
+
+400 continue
+  
   if(isplitstep.eq.0) rrterm = -rrterm
   if(idiff .gt. 0) ddterm = ddterm - ssterm
 
+
+  ! Zero-out rows that will be used for boundary conditions
+  call get_den_mask(itri, imask)
+  call apply_boundary_mask(itri, ibound, ssterm, imask)
+  call apply_boundary_mask(itri, ibound, ddterm, imask)
+  do i=1, 3
+     call apply_boundary_mask(itri, ibound, rrterm(:,:,i), imask)
+     call apply_boundary_mask(itri, ibound, qqterm(:,:,i), imask)
+  end do
+  call apply_boundary_mask_vec(itri, ibound, oterm, imask)
+
+
+  ! Insert data into matrices
   call insert_block(nn1,itri,den_i,den_i,ssterm,MAT_ADD)
   call insert_block(nn0,itri,den_i,den_i,ddterm,MAT_ADD)
   call insert_block(nv1,itri,den_i,u_i,rrterm(:,:,1),MAT_ADD)
