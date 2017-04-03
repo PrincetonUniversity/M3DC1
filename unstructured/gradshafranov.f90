@@ -943,14 +943,12 @@ subroutine gradshafranov_solve
 
   type(matrix_type) :: gs_matrix
 
-  integer :: itri,i,j,ier, itnum, ibound, izone
+  integer :: itri, i, ier, itnum, ibound, izone
   integer :: numelms, numnodes
   real :: feedfac
   logical :: do_feedback
 
   real :: error, error2, error3 
-
-  integer, dimension(dofs_per_element) :: imask
 
   vectype :: tf
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp
@@ -1007,28 +1005,18 @@ subroutine gradshafranov_solve
      call define_element_quadrature(itri,int_pts_main,int_tor)
      call define_fields(itri,0,1,0)
 
-     call get_boundary_mask(itri, ibound, imask, domain_boundary)
-     do i=1,dofs_per_element
-        if(imask(i).eq.0) then
-           temp(i,:) = 0.
-        else
-           do j=1,dofs_per_element
-              temp(i,j) = int3(ri_79,mu79(:,OP_1,i),nu79(:,OP_GS,j))
+     temp = intxx3(mu79(:,OP_1,:),nu79(:,OP_GS,:),ri_79)
 #ifdef USE3D
-              temp(i,j) = temp(i,j) - &
-                   eta_gs*int3(ri3_79,mu79(:,OP_DP,i),nu79(:,OP_DP,j))
+     temp = temp - eta_gs*intxx3(mu79(:,OP_DP,:),nu79(:,OP_DP,:),ri3_79)
 #endif
-!!$              temp(i,j) = &
-!!$                   -int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
-!!$                   -int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
-!!$              if(itor.eq.1) then 
-!!$                 temp(i,j) = temp(i,j) &
-!!$                      -int3(ri2_79,mu79(:,OP_1,i),nu79(:,OP_DR,j))
-!!$              endif
-           enddo
-        endif
-     enddo
-
+!!$     temp = &
+!!$         -intxx3(mu79(:,OP_DR,:),nu79(:,OP_DR,:),ri_79) &
+!!$         -intxx3(mu79(:,OP_DZ,:),nu79(:,OP_DZ,:),ri_79)
+!!$     if(itor.eq.1) then 
+!!$         temp = temp &
+!!$             -intxx3(mu79(:,OP_1,:),nu79(:,OP_DR,:),ri2_79)
+!!$     endif
+!!$ 
 !!$     ! add surface terms
 !!$     call boundary_edge(itri, is_edge, n, idim)
 !!$     
@@ -1038,18 +1026,12 @@ subroutine gradshafranov_solve
 !!$        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
 !!$        call define_fields(itri, 0, 1, 0)
 !!$
-!!$        do i=1,dofs_per_element
-!!$           if(imask(i).eq.0) then
-!!$              temp(i,:) = 0.
-!!$           else
-!!$              do j=1,dofs_per_element
-!!$                 temp(i,j) = temp(i,j) &
-!!$                      +int4(ri_79,mu79(:,OP_1,i),norm79(:,1),nu79(:,OP_DR,j)) &
-!!$                      +int4(ri_79,mu79(:,OP_1,i),norm79(:,2),nu79(:,OP_DZ,j))
-!!$              end do
-!!$           end if
-!!$        end do
+!!$        temp = temp &
+!!$             +intxx4(mu79(:,OP_1,:),nu79(:,OP_DR,:),norm79(:,1),ri_79) &
+!!$             +intxx4(mu79(:,OP_1,:),nu79(:,OP_DZ,:),norm79(:,2),ri_79)
 !!$     end do
+
+     call apply_boundary_mask(itri, ibound, temp, tags=domain_boundary)
 
      call insert_block(gs_matrix, itri, 1, 1, temp, MAT_ADD)
   enddo
@@ -1277,12 +1259,10 @@ subroutine gradshafranov_solve
         endif
      end do
      
-     do i=1,dofs_per_element
-        temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
-        temp(i,2) = int2(mu79(:,OP_1,i),temp79b)
-        temp(i,3) = int2(mu79(:,OP_1,i),temp79c)
-        if(irot.ne.0) temp(i,4) = int2(mu79(:,OP_1,i),temp79d)
-     end do
+     temp(:,1) = intx2(mu79(:,OP_1,:),temp79a)
+     temp(:,2) = intx2(mu79(:,OP_1,:),temp79b)
+     temp(:,3) = intx2(mu79(:,OP_1,:),temp79c)
+     if(irot.ne.0) temp(:,4) = intx2(mu79(:,OP_1,:),temp79d)
      call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
      call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
      call vector_insert_block(b3vecini_vec%vec,itri,1,temp(:,3),VEC_ADD)
@@ -1334,9 +1314,7 @@ subroutine gradshafranov_solve
            temp79a(i) = tf
         end do
         
-        do i=1, dofs_per_element
-           temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        temp(:,1) = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
      end do
      
@@ -1362,10 +1340,8 @@ subroutine gradshafranov_solve
      temp79a = (pe079(:,OP_1)) / (zeff*n079(:,OP_1))
      temp79b = (p079(:,OP_1) - pe079(:,OP_1)) / n079(:,OP_1)
      
-     do i=1, dofs_per_element
-        temp(i,1) = int2(mu79(:,OP_1,i),temp79a)
-        temp(i,2) = int2(mu79(:,OP_1,i),temp79b)
-     end do
+     temp(:,1) = intx2(mu79(:,OP_1,:),temp79a)
+     temp(:,2) = intx2(mu79(:,OP_1,:),temp79b)
      call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
      call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
   end do
@@ -1679,11 +1655,11 @@ subroutine gaussianfun(x,z,val,denom,jout)
   real, intent(in) :: x, z, val, denom
   type(field_type), intent(inout) :: jout
 
-  integer :: itri, i, j, nelms
-  real :: befo, rsq
+  integer :: itri, nelms
+  real :: befo
   vectype, dimension(npoints) :: temp
   vectype, dimension(dofs_per_element) :: dofs
-  real, dimension(npoints) ::   rtemp
+
   befo =-val/(pi*denom**2)
   
   nelms = local_elements()
@@ -1694,18 +1670,9 @@ subroutine gaussianfun(x,z,val,denom,jout)
       call define_fields(itri,0,1,0)  !  defines x_79,z_79,mu,nu
 
 !     assemble matrix
-      do i=1,dofs_per_element
-         do j=1,npoints
-            rsq = (x_79(j)-x)**2 + (z_79(j)-z)**2
-            rtemp(j) = befo*exp(-rsq/denom**2)
-         enddo
-#ifdef USECOMPLEX
-         temp = cmplx(rtemp)
-#else
-         temp = rtemp
-#endif
-      dofs(i) = int2(mu79(:,OP_1,i),temp)
-      enddo
+      temp = befo*exp(-((x_79-x)**2 + (z_79-z)**2)/denom**2)
+
+      dofs = intx2(mu79(:,OP_1,:),temp)
       ! call vector_insert_block(jout%vec, itri, jout%index, dofs, VEC_ADD)
       call vector_insert_block(jout%vec, itri, 1, dofs, VEC_ADD)
   enddo
@@ -2065,10 +2032,8 @@ subroutine fundef2(error)
              (temp79a + temp79e*temp79d*(x_79**2 - rzero**2)/rzero**2)
      endif
      
-     do i=1,dofs_per_element
-        temp3(i) = int3(r_79, mu79(:,OP_1,i),temp79a)
-        temp4(i) = int3(ri_79,mu79(:,OP_1,i),temp79b)
-     end do
+     temp3 = intx3(mu79(:,OP_1,:),r_79,temp79a)
+     temp4 = intx3(mu79(:,OP_1,:),ri_79,temp79b)
      
      call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
      call vector_insert_block(fun4_vec%vec,itri,1,temp4,VEC_ADD)
