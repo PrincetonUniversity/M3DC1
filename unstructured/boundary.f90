@@ -139,6 +139,23 @@ subroutine apply_boundary_mask(itri, ibound, vals, imaskin, tags)
   end do
 end subroutine apply_boundary_mask
 
+subroutine apply_boundary_mask_vec(itri, ibound, vals, imaskin, tags)
+  use element
+  integer, intent(in) :: itri, ibound
+  vectype, intent(inout), dimension(dofs_per_element) :: vals
+  integer, dimension(dofs_per_element), optional :: imaskin
+  type(tag_list), intent(in), optional :: tags
+
+  integer, dimension(dofs_per_element) :: imask
+
+  if(present(imaskin)) then
+     vals = vals*imaskin
+  else
+     call get_boundary_mask(itri, ibound, imask, tags)
+     vals = vals*imask
+  end if
+end subroutine apply_boundary_mask_vec
+
 
 !======================================================================
 ! set_total_bc
