@@ -311,7 +311,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
              - intx3(mu79(:,OP_1,:),bft79(:,OP_DZP),bzt79(:,OP_DZ))
      endif
 #endif
-     end do
+     
 #endif
      call vector_insert_block(torque_density_em%vec,itri,1,dofs,VEC_ADD)
 
@@ -455,7 +455,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
                 +int4(ri2_79,mu79(:,OP_1,i),p179(:,OP_DP),bz079(:,OP_1)) &
                 -int5(ri2_79,temp79a,n179(:,OP_DP),bz079(:,OP_1),p079(:,OP_1))
            if(numvar.gt.1) then
-	        dofs(i) = dofs(i) &
+              dofs(i) = dofs(i) &
                    -int3(mu79(:,OP_1,i),p079(:,OP_DZ),bf179(:,OP_DZP)) &
                    -int3(mu79(:,OP_1,i),p079(:,OP_DR),bf179(:,OP_DRP)) &
                    +int4(temp79a,n079(:,OP_DZ),bf179(:,OP_DZP),p079(:,OP_1)) &
@@ -473,7 +473,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
                 +int4(ri2_79,mu79(:,OP_1,i),pt79(:,OP_DP),bzt79(:,OP_1)) &
                 -int5(ri2_79,temp79a,nt79(:,OP_DP),bzt79(:,OP_1),pt79(:,OP_1))
            if(numvar.gt.1) then
-	        dofs(i) = dofs(i) &
+              dofs(i) = dofs(i) &
                    -int3(mu79(:,OP_1,i),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
                    -int3(mu79(:,OP_1,i),pt79(:,OP_DR),bft79(:,OP_DRP)) &
                    +int4(temp79a,nt79(:,OP_DZ),bft79(:,OP_DZP),pt79(:,OP_1)) &
@@ -611,7 +611,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         call jdbobs_sub(temp79a)
         dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(jdbobs%vec,itri,1,dofs,VEC_ADD)
-
+        
      end if  ! on itemp_plot.eq.1
 
   end do
