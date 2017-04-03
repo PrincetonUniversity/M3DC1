@@ -4611,6 +4611,7 @@ subroutine ludefvel_n(itri)
   use sparse
   use time_step
   use model
+  use boundary_conditions
 
   implicit none
 
@@ -4691,25 +4692,7 @@ subroutine ludefvel_n(itri)
      q_bf = 0.
      r4 = 0.
 
-     select case(k)
-     case(1)
-        call get_vor_mask(itri, imask)
-     case(2)
-        call get_vz_mask(itri, imask)
-     case(3)
-        call get_chi_mask(itri, imask)
-     end select
-
      do i=1,dofs_per_element
-        if(imask(i).eq.0) then
-           ss(i,:,:) = 0.
-           dd(i,:,:) = 0.
-           r_bf(i,:) = 0.
-           q_bf(i,:) = 0.
-           r4(i) = 0.
-           cycle
-        endif
-
         do j=1,dofs_per_element
            select case(k)
            case(1)
@@ -4735,7 +4718,31 @@ subroutine ludefvel_n(itri)
            end select
         end if
      end do
+
      if(idifv .gt. 0) dd(:,:,  u_g) = dd(:,:,  u_g) - ss(:,:,  u_g)
+
+
+     ! Zero-out rows that will be used for boundary conditions
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     select case(k)
+     case(1)
+        call get_vor_mask(itri, imask)
+     case(2)
+        call get_vz_mask(itri, imask)
+     case(3)
+        call get_chi_mask(itri, imask)
+     end select
+     do i=1, num_fields
+        call apply_boundary_mask(itri, 0, ss(:,:,i), imask)
+        call apply_boundary_mask(itri, 0, dd(:,:,i), imask)
+     end do
+     call apply_boundary_mask(itri, 0, r_bf, imask)
+     call apply_boundary_mask(itri, 0, q_bf, imask)
+     call apply_boundary_mask_vec(itri, 0, r4, imask)
+
+
+     ! Insert values into matrix
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
      call insert_block(vv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
      call insert_block(vv0,itri,ieq(k),  u_i,dd(:,:,  u_g),MAT_ADD)
      call insert_block(vb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
@@ -4796,6 +4803,7 @@ subroutine ludefphi_n(itri)
   use electrostatic_potential
   use time_step
   use model
+  use boundary_conditions
 
   implicit none
 
@@ -4887,8 +4895,6 @@ subroutine ludefphi_n(itri)
      endif
   endif
 
-  imask = 1
-
   do k=1,maxk
      ss = 0.
      dd = 0.
@@ -4896,38 +4902,8 @@ subroutine ludefphi_n(itri)
      r_bf = 0.
      q_bf = 0.
      q4 = 0.
-
-     if     (ieq(k).eq.psi_i) then
-        call get_flux_mask(itri, imask)
-     else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
-        call get_bz_mask(itri, imask)
-     else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
-        call get_pres_mask(itri, imask)
-     else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
-        call get_bf_mask(itri, imask)
-     else if(ieq(k).eq.e_i) then
-        if(jadv.eq.0) then
-           call get_esp_mask(itri, imask)
-        else
-           call get_j_mask(itri, imask)
-        endif
-     else
-        if(myrank.eq.0) print *, 'error in ludefphi_n', k, ieq(k), maxk
-        call safestop(31)
-        imask = 1
-     end if
-     
+    
      do i=1,dofs_per_element
-        if(imask(i).eq.0) then
-           ss(i,:,:) = 0.
-           dd(i,:,:) = 0.
-           q_ni(i,:,:) = 0.
-           r_bf(i,:) = 0.
-           q_bf(i,:) = 0.
-           q4(i) = 0.
-           cycle
-        endif
-
         do j=1,dofs_per_element
            if     (ieq(k).eq.psi_i) then
               if(.not.surface_int) then
@@ -4986,7 +4962,42 @@ subroutine ludefphi_n(itri)
         ss(:,:,pe_g) = ss(:,:,pe_g)*pefac
         dd(:,:,pe_g) = dd(:,:,pe_g)*pefac
      end if
-     
+
+
+     ! Zero-out rows that will be used for boundary conditions
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     if     (ieq(k).eq.psi_i) then
+        call get_flux_mask(itri, imask)
+     else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
+        call get_bz_mask(itri, imask)
+     else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
+        call get_pres_mask(itri, imask)
+     else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
+        call get_bf_mask(itri, imask)
+     else if(ieq(k).eq.e_i) then
+        if(jadv.eq.0) then
+           call get_esp_mask(itri, imask)
+        else
+           call get_j_mask(itri, imask)
+        endif
+     else
+        if(myrank.eq.0) print *, 'error in ludefphi_n', k, ieq(k), maxk
+        call safestop(31)
+     end if
+     do i=1, num_fields
+        call apply_boundary_mask(itri, 0, ss(:,:,i), imask)
+        call apply_boundary_mask(itri, 0, dd(:,:,i), imask)
+     end do
+     do i=1, 2
+        call apply_boundary_mask(itri, 0, q_ni(:,:,i), imask)
+     end do
+     call apply_boundary_mask(itri, 0, r_bf, imask)
+     call apply_boundary_mask(itri, 0, q_bf, imask)
+     call apply_boundary_mask_vec(itri, 0, q4, imask)
+
+
+     ! Insert values into matrix
+     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
      if(idiff .gt. 0) dd(:,:,psi_g) = dd(:,:,psi_g) - ss(:,:,psi_g)
      call insert_block(bb1,itri,ieq(k),psi_i,ss(:,:,psi_g),MAT_ADD)
      call insert_block(bb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
@@ -5052,6 +5063,7 @@ subroutine ludefpres_n(itri)
   use electrostatic_potential
   use time_step
   use model
+  use boundary_conditions
 
   implicit none
 
@@ -5136,20 +5148,7 @@ subroutine ludefpres_n(itri)
      q_bf = 0.
      q4 = 0.
 
-     imask = 1
-     call get_pres_mask(itri, imask)
- 
      do i=1,dofs_per_element
-        if(imask(i).eq.0) then
-           ss(i,:,:) = 0.
-           dd(i,:,:) = 0.
-           q_ni(i,:,:) = 0.
-           r_bf(i,:) = 0.
-           q_bf(i,:) = 0.
-           q4(i) = 0.
-           cycle
-        endif
-
         do j=1,dofs_per_element
           if(ipressplit.eq.0) then
              call pressure_lin(mu79(:,:,i),nu79(:,:,j), &
@@ -5196,6 +5195,19 @@ subroutine ludefpres_n(itri)
            end if
         endif  ! ipressplit
      end do  ! on i
+
+     ! Zero-out rows that will be used for boundary conditions
+     call get_pres_mask(itri, imask)
+     do i=1, num_fields
+        call apply_boundary_mask(itri, 0, ss(:,:,i), imask)
+        call apply_boundary_mask(itri, 0, dd(:,:,i), imask)
+     end do
+     do i=1, 2
+        call apply_boundary_mask(itri, 0, q_ni(:,:,i), imask)
+     end do
+     call apply_boundary_mask(itri, 0, r_bf, imask)
+     call apply_boundary_mask(itri, 0, q_bf, imask)
+     call apply_boundary_mask_vec(itri, 0, q4, imask)
 
 
      if(ipressplit.eq.0) then
@@ -5318,7 +5330,6 @@ subroutine ludefden_n(itri)
   type(vector_type), pointer :: nsource
   real :: thimpb
   integer :: imask(dofs_per_element)
-  integer :: ibound
 
   call get_zone(itri, izone)
 
@@ -5447,13 +5458,13 @@ subroutine ludefden_n(itri)
 
   ! Zero-out rows that will be used for boundary conditions
   call get_den_mask(itri, imask)
-  call apply_boundary_mask(itri, ibound, ssterm, imask)
-  call apply_boundary_mask(itri, ibound, ddterm, imask)
+  call apply_boundary_mask(itri, 0, ssterm, imask)
+  call apply_boundary_mask(itri, 0, ddterm, imask)
   do i=1, 3
-     call apply_boundary_mask(itri, ibound, rrterm(:,:,i), imask)
-     call apply_boundary_mask(itri, ibound, qqterm(:,:,i), imask)
+     call apply_boundary_mask(itri, 0, rrterm(:,:,i), imask)
+     call apply_boundary_mask(itri, 0, qqterm(:,:,i), imask)
   end do
-  call apply_boundary_mask_vec(itri, ibound, oterm, imask)
+  call apply_boundary_mask_vec(itri, 0, oterm, imask)
 
 
   ! Insert data into matrices
