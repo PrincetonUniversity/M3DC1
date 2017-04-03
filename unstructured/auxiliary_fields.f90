@@ -128,7 +128,7 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
 
   integer :: def_fields
   integer :: numelms
-  integer :: i, itri
+  integer :: itri
 
   type(field_type) :: te_f, ti_f
 
@@ -151,44 +151,40 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
      call define_fields(itri, def_fields, 1, 0, ieqsub)
 
      ! electron temperature
-     do i=1, dofs_per_element
-        if(linear.eq.1 .and. ilin.eq.1) then
-           temp79a = pe179(:,OP_1)/ne079(:,OP_1) &
-                - ne179(:,OP_1)*pe079(:,OP_1)/ne079(:,OP_1)**2
-        else
-           if(ilin.eq.1) then
-              temp79a = pet79(:,OP_1)/net79(:,OP_1)
-              if(ieqsub.eq.1) then
-                 temp79a = temp79a - pe079(:,OP_1)/ne079(:,OP_1)
-              end if
-           else
-              temp79a = pe079(:,OP_1)/ne079(:,OP_1)
+     if(linear.eq.1 .and. ilin.eq.1) then
+        temp79a = pe179(:,OP_1)/ne079(:,OP_1) &
+             - ne179(:,OP_1)*pe079(:,OP_1)/ne079(:,OP_1)**2
+     else
+        if(ilin.eq.1) then
+           temp79a = pet79(:,OP_1)/net79(:,OP_1)
+           if(ieqsub.eq.1) then
+              temp79a = temp79a - pe079(:,OP_1)/ne079(:,OP_1)
            end if
+        else
+           temp79a = pe079(:,OP_1)/ne079(:,OP_1)
         end if
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-     end do
+     end if
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
      where(dofs.ne.dofs)
         dofs = 0.
      end where
      call vector_insert_block(te_f%vec,itri,1,dofs,VEC_ADD)
 
      ! ion temperature
-     do i=1, dofs_per_element
-        if(linear.eq.1 .and. ilin.eq.1) then
-           temp79a = pi179(:,OP_1)/n079(:,OP_1) &
-                - n179(:,OP_1)*pi079(:,OP_1)/n079(:,OP_1)**2
-        else
-           if(ilin.eq.1) then
-              temp79a = pit79(:,OP_1)/nt79(:,OP_1)
-              if(ieqsub.eq.1) then
-                 temp79a = temp79a - pi079(:,OP_1)/n079(:,OP_1)
-              end if
-           else
-              temp79a = pi079(:,OP_1)/n079(:,OP_1)
+     if(linear.eq.1 .and. ilin.eq.1) then
+        temp79a = pi179(:,OP_1)/n079(:,OP_1) &
+             - n179(:,OP_1)*pi079(:,OP_1)/n079(:,OP_1)**2
+     else
+        if(ilin.eq.1) then
+           temp79a = pit79(:,OP_1)/nt79(:,OP_1)
+           if(ieqsub.eq.1) then
+              temp79a = temp79a - pi079(:,OP_1)/n079(:,OP_1)
            end if
+        else
+           temp79a = pi079(:,OP_1)/n079(:,OP_1)
         end if
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-     end do
+     end if
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
      where(dofs.ne.dofs)
         dofs = 0.
      end where
@@ -286,39 +282,34 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
 
      call get_zone(itri, izone)
 
-     do i=1, dofs_per_element
-        temp79a = izone
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-     end do
+     temp79a = izone
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
      call vector_insert_block(mesh_zone%vec,itri,1,dofs,VEC_ADD)
 
      ! magnetic torque_density (ignoring toroidal magnetic pressure gradient)
 #ifdef USECOMPLEX
      if(numvar.gt.1) then
-        do i=1, dofs_per_element
-           dofs(i) = &
-                + int4(ri_79,mu79(:,OP_1,i),ps179(:,OP_DR),conjg(bz179(:,OP_DZ)))&
-                - int4(ri_79,mu79(:,OP_1,i),ps179(:,OP_DZ),conjg(bz179(:,OP_DR)))&
-                - int3(mu79(:,OP_1,i),bf179(:,OP_DRP),conjg(bz179(:,OP_DR))) &
-                - int3(mu79(:,OP_1,i),bf179(:,OP_DZP),conjg(bz179(:,OP_DZ))) &
-                + int4(ri_79,mu79(:,OP_1,i),conjg(ps179(:,OP_DR)),bz179(:,OP_DZ))&
-                - int4(ri_79,mu79(:,OP_1,i),conjg(ps179(:,OP_DZ)),bz179(:,OP_DR))&
-                - int3(mu79(:,OP_1,i),conjg(bf179(:,OP_DRP)),bz179(:,OP_DR)) &
-                - int3(mu79(:,OP_1,i),conjg(bf179(:,OP_DZP)),bz179(:,OP_DZ))
-        end do
+        dofs = &
+             + intx4(mu79(:,OP_1,:),ps179(:,OP_DR),conjg(bz179(:,OP_DZ)),ri_79)&
+             - intx4(mu79(:,OP_1,:),ps179(:,OP_DZ),conjg(bz179(:,OP_DR)),ri_79)&
+             - intx3(mu79(:,OP_1,:),bf179(:,OP_DRP),conjg(bz179(:,OP_DR))) &
+             - intx3(mu79(:,OP_1,:),bf179(:,OP_DZP),conjg(bz179(:,OP_DZ))) &
+             + intx4(mu79(:,OP_1,:),conjg(ps179(:,OP_DR)),bz179(:,OP_DZ),ri_79)&
+             - intx4(mu79(:,OP_1,:),conjg(ps179(:,OP_DZ)),bz179(:,OP_DR),ri_79)&
+             - intx3(mu79(:,OP_1,:),conjg(bf179(:,OP_DRP)),bz179(:,OP_DR)) &
+             - intx3(mu79(:,OP_1,:),conjg(bf179(:,OP_DZP)),bz179(:,OP_DZ))
      endif
      dofs = dofs / 2.
 #else
-     do i=1, dofs_per_element
-        dofs(i) = &
-             + int4(ri_79,mu79(:,OP_1,i),pst79(:,OP_DR),bzt79(:,OP_DZ)) &
-             - int4(ri_79,mu79(:,OP_1,i),pst79(:,OP_DZ),bzt79(:,OP_DR))
+     dofs = &
+          + intx4(mu79(:,OP_1,:),pst79(:,OP_DR),bzt79(:,OP_DZ),ri_79) &
+          - intx4(mu79(:,OP_1,:),pst79(:,OP_DZ),bzt79(:,OP_DR),ri_79)
 #ifdef USE3D
-        if(numvar.gt.1) then
-           dofs(i) = dofs(i) &
-                - int3(mu79(:,OP_1,i),bft79(:,OP_DRP),bzt79(:,OP_DR)) &
-                - int3(mu79(:,OP_1,i),bft79(:,OP_DZP),bzt79(:,OP_DZ))
-        endif
+     if(numvar.gt.1) then
+        dofs = dofs &
+             - intx3(mu79(:,OP_1,:),bft79(:,OP_DRP),bzt79(:,OP_DR)) &
+             - intx3(mu79(:,OP_1,:),bft79(:,OP_DZP),bzt79(:,OP_DZ))
+     endif
 #endif
      end do
 #endif
@@ -416,35 +407,32 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      call vector_insert_block(torque_density_ntv%vec,itri,1,dofs,VEC_ADD)
 
      ! b dot grad p
-     do i=1, dofs_per_element
-
-
-        if(ilin.eq.1) then 
-           dofs(i) = int4(ri_79,mu79(:,OP_1,i),p179(:,OP_DZ),ps079(:,OP_DR)) &
-                -    int4(ri_79,mu79(:,OP_1,i),p179(:,OP_DR),ps079(:,OP_DZ)) &
-                +    int4(ri_79,mu79(:,OP_1,i),p079(:,OP_DZ),ps179(:,OP_DR)) &
-                -    int4(ri_79,mu79(:,OP_1,i),p079(:,OP_DR),ps179(:,OP_DZ))
+     if(ilin.eq.1) then 
+        dofs = intx4(mu79(:,OP_1,:),p179(:,OP_DZ),ps079(:,OP_DR),ri_79) &
+             -    intx4(mu79(:,OP_1,:),p179(:,OP_DR),ps079(:,OP_DZ),ri_79) &
+             +    intx4(mu79(:,OP_1,:),p079(:,OP_DZ),ps179(:,OP_DR),ri_79) &
+             -    intx4(mu79(:,OP_1,:),p079(:,OP_DR),ps179(:,OP_DZ),ri_79)
 #if defined(USECOMPLEX) || defined(USE3D)
-           if(numvar.gt.1) then
-              dofs(i) = dofs(i) &
-                   + int4(ri2_79,mu79(:,OP_1,i),p179(:,OP_DP),bz079(:,OP_1)) &
-                   - int3(mu79(:,OP_1,i),p079(:,OP_DZ),bf179(:,OP_DZP)) &
-                   - int3(mu79(:,OP_1,i),p079(:,OP_DR),bf179(:,OP_DRP))
-           endif
+        if(numvar.gt.1) then
+           dofs = dofs &
+                + intx4(mu79(:,OP_1,:),p179(:,OP_DP),bz079(:,OP_1),ri2_79) &
+                - intx3(mu79(:,OP_1,:),p079(:,OP_DZ),bf179(:,OP_DZP)) &
+                - intx3(mu79(:,OP_1,:),p079(:,OP_DR),bf179(:,OP_DRP))
+        endif
 #endif
-        else
-           dofs(i) = int4(ri_79,mu79(:,OP_1,i),pt79(:,OP_DZ),pst79(:,OP_DR)) &
-                -    int4(ri_79,mu79(:,OP_1,i),pt79(:,OP_DR),pst79(:,OP_DZ))
+     else
+        dofs = intx4(mu79(:,OP_1,:),pt79(:,OP_DZ),pst79(:,OP_DR),ri_79) &
+             - intx4(mu79(:,OP_1,:),pt79(:,OP_DR),pst79(:,OP_DZ),ri_79)
 #if defined(USECOMPLEX) || defined(USE3D)
-           if(numvar.gt.1) then
-              dofs(i) = dofs(i) &
-                   + int4(ri2_79,mu79(:,OP_1,i),pt79(:,OP_DP),bzt79(:,OP_1)) &
-                   - int3(mu79(:,OP_1,i),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
-                   - int3(mu79(:,OP_1,i),pt79(:,OP_DR),bft79(:,OP_DRP))
-           endif
+        if(numvar.gt.1) then
+           dofs = dofs &
+                + intx4(mu79(:,OP_1,:),pt79(:,OP_DP),bzt79(:,OP_1),ri2_79) &
+                - intx3(mu79(:,OP_1,:),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
+                - intx3(mu79(:,OP_1,:),pt79(:,OP_DR),bft79(:,OP_DRP))
+        endif
 #endif
-        end if
-     end do
+     end if
+
      call vector_insert_block(bdotgradp%vec,itri,1,dofs,VEC_ADD)
      ! b dot grad T
      do i=1, dofs_per_element
@@ -499,111 +487,82 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
 
      ! x-ray detector signal
      if(xray_detector_enabled.eq.1) then
-        do i=1, dofs_per_element
-           call get_chord_mask(xray_r0, xray_phi0*pi/180., xray_z0, &
-                x_79, phi_79, z_79, npoints, &
-                xray_theta*pi/180., xray_sigma*pi/180., temp79a)
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        call get_chord_mask(xray_r0, xray_phi0*pi/180., xray_z0, &
+             x_79, phi_79, z_79, npoints, &
+             xray_theta*pi/180., xray_sigma*pi/180., temp79a)
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(chord_mask%vec,itri,1,dofs,VEC_ADD)
      end if
 
      ! magnetic_region
-     do i=1, dofs_per_element
-        do j=1, npoints
-           temp79a(j) = magnetic_region(pst79(j,:),x_79(j),z_79(j))
-        end do
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+     do j=1, npoints
+        temp79a(j) = magnetic_region(pst79(j,:),x_79(j),z_79(j))
      end do
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
      call vector_insert_block(mag_reg%vec,itri,1,dofs,VEC_ADD)
 
      ! electric_field
-     do i=1, dofs_per_element
-        call electric_field_r(ilin,temp79a,izone)
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-     end do
+     call electric_field_r(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
      call vector_insert_block(ef_r%vec,itri,1,dofs,VEC_ADD)
-     do i=1, dofs_per_element
-        call electric_field_phi(ilin,temp79a,izone)
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-     end do
+
+     call electric_field_phi(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
      call vector_insert_block(ef_phi%vec,itri,1,dofs,VEC_ADD)
-     do i=1, dofs_per_element
-        call electric_field_z(ilin,temp79a,izone)
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-     end do
+
+     call electric_field_z(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
      call vector_insert_block(ef_z%vec,itri,1,dofs,VEC_ADD)
 
      call electric_field_eta_j(ilin,temp79a)
-     do i=1, dofs_per_element
-        dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-     end do
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
+
      call vector_insert_block(eta_j%vec,itri,1,dofs,VEC_ADD)
      
      if(jadv.eq.0) then
         call electric_field_psidot(ilin,temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(psidot%vec,itri,1,dofs,VEC_ADD)
 
         call electric_field_veldif(ilin,temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(veldif%vec,itri,1,dofs,VEC_ADD)
 
         call ef_eta_jdb(ilin,temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(eta_jdb%vec,itri,1,dofs,VEC_ADD)
 
         call ef_bdgp(ilin,temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(bdgp%vec,itri,1,dofs,VEC_ADD)
 
         call ef_vlbdgp(ilin,temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(vlbdgp%vec,itri,1,dofs,VEC_ADD)
      endif
 
      if(itemp_plot.eq.1) then
         call advection(temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(vdotgradt%vec,itri,1,dofs,VEC_ADD)
 
         call advection1(temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(adv1%vec,itri,1,dofs,VEC_ADD)
 
         call advection2(temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(adv2%vec,itri,1,dofs,VEC_ADD)
 
         call advection3(temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(adv3%vec,itri,1,dofs,VEC_ADD)
-
   
         do i=1, dofs_per_element
            call hf_perp(i,temp79a)
            dofs(i) = int1(temp79a)
         end do
         call vector_insert_block(deldotq_perp%vec,itri,1,dofs,VEC_ADD)
-
      
         do i=1, dofs_per_element
            call hf_par(i,temp79a)
@@ -612,15 +571,11 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         call vector_insert_block(deldotq_par%vec,itri,1,dofs,VEC_ADD)
 
         call ohmic(temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(eta_jsq%vec,itri,1,dofs,VEC_ADD)
 
         call vpar_get(temp79a)
-        do i=1, dofs_per_element
-           dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(vpar_field%vec,itri,1,dofs,VEC_ADD)
 
         do i=1, dofs_per_element
@@ -654,9 +609,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         call vector_insert_block(f3eplot%vec,itri,1,dofs,VEC_ADD)
 
         call jdbobs_sub(temp79a)
-        do i=1, dofs_per_element
-          dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-        end do
+        dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(jdbobs%vec,itri,1,dofs,VEC_ADD)
 
      end if  ! on itemp_plot.eq.1
