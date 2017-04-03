@@ -218,7 +218,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
   integer, intent(in) :: is_lhs
   type(tag_list), intent(in), optional :: tags
 
-  integer :: numelms, itri, i, j, m, n, isize
+  integer :: numelms, itri, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
   type(vector_type) :: rhs2
   real :: hyp
@@ -249,92 +249,93 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
      call define_fields(itri,0,1,0)
 
      temp = 0.
-!$OMP PARALLEL DO COLLAPSE(2) &
-!$OMP& DEFAULT(SHARED) PRIVATE(i,j,ithread)
-     do i=1,dofs_per_element
-        do j=1,dofs_per_element
 
-           selectcase(itype)
+     selectcase(itype)
+        
+     case(NV_I_MATRIX)
+        temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+
+     case(NV_LP_MATRIX)
+        temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_LP,:))
+        if(ibound.eq.NV_NMBOUND) then
+           temp(:,:,1,1) = temp(:,:,1,1) &
+                - regular*intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+        endif
               
-           case(NV_I_MATRIX)
-              temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-
-           case(NV_LP_MATRIX)
-              temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_LP,j))
-              if(ibound.eq.NV_NMBOUND) then
-                 temp(i,j,1,1) = temp(i,j,1,1) &
-                      - regular*int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-              endif
+     case(NV_GS_MATRIX)              
+        temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
               
-           case(NV_GS_MATRIX)              
-              temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
+     case(NV_BF_MATRIX)
+        temp(:,:,1,1) = intxx3(r2_79,mu79(:,OP_1,:),nu79(:,OP_LP,:))
+        if(ifbound.eq.2) then
+           temp(:,:,1,1) = temp(:,:,1,1) + &
+                regular*intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+        end if
               
-           case(NV_BF_MATRIX)
-              temp(i,j,1,1) = int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_LP,j))
-              if(ifbound.eq.2) then
-                 temp(i,j,1,1) = temp(i,j,1,1) + &
-                      regular*int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-              end if
-              
-           case(NV_SJ_MATRIX)
-              if(is_lhs .eq. 1) then
-                 temp(i,j,1,1) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-                 temp(i,j,1,2) = -thimpsm*int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
-                 temp(i,j,2,1) = dt*hypf*int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
-                 temp(i,j,2,2) = temp(i,j,1,1)
-              else
-                 temp(i,j,1,2) = (1.-thimpsm)*&
-                      int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
-                 temp(i,j,2,2) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-              end if
+     case(NV_SJ_MATRIX)
+        if(is_lhs .eq. 1) then
+           temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+           temp(:,:,1,2) = -thimpsm*intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
+           temp(:,:,2,1) = dt*hypf*intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
+           temp(:,:,2,2) = temp(:,:,1,1)
+        else
+           temp(:,:,1,2) = (1.-thimpsm)*&
+                intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
+           temp(:,:,2,2) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+        end if
 
-           case(NV_SV_MATRIX)
-              if(is_lhs .eq. 1) then
-                 temp(i,j,1,1) =  int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-                 temp(i,j,1,2) = -int2(mu79(:,OP_1,i),nu79(:,OP_GS,j))
-                 temp(i,j,2,1) = dt*hyp*thimpsm* &
-                      int2(mu79(:,OP_GS,i),nu79(:,OP_GS,j))
-                 temp(i,j,2,2) = -temp(i,j,1,2)
-                 if(inoslip_pol.eq.0) temp(i,j,2,2) = temp(i,j,2,2) - regular*temp(i,j,1,1)
-              else
-                 temp(i,j,2,2) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j)) &
-                      -dt*hypf*(1.-thimpsm)* &
-                      int2(mu79(:,OP_GS,i),nu79(:,OP_GS,j))
-              end if
-
-           case(NV_SC_MATRIX)
-              if(is_lhs .eq. 1) then
-                 temp(i,j,1,1) =  int2(mu79(:,OP_1,i),nu79(:,OP_1,j))
-                 temp(i,j,1,2) = -int2(mu79(:,OP_1,i),nu79(:,OP_LP,j))
-                 temp(i,j,2,1) = dt*hyp*thimpsm* &
-                      int2(mu79(:,OP_LP,i),nu79(:,OP_LP,j))
-                 temp(i,j,2,2) = -temp(i,j,1,2)
-                 if(inoslip_pol.eq.0) temp(i,j,2,2) = temp(i,j,2,2) - regular*temp(i,j,1,1)
-              else
-                 temp(i,j,2,2) = int2(mu79(:,OP_1,i),nu79(:,OP_1,j)) &
-                      -dt*hypf*(1.-thimpsm)* &
-                      int2(mu79(:,OP_LP,i),nu79(:,OP_LP,j))
-              end if
-
-           case(NV_DP_MATRIX)              
-              temp(i,j,1,1) = int2(mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
-                   +      int2(mu79(:,OP_DR,i),nu79(:,OP_DR,j))
-
-           end select
-        end do
-     end do
-!$OMP END PARALLEL DO
+     case(NV_SV_MATRIX)
+        if(is_lhs .eq. 1) then
+           temp(:,:,1,1) =  intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+           temp(:,:,1,2) = -intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
+           temp(:,:,2,1) = dt*hyp*thimpsm* &
+                intxx2(mu79(:,OP_GS,:),nu79(:,OP_GS,:))
+           temp(:,:,2,2) = -temp(:,:,1,2)
+           if(inoslip_pol.eq.0) &
+                temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
+        else
+           temp(:,:,2,2) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:)) &
+                -dt*hypf*(1.-thimpsm)* &
+                intxx2(mu79(:,OP_GS,:),nu79(:,OP_GS,:))
+        end if
+        
+     case(NV_SC_MATRIX)
+        if(is_lhs .eq. 1) then
+           temp(:,:,1,1) =  intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+           temp(:,:,1,2) = -intxx2(mu79(:,OP_1,:),nu79(:,OP_LP,:))
+           temp(:,:,2,1) = dt*hyp*thimpsm* &
+                intxx2(mu79(:,OP_LP,:),nu79(:,OP_LP,:))
+           temp(:,:,2,2) = -temp(:,:,1,2)
+           if(inoslip_pol.eq.0) &
+                temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
+        else
+           temp(:,:,2,2) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:)) &
+                -dt*hypf*(1.-thimpsm)* &
+                intxx2(mu79(:,OP_LP,:),nu79(:,OP_LP,:))
+        end if
+        
+     case(NV_DP_MATRIX)              
+        temp(:,:,1,1) = intxx2(mu79(:,OP_DZ,:),nu79(:,OP_DZ,:)) &
+             +      intxx2(mu79(:,OP_DR,:),nu79(:,OP_DR,:))
+        
+     end select
 
      select case(ibound)
      case(NV_DCBOUND)
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1), tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1), &
+             tags=tags)
      case(NV_NMBOUND)
-        call apply_boundary_mask(itri, BOUNDARY_NEUMANN, temp(:,:,1,1), tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_NEUMANN, temp(:,:,1,1), &
+             tags=tags)
      case(NV_SJBOUND)
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1), tags=tags)
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,2), tags=tags)
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,1), tags=tags)
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2), tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,1), &
+             tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,1,2), &
+             tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,1), &
+             tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2), &
+             tags=tags)
      case(NV_SVBOUND)
 
      case(NV_SCBOUND)

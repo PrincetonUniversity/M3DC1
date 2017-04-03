@@ -702,5 +702,137 @@ function intx5(vari,varj,vark,varl,varm)
   intx5 = ksum
 
 end function intx5
+!==============================================
+function intxx0()
+
+  implicit none
+
+  vectype, dimension(dofs_per_element, dofs_per_element) :: intxx0
+  vectype, dimension(dofs_per_element, dofs_per_element) :: ksum
+
+  integer :: k
+
+  ksum = 0.
+  do k=1, npoints
+     ksum = ksum + weight_79(k)
+  enddo
+
+  intxx0 = ksum
+end function intxx0
+!==============================================
+function intxx1(vari)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element,dofs_per_element) :: intxx1
+  vectype, dimension(dofs_per_element,dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+
+  integer :: i,k
+
+  ksum = 0.
+  do i=1, dofs_per_element
+     do k=1, npoints
+        ksum(i,:) = ksum(i,:) + vari(k,i)*weight_79(k)
+     end do
+  enddo
+
+  intxx1 = ksum
+
+end function intxx1
+!==============================================
+function intxx2(vari,varj)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element, dofs_per_element) :: intxx2
+  vectype, dimension(dofs_per_element, dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari, varj
+
+  integer :: i,j,k
+
+  ksum = 0.
+  
+  do i=1, dofs_per_element
+     do j=1, dofs_per_element
+        do k=1, npoints
+           ksum(i,j) = ksum(i,j) + vari(k,i)*varj(k,j)*weight_79(k)
+        end do
+     end do
+  end do
+
+  intxx2 = ksum
+end function intxx2
+!==============================================
+function intxx3(vari,varj,vark)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element,dofs_per_element) :: intxx3
+  vectype, dimension(dofs_per_element,dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(npoints), intent(in) :: vark
+
+  integer :: i,j,k
+
+  ksum = 0.
+  do i=1, dofs_per_element
+     do j=1, dofs_per_element
+        do k=1, npoints
+           ksum(i,j) = ksum(i,j) + vari(k,i)*varj(k,j)*vark(k)*weight_79(k)
+        end do
+     end do
+  enddo
+
+  intxx3 = ksum
+end function intxx3
+!==============================================
+function intxx4(vari,varj,vark,varl)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element, dofs_per_element) :: intxx4
+  vectype, dimension(dofs_per_element, dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(npoints), intent(in) :: vark, varl
+
+  integer :: i,j,k
+
+  ksum = 0.
+  do i=1, dofs_per_element
+     do j=1, dofs_per_element
+        do k=1, npoints
+           ksum(i,j) = ksum(i,j) + &
+                vari(k,i)*varj(k,j)*vark(k)*varl(k)*weight_79(k)
+        end do
+     end do
+  end do
+
+  intxx4 = ksum
+end function intxx4
+!==============================================
+function intxx5(vari,varj,vark,varl,varm)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element, dofs_per_element) :: intxx5
+  vectype, dimension(dofs_per_element, dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(npoints), intent(in) :: vark, varl, varm
+
+  integer :: i,j,k
+
+  ksum = 0.
+  do i=1, dofs_per_element
+     do j=1, dofs_per_element
+        do k=1, npoints
+           ksum(i,j) = ksum(i,j) + &
+                vari(k,i)*varj(k,j)*vark(k)*varl(k)*varm(k)*weight_79(k)
+        end do
+     end do
+  enddo
+
+  intxx5 = ksum
+end function intxx5
 
 end module nintegrate
