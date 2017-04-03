@@ -587,5 +587,120 @@ vectype function int5(vari,varj,vark,varl,varm)
   int5 = ksum
 
 end function int5
+!==============================================
+function intx0()
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: intx0
+  vectype, dimension(dofs_per_element) :: ksum
+
+  integer :: k
+
+  ksum = 0.
+  do k=1, npoints
+     ksum = ksum + weight_79(k)
+  enddo
+
+  intx0 = ksum
+end function intx0
+!==============================================
+function intx1(vari)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: intx1
+  vectype, dimension(dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+
+  integer :: k
+
+  ksum = 0.
+  do k=1, npoints
+     ksum = ksum + vari(k,:)*weight_79(k)
+  enddo
+
+  intx1 = ksum
+
+end function intx1
+!==============================================
+function intx2(vari,varj)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: intx2
+  vectype, dimension(dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(npoints), intent(in) :: varj
+
+  integer :: k
+
+  ksum = 0.
+  do k=1, npoints
+     ksum = ksum + vari(k,:)*varj(k)*weight_79(k)
+  enddo
+
+  intx2 = ksum
+end function intx2
+!==============================================
+function intx3(vari,varj,vark)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: intx3
+  vectype, dimension(dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(npoints), intent(in) :: varj, vark
+
+  integer :: k
+
+  ksum = 0.
+  do k=1, npoints
+     ksum = ksum + vari(k,:)*varj(k)*vark(k)*weight_79(k)
+  enddo
+
+  intx3 = ksum
+
+end function intx3
+!==============================================
+function intx4(vari,varj,vark,varl)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: intx4
+  vectype, dimension(dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(npoints), intent(in) :: varj, vark, varl
+
+  integer :: k
+
+  ksum = 0.
+  do k=1, npoints
+     ksum = ksum + vari(k,:)*varj(k)*vark(k)*varl(k)*weight_79(k)
+  enddo
+
+  intx4 = ksum
+
+end function intx4
+!==============================================
+function intx5(vari,varj,vark,varl,varm)
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: intx5
+  vectype, dimension(dofs_per_element) :: ksum
+  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(npoints), intent(in) :: varj, vark, varl, varm
+
+  integer :: k
+
+  ksum = 0.
+  do k=1, npoints
+     ksum = ksum + vari(k,:)*varj(k)*vark(k)*varl(k)*varm(k)*weight_79(k)
+  enddo
+
+  intx5 = ksum
+
+end function intx5
 
 end module nintegrate
