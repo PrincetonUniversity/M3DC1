@@ -285,18 +285,13 @@ subroutine calculate_external_fields()
 
   type(matrix_type) :: br_mat
   type(vector_type) :: psi_vec, bz_vec, p_vec
-  integer :: i, j, itri, nelms, ier, ibound, ipsibound
+  integer :: i, itri, nelms, ier, ibound, ipsibound
 
   vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
   vectype, dimension(dofs_per_element,2) :: temp2
   vectype, dimension(dofs_per_element) :: temp3, temp4
-  integer, dimension(dofs_per_element) :: imask, psimask
 
   type(field_type) :: psi_f, bz_f, p_f, bf_f
-
-!!$  integer :: is_edge(3)  ! is inode on boundary
-!!$  real :: n(2,3)
-!!$  integer :: iedge, idim(3)
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
 
@@ -347,97 +342,60 @@ subroutine calculate_external_fields()
      call define_element_quadrature(itri,int_pts_main,5)
      call define_fields(itri,0,1,0)
 
-     call get_boundary_mask(itri, ipsibound, psimask, domain_boundary)
-     call get_boundary_mask(itri, ibound, imask, domain_boundary)
-
      call rmp_field(npoints, npoints_tor, npoints_pol, &
           x_79, phi_79, z_79, &
           temp79a, temp79b, temp79c, temp79d)
 
      ! psi_equation
      ! ~~~~~~~~~~~~
-     do i=1,dofs_per_element
-
-        if(psimask(i).eq.0) then
-           temp(i,:,1,:) = 0.
-           temp2(i,1) = 0.
-        else
-           do j=1,dofs_per_element
-           ! Mininize BR, BZ
-              temp(i,j,1,1) = int3(ri2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
-                   +          int3(ri2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
-                   + regular* int3(ri4_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
+     ! Mininize BR, BZ
+     temp(:,:,1,1) = intxx3(mu79(:,OP_DR,:),nu79(:,OP_DR,:),ri2_79) &
+                   +          intxx3(mu79(:,OP_DZ,:),nu79(:,OP_DZ,:),ri2_79) &
+                   + regular* intxx3(mu79(:,OP_1,:),nu79(:,OP_1,:),ri4_79)
 #if defined(USECOMPLEX) || defined(USE3D)
-              temp(i,j,1,2) = int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DRP,j)) &
-                   -          int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZP,j))
+     temp(:,:,1,2) = intxx3(mu79(:,OP_DZ,:),nu79(:,OP_DRP,:),ri_79) &
+          -          intxx3(mu79(:,OP_DR,:),nu79(:,OP_DZP,:),ri_79)
 #else
-              temp(i,j,1,2) = 0.
+     temp(:,:,1,2) = 0.
 #endif
+
+     temp2(:,1) = intx3(mu79(:,OP_DR,:),temp79c,ri_79) &
+          -       intx3(mu79(:,OP_DZ,:),temp79a,ri_79)
+
            ! Jphi
-!!$              temp(i,j,1,1) = -int3(ri2_79,mu79(:,OP_1,i),nu79(:,OP_GS,j))
-!!$              temp(i,j,1,2) = 0.
-              
-        end do
-
-        ! Minimize BR, BZ
-        temp2(i,1) = int3(ri_79,mu79(:,OP_DR,i),temp79c) &
-             -       int3(ri_79,mu79(:,OP_DZ,i),temp79a)
-
-        ! Jphi
-!!$           temp2(i,1) = &
-!!$                + int3(ri_79,mu79(:,OP_DR,i),temp79c) &
-!!$                - int3(ri_79,mu79(:,OP_DZ,i),temp79a)
-!!$           temp2(i,1) = 0.
-        end if
+!!$      temp(:,:,1,1) = -intxx3(mu79(:,OP_1,:),nu79(:,OP_GS,:),ri2_79)
+!!$      temp(:,:,1,2) = 0.
+!!$      temp2(:,1) = &
+!!$               + intx3(mu79(:,OP_DR,:),temp79c,ri_79) &
+!!$               - intx3(mu79(:,OP_DZ,:),temp79a,ri_79)
+!!$      temp2(:,1) = 0.
 
 
-        ! f equation
-        ! ~~~~~~~~~~
-        if(imask(i).eq.0) then
-           temp(i,:,2,:) = 0.
-           temp2(i,2) = 0.
-        else
-           do j=1,dofs_per_element
-              temp(i,j,2,1) =  0.
-!              temp(i,j,2,2) = int3(r2_79,mu79(:,OP_1,i),nu79(:,OP_LP,j))
-              temp(i,j,2,2) = &
-                   -int3(r2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) &
-                   -int3(r2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j)) &
-                   -2.*int3(r_79,mu79(:,OP_1,i),nu79(:,OP_DR,j)) &
-                   + regular*int3(ri2_79,mu79(:,OP_1,i),nu79(:,OP_1,j))
-           end do
-           temp2(i,2) = int3(r_79,mu79(:,OP_1,i),temp79b)
-        end if
+     ! f equation
+     ! ~~~~~~~~~~
+     temp(:,:,2,1) =  0.
+     !     temp(:,:,2,2) = intxx3(mu79(:,OP_1,:),nu79(:,OP_LP,:),r2_79)
+     temp(:,:,2,2) = &
+          -intxx3(mu79(:,OP_DR,:),nu79(:,OP_DR,:),r2_79) &
+          -intxx3(mu79(:,OP_DZ,:),nu79(:,OP_DZ,:),r2_79) &
+          -2.*intxx3(mu79(:,OP_1,:),nu79(:,OP_DR,:),r_79) &
+          + regular*intxx3(mu79(:,OP_1,:),nu79(:,OP_1,:),ri2_79)
+
+     temp2(:,2) = intx3(mu79(:,OP_1,:),r_79,temp79b)
         
-        temp3(i) = int3(r_79,mu79(:,OP_1,i),temp79b)
+     temp3 = intx3(mu79(:,OP_1,:),r_79,temp79b)
         
-        if(read_p) temp4(i) = int2(mu79(:,OP_1,i),temp79d)
-     end do
+     if(read_p) temp4 = intx2(mu79(:,OP_1,:),temp79d)
 
 
-     ! add surface terms
-!!$     call boundary_edge(itri, is_edge, n, idim, domain_boundary)
-!!$     
-!!$     do iedge=1,3
-!!$        if(is_edge(iedge).eq.0) cycle
-!!$        if(.not.in_tag_list(domain_boundary, is_edge(iedge))) cycle
-!!$
-!!$        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
-!!$        call define_fields(itri, 0, 1, 0)
-!!$
-!!$        do i=1,dofs_per_element
-!!$           if(psimask(i).ne.0) then
-!!$              temp2(i,1) = temp2(i,1) &
-!!$                   + int4(ri_79,mu79(:,OP_1,i),norm79(:,2),temp79a) &
-!!$                   - int4(ri_79,mu79(:,OP_1,i),norm79(:,1),temp79c)
-!!$           end if
-!!$           if(imask(i).ne.0) then
-!!$              temp2(i,2) = temp2(i,2) &
-!!$                   + int4(r2_79,mu79(:,OP_1,i),norm79(:,1),temp79a)/rfac &
-!!$                   + int4(r2_79,mu79(:,OP_1,i),norm79(:,2),temp79c)/rfac
-!!$           end if
-!!$        end do
-!!$     end do
+     call apply_boundary_mask(itri, ipsibound, temp(:,:,1,1), &
+          tags=domain_boundary)
+     call apply_boundary_mask(itri, ipsibound, temp(:,:,1,2), &
+          tags=domain_boundary)
+     call apply_boundary_mask(itri, ibound, temp(:,:,2,1), &
+          tags=domain_boundary)
+     call apply_boundary_mask(itri, ibound, temp(:,:,2,2), &
+          tags=domain_boundary)
 
      call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
      call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
