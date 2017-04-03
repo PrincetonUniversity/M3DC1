@@ -9184,89 +9184,89 @@ end function b3pedkappag
 
 ! N1n
 ! ===
-vectype function n1n(e,f)
+function n1n(e,f)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
+  vectype, dimension(dofs_per_element,dofs_per_element) :: n1n
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e,f
 
   if(surface_int) then
-     temp = 0.
+     n1n = 0.
   else
-     temp = int2(e(:,OP_1),f(:,OP_1))
+     n1n = intxx2(e(:,OP_1,:),f(:,OP_1,:))
   end if
-
-  n1n = temp
-  return
 end function n1n
 
 
 ! N1ndenm
 ! =======
-vectype function n1ndenm(e,f,g)
+function n1ndenm(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  vectype, dimension(dofs_per_element) :: n1ndenm
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
   real, intent(in) :: g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      if(inograd_n.eq.1) then
         temp = 0.
      else
         temp = g* &
-             (int3(e(:,OP_1),norm79(:,1),f(:,OP_DR)) &
-             +int3(e(:,OP_1),norm79(:,2),f(:,OP_DZ)))
+             (intx3(e(:,OP_1,:),norm79(:,1),f(:,OP_DR)) &
+             +intx3(e(:,OP_1,:),norm79(:,2),f(:,OP_DZ)))
      end if
   else
      temp = -g* &
-          (int2(e(:,OP_DZ),f(:,OP_DZ)) + int2(e(:,OP_DR),f(:,OP_DR)))
+          (intx2(e(:,OP_DZ,:),f(:,OP_DZ)) + intx2(e(:,OP_DR,:),f(:,OP_DR)))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-     temp = temp + g*int3(ri2_79,e(:,OP_1),f(:,OP_DPP))
+     temp = temp + g*intx3(e(:,OP_1,:),ri2_79,f(:,OP_DPP))
 #endif
 
      if(hypp.ne.0.) then
         if(ihypkappa.eq.1) then
-           temp = temp - hypp*g*int2(e(:,OP_LP),f(:,OP_LP))
+           temp = temp - hypp*g*intx2(e(:,OP_LP,:),f(:,OP_LP))
         else
-           temp = temp - hypp*int2(e(:,OP_LP),f(:,OP_LP))
+           temp = temp - hypp*intx2(e(:,OP_LP,:),f(:,OP_LP))
         endif
      endif
   end if
 
   n1ndenm = temp
-  return
 end function n1ndenm
 
 
 ! N1nu
 ! ====
-vectype function n1nu(e,f,g)
+function n1nu(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp        
+  vectype, dimension(dofs_per_element) :: n1nu
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri_79, e(:,OP_1),f(:,OP_DR),g(:,OP_DZ)) &
-             - int4(ri_79, e(:,OP_1),f(:,OP_DZ),g(:,OP_DR))
+        temp = intx4(e(:,OP_1,:),ri_79,f(:,OP_DR),g(:,OP_DZ)) &
+             - intx4(e(:,OP_1,:),ri_79,f(:,OP_DZ),g(:,OP_DR))
      end if
      
   case(1)
@@ -9274,12 +9274,12 @@ vectype function n1nu(e,f,g)
         if(inonormalflow.eq.1) then
            temp = 0.
         else
-           temp = int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DZ)) &
-                - int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DR))
+           temp = intx5(e(:,OP_1,:),r_79,f(:,OP_1),norm79(:,1),g(:,OP_DZ)) &
+                - intx5(e(:,OP_1,:),r_79,f(:,OP_1),norm79(:,2),g(:,OP_DR))
         endif
      else
-        temp = int4(r_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DR)) &
-             - int4(r_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZ))
+        temp = intx4(e(:,OP_DZ,:),r_79,f(:,OP_1),g(:,OP_DR)) &
+             - intx4(e(:,OP_DR,:),r_79,f(:,OP_1),g(:,OP_DZ))
      endif
   end select
 
@@ -9290,15 +9290,17 @@ end function n1nu
 
 ! N1nv
 ! ====
-vectype function n1nv(e,f,g)
+function n1nv(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: n1nv
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
@@ -9306,16 +9308,16 @@ vectype function n1nv(e,f,g)
      if(surface_int) then
         temp = 0.
      else
-        temp = -int4(ri2_79,e(:,OP_1),f(:,OP_1 ),g(:,OP_DP)) &
-             -  int4(ri2_79,e(:,OP_1),f(:,OP_DP),g(:,OP_1 ))
+        temp = -intx4(e(:,OP_1,:),ri2_79,f(:,OP_1 ),g(:,OP_DP)) &
+             -  intx4(e(:,OP_1,:),ri2_79,f(:,OP_DP),g(:,OP_1 ))
      end if
 
   case(1)
      if(surface_int) then
         temp = 0.
      else
-        temp = -int3(e(:,OP_1),f(:,OP_1 ),g(:,OP_DP)) &
-             -  int3(e(:,OP_1),f(:,OP_DP),g(:,OP_1 ))
+        temp = -intx3(e(:,OP_1,:),f(:,OP_1 ),g(:,OP_DP)) &
+             -  intx3(e(:,OP_1,:),f(:,OP_DP),g(:,OP_1 ))
      end if
   end select
 
@@ -9323,20 +9325,21 @@ vectype function n1nv(e,f,g)
 #else
   n1nv = 0.
 #endif
-  return
 end function n1nv
 
 ! N1nchi
 ! ======
-vectype function n1nchi(e,f,g)
+function n1nchi(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: n1nchi
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -9344,8 +9347,8 @@ vectype function n1nchi(e,f,g)
         temp = 0.
      else
         temp = &
-             - int3(e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) &
-             - int3(e(:,OP_DR),f(:,OP_1),g(:,OP_DR))
+             - intx3(e(:,OP_DZ,:),f(:,OP_1),g(:,OP_DZ)) &
+             - intx3(e(:,OP_DR,:),f(:,OP_1),g(:,OP_DR))
      end if
 
   case(1)
@@ -9354,41 +9357,39 @@ vectype function n1nchi(e,f,g)
            temp = 0.
         else
            temp = &
-                - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
-                - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ))
+                - intx5(e(:,OP_1,:),ri2_79,f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
+                - intx5(e(:,OP_1,:),ri2_79,f(:,OP_1),norm79(:,2),g(:,OP_DZ))
         endif
      else
-        temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) &
-             + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR))
+        temp = intx4(e(:,OP_DZ,:),ri2_79,f(:,OP_1),g(:,OP_DZ)) &
+             + intx4(e(:,OP_DR,:),ri2_79,f(:,OP_1),g(:,OP_DR))
      end if
   end select
 
   n1nchi = temp
-  return
 end function n1nchi
 
 
 ! N1s
 ! ===
-vectype function n1s(e,f)
+function n1s(e,f)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: n1s
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
 
   if(surface_int) then
-     temp = 0.
+     n1s = 0.
   else
-     temp = int2(e(:,OP_1),f(:,OP_1))
+     n1s = intx2(e(:,OP_1,:),f(:,OP_1))
   end if
-
-  n1s = temp
-  return
 end function n1s
+
 vectype function t3tndenm(e,f,g,h)
 
   use basic
