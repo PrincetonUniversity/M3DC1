@@ -13487,13 +13487,28 @@ vectype function j1b2ipsib(e,f,g,h)
 
   vectype :: temp
 
-  temp = int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DR))    &
-       + int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DZ))    &
-       - int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_GS),h(:,OP_1))
+  temp = - int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_GS),h(:,OP_1))
 
   j1b2ipsib = temp
   return
 end function j1b2ipsib
+vectype function j1b2ibpsi(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+  vectype :: temp
+
+  temp = int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DR))    &
+       + int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DZ))
+
+  j1b2ibpsi = temp
+  return
+end function j1b2ibpsi
 
 vectype function j1b2ipsif(e,f,g,h)
 
