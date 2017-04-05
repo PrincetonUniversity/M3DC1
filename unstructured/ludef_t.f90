@@ -4422,6 +4422,9 @@ subroutine j_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
     temp = j1b2ipsib(trial,b2i79,lin,bzt79)
     ssterm(psi_g) = ssterm(psi_g) - temp
 
+    temp = j1b2ibpsi(trial,b2i79,pst79,lin)
+    ssterm(bz_g) = ssterm(bz_g) - temp
+
 #if defined(USE3D) || defined(USECOMPLEX)
 
     temp = j1b2ipsif(trial,b2i79,pst79,lin)
