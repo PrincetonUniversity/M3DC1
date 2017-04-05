@@ -113,6 +113,25 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
 
 
+  ! Viscosity
+  ! ~~~~~~~~~
+  tempx = v1umu(trialx,lin,vis79,vic79) &
+       +  v1us (trialx,lin,sig79)
+  ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
+  ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
+  if(numvar.ge.2) then
+     tempx = v1vmu(trialx,lin,vis79,vic79)
+     ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
+     ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
+  end if
+  if(numvar.ge.3) then
+     tempx = v1chimu(trialx,lin,vis79,vic79) &
+          +  v1chis (trialx,lin,sig79)
+     ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
+     ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
+  end if
+
+
   ! Advection
   ! ~~~~~~~~~
   if(linear.eq.0) then 
@@ -193,25 +212,6 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
 
-
-  ! Viscosity
-  ! ~~~~~~~~~
-  temp = v1umu(trial,lin,vis79,vic79) &
-       + v1us (trial,lin,sig79)
-  ssterm(i,u_g) = ssterm(i,u_g) -     thimp     *dt*temp
-  ddterm(i,u_g) = ddterm(i,u_g) + (1.-thimp*bdf)*dt*temp
-  if(numvar.ge.2) then
-     temp = v1vmu(trial,lin,vis79,vic79)
-     ssterm(i,vz_g) = ssterm(i,vz_g) -     thimp     *dt*temp
-     ddterm(i,vz_g) = ddterm(i,vz_g) + (1.-thimp*bdf)*dt*temp
-  end if
-  if(numvar.ge.3) then
-     temp = v1chimu(trial,lin,vis79,vic79) &
-          + v1chis (trial,lin,sig79)
-     ssterm(i,chi_g) = ssterm(i,chi_g) -     thimp     *dt*temp
-     ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimp*bdf)*dt*temp
-  end if
-  
 
   ! JxB
   ! ~~~
@@ -525,7 +525,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 end subroutine vorticity_lin 
 
 
-subroutine vorticity_nolin(trial, r4term)
+subroutine vorticity_nolin(trialx, r4term)
 
   use basic
   use m3dc1_nint
@@ -534,25 +534,32 @@ subroutine vorticity_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
-  vectype, intent(out) :: r4term
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
+  vectype, intent(out), dimension(dofs_per_element) :: r4term
+
+  integer :: i
+  vectype, dimension(MAX_PTS, OP_NUM) :: trial
+
 
   r4term = 0.
+
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
 
   ! JxB_ext
   ! ~~~~~~~
   if(use_external_fields .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then 
-     r4term = r4term + dt* &
+     r4term(i) = r4term(i) + dt* &
           (v1psipsi(trial,psx79,ps079) &
           +v1psib  (trial,ps079,bzx79))
         
      if(numvar.ge.2) then
-        r4term = r4term + dt* &
+        r4term(i) = r4term(i) + dt* &
              v1bb  (trial,bz079,bzx79)
      end if
 
      if(i3d.eq.1 .and. numvar.ge.2) then
-        r4term = r4term + dt* &
+        r4term(i) = r4term(i) + dt* &
              (v1psif(trial,ps079,bfx79) &
              +v1bf  (trial,bzx79,bf079))
      end if
@@ -562,7 +569,7 @@ subroutine vorticity_nolin(trial, r4term)
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
+     r4term(i) = r4term(i) + dt* &
                  (v1par(trial,ppar79)    &
                 + v1parb2ipsipsi(trial,ppar79,b2i79,pstx79,pstx79)  &
                 + v1parb2ipsib(trial,ppar79,b2i79,pstx79,bztx79)    &
@@ -572,20 +579,23 @@ subroutine vorticity_nolin(trial, r4term)
   endif
 #endif
 
+  end do
+
   if(linear.eq.1) return
+
 
   ! density terms
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. eqsubtract.eq.1) then
      r4term = r4term + dt* &
-          v1us     (trial,ph079,sig79)
+          v1us     (trialx,ph079,sig79)
              
      if(numvar.ge.3) then
         r4term = r4term + dt* &
-             v1chis   (trial,ch079,sig79)
+             v1chis   (trialx,ch079,sig79)
      endif
   endif
-    
+
 end subroutine vorticity_nolin
 
 
@@ -4748,9 +4758,7 @@ subroutine ludefvel_n(itri)
      if(izone.eq.1) then 
         select case(k)
         case(1)
-           do i=1,dofs_per_element
-              call vorticity_nolin(mu79(:,:,i),r4(i))
-           end do
+           call vorticity_nolin(mu79,r4)
         case(2)
            do i=1,dofs_per_element
               call axial_vel_nolin(mu79(:,:,i),r4(i))
