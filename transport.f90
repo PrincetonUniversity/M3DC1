@@ -29,10 +29,13 @@ function sigma_func(izone)
   real :: val, valp, valpp, pso
   real, allocatable :: xvals(:), yvals(:)
 
-  temp = 0.
-
   ! Don't allow particle source in wall or vacuum region
-  if(izone.ne.1) return
+  if(izone.ne.1) then
+     sigma_func = 0.
+     return
+  end if
+
+  temp = 0.
 
   ! Pellet injection model
 
@@ -157,10 +160,13 @@ function force_func(izone)
   integer, intent(in) :: izone
   vectype, dimension(dofs_per_element) :: temp
 
-  temp = 0.
-
   ! Don't allow momentum source in wall or vacuum region
-  if(izone.ne.1) return
+  if(izone.ne.1) then
+     force_func = 0.
+     return
+  end if
+
+  temp = 0.
 
   ! Beam source
   if(ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5) then
@@ -218,6 +224,10 @@ function pforce_func
      enddo
   
      pforce_func = intx2(mu79(:,OP_1,:),temp79e)
+
+  case default
+     pforce_func = 0.
+
   end select
 
 end function pforce_func
@@ -282,10 +292,13 @@ function q_func(izone)
   real, allocatable :: xvals(:), yvals(:)
   real, dimension(MAX_PTS) :: r
 
-  temp = 0.
-
   ! Don't allow heating in wall or vacuum region
-  if(izone.ne.1) return
+  if(izone.ne.1) then
+     q_func = 0.
+     return
+  end if
+
+  temp = 0.
 
   ! Pellet injection model
   if(igaussian_heat_source.eq.1) then
