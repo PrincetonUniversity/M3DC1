@@ -44,7 +44,7 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    grate=fltarr(maxn ,ntimes)
    for n=0, maxn-1 do begin
       ke[n,*] = kehmn[n:n+(ntimes-1)*dimn[0]:dimn[0]]
-      grate[n,*] = deriv(time, alog(ke[n,*]))      !  /2. removed 12/12/16 scj
+      grate[n,*] = deriv(time, alog(ke[n,*]))      ;  /2. removed 12/12/16 scj
    endfor
 
    ; plot range 1:ntimes
