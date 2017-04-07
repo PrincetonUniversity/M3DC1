@@ -611,7 +611,7 @@ function intx1(vari)
 
   vectype, dimension(dofs_per_element) :: intx1
   vectype, dimension(dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
 
   integer :: k
 
@@ -630,7 +630,7 @@ function intx2(vari,varj)
 
   vectype, dimension(dofs_per_element) :: intx2
   vectype, dimension(dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj
 
   integer :: k
@@ -649,7 +649,7 @@ function intx3(vari,varj,vark)
 
   vectype, dimension(dofs_per_element) :: intx3
   vectype, dimension(dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark
 
   integer :: k
@@ -669,7 +669,7 @@ function intx4(vari,varj,vark,varl)
 
   vectype, dimension(dofs_per_element) :: intx4
   vectype, dimension(dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark, varl
 
   integer :: k
@@ -689,7 +689,7 @@ function intx5(vari,varj,vark,varl,varm)
 
   vectype, dimension(dofs_per_element) :: intx5
   vectype, dimension(dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark, varl, varm
 
   integer :: k
@@ -726,7 +726,7 @@ function intxx1(vari)
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: intxx1
   vectype, dimension(dofs_per_element,dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
 
   integer :: i,k
 
@@ -747,7 +747,7 @@ function intxx2(vari,varj)
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx2
   vectype, dimension(dofs_per_element, dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari, varj
 
   integer :: i,j,k
 
@@ -770,7 +770,7 @@ function intxx3(vari,varj,vark)
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: intxx3
   vectype, dimension(dofs_per_element,dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark
 
   integer :: i,j,k
@@ -793,7 +793,7 @@ function intxx4(vari,varj,vark,varl)
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx4
   vectype, dimension(dofs_per_element, dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark, varl
 
   integer :: i,j,k
@@ -817,7 +817,7 @@ function intxx5(vari,varj,vark,varl,varm)
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx5
   vectype, dimension(dofs_per_element, dofs_per_element) :: ksum
-  vectype, dimension(npoints, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark, varl, varm
 
   integer :: i,j,k
