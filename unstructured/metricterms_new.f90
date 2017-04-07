@@ -2436,16 +2436,18 @@ end function v2vvn
 
 ! V2up
 ! ====
-vectype function v2up(e,f,g)
+function v2up(e,f,g)
   use basic
   use arrays
   use m3dc1_nint
   
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g
+  vectype, dimension(dofs_per_element) :: v2up
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f, g
+  vectype, dimension(dofs_per_element) :: temp
 
-  vectype :: temp
   temp = 0.
 
   if(surface_int) then
@@ -2457,40 +2459,40 @@ vectype function v2up(e,f,g)
   select case(ivform)
   case(0)
      temp = & 
-          -  int4(ri_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR)) &
-          +  int4(ri_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ)) &
-          -  int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DRP)) &
-          +  int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZP))
+          -  intx4(e(:,OP_1,:),ri_79,f(:,OP_DZP),g(:,OP_DR)) &
+          +  intx4(e(:,OP_1,:),ri_79,f(:,OP_DRP),g(:,OP_DZ)) &
+          -  intx4(e(:,OP_1,:),ri_79,f(:,OP_DZ),g(:,OP_DRP)) &
+          +  intx4(e(:,OP_1,:),ri_79,f(:,OP_DR),g(:,OP_DZP))
 
   case(1)
-     temp = int4(r_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ)) &
-          - int4(r_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR)) &
-          + int4(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZP)) &
-          - int4(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DRP))
+     temp = intx4(e(:,OP_1,:),r_79,f(:,OP_DRP),g(:,OP_DZ)) &
+          - intx4(e(:,OP_1,:),r_79,f(:,OP_DZP),g(:,OP_DR)) &
+          + intx4(e(:,OP_1,:),r_79,f(:,OP_DR),g(:,OP_DZP)) &
+          - intx4(e(:,OP_1,:),r_79,f(:,OP_DZ),g(:,OP_DRP))
      if(itor.eq.1) then
         temp = temp - 2.*gam* &
-             (int3(e(:,OP_1),f(:,OP_DZP),g(:,OP_1)) &
-             +int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DP)))
+             (intx3(e(:,OP_1,:),f(:,OP_DZP),g(:,OP_1)) &
+             +intx3(e(:,OP_1,:),f(:,OP_DZ),g(:,OP_DP)))
      endif
   end select
 #endif
 
   v2up = temp
-  return
 end function v2up
 
 ! V2vp
 ! ====
-vectype function v2vp(e,f,g)
+function v2vp(e,f,g)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2vp
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f, g
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      v2vp = 0.
@@ -2502,24 +2504,23 @@ vectype function v2vp(e,f,g)
 #if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
-     temp =          int4(ri2_79,e(:,OP_1),g(:,OP_DPP),f(:,OP_1)) &
-          + (1.+gam)*int4(ri2_79,e(:,OP_1),g(:,OP_DP),f(:,OP_DP)) &
-          + gam*     int4(ri2_79,e(:,OP_1),g(:,OP_1),f(:,OP_DPP))
+     temp =          intx4(e(:,OP_1,:),ri2_79,g(:,OP_DPP),f(:,OP_1)) &
+          + (1.+gam)*intx4(e(:,OP_1,:),ri2_79,g(:,OP_DP),f(:,OP_DP)) &
+          + gam*     intx4(e(:,OP_1,:),ri2_79,g(:,OP_1),f(:,OP_DPP))
   case(1)
-     temp =          int3(e(:,OP_1),g(:,OP_DPP),f(:,OP_1)) &
-          + (1.+gam)*int3(e(:,OP_1),g(:,OP_DP),f(:,OP_DP)) &
-          + gam*     int3(e(:,OP_1),g(:,OP_1),f(:,OP_DPP))
+     temp =          intx3(e(:,OP_1,:),g(:,OP_DPP),f(:,OP_1)) &
+          + (1.+gam)*intx3(e(:,OP_1,:),g(:,OP_DP),f(:,OP_DP)) &
+          + gam*     intx3(e(:,OP_1,:),g(:,OP_1),f(:,OP_DPP))
   end select
 #endif
 
   v2vp = temp
-  return
 end function v2vp
 
 
 ! V2chip
 ! ======
-vectype function v2chip(e,f,g)
+function v2chip(e,f,g)
 
   use basic
   use arrays
@@ -2527,8 +2528,10 @@ vectype function v2chip(e,f,g)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2chip
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM, dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f, g
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      v2chip = 0.
@@ -2540,68 +2543,67 @@ vectype function v2chip(e,f,g)
 #if defined(USE3D) || defined(USECOMPLEX)
   select case (ivform)
   case(0)
-     temp =     int3(e(:,OP_1),f(:,OP_DRP),g(:,OP_DR ))    &
-          +     int3(e(:,OP_1),f(:,OP_DZP),g(:,OP_DZ ))    &
-          +     int3(e(:,OP_1),f(:,OP_DR ),g(:,OP_DRP))    &
-          +     int3(e(:,OP_1),f(:,OP_DZ ),g(:,OP_DZP))    &
-          + gam*int3(e(:,OP_1),f(:,OP_LPP),g(:,OP_1 ))     &
-          + gam*int3(e(:,OP_1),f(:,OP_LP ),g(:,OP_DP))
+     temp =     intx3(e(:,OP_1,:),f(:,OP_DRP),g(:,OP_DR ))    &
+          +     intx3(e(:,OP_1,:),f(:,OP_DZP),g(:,OP_DZ ))    &
+          +     intx3(e(:,OP_1,:),f(:,OP_DR ),g(:,OP_DRP))    &
+          +     intx3(e(:,OP_1,:),f(:,OP_DZ ),g(:,OP_DZP))    &
+          + gam*intx3(e(:,OP_1,:),f(:,OP_LPP),g(:,OP_1 ))     &
+          + gam*intx3(e(:,OP_1,:),f(:,OP_LP ),g(:,OP_DP))
 
   case(1)
-     temp =     int4(ri2_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DR))    &
-              + int4(ri2_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZ))    &
-          + gam*int4(ri2_79,e(:,OP_1),f(:,OP_GSP),g(:,OP_1 ))    &
-              + int4(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DRP))    &
-              + int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP))    &
-          + gam*int4(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DP))
+     temp =     intx4(e(:,OP_1,:),ri2_79,f(:,OP_DRP),g(:,OP_DR))    &
+              + intx4(e(:,OP_1,:),ri2_79,f(:,OP_DZP),g(:,OP_DZ))    &
+          + gam*intx4(e(:,OP_1,:),ri2_79,f(:,OP_GSP),g(:,OP_1 ))    &
+              + intx4(e(:,OP_1,:),ri2_79,f(:,OP_DR),g(:,OP_DRP))    &
+              + intx4(e(:,OP_1,:),ri2_79,f(:,OP_DZ),g(:,OP_DZP))    &
+          + gam*intx4(e(:,OP_1,:),ri2_79,f(:,OP_GS),g(:,OP_DP))
   end select
 #endif
 
   v2chip = temp
-  return
 end function v2chip
+
 
 ! V2p
 ! ===
-vectype function v2p(e,f)
+function v2p(e,f)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2p
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
 
   if(surface_int) then
      v2p = 0.
      return
   end if
 
-  temp = 0.
-
 #if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
-  temp = -int2(e(:,OP_1),f(:,OP_DP))
+  v2p = -intx2(e(:,OP_1,:),f(:,OP_DP))
+#else
+  v2p = 0.
 #endif
 
-  v2p = temp
-  return
 end function v2p
 
 
 ! V2psipsi
 ! ========
-vectype function v2psipsi(e,f,g)
+function v2psipsi(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2psipsi
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
   if(surface_int) then
      v2psipsi = 0.
@@ -2610,39 +2612,35 @@ vectype function v2psipsi(e,f,g)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
-  temp = - &
-       (int4(ri2_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZ)) &
-       +int4(ri2_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DR)))
+  v2psipsi = - &
+       (intx4(e(:,OP_1,:),ri2_79,f(:,OP_DZP),g(:,OP_DZ)) &
+       +intx4(e(:,OP_1,:),ri2_79,f(:,OP_DRP),g(:,OP_DR)))
 #else
-  temp = 0.
+  v2psipsi = 0.
 #endif
-  v2psipsi = temp
-  return
 end function v2psipsi
 
 
 ! V2psib
 ! ======
-vectype function v2psib(e,f,g)
+function v2psib(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2psib
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
   if(surface_int) then
      v2psib = 0.
      return
   end if
 
-  temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ)) &
-       - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR))
-
-  v2psib = temp
-  return
+  v2psib = intx4(e(:,OP_1,:),ri_79,f(:,OP_DR),g(:,OP_DZ)) &
+       -   intx4(e(:,OP_1,:),ri_79,f(:,OP_DZ),g(:,OP_DR))
 end function v2psib
 
 
@@ -3260,15 +3258,16 @@ end function v2vs
 
 ! V2psif1
 ! =======
-vectype function v2psif1(e,f,g)
+function v2psif1(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2psif1
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
   if(surface_int) then
      v2psif1 = 0.
@@ -3277,26 +3276,25 @@ vectype function v2psif1(e,f,g)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
-  temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZPP)) &
-       - int4(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DRPP))
+  v2psif1 = intx4(e(:,OP_1,:),ri_79,f(:,OP_DR),g(:,OP_DZPP)) &
+       -    intx4(e(:,OP_1,:),ri_79,f(:,OP_DZ),g(:,OP_DRPP))
 #else
-  temp = 0.
+  v2psif1 = 0.
 #endif
-  v2psif1 = temp
-  return
 end function v2psif1
 
 ! V2psif2
 ! =======
-vectype function v2psif2(e,f,g)
+function v2psif2(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2psif2
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
   if(surface_int) then
      v2psif2 = 0.
@@ -3305,28 +3303,27 @@ vectype function v2psif2(e,f,g)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
-  temp = int4(ri_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZP)) &
-       - int4(ri_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DRP))
+  v2psif2 = intx4(e(:,OP_1,:),ri_79,f(:,OP_DRP),g(:,OP_DZP)) &
+       -    intx4(e(:,OP_1,:),ri_79,f(:,OP_DZP),g(:,OP_DRP))
 #else
-  temp = 0.
+  v2psif2 = 0.
 #endif
-  v2psif2 = temp
-  return
 end function v2psif2
 
 
 
 ! V2bf
 ! ====
-vectype function v2bf(e,f,g)
+function v2bf(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2bf
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
   
   if(surface_int) then
      v2bf = 0.
@@ -3334,27 +3331,26 @@ vectype function v2bf(e,f,g)
   endif
 #if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
-  temp = &
-       - int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP)) &
-       - int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DRP))
+  v2bf = &
+       - intx3(e(:,OP_1,:),f(:,OP_DZ),g(:,OP_DZP)) &
+       - intx3(e(:,OP_1,:),f(:,OP_DR),g(:,OP_DRP))
 #else
-  temp = 0.
+  v2bf = 0.
 #endif
-  v2bf = temp
-  return
 end function v2bf
 
 ! V2ff
 ! ====
-vectype function v2ff(e,f,g)
+function v2ff(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2ff
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
   
   if(surface_int) then
      v2ff = 0.
@@ -3362,30 +3358,29 @@ vectype function v2ff(e,f,g)
   endif
 #if defined(USE3D) || defined(USECOMPLEX)
   ! same for both ivforms
-  temp = &
-       - int3(e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZP)) &
-       - int3(e(:,OP_1),f(:,OP_DRPP),g(:,OP_DRP))
+  v2ff = &
+       - intx3(e(:,OP_1,:),f(:,OP_DZPP),g(:,OP_DZP)) &
+       - intx3(e(:,OP_1,:),f(:,OP_DRPP),g(:,OP_DRP))
 #else
-  temp = 0.
+  v2ff = 0.
 #endif
-  v2ff = temp
-  return
 end function v2ff
 
 
 ! V2be
 ! ===
 
-vectype function v2parpb2ipsipsi(e,f,g,h,i)
+function v2parpb2ipsipsi(e,f,g,h,i)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2parpb2ipsipsi
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      v2parpb2ipsipsi = 0.
@@ -3395,25 +3390,25 @@ vectype function v2parpb2ipsipsi(e,f,g,h,i)
   temp = 0.
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  temp79a = -e(:,OP_1)*f(:,OP_DP)*g(:,OP_1)*ri2_79
-  temp = int3(temp79a,h(:,OP_DR),i(:,OP_DR))    &
-       + int3(temp79a,h(:,OP_DZ),i(:,OP_DZ)) 
+  temp79a = -f(:,OP_DP)*g(:,OP_1)*ri2_79
+  temp = intx4(e(:,OP_1,:),temp79a,h(:,OP_DR),i(:,OP_DR))    &
+       + intx4(e(:,OP_1,:),temp79a,h(:,OP_DZ),i(:,OP_DZ)) 
 #endif
 
   v2parpb2ipsipsi = temp
-  return
 end function v2parpb2ipsipsi
 
-vectype function v2parpb2ibb(e,f,g,h,i)
+function v2parpb2ibb(e,f,g,h,i)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2parpb2ibb
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      v2parpb2ibb = 0.
@@ -3424,35 +3419,33 @@ vectype function v2parpb2ibb(e,f,g,h,i)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   temp79a = -f(:,OP_DP)*g(:,OP_1)*h(:,OP_1)*i(:,OP_1)*ri2_79
-  temp = temp + int2(temp79a,e(:,OP_1))  
+  temp = temp + intx2(e(:,OP_1,:),temp79a)  
 #endif
 
   v2parpb2ibb = temp
-  return
 end function v2parpb2ibb
-vectype function v2parpb2ipsib(e,f,g,h,i)
+
+
+function v2parpb2ipsib(e,f,g,h,i)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2parpb2ipsib
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
 
   if(surface_int) then
      v2parpb2ipsib = 0.
      return
   end if
 
-  temp = 0.
   temp79a =  f(:,OP_1)*g(:,OP_1)*i(:,OP_1)*ri_79
 
-  temp = temp + int3(temp79a,e(:,OP_DZ),h(:,OP_DR))    &
-              - int3(temp79a,e(:,OP_DR),h(:,OP_DZ)) 
-  v2parpb2ipsib = temp
-  return
+  v2parpb2ipsib = intx3(e(:,OP_DZ,:),temp79a,h(:,OP_DR))    &
+       -          intx3(e(:,OP_DR,:),temp79a,h(:,OP_DZ)) 
 end function v2parpb2ipsib
 
 
