@@ -1072,15 +1072,17 @@ end function v1ubb
 
 ! V1up
 ! ====
-vectype function v1up(e,f,g)
+function v1up(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1up
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -1096,20 +1098,19 @@ vectype function v1up(e,f,g)
      else
         if(surface_int) then
            temp = 2.* &
-                (int5(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),norm79(:,2)) &
-                -int5(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),norm79(:,2))) &
-                +4.*gam*int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_1),norm79(:,2))
+                (intx5(e(:,OP_1,:),r_79,f(:,OP_DZ),g(:,OP_DR),norm79(:,2)) &
+                -intx5(e(:,OP_1,:),r_79,f(:,OP_DR),g(:,OP_DZ),norm79(:,2))) &
+                +4.*gam*intx4(e(:,OP_1,:),f(:,OP_DZ),g(:,OP_1),norm79(:,2))
         else
            temp = 2.* &
-                (int4(r_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ)) &
-                -int4(r_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_DR))) &
-                -4.*gam*int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1))
+                (intx4(e(:,OP_DZ,:),r_79,f(:,OP_DR),g(:,OP_DZ)) &
+                -intx4(e(:,OP_DZ,:),r_79,f(:,OP_DZ),g(:,OP_DR))) &
+                -4.*gam*intx3(e(:,OP_DZ,:),f(:,OP_DZ),g(:,OP_1))
         endif
      end if
   end select
 
   v1up = temp
-  return
 end function v1up
 
 
@@ -1251,15 +1252,17 @@ end function v1vpsib
 
 ! V1vp
 ! ====
-vectype function v1vp(e,f,g)
+function v1vp(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1vp
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -1276,12 +1279,12 @@ vectype function v1vp(e,f,g)
      if(itor.eq.1) then
         if(surface_int) then
            temp = -2.* &
-                (    int4(e(:,OP_1),f(:,OP_1),g(:,OP_DP),norm79(:,2)) &
-                +gam*int4(e(:,OP_1),f(:,OP_DP),g(:,OP_1),norm79(:,2)))
+                (    intx4(e(:,OP_1,:),f(:,OP_1),g(:,OP_DP),norm79(:,2)) &
+                +gam*intx4(e(:,OP_1,:),f(:,OP_DP),g(:,OP_1),norm79(:,2)))
         else
            temp79a =  f(:,OP_1 )*g(:,OP_DP) &
                 + gam*f(:,OP_DP)*g(:,OP_1 )
-           temp = 2.*int2(e(:,OP_DZ),temp79a)
+           temp = 2.*intx2(e(:,OP_DZ,:),temp79a)
         end if
      end if
 #endif
@@ -1289,7 +1292,6 @@ vectype function v1vp(e,f,g)
   end select
 
   v1vp = temp
-  return
 end function v1vp
 
 
@@ -1564,15 +1566,17 @@ end function v1chibb
 
 ! V1chip
 ! ======
-vectype function v1chip(e,f,g)
+function v1chip(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1chip
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -1590,29 +1594,30 @@ vectype function v1chip(e,f,g)
              f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)
 
         if(surface_int) then
-           temp = -2.*int4(ri2_79,e(:,OP_1),temp79a,norm79(:,2))
+           temp = -2.*intx4(e(:,OP_1,:),ri2_79,temp79a,norm79(:,2))
         else
-           temp = 2.*int3(ri2_79,e(:,OP_DZ),temp79a)
+           temp = 2.*intx3(e(:,OP_DZ,:),ri2_79,temp79a)
         end if
      end if
   end select
 
   v1chip = temp
-  return
 end function v1chip
 
 
 ! V1ngrav
 ! =======
-vectype function v1ngrav(e,f)
+function v1ngrav(e,f)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1ngrav
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gravr.eq.0. .and. gravz.eq.0.) then
      v1ngrav = 0.
@@ -1622,26 +1627,27 @@ vectype function v1ngrav(e,f)
   if(surface_int) then
      temp = 0.
   else
-     temp = gravz*int3( r_79,e(:,OP_1),f(:,OP_DR)) &
-          - gravr*int3(ri_79,e(:,OP_1),f(:,OP_DZ))
+     temp = gravz*intx3(e(:,OP_1,:), r_79,f(:,OP_DR)) &
+          - gravr*intx3(e(:,OP_1,:),ri_79,f(:,OP_DZ))
   end if
 
   v1ngrav = temp
-  return
 end function v1ngrav
 
 
 ! V1ungrav
 ! ========
-vectype function v1ungrav(e,f,g)
+function v1ungrav(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1ungrav
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gravr.eq.0. .and. gravz.eq.0.) then
      v1ungrav = 0.
@@ -1653,29 +1659,30 @@ vectype function v1ungrav(e,f,g)
   else
      temp79a = f(:,OP_DR)*g(:,OP_DZ) - f(:,OP_DZ)*g(:,OP_DR)
   
-     temp = gravz*int2(       e(:,OP_DR),temp79a) &
-          - gravr*int3(ri2_79,e(:,OP_DZ),temp79a)
+     temp = gravz*intx2(e(:,OP_DR,:),temp79a) &
+          - gravr*intx3(e(:,OP_DZ,:),ri2_79,temp79a)
      
      if(itor.eq.1) &
-          temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a)
+          temp = temp + 2.*gravz*intx3(e(:,OP_1,:),ri_79,temp79a)
   end if
 
   v1ungrav = temp
-  return
 end function v1ungrav
 
 
 ! V1chingrav
 ! ==========
-vectype function v1chingrav(e,f,g)
+function v1chingrav(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1chingrav
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gravr.eq.0. .and. gravz.eq.0.) then
      v1chingrav = 0.
@@ -1688,30 +1695,31 @@ vectype function v1chingrav(e,f,g)
      temp79a = r_79*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR) &
           + g(:,OP_1)*f(:,OP_LP))
 
-     temp = gravz*int2(       e(:,OP_DR),temp79a) &
-          - gravr*int3(ri2_79,e(:,OP_DZ),temp79a)
+     temp = gravz*intx2(e(:,OP_DR,:),temp79a) &
+          - gravr*intx3(e(:,OP_DZ,:),ri2_79,temp79a)
 
      if(itor.eq.1) &
-          temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a)
+          temp = temp + 2.*gravz*intx3(e(:,OP_1,:),ri_79,temp79a)
   endif
 
   v1chingrav = temp
-  return
 end function v1chingrav
 
 
 ! V1ndenmgrav
 ! ===========
-vectype function v1ndenmgrav(e,f,g)
+function v1ndenmgrav(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  vectype, dimension(dofs_per_element) :: v1ndenmgrav
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
   real, intent(in) :: g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gravr.eq.0. .and. gravz.eq.0.) then
      v1ndenmgrav = 0.
@@ -1723,15 +1731,14 @@ vectype function v1ndenmgrav(e,f,g)
   else
      temp79a = -g*r_79*f(:,OP_LP)
 
-     temp = gravz*int2(       e(:,OP_DR),temp79a) &
-          - gravr*int3(ri2_79,e(:,OP_DZ),temp79a)
+     temp = gravz*intx2(e(:,OP_DR,:),temp79a) &
+          - gravr*intx3(e(:,OP_DZ,:),ri2_79,temp79a)
 
      if(itor.eq.1) &
-          temp = temp + 2.*gravz*int3(ri_79,e(:,OP_1),temp79a)
+          temp = temp + 2.*gravz*intx3(e(:,OP_1,:),ri_79,temp79a)
   end if
 
   v1ndenmgrav = temp
-  return
 end function v1ndenmgrav
 
 
@@ -1948,16 +1955,18 @@ end function v1bf
 
 ! V1p
 ! ===
-vectype function v1p(e,f)
+function v1p(e,f)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
+  vectype, dimension(dofs_per_element) :: v1p
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
 
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itor.eq.0) then
      v1p = 0.
@@ -1979,17 +1988,16 @@ vectype function v1p(e,f)
            temp = 0.
         else
            temp = &
-                + int4(r_79,e(:,OP_1),norm79(:,1),f(:,OP_DZ)) &
-                - int4(r_79,e(:,OP_1),norm79(:,2),f(:,OP_DR))
+                + intx4(e(:,OP_1,:),r_79,norm79(:,1),f(:,OP_DZ)) &
+                - intx4(e(:,OP_1,:),r_79,norm79(:,2),f(:,OP_DR))
         endif
      else
-        temp = int3(r_79,e(:,OP_DZ),f(:,OP_DR)) &
-             - int3(r_79,e(:,OP_DR),f(:,OP_DZ))
+        temp = intx3(e(:,OP_DZ,:),r_79,f(:,OP_DR)) &
+             - intx3(e(:,OP_DR,:),r_79,f(:,OP_DZ))
      end if
   end select
 
   v1p = temp
-  return
 end function v1p
 
 ! V1psiforce
@@ -2020,16 +2028,17 @@ end function v1psiforce
 ! V1be
 ! ===
 
-vectype function v1par(e,f)
+function v1par(e,f)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1par
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, dimension(dofs_per_element) :: temp
 
   temp = 0.
   select case(ivform)
@@ -2044,24 +2053,25 @@ vectype function v1par(e,f)
      if(surface_int) then
         temp = 0.
      else
-        temp = - int2(e(:,OP_DZ),f(:,OP_1))
+        temp = - intx2(e(:,OP_DZ,:),f(:,OP_1))
      end if
   end select
 
   v1par = temp
-  return
 end function v1par
 
-vectype function v1parb2ipsipsi(e,f,g,h,i)
+function v1parb2ipsipsi(e,f,g,h,i)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h, i
+  vectype, dimension(dofs_per_element) :: v1parb2ipsipsi
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f, g, h, i
 
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   temp = 0.
   select case(ivform)
@@ -2077,60 +2087,59 @@ vectype function v1parb2ipsipsi(e,f,g,h,i)
         temp = 0.
      else
         temp79a = f(:,OP_1)*g(:,OP_1)*ri_79
-        temp =  int4(temp79a,e(:,OP_DZ),h(:,OP_DR),i(:,OP_DRR))   &
-             +  int4(temp79a,e(:,OP_DZ),h(:,OP_DZ),i(:,OP_DRZ))   &
-             -  int4(temp79a,e(:,OP_DR),h(:,OP_DR),i(:,OP_DRZ))   &
-             -  int4(temp79a,e(:,OP_DR),h(:,OP_DZ),i(:,OP_DZZ))   
+        temp =  intx4(e(:,OP_DZ,:),temp79a,h(:,OP_DR),i(:,OP_DRR))   &
+             +  intx4(e(:,OP_DZ,:),temp79a,h(:,OP_DZ),i(:,OP_DRZ))   &
+             -  intx4(e(:,OP_DR,:),temp79a,h(:,OP_DR),i(:,OP_DRZ))   &
+             -  intx4(e(:,OP_DR,:),temp79a,h(:,OP_DZ),i(:,OP_DZZ))   
 
         temp79b = -f(:,OP_1)*ri_79
         temp = temp                                                         &
-             +  int5(temp79b,g(:,OP_DZ),h(:,OP_DR),e(:,OP_DR),i(:,OP_DR))   &
-             +  int5(temp79b,g(:,OP_DZ),h(:,OP_DR),e(:,OP_DZ),i(:,OP_DZ))   &
-             -  int5(temp79b,g(:,OP_DR),h(:,OP_DZ),e(:,OP_DR),i(:,OP_DR))   &
-             -  int5(temp79b,g(:,OP_DR),h(:,OP_DZ),e(:,OP_DZ),i(:,OP_DZ))
+             +  intx5(e(:,OP_DR,:),temp79b,g(:,OP_DZ),h(:,OP_DR),i(:,OP_DR))  &
+             +  intx5(e(:,OP_DZ,:),temp79b,g(:,OP_DZ),h(:,OP_DR),i(:,OP_DZ))  &
+             -  intx5(e(:,OP_DR,:),temp79b,g(:,OP_DR),h(:,OP_DZ),i(:,OP_DR))  &
+             -  intx5(e(:,OP_DZ,:),temp79b,g(:,OP_DR),h(:,OP_DZ),i(:,OP_DZ))
 
         temp79c = -g(:,OP_1)*ri_79
         temp = temp                                                         &
-             +  int5(temp79c,f(:,OP_DZ),h(:,OP_DR),e(:,OP_DR),i(:,OP_DR))   &
-             +  int5(temp79c,f(:,OP_DZ),h(:,OP_DR),e(:,OP_DZ),i(:,OP_DZ))   &
-             -  int5(temp79c,f(:,OP_DR),h(:,OP_DZ),e(:,OP_DR),i(:,OP_DR))   &
-             -  int5(temp79c,f(:,OP_DR),h(:,OP_DZ),e(:,OP_DZ),i(:,OP_DZ))   
+             +  intx5(e(:,OP_DR,:),temp79c,f(:,OP_DZ),h(:,OP_DR),i(:,OP_DR)) &
+             +  intx5(e(:,OP_DZ,:),temp79c,f(:,OP_DZ),h(:,OP_DR),i(:,OP_DZ)) &
+             -  intx5(e(:,OP_DR,:),temp79c,f(:,OP_DR),h(:,OP_DZ),i(:,OP_DR)) &
+             -  intx5(e(:,OP_DZ,:),temp79c,f(:,OP_DR),h(:,OP_DZ),i(:,OP_DZ))
 
         temp79d = -f(:,OP_1)*g(:,OP_1)*h(:,OP_GS)*ri_79
         temp = temp                                   &
-             +  int3(temp79d,e(:,OP_DZ),i(:,OP_DR))   &
-             -  int3(temp79d,e(:,OP_DR),i(:,OP_DZ))   
+             +  intx3(e(:,OP_DZ,:),temp79d,i(:,OP_DR))   &
+             -  intx3(e(:,OP_DR,:),temp79d,i(:,OP_DZ))   
      end if
   end select
 
   v1parb2ipsipsi = temp
-  return
 end function v1parb2ipsipsi
 
-vectype function v1parb2ipsib(e,f,g,h,i)
+function v1parb2ipsib(e,f,g,h,i)
   use basic
   use arrays
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e, f, g, h, i
+  vectype, dimension(dofs_per_element) :: v1parb2ipsib
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f, g, h, i
+  vectype, dimension(dofs_per_element) :: temp
 
-  vectype :: temp
   temp = 0.
-     if(surface_int) then
-        temp = 0.
-     else
+  if(surface_int) then
+     temp = 0.
+  else
 #if defined(USE3D) || defined(USECOMPLEX)
-        temp79a = - f(:,OP_DP)*g(:,OP_1)*i(:,OP_1)*ri2_79
-        temp = +int3(temp79a,e(:,OP_DR),h(:,OP_DR)) &
-               +int3(temp79a,e(:,OP_DZ),h(:,OP_DZ))
+     temp79a = - f(:,OP_DP)*g(:,OP_1)*i(:,OP_1)*ri2_79
+     temp = +intx3(e(:,OP_DR,:),temp79a,h(:,OP_DR)) &
+          +  intx3(e(:,OP_DZ,:),temp79a,h(:,OP_DZ))
 #endif
-     end if
-
+  end if
 
   v1parb2ipsib = temp
-  return
 end function v1parb2ipsib
 
 !============================================================================
@@ -9298,7 +9307,6 @@ function n1nu(e,f,g)
   end select
 
   n1nu = temp
-  return
 end function n1nu
 
 

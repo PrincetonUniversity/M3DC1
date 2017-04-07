@@ -208,6 +208,77 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
 
 
+  ! Grad(p)
+  ! ~~~~~~~
+  if(numvar.ge.3 .or. ipres.eq.1) then
+     ! Split time-step
+     if(advfield.eq.1) then
+        ddterm(:,p_g) = ddterm(:,p_g) + dt*v1p(trialx,lin)
+
+        ! "Parabolization" terms
+        tempx = v1up(trialx,lin,pt79)
+        ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
+
+        if(numvar.ge.2) then
+           tempx = v1vp(trialx,lin,pt79)
+           ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
+           ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
+        endif
+
+        if(numvar.ge.3) then
+           tempx = v1chip(trialx,lin,pt79)
+           ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
+        end if
+
+     ! Unsplit time-step
+     else
+        if    (kinetic.le.1) then
+        tempx = v1p(trialx,lin)
+        ssterm(:,p_g) = ssterm(:,p_g) -     thimp     *dt*tempx
+        ddterm(:,p_g) = ddterm(:,p_g) + (1.-thimp*bdf)*dt*tempx
+ 
+        ! CGL (anisotropic pressure)
+        elseif(kinetic.gt.1) then
+           tempx = v1par(trialx,lin)    &
+                + v1parb2ipsipsi(trialx,lin,b2i79,pstx79,pstx79)  &
+                + v1parb2ipsib(trialx,lin,b2i79,pstx79,bztx79)
+           ssterm(:,pe_g) = ssterm(:,pe_g) -     thimp     *dt*tempx
+           ddterm(:,pe_g) = ddterm(:,pe_g) + (1.-thimp*bdf)*dt*tempx
+           ssterm(:,p_g)  = ssterm(:,p_g)  +     thimp     *dt*tempx
+           ddterm(:,p_g)  = ddterm(:,p_g)  - (1.-thimp*bdf)*dt*tempx
+        endif
+     end if
+  end if
+
+  ! Gravity
+  ! ~~~~~~~
+  if(idens.eq.1) then
+     ! Split time-step
+     if(advfield.eq.1) then
+        ddterm(:,den_g) = ddterm(:,den_g) + dt* &
+             v1ngrav(trialx,lin)
+
+        ! parabolization terms
+        tempx = v1ungrav (trialx,lin,nt79)
+        ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
+     
+        if(numvar.ge.3) then
+           tempx = v1chingrav (trialx,lin,nt79)
+           ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
+        end if
+        
+     ! Unsplit time-step
+     else
+        tempx = v1ngrav(trialx,lin)
+        ssterm(:,den_g) = ssterm(:,den_g) -     thimp     *dt*tempx
+        ddterm(:,den_g) = ddterm(:,den_g) + (1.-thimp*bdf)*dt*tempx
+     end if
+  end if
+
 
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
@@ -382,51 +453,6 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
 
 
-  ! Grad(p)
-  ! ~~~~~~~
-  if(numvar.ge.3 .or. ipres.eq.1) then
-     ! Split time-step
-     if(advfield.eq.1) then
-        ddterm(i,p_g) = ddterm(i,p_g) + dt*v1p(trial,lin)
-
-        ! "Parabolization" terms
-        temp = v1up(trial,lin,pt79)
-        ssterm(i,u_g) = ssterm(i,u_g) - thimp*thimp*dt*dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) +       ththm*dt*dt*temp
-
-        if(numvar.ge.2) then
-           temp = v1vp(trial,lin,pt79)
-           ssterm(i,vz_g) = ssterm(i,vz_g) - thimp*thimp*dt*dt*temp
-           ddterm(i,vz_g) = ddterm(i,vz_g) +       ththm*dt*dt*temp
-        endif
-
-        if(numvar.ge.3) then
-           temp = v1chip(trial,lin,pt79)
-           ssterm(i,chi_g) = ssterm(i,chi_g) - thimp*thimp*dt*dt*temp
-           ddterm(i,chi_g) = ddterm(i,chi_g) +       ththm*dt*dt*temp
-        end if
-
-     ! Unsplit time-step
-     else
-        if    (kinetic.le.1) then
-        temp = v1p(trial,lin)
-        ssterm(i,p_g) = ssterm(i,p_g) -     thimp     *dt*temp
-        ddterm(i,p_g) = ddterm(i,p_g) + (1.-thimp*bdf)*dt*temp
- 
-        ! CGL (anisotropic pressure)
-        elseif(kinetic.gt.1) then
-           temp = v1par(trial,lin)    &
-                + v1parb2ipsipsi(trial,lin,b2i79,pstx79,pstx79)  &
-                + v1parb2ipsib(trial,lin,b2i79,pstx79,bztx79)
-           ssterm(i,pe_g) = ssterm(i,pe_g) -     thimp     *dt*temp
-           ddterm(i,pe_g) = ddterm(i,pe_g) + (1.-thimp*bdf)*dt*temp
-           ssterm(i,p_g)  = ssterm(i,p_g)  +     thimp     *dt*temp
-           ddterm(i,p_g)  = ddterm(i,p_g)  - (1.-thimp*bdf)*dt*temp
-        endif
-     end if
-  end if
-
-
   ! Gyroviscosity  
   ! ~~~~~~~~~~~~~
   if(gyro.eq.1 .and. db.ne.0.) then
@@ -486,33 +512,6 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimp*bdf)*dt*temp
      endif
   endif
-
-  ! Gravity
-  ! ~~~~~~~
-  if(idens.eq.1) then
-     ! Split time-step
-     if(advfield.eq.1) then
-        ddterm(i,den_g) = ddterm(i,den_g) + dt* &
-             v1ngrav(trial,lin)
-
-        ! parabolization terms
-        temp = v1ungrav (trial,lin,nt79)
-        ssterm(i,u_g) = ssterm(i,u_g) - thimp*thimp*dt*dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) +       ththm*dt*dt*temp
-     
-        if(numvar.ge.3) then
-           temp = v1chingrav (trial,lin,nt79)
-           ssterm(i,chi_g) = ssterm(i,chi_g) - thimp*thimp*dt*dt*temp
-           ddterm(i,chi_g) = ddterm(i,chi_g) +       ththm*dt*dt*temp
-        end if
-        
-     ! Unsplit time-step
-     else
-        temp = v1ngrav(trial,lin)
-        ssterm(i,den_g) = ssterm(i,den_g) -     thimp     *dt*temp
-        ddterm(i,den_g) = ddterm(i,den_g) + (1.-thimp*bdf)*dt*temp
-     end if
-  end if
 
   ! Poloidal force term (Lucca)
   if(ipforce.ge.1) then
