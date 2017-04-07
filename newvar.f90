@@ -266,7 +266,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
         temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
               
      case(NV_BF_MATRIX)
-        temp(:,:,1,1) = intxx3(r2_79,mu79(:,OP_1,:),nu79(:,OP_LP,:))
+        temp(:,:,1,1) = intxx3(mu79(:,OP_1,:),nu79(:,OP_LP,:),r2_79)
         if(ifbound.eq.2) then
            temp(:,:,1,1) = temp(:,:,1,1) + &
                 regular*intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
