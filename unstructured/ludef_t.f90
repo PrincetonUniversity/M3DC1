@@ -618,6 +618,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   integer, intent(in) :: advfield
   integer, intent(in) :: izone
   vectype :: temp
+  vectype, dimension(dofs_per_element) :: tempx
   real :: ththm, thimp_bf
   vectype :: freq_fac
 
@@ -658,17 +659,93 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(numvar.lt.2) return
 
-  do i=1, dofs_per_element
-     trial = trialx(:,:,i)
-
   if(istatic.eq.1 .or. izone.ne.1) then
      if(.not.surface_int) then
-        temp = int2(trial(:,OP_1),lin(:,OP_1))
-        ssterm(i,vz_g) = temp
-        ddterm(i,vz_g) = temp
+        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        ssterm(:,vz_g) = tempx
+        ddterm(:,vz_g) = tempx
      endif
-     cycle
+     return
   endif
+
+  ! Time Derivative
+  ! ~~~~~~~~~~~~~~~
+  tempx = v2vn(trialx,lin,nt79)*freq_fac
+  ssterm(:,vz_g) = ssterm(:,vz_g) + tempx
+  if(itime_independent.eq.0) ddterm(:,vz_g) = ddterm(:,vz_g) + tempx*bdf
+
+
+  ! Viscosity
+  ! ~~~~~~~~~
+  tempx = v2umu(trialx,lin,vis79,vic79)
+  ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
+  ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
+
+  tempx = v2vmu(trialx,lin,vis79,vic79) &
+       +  v2vs (trialx,lin,sig79)
+  ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
+  ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
+
+  if(numvar.ge.3) then
+     tempx = v2chimu(trialx,lin,vis79,vic79)
+     ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
+     ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
+  end if
+
+
+  ! Advection
+  ! ~~~~~~~~~
+  if(linear.eq.0) then 
+     tempx = v2vun(trialx,vz179,lin,nt79)
+     ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
+     ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimp*bdf)*dt*tempx
+
+     tempx = v2vun(trialx,lin,ph179,nt79) &
+          +  v2vvn(trialx,lin,vz179,nt79) &
+          +  v2vvn(trialx,vz179,lin,nt79)
+     ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
+     ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimp*bdf)*dt*tempx
+
+     tempx = v2vchin(trialx,lin,ch179,nt79)
+     ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
+     ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimp*bdf)*dt*tempx
+
+     if(numvar.ge.3) then
+        tempx = v2vchin(trialx,vz179,lin,nt79)
+        ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
+        ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimp*bdf)*dt*tempx
+     end if
+  end if
+  
+  if(eqsubtract.eq.1) then
+     tempx = v2vun(trialx,vz079,lin,nt79)
+     ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
+     ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
+              
+     tempx = v2vun  (trialx,lin,ph079,nt79) &
+          +  v2vvn  (trialx,lin,vz079,nt79) &
+          +  v2vvn  (trialx,vz079,lin,nt79) &
+          +  v2vchin(trialx,lin,ch079,nt79)
+     ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
+     ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
+
+     if(numvar.ge.3) then
+        tempx = v2vchin(trialx,vz079,lin,nt79)
+        ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
+        ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
+     end if
+
+     if(idens.eq.1) then
+        ddterm(:,den_g) = ddterm(:,den_g) + dt* &
+             (v2vun  (trialx,vz079,ph079,lin) &
+             +v2vvn  (trialx,vz079,vz079,lin) &
+             +v2vchin(trialx,vz079,ch079,lin))
+     end if
+  end if
+
+
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
 
   ! incompressible constraint for CGL (kinetic.eq.2)
   if(kinetic.eq.2) then
@@ -684,81 +761,6 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      endif
      cycle
   endif
-
-  ! Time Derivative
-  ! ~~~~~~~~~~~~~~~
-  temp = v2vn(trial,lin,nt79)*freq_fac
-  ssterm(i,vz_g) = ssterm(i,vz_g) + temp
-  if(itime_independent.eq.0) ddterm(i,vz_g) = ddterm(i,vz_g) + temp*bdf
-
-
-  ! Viscosity
-  ! ~~~~~~~~~
-  temp = v2umu(trial,lin,vis79,vic79)
-  ssterm(i,u_g) = ssterm(i,u_g) -     thimp     *dt*temp
-  ddterm(i,u_g) = ddterm(i,u_g) + (1.-thimp*bdf)*dt*temp
-
-  temp = v2vmu(trial,lin,vis79,vic79) &
-       + v2vs (trial,lin,sig79)
-  ssterm(i,vz_g) = ssterm(i,vz_g) -     thimp     *dt*temp
-  ddterm(i,vz_g) = ddterm(i,vz_g) + (1.-thimp*bdf)*dt*temp
-
-  if(numvar.ge.3) then
-     temp = v2chimu(trial,lin,vis79,vic79)
-     ssterm(i,chi_g) = ssterm(i,chi_g) -     thimp     *dt*temp
-     ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimp*bdf)*dt*temp
-  end if
-
-
-  ! Advection
-  ! ~~~~~~~~~
-  if(linear.eq.0) then 
-     temp = v2vun(trial,vz179,lin,nt79)
-     ssterm(i,u_g) = ssterm(i,u_g) -     thimp     *dt*temp
-     ddterm(i,u_g) = ddterm(i,u_g) + (.5-thimp*bdf)*dt*temp
-
-     temp = v2vun(trial,lin,ph179,nt79) &
-          + v2vvn(trial,lin,vz179,nt79) &
-          + v2vvn(trial,vz179,lin,nt79)
-     ssterm(i,vz_g) = ssterm(i,vz_g) -     thimp     *dt*temp
-     ddterm(i,vz_g) = ddterm(i,vz_g) + (.5-thimp*bdf)*dt*temp
-
-     temp = v2vchin(trial,lin,ch179,nt79)
-     ssterm(i,vz_g) = ssterm(i,vz_g) -     thimp     *dt*temp
-     ddterm(i,vz_g) = ddterm(i,vz_g) + (.5-thimp*bdf)*dt*temp
-
-     if(numvar.ge.3) then
-        temp = v2vchin(trial,vz179,lin,nt79)
-        ssterm(i,chi_g) = ssterm(i,chi_g) -     thimp     *dt*temp
-        ddterm(i,chi_g) = ddterm(i,chi_g) + (.5-thimp*bdf)*dt*temp
-     end if
-  end if
-  
-  if(eqsubtract.eq.1) then
-     temp = v2vun(trial,vz079,lin,nt79)
-     ssterm(i,u_g) = ssterm(i,u_g) -     thimp     *dt*temp
-     ddterm(i,u_g) = ddterm(i,u_g) + (1.-thimp*bdf)*dt*temp
-              
-     temp = v2vun  (trial,lin,ph079,nt79) &
-          + v2vvn  (trial,lin,vz079,nt79) &
-          + v2vvn  (trial,vz079,lin,nt79) &
-          + v2vchin(trial,lin,ch079,nt79)
-     ssterm(i,vz_g) = ssterm(i,vz_g) -     thimp     *dt*temp
-     ddterm(i,vz_g) = ddterm(i,vz_g) + (1.-thimp*bdf)*dt*temp
-
-     if(numvar.ge.3) then
-        temp = v2vchin(trial,vz079,lin,nt79)
-        ssterm(i,chi_g) = ssterm(i,chi_g) -     thimp     *dt*temp
-        ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimp*bdf)*dt*temp
-     end if
-
-     if(idens.eq.1) then
-        ddterm(i,den_g) = ddterm(i,den_g) + dt* &
-             (v2vun  (trial,vz079,ph079,lin) &
-             +v2vvn  (trial,vz079,vz079,lin) &
-             +v2vchin(trial,vz079,ch079,lin))
-     end if
-  end if
 
 
   ! JxB
@@ -1027,7 +1029,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
 end subroutine axial_vel_lin
 
-subroutine axial_vel_nolin(trial, r4term)
+subroutine axial_vel_nolin(trialx, r4term)
 
   use basic
   use m3dc1_nint
@@ -1037,22 +1039,28 @@ subroutine axial_vel_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
-  vectype, intent(out) :: r4term
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
+  vectype, intent(out), dimension(dofs_per_element) :: r4term
   
+  integer :: i
+  vectype, dimension(MAX_PTS, OP_NUM) :: trial
+
   r4term = 0.
 
   if(numvar.lt.2) return
 
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
+
   ! JxB_ext
   ! ~~~~~~~
   if(use_external_fields .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then 
-     r4term = r4term + dt* &
+     r4term(i) = r4term(i) + dt* &
           (v2psipsi(trial,ps079,psx79) &
           +v2psib  (trial,psx79,bz079))
      
      if(i3d.eq.1) then
-        r4term = r4term + dt* &
+        r4term(i) = r4term(i) + dt* &
              (v2psif1(trial,psx79,bf079) &
              +v2psif2(trial,ps079,bfx79) &
              +v2bf   (trial,bz079,bfx79) &
@@ -1060,29 +1068,32 @@ subroutine axial_vel_nolin(trial, r4term)
      end if
   end if
 
-  ! density terms
-  ! ~~~~~~~~~~~~~
-  if(idens.eq.1 .and. eqsubtract.eq.1) then
-     r4term = r4term + dt* &
-          (v2vun(trial,vz079,ph079,n179) &
-          +v2vs (trial,vz079,sig79))
-  endif
-
-  if(momentum_source) then
-     r4term = r4term + dt*int3(r_79,trial(:,OP_1),fy79(:,OP_1))
-  end if
-
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
+     r4term(i) = r4term(i) + dt* &
                  (v2parpb2ipsipsi(trial,pper79,b2i79,pstx79,pstx79)   &
                 - v2parpb2ipsib  (trial,pper79,b2i79,pstx79,bztx79)   &
-                + v2parpb2ibb  (trial,ppar79,b2i79,bztx79,bztx79)       &
-                + v2parpb2ipsib(trial,ppar79,b2i79,pstx79,bztx79))
+                + v2parpb2ibb    (trial,ppar79,b2i79,bztx79,bztx79)   &
+                + v2parpb2ipsib  (trial,ppar79,b2i79,pstx79,bztx79))
   endif
 #endif
+
+  end do
+
+  ! density terms
+  ! ~~~~~~~~~~~~~
+  if(idens.eq.1 .and. eqsubtract.eq.1) then
+     r4term = r4term + dt* &
+          (v2vun(trialx,vz079,ph079,n179) &
+          +v2vs (trialx,vz079,sig79))
+  endif
+
+  if(momentum_source) then
+     r4term = r4term + dt*intx3(trialx(:,OP_1,:),r_79,fy79(:,OP_1))
+  end if
+
 
 end subroutine axial_vel_nolin
 
@@ -4757,9 +4768,7 @@ subroutine ludefvel_n(itri)
         case(1)
            call vorticity_nolin(mu79,r4)
         case(2)
-           do i=1,dofs_per_element
-              call axial_vel_nolin(mu79(:,:,i),r4(i))
-           end do
+           call axial_vel_nolin(mu79,r4)
         case(3)
            do i=1,dofs_per_element
               call compression_nolin(mu79(:,:,i),r4(i))
