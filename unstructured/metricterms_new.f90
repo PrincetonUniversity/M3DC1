@@ -370,26 +370,28 @@ end function v1chin
 
 ! V1psipsi
 ! ========
-vectype function v1psipsi(e,f,g)
+function v1psipsi(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1psipsi
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS)) &
-             - int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS))
+        temp = intx4(e(:,OP_DZ,:),ri_79,f(:,OP_DR),g(:,OP_GS)) &
+             - intx4(e(:,OP_DR,:),ri_79,f(:,OP_DZ),g(:,OP_GS))
         
         if(itor.eq.1) then
-           temp = temp - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_GS))
+           temp = temp - 2.*intx4(e(:,OP_1,:),ri2_79,f(:,OP_DZ),g(:,OP_GS))
         endif
      end if
   case(1)
@@ -397,31 +399,32 @@ vectype function v1psipsi(e,f,g)
         if(inoslip_pol.eq.1) then
            temp = 0.
         else
-           temp = int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DZ),g(:,OP_GS)) &
-                - int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DR),g(:,OP_GS))
+           temp = intx5(e(:,OP_1,:),ri_79,norm79(:,1),f(:,OP_DZ),g(:,OP_GS)) &
+                - intx5(e(:,OP_1,:),ri_79,norm79(:,2),f(:,OP_DR),g(:,OP_GS))
         endif
      else
-        temp = int4(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_GS)) &
-             - int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_GS))
+        temp = intx4(e(:,OP_DZ,:),ri_79,f(:,OP_DR),g(:,OP_GS)) &
+             - intx4(e(:,OP_DR,:),ri_79,f(:,OP_DZ),g(:,OP_GS))
      endif
   end select
 
   v1psipsi = temp
-  return
 end function v1psipsi
 
 
 ! V1psib
 ! ======
-vectype function v1psib(e,f,g)
+function v1psib(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1psib
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
@@ -429,12 +432,12 @@ vectype function v1psib(e,f,g)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1)) &
-             + int4(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1))
+        temp = intx4(e(:,OP_DZ,:),ri2_79,f(:,OP_DZP),g(:,OP_1)) &
+             + intx4(e(:,OP_DR,:),ri2_79,f(:,OP_DRP),g(:,OP_1))
 
         if(itor.eq.1) then
            temp = temp &
-                + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_1))
+                + 2.*intx4(e(:,OP_1,:),ri3_79,f(:,OP_DRP),g(:,OP_1))
         endif
      end if
 
@@ -444,12 +447,12 @@ vectype function v1psib(e,f,g)
            temp = 0.
         else
            temp = &
-                - int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DRP),g(:,OP_1)) &
-                - int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZP),g(:,OP_1))
+                - intx5(e(:,OP_1,:),ri2_79,norm79(:,1),f(:,OP_DRP),g(:,OP_1)) &
+                - intx5(e(:,OP_1,:),ri2_79,norm79(:,2),f(:,OP_DZP),g(:,OP_1))
         end if
      else
-        temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1)) &
-             + int4(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1))
+        temp = intx4(e(:,OP_DZ,:),ri2_79,f(:,OP_DZP),g(:,OP_1)) &
+             + intx4(e(:,OP_DR,:),ri2_79,f(:,OP_DRP),g(:,OP_1))
      endif
   end select
 
@@ -462,15 +465,17 @@ end function v1psib
 
 ! V1bb
 ! ====
-vectype function v1bb(e,f,g)
+function v1bb(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1bb
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -480,7 +485,7 @@ vectype function v1bb(e,f,g)
         if(itor.eq.0) then
            temp = 0.
         else
-           temp = -2.*int4(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1)) 
+           temp = -2.*intx4(e(:,OP_1,:),ri2_79,f(:,OP_DZ),g(:,OP_1)) 
         endif
      endif
 
@@ -500,7 +505,6 @@ vectype function v1bb(e,f,g)
   end select
 
   v1bb = temp
-  return
 end function v1bb
 
 
@@ -1854,15 +1858,17 @@ end function v1chis
 
 ! V1psif
 ! ======
-vectype function v1psif(e,f,g)
+function v1psif(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1psif
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
   temp = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
   select case (ivform)
@@ -1871,11 +1877,11 @@ vectype function v1psif(e,f,g)
         temp = 0.
      else
         temp = &
-             - int3(e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZP)) &
-             - int3(e(:,OP_DR),f(:,OP_GS),g(:,OP_DRP))
+             - intx3(e(:,OP_DZ,:),f(:,OP_GS),g(:,OP_DZP)) &
+             - intx3(e(:,OP_DR,:),f(:,OP_GS),g(:,OP_DRP))
         if(itor.eq.1) then
            temp = temp - 2.* & 
-                int4(ri_79,e(:,OP_1),f(:,OP_GS),g(:,OP_DRP))
+                intx4(e(:,OP_1,:),ri_79,f(:,OP_GS),g(:,OP_DRP))
         endif
      end if
 
@@ -1886,13 +1892,13 @@ vectype function v1psif(e,f,g)
            temp = 0.
         else
            temp =  &
-                + int4(e(:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DRP)) &
-                + int4(e(:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DZP))
+                + intx4(e(:,OP_1,:),f(:,OP_GS),norm79(:,1),g(:,OP_DRP)) &
+                + intx4(e(:,OP_1,:),f(:,OP_GS),norm79(:,2),g(:,OP_DZP))
         endif
      else
         temp = &
-             - int3(e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZP)) &
-             - int3(e(:,OP_DR),f(:,OP_GS),g(:,OP_DRP))
+             - intx3(e(:,OP_DZ,:),f(:,OP_GS),g(:,OP_DZP)) &
+             - intx3(e(:,OP_DR,:),f(:,OP_GS),g(:,OP_DRP))
      end if
   end select
   
@@ -1900,21 +1906,23 @@ vectype function v1psif(e,f,g)
   temp = 0.
 #endif
   v1psif = temp
-  return
 end function v1psif
 
 
 ! V1bf
 ! ====
-vectype function v1bf(e,f,g)
+function v1bf(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1bf
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
+
 #if defined(USE3D) || defined(USECOMPLEX)
   select case (ivform)
   case(0)
@@ -1922,11 +1930,11 @@ vectype function v1bf(e,f,g)
         temp = 0.
      else
         temp = &
-             + int4(ri_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DRPP)) &
-             - int4(ri_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZPP))
+             + intx4(e(:,OP_DZ,:),ri_79,f(:,OP_1),g(:,OP_DRPP)) &
+             - intx4(e(:,OP_DR,:),ri_79,f(:,OP_1),g(:,OP_DZPP))
         if(itor.eq.1) then
            temp = temp - 2.* & 
-                int4(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZPP))
+                intx4(e(:,OP_1,:),ri2_79,f(:,OP_1),g(:,OP_DZPP))
         endif
      end if
 
@@ -1936,20 +1944,19 @@ vectype function v1bf(e,f,g)
            temp = 0.
         else
            temp = &
-                + int5(ri_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DZPP)) &
-                - int5(ri_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DRPP))
+                + intx5(e(:,OP_1,:),ri_79,f(:,OP_1),norm79(:,1),g(:,OP_DZPP)) &
+                - intx5(e(:,OP_1,:),ri_79,f(:,OP_1),norm79(:,2),g(:,OP_DRPP))
         end if
      else
         temp = &
-             + int4(ri_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DRPP)) &
-             - int4(ri_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZPP))
+             + intx4(e(:,OP_DZ,:),ri_79,f(:,OP_1),g(:,OP_DRPP)) &
+             - intx4(e(:,OP_DR,:),ri_79,f(:,OP_1),g(:,OP_DZPP))
      end if
   end select
 #else
   temp = 0.
 #endif
   v1bf = temp
-  return
 end function v1bf
 
 
