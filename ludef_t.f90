@@ -1580,7 +1580,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end do
 end subroutine compression_lin
 
-subroutine compression_nolin(trial, r4term)
+subroutine compression_nolin(trialx, r4term)
 
   use basic
   use m3dc1_nint
@@ -1589,23 +1589,30 @@ subroutine compression_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
-  vectype, intent(out) :: r4term
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
+  vectype, intent(out), dimension(dofs_per_element) :: r4term
+
+  integer :: i
+  vectype, dimension(MAX_PTS, OP_NUM) :: trial
+
   
   r4term = 0.
 
   if(numvar.lt.3) return
 
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
+
   ! JxB_ext
   ! ~~~~~~~
   if(use_external_fields .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then 
-     r4term = r4term + dt* &
+     r4term(i) = r4term(i) + dt* &
           (v3psipsi(trial,psx79,ps079) &
           +v3psib  (trial,ps079,bzx79) &
           +v3bb    (trial,bz079,bzx79))
      
      if(i3d.eq.1) then
-        r4term = r4term + dt* &
+        r4term(i) = r4term(i) + dt* &
              (v3psif(trial,ps079,bfx79) &
              +v3bf  (trial,bzx79,bf079))
      end if
@@ -1614,7 +1621,7 @@ subroutine compression_nolin(trial, r4term)
   ! density terms
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. eqsubtract.eq.1) then
-     r4term = r4term + dt* &
+     r4term(i) = r4term(i) + dt* &
           (v3us     (trial,ph079,sig79) &
           +v3chis   (trial,ch079,sig79))
 
@@ -1624,7 +1631,7 @@ subroutine compression_nolin(trial, r4term)
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
+     r4term(i) = r4term(i) + dt* &
                  (v3par(trial,ppar79)    &
                 + v3parb2ipsipsi(trial,ppar79,b2i79,pstx79,pstx79)  &
                 + v3parb2ipsib(trial,ppar79,b2i79,pstx79,bztx79)    &
@@ -1633,6 +1640,8 @@ subroutine compression_nolin(trial, r4term)
                 - v3parb2ipsib(trial,pper79,b2i79,pstx79,bztx79))
   endif
 #endif
+
+end do
 
 end subroutine compression_nolin
 
@@ -4487,6 +4496,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   use matrix_mod
   use transport_coefficients
   use gyroviscosity
+  use runaway_mod
 
   implicit none
 
@@ -4578,6 +4588,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
      call define_fields(itri, def_fields, 1, linear)
      if(gyro.eq.1) call gyro_common
+     if(irunaway.gt.0) call eval_runaway(itri,izone)
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         tfield = tfield + tend - tstart
@@ -4771,9 +4782,7 @@ subroutine ludefvel_n(itri)
         case(2)
            call axial_vel_nolin(mu79,r4)
         case(3)
-           do i=1,dofs_per_element
-              call compression_nolin(mu79(:,:,i),r4(i))
-           end do
+           call compression_nolin(mu79,r4)
         end select
      end if
 

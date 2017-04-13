@@ -357,6 +357,7 @@ subroutine init
   use basic
   use mesh_mod
   use basicq
+  use runaway_mod
   
   implicit none
  
@@ -384,6 +385,8 @@ subroutine init
   dtold = dt
 
   call init_qp
+
+  call runaway_init
 end subroutine init
 
 
@@ -430,6 +433,7 @@ subroutine safestop(iarg)
   use m3dc1_output
   use time_step
   use auxiliary_fields
+  use runaway_mod
 
   implicit none
 
@@ -444,6 +448,7 @@ subroutine safestop(iarg)
   character*10 :: datec, timec
 
   call destroy_auxiliary_fields
+  call runaway_deallocate
 
   call finalize_timestep
 

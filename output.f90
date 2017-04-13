@@ -674,6 +674,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   use time_step
   use auxiliary_fields
   use transport_coefficients
+  use runaway_mod
 
   implicit none
 
@@ -1074,6 +1075,20 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end if !(iwrite_transport_coeffs.eq.1)
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_transport_coefsin output_fields'
 
+  if(irunaway.ne.0) then
+     do i=1, nelms
+        call calcavector(i, nre_field, dum(:,i))
+     end do
+     call output_field(group_id, "n_re", real(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#ifdef USECOMPLEX
+     call output_field(group_id, "n_re_i", aimag(dum), coeffs_per_element, &
+          nelms, error)
+     nfields = nfields + 1
+#endif
+  end if
+
   if(iwrite_aux_vars.eq.1) then 
     ! jphi
     do i=1, nelms
@@ -1434,6 +1449,30 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
 
     do i=1, nelms
+       call calcavector(i, ef_z, dum(:,i))
+    end do
+    call output_field(group_id, "E_Z", real(dum), &
+         coeffs_per_element, nelms, error)
+    nfields = nfields + 1
+#ifdef USECOMPLEX
+    call output_field(group_id, "E_Z_i",aimag(dum),coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
+#endif
+
+    do i=1, nelms
+       call calcavector(i, ef_par, dum(:,i))
+    end do
+    call output_field(group_id, "E_par", real(dum), &
+         coeffs_per_element, nelms, error)
+    nfields = nfields + 1
+#ifdef USECOMPLEX
+    call output_field(group_id, "E_par_i",aimag(dum),coeffs_per_element, &
+         nelms, error)
+    nfields = nfields + 1
+#endif
+
+    do i=1, nelms
        call calcavector(i, eta_j, dum(:,i))
     end do
     call output_field(group_id, "eta_J", real(dum), &
@@ -1476,18 +1515,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
             coeffs_per_element, nelms, error)
        nfields = nfields + 1
     endif
-
-    do i=1, nelms
-       call calcavector(i, ef_z, dum(:,i))
-    end do
-    call output_field(group_id, "E_Z", real(dum), &
-         coeffs_per_element, nelms, error)
-    nfields = nfields + 1
-#ifdef USECOMPLEX
-    call output_field(group_id, "E_Z_i",aimag(dum),coeffs_per_element, &
-         nelms, error)
-    nfields = nfields + 1
-#endif
 
  endif !(iwrite_aux_vars.eq.1)
 

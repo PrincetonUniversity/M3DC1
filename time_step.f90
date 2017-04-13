@@ -83,6 +83,7 @@ subroutine onestep
   use diagnostics
   use arrays
   use pellet
+  use runaway_mod
 
   implicit none
 
@@ -165,6 +166,8 @@ subroutine onestep
   if(ntime.gt.1 .and. linear.eq.0) call variable_timestep
 
   call pellet_advance
+
+  call runaway_advance
 
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."

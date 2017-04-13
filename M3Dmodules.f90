@@ -34,6 +34,7 @@ module basic
   real :: t0_norm
   real :: p0_norm
   real :: e0_norm
+  real :: j0_norm
 
   ! transport coefficients
   real :: amu         ! incompressible viscosity
