@@ -111,6 +111,7 @@ subroutine set_defaults
   use basicj
   use rmp
   use resistive_wall
+  use runaway_mod
 
   implicit none
 
@@ -291,6 +292,7 @@ subroutine set_defaults
   call add_var_int("itwofluid", itwofluid, 1, &
        "1: -electron 2F,  2: ion 2F", model_grp)
   call add_var_int("ibootstrap", ibootstrap, 0, "", model_grp)
+  call add_var_int("irunaway", irunaway, 0, "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &
@@ -1320,6 +1322,7 @@ subroutine validate_input
   t0_norm = l0_norm / v0_norm
   p0_norm = b0_norm**2/(4.*pi)
   e0_norm = v0_norm*b0_norm / c_light
+  j0_norm = c_light*b0_norm/(4.*pi*l0_norm)
 
   if(db.lt.0.) then
      db = c_light / &

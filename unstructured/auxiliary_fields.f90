@@ -15,7 +15,7 @@ module auxiliary_fields
   type(field_type) :: torque_density_ntv
   type(field_type) :: chord_mask
   type(field_type) :: mag_reg
-  type(field_type) :: ef_r, ef_phi, ef_z, eta_j, psidot, veldif
+  type(field_type) :: ef_r, ef_phi, ef_z, ef_par, eta_j, psidot, veldif
   type(field_type) :: eta_jdb, bdgp, vlbdgp
   type(field_type) :: vdotgradt, adv1, adv2, adv3, vpar_field
   type(field_type) :: f1vplot,f1eplot,f2vplot,f2eplot,f3vplot,f3eplot,jdbobs
@@ -41,6 +41,7 @@ subroutine create_auxiliary_fields
   call create_field(ef_r)
   call create_field(ef_phi)
   call create_field(ef_z)
+  call create_field(ef_par)
   call create_field(eta_j)
   call create_field(mesh_zone)
   if(jadv.eq.0) then
@@ -84,6 +85,7 @@ subroutine destroy_auxiliary_fields
   call destroy_field(ef_r)
   call destroy_field(ef_phi)
   call destroy_field(ef_z)
+  call destroy_field(ef_par)
   call destroy_field(eta_j)
   call destroy_field(mesh_zone)
   if(jadv.eq.0) then
@@ -237,6 +239,7 @@ subroutine calculate_auxiliary_fields(ilin)
   ef_r = 0.
   ef_phi = 0.
   ef_z = 0.
+  ef_par = 0.
   eta_j = 0.
   mesh_zone = 0.
   if(jadv.eq.0) then
@@ -514,6 +517,10 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      dofs = intx2(mu79(:,OP_1,:),temp79a)
      call vector_insert_block(ef_z%vec,itri,1,dofs,VEC_ADD)
 
+     call electric_field_par(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,OP_1,:),temp79a)
+     call vector_insert_block(ef_par%vec,itri,1,dofs,VEC_ADD)
+
      call electric_field_eta_j(ilin,temp79a)
      dofs = intx2(mu79(:,OP_1,:),temp79a)
 
@@ -636,6 +643,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   call newvar_solve(ef_r%vec, mass_mat_lhs)
   call newvar_solve(ef_phi%vec, mass_mat_lhs)
   call newvar_solve(ef_z%vec, mass_mat_lhs)
+  call newvar_solve(ef_par%vec, mass_mat_lhs)
   call newvar_solve(eta_j%vec, mass_mat_lhs)
   call newvar_solve(mesh_zone%vec, mass_mat_lhs)
   if(jadv.eq.0) then

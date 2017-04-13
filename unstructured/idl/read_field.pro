@@ -4073,6 +4073,33 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions()
        symbol = '!7d!8B!6!U2!N!3/!8B!6!U2!N!X'
 
+   ;===========================================
+   ; parallel electric field
+   ;===========================================
+   endif else if(strcmp('epar', name, /fold_case) eq 1) then begin
+
+       bx   = read_field('bx', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       by   = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       bz   = read_field('bz', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       ex   = read_field('e_r', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       ey   = read_field('e_phi', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       ez   = read_field('e_z', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+      
+       data = ex*bx + ey*by + ez*bz / sqrt(bx^2 + by^2 + bz^2)
+       d = dimensions(/potential,l0=-1)
+       symbol = '!8E!D!3||!N!X'
 
    ;===========================================
    ; radial electric field

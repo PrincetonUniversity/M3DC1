@@ -142,7 +142,7 @@ OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
 	electric_field.o pellet.o \
 	temperature_plots.o \
-	electrostatic_potential.o newvar.o diagnostics.o \
+	electrostatic_potential.o newvar.o runaway.o diagnostics.o \
 	read_schaffer_field.o  neutral_beam.o \
 	coils.o coil_sets.o model.o \
 	fit_magnetics.o \
