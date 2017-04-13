@@ -3226,15 +3226,16 @@ end function v2bsb1
 
 ! V2vs
 ! ====
-vectype function v2vs(e,f,g)
+function v2vs(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v2vs
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
   if(idens.eq.0 .or. nosig.eq.1 .or. surface_int) then
      v2vs = 0.
@@ -3246,13 +3247,10 @@ vectype function v2vs(e,f,g)
 
   select case(ivform)
   case(0)
-     temp = -int3(e(:,OP_1),f(:,OP_1),temp79a)
+     v2vs = -intx3(e(:,OP_1,:),f(:,OP_1),temp79a)
   case(1)
-     temp = -int4(r2_79,e(:,OP_1),f(:,OP_1),temp79a)
+     v2vs = -intx4(e(:,OP_1,:),r2_79,f(:,OP_1),temp79a)
   end select
-
-  v2vs = temp
-  return
 end function v2vs
 
 
