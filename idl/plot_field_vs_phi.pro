@@ -1,5 +1,7 @@
 pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
-                       tpts=tpts, mesh=mesh
+                       tpts=tpts, mesh=mesh, phirange=phirange
+
+  if(n_elements(phirange) eq 0) then phirange = [0, 360.]
 
   ytitle = '!9P!6 (deg)!X'
   xtitle = '!8R!6 (m)!X'
@@ -33,18 +35,16 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
 
   rr = (r1 - r0)*findgen(n) / (n-1) + r0
   zz = (z1 - z0)*findgen(n) / (n-1) + z0
-  phi = 2.*!pi*findgen(tpts)/(tpts-1)
+  phi = (phirange[1]-phirange[0])*findgen(tpts)/(tpts-1) + phirange[0]
 
   knx = fltarr(1,n,tpts)
   for j=0, tpts-1 do begin
      if(complex eq 1) then begin
-        ff = real_part(field*exp(complex(0,ntor)*phi[j]))
+        ff = real_part(field*exp(complex(0,ntor)*phi[j]*!pi/180.))
      endif else begin
-        if(j gt 0) then begin
-           print, 'PHI = ', phi[j]*180./!pi
-           ff = read_field(field,x,z,t,symbol=symbol,units=units,$
-                           phi=phi[j]*180./!pi,_EXTRA=extra)
-        end
+        print, 'PHI = ', phi[j]
+        ff = read_field(field,x,z,t,symbol=symbol,units=units,$
+                        phi=phi[j],_EXTRA=extra)
      endelse
      kni = field_at_point(ff,x,z,rr,zz)
 
@@ -52,7 +52,7 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
   end
  
   label = symbol + ' ('+units +') at !8Z!6 = '+string(format='(g0)',cutz)+ '!X'
-  contour_and_legend, knx, rr, phi*180./!pi, xtitle=xtitle, ytitle=ytitle, $
+  contour_and_legend, knx, rr, phi, xtitle=xtitle, ytitle=ytitle, $
                       title=title, label=label
 ;  oplot, [rsep, rsep], !y.crange, linestyle=2
 
