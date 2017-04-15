@@ -1,0 +1,183 @@
+;=== Device hardware specification - Magnetic field coils, vacuum vessel, plates
+;===
+;=== KSTAR June 15, 2006
+;===========================
+;===
+;=== S.A. Sabbagh, Y.S. Park
+;=== Vessel and plate data from KSTAR drawings
+;===
+;=== Note: IDL reads the file using whitespace as delimiters
+;===
+;=== UPDATES:
+;===
+;=== 08/15/10: Regroup vessel segments from 60 to 12 groups : Y.S. Park 
+;===
+;=== 07/23/10: Regroup vessel segments to 60 groups for better description of port penetrations : Y.S. Park
+;===
+;=== 07/14/10: Use the previous 6 vessel groups with fixed turns (Av1.1) and apply small changes to PF1~4 Z-locations : Y.S. Park
+;===
+;=== 06/22/10: Regroup vessel segments to 13 groups for better FL mapping : Y.S. Park
+;===
+;=== 06/21/10: Regroup vessel segments to 14 groups : Y.S. Park
+;===
+;=== 06/10/10: Regroup vessel segments to 12 groups : Y.S. Park
+;===
+;=== 06/09/10: Regroup vessel segments to 28 groups : Y.S. Park
+;===
+;=== 06/08/10: Use the previous 56 full vessel element model : Y.S. Park
+;===
+;=== 05/25/10: Fix the turn number of the grouped vessel elements : Y.S. Park
+;===
+;=== 11/17/09: Grouping VV elements into 6 groups : Y.S. Park
+;===           (See: devKSTAR_vv56.jpg for previous 56 VV elements with group ID)   
+;===
+;=== 08/31/08: Initial specs for first plasma reconstructions: S.A. Sabbagh
+;===
+;===   (1) each physical vessel segment carrys independent current
+;===   (2) planned plates and other conducting structure that don't exist yet taken out of model
+;===       (14 shaping coils; 56 vessel segments)
+;===
+;=== 06/15/06: Initial specifications: S.A. Sabbagh
+;===
+;===       Specs are taken from three independent sources. PF coil information is recent (2006) from
+;===   Kwang-Il You (kiyou@nfrc.re.kr) of KSTAR and Hyeon Park. The vessel and plate specs are taken
+;===   from recent (2006) drawings of KSTAR.
+;===
+;=====================
+;=== Pos Array mapping:
+;===
+;===              pos(0)    pos(1)    pos(2)    pos(3)    pos(4)    pos(5)    pos(6)  pos(7)
+;==============================================================================================================
+;     Assem Group
+;Name  Type  ID   Rc(m)     Zc(m)     wc(m)     hc(m)     ac(Deg)   ac2(Deg)  turns   Div  Material Description
+;==============================================================================================================
+;==============================================================================================================
+;
+;
+;=== Assembly 'OH': Ohmic Coil:
+;=============================
+;     Assem Group
+;Name  Type  ID   Rc(m)     Zc(m)     wc(m)     hc(m)     ac(Deg)   ac2(Deg)  turns   Div  Material Description
+;==========================================================================================================
+;
+;
+;=== Assembly 'SC': Shaping Coils:
+;================================
+;     Assem Group
+;Name  Type  ID   Rc(m)     Zc(m)     wc(m)     hc(m)     ac(Deg)   ac2(Deg)  turns   Div  Material Description
+;==========================================================================================================
+ PF1U    SC   1  0.5700    0.2578    0.2153    0.4784     0.0000     0.0000  180.0     1   Nb3Sn   ;CS shaping coil 1U
+ PF2U    SC   2  0.5700    0.7253    0.2153    0.3827     0.0000     0.0000  144.0     1   Nb3Sn   ;CS shaping coil 2U
+ PF3U    SC   3  0.5700    1.0488    0.2153    0.1914     0.0000     0.0000   72.0     1   Nb3Sn   ;CS shaping coil 3U
+ PF4U    SC   4  0.5700    1.3242    0.2153    0.2870     0.0000     0.0000  108.0     1   Nb3Sn   ;CS shaping coil 4U
+ PF5U    SC   5  1.0730    2.2950    0.3110    0.3827     0.0000     0.0000  208.0     1   Nb3Sn   ;Divertor shaping coil 5U
+ PF6U    SC   6  3.0900    1.9200    0.1914    0.3827     0.0000     0.0000  128.0     1   NbTi    ;EF shaping coil 6U
+ PF7U    SC   7  3.7300    0.9800    0.1435    0.2870     0.0000     0.0000   72.0     1   NbTi    ;EF shaping coil 7U
+ PF7L    SC   8  3.7300   -0.9800    0.1435    0.2870     0.0000     0.0000   72.0     1   NbTi    ;EF shaping coil 7L
+ PF6L    SC   9  3.0900   -1.9200    0.1914    0.3827     0.0000     0.0000  128.0     1   NbTi    ;EF shaping coil 6L
+ PF5L    SC  10  1.0730   -2.2950    0.3110    0.3827     0.0000     0.0000  208.0     1   Nb3Sn   ;Divertor shaping coil 5L
+ PF4L    SC  11  0.5700   -1.3242    0.2153    0.2870     0.0000     0.0000  108.0     1   Nb3Sn   ;CS shaping coil 4L
+ PF3L    SC  12  0.5700   -1.0488    0.2153    0.1914     0.0000     0.0000   72.0     1   Nb3Sn   ;CS shaping coil 3L
+ PF2L    SC  13  0.5700   -0.7253    0.2153    0.3827     0.0000     0.0000  144.0     1   Nb3Sn   ;CS shaping coil 2L
+ PF1L    SC  14  0.5700   -0.2578    0.2153    0.4784     0.0000     0.0000  180.0     1   Nb3Sn   ;CS shaping coil 1L
+;
+;
+;=== Assembly 'VV': Vacuum vessel:
+;================================
+;     Assem Group
+;Name  Type  ID   Rc(m)     Zc(m)     wc(m)     hc(m)     ac(Deg)   ac2(Deg)  turns   Div  Material Description
+;==========================================================================================================
+ VOCS1U  VV   1  1.11600   0.18358   0.01200   0.36717    0.0000    0.0000    0.2500   1    SS316LN ;Outer upper vessel segments
+ VOCS2U  VV   1  1.11600   0.55075   0.01200   0.36717    0.0000    0.0000    0.2500   1    SS316LN ;
+ VOCS3U  VV   2  1.11600   0.91792   0.01200   0.36717    0.0000    0.0000    0.1667   1    SS316LN ;
+ VOD4U   VV   2  1.12598   1.17733   0.01210   0.15167    0.0000   82.5000    0.1667   1    SS316LN ;
+ VOD5U   VV   2  1.16524   1.32383   0.05854   0.03136   67.5000    0.0000    0.1667   1    SS316LN ;
+ VOD6U   VV   3  1.30175   1.50175   0.21449   0.01697   45.0000    0.0000    0.2500   1    SS316LN ;
+ VOD7U   VV   3  1.47950   1.63490   0.14100   0.01278 	 20.1363    0.0000    0.2500   1    SS316LN ;
+ VOD8U   VV   4  1.62600   1.67410   0.15200   0.01219   10.0000    0.0000    0.2500   1    SS316LN ;
+ VOD9U   VV   4  1.92600   1.64032   0.44800   0.01226  -11.8935    0.0000    0.2500   1    SS316LN ;
+ VOD10U  VV   5  2.35354   1.47656   0.40708   0.01385  -29.9720    0.0000    0.1250   1    SS316LN ;
+ VOD11U  VV   5  2.69473   1.23426   0.27530   0.01628  -42.5000    0.0000    0.1250   1    SS316LN ;
+ VOD12U  VV   5  2.89281   1.01128   0.12087   0.02267  -58.0367    0.0000    0.1250   1    SS316LN ;
+ VOD13U  VV   5  2.96862   0.82722   0.01219   0.17443    0.0000  100.0000    0.1250   1    SS316LN ;
+ VOW14U  VV   6  2.98400   0.55500   0.01200   0.37000    0.0000    0.0000    0.2500   1    SS316LN ;
+ VOW15U  VV   6  2.98400   0.18500   0.01200   0.37000    0.0000    0.0000    0.2500   1    SS316LN ; 
+ VOW15L  VV   7  2.98400  -0.18500   0.01200   0.37000    0.0000    0.0000    0.2500   1    SS316LN ;Outer lower vessel segments
+ VOW14L  VV   7  2.98400  -0.55500   0.01200   0.37000    0.0000    0.0000    0.2500   1    SS316LN ;
+ VOD13L  VV   8  2.96862  -0.82722   0.01219   0.17443    0.0000 -100.0000    0.1250   1    SS316LN ;
+ VOD12L  VV   8  2.89281  -1.01128   0.12087   0.02267   58.0367    0.0000    0.1250   1    SS316LN ;
+ VOD11L  VV   8  2.69473  -1.23426   0.27530   0.01628   42.5000    0.0000    0.1250   1    SS316LN ;
+ VOD10L  VV   8  2.35354  -1.47656   0.40708   0.01385   29.9720    0.0000    0.1250   1    SS316LN ;
+ VOD9L   VV   9  1.92600  -1.64032   0.44800   0.01226   11.8935    0.0000    0.2500   1    SS316LN ;
+ VOD8L   VV   9  1.62600  -1.67410   0.15200   0.01219  -10.0000    0.0000    0.2500   1    SS316LN ;
+ VOD7L   VV  10  1.47950  -1.63490   0.14100   0.01278 	-20.1363    0.0000    0.2500   1    SS316LN ;
+ VOD6L   VV  10  1.30175  -1.50175   0.21449   0.01697  -45.0000    0.0000    0.2500   1    SS316LN ;
+ VOD5L   VV  11  1.16524  -1.32383   0.05854   0.03136  -67.5000    0.0000    0.1667   1    SS316LN ;
+ VOD4L   VV  11  1.12598  -1.17733   0.01210   0.15167    0.0000  -82.5000    0.1667   1    SS316LN ;
+ VOCS3L  VV  11  1.11600  -0.91792   0.01200   0.36717    0.0000    0.0000    0.1667   1    SS316LN ;
+ VOCS2L  VV  12  1.11600  -0.55075   0.01200   0.36717    0.0000    0.0000    0.2500   1    SS316LN ;
+ VOCS1L  VV  12  1.11600  -0.18358   0.01200   0.36717    0.0000    0.0000    0.2500   1    SS316LN ;
+ VICS1U  VV   1  1.15400   0.17267   0.01200   0.34533    0.0000    0.0000    0.2500   1    SS316LN ;Inner upper vessel segments
+ VICS2U  VV   1  1.15400   0.51800   0.01200   0.34533    0.0000    0.0000    0.2500   1    SS316LN ;
+ VICS3U  VV   2  1.15400   0.86333   0.01200   0.34533    0.0000    0.0000    0.1667   1    SS316LN ;
+ VID4U   VV   2  1.16334   1.10692   0.01210   0.14183    0.0000   82.5000    0.1667   1    SS316LN ;
+ VID5U   VV   2  1.20005   1.24392   0.05475   0.03136   67.5000    0.0000    0.1667   1    SS316LN ;
+ VID6U   VV   3  1.32771   1.41029   0.20058   0.01697   45.0000    0.0000    0.2500   1    SS316LN ;
+ VID7U   VV   3  1.48900   1.53383   0.12200   0.01284   20.8642    0.0000    0.2500   1    SS316LN ;
+ VID8U   VV   4  1.62600   1.57060   0.15200   0.01219   10.0000    0.0000    0.2500   1    SS316LN ;
+ VID9U   VV   4  1.92600   1.53235   0.44800   0.01232  -13.0000    0.0000    0.2500   1    SS316LN ;
+ VID10U  VV   5  2.25760   1.40759   0.21520   0.01458  -34.5822    0.0000    0.1250   1    SS316LN ;
+ VID11U  VV   5  2.51013   1.20008   0.28986   0.01628  -42.5000    0.0000    0.1250   1    SS316LN ;
+ VID12U  VV   5  2.71889   0.96965   0.12766   0.02193  -56.8237    0.0000    0.1250   1    SS316LN ;
+ VID13U  VV   5  2.79436   0.80601   0.01219   0.13202    0.0000  100.0000    0.1250   1    SS316LN ;
+ VIW14U  VV   6  2.80600   0.55500   0.01200   0.37000    0.0000    0.0000    0.2500   1    SS316LN ;
+ VIW15U  VV   6  2.80600   0.18500   0.01200   0.37000    0.0000    0.0000    0.2500   1    SS316LN ;
+ VIW15L  VV   7  2.80600  -0.18500   0.01200   0.37000    0.0000    0.0000    0.2500   1    SS316LN ;Inner lower vessel segments
+ VIW14L  VV   7  2.80600  -0.55500   0.01200   0.37000    0.0000    0.0000    0.2500   1    SS316LN ;
+ VID13L  VV   8  2.79436  -0.80601   0.01219   0.13202    0.0000 -100.0000    0.1250   1    SS316LN ;
+ VID12L  VV   8  2.71889  -0.96965   0.12766   0.02193   56.8237    0.0000    0.1250   1    SS316LN ;
+ VID11L  VV   8  2.51013  -1.20008   0.28986   0.01628   42.5000    0.0000    0.1250   1    SS316LN ;
+ VID10L  VV   8  2.25760  -1.40759   0.21520   0.01458   34.5822    0.0000    0.1250   1    SS316LN ;
+ VID9L   VV   9  1.92600  -1.53235   0.44800   0.01232   13.0000    0.0000    0.2500   1    SS316LN ;
+ VID8L   VV   9  1.62600  -1.57060   0.15200   0.01219  -10.0000    0.0000    0.2500   1    SS316LN ;
+ VID7L   VV  10  1.48900  -1.53383   0.12200   0.01284  -20.8642    0.0000    0.2500   1    SS316LN ;
+ VID6L   VV  10  1.32771  -1.41029   0.20058   0.01697  -45.0000    0.0000    0.2500   1    SS316LN ;
+ VID5L   VV  11  1.20005  -1.24392   0.05475   0.03136  -67.5000    0.0000    0.1667   1    SS316LN ;
+ VID4L   VV  11  1.16334  -1.10692   0.01210   0.14183    0.0000  -82.5000    0.1667   1    SS316LN ;
+ VICS3L  VV  11  1.15400  -0.86333   0.01200   0.34533    0.0000    0.0000    0.1667   1    SS316LN ;
+ VICS2L  VV  12  1.15400  -0.51800   0.01200   0.34533    0.0000    0.0000    0.2500   1    SS316LN ;
+ VICS1L  VV  12  1.15400  -0.17267   0.01200   0.34533    0.0000    0.0000    0.2500   1    SS316LN ;
+;
+;
+; *** Further conducting hardware commented out as these do not yet exist on the device *** 
+;
+;=== Assembly 'DP': CS and Divertor Plates:
+;=========================================
+;     Assem Group
+;Name  Type  ID   Rc(m)     Zc(m)     wc(m)     hc(m)     ac(Deg)   ac2(Deg)  turns   Div  Material Description
+;==========================================================================================================
+; DCS1U   DP   1  1.21750   0.17375   0.02500   0.34750    0.0000    0.0000    1.0000   1    SS316LN ;CS backplate upper segment 1
+; DCS2U   DP   2  1.21750   0.52125   0.02500   0.34750    0.0000    0.0000    1.0000   1    SS316LN ;CS backplate upper segment 2
+; DPI1U   DP   3  1.21750   0.90000   0.02500   0.39000    0.0000    0.0000    1.0000   1    SS316LN ;ID backplate upper segment 1
+; DPI2U   DP   4  1.32094   1.20571   0.18595   0.03536   45.0000    0.0000    1.0000   1    SS316LN ;ID backplate upper segment 2
+; DPI3U   DP   5  1.50689   1.39166   0.18595   0.03536   45.0000    0.0000    1.0000   1    SS316LN ;ID backplate upper segment 3
+; DPO1U   DP   6  1.62790   1.23540   0.02514   0.17900    0.0000   95.99568   1.0000   1    SS316LN ;OD backplate upper segment 1
+; DPO2U   DP   7  1.72589   1.05779   0.03771   0.14390    0.0000  138.47388   1.0000   1    SS316LN ;OD backplate upper segment 2
+; DPO2L   DP   8  1.72589  -1.05779   0.03771   0.14390    0.0000 -138.47388   1.0000   1    SS316LN ;OD backplate lower segment 2
+; DPO1L   DP   9  1.62790  -1.23540   0.02514   0.17900    0.0000  -95.99568   1.0000   1    SS316LN ;OD backplate lower segment 1
+; DPI3L   DP  10  1.50689  -1.39166   0.18595   0.03536  -45.0000    0.0000    1.0000   1    SS316LN ;ID backplate lower segment 3
+; DPI2L   DP  11  1.32094  -1.20571   0.18595   0.03536  -45.0000    0.0000    1.0000   1    SS316LN ;ID backplate lower segment 2
+; DPI1L   DP  12  1.21750  -0.90000   0.02500   0.39000    0.0000    0.0000    1.0000   1    SS316LN ;ID backplate lower segment 1
+; DCS2L   DP  13  1.21750  -0.52125   0.02500   0.34750    0.0000    0.0000    1.0000   1    SS316LN ;CS backplate lower segment 2
+; DCS1L   DP  14  1.21750  -0.17375   0.02500   0.34750    0.0000    0.0000    1.0000   1    SS316LN ;CS backplate lower segment 1
+;
+;
+;=== Assembly 'SP': Stabilizing Plates:
+;=======================================
+;     Assem Group
+;Name  Type  ID   Rc(m)     Zc(m)     wc(m)     hc(m)     ac(Deg)   ac2(Deg)  turns   Div  Material Description
+;==========================================================================================================
+; PP1U    SP   1  1.94399   0.91267   0.05646   0.17220    0.0000  141.69450   1.0000   1    Copper  ;Passive plate upper segment 1
+; PP2U    SP   2  2.16683   0.66350   0.04269   0.32614    0.0000  124.91922   1.0000   1    Copper  ;Passive plate upper segment 2
+; PP2L    SP   3  2.16683  -0.66350   0.04269   0.32614    0.0000 -124.91922   1.0000   1    Copper  ;Passive plate lower segment 2
+; PP1L    SP   4  1.94399  -0.91267   0.05646   0.17220    0.0000 -141.69450   1.0000   1    Copper  ;Passive plate lower segment 1
