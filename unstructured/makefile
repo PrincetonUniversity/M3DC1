@@ -46,7 +46,11 @@ else
   # specify whether real or complex
   ifeq ($(COM), 1)
     OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
+  ifeq ($(PAR), 1)
+    BIN_POSTFIX := $(BIN_POSTFIX)-pic
+  else
     BIN_POSTFIX := $(BIN_POSTFIX)-complex
+  endif
     USECOMPLEX = 1
   else
     OPTS := $(OPTS) -Dvectype=real
