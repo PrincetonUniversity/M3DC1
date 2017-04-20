@@ -761,8 +761,8 @@ subroutine update_particle_pressure
   endif
 
   !Copy data to non-ghosted mesh
-  call m3dc1_synchronize_ghost_field(p_i_perp%vec%id)
-  call m3dc1_synchronize_ghost_field(p_i_par%vec%id)
+  call m3dc1_field_sync(p_i_perp%vec%id)
+  call m3dc1_field_sync(p_i_par%vec%id)
 
   !Return to non-ghosted mesh
   call m3dc1_ghost_delete

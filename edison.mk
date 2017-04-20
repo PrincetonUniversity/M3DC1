@@ -18,16 +18,11 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-# SCOREC library choice for PIC and non-PIC
-ifeq ($(PAR), 1)
-  SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Mar2017_PIC-mpich7.2.5
+ifeq ($(COM), 1)
+  SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Apr2017-mpich7.2.5
+  M3DC1_SCOREC_LIB = m3dc1_scorec_complex
 else
   SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Mar2017-mpich7.4.1
-endif
-
-ifeq ($(COM), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-else
   ifeq ($(TRILINOS), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
   else
@@ -35,18 +30,10 @@ else
   endif
 endif
 
-ifeq ($(PAR), 1)
-  SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-               -lapf -lapf_zoltan -lapf_omega_h -lgmi -llion -lma -lmds -lmth \
-               -lomega_h -lparma -lpcu -lph -lsam -lspr -lzoltan \
-               -l$(M3DC1_SCOREC_LIB) \
-               -Wl,--end-group
-else
   SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
                -lpumi -lcrv -lph -lsam -lspr -lma \
                -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -l$(M3DC1_SCOREC_LIB) \
                -Wl,--end-group
-endif
 
 ifeq ($(TRILINOS),1)
 TRILINOS_LIBS = -Wl,--start-group,-rpath,$(CRAY_TRILINOS_PREFIX_DIR)/lib -L$(CRAY_TRILINOS_PREFIX_DIR)/lib \
