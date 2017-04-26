@@ -140,7 +140,7 @@ module adapt
     if(irestart .ne. 0) return
     field_vec = 0.
     field0_vec = 0.
-    print *, "re-calculate equlibrium after adapt .."
+    if (myrank .eq. 0) print *, "re-calculate equlibrium after adapt .."
     call initial_conditions
     ! combine the equilibrium and perturbed fields of linear=0
     ! unless eqsubtract = 1
@@ -284,7 +284,7 @@ iadapt_max_node, adapt_control);
 
        call create_newvar_matrices
        if(irestart .ne. 0 .or. linear .eq. 0) return
-       print *, "reset simulation after adapt .."
+       if (myrank .eq. 0) print *, "reset simulation after adapt .."
        field_vec = 0.
        field0_vec = 0.
        jphi_field = 0.
