@@ -1,7 +1,7 @@
 Updated
 
 1. login from pppl portal
-	ssh portalr6
+	ssh portal
 
 2. code
 
@@ -34,32 +34,30 @@ Updated
         make 3D=1 OPT=1 MAX_PTS=60
   For PETSc-complex 
 	make OPT=1 COM=1 MAX_PTS=25
+
   For Trilinos-real, add TRILINOS=1
 
 5. mesh utility
 	/p/tsc/m3dc1/lib/SCORECLib/rhel6/utilities/
 
 6. prepare jobscript
-   ganesh22 has only 1 node (CPUTot=64 : CoresPerSocket=16  Sockets=4  )
-   in mque_r6 -- so you need to specify  --nodes=1
 
 	#!/bin/bash -vx
-	#SBATCH --partition=mque_r6
-	#SBATCH --ntasks 8 (max=64)
-	#SBATCH -J m3dc1_2d
+        #SBATCH --partition=kruskal
+        #SBATCH --ntasks=N (max=64)
+        #SBATCH -J m3dc1
 	#SBATCH -t 01:00:00
         #SBATCH --mail-type=END
         #SBATCH --mail-user=<username>@pppl.gov
 
 	#2D complex
-	mpiexec -np 8 ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+	mpirun --bind-to none -np N ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps
 
 	#2D real
-	mpiexec -np 8 ./m3dc1_2d
-
+	mpirun --bind-to none -np N ./m3dc1_2d
 
 	#3D real
-	mpiexec -np 32  ./m3dc1_3d -ipetsc -options_file options_bjacobi
+	mpirun --bind-to none  -np N  ./m3dc1_3d -ipetsc -options_file options_bjacobi
 
 7. submit job
         sbatch jobscript
