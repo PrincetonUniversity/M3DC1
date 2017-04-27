@@ -31,7 +31,6 @@ endif
 F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
-
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
@@ -43,61 +42,31 @@ INCLUDE = -I$(MPIHOME)/include \
 	-I$(HDF5_HOME)/include -I$(HDF5_HOME)/lib \
 	-I$(GSLHOME)/include
 
-#	-I$(SUPERLU_DIST_HOME)/include -I$(SUPERLU_HOME)/include \
-#	-I$(HYBRID_HOME)/include \
-#
 ifeq ($(COM), 1)
 PETSC_ARCH = portalr6-intel-openmpi-1.8.4-complex
-PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
-        -lpetsc \
-	-ldmumps -lmumps_common -lpord -lcmumps -lsmumps -lzmumps \
-	-lfftw3 -lfftw3_mpi \
-	-lparmetis -lmetis \
-	-lscalapack \
-	-lsuperlu_dist_3.3 -lsuperlu_4.3 \
-	-Wl,--end-group
+HYPRE_LIB=
 else
 PETSC_ARCH = portalr6-intel-openmpi-1.8.4
+HYPRE_LIB=-lHYPRE
+endif
+
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
         -lpetsc \
 	-ldmumps -lmumps_common -lpord -lcmumps -lsmumps -lzmumps \
 	-lfftw3 -lfftw3_mpi \
-	-lHYPRE \
+        $(HYPRE_LIB) \
 	-lparmetis -lmetis \
 	-lscalapack \
 	-lsuperlu_dist_3.3 -lsuperlu_4.3 \
 	-Wl,--end-group
-endif
-
-
-#	-lfblas -lflapack \
-#	-lpromfei -lprometheus \
-#	-lHYPRE \
-
-#SUPERLU_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
-#SUPERLU_DIST_HOME = $(PETSC_DIR)/$(PETSC_ARCH)
-#SUPERLU_LIBS = -L$(SUPERLU_HOME)/lib -lsuperlu_4.3 \
-#	-L$(SUPERLU_DIST_HOME)/lib -lsuperlu_dist_3.3 \
-
-#	-L$(BLACS_HOME)/lib -lmpiblacsF77init -lmpiblacsCinit -lmpiblacs
-
-#PARMETIS_LIBS = -L$(PARMETIS_HOME)/lib \
-#	-Wl,-rpath,$(PARMETIS_HOME)/lib -lparmetis -lmetis
 
 BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group \
 	-lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core \
 	-Wl,--end-group
-ifeq ($(PAR), 1)
-  SCOREC_DIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Dec2016_PIC
-else
-  SCOREC_DIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Dec2015
-endif
 
-ifeq ($(PAR), 1)
-  PUMI_LIB = -lapf -lapf_zoltan -lapf_omega_h -lgmi -llion -lma -lmds -lmth -lomega_h -lparma -lpcu -lph -lsam -lspr -lzoltan
-else
-  PUMI_LIB = -lapf -lapf_zoltan -lcrv -ldsp -lgmi -lma -lmds -lparma -lpcu -lph -lspr -lzoltan
-endif
+
+SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/Apr2017-openmpi-1.8.4
+PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 ifeq ($(COM), 1)
   SCOREC_LIB=-lm3dc1_scorec_complex
 else
@@ -106,9 +75,11 @@ endif
 
 SCORECLIB= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              $(PUMI_LIB) $(SCOREC_LIB) -Wl,--end-group
+ZOLTAN_LIB=-L/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.8.4/lib -lzoltan
 
 LIBS = 	\
 	$(SCORECLIB) \
+        $(ZOLTAN_LIB) \
         $(BLASLAPACKLIBS) \
         $(PETSC_LIBS) \
 	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
@@ -116,14 +87,6 @@ LIBS = 	\
 	-L$(ZLIB_HOME) -lz \
 	-L$(GSLHOME)/lib -lgsl -lgslcblas \
 	-lX11
-
-#	$(SUPERLU_LIBS) \
-#	-L$(Zoltan_HOME)/lib -lzoltan \
-#	$(PARMETIS_LIBS) \
-#	-L$(FFTWHOME)/lib -lfftw3 \
-#	-L$(ACML_HOME)/ifort64/lib -lacml \
-#	-L$(NCARG_ROOT)/lib -lncarg -lncarg_gks -lncarg_c \
-  INCLUDE := -I$(SCORECDIR)/include  $(INCLUDE)
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
