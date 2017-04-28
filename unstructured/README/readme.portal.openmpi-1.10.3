@@ -8,7 +8,7 @@ Updated
 3. load modules and set enviroments
         module load intel/2015.u1
 	module load openmpi/1.10.3
-	module load lapack/3.6.1
+	module load scalapack/2.0.2
 	module load gsl/1.16
 	module load szip/2.1
 	module load hdf5-parallel
@@ -16,29 +16,24 @@ Updated
 	module load zlib
         setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/portalr6
 
-  For PETSc-real
-        setenv PETSC_DIR /p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
-	setenv PETSC_ARCH real-openmpi-1.10.3 
-
-  For PETSc-complex
-        setenv PETSC_DIR /p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
-	setenv PETSC_ARCH complex-openmpi-1.10.3
- 
   For Trilinos,
         module load netcdf
         module load trilinos/11.12.1
 
 4. compile code
   For PETSc-real
-	make OPT=1 RL=1 MAX_PTS=25
-        make 3D=1 OPT=1 MAX_PTS=60
-  For PETSc-complex 
-	make OPT=1 COM=1 MAX_PTS=25
+    - (2D) make OPT=1
+    - (3D) make 3D=1 OPT=1 MAX_PTS=60
 
-  For Trilinos-real, add TRILINOS=1
+  For PETSc-complex, 
+    - make OPT=1 COM=1
+    - add PAR=1 for PIC 
+
+  For Trilinos-real
+    - add TRILINOS=1 
 
 5. mesh utility
-	/p/tsc/m3dc1/lib/SCORECLib/rhel6/utilities/
+	/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/utilities/
 
 6. prepare jobscript
 
@@ -56,9 +51,12 @@ Updated
 	#2D real
 	mpirun --bind-to none -np N ./m3dc1_2d
 
-	#3D real
-	mpirun --bind-to none  -np N  ./m3dc1_3d -ipetsc -options_file options_bjacobi
+	#3D real with PETSc
+	mpirun --bind-to none  -np N ./m3dc1_3d -ipetsc -options_file options_bjacobi
 
+       #3D real with Trilinos
+       mpirun --bind-to none  -np N ./m3dc1_3d_trilinos
+ 
 7. submit job
         sbatch jobscript
 	
