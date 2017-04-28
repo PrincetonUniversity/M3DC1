@@ -18,45 +18,40 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-ifeq ($(COM), 1)
-  SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Apr2017-mpich7.2.5
-  M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_DIR =/global/project/projectdirs/mp288/edison/petsc-3.5.4-complex
-  PETSC_ARCH =cray-mpich-7.2
-  PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-               -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_4.3 -lsuperlu_dist_3.3 \
-               -lparmetis -lmetis -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lpthread -lssl -lcrypto -ldl -lstdc++
-  PETSC_LIB =  -lpetsc
-  ZOLTAN_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
-else
-  SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/Apr2017-mpich7.4.1
-  PETSC_DIR=$(CRAY_PETSC_PREFIX_DIR)
-  ifeq ($(TRILINOS), 1)
+SCOREC_DIR =/global/project/projectdirs/mp288/edison/scorec/Apr2017-mpich7.4.1
+ZOLTAN_LIB = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
+
+ifeq ($(TRILINOS), 1)
     TRILINOS_LIBS = -Wl,--start-group,-rpath,$(CRAY_TRILINOS_PREFIX_DIR)/lib -L$(CRAY_TRILINOS_PREFIX_DIR)/lib \
                 -lamesos -ltpetra -lkokkosnodeapi -ltpi -laztecoo -lepetra \
                 -lsacado -lteuchosparameterlist -lteuchoscomm_intel -lteuchoscore -lteuchosnumerics \
                 -lteuchosremainder -Wl,--end-group
     PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_PREFIX_DIR)/lib -L$(CRAY_TPSL_PREFIX_DIR)/lib \
                 -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl
-    M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_trilinos
+else
+  ifeq ($(COM), 1)
+    HYPRE_LIB=
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+    PETSC_LIB = -lcraypetsc_intel_complex
   else
-    PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_PREFIX_DIR)/lib -L$(CRAY_TPSL_PREFIX_DIR)/lib \
-                -lHYPRE -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
+    HYPRE_LIB=-lHYPRE
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec
+    PETSC_LIB = -lcraypetsc_intel_real
+  endif
+
+  PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_PREFIX_DIR)/lib -L$(CRAY_TPSL_PREFIX_DIR)/lib \
+                $(HYPRE_LIB) -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
                 -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr \
                 -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lsundials_cvode -lsundials_cvodes -lsundials_ida \
                 -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial -lpthread \
                 -lssl -lcrypto -ldl -lstdc++
-    PETSC_LIB = -lcraypetsc_intel_real
-    M3DC1_SCOREC_LIB = m3dc1_scorec
-  endif
-  ZOLTAN_LIB = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
-  OPTS := $(OPTS) -DNEXTPetscDEV
 endif
 
-SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-               -lpumi -lcrv -lph -lsam -lspr -lma \
-               -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -l$(M3DC1_SCOREC_LIB) \
-               -Wl,--end-group
+SCOREC_LIBS=-Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+            $(M3DC1_SCOREC_LIB) -lpumi -lcrv -lph -lsam -lspr -lma \
+            -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu \
+            -Wl,--end-group
 
 ifeq ($(USEADIOS), 1)
   OPTS := $(OPTS) -DUSEADIOS
@@ -69,12 +64,11 @@ endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS -DNEXTPetscDEV
 
 INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
         -I$(SCOREC_DIR)/include \
-	-I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-        -I$(PETSC_DIR)/include \
+	-I$(CRAY_PETSC_PREFIX_DIR)/include \
 	-I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 
@@ -86,11 +80,12 @@ LIBS := $(LIBS) \
         $(FFTW_POST_LINK_OPTS) -lfftw3 \
         -L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
         $(ADIOS_FLIB)
+
 ifeq ($(TRILINOS),1)
   LIBS := $(LIBS) $(TRILINOS_LIBS) \
          -L/usr/lib64/gcc/x86_64-suse-linux/4.3 -lstdc++
 else
-  LIBS := $(LIBS) -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(PETSC_LIB)
+  LIBS := $(LIBS) -L$(CRAY_PETSC_PREFIX_DIR)/lib $(PETSC_LIB)
 endif
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \

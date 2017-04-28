@@ -5,34 +5,24 @@
 
 3. load modules
 
-  For real type, load the following modules: 
     module load cray-parallel-netcdf
     module load cray-hdf5-parallel
     module load fftw
     module load gsl/1.16
+
+  For real type with PETSc, do
     module load cray-petsc/3.7.4.0
 
-  For real type with Trilinos, load the following additional modules:
+  For complex type with PETSc, do
+    module load cray-petsc-complex/3.7.4.0
+
+  For real type with Trilinos, do
     module load boost 
     module load cray-tpsl 
     module load cray-trilinos/11.12.1.5
 
-  For complex type including PIC, load the following modules:
-	module unload cray-mpich
-	module unload cray-shmem
-	module unload gcc
-	module load gcc/4.8.0
-	module load cray-mpich/7.2.5
-	module load cray-shmem/7.2.5
-        module load cray-parallel-netcdf
-        module load cray-hdf5-parallel
-	module load fftw
-	module load gsl/1.16
-	module load idl
-
-   To use adios, load the following additionally:
-
-        module load adios/1.4.1
+  To use adios, load the following additionally:
+    module load adios/1.4.1
 
 4. compile code
 	2D real: make OPT=1 
