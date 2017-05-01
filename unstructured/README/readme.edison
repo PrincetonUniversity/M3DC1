@@ -18,9 +18,6 @@
   For complex type with PETSc, do
     module load cray-petsc-complex/3.7.4.0
 
-  For real type with Trilinos, do
-    module load boost 
-
   To use adios, load the following additionally:
     module load adios/1.4.1
 
