@@ -9,6 +9,8 @@
     module load cray-hdf5-parallel
     module load fftw
     module load gsl/1.16
+    module load cray-tpsl
+    module load cray-trilinos/11.12.1.5
 
   For real type with PETSc, do
     module load cray-petsc/3.7.4.0
@@ -18,8 +20,6 @@
 
   For real type with Trilinos, do
     module load boost 
-    module load cray-tpsl 
-    module load cray-trilinos/11.12.1.5
 
   To use adios, load the following additionally:
     module load adios/1.4.1
