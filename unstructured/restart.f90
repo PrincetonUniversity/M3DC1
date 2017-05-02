@@ -1085,10 +1085,12 @@ subroutine wrrestart_adios
   real, allocatable :: tmp_psi_coil_field(:)
 
   integer :: useext
+  integer :: adios_groupsize, adios_totalsize
 
   fname="restart.bp"
   numnodes = local_nodes()
   numelms = local_elements()
+  mmnn18 = 0
 
 
   !call numdofs(num_fields, ndofs_1)
@@ -1141,9 +1143,11 @@ subroutine wrrestart_adios
     call MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr) 
     if( ifirstrs .eq. 1 ) then
 #ifdef USECOMPLEX
-    call adios_init ("m3dc1_cplx.xml"//char(0), adios_err)
+    call adios_init ("m3dc1_cplx.xml"//char(0), comm, adios_err)
 #else
-    call adios_init ("m3dc1.xml"//char(0), adios_err)
+    call adios_init ("m3dc1.xml"//char(0), comm, adios_err)
+    if(myrank.eq.0) &
+       write(*,'(A,i1)') 'wrrestart_adios init: ntime=', ntime
 #endif
     endif
     call adios_open (adios_handle, "restart", fname, "w", comm, adios_err)
@@ -1156,6 +1160,8 @@ subroutine wrrestart_adios
     call MPI_Barrier (comm, ierr)
     if( (ntimemax-(ntime-ntime0)) .lt. ntimepr ) then
     call adios_finalize (myrank, adios_err)
+    if(myrank.eq.0) &
+       write(*,'(A,i1)') 'wrrestart_adios finalize: ntime=', ntime
     endif
 
   if(myrank.eq.0) &
@@ -1188,7 +1194,7 @@ subroutine rdrestart_adios
   integer :: prev_maxrank, cur_nelms, prev_eqsubtract, prev_linear, prev_comp
   character (len=30) :: fname
   integer :: cur_ndofs1, cur_ndofs2, prev_ndofs1, prev_ndofs2
-  real :: vloopsave
+  real :: vloopsave, pelletratesave
 
   ! ADIOS variables declarations for matching gread_restart_c11.fh &  gread_restart_c12.fh
   integer             :: comm, ierr, ier, itmp
@@ -1211,6 +1217,7 @@ subroutine rdrestart_adios
   integer                      :: elemsize               ! double complex or double
   integer :: prev_useext, prev_version, group_size, group_rank
   integer :: prev_ndofs1_pernode, prev_ndofs2_pernode, cur_ndofs1_pernode, cur_ndofs2_pernode
+  integer :: prev_icsubtract,prev_extsubtract,prev_use_external_fields
   integer :: vec_created
  
   real, dimension(num_fields*12*2):: dofs_node1, dofs_node2, dofs_node3 ! buffer for dofs per node
@@ -1303,6 +1310,21 @@ subroutine rdrestart_adios
        call adios_read_local_var (gh, "r_p2",      group_rank, start, readsize, znull, read_bytes)
     end if
 
+    if(prev_version.ge.14) then
+       call adios_read_local_var (gh, "icsubtract",      group_rank, start, readsize, prev_icsubtract, read_bytes)
+       call adios_read_local_var (gh, "extsubtract",      group_rank, start, readsize, prev_extsubtract, read_bytes)
+       call adios_read_local_var (gh, "use_external_fields",      group_rank, start, readsize, prev_use_external_fields, read_bytes)
+      if(myrank.eq.group_rank) then
+          if(myrank.eq.group_rank) then
+          if(prev_icsubtract.ne.icsubtract) &
+             write(*,'(A,3i)') "READ: rdrestart_adios icsubtract err=", prev_icsubtract,icsubtract
+          if(prev_extsubtract.ne.extsubtract) &
+             write(*,'(A,3i)') "READ: rdrestart_adios extsubtract err=", prev_extsubtract,extsubtract
+          if(prev_use_external_fields.ne.use_external_fields) &
+             write(*,'(A,3i)') "READ: rdrestart_adios use_external_fields err=", prev_use_external_fields,use_external_fields
+          end if
+      end if
+    end if
 
     if(control_type .eq. -1) vloop = vloopsave  !  vloop from input if no I control
     if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  !  vloop from input if no I control

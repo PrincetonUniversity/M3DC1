@@ -72,15 +72,15 @@ ifeq ($(USEADIOS), 1)
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
 #ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
-ADIOS_DIR=/usr/common/usg/adios/1.4.1
+#ADIOS_DIR=/usr/common/usg/adios/1.4.1
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
+             -L/usr/common/usg/minixml/2.9/intel/lib -lm -lmxml \
              -L/usr/lib64/ -llustreapi
 endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
            $(FFTW_INCLUDE_OPTS) \
@@ -105,16 +105,16 @@ CCOPTS  = -c $(OPTS)
 
 # Optimization flags
 ifeq ($(VTUNE), 1)
-  LDOPTS := $(LDOPTS) -g -dynamic
-  FOPTS  := $(FOPTS)  -g -dynamic
-  CCOPTS := $(CCOPTS) -g -dynamic
+  LDOPTS := $(LDOPTS) -g -dynamic -debug inline-debug-info -parallel-source-info=2
+  FOPTS  := $(FOPTS)  -g -dynamic -debug inline-debug-info -parallel-source-info=2
+  CCOPTS := $(CCOPTS) -g -dynamic -debug inline-debug-info -parallel-source-info=2
 endif
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -dynamic
-  FOPTS  := $(FOPTS)  -O3
-  CCOPTS := $(CCOPTS) -O3
+  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report
+  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report
+  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
