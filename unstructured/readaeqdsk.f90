@@ -432,6 +432,162 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp(52,1)* 1/1000.  ! PPPOLL
      write(*,1100) ccbrsp(53,1)* 1/1000.  ! PPSILU
      write(*,1100) ccbrsp(54,1)* 1/1000.  ! PPSILL
+  else if(nfcoil0.eq.31) then
+     write(0,*) 'Assuming KSTAR '
+!!$     write(*,1100) ccbrsp(27,1)*180./1000.  ! PF1U
+!!$     write(*,1100) ccbrsp(28,1)*144./1000.  ! PF2U
+!!$     write(*,1100) ccbrsp(19,1)* 72./1000.  ! PF3U
+!!$     write(*,1100) ccbrsp(20,1)*108./1000.  ! PF4U
+!!$     write(*,1100) ccbrsp(21,1)*208./1000.  ! PF5U
+!!$     write(*,1100) ccbrsp(22,1)*128./1000.  ! PF6U
+!!$     write(*,1100) ccbrsp(29,1)* 72./1000.  ! PF7U
+!!$     write(*,1100) ccbrsp(29,1)* 72./1000.  ! PF7L
+!!$     write(*,1100) ccbrsp(26,1)*128./1000.  ! PF6L
+!!$     write(*,1100) ccbrsp(25,1)*208./1000.  ! PF5L
+!!$     write(*,1100) ccbrsp(24,1)*108./1000.  ! PF4L
+!!$     write(*,1100) ccbrsp(23,1)* 72./1000.  ! PF3L
+!!$     write(*,1100) ccbrsp(28,1)*144./1000.  ! PF2L
+!!$     write(*,1100) ccbrsp(27,1)*180./1000.  ! PF1L
+!!$
+!!$     write(*,1100) ccbrsp( 1,1)*0.2500/1000.  ! VOCS1U
+!!$     write(*,1100) ccbrsp( 1,1)*0.2500/1000.  ! VOCS2U
+!!$     write(*,1100) ccbrsp( 2,1)*0.1667/1000.  ! VOCS3U
+!!$     write(*,1100) ccbrsp( 2,1)*0.1667/1000.  ! VOD4U
+!!$     write(*,1100) ccbrsp( 2,1)*0.1667/1000.  ! VOD5U
+!!$     write(*,1100) ccbrsp( 3,1)*0.2500/1000.  ! VOD6U
+!!$     write(*,1100) ccbrsp( 3,1)*0.2500/1000.  ! VOD7U
+!!$     write(*,1100) ccbrsp( 4,1)*0.2500/1000.  ! VOD8U
+!!$     write(*,1100) ccbrsp( 4,1)*0.2500/1000.  ! VOD9U
+!!$     write(*,1100) ccbrsp( 5,1)*0.1250/1000.  ! VOD10U
+!!$     write(*,1100) ccbrsp( 5,1)*0.1250/1000.  ! VOD11U
+!!$     write(*,1100) ccbrsp( 5,1)*0.1250/1000.  ! VOD12U
+!!$     write(*,1100) ccbrsp( 5,1)*0.1250/1000.  ! VOD13U
+!!$     write(*,1100) ccbrsp( 6,1)*0.2500/1000.  ! VOD14U
+!!$     write(*,1100) ccbrsp( 6,1)*0.2500/1000.  ! VOD15U
+!!$     write(*,1100) ccbrsp( 7,1)*0.2500/1000.  ! VOD15L
+!!$     write(*,1100) ccbrsp( 7,1)*0.2500/1000.  ! VOD14L
+!!$     write(*,1100) ccbrsp( 8,1)*0.1250/1000.  ! VOD13L
+!!$     write(*,1100) ccbrsp( 8,1)*0.1250/1000.  ! VOD12L
+!!$     write(*,1100) ccbrsp( 8,1)*0.1250/1000.  ! VOD11L
+!!$     write(*,1100) ccbrsp( 8,1)*0.1250/1000.  ! VOD10L
+!!$     write(*,1100) ccbrsp( 9,1)*0.2500/1000.  ! VOD9L
+!!$     write(*,1100) ccbrsp( 9,1)*0.2500/1000.  ! VOD8L
+!!$     write(*,1100) ccbrsp(10,1)*0.2500/1000.  ! VOD7L
+!!$     write(*,1100) ccbrsp(10,1)*0.2500/1000.  ! VOD6L
+!!$     write(*,1100) ccbrsp(11,1)*0.1667/1000.  ! VOD5L
+!!$     write(*,1100) ccbrsp(11,1)*0.1667/1000.  ! VOD4L
+!!$     write(*,1100) ccbrsp(11,1)*0.1667/1000.  ! VOD3L
+!!$     write(*,1100) ccbrsp(12,1)*0.2500/1000.  ! VOD2L
+!!$     write(*,1100) ccbrsp(12,1)*0.2500/1000.  ! VOD1L
+!!$
+!!$     write(*,1100) ccbrsp( 1,1)*0.2500/1000.  ! VICS1U
+!!$     write(*,1100) ccbrsp( 1,1)*0.2500/1000.  ! VICS2U
+!!$     write(*,1100) ccbrsp( 2,1)*0.1667/1000.  ! VICS3U
+!!$     write(*,1100) ccbrsp( 2,1)*0.1667/1000.  ! VID4U
+!!$     write(*,1100) ccbrsp( 2,1)*0.1667/1000.  ! VID5U
+!!$     write(*,1100) ccbrsp( 3,1)*0.2500/1000.  ! VID6U
+!!$     write(*,1100) ccbrsp( 3,1)*0.2500/1000.  ! VID7U
+!!$     write(*,1100) ccbrsp( 4,1)*0.2500/1000.  ! VID8U
+!!$     write(*,1100) ccbrsp( 4,1)*0.2500/1000.  ! VID9U
+!!$     write(*,1100) ccbrsp( 5,1)*0.1250/1000.  ! VID10U
+!!$     write(*,1100) ccbrsp( 5,1)*0.1250/1000.  ! VID11U
+!!$     write(*,1100) ccbrsp( 5,1)*0.1250/1000.  ! VID12U
+!!$     write(*,1100) ccbrsp( 5,1)*0.1250/1000.  ! VID13U
+!!$     write(*,1100) ccbrsp( 6,1)*0.2500/1000.  ! VIW14U
+!!$     write(*,1100) ccbrsp( 6,1)*0.2500/1000.  ! VIW15U
+!!$     write(*,1100) ccbrsp( 7,1)*0.2500/1000.  ! VIW15L
+!!$     write(*,1100) ccbrsp( 7,1)*0.2500/1000.  ! VIW14L
+!!$     write(*,1100) ccbrsp( 8,1)*0.1250/1000.  ! VID13L
+!!$     write(*,1100) ccbrsp( 8,1)*0.1250/1000.  ! VID12L
+!!$     write(*,1100) ccbrsp( 8,1)*0.1250/1000.  ! VID11L
+!!$     write(*,1100) ccbrsp( 8,1)*0.1250/1000.  ! VID10L
+!!$     write(*,1100) ccbrsp( 9,1)*0.2500/1000.  ! VID9L
+!!$     write(*,1100) ccbrsp( 9,1)*0.2500/1000.  ! VID8L
+!!$     write(*,1100) ccbrsp(10,1)*0.2500/1000.  ! VID7L
+!!$     write(*,1100) ccbrsp(10,1)*0.2500/1000.  ! VID6L
+!!$     write(*,1100) ccbrsp(11,1)*0.1667/1000.  ! VID5L
+!!$     write(*,1100) ccbrsp(11,1)*0.1667/1000.  ! VID4L
+!!$     write(*,1100) ccbrsp(11,1)*0.1667/1000.  ! VICS3L
+!!$     write(*,1100) ccbrsp(12,1)*0.2500/1000.  ! VICS2L
+!!$     write(*,1100) ccbrsp(12,1)*0.2500/1000.  ! VICS1L
+
+     write(*,1100) ccbrsp(27,1)/1000.  ! PF1U
+     write(*,1100) ccbrsp(28,1)/1000.  ! PF2U
+     write(*,1100) ccbrsp(19,1)/1000.  ! PF3U
+     write(*,1100) ccbrsp(20,1)/1000.  ! PF4U
+     write(*,1100) ccbrsp(21,1)/1000.  ! PF5U
+     write(*,1100) ccbrsp(22,1)/1000.  ! PF6U
+     write(*,1100) ccbrsp(29,1)/1000.  ! PF7U
+     write(*,1100) ccbrsp(29,1)/1000.  ! PF7L
+     write(*,1100) ccbrsp(26,1)/1000.  ! PF6L
+     write(*,1100) ccbrsp(25,1)/1000.  ! PF5L
+     write(*,1100) ccbrsp(24,1)/1000.  ! PF4L
+     write(*,1100) ccbrsp(23,1)/1000.  ! PF3L
+     write(*,1100) ccbrsp(28,1)/1000.  ! PF2L
+     write(*,1100) ccbrsp(27,1)/1000.  ! PF1L
+
+     write(*,1100) ccbrsp( 1,1)/1000.  ! VOCS1U
+     write(*,1100) ccbrsp( 1,1)/1000.  ! VOCS2U
+     write(*,1100) ccbrsp( 2,1)/1000.  ! VOCS3U
+     write(*,1100) ccbrsp( 2,1)/1000.  ! VOD4U
+     write(*,1100) ccbrsp( 2,1)/1000.  ! VOD5U
+     write(*,1100) ccbrsp( 3,1)/1000.  ! VOD6U
+     write(*,1100) ccbrsp( 3,1)/1000.  ! VOD7U
+     write(*,1100) ccbrsp( 4,1)/1000.  ! VOD8U
+     write(*,1100) ccbrsp( 4,1)/1000.  ! VOD9U
+     write(*,1100) ccbrsp( 5,1)/1000.  ! VOD10U
+     write(*,1100) ccbrsp( 5,1)/1000.  ! VOD11U
+     write(*,1100) ccbrsp( 5,1)/1000.  ! VOD12U
+     write(*,1100) ccbrsp( 5,1)/1000.  ! VOD13U
+     write(*,1100) ccbrsp( 6,1)/1000.  ! VOD14U
+     write(*,1100) ccbrsp( 6,1)/1000.  ! VOD15U
+     write(*,1100) ccbrsp( 7,1)/1000.  ! VOD15L
+     write(*,1100) ccbrsp( 7,1)/1000.  ! VOD14L
+     write(*,1100) ccbrsp( 8,1)/1000.  ! VOD13L
+     write(*,1100) ccbrsp( 8,1)/1000.  ! VOD12L
+     write(*,1100) ccbrsp( 8,1)/1000.  ! VOD11L
+     write(*,1100) ccbrsp( 8,1)/1000.  ! VOD10L
+     write(*,1100) ccbrsp( 9,1)/1000.  ! VOD9L
+     write(*,1100) ccbrsp( 9,1)/1000.  ! VOD8L
+     write(*,1100) ccbrsp(10,1)/1000.  ! VOD7L
+     write(*,1100) ccbrsp(10,1)/1000.  ! VOD6L
+     write(*,1100) ccbrsp(11,1)/1000.  ! VOD5L
+     write(*,1100) ccbrsp(11,1)/1000.  ! VOD4L
+     write(*,1100) ccbrsp(11,1)/1000.  ! VOD3L
+     write(*,1100) ccbrsp(12,1)/1000.  ! VOD2L
+     write(*,1100) ccbrsp(12,1)/1000.  ! VOD1L
+
+     write(*,1100) ccbrsp( 1,1)/1000.  ! VICS1U
+     write(*,1100) ccbrsp( 1,1)/1000.  ! VICS2U
+     write(*,1100) ccbrsp( 2,1)/1000.  ! VICS3U
+     write(*,1100) ccbrsp( 2,1)/1000.  ! VID4U
+     write(*,1100) ccbrsp( 2,1)/1000.  ! VID5U
+     write(*,1100) ccbrsp( 3,1)/1000.  ! VID6U
+     write(*,1100) ccbrsp( 3,1)/1000.  ! VID7U
+     write(*,1100) ccbrsp( 4,1)/1000.  ! VID8U
+     write(*,1100) ccbrsp( 4,1)/1000.  ! VID9U
+     write(*,1100) ccbrsp( 5,1)/1000.  ! VID10U
+     write(*,1100) ccbrsp( 5,1)/1000.  ! VID11U
+     write(*,1100) ccbrsp( 5,1)/1000.  ! VID12U
+     write(*,1100) ccbrsp( 5,1)/1000.  ! VID13U
+     write(*,1100) ccbrsp( 6,1)/1000.  ! VIW14U
+     write(*,1100) ccbrsp( 6,1)/1000.  ! VIW15U
+     write(*,1100) ccbrsp( 7,1)/1000.  ! VIW15L
+     write(*,1100) ccbrsp( 7,1)/1000.  ! VIW14L
+     write(*,1100) ccbrsp( 8,1)/1000.  ! VID13L
+     write(*,1100) ccbrsp( 8,1)/1000.  ! VID12L
+     write(*,1100) ccbrsp( 8,1)/1000.  ! VID11L
+     write(*,1100) ccbrsp( 8,1)/1000.  ! VID10L
+     write(*,1100) ccbrsp( 9,1)/1000.  ! VID9L
+     write(*,1100) ccbrsp( 9,1)/1000.  ! VID8L
+     write(*,1100) ccbrsp(10,1)/1000.  ! VID7L
+     write(*,1100) ccbrsp(10,1)/1000.  ! VID6L
+     write(*,1100) ccbrsp(11,1)/1000.  ! VID5L
+     write(*,1100) ccbrsp(11,1)/1000.  ! VID4L
+     write(*,1100) ccbrsp(11,1)/1000.  ! VICS3L
+     write(*,1100) ccbrsp(12,1)/1000.  ! VICS2L
+     write(*,1100) ccbrsp(12,1)/1000.  ! VICS1L
+
   end if
 
 1100 format (f12.4)
