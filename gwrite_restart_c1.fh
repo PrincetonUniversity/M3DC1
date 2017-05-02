@@ -7,7 +7,7 @@ adios_groupsize = 35*8 &
                 + 8 * (ndofs_2) &
                 + 8 * (ndofs_2) &
                 + 8 * (ndofs_2) &
-		+ 8 * 11
+		+ 8 * 14
 
 call adios_group_size (adios_handle, adios_groupsize, adios_totalsize, adios_err)
 
@@ -65,3 +65,6 @@ call adios_write (adios_handle, "r_p", r_p, adios_err)
 call adios_write (adios_handle, "r_p2", r_p2, adios_err)
 call adios_write (adios_handle, "version", version, adios_err)
 call adios_write (adios_handle, "pellet_rate", pellet_rate, adios_err)
+call adios_write (adios_handle, "icsubtract", icsubtract, adios_err)
+call adios_write (adios_handle, "extsubtract", extsubtract, adios_err)
+call adios_write (adios_handle, "use_external_fields", use_external_fields, adios_err)

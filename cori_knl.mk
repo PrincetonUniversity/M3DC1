@@ -78,7 +78,7 @@ endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
            $(FFTW_INCLUDE_OPTS) \
@@ -103,16 +103,16 @@ CCOPTS  = -c $(OPTS)
 
 # Optimization flags
 ifeq ($(VTUNE), 1)
-  LDOPTS := $(LDOPTS) -g -dynamic
-  FOPTS  := $(FOPTS)  -g -dynamic
-  CCOPTS := $(CCOPTS) -g -dynamic
+  LDOPTS := $(LDOPTS) -g -dynamic -debug inline-debug-info -parallel-source-info=2
+  FOPTS  := $(FOPTS)  -g -dynamic -debug inline-debug-info -parallel-source-info=2
+  CCOPTS := $(CCOPTS) -g -dynamic -debug inline-debug-info -parallel-source-info=2
 endif
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -dynamic
-  FOPTS  := $(FOPTS)  -O3
-  CCOPTS := $(CCOPTS) -O3
+  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
+  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
+  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)

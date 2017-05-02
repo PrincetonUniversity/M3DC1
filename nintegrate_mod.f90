@@ -483,6 +483,7 @@ end subroutine define_element_quadrature
 
 
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: int0
 vectype function int0()
 
   implicit none
@@ -499,6 +500,7 @@ vectype function int0()
 
 end function int0
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: int1
 vectype function int1(vari)
 
   implicit none
@@ -517,6 +519,7 @@ vectype function int1(vari)
 
 end function int1
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: int2
 vectype function int2(vari,varj)
 
   implicit none
@@ -534,6 +537,7 @@ vectype function int2(vari,varj)
   int2 = ksum
 end function int2
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: int3
 vectype function int3(vari,varj,vark)
 
   implicit none
@@ -552,6 +556,7 @@ vectype function int3(vari,varj,vark)
 
 end function int3
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: int4
 vectype function int4(vari,varj,vark,varl)
 
   implicit none
@@ -570,6 +575,7 @@ vectype function int4(vari,varj,vark,varl)
 
 end function int4
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: int5
 vectype function int5(vari,varj,vark,varl,varm)
 
   implicit none
