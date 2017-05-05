@@ -1,8 +1,8 @@
 #!/bin/bash
 
-CONVERT=/p/tsc/m3dc1/lib/SCORECLib/rhel6/utilities/create_mesh/convert_sim_sms
-SPLIT_SMB=/p/tsc/m3dc1/lib/SCORECLib/rhel6/utilities/split_smb/split_smb
-MAKE_MODEL=/p/tsc/m3dc1/lib/SCORECLib/rhel6/utilities/split_smb/make_model
+CONVERT=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.8.4/utilities/create_mesh/convert_sim_sms
+SPLIT_SMB=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.8.4/utilities/split_smb/split_smb
+MAKE_MODEL=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.8.4/utilities/split_smb/make_model
 MESH_FILE=mesh.smb
 MODEL_FILE=model.dmg
 
