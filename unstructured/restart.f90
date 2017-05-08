@@ -133,8 +133,8 @@ subroutine rdrestart
   open(76,file='C1restart00000',form='unformatted',status='unknown')
     read(76) inumnodes
     read(76) inumelms
-    read(76) immnn18
-    read(76) inumvar
+!    read(76) immnn18
+!    read(76) inumvar
     read(76) iiper
     read(76) ijper
     read(76) imyrank
@@ -159,8 +159,8 @@ else
   open(56,file=fname,form='unformatted',status='unknown')
   read(56) inumnodes
   read(56) inumelms
-  read(56) immnn18
-  read(56) inumvar
+!  read(56) immnn18
+!  read(56) inumvar
   read(56) iiper
   read(56) ijper
   read(56) imyrank
@@ -555,8 +555,8 @@ subroutine rdrestart_cplx
   open(56,file=fname,form='unformatted',status='unknown')
   read(56) inumnodes
   read(56) inumelms
-  read(56) immnn18
-  read(56) inumvar
+!  read(56) immnn18
+!  read(56) inumvar
   read(56) iiper
   read(56) ijper 
   read(56) imyrank
