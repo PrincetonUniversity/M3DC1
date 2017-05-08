@@ -52,6 +52,10 @@
        <var name="ndofs_1" type="integer"/>
        <var name="ndofs_2" type="integer"/> 
 
+       <var name="icsubtract" type="integer"/> 
+       <var name="extsubtract" type="integer"/> 
+       <var name="use_external_fields" type="integer"/> 
+
        <var name="tmp_field_vec"   type="double" dimensions="ndofs_1"/>
        <var name="tmp_field0_vec"  type="double" dimensions="ndofs_1"/>
 
@@ -68,7 +72,7 @@
 
    </adios-group>
 
-<method group="restart"  method="MPI_AMR">num_aggregators=32;num_ost=64</method>
+<method group="restart"  method="MPI">num_aggregators=32;num_ost=64</method>
 
 <buffer size-MB="55" allocate-time="now"/>
 </adios-config>
