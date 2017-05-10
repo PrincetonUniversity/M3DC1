@@ -92,7 +92,7 @@ OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 
 # add date stamp
-OPTS := $(OPTS) -DNOUSE -DDATE_BUILT="'$(shell date)'" -DRELEASE_VERSION="'$(shell cat release_version)'" #-DBUILD_INFO="'$(shell svn info)'"
+OPTS := $(OPTS) -DNOUSE -DDATE_BUILT='"$(shell date)"' -DRELEASE_VERSION='"$(shell cat release_version)"' #-DBUILD_INFO="'$(shell svn info)'"
 
 export OPT
 export OPTS
