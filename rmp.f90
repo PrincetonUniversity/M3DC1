@@ -299,8 +299,7 @@ subroutine calculate_external_fields()
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
           'rmp_coil.dat', 'rmp_current.dat')
   end if
-  if((tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
-       any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) &
+  if((any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) &
        .and. numcoils_vac.eq.0) then
      call load_coils(xc_vac,zc_vac,ic_vac,numcoils_vac, &
           'coil.dat','current.dat',coil_mask,filaments)
