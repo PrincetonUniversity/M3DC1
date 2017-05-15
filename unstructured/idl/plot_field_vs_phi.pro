@@ -4,14 +4,18 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
   if(n_elements(phirange) eq 0) then phirange = [0, 360.]
 
   ytitle = '!9P!6 (deg)!X'
-  xtitle = '!8R!6 (m)!X'
 
-  complex = read_parameter('complex',_EXTRA=extra)
+  complex = read_parameter('icomplex',_EXTRA=extra)
   help, complex
-  if(complex eq 1) then begin
+  if(slice eq -1) then begin
+     ntor = 0.
+     field = read_field(field,x,z,t,symbol=symbol,units=units,$
+                        slice=-1,_EXTRA=extra)
+     if(n_elements(tpts) eq 0) then tpts = 200
+  endif else if(complex eq 1) then begin
      ntor = read_parameter('ntor',_EXTRA=extra)
      field = read_field(field,x,z,t,symbol=symbol,units=units,$
-                        /complex,_EXTRA=extra)
+                        /complex,slice=slice,_EXTRA=extra)
      if(n_elements(tpts) eq 0) then tpts = 200
   endif else begin
      ff = read_field(field,x,z,t,symbol=symbol,units=units,$
@@ -20,18 +24,28 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
   endelse
   n = n_elements(x)
 
-  if(n_elements(cutz) eq 0) then begin
-     cutz = 0.
-  end
-  if(n_elements(rrange) eq 0) then begin
-     rrange = [min(x), max(x)]
+  rrange = [min(x), max(x)]
+  zrange = [min(z), max(z)]
+  if(n_elements(cutz) ne 0) then begin
+     r0 = rrange[0]
+     r1 = rrange[1]
+
+     z0 = cutz
+     z1 = cutz
+     cutv = cutz
+     cut = 'Z'
+     xtitle = '!8R!6 (m)!X'
+  endif else if(n_elements(cutx) ne 0) then begin
+     r0 = cutx
+     r1 = cutx
+
+     z0 = zrange[0]
+     z1 = zrange[1]
+     cutv = cutx
+     cut = 'R'
+     xtitle = '!8Z!6 (m)!X'
   end
 
-  r0 = rrange[0]
-  r1 = rrange[1]
-
-  z0 = cutz
-  z1 = cutz
 
   rr = (r1 - r0)*findgen(n) / (n-1) + r0
   zz = (z1 - z0)*findgen(n) / (n-1) + z0
@@ -39,7 +53,9 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
 
   knx = fltarr(1,n,tpts)
   for j=0, tpts-1 do begin
-     if(complex eq 1) then begin
+     if(slice eq -1) then begin
+        ff = reform(field)
+     endif else if(complex eq 1) then begin
         ff = real_part(field*exp(complex(0,ntor)*phi[j]*!pi/180.))
      endif else begin
         print, 'PHI = ', phi[j]
@@ -63,5 +79,4 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
         oplot, !x.crange, [y[i], y[i]]*180./!pi, color=color(9,16)
      end
   end
-
 end
