@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 14
+  integer, parameter :: version = 15
 
   integer :: i3d
 #ifdef USECOMPLEX
@@ -249,6 +249,7 @@ module basic
                          ! 3 = parallel electron pressure gradient only
   integer :: no_vdg_T    ! 1 = do not include the V dot Grad(T) terms in temperature equation (for debug) 
   integer :: ibootstrap  ! bootstrap current model
+  integer :: irunaway    ! runaway electron model
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
@@ -463,6 +464,7 @@ module arrays
   type(field_type) :: bf_field(0:1), e_field(0:1)
   type(field_type) :: te_field(0:1), ti_field(0:1)
   type(field_type) :: u_field_pre, psi_field_pre
+  type(field_type) :: nre_field  ! runaway electron density
 #ifdef USEPARTICLES
    type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
    type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components

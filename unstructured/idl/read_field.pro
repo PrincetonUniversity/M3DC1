@@ -1321,6 +1321,73 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!3|!8B!D!9P!N!3|!X'
        d = dimensions(/b0, _EXTRA=extra)
 
+   ;===========================================
+   ; Pitch Angle
+   ;===========================================
+   endif else if( (strcmp('pitch_angle_z', name, /fold_case) eq 1)) $
+     then begin
+
+      if(keyword_set(linear)) then begin
+         by0 = read_field('by', x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         bz0 = read_field('bz', x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         by1 = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         bz1 = read_field('bz', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         data = bz1/by0 - by1*bz0/by0
+         symbol = '!8B!DZ!N!3/!8B!D!9P!N!x'
+      endif else begin
+         by = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         bz = read_field('bz', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         data = bz/by
+         symbol = '!8B!DZ!N!3/!8B!D!9P!N!x'
+      endelse 
+
+       d = dimensions(_EXTRA=extra)
+
+   ;===========================================
+   ; Pitch Angle
+   ;===========================================
+   endif else if( (strcmp('pitch_angle_x', name, /fold_case) eq 1)) $
+     then begin
+
+      if(keyword_set(linear)) then begin
+         by0 = read_field('by', x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         bx0 = read_field('bx', x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         by1 = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         bx1 = read_field('bx', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         data = bx1/by0 - by1*bx0/by0
+         symbol = '!8B!DR!N!3/!8B!D!9P!N!x'
+      endif else begin
+         by = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         bx = read_field('bx', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         data = bx/by
+         symbol = '!8B!DR!N!3/!8B!D!9P!N!x'
+      endelse 
+
+       d = dimensions(_EXTRA=extra)
 
    ;===========================================
    ; Kinetic energy density
@@ -3340,6 +3407,45 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = den*bpdotv
        d = dimensions(/n0, /v0)
        symbol = '!6Parallel Particle Flux!X'
+
+   ;===========================================
+   ; particle flux
+   ;===========================================
+   endif else if(strcmp('ExB_flux_n', name, /fold_case) eq 1) then begin
+
+       den = read_field('den', x, y, t, slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ex = read_field('E_R', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ey = read_field('E_phi', x, y, t, slices=time, mesh=mesh,linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ez = read_field('E_Z', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+
+       Bx0 = read_field('Bx', x, y, t, slices=-1, mesh=mesh,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       By0 = read_field('By', x, y, t, slices=-1, mesh=mesh,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Bz0 = read_field('Bz', x, y, t, slices=-1, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       
+       B2 = Bx0^2 + By0^2 + Bz0^2
+
+       ; (B x y) is outward for co-IP, inward for counter-IP
+       ; (E x B).(B x y) / (B^2 |B x y|)
+       ; = [(E.B)(B.y) - (E.y)(B.B)]/[B^2 (B^2 - (B.y)^2)^(1/2)]
+       data = conj(den)* $
+              ((Ex*Bx0 + Ey*By0 + Ez*Bz0)*By0 - Ey*B2)/ $
+              (B2 * sqrt(B2 - By0^2))
+       d = dimensions(/n0, /v0)
+       symbol = '!6ExB Particle Flux!X'
 
    ;===========================================
    ; particle flux

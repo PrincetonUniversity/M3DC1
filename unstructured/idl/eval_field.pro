@@ -104,11 +104,17 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    localphi = 0.
 
    sz = size(mesh.elements._data, /dim)
-   if(sz[0] gt 7) then begin
+   if(sz[0] gt 8) then begin
        threed = 1
    endif else begin
        threed = 0
    endelse
+
+   if(version lt 15) then begin
+      ib = 6
+   endif else begin
+      ib = 7
+   end
 
    ; for each triangle, evaluate points within triangle which fall on
    ; rectilinear output grid
@@ -120,8 +126,8 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        x = mesh.elements._data[4,i]
        y = mesh.elements._data[5,i]
        if(threed eq 1) then begin
-           d = mesh.elements._data[7,i]
-           phi = mesh.elements._data[8,i]
+           d = mesh.elements._data[ib+1,i]
+           phi = mesh.elements._data[ib+2,i]
            localphi = phi0 - phi
            if(localphi lt 0 or localphi gt d) then  continue
        endif

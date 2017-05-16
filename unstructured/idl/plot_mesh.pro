@@ -28,6 +28,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    col = color(9,16)
  
    version = read_parameter('version', _EXTRA=ex)
+   print, 'Output version = ', version
    if(version eq 0) then begin
        xzero = read_parameter("xzero", _EXTRA=ex)
        zzero = read_parameter("zzero", _EXTRA=ex)

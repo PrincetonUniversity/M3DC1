@@ -407,7 +407,7 @@ subroutine electric_field_par(ilin,o, izone)
        -(bzt79(:,OP_DR)+bft79(:,OP_DRPP))*bftx79(:,OP_DZP)))
 #endif
 
-  if(izone.eq.2) return
+  if(izone.ne.1) return
 
   ! grad(Pe)
   ! ~~~~~~~~

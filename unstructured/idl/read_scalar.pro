@@ -260,6 +260,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!8Z!6-Coordinate of Magnetic Axis!6'
        symbol = '!8Z!D!60!N!X'
        d = dimensions(/l0,_EXTRA=extra)
+   endif else if (strcmp("runaways", scalarname, /fold_case) eq 1) then begin
+       data = s.runaways._data
+       title = '!6Runaway Electrons!6'
+       symbol = '!8N!D!6RE!N!X'
+       d = dimensions(/n0,l0=3,_EXTRA=extra)
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)

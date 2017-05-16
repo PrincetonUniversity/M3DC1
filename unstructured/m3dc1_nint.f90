@@ -73,6 +73,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_CD  =8388608
   integer, parameter :: FIELD_RAD  =16777216
   integer, parameter :: FIELD_KIN  =33554432
+  integer, parameter :: FIELD_RE   =67108864 
 
   vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
@@ -98,6 +99,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: ti179, ti079, tit79
   vectype, dimension(MAX_PTS, OP_NUM) :: q179, q079, qt79, qe179, qe079, qet79
   vectype, dimension(MAX_PTS, OP_NUM) :: ppar79, pper79
+  vectype, dimension(MAX_PTS, OP_NUM) :: nre79
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -1133,6 +1135,16 @@ contains
         call eval_ops(itri, p_i_perp, pper79)
     endif
 #endif
+
+    ! Runaway Electron Density
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+    if((iand(fields, FIELD_RE).eq.FIELD_RE)   &
+        .and. irunaway.gt.0) then
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   RE density..."
+       
+       call eval_ops(itri, nre_field, nre79)
+    endif
+
 
 end subroutine define_fields
 

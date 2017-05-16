@@ -55,18 +55,20 @@ contains
 
     implicit none
 
-#include "mpif.h"
+    include 'mpif.h'
 
     integer :: ier,i
     real :: tstart, tend, diff
 
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
     call hdf5_write_scalars(ier)
+
 #ifdef USE3D
     if(ike_harmonics .gt. 0) call hdf5_write_keharmonics(ier)
     if(ibh_harmonics .gt. 0) call hdf5_write_bharmonics(ier)
     call hdf5_write_kspits(ier)
 #endif
+
     if(myrank.eq.0 .and. itimer.eq.1) then
       call second(tend)
       diff = tend - tstart
@@ -380,10 +382,11 @@ subroutine hdf5_write_scalars(error)
 
   call output_scalar(scalar_group_id, "psi0", psi0, ntime, error)
 
+  call output_scalar(scalar_group_id, "runaways", totre, ntime, error)
+
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
   end if
-
 
   if(itaylor.eq.3) then
      temp = reconnected_flux()
@@ -460,9 +463,9 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   use basic
 
   implicit none
-  
-  include 'mpif.h'
 
+  include 'mpif.h'
+  
   integer, intent(out) :: error
   integer, intent(in) :: equilibrium
 
@@ -599,9 +602,9 @@ subroutine output_mesh(time_group_id, nelms, error)
   integer(HID_T) :: mesh_group_id
   integer :: i
 #ifdef USE3D
-  integer, parameter :: vals_per_elm = 9
+  integer, parameter :: vals_per_elm = 10
 #else
-  integer, parameter :: vals_per_elm = 7
+  integer, parameter :: vals_per_elm = 8
 #endif
   real, dimension(vals_per_elm,nelms) :: elm_data
   integer, dimension(nodes_per_element) :: nodeids
@@ -611,6 +614,7 @@ subroutine output_mesh(time_group_id, nelms, error)
   real :: normal(2,3)
   integer :: idim(3)
   real :: bound
+  integer :: izone
 
   ! Create the group
   call h5gcreate_f(time_group_id, "mesh", mesh_group_id, error) 
@@ -644,16 +648,19 @@ subroutine output_mesh(time_group_id, nelms, error)
 
      call get_element_data(i, d)
 
-     elm_data(1,i) = d%a
-     elm_data(2,i) = d%b
-     elm_data(3,i) = d%c
-     elm_data(4,i) = atan2(d%sn,d%co)
-     elm_data(5,i) = d%R
-     elm_data(6,i) = d%Z
-     elm_data(7,i) = bound
+     call get_zone(i, izone)
+
+     elm_data( 1,i) = d%a
+     elm_data( 2,i) = d%b
+     elm_data( 3,i) = d%c
+     elm_data( 4,i) = atan2(d%sn,d%co)
+     elm_data( 5,i) = d%R
+     elm_data( 6,i) = d%Z
+     elm_data( 7,i) = bound
+     elm_data( 8,i) = izone
 #ifdef USE3D
-     elm_data(8,i) = d%d
-     elm_data(9,i) = d%Phi
+     elm_data( 9,i) = d%d
+     elm_data(10,i) = d%Phi
 #endif
   end do
   call output_field(mesh_group_id, "elements", elm_data, vals_per_elm, &
@@ -674,7 +681,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   use time_step
   use auxiliary_fields
   use transport_coefficients
-  use runaway_mod
 
   implicit none
 

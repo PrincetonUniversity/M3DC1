@@ -49,7 +49,7 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      if(area_id ne -1) then  ncdf_varget, id, area_id, area
      ncdf_varget, id, bp_id, bpol
      ncdf_varget, id, flux_pol_id, flux_pol
-     ncdf_varget, id, ip_id, ip
+     if(ip_id ne -1) then ncdf_varget, id, ip_id, ip
 
      if(F_id ne -1) then ncdf_varget, id, F_id, fpol
 
