@@ -13,6 +13,7 @@ module diagnostics
 
   ! scalars integrated over entire computational domain
   real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad
+  real :: totre  ! total number of runaway electrons
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvol
@@ -215,6 +216,8 @@ contains
     xray_signal = 0.
 
     psi0 = 0.
+
+    totre = 0.
   end subroutine reset_scalars
 
 
@@ -231,7 +234,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 52
+    integer, parameter :: num_scalars = 53
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -289,6 +292,7 @@ contains
        temp(50) = temp_pel
        temp(51) = Lor_vol
        temp(52) = totrad
+       temp(53) = totre
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -346,7 +350,7 @@ contains
        temp_pel = temp2(50)
        Lor_vol = temp2(51)
        totrad = temp2(52)
-
+       totre = temp2(53)
 
     endif !if maxrank .gt. 1
 
@@ -629,6 +633,10 @@ subroutine calculate_scalars()
         if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
         if(rad_source) def_fields = def_fields + FIELD_RAD
      end if
+
+     if(irunaway.gt.0) then 
+        def_fields = def_fields + FIELD_RE
+     end if
   endif
 
   tm79 = 0.
@@ -730,6 +738,10 @@ subroutine calculate_scalars()
      pden = pden + twopi*int2(nt79(:,OP_1),mr)/tpifac
       ! radiation
      totrad = totrad + twopi*int1(rad79(:,OP_1))/tpifac
+
+     if(irunaway.gt.0) then
+        totre = totre + twopi*int1(nre79(:,OP_1))/tpifac
+     end if
 
      ! particle source
      if(idens.eq.1) then        

@@ -4570,6 +4570,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      def_fields = def_fields + FIELD_KIN
   endif
 
+  if(irunaway.gt.0) then
+     def_fields = def_fields + FIELD_RE
+  end if
+
   if(integrator.eq.1 .and. ntime.gt.1) then
      bdf = 2.
   else

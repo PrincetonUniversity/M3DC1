@@ -21,7 +21,7 @@ pro plot_bmn, filename, file=fn, vac=vac, names=names, nolegend=nolegend, $
          ytitle='!6Island Width (!7W!6)!X'
    endif else if(keyword_set(chi)) then begin
        data = chirikov(filename,cur=cur,psimid=psin, sum_files=sum_files, $
-                     netcdf=netcdf, qval=q)
+                     netcdf=netcdf, q=q)
        if(n_elements(ytitle) eq 0) then $
          ytitle='!6Chirikov Parameter!X'
    endif else begin

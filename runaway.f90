@@ -1,12 +1,12 @@
 module runaway_mod
-  
+
+  use basic
+  use arrays
   use m3dc1_nint
   use field
 
   implicit none
 
-  integer :: irunaway
-  type(field_type) :: nre_field
   type(field_type), private :: dnre_field
     
   real, private, parameter :: eps0 = 8.854187817D-12 ![F/m]
@@ -16,7 +16,6 @@ module runaway_mod
   real, private, parameter :: me = 9.10938356D-31 ![kg]
 
   real, dimension(MAX_PTS) :: re_j79
-  real, dimension(MAX_PTS,OP_NUM) :: nre79
 
 contains
 
@@ -89,8 +88,6 @@ contains
     re_j79 = 0.
     return
 #else
-    call eval_ops(itri, nre_field, nre79)
-
     call electric_field_par(0, epar, izone)
     
     ! convert to SI units
@@ -124,6 +121,7 @@ contains
     if(irunaway.eq.0) return
 
     if(iprint.ge.1) print *, 'Solving RE advance'
+    call sum_shared(dnre_field%vec)
     call newsolve(mass_mat_lhs%mat,dnre_field%vec,ier)
     nre_field = dnre_field
     dnre_field = 0.

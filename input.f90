@@ -111,7 +111,6 @@ subroutine set_defaults
   use basicj
   use rmp
   use resistive_wall
-  use runaway_mod
 
   implicit none
 
