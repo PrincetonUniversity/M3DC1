@@ -1,6 +1,10 @@
 module radiation
-  integer, parameter :: sp = selected_real_kind(6,37)
-  integer, parameter :: dp = selected_real_kind(15,307)
+  implicit none
+
+  integer :: iread_prad
+  integer, private, parameter :: sp = selected_real_kind(6,37)
+  integer, private, parameter :: dp = selected_real_kind(15,307)
+
 contains
 
   ! get_Prad_simple calls get_Prad
