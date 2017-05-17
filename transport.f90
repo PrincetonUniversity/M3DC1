@@ -5,6 +5,7 @@ module transport_coefficients
   type(spline1d), private :: amu_spline
   type(spline1d), private :: heatsource_spline
   type(spline1d), private :: particlesource_spline
+  type(spline1d), private :: prad_nz_spline
 
 contains
 
@@ -379,12 +380,15 @@ function rad_func
 
   vectype, dimension(dofs_per_element) :: rad_func
   vectype, dimension(dofs_per_element) :: temp
-  integer :: j, ierr
+  integer :: j, ierr, nvals
+  real :: val, pso
+  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
   ! Radiation
   if(iprad.eq.1) then
+
      if(itemp.eq.1) then
         temp79b = tet79(:,OP_1)
      else
@@ -397,15 +401,43 @@ function rad_func
      ! convert density to /m^3
      temp79c = net79(:,OP_1) * n0_norm * 1e6
 
+    
+     if(iread_prad.eq.1) then 
+        if(.not.allocated(prad_nz_spline%x)) then
+           ! Read in units of 10^20 / m^3
+           nvals = 0
+           call read_ascii_column('profile_nz', xvals, nvals, icol=1)
+           call read_ascii_column('profile_nz', yvals, nvals, icol=2)
+           if(nvals.eq.0) call safestop(6)
+           yvals = yvals * 1e14 / n0_norm
+           call create_spline(prad_nz_spline, nvals, xvals, yvals)
+           deallocate(xvals, yvals)
+        end if
+
+        ! evaluate impurity density
+        do j=1, npoints
+           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+           call evaluate_spline(prad_nz_spline,pso,val)
+        
+           temp79d(j) = val
+        end do
+
+        ! convert impurity density to /m^3
+        temp79d = temp79d * n0_norm * 1e6
+     else
+      
+        ! impurity density is prad_fz * electron density
+        temp79d = temp79c*prad_fz
+     end if
+
      ierr = 0
      do j=1, npoints
-        call get_Prad_simple(temp79a(j), temp79b(j), prad_fz*temp79c(j), &
+        call get_Prad_simple(temp79a(j), temp79b(j), temp79d(j), &
              prad_z, temp79c(j), ierr)
      end do
 
      ! convert output to normalized units
      temp79a = temp79a * 10. / (p0_norm / t0_norm)
-!
      
      temp = temp - intx2(mu79(:,OP_1,:),temp79a)
   end if
@@ -1060,7 +1092,7 @@ subroutine define_transport_coefficients()
 
   if(solve_rad) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Rad'
-     call newvar_solve(Rad_field%vec, mass_mat_lhs_dc)
+     call newvar_solve(Rad_field%vec, mass_mat_lhs)
   endif
 
   if(solve_cd) then

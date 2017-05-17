@@ -33,6 +33,19 @@ subroutine add_var_int(name, var, default, desc, grp)
   call add_variable_int(name//char(0), var, default, desc//char(0), grp)
 end subroutine add_var_int
 
+subroutine add_var_int_array(name, var, size, default, desc, grp)
+  implicit none
+
+  character(len=*), intent(in) :: name, desc
+  integer, intent(in) :: size
+  integer, dimension(*) :: var
+  integer, intent(in) :: default
+  integer, intent(in) :: grp
+
+  call add_variable_int_array(name//char(0), var, size, default, &
+       desc//char(0), grp)
+end subroutine add_var_int_array
+
 subroutine add_var_string(name, var, len, default, desc, grp)
   implicit none
 
@@ -111,6 +124,7 @@ subroutine set_defaults
   use basicj
   use rmp
   use resistive_wall
+  use radiation
 
   implicit none
 
@@ -134,6 +148,7 @@ subroutine set_defaults
   integer :: misc_grp
   integer :: deprec_grp
   integer :: trilinos_grp
+  integer :: prad_grp
 
 
   call add_group("Model Options", model_grp)
@@ -156,6 +171,7 @@ subroutine set_defaults
   call add_group("Miscellaneous", misc_grp)
   call add_group("Deprecated", deprec_grp)
   call add_group("Trilinos Options", trilinos_grp)
+  call add_group("PRAD Options", prad_grp)
 
 
   ! Normalizations
@@ -188,11 +204,15 @@ subroutine set_defaults
        input_grp)
 
   call add_var_int("iprad", iprad, 0, &
-       "1: Teng's PRad module with one impurity species", input_grp)
+       "1: Teng's PRad module with one impurity species", prad_grp)
   call add_var_int("prad_z", prad_z, 1, &
-       "Z of impurity species in PRad module", input_grp)
+       "Z of impurity species in PRad module", prad_grp)
   call add_var_double("prad_fz", prad_fz, 1., &
-       "Density of impurity species in PRad module, as fraction of ne", input_grp)
+       "Density of impurity species in PRad module, as fraction of ne", &
+       prad_grp)
+  call add_var_int("iread_prad", iread_prad, 0, &
+       "1: Read impurity density from profile_nz in units of 10^20 / m^3", &
+       prad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -924,7 +944,7 @@ subroutine set_defaults
 
   ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)
-  call add_var_int("igs_method", igs_method, -1, "", gs_grp)
+  call add_var_int("igs_method", igs_method, -1, "", deprec_grp)
 
 end subroutine set_defaults
 
