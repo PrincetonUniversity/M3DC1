@@ -1,12 +1,13 @@
-pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
-                       tpts=tpts, mesh=mesh, phirange=phirange
+pro plot_field_vs_phi, field, _EXTRA=extra, cutx=cutx, cutz=cutz, $
+                       tpts=tpts, mesh=mesh, phirange=phirange, $
+                       slice=slice
 
   if(n_elements(phirange) eq 0) then phirange = [0, 360.]
 
   ytitle = '!9P!6 (deg)!X'
 
   complex = read_parameter('icomplex',_EXTRA=extra)
-  help, complex
+
   if(slice eq -1) then begin
      ntor = 0.
      field = read_field(field,x,z,t,symbol=symbol,units=units,$
@@ -19,7 +20,7 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
      if(n_elements(tpts) eq 0) then tpts = 200
   endif else begin
      ff = read_field(field,x,z,t,symbol=symbol,units=units,$
-                     _EXTRA=extra)
+                     _EXTRA=extra, slice=slice)
      if(n_elements(tpts) eq 0) then tpts = 20
   endelse
   n = n_elements(x)
@@ -66,10 +67,23 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutz=cutz, rrange=rrange, $
 
      knx[0,*,j] = kni[*]
   end
- 
-  label = symbol + ' ('+units +') at !8Z!6 = '+string(format='(g0)',cutz)+ '!X'
-  contour_and_legend, knx, rr, phi, xtitle=xtitle, ytitle=ytitle, $
-                      title=title, label=label
+
+  if(strlen(strtrim(units)) ne 0) then begin
+     u = ' (' + units +')'
+  endif else begin
+     u = ''
+  end
+
+  if(n_elements(cutz) ne 0) then begin
+     v = rr
+  endif else if(n_elements(cutx) ne 0) then begin
+     v = zz
+  end
+
+  
+  label = symbol + u + ' at !8'+cut+'!6 = '+string(format='(g0)',cutv)+ '!X'
+  contour_and_legend, knx, v, phi, xtitle=xtitle, ytitle=ytitle, $
+                      title=title, label=label, _EXTRA=extra
 ;  oplot, [rsep, rsep], !y.crange, linestyle=2
 
   if(keyword_set(mesh)) then begin
