@@ -5865,14 +5865,14 @@ end function b1bchi
 
 ! B1psieta
 ! ========
-vectype function b1psieta(e,f,g,imod)
+vectype function b1psieta(e,f,g,h,imod)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
   logical, intent(in) :: imod
 
@@ -5882,6 +5882,11 @@ vectype function b1psieta(e,f,g,imod)
         temp = 0.
      else
         temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1))
+        if(iupstream.eq.1) then     !DEBUG
+          temp79a = abs(h(:,OP_1))*5.e-2
+          temp = temp + int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
+        endif
+        
 
          if(hypf.ne.0) then
            if(ihypeta.eq.1) then
@@ -5897,17 +5902,6 @@ vectype function b1psieta(e,f,g,imod)
               if(itor.eq.1) then
                  temp = temp - 2.*hypf*int3(ri_79,e(:,OP_DR),f(:,OP_GS))
               endif
-
-!removed 12/16/2013 (scj)
-#if defined(USE3D) || defined(USECOMPLEX)
-!              temp = temp &
-!                   - 2.*int4(ri2_79,e(:,OP_1),f(:,OP_GSPP),h(:,OP_1)) &
-!                   - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZPP),h(:,OP_1)) &
-!                   - int4(ri2_79,e(:,OP_DR),f(:,OP_DRPP),h(:,OP_1))
-!              if(itor.eq.1) then
-!                 temp = temp + 2.*int4(ri3_79,e(:,OP_1),f(:,OP_DRPP),h(:,OP_1))
-!              endif
-#endif
            end if
         end if
      end if
@@ -5916,10 +5910,6 @@ vectype function b1psieta(e,f,g,imod)
         if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
            temp = 0.
         else
-!!$           temp = int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DR)) &
-!!$                + int5(ri2_79,e(:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DZ)) &
-!!$                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,1),e(:,OP_DR)) &
-!!$                - int5(ri2_79,g(:,OP_1),f(:,OP_GS),norm79(:,2),e(:,OP_DZ))
            temp = 0.
         endif
 
@@ -5944,6 +5934,15 @@ vectype function b1psieta(e,f,g,imod)
                 +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),g(:,OP_1)) &
                 +int4(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_DP)) &
                 +int4(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_DP)))
+           if(iupstream.eq.1) then   
+              temp79a = abs(h(:,OP_1))*5.e-2
+              temp = temp - &
+                (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),temp79a) &
+                +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),temp79a))
+              if(itor.eq.1) then
+                 temp = temp + int4(ri5_79,e(:,OP_DR),f(:,OP_DPP),temp79a)
+              endif
+           endif
         end if
 #endif
      end if
@@ -7755,6 +7754,12 @@ vectype function b2beta(e,f,g)
      temp = &
           - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
           - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1)) 
+#if defined(USE3D) || defined(USECOMPLEX)
+     if(iupstream.eq.1) then    !DEBUG
+        temp79a = 1.e-4
+        temp = temp + int4(ri4_79,e(:,OP_1),f(:,OP_DPP),temp79a)
+     endif
+#endif     
 
      if(imp_hyper.le.1) then
 !    the following coding should be checked.  It does not agree with my derivation  scj 4/30/14
@@ -9151,8 +9156,12 @@ vectype function b3tekappa(e,f,g)
           - int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1))
   
 #if defined(USE3D) || defined(USECOMPLEX)
+     temp79a = g(:,OP_1)
+     if(iupstream.eq.1) then    !DEBUG
+        temp79a = temp79a + 1.e-4
+     endif
      temp = temp +                       &
-          int4(ri2_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_1))
+          int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
 #endif
      if(hypp.ne.0.) then
 
@@ -9260,6 +9269,7 @@ function n1ndenm(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
   real, intent(in) :: g
+  real :: gmod
   vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
@@ -9275,7 +9285,11 @@ function n1ndenm(e,f,g)
           (intx2(e(:,OP_DZ,:),f(:,OP_DZ)) + intx2(e(:,OP_DR,:),f(:,OP_DR)))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-     temp = temp + g*intx3(e(:,OP_1,:),ri2_79,f(:,OP_DPP))
+     gmod = g
+     if(iupstream .eq. 1) then     !DEBUG
+        gmod = gmod + 1.e-4
+     endif
+     temp = temp + gmod*intx3(e(:,OP_1,:),ri2_79,f(:,OP_DPP))
 #endif
 
      if(hypp.ne.0.) then

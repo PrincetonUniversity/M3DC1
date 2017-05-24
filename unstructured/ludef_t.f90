@@ -1727,7 +1727,7 @@ subroutine flux_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b1psieta(trial,lin,eta79,eta_mod.eq.1)
+  temp = b1psieta(trial,lin,eta79,vz079,eta_mod.eq.1)
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
 
@@ -3202,16 +3202,16 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      ddterm(pp_g) = ddterm(pp_g) + (.5-thimp*bdf)*dt*temp
 !
 !....upstream differencing
-     if(iupstream.eq.1) then
-       call get_element_data(itri,d)
-       h = (d%a + d%b + d%c)/3.
+!     if(iupstream.eq.1) then
+!       call get_element_data(itri,d)
+!       h = (d%a + d%b + d%c)/3.
 !
-       temp = .5*h*p1uspu(trial,lin,ph179) &
-            + .5*h*p1uspchi(trial,lin,ch179) &
-            + .5*(twopi/nplanes)*p1uspv(trial,lin,vz179)
-       ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-       ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
-     endif
+!       temp = .5*h*p1uspu(trial,lin,ph179) &
+!            + .5*h*p1uspchi(trial,lin,ch179) &
+!            + .5*(twopi/nplanes)*p1uspv(trial,lin,vz179)
+!       ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+!       ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+!     endif
   endif
 
   if(eqsubtract.eq.1) then
@@ -3239,16 +3239,16 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
 !
 !.......upstream differencing
-        if(iupstream.eq.1) then
-          call get_element_data(itri,d)
-          h = (d%a + d%b + d%c)/3.
+!        if(iupstream.eq.1) then
+!          call get_element_data(itri,d)
+!          h = (d%a + d%b + d%c)/3.
 !
-          temp = .5*h*p1uspu(trial,lin,ph079) &
-               + .5*h*p1uspchi(trial,lin,ch079) &
-               + .5*(twopi/nplanes)*p1uspv(trial,lin,vz079)
-          ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-          ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
-        endif
+!          temp = .5*h*p1uspu(trial,lin,ph079) &
+!               + .5*h*p1uspchi(trial,lin,ch079) &
+!               + .5*(twopi/nplanes)*p1uspv(trial,lin,vz079)
+!          ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+!          ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+!        endif
      else   ! on kinetic.eq.0
         if(total_pressure) then
            temp = pperpu(trial,ppt79,lin)  &
@@ -3959,16 +3959,16 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         ddterm(pp_g) = ddterm(pp_g) + (.5-thimp*bdf)*dt*temp
 !
 !....upstream differencing
-        if(iupstream.eq.1) then
-          call get_element_data(itri,d)
-          h = (d%a + d%b + d%c)/3.
+!        if(iupstream.eq.1) then
+!          call get_element_data(itri,d)
+!          h = (d%a + d%b + d%c)/3.
 !
-          temp = .5*h*p1uspu(trial,lin,ph179) &
-               + .5*h*p1uspchi(trial,lin,ch179) &
-               + .5*(twopi/nplanes)*p1uspv(trial,lin,vz179)
-          ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-          ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
-        endif
+!          temp = .5*h*p1uspu(trial,lin,ph179) &
+!               + .5*h*p1uspchi(trial,lin,ch179) &
+!               + .5*(twopi/nplanes)*p1uspv(trial,lin,vz179)
+!          ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+!          ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+!        endif
      endif
      if(eqsubtract.eq.1) then
         temp = t3tnu(trial,pp079,nt79,lin)
@@ -3994,16 +3994,16 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
 !
 !....upstream differencing
-        if(iupstream.eq.1) then
-          call get_element_data(itri,d)
-          h = (d%a + d%b + d%c)/3.
+!        if(iupstream.eq.1) then
+!          call get_element_data(itri,d)
+!          h = (d%a + d%b + d%c)/3.
 !
-          temp = .5*h*p1uspu(trial,lin,ph079) &
-               + .5*h*p1uspchi(trial,lin,ch079) &
-               + .5*(twopi/nplanes)*p1uspv(trial,lin,vz079)
-          ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
-          ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
-        endif
+!          temp = .5*h*p1uspu(trial,lin,ph079) &
+!               + .5*h*p1uspchi(trial,lin,ch079) &
+!               + .5*(twopi/nplanes)*p1uspv(trial,lin,vz079)
+!          ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
+!          ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
+!        endif
      endif
   endif  ! on no_vdg_T .eq. 0
 
