@@ -7,6 +7,7 @@ module rmp
   real :: tf_shift, tf_shift_angle
   real, dimension(maxcoils) :: pf_tilt, pf_tilt_angle
   real, dimension(maxcoils) :: pf_shift, pf_shift_angle
+  real :: rmp_atten
 
   real, dimension(maxfilaments), private :: xc_na, zc_na
   complex, dimension(maxfilaments), private :: ic_na
@@ -81,7 +82,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 
   complex, dimension(n) :: fr, fphi, fz
   complex, dimension(n) :: brv, bthetav, bzv, phase
-  real, dimension(n) :: r, theta, arg, fac
+  real, dimension(n) :: r, theta, arg, fac, atten
 #ifdef USE3D
   real, dimension(n) :: gr, gphi, gz, q
 #endif
@@ -162,9 +163,14 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
         fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
-        brv     =        (ntor/rzero)*phase*brv     *eps / fac
-        bthetav = -(0,1)*mpol        *phase*bthetav *eps / fac
-        bzv     =  (0,1)*(ntor/rzero)*phase*bzv     *eps / fac
+        if(rmp_atten.ne.0) then
+           atten = exp((r-1.)/rmp_atten)
+        else
+           atten = 1.
+        end if
+        brv     =        (ntor/rzero)*phase*brv     *eps / fac * atten
+        bthetav = -(0,1)*mpol        *phase*bthetav *eps / fac * atten
+        bzv     =  (0,1)*(ntor/rzero)*phase*bzv     *eps / fac * atten
 #ifdef USECOMPLEX
         br =  brv*cos(theta) - bthetav*sin(theta)
         bphi =  bzv
