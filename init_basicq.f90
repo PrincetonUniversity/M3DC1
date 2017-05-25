@@ -65,52 +65,37 @@ contains
     call create_field(p_vec)
     call create_field(vz_vec)
     call create_field(den_vec)
-    
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2000) bz_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2001) r0_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2002) q0_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2003) q2_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2004) q4_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2005) rzero_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2006) p0_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2007) pedge_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2008) kappa_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2009) kappae_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2010) iprint_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2011) myrank_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2012) itaylor_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2013) coolrate_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2014) q6_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2015) q8_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2016) q10_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2017) q12_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2018) q14_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2019) r1_qp
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2020) v0_qp 
-    if(myrank.eq.0 .and. iprint.ge.1) write (*,2021) v1_qp
 
-2000 format( 'bz_qp =', 1pe12.4)
-2001 format( 'r0_qp =', 1pe12.4)
-2002 format( 'q0_qp =', 1pe12.4)
-2003 format( 'q2_qp =', 1pe12.4)
-2004 format( 'q4_qp =', 1pe12.4)
-2005 format( 'rzero_qp =', 1pe12.4)
-2006 format( 'p0_qp =', 1pe12.4)
-2007 format( 'pedge_qp =', 1pe12.4)
-2008 format( 'kappa_qp =', 1pe12.4)
-2009 format( 'kappae_qp =', 1pe12.4)
-2010 format( 'iprint_qp =', i5)
-2011 format( 'myrank_qp =', i5)
-2012 format( 'itaylor_qp =', i5)
-2013 format( 'coolrate_qp =', 1pe12.4)
-2014 format( 'q6_qp =', 1pe12.4)
-2015 format( 'q8_qp =', 1pe12.4)
-2016 format( 'q10_qp =', 1pe12.4)
-2017 format( 'q12_qp =', 1pe12.4)
-2018 format( 'q14_qp =', 1pe12.4)
-2019 format( 'r1_qp  =', 1pe12.4)
-2020 format( 'v0_qp =', 1pe12.4)
-2021 format( 'v1_qp  =', 1pe12.4)
+    psi_vec = 0.
+    bz_vec = 0.
+    p_vec = 0.
+    vz_vec = 0.
+    den_vec = 0.
+    
+    if(myrank.eq.0 .and. iprint.ge.1) then 
+       write (*,'(A,1pe12.4)') 'bz_qp =', bz_qp 
+       write (*,'(A,1pe12.4)') 'r0_qp =', r0_qp 
+       write (*,'(A,1pe12.4)') 'q0_qp =', q0_qp 
+       write (*,'(A,1pe12.4)') 'q2_qp =', q2_qp 
+       write (*,'(A,1pe12.4)') 'q4_qp =', q4_qp 
+       write (*,'(A,1pe12.4)') 'rzero_qp =', rzero_qp 
+       write (*,'(A,1pe12.4)') 'p0_qp =', p0_qp 
+       write (*,'(A,1pe12.4)') 'pedge_qp =', pedge_qp 
+       write (*,'(A,1pe12.4)') 'kappa_qp =', kappa_qp 
+       write (*,'(A,1pe12.4)') 'kappae_qp =', kappae_qp 
+       write (*,'(A,i5)') 'iprint_qp =', iprint_qp 
+       write (*,'(A,i5)') 'myrank_qp =', myrank_qp 
+       write (*,'(A,i5)') 'itaylor_qp =', itaylor_qp 
+       write (*,'(A,1pe12.4)') 'coolrate_qp =', coolrate_qp 
+       write (*,'(A,1pe12.4)') 'q6_qp =', q6_qp 
+       write (*,'(A,1pe12.4)') 'q8_qp =', q8_qp 
+       write (*,'(A,1pe12.4)') 'q10_qp =', q10_qp 
+       write (*,'(A,1pe12.4)') 'q12_qp =', q12_qp 
+       write (*,'(A,1pe12.4)') 'q14_qp =', q14_qp 
+       write (*,'(A,1pe12.4)') 'rq_qp =', r1_qp
+       write (*,'(A,1pe12.4)') 'v0_qp =', v0_qp 
+       write (*,'(A,1pe12.4)') 'v1_qp =', v1_qp
+  end if
 
     if(itaylor.eq.22) call setupLZeqbm
 
@@ -123,34 +108,32 @@ contains
        call define_fields(itri,0,1,0) ! defines x_79,z_79,mu,nu
        
        !  assemble matrix
-       
-       do i=1,dofs_per_element
-          do j=1,npoints
-             r = (sqrt((x_79(j)-xmag)**2 + (z_79(j)-zmag)**2))/r0_qp  ! normalized radius
-             call getvals_qsolver(r,rtemp79a(j),rtemp79b(j),rtemp79c(j),rtemp79d(j))
-          enddo
-#ifdef USECOMPLEX
-          temp79a = cmplx(rtemp79a)
-          temp79b = cmplx(rtemp79b)
-          temp79c = cmplx(rtemp79c)
-          temp79d = cmplx(rtemp79d)
-#else
-          temp79a = rtemp79a
-          temp79b = rtemp79b
-          temp79c = rtemp79c
-          temp79d = rtemp79d
-#endif
-          
-          dofsps(i) = int2(mu79(:,OP_1,i),temp79a)
-          dofsbz(i) = int2(mu79(:,OP_1,i),temp79b)
-          dofspr(i) = int2(mu79(:,OP_1,i),temp79c)
-          dofsvz(i) = int2(mu79(:,OP_1,i),temp79d)
-          dofsden(i) = den0*int1(mu79(:,OP_1,i))
+       do j=1,npoints
+          r = (sqrt((x_79(j)-xmag)**2 + (z_79(j)-zmag)**2))/r0_qp  ! normalized radius
+          call getvals_qsolver(r,rtemp79a(j),rtemp79b(j),rtemp79c(j),rtemp79d(j))
        enddo
+#ifdef USECOMPLEX
+       temp79a = cmplx(rtemp79a)
+       temp79b = cmplx(rtemp79b)
+       temp79c = cmplx(rtemp79c)
+       temp79d = cmplx(rtemp79d)
+#else
+       temp79a = rtemp79a
+       temp79b = rtemp79b
+       temp79c = rtemp79c
+       temp79d = rtemp79d
+#endif
+
+       dofsps = intx2(mu79(:,OP_1,:),temp79a)
+       dofsbz = intx2(mu79(:,OP_1,:),temp79b)
+       dofspr = intx2(mu79(:,OP_1,:),temp79c)
+       dofsvz = intx2(mu79(:,OP_1,:),temp79d)
+       dofsden = den0*intx1(mu79(:,OP_1,:))
+
        call vector_insert_block(psi_vec%vec,itri,1,dofsps,VEC_ADD)
        call vector_insert_block(bz_vec%vec ,itri,1,dofsbz,VEC_ADD)
        call vector_insert_block(p_vec%vec  ,itri,1,dofspr,VEC_ADD)
-       call vector_insert_block(vz_vec%vec  ,itri,1,dofsvz,VEC_ADD)
+       call vector_insert_block(vz_vec%vec ,itri,1,dofsvz,VEC_ADD)
        call vector_insert_block(den_vec%vec,itri,1,dofsden,VEC_ADD)
     enddo
     
