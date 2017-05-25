@@ -1,4 +1,4 @@
-pro plot_at_boundary, name, field=field, angle=ang,  _EXTRA=ex
+pro plot_at_boundary, name, field=field, angle=ang, smooth=sm, _EXTRA=ex
 
   xy = get_boundary_path(norm=norm, center=center, angle=angle, $
                          length=length, _EXTRA=ex)
@@ -49,6 +49,10 @@ pro plot_at_boundary, name, field=field, angle=ang,  _EXTRA=ex
      x = length
      xtitle = '!6Length Along Boundary!X'
   endelse
+
+  if(n_elements(sm) eq 1) then begin
+     field = smooth(field, sm)
+  end
 
   plot, x, real_part(field), _EXTRA=ex, $
         xtitle=xtitle, $
