@@ -1,5 +1,5 @@
 pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
-                yrange=yrange, smooth=sm, _EXTRA=extra, ke=ke, me=me
+                yrange=yrange, smooth=sm, overplot=over, _EXTRA=extra, ke=ke, me=me
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
    if(hdf5_file_test(filename) eq 0) then return
 
@@ -39,6 +39,7 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    if(n_elements(maxn) eq 0) then maxn = dimn[0]
 
    ntimes = dimn[1]
+   if(ntimes gt n_elements(time)) then ntimes=n_elements(time)
    print, 'max number of Fourier harmonics to be plotted = ', maxn, ntimes
    ke = fltarr(maxn, ntimes)
    grate=fltarr(maxn ,ntimes)
@@ -68,7 +69,7 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    c = get_colors(n)
    for n=0, maxn-1 do begin
 
-      if(n lt 1) then begin
+      if(n lt 1 and not keyword_set(over)) then begin
          plot, time[1:ntimes-1], tmp[n,1:ntimes-1], $
                xtitle=xtitle, ytitle=ytitle, yrange=yrange, $
                _EXTRA=extra
