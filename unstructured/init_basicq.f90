@@ -472,7 +472,7 @@ contains
 
     real, intent(in) :: psi !  note:  psi=r^2
     
-    vfunc = v0_qp + psi*v1_qp
+    vfunc = v0_qp + psi**2*v1_qp
 
     return
    end function vfunc
