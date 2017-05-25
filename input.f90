@@ -432,6 +432,8 @@ subroutine set_defaults
   call add_var_int("irmp", irmp, 0, &
        "1: Apply nonaxisym. fields throughout plasma|&
        &2: Apply mpol/ntor vacuum fields (itor=0 only)", eq_grp)
+  call add_var_double("rmp_atten", rmp_atten, 0., &
+       "Additional exponential decay of RMP field from r=1 for irmp=2", eq_grp)
   call add_var_double("tf_tilt", tf_tilt, 0., &
        "Angle of TF from vertical (in degrees)", eq_grp)
   call add_var_double("tf_tilt_angle", tf_tilt_angle, 0., &
