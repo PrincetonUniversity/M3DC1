@@ -57,9 +57,6 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   title = '!6' + title + '!X'
 
   ytitle = symbol
-  if(strlen(units) gt 0) then begin
-      ytitle = ytitle + '!6 (' + units + ')!X'
-  endif
 
   if(keyword_set(pspec)) then begin
 ;      xtitle = '!7x!6 (!7s!D!8A!N!6!U-1!N)!X'
@@ -78,6 +75,16 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
           data = data / rzero
       endif
   endif
+
+  if(keyword_set(diff)) then begin
+      data = data - data[0]
+      ytitle = '!7D' + ytitle + '!X'
+  end
+
+  if(keyword_set(absolute)) then begin
+      data = abs(data)
+      ytitle = '!3|' + ytitle + '!3|!X'
+  end
   
   if(keyword_set(growth_rate)) then begin
       n = min([n_elements(tdata), n_elements(data)])
@@ -86,13 +93,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
       data = deriv(tdata(0:n-1), alog(abs(data(0:n-1))))
 ;      ytitle = '!7c !6(!7s!D!8A!N!6!U-1!N)!X'
       ytitle = make_label('!7c!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
-  endif
-
-  if(keyword_set(diff)) then begin
-      data = data - data[0]
-  end
-
-  if(keyword_set(absolute)) then data = abs(data)
+   endif else begin
+      if(strlen(units) gt 0) then begin
+         ytitle = ytitle + '!6 (' + units + ')!X'
+      endif
+   end
 
   if(keyword_set(sm)) then data = smooth(data, sm)
 
