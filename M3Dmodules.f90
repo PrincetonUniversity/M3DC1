@@ -152,7 +152,7 @@ module basic
   real :: phizero     ! initial poloidal velocity
   real :: verzero     ! initial vertical velocity
   real :: v0_cyl    !  initial central axial velocity for cylinder equilibrium
-  real :: v1_cyl    !  vz = v0_cyl + v1_cyl*psi          0  < psi < 1
+  real :: v1_cyl    !  vz = v0_cyl + v1_cyl*psi**2          0  < psi < 1
   real :: p0, pi0     ! total, ion pressures
   real :: pscale      ! factor by which to scale equilibrium pressure
   real :: bscale      ! factor by which to scale equilibrium toroidal field
