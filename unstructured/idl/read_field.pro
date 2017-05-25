@@ -30,7 +30,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        for i=0, taverage-1 do begin
            data = data + $
              read_field(name, x, y, t, slices=time, mesh=mesh, $
-                        filename=filename, points=pts, $
+                        filename=filename, points=pts, fac=fac, $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         diff=diff, operation=op, dimensions=d, $
@@ -60,7 +60,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        for i=0, n-1 do begin
            data = data + $
              read_field(name, x, y, t, slices=time[i], mesh=mesh, $
-                        filename=filename[i], points=pts, $
+                        filename=filename[i], points=pts, fac=fac, $
                         equilibrium=equilibrium, linfac=linfac[i], $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
@@ -86,7 +86,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        for i=0, n-1 do begin
            data = data + $
              read_field(name, x, y, t, slices=time[i], mesh=mesh, $
-                        filename=filename[i], points=pts, $
+                        filename=filename[i], points=pts, fac=fac, $
                         rrange=xrange, zrange=yrange, mask=mask, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                         operation=op, complex=complex, dimensions=d, $
