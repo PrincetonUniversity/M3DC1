@@ -5882,7 +5882,7 @@ vectype function b1psieta(e,f,g,h,imod)
         temp = 0.
      else
         temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1))
-        if(iupstream.eq.1) then     !DEBUG
+        if(iupstream.eq.1) then 
           temp79a = abs(h(:,OP_1))*5.e-2
           temp = temp + int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
         endif
@@ -7731,14 +7731,14 @@ end function b2psimue
 
 ! B2beta
 ! ======
-vectype function b2beta(e,f,g)
+vectype function b2beta(e,f,g,h)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
   if(surface_int) then
@@ -7755,8 +7755,8 @@ vectype function b2beta(e,f,g)
           - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
           - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1)) 
 #if defined(USE3D) || defined(USECOMPLEX)
-     if(iupstream.eq.1) then    !DEBUG
-        temp79a = 1.e-4
+     if(iupstream.eq.1) then    
+        temp79a = abs(h(:,OP_1))*5.e-2
         temp = temp + int4(ri4_79,e(:,OP_1),f(:,OP_DPP),temp79a)
      endif
 #endif     
@@ -9079,14 +9079,14 @@ end function b3pefd
 
 ! B3pedkappa
 ! ==========
-vectype function b3pedkappa(e,f,g,h)
+vectype function b3pedkappa(e,f,g,h,i)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
   vectype :: temp
 
   if(gam.le.1.) then
@@ -9107,8 +9107,12 @@ vectype function b3pedkappa(e,f,g,h)
           - int4(e(:,OP_DR),f(:,OP_1 ),g(:,OP_DR),h(:,OP_1))
   
 #if defined(USE3D) || defined(USECOMPLEX)
+     temp79a = h(:,OP_1)
+     if(iupstream.eq.1) then    
+        temp79a = temp79a + abs(i(:,OP_1))*5.e-2
+     endif
      temp = temp +                       &
-          int5(ri2_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_1),h(:,OP_1))
+          int5(ri2_79,e(:,OP_1),f(:,OP_DPP),g(:,OP_1),temp79a)
 #endif
      if(hypp.ne.0.) then
         ! Laplacian[f g]
@@ -9132,14 +9136,14 @@ end function b3pedkappa
 
 ! B3tekappa
 ! ==========
-vectype function b3tekappa(e,f,g)
+vectype function b3tekappa(e,f,g,h)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
   vectype :: temp
 
   if(gam.le.1.) then
@@ -9157,8 +9161,8 @@ vectype function b3tekappa(e,f,g)
   
 #if defined(USE3D) || defined(USECOMPLEX)
      temp79a = g(:,OP_1)
-     if(iupstream.eq.1) then    !DEBUG
-        temp79a = temp79a + 1.e-4
+     if(iupstream.eq.1) then    
+        temp79a = temp79a + abs(h(:,OP_1))*5.e-2
      endif
      temp = temp +                       &
           int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
@@ -9258,7 +9262,7 @@ end function n1n
 
 ! N1ndenm
 ! =======
-function n1ndenm(e,f,g)
+function n1ndenm(e,f,g,h)
 
   use basic
   use m3dc1_nint
@@ -9267,7 +9271,7 @@ function n1ndenm(e,f,g)
 
   vectype, dimension(dofs_per_element) :: n1ndenm
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,h
   real, intent(in) :: g
   real :: gmod
   vectype, dimension(dofs_per_element) :: temp
@@ -9285,11 +9289,11 @@ function n1ndenm(e,f,g)
           (intx2(e(:,OP_DZ,:),f(:,OP_DZ)) + intx2(e(:,OP_DR,:),f(:,OP_DR)))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-     gmod = g
+     temp79a = g
      if(iupstream .eq. 1) then     !DEBUG
-        gmod = gmod + 1.e-4
+        temp79a = temp79a+abs(h(:,OP_1))*5.e-2
      endif
-     temp = temp + gmod*intx3(e(:,OP_1,:),ri2_79,f(:,OP_DPP))
+     temp = temp + gmod*intx4(e(:,OP_1,:),ri2_79,f(:,OP_DPP),temp79a)
 #endif
 
      if(hypp.ne.0.) then

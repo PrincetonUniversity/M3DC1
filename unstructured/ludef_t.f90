@@ -2478,7 +2478,7 @@ subroutine axial_field_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   ssterm(psi_g) = ssterm(psi_g) -     thimp     *dt*temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp*bdf)*dt*temp
   
-  temp = b2beta(trial,lin,eta79)
+  temp = b2beta(trial,lin,eta79,vz079)
   ssterm(bz_g) = ssterm(bz_g) -     thimp     *dt*temp
   ddterm(bz_g) = ddterm(bz_g) + (1.-thimp*bdf)*dt*temp
 
@@ -3422,13 +3422,13 @@ subroutine pressure_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Perpendicular Heat Flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b3pedkappa(trial,lin,ni79,kap79)
+  temp = b3pedkappa(trial,lin,ni79,kap79,vz079)
   ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
   ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
   if(eqsubtract.eq.1) then
      if(idens.eq.1) then
         q_ni(1) = q_ni(1) + dt* &
-             (b3pedkappa(trial,pp079,lin,kap79))
+             (b3pedkappa(trial,pp079,lin,kap79,vz079))
      end if
   end if
 
@@ -4083,7 +4083,7 @@ subroutine temperature_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
      ! Perpendicular Heat Flux
      ! ~~~~~~~~~~~~~~~~~~~~~~~
-     temp = b3tekappa(trial,lin,kap79)
+     temp = b3tekappa(trial,lin,kap79,vz079)
      ssterm(pp_g) = ssterm(pp_g) -     thimp     *dt*temp
      ddterm(pp_g) = ddterm(pp_g) + (1.-thimp*bdf)*dt*temp
 
@@ -5456,7 +5456,7 @@ subroutine ludefden_n(itri)
 
   do j=1,dofs_per_element
      
-     tempx = n1ndenm(mu79,nu79(:,:,j),denm) &
+     tempx = n1ndenm(mu79,nu79(:,:,j),denm,vz079) &
           +  n1nu   (mu79,nu79(:,:,j),pht79)
      ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
      ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
