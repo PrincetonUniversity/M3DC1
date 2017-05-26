@@ -341,7 +341,7 @@ subroutine f1eplot_sub(i,term)
   temp = b2psieta(mu79(:,:,i),pst79,eta79)
   term = temp
   
-  temp = b2beta(mu79(:,:,i),bzt79,eta79)
+  temp = b2beta(mu79(:,:,i),bzt79,eta79,vz079)
   term = term + temp
 
   if(i3d.eq.1) then
@@ -452,7 +452,7 @@ subroutine f3eplot_sub(i,term)
 
 ! Perpendicular Heat Flux
 ! ~~~~~~~~~~~~~~~~~~~~~~~
-       temp = b3tekappa(mu79(:,:,i),tet79,kap79)
+       temp = b3tekappa(mu79(:,:,i),tet79,kap79,vz079)
        term = term + temp
 
 ! Parallel Heat Flux
