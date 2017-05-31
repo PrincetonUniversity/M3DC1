@@ -9273,7 +9273,6 @@ function n1ndenm(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,h
   real, intent(in) :: g
-  real :: gmod
   vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
@@ -9293,7 +9292,7 @@ function n1ndenm(e,f,g,h)
      if(iupstream .eq. 1) then     !DEBUG
         temp79a = temp79a+abs(h(:,OP_1))*5.e-2
      endif
-     temp = temp + gmod*intx4(e(:,OP_1,:),ri2_79,f(:,OP_DPP),temp79a)
+     temp = temp + intx4(e(:,OP_1,:),ri2_79,f(:,OP_DPP),temp79a)
 #endif
 
      if(hypp.ne.0.) then
