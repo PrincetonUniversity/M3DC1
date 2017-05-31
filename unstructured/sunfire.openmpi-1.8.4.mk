@@ -59,7 +59,7 @@ BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group \
 	-lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core \
 	-Wl,--end-group
 HDF5_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.8-pkgs/hdf5-1.8.14-parallel
-SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/May2017-openmpi-1.8.4
+SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/May2017/openmpi-1.8.4/debug
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
