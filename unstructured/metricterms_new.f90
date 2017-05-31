@@ -5882,10 +5882,12 @@ vectype function b1psieta(e,f,g,h,imod)
         temp = 0.
      else
         temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1))
+#if defined(USE3D) || defined(USECOMPLEX)
         if(iupstream.eq.1) then 
           temp79a = abs(h(:,OP_1))*5.e-2
           temp = temp + int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
         endif
+#endif
         
 
          if(hypf.ne.0) then
