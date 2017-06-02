@@ -1331,6 +1331,112 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   endif
 
 
+  ! JxB
+  ! ~~~
+  ! Split time-step
+  if(advfield.eq.1) then
+     ddterm(:,psi_g) = ddterm(:,psi_g) + dt*  &
+          (v3psipsi(trialx,lin,pss79)      & 
+          +v3psipsi(trialx,pss79,lin)      &
+          +v3psib  (trialx,lin,bzs79))
+     
+     ddterm(:,bz_g) = ddterm(:,bz_g) + dt*  &
+          (v3psib(trialx,pss79,lin)      &
+          +v3bb  (trialx,lin,bzs79)      &  
+          +v3bb  (trialx,bzs79,lin))
+
+     if(use_external_fields .and. linear.eq.0) then
+        ddterm(:,psi_g) = ddterm(:,psi_g) + dt*  &
+             (v3psipsi(trialx,psx79,lin)      &
+             +v3psib  (trialx,lin,bzx79))
+     
+        ddterm(:,bz_g) = ddterm(:,bz_g) + dt*  &
+             (v3bb  (trialx,lin,bzx79))
+     end if
+
+  ! Unsplit time-step
+  else
+     if(linear.eq.0) then 
+        tempx = v3psipsi(trialx,lin,ps179) &
+             + v3psipsi(trialx,ps179,lin) &
+             + v3psib  (trialx,lin,bz179)
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimp*bdf)*dt*tempx
+        
+        tempx = v3psib(trialx,ps179,lin) &
+             + v3bb  (trialx,lin,bz179) &
+             + v3bb  (trialx,bz179,lin)
+        ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimp*bdf)*dt*tempx
+     end if
+     if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
+        tempx = v3psipsi(trialx,lin,ps079) &
+             + v3psipsi(trialx,ps079,lin) &
+             + v3psib  (trialx,lin,bz079)
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
+
+        tempx = v3psib(trialx,ps079,lin) &
+             + v3bb  (trialx,lin,bz079) &
+             + v3bb  (trialx,bz079,lin)
+        ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
+     end if
+     if(use_external_fields .and. linear.eq.0) then
+        tempx = v3psipsi(trialx,psx79,lin) &
+             + v3psib  (trialx,lin,bzx79)
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
+
+        tempx = v3bb  (trialx,lin,bzx79)
+        ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
+     end if
+  end if
+
+  if(i3d.eq.1) then
+     if(linear.eq.0) then
+        tempx = v3psif(trialx,lin,bf179)
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp_bf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimp_bf*bdf)*dt*tempx
+        
+        tempx = v3bf  (trialx,lin,bf179)
+        ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp_bf     *dt*tempx
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimp_bf*bdf)*dt*tempx
+        
+        tempx = v3psif(trialx,ps179,lin) &
+             + v3bf  (trialx,bz179,lin)
+        r_bf = r_bf -     thimp_bf     *dt*tempx
+        q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
+     end if
+     if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
+        tempx = v3psif(trialx,lin,bf079)
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp_bf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp_bf*bdf)*dt*tempx
+        
+        tempx = v3bf  (trialx,lin,bf079)
+        ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp_bf     *dt*tempx
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp_bf*bdf)*dt*tempx        
+
+        ! The following terms cause problems in isplitstep=0 for some reason
+        ! unless imp_bf = 1
+        tempx = v3psif(trialx,ps079,lin) &
+             + v3bf  (trialx,bz079,lin)
+        r_bf = r_bf -     thimp_bf     *dt*tempx
+        q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+     end if
+     if(use_external_fields .and. linear.eq.0) then
+        tempx = v3psif(trialx,lin,bfx79)
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp_bf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp_bf*bdf)*dt*tempx
+        
+        tempx = v3bf  (trialx,bzx79,lin)
+        r_bf = r_bf -     thimp_bf     *dt*tempx
+        q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+     end if
+  endif
+
+
 
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
@@ -1340,24 +1446,6 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! ~~~
   ! Split time-step
   if(advfield.eq.1) then
-     ddterm(i,psi_g) = ddterm(i,psi_g) + dt*  &
-          (v3psipsi(trial,lin,pss79)      & 
-          +v3psipsi(trial,pss79,lin)      &
-          +v3psib  (trial,lin,bzs79))
-     
-     ddterm(i,bz_g) = ddterm(i,bz_g) + dt*  &
-          (v3psib(trial,pss79,lin)      &
-          +v3bb  (trial,lin,bzs79)      &  
-          +v3bb  (trial,bzs79,lin))
-
-     if(use_external_fields .and. linear.eq.0) then
-        ddterm(i,psi_g) = ddterm(i,psi_g) + dt*  &
-             (v3psipsi(trial,psx79,lin)      &
-             +v3psib  (trial,lin,bzx79))
-     
-        ddterm(i,bz_g) = ddterm(i,bz_g) + dt*  &
-             (v3bb  (trial,lin,bzx79))
-     end if
 
      ! parabolization terms
      temp = v3upsipsi(trial,lin,pst79,pst79) &
@@ -1405,89 +1493,6 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ssterm(i,chi_g) = ssterm(i,chi_g) + db*thimp*dt*temp
         ddterm(i,chi_g) = ddterm(i,chi_g) + db*thimp*dt*temp
      endif
-
-
-
-  ! Unsplit time-step
-  else
-     if(linear.eq.0) then 
-        temp = v3psipsi(trial,lin,ps179) &
-             + v3psipsi(trial,ps179,lin) &
-             + v3psib  (trial,lin,bz179)
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimp     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimp*bdf)*dt*temp
-        
-        temp = v3psib(trial,ps179,lin) &
-             + v3bb  (trial,lin,bz179) &
-             + v3bb  (trial,bz179,lin)
-        ssterm(i,bz_g) = ssterm(i,bz_g) -     thimp     *dt*temp
-        ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimp*bdf)*dt*temp
-     end if
-     if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = v3psipsi(trial,lin,ps079) &
-             + v3psipsi(trial,ps079,lin) &
-             + v3psib  (trial,lin,bz079)
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimp     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimp*bdf)*dt*temp
-
-        temp = v3psib(trial,ps079,lin) &
-             + v3bb  (trial,lin,bz079) &
-             + v3bb  (trial,bz079,lin)
-        ssterm(i,bz_g) = ssterm(i,bz_g) -     thimp     *dt*temp
-        ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimp*bdf)*dt*temp
-     end if
-     if(use_external_fields .and. linear.eq.0) then
-        temp = v3psipsi(trial,psx79,lin) &
-             + v3psib  (trial,lin,bzx79)
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimp     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimp*bdf)*dt*temp
-
-        temp = v3bb  (trial,lin,bzx79)
-        ssterm(i,bz_g) = ssterm(i,bz_g) -     thimp     *dt*temp
-        ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimp*bdf)*dt*temp
-     end if
-  end if
-
-  if(i3d.eq.1) then
-     if(linear.eq.0) then
-        temp = v3psif(trial,lin,bf179)
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimp_bf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimp_bf*bdf)*dt*temp
-        
-        temp = v3bf  (trial,lin,bf179)
-        ssterm(i,bz_g) = ssterm(i,bz_g) -     thimp_bf     *dt*temp
-        ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimp_bf*bdf)*dt*temp
-        
-        temp = v3psif(trial,ps179,lin) &
-             + v3bf  (trial,bz179,lin)
-        r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-        q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp
-     end if
-     if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = v3psif(trial,lin,bf079)
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimp_bf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimp_bf*bdf)*dt*temp
-        
-        temp = v3bf  (trial,lin,bf079)
-        ssterm(i,bz_g) = ssterm(i,bz_g) -     thimp_bf     *dt*temp
-        ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimp_bf*bdf)*dt*temp        
-
-        ! The following terms cause problems in isplitstep=0 for some reason
-        ! unless imp_bf = 1
-        temp = v3psif(trial,ps079,lin) &
-             + v3bf  (trial,bz079,lin)
-        r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-        q_bf(i) = q_bf(i) + (1.-thimp_bf*bdf)*dt*temp
-     end if
-     if(use_external_fields .and. linear.eq.0) then
-        temp = v3psif(trial,lin,bfx79)
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimp_bf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimp_bf*bdf)*dt*temp
-        
-        temp = v3bf  (trial,bzx79,lin)
-        r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-        q_bf(i) = q_bf(i) + (1.-thimp_bf*bdf)*dt*temp
-     end if
   endif
 
 
@@ -1613,23 +1618,24 @@ subroutine compression_nolin(trialx, r4term)
   endif
 
 
-  do i=1, dofs_per_element
-     trial = trialx(:,:,i)
-
   ! JxB_ext
   ! ~~~~~~~
   if(use_external_fields .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then 
-     r4term(i) = r4term(i) + dt* &
-          (v3psipsi(trial,psx79,ps079) &
-          +v3psib  (trial,ps079,bzx79) &
-          +v3bb    (trial,bz079,bzx79))
+     r4term = r4term + dt* &
+          (v3psipsi(trialx,psx79,ps079) &
+          +v3psib  (trialx,ps079,bzx79) &
+          +v3bb    (trialx,bz079,bzx79))
      
      if(i3d.eq.1) then
-        r4term(i) = r4term(i) + dt* &
-             (v3psif(trial,ps079,bfx79) &
-             +v3bf  (trial,bzx79,bf079))
+        r4term = r4term + dt* &
+             (v3psif(trialx,ps079,bfx79) &
+             +v3bf  (trialx,bzx79,bf079))
      end if
   endif
+
+
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
 
 #ifdef USEPARTICLES
   ! kinetic terms

@@ -3974,55 +3974,56 @@ end function v3chip
 
 ! V3psipsi
 ! ========
-vectype function v3psipsi(e,f,g)
+function v3psipsi(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: v3psipsi
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_GS)) &
-             + int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_GS))
+        temp = intx4(e(:,OP_DZ,:),ri2_79,f(:,OP_DZ),g(:,OP_GS)) &
+             + intx4(e(:,OP_DR,:),ri2_79,f(:,OP_DR),g(:,OP_GS))
      end if
 
   case(1)
      if(surface_int) then
         temp = &
-             - int5(ri4_79,e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_GS)) &
-             - int5(ri4_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_GS))
+             - intx5(e(:,OP_1,:),ri4_79,norm79(:,1),f(:,OP_DR),g(:,OP_GS)) &
+             - intx5(e(:,OP_1,:),ri4_79,norm79(:,2),f(:,OP_DZ),g(:,OP_GS))
      else
-        temp = int4(ri4_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_GS)) &
-             + int4(ri4_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_GS))
+        temp = intx4(e(:,OP_DZ,:),ri4_79,f(:,OP_DZ),g(:,OP_GS)) &
+             + intx4(e(:,OP_DR,:),ri4_79,f(:,OP_DR),g(:,OP_GS))
      end if
 
   end select
 
   v3psipsi = temp
-
-  return
 end function v3psipsi
 
 
 ! V3psib
 ! ======
-vectype function v3psib(e,f,g)
-
+function v3psib(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v3psib
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
@@ -4031,8 +4032,8 @@ vectype function v3psib(e,f,g)
         temp = 0.
      else
         temp = - &
-             (int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1)) &
-             -int4(ri3_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1)))
+             (intx4(e(:,OP_DZ,:),ri3_79,f(:,OP_DRP),g(:,OP_1)) &
+             -intx4(e(:,OP_DR,:),ri3_79,f(:,OP_DZP),g(:,OP_1)))
      end if
 
   case(1)
@@ -4040,52 +4041,53 @@ vectype function v3psib(e,f,g)
         if(inocurrent_pol.eq.1 .and. imulti_region.eq.0) then 
            temp = 0.
         else
-           temp = int5(ri5_79,e(:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
-                - int5(ri5_79,e(:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
+           temp = intx5(e(:,OP_1,:),ri5_79,norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
+                - intx5(e(:,OP_1,:),ri5_79,norm79(:,1),f(:,OP_DZP),g(:,OP_1))
         end if
      else
         temp = - &
-             (int4(ri5_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1)) &
-             -int4(ri5_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1)))
+             (intx4(e(:,OP_DZ,:),ri5_79,f(:,OP_DRP),g(:,OP_1)) &
+             -intx4(e(:,OP_DR,:),ri5_79,f(:,OP_DZP),g(:,OP_1)))
      end if
   end select
 #else
   temp = 0.
 #endif
   v3psib = temp
-  return
 end function v3psib
 
 
 ! V3psif
 ! ======
-vectype function v3psif(e,f,g)
-
+function v3psif(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: v3psif
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
+
 #if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
-     temp = int4(ri_79,e(:,OP_DZ),g(:,OP_DRP),f(:,OP_GS)) &
-          - int4(ri_79,e(:,OP_DR),g(:,OP_DZP),f(:,OP_GS))
+     temp = intx4(e(:,OP_DZ,:),ri_79,g(:,OP_DRP),f(:,OP_GS)) &
+          - intx4(e(:,OP_DR,:),ri_79,g(:,OP_DZP),f(:,OP_GS))
 
   case(1)
      if(surface_int) then
         if(inocurrent_tor.eq.1 .and. imulti_region.eq.0) then
            temp = 0.
         else
-           temp = int5(ri3_79,e(:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DZP)) &
-                - int5(ri3_79,e(:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DRP))
+           temp = intx5(e(:,OP_1,:),ri3_79,f(:,OP_GS),norm79(:,1),g(:,OP_DZP)) &
+                - intx5(e(:,OP_1,:),ri3_79,f(:,OP_GS),norm79(:,2),g(:,OP_DRP))
         end if
      else
-        temp = int4(ri3_79,e(:,OP_DZ),g(:,OP_DRP),f(:,OP_GS)) &
-             - int4(ri3_79,e(:,OP_DR),g(:,OP_DZP),f(:,OP_GS))
+        temp = intx4(e(:,OP_DZ,:),ri3_79,g(:,OP_DRP),f(:,OP_GS)) &
+             - intx4(e(:,OP_DR,:),ri3_79,g(:,OP_DZP),f(:,OP_GS))
      end if
   end select
 #else
@@ -4093,31 +4095,30 @@ vectype function v3psif(e,f,g)
 #endif
 
   v3psif = temp
-
-  return
 end function v3psif
 
 
 ! V3bb
 ! ====
-vectype function v3bb(e,f,g)
-
+function v3bb(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: v3bb
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1)) &
-             + int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1))
+        temp = intx4(e(:,OP_DR,:),ri2_79,f(:,OP_DR),g(:,OP_1)) &
+             + intx4(e(:,OP_DZ,:),ri2_79,f(:,OP_DZ),g(:,OP_1))
      end if
 
   case(1)
@@ -4126,32 +4127,32 @@ vectype function v3bb(e,f,g)
            temp = 0.
         else
            temp = &
-                - int5(ri4_79,e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
-                - int5(ri4_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1))
+                - intx5(e(:,OP_1,:),ri4_79,norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+                - intx5(e(:,OP_1,:),ri4_79,norm79(:,2),f(:,OP_DZ),g(:,OP_1))
         end if
      else
-        temp = int4(ri4_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1)) &
-             + int4(ri4_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1))
+        temp = intx4(e(:,OP_DR,:),ri4_79,f(:,OP_DR),g(:,OP_1)) &
+             + intx4(e(:,OP_DZ,:),ri4_79,f(:,OP_DZ),g(:,OP_1))
      end if
   end select
 
   v3bb = temp
-  return
 end function v3bb
 
 
 ! V3bf
 ! ====
-vectype function v3bf(e,f,g)
-
+function v3bf(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: v3bf
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
@@ -4160,8 +4161,8 @@ vectype function v3bf(e,f,g)
         temp = 0.
      else
         temp = - &
-             (int4(ri2_79,e(:,OP_1),g(:,OP_DZPP),f(:,OP_DZ)) &
-             +int4(ri2_79,e(:,OP_1),g(:,OP_DRPP),f(:,OP_DR)))
+             (intx4(e(:,OP_1,:),ri2_79,g(:,OP_DZPP),f(:,OP_DZ)) &
+             +intx4(e(:,OP_1,:),ri2_79,g(:,OP_DRPP),f(:,OP_DR)))
      end if
 
   case(1)
@@ -4170,12 +4171,12 @@ vectype function v3bf(e,f,g)
            temp = 0.
         else
            temp = &
-                - int5(ri4_79,e(:,OP_1),norm79(:,1),g(:,OP_DRPP),f(:,OP_1)) &
-                - int5(ri4_79,e(:,OP_1),norm79(:,2),g(:,OP_DZPP),f(:,OP_1))
+                - intx5(e(:,OP_1,:),ri4_79,norm79(:,1),g(:,OP_DRPP),f(:,OP_1)) &
+                - intx5(e(:,OP_1,:),ri4_79,norm79(:,2),g(:,OP_DZPP),f(:,OP_1))
         end if
      else
-        temp = int4(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1)) &
-             + int4(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1))
+        temp = intx4(e(:,OP_DR,:),ri4_79,g(:,OP_DRPP),f(:,OP_1)) &
+             + intx4(e(:,OP_DZ,:),ri4_79,g(:,OP_DZPP),f(:,OP_1))
      end if
   end select
 #else
