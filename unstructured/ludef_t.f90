@@ -3024,6 +3024,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype :: freq_fac
 
   vectype, dimension(MAX_PTS, OP_NUM) :: trial
+  vectype, dimension(dofs_per_element) :: tempx
   integer :: i
 
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179, ppt79
@@ -3078,22 +3079,93 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   r_bf = 0.
   q_bf = 0.
 
-  do i=1, dofs_per_element
-     trial = trialx(:,:,i)
-
   if(izone.ne.1) then
-     temp = b3pe(trial,lin)
-     ssterm(i,pp_g) = ssterm(i,pp_g) + temp
-     ddterm(i,pp_g) = ddterm(i,pp_g) + temp*bdf
-     cycle
+     tempx = b3pe(trialx,lin)
+     ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
+     ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
+     return
   end if
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  temp = b3pe(trial,lin)*freq_fac
-  ssterm(i,pp_g) = ssterm(i,pp_g) + temp
-  if(itime_independent.eq.0) ddterm(i,pp_g) = ddterm(i,pp_g) + temp*bdf
+  tempx = b3pe(trialx,lin)*freq_fac
+  ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
+  if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
 
+
+  ! Ohmic Heating
+  ! ~~~~~~~~~~~~~
+  if(linear.eq.0) then
+     tempx = b3psipsieta(trialx,lin,ps179,eta79) &
+          + b3psipsieta(trialx,ps179,lin,eta79)
+     ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+     ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx
+
+     if(numvar.ge.2) then
+        tempx = b3bbeta(trialx,lin,bz179,eta79) &
+             + b3bbeta(trialx,bz179,lin,eta79)
+        ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx
+
+        tempx = b3psibeta(trialx,lin,bz179,eta79) 
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx
+
+        tempx = b3psibeta(trialx,ps179,lin,eta79)
+        ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx
+        if(i3d .eq. 1) then
+           tempx = b3psifeta(trialx,lin,bf179,eta79)
+           ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+           ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx
+
+           tempx = b3psifeta(trialx,ps179,lin,eta79)
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
+
+           tempx = b3bfeta(trialx,lin,bf179,eta79)
+           ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+           ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx
+
+           tempx = b3bfeta(trialx,bz179,lin,eta79)
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
+
+           tempx = b3ffeta(trialx,lin,bf179,eta79)      &
+                + b3ffeta(trialx,bf179,lin,eta79)
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
+        endif
+
+     end if
+  end if
+  if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
+     tempx = b3psipsieta(trialx,lin,ps079,eta79) &
+          + b3psipsieta(trialx,ps079,lin,eta79)
+     ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+     ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx
+     
+     if(numvar.ge.2) then
+        tempx = b3bbeta(trialx,lin,bz079,eta79) &
+             + b3bbeta(trialx,bz079,lin,eta79)
+        ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimpf*bdf)*dt*tempx
+
+        tempx = b3psibeta(trialx,lin,bz079,eta79)
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx
+
+        if(i3d .eq. 1) then
+           tempx = b3bfeta(trialx,bz079,lin,eta79)
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+        endif
+     end if
+  endif
+
+
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
 
   ! special to peg pressure for itaylor=27
   if(iheat_sink.eq.1 .and. itaylor.eq.27) then
@@ -3102,75 +3174,6 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
       ddterm(i,pp_g) = ddterm(i,pp_g) - (1.-thimpb*bdf)*dt*(gam-1.)*coolrate*temp
   end if
 
-  ! Ohmic Heating
-  ! ~~~~~~~~~~~~~
-  if(linear.eq.0) then
-     temp = b3psipsieta(trial,lin,ps179,eta79) &
-          + b3psipsieta(trial,ps179,lin,eta79)
-     ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-     ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimpf*bdf)*dt*temp
-
-     if(numvar.ge.2) then
-        temp = b3bbeta(trial,lin,bz179,eta79) &
-             + b3bbeta(trial,bz179,lin,eta79)
-        ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp
-        ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimpf*bdf)*dt*temp
-
-        temp = b3psibeta(trial,lin,bz179,eta79) 
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimpf*bdf)*dt*temp
-
-        temp = b3psibeta(trial,ps179,lin,eta79)
-        ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp
-        ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimpf*bdf)*dt*temp
-        if(i3d .eq. 1) then
-           temp = b3psifeta(trial,lin,bf179,eta79)
-           ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-           ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimpf*bdf)*dt*temp
-
-           temp = b3psifeta(trial,ps179,lin,eta79)
-           r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-           q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp
-
-           temp = b3bfeta(trial,lin,bf179,eta79)
-           ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp
-           ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimpf*bdf)*dt*temp
-
-           temp = b3bfeta(trial,bz179,lin,eta79)
-           r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-           q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp
-
-           temp = b3ffeta(trial,lin,bf179,eta79)      &
-                + b3ffeta(trial,bf179,lin,eta79)
-           r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-           q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp
-        endif
-
-     end if
-  end if
-  if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-     temp = b3psipsieta(trial,lin,ps079,eta79) &
-          + b3psipsieta(trial,ps079,lin,eta79)
-     ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-     ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimpf*bdf)*dt*temp
-     
-     if(numvar.ge.2) then
-        temp = b3bbeta(trial,lin,bz079,eta79) &
-             + b3bbeta(trial,bz079,lin,eta79)
-        ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp
-        ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimpf*bdf)*dt*temp
-
-        temp = b3psibeta(trial,lin,bz079,eta79)
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimpf*bdf)*dt*temp
-
-        if(i3d .eq. 1) then
-           temp = b3bfeta(trial,bz079,lin,eta79)
-           r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-           q_bf(i) = q_bf(i) + (1.-thimp_bf*bdf)*dt*temp
-        endif
-     end if
-  endif
 
   ! Equipartition
   ! ~~~~~~~~~~~
@@ -3760,6 +3763,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype :: freq_fac
 
   vectype, dimension(MAX_PTS, OP_NUM) :: trial
+  vectype, dimension(dofs_per_element) :: tempx
   integer :: i
 
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179
@@ -3806,21 +3810,101 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      freq_fac = 1.
   end if
 
+  ohfac = 1.
+  if(ipres.eq.0) ohfac = 0.5
+!...note:  all OH terms should be multiplied by 0.5 for ipres=0   (since we assume T_e = T_i
+
+
   ssterm = 0.
   ddterm = 0.
   q_ni = 0.
   r_bf = 0.
   q_bf = 0.
 
+  if(izone.ne.1) then
+     tempx = t3tn(trialx,lin,nt79)
+     ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
+     ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
+     return
+  end if
+
+
+  if(electron_temperature) then
+  ! Ohmic Heating
+  ! ~~~~~~~~~~~~~
+    if(linear.eq.0) then
+       tempx = b3psipsieta(trialx,lin,ps179,eta79) &
+            + b3psipsieta(trialx,ps179,lin,eta79)
+       ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+
+       if(numvar.ge.2) then
+          tempx = b3bbeta(trialx,lin,bz179,eta79) &
+               + b3bbeta(trialx,bz179,lin,eta79)
+          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx*ohfac
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+
+          tempx = b3psibeta(trialx,lin,bz179,eta79) 
+          ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
+          ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+
+          tempx = b3psibeta(trialx,ps179,lin,eta79)
+          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx*ohfac
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+          if(i3d .eq. 1) then
+             tempx = b3psifeta(trialx,lin,bf179,eta79)
+             ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
+             ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+
+             tempx = b3psifeta(trialx,ps179,lin,eta79)
+             r_bf = r_bf -     thimp_bf     *dt*tempx*ohfac
+             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx*ohfac
+
+             tempx = b3bfeta(trialx,lin,bf179,eta79)
+             ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx*ohfac
+             ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+
+             tempx = b3bfeta(trialx,bz179,lin,eta79)
+             r_bf = r_bf -     thimp_bf     *dt*tempx*ohfac
+             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx*ohfac
+
+             tempx = b3ffeta(trialx,lin,bf179,eta79)      &
+                  + b3ffeta(trialx,bf179,lin,eta79)
+             r_bf = r_bf -     thimp_bf     *dt*tempx*ohfac
+             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx*ohfac
+          endif
+
+       end if
+    end if
+    if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
+       tempx = b3psipsieta(trialx,lin,ps079,eta79) &
+            + b3psipsieta(trialx,ps079,lin,eta79)
+       ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx*ohfac
+     
+       if(numvar.ge.2) then
+          tempx = b3bbeta(trialx,lin,bz079,eta79) &
+               + b3bbeta(trialx,bz079,lin,eta79)
+          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx*ohfac
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimpf*bdf)*dt*tempx*ohfac
+
+          tempx = b3psibeta(trialx,lin,bz079,eta79)
+          ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
+          ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx*ohfac
+
+          if(i3d .eq. 1) then
+             tempx = b3bfeta(trialx,bz079,lin,eta79)
+             r_bf = r_bf -     thimp_bf     *dt*tempx*ohfac
+             q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx*ohfac
+          endif
+       end if
+    endif
+  endif
+
+
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
 
-  if(izone.ne.1) then
-     temp = t3tn(trial,lin,nt79)
-     ssterm(i,pp_g) = ssterm(i,pp_g) + temp
-     ddterm(i,pp_g) = ddterm(i,pp_g) + temp*bdf
-     cycle
-  end if
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
@@ -3837,83 +3921,9 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   endif
 
 !
-  ohfac = 1.
-  if(ipres.eq.0) ohfac = 0.5
-!...note:  all OH terms should be multiplied by 0.5 for ipres=0   (since we assume T_e = T_i
-  if(electron_temperature) then
-  ! Ohmic Heating
-  ! ~~~~~~~~~~~~~
-    if(linear.eq.0) then
-       temp = b3psipsieta(trial,lin,ps179,eta79) &
-            + b3psipsieta(trial,ps179,lin,eta79)
-       ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp*ohfac
-       ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimpf*bdf)*dt*temp*ohfac
 
-       if(numvar.ge.2) then
-          temp = b3bbeta(trial,lin,bz179,eta79) &
-               + b3bbeta(trial,bz179,lin,eta79)
-          ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp*ohfac
-          ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimpf*bdf)*dt*temp*ohfac
-
-          temp = b3psibeta(trial,lin,bz179,eta79) 
-          ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp*ohfac
-          ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimpf*bdf)*dt*temp*ohfac
-
-          temp = b3psibeta(trial,ps179,lin,eta79)
-          ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp*ohfac
-          ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimpf*bdf)*dt*temp*ohfac
-          if(i3d .eq. 1) then
-             temp = b3psifeta(trial,lin,bf179,eta79)
-             ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp*ohfac
-             ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimpf*bdf)*dt*temp*ohfac
-
-             temp = b3psifeta(trial,ps179,lin,eta79)
-             r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp*ohfac
-             q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp*ohfac
-
-             temp = b3bfeta(trial,lin,bf179,eta79)
-             ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp*ohfac
-             ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimpf*bdf)*dt*temp*ohfac
-
-             temp = b3bfeta(trial,bz179,lin,eta79)
-             r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp*ohfac
-             q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp*ohfac
-
-             temp = b3ffeta(trial,lin,bf179,eta79)      &
-                  + b3ffeta(trial,bf179,lin,eta79)
-             r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp*ohfac
-             q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp*ohfac
-          endif
-
-       end if
-    end if
-    if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-       temp = b3psipsieta(trial,lin,ps079,eta79) &
-            + b3psipsieta(trial,ps079,lin,eta79)
-       ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp*ohfac
-       ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimpf*bdf)*dt*temp*ohfac
-     
-       if(numvar.ge.2) then
-          temp = b3bbeta(trial,lin,bz079,eta79) &
-               + b3bbeta(trial,bz079,lin,eta79)
-          ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp*ohfac
-          ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimpf*bdf)*dt*temp*ohfac
-
-          temp = b3psibeta(trial,lin,bz079,eta79)
-          ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp*ohfac
-          ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimpf*bdf)*dt*temp*ohfac
-
-          if(i3d .eq. 1) then
-             temp = b3bfeta(trial,bz079,lin,eta79)
-             r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp*ohfac
-             q_bf(i) = q_bf(i) + (1.-thimp_bf*bdf)*dt*temp*ohfac
-          endif
-       end if
-    endif
-  endif
   ! Equipartition
   ! ~~~~~~~~~~~
-
    if(ipres.eq.1 .and. ipressplit.eq.1) then
       if(linear.eq.0 .and. eqsubtract.eq.0) then
          temp = dt*coefeq*t3tneta(trial,lin,nt79,eta79)
