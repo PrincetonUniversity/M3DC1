@@ -4351,20 +4351,21 @@ subroutine bf_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
-  vectype, dimension(num_fields), intent(out) :: ssterm, ddterm
-  vectype, intent(out) :: r_bf, q_bf
+  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trial
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
+  vectype, dimension(dofs_per_element,num_fields), intent(out) :: ssterm, ddterm
+  vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
 
   ssterm = 0.
   ddterm = 0.
   r_bf = 0.
   q_bf = 0.
 
-  r_bf = - int3(r2_79,trial(:,OP_1),lin(:,OP_LP))
+  r_bf = - intx3(trial(:,OP_1,:),r2_79,lin(:,OP_LP))
   if(ifbound.eq.2) then 
-     r_bf = r_bf - regular*int3(r2_79,trial(:,OP_1),lin(:,OP_1))
+     r_bf = r_bf - regular*intx3(trial(:,OP_1,:),r2_79,lin(:,OP_1))
   end if
-  ssterm(bz_g) = int2(trial(:,OP_1),lin(:,OP_1 ))
+  ssterm(:,bz_g) = intx2(trial(:,OP_1,:),lin(:,OP_1 ))
 end subroutine bf_equation_lin
 
 !======================================================================
@@ -4379,8 +4380,8 @@ subroutine bf_equation_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM)  :: trial
-  vectype, intent(out) :: r4term
+  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element)  :: trial
+  vectype, intent(out), dimension(dofs_per_element) :: r4term
 
   if(eqsubtract.eq.1) then
      r4term = 0.
@@ -4392,7 +4393,7 @@ subroutine bf_equation_nolin(trial, r4term)
   else
      temp79a = bzero*rzero
   end if
-  r4term = int2(trial(:,OP_1),temp79a)
+  r4term = intx2(trial(:,OP_1,:),temp79a)
 end subroutine bf_equation_nolin
 
 
@@ -4976,10 +4977,8 @@ subroutine ludefphi_n(itri)
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                    ipres.eq.0, thimp, izone)
         else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
-           do i=1,dofs_per_element
-              call bf_equation_lin(mu79(:,:,i),nu79(:,:,j), &
-                   ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j))
-           end do
+           call bf_equation_lin(mu79,nu79(:,:,j), &
+                ss(:,j,:),dd(:,j,:),r_bf(:,j),q_bf(:,j))
         else if(ieq(k).eq.e_i) then
            if(jadv.eq.0) then
               do i=1,dofs_per_element
@@ -5011,9 +5010,7 @@ subroutine ludefphi_n(itri)
         else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
            call pressure_nolin(mu79,q4,ipres.eq.0)
         else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
-           do i=1,dofs_per_element
-              call bf_equation_nolin(mu79(:,:,i),q4(i))
-           end do
+           call bf_equation_nolin(mu79,q4)
         end if
      end if
     
