@@ -8754,24 +8754,24 @@ end function b2psi2bfpe
 
 ! B3pe
 ! ====
-vectype function b3pe(e,f)
-
+function b3pe(e,f)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b3pe
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      temp = 0.
   else
-     temp = int2(e(:,OP_1),f(:,OP_1))
+     temp = intx2(e(:,OP_1,:),f(:,OP_1))
   end if
 
   b3pe = temp
-  return
 end function b3pe
 
 ! B3pe27
@@ -8824,47 +8824,46 @@ end function b3q
 
 ! B3psipsieta
 ! ===========
-vectype function b3psipsieta(e,f,g,h)
-
+function b3psipsieta(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b3psipsieta
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1. .or. surface_int) then
      temp = 0.
   else
      temp = (gam-1.)* &
-           int5(ri2_79,e(:,OP_1),f(:,OP_GS), g(:,OP_GS), h(:,OP_1))   
+           intx5(e(:,OP_1,:),ri2_79,f(:,OP_GS), g(:,OP_GS), h(:,OP_1))   
 #if defined(USE3D) || defined(USECOMPLEX)
      temp = temp + (gam-1)*   &
-           (int5(ri4_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1))   &
-         +  int5(ri4_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1)))
+           (intx5(e(:,OP_1,:),ri4_79,f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1))   &
+         +  intx5(e(:,OP_1,:),ri4_79,f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1)))
 #endif
   end if
 
-
   b3psipsieta = temp
-  
-  return
 end function b3psipsieta
+
 
 ! B3psibeta
 ! ===========
-vectype function b3psibeta(e,f,g,h)
-
+function b3psibeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b3psibeta
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1. .or. surface_int) then
      temp = 0.
@@ -8872,29 +8871,28 @@ vectype function b3psibeta(e,f,g,h)
      temp = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
      temp = 2.*(gam-1.)* &
-          (int5(ri3_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DR),h(:,OP_1))  &
-          -int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1)))
+          (intx5(e(:,OP_1,:),ri3_79,f(:,OP_DZP),g(:,OP_DR),h(:,OP_1))  &
+          -intx5(e(:,OP_1,:),ri3_79,f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1)))
 #endif
   end if
-
 
   b3psibeta = temp
-  
-  return
 end function b3psibeta
 
-! B3psifeta
-! ===========
-vectype function b3psifeta(e,f,g,h)
 
+! B3psifeta
+! =========
+function b3psifeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b3psifeta
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1. .or. surface_int) then
      temp = 0.
@@ -8902,56 +8900,54 @@ vectype function b3psifeta(e,f,g,h)
      temp = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
      temp = 2.*(gam-1.)* &
-          (int5(ri3_79,e(:,OP_1),f(:,OP_DZP),g(:,OP_DRPP),h(:,OP_1))  &
-          -int5(ri3_79,e(:,OP_1),f(:,OP_DRP),g(:,OP_DZPP),h(:,OP_1)))
+          (intx5(e(:,OP_1,:),ri3_79,f(:,OP_DZP),g(:,OP_DRPP),h(:,OP_1))  &
+          -intx5(e(:,OP_1,:),ri3_79,f(:,OP_DRP),g(:,OP_DZPP),h(:,OP_1)))
 #endif
   end if
 
-
   b3psifeta = temp
-  
-  return
 end function b3psifeta
 
 
 ! B3bbeta
 ! =======
-vectype function b3bbeta(e,f,g,h)
-
+function b3bbeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b3bbeta
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1. .or. surface_int) then
      temp = 0.
   else 
      temp = (gam-1.)* &
-          (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
-          +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1)))
+          (intx5(e(:,OP_1,:),ri2_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+          +intx5(e(:,OP_1,:),ri2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1)))
   end if
 
   b3bbeta = temp
-  
-  return
 end function b3bbeta
+
 
 ! B3bfeta
 ! =======
-vectype function b3bfeta(e,f,g,h)
-
+function b3bfeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b3bfeta
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1. .or. surface_int) then
      temp = 0.
@@ -8959,27 +8955,28 @@ vectype function b3bfeta(e,f,g,h)
      temp = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
      temp = (gam-1.)* &
-          (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZPP),h(:,OP_1)) &
-          +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DRPP),h(:,OP_1)))
+          (intx5(e(:,OP_1,:),ri2_79,f(:,OP_DZ),g(:,OP_DZPP),h(:,OP_1)) &
+          +intx5(e(:,OP_1,:),ri2_79,f(:,OP_DR),g(:,OP_DRPP),h(:,OP_1)))
 #endif
   end if
 
   b3bfeta = temp
-  
-  return
 end function b3bfeta
+
+
 ! B3ffeta
 ! =======
-vectype function b3ffeta(e,f,g,h)
-
+function b3ffeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b3ffeta
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1. .or. surface_int) then
      temp = 0.
@@ -8987,14 +8984,12 @@ vectype function b3ffeta(e,f,g,h)
      temp = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
      temp = (gam-1.)* &
-          (int5(ri2_79,e(:,OP_1),f(:,OP_DZPP),g(:,OP_DZPP),h(:,OP_1)) &
-          +int5(ri2_79,e(:,OP_1),f(:,OP_DRPP),g(:,OP_DRPP),h(:,OP_1)))
+          (int5(e(:,OP_1,:),ri2_79,f(:,OP_DZPP),g(:,OP_DZPP),h(:,OP_1)) &
+          +int5(e(:,OP_1,:),ri2_79,f(:,OP_DRPP),g(:,OP_DRPP),h(:,OP_1)))
 #endif
   end if
 
   b3ffeta = temp
-  
-  return
 end function b3ffeta
 
 
