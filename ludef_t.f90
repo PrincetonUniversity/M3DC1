@@ -3092,6 +3092,41 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
   if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
 
+  ! special to peg pressure for itaylor=27
+  if(iheat_sink.eq.1 .and. itaylor.eq.27) then
+      tempx = b3pe27(trialx,lin)
+      ssterm(:,pp_g) = ssterm(:,pp_g) +     thimpb     *dt*(gam-1.)*coolrate*tempx
+      ddterm(:,pp_g) = ddterm(:,pp_g) - (1.-thimpb*bdf)*dt*(gam-1.)*coolrate*tempx
+  end if
+
+
+  ! Perpendicular Heat Flux
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  tempx = b3pedkappa(trialx,lin,ni79,kap79,vz079)
+  ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+  ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
+  if(eqsubtract.eq.1) then
+     if(idens.eq.1) then
+        q_ni(:,1) = q_ni(:,1) + dt* &
+             (b3pedkappa(trialx,pp079,lin,kap79,vz079))
+     end if
+  end if
+
+
+  ! Equipartition
+  ! ~~~~~~~~~~~~~
+!...this presently only works for ipressplit=1
+
+ if((.not. total_pressure) .and. ipres.eq.1 .and. ipressplit.eq.1) then
+    if(linear.eq.0 .and. eqsubtract.eq.0) then
+       tempx = dt*coefeq*b3peeta(trialx,lin,eta79)
+       ssterm(:,pe_g) = ssterm(:,pe_g) +  2.*tempx        !*thimpf
+!       ddterm(:,pp_g) = ddterm(:,pp_g) +  2.*(1.-thimpf)*tempx
+       ssterm(:,p_g)  = ssterm(:,p_g)  -     tempx        !*thimpf
+!       ddterm(:,p_g)  = ddterm(:,p_g)  -  (1.-thimpf)*tempx
+    endif
+ endif
+
 
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
@@ -3164,129 +3199,110 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   endif
 
 
-  do i=1, dofs_per_element
-     trial = trialx(:,:,i)
-
-  ! special to peg pressure for itaylor=27
-  if(iheat_sink.eq.1 .and. itaylor.eq.27) then
-      temp = b3pe27(trial,lin)
-      ssterm(i,pp_g) = ssterm(i,pp_g) +     thimpb     *dt*(gam-1.)*coolrate*temp
-      ddterm(i,pp_g) = ddterm(i,pp_g) - (1.-thimpb*bdf)*dt*(gam-1.)*coolrate*temp
-  end if
-
-
-  ! Equipartition
-  ! ~~~~~~~~~~~
-!...this presently only works for ipressplit=1
-
- if((.not. total_pressure) .and. ipres.eq.1 .and. ipressplit.eq.1) then
-    if(linear.eq.0 .and. eqsubtract.eq.0) then
-       temp = dt*coefeq*b3peeta(trial,lin,eta79)
-       ssterm(i,pe_g) = ssterm(i,pe_g) +  2.*temp        !*thimpf
-!       ddterm(i,pp_g) = ddterm(i,pp_g) +  2.*(1.-thimpf)*temp
-       ssterm(i,p_g)  = ssterm(i,p_g)  -     temp        !*thimpf
-!       ddterm(i,p_g)  = ddterm(i,p_g)  -  (1.-thimpf)*temp
-    endif
- endif
-
   ! Pressure Advection
   ! ~~~~~~~~~~~~~~~~~~
   if(linear.eq.0) then
-     temp = p1pu(trial,pp179,lin)
-     ssterm(i,u_g) = ssterm(i,u_g) -     thimpb     *dt*temp
-     ddterm(i,u_g) = ddterm(i,u_g) + (.5-thimpb*bdf)*dt*temp
+     tempx = p1pu(trialx,pp179,lin)
+     ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
+     ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimpb*bdf)*dt*tempx
 
      if(numvar.ge.2) then
-        temp = p1pv(trial,pp179,lin)
-        ssterm(i,vz_g) = ssterm(i,vz_g) -     thimpb     *dt*temp
-        ddterm(i,vz_g) = ddterm(i,vz_g) + (.5-thimpb*bdf)*dt*temp
+        tempx = p1pv(trialx,pp179,lin)
+        ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
+        ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimpb*bdf)*dt*tempx
      end if
 
      if(numvar.ge.3) then
-        temp = p1pchi(trial,pp179,lin)
-        ssterm(i,chi_g) = ssterm(i,chi_g) -     thimpb     *dt*temp
-        ddterm(i,chi_g) = ddterm(i,chi_g) + (.5-thimpb*bdf)*dt*temp
+        tempx = p1pchi(trialx,pp179,lin)
+        ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
+        ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimpb*bdf)*dt*tempx
      end if
 
-     temp = p1pu  (trial,lin,ph179) & 
-          + p1pv  (trial,lin,vz179) &
-          + p1pchi(trial,lin,ch179)
-     ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-     ddterm(i,pp_g) = ddterm(i,pp_g) + (.5-thimp*bdf)*dt*temp
+     tempx = p1pu  (trialx,lin,ph179) & 
+          + p1pv  (trialx,lin,vz179) &
+          + p1pchi(trialx,lin,ch179)
+     ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+     ddterm(:,pp_g) = ddterm(:,pp_g) + (.5-thimp*bdf)*dt*tempx
   endif
 
   if(eqsubtract.eq.1) then
      if(kinetic.eq.0) then
-        temp = p1pu(trial,pp079,lin)
-        ssterm(i,u_g) = ssterm(i,u_g) -     thimpb     *dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) + (1.-thimpb*bdf)*dt*temp
+        tempx = p1pu(trialx,pp079,lin)
+        ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
      
         if(numvar.ge.2) then
-           temp = p1pv(trial,pp079,lin)
-           ssterm(i,vz_g) = ssterm(i,vz_g) -     thimpb     *dt*temp
-           ddterm(i,vz_g) = ddterm(i,vz_g) + (1.-thimpb*bdf)*dt*temp
+           tempx = p1pv(trialx,pp079,lin)
+           ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
+           ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimpb*bdf)*dt*tempx
         end if
      
         if(numvar.ge.3) then
-           temp = p1pchi(trial,pp079,lin)                
-           ssterm(i,chi_g) = ssterm(i,chi_g) -     thimpb     *dt*temp
-           ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimpb*bdf)*dt*temp
+           tempx = p1pchi(trialx,pp079,lin)                
+           ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimpb*bdf)*dt*tempx
         end if
 
-        temp = p1pu  (trial,lin,ph079) & 
-             + p1pv  (trial,lin,vz079) &
-             + p1pchi(trial,lin,ch079)
-        ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-        ddterm(i,pp_g) = ddterm(i,pp_g) + (1.-thimp*bdf)*dt*temp
+        tempx = p1pu  (trialx,lin,ph079) & 
+             + p1pv  (trialx,lin,vz079) &
+             + p1pchi(trialx,lin,ch079)
+        ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+        ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
 
      else   ! on kinetic.eq.0
         if(total_pressure) then
-           temp = pperpu(trial,ppt79,lin)  &
-                + pperpupsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
-                + pperpubbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
-           ssterm(i,u_g) = ssterm(i,u_g) -     thimpb     *dt*temp
-           ddterm(i,u_g) = ddterm(i,u_g) + (1.-thimpb*bdf)*dt*temp
+           tempx = pperpu(trialx,ppt79,lin)  &
+                + pperpupsipsib2(trialx,ppt79,lin,pstx79,pstx79,b2i79)  &
+                + pperpubbb2(trialx,ppt79,lin,bztx79,bztx79,b2i79)
+           ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
+           ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
      
            if(numvar.ge.2) then
-              temp = pperpvpsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
-                   + pperpvbbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
-              ssterm(i,vz_g) = ssterm(i,vz_g) -     thimpb     *dt*temp
-              ddterm(i,vz_g) = ddterm(i,vz_g) + (1.-thimpb*bdf)*dt*temp
+              tempx = pperpvpsibb2(trialx,ppt79,lin,pstx79,bztx79,b2i79)  &
+                   + pperpvbbb2(trialx,ppt79,lin,bztx79,bztx79,b2i79)
+              ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
+              ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimpb*bdf)*dt*tempx
            end if
      
            if(numvar.ge.3) then
-              temp = pperpchi(trial,ppt79,lin)  &
-                   + pperpchipsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
-                   + pperpchipsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
-                   + pperpchibbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
-              ssterm(i,chi_g) = ssterm(i,chi_g) -     thimpb     *dt*temp
-              ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimpb*bdf)*dt*temp
+              tempx = pperpchi(trialx,ppt79,lin)  &
+                   + pperpchipsipsib2(trialx,ppt79,lin,pstx79,pstx79,b2i79)  &
+                   + pperpchipsibb2(trialx,ppt79,lin,pstx79,bztx79,b2i79)  &
+                   + pperpchibbb2(trialx,ppt79,lin,bztx79,bztx79,b2i79)
+              ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
+              ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimpb*bdf)*dt*tempx
            end if
         else   !on total_pressure
-           temp = pparpu(trial,ppt79,lin)  &
-                + pparpupsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
-                + pparpubbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
-           ssterm(i,u_g) = ssterm(i,u_g) -     thimpb     *dt*temp
-           ddterm(i,u_g) = ddterm(i,u_g) + (1.-thimpb*bdf)*dt*temp
+           tempx = pparpu(trialx,ppt79,lin)  &
+                + pparpupsipsib2(trialx,ppt79,lin,pstx79,pstx79,b2i79)  &
+                + pparpubbb2(trialx,ppt79,lin,bztx79,bztx79,b2i79)
+           ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
+           ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
      
            if(numvar.ge.2) then
-              temp = pparpvpsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
-                   + pparpvbbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
-              ssterm(i,vz_g) = ssterm(i,vz_g) -     thimpb     *dt*temp
-              ddterm(i,vz_g) = ddterm(i,vz_g) + (1.-thimpb*bdf)*dt*temp
+              tempx = pparpvpsibb2(trialx,ppt79,lin,pstx79,bztx79,b2i79)  &
+                   + pparpvbbb2(trialx,ppt79,lin,bztx79,bztx79,b2i79)
+              ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
+              ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimpb*bdf)*dt*tempx
            end if
      
            if(numvar.ge.3) then
-              temp = pparpchi(trial,ppt79,lin)  &
-                   + pparpchipsipsib2(trial,ppt79,lin,pstx79,pstx79,b2i79)  &
-                   + pparpchipsibb2(trial,ppt79,lin,pstx79,bztx79,b2i79)  &
-                   + pparpchibbb2(trial,ppt79,lin,bztx79,bztx79,b2i79)
-              ssterm(i,chi_g) = ssterm(i,chi_g) -     thimpb     *dt*temp
-              ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimpb*bdf)*dt*temp
+              tempx = pparpchi(trialx,ppt79,lin)  &
+                   + pparpchipsipsib2(trialx,ppt79,lin,pstx79,pstx79,b2i79)  &
+                   + pparpchipsibb2(trialx,ppt79,lin,pstx79,bztx79,b2i79)  &
+                   + pparpchibbb2(trialx,ppt79,lin,bztx79,bztx79,b2i79)
+              ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
+              ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimpb*bdf)*dt*tempx
            end if
         endif
      endif
   endif
+
+
+
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
+
 
   
   ! Electron Pressure Advection
@@ -3409,18 +3425,6 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      end if
   end if
 
-
-  ! Perpendicular Heat Flux
-  ! ~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b3pedkappa(trial,lin,ni79,kap79,vz079)
-  ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-  ddterm(i,pp_g) = ddterm(i,pp_g) + (1.-thimp*bdf)*dt*temp
-  if(eqsubtract.eq.1) then
-     if(idens.eq.1) then
-        q_ni(i,1) = q_ni(i,1) + dt* &
-             (b3pedkappa(trial,pp079,lin,kap79,vz079))
-     end if
-  end if
 
   ! Gradient-dependent heat flux
   if(kappag.ne.0) then
