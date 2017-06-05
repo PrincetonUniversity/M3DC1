@@ -425,55 +425,61 @@ subroutine f3vplot_sub(i,term)
 
 end subroutine f3vplot_sub
 
-subroutine f3eplot_sub(i,term)
+subroutine f3eplot_sub(term)
   use basic
   use m3dc1_nint
   use metricterms_new
   
   implicit none
-  vectype, intent(out) :: term
-  integer, intent(in) :: i
+  vectype, intent(out), dimension(dofs_per_element) :: term
+
   vectype :: temp, ohfac
+  vectype, dimension(dofs_per_element) :: tempx
+  integer :: i
 
   ohfac = 1.
   if(ipres.eq.0) ohfac = 0.5
 
  ! Ohmic Heating
-       temp = b3psipsieta(mu79(:,:,i),pst79,pst79,eta79) &
-            + b3bbeta    (mu79(:,:,i),bzt79,bzt79,eta79) &
-            + b3psibeta  (mu79(:,:,i),pst79,bzt79,eta79) 
-       term = temp*ohfac
-          if(i3d .eq. 1) then
-             temp = b3psifeta(mu79(:,:,i),pst79,bft79,eta79) &
-                  + b3bfeta  (mu79(:,:,i),bzt79,bft79,eta79) &
-                  + b3ffeta(mu79(:,:,i),bft79,bft79,eta79)   
-             term = temp*ohfac
-          endif
+  tempx = b3psipsieta(mu79,pst79,pst79,eta79) &
+       +  b3bbeta    (mu79,bzt79,bzt79,eta79) &
+       +  b3psibeta  (mu79,pst79,bzt79,eta79) 
+  term = tempx*ohfac
+  if(i3d .eq. 1) then
+     tempx = b3psifeta(mu79,pst79,bft79,eta79) &
+          +  b3bfeta  (mu79,bzt79,bft79,eta79) &
+          +  b3ffeta(mu79,bft79,bft79,eta79)   
+     term = term + tempx*ohfac
+  endif
+
+  do i=1, dofs_per_element
 
 ! Perpendicular Heat Flux
 ! ~~~~~~~~~~~~~~~~~~~~~~~
-       temp = b3tekappa(mu79(:,:,i),tet79,kap79,vz079)
-       term = term + temp
+     temp = b3tekappa(mu79(:,:,i),tet79,kap79,vz079)
+     term = term + temp
 
 ! Parallel Heat Flux
 ! ~~~~~~~~~~~~~~~~~~
-  if(kappar.ne.0.) then
-        
-          temp = tepsipsikappar(mu79(:,:,i),pstx79,pstx79,tet79,b2i79,kar79) &
-               + tepsibkappar  (mu79(:,:,i),pstx79,bztx79,tet79,b2i79,kar79) &
-               + tebbkappar    (mu79(:,:,i),bztx79,bztx79,tet79,b2i79,kar79)
-          term = term + temp
-          if(i3d.eq.1 .and. numvar.ge.2) then
-             temp = tepsifkappar(mu79(:,:,i),pstx79,bftx79,tet79,b2i79,kar79) &
-                  + tebfkappar  (mu79(:,:,i),bztx79,bftx79,tet79,b2i79,kar79) &
-                  + teffkappar  (mu79(:,:,i),bftx79,bftx79,tet79,b2i79,kar79)
-             term = term + temp
-!source terms
-             temp = (gam-1.)*b3q(mu79(:,:,i),q79)
-!            term = term + temp
+     if(kappar.ne.0.) then
 
-          endif
-  endif
+        temp = tepsipsikappar(mu79(:,:,i),pstx79,pstx79,tet79,b2i79,kar79) &
+             + tepsibkappar  (mu79(:,:,i),pstx79,bztx79,tet79,b2i79,kar79) &
+             + tebbkappar    (mu79(:,:,i),bztx79,bztx79,tet79,b2i79,kar79)
+        term(i) = term(i) + temp
+        if(i3d.eq.1 .and. numvar.ge.2) then
+           temp = tepsifkappar(mu79(:,:,i),pstx79,bftx79,tet79,b2i79,kar79) &
+                + tebfkappar  (mu79(:,:,i),bztx79,bftx79,tet79,b2i79,kar79) &
+                + teffkappar  (mu79(:,:,i),bftx79,bftx79,tet79,b2i79,kar79)
+           term(i) = term(i) + temp
+           !source terms
+           temp = (gam-1.)*b3q(mu79(:,:,i),q79)
+!            term(i) = term(i) + temp
+
+        endif
+     endif
+
+  end do
 end subroutine f3eplot_sub
 
 
