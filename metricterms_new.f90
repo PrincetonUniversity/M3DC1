@@ -8033,15 +8033,16 @@ end function b2psij
 
 ! B2bu
 ! ====
-vectype function b2bu(e,f,g)
-
+function b2bu(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2bu
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -8049,8 +8050,8 @@ vectype function b2bu(e,f,g)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DR)) &
-             - int4(ri3_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZ))
+        temp = intx4(e(:,OP_DZ,:),ri3_79,f(:,OP_1),g(:,OP_DR)) &
+             - intx4(e(:,OP_DR,:),ri3_79,f(:,OP_1),g(:,OP_DZ))
      end if
         
   case(1)
@@ -8059,38 +8060,38 @@ vectype function b2bu(e,f,g)
            temp = 0.
         else
            ! this must be included
-           temp = int5(ri_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DZ)) &
-                - int5(ri_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DR))
+           temp = intx5(e(:,OP_1,:),ri_79,f(:,OP_1),norm79(:,1),g(:,OP_DZ)) &
+                - intx5(e(:,OP_1,:),ri_79,f(:,OP_1),norm79(:,2),g(:,OP_DR))
         endif
      else
-        temp = int4(ri_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DR)) &
-             - int4(ri_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZ))
+        temp = intx4(e(:,OP_DZ,:),ri_79,f(:,OP_1),g(:,OP_DR)) &
+             - intx4(e(:,OP_DR,:),ri_79,f(:,OP_1),g(:,OP_DZ))
      endif
   end select
 
   b2bu = temp
-  return
 end function b2bu
 
 
 ! B2bchi
 ! ======
-vectype function b2bchi(e,f,g)
-
+function b2bchi(e,f,g)
   use basic
   use m3dc1_nint
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: b2bchi
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) &
-             + int4(ri2_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR))
+        temp = intx4(e(:,OP_DZ,:),ri2_79,f(:,OP_1),g(:,OP_DZ)) &
+             + intx4(e(:,OP_DR,:),ri2_79,f(:,OP_1),g(:,OP_DR))
      end if
 
   case(1)
@@ -8100,17 +8101,16 @@ vectype function b2bchi(e,f,g)
         else
            ! this must be included
            temp = &
-                - int5(ri4_79,e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
-                - int5(ri4_79,e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ))
+                - intx5(e(:,OP_1,:),ri4_79,f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
+                - intx5(e(:,OP_1,:),ri4_79,f(:,OP_1),norm79(:,2),g(:,OP_DZ))
         endif
      else
-        temp = int4(ri4_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) &
-             + int4(ri4_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DR))        
+        temp = intx4(e(:,OP_DZ,:),ri4_79,f(:,OP_1),g(:,OP_DZ)) &
+             + intx4(e(:,OP_DR,:),ri4_79,f(:,OP_1),g(:,OP_DR))        
      end if
   end select
 
   b2bchi = temp
-  return
 end function b2bchi
 
 
@@ -8145,23 +8145,24 @@ end function b2bd
 
 ! B2psiv
 ! ======
-vectype function b2psiv(e,f,g)
-
+function b2psiv(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2psiv
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1)) &
-             - int4(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_1))
+        temp = intx4(e(:,OP_DR,:),ri3_79,f(:,OP_DZ),g(:,OP_1)) &
+             - intx4(e(:,OP_DZ,:),ri3_79,f(:,OP_DR),g(:,OP_1))
      end if
      
   case(1)
@@ -8169,31 +8170,31 @@ vectype function b2psiv(e,f,g)
         if(inoslip_tor.eq.1) then
            temp = 0.
         else
-           temp = int5(ri_79,e(:,OP_1),g(:,OP_1),norm79(:,2),f(:,OP_DR)) &
-                - int5(ri_79,e(:,OP_1),g(:,OP_1),norm79(:,1),f(:,OP_DZ))
+           temp = intx5(e(:,OP_1,:),ri_79,g(:,OP_1),norm79(:,2),f(:,OP_DR)) &
+                - intx5(e(:,OP_1,:),ri_79,g(:,OP_1),norm79(:,1),f(:,OP_DZ))
         endif
      else
-        temp = int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1)) &
-             - int4(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_1))
+        temp = intx4(e(:,OP_DR,:),ri_79,f(:,OP_DZ),g(:,OP_1)) &
+             - intx4(e(:,OP_DZ,:),ri_79,f(:,OP_DR),g(:,OP_1))
      endif
   end select
 
   b2psiv = temp
-  return
 end function b2psiv
 
 
 ! B2fv
 ! ====
-vectype function b2fv(e,f,g)
-
+function b2fv(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2fv
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
@@ -8202,12 +8203,12 @@ vectype function b2fv(e,f,g)
         if(inoslip_tor.eq.1) then
            temp = 0.
         else
-           temp = int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
-                - int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
+           temp = intx5(e(:,OP_1,:),ri2_79,norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
+                - intx5(e(:,OP_1,:),ri2_79,norm79(:,1),f(:,OP_DZP),g(:,OP_1))
         endif
      else
-        temp = int4(ri2_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1)) &
-             + int4(ri2_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1))
+        temp = intx4(e(:,OP_DZ,:),ri2_79,f(:,OP_DZP),g(:,OP_1)) &
+             + intx4(e(:,OP_DR,:),ri2_79,f(:,OP_DRP),g(:,OP_1))
      endif
      
   case(1)
@@ -8215,12 +8216,12 @@ vectype function b2fv(e,f,g)
         if(inoslip_tor.eq.1) then
            temp = 0.
         else
-           temp = int4(e(:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
-                - int4(e(:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
+           temp = intx4(e(:,OP_1,:),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
+                - intx4(e(:,OP_1,:),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
         endif
      else
-        temp = int3(e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1)) &
-             + int3(e(:,OP_DR),f(:,OP_DRP),g(:,OP_1))
+        temp = intx3(e(:,OP_DZ,:),f(:,OP_DZP),g(:,OP_1)) &
+             + intx3(e(:,OP_DR,:),f(:,OP_DRP),g(:,OP_1))
      endif
   end select
 #else
@@ -8228,7 +8229,6 @@ vectype function b2fv(e,f,g)
 #endif
 
   b2fv = temp
-  return
 end function b2fv
 
 
