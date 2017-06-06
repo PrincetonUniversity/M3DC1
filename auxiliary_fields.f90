@@ -585,24 +585,16 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         dofs = intx2(mu79(:,OP_1,:),temp79a)
         call vector_insert_block(vpar_field%vec,itri,1,dofs,VEC_ADD)
 
-        do i=1, dofs_per_element
-           call f1vplot_sub(i,dofs(i))
-        end do
+        call f1vplot_sub(dofs)
         call vector_insert_block(f1vplot%vec,itri,1,dofs,VEC_ADD)
 
-        do i=1, dofs_per_element
-           call f1eplot_sub(i,dofs(i))
-        end do
+        call f1eplot_sub(dofs)
         call vector_insert_block(f1eplot%vec,itri,1,dofs,VEC_ADD)
 
-        do i=1, dofs_per_element
-           call f2vplot_sub(i,dofs(i))
-        end do
+        call f2vplot_sub(dofs)
         call vector_insert_block(f2vplot%vec,itri,1,dofs,VEC_ADD)
 
-        do i=1, dofs_per_element
-           call f2eplot_sub(i,dofs(i))
-        end do
+        call f2eplot_sub(dofs)
         call vector_insert_block(f2eplot%vec,itri,1,dofs,VEC_ADD)
 
         do i=1, dofs_per_element
