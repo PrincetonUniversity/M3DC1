@@ -81,7 +81,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 
   complex, dimension(n) :: fr, fphi, fz
   complex, dimension(n) :: brv, bthetav, bzv, phase
-  real, dimension(n) :: r, theta, arg
+  real, dimension(n) :: r, theta, arg, fac
 #ifdef USE3D
   real, dimension(n) :: gr, gphi, gz, q
 #endif
@@ -159,9 +159,11 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
            bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
-        brv     =        (ntor/rzero)*phase*brv     *eps
-        bthetav = -(0,1)*mpol        *phase*bthetav *eps
-        bzv     =  (0,1)*(ntor/rzero)*phase*bzv     *eps
+        fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) &
+             +                  Bessel_I(mpol+1, ntor/rzero))
+        brv     =        (ntor/rzero)*phase*brv     *eps / fac
+        bthetav = -(0,1)*mpol        *phase*bthetav *eps / fac
+        bzv     =  (0,1)*(ntor/rzero)*phase*bzv     *eps / fac
 #ifdef USECOMPLEX
         br =  brv*cos(theta) - bthetav*sin(theta)
         bphi =  bzv
