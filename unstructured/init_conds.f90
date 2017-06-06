@@ -746,8 +746,8 @@ subroutine kstar_profiles()
            temp(i,:) = 0.
         else
            do j=1,dofs_per_element
-              temp(i,j) = int4(mu79(:,OP_1,i),nu79(:,OP_DR,j),co(:),r(:)) &
-                   +      int4(mu79(:,OP_1,i),nu79(:,OP_DZ,j),sn(:),r(:))
+              temp(i,j) = int4(mu79(:,OP_1,i),nu79(:,OP_DR,j),co,r) &
+                   +      int4(mu79(:,OP_1,i),nu79(:,OP_DZ,j),sn,r)
            enddo
         end if
         !  assemble rhs
