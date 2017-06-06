@@ -1727,7 +1727,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   if(iestatic.eq.1) then
      if(.not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin)
+        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
         ssterm(:,psi_g) = tempx
         ddterm(:,psi_g) = tempx
      endif
@@ -2505,57 +2505,61 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   r_bf = 0.
   q_bf = 0.
 
-  do i=1, dofs_per_element
-     trial = trialx(:,:,i)
-
   if(iestatic.eq.1) then
      if(.not.surface_int) then
-        temp = int2(trial,lin)
-        ssterm(i,bz_g) = temp
-        ddterm(i,bz_g) = temp
+        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        ssterm(:,bz_g) = tempx
+        ddterm(:,bz_g) = tempx
      endif
-     cycle
+     return
   end if
 
-  if(numvar.lt.2) cycle
+  if(numvar.lt.2) return
+
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b2psieta(trial,lin,eta79)
-  ssterm(i,psi_g) = ssterm(i,psi_g) -     thimp     *dt*temp
-  ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimp*bdf)*dt*temp
+  tempx = b2psieta(trialx,lin,eta79)
+  ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
+  ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
   
-  temp = b2beta(trial,lin,eta79,vz079)
-  ssterm(i,bz_g) = ssterm(i,bz_g) -     thimp     *dt*temp
-  ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimp*bdf)*dt*temp
+  tempx = b2beta(trialx,lin,eta79,vz079)
+  ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
+  ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
 
   if(i3d.eq.1) then
-     temp = b2feta(trial,lin,eta79)
-     r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-     q_bf(i) = q_bf(i) + (1.-thimp_bf*bdf)*dt*temp
+     tempx = b2feta(trialx,lin,eta79)
+     r_bf = r_bf -     thimp_bf     *dt*tempx
+     q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
 
      if(imp_hyper.eq.2) then
-        temp = b2fj(trial,bft79,lin)
-        ssterm(i,e_g) = ssterm(i,e_g) - dt*temp
+        tempx = b2fj(trialx,bft79,lin)
+        ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
      endif
   end if
 
   if(imp_hyper.eq.2) then
-     temp = b2psij(trial,pst79,lin)
-     ssterm(i,e_g) = ssterm(i,e_g) - dt*temp
+     tempx = b2psij(trialx,pst79,lin)
+     ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
   endif
 
-  if(izone.eq.3) cycle
+  if(izone.eq.3) return
+
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  temp = (b2b (trial,lin) &
-       -  b2bd(trial,lin,ni79)) &   ! electron mass term
+  tempx = (b2b (trialx,lin) &
+       -  b2bd(trialx,lin,ni79)) &   ! electron mass term
        * freq_fac
-  ssterm(i,bz_g) = ssterm(i,bz_g) + temp
-  if(itime_independent.eq.0) ddterm(i,bz_g) = ddterm(i,bz_g) + temp*bdf
+  ssterm(:,bz_g) = ssterm(:,bz_g) + tempx
+  if(itime_independent.eq.0) ddterm(:,bz_g) = ddterm(:,bz_g) + tempx*bdf
 
-  if(izone.ne.1) cycle
+  if(izone.ne.1) return
+
+
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
+
 
   ! VxB
   ! ~~~
