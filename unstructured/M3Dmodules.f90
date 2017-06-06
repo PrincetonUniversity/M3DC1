@@ -146,6 +146,7 @@ module basic
                       !  1 = CDX-U
                       !  2 = NSTX
   integer :: iupstream  !  if 1, adds diffusion term to pressure like upstream differencing
+  real :: magus       ! magnitude of upstream term
   real :: bzero       ! guide field
   real :: bx0         ! initial field in x-direction
   real :: vzero       ! initial toroidal velocity

@@ -5903,7 +5903,7 @@ vectype function b1psieta(e,f,g,h,imod)
         temp = int3(e(:,OP_1),f(:,OP_GS),g(:,OP_1))
 #if defined(USE3D) || defined(USECOMPLEX)
         if(iupstream.eq.1) then 
-          temp79a = abs(h(:,OP_1))*5.e-2
+          temp79a = abs(h(:,OP_1))*magus
           temp = temp + int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
         endif
 #endif
@@ -5956,7 +5956,7 @@ vectype function b1psieta(e,f,g,h,imod)
                 +int4(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_DP)) &
                 +int4(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_DP)))
            if(iupstream.eq.1) then   
-              temp79a = abs(h(:,OP_1))*5.e-2
+              temp79a = abs(h(:,OP_1))*magus
               temp = temp - &
                 (int4(ri4_79,e(:,OP_DZ),f(:,OP_DZPP),temp79a) &
                 +int4(ri4_79,e(:,OP_DR),f(:,OP_DRPP),temp79a))
@@ -7777,7 +7777,7 @@ vectype function b2beta(e,f,g,h)
           - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1)) 
 #if defined(USE3D) || defined(USECOMPLEX)
      if(iupstream.eq.1) then    
-        temp79a = abs(h(:,OP_1))*5.e-2
+        temp79a = abs(h(:,OP_1))*magus
         temp = temp + int4(ri4_79,e(:,OP_1),f(:,OP_DPP),temp79a)
      endif
 #endif     
@@ -9128,7 +9128,7 @@ function b3pedkappa(e,f,g,h,i)
 #if defined(USE3D) || defined(USECOMPLEX)
      temp79a = h(:,OP_1)
      if(iupstream.eq.1) then    
-        temp79a = temp79a + abs(i(:,OP_1))*5.e-2
+        temp79a = temp79a + abs(i(:,OP_1))*magus
      endif
      temp = temp +                       &
           intx5(e(:,OP_1,:),ri2_79,f(:,OP_DPP),g(:,OP_1),temp79a)
@@ -9181,7 +9181,7 @@ vectype function b3tekappa(e,f,g,h)
 #if defined(USE3D) || defined(USECOMPLEX)
      temp79a = g(:,OP_1)
      if(iupstream.eq.1) then    
-        temp79a = temp79a + abs(h(:,OP_1))*5.e-2
+        temp79a = temp79a + abs(h(:,OP_1))*magus
      endif
      temp = temp +                       &
           int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
@@ -9309,7 +9309,7 @@ function n1ndenm(e,f,g,h)
 #if defined(USE3D) || defined(USECOMPLEX)
      temp79a = g
      if(iupstream .eq. 1) then     !DEBUG
-        temp79a = temp79a+abs(h(:,OP_1))*5.e-2
+        temp79a = temp79a+abs(h(:,OP_1))*magus
      endif
      temp = temp + intx4(e(:,OP_1,:),ri2_79,f(:,OP_DPP),temp79a)
 #endif
