@@ -307,99 +307,96 @@ subroutine vpar_get(o)
 
 end subroutine vpar_get
 
-subroutine f1vplot_sub(i,term)
+subroutine f1vplot_sub(term)
   use basic
   use m3dc1_nint
   use metricterms_new
   
   implicit none
-  vectype, intent(out) :: term
-  integer, intent(in) :: i
-  vectype :: temp
+  vectype, intent(out), dimension(dofs_per_element) :: term
+  vectype, dimension(dofs_per_element) :: temp
 
-     temp = b2psiv(mu79(:,:,i),pst79,vzt79)
-     term = temp
+  temp = b2psiv(mu79,pst79,vzt79)
+  term = temp
 
-     temp = b2bu  (mu79(:,:,i),bzt79,pht79)  &
-          + b2bchi(mu79(:,:,i),bzt79,cht79)
-     term = term + temp
+  temp = b2bu  (mu79,bzt79,pht79)  &
+       + b2bchi(mu79,bzt79,cht79)
+  term = term + temp
 
 end subroutine f1vplot_sub
 
-subroutine f1eplot_sub(i,term)
+subroutine f1eplot_sub(term)
   use basic
   use m3dc1_nint
   use metricterms_new
   
   implicit none
-  vectype, intent(out) :: term
-  vectype :: temp
-  integer, intent(in) :: i
+  vectype, intent(out), dimension(dofs_per_element) :: term
+  vectype, dimension(dofs_per_element) :: temp
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b2psieta(mu79(:,:,i),pst79,eta79)
+  temp = b2psieta(mu79,pst79,eta79)
   term = temp
   
-  temp = b2beta(mu79(:,:,i),bzt79,eta79,vz079)
+  temp = b2beta(mu79,bzt79,eta79,vz079)
   term = term + temp
 
   if(i3d.eq.1) then
-     temp = b2feta(mu79(:,:,i),bft79,eta79)
+     temp = b2feta(mu79,bft79,eta79)
      term = term + temp
   end if
 
 end subroutine f1eplot_sub
 
-subroutine f2vplot_sub(i,term)
+subroutine f2vplot_sub(term)
   use basic
   use m3dc1_nint
   use metricterms_new
   
   implicit none
-  vectype, intent(out) :: term
-  integer, intent(in) :: i
+  vectype, intent(out), dimension(dofs_per_element) :: term
   integer :: jadvs
-  vectype :: temp
-     jadvs = jadv
-     jadv = 1  ! only for evaluation of these functions
+  vectype, dimension(dofs_per_element) :: temp
 
-     temp = b1psiu  (mu79(:,:,i),pst79,pht79) &
-          + b1psiv  (mu79(:,:,i),pst79,vzt79) &
-          + b1psichi(mu79(:,:,i),pst79,cht79)
-     term = temp
+  jadvs = jadv
+  jadv = 1  ! only for evaluation of these functions
 
-     temp =  b1bu  (mu79(:,:,i),bzt79,pht79) &
-           + b1bv  (mu79(:,:,i),bzt79,vzt79) &
-           + b1bchi(mu79(:,:,i),bzt79,cht79)
+  temp = b1psiu  (mu79,pst79,pht79) &
+       + b1psiv  (mu79,pst79,vzt79) &
+       + b1psichi(mu79,pst79,cht79)
+  term = temp
+  
+  temp =  b1bu  (mu79,bzt79,pht79) &
+       + b1bv  (mu79,bzt79,vzt79) &
+       + b1bchi(mu79,bzt79,cht79)
+  term = term + temp
+  
+  if(i3d.eq.1 .and. numvar.ge.2) then
+     temp = b1fu  (mu79,bft79,pht79)  &
+          + b1fv  (mu79,bft79,vzt79)  &
+          + b1fchi(mu79,bft79,cht79)
      term = term + temp
-
- if(i3d.eq.1 .and. numvar.ge.2) then
-        temp = b1fu  (mu79(:,:,i),bft79,pht79)  &
-             + b1fv  (mu79(:,:,i),bft79,vzt79)  &
-             + b1fchi(mu79(:,:,i),bft79,cht79)
-        term = term + temp
- end if
-     jadv = jadvs
+  end if
+  jadv = jadvs
 
 end subroutine f2vplot_sub
 
-subroutine f2eplot_sub(i,term)
+subroutine f2eplot_sub(term)
   use basic
   use m3dc1_nint
   use metricterms_new
   
   implicit none
-  vectype, intent(out) :: term
-  integer, intent(in) :: i
+  vectype, intent(out), dimension(dofs_per_element) :: term
   integer :: jadvs
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
       ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   jadvs = jadv
   jadv = 1   ! only for evaluation of this function
-  temp = b1psieta(mu79(:,:,i),pst79,eta79,vz079,eta_mod.eq.1)
+  temp = b1psieta(mu79,pst79,eta79,vz079,eta_mod.eq.1)
   jadv = jadvs
 
   term = temp
