@@ -408,6 +408,7 @@ subroutine set_defaults
   ! Equilibrium 
   call add_var_int("itaylor", itaylor, 0, "", eq_grp)
   call add_var_int("iupstream", iupstream, 0, "", eq_grp)
+  call add_var_double("magus", magus, 5.e-2,"",eq_grp)
   call add_var_int("iflip", iflip, 0, "", eq_grp)
   call add_var_int("iflip_b", iflip_b, 0, &
        "Reverse equilibrium toroidal field", eq_grp)

@@ -5,7 +5,7 @@ module basicq
 
   real, private :: q0_qp, rzero_qp, p0_qp, bz_qp, r0_qp, r1_qp, q2_qp, q4_qp, pedge_qp
   real, private :: q6_qp, q8_qp, q10_qp, q12_qp, q14_qp
-  real, private :: kappa_qp, kappae_qp, coolrate_qp, v0_qp, v1_qp
+  real, private :: kappa_qp, kappae_qp, coolrate_qp, v0_qp, v1_qp, beta_qp
   integer, private :: myrank_qp, iprint_qp, itaylor_qp
 
 contains
@@ -37,6 +37,7 @@ contains
     q14_qp = divcur
     v0_qp = v0_cyl
     v1_qp = v1_cyl
+    beta_qp = beta
   end subroutine init_qp
 
   subroutine fixed_q_profiles()
@@ -95,6 +96,7 @@ contains
        write (*,'(A,1pe12.4)') 'rq_qp =', r1_qp
        write (*,'(A,1pe12.4)') 'v0_qp =', v0_qp 
        write (*,'(A,1pe12.4)') 'v1_qp =', v1_qp
+       write (*,'(A,1pe12.4)') 'beta_qp =', beta_qp
   end if
 
     if(itaylor.eq.22) call setupLZeqbm
@@ -472,7 +474,7 @@ contains
 
     real, intent(in) :: psi !  note:  psi=r^2
     
-    vfunc = v0_qp + psi**2*v1_qp
+    vfunc = v0_qp + v1_qp*psi**beta_qp
 
     return
    end function vfunc
