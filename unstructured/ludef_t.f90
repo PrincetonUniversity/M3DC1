@@ -1724,74 +1724,76 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   r_bf = 0.
   q_bf = 0.
 
-  do i=1, dofs_per_element
-     trial = trialx(:,:,i)
 
   if(iestatic.eq.1) then
      if(.not.surface_int) then
-        temp = int2(trial,lin)
-        ssterm(i,psi_g) = temp
-        ddterm(i,psi_g) = temp
+        tempx = intx2(trialx(:,OP_1,:),lin)
+        ssterm(:,psi_g) = tempx
+        ddterm(:,psi_g) = tempx
      endif
-     cycle
+     return
   end if
 
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
   if(iconst_bn.eq.0 .and. (.not.surface_int)) then
-     temp = -regular*int2(trial(:,OP_1),lin(:,OP_1))
-     ssterm(i,psi_g) = ssterm(i,psi_g) + temp
-     if(itime_independent.eq.0) ddterm(i,psi_g) = ddterm(i,psi_g) + temp*bdf
+     tempx = -regular*intx2(trialx(:,OP_1,:),lin(:,OP_1))
+     ssterm(:,psi_g) = ssterm(:,psi_g) + tempx
+     if(itime_independent.eq.0) ddterm(:,psi_g) = ddterm(:,psi_g) + tempx*bdf
   end if
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  temp = b1psieta(trial,lin,eta79,vz079,eta_mod.eq.1)
-  ssterm(i,psi_g) = ssterm(i,psi_g) -     thimp     *dt*temp
-  ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimp*bdf)*dt*temp
-
+  tempx = b1psieta(trialx,lin,eta79,vz079,eta_mod.eq.1)
+  ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
+  ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
   ! implicit hyperresistivity
   if(jadv.eq.1 .and. imp_hyper.eq.1) then
-     temp = b1jeta(trial,lin,eta79)
-     ssterm(i,e_g) = ssterm(i,e_g) - dt*temp
+     tempx = b1jeta(trialx,lin,eta79)
+     ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
   endif
 
-
   if(numvar.ge.2) then
-     temp = b1beta(trial,lin,eta79)
-     ssterm(i,bz_g) = ssterm(i,bz_g) -     thimp     *dt*temp
-     ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimp*bdf)*dt*temp
+     tempx = b1beta(trialx,lin,eta79)
+     ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
+     ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
      ! implicit hyperresistivity
      if(jadv.eq.1 .and. imp_hyper.eq.2) then
-        temp = b1bj(trial,bzt79,lin) + b1psij(trial,pst79,lin)
-        ssterm(i,e_g) = ssterm(i,e_g) - dt*temp
+        tempx = b1bj(trialx,bzt79,lin) + b1psij(trialx,pst79,lin)
+        ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
      endif
 
      if(i3d.eq.1) then
-        temp = b1feta(trial,lin,eta79)
-        r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-        q_bf(i) = q_bf(i) + (1.-thimp_bf*bdf)*dt*temp
+        tempx = b1feta(trialx,lin,eta79)
+        r_bf = r_bf -     thimp_bf     *dt*tempx
+        q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
         ! implicit hyperrestivity
         if(jadv.eq.1 .and. imp_hyper.eq.2) then
-           temp = b1fj(trial,bft79,lin)
-           ssterm(i,e_g) = ssterm(i,e_g) - dt*temp
+           tempx = b1fj(trialx,bft79,lin)
+           ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
         endif
      end if
   endif
 
+
   ! Zone 3: eta J = 0.
-  if(izone.eq.3) cycle
+  if(izone.eq.3) return
+
 
   ! Time Derivatives
   ! ~~~~~~~~~~~~~~~~
-  temp = (b1psi (trial,lin) &
-       -  b1psid(trial,lin,ni79)) &  ! electron mass term
+  tempx = (b1psi (trialx,lin) &
+       -  b1psid(trialx,lin,ni79)) &  ! electron mass term
        * freq_fac
-  ssterm(i,psi_g) = ssterm(i,psi_g) + temp
-  if(itime_independent.eq.0) ddterm(i,psi_g) = ddterm(i,psi_g) + temp*bdf
+  ssterm(:,psi_g) = ssterm(:,psi_g) + tempx
+  if(itime_independent.eq.0) ddterm(:,psi_g) = ddterm(:,psi_g) + tempx*bdf
 
   ! Zone 2: E = eta J
-  if(izone.ne.1) cycle
+  if(izone.ne.1) return
+
+
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
 
   ! VxB
   ! ~~~
