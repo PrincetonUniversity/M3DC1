@@ -137,7 +137,7 @@ struct double_variable : public variable {
   { 
     array_size = sz;
     for(int i=0; i<array_size; i++) 
-      ((int*)var)[i] = val;  
+      ((double*)var)[i] = val;  
   }
   double_variable(std::string n, double* var, double val, std::string desc, 
 		  int g)
