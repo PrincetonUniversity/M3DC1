@@ -16,6 +16,7 @@ pro plot_timings, filename=filename, overplot=overplot, _EXTRA=extra
      timings.t_output_reset._data
 
    loadct, 12
+   c = get_colors()
 
    if(keyword_set(overplot)) then begin
        oplot, timings.t_onestep._data
@@ -23,17 +24,17 @@ pro plot_timings, filename=filename, overplot=overplot, _EXTRA=extra
        plot, timings.t_onestep._data>0, title='!6Timings!3', $
          xtitle='!6Time Step!3', ytitle='!8t!6 (s)!3', _EXTRA=extra
    endelse
-   oplot, timings.t_ludefall._data, linestyle=2, color=color(1,8)
-   oplot, timings.t_sources._data, linestyle=1, color=color(2,8)
-   oplot, timings.t_aux._data, linestyle=1, color=color(3,8)
-   oplot, timings.t_smoother._data, linestyle=1, color=color(4,8)
-   oplot, timings.t_mvm._data, linestyle=1, color=color(5,8)
-   oplot, t_solve, linestyle=2, color=color(6,8)
-   oplot, t_output, linestyle=2, color=color(7,8)
+   oplot, timings.t_ludefall._data, linestyle=2, color=c[1]
+   oplot, timings.t_sources._data, linestyle=1, color=c[2]
+   oplot, timings.t_aux._data, linestyle=1, color=c[3]
+   oplot, timings.t_smoother._data, linestyle=1, color=c[4]
+   oplot, timings.t_mvm._data, linestyle=1, color=c[5]
+   oplot, t_solve, linestyle=2, color=c[6]
+   oplot, t_output, linestyle=2, color=c[7]
 
 
    plot_legend, ['Onestep', 'ludefall', 'sources', 'aux', $
                  'smoother', 'mat vec mult', 'solve', 'output'], $
-     linestyle=[0,2,1,1,1,1,2,2], color=colors(8)
+     linestyle=[0,2,1,1,1,1,2,2], color=c
 
 end
