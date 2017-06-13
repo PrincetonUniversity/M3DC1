@@ -113,8 +113,8 @@
 
 	nonrect = 1
 
-	mesh_filename = 'nstxu-0.02-1.80-4.00-8K.smb'
-	mesh_model = 'nstxu-0.02-1.80-4.00.txt'
+	mesh_filename = 'nstxu-0.02-2.20-4.00-9K.smb'
+	mesh_model = 'nstxu-0.02-2.20-4.00.txt
 
 	icsubtract = 1
 	imulti_region = 1
@@ -131,30 +131,33 @@
 	expn = 0.
 	divertors = 0
 	xnull = 0.5
-	znull = -0.7
+	znull = -1.3
 	xnull2 = 0.5
-	znull2 = 0.7
+	znull2 = 1.3
 	sigma0 = 0.2
 
-	igs_extend_p = 1
+!	igs_extend_p = 1
 
- 	gs_vertical_feedback(2)  = -200.
- 	gs_vertical_feedback(3)  = -200.
- 	gs_vertical_feedback(4)  = -200.
- 	gs_vertical_feedback(5)  = -200.
- 	gs_vertical_feedback(6)  = -200.
+ 	gs_vertical_feedback(14)  = -200.
+ 	gs_vertical_feedback(15)  = -200.
+ 	gs_vertical_feedback(24) =  200.
  	gs_vertical_feedback(25) =  200.
- 	gs_vertical_feedback(26) =  200.
- 	gs_vertical_feedback(27) =  200.
- 	gs_vertical_feedback(28) =  200.
- 	gs_vertical_feedback(29) =  200.
+ 	gs_vertical_feedback_i(14)  = -100.
+ 	gs_vertical_feedback_i(15)  = -100.
+ 	gs_vertical_feedback_i(24) =  100.
+ 	gs_vertical_feedback_i(25) =  100.
  
-	gs_radial_feedback(17) = -200.
- 	gs_radial_feedback(18) = -200.
+	gs_radial_feedback(18) = -200.
  	gs_radial_feedback(19) = -200.
  	gs_radial_feedback(20) = -200.
+ 	gs_radial_feedback(21) = -200.
+	gs_radial_feedback_i(18) = -100.
+ 	gs_radial_feedback_i(19) = -100.
+ 	gs_radial_feedback_i(20) = -100.
+ 	gs_radial_feedback_i(21) = -100.
 
 	ntor = 1
+	iwall_is_limiter = 0.
 
 	b0_norm = 1.e4
 	n0_norm = 1e14
