@@ -1601,10 +1601,6 @@ subroutine compression_nolin(trialx, r4term)
   vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
 
-  integer :: i
-  vectype, dimension(MAX_PTS, OP_NUM) :: trial
-
-  
   r4term = 0.
 
   if(numvar.lt.3) return
@@ -1634,24 +1630,19 @@ subroutine compression_nolin(trialx, r4term)
   endif
 
 
-  do i=1, dofs_per_element
-     trial = trialx(:,:,i)
-
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term(i) = r4term(i) + dt* &
-                 (v3par(trial,ppar79)    &
-                + v3parb2ipsipsi(trial,ppar79,b2i79,pstx79,pstx79)  &
-                + v3parb2ipsib(trial,ppar79,b2i79,pstx79,bztx79)    &
-                - v3par(trial,pper79)    &
-                - v3parb2ipsipsi(trial,pper79,b2i79,pstx79,pstx79)  &
-                - v3parb2ipsib(trial,pper79,b2i79,pstx79,bztx79))
+     r4term = r4term + dt* &
+                 (v3par(trialx,ppar79)    &
+                + v3parb2ipsipsi(trialx,ppar79,b2i79,pstx79,pstx79)  &
+                + v3parb2ipsib(trialx,ppar79,b2i79,pstx79,bztx79)    &
+                - v3par(trialx,pper79)    &
+                - v3parb2ipsipsi(trialx,pper79,b2i79,pstx79,pstx79)  &
+                - v3parb2ipsib(trialx,pper79,b2i79,pstx79,bztx79))
   endif
 #endif
-
-end do
 
 end subroutine compression_nolin
 
