@@ -1,0 +1,15 @@
+#!/bin/bash -l
+#SBATCH --partition regular
+#SBATCH --nodes 4
+#SBATCH --ntasks-per-node 32
+#SBATCH --cpus-per-task 1
+#SBATCH --time 00:30:00
+
+cd $SLURM_SUBMIT_DIR
+
+echo "SLURM_NTASKS = " $SLURM_NTASKS
+
+part_mesh.sh adapted.smb $SLURM_NTASKS
+
+rm C1stdout
+srun -n $SLURM_NTASKS /global/u2/n/nferraro/src/m3dc1/trunk/unstructured/_cori-complex-opt-25/m3dc1_2d_complex -pc_factor_mat_solver_package mumps > C1stdout
