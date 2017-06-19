@@ -1,0 +1,13 @@
+#!/bin/bash -vx
+#SBATCH -p debug
+#SBATCH -C haswell
+#SBATCH -N 2
+#SBATCH -t 00:30:00
+
+export OMP_NUM_THREADS=1
+
+#part_mesh.sh adapted.smb 32
+
+rm C1stdout
+# -c is 64/#MPI_per_node
+srun -n 128 -c 1 m3dc1_2d_complex -pc_factor_mat_solver_package mumps > C1stdout
