@@ -1,0 +1,11 @@
+#!/bin/bash -vx
+#SBATCH -p debug
+#SBATCH -C haswell
+#SBATCH -N 171
+#SBATCH -t 00:30:00
+#SBATCH -J m3dc1_3d
+
+# Cori Haswell has 32 cores / node
+
+rm C1stdout
+srun -n 4096 m3dc1_3d -ipetsc -options_file options_bjacobi >& C1stdout
