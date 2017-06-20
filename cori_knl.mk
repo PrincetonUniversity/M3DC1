@@ -20,7 +20,10 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Jan2017-mpich7.4.4/knl
+ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.4.4/knl
+ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
+SCOREC_DIR=$(ZOLTAN_DIR)/June2017
+
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
 else
@@ -32,7 +35,7 @@ else
 endif
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             -lpumi -lapf -lapf_zoltan -lzoltan -lgmi -llion -lma -lmds -lmth -lparma \
+             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
 ifeq ($(COM), 1)
