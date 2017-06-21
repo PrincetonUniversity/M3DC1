@@ -124,7 +124,7 @@ contains
     end if    
 
     ! only write restart file evey ntimers timesteps
-    if(iwrite_restart.eq.1 .and. mod(ntime-ntime0,ntimers).eq.0) then
+    if(iwrite_restart.eq.1 .and. mod(ntime-ntime0,ntimers).eq.0 .and. ntime.ne.ntime0) then
        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
        if(myrank.eq.0 .and. iprint.ge.1) print *, "  writing restart files"
        if(iglobalout.eq.1) then
@@ -183,15 +183,12 @@ subroutine hdf5_write_parameters(error)
   call h5gopen_f(file_id, "/", root_id, error)
 
 #ifdef USE3D
-  call write_int_attr (root_id, "3d"         , 1,          error)
+  call write_int_attr (root_id, "3d"         , 1,        error)
 #else
-  call write_int_attr (root_id, "3d"         , 0,          error)
+  call write_int_attr (root_id, "3d"         , 0,        error)
 #endif
-#ifdef USECOMPLEX
-  call write_int_attr (root_id, "icomplex"   , 1,          error)
-#else
-  call write_int_attr (root_id, "icomplex"   , 0,          error)
-#endif
+
+  call write_int_attr (root_id, "icomplex"   , icomplex,   error)
 
   call write_int_attr (root_id, "nplanes"    , nplanes,    error)
 
