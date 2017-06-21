@@ -10,7 +10,7 @@ if [ -z $1 ]; then
     echo "Usage: part_mesh.sh <model.smd> <mesh.sms> <parts>"
     echo "   or: part_mesh.sh <mesh.smb> <parts>"
 else
-    if [ ${1: -4} == ".sms" ]; then
+    if [ ${1: -4} == ".smd" ]; then
 	echo "Splitting .sms file"
 	echo "*******************"
 	srun -n 1 $CONVERT $1 $2 $MESH_FILE
@@ -21,6 +21,7 @@ else
 	echo "*******************"
 	srun -n 1 $MAKE_MODEL $1 $MODEL_FILE
 	srun -n $2 $SPLIT_SMB $MODEL_FILE $1 part.smb $2
+#	srun -n 1 $SPLIT_SMB $1 part.smb $2
     fi
 fi
 

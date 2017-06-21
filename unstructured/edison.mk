@@ -53,20 +53,17 @@ SCOREC_LIBS=-Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
             -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu \
             -Wl,--end-group
 
-ifeq ($(USEADIOS), 1)
-  OPTS := $(OPTS) -DUSEADIOS
-  ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
-             -L/usr/lib64/ -llustreapi
-else
-  ADIOS_FLIB =
-endif
+# Use Adios
+OPTS := $(OPTS) -DUSEADIOS
+ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
+ -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
+ -L/usr/lib64/ -llustreapi
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
 OPTS := $(OPTS) -DPetscDEV -DKSPITS -DNEXTPetscDEV
 
-INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include $(FFTW_INCLUDE_OPTS) \
+INCLUDE := $(INCLUDE) $(FFTW_INCLUDE_OPTS) \
         -I$(SCOREC_DIR)/include \
 	-I$(CRAY_PETSC_PREFIX_DIR)/include \
 	-I$(GSL_DIR)/include # \
@@ -76,7 +73,7 @@ LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_EXTERNAL_LIB_BASIC) \
-        -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
+        -lhdf5_fortran -lhdf5 -lz \
         $(FFTW_POST_LINK_OPTS) -lfftw3 \
         -L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
         $(ADIOS_FLIB)

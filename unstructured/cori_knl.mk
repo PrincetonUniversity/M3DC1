@@ -13,7 +13,7 @@ else
   LOADER = ftn
 endif
 
-OPTS := $(OPTS) -xMIC-AVX512
+OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS
 
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
@@ -66,8 +66,9 @@ else
       OPTS := $(OPTS) -DNEXTPetscDEV
 endif
 
-ifeq ($(USEADIOS), 1)
-  OPTS := $(OPTS) -DUSEADIOS
+
+# Include option to use ADIOS
+OPTS := $(OPTS) -DUSEADIOS
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
@@ -106,10 +107,10 @@ CCOPTS  = -c $(OPTS)
 
 # Optimization flags
 ifeq ($(VTUNE), 1)
-  LDOPTS := $(LDOPTS) -g -dynamic -debug inline-debug-info -parallel-source-info=2
-  FOPTS  := $(FOPTS)  -g -dynamic -debug inline-debug-info -parallel-source-info=2
-  CCOPTS := $(CCOPTS) -g -dynamic -debug inline-debug-info -parallel-source-info=2
-endif
+  LDOPTS := $(LDOPTS) -g -dynamic -debug inline-debug-info -parallel-source-info=2 -O2
+  FOPTS  := $(FOPTS)  -g -dynamic -debug inline-debug-info -parallel-source-info=2 -O2
+  CCOPTS := $(CCOPTS) -g -dynamic -debug inline-debug-info -parallel-source-info=2 -O2
+else
 
 # Optimization flags
 ifeq ($(OPT), 1)
@@ -119,6 +120,8 @@ ifeq ($(OPT), 1)
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
+endif
+
 endif
 
 ifeq ($(OMP), 1)

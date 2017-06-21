@@ -10,7 +10,7 @@ subroutine wrrestart
 
 #ifdef USESCOREC
 
-  integer :: mmnn18, j1, numnodes, numelms
+  integer :: j1, numnodes, numelms
   integer :: ndofs
   integer, save :: ifirstrs = 1
   character (len=30) :: fname
@@ -19,12 +19,11 @@ subroutine wrrestart
   call createfilename(fname)
   numnodes = local_nodes()
   numelms = local_elements()
-  mmnn18 = 0
   
   ifirstrs = 0
 
- if (myrank .eq. 0) &
-      write(*,*) '[P',myrank,'] write file ',fname
+  if (myrank .eq. 0) &
+       write(*,*) '[P',myrank,'] write file ',fname
 
   open(56,file=fname,form='unformatted',status='replace', action='write')
   ! first put in information to check on run information
@@ -32,9 +31,8 @@ subroutine wrrestart
   write(56) numelms
 !  call m3dc1_field_getnumlocaldof(num_fields, ndofs)
 !  write(56) ndofs
-!  call m3dc1_field_getnumlocaldof(1,ndofs)
-!  write(56) ndofs
-  write(56) mmnn18
+  call m3dc1_field_getnumlocaldof(1,ndofs)
+  write(56) ndofs
   write(56) numvar
   write(56) iper
   write(56) jper 
@@ -1070,7 +1068,7 @@ subroutine wrrestart_adios
 
 !cj aug05-2011 #ifdef USESCOREC 
 #ifdef USEADIOS
-  integer :: mmnn18, j1, numnodes, numelms
+  integer :: j1, numnodes, numelms
   integer :: ndofs_1, ndofs_2, i, j
   integer, save :: ifirstrs = 1
   character (len=30) :: fname
@@ -1090,29 +1088,21 @@ subroutine wrrestart_adios
   fname="restart.bp"
   numnodes = local_nodes()
   numelms = local_elements()
-  mmnn18 = 0
 
-
-  !call numdofs(num_fields, ndofs_1)
   call m3dc1_field_getnumlocaldof(num_fields, ndofs_1)
   allocate(tmp_field_vec(ndofs_1))
   tmp_field_vec=0.
   allocate(tmp_field0_vec(ndofs_1))
   tmp_field0_vec=0.
-  !tmp_field_vec(1:ndofs_1) = field_vec%data(1:ndofs_1)
   call m3dc1_field_retrieve (field_vec%id, tmp_field_vec, ndofs_1)
-  !tmp_field0_vec(1:ndofs_1) = field0_vec%data(1:ndofs_1)
   call m3dc1_field_retrieve (field0_vec%id, tmp_field0_vec, ndofs_1)
 
-  !call numdofs(1, ndofs_2)
   call m3dc1_field_getnumlocaldof(1, ndofs_2)
   allocate(tmp_bf_field_1(ndofs_2))
   tmp_bf_field_1=0.
   allocate(tmp_bf_field_0(ndofs_2))
   tmp_bf_field_0=0.
-  !tmp_bf_field_1(1:ndofs_2)= bf_field(1)%vec%data(1:ndofs_2)
   call m3dc1_field_retrieve (bf_field(1)%vec%id, tmp_bf_field_1, ndofs_2)
-  !tmp_bf_field_0(1:ndofs_2) = bf_field(0)%vec%data(1:ndofs_2)
   call m3dc1_field_retrieve (bf_field(0)%vec%id, tmp_bf_field_0, ndofs_2)
 
   allocate(tmp_psi_ext(ndofs_2))
@@ -1122,11 +1112,8 @@ subroutine wrrestart_adios
   tmp_bz_ext=0
   tmp_bf_ext=0
   if(use_external_fields) then
-     !tmp_psi_ext(1:ndofs_2)= psi_ext%vec%data(1:ndofs_2)
      call m3dc1_field_retrieve (psi_ext%vec%id, tmp_psi_ext, ndofs_2)
-     !tmp_bz_ext(1:ndofs_2) = bz_ext%vec%data(1:ndofs_2)
      call m3dc1_field_retrieve (bz_ext%vec%id, tmp_bz_ext, ndofs_2)
-     !tmp_bf_ext(1:ndofs_2) = bf_ext%vec%data(1:ndofs_2)
      call m3dc1_field_retrieve (bf_ext%vec%id, tmp_bf_ext, ndofs_2)
      useext = 1
   else
@@ -1151,11 +1138,76 @@ subroutine wrrestart_adios
 #endif
     endif
     call adios_open (adios_handle, "restart", fname, "w", comm, adios_err)
-#ifdef USECOMPLEX
-#include "gwrite_restart_c1_cplx.fh" 
-#else
-#include "gwrite_restart_c1.fh" 
-#endif
+
+    adios_groupsize = 35*8 &
+         + 8 * (ndofs_1) &
+         + 8 * (ndofs_1) &
+         + 8 * (ndofs_2) &
+         + 8 * (ndofs_2) &
+         + 8 * (ndofs_2) &
+         + 8 * (ndofs_2) &
+         + 8 * (ndofs_2) &
+         + 8 * (ndofs_2) &
+         + 8 * 14
+
+    call adios_group_size (adios_handle, adios_groupsize, adios_totalsize, adios_err)
+
+    call adios_write (adios_handle, "numnodes", numnodes, adios_err)
+    call adios_write (adios_handle, "numelms", numelms, adios_err)
+    call adios_write (adios_handle, "numvar", numvar, adios_err)
+    call adios_write (adios_handle, "iper", iper, adios_err)
+    call adios_write (adios_handle, "jper", jper, adios_err)
+    call adios_write (adios_handle, "myrank", myrank, adios_err)
+    call adios_write (adios_handle, "maxrank", maxrank, adios_err)
+    call adios_write (adios_handle, "eqsubtract", eqsubtract, adios_err)
+    call adios_write (adios_handle, "useext", useext, adios_err)
+    call adios_write (adios_handle, "linear", linear, adios_err)
+    call adios_write (adios_handle, "icomplex", icomplex, adios_err)
+    call adios_write (adios_handle, "ntime", ntime, adios_err)
+    call adios_write (adios_handle, "time", time, adios_err)
+    call adios_write (adios_handle, "dt", dt, adios_err)
+    call adios_write (adios_handle, "totcur0", totcur0, adios_err)
+    call adios_write (adios_handle, "tflux0", tflux0, adios_err)
+    call adios_write (adios_handle, "gbound", gbound, adios_err)
+    call adios_write (adios_handle, "ptot", ptot, adios_err)
+    call adios_write (adios_handle, "vloop", vloop, adios_err)
+    call adios_write (adios_handle, "i_control%err_i", i_control%err_i, adios_err)
+    call adios_write (adios_handle, "i_control%err_p_old", i_control%err_p_old, adios_err)
+    call adios_write (adios_handle, "n_control%err_i", n_control%err_i, adios_err)
+    call adios_write (adios_handle, "n_control%err_p_old", n_control%err_p_old, adios_err)
+    call adios_write (adios_handle, "psimin", psimin, adios_err)
+    call adios_write (adios_handle, "psilim", psilim, adios_err)
+    call adios_write (adios_handle, "psibound", psibound, adios_err)
+    call adios_write (adios_handle, "xnull", xnull, adios_err)
+    call adios_write (adios_handle, "znull", znull, adios_err)
+    call adios_write (adios_handle, "xnull2", xnull2, adios_err)
+    call adios_write (adios_handle, "znull2", znull2, adios_err)
+    call adios_write (adios_handle, "xmag", xmag, adios_err)
+    call adios_write (adios_handle, "zmag", zmag, adios_err)
+    call adios_write (adios_handle, "ndofs_1", ndofs_1, adios_err)
+    call adios_write (adios_handle, "ndofs_2", ndofs_2, adios_err)
+    call adios_write (adios_handle, "tmp_field_vec", tmp_field_vec, adios_err)
+    call adios_write (adios_handle, "tmp_field0_vec", tmp_field0_vec, adios_err)
+    call adios_write (adios_handle, "tmp_bf_field_1", tmp_bf_field_1, adios_err)
+    call adios_write (adios_handle, "tmp_bf_field_0", tmp_bf_field_0, adios_err)
+    call adios_write (adios_handle, "tmp_psi_ext", tmp_psi_ext, adios_err)
+    call adios_write (adios_handle, "tmp_bz_ext", tmp_bz_ext, adios_err)
+    call adios_write (adios_handle, "tmp_bf_ext", tmp_bf_ext, adios_err)
+    call adios_write (adios_handle, "tmp_psi_coil_field",tmp_psi_coil_field, adios_err)
+    call adios_write (adios_handle, "pellet_x", pellet_x, adios_err)
+    call adios_write (adios_handle, "pellet_phi", pellet_phi, adios_err)
+    call adios_write (adios_handle, "pellet_z", pellet_z, adios_err)
+    call adios_write (adios_handle, "pellet_velx", pellet_velx, adios_err)
+    call adios_write (adios_handle, "pellet_velphi", pellet_velphi, adios_err)
+    call adios_write (adios_handle, "pellet_velz", pellet_velz, adios_err)
+    call adios_write (adios_handle, "pellet_var", pellet_var, adios_err)
+    call adios_write (adios_handle, "r_p", r_p, adios_err)
+    call adios_write (adios_handle, "r_p2", r_p2, adios_err)
+    call adios_write (adios_handle, "version", version, adios_err)
+    call adios_write (adios_handle, "pellet_rate", pellet_rate, adios_err)
+    call adios_write (adios_handle, "icsubtract", icsubtract, adios_err)
+    call adios_write (adios_handle, "extsubtract", extsubtract, adios_err)
+    
     call adios_close (adios_handle, adios_err)
     call MPI_Barrier (comm, ierr)
     if( (ntimemax-(ntime-ntime0)) .lt. ntimepr ) then
@@ -1172,6 +1224,9 @@ subroutine wrrestart_adios
        tmp_psi_ext, tmp_bz_ext, tmp_bf_ext, tmp_psi_coil_field)
 
   ifirstrs = 0
+#else
+  if(myrank.eq.0) print *, 'Error: code not compiled with ADIOS'
+  call safestop(1)
 #endif
 end subroutine wrrestart_adios
 
@@ -1190,7 +1245,7 @@ subroutine rdrestart_adios
 
 #ifdef USEADIOS
   integer :: cur_nnodes, prev_nnodes
-  integer :: prev_nelms, prev_mmnn18, prev_numvar, prev_iper, prev_jper, prev_myrank
+  integer :: prev_nelms, prev_numvar, prev_iper, prev_jper, prev_myrank
   integer :: prev_maxrank, cur_nelms, prev_eqsubtract, prev_linear, prev_comp
   character (len=30) :: fname
   integer :: cur_ndofs1, cur_ndofs2, prev_ndofs1, prev_ndofs2
@@ -1259,7 +1314,6 @@ subroutine rdrestart_adios
     if (prev_nnodes .eq. cur_nnodes .and. prev_nelms .eq. cur_nelms) then !2d to 2d or 3d to 3d
       group_rank = myrank ! turn the rank back to myrank
     endif
-    call adios_read_local_var (gh, "mmnn18",     group_rank, start, readsize, prev_mmnn18, read_bytes)
     call adios_read_local_var (gh, "numvar",     group_rank, start, readsize, prev_numvar, read_bytes)
     call adios_read_local_var (gh, "iper",       group_rank, start, readsize, prev_iper, read_bytes)
     call adios_read_local_var (gh, "jper",       group_rank, start, readsize, prev_jper, read_bytes)
@@ -1597,5 +1651,8 @@ subroutine rdrestart_adios
      if(myrank .eq. 0) print *, "call gradshafranov_per after restart"
      call gradshafranov_per()
   end if
+#else
+  if(myrank.eq.0) print *, 'Error: code not compiled with ADIOS'
+  call safestop(1)
 #endif
 end subroutine rdrestart_adios

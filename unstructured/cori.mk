@@ -67,8 +67,8 @@ else
       OPTS := $(OPTS) -DNEXTPetscDEV
 endif
 
-ifeq ($(USEADIOS), 1)
-  OPTS := $(OPTS) -DUSEADIOS
+# Include option to use adios
+OPTS := $(OPTS) -DUSEADIOS
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
@@ -114,9 +114,9 @@ endif
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report
-  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report
-  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report
+  LDOPTS := $(LDOPTS) -dynamic #-ipo -qopt-report
+  FOPTS  := $(FOPTS)  -O3 #-ipo -qopt-report
+  CCOPTS := $(CCOPTS) -O3 #-ipo -qopt-report
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)

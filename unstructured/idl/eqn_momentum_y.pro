@@ -90,6 +90,79 @@ pro eqn_momentum_y, _EXTRA=extra, nterms=nterms, terms=term, names=names, $
      term[2,*,*] = rfac*p1
 
      print, 'gamma = ', reform(gamma[0])
+  end if(eqsubtract eq 1) then begin
+     
+     psi0_r = read_field('psi',x,z,t,_EXTRA=extra,slice=-1,op=2)
+     psi0_z = read_field('psi',x,z,t,_EXTRA=extra,slice=-1,op=3)
+;     psi0_gs = read_field('psi',x,z,t,_EXTRA=extra,/equilibrium,op=7)
+;     i0 = read_field('i',x,z,t,_EXTRA=extra,/equilibrium)
+     i0_r = read_field('i',x,z,t,_EXTRA=extra,slice=-1,op=2)
+     i0_z = read_field('i',x,z,t,_EXTRA=extra,slice=-1,op=3)
+     den0 = read_field('den',x,z,t,_EXTRA=extra,slice=-1)
+
+     psi1_r  = read_field('psi',x,z,t,_EXTRA=extra,/linear,op=2)
+     psi1_z  = read_field('psi',x,z,t,_EXTRA=extra,/linear,op=3)
+     psi1_rp  = read_field('psi',x,z,t,_EXTRA=extra,/linear,op=12)
+     psi1_zp  = read_field('psi',x,z,t,_EXTRA=extra,/linear,op=13)
+     if(numvar ge 2) then begin
+        w1 = read_field('omega',x,z,t,_EXTRA=extra,/linear)
+        i1_r = read_field('I',x,z,t,_EXTRA=extra,/linear,op=2)
+        i1_z = read_field('I',x,z,t,_EXTRA=extra,/linear,op=3)
+        f1_rp = read_field('f',x,z,t,_EXTRA=extra,/linear,op=12)
+        f1_zp = read_field('f',x,z,t,_EXTRA=extra,/linear,op=13)
+        f1_rpp = read_field('f',x,z,t,_EXTRA=extra,/linear,op=22)
+        f1_zpp = read_field('f',x,z,t,_EXTRA=extra,/linear,op=23)
+     endif else begin
+;        i1 = den0*0.
+        i1_r = den0*0.
+        i1_z = den0*0.
+        f1_r = den0*0.
+        f1_z = den0*0.
+     end
+       
+     if(numvar eq 3) then begin
+        p1_p = read_field('p',x,z,t,_EXTRA=extra,/linear, op=11)
+     endif else begin
+        p1_p = den0*0.
+     end
+     
+     if(itor eq 1) then begin
+        r = radius_matrix(x,z,t)
+     endif else begin
+        r = 1.
+     end
+
+     vy1 = w1*r
+
+     bx0 = -psi0_z/r
+     bz0 =  psi0_r/r
+
+     jx0 = -i0_z/r
+     jz0 =  i0_r/r
+
+     bx1 = -psi1_z/r - f1_rp
+     bz1 =  psi1_r/r - f1_zp
+
+     jx1 = -(i1_z + f1_zpp)/r + psi1_rp/r^2
+     jz1 =  (i1_r + f1_rpp)/r + psi1_zp/r^2
+
+     d = size(den0,/dim)
+     term = fltarr(nterms,d[1],d[2])
+     
+     ; dV / dt
+     print, 'defining dv/dt'
+     term[0,*,*] = den0*vy1 * gamma[0]
+
+     ; -JxB
+     print, 'defining JxB'
+     term[1,*,*] = -(jz1*bx0 - jx1*bz0 + jz0*bx1 - jx0*bz1 + jz1*bx1 - jx1*bz1)
+
+     ; Grad(p)
+     print, 'defining grad(p)'
+     term[2,*,*] = p1_p
+
+     print, 'gamma = ', reform(gamma[0])
+
   end  
 
 end
