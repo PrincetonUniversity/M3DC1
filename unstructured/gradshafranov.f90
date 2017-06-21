@@ -2537,13 +2537,13 @@ end subroutine calc_toroidal_field
 ! calculates the pressure as a function of the poloidal flux 
 ! (and major radius if rotation is present)
 !======================================================================
-subroutine calc_pressure(psi0, pres, x, z, izone)
+subroutine calc_pressure(ps0, pres, x, z, izone)
   use basic
   use diagnostics
 
   implicit none
 
-  vectype, intent(in), dimension(dofs_per_node)  :: psi0
+  vectype, intent(in), dimension(dofs_per_node)  :: ps0
   vectype, intent(out) :: pres     ! pressure
   real, intent(in) :: x, z
   integer, intent(in) :: izone
@@ -2560,9 +2560,9 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
      return
   end if
 
-  psii = (real(psi0(1)) - psimin)/(psibound - psimin)
+  psii = (real(ps0(1)) - psimin)/(psibound - psimin)
 
-  mr = magnetic_region(psi0(1),psi0(2),psi0(3),x,z)
+  mr = magnetic_region(ps0(1),ps0(2),ps0(3),x,z)
 
   if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
      call evaluate_spline(p0_spline, 1., p)
@@ -2594,13 +2594,13 @@ end subroutine calc_pressure
 ! calculates the density as a function of the poloidal flux 
 ! (and major radius if rotation is present)
 !======================================================================
-subroutine calc_density(psi0, dens, x, z, izone)
+subroutine calc_density(ps0, dens, x, z, izone)
   use basic
   use diagnostics
 
   implicit none
 
-  vectype, intent(in), dimension(dofs_per_node)  :: psi0
+  vectype, intent(in), dimension(dofs_per_node)  :: ps0
   vectype, intent(out) :: dens     ! density
   real, intent(in) :: x, z
   integer, intent(in) :: izone
@@ -2617,9 +2617,9 @@ subroutine calc_density(psi0, dens, x, z, izone)
      return
   end if
 
-  mr = magnetic_region(psi0(1),psi0(2),psi0(3),x,z)
+  mr = magnetic_region(ps0(1),ps0(2),ps0(3),x,z)
 
-  psii = (real(psi0(1)) - psimin)/(psibound - psimin)
+  psii = (real(ps0(1)) - psimin)/(psibound - psimin)
 
   ! if we are in private flux region, make sure Psi > 1
   if(mr.eq.2) psii = psin_in_pf_region(psii)
@@ -2644,13 +2644,13 @@ end subroutine calc_density
 !
 ! calculates the electron pressure as a function of the poloidal flux
 !======================================================================
-subroutine calc_electron_pressure(psi0, pe, x, z, izone)
+subroutine calc_electron_pressure(ps0, pe, x, z, izone)
   use basic
   use diagnostics
 
   implicit none
 
-  vectype, intent(in), dimension(dofs_per_node)  :: psi0
+  vectype, intent(in), dimension(dofs_per_node)  :: ps0
   vectype, intent(out) :: pe
   real, intent(in) :: x, z
   integer, intent(in) :: izone
@@ -2664,15 +2664,15 @@ subroutine calc_electron_pressure(psi0, pe, x, z, izone)
      if(izone.gt.2) then 
         te0 = te_spline%y(te_spline%n)
      else
-        psii = (real(psi0(1)) - psimin)/(psibound - psimin)
-        if(magnetic_region(psi0(1),psi0(2),psi0(3),x,z).eq.2) &
+        psii = (real(ps0(1)) - psimin)/(psibound - psimin)
+        if(magnetic_region(ps0(1),ps0(2),ps0(3),x,z).eq.2) &
              psii = psin_in_pf_region(psii)
         call evaluate_spline(te_spline,psii,te0)
      end if
-     call calc_density(psi0, n0, x, z, izone)
+     call calc_density(ps0, n0, x, z, izone)
      pe = zeff*n0*te0    ! (ni = n0; ne = ni*Zeff)
   else
-     call calc_pressure(psi0, pres0, x, z, izone)
+     call calc_pressure(ps0, pres0, x, z, izone)
      pe = pres0*pefac
   end if
 end subroutine calc_electron_pressure
@@ -2683,13 +2683,13 @@ end subroutine calc_electron_pressure
 !
 ! calculates the rotation as a function of the poloidal flux
 !======================================================================
-subroutine calc_rotation(psi0,omega, x, z, izone)
+subroutine calc_rotation(ps0,omega, x, z, izone)
   use basic
   use diagnostics
 
   implicit none
 
-  vectype, intent(in), dimension(dofs_per_node)  :: psi0
+  vectype, intent(in), dimension(dofs_per_node)  :: ps0
   real, intent(in) :: x, z
   vectype, intent(out) :: omega     ! rotation
   integer, intent(in) :: izone
@@ -2707,14 +2707,14 @@ subroutine calc_rotation(psi0,omega, x, z, izone)
      return
   end if
  
-  mr = magnetic_region(psi0(1),psi0(2),psi0(3),x,z)
+  mr = magnetic_region(ps0(1),ps0(2),ps0(3),x,z)
 
   if(igs_forcefree_lcfs.eq.1 .and. mr.ne.0) then
      omega = 0.
      return
   end if    
 
-  psii = (real(psi0(1)) - psimin)/(psibound - psimin)
+  psii = (real(ps0(1)) - psimin)/(psibound - psimin)
   if(mr.eq.2) psii = psin_in_pf_region(psii)
 
   call evaluate_spline(omega_spline,psii,w0)
