@@ -484,7 +484,7 @@ end subroutine define_element_quadrature
 
 !==============================================
 !DEC$ ATTRIBUTES FORCEINLINE :: int0
-vectype function int0()
+pure vectype function int0()
 
   implicit none
 
@@ -501,7 +501,7 @@ vectype function int0()
 end function int0
 !==============================================
 !DEC$ ATTRIBUTES FORCEINLINE :: int1
-vectype function int1(vari)
+pure vectype function int1(vari)
 
   implicit none
 
@@ -520,7 +520,7 @@ vectype function int1(vari)
 end function int1
 !==============================================
 !DEC$ ATTRIBUTES FORCEINLINE :: int2
-vectype function int2(vari,varj)
+pure vectype function int2(vari,varj)
 
   implicit none
 
@@ -538,7 +538,7 @@ vectype function int2(vari,varj)
 end function int2
 !==============================================
 !DEC$ ATTRIBUTES FORCEINLINE :: int3
-vectype function int3(vari,varj,vark)
+pure vectype function int3(vari,varj,vark)
 
   implicit none
 
@@ -557,7 +557,7 @@ vectype function int3(vari,varj,vark)
 end function int3
 !==============================================
 !DEC$ ATTRIBUTES FORCEINLINE :: int4
-vectype function int4(vari,varj,vark,varl)
+pure vectype function int4(vari,varj,vark,varl)
 
   implicit none
 
@@ -576,7 +576,7 @@ vectype function int4(vari,varj,vark,varl)
 end function int4
 !==============================================
 !DEC$ ATTRIBUTES FORCEINLINE :: int5
-vectype function int5(vari,varj,vark,varl,varm)
+pure vectype function int5(vari,varj,vark,varl,varm)
 
   implicit none
 
@@ -594,7 +594,7 @@ vectype function int5(vari,varj,vark,varl,varm)
 
 end function int5
 !==============================================
-function intx0()
+pure function intx0()
 
   implicit none
 
@@ -611,7 +611,7 @@ function intx0()
   intx0 = ksum
 end function intx0
 !==============================================
-function intx1(vari)
+pure function intx1(vari)
 
   implicit none
 
@@ -630,7 +630,7 @@ function intx1(vari)
 
 end function intx1
 !==============================================
-function intx2(vari,varj)
+pure function intx2(vari,varj)
 
   implicit none
 
@@ -649,7 +649,7 @@ function intx2(vari,varj)
   intx2 = ksum
 end function intx2
 !==============================================
-function intx3(vari,varj,vark)
+pure function intx3(vari,varj,vark)
 
   implicit none
 
@@ -669,7 +669,7 @@ function intx3(vari,varj,vark)
 
 end function intx3
 !==============================================
-function intx4(vari,varj,vark,varl)
+pure function intx4(vari,varj,vark,varl)
 
   implicit none
 
@@ -689,7 +689,7 @@ function intx4(vari,varj,vark,varl)
 
 end function intx4
 !==============================================
-function intx5(vari,varj,vark,varl,varm)
+pure function intx5(vari,varj,vark,varl,varm)
 
   implicit none
 
@@ -709,7 +709,7 @@ function intx5(vari,varj,vark,varl,varm)
 
 end function intx5
 !==============================================
-function intxx0()
+pure function intxx0()
 
   implicit none
 
@@ -726,7 +726,7 @@ function intxx0()
   intxx0 = ksum
 end function intxx0
 !==============================================
-function intxx1(vari)
+pure function intxx1(vari)
 
   implicit none
 
@@ -747,7 +747,7 @@ function intxx1(vari)
 
 end function intxx1
 !==============================================
-function intxx2(vari,varj)
+pure function intxx2(vari,varj)
 
   implicit none
 
@@ -770,7 +770,7 @@ function intxx2(vari,varj)
   intxx2 = ksum
 end function intxx2
 !==============================================
-function intxx3(vari,varj,vark)
+pure function intxx3(vari,varj,vark)
 
   implicit none
 
@@ -793,7 +793,7 @@ function intxx3(vari,varj,vark)
   intxx3 = ksum
 end function intxx3
 !==============================================
-function intxx4(vari,varj,vark,varl)
+pure function intxx4(vari,varj,vark,varl)
 
   implicit none
 
@@ -817,7 +817,7 @@ function intxx4(vari,varj,vark,varl)
   intxx4 = ksum
 end function intxx4
 !==============================================
-function intxx5(vari,varj,vark,varl,varm)
+pure function intxx5(vari,varj,vark,varl,varm)
 
   implicit none
 

@@ -556,7 +556,6 @@ subroutine calculate_scalars()
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac,tpirzero
   integer :: iedge, idim(3), izone, izonedim, i
-  integer :: magnetic_region
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
 
@@ -664,13 +663,15 @@ subroutine calculate_scalars()
 
      do i=1, npoints
         if(linear.eq.1) then
-           if(magnetic_region(ps079(i,:),x_79(i),z_79(i)).eq.0) then
+           if(magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+                x_79(i),z_79(i)).eq.0) then
               mr(i) = 1.
            else
               mr(i) = 0.
            end if
         else
-           if(magnetic_region(pst79(i,:),x_79(i),z_79(i)).eq.0) then
+           if(magnetic_region(pst79(i,OP_1),pst79(i,OP_DR),pst79(i,OP_DZ), &
+                x_79(i),z_79(i)).eq.0) then
               mr(i) = 1.
            else
               mr(i) = 0.
@@ -953,6 +954,58 @@ subroutine calculate_scalars()
 
 end subroutine calculate_scalars
 
+!======================================================================
+! magnetic_region
+! ~~~~~~~~~~~~~~~
+! determines what magnetic region the point x, z is in
+! 0: inside plasma
+! 1: scrape-off layer
+! 2: private flux
+!======================================================================
+elemental integer function magnetic_region(psi, psix, psiz, x, z)
+  use basic
+
+  implicit none
+
+  vectype, intent(in) :: psi, psix, psiz
+  real, intent(in) :: x, z 
+  real :: psii, dpsii, pl, rl, al
+
+  magnetic_region = 0
+
+  dpsii = psibound - psimin
+  if(dpsii.eq.0.) return
+
+  psii = (real(psi) - psimin)/dpsii
+  if(psii .gt. 1.) then
+     ! if Psi > 1, we are in scrape-off layer
+     magnetic_region = 1
+  else if(psii .lt. 0.) then
+     magnetic_region = 0
+  else
+     ! if Psi < 1, but flux is increasing, we are in private flux region
+     pl = sqrt(real(psix)**2 + real(psiz)**2)
+     rl = sqrt((x-xmag)**2 + (z-zmag)**2)
+     if(pl.eq.0. .or. rl.eq.0.) return
+     
+     al = (real(psix)*(x-xmag) + real(psiz)*(z-zmag))/(pl*rl)
+     if(al*dpsii/abs(dpsii) .lt. 0.3) then
+        magnetic_region = 2
+     end if
+
+     ! if z is far above or below x-point, we're in private flux region
+     if(znull.ne.0. .and. xnull.gt.0.) then
+        if((z-zmag)/(znull-zmag).gt.1.03) then
+           magnetic_region = 2
+        endif
+     end if
+     if(znull2.ne.0. .and. xnull2.gt.0.) then
+        if((z-zmag)/(znull2-zmag).gt.1.03) then
+           magnetic_region = 2
+        endif
+     end if
+  end if
+end function magnetic_region
 
 !=====================================================
 ! magaxis

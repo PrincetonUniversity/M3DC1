@@ -224,7 +224,6 @@ subroutine calculate_auxiliary_fields(ilin)
   integer :: def_fields
   integer :: numelms
   integer :: i, itri, j, izone
-  integer :: magnetic_region
 
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -499,7 +498,8 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
 
      ! magnetic_region
      do j=1, npoints
-        temp79a(j) = magnetic_region(pst79(j,:),x_79(j),z_79(j))
+        temp79a(j) = magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ),&
+             x_79(j),z_79(j))
      end do
      dofs = intx2(mu79(:,OP_1,:),temp79a)
      call vector_insert_block(mag_reg%vec,itri,1,dofs,VEC_ADD)

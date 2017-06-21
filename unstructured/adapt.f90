@@ -36,7 +36,6 @@ module adapt
     integer :: numelms, itri
     character(len=32) :: mesh_file_name
     real :: q, tmp
-    integer :: magnetic_region
     integer, dimension(MAX_PTS) :: mr
     vectype, dimension(dofs_per_element) :: dofs
 
@@ -70,7 +69,8 @@ module adapt
        
        ! determine magnetic region of each point
        do i=1, npoints
-          mr(i) = magnetic_region(ps079(i,:),x_79(i),z_79(i))
+          mr(i) = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+               x_79(i),z_79(i))
          
           ! if point is in private flux region, set psi_N -> 2 - psi_N
           if(mr(i).eq.2) then 

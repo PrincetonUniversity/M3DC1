@@ -70,7 +70,7 @@ contains
     s%n = 0
   end subroutine destroy_spline
 
-  subroutine which_domain(s, x, i, dx)
+  pure subroutine which_domain(s, x, i, dx)
     implicit none
     type(spline1d), intent(in) :: s
     real, intent(in) :: x
@@ -97,7 +97,7 @@ contains
     dx = x - s%x(i)
   end subroutine which_domain
 
-  subroutine get_hermite_coeffs(s, ii, a, extrapolate)
+  pure subroutine get_hermite_coeffs(s, ii, a, extrapolate)
     implicit none
 
     type(spline1d), intent(in) :: s
@@ -157,7 +157,7 @@ contains
 
   end subroutine get_hermite_coeffs
 
-  subroutine evaluate_spline(s, x, y, yp, ypp, yppp, iout, extrapolate)
+  pure subroutine evaluate_spline(s, x, y, yp, ypp, yppp, iout, extrapolate)
     implicit none
 
     type(spline1d), intent(in) :: s

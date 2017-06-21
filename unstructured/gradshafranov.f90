@@ -1704,7 +1704,7 @@ subroutine fundef
   real :: g4big, g4bigp, g4bigpp
   real :: alphap0, alphap, alphapp, alphappp
   real :: r0m, r1, r1m, r2, r3, ealpha
-  integer :: magnetic_region, izone, izonedim, iout
+  integer :: izone, izonedim, iout
 
   vectype, dimension(dofs_per_node) :: temp, temp2
 
@@ -1723,7 +1723,8 @@ subroutine fundef
      pso =  (temp(1) - psimin)*dpsii
 
      call m3dc1_ent_getgeomclass(0,ii-1,izonedim,izone) 
-     if(magnetic_region(temp,x,z).ne.0 .or. izone.ne.1) then
+     if(magnetic_region(temp(1),temp(2),temp(3),x,z).ne.0 &
+          .or. izone.ne.1) then
         temp = 0.
         call set_node_data(fun1_vec, ii, temp)
         call set_node_data(fun2_vec, ii, temp)
@@ -1915,6 +1916,7 @@ subroutine fundef2(error)
   use sparse
   use newvar_mod
   use m3dc1_nint
+  use diagnostics
 
   implicit none
 
@@ -1926,7 +1928,7 @@ subroutine fundef2(error)
   real :: pso, psm, dpsii, norm, temp1(2), temp2(2)
   vectype, dimension(dofs_per_element) :: temp3, temp4
       
-  integer :: magnetic_region, izone, mr
+  integer :: izone, mr
   real :: pp0, a0, ap, p, ffp0, f
 !!$  real :: w0, wp, n0, np
 
@@ -1970,7 +1972,8 @@ subroutine fundef2(error)
         psm = pso
         f = 1.
         ! if we are in private flux region, make sure Psi > 1
-        mr = magnetic_region(ps079(i,:),x_79(i),z_79(i))
+        mr = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+             x_79(i),z_79(i))
         
         if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
            ffp0 = 0.
@@ -2485,8 +2488,9 @@ end subroutine readpgfiles
 ! calculates the toroidal field (I) as a function of the 
 ! normalized flux
 !======================================================================
-subroutine calc_toroidal_field(psi0,tf,x,z,izone)
+pure subroutine calc_toroidal_field(psi0,tf,x,z,izone)
   use basic
+  use diagnostics
 
   vectype, intent(in), dimension(dofs_per_node)  :: psi0
   vectype, intent(out) :: tf    ! toroidal field (I)
@@ -2495,10 +2499,9 @@ subroutine calc_toroidal_field(psi0,tf,x,z,izone)
   
   real :: g2, g3, g4
   real :: psii     ! normalized flux
-
-  integer :: magnetic_region
-  
-  if(magnetic_region(psi0,x,z).ne.0 .or. izone.ne.1) then
+ 
+  if(magnetic_region(psi0(1),psi0(2),psi0(3),x,z).ne.0 &
+       .or. izone.ne.1) then
      tf = bzero*rzero
   else
      psii = (real(psi0(1)) - psimin)/(psibound - psimin)
@@ -2535,8 +2538,8 @@ end subroutine calc_toroidal_field
 ! (and major radius if rotation is present)
 !======================================================================
 subroutine calc_pressure(psi0, pres, x, z, izone)
-  
   use basic
+  use diagnostics
 
   implicit none
 
@@ -2550,7 +2553,7 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
   real :: psii     ! normalized flux
 !!$  real :: n0, w0
 
-  integer :: magnetic_region, mr
+  integer :: mr
 
   if(izone.gt.2) then 
      pres = p0_spline%y(p0_spline%n)
@@ -2559,7 +2562,7 @@ subroutine calc_pressure(psi0, pres, x, z, izone)
 
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
 
-  mr = magnetic_region(psi0,x,z)
+  mr = magnetic_region(psi0(1),psi0(2),psi0(3),x,z)
 
   if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
      call evaluate_spline(p0_spline, 1., p)
@@ -2592,8 +2595,8 @@ end subroutine calc_pressure
 ! (and major radius if rotation is present)
 !======================================================================
 subroutine calc_density(psi0, dens, x, z, izone)
-  
   use basic
+  use diagnostics
 
   implicit none
 
@@ -2607,14 +2610,14 @@ subroutine calc_density(psi0, dens, x, z, izone)
   real :: psii     ! normalized flux
 !!$  real :: p, w0
 
-  integer :: magnetic_region, mr
+  integer :: mr
 
   if(izone.gt.2) then
      dens = n0_spline%y(n0_spline%n)
      return
   end if
 
-  mr = magnetic_region(psi0,x,z)
+  mr = magnetic_region(psi0(1),psi0(2),psi0(3),x,z)
 
   psii = (real(psi0(1)) - psimin)/(psibound - psimin)
 
@@ -2643,6 +2646,7 @@ end subroutine calc_density
 !======================================================================
 subroutine calc_electron_pressure(psi0, pe, x, z, izone)
   use basic
+  use diagnostics
 
   implicit none
 
@@ -2655,15 +2659,14 @@ subroutine calc_electron_pressure(psi0, pe, x, z, izone)
   real :: psii          ! normalized flux
   real :: te0
 
-  integer :: magnetic_region
-
   if(allocated(te_spline%y)) then
 !     if(izone.ne.1) then 
      if(izone.gt.2) then 
         te0 = te_spline%y(te_spline%n)
      else
         psii = (real(psi0(1)) - psimin)/(psibound - psimin)
-        if(magnetic_region(psi0,x,z).eq.2) psii = psin_in_pf_region(psii)
+        if(magnetic_region(psi0(1),psi0(2),psi0(3),x,z).eq.2) &
+             psii = psin_in_pf_region(psii)
         call evaluate_spline(te_spline,psii,te0)
      end if
      call calc_density(psi0, n0, x, z, izone)
@@ -2681,8 +2684,8 @@ end subroutine calc_electron_pressure
 ! calculates the rotation as a function of the poloidal flux
 !======================================================================
 subroutine calc_rotation(psi0,omega, x, z, izone)
-  
   use basic
+  use diagnostics
 
   implicit none
 
@@ -2693,7 +2696,7 @@ subroutine calc_rotation(psi0,omega, x, z, izone)
 
   real :: psii     ! normalized flux
   real :: w0
-  integer :: magnetic_region, mr
+  integer :: mr
 
   if(irot.eq.0) then
      omega = 0.
@@ -2704,7 +2707,7 @@ subroutine calc_rotation(psi0,omega, x, z, izone)
      return
   end if
  
-  mr = magnetic_region(psi0,x,z)
+  mr = magnetic_region(psi0(1),psi0(2),psi0(3),x,z)
 
   if(igs_forcefree_lcfs.eq.1 .and. mr.ne.0) then
      omega = 0.
