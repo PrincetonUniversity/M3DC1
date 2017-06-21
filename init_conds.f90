@@ -287,6 +287,7 @@ subroutine set_neo_vel
   use math
   use sparse
   use model
+  use diagnostics
 
   implicit none
 
@@ -304,7 +305,7 @@ subroutine set_neo_vel
 
   integer, dimension(dofs_per_element) :: imask_vor, imask_chi
   integer, dimension(MAX_PTS) :: iout
-  integer :: imag, magnetic_region
+  integer :: imag
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Setting velocity from NEO data"
 
@@ -350,7 +351,8 @@ subroutine set_neo_vel
      temp79e = sqrt((ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)*ri2_79)
 
      do i=1, int_pts_main
-        imag = magnetic_region(ps079(i,:), x_79(i), z_79(i))
+        imag = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+             x_79(i), z_79(i))
         if(imag.ne.0) then
            vz(i) = 0.
            vp(i) = 0.

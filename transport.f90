@@ -25,7 +25,7 @@ function sigma_func(izone)
   vectype, dimension(dofs_per_element) :: sigma_func
   integer, intent(in) :: izone
   vectype, dimension(dofs_per_element) :: temp
-  integer :: iregion, j, magnetic_region
+  integer :: iregion, j
   integer :: nvals
   real :: val, valp, valpp, pso
   real, allocatable :: xvals(:), yvals(:)
@@ -103,8 +103,8 @@ function sigma_func(izone)
      end if
 
      do j=1, npoints
-        if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
-             then
+        if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j),z_79(j)).ne.0) then
            pso = 1.
         else
            pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
@@ -136,7 +136,8 @@ function sigma_func(izone)
   if(idenfloor.ge.1) then
      temp79a = 0.
      do j=1, npoints
-        iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
+        iregion = magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j), z_79(j))
         if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
      end do
      temp = temp + intx2(mu79(:,OP_1,:),temp79a)
@@ -195,7 +196,7 @@ function pforce_func
   implicit none
 
   vectype, dimension(dofs_per_element) :: pforce_func
-  integer :: iregion, j, magnetic_region
+  integer :: iregion, j
   real :: psimaxl, psiminl
 
   select case(ipforce)
@@ -206,7 +207,8 @@ function pforce_func
      do j=1, npoints
         temp79b(j) = aforce*(1.-temp79a(j))**nforce  &
              * dforce**2/((temp79a(j) - xforce)**2 + dforce**2)
-        iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
+        iregion = magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j), z_79(j))
         if(iregion.ge.1) temp79b(j) = 0.
      end do
 
@@ -288,7 +290,7 @@ function q_func(izone)
   vectype, dimension(dofs_per_element) :: q_func
   integer, intent(in) :: izone
   vectype, dimension(dofs_per_element) :: temp
-  integer :: nvals, j, magnetic_region
+  integer :: nvals, j
   real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
   real, dimension(MAX_PTS) :: r
@@ -337,7 +339,8 @@ function q_func(izone)
      end if
 
      do j=1, npoints
-        if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
+        if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j),z_79(j)).ne.0) &
              then
            pso = 1.
         else
@@ -457,7 +460,7 @@ function cd_func
   implicit none
 
   vectype, dimension(dofs_per_element) :: cd_func
-  integer :: iregion, j, magnetic_region
+  integer :: iregion, j
   vectype, dimension(dofs_per_element) :: temp
 
   temp = 0.
@@ -467,7 +470,8 @@ function cd_func
      do j=1,npoints
         temp79a(j) = J_0cd * exp( -(x_79(j)-R_0cd)**2/w_cd**2 &
              - (z_79(j)-Z_0cd)**2/w_cd**2 ) - delta_cd
-        iregion = magnetic_region(pst79(j,:),x_79(j),z_79(j))
+        iregion = magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j),z_79(j))
         if(iregion.ge.1) temp79a(j) = 0.
      enddo
      temp = temp + intx2(mu79(:,OP_1,:),temp79a)
@@ -560,7 +564,6 @@ function viscosity_func
   integer :: iregion, j, nvals
   real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
-  integer :: magnetic_region
 
   temp79a = 0.
 
@@ -578,7 +581,8 @@ function viscosity_func
      temp79b = (pst79(:,OP_1)-psimin)/(psibound - psimin)
      
      do j=1, npoints
-        iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
+        iregion = magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j), z_79(j))
         if(iregion.eq.2) temp79b(j) = 2. - temp79b(j)
      end do
      
@@ -608,7 +612,8 @@ function viscosity_func
      end if
      
      do j=1, npoints
-        if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
+        if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j),z_79(j)).ne.0) &
              then
            pso = 1.
         else
@@ -653,7 +658,6 @@ function kappa_func
   real :: val, valp, valpp, pso, rsq
   real, allocatable :: xvals(:), yvals(:)
   vectype, dimension(dofs_per_element) :: temp
-  integer :: magnetic_region
 
   temp = 0.
 
@@ -678,7 +682,8 @@ function kappa_func
      temp79b = (pst79(:,OP_1)-psimin)/(psibound - psimin)
      
      do j=1, npoints
-        iregion = magnetic_region(pst79(j,:), x_79(j), z_79(j))
+        iregion = magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j), z_79(j))
         if(iregion.eq.2) temp79b(j) = 2. - temp79b(j)
      end do
 
@@ -734,8 +739,8 @@ function kappa_func
      end if
      
      do j=1, npoints
-        if(magnetic_region(pst79(j,:),x_79(j),z_79(j)).ne.0) &
-             then
+        if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j),z_79(j)).ne.0) then
            pso = 1.
         else
            pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)

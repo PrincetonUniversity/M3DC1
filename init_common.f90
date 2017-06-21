@@ -127,12 +127,12 @@ subroutine init_perturbations
   use field
   use m3dc1_nint
   use newvar_mod
+  use diagnostics
 
   implicit none
 
   type(field_type) :: psi_vec, phi_vec
   integer :: itri, numelms, i, izone, imr
-  integer :: magnetic_region
   vectype, dimension(dofs_per_element) :: dofs
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations'
@@ -166,7 +166,8 @@ subroutine init_perturbations
      ! apply mask
      if(p0 .gt. 0.) then 
         do i=1, npoints
-           imr = magnetic_region(ps079(i,:), x_79(i), z_79(i))
+           imr = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+                x_79(i), z_79(i))
            if(imr.eq.0) then
               if(real(p079(i,OP_1)).gt.pedge) then
                  temp79a(i) = (p079(i,OP_1) - pedge)/p0
