@@ -794,12 +794,16 @@ subroutine set_defaults
 
   ! Output
   call add_var_int("iprint", iprint, 0, "", output_grp)
-  call add_var_int("ntimepr", ntimepr, 5, &
-       "Number of time steps per field/restart output", output_grp)
+  call add_var_int("ntimepr", ntimepr, 1, &
+       "Number of time steps per field output", output_grp)
+  call add_var_int("ntimers", ntimers, 0, &
+       "Number of time steps per restart output", output_grp)
   call add_var_int("iglobalout", iglobalout, 0, "", output_grp)
   call add_var_int("iglobalin", iglobalin, 0, "", output_grp)
-  call add_var_int("iwrite_restart", iwrite_restart, 1, &
+  call add_var_int("iwrite_restart", iwrite_restart, 0, &
        "1: Write restart files", output_grp)
+  call add_var_int("iwrite_adios", iwrite_adios, 1, &
+       "1: Use ADIOS to write restart files", output_grp)
   call add_var_int("ifout",  ifout, -1, "", output_grp)
   call add_var_int("icalc_scalars", icalc_scalars, 1, &
        "1: Calculate scalar diagnostics", output_grp)
@@ -810,6 +814,8 @@ subroutine set_defaults
   call add_var_int("ibh_harmonics", ibh_harmonics, 0, &
        "Number of Fourier harmonics of magnetic perturbation to be calculated and output", output_grp)
   call add_var_int("irestart", irestart, 0, "", output_grp)
+  call add_var_int("iread_adios", iread_adios, 0, &
+       "1: Use ADIOS to read restart files", output_grp)
   call add_var_int("itimer", itimer, 0, &
        "1: Output internal timer data", output_grp)
   call add_var_int("iwrite_transport_coeffs", iwrite_transport_coeffs, 1, &
@@ -1198,25 +1204,13 @@ subroutine validate_input
      end if
   end if
 
-!!$  if(eta_wall.ne.0 .and. iconst_bn.eq.1) then
-!!$     if(myrank.eq.0) &
-!!$          print *, 'Error: eta_wall!=0 is incompatible with iconst_bn==1'
-!!$     call safestop(1)
-!!$  endif
-!!$
-!  if(eta_wall.ne.0.) then
-!     if(maxrank.gt.1) then
-!        print *, 'Error: resistive wall only supported for single-process runs'
-!        call safestop(1)
-!     end if
-!  endif
-
   if(numvar.eq.1 .and. imp_bf.eq.1) then
      imp_bf = 0
      if(myrank.eq.0) print *, 'WARNING: numvar==1; setting imp_bf = 0'
   end if
 
   if(ntimepr.lt.1) ntimepr = 1
+  if(ntimers.le.0) ntimers = ntimepr
 
   if(nplanes.lt.1) nplanes = 1
 

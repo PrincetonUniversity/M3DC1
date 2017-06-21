@@ -189,11 +189,11 @@ Program Reducedquintic
      if(iglobalin.eq.1) then
         call rdrestartglobal
      else
-#ifdef USEADIOS
-        call rdrestart_adios
-#else
-        call rdrestart
-#endif
+        if(iread_adios.eq.1) then
+           call rdrestart_adios
+        else
+           call rdrestart
+        endif
      endif
 !
 !....use timestep from input file if not a variable timestep run

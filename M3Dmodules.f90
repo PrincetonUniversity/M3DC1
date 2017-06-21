@@ -343,6 +343,7 @@ module basic
   integer :: iprint        ! print extra debugging info
   integer :: itimer        ! print timing info
   integer :: ntimepr       ! number of timesteps per output  
+  integer :: ntimers       ! number of timesteps per restart output
   integer :: iglobalout    ! 1 = write global restart files
   integer :: iglobalin     ! 1 = read global restart files
   integer :: icalc_scalars ! 1 = calculate scalars
@@ -369,6 +370,8 @@ module basic
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
   integer :: iwrite_restart ! 0 = don't write restart files
+  integer :: iwrite_adios
+  integer :: iread_adios
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization

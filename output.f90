@@ -77,7 +77,7 @@ contains
 1003  format("OUTPUT: hdf5_write_scalars   ", I5, 1p2e16.8)
     endif
 
-    ! only write timeslice and restart files evey ntimepr timesteps
+    ! only write field data evey ntimepr timesteps
     if(mod(ntime-ntime0,ntimepr).eq.0) then
        if(iwrite_aux_vars.eq.1) then
           if(myrank.eq.0 .and. iprint.ge.2) print *, "  calculating aux fields"
@@ -95,33 +95,8 @@ contains
           if(iprint.ge.1) write(*,1004) ntime,diff,t_output_hdf5
 1004      format("OUTPUT: hdf5_write_time_slice", I5, 1p2e16.8)
        endif
-       
-       if(iwrite_restart.eq.1) then
-          if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-          if(myrank.eq.0 .and. iprint.ge.1) print *, "  writing restart files"
-          if(iglobalout.eq.1) then
-             call wrrestartglobal
-          else
-#ifdef USEADIOS
-               call wrrestart_adios
-#else
-!            call wrrestart
-!...........sequential restart writing
-            do i=0,maxrank-1
-               if(myrank.eq.i) call wrrestart
-               call MPI_Barrier(MPI_COMM_WORLD,ier)
-            enddo
-#endif
-          endif
-          if(myrank.eq.0 .and. itimer.eq.1) then
-            call second(tend)
-            diff = tend - tstart
-            if(iprint.ge.1) write(*,1006) ntime,diff,t_output_hdf5
-      1006 format("OUTPUT: wrrestart            ", I5, 1p2e16.8)
-          endif
-       endif
     endif
-    
+
     if(itimer.eq.1) then
        if(myrank.eq.0) call second(tstart)
        if(myrank.eq.0 .and. iprint.ge.2) print *, "  writing timings"
@@ -148,6 +123,33 @@ contains
   1002 format("OUTPUT: hdf5_flush           ", I5, 1p2e16.8,i5)
     end if    
 
+    ! only write restart file evey ntimers timesteps
+    if(iwrite_restart.eq.1 .and. mod(ntime-ntime0,ntimers).eq.0) then
+       if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+       if(myrank.eq.0 .and. iprint.ge.1) print *, "  writing restart files"
+       if(iglobalout.eq.1) then
+          call wrrestartglobal
+       else
+          if(iwrite_adios.eq.1) then
+             call wrrestart_adios
+          else
+!...........sequential restart writing
+             do i=0,maxrank-1
+                if(myrank.eq.i) call wrrestart
+                call MPI_Barrier(MPI_COMM_WORLD,ier)
+             enddo
+          end if
+       endif
+       if(myrank.eq.0 .and. itimer.eq.1) then
+          call second(tend)
+          diff = tend - tstart
+          if(iprint.ge.1) write(*,1006) ntime,diff,t_output_hdf5
+1006      format("OUTPUT: wrrestart            ", I5, 1p2e16.8)
+       endif
+    endif
+ 
+
+    ! Write C1ke data
     if(myrank.eq.0) then
        if((ekin+ekino)*dtold.eq.0. .or. ekin.eq.0.) then
           gamma_gr = 0.
