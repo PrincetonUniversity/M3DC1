@@ -2488,11 +2488,11 @@ end subroutine readpgfiles
 ! calculates the toroidal field (I) as a function of the 
 ! normalized flux
 !======================================================================
-pure subroutine calc_toroidal_field(psi0,tf,x,z,izone)
+pure subroutine calc_toroidal_field(ps0,tf,x,z,izone)
   use basic
   use diagnostics
 
-  vectype, intent(in), dimension(dofs_per_node)  :: psi0
+  vectype, intent(in), dimension(dofs_per_node)  :: ps0
   vectype, intent(out) :: tf    ! toroidal field (I)
   real, intent(in) :: x, z
   integer, intent(in) :: izone
@@ -2500,11 +2500,11 @@ pure subroutine calc_toroidal_field(psi0,tf,x,z,izone)
   real :: g2, g3, g4
   real :: psii     ! normalized flux
  
-  if(magnetic_region(psi0(1),psi0(2),psi0(3),x,z).ne.0 &
+  if(magnetic_region(ps0(1),ps0(2),ps0(3),x,z).ne.0 &
        .or. izone.ne.1) then
      tf = bzero*rzero
   else
-     psii = (real(psi0(1)) - psimin)/(psibound - psimin)
+     psii = (real(ps0(1)) - psimin)/(psibound - psimin)
 
      if(.not.constraint) then
         g2 = psii - 10.*psii**3 + 20.*psii**4       &
