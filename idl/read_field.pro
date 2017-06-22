@@ -3448,6 +3448,85 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!6ExB Particle Flux!X'
 
    ;===========================================
+   ; electron energy flux
+   ;===========================================
+   endif else if(strcmp('ExB_flux_pe', name, /fold_case) eq 1) then begin
+
+       pe = read_field('pe', x, y, t, slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ex = read_field('E_R', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ey = read_field('E_phi', x, y, t, slices=time, mesh=mesh,linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ez = read_field('E_Z', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+
+       Bx0 = read_field('Bx', x, y, t, slices=-1, mesh=mesh,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       By0 = read_field('By', x, y, t, slices=-1, mesh=mesh,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Bz0 = read_field('Bz', x, y, t, slices=-1, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       
+       B2 = Bx0^2 + By0^2 + Bz0^2
+
+       ; (B x y) is outward for co-IP, inward for counter-IP
+       ; (E x B).(B x y) / (B^2 |B x y|)
+       ; = [(E.B)(B.y) - (E.y)(B.B)]/[B^2 (B^2 - (B.y)^2)^(1/2)]
+       data = conj(pe)* $
+              ((Ex*Bx0 + Ey*By0 + Ez*Bz0)*By0 - Ey*B2)/ $
+              (B2 * sqrt(B2 - By0^2))
+       d = dimensions(/n0, /v0)
+       symbol = '!6ExB Electron Energy Flux!X'
+
+   ;===========================================
+   ; Ion energy flux
+   ;===========================================
+   endif else if(strcmp('ExB_flux_pi', name, /fold_case) eq 1) then begin
+
+       pi = read_field('pi', x, y, t, slices=time, mesh=mesh, linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ex = read_field('E_R', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ey = read_field('E_phi', x, y, t, slices=time, mesh=mesh,linear=linear,$
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ez = read_field('E_Z', x, y, t, slices=time, mesh=mesh, linear=linear, $
+                        filename=filename, points=pts, complex=complex, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+
+       Bx0 = read_field('Bx', x, y, t, slices=-1, mesh=mesh,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       By0 = read_field('By', x, y, t, slices=-1, mesh=mesh,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Bz0 = read_field('Bz', x, y, t, slices=-1, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       
+       B2 = Bx0^2 + By0^2 + Bz0^2
+
+       ; (B x y) is outward for co-IP, inward for counter-IP
+       ; (E x B).(B x y) / (B^2 |B x y|)
+       ; = [(E.B)(B.y) - (E.y)(B.B)]/[B^2 (B^2 - (B.y)^2)^(1/2)]
+       data = conj(pi)* $
+              ((Ex*Bx0 + Ey*By0 + Ez*Bz0)*By0 - Ey*B2)/ $
+              (B2 * sqrt(B2 - By0^2))
+       d = dimensions(/n0, /v0)
+       symbol = '!6ExB Ion Energy Flux!X'
+
+
+   ;===========================================
    ; particle flux
    ;===========================================
    endif else if(strcmp('flux_nv2', name, /fold_case) eq 1) then begin
