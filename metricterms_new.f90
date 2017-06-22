@@ -5909,6 +5909,9 @@ function b1psieta(e,f,g,h,imod)
         if(iupstream.eq.1) then 
           temp79a = abs(h(:,OP_1))*magus
           temp = temp + intx4(e(:,OP_1,:),ri2_79,f(:,OP_DPP),temp79a)
+        elseif(iupstream.eq.2) then
+          temp79a = abs(h(:,OP_1))*magus
+          temp = temp - intx4(e(:,OP_DPP,:),ri4_79,f(:,OP_DPP),temp79a)
         endif
 #endif
 
@@ -5968,6 +5971,15 @@ function b1psieta(e,f,g,h,imod)
               if(itor.eq.1) then
                  temp = temp + intx4(e(:,OP_DR,:),ri5_79,f(:,OP_DPP),temp79a)
               endif
+           elseif(iupstream.eq.2) then
+              temp79a = abs(h(:,OP_1))*magus
+              temp = temp + &
+                (intx4(e(:,OP_DZPP,:),ri6_79,f(:,OP_DZPP),temp79a) &
+                +intx4(e(:,OP_DRPP,:),ri6_79,f(:,OP_DRPP),temp79a))
+              if(itor.eq.1) then
+                 temp = temp - intx4(e(:,OP_DRPP,:),ri7_79,f(:,OP_DPP),temp79a)
+              endif
+
            endif
         end if
 #endif
@@ -7795,6 +7807,9 @@ function b2beta(e,f,g,h)
      if(iupstream.eq.1) then    
         temp79a = abs(h(:,OP_1))*magus
         temp = temp + intx4(e(:,OP_1,:),ri4_79,f(:,OP_DPP),temp79a)
+     elseif(iupstream.eq.2) then
+        temp79a = abs(h(:,OP_1))*magus
+        temp = temp - intx4(e(:,OP_DPP,:),ri6_79,f(:,OP_DPP),temp79a)
      endif
 #endif     
 
@@ -9158,6 +9173,11 @@ function b3pedkappa(e,f,g,h,i)
      endif
      temp = temp +                       &
           intx5(e(:,OP_1,:),ri2_79,f(:,OP_DPP),g(:,OP_1),temp79a)
+     if(iupstream.eq.2) then
+       temp79a = abs(i(:,OP_1))*magus
+     temp = temp -                       &
+          intx5(e(:,OP_DPP,:),ri4_79,f(:,OP_DPP),g(:,OP_1),temp79a)
+     endif
 #endif
      if(hypp.ne.0.) then
         ! Laplacian[f g]
@@ -9211,6 +9231,11 @@ vectype function b3tekappa(e,f,g,h)
      endif
      temp = temp +                       &
           int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
+     if(iupstream.eq.2) then    
+        temp79a = abs(h(:,OP_1))*magus
+        temp = temp -                    &
+          int4(ri4_79,e(:,OP_DPP),f(:,OP_DPP),temp79a)
+     endif
 #endif
      if(hypp.ne.0.) then
 
@@ -9334,10 +9359,14 @@ function n1ndenm(e,f,g,h)
 
 #if defined(USE3D) || defined(USECOMPLEX)
      temp79a = g
-     if(iupstream .eq. 1) then     !DEBUG
+     if(iupstream .eq. 1) then   
         temp79a = temp79a+abs(h(:,OP_1))*magus
      endif
      temp = temp + intx4(e(:,OP_1,:),ri2_79,f(:,OP_DPP),temp79a)
+     if(iupstream .eq. 2) then   
+        temp79a = abs(h(:,OP_1))*magus
+        temp = temp - intx4(e(:,OP_DPP,:),ri4_79,f(:,OP_DPP),temp79a)
+     endif
 #endif
 
      if(hypp.ne.0.) then
