@@ -9,7 +9,7 @@ module diagnostics
 
   implicit none
 
-  real :: tflux0, totcur0
+  real :: tflux0
 
   ! scalars integrated over entire computational domain
   real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad

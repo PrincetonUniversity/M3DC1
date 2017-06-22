@@ -1,24 +1,3 @@
-subroutine f07adf(m,n,a,lda,ipiv,info)
-  integer, intent(in) :: m, n, lda
-  double precision, dimension(lda,n), intent(inout) :: a
-  integer, dimension(min(m,n)), intent(out) :: ipiv
-  integer, intent(out) :: info
-
-  call DGETRF(m,n,a,lda,ipiv,info)
-  return
-end subroutine f07adf
-
-subroutine f07ajf(n,a,lda,ipiv,work,lwork,info)
-  integer, intent(in) :: n, lda, lwork
-  double precision, dimension(lda,n), intent(inout) :: a
-  integer, dimension(n), intent(in) :: ipiv
-  double precision, dimension(max(1,lwork)), intent(out) :: work
-  integer, intent(out) :: info
-  
-  call DGETRI(n,a,lda,ipiv,work,lwork,info)
-  return
-end subroutine f07ajf
-
 ! ----------------------------------------------------------------------
       FUNCTION BESSK0(X)
 !     CALCUL DE LA FONCTION BESSEL MODIFIEE DU 3EME ESPECE D'ORDRE 0

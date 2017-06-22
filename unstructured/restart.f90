@@ -15,12 +15,14 @@ subroutine wrrestart
   integer, save :: ifirstrs = 1
   character (len=30) :: fname
   vectype, allocatable :: data_buff(:)
+  real :: dum
 
   call createfilename(fname)
   numnodes = local_nodes()
   numelms = local_elements()
   
   ifirstrs = 0
+  dum = 0.
 
   if (myrank .eq. 0) &
        write(*,*) '[P',myrank,'] write file ',fname
@@ -54,7 +56,7 @@ subroutine wrrestart
   enddo
 
   write(56) ntime,time,dt
-  write(56) totcur0,tflux0,gbound,ptot,vloop,   &
+  write(56) dum,tflux0,gbound,ptot,vloop,   &
           i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   write(56) psimin,psilim,psibound
   write(56) xnull, znull
@@ -124,7 +126,7 @@ subroutine rdrestart
   character (len=30) :: fname
   integer :: ndofs
   integer :: iversion
-  real :: vloopsave, pelletratesave
+  real :: vloopsave, pelletratesave, dum
   vectype, allocatable :: data_buff(:)
 
   ! check if 2D-to-3D case
@@ -213,7 +215,7 @@ else
 
   vloopsave = vloop
   read(56) ntime,time,dt
-  read(56) totcur0,tflux0,gbound,ptot,vloop,   &
+  read(56) dum,tflux0,gbound,ptot,vloop,   &
           i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   read(56,END=1199) psimin,psilim,psibound
   read(56,END=1199) xnull,znull
@@ -307,7 +309,7 @@ subroutine rdrestart_2d23d
   character (len=30) :: fname
   integer :: prev_ndofs1, ndofs1, prev_ndofs2, ndofs2, group_rank
   integer :: prev_ndofs1_pernode, prev_ndofs2_pernode, cur_ndofs1_pernode, cur_ndofs2_pernode 
-  real :: vloopsave, pelletratesave
+  real :: vloopsave, pelletratesave, dum
  real, allocatable :: data_buf(:) 
   real, dimension(num_fields*12*2):: dofs_node ! buffer for dofs per node
 
@@ -396,7 +398,7 @@ subroutine rdrestart_2d23d
 
   vloopsave = vloop
   read(56) ntime,time,dt
-  read(56) totcur0,tflux0,gbound,ptot,vloop,   &
+  read(56) dum,tflux0,gbound,ptot,vloop,   &
           i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   read(56,END=1199) psimin,psilim,psibound
   read(56,END=1199) xnull,znull
@@ -542,7 +544,7 @@ subroutine rdrestart_cplx
   integer :: iversion
   real :: vloopsave, pelletratesave
   vectype, allocatable :: data_buff(:)
-  real :: tmprestart
+  real :: tmprestart, dum
 
 
   call createfilename(fname)
@@ -620,7 +622,7 @@ subroutine rdrestart_cplx
 
   vloopsave = vloop
   read(56) ntime,time,dt
-  read(56) totcur0,tflux0,gbound,ptot,vloop,   &
+  read(56) dum,tflux0,gbound,ptot,vloop,   &
           i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   read(56,END=1199) psimin,psilim,psibound
   read(56,END=1199) xnull,znull
@@ -841,6 +843,7 @@ subroutine wrrestartglobal
   integer :: recvinfo(1)
   integer :: status(MPI_STATUS_SIZE)
   vectype, allocatable :: data_buff(:) ,data_buff2(:)
+  real :: dum
   data ifirstrs2/1/
 
   if(ifirstrs2 .ne. 1 .and. myrank .eq. 0) then
@@ -850,6 +853,7 @@ subroutine wrrestartglobal
   mpitag = 9070
   recvinfo(1) = 1
   ierr = 0
+  dum = 0.
 
   if(myrank .ne. 0) then
      ! unaligned access warnings on PPPL sgi machines 
@@ -886,7 +890,7 @@ subroutine wrrestartglobal
      write(56) iper
      write(56) jper   
      write(56) ntime,time,dt
-     write(56) totcur0,tflux0,gbound,ptot,vloop,   &
+     write(56) dum,tflux0,gbound,ptot,vloop,   &
           i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
      write(56) icomplex
   endif
@@ -954,7 +958,7 @@ subroutine rdrestartglobal
   integer :: numdofsglobal, numentsglobal(4), i, numnodes, globalid, ndofs
   integer :: in1, in2, in3
   integer :: icomp
-  real :: vloopsave
+  real :: vloopsave, dum
   vectype, allocatable :: data_buff(:) ,data_buff2(:)
   open(56,file='C1restart',form='unformatted',status='old')
       
@@ -981,7 +985,7 @@ subroutine rdrestartglobal
   read(56) iper
   read(56) jper   
   read(56) ntime,time,dt
-  read(56) totcur0,tflux0,gbound,ptot,vloop,   &
+  read(56) dum,tflux0,gbound,ptot,vloop,   &
           i_control%err_i, i_control%err_p_old, n_control%err_i, n_control%err_p_old
   read(56) icomp
   if(control_type .eq. -1) vloop = vloopsave  ! vloop from input if no I control
@@ -1081,10 +1085,12 @@ subroutine wrrestart_adios
   real, allocatable :: tmp_bf_field_1(:), tmp_bf_field_0(:)
   real, allocatable :: tmp_psi_ext(:), tmp_bz_ext(:), tmp_bf_ext(:)
   real, allocatable :: tmp_psi_coil_field(:)
+  real :: dum
 
   integer :: useext
   integer :: adios_groupsize, adios_totalsize
 
+  dum = 0.
   fname="restart.bp"
   numnodes = local_nodes()
   numelms = local_elements()
@@ -1166,7 +1172,6 @@ subroutine wrrestart_adios
     call adios_write (adios_handle, "ntime", ntime, adios_err)
     call adios_write (adios_handle, "time", time, adios_err)
     call adios_write (adios_handle, "dt", dt, adios_err)
-    call adios_write (adios_handle, "totcur0", totcur0, adios_err)
     call adios_write (adios_handle, "tflux0", tflux0, adios_err)
     call adios_write (adios_handle, "gbound", gbound, adios_err)
     call adios_write (adios_handle, "ptot", ptot, adios_err)
@@ -1249,7 +1254,7 @@ subroutine rdrestart_adios
   integer :: prev_maxrank, cur_nelms, prev_eqsubtract, prev_linear, prev_comp
   character (len=30) :: fname
   integer :: cur_ndofs1, cur_ndofs2, prev_ndofs1, prev_ndofs2
-  real :: vloopsave, pelletratesave
+  real :: vloopsave, pelletratesave, dum
 
   ! ADIOS variables declarations for matching gread_restart_c11.fh &  gread_restart_c12.fh
   integer             :: comm, ierr, ier, itmp
@@ -1326,7 +1331,6 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "ntime",      group_rank, start, readsize, ntime, read_bytes)
     call adios_read_local_var (gh, "time",       group_rank, start, readsize, time, read_bytes)
     call adios_read_local_var (gh, "dt",         group_rank, start, readsize, dt, read_bytes)
-    call adios_read_local_var (gh, "totcur0",    group_rank, start, readsize, totcur0, read_bytes)
     call adios_read_local_var (gh, "tflux0",     group_rank, start, readsize, tflux0, read_bytes)
     call adios_read_local_var (gh, "gbound",     group_rank, start, readsize, gbound, read_bytes)
     call adios_read_local_var (gh, "ptot",       group_rank, start, readsize, ptot, read_bytes)

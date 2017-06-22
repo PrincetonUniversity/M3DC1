@@ -340,19 +340,11 @@ contains
   ! define the 20 x 20 Transformation Matrix that enforces the condition that
   ! the nomal slope between triangles has only cubic variation..
   !============================================================
-  subroutine tmatrix(ti,ndim,a,b,c)
+  pure subroutine tmatrix(t,a,b,c)
     implicit none
-    integer, intent(in) :: ndim
-    real, intent(out) :: ti(ndim,*)
     real, intent(in) :: a, b, c
-    
-    integer :: ifail, info1, info2
-    real :: danaly, det, percent, diff
-    real :: t(coeffs_per_tri,coeffs_per_tri), wkspce(9400)
-    integer :: ipiv(coeffs_per_tri)
-    
-    integer, parameter :: ierrorchk = 0
-    
+    real, intent(out) :: t(coeffs_per_tri,coeffs_per_tri)
+        
     ! first initialize to zero
     t = 0
     
@@ -466,33 +458,38 @@ contains
     t(20,18) = 2*b*c**4 - 3*b**3*c**2
     t(20,19) = c**5 - 4*b**2*c**3
     t(20,20) = -5*b*c**4
-    
-    if(ierrorchk.eq.1) then
-       ! analytic formula for determinant
-       danaly = -64*(a+b)**17*c**20*(a**2+c**2)*(b**2+c**2)
-       
-       ! calculate determinant using nag
-       ifail = 0
-       ti(1:20,1:20) = t
-       det = 0.
-       !     call f03aaf(ti,20,20,det,wkspce,ifail)
-       
-       diff = det - danaly
-       percent = 100* diff / danaly
-       
-       if(abs(percent) .gt. 1.e-12) &
-            print *, "percent error in determinant: ", percent
-    endif
-    
-    ! calculate the inverse of t using lapack routines
-    info1 = 0
-    info2 = 0
-    ti(1:20,1:20) = t
-    call f07adf(20,20,ti,20,ipiv,info1)
-    call f07ajf(20,ti,20,ipiv,wkspce,400,info2)
-    if(info1.ne.0.or.info2.ne.0) write(*,'(3I5)') info1,info2
-    
   end subroutine tmatrix
+
+  !============================================================
+  ! tmatrix
+  ! ~~~~~~~
+  ! define the 20 x 20 Transformation Matrix that enforces the condition that
+  ! the nomal slope between triangles has only cubic variation..
+  !============================================================
+  pure subroutine hmatrix(h,d)
+    implicit none
+    real, intent(in) :: d
+    real, intent(out) :: h(coeffs_per_dphi,coeffs_per_dphi)
+        
+    ! first initialize to zero
+    h = 0.
+
+    h(1,1) = 1.
+
+#ifdef USE3D
+    h(2,2) = 1.
+
+    h(3,1) = 1.
+    h(3,2) = d
+    h(3,3) = d**2
+    h(3,4) = d**3
+
+    h(4,1) = 0.
+    h(4,2) = 1.
+    h(4,3) = 2.*d
+    h(4,4) = 3.*d**2
+#endif
+  end subroutine hmatrix
 
 
   !======================================================================
@@ -564,6 +561,7 @@ contains
        end do
     end if
   end subroutine local_coeffs
+
 
 
 !!$  !======================================================================

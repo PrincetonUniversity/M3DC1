@@ -14,8 +14,8 @@ contains
     implicit none
 
     integer :: ier
-
-    call hdf5_initialize(ntime.gt.0,ier)
+    
+    call hdf5_initialize(irestart.ne.0,ier)
     if(ier.lt.0) then 
        print *, "Error initializing HDF5"
        call safestop(5)
@@ -217,12 +217,7 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "ifixedb"    , ifixedb,    error)
   call write_int_attr (root_id, "imulti_region", imulti_region, error)
   call write_real_attr(root_id, "db"         , db,         error)
-  call write_real_attr(root_id, "xlim"       , xlim,       error)
-  call write_real_attr(root_id, "zlim"       , zlim,       error)
-  call write_real_attr(root_id, "xmag"       , xmag,       error)
-  call write_real_attr(root_id, "zmag"       , zmag,       error)
   call write_real_attr(root_id, "rzero"      , rzero,      error)
-  call write_real_attr(root_id, "vloop"      , vloop,      error)
   call write_real_attr(root_id, "gam"        , gam,        error)
   call write_real_attr(root_id, "thimp"      , thimp,      error)
   call write_real_attr(root_id, "bzero"      , bzero,      error)
@@ -237,10 +232,6 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "kappa0"     , kappa0,     error)
   call write_real_attr(root_id, "kappat"     , kappat,     error)
   call write_real_attr(root_id, "denm"       , denm,       error)
-  call write_real_attr(root_id, "pellet_var" , pellet_var, error)
-  call write_real_attr(root_id, "pellet_velx", pellet_velx,error)
-  call write_real_attr(root_id, "pellet_velphi", pellet_velphi, error)
-  call write_real_attr(root_id, "pellet_velz", pellet_velz,error)
   call write_real_attr(root_id, "ln"         , ln,         error)
   call write_real_attr(root_id, "hyper"      , hyper,      error)
   call write_real_attr(root_id, "hyperi"     , hyperi,     error)
@@ -259,6 +250,7 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "eta_te_offset", eta_te_offset, error)
   call write_int_attr (root_id, "imag_probes", imag_probes, error)
   call write_int_attr (root_id, "iflux_loops", iflux_loops, error)
+  call write_real_attr(root_id, "tflux0"     , tflux0,      error)
 
   call h5gclose_f(root_id, error)
 
@@ -284,19 +276,60 @@ subroutine hdf5_write_scalars(error)
 
   if(ntime.eq.0) then
      call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
+     call write_int_attr(scalar_group_id, "ntimestep", ntime, error)
      if(imag_probes.ne.0) call h5gcreate_f(root_id, "mag_probes", mp_group_id, error)
      if(iflux_loops.ne.0) call h5gcreate_f(root_id, "flux_loops", fl_group_id, error)
   else
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
+     call update_int_attr(scalar_group_id, "ntimestep", ntime, error)
      if(imag_probes.ne.0) call h5gopen_f(root_id, "mag_probes", mp_group_id, error)
      if(iflux_loops.ne.0) call h5gopen_f(root_id, "flux_loops", fl_group_id, error)
   endif
 
+  ! State Variables (needed for restart)
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  ! Time step
   call output_scalar(scalar_group_id, "time" , time, ntime, error)
   call output_scalar(scalar_group_id, "dt" ,     dt, ntime, error)
 
-  call output_scalar(scalar_group_id, "loop_voltage"    , vloop , ntime, error)
+  ! Magnetic geometry
+  call output_scalar(scalar_group_id, "xnull"   ,xnull   ,ntime,error)
+  call output_scalar(scalar_group_id, "znull"   ,znull   ,ntime,error)
+  call output_scalar(scalar_group_id, "xnull2"  ,xnull2  ,ntime,error)
+  call output_scalar(scalar_group_id, "znull2"  ,znull2  ,ntime,error)
+  call output_scalar(scalar_group_id, "xmag"    ,xmag    ,ntime,error)
+  call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
+
+  ! Pellet stuff
+  call output_scalar(scalar_group_id, "pellet_x",   pellet_x,   ntime, error)
+  call output_scalar(scalar_group_id, "pellet_phi", pellet_phi, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_z",   pellet_z,   ntime, error)
+  call output_scalar(scalar_group_id, "pellet_velx", pellet_velx, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_velphi", pellet_velphi, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_velz", pellet_velz, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_var", pellet_var, ntime, error)
+  call output_scalar(scalar_group_id, "r_p",        r_p,        ntime, error)
+  call output_scalar(scalar_group_id, "r_p2",       r_p2,       ntime, error)
   call output_scalar(scalar_group_id, "pellet_rate", pellet_rate, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_rate1",  pellet_rate1, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_rate2", pellet_rate2, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_ablrate", pellet_ablrate, ntime, error)
+
+  ! Controllers
+  call output_scalar(scalar_group_id, "loop_voltage",        vloop,               ntime, error)
+  call output_scalar(scalar_group_id, "i_control%err_i",     i_control%err_i,     ntime, error)
+  call output_scalar(scalar_group_id, "i_control%err_p_old", i_control%err_p_old, ntime, error)
+  call output_scalar(scalar_group_id, "n_control%err_i",     n_control%err_i,     ntime, error)
+  call output_scalar(scalar_group_id, "n_control%err_p_old", n_control%err_p_old, ntime, error)
+
+
+  ! Diagnostics (Not needed for restart)
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  call output_scalar(scalar_group_id, "psi0", psi0, ntime, error)
+  call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
+  call output_scalar(scalar_group_id, "temax"  ,temax  ,ntime,error)
+  call output_scalar(scalar_group_id, "runaways", totre, ntime, error)
   call output_scalar(scalar_group_id, "psi_lcfs"        , psibound,ntime,error)
 
   call output_scalar(scalar_group_id, "area"            , area  , ntime, error)
@@ -306,9 +339,6 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
-  if(rad_source) then
-     call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
-  endif
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
@@ -347,6 +377,19 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Flux_thermal  ", efluxt, ntime, error)
   call output_scalar(scalar_group_id, "E_grav        ", epotg,  ntime, error)
 
+  if(rad_source) then
+     call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
+  endif
+
+  if(xray_detector_enabled.eq.1) then
+     call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
+  end if
+
+  if(itaylor.eq.3) then
+     temp = reconnected_flux()
+     call output_scalar(scalar_group_id, "Reconnected_Flux", temp, ntime, error)
+  endif
+
   call output_scalar(scalar_group_id, "Particle_Flux_diffusive", &
        nfluxd, ntime, error)
   call output_scalar(scalar_group_id, "Particle_Flux_convective", &
@@ -363,35 +406,8 @@ subroutine hdf5_write_scalars(error)
 
   call output_scalar(scalar_group_id, "Parallel_viscous_heating",bwb2,ntime,error)
 
-  call output_scalar(scalar_group_id, "xnull"   ,xnull   ,ntime,error)
-  call output_scalar(scalar_group_id, "znull"   ,znull   ,ntime,error)
-  call output_scalar(scalar_group_id, "xmag"    ,xmag    ,ntime,error)
-  call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
-  call output_scalar(scalar_group_id, "psimin"  ,psimin  ,ntime,error)
-  call output_scalar(scalar_group_id, "temax"  ,temax  ,ntime,error)
 
-  call output_scalar(scalar_group_id, "pellet_x",   pellet_x,   ntime, error)
-  call output_scalar(scalar_group_id, "pellet_phi", pellet_phi, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_z",   pellet_z,   ntime, error)
-  call output_scalar(scalar_group_id, "r_p",        r_p,        ntime, error)
-  call output_scalar(scalar_group_id, "r_p2",       r_p2,       ntime, error)
-  call output_scalar(scalar_group_id, "pellet_rate1",  pellet_rate1, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_rate2", pellet_rate2, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_ablrate", pellet_ablrate, ntime, error)
-
-  call output_scalar(scalar_group_id, "psi0", psi0, ntime, error)
-
-  call output_scalar(scalar_group_id, "runaways", totre, ntime, error)
-
-  if(xray_detector_enabled.eq.1) then
-     call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
-  end if
-
-  if(itaylor.eq.3) then
-     temp = reconnected_flux()
-     call output_scalar(scalar_group_id, "Reconnected_Flux", temp, ntime, error)
-  endif
-
+  ! Probes
   if(imag_probes.ne.0) then
      call output_1dextendarr(mp_group_id, "value", mag_probe_val, imag_probes, &
           ntime, error)
@@ -476,18 +492,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   integer(HID_T) :: time_file_id, time_root_id, plist_id
   integer :: info
 
-  nelms = local_elements()
-
-  ! Calculate offset of current process
-  call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
-  offset = offset - nelms
-!  print *, "Offset of ", myrank, " = ", offset
-!  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
-!  print *, 'myrank, local_elms, global_elms, offset', &
-!       myrank, nelms, global_elms, offset
-  call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, &
-       MPI_SUM, MPI_COMM_WORLD, error)
-
+  call hdf5_get_local_elms(nelms, error)
 
   ! create the name of the group
   if(equilibrium.eq.1) then
@@ -539,6 +544,8 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 #else
      call write_int_attr(time_root_id, "nspace", 2, error)
 #endif
+     ! Time step associated with this time slice
+     call write_int_attr(time_root_id, "ntimestep", ntime, error)
      
      ! Output the mesh data
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing mesh '
@@ -570,7 +577,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   call h5lcreate_external_f(time_file_name, "/", root_id, time_group_name, &
        error)
   
-  ! update number of tile slices
+  ! update number of time slices
   if(equilibrium.eq.0) times_output = times_output + 1
   call update_int_attr(root_id, "ntime", times_output, error)
 
@@ -688,12 +695,11 @@ subroutine output_fields(time_group_id, equilibrium, error)
   integer, intent(in) :: equilibrium
   
   integer(HID_T) :: group_id
-  integer :: i, nelms, nfields, ilin
+  integer :: i, nelms, ilin
   vectype, allocatable :: dum(:,:), dum2(:,:)
 
   ilin = 1 - equilibrium
 
-  nfields = 0
   nelms = local_elements()
   error = 0
   
@@ -716,11 +722,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "psi_plasma", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #ifdef USECOMPLEX
      call output_field(group_id,"psi_plasma_i",aimag(dum),coeffs_per_element, &
           nelms,error)
-     nfields = nfields + 1
 #endif
   end if
 
@@ -746,11 +750,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end if
   call output_field(group_id, "psi", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"psi_i",aimag(dum),coeffs_per_element, &
        nelms,error)
-  nfields = nfields + 1
 #endif
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after psi in output_fields'
@@ -761,11 +763,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "phi", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"phi_i",aimag(dum),coeffs_per_element, &
        nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after u in output_fields'
 
@@ -776,11 +776,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "potential", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #ifdef USECOMPLEX
      call output_field(group_id, "potential_i", aimag(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #endif
   endif
 
@@ -791,11 +789,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
   if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
      call output_field(group_id, "I_plasma", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #ifdef USECOMPLEX
      call output_field(group_id,"I_plasma_i",aimag(dum),coeffs_per_element, &
           nelms,error)
-     nfields = nfields + 1
 #endif
 
      allocate(dum2(coeffs_per_element,nelms))
@@ -807,11 +803,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end if
   call output_field(group_id, "I", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"I_i",aimag(dum),coeffs_per_element, &
        nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after i in output_fields'
 
@@ -824,11 +818,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
         call output_field(group_id, "f_plasma", real(dum), coeffs_per_element, &
              nelms, error)
-        nfields = nfields + 1
 #ifdef USECOMPLEX
         call output_field(group_id,"f_plasma_i",aimag(dum),coeffs_per_element, &
              nelms,error)
-        nfields = nfields + 1
 #endif
 
         allocate(dum2(coeffs_per_element,nelms))
@@ -840,11 +832,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end if
      call output_field(group_id, "f", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #ifdef USECOMPLEX
      call output_field(group_id,"f_i",aimag(dum),coeffs_per_element, &
           nelms,error)
-     nfields = nfields + 1
 #endif
   endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after bf in output_fields'
@@ -855,11 +845,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "V", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"V_i",aimag(dum),coeffs_per_element, &
        nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after v in output_fields'
     
@@ -869,11 +857,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "Pe", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"Pe_i",aimag(dum),coeffs_per_element, &
        nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after pe in output_fields'
   
@@ -883,11 +869,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "P", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
        nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after p  in output_fields'
   
@@ -896,11 +880,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call calcavector(i, chi_field(ilin), dum(:,i))
   end do
   call output_field(group_id,"chi",real(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
   
 #ifdef USECOMPLEX
   call output_field(group_id,"chi_i",aimag(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after chi in output_fields'
   
@@ -910,10 +892,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "den", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"den_i",aimag(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after den in output_fields'
   
@@ -923,10 +903,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "te", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"te_i",aimag(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after te in output_fields'
   
@@ -936,10 +914,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end do
   call output_field(group_id, "ti", real(dum), coeffs_per_element, &
        nelms, error)
-  nfields = nfields + 1
 #ifdef USECOMPLEX
   call output_field(group_id,"ti_i",aimag(dum),coeffs_per_element,nelms,error)
-  nfields = nfields + 1
 #endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after ti in output_fields'
   
@@ -950,7 +926,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "psi_coil", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
   end if
 
 #ifdef USEPARTICLES
@@ -962,7 +937,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
         end do
         call output_field(group_id, "p_i_perp", real(dum), coeffs_per_element, &
              nelms, error)
-        nfields = nfields + 1
      endif
 
      if (associated(p_i_par%vec)) then
@@ -972,7 +946,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
         end do
         call output_field(group_id, "p_i_par", real(dum), coeffs_per_element, &
              nelms, error)
-        nfields = nfields + 1
      endif
   endif
 #endif
@@ -984,11 +957,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "psi_ext", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #ifdef USECOMPLEX
      call output_field(group_id, "psi_ext_i",aimag(dum),coeffs_per_element,&
           nelms, error)
-     nfields = nfields + 1
 #endif
      
      ! bz_ext
@@ -997,11 +968,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "I_ext", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #ifdef USECOMPLEX
      call output_field(group_id, "I_ext_i",aimag(dum),coeffs_per_element,&
           nelms, error)
-     nfields = nfields + 1
 #endif
      
      ! bf_ext
@@ -1010,11 +979,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "f_ext", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #ifdef USECOMPLEX
      call output_field(group_id, "f_ext_i",aimag(dum),coeffs_per_element,&
           nelms, error)
-     nfields = nfields + 1
 #endif
   endif !(use_external_fields)
 
@@ -1025,7 +992,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "eta", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
      
      ! visc
      do i=1, nelms
@@ -1033,7 +999,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "visc", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
      
      ! poloidal force and mach number
      if(ipforce.gt.0) then
@@ -1042,14 +1007,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
         end do
         call output_field(group_id, "pforce", real(dum), coeffs_per_element, &
              nelms, error)
-        nfields = nfields + 1
         
         do i=1, nelms
            call calcavector(i, pmach_field, dum(:,i))
         end do
         call output_field(group_id, "pmach", real(dum), coeffs_per_element, &
              nelms, error)
-        nfields = nfields + 1
      endif
      
      ! kappa
@@ -1058,7 +1021,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "kappa", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
      
      ! visc_c
      do i=1, nelms
@@ -1066,7 +1028,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "visc_c", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
      
      if(ibootstrap.gt.0) then
         ! visc_e
@@ -1075,7 +1036,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
         end do
         call output_field(group_id, "visc_e", real(dum), coeffs_per_element, &
              nelms, error)
-        nfields = nfields + 1
      endif
   end if !(iwrite_transport_coeffs.eq.1)
   if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_transport_coefsin output_fields'
@@ -1086,11 +1046,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call output_field(group_id, "n_re", real(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #ifdef USECOMPLEX
      call output_field(group_id, "n_re_i", aimag(dum), coeffs_per_element, &
           nelms, error)
-     nfields = nfields + 1
 #endif
   end if
 
@@ -1101,11 +1059,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "jphi", real(dum), coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id, "jphi_i", aimag(dum), coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
   
     ! vor
@@ -1114,7 +1070,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "vor", real(dum), coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1 
     
     ! com
     do i=1, nelms
@@ -1122,7 +1077,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "com", real(dum), coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
     
     ! torque_em
     do i=1, nelms
@@ -1130,11 +1084,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "torque_em", real(dum), coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id, "torque_em_i",aimag(dum),coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
     
     ! torque_ntv
@@ -1143,11 +1095,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id,"torque_ntv", real(dum), coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id,"torque_ntv_i",aimag(dum),coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
     
     ! bdotgradp
@@ -1156,11 +1106,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "bdotgradp", real(dum), coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id, "bdotgradp_i",aimag(dum),coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
     
     ! bdotgradt
@@ -1169,11 +1117,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "bdotgradt", real(dum), coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id, "bdotgradt_i",aimag(dum),coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
     if(itemp_plot .eq. 1) then
        ! vdotgradt
@@ -1182,11 +1128,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "vdotgradt", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "vdotgradt_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! adv1
@@ -1195,11 +1139,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "adv1", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "adv1_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! adv2
@@ -1208,11 +1150,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "adv2", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "adv2_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! adv3
@@ -1221,11 +1161,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "adv3", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "adv3_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! deldotq_perp
@@ -1234,7 +1172,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "deldotq_perp", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
 
     ! deldotq_par
        do i=1, nelms
@@ -1242,7 +1179,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "deldotq_par", real(dum), &
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 
     ! eta_jsq
        do i=1, nelms
@@ -1250,7 +1186,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "eta_jsq", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 
     ! vpar
        do i=1, nelms
@@ -1258,7 +1193,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "vpar", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 
        ! f1vplot
        do i=1, nelms
@@ -1266,11 +1200,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "f1vplot", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "f1vplot_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! f1eplot
@@ -1279,11 +1211,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "f1eplot", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "f1eplot_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! f2vplot
@@ -1292,11 +1222,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "f2vplot", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "f2vplot_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! f2eplot
@@ -1305,11 +1233,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "f2eplot", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "f2eplot_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! f3vplot
@@ -1318,11 +1244,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "f3vplot", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "f3vplot_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! f3eplot
@@ -1331,11 +1255,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "f3eplot", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "f3eplot_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
 
        ! jdbobs
@@ -1344,11 +1266,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "jdbobs", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
 #ifdef USECOMPLEX
        call output_field(group_id, "jdbobs_i",aimag(dum),&
             coeffs_per_element,nelms, error)
-       nfields = nfields + 1
 #endif
     endif    ! on itemp_plot .eq. 1
     
@@ -1359,7 +1279,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "sigma", real(dum), coeffs_per_element, &
             nelms, error)
-       nfields = nfields + 1
     endif
     
     ! momentum source
@@ -1369,7 +1288,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "force_phi", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
     endif
     
     ! heat source
@@ -1379,7 +1297,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "heat_source", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
     endif
     
     ! radiation source
@@ -1389,7 +1306,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "rad_source", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
     endif
     
     ! current drive source
@@ -1399,7 +1315,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "cd_source", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
     endif
     
     if(xray_detector_enabled.eq.1) then 
@@ -1409,7 +1324,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id,"chord_mask",real(dum),coeffs_per_element,&
             nelms, error)
-       nfields = nfields + 1
     end if
 
     ! magnetic region
@@ -1418,7 +1332,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "magnetic_region", real(dum), &
          coeffs_per_element, nelms, error)
-    nfields = nfields + 1
 
     ! mesh zone
     do i=1, nelms
@@ -1426,7 +1339,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "mesh_zone", real(dum), &
          coeffs_per_element, nelms, error)
-    nfields = nfields + 1
 
     ! electric_field
     do i=1, nelms
@@ -1434,11 +1346,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "E_R", real(dum), &
          coeffs_per_element, nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id, "E_R_i",aimag(dum),coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
 
     do i=1, nelms
@@ -1446,11 +1356,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "E_PHI", real(dum), &
          coeffs_per_element, nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id, "E_PHI_i",aimag(dum),coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
 
     do i=1, nelms
@@ -1458,11 +1366,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "E_Z", real(dum), &
          coeffs_per_element, nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id, "E_Z_i",aimag(dum),coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
 
     do i=1, nelms
@@ -1470,11 +1376,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "E_par", real(dum), &
          coeffs_per_element, nelms, error)
-    nfields = nfields + 1
 #ifdef USECOMPLEX
     call output_field(group_id, "E_par_i",aimag(dum),coeffs_per_element, &
          nelms, error)
-    nfields = nfields + 1
 #endif
 
     do i=1, nelms
@@ -1482,7 +1386,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
     end do
     call output_field(group_id, "eta_J", real(dum), &
          coeffs_per_element, nelms, error)
-    nfields = nfields + 1
 
     if(jadv.eq.0) then
        do i=1, nelms
@@ -1490,35 +1393,30 @@ subroutine output_fields(time_group_id, equilibrium, error)
        end do
        call output_field(group_id, "psidot", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
 
        do i=1, nelms
           call calcavector(i, veldif, dum(:,i))
        end do
        call output_field(group_id, "veldif", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
 
        do i=1, nelms
           call calcavector(i, eta_jdb, dum(:,i))
        end do
        call output_field(group_id, "eta_jdb", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
 
        do i=1, nelms
           call calcavector(i, bdgp, dum(:,i))
        end do
        call output_field(group_id, "bdgp", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
 
        do i=1, nelms
           call calcavector(i, vlbdgp, dum(:,i))
        end do
        call output_field(group_id, "vlbdgp", real(dum), &
             coeffs_per_element, nelms, error)
-       nfields = nfields + 1
     endif
 
  endif !(iwrite_aux_vars.eq.1)
@@ -1529,13 +1427,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
 !!$     dum(1,:) = myrank
 !!$     call output_field(group_id, "part", real(dum), coeffs_per_element, &
 !!$          nelms, error)
-!!$     nfields = nfields + 1
 !!$  end if
      
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before write_int_attr in output_fields'
-  call write_int_attr(group_id, "nfields", nfields, error)
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_int_attr in output_fields'
-
   ! Close the mesh group
   call h5gclose_f(group_id, error)
 
