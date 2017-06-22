@@ -823,4 +823,85 @@ contains
     call m3dc1_ent_getgeomclass(elem_dim, itri-1,izonedim,izone)
   end subroutine get_zone
 
+  !======================================================================
+  ! local_dof_vector
+  ! ~~~~~~~~~~~~~~~~~~
+  ! calculates the coefficients of the polynomial expansion of the
+  ! field in the element domain
+  !======================================================================
+  subroutine local_dof_vector(itri, c)
+    implicit none
+
+    integer, intent(in) :: itri
+    real, intent(out), dimension(dofs_per_element,coeffs_per_element) :: c
+
+    type(element_data) :: d
+    real, dimension(coeffs_per_tri,coeffs_per_tri) :: t
+    real, dimension(coeffs_per_dphi,coeffs_per_dphi) :: h
+    integer :: i, j, k, l, m, n
+    integer :: idof, icoeff, ip, it
+
+    call get_element_data(itri,d)
+    call tmatrix(t,d%a,d%b,d%c)
+    call hmatrix(h,d%d)
+
+    c = 0.
+
+    icoeff = 0
+    do i=1,coeffs_per_dphi
+       do j=1,coeffs_per_tri
+          icoeff = icoeff + 1
+          idof = 0
+          do k=1,tor_nodes_per_element
+             do l=1,pol_nodes_per_element
+                do m=1,tor_dofs_per_node
+                   do n=1,pol_dofs_per_node
+                      idof = idof + 1
+                      
+                      ip = n + (l-1)*pol_dofs_per_node
+                      it = m + (k-1)*tor_dofs_per_node
+                      c(idof,icoeff) = c(idof,icoeff) &
+                           + h(it,i)*t(ip,j)
+                   end do
+                end do
+             end do
+          end do
+       end do
+    end do
+  end subroutine local_dof_vector
+
+  subroutine local_dofs(itri, dof, c)
+    implicit none
+
+    type(element_data) :: d
+    integer, intent(in) :: itri
+    vectype, intent(out), dimension(dofs_per_element) :: dof
+    vectype, intent(in), dimension(coeffs_per_element) :: c
+
+    real, dimension(dofs_per_element,coeffs_per_element) :: cl
+    integer :: i, j, k
+    real :: norm(2)
+    vectype, dimension(dofs_per_element) :: temp
+
+    call local_dof_vector(itri, cl)
+
+    temp = 0
+    do j=1, coeffs_per_element
+       temp(:) = temp(:) + cl(:,j)*c(j)
+    end do
+
+    ! calculate the rotation matrix rot
+    call get_element_data(itri,d)
+    norm(1) = d%co
+    norm(2) = d%sn
+
+    do i=1, nodes_per_element
+       j = (i-1)*dofs_per_node+1
+       k = j + dofs_per_node - 1
+       call rotate_dofs(temp(j:k), dof(j:k), norm, 0., -1)
+    end do
+
+  end subroutine local_dofs
+
+
 end module scorec_mesh_mod

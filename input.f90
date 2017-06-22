@@ -802,7 +802,7 @@ subroutine set_defaults
   call add_var_int("iglobalin", iglobalin, 0, "", output_grp)
   call add_var_int("iwrite_restart", iwrite_restart, 0, &
        "1: Write restart files", output_grp)
-  call add_var_int("iwrite_adios", iwrite_adios, 1, &
+  call add_var_int("iwrite_adios", iwrite_adios, 0, &
        "1: Use ADIOS to write restart files", output_grp)
   call add_var_int("ifout",  ifout, -1, "", output_grp)
   call add_var_int("icalc_scalars", icalc_scalars, 1, &
@@ -816,6 +816,8 @@ subroutine set_defaults
   call add_var_int("irestart", irestart, 0, "", output_grp)
   call add_var_int("iread_adios", iread_adios, 0, &
        "1: Use ADIOS to read restart files", output_grp)
+  call add_var_int("iread_hdf5", iread_hdf5, 0, &
+       "1: Restart using HDF5 files", output_grp)
   call add_var_int("itimer", itimer, 0, &
        "1: Output internal timer data", output_grp)
   call add_var_int("iwrite_transport_coeffs", iwrite_transport_coeffs, 1, &
@@ -1076,12 +1078,6 @@ subroutine validate_input
      pefac = 1.    ! perp and parallel equilibrium pressures equal
   endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
-
-#if defined(USE3D) || defined(USECOMPLEX)
-  i3d = 1
-#else
-  i3d = 0
-#endif
 
   if(iadapt.gt.0) then
 #if defined(USECOMPLEX)

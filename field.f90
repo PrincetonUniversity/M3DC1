@@ -517,6 +517,34 @@ contains
     
   end subroutine get_element_dofs
 
+  !===========================================================
+  ! set_element_dofs
+  ! ~~~~~~~~~~~~~~~~
+  ! set dofs associated with element itri
+  !===========================================================
+  subroutine set_element_dofs(fout, itri, dofs)
+    use element
+    use mesh_mod
+
+    implicit none
+
+    type(field_type), intent(inout) :: fout
+    integer, intent(in) :: itri
+    vectype, dimension(dofs_per_element), intent(in) :: dofs
+
+    integer :: i, iii
+    integer, dimension(nodes_per_element) :: inode
+
+    call get_element_nodes(itri, inode)
+    i = 1
+    do iii=1, nodes_per_element
+       call set_node_data(fout, inode(iii), dofs(i:i+dofs_per_node-1), .true.)
+
+       i = i + dofs_per_node
+    enddo    
+  end subroutine set_element_dofs
+
+
   !==========================================================
   ! calcavector
   ! ~~~~~~~~~~~
@@ -537,6 +565,27 @@ contains
     call get_element_dofs(fin, itri, dofs)
     call local_coeffs(itri, dofs, avector)
   end subroutine calcavector
+
+  !==========================================================
+  ! setavector
+  ! ~~~~~~~~~~
+  !
+  ! sets dofs of field of field fout in element itri 
+  ! given the polynomial coefficients avector
+  !==========================================================
+  subroutine setavector(itri, fout, avector)
+    use mesh_mod
+    implicit none
+    
+    integer, intent(in) :: itri
+    type(field_type), intent(inout) :: fout
+
+    vectype, dimension(coeffs_per_element), intent(in) :: avector
+    vectype, dimension(dofs_per_element) :: dofs
+
+    call local_dofs(itri, dofs, avector)
+    call set_element_dofs(fout, itri, dofs)
+  end subroutine setavector
 
 
   subroutine matvecmult_field_vec(mat,fin,vout)

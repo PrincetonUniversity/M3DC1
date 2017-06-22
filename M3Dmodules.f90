@@ -7,7 +7,11 @@ module basic
 
   integer, parameter :: version = 15
 
-  integer :: i3d
+#if defined(USE3D) || defined(USECOMPLEX)
+  integer, parameter :: i3d = 1
+#else
+  integer, parameter :: i3d = 0
+#endif
 #ifdef USECOMPLEX
   integer, parameter :: icomplex = 1
 #else
@@ -373,6 +377,7 @@ module basic
   integer :: iwrite_restart ! 0 = don't write restart files
   integer :: iwrite_adios
   integer :: iread_adios
+  integer :: iread_hdf5
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization

@@ -114,6 +114,30 @@ contains
     
   end subroutine hdf5_finalize
 
+  subroutine hdf5_get_local_elms(nelms, error)
+    use mesh_mod
+
+    implicit none
+
+    include 'mpif.h'
+
+    integer, intent(out) :: nelms
+    integer, intent(out) :: error
+
+    nelms = local_elements()
+
+  ! Calculate offset of current process
+    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+    offset = offset - nelms
+!  print *, "Offset of ", myrank, " = ", offset
+!  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
+!  print *, 'myrank, local_elms, global_elms, offset', &
+!       myrank, nelms, global_elms, offset
+    call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, &
+         MPI_SUM, MPI_COMM_WORLD, error)
+
+  end subroutine hdf5_get_local_elms
+
   ! read_int_attr
   ! =============
   subroutine read_int_attr(parent_id, name, value, error)
@@ -144,7 +168,7 @@ contains
     
     integer(HID_T), intent(in) :: parent_id
     character(LEN=*), intent(in) :: name
-    integer :: value
+    integer, intent(in) :: value
     integer, intent(out) :: error
     
     integer(HID_T) :: dspace_id, attr_id
@@ -409,11 +433,94 @@ contains
          endif
     call h5pclose_f(plist_id, error)
          if(error.ne.0) then
-           write(*,*) error,rank," h5dclose_f"
+           write(*,*) error,rank," h5pclose_f"
            call safestop(105)
          endif
 
   end subroutine output_field
+
+
+  ! read_field
+  ! ==========
+  subroutine read_field(parent_id, name, values, ndofs, nelms, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: ndofs, nelms
+    real, dimension(ndofs, nelms), intent(out) :: values
+    integer, intent(out) :: error
+    
+    integer, parameter ::  rank = 2
+    integer(HID_T) :: filespace, memspace, dset_id, plist_id
+    integer(HSIZE_T), dimension(rank) :: local_dims, global_dims
+    integer(HSSIZE_T), dimension(rank) :: off
+
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
+    
+    local_dims(1) = ndofs
+    local_dims(2) = nelms
+    global_dims(1) = ndofs
+    global_dims(2) = global_elms
+    off(1) = 0
+    off(2) = offset
+
+    call h5dopen_f(parent_id, name, dset_id, error)
+    call h5dget_space_f(dset_id, filespace, error)
+    call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, &
+                                off, local_dims, error)
+
+    call h5screate_simple_f(rank, local_dims, memspace, error)
+
+    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5pcreate_f"
+       call safestop(102)
+    endif
+    
+    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, error)
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5pset_dxpl_mpio_f"
+       call safestop(102)
+    endif
+  
+    ! Read the dataset
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, error, &
+         file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
+    if(error.ne.0) then
+       write(*,*) error,rank," h5dread_f"
+       call safestop(103)
+    endif
+
+    ! Close HDF5 handles
+    call h5sclose_f(filespace, error)
+    if(error.ne.0) then
+       write(*,*) error,rank," h5sclose_f"
+       call safestop(104)
+    endif
+    call h5sclose_f(memspace, error)
+    if(error.ne.0) then
+       write(*,*) error,rank," h5sclose_f"
+       call safestop(105)
+    endif
+    call h5dclose_f(dset_id, error)
+    if(error.ne.0) then
+       write(*,*) error,rank," h5dclose_f"
+       call safestop(104)
+    endif
+    call h5pclose_f(plist_id, error)
+    if(error.ne.0) then
+       write(*,*) error,rank," h5pclose_f"
+       call safestop(105)
+    endif
+    
+  end subroutine read_field
+
 
   ! output_scalar
   ! =============
@@ -487,6 +594,58 @@ contains
 
   end subroutine output_scalar
 
+  ! read_scalar
+  ! ===========
+  subroutine read_scalar(parent_id, name, value, t, error)
+    use basic
+    use hdf5
+
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    real, intent(out) :: value
+    integer, intent(in) :: t
+    integer, intent(out) :: error
+
+    integer(HSIZE_T) :: dims(1)
+    integer(HSIZE_T) :: maxdims(1)
+    integer(HSIZE_T), parameter :: local_dims(1) = (/ 1 /)
+    integer(HSIZE_T), dimension(1,1) :: coord
+    integer(SIZE_T), parameter :: num_elements = 1
+    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
+    real :: values(1)
+
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
+
+    dims(1) = t+1
+    maxdims(1) = H5S_UNLIMITED_F
+    coord(1,1) = t + 1
+    
+    call h5dopen_f(parent_id, name, dset_id, error)
+
+    call h5screate_simple_f(1, local_dims, memspace, error)
+    call h5dget_space_f(dset_id, filespace, error)
+    call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
+         num_elements, coord, error)
+    
+    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
+    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F, error)
+
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
+         file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
+    value = values(1)
+    
+    ! Close HDF5 handles
+    call h5pclose_f(plist_id, error)
+    call h5sclose_f(filespace, error)
+    call h5sclose_f(memspace, error)
+    call h5dclose_f(dset_id, error)
+
+  end subroutine read_scalar
 
   ! output_1dvector
   ! ============

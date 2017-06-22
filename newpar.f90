@@ -20,6 +20,7 @@ Program Reducedquintic
   use particles
   use math
   use m3dc1_omp
+  use restart_hdf5
 
   implicit none
 
@@ -139,6 +140,9 @@ Program Reducedquintic
   ! output info about simulation to be run
   call print_info
 
+  ! initialize output
+  call initialize_output
+
   ! create the newvar matrices
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Generating newvar matrices'
@@ -191,6 +195,8 @@ Program Reducedquintic
      else
         if(iread_adios.eq.1) then
            call rdrestart_adios
+        else if(iread_hdf5.eq.1) then
+           call rdrestart_hdf5
         else
            call rdrestart
         endif
@@ -210,9 +216,6 @@ Program Reducedquintic
   end select                     !  end of the branch on restart/no restart
 
   ntime0 = ntime
-
-  ! initialize output
-  call initialize_output
 
   ! zero-out scalar data
   call reset_scalars
@@ -256,7 +259,6 @@ Program Reducedquintic
 
   if(irestart.eq.0  .or. iadapt.gt.0) then
      tflux0 = tflux
-     totcur0 = totcur
   endif
 
   ! output initial conditions
@@ -874,7 +876,7 @@ end subroutine rotation
   
     type(element_data) :: d
     integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs, ierr
-    real, dimension(coeffs_per_tri,coeffs_per_tri) :: ti
+    real, dimension(coeffs_per_tri,coeffs_per_tri) :: ti, t
     real, dimension(dofs_per_tri, dofs_per_tri) :: rot, newrot
     real :: sum, theta, mean_area, tot_area, mean_len
     real :: norm(2), curv, x, phi, z
@@ -882,6 +884,10 @@ end subroutine rotation
     logical :: is_boundary
     integer :: izone, izonedim
     integer :: tot_elms
+    integer :: info1, info2
+    real :: wkspce(9400)
+    integer :: ipiv(coeffs_per_tri)
+
     real, dimension(dofs_per_tri) :: temp_vec
 
     real, dimension(nodes_per_element) :: node_sz
@@ -900,8 +906,16 @@ end subroutine rotation
        ! define the Inverse Transformation Matrix that enforces the 
        ! condition that the normal slope between triangles has only 
        ! cubic variation
-       call tmatrix(ti,coeffs_per_tri,d%a,d%b,d%c)
+       call tmatrix(t,d%a,d%b,d%c)
        
+       ! calculate the inverse of t using lapack routines
+       info1 = 0
+       info2 = 0
+       ti = t
+       call dgetrf(coeffs_per_tri,coeffs_per_tri,ti,coeffs_per_tri,ipiv,info1)
+       call dgetri(coeffs_per_tri,ti,coeffs_per_tri,ipiv,wkspce,400,info2)
+       if(info1.ne.0.or.info2.ne.0) write(*,'(3I5)') info1,info2
+    
        ! calculate the rotation matrix rot
        theta = atan2(d%sn,d%co)
        call rotation(rot,dofs_per_tri,theta)
