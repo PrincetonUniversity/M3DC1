@@ -145,7 +145,8 @@ module basic
                       !  0 = generic
                       !  1 = CDX-U
                       !  2 = NSTX
-  integer :: iupstream  !  if 1, adds diffusion term to pressure like upstream differencing
+  integer :: iupstream  !  if 1, adds 2nd order toroidal derivative to pressure, density, and fields
+                        !  if 2, adds 4th order    "         "       "    "         "      "    "
   real :: magus       ! magnitude of upstream term
   real :: bzero       ! guide field
   real :: bx0         ! initial field in x-direction
