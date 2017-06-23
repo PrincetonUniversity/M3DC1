@@ -161,46 +161,49 @@ contains
 
   ! write_int_attr
   ! ==============
-  subroutine write_int_attr(parent_id, name, value, error)
+  subroutine write_int_attr(parent_id, name, val, error)
     use hdf5
     
     implicit none
     
     integer(HID_T), intent(in) :: parent_id
     character(LEN=*), intent(in) :: name
-    integer, intent(in) :: value
+    integer, intent(in) :: val
     integer, intent(out) :: error
     
     integer(HID_T) :: dspace_id, attr_id
     integer(HSIZE_T), dimension(1) :: dims = 1
+    integer :: v
 
     call h5screate_f(H5S_SCALAR_F, dspace_id, error)
     call h5acreate_f(parent_id, name, H5T_NATIVE_INTEGER, dspace_id, attr_id, error)
-    call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, value, dims, error)
+    v = val
+    call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, v, dims, error)
     call h5aclose_f(attr_id, error)
     call h5sclose_f(dspace_id, error)
-    
   end subroutine write_int_attr
 
   ! update_int_attr
   ! ===============
-  subroutine update_int_attr(parent_id, name, value, error)
+  subroutine update_int_attr(parent_id, name, val, error)
     use hdf5
     
     implicit none
     
     integer(HID_T), intent(in) :: parent_id
     character(LEN=*), intent(in) :: name
-    integer :: value
+    integer, intent(in) :: val
     integer, intent(out) :: error
     
     integer(HID_T) :: dspace_id, attr_id
     integer(HSIZE_T), dimension(1) :: dims = 1
+    integer :: v
 
     call h5screate_f(H5S_SCALAR_F, dspace_id, error)
     
     call h5aopen_name_f(parent_id, name, attr_id, error)
-    call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, value, dims, error)
+    v = val
+    call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, v, dims, error)
     call h5aclose_f(attr_id, error)
     call h5sclose_f(dspace_id, error)
     

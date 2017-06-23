@@ -68,17 +68,17 @@ endif
 
 
 # Include option to use ADIOS
-OPTS := $(OPTS) -DUSEADIOS
+#OPTS := $(OPTS) -DUSEADIOS
+#
+##only define them if adios-1.3 is used; otherwise use hopper default
+##ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
+##ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
+##ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
+#ADIOS_DIR=/usr/common/usg/adios/1.4.1
+#ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
+#             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
+#             -L/usr/lib64/ -llustreapi
 
-#only define them if adios-1.3 is used; otherwise use hopper default
-#ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
-#ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
-#ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
-ADIOS_DIR=/usr/common/usg/adios/1.4.1
-ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
-             -L/usr/lib64/ -llustreapi
-endif
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
