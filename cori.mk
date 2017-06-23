@@ -78,7 +78,7 @@ OPTS := $(OPTS) -DUSEADIOS
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L/usr/common/usg/minixml/2.9/intel/lib -lm -lmxml \
              -L/usr/lib64/ -llustreapi
-endif
+
 
 AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
