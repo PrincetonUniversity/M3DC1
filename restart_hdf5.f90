@@ -27,6 +27,12 @@ contains
        call safestop(2)
     end if
 
+    call read_int_attr(root_id, "version", version_in, error)
+    if(version_in.lt.16) then
+       if(myrank.eq.0) print *, 'Error: HDF5 file is from too old a version to use iread_hdf5=1.'
+       call safestop(1)
+    end if
+
     ! Read Time Slice
     if(myrank.eq.0) print *, 'Reading data from time slice', times_output
     call read_int_attr(root_id, "ntime", times_output_in, error)

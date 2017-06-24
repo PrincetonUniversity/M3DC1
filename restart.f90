@@ -125,7 +125,6 @@ subroutine rdrestart
   integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
   character (len=30) :: fname
   integer :: ndofs
-  integer :: iversion
   real :: vloopsave, pelletratesave, dum
   vectype, allocatable :: data_buff(:)
 
@@ -237,9 +236,9 @@ else
   read(56, END=1199) pellet_x, pellet_phi, pellet_z, &
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
 
-  read(56, END=1199) iversion
+  read(56, END=1199) version_in
 
-  if(iversion.ge.7) then
+  if(version_in.ge.7) then
      read(56, END=1199) icsubtract
      if(icsubtract.eq.1) then
         do j1=1,ndofs
@@ -249,7 +248,7 @@ else
      end if
   end if
 
-  if(iversion.ge.10) then
+  if(version_in.ge.10) then
      read(56, END=1199) extsubtract, use_external_fields
      if(use_external_fields) then
         call create_field(psi_ext)
@@ -270,17 +269,17 @@ else
      end if
   end if
 
-  if(iversion.ge.12) then 
+  if(version_in.ge.12) then 
      pelletratesave = pellet_rate
      read(56,END=1199) pellet_rate
      ! use pellet_rate from input if no control
      if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
   end if
 
-  if(iversion.ge.13) then
+  if(version_in.ge.13) then
      read(56,END=1199) xnull2, znull2
   end if
-  if(iversion.ge.14) then
+  if(version_in.ge.14) then
      read(56,END=1199) r_p, r_p2
   end if
 
@@ -303,7 +302,7 @@ subroutine rdrestart_2d23d
   use pellet
 
   implicit none
-  integer :: i, j, numnodes, prev_numnodes, iversion
+  integer :: i, j, numnodes, prev_numnodes
   integer :: prev_numelms, prev_iper, prev_jper, prev_myrank
   integer :: prev_maxrank, numelms, prev_eqsubtract, prev_linear, prev_comp
   character (len=30) :: fname
@@ -442,9 +441,9 @@ subroutine rdrestart_2d23d
   read(56, END=1199) pellet_x, pellet_phi, pellet_z, &
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
 
-  read(56, END=1199) iversion
+  read(56, END=1199) version_in
 
-  if(iversion.ge.7) then
+  if(version_in.ge.7) then
      read(56, END=1199) icsubtract
      if(icsubtract.eq.1) then
           do i=1,prev_ndofs2
@@ -501,17 +500,17 @@ subroutine rdrestart_2d23d
      end if
   end if
 
-  if(iversion.ge.12) then 
+  if(version_in.ge.12) then 
      pelletratesave = pellet_rate
      read(56,END=1199) pellet_rate
      ! use pellet_rate from input if no control
      if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
   end if
 
-  if(iversion.ge.13) then
+  if(version_in.ge.13) then
      read(56,END=1199) xnull2, znull2
   end if
-  if(iversion.ge.14) then
+  if(version_in.ge.14) then
      read(56,END=1199) r_p, r_p2
   end if
 
@@ -541,7 +540,6 @@ subroutine rdrestart_cplx
   integer :: imaxrank, numelms, ieqsubtract, ilinear, icomp
   character (len=30) :: fname
   integer :: ndofs
-  integer :: iversion
   real :: vloopsave, pelletratesave
   vectype, allocatable :: data_buff(:)
   real :: tmprestart, dum
@@ -654,9 +652,9 @@ subroutine rdrestart_cplx
   read(56, END=1199) pellet_x, pellet_phi, pellet_z, &
        pellet_velx, pellet_velphi, pellet_velz, pellet_var
 
-  read(56, END=1199) iversion
+  read(56, END=1199) version_in
 
-  if(iversion.ge.7) then
+  if(version_in.ge.7) then
      read(56, END=1199) icsubtract
      if(icsubtract.eq.1) then
         do j1=1,ndofs 
@@ -671,7 +669,7 @@ subroutine rdrestart_cplx
      end if
   end if
 
-  if(iversion.ge.10) then
+  if(version_in.ge.10) then
      read(56, END=1199) extsubtract, use_external_fields
      if(use_external_fields) then
         call create_field(psi_ext)
@@ -710,17 +708,17 @@ subroutine rdrestart_cplx
      end if
   end if
 
-  if(iversion.ge.12) then 
+  if(version_in.ge.12) then 
      pelletratesave = pellet_rate
      read(56,END=1199) pellet_rate
      ! use pellet_rate from input if no control
      if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
   end if
 
-  if(iversion.ge.13) then
+  if(version_in.ge.13) then
      read(56,END=1199) xnull2, znull2
   end if
-  if(iversion.ge.14) then
+  if(version_in.ge.14) then
      read(56,END=1199) r_p, r_p2
   end if
 
@@ -1275,7 +1273,7 @@ subroutine rdrestart_adios
   integer                      :: vartype, ndim, timedim ! adios_inq_var()
   integer*8, dimension(2)      :: dims                   ! adios_inq_var()
   integer                      :: elemsize               ! double complex or double
-  integer :: prev_useext, prev_version, group_size, group_rank
+  integer :: prev_useext, group_size, group_rank
   integer :: prev_ndofs1_pernode, prev_ndofs2_pernode, cur_ndofs1_pernode, cur_ndofs2_pernode
   integer :: prev_icsubtract,prev_extsubtract,prev_use_external_fields
   integer :: vec_created
@@ -1355,20 +1353,20 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "pellet_velphi",        group_rank, start, readsize, pellet_velphi, read_bytes)
     call adios_read_local_var (gh, "pellet_velz",group_rank, start, readsize, pellet_velz, read_bytes)
     call adios_read_local_var (gh, "pellet_var", group_rank, start, readsize, pellet_var, read_bytes)
-    call adios_read_local_var (gh, "version",    group_rank, start, readsize, prev_version, read_bytes)
-    if(prev_version.ge.12) then
+    call adios_read_local_var (gh, "version",    group_rank, start, readsize, version_in, read_bytes)
+    if(version_in.ge.12) then
        call adios_read_local_var (gh, "pellet_rate", group_rank, start, readsize, pellet_rate, read_bytes)
     end if
-    if(prev_version.ge.13) then
+    if(version_in.ge.13) then
        call adios_read_local_var (gh, "xnull2",      group_rank, start, readsize, xnull, read_bytes)
        call adios_read_local_var (gh, "znull2",      group_rank, start, readsize, znull, read_bytes)
     end if
-    if(prev_version.ge.14) then
+    if(version_in.ge.14) then
        call adios_read_local_var (gh, "r_p",      group_rank, start, readsize, xnull, read_bytes)
        call adios_read_local_var (gh, "r_p2",      group_rank, start, readsize, znull, read_bytes)
     end if
 
-    if(prev_version.ge.14) then
+    if(version_in.ge.14) then
        call adios_read_local_var (gh, "icsubtract",      group_rank, start, readsize, prev_icsubtract, read_bytes)
        call adios_read_local_var (gh, "extsubtract",      group_rank, start, readsize, prev_extsubtract, read_bytes)
        call adios_read_local_var (gh, "use_external_fields",      group_rank, start, readsize, prev_use_external_fields, read_bytes)

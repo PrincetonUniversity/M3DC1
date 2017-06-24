@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 15
+  integer, parameter :: version = 16
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -144,6 +144,7 @@ module basic
   integer :: irestart ! 1 = reads restart file as initial condition
                       ! 2 = reads restart file to initialize GS solve
                       ! 3 = reads 2D RL=1 restart file o initialize 2D COM=1 run
+  integer :: version_in  ! Version of restart file
   integer :: itaylor  ! equilibrium
   integer :: idevice  ! for itor=1, itaylor=1, selects tokamak configuration
                       !  0 = generic

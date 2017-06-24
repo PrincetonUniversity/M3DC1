@@ -215,6 +215,10 @@ Program Reducedquintic
 
   end select                     !  end of the branch on restart/no restart
 
+  if(irestart.ne.0) then
+     call hdf5_reconcile_version(version_in, ier)
+  end if
+
   ntime0 = ntime
 
   ! zero-out scalar data
