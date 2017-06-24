@@ -200,13 +200,12 @@ contains
     integer :: v
 
     call h5screate_f(H5S_SCALAR_F, dspace_id, error)
-    
+       
     call h5aopen_name_f(parent_id, name, attr_id, error)
     v = val
     call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, v, dims, error)
     call h5aclose_f(attr_id, error)
     call h5sclose_f(dspace_id, error)
-    
   end subroutine update_int_attr
 
   ! read_real_attr
@@ -547,6 +546,7 @@ contains
     integer(SIZE_T), parameter :: num_elements = 1
     integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
     real :: values(1)
+    logical :: exists
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
@@ -558,7 +558,9 @@ contains
     values(1) = value
     coord(1,1) = t + 1
     
-    if(t.eq.0) then
+    call h5lexists_f(parent_id, name, exists, error)
+
+    if(.not.exists) then
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)

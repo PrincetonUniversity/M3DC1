@@ -256,6 +256,31 @@ subroutine hdf5_write_parameters(error)
 
 end subroutine hdf5_write_parameters
 
+subroutine hdf5_reconcile_version(ver, error)
+  use basic
+  use hdf5
+  use hdf5_output
+
+  implicit none
+
+  integer, intent(in) :: ver
+  integer, intent(out) :: error
+  integer(HID_T) :: root_id, scalar_group_id, fl_group_id, mp_group_id
+
+  if(ver.ge.version) return
+
+  call h5gopen_f(file_id, "/", root_id, error)
+
+  if(ver.lt.17) then
+     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
+     call write_int_attr(scalar_group_id, "ntimestep", ntime, error)
+     call h5gclose_f(scalar_group_id, error)
+  end if
+
+  call h5gclose_f(root_id, error)
+
+end subroutine hdf5_reconcile_version
+
 ! hdf5_write_scalars
 ! ==================
 subroutine hdf5_write_scalars(error)
