@@ -6115,7 +6115,6 @@ end function b1beta
 function b1psij(e,f,g)
   use basic
   use m3dc1_nint
-!!$  use diagnostics
 
   implicit none
 
@@ -6138,10 +6137,10 @@ function b1psij(e,f,g)
          + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
                 + pt79(:,OP_DZ)*g(:,OP_DZ))
      else if(ihypeta.gt.2) then
-!!$        temp79a = keharmonic(ihypeta)*pt79(:,OP_1)*temp79a          &
-!!$          + hypf*keharmonic(ihypeta)*(pt79(:,OP_DR)*g(:,OP_DR)      &
-!!$         + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
-!!$                + pt79(:,OP_DZ)*g(:,OP_DZ))
+        temp79a = keharhypeta*pt79(:,OP_1)*temp79a          &
+          + hypf*keharhypeta*(pt79(:,OP_DR)*g(:,OP_DR)      &
+         + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
+                + pt79(:,OP_DZ)*g(:,OP_DZ))
      endif
      temp = -intx5(e(:,OP_DZP,:),ri3_79,b2i79(:,OP_1),f(:,OP_DR),temp79a)    &
             +intx5(e(:,OP_DRP,:),ri3_79,b2i79(:,OP_1),f(:,OP_DZ),temp79a)
@@ -6159,7 +6158,6 @@ function b1bj(e,f,g)
 
   use basic
   use m3dc1_nint
-!!$  use diagnostics
 
   implicit none
 
@@ -6190,13 +6188,13 @@ function b1bj(e,f,g)
        temp79a = temp79a + hypf*ri2_79*pt79(:,OP_DP)*g(:,OP_DP)
 #endif
      else if(ihypeta.gt.2) then
-!!$         hypfm = hypf*keharmonic(ihypeta)             
-!!$         temp79a = pt79(:,OP_1)*temp79a*keharmonic(ihypeta) &
-!!$          + hypfm*(pt79(:,OP_DR)*g(:,OP_DR)      &
-!!$                 + pt79(:,OP_DZ)*g(:,OP_DZ))
-!!$#if defined(USE3D) || defined(USECOMPLEX)
-!!$       temp79a = temp79a + hypfm*ri2_79*pt79(:,OP_DP)*g(:,OP_DP)
-!!$#endif
+         hypfm = hypf*keharhypeta
+         temp79a = pt79(:,OP_1)*temp79a*keharhypeta &
+          + hypfm*(pt79(:,OP_DR)*g(:,OP_DR)      &
+                 + pt79(:,OP_DZ)*g(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+       temp79a = temp79a + hypfm*ri2_79*pt79(:,OP_DP)*g(:,OP_DP)
+#endif
      endif
 
      temp = intx5(e(:,OP_GS,:),ri2_79,b2i79(:,OP_1),f(:,OP_1),temp79a)
@@ -6210,7 +6208,6 @@ function b1fj(e,f,g)
 
   use basic
   use m3dc1_nint
-!!$  use diagnostics
 
   implicit none
 
@@ -6233,10 +6230,10 @@ function b1fj(e,f,g)
                + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
                       + pt79(:,OP_DZ)*g(:,OP_DZ))
      else if(ihypeta.gt.2) then
-!!$        temp79a = pt79(:,OP_1)*temp79a*keharmonic(ihypeta)  &
-!!$                + hypf*keharmonic(ihypeta)*(pt79(:,OP_DR)*g(:,OP_DR)      &
-!!$                                   + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
-!!$                                          + pt79(:,OP_DZ)*g(:,OP_DZ))
+        temp79a = pt79(:,OP_1)*temp79a*keharhypeta  &
+                + hypf*keharhypeta*(pt79(:,OP_DR)*g(:,OP_DR)      &
+                                   + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
+                                          + pt79(:,OP_DZ)*g(:,OP_DZ))
      endif
      temp =  intx5(e(:,OP_DRP,:),ri2_79,b2i79(:,OP_1),f(:,OP_DRP),temp79a)    &
             +intx5(e(:,OP_DZP,:),ri2_79,b2i79(:,OP_1),f(:,OP_DZP),temp79a)
@@ -7947,7 +7944,6 @@ end function b2feta
 function b2fj(e,f,g)
   use basic
   use m3dc1_nint
-!!$  use diagnostics
 
   implicit none
 
@@ -7975,10 +7971,10 @@ function b2fj(e,f,g)
         temp79b = hypf*pt79(:,OP_1)*g(:,OP_DZ)
         temp79c = hypf*(pt79(:,OP_DP)*g(:,OP_DP) + pt79(:,OP_1)*g(:,OP_DPP))
      else if(ihypeta.gt.2) then
-!!$        hypfm = hypf*keharmonic(ihypeta)
-!!$        temp79a = hypfm*pt79(:,OP_1)*g(:,OP_DR)
-!!$        temp79b = hypfm*pt79(:,OP_1)*g(:,OP_DZ)
-!!$        temp79c = hypfm*(pt79(:,OP_DP)*g(:,OP_DP) + pt79(:,OP_1)*g(:,OP_DPP))
+        hypfm = hypf*keharhypeta
+        temp79a = hypfm*pt79(:,OP_1)*g(:,OP_DR)
+        temp79b = hypfm*pt79(:,OP_1)*g(:,OP_DZ)
+        temp79c = hypfm*(pt79(:,OP_DP)*g(:,OP_DP) + pt79(:,OP_1)*g(:,OP_DPP))
      else
         temp79a = hypf*g(:,OP_DR)
         temp79b = hypf*g(:,OP_DZ)
@@ -8016,7 +8012,6 @@ end function b2fj
 function b2psij(e,f,g)
   use basic
   use m3dc1_nint
-!!$  use diagnostics
 
   implicit none
 
@@ -8041,9 +8036,9 @@ function b2psij(e,f,g)
         temp79a = hypf*pt79(:,OP_1)*g(:,OP_DR)
         temp79b = hypf*pt79(:,OP_1)*g(:,OP_DZ)
      else if(ihypeta.gt.2) then
-!!$        hypfm = hypf*keharmonic(ihypeta)
-!!$        temp79a = hypfm*pt79(:,OP_1)*g(:,OP_DR)
-!!$        temp79b = hypfm*pt79(:,OP_1)*g(:,OP_DZ)
+        hypfm = hypf*keharhypeta        
+        temp79a = hypfm*pt79(:,OP_1)*g(:,OP_DR)
+        temp79b = hypfm*pt79(:,OP_1)*g(:,OP_DZ)
      else
         temp79a = hypf*g(:,OP_DR)
         temp79b = hypf*g(:,OP_DZ)

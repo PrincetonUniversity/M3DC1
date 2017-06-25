@@ -244,6 +244,8 @@ module basic
   integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
+                         ! >2 hyper-resistivity also scaled by keharmonic(ihypeta)
+  real :: keharhypeta    ! keharmonic(ihypeta) 
   integer :: ihypamu     ! 1 = scale hyper-viscosity with visc
   integer :: ihypkappa   ! 1 = scale hyper-diffusivity with kappa
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
