@@ -1346,6 +1346,14 @@ subroutine validate_input
      end if
      db = db*db_fac
   end if
+
+  if(ihypeta.gt.2) then
+  keharhypeta = 0.
+     if(ihypeta .gt. ike_harmonics) then
+         print *, 'Error:  ihypeta > ike_harmonics', ihypeta, ike_harmonics
+         call safestop(1)
+     endif
+  endif
   
   if(ibeam.ge.1) call neutral_beam_init
   if(ipellet.ne.0) call pellet_init
