@@ -1970,6 +1970,8 @@ subroutine calculate_ke()
 
      keharmonic(N) = ketotal / 4.
   end do
+!  save one harmonic to scale hyper for ihypeta .gt. 2
+  if(ihypeta.gt.2) keharhypeta = keharmonic(ihypeta)
 
 !!!!!....we need to save keharmonic for output <===
   if(myrank.eq.0 .and. iprint.ge.1) then
