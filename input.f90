@@ -1320,7 +1320,16 @@ subroutine validate_input
      ifbound = 1
 #endif
   end if
-     
+
+#ifndef USEADIOS
+  if(iwrite_adios.ne.0 .or. iread_adios.ne.0) then
+     if(myrank.eq.0) then
+        print *, 'Error: iwrite_adios and iread_adios cannot be used.'
+        print *, 'This installation was not built with ADIOS'
+     end if
+     call safestop(1)
+  end if
+#endif
 
   if(kinetic.eq.1) then !Hybrid model sanity check goes here
 #ifdef USEPARTICLES
