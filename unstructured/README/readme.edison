@@ -11,6 +11,7 @@
     module load gsl/1.16
     module load cray-tpsl
     module load cray-trilinos/11.12.1.5
+    module load adios
 
   For real type with PETSc, do
     module load cray-petsc/3.7.4.0
