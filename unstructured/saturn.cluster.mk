@@ -4,8 +4,6 @@ F90 = mpif90
 F77 = mpif90
 LOADER = mpif90
 
-AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
-
 OPTS := $(OPTS) -DPetscDEV -DKSPITS
 FOPTS = -c -cpp -fdefault-real-8 -fdefault-double-8 -Wall -static $(OPTS) \
         -Wno-unused-variable -ffree-line-length-0 -Wno-unused-dummy-argument \

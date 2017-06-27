@@ -59,8 +59,6 @@ ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
  -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
  -L/usr/lib64/ -llustreapi
 
-AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
-
 OPTS := $(OPTS) -DPetscDEV -DKSPITS -DNEXTPetscDEV
 
 INCLUDE := $(INCLUDE) $(FFTW_INCLUDE_OPTS) \

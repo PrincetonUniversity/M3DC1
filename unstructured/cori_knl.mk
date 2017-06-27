@@ -80,8 +80,6 @@ endif
 #             -L/usr/lib64/ -llustreapi
 
 
-AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
-
 OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \

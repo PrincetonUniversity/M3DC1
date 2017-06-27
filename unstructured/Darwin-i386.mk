@@ -101,8 +101,6 @@ LIBS = 	-L/opt/local/lib \
 	-L/usr/X11R6/lib -lX11 \
 	-lmpi_cxx -lstdc++
 
-AUX = i1mach.o r1mach.o d1mach.o
-
 %.o : %.cpp
 	$(CPP) $(CCOPTS) $< -o $@
 
