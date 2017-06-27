@@ -571,6 +571,9 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 #endif
      ! Time step associated with this time slice
      call write_int_attr(time_root_id, "ntimestep", ntime, error)
+
+     ! Write version number
+     call write_int_attr(time_root_id, "version", version, error)
      
      ! Output the mesh data
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing mesh '
