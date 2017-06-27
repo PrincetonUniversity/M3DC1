@@ -73,8 +73,6 @@ else
   ADIOS_FLIB =
 endif
 
-AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
-
 HDF5_DIR := /global/project/projectdirs/mp288/carl/hdf5-1.8.18
 
 INCLUDE := $(INCLUDE) -I$(HDF5_DIR)/include -I$(MKLROOT)/include/fftw \

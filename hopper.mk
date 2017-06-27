@@ -39,7 +39,6 @@ ifeq ($(PE_ENV), PGI)
 else
   Zotlan_HOME=$(CRAY_TRILINOS_PREFIX_DIR)/lib
 endif
-AUX = d1mach.o i1mach.o r1mach.o fdump.o dbesj0.o dbesj1.o
 
 OPTS := $(OPTS) -DPetscDEV -DxUSEADIOS -DKSPITS -DNO_STOP_MESSAGE=1 -DPetscOLD #-DUSEHYBRID -DCJ_MATRIX_DUMP
 #PETSC_DIR = /project/projectdirs/mp288/lib/hopper2/petsc/petsc-dev-SUPERLU-HYPRE-MUMPS/petsc-dev-060711/petsc-dev

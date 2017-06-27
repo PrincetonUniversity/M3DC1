@@ -136,7 +136,7 @@ endif
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
-OBJS := $(AUX) fftw_fortran.o read_namelist.o gsl_wrapper.o \
+OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	random.o spline.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
