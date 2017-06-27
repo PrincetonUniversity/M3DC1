@@ -17,6 +17,16 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    index = intarr(2)
 
    version = read_parameter('version', filename=filename)
+   print, 'Version = ', version
+
+   sz = size(mesh.elements._data, /dimensions)
+   if(sz[0] ge 10 and version lt 15) then begin
+      print, 'Size = ', sz[0]
+      print, 'Warning: mismatch between data size and version type.'
+      print, 'Assuming version 16'
+      version = 16
+   end
+   
    if(version eq 0) then begin
        xzero = read_parameter("xzero", filename=filename)
        zzero = read_parameter("zzero", filename=filename)
