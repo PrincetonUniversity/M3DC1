@@ -186,7 +186,7 @@ end function force_func
 
 ! Poloidal Momentum Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~~~~~
-function pforce_func
+function pforce_func()
   use math
   use basic
   use m3dc1_nint
@@ -236,7 +236,7 @@ function pforce_func
 end function pforce_func
 
 
-function pmach_func
+function pmach_func()
   use math
   use basic
   use m3dc1_nint
@@ -369,7 +369,7 @@ function q_func(izone)
   q_func = temp
 end function q_func
 
-function rad_func
+function rad_func()
   use math
   use basic
   use m3dc1_nint
@@ -450,7 +450,7 @@ end function rad_func
 
 ! Current Drive sources
 ! ~~~~~~~~~~~~~~~~~~
-function cd_func
+function cd_func()
   use math
   use basic
   use m3dc1_nint
@@ -482,7 +482,7 @@ end function cd_func
 
 ! Resistivity
 ! ~~~~~~~~~~~
-function resistivity_func
+function resistivity_func()
   use basic
   use m3dc1_nint
   use diagnostics
@@ -551,7 +551,7 @@ end function resistivity_func
 
 ! Viscosity
 ! ~~~~~~~~~
-function viscosity_func
+function viscosity_func()
   use basic
   use m3dc1_nint
   use diagnostics
@@ -642,7 +642,7 @@ end function viscosity_func
 
 ! Kappa
 ! ~~~~~
-function kappa_func
+function kappa_func()
   use math
   use read_ascii
   use basic
@@ -777,7 +777,7 @@ end function kappa_func
 
 ! Electron viscosity
 ! ~~~~~~~~~~~~~~~~~~
-function electron_viscosity_func
+function electron_viscosity_func()
   use basic
   use m3dc1_nint
   use diagnostics
@@ -800,7 +800,7 @@ function electron_viscosity_func
 end function electron_viscosity_func
 
 
-function be_func
+function be_func()
   use math
   use basic
   use m3dc1_nint
@@ -820,7 +820,7 @@ function be_func
 end function be_func
 
 
-function al_func
+function al_func()
   use math
   use basic
   use m3dc1_nint
@@ -841,7 +841,7 @@ function al_func
 end function al_func
 
 
-function bs_func
+function bs_func()
   use math
   use basic
   use m3dc1_nint
