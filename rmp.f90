@@ -184,27 +184,27 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
      
   end select
 
-  if(tf_tilt.ne.0. .or. tf_shift.ne.0.) then
-#ifdef USECOMPLEX
-     tilt_co  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )
-     tilt_sn  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )*(0,-1)
-     shift_co = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)
-     shift_sn = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)*(0,-1)
-#else
-     tilt_co  = tf_tilt*deg2rad*cos(phi - tf_tilt_angle*deg2rad)
-     tilt_sn  = tf_tilt*deg2rad*sin(phi - tf_tilt_angle*deg2rad)
-     shift_co = tf_shift*cos(phi - tf_shift_angle*deg2rad)
-     shift_sn = tf_shift*sin(phi - tf_shift_angle*deg2rad)
-#endif
-     br = br + bzero*rzero * ( &
-          - (z/x**2)*tilt_co    &
-          - (  1./x**2)*shift_sn)
-     bphi = bphi + bzero*rzero * ( &
-          - (z/x**2)*tilt_sn    &
-          + (  1./x**2)*shift_co)
-     bz = bz + bzero*rzero * ( &
-          + (  1./x   )*tilt_co)
-  end if
+!!$  if(tf_tilt.ne.0. .or. tf_shift.ne.0.) then
+!!$#ifdef USECOMPLEX
+!!$     tilt_co  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )
+!!$     tilt_sn  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )*(0,-1)
+!!$     shift_co = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)
+!!$     shift_sn = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)*(0,-1)
+!!$#else
+!!$     tilt_co  = tf_tilt*deg2rad*cos(phi - tf_tilt_angle*deg2rad)
+!!$     tilt_sn  = tf_tilt*deg2rad*sin(phi - tf_tilt_angle*deg2rad)
+!!$     shift_co = tf_shift*cos(phi - tf_shift_angle*deg2rad)
+!!$     shift_sn = tf_shift*sin(phi - tf_shift_angle*deg2rad)
+!!$#endif
+!!$     br = br + bzero*rzero * ( &
+!!$          - (z/x**2)*tilt_co    &
+!!$          - (  1./x**2)*shift_sn)
+!!$     bphi = bphi + bzero*rzero * ( &
+!!$          - (z/x**2)*tilt_sn    &
+!!$          + (  1./x**2)*shift_co)
+!!$     bz = bz + bzero*rzero * ( &
+!!$          + (  1./x   )*tilt_co)
+!!$  end if
   
   do i=1, numcoils_vac
      j = coil_mask(i)
@@ -464,8 +464,87 @@ subroutine calculate_external_fields()
   call destroy_vector(p_vec)
   call destroy_mat(br_mat)
 
+  ! Add fields from TF shift / tilt
+  ! This is separated because its solution has psi=0.
+  if(tf_tilt.ne.0. .or. tf_shift.ne.0.) call tf_shift_tilt
+
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Done calculating error fields"
 end subroutine calculate_external_fields
+
+subroutine tf_shift_tilt
+  use basic
+  use arrays
+  use math
+  use field
+  use mesh_mod
+  use m3dc1_nint
+  use newvar_mod
+
+  implicit none
+
+  type(matrix_type) :: bz_mat
+  type(field_type) :: ff, bzf
+  integer :: nelms, itri, ier
+  vectype, dimension(dofs_per_element) :: temp1
+  vectype, dimension(dofs_per_element, dofs_per_element) :: temp2
+
+#ifdef USECOMPLEX
+  complex :: shift_co, tilt_sn
+#else
+  real, dimension(MAX_PTS) :: shift_co, tilt_sn
+#endif
+
+  call set_matrix_index(bz_mat, 100)
+  call create_mat(bz_mat, 1, 1, icomplex, 0)
+
+  call create_field(ff)
+  call create_field(bzf)
+  ff = 0.
+  bzf = 0.
+
+  nelms = local_elements()
+  do itri=1, nelms
+     call define_element_quadrature(itri,int_pts_main,5)
+     call define_fields(itri,0,1,0)
+
+#ifdef USECOMPLEX
+     tilt_sn  = tf_tilt*deg2rad*exp(-(0,1)*tf_tilt_angle*deg2rad )*(0,-1)
+     shift_co = tf_shift*exp(-(0,1)*tf_shift_angle*deg2rad)
+#else
+     tilt_sn  = tf_tilt*deg2rad*sin(phi_79 - tf_tilt_angle*deg2rad)
+     shift_co = tf_shift*cos(phi_79 - tf_shift_angle*deg2rad)
+#endif
+
+     temp79a = bzero*rzero/x_79*(shift_co - z_79*tilt_sn)
+     temp1 = intx2(mu79(:,OP_1,:),temp79a)
+
+     temp2 = intxx3(mu79(:,OP_1,:),nu79(:,OP_LP,:),r2_79)
+
+     call vector_insert_block(ff%vec, itri, 1, temp1, VEC_ADD)
+     call insert_block(bz_mat, itri, 1, 1, temp2, MAT_ADD)
+  end do
+  call finalize(bz_mat)
+
+  call newvar_solve(ff%vec, mass_mat_lhs)
+  if(extsubtract.eq.1) then 
+     call add(bf_ext, ff)
+  else
+     call add(bf_field(1), ff)
+  end if
+  
+  call matvecmult(bz_mat, ff%vec, bzf%vec)
+  call newsolve(mass_mat_lhs%mat, bzf%vec, ier)
+  if(extsubtract.eq.1) then
+     call add(bz_ext, bzf)
+  else 
+     call add(bz_field(1), bzf)
+  end if
+
+  call destroy_field(ff)
+  call destroy_field(bzf)
+  call destroy_mat(bz_mat)
+  
+end subroutine tf_shift_tilt
 
 !=======================================================
 ! boundary_rmp
