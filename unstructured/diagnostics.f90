@@ -1729,7 +1729,7 @@ subroutine calculate_ke()
   implicit none
   include 'mpif.h'
   integer :: itri, numelms, def_fields
-  real:: ke_N, ketotal, fac, delta_phi
+  real :: ke_N, ketotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
   vectype, dimension(dofs_per_node) :: vec_l
 
@@ -2015,7 +2015,7 @@ subroutine calculate_bh()
   implicit none
   include 'mpif.h'
   integer :: itri, numelms, def_fields
-  real:: bh_N, bhtotal, fac, delta_phi
+  real:: bh_N, bhtotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
   vectype, dimension(dofs_per_node) :: vec_l
 
@@ -2754,7 +2754,7 @@ end subroutine te_max_dev
     
     implicit none
 
-    integer :: ierr, i, itri
+    integer :: ierr, i
     real, dimension(OP_NUM) :: val
     real :: r
 

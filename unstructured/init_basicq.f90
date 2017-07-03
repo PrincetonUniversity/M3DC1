@@ -58,7 +58,7 @@ contains
     vectype, dimension (dofs_per_element) :: dofsps, dofsbz, dofspr, dofsvz, dofsden
     real , dimension(npoints) :: rtemp79a, rtemp79b, rtemp79c, rtemp79d
     real :: r, dum1, dum2, dum3
-    integer :: nelms, itri, i, j
+    integer :: nelms, itri, j
     type (field_type) :: psi_vec, bz_vec, p_vec, vz_vec, den_vec
 
     call create_field(psi_vec)
