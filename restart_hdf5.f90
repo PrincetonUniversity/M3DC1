@@ -1,7 +1,7 @@
 module restart_hdf5
   implicit none
 
-  integer, private :: icomplex_in, eqsubtract_in, ifin
+  integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
 
 contains
   
@@ -18,7 +18,7 @@ contains
     integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id
     character(LEN=19) :: time_group_name
 
-    integer :: times_output_in, i3d_in, nplanes_in, istartnew
+    integer :: times_output_in, i3d_in, istartnew
 
     if(myrank.eq.0) print *, 'Reading HDF5 file for restart.'
 
@@ -138,6 +138,13 @@ contains
        end if
        istartnew = 1
     end if
+    if(nplanes_in.eq.1 .and. nplanes.gt.1) then
+       if(myrank.eq.0) then
+          print *, 'Starting 3D calculation from 2D calculation.'
+          print *, 'Previous data will be overwritten.'
+       end if
+       istartnew = 1
+    end if
 
     if(istartnew.eq.1) then
        ntime = 0
@@ -168,6 +175,13 @@ contains
     ilin = 1 - equilibrium
     error = 0
     call hdf5_get_local_elms(nelms, error)
+
+    if(nplanes.ne.nplanes_in) then
+       if(myrank.eq.0) print *, '3D gloabl_nelms: ', global_elms
+       global_elms = global_elms * nplanes_in / nplanes
+       if(myrank.eq.0) print *, '2D global_nelms: ', global_elms
+       offset = modulo(offset, global_elms)
+    end if
 
     call h5gopen_f(time_group_id, "fields", group_id, error)
 
@@ -236,16 +250,21 @@ contains
 
     real, dimension(coeffs_per_element,nelms) :: dum
     vectype, dimension(coeffs_per_element,nelms) :: zdum
-    integer :: i
+    integer :: i, coefs
 
     error = 0
 
-    call read_field(group_id, name, dum, coeffs_per_element, &
-         nelms, error)
+    if(nplanes_in.eq.1) then
+       coefs = coeffs_per_tri
+       dum = 0.
+    else
+       coefs = coeffs_per_element
+    end if
+
+    call read_field(group_id, name, dum(1:coefs,:), coefs, nelms, error)
     zdum = dum
     if(icomplex_in.eq.1) then
-       call read_field(group_id,name//"_i", dum, coeffs_per_element, &
-            nelms,error)
+       call read_field(group_id,name//"_i", dum(1:coefs,:), coefs, nelms, error)
 #ifdef USECOMPLEX
        zdum = zdum + (0.,1.)*dum
 #endif
