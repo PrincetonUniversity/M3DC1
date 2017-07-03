@@ -1,6 +1,8 @@
 module restart_hdf5
   implicit none
 
+  integer, private :: icomplex_in, eqsubtract_in, ifin
+
 contains
   
   subroutine rdrestart_hdf5()
@@ -8,6 +10,7 @@ contains
     use hdf5_output
     use hdf5
     use pellet
+    use arrays
 
     implicit none
 
@@ -15,23 +18,19 @@ contains
     integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id
     character(LEN=19) :: time_group_name
 
-    integer :: times_output_in, icomplex_in
+    integer :: times_output_in, i3d_in, nplanes_in, istartnew
 
     if(myrank.eq.0) print *, 'Reading HDF5 file for restart.'
 
     call h5gopen_f(file_id, "/", root_id, error)
 
-    call read_int_attr(root_id, "icomplex", icomplex_in, error)
-    if(icomplex.ne.icomplex_in) then
-       if(myrank.eq.0) print *, 'Error: restart conflict with icomplex'
-       call safestop(2)
-    end if
-
     call read_int_attr(root_id, "version", version_in, error)
     if(version_in.lt.16) then
        if(myrank.eq.0) print *, 'Error: HDF5 file is from too old a version to use iread_hdf5=1.'
+       call h5gclose_f(root_id, error)
        call safestop(1)
     end if
+
 
     ! Read Time Slice
     if(myrank.eq.0) print *, 'Reading data from time slice', times_output
@@ -44,6 +43,28 @@ contains
     write(time_group_name, '("time_",I3.3)') times_output
     call h5gopen_f(root_id, time_group_name, time_id, error)
     call read_int_attr(time_id, "ntimestep", ntime, error)
+
+
+    ! Read Attributes
+    call read_int_attr(root_id, "eqsubtract", eqsubtract_in, error)
+    call read_int_attr(root_id, "icomplex", icomplex_in, error)
+    call read_int_attr(root_id, "nplanes", nplanes_in, error)
+
+    call read_int_attr(root_id, "3d", i3d_in, error)
+    if(i3d_in.eq.1 .or. icomplex_in.eq.1) then
+       ifin = 1
+       if(i3d.eq.0) then
+          if(myrank.eq.0) then
+             print *, 'Error: cannot start an axisymmetric calculation'
+             print *, '       from non-axisymmetric data'
+          end if
+          call h5gclose_f(root_id, error)
+          call safestop(1)
+       end if
+    else
+       ifin = 0
+    end if
+
 
     ! Read Scalars
     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
@@ -91,7 +112,7 @@ contains
     call h5gclose_f(time_id, error)
 
     ! Read Equilibrium Fields
-    if(eqsubtract.eq.1) then
+    if(eqsubtract_in.eq.1) then
        call h5gopen_f(root_id, "equilibrium", eq_time_id, error)
        call read_fields(eq_time_id, 1, error)
        call h5gclose_f(eq_time_id, error)
@@ -99,6 +120,31 @@ contains
 
     call h5gclose_f(root_id, error)
 
+    ! If eqsubtract = 1 but eqsubtract_in = 0, then
+    ! old fields become new equilibrium fields
+    if(eqsubtract_in.eq.0 .and. eqsubtract.eq.1) then
+       field0_vec = field_vec
+       field_vec = 0.
+    end if
+
+
+    ! If type of calculation has changed (i.e. real to complex)
+    ! then overwrite output
+    istartnew = 0
+    if(icomplex.eq.1 .and. icomplex_in.eq.0) then
+       if(myrank.eq.0) then
+          print *, 'Starting complex calculation from 2D real calculation.'
+          print *, 'Previous data will be overwritten.'
+       end if
+       istartnew = 1
+    end if
+
+    if(istartnew.eq.1) then
+       ntime = 0
+       irestart = 0
+       call hdf5_finalize(error)
+       call hdf5_initialize(.false., error)
+    end if
   end subroutine rdrestart_hdf5
 
 
@@ -137,20 +183,20 @@ contains
     end if
     
     if(icsubtract.eq.1 .or. &
-         (extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0))) then
+         (extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0))) then
        call h5r_read_field(group_id, "psi_plasma", psi_field(ilin), nelms, error)
     else
        call h5r_read_field(group_id, "psi", psi_field(ilin), nelms, error)
     end if
 
-    if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then
+    if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0)) then
        call h5r_read_field(group_id, "I_plasma", bz_field(ilin), nelms, error)
-       if(ifout.eq.1) then
+       if(ifin.eq.1) then
           call h5r_read_field(group_id, "f_plasma", bf_field(ilin), nelms, error)
        end if
     else
        call h5r_read_field(group_id, "I", bz_field(ilin), nelms, error)
-       if(ifout.eq.1) then
+       if(ifin.eq.1) then
           call h5r_read_field(group_id, "f", bf_field(ilin), nelms, error)
        end if
     end if
@@ -197,11 +243,13 @@ contains
     call read_field(group_id, name, dum, coeffs_per_element, &
          nelms, error)
     zdum = dum
+    if(icomplex_in.eq.1) then
+       call read_field(group_id,name//"_i", dum, coeffs_per_element, &
+            nelms,error)
 #ifdef USECOMPLEX
-    call read_field(group_id,name//"_i", dum, coeffs_per_element, &
-         nelms,error)
-    zdum = zdum + (0.,1.)*dum
+       zdum = zdum + (0.,1.)*dum
 #endif
+    end if
     f = 0.
     do i=1, nelms
        call setavector(i, f, zdum(:,i))

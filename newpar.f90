@@ -210,7 +210,11 @@ Program Reducedquintic
 !
 !....save timestep from input file
      dtsave = dt
+     if(iread_hdf5.eq.1) then
+        call rdrestart_hdf5
+     else
         call rdrestart_cplx
+     end if
      dt = dtsave
 
   end select                     !  end of the branch on restart/no restart

@@ -618,7 +618,7 @@ contains
     integer(HSIZE_T), parameter :: local_dims(1) = (/ 1 /)
     integer(HSIZE_T), dimension(1,1) :: coord
     integer(SIZE_T), parameter :: num_elements = 1
-    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
+    integer(HID_T) :: memspace, filespace, dset_id, plist_id
     real :: values(1)
 
 #ifdef USETAU
