@@ -277,6 +277,8 @@ subroutine hdf5_reconcile_version(ver, error)
      call h5gclose_f(scalar_group_id, error)
   end if
 
+  call update_int_attr(root_id, "version", version, error)
+
   call h5gclose_f(root_id, error)
 
 end subroutine hdf5_reconcile_version
