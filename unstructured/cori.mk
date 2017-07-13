@@ -37,8 +37,9 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
 ifeq ($(COM), 1)
-      PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.4
-      PETSC_ARCH = cori-hsw-cplx
+      PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6
+      #PETSC_ARCH = cori-hsw-cplx
+      PETSC_ARCH = cori-hsw-knl-cplx
       HYPRE_LIB = 
 #      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
@@ -51,8 +52,9 @@ ifeq ($(COM), 1)
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
       OPTS := $(OPTS) -DNEXTPetscDEV
 else
-      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.7.4
-      PETSC_ARCH = cori-hsw
+      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.7.6
+      #PETSC_ARCH = cori-hsw
+      PETSC_ARCH = cori-hsw-knl
       HYPRE_LIB = -lHYPRE
 #      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
