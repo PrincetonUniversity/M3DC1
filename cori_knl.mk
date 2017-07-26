@@ -20,6 +20,8 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.4.4/bin
+
 ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.4.4/knl
 ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
 SCOREC_DIR=$(ZOLTAN_DIR)/June2017

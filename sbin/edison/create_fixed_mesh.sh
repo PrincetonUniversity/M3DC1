@@ -1,11 +1,7 @@
 #!/bin/bash
 
-SCOREC_DIR=/global/project/projectdirs/mp288/edison/scorec/utilities/create_smb
-SEED_MESH=seed0.smb
-CREATE_SMB=create_smb 
-
-if [ ! -e $SEED_MESH ]; then
-    cp $SCOREC_DIR/$SEED_MESH .
+if [ ! -e seed0.smb ]; then
+    cp $M3DC1_DIR/bin/seed0.smb .
 fi
 
-srun -n 1 $SCOREC_DIR/$CREATE_SMB $1 $2
+srun -n 1 create_smb $1 $2

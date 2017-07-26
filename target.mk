@@ -23,6 +23,8 @@ MAKETARGET = $(MAKE) --no-print-directory -C $@ -f $(CURDIR)/makefile \
 	SRCDIR=$(CURDIR) ARCH=$(ARCH) BIN_POSTFIX=$(BIN_POSTFIX) \
 	$(MAKECMDGOALS) 
 
+include $(ARCH).mk
+
 .PHONY: $(OBJDIR)
 $(OBJDIR):
 	+@[ -d $@ ] || mkdir -p $@
@@ -46,8 +48,41 @@ clean :
 templates :
 	cd templates; make
 
+.PHONY: install_idl
+install_idl : 
+	mkdir -m 755 -p $(INSTALL_DIR)/idl
+	cp idl/*.pro $(INSTALL_DIR)/idl
+	chmod 644 $(INSTALL_DIR)/idl/*.pro
+
+.PHONY: install_doc
+install_doc :
+	mkdir -m 755 -p $(INSTALL_DIR)/doc
+	cp doc/* $(INSTALL_DIR)/doc
+	-chmod 644 $(INSTALL_DIR)/doc/*
+
+.PHONY: install_templates
+install_templates : templates
+	cp -r templates $(INSTALL_DIR)/
+	find $(INSTALL_DIR) -type d -exec chmod 755 {} \;
+	echo $(INSTALL_DIR)/templates/*/*_adapt | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.adapt
+	echo $(INSTALL_DIR)/templates/*/*_response $(INSTALL_DIR)/templates/*/*_stability | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.2d_complex
+	find $(INSTALL_DIR)/templates -type f -exec chmod 644 {} \;
+
+.PHONY: install_scorec
+install_scorec : 
+	mkdir -m 755 -p $(INSTALL_DIR)/bin
+	echo $(SCOREC_UTIL_DIR)
+	cp $(SCOREC_UTIL_DIR)/create_smb/create_smb $(INSTALL_DIR)/bin
+	chmod 755 $(INSTALL_DIR)/bin/create_smb
+	cp $(SCOREC_UTIL_DIR)/create_smb/seed0.smb $(INSTALL_DIR)/bin
+	chmod 644 $(INSTALL_DIR)/bin/seed0.smb
+	cp $(SCOREC_UTIL_DIR)/split_smb/split_smb $(INSTALL_DIR)/bin
+	chmod 755 $(INSTALL_DIR)/bin/split_smb
+	cp $(SCOREC_UTIL_DIR)/split_smb/make_model $(INSTALL_DIR)/bin
+	chmod 755 $(INSTALL_DIR)/bin/make_model
+
 .PHONY: install
-install : install_idl install_doc
+install : install_idl install_doc install_scorec
 	echo $(ARCH)
 	mkdir -m 755 -p $(INSTALL_DIR)
 	mkdir -m 755 -p $(INSTALL_DIR)/batch
@@ -68,23 +103,3 @@ install : install_idl install_doc
 	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d_complex
 	-cp _$(ARCH)-3d-opt-60/m3dc1_3d $(INSTALL_DIR)/bin
 	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_3d
-
-.PHONY: install_idl
-install_idl : 
-	mkdir -m 755 -p $(INSTALL_DIR)/idl
-	cp idl/*.pro $(INSTALL_DIR)/idl
-	chmod 644 $(INSTALL_DIR)/idl/*.pro
-
-.PHONY: install_doc
-install_doc :
-	mkdir -m 755 -p $(INSTALL_DIR)/doc
-	cp doc/* $(INSTALL_DIR)/doc
-	-chmod 644 $(INSTALL_DIR)/doc/*
-
-.PHONY: install_templates
-install_templates : templates
-	cp -r templates $(INSTALL_DIR)/
-	find $(INSTALL_DIR) -type d -exec chmod 755 {} \;
-	echo $(INSTALL_DIR)/templates/*/*_adapt | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.adapt
-	echo $(INSTALL_DIR)/templates/*/*_response $(INSTALL_DIR)/templates/*/*_stability | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.2d_complex
-	find $(INSTALL_DIR)/templates -type f -exec chmod 644 {} \;
