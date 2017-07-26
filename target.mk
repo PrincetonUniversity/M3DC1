@@ -36,26 +36,6 @@ makefile : ;
 % :: $(OBJDIR) ; :
 
 
-.PHONY : bin
-bin : 
-	rm -fr bin
-	mkdir bin
-	ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin
-	ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin
-	ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin
-	ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin
-	ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin
-	ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin
-	ln -s ../_$(ARCH)/a2cc bin
-	ln -s ../_$(ARCH)-opt-25/m3dc1_2d bin
-	ln -s ../_$(ARCH)-complex-opt-25/m3dc1_2d_complex bin
-	ln -s ../_$(ARCH)-3d-opt-60/m3dc1_3d bin
-	ln -s ../sbin/extract_profiles.sh bin
-	ln -s ../sbin/m3dc1_units.sh bin
-	ln -s ../sbin/$(ARCH)/create_mesh.sh bin
-	ln -s ../sbin/$(ARCH)/part_mesh.sh bin
-	ln -s ../sbin/$(ARCH)/create_fixed_mesh.sh bin
-
 .PHONY: cleanall
 cleanall : 
 	rm -fr _$(ARCH)*

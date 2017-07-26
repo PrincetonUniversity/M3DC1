@@ -188,4 +188,24 @@ struct2vac : $(S2V_OBJS)
 a2cc : $(A2CC_OBJS)
 	$(LOADER) $(A2CC_OBJS) -o $@
 
+.PHONY : bin
+bin : 
+	rm -fr bin
+	mkdir -p bin
+	ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin
+	ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin
+	ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin
+	ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin
+	ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin
+	ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin
+	ln -s $(SRCDIR)/_$(ARCH)/a2cc bin
+	ln -s $(SRCDIR)/_$(ARCH)-opt-25/m3dc1_2d bin
+	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25/m3dc1_2d_complex bin
+	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60/m3dc1_3d bin
+	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin
+	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
+	ln -s $(SRCDIR)/sbin/$(ARCH)/create_mesh.sh bin
+	ln -s $(SRCDIR)/sbin/$(ARCH)/part_mesh.sh bin
+	ln -s $(SRCDIR)/sbin/$(ARCH)/create_fixed_mesh.sh bin
+
 endif
