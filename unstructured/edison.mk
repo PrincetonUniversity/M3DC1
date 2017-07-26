@@ -18,7 +18,9 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-SCOREC_DIR =/global/project/projectdirs/mp288/edison/scorec/mpich7.4.1/June2017
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/edison/scorec/mpich7.4.1/bin/
+
+SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/mpich7.4.1/June2017
 ZOLTAN_LIB = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
 
 ifeq ($(TRILINOS), 1)

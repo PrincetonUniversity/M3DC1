@@ -81,10 +81,6 @@ ifeq ($(TRILINOS),1)
   BIN_POSTFIX := $(BIN_POSTFIX)-trilinos
 endif
 
-ifeq ($(USEADIOS), 1)
-  BIN_POSTFIX := $(BIN_POSTFIX)-adios
-endif
-
 ifeq ($(OMP), 1)
   BIN_POSTFIX := $(BIN_POSTFIX)-omp
 endif
@@ -128,9 +124,6 @@ ifeq ($(TRILINOS),1)
 endif
 ifeq ($(COM), 1)
   BIN := $(BIN)_complex
-endif
-ifeq ($(USEADIOS), 1)
-  BIN := $(BIN)_adios
 endif
 
 READGATO_OBJS = polar.o readgato.o

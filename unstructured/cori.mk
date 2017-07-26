@@ -18,6 +18,8 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
+export SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.4.4/bin
+
 #SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2016-mpich7.4.4
 ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.4.4/haswell
 ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
