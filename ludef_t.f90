@@ -1735,7 +1735,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  tempx = b1psieta(trialx,lin,eta79,vz079,eta_mod.eq.1)
+  tempx = b1psieta(trialx,lin,eta79,vzt79,eta_mod.eq.1)
   ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
   ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
   ! implicit hyperresistivity
@@ -2514,7 +2514,7 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
   ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
   
-  tempx = b2beta(trialx,lin,eta79,vz079)
+  tempx = b2beta(trialx,lin,eta79,vzt79)
   ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
   ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
 
@@ -3155,13 +3155,13 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Perpendicular Heat Flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~
-  tempx = b3pedkappa(trialx,lin,ni79,kap79,vz079)
+  tempx = b3pedkappa(trialx,lin,ni79,kap79,vzt79)
   ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
   ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
   if(eqsubtract.eq.1) then
      if(idens.eq.1) then
         q_ni(:,1) = q_ni(:,1) + dt* &
-             (b3pedkappa(trialx,pp079,lin,kap79,vz079))
+             (b3pedkappa(trialx,pp079,lin,kap79,vzt79))
      end if
   end if
 
@@ -4121,7 +4121,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
      ! Perpendicular Heat Flux
      ! ~~~~~~~~~~~~~~~~~~~~~~~
-     temp = b3tekappa(trial,lin,kap79,vz079)
+     temp = b3tekappa(trial,lin,kap79,vzt79)
      ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
      ddterm(i,pp_g) = ddterm(i,pp_g) + (1.-thimp*bdf)*dt*temp
 
@@ -5501,7 +5501,7 @@ subroutine ludefden_n(itri)
 
   do j=1,dofs_per_element
      
-     tempx = n1ndenm(mu79,nu79(:,:,j),denm,vz079) &
+     tempx = n1ndenm(mu79,nu79(:,:,j),denm,vzt79) &
           +  n1nu   (mu79,nu79(:,:,j),pht79)
      ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
      ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
