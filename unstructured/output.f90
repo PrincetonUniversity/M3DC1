@@ -275,9 +275,15 @@ subroutine hdf5_reconcile_version(ver, error)
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
      call write_int_attr(scalar_group_id, "ntimestep", ntime, error)
      call h5gclose_f(scalar_group_id, error)
-  end if
 
-  call update_int_attr(root_id, "version", version, error)
+     ! This is necessary because if version < 17 in the restart file,
+     ! we can't find the version of the latest restart.  This will cause
+     ! subsequent restarts will fail due to the above
+     ! write_int_attr statement.  However, in general we will leave the 
+     ! "version" variable in root_id alone when restarting with a new version
+     ! (instead, the version change is reflected in the time slice "version").
+     call update_int_attr(root_id, "version", 17, error)
+  end if
 
   call h5gclose_f(root_id, error)
 
