@@ -33,6 +33,7 @@ contains
 
 
     ! Read Time Slice
+    ! ~~~~~~~~~~~~~~~
     if(myrank.eq.0) print *, 'Reading data from time slice', times_output
     call read_int_attr(root_id, "ntime", times_output_in, error)
     if(times_output_in .le. times_output) then
@@ -46,6 +47,13 @@ contains
 
 
     ! Read Attributes
+    ! ~~~~~~~~~~~~~~~
+
+    ! For version >= 17, the version number can change with timeslice
+    if(version_in.ge.17) then
+       call read_int_attr(time_id, "version", version_in, error)
+    end if
+    
     call read_int_attr(root_id, "eqsubtract", eqsubtract_in, error)
     call read_int_attr(root_id, "icomplex", icomplex_in, error)
     call read_int_attr(root_id, "nplanes", nplanes_in, error)
