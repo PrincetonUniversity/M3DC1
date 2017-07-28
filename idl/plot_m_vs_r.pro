@@ -1,9 +1,16 @@
 pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
-                 srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra, phase=phase
+                 srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra, phase=phase, $
+                 jmn=jmn
   if(n_elements(factor) eq 0) then factor = 1.
 
   read_bmncdf, file=filename, _EXTRA=extra, bmn=bmn, psi=psi, m=m, q=q, $
-               rho=rho, ntor=ntor, symbol=symbol, units=units
+               rho=rho, ntor=ntor, symbol=symbol, units=units, jmn=j
+
+  if(keyword_set(jmn)) then begin
+     bmn = j
+     symbol = '!8J!Dmn!N!X'
+     units = 'A/m!U2!N'
+  end
 
   label = symbol + '!6 (' + units + '!6)!X'
 
