@@ -73,6 +73,13 @@ contains
        ifin = 0
     end if
 
+    if(version_in.ge.18) then
+       call read_real_attr(root_id, "xlim" , xlim,  error)
+       call read_real_attr(root_id, "zlim" , zlim,  error)
+       call read_real_attr(root_id, "xlim2", xlim2, error)
+       call read_real_attr(root_id, "zlim2", zlim2, error)
+    end if
+
 
     ! Read Scalars
     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
