@@ -234,7 +234,7 @@ Program Reducedquintic
 
   ! output simulation parameters and equilibrium
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(ntime.eq.0) then
+  if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
      if(myrank.eq.0 .and. iprint.ge.1) &
           print *, " Writing simulation parameters"
      call hdf5_write_parameters(ier)

@@ -251,6 +251,10 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "imag_probes", imag_probes, error)
   call write_int_attr (root_id, "iflux_loops", iflux_loops, error)
   call write_real_attr(root_id, "tflux0"     , tflux0,      error)
+  call write_real_attr(root_id, "xlim"       , xlim,        error)
+  call write_real_attr(root_id, "zlim"       , zlim,        error)
+  call write_real_attr(root_id, "xlim2"      , xlim2,       error)
+  call write_real_attr(root_id, "zlim2"      , zlim2,       error)
 
   call h5gclose_f(root_id, error)
 
@@ -283,6 +287,15 @@ subroutine hdf5_reconcile_version(ver, error)
      ! "version" variable in root_id alone when restarting with a new version
      ! (instead, the version change is reflected in the time slice "version").
      call update_int_attr(root_id, "version", 17, error)
+  end if
+
+  if(ver.lt.18) then
+     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
+     call write_real_attr(scalar_group_id, "xlim", xlim, error)
+     call write_real_attr(scalar_group_id, "zlim", zlim, error)
+     call write_real_attr(scalar_group_id, "xlim2", xlim2, error)
+     call write_real_attr(scalar_group_id, "zlim2", zlim2, error)
+     call h5gclose_f(scalar_group_id, error)
   end if
 
   call h5gclose_f(root_id, error)
