@@ -60,7 +60,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        for i=0, n-1 do begin
            data = data + $
              read_field(name, x, y, t, slices=time[i], mesh=mesh, $
-                        filename=filename[i], points=pts, fac=fac, $
+                        filename=filename[i], points=pts, $
                         equilibrium=equilibrium, linfac=linfac[i], $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
