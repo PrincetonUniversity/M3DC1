@@ -269,7 +269,7 @@ subroutine hdf5_reconcile_version(ver, error)
 
   integer, intent(in) :: ver
   integer, intent(out) :: error
-  integer(HID_T) :: root_id, scalar_group_id, fl_group_id, mp_group_id
+  integer(HID_T) :: root_id, scalar_group_id
 
   if(ver.ge.version) return
 
@@ -603,14 +603,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
      ! Output the field data 
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing fields '
      call output_fields(time_root_id, equilibrium, error)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
-
-!    ! Output the keharmonics
-!    if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing keharmonics '
-!    call output_keharmonics(time_root_id, equilibrium, error)
-!    if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing keharmonics ', error
-     
-     
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error     
      ! Close the file
      call h5gclose_f(time_root_id, error)
      call h5fclose_f(time_file_id, error)  
@@ -1034,7 +1027,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
   endif !(use_external_fields)
 
-  if(iwrite_transport_coeffs.eq.1) then
+  ! transport coefficients do not change with time in linear calculations
+  ! so don't output linear perturbations
+  if(iwrite_transport_coeffs.eq.1 .and. &
+     (linear.eq.0 .or. equilibrium.eq.1)) then
      ! eta
      do i=1, nelms
         call calcavector(i, resistivity_field, dum(:,i))
@@ -1484,55 +1480,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   deallocate(dum)
 
 end subroutine output_fields
-
-
-! output_keharmonics
-! =============
-subroutine output_keharmonics(time_group_id, equilibrium, error)
-  use hdf5
-  use hdf5_output
-  use basic
-  use time_step
-    use diagnostics
-  
-  implicit none
-
-  integer(HID_T), intent(in) :: time_group_id
-  integer, intent(out) :: error
-  integer, intent(in) :: equilibrium
-  
-  integer(HID_T) :: group_id
-  integer :: i, nfields
-  real, allocatable :: dum(:)
-
-  nfields = 0
-  error = 0
-  
-  allocate(dum(NMAX+1))
-
-  ! Create the keharmonic group
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before h5gcreate_f in output_keharmonics'
-  call h5gcreate_f(time_group_id, "keharmonics", group_id, error)
-      if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after h5gcreate_f in output_keharmonics', error
-
-  ! Output the keharmonic(NMAX)
-  ! ~~~~~~~~~~~~~~~~~
-
-  ! keharmonic
-  do i = 0, NMAX
-     dum(i+1) = keharmonic(i)
-  enddo
-  call output_1darr(group_id, "keharmonic", dum, NMAX+1, ntime, error)
-  nfields = nfields + 1
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after keharmonic in output_keharmonics'
-  
-  ! Close the keharmonics group
-  call h5gclose_f(group_id, error)
-
-  deallocate(dum)
-
-end subroutine output_keharmonics
 
 
 ! hdf5_write_keharmonics
