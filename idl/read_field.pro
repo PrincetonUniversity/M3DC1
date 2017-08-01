@@ -169,11 +169,15 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           units=units, dimensions=d, phi=phi0, $
                           rvector=rvector, zvector=zvector, $
                           yvector=yvector, is_nonlinear=isnl)
+
+       if(n_elements(data1) le 1) then begin
+          print, 'Perturbed field not found.'
+          isnl = 0
+       endif
        if(isnl eq 1) then begin
           data = data1
        endif else begin
-          t1 = t
-          data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
+          data0 = read_field(name,x,y,t0, slices=-1, mesh=mesh, $
                              filename=filename, points=pts, fac=fac, $
                              rrange=xrange, zrange=yrange, complex=0, $
                              h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
@@ -182,8 +186,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                              units=units, dimensions=d, $
                              rvector=rvector, zvector=zvector, $
                              yvector=yvector)
-          data = data0 + data1
-          t = t1
+          if(n_elements(data1) le 1) then begin
+             data = data0
+          endif else begin
+             data = data0 + data1
+          endelse
       endelse
       print, '**********************************************************'
       return, data
@@ -1732,7 +1739,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
          kappa = read_field('kappa', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
-                          rrange=xrange, zrange=yrange, phi=phi0)
+                          rrange=xrange, zrange=yrange, phi=phi0, $
+                           linear=linear)
          den = read_field('den', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
                           rrange=xrange, zrange=yrange, /equilibrium)
@@ -1748,7 +1756,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
          visc = read_field('visc', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
-                          rrange=xrange, zrange=yrange, phi=phi0)
+                          rrange=xrange, zrange=yrange, phi=phi0, $
+                          linear=linear)
          den = read_field('den', x, y, t, slices=time, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
                           rrange=xrange, zrange=yrange, /equilibrium)
