@@ -24,11 +24,18 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
                            i0=i0, x=x, z=z, fbins=fbins, $
                            tbins=tbins, boozer=boozer, hamada=hamada, $
                            njac=njac, itor=itor, psin_range=psin_range, $
-                           r0=r0
+                           r0=r0, filename=filename
+  if(n_elements(filename) eq 0) then begin
+     fn = 'C1.h5'
+  endif else begin
+     fn = filename[0]
+  end
 
   if(n_elements(fast0) eq 0) then fast0 = 0
-  if(n_elements(itor) eq 0) then itor = read_parameter('itor',_EXTRA=extra)
-  if(n_elements(r0) eq 0) then r0 = read_parameter('rzero',_EXTRA=extra)
+  if(n_elements(itor) ne 1) then $
+     itor = read_parameter('itor', file=fn, _EXTRA=extra)
+  if(n_elements(r0) ne 1) then $
+     r0 = read_parameter('rzero', file=fn, _EXTRA=extra)
   if(r0 eq 0) then begin
      print, 'Error: r0 = 0. Using r0 = 1'
      r0 = 1.
@@ -70,22 +77,26 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
 
   if(n_elements(psi0) eq 0 or n_elements(x) eq 0 or n_elements(z) eq 0) then begin
      print, 'READING PSI IN FLUX_COORDINATES'
-     psi0 = read_field('psi',x,z,t,points=pts,/equilibrium,_EXTRA=extra)
+     psi0 = read_field('psi',x,z,t,points=pts,/equilibrium,$
+                       filename=fn,_EXTRA=extra)
   end
 
   if(keyword_set(fast)) then begin
      psi0_r = dx(psi0, x)
      psi0_z = dz(psi0, z)
   endif else begin
-     psi0_r = read_field('psi',x,z,t,points=pts,/equilibrium,_EXTRA=extra,op=2)
-     psi0_z = read_field('psi',x,z,t,points=pts,/equilibrium,_EXTRA=extra,op=3)
+     psi0_r = read_field('psi',x,z,t,points=pts,/equilibrium,$
+                         filename=fn,_EXTRA=extra,op=2)
+     psi0_z = read_field('psi',x,z,t,points=pts,/equilibrium,$
+                         filename=fn,_EXTRA=extra,op=3)
      if(n_elements(i0) eq 0) then begin
-        i0 = read_field('I',x,z,t,points=pts,/equilibrium,_EXTRA=extra)
+        i0 = read_field('I',x,z,t,points=pts,/equilibrium,$
+                        filename=fn,_EXTRA=extra)
      end
   endelse
 
   psi_s = lcfs(psi0, x, z, axis=axis, xpoint=xpoint, flux0=flux0, $
-               /refine, _EXTRA=extra)
+               /refine, filename=fn, _EXTRA=extra)
 
   print, 'Magnetic axis = ', axis
   print, 'flux0, psi_s = ', flux0, psi_s
