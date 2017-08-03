@@ -392,6 +392,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "particle_number_p" , pden ,ntime, error)
   call output_scalar(scalar_group_id, "angular_momentum_p", pmom ,ntime, error)
   call output_scalar(scalar_group_id, "volume_p"          , pvol ,ntime, error)
+  call output_scalar(scalar_group_id, "M_IZ"              , m_iz ,ntime, error)
 
   call output_scalar(scalar_group_id, "toroidal_current_w",wallcur,ntime,error)
   
