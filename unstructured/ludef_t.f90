@@ -3885,6 +3885,20 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      return
   end if
 
+  ! Time Derivative
+  ! ~~~~~~~~~~~~~~~
+!
+! NOTE:  iadiabat=1 is correct form;   adiabat=0 is for backwards compatibility (6/2/16)
+  if(iadiabat.eq.1) then
+     tempx = t3tn(trialx,lin,nt79)*freq_fac
+     ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
+     if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
+  else
+     tempx = t3t(trialx,lin)*freq_fac
+     ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
+     if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
+  endif
+
 
   if(electron_temperature) then
   ! Ohmic Heating
@@ -3962,25 +3976,8 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
 
-
-  ! Time Derivative
-  ! ~~~~~~~~~~~~~~~
-!
-! NOTE:  iadiabat=1 is correct form;   adiabat=0 is for backwards compatibility (6/2/16)
-  if(iadiabat.eq.1) then
-     temp = t3tn(trial,lin,nt79)*freq_fac
-     ssterm(i,pp_g) = ssterm(i,pp_g) + temp
-     if(itime_independent.eq.0) ddterm(i,pp_g) = ddterm(i,pp_g) + temp*bdf
-  else
-     temp = t3t(trial,lin)*freq_fac
-     ssterm(i,pp_g) = ssterm(i,pp_g) + temp
-     if(itime_independent.eq.0) ddterm(i,pp_g) = ddterm(i,pp_g) + temp*bdf
-  endif
-
-!
-
   ! Equipartition
-  ! ~~~~~~~~~~~
+  ! ~~~~~~~~~~~~~
    if(ipres.eq.1 .and. ipressplit.eq.1) then
       if(linear.eq.0 .and. eqsubtract.eq.0) then
          temp = dt*coefeq*t3tneta(trial,lin,nt79,eta79)
