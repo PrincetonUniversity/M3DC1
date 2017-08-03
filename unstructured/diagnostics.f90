@@ -721,7 +721,8 @@ subroutine calculate_scalars()
 
      ! M_iz = int(dV Z*J)
      ! This is used for calculating the vertical "center" of the plasma current
-     m_iz   = m_iz   - int4(ri2_79,z_79,pst79(:,OP_GS),mr)/tpirzero
+     temp79a = z_79
+     m_iz   = m_iz   - int4(ri2_79,temp79a,pst79(:,OP_GS),mr)/tpirzero
 
      ! toroidal flux
      tflux = tflux + int2(ri2_79,bzt79(:,OP_1))/tpirzero
