@@ -13465,44 +13465,48 @@ vectype function t3tneta(e,f,g,h)
   t3tneta = temp
   return
 end function t3tneta
-vectype function t3tn(e,f,g)
 
+function t3tn(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: t3tn
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      temp = 0.
   else
-     temp = int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))    ! corrected 6/2/2016
+     temp = intx3(e(:,OP_1,:),f(:,OP_1),g(:,OP_1))
   end if
 
   t3tn = temp
-  return
 end function t3tn
-vectype function t3t(e,f)
 
+function t3t(e,f)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: t3t
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      temp = 0.
   else
-     temp = int2(e(:,OP_1),f(:,OP_1))
+     temp = intx2(e(:,OP_1,:),f(:,OP_1))
   end if
 
   t3t = temp
-  return
 end function t3t
+
+
 vectype function t3tnu(e,f,g,h)
 
   use basic
