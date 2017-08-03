@@ -13506,17 +13506,16 @@ function t3t(e,f)
   t3t = temp
 end function t3t
 
-
-vectype function t3tnu(e,f,g,h)
-
+function t3tnu(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: t3tnu
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -13524,8 +13523,8 @@ vectype function t3tnu(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
-        temp = int4(ri_79,e(:,OP_1),f(:,OP_DR),h(:,OP_DZ)) &
-             - int4(ri_79,e(:,OP_1),f(:,OP_DZ),h(:,OP_DR))
+        temp = intx4(e(:,OP_1,:),ri_79,f(:,OP_DR),h(:,OP_DZ)) &
+             - intx4(e(:,OP_1,:),ri_79,f(:,OP_DZ),h(:,OP_DR))
      end if
 
   case(1)
@@ -13533,33 +13532,33 @@ vectype function t3tnu(e,f,g,h)
         if(inonormalflow.eq.1) then
            temp = 0.
         else
-           temp = int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,1),h(:,OP_DZ)) &
-                - int5(r_79,e(:,OP_1),f(:,OP_1),norm79(:,2),h(:,OP_DR))
+           temp = intx5(e(:,OP_1,:),r_79,f(:,OP_1),norm79(:,1),h(:,OP_DZ)) &
+                - intx5(e(:,OP_1,:),r_79,f(:,OP_1),norm79(:,2),h(:,OP_DR))
         end if
      else
-           temp = int5(r_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_DZ)) &
-                - int5(r_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1),h(:,OP_DR))
+           temp = intx5(e(:,OP_1,:),r_79,f(:,OP_DR),g(:,OP_1),h(:,OP_DZ)) &
+                - intx5(e(:,OP_1,:),r_79,f(:,OP_DZ),g(:,OP_1),h(:,OP_DR))
         if(itor.eq.1) then
            temp = temp + &
-                2.*(gam-1.)*int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_DZ))
+                2.*(gam-1.)*intx4(e(:,OP_1,:),f(:,OP_1),g(:,OP_1),h(:,OP_DZ))
         endif
      end if
   end select
 
   t3tnu = temp
-
-  return
 end function t3tnu
-vectype function t3tnv(e,f,g,h)
 
+
+function t3tnv(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: t3tnv
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
@@ -13568,15 +13567,15 @@ vectype function t3tnv(e,f,g,h)
         temp = 0.
      else
 !==> This needs to be checked
-        temp = - int4(ri2_79,e(:,OP_1),f(:,OP_DP),h(:,OP_1)) &
-             - gam*int4(ri2_79,e(:,OP_1),f(:,OP_1),h(:,OP_DP))
+        temp = - intx4(e(:,OP_1,:),ri2_79,f(:,OP_DP),h(:,OP_1)) &
+             - gam*intx4(e(:,OP_1,:),ri2_79,f(:,OP_1),h(:,OP_DP))
      endif
   case(1)
      if(surface_int) then
         temp = 0.
      else
-        temp = - int4(e(:,OP_1),f(:,OP_DP),g(:,OP_1),h(:,OP_1)) 
-        temp = temp - (gam-1.)*int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_DP))
+        temp = - intx4(e(:,OP_1,:),f(:,OP_DP),g(:,OP_1),h(:,OP_1)) &
+             - (gam-1.)*intx4(e(:,OP_1,:),f(:,OP_1),g(:,OP_1),h(:,OP_DP))
      endif
   end select
 #else
@@ -13587,16 +13586,17 @@ vectype function t3tnv(e,f,g,h)
 
   return
 end function t3tnv
-vectype function t3tnchi(e,f,g,h)
 
+function t3tnchi(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: t3tnchi
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -13604,11 +13604,11 @@ vectype function t3tnchi(e,f,g,h)
         temp = 0.
      else
         temp = gam* &
-             (int3(e(:,OP_DZ),f(:,OP_1),h(:,OP_DZ))  &
-             +int3(e(:,OP_DR),f(:,OP_1),h(:,OP_DR))) &
+             (intx3(e(:,OP_DZ,:),f(:,OP_1),h(:,OP_DZ))  &
+             +intx3(e(:,OP_DR,:),f(:,OP_1),h(:,OP_DR))) &
              +(gam-1.)* &
-             (int3(e(:,OP_1),f(:,OP_DZ),h(:,OP_DZ))  &
-             +int3(e(:,OP_1),f(:,OP_DR),h(:,OP_DR)))
+             (intx3(e(:,OP_1,:),f(:,OP_DZ),h(:,OP_DZ))  &
+             +intx3(e(:,OP_1,:),f(:,OP_DR),h(:,OP_DR)))
      end if
      
   case(1)
@@ -13617,19 +13617,18 @@ vectype function t3tnchi(e,f,g,h)
            temp = 0.
         else
            temp = &
-                - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,1),h(:,OP_DR)) &
-                - int5(ri2_79,e(:,OP_1),f(:,OP_1),norm79(:,2),h(:,OP_DZ))
+                - intx5(e(:,OP_1,:),ri2_79,f(:,OP_1),norm79(:,1),h(:,OP_DR)) &
+                - intx5(e(:,OP_1,:),ri2_79,f(:,OP_1),norm79(:,2),h(:,OP_DZ))
         endif
      else
-        temp = -int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_DR))  &
-               -int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_1),h(:,OP_DZ))
-        temp = temp -(gam-1.)* int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_GS))
+        temp = -intx5(e(:,OP_1,:),ri2_79,f(:,OP_DR),g(:,OP_1),h(:,OP_DR))  &
+               -intx5(e(:,OP_1,:),ri2_79,f(:,OP_DZ),g(:,OP_1),h(:,OP_DZ)) &
+               -(gam-1.)* &
+               intx5(e(:,OP_1,:),ri2_79,f(:,OP_1),g(:,OP_1),h(:,OP_GS))
      endif
   end select
 
   t3tnchi = temp
-
-  return
 end function t3tnchi
 
 vectype function j1b2ipsib(e,f,g,h)

@@ -3973,6 +3973,59 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   endif
 
 
+  ! Temperature Advection
+  ! ~~~~~~~~~~~~~~~~~~
+  if(no_vdg_T .eq. 0) then   ! debug
+     if(linear.eq.0) then
+        tempx = t3tnu(trialx,pp179,nt79,lin)
+        ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimpb*bdf)*dt*tempx
+
+        if(numvar.ge.2) then
+           tempx = t3tnv(trialx,pp179,nt79,lin)
+           ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
+           ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimpb*bdf)*dt*tempx
+        end if
+
+        if(numvar.ge.3) then
+           tempx = t3tnchi(trialx,pp179,nt79,lin)
+           ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimpb*bdf)*dt*tempx
+        end if
+
+        tempx = t3tnu  (trialx,lin,nt79,ph179) &
+             + t3tnv  (trialx,lin,nt79,vz179) &
+             + t3tnchi(trialx,lin,nt79,ch179)
+        ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+        ddterm(:,pp_g) = ddterm(:,pp_g) + (.5-thimp*bdf)*dt*tempx
+     endif
+     if(eqsubtract.eq.1) then
+        tempx = t3tnu(trialx,pp079,nt79,lin)
+        ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
+     
+        if(numvar.ge.2) then
+           tempx = t3tnv(trialx,pp079,nt79,lin)
+           ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
+           ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimpb*bdf)*dt*tempx
+        end if
+     
+        if(numvar.ge.3) then
+           tempx = t3tnchi(trialx,pp079,nt79,lin)
+           ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimpb*bdf)*dt*tempx
+        end if
+
+        tempx = t3tnu  (trialx,lin,nt79,ph079) &
+             + t3tnv  (trialx,lin,nt79,vz079) &
+             + t3tnchi(trialx,lin,nt79,ch079)
+        ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+        ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
+     endif
+  endif  ! on no_vdg_T .eq. 0
+
+
+
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
 
@@ -3990,57 +4043,6 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
          endif
      endif       
   endif
-
-  ! Temperature Advection
-  ! ~~~~~~~~~~~~~~~~~~
-  if(no_vdg_T .eq. 0) then   ! debug
-     if(linear.eq.0) then
-        temp = t3tnu(trial,pp179,nt79,lin)
-        ssterm(i,u_g) = ssterm(i,u_g) -     thimpb     *dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) + (.5-thimpb*bdf)*dt*temp
-
-        if(numvar.ge.2) then
-           temp = t3tnv(trial,pp179,nt79,lin)
-           ssterm(i,vz_g) = ssterm(i,vz_g) -     thimpb     *dt*temp
-           ddterm(i,vz_g) = ddterm(i,vz_g) + (.5-thimpb*bdf)*dt*temp
-        end if
-
-        if(numvar.ge.3) then
-           temp = t3tnchi(trial,pp179,nt79,lin)
-           ssterm(i,chi_g) = ssterm(i,chi_g) -     thimpb     *dt*temp
-           ddterm(i,chi_g) = ddterm(i,chi_g) + (.5-thimpb*bdf)*dt*temp
-        end if
-
-        temp = t3tnu  (trial,lin,nt79,ph179) &
-             + t3tnv  (trial,lin,nt79,vz179) &
-             + t3tnchi(trial,lin,nt79,ch179)
-        ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-        ddterm(i,pp_g) = ddterm(i,pp_g) + (.5-thimp*bdf)*dt*temp
-     endif
-     if(eqsubtract.eq.1) then
-        temp = t3tnu(trial,pp079,nt79,lin)
-        ssterm(i,u_g) = ssterm(i,u_g) -     thimpb     *dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) + (1.-thimpb*bdf)*dt*temp
-     
-        if(numvar.ge.2) then
-           temp = t3tnv(trial,pp079,nt79,lin)
-           ssterm(i,vz_g) = ssterm(i,vz_g) -     thimpb     *dt*temp
-           ddterm(i,vz_g) = ddterm(i,vz_g) + (1.-thimpb*bdf)*dt*temp
-        end if
-     
-        if(numvar.ge.3) then
-           temp = t3tnchi(trial,pp079,nt79,lin)
-           ssterm(i,chi_g) = ssterm(i,chi_g) -     thimpb     *dt*temp
-           ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimpb*bdf)*dt*temp
-        end if
-
-        temp = t3tnu  (trial,lin,nt79,ph079) &
-             + t3tnv  (trial,lin,nt79,vz079) &
-             + t3tnchi(trial,lin,nt79,ch079)
-        ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-        ddterm(i,pp_g) = ddterm(i,pp_g) + (1.-thimp*bdf)*dt*temp
-     endif
-  endif  ! on no_vdg_T .eq. 0
 
   
   ! Electron Pressure Advection
