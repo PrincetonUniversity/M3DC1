@@ -16,7 +16,7 @@ module diagnostics
   real :: totre  ! total number of runaway electrons
 
   ! scalars integrated within lcfs
-  real :: pflux, parea, pcur, pden, pmom, pvol
+  real :: pflux, parea, pcur, pden, pmom, pvol, m_iz
 
   real :: chierror, psi0
 
@@ -192,6 +192,7 @@ contains
     tvor = 0.
     parea = 0.
     pcur = 0.
+    m_iz = 0.
     pflux = 0.
     pden = 0.
     pmom = 0.
@@ -234,7 +235,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 53
+    integer, parameter :: num_scalars = 54
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -293,6 +294,7 @@ contains
        temp(51) = Lor_vol
        temp(52) = totrad
        temp(53) = totre
+       temp(54) = m_iz
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -345,12 +347,13 @@ contains
        bwb2    =temp2(45)
        volume  =temp2(46)
        xray_signal=temp2(47)
-       wallcur = temp2(48)
+       wallcur =temp2(48)
        nsource_pel = temp2(49)
-       temp_pel = temp2(50)
-       Lor_vol = temp2(51)
+       temp_pel=temp2(50)
+       Lor_vol =temp2(51)
        totrad = temp2(52)
-       totre = temp2(53)
+       totre =  temp2(53)
+       m_iz =   temp2(54)
 
     endif !if maxrank .gt. 1
 
@@ -715,6 +718,10 @@ subroutine calculate_scalars()
      ! toroidal current
      totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
      pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero
+
+     ! M_iz = int(dV Z*J)
+     ! This is used for calculating the vertical "center" of the plasma current
+     m_iz   = m_iz   - int4(ri2_79,z_79,pst79(:,OP_GS),mr)/tpirzero
 
      ! toroidal flux
      tflux = tflux + int2(ri2_79,bzt79(:,OP_1))/tpirzero
