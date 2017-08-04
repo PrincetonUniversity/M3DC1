@@ -89,13 +89,12 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
   convert_units, g_pi_ExB, dp, /mks, _EXTRA=extra
   convert_units, g_pi_flutter, dp, /mks, _EXTRA=extra
    
-  !p.multi = [0,2,1]
+  !p.multi = [0,2,2]
 
   ct3
-  print, [min([g_ne_ExB, g_ne_flutter]), max([g_ne_ExB, g_ne_flutter])]
   plot, [0,1], [min([g_ne_ExB, g_ne_flutter]), max([g_ne_ExB, g_ne_flutter])],$
         /nodata, title='!6Electron Particle Flux Density!X', $
-        xtitle='!7W!X', ytitle='!6Outward Particle Flux Density(' + un + ')!X'
+        xtitle='!7W!X', ytitle='!6Particle Flux Density(' + un + ')!X'
   oplot, fc.psi_norm, g_ne_ExB + g_ne_flutter, color=color(0)
   oplot, fc.psi_norm, g_ne_ExB, color=color(1)
   oplot, fc.psi_norm, g_ne_flutter, color=color(2)
@@ -104,12 +103,23 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
   
   plot, [0,1], [min([g_pe_ExB, g_pe_flutter]), max([g_pe_ExB, g_pe_flutter])],$
         /nodata, title='!6Electron Heat Flux Density!X', $
-        xtitle='!7W!X', ytitle='!6Outward Energy Flux Density (' + up + ')!X'
+        xtitle='!7W!X', ytitle='!6Energy Flux Density (' + up + ')!X'
   oplot, fc.psi_norm, g_pe_ExB + g_pe_flutter, color=color(0)
   oplot, fc.psi_norm, g_pe_ExB, color=color(1)
   oplot, fc.psi_norm, g_pe_flutter, color=color(2)
 
   plot_legend, ['Total', 'ExB flux', 'Flutter'], color=get_colors()
+
+
+  plot, [0,1], [min([g_pi_ExB, g_pi_flutter]), max([g_pi_ExB, g_pi_flutter])],$
+        /nodata, title='!6Ion Heat Flux Density!X', $
+        xtitle='!7W!X', ytitle='!6Energy Flux Density (' + up + ')!X'
+  oplot, fc.psi_norm, g_pi_ExB + g_pi_flutter, color=color(0)
+  oplot, fc.psi_norm, g_pi_ExB, color=color(1)
+  oplot, fc.psi_norm, g_pi_flutter, color=color(2)
+
+  plot_legend, ['Total', 'ExB flux', 'Flutter'], color=get_colors()
+
 
   !p.multi = 0
 
@@ -130,4 +140,8 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
      end
      free_lun, ifile
   end
+
+  print, 'Plots show outward quasilinear flux densities.'
+  print, 'ExB fluxes are < ns1 (E1 x B0 / B0^2) . r >'
+  print, 'flutter fluxes are < (ns1 vs_par0 + ns0 vs_par1) (B1 / B0) . r >
 end
