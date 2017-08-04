@@ -8830,24 +8830,24 @@ end function b3pe27
 
 ! B3q
 ! ===
-vectype function b3q(e,f)
-
+function b3q(e,f)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b3q
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      temp = 0.
   else
-     temp = int2(e(:,OP_1),f(:,OP_1))
+     temp = intx2(e(:,OP_1,:),f(:,OP_1))
   end if
 
   b3q = temp
-  return
 end function b3q
 
 ! B3psipsieta
@@ -9240,15 +9240,16 @@ end function b3tekappa
 
 ! B3pedkappag
 ! ===========
-vectype function b3pedkappag(e,f,g,h)
-
+function b3pedkappag(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b3pedkappag
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      b3pedkappag = 0.
@@ -9273,15 +9274,15 @@ vectype function b3pedkappag(e,f,g,h)
   end where
 
   if(surface_int) then
-     temp = int4(e(:,OP_1),norm79(:,1),f(:,OP_DR),temp79a) &
-          + int4(e(:,OP_1),norm79(:,2),f(:,OP_DZ),temp79a)
+     temp = intx4(e(:,OP_1,:),norm79(:,1),f(:,OP_DR),temp79a) &
+          + intx4(e(:,OP_1,:),norm79(:,2),f(:,OP_DZ),temp79a)
   else
      temp = &
-          - int3(e(:,OP_DZ),f(:,OP_DZ),temp79a) &
-          - int3(e(:,OP_DR),f(:,OP_DR),temp79a)
+          - intx3(e(:,OP_DZ,:),f(:,OP_DZ),temp79a) &
+          - intx3(e(:,OP_DR,:),f(:,OP_DR),temp79a)
   
 #if defined(USE3D) || defined(USECOMPLEX)
-     temp = temp + int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
+     temp = temp + intx4(e(:,OP_1,:),ri2_79,f(:,OP_DPP),temp79a)
 #endif
   end if
 

@@ -3351,6 +3351,36 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      endif
   endif
 
+  ! Gradient-dependent heat flux
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(kappag.ne.0) then
+     if(linear.eq.0) then
+        tempx = b3pedkappag(trialx,lin,pp179,pp179) &
+             + b3pedkappag(trialx,pp179,lin,pp179) &
+             + b3pedkappag(trialx,pp179,pp179,lin)
+        ssterm(:,pp_g) = ssterm(:,pp_g) -        thimp     *dt*tempx
+        ddterm(:,pp_g) = ddterm(:,pp_g) + (1./3.-thimp*bdf)*dt*tempx
+        
+        if(eqsubtract.eq.1) then
+           tempx = b3pedkappag(trialx,lin,pp179,pp079) &
+                + b3pedkappag(trialx,pp179,lin,pp079) &
+                + b3pedkappag(trialx,pp179,pp079,lin) &
+                + b3pedkappag(trialx,lin,pp079,pp179) &
+                + b3pedkappag(trialx,pp079,lin,pp179) &
+                + b3pedkappag(trialx,pp079,pp179,lin)
+           ssterm(:,pp_g) = ssterm(:,pp_g) -        thimp     *dt*tempx
+           ddterm(:,pp_g) = ddterm(:,pp_g) + (1./2.-thimp*bdf)*dt*tempx     
+        end if
+     end if
+
+     if(eqsubtract.eq.1) then
+        tempx = b3pedkappag(trialx,lin,pp079,pp079) &
+             + b3pedkappag(trialx,pp079,lin,pp079) &
+             + b3pedkappag(trialx,pp079,pp079,lin)
+        ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+        ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx     
+     end if
+  end if
 
 
   do i=1, dofs_per_element
@@ -3478,36 +3508,6 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      end if
   end if
 
-
-  ! Gradient-dependent heat flux
-  if(kappag.ne.0) then
-     if(linear.eq.0) then
-        temp = b3pedkappag(trial,lin,pp179,pp179) &
-             + b3pedkappag(trial,pp179,lin,pp179) &
-             + b3pedkappag(trial,pp179,pp179,lin)
-        ssterm(i,pp_g) = ssterm(i,pp_g) -        thimp     *dt*temp
-        ddterm(i,pp_g) = ddterm(i,pp_g) + (1./3.-thimp*bdf)*dt*temp
-        
-        if(eqsubtract.eq.1) then
-           temp = b3pedkappag(trial,lin,pp179,pp079) &
-                + b3pedkappag(trial,pp179,lin,pp079) &
-                + b3pedkappag(trial,pp179,pp079,lin) &
-                + b3pedkappag(trial,lin,pp079,pp179) &
-                + b3pedkappag(trial,pp079,lin,pp179) &
-                + b3pedkappag(trial,pp079,pp179,lin)
-           ssterm(i,pp_g) = ssterm(i,pp_g) -        thimp     *dt*temp
-           ddterm(i,pp_g) = ddterm(i,pp_g) + (1./2.-thimp*bdf)*dt*temp     
-        end if
-     end if
-
-     if(eqsubtract.eq.1) then
-        temp = b3pedkappag(trial,lin,pp079,pp079) &
-             + b3pedkappag(trial,pp079,lin,pp079) &
-             + b3pedkappag(trial,pp079,pp079,lin)
-        ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-        ddterm(i,pp_g) = ddterm(i,pp_g) + (1.-thimp*bdf)*dt*temp     
-     end if
-  end if
 
   ! Parallel Heat Flux
   ! ~~~~~~~~~~~~~~~~~~
@@ -4321,6 +4321,11 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
   
   r4term = 0.
 
+  if(gam.ne.1. .and. linear.eq.0) then
+     ! heat source
+     r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
+  end if
+
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
 
@@ -4348,9 +4353,6 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
   ! source terms
   ! ~~~~~~~~~~~~
   if(gam.ne.1.) then
-     ! heat source
-     r4term(i) = r4term(i) + dt*(gam-1.)*(b3q(trial,q79) + b3q(trial,rad79))
-
      ! hyper-ohmic heating
      if(db.ne.0.) then 
         r4term(i) = r4term(i) + db*dt*(gam-1.)* &
