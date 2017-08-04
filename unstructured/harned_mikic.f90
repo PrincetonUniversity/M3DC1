@@ -247,6 +247,74 @@ subroutine b2harnedmikic(trial,lin,psiterm,bterm)
 
 end subroutine b2harnedmikic
 
+vectype function b1hm(e,f,g,h,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+
+  else
+     temp79a =  h(:,OP_1)*ri4_79*g(:,OP_1)*e(:,OP_GSP) &
+             +  ri4_79*h(:,OP_1)*(g(:,OP_DR)*e(:,OP_DRP) + g(:,OP_DZ)*e(:,OP_DZP)) &
+             +  ri4_79*g(:,OP_1)*(h(:,OP_DR)*e(:,OP_DRP) + h(:,OP_DZ)*e(:,OP_DZP)) &
+             - 2.*g(:,OP_1)*h(:,OP_1)*ri5_79*e(:,OP_DRP) 
+     temp79b =  j(:,OP_1)*ri4_79*g(:,OP_1)*f(:,OP_GSP) &
+             +  ri4_79*j(:,OP_1)*(g(:,OP_DR)*f(:,OP_DRP) + g(:,OP_DZ)*f(:,OP_DZP)) &
+             +  ri4_79*g(:,OP_1)*(j(:,OP_DR)*f(:,OP_DRP) + j(:,OP_DZ)*f(:,OP_DZP)) &
+             - 2.*g(:,OP_1)*j(:,OP_1)*ri5_79*f(:,OP_DRP)
+    temp = - int3(r2_79,temp79a,temp79b)
+
+  end if
+  b1hm = temp
+#else
+  b1hm = 0.
+#endif
+  return
+end function b1hm
+
+vectype function b2hm(e,f,g,h,j)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
+
+  if(surface_int) then
+     temp = 0.
+
+  else
+     temp79a = h(:,OP_1)*g(:,OP_1)*ri6_79
+     temp79b = h(:,OP_1)*g(:,OP_1)*ri7_79
+
+     temp = int5(temp79a,j(:,OP_1 ),g(:,OP_1 ),e(:,OP_DRP),f(:,OP_DRP)) &
+          + int5(temp79a,j(:,OP_1 ),g(:,OP_DR),e(:,OP_DP ),f(:,OP_DRP)) &
+          + int5(temp79a,j(:,OP_DR),g(:,OP_1 ),e(:,OP_DP ),f(:,OP_DRP)) &
+          + int5(temp79a,j(:,OP_1 ),g(:,OP_1 ),e(:,OP_DZP),f(:,OP_DZP)) &
+          + int5(temp79a,j(:,OP_1 ),g(:,OP_DZ),e(:,OP_DP ),f(:,OP_DZP)) &
+          + int5(temp79a,j(:,OP_DZ),g(:,OP_1 ),e(:,OP_DP ),f(:,OP_DZP)) &
+       - 2.*int5(temp79b,j(:,OP_1 ),g(:,OP_1 ),e(:,OP_DP ),f(:,OP_DRP))
+
+  end if
+  b2hm = temp
+#else
+  b2hm = 0.
+#endif
+  return
+end function b2hm
 
 
 end module harned_mikic_mod

@@ -1937,17 +1937,17 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   end if
 
 
+  if(jadv.eq.0) then
+     ! electrostatic potential
+     ! ~~~~~~~~~~~~~~~~~~~~~~~
+     tempx = b1e(trialx,lin)
+     ssterm(:,e_g) = ssterm(:,e_g)       - thimpe     *dt*tempx
+     ddterm(:,e_g) = ddterm(:,e_g) + (1. - thimpe*bdf)*dt*tempx
+  endif
+
+
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
-
-
-  if(jadv.eq.0) then
-  ! electrostatic potential
-  ! ~~~~~~~~~~~~~~~~~~~~~~~
-    temp = b1e(trial,lin)
-    ssterm(i,e_g) = ssterm(i,e_g)       - thimpe     *dt*temp
-    ddterm(i,e_g) = ddterm(i,e_g) + (1. - thimpe*bdf)*dt*temp
-  endif
 
   select case (itwofluid)
 
@@ -4032,24 +4032,25 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
 
 
-
-  do i=1, dofs_per_element
-     trial = trialx(:,:,i)
-
   ! Equipartition
   ! ~~~~~~~~~~~~~
    if(ipres.eq.1 .and. ipressplit.eq.1) then
       if(linear.eq.0 .and. eqsubtract.eq.0) then
-         temp = dt*coefeq*t3tneta(trial,lin,nt79,eta79)
+         tempx = dt*coefeq*t3tneta(trialx,lin,nt79,eta79)
          if(electron_temperature) then
-            ssterm(i,pp_g) = ssterm(i,pp_g) + temp       
-            ssterm(i,ti_g) = ssterm(i,ti_g) - temp
+            ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
+            ssterm(:,ti_g) = ssterm(:,ti_g) - tempx
          else
-            ssterm(i,pp_g) = ssterm(i,pp_g) + temp       
-            ssterm(i,te_g) = ssterm(i,te_g) - temp
+            ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
+            ssterm(:,te_g) = ssterm(:,te_g) - tempx
          endif
      endif       
   endif
+
+
+
+  do i=1, dofs_per_element
+     trial = trialx(:,:,i)
 
   
   ! Electron Pressure Advection

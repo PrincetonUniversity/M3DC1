@@ -7541,17 +7541,18 @@ end function b1fchi
 
 ! B1e
 ! ===
-vectype function b1e(e,f)
-
+function b1e(e,f)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
+  vectype, dimension(dofs_per_element) :: b1e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(jadv.eq.1) then
      temp = 0.
@@ -7559,49 +7560,15 @@ vectype function b1e(e,f)
      if(surface_int) then
         temp = 0.
      else
-        temp = -int2(e(:,OP_1),f(:,OP_DP))
+        temp = -intx2(e(:,OP_1,:),f(:,OP_DP))
      end if
   endif
   b1e = temp
 #else
   b1e = 0.
 #endif
-  return
 end function b1e
 
-vectype function b1hm(e,f,g,h,j)
-
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j
-
-#if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
-
-  if(surface_int) then
-     temp = 0.
-
-  else
-     temp79a =  h(:,OP_1)*ri4_79*g(:,OP_1)*e(:,OP_GSP) &
-             +  ri4_79*h(:,OP_1)*(g(:,OP_DR)*e(:,OP_DRP) + g(:,OP_DZ)*e(:,OP_DZP)) &
-             +  ri4_79*g(:,OP_1)*(h(:,OP_DR)*e(:,OP_DRP) + h(:,OP_DZ)*e(:,OP_DZP)) &
-             - 2.*g(:,OP_1)*h(:,OP_1)*ri5_79*e(:,OP_DRP) 
-     temp79b =  j(:,OP_1)*ri4_79*g(:,OP_1)*f(:,OP_GSP) &
-             +  ri4_79*j(:,OP_1)*(g(:,OP_DR)*f(:,OP_DRP) + g(:,OP_DZ)*f(:,OP_DZP)) &
-             +  ri4_79*g(:,OP_1)*(j(:,OP_DR)*f(:,OP_DRP) + j(:,OP_DZ)*f(:,OP_DZP)) &
-             - 2.*g(:,OP_1)*j(:,OP_1)*ri5_79*f(:,OP_DRP)
-    temp = - int3(r2_79,temp79a,temp79b)
-
-  end if
-  b1hm = temp
-#else
-  b1hm = 0.
-#endif
-  return
-end function b1hm
 vectype function b1vzdot(e,f)
 
   use basic
@@ -8731,42 +8698,6 @@ vectype function b2bfn(e,f,g,h)
 #endif
   return
 end function b2bfn
-
-
-vectype function b2hm(e,f,g,h,j)
-
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j
-
-#if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
-
-  if(surface_int) then
-     temp = 0.
-
-  else
-     temp79a = h(:,OP_1)*g(:,OP_1)*ri6_79
-     temp79b = h(:,OP_1)*g(:,OP_1)*ri7_79
-
-     temp = int5(temp79a,j(:,OP_1 ),g(:,OP_1 ),e(:,OP_DRP),f(:,OP_DRP)) &
-          + int5(temp79a,j(:,OP_1 ),g(:,OP_DR),e(:,OP_DP ),f(:,OP_DRP)) &
-          + int5(temp79a,j(:,OP_DR),g(:,OP_1 ),e(:,OP_DP ),f(:,OP_DRP)) &
-          + int5(temp79a,j(:,OP_1 ),g(:,OP_1 ),e(:,OP_DZP),f(:,OP_DZP)) &
-          + int5(temp79a,j(:,OP_1 ),g(:,OP_DZ),e(:,OP_DP ),f(:,OP_DZP)) &
-          + int5(temp79a,j(:,OP_DZ),g(:,OP_1 ),e(:,OP_DP ),f(:,OP_DZP)) &
-       - 2.*int5(temp79b,j(:,OP_1 ),g(:,OP_1 ),e(:,OP_DP ),f(:,OP_DRP))
-
-  end if
-  b2hm = temp
-#else
-  b2hm = 0.
-#endif
-  return
-end function b2hm
 
 vectype function b2phidot(e,f)
 
@@ -13472,24 +13403,26 @@ vectype function q1pf(e,f,g,h)
 #endif
   return
 end function q1pf
-vectype function t3tneta(e,f,g,h)
 
+
+function t3tneta(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: t3tneta
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      temp = 0.
   else
-     temp = int4(e(:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_1))
+     temp = intx4(e(:,OP_1,:),f(:,OP_1),g(:,OP_1),h(:,OP_1))
   end if
 
   t3tneta = temp
-  return
 end function t3tneta
 
 function t3tn(e,f,g)
