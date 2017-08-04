@@ -4025,6 +4025,13 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   endif  ! on no_vdg_T .eq. 0
 
 
+  ! Perpendicular Heat Flux
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  tempx = b3tekappa(trialx,lin,kap79,vzt79)
+  ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+  ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
+
+
 
   do i=1, dofs_per_element
      trial = trialx(:,:,i)
@@ -4115,14 +4122,6 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      end if
   end if
 
-
-
-
-     ! Perpendicular Heat Flux
-     ! ~~~~~~~~~~~~~~~~~~~~~~~
-     temp = b3tekappa(trial,lin,kap79,vzt79)
-     ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-     ddterm(i,pp_g) = ddterm(i,pp_g) + (1.-thimp*bdf)*dt*temp
 
   ! Parallel Heat Flux
   ! ~~~~~~~~~~~~~~~~~~

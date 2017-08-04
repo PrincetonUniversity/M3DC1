@@ -597,9 +597,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         call f2eplot_sub(dofs)
         call vector_insert_block(f2eplot%vec,itri,1,dofs,VEC_ADD)
 
-        do i=1, dofs_per_element
-           call f3vplot_sub(i,dofs(i))
-        end do
+        call f3vplot_sub(dofs)
         call vector_insert_block(f3vplot%vec,itri,1,dofs,VEC_ADD)
 
         call f3eplot_sub(dofs)

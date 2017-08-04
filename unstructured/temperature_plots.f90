@@ -403,23 +403,17 @@ subroutine f2eplot_sub(term)
 
 end subroutine f2eplot_sub
 
-subroutine f3vplot_sub(i,term)
+subroutine f3vplot_sub(term)
   use basic
   use m3dc1_nint
   use metricterms_new
   
   implicit none
-  vectype, intent(out) :: term
-  integer, intent(in) :: i
-  vectype :: temp
+  vectype, intent(out), dimension(dofs_per_element) :: term
 
-
-        temp = t3tnu  (mu79(:,:,i),tet79,nt79,pht79) &
-             + t3tnv  (mu79(:,:,i),tet79,nt79,vzt79) &
-             + t3tnchi(mu79(:,:,i),tet79,nt79,cht79)
-        term = temp
-!
-
+  term = t3tnu  (mu79,tet79,nt79,pht79) &
+       + t3tnv  (mu79,tet79,nt79,vzt79) &
+       + t3tnchi(mu79,tet79,nt79,cht79)
 end subroutine f3vplot_sub
 
 subroutine f3eplot_sub(term)
@@ -449,12 +443,14 @@ subroutine f3eplot_sub(term)
      term = term + tempx*ohfac
   endif
 
+  ! Perpendicular Heat Flux
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  tempx = b3tekappa(mu79,tet79,kap79,vz079)
+  term = term + tempx
+
+
   do i=1, dofs_per_element
 
-! Perpendicular Heat Flux
-! ~~~~~~~~~~~~~~~~~~~~~~~
-     temp = b3tekappa(mu79(:,:,i),tet79,kap79,vz079)
-     term = term + temp
 
 ! Parallel Heat Flux
 ! ~~~~~~~~~~~~~~~~~~

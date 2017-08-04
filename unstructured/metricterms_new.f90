@@ -927,8 +927,9 @@ vectype function v1upsib(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
 
   select case(ivform)
   case(0)
@@ -1129,9 +1130,9 @@ vectype function v1vpsipsi(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
 
   select case(ivform)
   case(0)
@@ -2714,9 +2715,10 @@ vectype function v2vpsib(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
+
   select case(ivform)
   case(0)
      if(surface_int) then
@@ -6165,7 +6167,7 @@ function b1bj(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
   vectype, dimension(dofs_per_element) :: temp
-  real*8 :: hypfm
+  real :: hypfm
 
 
      temp79a = hypf*(g(:,OP_DRR)+g(:,OP_DZZ))
@@ -6435,6 +6437,8 @@ vectype function b1psifd1(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6442,7 +6446,6 @@ vectype function b1psifd1(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -6489,6 +6492,8 @@ vectype function b1psifd2(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6496,7 +6501,6 @@ vectype function b1psifd2(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -6549,6 +6553,8 @@ vectype function b1bbd(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6556,7 +6562,6 @@ vectype function b1bbd(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -6600,6 +6605,8 @@ vectype function b1bfd1(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6607,7 +6614,6 @@ vectype function b1bfd1(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -6658,6 +6664,8 @@ vectype function b1bfd2(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6665,7 +6673,6 @@ vectype function b1bfd2(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -6715,6 +6722,8 @@ vectype function b1ped(e,f,g)
 
   implicit none
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6722,7 +6731,6 @@ vectype function b1ped(e,f,g)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -6745,11 +6753,10 @@ vectype function b1ped(e,f,g)
              + int4(ri2_79,e(:,OP_DR),f(:,OP_DR ),g(:,OP_DP))
      end if
   endif
-#else
-  temp = 0.
-#endif
-
   b1ped = temp
+#else
+  b1ped = 0.
+#endif
   return
 end function b1ped
 
@@ -6763,6 +6770,8 @@ vectype function b1psipsin(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6770,7 +6779,6 @@ vectype function b1psipsin(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -6819,12 +6827,11 @@ vectype function b1psipsin(e,f,g,h)
              - int5(temp79a,e(:,OP_DR),f(:,OP_DR ),g(:,OP_GS ),h(:,OP_DP))
      end if
   endif
-#else
-  temp = 0.
-#endif
   b1psipsin = temp
-  return
-  
+#else
+  b1psipsin = 0.
+#endif
+
 end function b1psipsin
 
 
@@ -6897,6 +6904,8 @@ vectype function b1psibn2(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6904,7 +6913,6 @@ vectype function b1psibn2(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -6929,12 +6937,10 @@ vectype function b1psibn2(e,f,g,h)
              + int5(temp79a,e(:,OP_DZ),f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_DP))
      end if
   endif
-#else
-  temp = 0.
-#endif
-
   b1psibn2 = temp
-  return
+#else
+  b1psibn2 = 0.
+#endif
 end function b1psibn2
 
 
@@ -6949,6 +6955,8 @@ vectype function b1psifn1(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -6956,7 +6964,6 @@ vectype function b1psifn1(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -7005,6 +7012,8 @@ vectype function b1psifn2(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -7012,7 +7021,6 @@ vectype function b1psifn2(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -7068,6 +7076,8 @@ vectype function b1bbn(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -7075,7 +7085,6 @@ vectype function b1bbn(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -7120,6 +7129,8 @@ vectype function b1bfn1(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -7127,7 +7138,6 @@ vectype function b1bfn1(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -7181,6 +7191,8 @@ vectype function b1bfn2(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -7188,7 +7200,6 @@ vectype function b1bfn2(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      temp = 0.
   else
@@ -7239,7 +7250,10 @@ vectype function b1pen(e,f,g)
   use m3dc1_nint
 
   implicit none
+
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -7247,7 +7261,6 @@ vectype function b1pen(e,f,g)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
      if(surface_int) then
         temp = 0.
@@ -7273,11 +7286,10 @@ vectype function b1pen(e,f,g)
              - int4(temp79a,e(:,OP_DR),f(:,OP_DR ),g(:,OP_DP))
      end if
   endif
-#else
-  temp = 0.
-#endif
-
   b1pen = temp
+#else
+  b1pen = 0.
+#endif
   return
 end function b1pen
 
@@ -7294,9 +7306,9 @@ function b1feta(e,f,g)
   vectype, dimension(dofs_per_element) :: b1feta
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   if(jadv.eq.0) then
      temp = 0.
@@ -7337,9 +7349,9 @@ function b1fu(e,f,g)
   vectype, dimension(dofs_per_element) :: b1fu
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -7415,9 +7427,9 @@ function b1fv(e,f,g)
   vectype, dimension(dofs_per_element) :: b1fv
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -7464,9 +7476,9 @@ function b1fchi(e,f,g)
   vectype, dimension(dofs_per_element) :: b1fchi
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -7537,9 +7549,10 @@ vectype function b1e(e,f)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
+
   if(jadv.eq.1) then
      temp = 0.
   else
@@ -7549,11 +7562,10 @@ vectype function b1e(e,f)
         temp = -int2(e(:,OP_1),f(:,OP_DP))
      end if
   endif
-#else
-  temp = 0.
-#endif
-
   b1e = temp
+#else
+  b1e = 0.
+#endif
   return
 end function b1e
 
@@ -7565,11 +7577,9 @@ vectype function b1hm(e,f,g,h,j)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j
-  vectype :: temp
-
-  temp = 0.
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
 
   if(surface_int) then
      temp = 0.
@@ -7586,9 +7596,10 @@ vectype function b1hm(e,f,g,h,j)
     temp = - int3(r2_79,temp79a,temp79b)
 
   end if
-#endif
-
   b1hm = temp
+#else
+  b1hm = 0.
+#endif
   return
 end function b1hm
 vectype function b1vzdot(e,f)
@@ -7626,10 +7637,10 @@ vectype function b1chidot(e,f)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
-  temp = 0.
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
+
   if(surface_int) then
         temp = 0.
   else
@@ -7641,9 +7652,10 @@ vectype function b1chidot(e,f)
      endif
 
   end if
-#endif
-
   b1chidot = temp
+#else
+  b1chidot = 0.
+#endif
   return
 end function b1chidot
 
@@ -7727,9 +7739,10 @@ function b2psieta(e,f,g)
   vectype, dimension(dofs_per_element) :: b2psieta
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
+
   if(surface_int) then
      if(inocurrent_pol.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -7763,10 +7776,10 @@ function b2psieta(e,f,g)
         endif
      end if
   end if
-#else
-  temp = 0.
-#endif
   b2psieta = temp
+#else
+  b2psieta = 0.
+#endif
 end function b2psieta
 
 
@@ -7888,9 +7901,10 @@ function b2feta(e,f,g)
   vectype, dimension(dofs_per_element) :: b2feta
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
+
   if(surface_int) then
      if(inocurrent_pol.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -7950,10 +7964,11 @@ function b2fj(e,f,g)
   vectype, dimension(dofs_per_element) :: b2fj
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
-  real*8 :: hypfm
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
+  real :: hypfm
+
   if(surface_int) then
      if(inocurrent_pol.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -8019,7 +8034,7 @@ function b2psij(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
   vectype, dimension(dofs_per_element) :: temp
-  real*8 :: hypfm
+  real :: hypfm
 
   if(surface_int) then
      if(inocurrent_pol.eq.1 .and. imulti_region.eq.0) then
@@ -8324,6 +8339,8 @@ vectype function b2psibd(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -8331,7 +8348,6 @@ vectype function b2psibd(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -8426,6 +8442,8 @@ vectype function b2psifd(e,f,g,h)
   use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -8433,7 +8451,6 @@ vectype function b2psifd(e,f,g,h)
      return
   end if
   
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_tor.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -8463,6 +8480,8 @@ vectype function b2bfd(e,f,g,h)
   use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -8470,7 +8489,6 @@ vectype function b2bfd(e,f,g,h)
      return
   end if
   
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -8538,6 +8556,8 @@ vectype function b2psibn(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -8545,7 +8565,6 @@ vectype function b2psibn(e,f,g,h)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -8643,6 +8662,8 @@ vectype function b2psifn(e,f,g,h)
   use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -8650,7 +8671,6 @@ vectype function b2psifn(e,f,g,h)
      return
   end if
   
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_tor.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -8681,6 +8701,8 @@ vectype function b2bfn(e,f,g,h)
   use m3dc1_nint
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(itwofluid.eq.0) then
@@ -8688,7 +8710,6 @@ vectype function b2bfn(e,f,g,h)
      return
   end if
   
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
@@ -8720,10 +8741,9 @@ vectype function b2hm(e,f,g,h,j)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j
-  vectype :: temp
-  temp = 0.
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
 
   if(surface_int) then
      temp = 0.
@@ -8741,9 +8761,10 @@ vectype function b2hm(e,f,g,h,j)
        - 2.*int5(temp79b,j(:,OP_1 ),g(:,OP_1 ),e(:,OP_DP ),f(:,OP_DRP))
 
   end if
-#endif
-
   b2hm = temp
+#else
+  b2hm = 0.
+#endif
   return
 end function b2hm
 
@@ -9233,15 +9254,16 @@ end function b3pedkappa
 
 ! B3tekappa
 ! ==========
-vectype function b3tekappa(e,f,g,h)
-
+function b3tekappa(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b3tekappa
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM,dofs_per_element) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      b3tekappa = 0.
@@ -9249,12 +9271,12 @@ vectype function b3tekappa(e,f,g,h)
   end if
 
   if(surface_int) then
-     temp = int4(e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
-          + int4(e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1))
+     temp = intx4(e(:,OP_1,:),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+          + intx4(e(:,OP_1,:),norm79(:,2),f(:,OP_DZ),g(:,OP_1))
   else
      temp = &
-          - int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
-          - int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_1))
+          - intx3(e(:,OP_DZ,:),f(:,OP_DZ),g(:,OP_1)) &
+          - intx3(e(:,OP_DR,:),f(:,OP_DR),g(:,OP_1))
   
 #if defined(USE3D) || defined(USECOMPLEX)
      temp79a = g(:,OP_1)
@@ -9262,28 +9284,27 @@ vectype function b3tekappa(e,f,g,h)
         temp79a = temp79a + abs(h(:,OP_1))*magus
      endif
      temp = temp +                       &
-          int4(ri2_79,e(:,OP_1),f(:,OP_DPP),temp79a)
+          intx4(e(:,OP_1,:),ri2_79,f(:,OP_DPP),temp79a)
      if(iupstream.eq.2) then    
         temp79a = abs(h(:,OP_1))*magus
         temp = temp -                    &
-          int4(ri4_79,e(:,OP_DPP),f(:,OP_DPP),temp79a)
+          intx4(e(:,OP_DPP,:),ri4_79,f(:,OP_DPP),temp79a)
      endif
 #endif
      if(hypp.ne.0.) then
 
         if(ihypkappa.eq.1) then        
            temp = temp - hypp* &
-                (int3(f(:,OP_LP),e(:,OP_LP),g(:,OP_1 )) &
-                +int3(f(:,OP_LP),e(:,OP_DZ),g(:,OP_DZ)) &
-                +int3(f(:,OP_LP),e(:,OP_DR),g(:,OP_DR)))
+                (intx3(e(:,OP_LP,:),f(:,OP_LP),g(:,OP_1 )) &
+                +intx3(e(:,OP_DZ,:),f(:,OP_LP),g(:,OP_DZ)) &
+                +intx3(e(:,OP_DR,:),f(:,OP_LP),g(:,OP_DR)))
         else
-           temp = temp - hypp*int2(f(:,OP_LP),e(:,OP_LP))
+           temp = temp - hypp*intx2(e(:,OP_LP,:),f(:,OP_LP))
         endif
      endif
   end if
 
   b3tekappa = (gam-1.)*temp
-  return
 end function b3tekappa
 
 ! B3pedkappag
@@ -10786,9 +10807,9 @@ vectype function p1uspv(e,f,g)
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
 
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp 
 
-#if defined(USE3D) || defined(USECOMPLEX)
   select case(ivform)
   case(0)
 !
@@ -13023,6 +13044,7 @@ vectype function tepsipsikappar(e,f,g,h,j,k)
   tepsipsikappar = (gam - 1.) * temp
   return
 end function tepsipsikappar
+
 vectype function tepsibkappar(e,f,g,h,j,k)
 
   use basic
@@ -13031,6 +13053,8 @@ vectype function tepsibkappar(e,f,g,h,j,k)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(gam.le.1.) then
@@ -13038,7 +13062,6 @@ vectype function tepsibkappar(e,f,g,h,j,k)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = -ri3_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*g(:,OP_1)* &
           (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
@@ -13056,11 +13079,11 @@ vectype function tepsibkappar(e,f,g,h,j,k)
      temp = int2(temp79a,h(:,OP_DP)) &
           - int3(ri3_79,e(:,OP_DP),temp79d)
   end if
+  tepsibkappar = (gam - 1.) * temp
 #else
-  temp = 0.
+  tepsibkappar = 0.
 #endif
 
-  tepsibkappar = (gam - 1.) * temp
   return
 end function tepsibkappar
 vectype function tepsibkapparl(e,f,g,h,i,j)
@@ -13071,6 +13094,8 @@ vectype function tepsibkapparl(e,f,g,h,i,j)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(gam.le.1.) then
@@ -13078,7 +13103,6 @@ vectype function tepsibkapparl(e,f,g,h,i,j)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   temp79a = i(:,OP_1)*j(:,OP_1)* g(:,OP_1)
 
   if(surface_int) then
@@ -13103,13 +13127,15 @@ vectype function tepsibkapparl(e,f,g,h,i,j)
           + int5(ri3_79,e(:,OP_DR),temp79a,f(:,OP_DZ),h(:,OP_DP)) &
           - int5(ri3_79,e(:,OP_DZ),temp79a,f(:,OP_DR),h(:,OP_DP))
   end if
+  tepsibkapparl = (gam - 1.) * temp
 #else
-  temp = 0.
+  tepsibkapparl = 0.
 #endif
 
-  tepsibkapparl = (gam - 1.) * temp
   return
 end function tepsibkapparl
+
+
 vectype function tebbkappar(e,f,g,h,j,k)
 
   use basic
@@ -13118,6 +13144,8 @@ vectype function tebbkappar(e,f,g,h,j,k)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(gam.le.1.) then
@@ -13125,7 +13153,6 @@ vectype function tebbkappar(e,f,g,h,j,k)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp = 0.
   else
@@ -13135,11 +13162,11 @@ vectype function tebbkappar(e,f,g,h,j,k)
 
      temp = -int3(ri4_79,e(:,OP_DP),temp79c)
   end if
+  tebbkappar = (gam - 1.) * temp
 #else
-  temp = 0.
+  tebbkappar = 0.
 #endif
 
-  tebbkappar = (gam - 1.) * temp
   return
 end function tebbkappar
 !
@@ -13152,6 +13179,8 @@ vectype function tebbkapparl(e,f,g,h,i,j)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
   
   if(gam.le.1.) then
@@ -13159,8 +13188,6 @@ vectype function tebbkapparl(e,f,g,h,i,j)
      return
   end if
 
-
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp = 0.
   else
@@ -13175,11 +13202,10 @@ vectype function tebbkapparl(e,f,g,h,i,j)
      temp = int4(ri4_79,e(:,OP_1),temp79a,h(:,OP_DPP)) &
           + int4(ri4_79,e(:,OP_1),temp79b,h(:,OP_DP))
   end if
-#else
-  temp = 0.
-#endif
-
   tebbkapparl = (gam - 1.) * temp
+#else
+  tebbkapparl = 0.
+#endif
   return
 end function tebbkapparl
 vectype function tepsifkappar(e,f,g,h,j,k)
@@ -13190,6 +13216,8 @@ vectype function tepsifkappar(e,f,g,h,j,k)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(gam.le.1.) then
@@ -13197,7 +13225,6 @@ vectype function tepsifkappar(e,f,g,h,j,k)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = k(:,OP_1)*ri_79*e(:,OP_1)* &
           (norm79(:,2)*f(:,OP_DR) - norm79(:,1)*f(:,OP_DZ))*j(:,OP_1)
@@ -13219,11 +13246,10 @@ vectype function tepsifkappar(e,f,g,h,j,k)
           + int3(temp79b,f(:,OP_DR ),h(:,OP_DZ)) &
           - int3(temp79b,f(:,OP_DZ ),h(:,OP_DR))
   end if
-#else
-  temp = 0.
-#endif
-
   tepsifkappar = (gam - 1.) * temp
+#else
+  tepsifkappar = 0.
+#endif
   return
 end function tepsifkappar
 vectype function tebfkappar(e,f,g,h,j,k)
@@ -13234,6 +13260,8 @@ vectype function tebfkappar(e,f,g,h,j,k)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(gam.le.1.) then
@@ -13241,7 +13269,6 @@ vectype function tebfkappar(e,f,g,h,j,k)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = -ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*f(:,OP_1)* &
           (norm79(:,1)*g(:,OP_DRP) + norm79(:,2)*g(:,OP_DZP))
@@ -13259,11 +13286,11 @@ vectype function tebfkappar(e,f,g,h,j,k)
      temp = int2(temp79a,h(:,OP_DP)) &
           + int3(ri2_79,e(:,OP_DP),temp79d)
   end if
+  tebfkappar = (gam - 1.) * temp
 #else
-  temp = 0.
+  tebfkappar = 0.
 #endif
 
-  tebfkappar = (gam - 1.) * temp
   return
 end function tebfkappar
 vectype function tebfkapparl(e,f,g,h,i,j)
@@ -13273,6 +13300,8 @@ vectype function tebfkapparl(e,f,g,h,i,j)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(gam.le.1.) then
@@ -13280,7 +13309,6 @@ vectype function tebfkapparl(e,f,g,h,i,j)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   temp79a = ri2_79*j(:,OP_1)*i(:,OP_1)* f(:,OP_1)
 
 
@@ -13308,11 +13336,10 @@ vectype function tebfkapparl(e,f,g,h,i,j)
           - int3(e(:,OP_1),temp79a,temp79d) &
           - int3(e(:,OP_1),temp79b,temp79c)
   end if
-#else
-  temp = 0.
-#endif
-
   tebfkapparl = (gam - 1.) * temp
+#else
+  tebfkapparl = 0.
+#endif
   return
 end function tebfkapparl
 vectype function teffkappar(e,f,g,h,j,k)
@@ -13323,6 +13350,8 @@ vectype function teffkappar(e,f,g,h,j,k)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   if(gam.le.1.) then
@@ -13330,7 +13359,6 @@ vectype function teffkappar(e,f,g,h,j,k)
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a =  k(:,OP_1)*e(:,OP_1)* &
           (norm79(:,2)*f(:,OP_DZP) + norm79(:,1)*f(:,OP_DRP))*j(:,OP_1)
@@ -13344,11 +13372,11 @@ vectype function teffkappar(e,f,g,h,j,k)
      temp = int3(temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
           + int3(temp79a,g(:,OP_DRP),h(:,OP_DR))
   end if
-#else
-  temp = 0.
-#endif
 
   teffkappar = (gam - 1.) * temp
+#else
+  teffkappar = 0.
+#endif
   return
 end function teffkappar
 
@@ -13427,23 +13455,21 @@ vectype function q1pf(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
-
 
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype :: temp
 
   if(surface_int) then
      temp = 0.
   else
-
      temp = - int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
             - int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1))
   end if
-#else
-  temp = 0.
-#endif
 
-  q1pf =   temp
+  q1pf = temp
+#else
+  q1pf = 0.
+#endif
   return
 end function q1pf
 vectype function t3tneta(e,f,g,h)
