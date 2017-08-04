@@ -431,7 +431,9 @@ subroutine f3eplot_sub(term)
   ohfac = 1.
   if(ipres.eq.0) ohfac = 0.5
 
- ! Ohmic Heating
+
+  ! Ohmic Heating
+  ! ~~~~~~~~~~~~~
   tempx = b3psipsieta(mu79,pst79,pst79,eta79) &
        +  b3bbeta    (mu79,bzt79,bzt79,eta79) &
        +  b3psibeta  (mu79,pst79,bzt79,eta79) 
@@ -439,13 +441,19 @@ subroutine f3eplot_sub(term)
   if(i3d .eq. 1) then
      tempx = b3psifeta(mu79,pst79,bft79,eta79) &
           +  b3bfeta  (mu79,bzt79,bft79,eta79) &
-          +  b3ffeta(mu79,bft79,bft79,eta79)   
+          +  b3ffeta  (mu79,bft79,bft79,eta79)   
      term = term + tempx*ohfac
   endif
 
   ! Perpendicular Heat Flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   tempx = b3tekappa(mu79,tet79,kap79,vz079)
+  term = term + tempx
+
+
+  ! Source terms
+  ! ~~~~~~~~~~~~
+  tempx = (gam-1.)*b3q(mu79,q79)
   term = term + tempx
 
 
@@ -465,10 +473,6 @@ subroutine f3eplot_sub(term)
                 + tebfkappar  (mu79(:,:,i),bztx79,bftx79,tet79,b2i79,kar79) &
                 + teffkappar  (mu79(:,:,i),bftx79,bftx79,tet79,b2i79,kar79)
            term(i) = term(i) + temp
-           !source terms
-           temp = (gam-1.)*b3q(mu79(:,:,i),q79)
-!            term(i) = term(i) + temp
-
         endif
      endif
 
