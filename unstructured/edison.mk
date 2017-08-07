@@ -35,19 +35,21 @@ else
   ifeq ($(COM), 1)
     HYPRE_LIB=
     M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+    PETSC_DIR=/opt/cray/pe/petsc/3.7.6.0/complex/INTEL/16.0/sandybridge
     PETSC_LIB = -lcraypetsc_intel_complex
   else
     HYPRE_LIB=-lHYPRE
     M3DC1_SCOREC_LIB=-lm3dc1_scorec
+    PETSC_DIR=/opt/cray/pe/petsc/3.7.6.0/real/INTEL/16.0/sandybridge
     PETSC_LIB = -lcraypetsc_intel_real
   endif
 
-  PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_PREFIX_DIR)/lib -L$(CRAY_TPSL_PREFIX_DIR)/lib \
+  PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/lib -L$(PETSC_DIR)/lib \
                 $(HYPRE_LIB) -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
                 -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr \
                 -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lsundials_cvode -lsundials_cvodes -lsundials_ida \
-                -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial -lpthread \
-                -lssl -lcrypto -ldl -lstdc++
+                -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial $(PETSC_LIB) \
+                -lpthread -ldl
 endif
 
 SCOREC_LIBS=-Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
@@ -56,16 +58,16 @@ SCOREC_LIBS=-Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
             -Wl,--end-group
 
 # Use Adios
-OPTS := $(OPTS) -DUSEADIOS
-ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
- -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
- -L/usr/lib64/ -llustreapi
+#OPTS := $(OPTS) -DUSEADIOS
+#ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
+# -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
+# -L/usr/lib64/ -llustreapi
 
 OPTS := $(OPTS) -DPetscDEV -DKSPITS -DNEXTPetscDEV
 
 INCLUDE := $(INCLUDE) $(FFTW_INCLUDE_OPTS) \
         -I$(SCOREC_DIR)/include \
-	-I$(CRAY_PETSC_PREFIX_DIR)/include \
+	-I$(PETSC_DIR)/include \
 	-I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 
@@ -76,13 +78,12 @@ LIBS := $(LIBS) \
         -lhdf5_fortran -lhdf5 -lz \
         $(FFTW_POST_LINK_OPTS) -lfftw3 \
         -L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
-        $(ADIOS_FLIB)
+        $(ADIOS_FLIB) \
+	-lstdc++
 
 ifeq ($(TRILINOS),1)
   LIBS := $(LIBS) $(TRILINOS_LIBS) \
          -L/usr/lib64/gcc/x86_64-suse-linux/4.3 -lstdc++
-else
-  LIBS := $(LIBS) -L$(CRAY_PETSC_PREFIX_DIR)/lib $(PETSC_LIB)
 endif
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
