@@ -9971,7 +9971,7 @@ vectype function p1bbkappar(e,f,g,h,i,j,k)
   end if
   p1bbkappar = (gam - 1.) * temp
 #else
-  pabbkappar = 0.
+  p1bbkappar = 0.
 #endif
 end function p1bbkappar
 
