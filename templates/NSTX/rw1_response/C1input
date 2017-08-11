@@ -141,11 +141,19 @@
         gs_vertical_feedback(13) = -200.
         gs_vertical_feedback(22) =  200.
         gs_vertical_feedback(23) =  200.
+        gs_vertical_feedback_i(12) = -100.
+        gs_vertical_feedback_i(13) = -100.
+        gs_vertical_feedback_i(22) =  100.
+        gs_vertical_feedback_i(23) =  100.
 
 	gs_radial_feedback(14) = -200.
 	gs_radial_feedback(15) = -200.
 	gs_radial_feedback(20) = -200.
 	gs_radial_feedback(21) = -200.
+	gs_radial_feedback_i(14) = -100.
+	gs_radial_feedback_i(15) = -100.
+	gs_radial_feedback_i(20) = -100.
+	gs_radial_feedback_i(21) = -100.
 
 	ntor = 1
 

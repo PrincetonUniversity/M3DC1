@@ -144,10 +144,20 @@
 	gs_vertical_feedback(12) =  500.
 	gs_vertical_feedback(13) = -500.
 	gs_vertical_feedback(14) =  500.
+	gs_vertical_feedback_i(9)  = -250.
+	gs_vertical_feedback_i(10) =  250.
+	gs_vertical_feedback_i(11) = -250.
+	gs_vertical_feedback_i(12) =  250.
+	gs_vertical_feedback_i(13) = -250.
+	gs_vertical_feedback_i(14) =  250.
 	gs_radial_feedback(15) = -500.
 	gs_radial_feedback(16) = -500.
 	gs_radial_feedback(17) = -500.
 	gs_radial_feedback(18) = -500.
+	gs_radial_feedback_i(15) = -250.
+	gs_radial_feedback_i(16) = -250.
+	gs_radial_feedback_i(17) = -250.
+	gs_radial_feedback_i(18) = -250.
 
 	ntor = 1
 
