@@ -571,6 +571,7 @@ pure vectype function int5(vari,varj,vark,varl,varm)
   enddo
 end function int5
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intx0
 pure function intx0()
 
   implicit none
@@ -585,6 +586,7 @@ pure function intx0()
   enddo
 end function intx0
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intx1
 pure function intx1(vari)
 
   implicit none
@@ -600,6 +602,7 @@ pure function intx1(vari)
   enddo
 end function intx1
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intx2
 pure function intx2(vari,varj)
 
   implicit none
@@ -616,6 +619,7 @@ pure function intx2(vari,varj)
   enddo
 end function intx2
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intx3
 pure function intx3(vari,varj,vark)
 
   implicit none
@@ -632,6 +636,7 @@ pure function intx3(vari,varj,vark)
   enddo
 end function intx3
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intx4
 pure function intx4(vari,varj,vark,varl)
 
   implicit none
@@ -648,6 +653,7 @@ pure function intx4(vari,varj,vark,varl)
   enddo
 end function intx4
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intx5
 pure function intx5(vari,varj,vark,varl,varm)
 
   implicit none
@@ -664,6 +670,7 @@ pure function intx5(vari,varj,vark,varl,varm)
   enddo
 end function intx5
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intxx0
 pure function intxx0()
 
   implicit none
@@ -678,6 +685,7 @@ pure function intxx0()
   enddo
 end function intxx0
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intxx1
 pure function intxx1(vari)
 
   implicit none
@@ -695,6 +703,7 @@ pure function intxx1(vari)
   enddo
 end function intxx1
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intxx2
 pure function intxx2(vari,varj)
 
   implicit none
@@ -714,6 +723,7 @@ pure function intxx2(vari,varj)
   end do
 end function intxx2
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intxx3
 pure function intxx3(vari,varj,vark)
 
   implicit none
@@ -733,6 +743,7 @@ pure function intxx3(vari,varj,vark)
      end do
   enddo
 end function intxx3
+!DEC$ ATTRIBUTES FORCEINLINE :: intxx4
 !==============================================
 pure function intxx4(vari,varj,vark,varl)
 
@@ -755,6 +766,7 @@ pure function intxx4(vari,varj,vark,varl)
   end do
 end function intxx4
 !==============================================
+!DEC$ ATTRIBUTES FORCEINLINE :: intxx5
 pure function intxx5(vari,varj,vark,varl,varm)
 
   implicit none

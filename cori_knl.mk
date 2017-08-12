@@ -85,7 +85,7 @@ endif
 OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
-           $(FFTW_INCLUDE_OPTS) \
+           $(FFTW_INC) \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
@@ -96,7 +96,7 @@ LIBS := $(LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_LIB) $(PETSC_EXTERNAL_LIB_BASIC) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
-	$(FFTW_POST_LINK_OPTS) -lfftw3 \
+	-L$(FFTW_DIR) -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB)
 #        $(HYBRID_LIBS) \
@@ -114,9 +114,12 @@ else
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
-  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
-  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
+#  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
+#  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
+#  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
+  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report=5 -qopt-report-phase=vec,loop
+  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report=5 -qopt-report-phase=vec,loop
+  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report=5 -qopt-report-phase=vec,loop
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
