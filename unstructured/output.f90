@@ -273,6 +273,10 @@ subroutine hdf5_reconcile_version(ver, error)
 
   if(ver.ge.version) return
 
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     print *, 'Reconciling version data from ', version_in, ' to ', version
+  end if
+
   call h5gopen_f(file_id, "/", root_id, error)
 
   if(ver.lt.17) then
@@ -552,11 +556,12 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   else
      write(time_group_name, '("time_",I3.3)') times_output
      write(time_file_name, '("time_",I3.3,".h5")') times_output
-     ! remove the time group link if it already exists
-     ! (from before a restart, for example)
-     if(ntime.ne.0 .and. ntime.eq.ntime0) then
-        call h5gunlink_f(file_id, time_group_name, error)
-     endif
+  endif
+
+  ! remove the time group link if it already exists
+  ! (from before a restart, for example)
+  if(ntime.ne.0 .and. ntime.eq.ntime0) then
+     call h5gunlink_f(file_id, time_group_name, error)
   endif
 
 
@@ -592,7 +597,11 @@ subroutine hdf5_write_time_slice(equilibrium, error)
      call write_int_attr(time_root_id, "nspace", 2, error)
 #endif
      ! Time step associated with this time slice
-     call write_int_attr(time_root_id, "ntimestep", ntime, error)
+     if(equilibrium.eq.1) then
+        call write_int_attr(time_root_id, "ntimestep", 0, error)
+     else
+        call write_int_attr(time_root_id, "ntimestep", ntime, error)
+     end if
 
      ! Write version number
      call write_int_attr(time_root_id, "version", version, error)
@@ -743,19 +752,18 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
   ilin = 1 - equilibrium
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'In output_fields.  ilin=', ilin
+
   nelms = local_elements()
   error = 0
   
   allocate(dum(coeffs_per_element,nelms))
 
   ! Create the fields group
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'before h5gcreate_f in output_fields', ilin
   call h5gcreate_f(time_group_id, "fields", group_id, error)
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'after h5gcreate_f in output_fields', error
 
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~
-
 
   ! psi_plasma
   if(icsubtract.eq.1 .or. &
@@ -798,8 +806,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
        nelms,error)
 #endif
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after psi in output_fields'
-
   ! u
   do i=1, nelms
      call calcavector(i, u_field(ilin), dum(:,i))
@@ -810,7 +816,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id,"phi_i",aimag(dum),coeffs_per_element, &
        nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after u in output_fields'
 
   ! electrostatic potential
   if(jadv.eq.0) then
@@ -850,8 +855,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id,"I_i",aimag(dum),coeffs_per_element, &
        nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after i in output_fields'
-
     
     ! BF
   if(ifout.eq.1) then
@@ -880,7 +883,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
           nelms,error)
 #endif
   endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after bf in output_fields'
     
   ! V
   do i=1, nelms
@@ -892,7 +894,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id,"V_i",aimag(dum),coeffs_per_element, &
        nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after v in output_fields'
     
   ! Pe
   do i=1, nelms
@@ -904,7 +905,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id,"Pe_i",aimag(dum),coeffs_per_element, &
        nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after pe in output_fields'
   
   ! P
   do i=1, nelms
@@ -916,7 +916,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call output_field(group_id,"P_i",aimag(dum),coeffs_per_element, &
        nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after p  in output_fields'
   
   ! chi
   do i=1, nelms
@@ -927,7 +926,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #ifdef USECOMPLEX
   call output_field(group_id,"chi_i",aimag(dum),coeffs_per_element,nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after chi in output_fields'
   
   ! den
   do i=1, nelms
@@ -938,7 +936,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #ifdef USECOMPLEX
   call output_field(group_id,"den_i",aimag(dum),coeffs_per_element,nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after den in output_fields'
   
   ! te
   do i=1, nelms
@@ -949,7 +946,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #ifdef USECOMPLEX
   call output_field(group_id,"te_i",aimag(dum),coeffs_per_element,nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after te in output_fields'
   
   ! ti
   do i=1, nelms
@@ -960,7 +956,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #ifdef USECOMPLEX
   call output_field(group_id,"ti_i",aimag(dum),coeffs_per_element,nelms,error)
 #endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after ti in output_fields'
   
   if(icsubtract.eq.1) then
      ! psi_coil
@@ -1084,7 +1079,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
              nelms, error)
      endif
   end if !(iwrite_transport_coeffs.eq.1)
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after write_transport_coefsin output_fields'
 
   if(irunaway.ne.0) then
      do i=1, nelms
@@ -1508,7 +1502,6 @@ subroutine hdf5_write_keharmonics(error)
   else
      call h5gopen_f(root_id, "keharmonics", keharmonics_group_id, error)
   endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
 
   ! keharmonic
   do i = 0, NMAX
@@ -1516,7 +1509,6 @@ subroutine hdf5_write_keharmonics(error)
   enddo
   
   call output_1dextendarr(keharmonics_group_id, "keharmonics" , dum, NMAX+1, ntime, error)
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after output_1dextendarr', error
   
   call h5gclose_f(keharmonics_group_id, error)
   call h5gclose_f(root_id, error)
