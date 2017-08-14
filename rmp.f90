@@ -418,14 +418,6 @@ subroutine calculate_external_fields()
   call sum_shared(bz_vec)
   if(read_p) call sum_shared(p_vec)
  
-  ! create external fields
-  if(extsubtract.eq.1) then
-     call create_field(psi_ext)
-     call create_field(bz_ext)
-     call create_field(bf_ext)
-     use_external_fields = .true.
-  end if
-
   !solve p
   if(read_p) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."

@@ -800,8 +800,6 @@ subroutine set_defaults
        "Number of time steps per restart output", output_grp)
   call add_var_int("iglobalout", iglobalout, 0, "", output_grp)
   call add_var_int("iglobalin", iglobalin, 0, "", output_grp)
-  call add_var_int("iwrite_restart", iwrite_restart, 0, &
-       "1: Write restart files", output_grp)
   call add_var_int("iwrite_adios", iwrite_adios, 0, &
        "1: Use ADIOS to write restart files", output_grp)
   call add_var_int("ifout",  ifout, -1, "", output_grp)
@@ -816,7 +814,7 @@ subroutine set_defaults
   call add_var_int("irestart", irestart, 0, "", output_grp)
   call add_var_int("iread_adios", iread_adios, 0, &
        "1: Use ADIOS to read restart files", output_grp)
-  call add_var_int("iread_hdf5", iread_hdf5, 0, &
+  call add_var_int("iread_hdf5", iread_hdf5, 1, &
        "1: Restart using HDF5 files", output_grp)
   call add_var_int("itimer", itimer, 0, &
        "1: Output internal timer data", output_grp)
@@ -956,6 +954,8 @@ subroutine set_defaults
   ! Deprecated
   call add_var_int("ibform", ibform, -1, "", deprec_grp)
   call add_var_int("igs_method", igs_method, -1, "", deprec_grp)
+  call add_var_int("iwrite_restart", iwrite_restart, 0, &
+       "1: Write restart files", deprec_grp)
 
 end subroutine set_defaults
 
@@ -1066,6 +1066,10 @@ subroutine validate_input
   if(igs_method.ne.-1) then 
      if(myrank.eq.0) print *, "WARNING: igs_method is now deprecated"
   end if
+  if(iwrite_restart.ne.0) then 
+     if(myrank.eq.0) print *, "WARNING: iwrite_restart is now deprecated"
+  end if
+
   
   ! calculate pfac (pe*pfac = electron pressure)
   if(kinetic.eq.0) then

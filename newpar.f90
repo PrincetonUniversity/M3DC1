@@ -232,22 +232,23 @@ Program Reducedquintic
   flux_loop_itri = 0
   if(itimer.eq.1) call reset_timings
 
-  ! output simulation parameters and equilibrium
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
+  ! output simulation parameters
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(ntime.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) &
           print *, " Writing simulation parameters"
+     
      call hdf5_write_parameters(ier)
+  end if
 
-     if(eqsubtract.eq.1) then
-        call derived_quantities(0)
-     end if
+  ! output equilibrium time slice
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
 
-     if(iwrite_aux_vars.eq.1) then
-        call calculate_auxiliary_fields(0)
-     end if
+     if(eqsubtract.eq.1) call derived_quantities(0)
 
-     ! Output the equilibrium
+     if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
+
      call hdf5_write_time_slice(1,ier)
   end if
 
@@ -1155,6 +1156,14 @@ subroutine space(ifirstcall)
      if(ibootstrap.gt.0) call create_field(visc_e_field)
 
      call create_field(psi_coil_field)
+
+     ! create external fields
+     if(extsubtract.eq.1) then
+        call create_field(psi_ext)
+        call create_field(bz_ext)
+        call create_field(bf_ext)
+        use_external_fields = .true.
+     end if
 
      call create_auxiliary_fields
   endif
