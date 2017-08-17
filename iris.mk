@@ -25,6 +25,7 @@ endif
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
+SCOREC_UTIL_DIR=/fusion/projects/codes/m3dc1/scorec/tools
 
 # define where you want to locate the mesh adapt libraries
 #HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
