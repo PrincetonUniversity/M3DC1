@@ -12,7 +12,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trialx
+  vectype, dimension(dofs_per_element,MAX_PTS, OP_NUM), intent(in) :: trialx
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
   vectype, dimension(dofs_per_element,num_fields), intent(out) :: ssterm, ddterm
   vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
@@ -68,7 +68,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(istatic.eq.1) then
      if(.not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
         ssterm(:,u_g) = tempx
         ddterm(:,u_g) = tempx
      endif
@@ -77,7 +77,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(izone.ne.1) then
      if(inonormalflow.eq.1 .and. .not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
      else
         tempx = v1un(trialx,lin,nt79)
      end if
@@ -94,7 +94,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
   if(inonormalflow.eq.0 .and. (.not.surface_int)) then
-     tempx = -regular*intx2(trialx(:,OP_1,:),lin(:,OP_1))
+     tempx = -regular*intx2(trialx(:,:,OP_1),lin(:,OP_1))
      ssterm(:,u_g) = ssterm(:,u_g) + tempx
      ddterm(:,u_g) = ddterm(:,u_g) + tempx*bdf
   end if
@@ -401,7 +401,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
 
   ! JxB
@@ -540,7 +540,7 @@ subroutine vorticity_nolin(trialx, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
+  vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
 
   r4term = 0.
@@ -610,7 +610,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trialx
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trialx
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
   vectype, dimension(dofs_per_element,num_fields), intent(out) :: ssterm, ddterm
   vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
@@ -661,7 +661,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(istatic.eq.1 .or. izone.ne.1) then
      if(.not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
         ssterm(:,vz_g) = tempx
         ddterm(:,vz_g) = tempx
      endif
@@ -902,7 +902,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
   ! incompressible constraint for CGL (kinetic.eq.2)
   if(kinetic.eq.2) then
@@ -1048,7 +1048,7 @@ subroutine axial_vel_nolin(trialx, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
+  vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
   
   r4term = 0.
@@ -1093,7 +1093,7 @@ subroutine axial_vel_nolin(trialx, r4term)
   endif
 
   if(momentum_source) then
-     r4term = r4term + dt*intx3(trialx(:,OP_1,:),r_79,fy79(:,OP_1))
+     r4term = r4term + dt*intx3(trialx(:,:,OP_1),r_79,fy79(:,OP_1))
   end if
 
 end subroutine axial_vel_nolin
@@ -1113,7 +1113,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trialx 
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trialx 
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
   vectype, dimension(dofs_per_element, num_fields), intent(out) :: ssterm, ddterm
   vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
@@ -1165,7 +1165,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(istatic.eq.1) then
      if(.not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
         ssterm(:,chi_g) = tempx
         ddterm(:,chi_g) = tempx
      endif
@@ -1174,7 +1174,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         
   if(istatic.eq.3) then    !   zero out chi only
      if(.not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
         ssterm(:,chi_g) = tempx
         ddterm(:,chi_g) = 0.
      endif
@@ -1184,7 +1184,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
   if(inoslip_pol.eq.0 .and. (.not.surface_int)) then
-     tempx = -regular*intx2(trialx(:,OP_1,:),lin(:,OP_1))
+     tempx = -regular*intx2(trialx(:,:,OP_1),lin(:,OP_1))
      ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) + tempx*bdf
   end if
@@ -1196,7 +1196,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      end if
      
      if(inoslip_pol.eq.1 .and. .not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
      else
         tempx = v3chin(trialx,lin,nt79)
      end if
@@ -1439,7 +1439,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
 
   ! JxB
@@ -1598,7 +1598,7 @@ subroutine compression_nolin(trialx, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
+  vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
 
   r4term = 0.
@@ -1662,7 +1662,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trialx
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trialx
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
   vectype, dimension(dofs_per_element,num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out), dimension(dofs_per_element) :: r_bf, q_bf 
@@ -1718,7 +1718,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   if(iestatic.eq.1) then
      if(.not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
         ssterm(:,psi_g) = tempx
         ddterm(:,psi_g) = tempx
      endif
@@ -1728,7 +1728,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
   if(iconst_bn.eq.0 .and. (.not.surface_int)) then
-     tempx = -regular*intx2(trialx(:,OP_1,:),lin(:,OP_1))
+     tempx = -regular*intx2(trialx(:,:,OP_1),lin(:,OP_1))
      ssterm(:,psi_g) = ssterm(:,psi_g) + tempx
      if(itime_independent.eq.0) ddterm(:,psi_g) = ddterm(:,psi_g) + tempx*bdf
   end if
@@ -1947,7 +1947,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
   select case (itwofluid)
 
@@ -2362,7 +2362,7 @@ subroutine flux_nolin(trialx, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element)  :: trialx
+  vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
 
   vectype, dimension(MAX_PTS, OP_NUM)  :: trial
@@ -2372,16 +2372,16 @@ subroutine flux_nolin(trialx, r4term)
 
   if(igauge.eq.1 .or. linear.eq.1) then
      r4term = r4term - dt* &
-          vloop*intx1(trialx(:,OP_1,:))/twopi
+          vloop*intx1(trialx(:,:,OP_1))/twopi
   endif
 
   if(icd_source.gt.0) then
      if(jadv.eq.0) then
         r4term = r4term - &
-             dt*intx3(trialx(:,OP_1,:),eta79(:,OP_1),cd79(:,OP_1))
+             dt*intx3(trialx(:,:,OP_1),eta79(:,OP_1),cd79(:,OP_1))
      else
         r4term = r4term - &
-             dt*intx4(trialx(:,OP_GS,:),ri2_79,eta79(:,OP_1),cd79(:,OP_1))
+             dt*intx4(trialx(:,:,OP_GS),ri2_79,eta79(:,OP_1),cd79(:,OP_1))
      endif
   endif
 
@@ -2406,7 +2406,7 @@ subroutine flux_nolin(trialx, r4term)
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
   if(use_external_fields .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then 
      ! JxB
@@ -2449,7 +2449,7 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trialx
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trialx
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
   vectype, dimension(dofs_per_element,num_fields), intent(out) :: ssterm, ddterm
 
@@ -2498,7 +2498,7 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   if(iestatic.eq.1) then
      if(.not.surface_int) then
-        tempx = intx2(trialx(:,OP_1,:),lin(:,OP_1))
+        tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
         ssterm(:,bz_g) = tempx
         ddterm(:,bz_g) = tempx
      endif
@@ -2645,7 +2645,7 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
 
 
@@ -3002,7 +3002,7 @@ subroutine axial_field_nolin(trialx, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
+  vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
   
   vectype, dimension(MAX_PTS, OP_NUM)  :: trial
@@ -3026,7 +3026,7 @@ subroutine axial_field_nolin(trialx, r4term)
   end if
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
   if(use_external_fields .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then
      ! JxB
@@ -3065,7 +3065,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trialx
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trialx
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
   vectype, dimension(dofs_per_element,num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out), dimension(dofs_per_element, 2) :: q_ni
@@ -3428,7 +3428,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
 
   
@@ -3814,7 +3814,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trialx
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trialx
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
   vectype, dimension(dofs_per_element, num_fields), intent(out) :: ssterm, ddterm
   vectype, intent(out), dimension(dofs_per_element,2) :: q_ni
@@ -4056,7 +4056,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
   
   ! Electron Pressure Advection
@@ -4302,7 +4302,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element) :: trialx
+  vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
 
   vectype, dimension(MAX_PTS, OP_NUM)  :: trial
@@ -4356,7 +4356,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
 
 
   do i=1, dofs_per_element
-     trial = trialx(:,:,i)
+     trial = trialx(i,:,:)
 
 
   ! source terms
@@ -4428,7 +4428,7 @@ subroutine bf_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
 
   implicit none
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element), intent(in) :: trial
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
   vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
   vectype, dimension(dofs_per_element,num_fields), intent(out) :: ssterm, ddterm
   vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
@@ -4438,11 +4438,11 @@ subroutine bf_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
   r_bf = 0.
   q_bf = 0.
 
-  r_bf = - intx3(trial(:,OP_1,:),r2_79,lin(:,OP_LP))
+  r_bf = - intx3(trial(:,:,OP_1),r2_79,lin(:,OP_LP))
   if(ifbound.eq.2) then 
-     r_bf = r_bf - regular*intx3(trial(:,OP_1,:),r2_79,lin(:,OP_1))
+     r_bf = r_bf - regular*intx3(trial(:,:,OP_1),r2_79,lin(:,OP_1))
   end if
-  ssterm(:,bz_g) = intx2(trial(:,OP_1,:),lin(:,OP_1 ))
+  ssterm(:,bz_g) = intx2(trial(:,:,OP_1),lin(:,OP_1 ))
 end subroutine bf_equation_lin
 
 !======================================================================
@@ -4457,7 +4457,7 @@ subroutine bf_equation_nolin(trial, r4term)
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS, OP_NUM, dofs_per_element)  :: trial
+  vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM)  :: trial
   vectype, intent(out), dimension(dofs_per_element) :: r4term
 
   if(eqsubtract.eq.1) then
@@ -4470,7 +4470,7 @@ subroutine bf_equation_nolin(trial, r4term)
   else
      temp79a = bzero*rzero
   end if
-  r4term = intx2(trial(:,OP_1,:),temp79a)
+  r4term = intx2(trial(:,:,OP_1),temp79a)
 end subroutine bf_equation_nolin
 
 
@@ -4641,6 +4641,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   ! Loop over elements
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " begin loop over elements"
+
   do itri=1,numelms
 
      call get_zone(itri, izone)
@@ -4822,17 +4823,17 @@ subroutine ludefvel_n(itri)
      select case(k)
      case(1)
         do j=1,dofs_per_element
-           call vorticity_lin(mu79,nu79(:,:,j), &
+           call vorticity_lin(mu79,nu79(j,:,:), &
                 ss(:,j,:),dd(:,j,:),r_bf(:,j),q_bf(:,j),advfield,izone)
         end do
      case(2)
         do j=1,dofs_per_element
-           call axial_vel_lin(mu79,nu79(:,:,j), &
+           call axial_vel_lin(mu79,nu79(j,:,:), &
                 ss(:,j,:),dd(:,j,:),r_bf(:,j),q_bf(:,j),advfield,izone)
         end do
      case(3)
         do j=1,dofs_per_element
-           call compression_lin(mu79,nu79(:,:,j), &
+           call compression_lin(mu79,nu79(j,:,:), &
                 ss(:,j,:),dd(:,j,:),r_bf(:,j),q_bf(:,j),advfield,izone)
         end do
      end select
@@ -5036,31 +5037,31 @@ subroutine ludefphi_n(itri)
      do j=1,dofs_per_element
         if     (ieq(k).eq.psi_i) then
            if(.not.surface_int) then
-              call flux_lin(mu79,nu79(:,:,j), &
+              call flux_lin(mu79,nu79(j,:,:), &
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j),izone)
            end if
         else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
-           call axial_field_lin(mu79,nu79(:,:,j), &
+           call axial_field_lin(mu79,nu79(j,:,:), &
                 ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                 izone)
         else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
               ! if ipres==0, this is the total pressure equation
               ! if ipres==1, this is the electron pressure equation
-           call pressure_lin(mu79,nu79(:,:,j), &
+           call pressure_lin(mu79,nu79(j,:,:), &
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                    ipres.eq.0, thimp, izone)
         else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
-           call bf_equation_lin(mu79,nu79(:,:,j), &
+           call bf_equation_lin(mu79,nu79(j,:,:), &
                 ss(:,j,:),dd(:,j,:),r_bf(:,j),q_bf(:,j))
         else if(ieq(k).eq.e_i) then
            if(jadv.eq.0) then
               do i=1,dofs_per_element
-                 call potential_lin(mu79(:,:,i),nu79(:,:,j), &
+                 call potential_lin(mu79(i,:,:),nu79(j,:,:), &
                       ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j))
               end do
            else   !jadv.eq.1
               do i=1,dofs_per_element
-                 call j_equation_lin(mu79(:,:,i),nu79(:,:,j), &
+                 call j_equation_lin(mu79(i,:,:),nu79(j,:,:), &
                       ss(i,j,:),dd(i,j,:),r_bf(i,j),q_bf(i,j))   
               end do
            endif
@@ -5278,31 +5279,31 @@ subroutine ludefpres_n(itri)
 
      do j=1,dofs_per_element
         if(ipressplit.eq.0) then
-           call pressure_lin(mu79,nu79(:,:,j), &
+           call pressure_lin(mu79,nu79(j,:,:), &
                 ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                 .true., thimpf, izone)
         else ! ipressplit=1
            select case(imode)
            case(1)
-              call pressure_lin(mu79,nu79(:,:,j), &
+              call pressure_lin(mu79,nu79(j,:,:), &
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                    .true., thimpf, izone)
            case(2)
-              call temperature_lin(mu79,nu79(:,:,j), &
+              call temperature_lin(mu79,nu79(j,:,:), &
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                    .true., thimpf, izone)
            case(3)
-              if(k.eq.1) call pressure_lin(mu79,nu79(:,:,j), &
+              if(k.eq.1) call pressure_lin(mu79,nu79(j,:,:), &
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                    .true., thimpf, izone)
-              if(k.eq.2) call pressure_lin(mu79,nu79(:,:,j), &
+              if(k.eq.2) call pressure_lin(mu79,nu79(j,:,:), &
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                    .false., thimpf, izone)
            case(4)
-              if(k.eq.1) call temperature_lin(mu79,nu79(:,:,j), &
+              if(k.eq.1) call temperature_lin(mu79,nu79(j,:,:), &
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                    .true., thimpf, izone)
-              if(k.eq.2) call temperature_lin(mu79,nu79(:,:,j), &
+              if(k.eq.2) call temperature_lin(mu79,nu79(j,:,:), &
                    ss(:,j,:),dd(:,j,:),q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
                    .false., thimpf, izone)
            end select
@@ -5511,19 +5512,19 @@ subroutine ludefden_n(itri)
 
   do j=1,dofs_per_element
      
-     tempx = n1ndenm(mu79,nu79(:,:,j),denm,vzt79) &
-          +  n1nu   (mu79,nu79(:,:,j),pht79)
+     tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79) &
+          +  n1nu   (mu79,nu79(j,:,:),pht79)
      ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
      ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
 
      if(linear.eq.0) then
-        tempx = n1nu(mu79,n179,nu79(:,:,j))
+        tempx = n1nu(mu79,n179,nu79(j,:,:))
         rrterm(:,j,1) = rrterm(:,j,1) + thimpb*dt*tempx
         qqterm(:,j,1) = qqterm(:,j,1) - thimpb*dt*tempx*bdf
      endif
 
      if(eqsubtract.eq.1) then
-        tempx = n1nu(mu79,n079,nu79(:,:,j))
+        tempx = n1nu(mu79,n079,nu79(j,:,:))
         rrterm(:,j,1) = rrterm(:,j,1) +     thimpb     *dt*tempx
         qqterm(:,j,1) = qqterm(:,j,1) + (1.-thimpb*bdf)*dt*tempx
      endif
@@ -5532,18 +5533,18 @@ subroutine ludefden_n(itri)
      ! NUMVAR = 2
      ! ~~~~~~~~~~
      if(numvar.ge.2) then
-        tempx = n1nv(mu79,nu79(:,:,j),vzt79)
+        tempx = n1nv(mu79,nu79(j,:,:),vzt79)
         ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
         ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
         
         if(linear.eq.0) then 
-           tempx = n1nv(mu79,n179,nu79(:,:,j))
+           tempx = n1nv(mu79,n179,nu79(j,:,:))
            rrterm(:,j,2) = rrterm(:,j,2) + thimpb*dt*tempx
            qqterm(:,j,2) = qqterm(:,j,2) - thimpb*dt*tempx*bdf
         endif
         
         if(eqsubtract.eq.1) then
-           tempx = n1nv(mu79,n079,nu79(:,:,j))
+           tempx = n1nv(mu79,n079,nu79(j,:,:))
            rrterm(:,j,2) = rrterm(:,j,2) +     thimpb     *dt*tempx
            qqterm(:,j,2) = qqterm(:,j,2) + (1.-thimpb*bdf)*dt*tempx
         endif
@@ -5553,18 +5554,18 @@ subroutine ludefden_n(itri)
      ! NUMVAR = 3
      ! ~~~~~~~~~~
      if(numvar.ge.3) then
-        tempx = n1nchi(mu79,nu79(:,:,j),cht79)
+        tempx = n1nchi(mu79,nu79(j,:,:),cht79)
         ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
         ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
         
         if(linear.eq.0) then
-           tempx = n1nchi(mu79,n179,nu79(:,:,j))
+           tempx = n1nchi(mu79,n179,nu79(j,:,:))
            rrterm(:,j,3) = rrterm(:,j,3) + thimpb*dt*tempx
            qqterm(:,j,3) = qqterm(:,j,3) - thimpb*dt*tempx*bdf
         endif
         
         if(eqsubtract.eq.1) then
-           tempx = n1nchi(mu79,n079,nu79(:,:,j))
+           tempx = n1nchi(mu79,n079,nu79(j,:,:))
            rrterm(:,j,3) = rrterm(:,j,3) +     thimpb     *dt*tempx
            qqterm(:,j,3) = qqterm(:,j,3) + (1.-thimpb*bdf)*dt*tempx
         endif

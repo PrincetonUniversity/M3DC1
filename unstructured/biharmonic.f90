@@ -109,12 +109,12 @@ contains
              select case(biharmonic_operator)
              case(0)
                 temp79a = &
-                     -(mu79(:,OP_DZ,i)*nu79(:,OP_DZ,j) &
-                      +mu79(:,OP_DR,i)*nu79(:,OP_DR,j))
+                     -(mu79(i,:,OP_DZ)*nu79(j,:,OP_DZ) &
+                      +mu79(i,:,OP_DR)*nu79(j,:,OP_DR))
              case(1)
                 temp79a = &
-                     (mu79(:,OP_LP,i)*nu79(:,OP_LP,j) &
-                     +mu79(:,OP_LP,i)*nu79(:,OP_LP,j))
+                     (mu79(i,:,OP_LP)*nu79(j,:,OP_LP) &
+                     +mu79(i,:,OP_LP)*nu79(j,:,OP_LP))
              end select
              sum = int1(temp79a)
              call insert(biharmonic_mat, sum, ind(1,i), ind(1,j), MAT_ADD)
@@ -137,15 +137,15 @@ contains
                 select case(biharmonic_operator)
                 case(0)
                    temp79a = &
-                        (norm79(:,1)*nu79(:,OP_DR,j) &
-                        +norm79(:,2)*nu79(:,OP_DZ,j))
-                   sum = int2(mu79(:,OP_1,i),temp79a)
+                        (norm79(:,1)*nu79(j,:,OP_DR) &
+                        +norm79(:,2)*nu79(j,:,OP_DZ))
+                   sum = int2(mu79(i,:,OP_1),temp79a)
                 case(1)
                    temp79a = &
-                        (norm79(:,1)*nu79(:,OP_LPR,j)*mu79(:,OP_1,i) &
-                        +norm79(:,2)*nu79(:,OP_LPZ,j)*mu79(:,OP_1,i) &
-                        -norm79(:,1)*mu79(:,OP_DR,i)*nu79(:,OP_LP,j) &
-                        -norm79(:,2)*mu79(:,OP_DZ,i)*nu79(:,OP_LP,j))
+                        (norm79(:,1)*nu79(j,:,OP_LPR)*mu79(i,:,OP_1) &
+                        +norm79(:,2)*nu79(j,:,OP_LPZ)*mu79(i,:,OP_1) &
+                        -norm79(:,1)*mu79(i,:,OP_DR)*nu79(j,:,OP_LP) &
+                        -norm79(:,2)*mu79(i,:,OP_DZ)*nu79(j,:,OP_LP))
                    sum = int1(temp79a)
                 end select
                 call insert(biharmonic_mat, sum, ind(1,i), ind(1,j), MAT_ADD)

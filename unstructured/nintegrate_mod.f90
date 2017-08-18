@@ -592,13 +592,13 @@ pure function intx1(vari)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx1
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
+  vectype, dimension(dofs_per_element, MAX_PTS), intent(in) :: vari
 
   integer :: k
 
   intx1 = 0.
   do k=1, npoints
-     intx1 = intx1 + vari(k,:)*weight_79(k)
+     intx1 = intx1 + vari(:,k)*weight_79(k)
   enddo
 end function intx1
 !==============================================
@@ -608,14 +608,14 @@ pure function intx2(vari,varj)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx2
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
+  vectype, dimension(dofs_per_element, MAX_PTS), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj
 
   integer :: k
 
   intx2 = 0.
   do k=1, npoints
-     intx2 = intx2 + vari(k,:)*varj(k)*weight_79(k)
+     intx2 = intx2 + vari(:,k)*varj(k)*weight_79(k)
   enddo
 end function intx2
 !==============================================
@@ -625,14 +625,14 @@ pure function intx3(vari,varj,vark)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx3
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
+  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark
 
   integer :: k
 
   intx3 = 0.
   do k=1, npoints
-     intx3 = intx3 + vari(k,:)*varj(k)*vark(k)*weight_79(k)
+     intx3 = intx3 + vari(:,k)*varj(k)*vark(k)*weight_79(k)
   enddo
 end function intx3
 !==============================================
@@ -642,14 +642,14 @@ pure function intx4(vari,varj,vark,varl)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx4
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
+  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark, varl
 
   integer :: k
 
   intx4 = 0.
   do k=1, npoints
-     intx4 = intx4 + vari(k,:)*varj(k)*vark(k)*varl(k)*weight_79(k)
+     intx4 = intx4 + vari(:,k)*varj(k)*vark(k)*varl(k)*weight_79(k)
   enddo
 end function intx4
 !==============================================
@@ -659,14 +659,14 @@ pure function intx5(vari,varj,vark,varl,varm)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx5
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
+  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark, varl, varm
 
   integer :: k
 
   intx5 = 0.
   do k=1, npoints
-     intx5 = intx5 + vari(k,:)*varj(k)*vark(k)*varl(k)*varm(k)*weight_79(k)
+     intx5 = intx5 + vari(:,k)*varj(k)*vark(k)*varl(k)*varm(k)*weight_79(k)
   enddo
 end function intx5
 !==============================================
@@ -691,14 +691,14 @@ pure function intxx1(vari)
   implicit none
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: intxx1
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari
+  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari
 
   integer :: i,k
 
   intxx1 = 0.
-  do i=1, dofs_per_element
-     do k=1, npoints
-        intxx1(i,:) = intxx1(i,:) + vari(k,i)*weight_79(k)
+  do k=1, npoints
+     do i=1, dofs_per_element
+        intxx1(i,:) = intxx1(i,:) + vari(i,k)*weight_79(k)
      end do
   enddo
 end function intxx1
@@ -709,15 +709,15 @@ pure function intxx2(vari,varj)
   implicit none
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx2
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari, varj
 
   integer :: i,j,k
 
   intxx2 = 0.
-  do i=1, dofs_per_element
-     do j=1, dofs_per_element
-        do k=1, npoints
-           intxx2(i,j) = intxx2(i,j) + vari(k,i)*varj(k,j)*weight_79(k)
+  do k=1, npoints
+     do i=1, dofs_per_element
+        do j=1, dofs_per_element
+           intxx2(i,j) = intxx2(i,j) + vari(i,k)*varj(j,k)*weight_79(k)
         end do
      end do
   end do
@@ -729,16 +729,16 @@ pure function intxx3(vari,varj,vark)
   implicit none
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: intxx3
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark
 
   integer :: i,j,k
 
   intxx3 = 0.
-  do i=1, dofs_per_element
-     do j=1, dofs_per_element
-        do k=1, npoints
-           intxx3(i,j) = intxx3(i,j) + vari(k,i)*varj(k,j)*vark(k)*weight_79(k)
+  do k=1, npoints
+     do i=1, dofs_per_element
+        do j=1, dofs_per_element
+           intxx3(i,j) = intxx3(i,j) + vari(i,k)*varj(j,k)*vark(k)*weight_79(k)
         end do
      end do
   enddo
@@ -750,17 +750,17 @@ pure function intxx4(vari,varj,vark,varl)
   implicit none
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx4
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark, varl
 
   integer :: i,j,k
 
   intxx4 = 0.
-  do i=1, dofs_per_element
-     do j=1, dofs_per_element
-        do k=1, npoints
+  do k=1, npoints
+     do i=1, dofs_per_element
+        do j=1, dofs_per_element
            intxx4(i,j) = intxx4(i,j) + &
-                vari(k,i)*varj(k,j)*vark(k)*varl(k)*weight_79(k)
+                vari(i,k)*varj(j,k)*vark(k)*varl(k)*weight_79(k)
         end do
      end do
   end do
@@ -772,17 +772,17 @@ pure function intxx5(vari,varj,vark,varl,varm)
   implicit none
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx5
-  vectype, dimension(MAX_PTS, dofs_per_element), intent(in) :: vari, varj
+  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark, varl, varm
 
   integer :: i,j,k
 
   intxx5 = 0.
-  do i=1, dofs_per_element
-     do j=1, dofs_per_element
-        do k=1, npoints
+  do k=1, npoints
+     do i=1, dofs_per_element
+        do j=1, dofs_per_element
            intxx5(i,j) = intxx5(i,j) + &
-                vari(k,i)*varj(k,j)*vark(k)*varl(k)*varm(k)*weight_79(k)
+                vari(i,k)*varj(j,k)*vark(k)*varl(k)*varm(k)*weight_79(k)
         end do
      end do
   enddo

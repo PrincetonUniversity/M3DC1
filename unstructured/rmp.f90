@@ -354,43 +354,43 @@ subroutine calculate_external_fields()
      ! psi_equation
      ! ~~~~~~~~~~~~
      ! Mininize BR, BZ
-     temp(:,:,1,1) = intxx3(mu79(:,OP_DR,:),nu79(:,OP_DR,:),ri2_79) &
-                   +          intxx3(mu79(:,OP_DZ,:),nu79(:,OP_DZ,:),ri2_79) &
-                   + regular* intxx3(mu79(:,OP_1,:),nu79(:,OP_1,:),ri4_79)
+     temp(:,:,1,1) = intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79) &
+                   +          intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
+                   + regular* intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79)
 #if defined(USECOMPLEX) || defined(USE3D)
-     temp(:,:,1,2) = intxx3(mu79(:,OP_DZ,:),nu79(:,OP_DRP,:),ri_79) &
-          -          intxx3(mu79(:,OP_DR,:),nu79(:,OP_DZP,:),ri_79)
+     temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DRP),ri_79) &
+          -          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZP),ri_79)
 #else
      temp(:,:,1,2) = 0.
 #endif
 
-     temp2(:,1) = intx3(mu79(:,OP_DR,:),temp79c,ri_79) &
-          -       intx3(mu79(:,OP_DZ,:),temp79a,ri_79)
+     temp2(:,1) = intx3(mu79(:,:,OP_DR),temp79c,ri_79) &
+          -       intx3(mu79(:,:,OP_DZ),temp79a,ri_79)
 
            ! Jphi
-!!$      temp(:,:,1,1) = -intxx3(mu79(:,OP_1,:),nu79(:,OP_GS,:),ri2_79)
+!!$      temp(:,:,1,1) = -intxx3(mu79(:,:,OP_1),nu79(:,:,OP_GS),ri2_79)
 !!$      temp(:,:,1,2) = 0.
 !!$      temp2(:,1) = &
-!!$               + intx3(mu79(:,OP_DR,:),temp79c,ri_79) &
-!!$               - intx3(mu79(:,OP_DZ,:),temp79a,ri_79)
+!!$               + intx3(mu79(:,:,OP_DR),temp79c,ri_79) &
+!!$               - intx3(mu79(:,:,OP_DZ),temp79a,ri_79)
 !!$      temp2(:,1) = 0.
 
 
      ! f equation
      ! ~~~~~~~~~~
      temp(:,:,2,1) =  0.
-     !     temp(:,:,2,2) = intxx3(mu79(:,OP_1,:),nu79(:,OP_LP,:),r2_79)
+     !     temp(:,:,2,2) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79)
      temp(:,:,2,2) = &
-          -intxx3(mu79(:,OP_DR,:),nu79(:,OP_DR,:),r2_79) &
-          -intxx3(mu79(:,OP_DZ,:),nu79(:,OP_DZ,:),r2_79) &
-          -2.*intxx3(mu79(:,OP_1,:),nu79(:,OP_DR,:),r_79) &
-          + regular*intxx3(mu79(:,OP_1,:),nu79(:,OP_1,:),ri2_79)
+          -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79) &
+          -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79) &
+          -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) &
+          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
 
-     temp2(:,2) = intx3(mu79(:,OP_1,:),r_79,temp79b)
+     temp2(:,2) = intx3(mu79(:,:,OP_1),r_79,temp79b)
         
-     temp3 = intx3(mu79(:,OP_1,:),r_79,temp79b)
+     temp3 = intx3(mu79(:,:,OP_1),r_79,temp79b)
         
-     if(read_p) temp4 = intx2(mu79(:,OP_1,:),temp79d)
+     if(read_p) temp4 = intx2(mu79(:,:,OP_1),temp79d)
 
 
      call apply_boundary_mask(itri, ipsibound, temp(:,:,1,1), &
@@ -508,9 +508,9 @@ subroutine tf_shift_tilt
 #endif
 
      temp79a = bzero*rzero/x_79*(shift_co - z_79*tilt_sn)
-     temp1 = intx2(mu79(:,OP_1,:),temp79a)
+     temp1 = intx2(mu79(:,:,OP_1),temp79a)
 
-     temp2 = intxx3(mu79(:,OP_1,:),nu79(:,OP_LP,:),r2_79)
+     temp2 = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79)
 
      call vector_insert_block(ff%vec, itri, 1, temp1, VEC_ADD)
      call insert_block(bz_mat, itri, 1, 1, temp2, MAT_ADD)

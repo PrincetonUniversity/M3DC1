@@ -63,7 +63,7 @@ function sigma_func(izone)
                 real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate)
       endif
 
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 
   endif
 
@@ -83,12 +83,12 @@ function sigma_func(izone)
      
      temp79a = ionization_rate * temp79e * &
           exp(-ionization_temp / temp79d)
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
   if(ibeam.eq.1 .or. ibeam.eq.2) then
      temp79a = neutral_beam_deposition(x_79,z_79)
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   end if
 
   ! Read numerical particle source profile
@@ -113,7 +113,7 @@ function sigma_func(izone)
         temp79a(j) = val * pellet_rate
      end do
 
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif 
 
   ! Localized sink(s)
@@ -122,14 +122,14 @@ function sigma_func(izone)
           - nt79(:,OP_1)*ri_79*sink1_rate/(2.*pi*sink1_var**2) & 
           *exp(-((x_79 - sink1_x)**2 + (z_79 - sink1_z)**2) &
           /(2.*sink1_var**2))
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
   if(isink.ge.2) then
      temp79a = &
           - nt79(:,OP_1)*ri_79*sink2_rate/(2.*pi*sink2_var**2) & 
           *exp(-((x_79 - sink2_x)**2 + (z_79 - sink2_z)**2) &
           /(2.*sink2_var**2))
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
   ! Enforce density floor
@@ -140,7 +140,7 @@ function sigma_func(izone)
              x_79(j), z_79(j))
         if(iregion.ge.1) temp79a(j) = alphadenfloor*( den_edge - nt79(j,OP_1))
      end do
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
   sigma_func = temp
@@ -173,11 +173,11 @@ function force_func(izone)
   ! Beam source
   if(ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5) then
      temp79a = neutral_beam_deposition(x_79,z_79)
-     temp = temp + nb_v*beam_fracpar*intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + nb_v*beam_fracpar*intx2(mu79(:,:,OP_1),temp79a)
      if(ivform.eq.0) then
-        temp = temp - intx4(mu79(:,OP_1,:),ri_79,temp79a,vzt79(:,OP_1))
+        temp = temp - intx4(mu79(:,:,OP_1),ri_79,temp79a,vzt79(:,OP_1))
      else
-        temp = temp - intx4(mu79(:,OP_1,:),r_79,temp79a,vzt79(:,OP_1))
+        temp = temp - intx4(mu79(:,:,OP_1),r_79,temp79a,vzt79(:,OP_1))
      endif
   endif
 
@@ -212,7 +212,7 @@ function pforce_func()
         if(iregion.ge.1) temp79b(j) = 0.
      end do
 
-     pforce_func = intx2(mu79(:,OP_1,:),temp79b)
+     pforce_func = intx2(mu79(:,:,OP_1),temp79b)
   case(2)
 
      temp79a = (pst79(:,OP_1)-psibound)/(psimin - psibound)
@@ -226,7 +226,7 @@ function pforce_func()
         if(real(temp79a(j)) .lt. psiminl .or. real(temp79a(j)) .gt. psimaxl) temp79e(j) = 0.
      enddo
   
-     pforce_func = intx2(mu79(:,OP_1,:),temp79e)
+     pforce_func = intx2(mu79(:,:,OP_1),temp79e)
 
   case default
      pforce_func = 0.
@@ -264,7 +264,7 @@ function pmach_func()
          + 2.*ri_79*(cht79(:,OP_DZ)*pht79(:,OP_DR)-cht79(:,OP_DR)*pht79(:,OP_DZ))),1.e-9)
   temp79e = sqrt(temp79d/temp79c)
 
-  pmach_func = intx2(mu79(:,OP_1,:),temp79e)
+  pmach_func = intx2(mu79(:,:,OP_1),temp79e)
 end function pmach_func
 
 
@@ -308,21 +308,21 @@ function q_func(izone)
      temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
           *exp(-((x_79 - ghs_x)**2 + (z_79 - ghs_z)**2) &
           /(2.*ghs_var**2))
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
   ! Beam source
   if(ibeam.ge.1 .and. ibeam.le.4) then
      temp79a = 0.5*neutral_beam_deposition(x_79,z_79)
-     temp = temp + (nb_v**2 + nb_dv**2)*intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + (nb_v**2 + nb_dv**2)*intx2(mu79(:,:,OP_1),temp79a)
      if(ivform.eq.0) then
         temp = temp &
-             - 2.*nb_v*intx4(mu79(:,OP_1,:),ri_79,temp79a,vzt79(:,OP_1)) &
-             + intx5(mu79(:,OP_1,:),ri2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
+             - 2.*nb_v*intx4(mu79(:,:,OP_1),ri_79,temp79a,vzt79(:,OP_1)) &
+             + intx5(mu79(:,:,OP_1),ri2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
      else
         temp = temp &
-             - 2.*nb_v*intx4(mu79(:,OP_1,:),r_79,temp79a,vzt79(:,OP_1)) &
-             + intx5(mu79(:,OP_1,:),r2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
+             - 2.*nb_v*intx4(mu79(:,:,OP_1),r_79,temp79a,vzt79(:,OP_1)) &
+             + intx5(mu79(:,:,OP_1),r2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
      endif
   endif
 
@@ -350,7 +350,7 @@ function q_func(izone)
         temp79a(j) = val
      end do
 
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
   ! Heat sink for use with itaylor=27
@@ -362,7 +362,7 @@ function q_func(izone)
         temp79a(j) = coolrate*(pfunc(rsq)) ! now use new time p in pressure_lin
      end do
      temp79a = temp79a*(1. + tanh((r-libetap)/p1))
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
 
@@ -442,7 +442,7 @@ function rad_func()
      ! convert output to normalized units
      temp79a = temp79a * 10. / (p0_norm / t0_norm)
      
-     temp = temp - intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp - intx2(mu79(:,:,OP_1),temp79a)
   end if
 
   rad_func = temp
@@ -474,7 +474,7 @@ function cd_func()
              x_79(j),z_79(j))
         if(iregion.ge.1) temp79a(j) = 0.
      enddo
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
   cd_func = temp
@@ -545,7 +545,7 @@ function resistivity_func()
 
   end select
 
-  resistivity_func = intx2(mu79(:,OP_1,:),temp79a)
+  resistivity_func = intx2(mu79(:,:,OP_1),temp79a)
 end function resistivity_func
 
 
@@ -637,7 +637,7 @@ function viscosity_func()
      
   end select
 
-  viscosity_func = intx2(mu79(:,OP_1,:),temp79a)
+  viscosity_func = intx2(mu79(:,:,OP_1),temp79a)
 end function viscosity_func
 
 ! Kappa
@@ -763,12 +763,12 @@ function kappa_func()
   case default
      temp79a = 0.
   end select
-  temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+  temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 
   if(kappah.ne.0.) then
      temp79b = (pst79(:,OP_1) - psimin)/(psibound - psimin)
      temp79a = kappah*tanh((real(temp79b) - 1.)/.2)**2
-     temp = temp + intx2(mu79(:,OP_1,:),temp79a)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   end if
   
   kappa_func = temp
@@ -793,7 +793,7 @@ function electron_viscosity_func()
      temp79f = -amue * r2_79 * &
           (bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR)) &
           / (nt79(:,OP_1)*(pst79(:,OP_DZ)**2 + pst79(:,OP_DR)**2 + regular)**2)
-     temp = temp + intx2(mu79(:,OP_1,:),temp79f)
+     temp = temp + intx2(mu79(:,:,OP_1),temp79f)
   endif
 
   electron_viscosity_func = temp
@@ -812,7 +812,7 @@ function be_func()
 !
 !   need to define this to be p_perp
   if(kinetic.eq.2) then
-     be_func = intx2(mu79(:,OP_1,:),p179(:,OP_1))
+     be_func = intx2(mu79(:,:,OP_1),p179(:,OP_1))
   else 
      be_func = 0.
   endif
@@ -832,8 +832,8 @@ function al_func()
 !
 !   need to define this as (p_parallel - p_perp)/B**2
   if(kinetic.eq.2) then
-     al_func = intx3(mu79(:,OP_1,:),pe179(:,OP_1),b2i79(:,OP_1))   &
-          - intx3(mu79(:,OP_1,:), p179(:,OP_1),b2i79(:,OP_1))
+     al_func = intx3(mu79(:,:,OP_1),pe179(:,OP_1),b2i79(:,OP_1))   &
+          - intx3(mu79(:,:,OP_1), p179(:,OP_1),b2i79(:,OP_1))
   else
      al_func = 0.
   endif
@@ -862,7 +862,7 @@ function bs_func()
      temp79c  =  temp79a
 #endif
 
-  bs_func = intx2(mu79(:,OP_1,:),temp79c)
+  bs_func = intx2(mu79(:,:,OP_1),temp79c)
 end function bs_func
 
 

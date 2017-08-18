@@ -115,7 +115,7 @@ module adapt
        temp79b = (psibound - psimin)*temp79b + psimin
 
        do i=1, dofs_per_element
-          dofs(i) = int2(mu79(:,OP_1,i),temp79b)
+          dofs(i) = int2(mu79(i,:,OP_1),temp79b)
        end do
        call vector_insert_block(temporary_field%vec,itri,1,dofs,VEC_ADD)
     end do

@@ -107,10 +107,10 @@ contains
              dofs(i) = 0.
           else
              do j=1,dofs_per_element
-                temp(i,j) = -int3(ri_79,mu79(:,OP_1,i),nu79(:,OP_GS,j))
+                temp(i,j) = -int3(ri_79,mu79(i,:,OP_1),nu79(j,:,OP_GS))
              enddo
              
-             dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+             dofs(i) = int2(mu79(i,:,OP_1),temp79a)
           endif
        enddo
        
@@ -151,10 +151,10 @@ contains
              dofs(i) = 0.
           else
              do j=1,dofs_per_element
-                temp(i,j) = int4(ri_79,mu79(:,OP_1,i),nu79(:,OP_DR,j),ps079(:,OP_DR)) &
-                     +      int4(ri_79,mu79(:,OP_1,i),nu79(:,OP_DZ,j),ps079(:,OP_DZ))
+                temp(i,j) = int4(ri_79,mu79(i,:,OP_1),nu79(j,:,OP_DR),ps079(:,OP_DR)) &
+                     +      int4(ri_79,mu79(i,:,OP_1),nu79(j,:,OP_DZ),ps079(:,OP_DZ))
              enddo
-             dofs(i) = int3(mu79(:,OP_1,i),temp79a,temp79b)
+             dofs(i) = int3(mu79(i,:,OP_1),temp79a,temp79b)
           endif
        enddo
        
@@ -193,8 +193,8 @@ contains
        end if
 
        do i=1,dofs_per_element
-          dofs(i) = int2(mu79(:,OP_1,i),temp79a)
-          dofs_vz(i) = int2(mu79(:,OP_1,i),temp79b)
+          dofs(i) = int2(mu79(i,:,OP_1),temp79a)
+          dofs_vz(i) = int2(mu79(i,:,OP_1),temp79b)
        end do
        call vector_insert_block(f_vec%vec, itri, 1, dofs, MAT_ADD)
        call vector_insert_block(vz_vec%vec, itri, 1, dofs_vz, MAT_ADD)

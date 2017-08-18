@@ -185,13 +185,13 @@ subroutine init_perturbations
         
      ! psi
      do i=1, dofs_per_element
-        dofs(i) = int2(mu79(:,OP_1,i),ps179(:,OP_1))
+        dofs(i) = int2(mu79(i,:,OP_1),ps179(:,OP_1))
      end do
      call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
      
      ! phi
      do i=1, dofs_per_element        
-        dofs(i) = int2(mu79(:,OP_1,i),ph179(:,OP_1))
+        dofs(i) = int2(mu79(i,:,OP_1),ph179(:,OP_1))
      end do
      call vector_insert_block(phi_vec%vec,itri,1,dofs,VEC_ADD)
   end do
@@ -263,7 +263,7 @@ subroutine den_eq
      end if
 
      do i=1, dofs_per_element
-        dofs(i) = int2(mu79(:,OP_1,i),n079(:,OP_1))
+        dofs(i) = int2(mu79(i,:,OP_1),n079(:,OP_1))
      end do
      call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
   end do
@@ -309,7 +309,7 @@ subroutine den_per
      end if
 
      do i=1, dofs_per_element
-        dofs(i) = int2(mu79(:,OP_1,i),n179(:,OP_1))
+        dofs(i) = int2(mu79(i,:,OP_1),n179(:,OP_1))
      end do
      call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
   end do

@@ -253,70 +253,70 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
      selectcase(itype)
         
      case(NV_I_MATRIX)
-        temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+        temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
 
      case(NV_LP_MATRIX)
-        temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_LP,:))
+        temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_LP))
         if(ibound.eq.NV_NMBOUND) then
            temp(:,:,1,1) = temp(:,:,1,1) &
-                - regular*intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+                - regular*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
         endif
               
      case(NV_GS_MATRIX)              
-        temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
+        temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
               
      case(NV_BF_MATRIX)
-        temp(:,:,1,1) = intxx3(mu79(:,OP_1,:),nu79(:,OP_LP,:),r2_79)
+        temp(:,:,1,1) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79)
         if(ifbound.eq.2) then
            temp(:,:,1,1) = temp(:,:,1,1) + &
-                regular*intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+                regular*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
         end if
               
      case(NV_SJ_MATRIX)
         if(is_lhs .eq. 1) then
-           temp(:,:,1,1) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
-           temp(:,:,1,2) = -thimpsm*intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
-           temp(:,:,2,1) = dt*hypf*intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
+           temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+           temp(:,:,1,2) = -thimpsm*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
+           temp(:,:,2,1) = dt*hypf*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
            temp(:,:,2,2) = temp(:,:,1,1)
         else
            temp(:,:,1,2) = (1.-thimpsm)*&
-                intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
-           temp(:,:,2,2) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
+                intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
+           temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
         end if
 
      case(NV_SV_MATRIX)
         if(is_lhs .eq. 1) then
-           temp(:,:,1,1) =  intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
-           temp(:,:,1,2) = -intxx2(mu79(:,OP_1,:),nu79(:,OP_GS,:))
+           temp(:,:,1,1) =  intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+           temp(:,:,1,2) = -intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
            temp(:,:,2,1) = dt*hyp*thimpsm* &
-                intxx2(mu79(:,OP_GS,:),nu79(:,OP_GS,:))
+                intxx2(mu79(:,:,OP_GS),nu79(:,:,OP_GS))
            temp(:,:,2,2) = -temp(:,:,1,2)
            if(inoslip_pol.eq.0) &
                 temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
         else
-           temp(:,:,2,2) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:)) &
+           temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1)) &
                 -dt*hypf*(1.-thimpsm)* &
-                intxx2(mu79(:,OP_GS,:),nu79(:,OP_GS,:))
+                intxx2(mu79(:,:,OP_GS),nu79(:,:,OP_GS))
         end if
         
      case(NV_SC_MATRIX)
         if(is_lhs .eq. 1) then
-           temp(:,:,1,1) =  intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:))
-           temp(:,:,1,2) = -intxx2(mu79(:,OP_1,:),nu79(:,OP_LP,:))
+           temp(:,:,1,1) =  intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+           temp(:,:,1,2) = -intxx2(mu79(:,:,OP_1),nu79(:,:,OP_LP))
            temp(:,:,2,1) = dt*hyp*thimpsm* &
-                intxx2(mu79(:,OP_LP,:),nu79(:,OP_LP,:))
+                intxx2(mu79(:,:,OP_LP),nu79(:,:,OP_LP))
            temp(:,:,2,2) = -temp(:,:,1,2)
            if(inoslip_pol.eq.0) &
                 temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
         else
-           temp(:,:,2,2) = intxx2(mu79(:,OP_1,:),nu79(:,OP_1,:)) &
+           temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1)) &
                 -dt*hypf*(1.-thimpsm)* &
-                intxx2(mu79(:,OP_LP,:),nu79(:,OP_LP,:))
+                intxx2(mu79(:,:,OP_LP),nu79(:,:,OP_LP))
         end if
         
      case(NV_DP_MATRIX)              
-        temp(:,:,1,1) = intxx2(mu79(:,OP_DZ,:),nu79(:,OP_DZ,:)) &
-             +      intxx2(mu79(:,OP_DR,:),nu79(:,OP_DR,:))
+        temp(:,:,1,1) = intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) &
+             +      intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR))
         
      end select
 

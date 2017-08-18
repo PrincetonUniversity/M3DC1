@@ -381,11 +381,11 @@ subroutine set_neo_vel
               temp(i,j,1,:) = 0.
            else
               temp(i,j,1,1) = &
-                   int3(r2_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) + &
-                   int3(r2_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
+                   int3(r2_79,mu79(i,:,OP_DR),nu79(j,:,OP_DR)) + &
+                   int3(r2_79,mu79(i,:,OP_DZ),nu79(j,:,OP_DZ))
               temp(i,j,1,2) = &
-                   int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZ,j)) - &
-                   int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DR,j))
+                   int3(ri_79,mu79(i,:,OP_DR),nu79(j,:,OP_DZ)) - &
+                   int3(ri_79,mu79(i,:,OP_DZ),nu79(j,:,OP_DR))
            end if
            
            ! compression equation
@@ -393,11 +393,11 @@ subroutine set_neo_vel
               temp(i,j,2,:) = 0.
            else
               temp(i,j,2,1) = &
-                   int3(ri_79,mu79(:,OP_DZ,i),nu79(:,OP_DR,j)) - &
-                   int3(ri_79,mu79(:,OP_DR,i),nu79(:,OP_DZ,j))
+                   int3(ri_79,mu79(i,:,OP_DZ),nu79(j,:,OP_DR)) - &
+                   int3(ri_79,mu79(i,:,OP_DR),nu79(j,:,OP_DZ))
               temp(i,j,2,2) = &
-                   int3(ri4_79,mu79(:,OP_DR,i),nu79(:,OP_DR,j)) + &
-                   int3(ri4_79,mu79(:,OP_DZ,i),nu79(:,OP_DZ,j))
+                   int3(ri4_79,mu79(i,:,OP_DR),nu79(j,:,OP_DR)) + &
+                   int3(ri4_79,mu79(i,:,OP_DZ),nu79(j,:,OP_DZ))
            end if
         end do
 
@@ -405,9 +405,9 @@ subroutine set_neo_vel
         ! toroidal rotation
         select case(ivform)
         case(0)
-           temp2(i) = int3(r_79,mu79(:,OP_1,i),vz)
+           temp2(i) = int3(r_79,mu79(i,:,OP_1),vz)
         case(1)
-           temp2(i) = int3(ri_79,mu79(:,OP_1,i),vz)
+           temp2(i) = int3(ri_79,mu79(i,:,OP_1),vz)
         end select
 
         ! vorticity
@@ -415,8 +415,8 @@ subroutine set_neo_vel
            temp3(i,1) = 0.
         else
            temp3(i,1) = &
-                int4(temp79f,vp,mu79(:,OP_DR,i),ps079(:,OP_DR)) + &
-                int4(temp79f,vp,mu79(:,OP_DZ,i),ps079(:,OP_DZ))
+                int4(temp79f,vp,mu79(i,:,OP_DR),ps079(:,OP_DR)) + &
+                int4(temp79f,vp,mu79(i,:,OP_DZ),ps079(:,OP_DZ))
         endif
 
         ! compression
@@ -424,13 +424,13 @@ subroutine set_neo_vel
            temp3(i,2) = 0.
         else
            temp3(i,2) = &
-                int5(ri3_79,temp79f,vp,mu79(:,OP_DZ,i),ps079(:,OP_DR)) - &
-                int5(ri3_79,temp79f,vp,mu79(:,OP_DR,i),ps079(:,OP_DZ))
+                int5(ri3_79,temp79f,vp,mu79(i,:,OP_DZ),ps079(:,OP_DR)) - &
+                int5(ri3_79,temp79f,vp,mu79(i,:,OP_DR),ps079(:,OP_DZ))
         endif
 
         ! diamagnetic term
         if(db.ne.0. .and. ineo_subtract_diamag.eq.1) then
-           temp4(i) = int2(mu79(:,OP_1,i), dia)
+           temp4(i) = int2(mu79(i,:,OP_1), dia)
         end if
      end do
 
@@ -748,12 +748,12 @@ subroutine kstar_profiles()
            temp(i,:) = 0.
         else
            do j=1,dofs_per_element
-              temp(i,j) = int4(mu79(:,OP_1,i),nu79(:,OP_DR,j),co,r) &
-                   +      int4(mu79(:,OP_1,i),nu79(:,OP_DZ,j),sn,r)
+              temp(i,j) = int4(mu79(i,:,OP_1),nu79(j,:,OP_DR),co,r) &
+                   +      int4(mu79(i,:,OP_1),nu79(j,:,OP_DZ),sn,r)
            enddo
         end if
         !  assemble rhs
-        temp2(i) = int2(mu79(:,OP_1,i),rdpsidr)
+        temp2(i) = int2(mu79(i,:,OP_1),rdpsidr)
      enddo
      
      call insert_block(psi_mat, itri, 1,1, temp(:,:), MAT_ADD)

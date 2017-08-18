@@ -102,8 +102,8 @@ contains
     dndt = dndt*t0_norm/(n0_norm*1e6)
     re_j79 = re_j79/(c*1e-3)/j0_norm
 
-    dofs = intx2(mu79(:,OP_1,:),nre79(:,OP_1)) + &
-         intx2(mu79(:,OP_1,:),dndt)*dt
+    dofs = intx2(mu79(:,:,OP_1),nre79(:,OP_1)) + &
+         intx2(mu79(:,:,OP_1),dndt)*dt
 
     call vector_insert_block(dnre_field%vec,itri,1,dofs,VEC_SET)
 #endif

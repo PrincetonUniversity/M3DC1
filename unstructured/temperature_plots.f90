@@ -145,10 +145,10 @@ subroutine hf_perp(i,o)
      ! Perpendicular Heat Flux
      ! ~~~~~~~~~~~~~~~~~~~~~~~
      o =   -(gam-1)*    &
-          ( mu79(:,OP_DZ,i)*tet79(:,OP_DZ)*kap79(:,OP_1) &
-          + mu79(:,OP_DR,i)*tet79(:,OP_DR)*kap79(:,OP_1) )
+          ( mu79(i,:,OP_DZ)*tet79(:,OP_DZ)*kap79(:,OP_1) &
+          + mu79(i,:,OP_DR)*tet79(:,OP_DR)*kap79(:,OP_1) )
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + (gam-1)*ri2_79*mu79(:,OP_1,i)*tet79(:,OP_DPP)*kap79(:,OP_1)
+     o = o + (gam-1)*ri2_79*mu79(i,:,OP_1)*tet79(:,OP_DPP)*kap79(:,OP_1)
 #endif
 
 end subroutine hf_perp
@@ -163,34 +163,34 @@ subroutine hf_par(i,o)
   vectype, dimension(MAX_PTS), intent(out) :: o
 !
           temp79b = kar79(:,OP_1)*ri2_79*        &
-                  (mu79(:,OP_DZ,i)*pstx79(:,OP_DR) &
-                 - mu79(:,OP_DR,i)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
+                  (mu79(i,:,OP_DZ)*pstx79(:,OP_DR) &
+                 - mu79(i,:,OP_DR)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
 
           o = (gam-1.)*(temp79b*pstx79(:,OP_DZ)*tet79(:,OP_DR) &
                          - temp79b*pstx79(:,OP_DR)*tet79(:,OP_DZ))
 
 #if defined(USE3D) || defined(USECOMPLEX)
           temp79b = -kar79(:,OP_1)*ri3_79*bztx79(:,OP_1)* &
-                    (mu79(:,OP_DZ,i)*pstx79(:,OP_DR) &
-                   - mu79(:,OP_DR,i)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
+                    (mu79(i,:,OP_DZ)*pstx79(:,OP_DR) &
+                   - mu79(i,:,OP_DR)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
           temp79c = pstx79(:,OP_DR)*tet79(:,OP_DZ) &
                   - pstx79(:,OP_DZ)*tet79(:,OP_DR)
           temp79d = temp79c*bztx79(:,OP_1 )*b2i79(:,OP_1 )*kar79(:,OP_1)
           o = o + (gam - 1.)* (temp79b*tet79(:,OP_DP) &
-                                - ri3_79*mu79(:,OP_DP,i)*temp79d)
+                                - ri3_79*mu79(i,:,OP_DP)*temp79d)
 
           temp79b = bztx79(:,OP_1)*bztx79(:,OP_1 )   &
                                 *tet79(:,OP_DP)*b2i79(:,OP_1 )*kar79(:,OP_1 )
-          o = o -(gam-1)*(ri4_79*mu79(:,OP_DP,i)*temp79b)
+          o = o -(gam-1)*(ri4_79*mu79(i,:,OP_DP)*temp79b)
 
 
           if(i3d.eq.1 .and. numvar.ge.2) then
              temp79b = kar79(:,OP_1)*ri_79* &
-                     (mu79(:,OP_DZ,i)*pstx79(:,OP_DR) &
-                    - mu79(:,OP_DR,i)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
+                     (mu79(i,:,OP_DZ)*pstx79(:,OP_DR) &
+                    - mu79(i,:,OP_DR)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
              temp79c = kar79(:,OP_1)*ri_79* &
-                     (mu79(:,OP_DZ,i)*bftx79(:,OP_DZP) &
-                    + mu79(:,OP_DR,i)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
+                     (mu79(i,:,OP_DZ)*bftx79(:,OP_DZP) &
+                    + mu79(i,:,OP_DR)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
 
              o = o + (gam -1.)*(temp79b*bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
                              + temp79b*bftx79(:,OP_DRP)*tet79(:,OP_DR) &
@@ -198,8 +198,8 @@ subroutine hf_par(i,o)
                              - temp79c*pstx79(:,OP_DZ )*tet79(:,OP_DR))
        
               temp79b = kar79(:,OP_1)*ri2_79*bztx79(:,OP_1)* &
-                    (mu79(:,OP_DZ,i)*bftx79(:,OP_DZP) &
-                   + mu79(:,OP_DR,i)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
+                    (mu79(i,:,OP_DZ)*bftx79(:,OP_DZP) &
+                   + mu79(i,:,OP_DR)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
 
               temp79c = bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
                       + bftx79(:,OP_DRP)*tet79(:,OP_DR)
@@ -207,11 +207,11 @@ subroutine hf_par(i,o)
               temp79d = temp79c*bztx79(:,OP_1 )*b2i79(:,OP_1 )*kar79(:,OP_1 )
 
               o = o + (gam - 1.)*(temp79b*tet79(:,OP_DP) &
-                                   + ri2_79*mu79(:,OP_DP,i)*temp79d)
+                                   + ri2_79*mu79(i,:,OP_DP)*temp79d)
            
               temp79b = - kar79(:,OP_1)*              &
-                    (mu79(:,OP_DZ,i)*bftx79(:,OP_DZP) &
-                   + mu79(:,OP_DR,i)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
+                    (mu79(i,:,OP_DZ)*bftx79(:,OP_DZP) &
+                   + mu79(i,:,OP_DR)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
 
               o = o + (gam - 1.)*(temp79b*bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
                             + temp79b*bftx79(:,OP_DRP)*tet79(:,OP_DR))
@@ -464,14 +464,14 @@ subroutine f3eplot_sub(term)
 ! ~~~~~~~~~~~~~~~~~~
      if(kappar.ne.0.) then
 
-        temp = tepsipsikappar(mu79(:,:,i),pstx79,pstx79,tet79,b2i79,kar79) &
-             + tepsibkappar  (mu79(:,:,i),pstx79,bztx79,tet79,b2i79,kar79) &
-             + tebbkappar    (mu79(:,:,i),bztx79,bztx79,tet79,b2i79,kar79)
+        temp = tepsipsikappar(mu79(i,:,:),pstx79,pstx79,tet79,b2i79,kar79) &
+             + tepsibkappar  (mu79(i,:,:),pstx79,bztx79,tet79,b2i79,kar79) &
+             + tebbkappar    (mu79(i,:,:),bztx79,bztx79,tet79,b2i79,kar79)
         term(i) = term(i) + temp
         if(i3d.eq.1 .and. numvar.ge.2) then
-           temp = tepsifkappar(mu79(:,:,i),pstx79,bftx79,tet79,b2i79,kar79) &
-                + tebfkappar  (mu79(:,:,i),bztx79,bftx79,tet79,b2i79,kar79) &
-                + teffkappar  (mu79(:,:,i),bftx79,bftx79,tet79,b2i79,kar79)
+           temp = tepsifkappar(mu79(i,:,:),pstx79,bftx79,tet79,b2i79,kar79) &
+                + tebfkappar  (mu79(i,:,:),bztx79,bftx79,tet79,b2i79,kar79) &
+                + teffkappar  (mu79(i,:,:),bftx79,bftx79,tet79,b2i79,kar79)
            term(i) = term(i) + temp
         endif
      endif

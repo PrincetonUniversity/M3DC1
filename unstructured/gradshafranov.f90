@@ -1005,16 +1005,16 @@ subroutine gradshafranov_solve
      call define_element_quadrature(itri,int_pts_main,int_tor)
      call define_fields(itri,0,1,0)
 
-     temp = intxx3(mu79(:,OP_1,:),nu79(:,OP_GS,:),ri_79)
+     temp = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_GS),ri_79)
 #ifdef USE3D
-     temp = temp - eta_gs*intxx3(mu79(:,OP_DP,:),nu79(:,OP_DP,:),ri3_79)
+     temp = temp - eta_gs*intxx3(mu79(:,:,OP_DP),nu79(:,:,OP_DP),ri3_79)
 #endif
 !!$     temp = &
-!!$         -intxx3(mu79(:,OP_DR,:),nu79(:,OP_DR,:),ri_79) &
-!!$         -intxx3(mu79(:,OP_DZ,:),nu79(:,OP_DZ,:),ri_79)
+!!$         -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri_79) &
+!!$         -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri_79)
 !!$     if(itor.eq.1) then 
 !!$         temp = temp &
-!!$             -intxx3(mu79(:,OP_1,:),nu79(:,OP_DR,:),ri2_79)
+!!$             -intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),ri2_79)
 !!$     endif
 !!$ 
 !!$     ! add surface terms
@@ -1027,8 +1027,8 @@ subroutine gradshafranov_solve
 !!$        call define_fields(itri, 0, 1, 0)
 !!$
 !!$        temp = temp &
-!!$             +intxx4(mu79(:,OP_1,:),nu79(:,OP_DR,:),norm79(:,1),ri_79) &
-!!$             +intxx4(mu79(:,OP_1,:),nu79(:,OP_DZ,:),norm79(:,2),ri_79)
+!!$             +intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DR),norm79(:,1),ri_79) &
+!!$             +intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DZ),norm79(:,2),ri_79)
 !!$     end do
 
      call apply_boundary_mask(itri, ibound, temp, tags=domain_boundary)
@@ -1259,10 +1259,10 @@ subroutine gradshafranov_solve
         endif
      end do
      
-     temp(:,1) = intx2(mu79(:,OP_1,:),temp79a)
-     temp(:,2) = intx2(mu79(:,OP_1,:),temp79b)
-     temp(:,3) = intx2(mu79(:,OP_1,:),temp79c)
-     if(irot.ne.0) temp(:,4) = intx2(mu79(:,OP_1,:),temp79d)
+     temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
+     temp(:,2) = intx2(mu79(:,:,OP_1),temp79b)
+     temp(:,3) = intx2(mu79(:,:,OP_1),temp79c)
+     if(irot.ne.0) temp(:,4) = intx2(mu79(:,:,OP_1),temp79d)
      call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
      call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
      call vector_insert_block(b3vecini_vec%vec,itri,1,temp(:,3),VEC_ADD)
@@ -1314,7 +1314,7 @@ subroutine gradshafranov_solve
            temp79a(i) = tf
         end do
         
-        temp(:,1) = intx2(mu79(:,OP_1,:),temp79a)
+        temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
         call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
      end do
      
@@ -1340,8 +1340,8 @@ subroutine gradshafranov_solve
      temp79a = (pe079(:,OP_1)) / (zeff*n079(:,OP_1))
      temp79b = (p079(:,OP_1) - pe079(:,OP_1)) / n079(:,OP_1)
      
-     temp(:,1) = intx2(mu79(:,OP_1,:),temp79a)
-     temp(:,2) = intx2(mu79(:,OP_1,:),temp79b)
+     temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
+     temp(:,2) = intx2(mu79(:,:,OP_1),temp79b)
      call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
      call vector_insert_block(b2vecini_vec%vec,itri,1,temp(:,2),VEC_ADD)
   end do
@@ -1672,7 +1672,7 @@ subroutine gaussianfun(x,z,val,denom,jout)
 !     assemble matrix
       temp = befo*exp(-((x_79-x)**2 + (z_79-z)**2)/denom**2)
 
-      dofs = intx2(mu79(:,OP_1,:),temp)
+      dofs = intx2(mu79(:,:,OP_1),temp)
       ! call vector_insert_block(jout%vec, itri, jout%index, dofs, VEC_ADD)
       call vector_insert_block(jout%vec, itri, 1, dofs, VEC_ADD)
   enddo
@@ -2035,8 +2035,8 @@ subroutine fundef2(error)
              (temp79a + temp79e*temp79d*(x_79**2 - rzero**2)/rzero**2)
      endif
      
-     temp3 = intx3(mu79(:,OP_1,:),r_79,temp79a)
-     temp4 = intx3(mu79(:,OP_1,:),ri_79,temp79b)
+     temp3 = intx3(mu79(:,:,OP_1),r_79,temp79a)
+     temp4 = intx3(mu79(:,:,OP_1),ri_79,temp79b)
      
      call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
      call vector_insert_block(fun4_vec%vec,itri,1,temp4,VEC_ADD)

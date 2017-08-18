@@ -18,7 +18,7 @@ module error_estimate
   integer, parameter :: EOP_DYYYY = 15
   integer, parameter :: EOP_NUM = 16
   real, private :: efterm(MAX_PTS, coeffs_per_element, EOP_NUM)
-  vectype, dimension(MAX_PTS, EOP_NUM, dofs_per_element) :: emu79, enu79
+  vectype, dimension(dofs_per_element, MAX_PTS, EOP_NUM) :: emu79, enu79
   vectype, dimension(MAX_PTS, EOP_NUM) :: eph179, eph179_pre, eps179, eps179_pre, en179, evis79, eetar79 
   vectype, dimension(MAX_PTS, EOP_NUM) :: eph079, eps079, en079
   vectype,  dimension(MAX_PTS, EOP_NUM) :: U_bar, U_2bar, U_tild, psi_bar, psi_2bar, psi_tmp,psi_tmp2, psi_tmp3, U_tmp, n_tmp
@@ -480,7 +480,7 @@ fn_eval(1:npoint_int)
 
     do op=1, EOP_NUM
        do i=1, dofs_per_element
-          outarr(:,op) = outarr(:,op) + dofs(i)*enu79(:,op,i)
+          outarr(:,op) = outarr(:,op) + dofs(i)*enu79(i,:,op)
        end do
     end do
   end subroutine eval_ops_error
@@ -573,12 +573,12 @@ fn_eval(1:npoint_int)
     do op=1, EOP_NUM
        do i=1, dofs_per_element
           do p=1, coeffs_per_element
-             emu79(:,op,i) = emu79(:,op,i) + efterm(:,p,op)*cl(i,p)
+             emu79(i,:,op) = emu79(i,:,op) + efterm(:,p,op)*cl(i,p)
           end do
        end do
     end do
     do i=1,dofs_per_element
-       call rotate_field(emu79(:,:,i),c,s)
+       call rotate_field(emu79(i,:,:),c,s)
     end do
     enu79 = emu79
   end subroutine define_basis_error

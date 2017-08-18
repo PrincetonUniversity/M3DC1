@@ -649,6 +649,9 @@ subroutine calculate_scalars()
   call finalize(field_vec)
 
   numelms = local_elements()
+
+!$OMP PARALLEL DEFAULT (PRIVATE) &
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -886,6 +889,7 @@ subroutine calculate_scalars()
         xray_signal = xray_signal + int2(temp79a, temp79b)
      end do
   end do
+!$OMP END PARALLEL
 
   call distribute_scalars
   
@@ -961,6 +965,7 @@ subroutine calculate_scalars()
   endif
 
 end subroutine calculate_scalars
+
 
 !======================================================================
 ! magnetic_region

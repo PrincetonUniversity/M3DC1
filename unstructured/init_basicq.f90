@@ -126,11 +126,11 @@ contains
        temp79d = rtemp79d
 #endif
 
-       dofsps = intx2(mu79(:,OP_1,:),temp79a)
-       dofsbz = intx2(mu79(:,OP_1,:),temp79b)
-       dofspr = intx2(mu79(:,OP_1,:),temp79c)
-       dofsvz = intx2(mu79(:,OP_1,:),temp79d)
-       dofsden = den0*intx1(mu79(:,OP_1,:))
+       dofsps = intx2(mu79(:,:,OP_1),temp79a)
+       dofsbz = intx2(mu79(:,:,OP_1),temp79b)
+       dofspr = intx2(mu79(:,:,OP_1),temp79c)
+       dofsvz = intx2(mu79(:,:,OP_1),temp79d)
+       dofsden = den0*intx1(mu79(:,:,OP_1))
 
        call vector_insert_block(psi_vec%vec,itri,1,dofsps,VEC_ADD)
        call vector_insert_block(bz_vec%vec ,itri,1,dofsbz,VEC_ADD)

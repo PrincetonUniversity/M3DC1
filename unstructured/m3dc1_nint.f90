@@ -75,7 +75,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_KIN  =33554432
   integer, parameter :: FIELD_RE   =67108864 
 
-  vectype, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: mu79, nu79
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: mu79, nu79
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
      ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79, ri8_79
   vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
@@ -278,11 +278,11 @@ contains
 
     integer, intent(in) :: itri
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
-    integer :: i
+    integer :: i, op
 #ifndef USEBLAS
-    integer :: op, p
+    integer :: p
 #elif defined(USECOMPLEX)
-    real, dimension(MAX_PTS, OP_NUM, dofs_per_element) :: real_mu
+    real, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: real_mu
 #endif
 
     call local_coeff_vector(itri, cl)
@@ -290,14 +290,14 @@ contains
 #ifdef USEBLAS
 
 #ifdef USECOMPLEX
-    call dgemm('N','T',MAX_PTS*OP_NUM,dofs_per_element,coeffs_per_element, &
-               1.,fterm,MAX_PTS*OP_NUM,cl,dofs_per_element, &
-               0.,real_mu,MAX_PTS*OP_NUM)
+    call dgemm('N','T',dofs_per_element,MAX_PTS*OP_NUM,coeffs_per_element, &
+               1.,cl,dofs_per_element,fterm,MAX_PTS*OP_NUM, &
+               0.,real_mu,dofs_per_element)
     mu79 = real_mu
 #else
-    call dgemm('N','T',MAX_PTS*OP_NUM,dofs_per_element,coeffs_per_element, &
-               1.,fterm,MAX_PTS*OP_NUM,cl,dofs_per_element, &
-               0.,mu79,MAX_PTS*OP_NUM)
+    call dgemm('N','T',dofs_per_element,MAX_PTS*OP_NUM,coeffs_per_element, &
+               1.,cl,dofs_per_element,fterm,MAX_PTS*OP_NUM, &
+               0.,mu79,dofs_per_element)
 #endif
 
 #else ! USEBLAS not defined
@@ -305,7 +305,7 @@ contains
     do op=1, OP_NUM
        do i=1, dofs_per_element
           do p=1, coeffs_per_element
-             mu79(:,op,i) = mu79(:,op,i) + fterm(:,op,p)*cl(i,p)
+             mu79(i,:,op) = mu79(i,:,op) + fterm(:,op,p)*cl(i,p)
           end do
        end do
     end do
@@ -313,8 +313,8 @@ contains
 
 #ifdef USECOMPLEX
     do i=1, dofs_per_element
-       mu79(:,OP_DP :OP_GSP, i) = mu79(:,OP_1:OP_GS,i)*rfac
-       mu79(:,OP_DPP:OP_GSPP,i) = mu79(:,OP_1:OP_GS,i)*rfac**2
+       mu79(i,:,OP_DP :OP_GSP ) = mu79(i,:,OP_1:OP_GS)*rfac
+       mu79(i,:,OP_DPP:OP_GSPP) = mu79(i,:,OP_1:OP_GS)*rfac**2
     end do
 #endif
 
@@ -322,9 +322,10 @@ contains
 
     if(equilibrate.ne.0) then
        do i=1, dofs_per_element
-          mu79(:,:,i) = mu79(:,:,i)*equil_fac(i, itri)
+          mu79(i,:,:) = mu79(i,:,:)*equil_fac(i, itri)
        end do
     end if
+
   end subroutine define_basis
 
 
@@ -355,12 +356,12 @@ contains
 #ifdef USEBLAS
 
 #ifdef USECOMPLEX
-    call zgemv('N',MAX_PTS*OP_NUM,dofs_per_element,&
-         (1.,0.),nu79,MAX_PTS*OP_NUM,dofs,1,(0.,0.),outarr,1)
+    call zgemv('T',dofs_per_element,MAX_PTS*OP_NUM,&
+         (1.,0.),nu79,dofs_per_element,dofs,1,(0.,0.),outarr,1)
     outarr(:,OP_NUM_POL+1:) = 0.
 #else
-    call dgemv('N',MAX_PTS*OP_NUM,dofs_per_element,&
-         1.,nu79,MAX_PTS*OP_NUM,dofs,1,0.,outarr,1)
+    call dgemv('T',dofs_per_element,MAX_PTS*OP_NUM,&
+         1.,nu79,dofs_per_element,dofs,1,0.,outarr,1)
 #endif
 
 #else ! USEBLAS not defined
@@ -368,13 +369,13 @@ contains
 #ifdef USECOMPLEX
     do op=1, OP_NUM_POL
        do i=1, dofs_per_element
-          outarr(:,op) = outarr(:,op) + dofs(i)*nu79(:,op,i)
+          outarr(:,op) = outarr(:,op) + dofs(i)*nu79(i,:,op)
        end do
     end do
 #else
     do op=1, OP_NUM
        do i=1, dofs_per_element
-          outarr(:,op) = outarr(:,op) + dofs(i)*nu79(:,op,i)
+          outarr(:,op) = outarr(:,op) + dofs(i)*nu79(i,:,op)
        end do
     end do
 #endif

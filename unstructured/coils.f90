@@ -203,7 +203,7 @@ contains
        end do
 
        do i=1,dofs_per_element
-          dofs(i) = int2(mu79(:,OP_1,i),temp79a)
+          dofs(i) = int2(mu79(i,:,OP_1),temp79a)
        end do
        call vector_insert_block(psi_vec%vec, itri, 1, dofs, MAT_ADD)
     enddo

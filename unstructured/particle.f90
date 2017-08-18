@@ -2049,13 +2049,13 @@ end subroutine update_particle_pressure
        !Evaluate scalar components of p_hot0 at each quadrature point x_j
        ! Store values in temp79a.
        do jpt=1,npoints
-          psihere = dot_product(psidofs, nu79(jpt,OP_1,:))
+          psihere = dot_product(psidofs, nu79(:,jpt,OP_1))
           temp79a(jpt) = p0_ion * exp(-(psihere - psimin)/(psibound - psimin))
        enddo !jpt
 
        !Integrate pressure_0 field against basis functions for each degree of freedom
        do idof=1,dofs_per_element
-          dofsp(idof) = int2(mu79(:,OP_1,idof),temp79a)
+          dofsp(idof) = int2(mu79(idof,:,OP_1),temp79a)
        enddo !idof
 
        !Insert results in appropriate part of RHS vector

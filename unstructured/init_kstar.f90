@@ -55,25 +55,25 @@ contains
 !!$
 !!$          ! psi
 !!$          do i=1, dofs_per_element
-!!$             dofs(i) = int2(mu79(:,OP_1,i),ps079(:,OP_1))
+!!$             dofs(i) = int2(mu79(i,:,OP_1),ps079(:,OP_1))
 !!$          end do
 !!$          call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
 !!$
 !!$          ! bz
 !!$          do i=1, dofs_per_element
-!!$             dofs(i) = int2(mu79(:,OP_1,i),bz079(:,OP_1))
+!!$             dofs(i) = int2(mu79(i,:,OP_1),bz079(:,OP_1))
 !!$          end do
 !!$          call vector_insert_block(bz_vec%vec,itri,1,dofs,VEC_ADD)
 !!$
 !!$          ! p
 !!$          do i=1, dofs_per_element
-!!$             dofs(i) = int2(mu79(:,OP_1,i),p079(:,OP_1))
+!!$             dofs(i) = int2(mu79(i,:,OP_1),p079(:,OP_1))
 !!$          end do
 !!$          call vector_insert_block(p_vec%vec,itri,1,dofs,VEC_ADD)
 !!$
 !!$          ! den
 !!$          do i=1, dofs_per_element
-!!$             dofs(i) = int2(mu79(:,OP_1,i),n079(:,OP_1))
+!!$             dofs(i) = int2(mu79(i,:,OP_1),n079(:,OP_1))
 !!$          end do
 !!$          call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
 !!$       end do
@@ -251,12 +251,12 @@ subroutine kstar_profiles()
            temp(i,:) = 0.
         else
            do j=1,dofs_per_element
-              temp(i,j) = int4(mu79(:,OP_1,i),nu79(:,OP_DR,j),co,r) &
-                   +      int4(mu79(:,OP_1,i),nu79(:,OP_DZ,j),sn,r)
+              temp(i,j) = int4(mu79(i,:,OP_1),nu79(j,:,OP_DR),co,r) &
+                   +      int4(mu79(i,:,OP_1),nu79(j,:,OP_DZ),sn,r)
            enddo
         end if
         !  assemble rhs
-        temp2(i) = int2(mu79(:,OP_1,i),rdpsidr)
+        temp2(i) = int2(mu79(i,:,OP_1),rdpsidr)
      enddo
      
      call insert_block(psi_mat, itri, 1,1, temp(:,:), MAT_ADD)
