@@ -17,7 +17,7 @@ contains
     implicit none
 
     type(field_type) :: psi_vec, bz_vec, den_vec, p_vec
-    integer :: itri, numelms, i, k
+    integer :: itri, numelms, k
     vectype, dimension(dofs_per_element) :: dofs
 
     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining RWM Equilibrium'
@@ -57,27 +57,19 @@ contains
           ! populate vectors for solves
 
           ! psi
-          do i=1, dofs_per_element
-             dofs(i) = int2(mu79(i,:,OP_1),ps079(:,OP_1))
-          end do
+          dofs = intx2(mu79(:,:,OP_1),ps079(:,OP_1))
           call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
 
           ! bz
-          do i=1, dofs_per_element
-             dofs(i) = int2(mu79(i,:,OP_1),bz079(:,OP_1))
-          end do
+          dofs = intx2(mu79(:,:,OP_1),bz079(:,OP_1))
           call vector_insert_block(bz_vec%vec,itri,1,dofs,VEC_ADD)
 
           ! p
-          do i=1, dofs_per_element
-             dofs(i) = int2(mu79(i,:,OP_1),p079(:,OP_1))
-          end do
+          dofs = intx2(mu79(:,:,OP_1),p079(:,OP_1))
           call vector_insert_block(p_vec%vec,itri,1,dofs,VEC_ADD)
 
           ! den
-          do i=1, dofs_per_element
-             dofs(i) = int2(mu79(i,:,OP_1),n079(:,OP_1))
-          end do
+          dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
           call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
        end do
 

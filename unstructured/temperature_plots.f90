@@ -132,91 +132,91 @@ subroutine advection3(o)
 
 end subroutine advection3
 
-subroutine hf_perp(i,o)
+subroutine hf_perp(dofs)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  integer, intent(in) :: i
-  vectype, dimension(MAX_PTS), intent(out) :: o
+  vectype, dimension(dofs_per_element), intent(out) :: dofs
 
-
-     ! Perpendicular Heat Flux
-     ! ~~~~~~~~~~~~~~~~~~~~~~~
-     o =   -(gam-1)*    &
-          ( mu79(i,:,OP_DZ)*tet79(:,OP_DZ)*kap79(:,OP_1) &
-          + mu79(i,:,OP_DR)*tet79(:,OP_DR)*kap79(:,OP_1) )
+  ! Perpendicular Heat Flux
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  dofs =   -(gam-1)*    &
+          ( intx3(mu79(:,:,OP_DZ),tet79(:,OP_DZ),kap79(:,OP_1)) &
+          + intx3(mu79(:,:,OP_DR),tet79(:,OP_DR),kap79(:,OP_1)))
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + (gam-1)*ri2_79*mu79(i,:,OP_1)*tet79(:,OP_DPP)*kap79(:,OP_1)
+  dofs = dofs + &
+       (gam-1)*intx4(mu79(:,:,OP_1),ri2_79,tet79(:,OP_DPP),kap79(:,OP_1))
 #endif
 
 end subroutine hf_perp
 
-subroutine hf_par(i,o)
+subroutine hf_par(dofs)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  integer, intent(in) :: i
-  vectype, dimension(MAX_PTS), intent(out) :: o
+  vectype, dimension(dofs_per_element), intent(out) :: dofs
 !
-          temp79b = kar79(:,OP_1)*ri2_79*        &
-                  (mu79(i,:,OP_DZ)*pstx79(:,OP_DR) &
-                 - mu79(i,:,OP_DR)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
+  temp79b = kar79(:,OP_1)*ri2_79*b2i79(:,OP_1)
 
-          o = (gam-1.)*(temp79b*pstx79(:,OP_DZ)*tet79(:,OP_DR) &
-                         - temp79b*pstx79(:,OP_DR)*tet79(:,OP_DZ))
+  dofs = (gam-1.)* &
+       (intx5(mu79(:,:,OP_DZ),temp79b,pstx79(:,OP_DR),pstx79(:,OP_DZ),tet79(:,OP_DR)) &
+       -intx5(mu79(:,:,OP_DR),temp79b,pstx79(:,OP_DZ),pstx79(:,OP_DZ),tet79(:,OP_DR)) &
+       -intx5(mu79(:,:,OP_DZ),temp79b,pstx79(:,OP_DR),pstx79(:,OP_DR),tet79(:,OP_DZ)) &
+       +intx5(mu79(:,:,OP_DR),temp79b,pstx79(:,OP_DZ),pstx79(:,OP_DR),tet79(:,OP_DZ)))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-          temp79b = -kar79(:,OP_1)*ri3_79*bztx79(:,OP_1)* &
-                    (mu79(i,:,OP_DZ)*pstx79(:,OP_DR) &
-                   - mu79(i,:,OP_DR)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
-          temp79c = pstx79(:,OP_DR)*tet79(:,OP_DZ) &
-                  - pstx79(:,OP_DZ)*tet79(:,OP_DR)
-          temp79d = temp79c*bztx79(:,OP_1 )*b2i79(:,OP_1 )*kar79(:,OP_1)
-          o = o + (gam - 1.)* (temp79b*tet79(:,OP_DP) &
-                                - ri3_79*mu79(i,:,OP_DP)*temp79d)
+       temp79b = -kar79(:,OP_1)*ri3_79*bztx79(:,OP_1)*b2i79(:,OP_1)
+       temp79c = pstx79(:,OP_DR)*tet79(:,OP_DZ) &
+               - pstx79(:,OP_DZ)*tet79(:,OP_DR)
+       temp79d = temp79c*bztx79(:,OP_1 )*b2i79(:,OP_1 )*kar79(:,OP_1)
 
-          temp79b = bztx79(:,OP_1)*bztx79(:,OP_1 )   &
-                                *tet79(:,OP_DP)*b2i79(:,OP_1 )*kar79(:,OP_1 )
-          o = o -(gam-1)*(ri4_79*mu79(i,:,OP_DP)*temp79b)
-
-
-          if(i3d.eq.1 .and. numvar.ge.2) then
-             temp79b = kar79(:,OP_1)*ri_79* &
-                     (mu79(i,:,OP_DZ)*pstx79(:,OP_DR) &
-                    - mu79(i,:,OP_DR)*pstx79(:,OP_DZ))*b2i79(:,OP_1)
-             temp79c = kar79(:,OP_1)*ri_79* &
-                     (mu79(i,:,OP_DZ)*bftx79(:,OP_DZP) &
-                    + mu79(i,:,OP_DR)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
-
-             o = o + (gam -1.)*(temp79b*bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
-                             + temp79b*bftx79(:,OP_DRP)*tet79(:,OP_DR) &
-                             + temp79c*pstx79(:,OP_DR )*tet79(:,OP_DZ) &
-                             - temp79c*pstx79(:,OP_DZ )*tet79(:,OP_DR))
+       dofs = dofs + (gam - 1.)* &
+            (intx4(mu79(:,:,OP_DZ),temp79b,pstx79(:,OP_DR),tet79(:,OP_DP)) &
+            -intx4(mu79(:,:,OP_DR),temp79b,pstx79(:,OP_DZ),tet79(:,OP_DP)))
        
-              temp79b = kar79(:,OP_1)*ri2_79*bztx79(:,OP_1)* &
-                    (mu79(i,:,OP_DZ)*bftx79(:,OP_DZP) &
-                   + mu79(i,:,OP_DR)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
+       dofs = dofs - (gam - 1.)*intx3(mu79(:,:,OP_DP),ri3_79,temp79d)
 
-              temp79c = bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
-                      + bftx79(:,OP_DRP)*tet79(:,OP_DR)
+       temp79b = bztx79(:,OP_1)*bztx79(:,OP_1 )   &
+            *tet79(:,OP_DP)*b2i79(:,OP_1 )*kar79(:,OP_1 )
+       dofs = dofs - (gam - 1.)*intx3(mu79(:,:,OP_DP),ri4_79,temp79b)
 
-              temp79d = temp79c*bztx79(:,OP_1 )*b2i79(:,OP_1 )*kar79(:,OP_1 )
 
-              o = o + (gam - 1.)*(temp79b*tet79(:,OP_DP) &
-                                   + ri2_79*mu79(i,:,OP_DP)*temp79d)
-           
-              temp79b = - kar79(:,OP_1)*              &
-                    (mu79(i,:,OP_DZ)*bftx79(:,OP_DZP) &
-                   + mu79(i,:,OP_DR)*bftx79(:,OP_DRP))*b2i79(:,OP_1)
+       if(i3d.eq.1 .and. numvar.ge.2) then
+          temp79b = kar79(:,OP_1)*ri_79*b2i79(:,OP_1)
+          
+          dofs = dofs + (gam -1.)*&
+               (intx5(mu79(:,:,OP_DZ),pstx79(:,OP_DR),temp79b,bftx79(:,OP_DZP),tet79(:,OP_DZ)) &
+               -intx5(mu79(:,:,OP_DR),pstx79(:,OP_DZ),temp79b,bftx79(:,OP_DZP),tet79(:,OP_DZ)) &
+               +intx5(mu79(:,:,OP_DZ),pstx79(:,OP_DR),temp79b,bftx79(:,OP_DRP),tet79(:,OP_DR)) &
+               -intx5(mu79(:,:,OP_DR),pstx79(:,OP_DZ),temp79b,bftx79(:,OP_DRP),tet79(:,OP_DR)) &
+               +intx5(mu79(:,:,OP_DZ),bftx79(:,OP_DZP),temp79b,pstx79(:,OP_DR ),tet79(:,OP_DZ)) &
+               +intx5(mu79(:,:,OP_DR),bftx79(:,OP_DRP),temp79b,pstx79(:,OP_DR ),tet79(:,OP_DZ)) &
+               -intx5(mu79(:,:,OP_DZ),bftx79(:,OP_DZP),temp79b,pstx79(:,OP_DZ ),tet79(:,OP_DR)) &
+               -intx5(mu79(:,:,OP_DR),bftx79(:,OP_DRP),temp79b,pstx79(:,OP_DZ ),tet79(:,OP_DR)))
+          
+          temp79b = kar79(:,OP_1)*ri2_79*bztx79(:,OP_1)*b2i79(:,OP_1)* &
+               tet79(:,OP_DP)
+          temp79c = bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
+               + bftx79(:,OP_DRP)*tet79(:,OP_DR)          
+          temp79d = temp79c*bztx79(:,OP_1 )*b2i79(:,OP_1 )*kar79(:,OP_1 )
+          
+          dofs = dofs + (gam - 1.)* &
+               (intx3(mu79(:,:,OP_DZ),bftx79(:,OP_DZP),temp79b) &
+               +intx3(mu79(:,:,OP_DR),bftx79(:,OP_DRP),temp79b) &
+               +intx3(mu79(:,:,OP_DP),ri2_79,temp79d))
+          
+          temp79b = - kar79(:,OP_1)*b2i79(:,OP_1)
 
-              o = o + (gam - 1.)*(temp79b*bftx79(:,OP_DZP)*tet79(:,OP_DZ) &
-                            + temp79b*bftx79(:,OP_DRP)*tet79(:,OP_DR))
-          endif
-
+          dofs = dofs + (gam - 1.)* &
+               (intx5(mu79(:,:,OP_DZ),bftx79(:,OP_DZP),temp79b,bftx79(:,OP_DZP),tet79(:,OP_DZ)) &
+               +intx5(mu79(:,:,OP_DR),bftx79(:,OP_DRP),temp79b,bftx79(:,OP_DZP),tet79(:,OP_DZ)) &
+               +intx5(mu79(:,:,OP_DZ),bftx79(:,OP_DZP),temp79b,bftx79(:,OP_DRP),tet79(:,OP_DR)) &
+               +intx5(mu79(:,:,OP_DR),bftx79(:,OP_DRP),temp79b,bftx79(:,OP_DRP),tet79(:,OP_DR)))
+       endif
 #endif
 
 end subroutine hf_par

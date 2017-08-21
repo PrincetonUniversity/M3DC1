@@ -278,9 +278,9 @@ contains
 
     integer, intent(in) :: itri
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
-    integer :: i, op
+    integer :: i
 #ifndef USEBLAS
-    integer :: p
+    integer :: p, op
 #elif defined(USECOMPLEX)
     real, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: real_mu
 #endif
@@ -312,10 +312,8 @@ contains
 #endif
 
 #ifdef USECOMPLEX
-    do i=1, dofs_per_element
-       mu79(i,:,OP_DP :OP_GSP ) = mu79(i,:,OP_1:OP_GS)*rfac
-       mu79(i,:,OP_DPP:OP_GSPP) = mu79(i,:,OP_1:OP_GS)*rfac**2
-    end do
+    mu79(:,:,OP_DP :OP_GSP ) = mu79(:,:,OP_1:OP_GS)*rfac
+    mu79(:,:,OP_DPP:OP_GSPP) = mu79(:,:,OP_1:OP_GS)*rfac**2
 #endif
 
     nu79 = mu79

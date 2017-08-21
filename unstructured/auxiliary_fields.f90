@@ -223,7 +223,7 @@ subroutine calculate_auxiliary_fields(ilin)
 
   integer :: def_fields
   integer :: numelms
-  integer :: i, itri, j, izone
+  integer :: i, itri, izone
 
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -411,9 +411,9 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      ! b dot grad p
      if(ilin.eq.1) then 
         dofs = intx4(mu79(:,:,OP_1),p179(:,OP_DZ),ps079(:,OP_DR),ri_79) &
-             -    intx4(mu79(:,:,OP_1),p179(:,OP_DR),ps079(:,OP_DZ),ri_79) &
-             +    intx4(mu79(:,:,OP_1),p079(:,OP_DZ),ps179(:,OP_DR),ri_79) &
-             -    intx4(mu79(:,:,OP_1),p079(:,OP_DR),ps179(:,OP_DZ),ri_79)
+             - intx4(mu79(:,:,OP_1),p179(:,OP_DR),ps079(:,OP_DZ),ri_79) &
+             + intx4(mu79(:,:,OP_1),p079(:,OP_DZ),ps179(:,OP_DR),ri_79) &
+             - intx4(mu79(:,:,OP_1),p079(:,OP_DR),ps179(:,OP_DZ),ri_79)
 #if defined(USECOMPLEX) || defined(USE3D)
         if(numvar.gt.1) then
            dofs = dofs &
@@ -436,54 +436,39 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      end if
 
      call vector_insert_block(bdotgradp%vec,itri,1,dofs,VEC_ADD)
-     ! b dot grad T
-     do i=1, dofs_per_element
-        temp79a = mu79(i,:,OP_1)*ni79(:,OP_1)
-        
-        if(ilin.eq.1) then 
-           dofs(i) = &
-                +int4(ri_79,mu79(i,:,OP_1),p179(:,OP_DZ),ps079(:,OP_DR)) &
-                -int4(ri_79,mu79(i,:,OP_1),p179(:,OP_DR),ps079(:,OP_DZ)) &
-                +int4(ri_79,mu79(i,:,OP_1),p079(:,OP_DZ),ps179(:,OP_DR)) &
-                -int4(ri_79,mu79(i,:,OP_1),p079(:,OP_DR),ps179(:,OP_DZ)) &
-                -int5(ri_79,temp79a,n179(:,OP_DZ),ps079(:,OP_DR),p079(:,OP_1))&
-                +int5(ri_79,temp79a,n179(:,OP_DR),ps079(:,OP_DZ),p079(:,OP_1))&
-                -int5(ri_79,temp79a,n079(:,OP_DZ),ps179(:,OP_DR),p079(:,OP_1))&
-                +int5(ri_79,temp79a,n079(:,OP_DR),ps179(:,OP_DZ),p079(:,OP_1))&
-                -int5(ri_79,temp79a,n079(:,OP_DZ),ps079(:,OP_DR),p179(:,OP_1))&
-                +int5(ri_79,temp79a,n079(:,OP_DR),ps079(:,OP_DZ),p179(:,OP_1))
+
+
+     ! b dot grad T        
+     if(ilin.eq.1) then 
+        dofs = &
+             +intx4(mu79(:,:,OP_1),ri_79,te179(:,OP_DZ),ps079(:,OP_DR)) &
+             -intx4(mu79(:,:,OP_1),ri_79,te179(:,OP_DR),ps079(:,OP_DZ)) &
+             +intx4(mu79(:,:,OP_1),ri_79,te079(:,OP_DZ),ps179(:,OP_DR)) &
+             -intx4(mu79(:,:,OP_1),ri_79,te079(:,OP_DR),ps179(:,OP_DZ))
+
 #if defined(USECOMPLEX) || defined(USE3D)
-           dofs(i) = dofs(i) &
-                +int4(ri2_79,mu79(i,:,OP_1),p179(:,OP_DP),bz079(:,OP_1)) &
-                -int5(ri2_79,temp79a,n179(:,OP_DP),bz079(:,OP_1),p079(:,OP_1))
-           if(numvar.gt.1) then
-              dofs(i) = dofs(i) &
-                   -int3(mu79(i,:,OP_1),p079(:,OP_DZ),bf179(:,OP_DZP)) &
-                   -int3(mu79(i,:,OP_1),p079(:,OP_DR),bf179(:,OP_DRP)) &
-                   +int4(temp79a,n079(:,OP_DZ),bf179(:,OP_DZP),p079(:,OP_1)) &
-                   +int4(temp79a,n079(:,OP_DR),bf179(:,OP_DRP),p079(:,OP_1))
-           endif
+        dofs = dofs + intx4(mu79(:,:,OP_1),ri2_79,te179(:,OP_DP),bz079(:,OP_1))
+        if(numvar.gt.1) then
+           dofs = dofs &
+                -intx3(mu79(:,:,OP_1),te079(:,OP_DZ),bf179(:,OP_DZP)) &
+                -intx3(mu79(:,:,OP_1),te079(:,OP_DR),bf179(:,OP_DRP))
+        endif
 #endif
-        else
-           dofs(i) = &
-                +int4(ri_79,mu79(i,:,OP_1),pt79(:,OP_DZ),pst79(:,OP_DR)) &
-                -int4(ri_79,mu79(i,:,OP_1),pt79(:,OP_DR),pst79(:,OP_DZ)) &
-                -int5(ri_79,temp79a,nt79(:,OP_DZ),pst79(:,OP_DR),pt79(:,OP_1))&
-                +int5(ri_79,temp79a,nt79(:,OP_DR),pst79(:,OP_DZ),pt79(:,OP_1))
+     else
+        dofs = &
+             +intx4(mu79(:,:,OP_1),ri_79,tet79(:,OP_DZ),pst79(:,OP_DR)) &
+             -intx4(mu79(:,:,OP_1),ri_79,tet79(:,OP_DR),pst79(:,OP_DZ))
 #if defined(USECOMPLEX) || defined(USE3D)
-           dofs(i) = dofs(i) &
-                +int4(ri2_79,mu79(i,:,OP_1),pt79(:,OP_DP),bzt79(:,OP_1)) &
-                -int5(ri2_79,temp79a,nt79(:,OP_DP),bzt79(:,OP_1),pt79(:,OP_1))
-           if(numvar.gt.1) then
-              dofs(i) = dofs(i) &
-                   -int3(mu79(i,:,OP_1),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
-                   -int3(mu79(i,:,OP_1),pt79(:,OP_DR),bft79(:,OP_DRP)) &
-                   +int4(temp79a,nt79(:,OP_DZ),bft79(:,OP_DZP),pt79(:,OP_1)) &
-                   +int4(temp79a,nt79(:,OP_DR),bft79(:,OP_DRP),pt79(:,OP_1))
-           endif
+        dofs = dofs &
+             +intx4(mu79(:,:,OP_1),ri2_79,tet79(:,OP_DP),bzt79(:,OP_1))
+
+        if(numvar.gt.1) then
+           dofs = dofs &
+                -intx3(mu79(:,:,OP_1),tet79(:,OP_DZ),bft79(:,OP_DZP)) &
+                -intx3(mu79(:,:,OP_1),tet79(:,OP_DR),bft79(:,OP_DRP))
+        endif
 #endif
-        end if
-     end do
+     end if
      call vector_insert_block(bdotgradt%vec,itri,1,dofs,VEC_ADD)
 
 
@@ -497,10 +482,8 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
      end if
 
      ! magnetic_region
-     do j=1, npoints
-        temp79a(j) = magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ),&
-             x_79(j),z_79(j))
-     end do
+     temp79a = magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ),&
+          x_79,z_79)
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(mag_reg%vec,itri,1,dofs,VEC_ADD)
 
@@ -565,16 +548,10 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
         dofs = intx2(mu79(:,:,OP_1),temp79a)
         call vector_insert_block(adv3%vec,itri,1,dofs,VEC_ADD)
   
-        do i=1, dofs_per_element
-           call hf_perp(i,temp79a)
-           dofs(i) = int1(temp79a)
-        end do
+        call hf_perp(dofs)
         call vector_insert_block(deldotq_perp%vec,itri,1,dofs,VEC_ADD)
      
-        do i=1, dofs_per_element
-           call hf_par(i,temp79a)
-           dofs(i) = int1(temp79a)
-        end do
+        call hf_par(dofs)
         call vector_insert_block(deldotq_par%vec,itri,1,dofs,VEC_ADD)
 
         call ohmic(temp79a)

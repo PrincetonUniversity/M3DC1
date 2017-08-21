@@ -592,7 +592,7 @@ pure function intx1(vari)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx1
-  vectype, dimension(dofs_per_element, MAX_PTS), intent(in) :: vari
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari
 
   integer :: k
 
@@ -608,7 +608,7 @@ pure function intx2(vari,varj)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx2
-  vectype, dimension(dofs_per_element, MAX_PTS), intent(in) :: vari
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj
 
   integer :: k
@@ -625,7 +625,7 @@ pure function intx3(vari,varj,vark)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx3
-  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark
 
   integer :: k
@@ -642,7 +642,7 @@ pure function intx4(vari,varj,vark,varl)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx4
-  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark, varl
 
   integer :: k
@@ -659,7 +659,7 @@ pure function intx5(vari,varj,vark,varl,varm)
   implicit none
 
   vectype, dimension(dofs_per_element) :: intx5
-  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari
   vectype, dimension(npoints), intent(in) :: varj, vark, varl, varm
 
   integer :: k
@@ -690,8 +690,8 @@ pure function intxx1(vari)
 
   implicit none
 
-  vectype, dimension(dofs_per_element,dofs_per_element) :: intxx1
-  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari
+  vectype, dimension(dofs_per_element, dofs_per_element) :: intxx1
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari
 
   integer :: i,k
 
@@ -709,7 +709,7 @@ pure function intxx2(vari,varj)
   implicit none
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx2
-  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari, varj
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari, varj
 
   integer :: i,j,k
 
@@ -729,7 +729,7 @@ pure function intxx3(vari,varj,vark)
   implicit none
 
   vectype, dimension(dofs_per_element,dofs_per_element) :: intxx3
-  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari, varj
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark
 
   integer :: i,j,k
@@ -750,7 +750,7 @@ pure function intxx4(vari,varj,vark,varl)
   implicit none
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx4
-  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari, varj
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark, varl
 
   integer :: i,j,k
@@ -772,7 +772,7 @@ pure function intxx5(vari,varj,vark,varl,varm)
   implicit none
 
   vectype, dimension(dofs_per_element, dofs_per_element) :: intxx5
-  vectype, dimension(dofs_per_element,MAX_PTS), intent(in) :: vari, varj
+  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari, varj
   vectype, dimension(npoints), intent(in) :: vark, varl, varm
 
   integer :: i,j,k

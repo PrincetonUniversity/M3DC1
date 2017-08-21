@@ -184,15 +184,11 @@ subroutine init_perturbations
      ! populate vectors for solves
         
      ! psi
-     do i=1, dofs_per_element
-        dofs(i) = int2(mu79(i,:,OP_1),ps179(:,OP_1))
-     end do
+     dofs = intx2(mu79(:,:,OP_1),ps179(:,OP_1))
      call vector_insert_block(psi_vec%vec,itri,1,dofs,VEC_ADD)
      
      ! phi
-     do i=1, dofs_per_element        
-        dofs(i) = int2(mu79(i,:,OP_1),ph179(:,OP_1))
-     end do
+     dofs = intx2(mu79(:,:,OP_1),ph179(:,OP_1))
      call vector_insert_block(phi_vec%vec,itri,1,dofs,VEC_ADD)
   end do
 
@@ -222,7 +218,7 @@ subroutine den_eq
   implicit none
 
   type(field_type) :: den_vec
-  integer :: itri, numelms, i, def_fields
+  integer :: itri, numelms, def_fields
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
   
@@ -262,9 +258,7 @@ subroutine den_eq
              pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
      end if
 
-     do i=1, dofs_per_element
-        dofs(i) = int2(mu79(i,:,OP_1),n079(:,OP_1))
-     end do
+     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
      call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
   end do
 

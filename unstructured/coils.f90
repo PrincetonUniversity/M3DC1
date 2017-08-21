@@ -175,7 +175,7 @@ contains
    integer, intent(in) :: ipole                ! type of field to add
    integer, intent(out) :: ierr
 
-   integer :: i, numelms, k, itri
+   integer :: numelms, k, itri
    type(field_type) :: psi_vec
    vectype, dimension(dofs_per_element) :: dofs
    real, allocatable :: g(:,:)
@@ -202,9 +202,8 @@ contains
           temp79a = temp79a - g(:,k)*ic(k)
        end do
 
-       do i=1,dofs_per_element
-          dofs(i) = int2(mu79(i,:,OP_1),temp79a)
-       end do
+       dofs = intx2(mu79(:,:,OP_1),temp79a)
+
        call vector_insert_block(psi_vec%vec, itri, 1, dofs, MAT_ADD)
     enddo
 
