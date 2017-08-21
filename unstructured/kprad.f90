@@ -1,34 +1,110 @@
 module kprad
-  real, allocatable, dimension(:) :: z_ei, zed
-  real, allocatable, dimension(:,:) :: c, sion_coeff
-  integer :: mz, mimp, ms(2), m1, m2
+  real, allocatable, private, dimension(:) :: z_ei, zed
+  real, allocatable, private, dimension(:,:) :: c, sion_coeff
 
-  real :: smult
+  ! mass of chosen impurity species (in amu)
+  integer, private :: mz
 
+  ! polynomial order for evaluating 
+  ! radiation and ionization rates, respectively
+  integer, private :: m1, m2
+  
 contains
+
+  subroutine kprad_deallocate()
+    implicit none
+
+    if(allocated(z_ei)) deallocate(z_ei)
+    if(allocated(zed)) deallocate(zed)
+    if(allocated(c)) deallocate(c)
+    if(allocated(sion_coeff)) deallocate(sion_coeff)
+
+  end subroutine kprad_deallocate
+
+
+  subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem)
+    implicit none
+
+    real, intent(in) :: dt                    ! time step to advance densities
+    integer, intent(in) :: npts
+    integer, intent(in) :: z
+    real, intent(in) :: ne(npts), te(npts)
+    real, intent(inout) :: nz(npts,0:z)      ! density
+    real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
+    real, intent(out) :: dw_brem(npts)       ! energy lost via bremsstrahlung
+    
+    real :: t, dts
+    integer :: i, ntime, ntimemax
+    real, dimension(npts,0:z-1) :: sion
+    real, dimension(npts,0:z) :: srec
+    real, dimension(npts) :: pbrem
+    real, dimension(npts,z+1) :: imp_rad, pion, prec
+    real, dimension(npts, 2) :: nzeff
+    real, dimension(npts,0:z) :: aimp, bimp, cimp, dimp, ework, fwork
+
+    ! calculate ionization and recombination rates
+    call kprad_ionization_rate(npts,ne,te,z,sion)
+    call kprad_recombination_rate(npts,ne,te,z,srec)
+
+    dts = 1e-12
+    t = 0.
+    dw_rad = 0.
+    dw_brem = 0.
+    ntimemax = dt / dts
+
+    aimp(:,0) = 0.0
+    cimp(:,z) = 0.0
+ 
+    ! start time loop
+    do ntime=1, ntimemax
+       t = t + dts
+       if(t.ge.dt) return
+
+       do i=0, z
+          if(i.gt.0) aimp(:,i) = -dts*sion(:,i-1)
+          bimp(:,i) =  1. + dts*srec(:,i)
+          if(i.lt.z) then
+             bimp(:,i) = bimp(:,i) + dts*sion(:,i)
+             cimp(:,i) = -dts*srec(:,i+1)
+          end if
+          dimp(:,i) = nz(:,i)
+       enddo
+       
+       call tridiag(aimp,bimp,cimp,dimp,nz, &
+            ework,fwork,npts,z)
+       
+       call kprad_energy_losses(npts,z,te, &
+            ne,sion,srec,nz,nzeff,pion,prec,imp_rad,pbrem)
+       
+       dw_brem = dw_brem + pbrem*dts
+       dw_rad = dw_rad + imp_rad*dts
+       
+       dts = dts * 1.02
+       if(t+dts.gt.dt) dts = dt-t
+    enddo
+    
+  end subroutine kprad_advance_densities
 
 !-----------------------------------------------------------------------
 ! kprad_ionization_rates gets the ionization rates for each charge state
 !-----------------------------------------------------------------------
-  subroutine KPRAD_IONIZATION_RATE(N,M,NE,TE,Z,SION_COEFF,sion)              
+  subroutine KPRAD_IONIZATION_RATE(N,NE,TE,Z,sion)              
 
     !CALCULATE ionization rate for each charge state and both electr
     !       populations in s-1                                              
 
     implicit none 
                                                                         
-    integer:: i
-    integer, intent(IN) :: N,M,Z
-    real, dimension(N),intent(IN)::ne,te
-    real, dimension(0:Z-1,N), intent(OUT) ::sion
-    real, dimension(N):: siont
-    real, dimension(M) :: SS
-    real, intent(IN):: sion_coeff(1:Z,1:M)
+    integer, intent(IN) :: N,Z
+    real, dimension(N), intent(IN)::ne,te
+    real, dimension(N,0:Z-1), intent(OUT) ::sion
+
+    real, dimension(N) :: siont
+    integer :: i
     
     do i=0,Z-1 
-       SS=sion_coeff(i+1,:) 
-       call DPOLY_VAL(M,N,SS,log10(TE),siont) 
-       sion(i,:)=smult*ne*10**siont 
+       call DPOLY_VAL(M2,N,sion_coeff(:,i+1),log10(TE),siont) 
+       sion(:,i) = ne*10**siont 
     enddo
   
   end subroutine KPRAD_IONIZATION_RATE
@@ -36,57 +112,60 @@ contains
   !-----------------------------------------------------------------------
   ! kprad_recombination_rates gets the recomb. rates for each charge state
   !-----------------------------------------------------------------------
-  subroutine KPRAD_RECOMBINATION_RATE(N,NE,ZED,TE,Z_EI,Z,srec)
+  subroutine KPRAD_RECOMBINATION_RATE(N,NE,TE,Z,srec)
 
     !CALCULATE recombination rate out of each charge state in s-1     
 
     implicit none 
                                                                             
-    integer ::ii
-    integer, intent(IN) :: N,Z
-    real, intent(OUT)::SREC(0:Z,N)
-    real, intent(IN):: zed(Z+1), Z_EI(Z+1),NE(N),TE(N)
-    SREC=0.0
+    integer :: i
+    integer, intent(in) :: N,Z
+    real, intent(out) :: SREC(N,0:Z)
+    real, intent(in) :: NE(N),TE(N)
+
+    SREC(:,0) = 0.0
     
-    do ii=1,N 
-       SREC(1:Z,ii)=smult*NE(ii)*5.2E-14*ZED(2:Z+1)*sqrt(Z_EI(1:Z)/    &
-            TE(ii))*(0.43+0.5*log(Z_EI(1:Z)/TE(ii)) +                  &
-            0.469*(Z_EI(1:Z)/TE(ii))**(-0.33))                       
+    do i=1,Z
+       SREC(:,i) = NE(:)*5.2E-14*ZED(i+1)*sqrt(Z_EI(i)/     &
+            TE(:))*(0.43+0.5*log(Z_EI(i)/TE(:)) +           &
+            0.469*(Z_EI(i)/TE(:))**(-0.33))
     end do
-                                                                        
   end subroutine KPRAD_RECOMBINATION_RATE
                                                                         
   !*****************************************************      
   !-----------------------------------------------------------------------
-  ! kprad_energy_loses gets the radiated power,ionization power, etc.     
+  ! kprad_energy_losses gets the radiated power,ionization power, etc.     
   !-----------------------------------------------------------------------
-  subroutine KPRAD_ENERGY_LOSES(N,M,Z,TE,NE,NE0,C,SION,             &
-       SREC,Z_EI,NZ,nZeff,pion,prec,IMP_RAD,PBREM)                       
-                                                                        
+  subroutine KPRAD_ENERGY_LOSSES(N,Z,TE,NE,SION,             &
+       SREC,NZ,nZeff,pion,prec,IMP_RAD,PBREM)
+
     implicit none 
                                                                         
-    integer:: M,L,N,Z
-    real:: IMP_RAD(N,Z+1),PION(N,Z+1),PREC(N,Z+1),PBREM(N)
-    real::SNZ(N),impradt(N)
-    real:: TE(N),NE(N),NE0(N),C(M,Z),SION(0:Z-1,N),               &
-         SREC(0:Z,N),Z_EI(Z+1),NZ(0:Z,N),nZeff(N,2)                  
-                                                                        
-    SNZ=sum(NZ,DIM=1) 
+    integer, intent(in) :: N,Z
+    real, intent(out) :: IMP_RAD(N,Z+1),PION(N,Z+1),PREC(N,Z+1)
+    real, intent(out) :: PBREM(N)
+    real, intent(in) :: TE(N), NE(N)
+    real, intent(in) :: SION(N,0:Z-1),SREC(N,0:Z),NZ(N,0:Z)
+    real, intent(out) :: nZeff(N,2)
+    
+    integer :: L
+    real :: SNZ(N), impradt(N)
+
+    SNZ=sum(NZ,DIM=2)
     nZeff(:,1)=0.0 
-    !+30.*0.03*NE0/NE                             
     nZeff(:,2)=1.0
     IMP_RAD=0.0
     !from all the electrons                          
     do L=1,Z 
-       call DPOLY_VAL(M,N,C(:,L),LOG10(TE*1.0e-3),impradt)
+       call DPOLY_VAL(M1,N,C(:,L),LOG10(TE*1.0e-3),impradt)
        
-       IMP_RAD(:,L)=smult*(10.0**impradt)*(NE/1.0E13)*NZ(L-1,:)
+       IMP_RAD(:,L) = (10.0**impradt)*(NE/1.0E13)*NZ(:,L-1)
        
-       PION(:,L)= SION(L-1,:)*NZ(L-1,:)*Z_EI(L)*1.6E-19 
-       nZeff(:,1)=nZeff(:,1)+real(L)*NZ(L-1,:)/SNZ
-       nZeff(:,2)=nZeff(:,2)+real((L**2-L))*NZ(L-1,:)/NE
+       PION(:,L)= SION(:,L-1)*NZ(:,L-1)*Z_EI(L)*1.6E-19 
+       nZeff(:,1)=nZeff(:,1)+real(L)*NZ(:,L-1)/SNZ
+       nZeff(:,2)=nZeff(:,2)+real((L**2-L))*NZ(:,L-1)/NE
        
-       PREC(:,L) = SREC(L,:)*NZ(L,:)*(Z_EI(L)+TE)*1.6E-19 
+       PREC(:,L) = SREC(:,L)*NZ(:,L)*(Z_EI(L)+TE)*1.6E-19 
     end do
     
     PION(:,Z+1)  = sum(PION(:,1:Z),2) 
@@ -114,8 +193,8 @@ contains
        ! note...we have added in a guess at typical carbon density for  
 !       initial Zeff ~ 2                                                
        !CALCULATE radiative losses to bremsstrahlung                    
-    PBREM=smult*1.69E-32*NE**2.0*SQRT(TE)*nZeff(:,2) 
-  end subroutine KPRAD_ENERGY_LOSES
+    PBREM = 1.69E-32*NE**2.0*SQRT(TE)*nZeff(:,2) 
+  end subroutine KPRAD_ENERGY_LOSSES
                                                                         
   subroutine kprad_atomic_data_sub(Z)
     implicit none
@@ -126,7 +205,7 @@ contains
        
     case (1) !DUMMY ARRAYS FOR ZIMP=1
        allocate(C(10,1))
-       allocate(SION_COEFF(1,7))
+       allocate(SION_COEFF(7,1))
        allocate(Z_EI(1:Z+1))
        allocate(ZED(1:Z+1))
        
@@ -136,8 +215,8 @@ contains
 
 
 
-       SION_COEFF=reshape((/0.0, 0.0, 0.0, 0.0,         &
-            0.0, 0.0, 0.0/),(/1,7/))
+       SION_COEFF=transpose(reshape((/0.0, 0.0, 0.0, 0.0,         &
+            0.0, 0.0, 0.0/),(/1,7/)))
         
        Z_EI = (/0.0, 0.0/)
        ZED=(/(real(I),I=0,Z)/)
@@ -147,7 +226,7 @@ contains
        ! select IMPURITY SPECIES
     case (2) !SET HELIUM FOR IMPURITY
        allocate(C(10,2))
-       allocate(SION_COEFF(2,7))
+       allocate(SION_COEFF(7,2))
        allocate(Z_EI(1:Z+1))
        allocate(ZED(1:Z+1))
        m1 = 10
@@ -168,13 +247,13 @@ contains
 
 
 
-       SION_COEFF=reshape((/-17.6080,   -27.9344,      &
+       SION_COEFF=transpose(reshape((/-17.6080,   -27.9344,      &
             17.2317,34.6191,                                           &
             -13.2220, -26.7690,                                        &
             5.74682,11.4064,                                           &
             -1.45270, -2.77375,                                        &
             0.196651, 0.359153,                                     &  
-            -0.0109806,   -0.0191983/),(/2,7/))        
+            -0.0109806,   -0.0191983/),(/2,7/)))
         
        Z_EI = (/24.5876,54.416,1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
@@ -185,7 +264,7 @@ contains
     case (4) !SET BERYLLIUM FOR IMPURITY
         
        allocate(C(8,4))
-       allocate(SION_COEFF(4,8))
+       allocate(SION_COEFF(8,4))
        allocate(Z_EI(1:Z+1))
        allocate(ZED(1:Z+1)) 
        m1 = 8
@@ -201,7 +280,7 @@ contains
             -0.062877605,   0.012962914,    -0.020546062,                    &
             0.011978393/),(/8,4/))                                                                                  
         
-       SION_COEFF=transpose(RESHAPE((/-11.76875877,9.848173141,              &
+       SION_COEFF=RESHAPE((/-11.76875877,9.848173141,              &
             -9.606463432,5.737738132,                                        &
             -2.171055079,0.497681499,-0.062647402,0.003309997,               &
             -15.61272144,15.64862251,-13.56947136,6.444764614,-1.734611154,  &
@@ -209,7 +288,7 @@ contains
             -54.81626129,   21.62486267,-4.881194115,                        &
             0.591508269,    -0.029873915,   0.0,                             &
             -69.67385101,99.21066284,-70.1591568,27.06711578,-5.950128555,   &
-            0.701139331,-0.034435261,0.0/),(/8,4/)))
+            0.701139331,-0.034435261,0.0/),(/8,4/))
        Z_EI= (/9.3227,   18.21114,   153.89661, 217.71865,1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
        MZ=9.012
@@ -221,7 +300,7 @@ contains
     case (6) !CARBON
        
        allocate(C(8,6))
-       allocate(SION_COEFF(6,10))
+       allocate(SION_COEFF(10,6))
        allocate(Z_EI(1:Z+1))
        allocate(ZED(1:Z+1))
        m1 = 8
@@ -240,7 +319,7 @@ contains
             -12.868148,0.15009505,  -0.43177885,        0.32590553,          &
             -0.15323027, 0.049376739,-0.047432245,  0.022250319/),(/8,6/))
 
-       SION_COEFF=RESHAPE((/-12.7340,-17.4107,-25.1086,-31.1445,             &
+       SION_COEFF=transpose(RESHAPE((/-12.7340,-17.4107,-25.1086,-31.1445,             &
             -73.8292,-86.1572,                                               &
             10.4813,   18.3657 ,29.8344,39.4998, 83.4077 ,                   &
             99.2425,                                                         &
@@ -260,7 +339,7 @@ contains
             ,0.00000,                                                        &
             0.00000, 0.00000 ,0.00000, 0.00000,0.00000                       &
             ,0.00000/),                                                      &
-            (/6,10/))
+            (/6,10/)))
 
        Z_EI= (/11.26, 24.384, 47.888, 64.5, 392.1, 490.0, 1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
@@ -312,7 +391,7 @@ contains
             -0.067363452,0.027969167,-0.015372851,                           &
             0.0038092913/),(/10,10/))
 
-       sion_coeff=reshape((/-15.5946,   -23.3026,     -28.0792,              &
+       sion_coeff=transpose(reshape((/-15.5946,   -23.3026,     -28.0792,    &
             -35.5425,                                                        &
             -42.8937,     -52.0208,     -49.8740,                            &
             -58.4576,     -81.0648 ,-90.7343,                                &
@@ -344,7 +423,7 @@ contains
             0.00000  ,0.00000,    0.00000,                                   &
             0.00000  ,0.00000,    0.00000,      0.00000,                     &
             0.00000,    0.00000,    0.00000,                                 &
-            0.00000  ,0.00000,    0.00000/),(/10,10/))
+            0.00000  ,0.00000,    0.00000/),(/10,10/)))
        
        z_ei =                          &
             (/21.6,41.0,63.5,97.0,126.3,157.9,207.2 ,239.0,1195.0,1362.3,1.0e6/)
@@ -357,7 +436,7 @@ contains
     case (18)
        
        allocate(C(8,18))
-       allocate(SION_COEFF(18,10))
+       allocate(SION_COEFF(10,18))
        allocate(Z_EI(1:Z+1))
        allocate(ZED(1:Z+1))
        m1 = 8
@@ -403,7 +482,7 @@ contains
             -1.6175255, 0.79514635, -0.30843034 ,0.060052147/),              &
             (/8,18/))                                              
 
-       sion_coeff=reshape((/                                                 &
+       sion_coeff=transpose(reshape((/                                       &
             -14.7011,   -17.7744,   -22.1440,   -26.737,                     &
             -30.2985,     -28.4935,     -32.9706,                            &
             -40.1073, -70.4135,   -73.5380, -82.5107,                        &
@@ -453,7 +532,7 @@ contains
             0.00000,0.00000,    0.00000,                                     &
             0.00000,  0.00000,    0.00000,  0.00000,                         &
             0.00000,0.00000,    0.00000,                                     &
-            0.00000,  0.00000,    0.00000,  0.00000/),(/18,10/))
+            0.00000,  0.00000,    0.00000,  0.00000/),(/18,10/)))
         
        z_ei = (/15.76,27.63,40.74,59.81,75.02,91.0,124.324,143.5,  &
             422.5,478.7,618.3,538.96,686.11,755.75,854.78,918.05,   &  
@@ -468,7 +547,7 @@ contains
        write(*,*) 'NO DATA FOR THIS ELEMENT EXISTS!'
        
     end select
-    mimp=mz*ms(2)/2.0
+
   end subroutine kprad_atomic_data_sub
 
 
@@ -512,25 +591,28 @@ contains
   end subroutine dpoly_val
 
 
-  subroutine tridiag (a,b,c,d,x,e,f,m)
-    ! tri-diagonal matrix solver where m is the number of rows,
-    ! k = m-1, and matrix equation is as illustrated.
+  subroutine tridiag(a,b,c,d,x,e,f,n,m)
+    ! solves n simultaneous tri-diagonal matrices of rank m
+
     implicit none
 
-    integer :: m,n,i
-    real, dimension(0:m) :: b,c,d,x,e,f,a
+    integer, intent(in) :: m,n
+    real, intent(in), dimension(n,0:m) :: a,b,c,d
+    real, intent(out), dimension(n,0:m) :: x,e,f
+
+    integer :: i, j
     
-    e(0) = b(0)
-    f(0) = d(0)/e(0)
-    do n = 1,m
-       e(n) = b(n)-a(n)*c(n-1)/e(n-1)
-       f(n) = (d(n)-a(n)*f(n-1))/e(n)
+    e(:,0) = b(:,0)
+    f(:,0) = d(:,0)/e(:,0)
+    do i = 1, m
+       e(:,i) = b(:,i)-a(:,i)*c(:,i-1)/e(:,i-1)
+       f(:,i) = (d(:,i)-a(:,i)*f(:,i-1))/e(:,i)
     end do
     
-    x(m) = f(m)
-    do i = 2,m+1
-       n = m-i+1
-       x(n) = f(n)-c(n)*x(n+1)/e(n)
+    x(:,m) = f(:,m)
+    do i = 2, m+1
+       j = m-i+1
+       x(:,j) = f(:,j)-c(:,j)*x(:,j+1)/e(:,j)
     end do
   end subroutine tridiag
   
