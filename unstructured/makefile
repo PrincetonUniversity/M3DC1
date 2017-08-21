@@ -164,6 +164,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o
+KPRAD_OBJS = kprad.o kprad_test.o
 
 all : $(BIN) m3dc1
 
@@ -187,6 +188,9 @@ struct2vac : $(S2V_OBJS)
 
 a2cc : $(A2CC_OBJS)
 	$(LOADER) $(A2CC_OBJS) -o $@
+
+kprad : $(KPRAD_OBJS)
+	$(LOADER) $(KPRAD_OBJS) -o $@
 
 .PHONY : bin
 bin : 
