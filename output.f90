@@ -180,6 +180,8 @@ subroutine hdf5_write_parameters(error)
 
   integer(HID_T) :: root_id
 
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'Writing attributes'
+
   call h5gopen_f(file_id, "/", root_id, error)
 
 #ifdef USE3D
@@ -322,9 +324,12 @@ subroutine hdf5_write_scalars(error)
 
   real :: temp
 
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, " Writing scalars"
+
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if(ntime.eq.0) then
+  if(ntime.eq.0 .and. irestart.eq.0) then
      call h5gcreate_f(root_id, "scalars", scalar_group_id, error)
      call write_int_attr(scalar_group_id, "ntimestep", ntime, error)
      if(imag_probes.ne.0) call h5gcreate_f(root_id, "mag_probes", mp_group_id, error)
@@ -475,6 +480,8 @@ subroutine hdf5_write_scalars(error)
 
   call h5gclose_f(root_id, error)
 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done writing scalars'
+
 end subroutine hdf5_write_scalars
 
 
@@ -495,7 +502,7 @@ subroutine hdf5_write_timings(error)
 
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if(ntime.eq.0) then
+  if(ntime.eq.0 .and. irestart.eq.0) then
      call h5gcreate_f(root_id, "timings", timing_group_id, error)
   else
      call h5gopen_f(root_id, "timings", timing_group_id, error)
@@ -559,8 +566,8 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   endif
 
   ! remove the time group link if it already exists
-  ! (from before a restart, for example)
-  if(ntime.ne.0 .and. ntime.eq.ntime0) then
+  ! from before a restart
+  if(irestart.ne.0 .and. ntime.eq.ntime0) then
      call h5gunlink_f(file_id, time_group_name, error)
   endif
 
@@ -1497,7 +1504,7 @@ subroutine hdf5_write_keharmonics(error)
   allocate(dum(NMAX+1))
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if(ntime.eq.0) then
+  if(ntime.eq.0 .and. irestart.eq.0) then
      call h5gcreate_f(root_id, "keharmonics", keharmonics_group_id, error)
   else
      call h5gopen_f(root_id, "keharmonics", keharmonics_group_id, error)
@@ -1538,7 +1545,7 @@ subroutine hdf5_write_bharmonics(error)
   allocate(dum(BNMAX+1))
   call h5gopen_f(file_id, "/", root_id, error)
 
-  if(ntime.eq.0) then
+  if(ntime.eq.0 .and. irestart.eq.0) then
      call h5gcreate_f(root_id, "bharmonics", bharmonics_group_id, error)
   else
      call h5gopen_f(root_id, "bharmonics", bharmonics_group_id, error)
@@ -1584,7 +1591,7 @@ subroutine hdf5_write_kspits(error)
 !  enddo
 
   call h5gopen_f(file_id, "/", root_id, error)
-  if(ntime.eq.0) then
+  if(ntime.eq.0 .and. irestart.eq.0) then
      call h5gcreate_f(root_id, "kspits", kspits_group_id, error)
   else
      call h5gopen_f(root_id, "kspits", kspits_group_id, error)
