@@ -122,12 +122,16 @@ contains
     call h5gclose_f(scalar_group_id, error)
 
     ! Read Fields
+    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Reading fields from time step', ntime
+
     call read_fields(time_id, 0, error)
 
     call h5gclose_f(time_id, error)
 
     ! Read Equilibrium Fields
     if(eqsubtract_in.eq.1) then
+       if(myrank.eq.0 .and. iprint.ge.1) print *, 'Reading equilibrium fields'
+
        call h5gopen_f(root_id, "equilibrium", eq_time_id, error)
        call read_fields(eq_time_id, 1, error)
        call h5gclose_f(eq_time_id, error)
@@ -208,7 +212,7 @@ contains
     call h5r_read_field(group_id, "chi", chi_field(ilin), nelms, error)
 
     if(icsubtract.eq.1) then
-       call h5r_read_field(group_id, "psi_coil", psi_coil_field, nelms, error)
+       call h5r_read_field(group_id, "psi_coil", psi_coil_field, nelms, error, .true.)
     end if
     
     if(icsubtract.eq.1 .or. &
@@ -250,7 +254,8 @@ contains
 
   end subroutine read_fields
 
-  subroutine h5r_read_field(group_id, name, f, nelms, error)
+  subroutine h5r_read_field(group_id, name, f, nelms, error, isreal)
+    use basic
     use hdf5
     use field
     use hdf5_output
@@ -262,10 +267,20 @@ contains
     type(field_type), intent(inout) :: f
     integer, intent(in) :: nelms
     integer, intent(out) :: error
+    logical, intent(in), optional :: isreal
 
     real, dimension(coeffs_per_element,nelms) :: dum
     vectype, dimension(coeffs_per_element,nelms) :: zdum
     integer :: i, coefs
+    logical :: ir
+
+    if(myrank.eq.0 .and. iprint.ge.2) print *, 'Reading ', name
+
+    if(present(isreal)) then
+       ir = isreal
+    else
+       ir = .false.
+    end if
 
     error = 0
 
@@ -278,7 +293,7 @@ contains
 
     call read_field(group_id, name, dum(1:coefs,:), coefs, nelms, error)
     zdum = dum
-    if(icomplex_in.eq.1) then
+    if(icomplex_in.eq.1 .and. .not.ir) then
        call read_field(group_id,name//"_i", dum(1:coefs,:), coefs, nelms, error)
 #ifdef USECOMPLEX
        zdum = zdum + (0.,1.)*dum
