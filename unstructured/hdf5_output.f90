@@ -783,6 +783,7 @@ contains
     integer(HSIZE_T) :: dims(2), maxdims(2), local_dims(2), off(2)
     integer(SIZE_T) :: num_elements
     integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
+    logical :: exists
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
@@ -801,7 +802,9 @@ contains
     off(2) = t
     num_elements = NMAX
     
-    if(t.eq.0) then
+    call h5lexists_f(parent_id, name, exists, error)
+
+    if(.not.exists) then
        call h5screate_simple_f(rank, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, rank, chunk_size, error)

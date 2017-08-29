@@ -234,7 +234,7 @@ Program Reducedquintic
 
   ! output simulation parameters
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(ntime.eq.0) then
+  if(irestart.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.1) &
           print *, " Writing simulation parameters"
      
