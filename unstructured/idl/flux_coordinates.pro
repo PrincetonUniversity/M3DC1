@@ -151,7 +151,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         ; do newton iterations to find (R,Z) at (psin, theta)
         converged = 0
         if(j eq 0 or dpsin_drho eq 0.) then begin
-           rho = 0.001
+           rho = 0.01
         endif else begin
            rho = rho + (psin[j]-psin[j-1])/dpsin_drho
         endelse
@@ -198,7 +198,7 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
            print, 'Error at (psi_n, theta) = ', psin[j], theta[i]
            print, 'Did not converge after, ', maxits, ' iterations.', $
                   rho, rpath[i,j], zpath[i,j]
-           rho = 0.001
+           rho = 0.01
         end
      end
   end
