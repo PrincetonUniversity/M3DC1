@@ -9024,98 +9024,98 @@ end function b3ffeta
 
 ! B3pepsid
 ! ========
-vectype function b3pepsid(e,f,g,h)
+function b3pepsid(e,f,g,h)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b3pepsid
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0 .or. surface_int) then
      b3pepsid = 0.
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
-  temp = int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
-       + int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
-       - int5(ri2_79,e(:,OP_1),f(:,OP_DP),g(:,OP_GS),h(:,OP_1)) &
+  temp = intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
+       + intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
+       - intx5(e(:,:,OP_1),ri2_79,f(:,OP_DP),g(:,OP_GS),h(:,OP_1)) &
        + gam* &
-       (int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZP),h(:,OP_DZ)) &
-       +int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DRP),h(:,OP_DR)) &
-       -int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_GS),h(:,OP_DP)))
-#else
-  temp = 0.
-#endif
+       (intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_DZ)) &
+       +intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_DR)) &
+       -intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_GS),h(:,OP_DP)))
 
   b3pepsid = temp
-  
-  return
+#else
+  b3pepsid = 0.
+#endif
 end function b3pepsid
 
 
 ! B3pebd
 ! ======
-vectype function b3pebd(e,f,g,h)
-
+function b3pebd(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b3pebd
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0 .or. surface_int) then
      b3pebd = 0.
      return
   end if
 
-  temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
-        -int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1)) &
+  temp = intx5(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
+        -intx5(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1)) &
        + gam* &
-       (int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DZ)) &
-       -int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DR)))
+       (intx5(e(:,:,OP_1),ri_79,f(:,OP_1),g(:,OP_DR),h(:,OP_DZ)) &
+       -intx5(e(:,:,OP_1),ri_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_DR)))
 
   b3pebd = temp
-  
-  return
 end function b3pebd
 
 
 ! B3pefd
 ! ======
-vectype function b3pefd(e,f,g,h)
-
+function b3pefd(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b3pefd
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0 .or. surface_int) then
      b3pefd = 0.
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
-  temp = int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DRPP),h(:,OP_1)) &
-        -int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZPP),h(:,OP_1)) &
+  temp = intx5(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DRPP),h(:,OP_1)) &
+        -intx5(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZPP),h(:,OP_1)) &
        + gam* &
-       (int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DRPP),h(:,OP_DZ)) &
-       -int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZPP),h(:,OP_DR)))
-#else
-  temp = 0.
-#endif
+       (intx5(e(:,:,OP_1),ri_79,f(:,OP_1),g(:,OP_DRPP),h(:,OP_DZ)) &
+       -intx5(e(:,:,OP_1),ri_79,f(:,OP_1),g(:,OP_DZPP),h(:,OP_DR)))
 
   b3pefd = temp
-  
-  return
+#else
+  b3pefd = 0.
+#endif
 end function b3pefd
 
 
@@ -10481,15 +10481,17 @@ end function p1qfkappar
 
 ! P1kappax
 ! ========
-vectype function p1kappax(e,f,g,i,j)
+function p1kappax(e,f,g,i,j)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,i,j
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1kappax
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,i,j
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1kappax = 0.
@@ -10499,13 +10501,13 @@ vectype function p1kappax(e,f,g,i,j)
   if(surface_int) then
      temp = 0.
   else
-     temp79a = ri_79*i(:,OP_1)*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))
+     temp79a = ri_79*i(:,OP_1)*g(:,OP_1)*j(:,OP_1)
 
-     temp = int3(g(:,OP_1),i(:,OP_1),temp79a) 
+     temp = intx3(e(:,:,OP_DZ),f(:,OP_DR),temp79a) &
+          - intx3(e(:,:,OP_DR),f(:,OP_DZ),temp79a)
   endif
 
   p1kappax = (gam - 1.) * temp
-  return
 end function p1kappax
 
 

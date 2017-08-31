@@ -3427,81 +3427,92 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   end if
 
 
-  do i=1, dofs_per_element
-     trial = trialx(i,:,:)
-
-
-  
   ! Electron Pressure Advection
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(db.ne.0.) then
      if(linear.eq.0) then
-        temp = b3pepsid(trial,pe179,lin,ni79)*db
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimpf*bdf)*dt*temp
+        tempx = b3pepsid(trialx,pe179,lin,ni79)*db
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx
         
         if(numvar.ge.2) then
-           temp = b3pebd(trial,pe179,lin,ni79)*db
-           ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp
-           ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimpf*bdf)*dt*temp
+           tempx = b3pebd(trialx,pe179,lin,ni79)*db
+           ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+           ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx
         end if
 
         if(numvar.ge.3) then
-           temp = b3pepsid(trial,lin,ps179,ni79)*db & 
-                + b3pebd  (trial,lin,bz179,ni79)*db
-           ssterm(i,pe_g) = ssterm(i,pe_g) -     thimpf     *dt*temp
-           ddterm(i,pe_g) = ddterm(i,pe_g) + (.5-thimpf*bdf)*dt*temp
+           tempx = b3pepsid(trialx,lin,ps179,ni79)*db & 
+                + b3pebd  (trialx,lin,bz179,ni79)*db
+           ssterm(:,pe_g) = ssterm(:,pe_g) -     thimpf     *dt*tempx
+           ddterm(:,pe_g) = ddterm(:,pe_g) + (.5-thimpf*bdf)*dt*tempx
         end if
      end if
      if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = b3pepsid(trial,pe079,lin,ni79)*db
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimpf*bdf)*dt*temp
+        tempx = b3pepsid(trialx,pe079,lin,ni79)*db
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx
 
         if(numvar.ge.2) then
-           temp = b3pebd(trial,pe079,lin,ni79)*db
-           ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp
-           ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimpf*bdf)*dt*temp
+           tempx = b3pebd(trialx,pe079,lin,ni79)*db
+           ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+           ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimpf*bdf)*dt*tempx
         end if
 
         if(numvar.ge.3) then
-           temp = b3pepsid(trial,lin,ps079,ni79)*db &
-                + b3pebd  (trial,lin,bz079,ni79)*db
-           ssterm(i,pe_g) = ssterm(i,pe_g) -     thimpf     *dt*temp
-           ddterm(i,pe_g) = ddterm(i,pe_g) + (1.-thimpf*bdf)*dt*temp
+           tempx = b3pepsid(trialx,lin,ps079,ni79)*db &
+                + b3pebd  (trialx,lin,bz079,ni79)*db
+           ssterm(:,pe_g) = ssterm(:,pe_g) -     thimpf     *dt*tempx
+           ddterm(:,pe_g) = ddterm(:,pe_g) + (1.-thimpf*bdf)*dt*tempx
         end if
      end if
      if(i3d.eq.1 .and. numvar.ge.2) then
         if(linear.eq.0) then
            if(numvar.ge.3) then
-              temp = b3pefd(trial,lin,bf179,ni79)*db
-              ssterm(i,pe_g) = ssterm(i,pe_g) -     thimp_bf     *dt*temp
-              ddterm(i,pe_g) = ddterm(i,pe_g) + (.5-thimp_bf*bdf)*dt*temp
+              tempx = b3pefd(trialx,lin,bf179,ni79)*db
+              ssterm(:,pe_g) = ssterm(:,pe_g) -     thimp_bf     *dt*tempx
+              ddterm(:,pe_g) = ddterm(:,pe_g) + (.5-thimp_bf*bdf)*dt*tempx
            end if
 
-           temp = b3pefd(trial,pe179,lin,ni79)*db
-           r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-           q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp
+           tempx = b3pefd(trialx,pe179,lin,ni79)*db
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
         end if
         if(eqsubtract.eq.1) then
            if(numvar.ge.3) then
-              temp = b3pefd(trial,lin,bf079,ni79)*db
-              ssterm(i,pe_g) = ssterm(i,pe_g) -     thimp_bf     *dt*temp
-              ddterm(i,pe_g) = ddterm(i,pe_g) + (1.-thimp_bf*bdf)*dt*temp
+              tempx = b3pefd(trialx,lin,bf079,ni79)*db
+              ssterm(:,pe_g) = ssterm(:,pe_g) -     thimp_bf     *dt*tempx
+              ddterm(:,pe_g) = ddterm(:,pe_g) + (1.-thimp_bf*bdf)*dt*tempx
            end if
 
-           temp = b3pefd(trial,pe079,lin,ni79)*db
-           r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-           q_bf(i) = q_bf(i) + (1.-thimp_bf*bdf)*dt*temp
+           tempx = b3pefd(trialx,pe079,lin,ni79)*db
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
         end if
      end if
      if(idens.eq.1 .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then
-        q_ni(i,1) = q_ni(i,1) + db*dt* &
-             (b3pepsid(trial,pe079,ps079,lin) &
-             +b3pebd  (trial,pe079,bz079,lin))
+        q_ni(:,1) = q_ni(:,1) + db*dt* &
+             (b3pepsid(trialx,pe079,ps079,lin) &
+             +b3pebd  (trialx,pe079,bz079,lin))
      end if
   end if
 
+
+  ! Cross-field Heat Flux
+  ! ~~~~~~~~~~~~~~~~~~~~~
+  if(kappax.ne.0.) then
+     tempx = p1kappax(trialx,pp179,lin,ni79,kax79)
+     ssterm(:,bz_g) = ssterm(:,bz_g) - thimp*dt*tempx
+     ddterm(:,bz_g) = ddterm(:,bz_g) - thimp*dt*tempx*bdf
+
+     tempx = p1kappax(trialx,lin,bzt79,ni79,kax79)
+     ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+     ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
+  endif
+
+
+  do i=1, dofs_per_element
+     trial = trialx(i,:,:)
 
   ! Source Cooling
   ! ~~~~~~~~~~~~~~
@@ -3781,18 +3792,6 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
     endif  ! on linear.eq.0
   endif  ! on kappar.ne.0
 
-  ! Cross-field Heat Flux
-  ! ~~~~~~~~~~~~~~~~~~~~~
-  if(kappax.ne.0.) then
-     temp = p1kappax(trial,pp179,lin,ni79,kax79)
-     ssterm(i,bz_g) = ssterm(i,bz_g) - thimp*dt*temp
-     ddterm(i,bz_g) = ddterm(i,bz_g) - thimp*dt*temp*bdf
-
-     temp = p1kappax(trial,lin,bzt79,ni79,kax79)
-     ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-     ddterm(i,pp_g) = ddterm(i,pp_g) + (1.-thimp*bdf)*dt*temp
-  endif
-
   if(ibootstrap_model.eq.1) then
      call bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimp)
   end if
@@ -4054,80 +4053,93 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   endif
 
 
-
-  do i=1, dofs_per_element
-     trial = trialx(i,:,:)
-
-  
   ! Electron Pressure Advection
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(db.ne.0.) then
      if(linear.eq.0) then
-        temp = b3pepsid(trial,pe179,lin,ni79)*db
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (.5-thimpf*bdf)*dt*temp
+        tempx = b3pepsid(trialx,pe179,lin,ni79)*db
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx
         
         if(numvar.ge.2) then
-           temp = b3pebd(trial,pe179,lin,ni79)*db
-           ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp
-           ddterm(i,bz_g) = ddterm(i,bz_g) + (.5-thimpf*bdf)*dt*temp
+           tempx = b3pebd(trialx,pe179,lin,ni79)*db
+           ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+           ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx
         end if
 
         if(numvar.ge.3) then
-           temp = b3pepsid(trial,lin,ps179,ni79)*db & 
-                + b3pebd  (trial,lin,bz179,ni79)*db
-           ssterm(i,pe_g) = ssterm(i,pe_g) -     thimpf     *dt*temp
-           ddterm(i,pe_g) = ddterm(i,pe_g) + (.5-thimpf*bdf)*dt*temp
+           tempx = b3pepsid(trialx,lin,ps179,ni79)*db & 
+                + b3pebd  (trialx,lin,bz179,ni79)*db
+           ssterm(:,pe_g) = ssterm(:,pe_g) -     thimpf     *dt*tempx
+           ddterm(:,pe_g) = ddterm(:,pe_g) + (.5-thimpf*bdf)*dt*tempx
         end if
      end if
      if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
-        temp = b3pepsid(trial,pe079,lin,ni79)*db
-        ssterm(i,psi_g) = ssterm(i,psi_g) -     thimpf     *dt*temp
-        ddterm(i,psi_g) = ddterm(i,psi_g) + (1.-thimpf*bdf)*dt*temp
+        tempx = b3pepsid(trialx,pe079,lin,ni79)*db
+        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx
 
         if(numvar.ge.2) then
-           temp = b3pebd(trial,pe079,lin,ni79)*db
-           ssterm(i,bz_g) = ssterm(i,bz_g) -     thimpf     *dt*temp
-           ddterm(i,bz_g) = ddterm(i,bz_g) + (1.-thimpf*bdf)*dt*temp
+           tempx = b3pebd(trialx,pe079,lin,ni79)*db
+           ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+           ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimpf*bdf)*dt*tempx
         end if
 
         if(numvar.ge.3) then
-           temp = b3pepsid(trial,lin,ps079,ni79)*db &
-                + b3pebd  (trial,lin,bz079,ni79)*db
-           ssterm(i,pe_g) = ssterm(i,pe_g) -     thimpf     *dt*temp
-           ddterm(i,pe_g) = ddterm(i,pe_g) + (1.-thimpf*bdf)*dt*temp
+           tempx = b3pepsid(trialx,lin,ps079,ni79)*db &
+                + b3pebd  (trialx,lin,bz079,ni79)*db
+           ssterm(:,pe_g) = ssterm(:,pe_g) -     thimpf     *dt*tempx
+           ddterm(:,pe_g) = ddterm(:,pe_g) + (1.-thimpf*bdf)*dt*tempx
         end if
      end if
      if(i3d.eq.1 .and. numvar.ge.2) then
         if(linear.eq.0) then
            if(numvar.ge.3) then
-              temp = b3pefd(trial,lin,bf179,ni79)*db
-              ssterm(i,pe_g) = ssterm(i,pe_g) -     thimp_bf     *dt*temp
-              ddterm(i,pe_g) = ddterm(i,pe_g) + (.5-thimp_bf*bdf)*dt*temp
+              tempx = b3pefd(trialx,lin,bf179,ni79)*db
+              ssterm(:,pe_g) = ssterm(:,pe_g) -     thimp_bf     *dt*tempx
+              ddterm(:,pe_g) = ddterm(:,pe_g) + (.5-thimp_bf*bdf)*dt*tempx
            end if
 
-           temp = b3pefd(trial,pe179,lin,ni79)*db
-           r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-           q_bf(i) = q_bf(i) + (.5-thimp_bf*bdf)*dt*temp
+           tempx = b3pefd(trialx,pe179,lin,ni79)*db
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
         end if
         if(eqsubtract.eq.1) then
            if(numvar.ge.3) then
-              temp = b3pefd(trial,lin,bf079,ni79)*db
-              ssterm(i,pe_g) = ssterm(i,pe_g) -     thimp_bf     *dt*temp
-              ddterm(i,pe_g) = ddterm(i,pe_g) + (1.-thimp_bf*bdf)*dt*temp
+              tempx = b3pefd(trialx,lin,bf079,ni79)*db
+              ssterm(:,pe_g) = ssterm(:,pe_g) -     thimp_bf     *dt*tempx
+              ddterm(:,pe_g) = ddterm(:,pe_g) + (1.-thimp_bf*bdf)*dt*tempx
            end if
 
-           temp = b3pefd(trial,pe079,lin,ni79)*db
-           r_bf(i) = r_bf(i) -     thimp_bf     *dt*temp
-           q_bf(i) = q_bf(i) + (1.-thimp_bf*bdf)*dt*temp
+           tempx = b3pefd(trialx,pe079,lin,ni79)*db
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
         end if
      end if
      if(idens.eq.1 .and. (eqsubtract.eq.1 .or. icsubtract.eq.1)) then
-        q_ni(i,1) = q_ni(i,1) + db*dt* &
-             (b3pepsid(trial,pe079,ps079,lin) &
-             +b3pebd  (trial,pe079,bz079,lin))
+        q_ni(:,1) = q_ni(:,1) + db*dt* &
+             (b3pepsid(trialx,pe079,ps079,lin) &
+             +b3pebd  (trialx,pe079,bz079,lin))
      end if
   end if
+
+
+  ! Cross-field Heat Flux
+  ! ~~~~~~~~~~~~~~~~~~~~~
+  if(kappax.ne.0.) then
+     tempx = p1kappax(trialx,pp179,lin,ni79,kax79)
+     ssterm(:,bz_g) = ssterm(:,bz_g) - thimp*dt*tempx
+     ddterm(:,bz_g) = ddterm(:,bz_g) - thimp*dt*tempx*bdf
+
+     tempx = p1kappax(trialx,lin,bzt79,ni79,kax79)
+     ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+     ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
+  endif
+
+
+
+  do i=1, dofs_per_element
+     trial = trialx(i,:,:)
 
 
   ! Parallel Heat Flux
@@ -4269,18 +4281,6 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
     endif  ! on linear.eq.0
   endif  ! on kappar.ne.0
  
-
-  ! Cross-field Heat Flux
-  ! ~~~~~~~~~~~~~~~~~~~~~
-  if(kappax.ne.0.) then
-     temp = p1kappax(trial,pp179,lin,ni79,kax79)
-     ssterm(i,bz_g) = ssterm(i,bz_g) - thimp*dt*temp
-     ddterm(i,bz_g) = ddterm(i,bz_g) - thimp*dt*temp*bdf
-
-     temp = p1kappax(trial,lin,bzt79,ni79,kax79)
-     ssterm(i,pp_g) = ssterm(i,pp_g) -     thimp     *dt*temp
-     ddterm(i,pp_g) = ddterm(i,pp_g) + (1.-thimp*bdf)*dt*temp
-  endif
 
   ! terms due to time-dependent density
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
