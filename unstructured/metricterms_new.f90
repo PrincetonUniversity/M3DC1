@@ -9510,72 +9510,76 @@ function n1s(e,f)
   end if
 end function n1s
 
-vectype function t3tndenm(e,f,g,h)
-
+function t3tndenm(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: t3tndenm
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
   real, intent(in) :: h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      if(inograd_n.eq.1) then
         temp = 0.
      else
         temp = -h* &
-             (int4(e(:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
-             +int4(e(:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ)))
+             (intx4(e(:,:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
+             +intx4(e(:,:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ)))
      end if
   else
      temp =  h* &
-          (int3(e(:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) + int3(e(:,OP_DR),f(:,OP_1),g(:,OP_DR)) &
-          +int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ)) + int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR)))
+          (intx3(e(:,:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) &
+          +intx3(e(:,:,OP_DR),f(:,OP_1),g(:,OP_DR)) &
+          +intx3(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZ)) &
+          +intx3(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DR)))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-     temp = temp - h*int4(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DPP))
+     temp = temp - h*intx4(ri2_79,e(:,:,OP_1),f(:,OP_1),g(:,OP_DPP))
 #endif
 
      if(hypp.ne.0.) then
         if(ihypkappa.eq.1) then
            temp = temp + hypp*h* &
-                ( int3(e(:,OP_LP),f(:,OP_1),g(:,OP_LP))   &
-                + int3(e(:,OP_1),f(:,OP_LP),g(:,OP_LP))   &
-                + 2.*int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_LP))&
-                + 2.*int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_LP)))
+                ( intx3(e(:,:,OP_LP),f(:,OP_1),g(:,OP_LP))   &
+                + intx3(e(:,:,OP_1),f(:,OP_LP),g(:,OP_LP))   &
+                + 2.*intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_LP))&
+                + 2.*intx3(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_LP)))
         else
            temp = temp + hypp* &
-                (int3(e(:,OP_LP),f(:,OP_1),g(:,OP_LP))   &
-                + int3(e(:,OP_1),f(:,OP_LP),g(:,OP_LP))   &
-                + 2.*int3(e(:,OP_DR),f(:,OP_DR),g(:,OP_LP)) &
-                + 2.*int3(e(:,OP_DZ),f(:,OP_DZ),g(:,OP_LP)))
+                (intx3(e(:,:,OP_LP),f(:,OP_1),g(:,OP_LP))   &
+                + intx3(e(:,:,OP_1),f(:,OP_LP),g(:,OP_LP))   &
+                + 2.*intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_LP)) &
+                + 2.*intx3(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_LP)))
         endif
      endif
   end if
 
   t3tndenm = temp
-  return
 end function t3tndenm
-vectype function t3ts(e,f,g)
 
+
+function t3ts(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: t3ts
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      temp = 0.
   else
-     temp = -int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))
+     temp = -intx3(e(:,:,OP_1),f(:,OP_1),g(:,OP_1))
   end if
 
   t3ts = temp
-  return
 end function t3ts
 
 
@@ -9717,15 +9721,16 @@ end function p1pchi
 
 ! P1psipsikappar
 ! ==============
-vectype function p1psipsikappar(e,f,g,h,i,j,k)
-
+function p1psipsikappar(e,f,g,h,i,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1psipsikappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j,k
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1psipsikappar = 0.
@@ -9736,24 +9741,27 @@ vectype function p1psipsikappar(e,f,g,h,i,j,k)
 !!$     ! does better without this term
 !!$     ! justification: assert natural b.c. B.grad(T) = 0
 !!$     temp = 0.
-     temp79a = ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)* &
-          (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
-     temp = int4(temp79a,g(:,OP_DZ),h(:,OP_DR),i(:,OP_1 )) &
-          - int4(temp79a,g(:,OP_DR),h(:,OP_DZ),i(:,OP_1 )) &
-          + int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DR)) &
-          - int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ))
-  else
      temp79a = ri2_79*k(:,OP_1)*j(:,OP_1)* &
-          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))
+          (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
+     temp = intx5(e(:,:,OP_1),temp79a,g(:,OP_DZ),h(:,OP_DR),i(:,OP_1 )) &
+          - intx5(e(:,:,OP_1),temp79a,g(:,OP_DR),h(:,OP_DZ),i(:,OP_1 )) &
+          + intx5(e(:,:,OP_1),temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DR)) &
+          - intx5(e(:,:,OP_1),temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ))
+  else
+     temp79a = ri2_79*k(:,OP_1)*j(:,OP_1)*i(:,OP_1)
+     temp79b = ri2_79*k(:,OP_1)*j(:,OP_1)*h(:,OP_1)
 
-     temp = int4(temp79a,g(:,OP_DZ),h(:,OP_DR),i(:,OP_1 )) &
-          - int4(temp79a,g(:,OP_DR),h(:,OP_DZ),i(:,OP_1 )) &
-          + int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DR)) &
-          - int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DZ))
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DZ),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DZ),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DR),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DR),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79b,g(:,OP_DZ),i(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79b,g(:,OP_DZ),i(:,OP_DR)) &
+          - intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79b,g(:,OP_DR),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79b,g(:,OP_DR),i(:,OP_DZ))
   end if
 
   p1psipsikappar = (gam - 1.) * temp
-  return
 end function p1psipsikappar
 
 ! P1psipsipnkappar
@@ -9800,17 +9808,18 @@ end function p1psipsipnkappar
 
 ! P1psibkappar
 ! ============
-vectype function p1psibkappar(e,f,g,h,i,j,k)
-
+function p1psibkappar(e,f,g,h,i,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
+  vectype, dimension(dofs_per_element) :: p1psibkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j,k
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1psibkappar = 0.
@@ -9820,14 +9829,13 @@ vectype function p1psibkappar(e,f,g,h,i,j,k)
   if(surface_int) then
 !!$     ! assert natural b.c. B.grad(T) = 0
 !!$     temp = 0.
-     temp79a = -ri3_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*g(:,OP_1)* &
+     temp79a = -ri3_79*k(:,OP_1)*j(:,OP_1)*g(:,OP_1)* &
           (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
 
-     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
-          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
+     temp = intx4(e(:,:,OP_1),temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + intx4(e(:,:,OP_1),temp79a,h(:,OP_1 ),i(:,OP_DP))
   else
-     temp79a = -k(:,OP_1)*ri3_79*g(:,OP_1)* &
-          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)  
+     temp79a = -k(:,OP_1)*ri3_79*g(:,OP_1)*j(:,OP_1)  
 
      temp79b = f(:,OP_DR)*(h(:,OP_DZ)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DZ)) &
           -    f(:,OP_DZ)*(h(:,OP_DR)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DR))
@@ -9844,9 +9852,11 @@ vectype function p1psibkappar(e,f,g,h,i,j,k)
           +    temp79b*g(:,OP_1 )*j(:,OP_DP)*k(:,OP_1 ) &
           +    temp79b*g(:,OP_1 )*j(:,OP_1 )*k(:,OP_DP)
 
-     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
-          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP)) &
-          + int3(ri3_79,e(:,OP_1),temp79d)
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,h(:,OP_1 ),i(:,OP_DP)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,h(:,OP_1 ),i(:,OP_DP)) &
+          + intx3(e(:,:,OP_1),ri3_79,temp79d)
   end if
   p1psibkappar = (gam - 1.) * temp
 #else
@@ -9936,17 +9946,18 @@ end function p1psibpnkappar
 
 ! P1bbkappar
 ! ==========
-vectype function p1bbkappar(e,f,g,h,i,j,k)
-
+function p1bbkappar(e,f,g,h,i,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
+  vectype, dimension(dofs_per_element) :: p1bbkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j,k
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1bbkappar = 0.
@@ -9967,7 +9978,7 @@ vectype function p1bbkappar(e,f,g,h,i,j,k)
           +    f(:,OP_1 )*g(:,OP_1 )*temp79a*j(:,OP_DP)*k(:,OP_1 ) &
           +    f(:,OP_1 )*g(:,OP_1 )*temp79a*j(:,OP_1 )*k(:,OP_DP)
 
-     temp = int3(ri4_79,e(:,OP_1),temp79c)
+     temp = intx3(e(:,:,OP_1),ri4_79,temp79c)
   end if
   p1bbkappar = (gam - 1.) * temp
 #else
@@ -10034,17 +10045,18 @@ end function p1bbpnkappar
 
 ! P1psifkappar
 ! ============
-vectype function p1psifkappar(e,f,g,h,i,j,k)
-
+function p1psifkappar(e,f,g,h,i,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
+  vectype, dimension(dofs_per_element) :: p1psifkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j,k
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1psifkappar = 0.
@@ -10068,19 +10080,25 @@ vectype function p1psifkappar(e,f,g,h,i,j,k)
 !!$          + int4(temp79b,f(:,OP_DR ),h(:,OP_1 ),i(:,OP_DZ)) &
 !!$          - int4(temp79b,f(:,OP_DZ ),h(:,OP_1 ),i(:,OP_DR))
   else
-     temp79a = k(:,OP_1)*ri_79* &
-          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
-     temp79b = k(:,OP_1)*ri_79* &
-          (e(:,OP_DZ)*g(:,OP_DZP) + e(:,OP_DR)*g(:,OP_DRP))*j(:,OP_1)
+     temp79a = k(:,OP_1)*ri_79*j(:,OP_1)*i(:,OP_1)
+     temp79b = k(:,OP_1)*ri_79*j(:,OP_1)*h(:,OP_1)
 
-     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
-          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
-          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
-          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) &
-          + int4(temp79b,f(:,OP_DR ),h(:,OP_DZ),i(:,OP_1 )) &
-          - int4(temp79b,f(:,OP_DZ ),h(:,OP_DR),i(:,OP_1 )) &
-          + int4(temp79b,f(:,OP_DR ),h(:,OP_1 ),i(:,OP_DZ)) &
-          - int4(temp79b,f(:,OP_DZ ),h(:,OP_1 ),i(:,OP_DR))
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79b,g(:,OP_DZP),i(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79b,g(:,OP_DZP),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79b,g(:,OP_DRP),i(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79b,g(:,OP_DRP),i(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79b,f(:,OP_DR ),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79b,f(:,OP_DR ),i(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79b,f(:,OP_DZ ),i(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79b,f(:,OP_DZ ),i(:,OP_DR))
   end if
   p1psifkappar = (gam - 1.) * temp
 #else
@@ -10148,15 +10166,16 @@ end function p1psifpnkappar
 
 ! P1qpsikappar
 ! ==============
-vectype function p1qpsikappar(e,f,g,i,k)
-
+function p1qpsikappar(e,f,g,i,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,i,k
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1qpsikappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,i,k
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1qpsikappar = 0.
@@ -10169,8 +10188,8 @@ vectype function p1qpsikappar(e,f,g,i,k)
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
   else
-     temp = int4(temp79a,g(:,OP_DZ),e(:,OP_DR),f(:,OP_1)) &
-          - int4(temp79a,g(:,OP_DR),e(:,OP_DZ),f(:,OP_1)) 
+     temp = intx4(e(:,:,OP_DR),temp79a,g(:,OP_DZ),f(:,OP_1)) &
+          - intx4(e(:,:,OP_DZ),temp79a,g(:,OP_DR),f(:,OP_1)) 
   end if
 
   p1qpsikappar = (gam - 1.) * temp
@@ -10179,22 +10198,24 @@ end function p1qpsikappar
 
 ! P1bfkappar
 ! ==========
-vectype function p1bfkappar(e,f,g,h,i,j,k)
-
+function p1bfkappar(e,f,g,h,i,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1bfkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j,k
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1bfkappar = 0.
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
@@ -10204,8 +10225,7 @@ vectype function p1bfkappar(e,f,g,h,i,j,k)
 !!$     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
 !!$          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
   else
-     temp79a = k(:,OP_1)*ri2_79*f(:,OP_1)* &
-          (e(:,OP_DZ)*g(:,OP_DZP) + e(:,OP_DR)*g(:,OP_DRP))*j(:,OP_1)
+     temp79a = k(:,OP_1)*ri2_79*f(:,OP_1)*j(:,OP_1)
 
      temp79b = g(:,OP_DZP)*(h(:,OP_DZ)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DZ)) &
           +    g(:,OP_DRP)*(h(:,OP_DR)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DR))
@@ -10222,37 +10242,39 @@ vectype function p1bfkappar(e,f,g,h,i,j,k)
           +    temp79b*f(:,OP_1 )*j(:,OP_DP)*k(:,OP_1 ) &
           +    temp79b*f(:,OP_1 )*j(:,OP_1 )*k(:,OP_DP)
 
-     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
-          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP)) &
-          - int3(ri2_79,e(:,OP_1),temp79d)
+     temp = intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,h(:,OP_1 ),i(:,OP_DP)) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,h(:,OP_1 ),i(:,OP_DP)) &
+          - intx3(e(:,:,OP_1),ri2_79,temp79d)
   end if
-#else
-  temp = 0.
-#endif
-
   p1bfkappar = (gam - 1.) * temp
-  return
+#else
+  p1bfkappar = 0.
+#endif
 end function p1bfkappar
 
 
 ! P1qbkappar
 ! ==========
-vectype function p1qbkappar(e,f,g,i,j)
-
+function p1qbkappar(e,f,g,i,j)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,i,j
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1qbkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,i,j
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1qbkappar = 0.
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      ! assert natural b.c. B.grad(T) = 0
      temp79a = 0.
@@ -10260,14 +10282,13 @@ vectype function p1qbkappar(e,f,g,i,j)
      temp79a =  ri2_79*i(:,OP_1)*j(:,OP_1)*g(:,OP_1)
 
 
-     temp = -int3(temp79a,e(:,OP_DP),f(:,OP_1 )) 
+     temp = -intx3(e(:,:,OP_DP),temp79a,f(:,OP_1 )) 
   end if
+  p1qbkappar = (gam - 1.) * temp
 #else
-  temp = 0.
+  p1qbkappar = 0.
 #endif
 
-  p1qbkappar = (gam - 1.) * temp
-  return
 end function p1qbkappar
 
 ! ==========
@@ -10357,22 +10378,24 @@ end function p1bfpnkappar
 
 ! P1ffkappar
 ! ==========
-vectype function p1ffkappar(e,f,g,h,i,j,k)
-
+function p1ffkappar(e,f,g,h,i,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j,k
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1ffkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j,k
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1ffkappar = 0.
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
@@ -10384,40 +10407,45 @@ vectype function p1ffkappar(e,f,g,h,i,j,k)
 !!$          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
 !!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) 
   else
-     temp79a = - k(:,OP_1)*                                            &
-          (e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP))*j(:,OP_1)
+     temp79a = -k(:,OP_1)*j(:,OP_1)*i(:,OP_1)
+     temp79b = -k(:,OP_1)*j(:,OP_1)*h(:,OP_1)
 
-     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
-          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
-          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
-          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) 
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79b,g(:,OP_DZP),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79b,g(:,OP_DZP),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79b,g(:,OP_DRP),i(:,OP_DR)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79b,g(:,OP_DRP),i(:,OP_DR)) 
   end if
-#else
-  temp = 0.
-#endif
-
   p1ffkappar = (gam - 1.) * temp
-  return
+#else
+  p1ffkappar = 0.
+#endif
 end function p1ffkappar
 
 
 ! P1ffpnkappar
 ! ============
-vectype function p1ffpnkappar(e,f,g,h,i)
+function p1ffpnkappar(e,f,g,h,i)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1ffpnkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      p1ffpnkappar = 0.
      return
   end if
 
-#if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
@@ -10432,15 +10460,13 @@ vectype function p1ffpnkappar(e,f,g,h,i)
           + 2.*h(:,OP_1)*i(:,OP_1)* &
           (ni79(:,OP_DR)*g(:,OP_DRP) + ni79(:,OP_DZ)*g(:,OP_DZP))
 
-     temp = -int4(temp79a,e(:,OP_DR),f(:,OP_DRP),temp79c) &
-          -  int4(temp79a,e(:,OP_DZ),f(:,OP_DZP),temp79c)
+     temp = -intx4(e(:,:,OP_DR),temp79a,f(:,OP_DRP),temp79c) &
+          -  intx4(e(:,:,OP_DZ),temp79a,f(:,OP_DZP),temp79c)
   end if
-#else
-  temp = 0.
-#endif
-
   p1ffpnkappar = (gam - 1.) * temp
-  return
+#else
+  p1ffpnkappar = 0.
+#endif
 end function p1ffpnkappar
 
 
@@ -12943,15 +12969,16 @@ end function torque_denm
 
 
 
-vectype function tepsipsikappar(e,f,g,h,j,k)
-
+function tepsipsikappar(e,f,g,h,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: tepsipsikappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,j,k
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      tepsipsikappar = 0.
@@ -12959,35 +12986,36 @@ vectype function tepsipsikappar(e,f,g,h,j,k)
   end if
 
   if(surface_int) then
-     temp79a = ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)* &
+     temp79a = ri2_79*k(:,OP_1)*j(:,OP_1)* &
           (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
-     temp = int3(temp79a,g(:,OP_DZ),h(:,OP_DR)) &
-          - int3(temp79a,g(:,OP_DR),h(:,OP_DZ))
+     temp = intx4(e(:,:,OP_1),temp79a,g(:,OP_DZ),h(:,OP_DR)) &
+          - intx4(e(:,:,OP_1),temp79a,g(:,OP_DR),h(:,OP_DZ))
 
   else
-     temp79a = k(:,OP_1)*ri2_79* &
-          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
+     temp79a = k(:,OP_1)*ri2_79*j(:,OP_1)
 
-     temp = int3(temp79a,g(:,OP_DZ),h(:,OP_DR)) &
-          - int3(temp79a,g(:,OP_DR),h(:,OP_DZ))
-
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DZ),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DZ),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DR),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DR),h(:,OP_DZ))
   end if
 
   tepsipsikappar = (gam - 1.) * temp
-  return
 end function tepsipsikappar
 
-vectype function tepsibkappar(e,f,g,h,j,k)
 
+function tepsibkappar(e,f,g,h,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+  vectype, dimension(dofs_per_element) :: tepsibkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,j,k
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      tepsibkappar = 0.
@@ -12995,51 +13023,53 @@ vectype function tepsibkappar(e,f,g,h,j,k)
   end if
 
   if(surface_int) then
-     temp79a = -ri3_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*g(:,OP_1)* &
+     temp79a = -ri3_79*k(:,OP_1)*j(:,OP_1)*g(:,OP_1)* &
           (norm79(:,1)*f(:,OP_DZ) - norm79(:,2)*f(:,OP_DR))
 
-     temp = int2(temp79a,h(:,OP_DP))
+     temp = intx3(e(:,:,OP_1),temp79a,h(:,OP_DP))
   else
-     temp79a = -k(:,OP_1)*ri3_79*g(:,OP_1)* &
-          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)  
+     temp79a = -k(:,OP_1)*ri3_79*g(:,OP_1)*j(:,OP_1)  
 
      temp79b = f(:,OP_DR)*(h(:,OP_DZ) ) &
           -    f(:,OP_DZ)*(h(:,OP_DR) )
 
      temp79d = temp79b*g(:,OP_1 )*j(:,OP_1 )*k(:,OP_1)
 
-     temp = int2(temp79a,h(:,OP_DP)) &
-          - int3(ri3_79,e(:,OP_DP),temp79d)
+     temp = intx4(e(:,:,OP_DZ),f(:,OP_DR),temp79a,h(:,OP_DP)) &
+          - intx4(e(:,:,OP_DR),f(:,OP_DZ),temp79a,h(:,OP_DP)) &
+          - intx3(e(:,:,OP_DP),ri3_79,temp79d)
   end if
   tepsibkappar = (gam - 1.) * temp
 #else
   tepsibkappar = 0.
 #endif
-
-  return
 end function tepsibkappar
-vectype function tepsibkapparl(e,f,g,h,i,j)
 
+function tepsibkapparl(e,f,g,h,i,j)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+  vectype, dimension(dofs_per_element) :: tepsibkapparl
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      tepsibkapparl = 0.
      return
   end if
 
-  temp79a = i(:,OP_1)*j(:,OP_1)* g(:,OP_1)
+  temp79a = i(:,OP_1)*j(:,OP_1)*g(:,OP_1)
 
   if(surface_int) then
-     temp = int5(ri3_79,temp79a,h(:,OP_DP),norm79(:,2),f(:,OP_DR)) &
-          - int5(ri3_79,temp79a,h(:,OP_DP),norm79(:,1),f(:,OP_DZ))
+     ! this can't be right .. no trial function here
+!     temp = int5(ri3_79,temp79a,h(:,OP_DP),norm79(:,2),f(:,OP_DR)) &
+!          - int5(ri3_79,temp79a,h(:,OP_DP),norm79(:,1),f(:,OP_DZ))
+     temp = 0.
   else
      ! d(temp79a)/dphi
      temp79b = i(:,OP_DP)*j(:,OP_1 )*g(:,OP_1 ) &
@@ -13054,31 +13084,30 @@ vectype function tepsibkapparl(e,f,g,h,i,j)
           (h(:,OP_DZ)*f(:,OP_DRP)-h(:,OP_DR)*f(:,OP_DZP)) &
         + (h(:,OP_DZP)*f(:,OP_DR)-h(:,OP_DRP)*f(:,OP_DZ))
 
-     temp = int4(ri3_79,e(:,OP_1),temp79a,temp79d) &
-          + int4(ri3_79,e(:,OP_1),temp79b,temp79c) &
-          + int5(ri3_79,e(:,OP_DR),temp79a,f(:,OP_DZ),h(:,OP_DP)) &
-          - int5(ri3_79,e(:,OP_DZ),temp79a,f(:,OP_DR),h(:,OP_DP))
+     temp = intx4(e(:,:,OP_1),ri3_79,temp79a,temp79d) &
+          + intx4(e(:,:,OP_1),ri3_79,temp79b,temp79c) &
+          + intx5(e(:,:,OP_DR),ri3_79,temp79a,f(:,OP_DZ),h(:,OP_DP)) &
+          - intx5(e(:,:,OP_DZ),ri3_79,temp79a,f(:,OP_DR),h(:,OP_DP))
   end if
   tepsibkapparl = (gam - 1.) * temp
 #else
   tepsibkapparl = 0.
 #endif
-
-  return
 end function tepsibkapparl
 
 
-vectype function tebbkappar(e,f,g,h,j,k)
-
+function tebbkappar(e,f,g,h,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+  vectype, dimension(dofs_per_element) :: tebbkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,j,k
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      tebbkappar = 0.
@@ -13092,28 +13121,27 @@ vectype function tebbkappar(e,f,g,h,j,k)
 
      temp79c = f(:,OP_1)*g(:,OP_1 )*temp79a*j(:,OP_1 )*k(:,OP_1 )
 
-     temp = -int3(ri4_79,e(:,OP_DP),temp79c)
+     temp = -intx3(e(:,:,OP_DP),ri4_79,temp79c)
   end if
   tebbkappar = (gam - 1.) * temp
 #else
   tebbkappar = 0.
 #endif
-
-  return
 end function tebbkappar
 !
 !...the following function must replace tebbkappar for linear runs.
-vectype function tebbkapparl(e,f,g,h,i,j)
-
+function tebbkapparl(e,f,g,h,i,j)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+  vectype, dimension(dofs_per_element) :: tebbkapparl
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
   
   if(gam.le.1.) then
      tebbkapparl = 0.
@@ -13131,26 +13159,27 @@ vectype function tebbkapparl(e,f,g,h,i,j)
           +    i(:,OP_1)*j(:,OP_1)*f(:,OP_DP)*g(:,OP_1) &
           +    i(:,OP_1)*j(:,OP_1)*f(:,OP_1)*g(:,OP_DP)
 
-     temp = int4(ri4_79,e(:,OP_1),temp79a,h(:,OP_DPP)) &
-          + int4(ri4_79,e(:,OP_1),temp79b,h(:,OP_DP))
+     temp = intx4(e(:,:,OP_1),ri4_79,temp79a,h(:,OP_DPP)) &
+          + intx4(e(:,:,OP_1),ri4_79,temp79b,h(:,OP_DP))
   end if
   tebbkapparl = (gam - 1.) * temp
 #else
   tebbkapparl = 0.
 #endif
-  return
 end function tebbkapparl
-vectype function tepsifkappar(e,f,g,h,j,k)
 
+function tepsifkappar(e,f,g,h,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+  vectype, dimension(dofs_per_element) :: tepsifkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,j,k
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      tepsifkappar = 0.
@@ -13158,43 +13187,45 @@ vectype function tepsifkappar(e,f,g,h,j,k)
   end if
 
   if(surface_int) then
-     temp79a = k(:,OP_1)*ri_79*e(:,OP_1)* &
+     temp79a = k(:,OP_1)*ri_79* &
           (norm79(:,2)*f(:,OP_DR) - norm79(:,1)*f(:,OP_DZ))*j(:,OP_1)
-     temp79b = -k(:,OP_1)*ri_79*e(:,OP_1)* &
+     temp79b = -k(:,OP_1)*ri_79* &
           (norm79(:,2)*g(:,OP_DZP) + norm79(:,1)*g(:,OP_DRP))*j(:,OP_1)
 
-     temp = int3(temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + int3(temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          + int3(temp79b,f(:,OP_DR ),h(:,OP_DZ)) &
-          - int3(temp79b,f(:,OP_DZ ),h(:,OP_DR))
+     temp = intx4(e(:,:,OP_1),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          + intx4(e(:,:,OP_1),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+          + intx4(e(:,:,OP_1),temp79b,f(:,OP_DR ),h(:,OP_DZ)) &
+          - intx4(e(:,:,OP_1),temp79b,f(:,OP_DZ ),h(:,OP_DR))
   else
-     temp79a = k(:,OP_1)*ri_79* &
-          (e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))*j(:,OP_1)
-     temp79b = k(:,OP_1)*ri_79* &
-          (e(:,OP_DZ)*g(:,OP_DZP) + e(:,OP_DR)*g(:,OP_DRP))*j(:,OP_1)
+     temp79a = k(:,OP_1)*ri_79*j(:,OP_1)
 
-     temp = int3(temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + int3(temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          + int3(temp79b,f(:,OP_DR ),h(:,OP_DZ)) &
-          - int3(temp79b,f(:,OP_DZ ),h(:,OP_DR))
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,f(:,OP_DZ ),h(:,OP_DR))
   end if
   tepsifkappar = (gam - 1.) * temp
 #else
   tepsifkappar = 0.
 #endif
-  return
 end function tepsifkappar
-vectype function tebfkappar(e,f,g,h,j,k)
 
+function tebfkappar(e,f,g,h,j,k)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+  vectype, dimension(dofs_per_element) :: tebfkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,j,k
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      tebfkappar = 0.
@@ -13202,39 +13233,40 @@ vectype function tebfkappar(e,f,g,h,j,k)
   end if
 
   if(surface_int) then
-     temp79a = -ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*f(:,OP_1)* &
+     temp79a = -ri2_79*k(:,OP_1)*j(:,OP_1)*f(:,OP_1)* &
           (norm79(:,1)*g(:,OP_DRP) + norm79(:,2)*g(:,OP_DZP))
 
-     temp = int2(temp79a,h(:,OP_DP))
+     temp = intx3(e(:,:,OP_1),temp79a,h(:,OP_DP))
   else
-     temp79a = k(:,OP_1)*ri2_79*f(:,OP_1)* &
-          (e(:,OP_DZ)*g(:,OP_DZP) + e(:,OP_DR)*g(:,OP_DRP))*j(:,OP_1)
+     temp79a = k(:,OP_1)*ri2_79*f(:,OP_1)*j(:,OP_1)
 
      temp79b = g(:,OP_DZP)*(h(:,OP_DZ) )&
           +    g(:,OP_DRP)*(h(:,OP_DR) )
 
      temp79d = temp79b*f(:,OP_1 )*j(:,OP_1 )*k(:,OP_1 )
 
-     temp = int2(temp79a,h(:,OP_DP)) &
-          + int3(ri2_79,e(:,OP_DP),temp79d)
+     temp = intx4(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,h(:,OP_DP)) &
+          + intx4(e(:,:,OP_DR),g(:,OP_DRP),temp79a,h(:,OP_DP)) &
+          + intx3(e(:,:,OP_DP),ri2_79,temp79d)
   end if
   tebfkappar = (gam - 1.) * temp
 #else
   tebfkappar = 0.
 #endif
-
-  return
 end function tebfkappar
-vectype function tebfkapparl(e,f,g,h,i,j)
+
+function tebfkapparl(e,f,g,h,i,j)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
+  vectype, dimension(dofs_per_element) :: tebfkapparl
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      tebfkapparl = 0.
@@ -13245,8 +13277,8 @@ vectype function tebfkapparl(e,f,g,h,i,j)
 
 
   if(surface_int) then
-     temp = -int5(temp79a,h(:,OP_DP),e(:,OP_1),norm79(:,1),g(:,OP_DRP)) &
-          -  int5(temp79a,h(:,OP_DP),e(:,OP_1),norm79(:,2),g(:,OP_DZP))
+     temp = -intx5(e(:,:,OP_1),temp79a,h(:,OP_DP),norm79(:,1),g(:,OP_DRP)) &
+          -  intx5(e(:,:,OP_1),temp79a,h(:,OP_DP),norm79(:,2),g(:,OP_DZP))
   else
      ! d(temp79a)/dphi
      temp79b = ri2_79 * &
@@ -13263,10 +13295,10 @@ vectype function tebfkapparl(e,f,g,h,i,j)
          +(h(:,OP_DR)*g(:,OP_DRPP) + h(:,OP_DZ)*g(:,OP_DZPP)) &
          +(h(:,OP_DRP)*g(:,OP_DRP) + h(:,OP_DZP)*g(:,OP_DZP)) 
 
-     temp = int4(temp79a,e(:,OP_DR),g(:,OP_DRP),h(:,OP_DP)) &
-          + int4(temp79a,e(:,OP_DZ),g(:,OP_DZP),h(:,OP_DP)) &
-          - int3(e(:,OP_1),temp79a,temp79d) &
-          - int3(e(:,OP_1),temp79b,temp79c)
+     temp = intx4(e(:,:,OP_DR),temp79a,g(:,OP_DRP),h(:,OP_DP)) &
+          + intx4(e(:,:,OP_DZ),temp79a,g(:,OP_DZP),h(:,OP_DP)) &
+          - intx3(e(:,:,OP_1),temp79a,temp79d) &
+          - intx3(e(:,:,OP_1),temp79b,temp79c)
   end if
   tebfkapparl = (gam - 1.) * temp
 #else
@@ -13274,17 +13306,21 @@ vectype function tebfkapparl(e,f,g,h,i,j)
 #endif
   return
 end function tebfkapparl
-vectype function teffkappar(e,f,g,h,j,k)
+
+
+function teffkappar(e,f,g,h,j,k)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,j,k
+  vectype, dimension(dofs_per_element) :: teffkappar
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,j,k
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
      teffkappar = 0.
@@ -13292,17 +13328,18 @@ vectype function teffkappar(e,f,g,h,j,k)
   end if
 
   if(surface_int) then
-     temp79a =  k(:,OP_1)*e(:,OP_1)* &
+     temp79a =  k(:,OP_1)* &
           (norm79(:,2)*f(:,OP_DZP) + norm79(:,1)*f(:,OP_DRP))*j(:,OP_1)
 
-     temp = int3(temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + int3(temp79a,g(:,OP_DRP),h(:,OP_DR))
+     temp = intx4(e(:,:,OP_1),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          + intx4(e(:,:,OP_1),temp79a,g(:,OP_DRP),h(:,OP_DR))
   else
-     temp79a = - k(:,OP_1)*                                            &
-          (e(:,OP_DZ)*f(:,OP_DZP) + e(:,OP_DR)*f(:,OP_DRP))*j(:,OP_1)
+     temp79a = -k(:,OP_1)*j(:,OP_1)
 
-     temp = int3(temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + int3(temp79a,g(:,OP_DRP),h(:,OP_DR))
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79a,g(:,OP_DRP),h(:,OP_DR))
   end if
 
   teffkappar = (gam - 1.) * temp
