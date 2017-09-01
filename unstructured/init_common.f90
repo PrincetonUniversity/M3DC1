@@ -280,7 +280,7 @@ subroutine den_per
   implicit none
 
   type(field_type) :: den_vec
-  integer :: numelms, itri, i
+  integer :: numelms, itri
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
 
@@ -302,9 +302,8 @@ subroutine den_per
              pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
      end if
 
-     do i=1, dofs_per_element
-        dofs(i) = int2(mu79(i,:,OP_1),n179(:,OP_1))
-     end do
+     dofs = intx2(mu79(:,:,OP_1),n179(:,OP_1))
+
      call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
   end do
 
