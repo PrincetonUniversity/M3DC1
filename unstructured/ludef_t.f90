@@ -3081,7 +3081,6 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   integer :: i
 
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179, ppt79
-  vectype :: temp
   real :: thimpb, thimp_bf, nv, coefeq
   integer :: pp_g
   coefeq =  3853.*(n0_norm/1.e14)*(l0_norm/100.)**2     ! 3853 = (gam-1)*3 *mu_0*e^2*[1.e20]/M_i   MKS units
@@ -3739,57 +3738,60 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
     endif  ! on linear.eq.0
   endif  ! on kappar.ne.0
 
-  do i=1, dofs_per_element
-     trial = trialx(i,:,:)
 
   ! Source Cooling
   ! ~~~~~~~~~~~~~~
   if(total_pressure) then
      if(linear.eq.0) then
-        temp = p1uus  (trial,lin,ph179,sig79) &
-             + p1uus  (trial,ph179,lin,sig79) &
-             + p1uchis(trial,lin,ch179,sig79) 
-        ssterm(i,u_g) = ssterm(i,u_g) -     thimpb     *dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) + (.5-thimpb*bdf)*dt*temp
+        tempx = p1uus  (trialx,lin,ph179,sig79) &
+             + p1uus  (trialx,ph179,lin,sig79) &
+             + p1uchis(trialx,lin,ch179,sig79) 
+        ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimpb*bdf)*dt*tempx
      
         if(numvar.ge.2) then
-           temp = p1vvs  (trial,lin,vz179,sig79) &
-                + p1vvs  (trial,vz179,lin,sig79)
-           ssterm(i,vz_g) = ssterm(i,vz_g) -     thimpb     *dt*temp
-           ddterm(i,vz_g) = ddterm(i,vz_g) + (.5-thimpb*bdf)*dt*temp
+           tempx = p1vvs  (trialx,lin,vz179,sig79) &
+                + p1vvs  (trialx,vz179,lin,sig79)
+           ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
+           ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimpb*bdf)*dt*tempx
         end if
         
         if(numvar.ge.3) then
-           temp = p1chichis(trial,lin,ch179,sig79) &
-                + p1chichis(trial,ch179,lin,sig79) &
-                + p1uchis  (trial,ph179,lin,sig79) 
-           ssterm(i,chi_g) = ssterm(i,chi_g) -     thimpb     *dt*temp
-           ddterm(i,chi_g) = ddterm(i,chi_g) + (.5-thimpb*bdf)*dt*temp
+           tempx = p1chichis(trialx,lin,ch179,sig79) &
+                + p1chichis(trialx,ch179,lin,sig79) &
+                + p1uchis  (trialx,ph179,lin,sig79) 
+           ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimpb*bdf)*dt*tempx
         end if
      end if
      if(eqsubtract.eq.1) then
-        temp = p1uus  (trial,lin,ph079,sig79) &
-             + p1uus  (trial,ph079,lin,sig79) &
-             + p1uchis(trial,lin,ch079,sig79) 
-        ssterm(i,u_g) = ssterm(i,u_g) -     thimpb     *dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) + (1.-thimpb*bdf)*dt*temp
+        tempx = p1uus  (trialx,lin,ph079,sig79) &
+             + p1uus  (trialx,ph079,lin,sig79) &
+             + p1uchis(trialx,lin,ch079,sig79) 
+        ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
 
         if(numvar.ge.2) then
-           temp = p1vvs  (trial,lin,vz079,sig79) &
-                + p1vvs  (trial,vz079,lin,sig79)
-           ssterm(i,vz_g) = ssterm(i,vz_g) -     thimpb     *dt*temp
-           ddterm(i,vz_g) = ddterm(i,vz_g) + (1.-thimpb*bdf)*dt*temp
+           tempx = p1vvs  (trialx,lin,vz079,sig79) &
+                + p1vvs  (trialx,vz079,lin,sig79)
+           ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
+           ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimpb*bdf)*dt*tempx
         end if
         
         if(numvar.ge.3) then
-           temp = p1chichis(trial,lin,ch079,sig79) &
-                + p1chichis(trial,ch079,lin,sig79) &
-                + p1uchis  (trial,ph079,lin,sig79) 
-           ssterm(i,chi_g) = ssterm(i,chi_g) -     thimpb     *dt*temp
-           ddterm(i,chi_g) = ddterm(i,chi_g) + (1.-thimpb*bdf)*dt*temp
+           tempx = p1chichis(trialx,lin,ch079,sig79) &
+                + p1chichis(trialx,ch079,lin,sig79) &
+                + p1uchis  (trialx,ph079,lin,sig79) 
+           ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimpb*bdf)*dt*tempx
         end if
      end if
   end if
+
+
+  do i=1, dofs_per_element
+     trial = trialx(i,:,:)
+
 
   if(ibootstrap_model.eq.1) then
      call bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimp)
@@ -4347,13 +4349,20 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
   ! density source terms
   ! ~~~~~~~~~~~~~~~~~~~~
   if(idens.eq.1 .and. eqsubtract.eq.1) then
+     if(total_pressure) then
+        r4term = r4term + dt* &
+             (p1uus    (trialx,ph079,ph079,sig79) &
+             +p1vvs    (trialx,vz079,vz079,sig79) &
+             +p1chichis(trialx,ch079,ch079,sig79) &
+             +p1uchis  (trialx,ph079,ch079,sig79))
+     endif
+
      if(itemp.eq.1 .and. iadiabat.eq.1) then
         r4term = r4term + dt* &
              (t3tndenm(trialx,pp079,n179,denm) &
              +t3ts(trialx,pp079,sig79))
      endif
   endif
-
 
 
   do i=1, dofs_per_element
@@ -4395,18 +4404,6 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         end if
      endif
   end if
-
-  ! density source terms
-  ! ~~~~~~~~~~~~~~~~~~~~
-  if(idens.eq.1 .and. eqsubtract.eq.1) then
-     if(total_pressure) then
-        r4term(i) = r4term(i) + dt* &
-             (p1uus    (trial,ph079,ph079,sig79) &
-             +p1vvs    (trial,vz079,vz079,sig79) &
-             +p1chichis(trial,ch079,ch079,sig79) &
-             +p1uchis  (trial,ph079,ch079,sig79))
-     endif
-  endif
 
   end do
 end subroutine pressure_nolin

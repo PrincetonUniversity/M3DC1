@@ -3081,7 +3081,6 @@ vectype function v2chipsib(e,f,g,h)
   end select
 
   v2chipsib = temp
-  return
 end function v2chipsib
 
 
@@ -3094,10 +3093,11 @@ vectype function v2chibb(e,f,g,h)
   implicit none
 
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+
+#if defined(USE3D) || defined(USECOMPLEX)
   vectype :: temp
 
   temp = 0.
-#if defined(USE3D) || defined(USECOMPLEX)
   select case (ivform)
   case(0)
      if(surface_int) then
@@ -3119,9 +3119,12 @@ vectype function v2chibb(e,f,g,h)
              + int5(ri4_79,e(:,OP_1),g(:,OP_DP),h(:,OP_DZ),f(:,OP_DZ))
      end if
   end select
-#endif
 
   v2chibb = temp
+#else
+  v2chibb = 0.
+#endif
+
   return
 end function v2chibb
 
@@ -10540,15 +10543,17 @@ end function p1kappax
 
 ! P1uus
 ! =====
-vectype function p1uus(e,f,g,h)
+function p1uus(e,f,g,h)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1uus
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(idens.eq.0 .or. gam.le.1. .or. surface_int) then
      p1uus = 0.
@@ -10561,30 +10566,30 @@ vectype function p1uus(e,f,g,h)
   select case(ivform)
   case(0)
      temp = 0.5*(gam-1.)* &
-          (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a) &
-          +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),temp79a))
+          (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZ),temp79a) &
+          +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DR),temp79a))
   case(1)
      temp = 0.5*(gam-1.)* &
-          (int5(r2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a) &
-          +int5(r2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),temp79a))
+          (intx5(e(:,:,OP_1),r2_79,f(:,OP_DZ),g(:,OP_DZ),temp79a) &
+          +intx5(e(:,:,OP_1),r2_79,f(:,OP_DR),g(:,OP_DR),temp79a))
   end select
 
   p1uus = temp
-  return
 end function p1uus
 
 
 ! P1vvs
 ! =====
-vectype function p1vvs(e,f,g,h)
-
+function p1vvs(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1vvs
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(idens.eq.0 .or. gam.le.1. .or. surface_int) then
      p1vvs = 0.
@@ -10597,28 +10602,28 @@ vectype function p1vvs(e,f,g,h)
   select case(ivform)
   case(0)
      temp = 0.5*(gam-1.)* &
-          int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1),temp79a)
+          intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_1),temp79a)
   case(1)
      temp = 0.5*(gam-1.)* &
-          int5(r2_79,e(:,OP_1),f(:,OP_1),g(:,OP_1),temp79a)
+          intx5(e(:,:,OP_1),r2_79,f(:,OP_1),g(:,OP_1),temp79a)
   end select
 
   p1vvs = temp
-  return
 end function p1vvs
 
 
 ! P1chichis
 ! =========
-vectype function p1chichis(e,f,g,h)
-
+function p1chichis(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1chichis
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(idens.eq.0 .or. gam.le.1. .or. surface_int) then
      p1chichis = 0.
@@ -10631,31 +10636,31 @@ vectype function p1chichis(e,f,g,h)
   select case(ivform)
   case(0)
      temp = 0.5*(gam-1.)* &
-          (int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a) &
-          +int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),temp79a))
+          (intx4(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a) &
+          +intx4(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DR),temp79a))
 
   case(1)
      temp = 0.5*(gam-1.)* &
-          (int5(ri4_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),temp79a) &
-          +int5(ri4_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),temp79a))
+          (intx5(e(:,:,OP_1),ri4_79,f(:,OP_DZ),g(:,OP_DZ),temp79a) &
+          +intx5(e(:,:,OP_1),ri4_79,f(:,OP_DR),g(:,OP_DR),temp79a))
   end select
      
   p1chichis = temp
-  return
 end function p1chichis
 
 
 ! P1uchis
 ! =======
-vectype function p1uchis(e,f,g,h)
-
+function p1uchis(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: p1uchis
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(idens.eq.0 .or. gam.le.1. .or. surface_int) then
      p1uchis = 0.
@@ -10666,11 +10671,10 @@ vectype function p1uchis(e,f,g,h)
   temp79a = h(:,OP_1) ! + denm*nt79(:,OP_LP)
 
   temp = -(gam-1.)* & 
-       (int5(ri_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR),temp79a) &
-       -int5(ri_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ),temp79a))
+       (intx5(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DR),temp79a) &
+       -intx5(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZ),temp79a))
 
   p1uchis = temp
-  return
 end function p1uchis
 
 !
