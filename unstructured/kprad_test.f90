@@ -2,9 +2,9 @@ program main
   use kprad
   
   implicit none
-  integer :: zimp, i, j, ntimemax,ntime,nzones
+  integer :: zimp, i, j, ntimemax,ntime,nzones, ierr
   real :: dts, facimp, time
-  real, allocatable, dimension(:) :: ne,te,tekev,pbrem,dw_brem
+  real, allocatable, dimension(:) :: ne,te,pbrem,dw_brem
   real, allocatable, dimension(:,:) :: imp_rad,dw_rad,nz
   
   open(unit=10,file='rad.txt')
@@ -13,16 +13,15 @@ program main
   ZIMP = 10   ! NEON
   !      ZIMP = 18   ! Argon
   
-  call kprad_atomic_data_sub(zimp)
+  call kprad_atomic_data_sub(zimp, ierr)
   dts = 1.e-7
   ntimemax = 100
   nzones = 1   ! one zone
   j = 1
 
-  allocate(ne(nzones),te(nzones),tekev(nzones))
+  allocate(ne(nzones),te(nzones))
   ne(j) = 1.e14   ! density in cm-3
   te(j) = 1000.   ! temp in ev
-  tekev(j) = 1.e-3*te(j)
   allocate(nz(nzones,0:zimp))
   allocate(pbrem(nzones), imp_rad(nzones,zimp+1), &
        dw_brem(nzones), dw_rad(nzones,zimp+1))

@@ -1,9 +1,12 @@
 module kprad
+
+  implicit none
+
   real, allocatable, private, dimension(:) :: z_ei, zed
   real, allocatable, private, dimension(:,:) :: c, sion_coeff
 
   ! mass of chosen impurity species (in amu)
-  integer, private :: mz
+  integer, private :: kprad_mz
 
   ! polynomial order for evaluating 
   ! radiation and ionization rates, respectively
@@ -28,7 +31,8 @@ contains
     real, intent(in) :: dt                    ! time step to advance densities
     integer, intent(in) :: npts
     integer, intent(in) :: z
-    real, intent(in) :: ne(npts), te(npts)
+    real, intent(in) :: ne(npts)             ! electron density in cm^-3
+    real, intent(in) :: te(npts)             ! electron temperature in eV
     real, intent(inout) :: nz(npts,0:z)      ! density
     real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
     real, intent(out) :: dw_brem(npts)       ! energy lost via bremsstrahlung
@@ -196,11 +200,15 @@ contains
     PBREM = 1.69E-32*NE**2.0*SQRT(TE)*nZeff(:,2) 
   end subroutine KPRAD_ENERGY_LOSSES
                                                                         
-  subroutine kprad_atomic_data_sub(Z)
+  subroutine kprad_atomic_data_sub(Z, ierr)
     implicit none
     
-    integer :: I,Z
+    integer, intent(in) :: Z
+    integer, intent(out) :: ierr
+
+    integer :: I
     
+    ierr = 0
     select case (Z)
        
     case (1) !DUMMY ARRAYS FOR ZIMP=1
@@ -220,7 +228,7 @@ contains
         
        Z_EI = (/0.0, 0.0/)
        ZED=(/(real(I),I=0,Z)/)
-       MZ=2.0
+       kprad_mz = 2.0
        write(*,*)  'NO IMPURITY SPECIES WITH ZIMP=1.'
        
        ! select IMPURITY SPECIES
@@ -257,7 +265,7 @@ contains
         
        Z_EI = (/24.5876,54.416,1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
-       MZ=4.0
+       kprad_mz = 4.0
        write(*,*)   &
             'ALL AVAILABLE ATOMIC DATA FOR HELIUM WERE LOADED SUCCESSFULLY.'
        
@@ -291,7 +299,7 @@ contains
             0.701139331,-0.034435261,0.0/),(/8,4/))
        Z_EI= (/9.3227,   18.21114,   153.89661, 217.71865,1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
-       MZ=9.012
+       kprad_mz = 9.012
        write(*,*)    &
             'ALL AVAILABLE ATOMIC DATA FOR BERYLLIUM WERE LOADED', &
             ' SUCCESSFULLY'
@@ -343,7 +351,7 @@ contains
 
        Z_EI= (/11.26, 24.384, 47.888, 64.5, 392.1, 490.0, 1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
-       MZ=12.0
+       kprad_mz = 12.0
        write(*,*)   &
             'ALL AVAILABLE ATOMIC DATA FOR CARBON WERE LOADED SUCCESSFULLY.'
        
@@ -428,7 +436,7 @@ contains
        z_ei =                          &
             (/21.6,41.0,63.5,97.0,126.3,157.9,207.2 ,239.0,1195.0,1362.3,1.0e6/)
        ZED=(/(real(I),I=0,Z)/)
-       MZ=20.0
+       kprad_mz = 20.0
        write(*,*)   &
             'ALL AVAILABLE ATOMIC DATA FOR NEON WERE LOADED SUCCESSFULLY.'
                
@@ -538,13 +546,14 @@ contains
             422.5,478.7,618.3,538.96,686.11,755.75,854.78,918.05,   &  
             4120.87,4426.24,1.0e6/)
        ZED=(/(real(I),I=0,Z)/)
-       MZ=40.0
+       kprad_mz = 40.0
         
        write(*,*)   &
             'ALL AVAILABLE ATOMIC DATA FOR ARGON WERE LOADED SUCCESSFULLY.'
          
     case DEFAULT
        write(*,*) 'NO DATA FOR THIS ELEMENT EXISTS!'
+       ierr = 1
        
     end select
 
@@ -615,5 +624,5 @@ contains
        x(:,j) = f(:,j)-c(:,j)*x(:,j+1)/e(:,j)
     end do
   end subroutine tridiag
-  
+
 end module kprad

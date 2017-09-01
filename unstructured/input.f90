@@ -125,6 +125,7 @@ subroutine set_defaults
   use rmp
   use resistive_wall
   use radiation
+  use kprad_m3dc1
 
   implicit none
 
@@ -149,6 +150,7 @@ subroutine set_defaults
   integer :: deprec_grp
   integer :: trilinos_grp
   integer :: prad_grp
+  integer :: kprad_grp
 
 
   call add_group("Model Options", model_grp)
@@ -172,6 +174,7 @@ subroutine set_defaults
   call add_group("Deprecated", deprec_grp)
   call add_group("Trilinos Options", trilinos_grp)
   call add_group("PRAD Options", prad_grp)
+  call add_group("KPRAD Options", kprad_grp)
 
 
   ! Normalizations
@@ -203,6 +206,7 @@ subroutine set_defaults
        "Subtract diamag. term from input vel. when reading NEO vel.", &
        input_grp)
 
+  ! PRAD options
   call add_var_int("iprad", iprad, 0, &
        "1: Teng's PRad module with one impurity species", prad_grp)
   call add_var_int("prad_z", prad_z, 1, &
@@ -213,6 +217,18 @@ subroutine set_defaults
   call add_var_int("iread_prad", iread_prad, 0, &
        "1: Read impurity density from profile_nz in units of 10^20 / m^3", &
        prad_grp)
+
+  ! KPRAD options
+  call add_var_int("ikprad", ikprad, 0, &
+       "1: KPRad module with one impurity species", kprad_grp)
+  call add_var_int("kprad_z", kprad_z, 1, &
+       "Z of impurity species in KPRad module", kprad_grp)
+  call add_var_double("prad_fz", kprad_fz, 0., &
+       "Density of neutral impurity species in KPRad module, as fraction of ne", &
+       kprad_grp)
+  call add_var_double("prad_nz", kprad_nz, 0., &
+       "Density of neutral impurity species in KPRAD module", &
+       kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)

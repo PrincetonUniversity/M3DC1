@@ -130,7 +130,7 @@ READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
 OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
-	random.o spline.o \
+	random.o spline.o kprad.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
@@ -144,7 +144,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	coils.o coil_sets.o model.o \
 	fit_magnetics.o \
 	init_common.o \
-	gradshafranov.o rmp.o \
+	gradshafranov.o rmp.o kprad_m3dc1.o \
 	readgeqdsk.o read_jsolver.o read_dskbal.o \
 	init_rwm.o init_solovev.o init_circle.o init_basicj.o \
 	init_tilt.o init_taylor.o init_force_free.o init_gem.o init_wave.o \
@@ -164,7 +164,6 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o
-KPRAD_OBJS = kprad.o kprad_test.o
 
 all : $(BIN) m3dc1
 
@@ -183,14 +182,11 @@ read_jsolver : $(READJSOLVER_OBJS)
 read_jsolver_exec.o : read_jsolver.f90
 	$(F90) $(F90OPTS) -DREAD_JSOLVER $< -o $@
 
-struct2vac : $(S2V_OBJS)
-	$(LOADER) -Wl,--warn-unresolved-symbols $(S2V_OBJS) $(LIBS) -o $@
-
 a2cc : $(A2CC_OBJS)
-	$(LOADER) $(A2CC_OBJS) -o $@
+	$(LOADER) $(LDOPTS) $(A2CC_OBJS) -o $@
 
-kprad : $(KPRAD_OBJS)
-	$(LOADER) $(KPRAD_OBJS) -o $@
+kprad : kprad.f90 kprad_test.f90
+	$(F90) $(F90OPTS) $< -o $@
 
 .PHONY : bin
 bin : 
