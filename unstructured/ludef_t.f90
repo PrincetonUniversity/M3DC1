@@ -3076,9 +3076,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   vectype :: freq_fac
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: trial
   vectype, dimension(dofs_per_element) :: tempx
-  integer :: i
 
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179, ppt79
   real :: thimpb, thimp_bf, nv, coefeq
@@ -3788,16 +3786,9 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      end if
   end if
 
-
-  do i=1, dofs_per_element
-     trial = trialx(i,:,:)
-
-
   if(ibootstrap_model.eq.1) then
-     call bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimp)
+     call bootstrap_pressure(trialx, lin, ssterm, ddterm, pp_g, thimp)
   end if
-
-  end do
 end subroutine pressure_lin
 
 !======================================================================

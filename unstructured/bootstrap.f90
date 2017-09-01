@@ -156,16 +156,17 @@ contains
 
     implicit none
 
-    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
-    vectype, dimension(num_fields), intent(inout) :: ssterm, ddterm
+    vectype, dimension(dofs_per_element,MAX_PTS, OP_NUM), intent(in) :: trial
+    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
+    vectype, dimension(dofs_per_element,num_fields), intent(inout) :: ssterm, ddterm
     integer, intent(in) :: pp_g
     real, intent(in) :: thimpi
 
-    vectype :: temp
+    vectype, dimension(dofs_per_element) :: temp
 
     temp = bs_b3pe(trial,lin)
-    ssterm(pp_g) = ssterm(pp_g) -       thimpi     *dt*temp
-    ddterm(pp_g) = ddterm(pp_g) + (1. - thimpi*bdf)*dt*temp
+    ssterm(:,pp_g) = ssterm(:,pp_g) -       thimpi     *dt*temp
+    ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimpi*bdf)*dt*temp
   end subroutine bootstrap_pressure
 
   
@@ -335,16 +336,18 @@ contains
 
   ! B3pe
   ! ====
-  vectype function bs_b3pe(e,f)
+  function bs_b3pe(e,f)
     use basic
     use m3dc1_nint
 
     implicit none
 
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-    vectype :: temp
+    vectype, dimension(dofs_per_element) :: bs_b3pe
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+    vectype, dimension(dofs_per_element) :: temp
 
-    temp79a = e(:,OP_1)*eta79(:,OP_1)*bzt79(:,OP_1)* &
+    temp79a = eta79(:,OP_1)*bzt79(:,OP_1)* &
          (f(:,OP_DZ)*pst79(:,OP_DZ) + f(:,OP_DR)*pst79(:,OP_DR))
 
     ! J.B
@@ -359,7 +362,7 @@ contains
          - ri2_79*(bft79(:,OP_DZP)* pst79(:,OP_DZP) + bft79(:,OP_DRP)* pst79(:,OP_DRP))
 #endif
 
-    temp = int2(temp79a, temp79b)
+    temp = intx3(e(:,:,OP_1),temp79a, temp79b)
 
     bs_b3pe = -(gam-1.)*bootstrap_alpha*temp
   end function bs_b3pe
