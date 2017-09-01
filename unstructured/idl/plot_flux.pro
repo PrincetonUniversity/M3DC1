@@ -1,9 +1,7 @@
-pro plot_flux, slice=slice, _EXTRA=extra, out=out
+pro plot_flux, slice=slice, _EXTRA=extra, out=out, ylog=ylog
 
   db = read_parameter('db', _EXTRA=extra)
   ip = read_scalar('ip', _EXTRA=extra)
-  print, 'db = ', db
-  print, 'ip = ', ip
 
   EX1 = read_field('E_R',x,z,t,slice=slice,/linear,/complex,_EXTRA=extra)
   EY1 = read_field('E_Phi',x,z,t,slice=slice,/linear,/complex,_EXTRA=extra)
@@ -21,6 +19,7 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
   pe1 = read_field('pe',x,z,t,slice=slice,/linear,/complex,_EXTRA=extra)
   pi1 = p1 - pe1
   ne1 = read_field('ne',x,z,t,slice=slice,/linear,/complex,_EXTRA=extra)
+  bdotgradt = read_field('bdotgradt',x,z,t,slice=slice,/linear,/complex,_EXTRA=extra)
 
   BX0 = read_field('Bx',x,z,t,slice=-1,_EXTRA=extra)
   BY0 = read_field('By',x,z,t,slice=-1,_EXTRA=extra)
@@ -31,6 +30,7 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
   pe0 = read_field('pe',x,z,t,slice=-1,_EXTRA=extra)
   pi0 = p0 - pe0
   ne0 = read_field('ne',x,z,t,slice=-1,_EXTRA=extra)
+  kappar = read_parameter('kappar', _EXTRA=extra)
   
   ; Radial direction is B0 x Y.  This is outward when IP > 0.
   ; B0 x Y = Bx Z - Bz X
@@ -55,6 +55,7 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
   gamma_ne_flutter = real_part((ne1*Ve_par0 + ne0*Ve_par1)*conj(Br1)/B0)/2.
   gamma_pe_flutter = real_part((pe1*Ve_par0 + pe0*Ve_par1)*conj(Br1)/B0)/2.
   gamma_pi_flutter = real_part((pi1*Vi_par0 + pi0*Vi_par1)*conj(Br1)/B0)/2.
+  gamma_qe_kappar = kappar*real_part(bdotgradt*conj(Br1)/B0^2)/2.
 
   if(ip[0] lt 0.) then begin
      gamma_ne_ExB = -gamma_ne_ExB
@@ -63,6 +64,7 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
      gamma_ne_flutter = -gamma_ne_flutter
      gamma_pe_flutter = -gamma_pe_flutter
      gamma_pi_flutter = -gamma_pi_flutter
+     gamma_qe_kappar = - gamma_qe_kappar
   end
 
   g_ne_ExB = flux_average(gamma_ne_ExB,fc=fc,psi=psi, i0=i0, x=x, z=z, t=t,$
@@ -77,6 +79,8 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
                               t=t, _EXTRA=extra)
   g_pi_flutter = flux_average(gamma_pi_flutter,fc=fc,psi=psi, i0=i0, x=x, z=z,$
                               t=t, _EXTRA=extra)
+  g_qe_kappar = flux_average(gamma_qe_kappar,fc=fc,psi=psi, i0=i0, x=x, z=z,$
+                              t=t, _EXTRA=extra)
 
   dn = dimensions(/n0, /v0)
   un = parse_units(dn, /mks)
@@ -86,39 +90,77 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
   convert_units, g_ne_flutter, dn, /mks, _EXTRA=extra
   convert_units, g_pe_ExB, dp, /mks, _EXTRA=extra
   convert_units, g_pe_flutter, dp, /mks, _EXTRA=extra
+  convert_units, g_qe_kappar, dp, /mks, _EXTRA=extra
   convert_units, g_pi_ExB, dp, /mks, _EXTRA=extra
   convert_units, g_pi_flutter, dp, /mks, _EXTRA=extra
    
   !p.multi = [0,2,2]
 
   ct3
-  plot, [0,1], [min([g_ne_ExB, g_ne_flutter]), max([g_ne_ExB, g_ne_flutter])],$
+
+  if(keyword_set(ylog)) then begin
+     yrange=max(abs([g_ne_ExB, g_ne_flutter]))*[1e-6,1]
+  endif else begin
+     yrange=[min([g_ne_ExB, g_ne_flutter]), max([g_ne_ExB, g_ne_flutter])]
+  endelse
+
+  plot, [0,1], yrange=yrange, ylog=ylog, $
         /nodata, title='!6Electron Particle Flux Density!X', $
         xtitle='!7W!X', ytitle='!6Particle Flux Density(' + un + ')!X'
   oplot, fc.psi_norm, g_ne_ExB + g_ne_flutter, color=color(0)
   oplot, fc.psi_norm, g_ne_ExB, color=color(1)
   oplot, fc.psi_norm, g_ne_flutter, color=color(2)
+  if(keyword_set(ylog)) then begin
+     oplot, fc.psi_norm, -(g_ne_ExB + g_ne_flutter), color=color(0), linestyle=2
+     oplot, fc.psi_norm, -(g_ne_ExB), color=color(1), linestyle=2
+     oplot, fc.psi_norm, -(g_ne_flutter), color=color(2), linestyle=2
+  end
 
-  plot_legend, ['Total', 'ExB flux', 'Flutter'], color=get_colors()
+  plot_legend, ['Total', 'ExB flux', 'Flutter'], color=get_colors(), ylog=ylog
+
+
+  if(keyword_set(ylog)) then begin
+     yrange=max(abs([g_pe_ExB, g_pe_flutter, g_qe_kappar]))*[1e-6,1]
+  endif else begin
+     yrange=[min([g_pe_ExB, g_pe_flutter, g_qe_kappar]), max([g_pe_ExB, g_pe_flutter, g_qe_kappar])]
+  endelse
   
-  plot, [0,1], [min([g_pe_ExB, g_pe_flutter]), max([g_pe_ExB, g_pe_flutter])],$
+  plot, [0,1], yrange=yrange, ylog=ylog, $
         /nodata, title='!6Electron Heat Flux Density!X', $
         xtitle='!7W!X', ytitle='!6Energy Flux Density (' + up + ')!X'
-  oplot, fc.psi_norm, g_pe_ExB + g_pe_flutter, color=color(0)
+  oplot, fc.psi_norm, g_pe_ExB + g_pe_flutter + g_qe_kappar, color=color(0)
   oplot, fc.psi_norm, g_pe_ExB, color=color(1)
   oplot, fc.psi_norm, g_pe_flutter, color=color(2)
+  oplot, fc.psi_norm, g_qe_kappar, color=color(3)
+  if(keyword_set(ylog)) then begin
+     oplot, fc.psi_norm, -(g_pe_ExB + g_pe_flutter + g_qe_kappar), color=color(0), linestyle=2
+     oplot, fc.psi_norm, -g_pe_ExB, color=color(1), linestyle=2
+     oplot, fc.psi_norm, -g_pe_flutter, color=color(2), linestyle=2
+     oplot, fc.psi_norm, -g_qe_kappar, color=color(3), linestyle=2
+  endif
 
-  plot_legend, ['Total', 'ExB flux', 'Flutter'], color=get_colors()
+  plot_legend, ['Total', 'ExB flux', 'Flutter', 'Parallel Diffusion'], color=get_colors(), ylog=ylog
 
 
-  plot, [0,1], [min([g_pi_ExB, g_pi_flutter]), max([g_pi_ExB, g_pi_flutter])],$
+  if(keyword_set(ylog)) then begin
+     yrange=max(abs([g_pi_ExB, g_pi_flutter]))*[1e-6,1]
+  endif else begin
+     yrange=[min([g_pi_ExB, g_pi_flutter]), max([g_pi_ExB, g_pi_flutter])]
+  endelse
+
+  plot, [0,1], yrange=yrange, ylog=ylog, $
         /nodata, title='!6Ion Heat Flux Density!X', $
         xtitle='!7W!X', ytitle='!6Energy Flux Density (' + up + ')!X'
   oplot, fc.psi_norm, g_pi_ExB + g_pi_flutter, color=color(0)
   oplot, fc.psi_norm, g_pi_ExB, color=color(1)
   oplot, fc.psi_norm, g_pi_flutter, color=color(2)
+  if(keyword_set(ylog)) then begin
+     oplot, fc.psi_norm, -(g_pi_ExB + g_pi_flutter), color=color(0), linestyle=2
+     oplot, fc.psi_norm, -(g_pi_ExB), color=color(1), linestyle=2
+     oplot, fc.psi_norm, -(g_pi_flutter), color=color(2), linestyle=2
+  end
 
-  plot_legend, ['Total', 'ExB flux', 'Flutter'], color=get_colors()
+  plot_legend, ['Total', 'ExB flux', 'Flutter'], color=get_colors(), ylog=ylog
 
 
   !p.multi = 0
@@ -127,21 +169,23 @@ pro plot_flux, slice=slice, _EXTRA=extra, out=out
      openw, ifile, out, /get_lun
      printf, ifile, format='(7A12)', $
              'psi norm', 'ne ExB', 'ne flutter', $
-             'pe ExB', 'pe flutter', $
+             'pe ExB', 'pe flutter', 'pe chi_par', $
              'pi ExB', 'pi flutter'
      printf, ifile, format='(7A12)', $
              ' ', '[/s m^2]', '[/s m^2]', $
-             '[J/s m^2]', '[J/s m^2]', $
+             '[J/s m^2]', '[J/s m^2]', '[J/s m^2]', $
              '[J/s m^2]', '[J/s m^2]'
      for i=0, n_elements(fc.psi_norm)-1 do begin
         printf, ifile, format='(7G12.5)', $
                 fc.psi_norm[i], g_ne_ExB[i], g_ne_flutter[i], $
-                g_pe_ExB[i], g_pe_flutter[i], g_pi_ExB[i], g_pi_flutter[i]
+                g_pe_ExB[i], g_pe_flutter[i], g_qe_kappar[i], $
+                g_pi_ExB[i], g_pi_flutter[i]
      end
      free_lun, ifile
   end
 
-  print, 'Plots show outward quasilinear flux densities.'
+  print, 'Plots show quasilinear flux densities.'
+  print, 'Solid lines = outward, dashed lines = inward'
   print, 'ExB fluxes are < ns1 (E1 x B0 / B0^2) . r >'
   print, 'flutter fluxes are < (ns1 vs_par0 + ns0 vs_par1) (B1 / B0) . r >
 end
