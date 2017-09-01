@@ -67,6 +67,8 @@ else
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
+SCOREC_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.8.4/utilities
+
 SCORECLIB= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
 ZOLTAN_LIB=-L/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.8.4/lib -lzoltan
