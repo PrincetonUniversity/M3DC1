@@ -641,8 +641,8 @@ subroutine calculate_scalars()
      end if
   endif
 
-  tm79 = 0.
-  tm79(:,OP_1) = 1.
+!  tm79 = 0.
+!  tm79(:,OP_1) = 1.
   mr = 0.
 
   call finalize(field0_vec)
@@ -703,11 +703,11 @@ subroutine calculate_scalars()
 
      emagp  = emagp  + twopi*energy_mp ()/tpifac
      emagpd = emagpd + twopi*energy_mpd()/tpifac
-     emagph = emagph - twopi*qpsipsieta(tm79)/tpifac
+!     emagph = emagph - twopi*qpsipsieta(tm79)/tpifac
 
      emagt  = emagt  + twopi*energy_mt ()/tpifac
      emagtd = emagtd + twopi*energy_mtd()/tpifac
-     emagth = emagth - twopi*qbbeta(tm79)/tpifac
+!     emagth = emagth - twopi*qbbeta(tm79)/tpifac
 
      emag3 = emag3 + twopi*energy_p()/tpifac
 

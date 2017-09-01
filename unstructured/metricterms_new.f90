@@ -9541,7 +9541,7 @@ function t3tndenm(e,f,g,h)
           +intx3(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DR)))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-     temp = temp - h*intx4(ri2_79,e(:,:,OP_1),f(:,OP_1),g(:,OP_DPP))
+     temp = temp - h*intx4(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_DPP))
 #endif
 
      if(hypp.ne.0.) then
@@ -11840,15 +11840,15 @@ end function g3chi
 
 ! qpsipsieta
 ! ==========
-vectype function qpsipsieta(e)
-
+function qpsipsieta(e)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: qpsipsieta
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, dimension(dofs_per_element) :: temp
 
   if(hypf.eq.0. .or. jadv.eq.1 .or. surface_int) then
      qpsipsieta = 0.
@@ -11863,9 +11863,9 @@ vectype function qpsipsieta(e)
   endif
 
   if(ihypeta.eq.1) then
-     temp = hypf*int3(e(:,OP_1),eta79(:,OP_1),temp79a)
+     temp = hypf*intx3(e(:,:,OP_1),eta79(:,OP_1),temp79a)
   else
-     temp = hypf*int2(e(:,OP_1),temp79a)
+     temp = hypf*intx2(e(:,:,OP_1),temp79a)
   endif
 
 
@@ -11876,26 +11876,25 @@ vectype function qpsipsieta(e)
   temp79a = temp79a * ri2_79*nt79(:,OP_1)*jt79(:,OP_1)
      
   if(ihypeta.eq.1) then
-     temp = temp + hypf*int3(e(:,OP_1),eta79(:,OP_1),temp79a)
+     temp = temp + hypf*intx3(e(:,:,OP_1),eta79(:,OP_1),temp79a)
   else
-     temp = temp + hypf*int2(e(:,OP_1),temp79a)
+     temp = temp + hypf*intx2(e(:,:,OP_1),temp79a)
   endif
 
   qpsipsieta = temp
-  return
 end function qpsipsieta
 
 ! qbbeta
 ! ======
-vectype function qbbeta(e)
-
+function qbbeta(e)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: qbbeta
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, dimension(dofs_per_element) :: temp
 
   if(hypi.eq.0. .or. surface_int) then
      qbbeta = 0.
@@ -11913,9 +11912,9 @@ vectype function qbbeta(e)
   endif
 
   if(ihypeta.eq.1) then
-     temp = hypi*int3(e(:,OP_1),eta79(:,OP_1),temp79a)
+     temp = hypi*intx3(e(:,:,OP_1),eta79(:,OP_1),temp79a)
   else
-     temp = hypi*int2(e(:,OP_1),temp79a)
+     temp = hypi*intx2(e(:,:,OP_1),temp79a)
   endif
 
   temp79a = &
@@ -11930,13 +11929,12 @@ vectype function qbbeta(e)
   temp79a = temp79a * ri2_79*nt79(:,OP_1)
      
   if(ihypeta.eq.1) then
-     temp = temp + hypi*int3(e(:,OP_1),eta79(:,OP_1),temp79a)
+     temp = temp + hypi*intx3(e(:,:,OP_1),eta79(:,OP_1),temp79a)
   else
-     temp = temp + hypi*int2(e(:,OP_1),temp79a)
+     temp = temp + hypi*intx2(e(:,:,OP_1),temp79a)
   endif
 
   qbbeta = temp
-  return
 end function qbbeta
 
 
@@ -11946,36 +11944,37 @@ end function qbbeta
 
 ! quumu
 ! =====
-vectype function quumu(e,f,g,h)
-
+function quumu(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: quumu
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
      if(surface_int) then
         temp = 0.
      else
-        temp = -int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1)) &
-             + 4.* int5(ri2_79,e(:,OP_1),f(:,OP_DRR),g(:,OP_DZZ),h(:,OP_1)) &
-             - 4.* int5(ri2_79,e(:,OP_1),f(:,OP_DRZ),g(:,OP_DRZ),h(:,OP_1))
+        temp = -intx5(e(:,:,OP_1),ri2_79,f(:,OP_GS),g(:,OP_GS),h(:,OP_1)) &
+             + 4.* intx5(e(:,:,OP_1),ri2_79,f(:,OP_DRR),g(:,OP_DZZ),h(:,OP_1))&
+             - 4.* intx5(e(:,:,OP_1),ri2_79,f(:,OP_DRZ),g(:,OP_DRZ),h(:,OP_1))
 
         if(itor.eq.1) then
            temp = temp &
-                + 4.*int5(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_DZ),h(:,OP_1)) &
-                - 4.*int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
-                + 4.*int5(ri4_79,e(:,OP_1 ),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1))
+                + 4.*intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1)) &
+                - 4.*intx5(e(:,:,OP_DR),ri3_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+                + 4.*intx5(e(:,:,OP_1 ),ri4_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1))
         endif
         
         if(hypc.ne.0.) then
            temp = temp - hypc* &
-                (int5(ri2_79,e(:,OP_1),vot79(:,OP_DZ),vot79(:,OP_DZ),h(:,OP_1)) &
-                +int5(ri2_79,e(:,OP_1),vot79(:,OP_DR),vot79(:,OP_DR),h(:,OP_1)))
+                (intx5(e(:,:,OP_1),ri2_79,vot79(:,OP_DZ),vot79(:,OP_DZ),h(:,OP_1)) &
+                +intx5(e(:,:,OP_1),ri2_79,vot79(:,OP_DR),vot79(:,OP_DR),h(:,OP_1)))
         endif
      end if
      
@@ -11987,37 +11986,37 @@ vectype function quumu(e,f,g,h)
   end select
 
   quumu = temp
-  return
 end function quumu
 
 
 ! quchimu
 ! =======
-vectype function quchimu(e,f,g,h,i)
-
+function quchimu(e,f,g,h,i)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i
+  vectype, dimension(dofs_per_element) :: quchimu
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
 
   quchimu = 0.
-  return
 end function quchimu
 
 
 ! qvvmu
 ! =====
-vectype function qvvmu(e,f,g,h)
-
+function qvvmu(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: qvvmu
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
@@ -12025,18 +12024,18 @@ vectype function qvvmu(e,f,g,h)
         temp = 0.
      else
         temp = - &
-             (int5(ri2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
-             +int5(ri2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1)))
+             (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+             +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1)))
 
         if(itor.eq.1) then
            temp = temp &
-                + 4.*int5(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_1),h(:,OP_1)) &
-                - 4.*int5(ri4_79,e(:,OP_1),f(:,OP_1 ),g(:,OP_1),h(:,OP_1))
+                + 4.*intx5(e(:,:,OP_1),ri3_79,f(:,OP_DR),g(:,OP_1),h(:,OP_1)) &
+                - 4.*intx5(e(:,:,OP_1),ri4_79,f(:,OP_1 ),g(:,OP_1),h(:,OP_1))
         endif
   
         if(hypv.ne.0.) then
            temp = temp - &
-                hypv*int5(ri2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1))
+                hypv*intx5(e(:,:,OP_1),ri2_79,f(:,OP_GS),g(:,OP_GS),h(:,OP_1))
         endif
      end if
 
@@ -12045,54 +12044,54 @@ vectype function qvvmu(e,f,g,h)
         temp = 0.
      else
         temp = - &
-             (int5(r2_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
-             +int5(r2_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1)))
+             (intx5(e(:,:,OP_1),r2_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+             +intx5(e(:,:,OP_1),r2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1)))
         
         if(hypv.ne.0.) then
            temp = temp - &
-                hypv*int5(r2_79,e(:,OP_1),f(:,OP_GS),g(:,OP_GS),h(:,OP_1))
+                hypv*intx5(e(:,:,OP_1),r2_79,f(:,OP_GS),g(:,OP_GS),h(:,OP_1))
         endif
      end if
         
   end select
 
   qvvmu = temp
-  return
 end function qvvmu
 
 
 ! qchichimu
 ! =========
-vectype function qchichimu(e,f,g,h)
-
+function qchichimu(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: qchichimu
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   select case(ivform)
   case(0)
      if(surface_int) then
         temp = 0.
      else
-        temp = 4.*int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DZZ),g(:,OP_DRZ)) &
-             - 4.*int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DRZ),g(:,OP_DZZ)) &
-             + 4.*int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DRZ),g(:,OP_DRR)) &
-             - 4.*int5(ri_79,e(:,OP_1),h(:,OP_1),f(:,OP_DRR),g(:,OP_DRZ))
+        temp = 4.*intx5(e(:,:,OP_1),ri_79,h(:,OP_1),f(:,OP_DZZ),g(:,OP_DRZ)) &
+             - 4.*intx5(e(:,:,OP_1),ri_79,h(:,OP_1),f(:,OP_DRZ),g(:,OP_DZZ)) &
+             + 4.*intx5(e(:,:,OP_1),ri_79,h(:,OP_1),f(:,OP_DRZ),g(:,OP_DRR)) &
+             - 4.*intx5(e(:,:,OP_1),ri_79,h(:,OP_1),f(:,OP_DRR),g(:,OP_DRZ))
 
         if(itor.eq.1) then
            temp = temp &
-                + 4.*int5(ri2_79,e(:,OP_DR),h(:,OP_1),f(:,OP_DZ),g(:,OP_DR)) &
-                - 4.*int5(ri2_79,e(:,OP_DZ),h(:,OP_1),f(:,OP_DR),g(:,OP_DR))
+                + 4.*intx5(e(:,:,OP_DR),ri2_79,h(:,OP_1),f(:,OP_DZ),g(:,OP_DR)) &
+                - 4.*intx5(e(:,:,OP_DZ),ri2_79,h(:,OP_1),f(:,OP_DR),g(:,OP_DR))
         endif
   
         if(hypc.ne.0.) then
            temp = temp - 2.*hypc* &
-                (int4(e(:,OP_1),cot79(:,OP_DZ),cot79(:,OP_DZ),h(:,OP_1)) &
-                +int4(e(:,OP_1),cot79(:,OP_DR),cot79(:,OP_DR),h(:,OP_1)))
+                (intx4(e(:,:,OP_1),cot79(:,OP_DZ),cot79(:,OP_DZ),h(:,OP_1)) &
+                +intx4(e(:,:,OP_1),cot79(:,OP_DR),cot79(:,OP_DR),h(:,OP_1)))
         endif
      end if
 
@@ -12103,7 +12102,6 @@ vectype function qchichimu(e,f,g,h)
   end select
 
   qchichimu = temp
-  return
 end function qchichimu
 
 

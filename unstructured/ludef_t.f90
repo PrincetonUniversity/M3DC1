@@ -4288,9 +4288,6 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
   vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
 
-  vectype, dimension(MAX_PTS, OP_NUM)  :: trial
-  integer :: i
-
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079
   logical, intent(in) :: total_pressure
 
@@ -4355,48 +4352,42 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
      endif
   endif
 
-
-  do i=1, dofs_per_element
-     trial = trialx(i,:,:)
-
-
   ! source terms
   ! ~~~~~~~~~~~~
   if(gam.ne.1.) then
      ! hyper-ohmic heating
      if(db.ne.0.) then 
-        r4term(i) = r4term(i) + db*dt*(gam-1.)* &
-             (qpsipsieta(trial) &
-             +qbbeta    (trial))
+        r4term = r4term + db*dt*(gam-1.)* &
+             (qpsipsieta(trialx) &
+             +qbbeta    (trialx))
      endif
 
      ! viscous heating
      if(total_pressure) then
         if(eqsubtract.eq.1) then
-           r4term(i) = r4term(i) - dt*(gam-1.)* &
-                (quumu    (trial,ph079,ph179,vis79      ) &
-                +qvvmu    (trial,vz079,vz179,vis79      ) &
-                +quchimu  (trial,ph079,ch179,vis79,vic79) &
-                +qchichimu(trial,ch079,ch179,      vic79))
-           r4term(i) = r4term(i) - dt*(gam-1.)* &
-                (quumu    (trial,ph179,ph079,vis79      ) &
-                +qvvmu    (trial,vz179,vz079,vis79      ) &
-                +quchimu  (trial,ph179,ch079,vis79,vic79) &
-                +qchichimu(trial,ch179,ch079,      vic79))
-           r4term(i) = r4term(i) - dt*(gam-1.)* &
-                (p1vip    (trial))
+           r4term = r4term - dt*(gam-1.)* &
+                (quumu    (trialx,ph079,ph179,vis79      ) &
+                +qvvmu    (trialx,vz079,vz179,vis79      ) &
+                +quchimu  (trialx,ph079,ch179,vis79,vic79) &
+                +qchichimu(trialx,ch079,ch179,      vic79))
+           r4term = r4term - dt*(gam-1.)* &
+                (quumu    (trialx,ph179,ph079,vis79      ) &
+                +qvvmu    (trialx,vz179,vz079,vis79      ) &
+                +quchimu  (trialx,ph179,ch079,vis79,vic79) &
+                +qchichimu(trialx,ch179,ch079,      vic79))
+           r4term = r4term - dt*(gam-1.)* &
+                (p1vip    (trialx))
         else
-           r4term(i) = r4term(i) - dt*(gam-1.)* &
-                (quumu    (trial,pht79,pht79,vis79      ) &
-                +qvvmu    (trial,vzt79,vzt79,vis79      ) &
-                +quchimu  (trial,pht79,cht79,vis79,vic79) &
-                +qchichimu(trial,cht79,cht79,      vic79) &
-                +p1vip    (trial))
+           r4term = r4term - dt*(gam-1.)* &
+                (quumu    (trialx,pht79,pht79,vis79      ) &
+                +qvvmu    (trialx,vzt79,vzt79,vis79      ) &
+                +quchimu  (trialx,pht79,cht79,vis79,vic79) &
+                +qchichimu(trialx,cht79,cht79,      vic79) &
+                +p1vip    (trialx))
         end if
      endif
   end if
 
-  end do
 end subroutine pressure_nolin
 
 
