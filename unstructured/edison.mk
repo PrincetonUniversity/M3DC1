@@ -58,10 +58,9 @@ SCOREC_LIBS=-Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
             -Wl,--end-group
 
 # Use Adios
-#OPTS := $(OPTS) -DUSEADIOS
-#ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-# -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
-# -L/usr/lib64/ -llustreapi
+OPTS := $(OPTS) -DUSEADIOS
+ADIOS_FLIB = ${ADIOSREAD_FLIB_V1} \
+	-L/usr/lib64/ -llustreapi
 
 OPTS := $(OPTS) -DPetscDEV -DKSPITS -DNEXTPetscDEV
 

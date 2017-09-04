@@ -1369,7 +1369,7 @@ subroutine rdrestart_adios
     if(version_in.ge.14) then
        call adios_read_local_var (gh, "icsubtract",      group_rank, start, readsize, prev_icsubtract, read_bytes)
        call adios_read_local_var (gh, "extsubtract",      group_rank, start, readsize, prev_extsubtract, read_bytes)
-       call adios_read_local_var (gh, "use_external_fields",      group_rank, start, readsize, prev_use_external_fields, read_bytes)
+       !cj error 2017sept03 call adios_read_local_var (gh, "use_external_fields",      group_rank, start, readsize, prev_use_external_fields, read_bytes)
       if(myrank.eq.group_rank) then
           if(myrank.eq.group_rank) then
           if(prev_icsubtract.ne.icsubtract) &
