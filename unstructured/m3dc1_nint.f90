@@ -906,7 +906,7 @@ contains
            eta79(:,OP_1) = eta_max / efac
 
            ! Te
-           temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
+           temp79b = max(real(pet79(:,OP_1)/net79(:,OP_1)) - eta_te_offset,.5*pedge/den_edge - eta_te_offset)
 #ifdef USE3D
            ! dTe/dphi
            temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &

@@ -1377,9 +1377,9 @@ subroutine validate_input
   end if
 
   if(ihypeta.gt.2) then
-  keharhypeta = 0.
-     if(ihypeta .gt. ike_harmonics) then
-         print *, 'Error:  ihypeta > ike_harmonics', ihypeta, ike_harmonics
+  bharhypeta = 0.
+     if(ihypeta .gt. ibh_harmonics) then
+         print *, 'Error:  ihypeta > ibh_harmonics', ihypeta, ibh_harmonics
          call safestop(1)
      endif
   endif

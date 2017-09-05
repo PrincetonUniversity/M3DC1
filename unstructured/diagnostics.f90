@@ -650,8 +650,8 @@ subroutine calculate_scalars()
 
   numelms = local_elements()
 
-!$OMP PARALLEL DEFAULT (PRIVATE) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h)
+!!$OMP PARALLEL DEFAULT (PRIVATE) &
+!!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -889,7 +889,7 @@ subroutine calculate_scalars()
         xray_signal = xray_signal + int2(temp79a, temp79b)
      end do
   end do
-!$OMP END PARALLEL
+!!$OMP END PARALLEL
 
   call distribute_scalars
   
@@ -1983,8 +1983,6 @@ subroutine calculate_ke()
 
      keharmonic(N) = ketotal / 4.
   end do
-!  save one harmonic to scale hyper for ihypeta .gt. 2
-  if(ihypeta.gt.2) keharhypeta = keharmonic(ihypeta)
 
 !!!!!....we need to save keharmonic for output <===
   if(myrank.eq.0 .and. iprint.ge.1) then
@@ -2238,6 +2236,8 @@ subroutine calculate_bh()
   end do
 !    NOTE:  bharmonic must be divided by (2 pi)**2 mu_0 to get actual SI magnetic energy
 !           This is done in the idl routine plot_bhmn.pro
+!  save one harmonic to scale hyper for ihypeta .gt. 2
+  if(ihypeta.gt.2) bharhypeta = bharmonic(ihypeta)
 
 
   if(myrank.eq.0 .and. iprint.ge.1) then

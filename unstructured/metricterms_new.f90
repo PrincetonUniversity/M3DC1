@@ -6142,8 +6142,8 @@ function b1psij(e,f,g)
          + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
                 + pt79(:,OP_DZ)*g(:,OP_DZ))
      else if(ihypeta.gt.2) then
-        temp79a = keharhypeta*pt79(:,OP_1)*temp79a          &
-          + hypf*keharhypeta*(pt79(:,OP_DR)*g(:,OP_DR)      &
+        temp79a = (bharhypeta)**beta*pt79(:,OP_1)*temp79a          &
+          + hypf*(bharhypeta)**beta*(pt79(:,OP_DR)*g(:,OP_DR)      &
          + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
                 + pt79(:,OP_DZ)*g(:,OP_DZ))
      endif
@@ -6193,8 +6193,8 @@ function b1bj(e,f,g)
        temp79a = temp79a + hypf*ri2_79*pt79(:,OP_DP)*g(:,OP_DP)
 #endif
      else if(ihypeta.gt.2) then
-         hypfm = hypf*keharhypeta
-         temp79a = pt79(:,OP_1)*temp79a*keharhypeta &
+         hypfm = hypf*(bharhypeta)**beta
+         temp79a = pt79(:,OP_1)*temp79a*(bharhypeta)**beta &
           + hypfm*(pt79(:,OP_DR)*g(:,OP_DR)      &
                  + pt79(:,OP_DZ)*g(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
@@ -6235,8 +6235,8 @@ function b1fj(e,f,g)
                + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
                       + pt79(:,OP_DZ)*g(:,OP_DZ))
      else if(ihypeta.gt.2) then
-        temp79a = pt79(:,OP_1)*temp79a*keharhypeta  &
-                + hypf*keharhypeta*(pt79(:,OP_DR)*g(:,OP_DR)      &
+        temp79a = pt79(:,OP_1)*temp79a*(bharhypeta)**beta  &
+                + hypf*(bharhypeta)**beta*(pt79(:,OP_DR)*g(:,OP_DR)      &
                                    + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
                                           + pt79(:,OP_DZ)*g(:,OP_DZ))
      endif
@@ -7956,7 +7956,7 @@ function b2fj(e,f,g)
         temp79b = hypf*pt79(:,OP_1)*g(:,OP_DZ)
         temp79c = hypf*(pt79(:,OP_DP)*g(:,OP_DP) + pt79(:,OP_1)*g(:,OP_DPP))
      else if(ihypeta.gt.2) then
-        hypfm = hypf*keharhypeta
+        hypfm = hypf*(bharhypeta)**beta
         temp79a = hypfm*pt79(:,OP_1)*g(:,OP_DR)
         temp79b = hypfm*pt79(:,OP_1)*g(:,OP_DZ)
         temp79c = hypfm*(pt79(:,OP_DP)*g(:,OP_DP) + pt79(:,OP_1)*g(:,OP_DPP))
@@ -8021,7 +8021,7 @@ function b2psij(e,f,g)
         temp79a = hypf*pt79(:,OP_1)*g(:,OP_DR)
         temp79b = hypf*pt79(:,OP_1)*g(:,OP_DZ)
      else if(ihypeta.gt.2) then
-        hypfm = hypf*keharhypeta        
+        hypfm = hypf*(bharhypeta)**beta
         temp79a = hypfm*pt79(:,OP_1)*g(:,OP_DR)
         temp79b = hypfm*pt79(:,OP_1)*g(:,OP_DZ)
      else
