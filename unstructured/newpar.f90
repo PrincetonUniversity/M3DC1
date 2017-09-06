@@ -36,7 +36,21 @@ Program Reducedquintic
   character*256 :: arg
 
   ! Initialize MPI
+#ifdef _OPENMP
+  integer :: omp_provided, omp_requested
+
+  omp_requested = MPI_THREAD_SERIALIZED
+  call MPI_Init_Thread(omp_requested, omp_provided, ier)
+  if(omp_provided .lt. omp_requested) then
+     print *, 'Error: MPI implementation does not support required level of OpenMP'
+     stop
+  end if
+  
+#else
   call MPI_Init(ier)
+
+#endif
+
   if (ier /= 0) then
      print *, 'Error in MPI_Init', ier
      call safestop(1)

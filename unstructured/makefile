@@ -125,6 +125,9 @@ endif
 ifeq ($(COM), 1)
   BIN := $(BIN)_complex
 endif
+ifeq ($(OMP), 1)
+  BIN := $(BIN)_omp
+endif
 
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
@@ -202,6 +205,7 @@ bin :
 	ln -s $(SRCDIR)/_$(ARCH)-opt-25/m3dc1_2d bin
 	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25/m3dc1_2d_complex bin
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60/m3dc1_3d bin
+	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60-omp/m3dc1_3d_omp bin
 	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin
 	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
 	ln -s $(SRCDIR)/sbin/$(ARCH)/create_mesh.sh bin

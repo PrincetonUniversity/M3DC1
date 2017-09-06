@@ -75,34 +75,57 @@ module m3dc1_nint
   integer, parameter :: FIELD_KIN  =33554432
   integer, parameter :: FIELD_RE   =67108864 
 
+! NOTE: All element-specific variables should be declared OMP THREADPRIVATE
+
   vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: mu79, nu79
+!$OMP THREADPRIVATE(mu79,nu79)
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
      ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79, ri8_79
+!$OMP THREADPRIVATE(r_79,r2_79,r3_79)
+!$OMP THREADPRIVATE(ri_79,ri2_79,ri3_79,ri4_79,ri5_79,ri6_79,ri7_79,ri8_79)
   vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
        temp79d, temp79e, temp79f
+!$OMP THREADPRIVATE(temp79a,temp79b,temp79c,temp79d,temp79e,temp79f)
   vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, nei79, b2i79, bi79
+!$OMP THREADPRIVATE(tm79,ni79,nei79,b2i79,bi79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
        ph179, vz179, ch179, p179, ne179, pi179
+!$OMP THREADPRIVATE(ps179,bz179,pe179,n179,ph179,vz179,ch179,p179,ne179,pi179)
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
        pht79, vzt79, cht79, pt79, net79
+!$OMP THREADPRIVATE(pst79,bzt79,pet79,nt79,pht79,vzt79,cht79,pt79,net79)
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
+!$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
        eta79, sig79, fy79, q79, cd79, rad79
+!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,rad79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
+!$OMP THREADPRIVATE(bf079,bf179,bft79)
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
+!$OMP THREADPRIVATE(kap79,kar79,kax79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
        ph079, vz079, ch079, p079, ne079, pi079
+!$OMP THREADPRIVATE(ps079,bz079,pe079,n079,ph079,vz079,ch079,p079,ne079,pi079)
   vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
+!$OMP THREADPRIVATE(pss79,bzs79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfx79, psc79
+!$OMP THREADPRIVATE(bzx79,psx79,bfx79,psc79)
   vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bftx79
+!$OMP THREADPRIVATE(pstx79,bztx79,bftx79)
   vectype, dimension(MAX_PTS, OP_NUM) :: te179, te079, tet79
+!$OMP THREADPRIVATE(te179,te079,tet79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ti179, ti079, tit79
+!$OMP THREADPRIVATE(ti179,ti079,tit79)
   vectype, dimension(MAX_PTS, OP_NUM) :: q179, q079, qt79, qe179, qe079, qet79
+!$OMP THREADPRIVATE(q179,q079,qt79,qe079,qet79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ppar79, pper79
+!$OMP THREADPRIVATE(ppar79,pper79)
   vectype, dimension(MAX_PTS, OP_NUM) :: nre79
+!$OMP THREADPRIVATE(nre79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
+!$OMP THREADPRIVATE(fterm)
   
 contains
 

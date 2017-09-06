@@ -10,14 +10,20 @@ module nintegrate
 
 implicit none
 
+! NOTE: All element-specific variables should be declared OMP THREADPRIVATE
+
   integer :: npoints        ! number of points in Gaussian quadrature
   integer :: npoints_pol
   integer :: npoints_tor
   logical :: surface_int
+!$OMP THREADPRIVATE(npoints, npoints_pol, npoints_tor, surface_int)
 
   real, dimension(MAX_PTS) :: x_79, phi_79, z_79
+!$OMP THREADPRIVATE(x_79,phi_79,z_79)
   real, dimension(MAX_PTS) :: xi_79, zi_79, eta_79, weight_79
+!$OMP THREADPRIVATE(xi_79,zi_79,eta_79,weight_79)
   vectype, dimension(MAX_PTS,2) :: norm79
+!$OMP THREADPRIVATE(norm79)
 
   real, private, dimension(12) :: alpha_12, beta_12, gamma_12, area_weight_12
   real, private, dimension(25) :: alpha_25, beta_25, gamma_25, area_weight_25

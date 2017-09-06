@@ -650,8 +650,8 @@ subroutine calculate_scalars()
 
   numelms = local_elements()
 
-!!$OMP PARALLEL DEFAULT (PRIVATE) &
-!!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h)
+!$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -889,10 +889,10 @@ subroutine calculate_scalars()
         xray_signal = xray_signal + int2(temp79a, temp79b)
      end do
   end do
-!!$OMP END PARALLEL
+!$OMP END PARALLEL DO
 
   call distribute_scalars
-  
+
   if(ipellet.eq.4) then
 
      ! Pellet ablation rates for Parks models
@@ -1946,6 +1946,8 @@ subroutine calculate_ke()
   ke_N = 0.
   def_fields = 0
      numelms = local_elements()
+
+!$OMP PARALLEL DO REDUCTION(+:ke_N)
      do itri=1,numelms
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
@@ -1977,6 +1979,7 @@ subroutine calculate_ke()
         ke_N = ke_N + int3(ri4_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
                     + int3(ri4_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
      end do
+!$OMP END PARALLEL DO
 
      call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)
@@ -2193,6 +2196,8 @@ subroutine calculate_bh()
   bh_N = 0.
   def_fields = 0
      numelms = local_elements()
+
+!$OMP PARALLEL DO REDUCTION(+:bh_N)
      do itri=1,numelms
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
@@ -2228,6 +2233,7 @@ subroutine calculate_bh()
                     + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
 #endif
      end do
+!$OMP END PARALLEL DO
 
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)
