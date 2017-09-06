@@ -43,7 +43,7 @@ cleanall :
 
 .PHONY: clean
 clean : 
-	rm -fr _$(BIN_POSTFIX)*
+	rm -fr _$(BIN_POSTFIX)
 
 .PHONY: templates
 templates :
