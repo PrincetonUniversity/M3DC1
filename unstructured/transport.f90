@@ -943,6 +943,8 @@ subroutine define_transport_coefficients()
 
   ! Calculate RHS
   numelms = local_elements()
+!$OMP PARALLEL DO &
+!$OMP& PRIVATE(dofs)
   do itri=1,numelms
 
      call define_element_quadrature(itri, int_pts_aux, 5)
@@ -954,57 +956,76 @@ subroutine define_transport_coefficients()
      dofs = resistivity_func()
      if(.not.solve_resistivity) solve_resistivity = any(dofs.ne.0.)
 
+!$OMP CRITICAL
      if(solve_resistivity) &
           call vector_insert_block(resistivity_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
 
      dofs = kappa_func()
      if(.not.solve_kappa) solve_kappa = any(dofs.ne.0.)
+!$OMP CRITICAL
      if(solve_kappa) &
           call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+
 
      if(density_source) then
         dofs = sigma_func(izone)
         if(.not.solve_sigma) solve_sigma = any(dofs.ne.0.)
+!$OMP CRITICAL
         if(solve_sigma) &
              call vector_insert_block(sigma_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
      end if
 
      dofs = viscosity_func()
      if(.not.solve_visc) solve_visc = any(dofs.ne.0.)
+!$OMP CRITICAL
      if(solve_visc) &
           call vector_insert_block(visc_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
 
      if(momentum_source) then 
         dofs = force_func(izone)
         if(.not.solve_f) solve_f = any(dofs.ne.0.)
+!$OMP CRITICAL
         if(solve_f) &
              call vector_insert_block(Fphi_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
      end if
      
      if(ipforce.gt.0) then
         dofs = pforce_func()
         if(.not.solve_fp) solve_fp = any(dofs.ne.0.)
+!$OMP CRITICAL
         if(solve_fp) &
              call vector_insert_block(pforce_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
 
         dofs = pmach_func()
+!$OMP CRITICAL
         if(solve_fp) &
              call vector_insert_block(pmach_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
      end if
 
      if(heat_source) then
         dofs = q_func(izone)
         if(.not.solve_q) solve_q = any(dofs.ne.0.)
+!$OMP CRITICAL
         if(solve_q) &
              call vector_insert_block(Q_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
      end if
 
      if(rad_source) then
         dofs = rad_func()
         if(.not.solve_rad) solve_rad = any(dofs.ne.0.)
 
+!$OMP CRITICAL
         if(solve_rad) &
              call vector_insert_block(Rad_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
      end if
 
      if(icd_source .gt. 0) then
@@ -1017,10 +1038,14 @@ subroutine define_transport_coefficients()
      if(ibootstrap.ne.0) then
         dofs = electron_viscosity_func()
         if(.not.solve_visc_e) solve_visc_e = any(dofs.ne.0.)
+!$OMP CRITICAL
         if(solve_visc_e) &
              call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
      end if
   end do
+!$OMP END PARALLEL DO
+
 
   ! Solve all the variables that have been defined
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
