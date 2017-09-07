@@ -243,6 +243,9 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
   if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix...', &
        mat%mat%m, mat%mat%n
   numelms = local_elements()
+
+!$OMP PARALLEL DO &
+!$OMP& PRIVATE(temp)
   do itri=1,numelms
 
      call define_element_quadrature(itri, int_pts_main, 5)
@@ -346,12 +349,15 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
 
      end select
 
+!$OMP CRITICAL
      do m=1,isize
         do n=1,isize
            call insert_block(mat%mat,itri,m,n,temp(:,:,m,n),MAT_ADD)
         end do
      end do
+!$OMP END CRITICAL
   end do
+!$OMP END PARALLEL DO
 
   deallocate(temp)
 

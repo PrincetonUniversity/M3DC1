@@ -342,6 +342,8 @@ subroutine calculate_external_fields()
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
   nelms = local_elements()
+!$OMP PARALLEL DO &
+!$OMP& PRIVATE(temp,temp2,temp3,temp4)
   do itri=1,nelms
         
      call define_element_quadrature(itri,int_pts_main,5)
@@ -392,7 +394,6 @@ subroutine calculate_external_fields()
         
      if(read_p) temp4 = intx2(mu79(:,:,OP_1),temp79d)
 
-
      call apply_boundary_mask(itri, ipsibound, temp(:,:,1,1), &
           tags=domain_boundary)
      call apply_boundary_mask(itri, ipsibound, temp(:,:,1,2), &
@@ -402,6 +403,7 @@ subroutine calculate_external_fields()
      call apply_boundary_mask(itri, ibound, temp(:,:,2,2), &
           tags=domain_boundary)
 
+!$OMP CRITICAL
      call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
      call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
      call insert_block(br_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
@@ -412,7 +414,9 @@ subroutine calculate_external_fields()
 
      call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
      if(read_p) call vector_insert_block(p_vec, itri, 1, temp4(:), MAT_ADD)
+!$OMP END CRITICAL
   end do
+!OMP END PARALLEL DO
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'Finalizing...'
   call sum_shared(bz_vec)
