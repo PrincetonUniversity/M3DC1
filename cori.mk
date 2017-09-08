@@ -18,20 +18,20 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-export SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.4.4/bin
-
-#SCOREC_DIR = /global/project/projectdirs/mp288/cori/scorec/Dec2016-mpich7.4.4
-ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.4.4/haswell
-ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
-SCOREC_DIR=$(ZOLTAN_DIR)/June2017
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/bin
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Aug2017/
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+    ZOLTAN_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6/cori-hsw-knl-mpich760-cplx
+    ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
 else
   ifeq ($(TRILINOS), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
   else
     M3DC1_SCOREC_LIB = m3dc1_scorec
   endif
+    ZOLTAN_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6/cori-hsw-knl-mpich760
+    ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
 endif
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
@@ -40,32 +40,29 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
 
 ifeq ($(COM), 1)
       PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6
-      #PETSC_ARCH = cori-hsw-cplx
-      PETSC_ARCH = cori-hsw-knl-cplx
+      #PETSC_ARCH = cori-hsw-knl-mpich760-cplx
+      PETSC_ARCH = cori-hsw-mpich760-cplx
       HYPRE_LIB = 
-#      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
        $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu -lsuperlu_dist \
-       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++
-#       -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -ldl -lstdc++
-#don't have 2016dec19      -lflapack -lfblas
-
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
+       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++  \
+       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
+       -lflapack -lfblas
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
       OPTS := $(OPTS) -DNEXTPetscDEV
 else
       PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.7.6
-      #PETSC_ARCH = cori-hsw
-      PETSC_ARCH = cori-hsw-knl
+      #PETSC_ARCH = cori-hsw-knl-mpich760
+      PETSC_ARCH = cori-hsw-mpich760
       HYPRE_LIB = -lHYPRE
-#      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib -L$(CRAY_TPSL_DIR)/INTEL/150/haswell/lib
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
         $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common  -lpord -lsuperlu -lsuperlu_dist \
-       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++ 
-#       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
+       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++  \
+       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
+       -lflapack -lfblas 
 #       -lstrumpack_sparse \
-#       -lflapack -lfblas 
 
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
       OPTS := $(OPTS) -DNEXTPetscDEV
@@ -87,7 +84,6 @@ ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
 OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
-           $(FFTW_INCLUDE_OPTS) \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
@@ -98,7 +94,6 @@ LIBS := $(LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_LIB) $(PETSC_EXTERNAL_LIB_BASIC) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
-	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB)
 #        $(HYBRID_LIBS) \
@@ -117,17 +112,17 @@ endif
 # Optimization flags
 ifeq ($(OPT), 1)
   LDOPTS := $(LDOPTS) -dynamic #-ipo -qopt-report
-  FOPTS  := $(FOPTS)  -O3 #-ipo -qopt-report
-  CCOPTS := $(CCOPTS) -O3 #-ipo -qopt-report
+  FOPTS  := $(FOPTS)  #-ipo -qopt-report
+  CCOPTS := $(CCOPTS) #-ipo -qopt-report
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
 endif
 
 ifeq ($(OMP), 1)
-  LDOPTS := $(LDOPTS) -fopenmp 
-  FOPTS  := $(FOPTS)  -fopenmp 
-  CCOPTS := $(CCOPTS) -fopenmp 
+  LDOPTS := $(LDOPTS) -qopenmp 
+  FOPTS  := $(FOPTS)  -qopenmp 
+  CCOPTS := $(CCOPTS) -qopenmp 
 endif
 
 F90OPTS = $(F90FLAGS) $(FOPTS)
