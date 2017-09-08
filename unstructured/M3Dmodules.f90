@@ -186,6 +186,7 @@ module basic
   real    :: eta_gs   ! factor for smoothing nonaxisymmetric psi in GS solve
   integer :: igs_pp_ffp_rescale ! rescale p' and FF' based on p and F
   integer :: igs_extend_p ! extend p past psi=1 using te and ne profiles
+  integer :: igs_extend_diamag ! extend diamagnetic rotation past psi=1
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
   integer :: igs_method  ! 1 = use node-based method (fastest, least accurate)
                          ! 2 = use element-based method, and calculate p from

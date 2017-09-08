@@ -499,6 +499,8 @@ subroutine set_defaults
        "Rescale p' and FF' to match p and F", gs_grp)
   call add_var_int("igs_extend_p", igs_extend_p, 0, &
        "Extend p past Psi=1 using ne and Te profiles", gs_grp)
+  call add_var_int("igs_extend_diamag", igs_extend_diamag, 1, &
+       "Extend diamagnetic rotation Psi=1", gs_grp)
   call add_var_int("igs_start_xpoint_search", igs_start_xpoint_search, 0, &
        "Number of GS its. before searching for xpoint", gs_grp)
   call add_var_int("igs_forcefree_lcfs", igs_forcefree_lcfs, -1, &
