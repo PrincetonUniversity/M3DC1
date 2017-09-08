@@ -797,7 +797,7 @@ subroutine calc_omega_profile
      endif
      
      do i=1, omega_spline%n
-        if(omega_spline%x(i) .ge. 1.) cycle
+        if(omega_spline%x(i).ge.1. .and. igs_extend_diamag.eq.0) cycle
            
         call evaluate_spline(pprime_spline, omega_spline%x(i), ppval, &
              iout=iout)
