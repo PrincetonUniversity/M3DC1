@@ -20,37 +20,38 @@ contains
 
     implicit none
 
-    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
-    vectype, dimension(num_fields), intent(inout) :: ssterm, ddterm
-    vectype, intent(out) :: r_bf, q_bf
+    vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
+    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
+    vectype, dimension(dofs_per_element, num_fields), intent(inout) :: ssterm, ddterm
+    vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
     real, intent(in) :: thimpf, thimp_bf
 
-    vectype :: temp
+    vectype, dimension(dofs_per_element) :: temp
     
     if(numvar.eq.1) then
        temp = bs_b1psipsib(trial,lin,pst79,bzt79) &
             + bs_b1psipsib(trial,pst79,lin,bzt79)
-       ssterm(psi_g) = ssterm(psi_g) -          thimpf     *dt*temp
-       ddterm(psi_g) = ddterm(psi_g) + (1./2. - thimpf*bdf)*dt*temp
+       ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1./2. - thimpf*bdf)*dt*temp
        
        temp = bs_b1psibb  (trial,lin,bzt79,bzt79) &
             + bs_b1psibf  (trial,lin,bzt79,bft79)
-       ssterm(psi_g) = ssterm(psi_g) -          thimpf     *dt*temp
-       ddterm(psi_g) = ddterm(psi_g) + (1. - thimpf*bdf)*dt*temp
+       ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*temp
     else
        temp = bs_b1psipsib(trial,lin,pst79,bzt79) &
             + bs_b1psipsib(trial,pst79,lin,bzt79) &
             + bs_b1psibb  (trial,lin,bzt79,bzt79) &
             + bs_b1psibf  (trial,lin,bzt79,bft79)
-       ssterm(psi_g) = ssterm(psi_g) -          thimpf     *dt*temp
-       ddterm(psi_g) = ddterm(psi_g) + (1./3. - thimpf*bdf)*dt*temp
+       ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1./3. - thimpf*bdf)*dt*temp
        
        temp = bs_b1psipsib(trial,pst79,pst79,lin) &
             + bs_b1psibb  (trial,pst79,lin,bzt79) &
             + bs_b1psibb  (trial,pst79,bzt79,lin) &
             + bs_b1psibf  (trial,pst79,lin,bft79)
-       ssterm(bz_g) = ssterm(bz_g) -          thimpf     *dt*temp
-       ddterm(bz_g) = ddterm(bz_g) + (1./3. - thimpf*bdf)*dt*temp
+       ssterm(:,bz_g) = ssterm(:,bz_g) -          thimpf     *dt*temp
+       ddterm(:,bz_g) = ddterm(:,bz_g) + (1./3. - thimpf*bdf)*dt*temp
        
        temp = bs_b1psibf  (trial,pst79,bzt79,lin)
        r_bf = r_bf -          thimp_bf     *dt*temp
@@ -69,7 +70,7 @@ contains
                + bs_b1psibf  (trial,lin,bzt79,bf079) &
                + bs_b1psibf  (trial,lin,bz079,bft79) &
                + bs_b1psibf  (trial,lin,bz079,bf079)*2.
-          ddterm(psi_g) = ddterm(psi_g) + (1./6.)*dt*temp
+          ddterm(:,psi_g) = ddterm(:,psi_g) + (1./6.)*dt*temp
           
           temp = bs_b1psipsib(trial,pst79,ps079,lin) &
                + bs_b1psipsib(trial,ps079,pst79,lin) &
@@ -83,7 +84,7 @@ contains
                + bs_b1psibf  (trial,pst79,lin,bf079) &
                + bs_b1psibf  (trial,ps079,lin,bft79) &
                + bs_b1psibf  (trial,ps079,lin,bf079)*2.
-          ddterm(bz_g) = ddterm(bz_g) + (1./6.)*dt*temp
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (1./6.)*dt*temp
           
           temp = bs_b1psibf  (trial,pst79,bz079,lin) &
                + bs_b1psibf  (trial,ps079,bzt79,lin) &
@@ -100,23 +101,24 @@ contains
 
     implicit none
 
-    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: trial, lin 
-    vectype, dimension(num_fields), intent(inout) :: ssterm, ddterm
-    vectype, intent(out) :: r_bf, q_bf
+    vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
+    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
+    vectype, dimension(dofs_per_element, num_fields), intent(inout) :: ssterm, ddterm
+    vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
     real, intent(in) :: thimpf, thimp_bf
 
-    vectype :: temp
+    vectype, dimension(dofs_per_element) :: temp
 
     temp = bs_b2psipsib(trial,lin,pst79,bzt79) &
          + bs_b2psipsib(trial,pst79,lin,bzt79) &
          + bs_b2psibf  (trial,lin,bzt79,bft79)
-    ssterm(psi_g) = ssterm(psi_g) -          thimpf     *dt*temp
-    ddterm(psi_g) = ddterm(psi_g) + (1./3. - thimpf*bdf)*dt*temp
+    ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+    ddterm(:,psi_g) = ddterm(:,psi_g) + (1./3. - thimpf*bdf)*dt*temp
     
     temp = bs_b2psipsib(trial,pst79,pst79,lin) &
          + bs_b2psibf  (trial,pst79,lin,bft79)
-    ssterm(bz_g) = ssterm(bz_g) -          thimpf     *dt*temp
-    ddterm(bz_g) = ddterm(bz_g) + (1./3. - thimpf*bdf)*dt*temp
+    ssterm(:,bz_g) = ssterm(:,bz_g) -          thimpf     *dt*temp
+    ddterm(:,bz_g) = ddterm(:,bz_g) + (1./3. - thimpf*bdf)*dt*temp
     
     temp = bs_b2psibf  (trial,pst79,bzt79,lin)
     r_bf = r_bf -          thimp_bf     *dt*temp
@@ -132,7 +134,7 @@ contains
             + bs_b2psibf  (trial,lin,bzt79,bf079) &
             + bs_b2psibf  (trial,lin,bz079,bft79) &
             + bs_b2psibf  (trial,lin,bz079,bf079)*2.
-       ddterm(psi_g) = ddterm(psi_g) + (1./6.)*dt*temp
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1./6.)*dt*temp
        
        temp = bs_b2psipsib(trial,pst79,ps079,lin) &
             + bs_b2psipsib(trial,ps079,pst79,lin) &
@@ -140,7 +142,7 @@ contains
             + bs_b2psibf  (trial,pst79,lin,bf079) &
             + bs_b2psibf  (trial,ps079,lin,bft79) &
             + bs_b2psibf  (trial,ps079,lin,bf079)*2.
-       ddterm(bz_g) = ddterm(bz_g) + (1./6.)*dt*temp
+       ddterm(:,bz_g) = ddterm(:,bz_g) + (1./6.)*dt*temp
        
        temp = bs_b2psibf  (trial,pst79,bz079,lin) &
             + bs_b2psibf  (trial,ps079,bzt79,lin) &
@@ -172,14 +174,16 @@ contains
   
   ! B1psipsib
   ! =========
-  vectype function bs_b1psipsib(e,f,g,h)
+  function bs_b1psipsib(e,f,g,h)
     use basic
     use m3dc1_nint
 
     implicit none
-
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-    vectype :: temp
+    
+    vectype, dimension(dofs_per_element) :: bs_b1psipsib
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+    vectype, dimension(dofs_per_element) :: temp
 
     temp = 0.
 
@@ -193,19 +197,18 @@ contains
           temp79a = eta79(:,OP_1)*h(:,OP_1)* &
                (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
 
-          temp = int4(ri3_79,e(:,OP_DRP),temp79a,g(:,OP_DZ)) &
-               - int4(ri3_79,e(:,OP_DZP),temp79a,g(:,OP_DR))
+          temp = intx4(e(:,:,OP_DRP),ri3_79,temp79a,g(:,OP_DZ)) &
+               - intx4(e(:,:,OP_DZP),ri3_79,temp79a,g(:,OP_DR))
 
 #ifdef USECOMPLEX
           temp = temp - rfac* &
-               (int4(ri3_79,temp79a,e(:,OP_DR),g(:,OP_DZ)) &
-               -int4(ri3_79,temp79a,e(:,OP_DZ),g(:,OP_DR))) 
+               (intx4(e(:,:,OP_DR),ri3_79,temp79a,g(:,OP_DZ)) &
+               -intx4(e(:,:,OP_DZ),ri3_79,temp79a,g(:,OP_DR))) 
 #endif
 
        endif
     endif
 #endif
-
 
     bs_b1psipsib = bootstrap_alpha*temp
   end function bs_b1psipsib
@@ -213,14 +216,16 @@ contains
  
   ! B1psibb
   ! =======
-  vectype function bs_b1psibb(e,f,g,h)
+  function bs_b1psibb(e,f,g,h)
     use basic
     use m3dc1_nint
 
     implicit none
-
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-    vectype :: temp
+    
+    vectype, dimension(dofs_per_element) :: bs_b1psibb
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+    vectype, dimension(dofs_per_element) :: temp
 
     if(jadv.eq.0) then
        if(surface_int) then
@@ -228,7 +233,7 @@ contains
        else
           temp79a = eta79(:,OP_1)*g(:,OP_1)* &
                (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
-          temp = int3(e(:,OP_1),temp79a,h(:,OP_1))
+          temp = intx3(e(:,:,OP_1),temp79a,h(:,OP_1))
        end if
     else 
        if(surface_int) then
@@ -237,10 +242,10 @@ contains
           temp79a = eta79(:,OP_1)*g(:,OP_1)* &
                (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
 
-          temp = int4(ri2_79,e(:,OP_GS),temp79a,h(:,OP_1))
+          temp = intx4(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1))
 
           if(itor.eq.1) then
-             temp = temp - 2.*int4(ri3_79,e(:,OP_DR),temp79a,h(:,OP_1))
+             temp = temp - 2.*intx4(e(:,:,OP_DR),ri3_79,temp79a,h(:,OP_1))
           end if
        endif
     endif
@@ -251,14 +256,16 @@ contains
 
   ! B1psibf
   ! =======
-  vectype function bs_b1psibf(e,f,g,h)
+  function bs_b1psibf(e,f,g,h)
     use basic
     use m3dc1_nint
 
     implicit none
-
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-    vectype :: temp
+    
+    vectype, dimension(dofs_per_element) :: bs_b1psibf
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+    vectype, dimension(dofs_per_element) :: temp
 
     temp = 0.
 
@@ -272,13 +279,13 @@ contains
           temp79a = eta79(:,OP_1)*g(:,OP_1)* &
                (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
 
-          temp = int4(ri2_79,e(:,OP_DRP),temp79a,h(:,OP_DRP) &
-               + int4(ri2_79,e(:,OP_DZP),temp79a,h(:,OP_DZP))
+          temp = intx4(e(:,:,OP_DRP),ri2_79,temp79a,h(:,OP_DRP) &
+               + intx4(e(:,:,OP_DZP),ri2_79,temp79a,h(:,OP_DZP))
 
 #ifdef USECOMPLEX
           temp = temp - rfac* &
-               (int4(ri2_79,e(:,OP_DR),temp79a,h(:,OP_DRP)) &
-               +int4(rie_79,e(:,OP_DZ),temp79a,h(:,OP_DZP))
+               (intx4(e(:,:,OP_DR),ri2_79,temp79a,h(:,OP_DRP)) &
+               +intx4(e(:,:,OP_DZ),rie_79,temp79a,h(:,OP_DZP))
 #endif
 
        endif
@@ -291,42 +298,45 @@ contains
 
   ! B2psipsib
   ! =========
-  vectype function bs_b2psipsib(e,f,g,h)
+  function bs_b2psipsib(e,f,g,h)
     use basic
     use m3dc1_nint
 
     implicit none
 
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-    vectype :: temp
+    vectype, dimension(dofs_per_element) :: bs_b2psipsib
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+    vectype, dimension(dofs_per_element) :: temp
 
     temp79a = eta79(:,OP_1)*h(:,OP_1)* &
          (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
 
-    temp = int4(ri2_79,e(:,OP_DR),g(:,OP_DR),temp79a) &
-         + int4(ri2_79,e(:,OP_DZ),g(:,OP_DZ),temp79a)
+    temp = intx4(e(:,:,OP_DR),ri2_79,g(:,OP_DR),temp79a) &
+         + intx4(e(:,:,OP_DZ),ri2_79,g(:,OP_DZ),temp79a)
 
     bs_b2psipsib = bootstrap_alpha*temp
   end function bs_b2psipsib
 
   ! B2psibf
   ! =======
-  vectype function bs_b2psibf(e,f,g,h)
+  function bs_b2psibf(e,f,g,h)
     use basic
     use m3dc1_nint
 
     implicit none
 
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-    vectype :: temp
+    vectype, dimension(dofs_per_element) :: bs_b2psibf
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+    vectype, dimension(dofs_per_element) :: temp
 
 #ifdef defined(USECOMPLEX) || defined(USE3D)
     temp79a = eta79(:,OP_1)*g(:,OP_1)* &
          (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
 
-
-    temp = int4(ri3_79,e(:,OP_DZ),h(:,OP_DRP),temp79a) &
-         - int4(ri3_79,e(:,OP_DR),h(:,OP_DZP),temp79a)
+    temp = intx4(e(:,:,OP_DZ),ri3_79,h(:,OP_DRP),temp79a) &
+         - intx4(e(:,:,OP_DR),ri3_79,h(:,OP_DZP),temp79a)
 #else 
     temp = 0.
 #endif

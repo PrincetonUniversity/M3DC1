@@ -2333,6 +2333,11 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   end select
 
+  if(ibootstrap_model.eq.1) then 
+     call bootstrap_flux(trialx, lin, ssterm, ddterm, r_bf, q_bf, &
+          thimpf, thimp_bf)
+  end if
+
   do i=1, dofs_per_element
      trial = trialx(i,:,:)
 
@@ -2348,10 +2353,6 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
         endif
      end if
      
-     if(ibootstrap_model.eq.1) then 
-        call bootstrap_flux(trial, lin, ssterm(i,:), ddterm(i,:), r_bf(i), q_bf(i), thimpf, thimp_bf)
-     end if
-
   end do
 end subroutine flux_lin
 
@@ -2637,6 +2638,11 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      end if
   end if
 
+
+  if(ibootstrap_model.eq.1) then 
+     call bootstrap_axial_field(trialx, lin, ssterm, ddterm, r_bf, q_bf, &
+          thimpf, thimp_bf)
+  end if
 
 
   do i=1, dofs_per_element
@@ -2979,10 +2985,6 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      end if
   end if  
   end select
-
-  if(ibootstrap_model.eq.1) then 
-     call bootstrap_axial_field(trial, lin, ssterm(i,:), ddterm(i,:), r_bf(i), q_bf(i), thimpf, thimp_bf)
-  end if
 
   end do
 
