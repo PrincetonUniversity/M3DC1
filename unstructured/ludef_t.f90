@@ -1670,7 +1670,6 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   integer, intent(in) :: izone
 
   vectype, dimension(dofs_per_element) :: tempx
-  vectype, dimension(MAX_PTS, OP_NUM) :: trial
   integer :: i
 
   vectype :: temp, temp2
@@ -2338,22 +2337,22 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
           thimpf, thimp_bf)
   end if
 
-  do i=1, dofs_per_element
-     trial = trialx(i,:,:)
+  if(itwofluid.eq.1 .and. harned_mikic.ne.0) then
 
-     if(itwofluid.eq.1) then
+     do i=1, dofs_per_element      
+
         ! Harned-Mikic Term
         ! ~~~~~~~~~~~~~~~~~
-        call b1harnedmikic(trial,lin,temp,temp2)
+        call b1harnedmikic(trialx(i,:,:),lin,temp,temp2)
         ssterm(i,psi_g) = ssterm(i,psi_g) - thimpf**2*dt*dt*temp
         ddterm(i,psi_g) = ddterm(i,psi_g) - thimpf**2*dt*dt*temp
         if(numvar.ge.2) then 
            ssterm(i,bz_g) = ssterm(i,bz_g) - thimpf**2*dt*dt*temp2
            ddterm(i,bz_g) = ddterm(i,bz_g) - thimpf**2*dt*dt*temp2
         endif
-     end if
+     end do
      
-  end do
+  end if
 end subroutine flux_lin
 
 
