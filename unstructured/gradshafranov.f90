@@ -1657,7 +1657,7 @@ subroutine gaussianfun(x,z,val,denom,jout)
 
   integer :: itri, nelms
   real :: befo
-  vectype, dimension(npoints) :: temp
+  vectype, dimension(MAX_PTS) :: temp
   vectype, dimension(dofs_per_element) :: dofs
 
   befo =-val/(pi*denom**2)
