@@ -8,6 +8,10 @@ module basicq
   real, private :: kappa_qp, kappae_qp, coolrate_qp, v0_qp, v1_qp, beta_qp
   integer, private :: myrank_qp, iprint_qp, itaylor_qp
 
+  integer, private, parameter :: nint=1000  !  (number of intervals)
+  real, private, dimension (0:nint) :: bpsi, btor, bpolor, psi, jphi, jthor, gradpor, equor, pary, vary
+
+
 contains
 
   subroutine init_qp
@@ -103,7 +107,11 @@ contains
 
     if(myrank.eq.0 .and. iprint.ge.1) write(*,*) "before loop over elements"
 
+    call setup_qsolver
+
     nelms = local_elements()
+!$OMP PARALLEL DO &
+!$OMP& PRIVATE(dofsps,dofsbz,dofspr,dofsvz,dofsden,r,rtemp79a,rtemp79b,rtemp79c,rtemp79d,dum1,dum2,dum3,j)
     do itri=1,nelms
        
        call define_element_quadrature(itri,int_pts_diag, int_pts_tor)
@@ -114,6 +122,7 @@ contains
           r = (sqrt((x_79(j)-xmag)**2 + (z_79(j)-zmag)**2))/r0_qp  ! normalized radius
           call getvals_qsolver(r,rtemp79a(j),rtemp79b(j),rtemp79c(j),rtemp79d(j))
        enddo
+       
 #ifdef USECOMPLEX
        temp79a = cmplx(rtemp79a)
        temp79b = cmplx(rtemp79b)
@@ -132,12 +141,15 @@ contains
        dofsvz = intx2(mu79(:,:,OP_1),temp79d)
        dofsden = den0*intx1(mu79(:,:,OP_1))
 
+!$OMP CRITICAL
        call vector_insert_block(psi_vec%vec,itri,1,dofsps,VEC_ADD)
        call vector_insert_block(bz_vec%vec ,itri,1,dofsbz,VEC_ADD)
        call vector_insert_block(p_vec%vec  ,itri,1,dofspr,VEC_ADD)
        call vector_insert_block(vz_vec%vec ,itri,1,dofsvz,VEC_ADD)
        call vector_insert_block(den_vec%vec,itri,1,dofsden,VEC_ADD)
+!$OMP END CRITICAL
     enddo
+!$OMP END PARALLEL DO
     
     ! solve for psi
     if(myrank.eq.0 .and. iprint.ge.1) print *, "solving psi"
@@ -176,99 +188,105 @@ contains
     
     if(myrank.eq.0 .and. iprint.ge.1) print *, "end fixed_q_profiles"
   end subroutine fixed_q_profiles
+
+  subroutine setup_qsolver()
+    implicit none
+    
+    real :: dpsi
+    real :: psimid, qmid, qpmid, ppmid, denom,fterm,gterm,aquad,bquad,cquad,disc,A_qp
+    integer :: j
+    
+    A_qp = rzero_qp/r0_qp
+    
+    !           small psi is normalized r**2
+    dpsi = 1./nint
+    do j=0,nint
+       psi(j) = j*dpsi
+       !  DEBUG
+       !   if(iprint_qp .ge.1 .and. myrank_qp .eq.0) write(*,4000) j, psi(j), qfunc(psi(j))
+4000   format('j   psi   qfunc(psi)', i5, 1p2e12.4)
+    enddo
+    
+    !  boundary condition at edge
+    btor(nint) = bz_qp
+    bpsi(nint) = 0.
+    bpolor(nint) = btor(nint)/(2.*A_qp*qfunc(psi(nint)))
+    if(myrank_qp.eq.0 .and. iprint_qp.ge.1) write(*,3000) btor(nint),bpsi(nint),bpolor(nint)
+3000 format( 'btor(nint), bpsi(nint), bpolor(nint) =',1p3e12.4)
+    if(myrank_qp.eq.0 .and. iprint_qp.ge.1) write(*,*) "diagnostics to follow"
+    !  integrate first order ode from boundary in
+    do j=nint,1,-1
+       psimid = (j-.5)*dpsi
+       qmid = A_qp*qfunc(psimid)
+       qpmid= A_qp*qpfunc(psimid)
+       ppmid= ppfunc(psimid)
+       denom = psimid + qmid**2
+       fterm = -(1 -psimid*qpmid/qmid)/denom
+       gterm = -ppmid*qmid**2/denom
+       
+       aquad = 1. + .5*dpsi*fterm
+       bquad = dpsi*fterm*btor(j)
+       cquad = -btor(j)**2*(1.-.5*dpsi*fterm) + 2.*dpsi*gterm
+       
+       disc = bquad**2 - 4.*aquad*cquad
+       btor(j-1) = (-bquad + sqrt(disc))/(2.*aquad)
+       bpolor(j-1) =btor(j-1)*r0_qp**2/(2.*rzero_qp*qfunc(psi(j-1)))
+       bpsi(j-1)   = bpsi(j) - .5*dpsi*(bpolor(j)+bpolor(j-1)) 
+!!$          if(myrank_qp.eq.0 .and. iprint_qp.ge.1) &
+!!$               write(*,1002) qmid,denom,fterm,gterm,aquad,bquad,cquad,disc,btor(j-1)
+    enddo
+1002 format(1p9e9.1)
+    
+    !  calculate poloidal and toroidal fields in cell centers
+    do j=1,nint-1
+       jphi(j) = 4.*((j+.5)*(bpsi(j+1)-bpsi(j))-(j-.5)*(bpsi(j)-bpsi(j-1)))/(dpsi*r0_qp**2) 
+       jthor(j) =  2*((bpsi(j+1)-bpsi(j))*rzero_qp*qfunc((j+0.5)*dpsi) &
+            - (bpsi(j)-bpsi(j-1))*rzero_qp*qfunc((j-0.5)*dpsi))/(dpsi**2*r0_qp**2)
+       gradpor(j) =  ppfunc(j*dpsi)
+       pary(j) = pfunc(psi(j))
+       vary(j) = vfunc(psi(j))
+       !    error in equilibrium equation
+       equor(j) = (jphi(j)*bpolor(j)+jthor(j)*btor(j)+gradpor(j))*sqrt(j*dpsi)
+    enddo
+    pary(0) =  pfunc(psi(0))
+    pary(nint) =  pfunc(psi(nint))
+    vary(0) =  vfunc(psi(0))
+    vary(nint) =  vfunc(psi(nint))
+    !
+!!$       if(myrank_qp .eq. 0 .and. iprint_qp .ge. 2) then
+!!$          write(6,1001)
+!!$1001      format(" j       r**2       bpsi        btor         p            v         equil")
+!!$          do j=0,nint
+!!$             write(6,1000) j,psi(j),bpsi(j),btor(j),pary(j),vary(j), equor(j)
+!!$          enddo
+!!$1000      format(i4,1p8e12.4)
+!!$       endif
+ 
+  end subroutine setup_qsolver
   
   subroutine getvals_qsolver(rval,bpsival,ival,pval,vval)
     implicit none
     
-    integer, parameter :: N=1000  !  (number of intervals)
-    integer :: ifirstq = 1
-    real :: dpsi,rval,psival,bpsival,ival,pval,vval
-    real :: psimid, qmid, qpmid, ppmid, denom,fterm,gterm,aquad,bquad,cquad,disc,A_qp
-    integer :: j
-    real, dimension (0:N) :: bpsi, btor, bpolor, psi, jphi, jthor, gradpor, equor, pary, vary
-    
-    if(ifirstq.eq.1) then
-       ifirstq = 0
-       A_qp = rzero_qp/r0_qp
-       
-       !           small psi is normalized r**2
-       dpsi = 1./N
-       do j=0,N
-          psi(j) = j*dpsi
-          !  DEBUG
-          !   if(iprint_qp .ge.1 .and. myrank_qp .eq.0) write(*,4000) j, psi(j), qfunc(psi(j))
-4000      format('j   psi   qfunc(psi)', i5, 1p2e12.4)
-       enddo
-       
-       !  boundary condition at edge
-       btor(N) = bz_qp
-       bpsi(N) = 0.
-       bpolor(N) = btor(N)/(2.*A_qp*qfunc(psi(N)))
-       if(myrank_qp.eq.0 .and. iprint_qp.ge.1) write(*,3000) btor(N),bpsi(N),bpolor(N)
-3000   format( 'btor(N), bpsi(N), bpolor(N) =',1p3e12.4)
-       if(myrank_qp.eq.0 .and. iprint_qp.ge.1) write(*,*) "diagnostics to follow"
-       !  integrate first order ode from boundary in
-       do j=N,1,-1
-          psimid = (j-.5)*dpsi
-          qmid = A_qp*qfunc(psimid)
-          qpmid= A_qp*qpfunc(psimid)
-          ppmid= ppfunc(psimid)
-          denom = psimid + qmid**2
-          fterm = -(1 -psimid*qpmid/qmid)/denom
-          gterm = -ppmid*qmid**2/denom
-          
-          aquad = 1. + .5*dpsi*fterm
-          bquad = dpsi*fterm*btor(j)
-          cquad = -btor(j)**2*(1.-.5*dpsi*fterm) + 2.*dpsi*gterm
-          
-          disc = bquad**2 - 4.*aquad*cquad
-          btor(j-1) = (-bquad + sqrt(disc))/(2.*aquad)
-          bpolor(j-1) =btor(j-1)*r0_qp**2/(2.*rzero_qp*qfunc(psi(j-1)))
-          bpsi(j-1)   = bpsi(j) - .5*dpsi*(bpolor(j)+bpolor(j-1)) 
-          if(myrank_qp.eq.0 .and. iprint_qp.ge.1) &
-               write(*,1002) qmid,denom,fterm,gterm,aquad,bquad,cquad,disc,btor(j-1)
-       enddo
-1002   format(1p9e9.1)
-       
-       !  calculate poloidal and toroidal fields in cell centers
-       do j=1,N-1
-          jphi(j) = 4.*((j+.5)*(bpsi(j+1)-bpsi(j))-(j-.5)*(bpsi(j)-bpsi(j-1)))/(dpsi*r0_qp**2) 
-          jthor(j) =  2*((bpsi(j+1)-bpsi(j))*rzero_qp*qfunc((j+0.5)*dpsi) &
-               - (bpsi(j)-bpsi(j-1))*rzero_qp*qfunc((j-0.5)*dpsi))/(dpsi**2*r0_qp**2)
-          gradpor(j) =  ppfunc(j*dpsi)
-          pary(j) = pfunc(psi(j))
-          vary(j) = vfunc(psi(j))
-          !    error in equilibrium equation
-          equor(j) = (jphi(j)*bpolor(j)+jthor(j)*btor(j)+gradpor(j))*sqrt(j*dpsi)
-       enddo
-       pary(0) =  pfunc(psi(0))
-       pary(N) =  pfunc(psi(N))
-       vary(0) =  vfunc(psi(0))
-       vary(N) =  vfunc(psi(N))
-       !
-       if(myrank_qp .eq. 0 .and. iprint_qp .ge. 2) then
-          write(6,1001)
-1001      format(" j       r**2       bpsi        btor         p            v         equil")
-          do j=0,N
-             write(6,1000) j,psi(j),bpsi(j),btor(j),pary(j),vary(j), equor(j)
-          enddo
-1000      format(i4,1p8e12.4)
-       endif
-       
-    endif !   end of initialization
+    real, intent(in) :: rval
+    real, intent(out) :: bpsival, ival, pval, vval
+
+    real :: psival
     
     psival = rval*rval
-    bpsival = cubicinterp(psival,psi,bpsi,N)
-    ival = cubicinterp(psival,psi,btor,N)
-    pval = cubicinterp(psival,psi,pary,N)
-    vval = cubicinterp(psival,psi,vary,N)
+    bpsival = cubicinterp(psival,psi,bpsi,nint)
+    ival = cubicinterp(psival,psi,btor,nint)
+    pval = cubicinterp(psival,psi,pary,nint)
+    vval = cubicinterp(psival,psi,vary,nint)
   end subroutine getvals_qsolver
 
   real function cubicinterp(x,xary,yary,N)
     implicit none
-    real :: x,xt,del,m1,m2,a,b,c,d
-    real, dimension(0:N) :: xary, yary
-    integer :: i,N
+    real, intent(in) :: x
+    integer, intent(in) :: N
+    real, intent(in), dimension(0:N) :: xary, yary
+    integer :: i
+    real :: xt,del,m1,m2,a,b,c,d
+
     xt = 0
     a = 0
     b = 0
@@ -503,6 +521,7 @@ contains
   end function get_kappa
   
   function hsink_qp(psi)
+    implicit none
     real :: psi, hsink_qp
     hsink_qp = coolrate_qp*pfunc(psi)
 
