@@ -14476,71 +14476,59 @@ function pperpchibbb2(e,f,g,h,i,j)
 end function pperpchibbb2
 
 
-vectype function incvb(e,f,g)
-
+function incvb(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: incvb
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-  vectype :: temp
-
-     if(surface_int) then
-        temp = 0.
-     else
-        temp = int3(e(:,OP_1),f(:,OP_1),g(:,OP_1))
-     end if
-
-  incvb = temp
-
-  return
+  if(surface_int) then
+     incvb = 0.
+  else
+     incvb = intx3(e(:,:,OP_1),f(:,OP_1),g(:,OP_1))
+  end if
 end function incvb
-vectype function incupsi(e,f,g)
+
+function incupsi(e,f,g)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: incupsi
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-  vectype :: temp
-
-     if(surface_int) then
-        temp = 0.
-     else
-        temp = int3(e(:,OP_1),f(:,OP_DR),g(:,OP_DR)) &
-             + int3(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ))
-
-     end if
-
-  incupsi = temp
-
-  return
+  if(surface_int) then
+     incupsi = 0.
+  else
+     incupsi = intx3(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DR)) &
+          +    intx3(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZ))
+  end if
 end function incupsi
-vectype function incchipsi(e,f,g)
 
+function incchipsi(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
+  vectype, dimension(dofs_per_element) :: incchipsi
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-  vectype :: temp
-
-     if(surface_int) then
-        temp = 0.
-     else
-        temp = int4(ri3_79,e(:,OP_1),f(:,OP_DZ),g(:,OP_DR)) &
-             - int4(ri3_79,e(:,OP_1),f(:,OP_DR),g(:,OP_DZ))
-
-     end if
-
-  incchipsi = temp
-
-  return
+  if(surface_int) then
+     incchipsi = 0.
+  else
+     incchipsi = intx4(e(:,:,OP_1),ri3_79,f(:,OP_DZ),g(:,OP_DR)) &
+          -      intx4(e(:,:,OP_1),ri3_79,f(:,OP_DR),g(:,OP_DZ))
+     
+  end if
 end function incchipsi
+
 end module metricterms_new

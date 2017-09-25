@@ -670,6 +670,23 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      return
   endif
 
+
+  ! incompressible constraint for CGL (kinetic.eq.2)
+  if(kinetic.eq.2) then
+     tempx = incupsi(trialx,lin,pstx79)
+     ssterm(:,u_g) = tempx
+     if(numvar.ge.2) then
+        tempx = incvb(trialx,lin,bztx79)
+        ssterm(:,vz_g) = tempx
+        if(numvar.ge.3) then
+           tempx = incchipsi(trialx,lin,pstx79)
+           ssterm(:,chi_g) = tempx
+        endif
+     endif
+     return
+  endif
+
+
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
   tempx = v2vn(trialx,lin,nt79)*freq_fac
@@ -956,28 +973,10 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
 
 
-  if(gyro.eq.1 .or. kinetic.eq.2 .or. amupar.ne.0.) then
+  if(gyro.eq.1 .or. amupar.ne.0.) then
 
   do i=1, dofs_per_element
      trial = trialx(i,:,:)
-
-  ! incompressible constraint for CGL (kinetic.eq.2)
-  if(kinetic.eq.2) then
-     temp = incupsi(trial,lin,pstx79)
-     ssterm(i,u_g) = temp
-     if(numvar.ge.2) then
-        temp = incvb(trial,lin,bztx79)
-        ssterm(i,vz_g) = temp
-        if(numvar.ge.3) then
-           temp = incchipsi(trial,lin,pstx79)
-           ssterm(i,chi_g) = temp
-        endif
-     endif
-     cycle
-  endif
-
-
-
 
 
   ! Gyroviscosity
