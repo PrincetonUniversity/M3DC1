@@ -113,9 +113,9 @@ endif
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -dynamic #-ipo -qopt-report
-  FOPTS  := $(FOPTS)  -O3 #-ipo -qopt-report
-  CCOPTS := $(CCOPTS) -O3 #-ipo -qopt-report
+  LDOPTS := $(LDOPTS) -dynamic -qopt-report
+  FOPTS  := $(FOPTS)  -qopt-report
+  CCOPTS := $(CCOPTS) -qopt-report
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)

@@ -96,8 +96,8 @@ endif
 # Optimization flags
 ifeq ($(OPT), 1)
   LDOPTS := $(LDOPTS)
-  FOPTS  := $(FOPTS)  -O3
-  CCOPTS := $(CCOPTS) -O3
+  FOPTS  := $(FOPTS)
+  CCOPTS := $(CCOPTS)
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -check noarg-temp-created -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)  

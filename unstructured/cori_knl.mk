@@ -120,9 +120,9 @@ ifeq ($(OPT), 1)
 #  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
 #  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
 #  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
-  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report=5 -qopt-report-phase=vec,loop
-  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report=5 -qopt-report-phase=vec,loop
-  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report=5 -qopt-report-phase=vec,loop
+  LDOPTS := $(LDOPTS) -dynamic -qopt-report=5 -qopt-report-phase=vec,loop
+  FOPTS  := $(FOPTS)  -qopt-report=5 -qopt-report-phase=vec,loop
+  CCOPTS := $(CCOPTS) -qopt-report=5 -qopt-report-phase=vec,loop
 else
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
