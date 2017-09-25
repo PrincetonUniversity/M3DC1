@@ -902,6 +902,61 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
 
 
+  ! JxB
+  ! ~~~
+  ! Split time-step
+  if(advfield.eq.1) then 
+
+     ! parabolization terms
+     tempx = v2upsipsi(trialx,lin,pst79,pst79) &
+          + v2upsib  (trialx,lin,pst79,bzt79) &
+          + v2ubb    (trialx,lin,bzt79,bzt79)
+     ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
+     ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
+
+     ! two-fluid contribution
+     if(db .gt. 0 .and. itwofluid.eq.2) then
+        tempx = v2hupsi(trialx,lin,pst79) & 
+             + v2hub  (trialx,lin,bzt79)
+        if(i3d.eq.1) tempx = tempx + v2huf(trialx,lin,bf179)
+        ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
+     endif
+
+     tempx = v2vpsipsi(trialx,lin,pst79,pst79) &
+          + v2vpsib  (trialx,lin,pst79,bzt79)
+     ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
+     ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
+
+     ! two-fluid contribution
+     if(db .gt. 0 .and. itwofluid.eq.2) then
+        tempx = v2hvpsi(trialx,lin,pst79) & 
+             + v2hvb  (trialx,lin,bzt79)
+        if(i3d.eq.1) tempx = tempx + v2hvf(trialx,lin,bf179)
+        ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
+        ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
+     endif
+
+     if(numvar.ge.3) then
+        tempx = v2chipsipsi(trialx,lin,pst79,pst79) &
+             + v2chipsib  (trialx,lin,pst79,bzt79) &
+             + v2chibb    (trialx,lin,bzt79,bzt79)
+        ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
+        ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
+
+        ! two-fluid contribution
+        if(db .gt. 0 .and. itwofluid.eq.2) then
+           tempx = v2hchipsi(trialx,lin,pst79) & 
+                + v2hchib  (trialx,lin,bzt79)
+           if(i3d.eq.1) tempx = tempx + v2hchif(trialx,lin,bf179)
+           ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
+        endif
+     end if
+  end if
+
+
+  if(gyro.eq.1 .or. kinetic.eq.2 .or. amupar.ne.0.) then
 
   do i=1, dofs_per_element
      trial = trialx(i,:,:)
@@ -922,58 +977,6 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   endif
 
 
-  ! JxB
-  ! ~~~
-  ! Split time-step
-  if(advfield.eq.1) then 
-
-     ! parabolization terms
-     temp = v2upsipsi(trial,lin,pst79,pst79) &
-          + v2upsib  (trial,lin,pst79,bzt79) &
-          + v2ubb    (trial,lin,bzt79,bzt79)
-     ssterm(i,u_g) = ssterm(i,u_g) - thimp*thimp*dt*dt*temp
-     ddterm(i,u_g) = ddterm(i,u_g) +       ththm*dt*dt*temp
-
-     ! two-fluid contribution
-     if(db .gt. 0 .and. itwofluid.eq.2) then
-        temp = v2hupsi(trial,lin,pst79) & 
-             + v2hub  (trial,lin,bzt79)
-        if(i3d.eq.1) temp = temp + v2huf(trial,lin,bf179)
-        ssterm(i,u_g) = ssterm(i,u_g) + db*thimp*dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) + db*thimp*dt*temp
-     endif
-
-     temp = v2vpsipsi(trial,lin,pst79,pst79) &
-          + v2vpsib  (trial,lin,pst79,bzt79)
-     ssterm(i,vz_g) = ssterm(i,vz_g) - thimp*thimp*dt*dt*temp
-     ddterm(i,vz_g) = ddterm(i,vz_g) +       ththm*dt*dt*temp
-
-     ! two-fluid contribution
-     if(db .gt. 0 .and. itwofluid.eq.2) then
-        temp = v2hvpsi(trial,lin,pst79) & 
-             + v2hvb  (trial,lin,bzt79)
-        if(i3d.eq.1) temp = temp + v2hvf(trial,lin,bf179)
-        ssterm(i,vz_g) = ssterm(i,vz_g) + db*thimp*dt*temp
-        ddterm(i,vz_g) = ddterm(i,vz_g) + db*thimp*dt*temp
-     endif
-
-     if(numvar.ge.3) then
-        temp = v2chipsipsi(trial,lin,pst79,pst79) &
-             + v2chipsib  (trial,lin,pst79,bzt79) &
-             + v2chibb    (trial,lin,bzt79,bzt79)
-        ssterm(i,chi_g) = ssterm(i,chi_g) - thimp*thimp*dt*dt*temp
-        ddterm(i,chi_g) = ddterm(i,chi_g) +       ththm*dt*dt*temp
-
-        ! two-fluid contribution
-        if(db .gt. 0 .and. itwofluid.eq.2) then
-           temp = v2hchipsi(trial,lin,pst79) & 
-                + v2hchib  (trial,lin,bzt79)
-           if(i3d.eq.1) temp = temp + v2hchif(trial,lin,bf179)
-           ssterm(i,chi_g) = ssterm(i,chi_g) + db*thimp*dt*temp
-           ddterm(i,chi_g) = ddterm(i,chi_g) + db*thimp*dt*temp
-        endif
-     end if
-  end if
 
 
 
@@ -1037,6 +1040,8 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   endif
 
   end do
+
+  end if
 
 end subroutine axial_vel_lin
 
