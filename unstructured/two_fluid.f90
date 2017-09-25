@@ -3,237 +3,253 @@ module two_fluid
 implicit none
 
 contains
-vectype function v1hupsi(e,f,g)
 
+function v1hupsi(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
-     temp = 0.
-#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: v1hupsi
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp = int3(g(:,OP_GS),e(:,OP_DZ),f(:,OP_DZP)) &
-             + int3(g(:,OP_GS),e(:,OP_DR),f(:,OP_DRP)) &
-             - int3(f(:,OP_LP),e(:,OP_DZ),g(:,OP_DZP)) &
-             - int3(f(:,OP_LP),e(:,OP_DR),g(:,OP_DRP)) 
-     end if
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp = intx3(e(:,:,OP_DZ),g(:,OP_GS),f(:,OP_DZP)) &
+          + intx3(e(:,:,OP_DR),g(:,OP_GS),f(:,OP_DRP)) &
+          - intx3(e(:,:,OP_DZ),f(:,OP_LP),g(:,OP_DZP)) &
+          - intx3(e(:,:,OP_DR),f(:,OP_LP),g(:,OP_DRP)) 
+  end if
+  v1hupsi = temp
+#else
+  v1hupsi = 0.
 #endif
 
-  v1hupsi = temp
-  return
 end function v1hupsi
 
-vectype function v1hub(e,f,g)
-
+function v1hub(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
-     temp = 0.
+  vectype, dimension(dofs_per_element) :: v1hub
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp = int4(g(:,OP_1),ri_79,f(:,OP_DZPP),e(:,OP_DR))   &
-             - int4(g(:,OP_1),ri_79,f(:,OP_DRPP),e(:,OP_DZ))
-     end if
-#endif
-
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp = intx4(e(:,:,OP_DR),g(:,OP_1),ri_79,f(:,OP_DZPP)) &
+          - intx4(e(:,:,OP_DZ),g(:,OP_1),ri_79,f(:,OP_DRPP))
+  end if
   v1hub = temp
-  return
+#else
+  v1hub = 0.
+#endif
 end function v1hub
 
-vectype function v1huf(e,f,g)
 
+function v1huf(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
-     temp = 0.
+  vectype, dimension(dofs_per_element) :: v1huf
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+
 #if defined(USE3D) || defined(USECOMPLEX)
-
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp = -int4(r_79,f(:,OP_LP),e(:,OP_DZ),g(:,OP_DRPP))  &
-               +int4(r_79,f(:,OP_LP),e(:,OP_DR),g(:,OP_DZPP))
-     end if
-#endif
-
+  vectype, dimension(dofs_per_element) :: temp
+  
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp = -intx4(e(:,:,OP_DZ),r_79,f(:,OP_LP),g(:,OP_DRPP))  &
+          +  intx4(e(:,:,OP_DR),r_79,f(:,OP_LP),g(:,OP_DZPP))
+  end if
   v1huf = temp
-  return
+#else
+  v1huf = 0.
+#endif
 end function v1huf
 
-vectype function v1hvpsi(e,f,g)
-
+function v1hvpsi(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: v1hvpsi
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp79a = r_79*f(:,OP_LP) 
-        if(itor.eq.1) temp79a = temp79a + 2.*f(:,OP_DR)
-        temp79b = r_79*(e(:,OP_DZ)*f(:,OP_DR) - e(:,OP_DR)*f(:,OP_DZ))
-        if(itor.eq.1) temp79b = temp79b + 2.*f(:,OP_1)*e(:,OP_DZ)
-        temp = int3(temp79a,e(:,OP_DZ),g(:,OP_DR)) &
-             - int3(temp79a,e(:,OP_DR),g(:,OP_DZ)) &
-             + int2(g(:,OP_GS),temp79b)
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp79a = r_79*f(:,OP_LP) 
+     if(itor.eq.1) temp79a = temp79a + 2.*f(:,OP_DR)
+
+     temp = intx3(e(:,:,OP_DZ),temp79a,g(:,OP_DR)) &
+          - intx3(e(:,:,OP_DR),temp79a,g(:,OP_DZ)) &
+          + intx4(e(:,:,OP_DZ),f(:,OP_DR),r_79,g(:,OP_GS)) &
+          - intx4(e(:,:,OP_DR),f(:,OP_DZ),r_79,g(:,OP_GS))
+     if(itor.eq.1) then
+        temp = temp + 2.*intx3(e(:,:,OP_DZ),f(:,OP_1),g(:,OP_GS))
      end if
-
+  end if
+  
   v1hvpsi = temp
-  return
 end function v1hvpsi
 
-vectype function v1hvb(e,f,g)
-
+function v1hvb(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
-     temp = 0.
+  vectype, dimension(dofs_per_element) :: v1hvb
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp = int3(g(:,OP_1),f(:,OP_DRP),e(:,OP_DR))  &
-              +int3(g(:,OP_1),f(:,OP_DZP),e(:,OP_DZ))  &
-          + 2.*int4(g(:,OP_1),f(:,OP_DP),ri_79,e(:,OP_DR))
-     end if
-#endif
-
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp = intx3(e(:,:,OP_DR),g(:,OP_1),f(:,OP_DRP))  &
+          + intx3(e(:,:,OP_DZ),g(:,OP_1),f(:,OP_DZP))  &
+          + 2.*intx4(e(:,:,OP_DR),g(:,OP_1),f(:,OP_DP),ri_79)
+  end if
   v1hvb = temp
-  return
+#else
+  v1hvb = 0.
+#endif
 end function v1hvb
 
-vectype function v1hvf(e,f,g)
-
+function v1hvf(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
-     temp = 0.
+  vectype, dimension(dofs_per_element) :: v1hvf
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp79a = r2_79*f(:,OP_LP) + 2.*r_79*f(:,OP_DR)
-        temp = -int3(temp79a,e(:,OP_DR),g(:,OP_DRP))   &
-               -int3(temp79a,e(:,OP_DZ),g(:,OP_DZP))
-     end if
-#endif
-
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp79a = r2_79*f(:,OP_LP) + 2.*r_79*f(:,OP_DR)
+     temp = -intx3(e(:,:,OP_DR),temp79a,g(:,OP_DRP))   &
+          -  intx3(e(:,:,OP_DZ),temp79a,g(:,OP_DZP))
+  end if
   v1hvf = temp
-  return
+#else
+  v1hvf = 0.
+#endif
 end function v1hvf
 
-vectype function v1hchipsi(e,f,g)
-
+function v1hchipsi(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
-     temp = 0.
+  vectype, dimension(dofs_per_element) :: v1hchipsi
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp = -int4(ri3_79,f(:,OP_GSP),e(:,OP_DZ),g(:,OP_DR )) &
-               +int4(ri3_79,f(:,OP_GSP),e(:,OP_DR),g(:,OP_DZ )) &
-            +2.*int4(ri4_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DRP))  &
-            -2.*int4(ri4_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DRP))  &
-               -int4(ri3_79,g(:,OP_GS) ,e(:,OP_DZ),f(:,OP_DRP)) &
-               +int4(ri3_79,g(:,OP_GS) ,e(:,OP_DR),f(:,OP_DZP)) &
-            + 2.*int4(ri4_79,f(:,OP_DZ) ,e(:,OP_DR),g(:,OP_DRP))  &
-            + 2.*int4(ri4_79,f(:,OP_DZ) ,e(:,OP_DZ),g(:,OP_DZP))
-               
-     end if
-#endif
-
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp = -  intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_GSP),g(:,OP_DR )) &
+          +    intx4(e(:,:,OP_DR),ri3_79,f(:,OP_GSP),g(:,OP_DZ )) &
+          + 2.*intx4(e(:,:,OP_DZ),ri4_79,g(:,OP_DR),f(:,OP_DRP))  &
+          - 2.*intx4(e(:,:,OP_DR),ri4_79,g(:,OP_DZ),f(:,OP_DRP))  &
+          -    intx4(e(:,:,OP_DZ),ri3_79,g(:,OP_GS),f(:,OP_DRP))  &
+          +    intx4(e(:,:,OP_DR),ri3_79,g(:,OP_GS),f(:,OP_DZP))  &
+          + 2.*intx4(e(:,:,OP_DR),ri4_79,f(:,OP_DZ),g(:,OP_DRP))  &
+          + 2.*intx4(e(:,:,OP_DZ),ri4_79,f(:,OP_DZ),g(:,OP_DZP))
+     
+  end if
   v1hchipsi = temp
-  return
+#else
+  v1hchipsi = 0.
+#endif
 end function v1hchipsi
 
-vectype function v1hchib(e,f,g)
-
+function v1hchib(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
-     temp = 0.
+  vectype, dimension(dofs_per_element) :: v1hchib
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+
 #if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
 
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp =  -int4(ri4_79,g(:,OP_1),f(:,OP_DRPP),e(:,OP_DR)) &
-                -int4(ri4_79,g(:,OP_1),f(:,OP_DZPP),e(:,OP_DZ))
-
-     end if
-#endif
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp = -intx4(e(:,:,OP_DR),ri4_79,g(:,OP_1),f(:,OP_DRPP)) &
+          -  intx4(e(:,:,OP_DZ),ri4_79,g(:,OP_1),f(:,OP_DZPP))
+     
+  end if
   v1hchib = temp
-  return
+#else
+  v1hchib = 0.
+#endif
+
 end function v1hchib
 
-vectype function v1hchif(e,f,g)
-
+function v1hchif(e,f,g)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
-     temp = 0.
-#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: v1hchif
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
 
-     if(surface_int) then 
-        temp = 0.
-     else
-        temp = 2.*int4(ri3_79,f(:,OP_DZ),e(:,OP_DZ),g(:,OP_DRPP))  &
-              -2.*int4(ri3_79,f(:,OP_DZ),e(:,OP_DR),g(:,OP_DZPP))  &
-                 +int4(ri2_79,f(:,OP_GSP),e(:,OP_DR),g(:,OP_DRP))  &
-                 +int4(ri2_79,f(:,OP_GSP),e(:,OP_DZ),g(:,OP_DZP))  &
-              -2.*int4(ri4_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_DRP))  &
-              +2.*int4(ri4_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_DRP))
-     end if
+#if defined(USE3D) || defined(USECOMPLEX)
+  vectype, dimension(dofs_per_element) :: temp
+
+  if(surface_int) then 
+     temp = 0.
+  else
+     temp = 2.*intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DZ),g(:,OP_DRPP))  &
+          - 2.*intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ),g(:,OP_DZPP))  &
+          +    intx4(e(:,:,OP_DR),ri2_79,f(:,OP_GSP),g(:,OP_DRP))  &
+          +    intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_GSP),g(:,OP_DZP))  &
+          - 2.*intx4(e(:,:,OP_DZ),ri4_79,g(:,OP_DR),f(:,OP_DRP))  &
+          + 2.*intx4(e(:,:,OP_DR),ri4_79,g(:,OP_DZ),f(:,OP_DRP))
+  end if
+  v1hchif = temp
+#else
+  v1hchif = 0.
 #endif
 
-  v1hchif = temp
-  return
 end function v1hchif
 
 vectype function v2hupsi(e,f,g)

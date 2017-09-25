@@ -399,65 +399,66 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
 
 
-
-  do i=1, dofs_per_element
-     trial = trialx(i,:,:)
-
-
   ! JxB
   ! ~~~
   ! Split time-step
   if(advfield.eq.1) then
      ! parabolization terms
-     temp = v1upsipsi(trial,lin,pst79,pst79) &
-          + v1upsib  (trial,lin,pst79,bzt79) &
-          + v1ubb    (trial,lin,bzt79,bzt79)
-     ssterm(i,u_g) = ssterm(i,u_g) - thimp*thimp*dt*dt*temp
-     ddterm(i,u_g) = ddterm(i,u_g) +       ththm*dt*dt*temp
+     tempx = v1upsipsi(trialx,lin,pst79,pst79) &
+          + v1upsib  (trialx,lin,pst79,bzt79) &
+          + v1ubb    (trialx,lin,bzt79,bzt79)
+     ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
+     ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
 
      ! two-fluid contribution
      if(db .gt. 0 .and. itwofluid.eq.2) then
-        temp = v1hupsi(trial,lin,pst79) & 
-             + v1hub  (trial,lin,bzt79)
-        if(i3d.eq.1) temp = temp + v1huf(trial,lin,bf179)
-        ssterm(i,u_g) = ssterm(i,u_g) + db*thimp*dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) + db*thimp*dt*temp
+        tempx = v1hupsi(trialx,lin,pst79) & 
+             + v1hub  (trialx,lin,bzt79)
+        if(i3d.eq.1) tempx = tempx + v1huf(trialx,lin,bf179)
+        ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
      endif
 
      if(numvar.ge.2) then
-        temp = v1vpsipsi(trial,lin,pst79,pst79) &
-             + v1vpsib  (trial,lin,pst79,bzt79)
-        ssterm(i,vz_g) = ssterm(i,vz_g) - thimp*thimp*dt*dt*temp
-        ddterm(i,vz_g) = ddterm(i,vz_g) +       ththm*dt*dt*temp
+        tempx = v1vpsipsi(trialx,lin,pst79,pst79) &
+             + v1vpsib  (trialx,lin,pst79,bzt79)
+        ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
+        ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
 
        ! two-fluid contribution
        if(db .gt. 0 .and. itwofluid.eq.2) then
-          temp = v1hvpsi(trial,lin,pst79) & 
-               + v1hvb  (trial,lin,bzt79)
-          if(i3d.eq.1) temp = temp + v1hvf(trial,lin,bf179)
-          ssterm(i,vz_g) = ssterm(i,vz_g) + db*thimp*dt*temp
-          ddterm(i,vz_g) = ddterm(i,vz_g) + db*thimp*dt*temp
+          tempx = v1hvpsi(trialx,lin,pst79) & 
+               + v1hvb  (trialx,lin,bzt79)
+          if(i3d.eq.1) tempx = tempx + v1hvf(trialx,lin,bf179)
+          ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
+          ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
        endif
      endif
 
      if(numvar.ge.3) then
-       temp = v1chipsipsi(trial,lin,pst79,pst79) &
-            + v1chipsib  (trial,lin,pst79,bzt79) &
-            + v1chibb    (trial,lin,bzt79,bzt79)
-       ssterm(i,chi_g) = ssterm(i,chi_g) - thimp*thimp*dt*dt*temp
-       ddterm(i,chi_g) = ddterm(i,chi_g) +       ththm*dt*dt*temp
+       tempx = v1chipsipsi(trialx,lin,pst79,pst79) &
+            + v1chipsib  (trialx,lin,pst79,bzt79) &
+            + v1chibb    (trialx,lin,bzt79,bzt79)
+       ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
+       ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
 
        ! two-fluid contribution
        if(db .gt. 0 .and. itwofluid.eq.2) then
-          temp = v1hchipsi(trial,lin,pst79) & 
-               + v1hchib  (trial,lin,bzt79)
-          if(i3d.eq.1) temp = temp + v1hchif(trial,lin,bf179)
-          ssterm(i,chi_g) = ssterm(i,chi_g) + db*thimp*dt*temp
-          ddterm(i,chi_g) = ddterm(i,chi_g) + db*thimp*dt*temp
+          tempx = v1hchipsi(trialx,lin,pst79) & 
+               + v1hchib  (trialx,lin,bzt79)
+          if(i3d.eq.1) tempx = tempx + v1hchif(trialx,lin,bf179)
+          ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
+          ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
        endif
 
      endif
   end if
+
+
+  if(gyro.eq.1 .or. amupar.ne.0 .or. ipforce.ge.1) then
+     
+  do i=1, dofs_per_element
+     trial = trialx(i,:,:)
 
 
   ! Gyroviscosity  
@@ -526,8 +527,9 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(i,psi_g) = ddterm(i,psi_g) + dt*temp
   endif
 
-
   end do
+
+  endif
 end subroutine vorticity_lin 
 
 
