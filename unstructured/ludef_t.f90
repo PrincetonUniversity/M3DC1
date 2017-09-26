@@ -1443,63 +1443,91 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   endif
 
 
-
-  do i=1, dofs_per_element
-     trial = trialx(i,:,:)
-
-
   ! JxB
   ! ~~~
   ! Split time-step
   if(advfield.eq.1) then
 
      ! parabolization terms
-     temp = v3upsipsi(trial,lin,pst79,pst79) &
-          + v3upsib  (trial,lin,pst79,bzt79) &
-          + v3ubb    (trial,lin,bzt79,bzt79)
-     ssterm(i,u_g) = ssterm(i,u_g) - thimp*thimp*dt*dt*temp
-     ddterm(i,u_g) = ddterm(i,u_g) +       ththm*dt*dt*temp
+     tempx = v3upsipsi(trialx,lin,pst79,pst79) &
+          + v3upsib  (trialx,lin,pst79,bzt79) &
+          + v3ubb    (trialx,lin,bzt79,bzt79)
+     ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
+     ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
 
      ! two-fluid contribution
      if(db .gt. 0 .and. itwofluid.gt.1) then
-        temp = v3hupsi(trial,lin,pst79) & 
-             + v3hub  (trial,lin,bzt79)
-        if(i3d.eq.1) temp = temp + v3huf(trial,lin,bf179)
-        ssterm(i,u_g) = ssterm(i,u_g) + db*thimp*dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) + db*thimp*dt*temp
+        tempx = v3hupsi(trialx,lin,pst79) & 
+             + v3hub  (trialx,lin,bzt79)
+        if(i3d.eq.1) tempx = tempx + v3huf(trialx,lin,bf179)
+        ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
      endif
 
-     temp = v3vpsipsi(trial,lin,pst79,pst79) &
-          + v3vpsib  (trial,lin,pst79,bzt79) &
-          + v3vbb    (trial,lin,bzt79,bzt79)
-     ssterm(i,vz_g) = ssterm(i,vz_g) - thimp*thimp*dt*dt*temp
-     ddterm(i,vz_g) = ddterm(i,vz_g) +       ththm*dt*dt*temp
+     tempx = v3vpsipsi(trialx,lin,pst79,pst79) &
+          + v3vpsib  (trialx,lin,pst79,bzt79) &
+          + v3vbb    (trialx,lin,bzt79,bzt79)
+     ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
+     ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
 
      ! two-fluid contribution
      if(db .gt. 0 .and. itwofluid.gt.1) then
-        temp = v3hvpsi(trial,lin,pst79) & 
-             + v3hvb  (trial,lin,bzt79)
-        if(i3d.eq.1) temp = temp + v3hvf(trial,lin,bf179)
-        ssterm(i,vz_g) = ssterm(i,vz_g) + db*thimp*dt*temp
-        ddterm(i,vz_g) = ddterm(i,vz_g) + db*thimp*dt*temp
+        tempx = v3hvpsi(trialx,lin,pst79) & 
+             + v3hvb  (trialx,lin,bzt79)
+        if(i3d.eq.1) tempx = tempx + v3hvf(trialx,lin,bf179)
+        ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
+        ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
      endif
 
 
-     temp = v3chipsipsi(trial,lin,pst79,pst79) &
-          + v3chipsib  (trial,lin,pst79,bzt79) &
-          + v3chibb    (trial,lin,bzt79,bzt79)
-     ssterm(i,chi_g) = ssterm(i,chi_g) - thimp*thimp*dt*dt*temp
-     ddterm(i,chi_g) = ddterm(i,chi_g) +       ththm*dt*dt*temp
+     tempx = v3chipsipsi(trialx,lin,pst79,pst79) &
+          + v3chipsib  (trialx,lin,pst79,bzt79) &
+          + v3chibb    (trialx,lin,bzt79,bzt79)
+     ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
+     ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
 
      ! two-fluid contribution
      if(db .gt. 0 .and. itwofluid.gt.1) then
-        temp = v3hchipsi(trial,lin,pst79) & 
-             + v3hchib  (trial,lin,bzt79)
-        if(i3d.eq.1) temp = temp + v3hchif(trial,lin,bf179)
-        ssterm(i,chi_g) = ssterm(i,chi_g) + db*thimp*dt*temp
-        ddterm(i,chi_g) = ddterm(i,chi_g) + db*thimp*dt*temp
+        tempx = v3hchipsi(trialx,lin,pst79) & 
+             + v3hchib  (trialx,lin,bzt79)
+        if(i3d.eq.1) tempx = tempx + v3hchif(trialx,lin,bf179)
+        ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
+        ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
      endif
   endif
+
+
+  ! Gravity
+  ! ~~~~~~~
+  if(idens.eq.1) then
+     ! Split time-step
+     if(advfield.eq.1) then 
+        ddterm(:,den_g) = ddterm(:,den_g) + dt* &
+             v3ngrav(trialx,lin)
+
+        ! parabolization terms
+        tempx = v3ungrav (trialx,lin,nt79)
+        ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
+
+        tempx = v3chingrav (trialx,lin,nt79)
+        ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
+        ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
+
+     ! Unsplit time-step
+     else
+        tempx = v3ngrav(trialx,lin)
+        ssterm(:,den_g) = ssterm(:,den_g) -     thimp     *dt*tempx
+        ddterm(:,den_g) = ddterm(:,den_g) + (1.-thimp*bdf)*dt*tempx
+     endif
+  endif
+
+
+
+  if(gyro.eq.1 .or. amupar.gt.0. .or. ipforce.ge.1) then
+
+  do i=1, dofs_per_element
+     trial = trialx(i,:,:)
 
 
   ! Gyroviscisity
@@ -1559,32 +1587,6 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      endif
   endif
 
-
-  ! Gravity
-  ! ~~~~~~~
-  if(idens.eq.1) then
-     ! Split time-step
-     if(advfield.eq.1) then 
-        ddterm(i,den_g) = ddterm(i,den_g) + dt* &
-             v3ngrav(trial,lin)
-
-        ! parabolization terms
-        temp = v3ungrav (trial,lin,nt79)
-        ssterm(i,u_g) = ssterm(i,u_g) - thimp*thimp*dt*dt*temp
-        ddterm(i,u_g) = ddterm(i,u_g) +       ththm*dt*dt*temp
-
-        temp = v3chingrav (trial,lin,nt79)
-        ssterm(i,chi_g) = ssterm(i,chi_g) - thimp*thimp*dt*dt*temp
-        ddterm(i,chi_g) = ddterm(i,chi_g) +       ththm*dt*dt*temp
-
-     ! Unsplit time-step
-     else
-        temp = v3ngrav(trial,lin)
-        ssterm(i,den_g) = ssterm(i,den_g) -     thimp     *dt*temp
-        ddterm(i,den_g) = ddterm(i,den_g) + (1.-thimp*bdf)*dt*temp
-     endif
-  endif
-
   ! Poloidal force term (Lucca)
   ! ~~~~~~~~~~~~~~~~~
   if(ipforce.ge.1) then
@@ -1593,6 +1595,8 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   endif
 
   end do
+
+  end if
 end subroutine compression_lin
 
 subroutine compression_nolin(trialx, r4term)
