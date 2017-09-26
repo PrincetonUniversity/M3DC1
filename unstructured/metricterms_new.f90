@@ -8450,15 +8450,16 @@ end function b2fv
 
 ! B2psipsid
 ! =========
-vectype function b2psipsid(e,f,g,h)
-
+function b2psipsid(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2psipsid
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2psipsid = 0.
@@ -8469,33 +8470,33 @@ vectype function b2psipsid(e,f,g,h)
      if(inocurrent_tor.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp79a = e(:,OP_1)*f(:,OP_GS)*h(:,OP_1)
-        temp = int4(ri3_79,temp79a,norm79(:,2),g(:,OP_DR)) &
-             - int4(ri3_79,temp79a,norm79(:,1),g(:,OP_DZ))
+        temp79a = f(:,OP_GS)*h(:,OP_1)
+        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),g(:,OP_DR)) &
+             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),g(:,OP_DZ))
      end if
   else
-     temp = int5(ri3_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),h(:,OP_1)) &
-          - int5(ri3_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DR),h(:,OP_1))
+     temp = intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS),g(:,OP_DZ),h(:,OP_1)) &
+          - intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS),g(:,OP_DR),h(:,OP_1))
   endif
 
   b2psipsid = temp
-  return 
 end function b2psipsid
 
 
 ! B2psibd
 ! =======
-vectype function b2psibd(e,f,g,h)
-
+function b2psibd(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b2psibd
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2psibd = 0.
@@ -8506,35 +8507,35 @@ vectype function b2psibd(e,f,g,h)
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp79a = e(:,OP_1)*g(:,OP_1)*h(:,OP_1)
-        temp = int4(ri4_79,temp79a,norm79(:,1),f(:,OP_DRP)) &
-             + int4(ri4_79,temp79a,norm79(:,2),f(:,OP_DZP))
+        temp79a = g(:,OP_1)*h(:,OP_1)
+        temp = intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,1),f(:,OP_DRP)) &
+             + intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,2),f(:,OP_DZP))
      endif
   else
      temp = &
-          -(int5(ri4_79,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1),h(:,OP_1)) &
-           +int5(ri4_79,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1),h(:,OP_1)))
+          -(intx5(e(:,:,OP_DZ),ri4_79,f(:,OP_DZP),g(:,OP_1),h(:,OP_1)) &
+           +intx5(e(:,:,OP_DR),ri4_79,f(:,OP_DRP),g(:,OP_1),h(:,OP_1)))
   end if
 
   b2psibd = temp
 #else
   b2psibd = 0.
 #endif
-  return 
 end function b2psibd
 
 
 ! B2bbd
 ! =====
-vectype function b2bbd(e,f,g,h)
-
+function b2bbd(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2bbd
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2bbd = 0.
@@ -8545,30 +8546,30 @@ vectype function b2bbd(e,f,g,h)
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp79a = e(:,OP_1)*g(:,OP_1)*h(:,OP_1)
-        temp = int4(ri3_79,temp79a,norm79(:,2),f(:,OP_DR)) &
-             - int4(ri3_79,temp79a,norm79(:,1),f(:,OP_DZ))
+        temp79a = g(:,OP_1)*h(:,OP_1)
+        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),f(:,OP_DR)) &
+             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),f(:,OP_DZ))
      endif
   else
-     temp = int5(ri3_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1),h(:,OP_1)) &
-          - int5(ri3_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_1),h(:,OP_1))
+     temp = intx5(e(:,:,OP_DR),ri3_79,f(:,OP_DZ),g(:,OP_1),h(:,OP_1)) &
+          - intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_DR),g(:,OP_1),h(:,OP_1))
   endif
   
   b2bbd = temp
-  return 
 end function b2bbd
 
 
 
 ! B2ped
 ! =====
-vectype function b2ped(e,f,g)
-
+function b2ped(e,f,g)
   use basic
   use m3dc1_nint
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2ped
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2ped = 0.
@@ -8576,29 +8577,29 @@ vectype function b2ped(e,f,g)
   end if
 
   if(surface_int) then
-     temp = int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DR),g(:,OP_1)) &
-          - int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DZ),g(:,OP_1))
+     temp = intx5(e(:,:,OP_1),ri_79,norm79(:,2),f(:,OP_DR),g(:,OP_1)) &
+          - intx5(e(:,:,OP_1),ri_79,norm79(:,1),f(:,OP_DZ),g(:,OP_1))
   else
-     temp = int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1)) &
-          - int4(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_1))
+     temp = intx4(e(:,:,OP_DR),ri_79,f(:,OP_DZ),g(:,OP_1)) &
+          - intx4(e(:,:,OP_DZ),ri_79,f(:,OP_DR),g(:,OP_1))
   end if
 
   b2ped = temp
-  return
 end function b2ped
 
 
 ! B2psifd
 ! =======
-vectype function b2psifd(e,f,g,h)
-
+function b2psifd(e,f,g,h)
   use basic
   use m3dc1_nint
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b2psifd
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2psifd = 0.
@@ -8609,34 +8610,34 @@ vectype function b2psifd(e,f,g,h)
      if(inocurrent_tor.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp79a = e(:,OP_1)*f(:,OP_GS)*h(:,OP_1)
+        temp79a = f(:,OP_GS)*h(:,OP_1)
         temp = &
-             - int4(ri2_79,temp79a,norm79(:,1),g(:,OP_DRP)) &
-             - int4(ri2_79,temp79a,norm79(:,2),g(:,OP_DZP))
+             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,1),g(:,OP_DRP)) &
+             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,2),g(:,OP_DZP))
      endif
   else
-     temp = int5(ri2_79,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZP),h(:,OP_1)) &
-          + int5(ri2_79,e(:,OP_DR),f(:,OP_GS),g(:,OP_DRP),h(:,OP_1))
+     temp = intx5(e(:,:,OP_DZ),ri2_79,f(:,OP_GS),g(:,OP_DZP),h(:,OP_1)) &
+          + intx5(e(:,:,OP_DR),ri2_79,f(:,OP_GS),g(:,OP_DRP),h(:,OP_1))
   end if
   b2psifd = temp
 #else
   b2psifd = 0.
 #endif
-  return
 end function b2psifd
 
 
 ! B2bfd
 ! =====
-vectype function b2bfd(e,f,g,h)
-
+function b2bfd(e,f,g,h)
   use basic
   use m3dc1_nint
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b2bfd
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2bfd = 0.
@@ -8647,34 +8648,34 @@ vectype function b2bfd(e,f,g,h)
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else 
-        temp79a = e(:,OP_1)*f(:,OP_1)*h(:,OP_1)
-        temp = int4(ri3_79,temp79a,norm79(:,2),g(:,OP_DRPP)) &
-             - int4(ri3_79,temp79a,norm79(:,1),g(:,OP_DZPP))
+        temp79a = f(:,OP_1)*h(:,OP_1)
+        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),g(:,OP_DRPP)) &
+             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),g(:,OP_DZPP))
      endif
   else
      temp = - &
-          (int5(ri3_79,e(:,OP_DZ),f(:,OP_1),g(:,OP_DRPP),h(:,OP_1)) &
-          -int5(ri3_79,e(:,OP_DR),f(:,OP_1),g(:,OP_DZPP),h(:,OP_1)))
+          (intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_1),g(:,OP_DRPP),h(:,OP_1)) &
+          -intx5(e(:,:,OP_DR),ri3_79,f(:,OP_1),g(:,OP_DZPP),h(:,OP_1)))
   end if
   
   b2bfd = temp
 #else
   b2bfd = 0.
 #endif
-  return
 end function b2bfd
 
 ! B2psipsin
 ! =========
-vectype function b2psipsin(e,f,g,h)
-
+function b2psipsin(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2psipsin
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2psipsin = 0.
@@ -8685,34 +8686,34 @@ vectype function b2psipsin(e,f,g,h)
      if(inocurrent_tor.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp79a = e(:,OP_1)*f(:,OP_GS)*h(:,OP_1)*ni79(:,OP_1)**2
-        temp = int4(ri3_79,temp79a,norm79(:,2),g(:,OP_DR)) &
-             - int4(ri3_79,temp79a,norm79(:,1),g(:,OP_DZ))
+        temp79a = f(:,OP_GS)*h(:,OP_1)*ni79(:,OP_1)**2
+        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),g(:,OP_DR)) &
+             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),g(:,OP_DZ))
      end if
   else
      temp79a = ri3_79*ni79(:,OP_1)**2
-     temp = int5(temp79a,e(:,OP_DR),f(:,OP_GS),g(:,OP_DZ),h(:,OP_1)) &
-          - int5(temp79a,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DR),h(:,OP_1))
+     temp = intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS),g(:,OP_DZ),h(:,OP_1)) &
+          - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS),g(:,OP_DR),h(:,OP_1))
   endif
 
   b2psipsin = temp
-  return 
 end function b2psipsin
 
 
 ! B2psibn
 ! =======
-vectype function b2psibn(e,f,g,h)
-
+function b2psibn(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b2psibn
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2psibn = 0.
@@ -8723,36 +8724,36 @@ vectype function b2psibn(e,f,g,h)
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp79a = e(:,OP_1)*g(:,OP_1)*h(:,OP_1)*ni79(:,OP_1)**2
-        temp = int4(ri4_79,temp79a,norm79(:,1),f(:,OP_DRP)) &
-             + int4(ri4_79,temp79a,norm79(:,2),f(:,OP_DZP))
+        temp79a = g(:,OP_1)*h(:,OP_1)*ni79(:,OP_1)**2
+        temp = intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,1),f(:,OP_DRP)) &
+             + intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,2),f(:,OP_DZP))
      endif
   else
      temp79a = ri4_79*ni79(:,OP_1)**2
      temp = &
-          -(int5(temp79a,e(:,OP_DZ),f(:,OP_DZP),g(:,OP_1),h(:,OP_1)) &
-           +int5(temp79a,e(:,OP_DR),f(:,OP_DRP),g(:,OP_1),h(:,OP_1)))
+          -(intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZP),g(:,OP_1),h(:,OP_1)) &
+           +intx5(e(:,:,OP_DR),temp79a,f(:,OP_DRP),g(:,OP_1),h(:,OP_1)))
   end if
 
   b2psibn = temp
 #else
   b2psibn = 0.
 #endif
-  return 
 end function b2psibn
 
 
 ! B2bbn
 ! =====
-vectype function b2bbn(e,f,g,h)
-
+function b2bbn(e,f,g,h)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2bbn
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2bbn = 0.
@@ -8763,31 +8764,31 @@ vectype function b2bbn(e,f,g,h)
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp79a = e(:,OP_1)*g(:,OP_1)*h(:,OP_1)*ni79(:,OP_1)**2
-        temp = int4(ri3_79,temp79a,norm79(:,2),f(:,OP_DR)) &
-             - int4(ri3_79,temp79a,norm79(:,1),f(:,OP_DZ))
+        temp79a = g(:,OP_1)*h(:,OP_1)*ni79(:,OP_1)**2
+        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),f(:,OP_DR)) &
+             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),f(:,OP_DZ))
      endif
   else
      temp79a = ri3_79*ni79(:,OP_1)**2
-     temp = int5(temp79a,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1),h(:,OP_1)) &
-          - int5(temp79a,e(:,OP_DZ),f(:,OP_DR),g(:,OP_1),h(:,OP_1))
+     temp = intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZ),g(:,OP_1),h(:,OP_1)) &
+          - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DR),g(:,OP_1),h(:,OP_1))
   endif
   
   b2bbn = temp
-  return 
 end function b2bbn
 
 
 
 ! B2pen
 ! =====
-vectype function b2pen(e,f,g)
-
+function b2pen(e,f,g)
   use basic
   use m3dc1_nint
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2pen
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2pen = 0.
@@ -8796,11 +8797,11 @@ vectype function b2pen(e,f,g)
 
   temp79a = ri_79*ni79(:,OP_1)**2
   if(surface_int) then
-     temp = int5(temp79a,e(:,OP_1),norm79(:,2),f(:,OP_DR),g(:,OP_1)) &
-          - int5(temp79a,e(:,OP_1),norm79(:,1),f(:,OP_DZ),g(:,OP_1))
+     temp = intx5(e(:,:,OP_1),temp79a,norm79(:,2),f(:,OP_DR),g(:,OP_1)) &
+          - intx5(e(:,:,OP_1),temp79a,norm79(:,1),f(:,OP_DZ),g(:,OP_1))
   else
-     temp = int4(temp79a,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1)) &
-          - int4(temp79a,e(:,OP_DZ),f(:,OP_DR),g(:,OP_1))
+     temp = intx4(e(:,:,OP_DR),temp79a,f(:,OP_DZ),g(:,OP_1)) &
+          - intx4(e(:,:,OP_DZ),temp79a,f(:,OP_DR),g(:,OP_1))
   end if
 
   b2pen = temp
@@ -8810,15 +8811,16 @@ end function b2pen
 
 ! B2psifn
 ! =======
-vectype function b2psifn(e,f,g,h)
-
+function b2psifn(e,f,g,h)
   use basic
   use m3dc1_nint
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b2psifn
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2psifn = 0.
@@ -8829,35 +8831,35 @@ vectype function b2psifn(e,f,g,h)
      if(inocurrent_tor.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp79a = e(:,OP_1)*f(:,OP_GS)*h(:,OP_1)*ni79(:,OP_1)**2
+        temp79a = f(:,OP_GS)*h(:,OP_1)*ni79(:,OP_1)**2
         temp = &
-             - int4(ri2_79,temp79a,norm79(:,1),g(:,OP_DRP)) &
-             - int4(ri2_79,temp79a,norm79(:,2),g(:,OP_DZP))
+             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,1),g(:,OP_DRP)) &
+             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,2),g(:,OP_DZP))
      endif
   else
      temp79a = ri2_79*ni79(:,OP_1)**2
-     temp = int5(temp79a,e(:,OP_DZ),f(:,OP_GS),g(:,OP_DZP),h(:,OP_1)) &
-          + int5(temp79a,e(:,OP_DR),f(:,OP_GS),g(:,OP_DRP),h(:,OP_1))
+     temp = intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS),g(:,OP_DZP),h(:,OP_1)) &
+          + intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS),g(:,OP_DRP),h(:,OP_1))
   end if
   b2psifn = temp
 #else
   b2psifn = 0.
 #endif
-  return
 end function b2psifn
 
 
 ! B2bfn
 ! =====
-vectype function b2bfn(e,f,g,h)
-
+function b2bfn(e,f,g,h)
   use basic
   use m3dc1_nint
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h
+  vectype, dimension(dofs_per_element) :: b2bfn
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: temp
 
   if(itwofluid.eq.0) then
      b2bfn = 0.
@@ -8868,74 +8870,75 @@ vectype function b2bfn(e,f,g,h)
      if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else 
-        temp79a = e(:,OP_1)*f(:,OP_1)*h(:,OP_1)*ni79(:,OP_1)**2
-        temp = int4(ri3_79,temp79a,norm79(:,2),g(:,OP_DRPP)) &
-             - int4(ri3_79,temp79a,norm79(:,1),g(:,OP_DZPP))
+        temp79a = f(:,OP_1)*h(:,OP_1)*ni79(:,OP_1)**2
+        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),g(:,OP_DRPP)) &
+             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),g(:,OP_DZPP))
      endif
   else
      temp79a = ri3_79*ni79(:,OP_1)**2
      temp = - &
-          (int5(temp79a,e(:,OP_DZ),f(:,OP_1),g(:,OP_DRPP),h(:,OP_1)) &
-          -int5(temp79a,e(:,OP_DR),f(:,OP_1),g(:,OP_DZPP),h(:,OP_1)))
+          (intx5(e(:,:,OP_DZ),temp79a,f(:,OP_1),g(:,OP_DRPP),h(:,OP_1)) &
+          -intx5(e(:,:,OP_DR),temp79a,f(:,OP_1),g(:,OP_DZPP),h(:,OP_1)))
   end if
   
   b2bfn = temp
 #else
   b2bfn = 0.
 #endif
-  return
 end function b2bfn
 
-vectype function b2phidot(e,f)
-
+function b2phidot(e,f)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2phidot
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      temp = 0.
   else
-     temp = int2(e(:,OP_DR),f(:,OP_DR))   &
-          + int2(e(:,OP_DZ),f(:,OP_DZ))
+     temp = intx2(e(:,:,OP_DR),f(:,OP_DR))   &
+          + intx2(e(:,:,OP_DZ),f(:,OP_DZ))
   end if
 
   b2phidot = temp
-  return
 end function b2phidot
 
-vectype function b2chidot(e,f)
-
+function b2chidot(e,f)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2chidot
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, dimension(dofs_per_element) :: temp
   temp = 0.
 
   if(surface_int) then
      temp = 0.
   else
-     if(itor.eq.1) temp = 2.*int3(ri4_79,e(:,OP_1),f(:,OP_DZ))
+     if(itor.eq.1) temp = 2.*intx3(e(:,:,OP_1),ri4_79,f(:,OP_DZ))
   end if
 
   b2chidot = temp
-  return
 end function b2chidot
-vectype function b2psi2bfpe(e,f,g,h,i,j)
 
+function b2psi2bfpe(e,f,g,h,i,j)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g,h,i,j
-  vectype :: temp
+  vectype, dimension(dofs_per_element) :: b2psi2bfpe
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j
+  vectype, dimension(dofs_per_element) :: temp
   temp = 0.
 
   temp79a = ri_79*(j(:,OP_DZ)*f(:,OP_DR) - j(:,OP_DR)*f(:,OP_DZ))
@@ -8949,17 +8952,16 @@ vectype function b2psi2bfpe(e,f,g,h,i,j)
   if(surface_int) then
         temp = 0.
   else
-        temp = int4(ri2_79,temp79a,e(:,OP_DR),g(:,OP_DR))    &
-             + int4(ri2_79,temp79a,e(:,OP_DZ),g(:,OP_DZ))
+        temp = intx4(e(:,:,OP_DR),ri2_79,temp79a,g(:,OP_DR))    &
+             + intx4(e(:,:,OP_DZ),ri2_79,temp79a,g(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
-        temp = temp + int4(ri_79,temp79a,e(:,OP_DZ),i(:,OP_DRP))   &
-                    - int4(ri_79,temp79a,e(:,OP_DR),i(:,OP_DZP))
+        temp = temp + intx4(e(:,:,OP_DZ),ri_79,temp79a,i(:,OP_DRP))   &
+                    - intx4(e(:,:,OP_DR),ri_79,temp79a,i(:,OP_DZP))
 #endif
 
   end if
 
   b2psi2bfpe = temp
-  return
 end function b2psi2bfpe
 !=============================================================================
 ! B3 TERMS
