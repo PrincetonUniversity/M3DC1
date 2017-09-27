@@ -13,7 +13,7 @@ else
   LOADER = ftn
 endif
 
-OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS
+OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS -DPetscDEV -DKSPITS
 
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
@@ -49,8 +49,8 @@ ifeq ($(COM), 1)
        $(HYPRE_LIB) \
        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
        -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++  \
-       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
-       -lflapack -lfblas
+       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit #\
+#       -lflapack -lfblas
 #       -lstrumpack_sparse \
 
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
@@ -63,8 +63,8 @@ else
         $(HYPRE_LIB) \
        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
        -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++  \
-       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
-       -lflapack -lfblas
+       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit #\
+#       -lflapack -lfblas
 #       -lstrumpack_sparse \
 
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
@@ -84,11 +84,9 @@ endif
 #             -L/usr/common/usg/minixml/2.7/lib -lm -lmxml \
 #             -L/usr/lib64/ -llustreapi
 
-
-OPTS := $(OPTS) -DPetscDEV -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+MKL_LIB = ${MKLROOT}/lib/intel64/libmkl_blas95_lp64.a -L${MKLROOT}/lib/intel64 -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
-           $(FFTW_INC) \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
@@ -99,9 +97,9 @@ LIBS := $(LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_LIB) $(PETSC_EXTERNAL_LIB_BASIC) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
-	-L$(FFTW_DIR) -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
-	$(ADIOS_FLIB_V1)
+	$(ADIOS_FLIB_V1) \
+	$(MKL_LIB)
 #        $(HYBRID_LIBS) \
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
@@ -131,9 +129,9 @@ endif
 endif
 
 ifeq ($(OMP), 1)
-  LDOPTS := $(LDOPTS) -fopenmp 
-  FOPTS  := $(FOPTS)  -fopenmp 
-  CCOPTS := $(CCOPTS) -fopenmp 
+  LDOPTS := $(LDOPTS) -openmp 
+  FOPTS  := $(FOPTS)  -openmp 
+  CCOPTS := $(CCOPTS) -openmp 
 endif
 
 F90OPTS = $(F90FLAGS) $(FOPTS)
