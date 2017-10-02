@@ -73,7 +73,7 @@ contains
     implicit none
 
     type(field_type) :: jphi_vec, f_vec, vz_vec
-    integer :: itri, numelms, i, j, ibound, ierr
+    integer :: itri, numelms, ibound, ierr
     integer, dimension(dofs_per_element) :: imask
     vectype, dimension(dofs_per_element) :: dofs, dofs_vz
     vectype, dimension(dofs_per_element,dofs_per_element) :: temp
@@ -93,6 +93,8 @@ contains
 
     ! Define Jphi
     numelms = local_elements()
+!$OMP PARALLEL DO &
+!$OMP& PRIVATE(temp,dofs,imask)
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
@@ -101,22 +103,20 @@ contains
        call basicj_current(x_79, z_79, temp79a)
               
        call get_boundary_mask(itri, ibound, imask, domain_boundary)
-       do i=1,dofs_per_element
-          if(imask(i).eq.0) then
-             temp(i,:) = 0.
-             dofs(i) = 0.
-          else
-             do j=1,dofs_per_element
-                temp(i,j) = -int3(ri_79,mu79(i,:,OP_1),nu79(j,:,OP_GS))
-             enddo
-             
-             dofs(i) = int2(mu79(i,:,OP_1),temp79a)
-          endif
-       enddo
+
+       temp = -intxx3(mu79(:,:,OP_1),nu79(:,:,OP_GS),ri_79)
        
+       dofs = intx2(mu79(:,:,OP_1),temp79a)
+
+       call apply_boundary_mask(itri, ibound, temp, imask)
+       call apply_boundary_mask_vec(itri, ibound, dofs, imask)
+       
+!$OMP CRITICAL
        call insert_block(lp_matrix, itri, 1, 1, temp, MAT_ADD)
        call vector_insert_block(jphi_vec%vec, itri, 1, dofs, MAT_ADD)
+!$OMP END CRITICAL
     enddo
+!$OMP END PARALLEL DO
     
     call sum_shared(jphi_vec%vec)
     call boundary_dc(jphi_vec%vec, jphi_vec%vec, lp_matrix)
@@ -134,6 +134,8 @@ contains
     call create_mat(dr_matrix, 1, 1, icomplex, 1)
     
     jphi_vec = 0.
+!$OMP PARALLEL DO &
+!$OMP& PRIVATE(temp,dofs,imask)
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
@@ -145,22 +147,21 @@ contains
        temp79b = ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2
        
        call get_boundary_mask(itri, ibound, imask, domain_boundary)
-       do i=1,dofs_per_element
-          if(imask(i).eq.0) then
-             temp(i,:) = 0.
-             dofs(i) = 0.
-          else
-             do j=1,dofs_per_element
-                temp(i,j) = int4(ri_79,mu79(i,:,OP_1),nu79(j,:,OP_DR),ps079(:,OP_DR)) &
-                     +      int4(ri_79,mu79(i,:,OP_1),nu79(j,:,OP_DZ),ps079(:,OP_DZ))
-             enddo
-             dofs(i) = int3(mu79(i,:,OP_1),temp79a,temp79b)
-          endif
-       enddo
-       
+
+       temp = intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DR),ri_79,ps079(:,OP_DR)) &
+            + intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DZ),ri_79,ps079(:,OP_DZ))
+
+       dofs = intx3(mu79(:,:,OP_1),temp79a,temp79b)
+
+       call apply_boundary_mask(itri, ibound, temp, imask)
+       call apply_boundary_mask_vec(itri, ibound, dofs, imask)
+
+!$OMP CRITICAL       
        call insert_block(dr_matrix, itri, 1, 1, temp, MAT_ADD)
        call vector_insert_block(jphi_vec%vec, itri, 1, dofs, MAT_ADD)
+!$OMP END CRITICAL
     enddo
+!$OMP END PARALLEL DO
     
     call sum_shared(jphi_vec%vec)
     call boundary_dc(jphi_vec%vec, jphi_vec%vec, dr_matrix)
@@ -178,6 +179,8 @@ contains
     f_vec = 0.
     vz_vec = 0.
 
+!$OMP PARALLEL DO &
+!$OMP& PRIVATE(dofs,dofs_vz)
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
@@ -192,13 +195,15 @@ contains
           temp79a = sqrt(2.*bf079(:,OP_1) + bzero**2)
        end if
 
-       do i=1,dofs_per_element
-          dofs(i) = int2(mu79(i,:,OP_1),temp79a)
-          dofs_vz(i) = int2(mu79(i,:,OP_1),temp79b)
-       end do
+       dofs = intx2(mu79(:,:,OP_1),temp79a)
+       dofs_vz = intx2(mu79(:,:,OP_1),temp79b)
+
+!$OMP CRITICAL
        call vector_insert_block(f_vec%vec, itri, 1, dofs, MAT_ADD)
        call vector_insert_block(vz_vec%vec, itri, 1, dofs_vz, MAT_ADD)
+!$OMP END CRITICAL
     enddo
+!$OMP END PARALLEL DO
     
 !    call sum_shared(f_vec%vec)
 
