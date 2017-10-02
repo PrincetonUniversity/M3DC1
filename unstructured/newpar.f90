@@ -22,11 +22,14 @@ Program Reducedquintic
   use m3dc1_omp
   use restart_hdf5
 
+#ifdef STRUMPACK
+  use petsc
   implicit none
-
-#ifdef NEXTPetscDEV
+#elif defined(NEXTPetscDEV)
+  implicit none
 #include "petsc/finclude/petsc.h"
 #else
+  implicit none
 #include "finclude/petsc.h"
 #endif
 
