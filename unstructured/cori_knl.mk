@@ -37,7 +37,7 @@ else
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
   else
-    PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6/
+    PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.0
     PETSC_ARCH=cori-hsw-knl-mpich760
   endif
   HYPRE_LIB = -lHYPRE
@@ -81,7 +81,8 @@ INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 #        -I$(HYBRID_HOME)/include
 #           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 #
-LIBS := $(LIBS) \
+LIBS := \
+        $(LIBS) \
         $(SCOREC_LIBS) \
         -lzoltan \
         $(PETSC_LIB) \

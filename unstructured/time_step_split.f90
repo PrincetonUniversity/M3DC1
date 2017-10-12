@@ -732,7 +732,11 @@ subroutine step_split(calc_matrices)
 #endif
 
      call newsolve(s1_mat, b1_vel, jer)
+#ifdef NEWSOLVERDEVELOPMENT
+     if(linear.eq.0) call zero_mat(s1_mat)
+#else
      if(linear.eq.0) call clear_mat(s1_mat)
+#endif
 
      if(idifv .gt.0) then
         call add(b1_vel,vel_vec)
@@ -814,7 +818,11 @@ subroutine step_split(calc_matrices)
          call add(temp,den_vec)  ! add time n density to increment to get time n+1 value
      endif
 
+#ifdef NEWSOLVERDEVELOPMENT
+     if(linear.eq.0) call zero_mat(s8_mat)
+#else
      if(linear.eq.0) call clear_mat(s8_mat)
+#endif
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -912,7 +920,11 @@ subroutine step_split(calc_matrices)
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before newsolve"
      call newsolve(s9_mat, temp, jer)
+#ifdef NEWSOLVERDEVELOPMENT
+     if(linear.eq.0) call zero_mat(s9_mat)
+#else
      if(linear.eq.0) call clear_mat(s9_mat)
+#endif
 
     if(idiff .gt. 0) then
          call add(temp,pres_vec)
@@ -1008,7 +1020,11 @@ subroutine step_split(calc_matrices)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--before newsolve"
      call newsolve(s9_mat, temp, jer)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--after newsolve"
+#ifdef NEWSOLVERDEVELOPMENT
+     if(linear.eq.0) call zero_mat(s9_mat)
+#else
      if(linear.eq.0) call clear_mat(s9_mat)
+#endif
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -1113,7 +1129,11 @@ subroutine step_split(calc_matrices)
 #endif 
 
      call newsolve(s2_mat, b1_phi, jer)
+#ifdef NEWSOLVERDEVELOPMENT
+     if(linear.eq.0 .and. iteratephi.eq.0) call zero_mat(s2_mat)
+#else
      if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s2_mat)
+#endif
 
 
    if(idiff .gt. 0) then
@@ -1231,7 +1251,11 @@ subroutine step_split(calc_matrices)
 #endif 
 
         call newsolve(s2_mat, b1_phi, jer)
+#ifdef NEWSOLVERDEVELOPMENT
+        if(linear.eq.0) call zero_mat(s2_mat)
+#else
         if(linear.eq.0) call clear_mat(s2_mat)
+#endif
         
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then

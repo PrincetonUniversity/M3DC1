@@ -32,6 +32,10 @@ module scorec_matrix_mod
      module procedure scorec_matrix_finalize
   end interface
 
+  interface zero_mat
+     module procedure scorec_matrix_zero
+  end interface
+
   interface flush
      module procedure scorec_matrix_flush
   end interface
@@ -396,6 +400,24 @@ contains
     call m3dc1_matrix_freeze(mat%imatrix)
 #endif
   end subroutine scorec_matrix_finalize
+
+
+  !====================================================================
+  ! zero: mat=0, to be update at ntime+1
+  ! ~~~~~~~~
+  ! zero matrix 
+  !====================================================================
+  subroutine scorec_matrix_zero(mat)
+    implicit none
+    type(scorec_matrix) :: mat   
+#ifdef M3DC1_TRILINOS
+!    not implemented yet
+!    call m3dc1_epetra_zero(mat%imatrix)
+#else
+!    todo:
+!    call m3dc1_matrix_zero(mat%imatrix)
+#endif
+  end subroutine scorec_matrix_zero
 
 
   !====================================================================
