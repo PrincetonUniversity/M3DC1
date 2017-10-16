@@ -22,8 +22,8 @@ Program Reducedquintic
   use m3dc1_omp
   use restart_hdf5
 
-  use petsc
 #ifdef STRUMPACK
+  use petsc
   implicit none
 #elif defined(NEXTPetscDEV)
   implicit none
