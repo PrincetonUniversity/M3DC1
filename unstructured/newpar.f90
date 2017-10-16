@@ -187,13 +187,6 @@ Program Reducedquintic
         call flip_handedness
      endif
 
-     ! combine the equilibrium and perturbed fields of linear=0
-     ! unless eqsubtract = 1
-     if(eqsubtract.eq.0) then
-        call add(field_vec, field0_vec)
-        field0_vec = 0.
-     endif
-
      ! initialize feedback systems
      i_control%err_i = 0.
      i_control%err_p_old = 0.
@@ -268,6 +261,15 @@ Program Reducedquintic
 
      call hdf5_write_time_slice(1,ier)
   end if
+
+
+  ! combine the equilibrium and perturbed fields of linear=0
+  ! unless eqsubtract = 1
+  if(eqsubtract.eq.0) then
+     call add(field_vec, field0_vec)
+     field0_vec = 0.
+  endif
+
 
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

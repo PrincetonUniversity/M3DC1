@@ -555,11 +555,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   ! create the name of the group
   if(equilibrium.eq.1) then
      time_group_name = "equilibrium"
-     if(eqsubtract.eq.1) then
-        time_file_name = "equilibrium.h5"
-     else
-        write(time_file_name, '("time_",I3.3,".h5")') 0
-     end if
+     time_file_name = "equilibrium.h5"
   else
      write(time_group_name, '("time_",I3.3)') times_output
      write(time_file_name, '("time_",I3.3,".h5")') times_output
@@ -574,58 +570,59 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 
   ! Create new file for timeslice
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(.not.(eqsubtract.eq.0.and.equilibrium.eq.1)) then
-     ! Set up the file access property list with parallel I/O
-     call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
-     info = MPI_INFO_NULL
-     call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
-     
-     ! Open the new file
-     call h5fcreate_f(time_file_name, H5F_ACC_TRUNC_F, time_file_id, error, &
-          access_prp = plist_id)
-     if(error.lt.0) then
-        print *, "Error: could not open ", time_file_name, &
-             " for HDF5 output.  error = ", error
-        return
-     endif
-     
-     ! open the root group
-     call h5gopen_f(time_file_id, "/", time_root_id, error)
-     
-     if(myrank.eq.0 .and. iprint.ge.1) &
-          print *, ' Writing time slice file ', time_file_name
-     
-     ! Write attributes
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing attr '
-     call write_real_attr(time_root_id, "time", time, error)
-#ifdef USE3D
-     call write_int_attr(time_root_id, "nspace", 3, error)
-#else
-     call write_int_attr(time_root_id, "nspace", 2, error)
-#endif
-     ! Time step associated with this time slice
-     if(equilibrium.eq.1) then
-        call write_int_attr(time_root_id, "ntimestep", 0, error)
-     else
-        call write_int_attr(time_root_id, "ntimestep", ntime, error)
-     end if
 
-     ! Write version number
-     call write_int_attr(time_root_id, "version", version, error)
+  ! Set up the file access property list with parallel I/O
+  call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
+  info = MPI_INFO_NULL
+  call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
      
-     ! Output the mesh data
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing mesh '
-     call output_mesh(time_root_id, nelms, error)
+  ! Open the new file
+  call h5fcreate_f(time_file_name, H5F_ACC_TRUNC_F, time_file_id, error, &
+       access_prp = plist_id)
+  if(error.lt.0) then
+     print *, "Error: could not open ", time_file_name, &
+          " for HDF5 output.  error = ", error
+     return
+  endif
      
-     ! Output the field data 
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing fields '
-     call output_fields(time_root_id, equilibrium, error)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error     
-     ! Close the file
-     call h5gclose_f(time_root_id, error)
-     call h5fclose_f(time_file_id, error)  
-     call h5pclose_f(plist_id, error)
+  ! open the root group
+  call h5gopen_f(time_file_id, "/", time_root_id, error)
+  
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Writing time slice file ', time_file_name
+  
+  ! Write attributes
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing attr '
+  call write_real_attr(time_root_id, "time", time, error)
+#ifdef USE3D
+  call write_int_attr(time_root_id, "nspace", 3, error)
+#else
+  call write_int_attr(time_root_id, "nspace", 2, error)
+#endif
+  ! Time step associated with this time slice
+  if(equilibrium.eq.1) then
+     call write_int_attr(time_root_id, "ntimestep", 0, error)
+  else
+     call write_int_attr(time_root_id, "ntimestep", ntime, error)
   end if
+  
+  ! Write version number
+  call write_int_attr(time_root_id, "version", version, error)
+  
+  ! Output the mesh data
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing mesh '
+  call output_mesh(time_root_id, nelms, error)
+  
+  ! Output the field data 
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing fields '
+  call output_fields(time_root_id, equilibrium, error)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
+  
+  ! Close the file
+  call h5gclose_f(time_root_id, error)
+  call h5fclose_f(time_file_id, error)  
+  call h5pclose_f(plist_id, error)
+
 
   ! Add timeslice link in main file
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -770,11 +770,7 @@ subroutine kstar_profiles()
   if(myrank.eq.0 .and. iprint.ge.1) print *, "solving psi"
  
   call newsolve(psi_mat,psi_vec%vec,ier)
-  if(eqsubtract.eq.1) then
-     psi_field(0) = psi_vec
-  else
-     psi_field(1) = psi_vec
-  endif
+  psi_field(0) = psi_vec
   
   call destroy_mat(psi_mat)
   call destroy_field(psi_vec)
