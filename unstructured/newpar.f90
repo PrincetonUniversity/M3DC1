@@ -21,6 +21,7 @@ Program Reducedquintic
   use math
   use m3dc1_omp
   use restart_hdf5
+  use wall
 
 #ifdef STRUMPACK
   use petsc
@@ -164,6 +165,8 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Generating newvar matrices'
   call create_newvar_matrices
+
+  call calc_wall_dist
 
 
   ! Set initial conditions either from restart file
@@ -464,6 +467,7 @@ subroutine safestop(iarg)
   use time_step
   use auxiliary_fields
   use runaway_mod
+  use wall
 
   implicit none
 
@@ -479,6 +483,8 @@ subroutine safestop(iarg)
 
   call destroy_auxiliary_fields
   call runaway_deallocate
+
+  call destroy_wall_dist
 
   call finalize_timestep
 

@@ -145,7 +145,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	electrostatic_potential.o newvar.o runaway.o diagnostics.o \
 	read_schaffer_field.o  neutral_beam.o \
 	coils.o coil_sets.o model.o \
-	fit_magnetics.o \
+	fit_magnetics.o wall.o \
 	init_common.o \
 	gradshafranov.o rmp.o kprad_m3dc1.o \
 	readgeqdsk.o read_jsolver.o read_dskbal.o \
@@ -195,12 +195,21 @@ kprad : kprad.f90 kprad_test.f90
 bin : 
 	rm -fr bin
 	mkdir -p bin
-	ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin
-	ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin
-	ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin
-	ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin
-	ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin
-	ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin
+	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \
+		ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin ; \
+	else \
+		ln -s $(SCOREC_UTIL_DIR)/create_smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/seed0.smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/make_model bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/convert_sim_sms bin ; \
+	fi
 	ln -s $(SRCDIR)/_$(ARCH)/a2cc bin
 	ln -s $(SRCDIR)/_$(ARCH)-opt-25/m3dc1_2d bin
 	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25/m3dc1_2d_complex bin

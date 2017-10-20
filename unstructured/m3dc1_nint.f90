@@ -74,6 +74,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_RAD  =16777216
   integer, parameter :: FIELD_KIN  =33554432
   integer, parameter :: FIELD_RE   =67108864 
+  integer, parameter :: FIELD_WALL =134217728  ! 2^27
 
 ! NOTE: All element-specific variables should be declared OMP THREADPRIVATE
 
@@ -122,6 +123,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(ppar79,pper79)
   vectype, dimension(MAX_PTS, OP_NUM) :: nre79
 !$OMP THREADPRIVATE(nre79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: wall79
+!$OMP THREADPRIVATE(wall79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -1166,6 +1169,15 @@ contains
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   RE density..."
        
        call eval_ops(itri, nre_field, nre79)
+    endif
+
+    ! Runaway Electron Density
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+    if((iand(fields, FIELD_WALL).eq.FIELD_WALL)   &
+        .and. irunaway.gt.0) then
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Wall dist..."
+       
+       call eval_ops(itri, wall_dist, wall79)
     endif
 
 

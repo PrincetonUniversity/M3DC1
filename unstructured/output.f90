@@ -1097,6 +1097,13 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end if
 
   if(iwrite_aux_vars.eq.1) then 
+    ! wall_dist
+    do i=1, nelms
+       call calcavector(i, wall_dist, dum(:,i))
+    end do
+    call output_field(group_id, "wall_dist", real(dum), coeffs_per_element, &
+         nelms, error)
+
     ! jphi
     do i=1, nelms
        call calcavector(i, jphi_field, dum(:,i))

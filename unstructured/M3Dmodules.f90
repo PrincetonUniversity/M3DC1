@@ -479,6 +479,7 @@ module arrays
   type(field_type) :: te_field(0:1), ti_field(0:1)
   type(field_type) :: u_field_pre, psi_field_pre
   type(field_type) :: nre_field  ! runaway electron density
+  type(field_type) :: wall_dist
 #ifdef USEPARTICLES
    type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
    type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
@@ -643,7 +644,8 @@ module sparse
   integer, parameter :: rp42_mat_index = 61
   integer, parameter :: dr_mat_index = 62
   integer, parameter :: lp_mat_index = 63
-  integer, parameter :: num_matrices = 63
+  integer, parameter :: wall_mat_index = 64
+  integer, parameter :: num_matrices = 64
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat
