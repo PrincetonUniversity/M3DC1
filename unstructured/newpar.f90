@@ -258,9 +258,10 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
 
-     if(eqsubtract.eq.1) call derived_quantities(0)
-
-     if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
+     if(eqsubtract.eq.1) then
+        call derived_quantities(0)
+        if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
+     end if
 
      call hdf5_write_time_slice(1,ier)
   end if
