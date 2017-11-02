@@ -1173,8 +1173,7 @@ contains
 
     ! Runaway Electron Density
     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-    if((iand(fields, FIELD_WALL).eq.FIELD_WALL)   &
-        .and. irunaway.gt.0) then
+    if((iand(fields, FIELD_WALL).eq.FIELD_WALL)) then
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Wall dist..."
        
        call eval_ops(itri, wall_dist, wall79)

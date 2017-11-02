@@ -15,6 +15,10 @@ module diagnostics
   real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad
   real :: totre  ! total number of runaway electrons
 
+  ! wall forces in x, y, and z directions
+  ! note: x = R cos(phi), y = R sin(phi)
+  real :: wall_force_x, wall_force_y, wall_force_z
+
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvol, m_iz
 
@@ -219,6 +223,10 @@ contains
     psi0 = 0.
 
     totre = 0.
+
+    wall_force_x = 0.
+    wall_force_y = 0.
+    wall_force_z = 0.
   end subroutine reset_scalars
 
 
@@ -235,7 +243,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 54
+    integer, parameter :: num_scalars = 57
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -295,6 +303,9 @@ contains
        temp(52) = totrad
        temp(53) = totre
        temp(54) = m_iz
+       temp(55) = wall_force_x
+       temp(56) = wall_force_y
+       temp(57) = wall_force_z
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -354,6 +365,9 @@ contains
        totrad = temp2(52)
        totre =  temp2(53)
        m_iz =   temp2(54)
+       wall_force_x = temp2(55)
+       wall_force_y = temp2(56)
+       wall_force_z = temp2(57)
 
     endif !if maxrank .gt. 1
 
@@ -561,6 +575,7 @@ subroutine calculate_scalars()
   integer :: iedge, idim(3), izone, izonedim, i
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
+  vectype, dimension(MAX_PTS) :: co, sn
 
  !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
   if(nplanes.eq.1) then
@@ -651,7 +666,7 @@ subroutine calculate_scalars()
   numelms = local_elements()
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_x,wall_force_y,wall_force_z)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -661,8 +676,28 @@ subroutine calculate_scalars()
      call define_fields(itri, def_fields, 0, 0)
      if(gyro.eq.1) call gyro_common
 
+#ifdef USE3D
+     co = cos(phi_79)
+     sn = sin(phi_79)
+#endif
+
      if(imulti_region.eq.1 .and. izone.eq.2) then
         wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
+
+#ifdef USE3D
+        call jxb_r(temp79a)
+        call jxb_phi(temp79b)
+        call jxb_z(temp79c)
+
+        wall_force_x = wall_force_x &
+             + int2(temp79a,co) &
+             - int2(temp79c,sn)
+        wall_force_y = wall_force_y &
+             + int2(temp79a,sn) &
+             + int2(temp79c,co)
+        wall_force_z = wall_force_z &
+             + int1(temp79b)
+#endif
      end if
 
      if(izone.ne.1) cycle

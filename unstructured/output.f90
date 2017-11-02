@@ -460,6 +460,10 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Torque_gyro", tau_gyro, ntime, error)
   call output_scalar(scalar_group_id, "Torque_parvisc",tau_parvisc,ntime,error)
 
+  call output_scalar(scalar_group_id, "Wall_Force_x", wall_force_x,ntime,error)
+  call output_scalar(scalar_group_id, "Wall_Force_y", wall_force_y,ntime,error)
+  call output_scalar(scalar_group_id, "Wall_Force_z", wall_force_z,ntime,error)
+
   call output_scalar(scalar_group_id, "Parallel_viscous_heating",bwb2,ntime,error)
 
 
