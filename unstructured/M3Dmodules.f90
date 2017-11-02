@@ -130,6 +130,10 @@ module basic
   real :: sink1_rate, sink2_rate ! rate of sinks
   real :: sink1_var, sink2_var   ! spatial dispersion of sinks
 
+  integer :: iarc_source         ! density source due to halo current
+  real :: arc_source_alpha
+  real :: arc_source_eta
+
   integer :: idenfloor    ! defines sources/sinks to keep density constant in vacuum region
   real :: alphadenfloor  ! proportionality constant for setting density constant
 

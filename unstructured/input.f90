@@ -800,6 +800,10 @@ subroutine set_defaults
   call add_var_double("sink2_rate", sink2_rate, 0., "", source_grp)
   call add_var_double("sink2_var", sink2_var, 1., "", source_grp)
 
+  call add_var_int("iarc_source", iarc_source, 0, "", source_grp)
+  call add_var_double("arc_source_alpha", arc_source_alpha, 0., "", source_grp)
+  call add_var_double("arc_source_eta", arc_source_eta, 0.01, "", source_grp)
+
   call add_var_int("idenfloor", idenfloor, 0, "", source_grp)
   call add_var_double("alphadenfloor", alphadenfloor, 0., "", source_grp)
 
@@ -1279,8 +1283,9 @@ subroutine validate_input
 
   density_source = idens.eq.1 .and. linear.eq.0 .and. &
        (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 &
-                           .or. idenfloor.gt.0 .or. ibeam.eq.1 &
-                           .or. ibeam.eq.2 .or. iread_particlesource.eq.1)
+       .or. idenfloor.gt.0 .or. ibeam.eq.1 &
+       .or. ibeam.eq.2 .or. iread_particlesource.eq.1 &
+       .or. iarc_source.ne.0)
   momentum_source = linear.eq.0 .and. &
        (ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5)
   heat_source = linear.eq.0 .and. (numvar.ge.3 .or. ipres.eq.1) .and. &

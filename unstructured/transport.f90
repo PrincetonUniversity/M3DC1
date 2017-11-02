@@ -132,6 +132,26 @@ function sigma_func(izone)
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
+
+  if(iarc_source.eq.1) then
+     ! temp79a = normal current density = -j.grad(wall_dist)
+     temp79a = bzt79(:,OP_DZ)*wall79(:,OP_DR)*ri_79 &
+          -    bzt79(:,OP_DR)*wall79(:,OP_DZ)*ri_79
+#if defined(USE3D) || defined(COMPLEX)
+     temp79a = temp79a  &
+          + bft79(:,OP_DZPP)*wall79(:,OP_DR)*ri_79 &
+          - bft79(:,OP_DRPP)*wall79(:,OP_DZ)*ri_79 &
+          - pst79(:,OP_DRP)*wall79(:,OP_DR)*ri2_79 &
+          - pst79(:,OP_DZP)*wall79(:,OP_DZ)*ri2_79
+#endif
+     temp79b = arc_source_alpha*temp79a* &
+          (wall79(:,OP_1)/arc_source_eta)*exp(-wall79(:,OP_1)/arc_source_eta)
+     where(real(temp79b).lt.0.)
+        temp79b = 0.
+     end where
+     temp = temp + intx2(mu79(:,:,OP_1),temp79b)
+  end if
+
   ! Enforce density floor
   if(idenfloor.ge.1) then
      temp79a = 0.
@@ -938,6 +958,8 @@ subroutine define_transport_coefficients()
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
+
+  if(iarc_source.ne.0) def_fields = def_fields + FIELD_WALL
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
