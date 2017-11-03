@@ -328,7 +328,7 @@ contains
 
 
   ! output_field
-  ! ============
+  ! =================
   subroutine output_field(parent_id, name, values, ndofs, nelms, error)
     use hdf5
     
@@ -359,10 +359,10 @@ contains
 
     ! Create global dataset
     call h5screate_simple_f(rank, global_dims, filespace, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," after h5screate_simple_f"
-           call safestop(101)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5screate_simple_f"
+       call safestop(101)
+    endif
     if(idouble_out.eq.1) then
        call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, filespace, &
             dset_id, error)
@@ -370,75 +370,75 @@ contains
        call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, &
             dset_id, error)
     end if
-         if(error.ne.0) then
-           write(*,*) error,rank," after h5dcreate_f"
-           call safestop(101)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5dcreate_f"
+       call safestop(101)
+    endif
     call h5sclose_f(filespace, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," after hsclose_f"
-           call safestop(101)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," after hsclose_f"
+       call safestop(101)
+    endif
     
     ! Select local hyperslab within dataset
     call h5screate_simple_f(rank, local_dims, memspace, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," after h5screate_simple_f"
-           call safestop(102)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5screate_simple_f"
+       call safestop(102)
+    endif
     call h5dget_space_f(dset_id, filespace, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," after h5dget_space_f"
-           call safestop(102)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5dget_space_f"
+       call safestop(102)
+    endif
     call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off, local_dims, &
          error)
-         if(error.ne.0) then
-           write(*,*) error,rank," after h5sselect_hyperslab_f"
-           call safestop(102)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5sselect_hyperslab_f"
+       call safestop(102)
+    endif
     call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," after h5pcreate_f"
-           call safestop(102)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5pcreate_f"
+       call safestop(102)
+    endif
     call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," after h5pset_dxpl_mpio_f"
-           call safestop(102)
-         endif
-  
+    if(error.ne.0) then
+       write(*,*) error,rank," after h5pset_dxpl_mpio_f"
+       call safestop(102)
+    endif
+    
     ! Write the dataset
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, error, &
          file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
-         if(error.ne.0) then
-           write(*,*) error,rank," h5dwrite_f"
-           call safestop(103)
-         endif
-
+    if(error.ne.0) then
+       write(*,*) error,rank," h5dwrite_f"
+       call safestop(103)
+    endif
+    
     ! Close HDF5 handles
     call h5sclose_f(filespace, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," h5sclose_f"
-           call safestop(104)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," h5sclose_f"
+       call safestop(104)
+    endif
     call h5sclose_f(memspace, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," h5sclose_f"
-           call safestop(105)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," h5sclose_f"
+       call safestop(105)
+    endif
     
     call h5dclose_f(dset_id, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," h5dclose_f"
-           call safestop(104)
-         endif
+    if(error.ne.0) then
+       write(*,*) error,rank," h5dclose_f"
+       call safestop(104)
+    endif
     call h5pclose_f(plist_id, error)
-         if(error.ne.0) then
-           write(*,*) error,rank," h5pclose_f"
-           call safestop(105)
-         endif
-
+    if(error.ne.0) then
+       write(*,*) error,rank," h5pclose_f"
+       call safestop(105)
+    endif
+    
   end subroutine output_field
 
 

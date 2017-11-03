@@ -392,8 +392,11 @@ subroutine init
   use mesh_mod
   use basicq
   use runaway_mod
+  use kprad_m3dc1
   
   implicit none
+
+  integer :: ierr
  
   rfac = (0,1)*ntor
   if(itor.eq.0) rfac = rfac/rzero
@@ -421,6 +424,9 @@ subroutine init
   call init_qp
 
   call runaway_init
+
+  call kprad_init(ierr)
+  if(ierr.ne.0) call safestop(601)
 end subroutine init
 
 
@@ -469,6 +475,7 @@ subroutine safestop(iarg)
   use auxiliary_fields
   use runaway_mod
   use wall
+  use kprad_m3dc1
 
   implicit none
 
@@ -484,6 +491,7 @@ subroutine safestop(iarg)
 
   call destroy_auxiliary_fields
   call runaway_deallocate
+  call kprad_destroy
 
   call destroy_wall_dist
 

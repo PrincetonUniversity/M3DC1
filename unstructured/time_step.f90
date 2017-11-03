@@ -84,6 +84,7 @@ subroutine onestep
   use arrays
   use pellet
   use runaway_mod
+  use kprad_m3dc1
 
   implicit none
 
@@ -168,6 +169,8 @@ subroutine onestep
   call pellet_advance
 
   call runaway_advance
+
+  call kprad_onestep
 
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."

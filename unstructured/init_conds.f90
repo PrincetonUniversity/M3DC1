@@ -517,6 +517,7 @@ subroutine initial_conditions()
   use basicj
   use rmp
   use init_common
+  use kprad_m3dc1
 
   implicit none
 
@@ -632,8 +633,9 @@ subroutine initial_conditions()
      call unload_neo
   end if
 
-  call den_eq()
-  call den_per()
+  call den_eq
+  call den_per
+  call kprad_init_conds
 
   if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
