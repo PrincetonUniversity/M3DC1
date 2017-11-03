@@ -121,6 +121,7 @@ contains
     do i=0, kprad_z
        kprad_temp(i) = 0.
     end do
+    kprad_rad = 0.
 
     def_fields = FIELD_N + FIELD_TE
 
@@ -143,29 +144,31 @@ contains
        te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
        dt_s = dt*t0_norm
 
+       ! advance densities at each integration point
+       ! for one MHD timestep (dt_s)
        call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
             ne, te, nz, dw_rad, dw_brem)
 
        ! convert nz, dw_rad, dw_brem to normalized units
        nz = nz / n0_norm
-       dw_rad = dw_rad / (b0_norm**2 / (4.*pi))
-       dw_brem = dw_brem / (b0_norm**2 / (4.*pi))
+       dw_rad = dw_rad / p0_norm
+       dw_brem = dw_brem / p0_norm
 
        do i=0, kprad_z
-          if(nz(1,i).ne.nz(1,i)) then
-             print *, 'ne, te, dt_s', ne(1), te(1), dt_s
-             cycle
-          end if
           temp79a = nz(:,i)
           dofs = intx2(mu79(:,:,OP_1), temp79a)
           call vector_insert_block(kprad_temp(i)%vec,itri,1,dofs,VEC_ADD)
        end do
+       temp79b = (dw_rad(:,kprad_z) + dw_brem) / dt
+       dofs = intx2(mu79(:,:,OP_1),temp79b)
+       call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
     end do
 
     do i=0, kprad_z
        call newvar_solve(kprad_temp(i)%vec, mass_mat_lhs)
        kprad_n(i) = kprad_temp(i)
     end do
+    call newvar_solve(kprad_rad%vec, mass_mat_lhs)
 
     if(myrank.eq.0) print *, ' Done advancing KPRAD'
   end subroutine kprad_onestep

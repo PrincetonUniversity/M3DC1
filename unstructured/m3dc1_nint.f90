@@ -1171,14 +1171,13 @@ contains
        call eval_ops(itri, nre_field, nre79)
     endif
 
-    ! Runaway Electron Density
-    ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+    ! Wall dist field
+    ! ~~~~~~~~~~~~~~~
     if((iand(fields, FIELD_WALL).eq.FIELD_WALL)) then
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Wall dist..."
        
        call eval_ops(itri, wall_dist, wall79)
     endif
-
 
 end subroutine define_fields
 

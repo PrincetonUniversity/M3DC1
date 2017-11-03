@@ -385,11 +385,10 @@ function q_func(izone)
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
-
   q_func = temp
 end function q_func
 
-function rad_func()
+function rad_func(itri)
   use math
   use basic
   use m3dc1_nint
@@ -398,8 +397,11 @@ function rad_func()
   use read_ascii
   use radiation
   use basicq
+  use kprad_m3dc1
 
   implicit none
+
+  integer, intent(in) :: itri
 
   vectype, dimension(dofs_per_element) :: rad_func
   vectype, dimension(dofs_per_element) :: temp
@@ -463,6 +465,11 @@ function rad_func()
      temp79a = temp79a * 10. / (p0_norm / t0_norm)
      
      temp = temp - intx2(mu79(:,:,OP_1),temp79a)
+  end if
+
+  if(ikprad.ne.0) then
+     call eval_ops(itri, kprad_rad, tm79, rfac)
+     temp = temp + intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if
 
   rad_func = temp
@@ -1041,7 +1048,7 @@ subroutine define_transport_coefficients()
      end if
 
      if(rad_source) then
-        dofs = rad_func()
+        dofs = rad_func(itri)
         if(.not.solve_rad) solve_rad = any(dofs.ne.0.)
 
 !$OMP CRITICAL
