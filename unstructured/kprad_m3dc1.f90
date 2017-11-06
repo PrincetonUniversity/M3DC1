@@ -32,6 +32,7 @@ contains
 
     integer :: i
 
+    ierr = 0
     if(ikprad.eq.0) return
     
     call kprad_atomic_data_sub(kprad_z, ierr)
