@@ -23,8 +23,8 @@ Program Reducedquintic
   use restart_hdf5
   use wall
 
-#ifdef STRUMPACK
   use petsc
+#ifdef STRUMPACK
   implicit none
 #elif defined(NEXTPetscDEV)
   implicit none

@@ -412,10 +412,9 @@ contains
     type(scorec_matrix) :: mat   
 #ifdef M3DC1_TRILINOS
 !    not implemented yet
-!    call m3dc1_epetra_zero(mat%imatrix)
+!    call m3dc1_epetra_reset(mat%imatrix)
 #else
-!    todo:
-!    call m3dc1_matrix_zero(mat%imatrix)
+    call m3dc1_matrix_reset(mat%imatrix)
 #endif
   end subroutine scorec_matrix_zero
 

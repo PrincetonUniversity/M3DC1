@@ -19,7 +19,8 @@ ifeq ($(HPCTK), 1)
 endif
 
 export SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Aug2017/bin
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Aug2017/
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Aug2017/
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Nov2017/
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
     ZOLTAN_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6/cori-hsw-knl-mpich760-cplx
@@ -52,9 +53,9 @@ ifeq ($(COM), 1)
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
       OPTS := $(OPTS) -DNEXTPetscDEV
 else
-      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.7.6
-      #PETSC_ARCH = cori-hsw-knl-mpich760
-      PETSC_ARCH = cori-hsw-mpich760
+      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.8.0
+      PETSC_ARCH = cori-hsw-knl-mpich760
+      #PETSC_ARCH = cori-hsw-mpich760
       HYPRE_LIB = -lHYPRE
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
         $(HYPRE_LIB) \
