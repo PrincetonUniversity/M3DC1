@@ -334,9 +334,12 @@ contains
        end if
 
        ! convert nz, dw_rad, dw_brem to normalized units
+       ! nz is given in /cm^3
        nz = nz / n0_norm
-       dw_rad = dw_rad / p0_norm
-       dw_brem = dw_brem / p0_norm
+
+       ! dw is given in J/cm^3
+       dw_rad = dw_rad * 1.e7 / p0_norm
+       dw_brem = dw_brem * 1.e7 / p0_norm
 
        do i=0, kprad_z
           temp79a = nz(:,i)
