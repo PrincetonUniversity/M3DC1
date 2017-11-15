@@ -649,7 +649,9 @@ module sparse
   integer, parameter :: dr_mat_index = 62
   integer, parameter :: lp_mat_index = 63
   integer, parameter :: wall_mat_index = 64
-  integer, parameter :: num_matrices = 64
+  integer, parameter :: kprad_lhs_index = 65
+  integer, parameter :: kprad_rhs_index = 66
+  integer, parameter :: num_matrices = 66
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

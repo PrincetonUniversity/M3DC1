@@ -94,6 +94,180 @@ contains
   end subroutine kprad_init_conds
 
 
+  !=======================================================
+  ! boundary_kprad
+  ! ~~~~~~~~~~~~~~
+  !
+  ! sets boundary conditions for density
+  !=======================================================
+  subroutine boundary_kprad(rhs, den_v, mat)
+    use basic
+    use field
+    use arrays
+    use matrix_mod
+    use boundary_conditions
+    implicit none
+    
+    type(vector_type) :: rhs
+    type(field_type) :: den_v
+    type(matrix_type), optional :: mat
+    
+    integer :: i, izone, izonedim, numnodes, icounter_t
+    real :: normal(2), curv, x,z, phi
+    logical :: is_boundary
+    vectype, dimension(dofs_per_node) :: temp
+    
+    integer :: i_n
+    
+    if(iper.eq.1 .and. jper.eq.1) return
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_kprad called"
+    
+    numnodes = owned_nodes()
+    do icounter_t=1,numnodes
+       i = nodes_owned(icounter_t)
+       call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
+            all_boundaries)
+       if(.not.is_boundary) cycle
+       
+       i_n = node_index(den_v, i)
+       
+       if(inograd_n.eq.1) then
+          temp = 0.
+          call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+       end if
+       if(iconst_n.eq.1) then
+          if(idiff .gt. 0) then
+             temp = 0.
+          else
+             call get_node_data(den_v, i, temp)
+          end if
+          call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+       end if
+    end do
+    
+  end subroutine boundary_kprad
+  
+
+  subroutine kprad_advect()
+    use basic
+    use matrix_mod
+    use m3dc1_nint
+    use boundary_conditions
+    use metricterms_new
+    use sparse
+    use model
+
+    implicit none
+
+    type(matrix_type) :: nmat_lhs, nmat_rhs
+    type(field_type) :: rhs
+    integer :: itri, j, numelms, ierr, def_fields, izone
+    integer, dimension(dofs_per_element) :: imask
+    vectype, dimension(dofs_per_element) :: tempx
+    vectype, dimension(dofs_per_element,dofs_per_element) :: tempxx
+    vectype, dimension(dofs_per_element,dofs_per_element) :: ssterm, ddterm
+
+    if(ikprad.eq.0) return
+
+    if(myrank.eq.0 .and. iprint.ge.1) print *, ' In kprad_advect'
+
+    call set_matrix_index(nmat_lhs, kprad_lhs_index)
+    call set_matrix_index(nmat_rhs, kprad_rhs_index)
+    call create_mat(nmat_lhs, 1, 1, icomplex, 1)
+    call create_mat(nmat_rhs, 1, 1, icomplex, 0)
+    call create_field(rhs)
+
+    numelms = local_elements()
+
+    def_fields = FIELD_PHI + FIELD_V + FIELD_CHI
+
+    if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating matrix'
+
+    do itri=1, numelms
+
+       call get_zone(itri, izone)
+
+       call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+       call define_fields(itri, def_fields, 1, linear)
+       
+       ssterm = 0.
+       ddterm = 0.
+       
+       if(izone.ne.1) then
+          tempxx = n1n(mu79,nu79)
+          ssterm = ssterm + tempxx
+          ddterm = ddterm + tempxx*bdf
+          goto 100
+       end if
+  
+       ! NUMVAR = 1
+       ! ~~~~~~~~~~
+       tempxx = n1n(mu79,nu79)
+       ssterm = ssterm + tempxx
+       ddterm = ddterm + tempxx*bdf
+       
+       do j=1, dofs_per_element
+          tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79) &
+               +  n1nu   (mu79,nu79(j,:,:),pht79)
+          ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
+          ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+          
+#if defined(USECOMPLEX) || defined(USE3D)
+          ! NUMVAR = 2
+          ! ~~~~~~~~~~
+          if(numvar.ge.2) then
+             tempx = n1nv(mu79,nu79(j,:,:),vzt79)
+             ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+          endif
+#endif
+          
+          ! NUMVAR = 3
+          ! ~~~~~~~~~~
+          if(numvar.ge.3) then
+             tempx = n1nchi(mu79,nu79(j,:,:),cht79)
+             ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+          endif
+       end do
+
+100    continue
+
+!       call get_den_mask(itri, imask)
+!       call apply_boundary_mask(itri, 0, ssterm, imask)
+!       call apply_boundary_mask(itri, 0, ddterm, imask)
+
+       call insert_block(nmat_lhs,itri,1,1,ssterm,MAT_ADD)
+       call insert_block(nmat_rhs,itri,1,1,ddterm,MAT_ADD)
+    end do
+
+    if(myrank.eq.0 .and. iprint.ge.2) print *, '  finalizing'
+
+!    call boundary_kprad(rhs%vec, kprad_n(0), nmat_lhs)
+    call finalize(nmat_rhs)
+    call finalize(nmat_lhs)
+    
+    if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
+
+    do j=0, kprad_z
+       rhs = 0.
+       call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
+!       call boundary_kprad(rhs%vec, kprad_n(j))
+       call newsolve(nmat_lhs, rhs%vec, ierr)
+       kprad_n(j) = rhs
+    end do
+
+    if(myrank.eq.0 .and. iprint.ge.2) print *, '  destroying'
+
+    call destroy_field(rhs)
+    call destroy_mat(nmat_rhs)
+    call destroy_mat(nmat_lhs)
+
+    if(myrank.eq.0 .and. iprint.ge.2) print *, '  done'
+
+  end subroutine kprad_advect
+
+
   !===========================
   ! kprad_onestep
   ! ~~~~~~~~~~~~~
@@ -112,12 +286,12 @@ contains
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad
 
-    integer :: i, itri, nelms, def_fields
+    integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
 
     if(ikprad.ne.1) return
 
-    if(myrank.eq.0) print *, 'Advancing KPRAD.'
+    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Advancing KPRAD.'
 
     do i=0, kprad_z
        kprad_temp(i) = 0.
@@ -126,9 +300,13 @@ contains
 
     def_fields = FIELD_N + FIELD_TE
 
+    if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix'
+
     ! Do ionization / recombination step
     nelms = local_elements()
     do itri=1, nelms
+       call get_zone(itri, izone)
+
        call define_element_quadrature(itri,int_pts_main,5)
        call define_fields(itri,def_fields,1,0)
 
@@ -147,8 +325,13 @@ contains
 
        ! advance densities at each integration point
        ! for one MHD timestep (dt_s)
-       call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
-            ne, te, nz, dw_rad, dw_brem)
+       if(izone.eq.1) then
+          call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
+               ne, te, nz, dw_rad, dw_brem)
+       else
+          dw_rad = 0.
+          dw_brem = 0.
+       end if
 
        ! convert nz, dw_rad, dw_brem to normalized units
        nz = nz / n0_norm
@@ -165,11 +348,15 @@ contains
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
     end do
 
+    if(myrank.eq.0 .and. iprint.ge.2) print *, ' solving'
+
     do i=0, kprad_z
        call newvar_solve(kprad_temp(i)%vec, mass_mat_lhs)
        kprad_n(i) = kprad_temp(i)
     end do
     call newvar_solve(kprad_rad%vec, mass_mat_lhs)
+
+    call kprad_advect()
 
     if(myrank.eq.0) print *, ' Done advancing KPRAD'
   end subroutine kprad_onestep

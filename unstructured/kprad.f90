@@ -50,7 +50,7 @@ contains
     call kprad_ionization_rate(npts,ne,te,z,sion)
     call kprad_recombination_rate(npts,ne,te,z,srec)
 
-    dts = 1e-12
+    dts = 1e-10
     t = 0.
     dw_rad = 0.
     dw_brem = 0.
