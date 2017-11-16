@@ -1,5 +1,8 @@
 module kprad
 
+  ! All densities in cm^-3
+  ! All temperatures in eV
+
   implicit none
 
   real, allocatable, private, dimension(:) :: z_ei, zed
@@ -195,9 +198,10 @@ contains
     !ZZ(:,2)=1.0+ sum( (ZED**2-ZED)*( NZ/NE ),DIM=2 ) + 30.*0.03*NE0/NE 
                                                                         
        ! note...we have added in a guess at typical carbon density for  
-!       initial Zeff ~ 2                                                
-       !CALCULATE radiative losses to bremsstrahlung                    
-    PBREM = 1.69E-32*NE**2.0*SQRT(TE)*nZeff(:,2) 
+!       initial Zeff ~ 2
+       !CALCULATE radiative losses to bremsstrahlung
+    ! This appears to be in units of W / cm^3, with ne in cm^-3 (-NF)
+    PBREM = 1.69E-32*NE**2.0*SQRT(TE)*nZeff(:,2)
   end subroutine KPRAD_ENERGY_LOSSES
                                                                         
   subroutine kprad_atomic_data_sub(Z, ierr)

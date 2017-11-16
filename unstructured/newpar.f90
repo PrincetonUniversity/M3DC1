@@ -22,6 +22,8 @@ Program Reducedquintic
   use m3dc1_omp
   use restart_hdf5
   use wall
+  use neutral_beam
+  use kprad_m3dc1
 
   use petsc
 #ifdef STRUMPACK
@@ -235,6 +237,34 @@ Program Reducedquintic
   if(irestart.ne.0) then
      call hdf5_reconcile_version(version_in, ier)
   end if
+
+  ! =========================================
+  ! Determine which source terms will be used
+  ! ~~~~~~~~~
+  density_source = idens.eq.1 .and. linear.eq.0 .and. &
+       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 &
+       .or. idenfloor.gt.0 .or. ibeam.eq.1 &
+       .or. ibeam.eq.2 .or. iread_particlesource.eq.1 &
+       .or. iarc_source.ne.0)
+  momentum_source = linear.eq.0 .and. &
+       (ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5)
+  heat_source = linear.eq.0 .and. (numvar.ge.3 .or. ipres.eq.1) .and. &
+       (igaussian_heat_source.eq.1 .or. &
+       (ibeam.ge.1 .and. ibeam.le.4) .or. &
+       iread_heatsource.eq.1 .or. &
+       iheat_sink.eq.1)
+
+  rad_source = linear.eq.0 .and. &
+       (numvar.ge.3 .or. ipres.eq.1) .and. &
+       (iprad.ne.0 .or. ikprad.ne.0)
+
+  if(myrank.eq.0 .and. iprint.ge.1) then 
+     print *, 'Density source: ', density_source
+     print *, 'Momentum source: ', momentum_source
+     print *, 'Heat source: ', heat_source
+     print *, 'Radiation source: ', rad_source
+  end if
+  !==========================================
 
   ntime0 = ntime
 

@@ -173,6 +173,7 @@ subroutine hdf5_write_parameters(error)
   use bootstrap
   use diagnostics
   use resistive_wall
+  use kprad_m3dc1
 
   implicit none
 
@@ -257,6 +258,8 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "zlim"       , zlim,        error)
   call write_real_attr(root_id, "xlim2"      , xlim2,       error)
   call write_real_attr(root_id, "zlim2"      , zlim2,       error)
+  call write_int_attr (root_id, "ikprad"     , ikprad,      error)
+  call write_int_attr (root_id, "kprad_z"    , kprad_z,     error)
 
   call h5gclose_f(root_id, error)
 
@@ -266,6 +269,7 @@ subroutine hdf5_reconcile_version(ver, error)
   use basic
   use hdf5
   use hdf5_output
+  use kprad_m3dc1
 
   implicit none
 
@@ -296,12 +300,15 @@ subroutine hdf5_reconcile_version(ver, error)
   end if
 
   if(ver.lt.18) then
-     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
-     call write_real_attr(scalar_group_id, "xlim", xlim, error)
-     call write_real_attr(scalar_group_id, "zlim", zlim, error)
-     call write_real_attr(scalar_group_id, "xlim2", xlim2, error)
-     call write_real_attr(scalar_group_id, "zlim2", zlim2, error)
-     call h5gclose_f(scalar_group_id, error)
+     call write_real_attr(root_id, "xlim", xlim, error)
+     call write_real_attr(root_id, "zlim", zlim, error)
+     call write_real_attr(root_id, "xlim2", xlim2, error)
+     call write_real_attr(root_id, "zlim2", zlim2, error)
+  end if
+
+  if(ver.lt.19) then
+     call write_int_attr(root_id, "ikprad", ikprad, error)
+     call write_int_attr(root_id, "kprad_z", kprad_z, error)
   end if
 
   call h5gclose_f(root_id, error)

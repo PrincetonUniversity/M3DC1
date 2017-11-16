@@ -1282,30 +1282,6 @@ subroutine validate_input
 
   is_rectilinear = (nonrect.eq.0)
 
-  density_source = idens.eq.1 .and. linear.eq.0 .and. &
-       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 &
-       .or. idenfloor.gt.0 .or. ibeam.eq.1 &
-       .or. ibeam.eq.2 .or. iread_particlesource.eq.1 &
-       .or. iarc_source.ne.0)
-  momentum_source = linear.eq.0 .and. &
-       (ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5)
-  heat_source = linear.eq.0 .and. (numvar.ge.3 .or. ipres.eq.1) .and. &
-       (igaussian_heat_source.eq.1 .or. &
-       (ibeam.ge.1 .and. ibeam.le.4) .or. &
-       iread_heatsource.eq.1 .or. &
-       iheat_sink.eq.1)
-
-  rad_source = linear.eq.0 .and. &
-       (numvar.ge.3 .or. ipres.eq.1) .and. &
-       (iprad.ne.0 .or. ikprad.ne.0)
-
-  if(myrank.eq.0 .and. iprint.ge.1) then 
-     print *, 'Density source: ', density_source
-     print *, 'Momentum source: ', momentum_source
-     print *, 'Heat source: ', heat_source
-     print *, 'Radiation source: ', rad_source
-  end if
-
   if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
 
   if(irmp.eq.0 .and. iread_ext_field.eq.0 &
@@ -1325,7 +1301,7 @@ subroutine validate_input
           * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
   end if
 
-  if(rad_source .and. myrank.eq.0) then
+  if(iprad.eq.1 .and. myrank.eq.0) then
      if( (prad_z .ne. 6) .and. (prad_z .ne. 18) .and. (prad_z .ne. 26) ) then
          print *, 'your prad_z =', prad_z
          print *, 'Warning:  prad only implemented for prad_z=6,18,26'
