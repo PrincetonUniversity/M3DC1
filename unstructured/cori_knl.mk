@@ -22,8 +22,8 @@ endif
 
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6/
-  PETSC_ARCH=cori-hsw-knl-mpich760-cplx
+  PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2/
+  PETSC_ARCH=cori-hsw-mpich760-cplx
   HYPRE_LIB = 
 else
   ifeq ($(TRILINOS), 1)
