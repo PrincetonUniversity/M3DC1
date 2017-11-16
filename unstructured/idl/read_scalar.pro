@@ -265,7 +265,8 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Runaway Electrons!6'
        symbol = '!8N!D!6RE!N!X'
        d = dimensions(/n0,l0=3,_EXTRA=extra)
-   endif else if (strcmp("IZ", scalarname, /fold_case) eq 1) then begin
+   endif else if (strcmp("IZ", scalarname, /fold_case) eq 1 $
+                 or strcmp("M_IZ", scalarname, /fold_case) eq 1) then begin
        data = s.M_IZ._data / s.toroidal_current_p._data
        title = '!6Plasma Current Centroid!6'
        symbol = '!8Z!DI!N!X'

@@ -292,7 +292,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         r=x, z=y, op=op, filename=filename, $
                         xrange=xrange, yrange=yrange, mask=mask, $
                         phi=phi0_rad)
-           symbol = field_data(name, units=d, itor=itor)
+           symbol = field_data(name, units=d, itor=itor, filename=filename)
 
            if(version lt 5 and isubeq eq 1 and time ge 0 and $
               ((strcmp('te', name, /fold_case) eq 1) or $
@@ -1396,6 +1396,75 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        d = dimensions(_EXTRA=extra)
 
+
+   ;===========================================
+   ; fractional Pitch Angle change
+   ;===========================================
+   endif else if( (strcmp('dpitch_angle_z', name, /fold_case) eq 1)) $
+     then begin
+
+      if(keyword_set(linear)) then begin
+         by0 = read_field('by', x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         bz0 = read_field('bz', x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         by1 = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         bz1 = read_field('bz', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         data = bz1/bz0 - by1/by0
+         symbol = '!7da!DZ!N!3/!7a!DZ!N!x'
+      endif else begin
+         by = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         bz = read_field('bz', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         data = bz/by
+         symbol = '!8B!DZ!N!3/!8B!D!9P!N!x'
+      endelse 
+
+       d = dimensions(_EXTRA=extra)
+
+   ;===========================================
+   ; fractional pitch angle change
+   ;===========================================
+   endif else if( (strcmp('dpitch_angle_x', name, /fold_case) eq 1)) $
+     then begin
+
+      if(keyword_set(linear)) then begin
+         by0 = read_field('by', x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         bx0 = read_field('bx', x, y, t, slices=-1, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         by1 = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         bx1 = read_field('bx', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, complex=complex, $
+                         rrange=xrange, zrange=yrange, linear=linear)
+         data = bx1/bx0 - by1/by0
+         symbol = '!7da!DR!N!3/!7a!DR!N!x'
+      endif else begin
+         by = read_field('by', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         bx = read_field('bx', x, y, t, slices=time, mesh=mesh, $
+                         filename=filename, points=pts, $
+                         rrange=xrange, zrange=yrange)
+         data = bx/by
+         symbol = '!8B!DR!N!3/!8B!D!9P!N!x'
+      endelse 
+
+       d = dimensions(_EXTRA=extra)
+
    ;===========================================
    ; Kinetic energy density
    ;===========================================
@@ -2147,7 +2216,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange)
 
-       data = db*s_bracket(p-pe,psi,x,y)/s_bracket(psi,psi,x,y) / den
+       data = db*s_bracket(p-pe,psi,x,y) / s_bracket(psi,psi,x,y) / den
 
        symbol = '!7x!6!D*i!N!X'
        d = dimensions(t0=-1, _EXTRA=extra)

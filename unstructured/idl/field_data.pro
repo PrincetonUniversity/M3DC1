@@ -4,7 +4,7 @@
 ;
 ; provides the associated symbol and units for fields defined in C1.h5
 ;======================================================================
-function field_data, name, units=units, itor=itor
+function field_data, name, units=units, itor=itor, filename=filename
    units = dimensions()
 
    if(strcmp(name, 'psi', /fold_case) eq 1 or $
@@ -115,11 +115,22 @@ function field_data, name, units=units, itor=itor
        return, "!8E!D!3||!N!X"
    endif else if(strcmp(name, 'potential', /fold_case) eq 1  or $
                  strcmp(name, 'potential_i', /fold_case) eq 1) then begin
-       units = dimensions(/pot)
-       return, "!7U!X"
-    endif else if(strcmp(name, 'frequency', /fold_case) eq 1) then begin
-       units = dimensions(t0=-1)
-       return, "!7x!X"
+      units = dimensions(/pot)
+      return, "!7U!X"
+   endif else if(strcmp(name, 'frequency', /fold_case) eq 1) then begin
+      units = dimensions(t0=-1)
+      return, "!7x!X"
+   endif else if(strcmp(name, 'kprad_n', 7, /fold_case) eq 1) then begin
+      z = fix(read_parameter('kprad_z', filename=filename))
+      nz = fix(strmid(name, 8, 2))
+      zstr = ['0', 'H', 'He', $
+              'Li', 'Be', 'B',  'C',  'N', 'O', 'F',  'Ne', $
+              'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar']
+      nzstr = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', $
+                'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', $
+                'XVIII', 'XIX', 'XX']
+      units = dimensions(/n0)
+      return, "!8" + zstr[z] + " " + nzstr[nz] + "!X"
    endif  
 
    return, '!8' + name + '!X'
