@@ -11,6 +11,7 @@ contains
     use hdf5
     use pellet
     use arrays
+    use kprad_m3dc1
 
     implicit none
 
@@ -80,6 +81,10 @@ contains
        call read_real_attr(root_id, "zlim2", zlim2, error)
     end if
 
+    if(version_in.ge.19) then
+!       call read_int_attr(root_id, "ikprad", ikprad,  error)
+!       call read_int_attr(root_id, "kprad_z", kprad_z,  error)
+    end if
 
     ! Read Scalars
     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
@@ -118,6 +123,7 @@ contains
     call read_scalar(scalar_group_id, "i_control%err_p_old", i_control%err_p_old, ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_i",     n_control%err_i,     ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_p_old", n_control%err_p_old, ntime, error)
+
 
     call h5gclose_f(scalar_group_id, error)
 
@@ -181,6 +187,7 @@ contains
     use field
     use arrays
     use hdf5_output
+    use kprad_m3dc1
 
     implicit none
 
@@ -189,7 +196,8 @@ contains
     integer, intent(in) :: equilibrium
 
     integer(HID_T) :: group_id
-    integer :: nelms, ilin
+    integer :: nelms, ilin, i
+    character(len=64) :: field_name
 
     ilin = 1 - equilibrium
     error = 0
@@ -249,6 +257,13 @@ contains
     call h5r_read_field(group_id, "den", den_field(ilin), nelms, error)
     call h5r_read_field(group_id, "te",  te_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
+
+    if(ikprad.eq.1) then
+       do i=0, kprad_z
+          write(field_name, '(A,I2.2)') "kprad_n_", i
+          call h5r_read_field(group_id,trim(field_name),kprad_n(i),nelms,error)
+       end do
+    end if
     
     call h5gclose_f(group_id, error)
 

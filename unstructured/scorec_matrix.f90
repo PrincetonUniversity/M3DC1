@@ -414,7 +414,7 @@ contains
 !    not implemented yet
 !    call m3dc1_epetra_reset(mat%imatrix)
 #else
-    call m3dc1_matrix_reset(mat%imatrix)
+!    call m3dc1_matrix_reset(mat%imatrix)
 #endif
   end subroutine scorec_matrix_zero
 
