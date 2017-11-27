@@ -69,44 +69,46 @@ install_templates : templates
 	echo $(INSTALL_DIR)/templates/*/*_response $(INSTALL_DIR)/templates/*/*_stability | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.2d_complex
 	find $(INSTALL_DIR)/templates -type f -exec chmod 644 {} \;
 
-.PHONY: install_scorec
-install_scorec : 
-	mkdir -m 755 -p $(INSTALL_DIR)/bin
-	echo $(SCOREC_UTIL_DIR)
-	-cp $(SCOREC_UTIL_DIR)/create_smb/create_smb $(INSTALL_DIR)/bin
-	-chmod 755 $(INSTALL_DIR)/bin/create_smb
-	-cp $(SCOREC_UTIL_DIR)/seed0.smb $(INSTALL_DIR)/bin
-	-chmod 644 $(INSTALL_DIR)/bin/seed0.smb
-	cp $(SCOREC_UTIL_DIR)/split_smb/split_smb $(INSTALL_DIR)/bin
-	chmod 755 $(INSTALL_DIR)/bin/split_smb
-	cp $(SCOREC_UTIL_DIR)/split_smb/make_model $(INSTALL_DIR)/bin
-	chmod 755 $(INSTALL_DIR)/bin/make_model
-	cp $(SCOREC_UTIL_DIR)/split_smb/make_model $(INSTALL_DIR)/bin
-	chmod 755 $(INSTALL_DIR)/bin/make_model
-	-cp $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen $(INSTALL_DIR)/bin
-	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_meshgen
-	-cp $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms $(INSTALL_DIR)/bin
-	-chmod 755 $(INSTALL_DIR)/bin/convert_sim_sms
+#.PHONY: install_scorec
+#install_scorec : 
+#	mkdir -m 755 -p $(INSTALL_DIR)/bin
+#	echo $(SCOREC_UTIL_DIR)
+#	-cp $(SCOREC_UTIL_DIR)/create_smb/create_smb $(INSTALL_DIR)/bin
+#	-chmod 755 $(INSTALL_DIR)/bin/create_smb
+#	-cp $(SCOREC_UTIL_DIR)/seed0.smb $(INSTALL_DIR)/bin
+#	-chmod 644 $(INSTALL_DIR)/bin/seed0.smb
+#	cp $(SCOREC_UTIL_DIR)/split_smb/split_smb $(INSTALL_DIR)/bin
+#	chmod 755 $(INSTALL_DIR)/bin/split_smb
+#	cp $(SCOREC_UTIL_DIR)/split_smb/make_model $(INSTALL_DIR)/bin
+#	chmod 755 $(INSTALL_DIR)/bin/make_model
+#	cp $(SCOREC_UTIL_DIR)/split_smb/make_model $(INSTALL_DIR)/bin
+#	chmod 755 $(INSTALL_DIR)/bin/make_model
+#	-cp $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen $(INSTALL_DIR)/bin
+#	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_meshgen
+#	-cp $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms $(INSTALL_DIR)/bin
+#	-chmod 755 $(INSTALL_DIR)/bin/convert_sim_sms
 
 .PHONY: install
-install : install_idl install_doc install_scorec
+install : install_idl install_doc #install_scorec
 	echo $(ARCH)
 	mkdir -m 755 -p $(INSTALL_DIR)
 	mkdir -m 755 -p $(INSTALL_DIR)/batch
 	-cp sbin/$(ARCH)/batch_script.* $(INSTALL_DIR)/batch
 	-chmod 644 $(INSTALL_DIR)/batch/batch_script.* 
 	mkdir -m 755 -p $(INSTALL_DIR)/bin
-	cp sbin/extract_profiles.sh $(INSTALL_DIR)/bin
-	chmod 755 $(INSTALL_DIR)/bin/extract_profiles.sh
-	cp sbin/m3dc1_units.sh $(INSTALL_DIR)/bin
-	chmod 755 $(INSTALL_DIR)/bin/m3dc1_units.sh
-	-cp sbin/$(ARCH)/*.sh $(INSTALL_DIR)/bin
-	-chmod 755 $(INSTALL_DIR)/bin/*.sh
-	-cp _$(ARCH)/a2cc $(INSTALL_DIR)/bin
-	-chmod 755 $(INSTALL_DIR)/bin/a2cc
-	-cp _$(ARCH)-opt-25/m3dc1_2d $(INSTALL_DIR)/bin
-	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d
-	-cp _$(ARCH)-complex-opt-25/m3dc1_2d_complex $(INSTALL_DIR)/bin
-	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d_complex
-	-cp _$(ARCH)-3d-opt-60/m3dc1_3d $(INSTALL_DIR)/bin
-	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_3d
+	-cp _$(ARCH)/bin/* $(INSTALL_DIR)/bin
+	chmod 755 $(INSTALL_DIR)/bin/*
+#	cp sbin/extract_profiles.sh $(INSTALL_DIR)/bin
+#	chmod 755 $(INSTALL_DIR)/bin/extract_profiles.sh
+#	cp sbin/m3dc1_units.sh $(INSTALL_DIR)/bin
+#	chmod 755 $(INSTALL_DIR)/bin/m3dc1_units.sh
+#	-cp sbin/$(ARCH)/*.sh $(INSTALL_DIR)/bin
+#	-chmod 755 $(INSTALL_DIR)/bin/*.sh
+#	-cp _$(ARCH)/a2cc $(INSTALL_DIR)/bin
+#	-chmod 755 $(INSTALL_DIR)/bin/a2cc
+#	-cp _$(ARCH)-opt-25/m3dc1_2d $(INSTALL_DIR)/bin
+#	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d
+#	-cp _$(ARCH)-complex-opt-25/m3dc1_2d_complex $(INSTALL_DIR)/bin
+#	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_2d_complex
+#	-cp _$(ARCH)-3d-opt-60/m3dc1_3d $(INSTALL_DIR)/bin
+#	-chmod 755 $(INSTALL_DIR)/bin/m3dc1_3d
