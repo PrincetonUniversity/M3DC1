@@ -584,8 +584,7 @@ contains
     implicit none
     type(scorec_vector), intent(in) :: v
     character(len=*) :: file    
-    print *, "not implement scorec_vector_write"
-    call safestop(1)
+    call m3dc1_field_write(v%id, file, 0);
   end subroutine scorec_vector_write
 
 

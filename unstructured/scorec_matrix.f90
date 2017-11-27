@@ -565,8 +565,7 @@ contains
   subroutine scorec_matrix_write(mat, file)
     type(scorec_matrix), intent(in) :: mat
     character(len=*) :: file
-    print *, "scorec_matrix_write not support"
-    call abort() 
+    call m3dc1_matrix_write(mat%imatrix, file, 0);
   end subroutine scorec_matrix_write
 
   subroutine scorec_allocate_kspits
