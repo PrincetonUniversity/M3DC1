@@ -790,6 +790,19 @@ function kappa_func()
   case default
      temp79a = 0.
   end select
+
+  temp79a = temp79a + kappat
+
+  if(kappaf.ge.0. .and. gradp_crit.ne.0) then
+     temp79b = pt79(:,OP_DR)**2 + pt79(:,OP_DZ)**2
+#ifdef USE3D
+     temp79b = temp79b + ri2_79*pt79(:,OP_DP)**2
+#endif
+     where(real(temp79b).lt.gradp_crit**2)
+        temp79a = temp79a * kappaf
+     end where
+  end if
+
   temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 
   if(kappah.ne.0.) then
@@ -1179,7 +1192,6 @@ subroutine define_transport_coefficients()
   call add(resistivity_field, etar*eta_fac)
   call add(visc_field, amu)
   call add(visc_c_field, amuc)
-  call add(kappa_field, kappat)
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        print *, 'done define_transport_coefficients'

@@ -275,8 +275,10 @@ subroutine set_defaults
   call add_var_double("kappah", kappah, 0., "", transp_grp)
   call add_var_double("kappag", kappag, 0., &
        "Thermal diffusion proportional to pressure gradient", transp_grp)
+  call add_var_double("kappaf", kappaf, 1., &
+       "Factor to multiply kappa when grad(p) < gradp_crit", transp_grp)
   call add_var_double("gradp_crit", gradp_crit, 0., &
-       "Critical pressure gradient in kappag model", transp_grp)
+       "Critical pressure gradient in kappag/kappaf models", transp_grp)
 
   call add_var_double("denm", denm, 0., &
        "Density hyperdiffusion coefficient", transp_grp)

@@ -65,6 +65,7 @@ module basic
   real :: kappar      ! coefficient of field-aligned temperature diffusion
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: kappag
+  real :: kappaf
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
