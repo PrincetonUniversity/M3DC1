@@ -1206,7 +1206,7 @@ subroutine gradshafranov_solve
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Converged GS error =",error2
-     if(feedbac.ne.0) print *, "init&fin(effective) libetap", libetap, libetapeff
+     if(feedfac.ne.0) print *, "init&fin(effective) libetap", libetap, libetapeff
   endif
 
   ! if igs is positive, stop after iabs(igs) iterations
