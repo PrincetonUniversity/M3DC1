@@ -538,7 +538,7 @@ subroutine define_profiles
 
   ! define density profile
   ! ~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.2) print *, ' defining density profile'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' defining density profile'
   ! If Te is specified but pe equation is not included
   ! then define density based on p and Te
   if(ipres.eq.0 .and. allocated(te_spline%y) .and. eqsubtract.eq.0) then
@@ -568,7 +568,10 @@ subroutine define_profiles
         nvals = 0
         call read_ascii_column('profile_ne', xvals, nvals, icol=1)
         call read_ascii_column('profile_ne', yvals, nvals, icol=2)
-        if(nvals.eq.0) call safestop(5)
+        if(nvals.eq.0) then
+             if(myrank.eq.0 .and. iprint.ge.0) print *,"nvals=0 when reading profile_ne"
+             call safestop(5)
+        endif
         yvals = yvals * 1e14 / n0_norm / zeff
         
      case(2)
@@ -1203,7 +1206,7 @@ subroutine gradshafranov_solve
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, "Converged GS error =",error2
-     print *, "initial and final(effective) libetap", libetap, libetapeff
+     if(feedbac.ne.0) print *, "init&fin(effective) libetap", libetap, libetapeff
   endif
 
   ! if igs is positive, stop after iabs(igs) iterations
