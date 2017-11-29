@@ -61,7 +61,7 @@ extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){}
 /* 
    below sets the Superlu_Dist Solver options May 02, 2011
 */
-#ifdef NEXTPetscDEV
+#if PETSC_VERSION >= 36
 int setSuperluOptions(int matrixid, superlu_dist_options_t * options) {
 #else
 int setSuperluOptions(int matrixid, superlu_options_t * options) {

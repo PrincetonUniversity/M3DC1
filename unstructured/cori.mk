@@ -50,7 +50,7 @@ ifeq ($(COM), 1)
        -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
        -lflapack -lfblas
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-      OPTS := $(OPTS) -DNEXTPetscDEV
+      OPTS := $(OPTS) -DPETSC_VERSION=38
 else
       PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.8.2
       PETSC_ARCH = cori-hsw-mpich760-real
@@ -64,7 +64,7 @@ else
 #       -lstrumpack_sparse \
 
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-      OPTS := $(OPTS) -DNEXTPetscDEV
+      OPTS := $(OPTS) -DPETSC_VERSION=38
 endif
 
 # Include option to use adios

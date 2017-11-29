@@ -25,10 +25,10 @@ Program Reducedquintic
   use neutral_beam
   use kprad_m3dc1
 
-#ifdef STRUMPACK
+#if PETSC_VERSION >= 38
   use petsc
   implicit none
-#elif defined(NEXTPetscDEV)
+#elif PETSC_VERSION >= 36
   implicit none
 #include "petsc/finclude/petsc.h"
 #else
@@ -479,11 +479,14 @@ subroutine safestop(iarg)
   use wall
   use kprad_m3dc1
 
+#if PETSC_VERSION >= 38
+  use petsc
   implicit none
-
-#ifdef NEXTPetscDEV
+#elif PETSC_VERSION >= 36
+  implicit none
 #include "petsc/finclude/petsc.h"
 #else
+  implicit none
 #include "finclude/petsc.h"
 #endif
       

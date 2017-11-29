@@ -996,19 +996,17 @@ subroutine validate_input
   use resistive_wall
   use kprad_m3dc1
 
+#if PETSC_VERSION >= 38
+  use petsc
   implicit none
-
-#ifdef NEXTPetscDEV
+#elif PETSC_VERSION >= 36
+  implicit none
 #include "petsc/finclude/petsc.h"
 #else
+  implicit none
 #include "finclude/petsc.h"
 #endif
 
-!#ifdef PetscDEV
-!  PetscBool :: flg_petsc, flg_solve2, flg_pdslin
-!#else
-!  PetscTruth :: flg_petsc, flg_solve2, flg_pdslin
-!#endif
   integer :: ier
 
   if(myrank.eq.0) then

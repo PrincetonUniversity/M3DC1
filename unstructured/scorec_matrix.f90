@@ -112,26 +112,27 @@ contains
   ! creates a scorec solve matrix with index imat and size isize
   !====================================================================
   subroutine scorec_matrix_create(mat, m, n, icomplex, lhs)
+
+
+#ifndef M3DC1_TRILINOS
+
+#if PETSC_VERSION >= 38
+    use petsc
     implicit none
+#elif PETSC_VERSION >= 36
+    implicit none
+#include "petsc/finclude/petsc.h"
+#else
+    implicit none
+#include "finclude/petsc.h"
+#endif
+
+#endif
 
     type(scorec_matrix) :: mat
     integer, intent(in) :: m, n, icomplex
     integer, intent(in) :: lhs
 
-#ifndef M3DC1_TRILINOS
-
-#ifdef NEXTPetscDEV
-#include "petsc/finclude/petsc.h"
-#else
-#include "finclude/petsc.h"
-#endif
-
-!#ifdef PetscDEV
-!    PetscBool :: flg_petsc, flg_solve2, flg_pdslin
-!#else
-!    PetscBool :: flg_petsc, flg_solve2, flg_pdslin
-!#endif
-#endif
 !    integer :: ierr
 
     if(mat%imatrix .le. 0) then
@@ -344,11 +345,14 @@ contains
   subroutine scorec_matrix_solve(mat, v, ierr)
     use vector_mod
     
+#if PETSC_VERSION >= 38
+    use petsc
     implicit none
-
-#ifdef NEXTPetscDEV
+#elif PETSC_VERSION >= 36
+    implicit none
 #include "petsc/finclude/petsc.h"
 #else
+    implicit none
 #include "finclude/petsc.h"
 #endif
     
