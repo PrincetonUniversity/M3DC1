@@ -13,7 +13,7 @@ else
   LOADER = ftn
 endif
 
-OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS -DNEXTPetscDEV #-DNEWSOLVERDEVELOPMENT -DPetscDEV -DKSPITS
+OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS -DNEXTPetscDEV #-DNEWSOLVERDEVELOPMENT -DKSPITS
 
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
@@ -120,9 +120,9 @@ endif
 endif
 
 ifeq ($(OMP), 1)
-  LDOPTS := $(LDOPTS) -fopenmp 
-  FOPTS  := $(FOPTS)  -fopenmp 
-  CCOPTS := $(CCOPTS) -fopenmp 
+  LDOPTS := $(LDOPTS) -openmp 
+  FOPTS  := $(FOPTS)  -openmp 
+  CCOPTS := $(CCOPTS) -openmp 
 endif
 
 F90OPTS = $(F90FLAGS) $(FOPTS)

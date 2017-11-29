@@ -1,6 +1,6 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEBLAS
-# FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
-CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEBLAS
+# FOPTS = -c -r8 -implicitnone -fpp -warn all -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
+CCOPTS  = -c -O #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec

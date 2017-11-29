@@ -17,7 +17,7 @@ INCLUDE = -I$(SCORECDIR)/mctk/Examples/PPPL/PPPL \
 	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(HDF5_HOME)/include
 
-FOPTS = -c -fdefault-real-8 -Wall $(INCLUDE) $(OPTS) -DPETSC_31
+FOPTS = -c -fdefault-real-8 -Wall $(INCLUDE) $(OPTS)
 ifeq ($(OPT), 1) 
   FOPTS := $(FOPTS) -O3
 else

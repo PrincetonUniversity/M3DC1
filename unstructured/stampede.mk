@@ -1,5 +1,5 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all -DNEXTPetscDEV -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEBLAS -xMIC-AVX512
-# FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
+
 CCOPTS  = -c -O -DNEXTPetscDEV -xMIC-AVX512 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)

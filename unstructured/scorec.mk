@@ -1,5 +1,5 @@
-FOPTS = -c  -fdefault-real-8 -Wall -cpp -DPetscDEV -DPETSC_31 -DKSPITS $(OPTS) 
-CCOPTS  = -c -O -DPetscDEV -DPETSC_31 -DPetscOLD #-DCJ_MATRIX_DUMP -DUSEHYBRID 
+FOPTS = -c  -fdefault-real-8 -Wall -cpp -DKSPITS $(OPTS) 
+CCOPTS  = -c -O #-DCJ_MATRIX_DUMP -DUSEHYBRID 
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 

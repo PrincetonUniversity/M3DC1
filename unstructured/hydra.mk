@@ -1,5 +1,5 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP $(OPTS)
-CCOPTS  = -c -O -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP -DxUSEHYBRID #-DPETSC_31 
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DKSPITS -DxCJ_MATRIX_DUMP $(OPTS)
+CCOPTS  = -c -O -DKSPITS -DxCJ_MATRIX_DUMP -DxUSEHYBRID
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast

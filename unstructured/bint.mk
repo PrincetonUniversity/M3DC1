@@ -40,7 +40,7 @@ endif
         -L$(MKLROOT)/lib/mic/ -lmkl_blacs_intelmpi_lp64 -lmkl_blas95_lp64 -lmkl_cdft_core -lmkl_core -lmkl_intel_lp64 -lmkl_lapack95_lp64 -lmkl_scalapack_lp64 -lmkl_sequential \
         -lstdc++
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS -DxUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DKSPITS -DxUSEADIOS #-DUSEHYBRID -DCJ_MATRIX_DUMP
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/usr/common/usg/adios/1.4.1

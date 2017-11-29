@@ -1,6 +1,6 @@
-#FOPTS = -c -r8 -implicitnone -fpp -warn all -DxPetscDEV -DPETSC_31 $(OPTS)
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP  $(OPTS) #-pg
-CCOPTS  = -c -O -DPetscDEV -DKSPITS -DxCJ_MATRIX_DUMP -DxUSEHYBRID #-DPETSC_31 -pg
+#FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DKSPITS -DxCJ_MATRIX_DUMP  $(OPTS) #-pg
+CCOPTS  = -c -O -DKSPITS -DxCJ_MATRIX_DUMP -DxUSEHYBRID # -pg
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -vec-report=0 #-fast

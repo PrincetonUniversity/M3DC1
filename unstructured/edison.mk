@@ -18,7 +18,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/edison/scorec/mpich7.4.1/bin/
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/edison/scorec/mpich7.6.0/July2017/bin
 
 SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/mpich7.6.0/July2017/
 ZOLTAN_LIB = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
@@ -62,7 +62,7 @@ OPTS := $(OPTS) -DUSEADIOS
 ADIOS_FLIB = ${ADIOSREAD_FLIB_V1} \
 	-L/usr/lib64/ -llustreapi
 
-OPTS := $(OPTS) -DPetscDEV -DKSPITS -DNEXTPetscDEV
+OPTS := $(OPTS) -DKSPITS -DNEXTPetscDEV
 
 INCLUDE := $(INCLUDE) $(FFTW_INCLUDE_OPTS) \
         -I$(SCOREC_DIR)/include \
