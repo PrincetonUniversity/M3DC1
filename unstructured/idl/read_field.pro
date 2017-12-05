@@ -898,6 +898,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = er_r + ephi_phi + ez_z
        symbol = '!9G.!6E!X'
        d = dimensions(/potential, l0=-2, _EXTRA=extra)
+
+   ;===========================================
+   ; grad_psi
+   ;===========================================
+   endif else if(strcmp('grad_psi', name, /fold_case) eq 1) then begin
+
+       psi_r = read_field('psi', x, y, t, mesh=mesh, phi=phi0, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=time, op=2)
+       psi_z = read_field('psi', x, y, t, mesh=mesh, phi=phi0, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=time, op=3)
+       
+       data = sqrt(psi_r^2 + psi_z^2)
+ 
+       symbol = '!3|!9G!7w!3|!X'
+       d = dimensions(_EXTRA=extra,b0=1,l0=1+itor)
        
    ;===========================================
    ; psi_norm
