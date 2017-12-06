@@ -286,9 +286,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
            return, 0
        endif
        data = s.(match[0])._data
+
        title = ''
        symbol = scalarname
        d = dimensions()
+       
+       if(strcmp("wall_force", scalarname, 10, /fold_case) eq 1) then begin
+          d = dimensions(/p0,l0=2)
+       endif
    endelse
    
    if(keyword_set(final)) then begin
