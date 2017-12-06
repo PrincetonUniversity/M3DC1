@@ -1,0 +1,1372 @@
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+M3D-C1 DATE: 2010 10 22   TIME: 19:55:27.3
+
+ COMPLEX VERSION
+ 2D VERSION
+  validating input
+ pefac =   0.500000000000000     
+ petsc arguments: ipetsc, solve2           0           0
+ petsc true/false           1           0
+ &INPUTNL
+ ITAYLOR =           1,
+ XZERO   =  0.000000000000000E+000,
+ ZZERO   =  0.000000000000000E+000,
+ BETA    =  0.000000000000000E+000,
+ RZERO   =   1.70000000000000     ,
+ LIBETAP =   1.20000000000000     ,
+ XLIM2   =  0.000000000000000E+000,
+ ZLIM2   =  0.000000000000000E+000,
+ NUMVAR  =           3,
+ IDENS   =           0,
+ IPRES   =           0,
+ GYRO    =           0,
+ ISOURCES        =           0,
+ NOSIG   =           0,
+ ITOR    =           1,
+ JADV    =           1,
+ GAM     =   1.66666666666667     ,
+ DB      =  0.000000000000000E+000,
+ GRAVR   =  0.000000000000000E+000,
+ GRAVZ   =  0.000000000000000E+000,
+ P0      =  2.000000000000000E-002,
+ PI0     =  1.000000000000000E-002,
+ BZERO   =   1.90000000000000     ,
+ VZERO   =  0.000000000000000E+000,
+ PHIZERO =  0.000000000000000E+000,
+ PSCALE  =   1.00000000000000     ,
+ BSCALE  =   1.00000000000000     ,
+ ETAR    =  1.000000000000000E-008,
+ ETA0    =  1.000000000000000E-002,
+ IRESFUNC        =           3,
+ ETAOFF  =   1.00000000000000     ,
+ ETADELT =  0.000000000000000E+000,
+ LAMBDAE =  0.000000000000000E+000,
+ MASS_RATIO      =  0.000000000000000E+000,
+ IVISFUNC        =           0,
+ AMU     =  1.000000000000000E-005,
+ AMUC    =  1.000000000000000E-005,
+ AMUPAR  =  0.000000000000000E+000,
+ AMUE    =  0.000000000000000E+000,
+ AMUOFF  =  0.000000000000000E+000,
+ AMUDELT =  0.000000000000000E+000,
+ DENM    =  0.000000000000000E+000,
+ AMUOFF2 =  0.000000000000000E+000,
+ AMUDELT2        =  0.000000000000000E+000,
+ IKAPPAFUNC      =           0,
+ KAPPAT  =  1.000000000000000E-005,
+ KAPPA0  =  0.000000000000000E+000,
+ KAPPAOFF        =  0.000000000000000E+000,
+ KAPPADELT       =  0.000000000000000E+000,
+ KAPPAR  =  0.000000000000000E+000,
+ KAPPAX  =  0.000000000000000E+000,
+ KAPPAH  =  0.000000000000000E+000,
+ HYPER   =  0.000000000000000E+000,
+ HYPERI  =  0.000000000000000E+000,
+ HYPERV  =  0.000000000000000E+000,
+ HYPERC  =  0.000000000000000E+000,
+ HYPERP  =  0.000000000000000E+000,
+ DEEX    =   1.00000000000000     ,
+ IPER    =           0,
+ JPER    =           0,
+ AMU_EDGE        =  0.000000000000000E+000,
+ COM_BC  =           0,
+ VOR_BC  =           0,
+ PEDGE   =  1.000000000000000E-002,
+ EPS     =  1.000000000000000E-010,
+ LN      =  0.000000000000000E+000,
+ IRMP    =           1,
+ MAXN    =         200,
+ VLOOP   =  0.000000000000000E+000,
+ CONTROL_P       =  0.000000000000000E+000,
+ CONTROL_I       =  0.000000000000000E+000,
+ CONTROL_D       =  0.000000000000000E+000,
+ TCUR    =  0.000000000000000E+000,
+ IPELLET =           0,
+ PELLET_X        =  0.000000000000000E+000,
+ PELLET_Z        =  0.000000000000000E+000,
+ PELLET_RATE     =  0.000000000000000E+000,
+ PELLET_VAR      =   1.00000000000000     ,
+ IONIZATION      =           0,
+ IONIZATION_RATE =  0.000000000000000E+000,
+ IONIZATION_TEMP =  1.000000000000000E-002,
+ IONIZATION_DEPTH        =  1.000000000000000E-002,
+ ISINK   =           0,
+ SINK1_X =  0.000000000000000E+000,
+ SINK2_X =  0.000000000000000E+000,
+ SINK1_Z =  0.000000000000000E+000,
+ SINK2_Z =  0.000000000000000E+000,
+ SINK1_RATE      =  0.000000000000000E+000,
+ SINK2_RATE      =  0.000000000000000E+000,
+ SINK1_VAR       =  0.000000000000000E+000,
+ SINK2_VAR       =   1.00000000000000     ,
+ NTIMEMAX        =          10,
+ DT      =   10.0000000000000     ,
+ DDT     =  0.000000000000000E+000,
+ INTEGRATOR      =           0,
+ THIMP   =  0.600000000000000     ,
+ THIMP_OHM       =  0.600000000000000     ,
+ IMP_MOD =           0,
+ THIMPSM =   1.00000000000000     ,
+ HARNED_MIKIC    =  0.000000000000000E+000,
+ IGAUGE  =           0,
+ ISPLITSTEP      =           0,
+ LINEAR  =           1,
+ NSKIP   =           1,
+ EQSUBTRACT      =           1,
+ ITIMER  =           1,
+ IPRINT  =           1,
+ NTIMEPR =           1,
+ IGLOBALOUT      =           0,
+ IGLOBALIN       =           0,
+ IRESTART        =           0,
+ TCURO   =  0.700000000000000     ,
+ DJDPSI  =  0.000000000000000E+000,
+ XMAG    =   1.67100000000000     ,
+ ZMAG    =  1.000000000000000E-003,
+ XLIM    =  0.000000000000000E+000,
+ ZLIM    =  0.000000000000000E+000,
+ EXPN    =  0.000000000000000E+000,
+ Q0      =  0.900000000000000     ,
+ DIVERTORS       =           0,
+ XDIV    =  0.000000000000000E+000,
+ ZDIV    =  0.000000000000000E+000,
+ DIVCUR  =  0.100000000000000     ,
+ TH_GS   =  0.800000000000000     ,
+ P1      =  0.000000000000000E+000,
+ P2      =  0.000000000000000E+000,
+ IDEVICE =           4,
+ IGS     =          30,
+ NV1EQU  =           0,
+ TOL_GS  =  1.000000000000000E-008,
+ IGS_METHOD      =           3,
+ PSISCALE        =   1.00000000000000     ,
+ ICONSTFLUX      =           0,
+ REGULAR =  1.000000000000000E-007,
+ MAX_KE  =  0.000000000000000E+000,
+ NTOR    =           1,
+ MPOL    =           0,
+ IADAPT  =           0,
+ ISTATIC =           0,
+ IESTATIC        =           0,
+ IVFORM  =           1,
+ IBFORM  =          -1,
+ NPLANES =           1,
+ IHYPETA =           0,
+ IHYPAMU =           1,
+ IHYPKAPPA       =           1,
+ IKAPSCALE       =           0,
+ ITERATEPHI      =           0,
+ ICSYM   =           0,
+ INUMGS  =           0,
+ NONRECT =           1,
+ IFIXEDB =           0,
+ INONORMALFLOW   =           1,
+ INOSLIP_POL     =           1,
+ INOSLIP_TOR     =           1,
+ INOSTRESS_TOR   =           0,
+ ICONST_P        =           1,
+ INOGRAD_P       =           0,
+ ICONST_N        =           1,
+ INOGRAD_N       =           0,
+ ICONST_T        =           0,
+ INOCURRENT_POL  =           0,
+ INOCURRENT_TOR  =           0,
+ INOCURRENT_NORM =           0,
+ ICONST_BZ       =           1,
+ IFBOUND =           1,
+ IRECALC_ETA     =           0,
+ IHYPDX  =           0,
+ ICONST_ETA      =           0,
+ N_TARGET        =   1.00000000000000     ,
+ N_CONTROL_P     =  0.000000000000000E+000,
+ N_CONTROL_I     =  0.000000000000000E+000,
+ N_CONTROL_D     =  0.000000000000000E+000,
+ ICALC_SCALARS   =           1,
+ IKE_ONLY        =           0,
+ IFOUT   =           1,
+ INERTIA =           0,
+ ITWOFLUID       =           1,
+ INT_PTS_MAIN    =          25,
+ INT_PTS_AUX     =          25,
+ INT_PTS_DIAG    =          25,
+ INT_PTS_TOR     =           5,
+ IWAVE   =           0,
+ BX0     =  0.000000000000000E+000,
+ CHIINER =   1.00000000000000     ,
+ IBOOTSTRAP      =           0,
+ XNULL   =   1.30000000000000     ,
+ ZNULL   =  -1.14000000000000     ,
+ TILTANGLED      =  0.000000000000000E+000,
+ ISURFACE        =           1,
+ IREAD_EQDSK     =           1,
+ IREAD_DSKBAL    =           0,
+ IREAD_JSOLVER   =           0,
+ ADAPT_FACTOR    =   1.00000000000000     ,
+ ADAPT_HMIN      =  1.000000000000000E-003,
+ ADAPT_HMAX      =  0.100000000000000     ,
+ B0_NORM =   10000.0000000000     ,
+ N0_NORM =   10000000000000.0     ,
+ L0_NORM =   100.000000000000     ,
+ IDENFUNC        =           4,
+ DEN_EDGE        =  0.000000000000000E+000,
+ DEN0    =   1.00000000000000     ,
+ DENOFF  =   1.00000000000000     ,
+ DENDELT =  0.100000000000000     ,
+ IROT    =           0,
+ ALPHA0  =  0.000000000000000E+000,
+ ALPHA1  =  0.000000000000000E+000,
+ ALPHA2  =  0.000000000000000E+000,
+ ICURV   =           2,
+ IFLIP   =           0,
+ IWRITE_RESTART  =           0,
+ ETA_WALL        =  0.000000000000000E+000,
+ DELTA_WALL      =   1.00000000000000     ,
+ IFLIP_B =           0,
+ IFLIP_V =           0
+ /
+  Loading mesh
+The SuperLU process grid is 2 rows by 4 columns
+The model bound: min(1.000082 -1.394837 0.000000), max(2.360000 1.304837 0.000000)
+The 1th Analytic Model Face 
+The face has 1 Analytic Model Edge 
+----The 1th Analytic Model Face 
+
+********************
+  FMDB v0.1 with URR 
+MRM = 1  1  0  0
+              1  1  1  0
+              0  1  1  0
+              0  0  0  0
+reading 1469 verticesThe model bound: min(1.000082 -1.394837 0.000000), max(2.360000 1.304837 0.000000)
+Creating a pmi
+The model bound: min(1.000082 -1.394837 0.000000), max(2.360000 1.304837 0.000000)
+Creating a pmi
+The model bound: min(1.000082 -1.394837 0.000000), max(2.360000 1.304837 0.000000)
+Creating a pmi
+The model bound: min(1.000082 -1.394837 0.000000), max(2.360000 1.304837 0.000000)
+Creating a pmi
+The model bound: min(1.000082 -1.394837 0.000000), max(2.360000 1.304837 0.000000)
+Creating a pmi
+The model bound: min(1.000082 -1.394837 0.000000), max(2.360000 1.304837 0.000000)
+Creating a pmi
+The model bound: min(1.000082 -1.394837 0.000000), max(2.360000 1.304837 0.000000)
+Creating a pmi
+, 4288 edges, 2820 faces
+Creating a pmi
+ZOLTAN Zoltan_Verify_Graph: The graph is valid with check_graph = 2
+
+migr_URR: # Moved = 2468 (t = 0.049716 sec)
+	TIME FOR LB: 0.133486 (sec)
+   (t = 0.164304 sec)
+********************
+Vt: t = 5.497787, cost = 0.752324, sint = -0.658794
+Vt: t = 5.890486, cost = 0.915485, sint = -0.402353
+Vt: t = 5.694137, cost = 0.836998, sint = -0.547206
+Vt: t = 5.301438, cost = 0.659066, sint = -0.752085
+Vt: t = 5.595962, cost = 0.795246, sint = -0.606287
+Vt: t = 5.792311, cost = 0.877426, sint = -0.479712
+Vt: t = 5.988661, cost = 0.949278, sint = -0.314439
+Vt: t = 5.399612, cost = 0.707492, sint = -0.706722
+Vt: t = 5.546875, cost = 0.773956, sint = -0.633239
+Vt: t = 5.645049, cost = 0.816256, sint = -0.577690
+Vt: t = 5.743224, cost = 0.857422, sint = -0.514614
+Vt: t = 5.841399, cost = 0.896852, sint = -0.442331
+Vt: t = 5.939574, cost = 0.933062, sint = -0.359716
+Vt: t = 5.350525, cost = 0.683874, sint = -0.729600
+Vt: t = 5.448700, cost = 0.730228, sint = -0.683203
+there are 206 557 352 VEF on proc 0 with total procs 0
+Vt: t = 0.000000, cost = 1.000000, sint = 0.000000
+Vt: t = 6.086836, cost = 0.976289, sint = -0.216472
+Vt: t = 0.098175, cost = 0.993878, sint = 0.110481
+Vt: t = 5.988661, cost = 0.949278, sint = -0.314439
+Vt: t = 6.185011, cost = 0.993878, sint = -0.110481
+Vt: t = 0.049087, cost = 0.998457, sint = 0.055534
+Vt: t = 0.147262, cost = 0.986412, sint = 0.164290
+Vt: t = 6.037748, cost = 0.963801, sint = -0.266624
+Vt: t = 6.135923, cost = 0.986412, sint = -0.164290
+Vt: t = 6.234098, cost = 0.998457, sint = -0.055533
+there are 210 562 353 VEF on proc 0 with total procs 0
+Vt: t = 4.712389, cost = 0.000000, sint = -1.000000
+Vt: t = 3.926991, cost = -0.981928, sint = -0.189255
+Vt: t = 5.105088, cost = 0.538605, sint = -0.842559
+Vt: t = 4.319690, cost = -0.819708, sint = -0.572781
+Vt: t = 5.301438, cost = 0.659066, sint = -0.752085
+Vt: t = 4.908739, cost = 0.345948, sint = -0.938254
+Vt: t = 4.123340, cost = -0.943521, sint = -0.331313
+Vt: t = 4.516039, cost = -0.485260, sint = -0.874370
+Vt: t = 5.203263, cost = 0.604224, sint = -0.796815
+Vt: t = 4.025166, cost = -0.968170, sint = -0.250292
+Vt: t = 5.006913, cost = 0.455662, sint = -0.890153
+Vt: t = 4.221515, cost = -0.899040, sint = -0.437867
+Vt: t = 4.810564, cost = 0.197389, sint = -0.980325
+Vt: t = 4.417865, cost = -0.685597, sint = -0.727981
+Vt: t = 4.614214, cost = -0.239987, sint = -0.970776
+Vt: t = 5.154175, cost = 0.573110, sint = -0.819479
+Vt: t = 5.252350, cost = 0.632677, sint = -0.774416
+Vt: t = 3.976078, cost = -0.976034, sint = -0.217619
+Vt: t = 5.056001, cost = 0.499815, sint = -0.866132
+Vt: t = 4.074253, cost = -0Vt: t = 3.926991, cost = -0.981928, sint = -0.189255
+Vt: t = 3.534292, cost = -0.998283, sint = -0.058570
+Vt: t = 3.337942, cost = -0.999667, sint = -0.025808
+Vt: t = 3.730641, cost = -0.994176, sint = -0.107769
+Vt: t = 3.239767, cost = -0.999922, sint = -0.012496
+Vt: t = 3.436117, cost = -0.999166, sint = -0.040822
+Vt: t = 3.632467, cost = -0.996768, sint = -0.080334
+Vt: t = 3.828816, cost = -0.989711, sint = -0.143082
+Vt: t = 3.190680, cost = -0.999981, sint = -0.006198
+Vt: t = 3.288855, cost = -0.999820, sint = -0.018998
+Vt: t = 3.387030, cost = -0.999454, sint = -0.033042
+Vt: t = 3.485204, cost = -0.998785, sint = -0.049281
+Vt: t = 3.583379, cost = -0.997627, sint = -0.068857
+Vt: t = 3.681554, cost = -0.995646, sint = -0.093220
+Vt: t = 3.779729, cost = -0.992248, sint = -0.124276
+Vt: t = 3.877903, cost = -0.986363, sint = -0.164587
+there are 206 558 353 VEF on proc 0 with total procs 0
+Vt: t = 1.570796, cost = 0.000001, sint = 1.000000
+Vt: t = 0.785398, cost = 0.752324, sint = 0.658794
+Vt: t = 1.178097, cost = 0.538605, sint = 0.842558
+Vt: t = 0.589049, cost = 0.836998, sint = 0.547207
+Vt: t = 0.981748, cost = 0.659066, sint = 0.752085
+Vt: t = 1.374447, cost = 0.345947, sint = 0.938254
+Vt: t = 0.490874, cost = 0.877426, sint = 0.479711
+Vt: t = 0.687223, cost = 0.795246, sint = 0.606287
+Vt: t = 0.883573, cost = 0.707492, sint = 0.706722
+Vt: t = 1.767146, cost = -0.485259, sint = 0.874370
+Vt: t = 1.079922, cost = 0.604224, sint = 0.796815
+Vt: t = 1.276272, cost = 0.455662, sint = 0.890153
+Vt: t = 1.472622, cost = 0.197388, sint = 0.980325
+Vt: t = 0.539961, cost = 0.857422, sint = 0.514614
+Vt: t = 0.638136, cost = 0.816257, sint = 0.577689
+Vt: t = 0.736311, cost = 0.773956, sint = 0.633239
+Vt: t = 0.834485, cost = 0.730228, sint = 0.683203
+Vt: t = 0.932660, cost = 0.683874, sint = 0.729600
+Vt: t = 1.668971, cost = -0.239986, sint = 0.970776
+Vt: t = 1.030835, cost = 0.632677, sint = 0.774416
+VtVt: t = 2.356194, cost = -0.981928, sint = 0.189255
+Vt: t = 2.748894, cost = -0.998283, sint = 0.058570
+Vt: t = 1.963495, cost = -0.819708, sint = 0.572782
+Vt: t = 2.552544, cost = -0.994176, sint = 0.107769
+Vt: t = 2.159845, cost = -0.943521, sint = 0.331313
+Vt: t = 2.847068, cost = -0.999166, sint = 0.040822
+Vt: t = 2.650719, cost = -0.996768, sint = 0.080334
+Vt: t = 1.767146, cost = -0.485259, sint = 0.874370
+Vt: t = 2.454369, cost = -0.989711, sint = 0.143082
+Vt: t = 2.258020, cost = -0.968171, sint = 0.250291
+Vt: t = 2.061670, cost = -0.899040, sint = 0.437867
+Vt: t = 2.797981, cost = -0.998785, sint = 0.049281
+Vt: t = 2.896156, cost = -0.999454, sint = 0.033042
+Vt: t = 2.601631, cost = -0.995646, sint = 0.093220
+Vt: t = 2.699806, cost = -0.997627, sint = 0.068857
+Vt: t = 1.865321, cost = -0.685598, sint = 0.727980
+Vt: t = 2.405282, cost = -0.986363, sint = 0.164587
+Vt: t = 2.503457, cost = -0.992248, sint = 0.124276
+Vt: t = 2.307107, cost = -0.976034, sint = 0.217620
+Vt: t = 2.208932, cost = -0.957646, Vt: t = 3.141593, cost = -1.000000, sint = -0.000000
+Vt: t = 2.945243, cost = -0.999667, sint = 0.025808
+Vt: t = 3.043418, cost = -0.999922, sint = 0.012496
+Vt: t = 2.896156, cost = -0.999454, sint = 0.033042
+Vt: t = 2.994330, cost = -0.999820, sint = 0.018998
+Vt: t = 3.092505, cost = -0.999981, sint = 0.006198
+Vt: t = 3.190680, cost = -0.999981, sint = -0.006198
+there are 202 554 353 VEF on proc 0 with total procs 0
+Vt: t = 0.392699, cost = 0.915485, sint = 0.402353
+.957646, sint = -0.287949
+Vt: t = 4.957826, cost = 0.404865, sint = -0.914376
+Vt: t = 4.172428, cost = -0.924537, sint = -0.381093
+Vt: t = 4.859651, cost = 0.277308, sint = -0.960781
+there are 206 557 352 VEF on proc 0 with total procs 0
+: t = 1.129010, cost = 0.573110, sint = 0.819479
+Vt: t = 1.227185, cost = 0.499815, sint = 0.866132
+Vt: t = 1.325359, cost = 0.404865, sint = 0.914376
+Vt: t = 1.423534, cost = 0.277308, sint = 0.960781
+there are 204 555 352 VEF on proc 0 with total procs 0
+sint = 0.287949
+Vt: t = 2.110758, cost = -0.924537, sint = 0.381092
+there are 206 558 353 VEF on proc 0 with total procs 0
+Vt: t = 0.196350, cost = 0.976289, sint = 0.216472
+Vt: t = 0.294524, cost = 0.949278, sint = 0.314439
+Vt: t = 0.490874, cost = 0.877426, sint = 0.479711
+Vt: t = 0.147262, cost = 0.986412, sint = 0.164290
+Vt: t = 0.245437, cost = 0.963801, sint = 0.266623
+Vt: t = 0.343612, cost = 0.933062, sint = 0.359717
+Vt: t = 0.441787, cost = 0.896852, sint = 0.442331
+there are 203 554 352 VEF on proc 0 with total procs 0
+  Allocating arrays
+creating dof numbering 1 on 0
+  Entering space...
+creating dof numbering 1 on 1
+creating dof numbering 1 on 2
+creating dof numbering 1 on 3
+creating dof numbering 1 on 4
+creating dof numbering 1 on 5
+creating dof numbering 1 on 6
+creating dof numbering 1 on 7
+creating dof numbering 2 on 0
+creating dof numbering 2 on 1
+creating dof numbering 2 on 2
+creating dof numbering 2 on 3
+creating dof numbering 2 on 4
+creating dof numbering 2 on 5
+creating dof numbering 2 on 6
+creating dof numbering 2 on 7
+creating dof numbering 3 on 0
+creating dof numbering 3 on 1
+creating dof numbering 3 on 2
+creating dof numbering 3 on 3
+creating dof numbering 3 on 4
+creating dof numbering 3 on 5
+creating dof numbering 3 on 6
+creating dof numbering 3 on 7
+creating dof numbering 8 on 0
+creating dof numbering 8 on 1
+creating dof numbering 8 on 2
+creating dof numbering 8 on 3
+creating dof numbering 8 on 4
+creating dof numbering 8 on 5
+creating dof numbering 8 on 6
+creating dof numbering 8 on 7
+creating dof numbering 6 on 0
+creating dof numbering 6 on 1
+creating dof numbering 6 on 2
+creating dof numbering 6 on 3
+creating dof numbering 6 on 4
+creating dof numbering 6 on 5
+creating dof numbering 6 on 6
+creating dof numbering 6 on 7
+ Allocating...
+  Allocating tri...
+  associating...
+  assinging...
+  Exiting space.
+  Initializing variables
+ proc, owned dofs, needed dofs           7         942        1218
+ proc, numnodes, numfaces           7         203         352
+ proc, owned dofs, needed dofs           5        1116        1236
+ proc, numnodes, numfaces           5         206         353
+ proc, owned dofs, needed dofs           6        1014        1212
+ proc, numnodes, numfaces           6         202         353
+ proc, owned dofs, needed dofs           2        1098        1236
+ proc, numnodes, numfaces           2         206         352
+ proc, owned dofs, needed dofs           3        1056        1236
+ proc, numnodes, numfaces           3         206         353
+ V = R^2 grad(U)xgrad(phi) + R^2 V grad(phi) + grad(chi)/R^2
+ global dofs =         8814
+ proc, owned dofs, needed dofs           0        1236        1236
+ proc, numnodes, numfaces           0         206         352
+ Time integration: Crank-Nicholson.
+  Generating newvar matrices
+ proc, owned dofs, needed dofs           4        1224        1224
+ proc, numnodes, numfaces           4         204         352
+ proc, owned dofs, needed dofs           1        1128        1260
+ proc, numnodes, numfaces           1         210         353
+  Defining initial conditions
+ Reading EQDSK g-file
+  Resolution:          129         129
+ reading fpol
+ reading press
+ reading ffprim
+ reading pprim
+ reading psirz
+ reading qpsi
+ reading nbbbs, limitr
+   EFITD      04/03  /2009      #135762    1805ms            
+ Magnetic axis:   0.1733E+01  0.2282E-01
+ Toroidal field on axis:  -0.1995E+01
+ Plasma current:   0.1367E+07
+ Poloidal flux at axis, boundary -0.3636E+00 -0.7340E-01
+ Bounding box:  0.8400E+00 -0.1600E+01  0.1700E+01  0.3200E+01
+ Done reading EQDSK g-file.
+ normalized current    1.71754004424585     
+ Calculating Grad-Shafranov Equilibrium
+  forming the GS matrix...
+ GS iteration =            1
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2282E-01
+  psi at magnetic axis:  -0.3636E+00
+  Finding X-point
+  X-point found at   0.1279E+01 -0.1186E+01
+  Finding LCFS
+  Plasma is diverted
+	Nonzeros in L       763413
+	Nonzeros in U       763413
+	nonzeros in L+U     1518012
+	nonzeros in LSUB    267644
+	NUMfact space (MB) sum(procs):  L\U	25.12	all	28.75
+	Total highmark (MB):  All	72.29	Avg	9.04	Max	9.04
+ Error in GS solution:   1.4754E-02  1.0000E+00
+ GS iteration =            2
+	Nonzeros in L       766669
+	Nonzeros in U       764564
+	nonzeros in L+U     1522419
+	nonzeros in LSUB    282585
+	NUMfact space (MB) sum(procs):  L\U	25.23	all	28.58
+	Total highmark (MB):  All	71.16	Avg	8.89	Max	8.89
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2458E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1185E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   9.3791E-03  4.8852E-04
+ GS iteration =            3
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2589E-01
+  psi at magnetic axis:  -0.3636E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1184E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   8.1241E-03  3.2977E-04
+ GS iteration =            4
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2683E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1184E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   7.3857E-03  2.2995E-04
+ GS iteration =            5
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2749E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1184E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   6.8791E-03  1.5353E-04
+ GS iteration =            6
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2794E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   6.5641E-03  1.0745E-04
+ GS iteration =            7
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2826E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   6.3424E-03  7.3376E-05
+ GS iteration =            8
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2848E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   6.1972E-03  5.0742E-05
+ GS iteration =            9
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2863E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   6.1151E-03  3.3604E-05
+ GS iteration =           10
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2873E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   6.0508E-03  2.3203E-05
+ GS iteration =           11
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2880E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   6.0130E-03  1.5213E-05
+ GS iteration =           12
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2885E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9942E-03  1.1154E-05
+ GS iteration =           13
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2888E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9764E-03  7.7433E-06
+ GS iteration =           14
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2890E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9662E-03  5.2912E-06
+ GS iteration =           15
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2892E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9602E-03  3.4832E-06
+ GS iteration =           16
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2893E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9568E-03  2.3497E-06
+ GS iteration =           17
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2894E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9551E-03  1.5525E-06
+ GS iteration =           18
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2894E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9542E-03  1.0507E-06
+ GS iteration =           19
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2894E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9538E-03  6.9481E-07
+ GS iteration =           20
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9536E-03  4.7104E-07
+ GS iteration =           21
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9535E-03  3.1146E-07
+ GS iteration =           22
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  2.1139E-07
+ GS iteration =           23
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  1.3971E-07
+ GS iteration =           24
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  9.4903E-08
+ GS iteration =           25
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  6.2690E-08
+ GS iteration =           26
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  4.2613E-08
+ GS iteration =           27
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  2.8133E-08
+ GS iteration =           28
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  1.9136E-08
+ GS iteration =           29
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  1.2626E-08
+ GS iteration =           30
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:  -0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Error in GS solution:   5.9534E-03  8.5931E-09
+ Converged GS error =  8.593120954496227E-009
+ initial and final(effective) libetap   1.20000000000000     
+  0.000000000000000E+000
+  defining equilibrium fields
+	Nonzeros in L       766669
+	Nonzeros in U       764564
+	nonzeros in L+U     1522419
+	nonzeros in LSUB    282585
+	NUMfact space (MB) sum(procs):  L\U	25.23	all	28.58
+	Total highmark (MB):  All	71.16	Avg	8.89	Max	8.89
+Final error, norm:   7.5527E-03  6.4483E-01
+ Final error in GS solution:   1.171268589662773E-002
+ done gradshafranov_solve.
+ in gradshafranov_per
+ Reading density profile...
+ NPSI =          101
+ Solving density profile...
+ Reading coil data..rmp_coil.dat
+ current, phase =    1.00000000000000        240.000000000000     
+ current, phase =   -1.00000000000000        240.000000000000     
+ current, phase =    1.00000000000000       0.000000000000000E+000
+ current, phase =   -1.00000000000000       0.000000000000000E+000
+ Read            4  coils.
+	Nonzeros in L       3063329
+	Nonzeros in U       3074976
+	nonzeros in L+U     6120677
+	nonzeros in LSUB    827013
+	NUMfact space (MB) sum(procs):  L\U	100.00	all	106.48
+	Total highmark (MB):  All	267.69	Avg	33.46	Max	33.46
+  Writing simulation parameters
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:   0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+	Nonzeros in L       766669
+	Nonzeros in U       764821
+	nonzeros in L+U     1522676
+	nonzeros in LSUB    282585
+	NUMfact space (MB) sum(procs):  L\U	25.23	all	28.59
+	Total highmark (MB):  All	71.16	Avg	8.89	Max	8.89
+	Nonzeros in L       766669
+	Nonzeros in U       764564
+	nonzeros in L+U     1522419
+	nonzeros in LSUB    282585
+	NUMfact space (MB) sum(procs):  L\U	25.23	all	28.58
+	Total highmark (MB):  All	71.16	Avg	8.89	Max	8.89
+ Total energy =   4.800393562748734E-007
+ Total energy lost =   1.198696331459327E-004
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =   0.680381375303124     
+   Toroidal current =    1.71786778147719     
+   Total particles =    11.3736098885759     
+  Writing time slice equilibrium        
+  Finding magnetic axis
+  magnetic axis:   0.1733E+01  0.2895E-01
+  psi at magnetic axis:   0.3635E+00
+  Finding X-point
+  X-point found at   0.1278E+01 -0.1183E+01
+  Finding LCFS
+  Plasma is diverted
+ Total energy =  -1.193891956754946E-004
+ Total energy lost =   2.397392662918654E-004
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    1.36076275060625     
+   Toroidal current =    1.71786778147719     
+   Total particles =    11.3736098885759     
+  Writing time slice time_000           
+  Initializing timestep
+ TIME STEP:            1
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.16310000009253     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    13.7231999998621     
+   Time spent finalizing arrays:   0.318499999993946     
+ Done defining matrices.
+ Advancing times...
+ Solving matrix equation...
+ solving..
+	Nonzeros in L       30831605
+	Nonzeros in U       30487913
+	nonzeros in L+U     61266634
+	nonzeros in LSUB    5109817
+	NUMfact space (MB) sum(procs):  L\U	990.56	all	1009.11
+	Total highmark (MB):  All	2222.28	Avg	277.79	Max	277.79
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    32.9980999999971     
+ Total energy =  -2.384703554687060E-004
+ Total energy lost =   3.604383631050519E-004
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    2.04114412590937     
+   Toroidal current =    1.71771533734232     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_001           
+ TIME STEP:            2
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.44969999999739     
+ Total energy =  -3.751998124661402E-004
+ Total energy lost =   4.865018676489655E-004
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    2.72152550121249     
+   Toroidal current =    1.71794159226913     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_002           
+ TIME STEP:            3
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.44409999999334     
+ Total energy =  -5.278938636425410E-004
+ Total energy lost =   6.168710257561163E-004
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    3.40190687651561     
+   Toroidal current =    1.71799528118210     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_003           
+ TIME STEP:            4
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.44449999998324     
+ Total energy =  -6.724398960697191E-004
+ Total energy lost =   7.508445242717252E-004
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    4.08228825181873     
+   Toroidal current =    1.71798599112021     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_004           
+ TIME STEP:            5
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.44299999999930     
+ Total energy =  -8.026741750220695E-004
+ Total energy lost =   8.865393099016647E-004
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    4.76266962712186     
+   Toroidal current =    1.71803577853829     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_005           
+ TIME STEP:            6
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.47210000001360     
+ Total energy =  -9.265775022520606E-004
+ Total energy lost =   1.024313436628439E-003
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    5.44305100242498     
+   Toroidal current =    1.71798915143353     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_006           
+ TIME STEP:            7
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.54010000001290     
+ Total energy =  -1.059926462850892E-003
+ Total energy lost =   1.164602315619530E-003
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    6.12343237772811     
+   Toroidal current =    1.71800931001622     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_007           
+ TIME STEP:            8
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.44120000000112     
+ Total energy =  -1.208949813787492E-003
+ Total energy lost =   1.307034070881540E-003
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    6.80381375303123     
+   Toroidal current =    1.71798793756437     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_008           
+ TIME STEP:            9
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.44810000000871     
+ Total energy =  -1.367653880174841E-003
+ Total energy lost =   1.450691572011770E-003
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    7.48419512833436     
+   Toroidal current =    1.71798970879647     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_009           
+ TIME STEP:           10
+  Calling onestep
+ Advancing times...
+ Solving matrix equation...
+ solving..
+ done solve.
+ Done solving matrix equation.
+ Time spent in *_step:    1.44370000000345     
+ Total energy =  -1.525785629412339E-003
+ Total energy lost =   1.594868490324673E-003
+ Scalars:
+   Area =    2.79312032423117     
+   Volume =    8.16457650363749     
+   Toroidal current =    1.71798791187989     
+   Total particles =    11.3736098885759     
+  Applying feedback
+  Writing output.
+  Writing time slice time_010           
+ Done time loop.
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+WARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 2 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 4 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: CannWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 2 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 4 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: CannWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 2 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 4 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: CannWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 2 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 4 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: CannWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 2 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 4 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: CannWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 2 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 4 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: CannWARNING: Cannot find sparse matrix with id ot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 28 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 32 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 36 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot fot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 28 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 32 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 36 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot fot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 28 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 32 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 36 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot fot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 28 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 32 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 36 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot fot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 28 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 32 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 36 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot fot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 28 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 32 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 36 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot fWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 2 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 4 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannind sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ ind sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ ind sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ ind sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ ind sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ ind sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ ot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 28 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 32 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 36 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ 1 for deletion
+ WARNING: Cannot find sparse matrix with id 2 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 4 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 28 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 32 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 36 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ 

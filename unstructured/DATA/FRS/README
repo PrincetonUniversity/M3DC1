@@ -1,0 +1,35 @@
+This is a test case of a m=2, n=1 tearing mode in a cylindrical tokamak with 
+equilibrium profiles taken from Furth Rutherford Selberg 1973 (FRS)
+
+GEOMETRY
+It is a tokamak of aspect ratio 10 taken as a cylinder in the large aspect 
+ratio limit. The cross section is a circle of radius 1 . The plasma extends 
+from r=0 to r=1 and there is a perfectly conducting wall at r=1. 
+
+MESH
+The mesh is adapted to be finer at the rational surface by doing the following: 
+1) A uniform mesh is created : ./main AnalyticModel 0.05 
+2) M3DC1 is run with iadapt=2. The parameters of the mesh adaption are in 
+sizefieldParam.  The mesh given in the directories is already the adapted one. 
+There are two meshes in the two directories 
+Mesh11(running time ~ 2 hr on 16p) and Mesh21 (~ 6 hr on 16p)
+
+EQUILIBRIUM
+itaylor=16 corresponds to the peaked equilibrium profile from FRS for 
+the current, and a parabolic pressure profile p=p0*(1-r**2). 
+The parameters are in C1input. They are :
+   * p0
+   * xlim, which is r0 in the FRS paper, the current width
+   * zlim, which is rs in the FRS paper, the position of the rational surface
+   * mpol, the m number of the rational surface
+
+IDL
+After the run completes, 2 x the growth rate can be viewed by running the 
+idl postprocessor:
+plot_scalar,'ke',file='..../C1.h5',/growth,yrange=[.004,.005]
+
+ANALYTIC GROWTH RATE
+Can be obtained from the AsymptoticMatching code in the subdirectory:
+AsymptoticMatching. This needs some work, but the program "inner_compFurth.f"
+calculates gamma for one value of eta and is compiled with makeruntest
+(after changing name to test_program.f)

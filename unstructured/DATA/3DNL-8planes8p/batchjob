@@ -1,0 +1,22 @@
+#!/bin/bash
+#PBS -N 8p-8planes
+#PBS -m e
+#PBS -M jardin@pppl.gov
+#PBS -l nodes=1:ppn=8
+#PBS -l mem=30gb
+#PBS -q smpq
+echo " "
+echo "-------------------------------"
+echo " This is a $PBS_ENVIRONMENT job"
+echo " Job was submitted to the queue: $PBS_QUEUE"
+echo " Job id is: $PBS_JOBID"
+echo " email will be sent upon job completion"
+echo " The submission directory is $PBS_O_WORKDIR "
+echo -n " Started program at : " ; date
+cd $PBS_O_WORKDIR
+cp /p/tsc/FiniteElement/SGI/temporary_directory/trunk/unstructured/_stix.pppl.gov-3d-opt-125/m3dc1 .
+mpiexec -np 8 ./m3dc1 -ipetsc -options_file options_bjacobi
+
+
+
+echo -n " Ended program at : ";date

@@ -1,0 +1,13 @@
+#PBS -N adapt
+#PBS -j oe
+#PBS -l mppwidth=24
+##PBS -q debug
+#PBS -A mp288
+#PBS -l walltime=00:30:00
+#PBS -V
+
+cd $PBS_O_WORKDIR
+
+#aprun -n 4 ./m3dc1_2d
+aprun -n 4 -N 4 ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+

@@ -1,0 +1,151 @@
+&inputnl
+!
+!
+! OUTPUT OPTIONS
+! ==============
+	ntimepr = 20	! number of time steps per output
+	iprint = 0	! 1 = print detailed debug info
+	itimer = 1	! 1 = print timing info
+!
+!
+! NUMERICAL METHOD OPTIONS
+! ========================
+	imask = 0	! 1 = zero out two-fluid terms near the boundaries
+!
+	integrator = 0	! 0 = Crank-Nicholson, 1 = BDF2
+	thimp = 0.6	! implicitness parameter for CN
+	imp_mod = 1
+!
+	jadv = 1
+!
+	deex = 1.0
+	hyper  = 0.0    ! hyper-resistivity (applied to psi)
+	hyperi = 0.0    ! hyper-resistivity (applied to Bz )
+	hyperv = 0.0    ! hyper-viscosity   (applied to vz )
+	hyperc = 0.0    ! hyper-viscosity   (applied to chi)
+	hyperp = 0.0    ! hyper-pressure-diffusion
+!
+	dt = 1.00		! time step
+	ntimemax = 100	! number of time steps
+!
+!
+! MODEL OPTIONS
+! =============
+	linear = 1	! 0 = nonlinear; 1 = linear
+	eqsubtract = 1	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 3	! 1 = 3-field; 2 = 4-field; 1 = 6-field
+      	idens = 0	! 1 = advance density
+	ipres = 0       ! 1 = include   pressure equation
+	gyro = 0
+!
+	iconstflux = 0  ! 1 = conserve toroidal flux
+        inocurrent_pol = 1  ! neumann condition on I
+        inocurrent_tor = 0   !  do not zero boundary toroidal current
+        iconst_bz = 0       ! no Dirichlet condition on I
+!
+	regular = 1.e-6
+!
+	ipellet = 1
+	pellet_x = 40.0
+	pellet_z = 0.
+	pellet_var = 0.4
+	pellet_rate = 0.14
+!
+!
+! PHYSICAL PARAMETERS
+! ===================
+	bzero = 3.0	! toroidal field strength at xzero
+	vzero = 0.
+	p0 =  .05333	! total pressure
+	pi0 = .02666 	! ion pressure
+!
+	gravr = 0.0      ! gravitational acceleration
+	gravz = 0.0
+!
+!.......new resistivity function
+      iresfunc = 1
+      etar = 0.1        ! 1.e-7
+      eta0 = 0.1        ! 4.
+      etaoff = 0.030
+      etadelt = .030
+      	amu = 1e-9	! kinematic viscosity
+	amuc = 0.
+	denm = 0.	! density diffusion
+	kappat = 0.	! isotropic thermal conductivity
+	kappa0 = 0.	!   kappa = kappat + kappa0*p/T^(3/2)
+	kappar = 0.	! field-aligned thermal conductivity
+!
+	gam = 1.66666666666667	! adiabatic constant
+!
+	db = 0.0	! ion skin depth
+!
+	iper = 0	! 1 = periodic in r
+        jper = 0	! 1 = periodic in z
+	amu_edge = 1e6
+!
+	vloop = 0.
+!
+! boundary conditions
+!
+!
+! EQUILIBRIUM OPTIONS
+! ===================
+
+      	itaylor = 1	! determines initial conditions
+			! 0: Tilting Cylinder
+			! 1: Taylor reconnection
+			! 2: Force-free Taylor state
+			! 3: GEM-reconnection
+			! 4: Wave propagation
+!
+	eps = 1e-10	! size of initial perturbation
+	beta = 1.0
+	ln = 0.2        ! equilibrium gradient scale length
+!	facd = 0.       !NOT commented out in Nate's orig
+	irestart = 0	! 1 = read restart
+      ike_only = 1
+!
+!
+! TOROIDAL CURRENT CONTROLLER OPTIONS
+! ===================================
+	tcur = 0.1
+        control_p = 0.
+        control_i = 0.
+        control_d = 0.
+!
+!
+! TOROIDAL GEOMETRY OPTIONS
+! =========================
+	itor = 1	! 1 = toroidal geometry, 0 = slab geometry
+ 	xzero = 0.      !3333333	! x coordinate of lower-left corner of box
+	zzero = 0.      !-0.66666667	! y coordinate of lower-left corner of box
+	xlim = .666667	! limiting value of x
+	zlim = 0.	! limiting value of z
+        xlim2 = 1.3333333  !  second limiting value as a diagnostic
+        zlim2 = 0.0  !  second   "
+	xmag = 1.03	! x-ccordinate of magnetic axis
+        rzero = 0.3333333   !1.0     ! normalization for major radius (leave=1 for now)
+        libetap = 1.8873     !  li/2 + betap for initial equilibrium calculation
+        nv1equ = 0      ! use the numvar=1 equilibrium option for all numvar
+	zmag =  0.	! z-coordinate of magnetic axis
+	tcuro = 0.3111	! initial toroidal current
+        q0 =  1.
+	p1 = -.5
+	p2 = 0.
+        th_gs = 0.2   !4
+        djdpsi = -0.  !5
+      pedge = 0.0005333
+	expn = 0.500
+	divertors = 0
+      igs = 800
+      tol_gs = 1.e-9
+      ivform = 1
+      ibform = 1
+!
+	ntor = 1
+!     iadapt = 1    !  mesh adaptation
+      int_pts_main = 25
+      int_pts_aux  = 25
+      int_pts_diag = 25
+	
+ /

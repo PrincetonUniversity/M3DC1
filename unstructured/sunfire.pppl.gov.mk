@@ -25,8 +25,8 @@ else
   CPP = mpicxx
   F90 = mpif90
   F77 = mpif90
-  LOADER = mpif90 -cxxlib
-  FOPTS := $(FOPTS)
+  LOADER = mpif90
+  LDOPTS := $(LDOPTS) -cxxlib
 endif
 F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
 F77OPTS = $(F77FLAGS) $(FOPTS)

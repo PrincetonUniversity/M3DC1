@@ -1,0 +1,147 @@
+&inputnl
+
+! I/O Options
+! ===========
+	ntimemax = 100	! number of time steps
+	ntimepr = 100	! number of time steps per output
+	iprint = 1	! 1 = print detailed debug info
+	itimer = 1	! 1 = print timing info
+
+	iglobalout = 0
+	iglobalin = 0
+	irestart = 0	! 1 = read restart
+!
+!
+! Numerical Method Options
+! ========================
+	dt = 1000.	! time step
+
+	integrator = 0	! 0 = Crank-Nicholson, 1 = BDF2
+	thimp = 1.0	! implicitness parameter for CN
+	imp_mod = 1
+
+	deex = 1.
+	hyper  = 1e-10	! hyper-resistivity (applied to psi)
+	hyperi = 1e-10	! hyper-resistivity (applied to Bz )
+	hyperv = 0.0	! hyper-viscosity   (applied to vz )
+	hyperc = 0.0	! hyper-viscosity   (applied to chi)
+	hyperp = 0.0    ! hyper-pressure-diffusion
+	ihypdx = 0
+	ihypeta = 0
+
+	iteratephi = 1
+
+	int_pts_main = 25
+	int_pts_aux = 25
+	int_pts_diag = 25
+
+
+! Model Options
+! =============
+	itor = 1	! 1 = toroidal geometry, 0 = slab geometry
+
+	linear = 0	! 0 = nonlinear; 1 = linear
+	eqsubtract = 0	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 3	! 1 = 2-field; 2 = 4-field; 3 = 6-field
+      	idens = 1	! 1 = advance density
+	ipres = 0       ! 1 = include electron pressure equation
+	gyro = 0
+
+	ipellet = 1
+	pellet_x = 1.3
+	pellet_z = 0.
+	pellet_var = 0.05
+	pellet_rate = 5e-6
+
+	isink = 0 
+	sink1_x = 5.3
+	sink1_z = -4
+	sink1_rate = 1e-3
+	sink1_var = 0.5
+	sink2_x = 4
+	sink2_z = -3.5
+	sink2_rate = 1e-3
+	sink2_var = 0.5
+
+
+! Equilibrium Options
+! ===================
+      	itaylor = 1	! determines initial conditions
+			! 0: Tilting Cylinder
+			! 1: Taylor reconnection
+			! 2: Force-free Taylor state
+			! 3: GEM-reconnection
+			! 4: Wave propagation
+	idevice = 4	! when itor=1 and itaylor=1
+			! 0: vertical field
+			! 1: CDX-U
+			! 2: NSTX
+			! 3: ITER
+			! 4: DIII-D
+
+	bzero = 1.	! toroidal field strength
+	rzero = 1.65
+	p0 = 0.02	! total pressure
+	pi0 = 0.01	! ion pressure
+
+	eps = 0.
+
+
+! Transport Parameters
+! ====================
+	etar = 0.	! resistivity = etar + eta0/T^(3/2)
+	eta0 = 1e-10
+      	amu = 1e-3	! kinematic viscosity 
+	amuc = 1e-2
+	amupar = 10.
+	denm = 1e-6	! density diffusion
+	kappat = 0.	! isotropic thermal conductivity
+	kappa0 = 1e-7	!  kappa = kappat + kappa0*p/T^(3/2)
+	kappar = 1.	! field-aligned thermal conductivity
+	ikapscale = 0
+
+	gam = 1.66666666666667	! adiabatic constant
+
+	db = 0.0	! ion skin depth
+
+
+! Boundary Conditions
+! ===================
+ 	xzero =  1.0	! x coordinate of lower-left corner of box
+	zzero = -1.4	! y coordinate of lower-left corner of box
+
+	iper = 0	! 1 = periodic in r
+        jper = 0	! 1 = periodic in z
+
+	inoslip_pol = 1
+
+
+! Toroidal Current Controller Options
+! ===================================
+	vloop = -1e-6
+
+	tcur = 0.7
+        control_p = 0.01
+        control_i = 0.
+        control_d = 0.1
+
+
+! Grad-Shafranov Options
+! ======================
+	xlim = 1.	! limiting value of x
+	zlim = 0.	! limiting value of z
+	xmag = 1.671	! x-coordinate of magnetic axis
+	zmag =  0.001	! z-coordinate of magnetic axis
+	tcuro = 0.7	! initial toroidal current
+	th_gs = 0.8
+	igs = 200	! number of grad-shafranov iterations
+	djdpsi = 0.
+	q0 = 0.9	! saftey factor near the magnetic axis
+	p1 = 0
+	p2 = 0
+	pedge = 1e-4
+	expn = 0.3
+	divertors = 0
+	xnull = 1.2
+	znull = 1.1
+ /

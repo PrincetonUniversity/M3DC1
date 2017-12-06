@@ -1,0 +1,65 @@
+&inputnl
+
+! Time Step
+! =========
+	dt = 0.1	! Time step size
+	ntimemax = 10	! Number of time steps
+	
+	thimp = 0.55	! Implicitness parameter
+
+! Input/Output
+! ============
+	ntimepr = 10	! Number of time steps per field output
+	iprint = 1	! Print extra info to stdout
+	itimer = 1	! Collect timing info	
+
+	irestart = 0
+
+! Model
+! =====
+	itor = 0	! 1 = Cylindircal coordinates
+	numvar = 3	! 
+	idens = 1	! Include density equation
+	ipres = 0	! Include electron pressure equation
+	gyro = 0	! Include gyroviscosity
+
+	gam = 1.66666666666667	! Adiabatic index
+	db = 1.		! Ion skin depth
+
+	regular = 1e-7	! Regularization in compressibility equation
+
+! Transport
+! =========
+	etar = 5e-3	! resistivity = etar + eta0/T^(3/2)
+	amu = 5e-2	! Isotropic viscosity
+	amuc = 5e-2	! Compressitional viscosity
+	kappat = 2e-2	! kappa = kappat + kappa0*p/T^(3/2)
+	denm = 1e-4	! Number density diffusion
+	
+	hyper = 1.	! Hyper-resistivity for poloidal field
+	hyperi = 2.	! Hyper-resistivity for toroidal field
+	hyperv = 1.	! Hyper-viscosity for toroidal flow
+	hyperc = 2.	! Hyper-viscosity for poloidal flow
+	hyperp = 1.	! Hyper-viscosity for pressure
+	
+
+! Boundary Conditions
+! ===================
+
+	iper = 1	! Periodicicity in R
+	jper = 0	! Periodicity in Z
+
+	xzero = -12.8	! R-coordinate of lower left corner
+	zzero = -6.4	! Z-coordinate of lower left corner
+	
+
+! Equilibrium Options
+! ===================
+	itaylor = 3
+
+	bzero = 2.	! Toroidal field
+	p0 = 0.5	! Pressure
+	pi0 = 0.4166	! Ion pressure
+
+	eps = 0.1	! Amplitude of initial perturbation
+/

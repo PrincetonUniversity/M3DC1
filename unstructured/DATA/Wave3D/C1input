@@ -1,0 +1,119 @@
+&inputnl
+
+! OUTPUT OPTIONS
+! ==============
+	ntimemax = 100	! number of time steps
+	ntimepr = 20	! number of time steps per output
+	iprint = 0	! 1 = print detailed debug info
+	itimer = 1	! 1 = print timing info
+
+	irestart = 0
+	iwrite_restart = 0
+        iskippc = 01    ! number of times preconditioner is reused
+
+	ike_only = 1
+
+
+! NUMERICAL METHOD OPTIONS
+! ========================
+	dt = 0.1	! time step
+
+	integrator = 0	! 0 = Crank-Nicholson, 1 = BDF2
+	thimp = 0.5	! implicitness parameter for CN
+
+	isplitstep = 0
+	imp_mod = 1
+
+	regular = 0.
+
+	deex = 1.0
+	hyper  = 0.	! hyper-resistivity (applied to psi)
+	hyperi = 0.	! hyper-resistivity (applied to Bz )
+	hyperv = 0.0	! hyper-viscosity   (applied to vz )
+	hyperc = 0.0    ! hyper-viscosity   (applied to chi)
+	hyperp = 0.0    ! hyper-pressure-diffusion
+	ihypeta = 0
+	ihypdx = 0
+
+	int_pts_main = 25
+	int_pts_diag = 25
+	int_pts_aux = 25
+
+
+! MODEL OPTIONS
+! =============
+	linear = 1	! 0 = nonlinear; 1 = linear
+	eqsubtract = 1	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 1	! 1 = 2-field; 2 = 4-field; 3 = 6-field
+      	idens = 0	! 1 = advance density
+	ipres = 0       ! 1 = include electron pressure equation
+	gyro = 0
+	inertia = 0
+	itwofluid = 0
+
+	jadv = 1
+
+
+! BOUNDARY_CONDITIONS
+! ===================
+	inoslip_pol = 0
+	inoslip_tor = 1
+	inonormalflow = 1
+	inocurrent_pol = 0
+	inocurrent_tor = 0
+	inocurrent_norm = 0
+
+	isurface = 1
+
+
+! PHYSICAL PARAMETERS
+! ===================
+	bzero = 1.	! toroidal field strength
+	p0 = 0.08	! total pressure
+	pi0 = 0.04	! ion pressure
+
+	gravr = 0.0      ! gravitational acceleration
+	gravz = 0.0
+
+	etar = 0.	! resistivity = etar + eta0/T^(3/2)
+	eta0 = 0.
+      	amu = 0.	! kinematic viscosity 
+	amuc = 0.
+	denm = 0.	! density diffusion
+	kappat = 0.	! isotropic thermal conductivity
+	kappa0 = 0.	!  kappa = kappat + kappa0*p/T^(3/2)
+	kappar = 0.	! field-aligned thermal conductivity
+
+	gam = 1.66666666666667	! adiabatic constant
+
+!	db = 5.1e-2
+
+
+
+! EQUILIBRIUM OPTIONS
+! ===================
+	itor = 0	! 1 = toroidal geometry, 0 = slab geometry
+
+      	itaylor = 14	! determines initial conditions
+
+ 	xzero = 0.185	! x coordinate of lower-left corner of box
+	zzero = -1.45	! y coordinate of lower-left corner of box
+
+	eps = 1.e-2	! size of initial perturbation
+
+	xmag = 1.
+	zmag = 0.
+
+	nplanes = 8
+	ntor = 1
+
+	xnull = 1.
+	znull = 0.
+
+
+! NORMALIZATIONS
+! ==============
+	l0_norm = 100.
+	b0_norm = 1.e4
+	n0_norm = 1.e13
+ /

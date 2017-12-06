@@ -1,0 +1,2249 @@
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing mpi...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+ initializing petsc...
+M3D-C1 DATE: 2010 10 22   TIME: 19:50:39.4
+
+ REAL VERSION
+ 2D VERSION
+  validating input
+ pefac =   0.500000000000000     
+ petsc arguments: ipetsc, solve2           0           0
+ petsc true/false           1           0
+ &INPUTNL
+ ITAYLOR =           1,
+ XZERO   =  0.185000000000000     ,
+ ZZERO   =  -1.45000000000000     ,
+ BETA    =   1.00000000000000     ,
+ RZERO   =  0.185000000000000     ,
+ LIBETAP =   1.20000000000000     ,
+ XLIM2   =  0.000000000000000E+000,
+ ZLIM2   =  0.000000000000000E+000,
+ NUMVAR  =           3,
+ IDENS   =           1,
+ IPRES   =           0,
+ GYRO    =           1,
+ ISOURCES        =           0,
+ NOSIG   =           0,
+ ITOR    =           1,
+ JADV    =           0,
+ GAM     =   1.66666666666667     ,
+ DB      =  5.100000000000000E-002,
+ GRAVR   =  0.000000000000000E+000,
+ GRAVZ   =  0.000000000000000E+000,
+ P0      =  8.000000000000000E-002,
+ PI0     =  4.000000000000000E-002,
+ BZERO   =   4.72220000000000     ,
+ VZERO   =  0.000000000000000E+000,
+ PHIZERO =  0.000000000000000E+000,
+ PSCALE  =   1.00000000000000     ,
+ BSCALE  =   1.00000000000000     ,
+ ETAR    =  0.000000000000000E+000,
+ ETA0    =  1.000000000000000E-004,
+ IRESFUNC        =           0,
+ ETAOFF  =  0.000000000000000E+000,
+ ETADELT =  0.000000000000000E+000,
+ LAMBDAE =  0.000000000000000E+000,
+ MASS_RATIO      =  0.000000000000000E+000,
+ IVISFUNC        =           0,
+ AMU     =  0.000000000000000E+000,
+ AMUC    =  0.000000000000000E+000,
+ AMUPAR  =  0.000000000000000E+000,
+ AMUE    =  0.000000000000000E+000,
+ AMUOFF  =  0.000000000000000E+000,
+ AMUDELT =  0.000000000000000E+000,
+ DENM    =  1.000000000000000E-002,
+ AMUOFF2 =  0.000000000000000E+000,
+ AMUDELT2        =  0.000000000000000E+000,
+ IKAPPAFUNC      =           0,
+ KAPPAT  =  2.000000000000000E-002,
+ KAPPA0  =  0.000000000000000E+000,
+ KAPPAOFF        =  0.000000000000000E+000,
+ KAPPADELT       =  0.000000000000000E+000,
+ KAPPAR  =   75.0000000000000     ,
+ KAPPAX  =  0.000000000000000E+000,
+ KAPPAH  =  0.000000000000000E+000,
+ HYPER   =  1.000000000000000E-005,
+ HYPERI  =  1.000000000000000E-005,
+ HYPERV  =  0.000000000000000E+000,
+ HYPERC  =   1.00000000000000     ,
+ HYPERP  =  0.000000000000000E+000,
+ DEEX    =   1.00000000000000     ,
+ IPER    =           0,
+ JPER    =           0,
+ AMU_EDGE        =  0.000000000000000E+000,
+ COM_BC  =           0,
+ VOR_BC  =           0,
+ PEDGE   =  1.000000000000000E-002,
+ EPS     =  0.000000000000000E+000,
+ LN      =  0.200000000000000     ,
+ IRMP    =           0,
+ MAXN    =         200,
+ VLOOP   =  6.000000000000000E-002,
+ CONTROL_P       =  0.100000000000000     ,
+ CONTROL_I       =  0.000000000000000E+000,
+ CONTROL_D       =  0.100000000000000     ,
+ TCUR    =  -3.14000000000000     ,
+ IPELLET =           1,
+ PELLET_X        =  0.600000000000000     ,
+ PELLET_Z        =  0.000000000000000E+000,
+ PELLET_RATE     =  1.000000000000000E-002,
+ PELLET_VAR      =  0.100000000000000     ,
+ IONIZATION      =           0,
+ IONIZATION_RATE =  0.000000000000000E+000,
+ IONIZATION_TEMP =  1.000000000000000E-002,
+ IONIZATION_DEPTH        =  1.000000000000000E-002,
+ ISINK   =           0,
+ SINK1_X =  0.000000000000000E+000,
+ SINK2_X =  0.000000000000000E+000,
+ SINK1_Z =  0.000000000000000E+000,
+ SINK2_Z =  0.000000000000000E+000,
+ SINK1_RATE      =  0.000000000000000E+000,
+ SINK2_RATE      =  0.000000000000000E+000,
+ SINK1_VAR       =  0.000000000000000E+000,
+ SINK2_VAR       =   1.00000000000000     ,
+ NTIMEMAX        =          10,
+ DT      =   1.00000000000000     ,
+ DDT     =  0.000000000000000E+000,
+ INTEGRATOR      =           0,
+ THIMP   =   1.00000000000000     ,
+ THIMP_OHM       =   1.00000000000000     ,
+ IMP_MOD =           1,
+ THIMPSM =   1.00000000000000     ,
+ HARNED_MIKIC    =  0.000000000000000E+000,
+ IGAUGE  =           0,
+ ISPLITSTEP      =           1,
+ LINEAR  =           0,
+ NSKIP   =           1,
+ EQSUBTRACT      =           0,
+ ITIMER  =           1,
+ IPRINT  =           1,
+ NTIMEPR =           1,
+ IGLOBALOUT      =           0,
+ IGLOBALIN       =           0,
+ IRESTART        =           0,
+ TCURO   =   3.14000000000000     ,
+ DJDPSI  =  0.000000000000000E+000,
+ XMAG    =  0.861000000000000     ,
+ ZMAG    =  0.000000000000000E+000,
+ XLIM    =  0.350000000000000     ,
+ ZLIM    =  0.000000000000000E+000,
+ EXPN    =  0.300000000000000     ,
+ Q0      =  0.800000000000000     ,
+ DIVERTORS       =           0,
+ XDIV    =  0.000000000000000E+000,
+ ZDIV    =  0.000000000000000E+000,
+ DIVCUR  =  0.100000000000000     ,
+ TH_GS   =  0.800000000000000     ,
+ P1      =  0.000000000000000E+000,
+ P2      =  0.000000000000000E+000,
+ IDEVICE =           2,
+ IGS     =          80,
+ NV1EQU  =           0,
+ TOL_GS  =  1.000000000000000E-008,
+ IGS_METHOD      =           2,
+ PSISCALE        =   1.00000000000000     ,
+ ICONSTFLUX      =           0,
+ REGULAR =  1.000000000000000E-006,
+ MAX_KE  =   1.00000000000000     ,
+ NTOR    =           0,
+ MPOL    =           0,
+ IADAPT  =           0,
+ ISTATIC =           0,
+ IESTATIC        =           0,
+ IVFORM  =           0,
+ IBFORM  =          -1,
+ NPLANES =           1,
+ IHYPETA =           0,
+ IHYPAMU =           1,
+ IHYPKAPPA       =           1,
+ IKAPSCALE       =           0,
+ ITERATEPHI      =           0,
+ ICSYM   =           0,
+ INUMGS  =           0,
+ NONRECT =           0,
+ IFIXEDB =           0,
+ INONORMALFLOW   =           1,
+ INOSLIP_POL     =           1,
+ INOSLIP_TOR     =           1,
+ INOSTRESS_TOR   =           0,
+ ICONST_P        =           1,
+ INOGRAD_P       =           0,
+ ICONST_N        =           1,
+ INOGRAD_N       =           0,
+ ICONST_T        =           0,
+ INOCURRENT_POL  =           0,
+ INOCURRENT_TOR  =           0,
+ INOCURRENT_NORM =           0,
+ ICONST_BZ       =           1,
+ IFBOUND =           1,
+ IRECALC_ETA     =           0,
+ IHYPDX  =           0,
+ ICONST_ETA      =           0,
+ N_TARGET        =   1.00000000000000     ,
+ N_CONTROL_P     =  0.000000000000000E+000,
+ N_CONTROL_I     =  0.000000000000000E+000,
+ N_CONTROL_D     =  0.000000000000000E+000,
+ ICALC_SCALARS   =           1,
+ IKE_ONLY        =           0,
+ IFOUT   =           0,
+ INERTIA =           1,
+ ITWOFLUID       =           1,
+ INT_PTS_MAIN    =          25,
+ INT_PTS_AUX     =          25,
+ INT_PTS_DIAG    =          25,
+ INT_PTS_TOR     =           5,
+ IWAVE   =           0,
+ BX0     =  0.000000000000000E+000,
+ CHIINER =   1.00000000000000     ,
+ IBOOTSTRAP      =           0,
+ XNULL   =  0.000000000000000E+000,
+ ZNULL   =  0.000000000000000E+000,
+ TILTANGLED      =  0.000000000000000E+000,
+ ISURFACE        =           1,
+ IREAD_EQDSK     =           0,
+ IREAD_DSKBAL    =           0,
+ IREAD_JSOLVER   =           0,
+ ADAPT_FACTOR    =   1.00000000000000     ,
+ ADAPT_HMIN      =  1.000000000000000E-003,
+ ADAPT_HMAX      =  0.100000000000000     ,
+ B0_NORM =   10000.0000000000     ,
+ N0_NORM =   100000000000000.     ,
+ L0_NORM =   100.000000000000     ,
+ IDENFUNC        =           0,
+ DEN_EDGE        =  0.000000000000000E+000,
+ DEN0    =   1.00000000000000     ,
+ DENOFF  =   1.00000000000000     ,
+ DENDELT =  0.100000000000000     ,
+ IROT    =           0,
+ ALPHA0  =  0.000000000000000E+000,
+ ALPHA1  =  0.000000000000000E+000,
+ ALPHA2  =  0.000000000000000E+000,
+ ICURV   =           2,
+ IFLIP   =           1,
+ IWRITE_RESTART  =           0,
+ ETA_WALL        =  0.000000000000000E+000,
+ DELTA_WALL      =   1.00000000000000     ,
+ IFLIP_B =           0,
+ IFLIP_V =           0
+ /
+  Loading mesh
+The SuperLU process grid is 2 rows by 4 columns
+
+ Model Vertices =      4
+ Model Edges    =      4
+ Model Faces    =      1
+ Model Regions  =      0
+GVertex 1 is at 0 0
+GVertex 2 is at 1.6 0
+GVertex 3 is at 0 2.9
+GVertex 4 is at 1.6 2.9
+GEdge 1 has vertices 1 2
+GEdge 2 has vertices 1 3
+GEdge 3 has vertices 2 4
+GEdge 4 has vertices 3 4
+Not periodic in the x-direction
+Not periodic in the z-direction
+MRM = 1  1  0  0
+              1  1  1
+ Model Vertices =      4
+ Model Edges    =      4
+ Model Faces    =      1
+ Model Regions  =      0
+Creating a pmi
+
+ Model Vertices =      4
+ Model Edges    =      4
+ Model Faces    =      1
+ Model Regions  =      0
+Creating a pmi
+
+ Model Vertices =      4
+ Model Edges    =      4
+ Model Faces    =      1
+ Model Regions  =      0
+Creating a pmi
+
+ Model Vertices =      4
+ Model Edges    =      4
+ Model Faces    =      1
+ Model Regions  =      0
+Creating a pmi
+
+ Model Vertices =      4
+ Model Edges    =      4
+ Model Faces    =      1
+ Model Regions  =      0
+Creating a pmi
+
+ Model Vertices =      4
+ Model Edges    =      4
+ Model Faces    =      1
+ Model Regions  =      0
+Creating a pmi
+  0
+              0  1  1  0
+              0  0  0  0
+reading 1681 vertices
+ Model Vertices =      4
+ Model Edges    =      4
+ Model Faces    =      1
+ Model Regions  =      0
+Creating a pmi
+, 4880 edges, 3200 faces
+Creating a pmi
+
+****************************
+    M_loadbalance
+
+*** LOAD BALANCING MAY NOT WORK DUE TO EMPTY MESH ***
+
+ZOLTAN Zoltan_Verify_Graph: The graph is valid with check_graph = 2
+****************************
+
+there are 228 627 400 VEF on proc 0 with total procs 8
+there are 236 635 400 VEF on proc 1 with total procs 8
+there are 234 634 401 VEF on proc 2 with total procs 8
+there are 236 635 400 VEF on proc 3 with total procs 8
+there are 230 628 399 VEF on proc 4 with total procs 8
+there are 235 634 400 VEF on proc 5 with total procs 8
+there are 239 638 400 VEF on proc 6 with total procs 8
+there are 230 629 400 VEF on proc 7 with total procs 8
+  Allocating arrays
+creating dof numbering 1 on 0
+  Entering space...
+creating dof numbering 1 on 1
+creating dof numbering 1 on 2
+creating dof numbering 1 on 3
+creating dof numbering 1 on 4
+creating dof numbering 1 on 5
+creating dof numbering 1 on 6
+creating dof numbering 1 on 7
+creating dof numbering 2 on 0
+creating dof numbering 2 on 1
+creating dof numbering 2 on 2
+creating dof numbering 2 on 3
+creating dof numbering 2 on 4
+creating dof numbering 2 on 5
+creating dof numbering 2 on 6
+creating dof numbering 2 on 7
+creating dof numbering 3 on 0
+creating dof numbering 3 on 1
+creating dof numbering 3 on 2
+creating dof numbering 3 on 3
+creating dof numbering 3 on 4
+creating dof numbering 3 on 5
+creating dof numbering 3 on 6
+creating dof numbering 3 on 7
+creating dof numbering 8 on 0
+creating dof numbering 8 on 1
+creating dof numbering 8 on 2
+creating dof numbering 8 on 3
+creating dof numbering 8 on 4
+creating dof numbering 8 on 5
+creating dof numbering 8 on 6
+creating dof numbering 8 on 7
+ Allocating...
+  Allocating tri...
+  associating...
+  assinging...
+  Exiting space.
+  Initializing variables
+ proc, owned dofs, needed dofs           7        1092        1380
+ proc, numnodes, numfaces           7         230         400
+ proc, owned dofs, needed dofs           1        1290        1416
+ proc, numnodes, numfaces           1         236         400
+ proc, owned dofs, needed dofs           2        1314        1404
+ proc, numnodes, numfaces           2         234         401
+ proc, owned dofs, needed dofs           5        1200        1410
+ proc, numnodes, numfaces           5         235         400
+ proc, owned dofs, needed dofs           4        1380        1380
+ proc, numnodes, numfaces           4         230         399
+ proc, owned dofs, needed dofs           3        1206        1416
+ proc, numnodes, numfaces           3         236         400
+ V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)
+ global dofs =        10086
+ proc, owned dofs, needed dofs           0        1368        1368
+ proc, numnodes, numfaces           0         228         400
+ Time integration: Crank-Nicholson.
+  Generating newvar matrices
+ proc, owned dofs, needed dofs           6        1236        1434
+ proc, numnodes, numfaces           6         239         400
+  Defining initial conditions
+  calculating vacuum field...
+ gradshafranov_solve xmag zmag   0.861000000000000       0.000000000000000E+000
+ Using standard NSTX configuration
+ Calculating fields due to coils
+ Calculating fields due to divertors
+ Calculating fields due to plasma
+ Calculating Grad-Shafranov Equilibrium
+  forming the GS matrix...
+ Using default p, alpha, and I profiles
+ GS iteration =            1
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Finding magnetic axis
+  magnetic axis:   0.8629E+00  0.9187E-04
+  psi at magnetic axis:   0.2347E+01
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.0000E+00  0.0000E+00
+ current =   3.6466E+00
+ GS iteration =            2
+  Finding magnetic axis
+  magnetic axis:   0.8633E+00  0.1236E-03
+  psi at magnetic axis:   0.9912E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.0326E+00  4.5682E-02
+ current =   3.1246E+00
+ GS iteration =            3
+  Finding magnetic axis
+  magnetic axis:   0.8654E+00  0.2760E-03
+  psi at magnetic axis:   0.7164E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.0148E+00  3.6470E-02
+ current =   3.5990E+00
+ GS iteration =            4
+  Finding magnetic axis
+  magnetic axis:   0.9716E+00 -0.7904E-03
+  psi at magnetic axis:   0.5075E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   8.8119E-01  2.4243E-02
+ current =   3.3590E+00
+ GS iteration =            5
+  Finding magnetic axis
+  magnetic axis:   0.9829E+00 -0.2090E-02
+  psi at magnetic axis:   0.4153E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   4.8252E-01  1.5303E-02
+ current =   3.2530E+00
+ GS iteration =            6
+  Finding magnetic axis
+  magnetic axis:   0.9801E+00 -0.2819E-02
+  psi at magnetic axis:   0.3701E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   2.2514E-01  1.1659E-02
+ current =   3.1642E+00
+ GS iteration =            7
+  Finding magnetic axis
+  magnetic axis:   0.9789E+00 -0.3392E-02
+  psi at magnetic axis:   0.3536E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   9.7342E-02  5.3920E-03
+ current =   3.1407E+00
+ GS iteration =            8
+  Finding magnetic axis
+  magnetic axis:   0.9783E+00 -0.3982E-02
+  psi at magnetic axis:   0.3475E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   4.7396E-02  2.7940E-03
+ current =   3.1383E+00
+ GS iteration =            9
+  Finding magnetic axis
+  magnetic axis:   0.9778E+00 -0.4581E-02
+  psi at magnetic axis:   0.3449E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   2.8299E-02  1.6267E-03
+ current =   3.1389E+00
+ GS iteration =           10
+  Finding magnetic axis
+  magnetic axis:   0.9774E+00 -0.5168E-02
+  psi at magnetic axis:   0.3435E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   2.0020E-02  1.0101E-03
+ current =   3.1393E+00
+ GS iteration =           11
+  Finding magnetic axis
+  magnetic axis:   0.9771E+00 -0.5736E-02
+  psi at magnetic axis:   0.3427E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.6197E-02  6.4935E-04
+ current =   3.1395E+00
+ GS iteration =           12
+  Finding magnetic axis
+  magnetic axis:   0.9769E+00 -0.6281E-02
+  psi at magnetic axis:   0.3422E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.4463E-02  4.2958E-04
+ current =   3.1396E+00
+ GS iteration =           13
+  Finding magnetic axis
+  magnetic axis:   0.9767E+00 -0.6803E-02
+  psi at magnetic axis:   0.3419E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3701E-02  2.9695E-04
+ current =   3.1396E+00
+ GS iteration =           14
+  Finding magnetic axis
+  magnetic axis:   0.9766E+00 -0.7302E-02
+  psi at magnetic axis:   0.3417E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3373E-02  2.2627E-04
+ current =   3.1396E+00
+ GS iteration =           15
+  Finding magnetic axis
+  magnetic axis:   0.9765E+00 -0.7778E-02
+  psi at magnetic axis:   0.3415E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3229E-02  1.9080E-04
+ current =   3.1396E+00
+ GS iteration =           16
+  Finding magnetic axis
+  magnetic axis:   0.9765E+00 -0.8233E-02
+  psi at magnetic axis:   0.3415E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3163E-02  1.6747E-04
+ current =   3.1396E+00
+ GS iteration =           17
+  Finding magnetic axis
+  magnetic axis:   0.9765E+00 -0.8667E-02
+  psi at magnetic axis:   0.3414E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3130E-02  1.5171E-04
+ current =   3.1396E+00
+ GS iteration =           18
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.9081E-02
+  psi at magnetic axis:   0.3414E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3110E-02  1.4060E-04
+ current =   3.1396E+00
+ GS iteration =           19
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.9475E-02
+  psi at magnetic axis:   0.3414E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3097E-02  1.3200E-04
+ current =   3.1396E+00
+ GS iteration =           20
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.9851E-02
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3087E-02  1.2487E-04
+ current =   3.1396E+00
+ GS iteration =           21
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1021E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3079E-02  1.1852E-04
+ current =   3.1396E+00
+ GS iteration =           22
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1055E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3071E-02  1.1276E-04
+ current =   3.1396E+00
+ GS iteration =           23
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1088E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3065E-02  1.0735E-04
+ current =   3.1396E+00
+ GS iteration =           24
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1118E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3059E-02  1.0222E-04
+ current =   3.1396E+00
+ GS iteration =           25
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1148E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3053E-02  9.7350E-05
+ current =   3.1396E+00
+ GS iteration =           26
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1176E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3048E-02  9.2721E-05
+ current =   3.1396E+00
+ GS iteration =           27
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1203E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3044E-02  8.8323E-05
+ current =   3.1396E+00
+ GS iteration =           28
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1228E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3040E-02  8.4140E-05
+ current =   3.1396E+00
+ GS iteration =           29
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1253E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3036E-02  8.0158E-05
+ current =   3.1396E+00
+ GS iteration =           30
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1276E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3033E-02  7.6367E-05
+ current =   3.1396E+00
+ GS iteration =           31
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1298E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3030E-02  7.2757E-05
+ current =   3.1396E+00
+ GS iteration =           32
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1319E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3027E-02  6.9317E-05
+ current =   3.1396E+00
+ GS iteration =           33
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1339E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3024E-02  6.6040E-05
+ current =   3.1396E+00
+ GS iteration =           34
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1358E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3022E-02  6.2919E-05
+ current =   3.1396E+00
+ GS iteration =           35
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1376E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3020E-02  5.9945E-05
+ current =   3.1396E+00
+ GS iteration =           36
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1394E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3018E-02  5.7111E-05
+ current =   3.1396E+00
+ GS iteration =           37
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1410E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3016E-02  5.4412E-05
+ current =   3.1396E+00
+ GS iteration =           38
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1426E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3015E-02  5.1840E-05
+ current =   3.1396E+00
+ GS iteration =           39
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1441E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3013E-02  4.9390E-05
+ current =   3.1396E+00
+ GS iteration =           40
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1455E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3012E-02  4.7057E-05
+ current =   3.1396E+00
+ GS iteration =           41
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1469E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3011E-02  4.4834E-05
+ current =   3.1396E+00
+ GS iteration =           42
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1482E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3010E-02  4.2715E-05
+ current =   3.1396E+00
+ GS iteration =           43
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1494E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3009E-02  4.0696E-05
+ current =   3.1396E+00
+ GS iteration =           44
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1506E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3008E-02  3.8773E-05
+ current =   3.1396E+00
+ GS iteration =           45
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1517E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3007E-02  3.6940E-05
+ current =   3.1396E+00
+ GS iteration =           46
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1528E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3006E-02  3.5194E-05
+ current =   3.1396E+00
+ GS iteration =           47
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1538E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3006E-02  3.3529E-05
+ current =   3.1396E+00
+ GS iteration =           48
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1548E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3005E-02  3.1944E-05
+ current =   3.1396E+00
+ GS iteration =           49
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1557E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3004E-02  3.0433E-05
+ current =   3.1396E+00
+ GS iteration =           50
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1566E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3004E-02  2.8992E-05
+ current =   3.1396E+00
+ GS iteration =           51
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1574E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3004E-02  2.7620E-05
+ current =   3.1396E+00
+ GS iteration =           52
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1582E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3003E-02  2.6312E-05
+ current =   3.1396E+00
+ GS iteration =           53
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1590E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3003E-02  2.5067E-05
+ current =   3.1396E+00
+ GS iteration =           54
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1597E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3002E-02  2.3880E-05
+ current =   3.1396E+00
+ GS iteration =           55
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1604E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3002E-02  2.2749E-05
+ current =   3.1396E+00
+ GS iteration =           56
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1610E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3002E-02  2.1673E-05
+ current =   3.1396E+00
+ GS iteration =           57
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1617E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3001E-02  2.0647E-05
+ current =   3.1396E+00
+ GS iteration =           58
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1623E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3001E-02  1.9669E-05
+ current =   3.1396E+00
+ GS iteration =           59
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1628E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3001E-02  1.8738E-05
+ current =   3.1396E+00
+ GS iteration =           60
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1634E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3001E-02  1.7851E-05
+ current =   3.1396E+00
+ GS iteration =           61
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1639E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3001E-02  1.7006E-05
+ current =   3.1396E+00
+ GS iteration =           62
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1644E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.6201E-05
+ current =   3.1396E+00
+ GS iteration =           63
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1648E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.5434E-05
+ current =   3.1396E+00
+ GS iteration =           64
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1653E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.4703E-05
+ current =   3.1396E+00
+ GS iteration =           65
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1657E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.4007E-05
+ current =   3.1396E+00
+ GS iteration =           66
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1661E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.3344E-05
+ current =   3.1396E+00
+ GS iteration =           67
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1665E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.2712E-05
+ current =   3.1396E+00
+ GS iteration =           68
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1669E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.2110E-05
+ current =   3.1396E+00
+ GS iteration =           69
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1672E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.1537E-05
+ current =   3.1396E+00
+ GS iteration =           70
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1675E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.0991E-05
+ current =   3.1396E+00
+ GS iteration =           71
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1679E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.3000E-02  1.0471E-05
+ current =   3.1396E+00
+ GS iteration =           72
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1682E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  9.9749E-06
+ current =   3.1396E+00
+ GS iteration =           73
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1685E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  9.5027E-06
+ current =   3.1396E+00
+ GS iteration =           74
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1687E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  9.0529E-06
+ current =   3.1396E+00
+ GS iteration =           75
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1690E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  8.6244E-06
+ current =   3.1396E+00
+ GS iteration =           76
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1692E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  8.2161E-06
+ current =   3.1396E+00
+ GS iteration =           77
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1695E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  7.8272E-06
+ current =   3.1396E+00
+ GS iteration =           78
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1697E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  7.4567E-06
+ current =   3.1396E+00
+ GS iteration =           79
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1699E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  7.1037E-06
+ current =   3.1396E+00
+ GS iteration =           80
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1701E-01
+  psi at magnetic axis:   0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Error in GS solution:   1.2999E-02  6.7675E-06
+ current =   3.1396E+00
+ Converged GS error =  6.767458270942119E-006
+ initial and final(effective) libetap   1.20000000000000     
+   1.20000000000000     
+  defining equilibrium fields
+	Nonzeros in L       1174881
+	Nonzeros in U       1174881
+	nonzeros in L+U     2339676
+	nonzeros in LSUB    371485
+	NUMfact space (MB) sum(procs):  L\U	19.67	all	22.00
+	Total highmark (MB):  All	58.36	Avg	7.29	Max	7.29
+Final error, norm:   1.6778E-03  7.9509E-01
+ Final error in GS solution:   2.110249484687574E-003
+ done gradshafranov_solve.
+ in gradshafranov_per
+  Flipping coordinate system handedness
+  Writing simulation parameters
+  Writing time slice equilibrium        
+  Finding magnetic axis
+  magnetic axis:   0.9764E+00 -0.1701E-01
+  psi at magnetic axis:  -0.3413E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+ Total energy =    3.50495088515207     
+ Total energy lost =  -2.998356172947077E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =   0.281242000000000     
+   Toroidal current =   -3.13963562182455     
+   Total particles =    2.77951121398617     
+  Writing time slice time_000           
+  Initializing timestep
+ TIME STEP:            1
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.21730000016396     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    6.88319999986561     
+   Time spent finalizing arrays:   0.170500000007451     
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+	Nonzeros in L       4330602
+	Nonzeros in U       4287086
+	nonzeros in L+U     8597516
+	nonzeros in LSUB    1148763
+	NUMfact space (MB) sum(procs):  L\U	71.15	all	74.93
+	Total highmark (MB):  All	203.25	Avg	25.41	Max	25.41
+	Nonzeros in L       4330602
+	Nonzeros in U       4287086
+	nonzeros in L+U     8597516
+	nonzeros in LSUB    1148763
+	NUMfact space (MB) sum(procs):  L\U	71.15	all	74.93
+	Total highmark (MB):  All	203.25	Avg	25.41	Max	25.41
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    8.27690000002622     
+  split_step: Time bcs:   0.171700000006240     
+ Time spent in *_step:    12.8446999999869     
+  Finding magnetic axis
+  magnetic axis:   0.9747E+00 -0.1604E-01
+  psi at magnetic axis:  -0.3120E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.46699480712520     
+ Total energy lost =  -5.999278679560388E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =   0.562484000000001     
+   Toroidal current =   -3.11076666194665     
+   Total particles =    2.78837545066057     
+  Applying feedback
+  Writing output.
+  Writing time slice time_001           
+ TIME STEP:            2
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.18269999959739     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    6.01220000043395     
+   Time spent finalizing arrays:   0.218499999988126     
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    6.56840000001830     
+  split_step: Time bcs:   6.789999999455176E-002
+ Time spent in *_step:    8.43260000000009     
+  Finding magnetic axis
+  magnetic axis:   0.9865E+00 -0.1509E-01
+  psi at magnetic axis:  -0.2992E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.47164380111868     
+ Total energy lost =  -8.430998079211045E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =   0.843726000000003     
+   Toroidal current =   -3.09884764847881     
+   Total particles =    2.79400310631219     
+  Applying feedback
+  Writing output.
+  Writing time slice time_002           
+ TIME STEP:            3
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.17879999981960     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    5.87390000015148     
+   Time spent finalizing arrays:   6.709999998565763E-002
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    6.54020000001765     
+  split_step: Time bcs:   6.739999999990687E-002
+ Time spent in *_step:    8.41939999998431     
+  Finding magnetic axis
+  magnetic axis:   0.1002E+01 -0.1509E-01
+  psi at magnetic axis:  -0.2891E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.47299668794833     
+ Total energy lost =  -0.103857304629519     
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =    1.12496800000000     
+   Toroidal current =   -3.17471805043539     
+   Total particles =    2.79610262252563     
+  Applying feedback
+  Writing output.
+  Writing time slice time_003           
+ TIME STEP:            4
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.11529999997583     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    5.54630000001634     
+   Time spent finalizing arrays:   0.112999999983003     
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    6.23739999998361     
+  split_step: Time bcs:   6.529999998747371E-002
+ Time spent in *_step:    7.89040000000386     
+  Finding magnetic axis
+  magnetic axis:   0.1014E+01 -0.1514E-01
+  psi at magnetic axis:  -0.2781E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.47865521933826     
+ Total energy lost =  -0.109587862917646     
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =    1.40621000000000     
+   Toroidal current =   -3.22522454923257     
+   Total particles =    2.79653831689884     
+  Applying feedback
+  Writing output.
+  Writing time slice time_004           
+ TIME STEP:            5
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.10940000019036     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    5.49639999988722     
+   Time spent finalizing arrays:   9.999999997671694E-002
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    5.92050000000745     
+  split_step: Time bcs:   6.509999997797422E-002
+ Time spent in *_step:    7.64489999998477     
+  Finding magnetic axis
+  magnetic axis:   0.1020E+01 -0.1448E-01
+  psi at magnetic axis:  -0.2669E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.48029439769921     
+ Total energy lost =  -9.435533935866335E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =    1.68745199999999     
+   Toroidal current =   -3.24166442073449     
+   Total particles =    2.79774591316248     
+  Applying feedback
+  Writing output.
+  Writing time slice time_005           
+ TIME STEP:            6
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.10819999995874     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    5.48950000005425     
+   Time spent finalizing arrays:   9.400000001187436E-002
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    5.89979999998468     
+  split_step: Time bcs:   6.440000003203750E-002
+ Time spent in *_step:    7.54890000002342     
+  Finding magnetic axis
+  magnetic axis:   0.1019E+01 -0.1377E-01
+  psi at magnetic axis:  -0.2557E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.46759843983370     
+ Total energy lost =  -6.672651020344419E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =    1.96869399999999     
+   Toroidal current =   -3.23803196302844     
+   Total particles =    2.80102575138599     
+  Applying feedback
+  Writing output.
+  Writing time slice time_006           
+ TIME STEP:            7
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.11029999985476     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    5.48720000011963     
+   Time spent finalizing arrays:   9.720000001834705E-002
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    5.91129999997793     
+  split_step: Time bcs:   6.449999997857958E-002
+ Time spent in *_step:    7.63320000001113     
+  Finding magnetic axis
+  magnetic axis:   0.1014E+01 -0.1409E-01
+  psi at magnetic axis:  -0.2446E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.44393289214558     
+ Total energy lost =  -4.197661309507220E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =    2.24993599999999     
+   Toroidal current =   -3.23210569653312     
+   Total particles =    2.80614280278771     
+  Applying feedback
+  Writing output.
+  Writing time slice time_007           
+ TIME STEP:            8
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.10529999990831     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    5.48100000005797     
+   Time spent finalizing arrays:   9.930000000167638E-002
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    6.13810000001104     
+  split_step: Time bcs:   6.469999998807907E-002
+ Time spent in *_step:    7.89260000002105     
+  Finding magnetic axis
+  magnetic axis:   0.1007E+01 -0.1570E-01
+  psi at magnetic axis:  -0.2338E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.41907394072364     
+ Total energy lost =  -2.893138673659590E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =    2.53117799999998     
+   Toroidal current =   -3.23506620560394     
+   Total particles =    2.81202904030614     
+  Applying feedback
+  Writing output.
+  Writing time slice time_008           
+ TIME STEP:            9
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.10829999984708     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    5.49290000015753     
+   Time spent finalizing arrays:   0.106700000003912     
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    6.03669999996782     
+  split_step: Time bcs:   6.490000002668239E-002
+ Time spent in *_step:    7.76579999999376     
+  Finding magnetic axis
+  magnetic axis:   0.9995E+00 -0.1728E-01
+  psi at magnetic axis:  -0.2230E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.39949599642346     
+ Total energy lost =  -2.587007710913194E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =    2.81241999999998     
+   Toroidal current =   -3.24723788137554     
+   Total particles =    2.81775595514413     
+  Applying feedback
+  Writing output.
+  Writing time slice time_009           
+ TIME STEP:           10
+  Calling onestep
+ Defining matrices
+  initializing matrices...
+  populating matrices...
+  finalizing matrices...
+   Time spent defining fields:    1.10620000018389     
+   Time spent interpolating size field:   0.000000000000000E+000
+   Time spent calculating elements:    5.48469999982626     
+   Time spent finalizing arrays:   0.226300000009360     
+ Done defining matrices.
+ Advancing times...
+  Advancing velocity
+	Nonzeros in L       9920094
+	Nonzeros in U       9819314
+	nonzeros in L+U     19709150
+	nonzeros in LSUB    1926274
+	NUMfact space (MB) sum(procs):  L\U	161.62	all	167.54
+	Total highmark (MB):  All	425.14	Avg	53.14	Max	53.14
+  Advancing density
+	Nonzeros in L       1124622
+	Nonzeros in U       1116012
+	nonzeros in L+U     2230548
+	nonzeros in LSUB    389859
+	NUMfact space (MB) sum(procs):  L\U	18.84	all	21.10
+	Total highmark (MB):  All	57.61	Avg	7.20	Max	7.20
+  Advancing Fields
+	Nonzeros in L       10091550
+	Nonzeros in U       10005756
+	nonzeros in L+U     20067048
+	nonzeros in LSUB    1916423
+	NUMfact space (MB) sum(procs):  L\U	164.67	all	170.56
+	Total highmark (MB):  All	430.37	Avg	53.80	Max	53.80
+  split_step: Time solve:    6.34369999999763     
+  split_step: Time bcs:   6.500000000232831E-002
+ Time spent in *_step:    8.04420000000391     
+  Finding magnetic axis
+  magnetic axis:   0.9907E+00 -0.1678E-01
+  psi at magnetic axis:  -0.2117E+00
+  Finding X-point
+  magaxis: guess outside domain   0.0000E+00  0.0000E+00
+  no X-point found near   0.0000E+00  0.0000E+00
+  Finding LCFS
+  Plasma is limited by internal limiter #1.
+ Calculating auxiliary variables
+  defining...
+  solving...
+   resistivity
+   sigma
+ Total energy =    3.38565900089247     
+ Total energy lost =  -2.575380207734015E-002
+ Scalars:
+   Area =    4.63999999999999     
+   Volume =    3.09366199999998     
+   Toroidal current =   -3.25955179307009     
+   Total particles =    2.82307110993154     
+  Applying feedback
+  Writing output.
+  Writing time slice time_010           
+ Done time loop.
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+ unloading vacuum data
+WARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: CaWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: CaWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: CaWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 24 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 30 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 38 for deletion
+ WARNING: Cannot find sparse matrix with id 39 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: CannotWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: CaWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: CaWARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 24 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 30 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 38 for deletion
+ WARNING: Cannot find sparse matrix with id 39 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannotnnot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 24 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 30 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 38 for deletion
+ WARNING: Cannot find sparse matrix with id 39 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannotnnot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 24 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 30 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 38 for deletion
+ WARNING: Cannot find sparse matrix with id 39 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ The Total Time and MatrixVectMultiply Time
+210.869  11.3044
+nnot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 24 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 30 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 38 for deletion
+ WARNING: Cannot find sparse matrix with id 39 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannotnnot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 24 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 30 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 38 for deletion
+ WARNING: Cannot find sparse matrix with id 39 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannotnnot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 24 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 30 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 38 for deletion
+ WARNING: Cannot find sparse matrix with id 39 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+  find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+  find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+  find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+  find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+  find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+ WARNING: Cannot find sparse matrix with id 1 for deletion
+ WARNING: Cannot find sparse matrix with id 3 for deletion
+ WARNING: Cannot find sparse matrix with id 5 for deletion
+ WARNING: Cannot find sparse matrix with id 6 for deletion
+ WARNING: Cannot find sparse matrix with id 7 for deletion
+ WARNING: Cannot find sparse matrix with id 8 for deletion
+ WARNING: Cannot find sparse matrix with id 9 for deletion
+ WARNING: Cannot find sparse matrix with id 10 for deletion
+ WARNING: Cannot find sparse matrix with id 11 for deletion
+ WARNING: Cannot find sparse matrix with id 12 for deletion
+ WARNING: Cannot find sparse matrix with id 13 for deletion
+ WARNING: Cannot find sparse matrix with id 14 for deletion
+ WARNING: Cannot find sparse matrix with id 15 for deletion
+ WARNING: Cannot find sparse matrix with id 16 for deletion
+ WARNING: Cannot find sparse matrix with id 17 for deletion
+ WARNING: Cannot find sparse matrix with id 18 for deletion
+ WARNING: Cannot find sparse matrix with id 19 for deletion
+ WARNING: Cannot find sparse matrix with id 20 for deletion
+ WARNING: Cannot find sparse matrix with id 21 for deletion
+ WARNING: Cannot find sparse matrix with id 24 for deletion
+ WARNING: Cannot find sparse matrix with id 25 for deletion
+ WARNING: Cannot find sparse matrix with id 26 for deletion
+ WARNING: Cannot find sparse matrix with id 29 for deletion
+ WARNING: Cannot find sparse matrix with id 30 for deletion
+ WARNING: Cannot find sparse matrix with id 31 for deletion
+ WARNING: Cannot find sparse matrix with id 33 for deletion
+ WARNING: Cannot find sparse matrix with id 34 for deletion
+ WARNING: Cannot find sparse matrix with id 35 for deletion
+ WARNING: Cannot find sparse matrix with id 37 for deletion
+ WARNING: Cannot find sparse matrix with id 38 for deletion
+ WARNING: Cannot find sparse matrix with id 39 for deletion
+ WARNING: Cannot find sparse matrix with id 40 for deletion
+ WARNING: Cannot find sparse matrix with id 42 for deletion
+ WARNING: Cannot find sparse matrix with id 43 for deletion
+ WARNING: Cannot find sparse matrix with id 44 for deletion
+ WARNING: Cannot find sparse matrix with id 45 for deletion
+ WARNING: Cannot find sparse matrix with id 46 for deletion
+ WARNING: Cannot find sparse matrix with id 47 for deletion
+  Stopped at           2
+ Stopped at           2
+ Stopped at           2
+ Stopped at           2
+ Stopped at           2
+ Stopped at           2
+ Stopped at           2
+ Stopped at           2

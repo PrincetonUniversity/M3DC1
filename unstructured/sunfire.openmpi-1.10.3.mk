@@ -25,8 +25,8 @@ else
   CPP = mpicxx
   F90 = mpif90
   F77 = mpif90
-  LOADER = mpif90 -cxxlib
-  FOPTS := $(FOPTS)
+  LOADER = mpif90
+  LDOPTS := $(LDOPTS) -cxxlib
 endif
 F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
 F77OPTS = $(F77FLAGS) $(FOPTS)
@@ -51,7 +51,7 @@ HDF5_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/hdf5-parallel-1.8.17
 SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/Aug2017/openmpi-1.10.3/debug
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
-SCOREC_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/utilities/
+SCOREC_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/bin
 
 ifeq ($(TRILINOS), 1)
   TRILINOS_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/trilinos-11.12.1
@@ -102,7 +102,8 @@ LIBS = 	\
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
         -I$(HDF5_DIR)/include \
-        -I$(GSLHOME)/include
+        -I$(GSLHOME)/include \
+	-I$(FFTWHOME)/include
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@

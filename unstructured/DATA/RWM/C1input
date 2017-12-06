@@ -1,0 +1,140 @@
+&inputnl
+!
+!
+! OUTPUT OPTIONS
+! ==============
+	dt = 1.		! time step
+	ntimemax = 300	! number of time steps
+	ntimepr = 100	! number of time steps per output
+	iprint = 0	! 1 = print detailed debug info
+	itimer = 0	! 1 = print timing info
+
+	iwrite_restart = 0
+	iread_eqdsk = 1
+
+
+! NUMERICAL METHOD OPTIONS
+! ========================
+
+	integrator = 0	! 0 = Crank-Nicholson, 1 = BDF2
+	thimp = 0.6	! implicitness parameter for CN
+	imp_mod = 0
+	isplitstep = 0
+
+	jadv = 1
+	ivform = 1
+
+	deex = 1.0
+	hyper  = 0.0    ! hyper-resistivity (applied to psi)
+	hyperi = 0.0    ! hyper-resistivity (applied to Bz )
+	hyperv = 0.0    ! hyper-viscosity   (applied to vz )
+	hyperc = 0.0    ! hyper-viscosity   (applied to chi)
+	hyperp = 0.0    ! hyper-pressure-diffusion
+
+	int_pts_diag = 25
+	int_pts_main = 25
+	int_pts_aux = 25
+
+	isurface = 1
+
+
+! MODEL OPTIONS
+! =============
+	linear = 1	! 0 = nonlinear; 1 = linear
+	eqsubtract = 1	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 2	! 1 = 2-field; 2 = 4-field; 3 = 6-field
+      	idens = 0	! 1 = advance density
+	ipres = 0       ! 1 = include electron pressure equation
+	gyro = 0
+
+	iconstflux = 0  ! 1 = conserve toroidal flux
+
+	regular = 1e-7
+
+	ntor = 1        ! toroidal mode number
+
+
+! BOUNDARY CONDITIONS
+! ===================
+	
+	nonrect = 1
+
+	eta_wall = 0.1
+
+	iconst_bz = 0
+	inocurrent_norm = 0
+
+
+! PHYSICAL PARAMETERS
+! ===================
+	bzero = 2.	! toroidal field strength
+	rzero = 3.
+	vzero = 0.
+	p0 = 4e-4	! total pressure
+	pi0 = 2e-4	! ion pressure
+
+	iresfunc = 3
+	etar = 1e-8	! resistivity = etar + eta0/T^(3/2)
+	eta0 = 1e-2
+	etaoff = 1.
+      	amu = 0.	! kinematic viscosity 
+	amuc = 0.
+	denm = 0.	! density diffusion
+	kappat = 0.	! isotropic thermal conductivity
+	kappa0 = 0.	!   kappa = kappat + kappa0*p/T^(3/2)
+	kappar = 0.	! field-aligned thermal conductivity
+
+	gam = 1.66666666666667	! adiabatic constant
+
+	db = 0.0	! ion skin depth
+
+	iper = 0	! 1 = periodic in r
+        jper = 0	! 1 = periodic in z
+
+	vloop = 0.
+
+
+! EQUILIBRIUM OPTIONS
+! ===================
+
+      	itaylor = 1	! determines initial conditions
+			! 0: Tilting Cylinder
+			! 1: Taylor reconnection
+			! 2: Force-free Taylor state
+			! 3: GEM-reconnection
+			! 4: Wave propagation
+
+	icsym = 1       ! perturbations are up-down symmetric
+	eps = 1e-10	! size of initial perturbation
+	maxn = 10       ! maximum wavenumber of perturbations
+
+	beta = 1.0
+	ln = 0.2        ! equilibrium gradient scale length
+
+	irestart = 0	! 1 = read restart
+
+	idenfunc = 3
+	den0 = 1.
+	den_edge = 0.01
+	denoff = 1.
+
+
+! TOROIDAL GEOMETRY OPTIONS
+! =========================
+	itor = 1	! 1 = toroidal geometry, 0 = slab geometry
+ 	xzero = 0.	! x coordinate of lower-left corner of box
+	zzero = 0.	! y coordinate of lower-left corner of box
+	xlim = 1.5	! limiting value of x
+	zlim = 0.	! limiting value of z
+	xlim2 = 4.5
+	zlim2 = 0.
+	tcuro = 9.	! initial toroidal current
+	igs = 30
+	q0 = 1.4
+	p1 = 0.
+	p2 = 0.
+	djdpsi = 0.
+	pedge = 1e-5
+	expn = 0.
+	
+ /
