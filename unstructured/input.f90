@@ -885,7 +885,7 @@ subroutine set_defaults
        "Z-component of magnetic probe normal", diagnostic_grp)
  
   call add_var_int("iflux_loops", iflux_loops, 0, &
-       "Number of magnetic probes", diagnostic_grp)
+       "Number of flux loops", diagnostic_grp)
   call add_var_double_array("flux_loop_x", flux_loop_x, iflux_loops_max, 0., &
        "X-coordinate of flux loop", diagnostic_grp)
   call add_var_double_array("flux_loop_z", flux_loop_z, iflux_loops_max, 0., &
