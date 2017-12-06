@@ -15,9 +15,12 @@ module diagnostics
   real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad
   real :: totre  ! total number of runaway electrons
 
+  ! wall forces in R, phi, and Z directions
+  real :: wall_force_n0_x, wall_force_n0_y, wall_force_n0_z
+
   ! wall forces in x, y, and z directions
   ! note: x = R cos(phi), y = R sin(phi)
-  real :: wall_force_x, wall_force_y, wall_force_z
+  real :: wall_force_n1_x, wall_force_n1_y, wall_force_n1_z
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pden, pmom, pvol, m_iz
@@ -224,9 +227,12 @@ contains
 
     totre = 0.
 
-    wall_force_x = 0.
-    wall_force_y = 0.
-    wall_force_z = 0.
+    wall_force_n0_x = 0.
+    wall_force_n0_y = 0.
+    wall_force_n0_z = 0.
+    wall_force_n1_x = 0.
+    wall_force_n1_y = 0.
+    wall_force_n1_z = 0.
   end subroutine reset_scalars
 
 
@@ -243,7 +249,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 57
+    integer, parameter :: num_scalars = 60
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -303,9 +309,12 @@ contains
        temp(52) = totrad
        temp(53) = totre
        temp(54) = m_iz
-       temp(55) = wall_force_x
-       temp(56) = wall_force_y
-       temp(57) = wall_force_z
+       temp(55) = wall_force_n0_x
+       temp(56) = wall_force_n0_y
+       temp(57) = wall_force_n0_z
+       temp(58) = wall_force_n1_x
+       temp(59) = wall_force_n1_y
+       temp(60) = wall_force_n1_z
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -365,9 +374,12 @@ contains
        totrad = temp2(52)
        totre =  temp2(53)
        m_iz =   temp2(54)
-       wall_force_x = temp2(55)
-       wall_force_y = temp2(56)
-       wall_force_z = temp2(57)
+       wall_force_n0_x = temp2(55)
+       wall_force_n0_y = temp2(56)
+       wall_force_n0_z = temp2(57)
+       wall_force_n1_x = temp2(58)
+       wall_force_n1_y = temp2(59)
+       wall_force_n1_z = temp2(60)
 
     endif !if maxrank .gt. 1
 
@@ -666,7 +678,7 @@ subroutine calculate_scalars()
   numelms = local_elements()
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_x,wall_force_y,wall_force_z)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -684,19 +696,21 @@ subroutine calculate_scalars()
      if(imulti_region.eq.1 .and. izone.eq.2) then
         wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
 
-#ifdef USE3D
         call jxb_r(temp79a)
         call jxb_phi(temp79b)
         call jxb_z(temp79c)
 
-        wall_force_x = wall_force_x &
+        wall_force_n0_x = wall_force_n0_x + int1(temp79a)
+        wall_force_n0_y = wall_force_n0_y + int1(temp79b)
+        wall_force_n0_z = wall_force_n0_z + int1(temp79c)
+
+#ifdef USE3D
+        wall_force_n1_x = wall_force_n1_x &
              + int2(temp79a,co) &
-             - int2(temp79c,sn)
-        wall_force_y = wall_force_y &
+             - int2(temp79b,sn)
+        wall_force_n1_y = wall_force_n1_y &
              + int2(temp79a,sn) &
-             + int2(temp79c,co)
-        wall_force_z = wall_force_z &
-             + int1(temp79b)
+             + int2(temp79b,co)
 #endif
      end if
 

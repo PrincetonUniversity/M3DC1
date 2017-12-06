@@ -14662,14 +14662,14 @@ subroutine JxB_z(o)
   vectype, intent(out), dimension(MAX_PTS) :: o
 
   o = &
-       + ri2_79*pst79(:,OP_GS)*pstx79(:,OP_DZ)  &
-       + ri2_79*bztx79(:,OP_1)*bzt79(:,OP_DZ)
+       - ri2_79*pst79(:,OP_GS)*pstx79(:,OP_DZ)  &
+       - ri2_79*bztx79(:,OP_1)*bzt79(:,OP_DZ)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   o = o &
-       + ri2_79*bztx79(:,OP_1)*bft79(:,OP_DZPP) &
-       - ri3_79*bztx79(:,OP_1)*pst79(:,OP_DRP)  &
-       + ri_79*pst79(:,OP_GS)*bftx79(:,OP_DRP)
+       - ri2_79*bztx79(:,OP_1)*bft79(:,OP_DZPP) &
+       + ri3_79*bztx79(:,OP_1)*pst79(:,OP_DRP)  &
+       - ri_79*pst79(:,OP_GS)*bftx79(:,OP_DRP)
 #endif
   
 end subroutine JxB_z
