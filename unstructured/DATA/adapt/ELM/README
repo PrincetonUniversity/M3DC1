@@ -1,4 +1,0 @@
-Linear run using complex number on 2D mesh
-Adapted mesh based on the estimated error in the eigen mode
-The mesh is adapted when ke>=0.05 and the simulation returns to GS solve
-Use 8 process to run 

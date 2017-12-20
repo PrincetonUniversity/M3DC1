@@ -1,5 +1,0 @@
-This is a 3D Nonlinear run with 8 planes that must be run on 16p.
-Code must be compiled with option 3D=1.
-
-The number of timesteps is set to 100 (ntimemax=100).  This can be reduced.
-With SuperLU, this takes about 400 sec/timestep, or 11 hours for 100 steps.
