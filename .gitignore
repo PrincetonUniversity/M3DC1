@@ -1,0 +1,2 @@
+# Ignore all build directories.  These are preceded by "_"
+_*
