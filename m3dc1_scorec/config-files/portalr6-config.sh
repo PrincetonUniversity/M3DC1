@@ -1,0 +1,32 @@
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
+PETSC_ARCH=real-intel-2015u1-openmpi-1.10.3
+TRILINOS_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/trilinos-11.12.1
+PREFIX=/p/tsc/m3dc1/lib/SCORECLib/rhel6/Oct2016
+cmake .. \
+  -DCMAKE_C_COMPILER=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3/bin/mpicc \
+  -DCMAKE_CXX_COMPILER=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3/bin/mpicxx \
+  -DCMAKE_Fortran_COMPILER=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3/bin/mpif90 \
+  -DCMAKE_C_FLAGS=" -g -O2 -DDEBUG -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O2 -DDEBUG -I$PETSC_DIR/include" \
+  -DCMAKE_Fortran_FLAGS="-fpic "\
+  -DSCOREC_INCLUDE_DIR="$PREFIX/include" \
+  -DSCOREC_LIB_DIR="$PREFIX/lib" \
+  -DZOLTAN_LIBRARY="$PREFIX/lib/libzoltan.a" \
+  -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
+  -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
+  -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
+  -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
+  -DHDF5_INCLUDE_DIR="/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/hdf5-parallel-1.8.17/include" \
+  -DHDF5_LIB_DIR="/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/hdf5-parallel-1.8.17/lib" \
+  -DENABLE_TRILINOS=ON \
+  -DTRILINOS_INCLUDE_DIR="$TRILINOS_DIR/include" \
+  -DTRILINOS_LIB_DIR="$TRILINOS_DIR/lib" \
+  -DLAPACK_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
+  -DBOOST_LIB_DIR="$Boost_DIR/lib" \
+  -DSTDCPP_LIBRARY="/usr/lib/gcc/x86_64-redhat-linux/4.4.7/libstdc++.a" \
+  -DNETCDF_LIBRARY="$NETCDFHOME/lib/libnetcdf.a" \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  -DENABLE_COMPLEX=OFF \
+  -DENABLE_TESTING=OFF \
+  -DCMAKE_BUILD_TYPE=Debug
+

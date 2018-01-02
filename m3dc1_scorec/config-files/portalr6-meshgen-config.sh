@@ -1,0 +1,21 @@
+cmake .. \
+  -DCMAKE_C_COMPILER="/usr/pppl/intel/2015-pkgs/openmpi-1.8.4/bin/mpicc" \
+  -DCMAKE_CXX_COMPILER="/usr/pppl/intel/2015-pkgs/openmpi-1.8.4/bin/mpicxx" \
+  -DCMAKE_Fortran_COMPILER="/usr/pppl/intel/2015-pkgs/openmpi-1.8.4/bin/mpif90" \
+  -DCMAKE_C_FLAGS=" -g -O2 -DDEBUG" \
+  -DCMAKE_CXX_FLAGS=" -g -O2 -DDEBUG" \
+  -DCMAKE_Fortran_FLAGS="-fpic "\
+  -DSCOREC_INCLUDE_DIR="/p/tsc/m3dc1/lib/SCORECLib/rhel6/sim-install/include" \
+  -DSCOREC_LIB_DIR="/p/tsc/m3dc1/lib/SCORECLib/rhel6/sim-install/lib" \
+  -DZOLTAN_LIBRARY="/p/tsc/m3dc1/lib/SCORECLib/rhel6/latest/lib/libzoltan.a" \
+  -DPARMETIS_LIBRARY="/p/swim/jchen/PETSC/petsc-3.5.3/portalr6-intel-openmpi-1.8.4/lib/libparmetis.a" \
+  -DMETIS_LIBRARY="/p/swim/jchen/PETSC/petsc-3.5.3/portalr6-intel-openmpi-1.8.4/lib/libmetis.a" \
+  -DLAPACK_LIB_DIR="/p/tsc/m3dc1/lib/SCORECLib/rhel6/utilities/create_mesh/lib" \
+  -DENABLE_COMPLEX=OFF \
+  -DENABLE_SIMMETRIX=ON \
+  -DSIMMETRIX_INCLUDE_DIR=/usr/pppl/Simmetrix/simmodsuite/10.0-160429/include \
+  -DSIMMETRIX_LIB_DIR=/usr/pppl/Simmetrix/simmodsuite/10.0-160429/lib/x64_rhel6_gcc44 \
+  -DENABLE_TESTING=ON \
+  -DCMAKE_INSTALL_PREFIX="/p/tsc/m3dc1/lib/SCORECLib/rhel6/sim-install" \
+  -DCMAKE_BUILD_TYPE=Debug
+

@@ -1,0 +1,10 @@
+prefix=@prefix@
+libdir=@prefix@/lib
+includedir=@includedir@
+
+Name: PETSc libraries
+URL: 
+Description: PETSc
+Version: 
+Libs: -L${libdir} @PETSC_LINK_LIBS@
+Cflags: -I${includedir} 

@@ -1,0 +1,10 @@
+prefix=@prefix@
+libdir=@prefix@/lib
+includedir=@includedir@
+
+Name: Trilinos libraries
+URL: 
+Description: Trilinos
+Version: 
+Libs: -L${libdir} @TRILINOS_LINK_LIBS@
+Cflags: -I${includedir} 

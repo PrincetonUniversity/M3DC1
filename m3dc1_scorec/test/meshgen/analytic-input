@@ -1,0 +1,14 @@
+!model type: 0 - parameterized vacuum
+!            1 - piece-wise linear vacuum; 
+!            2 - piece-wise polynomial vacuum
+!            3 - three-regions  
+modelType 0
+outFile analytic 
+meshSize 0.04
+SimLic /net/common/meshSim/license/license.txt
+
+! for parametrized vacuum model only.
+useVacuumParams 1
+vacuumParams 1.65908 0.46 0.2 -0.02504 0.8
+numVacuumPts 20
+
