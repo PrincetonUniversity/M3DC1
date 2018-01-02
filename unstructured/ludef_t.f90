@@ -3343,49 +3343,6 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      endif
   endif
 
-  ! Parallel Heat Flux
-  ! ~~~~~~~~~~~~~~~~~~
-  if(kappar.ne.0.) then
-     if(linear.eq.1) then
-        ! Assumes no contribution from equilibrium f
-
-        tempx = p1psipsipnkappar(trialx,lin,ps079,pp079,n079,ieq_bdotgradt) &
-             + p1psipsipnkappar(trialx,ps079,lin,pp079,n079,1) &
-             + p1psibpnkappar  (trialx,lin,bz079,pp079,n079,ieq_bdotgradt,1)
-        ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx
-        ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx
-        
-        if(numvar.ge.2) then
-           tempx = p1psibpnkappar(trialx,ps079,lin,pp079,n079,1,ieq_bdotgradt)&
-                + p1bbpnkappar  (trialx,lin,bz079,pp079,n079,ieq_bdotgradt) &
-                + p1bbpnkappar  (trialx,bz079,lin,pp079,n079,1)
-           ssterm(:,bz_g) = ssterm(:,bz_g) -       thimpf     *dt*tempx
-           ddterm(:,bz_g) = ddterm(:,bz_g) + (1. - thimpf*bdf)*dt*tempx
-        end if
-        
-        tempx = p1psipsipnkappar(trialx,ps079,ps079,lin,n079,1) &
-             + p1psibpnkappar  (trialx,ps079,bz079,lin,n079,1,1) &
-             + p1bbpnkappar    (trialx,bz079,bz079,lin,n079,1)
-        ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
-        ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
-        
-        ! this term has the opposite sign because n comes in with -1 power
-        if(idens.eq.1) then
-           tempx = p1psipsipnkappar(trialx,ps079,ps079,p079,lin,1) &
-                + p1psibpnkappar  (trialx,ps079,bz079,p079,lin,1,1) &
-                + p1bbpnkappar    (trialx,bz079,bz079,p079,lin,1)
-           ssterm(:,den_g) = ssterm(:,den_g) +       thimpf     *dt*tempx
-           ddterm(:,den_g) = ddterm(:,den_g) - (1. - thimpf*bdf)*dt*tempx
-        end if
-        
-        if(i3d.eq.1 .and. numvar.ge.2) then
-           tempx = p1psifpnkappar(trialx,ps079,lin,pp079,n079,1,ieq_bdotgradt)&
-                + p1bfpnkappar  (trialx,bz079,lin,pp079,n079,1,ieq_bdotgradt)
-           r_bf = r_bf -       thimp_bf     *dt*tempx
-           q_bf = q_bf + (1. - thimp_bf*bdf)*dt*tempx
-        endif
-     endif
-  end if
 
   ! Gradient-dependent heat flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -3506,8 +3463,47 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! Parallel Heat Flux
   ! ~~~~~~~~~~~~~~~~~~
   if(kappar.ne.0.) then
+
+     if(linear.eq.1) then
+        ! Assumes no contribution from equilibrium f
         
-     if(linear.eq.0) then
+        tempx = p1psipsipnkappar(trialx,lin,ps079,pp079,n079,ieq_bdotgradt) &
+             + p1psipsipnkappar(trialx,ps079,lin,pp079,n079,1) &
+             + p1psibpnkappar  (trialx,lin,bz079,pp079,n079,ieq_bdotgradt,1)
+        ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx
+        
+        if(numvar.ge.2) then
+           tempx = p1psibpnkappar(trialx,ps079,lin,pp079,n079,1,ieq_bdotgradt)&
+                + p1bbpnkappar  (trialx,lin,bz079,pp079,n079,ieq_bdotgradt) &
+                + p1bbpnkappar  (trialx,bz079,lin,pp079,n079,1)
+           ssterm(:,bz_g) = ssterm(:,bz_g) -       thimpf     *dt*tempx
+           ddterm(:,bz_g) = ddterm(:,bz_g) + (1. - thimpf*bdf)*dt*tempx
+        end if
+        
+        tempx = p1psipsipnkappar(trialx,ps079,ps079,lin,n079,1) &
+             + p1psibpnkappar  (trialx,ps079,bz079,lin,n079,1,1) &
+             + p1bbpnkappar    (trialx,bz079,bz079,lin,n079,1)
+        ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
+        ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
+        
+        ! this term has the opposite sign because n comes in with -1 power
+        if(idens.eq.1) then
+           tempx = p1psipsipnkappar(trialx,ps079,ps079,p079,lin,1) &
+                + p1psibpnkappar  (trialx,ps079,bz079,p079,lin,1,1) &
+                + p1bbpnkappar    (trialx,bz079,bz079,p079,lin,1)
+           ssterm(:,den_g) = ssterm(:,den_g) +       thimpf     *dt*tempx
+           ddterm(:,den_g) = ddterm(:,den_g) - (1. - thimpf*bdf)*dt*tempx
+        end if
+        
+        if(i3d.eq.1 .and. numvar.ge.2) then
+           tempx = p1psifpnkappar(trialx,ps079,lin,pp079,n079,1,ieq_bdotgradt)&
+                + p1bfpnkappar  (trialx,bz079,lin,pp079,n079,1,ieq_bdotgradt)
+           r_bf = r_bf -       thimp_bf     *dt*tempx
+           q_bf = q_bf + (1. - thimp_bf*bdf)*dt*tempx
+        endif
+
+     else ! on linear.eq.1
 !
 !....note:  for ikappar_ni .eq.0, the metric calls have been changed from p1.... to te.... 
 !    and ,ni79 has been removed from the calls due to numerical instability 
