@@ -140,7 +140,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	M3Dmodules.o resistive_wall.o \
 	 m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
-	electric_field.o pellet.o \
+	electric_field.o pellet.o parallel_heat_flux.o \
 	temperature_plots.o \
 	electrostatic_potential.o newvar.o runaway.o diagnostics.o \
 	read_schaffer_field.o  neutral_beam.o \

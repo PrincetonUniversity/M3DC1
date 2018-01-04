@@ -262,7 +262,7 @@ subroutine set_defaults
 
   call add_var_int("ikappafunc", ikappafunc, 0, "", transp_grp)
   call add_var_int("ikapscale", ikapscale, 0, "", transp_grp)
-  call add_var_int("ikappar_ni", ikappar_ni, 0, &
+  call add_var_int("ikappar_ni", ikappar_ni, 1, &
        "Include 1/n terms in parallel heat flux", transp_grp)
   call add_var_double("kappaoff", kappaoff, 0., "", transp_grp)
   call add_var_double("kappadelt", kappadelt, 0., "", transp_grp)
