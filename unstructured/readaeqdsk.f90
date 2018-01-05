@@ -139,6 +139,9 @@ subroutine load_eqdsk_a(filename)
         read (neqdsk,1040) betapd(jj),betatd(jj),wplasmd(jj),fluxx
         read (neqdsk,1040) vloopt(jj),taudia(jj),qmerci(jj),tavem
         read (neqdsk,1041) nsilop0,magpri0,nfcoil0,nesum0
+        
+        write(0,*) 'nfcoil0 = ', nfcoil0
+
         if(nsilop0.gt.nsilop) then 
            write(0,*) 'Warning: nsilop0 > nsilop', nsilop0
 !           nsilop0 = nsilop
@@ -216,6 +219,29 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp(16,1)/1000.
      write(*,1100) ccbrsp( 6,1)/1000.
      write(*,1100) ccbrsp(15,1)/1000.
+  else if(nfcoil0.eq.12) then 
+     write(0,*) 'Assuming EAST'
+     write(*,1100) ccbrsp( 1,1)/1000.  ! PF1
+     write(*,1100) ccbrsp( 8,1)/1000.  ! PF2
+
+     write(*,1100) ccbrsp( 2,1)/1000.  ! PF3
+     write(*,1100) ccbrsp( 9,1)/1000.  ! PF4
+
+     write(*,1100) ccbrsp( 3,1)/1000.  ! PF5
+     write(*,1100) ccbrsp( 7,1)/1000.  ! PF6
+
+     write(*,1100) ccbrsp( 4,1)* 44./284./1000.  ! PF7
+     write(*,1100) ccbrsp( 4,1)*240./284./1000.  ! PF9
+
+     write(*,1100) ccbrsp(10,1)* 44./284./1000.  ! PF8
+     write(*,1100) ccbrsp(10,1)*240./284./1000.  ! PF10
+
+     write(*,1100) ccbrsp( 5,1)/1000.  ! PF11
+     write(*,1100) ccbrsp(11,1)/1000.  ! PF12
+
+     write(*,1100) ccbrsp( 6,1)/1000.  ! PF13
+     write(*,1100) ccbrsp(12,1)/1000.  ! PF14
+
   else if(nfcoil0.eq.52) then
      write(0,*) 'Assuming NSTX'
      write(0,*) 'nesum0 = ', nesum0
