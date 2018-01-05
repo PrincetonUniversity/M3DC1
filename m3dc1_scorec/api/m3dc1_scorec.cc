@@ -31,13 +31,11 @@
 #endif
 #include <alloca.h>
 
-#ifdef DEBUG
 double begin_mem, begin_time;
-#endif
 
 // helper routines
 void group_complex_dof (apf::Field* field, int option);
-int m3dc1_compute_adjacencies();
+
 void synchronize_field(apf::Field* f);
 
 bool m3dc1_double_isequal(double A, double B)
@@ -65,9 +63,7 @@ int m3dc1_scorec_init()
 //*******************************************************
 { 
   pumi_start();
-#ifdef DEBUG
   begin_time=MPI_Wtime();
-#endif
   return M3DC1_SUCCESS; 
 }
 
@@ -75,19 +71,11 @@ int m3dc1_scorec_init()
 int m3dc1_scorec_finalize()
 //*******************************************************
 { 
-  while(m3dc1_mesh::instance()->mesh->countFields())
-  {
-    apf::Field* f = m3dc1_mesh::instance()->mesh->getField(0);
-    if(!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
-    destroyField(f);
-  }
-
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
+  m3dc1_mesh::instance()->clean(); // delete tag, field and internal data
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
 
-#ifdef DEBUG
   if (!pumi_rank()) std::cout<<"\n* [M3D-C1] time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
-#endif
   pumi_finalize();
   return M3DC1_SUCCESS; 
 }
@@ -395,11 +383,11 @@ int m3dc1_mesh_load(char* mesh_file)
   
   if (m3dc1_model::instance()->num_plane==1) // 2D problem
   {
+    create_mesh_array(m3dc1_mesh::instance()->mesh);
     compute_globalid(m3dc1_mesh::instance()->mesh, 0);
     compute_globalid(m3dc1_mesh::instance()->mesh, 2);
-  }
 
-//  m3dc1_compute_adjacencies();
+  }
 
   return M3DC1_SUCCESS;
 }
@@ -437,6 +425,7 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   m3dc1_mesh::instance()->build3d(*num_field, field_id, num_dofs_per_value);
 
   // update global ID
+  create_mesh_array(m3dc1_mesh::instance()->mesh);
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, 3);
 
@@ -467,6 +456,7 @@ int m3dc1_ghost_create (int* num_layer )
       ++it;
     }
   }
+  create_mesh_array(m3dc1_mesh::instance()->mesh, true /* delete existing array */);
   if (!pumi_rank()) std::cout<<"[M3D-C1 INFO] "<<* num_layer<<" ghost layer(s) created\n";
 
   return M3DC1_SUCCESS;
@@ -476,10 +466,8 @@ int m3dc1_ghost_create (int* num_layer )
 int m3dc1_ghost_delete()
 //*******************************************************
 {
-  pMesh m = m3dc1_mesh::instance()->mesh;
-
-  pumi_ghost_delete (m);
-
+  pumi_ghost_delete (m3dc1_mesh::instance()->mesh);
+  create_mesh_array(m3dc1_mesh::instance()->mesh, true /* delete existing array */);
   if (!pumi_rank()) std::cout<<"[M3D-C1 INFO] ghost layer(s) deleted\n";
 
   return M3DC1_SUCCESS;
@@ -520,95 +508,6 @@ int m3dc1_mesh_getnumghostent (int* /* in*/ ent_dim, int* /* out */ num_ent)
   return M3DC1_SUCCESS; 
 }
 
-// Adjacency search
-//*******************************************************
-int m3dc1_compute_adjacencies()
-//*******************************************************
-
-{
-  pMesh m = m3dc1_mesh::instance()->mesh;
-  int simplex_dim = m->getDimension();
-  int simplex_count=pumi_mesh_getNumEnt(m, simplex_dim);
-  int edges_per_simplex = 3;
-
-  // Initialize data structure for storing coordinates
-  if (m3dc1_mesh::instance()->xy)
-  {
-    delete [] m3dc1_mesh::instance()->xy;
-    m3dc1_mesh::instance()->xy = NULL;
-    delete [] m3dc1_mesh::instance()->adjacency;
-    m3dc1_mesh::instance()->adjacency = NULL;
-  }
-
-  m3dc1_mesh::instance()->xy = new double[6 *simplex_count];
-  double *xy = m3dc1_mesh::instance()->xy;
-  double x0, x1, x2, y0, y1, y2;
- 
-  // Initialize data structure for storing adjacency information
-  m3dc1_mesh::instance()->adjacency = new int[3*simplex_count];
-  int *adjacency = m3dc1_mesh::instance()->adjacency;
- 
-  int vertex_dim = 0, edge_dim = 1;
-  pMeshEnt simplex = NULL;
-  pMeshEnt edge_vertices[2], edge = NULL;
-  apf::Downward vertices;
-  apf::Adjacent neighbors;
-  apf::Vector3 simplex_xyz;
-  int neighbor_index;
-  int node_type = 0, edge_type = 1;
-  int count = 0;
-
-  for (int s_index = 0; s_index < simplex_count; ++s_index) {
-    simplex = apf::getMdsEntity(m, simplex_dim, s_index);
-    // Obtain coordinates of vertices
-    int nv = m->getDownward(simplex, vertex_dim, vertices);
-    for (int j = 0; j < nv; ++j) {
-      m->getPoint(vertices[j], node_type, simplex_xyz);
-      for (int k = 0; k < simplex_dim; ++k)
-        xy[(j * simplex_dim + k) + s_index * 6] = simplex_xyz[k];
-    }
-    x0 = xy[0 + s_index * 6]; y0 = xy[1 + s_index * 6];
-    x1 = xy[2 + s_index * 6]; y1 = xy[3 + s_index * 6];
-    x2 = xy[4 + s_index * 6]; y2 = xy[5 + s_index * 6];
-    double denom = (x0 * (y1 - y2) + x1 * (-y0 + y2) +
-                    x2 * (y0 - y1));
-    xy[2 + s_index * 6] = (y0 - y2)/-denom;
-    xy[3 + s_index * 6] = (x0 - x2)/denom;
-    xy[4 + s_index * 6] = (y0 - y1)/denom;
-    xy[5 + s_index * 6] = (x0 - x1)/-denom;
-
-    // Obtain edges and neighbors along edges
-    for (int j = 0; j < edges_per_simplex; ++j) {
-      // Obtain edge opposite simplex's vertex with local index j
-      edge_vertices[0] = vertices[(j + 1)%edges_per_simplex];
-      edge_vertices[1] = vertices[(j + 2)%edges_per_simplex];
-      edge = apf::findElement(m, edge_type, edge_vertices);
-
-      // Obtain the neighboring simplex along this edge
-      apf::getBridgeAdjacent(m, edge, edge_dim, simplex_dim, neighbors);
-      if (neighbors.getSize() == 2) {
-        for (size_t k = 0; k < neighbors.getSize(); ++k) {
-          neighbor_index = apf::getMdsIndex(m, neighbors[k]);
-          if (neighbor_index != s_index)
-            break;
-        }
-      }
-      else
-        neighbor_index = -1;
-      if (neighbor_index == - 1)
-        ++count;
-
-      // Assign to adjancency data structure
-      adjacency[j + s_index * 3] = neighbor_index;
-    }
-
-  }
-  if (!pumi_rank()) std::cout<<"[M3D-C1 INFO] local adjacency table for fast mesh search constructed\n";
-  // End of setting up vectors.
-  return M3DC1_SUCCESS;
-}
-
-
 //*******************************************************
 int m3dc1_mesh_search(int* initial_simplex,
 		      double* final_position,
@@ -627,7 +526,7 @@ int m3dc1_mesh_search(int* initial_simplex,
   int count = 0, max_count = m->count(simplex_dim);
   double tol = 1e-15;
   
-  simplex = apf::getMdsEntity(m, simplex_dim, *initial_simplex);
+  simplex = m3dc1_mesh::instance()->ments[simplex_dim][*initial_simplex];
   while (not located) 
   {
     int simplex_index = apf::getMdsIndex(m, simplex);
@@ -880,106 +779,12 @@ void m3dc1_field_verify()
   }
 }
 
-//*******************************************************
-int m3dc1_mesh_search_new(int* initial_simplex,
-                     double* final_position,
-                     int* final_simplex)
-//*******************************************************
-{
-  bool located = false;
-  int simplex_index = *initial_simplex, new_simplex_index;
-  int loc_count = 0, max_count = 100;
-  double tol = 1e-15;
-  double b_coords[3];
-  double x0, y0, inv00, inv01, inv10, inv11;
-  int prev_simplex_index = -1;
-  bool flag_nonconvex = false;
-
-  while (not located) 
-  {
-    // Read the coordinates of the vertices of the simplex to compute the
-    // barycentric coordinates.
-    x0 = m3dc1_mesh::instance()->xy[0 + simplex_index * 6];
-    y0 = m3dc1_mesh::instance()->xy[1 + simplex_index * 6];
-    inv00 = m3dc1_mesh::instance()->xy[2 + simplex_index * 6];
-    inv01 = m3dc1_mesh::instance()->xy[3 + simplex_index * 6];
-    inv10 = m3dc1_mesh::instance()->xy[4 + simplex_index * 6];
-    inv11 = m3dc1_mesh::instance()->xy[5 + simplex_index * 6];
-    double dx0 = final_position[0] - x0;
-    double dx1 = final_position[1] - y0;
-    b_coords[1] = inv00 * dx0 + inv01 * dx1;
-    b_coords[2] = inv10 * dx0 + inv11 * dx1;
-    b_coords[0] = 1 - b_coords[1] - b_coords[2];
-
-    // If all positive for current simplex, exit.
-    if ((b_coords[0] >= -tol) && (b_coords[1] >= -tol) &&
-        (b_coords[2] >= -tol)) {
-      located = true;
-      *final_simplex = simplex_index;
-      return M3DC1_SUCCESS;
-    }
-
-    /* Obtain the index of most negative barycentric coordinate and 
-       determine the simplex neighboring the edge opposite to this
-       vertex. */
-    int small = 0;
-    if (b_coords[1] < b_coords[0]) small=1;
-    if (b_coords[2] < b_coords[small]) small=2;
-    new_simplex_index = m3dc1_mesh::instance()->adjacency[small + simplex_index * 3];
-
-    // Added to take care of nonconvex domain. This is needed if
-    // search is used for initializing particles.
-    if (flag_nonconvex == true) {
-      if (new_simplex_index == prev_simplex_index)
-	new_simplex_index = -1;
-    }
-      
-    if (new_simplex_index != -1)
-      simplex_index = new_simplex_index;
-    else {
-      // Added to take care of nonconvex domain. This is needed if
-      // search is used for initializing particles.
-      flag_nonconvex = true;
-      int small1;
-      switch (small) { 
-      case 0:
-	if (b_coords[1] < b_coords[2]) small1=1;
-	else small1 = 2;
-	break;
-      case 1:
-	if (b_coords[0] < b_coords[2]) small1=0;
-	else small1 = 2;
-	break;
-      case 2:
-	if (b_coords[0] < b_coords[1]) small1=0;
-	else small1 = 1;
-	break;
-      }
-      prev_simplex_index = simplex_index;
-      new_simplex_index = m3dc1_mesh::instance()->adjacency[small1 + simplex_index * 3];
-      /*
-      std::cout<<"("<<pumi_rank()<<") "<<__func__<<": failed for element "<<*initial_simplex<<"\n";
-      *final_simplex = -3;
-      return M3DC1_FAILURE;
-      */
-    }
-
-    loc_count++;
-    if (loc_count == max_count) {
-      std::cout<<"("<<pumi_rank()<<") "<<__func__<<": failed for element "<<*initial_simplex<<"\n";
-      *final_simplex = -2;
-      return M3DC1_FAILURE;
-    }
-  }
-  return M3DC1_SUCCESS;
-}
-
 /* mesh entity functions */
 //*******************************************************
 int m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
 //*******************************************************
 {
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   assert(e);
   *global_ent_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
   return M3DC1_SUCCESS;
@@ -990,7 +795,7 @@ int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
             int* /* out */ geom_class_dim, int* /* out */ geom_class_id)
 //*******************************************************
 { 
-  apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* ent = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   assert(ent);
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(ent));
   *geom_class_dim = gmi_dim(m3dc1_model::instance()->model,gent);
@@ -1019,7 +824,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
                       int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
 //*******************************************************
 {
-  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   if (!e || *adj_dim==*ent_dim)
     return M3DC1_FAILURE;
 
@@ -1058,7 +863,7 @@ int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id,
                          int* /* in */ adj_dim, int* /* out */ num_adj_ent)
 //*******************************************************
 {
-  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   if (!e || *adj_dim==*ent_dim)
     return M3DC1_FAILURE;
 
@@ -1081,7 +886,7 @@ int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id,
                             int* /* out */ owning_partid)
 //*******************************************************
 {
-  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   assert(e);
   *owning_partid = get_ent_ownpartid(m3dc1_mesh::instance()->mesh, e);
   return M3DC1_SUCCESS;
@@ -1095,7 +900,7 @@ int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id,
   *ent_id -= 1; //index change from Fortran to C
  
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::MeshEntity* e = getMdsEntity(m, *ent_dim, *ent_id);
+  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   assert(e);
 
   if (is_ent_original(m,e)) 
@@ -1107,7 +912,7 @@ int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id,
 
 int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 {
-  pMeshEnt e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  pMeshEnt e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   if (pumi_ment_isGhost(e))
     *isghost=1;
   else
@@ -1121,7 +926,7 @@ int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
 //*******************************************************
 {
-  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
+  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[0][*node_id];
   assert(e);
   apf::Vector3 xyz;
   m3dc1_mesh::instance()->mesh->getPoint(e, 0, xyz);
@@ -1134,7 +939,7 @@ int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
 int m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
 //*******************************************************
 {
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *ent_id);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][*ent_id];
   assert(e);
   *global_ent_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
   return M3DC1_SUCCESS;
@@ -1156,7 +961,7 @@ void get_gv_edges(gmi_ent* gvertex, std::vector<gmi_ent*>& gedges)
 int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
 //*******************************************************
 {
-  apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
+  apf::MeshEntity* vt = m3dc1_mesh::instance()->ments[0][*node_id];
   assert(vt);
   xyzt[2]=0.0;
   //cout<<"nodnormalvec_ "<<*iNode<<" "<<vt<<endl;
@@ -1244,7 +1049,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
 int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
 //*******************************************************
 {
-  apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
+  apf::MeshEntity* vt = m3dc1_mesh::instance()->ments[0][*node_id];
   assert(vt);
 
   apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
@@ -1307,7 +1112,7 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
 int m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry)
 //*******************************************************
 {
-  apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
+  apf::MeshEntity* vt = m3dc1_mesh::instance()->ments[0][*node_id];
   assert(vt);
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(vt));
   int gType = gmi_dim(m3dc1_model::instance()->model,gent);
@@ -1348,7 +1153,7 @@ int m3dc1_node_write (const char* filename, int* start_index)
 int m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac)
 //*******************************************************
 {
-  apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, 3, *elm);
+  apf::MeshEntity* ent = m3dc1_mesh::instance()->ments[3][*elm];
   apf::Downward downward;
   int num_adj_ent = m3dc1_mesh::instance()->mesh->getDownward(ent, 2, downward);
   assert(num_adj_ent==5);
@@ -2264,7 +2069,7 @@ int m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID
   if (*ent_dim!=0)
     return M3DC1_FAILURE;
 
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   assert(e);
 
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
@@ -2286,7 +2091,7 @@ int m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, Field
   if (*ent_dim!=0)
     return M3DC1_FAILURE;
 
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   assert(e);
 
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
@@ -2341,7 +2146,7 @@ int m3dc1_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
 //*******************************************************
 {
   assert(*ent_dim==0);
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   assert(e);
 
   m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
@@ -2362,7 +2167,7 @@ int m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
 //*******************************************************
 {
   assert(*ent_dim==0);
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
   assert(e);
 
   m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
@@ -2517,7 +2322,7 @@ int m3dc1_matrix_insert(int* matrix_id, int* row,
   m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
 
   int ent_id = *row/total_num_dof;
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, ent_id);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][ent_id];
   assert(e);
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
 #endif
@@ -2558,7 +2363,7 @@ int m3dc1_matrix_add (int* matrix_id, int* row, int* col,
   m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
 
   int ent_id = *row/total_num_dof;
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, ent_id);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][ent_id];
   assert(e);
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
 #endif
@@ -2599,7 +2404,7 @@ int m3dc1_matrix_setbc(int* matrix_id, int* row)
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, inode);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][inode];
   assert(e);
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
 
@@ -2642,7 +2447,7 @@ int m3dc1_matrix_setlaplacebc(int * matrix_id, int *row,
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, inode);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][inode];
   assert(e);
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
   int start_dof_id, end_dof_id_plus_one;
@@ -2758,7 +2563,7 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
 
   if (m3dc1_mesh::instance()->mesh->getDimension()==3) ielm_dim =3;
 
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, ielm_dim, *ielm);
+  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[ielm_dim][*ielm];
   assert(e);
   if (m3dc1_mesh::instance()->mesh->isGhost(e)) return M3DC1_FAILURE;
   
@@ -3030,6 +2835,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   ma::adapt(in);
   reorderMdsMesh(mesh);
 
+  create_mesh_array(m3dc1_mesh::instance()->mesh, true /* delete existing array */);
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
@@ -3073,7 +2879,7 @@ void smooth_size_field (apf::Field* sizeField)
   for(int i=0; i<numVert; i++)
   {
     vector<apf::MeshEntity*> nodes;
-    apf::MeshEntity* e = apf:: getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
+    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[0][i];
     assert(e);
     nodes.push_back(e);
     double sizeOrg=0;
@@ -3112,7 +2918,7 @@ void group_complex_dof (apf::Field* field, int option)
   m3dc1_mesh_getnument (&entDim, &numVert);
   for(int i=0; i<numVert; i++)
   {
-    apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
+    apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][i];
     getComponents(field, e, 0, &(dofs[0]));
     for(int j=0; j<num_dof/6; j++)
     {
@@ -3154,7 +2960,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     for(int i=0; i<numVert; i++)
     {
-      if(is_ent_original(m3dc1_mesh::instance()->mesh,getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i)))
+      if(is_ent_original(m3dc1_mesh::instance()->mesh,m3dc1_mesh::instance()->ments[0][i]))
         errorSum+=pow(errorData[i],d/(p+d/2.0));
     }
     double errorSumBuff=errorSum;
@@ -3166,7 +2972,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   double size_estimate=0;
   for(int i=0; i<numVert; i++)
   {
-    apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
+    apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][i];
     assert(e);
     if(!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;
     double size = sf.getSize(e);
@@ -3181,7 +2987,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   if(size_estimate>*max_adapt_node) errorSum*=sqrt(size_estimate/(*max_adapt_node));
   for(int i=0; i<numVert; i++)
   {
-    apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
+    apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][i];
     assert(e);
     double size = sf.getSize(e);
     assert(errorData[i]==errorData[i]);
@@ -3272,6 +3078,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   //apf::writeVtkFiles(filename,mesh);
   //mesh->writeNative("adapted.smb");
 
+  create_mesh_array(m3dc1_mesh::instance()->mesh, true /* delete existing array */);
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
@@ -3390,7 +3197,7 @@ int sum_edge_data (double * data, int* size)
   PCU_Comm_Begin();
   for(int i=0; i<num_edge; i++)
   {
-    apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
+    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[1][i];
     int own_partid=get_ent_ownpartid(m, e);
     apf::MeshEntity* own_e = get_ent_owncopy(m, e);
     if (own_partid==PCU_Comm_Self()) continue;
@@ -3414,7 +3221,7 @@ int sum_edge_data (double * data, int* size)
   PCU_Comm_Begin();
   for(int i=0; i<num_edge; i++)
   {
-    apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
+    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[1][i];
     if (!is_ent_original(m,e) || !m->isShared(e))
       continue;
 
@@ -3459,7 +3266,7 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
     }
   for(int i=0; i<num_node; i++)
   {
-    apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
+    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[0][i];
     int own_partid=get_ent_ownpartid(m, e);
     apf::MeshEntity* own_e = get_ent_owncopy(m, e);
     apf::Adjacent adjacent;
@@ -3505,7 +3312,7 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
   PCU_Comm_Begin();
   for(int i=0; i<num_node; i++)
   {
-    apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
+    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[0][i];
     if (!is_ent_original(m,e) || !m->isShared(e))
       continue;
     apf::Copies remotes;
@@ -3660,7 +3467,7 @@ void print_elem (int elem_id)
   apf::Downward downward;
 
   ielm_dim = (m->getDimension()==2)? 2:3; 
-  apf::MeshEntity* e = getMdsEntity(m, ielm_dim, elem_id);
+  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[ielm_dim][elem_id];
   num_node_per_element = m->getDownward(e, 0, downward);
  
   int *id = new int[num_node_per_element];
