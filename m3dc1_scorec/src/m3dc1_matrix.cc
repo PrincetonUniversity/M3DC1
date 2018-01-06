@@ -10,9 +10,9 @@
 #ifdef M3DC1_PETSC
 #include "m3dc1_matrix.h"
 #include "apf.h"
-#include "apfNumbering.h"
 #include "apfShape.h"
 #include "apfMesh.h"
+#include "apfMDS.h"
 #include <vector>
 #include "PCU.h"
 #include "m3dc1_mesh.h"
@@ -64,7 +64,7 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   apf::MeshEntity* ent;
   for(int inode=0; inode<num_vtx; inode++)
   {
-    ent = get_ent(m3dc1_mesh::instance()->mesh,vertex_type,inode);
+    ent = m3dc1_mesh::instance()->ments[0][inode];
     if (!is_ent_original(m3dc1_mesh::instance()->mesh,ent)) continue;
       nodeCounter++;
     int num_dof;
@@ -116,7 +116,7 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
   apf::MeshEntity* ent;
   for(int inode=0; inode<num_vtx; inode++)
   {
-    ent = get_ent(m3dc1_mesh::instance()->mesh,vertex_type,inode);
+    ent = m3dc1_mesh::instance()->ments[0][inode];
     if (!is_ent_original(m3dc1_mesh::instance()->mesh, ent)) continue;
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -356,7 +356,7 @@ int  m3dc1_matrix::preAllocateParaMat()
   apf::MeshEntity* ent;
   for(int inode=0; inode<num_vtx; inode++)
   {
-    ent = get_ent(m3dc1_mesh::instance()->mesh, vertex_type, inode);
+    ent = m3dc1_mesh::instance()->ments[0][inode];
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &fieldOrdering, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
@@ -411,7 +411,7 @@ int matrix_solve::setUpRemoteAStruct()
   apf::MeshEntity* ent;
   for(int inode=0; inode<num_vtx; inode++)
   {
-    ent = get_ent(m3dc1_mesh::instance()->mesh, vertex_type, inode);
+    ent = m3dc1_mesh::instance()->ments[0][inode];
     int owner=get_ent_ownpartid(m3dc1_mesh::instance()->mesh, ent);
     if (owner!=PCU_Comm_Self())
     {
@@ -472,7 +472,7 @@ int  m3dc1_matrix::preAllocateSeqMat()
   apf::MeshEntity* ent;
   for(int inode=0; inode<num_vtx; inode++)
   {
-    ent = get_ent(m3dc1_mesh::instance()->mesh, vertex_type, inode);
+    ent = m3dc1_mesh::instance()->ments[0][inode];
     int start_dof, end_dof_plus_one;
     m3dc1_ent_getlocaldofid (&vertex_type, &inode, &fieldOrdering, &start_dof, &end_dof_plus_one);
     int startIdx = start_dof;
@@ -817,7 +817,7 @@ int matrix_solve::assemble()
       for(std::map<int, int> ::iterator it2 =it->second.begin(); it2!=it->second.end();it2++)
       {
         idxSendBuff[it->first].at(idxOffset++)=it2->second;
-        apf::MeshEntity* ent = get_ent(m3dc1_mesh::instance()->mesh, 0, it2->first);
+        apf::MeshEntity* ent = m3dc1_mesh::instance()->ments[0][it2->first];
 
         std::vector<apf::MeshEntity*> vecAdj;
         apf::Adjacent elements;
@@ -834,7 +834,7 @@ int matrix_solve::assemble()
         std::vector<int> columns(total_num_dof*numAdj);
         for(int i=0; i<numAdj; i++)
         {
-          int local_id = get_ent_localid(m3dc1_mesh::instance()->mesh, vecAdj.at(i));
+          int local_id = apf::getMdsIndex(m3dc1_mesh::instance()->mesh, vecAdj.at(i));
           localNodeId.at(i)=local_id;
           int start_global_dof_id, end_global_dof_id_plus_one;
           m3dc1_ent_getglobaldofid (&vertex_type, &local_id, &fieldOrdering, &start_global_dof_id, &end_global_dof_id_plus_one);

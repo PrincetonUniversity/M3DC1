@@ -44,7 +44,7 @@ STEP 2: INSTALL M3DC1-SCOREC
 *******************************************************************
 cd $PREFIX
 git clone https://github.com/PrincetonUniversity/M3DC1
-cd m3dc1_scorec
+cd M3DC1/m3dc1_scorec
 edit config.sh (see example files in config-files)
 
 mkdir build
