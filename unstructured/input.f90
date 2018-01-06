@@ -487,12 +487,18 @@ subroutine set_defaults
        "Exponent in basicj equilibrium", eq_grp)
   call add_var_double("basicj_j0",basicj_j0,1., &
        "On-axis current density in basicj equilibrium", eq_grp)
+  call add_var_double("basicj_q0",basicj_q0,0., &
+       "On-axis safety factor in basicj equilibrium (supersedes basicj_j0)", eq_grp)
+  call add_var_double("basicj_qa",basicj_qa,0., &
+       "Edge safety factor in basicj equilibrium (supersedes basicj_nu)", eq_grp)
   call add_var_double("basicj_voff",basicj_voff,1., &
        "Radial extent of flat toroidal rotation in basicj equilibrium", eq_grp)
   call add_var_double("basicj_vdelt",basicj_vdelt,1., &
        "Width of velocity drop-off, as fraction of ln, in basicj equilibrium", eq_grp)
   call add_var_double("basicj_dexp",basicj_dexp,1.,"", eq_grp)
   call add_var_double("basicj_dvac",basicj_dvac,1.,"", eq_grp)
+  call add_var_int("ibasicj_solvep",ibasicj_solvep,0, &
+       "0: Uniform pressure, solve for F.  1: Uniform F, solve for pressure", eq_grp)
   
   ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)

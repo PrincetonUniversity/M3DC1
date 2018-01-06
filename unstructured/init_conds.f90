@@ -584,7 +584,7 @@ subroutine initial_conditions()
            call frs1_init()
         case(24)
            call rwm_init()
-        case(29)
+        case(29,31)
            call basicj_init()
         end select
      else
@@ -622,7 +622,7 @@ subroutine initial_conditions()
            call solovev_init()
         case(24)
            call rwm_init()
-        case(29)
+        case(29,31)
            call basicj_init()
         end select
      endif
