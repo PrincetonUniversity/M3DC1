@@ -1,2 +1,5 @@
 # Ignore all build directories.  These are preceded by "_"
 _*
+
+# Ignore autosave files
+*~
