@@ -3148,15 +3148,54 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Perpendicular Heat Flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~
-  tempx = b3pedkappa(trialx,lin,ni79,kap79,vzt79)
-  ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
-  ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
-  if(eqsubtract.eq.1) then
+  if(linear.eq.1) then
+     ! grad(p/n) = grad(p)/n - p grad(n)/n^2
+     ! d grad(p/n) =
+     !   grad(p1)/n0 - p1 grad(n0)/n0^2                                   (kappat_lin_p)
+     ! - grad(p0) n1/n0^2 - p0 grad(n1)/n0^2 + 2 p0 grad(n0) n1 / n0^3    (kappat_lin_pn)
+
+     tempx = kappat_lin_p(trialx,lin)
+     ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
+     ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
+
      if(idens.eq.1) then
-        q_ni(:,1) = q_ni(:,1) + dt* &
-             (b3pedkappa(trialx,pp079,lin,kap79,vzt79))
+        tempx = kappat_lin_pn(trialx,pp079,lin)
+        ssterm(:,den_g) = ssterm(:,den_g) -       thimp     *dt*tempx
+        ddterm(:,den_g) = ddterm(:,den_g) + (1. - thimp*bdf)*dt*tempx
      end if
+  else 
+
+     tempx = kappat_p(trialx,lin)
+     ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
+     ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
+
+     if(idens.eq.0) then
+        tempx = kappat_pn(trialx,lin,nt79)
+        ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
+        ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
+     else
+        if(eqsubtract.eq.1) then
+           tempx = kappat_pn(trialx,lin,n079)
+           ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
+           ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
+           
+           tempx = kappat_pn(trialx,pp079,lin)
+           ssterm(:,den_g) = ssterm(:,den_g) -       thimp     *dt*tempx
+           ddterm(:,den_g) = ddterm(:,den_g) + (1. - thimp*bdf)*dt*tempx
+        end if
+              
+        if(linear.eq.0) then
+           tempx = kappat_pn(trialx,lin,n179)
+           ssterm(:,pp_g) = ssterm(:,pp_g) -        thimp     *dt*tempx
+           ddterm(:,pp_g) = ddterm(:,pp_g) + (0.5 - thimp*bdf)*dt*tempx
+           
+           tempx = kappat_pn(trialx,pp179,lin)
+           ssterm(:,den_g) = ssterm(:,den_g) -        thimp     *dt*tempx
+           ddterm(:,den_g) = ddterm(:,den_g) + (0.5 - thimp*bdf)*dt*tempx
+        end if
+     end if ! on idens
   end if
+        
 
 
   ! Equipartition

@@ -3,6 +3,164 @@ module parallel_heat_flux
 
 contains
 
+  function kappat_p(e,f)
+    use basic
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, dimension(dofs_per_element) :: kappat_p
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+    vectype, dimension(dofs_per_element) :: temp
+
+    if(gam.le.1) then 
+       kappat_p = 0.
+       return
+    end if
+
+    if(surface_int) then
+       temp = 0.
+    else
+       temp = -intx4(e(:,:,OP_DR),f(:,OP_DR),ni79(:,OP_1),kap79(:,OP_1)) &
+            -  intx4(e(:,:,OP_DZ),f(:,OP_DZ),ni79(:,OP_1),kap79(:,OP_1))
+
+#if defined(USE3D)
+       temp79a = kap79(:,OP_1)
+       if(iupstream.eq.1) then    
+          temp79a = temp79a + abs(vzt79(:,OP_1))*magus
+       endif
+       temp = temp -                       &
+            intx5(e(:,:,OP_DP),ri2_79,f(:,OP_DP),ni79(:,OP_1),temp79a)
+       if(iupstream.eq.2) then
+          temp79a = abs(vzt79(:,OP_1))*magus
+          temp = temp -                    &
+               intx5(e(:,:,OP_DPP),ri4_79,f(:,OP_DPP),ni79(:,OP_1),temp79a)
+       endif
+#endif
+    end if
+    
+    kappat_p = (gam - 1.) * temp
+  end function kappat_p
+
+
+  function kappat_pn(e,f,g)
+    use basic
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, dimension(dofs_per_element) :: kappat_pn
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f, g
+    vectype, dimension(dofs_per_element) :: temp
+
+    if(gam.le.1) then 
+       kappat_pn = 0.
+       return
+    end if
+    
+    temp79b = ni79(:,OP_1)**2*f(:,OP_1)
+
+    if(surface_int) then
+       temp = 0.
+    else
+       temp = intx4(e(:,:,OP_DR),g(:,OP_DR),temp79b,kap79(:,OP_1)) &
+            + intx4(e(:,:,OP_DZ),g(:,OP_DZ),temp79b,kap79(:,OP_1))
+
+#if defined(USE3D)
+       temp79a = kap79(:,OP_1)
+       if(iupstream.eq.1) then    
+          temp79a = temp79a + abs(vzt79(:,OP_1))*magus
+       endif
+       temp = temp + &
+            intx5(e(:,:,OP_DP),ri2_79,g(:,OP_DP),temp79b,temp79a)
+       if(iupstream.eq.2) then
+          temp79a = abs(vzt79(:,OP_1))*magus
+          temp = temp + &
+               intx5(e(:,:,OP_DPP),ri4_79,g(:,OP_DPP),temp79b,temp79a)
+       endif
+#endif
+    end if
+    
+    kappat_pn = (gam - 1.) * temp
+  end function kappat_pn
+
+  function kappat_lin_p(e,f)
+    use basic
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, dimension(dofs_per_element) :: kappat_lin_p
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+    vectype, dimension(dofs_per_element) :: temp
+
+    if(gam.le.1) then 
+       kappat_lin_p = 0.
+       return
+    end if
+
+    if(surface_int) then
+       temp = 0.
+    else
+       temp79a = ni79(:,OP_1)**2
+
+       temp = -intx4(e(:,:,OP_DR),f(:,OP_DR),ni79(:,OP_1),kap79(:,OP_1)) &
+            -  intx4(e(:,:,OP_DZ),f(:,OP_DZ),ni79(:,OP_1),kap79(:,OP_1)) &
+            +  intx5(e(:,:,OP_DR),f(:,OP_1),n079(:,OP_DR),temp79a,kap79(:,OP_1)) &
+            +  intx5(e(:,:,OP_DZ),f(:,OP_1),n079(:,OP_DZ),temp79a,kap79(:,OP_1))
+
+#if defined(USECOMPLEX)
+       temp = temp + &
+            intx5(e(:,:,OP_1),ri2_79,f(:,OP_DPP),ni79(:,OP_1),kap79(:,OP_1))
+#endif
+    end if
+    
+    kappat_lin_p = (gam - 1.) * temp
+  end function kappat_lin_p
+
+  function kappat_lin_pn(e,f,g)
+    use basic
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, dimension(dofs_per_element) :: kappat_lin_pn
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+    vectype, dimension(dofs_per_element) :: temp
+
+    if(gam.le.1) then 
+       kappat_lin_pn = 0.
+       return
+    end if
+
+    temp79a = ni79(:,OP_1)**2*kap79(:,OP_1)
+    temp79b = temp79a*ni79(:,OP_1)
+
+    if(surface_int) then
+       temp = 0.
+    else
+       temp =  intx4(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_1),temp79a) &
+            +  intx4(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_1),temp79a) &
+            +  intx4(e(:,:,OP_DR),f(:,OP_1),g(:,OP_DR),temp79a) &
+            +  intx4(e(:,:,OP_DZ),f(:,OP_1),g(:,OP_DZ),temp79a) &
+            -  2.*intx5(e(:,:,OP_DR),f(:,OP_1),n079(:,OP_DR),g(:,OP_1),temp79b) &
+            -  2.*intx5(e(:,:,OP_DZ),f(:,OP_1),n079(:,OP_DZ),g(:,OP_1),temp79b)
+
+#if defined(USECOMPLEX)
+       temp = temp - &
+            intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_DPP),temp79a)
+#endif
+    end if
+    
+    kappat_lin_pn = (gam - 1.) * temp
+  end function kappat_lin_pn
+
+
+
   function kappar_p(e,f)
     use basic
     use m3dc1_nint
@@ -33,7 +191,7 @@ contains
          - (bftx79(:,OP_DZP)*f(:,OP_DZ) + bftx79(:,OP_DRP)*f(:,OP_DR))
 #endif
 
-    if(surface_int.eq.1) then
+    if(surface_int) then
        temp = 0.
     else
        temp = intx5(e(:,:,OP_DZ),ri_79,temp79a,temp79b,pstx79(:,OP_DR)) &
@@ -77,7 +235,7 @@ contains
          - (bftx79(:,OP_DZP)*g(:,OP_DZ) + bftx79(:,OP_DRP)*g(:,OP_DR))
 #endif
 
-    if(surface_int.eq.1) then
+    if(surface_int) then
        temp = 0.
     else
        temp = intx5(e(:,:,OP_DZ),ri_79,temp79a,temp79b,pstx79(:,OP_DR)) &
@@ -116,7 +274,7 @@ contains
     ! [p, psi]
     temp79b = h(:,OP_DZ)*g(:,OP_DR) - h(:,OP_DR)*g(:,OP_DZ)
 
-    if(surface_int.eq.1) then
+    if(surface_int) then
        temp = 0.
     else
        temp = intx4(e(:,:,OP_DZ),temp79a,temp79b,f(:,OP_DR)) &
@@ -148,7 +306,7 @@ contains
     ! [n, psi]
     temp79b = i(:,OP_DZ)*g(:,OP_DR) - i(:,OP_DR)*g(:,OP_DZ)
 
-    if(surface_int.eq.1) then
+    if(surface_int) then
        temp = 0.
     else
        temp = intx4(e(:,:,OP_DZ),temp79a,temp79b,f(:,OP_DR)) &
