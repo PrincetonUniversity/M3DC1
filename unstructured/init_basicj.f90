@@ -66,6 +66,28 @@ contains
     end where
   end subroutine basicj_vz
 
+  subroutine basicj_pressure(x, z, p)
+    use basic
+
+    implicit none
+
+    real, intent(in), dimension(MAX_PTS) :: x, z
+    vectype, intent(out), dimension(MAX_PTS) :: p
+    
+    real, dimension(MAX_PTS) :: r2
+
+    r2 = (x - xmag)**2 + (z - zmag)**2
+
+    select case(itaylor)
+    case(29)
+       p = p0
+
+    case(31)
+       p = p0*(1.+(r2/ln**2)**basicj_nu)**(-(2./3.)*(1.+1./basicj_nu))
+    end select
+  end subroutine basicj_pressure
+
+
 
   subroutine basicj_init()
     use basic
@@ -82,10 +104,10 @@ contains
 
     implicit none
 
-    type(field_type) :: jphi_vec, f_vec, vz_vec
+    type(field_type) :: jphi_vec, f_vec, vz_vec, p_vec
     integer :: itri, numelms, ibound, ierr
     integer, dimension(dofs_per_element) :: imask
-    vectype, dimension(dofs_per_element) :: dofs, dofs_vz
+    vectype, dimension(dofs_per_element) :: dofs, dofs_vz, dofs_p
     vectype, dimension(dofs_per_element,dofs_per_element) :: temp
     type(matrix_type) :: dr_matrix, lp_matrix
 
@@ -106,8 +128,12 @@ contains
     end if
 
     call create_field(jphi_vec)
-
     jphi_vec = 0.
+
+    if(ibasicj_solvep.eq.0) then
+       call create_field(p_vec)
+       p_vec = 0.
+    end if
 
     ! Create a matrix for solving -del*(A)/r = B
     call set_matrix_index(lp_matrix, lp_mat_index)
@@ -132,12 +158,22 @@ contains
        
        dofs = intx2(mu79(:,:,OP_1),temp79a)
 
+       if(ibasicj_solvep.eq.0) then
+          ! Don't solve for pressure, use analytic profile
+          call basicj_pressure(x_79, z_79, temp79b)
+          dofs_p = intx2(mu79(:,:,OP_1),temp79b)
+       end if
+
        call apply_boundary_mask(itri, ibound, temp, imask)
        call apply_boundary_mask_vec(itri, ibound, dofs, imask)
        
 !$OMP CRITICAL
        call insert_block(lp_matrix, itri, 1, 1, temp, MAT_ADD)
-       call vector_insert_block(jphi_vec%vec, itri, 1, dofs, MAT_ADD)
+       call vector_insert_block(jphi_vec%vec, itri, 1, dofs, VEC_ADD)
+
+       if(ibasicj_solvep.eq.0) then
+          call vector_insert_block(p_vec%vec, itri, 1, dofs_p, VEC_ADD)
+       end if
 !$OMP END CRITICAL
     enddo
 !$OMP END PARALLEL DO
@@ -152,7 +188,14 @@ contains
 
     call destroy_mat(lp_matrix)
 
-    ! Create a matrix for solving (dA/dpsi)/(R) = Jphi (ibasicj_solvep == 0)
+    if(ibasicj_solvep.eq.0) then
+       ! Evaluate pressure
+       call newvar_solve(p_vec%vec, mass_mat_lhs)
+       p_field(0) = p_vec
+       call destroy_field(p_vec)
+    end if
+
+    ! Create a matrix for solving (dA/dpsi)/(R) = Jphi - R p' (ibasicj_solvep == 0)
     ! or R*(dA/dpsi) = Jphi (ibasicj_solvep == 1)
     call set_matrix_index(dr_matrix, dr_mat_index)
     call create_mat(dr_matrix, 1, 1, icomplex, 1)
@@ -166,22 +209,32 @@ contains
        call define_fields(itri,0,1,0)
        
        call eval_ops(itri, psi_field(0), ps079, rfac)
+
+       call get_boundary_mask(itri, ibound, imask, domain_boundary)
+
        
        call basicj_current(x_79, z_79, temp79a)
        temp79b = ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2
-       
-       call get_boundary_mask(itri, ibound, imask, domain_boundary)
-       
+
+       ! contribution from current density
+       dofs = intx3(mu79(:,:,OP_1),temp79a,temp79b)       
+
        if(ibasicj_solvep.eq.1) then
+          ! Solving for pressure; toroidal field is uniform
           temp = intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79,ps079(:,OP_DR)) &
                + intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DZ),r_79,ps079(:,OP_DZ))
        else
+          ! Solving for toroidal field
           temp = intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DR),ri_79,ps079(:,OP_DR)) &
                + intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DZ),ri_79,ps079(:,OP_DZ))
+
+          ! contribution from pressure
+          call eval_ops(itri, p_field(0), p079, rfac)
+          dofs = dofs &
+               - intx4(mu79(:,:,OP_1),r_79,ps079(:,OP_DR),p079(:,OP_DR)) &
+               - intx4(mu79(:,:,OP_1),r_79,ps079(:,OP_DZ),p079(:,OP_DZ))
        end if
-       
-       dofs = intx3(mu79(:,:,OP_1),temp79a,temp79b)
-       
+
        call apply_boundary_mask(itri, ibound, temp, imask)
        call apply_boundary_mask_vec(itri, ibound, dofs, imask)
           
@@ -270,7 +323,7 @@ contains
 
     if(bzero.lt.0.) call mult(bz_field(0),-1.)
 
-    if(ibasicj_solvep.eq.0) p_field(0) = p0
+!    if(ibasicj_solvep.eq.0) p_field(0) = p0
     pe_field(0) = p_field(0)
     call mult(pe_field(0),pefac)
 
