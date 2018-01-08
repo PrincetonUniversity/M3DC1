@@ -123,7 +123,12 @@ contains
        case(29)
           basicj_nu = basicj_qa/basicj_q0 - 1.
        case(31)
-          basicj_nu = log(2.)/log(basicj_qa/basicj_q0)
+          if(xlim.eq.0) then
+             basicj_nu = log(2.)/log(basicj_qa/basicj_q0)
+          else
+             if(myrank.eq.0) print *, 'Error: basicj_qa not available when xlim != 0'
+             call safestop(54)
+          end if
        end select
     end if
 
@@ -329,8 +334,10 @@ contains
 
     den_field(0) = den0
     
-    xlim = xmag + ln
-    zlim = zmag
+    if(xlim.eq.0) then
+       xlim = xmag + ln
+       zlim = zmag
+    end if
 
     call lcfs(psi_field(0))
 
