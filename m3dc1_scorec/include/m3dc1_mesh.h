@@ -18,17 +18,15 @@
 #include "m3dc1_scorec.h"
 #include "m3dc1_field.h"
 
-void delete_mesh_array();
-void create_mesh_array(apf::Mesh2* m, bool update=false);
-
 void compute_globalid(apf::Mesh2* m, int d);
 
 bool is_ent_original(apf::Mesh2* mesh, apf::MeshEntity* e);
 int get_ent_ownpartid(apf::Mesh2* mesh, apf::MeshEntity* ent);
 apf::MeshEntity* get_ent_owncopy(apf::Mesh2* mesh, apf::MeshEntity* ent);
+int get_ent_localid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_globalid (apf::Mesh2* mesh, apf::MeshEntity* ent);
-
 // plane related stuffs should be put into model -- Fan
+
 class m3dc1_mesh
 {
 public:
@@ -57,6 +55,9 @@ public:
 
   // field container 
   std::map<FieldID, m3dc1_field*>* field_container;
+
+  // tag for local entity id
+  apf::MeshTag* local_entid_tag;
 
   // tag for owned partid attached to the part bdry entities
   apf::MeshTag* own_partid_tag; 
