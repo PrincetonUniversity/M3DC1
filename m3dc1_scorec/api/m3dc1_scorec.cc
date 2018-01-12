@@ -32,10 +32,8 @@
 #include <alloca.h>
 
 double begin_mem, begin_time;
-
 // helper routines
 void group_complex_dof (apf::Field* field, int option);
-
 void synchronize_field(apf::Field* f);
 
 bool m3dc1_double_isequal(double A, double B)
@@ -72,7 +70,7 @@ int m3dc1_scorec_finalize()
 //*******************************************************
 { 
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
-  m3dc1_mesh::instance()->clean(); // delete tag, field and internal data
+  m3dc1_mesh::instance()->clean(); // delete tag, field and internal data 
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
 
   if (!pumi_rank()) std::cout<<"\n* [M3D-C1] time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
@@ -208,7 +206,7 @@ int m3dc1_model_load(char* /* in */ model_file)
   m3dc1_model::instance()->caculateBoundingBox();
   // save the num of geo ent on the oringal plane
   m3dc1_model::instance()->numEntOrig[0]=m3dc1_model::instance()->model->n[0];
-  //if(m3dc1_model::instance()->model->n[1]==1) assert(m3dc1_model::instance()->numEntOrig[0]==0); // for a smooth loop, there is no geo vtx 
+  //if (m3dc1_model::instance()->model->n[1]==1) assert(m3dc1_model::instance()->numEntOrig[0]==0); // for a smooth loop, there is no geo vtx 
   m3dc1_model::instance()->numEntOrig[1]=m3dc1_model::instance()->model->n[1];
   m3dc1_model::instance()->numEntOrig[2]=m3dc1_model::instance()->model->n[2];
   return M3DC1_SUCCESS;
@@ -355,23 +353,23 @@ int m3dc1_mesh_load(char* mesh_file)
     while(mesh->countFields())
     {
       apf::Field* f = mesh->getField(0);
-      if(!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
       destroyField(f);
     }
 
     while(mesh->countNumberings())
     {
       apf::Numbering* n = mesh->getNumbering(0);
-      if(!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
       destroyNumbering(n);
     }
 
     apf::DynamicArray<apf::MeshTag*> tags;
     mesh->getTags(tags);
-    for(int i=0; i<tags.getSize(); i++)
+    for (int i=0; i<tags.getSize(); i++)
     {
       if (mesh->findTag("norm_curv")==tags[i]) continue;
-      for(int idim=0; idim<4; idim++)
+      for (int idim=0; idim<4; idim++)
         apf::removeTagFromDimension(mesh, tags[i], idim);
       mesh->destroyTag(tags[i]);
     }
@@ -383,10 +381,8 @@ int m3dc1_mesh_load(char* mesh_file)
   
   if (m3dc1_model::instance()->num_plane==1) // 2D problem
   {
-    create_mesh_array(m3dc1_mesh::instance()->mesh);
     compute_globalid(m3dc1_mesh::instance()->mesh, 0);
     compute_globalid(m3dc1_mesh::instance()->mesh, 2);
-
   }
 
   return M3DC1_SUCCESS;
@@ -425,7 +421,6 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   m3dc1_mesh::instance()->build3d(*num_field, field_id, num_dofs_per_value);
 
   // update global ID
-  create_mesh_array(m3dc1_mesh::instance()->mesh);
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, 3);
 
@@ -456,7 +451,6 @@ int m3dc1_ghost_create (int* num_layer )
       ++it;
     }
   }
-  create_mesh_array(m3dc1_mesh::instance()->mesh, true /* delete existing array */);
   if (!pumi_rank()) std::cout<<"[M3D-C1 INFO] "<<* num_layer<<" ghost layer(s) created\n";
 
   return M3DC1_SUCCESS;
@@ -467,7 +461,7 @@ int m3dc1_ghost_delete()
 //*******************************************************
 {
   pumi_ghost_delete (m3dc1_mesh::instance()->mesh);
-  create_mesh_array(m3dc1_mesh::instance()->mesh, true /* delete existing array */);
+
   if (!pumi_rank()) std::cout<<"[M3D-C1 INFO] ghost layer(s) deleted\n";
 
   return M3DC1_SUCCESS;
@@ -526,7 +520,7 @@ int m3dc1_mesh_search(int* initial_simplex,
   int count = 0, max_count = m->count(simplex_dim);
   double tol = 1e-15;
   
-  simplex = m3dc1_mesh::instance()->ments[simplex_dim][*initial_simplex];
+  simplex = apf::getMdsEntity(m, simplex_dim, *initial_simplex);
   while (not located) 
   {
     int simplex_index = apf::getMdsIndex(m, simplex);
@@ -784,7 +778,7 @@ void m3dc1_field_verify()
 int m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
 //*******************************************************
 {
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
   *global_ent_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
   return M3DC1_SUCCESS;
@@ -795,13 +789,13 @@ int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
             int* /* out */ geom_class_dim, int* /* out */ geom_class_id)
 //*******************************************************
 { 
-  apf::MeshEntity* ent = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(ent);
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(ent));
   *geom_class_dim = gmi_dim(m3dc1_model::instance()->model,gent);
   *geom_class_id = gmi_tag(m3dc1_model::instance()->model,gent);
   // if 3D mesh, need to return the classification on the original plane
-  if( m3dc1_mesh::instance()->mesh->getDimension() ==3 )
+  if ( m3dc1_mesh::instance()->mesh->getDimension() ==3 )
   {
     int numEntOrig[3];
     int numPlane = m3dc1_model::instance()->num_plane;
@@ -824,7 +818,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
                       int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
 //*******************************************************
 {
-  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   if (!e || *adj_dim==*ent_dim)
     return M3DC1_FAILURE;
 
@@ -863,7 +857,7 @@ int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id,
                          int* /* in */ adj_dim, int* /* out */ num_adj_ent)
 //*******************************************************
 {
-  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   if (!e || *adj_dim==*ent_dim)
     return M3DC1_FAILURE;
 
@@ -886,7 +880,7 @@ int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id,
                             int* /* out */ owning_partid)
 //*******************************************************
 {
-  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
   *owning_partid = get_ent_ownpartid(m3dc1_mesh::instance()->mesh, e);
   return M3DC1_SUCCESS;
@@ -900,7 +894,7 @@ int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id,
   *ent_id -= 1; //index change from Fortran to C
  
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e = getMdsEntity(m, *ent_dim, *ent_id);
   assert(e);
 
   if (is_ent_original(m,e)) 
@@ -912,7 +906,7 @@ int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id,
 
 int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 {
-  pMeshEnt e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  pMeshEnt e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   if (pumi_ment_isGhost(e))
     *isghost=1;
   else
@@ -926,7 +920,7 @@ int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
 //*******************************************************
 {
-  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[0][*node_id];
+  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
   assert(e);
   apf::Vector3 xyz;
   m3dc1_mesh::instance()->mesh->getPoint(e, 0, xyz);
@@ -939,7 +933,7 @@ int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
 int m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
 //*******************************************************
 {
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][*ent_id];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *ent_id);
   assert(e);
   *global_ent_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
   return M3DC1_SUCCESS;
@@ -961,13 +955,13 @@ void get_gv_edges(gmi_ent* gvertex, std::vector<gmi_ent*>& gedges)
 int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
 //*******************************************************
 {
-  apf::MeshEntity* vt = m3dc1_mesh::instance()->ments[0][*node_id];
+  apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
   assert(vt);
   xyzt[2]=0.0;
   //cout<<"nodnormalvec_ "<<*iNode<<" "<<vt<<endl;
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(vt));
   int gType = gmi_dim(m3dc1_model::instance()->model,gent);
-  if(gType !=  1 && gType !=  0)
+  if (gType !=  1 && gType !=  0)
   {
     xyzt[0] = xyzt[1] = 0.0;
     return M3DC1_SUCCESS;
@@ -992,7 +986,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
       apf::Vector3 vcd_t;
       double vcd[3];
       m3dc1_mesh::instance()->mesh->getPoint(vt, 0, vcd_t);
-      for(int i=0; i<3; i++) 
+      for (int i=0; i<3; i++) 
         vcd[i]=vcd_t[i];
       std::vector<gmi_ent*> gEdges;
       get_gv_edges(gent, gEdges);
@@ -1002,17 +996,17 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
       if (gEdges.size()<2) 
         std::cout<<"["<<PCU_Comm_Self()<<"] "<<__func__<<" ERROR: #adjEdge of gVertex="<<gEdges.size()<<" (it should be minimum 2) \n";
       assert(gEdges.size()>=2);
-      for(int i=0;i<gEdges.size();i++)
+      for (int i=0;i<gEdges.size();i++)
       {
         gmi_ent* pe = gEdges.at(i);
         double cd[3]={0,0,0};
         double paraRange[2];
         gmi_range(m3dc1_model::instance()->model, pe, 0, paraRange);
         M3DC1::Expression** pn=(M3DC1::Expression**) gmi_analytic_data(m3dc1_model::instance()->model,pe);
-        if(!pn) continue;
+        if (!pn) continue;
         numEdgePlane++;
         M3DC1::evalCoord(paraRange[0],cd, pn);
-        if(checkSamePoint2D(vcd,cd))
+        if (checkSamePoint2D(vcd,cd))
         {
           M3DC1::evalNormalVector(pn[0],pn[1], paraRange[0], normalvec);
         }
@@ -1049,7 +1043,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
 int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
 //*******************************************************
 {
-  apf::MeshEntity* vt = m3dc1_mesh::instance()->ments[0][*node_id];
+  apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
   assert(vt);
 
   apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
@@ -1064,28 +1058,28 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
   *curv=0.0;
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(vt));
   int gType = gmi_dim(m3dc1_model::instance()->model,gent);
-  if(gType==0)
+  if (gType==0)
   {
     apf::Vector3 vcd_t;
     double vcd[3];
     m3dc1_mesh::instance()->mesh->getPoint(vt, 0, vcd_t);
-    for(int i=0; i<3; i++)
+    for (int i=0; i<3; i++)
       vcd[i]=vcd_t[i];
     std::vector<gmi_ent*> gEdges;
     get_gv_edges(gent, gEdges);
     int numEdgesPlane=0;
     double curv_tmp;
-    for(int i=0;i<gEdges.size();i++)
+    for (int i=0;i<gEdges.size();i++)
     {
       gmi_ent* pe = gEdges.at(i);
       double cd[3]={0,0,0};
       double paraRange[2];
       gmi_range(m3dc1_model::instance()->model, pe, 0, paraRange);
       M3DC1::Expression** pn=(M3DC1::Expression**) gmi_analytic_data(m3dc1_model::instance()->model,pe);
-      if(!pn) continue;
+      if (!pn) continue;
       numEdgesPlane++;
       evalCoord(paraRange[0], cd, pn);
-      if(checkSamePoint2D(vcd,cd))
+      if (checkSamePoint2D(vcd,cd))
       {
         evalCurvature(pn[0],pn[1], paraRange[0], &curv_tmp); 
       }
@@ -1098,7 +1092,7 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
     assert(numEdgesPlane==2);
     *curv/=numEdgesPlane;
   }
-  else if(gType==1)
+  else if (gType==1)
   {
       apf::Vector3 param(0,0,0);
       m3dc1_mesh::instance()->mesh->getParam(vt,param);
@@ -1112,7 +1106,7 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
 int m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry)
 //*******************************************************
 {
-  apf::MeshEntity* vt = m3dc1_mesh::instance()->ments[0][*node_id];
+  apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
   assert(vt);
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(vt));
   int gType = gmi_dim(m3dc1_model::instance()->model,gent);
@@ -1153,18 +1147,18 @@ int m3dc1_node_write (const char* filename, int* start_index)
 int m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac)
 //*******************************************************
 {
-  apf::MeshEntity* ent = m3dc1_mesh::instance()->ments[3][*elm];
+  apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, 3, *elm);
   apf::Downward downward;
   int num_adj_ent = m3dc1_mesh::instance()->mesh->getDownward(ent, 2, downward);
   assert(num_adj_ent==5);
   int triFace[2];
   int counter=0;
-  for(int i=0; i<num_adj_ent; i++)
+  for (int i=0; i<num_adj_ent; i++)
   {
     int num_adj_ent;
     apf::Downward downward2;
     int num_edge= m3dc1_mesh::instance()->mesh->getDownward(downward[i], 1, downward2);
-    if(num_edge==3) triFace[counter++]= getMdsIndex(m3dc1_mesh::instance()->mesh,downward[i]);    
+    if (num_edge==3) triFace[counter++]= getMdsIndex(m3dc1_mesh::instance()->mesh,downward[i]);    
   }
   assert(counter==2);
   *fac = std::min(triFace[0],triFace[1]);
@@ -1437,7 +1431,7 @@ int m3dc1_field_sumsq (FieldID* /* in */ field_id, double* /* out */ sum)
   {
     if (!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;
     getComponents(f, e, 0, dof_data);
-    for(int i=0; i<num_dof; ++i)
+    for (int i=0; i<num_dof; ++i)
       *sum+=dof_data[i]*dof_data[i];
   }
   m3dc1_mesh::instance()->mesh->end(it);
@@ -1582,15 +1576,15 @@ int m3dc1_field_add(FieldID* /*inout*/ field_id1, FieldID* /*in*/ field_id2)
   assert(mf1->get_value_type()==mf2->get_value_type());
   std::vector<double> dofs1(dofPerEnt1*(1+mf1->get_value_type())), dofs2(dofPerEnt2*(1+mf2->get_value_type()));
   int dofMin = std::min(dofPerEnt1,dofPerEnt2);
-  int num_vtx=0;
+  int num_vtx=m3dc1_mesh::instance()->mesh->count(0);
   int vertex_type=0;
-  m3dc1_mesh_getnument (&vertex_type, &num_vtx);
+  
   int dofPerEntDummy[2];
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
     m3dc1_ent_getdofdata (&vertex_type, &inode, field_id1, dofPerEntDummy, &dofs1[0]);
     m3dc1_ent_getdofdata (&vertex_type, &inode, field_id2, dofPerEntDummy+1, &dofs2[0]);
-    for(int i=0; i<dofMin*(1+mf1->get_value_type()); i++)
+    for (int i=0; i<dofMin*(1+mf1->get_value_type()); i++)
       dofs1.at(i)+=dofs2.at(i);
     m3dc1_ent_setdofdata (&vertex_type, &inode, field_id1, &dofPerEnt1, &dofs1[0]);
   } 
@@ -1610,25 +1604,25 @@ int m3dc1_field_mult(FieldID* /*inout*/ field_id, double* fac, int * scalar_type
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
 #endif
-  int num_vtx=0;
+  int num_vtx=m3dc1_mesh::instance()->mesh->count(0);
   int vertex_type=0;
-  m3dc1_mesh_getnument (&vertex_type, &num_vtx);
+
   double dofs[FIXSIZEBUFF], dofsNew[FIXSIZEBUFF];
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   int dofPerEnt = mf->get_num_value()*mf->get_dof_per_value();
   int value_type = mf->get_value_type();
   assert(dofPerEnt<=sizeof(dofs)/sizeof(double)*(1+value_type));
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
     m3dc1_ent_getdofdata (&vertex_type, &inode, field_id, &dofPerEnt, dofs);
-    if(*scalar_type==0)
+    if (*scalar_type==0)
     {
-      for(int i=0; i<dofPerEnt*(1+value_type); i++)
+      for (int i=0; i<dofPerEnt*(1+value_type); i++)
 dofsNew[i]=*fac*dofs[i];
     }
     else
     {
-      for(int i=0; i<dofPerEnt; i++)
+      for (int i=0; i<dofPerEnt; i++)
       {
 dofsNew[2*i]=fac[0]*dofs[2*i]-fac[1]*dofs[2*i+1];
 dofsNew[2*i+1]=fac[0]*dofs[2*i+1]+fac[1]*dofs[2*i];
@@ -1651,14 +1645,14 @@ int m3dc1_field_assign(FieldID* /*inout*/ field_id, double* fac, int * scalar_ty
   int dofPerEnt = mf->get_num_value()*mf->get_dof_per_value();
   if (dofPerEnt==0) return M3DC1_FAILURE;
 
-  int num_vtx=0;
+  int num_vtx=m3dc1_mesh::instance()->mesh->count(0);
   int vertex_type=0;
-  m3dc1_mesh_getnument (&vertex_type, &num_vtx);
+
   std::vector<double> dofs(dofPerEnt*(1+mf->get_value_type()), fac[0]);
-  if(*scalar_type)
-    for(int i=0; i<dofPerEnt; i++)
+  if (*scalar_type)
+    for (int i=0; i<dofPerEnt; i++)
       dofs.at(2*i+1)=fac[1];
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
     m3dc1_ent_setdofdata (&vertex_type, &inode, field_id, &dofPerEnt, &dofs[0]);
   }
@@ -1688,15 +1682,15 @@ int m3dc1_field_copy(FieldID* /* out */ field_id1, FieldID* /* in */ field_id2)
   assert(mf1->get_value_type()==mf2->get_value_type());
   std::vector<double> dofs1(dofPerEnt1*(1+mf1->get_value_type())), dofs2(dofPerEnt2*(1+mf2->get_value_type()));
   int dofMin = std::min(dofPerEnt1,dofPerEnt2);
-  int num_vtx=0;
+  int num_vtx=m3dc1_mesh::instance()->mesh->count(0);
   int vertex_type=0;
-  m3dc1_mesh_getnument (&vertex_type, &num_vtx);
+
   int dofPerEntDummy[2];
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
     m3dc1_ent_getdofdata (&vertex_type, &inode, field_id1, dofPerEntDummy, &dofs1[0]);
     m3dc1_ent_getdofdata (&vertex_type, &inode, field_id2, dofPerEntDummy+1, &dofs2[0]);
-    for(int i=0; i<dofMin*(1+mf1->get_value_type()); i++)
+    for (int i=0; i<dofMin*(1+mf1->get_value_type()); i++)
       dofs1.at(i)=dofs2.at(i);
     m3dc1_ent_setdofdata (&vertex_type, &inode, field_id1, &dofPerEnt1, &dofs1[0]);
   }
@@ -1759,31 +1753,31 @@ int m3dc1_field_insert(FieldID* /* in */ field_id, int /* in */ * local_dof,
 #ifdef DEBUG
   m3dc1_field_getnumlocaldof (field_id, &num_local_dof);
   assert(*local_dof<num_local_dof);
-  if(!value_type) assert(!(*type)); // can not insert complex value to real vector
-  for(int i=0; i<*size*(1+(*type)); i++)
+  if (!value_type) assert(!(*type)); // can not insert complex value to real vector
+  for (int i=0; i<*size*(1+(*type)); i++)
   {
     assert(values[i]==values[i]);
   }
 #endif
   std::vector<double> values_convert(*size*(1+value_type),0);
-  if(!(*type)&&value_type) // real into complex
+  if (!(*type)&&value_type) // real into complex
   {
-    for(int i=0; i<*size; i++)
+    for (int i=0; i<*size; i++)
       values_convert.at(2*i)=values[i];
   }
   else
   {
-    for(int i=0; i<*size*(1+value_type); i++)
+    for (int i=0; i<*size*(1+value_type); i++)
       values_convert.at(i)=values[i];
   }
   double * dataptr;
   int ibegin=*local_dof*(1+value_type);
   m3dc1_field_getdataptr(field_id, &dataptr);
-  if(*op==0) // set value
-   for(int i=0; i<*size*(1+value_type); i++)
+  if (*op==0) // set value
+   for (int i=0; i<*size*(1+value_type); i++)
      dataptr[ibegin+i]=values_convert.at(i);
   else
-    for(int i=0; i<*size*(1+value_type); i++)
+    for (int i=0; i<*size*(1+value_type); i++)
       dataptr[ibegin+i]+=values_convert[i];
   return M3DC1_SUCCESS;
 }
@@ -1799,16 +1793,16 @@ int m3dc1_field_isnan(FieldID* /* in */ field_id, int * isnan)
 //*******************************************************
 {
   *isnan=0;
-  int num_vtx=0;
+  int num_vtx=m3dc1_mesh::instance()->mesh->count(0);
   int vertex_type=0;
-  m3dc1_mesh_getnument (&vertex_type, &num_vtx);
+
   int dofPerEnt;
   double dofs[FIXSIZEBUFF];
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
     m3dc1_ent_getdofdata (&vertex_type, &inode, field_id, &dofPerEnt, dofs);
-    for(int i=0; i<dofPerEnt; i++)
-      if(value_is_nan(dofs[i])) 
+    for (int i=0; i<dofPerEnt; i++)
+      if (value_is_nan(dofs[i])) 
         *isnan=1;
   }
   return M3DC1_SUCCESS;
@@ -2069,7 +2063,7 @@ int m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID
   if (*ent_dim!=0)
     return M3DC1_FAILURE;
 
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
 
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
@@ -2091,7 +2085,7 @@ int m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, Field
   if (*ent_dim!=0)
     return M3DC1_FAILURE;
 
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
 
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
@@ -2146,7 +2140,7 @@ int m3dc1_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
 //*******************************************************
 {
   assert(*ent_dim==0);
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
 
   m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
@@ -2154,7 +2148,7 @@ int m3dc1_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
 
 #ifdef DEBUG
   assert(countComponents(f)==*num_dof*(1+mf->get_value_type()));
-  for(int i=0; i<*num_dof*(1+mf->get_value_type()); i++)
+  for (int i=0; i<*num_dof*(1+mf->get_value_type()); i++)
     assert(!value_is_nan(dof_data[i]));
 #endif
   setComponents(f, e, 0, dof_data);
@@ -2167,7 +2161,7 @@ int m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
 //*******************************************************
 {
   assert(*ent_dim==0);
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[*ent_dim][*ent_id];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
 
   m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
@@ -2176,14 +2170,14 @@ int m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
   getComponents(f, e, 0, dof_data);
   *num_dof = (mf->get_value_type())?countComponents(f)/2:countComponents(f);
 #ifdef DEBUG
-  for(int i=0; i<*num_dof*(1+mf->get_value_type()); i++)
+  for (int i=0; i<*num_dof*(1+mf->get_value_type()); i++)
     assert(!value_is_nan(dof_data[i]));
   int start_dof_id,end_dof_id_plus_one;
   m3dc1_ent_getlocaldofid(ent_dim, ent_id,field_id, &start_dof_id, &end_dof_id_plus_one);
   double* data;
   m3dc1_field_getdataptr(field_id, &data);
   int start=start_dof_id*(1+mf->get_value_type());
-  for( int i=0; i< *num_dof; i++)
+  for ( int i=0; i< *num_dof; i++)
     assert(data[start++]==dof_data[i]);
 #endif
   return M3DC1_SUCCESS;
@@ -2322,7 +2316,7 @@ int m3dc1_matrix_insert(int* matrix_id, int* row,
   m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
 
   int ent_id = *row/total_num_dof;
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][ent_id];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, ent_id);
   assert(e);
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
 #endif
@@ -2363,7 +2357,7 @@ int m3dc1_matrix_add (int* matrix_id, int* row, int* col,
   m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
 
   int ent_id = *row/total_num_dof;
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][ent_id];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, ent_id);
   assert(e);
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
 #endif
@@ -2404,7 +2398,7 @@ int m3dc1_matrix_setbc(int* matrix_id, int* row)
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][inode];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, inode);
   assert(e);
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
 
@@ -2447,7 +2441,7 @@ int m3dc1_matrix_setlaplacebc(int * matrix_id, int *row,
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][inode];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, inode);
   assert(e);
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
   int start_dof_id, end_dof_id_plus_one;
@@ -2458,7 +2452,7 @@ int m3dc1_matrix_setlaplacebc(int * matrix_id, int *row,
 #endif
 
   int row_g = start_global_dof_id+*row%total_num_dof;
-  for(int i=0; i<*numVals; i++)
+  for (int i=0; i<*numVals; i++)
   {
     columns_g.at(i) = start_global_dof_id+columns[i]%total_num_dof;
   }
@@ -2558,12 +2552,10 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
   dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
-  int ielm_dim = 2;
+  int ielm_dim = m3dc1_mesh::instance()->mesh->getDimension();
   int nodes_per_element=sizeof(nodes)/sizeof(int), nodes_per_element_get;
 
-  if (m3dc1_mesh::instance()->mesh->getDimension()==3) ielm_dim =3;
-
-  apf::MeshEntity* e =m3dc1_mesh::instance()->ments[ielm_dim][*ielm];
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, ielm_dim, *ielm);
   assert(e);
   if (m3dc1_mesh::instance()->mesh->isGhost(e)) return M3DC1_FAILURE;
   
@@ -2579,15 +2571,15 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
   assert(*rowIdx<numVar && *columnIdx<numVar);
   int rows[1024], columns[1024];
   assert(sizeof(rows)/sizeof(int)>=dofPerVar*nodes_per_element);
-  if(mat->get_type()==0)
+  if (mat->get_type()==0)
   {
     int localFlag=0;
     matrix_mult* mmat = dynamic_cast<matrix_mult*> (mat);
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for (int inode=0; inode<nodes_per_element; inode++)
     {
-      if(mmat->is_mat_local()) m3dc1_ent_getlocaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
+      if (mmat->is_mat_local()) m3dc1_ent_getlocaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       else m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
-      for(int i=0; i<dofPerVar; i++)
+      for (int i=0; i<dofPerVar; i++)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+(*rowIdx)*dofPerVar+i;
         columns[inode*dofPerVar+i]=start_global_dof_id+(*columnIdx)*dofPerVar+i;
@@ -2600,13 +2592,13 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
     matrix_solve* smat = dynamic_cast<matrix_solve*> (mat);
     int nodeOwner[6];
     int columns_bloc[6], rows_bloc[6];
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for (int inode=0; inode<nodes_per_element; inode++)
     {
       m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+*rowIdx;
       columns_bloc[inode]=nodes[inode]*numVar+*columnIdx;
-      for(int i=0; i<dofPerVar; i++)
+      for (int i=0; i<dofPerVar; i++)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+(*rowIdx)*dofPerVar+i;
         columns[inode*dofPerVar+i]=start_global_dof_id+(*columnIdx)*dofPerVar+i;
@@ -2614,9 +2606,9 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
     }
     int numValuesNode = dofPerVar*dofPerVar*nodes_per_element*(1+scalar_type);
     int offset=0;
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for (int inode=0; inode<nodes_per_element; inode++)
     {
-      if(nodeOwner[inode]!=PCU_Comm_Self()&&!m3dc1_solver::instance()->assembleOption)
+      if (nodeOwner[inode]!=PCU_Comm_Self()&&!m3dc1_solver::instance()->assembleOption)
         smat->add_blockvalues(1, rows_bloc+inode, nodes_per_element, columns_bloc, values+offset);
       else 
         smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*nodes_per_element, columns, values+offset);
@@ -2738,13 +2730,11 @@ int m3dc1_field_sum_plane (FieldID* /* in */ field_id)
 //*******************************************************
 {
   MPI_Comm icomm= m3dc1_model::instance()->getMPICommPlane();
-  int num_vtx,num_dof=0, vertex_type=0;
+  int num_vtx=m3dc1_mesh::instance()->mesh->count(0),num_dof=0, vertex_type=0;
   m3dc1_field_getnumlocaldof(field_id, &num_dof);
   char field_name[256];
   int num_values, value_type, total_num_dof;
   m3dc1_field_getinfo(field_id, field_name, &num_values, &value_type, &total_num_dof);
-
-  m3dc1_mesh_getnument (&vertex_type, &num_vtx);
 
   int data_size=total_num_dof*num_vtx*(1+value_type);
   assert(total_num_dof*num_vtx==num_dof);
@@ -2761,7 +2751,7 @@ int adapt_time=0;
 int adapt_by_field (int * fieldId, double* psi0, double * psil)
 {
   FILE *fp = fopen("sizefieldParam", "r");
-  if(!fp)
+  if (!fp)
   {
     std::cout<<" file sizefieldParam not found "<<std::endl;
     throw 1;
@@ -2771,7 +2761,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   field_keep.insert(*fieldId);
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 
-  for(int i=0; i<13; i++)
+  for (int i=0; i<13; i++)
     fscanf(fp, "%lf ", &param[i]);
   fclose(fp);
   apf::Field* psiField = (*(m3dc1_mesh::instance()->field_container))[*fieldId]->get_field();
@@ -2809,16 +2799,16 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     apf::Field* field = it->second->get_field();
     int complexType = it->second->get_value_type();
     assert(valueType==complexType);
-    if(complexType) group_complex_dof(field, 1);
-    if(isFrozen(field)) unfreeze(field);
-    if(!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
+    if (complexType) group_complex_dof(field, 1);
+    if (isFrozen(field)) unfreeze(field);
+    if (!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
     fields.push_back(field);
     it++;
   }
   while(mesh->countNumberings())
   {
     apf::Numbering* n = mesh->getNumbering(0);
-    if(!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
     apf::destroyNumbering(n);
   }
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
@@ -2835,7 +2825,6 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   ma::adapt(in);
   reorderMdsMesh(mesh);
 
-  create_mesh_array(m3dc1_mesh::instance()->mesh, true /* delete existing array */);
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
@@ -2845,8 +2834,8 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   {
     apf::Field* field = it->second->get_field();
     int complexType = it->second->get_value_type();
-    if(complexType) group_complex_dof(field, 0);
-    if(!isFrozen(field)) freeze(field);
+    if (complexType) group_complex_dof(field, 0);
+    if (!isFrozen(field)) freeze(field);
 #ifdef DEBUG
     int isnan;
     int fieldId= it->first; 
@@ -2865,7 +2854,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
 double absSize[2]={0,1}, relSize[2]={0.3, 1.5};
 int set_mesh_size_bound (double* abs_size, double * rel_size)
 {
-  for(int i=0; i<2; i++)
+  for (int i=0; i<2; i++)
   {
     absSize[i] =  abs_size[i];
     relSize[i] = rel_size[i];
@@ -2874,26 +2863,26 @@ int set_mesh_size_bound (double* abs_size, double * rel_size)
 
 void smooth_size_field (apf::Field* sizeField)
 {
-  int entDim=0, numVert=0;
-  m3dc1_mesh_getnument (&entDim, &numVert);
-  for(int i=0; i<numVert; i++)
+  int entDim=0, numVert=m3dc1_mesh::instance()->mesh->count(0);
+
+  for (int i=0; i<numVert; i++)
   {
     vector<apf::MeshEntity*> nodes;
-    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[0][i];
+    apf::MeshEntity* e = apf:: getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
     assert(e);
     nodes.push_back(e);
     double sizeOrg=0;
     getComponents(sizeField, e, 0, &sizeOrg);
     apf::Adjacent adjacent;
     m3dc1_mesh::instance()->mesh->getAdjacent(e,1,adjacent);
-    for(int i=0; i<adjacent.getSize(); i++)
+    for (int i=0; i<adjacent.getSize(); i++)
     {
       apf::Downward downward;
       m3dc1_mesh::instance()->mesh->getDownward(adjacent[i], 0, downward);
       nodes.push_back(downward[0]==e?downward[1]:downward[0]);
     }
     double size=0;
-    for(int i=0; i<nodes.size(); i++)
+    for (int i=0; i<nodes.size(); i++)
     {
       double buff;
       getComponents(sizeField, nodes[i], 0, &buff);
@@ -2901,30 +2890,30 @@ void smooth_size_field (apf::Field* sizeField)
     }
     size/=nodes.size();
     size=1./size;
-    //if(size<0.85*sizeOrg)
+    //if (size<0.85*sizeOrg)
     setComponents(sizeField, e, 0, &size);
   }
 }
 
 void group_complex_dof (apf::Field* field, int option)
 {
-  //if(!PCU_Comm_Self()) cout<<" regroup complex number field with option "<<option<<endl;
+  //if (!PCU_Comm_Self()) cout<<" regroup complex number field with option "<<option<<endl;
   int num_dof_double = countComponents(field);
   assert(num_dof_double/6%2==0);
   int num_dof = num_dof_double/2;
   vector<double> dofs(num_dof_double);
   vector<double> newdofs(num_dof_double);
-  int entDim=0, numVert=0;
-  m3dc1_mesh_getnument (&entDim, &numVert);
-  for(int i=0; i<numVert; i++)
+  int entDim=0, numVert=m3dc1_mesh::instance()->mesh->count(0);
+  
+  for (int i=0; i<numVert; i++)
   {
-    apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][i];
+    apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
     getComponents(field, e, 0, &(dofs[0]));
-    for(int j=0; j<num_dof/6; j++)
+    for (int j=0; j<num_dof/6; j++)
     {
-      if(option)
+      if (option)
       {
-        for(int k=0; k<6; k++)
+        for (int k=0; k<6; k++)
         {
           newdofs.at(2*j*6+k)=dofs.at(2*j*6+2*k);
           newdofs.at(2*j*6+6+k)=dofs.at(2*j*6+2*k+1);
@@ -2932,7 +2921,7 @@ void group_complex_dof (apf::Field* field, int option)
       }
       else
       {
-        for(int k=0; k<6; k++)
+        for (int k=0; k<6; k++)
         {
           newdofs.at(2*j*6+2*k)=dofs.at(2*j*6+k);
           newdofs.at(2*j*6+2*k+1)=dofs.at(2*j*6+6+k);
@@ -2951,16 +2940,16 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   apf::Field* sizeField = createPackedField(m3dc1_mesh::instance()->mesh, "size_field", 1);
   SizeFieldError sf (m3dc1_mesh::instance()->mesh, sizeField, *errorAimed);
 
-  int entDim=0, numVert=0;
-  m3dc1_mesh_getnument (&entDim, &numVert);
+  int entDim=0, numVert=m3dc1_mesh::instance()->mesh->count(0);
+
   // first sum error ^ (2d/(2p+d))
   double d=2;
   double errorSum=0;
-  if(*option)
+  if (*option)
   {
-    for(int i=0; i<numVert; i++)
+    for (int i=0; i<numVert; i++)
     {
-      if(is_ent_original(m3dc1_mesh::instance()->mesh,m3dc1_mesh::instance()->ments[0][i]))
+      if (is_ent_original(m3dc1_mesh::instance()->mesh,getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i)))
         errorSum+=pow(errorData[i],d/(p+d/2.0));
     }
     double errorSumBuff=errorSum;
@@ -2970,11 +2959,11 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   }
   else errorSum=pow(*errorAimed,1./(p+d/2.));
   double size_estimate=0;
-  for(int i=0; i<numVert; i++)
+  for (int i=0; i<numVert; i++)
   {
-    apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][i];
+    apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
     assert(e);
-    if(!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;
+    if (!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;
     double size = sf.getSize(e);
     double targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
     size_estimate+=max(1.,1./targetSize/targetSize);
@@ -2984,23 +2973,23 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   int numNodeGlobl=0, dim=0;
   m3dc1_mesh_getnumglobalent(&dim, &numNodeGlobl);
   cout<<" numVert "<<numNodeGlobl<<" size_estimate "<<size_estimate;
-  if(size_estimate>*max_adapt_node) errorSum*=sqrt(size_estimate/(*max_adapt_node));
-  for(int i=0; i<numVert; i++)
+  if (size_estimate>*max_adapt_node) errorSum*=sqrt(size_estimate/(*max_adapt_node));
+  for (int i=0; i<numVert; i++)
   {
-    apf::MeshEntity* e =m3dc1_mesh::instance()->ments[0][i];
+    apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
     assert(e);
     double size = sf.getSize(e);
     assert(errorData[i]==errorData[i]);
     double targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
-    if(targetSize>relSize[1]) targetSize=relSize[1]; // not too much coarsening
-    if(targetSize<relSize[0]) targetSize=relSize[0]; // not too much refining
+    if (targetSize>relSize[1]) targetSize=relSize[1]; // not too much coarsening
+    if (targetSize<relSize[0]) targetSize=relSize[0]; // not too much refining
     targetSize*=size;
-    if(targetSize>absSize[1]) targetSize=absSize[1];
-    if(targetSize<absSize[0]) targetSize=absSize[0];
+    if (targetSize>absSize[1]) targetSize=absSize[1];
+    if (targetSize<absSize[0]) targetSize=absSize[0];
     setComponents(sizeField, e, 0, &targetSize);
   }
   // only implemented for one process
-  //if(PCU_Comm_Peers()==1)
+  //if (PCU_Comm_Peers()==1)
   {
     smooth_size_field(sizeField);
     smooth_size_field(sizeField);
@@ -3034,16 +3023,16 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     apf::Field* field = it->second->get_field();
     int complexType = it->second->get_value_type();
-    if(complexType) group_complex_dof(field, 1);
-    if(isFrozen(field)) unfreeze(field);
-    //if(!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
+    if (complexType) group_complex_dof(field, 1);
+    if (isFrozen(field)) unfreeze(field);
+    //if (!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
     fields.push_back(field);
     it++;
   }
   while(mesh->countNumberings())
   {
     apf::Numbering* n = mesh->getNumbering(0);
-    if(!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
     apf::destroyNumbering(n);
   }
   char filename[256];
@@ -3064,21 +3053,20 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   /*while(mesh->countFields())
   {
     Field* f = mesh->getField(0);
-    if(!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
     destroyField(f);
   }*/
   /*
   while(mesh->countNumberings())
   {
     Numbering* n = mesh->getNumbering(0);
-    if(!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
     destroyNumbering(n);
   }*/
   //sprintf(filename,"adapted%d",adapt_time++);
   //apf::writeVtkFiles(filename,mesh);
   //mesh->writeNative("adapted.smb");
 
-  create_mesh_array(m3dc1_mesh::instance()->mesh, true /* delete existing array */);
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
@@ -3088,8 +3076,8 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     apf::Field* field = it->second->get_field();
     int complexType = it->second->get_value_type();
-    if(complexType) group_complex_dof(field, 0);
-    if(!isFrozen(field)) freeze(field);
+    if (complexType) group_complex_dof(field, 0);
+    if (!isFrozen(field)) freeze(field);
 #ifdef DEBUG
     int isnan;
     int fieldId= it->first; 
@@ -3120,9 +3108,9 @@ int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info)
   int num_comp=dof_per_node/C1TRIDOFNODE;
   vector<double> norms(dof_per_node/C1TRIDOFNODE);
   int j=0;
-  for(int i=0; i<num_dof/C1TRIDOFNODE; i++)
+  for (int i=0; i<num_dof/C1TRIDOFNODE; i++)
   {
-     for(int k=0; k<6; k++)
+     for (int k=0; k<6; k++)
         norms.at(j)+=pts[i*C1TRIDOFNODE+k]*pts[i*C1TRIDOFNODE+k];
      j++;
      j%=num_comp;
@@ -3131,22 +3119,22 @@ int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info)
   MPI_Allreduce(&buff[0],&norms[0], num_comp, MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
   int psize;
   MPI_Comm_size(MPI_COMM_WORLD,&psize);
-  if(PCU_Comm_Self() == psize-1)
+  if (PCU_Comm_Self() == psize-1)
   {
     std::cout<< "norm of vec "<<info;
-    for(int i=0; i<num_comp; i++)
+    for (int i=0; i<num_comp; i++)
       std::cout<<" "<<std::sqrt(norms[i]);
     std::cout<<std::endl;
   }
 }
 int m3dc1_mesh_write(char* filename, int *option)
 {
-  if(*option==0 ||*option==3)
+  if (*option==0 ||*option==3)
   {
     apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
     apf::MeshEntity* e;
-    int dim=2, num_ent;
-    m3dc1_mesh_getnument (&dim, &num_ent);
+    int dim=2, num_ent=m3dc1_mesh::instance()->mesh->count(2);
+
     vector<double> geoId (num_ent);
     apf:: MeshIterator* it = mesh->begin(dim);
     while ((e = mesh->iterate(it)))
@@ -3159,7 +3147,7 @@ int m3dc1_mesh_write(char* filename, int *option)
     mesh->end(it);
     apf::writeVtkFiles(filename,m3dc1_mesh::instance()->mesh);
     int one=1;
-    if(*option==3) output_face_data (&one, &geoId[0], "geoId");
+    if (*option==3) output_face_data (&one, &geoId[0], "geoId");
     /*apf::removeTagFromDimension(mesh, tag, dim);
     mesh->destroyTag(tag);*/
   }
@@ -3192,12 +3180,12 @@ int m3dc1_mesh_write(char* filename, int *option)
 int sum_edge_data (double * data, int* size)
 {
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int num_edge=0, edg_dim=1;
-  m3dc1_mesh_getnument(&edg_dim, &num_edge);
+  int num_edge=m3dc1_mesh::instance()->mesh->count(1), edg_dim=1;
+
   PCU_Comm_Begin();
-  for(int i=0; i<num_edge; i++)
+  for (int i=0; i<num_edge; i++)
   {
-    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[1][i];
+    apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
     int own_partid=get_ent_ownpartid(m, e);
     apf::MeshEntity* own_e = get_ent_owncopy(m, e);
     if (own_partid==PCU_Comm_Self()) continue;
@@ -3219,9 +3207,9 @@ int sum_edge_data (double * data, int* size)
     }
 
   PCU_Comm_Begin();
-  for(int i=0; i<num_edge; i++)
+  for (int i=0; i<num_edge; i++)
   {
-    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[1][i];
+    apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
     if (!is_ent_original(m,e) || !m->isShared(e))
       continue;
 
@@ -3250,34 +3238,35 @@ int sum_edge_data (double * data, int* size)
 int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
 {
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int num_node=0, num_elm=0, nod_dim=0, elm_dim=2;
-  m3dc1_mesh_getnument(&nod_dim, &num_node);
-  m3dc1_mesh_getnument(&elm_dim, &num_elm);
+  int num_node=m3dc1_mesh::instance()->mesh->count(0);
+  int num_elm=m3dc1_mesh::instance()->mesh->count(2);
+  int nod_dim=0, elm_dim=2;
+
   PCU_Comm_Begin();
   double* buff = new double[*size];
   double* area = new double[num_node];
-  for(int i=0; i<num_node; i++)
+  for (int i=0; i<num_node; i++)
     area[i]=0.;
-  for(int i=0; i<(*size)*num_elm; i++ )
-    for(int j=0; j<*size; j++)
+  for (int i=0; i<(*size)*num_elm; i++ )
+    for (int j=0; j<*size; j++)
     {
       assert(elm_data[(*size)*i+j]==elm_data[(*size)*i+j]);
       assert(elm_data[(*size)*i+j]>=0);
     }
-  for(int i=0; i<num_node; i++)
+  for (int i=0; i<num_node; i++)
   {
-    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[0][i];
+    apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
     int own_partid=get_ent_ownpartid(m, e);
     apf::MeshEntity* own_e = get_ent_owncopy(m, e);
     apf::Adjacent adjacent;
     m->getAdjacent(e,2,adjacent);
-    for(int j=0; j<adjacent.getSize(); j++)
+    for (int j=0; j<adjacent.getSize(); j++)
     {
        apf::MeshElement* me = createMeshElement(m, adjacent[j]);
        double s = apf::measure(me);
        int ielm = getMdsIndex(m, adjacent[j]);
        assert(ielm>=0 &&ielm<num_elm);
-       for(int k=0; k<*size; k++)
+       for (int k=0; k<*size; k++)
           nod_data[i*(*size)+k]+=s*elm_data[(*size)*ielm+k];
        area[i]+=s;
        destroyMeshElement(me);
@@ -3304,15 +3293,15 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
         nod_data[inode*(*size)+i]+=buff[i];
     }
 
-  for(int i=0; i<num_node; i++)
+  for (int i=0; i<num_node; i++)
   {
-    for(int j=0; j<*size; j++)
+    for (int j=0; j<*size; j++)
       nod_data[i*(*size)+j]/=area[i];
   }
   PCU_Comm_Begin();
-  for(int i=0; i<num_node; i++)
+  for (int i=0; i<num_node; i++)
   {
-    apf::MeshEntity* e = m3dc1_mesh::instance()->ments[0][i];
+    apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
     if (!is_ent_original(m,e) || !m->isShared(e))
       continue;
     apf::Copies remotes;
@@ -3337,24 +3326,25 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
   delete []buff;
   delete []area;  
 }
+
 int m3dc1_field_max (FieldID* field_id, double * max_val, double * min_val)
 {
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   int dofPerEnt = mf->get_num_value()*mf->get_dof_per_value();
-  if(mf->get_value_type()) dofPerEnt *= 2;
+  if (mf->get_value_type()) dofPerEnt *= 2;
   if (dofPerEnt==0) return M3DC1_FAILURE;
 
-  int num_vtx=0;
+  int num_vtx=m3dc1_mesh::instance()->mesh->count(0);
   int vertex_type=0;
-  m3dc1_mesh_getnument (&vertex_type, &num_vtx);
+
   std::vector<double> maxVal(dofPerEnt, -1e30), minVal(dofPerEnt,1e30), dofs(dofPerEnt);
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
     m3dc1_ent_getdofdata (&vertex_type, &inode, field_id, &dofPerEnt, &dofs[0]);
-    for(int i=0; i<dofPerEnt; i++)
+    for (int i=0; i<dofPerEnt; i++)
     {
-      if(maxVal[i]<dofs[i]) maxVal[i]=dofs[i];
-      if(minVal[i]>dofs[i]) minVal[i]=dofs[i];
+      if (maxVal[i]<dofs[i]) maxVal[i]=dofs[i];
+      if (minVal[i]>dofs[i]) minVal[i]=dofs[i];
     }
   }
   MPI_Allreduce(&(maxVal[0]), max_val, dofPerEnt, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
@@ -3376,7 +3366,7 @@ void verifyFieldEpetraVector(apf::Field* f, Epetra_MultiVector* x)
   double* field_data =getArrayData(f);
   assert(countComponents(f)*m3dc1_mesh::instance()->mesh->count(0)==x->MyLength());
 
-  for(int i=0; i<x->MyLength(); ++i)
+  for (int i=0; i<x->MyLength(); ++i)
   { 
     assert(!value_is_nan((*x)[0][i]) && !value_is_nan(field_data[i]));
 
@@ -3460,14 +3450,13 @@ int m3dc1_epetra_insert(int* matrix_id, int* row, int* col, int* scalar_type, do
 
 void print_elem (int elem_id)
 {
-  int ielm_dim;
+  int ielm_dim=m3dc1_mesh::instance()->mesh->getDimension();
   apf::Mesh2* m=m3dc1_mesh::instance()->mesh;
   
   int num_node_per_element;
   apf::Downward downward;
 
-  ielm_dim = (m->getDimension()==2)? 2:3; 
-  apf::MeshEntity* e = m3dc1_mesh::instance()->ments[ielm_dim][elem_id];
+  apf::MeshEntity* e = getMdsEntity(m, ielm_dim, elem_id);
   num_node_per_element = m->getDownward(e, 0, downward);
  
   int *id = new int[num_node_per_element];
@@ -3503,7 +3492,7 @@ void epetra_add_values(Epetra_CrsMatrix* mat, int rsize, int * rows, int csize, 
 
   for (int i=0; i<rsize; i++)
   {
-    for(int j=0; j<csize; j++)
+    for (int j=0; j<csize; j++)
     {
       col[0] = columns[j];
       val[0] = values[i*csize+j];
@@ -3553,10 +3542,9 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
   dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
-  int ielm_dim = 2;
+  int ielm_dim = m3dc1_mesh::instance()->mesh->getDimension();
   int nodes_per_element=sizeof(nodes)/sizeof(int), nodes_per_element_get;
 
-  if (m3dc1_mesh::instance()->mesh->getDimension()==3) ielm_dim =3;
   m3dc1_ent_getadj (&ielm_dim, ielm, &ent_dim, nodes, &nodes_per_element, &nodes_per_element_get);
   nodes_per_element=nodes_per_element_get;
   int start_global_dof_id,end_global_dof_id_plus_one;
@@ -3572,10 +3560,10 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
 
   if (mat->matrix_type==M3DC1_MULTIPLY)
   {
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for (int inode=0; inode<nodes_per_element; inode++)
     {
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
-      for(int i=0; i<dofPerVar; i++)
+      for (int i=0; i<dofPerVar; i++)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+(*rowVarIdx)*dofPerVar+i;
         columns[inode*dofPerVar+i]=start_global_dof_id+(*columnVarIdx)*dofPerVar+i;
@@ -3589,13 +3577,13 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
   {
     int nodeOwner[6];
     int columns_bloc[6], rows_bloc[6];
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for (int inode=0; inode<nodes_per_element; inode++)
     {
       m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+*rowVarIdx;
       columns_bloc[inode]=nodes[inode]*numVar+*columnVarIdx;
-      for(int i=0; i<dofPerVar; i++)
+      for (int i=0; i<dofPerVar; i++)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+(*rowVarIdx)*dofPerVar+i;
         columns[inode*dofPerVar+i]=start_global_dof_id+(*columnVarIdx)*dofPerVar+i;
@@ -3603,7 +3591,7 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
     }
     int numValuesNode = dofPerVar*dofPerVar*nodes_per_element*(1+scalar_type);
     int offset=0;
-    for(int inode=0; inode<nodes_per_element; inode++)
+    for (int inode=0; inode<nodes_per_element; inode++)
     {
       // FIXME: smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*nodes_per_element, columns, values+offset);
       epetra_add_values(mat->epetra_mat, dofPerVar, rows+dofPerVar*inode, 
@@ -3688,7 +3676,7 @@ int m3dc1_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
     assert(columns[i]>=start_dof_id&&columns[i]<end_dof_id_plus_one);
 #endif
   global_ordinal_type row_g = start_global_dof_id+*row%total_num_dof;
-  for(int i=0; i<*numVals; i++)
+  for (int i=0; i<*numVals; i++)
     columns_g.at(i) = start_global_dof_id+columns[i]%total_num_dof;
 //  (dynamic_cast<matrix_solve*>(mat))->set_row(row_g, *numVals, &columns_g[0], values);
   int err = mat->epetra_mat->SumIntoGlobalValues(row_g, *numVals, values, &columns_g[0]);
@@ -3771,7 +3759,7 @@ void copyEpetraVec2Field(Epetra_MultiVector* x, apf::Field* f)
   while ((e = m->iterate(it)))
   {
     if (get_ent_ownpartid(m, e)!=PCU_Comm_Self()) continue;
-    for(int i=0; i<num_dof; ++i)
+    for (int i=0; i<num_dof; ++i)
       dof_data.at(i)=(*x)[0][index++];
     setComponents(f, e, 0, &(dof_data[0]));
   }
@@ -3976,15 +3964,15 @@ int m3dc1_solver_aztec(int* matrix_id, FieldID* x_fieldid, FieldID*
   std::string preconditioner_s = preconditioner;
   std::string sub_dom_solver_s = sub_dom_solver;
 
-  krylov_solver_s.erase(std::remove_if(krylov_solver_s.begin(),
+  krylov_solver_s.erase(std::remove_if (krylov_solver_s.begin(),
 				       krylov_solver_s.end(),
 				       invalidChar),
 			krylov_solver_s.end());
-  preconditioner_s.erase(std::remove_if(preconditioner_s.begin(),
+  preconditioner_s.erase(std::remove_if (preconditioner_s.begin(),
 					preconditioner_s.end(),
 					invalidChar),
 			 preconditioner_s.end());
-  sub_dom_solver_s.erase(std::remove_if(sub_dom_solver_s.begin(),
+  sub_dom_solver_s.erase(std::remove_if (sub_dom_solver_s.begin(),
 					sub_dom_solver_s.end(),
 					invalidChar),
 			 sub_dom_solver_s.end());
@@ -4123,7 +4111,7 @@ int m3dc1_solver_amesos(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, 
   // Before we do anything, check that the solver is enabled
 /*
   Teuchos::RCP<Teuchos::FancyOStream> fos = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-  if( !Amesos2::query(solver_name) )
+  if ( !Amesos2::query(solver_name) )
   {
     if (!PCU_Comm_Self()) 
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<": "<< solver_name << " not enabled.  Exiting..." << std::endl;

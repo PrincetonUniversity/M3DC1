@@ -10,7 +10,6 @@
 #ifdef M3DC1_PETSC
 #include "m3dc1_matrix.h"
 #include "apf.h"
-#include "apfShape.h"
 #include "apfMesh.h"
 #include "apfMDS.h"
 #include <vector>
@@ -42,8 +41,8 @@ void printMemStat()
 
 int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
 {
-  int num_own_ent,num_own_dof=0, vertex_type=0;
-  m3dc1_mesh_getnumownent (&vertex_type, &num_own_ent);
+  int num_own_ent= m3dc1_mesh::instance()->num_own_ent[0];
+  int num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
@@ -62,9 +61,9 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   int nodeCounter=0;
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
-    ent = m3dc1_mesh::instance()->ments[0][inode];
+    ent = getMdsEntity(m3dc1_mesh::instance()->mesh,vertex_type,inode);
     if (!is_ent_original(m3dc1_mesh::instance()->mesh,ent)) continue;
       nodeCounter++;
     int num_dof;
@@ -73,7 +72,7 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx=0;
-    for(int i=0; i<dofPerEnt; i++)
+    for (int i=0; i<dofPerEnt; i++)
     { 
       PetscScalar value;
       if (scalar_type == M3DC1_REAL) value = dof_data[startIdx++];
@@ -100,10 +99,10 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
 
 int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
 {
-  int num_own_ent,num_own_dof=0, vertex_type=0;
-  m3dc1_mesh_getnumownent (&vertex_type, &num_own_ent);
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0],num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
   int dofPerEnt=0;
+
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
 
   std::vector<PetscInt> ix(dofPerEnt);
@@ -114,19 +113,19 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
   int ierr;
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
-    ent = m3dc1_mesh::instance()->ments[0][inode];
+    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type,inode);
     if (!is_ent_original(m3dc1_mesh::instance()->mesh, ent)) continue;
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
     
-    for(int i=0; i<dofPerEnt; i++)
+    for (int i=0; i<dofPerEnt; i++)
       ix.at(i)=startIdx+i;
     ierr=VecGetValues(petscVec, dofPerEnt, &ix[0], &values[0]); CHKERRQ(ierr);
     startIdx=0;
-    for(int i=0; i<dofPerEnt; i++)
+    for (int i=0; i<dofPerEnt; i++)
     {
       if (scalar_type == M3DC1_REAL) 
       {
@@ -283,15 +282,15 @@ int m3dc1_matrix::add_values(int rsize, int * rows, int csize, int * columns, do
   PetscErrorCode ierr;
 #if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
   vector<PetscScalar> petscValues(rsize*csize);
-  for(int i=0; i<rsize; i++)
+  for (int i=0; i<rsize; i++)
   {
-    //if(id==22)
+    //if (id==22)
       //std::cout<<std::endl<<"id "<<id<<" row "<<rows[i]<<std::endl;
-    for(int j=0; j<csize; j++)
+    for (int j=0; j<csize; j++)
     {
-      //if(id==22)
+      //if (id==22)
         //std::cout<<" colum "<<columns[j]<<" "<<values[i*csize+j]<<" ";
-      if(scalar_type==M3DC1_REAL) petscValues.at(i*csize+j)=values[i*csize+j];
+      if (scalar_type==M3DC1_REAL) petscValues.at(i*csize+j)=values[i*csize+j];
       else 
       {
 #ifdef PETSC_USE_COMPLEX
@@ -320,7 +319,7 @@ int matrix_mult::setupMat()
 
 int matrix_mult::preAllocate ()
 {
-  if(localMat) preAllocateSeqMat();
+  if (localMat) preAllocateSeqMat();
   else preAllocateParaMat();
 }
 
@@ -331,10 +330,10 @@ int  m3dc1_matrix::preAllocateParaMat()
   MatType type;
   MatGetType(*A, &type);
 
-  int num_own_ent,num_own_dof=0, vertex_type=0;
-  m3dc1_mesh_getnumownent (&vertex_type, &num_own_ent);
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0],num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
   int dofPerEnt=0;
+
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
 
   if (strcmp(type, MATSEQAIJ)==0 || strcmp(type, MATMPIAIJ)==0) 
@@ -350,17 +349,16 @@ int  m3dc1_matrix::preAllocateParaMat()
   int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
 
   int nnzStash=0;
-  int brgType = 2;
-  if (m3dc1_mesh::instance()->mesh->getDimension()==3) brgType =3;
+  int brgType = m3dc1_mesh::instance()->mesh->getDimension();
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
-    ent = m3dc1_mesh::instance()->ments[0][inode];
+    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type, inode);
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &fieldOrdering, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
-    if(start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
+    if (start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
     {
       apf::Adjacent elements;
       getBridgeAdjacent(m3dc1_mesh::instance()->mesh, ent, brgType, 0, elements);
@@ -382,7 +380,7 @@ int  m3dc1_matrix::preAllocateParaMat()
     m3dc1_mesh::instance()->mesh->getIntTag(ent, m3dc1_mesh::instance()->num_own_adj_node_tag, &adjNodeOwned);
     assert(adjNodeGlb>=adjNodeOwned);
 
-    for(int i=0; i<numBlockNode; i++)
+    for (int i=0; i<numBlockNode; i++)
     {
       dnnz.at(startIdx+i)=(1+adjNodeOwned)*numBlockNode;
       onnz.at(startIdx+i)=(adjNodeGlb-adjNodeOwned)*numBlockNode;
@@ -405,13 +403,12 @@ int matrix_solve::setUpRemoteAStruct()
   int num_vtx = m3dc1_mesh::instance()->num_local_ent[0];
 
   std::vector<int> nnz_remote(num_values*num_vtx);
-  int brgType = 2;
-  if (m3dc1_mesh::instance()->mesh->getDimension()==3) brgType =3;
+  int brgType = m3dc1_mesh::instance()->mesh->getDimension();
   
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
-    ent = m3dc1_mesh::instance()->ments[0][inode];
+    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type, inode);
     int owner=get_ent_ownpartid(m3dc1_mesh::instance()->mesh, ent);
     if (owner!=PCU_Comm_Self())
     {
@@ -426,7 +423,7 @@ int matrix_solve::setUpRemoteAStruct()
 
       remoteNodeRow[owner][inode]=num_elem+1;
       remoteNodeRowSize[owner]+=num_elem+1;
-      for(int i=0; i<num_values; i++)
+      for (int i=0; i<num_values; i++)
         nnz_remote[inode*num_values+i]=(num_elem+1)*num_values;
     }
     else 
@@ -466,13 +463,12 @@ int  m3dc1_matrix::preAllocateSeqMat()
   int numBlocks = num_dof / bs;
   int numBlockNode = dofPerEnt / bs;
   std::vector<PetscInt> nnz(numBlocks);
-  int brgType = 2;
-  if (m3dc1_mesh::instance()->mesh->getDimension()==3) brgType = 3;
+  int brgType = m3dc1_mesh::instance()->mesh->getDimension();
 
   apf::MeshEntity* ent;
-  for(int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; inode++)
   {
-    ent = m3dc1_mesh::instance()->ments[0][inode];
+    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type, inode);
     int start_dof, end_dof_plus_one;
     m3dc1_ent_getlocaldofid (&vertex_type, &inode, &fieldOrdering, &start_dof, &end_dof_plus_one);
     int startIdx = start_dof;
@@ -488,7 +484,7 @@ int  m3dc1_matrix::preAllocateSeqMat()
     }
 
     startIdx /=bs; 
-    for(int i=0; i<numBlockNode; i++)
+    for (int i=0; i<numBlockNode; i++)
     {
       nnz.at(startIdx+i)=(1+numAdj)*numBlockNode;
     }
@@ -501,11 +497,11 @@ int  m3dc1_matrix::preAllocateSeqMat()
 
 int m3dc1_matrix::setupParaMat()
 {
-  int num_own_ent, vertex_type=0, num_own_dof;
-  m3dc1_mesh_getnumownent (&vertex_type, &num_own_ent); 
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], vertex_type=0, num_own_dof;
   m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+
   PetscInt mat_dim = num_own_dof;
 
   // create matrix
@@ -545,7 +541,7 @@ int m3dc1_matrix::write (const char* file_name)
 {
   PetscErrorCode ierr;
   PetscViewer lab;
-  if(get_type()==0)
+  if (get_type()==0)
   {
     char name_buff[256];
     sprintf(name_buff, "%s-%d.m",file_name,PCU_Comm_Self());
@@ -600,7 +596,7 @@ int matrix_mult::assemble()
 
 int matrix_mult::multiply(FieldID in_field, FieldID out_field)
 {
-  if(!localMat)
+  if (!localMat)
   {
     Vec b, c;
     copyField2PetscVec(in_field, b, get_scalar_type());
@@ -628,11 +624,11 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     PetscScalar * array[2];
     m3dc1_field_getdataptr(&in_field, (double**)array);
 #ifdef PETSC_USE_COMPLEX
-    if(!get_scalar_type())
+    if (!get_scalar_type())
     {
       double * array_org = (double*)array[0];
       array[0] = new PetscScalar[num_dof];
-      for(int i=0; i<num_dof; i++)
+      for (int i=0; i<num_dof; i++)
       {
         array[0][i]=array_org[i];
       }
@@ -641,11 +637,11 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     ierr = VecCreateSeqWithArray( PETSC_COMM_SELF, bs, num_dof, (PetscScalar*) array[0],&b); CHKERRQ(ierr);
     m3dc1_field_getdataptr(&out_field, (double**)array+1);
 #ifdef PETSC_USE_COMPLEX
-    if(!get_scalar_type())
+    if (!get_scalar_type())
     {
       double * array_org = (double*)array[1];
       array[1] = new PetscScalar[num_dof];
-      for(int i=0; i<num_dof; i++)
+      for (int i=0; i<num_dof; i++)
       {
         array[1][i]=array_org[i];
       }
@@ -660,11 +656,11 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&c); CHKERRQ(ierr);
 #ifdef PETSC_USE_COMPLEX
-    if(!get_scalar_type())
+    if (!get_scalar_type())
     {
       double *datapt;
       m3dc1_field_getdataptr(&out_field, &datapt);
-      for(int i=0; i<num_dof; i++)
+      for (int i=0; i<num_dof; i++)
         datapt[i]=std::real(array[1][i]); 
       delete []array[0];
       delete []array[1];
@@ -687,7 +683,7 @@ matrix_solve::matrix_solve(int i, int s, FieldID f): m3dc1_matrix(i,s,f)
 
 matrix_solve::~matrix_solve()
 {
-  //if(kspSet)
+  //if (kspSet)
   //  KSPDestroy(ksp);
   // delete ksp;
   MatDestroy(&remoteA);
@@ -698,7 +694,7 @@ int matrix_solve::initialize()
   // initialize matrix
   setupMat();
   preAllocate();
-  if(!m3dc1_solver::instance()->assembleOption) setUpRemoteAStruct();
+  if (!m3dc1_solver::instance()->assembleOption) setUpRemoteAStruct();
   int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough
   //check later
@@ -758,11 +754,11 @@ int matrix_solve::add_blockvalues(int rbsize, int * rows, int cbsize, int * colu
   MatGetBlockSize(remoteA, &bs);
   vector<PetscScalar> petscValues(rbsize*cbsize*bs*bs);
 
-  for(int i=0; i<rbsize*bs; i++)
+  for (int i=0; i<rbsize*bs; i++)
   {
-    for(int j=0; j<cbsize*bs; j++)
+    for (int j=0; j<cbsize*bs; j++)
     {
-      if(scalar_type==M3DC1_REAL) petscValues.at(i*cbsize*bs+j)=values[i*cbsize*bs+j];
+      if (scalar_type==M3DC1_REAL) petscValues.at(i*cbsize*bs+j)=values[i*cbsize*bs+j];
       else
       {
 #ifdef PETSC_USE_COMPLEX
@@ -785,15 +781,14 @@ int matrix_solve::assemble()
 {
   PetscErrorCode ierr;
   double t1 = MPI_Wtime(), t2=t1;
-  if(!m3dc1_solver::instance()->assembleOption)
+  if (!m3dc1_solver::instance()->assembleOption)
   {
     ierr = MatAssemblyBegin(remoteA, MAT_FINAL_ASSEMBLY);
     CHKERRQ(ierr);
     ierr = MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY);
     t2 = MPI_Wtime();
     //pass remoteA to ownnering process
-    int brgType = 2;
-    if (m3dc1_mesh::instance()->mesh->getDimension()==3) brgType =3;
+    int brgType = m3dc1_mesh::instance()->mesh->getDimension();
 
     int dofPerVar = 6;
     char field_name[256];
@@ -814,10 +809,10 @@ int matrix_solve::assemble()
       valuesSendBuff[it->first].resize(remoteNodeRowSize[it->first]*blockMatSize);
       int idxOffset=0;
       int valueOffset=0;
-      for(std::map<int, int> ::iterator it2 =it->second.begin(); it2!=it->second.end();it2++)
+      for (std::map<int, int> ::iterator it2 =it->second.begin(); it2!=it->second.end();it2++)
       {
         idxSendBuff[it->first].at(idxOffset++)=it2->second;
-        apf::MeshEntity* ent = m3dc1_mesh::instance()->ments[0][it2->first];
+        apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, it2->first);
 
         std::vector<apf::MeshEntity*> vecAdj;
         apf::Adjacent elements;
@@ -832,19 +827,19 @@ int matrix_solve::assemble()
         assert(numAdj==it2->second);
         std::vector<int> localNodeId(numAdj);
         std::vector<int> columns(total_num_dof*numAdj);
-        for(int i=0; i<numAdj; i++)
+        for (int i=0; i<numAdj; i++)
         {
-          int local_id = apf::getMdsIndex(m3dc1_mesh::instance()->mesh, vecAdj.at(i));
+          int local_id = get_ent_localid(m3dc1_mesh::instance()->mesh, vecAdj.at(i));
           localNodeId.at(i)=local_id;
           int start_global_dof_id, end_global_dof_id_plus_one;
           m3dc1_ent_getglobaldofid (&vertex_type, &local_id, &fieldOrdering, &start_global_dof_id, &end_global_dof_id_plus_one);
           idxSendBuff[it->first].at(idxOffset++)=start_global_dof_id;
         }
         int offset=0;
-        for(int i=0; i<numAdj; i++)
+        for (int i=0; i<numAdj; i++)
         {
           int startColumn = localNodeId.at(i)*total_num_dof;
-          for(int j=0; j<total_num_dof; j++)
+          for (int j=0; j<total_num_dof; j++)
             columns.at(offset++)=startColumn+j;
         }
         ierr = MatGetValues(remoteA, total_num_dof, &columns.at(total_num_dof*(numAdj-1)), total_num_dof*numAdj, &columns[0], &valuesSendBuff[it->first].at(valueOffset));
@@ -862,7 +857,7 @@ int matrix_solve::assemble()
     int requestOffset=0;
     std::map<int, std::pair<int, int> > msgSendSize;
     std::map<int, std::pair<int, int> > msgRecvSize;
-    for(std::map<int, int >::iterator it = remoteNodeRowSize.begin(); it!=remoteNodeRowSize.end(); it++)
+    for (std::map<int, int >::iterator it = remoteNodeRowSize.begin(); it!=remoteNodeRowSize.end(); it++)
     {
       int destPid=it->first;
       msgSendSize[destPid].first=idxSendBuff[it->first].size();
@@ -870,7 +865,7 @@ int matrix_solve::assemble()
       MPI_Isend(&(msgSendSize[destPid]),sizeof(std::pair<int, int>),MPI_BYTE,destPid,sendTag,MPI_COMM_WORLD,&(my_request[requestOffset++]));
     }
     assert(requestOffset<256);
-    for(std::set<int>::iterator it = remotePidOwned.begin(); it!=remotePidOwned.end(); it++)
+    for (std::set<int>::iterator it = remotePidOwned.begin(); it!=remotePidOwned.end(); it++)
     {
       int destPid=*it;
       MPI_Irecv(&(msgRecvSize[destPid]),sizeof(std::pair<int, int>),MPI_BYTE,destPid,sendTag,MPI_COMM_WORLD,&(my_request[requestOffset++]));
@@ -878,7 +873,7 @@ int matrix_solve::assemble()
     assert(requestOffset<256);
     MPI_Waitall(requestOffset,my_request,my_status);
     //set up receive buff
-    for(std::map<int, std::pair<int, int> >::iterator it = msgRecvSize.begin(); it!= msgRecvSize.end(); it++)
+    for (std::map<int, std::pair<int, int> >::iterator it = msgRecvSize.begin(); it!= msgRecvSize.end(); it++)
     {
       idxRecvBuff[it->first].resize(it->second.first);
       valuesRecvBuff[it->first].resize(it->second.second); 
@@ -886,14 +881,14 @@ int matrix_solve::assemble()
     // now get data
     sendTag=9999;
     requestOffset=0;
-    for(std::map<int, int >::iterator it = remoteNodeRowSize. begin(); it!=remoteNodeRowSize.end(); it++)
+    for (std::map<int, int >::iterator it = remoteNodeRowSize. begin(); it!=remoteNodeRowSize.end(); it++)
     {
       int destPid=it->first;
       MPI_Isend(&(idxSendBuff[destPid].at(0)),idxSendBuff[destPid].size(),MPI_INT,destPid,sendTag,MPI_COMM_WORLD,&(my_request[requestOffset++]));
       MPI_Isend(&(valuesSendBuff[destPid].at(0)),sizeof(PetscScalar)*valuesSendBuff[destPid].size(),MPI_BYTE,destPid,sendTag,MPI_COMM_WORLD,&(my_request[requestOffset++]));
     }
     assert(requestOffset<256);
-    for(std::set<int>::iterator it = remotePidOwned.begin(); it!=remotePidOwned.end(); it++)
+    for (std::set<int>::iterator it = remotePidOwned.begin(); it!=remotePidOwned.end(); it++)
     {
       int destPid=*it;
       MPI_Irecv(&(idxRecvBuff[destPid].at(0)),idxRecvBuff[destPid].size(),MPI_INT,destPid,sendTag,MPI_COMM_WORLD,&(my_request[requestOffset++]));
@@ -902,15 +897,15 @@ int matrix_solve::assemble()
     assert(requestOffset<256);
     MPI_Waitall(requestOffset,my_request,my_status);
 
-    for( std::map<int, std::vector<int> >::iterator it =idxSendBuff.begin(); it!=idxSendBuff.end(); it++)
+    for ( std::map<int, std::vector<int> >::iterator it =idxSendBuff.begin(); it!=idxSendBuff.end(); it++)
       std::vector<int>().swap(it->second);
-    for( std::map<int, std::vector<PetscScalar> >::iterator it =valuesSendBuff.begin(); it!=valuesSendBuff.end(); it++)
+    for ( std::map<int, std::vector<PetscScalar> >::iterator it =valuesSendBuff.begin(); it!=valuesSendBuff.end(); it++)
       std::vector<PetscScalar>().swap(it->second);
     valuesSendBuff.clear();
     idxSendBuff.clear();
 
     // now assemble the matrix
-    for(std::set<int>::iterator it = remotePidOwned.begin(); it!=remotePidOwned.end(); it++)
+    for (std::set<int>::iterator it = remotePidOwned.begin(); it!=remotePidOwned.end(); it++)
     {
       int destPid=*it;
       int valueOffset=0;
@@ -918,14 +913,14 @@ int matrix_solve::assemble()
       vector<int> & idx = idxRecvBuff[destPid];
       vector<PetscScalar> & values = valuesRecvBuff[destPid];
       int numValues=values.size();
-      while(valueOffset<numValues)
+      while (valueOffset<numValues)
       {
         int numAdj = idx.at(idxOffset++); 
         std::vector<int> columns(total_num_dof*numAdj);
         int offset=0;
-        for(int i=0; i<numAdj; i++, idxOffset++)
+        for (int i=0; i<numAdj; i++, idxOffset++)
         {
-          for(int j=0; j<total_num_dof; j++)
+          for (int j=0; j<total_num_dof; j++)
           {
             columns.at(offset++)=idx.at(idxOffset)+j;
           }
@@ -966,9 +961,9 @@ int matrix_solve:: set_row( int row, int numVals, int* columns, double * vals)
   int ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
   assert (row>=firstRow && row<lastRowPlusOne);
 #endif
-  for(int i=0; i<numVals; i++)
+  for (int i=0; i<numVals; i++)
   {
-    if(get_scalar_type() == M3DC1_REAL) set_value(row, columns[i], 1, vals[i], 0);
+    if (get_scalar_type() == M3DC1_REAL) set_value(row, columns[i], 1, vals[i], 0);
     else set_value(row, columns[i], 1, vals[2*i], vals[2*i+1]); 
   }
 }
