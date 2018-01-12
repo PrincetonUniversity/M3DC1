@@ -198,7 +198,7 @@ contains
             - intx5(e(:,:,OP_DR),ri_79,temp79a,temp79b,pstx79(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
        temp = temp &
-            - intx5(e(:,:,OP_DP),ri2_79,temp79a,temp79b,bztx79(:,OP_1)) &
+            + intx5(e(:,:,OP_DP),ri2_79,temp79a,temp79b,bztx79(:,OP_1)) &
             - intx4(e(:,:,OP_DZ),temp79a,temp79b,bftx79(:,OP_DZP)) &
             - intx4(e(:,:,OP_DR),temp79a,temp79b,bftx79(:,OP_DRP))
 #endif
