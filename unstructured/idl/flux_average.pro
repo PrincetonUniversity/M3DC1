@@ -249,19 +249,36 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
        endif else $
          if(strcmp(field, 'kappa_implied', /fold_case) eq 1) then begin
-           Q =  flux_average('heat_source', psi=psi, i0=i, x=x, z=z, t=t, $
-             r0=r0, flux=flux, nflux=nflux, area=area, bins=bins, $
-             points=points, filename=filename, _EXTRA=extra, fc=fc, /integrate)
+
+           Q_ext = read_field('heat_source', x, z, t, points=points, complex=complex, $
+                              symbol=symbol, units=units,dimensions=d,fac=fac,$
+                              abs=abs, phase=phase, filename=filename, $
+                              _EXTRA=extra)
+           eta = read_field('eta',x,z,t,points=points, $
+                            last=last,filename=filename,_EXTRA=extra)
+           Jx = read_field('jx',x,z,t,points=points, $
+                          last=last,filename=filename,_EXTRA=extra)
+           Jy = read_field('jy',x,z,t,points=points, $
+                          last=last,filename=filename,_EXTRA=extra)
+           Jz = read_field('jz',x,z,t,points=points, $
+                          last=last,filename=filename,_EXTRA=extra)
+           J2 = Jx^2 + Jy^2 + Jz^2
+
            p = read_field('p',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
            n = read_field('den',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
            temp = p/n
 
            pprime = s_bracket(temp,psi,x,z)
-           GradP = flux_average_field(pprime, psi, x, z, t, r0=r0, flux=flux, $
+           GradP = flux_average_field(pprime, psi, x, z, t, psi=psi, i0=i, $
+                                      r0=r0, flux=flux, $
                                       nflux=nflux, area=area, fc=fc, $
                                       bins=bins, filename=filename, _EXTRA=extra)
-
            dV = fc.dV_dchi / fc.dpsi_dchi
+
+           qq = Q_ext + eta*J2
+           Q = flux_average_field(qq, psi, x, z, t, fc=fc, /integrate, psi=psi, i0=i, $
+                                   r0=r0, flux=flux, nflux=nflux, area=area, bins=bins, $
+                                   points=points, filename=filename, _EXTRA=extra)
 
            symbol = '!7j!X'
            d = dimensions(l0=2, t0=-1, n0=1)
