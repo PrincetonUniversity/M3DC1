@@ -18,7 +18,7 @@
 
 6. run a job in interactive mode
 
-    salloc -N num_proc -t hh:mm:ss
+    salloc -n num_proc -t hh:mm:ss
     module load intel/17.0/64/17.0.5.239 openmpi gsl/2.4
     srun m3dc1_3d -ipetsc -options_file options_bjacobi
 
