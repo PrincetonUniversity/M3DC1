@@ -16,13 +16,16 @@
 5. mesh utility
         /home/jinchen/LIB/intel17.0-openmpi1.10.2/bin
 
-6. run a job in interactive mode
+6. run a job 
+    for details, see http://www.princeton.edu/researchcomputing/computational-hardware/perseus/user-guidelines
 
-    salloc -n num_proc -t hh:mm:ss
+6.1 interactive mode
+    # num_proc = N*T
+    salloc --nodes=N --ntasks-per-node=T -t hh:mm:ss
     module load intel/17.0/64/17.0.5.239 openmpi gsl/2.4
     srun m3dc1_3d -ipetsc -options_file options_bjacobi
 
-7. run a job in batch mode
+6.2 batch mode
 
   create job_script
 
