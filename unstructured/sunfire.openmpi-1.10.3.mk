@@ -47,7 +47,7 @@ endif
 
 BLASLAPACK_LIBS =-Wl,-rpath,$(MKLROOT) -L$(MKLROOT)/lib/intel64 \
         -lmkl_intel_lp64 -lmkl_sequential -lmkl_core
-HDF5_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/hdf5-parallel-1.8.17
+#HDF5_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/hdf5-parallel-1.8.17
 SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/Aug2017/openmpi-1.10.3/debug
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
@@ -94,14 +94,14 @@ LIBS = 	\
         $(ZOLTAN_LIB) \
         $(PETSC_LIBS) \
         $(BLASLAPACK_LIBS) \
-	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 \
+	-L$(HDF5_HOME)/lib -lhdf5_fortran -lhdf5 \
 	-L$(ZLIB_DIR) -lz \
 	-L$(GSLHOME)/lib -lgsl -lgslcblas \
 	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-        -I$(HDF5_DIR)/include \
+        -I$(HDF5_HOME)/include \
         -I$(GSLHOME)/include \
 	-I$(FFTWHOME)/include
 
