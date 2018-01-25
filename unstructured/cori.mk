@@ -54,7 +54,7 @@ ifeq ($(COM), 1)
 else
       PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.8.2
       PETSC_ARCH = cori-hsw-mpich760-real
-      HYPRE_LIB = #-lHYPRE
+      HYPRE_LIB = -lHYPRE
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
         $(HYPRE_LIB) \
        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
