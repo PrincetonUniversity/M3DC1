@@ -128,7 +128,7 @@ module adapt
                   exp(-((x_79 - xc_adapt(j))**2 + (z_79 - zc_adapt(j))**2) / &
                        (2.*adapt_coil_delta**2))
           end do
-          where(temp79c.gt.1.) temp79c = 1.
+          where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c
        end if
 
