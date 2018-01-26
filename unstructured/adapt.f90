@@ -15,6 +15,9 @@ module adapt
   data rel_size /0.5, 2.0/
   integer :: iadapt_writevtk, iadapt_writesmb
   !type(vector_type), private :: error_vec
+
+  real :: adapt_coil_delta
+  
   contains
   subroutine adapt_by_psi
     use basic
@@ -31,6 +34,7 @@ module adapt
     use pellet
     use scorec_mesh_mod
     use m3dc1_nint
+    use coils
 
     integer :: izone, izonedim, i, j
     integer :: numelms, itri
@@ -39,6 +43,9 @@ module adapt
     integer, dimension(MAX_PTS) :: mr
     vectype, dimension(dofs_per_element) :: dofs
 
+    real, dimension(maxfilaments) :: xc_adapt, zc_adapt
+    complex, dimension(maxfilaments) :: ic_adapt
+    integer :: numcoils_adapt
 
     call create_field(temporary_field)
     temporary_field = 0.
@@ -109,6 +116,20 @@ module adapt
                 if(real(temp79b(i)).gt.1.) temp79b(i) = 1.
              end do
           end do
+       end if
+
+       ! do adaptation around coils
+       if(adapt_coil_delta.gt.0) then
+          call load_coils(xc_adapt,zc_adapt,ic_adapt,numcoils_adapt, &
+               'adapt_coil.dat','adapt_current.dat')
+          temp79c = 0.
+          do j=1, numcoils_adapt
+             temp79c = temp79c + &
+                  exp(-((x_79 - xc_adapt(j))**2 + (z_79 - zc_adapt(j))**2) / &
+                       (2.*adapt_coil_delta**2))
+          end do
+          where(temp79c.gt.1.) temp79c = 1.
+          temp79b = temp79b*(1.-temp79c) + temp79c
        end if
 
        ! convert back to un-normalized psi

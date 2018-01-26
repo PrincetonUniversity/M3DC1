@@ -946,6 +946,8 @@ subroutine set_defaults
        "Number of mode-rational surfaces to pack mesh around", adapt_grp)
   call add_var_double("adapt_pack_factor", adapt_pack_factor, 0.02, &
        "Width of Lorentzian (in psi_N) for rational mesh packing", adapt_grp)
+  call add_var_double("adapt_coil_delta", adapt_coil_delta, 0., &
+       "Parameter for packing mesh around coil locations", adapt_grp)
 
 
   ! Mesh
