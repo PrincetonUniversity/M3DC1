@@ -3,3 +3,12 @@ _*
 
 # Ignore autosave files
 *~
+
+# Ignore mesh files
+*.smb
+*.dmg
+*.smd
+*.vtk
+m3dc1_meshgen.log
+plot_geo
+unstructured/templates/*/*/*.txt
