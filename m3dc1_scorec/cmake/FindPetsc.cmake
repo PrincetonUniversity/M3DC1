@@ -28,19 +28,18 @@ macro(petscLibCheck libs isRequired)
 endmacro(petscLibCheck)
 
 set(PETSC_LIBS "")
-if(ENABLE_COMPLEX)
 set(PETSC_LIB_NAMES
-  craypetsc_intel_complex
-  ssl
-  crypto
-  pthread)
-else()
-set(PETSC_LIB_NAMES
-  craypetsc_intel_real
-  ssl
-  crypto
-  pthread)
-endif()
+ petsc
+  pthread 
+  ssl 
+  crypto 
+  m 
+  numa 
+  rt 
+  nsl  
+  util 
+  pthread 
+  dl)
 
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
 

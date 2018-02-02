@@ -3387,32 +3387,59 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! Gradient-dependent heat flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(kappag.ne.0) then
+
+     ! temp79a = |grad(p)|^2
+#ifdef USECOMPLEX
+     temp79a = ppt79(:,OP_DR)*conjg(ppt79(:,OP_DR)) + &
+          ppt79(:,OP_DZ)*conjg(ppt79(:,OP_DZ)) + &
+          ppt79(:,OP_DP)*conjg(ppt79(:,OP_DP))*ri2_79    
+#else
+     temp79a = ppt79(:,OP_DR)**2 + ppt79(:,OP_DZ)**2
+#ifdef USE3D
+     temp79a = temp79a + ppt79(:,OP_DP)**2*ri2_79
+#endif
+#endif
+
+     ! define a mask that is 0 when |grad(p)|^2 < gradp_crit^2
+     where(real(ppt79(:,OP_1)**2) .lt. gradp_crit**2)
+        temp79b = 0.
+     elsewhere
+        temp79b = 1.
+     end where
+     
+     ! q = - kappag |grad(p)|^2 grad(p)
      if(linear.eq.0) then
-        tempx = b3pedkappag(trialx,lin,pp179,pp179) &
-             + b3pedkappag(trialx,pp179,lin,pp179) &
-             + b3pedkappag(trialx,pp179,pp179,lin)
+        tempx = b3pppkappag(trialx,lin,pp179,pp179,temp79b) &
+             + b3pppkappag(trialx,pp179,lin,pp179,temp79b) &
+             + b3pppkappag(trialx,pp179,pp179,lin,temp79b)
         ssterm(:,pp_g) = ssterm(:,pp_g) -        thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (1./3.-thimp*bdf)*dt*tempx
         
         if(eqsubtract.eq.1) then
-           tempx = b3pedkappag(trialx,lin,pp179,pp079) &
-                + b3pedkappag(trialx,pp179,lin,pp079) &
-                + b3pedkappag(trialx,pp179,pp079,lin) &
-                + b3pedkappag(trialx,lin,pp079,pp179) &
-                + b3pedkappag(trialx,pp079,lin,pp179) &
-                + b3pedkappag(trialx,pp079,pp179,lin)
+           tempx = b3pppkappag(trialx,lin,pp179,pp079,temp79b) &
+                + b3pppkappag(trialx,pp179,lin,pp079,temp79b) &
+                + b3pppkappag(trialx,pp179,pp079,lin,temp79b) &
+                + b3pppkappag(trialx,lin,pp079,pp179,temp79b) &
+                + b3pppkappag(trialx,pp079,lin,pp179,temp79b) &
+                + b3pppkappag(trialx,pp079,pp179,lin,temp79b)
            ssterm(:,pp_g) = ssterm(:,pp_g) -        thimp     *dt*tempx
            ddterm(:,pp_g) = ddterm(:,pp_g) + (1./2.-thimp*bdf)*dt*tempx     
         end if
      end if
 
      if(eqsubtract.eq.1) then
-        tempx = b3pedkappag(trialx,lin,pp079,pp079) &
-             + b3pedkappag(trialx,pp079,lin,pp079) &
-             + b3pedkappag(trialx,pp079,pp079,lin)
+        tempx = b3pppkappag(trialx,lin,pp079,pp079,temp79b) &
+             + b3pppkappag(trialx,pp079,lin,pp079,temp79b) &
+             + b3pppkappag(trialx,pp079,pp079,lin,temp79b)
         ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx     
      end if
+
+     ! q = kappag gradp_crit^2 grad(p)
+     tempx = b3pkappag(trialx,lin,temp79b)
+     ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
+     ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
+
   end if
 
 

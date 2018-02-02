@@ -1078,7 +1078,7 @@ subroutine wrrestart_adios
   ! ADIOS variables declarations for matching gwrite_restart_c1.fh 
   integer             :: comm, ierr
   integer                 :: adios_err
-  integer*8               :: adios_handle 
+  integer*8               :: adios_handle, adios_groupsize, adios_totalsize
   real, allocatable :: tmp_field_vec(:), tmp_field0_vec(:)
   real, allocatable :: tmp_bf_field_1(:), tmp_bf_field_0(:)
   real, allocatable :: tmp_psi_ext(:), tmp_bz_ext(:), tmp_bf_ext(:)
@@ -1086,7 +1086,6 @@ subroutine wrrestart_adios
   real :: dum
 
   integer :: useext
-  integer :: adios_groupsize, adios_totalsize
 
   dum = 0.
   fname="restart.bp"

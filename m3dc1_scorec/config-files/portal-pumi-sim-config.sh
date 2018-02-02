@@ -1,0 +1,25 @@
+MPIVER=openmpi-1.10.3
+ZOLTAN_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
+PETSC_ARCH=real-openmpi-1.10.3
+PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
+SIM_DIR=/usr/pppl/Simmetrix/simmodsuite/11.0-171020
+SIM_ARCHOS=x64_rhel6_gcc44
+PREFIX=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
+
+cmake .. \
+  -DCMAKE_C_COMPILER=mpicc \
+  -DCMAKE_CXX_COMPILER=mpicxx \
+  -DCMAKE_C_FLAGS="-O2 -g -Wall" \
+  -DCMAKE_CXX_FLAGS="-O2 -g -Wall" \
+  -DENABLE_ZOLTAN=ON \
+  -DZOLTAN_INCLUDE_DIR="$ZOLTAN_DIR/include" \
+  -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
+  -DPARMETIS_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
+  -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
+  -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
+  -DENABLE_SIMMETRIX=ON \
+  -DBUILD_EXES=OFF \
+  -DSIMMETRIX_INCLUDE_DIR=$SIM_DIR/include \
+  -DSIMMETRIX_LIB_DIR=$SIM_DIR/lib/$SIM_ARCHOS \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX"

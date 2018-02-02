@@ -349,11 +349,6 @@ subroutine step_unsplit(calc_matrices)
   call smooth_velocity(u_v, chi_v)
   call smooth_fields(psi_v)
 
-  ! populate temperature fields
-!!$  if(ipres.eq.1 .or. numvar.ge.3) then
-!!$     call get_temperatures(den_v, p_v, p_v, te_field(1), ti_field(1))
-!!$  end if
-
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."
 end subroutine step_unsplit
 

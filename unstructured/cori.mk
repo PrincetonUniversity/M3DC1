@@ -74,9 +74,9 @@ OPTS := $(OPTS) -DUSEADIOS
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
 #ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
-#ADIOS_DIR=/usr/common/usg/adios/1.4.1
+ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-             -L/usr/common/usg/minixml/2.9/intel/lib -lm -lmxml \
+             -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
              -L/usr/lib64/ -llustreapi
 
 

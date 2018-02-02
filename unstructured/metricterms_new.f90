@@ -9429,19 +9429,20 @@ end function b3tekappa
 
 ! B3pedkappag
 ! ===========
-function b3pedkappag(e,f,g,h)
+function b3pppkappag(e,f,g,h,i)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, dimension(dofs_per_element) :: b3pedkappag
+  vectype, dimension(dofs_per_element) :: b3pppkappag
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, intent(in), dimension(MAX_PTS) :: i
   vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1.) then
-     b3pedkappag = 0.
+     b3pppkappag = 0.
      return
   end if
 
@@ -9456,27 +9457,56 @@ function b3pedkappag(e,f,g,h)
   temp79a = temp79a + h(:,OP_DP)*g(:,OP_DP)*ri2_79
 #endif
 
-  where(real(temp79a).lt.gradp_crit**2)
-     temp79a = 0.
-  elsewhere
-     temp79a = temp79a - gradp_crit**2
-  end where
-
   if(surface_int) then
-     temp = intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DR),temp79a) &
-          + intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DZ),temp79a)
+     temp = intx5(e(:,:,OP_1),norm79(:,1),f(:,OP_DR),temp79a,i) &
+          + intx5(e(:,:,OP_1),norm79(:,2),f(:,OP_DZ),temp79a,i)
   else
      temp = &
-          - intx3(e(:,:,OP_DZ),f(:,OP_DZ),temp79a) &
-          - intx3(e(:,:,OP_DR),f(:,OP_DR),temp79a)
+          - intx4(e(:,:,OP_DZ),f(:,OP_DZ),temp79a,i) &
+          - intx4(e(:,:,OP_DR),f(:,OP_DR),temp79a,i)
   
 #if defined(USE3D) || defined(USECOMPLEX)
-     temp = temp + intx4(e(:,:,OP_1),ri2_79,f(:,OP_DPP),temp79a)
+     temp = temp + intx5(e(:,:,OP_1),ri2_79,f(:,OP_DPP),temp79a,i)
 #endif
   end if
 
-  b3pedkappag = (gam-1.)*kappag*temp
-end function b3pedkappag
+  b3pppkappag = (gam-1.)*kappag*temp
+end function b3pppkappag
+
+! B3pkappag
+! =========
+function b3pkappag(e,f,i)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: b3pkappag
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, intent(in), dimension(MAX_PTS) :: i
+  vectype, dimension(dofs_per_element) :: temp
+
+  if(gam.le.1.) then
+     b3pkappag = 0.
+     return
+  end if
+
+  if(surface_int) then
+     temp = intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DR),i) &
+          + intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DZ),i)
+  else
+     temp = &
+          - intx3(e(:,:,OP_DZ),f(:,OP_DZ),i) &
+          - intx3(e(:,:,OP_DR),f(:,OP_DR),i)
+  
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = temp + intx4(e(:,:,OP_1),ri2_79,f(:,OP_DPP),i)
+#endif
+  end if
+
+  b3pkappag = -gradp_crit**2*(gam-1.)*kappag*temp
+end function b3pkappag
 
 
 

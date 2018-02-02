@@ -1,0 +1,61 @@
+1. login 
+	ssh your_id@perseus.princeton.edu
+
+2. code
+
+3. load modules
+
+    module load intel/17.0/64/17.0.5.239 openmpi gsl/2.4
+
+4. compile code
+	2D real: make OPT=1 
+	2D complex: make OPT=1 COM=1 
+            - add PAR=1 to run PIC
+	3D real: make 3D=1 OPT=1 MAX_PTS=60 
+        
+5. mesh utility
+        /home/jinchen/LIB/intel17.0-openmpi1.10.2/bin
+
+6. run a job 
+    for details, see http://www.princeton.edu/researchcomputing/computational-hardware/perseus/user-guidelines
+
+6.1 interactive mode
+    # num_proc = N*T
+    salloc --nodes=N --ntasks-per-node=T -t hh:mm:ss
+    module load intel/17.0/64/17.0.5.239 openmpi gsl/2.4
+    srun m3dc1_3d -ipetsc -options_file options_bjacobi
+
+6.2 batch mode
+
+  create job_script
+
+	#!/bin/bash
+	# parallel 3D job using 32 processors and runs for 30 minutes (max: 4 hours) 
+  	# max 64 nodes & 28 cores/node 
+	#SBATCH --nodes=2 # node count
+	#SBATCH --ntasks-per-node=16 
+	#SBATCH --time=0:30:00 
+	# sends mail when process begins, and
+	# when it ends. Make sure you define your email 
+	#SBATCH --mail-type=begin 
+	#SBATCH --mail-type=end 
+	#SBATCH --mail-user=your_email
+	# Load openmpi environment module load openmpi intel
+	module load intel/17.0/64/17.0.5.239 openmpi gsl/2.4
+        #2D complex
+        srun m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+
+        #2D real with petsc
+        srun m3dc1_2d
+ 
+        #3D real with petsc
+        srun m3dc1_3d -ipetsc -options_file options_bjacobi
+
+  submit job
+	sbatch job_script
+
+  list all curent jobs for a user
+	squeue -u your_id
+
+  delete a job
+   	scancel job_id

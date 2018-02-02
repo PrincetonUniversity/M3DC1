@@ -581,6 +581,18 @@ subroutine set_defaults
   call add_var_double_array("gs_radial_feedback_i", gs_radial_feedback_i, &
        maxcoils, 0., &
        "Integral feedback of each coil to radial displacements", gs_grp)
+  call add_var_double_array("gs_vertical_feedback_x", gs_vertical_feedback_x, &
+       maxcoils, 0., &
+       "Proportional feedback of each coil to vertical displacements", gs_grp)
+  call add_var_double_array("gs_radial_feedback_x", gs_radial_feedback_x, &
+       maxcoils, 0., &
+       "Proportional feedback of each coil to radial displacements", gs_grp)
+  call add_var_double_array("gs_vertical_feedback_x_i", gs_vertical_feedback_x_i, &
+       maxcoils, 0., &
+       "Integral feedback of each coil to vertical displacements", gs_grp)
+  call add_var_double_array("gs_radial_feedback_x_i", gs_radial_feedback_x_i, &
+       maxcoils, 0., &
+       "Integral feedback of each coil to radial displacements", gs_grp)
 
   call add_var_int("irot", irot, 0, &
        "Include toroidal rotation", gs_grp)
@@ -618,6 +630,10 @@ subroutine set_defaults
        "Guess for Z-coordinate of inaxtive x-point", gs_grp)
   call add_var_double("gs_pf_psi_width", gs_pf_psi_width, 0., &
        "Width of psi smoothing into private flux region", gs_grp)
+  call add_var_double("xnull0", xnull0, 0., &
+       "Target R-coordinate of x-point for feedback", gs_grp)
+  call add_var_double("znull0", znull0, 0., &
+       "Target Z-coordinate of x-point for feedback", gs_grp)
 
 
   ! Hyper diffusion
@@ -929,6 +945,8 @@ subroutine set_defaults
        "Number of mode-rational surfaces to pack mesh around", adapt_grp)
   call add_var_double("adapt_pack_factor", adapt_pack_factor, 0.02, &
        "Width of Lorentzian (in psi_N) for rational mesh packing", adapt_grp)
+  call add_var_double("adapt_coil_delta", adapt_coil_delta, 0., &
+       "Parameter for packing mesh around coil locations", adapt_grp)
 
 
   ! Mesh
