@@ -37,8 +37,8 @@ else
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
   else
-    PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.0
-    PETSC_ARCH=cori-hsw-knl-mpich760
+    PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2
+    PETSC_ARCH = cori-hsw-mpich760-real
   endif
   HYPRE_LIB = -lHYPRE
 endif
@@ -56,7 +56,9 @@ PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 
 SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Aug2017/bin
 #SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Aug2017
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Nov2017
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Nov2017
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/debug
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Dec2017/
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
