@@ -373,16 +373,11 @@ contains
 #endif
     ierr = 0
 
-#ifdef KSPITS
 #ifdef M3DC1_TRILINOS
     call m3dc1_solver_getnumiter(mat%imatrix,num_iter)
 #else
        !2013-jan-17 only for hopper
     call m3dc1_matrix_getiternum(mat%imatrix,num_iter)
-#endif
-#else
-       !2013-jan-17 fake numbers on other systems
-       num_iter=mat%imatrix
 #endif
    if(mat%imatrix== 5) kspits(1)=num_iter
    if(mat%imatrix== 1) kspits(2)=num_iter
@@ -414,11 +409,8 @@ contains
   subroutine scorec_matrix_zero(mat)
     implicit none
     type(scorec_matrix) :: mat   
-#ifdef M3DC1_TRILINOS
-!    not implemented yet
-!    call m3dc1_epetra_reset(mat%imatrix)
-#else
-!    call m3dc1_matrix_reset(mat%imatrix)
+#ifdef NEWSOLVERDEVELOPMENT
+     call m3dc1_matrix_reset(mat%imatrix)
 #endif
   end subroutine scorec_matrix_zero
 

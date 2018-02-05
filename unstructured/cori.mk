@@ -82,7 +82,7 @@ ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L/usr/lib64/ -llustreapi
 
 
-OPTS := $(OPTS) -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DUSEBLAS -DNEWSOLVERDEVELOPMENT
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
            $(FFTW_INCLUDE_OPTS) \

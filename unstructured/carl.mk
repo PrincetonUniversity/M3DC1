@@ -13,7 +13,7 @@ else
   LOADER = mpiifort -xMIC-AVX512
 endif
 
-OPTS := $(OPTS) -DKSPITS -DUSEBLAS #-DUSEHYBRID -DCJ_MATRIX_DUMP
+OPTS := $(OPTS) -DUSEBLAS
 
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt

@@ -4,7 +4,6 @@ F90 = mpif90
 F77 = mpif90
 LOADER = mpif90
 
-OPTS := $(OPTS) -DKSPITS
 FOPTS = -c -cpp -fdefault-real-8 -fdefault-double-8 -Wall -static $(OPTS) \
         -Wno-unused-variable -ffree-line-length-0 -Wno-unused-dummy-argument \
         -Dglobalinsertval=insertval -Dglobalentdofs=entdofs
