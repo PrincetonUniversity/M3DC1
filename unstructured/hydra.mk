@@ -1,5 +1,5 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DKSPITS -DxCJ_MATRIX_DUMP $(OPTS)
-CCOPTS  = -c -O -DKSPITS -DxCJ_MATRIX_DUMP -DxUSEHYBRID
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
+CCOPTS  = -c -O
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -fast

@@ -1,5 +1,5 @@
-FOPTS = -c  -fdefault-real-8 -Wall -cpp -DKSPITS $(OPTS) 
-CCOPTS  = -c -O #-DCJ_MATRIX_DUMP -DUSEHYBRID 
+FOPTS = -c  -fdefault-real-8 -Wall -cpp $(OPTS) 
+CCOPTS  = -c -O
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 

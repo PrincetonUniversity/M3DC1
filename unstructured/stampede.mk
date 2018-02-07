@@ -1,6 +1,6 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPETSC_VERSION=37 -DKSPITS $(OPTS) -DLATESTSCOREC -DUSEBLAS -xMIC-AVX512
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPETSC_VERSION=37 $(OPTS) -DLATESTSCOREC -DUSEBLAS -xMIC-AVX512
 
-CCOPTS  = -c -O -DPETSC_VERSION=37 -xMIC-AVX512 #-DCJ_MATRIX_DUMP -DUSEHYBRID 
+CCOPTS  = -c -O -DPETSC_VERSION=37 -xMIC-AVX512
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec

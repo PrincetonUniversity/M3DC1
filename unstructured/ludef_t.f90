@@ -4432,6 +4432,8 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
        print *, " initializing matrices..."
 
 #ifdef NEWSOLVERDEVELOPMENT
+  if(myrank.eq.0 .and. ntime.eq.1) &
+       print *, " zero matrices..."
 #else
   call clear_matrices
 #endif
