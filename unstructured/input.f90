@@ -802,10 +802,14 @@ subroutine set_defaults
        "R coordinate of gaussian heat source", source_grp)
   call add_var_double("ghs_z", ghs_z, 0., &
        "Z coordinate of gaussian heat source", source_grp)
+  call add_var_double("ghs_phi", ghs_phi, 0., &
+       "Phi coordinate of gaussian heat source", source_grp)
   call add_var_double("ghs_rate", ghs_rate, 0., &
        "Amplitude of gaussian heat source", source_grp)
   call add_var_double("ghs_var", ghs_var, 1., &
        "Variance of gaussian heat source", source_grp)
+  call add_var_double("ghs_var_tor", ghs_var_tor, 0., &
+       "Toroidal variance of gaussian heat source", source_grp)
 
   call add_var_int("ionization", ionization, 0, "", source_grp)
   call add_var_double("ionization_rate", ionization_rate, 0., "", source_grp)

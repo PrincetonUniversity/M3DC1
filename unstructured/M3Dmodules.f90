@@ -139,7 +139,7 @@ module basic
   real :: alphadenfloor  ! proportionality constant for setting density constant
 
   integer :: igaussian_heat_source
-  real :: ghs_x, ghs_z, ghs_rate, ghs_var
+  real :: ghs_x, ghs_z, ghs_phi, ghs_rate, ghs_var, ghs_var_tor
 
   integer :: iprad    ! Use Qian Teng's prad module
   integer :: prad_z   ! Z of impurity species in prad module

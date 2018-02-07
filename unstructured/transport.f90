@@ -323,11 +323,28 @@ function q_func(izone)
 
   temp = 0.
 
-  ! Pellet injection model
+  ! Gaussian heat source model
   if(igaussian_heat_source.eq.1) then
      temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
           *exp(-((x_79 - ghs_x)**2 + (z_79 - ghs_z)**2) &
           /(2.*ghs_var**2))
+#ifdef USE3D
+     if(ghs_var_tor .gt. 0) then
+        if(itor.eq.1) then 
+           temp79a = temp79a*exp( &
+                -2.*r_79*ghs_x*(1.-cos(phi_79 - ghs_phi)) &
+                /(2.*ghs_var_tor**2)) &
+                / (sqrt(2.*pi)*ghs_var_tor)
+        else
+           temp79b = &
+                (exp(-(phi_79-ghs_phi)**2/(2.*ghs_var_tor**2)) &
+                +exp(-(phi_79-ghs_phi+toroidal_period)**2/(2.*ghs_var_tor**2)) &
+                +exp(-(phi_79-ghs_phi-toroidal_period)**2/(2.*ghs_var_tor**2))) &
+                / (sqrt(2.*pi)*ghs_var_tor)
+           temp79a = temp79a*temp79b
+        end if
+     end if
+#endif
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   endif
 
