@@ -28,7 +28,6 @@ using namespace apf;
 #ifdef _OPENMP
 #include "omp.h"
 #endif
-using namespace apf;
 
 void delete_mesh_array()
 {

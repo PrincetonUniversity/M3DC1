@@ -102,47 +102,47 @@ int m3dc1_node_write (const char* filename, int* start_index);
 int m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac);
 
 /** field manangement */
-int m3dc1_field_getnewid (FieldID* /*out*/field_id);
+void m3dc1_field_getnewid (FieldID* /*out*/field_id);
 // ordering should be reused for field and matrix??? -Fan
 // is num_dofs input or output?
 // *value_type is either M3DC1_REAL or M3DC1_COMPLEX
-int m3dc1_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_name, int* num_values, int* value_type, int* num_dofs_per_value);
-int m3dc1_field_delete (FieldID* /*in*/ field_id); 
+void m3dc1_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_name, int* num_values, int* value_type, int* num_dofs_per_value);
+void m3dc1_field_delete (FieldID* /*in*/ field_id); 
 
-int m3dc1_field_getinfo(FieldID* /*in*/ field_id, char* /* out*/ field_name, int* num_values, int* value_type, int* total_num_dof);
+void m3dc1_field_getinfo(FieldID* /*in*/ field_id, char* /* out*/ field_name, int* num_values, int* value_type, int* total_num_dof);
 
-int m3dc1_field_exist(FieldID* field_id, int * exist);//checkppplveccreated_
-int m3dc1_field_sync (FieldID* /* in */ field_id); // updatesharedppplvecvals_;
-int m3dc1_field_sum (FieldID* /* in */ field_id); // sumsharedppplvecvals_
-int m3dc1_field_sumsq (FieldID* /* in */ field_id, double* /* out */ sum);
+void m3dc1_field_exist(FieldID* field_id, int * exist);//checkppplveccreated_
+void m3dc1_field_sync (FieldID* /* in */ field_id); // updatesharedppplvecvals_;
+void m3dc1_field_sum (FieldID* /* in */ field_id); // sumsharedppplvecvals_
+void m3dc1_field_sumsq (FieldID* /* in */ field_id, double* /* out */ sum);
 
 /** field dof functions */
-int m3dc1_field_getlocaldofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one); 
-int m3dc1_field_getowndofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);  
-int m3dc1_field_getglobaldofid ( FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);  
-int m3dc1_field_getghostdofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+void m3dc1_field_getlocaldofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one); 
+void m3dc1_field_getowndofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);  
+void m3dc1_field_getglobaldofid ( FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);  
+void m3dc1_field_getghostdofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
 
-int m3dc1_field_getnumlocaldof (FieldID* field_id, int* /* out */ num_local_dof);
-int m3dc1_field_getnumowndof (FieldID* field_id, int* /* out */ num_own_dof);
-int m3dc1_field_getnumglobaldof (FieldID* field_id, int* /* out */ num_global_dof);
-int m3dc1_field_getnumghostdof (FieldID* field_id, int* /* out */ num_ghost_dof);
+void m3dc1_field_getnumlocaldof (FieldID* field_id, int* /* out */ num_local_dof);
+void m3dc1_field_getnumowndof (FieldID* field_id, int* /* out */ num_own_dof);
+void m3dc1_field_getnumglobaldof (FieldID* field_id, int* /* out */ num_global_dof);
+void m3dc1_field_getnumghostdof (FieldID* field_id, int* /* out */ num_ghost_dof);
 
-int m3dc1_field_getdataptr (FieldID* field_id, double** pts);
+void m3dc1_field_getdataptr (FieldID* field_id, double** pts);
 
-int m3dc1_field_add(FieldID* /*inout*/ field1, FieldID* /*in*/ field2);
-int m3dc1_field_mult(FieldID* /*inout*/ field, double* fac, int * scalar_type);
-int m3dc1_field_assign(FieldID* /*inout*/ field, double* fac, int * scalar_type);
-int m3dc1_field_copy(FieldID* /* out */ filed1, FieldID* /* in */ field2);
-int m3dc1_field_retrieve (FieldID* /* in */ filed1, double * /*out*/ data, int * /* in */size);
-int m3dc1_field_set (FieldID* /* in */ filed1, double * /*in*/ data, int * /* in */size);
-int m3dc1_field_insert(FieldID* /* in */ field, int /* in */ * local_dof, int * /* in */ size, double* /* in */ values, int * type, int * /* in */ op);
-int m3dc1_field_isnan(FieldID* /* in */ field, int * isnan);
-int m3dc1_field_compare(FieldID* field_id_1, FieldID* field_id_2);
-int m3dc1_field_write(FieldID* field, const char* filename, int* start_index);
-int m3dc1_field_print(FieldID* field);
-int m3dc1_field_sum_plane (FieldID* /* in */ field_id);
-int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info);
-int m3dc1_field_max (FieldID* field_id, double * max_val, double * min_val);
+void m3dc1_field_add(FieldID* /*inout*/ field1, FieldID* /*in*/ field2);
+void m3dc1_field_mult(FieldID* /*inout*/ field, double* fac, int * scalar_type);
+void m3dc1_field_assign(FieldID* /*inout*/ field, double* fac, int * scalar_type);
+void m3dc1_field_copy(FieldID* /* out */ filed1, FieldID* /* in */ field2);
+void m3dc1_field_retrieve (FieldID* /* in */ filed1, double * /*out*/ data, int * /* in */size);
+void m3dc1_field_set (FieldID* /* in */ filed1, double * /*in*/ data, int * /* in */size);
+void m3dc1_field_insert(FieldID* /* in */ field, int /* in */ * local_dof, int * /* in */ size, double* /* in */ values, int * type, int * /* in */ op);
+void m3dc1_field_isnan(FieldID* /* in */ field, int * isnan);
+void m3dc1_field_compare(FieldID* field_id_1, FieldID* field_id_2);
+void m3dc1_field_write(FieldID* field, const char* filename, int* start_index);
+void m3dc1_field_print(FieldID* field);
+void m3dc1_field_sum_plane (FieldID* /* in */ field_id);
+void m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info);
+void m3dc1_field_max (FieldID* field_id, double * max_val, double * min_val);
 
 void m3dc1_field_verify();
 
