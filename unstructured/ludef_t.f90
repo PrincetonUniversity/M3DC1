@@ -79,12 +79,12 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(inonormalflow.eq.1 .and. .not.surface_int) then
         tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
      else
-        tempx = v1un(trialx,lin,nt79)
+        tempx = v1un(trialx,lin,rho79)
      end if
      ssterm(:,u_g) = ssterm(:,u_g) + tempx
      if(numvar.ge.3) then
         if(inoslip_pol.eq.0) then
-           tempx = v1chin(trialx,lin,nt79)*chiiner
+           tempx = v1chin(trialx,lin,rho79)*chiiner
            ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
         end if
      end if
@@ -102,12 +102,12 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  tempx = v1un(trialx,lin,nt79)*freq_fac
+  tempx = v1un(trialx,lin,rho79)*freq_fac
   ssterm(:,u_g) = ssterm(:,u_g) + tempx
   if(itime_independent.eq.0) ddterm(:,u_g) = ddterm(:,u_g) + tempx*bdf
   
   if(numvar.ge.3) then
-     tempx = v1chin(trialx,lin,nt79)*chiiner*freq_fac
+     tempx = v1chin(trialx,lin,rho79)*chiiner*freq_fac
      ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
      if(itime_independent.eq.0) ddterm(:,chi_g) = ddterm(:,chi_g) + tempx*bdf
   end if
@@ -135,63 +135,63 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Advection
   ! ~~~~~~~~~
   if(linear.eq.0) then 
-     tempx = v1uun(trialx,lin,ph179,nt79) &
-          +  v1uun(trialx,ph179,lin,nt79)
+     tempx = v1uun(trialx,lin,ph179,rho79) &
+          +  v1uun(trialx,ph179,lin,rho79)
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimp*bdf)*dt*tempx
 
-     tempx = v1uvn(trialx,lin,vz179,nt79)
+     tempx = v1uvn(trialx,lin,vz179,rho79)
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimp*bdf)*dt*tempx
 
-     tempx = v1uchin(trialx,lin,ch179,nt79)       
+     tempx = v1uchin(trialx,lin,ch179,rho79)       
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimp*bdf)*dt*tempx
 
      if(numvar.ge.2) then
-        tempx = v1vvn(trialx,lin,vz179,nt79) &
-             +  v1vvn(trialx,vz179,lin,nt79) &
-             +  v1uvn(trialx,ph179,lin,nt79)
+        tempx = v1vvn(trialx,lin,vz179,rho79) &
+             +  v1vvn(trialx,vz179,lin,rho79) &
+             +  v1uvn(trialx,ph179,lin,rho79)
         ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
         ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimp*bdf)*dt*tempx
 
-        tempx = v1vchin(trialx,lin,ch179,nt79)       
+        tempx = v1vchin(trialx,lin,ch179,rho79)       
         ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
         ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimp*bdf)*dt*tempx
      end if
 
      if(numvar.ge.3) then
-        tempx = v1uchin  (trialx,ph179,lin,nt79) &
-             +  v1vchin  (trialx,vz179,lin,nt79) &
-             +  v1chichin(trialx,lin,ch179,nt79) &
-             +  v1chichin(trialx,ch179,lin,nt79)
+        tempx = v1uchin  (trialx,ph179,lin,rho79) &
+             +  v1vchin  (trialx,vz179,lin,rho79) &
+             +  v1chichin(trialx,lin,ch179,rho79) &
+             +  v1chichin(trialx,ch179,lin,rho79)
         ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
         ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimp*bdf)*dt*tempx
       end if
   end if
 
   if(eqsubtract.eq.1) then
-     tempx = v1uun  (trialx,lin,ph079,nt79) &    
-          +  v1uun  (trialx,ph079,lin,nt79) &
-          +  v1uvn  (trialx,lin,vz079,nt79) &
-          +  v1uchin(trialx,lin,ch079,nt79)
+     tempx = v1uun  (trialx,lin,ph079,rho79) &    
+          +  v1uun  (trialx,ph079,lin,rho79) &
+          +  v1uvn  (trialx,lin,vz079,rho79) &
+          +  v1uchin(trialx,lin,ch079,rho79)
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
 
      if(numvar.ge.2) then
-        tempx = v1uvn  (trialx,ph079,lin,nt79) & 
-             +  v1vvn  (trialx,lin,vz079,nt79) &
-             +  v1vvn  (trialx,vz079,lin,nt79) &
-             +  v1vchin(trialx,lin,ch079,nt79)
+        tempx = v1uvn  (trialx,ph079,lin,rho79) & 
+             +  v1vvn  (trialx,lin,vz079,rho79) &
+             +  v1vvn  (trialx,vz079,lin,rho79) &
+             +  v1vchin(trialx,lin,ch079,rho79)
         ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
         ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
      end if
 
      if(numvar.ge.3) then
-        tempx = v1uchin  (trialx,ph079,lin,nt79) &
-             +  v1vchin  (trialx,vz079,lin,nt79) &
-             +  v1chichin(trialx,lin,ch079,nt79) &
-             +  v1chichin(trialx,ch079,lin,nt79)
+        tempx = v1uchin  (trialx,ph079,lin,rho79) &
+             +  v1vchin  (trialx,vz079,lin,rho79) &
+             +  v1chichin(trialx,lin,ch079,rho79) &
+             +  v1chichin(trialx,ch079,lin,rho79)
         ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
         ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
      end if
@@ -261,12 +261,12 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
              v1ngrav(trialx,lin)
 
         ! parabolization terms
-        tempx = v1ungrav (trialx,lin,nt79)
+        tempx = v1ungrav (trialx,lin,rho79)
         ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
      
         if(numvar.ge.3) then
-           tempx = v1chingrav (trialx,lin,nt79)
+           tempx = v1chingrav (trialx,lin,rho79)
            ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
            ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
         end if
@@ -689,7 +689,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Time Derivative
   ! ~~~~~~~~~~~~~~~
-  tempx = v2vn(trialx,lin,nt79)*freq_fac
+  tempx = v2vn(trialx,lin,rho79)*freq_fac
   ssterm(:,vz_g) = ssterm(:,vz_g) + tempx
   if(itime_independent.eq.0) ddterm(:,vz_g) = ddterm(:,vz_g) + tempx*bdf
 
@@ -715,41 +715,41 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Advection
   ! ~~~~~~~~~
   if(linear.eq.0) then 
-     tempx = v2vun(trialx,vz179,lin,nt79)
+     tempx = v2vun(trialx,vz179,lin,rho79)
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimp*bdf)*dt*tempx
 
-     tempx = v2vun(trialx,lin,ph179,nt79) &
-          +  v2vvn(trialx,lin,vz179,nt79) &
-          +  v2vvn(trialx,vz179,lin,nt79)
+     tempx = v2vun(trialx,lin,ph179,rho79) &
+          +  v2vvn(trialx,lin,vz179,rho79) &
+          +  v2vvn(trialx,vz179,lin,rho79)
      ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimp*bdf)*dt*tempx
 
-     tempx = v2vchin(trialx,lin,ch179,nt79)
+     tempx = v2vchin(trialx,lin,ch179,rho79)
      ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimp*bdf)*dt*tempx
 
      if(numvar.ge.3) then
-        tempx = v2vchin(trialx,vz179,lin,nt79)
+        tempx = v2vchin(trialx,vz179,lin,rho79)
         ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
         ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimp*bdf)*dt*tempx
      end if
   end if
   
   if(eqsubtract.eq.1) then
-     tempx = v2vun(trialx,vz079,lin,nt79)
+     tempx = v2vun(trialx,vz079,lin,rho79)
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
               
-     tempx = v2vun  (trialx,lin,ph079,nt79) &
-          +  v2vvn  (trialx,lin,vz079,nt79) &
-          +  v2vvn  (trialx,vz079,lin,nt79) &
-          +  v2vchin(trialx,lin,ch079,nt79)
+     tempx = v2vun  (trialx,lin,ph079,rho79) &
+          +  v2vvn  (trialx,lin,vz079,rho79) &
+          +  v2vvn  (trialx,vz079,lin,rho79) &
+          +  v2vchin(trialx,lin,ch079,rho79)
      ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
 
      if(numvar.ge.3) then
-        tempx = v2vchin(trialx,vz079,lin,nt79)
+        tempx = v2vchin(trialx,vz079,lin,rho79)
         ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
         ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
      end if
@@ -1197,14 +1197,14 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(izone.ne.1) then 
      if(inonormalflow.eq.0) then
-        tempx = v3un(trialx,lin,nt79)
+        tempx = v3un(trialx,lin,rho79)
         ssterm(:,u_g) = ssterm(:,u_g) + tempx
      end if
      
      if(inoslip_pol.eq.1 .and. .not.surface_int) then
         tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
      else
-        tempx = v3chin(trialx,lin,nt79)
+        tempx = v3chin(trialx,lin,rho79)
      end if
      ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
      return
@@ -1212,11 +1212,11 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Time Derivatives
   ! ~~~~~~~~~~~~~~~~
-  tempx = v3un(trialx,lin,nt79)*freq_fac
+  tempx = v3un(trialx,lin,rho79)*freq_fac
   ssterm(:,u_g) = ssterm(:,u_g) + tempx
   if(itime_independent.eq.0) ddterm(:,u_g) = ddterm(:,u_g) + tempx*bdf
      
-  tempx = v3chin(trialx,lin,nt79)*chiiner*freq_fac
+  tempx = v3chin(trialx,lin,rho79)*chiiner*freq_fac
   ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
   if(itime_independent.eq.0) ddterm(:,chi_g) = ddterm(:,chi_g) + tempx*bdf
 
@@ -1241,47 +1241,47 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Advection
   ! ~~~~~~~~~
   if(linear.eq.0) then 
-     tempx = v3uun  (trialx,lin,ph179,nt79) &
-          + v3uun  (trialx,ph179,lin,nt79) &
-          + v3uvn  (trialx,lin,vz179,nt79) &
-          + v3uchin(trialx,lin,ch179,nt79)
+     tempx = v3uun  (trialx,lin,ph179,rho79) &
+          + v3uun  (trialx,ph179,lin,rho79) &
+          + v3uvn  (trialx,lin,vz179,rho79) &
+          + v3uchin(trialx,lin,ch179,rho79)
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimp*bdf)*dt*tempx
 
-     tempx = v3uvn  (trialx,ph179,lin,nt79) &
-          + v3vvn  (trialx,lin,vz179,nt79) &
-          + v3vvn  (trialx,vz179,lin,nt79) &
-          + v3vchin(trialx,lin,ch179,nt79)
+     tempx = v3uvn  (trialx,ph179,lin,rho79) &
+          + v3vvn  (trialx,lin,vz179,rho79) &
+          + v3vvn  (trialx,vz179,lin,rho79) &
+          + v3vchin(trialx,lin,ch179,rho79)
      ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimp*bdf)*dt*tempx
 
-     tempx = v3uchin  (trialx,ph179,lin,nt79) &
-          + v3vchin  (trialx,vz179,lin,nt79) &
-          + v3chichin(trialx,lin,ch179,nt79) &
-          + v3chichin(trialx,ch179,lin,nt79)  
+     tempx = v3uchin  (trialx,ph179,lin,rho79) &
+          + v3vchin  (trialx,vz179,lin,rho79) &
+          + v3chichin(trialx,lin,ch179,rho79) &
+          + v3chichin(trialx,ch179,lin,rho79)  
      ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimp*bdf)*dt*tempx
   endif
 
   if(eqsubtract.eq.1) then             
-     tempx = v3uun  (trialx,lin,ph079,nt79) &
-          + v3uun  (trialx,ph079,lin,nt79) &
-          + v3uvn  (trialx,lin,vz079,nt79) &
-          + v3uchin(trialx,lin,ch079,nt79)
+     tempx = v3uun  (trialx,lin,ph079,rho79) &
+          + v3uun  (trialx,ph079,lin,rho79) &
+          + v3uvn  (trialx,lin,vz079,rho79) &
+          + v3uchin(trialx,lin,ch079,rho79)
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
      
-     tempx = v3uvn  (trialx,ph079,lin,nt79) &
-          + v3vvn  (trialx,lin,vz079,nt79) &
-          + v3vvn  (trialx,vz079,lin,nt79) &
-          + v3vchin(trialx,lin,ch079,nt79)
+     tempx = v3uvn  (trialx,ph079,lin,rho79) &
+          + v3vvn  (trialx,lin,vz079,rho79) &
+          + v3vvn  (trialx,vz079,lin,rho79) &
+          + v3vchin(trialx,lin,ch079,rho79)
      ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
      
-     tempx = v3uchin  (trialx,ph079,lin,nt79) &
-          + v3vchin  (trialx,vz079,lin,nt79) &
-          + v3chichin(trialx,lin,ch079,nt79) &
-          + v3chichin(trialx,ch079,lin,nt79)
+     tempx = v3uchin  (trialx,ph079,lin,rho79) &
+          + v3vchin  (trialx,vz079,lin,rho79) &
+          + v3chichin(trialx,lin,ch079,rho79) &
+          + v3chichin(trialx,ch079,lin,rho79)
      ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
 
@@ -1506,11 +1506,11 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
              v3ngrav(trialx,lin)
 
         ! parabolization terms
-        tempx = v3ungrav (trialx,lin,nt79)
+        tempx = v3ungrav (trialx,lin,rho79)
         ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
 
-        tempx = v3chingrav (trialx,lin,nt79)
+        tempx = v3chingrav (trialx,lin,rho79)
         ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
         ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
 
@@ -4403,6 +4403,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   use transport_coefficients
   use gyroviscosity
   use runaway_mod
+  use auxiliary_fields
 
   implicit none
 
@@ -4504,6 +4505,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
      call define_fields(itri, def_fields, 1, linear)
+     call calculate_rho(itri)
      if(gyro.eq.1) call gyro_common
      if(irunaway.gt.0) call eval_runaway(itri,izone)
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -5473,5 +5475,3 @@ subroutine ludefden_n(itri)
   call vector_insert_block(nsource,itri,den_i,oterm,VEC_ADD)
 !$OMP END CRITICAL
 end subroutine ludefden_n
-
-

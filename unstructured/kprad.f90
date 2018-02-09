@@ -9,7 +9,7 @@ module kprad
   real, allocatable, private, dimension(:,:) :: c, sion_coeff
 
   ! mass of chosen impurity species (in amu)
-  integer, private :: kprad_mz
+  integer :: kprad_mz
 
   ! polynomial order for evaluating 
   ! radiation and ionization rates, respectively
