@@ -35,6 +35,10 @@ function field_data, name, units=units, itor=itor, filename=filename
                  strcmp(name, 'den_i', /fold_case) eq 1) then begin
        units = dimensions(/n0)
        return, "!8n!Di!N!X"
+   endif else if(strcmp(name, 'ne', /fold_case) eq 1 or $
+                 strcmp(name, 'ne_i', /fold_case) eq 1) then begin
+       units = dimensions(/n0)
+       return, "!8n!De!N!X"
    endif else if(strcmp(name, 'n_re', /fold_case) eq 1 or $
                  strcmp(name, 'n_re_i', /fold_case) eq 1) then begin
        units = dimensions(/n0)

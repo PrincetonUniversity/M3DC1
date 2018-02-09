@@ -207,6 +207,13 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8N!X'
        d = dimensions(/n0,l0=3, _EXTRA=extra)
    endif else if $
+     (strcmp("electrons", scalarname, /fold_case) eq 1) or $
+     (strcmp("ne", scalarname, /fold_case) eq 1) then begin
+       data = s.electron_number._data
+       title = 'Electron Number'
+       symbol = '!8N!De!N!X'
+       d = dimensions(/n0,l0=3, _EXTRA=extra)
+   endif else if $
      (strcmp("angular momentum", scalarname, /fold_case) eq 1) then begin
        data = s.angular_momentum._data
        title = 'Angular Momentum'
