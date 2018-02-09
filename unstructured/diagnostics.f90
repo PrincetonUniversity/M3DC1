@@ -12,7 +12,7 @@ module diagnostics
   real :: tflux0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad, totne
   real :: totre  ! total number of runaway electrons
 
   ! wall forces in R, phi, and Z directions
@@ -194,6 +194,7 @@ contains
     wallcur = 0.
     tflux = 0.
     totden = 0.
+    totne = 0.
     totrad = 0.
     tmom = 0.
     tvor = 0.
@@ -249,7 +250,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 60
+    integer, parameter :: num_scalars = 61
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -315,6 +316,7 @@ contains
        temp(58) = wall_force_n1_x
        temp(59) = wall_force_n1_y
        temp(60) = wall_force_n1_z
+       temp(61) = totne
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -380,7 +382,7 @@ contains
        wall_force_n1_x = temp2(58)
        wall_force_n1_y = temp2(59)
        wall_force_n1_z = temp2(60)
-
+       totne = temp2(61)
     endif !if maxrank .gt. 1
 
   end subroutine distribute_scalars
@@ -678,7 +680,7 @@ subroutine calculate_scalars()
   numelms = local_elements()
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -796,6 +798,7 @@ subroutine calculate_scalars()
 
      ! particle number
      totden = totden + twopi*int1(nt79(:,OP_1))/tpifac
+     totne = totne + twopi*int1(net79(:,OP_1))/tpifac
      pden = pden + twopi*int2(nt79(:,OP_1),mr)/tpifac
       ! radiation
      totrad = totrad + twopi*int1(rad79(:,OP_1))/tpifac
