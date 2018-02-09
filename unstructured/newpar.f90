@@ -706,6 +706,9 @@ subroutine derived_quantities(ilin)
     endif
   endif
 
+  ! Electron temperature
+  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
+
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
@@ -719,10 +722,6 @@ subroutine derived_quantities(ilin)
      call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
           eqsubtract)
   end if
-
-
-  ! Electron temperature
-  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
 
 
   !   toroidal current

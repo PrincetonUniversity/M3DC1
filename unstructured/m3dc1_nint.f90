@@ -699,8 +699,10 @@ contains
        
        if(ilin.eq.0) then
           call eval_ops(itri, den_field(1), n179, rfac)
+          call eval_ops(itri, ne_field(1), ne179, rfac)
        else
           n179 = 0.
+          ne179 = 0.
        end if
 
        if(ieqsub.eq.1) then
@@ -718,18 +720,19 @@ contains
                    n079(:,OP_1) = den_edge
                 end where
              end if
+             ne079 = n079*zeff
           else
              call eval_ops(itri, den_field(0), n079)
+             call eval_ops(itri, ne_field(0), ne079)
           end if
           nt79 = n079 + n179
+          net79 = ne079 + ne179
        else
           n079 = 0.
           nt79 = n179
+          ne079 = 0.
+          net79 = ne179
        endif
-
-       ne079 = zeff*n079
-       ne179 = zeff*n179
-       net79 = zeff*nt79
     endif
 
   ! NI
