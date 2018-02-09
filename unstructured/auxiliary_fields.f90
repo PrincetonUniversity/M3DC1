@@ -207,6 +207,85 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
   
 end subroutine calculate_temperatures
 
+subroutine calculate_ne(ilin, ni, ne, ieqsub)
+  use math
+  use basic
+  use m3dc1_nint
+  use newvar_mod
+  use diagnostics
+  use metricterms_new
+  use field
+  use kprad_m3dc1
+  use arrays
+
+  implicit none
+
+  type(field_type) :: ne, ni
+  integer, intent(in) :: ilin, ieqsub
+
+  integer :: numelms
+  integer :: itri, i
+
+  type(field_type) :: ne_f
+
+  vectype, dimension(dofs_per_element) :: dofs
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating electron density'
+
+  if(ikprad.eq.0 .or. linear.eq.1) then
+     ne = ni
+     call mult(ne, zeff)
+     return
+  end if
+  
+  call create_field(ne_f)
+  ne_f = 0.
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, 0, 1, 0, ieqsub)
+
+     ! always calculate the full electron density (regardless of eqsubtract)
+     ! since we don't store the equilibrium impurity density
+     call eval_ops(itri, ni, n179, rfac)
+     if(ieqsub.eq.1 .and. ilin.eq.1) then
+        call eval_ops(itri, den_field(0), n079, rfac)
+        call eval_ops(itri, ne_field(0), ne079, rfac)
+        nt79 = n179 + n079
+     else
+        nt79 = n179
+     end if
+
+     temp79a = nt79(:,OP_1)*zeff
+
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), n079, rfac)
+        temp79a = temp79a + i*n079(:,OP_1)
+     end do
+
+     ! If eqsubtract = 1, subtract the equilibrium electron density.
+     if(ieqsub.eq.1 .and. ilin.eq.1) then
+        temp79a = temp79a - ne079(:,OP_1)
+     end if
+
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+
+     call vector_insert_block(ne_f%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(ne_f%vec, mass_mat_lhs)
+
+  ne = ne_f
+
+  call destroy_field(ne_f)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Done calculating electron density'
+  
+end subroutine calculate_ne
+
+
 subroutine calculate_auxiliary_fields(ilin)
   use math
   use basic

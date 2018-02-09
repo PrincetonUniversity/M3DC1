@@ -929,6 +929,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call write_field(group_id, "den", den_field(ilin), nelms, error)
   call write_field(group_id, "te",   te_field(ilin), nelms, error)
   call write_field(group_id, "ti",   ti_field(ilin), nelms, error)
+  call write_field(group_id, "ne",   ne_field(ilin), nelms, error)
   
   if(icsubtract.eq.1) then
      call write_field(group_id, "psi_coil", psi_coil_field, nelms, error, .true.)
