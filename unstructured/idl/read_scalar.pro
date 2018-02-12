@@ -21,6 +21,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
 
    s = read_scalars(filename=filename)
    itor = read_parameter('itor', filename=filename)
+   version = read_parameter('version', filename=filename)
    if(n_tags(s) eq 0) then return, 0
 
    time = s.time._data
@@ -209,9 +210,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
    endif else if $
      (strcmp("electrons", scalarname, /fold_case) eq 1) or $
      (strcmp("ne", scalarname, /fold_case) eq 1) then begin
-       data = s.electron_number._data
-       title = 'Electron Number'
-       symbol = '!8N!De!N!X'
+      if(version ge 20) then begin
+         data = s.electron_number._data
+      endif else begin
+         zeff = read_parameter('zeff', filename=filename)
+         data = s.particle_number._data*zeff
+      end
+      title = 'Electron Number'
+      symbol = '!8N!De!N!X'
        d = dimensions(/n0,l0=3, _EXTRA=extra)
    endif else if $
      (strcmp("angular momentum", scalarname, /fold_case) eq 1) then begin
