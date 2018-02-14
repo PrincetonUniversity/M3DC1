@@ -11,7 +11,7 @@ module kprad_m3dc1
   type(field_type), allocatable :: kprad_n(:)
   type(field_type), allocatable, private :: kprad_temp(:)
   type(field_type) :: kprad_rad
-
+  type(field_type) :: kprad_sigma_e  ! electron source / sink due to ionization / recomb
   integer :: ikprad     ! 1 = use kprad model
   integer :: kprad_z    ! Z of impurity species
 
@@ -46,6 +46,7 @@ contains
        call create_field(kprad_temp(i))
     end do
     call create_field(kprad_rad)
+    call create_field(kprad_sigma_e)
 
   end subroutine kprad_init
     
@@ -67,6 +68,7 @@ contains
        end do
        deallocate(kprad_n, kprad_temp)
        call destroy_field(kprad_rad)
+       call destroy_field(kprad_sigma_e)
     end if
 
     call kprad_deallocate()
@@ -162,7 +164,7 @@ contains
     type(matrix_type) :: nmat_lhs, nmat_rhs
     type(field_type) :: rhs
     integer :: itri, j, numelms, ierr, def_fields, izone
-    integer, dimension(dofs_per_element) :: imask
+!    integer, dimension(dofs_per_element) :: imask
     vectype, dimension(dofs_per_element) :: tempx
     vectype, dimension(dofs_per_element,dofs_per_element) :: tempxx
     vectype, dimension(dofs_per_element,dofs_per_element) :: ssterm, ddterm
@@ -282,7 +284,7 @@ contains
     
     real :: dt_s
     real, dimension(MAX_PTS) :: ne, te
-    real, dimension(MAX_PTS,0:kprad_z) :: nz
+    real, dimension(MAX_PTS,0:kprad_z) :: nz, nz_old
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad
 
@@ -297,6 +299,7 @@ contains
        kprad_temp(i) = 0.
     end do
     kprad_rad = 0.
+    kprad_sigma_e = 0.
 
     def_fields = FIELD_N + FIELD_TE
 
@@ -316,6 +319,8 @@ contains
           nz(:,i) = ph079(:,OP_1)
        end do
        where(nz.lt.0.) nz = 0.
+
+       nz_old = nz
 
        ! convert nz, ne, te, dt to cgs / eV
        nz = nz*n0_norm
@@ -347,9 +352,17 @@ contains
           dofs = intx2(mu79(:,:,OP_1), temp79a)
           call vector_insert_block(kprad_temp(i)%vec,itri,1,dofs,VEC_ADD)
        end do
+
        temp79b = (dw_rad(:,kprad_z) + dw_brem) / dt
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
+
+       temp79c = 0.
+       do i=0, kprad_z
+          temp79c = temp79c + (nz(:,i) - nz_old(:,i))*i
+       end do
+       dofs = intx2(mu79(:,:,OP_1),temp79c) / dt
+       call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
     end do
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' solving'
@@ -359,6 +372,7 @@ contains
        kprad_n(i) = kprad_temp(i)
     end do
     call newvar_solve(kprad_rad%vec, mass_mat_lhs)
+    call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
 
     call kprad_advect()
 

@@ -4150,7 +4150,12 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! terms due to time-dependent density
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(idens.eq.1 .and. iadiabat.eq.1) then
-     tempx = t3tndenm(trialx,lin,nnt79,denm) + t3ts(trialx,lin,sig79)
+     tempx = t3tndenm(trialx,lin,nnt79,denm) 
+     if(electron_temperature) then
+        tempx = tempx + t3ts(trialx,lin,sie79)
+     else
+        tempx = tempx + t3ts(trialx,lin,sig79)
+     end if
      ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
   endif
@@ -4520,6 +4525,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
      call define_fields(itri, def_fields, 1, linear)
      call calculate_rho(itri)
+     call calculate_sigma_e(itri)
      if(gyro.eq.1) call gyro_common
      if(irunaway.gt.0) call eval_runaway(itri,izone)
      if(myrank.eq.0 .and. itimer.eq.1) then

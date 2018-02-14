@@ -429,6 +429,27 @@ subroutine calculate_rho(itri)
   
 end subroutine calculate_rho
 
+subroutine calculate_sigma_e(itri)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  sie79 = sig79
+
+  if(ikprad.eq.1) then 
+     call eval_ops(itri, kprad_sigma_e, tm79, rfac)
+
+     sie79 = sie79 + tm79
+  end if
+  
+end subroutine calculate_sigma_e
+
+
 subroutine calculate_auxiliary_fields(ilin)
   use math
   use basic
