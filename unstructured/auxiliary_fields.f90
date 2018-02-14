@@ -207,6 +207,127 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
   
 end subroutine calculate_temperatures
 
+subroutine calculate_pressures(ilin, pe, p, ne, ni, te, ti, ieqsub)
+  use math
+  use basic
+  use m3dc1_nint
+  use newvar_mod
+  use diagnostics
+  use metricterms_new
+  use field
+  use arrays
+  use kprad_m3dc1
+
+  implicit none
+
+  type(field_type) :: pe, p, te, ti, ne, ni
+  integer, intent(in) :: ilin    ! 0 = calculate only equilibrium part
+  integer, intent(in) :: ieqsub  ! 1 = supplied fields are only perturbed parts
+
+  integer :: numelms, itri, i
+
+  type(field_type) :: pe_f, p_f
+
+  vectype, dimension(dofs_per_element) :: dofs_p, dofs_pe
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating pressures'
+
+  call create_field(pe_f)
+  call create_field(p_f)
+
+  pe_f = 0.
+  p_f = 0.
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, 0, 1, 0, ieqsub)
+
+     call eval_ops(itri, ne, ne179, rfac)
+     call eval_ops(itri, ni, n179,  rfac)
+     call eval_ops(itri, te, te179, rfac)
+     if(ipres.eq.1) then
+        call eval_ops(itri, ti, ti179, rfac)
+     else
+        ti179 = te179*(1.-pefac)/pefac
+     end if
+     if(ieqsub.eq.1 .and. ilin.eq.1) then
+        call eval_ops(itri, ne_field(0), ne079, rfac)
+        call eval_ops(itri, den_field(0), n079, rfac)
+        call eval_ops(itri, te_field(0), te079, rfac)
+        call eval_ops(itri, ti_field(0), ti079, rfac)
+        nt79  = n179  + n079
+        net79 = ne179 + ne079
+        tit79 = ti179 + ti079
+        tet79 = te179 + te079
+     else
+        nt79  = n179
+        net79 = ne179
+        tit79 = ti179
+        tet79 = te179
+     end if
+
+     ! ion pressure
+     if(linear.eq.1 .and. ilin.eq.1) then 
+        temp79a = n079(:,OP_1)*ti179(:,OP_1) + n179(:,OP_1)*ti079(:,OP_1)
+     else
+        ! calculate the full pressure even when eqsubtract=1,
+        ! since we don't store the equilibrium impurity density
+        temp79a = nt79(:,OP_1)*tit79(:,OP_1)
+
+        ! Add impurity pressure
+        do i=1, kprad_z
+           call eval_ops(itri, kprad_n(i), n079, rfac)
+           temp79a = temp79a + n079(:,OP_1)*tit79(:,OP_1)
+        end do
+     end if
+
+     ! electron pressure
+     if(linear.eq.1 .and. ilin.eq.1) then 
+        temp79b = ne079(:,OP_1)*te179(:,OP_1) + ne179(:,OP_1)*te079(:,OP_1)
+     else
+        ! calculate the full pressure even when eqsubtract=1,
+        ! since we don't store the equilibrium impurity density
+        temp79b = net79(:,OP_1)*tet79(:,OP_1)
+     end if
+
+
+     ! Total pressure is ion pressure plus electron pressure
+     temp79a = temp79a + temp79b
+
+
+     ! If eqsubtract = 1, subtract the equilibrium pressure
+     if(ieqsub.eq.1 .and. ilin.eq.1 .and. linear.eq.0) then
+        call eval_ops(itri, p_field(0), p079, rfac)
+        call eval_ops(itri, pe_field(0), pe079, rfac)
+
+        temp79a = temp79a - p079(:,OP_1)
+        temp79b = temp79b - pe079(:,OP_1)
+     end if
+
+     dofs_p  = intx2(mu79(:,:,OP_1),temp79a)
+     dofs_pe = intx2(mu79(:,:,OP_1),temp79b)
+
+     if(ipres.eq.1) call vector_insert_block(pe_f%vec,itri,1,dofs_pe,VEC_ADD)
+     call vector_insert_block(p_f%vec,itri,1,dofs_p,VEC_ADD)
+  end do
+
+  if(ipres.eq.1)  call newvar_solve(pe_f%vec, mass_mat_lhs)
+  call newvar_solve(p_f%vec, mass_mat_lhs)
+
+  if(ipres.eq.1) pe = pe_f
+  p = p_f
+
+  call destroy_field(pe_f)
+  call destroy_field(p_f)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Done calculating temperatures'
+  
+end subroutine calculate_pressures
+
+
+
 subroutine calculate_ne(ilin, ni, ne, ieqsub)
   use math
   use basic

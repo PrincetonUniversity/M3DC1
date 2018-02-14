@@ -639,6 +639,7 @@ subroutine step_split(calc_matrices)
   use mesh_mod 
   use model
   use transport_coefficients
+  use auxiliary_fields
 
   implicit none
 
@@ -1049,7 +1050,7 @@ subroutine step_split(calc_matrices)
      pret_vec = temp
      call destroy_vector(temp)
      call destroy_vector(temp2)
-     call get_pressures(den_v, te_v, ti_v, p_v, pe_v)
+     call calculate_pressures(1, pe_v, p_v, ne_field(1), den_v, te_v, ti_v, eqsubtract)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--end"
   endif
 
