@@ -187,9 +187,20 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(/energy, _EXTRA=extra)
    endif else if $
      (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
-     (strcmp("te", scalarname, /fold_case) eq 1)then begin
-       nv = read_parameter("numvar", filename=filename)
+     (strcmp("p", scalarname, /fold_case) eq 1)then begin
        data = s.E_P._data 
+       title = 'Thermal Energy'
+       symbol = '!8TE!X'
+       d = dimensions(/energy, _EXTRA=extra)
+   endif else if $
+     (strcmp("electron thermal energy", scalarname, /fold_case) eq 1) or $
+     (strcmp("pe", scalarname, /fold_case) eq 1)then begin
+      if(version ge 20) then begin
+         data = s.E_PE._data 
+      endif else begin
+         print, 'Error, this data is not present in this version of M3D-C1.'
+         data = 0.
+      end
        title = 'Thermal Energy'
        symbol = '!8TE!X'
        d = dimensions(/energy, _EXTRA=extra)
