@@ -150,7 +150,7 @@ contains
   end subroutine boundary_kprad
   
 
-  subroutine kprad_advect()
+  subroutine kprad_advect(dti)
     use basic
     use matrix_mod
     use m3dc1_nint
@@ -161,6 +161,7 @@ contains
 
     implicit none
 
+    real, intent(in) :: dti
     type(matrix_type) :: nmat_lhs, nmat_rhs
     type(field_type) :: rhs
     integer :: itri, j, numelms, ierr, def_fields, izone
@@ -211,16 +212,16 @@ contains
        do j=1, dofs_per_element
           tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79) &
                +  n1nu   (mu79,nu79(j,:,:),pht79)
-          ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
-          ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+          ssterm(:,j) = ssterm(:,j) -     thimp     *dti*tempx
+          ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dti*tempx
           
 #if defined(USECOMPLEX) || defined(USE3D)
           ! NUMVAR = 2
           ! ~~~~~~~~~~
           if(numvar.ge.2) then
              tempx = n1nv(mu79,nu79(j,:,:),vzt79)
-             ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
-             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+             ssterm(:,j) = ssterm(:,j) -     thimp     *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dti*tempx
           endif
 #endif
           
@@ -228,8 +229,8 @@ contains
           ! ~~~~~~~~~~
           if(numvar.ge.3) then
              tempx = n1nchi(mu79,nu79(j,:,:),cht79)
-             ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
-             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+             ssterm(:,j) = ssterm(:,j) -     thimp     *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dti*tempx
           endif
        end do
 
@@ -372,7 +373,7 @@ contains
     call newvar_solve(kprad_rad%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
 
-    call kprad_advect()
+    call kprad_advect(dti)
 
     if(myrank.eq.0) print *, ' Done advancing KPRAD'
   end subroutine kprad_onestep
