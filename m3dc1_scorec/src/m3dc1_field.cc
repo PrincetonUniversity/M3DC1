@@ -10,7 +10,7 @@
 #include "m3dc1_field.h"
 #include "m3dc1_mesh.h"
 #include "apf.h"
-#include <cstdio.h>
+#include <stdio.h>
 
 m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
 : id(ID), name(str), num_value(nv), value_type(t), num_dof(ndof)

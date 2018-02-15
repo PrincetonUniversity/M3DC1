@@ -120,30 +120,14 @@ int main( int argc, char** argv)
       m3dc1_model_setnumplane (&num_plane);
   }
 
-  if (m3dc1_model_load(argv[1])) // model loading failed
-  {
-    PetscFinalize();
-    m3dc1_scorec_finalize();
-    MPI_Finalize();
-    return 0;
-  }
-
+  m3dc1_model_load(argv[1]);
   m3dc1_model_print();
 
 #ifdef PETSC_USE_COMPLEX
   scalar_type=1; // complex
 #endif
 
-  if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
-  {
-    PetscFinalize();
-    m3dc1_scorec_finalize();
-    MPI_Finalize();
-    return 0;
-  }
-
-  //int three=3;
-  //m3dc1_mesh_write("geoId", &three);
+  m3dc1_mesh_load(argv[2]);
 
   printStats(m3dc1_mesh::instance()->mesh);
   if (num_plane>1)

@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2005-2018 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -57,16 +57,15 @@ bool m3dc1_double_isequal(double A, double B)
 }
 
 //*******************************************************
-int m3dc1_scorec_init()
+void m3dc1_scorec_init()
 //*******************************************************
 { 
   pumi_start();
   begin_time=MPI_Wtime();
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_scorec_finalize()
+void m3dc1_scorec_finalize()
 //*******************************************************
 { 
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
@@ -75,117 +74,108 @@ int m3dc1_scorec_finalize()
 
   if (!pumi_rank()) std::cout<<"\n* [M3D-C1] time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
   pumi_finalize();
-  return M3DC1_SUCCESS; 
 }
 
 /** plane functions */
 
 //*******************************************************
-int m3dc1_plane_setnum(int* num_plane)
+void m3dc1_plane_setnum(int* num_plane)
 //*******************************************************
 {
   if (m3dc1_mesh::instance()->mesh->getDimension()==3)
   {
     if (!PCU_Comm_Self()) 
       std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: #plane should be set before constructing 3D mesh\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
 
   if (*num_plane<1 || PCU_Comm_Peers()%(*num_plane)) 
   {
     if (!PCU_Comm_Self()) 
       std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: invalid #planes - mod(#ranks, #planes) should be 0\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
 
   m3dc1_model::instance()->set_num_plane(*num_plane);
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_plane_getnum(int* num_plane)
+void m3dc1_plane_getnum(int* num_plane)
 //*******************************************************
 {
   *num_plane = m3dc1_model::instance()->num_plane;
-  return M3DC1_SUCCESS;
 }
 
 
 //*******************************************************
-int m3dc1_plane_getid(int * plane_id)
+void m3dc1_plane_getid(int* plane_id)
 //*******************************************************
 {
   *plane_id = m3dc1_model::instance()->local_planeid;
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_plane_setphirange(double* min_val, double* max_val)
+void m3dc1_plane_setphirange(double* min_val, double* max_val)
 //*******************************************************
 {
   if (m3dc1_mesh::instance()->mesh->getDimension()==3)
   {
     if (!PCU_Comm_Self()) 
       std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: phi should be set before constructing 3D mesh\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
 
   m3dc1_model::instance()->set_phi(*min_val, *max_val);
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_plane_setphi(int* planeid, double* phi)
+void m3dc1_plane_setphi(int* planeid, double* phi)
 //*******************************************************
 {
   if (m3dc1_mesh::instance()->mesh->getDimension()==3)
   {
     if (!PCU_Comm_Self()) 
       std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: phi should be set before constructing 3D mesh\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
 
   m3dc1_model::instance()->set_phi(*planeid, *phi);
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_plane_getphi(int* planeid, double* phi)
+void m3dc1_plane_getphi(int* planeid, double* phi)
 //*******************************************************
 {
   m3dc1_model::instance()->get_phi(*planeid, phi);
-  return M3DC1_SUCCESS; 
 }
 
 /** model functions */
 //*******************************************************
-int m3dc1_model_getplaneid(int * plane_id)
+void m3dc1_model_getplaneid(int* plane_id)
 //*******************************************************
 {
   *plane_id = m3dc1_model::instance()->local_planeid;
 }
 
 //*******************************************************
-int m3dc1_model_getmincoord(double* x_min, double* y_min)
+void m3dc1_model_getmincoord(double* x_min, double* y_min)
 //*******************************************************
 {
   *x_min = m3dc1_model::instance()->boundingBox[0];
   *y_min = m3dc1_model::instance()->boundingBox[1];
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_model_getmaxcoord(double* x_max, double* y_max)
+void m3dc1_model_getmaxcoord(double* x_max, double* y_max)
 //*******************************************************
 {
   double mincoord[3],maxcoord[3];
   *x_max = m3dc1_model::instance()->boundingBox[2];
   *y_max = m3dc1_model::instance()->boundingBox[3];
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_model_load(char* /* in */ model_file)
+void m3dc1_model_load(char* /* in */ model_file)
 //*******************************************************
 {  
   FILE *test_in = fopen (model_file,"r");
@@ -193,7 +183,7 @@ int m3dc1_model_load(char* /* in */ model_file)
   {
     if (!PCU_Comm_Self()) 
       std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: model file \""<<model_file<<"\" doesn't exist\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
   else
     fclose(test_in);
@@ -209,15 +199,14 @@ int m3dc1_model_load(char* /* in */ model_file)
   //if (m3dc1_model::instance()->model->n[1]==1) assert(m3dc1_model::instance()->numEntOrig[0]==0); // for a smooth loop, there is no geo vtx 
   m3dc1_model::instance()->numEntOrig[1]=m3dc1_model::instance()->model->n[1];
   m3dc1_model::instance()->numEntOrig[2]=m3dc1_model::instance()->model->n[2];
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_model_print()
+void m3dc1_model_print()
 //*******************************************************
 {
   if (PCU_Comm_Self() || m3dc1_model::instance()->local_planeid) 
-    return M3DC1_SUCCESS;
+    return;
 
   double min[3], max[3];
   gmi_iter* gf_it = gmi_begin(m3dc1_model::instance()->model, 2);
@@ -271,25 +260,21 @@ int m3dc1_model_print()
     gmi_free_set(gv_edges);
   }
   gmi_end(m3dc1_model::instance()->model, gv_it);
-
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_model_setnumplane(int* num_plane)
+void m3dc1_model_setnumplane(int* num_plane)
 //*******************************************************
 {
-  if (*num_plane<1 || PCU_Comm_Peers()%(*num_plane)) return M3DC1_FAILURE;
+  if (*num_plane<1 || PCU_Comm_Peers()%(*num_plane)) return;
   m3dc1_model::instance()->set_num_plane(*num_plane);
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_model_getnumplane(int* num_plane)
+void m3dc1_model_getnumplane(int* num_plane)
 //*******************************************************
 {
   *num_plane = m3dc1_model::instance()->num_plane;
-  return M3DC1_SUCCESS;
 }
 
 
@@ -319,7 +304,7 @@ void clearTags(apf::Mesh* m, apf::MeshTag* t) {
 
 #include <sstream>
 //*******************************************************
-int m3dc1_mesh_load(char* mesh_file)
+void m3dc1_mesh_load(char* mesh_file)
 //*******************************************************
 { 
   std::string in(mesh_file);
@@ -335,7 +320,7 @@ int m3dc1_mesh_load(char* mesh_file)
   {
     if (!PCU_Comm_Self()) 
       std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: mesh file \""<<mesh_file<<"\" doesn't exist\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
   else
     fclose(test_in);
@@ -384,12 +369,10 @@ int m3dc1_mesh_load(char* mesh_file)
     compute_globalid(m3dc1_mesh::instance()->mesh, 0);
     compute_globalid(m3dc1_mesh::instance()->mesh, 2);
   }
-
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_mesh_build3d (int* num_field, int* field_id,  
+void m3dc1_mesh_build3d (int* num_field, int* field_id,  
                         int* num_dofs_per_value)
 //*******************************************************
 { 
@@ -404,7 +387,7 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   {
     if (!PCU_Comm_Self()) 
       std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: #plane must be greater than 1\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
 
   if (!m3dc1_model::instance()->phi)
@@ -423,13 +406,11 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   // update global ID
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, 3);
-
-  return M3DC1_SUCCESS; 
 }
 
 /* ghosting functions */
 //*******************************************************
-int m3dc1_ghost_create (int* num_layer )
+void m3dc1_ghost_create (int* num_layer )
 //*******************************************************
 {
   pMesh m = m3dc1_mesh::instance()->mesh;
@@ -452,58 +433,50 @@ int m3dc1_ghost_create (int* num_layer )
     }
   }
   if (!pumi_rank()) std::cout<<"[M3D-C1 INFO] "<<* num_layer<<" ghost layer(s) created\n";
-
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_ghost_delete()
+void m3dc1_ghost_delete()
 //*******************************************************
 {
   pumi_ghost_delete (m3dc1_mesh::instance()->mesh);
 
   if (!pumi_rank()) std::cout<<"[M3D-C1 INFO] ghost layer(s) deleted\n";
-
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_mesh_getnument (int* /* in*/ ent_dim, int* /* out */ num_ent)
+void m3dc1_mesh_getnument (int* /* in*/ ent_dim, int* /* out */ num_ent)
 //*******************************************************
 {
   *num_ent = m3dc1_mesh::instance()->mesh->count(*ent_dim);
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent)
+void m3dc1_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent)
 //*******************************************************
 {
   *num_ent = m3dc1_mesh::instance()->num_own_ent[*ent_dim];
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_mesh_getnumglobalent (int* /* in*/ ent_dim, int* /* out */ num_ent)
+void m3dc1_mesh_getnumglobalent (int* /* in*/ ent_dim, int* /* out */ num_ent)
 //*******************************************************
 {
   *num_ent = m3dc1_mesh::instance()->num_global_ent[*ent_dim];
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_mesh_getnumghostent (int* /* in*/ ent_dim, int* /* out */ num_ent)
+void m3dc1_mesh_getnumghostent (int* /* in*/ ent_dim, int* /* out */ num_ent)
 //*******************************************************
 {
   if (*ent_dim<0 || *ent_dim > 3)
-    return M3DC1_FAILURE;
+    return;
   *num_ent = m3dc1_mesh::instance()->mesh->count(*ent_dim) - 
              m3dc1_mesh::instance()->num_local_ent[*ent_dim];
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_mesh_search(int* initial_simplex,
+void m3dc1_mesh_search(int* initial_simplex,
 		      double* final_position,
 		      int* final_simplex)
 //*******************************************************
@@ -645,11 +618,61 @@ int m3dc1_mesh_search(int* initial_simplex,
     if (count == max_count){
       // std::cout << "\nError: hit maximum number of simplices to look for.";
       *final_simplex = -2;
-      return M3DC1_FAILURE;
+      return;
 
     }
   }
-  return M3DC1_SUCCESS;
+}
+
+void m3dc1_mesh_write(char* filename, int* option)
+{
+  if (*option==0 ||*option==3)
+  {
+    apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+    apf::MeshEntity* e;
+    int dim=2, num_ent=m3dc1_mesh::instance()->mesh->count(2);
+
+    vector<double> geoId (num_ent);
+    apf:: MeshIterator* it = mesh->begin(dim);
+    while ((e = mesh->iterate(it)))
+    {
+      int ent_id = getMdsIndex(m3dc1_mesh::instance()->mesh, e);
+      int geom_class_dim,geom_class_id;
+      m3dc1_ent_getgeomclass (&dim, &ent_id, &geom_class_dim, &geom_class_id);
+      geoId.at(ent_id)=geom_class_id;
+    }
+    mesh->end(it);
+    apf::writeVtkFiles(filename,m3dc1_mesh::instance()->mesh);
+    int one=1;
+    if (*option==3) output_face_data (&one, &geoId[0], "geoId");
+    /*apf::removeTagFromDimension(mesh, tag, dim);
+    mesh->destroyTag(tag);*/
+  }
+  else
+  {
+    char filename_buff[256];
+    sprintf(filename_buff, "%s.smb",filename);
+    int fieldID=12;
+    double dofBuff[1024];
+    m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[fieldID];
+    apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+    apf::Field* f = mf ->get_field();
+    int numDof = countComponents(f);
+    apf::MeshTag* tag = mesh->createDoubleTag("field12", numDof);
+    apf::MeshEntity* e;
+    const int dim=0;
+    apf:: MeshIterator* it = mesh->begin(dim);
+    while ((e = mesh->iterate(it)))
+    {
+    // FIXME based on new m3dc1_field
+      apf::getComponents(f, e, 0, dofBuff);
+      mesh->setDoubleTag(e,tag, dofBuff);
+    }
+    mesh->end(it);
+    m3dc1_mesh::instance()->mesh->writeNative(filename_buff);
+    apf::removeTagFromDimension(mesh, tag, dim);
+    mesh->destroyTag(tag);
+  }
 }
 
 // VERIFY FIELDS
@@ -672,7 +695,7 @@ void send_dof(pMesh m, pMeshEnt e, pField f)
       msg_send = malloc(msg_size);
       s_ent = (pMeshEnt*)msg_send; 
       *s_ent = rit->second; 
-      double *s_data = (double*)((char*)msg_send+sizeof(pMeshEnt));
+      double* s_data = (double*)((char*)msg_send+sizeof(pMeshEnt));
       for (int pos=0; pos<n; ++pos)
         s_data[pos]=dof_data[pos];
       PCU_Comm_Write(to, (void*)msg_send, msg_size);
@@ -689,7 +712,7 @@ void send_dof(pMesh m, pMeshEnt e, pField f)
         msg_send = malloc(msg_size);
         s_ent = (pMeshEnt*)msg_send; 
         *s_ent = it->second; 
-        double *s_data = (double*)((char*)msg_send+sizeof(pMeshEnt)+sizeof(int));
+        double* s_data = (double*)((char*)msg_send+sizeof(pMeshEnt)+sizeof(int));
         for (int pos=0; pos<n; ++pos)
           s_data[pos]=dof_data[pos];
         PCU_Comm_Write(to, (void*)msg_send, msg_size);
@@ -775,17 +798,16 @@ void m3dc1_field_verify()
 
 /* mesh entity functions */
 //*******************************************************
-int m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
+void m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
 //*******************************************************
 {
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
   *global_ent_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id, 
+void m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id, 
             int* /* out */ geom_class_dim, int* /* out */ geom_class_id)
 //*******************************************************
 { 
@@ -813,14 +835,14 @@ int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
 }
 
 //*******************************************************
-int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
+void m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
                       int* /* in */ adj_dim, int* /* out */ adj_ent, 
                       int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
 //*******************************************************
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   if (!e || *adj_dim==*ent_dim)
-    return M3DC1_FAILURE;
+    return;
 
   if (*adj_dim>*ent_dim) // upward
   {
@@ -828,7 +850,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     m3dc1_mesh::instance()->mesh->getAdjacent(e,*adj_dim,adjacent);
     *num_adj_ent = adjacent.getSize();
     if (*adj_ent_allocated_size<*num_adj_ent)
-      return M3DC1_FAILURE;
+      return;
     for (int i=0; i<*num_adj_ent; ++i)
       adj_ent[i] = getMdsIndex(m3dc1_mesh::instance()->mesh, adjacent[i]);
   }
@@ -837,7 +859,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     apf::Downward downward;
     *num_adj_ent = m3dc1_mesh::instance()->mesh->getDownward(e, *adj_dim, downward);
     if (*adj_ent_allocated_size<*num_adj_ent)
-      return M3DC1_FAILURE;
+      return;
     for (int i=0; i<*num_adj_ent; ++i)
       adj_ent[i] = getMdsIndex(m3dc1_mesh::instance()->mesh, downward[i]);
     //adjust the order to work with m3dc1
@@ -849,17 +871,16 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
       memcpy(adj_ent+3, buff, 3*sizeof(int));
     }
   }
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
+void m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
                          int* /* in */ adj_dim, int* /* out */ num_adj_ent)
 //*******************************************************
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   if (!e || *adj_dim==*ent_dim)
-    return M3DC1_FAILURE;
+    return;
 
   if (*adj_dim>*ent_dim) // upward
   {
@@ -872,22 +893,20 @@ int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     apf::Downward downward;
     *num_adj_ent = m3dc1_mesh::instance()->mesh->getDownward(e, *adj_dim, downward);
   }
-  return M3DC1_SUCCESS; 
 }
 
 //*******************************************************
-int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
+void m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
                             int* /* out */ owning_partid)
 //*******************************************************
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
   *owning_partid = get_ent_ownpartid(m3dc1_mesh::instance()->mesh, e);
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id, 
+void m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id, 
                             int* /* out */ ismine)
 //*******************************************************
 {
@@ -901,23 +920,21 @@ int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id,
      *ismine = 1;   // 
   else
      *ismine = 0; 
-  return M3DC1_SUCCESS;
 }
 
-int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
+void m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 {
   pMeshEnt e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   if (pumi_ment_isGhost(e))
     *isghost=1;
   else
     *isghost=0;
-  return M3DC1_SUCCESS;
 }
 
 
 // node-specific functions
 //*******************************************************
-int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
+void m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
 //*******************************************************
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
@@ -926,17 +943,15 @@ int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
   m3dc1_mesh::instance()->mesh->getPoint(e, 0, xyz);
   for (int i=0; i<3; ++i)
     coord[i] = xyz[i]; 
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
+void m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
 //*******************************************************
 {
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *ent_id);
   assert(e);
   *global_ent_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
@@ -952,7 +967,7 @@ void get_gv_edges(gmi_ent* gvertex, std::vector<gmi_ent*>& gedges)
 }
 
 //*******************************************************
-int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
+void m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
 //*******************************************************
 {
   apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
@@ -964,7 +979,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
   if (gType !=  1 && gType !=  0)
   {
     xyzt[0] = xyzt[1] = 0.0;
-    return M3DC1_SUCCESS;
+    return;
   }
 
   apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
@@ -974,7 +989,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
     m3dc1_mesh::instance()->mesh->getDoubleTag(vt, norm_curv_tag, &norm_curv[0]);
     xyzt[0] = norm_curv[0]; 
     xyzt[1] = norm_curv[1];
-    return M3DC1_SUCCESS;
+    return;
   }
   else
   { // if norm/curv is not attached, evaluate
@@ -1036,11 +1051,10 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
       evalNormalVector(pn[0],pn[1], param[0], xyzt);
     }
   }
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
+void m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
 //*******************************************************
 {
   apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
@@ -1052,7 +1066,7 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
     double norm_curv[3];
     m3dc1_mesh::instance()->mesh->getDoubleTag(vt, norm_curv_tag, &norm_curv[0]);
     *curv = norm_curv[2]; 
-    return M3DC1_SUCCESS;
+    return;
   }
 
   *curv=0.0;
@@ -1099,11 +1113,10 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
       M3DC1::Expression** pn=(M3DC1::Expression**) gmi_analytic_data(m3dc1_model::instance()->model,gent);
       evalCurvature(pn[0],pn[1], param[0], curv);
   }
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry)
+void m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry)
 //*******************************************************
 {
   apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
@@ -1111,7 +1124,6 @@ int m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry)
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(vt));
   int gType = gmi_dim(m3dc1_model::instance()->model,gent);
   *on_geom_bdry=(gType==0||gType==1);
-  return M3DC1_SUCCESS;
 }
 
 //=========================================================================
@@ -1134,17 +1146,16 @@ void write_node(apf::Mesh2* m, const char* filename, int start_index)
 }
 
 //*******************************************************
-int m3dc1_node_write (const char* filename, int* start_index)
+void m3dc1_node_write (const char* filename, int* start_index)
 //*******************************************************
 {
   write_node(m3dc1_mesh::instance()->mesh, filename, *start_index);
-  return M3DC1_SUCCESS;
 }
 
 
 // region-specific function
 //*******************************************************
-int m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac)
+void m3dc1_region_getoriginalface(int* /* in */ elm, int* /* out */ fac)
 //*******************************************************
 {
   apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, 3, *elm);
@@ -1162,7 +1173,6 @@ int m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac)
   }
   assert(counter==2);
   *fac = std::min(triFace[0],triFace[1]);
-  return M3DC1_SUCCESS;
 }
 
 /** field manangement */
@@ -1218,7 +1228,7 @@ void m3dc1_field_getinfo(FieldID* /*in*/ field_id,
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   strcpy(field_name, mf->get_name().c_str());
   *num_values = mf->get_num_value();
   *scalar_type = mf->get_value_type();
@@ -1226,7 +1236,7 @@ void m3dc1_field_getinfo(FieldID* /*in*/ field_id,
 }
 
 //*******************************************************
-void m3dc1_field_exist(FieldID* field_id, int * exist)
+void m3dc1_field_exist(FieldID* field_id, int* exist)
 //*******************************************************
 {
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
@@ -1285,6 +1295,7 @@ void synchronize_field(apf::Field* f)
       apf::MeshEntity* r;
       PCU_COMM_UNPACK(r);
       PCU_Comm_Unpack(&(sender_data[0]),n*sizeof(double));
+    // FIXME based on new m3dc1_field
       setComponents(f, r, 0, sender_data);
     }
   delete [] dof_data;
@@ -1303,7 +1314,9 @@ void m3dc1_field_sync (FieldID* /* in */ field_id)
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
 
-  synchronize_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
+  m3dc1_field* mf=(*m3dc1_mesh::instance()->field_container)[*field_id];
+  for (int vid=0; vid<mf->get_num_value(); ++vid)
+    synchronize_field(mf->get_field(vid));
 #ifdef DEBUG
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
@@ -1363,6 +1376,7 @@ void accumulate_field(apf::Field* f)
       for (int j=0; j<n; ++j)
         dof_data[j] += mit->second[i*n+j];
     }
+    // FIXME based on new m3dc1_field
     setComponents(f, e, 0, dof_data);
   } 
   delete [] dof_data;
@@ -1381,8 +1395,12 @@ void m3dc1_field_sum (FieldID* /* in */ field_id)
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
 
-  accumulate_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
-  synchronize_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
+  m3dc1_field* mf=(*m3dc1_mesh::instance()->field_container)[*field_id];
+  for (int vid=0; vid<mf->get_num_value(); ++vid)
+  {
+    accumulate_field(mf->get_field(vid));
+    synchronize_field(mf->get_field(vid));
+  }
 #ifdef DEBUG
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
@@ -1396,28 +1414,100 @@ void m3dc1_field_sumsq (FieldID* /* in */ field_id, double* /* out */ sum)
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
   
-  apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_field();
-
 #ifdef DEBUG
   int isnan;
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
 #endif
   *sum=0.;
-  int num_dof = countComponents(f);
-
+  m3dc1_field* mf=(*m3dc1_mesh::instance()->field_container)[*field_id];
+  apf::Field* f;
+  int num_dof = countComponents(mf->get_field(0));
   double* dof_data= new double[num_dof];
+
   apf::MeshEntity* e;
   apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(0);
   while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
   {
     if (!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;
-    getComponents(f, e, 0, dof_data);
-    for (int i=0; i<num_dof; ++i)
-      *sum+=dof_data[i]*dof_data[i];
+    for (int vid=0; vid<mf->get_num_value(); ++vid)
+    {
+      f = mf->get_field(vid);
+      getComponents(f, e, 0, dof_data);
+      for (int i=0; i<num_dof; ++i)
+        *sum+=dof_data[i]*dof_data[i];
+    }
   }
   m3dc1_mesh::instance()->mesh->end(it);
   delete [] dof_data;
+}
+
+//*******************************************************
+void m3dc1_field_sum_plane (FieldID* /* in */ field_id)
+//*******************************************************
+{
+  MPI_Comm icomm= m3dc1_model::instance()->getMPICommPlane();
+  int value_type=0;
+#ifdef PETSC_USE_COMPLEX
+  value_type=1;
+#endif
+  int num_vtx = m3dc1_mesh::instance()->mesh->count(0);
+
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  int num_dof = mf->get_dof_per_value()*num_vtx;
+
+  for (int vid=0; vid<mf->get_num_value(); ++vid)
+  {
+    int data_size=mf->get_dof_per_value()*num_vtx*(1+value_type);
+    double * thevec = NULL;
+    m3dc1_field_getdataptr(field_id, &vid, &thevec);
+    double * sendbuf = new double [data_size];
+    m3dc1_field_retrieve (field_id, &vid, sendbuf, &num_dof);
+    MPI_Allreduce (sendbuf,thevec,data_size,MPI_DOUBLE,MPI_SUM,icomm) ;
+    synchronize_field(mf->get_field(vid));
+    delete []sendbuf;  
+  }
+}
+
+//*******************************************************
+void m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info)
+//*******************************************************
+{
+  // #define C1TRIDOFNODE 6 (m3dc1_scorec.h)
+  // FIXME: get field data in interleaved format otherwise this function does not work
+  double* pts=NULL;
+  int vid=0;
+  m3dc1_field_getdataptr (field_id, &vid, &pts);
+
+  int num_dof;
+  m3dc1_field_getnumlocaldof(field_id, &num_dof);
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+
+  apf::Field* f = mf ->get_field();
+
+  int dof_per_node = countComponents(f);
+  int num_comp=dof_per_node/C1TRIDOFNODE;
+  vector<double> norms(dof_per_node/C1TRIDOFNODE);
+  int j=0;
+  for (int i=0; i<num_dof/C1TRIDOFNODE; i++)
+  {
+     for (int k=0; k<6; k++)
+        norms.at(j)+=pts[i*C1TRIDOFNODE+k]*pts[i*C1TRIDOFNODE+k];
+     j++;
+     j%=num_comp;
+  }
+
+  vector<double> buff=norms;
+  MPI_Allreduce(&buff[0],&norms[0], num_comp, MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+  int psize;
+  MPI_Comm_size(MPI_COMM_WORLD,&psize);
+  if (PCU_Comm_Self() == psize-1)
+  {
+    std::cout<< "norm of vec "<<info;
+    for (int i=0; i<num_comp; i++)
+      std::cout<<" "<<std::sqrt(norms[i]);
+    std::cout<<std::endl;
+  }
 }
 
 /** field dof functions */
@@ -1429,11 +1519,25 @@ void m3dc1_field_getlocaldofid (FieldID* field_id,
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  apf::Field* f = mf->get_field();
-  int num_dof = (mf->get_value_type())?countComponents(f)/2:countComponents(f);
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  int num_dof = mf->get_dof_per_value();
   *start_dof_id=0;
   *end_dof_id_plus_one=num_dof*m3dc1_mesh::instance()->mesh->count(0);
+}
+
+//******************************************************* 
+void m3dc1_field_getglobaldofid ( FieldID* field_id, 
+         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+//*******************************************************
+{
+  assert(m3dc1_mesh::instance()->field_container && 
+         m3dc1_mesh::instance()->field_container->count(*field_id));
+
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  int num_dof = mf->get_dof_per_value();
+
+  *start_dof_id=0;
+  *end_dof_id_plus_one=*start_dof_id+num_dof*m3dc1_mesh::instance()->num_global_ent[0];
 }
 
 //*******************************************************
@@ -1444,11 +1548,11 @@ void m3dc1_field_getowndofid (FieldID* field_id,
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   apf::Field* f = mf->get_field();
 
   int num_own_ent = m3dc1_mesh::instance()->num_own_ent[0];
-  int num_dof = (mf->get_value_type())?countComponents(f)/2:countComponents(f);
+  int num_dof = mf->get_dof_per_value();
   
   int start_id = num_own_ent;
   PCU_Exscan_Ints(&start_id,1);
@@ -1457,22 +1561,22 @@ void m3dc1_field_getowndofid (FieldID* field_id,
   *end_dof_id_plus_one=*start_dof_id+num_own_ent*num_dof;
 }
  
-//******************************************************* 
-void m3dc1_field_getglobaldofid ( FieldID* field_id, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+//*******************************************************
+void m3dc1_field_getghostdofid (FieldID* field_id, 
+    int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
-  assert(m3dc1_mesh::instance()->field_container && 
-         m3dc1_mesh::instance()->field_container->count(*field_id));
+  if (!m3dc1_mesh::instance()->field_container || 
+      !m3dc1_mesh::instance()->field_container->count(*field_id))
+    return;
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  apf::Field* f = mf->get_field();
-  int num_dof = (mf->get_value_type())?countComponents(f)/2:countComponents(f);
-  assert(mf->get_num_value()*mf->get_dof_per_value()==num_dof);  
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  int num_dof = mf->get_dof_per_value();
 
-  *start_dof_id=0;
-  *end_dof_id_plus_one=*start_dof_id+num_dof*m3dc1_mesh::instance()->num_global_ent[0];
+  *start_dof_id=num_dof*m3dc1_mesh::instance()->num_local_ent[0];
+  *end_dof_id_plus_one=num_dof*m3dc1_mesh::instance()->mesh->count(0);
 }
+
 
 //*******************************************************
 void m3dc1_field_getnumlocaldof (FieldID* field_id, int* /* out */ num_local_dof)
@@ -1481,8 +1585,19 @@ void m3dc1_field_getnumlocaldof (FieldID* field_id, int* /* out */ num_local_dof
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   *num_local_dof = (m3dc1_mesh::instance()->mesh->count(0))*mf->get_num_value()*mf->get_dof_per_value();
+}
+
+//*******************************************************
+void m3dc1_field_getnumglobaldof (FieldID* field_id, int* /* out */ num_global_dof)
+//*******************************************************
+{
+  assert(m3dc1_mesh::instance()->field_container && 
+         m3dc1_mesh::instance()->field_container->count(*field_id));
+
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  *num_global_dof = (m3dc1_mesh::instance()->num_global_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
 }
 
 //*******************************************************
@@ -1492,40 +1607,28 @@ void m3dc1_field_getnumowndof (FieldID* field_id, int* /* out */ num_own_dof)
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   *num_own_dof = (m3dc1_mesh::instance()->num_own_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
-}
-
-//*******************************************************
-void m3dc1_field_getnumglobaldof (FieldID* field_id, int* /* out */ num_global_dof)
-//*******************************************************
-{
-#ifdef DEBUG
-  if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
-    return M3DC1_FAILURE;
-#endif
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  *num_global_dof = (m3dc1_mesh::instance()->num_global_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
 }
 
 //*******************************************************
 void m3dc1_field_getnumghostdof (FieldID* field_id, int* /* out */ num_ghost_dof)
 //*******************************************************
 {
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   int num_ent = m3dc1_mesh::instance()->mesh->count(0)-m3dc1_mesh::instance()->num_local_ent[0];
   *num_ghost_dof = num_ent*mf->get_num_value()*mf->get_dof_per_value();
 }
 
 
 //*******************************************************
-void m3dc1_field_getdataptr (FieldID* field_id, double** pts)
+void m3dc1_field_getdataptr (FieldID* field_id, int* vid, double** pts)
 //*******************************************************
 {
   assert(m3dc1_mesh::instance()->field_container && 
          m3dc1_mesh::instance()->field_container->count(*field_id));
 
-  apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_field();
+  apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_field(*vid);
   if (!isFrozen(f)) freeze(f);
   *pts=getArrayData(f);
 }
@@ -1542,8 +1645,8 @@ void m3dc1_field_add(FieldID* /*inout*/ field_id1, FieldID* /*in*/ field_id2)
   m3dc1_field_isnan(field_id2, &isnan);
   assert(isnan==0);
 #endif
-  m3dc1_field * mf1 = (*(m3dc1_mesh::instance()->field_container))[*field_id1];
-  m3dc1_field * mf2 = (*(m3dc1_mesh::instance()->field_container))[*field_id2];
+  m3dc1_field* mf1 = (*(m3dc1_mesh::instance()->field_container))[*field_id1];
+  m3dc1_field* mf2 = (*(m3dc1_mesh::instance()->field_container))[*field_id2];
   int dofPerEnt1 = mf1->get_num_value()*mf1->get_dof_per_value(); 
   int dofPerEnt2 = mf2->get_num_value()*mf2->get_dof_per_value();
   assert(mf1->get_value_type()==mf2->get_value_type());
@@ -1568,7 +1671,7 @@ void m3dc1_field_add(FieldID* /*inout*/ field_id1, FieldID* /*in*/ field_id2)
 }
 
 //*******************************************************
-void m3dc1_field_mult(FieldID* /*inout*/ field_id, double* fac, int * scalar_type)
+void m3dc1_field_mult(FieldID* /*inout*/ field_id, double* fac, int* scalar_type)
 //*******************************************************
 {
 #ifdef DEBUG
@@ -1584,20 +1687,20 @@ void m3dc1_field_mult(FieldID* /*inout*/ field_id, double* fac, int * scalar_typ
   int dofPerEnt = mf->get_num_value()*mf->get_dof_per_value();
   int value_type = mf->get_value_type();
   assert(dofPerEnt<=sizeof(dofs)/sizeof(double)*(1+value_type));
-  for (int inode=0; inode<num_vtx; inode++)
+  for (int inode=0; inode<num_vtx; ++inode)
   {
     m3dc1_ent_getdofdata (&vertex_type, &inode, field_id, &dofPerEnt, dofs);
     if (*scalar_type==0)
     {
-      for (int i=0; i<dofPerEnt*(1+value_type); i++)
-dofsNew[i]=*fac*dofs[i];
+      for (int i=0; i<dofPerEnt*(1+value_type); ++i)
+        dofsNew[i]=*fac*dofs[i];
     }
     else
     {
-      for (int i=0; i<dofPerEnt; i++)
+      for (int i=0; i<dofPerEnt; ++i)
       {
-dofsNew[2*i]=fac[0]*dofs[2*i]-fac[1]*dofs[2*i+1];
-dofsNew[2*i+1]=fac[0]*dofs[2*i+1]+fac[1]*dofs[2*i];
+        dofsNew[2*i]=fac[0]*dofs[2*i]-fac[1]*dofs[2*i+1];
+        dofsNew[2*i+1]=fac[0]*dofs[2*i+1]+fac[1]*dofs[2*i];
       }
     }
     m3dc1_ent_setdofdata (&vertex_type, &inode, field_id, &dofPerEnt, &dofsNew[0]);
@@ -1609,7 +1712,7 @@ dofsNew[2*i+1]=fac[0]*dofs[2*i+1]+fac[1]*dofs[2*i];
 }
 
 //*******************************************************
-void m3dc1_field_assign(FieldID* /*inout*/ field_id, double* fac, int * scalar_type)
+void m3dc1_field_assign(FieldID* /*inout*/ field_id, double* fac, int* scalar_type)
 //*******************************************************
 {
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
@@ -1623,10 +1726,10 @@ void m3dc1_field_assign(FieldID* /*inout*/ field_id, double* fac, int * scalar_t
   if (*scalar_type)
     for (int i=0; i<dofPerEnt; i++)
       dofs.at(2*i+1)=fac[1];
+  // FIXME: this can be more efficient
   for (int inode=0; inode<num_vtx; inode++)
-  {
     m3dc1_ent_setdofdata (&vertex_type, &inode, field_id, &dofPerEnt, &dofs[0]);
-  }
+
 #ifdef DEBUG
   int isnan;
   m3dc1_field_isnan(field_id, &isnan);
@@ -1643,10 +1746,8 @@ void m3dc1_field_copy(FieldID* /* out */ field_id1, FieldID* /* in */ field_id2)
   m3dc1_field_isnan(field_id1, &isnan);
   assert(isnan==0);
 #endif
-  m3dc1_field * mf1 = (*(m3dc1_mesh::instance()->field_container))[*field_id1];
-  m3dc1_field * mf2 = (*(m3dc1_mesh::instance()->field_container))[*field_id2];
-  apf::Field* f1 =  mf1->get_field();
-  apf::Field* f2 =  mf2->get_field();
+  m3dc1_field* mf1 = (*(m3dc1_mesh::instance()->field_container))[*field_id1];
+  m3dc1_field* mf2 = (*(m3dc1_mesh::instance()->field_container))[*field_id2];
   int dofPerEnt1 = mf1->get_num_value()*mf1->get_dof_per_value();
   int dofPerEnt2 = mf2->get_num_value()*mf2->get_dof_per_value();
   assert(mf1->get_value_type()==mf2->get_value_type());
@@ -1671,7 +1772,7 @@ void m3dc1_field_copy(FieldID* /* out */ field_id1, FieldID* /* in */ field_id2)
 }
 
 //*******************************************************
-void m3dc1_field_retrieve (FieldID* /* in */ field_id, double * /*out*/ data, int * /* in */size)
+void m3dc1_field_retrieve (FieldID* /* in */ field_id, int* vid, double* /*out*/ data, int* /* in */size)
 //*******************************************************
 {
 #ifdef DEBUG
@@ -1679,72 +1780,77 @@ void m3dc1_field_retrieve (FieldID* /* in */ field_id, double * /*out*/ data, in
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
 #endif
-  //m3dc1_field_print(field_id);
-  int num_local_dof, num_values, value_type, total_num_dof;
-  char field_name[FIXSIZEBUFF];
-  m3dc1_field_getinfo(field_id, field_name, &num_values, &value_type, &total_num_dof);
-  m3dc1_field_getnumlocaldof (field_id, &num_local_dof);
-
-  double* pts=NULL;
-  m3dc1_field_getdataptr (field_id, &pts);
-  memcpy(data, pts, *size*(1+value_type)*sizeof(double));
-}
-
-//*******************************************************
-void m3dc1_field_set (FieldID* /* in */ field_id, double * /*in*/ data, int * /* in */size)
-//*******************************************************
-{
-  int num_local_dof, num_values, value_type, total_num_dof;
-  char field_name[FIXSIZEBUFF];
-  m3dc1_field_getinfo(field_id, field_name, &num_values, &value_type, &total_num_dof);
-  m3dc1_field_getnumlocaldof (field_id, &num_local_dof);
-
-  double* pts=NULL;
-  m3dc1_field_getdataptr (field_id, &pts);
-  memcpy(pts, data, *size*(1+value_type)*sizeof(double));
-#ifdef DEBUG
-  int isnan;
-  m3dc1_field_isnan(field_id, &isnan);
-  assert(isnan==0);
+  int scalar_type=0;
+#ifdef PETSC_USE_COMPLEX
+  scalar_type=1;
 #endif
+
+  double* pts=NULL;
+  m3dc1_field_getdataptr (field_id, vid, &pts);
+  memcpy(data, pts, *size*(1+scalar_type)*sizeof(double));
 }
 
 //*******************************************************
-void m3dc1_field_insert(FieldID* /* in */ field_id, int /* in */ * local_dof, 
-         int * /* in */ size, double* /* in */ values, int * type, int * op)
+void m3dc1_field_set (FieldID* /* in */ field_id, double* /*in*/ data, int* /* in */size)
 //*******************************************************
 {
-  int num_local_dof, num_values, value_type, total_num_dof;
-  char field_name[FIXSIZEBUFF];
-  m3dc1_field_getinfo(field_id, field_name, &num_values, &value_type, &total_num_dof);
-#ifdef DEBUG
-  m3dc1_field_getnumlocaldof (field_id, &num_local_dof);
-  assert(*local_dof<num_local_dof);
-  if (!value_type) assert(!(*type)); // can not insert complex value to real vector
-  for (int i=0; i<*size*(1+(*type)); i++)
+  int scalar_type=0;
+#ifdef PETSC_USE_COMPLEX
+  scalar_type=1;
+#endif
+
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  int num_dof = mf->get_dof_per_value()*(1+scalar_type);
+  apf::Field* f;
+  for (int vid=0; vid<mf->get_num_value(); ++vid)
   {
-    assert(values[i]==values[i]);
+    f = mf->get_field(vid);
+    double* pts = getArrayData(f);
+    memcpy(pts, data+num_dof*vid, num_dof*sizeof(double));
   }
+#ifdef DEBUG
+  int isnan;
+  m3dc1_field_isnan(field_id, &isnan);
+  assert(isnan==0);
 #endif
-  std::vector<double> values_convert(*size*(1+value_type),0);
-  if (!(*type)&&value_type) // real into complex
+}
+
+//*******************************************************
+void m3dc1_field_insert(FieldID* /* in */ field_id, int* vid, int*/* in */ s_dofid, 
+         int* /* in */ size, double* /* in */ values, int* type, int* op)
+//*******************************************************
+{
+  int scalar_type=0;
+#ifdef PETSC_USE_COMPLEX
+  scalar_type=1;
+#endif
+#ifdef DEBUG
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  int num_local_dof_per_value = (m3dc1_mesh::instance()->mesh->count(0))*mf->get_dof_per_value();
+  assert(*s_dofid<num_local_dof_per_value);
+  if (!scalar_type) assert(!(*type)); // can not insert complex value to real vector
+  for (int i=0; i<*size*(1+(*type)); i++)
+    assert(values[i]==values[i]);
+#endif
+  std::vector<double> values_convert(*size*(1+scalar_type),0);
+  if (!(*type)&&scalar_type) // real into complex
   {
     for (int i=0; i<*size; i++)
       values_convert.at(2*i)=values[i];
   }
   else
   {
-    for (int i=0; i<*size*(1+value_type); i++)
+    for (int i=0; i<*size*(1+scalar_type); i++)
       values_convert.at(i)=values[i];
   }
-  double * dataptr;
-  int ibegin=*local_dof*(1+value_type);
-  m3dc1_field_getdataptr(field_id, &dataptr);
+  double* dataptr;
+  int ibegin=*s_dofid*(1+scalar_type);
+  m3dc1_field_getdataptr(field_id, vid, &dataptr);
   if (*op==0) // set value
-   for (int i=0; i<*size*(1+value_type); i++)
+   for (int i=0; i<*size*(1+scalar_type); i++)
      dataptr[ibegin+i]=values_convert.at(i);
   else
-    for (int i=0; i<*size*(1+value_type); i++)
+    for (int i=0; i<*size*(1+scalar_type); i++)
       dataptr[ibegin+i]+=values_convert[i];
 }
 
@@ -1755,7 +1861,7 @@ bool value_is_nan(double val)
 }
 
 //*******************************************************
-void m3dc1_field_isnan(FieldID* /* in */ field_id, int * isnan)
+void m3dc1_field_isnan(FieldID* /* in */ field_id, int* isnan)
 //*******************************************************
 {
   *isnan=0;
@@ -1774,26 +1880,32 @@ void m3dc1_field_isnan(FieldID* /* in */ field_id, int * isnan)
 }
 
 //=========================================================================
-void write_vector(apf::Mesh2* m, apf::Field* f, const char* filename, int start_index)
+void write_vector(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start_index)
 {
   char field_filename[256];
   sprintf(field_filename,"%s-%d",filename, PCU_Comm_Self());
   FILE * fp =fopen(field_filename, "w");
 
   apf::MeshEntity* e;
+  apf::Field* f = mf->get_field(0);
   int num_dof=countComponents(f);
   double* dof_data = new double[num_dof];
-
+ 
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    // write vector
-    getComponents(f, e, 0, dof_data);
-    for (int i=0; i<num_dof; ++i)
-      fprintf(fp, "%d\t%E\n", get_ent_globalid(m,e)+start_index, dof_data[i]);
+    for (int vid=0; vid<mf->get_num_value(); ++vid)
+    { 
+      f = mf->get_field(vid);
+      // write vector
+      getComponents(f, e, 0, dof_data);
+      for (int i=0; i<num_dof; ++i)
+        fprintf(fp, "%d\t%E\n", get_ent_globalid(m,e)+start_index, dof_data[i]);
+    }
   } // while
   m->end(it);
   fclose(fp);  
+  delete [] dof_data;
 }
 
 //*******************************************************
@@ -1801,17 +1913,16 @@ void m3dc1_field_write (FieldID* field_id, const char* filename, int* start_inde
 //*******************************************************
 {
   if (!PCU_Comm_Self()) cout<<"[M3D-C1 INFO] "<<__func__<<"(field id "<<*field_id<<", file "<<filename<<")\n";
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_field();
-  write_vector(m, f, filename, *start_index);
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  write_vector(m3dc1_mesh::instance()->mesh, mf, filename, *start_index);
 }
 
 //*******************************************************
-void m3dc1_field_print(FieldID* field_id)
+void m3dc1_field_print(FieldID* field_id, int* vid)
 //*******************************************************
 {
-  apf::Mesh2*  m = m3dc1_mesh::instance()->mesh;
-  apf::Field*  f = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_field();
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_field(*vid);
   
   if (!f)
   {
@@ -1976,157 +2087,149 @@ void m3dc1_field_print(FieldID* field_id)
 }
 
 //*******************************************************
-void m3dc1_field_compare(FieldID* field_id_1, FieldID* field_id_2)
+void m3dc1_field_compare(FieldID* field_id1, FieldID* field_id2)
 //*******************************************************
 {
-  apf::Field* f_1 = (*(m3dc1_mesh::instance()->field_container))[*field_id_1]->get_field();
-  double* field_data_1 =getArrayData(f_1);
-
-  apf::Field* f_2 = (*(m3dc1_mesh::instance()->field_container))[*field_id_2]->get_field();
-  double* field_data_2 =getArrayData(f_2);
-
-  int num_dof_1=countComponents(f_1);
-  int num_dof_2=countComponents(f_2);
-  if (num_dof_1!=num_dof_2) 
-  {
-    if (!PCU_Comm_Self()) 
-      cout<<"[M3D-C1 INFO] "<<__func__<<": #dof mismatch "<<getName(f_1)
-          <<"- "<<num_dof_1<<", "<<getName(f_2)<<"- "<<num_dof_2<<"\n";
-    return;
-  }
+  m3dc1_field* mf1 = (*(m3dc1_mesh::instance()->field_container))[*field_id1];
+  m3dc1_field* mf2 = (*(m3dc1_mesh::instance()->field_container))[*field_id2];
+  apf::Field* f1;
+  apf::Field* f2;
   int ierr = M3DC1_SUCCESS;
-  for (int i=0; i<num_dof_1*m3dc1_mesh::instance()->mesh->count(0); ++i)
-  {  if (!m3dc1_double_isequal(field_data_1[i], field_data_2[i])) 
+  for (int vid=0; vid<mf1->get_num_value(); ++vid)
+  {
+    f1 = mf1->get_field(vid);
+    double* field_data_1 =getArrayData(f1);
+    f2 = mf2->get_field(vid);
+    double* field_data_2 =getArrayData(f2);
+
+    int num_dof_1=countComponents(f1);
+    int num_dof_2=countComponents(f2);
+    if (num_dof_1!=num_dof_2) 
     {
-     cout<<"[M3D-C1 ERROR] "<<__func__<<": "<<getName(f_1)<<"["<<i<<"]="<<field_data_1[i]
-          <<", "<<getName(f_2)<<"["<<i<<"]="<<field_data_2[i]<<"\n";
-      ierr=M3DC1_FAILURE;
-      break;
+      if (!PCU_Comm_Self()) 
+        cout<<"[M3D-C1 INFO] "<<__func__<<": #dof mismatch "<<getName(f1)
+            <<"- "<<num_dof_1<<", "<<getName(f2)<<"- "<<num_dof_2<<"\n";
+      return;
     }
+    for (int i=0; i<num_dof_1*m3dc1_mesh::instance()->mesh->count(0); ++i)
+    {  
+      if (!m3dc1_double_isequal(field_data_1[i], field_data_2[i])) 
+      {
+       cout<<"[M3D-C1 ERROR] "<<__func__<<": "<<getName(f1)<<"["<<i<<"]="<<field_data_1[i]
+            <<", "<<getName(f2)<<"["<<i<<"]="<<field_data_2[i]<<"\n";
+        ierr=M3DC1_FAILURE;
+        break;
+      }
+    }
+    if (ierr==M3DC1_FAILURE)
+      break;
   }
   int global_ierr;
   MPI_Allreduce(&ierr, &global_ierr, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD); 
   if (global_ierr==M3DC1_FAILURE)
   {
     if (!PCU_Comm_Self())
-      cout<<"[M3D-C1 INFO] "<<__func__<<": dof value mismatch of fields "<<getName(f_1)
-          <<" and "<<getName(f_2)<<"\n";
+      cout<<"[M3D-C1 INFO] "<<__func__<<": dof value mismatch of fields "<<mf1->get_name()
+          <<" and "<<mf2->get_name()<<"\n";
   }
 }
 
 //*******************************************************
-int m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
+void m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
                        int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
-  if (*ent_dim!=0)
-    return M3DC1_FAILURE;
-
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
 
-  if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
-    return M3DC1_FAILURE;
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  int num_val =  mf->get_num_value();
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   int dof_per_value = mf->get_dof_per_value();
-  int dof_per_node = dof_per_value * num_val;
-  *start_dof_id = *ent_id*dof_per_node;
-  *end_dof_id_plus_one = *start_dof_id +dof_per_node;
-  return M3DC1_SUCCESS;
+  *start_dof_id = *ent_id*dof_per_value;
+  *end_dof_id_plus_one = *start_dof_id + dof_per_value;
 }
 
 //*******************************************************
-int m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
+void m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
          int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one)
 //*******************************************************
 {
-  if (*ent_dim!=0)
-    return M3DC1_FAILURE;
-
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
 
-  if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
-    return M3DC1_FAILURE;
-
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  int num_val =  mf->get_num_value();
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   int dof_per_value = mf->get_dof_per_value();
-  int dof_per_node = dof_per_value * num_val;
 
   int global_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
-  *start_global_dof_id = global_id*dof_per_node;
-  *end_global_dof_id_plus_one =*start_global_dof_id + dof_per_node;
-  return M3DC1_SUCCESS;
+  *start_global_dof_id = global_id*dof_per_value;
+  *end_global_dof_id_plus_one =*start_global_dof_id + dof_per_value;
 }
 
 //*******************************************************
-void m3dc1_field_getghostdofid (FieldID* field_id, 
-    int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
-//*******************************************************
-{
-  if (!m3dc1_mesh::instance()->field_container || 
-      !m3dc1_mesh::instance()->field_container->count(*field_id))
-    return;
-
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  apf::Field* f = mf->get_field();
-  int num_dof = (mf->get_value_type())?countComponents(f)/2:countComponents(f);
-  *start_dof_id=num_dof*m3dc1_mesh::instance()->num_local_ent[0];
-  *end_dof_id_plus_one=num_dof*m3dc1_mesh::instance()->mesh->count(0);
-}
-
-//*******************************************************
-int m3dc1_ent_getnumdof (int* /* in */ ent_dim, int* /* in */ ent_id, 
+void m3dc1_ent_getnumdof (int* /* in */ ent_dim, int* /* in */ ent_id, 
          FieldID* field_id, int* /* out */ num_dof)
 //*******************************************************
 {
   assert (m3dc1_mesh::instance()->field_container && 
           m3dc1_mesh::instance()->field_container->count(*field_id) && *ent_dim==0);
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  *num_dof =  mf->get_num_value() * mf->get_dof_per_value();
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  *num_dof =  mf->get_num_value()*mf->get_dof_per_value();
 }
 
 //*******************************************************
-int m3dc1_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
-                          int* /* out */ num_dof, double* dof_data)
+void m3dc1_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
+                          int* /* in */ num_dof, double* dof_data)
 //*******************************************************
 {
-  assert(*ent_dim==0);
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
+  assert(*ent_dim==0 && e);
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  apf::Field* f = mf->get_field();
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  int nv = mf->get_num_value();
+  apf::Field* f = mf->get_field(0);
+  int ndof=countComponents(f);
+  assert(*num_dof==nv * mf->get_dof_per_value());
+
+  for (int i=0; i<nv; ++i)
+  {
+    f = mf->get_field(i); 
+    setComponents(f, e, 0, &(dof_data[ndof*i]));
+  }
 
 #ifdef DEBUG
-  assert(countComponents(f)==*num_dof*(1+mf->get_value_type()));
-  for (int i=0; i<*num_dof*(1+mf->get_value_type()); i++)
+  assert(countComponents(mf->get_field(0))==*num_dof*(1+mf->get_value_type()));
+  for (int i=0; i<*num_dof*(1+mf->get_value_type()); ++i)
     assert(!value_is_nan(dof_data[i]));
 #endif
-  setComponents(f, e, 0, dof_data);
-  return M3DC1_SUCCESS;
+  
 }
 
 //*******************************************************
-int m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
+void m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
                           int* /* out */ num_dof, double* dof_data)
 //*******************************************************
 {
-  assert(*ent_dim==0);
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
+  assert(*ent_dim==0 && e);
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  apf::Field* f = mf->get_field();
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  int nv = mf->get_num_value();
+  apf::Field* f = mf->get_field(0);
+  int ndof=countComponents(f);
 
-  getComponents(f, e, 0, dof_data);
-  *num_dof = (mf->get_value_type())?countComponents(f)/2:countComponents(f);
+  *num_dof = nv*mf->get_dof_per_value();
+
+  for (int i=0; i<nv; ++i)
+  {
+    f = mf->get_field(i); 
+    getComponents(f, e, 0, &(dof_data[ndof*i]));
+  }
+ 
 #ifdef DEBUG
-  for (int i=0; i<*num_dof*(1+mf->get_value_type()); i++)
+  for (int i=0; i<nv*ndof; i++)
     assert(!value_is_nan(dof_data[i]));
+// FIXME - updated based on new m3dc1_field
+/*
   int start_dof_id,end_dof_id_plus_one;
   m3dc1_ent_getlocaldofid(ent_dim, ent_id,field_id, &start_dof_id, &end_dof_id_plus_one);
   double* data;
@@ -2134,8 +2237,8 @@ int m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
   int start=start_dof_id*(1+mf->get_value_type());
   for ( int i=0; i< *num_dof; i++)
     assert(data[start++]==dof_data[i]);
+*/
 #endif
-  return M3DC1_SUCCESS;
 }
 
 #ifdef M3DC1_PETSC
@@ -2145,7 +2248,7 @@ int getMatHit(int id) { return matHit[id];};
 void addMatHit(int id) { matHit[id]++; }
 
 //*******************************************************
-int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID *field_id)
+void m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID *field_id)
 //*******************************************************
 {
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2154,14 +2257,14 @@ int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, Fiel
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" already created\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
   // check field exists
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
 
 #ifdef DEBUG
@@ -2179,12 +2282,10 @@ int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, Fiel
     matrix_solve* new_mat= new matrix_solve(*matrix_id, *scalar_type, *field_id);
     m3dc1_solver::instance()->add_matrix(*matrix_id, (m3dc1_matrix*)new_mat);
   }
-
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_matrix_assemble(int* matrix_id) 
+void m3dc1_matrix_assemble(int* matrix_id) 
 //*******************************************************
 {
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2195,15 +2296,14 @@ int m3dc1_matrix_assemble(int* matrix_id)
   {   
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
   mat->assemble();
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_matrix_delete(int* matrix_id)
+void m3dc1_matrix_delete(int* matrix_id)
 //*******************************************************
 {  
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2214,13 +2314,12 @@ int m3dc1_matrix_delete(int* matrix_id)
   {   
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
   typedef std::map<int, m3dc1_matrix*> matrix_container_map;
   m3dc1_solver::instance()->matrix_container->erase(matrix_container_map::key_type(*matrix_id));
   delete mat;
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
@@ -2243,7 +2342,7 @@ void m3dc1_matrix_reset(int* matrix_id)
 
 
 //*******************************************************
-int m3dc1_matrix_insert(int* matrix_id, int* row, 
+void m3dc1_matrix_insert(int* matrix_id, int* row, 
          int* col, int* scalar_type, double* val)
 //*******************************************************
 {  
@@ -2253,7 +2352,7 @@ int m3dc1_matrix_insert(int* matrix_id, int* row,
   { 
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
 
@@ -2261,14 +2360,14 @@ int m3dc1_matrix_insert(int* matrix_id, int* row,
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" is fixed\n";
-    return M3DC1_FAILURE;
+    return;
   }
 
 #ifdef DEBUG
   int field = mat->get_fieldOrdering();
-  int num_values, value_type, total_num_dof;
+  int num_values, scalar_type, total_num_dof;
   char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
 
   int ent_id = *row/total_num_dof;
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, ent_id);
@@ -2280,11 +2379,10 @@ int m3dc1_matrix_insert(int* matrix_id, int* row,
     mat->set_value(*row, *col, INSERT_VALUES, val[0], val[1]);
   else
     mat->set_value(*row, *col, INSERT_VALUES, *val, 0);
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_matrix_add (int* matrix_id, int* row, int* col, 
+void m3dc1_matrix_add (int* matrix_id, int* row, int* col, 
                       int* scalar_type, double* val) //globalinsertval_
 //*******************************************************
 {  
@@ -2294,7 +2392,7 @@ int m3dc1_matrix_add (int* matrix_id, int* row, int* col,
   {  
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
 
@@ -2302,14 +2400,14 @@ int m3dc1_matrix_add (int* matrix_id, int* row, int* col,
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" is fixed\n";
-    return M3DC1_FAILURE;
+    return;
   }
 
 #ifdef DEBUG
   int field = mat->get_fieldOrdering();
-  int num_values, value_type, total_num_dof;
+  int num_values, scalar_type, total_num_dof;
   char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
 
   int ent_id = *row/total_num_dof;
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, ent_id);
@@ -2321,11 +2419,10 @@ int m3dc1_matrix_add (int* matrix_id, int* row, int* col,
     mat->set_value(*row, *col, ADD_VALUES, val[0], val[1]);
   else
     mat->set_value(*row, *col, ADD_VALUES, *val, 0);
-  return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_matrix_setbc(int* matrix_id, int* row)
+void m3dc1_matrix_setbc(int* matrix_id, int* row)
 //*******************************************************
 {  
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2334,7 +2431,7 @@ int m3dc1_matrix_setbc(int* matrix_id, int* row)
   {  
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
 
@@ -2342,12 +2439,12 @@ int m3dc1_matrix_setbc(int* matrix_id, int* row)
   { 
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for multiplication (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
   int field = mat->get_fieldOrdering();
-  int num_values, value_type, total_num_dof;
+  int num_values, scalar_type, total_num_dof;
   char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -2366,8 +2463,8 @@ int m3dc1_matrix_setbc(int* matrix_id, int* row)
 }
 
 //*******************************************************
-int m3dc1_matrix_setlaplacebc(int * matrix_id, int *row,
-         int * numVals, int *columns, double * values)
+void m3dc1_matrix_setlaplacebc(int* matrix_id, int* row,
+         int* numVals, int* columns, double* values)
 //*******************************************************
 {
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2376,7 +2473,7 @@ int m3dc1_matrix_setlaplacebc(int * matrix_id, int *row,
   {  
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
 
@@ -2384,13 +2481,13 @@ int m3dc1_matrix_setlaplacebc(int * matrix_id, int *row,
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for multiplication (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
   std::vector <int> columns_g(*numVals);
   int field = mat->get_fieldOrdering();
-  int num_values, value_type, total_num_dof;
+  int num_values, scalar_type, total_num_dof;
   char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -2414,7 +2511,7 @@ int m3dc1_matrix_setlaplacebc(int * matrix_id, int *row,
   (dynamic_cast<matrix_solve*>(mat))->set_row(row_g, *numVals, &columns_g[0], values);
 }
 
-int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
+void m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
 {  
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
 #ifdef DEBUG
@@ -2424,7 +2521,7 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   {  
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
 
@@ -2432,7 +2529,7 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   { 
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for multiplication (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
 
   (dynamic_cast<matrix_solve*>(mat))->solve(*rhs_sol);
@@ -2441,7 +2538,7 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
 }
 
 //*******************************************************
-int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, 
+void m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, 
          FieldID* outputvecid) 
 //*******************************************************
 {  
@@ -2453,7 +2550,7 @@ int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid,
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
 
@@ -2461,7 +2558,7 @@ int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid,
   { 
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for solving (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
 
   (dynamic_cast<matrix_mult*>(mat))->multiply(*inputvecid, *outputvecid);
@@ -2469,7 +2566,7 @@ int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid,
 }
 
 //*******************************************************
-int m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num)
+void m3dc1_matrix_getnumiter(int* matrix_id, int* iter_num)
 //*******************************************************
 { 
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2478,15 +2575,15 @@ int m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num)
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
   *iter_num = dynamic_cast<matrix_solve*> (mat)->iterNum;
 }
 
 //*******************************************************
-int m3dc1_matrix_insertblock(int* matrix_id, int * ielm, 
-          int* rowIdx, int * columnIdx, double * values)
+void m3dc1_matrix_insertblock(int* matrix_id, int* ielm, 
+          int* rowIdx, int* columnIdx, double* values)
 //*******************************************************
 {
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2495,15 +2592,15 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
   int field = mat->get_fieldOrdering();
   // need to change later, should get the value from field calls ...
   int dofPerVar = 6;
   char field_name[256];
-  int num_values, value_type, total_num_dof; 
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  int num_values, scalar_type, total_num_dof; 
+  m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
@@ -2512,15 +2609,14 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
 
   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, ielm_dim, *ielm);
   assert(e);
-  if (m3dc1_mesh::instance()->mesh->isGhost(e)) return M3DC1_FAILURE;
+  if (m3dc1_mesh::instance()->mesh->isGhost(e)) return;
   
   m3dc1_ent_getadj (&ielm_dim, ielm, &ent_dim, nodes, &nodes_per_element, &nodes_per_element_get);
   nodes_per_element=nodes_per_element_get;
   int start_global_dof_id,end_global_dof_id_plus_one;
   int start_global_dof,end_global_dof_id;
   // need to change later, should get the value from field calls ...
-  int scalar_type = mat->get_scalar_type();
-  assert(scalar_type==value_type);
+  assert(scalar_type==mat->get_scalar_type());
   int numDofs = total_num_dof;
   int numVar = numDofs/dofPerVar;
   assert(*rowIdx<numVar && *columnIdx<numVar);
@@ -2574,7 +2670,7 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
 
 
 //*******************************************************
-int m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
+void m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
 //*******************************************************
 {
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2587,7 +2683,7 @@ int m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
 
@@ -2621,12 +2717,11 @@ int m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
   }
   fclose(fp);  
   assert(index == vals.size());
-  return M3DC1_SUCCESS;
 }
 
 
 //*******************************************************
-int m3dc1_matrix_print(int* matrix_id)
+void m3dc1_matrix_print(int* matrix_id)
 //*******************************************************
 {
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2636,7 +2731,7 @@ int m3dc1_matrix_print(int* matrix_id)
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
+    return;
   }
 #endif
 
@@ -2666,44 +2761,21 @@ int m3dc1_matrix_print(int* matrix_id)
     }
   }
   assert(index == vals.size());
-  return M3DC1_SUCCESS;
 }
 
 // obsolete
 //*******************************************************
-int m3dc1_matrix_setassembleoption(int * op)
+void m3dc1_matrix_setassembleoption(int* op)
 //*******************************************************
 {
-  return M3DC1_FAILURE;
+  return;
 }
 #else
 #include "m3dc1_ls.h"
 #endif // #ifdef M3DC1_PETSC
 
-//*******************************************************
-void m3dc1_field_sum_plane (FieldID* /* in */ field_id)
-//*******************************************************
-{
-  MPI_Comm icomm= m3dc1_model::instance()->getMPICommPlane();
-  int num_vtx=m3dc1_mesh::instance()->mesh->count(0),num_dof=0, vertex_type=0;
-  m3dc1_field_getnumlocaldof(field_id, &num_dof);
-  char field_name[256];
-  int num_values, value_type, total_num_dof;
-  m3dc1_field_getinfo(field_id, field_name, &num_values, &value_type, &total_num_dof);
-
-  int data_size=total_num_dof*num_vtx*(1+value_type);
-  assert(total_num_dof*num_vtx==num_dof);
-  double * thevec = NULL;
-  m3dc1_field_getdataptr(field_id, &thevec);
-  double * sendbuf = new double [data_size];
-  m3dc1_field_retrieve (field_id, sendbuf, &num_dof);
-  MPI_Allreduce (sendbuf,thevec,data_size,MPI_DOUBLE,MPI_SUM,icomm) ;
-  synchronize_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
-  delete []sendbuf;
-}
-
 int adapt_time=0;
-int adapt_by_field (int * fieldId, double* psi0, double * psil)
+int adapt_by_field (int* fieldId, double* psi0, double* psil)
 {
   FILE *fp = fopen("sizefieldParam", "r");
   if (!fp)
@@ -2807,7 +2879,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
 }
 
 double absSize[2]={0,1}, relSize[2]={0.3, 1.5};
-int set_mesh_size_bound (double* abs_size, double * rel_size)
+int set_mesh_size_bound (double* abs_size, double* rel_size)
 {
   for (int i=0; i<2; i++)
   {
@@ -2846,6 +2918,7 @@ void smooth_size_field (apf::Field* sizeField)
     size/=nodes.size();
     size=1./size;
     //if (size<0.85*sizeOrg)
+    // FIXME based on new m3dc1_field
     setComponents(sizeField, e, 0, &size);
   }
 }
@@ -2883,13 +2956,14 @@ void group_complex_dof (apf::Field* field, int option)
         }
       }
     }
+    // FIXME based on new m3dc1_field
     setComponents(field, e, 0, &(newdofs[0]));
   }
 }
 
 double p=4;
-int set_adapt_p (double * pp) {p=*pp;}
-int adapt_by_error_field (double * errorData, double * errorAimed, int * max_adapt_node, int * option)
+int set_adapt_p (double* pp) {p=*pp;}
+int adapt_by_error_field (double* errorData, double* errorAimed, int* max_adapt_node, int* option)
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
   apf::Field* sizeField = createPackedField(m3dc1_mesh::instance()->mesh, "size_field", 1);
@@ -2941,6 +3015,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     targetSize*=size;
     if (targetSize>absSize[1]) targetSize=absSize[1];
     if (targetSize<absSize[0]) targetSize=absSize[0];
+    // FIXME based on new m3dc1_field
     setComponents(sizeField, e, 0, &targetSize);
   }
   // only implemented for one process
@@ -3050,89 +3125,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
  destroyField(sizeField);
 }
 
-void m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info)
-{
-  double* pts=NULL;
-  m3dc1_field_getdataptr (field_id, &pts);
-  int num_dof;
-  m3dc1_field_getnumlocaldof(field_id, &num_dof);
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-
-  apf::Field* f = mf ->get_field();
-  int dof_per_node = countComponents(f);
-  int num_comp=dof_per_node/C1TRIDOFNODE;
-  vector<double> norms(dof_per_node/C1TRIDOFNODE);
-  int j=0;
-  for (int i=0; i<num_dof/C1TRIDOFNODE; i++)
-  {
-     for (int k=0; k<6; k++)
-        norms.at(j)+=pts[i*C1TRIDOFNODE+k]*pts[i*C1TRIDOFNODE+k];
-     j++;
-     j%=num_comp;
-  }
-  vector<double> buff=norms;
-  MPI_Allreduce(&buff[0],&norms[0], num_comp, MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
-  int psize;
-  MPI_Comm_size(MPI_COMM_WORLD,&psize);
-  if (PCU_Comm_Self() == psize-1)
-  {
-    std::cout<< "norm of vec "<<info;
-    for (int i=0; i<num_comp; i++)
-      std::cout<<" "<<std::sqrt(norms[i]);
-    std::cout<<std::endl;
-  }
-}
-int m3dc1_mesh_write(char* filename, int *option)
-{
-  if (*option==0 ||*option==3)
-  {
-    apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
-    apf::MeshEntity* e;
-    int dim=2, num_ent=m3dc1_mesh::instance()->mesh->count(2);
-
-    vector<double> geoId (num_ent);
-    apf:: MeshIterator* it = mesh->begin(dim);
-    while ((e = mesh->iterate(it)))
-    {
-      int ent_id = getMdsIndex(m3dc1_mesh::instance()->mesh, e);
-      int geom_class_dim,geom_class_id;
-      m3dc1_ent_getgeomclass (&dim, &ent_id, &geom_class_dim, &geom_class_id);
-      geoId.at(ent_id)=geom_class_id;
-    }
-    mesh->end(it);
-    apf::writeVtkFiles(filename,m3dc1_mesh::instance()->mesh);
-    int one=1;
-    if (*option==3) output_face_data (&one, &geoId[0], "geoId");
-    /*apf::removeTagFromDimension(mesh, tag, dim);
-    mesh->destroyTag(tag);*/
-  }
-  else
-  {
-    char filename_buff[256];
-    sprintf(filename_buff, "%s.smb",filename);
-    int fieldID=12;
-    double dofBuff[1024];
-    m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[fieldID];
-    apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
-    apf::Field* f = mf ->get_field();
-    int numDof = countComponents(f);
-    apf::MeshTag* tag = mesh->createDoubleTag("field12", numDof);
-    apf::MeshEntity* e;
-    const int dim=0;
-    apf:: MeshIterator* it = mesh->begin(dim);
-    while ((e = mesh->iterate(it)))
-    {
-      apf::getComponents(f, e, 0, dofBuff);
-      mesh->setDoubleTag(e,tag, dofBuff);
-    }
-    mesh->end(it);
-    m3dc1_mesh::instance()->mesh->writeNative(filename_buff);
-    apf::removeTagFromDimension(mesh, tag, dim);
-    mesh->destroyTag(tag);
-  }
-}
-
-int sum_edge_data (double * data, int* size)
+int sum_edge_data (double* data, int* size)
 {
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   int num_edge=m3dc1_mesh::instance()->mesh->count(1), edg_dim=1;
@@ -3190,7 +3183,7 @@ int sum_edge_data (double * data, int* size)
    delete []receive_buff;
 }
 
-int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
+int get_node_error_from_elm (double* elm_data, int* size, double* nod_data)
 {
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   int num_node=m3dc1_mesh::instance()->mesh->count(0);
@@ -3282,7 +3275,7 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
   delete []area;  
 }
 
-void m3dc1_field_max (FieldID* field_id, double * max_val, double * min_val)
+void m3dc1_field_max (FieldID* field_id, double* max_val, double* min_val)
 {
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   int dofPerEnt = mf->get_num_value()*mf->get_dof_per_value();
@@ -3331,11 +3324,11 @@ void verifyFieldEpetraVector(apf::Field* f, Epetra_MultiVector* x)
 }
 #endif
 
-int m3dc1_epetra_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id)
+void m3dc1_epetra_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
 
@@ -3343,35 +3336,33 @@ int m3dc1_epetra_create(int* matrix_id, int* matrix_type, int* scalar_type, Fiel
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" already created\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
   // check field exists
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist\n";
-    return M3DC1_FAILURE; 
+    return; 
   }
   m3dc1_ls::instance()->add_matrix(*matrix_id, new m3dc1_epetra(*matrix_id, *matrix_type, *scalar_type, *field_id));
-  return M3DC1_SUCCESS;
 #endif
 }
 
-int m3dc1_epetra_delete(int* matrix_id)
+void m3dc1_epetra_delete(int* matrix_id)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat)
-    return M3DC1_FAILURE;
+    return;
 
   typedef std::map<int, m3dc1_epetra*> matrix_container_map;
   m3dc1_ls::instance()->matrix_container->erase(matrix_container_map::key_type(*matrix_id));
   mat->destroy();
   delete mat;
-  return M3DC1_SUCCESS;
 #endif
 }
 
@@ -3381,15 +3372,15 @@ void m3dc1_epetra_reset(int* matrix_id)
 }
 
 
-int m3dc1_epetra_insert(int* matrix_id, int* row, int* col, int* scalar_type, double* val)
+void m3dc1_epetra_insert(int* matrix_id, int* row, int* col, int* scalar_type, double* val)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat)
-    return M3DC1_FAILURE;
+    return;
   assert(*scalar_type==M3DC1_REAL);
 
   int err = mat->epetra_mat->ReplaceGlobalValues(*row, 1, val, col);
@@ -3397,7 +3388,6 @@ int m3dc1_epetra_insert(int* matrix_id, int* row, int* col, int* scalar_type, do
     err =mat->epetra_mat->InsertGlobalValues(*row, 1, val, col);
     assert(err == 0);
   }
-  return M3DC1_SUCCESS;
 #endif
 }
 
@@ -3412,7 +3402,7 @@ void print_elem (int elem_id)
   apf::MeshEntity* e = getMdsEntity(m, ielm_dim, elem_id);
   num_node_per_element = m->getDownward(e, 0, downward);
  
-  int *id = new int[num_node_per_element];
+  int* id = new int[num_node_per_element];
   for (int i=0; i<num_node_per_element; ++i)
     id[i] = get_ent_globalid(m, downward[i]);
 
@@ -3437,7 +3427,8 @@ void print_elem (int elem_id)
 
 #ifdef M3DC1_TRILINOS
 // equivalent to Petsc::MatSetValues(*A, rsize, rows, csize, columns, &petscValues[0], ADD_VALUES);
-void epetra_add_values(Epetra_CrsMatrix* mat, int rsize, int * rows, int csize, int * columns, double* values)
+void epetra_add_values(Epetra_CrsMatrix* mat, int rsize, int* rows, int csize, 
+                       int* columns, double* values)
 {
   double val[1];
   int col[1];
@@ -3459,7 +3450,8 @@ void epetra_add_values(Epetra_CrsMatrix* mat, int rsize, int * rows, int csize, 
 
 // seol -- this does weird thing so shouldn't be used
 // equivalent to Petsc::MatSetValues(*A, rsize, rows, csize, columns, &petscValues[0], ADD_VALUES);
-void epetra_add_values_wrong(Epetra_CrsMatrix* mat, int rsize, int * rows, int csize, int * columns, double* values)
+void epetra_add_values_wrong(Epetra_CrsMatrix* mat, int rsize, int* rows, int csize, 
+                             int* columns, double* values)
 {
   assert(!mat->IndicesAreLocal() && !mat->IndicesAreContiguous());
 
@@ -3475,23 +3467,23 @@ void epetra_add_values_wrong(Epetra_CrsMatrix* mat, int rsize, int * rows, int c
 #endif
 
 
-int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * columnVarIdx, double * values)
+void m3dc1_epetra_addblock(int* matrix_id, int* ielm, int* rowVarIdx, int* columnVarIdx, double* values)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
 
   if (!mat)
-    return M3DC1_FAILURE;
+    return;
 
   int field = mat->get_field_id();
   // need to change later, should get the value from field calls ...
   int dofPerVar = 6;
   char field_name[256];
-  int num_values, value_type, total_num_dof; 
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  int num_values, scalar_type, total_num_dof; 
+  m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   dofPerVar=total_num_dof/num_values;
   int nodes[6];
   int ent_dim=0;
@@ -3503,8 +3495,8 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
   int start_global_dof_id,end_global_dof_id_plus_one;
   int start_global_dof,end_global_dof_id;
   // need to change later, should get the value from field calls ...
-  int scalar_type = mat->get_scalar_type();
-  assert(scalar_type==value_type);
+  int scalar_type = mat->get_value_type();
+  assert(scalar_type==scalar_type);
   int numDofs = total_num_dof;
   int numVar = numDofs/dofPerVar;
   assert(*rowVarIdx<numVar && *columnVarIdx<numVar);
@@ -3554,29 +3546,27 @@ int m3dc1_epetra_addblock(int* matrix_id, int * ielm, int* rowVarIdx, int * colu
   }
   delete [] rows;
   delete [] columns;
-
-  return M3DC1_SUCCESS;
 #endif
 }
 
 
-int m3dc1_epetra_setbc(int* matrix_id, int* row)
+void m3dc1_epetra_setbc(int* matrix_id, int* row)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
     std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
 
   int field = mat->get_field_id();
-  int num_values, value_type, total_num_dof;
+  int num_values, scalar_type, total_num_dof;
   char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -3595,29 +3585,27 @@ int m3dc1_epetra_setbc(int* matrix_id, int* row)
   if (err) 
     err =mat->epetra_mat->InsertGlobalValues(row_g, 1, val, col);
   assert(err == 0);
-
-  return M3DC1_SUCCESS;
 #endif
 }
 
-int m3dc1_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *columns, double * values)
+void m3dc1_epetra_setlaplacebc (int* matrix_id, int* row, int* numVals, int* columns, double* values)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
     std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
 
   std::vector <global_ordinal_type> columns_g(*numVals);
   int field = mat->get_field_id();
-  int num_values, value_type, total_num_dof;
+  int num_values, scalar_type, total_num_dof;
   char field_name[256];
-  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -3635,19 +3623,18 @@ int m3dc1_epetra_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
   int err = mat->epetra_mat->SumIntoGlobalValues(row_g, *numVals, values, &columns_g[0]);
   if (err) 
     err =mat->epetra_mat->InsertGlobalValues(row_g, *numVals, values, &columns_g[0]);
-  return M3DC1_SUCCESS;
 #endif
 }
 
-int m3dc1_epetra_print(int* matrix_id)
+void m3dc1_epetra_print(int* matrix_id)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat)
-    return M3DC1_FAILURE;
+    return;
 
   // assemble matrix
   Epetra_Export exporter(/*target*/*(mat->_overlap_map),/*source*/*(mat->_owned_map));
@@ -3657,19 +3644,18 @@ int m3dc1_epetra_print(int* matrix_id)
   A.OptimizeStorage();
   A.MakeDataContiguous();
   A.Print(cout);
-  return M3DC1_SUCCESS;
 #endif
 }
 
-int m3dc1_epetra_write(int* matrix_id, const char* filename, int* skip_zero, int* start_index)
+void m3dc1_epetra_write(int* matrix_id, const char* filename, int* skip_zero, int* start_index)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat)
-    return M3DC1_FAILURE;
+    return;
   if (!filename)
     return m3dc1_epetra_print(matrix_id);
 
@@ -3694,8 +3680,6 @@ int m3dc1_epetra_write(int* matrix_id, const char* filename, int* skip_zero, int
     write_matrix(&A, matrix_filename,false,*start_index);
   else
     write_matrix(&A, matrix_filename,true,*start_index);
-
-  return M3DC1_SUCCESS;
 #endif
 }
 
@@ -3714,6 +3698,7 @@ void copyEpetraVec2Field(Epetra_MultiVector* x, apf::Field* f)
     if (get_ent_ownpartid(m, e)!=PCU_Comm_Self()) continue;
     for (int i=0; i<num_dof; ++i)
       dof_data.at(i)=(*x)[0][index++];
+    // FIXME based on new m3dc1_field
     setComponents(f, e, 0, &(dof_data[0]));
   }
   m->end(it);
@@ -3722,18 +3707,18 @@ void copyEpetraVec2Field(Epetra_MultiVector* x, apf::Field* f)
 }
 #endif
 
-int m3dc1_solver_aztec_old(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, int* num_iter, 
+void m3dc1_solver_aztec_old(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, int* num_iter, 
   double* tolerance,const char* krylov_solver, const char* preconditioner)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
     std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
   else
     if (!PCU_Comm_Self())
@@ -3778,22 +3763,21 @@ int m3dc1_solver_aztec_old(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldi
   
   apf::Field* x_field = (*(m3dc1_mesh::instance()->field_container))[*x_fieldid]->get_field();
   copyEpetraVec2Field(&x, x_field);
-  return M3DC1_SUCCESS;
 #endif
 }
 
 
-int m3dc1_solver_aztec_unused(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, int* num_iter, double* tolerance)
+void m3dc1_solver_aztec_unused(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, int* num_iter, double* tolerance)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
     std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
   else
     if (!PCU_Comm_Self())
@@ -3840,7 +3824,6 @@ int m3dc1_solver_aztec_unused(int* matrix_id, FieldID* x_fieldid, FieldID* b_fie
   
   apf::Field* x_field = (*(m3dc1_mesh::instance()->field_container))[*x_fieldid]->get_field();
   copyEpetraVec2Field(&x, x_field);
-  return M3DC1_SUCCESS;
 #endif
 }
 
@@ -3859,7 +3842,7 @@ bool invalidChar (char c)
 } 
 
 
-int m3dc1_solver_aztec(int* matrix_id, FieldID* x_fieldid, FieldID*
+void m3dc1_solver_aztec(int* matrix_id, FieldID* x_fieldid, FieldID*
 		       b_fieldid, int* num_iter, double* tolerance,
 		       const char* krylov_solver, const char*
 		       preconditioner, const char* sub_dom_solver,
@@ -3869,13 +3852,13 @@ int m3dc1_solver_aztec(int* matrix_id, FieldID* x_fieldid, FieldID*
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
     std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
   else
     if (!PCU_Comm_Self())
@@ -4013,7 +3996,6 @@ int m3dc1_solver_aztec(int* matrix_id, FieldID* x_fieldid, FieldID*
   
   apf::Field* x_field = (*(m3dc1_mesh::instance()->field_container))[*x_fieldid]->get_field();
   copyEpetraVec2Field(&x, x_field);
-  return M3DC1_SUCCESS;
 #endif
 }
 
@@ -4023,20 +4005,20 @@ int m3dc1_solver_aztec(int* matrix_id, FieldID* x_fieldid, FieldID*
 //#include "Amesos2_Version.hpp"
 #endif
 
-int m3dc1_solver_amesos(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, const char* solver_name)
+void m3dc1_solver_amesos(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, const char* solver_name)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: check if amesos2 is available\n";
-  return M3DC1_FAILURE;
+  return;
 
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_SOLVE)
   {
     std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
 
   Epetra_Export exporter(*(mat->_overlap_map),*(mat->_owned_map));
@@ -4068,7 +4050,7 @@ int m3dc1_solver_amesos(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, 
   {
     if (!PCU_Comm_Self()) 
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<": "<< solver_name << " not enabled.  Exiting..." << std::endl;
-    return M3DC1_FAILURE;	// Otherwise CTest will pick it up as failure, which it isn't really
+    return;	// Otherwise CTest will pick it up as failure, which it isn't really
   }
   else
     if (!PCU_Comm_Self())  *fos <<__func__<<": "<<Amesos2::version() <<" with "<<solver_name<< std::endl;
@@ -4101,7 +4083,7 @@ int m3dc1_solver_amesos(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, 
     catch (std::invalid_argument e)
     {
       if (!PCU_Comm_Self()) *fos <<"[M3D-C1 ERROR] "<<__func__<<": "<< e.what() << std::endl;
-      return M3DC1_FAILURE;
+      return;
     }
 
     solver->symbolicFactorization();
@@ -4129,39 +4111,35 @@ int m3dc1_solver_amesos(int* matrix_id, FieldID* x_fieldid, FieldID* b_fieldid, 
   for (int i=0; i<sol_x.MyLength(); ++i)
     x_field_data[i] =s[0][i];
 */
-  return M3DC1_SUCCESS;
-
 #endif
 }
 
-int m3dc1_solver_getnumiter(int* matrix_id, int * num_iter)
+void m3dc1_solver_getnumiter(int* matrix_id, int* num_iter)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
-  if (!mat)
-    return M3DC1_FAILURE;
+  assert(mat);
   *num_iter = mat->num_solver_iter;
-  return M3DC1_SUCCESS;
 #endif
 
 }
 
 // local matrix multiplication
 // do accumulate(out_field) for global result
-int m3dc1_epetra_multiply(int* matrix_id, FieldID* in_fieldid, FieldID* out_fieldid)
+void m3dc1_epetra_multiply(int* matrix_id, FieldID* in_fieldid, FieldID* out_fieldid)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat || mat->matrix_type!=M3DC1_MULTIPLY)
   {
     std::cout <<"[M3D-C1 ERROR] "<<__func__<<" matrix not exists or matrix type mismatch (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
+    return;
   }
 
   if (!mat->epetra_mat->Filled())
@@ -4181,22 +4159,20 @@ int m3dc1_epetra_multiply(int* matrix_id, FieldID* in_fieldid, FieldID* out_fiel
   double* out_field_data =getArrayData(out_field);
   b.ExtractCopy(out_field_data, b.MyLength());
   accumulate(out_field);
-  return M3DC1_SUCCESS;
 #endif
 }
 
-int m3dc1_epetra_assemble(int* matrix_id)
+void m3dc1_epetra_assemble(int* matrix_id)
 {
 #ifndef M3DC1_TRILINOS
   if (!PCU_Comm_Self()) std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported: compile the library with \"-DENABLE_TRILINOS=ON\" in config.sh\n";
-  return M3DC1_FAILURE;
+  return;
 #else
   m3dc1_epetra* mat = m3dc1_ls::instance()->get_matrix(*matrix_id);
   if (!mat)
-    return M3DC1_FAILURE;
+    return;
   mat->epetra_mat->FillComplete();
   assert(mat->epetra_mat->Filled());
-  return M3DC1_SUCCESS;
 #endif
 }
 
