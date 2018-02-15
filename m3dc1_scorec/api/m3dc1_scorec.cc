@@ -1791,23 +1791,16 @@ void m3dc1_field_retrieve (FieldID* /* in */ field_id, int* vid, double* /*out*/
 }
 
 //*******************************************************
-void m3dc1_field_set (FieldID* /* in */ field_id, double* /*in*/ data, int* /* in */size)
+void m3dc1_field_set (FieldID* /* in */ field_id, int* vid, double* /*in*/ data, int* /* in */size)
 //*******************************************************
 {
   int scalar_type=0;
 #ifdef PETSC_USE_COMPLEX
   scalar_type=1;
 #endif
-
-  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  int num_dof = mf->get_dof_per_value()*(1+scalar_type);
-  apf::Field* f;
-  for (int vid=0; vid<mf->get_num_value(); ++vid)
-  {
-    f = mf->get_field(vid);
-    double* pts = getArrayData(f);
-    memcpy(pts, data+num_dof*vid, num_dof*sizeof(double));
-  }
+  double* pts=NULL;
+  m3dc1_field_getdataptr (field_id, vid, &pts);
+  memcpy(pts, data, *size*(1+scalar_type)*sizeof(double));
 #ifdef DEBUG
   int isnan;
   m3dc1_field_isnan(field_id, &isnan);

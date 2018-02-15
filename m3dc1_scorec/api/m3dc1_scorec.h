@@ -129,14 +129,17 @@ void m3dc1_field_getnumglobaldof (FieldID* fid, int* /* out */ num_global_dof);
 void m3dc1_field_getnumghostdof (FieldID* fid, int* /* out */ num_ghost_dof);
 
 void m3dc1_field_getdataptr (FieldID* fid, int* vid, double** pts);
-void m3dc1_field_retrieve (FieldID* /* in */ fid, int* vid, double * /*out*/ data, int * /* in */size);
 
 void m3dc1_field_add(FieldID* /*inout*/ fid1, FieldID* /*in*/ fid2);
 void m3dc1_field_mult(FieldID* /*inout*/ fid, double* fac, int * scalar_type);
 void m3dc1_field_assign(FieldID* /*inout*/ fid, double* fac, int * scalar_type);
 void m3dc1_field_copy(FieldID* /* out */ fid1, FieldID* /* in */ fid2);
 
-void m3dc1_field_set (FieldID* /* in */ fid1, double * /*in*/ data, int * /* in */size);
+void m3dc1_field_retrieve (FieldID* /* in */ fid, int* vid, 
+                           double * /*out*/ data, int * /* in */size);
+void m3dc1_field_set (FieldID* /* in */ fid,  int*/* in */ vid, 
+                      double * /*in*/ data, int * /* in */size);
+
 void m3dc1_field_insert(FieldID* /* in */ fid, int*  /* in */ vid, int* /* in */ s_dofid, 
                        int* /* in */ size, double* /* in */ values, int* scalar_type, int* /* in */ op);
 void m3dc1_field_isnan(FieldID* /* in */ fid, int * isnan);

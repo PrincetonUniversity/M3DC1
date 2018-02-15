@@ -15,18 +15,24 @@
 class m3dc1_field
 {
 public:
-  m3dc1_field (int i, apf::Field* f, int n, int t, int ndof): id(i), field(f), num_value(n), value_type(t),dof_per_value(ndof) {}
-  ~m3dc1_field() {}
-  apf::Field* get_field() { return field; }
+  m3dc1_field (int i, const char* str, int n, int t, int ndof);
+  ~m3dc1_field();
+
+  apf::Field* get_field(int vid);
+
   int get_id() { return id; }
+  std::string get_name() { return name; }
+  // to be removed
+  apf::Field* get_field() { return fields[0]; }
   int get_num_value() { return num_value; }
   int get_value_type() { return value_type; }
-  int get_dof_per_value() {return dof_per_value;}
+  int get_dof_per_value() {return num_dof;}
 private:
   int id;
-  apf::Field* field; // name and #dofs are available from apf::Field
+  std::string name;
+  apf::Field** fields; // name and #dofs are available from apf::Field
   int num_value;
   int value_type;
-  int dof_per_value;
+  int num_dof;
 };
 #endif
