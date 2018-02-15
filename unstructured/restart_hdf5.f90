@@ -2,7 +2,7 @@ module restart_hdf5
   implicit none
 
   integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
-
+  integer, private :: ikprad_in, kprad_z_in
 contains
   
   subroutine rdrestart_hdf5()
@@ -82,8 +82,10 @@ contains
     end if
 
     if(version_in.ge.19) then
-!       call read_int_attr(root_id, "ikprad", ikprad,  error)
-!       call read_int_attr(root_id, "kprad_z", kprad_z,  error)
+       call read_int_attr(root_id, "ikprad", ikprad_in,  error)
+       call read_int_attr(root_id, "kprad_z", kprad_z_in,  error)
+    else
+       ikprad_in = 0
     end if
 
     ! Read Scalars
@@ -116,7 +118,7 @@ contains
     call read_scalar(scalar_group_id, "pellet_rate1",   pellet_rate1,  ntime, error)
     call read_scalar(scalar_group_id, "pellet_rate2",   pellet_rate2,  ntime, error)
     call read_scalar(scalar_group_id, "pellet_ablrate", pellet_ablrate,ntime, error)
-    
+
     ! Controllers
     call read_scalar(scalar_group_id, "loop_voltage",                  vloop,     ntime, error)
     call read_scalar(scalar_group_id, "i_control%err_i",     i_control%err_i,     ntime, error)
@@ -258,11 +260,13 @@ contains
     call h5r_read_field(group_id, "te",  te_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
 
-    if(ikprad.eq.1) then
+    if(ikprad.eq.1 .and. ikprad_in.eq.1) then
        do i=0, kprad_z
           write(field_name, '(A,I2.2)') "kprad_n_", i
           call h5r_read_field(group_id,trim(field_name),kprad_n(i),nelms,error)
        end do
+       call h5r_read_field(group_id,"kprad_sigma_e",kprad_sigma_e,nelms,error)
+       call h5r_read_field(group_id,"kprad_rad",kprad_rad,nelms,error)
     end if
     
     call h5gclose_f(group_id, error)
