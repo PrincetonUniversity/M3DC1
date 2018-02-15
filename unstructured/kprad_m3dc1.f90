@@ -274,17 +274,19 @@ contains
   ! kprad_onestep
   ! ~~~~~~~~~~~~~
   !===========================
-  subroutine kprad_onestep()
+  subroutine kprad_onestep(dti)
     use math
     use basic
     use newvar_mod
     use m3dc1_nint
 
     implicit none
+
+    real, intent(in) :: dti
     
     real :: dt_s
     real, dimension(MAX_PTS) :: ne, te
-    real, dimension(MAX_PTS,0:kprad_z) :: nz, nz_old
+    real, dimension(MAX_PTS,0:kprad_z) :: nz
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad
 
@@ -320,13 +322,11 @@ contains
        end do
        where(nz.lt.0.) nz = 0.
 
-       nz_old = nz
-
        ! convert nz, ne, te, dt to cgs / eV
        nz = nz*n0_norm
        ne = net79(:,OP_1)*n0_norm
        te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
-       dt_s = dt*t0_norm
+       dt_s = dti*t0_norm
 
        ! advance densities at each integration point
        ! for one MHD timestep (dt_s)
@@ -341,6 +341,7 @@ contains
        ! convert nz, dw_rad, dw_brem to normalized units
        ! nz is given in /cm^3
        nz = nz / n0_norm
+       ne = ne / n0_norm
 
        ! dw is given in J/cm^3
        ! factor of 1e7 needed to convert J to erg
@@ -353,15 +354,12 @@ contains
           call vector_insert_block(kprad_temp(i)%vec,itri,1,dofs,VEC_ADD)
        end do
 
-       temp79b = (dw_rad(:,kprad_z) + dw_brem) / dt
+       temp79b = (dw_rad(:,kprad_z) + dw_brem) / dti
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
 
-       temp79c = 0.
-       do i=0, kprad_z
-          temp79c = temp79c + (nz(:,i) - nz_old(:,i))*i
-       end do
-       dofs = intx2(mu79(:,:,OP_1),temp79c) / dt
+       temp79c = ne - net79(:,OP_1)
+       dofs = intx2(mu79(:,:,OP_1),temp79c) / dti
        call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
     end do
 

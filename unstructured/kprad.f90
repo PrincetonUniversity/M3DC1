@@ -27,6 +27,30 @@ contains
 
   end subroutine kprad_deallocate
 
+  subroutine kprad_instantaneous_radiation(npts, z, ne, te, nz, prad, pbrem)
+    implicit none
+
+    integer, intent(in) :: npts
+    integer, intent(in) :: z
+    real, intent(in) :: ne(npts)             ! electron density in cm^-3
+    real, intent(in) :: te(npts)             ! electron temperature in eV
+    real, intent(inout) :: nz(npts,0:z)      ! density
+    real, intent(out) :: prad(npts,0:z)    ! energy lost via radiation
+    real, intent(out) :: pbrem(npts)       ! energy lost via bremsstrahlung
+    
+    real, dimension(npts,0:z-1) :: sion
+    real, dimension(npts,0:z) :: srec
+    real, dimension(npts,z+1) :: imp_rad, pion, prec
+    real, dimension(npts, 2) :: nzeff
+
+    ! calculate ionization and recombination rates
+    call kprad_ionization_rate(npts,ne,te,z,sion)
+    call kprad_recombination_rate(npts,ne,te,z,srec)
+    call kprad_energy_losses(npts,z,te, &
+         ne,sion,srec,nz,nzeff,pion,prec,prad,pbrem)
+           
+  end subroutine kprad_instantaneous_radiation
+
 
   subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem)
     implicit none
@@ -34,7 +58,7 @@ contains
     real, intent(in) :: dt                    ! time step to advance densities
     integer, intent(in) :: npts
     integer, intent(in) :: z
-    real, intent(in) :: ne(npts)             ! electron density in cm^-3
+    real, intent(inout) :: ne(npts)             ! electron density in cm^-3
     real, intent(in) :: te(npts)             ! electron temperature in eV
     real, intent(inout) :: nz(npts,0:z)      ! density
     real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
@@ -42,6 +66,7 @@ contains
     
     real :: t, dts
     integer :: i, ntime, ntimemax
+    real, dimension(npts,0:z) :: nz_old
     real, dimension(npts,0:z-1) :: sion
     real, dimension(npts,0:z) :: srec
     real, dimension(npts) :: pbrem
@@ -64,8 +89,8 @@ contains
  
     ! start time loop
     do ntime=1, ntimemax
+       if(t+dts.ge.dt) dts = dt - t
        t = t + dts
-       if(t.ge.dt) return
 
        do i=0, z
           if(i.gt.0) aimp(:,i) = -dts*sion(:,i-1)
@@ -76,6 +101,8 @@ contains
           end if
           dimp(:,i) = nz(:,i)
        enddo
+
+       nz_old = nz
        
        call tridiag(aimp,bimp,cimp,dimp,nz, &
             ework,fwork,npts,z)
@@ -84,13 +111,19 @@ contains
             ne,sion,srec,nz,nzeff,pion,prec,imp_rad,pbrem)
        
        dw_brem = dw_brem + pbrem*dts
-       dw_rad = dw_rad + imp_rad*dts
-       
+       dw_rad = dw_rad + imp_rad*dts     
+       do i=1, z
+          ne = ne + i*(nz(:,i) - nz_old(:,i))
+       end do
+
        dts = dts * 1.02
-       if(t+dts.gt.dt) dts = dt-t
+
+       if(dts.le.0.) return
     enddo
     
   end subroutine kprad_advance_densities
+
+
 
 !-----------------------------------------------------------------------
 ! kprad_ionization_rates gets the ionization rates for each charge state
