@@ -57,6 +57,7 @@
 #define m3dc1_field_sync m3dc1_field_sync_
 #define m3dc1_field_sum m3dc1_field_sum_
 #define m3dc1_field_sumsq m3dc1_field_sumsq_
+#define m3dc1_field_sumplane m3dc1_field_sum_plane_
 #define m3dc1_field_getlocaldofid m3dc1_field_getlocaldofid_
 #define m3dc1_field_getowndofid m3dc1_field_getowndofid_
 #define m3dc1_field_getghostdofid m3dc1_field_getghostdofid_
@@ -75,11 +76,10 @@
 #define m3dc1_field_insert m3dc1_field_insert_
 #define m3dc1_field_isnan m3dc1_field_isnan_
 #define m3dc1_field_compare m3dc1_field_compare_
-#define m3dc1_field_sum_plane m3dc1_field_sum_plane_
-#define m3dc1_field_printcompnorm m3dc1_field_printcompnorm_
 #define m3dc1_field_max m3dc1_field_max_
 #define m3dc1_field_verify m3dc1_field_verify_
 #define m3dc1_field_print m3dc1_field_print_
+#define m3dc1_field_printcompnorm m3dc1_field_printcompnorm_
 #define m3dc1_field_write m3dc1_field_write_
 #define m3dc1_matrix_create m3dc1_matrix_create_
 #define m3dc1_matrix_assemble m3dc1_matrix_freeze_

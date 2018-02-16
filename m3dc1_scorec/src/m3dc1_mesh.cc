@@ -245,15 +245,15 @@ void m3dc1_mesh::clean()
   {
     for (std::map<FieldID, m3dc1_field*>::iterator f_it=field_container->begin(); f_it!=field_container->end();)
     {
-      if (!PCU_Comm_Self()) std::cout<<" destroy field "<<getName(f_it->second->get_field())<<std::endl;
+      if (!PCU_Comm_Self()) std::cout<<" destroy field "<<f_it->second->get_name()<<std::endl;
       FieldID id = f_it->first;
       std::map<FieldID, m3dc1_field*>::iterator it_next=++f_it;
       m3dc1_field_delete(&id);
       f_it=it_next;
     }
-    //field_container->clear();
   }
-  delete field_container; field_container=0;
+  delete field_container; 
+  field_container=0;
 
   // destroy tag data
   for (int d=0; d<4; ++d)
@@ -1415,47 +1415,58 @@ void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remo
 void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices)
 // *********************************************************
 {
-  // get the field info and save it for later creation
   char f_name[100];
   int num_values, scalar_type, old_ndof_per_value, old_numdof;   
   m3dc1_field_getinfo (&field_id, f_name, &num_values, &scalar_type, &old_numdof);
-  old_ndof_per_value = old_numdof/num_values;
+
+  // get the field info and save it for later creation
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[field_id];
+  int nv=mf->get_num_value();
+  double** dof_val = new double*[nv];
+  double** recv_dof_val = new double*[nv];
+
+  apf::Field* f;
 
   // copy the existing dof data
-  apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
-  int old_total_ndof = apf::countComponents(f);
-  double* dof_val; 
+  int old_total_ndof = apf::countComponents(mf->get_field(0));
 
-  freeze(f); // switch dof data from tag to array
-  
   PCU_Comm_Begin();
 
   if (!m3dc1_model::instance()->local_planeid)
   {
-    dof_val = new double[old_total_ndof*num_2d_vtx];
-    memcpy(&(dof_val[0]), apf::getArrayData(f), old_total_ndof*num_2d_vtx*sizeof(double));
+    for (int vid=0; vid<nv; ++vid)
+    {
+      f = mf->get_field(vid);
+      freeze(f); // switch dof data from tag to array
+      dof_val[vid] = new double[old_total_ndof*num_2d_vtx];
+      memcpy(&(dof_val[vid][0]), apf::getArrayData(f), old_total_ndof*num_2d_vtx*sizeof(double));
+    }
     int proc=PCU_Comm_Self()+m3dc1_model::instance()->group_size;
     while (proc<PCU_Comm_Peers())
     {       
       PCU_Comm_Pack(proc, &num_2d_vtx, sizeof(int));
-      PCU_Comm_Pack(proc, &(dof_val[0]), old_total_ndof*num_2d_vtx*sizeof(double));
+      for (int vid=0; vid<nv; ++vid)
+        PCU_Comm_Pack(proc, &(dof_val[vid][0]), old_total_ndof*num_2d_vtx*sizeof(double));
       proc+=m3dc1_model::instance()->group_size;
     }
   }
   PCU_Comm_Send();
   int recv_num_ent;
-  double* recv_dof_val;
 
   while (PCU_Comm_Listen())
   {
     int from = PCU_Comm_Sender();
-    while ( ! PCU_Comm_Unpacked())
+    while (!PCU_Comm_Unpacked())
     { 
       PCU_Comm_Unpack(&recv_num_ent, sizeof(int));
-      recv_dof_val = new double[old_total_ndof*recv_num_ent];
-      PCU_Comm_Unpack(&(recv_dof_val[0]), old_total_ndof*recv_num_ent*sizeof(double));
+      for (int vid=0; vid<nv; ++vid)
+      { 
+        recv_dof_val[vid] = new double[old_total_ndof*recv_num_ent];
+        PCU_Comm_Unpack(&(recv_dof_val[vid][0]), old_total_ndof*recv_num_ent*sizeof(double));
+      }
     }
   }
+
   // delete the field
   m3dc1_field_delete(&field_id);
 
@@ -1463,38 +1474,50 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
   m3dc1_field_create (&field_id, f_name, &num_values, &scalar_type, &ndof_per_value);
   
   // re-construct the dof data
-  f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
+  f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field(0);
   int new_total_ndof = apf::countComponents(f);
-  double* dof_data = new double[new_total_ndof];
+  double** dof_data = new double*[nv];
   if (!m3dc1_model::instance()->local_planeid)
   {
-    for (int index=0; index<num_2d_vtx; ++index)
+    for (int vid=0; vid<nv; ++vid)
     {
-      for (int i=0; i<old_total_ndof; ++i)
-        dof_data[i] = dof_val[index*old_total_ndof+i];
-      if (new_total_ndof>old_total_ndof)
-        for (int i=old_total_ndof; i<new_total_ndof; ++i)
-          dof_data[i] = 0.0;
-      setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data);
-      setComponents(f, remote_vertices[index], 0, dof_data);
+      f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field(vid);
+      for (int index=0; index<num_2d_vtx; ++index)
+      {
+        for (int i=0; i<old_total_ndof; ++i)
+          dof_data[vid][i] = dof_val[vid][index*old_total_ndof+i];
+        if (new_total_ndof>old_total_ndof)
+          for (int i=old_total_ndof; i<new_total_ndof; ++i)
+            dof_data[vid][i] = 0.0;
+        setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data[vid]);
+        setComponents(f, remote_vertices[index], 0, dof_data[vid]);
+      }
+      delete [] dof_val[vid];
     }
     delete [] dof_val;
   }
   else
   {
-    for (int index=0; index<recv_num_ent; ++index)
+    for (int vid=0; vid<nv; ++vid)
     {
-      for (int i=0; i<old_total_ndof; ++i)
-         dof_data[i] = recv_dof_val[index*old_total_ndof+i];
-      if (new_total_ndof>old_total_ndof)
-        for (int i=old_total_ndof; i<new_total_ndof; ++i)
-          dof_data[i] = 0.0;
-      setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data);
-      setComponents(f, remote_vertices[index], 0, dof_data);
+      f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field(vid);
+      for (int index=0; index<recv_num_ent; ++index)
+      {
+        for (int i=0; i<old_total_ndof; ++i)
+           dof_data[vid][i] = recv_dof_val[vid][index*old_total_ndof+i];
+        if (new_total_ndof>old_total_ndof)
+          for (int i=old_total_ndof; i<new_total_ndof; ++i)
+            dof_data[vid][i] = 0.0;
+        setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data[vid]);
+        setComponents(f, remote_vertices[index], 0, dof_data[vid]);
+        delete [] recv_dof_val[vid];
+      }
     } // index
     delete [] recv_dof_val;     
   } // while
 
+  for (int vid=0; vid<nv; ++vid)
+    delete [] dof_data[vid];
   delete [] dof_data;
 }
 

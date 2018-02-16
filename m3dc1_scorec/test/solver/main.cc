@@ -136,54 +136,6 @@ int main( int argc, char** argv)
     m3dc1_mesh_build3d(&zero, &zero, &zero);
   }
 
-  int num_layer=2;
-  m3dc1_ghost_create(&num_layer);
-  pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
-
-   // set/get field dof values
-  int num_vertex = m3dc1_mesh::instance()->mesh->count(0);
-  int num_own_vertex = m3dc1_mesh::instance()->num_own_ent[0];
-
-  int value_type[] = {scalar_type,scalar_type};
-
-  num_dofs=6;
-  if (num_plane>1) num_dofs=12;
-  num_dofs_node = num_values * num_dofs;
-
-  m3dc1_field_create (&b_field, "b_field", &num_values, value_type, &num_dofs);
-  m3dc1_field_create (&c_field, "c_field", &num_values, value_type, &num_dofs);
-  m3dc1_field_create (&x_field, "x_field", &num_values, value_type, &num_dofs);
-  m3dc1_field_printcompnorm(&b_field, "b_field init info");
-//  PetscMemoryGetCurrentUsage(&mem);
-//  PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
-//  PetscSynchronizedFlush(MPI_COMM_WORLD, NULL);
-  if(!PCU_Comm_Self()) cout<<"* set b field ..."<<endl;
-  // fill b field
-  for(int inode=0; inode<num_vertex; inode++)
-  {
-    double xyz[3];
-    m3dc1_node_getcoord(&inode, xyz);
-    // 2D mesh, z component =0
-    if(num_plane==1) assert(AlmostEqualDoubles(xyz[2], 0, 1e-6, 1e-6));
-    vector<double> dofs(num_dofs_node*(1+scalar_type));
-    for(int i=0; i<num_dofs_node*(1+scalar_type); i++)
-      dofs.at(i)=xyz[i%3];
-    m3dc1_ent_setdofdata(&vertex_dim, &inode, &b_field, &num_dofs_node, &dofs.at(0));
-  }
-  m3dc1_field_printcompnorm(&b_field, "b_field after set info");
-//  PetscMemoryGetCurrentUsage(&mem);
-//  PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
-//  PetscSynchronizedFlush(MPI_COMM_WORLD, NULL);
-  if(!PCU_Comm_Self()) cout<<"* set matrix ..."<<endl; 
-  t1 = MPI_Wtime();
-  // fill matrix 
-  // the matrix is diagnal dominant; thus should be positive definite
-  int matrix_mult=1, matrix_solve=2;
-  int matrix_mult_type = M3DC1_MULTIPLY;
-  int matrix_solve_type = M3DC1_SOLVE;
-  m3dc1_matrix_create(&matrix_mult, &matrix_mult_type, value_type, &b_field);
-  m3dc1_matrix_create(&matrix_solve, &matrix_solve_type, value_type, &b_field);
-
   //check geo
   if(num_plane >1)
   {
@@ -219,6 +171,60 @@ int main( int argc, char** argv)
       }
     }
   }
+
+  int num_layer=2;
+  m3dc1_ghost_create(&num_layer);
+  pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
+
+   // set/get field dof values
+  int num_vertex = m3dc1_mesh::instance()->mesh->count(0);
+  int num_own_vertex = m3dc1_mesh::instance()->num_own_ent[0];
+
+  int value_type[] = {scalar_type,scalar_type};
+
+  num_dofs=6;
+  if (num_plane>1) num_dofs=12;
+  num_dofs_node = num_values * num_dofs;
+
+  m3dc1_field_create (&b_field, "b_field", &num_values, value_type, &num_dofs);
+  m3dc1_field_create (&c_field, "c_field", &num_values, value_type, &num_dofs);
+  m3dc1_field_create (&x_field, "x_field", &num_values, value_type, &num_dofs);
+  m3dc1_field_printcompnorm(&b_field, "b_field init info");
+
+
+  if(!PCU_Comm_Self()) cout<<"* set b field ..."<<endl;
+  // fill b field
+  for(int inode=0; inode<num_vertex; inode++)
+  {
+    double xyz[3];
+    m3dc1_node_getcoord(&inode, xyz);
+    // 2D mesh, z component =0
+    if(num_plane==1) assert(AlmostEqualDoubles(xyz[2], 0, 1e-6, 1e-6));
+    vector<double> dofs(num_dofs_node*(1+scalar_type));
+    for(int i=0; i<num_dofs_node*(1+scalar_type); i++)
+      dofs.at(i)=xyz[i%3];
+    m3dc1_ent_setdofdata(&vertex_dim, &inode, &b_field, &num_dofs_node, &dofs.at(0));
+  }
+  double fac[2] = {2.0, 2.0};
+  m3dc1_field_mult(&b_field, fac, value_type);
+
+  m3dc1_field_printcompnorm(&b_field, "b_field after set info");
+  fac[0] = 0.5;   fac[1] = 0.5; 
+  m3dc1_field_mult(&b_field, fac, value_type);
+  m3dc1_field_printcompnorm(&b_field, "b_field after set info");
+
+//  PetscMemoryGetCurrentUsage(&mem);
+//  PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
+//  PetscSynchronizedFlush(MPI_COMM_WORLD, NULL);
+  if(!PCU_Comm_Self()) cout<<"* set matrix ..."<<endl; 
+  t1 = MPI_Wtime();
+  // fill matrix 
+  // the matrix is diagnal dominant; thus should be positive definite
+  int matrix_mult=1, matrix_solve=2;
+  int matrix_mult_type = M3DC1_MULTIPLY;
+  int matrix_solve_type = M3DC1_SOLVE;
+  m3dc1_matrix_create(&matrix_mult, &matrix_mult_type, value_type, &b_field);
+  m3dc1_matrix_create(&matrix_solve, &matrix_solve_type, value_type, &b_field);
 
   test_matrix(matrix_mult, matrix_solve);
 

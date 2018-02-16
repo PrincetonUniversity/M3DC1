@@ -22,8 +22,6 @@ public:
 
   int get_id() { return id; }
   std::string get_name() { return name; }
-  // to be removed
-  apf::Field* get_field() { return fields[0]; }
   int get_num_value() { return num_value; }
   int get_value_type() { return value_type; }
   int get_dof_per_value() {return num_dof;}
