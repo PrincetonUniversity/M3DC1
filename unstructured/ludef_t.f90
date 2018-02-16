@@ -4223,7 +4223,26 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
 
   if(gam.ne.1.) then
      ! heat source
-     r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
+     ! "Q" heats ions,
+     ! "rad" heats electrons
+     if(itemp.eq.0) then
+        if(total_pressure) then
+           ! Total pressure
+           r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
+        else
+           ! Electron pressure
+           r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
+        end if
+     else
+        if(total_pressure) then
+           ! Ion temperature
+           r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)
+        else
+           ! Electron temperature
+           r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
+        end if
+     end if
+
   end if
 
   ! density source terms
