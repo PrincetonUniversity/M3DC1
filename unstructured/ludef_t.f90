@@ -3766,6 +3766,12 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
   endif
 
+  ! special to peg temperature for itaylor=27
+  if(iheat_sink.eq.1 .and. itaylor.eq.27) then
+      tempx = b3pe27(trialx,lin)
+      ssterm(:,pp_g) = ssterm(:,pp_g) +     thimpb     *dt*(gam-1.)*coolrate*tempx
+      ddterm(:,pp_g) = ddterm(:,pp_g) - (1.-thimpb*bdf)*dt*(gam-1.)*coolrate*tempx
+  end if
 
   if(electron_temperature) then
   ! Ohmic Heating
@@ -4160,17 +4166,20 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
 
   vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
   vectype, intent(out), dimension(dofs_per_element) :: r4term
-
+  real :: fac
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079
   logical, intent(in) :: total_pressure
 
   if(itemp.eq.0) then
      if(total_pressure) then
+        fac = 1
         pp079 = p079
      else
+        fac = 0.5
         pp079 = pe079
      end if
   else
+     fac = 0.5
      if(total_pressure) then
         pp079 = ti079
      else
@@ -4204,7 +4213,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
 
   if(gam.ne.1.) then
      ! heat source
-     r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
+     r4term = r4term + fac*dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
   end if
 
   ! density source terms
