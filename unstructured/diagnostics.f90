@@ -60,7 +60,7 @@ module diagnostics
   real :: t_ludefall, t_sources, t_smoother, t_aux, t_onestep
   real :: t_solve_v, t_solve_n, t_solve_p, t_solve_b, t_mvm
   real :: t_output_cgm, t_output_hdf5, t_output_reset
-  real :: t_gs
+  real :: t_gs, t_kprad
 
   integer, parameter :: imag_probes_max = 100
   integer :: imag_probes
@@ -100,6 +100,7 @@ contains
     t_output_reset = 0.
     t_mvm = 0.
     t_onestep = 0.
+    t_kprad = 0.
   end subroutine reset_timings
 
 
@@ -114,7 +115,7 @@ contains
 
     include 'mpif.h'
     integer :: ier
-    real, dimension(13) :: vin, vout
+    real, dimension(14) :: vin, vout
 
     vin(1) =  t_ludefall
     vin(2) =  t_sources
@@ -129,7 +130,8 @@ contains
     vin(11) = t_output_reset
     vin(12) = t_mvm
     vin(13) = t_onestep
-    call MPI_ALLREDUCE(vin, vout, 13, MPI_DOUBLE_PRECISION, &
+    vin(14) = t_kprad
+    call MPI_ALLREDUCE(vin, vout, 14, MPI_DOUBLE_PRECISION, &
          MPI_SUM, MPI_COMM_WORLD, ier)
     t_ludefall      = vout(1)
     t_sources       = vout(2)
@@ -144,6 +146,7 @@ contains
     t_output_reset  = vout(11)
     t_mvm           = vout(12)
     t_onestep       = vout(13)
+    t_kprad         = vout(14)
     
   end subroutine distribute_timings
 

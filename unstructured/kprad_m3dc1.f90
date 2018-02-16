@@ -178,50 +178,44 @@ contains
     call set_matrix_index(nmat_rhs, kprad_rhs_index)
     call create_mat(nmat_lhs, 1, 1, icomplex, 1)
     call create_mat(nmat_rhs, 1, 1, icomplex, 0)
+    call clear_mat(nmat_lhs)
+    call clear_mat(nmat_rhs)
     call create_field(rhs)
 
-    numelms = local_elements()
 
     def_fields = FIELD_PHI + FIELD_V + FIELD_CHI
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating matrix'
 
+    numelms = local_elements()
     do itri=1, numelms
 
        call get_zone(itri, izone)
 
-       call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+       call define_element_quadrature(itri, int_pts_main, 5)
        call define_fields(itri, def_fields, 1, linear)
        
-       ssterm = 0.
-       ddterm = 0.
-       
-       if(izone.ne.1) then
-          tempxx = n1n(mu79,nu79)
-          ssterm = ssterm + tempxx
-          ddterm = ddterm + tempxx*bdf
-          goto 100
-       end if
-  
-       ! NUMVAR = 1
-       ! ~~~~~~~~~~
        tempxx = n1n(mu79,nu79)
-       ssterm = ssterm + tempxx
-       ddterm = ddterm + tempxx*bdf
-       
+       ssterm = tempxx
+       ddterm = tempxx
+
+       if(izone.ne.1) goto 100
+
        do j=1, dofs_per_element
+          ! NUMVAR = 1
+          ! ~~~~~~~~~~      
           tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79) &
                +  n1nu   (mu79,nu79(j,:,:),pht79)
-          ssterm(:,j) = ssterm(:,j) -     thimp     *dti*tempx
-          ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dti*tempx
+          ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+          ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           
 #if defined(USECOMPLEX) || defined(USE3D)
           ! NUMVAR = 2
           ! ~~~~~~~~~~
           if(numvar.ge.2) then
              tempx = n1nv(mu79,nu79(j,:,:),vzt79)
-             ssterm(:,j) = ssterm(:,j) -     thimp     *dti*tempx
-             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dti*tempx
+             ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           endif
 #endif
           
@@ -229,8 +223,8 @@ contains
           ! ~~~~~~~~~~
           if(numvar.ge.3) then
              tempx = n1nchi(mu79,nu79(j,:,:),cht79)
-             ssterm(:,j) = ssterm(:,j) -     thimp     *dti*tempx
-             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dti*tempx
+             ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           endif
        end do
 
@@ -256,6 +250,7 @@ contains
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
+       ierr = 0
        call newsolve(nmat_lhs, rhs%vec, ierr)
        kprad_n(j) = rhs
     end do
@@ -321,13 +316,15 @@ contains
           call eval_ops(itri, kprad_n(i), ph079, rfac)
           nz(:,i) = ph079(:,OP_1)
        end do
-       where(nz.lt.0.) nz = 0.
 
        ! convert nz, ne, te, dt to cgs / eV
        nz = nz*n0_norm
        ne = net79(:,OP_1)*n0_norm
        te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
        dt_s = dti*t0_norm
+
+       where(nz.lt.0.) nz = 0.
+       where(ne.lt.0.) ne = 0.
 
        ! advance densities at each integration point
        ! for one MHD timestep (dt_s)
@@ -338,7 +335,7 @@ contains
           dw_rad = 0.
           dw_brem = 0.
        end if
-
+       
        ! convert nz, dw_rad, dw_brem to normalized units
        ! nz is given in /cm^3
        nz = nz / n0_norm
