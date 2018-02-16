@@ -1339,7 +1339,7 @@ subroutine validate_input
   !==========================================
 
 
-  if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
+!  if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
 
   if(irmp.eq.0 .and. iread_ext_field.eq.0 &
        .and. tf_tilt.eq.0. .and. tf_shift.eq.0. &
