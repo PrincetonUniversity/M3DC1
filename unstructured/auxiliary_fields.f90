@@ -450,6 +450,27 @@ subroutine calculate_sigma_e(itri)
 end subroutine calculate_sigma_e
 
 
+subroutine calculate_sigma_i(itri)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  sii79 = sig79
+
+  if(ikprad.eq.1) then 
+     call eval_ops(itri, kprad_sigma_i, tm79, rfac)
+
+     sii79 = sii79 + tm79
+  end if
+  
+end subroutine calculate_sigma_i
+
+
 subroutine calculate_auxiliary_fields(ilin)
   use math
   use basic

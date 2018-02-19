@@ -964,6 +964,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
         call write_field(group_id, trim(field_name), kprad_n(i), nelms, error)
      end do
      call write_field(group_id, "kprad_sigma_e", kprad_sigma_e, nelms, error)
+     call write_field(group_id, "kprad_sigma_i", kprad_sigma_i, nelms, error)
      call write_field(group_id, "kprad_rad", kprad_rad, nelms, error)
   end if
 

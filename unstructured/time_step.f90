@@ -109,15 +109,6 @@ subroutine onestep
   ! start of loop to repeat timestep if max iterations exceeded in 3D
   do irepeat = 1, max_repeat
 
-     ! do first half of kprad step
-    if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-    call kprad_onestep(dt)
-    if(myrank.eq.0 .and. itimer.eq.1) then
-       call second(tend)
-       t_kprad = t_kprad + tend - tstart
-    endif
-
-
     ! calculate matrices for time advance
     if(calc_matrices.eq.1) then
        if(myrank.eq.0 .and. iprint.ge.1) print *, "Defining matrices"
@@ -178,19 +169,19 @@ subroutine onestep
 
   call runaway_advance
 
+  ! Advance impurity charge states
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  call kprad_onestep(dt)
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_kprad = t_kprad + tend - tstart
+  endif
+
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."
 
 ! if(eqsubtract.eq.0) call subtract_axi    !DEBUG
   call export_time_advance_vectors
-
-!!$  ! Do second half of kprad step
-!!$  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-!!$  call kprad_onestep(dt/2.)
-!!$  if(myrank.eq.0 .and. itimer.eq.1) then
-!!$     call second(tend)
-!!$     t_kprad = t_kprad + tend - tstart
-!!$  endif
 
   ! Calculate all quantities derived from basic fields
   call derived_quantities(1)

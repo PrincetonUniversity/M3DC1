@@ -4154,7 +4154,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      if(electron_temperature) then
         tempx = tempx + t3ts(trialx,lin,sie79)
      else
-        tempx = tempx + t3ts(trialx,lin,sig79)
+        tempx = tempx + t3ts(trialx,lin,sii79)
      end if
      ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
@@ -4545,6 +4545,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      call define_fields(itri, def_fields, 1, linear)
      call calculate_rho(itri)
      call calculate_sigma_e(itri)
+     call calculate_sigma_i(itri)
      if(gyro.eq.1) call gyro_common
      if(irunaway.gt.0) call eval_runaway(itri,izone)
      if(myrank.eq.0 .and. itimer.eq.1) then

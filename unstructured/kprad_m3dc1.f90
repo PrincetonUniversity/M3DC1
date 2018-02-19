@@ -12,6 +12,8 @@ module kprad_m3dc1
   type(field_type), allocatable, private :: kprad_temp(:)
   type(field_type) :: kprad_rad
   type(field_type) :: kprad_sigma_e  ! electron source / sink due to ionization / recomb
+  type(field_type) :: kprad_sigma_i  ! total ion source / sink due to ionization / recomb
+
   integer :: ikprad     ! 1 = use kprad model
   integer :: kprad_z    ! Z of impurity species
 
@@ -47,6 +49,7 @@ contains
     end do
     call create_field(kprad_rad)
     call create_field(kprad_sigma_e)
+    call create_field(kprad_sigma_i)
 
   end subroutine kprad_init
     
@@ -69,6 +72,7 @@ contains
        deallocate(kprad_n, kprad_temp)
        call destroy_field(kprad_rad)
        call destroy_field(kprad_sigma_e)
+       call destroy_field(kprad_sigma_i)
     end if
 
     call kprad_deallocate()
@@ -281,7 +285,7 @@ contains
     real, intent(in) :: dti
     
     real :: dt_s
-    real, dimension(MAX_PTS) :: ne, te
+    real, dimension(MAX_PTS) :: ne, te, n0_old
     real, dimension(MAX_PTS,0:kprad_z) :: nz
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad
@@ -298,6 +302,7 @@ contains
     end do
     kprad_rad = 0.
     kprad_sigma_e = 0.
+    kprad_sigma_i = 0.
 
     def_fields = FIELD_N + FIELD_TE
 
@@ -316,15 +321,18 @@ contains
           call eval_ops(itri, kprad_n(i), ph079, rfac)
           nz(:,i) = ph079(:,OP_1)
        end do
-
-       ! convert nz, ne, te, dt to cgs / eV
-       nz = nz*n0_norm
-       ne = net79(:,OP_1)*n0_norm
-       te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
-       dt_s = dti*t0_norm
+       ne = net79(:,OP_1)
 
        where(nz.lt.0.) nz = 0.
        where(ne.lt.0.) ne = 0.
+
+       n0_old = nz(:,0)
+
+       ! convert nz, ne, te, dt to cgs / eV
+       nz = nz*n0_norm
+       ne = ne*n0_norm
+       te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
+       dt_s = dti*t0_norm
 
        ! advance densities at each integration point
        ! for one MHD timestep (dt_s)
@@ -346,19 +354,27 @@ contains
        dw_rad = dw_rad * 1.e7 / p0_norm
        dw_brem = dw_brem * 1.e7 / p0_norm
 
+       ! New charge state densities
        do i=0, kprad_z
           temp79a = nz(:,i)
           dofs = intx2(mu79(:,:,OP_1), temp79a)
           call vector_insert_block(kprad_temp(i)%vec,itri,1,dofs,VEC_ADD)
        end do
 
+       ! Radiation
        temp79b = (dw_rad(:,kprad_z) + dw_brem) / dti
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
 
+       ! Electron source
        temp79c = ne - net79(:,OP_1)
        dofs = intx2(mu79(:,:,OP_1),temp79c) / dti
        call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
+
+       ! Total ion source is (calculated as opposite of neutral source)
+       temp79d = n0_old - nz(:,0)
+       dofs = intx2(mu79(:,:,OP_1),temp79d) / dti
+       call vector_insert_block(kprad_sigma_i%vec, itri,1,dofs,VEC_ADD)
     end do
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' solving'
@@ -369,6 +385,7 @@ contains
     end do
     call newvar_solve(kprad_rad%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
+    call newvar_solve(kprad_sigma_i%vec, mass_mat_lhs)
 
     call kprad_advect(dti)
 
