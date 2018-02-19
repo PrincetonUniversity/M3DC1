@@ -301,6 +301,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Radiated Power!6'
        symbol = '!8P!D!6rad!N!X'
        d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("temax", scalarname, /fold_case) eq 1) then begin
+       data = s.temax._data
+       title = '!6Maximum Te!6'
+       symbol = '!6max[!8T!De!N!6]!X'
+       d = dimensions(/temp,_EXTRA=extra)
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)
