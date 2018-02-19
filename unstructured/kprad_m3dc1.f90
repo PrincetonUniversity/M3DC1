@@ -271,10 +271,10 @@ contains
 
 
   !===========================
-  ! kprad_onestep
-  ! ~~~~~~~~~~~~~
+  ! kprad_ionize
+  ! ~~~~~~~~~~~~
   !===========================
-  subroutine kprad_onestep(dti)
+  subroutine kprad_ionize(dti)
     use math
     use basic
     use newvar_mod
@@ -387,9 +387,7 @@ contains
     call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_i%vec, mass_mat_lhs)
 
-    call kprad_advect(dti)
-
     if(myrank.eq.0) print *, ' Done advancing KPRAD'
-  end subroutine kprad_onestep
+  end subroutine kprad_ionize
 
 end module kprad_m3dc1

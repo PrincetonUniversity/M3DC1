@@ -106,6 +106,14 @@ subroutine onestep
      calc_matrices = 0
   endif
 
+  ! Advance impurity charge states
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  call kprad_ionize(dt)
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_kprad = t_kprad + tend - tstart
+  endif
+
   ! start of loop to repeat timestep if max iterations exceeded in 3D
   do irepeat = 1, max_repeat
 
@@ -169,14 +177,6 @@ subroutine onestep
 
   call runaway_advance
 
-  ! Advance impurity charge states
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call kprad_onestep(dt)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_kprad = t_kprad + tend - tstart
-  endif
-
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."
 
@@ -186,6 +186,13 @@ subroutine onestep
   ! Calculate all quantities derived from basic fields
   call derived_quantities(1)
 
+  ! Advect impurity charge states
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  call kprad_advect(dt)
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_kprad = t_kprad + tend - tstart
+  endif
 
   ! Conserve toroidal flux
   if(iconstflux.eq.1 .and. numvar.ge.2) then
