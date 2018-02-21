@@ -21,6 +21,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
 
    s = read_scalars(filename=filename)
    itor = read_parameter('itor', filename=filename)
+   version = read_parameter('version', filename=filename)
    if(n_tags(s) eq 0) then return, 0
 
    time = s.time._data
@@ -186,9 +187,20 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(/energy, _EXTRA=extra)
    endif else if $
      (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
-     (strcmp("te", scalarname, /fold_case) eq 1)then begin
-       nv = read_parameter("numvar", filename=filename)
+     (strcmp("p", scalarname, /fold_case) eq 1)then begin
        data = s.E_P._data 
+       title = 'Thermal Energy'
+       symbol = '!8TE!X'
+       d = dimensions(/energy, _EXTRA=extra)
+   endif else if $
+     (strcmp("electron thermal energy", scalarname, /fold_case) eq 1) or $
+     (strcmp("pe", scalarname, /fold_case) eq 1)then begin
+      if(version ge 20) then begin
+         data = s.E_PE._data 
+      endif else begin
+         print, 'Error, this data is not present in this version of M3D-C1.'
+         data = 0.
+      end
        title = 'Thermal Energy'
        symbol = '!8TE!X'
        d = dimensions(/energy, _EXTRA=extra)
@@ -205,6 +217,18 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.particle_number._data
        title = 'Particle Number'
        symbol = '!8N!X'
+       d = dimensions(/n0,l0=3, _EXTRA=extra)
+   endif else if $
+     (strcmp("electrons", scalarname, /fold_case) eq 1) or $
+     (strcmp("ne", scalarname, /fold_case) eq 1) then begin
+      if(version ge 20) then begin
+         data = s.electron_number._data
+      endif else begin
+         zeff = read_parameter('zeff', filename=filename)
+         data = s.particle_number._data*zeff
+      end
+      title = 'Electron Number'
+      symbol = '!8N!De!N!X'
        d = dimensions(/n0,l0=3, _EXTRA=extra)
    endif else if $
      (strcmp("angular momentum", scalarname, /fold_case) eq 1) then begin
@@ -277,6 +301,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Radiated Power!6'
        symbol = '!8P!D!6rad!N!X'
        d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("temax", scalarname, /fold_case) eq 1) then begin
+       data = s.temax._data
+       title = '!6Maximum Te!6'
+       symbol = '!6max[!8T!De!N!6]!X'
+       d = dimensions(/temp,_EXTRA=extra)
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)

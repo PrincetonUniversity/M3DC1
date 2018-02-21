@@ -641,7 +641,9 @@ subroutine initial_conditions()
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per()
 
-  ! calculate equilibrium and perturbed temperature profiles
+  ! calculate equilibrium and perturbed ne and temperature profiles
+  call calculate_ne(0, den_field(0), ne_field(0), 1)
+  call calculate_ne(1, den_field(1), ne_field(1), 1)
   call calculate_temperatures(0, te_field(0),ti_field(0), 1)
   call calculate_temperatures(1, te_field(1),ti_field(1), 1)
 

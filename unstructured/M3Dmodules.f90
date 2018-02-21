@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 19
+  integer, parameter :: version = 20
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -474,12 +474,13 @@ module arrays
   integer, parameter :: te_g = 9
   integer, parameter :: ti_g = 10
   integer, parameter :: e_g = 11
-  integer, parameter :: num_fields = 11
+  integer, parameter :: ne_g = 12
+  integer, parameter :: num_fields = 12
 
 
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
   type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)
-  type(field_type) :: den_field(0:1), p_field(0:1)
+  type(field_type) :: den_field(0:1), p_field(0:1), ne_field(0:1)
   type(field_type) :: bf_field(0:1), e_field(0:1)
   type(field_type) :: te_field(0:1), ti_field(0:1)
   type(field_type) :: u_field_pre, psi_field_pre

@@ -94,12 +94,14 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(ps179,bz179,pe179,n179,ph179,vz179,ch179,p179,ne179,pi179)
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
        pht79, vzt79, cht79, pt79, net79
+!$OMP THREADPRIVATE(rho79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: rho79
 !$OMP THREADPRIVATE(pst79,bzt79,pet79,nt79,pht79,vzt79,cht79,pt79,net79)
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, fy79, q79, cd79, rad79
-!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,rad79)
+       eta79, sig79, fy79, q79, cd79, rad79, sie79, sii79
+!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,rad79,sie79,sii79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
 !$OMP THREADPRIVATE(bf079,bf179,bft79)
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
@@ -699,8 +701,10 @@ contains
        
        if(ilin.eq.0) then
           call eval_ops(itri, den_field(1), n179, rfac)
+          call eval_ops(itri, ne_field(1), ne179, rfac)
        else
           n179 = 0.
+          ne179 = 0.
        end if
 
        if(ieqsub.eq.1) then
@@ -718,18 +722,19 @@ contains
                    n079(:,OP_1) = den_edge
                 end where
              end if
+             ne079 = n079*zeff
           else
              call eval_ops(itri, den_field(0), n079)
+             call eval_ops(itri, ne_field(0), ne079)
           end if
           nt79 = n079 + n179
+          net79 = ne079 + ne179
        else
           n079 = 0.
           nt79 = n179
+          ne079 = 0.
+          net79 = ne179
        endif
-
-       ne079 = zeff*n079
-       ne179 = zeff*n179
-       net79 = zeff*nt79
     endif
 
   ! NI

@@ -12445,6 +12445,33 @@ real function energy_p()
 end function energy_p
 
 
+! Electron Pressure
+! -----------------
+real function energy_pe()
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype :: temp
+
+  if(gam.le.1.) then 
+     temp = 0.
+  else
+     if(linear.eq.1) then
+        temp = int1(pe179) / (gam - 1.)
+     else
+!.......nonlinear: subtract off equilibrium piece
+        temp = (int1(pet79) - int1(pe079))/ (gam - 1.)
+     endif
+  endif
+
+  energy_pe = temp
+  return
+end function energy_pe
+
+
 
 ! Poloidal kinetic
 ! ----------------

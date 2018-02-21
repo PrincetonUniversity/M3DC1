@@ -12,7 +12,8 @@ module diagnostics
   real :: tflux0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad, totne
+  real :: w_pe   ! electron thermal energy
   real :: totre  ! total number of runaway electrons
 
   ! wall forces in R, phi, and Z directions
@@ -59,7 +60,7 @@ module diagnostics
   real :: t_ludefall, t_sources, t_smoother, t_aux, t_onestep
   real :: t_solve_v, t_solve_n, t_solve_p, t_solve_b, t_mvm
   real :: t_output_cgm, t_output_hdf5, t_output_reset
-  real :: t_gs
+  real :: t_gs, t_kprad
 
   integer, parameter :: imag_probes_max = 100
   integer :: imag_probes
@@ -99,6 +100,7 @@ contains
     t_output_reset = 0.
     t_mvm = 0.
     t_onestep = 0.
+    t_kprad = 0.
   end subroutine reset_timings
 
 
@@ -113,7 +115,7 @@ contains
 
     include 'mpif.h'
     integer :: ier
-    real, dimension(13) :: vin, vout
+    real, dimension(14) :: vin, vout
 
     vin(1) =  t_ludefall
     vin(2) =  t_sources
@@ -128,7 +130,8 @@ contains
     vin(11) = t_output_reset
     vin(12) = t_mvm
     vin(13) = t_onestep
-    call MPI_ALLREDUCE(vin, vout, 13, MPI_DOUBLE_PRECISION, &
+    vin(14) = t_kprad
+    call MPI_ALLREDUCE(vin, vout, 14, MPI_DOUBLE_PRECISION, &
          MPI_SUM, MPI_COMM_WORLD, ier)
     t_ludefall      = vout(1)
     t_sources       = vout(2)
@@ -143,6 +146,7 @@ contains
     t_output_reset  = vout(11)
     t_mvm           = vout(12)
     t_onestep       = vout(13)
+    t_kprad         = vout(14)
     
   end subroutine distribute_timings
 
@@ -194,6 +198,7 @@ contains
     wallcur = 0.
     tflux = 0.
     totden = 0.
+    totne = 0.
     totrad = 0.
     tmom = 0.
     tvor = 0.
@@ -226,6 +231,7 @@ contains
     psi0 = 0.
 
     totre = 0.
+    w_pe = 0.
 
     wall_force_n0_x = 0.
     wall_force_n0_y = 0.
@@ -249,7 +255,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 60
+    integer, parameter :: num_scalars = 62
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -315,6 +321,8 @@ contains
        temp(58) = wall_force_n1_x
        temp(59) = wall_force_n1_y
        temp(60) = wall_force_n1_z
+       temp(61) = totne
+       temp(62) = w_pe
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -380,7 +388,8 @@ contains
        wall_force_n1_x = temp2(58)
        wall_force_n1_y = temp2(59)
        wall_force_n1_z = temp2(60)
-
+       totne = temp2(61)
+       w_pe = temp2(62)
     endif !if maxrank .gt. 1
 
   end subroutine distribute_scalars
@@ -678,7 +687,7 @@ subroutine calculate_scalars()
   numelms = local_elements()
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -759,7 +768,7 @@ subroutine calculate_scalars()
 !     emagth = emagth - twopi*qbbeta(tm79)/tpifac
 
      emag3 = emag3 + twopi*energy_p()/tpifac
-
+     w_pe = w_pe + twopi*energy_pe()/tpifac
 
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
@@ -796,6 +805,7 @@ subroutine calculate_scalars()
 
      ! particle number
      totden = totden + twopi*int1(nt79(:,OP_1))/tpifac
+     totne = totne + twopi*int1(net79(:,OP_1))/tpifac
      pden = pden + twopi*int2(nt79(:,OP_1),mr)/tpifac
       ! radiation
      totrad = totrad + twopi*int1(rad79(:,OP_1))/tpifac

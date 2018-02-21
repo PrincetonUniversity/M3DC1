@@ -679,7 +679,6 @@ subroutine derived_quantities(ilin)
      call lcfs(psi_field(1))
   endif
 
-
   ! Find maximum temperature:  te_max
   ! ~~~~~~~~~
   ier = 0
@@ -707,6 +706,9 @@ subroutine derived_quantities(ilin)
     endif
   endif
 
+  ! Electron temperature
+  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
+
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
@@ -720,6 +722,7 @@ subroutine derived_quantities(ilin)
      call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
           eqsubtract)
   end if
+
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  toroidal current"
@@ -1233,7 +1236,8 @@ subroutine space(ifirstcall)
   call associate_field(p_field(1),   field_vec, p_g)
   call associate_field(te_field(1),  field_vec, te_g)
   call associate_field(ti_field(1),  field_vec, ti_g)
-  call associate_field(e_field(1),  field_vec, e_g)
+  call associate_field(e_field(1),   field_vec, e_g)
+  call associate_field(ne_field(1),  field_vec, ne_g)
 
   call associate_field(u_field(0),   field0_vec, u_g)
   call associate_field(vz_field(0),  field0_vec, vz_g)
@@ -1245,6 +1249,7 @@ subroutine space(ifirstcall)
   call associate_field(p_field(0),   field0_vec, p_g)
   call associate_field(te_field(0),  field0_vec, te_g)
   call associate_field(ti_field(0),  field0_vec, ti_g)
+  call associate_field(ne_field(0),  field0_vec, ne_g)
 
   call allocate_kspits
 

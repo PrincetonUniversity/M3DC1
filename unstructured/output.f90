@@ -398,6 +398,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_current", totcur, ntime, error)
   call output_scalar(scalar_group_id, "particle_number" , totden, ntime, error)
+  call output_scalar(scalar_group_id, "electron_number" , totne , ntime, error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
@@ -433,6 +434,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
   call output_scalar(scalar_group_id, "E_PH", emag3h, ntime, error)
   call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
+  call output_scalar(scalar_group_id, "E_PE", w_pe ,ntime, error)
 
   call output_scalar(scalar_group_id, "Flux_pressure ", efluxp, ntime, error)
   call output_scalar(scalar_group_id, "Flux_kinetic  ", efluxk, ntime, error)
@@ -534,6 +536,7 @@ subroutine hdf5_write_timings(error)
   call output_scalar(timing_group_id, "t_output_reset", t_output_reset, ntime, error)
   call output_scalar(timing_group_id, "t_mvm"         , t_mvm         , ntime, error)
   call output_scalar(timing_group_id, "t_onestep"     , t_onestep     , ntime, error)
+  call output_scalar(timing_group_id, "t_kprad"       , t_kprad       , ntime, error)
 
   call h5gclose_f(timing_group_id, error)
   call h5gclose_f(root_id, error)
@@ -929,6 +932,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   call write_field(group_id, "den", den_field(ilin), nelms, error)
   call write_field(group_id, "te",   te_field(ilin), nelms, error)
   call write_field(group_id, "ti",   ti_field(ilin), nelms, error)
+  call write_field(group_id, "ne",   ne_field(ilin), nelms, error)
   
   if(icsubtract.eq.1) then
      call write_field(group_id, "psi_coil", psi_coil_field, nelms, error, .true.)
@@ -959,6 +963,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
         write(field_name, '(A,I2.2)') "kprad_n_", i
         call write_field(group_id, trim(field_name), kprad_n(i), nelms, error)
      end do
+     call write_field(group_id, "kprad_sigma_e", kprad_sigma_e, nelms, error)
+     call write_field(group_id, "kprad_sigma_i", kprad_sigma_i, nelms, error)
+     call write_field(group_id, "kprad_rad", kprad_rad, nelms, error)
   end if
 
   ! transport coefficients do not change with time in linear calculations

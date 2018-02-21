@@ -10,10 +10,13 @@ pro plot_timings, filename=filename, overplot=overplot, _EXTRA=extra
    h5g_close, root_id
    h5f_close, file_id
 
+   v = read_parameter('version', filename=filename)
+
    t_solve = timings.t_solve_b._data + timings.t_solve_v._data + $
      timings.t_solve_n._data + timings.t_solve_p._data
    t_output = timings.t_output_cgm._data + timings.t_output_hdf5._data + $
      timings.t_output_reset._data
+
 
    loadct, 12
    c = get_colors()
@@ -31,10 +34,10 @@ pro plot_timings, filename=filename, overplot=overplot, _EXTRA=extra
    oplot, timings.t_mvm._data, linestyle=1, color=c[5]
    oplot, t_solve, linestyle=2, color=c[6]
    oplot, t_output, linestyle=2, color=c[7]
-
+   if(v ge 20) then oplot, timings.t_kprad._data, linestyle=2, color=c[8]
 
    plot_legend, ['Onestep', 'ludefall', 'sources', 'aux', $
-                 'smoother', 'mat vec mult', 'solve', 'output'], $
-     linestyle=[0,2,1,1,1,1,2,2], color=c
+                 'smoother', 'mat vec mult', 'solve', 'output','kprad'], $
+     linestyle=[0,2,1,1,1,1,2,2,2], color=c
 
 end

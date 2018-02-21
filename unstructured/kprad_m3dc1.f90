@@ -11,6 +11,8 @@ module kprad_m3dc1
   type(field_type), allocatable :: kprad_n(:)
   type(field_type), allocatable, private :: kprad_temp(:)
   type(field_type) :: kprad_rad
+  type(field_type) :: kprad_sigma_e  ! electron source / sink due to ionization / recomb
+  type(field_type) :: kprad_sigma_i  ! total ion source / sink due to ionization / recomb
 
   integer :: ikprad     ! 1 = use kprad model
   integer :: kprad_z    ! Z of impurity species
@@ -46,6 +48,8 @@ contains
        call create_field(kprad_temp(i))
     end do
     call create_field(kprad_rad)
+    call create_field(kprad_sigma_e)
+    call create_field(kprad_sigma_i)
 
   end subroutine kprad_init
     
@@ -67,6 +71,8 @@ contains
        end do
        deallocate(kprad_n, kprad_temp)
        call destroy_field(kprad_rad)
+       call destroy_field(kprad_sigma_e)
+       call destroy_field(kprad_sigma_i)
     end if
 
     call kprad_deallocate()
@@ -148,7 +154,7 @@ contains
   end subroutine boundary_kprad
   
 
-  subroutine kprad_advect()
+  subroutine kprad_advect(dti)
     use basic
     use matrix_mod
     use m3dc1_nint
@@ -159,10 +165,11 @@ contains
 
     implicit none
 
+    real, intent(in) :: dti
     type(matrix_type) :: nmat_lhs, nmat_rhs
     type(field_type) :: rhs
     integer :: itri, j, numelms, ierr, def_fields, izone
-    integer, dimension(dofs_per_element) :: imask
+!    integer, dimension(dofs_per_element) :: imask
     vectype, dimension(dofs_per_element) :: tempx
     vectype, dimension(dofs_per_element,dofs_per_element) :: tempxx
     vectype, dimension(dofs_per_element,dofs_per_element) :: ssterm, ddterm
@@ -175,50 +182,44 @@ contains
     call set_matrix_index(nmat_rhs, kprad_rhs_index)
     call create_mat(nmat_lhs, 1, 1, icomplex, 1)
     call create_mat(nmat_rhs, 1, 1, icomplex, 0)
+    call clear_mat(nmat_lhs)
+    call clear_mat(nmat_rhs)
     call create_field(rhs)
 
-    numelms = local_elements()
 
     def_fields = FIELD_PHI + FIELD_V + FIELD_CHI
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating matrix'
 
+    numelms = local_elements()
     do itri=1, numelms
 
        call get_zone(itri, izone)
 
-       call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+       call define_element_quadrature(itri, int_pts_main, 5)
        call define_fields(itri, def_fields, 1, linear)
        
-       ssterm = 0.
-       ddterm = 0.
-       
-       if(izone.ne.1) then
-          tempxx = n1n(mu79,nu79)
-          ssterm = ssterm + tempxx
-          ddterm = ddterm + tempxx*bdf
-          goto 100
-       end if
-  
-       ! NUMVAR = 1
-       ! ~~~~~~~~~~
        tempxx = n1n(mu79,nu79)
-       ssterm = ssterm + tempxx
-       ddterm = ddterm + tempxx*bdf
-       
+       ssterm = tempxx
+       ddterm = tempxx
+
+       if(izone.ne.1) goto 100
+
        do j=1, dofs_per_element
+          ! NUMVAR = 1
+          ! ~~~~~~~~~~      
           tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79) &
                +  n1nu   (mu79,nu79(j,:,:),pht79)
-          ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
-          ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+          ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+          ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           
 #if defined(USECOMPLEX) || defined(USE3D)
           ! NUMVAR = 2
           ! ~~~~~~~~~~
           if(numvar.ge.2) then
              tempx = n1nv(mu79,nu79(j,:,:),vzt79)
-             ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
-             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+             ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           endif
 #endif
           
@@ -226,8 +227,8 @@ contains
           ! ~~~~~~~~~~
           if(numvar.ge.3) then
              tempx = n1nchi(mu79,nu79(j,:,:),cht79)
-             ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
-             ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx
+             ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           endif
        end do
 
@@ -253,6 +254,7 @@ contains
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
+       ierr = 0
        call newsolve(nmat_lhs, rhs%vec, ierr)
        kprad_n(j) = rhs
     end do
@@ -269,19 +271,21 @@ contains
 
 
   !===========================
-  ! kprad_onestep
-  ! ~~~~~~~~~~~~~
+  ! kprad_ionize
+  ! ~~~~~~~~~~~~
   !===========================
-  subroutine kprad_onestep()
+  subroutine kprad_ionize(dti)
     use math
     use basic
     use newvar_mod
     use m3dc1_nint
 
     implicit none
+
+    real, intent(in) :: dti
     
     real :: dt_s
-    real, dimension(MAX_PTS) :: ne, te
+    real, dimension(MAX_PTS) :: ne, te, n0_old
     real, dimension(MAX_PTS,0:kprad_z) :: nz
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad
@@ -297,6 +301,8 @@ contains
        kprad_temp(i) = 0.
     end do
     kprad_rad = 0.
+    kprad_sigma_e = 0.
+    kprad_sigma_i = 0.
 
     def_fields = FIELD_N + FIELD_TE
 
@@ -315,13 +321,18 @@ contains
           call eval_ops(itri, kprad_n(i), ph079, rfac)
           nz(:,i) = ph079(:,OP_1)
        end do
+       ne = net79(:,OP_1)
+
        where(nz.lt.0.) nz = 0.
+       where(ne.lt.0.) ne = 0.
+
+       n0_old = nz(:,0)
 
        ! convert nz, ne, te, dt to cgs / eV
        nz = nz*n0_norm
-       ne = net79(:,OP_1)*n0_norm
+       ne = ne*n0_norm
        te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
-       dt_s = dt*t0_norm
+       dt_s = dti*t0_norm
 
        ! advance densities at each integration point
        ! for one MHD timestep (dt_s)
@@ -332,24 +343,38 @@ contains
           dw_rad = 0.
           dw_brem = 0.
        end if
-
+       
        ! convert nz, dw_rad, dw_brem to normalized units
        ! nz is given in /cm^3
        nz = nz / n0_norm
+       ne = ne / n0_norm
 
        ! dw is given in J/cm^3
        ! factor of 1e7 needed to convert J to erg
        dw_rad = dw_rad * 1.e7 / p0_norm
        dw_brem = dw_brem * 1.e7 / p0_norm
 
+       ! New charge state densities
        do i=0, kprad_z
           temp79a = nz(:,i)
           dofs = intx2(mu79(:,:,OP_1), temp79a)
           call vector_insert_block(kprad_temp(i)%vec,itri,1,dofs,VEC_ADD)
        end do
-       temp79b = (dw_rad(:,kprad_z) + dw_brem) / dt
+
+       ! Radiation
+       temp79b = (dw_rad(:,kprad_z) + dw_brem) / dti
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
+
+       ! Electron source
+       temp79c = ne - net79(:,OP_1)
+       dofs = intx2(mu79(:,:,OP_1),temp79c) / dti
+       call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
+
+       ! Total ion source is (calculated as opposite of neutral source)
+       temp79d = n0_old - nz(:,0)
+       dofs = intx2(mu79(:,:,OP_1),temp79d) / dti
+       call vector_insert_block(kprad_sigma_i%vec, itri,1,dofs,VEC_ADD)
     end do
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' solving'
@@ -359,10 +384,12 @@ contains
        kprad_n(i) = kprad_temp(i)
     end do
     call newvar_solve(kprad_rad%vec, mass_mat_lhs)
+    call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
+    call newvar_solve(kprad_sigma_i%vec, mass_mat_lhs)
 
-    call kprad_advect()
+    call kprad_rebase_dt
 
     if(myrank.eq.0) print *, ' Done advancing KPRAD'
-  end subroutine kprad_onestep
+  end subroutine kprad_ionize
 
 end module kprad_m3dc1
