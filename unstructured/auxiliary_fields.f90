@@ -276,10 +276,12 @@ subroutine calculate_pressures(ilin, pe, p, ne, ni, te, ti, ieqsub)
         temp79a = nt79(:,OP_1)*tit79(:,OP_1)
 
         ! Add impurity pressure
-        do i=1, kprad_z
-           call eval_ops(itri, kprad_n(i), n079, rfac)
-           temp79a = temp79a + n079(:,OP_1)*tit79(:,OP_1)
-        end do
+        if(ikprad.eq.1) then
+           do i=1, kprad_z
+              call eval_ops(itri, kprad_n(i), n079, rfac)
+              temp79a = temp79a + n079(:,OP_1)*tit79(:,OP_1)
+           end do
+        end if
      end if
 
      ! electron pressure
@@ -380,10 +382,12 @@ subroutine calculate_ne(ilin, ni, ne, ieqsub)
 
      temp79a = nt79(:,OP_1)*zeff
 
-     do i=1, kprad_z
-        call eval_ops(itri, kprad_n(i), n079, rfac)
-        temp79a = temp79a + i*n079(:,OP_1)
-     end do
+     if(ikprad.eq.1) then
+        do i=1, kprad_z
+           call eval_ops(itri, kprad_n(i), n079, rfac)
+           temp79a = temp79a + i*n079(:,OP_1)
+        end do
+     end if
 
      ! If eqsubtract = 1, subtract the equilibrium electron density.
      if(ieqsub.eq.1 .and. ilin.eq.1) then
