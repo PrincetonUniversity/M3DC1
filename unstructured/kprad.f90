@@ -14,8 +14,20 @@ module kprad
   ! polynomial order for evaluating 
   ! radiation and ionization rates, respectively
   integer, private :: m1, m2
+
+  real, private :: kprad_min_dt = 0.     ! minimum final timestep from previous calculation
+  real, private :: kprad_dt = 1e-10      ! kprad integration time step (in seconds)
   
 contains
+
+  subroutine kprad_rebase_dt()
+    implicit none
+
+    kprad_dt = kprad_min_dt
+    kprad_min_dt = 0.
+
+    print *, 'Re-baselining dt to ', kprad_dt
+  end subroutine kprad_rebase_dt
 
   subroutine kprad_deallocate()
     implicit none
@@ -40,7 +52,7 @@ contains
     
     real, dimension(npts,0:z-1) :: sion
     real, dimension(npts,0:z) :: srec
-    real, dimension(npts,z+1) :: imp_rad, pion, prec
+    real, dimension(npts,z+1) :: pion, prec
     real, dimension(npts, 2) :: nzeff
 
     ! calculate ionization and recombination rates
@@ -58,14 +70,15 @@ contains
     real, intent(in) :: dt                    ! time step to advance densities
     integer, intent(in) :: npts
     integer, intent(in) :: z
-    real, intent(inout) :: ne(npts)             ! electron density in cm^-3
+    real, intent(inout) :: ne(npts)          ! electron density in cm^-3
     real, intent(in) :: te(npts)             ! electron temperature in eV
     real, intent(inout) :: nz(npts,0:z)      ! density
     real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
     real, intent(out) :: dw_brem(npts)       ! energy lost via bremsstrahlung
     
     real :: t, dts
-    integer :: i, ntime, ntimemax
+    integer :: i
+    real, dimension(npts) :: ne_old, delta
     real, dimension(npts,0:z) :: nz_old
     real, dimension(npts,0:z-1) :: sion
     real, dimension(npts,0:z) :: srec
@@ -73,24 +86,32 @@ contains
     real, dimension(npts,z+1) :: imp_rad, pion, prec
     real, dimension(npts, 2) :: nzeff
     real, dimension(npts,0:z) :: aimp, bimp, cimp, dimp, ework, fwork
+    real :: max_change
+    logical :: last_step
 
     ! calculate ionization and recombination rates
     call kprad_ionization_rate(npts,ne,te,z,sion)
     call kprad_recombination_rate(npts,ne,te,z,srec)
 
-    dts = 1e-10
+    dts = kprad_dt
     t = 0.
     dw_rad = 0.
     dw_brem = 0.
-    ntimemax = dt / dts
 
     aimp(:,0) = 0.0
     cimp(:,z) = 0.0
  
     ! start time loop
-    do ntime=1, ntimemax
-       if(t+dts.ge.dt) dts = dt - t
-       t = t + dts
+    last_step = .false.
+    do while(.not.last_step)
+       if(t+dts.ge.dt) then
+          if(kprad_min_dt.eq.0. .or. dts.lt.kprad_min_dt) kprad_min_dt = dts
+          dts = dt - t
+          last_step = .true.
+       end if
+
+       nz_old = nz
+       ne_old = ne
 
        do i=0, z
           if(i.gt.0) aimp(:,i) = -dts*sion(:,i-1)
@@ -101,25 +122,41 @@ contains
           end if
           dimp(:,i) = nz(:,i)
        enddo
-
-       nz_old = nz
-       
+      
        call tridiag(aimp,bimp,cimp,dimp,nz, &
             ework,fwork,npts,z)
        
        call kprad_energy_losses(npts,z,te, &
             ne,sion,srec,nz,nzeff,pion,prec,imp_rad,pbrem)
-       
+
+       t = t + dts
        dw_brem = dw_brem + pbrem*dts
-       dw_rad = dw_rad + imp_rad*dts     
+       dw_rad = dw_rad + imp_rad*dts
+       
        do i=1, z
           ne = ne + i*(nz(:,i) - nz_old(:,i))
        end do
 
-       dts = dts * 1.02
-
-       if(dts.le.0.) return
+       where(ne_old.gt.0.)
+          delta = abs(ne - ne_old)/ne_old
+       elsewhere
+          delta = 0.
+       end where
+       max_change = maxval(delta)
+       if(max_change .lt. 0.02) then
+          ! If ne change is < 2%, increase time step
+          dts = dts * 1.5
+       elseif(max_change .gt. 0.2) then
+          ! If ne change is > 20%, backtrack changes and reduce time step
+          t = t - dts
+          dw_brem = dw_brem - pbrem*dts
+          dw_rad = dw_rad - imp_rad*dts
+          ne = ne_old
+          nz = nz_old
+          dts = dts / 2.
+       end if
     enddo
+
     
   end subroutine kprad_advance_densities
 

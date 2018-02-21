@@ -387,6 +387,8 @@ contains
     call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_i%vec, mass_mat_lhs)
 
+    call kprad_rebase_dt
+
     if(myrank.eq.0) print *, ' Done advancing KPRAD'
   end subroutine kprad_ionize
 
