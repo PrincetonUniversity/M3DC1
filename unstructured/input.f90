@@ -540,10 +540,10 @@ subroutine set_defaults
   call add_var_double("pi0", pi0, 0.005, "", gs_grp)
   call add_var_double("p1", p1, 0., "", gs_grp)
   call add_var_double("p2", p2, 0., "", gs_grp)
-  call add_var_double("pedge", pedge, -1., &
-       "Pressure outside separatrix (ignore if < 0)", gs_grp)
-  call add_var_double("tedge", tedge, -1., &
-       "Electron temperature outside separatrix (ignore if < 0)", gs_grp)
+  call add_var_double("pedge", pedge, 0., &
+       "Pressure outside separatrix (ignore if <= 0)", gs_grp)
+  call add_var_double("tedge", tedge, 0., &
+       "Electron temperature outside separatrix (ignore if <= 0)", gs_grp)
   call add_var_double("tiedge", tiedge, 0., &
        "Outermost ion temperature (ignore if <= 0)", gs_grp)
   call add_var_double("expn", expn, 0., &
@@ -1338,8 +1338,33 @@ subroutine validate_input
   end if
   !==========================================
 
+  if(den_edge.gt.0 .and. pedge.gt.0 .and. tedge.gt.0) then
+     print *, 'ERROR: pedge, den_edge, and tedge cannot all be set'
+     call safestop(1)
+  end if 
 
-!  if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
+  if(den_edge.le.0.) then
+     den_edge = den0*(pedge/p0)**expn
+  else
+     if(iread_ne.ne.0) then
+        if(myrank.eq.0) print *, 'Error: den_edge is incompatible with iread_ne'
+        call safestop(1)
+     end if
+  end if
+
+  if(tedge.gt.0.) then
+     if(iread_te.ne.0) then
+        if(myrank.eq.0) print *, 'Error: tedge is incompatible with iread_te'
+        call safestop(1)
+     end if
+     if(pedge.le.0.) then
+        pedge = den_edge*tedge/pefac
+        if(myrank.eq.0) print *, 'Setting pedge = ', pedge
+     else
+        den_edge = pedge*pefac/tedge
+        if(myrank.eq.0) print *, 'Setting den_edge = ', den_edge
+     end if
+  end if
 
   if(irmp.eq.0 .and. iread_ext_field.eq.0 &
        .and. tf_tilt.eq.0. .and. tf_shift.eq.0. &

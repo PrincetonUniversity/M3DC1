@@ -498,7 +498,7 @@ subroutine define_profiles
   end if
 
   ! add pedge to pressure
-  if(pedge.ge.0.) p0_spline%y = p0_spline%y - p0_spline%y(p0_spline%n) + pedge
+  if(pedge.gt.0.) p0_spline%y = p0_spline%y - p0_spline%y(p0_spline%n) + pedge
 
   ! define Te profile
   ! ~~~~~~~~~~~~~~~~~
@@ -669,7 +669,7 @@ subroutine define_profiles
   end if
 
   ! add tedge to temperature
-  if(tedge.ge.0.) then
+  if(tedge.gt.0.) then
      if(allocated(te_spline%y)) then
         teold = te_spline%y(te_spline%n)
         te_spline%y = te_spline%y - teold + tedge
@@ -677,7 +677,7 @@ subroutine define_profiles
         teold = pefac*p0_spline%y(p0_spline%n)/n0_spline%y(n0_spline%n)/zeff
      end if
      ! add difference to pressure profile, so ion temp is not affected.
-     if(pedge.lt.0.) then
+     if(pedge.le.0.) then
         p0_spline%y = p0_spline%y + n0_spline%n*(tedge - teold)*zeff
      end if
   end if
