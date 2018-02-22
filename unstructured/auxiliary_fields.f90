@@ -207,7 +207,7 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
   
 end subroutine calculate_temperatures
 
-subroutine calculate_pressures(ilin, pe, p, ne, ni, te, ti, ieqsub)
+subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
   use math
   use basic
   use m3dc1_nint
@@ -220,7 +220,7 @@ subroutine calculate_pressures(ilin, pe, p, ne, ni, te, ti, ieqsub)
 
   implicit none
 
-  type(field_type) :: pe, p, te, ti, ne, ni
+  type(field_type) :: pe, p, te, ti, ne, nion
   integer, intent(in) :: ilin    ! 0 = calculate only equilibrium part
   integer, intent(in) :: ieqsub  ! 1 = supplied fields are only perturbed parts
 
@@ -244,7 +244,7 @@ subroutine calculate_pressures(ilin, pe, p, ne, ni, te, ti, ieqsub)
      call define_fields(itri, 0, 1, 0, ieqsub)
 
      call eval_ops(itri, ne, ne179, rfac)
-     call eval_ops(itri, ni, n179,  rfac)
+     call eval_ops(itri, nion, n179,  rfac)
      call eval_ops(itri, te, te179, rfac)
      if(ipres.eq.1) then
         call eval_ops(itri, ti, ti179, rfac)
@@ -330,7 +330,7 @@ end subroutine calculate_pressures
 
 
 
-subroutine calculate_ne(ilin, ni, ne, ieqsub)
+subroutine calculate_ne(ilin, nion, ne, ieqsub)
   use math
   use basic
   use m3dc1_nint
@@ -343,7 +343,7 @@ subroutine calculate_ne(ilin, ni, ne, ieqsub)
 
   implicit none
 
-  type(field_type) :: ne, ni
+  type(field_type) :: ne, nion
   integer, intent(in) :: ilin, ieqsub
 
   integer :: numelms
@@ -356,7 +356,7 @@ subroutine calculate_ne(ilin, ni, ne, ieqsub)
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating electron density'
 
   if(ikprad.eq.0 .or. linear.eq.1) then
-     ne = ni
+     ne = nion
      call mult(ne, zeff)
      return
   end if
@@ -371,7 +371,7 @@ subroutine calculate_ne(ilin, ni, ne, ieqsub)
 
      ! always calculate the full electron density (regardless of eqsubtract)
      ! since we don't store the equilibrium impurity density
-     call eval_ops(itri, ni, n179, rfac)
+     call eval_ops(itri, nion, n179, rfac)
      if(ieqsub.eq.1 .and. ilin.eq.1) then
         call eval_ops(itri, den_field(0), n079, rfac)
         call eval_ops(itri, ne_field(0), ne079, rfac)
