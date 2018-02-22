@@ -24,7 +24,7 @@ module diagnostics
   real :: wall_force_n1_x, wall_force_n1_y, wall_force_n1_z
 
   ! scalars integrated within lcfs
-  real :: pflux, parea, pcur, pden, pmom, pvol, m_iz
+  real :: pflux, parea, pcur, pcur_co, pcur_sn, pden, pmom, pvol, m_iz, m_iz_co, m_iz_sn
 
   real :: chierror, psi0
 
@@ -204,7 +204,11 @@ contains
     tvor = 0.
     parea = 0.
     pcur = 0.
+    pcur_co = 0.
+    pcur_sn = 0.
     m_iz = 0.
+    m_iz_co = 0.
+    m_iz_sn = 0.
     pflux = 0.
     pden = 0.
     pmom = 0.
@@ -255,7 +259,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 62
+    integer, parameter :: num_scalars = 66
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -323,6 +327,10 @@ contains
        temp(60) = wall_force_n1_z
        temp(61) = totne
        temp(62) = w_pe
+       temp(63) = pcur_co
+       temp(64) = pcur_sn
+       temp(65) = m_iz_co
+       temp(66) = m_iz_sn
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -390,6 +398,10 @@ contains
        wall_force_n1_z = temp2(60)
        totne = temp2(61)
        w_pe = temp2(62)
+       pcur_co = temp2(63)
+       pcur_sn = temp2(64)
+       m_iz_co = temp2(65)
+       m_iz_sn = temp2(66)
     endif !if maxrank .gt. 1
 
   end subroutine distribute_scalars
@@ -687,7 +699,7 @@ subroutine calculate_scalars()
   numelms = local_elements()
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -698,8 +710,8 @@ subroutine calculate_scalars()
      if(gyro.eq.1) call gyro_common
 
 #ifdef USE3D
-     co = cos(phi_79)
-     sn = sin(phi_79)
+     co = cos(phi_79*twopi/toroidal_period)
+     sn = sin(phi_79*twopi/toroidal_period)
 #endif
 
      if(imulti_region.eq.1 .and. izone.eq.2) then
@@ -779,11 +791,19 @@ subroutine calculate_scalars()
      ! toroidal current
      totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
      pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero
+#ifdef USE3D
+     pcur_co = pcur_co - int4(ri2_79,pst79(:,OP_GS),mr,co)/tpirzero * 2.
+     pcur_sn = pcur_sn - int4(ri2_79,pst79(:,OP_GS),mr,sn)/tpirzero * 2.
+#endif
 
      ! M_iz = int(dV Z*J)
      ! This is used for calculating the vertical "center" of the plasma current
      temp79a = z_79
      m_iz   = m_iz   - int4(ri2_79,temp79a,pst79(:,OP_GS),mr)/tpirzero
+#ifdef USE3D
+     m_iz_co = m_iz_co - int5(ri2_79,temp79a,pst79(:,OP_GS),mr,co)/tpirzero * 2.
+     m_iz_sn = m_iz_sn - int5(ri2_79,temp79a,pst79(:,OP_GS),mr,sn)/tpirzero * 2.
+#endif
 
      ! toroidal flux
      tflux = tflux + int2(ri2_79,bzt79(:,OP_1))/tpirzero
