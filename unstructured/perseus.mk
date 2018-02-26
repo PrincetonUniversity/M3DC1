@@ -2,7 +2,7 @@ FOPTS = -c -r8 -implicitnone -fpp -warn all -DNEXTPetscDEV -DPETSC_VERSION=38 $(
 CCOPTS  = -c -O -DPETSC_VERSION=38 -DNEXTPetscDEV
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -vec-report0 # -fast
+  FOPTS  := $(FOPTS) -O2 # -fast
 #  FOPTS  := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
   CCOPTS := $(CCOPTS) -O
 else
