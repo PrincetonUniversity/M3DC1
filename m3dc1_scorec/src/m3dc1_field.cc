@@ -42,3 +42,64 @@ apf::Field* m3dc1_field::get_field(int vid)
   return fields[vid]; 
 }
 
+void get_ent_localdofid(m3dc1_field* mf, int ent_lid, int* dof_id, int* dof_cnt)
+{
+  int num_value = mf->get_num_value();
+  int dof_per_value = mf->get_dof_per_value();
+  int num_dof = num_value*dof_per_value;
+  int num_local_node = m3dc1_mesh::instance()->mesh->count(0);
+
+  int i=0;
+
+  for (int nv=0; nv<num_value; ++nv)
+    for (int nd=0; nd<dof_per_value; ++nd)
+      dof_id[i++] = nv*num_local_node*dof_per_value+ent_lid*dof_per_value+nd;
+  *dof_cnt=num_dof;
+}
+
+void get_ent_globaldofid(m3dc1_field* mf, int ent_gid, int* dof_id, int* dof_cnt)
+{
+  int num_value = mf->get_num_value();
+  int dof_per_value = mf->get_dof_per_value();
+  int num_dof = num_value*dof_per_value;
+  int num_global_node = m3dc1_mesh::instance()->num_global_ent[0];
+
+  int i=0;
+
+  for (int nv=0; nv<num_value; ++nv)
+    for (int nd=0; nd<dof_per_value; ++nd)
+      dof_id[i++] = nv*num_global_node*dof_per_value+ent_gid*dof_per_value+nd;
+  *dof_cnt=num_dof;
+}
+
+
+//*******************************************************
+void get_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data)
+//*******************************************************
+{
+  int nv = mf->get_num_value();
+  apf::Field* f = mf->get_field(0);
+  int ndof=countComponents(f);
+
+  for (int i=0; i<nv; ++i)
+  {
+    f = mf->get_field(i);
+    getComponents(f, e, 0, &(dof_data[ndof*i]));
+  }
+}
+
+//*******************************************************
+void set_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data)
+//*******************************************************
+{
+  int nv = mf->get_num_value();
+  apf::Field* f = mf->get_field(0);
+  int ndof=countComponents(f);
+
+  for (int i=0; i<nv; ++i)
+  {
+    f = mf->get_field(i);
+    setComponents(f, e, 0, &(dof_data[ndof*i]));
+  }
+}
+

@@ -33,4 +33,9 @@ private:
   int value_type;
   int num_dof;
 };
+
+void get_ent_localdofid(m3dc1_field* mf, int ent_lid, int* dof_id, int* dof_cnt);
+void get_ent_globaldofid(m3dc1_field* mf, int ent_gid, int* dof_id, int* dof_cnt);
+void get_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data);
+void set_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data);
 #endif

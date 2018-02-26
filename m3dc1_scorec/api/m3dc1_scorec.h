@@ -153,9 +153,9 @@ void m3dc1_field_max (FieldID* fid, double * max_val, double * min_val);
 void m3dc1_field_verify();
 
 void m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* fid, 
-                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);  //entdofs_
+                       int* dof_id, int* /* out */ dof_cnt);
 void m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* fid, 
-                       int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one); //globalentdofs_
+                       int* dof_id, int* /* out */ dof_cnt);
 void m3dc1_ent_getnumdof (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* fid, int* /* out */ num_dof);
 void m3dc1_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* fid, int* /* ou
 t */ num_dof, double* dof_data);

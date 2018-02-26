@@ -36,36 +36,6 @@ double begin_mem, begin_time;
 void group_complex_dof (m3dc1_field* field, int option);
 void synchronize_field(apf::Field* f);
 
-//*******************************************************
-void get_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data)
-//*******************************************************
-{
-  int nv = mf->get_num_value();
-  apf::Field* f = mf->get_field(0);
-  int ndof=countComponents(f);
-
-  for (int i=0; i<nv; ++i)
-  {
-    f = mf->get_field(i); 
-    getComponents(f, e, 0, &(dof_data[ndof*i]));
-  }
-}
-
-//*******************************************************
-void set_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data)
-//*******************************************************
-{
-  int nv = mf->get_num_value();
-  apf::Field* f = mf->get_field(0);
-  int ndof=countComponents(f);
-
-  for (int i=0; i<nv; ++i)
-  {
-    f = mf->get_field(i); 
-    setComponents(f, e, 0, &(dof_data[ndof*i]));
-  }
-}
-
 bool m3dc1_double_isequal(double A, double B)
 {
   double maxDiff = 1e-5;
@@ -2227,32 +2197,21 @@ void m3dc1_field_compare(FieldID* field_id1, FieldID* field_id2)
 
 //*******************************************************
 void m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
-                       int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+         int* /* inout */ dof_id, int* /* out */dof_cnt)
 //*******************************************************
 {
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  int dof_per_value = mf->get_dof_per_value();
-  *start_dof_id = *ent_id*dof_per_value;
-  *end_dof_id_plus_one = *start_dof_id + dof_per_value;
+  get_ent_localdofid(mf, *ent_id, dof_id, dof_cnt);
 }
 
 //*******************************************************
 void m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
-         int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one)
+         int* /* inout */ dof_id, int* /* out */dof_cnt)
 //*******************************************************
 {
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  int dof_per_value = mf->get_dof_per_value();
-
-  int global_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
-  *start_global_dof_id = global_id*dof_per_value;
-  *end_global_dof_id_plus_one =*start_global_dof_id + dof_per_value;
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  get_ent_globaldofid(mf, get_ent_globalid(m3dc1_mesh::instance()->mesh, e), dof_id, dof_cnt);
 }
 
 //*******************************************************
