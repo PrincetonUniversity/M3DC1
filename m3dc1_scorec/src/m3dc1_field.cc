@@ -11,6 +11,11 @@
 #include "m3dc1_mesh.h"
 #include "apf.h"
 #include <stdio.h>
+#include <sstream>
+#include <iostream>
+#include <PCU.h>
+#include <assert.h>
+#include "apfMDS.h"
 
 m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
 : id(ID), name(str), num_value(nv), value_type(t), num_dof(ndof)
@@ -101,5 +106,102 @@ void set_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data)
     f = mf->get_field(i);
     setComponents(f, e, 0, &(dof_data[ndof*i]));
   }
+}
+
+
+//=========================================================================
+void load_field(apf::Mesh2* m, int field_id, const char* filename)
+{
+  std::string in(filename);
+  std::stringstream s;
+  s <<in<< "-"<<PCU_Comm_Self();
+  std::string partFile = s.str();
+  FILE * fp =fopen(partFile.c_str(), "r");
+
+  if (!fp) 
+    std::cout<<"("<<PCU_Comm_Self()<<") [M3D-C1 ERROR] fail to load file \""<<partFile<<"\"\n";
+
+  apf::MeshEntity* e;
+
+  int gid, lid, did, ndof, nv, nd, vt, start_index; 
+  double dof;
+  char field_name[32];
+  fscanf(fp, "%s %d %d %d %d\n", field_name, &nv, &vt, &nd, &start_index);
+  std::cout<< field_name <<" "<<nv<<" "<<vt<<" "<<nd<<" "<<start_index<<"\n";
+
+  if (m3dc1_mesh::instance()->field_container)
+    assert(m3dc1_mesh::instance()->field_container->count(field_id)==0);
+
+  m3dc1_field_create (&field_id, field_name, &nv, &vt, &nd);
+  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[field_id];
+  assert(mf->get_num_value()==nv && mf->get_dof_per_value()==nd && mf->get_value_type()==vt);
+
+  int num_dof=mf->get_num_value()*mf->get_dof_per_value();
+#ifdef PETSC_USE_COMPLEX
+  num_dof*=2;
+#endif
+  double* dof_data = new double[num_dof];
+  apf::MeshIterator* it = m->begin(0);
+  while ((e = m->iterate(it)))
+  {
+    fscanf(fp, "%d %d %d\n", &gid, &lid, &ndof);
+    assert(get_ent_globalid(m,e)+start_index==gid && getMdsIndex(m, e)==lid);
+    for (int i=0; i<num_dof; ++i)
+      dof_data[i]=0.0;
+    for (int i=0; i<ndof; ++i)
+    {
+      fscanf(fp, "%d %lf",&did, &dof);
+      dof_data[did]=dof;
+    }
+    set_ent_dofdata(mf, e, dof_data);
+  } // while
+  m->end(it);
+  fclose(fp);  
+  delete [] dof_data;
+}
+
+
+//=========================================================================
+void write_field(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start_index)
+{
+  std::string in(filename);
+  std::stringstream s;
+  s << in<< "-"<<PCU_Comm_Self();
+  std::string partFile = s.str();
+  FILE * fp =fopen(partFile.c_str(), "w");
+  assert(fp);
+
+  apf::MeshEntity* e;
+
+  int num_dof=mf->get_num_value()*mf->get_dof_per_value();
+#ifdef PETSC_USE_COMPLEX
+  num_dof*=2;
+#endif
+  double* dof_data = new double[num_dof];
+
+  fprintf(fp, "%s %d %d %d %d\n", mf->get_name().c_str(), mf->get_num_value(), 
+          mf->get_value_type(), mf->get_dof_per_value(), start_index);
+ 
+  apf::MeshIterator* it = m->begin(0);
+  while ((e = m->iterate(it)))
+  {
+    get_ent_dofdata(mf, e, dof_data);
+    int ndof=0;
+    for (int i=0; i<num_dof; ++i)
+    {     
+      if (!m3dc1_double_isequal(dof_data[i], 0.0))
+        ++ndof;
+    }
+    
+    fprintf(fp, "%d %d %d\n", get_ent_globalid(m,e)+start_index, getMdsIndex(m, e), ndof);   
+    for (int i=0; i<num_dof; ++i)
+    {     
+      if (!m3dc1_double_isequal(dof_data[i], 0.0))
+        fprintf(fp, "%d %lf\n", i, dof_data[i]);
+    }
+  } // while
+  m->end(it);
+  fclose(fp);  
+  delete [] dof_data;
 }
 

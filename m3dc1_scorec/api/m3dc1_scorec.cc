@@ -17,15 +17,13 @@
 #include "gmi_null.h" // FIXME: should be deleted later on since it's added temporarily for null model
 #include <gmi_analytic.h>
 #include <map>
-#include <cstring>
 #include "apfMDS.h"
 #include "Expression.h"
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_sizeField.h"
 #include "ReducedQuinticImplicit.h"
 #include "pumi.h"
-// #include <stdio.h>
-// #include <stdlib.h>
+
 #ifdef M3DC1_TRILINOS
 #include "m3dc1_ls.h"
 #endif
@@ -1180,18 +1178,15 @@ void m3dc1_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_na
 {
   if (!m3dc1_mesh::instance()->field_container)
     m3dc1_mesh::instance()->field_container=new std::map<FieldID, m3dc1_field*>;
-
   // shape evaluation will be performed outside the APF
   // only need to tell APF all dofs are attached to mesh vertex
   m3dc1_mesh::instance()->field_container->insert(std::map<FieldID, m3dc1_field*>::value_type(*field_id,
                new m3dc1_field(*field_id, field_name, *num_values, *scalar_type, *num_dofs_per_value)));
-  
 #ifdef DEBUG
   if (!PCU_Comm_Self()) 
     std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<*field_id<<", #values "
              <<*num_values<<", #dofs "<<*num_dofs_per_value<<", name "<<field_name<<"\n";
 #endif
-
   if (*field_id>fieldIdMax) fieldIdMax=*field_id;
   double val[2]={0,0};
   m3dc1_field_assign(field_id, val, scalar_type);
@@ -1712,7 +1707,6 @@ void m3dc1_field_assign(FieldID* /*inout*/ field_id, double* fac, int* scalar_ty
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   int dofPerEnt = mf->get_num_value()*mf->get_dof_per_value();
   if (dofPerEnt==0) return;
-
   int num_vtx=m3dc1_mesh::instance()->mesh->count(0);
   int vertex_type=0;
 
@@ -1723,7 +1717,6 @@ void m3dc1_field_assign(FieldID* /*inout*/ field_id, double* fac, int* scalar_ty
   // FIXME: this can be more efficient
   for (int inode=0; inode<num_vtx; ++inode)
     m3dc1_ent_setdofdata (&vertex_type, &inode, field_id, &dofPerEnt, &dofs[0]);
-
 #ifdef DEBUG
   int isnan;
   m3dc1_field_isnan(field_id, &isnan);
@@ -1873,106 +1866,13 @@ void m3dc1_field_isnan(FieldID* /* in */ field_id, int* isnan)
   }
 }
 
-//=========================================================================
-int read_vector(apf::Mesh2* m, const char* filename)
-{
-  std::string in(filename);
-  std::stringstream s;
-  s <<in<< "-"<<PCU_Comm_Self();
-  std::string partFile = s.str();
-  FILE * fp =fopen(partFile.c_str(), "r");
-
-  if (!fp) 
-    std::cout<<"("<<PCU_Comm_Self()<<") [M3D-C1 ERROR] fail to load file \""<<partFile<<"\"\n";
-
-  apf::MeshEntity* e;
-
-  int gid, lid, did, dof, ndof, nv, nd, vt, start_index; 
-  char field_name[32];
-  fscanf(fp, "%s %d %d %d %d\n", field_name, &nv, &vt, &nd, &start_index);
-
-  int field_id=fieldIdMax+1;
-  if (m3dc1_mesh::instance()->field_container)
-    assert(m3dc1_mesh::instance()->field_container->count(field_id)==0);
-
-  m3dc1_field_create (&field_id, field_name, &nv, &vt, &nd);
-  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[field_id];
-  assert(mf->get_num_value()==nv && mf->get_dof_per_value()==nd && mf->get_value_type()==vt);
-
-  int num_dof=mf->get_num_value()*mf->get_dof_per_value();
-#ifdef PETSC_USE_COMPLEX
-  num_dof*=2;
-#endif
-  double* dof_data = new double[num_dof];
-
-  apf::MeshIterator* it = m->begin(0);
-  while ((e = m->iterate(it)))
-  {
-    fscanf(fp, "%d %d %d\n", &gid, &lid, &ndof);
-    assert(get_ent_globalid(m,e)+start_index==gid && getMdsIndex(m, e)==lid);
-    for (int i=0; i<num_dof; ++i)
-      dof_data[i]=0.0;
-    for (int i=0; i<ndof; ++i)
-    {
-      fscanf(fp, "%d %lf",&did, &dof);
-      dof_data[did]=dof;
-    }
-    set_ent_dofdata(mf, e, dof_data);
-  } // while
-  m->end(it);
-  fclose(fp);  
-  delete [] dof_data;
-}
-
-
-//=========================================================================
-void write_vector(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start_index)
-{
-  std::string in(filename);
-  std::stringstream s;
-  s << in<< "-"<<PCU_Comm_Self();
-  std::string partFile = s.str();
-  FILE * fp =fopen(partFile.c_str(), "w");
-
-  apf::MeshEntity* e;
-
-  int num_dof=mf->get_num_value()*mf->get_dof_per_value();
-#ifdef PETSC_USE_COMPLEX
-  num_dof*=2;
-#endif
-  double* dof_data = new double[num_dof];
-
-  fprintf(fp, "%s %d %d %d %d\n", mf->get_name(), mf->get_num_value(), 
-          mf->get_value_type(), mf->get_dof_per_value(), start_index);
- 
-  apf::MeshIterator* it = m->begin(0);
-  while ((e = m->iterate(it)))
-  {
-    get_ent_dofdata(mf, e, dof_data);
-    int ndof=0;
-    for (int i=0; i<num_dof; ++i)
-    {     
-      if (!m3dc1_double_isequal(dof_data[i], 0.0))
-        ++ndof;
-    }
-    fprintf(fp, "%d %d %d\n", get_ent_globalid(m,e)+start_index, getMdsIndex(m, e), ndof);
-    for (int i=0; i<num_dof; ++i)
-    {     
-      if (!m3dc1_double_isequal(dof_data[i], 0.0))
-        fprintf(fp, "%d %lf\n", i, dof_data[i]);
-    }
-  } // while
-  m->end(it);
-  fclose(fp);  
-  delete [] dof_data;
-}
-
 //*******************************************************
-void m3dc1_field_read (FieldID* field_id, const char* filename)
+void m3dc1_field_load (FieldID* field_id, const char* filename)
 //*******************************************************
 {
-  *field_id = read_vector(m3dc1_mesh::instance()->mesh, filename);
-  if (!PCU_Comm_Self()) cout<<"[M3D-C1 INFO] "<<__func__<<"(field id "<<*field_id<<", file "<<filename<<")\n";
+  *field_id=fieldIdMax+1;
+  if (!PCU_Comm_Self()) cout<<"[M3D-C1 INFO] "<<__func__<<"(field id "<<*field_id<<", file \""<<filename<<"\")\n";
+  load_field(m3dc1_mesh::instance()->mesh, *field_id, filename); 
 }
 
 
@@ -1980,9 +1880,9 @@ void m3dc1_field_read (FieldID* field_id, const char* filename)
 void m3dc1_field_write (FieldID* field_id, const char* filename, int* start_index)
 //*******************************************************
 {
-  if (!PCU_Comm_Self()) cout<<"[M3D-C1 INFO] "<<__func__<<"(field id "<<*field_id<<", file "<<filename<<")\n";
+  if (!PCU_Comm_Self()) cout<<"[M3D-C1 INFO] "<<__func__<<"(field id "<<*field_id<<", file \""<<filename<<"\")\n";
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  write_vector(m3dc1_mesh::instance()->mesh, mf, filename, *start_index);
+  write_field(m3dc1_mesh::instance()->mesh, mf, filename, *start_index);
 }
 
 //*******************************************************
@@ -2236,6 +2136,7 @@ void m3dc1_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID*
 
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   assert(*num_dof==mf->get_num_value()*mf->get_dof_per_value());
+
   set_ent_dofdata(mf, e, dof_data);
 #ifdef DEBUG
   for (int i=0; i<*num_dof*(1+mf->get_value_type()); ++i)

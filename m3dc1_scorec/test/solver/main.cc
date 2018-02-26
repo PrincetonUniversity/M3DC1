@@ -8,7 +8,7 @@
  
 *******************************************************************************/
 #include "m3dc1_scorec.h"
-#include "m3dc1_scorec.h"
+#include "m3dc1_field.h"
 #include "pumi.h"
 #include <iostream>
 #include <assert.h>
@@ -170,6 +170,16 @@ int main( int argc, char** argv)
         }
       }
     }
+  }
+  
+  // check field I/O
+  if (argc>5)
+  {
+    int field_13;
+    m3dc1_field_load(&field_13, argv[4]);
+    m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[field_13];
+    write_field(m3dc1_mesh::instance()->mesh, mf, argv[5], 0);
+    m3dc1_field_delete(&field_13);
   }
 
   int num_layer=2;

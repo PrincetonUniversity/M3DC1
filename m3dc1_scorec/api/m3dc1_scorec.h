@@ -144,6 +144,8 @@ void m3dc1_field_insert(FieldID* /* in */ fid, int*  /* in */ vid, int* /* in */
                        int* /* in */ size, double* /* in */ values, int* scalar_type, int* /* in */ op);
 void m3dc1_field_isnan(FieldID* /* in */ fid, int * isnan);
 void m3dc1_field_compare(FieldID* fid1, FieldID* fid2);
+// load fields from a file and return a field ID
+void m3dc1_field_load (FieldID* /*out*/ fid, const char* /*in*/ filename);
 void m3dc1_field_write(FieldID* fid, const char* filename, int* start_index);
 void m3dc1_field_print(FieldID* fid);
 void m3dc1_field_sum_plane (FieldID* /* in */ fid);
