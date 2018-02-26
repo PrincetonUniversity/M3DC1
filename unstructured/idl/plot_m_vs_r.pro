@@ -1,6 +1,7 @@
 pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
                  srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra, phase=phase, $
-                 jmn=jmn
+                 jmn=jmn, out=outfile
+
   if(n_elements(factor) eq 0) then factor = 1.
 
   read_bmncdf, file=filename, _EXTRA=extra, bmn=bmn, psi=psi, m=m, q=q, $
@@ -20,10 +21,15 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
   if(keyword_set(srnorm)) then begin
      xtitle = '!9r!7W!X'
      psi = sqrt(psi)
+     xlabel = 'Sqrt(Psi_N)'
   endif else if(keyword_set(rhonorm)) then begin
      xtitle = '!7q!X'
      psi = rho
-  endif else xtitle='!7W!X'
+     xlabel = 'Rho_N'
+  endif else begin
+     xtitle='!7W!X'
+     xlabel = 'Psi_N'
+  end
 
   if(keyword_set(phase)) then begin
      data = atan(imaginary(bmn), real_part(bmn))*180./!pi
@@ -63,4 +69,18 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
      oplot, [psin[j],psin[j]], yrange, color=c[j], linestyle=2
   end
   plot_legend, name, color=c, ylog=ylog
+
+  if(n_elements(outfile) eq 1) then begin
+     openw, ifile, outfile, /get_lun
+     printf, ifile, format='(A12,31I12)', xlabel, mm
+     k = intarr(n)
+     for i=0, n-1 do begin
+        k[i] = where(m eq mm[i], count)
+     end
+     for i=0, n_elements(psi)-1 do begin
+        printf, ifile, format='(32F12.4)', psi[i], data[k,i]
+     end
+     free_lun, ifile
+  end
+
 end
