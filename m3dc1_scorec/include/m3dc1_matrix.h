@@ -26,7 +26,6 @@ class m3dc1_matrix
 public:
   m3dc1_matrix(int i, int s, FieldID field);
   virtual ~m3dc1_matrix();
-  virtual int initialize()=0; // create a matrix and solver object
   int destroy(); // delete a matrix and solver object
   int set_value(int row, int col, int operation, double real_val, double imag_val); //insertion/addition with global numbering
   // values use column-wise, size * size block
@@ -40,35 +39,26 @@ public:
   virtual void reset_values() = 0;
   virtual int get_type() const = 0;
   virtual int assemble() = 0;
-  virtual int setupMat() =0;
-  virtual int preAllocate() =0;
   int printInfo();
   // PETSc data structures
 protected:
   Mat A;
-  int setupSeqMat();
-  int setupParaMat();
-  int preAllocateSeqMat();
-  int preAllocateParaMat();
   int id;
   int scalar_type;
   int mat_status;
   int fieldOrdering; // the field that provide numbering
 };
 
-class matrix_mult: public m3dc1_matrix
+class matrix_mult : public m3dc1_matrix
 {
 public:
-  matrix_mult(int i, int s, FieldID field): m3dc1_matrix(i,s,field), localMat(1) { initialize();}
-  virtual int initialize();
+  matrix_mult(int i, int s, FieldID field);
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
   int multiply(FieldID in_field, FieldID out_field);
   void reset_values() { MatZeroEntries(A);   set_status(M3DC1_NOT_FIXED); };
   virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
   virtual int assemble();
-  virtual int setupMat();
-  virtual int preAllocate();
 private:
   bool localMat;
 };
@@ -77,7 +67,6 @@ class matrix_solve: public m3dc1_matrix
 {
 public:
   matrix_solve(int i, int s,  FieldID fieldOrdering);
-  virtual int initialize();
   virtual ~matrix_solve();
   int solve(FieldID field_id);
   int set_bc( int row);
@@ -86,8 +75,6 @@ public:
   void reset_values();
   virtual int get_type() const {return 1; }
   virtual int assemble();
-  virtual int setupMat();
-  virtual int preAllocate();
   int iterNum;
 private:
   int setUpRemoteAStruct();

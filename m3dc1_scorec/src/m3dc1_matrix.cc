@@ -18,6 +18,8 @@
 #include <assert.h>
 #include <iostream>
 
+#include "m3dc1_matrix_allocate.h"
+
 #ifdef PETSC_USE_COMPLEX
 #include "petscsys.h" // for PetscComplex
 #include <complex>
@@ -25,7 +27,6 @@ using std::complex;
 #endif
 
 using std::vector;
-
 
 // ***********************************
 //              HELPER
@@ -206,16 +207,9 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, FieldID f)
   mat_status = M3DC1_NOT_FIXED;
 }
 
-int m3dc1_matrix::destroy()
-{
-  PetscErrorCode ierr = MatDestroy(&A);
-  CHKERRQ(ierr);
-  return M3DC1_SUCCESS;
-}
-
 m3dc1_matrix::~m3dc1_matrix()
 {
-  destroy();
+  MatDestroy(&A);
 }
 
 int m3dc1_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<int>& columns, vector<double>& values)
@@ -321,94 +315,6 @@ int m3dc1_matrix::add_values(int rsize, int * rows, int csize, int * columns, do
   return M3DC1_SUCCESS;
 }
 
-int matrix_mult::setupMat()
-{
-  if (localMat) setupSeqMat();
-  else setupParaMat();
-  return M3DC1_SUCCESS;
-}
-
-int matrix_mult::preAllocate ()
-{
-  if (localMat) preAllocateSeqMat();
-  else preAllocateParaMat();
-  return M3DC1_SUCCESS;
-}
-
-
-int  m3dc1_matrix::preAllocateParaMat()
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int bs=1;
-  MatType type;
-  MatGetType(A, &type);
-
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof=0, vertex_type=0;
-  // FIXME: do not use API in low-level implementation
-  m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
-  int dofPerEnt=0;
-
-  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
-
-  if (strcmp(type, MATSEQAIJ)==0 || strcmp(type, MATMPIAIJ)==0)
-    bs=1;
-  else
-    bs=dofPerEnt;
-  int numBlocks = num_own_dof / bs;
-  int numBlockNode = dofPerEnt / bs;
-  std::vector<PetscInt> dnnz(numBlocks), onnz(numBlocks);
-  int startDof, endDofPlusOne;
-  // FIXME: for blocked DOF's
-  m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
-
-  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
-
-  int nnzStash=0;
-  int brgType = m->getDimension();
-
-  apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; inode++)
-  {
-    ent = getMdsEntity(m, vertex_type, inode);
-    int start_global_dof_id, end_global_dof_id_plus_one;
-    // FIXME: for blocked DOF's
-    m3dc1_ent_getglobaldofid (&vertex_type, &inode, &fieldOrdering, &start_global_dof_id, &end_global_dof_id_plus_one);
-    int startIdx = start_global_dof_id;
-    if (start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
-    {
-      apf::Adjacent elements;
-      getBridgeAdjacent(m, ent, brgType, 0, elements);
-      int num_elem=0;
-      for (int i=0; i<elements.getSize(); ++i)
-      {
-        if (!m->isGhost(elements[i]))
-          ++num_elem;
-      }
-
-      nnzStash+=dofPerEnt*dofPerEnt*(num_elem+1);
-      continue;
-    }
-    startIdx -= startDof;
-    startIdx /=bs;
-
-    int adjNodeOwned, adjNodeGlb;
-    m->getIntTag(ent, m3dc1_mesh::instance()->num_global_adj_node_tag, &adjNodeGlb);
-    m->getIntTag(ent, m3dc1_mesh::instance()->num_own_adj_node_tag, &adjNodeOwned);
-    assert(adjNodeGlb>=adjNodeOwned);
-
-    for (int i=0; i<numBlockNode; i++)
-    {
-      dnnz.at(startIdx+i)=(1+adjNodeOwned)*numBlockNode;
-      onnz.at(startIdx+i)=(adjNodeGlb-adjNodeOwned)*numBlockNode;
-    }
-  }
-  if (bs==1)
-    MatMPIAIJSetPreallocation(A, 0, &dnnz[0], 0, &onnz[0]);
-  else
-    MatMPIBAIJSetPreallocation(A, bs, 0, &dnnz[0], 0, &onnz[0]);
-  return M3DC1_SUCCESS;
-}
-
 int matrix_solve::setUpRemoteAStruct()
 {
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
@@ -462,106 +368,6 @@ int matrix_solve::setUpRemoteAStruct()
   return M3DC1_SUCCESS;
 }
 
-int  m3dc1_matrix::preAllocateSeqMat()
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int bs=1, vertex_type=0;
-  MatType type;
-  MatGetType(A, &type);
-
-  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[fieldOrdering];
-  int num_dof = (m3dc1_mesh::instance()->num_local_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
-
-  int dofPerEnt=0;
-  if (num_vtx) dofPerEnt = num_dof/num_vtx;
-
-  if (strcmp(type, MATSEQAIJ)==0 || strcmp(type, MATMPIAIJ)==0)
-    bs=1;
-  else
-    bs=dofPerEnt;
-  int numBlocks = num_dof / bs;
-  int numBlockNode = dofPerEnt / bs;
-  std::vector<PetscInt> nnz(numBlocks);
-  int brgType = m->getDimension();
-
-  apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; inode++)
-  {
-    ent = getMdsEntity(m, vertex_type, inode);
-    int start_dof, end_dof_plus_one;
-    // FIXME: for blocked DOF's
-    m3dc1_ent_getlocaldofid (&vertex_type, &inode, &fieldOrdering, &start_dof, &end_dof_plus_one);
-    int startIdx = start_dof;
-    assert(startIdx<num_dof);
-
-    apf::Adjacent elements;
-    getBridgeAdjacent(m, ent, brgType, 0, elements);
-    int numAdj=0;
-    for (int i=0; i<elements.getSize(); ++i)
-    {
-      if (!m->isGhost(elements[i]))
-        ++numAdj;
-    }
-
-    startIdx /=bs;
-    for (int i=0; i<numBlockNode; i++)
-    {
-      nnz.at(startIdx+i)=(1+numAdj)*numBlockNode;
-    }
-  }
-  if (bs==1)
-    MatSeqAIJSetPreallocation(A, 0, &nnz[0]);
-  else
-    MatSeqBAIJSetPreallocation(A, bs, 0, &nnz[0]);
-  return M3DC1_SUCCESS;
-}
-
-int m3dc1_matrix::setupParaMat()
-{
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], vertex_type=0, num_own_dof;
-  // FIXME
-  m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
-  int dofPerEnt=0;
-  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
-
-  PetscInt mat_dim = num_own_dof;
-
-  // create matrix
-  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, &A);
-  CHKERRQ(ierr);
-  // set matrix size
-  ierr = MatSetSizes(A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
-
-  ierr = MatSetType(A, MATMPIAIJ);CHKERRQ(ierr);
-  return M3DC1_SUCCESS;
-}
-
-int m3dc1_matrix::setupSeqMat()
-{
-  int num_ent=m3dc1_mesh::instance()->num_local_ent[0];
-
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[fieldOrdering];
-  int num_dof = (m3dc1_mesh::instance()->num_local_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
-
-  int dofPerEnt=0;
-  if (num_ent) dofPerEnt = num_dof/num_ent;
-
-  PetscInt mat_dim = num_dof;
-
-  // create matrix
-  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, &A);
-  CHKERRQ(ierr);
-  // set matrix size
-  ierr = MatSetSizes(A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
-
-  //use block mpi iij as default
-  //ierr = MatSetType(*A, MATSEQBAIJ);CHKERRQ(ierr);
-  //ierr = MatSetBlockSize(*A, dofPerEnt); CHKERRQ(ierr);
-  ierr = MatSetFromOptions(A);CHKERRQ(ierr);
-  return M3DC1_SUCCESS;
-}
-
 int m3dc1_matrix::write (const char* file_name)
 {
   PetscErrorCode ierr;
@@ -597,29 +403,30 @@ int m3dc1_matrix::printInfo()
 // ***********************************
 //              MATRIX_MULTIPLY
 // ***********************************
-
-int matrix_mult::initialize()
+matrix_mult::matrix_mult(int i , int s, FieldID fld)
+  : m3dc1_matrix(i,s,fld)
+  , localMat(1)
 {
-  // initialize matrix
-  setupMat();
-  preAllocate();
-  int ierr = MatSetUp(A); // "MatSetUp" sets up internal matrix data structure for the later use
-  //disable error when preallocate not enough
-  //check later
-  ierr = MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
-  //ierr = MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
-  CHKERRQ(ierr);
-  return M3DC1_SUCCESS;
+  m3dc1_mesh * msh = m3dc1_mesh::instance(); //external variable, pass in or use field
+  int num_ent = msh->num_local_ent[0]; // assumes that only verts hold dofs
+  m3dc1_field * mf = (*msh->field_container)[fld];
+  int blk_sz = mf->get_dof_per_value();
+  int dof_per_ent = mf->get_num_value() * blk_sz;
+  int num_lcl_dof = num_ent * dof_per_ent;
+  MatCreate(PETSC_COMM_SELF,&A);
+  const char * mat_tp = (blk_sz == 1 ? MATSEQAIJ : MATSEQBAIJ);
+  MatSetType(A,mat_tp);
+  MatSetSizes(A,num_lcl_dof,num_lcl_dof,PETSC_DETERMINE,PETSC_DETERMINE);
+  MatSetBlockSize(A,blk_sz);
+  // call preallocate
+  MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
+  MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
 }
 
 int matrix_mult::assemble()
 {
-  PetscErrorCode ierr;
-  ierr = MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
-  CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
-  CHKERRQ(ierr);
+  MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
   set_status(M3DC1_FIXED);
   return M3DC1_SUCCESS;
 }
@@ -709,47 +516,41 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
 //              MATRIX_SOLVE
 // ***********************************
 
-matrix_solve::matrix_solve(int i, int s, FieldID f): m3dc1_matrix(i,s,f)
+matrix_solve::matrix_solve(int i, int s, FieldID fld)
+  : m3dc1_matrix(i,s,fld)
+  , kspSet(0)
 {
-  // ksp = new KSP;
-  kspSet=0;
-  initialize();
+  m3dc1_mesh * msh = m3dc1_mesh::instance(); // external variable
+  int num_own_nds = msh->num_own_ent[0]; // assumes only vertices hold dofs
+  m3dc1_field * mf = (*msh->field_container)[fld];
+  int blk_sz = mf->get_dof_per_value();
+  int dof_per_nd = mf->get_num_value() * blk_sz;
+  int num_own_dof = num_own_nds * dof_per_nd;
+  MatCreate(PETSC_COMM_WORLD,&A);
+  const char * par_mat_tp = (blk_sz == 1 ? MATAIJ : MATBAIJ);
+  MatSetType(A,par_mat_tp);
+  MatSetSizes(A,num_own_dof,num_own_dof,PETSC_DETERMINE,PETSC_DETERMINE);
+  MatSetBlockSize(A,blk_sz);
+  // call preallocate
+  MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
+  MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
+  // TODO: remove remoteA
+  int num_lcl_nds = msh->num_local_ent[0];
+  int num_lcl_dof = num_lcl_nds * dof_per_nd;
+  MatCreate(PETSC_COMM_SELF,&remoteA);
+  const char * seq_mat_tp = (blk_sz == 1 ? MATSEQAIJ : MATSEQBAIJ);
+  MatSetType(remoteA,seq_mat_tp);
+  MatSetSizes(remoteA,num_lcl_dof,num_lcl_dof,PETSC_DETERMINE,PETSC_DETERMINE);
+  MatSetBlockSize(remoteA,blk_sz);
+  // call preallocate for remote
+  MatSetOption(remoteA,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
+  MatSetOption(remoteA,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
 }
 
 matrix_solve::~matrix_solve()
 {
-  //if (kspSet)
-  //  KSPDestroy(ksp);
-  // delete ksp;
   MatDestroy(&remoteA);
-}
-
-int matrix_solve::initialize()
-{
-  // initialize matrix
-  setupMat();
-  preAllocate();
-  if (!m3dc1_solver::instance()->assembleOption) setUpRemoteAStruct();
-  int ierr = MatSetUp (A); // "MatSetUp" sets up internal matrix data structure for the later use
-  //disable error when preallocate not enough
-  //check later
-  ierr = MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
-  //ierr = MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr); //commented per Jin's request on Nov 9, 2017
-  CHKERRQ(ierr);
-  return M3DC1_SUCCESS;
-}
-
-int matrix_solve::setupMat()
-{
-  setupParaMat();
-  return M3DC1_SUCCESS;
-}
-
-int matrix_solve::preAllocate ()
-{
-  preAllocateParaMat();
-  return M3DC1_SUCCESS;
+  MatDestroy(&A);
 }
 
 void matrix_solve::reset_values()
