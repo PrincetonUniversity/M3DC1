@@ -1,11 +1,11 @@
-/****************************************************************************** 
+/******************************************************************************
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2005-2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
+
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
+
 *******************************************************************************/
 #ifdef M3DC1_PETSC
 #ifndef M3DC1_SOLVER_H
@@ -44,15 +44,15 @@ public:
   virtual int preAllocate() =0;
   int printInfo();
   // PETSc data structures
-  Mat* A;
 protected:
+  Mat A;
   int setupSeqMat();
   int setupParaMat();
   int preAllocateSeqMat();
   int preAllocateParaMat();
   int id;
   int scalar_type;
-  int mat_status; 
+  int mat_status;
   int fieldOrdering; // the field that provide numbering
 };
 
@@ -64,7 +64,7 @@ public:
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
   int multiply(FieldID in_field, FieldID out_field);
-  void reset_values() { MatZeroEntries(*A);   set_status(M3DC1_NOT_FIXED); };
+  void reset_values() { MatZeroEntries(A);   set_status(M3DC1_NOT_FIXED); };
   virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
@@ -85,15 +85,15 @@ public:
   int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
   void reset_values();
   virtual int get_type() const {return 1; }
-  virtual int assemble(); 
+  virtual int assemble();
   virtual int setupMat();
   virtual int preAllocate();
   int iterNum;
-private:  
+private:
   int setUpRemoteAStruct();
   int setKspType();
   int kspSet;
-  KSP* ksp; 
+  KSP* ksp;
   Mat remoteA;
   std::set<int> remotePidOwned;
   std::map<int, std::map<int, int> > remoteNodeRow; // <pid, <locnode>, numAdj >
