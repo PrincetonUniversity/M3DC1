@@ -97,7 +97,7 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   assert(nodeCounter==num_own_ent);
   ierr=VecAssemblyEnd(petscVec);
   CHKERRQ(ierr);
-  return 0;
+  return M3DC1_SUCCESS;
 }
 
 int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
@@ -157,7 +157,7 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
     m3dc1_ent_setdofdata (&vertex_type, &inode, &field_id, &dofPerEnt, &dof_data[0]);
   }
   m3dc1_field_sync(&field_id);
-  return 0;
+  return M3DC1_SUCCESS;
 }
 
 // ***********************************
@@ -210,6 +210,7 @@ int m3dc1_matrix::destroy()
 {
   PetscErrorCode ierr = MatDestroy(&A);
   CHKERRQ(ierr);
+  return M3DC1_SUCCESS;
 }
 
 m3dc1_matrix::~m3dc1_matrix()
@@ -248,8 +249,8 @@ int m3dc1_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<i
     CHKERRQ(ierr);
   }
   assert(rows.size()==rend-rstart);
-  return M3DC1_SUCCESS;
 #endif
+  return M3DC1_SUCCESS;
 }
 
 int m3dc1_matrix::set_value(int row, int col, int operation, double real_val, double imag_val) //insertion/addition with global numbering
@@ -280,6 +281,7 @@ int m3dc1_matrix::set_value(int row, int col, int operation, double real_val, do
 #endif
   }
   CHKERRQ(ierr);
+  return M3DC1_SUCCESS;
 }
 
 int m3dc1_matrix::add_values(int rsize, int * rows, int csize, int * columns, double* values)
@@ -316,18 +318,21 @@ int m3dc1_matrix::add_values(int rsize, int * rows, int csize, int * columns, do
   ierr = MatSetValues(A, rsize, rows, csize, columns, (PetscScalar*)values, ADD_VALUES);
 #endif
   CHKERRQ(ierr);
+  return M3DC1_SUCCESS;
 }
 
 int matrix_mult::setupMat()
 {
   if (localMat) setupSeqMat();
   else setupParaMat();
+  return M3DC1_SUCCESS;
 }
 
 int matrix_mult::preAllocate ()
 {
   if (localMat) preAllocateSeqMat();
   else preAllocateParaMat();
+  return M3DC1_SUCCESS;
 }
 
 
@@ -401,6 +406,7 @@ int  m3dc1_matrix::preAllocateParaMat()
     MatMPIAIJSetPreallocation(A, 0, &dnnz[0], 0, &onnz[0]);
   else
     MatMPIBAIJSetPreallocation(A, bs, 0, &dnnz[0], 0, &onnz[0]);
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve::setUpRemoteAStruct()
@@ -453,7 +459,7 @@ int matrix_solve::setUpRemoteAStruct()
   ierr = MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
   MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]);
   ierr = MatSetUp (remoteA);CHKERRQ(ierr);
-
+  return M3DC1_SUCCESS;
 }
 
 int  m3dc1_matrix::preAllocateSeqMat()
@@ -508,6 +514,7 @@ int  m3dc1_matrix::preAllocateSeqMat()
     MatSeqAIJSetPreallocation(A, 0, &nnz[0]);
   else
     MatSeqBAIJSetPreallocation(A, bs, 0, &nnz[0]);
+  return M3DC1_SUCCESS;
 }
 
 int m3dc1_matrix::setupParaMat()
@@ -527,6 +534,7 @@ int m3dc1_matrix::setupParaMat()
   ierr = MatSetSizes(A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 
   ierr = MatSetType(A, MATMPIAIJ);CHKERRQ(ierr);
+  return M3DC1_SUCCESS;
 }
 
 int m3dc1_matrix::setupSeqMat()
@@ -551,6 +559,7 @@ int m3dc1_matrix::setupSeqMat()
   //ierr = MatSetType(*A, MATSEQBAIJ);CHKERRQ(ierr);
   //ierr = MatSetBlockSize(*A, dofPerEnt); CHKERRQ(ierr);
   ierr = MatSetFromOptions(A);CHKERRQ(ierr);
+  return M3DC1_SUCCESS;
 }
 
 int m3dc1_matrix::write (const char* file_name)
@@ -570,6 +579,7 @@ int m3dc1_matrix::write (const char* file_name)
   ierr = PetscViewerPushFormat(lab, PETSC_VIEWER_ASCII_MATLAB); CHKERRQ(ierr);
   ierr = MatView(A, lab); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&lab); CHKERRQ(ierr);
+  return M3DC1_SUCCESS;
 }
 
 int m3dc1_matrix::printInfo()
@@ -582,6 +592,7 @@ int m3dc1_matrix::printInfo()
   PetscInt nstash, reallocs, bnstash, breallocs;
   MatStashGetInfo(A,&nstash,&reallocs,&bnstash,&breallocs);
   std::cout<<"\t nstash, reallocs, bnstash, breallocs "<<nstash<<" "<<reallocs<<" "<<bnstash<<" "<<breallocs<<std::endl;
+  return M3DC1_SUCCESS;
 }
 // ***********************************
 //              MATRIX_MULTIPLY
@@ -599,6 +610,7 @@ int matrix_mult::initialize()
   //ierr = MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
   ierr = MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
   CHKERRQ(ierr);
+  return M3DC1_SUCCESS;
 }
 
 int matrix_mult::assemble()
@@ -609,6 +621,7 @@ int matrix_mult::assemble()
   ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
   CHKERRQ(ierr);
   set_status(M3DC1_FIXED);
+  return M3DC1_SUCCESS;
 }
 
 int matrix_mult::multiply(FieldID in_field, FieldID out_field)
@@ -689,6 +702,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
 #endif
     m3dc1_field_sum(&out_field);
   }
+  return M3DC1_SUCCESS;
 }
 
 // ***********************************
@@ -723,16 +737,19 @@ int matrix_solve::initialize()
   //ierr = MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
   ierr = MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr); //commented per Jin's request on Nov 9, 2017
   CHKERRQ(ierr);
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve::setupMat()
 {
   setupParaMat();
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve::preAllocate ()
 {
   preAllocateParaMat();
+  return M3DC1_SUCCESS;
 }
 
 void matrix_solve::reset_values()
@@ -796,6 +813,7 @@ int matrix_solve::add_blockvalues(int rbsize, int * rows, int cbsize, int * colu
 #else
   int ierr = MatSetValuesBlocked(remoteA,rbsize, rows, cbsize, columns, (PetscScalar*)values, ADD_VALUES);
 #endif
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve::assemble()
@@ -964,6 +982,7 @@ int matrix_solve::assemble()
   ierr = MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
   mat_status=M3DC1_FIXED;
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve:: set_bc( int row)
@@ -974,6 +993,7 @@ int matrix_solve:: set_bc( int row)
   assert (row>=firstRow && row<lastRowPlusOne);
 #endif
   MatSetValue(A, row, row, 1.0, ADD_VALUES);
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve:: set_row( int row, int numVals, int* columns, double * vals)
@@ -988,6 +1008,7 @@ int matrix_solve:: set_row( int row, int numVals, int* columns, double * vals)
     if (get_scalar_type() == M3DC1_REAL) set_value(row, columns[i], 1, vals[i], 0);
     else set_value(row, columns[i], 1, vals[2*i], vals[2*i+1]);
   }
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve::solve(FieldID field_id)
@@ -1013,6 +1034,7 @@ int matrix_solve::solve(FieldID field_id)
   // delete ksp
   KSPDestroy(ksp);
   delete ksp;
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve:: setKspType()
@@ -1038,6 +1060,7 @@ int matrix_solve:: setKspType()
 
   ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
  // ++kspSet;
+  return M3DC1_SUCCESS;
 }
 
 #endif //#ifndef M3DC1_MESHGEN
