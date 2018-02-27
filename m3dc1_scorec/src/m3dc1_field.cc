@@ -1,11 +1,11 @@
-/****************************************************************************** 
+/******************************************************************************
 
-  (c) 2005-2018 Scientific Computation Research Center, 
+  (c) 2005-2018 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
+
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
+
 *******************************************************************************/
 #include "m3dc1_field.h"
 #include "m3dc1_mesh.h"
@@ -24,7 +24,7 @@ m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
   typedef apf::Field* p_field;
   fields = new p_field[nv];
   int n_components;
-  char* field_name=new char[32];
+  char * field_name = new char[32];
   for (int i=0; i<nv; ++i)
   {
     n_components = (t+1)*num_dof;
@@ -32,19 +32,19 @@ m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
     fields[i]=apf::createPackedField(m3dc1_mesh::instance()->mesh, field_name, n_components);
     apf::freeze(fields[i]); // switch dof data from tag to array
   }
+  delete [] field_name;
 }
 
 m3dc1_field::~m3dc1_field()
 {
   for (int i=0; i<num_value; ++i)
     destroyField(fields[i]);
-
   delete [] fields;
 }
 
 apf::Field* m3dc1_field::get_field(int vid)
-{ 
-  return fields[vid]; 
+{
+  return fields[vid];
 }
 
 void get_ent_localdofid(m3dc1_field* mf, int ent_lid, int* dof_id, int* dof_cnt)
@@ -118,12 +118,12 @@ void load_field(apf::Mesh2* m, int field_id, const char* filename)
   std::string partFile = s.str();
   FILE * fp =fopen(partFile.c_str(), "r");
 
-  if (!fp) 
+  if (!fp)
     std::cout<<"("<<PCU_Comm_Self()<<") [M3D-C1 ERROR] fail to load file \""<<partFile<<"\"\n";
 
   apf::MeshEntity* e;
 
-  int gid, lid, did, ndof, nv, nd, vt, start_index; 
+  int gid, lid, did, ndof, nv, nd, vt, start_index;
   double dof;
   char field_name[32];
   fscanf(fp, "%s %d %d %d %d\n", field_name, &nv, &vt, &nd, &start_index);
@@ -156,7 +156,7 @@ void load_field(apf::Mesh2* m, int field_id, const char* filename)
     set_ent_dofdata(mf, e, dof_data);
   } // while
   m->end(it);
-  fclose(fp);  
+  fclose(fp);
   delete [] dof_data;
 }
 
@@ -179,29 +179,29 @@ void write_field(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start
 #endif
   double* dof_data = new double[num_dof];
 
-  fprintf(fp, "%s %d %d %d %d\n", mf->get_name().c_str(), mf->get_num_value(), 
+  fprintf(fp, "%s %d %d %d %d\n", mf->get_name().c_str(), mf->get_num_value(),
           mf->get_value_type(), mf->get_dof_per_value(), start_index);
- 
+
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
     get_ent_dofdata(mf, e, dof_data);
     int ndof=0;
     for (int i=0; i<num_dof; ++i)
-    {     
+    {
       if (!m3dc1_double_isequal(dof_data[i], 0.0))
         ++ndof;
     }
-    
-    fprintf(fp, "%d %d %d\n", get_ent_globalid(m,e)+start_index, getMdsIndex(m, e), ndof);   
+
+    fprintf(fp, "%d %d %d\n", get_ent_globalid(m,e)+start_index, getMdsIndex(m, e), ndof);
     for (int i=0; i<num_dof; ++i)
-    {     
+    {
       if (!m3dc1_double_isequal(dof_data[i], 0.0))
         fprintf(fp, "%d %lf\n", i, dof_data[i]);
     }
   } // while
   m->end(it);
-  fclose(fp);  
+  fclose(fp);
   delete [] dof_data;
 }
 
