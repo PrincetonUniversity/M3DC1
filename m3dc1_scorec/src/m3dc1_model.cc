@@ -849,7 +849,7 @@ void m3dc1_model:: caculateBoundingBox()
   const double largevalue=1.0e30;
   double max[3], min[3];
   max[0]=max[1]=max[2]=-1.0*largevalue;
-  min[0]=min[1]=min[0]=largevalue;
+  min[0]=min[1]=min[2]=largevalue;
   gmi_iter* giter = gmi_begin(model, 1);
   while(gmi_ent* gedge = gmi_next(model, giter))
   {
