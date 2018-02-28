@@ -2227,7 +2227,11 @@ end subroutine readpgfiles
    if(expn.eq.0.) then
       n0_spline%y = den0
    else
-      n0_spline%y = den0*((p0_spline%y-p0_spline%y(p0_spline%n))/p0)**expn + den_edge
+      if(idenfunc.ne.4) then
+         n0_spline%y = den0*((p0_spline%y-p0_spline%y(p0_spline%n))/p0)**expn + den_edge
+      else
+         n0_spline%y = den0*((p0_spline%y)/p0)**expn   ! compatible with pre Feb 2018 coding for idenfunc=0
+      endif
    end if
  end subroutine density_profile
 
