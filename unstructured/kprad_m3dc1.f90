@@ -332,6 +332,7 @@ contains
        nz = nz*n0_norm
        ne = ne*n0_norm
        te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
+       where(te.lt.0. .or. te.ne.te) te = 0.
        dt_s = dti*t0_norm
 
        ! advance densities at each integration point
@@ -339,6 +340,8 @@ contains
        if(izone.eq.1) then
           call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
                ne, te, nz, dw_rad, dw_brem)
+          where(ne .ne. ne) ne = 0.
+          where(nz .ne. nz) nz = 0.
        else
           dw_rad = 0.
           dw_brem = 0.
@@ -363,6 +366,7 @@ contains
 
        ! Radiation
        temp79b = (dw_rad(:,kprad_z) + dw_brem) / dti
+       where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
 

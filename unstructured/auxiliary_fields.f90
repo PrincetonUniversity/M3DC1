@@ -114,99 +114,6 @@ subroutine destroy_auxiliary_fields
   endif
 end subroutine destroy_auxiliary_fields
   
-subroutine calculate_temperatures(ilin, te, ti, ieqsub)
-  use math
-  use basic
-  use m3dc1_nint
-  use newvar_mod
-  use diagnostics
-  use metricterms_new
-  use field
-
-  implicit none
-
-  type(field_type) :: te, ti
-  integer, intent(in) :: ilin, ieqsub
-
-  integer :: def_fields
-  integer :: numelms
-  integer :: itri
-
-  type(field_type) :: te_f, ti_f
-
-  vectype, dimension(dofs_per_element) :: dofs
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating temperatures'
-
-  call create_field(te_f)
-  call create_field(ti_f)
-
-  te_f = 0.
-  ti_f = 0.
-
-  ! specify which primitive fields are to be evalulated
-  def_fields = FIELD_N + FIELD_P + FIELD_PE
-
-  numelms = local_elements()
-  do itri=1,numelms
-     call define_element_quadrature(itri, int_pts_aux, 5)
-     call define_fields(itri, def_fields, 1, 0, ieqsub)
-
-     ! electron temperature
-     if(linear.eq.1 .and. ilin.eq.1) then
-        temp79a = pe179(:,OP_1)/ne079(:,OP_1) &
-             - ne179(:,OP_1)*pe079(:,OP_1)/ne079(:,OP_1)**2
-     else
-        if(ilin.eq.1) then
-           temp79a = pet79(:,OP_1)/net79(:,OP_1)
-           if(ieqsub.eq.1) then
-              temp79a = temp79a - pe079(:,OP_1)/ne079(:,OP_1)
-           end if
-        else
-           temp79a = pe079(:,OP_1)/ne079(:,OP_1)
-        end if
-     end if
-     dofs = intx2(mu79(:,:,OP_1),temp79a)
-     where(dofs.ne.dofs)
-        dofs = 0.
-     end where
-     call vector_insert_block(te_f%vec,itri,1,dofs,VEC_ADD)
-
-     ! ion temperature
-     if(linear.eq.1 .and. ilin.eq.1) then
-        temp79a = pi179(:,OP_1)/n079(:,OP_1) &
-             - n179(:,OP_1)*pi079(:,OP_1)/n079(:,OP_1)**2
-     else
-        if(ilin.eq.1) then
-           temp79a = pit79(:,OP_1)/nt79(:,OP_1)
-           if(ieqsub.eq.1) then
-              temp79a = temp79a - pi079(:,OP_1)/n079(:,OP_1)
-           end if
-        else
-           temp79a = pi079(:,OP_1)/n079(:,OP_1)
-        end if
-     end if
-     dofs = intx2(mu79(:,:,OP_1),temp79a)
-     where(dofs.ne.dofs)
-        dofs = 0.
-     end where
-     call vector_insert_block(ti_f%vec,itri,1,dofs,VEC_ADD)
-  end do
-
-  call newvar_solve(te_f%vec, mass_mat_lhs)
-  call newvar_solve(ti_f%vec, mass_mat_lhs)
-
-  te = te_f
-  ti = ti_f
-
-  call destroy_field(te_f)
-  call destroy_field(ti_f)
-
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, ' Done calculating temperatures'
-  
-end subroutine calculate_temperatures
-
 subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
   use math
   use basic
@@ -324,9 +231,149 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
   call destroy_field(p_f)
 
   if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, ' Done calculating temperatures'
+       print *, ' Done calculating pressures'
   
 end subroutine calculate_pressures
+
+
+subroutine calculate_temperatures(ilin, te, ti, pe, p, ne, nion, ieqsub)
+  use math
+  use basic
+  use m3dc1_nint
+  use newvar_mod
+  use diagnostics
+  use metricterms_new
+  use field
+  use arrays
+  use kprad_m3dc1
+
+  implicit none
+
+  type(field_type) :: pe, p, te, ti, ne, nion
+  integer, intent(in) :: ilin    ! 0 = calculate only equilibrium part
+  integer, intent(in) :: ieqsub  ! 1 = supplied fields are only perturbed parts
+
+  integer :: numelms, itri, i
+
+  type(field_type) :: te_f, ti_f
+
+  vectype, dimension(dofs_per_element) :: dofs_ti, dofs_te
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating Temperatures'
+
+  call create_field(te_f)
+  call create_field(ti_f)
+
+  te_f = 0.
+  ti_f = 0.
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, 0, 1, 0, ieqsub)
+
+     call eval_ops(itri, ne, ne179, rfac)
+     call eval_ops(itri, nion, n179,  rfac)
+     call eval_ops(itri, p, p179, rfac)
+     if(ipres.eq.1) then
+        call eval_ops(itri, pe, pe179, rfac)
+     else
+        pe179 = p179*pefac
+     end if
+     if(ieqsub.eq.1 .and. ilin.eq.1) then
+        call eval_ops(itri, ne_field(0), ne079, rfac)
+        call eval_ops(itri, den_field(0), n079, rfac)
+        call eval_ops(itri, pe_field(0), pe079, rfac)
+        call eval_ops(itri, p_field(0),   p079, rfac)
+        nt79  = n179  +  n079
+        net79 = ne179 + ne079
+        pt79  = p179  +  p079
+        pet79 = pe179 + pe079
+     else
+        nt79  =  n179
+        net79 = ne179
+        pt79  =  p179
+        pet79 = pe179
+     end if
+
+     ! Electron temperature
+     if(linear.eq.1 .and. ilin.eq.1) then 
+        where(real(ne079(:,OP_1)).gt.0.)
+           temp79a = pe179(:,OP_1)/ne079(:,OP_1) &
+                - ne179(:,OP_1)*pe079(:,OP_1)/ne079(:,OP_1)**2
+        elsewhere
+           temp79a = 0.
+        end where
+     else
+        ! calculate the full temperature even when eqsubtract=1,
+        ! since we don't store the equilibrium impurity density
+        where(real(net79(:,OP_1)).gt.0.)
+           temp79a = pet79(:,OP_1)/net79(:,OP_1)
+        elsewhere
+           temp79a = 0.
+        end where
+     end if
+
+     ! Ion temperature
+     ! Ti = (p - pe) / [n_i + sum(n_z)]
+     if(linear.eq.1 .and. ilin.eq.1) then
+        where(real(n079(:,OP_1)).gt.0.)
+           temp79b = (p179(:,OP_1) - pe179(:,OP_1))/n079(:,OP_1) &
+                - n179(:,OP_1)*(p079(:,OP_1) - pe079(:,OP_1))/n079(:,OP_1)**2
+        elsewhere
+           temp79b = 0.
+        end where
+     else
+           
+        ! ion density
+        temp79c = nt79(:,OP_1)
+        ! Add impurity density
+        if(ikprad.eq.1) then
+           do i=1, kprad_z
+              call eval_ops(itri, kprad_n(i), n079, rfac)
+              temp79c = temp79c + n079(:,OP_1)
+           end do
+        end if
+        
+        ! calculate the full temperature even when eqsubtract=1,
+        ! since we don't store the equilibrium impurity density
+        where(real(temp79c) .gt. 0.)
+           temp79b = (pt79(:,OP_1) - pet79(:,OP_1))/temp79c
+        elsewhere
+           temp79b = 0.
+        end where
+     end if
+
+     ! If eqsubtract = 1, subtract the equilibrium pressure
+     if(ieqsub.eq.1 .and. ilin.eq.1 .and. linear.eq.0) then
+        call eval_ops(itri, te_field(0), te079, rfac)
+        temp79a = temp79a - te079(:,OP_1)
+
+        if(ipressplit.eq.1 .and. ipres.eq.1) then
+           call eval_ops(itri, ti_field(0), ti079, rfac)
+           temp79b = temp79b - ti079(:,OP_1)
+        end if
+     end if
+
+     dofs_te = intx2(mu79(:,:,OP_1),temp79a)
+     dofs_ti = intx2(mu79(:,:,OP_1),temp79b)
+        
+     call vector_insert_block(te_f%vec,itri,1,dofs_te,VEC_ADD)
+     call vector_insert_block(ti_f%vec,itri,1,dofs_ti,VEC_ADD)
+  end do
+
+  call newvar_solve(te_f%vec, mass_mat_lhs)
+  te = te_f
+  call destroy_field(te_f)
+
+  call newvar_solve(ti_f%vec, mass_mat_lhs)
+  ti = ti_f
+  call destroy_field(ti_f)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Done calculating temperatures'
+  
+end subroutine calculate_temperatures
 
 
 
