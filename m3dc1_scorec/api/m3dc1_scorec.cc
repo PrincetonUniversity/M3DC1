@@ -2154,25 +2154,34 @@ void m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID*
 
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   int nv=mf->get_num_value();
-  int ndof = countComponents(mf->get_field(0));
-
   *num_dof = nv*mf->get_dof_per_value();
 
   get_ent_dofdata (mf, e, dof_data);
  
 #ifdef DEBUG
+  int ndof = countComponents(mf->get_field(0));
   for (int i=0; i<nv*ndof; ++i)
     assert(!value_is_nan(dof_data[i]));
 
-  int start_dof_id,end_dof_id_plus_one;
-  m3dc1_ent_getlocaldofid(ent_dim, ent_id,field_id, &start_dof_id, &end_dof_id_plus_one);
+  int* dof_lid = new int[*num_dof];
+  int dof_cnt;
+  get_ent_localdofid(mf, *ent_id, dof_lid, &dof_cnt);
+  assert(dof_cnt==*num_dof);
+
+  int k=0;
   for (int i=0; i<nv; ++i)
   {
     double* data;
     m3dc1_field_getdataptr(field_id, &i, &data);
-    int start=start_dof_id*(1+mf->get_value_type());
-    for ( int i=0; i< *num_dof; ++i)
-      assert(data[start++]==dof_data[i]);
+    for (int j=0; j<*num_dof; ++j)
+    {
+#ifdef PETSC_USE_COMPLEX
+      assert(data[dof_lid[j]*2]==dof_data[k++]);
+      assert(data[dof_lid[j]*2+1]==dof_data[k++]);
+#else
+      assert(data[dof_lid[j]]==dof_data[k++]);
+#endif
+    }
   }
 #endif
 }
@@ -2358,7 +2367,7 @@ void m3dc1_matrix_add (int* matrix_id, int* row, int* col,
 }
 
 //*******************************************************
-void m3dc1_matrix_setbc(int* matrix_id, int* row)
+void m3dc1_matrix_setbc(int* matrix_id, int* row /*local_dof_id*/)
 //*******************************************************
 {  
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2381,6 +2390,7 @@ void m3dc1_matrix_setbc(int* matrix_id, int* row)
   int num_values, scalar_type, total_num_dof;
   char field_name[256];
   m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
+  // FIXME
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -2391,6 +2401,7 @@ void m3dc1_matrix_setbc(int* matrix_id, int* row)
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
 
   int start_dof_id, end_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getlocaldofid (&ent_dim, &inode, &field, &start_dof_id, &end_dof_id_plus_one);
   assert(*row>=start_dof_id&&*row<end_dof_id_plus_one);
 #endif
@@ -2426,6 +2437,7 @@ void m3dc1_matrix_setlaplacebc(int* matrix_id, int* row,
   m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
@@ -2564,8 +2576,11 @@ void m3dc1_matrix_insertblock(int* matrix_id, int* ielm,
     matrix_mult* mmat = dynamic_cast<matrix_mult*> (mat);
     for (int inode=0; inode<nodes_per_element; ++inode)
     {
-      if (mmat->is_mat_local()) m3dc1_ent_getlocaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
-      else m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
+      // FIXME
+      if (mmat->is_mat_local()) 
+        m3dc1_ent_getlocaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
+      else 
+        m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       for (int i=0; i<dofPerVar; ++i)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+(*rowIdx)*dofPerVar+i;
@@ -2582,6 +2597,7 @@ void m3dc1_matrix_insertblock(int* matrix_id, int* ielm,
     for (int inode=0; inode<nodes_per_element; ++inode)
     {
       m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
+      // FIXME
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+*rowIdx;
       columns_bloc[inode]=nodes[inode]*numVar+*columnIdx;
@@ -3448,6 +3464,7 @@ void m3dc1_epetra_addblock(int* matrix_id, int* ielm, int* rowVarIdx, int* colum
   {
     for (int inode=0; inode<nodes_per_element; ++inode)
     {
+      // FIXME
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       for (int i=0; i<dofPerVar; ++i)
       {
@@ -3466,6 +3483,7 @@ void m3dc1_epetra_addblock(int* matrix_id, int* ielm, int* rowVarIdx, int* colum
     for (int inode=0; inode<nodes_per_element; ++inode)
     {
       m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
+      // FIXME
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+*rowVarIdx;
       columns_bloc[inode]=nodes[inode]*numVar+*columnVarIdx;
@@ -3510,6 +3528,7 @@ void m3dc1_epetra_setbc(int* matrix_id, int* row)
   m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 #ifdef DEBUG
   int start_dof_id, end_dof_id_plus_one;
@@ -3549,9 +3568,11 @@ void m3dc1_epetra_setlaplacebc (int* matrix_id, int* row, int* numVals, int* col
   m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 #ifdef DEBUG
   int start_dof_id, end_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getlocaldofid (&ent_dim, &inode, &field, &start_dof_id, &end_dof_id_plus_one);
   assert(*row>=start_dof_id&&*row<end_dof_id_plus_one);
   for (int i=0; i<*numVals; ++i)
