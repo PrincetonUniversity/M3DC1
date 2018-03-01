@@ -1,13 +1,14 @@
 #include "m3dc1_numbering.h"
+#include "m3dc1_mesh.h" // temp for ownership
 #include "apf.h"
 #include "apfMesh.h"
 #include "apfShape.h"
 void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
 {
   apf::Field * fld = apf::getField(num);
-  apf::Mesh * msh = apf::getMesh(fld);
+  apf::Mesh2 * msh = static_cast<apf::Mesh2*>(apf::getMesh(fld));
   apf::FieldShape * shp = apf::getShape(fld);
-  int cmps = apf::countComponents(fld);
+  //int cmps = apf::countComponents(fld);
   // currently this assertion will only work for non-complex fields, need to create a complex field type
   //  the function and numbering should work fine regardless
   //assert(cmps == nv * nd);
@@ -23,7 +24,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(msh->isOwned(ent))
+        if(is_ent_original(msh,ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -36,7 +37,8 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   // sum the stride across the comm
   int lcl_strd = strd;
   MPI_Allreduce(&lcl_strd,&strd,1,MPI_INTEGER,MPI_SUM,cm);
-  int dof_head = 0;
+  //int dof_head = 0;
+  int nd_idx = 0;
   for(int dd = 0; dd < dim; ++dd)
   {
     if(shp->hasNodesIn(dd))
@@ -44,7 +46,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(msh->isOwned(ent))
+        if(is_ent_original(msh,ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -52,14 +54,14 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
           {
             for(int var = 0; var < nv; ++var)
             {
-              int var_head = 0;
-              for(int dof = 0; dof < nd; ++dof)
+              for(int dof = 0; dof < ndfs; ++dof)
               {
-                apf::number(num,ent,nd,var*ndfs+dof,var*strd+var_head);
-                var_head++;
+                int cmp = var * ndfs + dof;
+                int nbr = var * strd + nd_idx * ndfs + dof;
+                apf::number(num,ent,nd,cmp,nbr);
               }
             }
-            dof_head += cmps;
+            nd_idx++;
           }
         }
       }
