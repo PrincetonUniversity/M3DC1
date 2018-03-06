@@ -16,6 +16,10 @@
 #include "apfNumbering.h"
 #include "m3dc1_scorec.h"
 #include <vector>
+class m3dc1_matrix;
+class m3dc1_mesh;
+// the mat has the field implicitly, should make it explicit
+void mat_insert_element_block(m3dc1_matrix * mat, m3dc1_mesh * msh, apf::MeshEntity * ent, double * vals);
 
 int copyField2PetscVec(FieldID field, Vec& petscVec, int scalar_type);
 int copyPetscVec2Field(Vec& petscVec, FieldID field, int scalar_type);
@@ -28,7 +32,6 @@ public:
   virtual ~m3dc1_matrix();
   int destroy(); // delete a matrix and solver object
   int set_value(int row, int col, int operation, double real_val, double imag_val); //insertion/addition with global numbering
-  // values use column-wise, size * size block
   int add_values(int rsize, int * rows, int csize, int * columns, double* values);
   int get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values);
   void set_status(int s) {mat_status=s;}
@@ -40,13 +43,17 @@ public:
   virtual int get_type() const = 0;
   virtual int assemble() = 0;
   int printInfo();
-  // PETSc data structures
+  int get_block_size() { return blk_sz; }
+  virtual void add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cls, double * vals);
+  int is_parallel() { return is_par; }
 protected:
   Mat A;
   int id;
   int scalar_type;
   int mat_status;
   int fieldOrdering; // the field that provide numbering
+  int is_par;
+  int blk_sz;
 };
 
 class matrix_mult : public m3dc1_matrix

@@ -28,9 +28,83 @@ using std::complex;
 
 using std::vector;
 
+// todo : account for complex type
+void mat_insert_element_block(m3dc1_matrix * mat, m3dc1_mesh * msh, apf::MeshEntity * ent, double * vals)
+{
+  int fid = mat->get_fieldOrdering();
+  m3dc1_field * fld = (*msh->field_container)[fid]; // todo: get rid of direct access to member variables
+  // todo: assuming that only vertices hold nodes, should loop over dim and check in the field shape has nodes
+  // build an element with the correct field (shape) and count the effecting nodes, use the apf functions to get the dofs
+  //  far more straightforward
+  apf::Element * elt = apf::createElement(fld->get_field(),ent);
+  apf::Downward dn;
+  msh->mesh->getDownward(ent,0,dn);
+  int nds_per_elt = apf::countNodes(elt);
+  int blks_per_nd = fld->get_num_value();
+  int dofs_per_blk = fld->get_dof_per_value();
+  int dofs_per_nd = dofs_per_blk * blks_per_nd;
+  int blks_per_elt = blks_per_nd * nds_per_elt;
+  // blk ids depend on whether the matrix is local or not
+  int is_par = mat->is_parallel();
+  int * mem = new int[blks_per_elt+2*dofs_per_nd];
+  // DBG(memset(&mem[0],0,blks_per_elt+2*dofs_per_nd);
+  int * blk_ids = &mem[0];
+  int * lcl_dof_ids = &mem[blks_per_elt];
+  // DBG(memset(&gbl_dof_ids[0],0,dofs_per_nd*sizeof(int));
+  int * gbl_dof_ids = &mem[blks_per_elt+dofs_per_nd];
+  int * dof_ids[] = {&lcl_dof_ids[0],&gbl_dof_ids[0]};
+  // DBG(memset(&lcl_dof_ids[0],0,dofs_per_nd*sizeof(int));
+  // assumes that the number of adjacent verts = number of elt nodes
+  int dof_cnt = 0;
+  for(int elt_nd = 0; elt_nd < nds_per_elt; ++elt_nd)
+  {
+    apf::MeshEntity * vrt = dn[elt_nd];
+    //int ids[] = {get_ent_localid(msh->mesh,vrt), get_ent_globalid(msh->mesh,vrt)};
+    get_ent_localdofid(fld,get_ent_localid(msh->mesh,vrt),dof_ids[0],&dof_cnt);
+    get_ent_globaldofid(fld,get_ent_globalid(msh->mesh,vrt),dof_ids[1], &dof_cnt);
+    for(int nd_blk = 0; nd_blk < blks_per_nd; ++nd_blk)
+      blk_ids[elt_nd*blks_per_nd + nd_blk] = dof_ids[is_par][nd_blk*dofs_per_nd] / dofs_per_blk;
+  }
+  mat->add_blocks(blks_per_elt,blk_ids,blks_per_elt,blk_ids,vals);
+  //dof_ids = NULL;
+  //lcl_dof_ids = NULL;
+  //gbl_dof_ids = NULL;
+  //blk_ids = NULL;
+  delete [] mem;
+  apf::destroyElement(elt);
+}
+
 // ***********************************
 //              HELPER
 // ***********************************
+
+void describeMatrix(Mat A)
+{
+  MatInfo info;
+  MatGetInfo(A,MAT_LOCAL,&info);
+  MatType tp;
+  MatGetType(A,&tp);
+  int gbl_rws = 0;
+  int gbl_cls = 0;
+  MatGetSize(A,&gbl_rws,&gbl_cls);
+  int lcl_rws = 0;
+  int lcl_cls = 0;
+  MatGetLocalSize(A,&lcl_rws,&lcl_cls);
+  int fst_rw = 0;
+  int lst_rw = 0;
+  MatGetOwnershipRange(A,&fst_rw,&lst_rw);
+  int bs = sqrt(info.block_size);
+  std::cout << "Matrix created[" << PCU_Comm_Self() << "]: " << std::endl
+            << "\t Mat type: " << tp << std::endl
+            << "\t Block size: " << bs << std::endl
+            << "\t Global sizes: (" << gbl_rws << ", " << gbl_cls << ")" << std::endl
+            << "\t Local sizes: (" << lcl_rws << ", " << lcl_cls << ")" << std::endl
+            << "\t Ownership range: [" << fst_rw << ", " << lst_rw << ")" << std::endl
+            << "\t Global sizes (blocks): (" << gbl_rws / bs << ", " << gbl_cls / bs << ")" << std::endl
+            << "\t Local sizes (blocks): (" << lcl_rws / bs << ", " << lcl_cls / bs << ")" << std::endl
+            << "\t Ownership range (blocks): [" << fst_rw / bs << ", " << lst_rw / bs << ")" << std::endl
+            << "\t NNZ allocated: " << info.nz_allocated << std::endl;
+}
 
 void printMemStat()
 {
@@ -42,16 +116,14 @@ void printMemStat()
 
 int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
 {
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int num_own_ent= m3dc1_mesh::instance()->num_own_ent[0];
-  int num_own_dof=0, vertex_type=0;
-  // FIXME: remove API calls from low-level implementation
+  m3dc1_mesh * msh = m3dc1_mesh::instance(); // external var
+  apf::Mesh2 * m = msh->mesh;
+  int num_own_ent= msh->num_own_ent[0]; //assumes only verts have dofs
+  int num_own_dof=0;
+  int vertex_type=0;
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
-// ***********************************
-//              M3DC1_SOLVER
-// ***********************************
 
   int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec);
   CHKERRQ(ierr);
@@ -99,6 +171,49 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   ierr=VecAssemblyEnd(petscVec);
   CHKERRQ(ierr);
   return M3DC1_SUCCESS;
+}
+
+void field2Vec(m3dc1_field * fld, Vec V, int st)
+{
+  m3dc1_mesh * m3dc1_msh = m3dc1_mesh::instance(); // exernal var
+  apf::Mesh2 * msh = m3dc1_msh->mesh;
+  int num_own_nds = m3dc1_msh->num_own_ent[0]; // assuming only verts have dofs
+  int num_own_dof = 0;
+  FieldID fid = fld->get_id();
+  m3dc1_field_getnumowndof(&fid, &num_own_dof);
+  int dof_per_nd = num_own_dof / num_own_nds;
+  VecCreateMPI(MPI_COMM_WORLD,num_own_dof,PETSC_DETERMINE,&V);
+  int num_lcl_nds = m3dc1_msh->num_local_ent[0];
+  int * dof_ids = new int[dof_per_nd];
+  memset(&dof_ids[0],0,sizeof(int)*dof_per_nd);
+  // assumes st = 0 means real, st=1 means complex
+  int sz = dof_per_nd * (st+1);
+  double * dof_data = new double[sz];
+  //DBG(memset(&dof_data[0],0,sizeof(double)*sz));
+#ifdef PETSC_USE_COMPLEX
+  std::vector<PetscComplex> cplx_data(dof_per_nd);
+#endif
+  int vrt_tp = 0;
+  for(int nd = 0; nd < num_lcl_nds; ++nd)
+  {
+    apf::MeshEntity * ent = apf::getMdsEntity(msh,vrt_tp,nd);
+    if(!is_ent_original(msh,ent))
+      continue;
+    int num_dof = 0;
+    m3dc1_ent_getdofdata(&vrt_tp,&nd,&fid,&num_dof,&dof_data[0]);
+    m3dc1_ent_getglobaldofid(&vrt_tp,&nd,&fid,&dof_ids[0],&num_dof);
+#ifdef PETSC_USE_COMPLEX
+    for(int ii = 0; ii < dof_per_nd; ++ii)
+      cplx_data[ii] = dof_data[ii*2] + dof_data[ii*2+1] * PETSC_i;
+    VecSetValues(V,dof_per_nd,dof_ids,&cplx_data[0],INSERT_VALUES);
+#else
+    VecSetValues(V,dof_per_nd,dof_ids,&dof_data[0],INSERT_VALUES);
+#endif
+  }
+  VecAssemblyBegin(V);
+  VecAssemblyEnd(V);
+  delete [] dof_ids;
+  delete [] dof_data;
 }
 
 int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
@@ -161,6 +276,50 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
   return M3DC1_SUCCESS;
 }
 
+void vec2Field(m3dc1_field * fld, Vec V, int st)
+{
+  m3dc1_mesh * m3dc1_msh = m3dc1_mesh::instance(); // external variable
+  apf::Mesh2 * msh = m3dc1_msh->mesh;
+  FieldID fid = fld->get_id();
+  int num_own_nds = m3dc1_msh->num_own_ent[0];
+  int num_own_dof = 0;
+  m3dc1_field_getnumowndof(&fid,&num_own_dof);
+  int vrt_tp = 0;
+  int dof_per_nd = num_own_dof / num_own_nds;
+  int num_lcl_nd = m3dc1_msh->num_local_ent[0];
+  int * dof_ids = new int[dof_per_nd];
+  //DBG(memset(&dof_ids[0],0,sizeof(int)*dof_per_nd));
+  int sz = dof_per_nd*(st+1);
+  double * dof_data = new double[sz];
+#ifdef PETSC_USE_COMPLEX
+  std::vector<PetscComplex> cplx_data(dof_per_nd);
+#endif
+  //DBG(memset(&dof_data[0],0,sizeof(double)*sz);
+  for(int nd = 0; nd < num_lcl_nd; ++nd)
+  {
+    apf::MeshEntity * ent = apf::getMdsEntity(msh,vrt_tp,nd);
+    if(!is_ent_original(msh,ent))
+      continue;
+    int dof_cnt = 0;
+    m3dc1_ent_getglobaldofid(&vrt_tp,&nd,&fid,&dof_ids[0],&dof_cnt);
+#ifdef PETSC_USE_COMPLEX
+    VecGetValues(V,dof_per_ent,&dof_ids[0],&cplx_data[0]);
+    for(int ii = 0; ii < dof_per_ent; ++ii)
+    {
+      dof_data[2*ii] = cplx_data[ii].real();
+      dof_data[2*ii+1] = cplx_data[ii].imag();
+    }
+#else
+    VecGetValues(V,dof_per_nd,&dof_ids[0],&dof_data[0]);
+#endif
+    m3dc1_ent_setdofdata(&vrt_tp,&nd,&fid,&dof_per_nd,&dof_data[0]);
+  }
+  // could get rid of this with some work
+  m3dc1_field_sync(&fid);
+  delete [] dof_ids;
+  delete [] dof_data;
+}
+
 // ***********************************
 //              M3DC1_SOLVER
 // ***********************************
@@ -210,6 +369,11 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, FieldID f)
 m3dc1_matrix::~m3dc1_matrix()
 {
   MatDestroy(&A);
+}
+
+inline void m3dc1_matrix::add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cols, double * vals)
+{
+  MatSetValuesBlocked(A,blk_rw_cnt,blk_rws,blk_col_cnt,blk_cols,vals,ADD_VALUES);
 }
 
 int m3dc1_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<int>& columns, vector<double>& values)
@@ -405,8 +569,8 @@ int m3dc1_matrix::printInfo()
 // ***********************************
 matrix_mult::matrix_mult(int i , int s, FieldID fld)
   : m3dc1_matrix(i,s,fld)
-  , localMat(1)
 {
+  is_par = 0;
   m3dc1_mesh * msh = m3dc1_mesh::instance(); //external variable, pass in or use field
   int num_ent = msh->num_local_ent[0]; // assumes that only verts hold dofs
   m3dc1_field * mf = (*msh->field_container)[fld];
@@ -419,8 +583,14 @@ matrix_mult::matrix_mult(int i , int s, FieldID fld)
   MatSetSizes(A,num_lcl_dof,num_lcl_dof,PETSC_DETERMINE,PETSC_DETERMINE);
   MatSetBlockSize(A,blk_sz);
   // call preallocate
+  allocateMatrix(A,msh,mf);
   MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
-  MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
+  if(!(blk_sz-1)) // only supported for AIJ not BAIJ
+    MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
+#ifdef DEBUG
+  if(!PCU_Comm_Self())
+    describeMatrix(A);
+#endif
 }
 
 int matrix_mult::assemble()
@@ -461,7 +631,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     PetscScalar * array[2];
     // FIXME: for blocked DOF's
     int vid=0;
-    m3dc1_field_getdataptr(&in_field, &vid, (double**)array);
+    m3dc1_field_getdataptr(&in_field, (double**)array);
 #ifdef PETSC_USE_COMPLEX
     if (!get_scalar_type())
     {
@@ -475,7 +645,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
 #endif
     ierr = VecCreateSeqWithArray( PETSC_COMM_SELF, bs, num_dof, (PetscScalar*) array[0],&b); CHKERRQ(ierr);
     // FIXME: for blocked DOF's
-    m3dc1_field_getdataptr(&out_field, &vid, (double**)array+1);
+    m3dc1_field_getdataptr(&out_field, (double**)array+1);
 #ifdef PETSC_USE_COMPLEX
     if (!get_scalar_type())
     {
@@ -520,6 +690,7 @@ matrix_solve::matrix_solve(int i, int s, FieldID fld)
   : m3dc1_matrix(i,s,fld)
   , kspSet(0)
 {
+  is_par = 1;
   m3dc1_mesh * msh = m3dc1_mesh::instance(); // external variable
   int num_own_nds = msh->num_own_ent[0]; // assumes only vertices hold dofs
   m3dc1_field * mf = (*msh->field_container)[fld];
@@ -527,13 +698,14 @@ matrix_solve::matrix_solve(int i, int s, FieldID fld)
   int dof_per_nd = mf->get_num_value() * blk_sz;
   int num_own_dof = num_own_nds * dof_per_nd;
   MatCreate(PETSC_COMM_WORLD,&A);
-  const char * par_mat_tp = (blk_sz == 1 ? MATAIJ : MATBAIJ);
+  const char * par_mat_tp = (blk_sz == 1 ? MATMPIAIJ : MATMPIBAIJ);
   MatSetType(A,par_mat_tp);
   MatSetSizes(A,num_own_dof,num_own_dof,PETSC_DETERMINE,PETSC_DETERMINE);
   MatSetBlockSize(A,blk_sz);
-  // call preallocate
+  allocateMatrix(A,msh,mf);
   MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
-  MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
+  if(!(blk_sz-1)) // only supported for AIJ not BAIJ
+    MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
   // TODO: remove remoteA
   int num_lcl_nds = msh->num_local_ent[0];
   int num_lcl_dof = num_lcl_nds * dof_per_nd;
@@ -542,9 +714,14 @@ matrix_solve::matrix_solve(int i, int s, FieldID fld)
   MatSetType(remoteA,seq_mat_tp);
   MatSetSizes(remoteA,num_lcl_dof,num_lcl_dof,PETSC_DETERMINE,PETSC_DETERMINE);
   MatSetBlockSize(remoteA,blk_sz);
-  // call preallocate for remote
+  setUpRemoteAStruct();
   MatSetOption(remoteA,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
-  MatSetOption(remoteA,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
+  if(!(blk_sz-1)) // only supported for AIJ not BAIJ
+    MatSetOption(remoteA,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
+#ifdef DEBUG
+  if(!PCU_Comm_Self())
+    describeMatrix(A);
+#endif
 }
 
 matrix_solve::~matrix_solve()

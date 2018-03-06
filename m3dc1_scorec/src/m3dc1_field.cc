@@ -16,14 +16,24 @@
 #include <PCU.h>
 #include <assert.h>
 #include "apfMDS.h"
+#include "m3dc1_numbering.h"
 
 m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
-: id(ID), name(str), num_value(nv), value_type(t), num_dof(ndof)
+  : id(ID)
+  , name(str)
+  , fld(NULL)
+  , num_value(nv)
+  , value_type(t)
+  , num_dof(ndof)
+  , num(NULL)
 {
-  name=str;
-  typedef apf::Field* p_field;
-  fields = new p_field[nv];
-  int n_components;
+  int n_components = nv * ndof * (t+1);
+  fld = apf::createPackedField(m3dc1_mesh::instance()->mesh, str, n_components);
+  num = apf::createNumbering(fld);
+  apf::freeze(fld);
+  aggregateNumbering(MPI_COMM_SELF,num,nv,ndof);
+  // freeze the numbering
+  /*
   char * field_name = new char[32];
   for (int i=0; i<nv; ++i)
   {
@@ -33,18 +43,18 @@ m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
     apf::freeze(fields[i]); // switch dof data from tag to array
   }
   delete [] field_name;
+  */
 }
 
 m3dc1_field::~m3dc1_field()
 {
+  /*
   for (int i=0; i<num_value; ++i)
     destroyField(fields[i]);
   delete [] fields;
-}
-
-apf::Field* m3dc1_field::get_field(int vid)
-{
-  return fields[vid];
+  */
+  destroyField(fld);
+  fld = NULL;
 }
 
 void get_ent_localdofid(m3dc1_field* mf, int ent_lid, int* dof_id, int* dof_cnt)
@@ -54,7 +64,7 @@ void get_ent_localdofid(m3dc1_field* mf, int ent_lid, int* dof_id, int* dof_cnt)
   int num_dof = num_value*dof_per_value;
   int num_local_node = m3dc1_mesh::instance()->mesh->count(0);
 
-  int i=0;
+  int i = 0;
 
   for (int nv=0; nv<num_value; ++nv)
     for (int nd=0; nd<dof_per_value; ++nd)
@@ -82,30 +92,16 @@ void get_ent_globaldofid(m3dc1_field* mf, int ent_gid, int* dof_id, int* dof_cnt
 void get_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data)
 //*******************************************************
 {
-  int nv = mf->get_num_value();
-  apf::Field* f = mf->get_field(0);
-  int ndof=countComponents(f);
-
-  for (int i=0; i<nv; ++i)
-  {
-    f = mf->get_field(i);
-    getComponents(f, e, 0, &(dof_data[ndof*i]));
-  }
+  apf::Field * f = mf->get_field();
+  getComponents(f, e, 0, &(dof_data[0]));
 }
 
 //*******************************************************
 void set_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data)
 //*******************************************************
 {
-  int nv = mf->get_num_value();
-  apf::Field* f = mf->get_field(0);
-  int ndof=countComponents(f);
-
-  for (int i=0; i<nv; ++i)
-  {
-    f = mf->get_field(i);
-    setComponents(f, e, 0, &(dof_data[ndof*i]));
-  }
+  apf::Field* f = mf->get_field();
+  setComponents(f, e, 0, &(dof_data[0]));
 }
 
 

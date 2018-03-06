@@ -182,7 +182,7 @@ MeshEntity* get_ent_owncopy(Mesh2* mesh, MeshEntity* e)
   int own_partid = get_ent_ownpartid(mesh, e);
   if (own_partid==PCU_Comm_Self()) return e;
 
-  if (mesh->isShared(e)) 
+  if (mesh->isShared(e))
   {
     Copies remotes;
     mesh->getRemotes(e,remotes);
@@ -1421,49 +1421,41 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
 
   // get the field info and save it for later creation
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[field_id];
-  int nv=mf->get_num_value();
-  double** dof_val = new double*[nv];
-  double** recv_dof_val = new double*[nv];
+  //int nv=mf->get_num_value();
+  //double** dof_val = new double*[nv];
+  //double** recv_dof_val = new double*[nv];
 
   apf::Field* f;
 
   // copy the existing dof data
-  int old_total_ndof = apf::countComponents(mf->get_field(0));
+  int old_total_ndof = apf::countComponents(mf->get_field());
 
   PCU_Comm_Begin();
-
+  double * dof_val = new double[old_total_ndof*num_2d_vtx];
   if (!m3dc1_model::instance()->local_planeid)
   {
-    for (int vid=0; vid<nv; ++vid)
-    {
-      f = mf->get_field(vid);
-      freeze(f); // switch dof data from tag to array
-      dof_val[vid] = new double[old_total_ndof*num_2d_vtx];
-      memcpy(&(dof_val[vid][0]), apf::getArrayData(f), old_total_ndof*num_2d_vtx*sizeof(double));
-    }
+    f = mf->get_field();
+    freeze(f); // switch dof data from tag to array
+    memcpy(&(dof_val[0]), apf::getArrayData(f), old_total_ndof*num_2d_vtx*sizeof(double));
     int proc=PCU_Comm_Self()+m3dc1_model::instance()->group_size;
     while (proc<PCU_Comm_Peers())
-    {       
+    {
       PCU_Comm_Pack(proc, &num_2d_vtx, sizeof(int));
-      for (int vid=0; vid<nv; ++vid)
-        PCU_Comm_Pack(proc, &(dof_val[vid][0]), old_total_ndof*num_2d_vtx*sizeof(double));
+      PCU_Comm_Pack(proc, &(dof_val[0]), old_total_ndof*num_2d_vtx*sizeof(double));
       proc+=m3dc1_model::instance()->group_size;
     }
   }
   PCU_Comm_Send();
-  int recv_num_ent;
-
+  int recv_num_ent = 0;
+  double * recv_dof_val = NULL;
   while (PCU_Comm_Listen())
   {
     int from = PCU_Comm_Sender();
-    while (!PCU_Comm_Unpacked())
-    { 
+    while(!PCU_Comm_Unpacked())
+    {
       PCU_Comm_Unpack(&recv_num_ent, sizeof(int));
-      for (int vid=0; vid<nv; ++vid)
-      { 
-        recv_dof_val[vid] = new double[old_total_ndof*recv_num_ent];
-        PCU_Comm_Unpack(&(recv_dof_val[vid][0]), old_total_ndof*recv_num_ent*sizeof(double));
-      }
+      recv_dof_val = new double[old_total_ndof*recv_num_ent]; // this will leak if it is called more than once
+      PCU_Comm_Unpack(&(recv_dof_val[0]), old_total_ndof*recv_num_ent*sizeof(double));
     }
   }
 
@@ -1472,52 +1464,35 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
 
   // create the field with same attributes
   m3dc1_field_create (&field_id, f_name, &num_values, &scalar_type, &ndof_per_value);
-  
+
   // re-construct the dof data
-  f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field(0);
+  f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
   int new_total_ndof = apf::countComponents(f);
-  double** dof_data = new double*[nv];
+  double * dof_data = new double[new_total_ndof];
+  memset(&dof_data[0],0,sizeof(double)*new_total_ndof);
   if (!m3dc1_model::instance()->local_planeid)
   {
-    for (int vid=0; vid<nv; ++vid)
+    f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
+    for (int index = 0; index < num_2d_vtx; ++index)
     {
-      f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field(vid);
-      for (int index=0; index<num_2d_vtx; ++index)
-      {
-        for (int i=0; i<old_total_ndof; ++i)
-          dof_data[vid][i] = dof_val[vid][index*old_total_ndof+i];
-        if (new_total_ndof>old_total_ndof)
-          for (int i=old_total_ndof; i<new_total_ndof; ++i)
-            dof_data[vid][i] = 0.0;
-        setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data[vid]);
-        setComponents(f, remote_vertices[index], 0, dof_data[vid]);
-      }
-      delete [] dof_val[vid];
+      memcpy(&dof_data[0],&dof_val[index*old_total_ndof],sizeof(double)*old_total_ndof);
+      setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data);
+      setComponents(f, remote_vertices[index], 0, dof_data);
     }
     delete [] dof_val;
   }
   else
   {
-    for (int vid=0; vid<nv; ++vid)
+    f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
+    for (int index=0; index<recv_num_ent; ++index)
     {
-      f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field(vid);
-      for (int index=0; index<recv_num_ent; ++index)
-      {
-        for (int i=0; i<old_total_ndof; ++i)
-           dof_data[vid][i] = recv_dof_val[vid][index*old_total_ndof+i];
-        if (new_total_ndof>old_total_ndof)
-          for (int i=old_total_ndof; i<new_total_ndof; ++i)
-            dof_data[vid][i] = 0.0;
-        setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data[vid]);
-        setComponents(f, remote_vertices[index], 0, dof_data[vid]);
-        delete [] recv_dof_val[vid];
-      }
+      memcpy(&dof_data[0], &recv_dof_val[index*old_total_ndof],sizeof(double)*old_total_ndof);
+      setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data);
+      setComponents(f, remote_vertices[index], 0, dof_data);
+      delete [] recv_dof_val;
     } // index
-    delete [] recv_dof_val;     
+    delete [] recv_dof_val;
   } // while
-
-  for (int vid=0; vid<nv; ++vid)
-    delete [] dof_data[vid];
   delete [] dof_data;
 }
 
@@ -1540,16 +1515,40 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
     }
   };
 
+/*
+void m3dc1_mesh::set_node_adj_tags()
+{
+  apf::MeshEntity * vrt = NULL;
+  apf::MeshIterator * it = mesh->begin(0);
+  while((vrt = mesh->iterate(it)))
+  {
+    int adj_nd = 0;
+    apf::Adjacent adj;
+    apf::getBridgeAdjacent(mesh,vrt,mesh->getDimension(),0,adj);
+    int adj_cnt = adj.getSize();
+    int own_adj = 0;
+    for(int ii = 0; ii < adj_cnt; ++ii)
+      if(is_ent_original(mesh,adj[ii]))
+        own_adj++;
+    mesh->setIntTag(e,num_own_adj_node_tag,&own_adj);
+    int zero = 0;
+    mesh->setIntTag(e,num_global_adj_node_tag,&zero);
+    
+  }
+  mesh->end(it);
+}
+*/
+
 // FIXME: this crashes when called with ghosted mesh
 // **********************************************
 void m3dc1_mesh::set_node_adj_tag()
 // **********************************************
 {
   int value;
-  int brgType = (num_local_ent[3])?3:2;
+  int brgType = (num_local_ent[3]) ? 3 : 2;
 
-  apf::MeshEntity* e;
-  apf::MeshIterator* it = mesh->begin(0);
+  apf::MeshEntity * e;
+  apf::MeshIterator * it = mesh->begin(0);
   PCU_Comm_Begin();
   while ((e = mesh->iterate(it)))
   {
@@ -1588,7 +1587,7 @@ void m3dc1_mesh::set_node_adj_tag()
       count_map[e][PCU_Comm_Sender()]=value;
     }
   }
-  
+
   // pass entities to ownner
   std::map<apf::MeshEntity*, std::set<entMsg, classcomp> > count_map2;
   it = mesh->begin(0);
@@ -1608,7 +1607,7 @@ void m3dc1_mesh::set_node_adj_tag()
       MeshEntity* ownerEnt2=get_ent_owncopy(mesh, elements[i]);
       int owner=get_ent_ownpartid(mesh, elements[i]);
       msgs.push_back(entMsg(owner, ownerEnt2));
-      if (own_partid==PCU_Comm_Self()) 
+      if (own_partid==PCU_Comm_Self())
       {
         count_map2[e].insert(*msgs.rbegin());
       }
@@ -1640,7 +1639,7 @@ void m3dc1_mesh::set_node_adj_tag()
   for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); mit!=count_map2.end(); ++mit)
   {
     e = mit->first;
-    int num_global_adj =count_map2[e].size();
+    int num_global_adj = count_map2[e].size();
     mesh->setIntTag(mit->first, num_global_adj_node_tag, &num_global_adj);
   }
 }
