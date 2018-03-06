@@ -975,6 +975,9 @@ int matrix_solve::solve(FieldID field_id)
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
   ksp = new KSP;
   setKspType();
+  // as per Sherri's suggestion 03/05/2018
+  KSPSetUp(*ksp);
+  KSPSetUpOnBlocks(*ksp);
   ierr = KSPSolve(*ksp, b, x);
   CHKERRQ(ierr);
   PetscInt its;
