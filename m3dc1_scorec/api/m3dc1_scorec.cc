@@ -2348,7 +2348,7 @@ void m3dc1_matrix_add (int* matrix_id, int* row, int* col,
 }
 
 //*******************************************************
-void m3dc1_matrix_setbc(int* matrix_id, int* row)
+void m3dc1_matrix_setbc(int* matrix_id, int* row /*local_dof_id*/)
 //*******************************************************
 {  
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
@@ -2371,6 +2371,7 @@ void m3dc1_matrix_setbc(int* matrix_id, int* row)
   int num_values, scalar_type, total_num_dof;
   char field_name[256];
   m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
+  // FIXME
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -2381,6 +2382,7 @@ void m3dc1_matrix_setbc(int* matrix_id, int* row)
   assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
 
   int start_dof_id, end_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getlocaldofid (&ent_dim, &inode, &field, &start_dof_id, &end_dof_id_plus_one);
   assert(*row>=start_dof_id&&*row<end_dof_id_plus_one);
 #endif
@@ -2416,6 +2418,7 @@ void m3dc1_matrix_setlaplacebc(int* matrix_id, int* row,
   m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 
 #ifdef DEBUG
@@ -2557,8 +2560,11 @@ void m3dc1_matrix_insertblock(int * mid, int * eid, int * rowIdx, int * columnId
     matrix_mult* mmat = dynamic_cast<matrix_mult*> (mat);
     for (int inode=0; inode<nodes_per_element; ++inode)
     {
-      if (mmat->is_mat_local()) m3dc1_ent_getlocaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
-      else m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
+      // FIXME
+      if (mmat->is_mat_local()) 
+        m3dc1_ent_getlocaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
+      else 
+        m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       for (int i=0; i<dofPerVar; ++i)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+(*rowIdx)*dofPerVar+i;
@@ -2575,6 +2581,7 @@ void m3dc1_matrix_insertblock(int * mid, int * eid, int * rowIdx, int * columnId
     for (int inode=0; inode<nodes_per_element; ++inode)
     {
       m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
+      // FIXME
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+*rowIdx;
       columns_bloc[inode]=nodes[inode]*numVar+*columnIdx;
@@ -3437,6 +3444,7 @@ void m3dc1_epetra_addblock(int* matrix_id, int* ielm, int* rowVarIdx, int* colum
   {
     for (int inode=0; inode<nodes_per_element; ++inode)
     {
+      // FIXME
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       for (int i=0; i<dofPerVar; ++i)
       {
@@ -3455,6 +3463,7 @@ void m3dc1_epetra_addblock(int* matrix_id, int* ielm, int* rowVarIdx, int* colum
     for (int inode=0; inode<nodes_per_element; ++inode)
     {
       m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
+      // FIXME
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
       rows_bloc[inode]=nodes[inode]*numVar+*rowVarIdx;
       columns_bloc[inode]=nodes[inode]*numVar+*columnVarIdx;
@@ -3499,6 +3508,7 @@ void m3dc1_epetra_setbc(int* matrix_id, int* row)
   m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 #ifdef DEBUG
   int start_dof_id, end_dof_id_plus_one;
@@ -3538,9 +3548,11 @@ void m3dc1_epetra_setlaplacebc (int* matrix_id, int* row, int* numVals, int* col
   m3dc1_field_getinfo(&field, field_name, &num_values, &scalar_type, &total_num_dof);
   int inode = *row/total_num_dof;
   int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
 #ifdef DEBUG
   int start_dof_id, end_dof_id_plus_one;
+  // FIXME
   m3dc1_ent_getlocaldofid (&ent_dim, &inode, &field, &start_dof_id, &end_dof_id_plus_one);
   assert(*row>=start_dof_id&&*row<end_dof_id_plus_one);
   for (int i=0; i<*numVals; ++i)
