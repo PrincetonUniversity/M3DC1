@@ -27,29 +27,27 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
   std::vector<int> onnz(blk_row_cnt);
   int vrt_dim = 0;
   //FieldID fld_id = fld->get_id();
-  int * lcl_dofs = new int[dof_per_nd];
+  int * dofs = new int[dof_per_nd];
   int lcl_nd = 0;
   for(int nd = 0; nd < num_nds[0]; ++nd) //  have to iterate over all nodes, but we only process those we need
   {
     //DBG(memset(&gbl_dofs[0],0,sizeof(int)*dof_per_nd));
-    //m3dc1_ent_getlocaldofid(&vrt_dim,&nd,&fld_id,&lcl_dofs[0],&dof_cnt);
+    //m3dc1_ent_getlocaldofid(&vrt_dim,&nd,&fld_id,&dofs[0],&dof_cnt);
     apf::MeshEntity * ent = apf::getMdsEntity(msh->mesh,vrt_dim,nd);
     int dof_cnt = 0;
     if(is_par)
     {
       int gbl_ent_id = get_ent_globalid(msh->mesh,ent);
-      get_ent_globaldofid(fld,gbl_ent_id,&lcl_dofs[0],&dof_cnt);
+      get_ent_globaldofid(fld,gbl_ent_id,&dofs[0],&dof_cnt);
     }
     else
     {
       int lcl_ent_id = get_ent_localid(msh->mesh,ent);
-      get_ent_localdofid(fld,lcl_ent_id,&lcl_dofs[0],&dof_cnt);
+      get_ent_localdofid(fld,lcl_ent_id,&dofs[0],&dof_cnt);
     }
     lcl_nd = is_ent_original(msh->mesh,ent);
     if(!lcl_nd && is_par)
       continue;
-    //if(gbl_dofs[0] < frst_row || gbl_dofs[0] >= lst_row)
-    //continue; // only check the first dof since that should tell us enough
     int adj_own = 0;
     int adj_gbl = 0;
     msh->mesh->getIntTag(ent, msh->num_own_adj_node_tag, &adj_own);
@@ -57,9 +55,9 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
     assert(adj_gbl >= adj_own);
     for(int ii = 0; ii < dof_cnt; ii+=bs)
     {
-      int blk_row = (lcl_dofs[ii] / bs) - frst_blk_row;
+      int blk_row = (dofs[ii] / bs) - frst_blk_row;
       assert(blk_row < blk_row_cnt);
-      dnnz[blk_row] = blk_per_nd * ((adj_own + 1) + ((adj_gbl - adj_own) * is_lcl)); // if the matrix is local we only use dnnz but need the sum
+      dnnz[blk_row] = blk_per_nd * ((adj_own + 1) + (is_lcl * (adj_gbl - adj_own))); // if the matrix is local we only use dnnz but need the sum
       onnz[blk_row] = blk_per_nd * (adj_gbl - adj_own);
     }
   }
@@ -72,5 +70,5 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
     MatSeqAIJSetPreallocation(A,0,&dnnz[0]);
   else // must be local and block
     MatSeqBAIJSetPreallocation(A,bs,0,&dnnz[0]);
-  delete [] lcl_dofs;
+  delete [] dofs;
 }

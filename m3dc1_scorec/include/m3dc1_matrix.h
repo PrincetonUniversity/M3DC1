@@ -16,10 +16,15 @@
 #include "apfNumbering.h"
 #include "m3dc1_scorec.h"
 #include <vector>
+#include <ostream>
+
+void las_init(int * argc, char ** argv[], MPI_Comm cm);
+
 class m3dc1_matrix;
 class m3dc1_mesh;
 // the mat has the field implicitly, should make it explicit
-void mat_insert_element_block(m3dc1_matrix * mat, m3dc1_mesh * msh, apf::MeshEntity * ent, double * vals);
+void insert_element_blocks(m3dc1_matrix * mat, m3dc1_mesh * msh, int * ent_dim, int * eid, double * vals);
+void insert_node_blocks(m3dc1_matrix * mat, m3dc1_mesh * msh, int * ent_dim, int * eid, int * nd1, int * nd2, double * vals);
 
 int copyField2PetscVec(FieldID field, Vec& petscVec, int scalar_type);
 int copyPetscVec2Field(Vec& petscVec, FieldID field, int scalar_type);
@@ -38,7 +43,7 @@ public:
   int get_status() {return mat_status;}
   int get_scalar_type() { return scalar_type; }
   int get_fieldOrdering() { return fieldOrdering;}
-  int write( const char* file_name);
+  void write(const char * fn);
   virtual void reset_values() = 0;
   virtual int get_type() const = 0;
   virtual int assemble() = 0;

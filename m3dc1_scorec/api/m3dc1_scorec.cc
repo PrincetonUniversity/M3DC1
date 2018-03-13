@@ -55,17 +55,18 @@ bool m3dc1_double_isequal(double A, double B)
 }
 
 //*******************************************************
-void m3dc1_scorec_init()
+void m3dc1_scorec_init(int * argc, char ** argv[], MPI_Comm = MPI_COMM_WORLD)
 //*******************************************************
-{ 
+{
   pumi_start();
+  las_init(argc,argv,cm)
   begin_time=MPI_Wtime();
 }
 
 //*******************************************************
 void m3dc1_scorec_finalize()
 //*******************************************************
-{ 
+{
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
   m3dc1_mesh::instance()->clean(); // delete tag, field and internal data 
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
@@ -1457,7 +1458,7 @@ void m3dc1_field_sum_plane (FieldID* /* in */ field_id)
 }
 
 //*******************************************************
-void m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info)
+void m3dc1_field_printcompnorm(FieldID* /* in */ field_id, const char * info)
 //*******************************************************
 {
   // #define C1TRIDOFNODE 6 (m3dc1_scorec.h)
@@ -2510,10 +2511,28 @@ void m3dc1_matrix_getnumiter(int* matrix_id, int* iter_num)
   *iter_num = dynamic_cast<matrix_solve*> (mat)->iterNum;
 }
 
-// rowIdx and colIdx appear to be... local? ummmmm, why not just use the element to get the correct rows regardless?
-void m3dc1_matrix_insertblock(int * mid, int * eid, int * rowIdx, int * columnIdx, double * vals)
+
+// insert the blocks associated with a single node of the given element
+// mid is the matrix identifier
+// dim is the dimension of the element (0,1,2,3)
+// eid is the element id of dimension dim
+// nd1 is the first node, in canonical ordering on the element using the field order used to create the matrix
+// nd2 is the second node, in the canonical ordering on the element using the field order used to create the matrix
+// vals is the logically 2d-array of values for the node's blocks
+void m3dc1_matrix_insertnodeblocks(int * mid, int * dim, int * eid, int * nd1, int * nd2, double * vals)
 {
-  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*mid);
+  m3dc1_matrix * mat = m3dc1_solver::instance()->get_matrix(*mid);
+  assert(mat);
+  m3dc1_mesh * msh = m3dc1_mesh::instance();
+  assert(msh);
+  insert_node_blocks(mat,msh,dim,eid,nd1,nd2,vals);
+}
+
+// rowIdx and colIdx appear to be... local? ummmmm, why not just use the element to get the correct rows regardless?
+void m3dc1_matrix_insertentblocks(int * mid, int * ent_dim, int * eid, int * nd1, int * nd2, double * vals)
+{
+  m3dc1_matrix * mat = m3dc1_solver::instance()->get_matrix(*mid);
+  m3dc1_mesh * msh = m3dc1_mesh::instance();
 #ifdef DEBUG
   if (!mat)
   {
@@ -2522,11 +2541,8 @@ void m3dc1_matrix_insertblock(int * mid, int * eid, int * rowIdx, int * columnId
     return;
   }
 #endif
-  m3dc1_mesh * msh = m3dc1_mesh::instance();
-  int dim = msh->mesh->getDimension();
-  apf::MeshEntity * ent = apf::getMdsEntity(msh->mesh,dim,*eid);
-  mat_insert_element_block(mat,msh,ent,vals);
-  /*
+  insert_element_blocks(mat,msh,ent_dim,eid,vals);
+/*
   int field = mat->get_fieldOrdering();
   // need to change later, should get the value from field calls ...
   int dofPerVar = 6;
@@ -2606,9 +2622,7 @@ void m3dc1_matrix_insertblock(int * mid, int * eid, int * rowIdx, int * columnId
 }
 
 
-//*******************************************************
-void m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
-//*******************************************************
+void m3dc1_matrix_write(int* matrix_id, const char * filename)
 {
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
   if (!filename)
@@ -2623,37 +2637,7 @@ void m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
     return;
   }
 #endif
-
-  char matrix_filename[256];
-  sprintf(matrix_filename,"%s-%d", filename, PCU_Comm_Self());
-  FILE * fp =fopen(matrix_filename, "w");
-
-  int row, col, csize, sum_csize=0, index=0;
-
-  vector<int> rows;
-  vector<int> n_cols;
-  vector<int> cols;
-  vector<double> vals;
-
-  mat->get_values(rows, n_cols, cols, vals);
-  for (int i=0; i<rows.size(); ++i)
-    sum_csize += n_cols[i];
-  assert(vals.size()==sum_csize);
-
-  fprintf(fp, "%d\t%d\t%d\n", rows.size(), n_cols.size(), vals.size());
-
-  for (int i=0; i<rows.size(); ++i)
-  {
-    row = rows[i];
-    csize = n_cols[i];
-    for (int j=0; j<csize; ++j)
-    {
-      fprintf(fp, "%d\t%d\t%E\n", row+*start_index, cols[index]+*start_index,vals[index]);
-      ++index;
-    }
-  }
-  fclose(fp);  
-  assert(index == vals.size());
+  mat->write(filename);
 }
 
 

@@ -9,69 +9,97 @@
 *******************************************************************************/
 #ifdef M3DC1_PETSC
 #include "m3dc1_matrix.h"
-#include "apf.h"
-#include "apfMesh.h"
-#include "apfMDS.h"
-#include <vector>
-#include "PCU.h"
-#include "m3dc1_mesh.h"
-#include <assert.h>
-#include <iostream>
-
 #include "m3dc1_matrix_allocate.h"
-
+#include "m3dc1_mesh.h"
+#include <PCU.h>
+#include <apf.h>
+#include <apfMesh.h>
+#include <apfMDS.h>
+#include <petscsys.h>
+#include <cassert>
+#include <iostream>
+#include <vector>
 #ifdef PETSC_USE_COMPLEX
-#include "petscsys.h" // for PetscComplex
 #include <complex>
 using std::complex;
 #endif
+void las_init(int * argv, char ** argv[], MPI_Comm cm)
+{
+  PETSC_COMM_WORLD = cm;
+  PetscInitialize(argc,argv);
+}
+void get_num_blocks(m3dc1_matrix * mat, m3dc1_mesh * msh,int * ent_dim, int * eid, int * num_blks)
+{
+  // assuming only verts have nodes
+  int vrt_dim = 0;
+  int num_adj_vrts = 0;
+  m3dc1_ent_getnumadj(ent_dim,eid,&vrt_dim,&num_adj_vrts);
+  int blks_per_nd = (*msh->field_container)[mat->get_fieldOrdering()]->get_num_value();
+  *num_blks = blks_per_nd * num_adj_vrts;
+}
 
-using std::vector;
+void get_block_ids(m3dc1_matrix * mat, m3dc1_mesh * msh, int * ent_dim, int * eid, int * blk_ids)
+{
+  int is_par = mat->is_parallel();
+  int vrt_dim = 0;
+  m3dc1_field * fld = (*msh->field_container)[mat->get_fieldOrdering()];
+  // assuming only vrts have nodes
+  int nds_per_ent = 0;
+  int num_adj_vrts = 0;
+  m3dc1_ent_getnumadj(ent_dim,eid,&vrt_dim,&num_adj_vrts);
+  int * adj_vrts = new int[num_adj_vrts];
+  m3dc1_ent_getadj(ent_dim,eid,&vrt_dim,&adj_vrts[0],&num_adj_vrts,&num_adj_vrts);
+  int dofs_per_blk = fld->get_dof_per_value();
+  int blks_per_nd = fld->get_num_value();
+  int dofs_per_nd = dofs_per_blk * blks_per_nd;
+  int * lcl_dof_ids = new int[dofs_per_nd];
+  int * gbl_dof_ids = new int[dofs_per_nd];
+  int * dof_ids[] = {&lcl_dof_ids[0],&gbl_dof_ids[0]};
+  int dof_cnt = 0;
+  for(int ent_nd = 0; ent_nd < nds_per_ent; ++ent_nd)
+  {
+    get_ent_localdofid(fld,adj_vrts[ent_nd],&lcl_dof_ids[0],&dof_cnt);
+    get_ent_globaldofid(fld,adj_vrts[ent_nd],&gbl_dof_ids[0],&dof_cnt);
+    for(int nd_blk = 0; nd_blk < blks_per_nd; ++nd_blk)
+      blk_ids[ent_nd * blks_per_nd + nd_blk] = dof_ids[is_par][nd_blk*dofs_per_nd] / dofs_per_blk;
+  }
+  delete [] gbl_dof_ids;
+  delete [] lcl_dof_ids;
+  delete [] adj_vrts;
+}
 
 // todo : account for complex type
-void mat_insert_element_block(m3dc1_matrix * mat, m3dc1_mesh * msh, apf::MeshEntity * ent, double * vals)
+void insert_element_blocks(m3dc1_matrix * mat, m3dc1_mesh * msh, int * ent_dim, int * eid, double * vals)
 {
-  int fid = mat->get_fieldOrdering();
-  m3dc1_field * fld = (*msh->field_container)[fid]; // todo: get rid of direct access to member variables
-  // todo: assuming that only vertices hold nodes, should loop over dim and check in the field shape has nodes
-  // build an element with the correct field (shape) and count the effecting nodes, use the apf functions to get the dofs
-  //  far more straightforward
-  apf::Element * elt = apf::createElement(fld->get_field(),ent);
-  apf::Downward dn;
-  msh->mesh->getDownward(ent,0,dn);
-  int nds_per_elt = apf::countNodes(elt);
-  int blks_per_nd = fld->get_num_value();
-  int dofs_per_blk = fld->get_dof_per_value();
-  int dofs_per_nd = dofs_per_blk * blks_per_nd;
-  int blks_per_elt = blks_per_nd * nds_per_elt;
-  // blk ids depend on whether the matrix is local or not
-  int is_par = mat->is_parallel();
-  int * mem = new int[blks_per_elt+2*dofs_per_nd];
-  // DBG(memset(&mem[0],0,blks_per_elt+2*dofs_per_nd);
-  int * blk_ids = &mem[0];
-  int * lcl_dof_ids = &mem[blks_per_elt];
-  // DBG(memset(&gbl_dof_ids[0],0,dofs_per_nd*sizeof(int));
-  int * gbl_dof_ids = &mem[blks_per_elt+dofs_per_nd];
-  int * dof_ids[] = {&lcl_dof_ids[0],&gbl_dof_ids[0]};
-  // DBG(memset(&lcl_dof_ids[0],0,dofs_per_nd*sizeof(int));
-  // assumes that the number of adjacent verts = number of elt nodes
-  int dof_cnt = 0;
-  for(int elt_nd = 0; elt_nd < nds_per_elt; ++elt_nd)
-  {
-    apf::MeshEntity * vrt = dn[elt_nd];
-    //int ids[] = {get_ent_localid(msh->mesh,vrt), get_ent_globalid(msh->mesh,vrt)};
-    get_ent_localdofid(fld,get_ent_localid(msh->mesh,vrt),dof_ids[0],&dof_cnt);
-    get_ent_globaldofid(fld,get_ent_globalid(msh->mesh,vrt),dof_ids[1], &dof_cnt);
-    for(int nd_blk = 0; nd_blk < blks_per_nd; ++nd_blk)
-      blk_ids[elt_nd*blks_per_nd + nd_blk] = dof_ids[is_par][nd_blk*dofs_per_nd] / dofs_per_blk;
-  }
+  int num_ent_blks = 0;
+  get_num_blocks(mat,msh,ent_dim,eid,&num_ent_blks);
+  int * blk_ids = new int[num_ent_blks];
+  // DBG(memset());
+  get_block_ids(mat,msh,ent_dim,eid,&blk_ids[0]);
+  // assuming only verts hold nodes
+  int num_adj_vrts = 0;
+  int vrt_dim = 0;
+  m3dc1_ent_getnumadj(ent_dim,eid,&vrt_dim,&num_adj_vrts);
+  int blks_per_nd = (*msh->field_container)[mat->get_fieldOrdering()]->get_num_value();
+  int blks_per_elt = blks_per_nd * num_adj_vrts;
   mat->add_blocks(blks_per_elt,blk_ids,blks_per_elt,blk_ids,vals);
-  //dof_ids = NULL;
-  //lcl_dof_ids = NULL;
-  //gbl_dof_ids = NULL;
-  //blk_ids = NULL;
-  delete [] mem;
-  apf::destroyElement(elt);
+  delete [] blk_ids;
+}
+
+void insert_node_blocks(m3dc1_matrix * mat, m3dc1_mesh * msh, int * ent_dim, int * eid, int * nd1, int * nd2, double * vals)
+{
+  int vrt_dim = 0;
+  int blks_per_ent = 0;
+  get_num_blocks(mat,msh,ent_dim,eid,&blks_per_ent);
+  int * blk_ids = new int[blks_per_ent];
+  //DBG(memset());
+  //assuming only verts have nodes and that all nodes have the same number of blocks(values..)
+  int blks_per_nd = (*msh->field_container)[mat->get_fieldOrdering()]->get_num_value();
+  int num_adj_vrts = 0;
+  m3dc1_ent_getnumadj(ent_dim,eid,&vrt_dim,&num_adj_vrts);
+  assert(num_adj_vrts * blks_per_nd == blks_per_ent);
+  mat->add_blocks(blks_per_nd,&blk_ids[*nd1 * blks_per_nd],blks_per_nd,&blk_ids[*nd2 * blks_per_nd],vals);
+  delete [] blk_ids;
 }
 
 // ***********************************
@@ -376,7 +404,7 @@ inline void m3dc1_matrix::add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_
   MatSetValuesBlocked(A,blk_rw_cnt,blk_rws,blk_col_cnt,blk_cols,vals,ADD_VALUES);
 }
 
-int m3dc1_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<int>& columns, vector<double>& values)
+int m3dc1_matrix::get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values)
 {
   if (mat_status != M3DC1_FIXED)
     return M3DC1_FAILURE;
@@ -448,7 +476,7 @@ int m3dc1_matrix::add_values(int rsize, int * rows, int csize, int * columns, do
     return M3DC1_FAILURE;
   PetscErrorCode ierr;
 #if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
-  vector<PetscScalar> petscValues(rsize*csize);
+  std::vector<PetscScalar> petscValues(rsize*csize);
   for (int i=0; i<rsize; i++)
   {
     //if (id==22)
@@ -532,24 +560,15 @@ int matrix_solve::setUpRemoteAStruct()
   return M3DC1_SUCCESS;
 }
 
-int m3dc1_matrix::write (const char* file_name)
+void m3dc1_matrix::write(const char * fn)
 {
-  PetscErrorCode ierr;
-  PetscViewer lab;
-  if (get_type()==0)
-  {
-    char name_buff[256];
-    sprintf(name_buff, "%s-%d.m",file_name,PCU_Comm_Self());
-    ierr = PetscViewerASCIIOpen(PETSC_COMM_SELF, name_buff, &lab); CHKERRQ(ierr);
-  }
-  else
-  {
-    ierr = PetscViewerASCIIOpen(MPI_COMM_WORLD, file_name, &lab); CHKERRQ(ierr);
-  }
-  ierr = PetscViewerPushFormat(lab, PETSC_VIEWER_ASCII_MATLAB); CHKERRQ(ierr);
-  ierr = MatView(A, lab); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&lab); CHKERRQ(ierr);
-  return M3DC1_SUCCESS;
+  PetscViewer view;
+  MPI_Comm cm = MPI_COMM_NULL;
+  PetscObjectGetComm((PetscObject)A,&cm);
+  PetscViewerASCIIOpen(cm, fn, &view);
+  PetscViewerPushFormat(view, PETSC_VIEWER_ASCII_MATLAB);
+  MatView(A, view);
+  PetscViewerDestroy(&view);
 }
 
 int m3dc1_matrix::printInfo()
@@ -762,13 +781,12 @@ void matrix_solve::reset_values()
 #endif
 };
 
-
 int matrix_solve::add_blockvalues(int rbsize, int * rows, int cbsize, int * columns, double* values)
 {
 #if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
   int bs;
   MatGetBlockSize(remoteA, &bs);
-  vector<PetscScalar> petscValues(rbsize*cbsize*bs*bs);
+  std::vector<PetscScalar> petscValues(rbsize*cbsize*bs*bs);
 
   for (int i=0; i<rbsize*bs; i++)
   {
@@ -928,8 +946,8 @@ int matrix_solve::assemble()
       int destPid=*it;
       int valueOffset=0;
       int idxOffset=0;
-      vector<int> & idx = idxRecvBuff[destPid];
-      vector<PetscScalar> & values = valuesRecvBuff[destPid];
+      std::vector<int> & idx = idxRecvBuff[destPid];
+      std::vector<PetscScalar> & values = valuesRecvBuff[destPid];
       int numValues=values.size();
       while (valueOffset<numValues)
       {

@@ -1,30 +1,23 @@
-/****************************************************************************** 
+/******************************************************************************
 
-  (c) 2005-2016 Scientific Computation Research Center, 
+  (c) 2005-2016 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
+
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
+
 *******************************************************************************/
 #include "m3dc1_scorec.h"
-#include "m3dc1_field.h"
-#include "pumi.h"
-#include <iostream>
-#include <assert.h>
 #include "m3dc1_mesh.h" // debugging purpose
+#include "m3dc1_field.h"
+#include <PCU.h>
+#include <pumi.h>
 #include <parma.h>
-#include "PCU.h"
-#include "petscksp.h"
+#include <cassert>
 #include <iostream>
-#include <assert.h>
-
-
 using namespace std;
-static char help[] = "testing solver functions; \n first do mat-vec product A*b=c; solve Ax=c; compare x and b\n\n";
-
-bool AlmostEqualDoubles(double A, double B,
-            double maxDiff, double maxRelDiff);
+//static char help[] = "testing solver functions; \n first do mat-vec product A*b=c; solve Ax=c; compare x and b\n\n";
+bool AlmostEqualDoubles(double A, double B, double maxDiff, double maxRelDiff);
 #if defined(__linux__)
 #include <malloc.h>
 #else
@@ -92,69 +85,66 @@ static double get_chunks()
 #endif
 
 double t1, t2, t3, t4, t5, t6, t7;
-int num_values=1, vertex_dim=0, scalar_type=0;
-int num_dofs, num_dofs_node;
+int num_values = 1;
+int vrt_dim = 0;
+int scalar_type = 0;
+int num_dofs = 0;
+int dofs_per_nd = 0;
 int b_field=1, c_field=2, x_field=3;
 
 void test_matrix(int, int);
 
-int main( int argc, char** argv)
+int main(int argc, char * argv[])
 {
-  MPI_Init(&argc,&argv);
-  m3dc1_scorec_init();
-
-  PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
-  PetscLogDouble mem;
-  if (argc<4 & !PCU_Comm_Self())
+  m3dc1_scorec_init(&argc,&argv,MPI_COMM_WORLD);
+  if (argc<4 && !PCU_Comm_Self())
   {
     cout<<"Usage: ./main  model mesh #planes real(0)/complex(1) "<<endl;
     return M3DC1_FAILURE;
   }
-
-
-  int num_plane=1;
+  int num_plane = 1;
   if (argc>3)
   {
     num_plane = atoi(argv[3]);
-    if (num_plane>1 && PCU_Comm_Peers()%num_plane==0)
-      m3dc1_model_setnumplane (&num_plane);
+    if (num_plane > 1 && PCU_Comm_Peers() % num_plane==0)
+      m3dc1_model_setnumplane(&num_plane);
   }
-
   m3dc1_model_load(argv[1]);
   m3dc1_model_print();
-
 #ifdef PETSC_USE_COMPLEX
-  scalar_type=1; // complex
+  scalar_type = 1; // complex
 #endif
-
   m3dc1_mesh_load(argv[2]);
-
   printStats(m3dc1_mesh::instance()->mesh);
-  if (num_plane>1)
+  if (num_plane > 1)
   {
-    int zero=0;
+    int zero = 0;
     m3dc1_mesh_build3d(&zero, &zero, &zero);
   }
-
   //check geo
-  if(num_plane >1)
+  if(num_plane > 1)
   {
     int num_elem = m3dc1_mesh::instance()->mesh->count(3);
-    for( int ielm = 0; ielm < num_elem; ielm++)
+    for(int eid = 0; eid < num_elem; eid++)
     {
-      int ent_dim=3, adj_dim=0, num_adj_ent, adj_ent_allocated_size=6;
-      int nodes[6];
-      m3dc1_ent_getadj (&ent_dim, &ielm, &adj_dim, nodes, &adj_ent_allocated_size, &num_adj_ent);
-      assert(num_adj_ent==adj_ent_allocated_size);
-      double normal1[3], normal2[3], curv1, curv2;
+      int ent_dim = 3;
+      int vrt_dim = 0;
+      int num_adj_vrts = 0;
+      m3dc1_ent_getnumadj(&ent_dim, &eid, &vrt_dim, &num_adj_vrts);
+      int * nds = new int[num_adj_vrts];
+      m3dc1_ent_getadj(&ent_dim, &eid, &vrt_dim, &nds[0], &num_adj_vrts, &num_adj_vrts);
+      double normal1[] = {0.0,0.0,0.0};
+      double normal2[] = {0.0,0.0,0.0};
+      double curv1 = 0.0;
+      double curv2 = 0.0;
       for(int i=0; i<3; i++)
       {
         int is_bdy=0;
-        m3dc1_node_isongeombdry(nodes+i, &is_bdy);
+        m3dc1_node_isongeombdry(nodes[i], &is_bdy);
         if (is_bdy)
         {
           int geom_class_dim,geom_class_id;
-          m3dc1_ent_getgeomclass (&adj_dim, nodes+i, &geom_class_dim, &geom_class_id);
+          m3dc1_ent_getgeomclass (&vrt_dim, nodes+i, &geom_class_dim, &geom_class_id);
           m3dc1_node_getnormvec(nodes+i, normal1);
           m3dc1_node_getcurv(nodes+i,&curv1);
           if (geom_class_dim==0)
@@ -171,7 +161,7 @@ int main( int argc, char** argv)
       }
     }
   }
-  
+
   // check field I/O
   if (argc>5)
   {
@@ -188,19 +178,18 @@ int main( int argc, char** argv)
 
    // set/get field dof values
   int num_vertex = m3dc1_mesh::instance()->mesh->count(0);
-  int num_own_vertex = m3dc1_mesh::instance()->num_own_ent[0];
+  //int num_own_vertex = m3dc1_mesh::instance()->num_own_ent[0];
 
   int value_type[] = {scalar_type,scalar_type};
 
   num_dofs=6;
   if (num_plane>1) num_dofs=12;
-  num_dofs_node = num_values * num_dofs;
+  dofs_per_nd = num_values * num_dofs;
 
   m3dc1_field_create (&b_field, "b_field", &num_values, value_type, &num_dofs);
   m3dc1_field_create (&c_field, "c_field", &num_values, value_type, &num_dofs);
   m3dc1_field_create (&x_field, "x_field", &num_values, value_type, &num_dofs);
   m3dc1_field_printcompnorm(&b_field, "b_field init info");
-
 
   if(!PCU_Comm_Self()) cout<<"* set b field ..."<<endl;
   // fill b field
@@ -210,25 +199,25 @@ int main( int argc, char** argv)
     m3dc1_node_getcoord(&inode, xyz);
     // 2D mesh, z component =0
     if(num_plane==1) assert(AlmostEqualDoubles(xyz[2], 0, 1e-6, 1e-6));
-    vector<double> dofs(num_dofs_node*(1+scalar_type));
-    for(int i=0; i<num_dofs_node*(1+scalar_type); i++)
+    vector<double> dofs(dofs_per_nd*(1+scalar_type));
+    for(int i=0; i<dofs_per_nd*(1+scalar_type); i++)
       dofs.at(i)=xyz[i%3];
-    m3dc1_ent_setdofdata(&vertex_dim, &inode, &b_field, &num_dofs_node, &dofs.at(0));
+    m3dc1_ent_setdofdata(&vrt_dim, &inode, &b_field, &dofs_per_nd, &dofs.at(0));
   }
   double fac[2] = {2.0, 2.0};
   m3dc1_field_mult(&b_field, fac, value_type);
 
   m3dc1_field_printcompnorm(&b_field, "b_field after set info");
-  fac[0] = 0.5;   fac[1] = 0.5; 
+  fac[0] = 0.5;   fac[1] = 0.5;
   m3dc1_field_mult(&b_field, fac, value_type);
   m3dc1_field_printcompnorm(&b_field, "b_field after set info");
 
 //  PetscMemoryGetCurrentUsage(&mem);
 //  PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
 //  PetscSynchronizedFlush(MPI_COMM_WORLD, NULL);
-  if(!PCU_Comm_Self()) cout<<"* set matrix ..."<<endl; 
+  if(!PCU_Comm_Self()) cout<<"* set matrix ..."<<endl;
   t1 = MPI_Wtime();
-  // fill matrix 
+  // fill matrix
   // the matrix is diagnal dominant; thus should be positive definite
   int matrix_mult=1, matrix_solve=2;
   int matrix_mult_type = M3DC1_MULTIPLY;
@@ -248,7 +237,7 @@ int main( int argc, char** argv)
 
   if(!PCU_Comm_Self())
     cout<<"* time: fill matrix "<<t2-t1<<" assemble "<<t3-t2<<" mult "<<t4-t3
-        <<" solve "<<t5-t4<<" reset "<<t7-t6<<endl; 
+        <<" solve "<<t5-t4<<" reset "<<t7-t6<<endl;
 
   test_matrix(matrix_mult, matrix_solve);
 
@@ -269,74 +258,61 @@ int main( int argc, char** argv)
   return M3DC1_SUCCESS;
 }
 
-void test_matrix(int matrix_mult, int matrix_solve)
+void test_matrix(int mat_mlt, int mat_slv)
 {
-  int elem_dim= m3dc1_mesh::instance()->mesh->getDimension();
-
-  double diag_value=2.0, off_diag=1.0;
-  int node_elm = 3;
-  if (elem_dim==3) node_elm=6;
-
-  int num_dofs_element = num_dofs_node*node_elm;
-  vector<double> block(num_dofs_element*num_dofs_element*(1+scalar_type),0);
-  for(int i=0; i<num_dofs_element; i++)
+  int elt_dim = m3dc1_mesh::instance()->mesh->getDimension();
+  assert(elt_dim == 3 || elt_dim == 2);
+  int nds_per_elt = (elt_dim == 3 ? 6 : 3);
+  int dofs_per_elt = dofs_per_nd * nds_per_elt;
+  std::vector<double> elt_diag_blk(dofs_per_elt * dofs_per_elt * (1+scalar_type),0);
+  std::vector<double> elt_off_blk(dofs_per_elt * dofs_per_elt * (1+scalar_type),0);
+  for(int ii = 0; ii < dofs_per_elt; ii++)
   {
-    for(int j=0; j<num_dofs_element; j++)
+    for(int jj = 0; jj < dofs_per_elt; jj++)
     {
-      double val= (i==j? diag_value: off_diag);
-      if(!scalar_type) block.at(i*num_dofs_element+j)=val;
-      else
+      double diag_val = (ii == jj ? 2.0 : 1.0); // 2 on diag, 1 else
+      double off_val = diag_val / 2;
+      if(!scalar_type)
       {
-        block.at(2*i*num_dofs_element+2*j)=val;
-        block.at(2*i*num_dofs_element+2*j+1)=off_diag;
+        elt_diag_blk[ii*dofs_per_elt + jj] = diag_val;
+        elt_off_blk[ii*dofs_per_elt + jj] = off_val;
+      }
+      else
+      {//
+        elt_diag_blk[2 * (ii * dofs_per_elt + jj)] = diag_val;
+        elt_diag_blk[2 * (ii * dofs_per_elt + jj) + 1] = 1.0;
+        elt_off_blk[2 * (ii * dofs_per_elt + jj)] = off_val;
+        elt_off_blk[2 * (ii * dofs_per_elt + jj) + 1] = 0.5;
       }
     }
   }
-
-  
-  int num_elem = m3dc1_mesh::instance()->mesh->count(elem_dim);
-  int num_vertex = m3dc1_mesh::instance()->mesh->count(0);
-  int num_own_vertex = m3dc1_mesh::instance()->num_own_ent[0];
-
-  for(int ielm = 0; ielm < num_elem; ielm++)
+  int num_lcl_elt = m3dc1_mesh::instance()->mesh->count(elt_dim);
+  int num_lcl_vrt = m3dc1_mesh::instance()->mesh->count(0);
+  //int num_own_vrt = m3dc1_mesh::instance()->num_own_ent[0];
+  //int * nds = new int[nds_per_elt];
+  for(int elt_id = 0; elt_id < num_lcl_elt; elt_id++)
   {
-    int nodes[256];
-    int size_alloc=256;
-    int num_nodes=-1;
-    m3dc1_ent_getadj (&elem_dim, &ielm, &vertex_dim, nodes, &size_alloc, &num_nodes);
-    for(int rowVar=0; rowVar< num_values; rowVar++)
-    {
-      for(int colVar=0; colVar< num_values; colVar++)
+    for(int nd1 = 0; nd1 < nds_per_elt; ++nd1)
+      for(int nd2 = 0; nd2 < nds_per_elt; ++nd2)
       {
-         vector<double> block_tmp = block;
-         if(rowVar!=colVar)
-         {
-           for(int i=0; i<block_tmp.size(); i++) block_tmp.at(i)*=0.5/num_values;
-         }
-         m3dc1_matrix_insertblock(&matrix_solve, &ielm, &rowVar, &colVar, &block_tmp[0]);
-         m3dc1_matrix_insertblock(&matrix_mult, &ielm, &rowVar, &colVar, &block_tmp[0]);
+        std::vector<double> & blk = (nd1 == nd2 ? elt_diag_blk : elt_off_blk);
+        m3dc1_matrix_insertnodeblocks(&mat_slv, &elt_dim, &elt_id, &nd1, &nd2, &blk[0]);
+        m3dc1_matrix_insertnodeblocks(&mat_mlt, &elt_dim, &elt_id, &nd1, &nd2, &blk[0]);
       }
-    }
   }
   t2 = MPI_Wtime();
-  //PetscMemoryGetCurrentUsage(&mem);
-  //PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
-  //PetscSynchronizedFlush(MPI_COMM_WORLD,NULL);
-  if(!PCU_Comm_Self()) cout<<"* assemble matrix ..."<<endl;
-  m3dc1_matrix_assemble(&matrix_mult);
-  m3dc1_matrix_assemble(&matrix_solve); 
-  //m3dc1_matrix_write(&matrix_mult, "matrixMult.m");
-  //m3dc1_matrix_write(&matrix_solve, "matrixSolve.m");
+  if(!PCU_Comm_Self())
+    std::cout << "* assemble matrix ..." << std::endl;
+  m3dc1_matrix_assemble(&mat_mlt);
+  m3dc1_matrix_assemble(&mat_slv);
+  m3dc1_matrix_write(&mat_mlt, "mat_mlt.m");
+  m3dc1_matrix_write(&mat_slv, "mat_slv.m");
   // print out memory usage from petsc
-  //PetscMemoryGetCurrentUsage(&mem);
-  //PetscSynchronizedPrintf(MPI_COMM_WORLD, "process %d mem usage %f M \n ",PCU_Comm_Self(), mem/1e6);
-  //PetscSynchronizedFlush(MPI_COMM_WORLD, NULL);
   t3 = MPI_Wtime();
   // calculate c field
-  //m3dc1_field_print(&b_field);
-
-  if(!PCU_Comm_Self()) cout<<"* do matrix-vector multiply ..."<<endl;
-  m3dc1_matrix_multiply(&matrix_mult, &b_field, &c_field); 
+  if(!PCU_Comm_Self())
+    std::cout << "* do matrix-vector multiply ..." << std::endl;
+  m3dc1_matrix_multiply(&mat_mlt, &b_field, &c_field);
   //m3dc1_field_print(&c_field);
   t4 = MPI_Wtime();
   // let's test field operations here
@@ -345,34 +321,35 @@ void test_matrix(int matrix_mult, int matrix_solve)
   int realtype=0;
   m3dc1_field_mult(&x_field, val, &realtype);
   m3dc1_field_add(&x_field, &c_field);
-  for(int i=0; i<num_vertex; i++)
+  for(int ii = 0; ii < num_lcl_vrt; ii++)
   {
-    vector<double> dofs1(num_dofs_node*(1+scalar_type)), dofs2(num_dofs_node*(1+scalar_type));
+    std::vector<double> dofs1(dofs_per_nd*(1+scalar_type));
+    std::vector<double> dofs2(dofs_per_nd*(1+scalar_type));
     int num_dofs_t;
-    m3dc1_ent_getdofdata(&vertex_dim, &i, &c_field, &num_dofs_t, &dofs1.at(0));
-    assert(num_dofs_t==num_dofs_node);
-    m3dc1_ent_getdofdata(&vertex_dim, &i, &x_field, &num_dofs_t, &dofs2.at(0));
-    assert(num_dofs_t==num_dofs_node);
-    for(int i=0; i<num_dofs_node*((1+scalar_type)); i++)
-      assert(AlmostEqualDoubles(dofs2.at(i), (val[0]+1)*dofs1.at(i), 1e-6, 1e-6));
+    m3dc1_ent_getdofdata(&vrt_dim, &ii, &c_field, &num_dofs_t, &dofs1.at(0));
+    assert(num_dofs_t==dofs_per_nd);
+    m3dc1_ent_getdofdata(&vrt_dim, &ii, &x_field, &num_dofs_t, &dofs2.at(0));
+    assert(num_dofs_t==dofs_per_nd);
+    for(int jj = 0; jj < dofs_per_nd*((1+scalar_type)); jj++)
+      assert(AlmostEqualDoubles(dofs2.at(jj), (val[0]+1)*dofs1.at(jj), 1e-6, 1e-6));
   }
   // copy c field to x field
   m3dc1_field_copy(&x_field, &c_field);
   //m3dc1_field_print(&x_field);
   if(!PCU_Comm_Self()) cout<<"* solve ..."<<endl;
   // solve Ax=c
-  int solver_type = 0;    // PETSc direct solver
-  double solver_tol = 1e-6;
-  m3dc1_matrix_solve(&matrix_solve, &x_field); //, &solver_type, &solver_tol);
+  //int solver_type = 0;    // PETSc direct solver
+  //double solver_tol = 1e-6;
+  m3dc1_matrix_solve(&mat_slv, &x_field); //, &solver_type, &solver_tol);
   //m3dc1_field_print(&x_field);
   t5 = MPI_Wtime();
   // verify x=b
-  for(int inode=0; inode<num_vertex; inode++)
+  for(int vrt = 0; vrt < num_lcl_vrt; vrt++)
   {
-    vector<double> dofs_x(num_dofs_node*(1+scalar_type)), dofs_b(num_dofs_node*(1+scalar_type));
-    m3dc1_ent_getdofdata(&vertex_dim, &inode, &b_field, &num_dofs_node, &dofs_b.at(0));
-    m3dc1_ent_getdofdata(&vertex_dim, &inode, &x_field, &num_dofs_node, &dofs_x.at(0));
-    for(int idof=0; idof<num_dofs_node*(1+scalar_type); idof++)
+    vector<double> dofs_x(dofs_per_nd*(1+scalar_type)), dofs_b(dofs_per_nd*(1+scalar_type));
+    m3dc1_ent_getdofdata(&vrt_dim, &vrt, &b_field, &dofs_per_nd, &dofs_b.at(0));
+    m3dc1_ent_getdofdata(&vrt_dim, &vrt, &x_field, &dofs_per_nd, &dofs_x.at(0));
+    for(int idof=0; idof<dofs_per_nd*(1+scalar_type); idof++)
       assert(AlmostEqualDoubles(dofs_b.at(idof),dofs_x.at(idof), 1e-3, 1e-3));
   }
 }
@@ -380,19 +357,18 @@ void test_matrix(int matrix_mult, int matrix_solve)
 bool AlmostEqualDoubles(double A, double B,
             double maxDiff, double maxRelDiff)
 {
-// http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/ 
+// http://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
     // Check if the numbers are really close -- needed
     // when comparing numbers near zero.
     double diff = fabs(A - B);
     if (diff <= maxDiff)
         return true;
- 
+
     A = fabs(A);
     B = fabs(B);
     double largest = (B > A) ? B : A;
- 
+
     if (diff <= largest * maxRelDiff)
         return true;
     return false;
 }
-

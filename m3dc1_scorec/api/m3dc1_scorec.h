@@ -42,7 +42,7 @@ enum m3dc1_matrix_status { /*0*/ M3DC1_NOT_FIXED=0,
 
 bool m3dc1_double_isequal(double A, double B);
 
-void m3dc1_scorec_init();
+void m3dc1_scorec_init(int * argc, char * argv[]);
 void m3dc1_scorec_finalize();
 
 /** plane functions */
@@ -148,7 +148,7 @@ void m3dc1_field_load (FieldID* /*out*/ fid, const char* /*in*/ filename);
 void m3dc1_field_write(FieldID* fid, const char* filename, int* start_index);
 void m3dc1_field_print(FieldID* fid);
 void m3dc1_field_sum_plane (FieldID* /* in */ fid);
-void m3dc1_field_printcompnorm(FieldID* /* in */ fid, char* info);
+void m3dc1_field_printcompnorm(FieldID* /* in */ fid, const char * info);
 void m3dc1_field_max (FieldID* fid, double * max_val, double * min_val);
 
 void m3dc1_field_verify();
@@ -172,7 +172,15 @@ void m3dc1_matrix_reset(int* matrix_id);
 void m3dc1_matrix_insert(int* matrix_id, int* row, int* column, int* scalar_type, double* val);
 void m3dc1_matrix_add(int* matrix_id, int* row, int* column, int* scalar_type, double* val); //globalinsertval_
 
-void m3dc1_matrix_insertblock(int* matrix_id, int * ielm, int* rowVarIdx, int * columnVarIdx, double * values);
+// insert all blocks related to the nodes effecting a given mesh entity of dimension ent_dim
+//  for region elements this will insert all values into the matrix for all nodes effecting the element
+//  this assembles an entire elemental matrix into the global matrix at once
+void m3dc1_matrix_insertentblocks(int * mid, int ent_dim, int * eid, double * vals);
+// insert all blocks related to a specific intersection of nodes from the specified element of
+//  dimension ent_dim. for region elements this will insert the matrix blocks from rows associated
+//  with node nd1 and columns from rows associated with node nd2.
+//  this assembles specific sections of an elemental matrix into the global matrix
+void m3dc1_matrix_insertnodeblocks(int * mid, int * ent_dim, int * eid, int * nd1, int * nd2, double * vals);
 void m3dc1_matrix_setbc(int* matrix_id, int* row);
 void m3dc1_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *columns, double * values);
 
@@ -182,7 +190,7 @@ void m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputv
 
 // for performance test
 void m3dc1_matrix_setassembleoption(int * op);
-void m3dc1_matrix_write(int* matrix_id, const char* file_name, int* start_index);
+  void m3dc1_matrix_write(int * matrix_id, const char * file_name);
 void m3dc1_matrix_print(int* matrix_id);
 #endif // #ifdef M3DC1_PETSC
 
