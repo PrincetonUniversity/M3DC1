@@ -172,9 +172,9 @@ int main(int argc, char * argv[])
     m3dc1_field_delete(&field_13);
   }
 
-  int num_layer=2;
-  m3dc1_ghost_create(&num_layer);
-  pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
+  //int num_layer=2;
+  //m3dc1_ghost_create(&num_layer);
+  //pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
 
    // set/get field dof values
   int num_vertex = m3dc1_mesh::instance()->mesh->count(0);
@@ -245,8 +245,8 @@ int main(int argc, char * argv[])
   m3dc1_matrix_delete(&matrix_solve);
 
   // test ghosting
-  m3dc1_ghost_delete();
-  pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
+  // m3dc1_ghost_delete();
+  //pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
 
   m3dc1_field_delete(&x_field);
   m3dc1_field_delete(&b_field);

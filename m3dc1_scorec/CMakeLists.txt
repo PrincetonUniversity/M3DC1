@@ -65,11 +65,13 @@ set(SOURCES
   src/m3dc1_field.cc
   src/m3dc1_ls.cc
   src/m3dc1_mesh.cc
+  src/m3dc1_numbering.cc
   src/m3dc1_sizeField.cc
   src/PolyNomial.cc
   src/ReducedQuinticImplicit.cc
   src/CMODGeoExpression.cc
   src/m3dc1_matrix.cc
+  src/m3dc1_matrix_allocate.cc
   src/m3dc1_model.cc
   src/m3dc1_slnTransfer.cc
   src/ReducedQuinticExplicit.cc
@@ -86,11 +88,13 @@ set(HEADERS
   include/m3dc1_ls.h
   include/m3dc1_mesh.h
   include/m3dc1_model.h
+  src/m3dc1_numbering.h
   include/m3dc1_slnTransfer.h
   include/PolyNomial.h
   include/ReducedQuinticImplicit.h
   include/CMODGeoExpression.h  
   include/m3dc1_matrix.h
+  src/m3dc1_matrix_allocate.h
   include/m3dc1_sizeField.h
   include/ReducedQuinticExplicit.h
   include/slntransferUtil.h

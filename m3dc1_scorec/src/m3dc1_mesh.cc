@@ -1597,9 +1597,9 @@ void m3dc1_mesh::set_node_adj_tag()
     if (!mesh->isShared(e)) continue;
     // first pass msg size to owner
     int own_partid = get_ent_ownpartid(mesh, e);
-    MeshEntity* own_copy = get_ent_owncopy(mesh, e);
-
     if (own_partid==PCU_Comm_Self()) continue;
+
+    MeshEntity* own_copy = get_ent_owncopy(mesh, e);
     PCU_COMM_PACK(own_partid, own_copy);
     PCU_Comm_Pack(own_partid, &num_adj,sizeof(int));
   }
@@ -1610,7 +1610,7 @@ void m3dc1_mesh::set_node_adj_tag()
   std::map<apf::MeshEntity*, std::map<int, int> > count_map;
   while (PCU_Comm_Listen())
   {
-    while ( ! PCU_Comm_Unpacked())
+    while (!PCU_Comm_Unpacked())
     {
       PCU_COMM_UNPACK(e);
       PCU_Comm_Unpack(&value,sizeof(int));
@@ -1618,32 +1618,31 @@ void m3dc1_mesh::set_node_adj_tag()
     }
   }
 
-  // pass entities to ownner
+  // pass entities to owner
   std::map<apf::MeshEntity*, std::set<entMsg, classcomp> > count_map2;
   it = mesh->begin(0);
   PCU_Comm_Begin();
   while ((e = mesh->iterate(it)))
   {
-    // pass entities to ownner
-
+    // pass entities to owner
     std::vector<entMsg> msgs;
     Adjacent elements;
     getBridgeAdjacent(mesh, e, brgType, 0, elements);
 
     MeshEntity* ownerEnt=get_ent_owncopy(mesh, e);
     int own_partid = get_ent_ownpartid(mesh, e);
-    for (int i=0; i<elements.getSize(); i++)
+    for(int i=0; i<elements.getSize(); i++)
     {
       MeshEntity* ownerEnt2=get_ent_owncopy(mesh, elements[i]);
       int owner=get_ent_ownpartid(mesh, elements[i]);
       msgs.push_back(entMsg(owner, ownerEnt2));
-      if (own_partid==PCU_Comm_Self())
+      if(own_partid==PCU_Comm_Self())
       {
         count_map2[e].insert(*msgs.rbegin());
       }
     }
 
-    if (own_partid!=PCU_Comm_Self())
+    if(own_partid!=PCU_Comm_Self())
     {
       PCU_COMM_PACK(own_partid, ownerEnt);
       PCU_Comm_Pack(own_partid, &msgs.at(0),sizeof(entMsg)*msgs.size());
@@ -1666,85 +1665,60 @@ void m3dc1_mesh::set_node_adj_tag()
     }
   }
 
+  int num_global_adj;
   for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); mit!=count_map2.end(); ++mit)
   {
-    e = mit->first;
-    int num_global_adj = count_map2[e].size();
+    num_global_adj =count_map2[mit->first].size();
+    // only owner entities have "num_global_adj_node_tag"
     mesh->setIntTag(mit->first, num_global_adj_node_tag, &num_global_adj);
+    assert(is_ent_original(mesh, mit->first));
   }
-}
-
-
-// **********************************************
-//void m3dc1_mesh::set_node_adj_tag()
-// **********************************************
-/*
-{
-  int num_adj_node, value, own_partid;
-  int brgType = (num_local_ent[3])?3:2;
-
-  MeshEntity* e;
-  MeshEntity* own_copy;
-
-  std::map<MeshEntity*, std::set<MeshEntity*> > copy_map;
-
+  // synchronize the tag "num_global_adj_node_tag"
+  it = mesh->begin(0);
   PCU_Comm_Begin();
-  MeshIterator* it = mesh->begin(0);
   while ((e = mesh->iterate(it)))
   {
-    num_adj_node=0;
-    Adjacent elements;
-    getBridgeAdjacent(mesh, e, brgType, 0, elements);
-    int num_adj = elements.getSize();
-    MeshEntity** adj_copy=new MeshEntity*[num_adj];
-
-    for (int i=0; i<num_adj; ++i)
-    {
-      if (is_ent_original(mesh, elements[i])) 
-         ++num_adj_node;         
-      adj_copy[i] = get_ent_owncopy(mesh, elements[i]);
-      if (is_ent_original(mesh, e)) 
-        copy_map[e].insert(adj_copy[i]);  // copy_map[e] @ owner_part contains owner copies of adj entities
-    }
-    mesh->setIntTag(e, num_own_adj_node_tag, &num_adj_node);
-
     if (!is_ent_original(mesh, e))
+      continue;
+    mesh->getIntTag(e, num_global_adj_node_tag, &num_global_adj);
+
+    if (mesh->isShared(e))
     {
-      own_partid = get_ent_ownpartid(mesh, e);
-      own_copy = get_ent_owncopy(mesh, e);
-      PCU_COMM_PACK(own_partid, own_copy);
-      PCU_Comm_Pack(own_partid, &num_adj, sizeof(int));
-      PCU_Comm_Pack(own_partid, &adj_copy[0], sizeof(MeshEntity*)*num_adj);
+      Copies remotes;
+      mesh->getRemotes(e, remotes);
+      APF_ITERATE(Copies, remotes, rit)
+      {
+        PCU_COMM_PACK(rit->first, rit->second);
+        PCU_Comm_Pack(rit->first, &num_global_adj,sizeof(int));
+      }
     }
-    delete [] adj_copy;
+    if (mesh->isGhosted(e))
+    {
+      apf::Copies ghosts;
+      mesh->getGhosts(e, ghosts);
+      APF_ITERATE(apf::Copies, ghosts, git)
+      {
+        PCU_COMM_PACK(git->first,git->second);
+        PCU_Comm_Pack(git->first,&num_global_adj,sizeof(int));
+      }
+    }
   }
   mesh->end(it);
 
   PCU_Comm_Send();
+
+  apf::MeshEntity* r; 
+  int r_int;
   while (PCU_Comm_Listen())
   {
     while (!PCU_Comm_Unpacked())
     {
-      int num_adj;
-      MeshEntity* own_e;
-      PCU_COMM_UNPACK(own_e);
-      PCU_Comm_Unpack(&num_adj,sizeof(int));
-      MeshEntity** adj_ent = new MeshEntity*[num_adj];
-      PCU_Comm_Unpack(&adj_ent[0],sizeof(MeshEntity*)*num_adj);
-      for (int i=0; i<num_adj; i++)
-        copy_map[own_e].insert(adj_ent[i]); 
-      delete [] adj_ent;
+      PCU_COMM_UNPACK(r);
+      PCU_Comm_Unpack(&r_int, sizeof(int));
+      mesh->setIntTag(r, num_global_adj_node_tag, &r_int);
     }
   }
-
-  int num_global_adj; 
-  for (std::map<MeshEntity*, std::set<MeshEntity*> >::iterator mit=copy_map.begin(); mit!=copy_map.end(); ++mit)
-  { 
-    num_global_adj = copy_map[mit->first].size();
-    mesh->setIntTag(mit->first, num_global_adj_node_tag, &num_global_adj);
-  }
 }
-*/
 
 // *********************************************************
 void m3dc1_mesh::print(int LINE)
