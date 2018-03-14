@@ -2129,8 +2129,8 @@ void m3dc1_ent_getglobaldofid(int * /* in */ ent_dim,
 //*******************************************************
 {
   m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
-  get_ent_globaldofid(mf, get_ent_globalid(m3dc1_mesh::instance()->mesh, e), dof_id, dof_cnt);
+  // apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  get_ent_globaldofid(mf, *ent_id, dof_id, dof_cnt);
 }
 
 //*******************************************************
