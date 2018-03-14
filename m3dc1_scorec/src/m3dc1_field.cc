@@ -57,34 +57,30 @@ m3dc1_field::~m3dc1_field()
   fld = NULL;
 }
 
-void get_ent_localdofid(m3dc1_field* mf, int ent_lid, int* dof_id, int* dof_cnt)
+void get_ent_localdofid(m3dc1_field * mf, int ent_lid, int* dof_id, int* dof_cnt)
 {
-  int num_value = mf->get_num_value();
-  int dof_per_value = mf->get_dof_per_value();
-  int num_dof = num_value*dof_per_value;
+  int blks_per_nd = mf->get_num_value();
+  int dofs_per_blk = mf->get_dof_per_value();
+  int dofs_per_nd = dofs_per_blk * blks_per_nd;
   int num_local_node = m3dc1_mesh::instance()->mesh->count(0);
-
-  int i = 0;
-
-  for (int nv=0; nv<num_value; ++nv)
-    for (int nd=0; nd<dof_per_value; ++nd)
-      dof_id[i++] = nv*num_local_node*dof_per_value+ent_lid*dof_per_value+nd;
-  *dof_cnt=num_dof;
+  int ii = 0;
+  for (int blk = 0; blk < blks_per_nd; ++blk)
+    for (int dof = 0; dof < dofs_per_blk; ++dof)
+      dof_id[ii++] = ((ent_lid + (blk * num_local_node)) * dofs_per_blk) + dof;
+  *dof_cnt=dofs_per_nd;
 }
 
-void get_ent_globaldofid(m3dc1_field* mf, int ent_gid, int* dof_id, int* dof_cnt)
+// this assumes the entity is a vert
+void get_ent_globaldofid(m3dc1_field * mf, int ent_lid, int* dof_id, int* dof_cnt)
 {
-  int num_value = mf->get_num_value();
-  int dof_per_value = mf->get_dof_per_value();
-  int num_dof = num_value*dof_per_value;
-  int num_global_node = m3dc1_mesh::instance()->num_global_ent[0];
-
-  int i=0;
-
-  for (int nv=0; nv<num_value; ++nv)
-    for (int nd=0; nd<dof_per_value; ++nd)
-      dof_id[i++] = nv*num_global_node*dof_per_value+ent_gid*dof_per_value+nd;
-  *dof_cnt=num_dof;
+  //assumes only verts hold nodes/dofs
+  apf::Mesh2 * msh = static_cast<apf::Mesh2*>(apf::getMesh(mf->get_field()));
+  apf::MeshEntity * vrt = apf::getMdsEntity(msh,0,ent_lid);
+  apf::Field * fld = mf->get_field();
+  apf::Numbering * num = mf->get_global_numbering();
+  *dof_cnt = apf::countComponents(fld);
+  for(int cmp = 0; cmp < *dof_cnt; ++cmp)
+    dof_id[cmp] = apf::getNumber(num,vrt,0,cmp);
 }
 
 
