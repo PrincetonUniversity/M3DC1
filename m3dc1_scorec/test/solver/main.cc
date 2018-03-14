@@ -15,6 +15,7 @@
 #include <parma.h>
 #include <cassert>
 #include <iostream>
+#include <stdlib.h>
 using namespace std;
 //static char help[] = "testing solver functions; \n first do mat-vec product A*b=c; solve Ax=c; compare x and b\n\n";
 bool AlmostEqualDoubles(double A, double B, double maxDiff, double maxRelDiff);

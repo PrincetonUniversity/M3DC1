@@ -82,6 +82,9 @@ void m3dc1_scorec_init(int * argc, char ** argv[])
 void m3dc1_scorec_finalize()
 //*******************************************************
 {
+  if (m3dc1_mesh::instance()->mesh->getDimension()==3)
+    m3dc1_ghost_delete();
+
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
   m3dc1_mesh::instance()->clean(); // delete tag, field and internal data
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
@@ -389,6 +392,30 @@ void m3dc1_mesh_load(char* mesh_file)
   }
 }
 
+Ghosting* getGhostingPlan(apf::Mesh2* m)
+{
+  int mdim=pumi_mesh_getDim(m);
+  Ghosting* plan = new Ghosting(m, mdim);
+
+  apf::MeshIterator* it = m->begin(mdim);
+  apf::MeshEntity* e;
+  int count=0;
+  int pid=m3dc1_model::instance()->prev_plane_partid;
+  while ((e = m->iterate(it)))
+    plan->send(e, pid);
+  m->end(it);
+  return plan;
+}
+
+void create_backward_plane_ghosting(apf::Mesh2* m)
+{
+  Ghosting* ghosting_plan = getGhostingPlan(m);
+  // ghosting_plan destroyed after ghosting is complete
+  pumi_ghost_create(m, ghosting_plan);
+  for (int i=0; i<m->countFields();++i)
+    synchronize_field(m->getField(i)); // synch fields based on m3dc1's ownership rule
+}
+
 //*******************************************************
 void m3dc1_mesh_build3d (int* num_field, int* field_id,
                          int* num_dofs_per_value)
@@ -423,7 +450,17 @@ void m3dc1_mesh_build3d (int* num_field, int* field_id,
 
   // update global ID
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
-  compute_globalid(m3dc1_mesh::instance()->mesh, 3);
+  compute_globalid(m3dc1_mesh::instance()->mesh, 3);  
+
+  // added as per Bill's request -- 03/14/18
+  create_backward_plane_ghosting(m3dc1_mesh::instance()->mesh);
+#ifdef DEBUG
+  int nlocal = m3dc1_mesh::instance()->mesh->count(3);
+  int nghost = nlocal - m3dc1_mesh::instance()->num_local_ent[3];
+  if (!pumi_rank()) std::cout<<"# elements "<<nlocal<<", #ghost elements "<<nghost<<"\n";
+  printStats(m3dc1_mesh::instance()->mesh);
+#endif
+
 }
 
 /* ghosting functions */
@@ -479,7 +516,7 @@ void m3dc1_mesh_getnumghostent (int* /* in*/ ent_dim, int* /* out */ num_ent)
   if (*ent_dim<0 || *ent_dim > 3)
     return;
   *num_ent = m3dc1_mesh::instance()->mesh->count(*ent_dim) -
-    m3dc1_mesh::instance()->num_local_ent[*ent_dim];
+  m3dc1_mesh::instance()->num_local_ent[*ent_dim];
 }
 
 //*******************************************************

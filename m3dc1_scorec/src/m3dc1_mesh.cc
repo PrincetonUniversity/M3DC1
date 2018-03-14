@@ -877,7 +877,6 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
 void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 // *********************************************************
 {
-
   if (!PCU_Comm_Self())
     std::cout<<"\n*** SWITCHED MESH TO 3D ***\n\n";
 
@@ -1172,7 +1171,7 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
       wedge_faces[0]=remote_faces[local_id];
     }
 
-    /**create new region between two planes*/
+    /**create new region between the local and forward plane*/
     geom_ent = (gmi_ent*)(mesh->toModel(e));
     new_geom_ent = m3dc1_model::instance()->geomEntBtwPlane(geom_ent);
 //    std::cout<<"[M3D-C1 INFO] (p"<<PCU_Comm_Self()<<") create PRISM with face "<<get_ent_localid(mesh, wedge_faces[0])<<"(t="<< mesh->getType(wedge_faces[0])<<"), "<<get_ent_localid(mesh, wedge_faces[1])<<"(t="<< mesh->getType(wedge_faces[1])<<"), "<<get_ent_localid(mesh, wedge_faces[2])<<"(t="<< mesh->getType(wedge_faces[2])<<"), "<<get_ent_localid(mesh, wedge_faces[3])<<"(t="<< mesh->getType(wedge_faces[3])<<"), "<<get_ent_localid(mesh, wedge_faces[4])<<"(t="<< mesh->getType(wedge_faces[4])<<") (#face="<<mesh->count(2)<<")"<<std::endl;
@@ -1343,6 +1342,7 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
   delete [] remote_vertices;
   delete [] remote_edges;
   delete [] remote_faces;
+
   set_node_adj_tag();
 
 #ifdef DEBUG
