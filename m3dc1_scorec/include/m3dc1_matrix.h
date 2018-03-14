@@ -46,7 +46,7 @@ public:
   void write(const char * fn);
   virtual void reset_values() = 0;
   virtual int get_type() const = 0;
-  virtual int assemble() = 0;
+  void assemble();
   int printInfo();
   int get_block_size() { return blk_sz; }
   virtual void add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cls, double * vals);
@@ -70,7 +70,6 @@ public:
   int multiply(FieldID in_field, FieldID out_field);
   void reset_values() { MatZeroEntries(A);   set_status(M3DC1_NOT_FIXED); };
   virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
-  virtual int assemble();
 private:
   bool localMat;
 };
@@ -86,7 +85,6 @@ public:
   int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
   void reset_values();
   virtual int get_type() const {return 1; }
-  virtual int assemble();
   int iterNum;
 private:
   int setUpRemoteAStruct();
