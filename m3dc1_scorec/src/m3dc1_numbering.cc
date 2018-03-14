@@ -89,6 +89,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
   apf::SetNumberingOffset(num,lcl_offset);
   apf::synchronize(num);
+#ifdef DEBUG
   for(int dd = 0; dd < dim; ++dd)
   {
     if(shp->hasNodesIn(dd))
@@ -105,4 +106,5 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       msh->end(it);
     }
   }
+#endif
 }
