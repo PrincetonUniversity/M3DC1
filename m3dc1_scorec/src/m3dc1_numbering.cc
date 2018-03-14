@@ -3,6 +3,7 @@
 #include "apf.h"
 #include "apfMesh.h"
 #include "apfShape.h"
+#include "PCU.h"
 #include <cassert>
 extern MPI_Comm M3DC1_COMM_WORLD;
 void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
@@ -26,7 +27,8 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(is_ent_original(msh,ent))
+        // using PUMI default ownership is OK for numbering purpose
+        if (msh->getOwner(ent)==PCU_Comm_Self())
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -51,7 +53,8 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(is_ent_original(msh,ent))
+        // using PUMI default ownership is OK for numbering purpose
+        if (msh->getOwner(ent)==PCU_Comm_Self())
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
