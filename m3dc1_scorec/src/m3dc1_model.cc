@@ -98,7 +98,7 @@ m3dc1_model::~m3dc1_model()
     M3DC1::Expression** ptr=(M3DC1::Expression**)data2Clean.at(i);
     delete ptr[0];
     delete ptr[1];
-    delete []ptr;
+    delete [] ptr;
   }
 //  PUMI_Geom_Del(model);
 }
