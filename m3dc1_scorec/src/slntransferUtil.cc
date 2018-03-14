@@ -155,7 +155,7 @@ inline int checkMagnitude (double a)
   return -tol<a&& a<1+tol;
 }
 
-int output_face_data (int * size, double * data, char * vtkfile)
+int output_face_data (int * size, double * data, const char * vtkfile)
 {
   FILE *fp;
 	
@@ -303,4 +303,5 @@ int output_face_data (int * size, double * data, char * vtkfile)
   fprintf(fp,"</VTKFile>");
   fclose(fp);
 #endif
+  return M3DC1_SUCCESS;
 }

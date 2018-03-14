@@ -16,7 +16,7 @@ void evalGeoPara(double vtxcoord[3][2], double origin[2], double para[5],int ord
 // given two points, get a triangle with a=b=c
 // output newv,a,origin, theta
 void getTriangle(double v1[2], double v2[2], double newv[2], double & a, double origin[2], double theta[2]);
-void printmatrix(double* A,int M, int N, char* filename);
+void printmatrix(double* A,int M, int N, const char * filename);
 // if the pt contained by the triangle, return 1; else 0
 //http://en.wikipedia.org/wiki/Barycentric_coordinate_system_(mathematics)
 int containPoint(double vtxcoord[3][2], double pt[2]);
