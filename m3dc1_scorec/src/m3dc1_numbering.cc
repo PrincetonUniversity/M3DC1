@@ -3,8 +3,66 @@
 #include "apf.h"
 #include "apfMesh.h"
 #include "apfShape.h"
-#include "PCU.h"
+#include "apfFieldData.h"
 #include <cassert>
+
+//*******************************************************
+void synchronize_numbering(apf::Numbering* n)
+//*******************************************************
+{
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  apf::MeshEntity* e;
+
+  int num_dof, n = countComponents(f);
+  double* sender_data = new double[n];
+  double* dof_data = new double[n];
+
+  PCU_Comm_Begin();
+
+  apf::MeshIterator* it = m->begin(0);
+  while ((e = m->iterate(it)))
+  {
+    if (!is_ent_original(m,e) || (!m->isShared(e)&&!m->isGhosted(e)))
+      continue;
+
+    getComponents(f, e, 0, dof_data);
+
+    if (m->isShared(e))
+    {
+      apf::Copies remotes;
+      m->getRemotes(e,remotes);
+      APF_ITERATE(apf::Copies,remotes,it)
+      {
+        PCU_COMM_PACK(it->first,it->second);
+        PCU_Comm_Pack(it->first,&(dof_data[0]),n*sizeof(double));
+      }
+    }
+    if (m->isGhosted(e))
+    {
+      apf::Copies ghosts;
+      m->getGhosts(e,ghosts);
+      APF_ITERATE(apf::Copies,ghosts,it)
+      {
+        PCU_COMM_PACK(it->first,it->second);
+        PCU_Comm_Pack(it->first,&(dof_data[0]),n*sizeof(double));
+      }
+    }
+  }
+  m->end(it);
+  PCU_Comm_Send();
+  while (PCU_Comm_Listen())
+    while ( ! PCU_Comm_Unpacked())
+    {
+      apf::MeshEntity* r;
+      PCU_COMM_UNPACK(r);
+      PCU_Comm_Unpack(&(sender_data[0]),n*sizeof(double));
+      // FIXME based on new m3dc1_field
+      setComponents(f, r, 0, sender_data);
+    }
+  delete [] dof_data;
+  delete [] sender_data;
+}
+
 extern MPI_Comm M3DC1_COMM_WORLD;
 void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
 {
@@ -27,8 +85,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        // using PUMI default ownership is OK for numbering purpose
-        if (msh->getOwner(ent)==PCU_Comm_Self())
+        if(is_ent_original(msh,ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -53,8 +110,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        // using PUMI default ownership is OK for numbering purpose
-        if (msh->getOwner(ent)==PCU_Comm_Self())
+        if(is_ent_original(msh,ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -91,7 +147,8 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   // todo : replace MPI_COMM_WORLD WITH MSI_COMM_WORLD when we pull this into msi
   MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
   apf::SetNumberingOffset(num,lcl_offset);
-  apf::synchronize(num);
+//  apf::synchronize(num);
+  synchronizeNumbering(num->getData());
 #ifdef DEBUG
   for(int dd = 0; dd < dim; ++dd)
   {
