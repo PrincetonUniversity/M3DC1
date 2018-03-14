@@ -96,7 +96,7 @@ void test_matrix(int, int);
 
 int main(int argc, char * argv[])
 {
-  m3dc1_scorec_init(&argc,&argv,MPI_COMM_WORLD);
+  m3dc1_scorec_init(&argc,&argv);
   if (argc<4 && !PCU_Comm_Self())
   {
     cout<<"Usage: ./main  model mesh #planes real(0)/complex(1) "<<endl;
@@ -137,31 +137,30 @@ int main(int argc, char * argv[])
       double normal2[] = {0.0,0.0,0.0};
       double curv1 = 0.0;
       double curv2 = 0.0;
-      for(int i=0; i<3; i++)
+      for(int ii = 0; ii < 3; ii++)
       {
         int is_bdy=0;
-        m3dc1_node_isongeombdry(nodes[i], &is_bdy);
+        m3dc1_node_isongeombdry(&nds[ii], &is_bdy);
         if (is_bdy)
         {
-          int geom_class_dim,geom_class_id;
-          m3dc1_ent_getgeomclass (&vrt_dim, nodes+i, &geom_class_dim, &geom_class_id);
-          m3dc1_node_getnormvec(nodes+i, normal1);
-          m3dc1_node_getcurv(nodes+i,&curv1);
-          if (geom_class_dim==0)
-             cout<<"* node classified on geometric vertex with normal "<<normal1[0]<<" "<<normal1[1]<<" curv "<<curv1<<endl;
-
-          m3dc1_node_isongeombdry(nodes+i+3, &is_bdy);
+          int geom_class_dim = -1;
+          int geom_class_id = -1;
+          m3dc1_ent_getgeomclass(&vrt_dim, &nds[ii], &geom_class_dim, &geom_class_id);
+          m3dc1_node_getnormvec(&nds[ii], normal1);
+          m3dc1_node_getcurv(&nds[ii],&curv1);
+          if(geom_class_dim==0)
+            std::cout << "* node classified on geometric vertex with normal " << normal1[0] << " " << normal1[1] << " curv " << curv1 << std::endl;
+          m3dc1_node_isongeombdry(&nds[ii+3], &is_bdy);
           assert(is_bdy);
-          m3dc1_node_getnormvec(nodes+i+3, normal2);
-          m3dc1_node_getcurv(nodes+i+3,&curv2);
-          for(int i=0; i<2; i++)
-            assert(AlmostEqualDoubles(normal1[i], normal2[i], 1e-6, 1e-6));
+          m3dc1_node_getnormvec(&nds[ii+3], normal2);
+          m3dc1_node_getcurv(&nds[ii+3],&curv2);
+          for(int jj = 0; jj < 2; jj++)
+            assert(AlmostEqualDoubles(normal1[jj], normal2[jj], 1e-6, 1e-6));
           assert(AlmostEqualDoubles(curv1,curv2, 1e-6, 1e-6));
         }
       }
     }
   }
-
   // check field I/O
   if (argc>5)
   {
@@ -252,7 +251,6 @@ int main(int argc, char * argv[])
   m3dc1_field_delete(&b_field);
   m3dc1_field_delete(&c_field);
 
-  PetscFinalize();
   m3dc1_scorec_finalize();
   MPI_Finalize();
   return M3DC1_SUCCESS;
@@ -304,9 +302,11 @@ void test_matrix(int mat_mlt, int mat_slv)
   if(!PCU_Comm_Self())
     std::cout << "* assemble matrix ..." << std::endl;
   m3dc1_matrix_assemble(&mat_mlt);
+  MPI_Barrier(MPI_COMM_WORLD);
   m3dc1_matrix_assemble(&mat_slv);
-  m3dc1_matrix_write(&mat_mlt, "mat_mlt.m");
-  m3dc1_matrix_write(&mat_slv, "mat_slv.m");
+  MPI_Barrier(MPI_COMM_WORLD);
+  //m3dc1_matrix_write(&mat_mlt, "mat_mlt.m");
+  //m3dc1_matrix_write(&mat_slv, "mat_slv.m");
   // print out memory usage from petsc
   t3 = MPI_Wtime();
   // calculate c field

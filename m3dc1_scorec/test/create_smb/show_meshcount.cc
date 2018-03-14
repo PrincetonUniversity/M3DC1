@@ -35,8 +35,7 @@ void getConfig(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  MPI_Init(&argc,&argv);
-  m3dc1_scorec_init();
+  m3dc1_scorec_init(&argc,&argv);
 
   getConfig(argc,argv);
 
