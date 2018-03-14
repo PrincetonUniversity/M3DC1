@@ -1,11 +1,11 @@
-/****************************************************************************** 
+/******************************************************************************
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2005-2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
+
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
+
 *******************************************************************************/
 #ifndef EXPRESSION_H
 #define EXPRESSION_H
@@ -18,13 +18,15 @@ a. physical coordinate
 b. first deriviative and normal vector
 c. second deriviative and curvatur
 */
-namespace M3DC1{
+namespace M3DC1
+{
 class Expression
 {
 public:
   virtual double eval(double x) const = 0;
   virtual double evalFirstDeriv(double x) const = 0;
   virtual double evalSecondDeriv(double x) const = 0;
+  virtual ~Expression() {};
 };
 
 void dummyAnalyticExpression(double phi, double dummy, double *xyz, void* userdata);
