@@ -3,67 +3,85 @@
 #include "apf.h"
 #include "apfMesh.h"
 #include "apfShape.h"
-#include "apfFieldData.h"
+#include "PCU.h"
 #include <cassert>
+extern MPI_Comm M3DC1_COMM_WORLD;
 
 //*******************************************************
-void synchronize_numbering(apf::Numbering* n)
+void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num, 
+                           apf::FieldShape * shp, int nv, int ndfs)
 //*******************************************************
 {
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::MeshEntity* e;
-
-  int num_dof, n = countComponents(f);
-  double* sender_data = new double[n];
-  double* dof_data = new double[n];
+  apf::MeshEntity* ent;
+  int nnbr=nv*ndfs;
+  int* nbr = new int[nnbr];
+  int dim = msh->getDimension();
+  apf::MeshIterator * it = NULL;
 
   PCU_Comm_Begin();
 
-  apf::MeshIterator* it = m->begin(0);
-  while ((e = m->iterate(it)))
+  for(int dd = 0; dd < dim; ++dd)
   {
-    if (!is_ent_original(m,e) || (!m->isShared(e)&&!m->isGhosted(e)))
-      continue;
-
-    getComponents(f, e, 0, dof_data);
-
-    if (m->isShared(e))
+    if (shp->hasNodesIn(dd))
     {
-      apf::Copies remotes;
-      m->getRemotes(e,remotes);
-      APF_ITERATE(apf::Copies,remotes,it)
+      it = msh->begin(dd);
+      while((ent = msh->iterate(it)))
       {
-        PCU_COMM_PACK(it->first,it->second);
-        PCU_Comm_Pack(it->first,&(dof_data[0]),n*sizeof(double));
-      }
-    }
-    if (m->isGhosted(e))
-    {
-      apf::Copies ghosts;
-      m->getGhosts(e,ghosts);
-      APF_ITERATE(apf::Copies,ghosts,it)
-      {
-        PCU_COMM_PACK(it->first,it->second);
-        PCU_Comm_Pack(it->first,&(dof_data[0]),n*sizeof(double));
-      }
-    }
-  }
-  m->end(it);
+        if (!is_ent_original(msh,ent)) continue;
+
+        int tp = msh->getType(ent);
+        int nds = shp->countNodesOn(tp);
+
+        for (int nd = 0; nd < nds; ++nd)
+        {
+          for (int cmp = 0; cmp < nv*ndfs; ++cmp)
+            nbr[cmp]=apf::getNumber(num,ent,nd,cmp);
+        }
+        if (msh->isShared(ent))
+        {
+          apf::Copies remotes;
+          msh->getRemotes(ent,remotes);
+          APF_ITERATE(apf::Copies,remotes,rit)
+          {
+            PCU_COMM_PACK(rit->first,rit->second);
+            PCU_Comm_Pack(rit->first,&(nbr[0]), nnbr*sizeof(int));
+          }
+        }
+        if (msh->isGhosted(ent))
+        {
+          apf::Copies ghosts;
+          msh->getGhosts(ent,ghosts);
+          APF_ITERATE(apf::Copies,ghosts,git)
+          {
+            PCU_COMM_PACK(git->first,git->second);
+            PCU_Comm_Pack(git->first,&(nbr[0]),nnbr*sizeof(int));
+          }
+        }
+      } // while
+      msh->end(it);
+    } // if
+  } // for 
+  delete [] nbr;
+
   PCU_Comm_Send();
+
   while (PCU_Comm_Listen())
-    while ( ! PCU_Comm_Unpacked())
+    while (!PCU_Comm_Unpacked())
     {
       apf::MeshEntity* r;
       PCU_COMM_UNPACK(r);
-      PCU_Comm_Unpack(&(sender_data[0]),n*sizeof(double));
-      // FIXME based on new m3dc1_field
-      setComponents(f, r, 0, sender_data);
+      int* recv_nbr = new int[nnbr];
+      PCU_Comm_Unpack(&(recv_nbr[0]),nnbr*sizeof(int));
+
+      int tp = msh->getType(r);
+      int nds = shp->countNodesOn(tp);
+      for(int nd = 0; nd < nds; ++nd)
+        for (int cmp = 0; cmp < nv*ndfs; ++cmp)
+          apf::number(num, r, nd, cmp, recv_nbr[cmp]);
+      delete [] recv_nbr;
     }
-  delete [] dof_data;
-  delete [] sender_data;
 }
 
-extern MPI_Comm M3DC1_COMM_WORLD;
 void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
 {
   apf::Field * fld = apf::getField(num);
@@ -147,8 +165,12 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   // todo : replace MPI_COMM_WORLD WITH MSI_COMM_WORLD when we pull this into msi
   MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
   apf::SetNumberingOffset(num,lcl_offset);
-//  apf::synchronize(num);
-  synchronizeNumbering(num->getData());
+  // this does not work due to ownership discrepancy between m3dc1 and PUMI
+  // apf::synchronize(num);
+
+  // synchronize numbering manually
+  synchronize_numbering(msh, num, shp, nv, ndfs);
+
 #ifdef DEBUG
   for(int dd = 0; dd < dim; ++dd)
   {
