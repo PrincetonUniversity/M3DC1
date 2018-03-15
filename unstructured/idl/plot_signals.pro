@@ -1,7 +1,7 @@
 pro plot_signals, signal, deriv=der, filename=filename, power_spectrum=pspec, $
                      compensate_renorm=comp, overplot=overplot, $
                   scale=scale, tdata=tdata, data=data, noplot=noplot, $
-                  _EXTRA=extra
+                  outfile=outfile, _EXTRA=extra
 
   if(n_elements(filename) eq 0) then filename = 'C1.h5'
   if(hdf5_file_test(filename) eq 0) then return
@@ -76,6 +76,14 @@ pro plot_signals, signal, deriv=der, filename=filename, power_spectrum=pspec, $
      tdata = t
   end
 
+  if(n_elements(outfile) eq 1) then begin
+     openw, ifile, outfile, /get_lun
+     for i=0, n_elements(tdata)-1 do begin
+        printf, format='(100F12.4)', ifile, tdata[i], data[*,i]
+     end
+     free_lun, ifile
+  end
+
   if(keyword_set(noplot)) then return
 
   if(not keyword_set(overplot)) then begin
@@ -83,7 +91,7 @@ pro plot_signals, signal, deriv=der, filename=filename, power_spectrum=pspec, $
            xtitle=xtitle, ytitle=ytitle, _EXTRA=extra
   end
 
-  c = shift(get_colors(),-1)
+  c = shift(get_colors(ifl),-1)
   for i=0, ifl-1 do begin
      oplot, tdata, data[i,*], color=c[i]
   end
