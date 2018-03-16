@@ -944,7 +944,7 @@ void m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id,
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
-  *owning_partid = get_ent_ownpartid(m3dc1_mesh::instance()->mesh, e);
+  *owning_partid = pumi_ment_getOwnPID(e);
 }
 
 //*******************************************************
@@ -1383,7 +1383,7 @@ void accumulate_field(apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    own_partid=get_ent_ownpartid(m, e);
+    own_partid=pumi_ment_getOwnPID(e);
     if (own_partid==PCU_Comm_Self() || pumi_ment_isGhost(e)) continue;
     assert(m->isShared(e));
 
@@ -3115,7 +3115,7 @@ int sum_edge_data (double* data, int* size)
   for (int i=0; i<num_edge; ++i)
   {
     apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
-    int own_partid=get_ent_ownpartid(m, e);
+    int own_partid=pumi_ment_getOwnPID(e);
     apf::MeshEntity* own_e = get_ent_owncopy(m, e);
     if (own_partid==PCU_Comm_Self()) continue;
     PCU_COMM_PACK(own_partid, own_e);
@@ -3186,7 +3186,7 @@ int get_node_error_from_elm (double* elm_data, int* size, double* nod_data)
   for (int i=0; i<num_node; ++i)
   {
     apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
-    int own_partid=get_ent_ownpartid(m, e);
+    int own_partid=pumi_ment_getOwnPID(e);
     apf::MeshEntity* own_e = get_ent_owncopy(m, e);
     apf::Adjacent adjacent;
     m->getAdjacent(e,2,adjacent);
@@ -3683,7 +3683,7 @@ void copyEpetraVec2Field(Epetra_MultiVector* x, apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    if (get_ent_ownpartid(m, e)!=PCU_Comm_Self()) continue;
+    if (pumi_ment_getOwnPID(e)!=PCU_Comm_Self()) continue;
     for (int i=0; i<num_dof; ++i)
       dof_data.at(i)=(*x)[0][index++];
     // FIXME based on new m3dc1_field

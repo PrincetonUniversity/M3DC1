@@ -165,11 +165,11 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   // todo : replace MPI_COMM_WORLD WITH MSI_COMM_WORLD when we pull this into msi
   MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
   apf::SetNumberingOffset(num,lcl_offset);
-  // this does not work due to ownership discrepancy between m3dc1 and PUMI
-  // apf::synchronize(num);
+  // this does work with PUMI default ownershiop
+  apf::synchronize(num);
 
   // synchronize numbering manually
-  synchronize_numbering(msh, num, shp, nv, ndfs);
+  // synchronize_numbering(msh, num, shp, nv, ndfs);
 
 #ifdef DEBUG
   for(int dd = 0; dd < dim; ++dd)

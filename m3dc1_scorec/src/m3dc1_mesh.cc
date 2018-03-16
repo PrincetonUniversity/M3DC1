@@ -150,26 +150,13 @@ void set_remote(Mesh2* m, MeshEntity* e, int p, MeshEntity* r)
     m->addRemote(e, p, r);
 }
 
+// return false if un-owned part boundary or ghost copy
 // **********************************************
 bool is_ent_original(Mesh2* mesh, MeshEntity* e)
 // **********************************************
 {
   if (mesh->isGhost(e)) return false;
-
-  return (PCU_Comm_Self() == get_ent_ownpartid(mesh, e));
-}
-
-// **********************************************
-int get_ent_ownpartid(Mesh2* mesh, MeshEntity* e)
-// **********************************************
-{
-  int own_partid;
-
-  if (mesh->hasTag(e, m3dc1_mesh::instance()->own_partid_tag))
-    mesh->getIntTag(e, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
-  else
-    own_partid=mesh->getOwner(e);
-  return own_partid;
+  return (PCU_Comm_Self() == mesh->getOwner(e));
 }
 
 // **********************************************
@@ -179,7 +166,7 @@ MeshEntity* get_ent_owncopy(Mesh2* mesh, MeshEntity* e)
   if (!(mesh->isShared(e))) // internal ent
     return e;
 
-  int own_partid = get_ent_ownpartid(mesh, e);
+  int own_partid = mesh->getOwner(e);
   if (own_partid==PCU_Comm_Self()) return e;
 
   if (mesh->isShared(e))
@@ -230,7 +217,7 @@ m3dc1_mesh::m3dc1_mesh()
   ments=NULL;
   field_container=NULL;
   reset();
-  local_entid_tag=own_partid_tag=num_global_adj_node_tag=num_own_adj_node_tag=NULL;
+  local_entid_tag=num_global_adj_node_tag=num_own_adj_node_tag=NULL;
 }
 
 // *********************************************************
@@ -257,16 +244,12 @@ void m3dc1_mesh::clean()
 
   // destroy tag data
   for (int d=0; d<4; ++d)
-  {
     removeTagFromDimension(mesh, local_entid_tag, d);
-    removeTagFromDimension(mesh, own_partid_tag, d);
-  }
   removeTagFromDimension(mesh, num_global_adj_node_tag, 0);
   removeTagFromDimension(mesh, num_own_adj_node_tag, 0);
 
   // destroy tag
   mesh->destroyTag(local_entid_tag);
-  mesh->destroyTag(own_partid_tag);
   mesh->destroyTag(num_global_adj_node_tag);
   mesh->destroyTag(num_own_adj_node_tag);
 }
@@ -344,13 +327,12 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
   for (std::vector<MeshEntity*>::iterator ent_it=mesh_ents.begin(); ent_it!=mesh_ents.end();++ent_it)
   {
     e = *ent_it;
-    own_partid=get_ent_ownpartid(mesh,e);
+    own_partid=mesh->getOwner(e);
 
     Copies remotes;
     mesh->getRemotes(e, remotes);
     num_remote = remotes.size();
     PCU_COMM_PACK(rank_to, remotes[rank_to]);
-    PCU_Comm_Pack(rank_to, &own_partid,sizeof(int));
     PCU_Comm_Pack(rank_to, &num_remote,sizeof(int));
 
     MeshEntity** remote_copy = new MeshEntity*[num_remote];
@@ -385,8 +367,6 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
       MeshEntity* e;
       int own_partid, num_remote;
       PCU_COMM_UNPACK(e);
-      PCU_Comm_Unpack(&own_partid,sizeof(int));
-      mesh->setIntTag(e, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
       PCU_Comm_Unpack(&num_remote,sizeof(int));
       int* remote_pid = new int [num_remote];
       MeshEntity** remote_copy = new MeshEntity*[num_remote];
@@ -454,7 +434,6 @@ void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
 
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_entid_tag, &index);
         own_partid=proc_grp_rank*proc_grp_size+e_own_partid[index];
-        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
 
         if (own_partid==myrank)
           ++(m3dc1_mesh::instance()->num_own_ent[0]);
@@ -528,7 +507,6 @@ void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, Mes
         new_ent = mesh->createEntity(apf::Mesh::EDGE, (ModelEntity*)geom_ent, down_ent);
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_entid_tag, &index);
         own_partid=proc_grp_rank*proc_grp_size+e_own_partid[index];
-        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
 
         if (own_partid==myrank)
           ++(m3dc1_mesh::instance()->num_own_ent[1]);
@@ -598,7 +576,6 @@ void m3dc1_receiveFaces(Mesh2* mesh)
         else
           new_ent= mesh->createEntity(apf::Mesh::QUAD, (ModelEntity*)geom_ent, down_ent);
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_entid_tag, &index);
-        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->own_partid_tag, &myrank);
       } // for index
       delete [] f_down_num;
       delete [] e_down_lid;
@@ -745,7 +722,7 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
 
     if (dim!=2) // for vertices and edges
     {
-      own_partid=get_ent_ownpartid(mesh,e);
+      own_partid=mesh->getOwner(e);
       e_own_partid[index] = own_partid;
       Copies remotes;
       mesh->getRemotes(e, remotes);
@@ -830,7 +807,7 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
   MeshIterator* it = mesh->begin(dim);
   while ((e = mesh->iterate(it)))
   {
-    own_partid = get_ent_ownpartid(mesh, e);
+    own_partid = mesh->getOwner(e);
     if (own_partid==myrank && mesh->isShared(e))
       ++num_own_partbdry;
   }
@@ -843,7 +820,7 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
   it = mesh->begin(dim);
   while ((e = mesh->iterate(it)))
   {
-    own_partid = get_ent_ownpartid(mesh, e);
+    own_partid = mesh->getOwner(e);
     if (own_partid==myrank && mesh->isShared(e))
     {
       mesh->setIntTag(e, partbdry_id_tag, &initial_id);
@@ -1355,7 +1332,6 @@ void m3dc1_mesh::initialize()
 // *********************************************************
 {
   if (!local_entid_tag) local_entid_tag = mesh->createIntTag("m3dc1_local_ent_id", 1);
-  if (!own_partid_tag) own_partid_tag = mesh->createIntTag("m3dc1_own_part_id", 1);
   if (!num_global_adj_node_tag) num_global_adj_node_tag = mesh->createIntTag("m3dc1_num_global_adj_node", 1);
   if (!num_own_adj_node_tag) num_own_adj_node_tag = mesh->createIntTag("m3dc1_num_own_adj_node", 1);
 
@@ -1373,7 +1349,6 @@ void m3dc1_mesh::initialize()
     {
       mesh->setIntTag(e, local_entid_tag, &counter);
       own_partid = mesh->getOwner(e);
-      mesh->setIntTag(e, own_partid_tag, &own_partid);
       if (own_partid==local_partid)
         ++num_own_ent[d];
       ++counter;
@@ -1543,10 +1518,10 @@ void m3dc1_mesh::set_node_adj_tag2()
     }
     mesh->setIntTag(vrt,num_own_adj_node_tag,&own_adj);
     mesh->setIntTag(vrt,num_global_adj_node_tag,&zero);
-    int own_rnk = get_ent_ownpartid(mesh,vrt);
+    int own_rnk = mesh->getOwner(vrt);
     if(own_rnk != PCU_Comm_Self())
     {
-      apf::MeshEntity * own_cpy = get_ent_owncopy(mesh,vrt);
+      apf::MeshEntity * own_cpy = mesh->getOwner(vrt);
       PCU_COMM_PACK(own_rnk,own_cpy);
       PCU_COMM_PACK(own_rnk,own_adj);
     }
@@ -1596,7 +1571,7 @@ void m3dc1_mesh::set_node_adj_tag()
 
     if (!mesh->isShared(e)) continue;
     // first pass msg size to owner
-    int own_partid = get_ent_ownpartid(mesh, e);
+    int own_partid = mesh->getOwner(e);
     if (own_partid==PCU_Comm_Self()) continue;
 
     MeshEntity* own_copy = get_ent_owncopy(mesh, e);
@@ -1630,11 +1605,11 @@ void m3dc1_mesh::set_node_adj_tag()
     getBridgeAdjacent(mesh, e, brgType, 0, elements);
 
     MeshEntity* ownerEnt=get_ent_owncopy(mesh, e);
-    int own_partid = get_ent_ownpartid(mesh, e);
+    int own_partid = mesh->getOwner(e);
     for(int i=0; i<elements.getSize(); i++)
     {
       MeshEntity* ownerEnt2=get_ent_owncopy(mesh, elements[i]);
-      int owner=get_ent_ownpartid(mesh, elements[i]);
+      int owner=mesh->getOwner(elements[i]);
       msgs.push_back(entMsg(owner, ownerEnt2));
       if(own_partid==PCU_Comm_Self())
       {
@@ -1738,7 +1713,7 @@ void m3dc1_mesh::print(int LINE)
   PUMI_PartEntIter_Init(mesh->getPart(0), 0, PUMI_ALLTOPO, vtx_iter);
   while (PUMI_PartEntIter_GetNext(vtx_iter, ent)==PUMI_SUCCESS)
   {
-    if (get_ent_ownpartid (mesh->getPart(0), ent) == PCU_Comm_Self())
+    if (mesh->getOwner(ent) == PCU_Comm_Self())
       ++counter;
   }
   assert(counter==num_own_ent[0]);
@@ -1749,7 +1724,7 @@ void m3dc1_mesh::print(int LINE)
   PUMI_PartEntIter_Init(mesh->getPart(0), 1, PUMI_ALLTOPO, edge_iter);
   while (PUMI_PartEntIter_GetNext(edge_iter, ent)==PUMI_SUCCESS)
   {
-    if (get_ent_ownpartid (mesh->getPart(0), ent) == PCU_Comm_Self())
+    if (mesh->getOwner(ent) == PCU_Comm_Self())
       ++counter;
   }
   assert(counter==num_own_ent[1]);
@@ -1760,7 +1735,7 @@ void m3dc1_mesh::print(int LINE)
   PUMI_PartEntIter_Init(mesh->getPart(0), 2, PUMI_ALLTOPO, face_iter);
   while (PUMI_PartEntIter_GetNext(face_iter, ent)==PUMI_SUCCESS)
   {
-    if (get_ent_ownpartid (mesh->getPart(0), ent) == PCU_Comm_Self())
+    if (mesh->getOwner(ent) == PCU_Comm_Self())
       ++counter;
   }
   assert(counter==num_own_ent[2]);

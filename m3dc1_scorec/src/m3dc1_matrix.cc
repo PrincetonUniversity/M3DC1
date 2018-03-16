@@ -540,7 +540,7 @@ int matrix_solve::setUpRemoteAStruct()
   for (int inode=0; inode<num_vtx; inode++)
   {
     ent = getMdsEntity(m, vertex_type, inode);
-    int owner=get_ent_ownpartid(m, ent);
+    int owner=m->getOwner(ent);
     if (owner!=PCU_Comm_Self())
     {
       apf::Adjacent elements;

@@ -20,7 +20,8 @@
 
 void compute_globalid(apf::Mesh2* m, int d);
 bool is_ent_original(apf::Mesh2* mesh, apf::MeshEntity* e);
-int get_ent_ownpartid(apf::Mesh2* mesh, apf::MeshEntity* ent);
+// instead, call pumi_ment_getOwnPID(pMeshEnt e) 
+//int get_ent_ownpartid(apf::Mesh2* mesh, apf::MeshEntity* ent);
 apf::MeshEntity* get_ent_owncopy(apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_localid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_globalid (apf::Mesh2* mesh, apf::MeshEntity* ent);
@@ -59,7 +60,7 @@ public:
   apf::MeshTag* local_entid_tag;
 
   // tag for owned partid attached to the part bdry entities
-  apf::MeshTag* own_partid_tag;
+  //  apf::MeshTag* own_partid_tag;
 
   // tags for second order adjanceny info
   apf::MeshTag* num_global_adj_node_tag;
