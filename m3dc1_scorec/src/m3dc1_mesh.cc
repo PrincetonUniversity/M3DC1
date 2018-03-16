@@ -435,9 +435,6 @@ void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_entid_tag, &index);
         own_partid=proc_grp_rank*proc_grp_size+e_own_partid[index];
 
-        if (own_partid==myrank)
-          ++(m3dc1_mesh::instance()->num_own_ent[0]);
-
         if (e_global_id[index]!=-1)
         {
           partbdry_entities[0][e_global_id[index]] = new_ent;
@@ -506,10 +503,6 @@ void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, Mes
         down_ent[1] =  getMdsEntity(mesh, 0, e_down_lid[index*2+1]);
         new_ent = mesh->createEntity(apf::Mesh::EDGE, (ModelEntity*)geom_ent, down_ent);
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_entid_tag, &index);
-        own_partid=proc_grp_rank*proc_grp_size+e_own_partid[index];
-
-        if (own_partid==myrank)
-          ++(m3dc1_mesh::instance()->num_own_ent[1]);
 
         if (e_global_id[index]!=-1)
         {
@@ -582,7 +575,6 @@ void m3dc1_receiveFaces(Mesh2* mesh)
       delete [] e_geom_type;
       delete [] e_geom_tag;
       m3dc1_mesh::instance()->num_local_ent[2] = mesh->count(2);
-      m3dc1_mesh::instance()->num_own_ent[2] = mesh->count(2);
     } // while ( ! PCU_Comm_Unpacked())
   } // while (PCU_Comm_Listen())
 }
@@ -905,9 +897,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     mesh->end(ent_it);
   }
   mesh->destroyTag(partbdry_id_tag);
-
-  // update global ent counter
-  MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   // construct 3D model
   m3dc1_model::instance()->create3D();
@@ -1375,10 +1364,20 @@ void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remo
   num_local_ent[2] = num_orig_face*2+btw_plane_faces.size();
   num_local_ent[3] = btw_plane_regions.size();
 
-  //num_own_ent[0] = num_orig_vtx;
-  num_own_ent[1] += btw_plane_edges.size();
-  num_own_ent[2] += btw_plane_faces.size();
-  num_own_ent[3] = btw_plane_regions.size();
+  // update owned & global ent counter
+  int local_partid=PCU_Comm_Self();
+  apf::MeshEntity* e;
+  for (int d=0; d<4; ++d)
+  {
+    num_own_ent[d]=0;
+    MeshIterator* it = mesh->begin(d);
+    while ((e = mesh->iterate(it)))
+    {
+      if (mesh->getOwner(e)==local_partid)
+        ++num_own_ent[d];
+    }
+    mesh->end(it);
+  }
 
   MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, PCU_Get_Comm());
 }
