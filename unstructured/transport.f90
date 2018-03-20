@@ -40,7 +40,7 @@ function sigma_func(izone)
 
   ! Pellet injection model
 
-  if(ipellet.gt.0) then
+  if(ipellet.gt.0 .and. ipellet_z.eq.0) then
 
      if(ipellet_abl.gt.0.) then
 

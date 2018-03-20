@@ -726,6 +726,8 @@ subroutine set_defaults
   ! density source
   call add_var_int("ipellet", ipellet, 0, &
        "1 = include a gaussian pellet source", source_grp)
+  call add_var_int("ipellet_z", ipellet_z, 0, &
+       "Atomic number of pellet (0 = main ion species)", source_grp)
   call add_var_double("pellet_x", pellet_x, 0., &
        "Initial radial position of the pellet", source_grp)
   call add_var_double("pellet_phi", pellet_phi, 0., &
@@ -1314,7 +1316,8 @@ subroutine validate_input
   ! Determine which source terms will be used
   ! ~~~~~~~~~
   density_source = idens.eq.1 .and. linear.eq.0 .and. &
-       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 &
+       ((ipellet.ge.1 .and. ipellet_z.eq.0) &
+       .or. ionization.ge.1 .or. isink.gt.0 &
        .or. idenfloor.gt.0 .or. ibeam.eq.1 &
        .or. ibeam.eq.2 .or. iread_particlesource.eq.1 &
        .or. iarc_source.ne.0)
@@ -1457,8 +1460,17 @@ subroutine validate_input
      endif
   endif
   
+
   if(ibeam.ge.1) call neutral_beam_init
-  if(ipellet.ne.0) call pellet_init
+  if(ipellet.ne.0) then
+     call pellet_init
+     
+     if(ipellet_z.ne.0 .and. &
+        (ikprad.eq.0 .or. ipellet_z.ne.kprad_z)) then
+        print *, 'Error: ipellet_z != kprad_z'
+        call safestop(1)
+     end if
+  end if
 
   if(myrank.eq.0) then
      print *, "============================================="

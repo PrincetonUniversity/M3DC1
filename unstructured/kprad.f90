@@ -64,7 +64,8 @@ contains
   end subroutine kprad_instantaneous_radiation
 
 
-  subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem)
+  subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem,&
+       source)
     implicit none
 
     real, intent(in) :: dt                    ! time step to advance densities
@@ -75,6 +76,7 @@ contains
     real, intent(inout) :: nz(npts,0:z)      ! density
     real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
     real, intent(out) :: dw_brem(npts)       ! energy lost via bremsstrahlung
+    real, intent(in) :: source(npts)         ! optional neutral density source
     
     real :: t, dts
     integer :: i
@@ -100,7 +102,7 @@ contains
 
     aimp(:,0) = 0.0
     cimp(:,z) = 0.0
- 
+
     ! start time loop
     last_step = .false.
     do while(.not.last_step)
@@ -122,6 +124,8 @@ contains
           end if
           dimp(:,i) = nz(:,i)
        enddo
+
+       dimp(:,0) = dimp(:,0) + source*dts
       
        call tridiag(aimp,bimp,cimp,dimp,nz, &
             ework,fwork,npts,z)

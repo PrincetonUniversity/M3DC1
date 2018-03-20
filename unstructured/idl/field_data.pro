@@ -124,6 +124,12 @@ function field_data, name, units=units, itor=itor, filename=filename
    endif else if(strcmp(name, 'frequency', /fold_case) eq 1) then begin
       units = dimensions(t0=-1)
       return, "!7x!X"
+   endif else if(strcmp(name, 'kprad_sigma_i', /fold_case) eq 1) then begin
+      units = dimensions(n0=1,t0=-1)
+      return, "!7r!D!6KPRAD,i!N!X"
+   endif else if(strcmp(name, 'kprad_sigma_e', /fold_case) eq 1) then begin
+      units = dimensions(n0=1,t0=-1)
+      return, "!7r!D!6KPRAD,e!N!X"
    endif else if(strcmp(name, 'kprad_n', 7, /fold_case) eq 1) then begin
       z = fix(read_parameter('kprad_z', filename=filename))
       nz = fix(strmid(name, 8, 2))

@@ -279,6 +279,7 @@ contains
     use basic
     use newvar_mod
     use m3dc1_nint
+    use pellet
 
     implicit none
 
@@ -292,6 +293,7 @@ contains
 
     integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
+    vectype, dimension(MAX_PTS) :: source    ! neutral particle source
 
     if(ikprad.ne.1) return
 
@@ -303,8 +305,11 @@ contains
     kprad_rad = 0.
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
+    source = 0.
 
     def_fields = FIELD_N + FIELD_TE
+    if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) &
+         def_fields = def_fields + FIELD_P
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix'
 
@@ -315,6 +320,11 @@ contains
 
        call define_element_quadrature(itri,int_pts_main,5)
        call define_fields(itri,def_fields,1,0)
+
+       if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) then
+          source = pellet_deposition(x_79, phi_79, z_79, pt79(:,OP_1), &
+               net79(:,OP_1), 0.)
+       end if
 
        ! evaluate impurity density
        do i=0, kprad_z
@@ -331,6 +341,7 @@ contains
        ! convert nz, ne, te, dt to cgs / eV
        nz = nz*n0_norm
        ne = ne*n0_norm
+       source = source*n0_norm/t0_norm
        te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
        where(te.lt.0. .or. te.ne.te) te = 0.
        dt_s = dti*t0_norm
@@ -339,7 +350,7 @@ contains
        ! for one MHD timestep (dt_s)
        if(izone.eq.1) then
           call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
-               ne, te, nz, dw_rad, dw_brem)
+               ne, te, nz, dw_rad, dw_brem, source)
           where(ne .ne. ne) ne = 0.
           where(nz .ne. nz) nz = 0.
        else
