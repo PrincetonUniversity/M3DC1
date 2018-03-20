@@ -606,7 +606,7 @@ matrix_mult::matrix_mult(int i , int s, FieldID fld)
 {
   is_par = 0;
   m3dc1_mesh * msh = m3dc1_mesh::instance(); //external variable, pass in or use field
-  int num_ent = msh->num_local_ent[0]; // assumes that only verts hold dofs
+  int num_ent = msh->mesh->count(0); // assumes that only verts hold dofs
   m3dc1_field * mf = (*msh->field_container)[fld];
   int blk_sz = mf->get_dof_per_value();
   int dof_per_ent = mf->get_num_value() * blk_sz;
@@ -718,7 +718,7 @@ matrix_solve::matrix_solve(int i, int s, FieldID fld)
 {
   is_par = 1;
   m3dc1_mesh * msh = m3dc1_mesh::instance(); // external variable
-  int num_own_nds = msh->num_own_ent[0]; // assumes only vertices hold dofs
+  int num_own_nds = apf::countOwned(msh->mesh,0); //msh->num_own_ent[0]; // assumes only vertices hold dofs
   m3dc1_field * mf = (*msh->field_container)[fld];
   int blk_sz = mf->get_dof_per_value();
   int dof_per_nd = mf->get_num_value() * blk_sz;

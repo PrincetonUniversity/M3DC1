@@ -11,7 +11,7 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
   MatType tp;
   MatGetType(A,&tp);
   MPI_Comm cms[] = {PETSC_COMM_SELF,PETSC_COMM_WORLD};
-  int num_nds[] = {msh->num_local_ent[0],msh->num_own_ent[0]}; // assuming only verts hold nodes
+  int num_nds[] = {(int)msh->mesh->count(0), apf::countOwned(msh->mesh,0)};//{msh->num_local_ent[0],msh->num_own_ent[0]}; // assuming only verts hold nodes
   //int num_vrts = msh->mesh->count(0);
   int is_par = (strcmp(tp,MATMPIBAIJ) == 0 || strcmp(tp,MATMPIAIJ) == 0);
   int is_lcl = !is_par;
