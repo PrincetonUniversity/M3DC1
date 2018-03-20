@@ -151,12 +151,17 @@ void set_remote(Mesh2* m, MeshEntity* e, int p, MeshEntity* r)
 }
 
 // return false if un-owned part boundary or ghost copy
-// **********************************************
 bool is_ent_original(Mesh2* mesh, MeshEntity* e)
-// **********************************************
 {
   if (mesh->isGhost(e)) return false;
   return (PCU_Comm_Self() == mesh->getOwner(e));
+}
+
+int get_ent_ownpartid(Mesh2* mesh, MeshEntity* e)
+{
+  int own_partid = mesh->getOwner(e);
+  return own_partid;
+
 }
 
 // **********************************************
@@ -364,11 +369,13 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
   {
     while (!PCU_Comm_Unpacked())
     {
-      MeshEntity* e;
-      int own_partid, num_remote;
+      MeshEntity * e = NULL;
+      //int own_partid = -1;
+      int num_remote = 0;
       PCU_COMM_UNPACK(e);
       PCU_Comm_Unpack(&num_remote,sizeof(int));
-      int* remote_pid = new int [num_remote];
+      int * remote_pid = new int [num_remote];
+      // DBG(memset(&remote_pid[0],0,sizeof(int)*num_remote));
       MeshEntity** remote_copy = new MeshEntity*[num_remote];
       PCU_Comm_Unpack(&remote_pid[0],num_remote*sizeof(int));
       PCU_Comm_Unpack(&remote_copy[0],num_remote*sizeof(MeshEntity*));
@@ -544,7 +551,7 @@ void m3dc1_receiveFaces(Mesh2* mesh)
   MeshEntity* new_ent;
   gmi_ent* geom_ent;
   Downward down_ent;
-  int myrank = PCU_Comm_Self();
+  //int myrank = PCU_Comm_Self();
   while (PCU_Comm_Listen())
   {
     while ( ! PCU_Comm_Unpacked())
@@ -1308,8 +1315,9 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
   update_partbdry(remote_vertices, remote_edges, remote_faces, btw_plane_edges, btw_plane_faces, btw_plane_regions);
 
   // delete existing local numbering
-  apf::Numbering* local_n = mesh->findNumbering(mesh->getShape()->getName());
-  if (local_n) destroyNumbering(local_n);
+  apf::Numbering * local_n = mesh->findNumbering(mesh->getShape()->getName());
+  if (local_n)
+    destroyNumbering(local_n);
 
   // re-create the field and copy field data on master process group to non-master
   for (int i=0; i<num_field; ++i)
@@ -1390,7 +1398,7 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
 // *********************************************************
 {
   char f_name[100];
-  int num_values, scalar_type, old_ndof_per_value, old_numdof;
+  int num_values, scalar_type, old_numdof;
   m3dc1_field_getinfo (&field_id, f_name, &num_values, &scalar_type, &old_numdof);
 
   // get the field info and save it for later creation
@@ -1424,7 +1432,7 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
   double * recv_dof_val = NULL;
   while (PCU_Comm_Listen())
   {
-    int from = PCU_Comm_Sender();
+    //int from = PCU_Comm_Sender();
     while(!PCU_Comm_Unpacked())
     {
       PCU_Comm_Unpack(&recv_num_ent, sizeof(int));
@@ -1606,7 +1614,7 @@ void m3dc1_mesh::set_node_adj_tag()
 
     MeshEntity* ownerEnt=get_ent_owncopy(mesh, e);
     int own_partid = mesh->getOwner(e);
-    for(int i=0; i<elements.getSize(); i++)
+    for(size_t i=0; i<elements.getSize(); i++)
     {
       MeshEntity* ownerEnt2=get_ent_owncopy(mesh, elements[i]);
       int owner=mesh->getOwner(elements[i]);
@@ -1633,7 +1641,7 @@ void m3dc1_mesh::set_node_adj_tag()
       int sizeData = count_map[e][PCU_Comm_Sender()];
       std::vector<entMsg> data(sizeData);
       PCU_Comm_Unpack(&data.at(0),sizeof(entMsg)*sizeData);
-      for (int i=0; i<data.size(); i++)
+      for (size_t i=0; i<data.size(); i++)
       {
         count_map2[e].insert(data.at(i));
       }

@@ -25,6 +25,7 @@ bool AlmostEqualDoubles(double A, double B, double maxDiff, double maxRelDiff);
 #include <cstdlib>
 #endif
 
+/*
 #ifdef __bgq__
 #include <spi/include/kernel/memory.h>
 
@@ -41,7 +42,6 @@ static double get_peak()
 {
   return mallinfo().arena;
 }
-
 #else
 
 static double get_peak()
@@ -84,6 +84,7 @@ static double get_chunks()
   return(-1.0);
 }
 #endif
+*/
 
 double t1, t2, t3, t4, t5, t6, t7;
 int num_values = 1;
@@ -91,7 +92,9 @@ int vrt_dim = 0;
 int scalar_type = 0;
 int num_dofs = 0;
 int dofs_per_nd = 0;
-int b_field=1, c_field=2, x_field=3;
+int b_field = 1;
+int c_field = 2;
+int x_field = 3;
 
 void test_matrix(int, int);
 
@@ -182,8 +185,8 @@ int main(int argc, char * argv[])
 
   int value_type[] = {scalar_type,scalar_type};
 
-  num_dofs=6;
-  if (num_plane>1) num_dofs=12;
+  num_dofs = 6;
+  if (num_plane>1) num_dofs = 12;
   dofs_per_nd = num_values * num_dofs;
 
   m3dc1_field_create (&b_field, "b_field", &num_values, value_type, &num_dofs);

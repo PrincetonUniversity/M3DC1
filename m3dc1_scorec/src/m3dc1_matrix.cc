@@ -733,6 +733,7 @@ matrix_solve::matrix_solve(int i, int s, FieldID fld)
   if(!(blk_sz-1)) // only supported for AIJ not BAIJ
     MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
   // TODO: remove remoteA
+  /*
   int num_lcl_nds = msh->num_local_ent[0];
   int num_lcl_dof = num_lcl_nds * dof_per_nd;
   MatCreate(PETSC_COMM_SELF,&remoteA);
@@ -744,6 +745,7 @@ matrix_solve::matrix_solve(int i, int s, FieldID fld)
   MatSetOption(remoteA,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
   if(!(blk_sz-1)) // only supported for AIJ not BAIJ
     MatSetOption(remoteA,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
+  */
 #ifdef DEBUG
   if(!PCU_Comm_Self())
     describeMatrix(A);

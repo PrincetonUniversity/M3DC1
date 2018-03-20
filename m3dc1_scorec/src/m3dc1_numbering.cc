@@ -8,7 +8,7 @@
 extern MPI_Comm M3DC1_COMM_WORLD;
 
 //*******************************************************
-void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num, 
+void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
                            apf::FieldShape * shp, int nv, int ndfs)
 //*******************************************************
 {
@@ -27,7 +27,7 @@ void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if (!is_ent_original(msh,ent)) continue;
+        if (!msh->isOwned(ent)) continue;
 
         int tp = msh->getType(ent);
         int nds = shp->countNodesOn(tp);
@@ -60,7 +60,7 @@ void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
       } // while
       msh->end(it);
     } // if
-  } // for 
+  } // for
   delete [] nbr;
 
   PCU_Comm_Send();
@@ -103,7 +103,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(is_ent_original(msh,ent))
+        if(msh->isOwned(ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -128,7 +128,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(is_ent_original(msh,ent))
+        if(msh->isOwned(ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -162,15 +162,11 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   // only rank zero in each comm cm will have a nonzero value
   int inter_comm_offset = (int)(!(bool)rnk) * (lcl_strd * nv * ndfs);
   int lcl_offset = 0;
-  // todo : replace MPI_COMM_WORLD WITH MSI_COMM_WORLD when we pull this into msi
+  // todo : replace with MSI_COMM_WORLD when we pull this into msi
   MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
   apf::SetNumberingOffset(num,lcl_offset);
   // this does work with PUMI default ownershiop
   apf::synchronize(num);
-
-  // synchronize numbering manually
-  // synchronize_numbering(msh, num, shp, nv, ndfs);
-
 #ifdef DEBUG
   for(int dd = 0; dd < dim; ++dd)
   {

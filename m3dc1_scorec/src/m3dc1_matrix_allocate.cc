@@ -36,7 +36,7 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
     //DBG(memset(&gbl_dofs[0],0,sizeof(int)*dof_per_nd));
     //m3dc1_ent_getlocaldofid(&vrt_dim,&nd,&fld_id,&dofs[0],&dof_cnt);
     apf::MeshEntity * ent = apf::getMdsEntity(msh->mesh,vrt_dim,nd);
-    lcl_nd = is_ent_original(msh->mesh,ent);
+    lcl_nd = msh->mesh->isOwned(ent);
     if(!lcl_nd && is_par)
       continue;
     int dof_cnt = 0;
@@ -51,7 +51,7 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
     for(int ii = 0; ii < dof_cnt; ii+=bs)
     {
       int blk_row = (dof_ids[is_par][ii] / bs) - frst_blk_row;
-      assert(blk_row < blk_row_cnt);
+      assert(blk_row < blk_row_cnt && blk_row >= 0);
       dnnz[blk_row] = blk_per_nd * ((adj_own + 1) + (is_lcl * (adj_gbl - adj_own))); // if the matrix is local we only use dnnz but need the sum
       onnz[blk_row] = blk_per_nd * (adj_gbl - adj_own);
     }
