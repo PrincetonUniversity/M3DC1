@@ -57,8 +57,8 @@ LIBS := $(LIBS) \
 	-L$(FFTW_DIR)/lib -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lgslcblas
 
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
+
 CCOPTS  = -c $(OPTS)
 
 # Optimization flags

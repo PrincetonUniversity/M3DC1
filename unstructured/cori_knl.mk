@@ -96,8 +96,8 @@ LIBS := \
 	$(MKL_LIB)
 #        $(HYBRID_LIBS) \
 
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
-        -Dglobalinsertval=insertval -Dglobalentdofs=entdofs
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
+
 CCOPTS  = -c $(OPTS)
 
 # Optimization flags

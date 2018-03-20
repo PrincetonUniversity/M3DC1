@@ -20,13 +20,6 @@ else
   else
     V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
   endif
-  ifeq ($(RW), 1)
-    USERW = 1
-    OPTS := $(OPTS) -DUSERW
-    BIN_POSTFIX := $(BIN_POSTFIX)-rw
-  else
-    OPTS := $(OPTS) -Dglobalinsertval=insertval -Dglobalentdofs=entdofs
-  endif
 endif
 
 # determine whether 2d, 3d, or 2d-complex
@@ -88,7 +81,7 @@ OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 
 # add date stamp
-OPTS := $(OPTS) -DNOUSE -DDATE_BUILT='"$(shell date)"' -DRELEASE_VERSION='"$(shell cat release_version)"' #-DBUILD_INFO="'$(shell svn info)'"
+OPTS := $(OPTS) -DDATE_BUILT='"$(shell date)"' -DRELEASE_VERSION='"$(shell cat release_version)"' #-DBUILD_INFO="'$(shell svn info)'"
 
 export OPT
 export OPTS
