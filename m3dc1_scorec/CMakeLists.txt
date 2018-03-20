@@ -194,18 +194,16 @@ if (ENABLE_TRILINOS)
     target_link_libraries(epetra ${TARGET_LIB_NAME})
     INSTALL(TARGETS epetra RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif()
+add_executable(show_meshcount test/create_smb/show_meshcount.cc)
+target_link_libraries(show_meshcount ${DEP_LIBS})
+target_link_libraries(show_meshcount ${TARGET_LIB_NAME})
+INSTALL(TARGETS show_meshcount RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif()
 
 #add_executable(ghosting_test test/ghosting/main.cc)
 #target_link_libraries(ghosting_test ${DEP_LIBS})
 #target_link_libraries(ghosting_test ${TARGET_LIB_NAME})
 #INSTALL(TARGETS ghosting_test RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-
-add_executable(show_meshcount test/create_smb/show_meshcount.cc)
-target_link_libraries(show_meshcount ${DEP_LIBS})
-target_link_libraries(show_meshcount ${TARGET_LIB_NAME})
-INSTALL(TARGETS show_meshcount RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)  
-endif() #enable_testing
 
 #binary distribution package
 set(CPACK_GENERATOR "TGZ")

@@ -720,9 +720,9 @@ subroutine derived_quantities(ilin)
   if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"
      call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
+          pe_field(ilin), p_field(ilin), ne_field(ilin), den_field(ilin), &
           eqsubtract)
   end if
-
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  toroidal current"

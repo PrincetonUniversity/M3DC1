@@ -72,33 +72,59 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      bmn = complex(bmnr, bmni)*cur
 
      ; calculate rho
-     dflux_tor = deriv(flux_pol)
+     dflux_pol = deriv(flux_pol)
      flux_tor = flux_pol
      flux_tor[0] = 0.
      for i=1, n_elements(flux_pol)-1 do begin
         flux_tor[i] = flux_tor[i-1] + $
-                      (q[i-1]+q[i])*(dflux_tor[i-1] + dflux_tor[i])/4.
+                      (q[i-1]+q[i])*(dflux_pol[i-1] + dflux_pol[i])/4.
      end
-     rho = sqrt(flux_tor / flux_tor(n_elements(flux_pol)-1))
+
+     if(F_id ne -1) then begin
+        r0 = mean(rpath[*,0])
+        b0 = fpol[0]/r0
+        print, 'R0 = ', r0
+        print, 'BT0 = ', b0
+     endif else begin
+        print, 'WARNING: FPOL not found.'
+        print, '  Using rho = sqrt(flux_t / pi) instead of rho = sqrt(flux_t / (pi * BT0))'
+        b0 = 1.
+     end
+     rho = sqrt(abs(flux_tor / (!pi*b0)))
 
      ; calculate resonant current as defined by Callen
-     ; Jmn = -(c/4pi) <|Grad(psi0)|> (d/dpsi0) Bmn / (i m)
-     gpsipsi = fltarr(n_elements(psi))
+     ; Jmn = -(drho/dpsi) <|Grad(psi0)|^2> (d/dpsi0) Bmn / (i m mu_0)
+     ; rho = sqrt(flux_t / pi*BT)
      jmn = bmn
 
-     for i=0, n_elements(m)-1 do begin
-        jmn[i,*] = deriv(flux_pol,bmn[i,*])
-     end
-
+     mu0 = 4e-7*!pi
+     drhodpsi = deriv(flux_pol, rho)
+     gpsipsi = psi
      for j=0, n_elements(psi)-1 do begin
-        gpsipsi[j] = total(bpol[*,j]*rpath[*,j]*jacobian[*,j]) / $
-                     total(jacobian[*,j])
-        jmn[*,j] = -2.998e10/(4.*!pi) * gpsipsi[j] * jmn[*,j] $
-                   / (complex(0,1)*m)
+        gpsipsi[j] = (2.*!pi*total(bpol[*,j]*rpath[*,j]*jacobian[*,j]) / $
+                      total(jacobian[*,j]))^2
      end
+     grhorho = gpsipsi*drhodpsi^2
+     for i=0, n_elements(m)-1 do begin
+        jmn[i,*] = grhorho*deriv(rho,bmn[i,*]*1e-4) $
+                   /(complex(0.,1.)*m[i]*mu0)
+     end     
 
-     ; convert to MKS
-     jmn = jmn / 2.998e5
+     print, 'max(bmn, jmn, bpol, rpath, rho, flux_pol) = ', max(abs(bmn)), max(abs(jmn)), $
+            max(abs(bpol)), max(abs(rpath)), max(abs(rho)), max(abs(flux_pol))
+
+;     for j=0, n_elements(psi)-1 do begin
+        ;; jmn[*,j] = gpsipsi * jmn[*,j]  * drhodpsi[j] $
+        ;;            / (complex(0,1)*m[*])
+;        jmn[*,j] = gpsipsi * drhodpsi[j] / (complex(0,1)*m[*]) * jmn[*,j]
+;        jmn[*,j] = gpsipsi * drhodpsi[j] / (complex(0,1)*m[*]) * jmn[*,j]
+;        jmn[*,j] = gpsipsi * drhodpsi[j]
+
+;     end
+     print, 'max(jmn)', max(abs(jmn))
+
+     ; normalize rho
+     rho = rho / sqrt(rho[n_elements(rho)-1])
 
      return
   endif else begin

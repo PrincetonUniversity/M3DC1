@@ -410,6 +410,10 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "angular_momentum_p", pmom ,ntime, error)
   call output_scalar(scalar_group_id, "volume_p"          , pvol ,ntime, error)
   call output_scalar(scalar_group_id, "M_IZ"              , m_iz ,ntime, error)
+  call output_scalar(scalar_group_id, "M_IZ_co"           , m_iz_co ,ntime, error)
+  call output_scalar(scalar_group_id, "M_IZ_sn"           , m_iz_sn ,ntime, error)
+  call output_scalar(scalar_group_id, "IP_co"             , pcur_co ,ntime, error)
+  call output_scalar(scalar_group_id, "IP_sn"             , pcur_sn ,ntime, error)
 
   call output_scalar(scalar_group_id, "toroidal_current_w",wallcur,ntime,error)
   

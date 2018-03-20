@@ -951,8 +951,11 @@ subroutine step_split(calc_matrices)
      pres_vec = temp
      call destroy_vector(temp)
      call destroy_vector(temp2)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before get_temperatures"
-     call get_temperatures(den_v, p_v, pe_v, te_v, ti_v)
+!     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before get_temperatures"
+     call export_time_advance_vectors_split
+     call calculate_temperatures(1, te_field(1), ti_field(1), pe_field(1), p_field(1), ne_field(1), den_field(1), eqsubtract)
+     if(numvar.ge.3.    .or.  ipres.eq.1) te_v = te_field(1)
+     if(ipressplit.eq.1 .and. ipres.eq.1) ti_v = ti_field(1)
   endif
 
   ! Advance Temperature

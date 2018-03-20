@@ -1035,7 +1035,7 @@ subroutine validate_input
 #endif
 
   integer :: ier
-  real :: efac
+  real :: efac, de
 
   if(myrank.eq.0) then
      print *, "============================================="
@@ -1344,8 +1344,9 @@ subroutine validate_input
   end if 
 
   if(den_edge.le.0.) then
-     den_edge = den0*(pedge/p0)**expn
+     de = den0*(pedge/p0)**expn
   else
+     de = den_edge
      if(iread_ne.ne.0) then
         if(myrank.eq.0) print *, 'Error: den_edge is incompatible with iread_ne'
         call safestop(1)
@@ -1358,7 +1359,7 @@ subroutine validate_input
         call safestop(1)
      end if
      if(pedge.le.0.) then
-        pedge = den_edge*tedge/pefac
+        pedge = de*tedge/pefac
         if(myrank.eq.0) print *, 'Setting pedge = ', pedge
      else
         den_edge = pedge*pefac/tedge
