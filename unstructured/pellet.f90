@@ -1,10 +1,12 @@
 module pellet
   implicit none
 
-  integer :: ipellet  ! 1 = include pellet injection density source
+  integer :: ipellet   ! 1 = include pellet injection density source
                        ! 2 = distributed density source
                        ! 3 = Gaussian source
-                       ! 4 = Gaussian source including realistic ablation model  
+                       ! 4 = Gaussian source including realistic ablation model
+  integer :: ipellet_z ! Atomic number of pellet source (0 = main ion)
+
   real :: pellet_x    ! x coordinate of pellet
   real :: pellet_phi  ! phi coordinate of pellet
   real :: pellet_z    ! z coordinate of pellet
@@ -52,9 +54,6 @@ contains
     case(1)
 
 #ifdef USE3D
-!!$       pellet_deposition = pellet_rate/(sqrt(2.*pi)*pellet_var)**3 & 
-!!$            *exp(-(r**2 + pellet_x**2 -2.*r*pellet_x*cos(phi-pellet_phi) &
-!!$            + (z - pellet_z)**2) / (2.*pellet_var**2))
        pellet_deposition = pellet_rate/ &
             (sqrt(2.*pi)**3*pellet_var**2*pellet_var_tor) & 
             *exp(-((r-pellet_x)**2 + (z-pellet_z)**2) &
@@ -63,9 +62,10 @@ contains
                   /(2.*pellet_var_tor**2))
 
 #else
-       pellet_deposition = pellet_rate/(r*2.*pi*pellet_var**2) & 
+       pellet_deposition = pellet_rate/(2.*pi*pellet_var**2) & 
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
             /(2.*pellet_var**2))
+       if(itor.eq.1) pellet_deposition = pellet_deposition / r
 #endif
 
     !......distributed source added 11/23/2011   (scj)
@@ -79,9 +79,10 @@ contains
             *exp(-(r**2 + pellet_x**2 -2.*r*pellet_x*cos(phi-pellet_phi) &
             + (z - pellet_z)**2) / (2.*pellet_var**2))
 #else
-       pellet_deposition = pres*pellet_rate/(r*2.*pi*pellet_var**2) & 
+       pellet_deposition = pres*pellet_rate/(2.*pi*pellet_var**2) & 
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
             /(2.*pellet_var**2))
+       if(itor.eq.1) pellet_deposition = pellet_deposition / r
 #endif
 
     case(4)
