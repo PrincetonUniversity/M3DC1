@@ -23,7 +23,15 @@ contains
   subroutine kprad_rebase_dt()
     implicit none
 
-    kprad_dt = kprad_min_dt
+    include 'mpif.h'
+
+    integer :: ier
+    real :: temp
+
+    call mpi_allreduce(kprad_min_dt, temp, 1, MPI_DOUBLE_PRECISION, &
+         MPI_MIN, MPI_COMM_WORLD, ier)
+
+    kprad_dt = temp
     kprad_min_dt = 0.
 
     print *, 'Re-baselining dt to ', kprad_dt
