@@ -1,0 +1,10 @@
+prefix=@prefix@
+libdir=@prefix@/lib
+includedir=@includedir@
+
+Name: SCOREC libraries
+URL: http://www.scorec.rpi.edu
+Description: SCOREC PUMI and MeshAdapt
+Version: 1.0
+Libs: -L${libdir} @SCOREC_LINK_LIBS@ -lzoltan -lparmetis -lmetis -lstd++
+Cflags: -I${includedir} 

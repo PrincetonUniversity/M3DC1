@@ -69,7 +69,7 @@ endforeach()
 set(prefix "${HDF5_INSTALL_DIR}")
 set(includedir "${HDF5_INCLUDE_DIR}")
 configure_file(
-  "${CMAKE_HOME_DIRECTORY}/cmake/libHdf5.pc.in"
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/libHdf5.pc.in"
   "${CMAKE_BINARY_DIR}/libHdf5.pc"
   @ONLY)
 

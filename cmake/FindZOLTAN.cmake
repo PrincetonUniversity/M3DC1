@@ -1,0 +1,11 @@
+if(NOT ZOLTAN_FOUND)
+  find_library(ZOLTAN_LIBRARY zoltan)
+  if(ZOLTAN_FIND_REQUIRED AND NOT ZOLTAN_LIBRARY)
+    message(FATAL_ERROR "Require library Zoltan not found!")
+  endif()
+  set(ZOLTAN_LIBRARIES ${ZOLTAN_LIBRARY})
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(ZOLTAN DEFAULT_MSG ZOLTAN_LIBRARIES)
+mark_as_advanced(ZOLTAN_LIBRARIES)

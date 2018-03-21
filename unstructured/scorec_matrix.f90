@@ -202,7 +202,7 @@ contains
   !====================================================================
   subroutine scorec_matrix_matvecmult(mat,vin,vout)
 
-    use vector_mod
+    use scorec_vector_mod
 
     implicit none
 
@@ -343,7 +343,7 @@ contains
   ! linear matrix solve with scorec data structures
   !====================================================================
   subroutine scorec_matrix_solve(mat, v, ierr)
-    use vector_mod
+    use scorec_vector_mod
     
 #if PETSC_VERSION >= 38
     use petsc
@@ -435,7 +435,7 @@ contains
   !           with field i
   !======================================================================
   subroutine scorec_matrix_get_node_indices(mat, inode, irow, icol)
-    use vector_mod
+    use scorec_vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
     integer, intent(in) :: inode
@@ -464,7 +464,7 @@ contains
   !           with field i
   !======================================================================
   subroutine scorec_matrix_get_global_node_indices(mat, inode, irow, icol)
-    use vector_mod
+    use scorec_vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
     integer, intent(in) :: inode
@@ -493,7 +493,7 @@ contains
   !           with field i
   !======================================================================
   subroutine scorec_matrix_get_element_indices(mat, itri, irow, icol)
-    use vector_mod
+    use scorec_vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
     integer, intent(in) :: itri
@@ -545,7 +545,7 @@ contains
   end subroutine identity_row
 
   subroutine set_row_vals(mat, irow, ncols, icols, vals)
-    use vector_mod
+    use scorec_vector_mod
 
     type(scorec_matrix) :: mat
     integer, intent(in) :: irow, ncols

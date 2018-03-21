@@ -1,0 +1,17 @@
+if(NOT PARMETIS_FOUND)
+  find_library(PARMETIS_LIBRARY parmetis)
+  find_library(METIS_LIBRARY metis)
+  if(PARMETIS_FIND_REQUIRED)
+    if(NOT PARMETIS_LIBRARY)
+      message(FATAL_ERROR "Required library Parmetis not found!")
+    elseif(NOT METIS_LIBRARY)
+      message(FATAL_ERROR "Required library Metis not found!")
+    endif()
+  endif()
+  set(PARMETIS_LIBRARIES ${PARMETIS_LIBRARY} ${METIS_LIBRARY})
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(PARMETIS DEFAULT_MSG PARMETIS_LIBRARIES)
+mark_as_advanced(PARMETIS_LIBRARIES)
+

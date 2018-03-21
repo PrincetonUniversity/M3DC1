@@ -1,5 +1,14 @@
 module field
-  use vector_mod
+#ifdef USESCOREC
+  use scorec_vector_mod
+  use scorec_matrix_mod
+#elif USEPETSC
+  use petsc_vector_mod
+  use petsc_matrix_mod
+#elif USETRILINOS
+  use trilinos_vector_mod
+  use trilinos_matrix_mod
+#endif
 
   implicit none
 
