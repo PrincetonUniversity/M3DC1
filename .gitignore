@@ -12,3 +12,7 @@ _*
 m3dc1_meshgen.log
 plot_geo
 unstructured/templates/*/*/*.txt
+
+# Ignore cmake build files
+CMakeCache.txt
+CMakeFiles
