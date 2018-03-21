@@ -286,14 +286,14 @@ contains
     real, intent(in) :: dti
     
     real :: dt_s
-    real, dimension(MAX_PTS) :: ne, te, n0_old
+    real, dimension(MAX_PTS) :: ne, te, n0_old, p
     real, dimension(MAX_PTS,0:kprad_z) :: nz
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad
+    real, dimension(MAX_PTS) :: source    ! neutral particle source
 
     integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
-    vectype, dimension(MAX_PTS) :: source    ! neutral particle source
 
     if(ikprad.ne.1) return
 
@@ -321,17 +321,17 @@ contains
        call define_element_quadrature(itri,int_pts_main,5)
        call define_fields(itri,def_fields,1,0)
 
-       if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) then
-          source = pellet_deposition(x_79, phi_79, z_79, pt79(:,OP_1), &
-               net79(:,OP_1), 0.)
-       end if
-
        ! evaluate impurity density
        do i=0, kprad_z
           call eval_ops(itri, kprad_n(i), ph079, rfac)
           nz(:,i) = ph079(:,OP_1)
        end do
        ne = net79(:,OP_1)
+
+       if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) then
+          p = pt79(:,OP_1)
+          source = pellet_deposition(x_79, phi_79, z_79, p, ne, 0.)
+       end if
 
        where(nz.lt.0.) nz = 0.
        where(ne.lt.0.) ne = 0.
