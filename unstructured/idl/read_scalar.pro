@@ -306,6 +306,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Maximum Te!6'
        symbol = '!6max[!8T!De!N!6]!X'
        d = dimensions(/temp,_EXTRA=extra)
+   endif else if (strcmp("POhm", scalarname, /fold_case) eq 1) then begin
+       data = s.e_mpd._data + s.e_mtd._data
+       title = '!6Ohmic Heating!6'
+       symbol = '!8P!D!6ohm!N!X'
+       d = dimensions(/p0,t0=-1,l0=3,_EXTRA=extra)
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)
