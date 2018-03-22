@@ -21,7 +21,7 @@ public:
   m3dc1_field (int i, const char* str, int n, int t, int ndof);
   ~m3dc1_field();
   int get_id() { return id; }
-  std::string get_name() { return name; }
+  const std::string & get_name() { return name; }
   apf::Field * get_field() { return fld;}
   apf::Numbering * get_global_numbering() { return num; }
   int get_num_value() { return num_value; }

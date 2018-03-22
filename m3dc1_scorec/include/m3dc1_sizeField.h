@@ -21,7 +21,7 @@ using namespace std;
 class SizeFieldError : public ma::IsotropicFunction
 {
   public:
-    SizeFieldError(ma::Mesh* m, apf::Field* f, double targetError_p): mesh(m), field(f), targetError(targetError_p) {}
+    SizeFieldError(ma::Mesh* m, apf::Field* f): mesh(m), field(f) {}
     virtual double getValue( ma::Entity* v)
     {
       double value;
@@ -53,7 +53,6 @@ class SizeFieldError : public ma::IsotropicFunction
   private:
     ma::Mesh* mesh;
     apf::Field* field;
-    double targetError;
 };
 class SizeFieldPsi : public ma::AnisotropicFunction
 {

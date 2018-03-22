@@ -114,7 +114,8 @@ void m3dc1_field_getnewid (FieldID* /*out*/ fid);
 void m3dc1_field_create (FieldID* /*in*/ fid, const char* /* in */ field_name, int* num_values, int* value_type, int* num_dofs_per_value);
 void m3dc1_field_delete (FieldID* /*in*/ fid);
 
-void m3dc1_field_getinfo(FieldID* /*in*/ fid, char* /* out*/ field_name, int* num_values, int* value_type, int* total_num_dof);
+const char * m3dc1_field_getname(FieldID* fid);
+void m3dc1_field_getinfo(FieldID* /*in*/ fid, int* num_values, int* value_type, int* total_num_dof);
 
 void m3dc1_field_exist(FieldID* fid, int * exist);//checkppplveccreated_
 void m3dc1_field_sync (FieldID* /* in */ fid); // updatesharedppplvecvals_;

@@ -30,8 +30,8 @@ std::map<int, int> edgeType;
 std::map<int, std::vector<double> > vtxContainer;
 std::vector<void*> data2Clean;
 void interpolateCubicBSpline( vector<double>& points,vector<double>& knots, vector<double> &ctrlPoints, int bc);
-void faceFunction(double const p[2], double x[3], void * data) {}
-void vertexFunction(double const p[2], double x[3], void * data) {}
+void faceFunction(double const[2], double[3], void * ) {}
+void vertexFunction(double const[2], double[3], void *) {}
 
 // **********************************************
 void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer, 
@@ -42,8 +42,8 @@ void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer,
 {
   // copying vtxContainer
   for(std::map<int, vector<double> >:: iterator it=vtxContainer.begin(); it!=vtxContainer.end(); ++it)
-    for (int i=0; i<it->second.size(); ++i)
-      out_vtxContainer[it->first].push_back(it->second[i]);
+    for (size_t ii=0; ii<it->second.size(); ++ii)
+      out_vtxContainer[it->first].push_back(it->second[ii]);
 
   // copying edgeType
   for( std::map<int, int>::iterator it=edgeType.begin(); it!=edgeType.end(); it++)
@@ -55,8 +55,8 @@ void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer,
 
   // copying loopContainer
   for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); ++it)
-    for (int i=0; i<it->second.size(); ++i)
-      out_loopContainer[it->first].push_back(it->second[i]);
+    for (size_t ii=0; ii<it->second.size(); ++ii)
+      out_loopContainer[it->first].push_back(it->second[ii]);
 }
 
 // **********************************************
@@ -93,9 +93,9 @@ m3dc1_model::m3dc1_model()
 m3dc1_model::~m3dc1_model()
 {
   delete [] phi;
-  for(int i=0; i<data2Clean.size(); i++)
+  for(size_t ii=0; ii<data2Clean.size(); ii++)
   {
-    M3DC1::Expression** ptr=(M3DC1::Expression**)data2Clean.at(i);
+    M3DC1::Expression** ptr=(M3DC1::Expression**)data2Clean.at(ii);
     delete ptr[0];
     delete ptr[1];
     delete [] ptr;
@@ -118,7 +118,7 @@ void edgeFunction(double const p[2], double *xyz, void*  data)
 }
 
 // **********************************************
-void reparam_zero(double const from[2], double to[2], void*)
+void reparam_zero(double const[2], double to[2], void*)
 // **********************************************
 {
   to[0] = 0;
@@ -126,7 +126,7 @@ void reparam_zero(double const from[2], double to[2], void*)
 }
 
 // **********************************************
-void reparam_one(double const from[2], double to[2], void*)
+void reparam_one(double const[2], double to[2], void*)
 // **********************************************
 {
   to[0] = 1;
@@ -457,7 +457,7 @@ void attach_piecewise_linear_curve ( int* edge, int * numPts, double * points)
 }
 
 // **********************************************
-void attach_b_spline_curve( int* edge, int * order, int* numPts, double* ctrlPts, double * knots, double* weight)
+void attach_b_spline_curve( int* edge, int * order, int* numPts, double* ctrlPts, double * knots, double* )
 // **********************************************
 {
   edgeType[*edge]=BSPLINE;
@@ -624,7 +624,7 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
       af_org_vec.push_back(af_org);
       set_gent_tag(model, af_org, af_org_tag);
 
-      for(int iedge=0; iedge<loopContainer[iloop].size(); iedge++)
+      for(size_t iedge=0; iedge<loopContainer[iloop].size(); iedge++)
       {
         int edgeTag=loopContainer[iloop].at(iedge);
         gmi_ent* ae_org = gmi_find (model, 1,edgeTag); 
@@ -901,10 +901,10 @@ void interpolateCubicBSpline( vector<double>& points,vector<double>& knots, vect
     {
       double para=knots.at(order_p+j-1);
       double res= basis.eval(para);
-      double secondDeriv0=basis.evalSecondDeriv(0);
-      double secondDeriv1=basis.evalSecondDeriv(1);
+      //double secondDeriv0=basis.evalSecondDeriv(0);
+      //double secondDeriv1=basis.evalSecondDeriv(1);
       coeffs.at(i*(numPts+2)+j)=res;
-    } 
+    }
     double secondDeriv0=basis.evalSecondDeriv(0);
     double secondDeriv1=basis.evalSecondDeriv(1);
     if(bc==0) // natural
@@ -1135,7 +1135,7 @@ gmi_ent* create_model_vertex( int id, double* xyz)
 }
 
 // **********************************************
-gmi_ent* create_b_spline_curve( int id, int order, int numPts, double* ctrlPts, double * knots, double* weight)
+gmi_ent* create_b_spline_curve( int id, int order, int numPts, double* ctrlPts, double * knots, double*)
 // **********************************************
 {
   edgeType[id]=BSPLINE;

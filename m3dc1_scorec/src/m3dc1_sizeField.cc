@@ -13,7 +13,7 @@
 void SizeFieldPsi :: getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& h)
 {
   //cout<<" getValue "<<endl;
-  double xyz[3], norm1[3], norm;
+  double norm;
   double hbar[3];
   double fldval;
   double psibar;

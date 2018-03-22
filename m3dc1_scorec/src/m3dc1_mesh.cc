@@ -17,6 +17,7 @@
 #include "apfNumbering.h"
 #include "apfShape.h"
 #include "PCU.h"
+#include <pumi.h>
 #include <vector>
 #include <set>
 #include <string.h>
@@ -195,9 +196,9 @@ int get_ent_localid (Mesh2* mesh, MeshEntity* e)
 {
   if (mesh->hasTag(e,m3dc1_mesh::instance()->local_entid_tag))
   {
-    int local_id;
+    int local_id = -1;
     mesh->getIntTag(e, m3dc1_mesh::instance()->local_entid_tag, &local_id);
-    assert(local_id== getMdsIndex(mesh, e));
+    //assert(local_id== getMdsIndex(mesh, e));
   }
   return getMdsIndex(mesh, e);
 }
@@ -220,7 +221,6 @@ m3dc1_mesh::m3dc1_mesh()
 {
   mesh = NULL;
   ments=NULL;
-  field_container=NULL;
   reset();
   local_entid_tag=num_global_adj_node_tag=num_own_adj_node_tag=NULL;
 }
@@ -232,20 +232,15 @@ m3dc1_mesh::~m3dc1_mesh()
 
 void m3dc1_mesh::clean()
 {
- // destroy field AND numbering
-  if (field_container)
+  // destroy field AND numbering
+  for(auto fld = field_container.begin(); fld != field_container.end();)
   {
-    for (std::map<FieldID, m3dc1_field*>::iterator f_it=field_container->begin(); f_it!=field_container->end();)
-    {
-      if (!PCU_Comm_Self()) std::cout<<" destroy field "<<f_it->second->get_name()<<std::endl;
-      FieldID id = f_it->first;
-      std::map<FieldID, m3dc1_field*>::iterator it_next=++f_it;
-      m3dc1_field_delete(&id);
-      f_it=it_next;
-    }
+    if (!PCU_Comm_Self()) std::cout<<" destroy field "<<fld->second->get_name()<<std::endl;
+    FieldID id = fld->first;
+    std::map<FieldID, m3dc1_field*>::iterator it_next=++fld;
+    m3dc1_field_delete(&id);
+    fld=it_next;
   }
-  delete field_container;
-  field_container=0;
 
   // destroy tag data
   for (int d=0; d<4; ++d)
@@ -319,14 +314,13 @@ void push_new_entities (Mesh2* mesh, std::map<MeshEntity*, MeshEntity*>& new_ent
     }
   }
 }
-
-
-// **********************************************
-void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int rank_to,
+void bounce_orig_entities(Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int rank_to,
     MeshEntity** remote_vertices, MeshEntity** remote_edges, MeshEntity** remote_faces)
-// **********************************************
 {
-  MeshEntity* e;
+  (void)remote_vertices;
+  (void)remote_edges;
+  (void)remote_faces;
+  MeshEntity * e = NULL;
   PCU_Comm_Begin();
   int num_remote, index, own_partid, myrank = PCU_Comm_Self();
   for (std::vector<MeshEntity*>::iterator ent_it=mesh_ents.begin(); ent_it!=mesh_ents.end();++ent_it)
@@ -386,15 +380,11 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
     }
   }
 }
-
-// *********************************************************
 void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
                            std::map<int, MeshEntity*>* partbdry_entities)
-// *********************************************************
 {
   int proc_grp_rank = PCU_Comm_Self()/m3dc1_model::instance()->group_size;
   int proc_grp_size = m3dc1_model::instance()->group_size;
-  int myrank = PCU_Comm_Self();
   int num_ent, num_remote, own_partid;
   MeshEntity* new_ent;
   gmi_ent* geom_ent;
@@ -467,16 +457,13 @@ void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
     } // while ( ! PCU_Comm_Unpacked())
   } // while (PCU_Comm_Listen())
 }
-
-// *********************************************************
 void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, MeshEntity*>* partbdry_entities)
-// *********************************************************
 {
   int myrank=PCU_Comm_Self();
   int proc_grp_rank = myrank/m3dc1_model::instance()->group_size;
   int proc_grp_size = m3dc1_model::instance()->group_size;
 
-  int num_ent, num_remote, own_partid;
+  int num_ent, num_remote;
   MeshEntity* new_ent;
   gmi_ent* geom_ent;
   Downward down_ent;
@@ -1309,6 +1296,7 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     destroyNumbering(local_n);
 
   // re-create the field and copy field data on master process group to non-master
+  // why is this not applied to all fields? TODO
   for (int i=0; i<num_field; ++i)
     update_field(field_id[i], num_dofs_per_value[i], num_local_vtx, remote_vertices);
 
@@ -1356,13 +1344,12 @@ void m3dc1_mesh::initialize()
   MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, PCU_Get_Comm());
   set_node_adj_tag();
 }
-
-
-// *********************************************************
 void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remote_edges, MeshEntity** remote_faces,
     std::vector<MeshEntity*>& btw_plane_edges, std::vector<MeshEntity*>& btw_plane_faces, std::vector<MeshEntity*>& btw_plane_regions)
-// *********************************************************
 {
+  (void)remote_vertices;
+  (void)remote_edges;
+  (void)remote_faces;
   int num_orig_vtx = num_local_ent[0];
   int num_orig_edge = num_local_ent[1];
   int num_orig_face = num_local_ent[2];
@@ -1392,21 +1379,19 @@ void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remo
 
 // upon  mesh modification, update field wrt memory for dof data and numbering
 // and rebuild the existing dof data in updated field.
-// *********************************************************
-void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices)
-// *********************************************************
+void update_field (int fid, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices)
 {
-  char f_name[100];
   int num_values, scalar_type, old_numdof;
-  m3dc1_field_getinfo (&field_id, f_name, &num_values, &scalar_type, &old_numdof);
+  const char * fnm = m3dc1_field_getname(&fid);
+  m3dc1_field_getinfo (&fid, &num_values, &scalar_type, &old_numdof);
 
   // get the field info and save it for later creation
-  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[field_id];
+  m3dc1_field * mf = m3dc1_mesh::instance()->get_field(fid);
   //int nv=mf->get_num_value();
   //double** dof_val = new double*[nv];
   //double** recv_dof_val = new double*[nv];
 
-  apf::Field* f;
+  apf::Field * f = NULL;
 
   // copy the existing dof data
   int old_total_ndof = apf::countComponents(mf->get_field());
@@ -1441,19 +1426,20 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
   }
 
   // delete the field
-  m3dc1_field_delete(&field_id);
+  m3dc1_field_delete(&fid);
+  mf = NULL;
 
   // create the field with same attributes
-  m3dc1_field_create (&field_id, f_name, &num_values, &scalar_type, &ndof_per_value);
+  m3dc1_field_create (&fid, fnm, &num_values, &scalar_type, &ndof_per_value);
+  mf = m3dc1_mesh::instance()->get_field(fid);
 
   // re-construct the dof data
-  f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
+  f = mf->get_field();
   int new_total_ndof = apf::countComponents(f);
   double * dof_data = new double[new_total_ndof];
   memset(&dof_data[0],0,sizeof(double)*new_total_ndof);
   if (!m3dc1_model::instance()->local_planeid)
   {
-    f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
     for (int index = 0; index < num_2d_vtx; ++index)
     {
       memcpy(&dof_data[0],&dof_val[index*old_total_ndof],sizeof(double)*old_total_ndof);
@@ -1464,7 +1450,6 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
   }
   else
   {
-    f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
     for (int index=0; index<recv_num_ent; ++index)
     {
       memcpy(&dof_data[0], &recv_dof_val[index*old_total_ndof],sizeof(double)*old_total_ndof);
@@ -1702,9 +1687,7 @@ void m3dc1_mesh::set_node_adj_tag()
   }
 }
 
-// *********************************************************
 void m3dc1_mesh::print(int LINE)
-// *********************************************************
 {
 
   std::cout<<"[M3D-C1 INFO] (p"<<PCU_Comm_Self()<<") "<<__func__<<" L" <<LINE
@@ -1749,3 +1732,98 @@ void m3dc1_mesh::print(int LINE)
   PUMI_PartEntIter_Del(face_iter);
 */
 }
+void send_dof(pMesh m, pMeshEnt e, pField f)
+{
+  void* msg_send;
+  pMeshEnt* s_ent;
+  size_t msg_size;
+  double dof_data[FIXSIZEBUFF];
+  getComponents(f, e, 0, dof_data);
+  int n=countComponents(f);
+  msg_size=sizeof(pMeshEnt)+n*sizeof(double);
+  Copies remotes;
+  m->getRemotes(e,remotes);
+  APF_ITERATE(Copies,remotes,rit)
+  {
+    int to = rit->first;
+    msg_send = malloc(msg_size);
+    s_ent = (pMeshEnt*)msg_send;
+    *s_ent = rit->second;
+    double* s_data = (double*)((char*)msg_send+sizeof(pMeshEnt));
+    for (int pos=0; pos<n; ++pos)
+      s_data[pos]=dof_data[pos];
+    PCU_Comm_Write(to, (void*)msg_send, msg_size);
+    free(msg_send);
+  }
+  if (m->isGhosted(e))
+  {
+    Copies g;
+    m->getGhosts(e, g);
+    APF_ITERATE(Copies, g, it)
+    {
+      int to = it->first;
+      msg_send = malloc(msg_size);
+      s_ent = (pMeshEnt*)msg_send;
+      *s_ent = it->second;
+      double* s_data = (double*)((char*)msg_send+sizeof(pMeshEnt)+sizeof(int));
+      for (int pos=0; pos<n; ++pos)
+        s_data[pos]=dof_data[pos];
+      PCU_Comm_Write(to, (void*)msg_send, msg_size);
+      free(msg_send);
+    }
+  } //if (m->isGhosted(e))
+}
+int receive_dof(pField f)
+{
+  void *msg_recv;
+  int pid_from;
+  size_t msg_size;
+  pMeshEnt e;
+  int res=0;
+  while(PCU_Comm_Read(&pid_from, &msg_recv, &msg_size))
+  {
+    e = *((pMeshEnt*)msg_recv);
+    int n=countComponents(f);
+    double* r_values = (double*)((char*)msg_recv+sizeof(pMeshEnt));
+    int num_data = (msg_size-sizeof(pMeshEnt))/sizeof(double);
+    assert(n==num_data);
+    double dof_data[FIXSIZEBUFF];
+    getComponents(f, e, 0, dof_data);
+    for (int i=0; i<n; ++i)
+    {
+      if (dof_data[i]!=r_values[i])
+      {
+        res=1;
+        break;
+      }
+    }
+  } // while
+  return res;
+}
+void verify_field(pMesh m, pField f)
+{
+  PCU_Comm_Begin();
+  pMeshIter it = m->begin(0);
+  pMeshEnt e;
+  while ((e = m->iterate(it)))
+  {
+    if (is_ent_original(m, e) && (m->isShared(e) || m->isGhosted(e)))
+      send_dof(m, e, f);
+  }
+  m->end(it);
+  PCU_Comm_Send();
+  int mismatch = receive_dof(f);
+
+  int global_mismatch = PCU_Max_Int(mismatch);
+  if (global_mismatch)
+  {
+    if (!PCU_Comm_Self())
+      std::cout<<": failed\n";
+  }
+  else
+  {
+    if (!PCU_Comm_Self())
+      std::cout<<": passed\n";
+  }
+}
+

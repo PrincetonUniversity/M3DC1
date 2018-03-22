@@ -31,6 +31,7 @@ m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
   fld = apf::createPackedField(m3dc1_mesh::instance()->mesh, str, n_components);
   num = apf::createNumbering(fld);
   apf::freeze(fld);
+  apf::zeroField(fld);
   aggregateNumbering(MPI_COMM_SELF,num,nv,ndof);
   // freeze the numbering
   /*
@@ -101,8 +102,8 @@ void set_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data)
 }
 
 
-//=========================================================================
-void load_field(apf::Mesh2* m, int field_id, const char* filename)
+// TODO : why pass in an apf mesh if we're going to use the m3dc1_mesh anyway?
+void load_field(apf::Mesh2 * m, int fid, const char* filename)
 {
   std::string in(filename);
   std::stringstream s;
@@ -121,11 +122,9 @@ void load_field(apf::Mesh2* m, int field_id, const char* filename)
   fscanf(fp, "%s %d %d %d %d\n", field_name, &nv, &vt, &nd, &start_index);
   std::cout<< field_name <<" "<<nv<<" "<<vt<<" "<<nd<<" "<<start_index<<"\n";
 
-  if (m3dc1_mesh::instance()->field_container)
-    assert(m3dc1_mesh::instance()->field_container->count(field_id)==0);
-
-  m3dc1_field_create (&field_id, field_name, &nv, &vt, &nd);
-  m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[field_id];
+  assert(!m3dc1_mesh::instance()->field_exists(fid));
+  m3dc1_field_create(&fid, field_name, &nv, &vt, &nd);
+  m3dc1_field * mf = m3dc1_mesh::instance()->get_field(fid);
   assert(mf->get_num_value()==nv && mf->get_dof_per_value()==nd && mf->get_value_type()==vt);
 
   int num_dof=mf->get_num_value()*mf->get_dof_per_value();

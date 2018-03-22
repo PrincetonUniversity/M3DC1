@@ -21,11 +21,12 @@ using namespace std;
 class ReducedQuinticTransfer : public ma::SolutionTransfer
 {
   public:
-    ReducedQuinticTransfer(apf::Mesh* m, vector<apf::Field*>& fds, ReducedQuintic* shape): mesh(m), fields(fds), thecase(shape)
+    ReducedQuinticTransfer(apf::Mesh* m, vector<apf::Field*>& fds, ReducedQuintic* shape)
+      : fields(fds), mesh(m), thecase(shape)
     {
       int maxComp=0;
-      for(int i=0; i<fds.size(); i++)
-        maxComp=max(maxComp,apf::countComponents(fds.at(i)));
+      for(size_t ii=0; ii < fds.size(); ii++)
+        maxComp=max(maxComp,apf::countComponents(fds.at(ii)));
       value.allocate(6*maxComp);
     }
     virtual void onVertex(

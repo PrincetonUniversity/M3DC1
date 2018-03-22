@@ -170,7 +170,7 @@ int main(int argc, char * argv[])
   {
     int field_13;
     m3dc1_field_load(&field_13, argv[4]);
-    m3dc1_field* mf = (*(m3dc1_mesh::instance()->field_container))[field_13];
+    m3dc1_field* mf = m3dc1_mesh::instance()->get_field(field_13);
     write_field(m3dc1_mesh::instance()->mesh, mf, argv[5], 0);
     m3dc1_field_delete(&field_13);
   }
