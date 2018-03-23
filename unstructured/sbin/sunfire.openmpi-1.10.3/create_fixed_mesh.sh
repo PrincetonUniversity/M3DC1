@@ -1,7 +1,5 @@
 #!/bin/bash
 
-SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/utilities/m3dc1_meshgen/
-
 echo "!simVer: 0   - the latest SimModeler (5.0 as of 06/15/16)" > input
 echo "!        100 - SimModeler 5.0" >> input
 echo "!        90  - SimModeler 4.0" >> input
@@ -25,4 +23,4 @@ echo "! If adjustVacuumParams=1, using SimModeler for further meshing is not sup
 echo "adjustVacuumParams 0" >> input
 echo "vacuumFactor  6.28319" >> input
 
-$SCOREC_DIR/m3dc1_meshgen input
+m3dc1_meshgen input
