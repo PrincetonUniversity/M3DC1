@@ -12,6 +12,7 @@ contains
     use pellet
     use arrays
     use kprad_m3dc1
+        use init_common
 
     implicit none
 
@@ -178,6 +179,7 @@ contains
        irestart = 0
        call hdf5_finalize(error)
        call hdf5_initialize(.false., error)
+       call init_perturbations
     end if
   end subroutine rdrestart_hdf5
 

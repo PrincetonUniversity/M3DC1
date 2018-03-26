@@ -4240,13 +4240,18 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
            r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
         end if
      else
-        if(total_pressure) then
-           ! Ion temperature
-           r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
+        if(ipres.eq.0) then
+           ! Ion + Electron temperature
+           r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)
         else
-           ! Electron temperature
-           r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
-           r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
+           if(total_pressure) then
+             ! Ion Temperature
+             r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
+           else
+             ! Electron temperature
+             r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
+             r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
+           endif
         end if
      end if
   end if
