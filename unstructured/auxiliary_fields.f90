@@ -151,13 +151,9 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
      call define_fields(itri, 0, 1, 0, ieqsub)
 
      call eval_ops(itri, ne, ne179, rfac)
-     call eval_ops(itri, nion, n179,  rfac)
+     call eval_ops(itri, nion, n179, rfac)
      call eval_ops(itri, te, te179, rfac)
-     if(ipres.eq.1) then
-        call eval_ops(itri, ti, ti179, rfac)
-     else
-        ti179 = te179*(1.-pefac)/pefac
-     end if
+     call eval_ops(itri, ti, ti179, rfac)
      if(ieqsub.eq.1 .and. ilin.eq.1) then
         call eval_ops(itri, ne_field(0), ne079, rfac)
         call eval_ops(itri, den_field(0), n079, rfac)
