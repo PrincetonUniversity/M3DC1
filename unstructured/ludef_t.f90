@@ -3215,6 +3215,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
+  if(iohmic_heating.eq.1) then
   if(linear.eq.0) then
      tempx = b3psipsieta(trialx,lin,ps179,eta79) &
           + b3psipsieta(trialx,ps179,lin,eta79)
@@ -3282,6 +3283,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         endif
      end if
   endif
+  end if
 
 
   ! Pressure Advection
@@ -3784,6 +3786,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   if(electron_temperature) then
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
+  if(iohmic_heating.eq.1) then
     if(linear.eq.0) then
        tempx = b3psipsieta(trialx,lin,ps179,eta79) &
             + b3psipsieta(trialx,ps179,lin,eta79)
@@ -3851,6 +3854,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
           endif
        end if
     endif
+   end if
   endif
 
 

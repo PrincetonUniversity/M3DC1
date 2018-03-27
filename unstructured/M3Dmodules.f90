@@ -275,6 +275,7 @@ module basic
   integer :: kinetic     ! 1 = use kinetic PIC hot ion pressure tensor
                          ! 2 = CGL form for the pressure tensor (incompressible)
                          ! 3 = CGL form for pressure tensor (full)
+  integer :: iohmic_heating  ! 1 = include ohmic heating
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
