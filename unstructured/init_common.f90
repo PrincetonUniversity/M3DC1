@@ -135,8 +135,6 @@ subroutine init_perturbations
   integer :: itri, numelms, i, izone, imr
   vectype, dimension(dofs_per_element) :: dofs
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations'
-
   call create_field(psi_vec)
   call create_field(phi_vec)
 
@@ -144,6 +142,8 @@ subroutine init_perturbations
   phi_vec = 0.
 
   numelms = local_elements()
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations', numelms
   do itri=1,numelms
      call get_zone(itri, izone)
 
