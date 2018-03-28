@@ -1054,7 +1054,9 @@ subroutine step_split(calc_matrices)
      pret_vec = temp
      call destroy_vector(temp)
      call destroy_vector(temp2)
-     call calculate_pressures(1, pe_v, p_v, ne_field(1), den_v, te_v, ti_v, eqsubtract)
+     call export_time_advance_vectors_split
+     call calculate_pressures(1, pe_v, p_v, ne_field(1), &
+          den_field(1), te_field(1), ti_field(1), eqsubtract)
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--end"
   endif
 

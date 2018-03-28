@@ -336,6 +336,8 @@ subroutine set_defaults
   call add_var_int("nosig", nosig, 0, "", model_grp)
   call add_var_int("itor", itor, 0, &
        "1: Use toroidal geometry", model_grp)
+  call add_var_int("iohmic_heating", iohmic_heating, 1, &
+       "1: Include Ohmic heating", model_grp)
 
   call add_var_double("gravr", gravr, 0., "", model_grp)
   call add_var_double("gravz", gravz, 0., "", model_grp)
