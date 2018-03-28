@@ -1,11 +1,8 @@
 /******************************************************************************
-
   (c) 2005-2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
-
 *******************************************************************************/
 #ifdef M3DC1_PETSC
 #ifndef M3DC1_SOLVER_H
@@ -18,9 +15,7 @@
 #include <cassert>
 #include <vector>
 #include <ostream>
-
 void las_init(int * argc, char ** argv[], MPI_Comm cm);
-
 class m3dc1_matrix;
 class m3dc1_mesh;
 // the mat has the field implicitly, should make it explicit
@@ -30,7 +25,7 @@ void printMemStat();
 class m3dc1_matrix
 {
 public:
-  m3dc1_matrix(int i, int s, m3dc1_field * f);
+  m3dc1_matrix(int i, int s, m3dc1_mesh * msh,  m3dc1_field * f, MPI_Comm cm);
   ~m3dc1_matrix();
   void add_values(int rsize, int * rows, int csize, int * cols, double * vals);
   void set_values(int rsize, int * rows, int csize, int * cols, double * vals);
@@ -44,11 +39,13 @@ public:
   int printInfo();
   int get_block_size() { return blk_sz; }
   void add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cls, double * vals);
+  int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
   int is_parallel() { return is_par; }
   void solve(m3dc1_field * rhs);
   int solve_iteration_count();
   void multiply(m3dc1_field * in, m3dc1_field * out);
 protected:
+  MPI_Comm cm;
   Mat A;
   Vec x;
   Vec b;
@@ -60,21 +57,6 @@ protected:
   int is_par;
   int blk_sz;
 };
-
-class matrix_mult : public m3dc1_matrix
-{
-public:
-  matrix_mult(int i, int s, m3dc1_field * fld);
-};
-
-class matrix_solve: public m3dc1_matrix
-{
-public:
-  matrix_solve(int i, int s, m3dc1_field * fld);
-  int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
-  void reset_values();
-};
-
 class m3dc1_solver
 {
 public:
@@ -104,6 +86,5 @@ private:
   std::map<int, m3dc1_matrix*> matrix_container;
   static m3dc1_solver * _instance;
 };
-
 #endif
 #endif //#ifndef M3DC1_MESHGEN

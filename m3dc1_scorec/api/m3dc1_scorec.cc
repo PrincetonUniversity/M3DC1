@@ -1645,16 +1645,9 @@ void m3dc1_matrix_create(int * mid, int * matrix_type, int * scalar_type, FieldI
 {
   m3dc1_mesh * msh = m3dc1_mesh::instance();
   m3dc1_field * fld = msh->get_field(*fid);
-  if (*matrix_type==M3DC1_MULTIPLY) // matrix for multiplication
-  {
-    matrix_mult* new_mat = new matrix_mult(*mid, *scalar_type, fld);
-    m3dc1_solver::instance()->add_matrix(*mid, (m3dc1_matrix*)new_mat);
-  }
-  else
-  {
-    matrix_solve* new_mat= new matrix_solve(*mid, *scalar_type, fld);
-    m3dc1_solver::instance()->add_matrix(*mid, (m3dc1_matrix*)new_mat);
-  }
+  MPI_Comm cm = *matrix_type == M3DC1_MULTIPLY ? MPI_COMM_SELF : *matrix_type == M3DC1_SOLVE ? M3DC1_COMM_WORLD : MPI_COMM_NULL;
+  m3dc1_matrix * mat = new m3dc1_matrix(*mid,*scalar_type,msh,fld,cm);
+  m3dc1_solver::instance()->add_matrix(*mid, (m3dc1_matrix*)mat);
 }
 void m3dc1_matrix_assemble(int * mid)
 {

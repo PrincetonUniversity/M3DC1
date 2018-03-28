@@ -138,62 +138,6 @@ void printMemStat()
   PetscMemoryGetMaximumUsage(&mem_max);
   std::cout<<"\tMemory usage (MB) reported by PetscMemoryGetCurrentUsage: Rank "<<PCU_Comm_Self()<<" current "<<mem/1e6<<std::endl;
 }
-/*
-int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
-{
-  m3dc1_mesh * msh = m3dc1_mesh::instance(); // external var
-  apf::Mesh2 * m = msh->mesh;
-  int num_own_ent= msh->num_own_ent[0]; //assumes only verts have dofs
-  int num_own_dof=0;
-  int vertex_type=0;
-  m3dc1_field_getnumowndof(&field_id, &num_own_dof);
-  int dofPerEnt=0;
-  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
-  int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec);
-  CHKERRQ(ierr);
-  VecAssemblyBegin(petscVec);
-  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
-  double dof_data[FIXSIZEBUFF];
-  assert(sizeof(dof_data)>=dofPerEnt*2*sizeof(double));
-  int nodeCounter=0;
-  apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; inode++)
-  {
-    ent = getMdsEntity(m,vertex_type,inode);
-    if (!is_ent_original(m,ent)) continue;
-      nodeCounter++;
-    int num_dof;
-    m3dc1_ent_getdofdata (&vertex_type, &inode, &field_id, &num_dof, dof_data);
-    assert(num_dof*(1+scalar_type) <=sizeof(dof_data)/sizeof(double));
-    int start_global_dof_id, end_global_dof_id_plus_one;
-    // FIXME: for blocked DOF's
-    m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
-    int startIdx=0;
-    for (int i=0; i<dofPerEnt; i++)
-    {
-      PetscScalar value;
-      if (scalar_type == M3DC1_REAL) value = dof_data[startIdx++];
-      else
-      {
-#ifdef PETSC_USE_COMPLEX
-        value = complex<double>(dof_data[startIdx*2],dof_data[startIdx*2+1]);
-#else
-        if (!PCU_Comm_Self())
-          std::cout<<"[M3DC1 ERROR] "<<__func__<<": PETSc is not configured with --with-scalar-type=complex\n";
-        abort();
-#endif
-        startIdx++;
-      }
-      ierr = VecSetValue(petscVec, start_global_dof_id+i, value, INSERT_VALUES);
-      CHKERRQ(ierr);
-    }
-  }
-  assert(nodeCounter==num_own_ent);
-  ierr=VecAssemblyEnd(petscVec);
-  CHKERRQ(ierr);
-  return M3DC1_SUCCESS;
-}
-*/
 void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 {
   bool lcl = cm == MPI_COMM_SELF;
@@ -237,62 +181,6 @@ void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
   delete [] dof_ids;
   delete [] dof_data;
 }
-/*
-int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->get_mesh();
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0],num_own_dof=0, vertex_type=0;
-  // FIXME: do not use API
-  m3dc1_field_getnumowndof(&field_id, &num_own_dof);
-  int dofPerEnt=0;
-  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
-  std::vector<PetscInt> ix(dofPerEnt);
-  std::vector<PetscScalar> values(dofPerEnt);
-  std::vector<double> dof_data(dofPerEnt*(1+scalar_type));
-  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
-  int ierr;
-  apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; inode++)
-  {
-    ent = getMdsEntity(m, vertex_type,inode);
-    if (!is_ent_original(m, ent)) continue;
-    int start_global_dof_id, end_global_dof_id_plus_one;
-    // FIXME: for blocked DOF's
-    m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
-    int startIdx = start_global_dof_id;
-    for (int i=0; i<dofPerEnt; i++)
-      ix.at(i)=startIdx+i;
-    ierr=VecGetValues(petscVec, dofPerEnt, &ix[0], &values[0]); CHKERRQ(ierr);
-    startIdx=0;
-    for (int i=0; i<dofPerEnt; i++)
-    {
-      if (scalar_type == M3DC1_REAL)
-      {
-#ifdef PETSC_USE_COMPLEX
-        dof_data.at(startIdx++)= values.at(i).real();
-#else
-        dof_data.at(startIdx++)= values.at(i);
-#endif
-      }
-      else
-      {
-#ifdef PETSC_USE_COMPLEX
-        dof_data.at(2*startIdx)=values.at(i).real();
-        dof_data.at(2*startIdx+1)=values.at(i).imag();
-        startIdx++;
-#else
-        if (!PCU_Comm_Self())
-          std::cout<<"[M3DC1 ERROR] "<<__func__<<": PETSc is not configured with --with-scalar-type=complex\n";
-        abort();
-#endif
-      }
-    }
-    m3dc1_ent_setdofdata (&vertex_type, &inode, &field_id, &dofPerEnt, &dof_data[0]);
-  }
-  m3dc1_field_sync(&field_id);
-  return M3DC1_SUCCESS;
-}
-*/
 void vec2Field(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 {
   bool lcl = cm == MPI_COMM_SELF;
@@ -344,17 +232,58 @@ m3dc1_solver* m3dc1_solver::instance()
     _instance = new m3dc1_solver();
   return _instance;
 }
-m3dc1_matrix::m3dc1_matrix(int i, int s, m3dc1_field * f)
-  : id(i)
+m3dc1_matrix::m3dc1_matrix(int i, int s, m3dc1_mesh * msh, m3dc1_field * f, MPI_Comm c)
+  : cm(c)
+  , A()
+  , x()
+  , b()
+  , ksp()
+  , id(i)
   , scalar_type(s)
   , fixed(false)
   , fld(f)
-{ }
+  , is_par(c != MPI_COMM_SELF)
+  , blk_sz(0)
+{
+  const char * mat_tps[][2] = { {MATSEQAIJ, MATSEQBAIJ}, {MATMPIAIJ, MATMPIBAIJ} };
+  bool is_par = cm != MPI_COMM_SELF;
+  size_t num_ent[2] = { msh->get_mesh()->count(0), (size_t)apf::countOwned(msh->get_mesh(),0) }; // assumes that only verts hold dofs
+  int blk_sz = fld->get_dof_per_value();
+  int dof_per_ent = fld->get_num_value() * blk_sz;
+  int num_lcl_dof = num_ent[is_par] * dof_per_ent;
+  MatCreate(cm,&A);
+  const char * mat_tp = mat_tps[is_par][blk_sz > 1];
+  MatSetType(A,mat_tp);
+  MatSetSizes(A,num_lcl_dof,num_lcl_dof,PETSC_DETERMINE,PETSC_DETERMINE);
+  MatSetBlockSize(A,blk_sz);
+  // call preallocate
+  allocateMatrix(A,msh,fld);
+  //MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
+  if(!(blk_sz-1)) // only supported for AIJ not BAIJ
+    MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
+  MatCreateVecs(A,&x,&b);
+#ifdef DEBUG
+  if(!PCU_Comm_Self())
+    describeMatrix(A);
+#endif
+  KSPCreate(cm,&ksp);
+  KSPSetOperators(ksp,A,A);
+  KSPSetTolerances(ksp,0.000001, 0.00000001, PETSC_DEFAULT, 1000);
+  if(msh->get_mesh()->getDimension() == 2)
+  {
+    KSPSetType(ksp,KSPPREONLY);
+    PC pc;
+    KSPGetPC(ksp,&pc);
+    PCSetType(pc,PCLU);
+    PCFactorSetMatSolverPackage(pc,MATSOLVERSUPERLU_DIST);
+  }
+  KSPSetFromOptions(ksp);
+}
 m3dc1_matrix::~m3dc1_matrix()
 {
   MatDestroy(&A);
 }
-inline void m3dc1_matrix::add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cols, double * vals)
+void m3dc1_matrix::add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cols, double * vals)
 {
   MatSetValuesBlocked(A,blk_rw_cnt,blk_rws,blk_col_cnt,blk_cols,vals,ADD_VALUES);
 }
@@ -420,31 +349,6 @@ int m3dc1_matrix::printInfo()
   std::cout<<"\t nstash, reallocs, bnstash, breallocs "<<nstash<<" "<<reallocs<<" "<<bnstash<<" "<<breallocs<<std::endl;
   return M3DC1_SUCCESS;
 }
-matrix_mult::matrix_mult(int i , int s, m3dc1_field * f)
-  : m3dc1_matrix(i,s,f)
-{
-  is_par = 0;
-  m3dc1_mesh * msh = m3dc1_mesh::instance(); //external variable, pass in or use field
-  int num_ent = msh->get_mesh()->count(0); // assumes that only verts hold dofs
-  int blk_sz = fld->get_dof_per_value();
-  int dof_per_ent = fld->get_num_value() * blk_sz;
-  int num_lcl_dof = num_ent * dof_per_ent;
-  MatCreate(PETSC_COMM_SELF,&A);
-  const char * mat_tp = (blk_sz == 1 ? MATSEQAIJ : MATSEQBAIJ);
-  MatSetType(A,mat_tp);
-  MatSetSizes(A,num_lcl_dof,num_lcl_dof,PETSC_DETERMINE,PETSC_DETERMINE);
-  MatSetBlockSize(A,blk_sz);
-  // call preallocate
-  allocateMatrix(A,msh,fld);
-  //MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
-  if(!(blk_sz-1)) // only supported for AIJ not BAIJ
-    MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
-  MatCreateVecs(A,&x,&b);
-#ifdef DEBUG
-  if(!PCU_Comm_Self())
-    describeMatrix(A);
-#endif
-}
 void m3dc1_matrix::multiply(m3dc1_field * in, m3dc1_field * out)
 {
   MPI_Comm cm = MPI_COMM_NULL;
@@ -452,44 +356,6 @@ void m3dc1_matrix::multiply(m3dc1_field * in, m3dc1_field * out)
   field2Vec(cm,in,x,get_scalar_type());
   MatMult(A, x, b);
   vec2Field(cm,out,b,get_scalar_type());
-}
-matrix_solve::matrix_solve(int i, int s, m3dc1_field * fld)
-  : m3dc1_matrix(i,s,fld)
-{
-  is_par = 1;
-  m3dc1_mesh * msh = m3dc1_mesh::instance(); // external variable
-  int num_own_nds = apf::countOwned(msh->get_mesh(),0); //msh->num_own_ent[0]; // assumes only vertices hold dofs
-  int blk_sz = fld->get_dof_per_value();
-  int dof_per_nd = fld->get_num_value() * blk_sz;
-  int num_own_dof = num_own_nds * dof_per_nd;
-  MatCreate(PETSC_COMM_WORLD,&A);
-  const char * par_mat_tp = (blk_sz == 1 ? MATMPIAIJ : MATMPIBAIJ);
-  MatSetType(A,par_mat_tp);
-  MatSetSizes(A,num_own_dof,num_own_dof,PETSC_DETERMINE,PETSC_DETERMINE);
-  MatSetBlockSize(A,blk_sz);
-  allocateMatrix(A,msh,fld);
-  //MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
-  if(!(blk_sz-1)) // only supported for AIJ not BAIJ
-    MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
-  MatCreateVecs(A,&x,&b);
-  // solver
-  KSPCreate(MPI_COMM_WORLD, &ksp);
-  KSPSetOperators(ksp, A, A); //, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERn
-  KSPSetTolerances(ksp, .000001, .000000001, PETSC_DEFAULT, 1000);
-  // if 2D problem use superlu
-  if (m3dc1_mesh::instance()->get_mesh()->getDimension() == 2)
-  {
-    KSPSetType(ksp, KSPPREONLY);
-    PC pc;
-    KSPGetPC(ksp, &pc);
-    PCSetType(pc,PCLU);
-    PCFactorSetMatSolverPackage(pc,MATSOLVERSUPERLU_DIST);
-  }
-  KSPSetFromOptions(ksp);
-#ifdef DEBUG
-  if(!PCU_Comm_Self())
-    describeMatrix(A);
-#endif
 }
 void m3dc1_matrix::zero()
 {
