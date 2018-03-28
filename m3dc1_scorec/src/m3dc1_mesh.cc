@@ -33,46 +33,13 @@ using namespace apf;
 void delete_mesh_array()
 {
   if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<"\n";
-  if (!m3dc1_mesh::instance()->ments) return;
-  for (int d=0; d<4; ++d)
-    if (m3dc1_mesh::instance()->ments[d]) delete m3dc1_mesh::instance()->ments[d];
-  delete [] m3dc1_mesh::instance()->ments;
+  m3dc1_mesh::instance()->delete_mesh_array();
 }
 
 void create_mesh_array(Mesh2* m, bool update)
 {
   if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<"\n";
-  if (m3dc1_mesh::instance()->ments)
-  {
-    if (update) delete_mesh_array();
-  }
-  else
-    m3dc1_mesh::instance()->ments = new apf::MeshEntity**[4];
-
-  apf::MeshEntity* e;
-  int d;
-#ifdef _OPENMP
-#pragma omp parallel
-{
-  int nthreads=omp_get_num_threads();
-  if (omp_get_thread_num()==0) std::cout<<__func__<<": tid "<<omp_get_thread_num()<<" #threads:"<<nthreads<<"\n";
-}
-#endif
-
-  for (d=0; d<4; ++d)
-  {
-    typedef apf::MeshEntity* pment;
-    m3dc1_mesh::instance()->ments[d] = new pment[m->count(d)];
-    int i=0;
-    MeshIterator* it = m->begin(d);
-    while ((e = m->iterate(it)))
-    {
-      m3dc1_mesh::instance()->ments[d][i] = e;
-      assert(i==apf::getMdsIndex(m, e));
-      ++i;
-    }
-    m->end(it);
-  }
+  m3dc1_mesh::instance()->create_mesh_array(m,update);
 }
 
 //*******************************************************

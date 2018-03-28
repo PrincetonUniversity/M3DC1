@@ -6,8 +6,7 @@
 *******************************************************************************/
 #ifndef M3DC1_MESH_H
 #define M3DC1_MESH_H
-#include "apfMesh.h"
-#include "apfMesh2.h"
+#include "apfMDS.h"
 #include "apf.h"
 #include "m3dc1_scorec.h"
 #include "m3dc1_model.h"
@@ -89,10 +88,8 @@ public:
                             2,
                             false);
   }
-  apf::Mesh2 * get_mesh() { return mesh; }
 
-  // data
-  apf::MeshEntity*** ments;
+  apf::Mesh2 * get_mesh() { return mesh; }
 
   int get_local_count(int dim)
   {
@@ -134,10 +131,47 @@ public:
   apf::MeshTag * own_bridge_adj_tag() { return num_own_adj_node_tag; }
   apf::MeshTag * global_bridge_adj_tag() { return num_global_adj_node_tag; }
 
-  //void set_node_adj_tag2();
+  void create_mesh_array(apf::Mesh2 * msh, bool update)
+  {
+    if(ments && update)
+      delete_mesh_array();
+    if(!ments)
+      ments = new apf::MeshEntity ** [4];
+#ifdef _OPENMP
+#pragma omp parallel
+    {
+      int nthreads = omp_get_num_threads();
+      if(omp_get_thread_num() == 0)
+        std::cout << __func__ < ": tid 0 #threads: " << nthreads << std::endl;
+    }
+#endif
+    apf::MeshEntity * e = nullptr;
+    for(int dim = 0; dim <= 3; ++dim)
+    {
+      ments[dim] = new apf::MeshEntity * [msh->count(dim)];
+      int ii = 0;
+      apf::MeshIterator * it = msh->begin(dim);
+      while((e = msh->iterate(it)))
+      {
+        ments[dim][ii] = e;
+        assert(ii == apf::getMdsIndex(msh,e));
+        ++ii;
+      }
+      msh->end(it);
+    }
+  }
+
+  void delete_mesh_array()
+  {
+    if(!ments) return;
+    for(int dd = 0; dd <= 3; ++dd)
+      if(ments[dd]) delete ments[dd];
+    delete [] ments;
+  }
 private:
   void set_node_adj_tag();
   apf::Mesh2 * mesh;
+  apf::MeshEntity*** ments;
   // field container
   std::map<FieldID, m3dc1_field*> field_container;
   static m3dc1_mesh* _instance;
