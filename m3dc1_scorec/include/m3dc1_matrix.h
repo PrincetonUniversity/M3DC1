@@ -27,23 +27,23 @@ class m3dc1_matrix
 public:
   m3dc1_matrix(int i, int s, m3dc1_mesh * msh,  m3dc1_field * f, MPI_Comm cm);
   ~m3dc1_matrix();
+  bool is_fixed() { return fixed; }
+  int get_scalar_type() { return scalar_type; }
+  m3dc1_field * get_field() { return fld; }
+  int get_block_size() { return blk_sz; }
+  int is_parallel() { return is_par; }
+  MPI_Comm getComm() { return cm; }
+  void zero();
   void add_values(int rsize, int * rows, int csize, int * cols, double * vals);
   void set_values(int rsize, int * rows, int csize, int * cols, double * vals);
   void get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values);
-  void fix();
-  bool is_fixed() { return fixed; }
-  int get_scalar_type() { return scalar_type; }
-  m3dc1_field * get_field() { return fld;}
-  void zero();
-  void write(const char * fn);
-  int printInfo();
-  int get_block_size() { return blk_sz; }
   void add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cls, double * vals);
   int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
-  int is_parallel() { return is_par; }
+  void fix();
   void solve(m3dc1_field * rhs);
-  int solve_iteration_count();
+  int solver_iteration_count();
   void multiply(m3dc1_field * in, m3dc1_field * out);
+  void write(const char * fn);
 protected:
   MPI_Comm cm;
   Mat A;
