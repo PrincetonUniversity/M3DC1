@@ -33,8 +33,6 @@ contains
 
     kprad_dt = temp
     kprad_min_dt = 0.
-
-    print *, 'Re-baselining dt to ', kprad_dt
   end subroutine kprad_rebase_dt
 
   subroutine kprad_deallocate()
