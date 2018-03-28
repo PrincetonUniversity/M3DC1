@@ -45,8 +45,8 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
     get_ent_globaldofid(fld,lcl_ent_id,&(dof_ids[1][0]),&dof_cnt);
     int adj_own = 0;
     int adj_gbl = 0;
-    msh->get_mesh()->getIntTag(ent, msh->num_own_adj_node_tag, &adj_own);
-    msh->get_mesh()->getIntTag(ent, msh->num_global_adj_node_tag, &adj_gbl);
+    msh->get_mesh()->getIntTag(ent, msh->own_bridge_adj_tag(), &adj_own);
+    msh->get_mesh()->getIntTag(ent, msh->global_bridge_adj_tag(), &adj_gbl);
     assert(adj_gbl >= adj_own);
     for(int ii = 0; ii < dof_cnt; ii+=bs)
     {

@@ -194,10 +194,10 @@ MeshEntity* get_ent_owncopy(Mesh2* mesh, MeshEntity* e)
 int get_ent_localid (Mesh2* mesh, MeshEntity* e)
 // *********************************************************
 {
-  if (mesh->hasTag(e,m3dc1_mesh::instance()->local_entid_tag))
+  if (mesh->hasTag(e,m3dc1_mesh::instance()->local_id_tag()))
   {
     int local_id = -1;
-    mesh->getIntTag(e, m3dc1_mesh::instance()->local_entid_tag, &local_id);
+    mesh->getIntTag(e, m3dc1_mesh::instance()->local_id_tag(), &local_id);
     //assert(local_id== getMdsIndex(mesh, e));
   }
   return getMdsIndex(mesh, e);
@@ -429,7 +429,7 @@ void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
         }
         new_ent = mesh->createVertex((ModelEntity*)geom_ent, coord, param);
 
-        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_entid_tag, &index);
+        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_id_tag(), &index);
         own_partid=proc_grp_rank*proc_grp_size+e_own_partid[index];
 
         if (e_global_id[index]!=-1)
@@ -496,7 +496,7 @@ void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, Mes
         down_ent[0] =  getMdsEntity(mesh, 0, e_down_lid[index*2]);
         down_ent[1] =  getMdsEntity(mesh, 0, e_down_lid[index*2+1]);
         new_ent = mesh->createEntity(apf::Mesh::EDGE, (ModelEntity*)geom_ent, down_ent);
-        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_entid_tag, &index);
+        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_id_tag(), &index);
 
         if (e_global_id[index]!=-1)
         {
@@ -562,7 +562,7 @@ void m3dc1_receiveFaces(Mesh2* mesh)
           new_ent= mesh->createEntity(apf::Mesh::TRIANGLE, (ModelEntity*)geom_ent, down_ent);
         else
           new_ent= mesh->createEntity(apf::Mesh::QUAD, (ModelEntity*)geom_ent, down_ent);
-        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_entid_tag, &index);
+        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_id_tag(), &index);
       } // for index
       delete [] f_down_num;
       delete [] e_down_lid;

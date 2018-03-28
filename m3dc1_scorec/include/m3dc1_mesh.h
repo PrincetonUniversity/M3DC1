@@ -127,15 +127,13 @@ public:
   {
     num_own_ent[dim] = apf::countOwned(mesh,dim);
   }
-  // tag for local entity id
-  apf::MeshTag* local_entid_tag;
 
+  apf::MeshTag * local_id_tag() { return local_entid_tag; }
   // tag for owned partid attached to the part bdry entities
   //  apf::MeshTag* own_partid_tag;
+  apf::MeshTag * own_bridge_adj_tag() { return num_own_adj_node_tag; }
+  apf::MeshTag * global_bridge_adj_tag() { return num_global_adj_node_tag; }
 
-  // tags for second order adjanceny info
-  apf::MeshTag* num_global_adj_node_tag;
-  apf::MeshTag* num_own_adj_node_tag;
   //void set_node_adj_tag2();
 private:
   void set_node_adj_tag();
@@ -148,6 +146,11 @@ private:
   int num_local_ent[4];
   int num_global_ent[4];
   int num_own_ent[4];
+  // tag for local entity id
+  apf::MeshTag * local_entid_tag;
+  // tags for second order adjanceny info
+  apf::MeshTag * num_global_adj_node_tag;
+  apf::MeshTag * num_own_adj_node_tag;
 };
 template <class O>
 void m3dc1_mesh::retrieve_fields(O out)
