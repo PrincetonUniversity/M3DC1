@@ -119,7 +119,7 @@ int main(int argc, char * argv[])
   scalar_type = 1; // complex
 #endif
   m3dc1_mesh_load(argv[2]);
-  printStats(m3dc1_mesh::instance()->mesh);
+  printStats(m3dc1_mesh::instance()->get_mesh());
   if (num_plane > 1)
   {
     int zero = 0;
@@ -128,7 +128,7 @@ int main(int argc, char * argv[])
   //check geo
   if(num_plane > 1)
   {
-    int num_elem = m3dc1_mesh::instance()->mesh->count(3);
+    int num_elem = m3dc1_mesh::instance()->get_mesh()->count(3);
     for(int eid = 0; eid < num_elem; eid++)
     {
       int ent_dim = 3;
@@ -171,16 +171,16 @@ int main(int argc, char * argv[])
     int field_13;
     m3dc1_field_load(&field_13, argv[4]);
     m3dc1_field* mf = m3dc1_mesh::instance()->get_field(field_13);
-    write_field(m3dc1_mesh::instance()->mesh, mf, argv[5], 0);
+    write_field(m3dc1_mesh::instance()->get_mesh(), mf, argv[5], 0);
     m3dc1_field_delete(&field_13);
   }
 
   //int num_layer=2;
   //m3dc1_ghost_create(&num_layer);
-  //pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
+  //pumi_mesh_verify(m3dc1_mesh::instance()->get_mesh(), false);
 
    // set/get field dof values
-  int num_vertex = m3dc1_mesh::instance()->mesh->count(0);
+  int num_vertex = m3dc1_mesh::instance()->get_mesh()->count(0);
   //int num_own_vertex = m3dc1_mesh::instance()->num_own_ent[0];
 
   int value_type[] = {scalar_type,scalar_type};
@@ -249,7 +249,7 @@ int main(int argc, char * argv[])
 
   // test ghosting
   // m3dc1_ghost_delete();
-  //pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
+  //pumi_mesh_verify(m3dc1_mesh::instance()->get_mesh(), false);
 
   m3dc1_field_delete(&x_field);
   m3dc1_field_delete(&b_field);
@@ -262,7 +262,7 @@ int main(int argc, char * argv[])
 
 void test_matrix(int mat_mlt, int mat_slv)
 {
-  int elt_dim = m3dc1_mesh::instance()->mesh->getDimension();
+  int elt_dim = m3dc1_mesh::instance()->get_mesh()->getDimension();
   assert(elt_dim == 3 || elt_dim == 2);
   int nds_per_elt = (elt_dim == 3 ? 6 : 3);
   int dofs_per_elt = dofs_per_nd * nds_per_elt;
@@ -288,8 +288,8 @@ void test_matrix(int mat_mlt, int mat_slv)
       }
     }
   }
-  int num_lcl_elt = m3dc1_mesh::instance()->mesh->count(elt_dim);
-  int num_lcl_vrt = m3dc1_mesh::instance()->mesh->count(0);
+  int num_lcl_elt = m3dc1_mesh::instance()->get_mesh()->count(elt_dim);
+  int num_lcl_vrt = m3dc1_mesh::instance()->get_mesh()->count(0);
   //int num_own_vrt = m3dc1_mesh::instance()->num_own_ent[0];
   //int * nds = new int[nds_per_elt];
   for(int elt_id = 0; elt_id < num_lcl_elt; elt_id++)

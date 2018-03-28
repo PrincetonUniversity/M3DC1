@@ -1,11 +1,8 @@
 /******************************************************************************
-
   (c) 2005-2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
-
 *******************************************************************************/
 #ifndef M3DC1_MESH_H
 #define M3DC1_MESH_H
@@ -13,6 +10,7 @@
 #include "apfMesh2.h"
 #include "apf.h"
 #include "m3dc1_scorec.h"
+#include "m3dc1_model.h"
 #include "m3dc1_field.h"
 #include <PCU.h>
 #include <pumi.h>
@@ -79,8 +77,21 @@ public:
   template <class O>
   void retrieve_fields(O out);
 
+  void load_mesh(const char * fn)
+  {
+    mesh = pumi_mesh_load(pumi::instance()->model,
+                          fn,
+                          m3dc1_model::instance()->group_size);
+  }
+  void create_mesh()
+  {
+    mesh = pumi_mesh_create(pumi::instance()->model,
+                            2,
+                            false);
+  }
+  apf::Mesh2 * get_mesh() { return mesh; }
+
   // data
-  apf::Mesh2* mesh;
   apf::MeshEntity*** ments;
 
   // local counter for fast info retrieval
@@ -97,9 +108,10 @@ public:
   // tags for second order adjanceny info
   apf::MeshTag* num_global_adj_node_tag;
   apf::MeshTag* num_own_adj_node_tag;
-  void set_node_adj_tag2();
+  //void set_node_adj_tag2();
 private:
   void set_node_adj_tag();
+  apf::Mesh2 * mesh;
   // field container
   std::map<FieldID, m3dc1_field*> field_container;
   static m3dc1_mesh* _instance;

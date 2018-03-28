@@ -1443,7 +1443,7 @@ void update_field (int fid, int ndof_per_value, int num_2d_vtx, MeshEntity** rem
     for (int index = 0; index < num_2d_vtx; ++index)
     {
       memcpy(&dof_data[0],&dof_val[index*old_total_ndof],sizeof(double)*old_total_ndof);
-      setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data);
+      setComponents(f, getMdsEntity(m3dc1_mesh::instance()->get_mesh(), 0, index), 0, dof_data);
       setComponents(f, remote_vertices[index], 0, dof_data);
     }
     delete [] dof_val;
@@ -1453,7 +1453,7 @@ void update_field (int fid, int ndof_per_value, int num_2d_vtx, MeshEntity** rem
     for (int index=0; index<recv_num_ent; ++index)
     {
       memcpy(&dof_data[0], &recv_dof_val[index*old_total_ndof],sizeof(double)*old_total_ndof);
-      setComponents(f, getMdsEntity(m3dc1_mesh::instance()->mesh, 0, index), 0, dof_data);
+      setComponents(f, getMdsEntity(m3dc1_mesh::instance()->get_mesh(), 0, index), 0, dof_data);
       setComponents(f, remote_vertices[index], 0, dof_data);
       delete [] recv_dof_val;
     } // index

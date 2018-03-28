@@ -28,7 +28,7 @@ m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
   , num(NULL)
 {
   int n_components = nv * ndof * (t+1);
-  fld = apf::createPackedField(m3dc1_mesh::instance()->mesh, str, n_components);
+  fld = apf::createPackedField(m3dc1_mesh::instance()->get_mesh(), str, n_components);
   num = apf::createNumbering(fld);
   apf::freeze(fld);
   apf::zeroField(fld);
@@ -40,7 +40,7 @@ m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
   {
     n_components = (t+1)*num_dof;
     sprintf(field_name,"%s_%d",str,i);
-    fields[i]=apf::createPackedField(m3dc1_mesh::instance()->mesh, field_name, n_components);
+    fields[i]=apf::createPackedField(m3dc1_mesh::instance()->get_mesh(), field_name, n_components);
     apf::freeze(fields[i]); // switch dof data from tag to array
   }
   delete [] field_name;
@@ -63,7 +63,7 @@ void get_ent_localdofid(m3dc1_field * mf, int ent_lid, int* dof_id, int* dof_cnt
   int blks_per_nd = mf->get_num_value();
   int dofs_per_blk = mf->get_dof_per_value();
   int dofs_per_nd = dofs_per_blk * blks_per_nd;
-  int num_local_node = m3dc1_mesh::instance()->mesh->count(0);
+  int num_local_node = m3dc1_mesh::instance()->get_mesh()->count(0);
   int ii = 0;
   for (int blk = 0; blk < blks_per_nd; ++blk)
     for (int dof = 0; dof < dofs_per_blk; ++dof)

@@ -58,7 +58,7 @@ void m3dc1_plane_setphi(int* planeid, double* phi);
 void m3dc1_plane_getphi(int* planeid, double* phi);
 
 /** model functions */
-void m3dc1_model_load(char* /* in */ model_file);
+void m3dc1_model_load(const char* /* in */ model_file);
 void m3dc1_model_print();
 void m3dc1_model_setnumplane(int*);
 void m3dc1_model_getnumplane(int*);
@@ -69,8 +69,8 @@ void m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); 
 
 /** mesh functions */
 
-void m3dc1_mesh_load(char* mesh_file);
-void m3dc1_mesh_write(char* filename, int *option); // 0: vtk file with field; 1:smb file
+void m3dc1_mesh_load(const char * mesh_file);
+void m3dc1_mesh_write(const char * filename, int *option); // 0: vtk file with field; 1:smb file
 void m3dc1_mesh_build3d(int* num_field, int* fid, int* num_dofs_per_value);
 
 void m3dc1_ghost_create (int* num_layer );
@@ -149,8 +149,8 @@ void m3dc1_field_insert(FieldID* /* in */ fid, int* /* in */ s_dofid,
 void m3dc1_field_isnan(FieldID* /* in */ fid, int * isnan);
 void m3dc1_field_compare(FieldID* fid1, FieldID* fid2);
 // load fields from a file and return a field ID
-void m3dc1_field_load (FieldID* /*out*/ fid, const char* /*in*/ filename);
-void m3dc1_field_write(FieldID* fid, const char* filename, int* start_index);
+void m3dc1_field_load (FieldID* /*out*/ fid, const char * /*in*/ filename);
+void m3dc1_field_write(FieldID* fid, const char * filename, int* start_index);
 void m3dc1_field_print(FieldID* fid);
 void m3dc1_field_sum_plane (FieldID* /* in */ fid);
 void m3dc1_field_printcompnorm(FieldID* /* in */ fid, const char * info);

@@ -11,8 +11,8 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
   MatType tp;
   MatGetType(A,&tp);
   MPI_Comm cms[] = {PETSC_COMM_SELF,PETSC_COMM_WORLD};
-  int num_nds[] = {(int)msh->mesh->count(0), apf::countOwned(msh->mesh,0)};//{msh->num_local_ent[0],msh->num_own_ent[0]}; // assuming only verts hold nodes
-  //int num_vrts = msh->mesh->count(0);
+  int num_nds[] = {(int)msh->get_mesh()->count(0), apf::countOwned(msh->get_mesh(),0)};//{msh->num_local_ent[0],msh->num_own_ent[0]}; // assuming only verts hold nodes
+  //int num_vrts = msh->get_mesh()->count(0);
   int is_par = (strcmp(tp,MATMPIBAIJ) == 0 || strcmp(tp,MATMPIAIJ) == 0);
   int is_lcl = !is_par;
   int bs = fld->get_dof_per_value();
@@ -35,18 +35,18 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
   {
     //DBG(memset(&gbl_dofs[0],0,sizeof(int)*dof_per_nd));
     //m3dc1_ent_getlocaldofid(&vrt_dim,&nd,&fld_id,&dofs[0],&dof_cnt);
-    apf::MeshEntity * ent = apf::getMdsEntity(msh->mesh,vrt_dim,nd);
-    lcl_nd = msh->mesh->isOwned(ent);
+    apf::MeshEntity * ent = apf::getMdsEntity(msh->get_mesh(),vrt_dim,nd);
+    lcl_nd = msh->get_mesh()->isOwned(ent);
     if(!lcl_nd && is_par)
       continue;
     int dof_cnt = 0;
-    int lcl_ent_id = get_ent_localid(msh->mesh,ent);
+    int lcl_ent_id = get_ent_localid(msh->get_mesh(),ent);
     get_ent_localdofid(fld,lcl_ent_id,&(dof_ids[0][0]),&dof_cnt);
     get_ent_globaldofid(fld,lcl_ent_id,&(dof_ids[1][0]),&dof_cnt);
     int adj_own = 0;
     int adj_gbl = 0;
-    msh->mesh->getIntTag(ent, msh->num_own_adj_node_tag, &adj_own);
-    msh->mesh->getIntTag(ent, msh->num_global_adj_node_tag, &adj_gbl);
+    msh->get_mesh()->getIntTag(ent, msh->num_own_adj_node_tag, &adj_own);
+    msh->get_mesh()->getIntTag(ent, msh->num_global_adj_node_tag, &adj_gbl);
     assert(adj_gbl >= adj_own);
     for(int ii = 0; ii < dof_cnt; ii+=bs)
     {

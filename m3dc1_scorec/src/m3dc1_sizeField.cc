@@ -1,11 +1,11 @@
-/****************************************************************************** 
+/******************************************************************************
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2005-2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
+
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
+
 *******************************************************************************/
 #include "m3dc1_sizeField.h"
 #include "m3dc1_mesh.h"
@@ -18,9 +18,9 @@ void SizeFieldPsi :: getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& h)
   double fldval;
   double psibar;
   double toltmp=0.01;
-  assert(apf::getDimension(m3dc1_mesh::instance()->mesh,v)==0);
+  assert(apf::getDimension(m3dc1_mesh::instance()->get_mesh(),v)==0);
   apf::Vector3 vcd;
-  m3dc1_mesh::instance()->mesh->getPoint(v, 0, vcd);
+  m3dc1_mesh::instance()->get_mesh()->getPoint(v, 0, vcd);
   //std::cout<<PCU_Comm_Self()<<" "<<v<<" getValue "<<vcd[0]<<" "<<vcd[1]<<" "<<vcd[2]<<std::endl;
 
   double value[12];
@@ -44,7 +44,7 @@ void SizeFieldPsi :: getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& h)
   getComponents(field, v, 0, value);
   fldval = value[0];
   psibar = (fldval - psi0)/(psil - psi0);
-  if(psibar < param[0]) 
+  if(psibar < param[0])
   {
     hbar[0] = param[3]*(1.-exp(-pow(fabs(psibar/param[0] - 1.), param[1]))) + param[8];
     hbar[1] = param[5]*(1.-exp(-pow(fabs(psibar/param[0] - 1.), param[1]))) + param[7];
@@ -62,7 +62,7 @@ void SizeFieldPsi :: getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& h)
 
   double dpsidr=value[1];
   double dpsidz=value[2];
-     
+
   double normgrad=sqrt(dpsidr*dpsidr+dpsidz*dpsidz);
   norm=sqrt(normgrad);
   if(norm>toltmp)

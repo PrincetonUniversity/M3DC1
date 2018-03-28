@@ -22,14 +22,14 @@ int ReducedQuinticTransfer::dofNode = C1TRIDOFNODE;
 void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector const& xi, ma::Entity* vert)
 {
   apf::MeshEntity* oldEdge= apf::getMeshEntity(parent);
-  assert(apf::getDimension(m3dc1_mesh::instance()->mesh,oldEdge)==1);
-  apf::MeshEntity* vertices[3];
+  assert(apf::getDimension(m3dc1_mesh::instance()->get_mesh(),oldEdge)==1);
+  //apf::MeshEntity* vertices[3];
   int num_face=-1;
   apf:: Up facEdg;
   mesh->getUp(oldEdge,facEdg);
   num_face=facEdg.n;
   assert(num_face<=2);
-  for(int i=0; i<fields.size(); i++)
+  for(unsigned i=0; i<fields.size(); i++)
   {
     apf::Field* field = fields.at(i);
     int numComp = apf::countComponents(field);
@@ -37,14 +37,14 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
     apf::MeshEntity*  vertices[2];
     mesh->getDownward(oldEdge, 0, vertices);
     apf::Vector3 xyz;
-    m3dc1_mesh::instance()->mesh->getPoint(vert, 0, xyz);
+    m3dc1_mesh::instance()->get_mesh()->getPoint(vert, 0, xyz);
     apf::Vector3 xyz2[2];
     for( int i=0; i<2; i++)
     {
       dofsVertex.at(i).resize(numComp);
       apf::Element* vertex = apf::createElement(field,vertices[i]);
       apf::getComponents(vertex,xi,&(dofsVertex[i][0]));
-      m3dc1_mesh::instance()->mesh->getPoint(vertices[i], 0, xyz2[i]);
+      m3dc1_mesh::instance()->get_mesh()->getPoint(vertices[i], 0, xyz2[i]);
     }
     double len1= sqrt((xyz2[0][0]-xyz2[1][0])*(xyz2[0][0]-xyz2[1][0])+(xyz2[0][1]-xyz2[1][1])*(xyz2[0][1]-xyz2[1][1]));
     double len2= sqrt((xyz2[0][0]-xyz[0])*(xyz2[0][0]-xyz[0])+(xyz2[0][1]-xyz[1])*(xyz2[0][1]-xyz[1]));
@@ -68,7 +68,7 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
       for( int i=0; i<3; i++)
       {
         apf::Vector3 xyz;
-        m3dc1_mesh::instance()->mesh->getPoint(vertices[i], 0, xyz);
+        m3dc1_mesh::instance()->get_mesh()->getPoint(vertices[i], 0, xyz);
         coords[i][0]=xyz[0];
         coords[i][1]=xyz[1];
         //debug
@@ -97,7 +97,7 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
         // interpolate dofs on the new vertex
       double coord_newv[3];
       apf::Vector3 xyz;
-      m3dc1_mesh::instance()->mesh->getPoint(vert, 0, xyz);
+      m3dc1_mesh::instance()->get_mesh()->getPoint(vert, 0, xyz);
       for(int i=0; i<3; i++)
         coord_newv[i]=xyz[i];
       //cout<<" new vtx "<<ent<<" coord "<<coord_newv[0]<<" "<<coord_newv[1]<<endl;
@@ -124,7 +124,7 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
     }
     if(face_skip<num_face)
     {
-      for( int i=0; i<newdofs.size(); i++)
+      for(unsigned i=0; i<newdofs.size(); i++)
       {
         newdofs.at(i)/=(double)(num_face-face_skip);
       }

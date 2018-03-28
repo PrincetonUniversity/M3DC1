@@ -1,11 +1,11 @@
-/****************************************************************************** 
+/******************************************************************************
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2005-2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
+
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
+
 *******************************************************************************/
 #ifndef M3DC1_MODEL_H
 #define M3DC1_MODEL_H
@@ -22,9 +22,9 @@ const double tol=1e-4;
 void faceFunction(double const p[2], double x[3], void * data);
 void vertexFunction(double const p[2], double x[3], void * data);
 
-void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer, 
-                       std::map<int, int>& out_edgeType, 
-                       std::map<int, std::pair<int, int> >& out_edgeContainer, 
+void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer,
+                       std::map<int, int>& out_edgeType,
+                       std::map<int, std::pair<int, int> >& out_edgeContainer,
                        std::map< int, std::vector<int> >& out_loopContainer);
 
 inline int checkSamePoint (double a[3],double b[3])
@@ -91,12 +91,12 @@ public:
   double get_phi(int part_id);
   void set_phi(int plane_id, double phi);
   void get_phi(int plane_id, double* phi);
-  gmi_ent* geomEntNextPlane(gmi_ent* gent); 
-  gmi_ent* geomEntBtwPlane(gmi_ent* gent); 
+  gmi_ent* geomEntNextPlane(gmi_ent* gent);
+  gmi_ent* geomEntBtwPlane(gmi_ent* gent);
 
 // data
   gmi_model* model;
- 
+
   int xperiodic, yperiodic; // if periodic in x/y direction
 
   MPI_Comm oldComm;

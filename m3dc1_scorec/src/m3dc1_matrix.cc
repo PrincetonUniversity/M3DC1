@@ -198,7 +198,7 @@ void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 {
   bool lcl = cm == MPI_COMM_SELF;
   m3dc1_mesh * m3dc1_msh = m3dc1_mesh::instance(); // exernal var
-  apf::Mesh2 * msh = m3dc1_msh->mesh;
+  apf::Mesh2 * msh = m3dc1_msh->get_mesh();
   int num_own_nds = m3dc1_msh->num_own_ent[0]; // assuming only verts have dofs
   int num_own_dof = 0;
   FieldID fid = fld->get_id();
@@ -240,7 +240,7 @@ void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 /*
 int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
 {
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  apf::Mesh2* m = m3dc1_mesh::instance()->get_mesh();
   int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0],num_own_dof=0, vertex_type=0;
   // FIXME: do not use API
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
@@ -297,7 +297,7 @@ void vec2Field(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 {
   bool lcl = cm == MPI_COMM_SELF;
   m3dc1_mesh * m3dc1_msh = m3dc1_mesh::instance(); // external variable
-  apf::Mesh2 * msh = m3dc1_msh->mesh;
+  apf::Mesh2 * msh = m3dc1_msh->get_mesh();
   FieldID fid = fld->get_id();
   int num_own_nds = m3dc1_msh->num_own_ent[0];
   int num_own_dof = 0;
@@ -425,7 +425,7 @@ matrix_mult::matrix_mult(int i , int s, m3dc1_field * f)
 {
   is_par = 0;
   m3dc1_mesh * msh = m3dc1_mesh::instance(); //external variable, pass in or use field
-  int num_ent = msh->mesh->count(0); // assumes that only verts hold dofs
+  int num_ent = msh->get_mesh()->count(0); // assumes that only verts hold dofs
   int blk_sz = fld->get_dof_per_value();
   int dof_per_ent = fld->get_num_value() * blk_sz;
   int num_lcl_dof = num_ent * dof_per_ent;
@@ -458,7 +458,7 @@ matrix_solve::matrix_solve(int i, int s, m3dc1_field * fld)
 {
   is_par = 1;
   m3dc1_mesh * msh = m3dc1_mesh::instance(); // external variable
-  int num_own_nds = apf::countOwned(msh->mesh,0); //msh->num_own_ent[0]; // assumes only vertices hold dofs
+  int num_own_nds = apf::countOwned(msh->get_mesh(),0); //msh->num_own_ent[0]; // assumes only vertices hold dofs
   int blk_sz = fld->get_dof_per_value();
   int dof_per_nd = fld->get_num_value() * blk_sz;
   int num_own_dof = num_own_nds * dof_per_nd;
@@ -477,7 +477,7 @@ matrix_solve::matrix_solve(int i, int s, m3dc1_field * fld)
   KSPSetOperators(ksp, A, A); //, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERn
   KSPSetTolerances(ksp, .000001, .000000001, PETSC_DEFAULT, 1000);
   // if 2D problem use superlu
-  if (m3dc1_mesh::instance()->mesh->getDimension() == 2)
+  if (m3dc1_mesh::instance()->get_mesh()->getDimension() == 2)
   {
     KSPSetType(ksp, KSPPREONLY);
     PC pc;
@@ -539,7 +539,7 @@ int matrix_solve::assemble()
     ierr = MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY);
     t2 = MPI_Wtime();
     //pass remoteA to ownnering process
-    int brgType = m3dc1_mesh::instance()->mesh->getDimension();
+    int brgType = m3dc1_mesh::instance()->get_mesh()->getDimension();
     int dofPerVar = 6;
     char field_name[256];
     int num_values, value_type, total_num_dof, vertex_type=0;
@@ -562,13 +562,13 @@ int matrix_solve::assemble()
       for(std::map<int, int>::iterator it2 =it->second.begin(); it2!=it->second.end();it2++)
       {
         idxSendBuff[it->first].at(idxOffset++)=it2->second;
-        apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, it2->first);
+        apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->get_mesh(), 0, it2->first);
         std::vector<apf::MeshEntity*> vecAdj;
         apf::Adjacent elements;
-        getBridgeAdjacent(m3dc1_mesh::instance()->mesh, ent, brgType, 0, elements);
+        getBridgeAdjacent(m3dc1_mesh::instance()->get_mesh(), ent, brgType, 0, elements);
         for (int i=0; i<elements.getSize(); ++i)
         {
-          if (!m3dc1_mesh::instance()->mesh->isGhost(elements[i]))
+          if (!m3dc1_mesh::instance()->get_mesh()->isGhost(elements[i]))
             vecAdj.push_back(elements[i]);
         }
         vecAdj.push_back(ent);
@@ -578,7 +578,7 @@ int matrix_solve::assemble()
         std::vector<int> columnns(total_num_dof*numAdj);
         for (int i=0; i<numAdj; i++)
         {
-          int local_id = get_ent_localid(m3dc1_mesh::instance()->mesh, vecAdj.at(i));
+          int local_id = get_ent_localid(m3dc1_mesh::instance()->get_mesh(), vecAdj.at(i));
           localNodeId.at(i)=local_id;
           int dof_cnt = 0;
           m3dc1_ent_getglobaldofid(&vertex_type, &local_id, &fieldOrdering, &dof_ids[0], &dof_cnt);
