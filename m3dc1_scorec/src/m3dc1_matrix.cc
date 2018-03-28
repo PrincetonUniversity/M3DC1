@@ -199,13 +199,13 @@ void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
   bool lcl = cm == MPI_COMM_SELF;
   m3dc1_mesh * m3dc1_msh = m3dc1_mesh::instance(); // exernal var
   apf::Mesh2 * msh = m3dc1_msh->get_mesh();
-  int num_own_nds = m3dc1_msh->num_own_ent[0]; // assuming only verts have dofs
+  int num_own_nds = m3dc1_msh->get_own_count(0); // assuming only verts have dofs
   int num_own_dof = 0;
   FieldID fid = fld->get_id();
   m3dc1_field_getnumowndof(&fid, &num_own_dof);
   int dof_per_nd = num_own_dof / num_own_nds;
   VecCreateMPI(cm,num_own_dof,PETSC_DETERMINE,&V);
-  int num_lcl_nds = m3dc1_msh->num_local_ent[0];
+  int num_lcl_nds = m3dc1_msh->get_local_count(0);
   int * dof_ids = new int[dof_per_nd];
   memset(&dof_ids[0],0,sizeof(int)*dof_per_nd);
   // assumes st = 0 means real, st=1 means complex
@@ -299,12 +299,12 @@ void vec2Field(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
   m3dc1_mesh * m3dc1_msh = m3dc1_mesh::instance(); // external variable
   apf::Mesh2 * msh = m3dc1_msh->get_mesh();
   FieldID fid = fld->get_id();
-  int num_own_nds = m3dc1_msh->num_own_ent[0];
+  int num_own_nds = m3dc1_msh->get_own_count(0);
   int num_own_dof = 0;
   m3dc1_field_getnumowndof(&fid,&num_own_dof);
   int vrt_tp = 0;
   int dof_per_nd = num_own_dof / num_own_nds;
-  int num_lcl_nd = m3dc1_msh->num_local_ent[0];
+  int num_lcl_nd = m3dc1_msh->get_local_count(0);
   int * dof_ids = new int[dof_per_nd];
   //DBG(memset(&dof_ids[0],0,sizeof(int)*dof_per_nd));
   int sz = dof_per_nd*(st+1);

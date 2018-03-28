@@ -357,7 +357,7 @@ void m3dc1_mesh_build3d (int* num_field, int* field_id,
   create_backward_plane_ghosting(m3dc1_mesh::instance()->get_mesh());
 #ifdef DEBUG
   int nlocal = m3dc1_mesh::instance()->get_mesh()->count(3);
-  int nghost = nlocal - m3dc1_mesh::instance()->num_local_ent[3];
+  int nghost = nlocal - m3dc1_mesh::instance()->get_local_count(3);
   if (!pumi_rank()) std::cout<<"# elements "<<nlocal<<", #ghost elements "<<nghost<<"\n";
   printStats(m3dc1_mesh::instance()->get_mesh());
 #endif
@@ -377,24 +377,24 @@ void m3dc1_ghost_delete()
   pumi_ghost_delete (m3dc1_mesh::instance()->get_mesh());
   if (!pumi_rank()) std::cout<<"[M3D-C1 INFO] ghost layer(s) deleted\n";
 }
-void m3dc1_mesh_getnument (int* /* in*/ edim, int*  num_ent)
+void m3dc1_mesh_getnument (int* /* in*/ edim, int* num_ent)
 {
   *num_ent = m3dc1_mesh::instance()->get_mesh()->count(*edim);
 }
-void m3dc1_mesh_getnumownent (int* /* in*/ edim, int*  num_ent)
+void m3dc1_mesh_getnumownent (int* /* in*/ edim, int* num_ent)
 {
-  *num_ent = m3dc1_mesh::instance()->num_own_ent[*edim];
+  *num_ent = m3dc1_mesh::instance()->get_own_count(*edim);
 }
-void m3dc1_mesh_getnumglobalent (int* /* in*/ edim, int*  num_ent)
+void m3dc1_mesh_getnumglobalent (int* /* in*/ edim, int* num_ent)
 {
-  *num_ent = m3dc1_mesh::instance()->num_global_ent[*edim];
+  *num_ent = m3dc1_mesh::instance()->get_global_count(*edim);
 }
-void m3dc1_mesh_getnumghostent (int* /* in*/ edim, int*  num_ent)
+void m3dc1_mesh_getnumghostent (int* /* in*/ edim, int* num_ent)
 {
   if (*edim<0 || *edim > 3)
     return;
   *num_ent = m3dc1_mesh::instance()->get_mesh()->count(*edim) -
-  m3dc1_mesh::instance()->num_local_ent[*edim];
+    m3dc1_mesh::instance()->get_local_count(*edim);
 }
 void m3dc1_mesh_search(int* initial_simplex,
                        double* final_position,
@@ -1135,12 +1135,12 @@ void m3dc1_field_getglobaldofid (FieldID * fid, int * start_dof_id, int * end_do
   m3dc1_field * mf = m3dc1_mesh::instance()->get_field(*fid);
   int dof_per_nd = mf->get_dof_per_value() * mf->get_num_value();
   *start_dof_id = 0;
-  *end_dof_id_plus_one = dof_per_nd * m3dc1_mesh::instance()->num_global_ent[0]; // assumes only verts have nodes
+  *end_dof_id_plus_one = dof_per_nd * m3dc1_mesh::instance()->get_global_count(0); // assumes only verts have nodes
 }
 void m3dc1_field_getowndofid (FieldID * fid, int * start_dof_id, int * end_dof_id_plus_one)
 {
   m3dc1_field * mf = m3dc1_mesh::instance()->get_field(*fid);
-  int num_own_ent = m3dc1_mesh::instance()->num_own_ent[0]; // assumes only verts have nodes
+  int num_own_ent = m3dc1_mesh::instance()->get_own_count(0); // assumes only verts have nodes
   int dof_per_nd = mf->get_dof_per_value() * mf->get_num_value();
   int start_id = num_own_ent;
   PCU_Exscan_Ints(&start_id,1);
@@ -1151,13 +1151,13 @@ void m3dc1_field_getghostdofid (FieldID * fid, int * start_dof_id, int * end_dof
 {
   m3dc1_field * mf = m3dc1_mesh::instance()->get_field(*fid);
   int num_dof = mf->get_dof_per_value();
-  *start_dof_id=num_dof*m3dc1_mesh::instance()->num_local_ent[0];
+  *start_dof_id=num_dof*m3dc1_mesh::instance()->get_local_count(0);
   *end_dof_id_plus_one=num_dof*m3dc1_mesh::instance()->get_mesh()->count(0);
 }
 void m3dc1_field_getnumglobaldof (FieldID * fid, int * num_global_dof)
 {
   m3dc1_field* mf = m3dc1_mesh::instance()->get_field(*fid);
-  *num_global_dof = (m3dc1_mesh::instance()->num_global_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
+  *num_global_dof = (m3dc1_mesh::instance()->get_global_count(0))*mf->get_num_value()*mf->get_dof_per_value();
 }
 void m3dc1_field_getnumlocaldof (FieldID * fid, int * num_local_dof)
 {
@@ -1167,12 +1167,12 @@ void m3dc1_field_getnumlocaldof (FieldID * fid, int * num_local_dof)
 void m3dc1_field_getnumowndof (FieldID * fid, int * num_own_dof)
 {
   m3dc1_field * mf = m3dc1_mesh::instance()->get_field(*fid);
-  *num_own_dof = (m3dc1_mesh::instance()->num_own_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
+  *num_own_dof = (m3dc1_mesh::instance()->get_own_count(0))*mf->get_num_value()*mf->get_dof_per_value();
 }
 void m3dc1_field_getnumghostdof (FieldID* fid, int*  num_ghost_dof)
 {
   m3dc1_field* mf = m3dc1_mesh::instance()->get_field(*fid);
-  int num_ent = m3dc1_mesh::instance()->get_mesh()->count(0)-m3dc1_mesh::instance()->num_local_ent[0];
+  int num_ent = m3dc1_mesh::instance()->get_mesh()->count(0)-m3dc1_mesh::instance()->get_local_count(0);
   *num_ghost_dof = num_ent*mf->get_num_value()*mf->get_dof_per_value();
 }
 void m3dc1_field_getdataptr (FieldID* fid, double** pts)

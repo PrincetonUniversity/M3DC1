@@ -94,11 +94,39 @@ public:
   // data
   apf::MeshEntity*** ments;
 
-  // local counter for fast info retrieval
-  int num_local_ent[4];
-  int num_global_ent[4];
-  int num_own_ent[4];
+  int get_local_count(int dim)
+  {
+    return num_local_ent[dim];
+  }
 
+  int get_global_count(int dim)
+  {
+    return num_global_ent[dim];
+  }
+
+  int get_own_count(int dim)
+  {
+    return num_own_ent[dim];
+  }
+
+  // TODO : get rid of these setter functions, let the mesh know when the
+  //   underlying mesh has been modified and update the cached entity counts
+  void update_local_count(int dim)
+  {
+    num_local_ent[dim] = mesh->count(dim);
+  }
+
+  // collective on the current PCU_COMM_WORLD
+  void update_global_count(int dim)
+  {
+    update_local_count(dim);
+    MPI_Allreduce(&num_own_ent[dim],&num_global_ent[dim],1,MPI_INT,MPI_SUM,PCU_Get_Comm());
+  }
+
+  void update_own_count(int dim)
+  {
+    num_own_ent[dim] = apf::countOwned(mesh,dim);
+  }
   // tag for local entity id
   apf::MeshTag* local_entid_tag;
 
@@ -115,6 +143,11 @@ private:
   // field container
   std::map<FieldID, m3dc1_field*> field_container;
   static m3dc1_mesh* _instance;
+  // local counter to avoid apf/pumi acually counting the ents every time
+  //  need to update after adapted
+  int num_local_ent[4];
+  int num_global_ent[4];
+  int num_own_ent[4];
 };
 template <class O>
 void m3dc1_mesh::retrieve_fields(O out)

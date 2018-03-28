@@ -84,7 +84,7 @@ void compute_globalid(apf::Mesh2* m, int d)
     tag = m->createIntTag("global_id",1);
 
   if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] global entity ID for dimension "<<d<<" generated\n";
-  int num_own_ent = m3dc1_mesh::instance()->num_own_ent[d];
+  int num_own_ent = m3dc1_mesh::instance()->get_own_count(d);
 
   apf::MeshEntity* e;
   PCU_Exscan_Ints(&num_own_ent,1);
@@ -453,7 +453,7 @@ void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
       delete [] e_rmt_num;
       if (num_remote)
         delete [] e_rmt_pid;
-      m3dc1_mesh::instance()->num_local_ent[0] = mesh->count(0);
+      m3dc1_mesh::instance()->update_local_count(0);
     } // while ( ! PCU_Comm_Unpacked())
   } // while (PCU_Comm_Listen())
 }
@@ -517,7 +517,7 @@ void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, Mes
       delete [] e_global_id;
       delete [] e_rmt_num;
       delete [] e_rmt_pid;
-      m3dc1_mesh::instance()->num_local_ent[1] = mesh->count(1);
+      m3dc1_mesh::instance()->update_local_count(1);
     } // while ( ! PCU_Comm_Unpacked())
   } // while (PCU_Comm_Listen())
 
@@ -568,7 +568,7 @@ void m3dc1_receiveFaces(Mesh2* mesh)
       delete [] e_down_lid;
       delete [] e_geom_type;
       delete [] e_geom_tag;
-      m3dc1_mesh::instance()->num_local_ent[2] = mesh->count(2);
+      m3dc1_mesh::instance()->update_local_count(2);
     } // while ( ! PCU_Comm_Unpacked())
   } // while (PCU_Comm_Listen())
 }
@@ -622,7 +622,7 @@ void m3dc1_stitchLink(Mesh2* mesh, MeshTag* partbdry_id_tag,
 void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
 // *********************************************************
 {
-  int own_partid, num_ent = m3dc1_mesh::instance()->num_local_ent[dim];
+  int own_partid, num_ent = m3dc1_mesh::instance()->get_local_count(dim);
   if (dim>2 || !num_ent) return;
 
   double* v_coords;
@@ -1340,7 +1340,6 @@ void m3dc1_mesh::initialize()
     }
     mesh->end(it);
   }
-
   MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, PCU_Get_Comm());
   set_node_adj_tag();
 }
