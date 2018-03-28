@@ -154,6 +154,11 @@ subroutine init_perturbations
 
      call eval_ops(itri, p_field(0), p079)
      call eval_ops(itri, psi_field(0), ps079)
+     call eval_ops(itri, p_field(1), p179)
+     call eval_ops(itri, psi_field(1), ps179)
+     pt79  = p079  + p179
+     pst79 = ps079 + ps179
+ 
 
      ps179 = 0.
      ph179 = 0.
@@ -166,11 +171,11 @@ subroutine init_perturbations
      ! apply mask
      if(p0 .gt. 0.) then 
         do i=1, npoints
-           imr = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+           imr = magnetic_region(pst79(i,OP_1),pst79(i,OP_DR),pst79(i,OP_DZ), &
                 x_79(i), z_79(i))
            if(imr.eq.0) then
-              if(real(p079(i,OP_1)).gt.pedge) then
-                 temp79a(i) = (p079(i,OP_1) - pedge)/p0
+              if(real(pt79(i,OP_1)).gt.pedge) then
+                 temp79a(i) = (pt79(i,OP_1) - pedge)/p0
               else
                  temp79a(i) = 0.
               end if
