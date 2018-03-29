@@ -28,6 +28,22 @@ int get_ent_globalid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 void verify_field(pMesh m, pField f);
 class m3dc1_mesh
 {
+private:
+  void set_node_adj_tag();
+  apf::Mesh2 * mesh;
+  // field container
+  std::map<FieldID, m3dc1_field*> field_container;
+  static m3dc1_mesh* _instance;
+  // local counter to avoid apf/pumi acually counting the ents every time
+  //  need to update after adapted
+  int num_local_ent[4];
+  int num_global_ent[4];
+  int num_own_ent[4];
+  // tag for local entity id
+  apf::MeshTag * local_entid_tag;
+  // tags for second order adjanceny info
+  apf::MeshTag * num_global_adj_node_tag;
+  apf::MeshTag * num_own_adj_node_tag;
 public:
   m3dc1_mesh();
   ~m3dc1_mesh();
@@ -130,61 +146,6 @@ public:
   //  apf::MeshTag* own_partid_tag;
   apf::MeshTag * own_bridge_adj_tag() { return num_own_adj_node_tag; }
   apf::MeshTag * global_bridge_adj_tag() { return num_global_adj_node_tag; }
-
-  void create_mesh_array(apf::Mesh2 * msh, bool update)
-  {
-    if(ments && update)
-      delete_mesh_array();
-    if(!ments)
-      ments = new apf::MeshEntity ** [4];
-#ifdef _OPENMP
-#pragma omp parallel
-    {
-      int nthreads = omp_get_num_threads();
-      if(omp_get_thread_num() == 0)
-        std::cout << __func__ < ": tid 0 #threads: " << nthreads << std::endl;
-    }
-#endif
-    apf::MeshEntity * e = nullptr;
-    for(int dim = 0; dim <= 3; ++dim)
-    {
-      ments[dim] = new apf::MeshEntity * [msh->count(dim)];
-      int ii = 0;
-      apf::MeshIterator * it = msh->begin(dim);
-      while((e = msh->iterate(it)))
-      {
-        ments[dim][ii] = e;
-        assert(ii == apf::getMdsIndex(msh,e));
-        ++ii;
-      }
-      msh->end(it);
-    }
-  }
-
-  void delete_mesh_array()
-  {
-    if(!ments) return;
-    for(int dd = 0; dd <= 3; ++dd)
-      if(ments[dd]) delete ments[dd];
-    delete [] ments;
-  }
-private:
-  void set_node_adj_tag();
-  apf::Mesh2 * mesh;
-  apf::MeshEntity*** ments;
-  // field container
-  std::map<FieldID, m3dc1_field*> field_container;
-  static m3dc1_mesh* _instance;
-  // local counter to avoid apf/pumi acually counting the ents every time
-  //  need to update after adapted
-  int num_local_ent[4];
-  int num_global_ent[4];
-  int num_own_ent[4];
-  // tag for local entity id
-  apf::MeshTag * local_entid_tag;
-  // tags for second order adjanceny info
-  apf::MeshTag * num_global_adj_node_tag;
-  apf::MeshTag * num_own_adj_node_tag;
 };
 template <class O>
 void m3dc1_mesh::retrieve_fields(O out)

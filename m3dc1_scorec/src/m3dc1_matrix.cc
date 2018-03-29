@@ -362,7 +362,7 @@ void m3dc1_matrix::solve(m3dc1_field * rhs)
     std::cout << "\t-- # solver iterations " << itr << std::endl;
   vec2Field(cm,rhs,x,get_scalar_type());
 }
-int m3dc1_matrix::solve_iteration_count()
+int m3dc1_matrix::solver_iteration_count()
 {
   int itr = -1;
   KSPGetIterationNumber(ksp,&itr);

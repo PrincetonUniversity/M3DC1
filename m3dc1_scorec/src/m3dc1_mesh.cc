@@ -30,18 +30,6 @@ using namespace apf;
 #include "omp.h"
 #endif
 
-void delete_mesh_array()
-{
-  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<"\n";
-  m3dc1_mesh::instance()->delete_mesh_array();
-}
-
-void create_mesh_array(Mesh2* m, bool update)
-{
-  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<"\n";
-  m3dc1_mesh::instance()->create_mesh_array(m,update);
-}
-
 //*******************************************************
 void compute_globalid(apf::Mesh2* m, int d)
 //*******************************************************
@@ -187,7 +175,6 @@ m3dc1_mesh::m3dc1_mesh()
 // *********************************************************
 {
   mesh = NULL;
-  ments=NULL;
   reset();
   local_entid_tag=num_global_adj_node_tag=num_own_adj_node_tag=NULL;
 }

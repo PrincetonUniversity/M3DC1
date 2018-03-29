@@ -1722,7 +1722,7 @@ void m3dc1_matrix_getnumiter(int * mid, int * iter_num)
 {
   m3dc1_matrix * mat = m3dc1_solver::instance()->get_matrix(*mid);
   assert(mat && "[M3D-C1 Error] Matrix with specified ID does not exist");
-  *iter_num = mat->solve_iteration_count();
+  *iter_num = mat->solver_iteration_count();
 }
 // insert the blocks associated with a single node of the given element
 // mid is the matrix identifier
