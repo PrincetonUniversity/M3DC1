@@ -1006,6 +1006,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
     call write_field(group_id,"torque_ntv", torque_density_ntv, nelms, error)
     call write_field(group_id, "bdotgradp", bdotgradp, nelms, error)
     call write_field(group_id, "bdotgradt", bdotgradt, nelms, error)
+    call write_field(group_id, "zeff", z_effective, nelms, error)
 
     if(itemp_plot .eq. 1) then
        call write_field(group_id, "vdotgradt", vdotgradt, nelms, error)

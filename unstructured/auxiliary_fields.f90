@@ -23,6 +23,7 @@ module auxiliary_fields
   type(field_type) :: deldotq_par
   type(field_type) :: eta_jsq
   type(field_type) :: mesh_zone
+  type(field_type) :: z_effective
 
   logical, private :: initialized = .false.
 
@@ -44,6 +45,7 @@ subroutine create_auxiliary_fields
   call create_field(ef_par)
   call create_field(eta_j)
   call create_field(mesh_zone)
+  call create_field(z_effective)
   if(jadv.eq.0) then
      call create_field(psidot)
      call create_field(veldif)
@@ -88,6 +90,7 @@ subroutine destroy_auxiliary_fields
   call destroy_field(ef_par)
   call destroy_field(eta_j)
   call destroy_field(mesh_zone)
+  call destroy_field(z_effective)
   if(jadv.eq.0) then
      call destroy_field(psidot)
      call destroy_field(veldif)
@@ -497,6 +500,31 @@ subroutine calculate_sigma_e(itri)
 end subroutine calculate_sigma_e
 
 
+subroutine calculate_zeff(itri, z)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  integer :: i
+  vectype, dimension(MAX_PTS), intent(out) :: z
+
+  z = zeff**2*nt79(:,OP_1)
+
+  if(ikprad.eq.1) then 
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        z = z + i**2*tm79(:,OP_1)
+     end do
+  end if
+
+  z = z / net79(:,OP_1)
+end subroutine calculate_zeff
+
 subroutine calculate_sigma_i(itri)
   use basic
   use kprad
@@ -552,6 +580,7 @@ subroutine calculate_auxiliary_fields(ilin)
   ef_par = 0.
   eta_j = 0.
   mesh_zone = 0.
+  z_effective = 0.
   if(jadv.eq.0) then
      psidot = 0.
      veldif = 0.
@@ -817,8 +846,11 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
 
      call electric_field_eta_j(ilin,temp79a)
      dofs = intx2(mu79(:,:,OP_1),temp79a)
-
      call vector_insert_block(eta_j%vec,itri,1,dofs,VEC_ADD)
+
+     call calculate_zeff(itri, temp79a)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(z_effective%vec,itri,1,dofs,VEC_ADD)
      
      if(jadv.eq.0) then
         call electric_field_psidot(ilin,temp79a)
@@ -922,6 +954,7 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   call newvar_solve(ef_par%vec, mass_mat_lhs)
   call newvar_solve(eta_j%vec, mass_mat_lhs)
   call newvar_solve(mesh_zone%vec, mass_mat_lhs)
+  call newvar_solve(z_effective%vec, mass_mat_lhs)
   if(jadv.eq.0) then
      call newvar_solve(psidot%vec, mass_mat_lhs)
      call newvar_solve(veldif%vec, mass_mat_lhs)
