@@ -137,10 +137,10 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	temperature_plots.o \
 	electrostatic_potential.o newvar.o runaway.o diagnostics.o \
 	read_schaffer_field.o  neutral_beam.o \
-	coils.o coil_sets.o model.o \
+	coils.o coil_sets.o kprad_m3dc1.o model.o \
 	fit_magnetics.o wall.o \
 	init_common.o \
-	gradshafranov.o rmp.o kprad_m3dc1.o \
+	gradshafranov.o rmp.o  \
 	readgeqdsk.o read_jsolver.o read_dskbal.o \
 	init_rwm.o init_solovev.o init_circle.o init_basicj.o \
 	init_tilt.o init_taylor.o init_force_free.o init_gem.o init_wave.o \
@@ -210,8 +210,8 @@ bin :
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60-omp/m3dc1_3d_omp bin
 	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin
 	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
-	ln -s $(SRCDIR)/sbin/$(ARCH)/create_mesh.sh bin
+	ln -s $(SRCDIR)/sbin/create_mesh.sh bin
+	ln -s $(SRCDIR)/sbin/create_fixed_mesh.sh bin
 	ln -s $(SRCDIR)/sbin/$(ARCH)/part_mesh.sh bin
-	ln -s $(SRCDIR)/sbin/$(ARCH)/create_fixed_mesh.sh bin
 
 endif

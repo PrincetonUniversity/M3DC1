@@ -161,7 +161,6 @@ contains
     use boundary_conditions
     use metricterms_new
     use sparse
-    use model
 
     implicit none
 
