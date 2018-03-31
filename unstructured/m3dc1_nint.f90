@@ -691,6 +691,16 @@ contains
              pt79(:,OP_1) = pe_floor
           end where
        end if
+
+       if(linear.eq.0) then
+          where(real(pet79).lt.0.) pet79 = 0.
+          where(real(pt79).lt.0. ) pt79 = 0.
+          if(ieqsub.eq.0) then
+             where(real(pe179).lt.0.) pe179 = 0.
+             where(real(p179).lt.0.) p179 = 0.
+          end if
+       end if
+
     endif
    
     
@@ -735,6 +745,11 @@ contains
           ne079 = 0.
           net79 = ne179
        endif
+
+       if(linear.eq.0) then
+          where(real(net79).lt.0.) net79 = 0.
+          where(real(nt79).lt.0.) nt79 = 0.
+       end if
     endif
 
   ! NI
@@ -784,6 +799,62 @@ contains
           - 2.*nt79(:,OP_GSP)*ni79(:,OP_1)*ni79(:,OP_DP)
 #endif
      nei79 = ni79/zeff
+
+     if(linear.eq.0) then
+        where(ni79.ne.ni79) ni79 = 0.
+        where(real(ni79).lt.0.) ni79 = 0.
+     end if
+  endif
+
+  ! TE
+  ! ~~~
+  if(iand(fields, FIELD_TE).eq.FIELD_TE) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TE..."
+     
+     if(ilin.eq.0) then
+        call eval_ops(itri, te_field(1), te179, rfac)
+     else
+        te179 = 0.
+     endif
+     
+     if(ieqsub.eq.1) then
+        call eval_ops(itri, te_field(0), te079)
+        tet79 = te079 + te179
+     else
+        te079 = 0.
+        tet79 = te179
+     endif
+
+     if(linear.eq.0) then
+        where(real(tet79).lt.0.) tet79 = 0.
+        if(ieqsub.eq.0) then
+           where(real(te179).lt.0.) te179 = 0.
+        end if
+     end if
+  endif
+  
+  ! TI
+  ! ~~~
+  if(iand(fields, FIELD_TI).eq.FIELD_TI) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TI..."
+     
+     if(ilin.eq.0) then
+        call eval_ops(itri, ti_field(1), ti179, rfac)
+     else
+        ti179 = 0.
+     endif
+     
+     if(ieqsub.eq.1) then
+        call eval_ops(itri, ti_field(0), ti079)
+        tit79 = ti079 + ti179
+     else
+        ti079 = 0.
+        tit79 = ti179
+     endif
+
+     if(linear.eq.0) then
+        where(real(tit79).lt.0.) tit79 = 0.
+     end if
   endif
   
   ! J
@@ -937,7 +1008,11 @@ contains
            eta79(:,OP_1) = eta_max / efac
 
            ! Te
-           temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
+           if(itemp.eq.1) then
+              temp79b = tet79(:,OP_1) - eta_te_offset
+           else
+              temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
+           end if
 
 #ifdef USE3D
            ! dTe/dphi
@@ -990,7 +1065,12 @@ contains
         else
            call eval_ops(itri, resistivity_field, eta79)
         end if
+
+        where(real(eta79).ne.eta79) eta79 = 0.
+        where(real(eta79).lt.0.) eta79 = 0.
+        where(real(eta79).gt.eta_max) eta79 = eta_max
      end if
+
   end if
 
   ! KAP
@@ -1107,45 +1187,6 @@ contains
     endif
 
 
-    ! TE
-    ! ~~~
-    if(iand(fields, FIELD_TE).eq.FIELD_TE) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TE..."
-       
-       if(ilin.eq.0) then
-          call eval_ops(itri, te_field(1), te179, rfac)
-       else
-          te179 = 0.
-       endif
-       
-       if(ieqsub.eq.1) then
-          call eval_ops(itri, te_field(0), te079)
-          tet79 = te079 + te179
-       else
-          te079 = 0.
-          tet79 = te179
-       endif
-    endif
-
-    ! TI
-    ! ~~~
-    if(iand(fields, FIELD_TI).eq.FIELD_TI) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TI..."
-       
-       if(ilin.eq.0) then
-          call eval_ops(itri, ti_field(1), ti179, rfac)
-       else
-          ti179 = 0.
-       endif
-       
-       if(ieqsub.eq.1) then
-          call eval_ops(itri, ti_field(0), ti079)
-          tit79 = ti079 + ti179
-       else
-          ti079 = 0.
-          tit79 = ti179
-       endif
-    endif
     ! Electrostatic Potential
     ! ~~~
     if((iand(fields, FIELD_ES).eq.FIELD_ES)   &
