@@ -984,6 +984,10 @@ subroutine calculate_scalars()
      te_norm = (p0_norm / n0_norm) / 1.6022e-12  
 
      call calculate_parks_model
+  else
+     pellet_rate1 = 0.
+     pellet_rate2 = 0.
+     pellet_ablrate = 0.
   endif
 
   ekin = ekinp + ekint + ekin3
@@ -1808,7 +1812,7 @@ end function bremsstrahlung
 ! calculates each Fourer harmonics for kinetic energy
 !======================================================================
 subroutine calculate_ke()
-
+#ifdef USE3D
   use basic
   use mesh_mod
   use arrays
@@ -2084,7 +2088,7 @@ subroutine calculate_ke()
      call destroy_field(chi_transformc)
      call destroy_field(chi_transforms)
 !    call destroy_vector(transform_field)
-
+#endif
 end subroutine calculate_ke
 
 
@@ -2095,7 +2099,7 @@ end subroutine calculate_ke
 ! calculates each Fourer harmonics for magnetic energy
 !======================================================================
 subroutine calculate_bh()
-
+#ifdef USE3D
   use basic
   use mesh_mod
   use arrays
@@ -2340,7 +2344,7 @@ subroutine calculate_bh()
      call destroy_field(F_transforms)
      call destroy_field(fp_transformc)
      call destroy_field(fp_transforms)
-
+#endif
 end subroutine calculate_bh
 
 
