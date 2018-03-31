@@ -292,6 +292,8 @@ contains
     real, dimension(MAX_PTS) :: source    ! neutral particle source
 
     integer :: i, itri, nelms, def_fields, izone
+    real, parameter :: min_te = .01
+    real, parameter :: min_ne = 1e8
     vectype, dimension(dofs_per_element) :: dofs
 
     if(ikprad.ne.1) return
@@ -332,9 +334,6 @@ contains
           source = pellet_deposition(x_79, phi_79, z_79, p, ne, 0.)
        end if
 
-       where(nz.lt.0.) nz = 0.
-       where(ne.lt.0.) ne = 0.
-
        n0_old = nz(:,0)
 
        ! convert nz, ne, te, dt to cgs / eV
@@ -342,14 +341,19 @@ contains
        ne = ne*n0_norm
        source = source*n0_norm/t0_norm
        te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
-       where(te.lt.0. .or. te.ne.te) te = 0.
        dt_s = dti*t0_norm
+
+       where(te.lt.min_te .or. te.ne.te) te = min_te
+       where(nz.lt.0.) nz = 0.
+       where(ne.lt.min_ne) ne = min_ne
 
        ! advance densities at each integration point
        ! for one MHD timestep (dt_s)
        if(izone.eq.1) then
           call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
                ne, te, nz, dw_rad, dw_brem, source)
+          where(dw_rad.ne.dw_rad) dw_rad = 0.
+          where(dw_brem.ne.dw_brem) dw_brem = 0.
           where(ne .ne. ne) ne = 0.
           where(nz .ne. nz) nz = 0.
        else
