@@ -616,7 +616,7 @@ subroutine calculate_auxiliary_fields(ilin)
   if(rad_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_RAD
 
   numelms = local_elements()
-if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
+
   ! EM Torque density
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
