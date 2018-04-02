@@ -1002,7 +1002,7 @@ void accumulate_field(apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    own_partid=pumi_ment_getOwnPID(e);
+    own_partid=get_ent_ownpartid(m,e);
     if (own_partid==PCU_Comm_Self() || pumi_ment_isGhost(e)) continue;
     assert(m->isShared(e));
     own_e = get_ent_owncopy(m, e);
@@ -2194,7 +2194,7 @@ int sum_edge_data (double* data, int* size)
   for (int i=0; i<num_edge; ++i)
   {
     apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
-    int own_partid=pumi_ment_getOwnPID(e);
+    int own_partid=get_ent_ownpartid(m,e);
     apf::MeshEntity* own_e = get_ent_owncopy(m, e);
     if (own_partid==PCU_Comm_Self()) continue;
     PCU_COMM_PACK(own_partid, own_e);
@@ -2259,7 +2259,7 @@ int get_node_error_from_elm (double* elm_data, int* size, double* nod_data)
   for (int ii=0; ii<num_node; ++ii)
   {
     apf::MeshEntity* e = getMdsEntity(m, nod_dim, ii);
-    int own_partid=pumi_ment_getOwnPID(e);
+    int own_partid=get_ent_ownpartid(m,e);
     apf::MeshEntity* own_e = get_ent_owncopy(m, e);
     apf::Adjacent adjacent;
     m->getAdjacent(e,2,adjacent);

@@ -230,11 +230,11 @@ add_executable(show_meshcount test/create_smb/show_meshcount.cc)
 target_link_libraries(show_meshcount ${LINK_LIBS})
 target_link_libraries(show_meshcount ${SCOREC_LIB_NAME})
 INSTALL(TARGETS show_meshcount RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif() #enable_testing
 
 add_executable(mesh_tags test/mesh_tags/main.cc)
 target_link_libraries(mesh_tags ${LINK_LIBS} ${SCOREC_LIB_NAME})
 install(TARGETS mesh_tags RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+endif() #enable_testing
 
 #binary distribution package
 set(CPACK_GENERATOR "TGZ")
