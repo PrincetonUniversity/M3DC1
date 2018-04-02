@@ -671,8 +671,9 @@ void m3dc1_ent_getownpartid (int*  edim, int*  eid,
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->get_mesh(), *edim, *eid);
   assert(e);
-  *owning_partid = pumi_ment_getOwnPID(e);
+  *owning_partid = get_ent_ownpartid(m3dc1_mesh::instance()->get_mesh(), e);  
 }
+
 void m3dc1_ent_isowner (int*  edim, int*  eid,
                        int*  ismine)
 {
