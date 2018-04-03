@@ -546,6 +546,37 @@ subroutine calculate_sigma_i(itri)
 end subroutine calculate_sigma_i
 
 
+subroutine calculate_weighted_density(itri)
+  use basic
+  use m3dc1_nint
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  real :: ti_over_te
+  integer :: i
+
+  ! Ion density
+  nw79 = nt79
+
+  if(ikprad.eq.1) then
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        nw79 = nw79 + tm79
+     end do
+  end if
+
+  if(ipres.eq.0) then
+     ! Total weighted density
+     ti_over_te = (1. - pefac) / pefac
+
+     nw79 = ti_over_te*nw79 + net79
+  end if
+end subroutine calculate_weighted_density
+
+
 subroutine calculate_auxiliary_fields(ilin)
   use math
   use basic

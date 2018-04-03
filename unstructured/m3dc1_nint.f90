@@ -95,8 +95,8 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
        pht79, vzt79, cht79, pt79, net79
 !$OMP THREADPRIVATE(pst79,bzt79,pet79,nt79,pht79,vzt79,cht79,pt79,net79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: rho79
-!$OMP THREADPRIVATE(rho79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: rho79, nw79
+!$OMP THREADPRIVATE(rho79, nw79)
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &

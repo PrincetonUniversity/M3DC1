@@ -3694,26 +3694,34 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype, dimension(dofs_per_element) :: tempx
 
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179
-  vectype, dimension(MAX_PTS, OP_NUM) :: nnt79
+  vectype, dimension(MAX_PTS, OP_NUM) :: nnt79, siw79
 
   real :: thimpb, thimp_bf, nv, coefeq, ohfac
   integer :: pp_g
   coefeq =  3853.*(n0_norm/1.e14)*(l0_norm/100.)**2     ! 3853 = (gam-1)*3 *mu_0*e^2*[1.e20]/M_i   MKS units
 
-  if(electron_temperature) then
+  if(ipres.eq.0) then
+     ! Total temperature equation
      pp079 = te079
      pp179 = te179
      pp_g = te_g
-  else
-     pp079 = ti079
-     pp179 = ti179
-     pp_g = ti_g
-  end if
-
-  if(electron_temperature) then
+     siw79 = sie79 + sii79 * (1. - pefac) / pefac
      nnt79 = net79
   else
-     nnt79 = nt79
+     if(electron_temperature) then
+        pp079 = te079
+        pp179 = te179
+        pp_g = te_g
+        nnt79 = net79
+        nw79 = net79
+        siw79 = sie79
+     else
+        pp079 = ti079
+        pp179 = ti179
+        pp_g = ti_g
+        nnt79 = nt79
+        siw79 = sii79
+     end if
   end if
 
   if(imp_mod.eq.0) then
@@ -3756,7 +3764,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   q_bf = 0.
 
   if(izone.ne.1) then
-     tempx = t3tn(trialx,lin,nnt79)
+     tempx = t3tn(trialx,lin,nw79)
      ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
      return
@@ -3767,7 +3775,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 !
 ! NOTE:  iadiabat=1 is correct form;   adiabat=0 is for backwards compatibility (6/2/16)
   if(iadiabat.eq.1) then
-     tempx = t3tn(trialx,lin,nnt79)*freq_fac
+     tempx = t3tn(trialx,lin,nw79)*freq_fac
      ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
   else
@@ -3862,48 +3870,48 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! ~~~~~~~~~~~~~~~~~~
   if(no_vdg_T .eq. 0) then   ! debug
      if(linear.eq.0) then
-        tempx = t3tnu(trialx,pp179,nnt79,lin)
+        tempx = t3tnu(trialx,pp179,nw79,lin)
         ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimpb*bdf)*dt*tempx
 
         if(numvar.ge.2) then
-           tempx = t3tnv(trialx,pp179,nnt79,lin)
+           tempx = t3tnv(trialx,pp179,nw79,lin)
            ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
            ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimpb*bdf)*dt*tempx
         end if
 
         if(numvar.ge.3) then
-           tempx = t3tnchi(trialx,pp179,nnt79,lin)
+           tempx = t3tnchi(trialx,pp179,nw79,lin)
            ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
            ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimpb*bdf)*dt*tempx
         end if
 
-        tempx = t3tnu  (trialx,lin,nnt79,ph179) &
-             + t3tnv  (trialx,lin,nnt79,vz179) &
-             + t3tnchi(trialx,lin,nnt79,ch179)
+        tempx = t3tnu  (trialx,lin,nw79,ph179) &
+             + t3tnv  (trialx,lin,nw79,vz179) &
+             + t3tnchi(trialx,lin,nw79,ch179)
         ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (.5-thimp*bdf)*dt*tempx
      endif
      if(eqsubtract.eq.1) then
-        tempx = t3tnu(trialx,pp079,nnt79,lin)
+        tempx = t3tnu(trialx,pp079,nw79,lin)
         ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
      
         if(numvar.ge.2) then
-           tempx = t3tnv(trialx,pp079,nnt79,lin)
+           tempx = t3tnv(trialx,pp079,nw79,lin)
            ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
            ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimpb*bdf)*dt*tempx
         end if
      
         if(numvar.ge.3) then
-           tempx = t3tnchi(trialx,pp079,nnt79,lin)
+           tempx = t3tnchi(trialx,pp079,nw79,lin)
            ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
            ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimpb*bdf)*dt*tempx
         end if
 
-        tempx = t3tnu  (trialx,lin,nnt79,ph079) &
-             + t3tnv  (trialx,lin,nnt79,vz079) &
-             + t3tnchi(trialx,lin,nnt79,ch079)
+        tempx = t3tnu  (trialx,lin,nw79,ph079) &
+             + t3tnv  (trialx,lin,nw79,vz079) &
+             + t3tnchi(trialx,lin,nw79,ch079)
         ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
      endif
@@ -4161,11 +4169,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(idens.eq.1 .and. iadiabat.eq.1) then
      tempx = t3tndenm(trialx,lin,nnt79,denm) 
-     if(electron_temperature) then
-        tempx = tempx + t3ts(trialx,lin,sie79)
-     else
-        tempx = tempx + t3ts(trialx,lin,sii79)
-     end if
+     tempx = tempx + t3ts(trialx,lin,siw79)
      ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
   endif
@@ -4245,8 +4249,8 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         end if
      else
         if(ipres.eq.0) then
-           ! Electron temperature
-           r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*pefac
+           ! Total temperature
+           r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
         else
            if(total_pressure) then
              ! Ion Temperature
@@ -4560,6 +4564,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      call calculate_rho(itri)
      call calculate_sigma_e(itri)
      call calculate_sigma_i(itri)
+     if(itemp.eq.1) call calculate_weighted_density(itri)
      if(gyro.eq.1) call gyro_common
      if(irunaway.gt.0) call eval_runaway(itri,izone)
      if(myrank.eq.0 .and. itimer.eq.1) then
