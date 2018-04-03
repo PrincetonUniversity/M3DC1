@@ -49,7 +49,7 @@ void compute_globalid(apf::Mesh2* m, int d)
   apf::MeshIterator* it = m->begin(d);
   while ((e = m->iterate(it)))
   {
-    if (!pumi_ment_isOwned(e, m3dc1_mesh::instance()->ownership)) continue;
+    if (!pumi_ment_isOwned(e, m3dc1_mesh::instance()->get_ownership())) continue;
     m->setIntTag(e, tag, &start);
     apf::Copies remotes;
     m->getRemotes(e,remotes);
@@ -106,9 +106,7 @@ void set_remote(Mesh2* m, MeshEntity* e, int p, MeshEntity* r)
     m->addRemote(e, p, r);
 }
 
-// *********************************************************
 int get_ent_localid (Mesh2* mesh, MeshEntity* e)
-// *********************************************************
 {
   if (mesh->hasTag(e,m3dc1_mesh::instance()->local_id_tag()))
   {
@@ -119,10 +117,8 @@ int get_ent_localid (Mesh2* mesh, MeshEntity* e)
   return getMdsIndex(mesh, e);
 }
 
-// *********************************************************
 int get_ent_globalid(apf::Mesh2* m, apf::MeshEntity* e)
 {
-// *********************************************************
   MeshTag* tag = m->findTag("global_id");
   assert(m->hasTag(e, tag));
   int id;
@@ -130,36 +126,22 @@ int get_ent_globalid(apf::Mesh2* m, apf::MeshEntity* e)
   return id;
 }
 
-// use pumi_ment_isOwned with m3dc1_mesh::instance()->ownership
 bool is_ent_original(apf::MeshEntity* e)
 {
-  return pumi_ment_isOwned (e, m3dc1_mesh::instance()->ownership);
+  return pumi_ment_isOwned (e, m3dc1_mesh::instance()->get_ownership());
 }
 
-// use pumi_ment_getOwnPID with m3dc1_mesh::instance()->ownership
 int get_ent_ownpartid(apf::MeshEntity* e)
 {
-  return pumi_ment_getOwnPID (e, m3dc1_mesh::instance()->ownership);
+  return pumi_ment_getOwnPID (e, m3dc1_mesh::instance()->get_ownership());
 }
 
-// use pumi_ment_getOwnEnt with m3dc1_mesh::instance()->ownership
 apf::MeshEntity* get_ent_owncopy(apf::MeshEntity* e)
 {
-  return pumi_ment_getOwnEnt  (e, m3dc1_mesh::instance()->ownership);
+  return pumi_ment_getOwnEnt  (e, m3dc1_mesh::instance()->get_ownership());
 }
 
-// m3dc1_mesh
-// *********************************************************
-m3dc1_mesh::m3dc1_mesh()
-// *********************************************************
-{
-  mesh = NULL;
-  ownership=NULL;
-  reset();
-  local_entid_tag=own_partid_tag=num_global_adj_node_tag=num_own_adj_node_tag=NULL;
-}
-
-struct m3dc1Ownership : public Ownership 
+struct m3dc1Ownership : public Ownership
 {
   m3dc1Ownership(pMesh m)
   { o = new apf::NormalSharing(m); }
@@ -168,11 +150,11 @@ struct m3dc1Ownership : public Ownership
   { delete o; }
 
   int getOwner(pMeshEnt e)
-  {  
+  {
     pMesh m = m3dc1_mesh::instance()->get_mesh();
     int own_partid = m->getOwner(e);
-    if (m->hasTag(e, m3dc1_mesh::instance()->own_partid_tag))
-      m->getIntTag(e, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
+    if (m->hasTag(e, m3dc1_mesh::instance()->get_own_part_tag()))
+      m->getIntTag(e, m3dc1_mesh::instance()->get_own_part_tag(), &own_partid);
     return own_partid;
   }
 
@@ -186,12 +168,22 @@ struct m3dc1Ownership : public Ownership
   bool isShared(pMeshEnt  e)
   { return o->isShared(e); }
 
+private:
   pOwnership o;
 };
 
-// *********************************************************
+m3dc1_mesh::m3dc1_mesh()
+  : mesh(nullptr)
+  , local_entid_tag(nullptr)
+  , num_global_adj_node_tag(nullptr)
+  , num_own_adj_node_tag(nullptr)
+  , ownership(nullptr)
+  , own_partid_tag(nullptr)
+{
+  reset();
+}
+
 void m3dc1_mesh::initialize()
-// *********************************************************
 {
   if (!local_entid_tag) local_entid_tag = mesh->createIntTag("m3dc1_local_ent_id", 1);
   if (!own_partid_tag) own_partid_tag = mesh->createIntTag("m3dc1_own_part_id", 1);
@@ -201,9 +193,10 @@ void m3dc1_mesh::initialize()
   reset();
 
   ownership = new m3dc1Ownership(mesh);
-  MeshEntity* e;
-
-  int counter = 0, own_partid, local_partid=PCU_Comm_Self();
+  MeshEntity * e = nullptr;
+  int counter = 0;
+  int own_partid = -1;
+  int local_partid = PCU_Comm_Self();
 
   for (int d=0; d<4; ++d)
   {
@@ -224,9 +217,7 @@ void m3dc1_mesh::initialize()
   set_node_adj_tag();
 }
 
-// *********************************************************
 m3dc1_mesh::~m3dc1_mesh()
-// *********************************************************
 {}
 
 void m3dc1_mesh::clean()
@@ -266,9 +257,7 @@ m3dc1_mesh* m3dc1_mesh::instance()
   return _instance;
 }
 
-// *********************************************************
 void m3dc1_mesh::reset()
-// *********************************************************
 {
   for (int i=0; i<4; ++i)
   {
@@ -318,11 +307,8 @@ void push_new_entities (Mesh2* mesh, std::map<MeshEntity*, MeshEntity*>& new_ent
     }
   }
 }
-
-// **********************************************
 void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int rank_to, 
-    MeshEntity** remote_vertices, MeshEntity** remote_edges, MeshEntity** remote_faces)
-// **********************************************
+    MeshEntity**, MeshEntity**, MeshEntity**)
 {
   MeshEntity* e;
   PCU_Comm_Begin();
@@ -372,7 +358,7 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
       int own_partid, num_remote;
       PCU_COMM_UNPACK(e);
       PCU_Comm_Unpack(&own_partid,sizeof(int));
-      mesh->setIntTag(e, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
+      mesh->setIntTag(e, m3dc1_mesh::instance()->get_own_part_tag(), &own_partid);
       PCU_Comm_Unpack(&num_remote,sizeof(int));
       int* remote_pid = new int [num_remote];
       MeshEntity** remote_copy = new MeshEntity*[num_remote];
@@ -437,7 +423,7 @@ void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
 
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_id_tag(), &index);
         own_partid=proc_grp_rank*proc_grp_size+e_own_partid[index];
-        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
+        mesh->setIntTag(new_ent, m3dc1_mesh::instance()->get_own_part_tag(), &own_partid);
 
         if (e_global_id[index]!=-1)
         {
@@ -1761,6 +1747,7 @@ int receive_dof(pField f)
   } // while
   return res;
 }
+// the current implementation assumes that the mesh passed in is NECESSARILY the same as the m3dc1_mesh::instance()::mesh
 void verify_field(pMesh m, pField f)
 {
   PCU_Comm_Begin();
@@ -1768,7 +1755,7 @@ void verify_field(pMesh m, pField f)
   pMeshEnt e;
   while ((e = m->iterate(it)))
   {
-    if (pumi_ment_isOwned(e, m3dc1_mesh::instance()->ownership) && 
+    if (pumi_ment_isOwned(e, m3dc1_mesh::instance()->get_ownership()) &&
         (m->isShared(e) || m->isGhosted(e)))
       send_dof(m, e, f);
   }

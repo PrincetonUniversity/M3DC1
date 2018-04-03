@@ -11,20 +11,18 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
   MatType tp;
   MatGetType(A,&tp);
   MPI_Comm cms[] = {PETSC_COMM_SELF,PETSC_COMM_WORLD};
-  int num_nds[] = {(int)msh->get_mesh()->count(0), apf::countOwned(msh->get_mesh(),0)};//{msh->num_local_ent[0],msh->num_own_ent[0]}; // assuming only verts hold nodes
+  int num_nds[] = {(int)msh->get_mesh()->count(0), msh->get_own_count(0)};//{msh->num_local_ent[0],msh->num_own_ent[0]}; // assuming only verts hold nodes
   //int num_vrts = msh->get_mesh()->count(0);
   int is_par = (strcmp(tp,MATMPIBAIJ) == 0 || strcmp(tp,MATMPIAIJ) == 0);
   int is_lcl = !is_par;
-  int bs = fld->get_dof_per_value();
-  int dof_per_nd = fld->get_num_value() * bs;
-  int blk_per_nd = dof_per_nd / bs;
-  int num_own_dof = num_nds[is_par] * dof_per_nd;
+  int dof_per_blk = fld->get_dof_per_value();
+  int blk_per_nd = fld->get_num_value();
+  int dof_per_nd = dof_per_blk * blk_per_nd;
+  int num_lcl_blk = num_nds[is_par] * blk_per_nd;
   int frst_blk_row = 0;
-  MPI_Exscan(&num_own_dof,&frst_blk_row,1,MPI_INTEGER,MPI_SUM,cms[is_par]);
-  frst_blk_row /= dof_per_nd;
-  int blk_row_cnt = num_own_dof / bs;
-  std::vector<int> dnnz(blk_row_cnt);
-  std::vector<int> onnz(blk_row_cnt);
+  MPI_Exscan(&num_lcl_blk,&frst_blk_row,1,MPI_INTEGER,MPI_SUM,cms[is_par]);
+  std::vector<int> dnnz(num_lcl_blk);
+  std::vector<int> onnz(num_lcl_blk);
   int vrt_dim = 0;
   //FieldID fld_id = fld->get_id();
   int * lcl_dofs = new int[dof_per_nd];
@@ -33,10 +31,8 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
   int lcl_nd = 0;
   for(int nd = 0; nd < num_nds[0]; ++nd) //  have to iterate over all nodes, but we only process those we need
   {
-    //DBG(memset(&gbl_dofs[0],0,sizeof(int)*dof_per_nd));
-    //m3dc1_ent_getlocaldofid(&vrt_dim,&nd,&fld_id,&dofs[0],&dof_cnt);
     apf::MeshEntity * ent = apf::getMdsEntity(msh->get_mesh(),vrt_dim,nd);
-    lcl_nd = msh->get_mesh()->isOwned(ent);
+    lcl_nd = is_ent_original(ent);
     if(!lcl_nd && is_par)
       continue;
     int dof_cnt = 0;
@@ -48,23 +44,23 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
     msh->get_mesh()->getIntTag(ent, msh->own_bridge_adj_tag(), &adj_own);
     msh->get_mesh()->getIntTag(ent, msh->global_bridge_adj_tag(), &adj_gbl);
     assert(adj_gbl >= adj_own);
-    for(int ii = 0; ii < dof_cnt; ii+=bs)
+    for(int ii = 0; ii < dof_cnt; ii+=dof_per_blk)
     {
-      int blk_row = (dof_ids[is_par][ii] / bs) - frst_blk_row;
-      assert(blk_row < blk_row_cnt && blk_row >= 0);
+      int blk_row = (dof_ids[is_par][ii] / dof_per_blk) - frst_blk_row;
+      assert(blk_row < num_lcl_blk && blk_row >= 0);
       dnnz[blk_row] = blk_per_nd * ((adj_own + 1) + (is_lcl * (adj_gbl - adj_own))); // if the matrix is local we only use dnnz but need the sum
       onnz[blk_row] = blk_per_nd * (adj_gbl - adj_own);
     }
   }
-  int blk = (bool)(bs-1);
+  int blk = (bool)(dof_per_blk-1);
   if(!blk && is_par)
     MatMPIAIJSetPreallocation(A,0,&dnnz[0],0,&onnz[0]);
   else if(blk && is_par)
-    MatMPIBAIJSetPreallocation(A,bs,0,&dnnz[0],0,&onnz[0]);
+    MatMPIBAIJSetPreallocation(A,dof_per_blk,0,&dnnz[0],0,&onnz[0]);
   else if(!blk && is_lcl)
     MatSeqAIJSetPreallocation(A,0,&dnnz[0]);
   else // must be local and block
-    MatSeqBAIJSetPreallocation(A,bs,0,&dnnz[0]);
+    MatSeqBAIJSetPreallocation(A,dof_per_blk,0,&dnnz[0]);
   delete [] lcl_dofs;
   delete [] gbl_dofs;
 }

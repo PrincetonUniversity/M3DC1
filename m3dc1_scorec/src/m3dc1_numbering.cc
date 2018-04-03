@@ -7,10 +7,8 @@
 #include <cassert>
 extern MPI_Comm M3DC1_COMM_WORLD;
 
-//*******************************************************
 void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
                            apf::FieldShape * shp, int nv, int ndfs)
-//*******************************************************
 {
   apf::MeshEntity* ent;
   int nnbr=nv*ndfs;
@@ -103,7 +101,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(msh->isOwned(ent))
+        if(is_ent_original(ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -128,7 +126,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(msh->isOwned(ent))
+        if(is_ent_original(ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -166,7 +164,9 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
   apf::SetNumberingOffset(num,lcl_offset);
   // this does work with PUMI default ownershiop
-  apf::synchronize(num);
+  // THIS MAKES MOST OF THE FUNCTION USELESS AS IT IS NOW STATEFUL AND CAN ONLY OPERATE
+  //  ON NUMBERINGS DERIVED FROM FIELDS DERIVED FROM THE M3DC1_MESH::INSTANCE()
+  apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
 #ifdef DEBUG
   for(int dd = 0; dd < dim; ++dd)
   {

@@ -50,11 +50,10 @@ private:
   // tags for second order adjanceny info
   apf::MeshTag * num_global_adj_node_tag;
   apf::MeshTag * num_own_adj_node_tag;
-public:
-  // user-defined ownership
+    // user-defined ownership
   pOwnership ownership;
   apf::MeshTag* own_partid_tag;
-
+public:
   m3dc1_mesh();
   ~m3dc1_mesh();
   static m3dc1_mesh* instance();
@@ -155,6 +154,9 @@ public:
   // tag for owned partid attached to the part bdry entities
   apf::MeshTag * own_bridge_adj_tag() { return num_own_adj_node_tag; }
   apf::MeshTag * global_bridge_adj_tag() { return num_global_adj_node_tag; }
+  apf::MeshTag * get_own_part_tag() { return own_partid_tag; }
+
+  pOwnership get_ownership() { return ownership; }
 };
 template <class O>
 void m3dc1_mesh::retrieve_fields(O out)
