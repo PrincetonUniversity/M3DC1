@@ -1007,7 +1007,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
     call write_field(group_id, "bdotgradp", bdotgradp, nelms, error)
     call write_field(group_id, "bdotgradt", bdotgradt, nelms, error)
     call write_field(group_id, "zeff", z_effective, nelms, error)
-
+    if(ikprad.eq.1) then
+       call write_field(group_id, "kprad_totden", kprad_totden, nelms, error)
+    end if
     if(itemp_plot .eq. 1) then
        call write_field(group_id, "vdotgradt", vdotgradt, nelms, error)
        call write_field(group_id, "adv1", adv1, nelms, error)
