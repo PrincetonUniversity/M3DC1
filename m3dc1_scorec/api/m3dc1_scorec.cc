@@ -671,7 +671,7 @@ void m3dc1_ent_getownpartid (int*  edim, int*  eid,
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->get_mesh(), *edim, *eid);
   assert(e);
-  *owning_partid = get_ent_ownpartid(m3dc1_mesh::instance()->get_mesh(), e);  
+  *owning_partid = get_ent_ownpartid(e);  
 }
 
 void m3dc1_ent_isowner (int*  edim, int*  eid,
@@ -681,7 +681,7 @@ void m3dc1_ent_isowner (int*  edim, int*  eid,
   apf::Mesh2* m = m3dc1_mesh::instance()->get_mesh();
   apf::MeshEntity* e = getMdsEntity(m, *edim, *eid);
   assert(e);
-  if (is_ent_original(m,e))
+  if (is_ent_original(e))
     *ismine = 1;   //
   else
     *ismine = 0;
@@ -946,7 +946,7 @@ void synchronize_field(apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    if (!is_ent_original(m,e) || (!m->isShared(e)&&!m->isGhosted(e)))
+    if (!is_ent_original(e) || (!m->isShared(e)&&!m->isGhosted(e)))
       continue;
     getComponents(f, e, 0, dof_data);
     if (m->isShared(e))
@@ -1003,10 +1003,10 @@ void accumulate_field(apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    own_partid=get_ent_ownpartid(m,e);
+    own_partid=get_ent_ownpartid(e);
     if (own_partid==PCU_Comm_Self() || pumi_ment_isGhost(e)) continue;
     assert(m->isShared(e));
-    own_e = get_ent_owncopy(m, e);
+    own_e = get_ent_owncopy(e);
     getComponents(f, e, 0, &(dof_data[0]));
     PCU_COMM_PACK(own_partid, own_e);
     PCU_Comm_Pack(own_partid,&(dof_data[0]),n*sizeof(double));
@@ -2062,7 +2062,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     for(int i=0; i<numVert; ++i)
     {
-      if(is_ent_original(m3dc1_mesh::instance()->get_mesh(),getMdsEntity(m3dc1_mesh::instance()->get_mesh(), 0, i)))
+      if(is_ent_original(getMdsEntity(m3dc1_mesh::instance()->get_mesh(), 0, i)))
         errorSum+=pow(errorData[i],d/(p+d/2.0));
     }
     double errorSumBuff=errorSum;
@@ -2076,7 +2076,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->get_mesh(), 0, i);
     assert(e);
-    if(!is_ent_original(m3dc1_mesh::instance()->get_mesh(),e)) continue;
+    if(!is_ent_original(e)) continue;
     double targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
     size_estimate+=max(1.,1./targetSize/targetSize);
   }
@@ -2195,8 +2195,8 @@ int sum_edge_data (double* data, int* size)
   for (int i=0; i<num_edge; ++i)
   {
     apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
-    int own_partid=get_ent_ownpartid(m,e);
-    apf::MeshEntity* own_e = get_ent_owncopy(m, e);
+    int own_partid=get_ent_ownpartid(e);
+    apf::MeshEntity* own_e = get_ent_owncopy(e);
     if (own_partid==PCU_Comm_Self()) continue;
     PCU_COMM_PACK(own_partid, own_e);
     PCU_Comm_Pack(own_partid,&(data[i*(*size)]),(*size)*sizeof(double));
@@ -2217,7 +2217,7 @@ int sum_edge_data (double* data, int* size)
   for (int i=0; i<num_edge; ++i)
   {
     apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
-    if (!is_ent_original(m,e) || !m->isShared(e))
+    if (!is_ent_original(e) || !m->isShared(e))
       continue;
     apf::Copies remotes;
     m->getRemotes(e,remotes);
@@ -2260,8 +2260,8 @@ int get_node_error_from_elm (double* elm_data, int* size, double* nod_data)
   for (int ii=0; ii<num_node; ++ii)
   {
     apf::MeshEntity* e = getMdsEntity(m, nod_dim, ii);
-    int own_partid=get_ent_ownpartid(m,e);
-    apf::MeshEntity* own_e = get_ent_owncopy(m, e);
+    int own_partid=get_ent_ownpartid(e);
+    apf::MeshEntity* own_e = get_ent_owncopy(e);
     apf::Adjacent adjacent;
     m->getAdjacent(e,2,adjacent);
     for (size_t jj = 0; jj < adjacent.getSize(); ++jj)
@@ -2303,7 +2303,7 @@ int get_node_error_from_elm (double* elm_data, int* size, double* nod_data)
   for (int i=0; i<num_node; ++i)
   {
     apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
-    if (!is_ent_original(m,e) || !m->isShared(e))
+    if (!is_ent_original(e) || !m->isShared(e))
       continue;
     apf::Copies remotes;
     m->getRemotes(e,remotes);

@@ -19,13 +19,19 @@
 #include <set>
 #include <utility>
 void compute_globalid(apf::Mesh2* m, int d);
-bool is_ent_original(apf::Mesh2* mesh, apf::MeshEntity* e);
-// m3dc1 cannot use PUMI owner in 3D
-int get_ent_ownpartid(apf::Mesh2* mesh, apf::MeshEntity* ent);
-apf::MeshEntity* get_ent_owncopy(apf::Mesh2* mesh, apf::MeshEntity* ent);
+// use pumi_ment_isOwned with m3dc1_mesh::instance()->ownership
+bool is_ent_original(apf::MeshEntity* e);
+
+// use pumi_ment_getOwnPID with m3dc1_mesh::instance()->ownership
+int get_ent_ownpartid(apf::MeshEntity* ent);
+
+// use pumi_ment_getOwnEnt with m3dc1_mesh::instance()->ownership
+apf::MeshEntity* get_ent_owncopy(apf::MeshEntity* ent);
+
 int get_ent_localid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_globalid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 void verify_field(pMesh m, pField f);
+
 class m3dc1_mesh
 {
 private:
@@ -45,7 +51,10 @@ private:
   apf::MeshTag * num_global_adj_node_tag;
   apf::MeshTag * num_own_adj_node_tag;
 public:
+  // user-defined ownership
+  pOwnership ownership;
   apf::MeshTag* own_partid_tag;
+
   m3dc1_mesh();
   ~m3dc1_mesh();
   static m3dc1_mesh* instance();
