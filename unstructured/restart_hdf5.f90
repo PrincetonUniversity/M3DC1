@@ -179,7 +179,20 @@ contains
        irestart = 0
        call hdf5_finalize(error)
        call hdf5_initialize(.false., error)
+
+       if(eqsubtract.eq.0) then
+         psi_field(0) = psi_field(1)
+         psi_field(1) = 0.
+         u_field(0) = u_field(1)
+         u_field(1) = 0.
+       endif
        call init_perturbations
+       if(eqsubtract.eq.0) then
+         call add_field_to_field(psi_field(1),psi_field(0))
+         psi_field(0) = 0.
+         call add_field_to_field(u_field(1),u_field(0))
+         u_field(0) = 0.
+       endif
     end if
   end subroutine rdrestart_hdf5
 
