@@ -581,7 +581,7 @@ subroutine calculate_weighted_density(itri)
   end if
 end subroutine calculate_weighted_density
 
-! Total impurity particle density (including neutrals)
+! Total impurity ion density
 subroutine calculate_kprad_totden(itri, z)
   use basic
   use kprad

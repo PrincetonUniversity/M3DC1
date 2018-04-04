@@ -749,6 +749,10 @@ contains
        if(linear.eq.0) then
           where(real(net79).lt.0.) net79 = 0.
           where(real(nt79).lt.0.) nt79 = 0.
+          if(eqsubtract.eq.1) then
+             where(real(ne179).lt.0.) ne179 = 0.
+             where(real(n179).lt.0.) n179 = 0.
+          end if
        end if
     endif
 
@@ -1066,7 +1070,7 @@ contains
            call eval_ops(itri, resistivity_field, eta79)
         end if
 
-        where(real(eta79).ne.eta79) eta79 = 0.
+        where(eta79.ne.eta79) eta79 = 0.
         where(real(eta79).lt.0.) eta79 = 0.
         where(real(eta79).gt.eta_max) eta79 = eta_max
      end if
