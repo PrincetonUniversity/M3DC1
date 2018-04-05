@@ -10,7 +10,8 @@ module kprad_m3dc1
 
   type(field_type), allocatable :: kprad_n(:)
   type(field_type), allocatable, private :: kprad_temp(:)
-  type(field_type) :: kprad_rad
+  type(field_type) :: kprad_rad      ! power lost to line radiation
+  type(field_type) :: kprad_brem     ! power lost to bremsstrahlung
   type(field_type) :: kprad_sigma_e  ! electron source / sink due to ionization / recomb
   type(field_type) :: kprad_sigma_i  ! total ion source / sink due to ionization / recomb
 
@@ -48,6 +49,7 @@ contains
        call create_field(kprad_temp(i))
     end do
     call create_field(kprad_rad)
+    call create_field(kprad_brem)
     call create_field(kprad_sigma_e)
     call create_field(kprad_sigma_i)
 
@@ -71,6 +73,7 @@ contains
        end do
        deallocate(kprad_n, kprad_temp)
        call destroy_field(kprad_rad)
+       call destroy_field(kprad_brem)
        call destroy_field(kprad_sigma_e)
        call destroy_field(kprad_sigma_i)
     end if
@@ -304,6 +307,7 @@ contains
        kprad_temp(i) = 0.
     end do
     kprad_rad = 0.
+    kprad_brem = 0.
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
     source = 0.
@@ -378,11 +382,17 @@ contains
           call vector_insert_block(kprad_temp(i)%vec,itri,1,dofs,VEC_ADD)
        end do
 
-       ! Radiation
-       temp79b = (dw_rad(:,kprad_z) + dw_brem) / dti
+       ! Line Radiation
+       temp79b = dw_rad(:,kprad_z) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
+
+       ! Bremsstrahlung
+       temp79b = dw_brem / dti
+       where(temp79b.ne.temp79b) temp79b = 0.
+       dofs = intx2(mu79(:,:,OP_1),temp79b)
+       call vector_insert_block(kprad_brem%vec, itri,1,dofs,VEC_ADD)
 
        ! Electron source
        temp79c = ne - net79(:,OP_1)
@@ -402,6 +412,7 @@ contains
        kprad_n(i) = kprad_temp(i)
     end do
     call newvar_solve(kprad_rad%vec, mass_mat_lhs)
+    call newvar_solve(kprad_brem%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_i%vec, mass_mat_lhs)
 

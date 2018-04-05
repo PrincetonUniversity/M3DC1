@@ -487,6 +487,8 @@ function rad_func(itri)
   if(ikprad.ne.0) then
      call eval_ops(itri, kprad_rad, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+     call eval_ops(itri, kprad_brem, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if
 
   rad_func = temp

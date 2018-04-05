@@ -269,7 +269,10 @@ contains
        end do
        call h5r_read_field(group_id,"kprad_sigma_e",kprad_sigma_e,nelms,error)
        call h5r_read_field(group_id,"kprad_sigma_i",kprad_sigma_i,nelms,error)
-       call h5r_read_field(group_id,"kprad_rad",kprad_rad,nelms,error)
+       call h5r_read_field(group_id,"kprad_rad",    kprad_rad,    nelms,error)
+       if(version.ge.22) then 
+          call h5r_read_field(group_id,"kprad_brem",kprad_brem,   nelms,error)
+       end if
     end if
     
     call h5gclose_f(group_id, error)

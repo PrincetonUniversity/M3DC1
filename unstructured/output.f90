@@ -969,7 +969,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call write_field(group_id, "kprad_sigma_e", kprad_sigma_e, nelms, error)
      call write_field(group_id, "kprad_sigma_i", kprad_sigma_i, nelms, error)
-     call write_field(group_id, "kprad_rad", kprad_rad, nelms, error)
+     call write_field(group_id, "kprad_rad",     kprad_rad,     nelms, error)
+     call write_field(group_id, "kprad_brem",    kprad_brem,    nelms, error)
   end if
 
   ! transport coefficients do not change with time in linear calculations
