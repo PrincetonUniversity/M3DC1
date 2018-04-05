@@ -25,7 +25,7 @@ void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if (!msh->isOwned(ent)) continue;
+        if (!m3dc1_mesh::instance()->get_ownership()->isOwned(ent)) continue;
 
         int tp = msh->getType(ent);
         int nds = shp->countNodesOn(tp);
@@ -75,7 +75,22 @@ void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
       int nds = shp->countNodesOn(tp);
       for(int nd = 0; nd < nds; ++nd)
         for (int cmp = 0; cmp < nv*ndfs; ++cmp)
+        {
           apf::number(num, r, nd, cmp, recv_nbr[cmp]);
+#ifdef DEBUG
+          if (recv_nbr[cmp]==0) 
+          {
+            if (msh->isGhost(r))
+              std::cout<<"("<<PCU_Comm_Self()<<") synch ghost "<<getMdsIndex(msh, r)
+                       <<" - node "<<nd<<" comp "<<cmp<<" num "<<recv_nbr[cmp]<<"\n";
+            else
+              std::cout<<"("<<PCU_Comm_Self()<<") synch remote "<<getMdsIndex(msh, r)
+                       <<" - node "<<nd<<" comp "<<cmp<<" num "<<recv_nbr[cmp]<<"\n";
+
+          }
+#endif
+       }
+
       delete [] recv_nbr;
     }
 }
@@ -94,7 +109,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   apf::MeshIterator * it = NULL;
   apf::MeshEntity * ent = NULL;
   // calculate the local stride
-  for(int dd = 0; dd < dim; dd++)
+  for (int dd = 0; dd < dim; dd++)
   {
     if(shp->hasNodesIn(dd))
     {
@@ -119,6 +134,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   int dof_id_offset = lcl_strd * ndfs;
   int nd_idx = 0;
   MPI_Exscan(&dof_id_offset,&nd_idx,1,MPI_INTEGER,MPI_SUM,cm);
+
   for(int dd = 0; dd < dim; ++dd)
   {
     if(shp->hasNodesIn(dd))
@@ -126,7 +142,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(is_ent_original(ent))
+        if (is_ent_original(ent))
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -139,6 +155,11 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
                 int cmp = blk * ndfs + dof;
                 int nbr = blk * strd + nd_idx * ndfs + dof;
                 apf::number(num,ent,nd,cmp,nbr);
+#ifdef DEBUG
+                if (nbr==0) 
+                   std::cout<<"("<<PCU_Comm_Self()<<") number ent "<<getMdsIndex(msh, ent)
+                     <<" - node "<<nd<<" comp "<<cmp<<" num "<<nbr<<"\n";
+#endif
               }
             }
             nd_idx++;
@@ -148,6 +169,9 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       msh->end(it);
     }
   }
+#ifdef DEBUG
+  std::cout<<"("<<PCU_Comm_Self()<<") #owned nodes ="<<m3dc1_mesh::instance()->get_own_count(0)<<"\n";
+#endif
   // get intra-comm offsets
   int rnk = -1;
   MPI_Comm_rank(cm,&rnk);
@@ -166,7 +190,10 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   // this does work with PUMI default ownershiop
   // THIS MAKES MOST OF THE FUNCTION USELESS AS IT IS NOW STATEFUL AND CAN ONLY OPERATE
   //  ON NUMBERINGS DERIVED FROM FIELDS DERIVED FROM THE M3DC1_MESH::INSTANCE()
-  apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
+  // seol - let's call synchronize_numbering instead for debugging purpose
+  //apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
+  synchronize_numbering(msh, num, shp, nv, ndfs);
+
 #ifdef DEBUG
   for(int dd = 0; dd < dim; ++dd)
   {
@@ -179,7 +206,13 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
         int nds = shp->countNodesOn(tp);
         for(int nd = 0; nd < nds; ++nd)
           for(int dof = 0; dof < nv*ndfs; ++dof)
+          {
+            if (!apf::getNumber(num,ent,nd,dof))
+              std::cout<<"("<<PCU_Comm_Self()<<") ZERO number for ent "<<getMdsIndex(msh, ent)
+                     <<" - node "<<nd<<" comp "<<dof<<", is_ghost "<<msh->isGhost(ent)<<"\n";
             assert(apf::isNumbered(num,ent,nd,dof));
+          }
+         
       }
       msh->end(it);
     }
