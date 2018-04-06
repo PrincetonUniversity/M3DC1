@@ -1263,3 +1263,28 @@ subroutine space(ifirstcall)
 
   return
 end subroutine space
+
+subroutine calculate_zeff(itri, z)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  integer :: i
+  vectype, dimension(MAX_PTS), intent(out) :: z
+
+  z = zeff**2*nt79(:,OP_1)
+
+  if(ikprad.eq.1) then 
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        z = z + i**2*tm79(:,OP_1)
+     end do
+  end if
+
+  z = z / net79(:,OP_1)
+end subroutine calculate_zeff

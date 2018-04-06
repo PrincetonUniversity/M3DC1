@@ -434,7 +434,7 @@ contains
     integer, intent(in), optional :: ieqs
 
     real :: fac, efac
-    integer :: izone, ieqsub, fields
+    integer :: izone, ieqsub, fields, i
     type(element_data) :: d
 
     fields = fieldi
@@ -975,8 +975,8 @@ contains
         else if(iresfunc.eq.4) then
            ! eta = efac / T^1.5
            efac = eta_fac * &
-                3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
-                *zeff*lambda_coulomb*sqrt(ion_mass)
+                3.4e-22*n0_norm**2/(b0_norm**4*l0_norm)* &
+                lambda_coulomb*sqrt(ion_mass)
 
            ! Here eta79 = 1/T^1.5 .  Factor of efac is included later
            eta79 = 0.
@@ -1037,6 +1037,11 @@ contains
            end where
 
            eta79 = eta79 * efac
+
+           call calculate_zeff(itri,temp79a)
+           do i=1, OP_NUM
+              eta79(:,i) = eta79(:,i) * temp79a
+           end do
         else
            call eval_ops(itri, resistivity_field, eta79)
         end if
