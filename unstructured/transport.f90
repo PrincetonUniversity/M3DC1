@@ -396,7 +396,7 @@ function q_func(izone)
      do j=1,npoints
         rsq = r(j)**2
 !       temp79a(j) = coolrate*(pfunc(rsq)-pt79(j,OP_1))
-        temp79a(j) = coolrate*(pfunc(rsq)) ! now use new time p in pressure_lin
+        temp79a(j) = pefac*coolrate*(pfunc(rsq)) ! now use new time p in pressure_lin
      end do
      temp79a = temp79a*(1. + tanh((r-libetap)/p1))
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
