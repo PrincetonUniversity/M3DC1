@@ -606,10 +606,13 @@ subroutine export_time_advance_vectors_split
       p_field(1) = p_v 
       te_field(1) = te_v
       if(ipres.eq.0) then
-         pe_field(1) = p_v
-         call mult(pe_field(1), pefac)
-         ti_field(1) = te_v
-         call mult(ti_field(1), (1.-pefac)/pefac)
+         if(itemp.eq.1) then
+            ti_field(1) = te_v
+            call mult(ti_field(1), (1.-pefac)/pefac)
+         else
+            pe_field(1) = p_v
+            call mult(pe_field(1), pefac)
+         end if
       else
          pe_field(1) = pe_v
          ti_field(1) = ti_v 
