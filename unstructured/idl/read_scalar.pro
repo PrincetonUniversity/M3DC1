@@ -334,10 +334,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = data[n_elements(data)-1]
    endif
 
-   get_normalizations, b0=b0,n0=n0,l0=l0, zeff=zeff, ion_mass=mi, $
+   get_normalizations, b0=b0,n0=n0,l0=l0, ion_mass=mi, $
      filename=filename, _EXTRA=extra
-   convert_units, data, d, b0, n0, l0, zeff, mi, _EXTRA=extra
-   convert_units, time, dimensions(/t0), b0, n0, l0, zeff, mi, _EXTRA=extra
+   convert_units, data, d, b0, n0, l0, mi, _EXTRA=extra
+   convert_units, time, dimensions(/t0), b0, n0, l0, mi, _EXTRA=extra
    units = parse_units(d, _EXTRA=extra)
 
    if(n_elements(data) gt n_elements(time)) then $
