@@ -307,7 +307,7 @@ Program Reducedquintic
 #ifdef USEPARTICLES
   if (kinetic.eq.1) then
      call particle_test
-     call safestop(0)
+     !call safestop(0)
   endif
 #endif
 
@@ -478,6 +478,7 @@ subroutine safestop(iarg)
   use runaway_mod
   use wall
   use kprad_m3dc1
+  use particles
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -493,6 +494,13 @@ subroutine safestop(iarg)
   integer, intent(in) :: iarg
   integer :: ier
   character*10 :: datec, timec
+
+#ifdef USEPARTICLES
+  if (kinetic.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *,"  finalizing particles..."
+     call finalize_particles
+  endif
+#endif
 
   call destroy_auxiliary_fields
   call runaway_deallocate
