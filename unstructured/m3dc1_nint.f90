@@ -87,8 +87,8 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
        temp79d, temp79e, temp79f
 !$OMP THREADPRIVATE(temp79a,temp79b,temp79c,temp79d,temp79e,temp79f)
-  vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, nei79, b2i79, bi79
-!$OMP THREADPRIVATE(tm79,ni79,nei79,b2i79,bi79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, b2i79, bi79
+!$OMP THREADPRIVATE(tm79,ni79,b2i79,bi79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
        ph179, vz179, ch179, p179, ne179, pi179
 !$OMP THREADPRIVATE(ps179,bz179,pe179,n179,ph179,vz179,ch179,p179,ne179,pi179)
@@ -127,6 +127,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(nre79)
   vectype, dimension(MAX_PTS, OP_NUM) :: wall79
 !$OMP THREADPRIVATE(wall79)
+  vectype, dimension(MAX_PTS) :: qd79
+!$OMP THREADPRIVATE(qd79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -433,7 +435,7 @@ contains
     integer, intent(in) :: itri, fieldi, gdef, ilin
     integer, intent(in), optional :: ieqs
 
-    real :: fac, efac
+    real :: fac
     integer :: izone, ieqsub, fields, i
     type(element_data) :: d
 
@@ -723,7 +725,7 @@ contains
                    n079(:,OP_1) = den_edge
                 end where
              end if
-             ne079 = n079*zeff
+             ne079 = n079*z_ion
           else
              call eval_ops(itri, den_field(0), n079)
              call eval_ops(itri, ne_field(0), ne079)
@@ -784,7 +786,7 @@ contains
      ni79(:,OP_GSPP) = -nt79(:,OP_GSPP)*ni79(:,OP_1)**2 &
           - 2.*nt79(:,OP_GSP)*ni79(:,OP_1)*ni79(:,OP_DP)
 #endif
-     nei79 = ni79/zeff
+
 
      if(linear.eq.0) then
         where(ni79.ne.ni79) ni79 = 0.
@@ -973,11 +975,6 @@ contains
            eta79 = eta79*eta_fac
            !     else if(iresfunc.eq.0 .or. iresfunc.eq.4) then
         else if(iresfunc.eq.4) then
-           ! eta = efac / T^1.5
-           efac = eta_fac * &
-                3.4e-22*n0_norm**2/(b0_norm**4*l0_norm)* &
-                lambda_coulomb*sqrt(ion_mass)
-
            ! Here eta79 = 1/T^1.5 .  Factor of efac is included later
            eta79 = 0.
            eta79(:,OP_1) = eta_max / efac

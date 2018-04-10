@@ -408,7 +408,7 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
 
   if(ikprad.eq.0 .or. linear.eq.1) then
      ne = nion
-     call mult(ne, zeff)
+     call mult(ne, z_ion)
      return
   end if
   
@@ -431,7 +431,7 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
         nt79 = n179
      end if
 
-     temp79a = nt79(:,OP_1)*zeff
+     temp79a = nt79(:,OP_1)*z_ion
 
      if(ikprad.eq.1) then
         do i=1, kprad_z

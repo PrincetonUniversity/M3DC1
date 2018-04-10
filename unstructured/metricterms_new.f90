@@ -5865,7 +5865,7 @@ function b1psid(e,f,g)
      temp = intx3(e(:,:,OP_1),f(:,OP_GS),g(:,OP_1))
   endif
 
-  b1psid = temp*me_mi*mass_ratio*db**2
+  b1psid = temp*me_mp*mass_ratio*db**2
 end function b1psid
 
 
@@ -8354,7 +8354,7 @@ function b2bd(e,f,g)
           +intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_1)))
   end if
 
-  b2bd = temp*me_mi*mass_ratio*db**2
+  b2bd = temp*me_mp*mass_ratio*db**2
 end function b2bd
 
 

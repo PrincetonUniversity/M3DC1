@@ -290,7 +290,7 @@ subroutine set_defaults
        "Factor multiplying physical value of ion skin depth", misc_grp)
   call add_var_double("mass_ratio", mass_ratio, 0., "", misc_grp)
   call add_var_double("lambdae", lambdae, 0., "", misc_grp)
-  call add_var_double("zeff", zeff, 1., "Z effective", misc_grp)
+  call add_var_double("z_ion", z_ion, 1., "Z effective", misc_grp)
   call add_var_double("ion_mass", ion_mass, 1., &
        "Ion mass (in units of m_p)", misc_grp)
   call add_var_double("lambda_coulomb", lambda_coulomb, 17., &
@@ -1011,6 +1011,7 @@ subroutine set_defaults
   call add_var_int("igs_method", igs_method, -1, "", deprec_grp)
   call add_var_int("iwrite_restart", iwrite_restart, 0, &
        "1: Write restart files", deprec_grp)
+  call add_var_double("zeff", zeff_xxx, 0., "Z of main ion species", deprec_grp)
 
 end subroutine set_defaults
 
@@ -1039,7 +1040,7 @@ subroutine validate_input
 #endif
 
   integer :: ier
-  real :: efac, de
+  real :: de
 
   if(myrank.eq.0) then
      print *, "============================================="
@@ -1103,8 +1104,13 @@ subroutine validate_input
      end if
   end if
 
-  if(zeff .ne. 1.0 .and. itemp.eq.1) then
-     if(myrank.eq.0) print *, "itemp=1 not allowed with zeff .gt. 1"
+  if(zeff_xxx .ne. .0 .and. itemp.eq.1) then
+     if(myrank.eq.0) print *, "zeff is deprecated.  Use z_ion instead."
+     call safestop(1)
+  endif
+
+  if(z_ion .ne. 1.0 .and. itemp.eq.1) then
+     if(myrank.eq.0) print *, "itemp=1 not allowed with z_ion .gt. 1"
      call safestop(1)
   endif
 
@@ -1383,13 +1389,9 @@ subroutine validate_input
 
   if(eta_max.le.0.) eta_max = eta_vac
   if(myrank.eq.0) then
-     efac =  (eta_fac * &
-          3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
-          *zeff*lambda_coulomb*sqrt(ion_mass))
-     print *, 'efac = ',efac,'  eta_max=efac/Te^3/2 '
-     print *, 'Te associated with eta_max = ', (efac/ eta_max)**(2./3.) &
+     print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.) &
           * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
-     print *, 'Te associated with eta_max = ', (efac/eta_max)**(2./3.), &
+     print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.), &
           ' dimensionless'
   end if
 
@@ -1437,15 +1439,31 @@ subroutine validate_input
 #endif
   endif
 
-  v0_norm = b0_norm / sqrt(4.*pi*ion_mass*m_p*n0_norm)
+  m0_norm = m_p*ion_mass
+  v0_norm = b0_norm / sqrt(4.*pi*m0_norm*n0_norm)
   t0_norm = l0_norm / v0_norm
   p0_norm = b0_norm**2/(4.*pi)
   e0_norm = v0_norm*b0_norm / c_light
   j0_norm = c_light*b0_norm/(4.*pi*l0_norm)
 
+  ! For pure Hydrogen plasma
+  ! nu_e = nufac * n_e / T_e^(3/2) 
+  ! eta_perp = etafac / T_e^(3/2)
+  ! (all in normlized units)
+  nufac  = eta_fac * (4.*sqrt(2.*pi)*(4.*pi)**2 / 3.) &
+       * e_c**4 * sqrt(m0_norm / m_e) * lambda_coulomb  &
+       * (n0_norm**3 * l0_norm / B0_norm**4)
+  efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)  
+
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     print *, 'nufac = ', nufac
+     print *, 'efac = ', efac
+  end if
+  
+
   if(db.lt.0.) then
      db = c_light / &
-          sqrt(4.*pi*n0_norm*(zeff*e_c)**2/(ion_mass*m_p)) / &
+          sqrt(4.*pi*n0_norm*(z_ion*e_c)**2/m0_norm) / &
           l0_norm
      if(myrank.eq.0 .and. iprint.ge.1) then
         print *, 'Physical value of db = ', db

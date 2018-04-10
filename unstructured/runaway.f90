@@ -96,7 +96,7 @@ contains
     ne = net79(:,OP_1)*n0_norm*1e6
     nre = nre79(:,OP_1)*n0_norm*1e6
 
-    call runaway_current(nre,epar,te,ne,Zeff,re_j79,dndt)
+    call runaway_current(nre,epar,te,ne,z_ion,re_j79,dndt)
 
     ! convert back to normalized units
     dndt = dndt*t0_norm/(n0_norm*1e6)

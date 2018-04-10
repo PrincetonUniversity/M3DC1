@@ -150,7 +150,7 @@ contains
      n_g = 0.534 !in g.cm-3
      Mach = 1.
 
-     q_s = 0.5*nsource_pel*temp_pel*te_norm*sqrt(8.*temp_pel*te_norm/(PI*1.e3*m_p*me_mi))
+     q_s = 0.5*nsource_pel*temp_pel*te_norm*sqrt(8.*temp_pel*te_norm/(PI*1.e3*m_p*me_mp))
      pellet_rate1 = 4.*PI*(l0_norm*pellet_var)**2*q_s*shield_p*f_b*0.906!/(1.e-3*n_g*(subl+10./3.*T_s))                                                                                            
      pellet_rate1 = dt*t0_norm*pellet_rate1/n0_norm
 

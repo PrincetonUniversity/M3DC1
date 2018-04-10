@@ -1277,7 +1277,7 @@ subroutine calculate_zeff(itri, z)
   integer :: i
   vectype, dimension(MAX_PTS), intent(out) :: z
 
-  z = zeff**2*nt79(:,OP_1)
+  z = z_ion**2*nt79(:,OP_1)
 
   if(ikprad.eq.1) then 
      do i=1, kprad_z
@@ -1288,3 +1288,33 @@ subroutine calculate_zeff(itri, z)
 
   z = z / net79(:,OP_1)
 end subroutine calculate_zeff
+
+! Calculate the factor that multiplies ne * (Ti - Te) in Q_Delta term
+subroutine calculate_qdfac(itri, z)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+  vectype, dimension(MAX_PTS), intent(out) :: z
+
+  integer :: i
+
+  z = z_ion**2 * nt79(:,OP_1) / ion_mass
+
+  if(ikprad.eq.1) then 
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        z = z + i**2 * tm79(:,OP_1) / kprad_mz
+     end do
+  end if
+
+  where(real(tet79(:,OP_1)).gt.0.)
+     z = z * 3. * me_mp * nufac / tet79(:,OP_1)**(3./2.)
+  elsewhere
+     z = 0.
+  end where
+end subroutine calculate_qdfac
