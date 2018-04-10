@@ -48,7 +48,7 @@ pro convert_units, x, d, b0, n0, l0, mi, cgs=cgs, mks=mks, filename=filename
          * pot0^d[10]
        
    endif else if(keyword_set(mks)) then begin
-       convert_units, x, d, b0, n0, l0, 0, mi, /cgs
+       convert_units, x, d, b0, n0, l0, mi, /cgs
 
        val = (1.e-2)^d[1] $
          * (1.e6)^d[2] $
