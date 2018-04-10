@@ -3679,7 +3679,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179
   vectype, dimension(MAX_PTS, OP_NUM) :: nnt79, siw79
 
-  real :: thimpb, thimp_bf, nv, ohfac
+  real :: thimpb, thimp_bf, nv
   integer :: pp_g
 
   if(ipres.eq.0) then
@@ -3734,11 +3734,6 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      freq_fac = 1.
   end if
 
-  ohfac = 1.
-  if(ipres.eq.0) ohfac = 0.5
-!...note:  all OH terms should be multiplied by 0.5 for ipres=0   (since we assume T_e = T_i
-
-
   ssterm = 0.
   ddterm = 0.
   q_ni = 0.
@@ -3773,50 +3768,52 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
       ddterm(:,pp_g) = ddterm(:,pp_g) - (1.-thimpb*bdf)*dt*(gam-1.)*coolrate*tempx
   end if
 
-  if(electron_temperature) then
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
-  if(iohmic_heating.eq.1) then
-    if(linear.eq.0) then
+  ! ipres = 0                           : total temperature
+  ! ipres = 1, electron_temperature = T : electron temperature
+  ! ipres = 1, electron_temperature = F : ion temperature (no Q_Ohm)
+  if((ipres.eq.0 .or. electron_temperature) .and. iohmic_heating.eq.1) then
+     if(linear.eq.0) then
        tempx = b3psipsieta(trialx,lin,ps179,eta79) &
             + b3psipsieta(trialx,ps179,lin,eta79)
-       ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
-       ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+       ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx
 
        if(numvar.ge.2) then
           tempx = b3bbeta(trialx,lin,bz179,eta79) &
                + b3bbeta(trialx,bz179,lin,eta79)
-          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx*ohfac
-          ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx
 
           tempx = b3psibeta(trialx,lin,bz179,eta79) 
-          ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
-          ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+          ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+          ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx
 
           tempx = b3psibeta(trialx,ps179,lin,eta79)
-          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx*ohfac
-          ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx
           if(i3d .eq. 1) then
              tempx = b3psifeta(trialx,lin,bf179,eta79)
-             ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
-             ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+             ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+             ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpf*bdf)*dt*tempx
 
              tempx = b3psifeta(trialx,ps179,lin,eta79)
-             r_bf = r_bf -     thimp_bf     *dt*tempx*ohfac
-             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx*ohfac
+             r_bf = r_bf -     thimp_bf     *dt*tempx
+             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
 
              tempx = b3bfeta(trialx,lin,bf179,eta79)
-             ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx*ohfac
-             ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx*ohfac
+             ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+             ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpf*bdf)*dt*tempx
 
              tempx = b3bfeta(trialx,bz179,lin,eta79)
-             r_bf = r_bf -     thimp_bf     *dt*tempx*ohfac
-             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx*ohfac
+             r_bf = r_bf -     thimp_bf     *dt*tempx
+             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
 
              tempx = b3ffeta(trialx,lin,bf179,eta79)      &
                   + b3ffeta(trialx,bf179,lin,eta79)
-             r_bf = r_bf -     thimp_bf     *dt*tempx*ohfac
-             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx*ohfac
+             r_bf = r_bf -     thimp_bf     *dt*tempx
+             q_bf = q_bf + (.5-thimp_bf*bdf)*dt*tempx
           endif
 
        end if
@@ -3824,27 +3821,26 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
     if(eqsubtract.eq.1 .or. icsubtract.eq.1) then
        tempx = b3psipsieta(trialx,lin,ps079,eta79) &
             + b3psipsieta(trialx,ps079,lin,eta79)
-       ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
-       ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx*ohfac
+       ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx
      
        if(numvar.ge.2) then
           tempx = b3bbeta(trialx,lin,bz079,eta79) &
                + b3bbeta(trialx,bz079,lin,eta79)
-          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx*ohfac
-          ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimpf*bdf)*dt*tempx*ohfac
+          ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpf     *dt*tempx
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimpf*bdf)*dt*tempx
 
           tempx = b3psibeta(trialx,lin,bz079,eta79)
-          ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx*ohfac
-          ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx*ohfac
+          ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpf     *dt*tempx
+          ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpf*bdf)*dt*tempx
 
           if(i3d .eq. 1) then
              tempx = b3bfeta(trialx,bz079,lin,eta79)
-             r_bf = r_bf -     thimp_bf     *dt*tempx*ohfac
-             q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx*ohfac
+             r_bf = r_bf -     thimp_bf     *dt*tempx
+             q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
           endif
        end if
     endif
-   end if
   endif
 
 
