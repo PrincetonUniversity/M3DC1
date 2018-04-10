@@ -13595,25 +13595,22 @@ function teffkappar(e,f,g,h,j,k)
 end function teffkappar
 
 
-function b3peeta(e,f,g)
+function q_delta(e)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, dimension(dofs_per_element) :: b3peeta
+  vectype, dimension(dofs_per_element) :: q_delta
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
-     temp = 0.
+     q_delta = 0.
   else
-     temp = intx3(e(:,:,OP_1),f(:,OP_1),g(:,OP_1))
+     q_delta = intx4(e(:,:,OP_1),net79(:,OP_1),tit79(:,OP_1),qd79) &
+          -    intx4(e(:,:,OP_1),net79(:,OP_1),tet79(:,OP_1),qd79)
   end if
-
-  b3peeta = temp
-end function b3peeta
+end function q_delta
 
 vectype function q1ppsi(e,f,g,h)
 
@@ -13687,26 +13684,6 @@ vectype function q1pf(e,f,g,h)
   return
 end function q1pf
 
-
-function t3tneta(e,f,g,h)
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: t3tneta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-  vectype, dimension(dofs_per_element) :: temp
-
-  if(surface_int) then
-     temp = 0.
-  else
-     temp = intx4(e(:,:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_1))
-  end if
-
-  t3tneta = temp
-end function t3tneta
 
 function t3tn(e,f,g)
   use basic

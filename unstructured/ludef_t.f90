@@ -3075,9 +3075,8 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype, dimension(dofs_per_element) :: tempx
 
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179, ppt79
-  real :: thimpb, thimp_bf, nv, coefeq
+  real :: thimpb, thimp_bf, nv
   integer :: pp_g
-  coefeq =  3853.*(n0_norm/1.e14)*(l0_norm/100.)**2     ! 3853 = (gam-1)*3 *mu_0*e^2*[1.e20]/M_i   MKS units
 
   if(total_pressure) then
      pp079 = p079
@@ -3195,22 +3194,6 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         end if
      end if ! on idens
   end if
-        
-
-
-  ! Equipartition
-  ! ~~~~~~~~~~~~~
-!...this presently only works for ipressplit=1
-
- if((.not. total_pressure) .and. ipres.eq.1 .and. ipressplit.eq.1) then
-    if(linear.eq.0 .and. eqsubtract.eq.0) then
-       tempx = dt*coefeq*b3peeta(trialx,lin,eta79)
-       ssterm(:,pe_g) = ssterm(:,pe_g) +  2.*tempx        !*thimpf
-!       ddterm(:,pp_g) = ddterm(:,pp_g) +  2.*(1.-thimpf)*tempx
-       ssterm(:,p_g)  = ssterm(:,p_g)  -     tempx        !*thimpf
-!       ddterm(:,p_g)  = ddterm(:,p_g)  -  (1.-thimpf)*tempx
-    endif
- endif
 
 
   ! Ohmic Heating
@@ -3696,9 +3679,8 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179
   vectype, dimension(MAX_PTS, OP_NUM) :: nnt79, siw79
 
-  real :: thimpb, thimp_bf, nv, coefeq, ohfac
+  real :: thimpb, thimp_bf, nv, ohfac
   integer :: pp_g
-  coefeq =  3853.*(n0_norm/1.e14)*(l0_norm/100.)**2     ! 3853 = (gam-1)*3 *mu_0*e^2*[1.e20]/M_i   MKS units
 
   if(ipres.eq.0) then
      ! Total temperature equation
@@ -3923,22 +3905,6 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   tempx = b3tekappa(trialx,lin,kap79,vzt79)
   ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
   ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
-
-
-  ! Equipartition
-  ! ~~~~~~~~~~~~~
-   if(ipres.eq.1 .and. ipressplit.eq.1) then
-      if(linear.eq.0 .and. eqsubtract.eq.0) then
-         tempx = dt*coefeq*t3tneta(trialx,lin,nnt79,eta79)
-         if(electron_temperature) then
-            ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
-            ssterm(:,ti_g) = ssterm(:,ti_g) - tempx
-         else
-            ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
-            ssterm(:,te_g) = ssterm(:,te_g) - tempx
-         endif
-     endif       
-  endif
 
 
   ! Electron Pressure Advection
@@ -4241,24 +4207,38 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
      if(itemp.eq.0) then
         if(total_pressure) then
            ! Total pressure
+           ! ~~~~~~~~~~~~~~
            r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
         else
            ! Electron pressure
+           ! ~~~~~~~~~~~~~~~~~
            r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
            r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
+           
+           ! Equipartition
+           r4term = r4term + dt*(gam-1.)*q_delta(trialx)
         end if
      else
         if(ipres.eq.0) then
            ! Total temperature
+           ! ~~~~~~~~~~~~~~~~~
            r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
         else
            if(total_pressure) then
-             ! Ion Temperature
+             ! Total Ion Temperature
+             ! ~~~~~~~~~~~~~~~~~~~~~
              r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
+
+             ! Equipartition
+             r4term = r4term - dt*(gam-1.)*q_delta(trialx)
            else
              ! Electron temperature
+             ! ~~~~~~~~~~~~~~~~~~~~ 
              r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
              r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
+
+             ! Equipartition
+             r4term = r4term + dt*(gam-1.)*q_delta(trialx)
            endif
         end if
      end if
@@ -4508,12 +4488,9 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      def_fields = def_fields + FIELD_KAP
   end if
 
-  if(itemp.gt.0) then
-     def_fields = def_fields + FIELD_TE 
-     if(ipres.gt.0) then
-        def_fields = def_fields + FIELD_TI
-     endif
-  endif
+  if(numvar.ge.3 .or. ipres.eq.1) then
+     def_fields = def_fields + FIELD_TE + FIELD_TI
+  end if
 
   if(idens_def.eq.1) then
      if(density_source) def_fields = def_fields + FIELD_SIG
@@ -4565,6 +4542,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      call calculate_sigma_e(itri)
      call calculate_sigma_i(itri)
      if(itemp.eq.1) call calculate_weighted_density(itri)
+     if(ipres.eq.1) call calculate_qdfac(itri, qd79)
      if(gyro.eq.1) call gyro_common
      if(irunaway.gt.0) call eval_runaway(itri,izone)
      if(myrank.eq.0 .and. itimer.eq.1) then
