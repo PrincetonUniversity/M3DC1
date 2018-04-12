@@ -221,14 +221,14 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
      dofs_p  = intx2(mu79(:,:,OP_1),temp79a)
      dofs_pe = intx2(mu79(:,:,OP_1),temp79b)
 
-     if(ipres.eq.1) call vector_insert_block(pe_f%vec,itri,1,dofs_pe,VEC_ADD)
+     call vector_insert_block(pe_f%vec,itri,1,dofs_pe,VEC_ADD)
      call vector_insert_block(p_f%vec,itri,1,dofs_p,VEC_ADD)
   end do
 
-  if(ipres.eq.1)  call newvar_solve(pe_f%vec, mass_mat_lhs)
+  call newvar_solve(pe_f%vec, mass_mat_lhs)
   call newvar_solve(p_f%vec, mass_mat_lhs)
 
-  if(ipres.eq.1) pe = pe_f
+  pe = pe_f
   p = p_f
 
   call destroy_field(pe_f)

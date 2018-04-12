@@ -603,7 +603,7 @@ subroutine export_time_advance_vectors_split
         endif
      endif
   else    ! on ipressplit.eq.0
-      p_field(1) = p_v 
+      p_field(1) = p_v
       te_field(1) = te_v
       if(ipres.eq.0) then
          if(itemp.eq.1) then
@@ -855,6 +855,9 @@ subroutine step_split(calc_matrices)
         call export_time_advance_vectors_split
         call define_transport_coefficients
      end if
+
+     ! Electron temperature
+     call calculate_ne(1, den_v, ne_field(1), eqsubtract)
   endif    ! on idens=1
      
   !
@@ -1058,8 +1061,14 @@ subroutine step_split(calc_matrices)
      call destroy_vector(temp)
      call destroy_vector(temp2)
      call export_time_advance_vectors_split
-     call calculate_pressures(1, pe_v, p_v, ne_field(1), &
-          den_field(1), te_field(1), ti_field(1), eqsubtract)
+     if(ipres.eq.1) then
+        call calculate_pressures(1, pe_v, p_v, ne_field(1), &
+             den_field(1), te_v, ti_v, eqsubtract)
+     else
+        call calculate_pressures(1, pe_field(1), p_v, ne_field(1), &
+             den_field(1), te_v, ti_field(1), eqsubtract)
+     end if
+
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--end"
   endif
 
