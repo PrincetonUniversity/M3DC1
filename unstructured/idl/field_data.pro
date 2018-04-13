@@ -144,6 +144,12 @@ function field_data, name, units=units, itor=itor, filename=filename
    endif else if(strcmp(name, 'kprad_brem', /fold_case) eq 1) then begin
       units = dimensions(/p0,t0=-1)
       return, "!8P!D!6KPRAD,brem!N!X"
+   endif else if(strcmp(name, 'kprad_ion', /fold_case) eq 1) then begin
+      units = dimensions(/p0,t0=-1)
+      return, "!8P!D!6KPRAD,ion!N!X"
+   endif else if(strcmp(name, 'kprad_rec', /fold_case) eq 1) then begin
+      units = dimensions(/p0,t0=-1)
+      return, "!8P!D!6KPRAD,rec!N!X"
    endif else if(strcmp(name, 'rad_source', /fold_case) eq 1) then begin
       units = dimensions(/p0,t0=-1)
       return, "!8Q!D!6rad!N!X"

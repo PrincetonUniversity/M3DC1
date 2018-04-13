@@ -489,6 +489,10 @@ function rad_func(itri)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
      call eval_ops(itri, kprad_brem, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+     call eval_ops(itri, kprad_ion, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+     call eval_ops(itri, kprad_rec, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if
 
   rad_func = temp

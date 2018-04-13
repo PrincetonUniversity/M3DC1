@@ -71,7 +71,7 @@ contains
 
 
   subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem,&
-       source)
+       dw_ion, dw_rec, source)
     implicit none
 
     real, intent(in) :: dt                    ! time step to advance densities
@@ -82,6 +82,8 @@ contains
     real, intent(inout) :: nz(npts,0:z)      ! density
     real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
     real, intent(out) :: dw_brem(npts)       ! energy lost via bremsstrahlung
+    real, intent(out) :: dw_ion(npts,0:z)    ! energy lost via ionization
+    real, intent(out) :: dw_rec(npts,0:z)    ! energy lost via recombination
     real, intent(in) :: source(npts)         ! optional neutral density source
     
     real :: t, dts
@@ -103,6 +105,8 @@ contains
 
     dts = kprad_dt
     t = 0.
+    dw_ion = 0.
+    dw_rec = 0.
     dw_rad = 0.
     dw_brem = 0.
 
@@ -140,8 +144,10 @@ contains
             ne,sion,srec,nz,nzeff,pion,prec,imp_rad,pbrem)
 
        t = t + dts
+       dw_ion  = dw_ion + pion*dts
+       dw_rec  = dw_rec + prec*dts
        dw_brem = dw_brem + pbrem*dts
-       dw_rad = dw_rad + imp_rad*dts
+       dw_rad  = dw_rad + imp_rad*dts
        
        do i=1, z
           ne = ne + i*(nz(:,i) - nz_old(:,i))
@@ -159,6 +165,8 @@ contains
        elseif(max_change .gt. 0.2) then
           ! If ne change is > 20%, backtrack changes and reduce time step
           t = t - dts
+          dw_ion = dw_ion - dw_ion*dts
+          dw_rec = dw_rec - dw_rec*dts
           dw_brem = dw_brem - pbrem*dts
           dw_rad = dw_rad - imp_rad*dts
           ne = ne_old
