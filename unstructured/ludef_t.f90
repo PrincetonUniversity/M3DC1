@@ -3075,6 +3075,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   vectype, dimension(dofs_per_element) :: tempx
 
   vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179, ppt79
+  vectype, dimension(MAX_PTS, OP_NUM) :: nn079, nn179, nnt79
   real :: thimpb, thimp_bf, nv
   integer :: pp_g
 
@@ -3083,11 +3084,17 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      pp179 = p179
      ppt79 = pt79
      pp_g = p_g
+     nn079 = n079
+     nn179 = n179
+     nnt79 = nt79
   else
      pp079 = pe079
      pp179 = pe179
      ppt79 = pet79
      pp_g = pe_g
+     nn079 = ne079
+     nn179 = ne179
+     nnt79 = net79
   end if
 
   if(imp_mod.eq.0) then
@@ -3169,12 +3176,12 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
 
      if(idens.eq.0) then
-        tempx = kappat_pn(trialx,lin,nt79)
+        tempx = kappat_pn(trialx,lin,nnt79)
         ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
      else
         if(eqsubtract.eq.1) then
-           tempx = kappat_pn(trialx,lin,n079)
+           tempx = kappat_pn(trialx,lin,nn079)
            ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
            ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
            
@@ -3184,7 +3191,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         end if
               
         if(linear.eq.0) then
-           tempx = kappat_pn(trialx,lin,n179)
+           tempx = kappat_pn(trialx,lin,nn179)
            ssterm(:,pp_g) = ssterm(:,pp_g) -        thimp     *dt*tempx
            ddterm(:,pp_g) = ddterm(:,pp_g) + (0.5 - thimp*bdf)*dt*tempx
            
@@ -3565,13 +3572,13 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         if(ikappar_ni.eq.1) then
 
            if(idens.eq.0) then
-              tempx = kappar_pn(trialx,lin,nt79)
+              tempx = kappar_pn(trialx,lin,nnt79)
               ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
               ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
            else
               
               if(eqsubtract.eq.1) then
-                 tempx = kappar_pn(trialx,lin,n079)
+                 tempx = kappar_pn(trialx,lin,nn079)
                  ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
                  ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
                  
@@ -3581,7 +3588,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
               end if
               
               if(linear.eq.0) then
-                 tempx = kappar_pn(trialx,lin,n179)
+                 tempx = kappar_pn(trialx,lin,nn179)
                  ssterm(:,pp_g) = ssterm(:,pp_g) -        thimp     *dt*tempx
                  ddterm(:,pp_g) = ddterm(:,pp_g) + (0.5 - thimp*bdf)*dt*tempx
                  
