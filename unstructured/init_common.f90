@@ -228,6 +228,7 @@ subroutine den_eq
   real, dimension(MAX_PTS) :: n, p
   
   if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
+  if(ipellet_z.ne.0) return
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
@@ -289,7 +290,7 @@ subroutine den_per
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
 
-  if(ipellet.ge.0) return
+  if(ipellet.ge.0 .or. ipellet_z.ne.0) return
 
   call create_field(den_vec)
   den_vec = 0.

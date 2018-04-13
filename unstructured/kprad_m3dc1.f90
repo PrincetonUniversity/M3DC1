@@ -88,17 +88,45 @@ contains
   ! ~~~~~~~~~~~~~~~~
   !==================================
   subroutine kprad_init_conds()
+    use basic
     use arrays
+    use pellet
+    use m3dc1_nint
+    use newvar_mod
 
     implicit none
 
+    integer :: itri, nelms, def_fields
+    vectype, dimension(dofs_per_element) :: dofs
+    real, dimension(MAX_PTS) :: p, den
+
     if(ikprad.eq.0) return
 
-    ! initial neutral impurity density is
-    ! nz_0 = kprad_fz*ni + kprad_nz
-    kprad_n(0) = den_field(0)
-    call mult(kprad_n(0), kprad_fz)
-    call add(kprad_n(0), kprad_nz)
+    kprad_n(0) = 0.
+
+    def_fields = FIELD_N + FIELD_TE
+    if(ipellet.lt.0. .and. ipellet_z.eq.kprad_z) &
+         def_fields = def_fields + FIELD_P
+
+    nelms = local_elements()
+    do itri=1, nelms
+       call define_element_quadrature(itri,int_pts_main,5)
+       call define_fields(itri,def_fields,1,0)
+
+       temp79a = kprad_nz +  kprad_fz*nt79(:,OP_1)
+
+       if(ipellet.lt.0. .and. ipellet_z.eq.kprad_z) then
+          p = pt79(:,OP_1)
+          den = nt79(:,OP_1)
+          temp79a = temp79a + &
+               pellet_deposition(x_79, phi_79, z_79, p, den, 0.)
+       end if
+
+       dofs = intx2(mu79(:,:,OP_1),temp79a)
+       call vector_insert_block(kprad_n(0)%vec,itri,1,dofs,VEC_ADD)
+    end do
+
+    call newvar_solve(kprad_n(0)%vec, mass_mat_lhs)
 
   end subroutine kprad_init_conds
 
