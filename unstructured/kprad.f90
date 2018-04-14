@@ -58,14 +58,14 @@ contains
     
     real, dimension(npts,0:z-1) :: sion
     real, dimension(npts,0:z) :: srec
-    real, dimension(npts,z+1) :: pion, prec
+    real, dimension(npts,z+1) :: pion, preck, precp
     real, dimension(npts, 2) :: nzeff
 
     ! calculate ionization and recombination rates
     call kprad_ionization_rate(npts,ne,te,z,sion)
     call kprad_recombination_rate(npts,ne,te,z,srec)
     call kprad_energy_losses(npts,z,te, &
-         ne,sion,srec,nz,nzeff,pion,prec,prad,pbrem)
+         ne,sion,srec,nz,nzeff,pion,preck,precp,prad,pbrem)
            
   end subroutine kprad_instantaneous_radiation
 
@@ -93,7 +93,7 @@ contains
     real, dimension(npts,0:z-1) :: sion
     real, dimension(npts,0:z) :: srec
     real, dimension(npts) :: pbrem
-    real, dimension(npts,z+1) :: imp_rad, pion, prec
+    real, dimension(npts,z+1) :: imp_rad, pion, preck, precp
     real, dimension(npts, 2) :: nzeff
     real, dimension(npts,0:z) :: aimp, bimp, cimp, dimp, ework, fwork
     real :: max_change
@@ -141,11 +141,11 @@ contains
             ework,fwork,npts,z)
        
        call kprad_energy_losses(npts,z,te, &
-            ne,sion,srec,nz,nzeff,pion,prec,imp_rad,pbrem)
+            ne,sion,srec,nz,nzeff,pion,preck,precp,imp_rad,pbrem)
 
        t = t + dts
        dw_ion  = dw_ion + pion*dts
-       dw_rec  = dw_rec + prec*dts
+       dw_rec  = dw_rec + preck*dts ! only kinetic recombination added
        dw_brem = dw_brem + pbrem*dts
        dw_rad  = dw_rad + imp_rad*dts
        
@@ -232,12 +232,12 @@ contains
   ! kprad_energy_losses gets the radiated power,ionization power, etc.     
   !-----------------------------------------------------------------------
   subroutine KPRAD_ENERGY_LOSSES(N,Z,TE,NE,SION,             &
-       SREC,NZ,nZeff,pion,prec,IMP_RAD,PBREM)
+       SREC,NZ,nZeff,pion,preck,precp,IMP_RAD,PBREM)
 
     implicit none 
                                                                         
     integer, intent(in) :: N,Z
-    real, intent(out) :: IMP_RAD(N,Z+1),PION(N,Z+1),PREC(N,Z+1)
+    real, intent(out) :: IMP_RAD(N,Z+1),PION(N,Z+1),PRECK(N,Z+1),PRECP(N,Z+1)
     real, intent(out) :: PBREM(N)
     real, intent(in) :: TE(N), NE(N)
     real, intent(in) :: SION(N,0:Z-1),SREC(N,0:Z),NZ(N,0:Z)
@@ -260,14 +260,16 @@ contains
        nZeff(:,1)=nZeff(:,1)+real(L)*NZ(:,L-1)/SNZ
        nZeff(:,2)=nZeff(:,2)+real((L**2-L))*NZ(:,L-1)/NE
        
-       PREC(:,L) = SREC(:,L)*NZ(:,L)*(Z_EI(L)+TE)*1.6E-19 
+       PRECK(:,L) = SREC(:,L)*NZ(:,L)*TE*1.6E-19 
+       PRECP(:,L) = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19 
     end do
     
     PION(:,Z+1)  = sum(PION(:,1:Z),2) 
     !Total recombination losses                                      
     
     !totals -- recombination                                         
-    PREC(:,Z+1)=sum(PREC(:,1:Z),2) 
+    PRECK(:,Z+1)=sum(PRECK(:,1:Z),2) 
+    PRECP(:,Z+1)=sum(PRECP(:,1:Z),2) 
                                                                         
                                                  !sum of all charge stat
     IMP_RAD(:,Z+1)=sum(IMP_RAD(:,1:Z),DIM=2) 
