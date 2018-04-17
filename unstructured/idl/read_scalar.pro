@@ -201,7 +201,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
          print, 'Error, this data is not present in this version of M3D-C1.'
          data = 0.
       end
-       title = 'Thermal Energy'
+       title = 'Electron Thermal Energy'
        symbol = '!8TE!X'
        d = dimensions(/energy, _EXTRA=extra)
    endif else if $
