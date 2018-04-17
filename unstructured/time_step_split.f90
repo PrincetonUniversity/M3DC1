@@ -867,6 +867,7 @@ subroutine step_split(calc_matrices)
      ! Electron temperature
      neold_vec = ne_vec
      call calculate_ne(1, den_v, ne_v, eqsubtract)
+     ne_field(1) = ne_v    ! This is needed so that boundary_te works properly
   endif    ! on idens=1
      
   !
