@@ -286,7 +286,7 @@ contains
     
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
-    do j=0, kprad_z
+    do j=1, kprad_z
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
