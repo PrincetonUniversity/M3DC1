@@ -3683,7 +3683,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   vectype, dimension(dofs_per_element) :: tempx
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179
+  vectype, dimension(MAX_PTS, OP_NUM) :: pp079, pp179, nnw79
   vectype, dimension(MAX_PTS, OP_NUM) :: nnt79, siw79
 
   real :: thimpb, thimp_bf, nv
@@ -3696,19 +3696,21 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      pp_g = te_g
      siw79 = sie79 + sii79 * (1. - pefac) / pefac
      nnt79 = net79
+     nnw79 = nw79
   else
      if(electron_temperature) then
         pp079 = te079
         pp179 = te179
         pp_g = te_g
         nnt79 = net79
-        nw79 = net79
+        nnw79 = net79
         siw79 = sie79
      else
         pp079 = ti079
         pp179 = ti179
         pp_g = ti_g
         nnt79 = nt79
+        nnw79 = nw79
         siw79 = sii79
      end if
   end if
@@ -3748,7 +3750,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   q_bf = 0.
 
   if(izone.ne.1) then
-     tempx = t3tn(trialx,lin,nw79)
+     tempx = t3tn(trialx,lin,nnw79)
      ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
      return
@@ -3759,7 +3761,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 !
 ! NOTE:  iadiabat=1 is correct form;   adiabat=0 is for backwards compatibility (6/2/16)
   if(iadiabat.eq.1) then
-     tempx = t3tn(trialx,lin,nw79)*freq_fac
+     tempx = t3tn(trialx,lin,nnw79)*freq_fac
      ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
   else
@@ -3855,48 +3857,48 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! ~~~~~~~~~~~~~~~~~~
   if(no_vdg_T .eq. 0) then   ! debug
      if(linear.eq.0) then
-        tempx = t3tnu(trialx,pp179,nw79,lin)
+        tempx = t3tnu(trialx,pp179,nnw79,lin)
         ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimpb*bdf)*dt*tempx
 
         if(numvar.ge.2) then
-           tempx = t3tnv(trialx,pp179,nw79,lin)
+           tempx = t3tnv(trialx,pp179,nnw79,lin)
            ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
            ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimpb*bdf)*dt*tempx
         end if
 
         if(numvar.ge.3) then
-           tempx = t3tnchi(trialx,pp179,nw79,lin)
+           tempx = t3tnchi(trialx,pp179,nnw79,lin)
            ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
            ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimpb*bdf)*dt*tempx
         end if
 
-        tempx = t3tnu  (trialx,lin,nw79,ph179) &
-             + t3tnv  (trialx,lin,nw79,vz179) &
-             + t3tnchi(trialx,lin,nw79,ch179)
+        tempx = t3tnu  (trialx,lin,nnw79,ph179) &
+             + t3tnv  (trialx,lin,nnw79,vz179) &
+             + t3tnchi(trialx,lin,nnw79,ch179)
         ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (.5-thimp*bdf)*dt*tempx
      endif
      if(eqsubtract.eq.1) then
-        tempx = t3tnu(trialx,pp079,nw79,lin)
+        tempx = t3tnu(trialx,pp079,nnw79,lin)
         ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
      
         if(numvar.ge.2) then
-           tempx = t3tnv(trialx,pp079,nw79,lin)
+           tempx = t3tnv(trialx,pp079,nnw79,lin)
            ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
            ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimpb*bdf)*dt*tempx
         end if
      
         if(numvar.ge.3) then
-           tempx = t3tnchi(trialx,pp079,nw79,lin)
+           tempx = t3tnchi(trialx,pp079,nnw79,lin)
            ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
            ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimpb*bdf)*dt*tempx
         end if
 
-        tempx = t3tnu  (trialx,lin,nw79,ph079) &
-             + t3tnv  (trialx,lin,nw79,vz079) &
-             + t3tnchi(trialx,lin,nw79,ch079)
+        tempx = t3tnu  (trialx,lin,nnw79,ph079) &
+             + t3tnv  (trialx,lin,nnw79,vz079) &
+             + t3tnchi(trialx,lin,nnw79,ch079)
         ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
      endif
