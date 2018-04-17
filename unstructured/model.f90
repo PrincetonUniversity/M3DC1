@@ -655,40 +655,40 @@ subroutine boundary_ti(rhs, ti_v, mat)
         temp = 0.
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
-     if(iconst_t.eq.1) then
+     if(iconst_t.eq.1 .or. iconst_p.eq.1) then
         call get_node_data(ti_field(1), i, temp)
 
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
-     else if(iconst_p.eq.1) then
-        call get_node_data(p_field(1), i, temp)
-        call get_node_data(pe_field(1), i, temp2)
-        temp = temp - temp2
-
-        call get_node_data(den_field(1), i, temp2)
-        if(eqsubtract.eq.1) then
-           call get_node_data(den_field(0), i, temp3)
-           temp2 = temp2 + temp3
-        end if
-        if(ikprad.eq.1) then
-           do i=1, kprad_z
-              call get_node_data(kprad_n(i), i, temp3)
-              temp2 = temp2 + temp3
-           end do
-        end if
-
-        temp3 = 0.
-        temp3(1) = temp(1) / temp2(1)
-        temp3(2) = temp(2) / temp2(1) - temp2(2) * temp(1) / temp2(1)**2 
-        temp3(3) = temp(3) / temp2(1) - temp2(3) * temp(1) / temp2(1)**2 
-
-        if(eqsubtract.eq.1 .and. idiff.eq.0) then
-           call get_node_data(ti_field(0),i,temp2)
-           temp3 = temp3 - temp2
-        end if
-
-        call set_dirichlet_bc(i_n,rhs,temp3,normal,curv,izonedim,mat)
+!!$     else if(iconst_p.eq.1) then
+!!$        call get_node_data(p_field(1), i, temp)
+!!$        call get_node_data(pe_field(1), i, temp2)
+!!$        temp = temp - temp2
+!!$
+!!$        call get_node_data(den_field(1), i, temp2)
+!!$        if(eqsubtract.eq.1) then
+!!$           call get_node_data(den_field(0), i, temp3)
+!!$           temp2 = temp2 + temp3
+!!$        end if
+!!$        if(ikprad.eq.1) then
+!!$           do i=1, kprad_z
+!!$              call get_node_data(kprad_n(i), i, temp3)
+!!$              temp2 = temp2 + temp3
+!!$           end do
+!!$        end if
+!!$
+!!$        temp3 = 0.
+!!$        temp3(1) = temp(1) / temp2(1)
+!!$        temp3(2) = temp(2) / temp2(1) - temp2(2) * temp(1) / temp2(1)**2 
+!!$        temp3(3) = temp(3) / temp2(1) - temp2(3) * temp(1) / temp2(1)**2 
+!!$
+!!$        if(eqsubtract.eq.1 .and. idiff.eq.0) then
+!!$           call get_node_data(ti_field(0),i,temp2)
+!!$           temp3 = temp3 - temp2
+!!$        end if
+!!$
+!!$        call set_dirichlet_bc(i_n,rhs,temp3,normal,curv,izonedim,mat)
      end if
 
   end do
