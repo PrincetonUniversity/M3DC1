@@ -7,7 +7,7 @@ module time_step_split
   type(vector_type), private :: phi_vec, phip_vec
   type(vector_type), private :: vel_vec, veln_vec
   type(vector_type), private :: pres_vec
-  type(vector_type), private :: den_vec, denold_vec
+  type(vector_type), private :: den_vec, denold_vec, ne_vec, neold_vec
   type(vector_type), private :: pret_vec
 
   ! the following pointers point to the vector containing the named field.
@@ -24,6 +24,7 @@ module time_step_split
   type(field_type), private ::  bf_v
   type(field_type), private ::  te_v
   type(field_type), private ::  ti_v
+  type(field_type), private ::  ne_v
 
   integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p, vecsize_t
 
@@ -99,6 +100,8 @@ contains
 
     call create_vector(den_vec,    vecsize_n)
     call create_vector(denold_vec, vecsize_n)
+    call create_vector(ne_vec,     1)
+    call create_vector(neold_vec,  1)
     call create_vector(qn4_vec,    vecsize_n)
 
     call create_vector(b1_vel, vecsize_vel)
@@ -379,6 +382,7 @@ contains
     endif  !  on ipressplit.eq.1
     
     call associate_field(den_v,  den_vec,    den_i)
+    call associate_field(ne_v,    ne_vec,        1)
     
     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
        call associate_field(e_v, phi_vec, e_i)
@@ -548,6 +552,7 @@ subroutine import_time_advance_vectors_split
   endif   ! on ipressplit.eq.0
 
   den_v = den_field(1)
+  ne_v = ne_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)
 
@@ -620,7 +625,10 @@ subroutine export_time_advance_vectors_split
 
   endif   ! on ipressplit.eq.0
 
-  if(idens.eq.1) den_field(1) = den_v
+  if(idens.eq.1) then
+     ne_field(1) = ne_v
+     den_field(1) = den_v
+  end if
   if(imp_bf.eq.1) bf_field(1) = bf_v
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_field(1) = e_v
 
@@ -857,7 +865,8 @@ subroutine step_split(calc_matrices)
      end if
 
      ! Electron temperature
-     call calculate_ne(1, den_v, ne_field(1), eqsubtract)
+     neold_vec = ne_vec
+     call calculate_ne(1, den_v, ne_v, eqsubtract)
   endif    ! on idens=1
      
   !
@@ -1093,10 +1102,14 @@ subroutine step_split(calc_matrices)
 
      ! Inculde density terms
      if(idens.eq.1) then
-        call matvecmult(r42_mat,den_vec,b2_phi)
+        call matvecmult(r42_mat,ne_vec,b2_phi)
         call add(b1_phi, b2_phi)
-        call matvecmult(q42_mat,denold_vec,b2_phi)
+        call matvecmult(q42_mat,neold_vec,b2_phi)
         call add(b1_phi, b2_phi)
+!!$        call matvecmult(r42_mat,den_vec,b2_phi)
+!!$        call add(b1_phi, b2_phi)
+!!$        call matvecmult(q42_mat,denold_vec,b2_phi)
+!!$        call add(b1_phi, b2_phi)
      end if
 
      ! Include linear f terms
