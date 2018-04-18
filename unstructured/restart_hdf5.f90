@@ -286,6 +286,14 @@ contains
        if(version.ge.22) then 
           call h5r_read_field(group_id,"kprad_brem",kprad_brem,   nelms,error)
        end if
+       if(version.eq.23) then
+          call h5r_read_field(group_id,"kprad_ion",kprad_ion,   nelms,error)
+          call h5r_read_field(group_id,"kprad_rec",kprad_reck,   nelms,error)
+       else if(version.ge.24) then
+          call h5r_read_field(group_id,"kprad_ion",kprad_ion,   nelms,error)
+          call h5r_read_field(group_id,"kprad_reck",kprad_reck,   nelms,error)
+          call h5r_read_field(group_id,"kprad_recp",kprad_recp,   nelms,error)
+       end if
     end if
     
     call h5gclose_f(group_id, error)

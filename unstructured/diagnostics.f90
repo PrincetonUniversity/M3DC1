@@ -12,7 +12,8 @@ module diagnostics
   real :: tflux0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad, totne
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne
+  real :: totrad, linerad, bremrad, ionrad, reckrad, recprad
   real :: w_pe   ! electron thermal energy
   real :: totre  ! total number of runaway electrons
 
@@ -200,6 +201,11 @@ contains
     totden = 0.
     totne = 0.
     totrad = 0.
+    linerad = 0.
+    bremrad = 0.
+    ionrad = 0.
+    reckrad = 0.
+    recprad = 0.
     tmom = 0.
     tvor = 0.
     parea = 0.
@@ -259,7 +265,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 66
+    integer, parameter :: num_scalars = 71
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -317,20 +323,26 @@ contains
        temp(50) = temp_pel
        temp(51) = Lor_vol
        temp(52) = totrad
-       temp(53) = totre
-       temp(54) = m_iz
-       temp(55) = wall_force_n0_x
-       temp(56) = wall_force_n0_y
-       temp(57) = wall_force_n0_z
-       temp(58) = wall_force_n1_x
-       temp(59) = wall_force_n1_y
-       temp(60) = wall_force_n1_z
-       temp(61) = totne
-       temp(62) = w_pe
-       temp(63) = pcur_co
-       temp(64) = pcur_sn
-       temp(65) = m_iz_co
-       temp(66) = m_iz_sn
+       temp(53) = linerad
+       temp(54) = bremrad
+       temp(55) = ionrad
+       temp(56) = reckrad
+       temp(57) = recprad
+       temp(58) = totre          
+       temp(59) = m_iz           
+       temp(60) = wall_force_n0_x
+       temp(61) = wall_force_n0_y
+       temp(62) = wall_force_n0_z
+       temp(63) = wall_force_n1_x
+       temp(64) = wall_force_n1_y
+       temp(65) = wall_force_n1_z
+       temp(66) = totne          
+       temp(67) = w_pe           
+       temp(68) = pcur_co        
+       temp(69) = pcur_sn        
+       temp(70) = m_iz_co        
+       temp(71) = m_iz_sn        
+       
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -388,20 +400,25 @@ contains
        temp_pel=temp2(50)
        Lor_vol =temp2(51)
        totrad = temp2(52)
-       totre =  temp2(53)
-       m_iz =   temp2(54)
-       wall_force_n0_x = temp2(55)
-       wall_force_n0_y = temp2(56)
-       wall_force_n0_z = temp2(57)
-       wall_force_n1_x = temp2(58)
-       wall_force_n1_y = temp2(59)
-       wall_force_n1_z = temp2(60)
-       totne = temp2(61)
-       w_pe = temp2(62)
-       pcur_co = temp2(63)
-       pcur_sn = temp2(64)
-       m_iz_co = temp2(65)
-       m_iz_sn = temp2(66)
+       linerad = temp2(53)
+       bremrad = temp2(54)
+       ionrad = temp2(55)
+       reckrad = temp2(56)
+       recprad = temp2(57)
+       totre =  temp2(58)
+       m_iz =   temp2(59)
+       wall_force_n0_x = temp2(60)
+       wall_force_n0_y = temp2(61)
+       wall_force_n0_z = temp2(62)
+       wall_force_n1_x = temp2(63)
+       wall_force_n1_y = temp2(64)
+       wall_force_n1_z = temp2(65)
+       totne = temp2(66)
+       w_pe = temp2(67)
+       pcur_co = temp2(68)
+       pcur_sn = temp2(69)
+       m_iz_co = temp2(70)
+       m_iz_sn = temp2(71)
     endif !if maxrank .gt. 1
 
   end subroutine distribute_scalars
@@ -699,7 +716,7 @@ subroutine calculate_scalars()
   numelms = local_elements()
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -828,8 +845,13 @@ subroutine calculate_scalars()
      totne = totne + twopi*int1(net79(:,OP_1))/tpifac
      pden = pden + twopi*int2(nt79(:,OP_1),mr)/tpifac
       ! radiation
-     totrad = totrad + twopi*int1(rad79(:,OP_1))/tpifac
-
+     totrad = totrad + twopi*int1(totrad79(:,OP_1))/tpifac
+     linerad = linerad + twopi*int1(linerad79(:,OP_1))/tpifac
+     bremrad = bremrad + twopi*int1(bremrad79(:,OP_1))/tpifac
+     ionrad = ionrad + twopi*int1(ionrad79(:,OP_1))/tpifac
+     reckrad = reckrad + twopi*int1(reckrad79(:,OP_1))/tpifac
+     recprad = recprad + twopi*int1(recprad79(:,OP_1))/tpifac
+     
      if(irunaway.gt.0) then
         totre = totre + twopi*int1(nre79(:,OP_1))/tpifac
      end if
@@ -1030,6 +1052,11 @@ subroutine calculate_scalars()
      print *, "  Volume = ", volume
      print *, "  Total particles = ", totden
      print *, "  Total radiation = ", totrad
+     print *, "  Line radiation = ", linerad
+     print *, "  Bremsstrahlung radiation = ", bremrad
+     print *, "  Ionization loss = ", ionrad
+     print *, "  Recombination radiation (kinetic) = ", reckrad
+     print *, "  Recombination radiation (potential) = ", recprad
      if(ipellet_abl.gt.0) then
         print *, "  nsource = ", nsource
         print *, "  pellet_rate = ", pellet_ablrate

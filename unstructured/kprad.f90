@@ -71,7 +71,7 @@ contains
 
 
   subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem,&
-       dw_ion, dw_rec, source)
+       dw_ion, dw_reck, dw_recp, source)
     implicit none
 
     real, intent(in) :: dt                    ! time step to advance densities
@@ -83,7 +83,8 @@ contains
     real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
     real, intent(out) :: dw_brem(npts)       ! energy lost via bremsstrahlung
     real, intent(out) :: dw_ion(npts,0:z)    ! energy lost via ionization
-    real, intent(out) :: dw_rec(npts,0:z)    ! energy lost via recombination
+    real, intent(out) :: dw_reck(npts,0:z)   ! kinetic energy lost via recombination
+    real, intent(out) :: dw_recp(npts,0:z)   ! potential energy lost via recombination
     real, intent(in) :: source(npts)         ! optional neutral density source
     
     real :: t, dts
@@ -106,7 +107,8 @@ contains
     dts = kprad_dt
     t = 0.
     dw_ion = 0.
-    dw_rec = 0.
+    dw_reck = 0.
+    dw_recp = 0.
     dw_rad = 0.
     dw_brem = 0.
 
@@ -145,7 +147,8 @@ contains
 
        t = t + dts
        dw_ion  = dw_ion + pion*dts
-       dw_rec  = dw_rec + preck*dts ! only kinetic recombination added
+       dw_reck = dw_reck + preck*dts
+       dw_recp = dw_recp + precp*dts
        dw_brem = dw_brem + pbrem*dts
        dw_rad  = dw_rad + imp_rad*dts
        

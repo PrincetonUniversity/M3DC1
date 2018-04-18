@@ -448,6 +448,12 @@ subroutine hdf5_write_scalars(error)
 
   if(rad_source) then
      call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
+     call output_scalar(scalar_group_id, "line_rad"        , linerad, ntime, error)
+     call output_scalar(scalar_group_id, "brem_rad"        , bremrad, ntime, error)
+     call output_scalar(scalar_group_id, "ion_loss"        , ionrad, ntime, error)
+     call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, error)
+     call output_scalar(scalar_group_id, "recp_rad"        , recprad, ntime, error)
+     
   endif
 
   if(xray_detector_enabled.eq.1) then
@@ -972,7 +978,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call write_field(group_id, "kprad_rad",     kprad_rad,     nelms, error)
      call write_field(group_id, "kprad_brem",    kprad_brem,    nelms, error)
      call write_field(group_id, "kprad_ion",     kprad_ion,     nelms, error)
-     call write_field(group_id, "kprad_rec",     kprad_rec,     nelms, error)
+     call write_field(group_id, "kprad_reck",    kprad_reck,     nelms, error)
+     call write_field(group_id, "kprad_recp",    kprad_recp,     nelms, error)
   end if
 
   ! transport coefficients do not change with time in linear calculations
@@ -1057,7 +1064,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
     
     ! radiation source
     if(rad_source) then
-       call write_field(group_id, "rad_source", rad_field, nelms, error,.true.)
+       call write_field(group_id, "rad_source",     Totrad_field, nelms, error,.true.)
+       call write_field(group_id, "linerad_source", Linerad_field, nelms, error,.true.)
+       call write_field(group_id, "bremrad_source", Bremrad_field, nelms, error,.true.)
+       call write_field(group_id, "ionrad_source",  Ionrad_field, nelms, error,.true.)
+       call write_field(group_id, "reckrad_source", Reckrad_field, nelms, error,.true.)
+       call write_field(group_id, "recprad_source", Recprad_field, nelms, error,.true.)
     endif
     
     ! current drive source

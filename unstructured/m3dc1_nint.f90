@@ -100,8 +100,8 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, fy79, q79, cd79, rad79, sie79, sii79
-!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,rad79,sie79,sii79)
+       eta79, sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79
+!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
 !$OMP THREADPRIVATE(bf079,bf179,bft79)
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
@@ -1106,9 +1106,20 @@ contains
        .and. rad_source) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Rad..."
 
-     call eval_ops(itri, Rad_field, rad79)
+     call eval_ops(itri, Totrad_field,  totrad79)
+     call eval_ops(itri, Linerad_field, linerad79)
+     call eval_ops(itri, Bremrad_field, bremrad79)
+     call eval_ops(itri, Ionrad_field,  ionrad79)
+     call eval_ops(itri, Reckrad_field, reckrad79)
+     call eval_ops(itri, Recprad_field, recprad79)
+     
   else
-     rad79 = 0.
+     totrad79 = 0.
+     linerad79 = 0.
+     bremrad79 = 0.
+     ionrad79 = 0.
+     reckrad79 = 0.
+     recprad79 = 0.
   end if
 
   ! cd
