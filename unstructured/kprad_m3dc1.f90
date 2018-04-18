@@ -399,8 +399,6 @@ contains
           where(ne .ne. ne) ne = 0.
           where(nz .ne. nz) nz = 0.
        else
-          dw_ion = 0.
-          dw_rec = 0.
           dw_rad = 0.
           dw_brem = 0.
           dw_ion = 0.
