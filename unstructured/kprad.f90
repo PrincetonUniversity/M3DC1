@@ -165,8 +165,8 @@ contains
        elseif(max_change .gt. 0.2) then
           ! If ne change is > 20%, backtrack changes and reduce time step
           t = t - dts
-          dw_ion = dw_ion - dw_ion*dts
-          dw_rec = dw_rec - dw_rec*dts
+          dw_ion = dw_ion - pion*dts
+          dw_rec = dw_rec - preck*dts
           dw_brem = dw_brem - pbrem*dts
           dw_rad = dw_rad - imp_rad*dts
           ne = ne_old
