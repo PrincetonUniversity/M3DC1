@@ -301,6 +301,36 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Radiated Power!6'
        symbol = '!8P!D!6rad!N!X'
        d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("line_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("pline", scalarname, /fold_case) eq 1) then begin
+       data = -s.line_rad._data
+       title = '!6Line Radiation Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("brem_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("pbrem", scalarname, /fold_case) eq 1) then begin
+       data = -s.brem_rad._data
+       title = '!6Bremsstrahlung Radiation Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("ion_loss", scalarname, /fold_case) eq 1 $
+       or strcmp("pion", scalarname, /fold_case) eq 1) then begin
+       data = -s.ion_loss._data
+       title = '!6Ionization Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("reck_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("preck", scalarname, /fold_case) eq 1) then begin
+       data = -s.reck_rad._data
+       title = '!6Recombination Radiation Power (Kinetic)!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("recp_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("precp", scalarname, /fold_case) eq 1) then begin
+       data = -s.recp_rad._data
+       title = '!6Recombination Radiation Power (Potential)!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
    endif else if (strcmp("temax", scalarname, /fold_case) eq 1) then begin
        data = s.temax._data
        title = '!6Maximum Te!6'
