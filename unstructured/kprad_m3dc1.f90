@@ -394,9 +394,13 @@ contains
                ne, te, nz, dw_rad, dw_brem, dw_ion, dw_rec, source)
           where(dw_rad.ne.dw_rad) dw_rad = 0.
           where(dw_brem.ne.dw_brem) dw_brem = 0.
+          where(dw_ion.ne.dw_ion) dw_ion = 0.
+          where(dw_rec.ne.dw_rec) dw_rec = 0.
           where(ne .ne. ne) ne = 0.
           where(nz .ne. nz) nz = 0.
        else
+          dw_ion = 0.
+          dw_rec = 0.
           dw_rad = 0.
           dw_brem = 0.
        end if
