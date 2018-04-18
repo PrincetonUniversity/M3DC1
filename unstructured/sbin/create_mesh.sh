@@ -1,6 +1,6 @@
 #!/bin/bash
 
-meshgen = $(which m3dc1_meshgen)
+meshgen=$(which m3dc1_meshgen)
 
 if [ -x "$meshgen" ]; then
     echo "m3dc1_meshgen found."
