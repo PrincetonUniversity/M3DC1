@@ -403,6 +403,8 @@ contains
           dw_rec = 0.
           dw_rad = 0.
           dw_brem = 0.
+          dw_ion = 0.
+          dw_rec = 0.
        end if
        
        ! convert nz, dw_rad, dw_brem to normalized units
@@ -414,6 +416,8 @@ contains
        ! factor of 1e7 needed to convert J to erg
        dw_rad = dw_rad * 1.e7 / p0_norm
        dw_brem = dw_brem * 1.e7 / p0_norm
+       dw_ion = dw_ion * 1.e7 / p0_norm
+       dw_rec = dw_rec * 1.e7 / p0_norm
 
        ! New charge state densities
        do i=0, kprad_z
