@@ -78,7 +78,7 @@ void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
         {
           apf::number(num, r, nd, cmp, recv_nbr[cmp]);
 #ifdef DEBUG
-          if (recv_nbr[cmp]==0) 
+          if (recv_nbr[cmp]==0)
           {
             if (msh->isGhost(r))
               std::cout<<"("<<PCU_Comm_Self()<<") synch ghost "<<getMdsIndex(msh, r)
@@ -156,7 +156,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
                 int nbr = blk * strd + nd_idx * ndfs + dof;
                 apf::number(num,ent,nd,cmp,nbr);
 #ifdef DEBUG
-                if (nbr==0) 
+                if (nbr==0)
                    std::cout<<"("<<PCU_Comm_Self()<<") number ent "<<getMdsIndex(msh, ent)
                      <<" - node "<<nd<<" comp "<<cmp<<" num "<<nbr<<"\n";
 #endif
@@ -186,11 +186,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   int lcl_offset = 0;
   // todo : replace with MSI_COMM_WORLD when we pull this into msi
   MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
-  apf::SetNumberingOffset(num,lcl_offset);
-  // this does work with PUMI default ownershiop
-  // THIS MAKES MOST OF THE FUNCTION USELESS AS IT IS NOW STATEFUL AND CAN ONLY OPERATE
-  //  ON NUMBERINGS DERIVED FROM FIELDS DERIVED FROM THE M3DC1_MESH::INSTANCE()
-  // seol - let's call synchronize_numbering instead for debugging purpose
+  apf::setNumberingOffset(num,lcl_offset,m3dc1_mesh::instance()->get_ownership());
   //apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
   synchronize_numbering(msh, num, shp, nv, ndfs);
 
@@ -212,7 +208,6 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
                      <<" - node "<<nd<<" comp "<<dof<<", is_ghost "<<msh->isGhost(ent)<<"\n";
             assert(apf::isNumbered(num,ent,nd,dof));
           }
-         
       }
       msh->end(it);
     }

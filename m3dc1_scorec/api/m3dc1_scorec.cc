@@ -671,7 +671,7 @@ void m3dc1_ent_getownpartid (int*  edim, int*  eid,
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->get_mesh(), *edim, *eid);
   assert(e);
-  *owning_partid = get_ent_ownpartid(e);  
+  *owning_partid = get_ent_ownpartid(e);
 }
 
 void m3dc1_ent_isowner (int*  edim, int*  eid,
@@ -1185,13 +1185,6 @@ void m3dc1_field_getdataptr (FieldID* fid, double** pts)
 // add field2 to field1
 void m3dc1_field_add(FieldID*  fid1, FieldID* fid2)
 {
-#ifdef DEBUG
-  int isnan;
-  m3dc1_field_isnan(fid1, &isnan);
-  assert(isnan==0);
-  m3dc1_field_isnan(fid2, &isnan);
-  assert(isnan==0);
-#endif
   m3dc1_field * mf1 = m3dc1_mesh::instance()->get_field(*fid1);
   m3dc1_field * mf2 = m3dc1_mesh::instance()->get_field(*fid2);
   int dofPerEnt1 = mf1->get_num_value()*mf1->get_dof_per_value();
@@ -1210,18 +1203,9 @@ void m3dc1_field_add(FieldID*  fid1, FieldID* fid2)
       dofs1.at(i)+=dofs2.at(i);
     m3dc1_ent_setdofdata (&vertex_type, &inode, fid1, &dofPerEnt1, &dofs1[0]);
   }
-#ifdef DEBUG
-  m3dc1_field_isnan(fid1, &isnan);
-  assert(isnan==0);
-#endif
 }
 void m3dc1_field_mult(FieldID*  fid, double* fac, int* scalar_type)
 {
-#ifdef DEBUG
-  int isnan;
-  m3dc1_field_isnan(fid, &isnan);
-  assert(isnan==0);
-#endif
   int num_vtx = m3dc1_mesh::instance()->get_mesh()->count(0);
   int vertex_type=0;
   double dofs[FIXSIZEBUFF], dofsNew[FIXSIZEBUFF];
@@ -1246,10 +1230,6 @@ void m3dc1_field_mult(FieldID*  fid, double* fac, int* scalar_type)
     }
     m3dc1_ent_setdofdata (&vertex_type, &inode, fid, &dofPerEnt, &dofsNew[0]);
   }
-#ifdef DEBUG
-  m3dc1_field_isnan(fid, &isnan);
-  assert(isnan==0);
-#endif
 }
 void m3dc1_field_assign(FieldID*  fid, double* fac, int* scalar_type)
 {
@@ -1265,19 +1245,9 @@ void m3dc1_field_assign(FieldID*  fid, double* fac, int* scalar_type)
   // FIXME: this can be more efficient
   for (int inode=0; inode<num_vtx; ++inode)
     m3dc1_ent_setdofdata (&vertex_type, &inode, fid, &dofPerEnt, &dofs[0]);
-#ifdef DEBUG
-  int isnan;
-  m3dc1_field_isnan(fid, &isnan);
-  assert(isnan==0);
-#endif
 }
 void m3dc1_field_copy(FieldID*  fid1, FieldID*  fid2)
 {
-#ifdef DEBUG
-  int isnan;
-  m3dc1_field_isnan(fid1, &isnan);
-  assert(isnan==0);
-#endif
   m3dc1_field * mf1 = m3dc1_mesh::instance()->get_field(*fid1);
   m3dc1_field * mf2 = m3dc1_mesh::instance()->get_field(*fid1);
   int dofPerEnt1 = mf1->get_num_value()*mf1->get_dof_per_value();
@@ -1296,18 +1266,9 @@ void m3dc1_field_copy(FieldID*  fid1, FieldID*  fid2)
       dofs1.at(i)=dofs2.at(i);
     m3dc1_ent_setdofdata (&vertex_type, &inode, fid1, &dofPerEnt1, &dofs1[0]);
   }
-#ifdef DEBUG
-  m3dc1_field_isnan(fid2, &isnan);
-  assert(isnan==0);
-#endif
 }
 void m3dc1_field_retrieve (FieldID*  fid, double* /*out*/ data, int* size)
 {
-#ifdef DEBUG
-  int isnan;
-  m3dc1_field_isnan(fid, &isnan);
-  assert(isnan==0);
-#endif
   int scalar_type=0;
 #ifdef PETSC_USE_COMPLEX
   scalar_type=1;
@@ -1325,11 +1286,6 @@ void m3dc1_field_set (FieldID*  fid, double* /*in*/ data, int* size)
   double* pts=NULL;
   m3dc1_field_getdataptr (fid, &pts);
   memcpy(pts, data, *size*(1+scalar_type)*sizeof(double));
-#ifdef DEBUG
-  int isnan;
-  m3dc1_field_isnan(fid, &isnan);
-  assert(isnan==0);
-#endif
 }
 void m3dc1_field_insert(FieldID*  fid,
                         int  * local_dofid,
@@ -1370,27 +1326,6 @@ void m3dc1_field_insert(FieldID*  fid,
   else
     for (int i=0; i<*size*(1+scalar_type); ++i)
       dataptr[ibegin+i]+=values_convert[i];
-}
-#define FIELDVALUELIMIT 1e100
-bool value_is_nan(double val)
-{
-  return val!=val ||fabs(val) >FIELDVALUELIMIT;
-}
-void m3dc1_field_isnan(FieldID * fid, int * isnan)
-{
-  *isnan = 0;
-  m3dc1_field * mf = m3dc1_mesh::instance()->get_field(*fid);
-  apf::Field * f = mf->get_field();
-  int num_dof = apf::countComponents(f);
-  double * field_data = getArrayData(f);
-  for (size_t ii = 0; ii < num_dof*m3dc1_mesh::instance()->get_mesh()->count(0); ++ii)
-  {
-    if (value_is_nan(field_data[ii]))
-    {
-      *isnan=1;
-      return;
-    }
-  }
 }
 void m3dc1_field_load(FieldID * fid, const char * filename)
 {
@@ -1625,10 +1560,6 @@ void m3dc1_ent_setdofdata (int * edim, int * eid, FieldID * fid, int * num_dof, 
   m3dc1_field* mf = m3dc1_mesh::instance()->get_field(*fid);
   assert(*num_dof==mf->get_num_value()*mf->get_dof_per_value());
   set_ent_dofdata(mf, e, dof_data);
-#ifdef DEBUG
-  for (int i=0; i<*num_dof*(1+mf->get_value_type()); ++i)
-    assert(!value_is_nan(dof_data[i]));
-#endif
 }
 void m3dc1_ent_getdofdata(int * edim, int * eid, FieldID * fid, int * num_dof, double * dof_data)
 {
@@ -1694,12 +1625,14 @@ void m3dc1_matrix_setbc(int * mid, int * row)
   m3dc1_matrix * mat = m3dc1_solver::instance()->get_matrix(*mid);
   assert(mat && "[M3D-C1 Error] Matrix with specified ID does not exist");
   double one = 1.0;
+  mat->zero_rows(1,row);
   mat->set_values(1,row,1,row,&one);
 }
 void m3dc1_matrix_setlaplacebc(int * mid, int * rw, int * cl_cnt, int * cols, double * vals)
 {
   m3dc1_matrix * mat = m3dc1_solver::instance()->get_matrix(*mid);
   assert(mat && "[M3D-C1 Error] Matrix with speficied ID does not exist");
+  mat->zero_rows(1,rw);
   mat->set_values(1,rw,*cl_cnt,cols,vals);
 }
 void m3dc1_matrix_solve(int * mid, FieldID * rhs)

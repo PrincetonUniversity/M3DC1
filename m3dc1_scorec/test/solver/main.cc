@@ -14,6 +14,7 @@
 #include <pumi.h>
 #include <parma.h>
 #include <cassert>
+#include <fenv.h>
 #include <iostream>
 #include <stdlib.h>
 using namespace std;
@@ -100,6 +101,8 @@ void test_matrix(int, int);
 
 int main(int argc, char * argv[])
 {
+  // abort on invalid floating point operations and values
+  feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
   m3dc1_scorec_init(&argc,&argv);
   if (argc<4 && !PCU_Comm_Self())
   {
@@ -309,8 +312,11 @@ void test_matrix(int mat_mlt, int mat_slv)
   MPI_Barrier(MPI_COMM_WORLD);
   m3dc1_matrix_assemble(&mat_slv);
   MPI_Barrier(MPI_COMM_WORLD);
-  //m3dc1_matrix_write(&mat_mlt, "mat_mlt.m");
-  //m3dc1_matrix_write(&mat_slv, "mat_slv.m");
+  /*
+  if(!PCU_Comm_Self())
+    m3dc1_matrix_write(&mat_mlt, "mat_mlt.m");
+  m3dc1_matrix_write(&mat_slv, "mat_slv.m");
+  */
   // print out memory usage from petsc
   t3 = MPI_Wtime();
   // calculate c field

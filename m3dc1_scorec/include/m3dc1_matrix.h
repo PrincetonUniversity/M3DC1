@@ -34,6 +34,7 @@ public:
   int is_parallel() { return is_par; }
   MPI_Comm getComm() { return cm; }
   void zero();
+  void zero_rows(int rsize, int * rows);
   void add_values(int rsize, int * rows, int csize, int * cols, double * vals);
   void set_values(int rsize, int * rows, int csize, int * cols, double * vals);
   void get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values);

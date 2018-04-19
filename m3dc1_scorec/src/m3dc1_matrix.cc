@@ -140,34 +140,39 @@ void printMemStat()
 }
 void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 {
-  bool lcl = cm == MPI_COMM_SELF;
+  assert(cm != MPI_COMM_NULL);
+  int cm_sz = 0;
+  MPI_Comm_size(cm,&cm_sz);
+  bool lcl = cm_sz == 1;
+  bool par = !lcl;
   m3dc1_mesh * m3dc1_msh = m3dc1_mesh::instance(); // exernal var
   apf::Mesh2 * msh = m3dc1_msh->get_mesh();
-  int num_own_nds = m3dc1_msh->get_own_count(0); // assuming only verts have dofs
-  int num_own_dof = 0;
+  int num_nds[2] = { m3dc1_msh->get_local_count(0), m3dc1_msh->get_own_count(0) };
+  int num_dof[2] = { 0, 0 };
   FieldID fid = fld->get_id();
-  m3dc1_field_getnumowndof(&fid, &num_own_dof);
-  int dof_per_nd = num_own_dof / num_own_nds;
-  VecCreateMPI(cm,num_own_dof,PETSC_DETERMINE,&V);
-  int num_lcl_nds = m3dc1_msh->get_local_count(0);
-  int * dof_ids = new int[dof_per_nd];
-  memset(&dof_ids[0],0,sizeof(int)*dof_per_nd);
+  m3dc1_field_getnumlocaldof(&fid, &num_dof[0]);
+  m3dc1_field_getnumowndof(&fid, &num_dof[1]);
+  int dof_per_nd = num_dof[par] / num_nds[par];
+  VecCreateMPI(cm,num_dof[par],PETSC_DETERMINE,&V);
+  int * dof_ids = new int[dof_per_nd]();
   // assumes st = 0 means real, st=1 means complex
   int sz = dof_per_nd * (st+1);
-  double * dof_data = new double[sz];
-  //DBG(memset(&dof_data[0],0,sizeof(double)*sz));
+  double * dof_data = new double[sz]();
 #ifdef PETSC_USE_COMPLEX
   std::vector<PetscComplex> cplx_data(dof_per_nd);
 #endif
   int vrt_tp = 0;
-  for(int nd = 0; nd < num_lcl_nds; ++nd)
+  for(int nd = 0; nd < num_nds[0]; ++nd) // iterate over all nodes regardless
   {
     apf::MeshEntity * ent = apf::getMdsEntity(msh,vrt_tp,nd);
-    if(!msh->isOwned(ent) && !lcl)
+    if(!is_ent_original(ent) && !lcl)
       continue;
     int num_dof = 0;
     m3dc1_ent_getdofdata(&vrt_tp,&nd,&fid,&num_dof,&dof_data[0]);
-    m3dc1_ent_getglobaldofid(&vrt_tp,&nd,&fid,&dof_ids[0],&num_dof);
+    if(lcl)
+      m3dc1_ent_getlocaldofid(&vrt_tp,&nd,&fid,&dof_ids[0],&num_dof);
+    else
+      m3dc1_ent_getglobaldofid(&vrt_tp,&nd,&fid,&dof_ids[0],&num_dof);
 #ifdef PETSC_USE_COMPLEX
     for(int ii = 0; ii < dof_per_nd; ++ii)
       cplx_data[ii] = dof_data[ii*2] + dof_data[ii*2+1] * PETSC_i;
@@ -183,31 +188,36 @@ void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 }
 void vec2Field(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 {
-  bool lcl = cm == MPI_COMM_SELF;
+  assert(cm != MPI_COMM_NULL);
+  int cm_sz = 0;
+  MPI_Comm_size(cm,&cm_sz);
+  bool lcl = cm_sz == 1;
+  bool par = !lcl;
   m3dc1_mesh * m3dc1_msh = m3dc1_mesh::instance(); // external variable
   apf::Mesh2 * msh = m3dc1_msh->get_mesh();
+  int num_nds[2] = { m3dc1_msh->get_local_count(0), m3dc1_msh->get_own_count(0) };
+  int num_dof[2] = { 0, 0 };
   FieldID fid = fld->get_id();
-  int num_own_nds = m3dc1_msh->get_own_count(0);
-  int num_own_dof = 0;
-  m3dc1_field_getnumowndof(&fid,&num_own_dof);
+  m3dc1_field_getnumlocaldof(&fid, &num_dof[0]);
+  m3dc1_field_getnumowndof(&fid, &num_dof[1]);
   int vrt_tp = 0;
-  int dof_per_nd = num_own_dof / num_own_nds;
-  int num_lcl_nd = m3dc1_msh->get_local_count(0);
-  int * dof_ids = new int[dof_per_nd];
-  //DBG(memset(&dof_ids[0],0,sizeof(int)*dof_per_nd));
+  int dof_per_nd = num_dof[par] / num_nds[par];
+  int * dof_ids = new int[dof_per_nd]();
   int sz = dof_per_nd*(st+1);
-  double * dof_data = new double[sz];
+  double * dof_data = new double[sz]();
 #ifdef PETSC_USE_COMPLEX
   std::vector<PetscComplex> cplx_data(dof_per_nd);
 #endif
-  //DBG(memset(&dof_data[0],0,sizeof(double)*sz);
-  for(int nd = 0; nd < num_lcl_nd; ++nd)
+  for(int nd = 0; nd < num_nds[0]; ++nd)
   {
     apf::MeshEntity * ent = apf::getMdsEntity(msh,vrt_tp,nd);
-    if(!msh->isOwned(ent) && !lcl)
+    if(!is_ent_original(ent) && !lcl)
       continue;
     int dof_cnt = 0;
-    m3dc1_ent_getglobaldofid(&vrt_tp,&nd,&fid,&dof_ids[0],&dof_cnt);
+    if(lcl)
+      m3dc1_ent_getlocaldofid(&vrt_tp,&nd,&fid,&dof_ids[0],&dof_cnt);
+    else
+      m3dc1_ent_getglobaldofid(&vrt_tp,&nd,&fid,&dof_ids[0],&dof_cnt);
 #ifdef PETSC_USE_COMPLEX
     VecGetValues(V,dof_per_ent,&dof_ids[0],&cplx_data[0]);
     for(int ii = 0; ii < dof_per_ent; ++ii)
@@ -220,6 +230,7 @@ void vec2Field(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 #endif
     m3dc1_ent_setdofdata(&vrt_tp,&nd,&fid,&dof_per_nd,&dof_data[0]);
   }
+  VecDestroy(&V);
   // could get rid of this with some work
   m3dc1_field_sync(&fid);
   delete [] dof_ids;
@@ -247,7 +258,8 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, m3dc1_mesh * msh, m3dc1_field * f, MPI_
 {
   const char * mat_tps[][2] = { {MATSEQAIJ, MATSEQBAIJ}, {MATMPIAIJ, MATMPIBAIJ} };
   bool is_par = cm != MPI_COMM_SELF;
-  size_t num_ent[2] = { msh->get_mesh()->count(0), (size_t)apf::countOwned(msh->get_mesh(),0) }; // assumes that only verts hold dofs
+  size_t num_ent[2] = { msh->get_mesh()->count(0),
+                        static_cast<size_t>(apf::countOwned(msh->get_mesh(),0,msh->get_ownership())) }; // assumes that only verts hold dofs
   int blk_sz = fld->get_dof_per_value();
   int dof_per_ent = fld->get_num_value() * blk_sz;
   int num_lcl_dof = num_ent[is_par] * dof_per_ent;
@@ -286,6 +298,7 @@ m3dc1_matrix::~m3dc1_matrix()
 void m3dc1_matrix::add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cols, double * vals)
 {
   MatSetValuesBlocked(A,blk_rw_cnt,blk_rws,blk_col_cnt,blk_cols,vals,ADD_VALUES);
+  fixed = false;
 }
 void m3dc1_matrix::fix()
 {
@@ -295,6 +308,7 @@ void m3dc1_matrix::fix()
 }
 void m3dc1_matrix::get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values)
 {
+  
 #ifdef PETSC_USE_COMPLEX
    if (!PCU_Comm_Self())
      std::cout << "[M3DC1 ERROR] " << __func__ << ": not supported for complex\n";
@@ -322,10 +336,12 @@ void m3dc1_matrix::get_values(std::vector<int>& rows, std::vector<int>& n_column
 void m3dc1_matrix::add_values(int rsize, int * rows, int csize, int * cols, double * vals)
 {
   MatSetValues(A, rsize, rows, csize, cols, vals, ADD_VALUES);
+  fixed = false;
 }
 void m3dc1_matrix::set_values(int rsize, int * rows, int csize, int * cols, double * vals)
 {
   MatSetValues(A, rsize, rows, csize, cols, vals, INSERT_VALUES);
+  fixed = false;
 }
 void m3dc1_matrix::write(const char * fn)
 {
@@ -350,6 +366,11 @@ void m3dc1_matrix::zero()
   MatZeroEntries(A);
   fixed = false;
 };
+void m3dc1_matrix::zero_rows(int rsize, int * rows)
+{
+  MatZeroRows(A,rsize,rows,0.0,PETSC_NULL,PETSC_NULL);
+  fixed = false;
+}
 void m3dc1_matrix::solve(m3dc1_field * rhs)
 {
   MPI_Comm cm = MPI_COMM_NULL;
