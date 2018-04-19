@@ -392,12 +392,6 @@ contains
        if(izone.eq.1) then
           call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
                ne, te, nz, dw_rad, dw_brem, dw_ion, dw_rec, source)
-          where(dw_rad.ne.dw_rad) dw_rad = 0.
-          where(dw_brem.ne.dw_brem) dw_brem = 0.
-          where(dw_ion.ne.dw_ion) dw_ion = 0.
-          where(dw_rec.ne.dw_rec) dw_rec = 0.
-          where(ne .ne. ne) ne = 0.
-          where(nz .ne. nz) nz = 0.
        else
           dw_rad = 0.
           dw_brem = 0.
@@ -453,7 +447,7 @@ contains
        dofs = intx2(mu79(:,:,OP_1),temp79c) / dti
        call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
 
-       ! Total ion source is (calculated as opposite of neutral source)
+       ! Total ion source (calculated as opposite of neutral source)
        temp79d = n0_old - nz(:,0)
        dofs = intx2(mu79(:,:,OP_1),temp79d) / dti
        call vector_insert_block(kprad_sigma_i%vec, itri,1,dofs,VEC_ADD)
