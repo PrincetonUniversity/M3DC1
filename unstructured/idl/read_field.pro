@@ -1707,6 +1707,24 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8J!Dp!N!X'
        d = dimensions(/j0,_EXTRA=extra)
 
+
+   ;===========================================
+   ; eta * Jy^2
+   ;===========================================
+   endif else if(strcmp('etaJ2', name, /fold_case) eq 1) then begin
+
+       jy = read_field('jy', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange, $
+                          complex=complex, phi=phi0)
+       eta = read_field('eta', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange, $
+                          complex=complex, phi=phi0)
+
+       data = eta*jy^2
+       symbol = field_data('!7g!8J!6!U2!N', units=d, itor=itor)
+       d = dimensions(/p0,/t0,_EXTRA=extra)
        
    ;===========================================
    ; del*(psi)
