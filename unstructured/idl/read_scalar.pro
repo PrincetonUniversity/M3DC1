@@ -1,6 +1,6 @@
 function read_scalar, scalarname, filename=filename, title=title, $
                       symbol=symbol, units=units, time=time, final=final, $
-                      _EXTRA=extra
+                      integrate=integrate, _EXTRA=extra
 
    if(n_elements(scalarname) eq 0) then begin
        print, "Error: no scalar name provided"
@@ -301,6 +301,36 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Radiated Power!6'
        symbol = '!8P!D!6rad!N!X'
        d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("line_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("pline", scalarname, /fold_case) eq 1) then begin
+       data = -s.line_rad._data
+       title = '!6Line Radiation Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("brem_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("pbrem", scalarname, /fold_case) eq 1) then begin
+       data = -s.brem_rad._data
+       title = '!6Bremsstrahlung Radiation Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("ion_loss", scalarname, /fold_case) eq 1 $
+       or strcmp("pion", scalarname, /fold_case) eq 1) then begin
+       data = -s.ion_loss._data
+       title = '!6Ionization Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("reck_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("preck", scalarname, /fold_case) eq 1) then begin
+       data = -s.reck_rad._data
+       title = '!6Recombination Radiation Power (Kinetic)!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("recp_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("precp", scalarname, /fold_case) eq 1) then begin
+       data = -s.recp_rad._data
+       title = '!6Recombination Radiation Power (Potential)!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
    endif else if (strcmp("temax", scalarname, /fold_case) eq 1) then begin
        data = s.temax._data
        title = '!6Maximum Te!6'
@@ -332,6 +362,13 @@ function read_scalar, scalarname, filename=filename, title=title, $
    
    if(keyword_set(final)) then begin
        data = data[n_elements(data)-1]
+   endif
+
+   if(keyword_set(integrate)) then begin
+       d = d + dimensions(/t0)
+       data = cumtrapz(time,data)
+       title = 'Integrated '+title
+       symbol = '!Mi '+symbol+'!6 dt!6'
    endif
 
    get_normalizations, b0=b0,n0=n0,l0=l0, ion_mass=mi, $

@@ -13,7 +13,8 @@ module kprad_m3dc1
   type(field_type) :: kprad_rad      ! power lost to line radiation
   type(field_type) :: kprad_brem     ! power lost to bremsstrahlung
   type(field_type) :: kprad_ion      ! power lost to ionization
-  type(field_type) :: kprad_rec      ! power lost to recombination
+  type(field_type) :: kprad_reck     ! power lost to recombination (kinetic)
+  type(field_type) :: kprad_recp     ! power lost to recombination (potential)
   type(field_type) :: kprad_sigma_e  ! electron source / sink due to ionization / recomb
   type(field_type) :: kprad_sigma_i  ! total ion source / sink due to ionization / recomb
 
@@ -53,7 +54,8 @@ contains
     call create_field(kprad_rad)
     call create_field(kprad_brem)
     call create_field(kprad_ion)
-    call create_field(kprad_rec)
+    call create_field(kprad_reck)
+    call create_field(kprad_recp)
     call create_field(kprad_sigma_e)
     call create_field(kprad_sigma_i)
 
@@ -79,7 +81,8 @@ contains
        call destroy_field(kprad_rad)
        call destroy_field(kprad_brem)
        call destroy_field(kprad_ion)
-       call destroy_field(kprad_rec)
+       call destroy_field(kprad_reck)
+       call destroy_field(kprad_recp)
        call destroy_field(kprad_sigma_e)
        call destroy_field(kprad_sigma_i)
     end if
@@ -325,7 +328,7 @@ contains
     real, dimension(MAX_PTS) :: ne, te, n0_old, p
     real, dimension(MAX_PTS,0:kprad_z) :: nz
     real, dimension(MAX_PTS) :: dw_brem
-    real, dimension(MAX_PTS,0:kprad_z) :: dw_rad, dw_ion, dw_rec
+    real, dimension(MAX_PTS,0:kprad_z) :: dw_rad, dw_ion, dw_reck, dw_recp
     real, dimension(MAX_PTS) :: source    ! neutral particle source
 
     integer :: i, itri, nelms, def_fields, izone
@@ -343,7 +346,8 @@ contains
     kprad_rad = 0.
     kprad_brem = 0.
     kprad_ion = 0.
-    kprad_rec = 0.
+    kprad_reck = 0.
+    kprad_recp = 0.
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
     source = 0.
@@ -391,12 +395,13 @@ contains
        ! for one MHD timestep (dt_s)
        if(izone.eq.1) then
           call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
-               ne, te, nz, dw_rad, dw_brem, dw_ion, dw_rec, source)
+               ne, te, nz, dw_rad, dw_brem, dw_ion, dw_reck, dw_recp, source)
        else
           dw_rad = 0.
           dw_brem = 0.
           dw_ion = 0.
-          dw_rec = 0.
+          dw_reck = 0.
+          dw_recp = 0.
        end if
        
        ! convert nz, dw_rad, dw_brem to normalized units
@@ -408,9 +413,10 @@ contains
        ! factor of 1e7 needed to convert J to erg
        dw_rad = dw_rad * 1.e7 / p0_norm
        dw_brem = dw_brem * 1.e7 / p0_norm
-       dw_ion = dw_ion * 1.e7 / p0_norm
-       dw_rec = dw_rec * 1.e7 / p0_norm
-
+       dw_ion  = dw_ion * 1.e7 / p0_norm
+       dw_reck = dw_reck * 1.e7 / p0_norm
+       dw_recp = dw_recp * 1.e7 / p0_norm
+       
        ! New charge state densities
        do i=0, kprad_z
           temp79a = nz(:,i)
@@ -436,11 +442,17 @@ contains
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_ion%vec, itri,1,dofs,VEC_ADD)
 
-       ! Recombination
-       temp79b = dw_rec(:,kprad_z) / dti
+       ! Recombination (kinetic)
+       temp79b = dw_reck(:,kprad_z) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
-       call vector_insert_block(kprad_rec%vec, itri,1,dofs,VEC_ADD)
+       call vector_insert_block(kprad_reck%vec, itri,1,dofs,VEC_ADD)
+
+       ! Recombination (potential)
+       temp79b = dw_recp(:,kprad_z) / dti
+       where(temp79b.ne.temp79b) temp79b = 0.
+       dofs = intx2(mu79(:,:,OP_1),temp79b)
+       call vector_insert_block(kprad_recp%vec, itri,1,dofs,VEC_ADD)
 
        ! Electron source
        temp79c = ne - net79(:,OP_1)
@@ -462,7 +474,8 @@ contains
     call newvar_solve(kprad_rad%vec, mass_mat_lhs)
     call newvar_solve(kprad_brem%vec, mass_mat_lhs)
     call newvar_solve(kprad_ion%vec, mass_mat_lhs)
-    call newvar_solve(kprad_rec%vec, mass_mat_lhs)
+    call newvar_solve(kprad_reck%vec, mass_mat_lhs)
+    call newvar_solve(kprad_recp%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_i%vec, mass_mat_lhs)
 

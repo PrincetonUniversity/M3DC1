@@ -4205,7 +4205,6 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
 
   if(linear.eq.1) return
 
-
   if(gam.ne.1.) then
      ! "Q" heats ions and electrons equally
      ! "rad" heats electrons
@@ -4213,12 +4212,12 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         if(total_pressure) then
            ! Total pressure
            ! ~~~~~~~~~~~~~~
-           r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
+           r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79)+b3q(trialx,totrad79))
         else
            ! Electron pressure
            ! ~~~~~~~~~~~~~~~~~
            r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
-           r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
+           r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
            
            ! Equipartition
            r4term = r4term + dt*(gam-1.)*q_delta(trialx)
@@ -4227,7 +4226,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         if(ipres.eq.0) then
            ! Total temperature
            ! ~~~~~~~~~~~~~~~~~
-           r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,rad79))
+           r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,totrad79))
         else
            if(total_pressure) then
              ! Total Ion Temperature
@@ -4240,7 +4239,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
              ! Electron temperature
              ! ~~~~~~~~~~~~~~~~~~~~ 
              r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
-             r4term = r4term + dt*(gam-1.)*b3q(trialx,rad79)
+             r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
 
              ! Equipartition
              r4term = r4term + dt*(gam-1.)*q_delta(trialx)

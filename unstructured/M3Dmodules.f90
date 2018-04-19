@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 23
+  integer, parameter :: version = 24
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -464,7 +464,8 @@ module arrays
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
   type(field_type) :: resistivity_field, kappa_field
-  type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field, Rad_field
+  type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
+  type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
 
   type(field_type) :: temporary_field

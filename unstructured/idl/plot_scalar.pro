@@ -4,7 +4,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  power_spectrum=pspec, per_length=per_length, $
                  growth_rate=growth_rate, bw=bw, nolegend=nolegend, $
                  cgs=cgs,mks=mks,linestyle=ls, color=co, outfile=outfile, $
-                 smooth=sm, compensate_renorm=comp
+                 smooth=sm, compensate_renorm=comp, integrate=integrate
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -29,7 +29,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 power_spectrum=pspec, per_length=per_length, $
                 growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff, $
-                           comp=comp
+                           comp=comp, integrate=integrate
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
@@ -37,7 +37,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 power_spectrum=pspec, per_length=per_length, $
                 growth_rate=growth_rate, nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff, $
-                           comp=comp
+                           comp=comp, integrate=integrate
           endelse
       end
 
@@ -50,7 +50,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endif 
 
   data = read_scalar(scalarname, filename=filename, time=time, $
-                     title=title, symbol=symbol, units=units, cgs=cgs, mks=mks)
+                     title=title, symbol=symbol, units=units, cgs=cgs, mks=mks, integrate=integrate)
   if(keyword_set(comp)) then data = compensate_renorm(data)
   if(n_elements(data) le 1) then return
 
