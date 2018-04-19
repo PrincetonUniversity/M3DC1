@@ -1,6 +1,6 @@
 function read_scalar, scalarname, filename=filename, title=title, $
                       symbol=symbol, units=units, time=time, final=final, $
-                      _EXTRA=extra
+                      integrate=integrate, _EXTRA=extra
 
    if(n_elements(scalarname) eq 0) then begin
        print, "Error: no scalar name provided"
@@ -362,6 +362,13 @@ function read_scalar, scalarname, filename=filename, title=title, $
    
    if(keyword_set(final)) then begin
        data = data[n_elements(data)-1]
+   endif
+
+   if(keyword_set(integrate)) then begin
+       d = d + dimensions(/t0)
+       data = cumtrapz(time,data)
+       title = 'Integrated '+title
+       symbol = '!Mi '+symbol+'!6 dt!6'
    endif
 
    get_normalizations, b0=b0,n0=n0,l0=l0, ion_mass=mi, $
