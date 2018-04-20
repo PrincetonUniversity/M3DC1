@@ -36,6 +36,8 @@ contains
 
     ! Read Time Slice
     ! ~~~~~~~~~~~~~~~
+    if(irestart_slice.ge.0 .and. irestart_slice.le.times_output) times_output = irestart_slice
+
     if(myrank.eq.0) print *, 'Reading data from time slice', times_output
     call read_int_attr(root_id, "ntime", times_output_in, error)
     if(times_output_in .le. times_output) then

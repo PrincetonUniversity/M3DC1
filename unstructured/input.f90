@@ -881,6 +881,8 @@ subroutine set_defaults
        "ne.0: bdgp plot contains only partial results ", output_grp)
   call add_var_int("idouble_out", idouble_out, 0, &
        "1: Use double-precision floating points in output", output_grp)
+  call add_var_int("irestart_slice", irestart_slice, -1, &
+       "Field output slice from which to restart", output_grp)
 
   call add_var_int("iveldif", iveldif, 0, &
        "ne.0: veldif plot contains only partial results ", output_grp)
