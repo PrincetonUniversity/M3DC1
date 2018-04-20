@@ -12,7 +12,7 @@ contains
     use pellet
     use arrays
     use kprad_m3dc1
-        use init_common
+    use init_common
 
     implicit none
 
@@ -120,13 +120,14 @@ contains
     call read_scalar(scalar_group_id, "pellet_rate2",   pellet_rate2,  ntime, error)
     call read_scalar(scalar_group_id, "pellet_ablrate", pellet_ablrate,ntime, error)
 
-    ! Controllers
-    call read_scalar(scalar_group_id, "loop_voltage",                  vloop,     ntime, error)
+    ! Only read vloop if Ip is under current control
+    if(control_type.ne.-1) then
+       call read_scalar(scalar_group_id, "loop_voltage",                  vloop,     ntime, error)
+    end if
     call read_scalar(scalar_group_id, "i_control%err_i",     i_control%err_i,     ntime, error)
     call read_scalar(scalar_group_id, "i_control%err_p_old", i_control%err_p_old, ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_i",     n_control%err_i,     ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_p_old", n_control%err_p_old, ntime, error)
-
 
     call h5gclose_f(scalar_group_id, error)
 
