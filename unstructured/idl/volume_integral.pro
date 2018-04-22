@@ -1,6 +1,6 @@
 ; Compute the toroidal volume integral of field inside the boundary
 ; /core: volume inside LCFS instead of inside boundary
-function volume_integral, field, slice, x, y, t, filename=filename, points=pts, core=core,_EXTRA=ex
+function volume_integral, field, x, y, t, slice=slice, filename=filename, points=pts, core=core,_EXTRA=ex
 
   if(size(field, /type) eq 7) then out = read_field(field,x,y,t,slices=slice,filename=filename,points=pts,_EXTRA=ex)
   R = radius_matrix(x,y,t)
