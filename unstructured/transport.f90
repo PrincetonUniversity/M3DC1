@@ -1343,7 +1343,7 @@ subroutine define_transport_coefficients()
      if(solve_be)          temp(16) = 1
      if(solve_al)          temp(17) = 1
      if(solve_bs)          temp(18) = 1
-     call mpi_allreduce(temp,temp2,13,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+     call mpi_allreduce(temp,temp2,18,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
      solve_resistivity = temp2(1).eq.1
      solve_kappa       = temp2(2).eq.1
      solve_sigma       = temp2(3).eq.1
