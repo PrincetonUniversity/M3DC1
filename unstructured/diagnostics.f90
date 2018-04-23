@@ -116,7 +116,8 @@ contains
 
     include 'mpif.h'
     integer :: ier
-    real, dimension(14) :: vin, vout
+    integer, parameter :: num_scalars = 14
+    real, dimension(num_scalars) :: vin, vout
 
     vin(1) =  t_ludefall
     vin(2) =  t_sources
@@ -132,7 +133,7 @@ contains
     vin(12) = t_mvm
     vin(13) = t_onestep
     vin(14) = t_kprad
-    call MPI_ALLREDUCE(vin, vout, 14, MPI_DOUBLE_PRECISION, &
+    call MPI_ALLREDUCE(vin, vout, num_scalars, MPI_DOUBLE_PRECISION, &
          MPI_SUM, MPI_COMM_WORLD, ier)
     t_ludefall      = vout(1)
     t_sources       = vout(2)

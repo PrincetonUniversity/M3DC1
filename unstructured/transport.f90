@@ -1110,7 +1110,8 @@ subroutine define_transport_coefficients()
        solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
        solve_fp, solve_be, solve_al, solve_bs
 
-  integer, dimension(18) :: temp, temp2
+  integer, parameter :: num_scalars = 18
+  integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
   ! transport coefficients are only calculated once in linear mode
@@ -1343,7 +1344,10 @@ subroutine define_transport_coefficients()
      if(solve_be)          temp(16) = 1
      if(solve_al)          temp(17) = 1
      if(solve_bs)          temp(18) = 1
-     call mpi_allreduce(temp,temp2,18,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+
+     call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
+          MPI_MAX, MPI_COMM_WORLD, ier)
+
      solve_resistivity = temp2(1).eq.1
      solve_kappa       = temp2(2).eq.1
      solve_sigma       = temp2(3).eq.1
