@@ -1389,13 +1389,6 @@ subroutine validate_input
      end if
   end if
 
-  if(eta_max.le.0.) eta_max = eta_vac
-  if(myrank.eq.0) then
-     print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.) &
-          * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
-     print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.), &
-          ' dimensionless'
-  end if
 
   if(iprad.eq.1 .and. myrank.eq.0) then
      if( (prad_z .ne. 6) .and. (prad_z .ne. 18) .and. (prad_z .ne. 26) ) then
@@ -1455,11 +1448,16 @@ subroutine validate_input
   nufac  = eta_fac * (4.*sqrt(2.*pi)*(4.*pi)**2 / 3.) &
        * e_c**4 * sqrt(m0_norm / m_e) * lambda_coulomb  &
        * (n0_norm**3 * l0_norm / B0_norm**4)
-  efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)  
+  efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
+  if(eta_max.le.0.) eta_max = eta_vac
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, 'nufac = ', nufac
      print *, 'efac = ', efac
+     print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.) &
+          * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
+     print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.), &
+          ' dimensionless'
   end if
   
 
