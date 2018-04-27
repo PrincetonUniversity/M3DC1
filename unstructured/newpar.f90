@@ -342,6 +342,12 @@ Program Reducedquintic
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. i_control%icontrol_type .ge. 0) then
      ! feedback control on toroidal current
+          if(tcurf .ne. tcuri) then
+          ! time varying target current
+            call variable_tcur(tcuri,tcurf,tcur_t0,tcur_tw,time,tcur)
+            i_control%target_val = tcur
+          endif
+
           if(myrank.eq.0 .and. iprint.ge.1) &
              print *, " Applying current feedback", &
              vloop, totcur, i_control%p, &

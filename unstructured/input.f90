@@ -719,10 +719,16 @@ subroutine set_defaults
   ! loop voltage
   call add_var_double("vloop", vloop, 0., "", source_grp)
   call add_var_double("tcur", tcur, 0., "", source_grp)
+
+  call add_var_double("tcuri", tcuri, 0., "", source_grp)
+  call add_var_double("tcurf", tcurf, 0., "", source_grp)
+  call add_var_double("tcur_t0", tcur_t0, 0., "", source_grp)
+  call add_var_double("tcur_tw", tcur_tw, 0., "", source_grp)
+
   call add_var_double("control_p", control_p, 0., "", source_grp)
   call add_var_double("control_i", control_i, 0., "", source_grp)
   call add_var_double("control_d", control_d, 0., "", source_grp)
-  call add_var_int("control_type", control_type, 0, "", source_grp)
+  call add_var_int("control_type", control_type, -1, "", source_grp)
 
   
   ! density source
