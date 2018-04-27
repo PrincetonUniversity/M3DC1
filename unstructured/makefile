@@ -199,6 +199,7 @@ bin :
 		ln -s $(SCOREC_UTIL_DIR)/create_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/seed0.smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/collapse bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/convert_sim_sms bin ; \
@@ -212,6 +213,6 @@ bin :
 	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
 	ln -s $(SRCDIR)/sbin/create_mesh.sh bin
 	ln -s $(SRCDIR)/sbin/create_fixed_mesh.sh bin
-	ln -s $(SRCDIR)/sbin/$(ARCH)/part_mesh.sh bin
+	ln -s $(SRCDIR)/sbin/part_mesh.sh bin
 
 endif
