@@ -378,7 +378,7 @@ contains
           source = pellet_deposition(x_79, phi_79, z_79, p, ne, 0.)
        end if
 
-       n0_old = nz(:,0)
+       n0_old = sum(nz(:,1:kprad_z),2)
 
        ! convert nz, ne, te, dt to cgs / eV
        nz = nz*n0_norm
@@ -459,8 +459,8 @@ contains
        dofs = intx2(mu79(:,:,OP_1),temp79c) / dti
        call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
 
-       ! Total ion source (calculated as opposite of neutral source)
-       temp79d = n0_old - nz(:,0)
+       ! Total ion source
+       temp79d = sum(nz(:,1:kprad_z),2) - n0_old
        dofs = intx2(mu79(:,:,OP_1),temp79d) / dti
        call vector_insert_block(kprad_sigma_i%vec, itri,1,dofs,VEC_ADD)
     end do
