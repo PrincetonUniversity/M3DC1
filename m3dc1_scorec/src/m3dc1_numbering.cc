@@ -155,11 +155,6 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
                 int cmp = blk * ndfs + dof;
                 int nbr = blk * strd + nd_idx * ndfs + dof;
                 apf::number(num,ent,nd,cmp,nbr);
-#ifdef DEBUG
-                if (nbr==0)
-                   std::cout<<"("<<PCU_Comm_Self()<<") number ent "<<getMdsIndex(msh, ent)
-                     <<" - node "<<nd<<" comp "<<cmp<<" num "<<nbr<<"\n";
-#endif
               }
             }
             nd_idx++;
@@ -169,9 +164,6 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       msh->end(it);
     }
   }
-#ifdef DEBUG
-  std::cout<<"("<<PCU_Comm_Self()<<") #owned nodes ="<<m3dc1_mesh::instance()->get_own_count(0)<<"\n";
-#endif
   // get intra-comm offsets
   int rnk = -1;
   MPI_Comm_rank(cm,&rnk);
@@ -187,30 +179,6 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   // todo : replace with MSI_COMM_WORLD when we pull this into msi
   MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
   apf::setNumberingOffset(num,lcl_offset,m3dc1_mesh::instance()->get_ownership());
-  //apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
-  synchronize_numbering(msh, num, shp, nv, ndfs);
-
-#ifdef DEBUG
-  for(int dd = 0; dd < dim; ++dd)
-  {
-    if(shp->hasNodesIn(dd))
-    {
-      it = msh->begin(dd);
-      while((ent = msh->iterate(it)))
-      {
-        int tp = msh->getType(ent);
-        int nds = shp->countNodesOn(tp);
-        for(int nd = 0; nd < nds; ++nd)
-          for(int dof = 0; dof < nv*ndfs; ++dof)
-          {
-            if (!apf::getNumber(num,ent,nd,dof))
-              std::cout<<"("<<PCU_Comm_Self()<<") ZERO number for ent "<<getMdsIndex(msh, ent)
-                     <<" - node "<<nd<<" comp "<<dof<<", is_ghost "<<msh->isGhost(ent)<<"\n";
-            assert(apf::isNumbered(num,ent,nd,dof));
-          }
-      }
-      msh->end(it);
-    }
-  }
-#endif
+  apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
+  //synchronize_numbering(msh, num, shp, nv, ndfs);
 }
