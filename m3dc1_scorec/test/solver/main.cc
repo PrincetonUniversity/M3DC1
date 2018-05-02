@@ -270,54 +270,39 @@ void test_matrix(int mat_mlt, int mat_slv)
   int nds_per_elt = (elt_dim == 3 ? 6 : 3);
   int dofs_per_elt = dofs_per_nd * nds_per_elt;
   std::vector<double> elt_diag_blk(dofs_per_elt * dofs_per_elt * (1+scalar_type),0);
-  std::vector<double> elt_off_blk(dofs_per_elt * dofs_per_elt * (1+scalar_type),0);
   for(int ii = 0; ii < dofs_per_elt; ii++)
   {
     for(int jj = 0; jj < dofs_per_elt; jj++)
     {
-      double diag_val = (ii == jj ? 2.0 : 1.0); // 2 on diag, 1 else
-      double off_val = diag_val / 2;
+      double diag_val = (ii == jj ? 2.0 : 1.0); // 2 on main diag, 1 else
       if(!scalar_type)
-      {
-        elt_diag_blk[ii*dofs_per_elt + jj] = diag_val;
-        elt_off_blk[ii*dofs_per_elt + jj] = off_val;
-      }
+        elt_diag_blk[ii * dofs_per_elt + jj] = diag_val;
       else
-      {//
+      {
         elt_diag_blk[2 * (ii * dofs_per_elt + jj)] = diag_val;
         elt_diag_blk[2 * (ii * dofs_per_elt + jj) + 1] = 1.0;
-        elt_off_blk[2 * (ii * dofs_per_elt + jj)] = off_val;
-        elt_off_blk[2 * (ii * dofs_per_elt + jj) + 1] = 0.5;
       }
     }
   }
   int num_lcl_elt = m3dc1_mesh::instance()->get_mesh()->count(elt_dim);
   int num_lcl_vrt = m3dc1_mesh::instance()->get_mesh()->count(0);
-  //int num_own_vrt = m3dc1_mesh::instance()->num_own_ent[0];
-  //int * nds = new int[nds_per_elt];
-  for(int elt_id = 0; elt_id < num_lcl_elt; elt_id++)
-  {
-    for(int nd1 = 0; nd1 < nds_per_elt; ++nd1)
-      for(int nd2 = 0; nd2 < nds_per_elt; ++nd2)
-      {
-        std::vector<double> & blk = (nd1 == nd2 ? elt_diag_blk : elt_off_blk);
-        m3dc1_matrix_insertnodeblocks(&mat_slv, &elt_dim, &elt_id, &nd1, &nd2, &blk[0]);
-        m3dc1_matrix_insertnodeblocks(&mat_mlt, &elt_dim, &elt_id, &nd1, &nd2, &blk[0]);
-      }
-  }
+  if(!PCU_Comm_Self())
+    std::cout << "* matrix elemental assembly ..." << std::endl;
+  std::vector<double> & blk = elt_diag_blk; //(nd1 == nd2 ? elt_diag_blk : elt_off_blk);
+  for(int elt_id = 0; elt_id < num_lcl_elt; ++elt_id)
+    m3dc1_matrix_insertentblocks(&mat_mlt, &elt_dim, &elt_id, &blk[0]);//&nd1, &nd2, &blk[0]);
+  for(int elt_id = 0; elt_id < num_lcl_elt; ++elt_id)
+    m3dc1_matrix_insertentblocks(&mat_slv, &elt_dim, &elt_id, &blk[0]);//&nd1, &nd2, &blk[0]);
   t2 = MPI_Wtime();
   if(!PCU_Comm_Self())
-    std::cout << "* assemble matrix ..." << std::endl;
+  {
+    std::cout << "* matrix parallel assembly ... " << std::endl
+              << "** multiplication matrix" << std::endl;
+  }
   m3dc1_matrix_assemble(&mat_mlt);
-  MPI_Barrier(MPI_COMM_WORLD);
   m3dc1_matrix_assemble(&mat_slv);
-  MPI_Barrier(MPI_COMM_WORLD);
-  /*
   if(!PCU_Comm_Self())
-    m3dc1_matrix_write(&mat_mlt, "mat_mlt.m");
-  m3dc1_matrix_write(&mat_slv, "mat_slv.m");
-  */
-  // print out memory usage from petsc
+    std::cout << "** solution matrix" << std::endl;
   t3 = MPI_Wtime();
   // calculate c field
   if(!PCU_Comm_Self())
@@ -348,19 +333,20 @@ void test_matrix(int mat_mlt, int mat_slv)
   //m3dc1_field_print(&x_field);
   if(!PCU_Comm_Self()) cout<<"* solve ..."<<endl;
   // solve Ax=c
-  //int solver_type = 0;    // PETSc direct solver
-  //double solver_tol = 1e-6;
-  m3dc1_matrix_solve(&mat_slv, &x_field); //, &solver_type, &solver_tol);
-  //m3dc1_field_print(&x_field);
+  m3dc1_matrix_solve(&mat_slv, &x_field);
   t5 = MPI_Wtime();
-  // verify x=b
+  // verify Ax=b
+  // set c = Ax
+  m3dc1_matrix_multiply(&mat_slv, &x_field, &c_field);
+  // compare c == b
   for(int vrt = 0; vrt < num_lcl_vrt; vrt++)
   {
-    vector<double> dofs_x(dofs_per_nd*(1+scalar_type)), dofs_b(dofs_per_nd*(1+scalar_type));
-    m3dc1_ent_getdofdata(&vrt_dim, &vrt, &b_field, &dofs_per_nd, &dofs_b.at(0));
-    m3dc1_ent_getdofdata(&vrt_dim, &vrt, &x_field, &dofs_per_nd, &dofs_x.at(0));
+    std::vector<double> dofs_c(dofs_per_nd*(1+scalar_type));
+    std::vector<double> dofs_b(dofs_per_nd*(1+scalar_type));
+    m3dc1_ent_getdofdata(&vrt_dim, &vrt, &c_field, &dofs_per_nd, &dofs_c[0]);
+    m3dc1_ent_getdofdata(&vrt_dim, &vrt, &b_field, &dofs_per_nd, &dofs_b[0]);
     for(int idof=0; idof<dofs_per_nd*(1+scalar_type); idof++)
-      assert(AlmostEqualDoubles(dofs_b.at(idof),dofs_x.at(idof), 1e-3, 1e-3));
+      assert(AlmostEqualDoubles(dofs_c.at(idof),dofs_b.at(idof), 1e-3, 1e-3));
   }
 }
 
