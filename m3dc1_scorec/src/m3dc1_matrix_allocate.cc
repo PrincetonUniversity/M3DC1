@@ -29,6 +29,9 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
   int * gbl_dofs = new int[dof_per_nd];
   int * dof_ids[] = {&lcl_dofs[0],&gbl_dofs[0]};
   int lcl_nd = 0;
+  int blk = (bool)(dof_per_blk-1);
+  int dnnz_max = 0;
+  int onnz_max = 0;
   for(int nd = 0; nd < num_nds[0]; ++nd) //  have to iterate over all nodes, but we only process those we need
   {
     apf::MeshEntity * ent = apf::getMdsEntity(msh->get_mesh(),vrt_dim,nd);
@@ -48,19 +51,20 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
     {
       int blk_row = (dof_ids[is_par][ii] / dof_per_blk) - frst_blk_row;
       assert(blk_row < num_lcl_blk && blk_row >= 0);
-      dnnz[blk_row] = blk_per_nd * ((adj_own + 1) + (is_lcl * (adj_gbl - adj_own))); // if the matrix is local we only use dnnz but need the sum
-      onnz[blk_row] = blk_per_nd * (adj_gbl - adj_own);
+      dnnz[blk_row] = blk_per_nd * (!blk * dof_per_blk + 1) * ((adj_own + 1) + (is_lcl * (adj_gbl - adj_own))); // if the matrix is local we only use dnnz but need the sum
+      onnz[blk_row] = blk_per_nd * (!blk * dof_per_blk + 1) * (adj_gbl - adj_own);
+      dnnz_max = dnnz_max > dnnz[blk_row] ? dnnz_max : dnnz[blk_row];
+      onnz_max = onnz_max > onnz[blk_row] ? onnz_max : onnz[blk_row];
     }
   }
-  int blk = (bool)(dof_per_blk-1);
   if(!blk && is_par)
-    MatMPIAIJSetPreallocation(A,0,&dnnz[0],0,&onnz[0]);
+    MatMPIAIJSetPreallocation(A,dnnz_max,&dnnz[0],onnz_max,&onnz[0]);
   else if(blk && is_par)
-    MatMPIBAIJSetPreallocation(A,dof_per_blk,0,&dnnz[0],0,&onnz[0]);
+    MatMPIBAIJSetPreallocation(A,dof_per_blk,dnnz_max,&dnnz[0],onnz_max,&onnz[0]);
   else if(!blk && is_lcl)
-    MatSeqAIJSetPreallocation(A,0,&dnnz[0]);
+    MatSeqAIJSetPreallocation(A,dnnz_max,&dnnz[0]);
   else // must be local and block
-    MatSeqBAIJSetPreallocation(A,dof_per_blk,0,&dnnz[0]);
+    MatSeqBAIJSetPreallocation(A,dof_per_blk,dnnz_max,&dnnz[0]);
   delete [] lcl_dofs;
   delete [] gbl_dofs;
 }
