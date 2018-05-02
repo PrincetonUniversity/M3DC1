@@ -41,7 +41,7 @@ public:
   void add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cls, double * vals);
   int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
   void fix();
-  void solve(m3dc1_field * rhs);
+  void solve(m3dc1_field * lhs);
   int solver_iteration_count();
   void multiply(m3dc1_field * in, m3dc1_field * out);
   void write(const char * fn);

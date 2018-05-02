@@ -73,8 +73,7 @@ void insert_element_blocks(m3dc1_matrix * mat, int * ent_dim, int * eid, double 
 {
   int num_ent_blks = 0;
   get_num_blocks(mat,ent_dim,eid,&num_ent_blks);
-  int * blk_ids = new int[num_ent_blks];
-  // DBG(memset());
+  int * blk_ids = new int[num_ent_blks]();
   get_block_ids(mat,ent_dim,eid,&blk_ids[0]);
   // assuming only verts hold nodes
   int num_adj_vrts = 0;
@@ -92,8 +91,7 @@ void insert_node_blocks(m3dc1_matrix * mat, int * ent_dim, int * eid, int * nd1,
   get_num_blocks(mat,ent_dim,eid,&blks_per_ent);
   int * blk_ids = new int[blks_per_ent];
   get_block_ids(mat,ent_dim,eid,&blk_ids[0]);
-  //DBG(memset());
-  //assuming only verts have nodes and that all nodes have the same number of blocks(values..)
+  //assuming only verts have nodes and that all nodes have the same number of blocks (values..)
   int blks_per_nd = mat->get_field()->get_num_value();
   int num_adj_vrts = 0;
   m3dc1_ent_getnumadj(ent_dim,eid,&vrt_dim,&num_adj_vrts);
@@ -138,6 +136,16 @@ void printMemStat()
   PetscMemoryGetMaximumUsage(&mem_max);
   std::cout << "\tMemory usage (MB) reported by PetscMemoryGetCurrentUsage: Rank " << PCU_Comm_Self() << " current " << mem/1e6 << std::endl;
 }
+void write_vec(Vec v, const char * fn)
+{
+  PetscViewer view;
+  MPI_Comm cm = MPI_COMM_NULL;
+  PetscObjectGetComm((PetscObject)v,&cm);
+  PetscViewerASCIIOpen(cm, fn, &view);
+  PetscViewerPushFormat(view, PETSC_VIEWER_ASCII_MATLAB);
+  VecView(v, view);
+  PetscViewerDestroy(&view);
+}
 void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 {
   assert(cm != MPI_COMM_NULL);
@@ -153,7 +161,6 @@ void field2Vec(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
   m3dc1_field_getnumlocaldof(&fid, &num_dof[0]);
   m3dc1_field_getnumowndof(&fid, &num_dof[1]);
   int dof_per_nd = num_dof[par] / num_nds[par];
-  VecCreateMPI(cm,num_dof[par],PETSC_DETERMINE,&V);
   int * dof_ids = new int[dof_per_nd]();
   // assumes st = 0 means real, st=1 means complex
   int sz = dof_per_nd * (st+1);
@@ -230,7 +237,6 @@ void vec2Field(MPI_Comm cm, m3dc1_field * fld, Vec V, int st)
 #endif
     m3dc1_ent_setdofdata(&vrt_tp,&nd,&fid,&dof_per_nd,&dof_data[0]);
   }
-  VecDestroy(&V);
   // could get rid of this with some work
   m3dc1_field_sync(&fid);
   delete [] dof_ids;
@@ -270,7 +276,7 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, m3dc1_mesh * msh, m3dc1_field * f, MPI_
   MatSetBlockSize(A,blk_sz);
   // call preallocate
   allocateMatrix(A,msh,fld);
-  //MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
+  MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
   if(!(blk_sz-1)) // only supported for AIJ not BAIJ
     MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
   MatCreateVecs(A,&x,&b);
@@ -279,7 +285,6 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, m3dc1_mesh * msh, m3dc1_field * f, MPI_
     describeMatrix(A);
 #endif
   KSPCreate(cm,&ksp);
-  KSPSetOperators(ksp,A,A);
   KSPSetTolerances(ksp,0.000001, 0.00000001, PETSC_DEFAULT, 1000);
   if(msh->get_mesh()->getDimension() == 2)
   {
@@ -308,7 +313,6 @@ void m3dc1_matrix::fix()
 }
 void m3dc1_matrix::get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values)
 {
-  
 #ifdef PETSC_USE_COMPLEX
    if (!PCU_Comm_Self())
      std::cout << "[M3DC1 ERROR] " << __func__ << ": not supported for complex\n";
@@ -359,6 +363,8 @@ void m3dc1_matrix::multiply(m3dc1_field * in, m3dc1_field * out)
   PetscObjectGetComm((PetscObject)A,&cm);
   field2Vec(cm,in,x,get_scalar_type());
   MatMult(A, x, b);
+  //write_vec(x,"mult_x.m");
+  //write_vec(b,"mult_y.m");
   vec2Field(cm,out,b,get_scalar_type());
 }
 void m3dc1_matrix::zero()
@@ -371,17 +377,20 @@ void m3dc1_matrix::zero_rows(int rsize, int * rows)
   MatZeroRows(A,rsize,rows,0.0,PETSC_NULL,PETSC_NULL);
   fixed = false;
 }
-void m3dc1_matrix::solve(m3dc1_field * rhs)
+void m3dc1_matrix::solve(m3dc1_field * lhs)
 {
   MPI_Comm cm = MPI_COMM_NULL;
   PetscObjectGetComm((PetscObject)A, &cm);
-  field2Vec(cm,rhs,b,get_scalar_type()); // copy field values into vector
+  field2Vec(cm,fld,b,get_scalar_type()); // copy field values into vector
+  KSPSetOperators(ksp,A,A);
   KSPSolve(ksp, b, x);
   int itr = -1;
   KSPGetIterationNumber(ksp, &itr);
   if(!PCU_Comm_Self())
     std::cout << "\t-- # solver iterations " << itr << std::endl;
-  vec2Field(cm,rhs,x,get_scalar_type());
+  //write_vec(b,"b.m");
+  //write_vec(x,"x.m");
+  vec2Field(cm,lhs,x,get_scalar_type());
 }
 int m3dc1_matrix::solver_iteration_count()
 {
