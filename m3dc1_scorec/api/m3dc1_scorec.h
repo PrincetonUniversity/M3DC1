@@ -180,7 +180,7 @@ void m3dc1_matrix_add(int* matrix_id, int* row, int* column, int* scalar_type, d
 // insert all blocks related to the nodes effecting a given mesh entity of dimension ent_dim
 //  for region elements this will insert all values into the matrix for all nodes effecting the element
 //  this assembles an entire elemental matrix into the global matrix at once
-void m3dc1_matrix_insertentblocks(int * mid, int ent_dim, int * eid, double * vals);
+void m3dc1_matrix_insertentblocks(int * mid, int * ent_dim, int * eid, double * vals);
 // insert all blocks related to a specific intersection of nodes from the specified element of
 //  dimension ent_dim. for region elements this will insert the matrix blocks from rows associated
 //  with node nd1 and columns from rows associated with node nd2.
@@ -195,7 +195,7 @@ void m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputv
 
 // for performance test
 void m3dc1_matrix_setassembleoption(int * op);
-  void m3dc1_matrix_write(int * matrix_id, const char * file_name);
+void m3dc1_matrix_write(int * matrix_id, const char * file_name);
 void m3dc1_matrix_print(int* matrix_id);
 #endif // #ifdef M3DC1_PETSC
 

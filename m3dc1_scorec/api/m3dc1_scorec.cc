@@ -1593,17 +1593,8 @@ void m3dc1_matrix_delete(int * mid)
 }
 void m3dc1_matrix_reset(int* mid)
 {
-  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*mid);
-#ifdef DEBUG
-  if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* mid<<"\n";
-  if (!mat)
-  {
-    if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*mid<<" does not exist\n";
-    return;
-  }
-#endif
+  m3dc1_matrix * mat = m3dc1_solver::instance()->get_matrix(*mid);
+  assert(mat && "[M3D-C1 Error] Matrix with specified ID does not exist.");
   mat->zero();
 }
 void m3dc1_matrix_insert(int * mid, int * row, int * col, int * scalar_type, double * val)
