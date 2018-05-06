@@ -1479,13 +1479,13 @@ subroutine validate_input
   end if
 
   if(ihypeta.gt.2) then
-  bharhypeta = 0.
+     bharhypeta = 0.
      if(ihypeta .gt. ibh_harmonics) then
-         print *, 'Error:  ihypeta > ibh_harmonics', ihypeta, ibh_harmonics
-         call safestop(1)
+        if(myrank.eq.0) print *, 'Error:  ihypeta > ibh_harmonics', &
+             ihypeta, ibh_harmonics
+        call safestop(1)
      endif
   endif
-  
 
   if(ibeam.ge.1) call neutral_beam_init
   if(ipellet.ne.0) then
@@ -1493,7 +1493,7 @@ subroutine validate_input
      
      if(ipellet_z.ne.0 .and. &
         (ikprad.eq.0 .or. ipellet_z.ne.kprad_z)) then
-        print *, 'Error: ipellet_z != kprad_z'
+        if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
         call safestop(1)
      end if
   end if
