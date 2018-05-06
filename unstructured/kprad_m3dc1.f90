@@ -120,7 +120,7 @@ contains
     nelms = local_elements()
     do itri=1, nelms
        call define_element_quadrature(itri,int_pts_main,5)
-       call define_fields(itri,def_fields,1,0)
+       call define_fields(itri,def_fields,1,1,1)
 
        temp79a = kprad_nz +  kprad_fz*nt79(:,OP_1)
 
