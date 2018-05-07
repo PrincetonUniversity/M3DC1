@@ -338,6 +338,8 @@ subroutine set_defaults
        "1: Use toroidal geometry", model_grp)
   call add_var_int("iohmic_heating", iohmic_heating, 1, &
        "1: Include Ohmic heating", model_grp)
+  call add_var_int("irad_heating", irad_heating, 1, &
+       "1: Include radiation heat source", model_grp)
 
   call add_var_double("gravr", gravr, 0., "", model_grp)
   call add_var_double("gravz", gravz, 0., "", model_grp)

@@ -282,6 +282,7 @@ module basic
                          ! 2 = CGL form for the pressure tensor (incompressible)
                          ! 3 = CGL form for pressure tensor (full)
   integer :: iohmic_heating  ! 1 = include ohmic heating
+  integer :: irad_heating  ! 1 = include radiation heat source
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps

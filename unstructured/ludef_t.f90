@@ -4212,12 +4212,17 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         if(total_pressure) then
            ! Total pressure
            ! ~~~~~~~~~~~~~~
-           r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79)+b3q(trialx,totrad79))
+           r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)
+           if(irad_heating.eq.1) then
+              r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
+           end if
         else
            ! Electron pressure
            ! ~~~~~~~~~~~~~~~~~
            r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
-           r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
+           if(irad_heating.eq.1) then
+              r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
+           end if
            
            ! Equipartition
            r4term = r4term + dt*(gam-1.)*q_delta(trialx)
@@ -4226,7 +4231,10 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         if(ipres.eq.0) then
            ! Total temperature
            ! ~~~~~~~~~~~~~~~~~
-           r4term = r4term + dt*(gam-1.)*(b3q(trialx,q79) + b3q(trialx,totrad79))
+           r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)
+           if(irad_heating.eq.1) then
+              r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
+           end if
         else
            if(total_pressure) then
              ! Total Ion Temperature
@@ -4239,7 +4247,9 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
              ! Electron temperature
              ! ~~~~~~~~~~~~~~~~~~~~ 
              r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
-             r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
+             if(irad_heating.eq.1) then
+                r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
+             end if
 
              ! Equipartition
              r4term = r4term + dt*(gam-1.)*q_delta(trialx)
