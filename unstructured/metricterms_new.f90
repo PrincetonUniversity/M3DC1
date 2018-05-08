@@ -13612,6 +13612,56 @@ function q_delta(e)
   end if
 end function q_delta
 
+function q_delta1(e)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: q_delta1
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+
+  if(surface_int) then
+     q_delta1 = 0.
+  else
+     q_delta1 = intx3(e(:,:,OP_1),net79(:,OP_1),qd79) 
+  end if
+end function q_delta1
+
+function q_deltape(e)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: q_deltape
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+
+  if(surface_int) then
+     q_deltape = 0.
+  else 
+     temp79a = net79(:,OP_1)/ni79(:,OP_1) + 1.
+     q_deltape = intx3(e(:,:,OP_1),temp79a,qd79)
+  end if
+end function q_deltape
+
+function q_deltap(e)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: q_deltap
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+
+  if(surface_int) then
+     q_deltap = 0.
+  else
+     temp79a = net79(:,OP_1)/ni79(:,OP_1)
+     q_deltap = intx3(e(:,:,OP_1),temp79a,qd79)
+  end if
+end function q_deltap
+
 vectype function q1ppsi(e,f,g,h)
 
   use basic
