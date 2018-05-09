@@ -24,8 +24,16 @@
 using std::complex;
 #endif
 
-using std::vector;
+// function defined in m3dc1
+// for internal test, define the two functions as blank
+// add two lines in your main.cc to get rid of undefined symbol
+// extern "C" int setPETScMat(int matrixid, Mat * A) {};
+// extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){};
+extern "C" int setPETScMat(int matrixid, Mat * A);
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A);
 
+
+using std::vector;
 
 // ***********************************
 // 		HELPER
@@ -1014,7 +1022,13 @@ int matrix_solve:: setKspType()
     PC pc;
     ierr=KSPGetPC(*ksp, &pc); CHKERRQ(ierr);
     ierr=PCSetType(pc,PCLU); CHKERRQ(ierr);
-    ierr=PCFactorSetMatSolverPackage(pc,MATSOLVERSUPERLU_DIST);  CHKERRQ(ierr);
+#ifndef PETSCMASTER
+    // petsc-3.8.3 and older
+    ierr=PCFactorSetMatSolverPackage(pc,MATSOLVERSUPERLU_DIST);
+#else
+    ierr=PCFactorSetMatSolverType(pc,MATSOLVERSUPERLU_DIST);
+#endif
+    CHKERRQ(ierr);
   }
 
   ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
