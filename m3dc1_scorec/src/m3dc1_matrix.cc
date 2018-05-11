@@ -31,7 +31,7 @@ using std::complex;
 // extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){};
 extern "C" int setPETScMat(int matrixid, Mat * A);
 extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A);
-
+extern "C" int get_iter_num_( int * iter_num_p) {*iter_num_p=-1;};
 
 using std::vector;
 
@@ -442,15 +442,15 @@ int matrix_solve::setUpRemoteAStruct()
         remotePidOwned.insert(it->first);
     }
   }
-  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF,&remoteA);
-  CHKERRQ(ierr);
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF,&remoteA); CHKERRQ(ierr);
   ierr = MatSetType(remoteA, MATSEQBAIJ);CHKERRQ(ierr);
   ierr = MatSetBlockSize(remoteA, dofPerVar); CHKERRQ(ierr);
-  ierr = MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE);
+  CHKERRQ(ierr);
   MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]);
   ierr = MatSetUp (remoteA);CHKERRQ(ierr);
-
 }
+
 int  m3dc1_matrix::preAllocateSeqMat()
 {
   int bs=1, vertex_type=0;
@@ -513,8 +513,9 @@ int m3dc1_matrix::setupParaMat()
   PetscInt mat_dim = num_own_dof;
 
   // create matrix
-  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, A);
-  CHKERRQ(ierr);
+  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, A); CHKERRQ(ierr);
+  ierr = setPETScMat(id, A);CHKERRQ(ierr);
+
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 
@@ -534,8 +535,9 @@ int m3dc1_matrix::setupSeqMat()
   PetscInt mat_dim = num_dof;
 
   // create matrix
-  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, A);
-  CHKERRQ(ierr);
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, A); CHKERRQ(ierr);
+  ierr = setPETScMat(id, A);CHKERRQ(ierr);
+  
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 
@@ -1004,10 +1006,12 @@ int matrix_solve::solve(FieldID field_id)
   delete ksp;
 }
 
-int matrix_solve:: setKspType()
+int matrix_solve::setKspType()
 {
   PetscErrorCode ierr;
   KSPCreate(MPI_COMM_WORLD, ksp);
+  ierr = setPETScKSP(id, ksp, A); CHKERRQ(ierr);
+
   ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
   ierr = KSPSetTolerances(*ksp, .000001, .000000001,
                           PETSC_DEFAULT, 1000);CHKERRQ(ierr);

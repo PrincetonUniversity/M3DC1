@@ -28,8 +28,17 @@
     - CMAKE_INSTALL_PREFIX should be the same as that of PUMI
     - to install m3dc1_scorec with Trilinos, set ENABLE_TRILINOS to ON
 
-// to compile test program 
-Set -DENABLE_TESTING=ON
+// to compile test program on scorec
+Set -DENABLE_TESTING=ON or 
+
+/usr/local/openmpi/latest/bin/mpicc ../test/solver/main.cc -o solver -DDEBUG -DM3DC1_PETSC -I/usr/local/openmpi/latest/include  -I/lore/seol/petsc-3.5.4/real-openmpi1.6.5/include -I/lore/seol/petsc-3.5.4/include -I/lore/seol/openmpi-gcc4.4.5-install/include -Wl,--start-group,-rpath,/lore/seol/openmpi-gcc4.4.5-install/lib -L/lore/seol/openmpi-gcc4.4.5-install/lib -lm3dc1_scorec -lpumi -lcrv -lph -lsam -lspr -lma -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -lzoltan -Wl,--end-group -L/lore/seol/petsc-3.5.4/real-openmpi1.6.5/lib  -lpetsc -Wl,-rpath,/lore/seol/petsc-3.5.4/real-openmpi1.6.5/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lHYPRE -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -lsuperlu_4.3 -lsuperlu_dist_3.3 -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl 
+
+
+// 2D
+/usr/local/openmpi/latest/bin/mpirun -np 4 ./solver ../test/AnalyticModel ../test/12K-4part/part.smb 1
+// 3D
+/usr/local/openmpi/latest/bin/mpirun -np 12 ./solver ../test/AnalyticModel ../test/12K-4part/part.smb 3
+
 
 // 2D
 /usr/local/openmpi/latest/bin/mpirun -np 4 ./solver ../test/AnalyticModel ../test/12K-4part/part.smb 1
