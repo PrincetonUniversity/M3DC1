@@ -1333,9 +1333,8 @@ subroutine calculate_qdfac(itri, z)
         z = z + i**2 * tm79(:,OP_1) / kprad_mz
      end do
   end if
-  temp79a = max(temin_qd,real(tet79(:,OP_1)))
-  where(real(temp79a).gt.0.)
-     z = z * 3. * me_mp * nufac / temp79a**(3./2.)
+  where(real(tet79(:,OP_1)).gt.0.)
+     z = z * 3. * me_mp * nufac / tet79(:,OP_1)**(3./2.)
   elsewhere
      z = 0.
   end where
