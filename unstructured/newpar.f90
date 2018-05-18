@@ -1270,6 +1270,7 @@ subroutine space(ifirstcall)
   call associate_field(p_field(0),   field0_vec, p_g)
   call associate_field(te_field(0),  field0_vec, te_g)
   call associate_field(ti_field(0),  field0_vec, ti_g)
+  call associate_field(e_field(0),   field0_vec, e_g )
   call associate_field(ne_field(0),  field0_vec, ne_g)
 
   call allocate_kspits

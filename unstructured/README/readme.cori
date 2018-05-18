@@ -8,7 +8,7 @@
         module swap craype-haswell craype-mic-knl
 
    REAL AND COMPLEX MODEL
-        module load fftw
+        module load cray-fftw
         module load subversion
         module load cmake
         module load gsl
