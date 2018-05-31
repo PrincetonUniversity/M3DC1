@@ -95,13 +95,13 @@ LIBS = 	\
         $(PETSC_LIBS) \
         $(BLASLAPACK_LIBS) \
 	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
-	-L$(GSLHOME)/lib -lgsl -lgslcblas \
+	-L$(GSL_HOME)/lib -lgsl -lgslcblas \
 	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
         -I$(HDF5_DIR)/include \
-        -I$(GSLHOME)/include
+        -I$(GSL_HOME)/include
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
