@@ -95,7 +95,7 @@ LIBS = 	\
         $(PETSC_LIBS) \
         $(BLASLAPACK_LIBS) \
 	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
-	-L$(GSLHOME)/lib -lgsl -lgslcblas \
+	-L$(GSL_HOME)/lib -lgsl -lgslcblas \
 	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
