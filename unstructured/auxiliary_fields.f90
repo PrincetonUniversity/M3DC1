@@ -279,11 +279,7 @@ subroutine calculate_temperatures(ilin, te, ti, pe, p, ne, nion, ieqsub)
      call eval_ops(itri, ne, ne179, rfac)
      call eval_ops(itri, nion, n179,  rfac)
      call eval_ops(itri, p, p179, rfac)
-     if(ipres.eq.1) then
-        call eval_ops(itri, pe, pe179, rfac)
-     else
-        pe179 = p179*pefac
-     end if
+     call eval_ops(itri, pe, pe179, rfac)
      if(ieqsub.eq.1 .and. ilin.eq.1) then
         call eval_ops(itri, ne_field(0), ne079, rfac)
         call eval_ops(itri, den_field(0), n079, rfac)
