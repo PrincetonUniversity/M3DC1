@@ -55,7 +55,7 @@ PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 #       -lstrumpack_sparse \
 
 
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Aug2017/bin
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/bin
 #SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Aug2017
 #SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Nov2017
 #SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/debug
