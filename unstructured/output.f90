@@ -876,12 +876,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
   ! u
   call write_field(group_id, "phi", u_field(ilin), nelms, error)
 
-#if defined(USE3D) || defined(USECOMPLEX)
   ! electrostatic potential
   if(jadv.eq.0) then
      call write_field(group_id, "potential", e_field(ilin), nelms, error)
   endif
-#endif
 
   ! I
   do i=1, nelms

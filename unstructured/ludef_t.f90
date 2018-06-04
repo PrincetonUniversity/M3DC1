@@ -3202,17 +3202,6 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      end if ! on idens
   end if
 
-  ! Equipartition   presently treated explicitly
-  ! ~~~~~~~~~~~~~
- !if((.not. total_pressure) .and. ipres.eq.1) then
- !   if(linear.eq.0 .and. eqsubtract.eq.0) then
- !      tempx = dt*(gam - 1.)*q_deltape(trialx)
- !      ssterm(:,pe_g) = ssterm(:,pe_g) +  tempx
- !      tempx = dt*(gam - 1.)*q_deltap(trialx)
- !      ssterm(:,p_g)  = ssterm(:,p_g)  -  tempx        
- !   endif
- !endif
-
 
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
@@ -3922,26 +3911,6 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
   ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
 
-  ! Equipartition
-  ! ~~~~~~~~~~~~~
-
-    if(ipres.eq.1) then
-      if(linear.eq.0 .and. eqsubtract.eq.0) then
-         tempx = dt*(gam-1.)*q_delta1(trialx)
-         if(electron_temperature) then
-            ssterm(:,te_g) = ssterm(:,te_g) + tempx*0.5
-            ssterm(:,ti_g) = ssterm(:,ti_g) - tempx*0.5
-            ddterm(:,te_g) = ddterm(:,te_g) - tempx*0.5
-            ddterm(:,ti_g) = ddterm(:,ti_g) + tempx*0.5
-         else
-            ssterm(:,ti_g) = ssterm(:,ti_g) + tempx*0.5
-            ssterm(:,te_g) = ssterm(:,te_g) - tempx*0.5
-            ddterm(:,ti_g) = ddterm(:,ti_g) - tempx*0.5
-            ddterm(:,te_g) = ddterm(:,te_g) + tempx*0.5
-         endif
-     endif       
-  endif
-
 
   ! Electron Pressure Advection
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4254,6 +4223,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
            if(irad_heating.eq.1) then
               r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
            end if
+           
            ! Equipartition
            r4term = r4term + dt*(gam-1.)*q_delta(trialx)
         end if
@@ -4271,6 +4241,8 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
              ! ~~~~~~~~~~~~~~~~~~~~~
              r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
 
+             ! Equipartition
+             r4term = r4term - dt*(gam-1.)*q_delta(trialx)
            else
              ! Electron temperature
              ! ~~~~~~~~~~~~~~~~~~~~ 
@@ -4279,6 +4251,8 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
                 r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
              end if
 
+             ! Equipartition
+             r4term = r4term + dt*(gam-1.)*q_delta(trialx)
            endif
         end if
      end if

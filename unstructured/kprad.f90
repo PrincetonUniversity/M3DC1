@@ -99,11 +99,13 @@ contains
     real, dimension(npts,0:z) :: aimp, bimp, cimp, dimp, ework, fwork
     real :: max_change
     logical :: last_step
+    real :: dts_min
 
     ! calculate ionization and recombination rates
     call kprad_ionization_rate(npts,ne,te,z,sion)
     call kprad_recombination_rate(npts,ne,te,z,srec)
 
+    dts_min = dt/1e6
     dts = kprad_dt
     t = 0.
     dw_ion = 0.
@@ -176,10 +178,12 @@ contains
           ne = ne_old
           nz = nz_old
           dts = dts / 2.
+
+          if(dts.lt.dts_min) dts = dts_min
        end if
     enddo
 
-    
+
   end subroutine kprad_advance_densities
 
 

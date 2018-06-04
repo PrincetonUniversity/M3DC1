@@ -278,8 +278,6 @@ subroutine set_defaults
        "Factor to multiply kappa when grad(p) < gradp_crit", transp_grp)
   call add_var_double("gradp_crit", gradp_crit, 0., &
        "Critical pressure gradient in kappag/kappaf models", transp_grp)
-  call add_var_double("temin_qd", temin_qd, 0., &
-       "Min. Temp. used in Equipartition term for ipres=1", transp_grp)
 
   call add_var_double("denm", denm, 0., &
        "Density hyperdiffusion coefficient", transp_grp)
