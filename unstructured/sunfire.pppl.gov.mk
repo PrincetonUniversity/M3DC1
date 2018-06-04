@@ -36,61 +36,65 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
-PETSC_DIR = /p/swim/jchen/PETSC/petsc-3.5.3/
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
 ifeq ($(COM), 1)
-PETSC_ARCH = portalr6-intel-openmpi-1.8.4-complex
+PETSC_ARCH=complex-openmpi-1.10.3
 HYPRE_LIB=
 else
-PETSC_ARCH = portalr6-intel-openmpi-1.8.4
+PETSC_ARCH=real-openmpi-1.10.3
 HYPRE_LIB=-lHYPRE
 endif
 
-SCOREC_UTIL_DIR = /p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.8.4/utilities
+BLASLAPACK_LIBS =-Wl,-rpath,$(MKLROOT) -L$(MKLROOT)/lib/intel64 \
+        -lmkl_intel_lp64 -lmkl_sequential -lmkl_core
+HDF5_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/hdf5-parallel-1.8.17
+SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/Aug2017/openmpi-1.10.3/debug
+PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
-PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
-        -lpetsc \
-	-ldmumps -lmumps_common -lpord -lcmumps -lsmumps -lzmumps \
-	-lfftw3 -lfftw3_mpi \
-        $(HYPRE_LIB) \
-	-lparmetis -lmetis \
-	-lscalapack \
-	-lsuperlu_dist_3.3 -lsuperlu_4.3 \
-	-Wl,--end-group
+SCOREC_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/bin
 
-BLASLAPACKLIBS = -L$(MKLROOT)/lib/intel64 -Wl,--start-group  \
-	-lmkl_blacs_openmpi_lp64 -lmkl_lapack95_lp64 -lmkl_blas95_lp64 -lmkl_intel_lp64 -lmkl_cdft_core -lmkl_scalapack_lp64 -lmkl_sequential -lmkl_core \
-	-Wl,--end-group
-HDF5_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.8-pkgs/hdf5-1.8.14-parallel
-#SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/May2017-openmpi-1.8.4
-#PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
-SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/Dec2015
-ifeq ($(PAR), 1)
-  SCOREC_DIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Dec2016_PIC
-  PUMI_LIB = -lapf -lapf_zoltan -lapf_omega_h -lgmi -llion -lma -lmds -lmth \
-    -lomega_h -lparma -lpcu -lph -lsam -lspr -lzoltan
+ifeq ($(TRILINOS), 1)
+  TRILINOS_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/trilinos-11.12.1
+  ZOLTAN_LIB=-L$(TRILINOS_DIR)/lib -lzoltan
+  TRILINOS_LIBS = -Wl,--start-group,-rpath,$(TRILINOS_DIR)/lib -L$(TRILINOS_DIR)/lib \
+        -lstdc++  -lamesos -ltpetra -lkokkosnodeapi -ltpi -laztecoo -lepetra -lepetraext \
+        -lsacado -lteuchosparameterlist -lteuchoscomm -lteuchoscore -lteuchosnumerics -lteuchosremainder
+  PETSC_LIBS=
 else
-  SCOREC_DIR= /p/tsc/m3dc1/lib/SCORECLib/rhel6/Dec2015
-  PUMI_LIB = -lapf -lapf_zoltan -lcrv -ldsp -lgmi -lma -lmds -lparma -lpcu \
-    -lph -lspr -lzoltan
+  ZOLTAN_LIB=-L/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/lib -lzoltan
+  TRILINOS_LIBS=
+  SCALAPACK_LIB=-Wl,-rpath,$(SCALAPACK_HOME)/lib -L$(SCALAPACK_HOME) -lscalapack
+  PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
+        -lpetsc \
+        -lsuperlu_dist_3.3 -lsuperlu_4.3 \
+        -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord \
+        $(SCALAPACK_LIB) \
+        -lfftw3 -lfftw3_mpi \
+        $(HYPRE_LIB) \
+        -lparmetis -lmetis \
+        -Wl,--end-group
 endif
 
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  ifeq ($(TRILINOS), 1)
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_trilinos
+  else
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  endif
 endif
 
 SCORECLIB= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
-ZOLTAN_LIB=-L/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.8.4/lib -lzoltan
+           $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
 
 LIBS = 	\
 	$(SCORECLIB) \
+        $(TRILINOS_LIBS) \
         $(ZOLTAN_LIB) \
-        $(BLASLAPACKLIBS) \
         $(PETSC_LIBS) \
-	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 \
-	-L$(ZLIB_HOME) -lz \
+        $(BLASLAPACK_LIBS) \
+	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
 	-L$(GSLHOME)/lib -lgsl -lgslcblas \
 	-lX11
 
