@@ -342,6 +342,12 @@ Program Reducedquintic
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. i_control%icontrol_type .ge. 0) then
      ! feedback control on toroidal current
+          if(tcurf .ne. tcuri) then
+          ! time varying target current
+            call variable_tcur(tcuri,tcurf,tcur_t0,tcur_tw,time,tcur)
+            i_control%target_val = tcur
+          endif
+
           if(myrank.eq.0 .and. iprint.ge.1) &
              print *, " Applying current feedback", &
              vloop, totcur, i_control%p, &
@@ -1264,6 +1270,7 @@ subroutine space(ifirstcall)
   call associate_field(p_field(0),   field0_vec, p_g)
   call associate_field(te_field(0),  field0_vec, te_g)
   call associate_field(ti_field(0),  field0_vec, ti_g)
+  call associate_field(e_field(0),   field0_vec, e_g )
   call associate_field(ne_field(0),  field0_vec, ne_g)
 
   call allocate_kspits
@@ -1326,7 +1333,6 @@ subroutine calculate_qdfac(itri, z)
         z = z + i**2 * tm79(:,OP_1) / kprad_mz
      end do
   end if
-
   where(real(tet79(:,OP_1)).gt.0.)
      z = z * 3. * me_mp * nufac / tet79(:,OP_1)**(3./2.)
   elsewhere

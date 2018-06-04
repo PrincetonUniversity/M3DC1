@@ -57,7 +57,7 @@ contains
     real, intent(out) :: jpar,dndt
     real :: Clog,x,Ecrit,nu,vth,jsign
 
-    jsign = sign(1.D0,Epar)
+    jsign = sign(1.,Epar)
     Clog = 14.9D0-0.5*log(dens/1.d20)+log(temp/1.d3)
     Ecrit = ec**3*Dens*Clog/(4*pi*eps0**2*me*c**2) 
     vth = sqrt(2*ec*Temp/me)

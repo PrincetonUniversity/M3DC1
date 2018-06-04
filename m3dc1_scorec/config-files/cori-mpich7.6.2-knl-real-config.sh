@@ -1,11 +1,11 @@
 HOST=cori
-MPIVER=mpich7.6.0
-ARCH=haswell
+MPIVER=mpich7.6.2
+ARCH=knl
 DATE=May2018
 SWTYPE=release
 CMAKETYPE=Release
-PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6
-PETSC_ARCH=cori-hsw-mpich760-cplx
+PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.9.1
+PETSC_ARCH=cori-knl-mpich762-real-mkl-530
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 BUILD_ROOT=/global/project/projectdirs/mp288/$HOST/scorec/$MPIVER/$ARCH
 ZOLTAN_DIR=$BUILD_ROOT
@@ -14,9 +14,9 @@ cmake .. \
   -DCMAKE_C_COMPILER="cc" \
   -DCMAKE_CXX_COMPILER="CC" \
   -DCMAKE_Fortran_COMPILER="ftn" \
-  -DCMAKE_C_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
-  -DCMAKE_Fortran_FLAGS="-fpic -g -O2" \
+  -DCMAKE_C_FLAGS=" -g -O2 -DPETSCMASTER -xMIC-AVX512 -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O2 -DPETSCMASTER -xMIC-AVX512 -I$PETSC_DIR/include" \
+  -DCMAKE_Fortran_FLAGS="-fpic -g -O2 -xMIC-AVX512" \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \
@@ -28,5 +28,5 @@ cmake .. \
   -DHDF5_LIB_DIR="$HDF5_DIR/lib" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DENABLE_TESTING=OFF \
-  -DENABLE_COMPLEX=ON \
+  -DENABLE_COMPLEX=OFF \
   -DCMAKE_BUILD_TYPE=$CMAKETYPE

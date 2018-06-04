@@ -1,4 +1,4 @@
-pro plot_field, name, time, mpeg=mpeg, _EXTRA=extra
+pro write_movie, name, time, mpeg=mpeg, _EXTRA=extra
 
   if(n_elements(mpeg) eq 0) then mpeg = 'movie.mpeg'
 

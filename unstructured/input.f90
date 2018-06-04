@@ -338,6 +338,8 @@ subroutine set_defaults
        "1: Use toroidal geometry", model_grp)
   call add_var_int("iohmic_heating", iohmic_heating, 1, &
        "1: Include Ohmic heating", model_grp)
+  call add_var_int("irad_heating", irad_heating, 1, &
+       "1: Include radiation heat source", model_grp)
 
   call add_var_double("gravr", gravr, 0., "", model_grp)
   call add_var_double("gravz", gravz, 0., "", model_grp)
@@ -719,10 +721,16 @@ subroutine set_defaults
   ! loop voltage
   call add_var_double("vloop", vloop, 0., "", source_grp)
   call add_var_double("tcur", tcur, 0., "", source_grp)
+
+  call add_var_double("tcuri", tcuri, 0., "", source_grp)
+  call add_var_double("tcurf", tcurf, 0., "", source_grp)
+  call add_var_double("tcur_t0", tcur_t0, 0., "", source_grp)
+  call add_var_double("tcur_tw", tcur_tw, 0., "", source_grp)
+
   call add_var_double("control_p", control_p, 0., "", source_grp)
   call add_var_double("control_i", control_i, 0., "", source_grp)
   call add_var_double("control_d", control_d, 0., "", source_grp)
-  call add_var_int("control_type", control_type, 0, "", source_grp)
+  call add_var_int("control_type", control_type, -1, "", source_grp)
 
   
   ! density source
@@ -1473,13 +1481,13 @@ subroutine validate_input
   end if
 
   if(ihypeta.gt.2) then
-  bharhypeta = 0.
+     bharhypeta = 0.
      if(ihypeta .gt. ibh_harmonics) then
-         print *, 'Error:  ihypeta > ibh_harmonics', ihypeta, ibh_harmonics
-         call safestop(1)
+        if(myrank.eq.0) print *, 'Error:  ihypeta > ibh_harmonics', &
+             ihypeta, ibh_harmonics
+        call safestop(1)
      endif
   endif
-  
 
   if(ibeam.ge.1) call neutral_beam_init
   if(ipellet.ne.0) then
@@ -1487,7 +1495,7 @@ subroutine validate_input
      
      if(ipellet_z.ne.0 .and. &
         (ikprad.eq.0 .or. ipellet_z.ne.kprad_z)) then
-        print *, 'Error: ipellet_z != kprad_z'
+        if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
         call safestop(1)
      end if
   end if

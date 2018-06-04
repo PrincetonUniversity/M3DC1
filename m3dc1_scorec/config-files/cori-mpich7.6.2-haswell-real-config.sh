@@ -1,11 +1,11 @@
 HOST=cori
-MPIVER=mpich7.6.0
+MPIVER=mpich7.6.2
 ARCH=haswell
 DATE=May2018
 SWTYPE=release
 CMAKETYPE=Release
-PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6
-PETSC_ARCH=cori-hsw-mpich760-cplx
+PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.9.1
+PETSC_ARCH=cori-hsw-mpich762-real-mkl-530
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 BUILD_ROOT=/global/project/projectdirs/mp288/$HOST/scorec/$MPIVER/$ARCH
 ZOLTAN_DIR=$BUILD_ROOT
@@ -28,5 +28,5 @@ cmake .. \
   -DHDF5_LIB_DIR="$HDF5_DIR/lib" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DENABLE_TESTING=OFF \
-  -DENABLE_COMPLEX=ON \
+  -DENABLE_COMPLEX=OFF \
   -DCMAKE_BUILD_TYPE=$CMAKETYPE

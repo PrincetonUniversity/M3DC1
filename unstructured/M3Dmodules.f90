@@ -282,6 +282,7 @@ module basic
                          ! 2 = CGL form for the pressure tensor (incompressible)
                          ! 3 = CGL form for pressure tensor (full)
   integer :: iohmic_heating  ! 1 = include ohmic heating
+  integer :: irad_heating  ! 1 = include radiation heat source
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -347,7 +348,11 @@ module basic
   real :: xray_sigma     ! spread of xray detector chord (degrees)
 
   ! current controller parameters
-  real :: tcur           ! target toroidal current
+  real :: tcur           ! target toroidal current (constant in time)
+  real :: tcuri          ! initial current for variable target current
+  real :: tcurf          ! final current for variable target current
+  real :: tcur_t0        ! transition time for variable target current
+  real :: tcur_tw        ! transition time width for variable target current
   real :: control_p      ! proportionality constant
   real :: control_i      ! integral control inverse time-scale
   real :: control_d      ! derivative control time-scale
