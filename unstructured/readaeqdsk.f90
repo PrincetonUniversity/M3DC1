@@ -222,19 +222,19 @@ subroutine load_eqdsk_a(filename)
   else if(nfcoil0.eq.12) then 
      write(0,*) 'Assuming EAST'
      write(*,1100) ccbrsp( 1,1)/1000.  ! PF1
-     write(*,1100) ccbrsp( 8,1)/1000.  ! PF2
+     write(*,1100) ccbrsp( 7,1)/1000.  ! PF2
 
      write(*,1100) ccbrsp( 2,1)/1000.  ! PF3
-     write(*,1100) ccbrsp( 9,1)/1000.  ! PF4
+     write(*,1100) ccbrsp( 8,1)/1000.  ! PF4
 
      write(*,1100) ccbrsp( 3,1)/1000.  ! PF5
-     write(*,1100) ccbrsp( 7,1)/1000.  ! PF6
+     write(*,1100) ccbrsp( 9,1)/1000.  ! PF6
 
-     write(*,1100) ccbrsp( 4,1)* 44./284./1000.  ! PF7
-     write(*,1100) ccbrsp( 4,1)*240./284./1000.  ! PF9
+     write(*,1100) ccbrsp( 4,1)*(44./248.)/1000.  ! PF7
+     write(*,1100) ccbrsp( 4,1)*(204./248.)/1000.  ! PF9
 
-     write(*,1100) ccbrsp(10,1)* 44./284./1000.  ! PF8
-     write(*,1100) ccbrsp(10,1)*240./284./1000.  ! PF10
+     write(*,1100) ccbrsp(10,1)*(44./248.)/1000.  ! PF8
+     write(*,1100) ccbrsp(10,1)*(204./248.)/1000.  ! PF10
 
      write(*,1100) ccbrsp( 5,1)/1000.  ! PF11
      write(*,1100) ccbrsp(11,1)/1000.  ! PF12
