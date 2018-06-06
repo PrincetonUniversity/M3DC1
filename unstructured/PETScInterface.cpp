@@ -71,18 +71,20 @@ extern "C" int setPETScMat(int matrixid, Mat * A) {
    below sets the PETSc options for the solver for matrix with id "matrixid"
 */
 extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){
-//  PetscErrorCode ierr;
-//
+  PetscErrorCode ierr;
+
 //  ierr = KSPCreate(MPI_COMM_WORLD, ksp);CHKERRQ(ierr);
 //  ierr = KSPSetOperators(*ksp, *A, *A, SAME_PRECONDITIONER /*DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
 //  ierr = KSPSetTolerances(*ksp, .000001, .000000001,
 //                          PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
 //  ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
-//
-//    if(matrixid==5) {
-//  PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
-//  ierr = KSPSetOptionsPrefix(*ksp,"v5_");CHKERRQ(ierr);
-//  return 0;
+
+    // lgmres set up for hard problem #5 and #17
+    if(matrixid==5 || matrixid==17) {
+       PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
+       ierr = KSPSetOptionsPrefix(*ksp,"hard_");CHKERRQ(ierr);
+    }
+  return 0;
 }
 
 /* 
