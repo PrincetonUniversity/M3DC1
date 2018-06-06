@@ -13612,6 +13612,23 @@ function q_delta(e)
   end if
 end function q_delta
 
+function q_delta1(e,f)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: q_delta1
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+
+  if(surface_int) then
+     q_delta1 = 0.
+  else
+     q_delta1 = intx4(e(:,:,OP_1),f(:,OP_1),net79(:,OP_1),qd79) 
+  end if
+end function q_delta1
+
 vectype function q1ppsi(e,f,g,h)
 
   use basic
