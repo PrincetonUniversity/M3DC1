@@ -58,6 +58,7 @@ PETSC_WITH_EXTERNAL_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)
 
 #SCOREC_DIR = /home/jinchen/LIB/scorec/intel17.0-openmpi1.10.2/Jan2018
 SCOREC_DIR=/home/jinchen/LIB/scorec/intel18.0-mpi2018.1/Feb2018
+SCOREC_UTIL_DIR=/home/jinchen/LIB/scorec/intel18.0-mpi2018.1/bin
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
