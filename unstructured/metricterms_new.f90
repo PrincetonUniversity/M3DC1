@@ -12910,7 +12910,7 @@ real function flux_poynting()
 
   temp = -vloop/twopi * &
        (int3(ri2_79,norm79(:,1),pst79(:,OP_DR)) &
-       +int3(ri2_79,norm79(:,1),pst79(:,OP_DZ)))
+       +int3(ri2_79,norm79(:,2),pst79(:,OP_DZ)))
 
   flux_poynting = real(temp)
   return
@@ -12933,10 +12933,10 @@ real function flux_heat()
      return
   endif
 
-  temp = int4(kap79(:,1),norm79(:,1),pt79(:,OP_DR),ni79(:,OP_1)) &
-       + int4(kap79(:,1),norm79(:,2),pt79(:,OP_DZ),ni79(:,OP_1)) &
-       + int4(kap79(:,1),norm79(:,1),pt79(:,OP_1),ni79(:,OP_DR)) &
-       + int4(kap79(:,1),norm79(:,2),pt79(:,OP_1),ni79(:,OP_DZ))
+  temp = int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_DR),ni79(:,OP_1)) &
+       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_DZ),ni79(:,OP_1)) &
+       + int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_1),ni79(:,OP_DR)) &
+       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_1),ni79(:,OP_DZ))
 
   if(kappar.ne.0.) then
      temp79a = ni79(:,OP_1)* &
