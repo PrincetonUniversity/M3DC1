@@ -955,9 +955,9 @@ subroutine calculate_scalars()
         ! Particle fluxes
         ! ~~~~~~~~~~~~~~~
         if(idens.eq.1) then
-           nfluxd = nfluxd - denm* &
+           nfluxd = nfluxd - twopi*denm* &
                 (int2(norm79(:,1),nt79(:,OP_DR)) &
-                +int2(norm79(:,2),nt79(:,OP_DZ)))
+                +int2(norm79(:,2),nt79(:,OP_DZ)))/tpifac
 
            select case(ivform)
            case(0)
@@ -981,6 +981,8 @@ subroutine calculate_scalars()
                       + int4(ri2_79,nt79(:,OP_1),norm79(:,2),cht79(:,OP_DZ))
               endif
            end select
+
+           nfluxv = nfluxv*twopi/tpifac
         end if
 
         ! xray signal
