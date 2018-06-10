@@ -880,9 +880,9 @@ subroutine calculate_scalars()
            
            Lor_vol = Lor_vol + twopi*int1(Lorentz_pel)/tpifac
 
-           nsource_pel = nsource_pel + twopi*int2(ne079(:,OP_1),Lorentz_pel)/tpifac
+           nsource_pel = nsource_pel + twopi*int2(net79(:,OP_1),Lorentz_pel)/tpifac
 
-           temp_pel = temp_pel + twopi*int2(pe079(:,OP_1)/ne079(:,OP_1),Lorentz_pel)/tpifac
+           temp_pel = temp_pel + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),Lorentz_pel)/tpifac
 
        endif
 
