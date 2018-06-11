@@ -758,7 +758,6 @@ subroutine set_defaults
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
   call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
-  call add_var_double("r_p2", r_p2, 1.e-3, "", source_grp)
   call add_var_double("pellet_volume", pellet_volume, 1.e-9, "", source_grp)
   call add_var_double("pellet_volume_2D", pellet_volume_2D, 1.e-7, "", source_grp)
   call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)

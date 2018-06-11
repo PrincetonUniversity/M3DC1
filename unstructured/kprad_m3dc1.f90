@@ -128,7 +128,7 @@ contains
           p = pt79(:,OP_1)
           den = nt79(:,OP_1)
           temp79a = temp79a + &
-               pellet_deposition(x_79, phi_79, z_79, p, den, 0.)
+               pellet_deposition(x_79, phi_79, z_79, p)
        end if
 
        dofs = intx2(mu79(:,:,OP_1),temp79a)
@@ -375,7 +375,7 @@ contains
 
        if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
-          source = pellet_deposition(x_79, phi_79, z_79, p, ne, 0.)
+          source = pellet_deposition(x_79, phi_79, z_79, p)
        end if
 
        n0_old = sum(nz(:,1:kprad_z),2)

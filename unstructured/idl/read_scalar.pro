@@ -109,12 +109,17 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8V!DL!N!X'
        d = dimensions(/n0, t0=-1, _EXTRA=extra)
    endif else $
- if (strcmp("pellet ablation rate", scalarname, /fold_case) eq 1) or $
-     (strcmp("pelablr", scalarname, /fold_case) eq 1) then begin
-       data = s.pellet_ablrate._data
-       title = 'Pellet Ablation Rate'
-       symbol = '!8V!DL!N!X'
-       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+   if (strcmp("pellet ablation rate", scalarname, /fold_case) eq 1) or $
+      (strcmp("pelablr", scalarname, /fold_case) eq 1) then begin
+      if(version lt 26) then begin
+         data = s.pellet_ablrate._data
+         title = 'Pellet Ablation Rate'
+         symbol = '!8V!DL!N!X'
+         d = dimensions(/n0, t0=-1, _EXTRA=extra)
+      endif else begin
+         print, 'Error, this data is not present in this version of M3D-C1.'
+         data = 0.
+      end
     endif else $
      if (strcmp("pellet var", scalarname, /fold_case) eq 1) or $
      (strcmp("pelvar", scalarname, /fold_case) eq 1) then begin
@@ -125,7 +130,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
    endif else $
      if (strcmp("pellet radius", scalarname, /fold_case) eq 1) or $
      (strcmp("pelrad", scalarname, /fold_case) eq 1) then begin
-       data = s.r_p2._data
+      if (version lt 26) then begin
+         data = s.r_p2._data
+      endif else begin
+         data = s.r_p._data
+      end
        title = 'Pellet Radius'
        symbol = '!8V!DL!N!X'
        d = dimensions(/n0, t0=-1, _EXTRA=extra)

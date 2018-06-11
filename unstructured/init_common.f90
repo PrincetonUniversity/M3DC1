@@ -261,7 +261,7 @@ subroutine den_eq
         n = 0.
         p = 0.
         n079(:,OP_1) = n079(:,OP_1) + &
-             pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
+             pellet_deposition(x_79, phi_79, z_79, p)
      end if
 
      dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
@@ -305,7 +305,7 @@ subroutine den_per
         n = 0.
         p = 0.
         n179(:,OP_1) = n179(:,OP_1) + &
-             pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
+             pellet_deposition(x_79, phi_79, z_79, p)
      end if
 
      dofs = intx2(mu79(:,:,OP_1),n179(:,OP_1))

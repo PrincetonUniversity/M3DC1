@@ -372,11 +372,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "pellet_velz", pellet_velz, ntime, error)
   call output_scalar(scalar_group_id, "pellet_var", pellet_var, ntime, error)
   call output_scalar(scalar_group_id, "r_p",        r_p,        ntime, error)
-  call output_scalar(scalar_group_id, "r_p2",       r_p2,       ntime, error)
   call output_scalar(scalar_group_id, "pellet_rate", pellet_rate, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_rate1",  pellet_rate1, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_rate2", pellet_rate2, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_ablrate", pellet_ablrate, ntime, error)
 
   ! Controllers
   call output_scalar(scalar_group_id, "loop_voltage",        vloop,               ntime, error)

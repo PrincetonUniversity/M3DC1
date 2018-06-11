@@ -99,7 +99,7 @@ subroutine wrrestart
   end if
   write(56) pellet_rate
   write(56) xnull2, znull2
-  write(56) r_p, r_p2
+  write(56) r_p
 
   deallocate(data_buff)
   close(56)
@@ -280,7 +280,7 @@ else
      read(56,END=1199) xnull2, znull2
   end if
   if(version_in.ge.14) then
-     read(56,END=1199) r_p, r_p2
+     read(56,END=1199) r_p
   end if
 
   deallocate (data_buff)
@@ -511,7 +511,7 @@ subroutine rdrestart_2d23d
      read(56,END=1199) xnull2, znull2
   end if
   if(version_in.ge.14) then
-     read(56,END=1199) r_p, r_p2
+     read(56,END=1199) r_p
   end if
 
   deallocate(data_buf)
@@ -719,7 +719,7 @@ subroutine rdrestart_cplx
      read(56,END=1199) xnull2, znull2
   end if
   if(version_in.ge.14) then
-     read(56,END=1199) r_p, r_p2
+     read(56,END=1199) r_p
   end if
 
 
@@ -1204,7 +1204,6 @@ subroutine wrrestart_adios
     call adios_write (adios_handle, "pellet_velz", pellet_velz, adios_err)
     call adios_write (adios_handle, "pellet_var", pellet_var, adios_err)
     call adios_write (adios_handle, "r_p", r_p, adios_err)
-    call adios_write (adios_handle, "r_p2", r_p2, adios_err)
     call adios_write (adios_handle, "version", version, adios_err)
     call adios_write (adios_handle, "pellet_rate", pellet_rate, adios_err)
     call adios_write (adios_handle, "icsubtract", icsubtract, adios_err)
@@ -1362,8 +1361,7 @@ subroutine rdrestart_adios
     end if
     if(version_in.ge.14) then
        call adios_read_local_var (gh, "r_p",      group_rank, start, readsize, xnull, read_bytes)
-       call adios_read_local_var (gh, "r_p2",      group_rank, start, readsize, znull, read_bytes)
-    end if
+   end if
 
     if(version_in.ge.14) then
        call adios_read_local_var (gh, "icsubtract",      group_rank, start, readsize, prev_icsubtract, read_bytes)

@@ -862,8 +862,8 @@ subroutine calculate_scalars()
         nsource = nsource - twopi*int1(sig79)/tpifac
      
         ! Pellet radius and density/temperature at the pellet surface
-        if(ipellet.eq.4) then
-           
+        if(ipellet_abl.gt.0) then
+           ! THIS NEEDS TO BE GENERALIZED FOR IPELLET OTHER THAN 4
 #ifdef USE3D
        
            Lorentz_pel = 1./ &
@@ -997,7 +997,7 @@ subroutine calculate_scalars()
 
   call distribute_scalars
 
-  if(ipellet.eq.4) then
+  if(ipellet_abl.gt.0) then
 
      ! Pellet ablation rates for Parks models
      ! Normalisation of the density/temperature by the Lor volume (to check)
@@ -1009,10 +1009,6 @@ subroutine calculate_scalars()
      te_norm = (p0_norm / n0_norm) / 1.6022e-12  
 
      call calculate_parks_model
-  else
-     pellet_rate1 = 0.
-     pellet_rate2 = 0.
-     pellet_ablrate = 0.
   endif
 
   ekin = ekinp + ekint + ekin3
@@ -1062,18 +1058,19 @@ subroutine calculate_scalars()
      print *, "  Recombination radiation (potential) = ", recprad
      if(ipellet_abl.gt.0) then
         print *, "  nsource = ", nsource
-        print *, "  pellet_rate = ", pellet_ablrate
-        print *, "  pellet particles injected = ", 6.022e23*pellet_rate2*dt*t0_norm
-        print *, "  pellet radius (in m) = ", r_p2
+        print *, "  pellet particles injected = ",pellet_rate*(1e6*n0_norm)
+        print *, "  pellet radius (in m) = ", r_p
         print *, "  pellet volume (in m3) = ", pellet_volume
         print *, "  pellet volume 2D case (in m3) = ", pellet_volume_2D
         print *, "  Electron temperature around the pellet (in eV) = ", te_norm*temp_pel
         print *, "  Electron density around the pellet (in ne14) = ", nsource_pel
-        print *, "  Ablation coefficient C_abl = ", C_abl
-        print *, "  Ablation rate (in moles/s) = ", C_abl*Xn_abl
-        print *, "  rpdot (in cm/s) = ", C_abl*Xp_abl
-        print *, "Lor_vol = ", Lor_vol
-        print *, "X position of granule: ", pellet_x
+        if(ipellet_abl.eq.2) then
+           print *, "  Ablation coefficient C_abl = ", C_abl
+           print *, "  Ablation rate (in moles/s) = ", C_abl*Xn_abl
+           print *, "  rpdot (in cm/s) = ", C_abl*Xp_abl
+        endif
+        print *, "  Lor_vol = ", Lor_vol
+        print *, "  X position of granule: ", pellet_x
      endif
   endif
 

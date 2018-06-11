@@ -38,7 +38,6 @@
        <var name="xmag" type="double"/>
        <var name="zmag" type="double"/>
        <var name="r_p" type="double"/>
-       <var name="r_p2" type="double"/>
 
        <var name="pellet_rate" type="double"/>
        <var name="pellet_x" type="double"/>
