@@ -35,9 +35,9 @@ contains
     if(pellet_var_tor.le.0) pellet_var_tor = pellet_var
 
     ! convert to m/s
-    pellet_velx = pellet_velx/v0_norm * l0_norm
-    pellet_velphi = pellet_velphi/v0_norm * l0_norm
-    pellet_velz = pellet_velz/v0_norm * l0_norm
+    pellet_velx = pellet_velx*v0_norm
+    pellet_velphi = pellet_velphi*v0_norm
+    pellet_velz = pellet_velz*v0_norm
 
   end subroutine pellet_init
   
