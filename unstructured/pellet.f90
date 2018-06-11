@@ -167,8 +167,8 @@ contains
 
     end select
 
-    pellet_volume = 16.*atan(1.)*(pellet_var)**2*pellet_var_tor
-    pellet_volume_2D = 16.*atan(1.)*(pellet_var)**2*8.*atan(1.)*pellet_x
+    pellet_volume = 4.*pi*(pellet_var)**2*pellet_var_tor
+    pellet_volume_2D = (4.*pi*pellet_var**2)*(2.*pi*pellet_x)
 
   end subroutine calculate_parks_model
 
