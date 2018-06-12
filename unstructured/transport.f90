@@ -28,6 +28,7 @@ function sigma_func(izone)
   integer :: iregion, j
   integer :: nvals
   real :: val, valp, valpp, pso
+  real :: rate
   real, allocatable :: xvals(:), yvals(:)
 
   ! Don't allow particle source in wall or vacuum region
@@ -40,13 +41,18 @@ function sigma_func(izone)
 
   ! Pellet injection model
 
-  if(ipellet.gt.0 .and. ipellet_z.eq.0) then
+  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.) then
 
      if(ipellet_abl.gt.0. .and. pellet_var.lt.1.e-8) then
         pellet_var = 0.
         temp79a = 0.
      else
-        temp79a = pellet_deposition(x_79, phi_79, z_79, real(pt79(:,OP_1)))
+        if(pellet_mix.eq.0.) then
+           rate = pellet_rate
+        else
+           rate = pellet_rate_D2
+        end if
+        temp79a = rate*pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)))
      endif
      
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)

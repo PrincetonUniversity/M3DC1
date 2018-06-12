@@ -39,7 +39,7 @@ contains
 
   end subroutine pellet_init
 
-  vectype elemental function pellet_deposition(r, phi, z, pres)
+  vectype elemental function pellet_distribution(r, phi, z, pres)
     use math
     use basic
 !    use diagnostics
@@ -52,7 +52,7 @@ contains
     case(1)
 
 #ifdef USE3D
-       pellet_deposition = pellet_rate/ &
+       pellet_distribution = 1./ &
             (sqrt(2.*pi)**3*pellet_var**2*pellet_var_tor) &
             *exp(-((r-pellet_x)**2 + (z-pellet_z)**2) &
                   /(2.*pellet_var**2) &
@@ -60,48 +60,48 @@ contains
                   /(2.*pellet_var_tor**2))
 
 #else
-       pellet_deposition = pellet_rate/(2.*pi*pellet_var**2) &
+       pellet_distribution = 1./(2.*pi*pellet_var**2) &
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
             /(2.*pellet_var**2))
-       if(itor.eq.1) pellet_deposition = pellet_deposition / r
+       if(itor.eq.1) pellet_distribution = pellet_distribution / r
 #endif
 
     !......distributed source added 11/23/2011   (scj)
     case(2)
-       pellet_deposition = pellet_rate*den0*(max(pedge,real(pres))/p0)**expn
+       pellet_distribution = den0*(max(pedge,real(pres))/p0)**expn
 
     ! gaussian pellet source
     case(3)
 #ifdef USE3D
-       pellet_deposition = pres*pellet_rate/(sqrt(2.*pi)*pellet_var)**3 &
+       pellet_distribution = pres/(sqrt(2.*pi)*pellet_var)**3 &
             *exp(-(r**2 + pellet_x**2 -2.*r*pellet_x*cos(phi-pellet_phi) &
             + (z - pellet_z)**2) / (2.*pellet_var**2))
 #else
-       pellet_deposition = pres*pellet_rate/(2.*pi*pellet_var**2) &
+       pellet_distribution = pres/(2.*pi*pellet_var**2) &
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
             /(2.*pellet_var**2))
-       if(itor.eq.1) pellet_deposition = pellet_deposition / r
+       if(itor.eq.1) pellet_distribution = pellet_distribution / r
 #endif
 
     case(4)
 
 #ifdef USE3D
-       pellet_deposition = pellet_rate/ &
+       pellet_distribution = 1./ &
             (sqrt(2.*pi)**3*(pellet_var)**2*pellet_var_tor) &
             *exp(-((r-pellet_x)**2 + (z-pellet_z)**2) &
             /(2.*(pellet_var)**2) &
             -2.*r*pellet_x*(1.-cos(phi-pellet_phi)) &
             /(2.*pellet_var_tor**2))
 #else
-       pellet_deposition = pellet_rate/sqrt(2.*pi*(pellet_var)**2) &
+       pellet_distribution = 1./sqrt(2.*pi*(pellet_var)**2) &
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
             /(2.*(pellet_var)**2))
 #endif
 
     case default
-       pellet_deposition = 0
+       pellet_distribution = 0
     end select
-  end function pellet_deposition
+  end function pellet_distribution
 
   subroutine pellet_advance
     use basic
