@@ -761,6 +761,9 @@ subroutine set_defaults
   call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)
   call add_var_double("pellet_mix", pellet_mix, 0.,&
        "Molar fraction of deuterium in pellet", source_grp)
+  call add_var_double("temin_abl", temin_abl, 0., &
+       "Min. Temp. at which ablation turns on", source_grp)
+
 
   ! beam source
   call add_var_int("ibeam", ibeam, 0, &

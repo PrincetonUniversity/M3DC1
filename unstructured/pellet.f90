@@ -22,6 +22,7 @@ module pellet
   real :: r_p
   real :: cloud_pel
   real :: pellet_mix      ! (moles D2)/(moles D2 + moles impurity)
+  real :: temin_abl
   real :: pellet_rate_D2  ! rate of deuterium deposition from mixed pellets
 
   real :: nsource_pel, temp_pel, Lor_vol
@@ -132,6 +133,7 @@ contains
     real :: subl, T_S, Mach, f_l
     real :: C_abl, Xp_abl, Xn_abl, a_Te, b_Te, c_Te, d_Te, B_Li
     real :: G, lambda, rho0
+    real :: temin_eV
     real, parameter :: n_D2 = 0.2    ! density of solid D2
     real, parameter :: M_D2 = 4.0282 ! molar weight of D2
     real, parameter :: N_A  = 6.022140857e23  ! Avogadro's number
@@ -140,15 +142,19 @@ contains
 
     pellet_rate_D2 = 0. ! no mixture by default
 
-    if(r_p.lt.1e-8) then
-       ! Nothing left to ablate
-       if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
+    temin_eV = temin_abl*p0_norm/(1.6022e-12*n0_norm)
+    if(r_p.lt.1e-8 .or. temp_pel.lt.temin_eV) then
+       if(r_p.lt.1e-8) then
+          if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
+          r_p = 0.
+          pellet_volume = 0.
+          pellet_volume_2D = 0.
+       else
+          if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation"
+       end if
        pellet_rate = 0.
        pellet_rate_D2 = 0.
-       r_p = 0.
        rpdot = 0.
-       pellet_volume = 0.
-       pellet_volume_2D = 0.
        return
     end if
 
