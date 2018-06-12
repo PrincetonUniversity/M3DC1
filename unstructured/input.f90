@@ -759,7 +759,8 @@ subroutine set_defaults
        "1 = include an ablation model", source_grp)
   call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
   call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)
-
+  call add_var_double("pellet_mix", pellet_mix, 0.,&
+       "Molar fraction of deuterium in pellet", source_grp)
 
   ! beam source
   call add_var_int("ibeam", ibeam, 0, &

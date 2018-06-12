@@ -42,24 +42,13 @@ function sigma_func(izone)
 
   if(ipellet.gt.0 .and. ipellet_z.eq.0) then
 
-     if(ipellet_abl.gt.0.) then
-
-        if(pellet_var.lt.1.e-8) then
-           pellet_var = 0.
-           temp79a = 0.
-        else
-           select case(ipellet_abl)
-           case(1)
-              temp79a = pellet_deposition(x_79, phi_79, z_79, real(pt79(:,OP_1)))
-           case(2)
-              temp79a = pellet_deposition(x_79, phi_79, z_79, real(pt79(:,OP_1)))
-           end select
-        endif
-
-      else 
-          temp79a = pellet_deposition(x_79, phi_79, z_79, real(pt79(:,OP_1)))
-      endif
-
+     if(ipellet_abl.gt.0. .and. pellet_var.lt.1.e-8) then
+        pellet_var = 0.
+        temp79a = 0.
+     else
+        temp79a = pellet_deposition(x_79, phi_79, z_79, real(pt79(:,OP_1)))
+     endif
+     
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 
   endif

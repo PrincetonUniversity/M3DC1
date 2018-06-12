@@ -863,26 +863,33 @@ subroutine calculate_scalars()
      
         ! Pellet radius and density/temperature at the pellet surface
         if(ipellet_abl.gt.0) then
-           ! THIS NEEDS TO BE GENERALIZED FOR IPELLET OTHER THAN 4
+           if(r_p.ge.1e-8) then
+              ! THIS NEEDS TO BE GENERALIZED FOR IPELLET OTHER THAN 4
 #ifdef USE3D
        
-           Lorentz_pel = 1./ &
-            (sqrt(2.*pi)**3*(pellet_var)**2*pellet_var_tor) &
-            *exp(-((x_79-pellet_x)**2 + (z_79-pellet_z)**2) &
-            /(2.*(pellet_var)**2) &
-            -2.*x_79*pellet_x*(1.-cos(phi_79-pellet_phi)) &
-            /(2.*pellet_var_tor**2))
+              Lorentz_pel = 1./ &
+                   (sqrt(2.*pi)**3*(pellet_var)**2*pellet_var_tor) &
+                   *exp(-((x_79-pellet_x)**2 + (z_79-pellet_z)**2) &
+                   /(2.*(pellet_var)**2) &
+                   -2.*x_79*pellet_x*(1.-cos(phi_79-pellet_phi)) &
+                   /(2.*pellet_var_tor**2))
 #else
-           Lorentz_pel = 1./sqrt(2.*pi*(1.e-3)**2) &
-            *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2) &
-            /(2.*(1.e-3)**2))
+              Lorentz_pel = 1./sqrt(2.*pi*(1.e-3)**2) &
+                   *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2) &
+                   /(2.*(1.e-3)**2))
 #endif
            
-           Lor_vol = Lor_vol + twopi*int1(Lorentz_pel)/tpifac
+              Lor_vol = Lor_vol + twopi*int1(Lorentz_pel)/tpifac
 
-           nsource_pel = nsource_pel + twopi*int2(net79(:,OP_1),Lorentz_pel)/tpifac
+              nsource_pel = nsource_pel + twopi*int2(net79(:,OP_1),Lorentz_pel)/tpifac
 
-           temp_pel = temp_pel + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),Lorentz_pel)/tpifac
+              temp_pel = temp_pel + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),Lorentz_pel)/tpifac
+
+           else
+              Lor_vol = 0.
+              nsource_pel = 0.
+              temp_pel = 0.
+           end if
 
        endif
 
@@ -998,17 +1005,13 @@ subroutine calculate_scalars()
   call distribute_scalars
 
   if(ipellet_abl.gt.0) then
-
-     ! Pellet ablation rates for Parks models
+     ! Pellet ablation rates
      ! Normalisation of the density/temperature by the Lor volume (to check)
-
-     nsource_pel = nsource_pel/Lor_vol
-
-     temp_pel = temp_pel/Lor_vol
-
-     te_norm = (p0_norm / n0_norm) / 1.6022e-12  
-
-     call calculate_parks_model
+     if(r_p.ge.1e-8) then
+        nsource_pel = nsource_pel/Lor_vol
+        temp_pel = temp_pel*(p0_norm / n0_norm)/(1.6022e-12*Lor_vol) ! in eV
+     end if
+     call calculate_ablation
   endif
 
   ekin = ekinp + ekint + ekin3
@@ -1062,13 +1065,9 @@ subroutine calculate_scalars()
         print *, "  pellet radius (in m) = ", r_p
         print *, "  pellet volume (in m3) = ", pellet_volume
         print *, "  pellet volume 2D case (in m3) = ", pellet_volume_2D
-        print *, "  Electron temperature around the pellet (in eV) = ", te_norm*temp_pel
+        print *, "  Electron temperature around the pellet (in eV) = ", temp_pel
         print *, "  Electron density around the pellet (in ne14) = ", nsource_pel
-        if(ipellet_abl.eq.2) then
-           print *, "  Ablation coefficient C_abl = ", C_abl
-           print *, "  Ablation rate (in moles/s) = ", C_abl*Xn_abl
-           print *, "  rpdot (in cm/s) = ", C_abl*Xp_abl
-        endif
+        print *, "  rpdot (in cm/s) = ", rpdot*1e2
         print *, "  Lor_vol = ", Lor_vol
         print *, "  X position of granule: ", pellet_x
      endif
