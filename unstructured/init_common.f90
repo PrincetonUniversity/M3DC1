@@ -266,7 +266,7 @@ subroutine den_eq
         else
            rate = pellet_rate_D2
         end if
-        n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p)
+        n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
      end if
 
      dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
@@ -296,7 +296,7 @@ subroutine den_per
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
 
-  if(ipellet.ge.0 .or. (ipellet_z.ne.0 .and. pellet_mix.eq.0.) return
+  if(ipellet.ge.0 .or. (ipellet_z.ne.0 .and. pellet_mix.eq.0.)) return
 
   call create_field(den_vec)
   den_vec = 0.
@@ -315,7 +315,7 @@ subroutine den_per
         else
            rate = pellet_rate_D2
         end if
-        n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p)
+        n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
      end if
 
      dofs = intx2(mu79(:,:,OP_1),n179(:,OP_1))

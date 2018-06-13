@@ -41,7 +41,7 @@ function sigma_func(izone)
 
   ! Pellet injection model
 
-  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.) then
+  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.)) then
 
      if(ipellet_abl.gt.0. .and. pellet_var.lt.1.e-8) then
         pellet_var = 0.
@@ -52,7 +52,7 @@ function sigma_func(izone)
         else
            rate = pellet_rate_D2
         end if
-        temp79a = rate*pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)))
+        temp79a = rate*pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
      endif
      
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
@@ -1088,6 +1088,8 @@ subroutine define_transport_coefficients()
   use newvar_mod
   use sparse
   use neutral_beam
+  use pellet
+  use diagnostics
 
   implicit none
 
@@ -1170,6 +1172,11 @@ subroutine define_transport_coefficients()
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
+  if(ipellet.ne.0) then
+     ! make sure normalization for pellet_distribution defined
+     call calculate_Lor_vol
+  end if
+  
   ! Calculate RHS
   numelms = local_elements()
 !$OMP PARALLEL DO &

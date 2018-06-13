@@ -39,12 +39,13 @@ contains
 
   end subroutine pellet_init
 
-  vectype elemental function pellet_distribution(r, phi, z, pres)
+  vectype elemental function pellet_distribution(r, phi, z, pres, inorm)
     use math
     use basic
 !    use diagnostics
     implicit none
     real, intent(in) :: r, phi, z, pres
+    integer, intent(in) :: inorm
 
     select case(abs(ipellet))
 
@@ -101,6 +102,10 @@ contains
     case default
        pellet_distribution = 0
     end select
+
+    ! normalize distribution to Lor_vol
+    if(inorm.ne.0) pellet_distribution = pellet_distribution/Lor_vol
+
   end function pellet_distribution
 
   subroutine pellet_advance
@@ -229,7 +234,7 @@ contains
 
        q_s = 0.5*nsource_pel*temp_pel*sqrt(8.*temp_pel/(pi*1.e3*m_p*me_mp))
        pellet_rate = 4.*pi*(l0_norm*pellet_var)**2*q_s*shield_p*f_b*0.906!/(1.e-3*rho_z*(subl+10./3.*T_s))
-       pellet_rate = dt*t0_norm*pellet_rate/n0_norm
+       pellet_rate = t0_norm*pellet_rate/n0_norm
 
        rpdot = shield_p*f_b*f_l*1.e-6*1.e-5*sqrt(1.e-5)*q_s*0.906!/&     !(rho_z*(subl+T_S*(2.5+0.833*Mach**2)))
 
@@ -262,7 +267,7 @@ contains
        C_abl = a_Te*log(1.+b_Te*(r_p*1.e2)**(2.*inv3)*(nsource_pel/0.45)**(2.*inv3))/&
             log(c_Te+d_Te*(r_p*1.e2)**(2.*inv3)*(nsource_pel/0.45)**(2.*inv3))
 
-       pellet_rate = N_A*C_abl*Xn_abl*dt*t0_norm/(1.e6*n0_norm)
+       pellet_rate = N_A*C_abl*Xn_abl*t0_norm/(1.e6*n0_norm)
 
        rpdot = C_abl*Xp_abl*1.e-2
 
@@ -275,11 +280,11 @@ contains
 
        ! impurity number
        Xn_abl = (1.-pellet_mix)*G/(M_z*(1.-pellet_mix) + pellet_mix*M_D2) ! mole/s
-       pellet_rate = N_A*Xn_abl*dt*t0_norm/(1.e6*n0_norm) ! particles injected (e14)
+       pellet_rate = N_A*Xn_abl*t0_norm/(1.e6*n0_norm) ! particles injected (e14)
 
        ! D2 number
        Xn_abl = pellet_mix*G/(M_z*(1.-pellet_mix) + pellet_mix*M_D2) ! mole/s
-       pellet_rate_D2 = N_A*Xn_abl*dt*t0_norm/(1.e6*n0_norm) ! particles injected (e14)
+       pellet_rate_D2 = N_A*Xn_abl*t0_norm/(1.e6*n0_norm) ! particles injected (e14)
 
        ! pellet surface recession speed
        rho0 = ((1.-pellet_mix)*M_z + pellet_mix*M_D2)/((1.-pellet_mix)*(M_z/rho_z) + pellet_mix*(M_D2/n_D2)) ! g/cm^3
@@ -291,14 +296,14 @@ contains
     if(dr_p.gt.r_p) then
        ! we've ablated the whole pellet
        if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p
-       pellet_rate    = (N_A/(1.e6*n0_norm))*(4.*inv3*pi*r_p**3)*rho0*(1.-pellet_mix)/(M_z*(1.-pellet_mix)+M_D2*pellet_mix)
-       pellet_rate_D2 = (N_A/(1.e6*n0_norm))*(4.*inv3*pi*r_p**3)*rho0*pellet_mix/(M_z*(1.-pellet_mix)+M_D2*pellet_mix)
+       pellet_rate    = (N_A/(1.e6*n0_norm*dt))*(4.*inv3*pi*r_p**3)*rho0*(1.-pellet_mix)/(M_z*(1.-pellet_mix)+M_D2*pellet_mix)
+       pellet_rate_D2 = (N_A/(1.e6*n0_norm*dt))*(4.*inv3*pi*r_p**3)*rho0*pellet_mix/(M_z*(1.-pellet_mix)+M_D2*pellet_mix)
        r_p = 0.0
     else
        r_p = r_p-dr_p
     end if
-    pellet_volume    = 4.*pi*(pellet_var)**2*pellet_var_tor
-    pellet_volume_2D = (4.*pi*pellet_var**2)*(2.*pi*pellet_x)
+    pellet_volume    =  4.*pi*(cloud_pel*r_p)**2*pellet_var_tor
+    pellet_volume_2D = (4.*pi*(cloud_pel*r_p)**2)*(2.*pi*pellet_x)
   end subroutine calculate_ablation
 
 end module pellet
