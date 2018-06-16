@@ -401,6 +401,7 @@ subroutine init
   use basicq
   use runaway_mod
   use kprad_m3dc1
+  use resistive_wall
   
   implicit none
 
@@ -435,6 +436,9 @@ subroutine init
 
   call kprad_init(ierr)
   if(ierr.ne.0) call safestop(601)
+
+  call init_resistive_wall(ierr)
+  if(ierr.ne.0) call safestop(602)
 end subroutine init
 
 
@@ -485,6 +489,7 @@ subroutine safestop(iarg)
   use wall
   use kprad_m3dc1
   use particles
+  use resistive_wall
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -511,6 +516,7 @@ subroutine safestop(iarg)
   call destroy_auxiliary_fields
   call runaway_deallocate
   call kprad_destroy
+  call destroy_resistive_wall
 
   call destroy_wall_dist
 
