@@ -31,12 +31,15 @@ module pellet
 contains
 
   subroutine pellet_init()
-     use basic
-!     use diagnostics
-     implicit none
-
+    use basic
+!    use diagnostics
+    implicit none
+    
+    ! if we're ablating, pellet_var set by pellet & cloud size
+    if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
+    
     if(pellet_var_tor.le.0) pellet_var_tor = pellet_var
-
+    
   end subroutine pellet_init
 
   vectype elemental function pellet_distribution(r, phi, z, pres, inorm)
@@ -273,7 +276,7 @@ contains
 
     case(3)
        ! Parks composite neon-deuterium model from 6/20/2017 (implemented 6/11/18 BCL)
-       if(z_abl.ne.10 .and. myrank.eq.0) print *, "Warning: ipellet_abl=2 only valid for neon"
+       if(z_abl.ne.10 .and. myrank.eq.0) print *, "Warning: ipellet_abl=3 only valid for neon"
 
        lambda = 27.0837 + tan(1.48709*pellet_mix)
        G = lambda*(temp_pel*5e-4)**(5.*inv3)*(5.*r_p*1e2)**(4.*inv3)*nsource_pel**(inv3)  ! g/s
