@@ -1,5 +1,5 @@
 dirs = fw1_adapt fw1_response fw1_stability \
- rw1_adapt rw1_response rw1_stability
+ rw1_adapt rw1_response rw1_stability rw2_adapt
 
 .PHONY : $(dirs) clean all
 
