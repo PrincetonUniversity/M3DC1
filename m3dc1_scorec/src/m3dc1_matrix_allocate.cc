@@ -51,8 +51,8 @@ void allocateMatrix(Mat A, m3dc1_mesh * msh, m3dc1_field * fld)
     {
       int blk_row = (dof_ids[is_par][ii] / dof_per_blk) - frst_blk_row;
       assert(blk_row < num_lcl_blk && blk_row >= 0);
-      dnnz[blk_row] = blk_per_nd * (!blk * dof_per_blk + 1) * ((adj_own + 1) + (is_lcl * (adj_gbl - adj_own))); // if the matrix is local we only use dnnz but need the sum
-      onnz[blk_row] = blk_per_nd * (!blk * dof_per_blk + 1) * (adj_gbl - adj_own);
+      dnnz[blk_row] = blk_per_nd * (blk ? 1 : dof_per_blk) * ((adj_own + 1) + (is_lcl * (adj_gbl - adj_own))); // if the matrix is local we only use dnnz but need the sum
+      onnz[blk_row] = blk_per_nd * (blk ? 1 : dof_per_blk) * (adj_gbl - adj_own);
       dnnz_max = dnnz_max > dnnz[blk_row] ? dnnz_max : dnnz[blk_row];
       onnz_max = onnz_max > onnz[blk_row] ? onnz_max : onnz[blk_row];
     }

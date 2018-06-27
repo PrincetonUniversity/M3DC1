@@ -58,7 +58,7 @@ void get_block_ids(m3dc1_matrix * mat, int * ent_dim, int * eid, int * blk_ids)
     get_ent_globaldofid(fld,adj_vrts[ent_nd],&gbl_dof_ids[0],&dof_cnt);
     for(int nd_blk = 0; nd_blk < blks_per_nd; ++nd_blk)
     {
-      int & dof_id = dof_ids[is_par][nd_blk*dofs_per_nd];
+      int & dof_id = dof_ids[is_par][nd_blk*dofs_per_blk];
       int blk_id = dof_id / dofs_per_blk;
       assert(dof_id % dofs_per_blk == 0);
       blk_ids[ent_nd * blks_per_nd + nd_blk] = blk_id;
@@ -275,8 +275,9 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, m3dc1_mesh * msh, m3dc1_field * f, MPI_
   MatSetSizes(A,num_lcl_dof,num_lcl_dof,PETSC_DETERMINE,PETSC_DETERMINE);
   MatSetBlockSize(A,blk_sz);
   // call preallocate
-  allocateMatrix(A,msh,fld);
-  MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
+  //allocateMatrix(A,msh,fld);
+  MatSetUp(A);
+  MatSetOption(A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE);
   if(!(blk_sz-1)) // only supported for AIJ not BAIJ
     MatSetOption(A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE);
   MatCreateVecs(A,&x,&b);
@@ -363,8 +364,11 @@ void m3dc1_matrix::multiply(m3dc1_field * in, m3dc1_field * out)
   PetscObjectGetComm((PetscObject)A,&cm);
   field2Vec(cm,in,x,get_scalar_type());
   MatMult(A, x, b);
-  //write_vec(x,"mult_x.m");
-  //write_vec(b,"mult_y.m");
+  VecScatter ctx;
+  Vec lb;
+  VecScatterCreateToAll(b,&ctx,&lb);
+  VecScatterBegin(ctx,b,lb,INSERT_VALUES,SCATTER_FORWARD);
+  VecScatterEnd(ctx,b,lb,INSERT_VALUES,SCATTER_FORWARD);
   vec2Field(cm,out,b,get_scalar_type());
 }
 void m3dc1_matrix::zero()
@@ -388,9 +392,12 @@ void m3dc1_matrix::solve(m3dc1_field * lhs)
   KSPGetIterationNumber(ksp, &itr);
   if(!PCU_Comm_Self())
     std::cout << "\t-- # solver iterations " << itr << std::endl;
-  //write_vec(b,"b.m");
-  //write_vec(x,"x.m");
-  vec2Field(cm,lhs,x,get_scalar_type());
+  VecScatter ctx;
+  Vec lx;
+  VecScatterCreateToAll(x,&ctx,&lx);
+  VecScatterBegin(ctx,x,lx,INSERT_VALUES,SCATTER_FORWARD);
+  VecScatterEnd(ctx,x,lx,INSERT_VALUES,SCATTER_FORWARD);
+  vec2Field(cm,lhs,lx,get_scalar_type());
 }
 int m3dc1_matrix::solver_iteration_count()
 {

@@ -108,14 +108,15 @@ void m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac);
 
 /** field manangement */
 void m3dc1_field_getnewid (FieldID* /*out*/ fid);
-// ordering should be reused for field and matrix??? -Fan
-// is num_dofs input or output?
 // *value_type is either M3DC1_REAL or M3DC1_COMPLEX
-void m3dc1_field_create (FieldID* /*in*/ fid, const char* /* in */ field_name, int* num_values, int* value_type, int* num_dofs_per_value);
+// agg_scp == 0, local aggregation,
+// agg_scp == 1, per-plane aggregation,
+// agg_scp == 2, global aggregation
+void m3dc1_field_create (FieldID* /*in*/ fid, const char* /* in */ field_name, int* num_values, int* value_type, int* num_dofs_per_value, int * agg_scp);
 void m3dc1_field_delete (FieldID* /*in*/ fid);
 
 const char * m3dc1_field_getname(FieldID* fid);
-void m3dc1_field_getinfo(FieldID* /*in*/ fid, int* num_values, int* value_type, int* total_num_dof);
+void m3dc1_field_getinfo(FieldID* /*in*/ fid, int* num_values, int* value_type, int* total_num_dof, int * agg_scp);
 
 void m3dc1_field_exist(FieldID* fid, int * exist);//checkppplveccreated_
 void m3dc1_field_sync (FieldID* /* in */ fid); // updatesharedppplvecvals_;

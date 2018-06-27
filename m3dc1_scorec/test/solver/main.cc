@@ -186,15 +186,16 @@ int main(int argc, char * argv[])
   int num_vertex = m3dc1_mesh::instance()->get_mesh()->count(0);
   //int num_own_vertex = m3dc1_mesh::instance()->num_own_ent[0];
 
-  int value_type[] = {scalar_type,scalar_type};
+  int value_type[] = {scalar_type, scalar_type};
 
   num_dofs = 6;
   if (num_plane>1) num_dofs = 12;
   dofs_per_nd = num_values * num_dofs;
 
-  m3dc1_field_create (&b_field, "b_field", &num_values, value_type, &num_dofs);
-  m3dc1_field_create (&c_field, "c_field", &num_values, value_type, &num_dofs);
-  m3dc1_field_create (&x_field, "x_field", &num_values, value_type, &num_dofs);
+  int agg_scp = m3dc1_field::GLOBAL_AGGREGATION;
+  m3dc1_field_create (&b_field, "b_field", &num_values, value_type, &num_dofs, &agg_scp);
+  m3dc1_field_create (&c_field, "c_field", &num_values, value_type, &num_dofs, &agg_scp);
+  m3dc1_field_create (&x_field, "x_field", &num_values, value_type, &num_dofs, &agg_scp);
   m3dc1_field_printcompnorm(&b_field, "b_field init info");
 
   if(!PCU_Comm_Self()) cout<<"* set b field ..."<<endl;
@@ -232,8 +233,6 @@ int main(int argc, char * argv[])
   m3dc1_matrix_create(&matrix_solve, &matrix_solve_type, value_type, &b_field);
 
   test_matrix(matrix_mult, matrix_solve);
-
-//  m3dc1_matrix_print(&matrix_mult);
 //  pumi_sync();
 
   t6 = MPI_Wtime();
@@ -301,6 +300,7 @@ void test_matrix(int mat_mlt, int mat_slv)
   }
   m3dc1_matrix_assemble(&mat_mlt);
   m3dc1_matrix_assemble(&mat_slv);
+
   if(!PCU_Comm_Self())
     std::cout << "** solution matrix" << std::endl;
   t3 = MPI_Wtime();

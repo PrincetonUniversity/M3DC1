@@ -18,7 +18,19 @@
 #include "apfMDS.h"
 #include "m3dc1_numbering.h"
 
-m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
+MPI_Comm getAggregationComm(int agg_scp)
+{
+  return agg_scp == m3dc1_field::LOCAL_AGGREGATION ? MPI_COMM_SELF :
+    agg_scp == m3dc1_field::PLANE_AGGREGATION ? m3dc1_model::instance()->getPlaneComm() :
+    agg_scp == m3dc1_field::GLOBAL_AGGREGATION ? M3DC1_COMM_WORLD : MPI_COMM_NULL;
+}
+
+m3dc1_field::m3dc1_field(int ID,
+                         const char* str,
+                         int nv,
+                         int t,
+                         int ndof,
+                         aggregation_scope scp)
   : id(ID)
   , name(str)
   , fld(NULL)
@@ -26,13 +38,15 @@ m3dc1_field::m3dc1_field (int ID, const char* str, int nv, int t, int ndof)
   , value_type(t)
   , num_dof(ndof)
   , num(NULL)
+  , agg_scp(scp)
 {
   int n_components = nv * ndof * (t+1);
   fld = apf::createPackedField(m3dc1_mesh::instance()->get_mesh(), str, n_components);
   num = apf::createNumbering(fld);
   apf::freeze(fld);
   apf::zeroField(fld);
-  aggregateNumbering(MPI_COMM_SELF,num,nv,ndof);
+  MPI_Comm cm = getAggregationComm(agg_scp);
+  aggregateNumbering(cm,num,nv,ndof);
   // freeze the numbering
   /*
   char * field_name = new char[32];
@@ -116,14 +130,14 @@ void load_field(apf::Mesh2 * m, int fid, const char* filename)
 
   apf::MeshEntity* e;
 
-  int gid, lid, did, ndof, nv, nd, vt, start_index;
+  int gid, lid, did, ndof, nv, nd, vt, start_index, agg_scp;
   double dof;
   char field_name[32];
-  fscanf(fp, "%s %d %d %d %d\n", field_name, &nv, &vt, &nd, &start_index);
-  std::cout<< field_name <<" "<<nv<<" "<<vt<<" "<<nd<<" "<<start_index<<"\n";
+  fscanf(fp, "%s %d %d %d %d %d\n", field_name, &nv, &vt, &nd, &start_index, &agg_scp);
+  std::cout<< field_name <<" "<<nv<<" "<<vt<<" "<<nd<<" "<<start_index<<" " << agg_scp << "\n";
 
   assert(!m3dc1_mesh::instance()->field_exists(fid));
-  m3dc1_field_create(&fid, field_name, &nv, &vt, &nd);
+  m3dc1_field_create(&fid, field_name, &nv, &vt, &nd, &agg_scp);
   m3dc1_field * mf = m3dc1_mesh::instance()->get_field(fid);
   assert(mf->get_num_value()==nv && mf->get_dof_per_value()==nd && mf->get_value_type()==vt);
 
@@ -157,12 +171,12 @@ void write_field(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start
 {
   std::string in(filename);
   std::stringstream s;
-  s << in<< "-"<<PCU_Comm_Self();
+  s << in << "-" << PCU_Comm_Self();
   std::string partFile = s.str();
-  FILE * fp =fopen(partFile.c_str(), "w");
+  FILE * fp = fopen(partFile.c_str(), "w");
   assert(fp);
 
-  apf::MeshEntity* e;
+  apf::MeshEntity * e;
 
   int num_dof=mf->get_num_value()*mf->get_dof_per_value();
 #ifdef PETSC_USE_COMPLEX
@@ -170,8 +184,8 @@ void write_field(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start
 #endif
   double* dof_data = new double[num_dof];
 
-  fprintf(fp, "%s %d %d %d %d\n", mf->get_name().c_str(), mf->get_num_value(),
-          mf->get_value_type(), mf->get_dof_per_value(), start_index);
+  fprintf(fp, "%s %d %d %d %d %d\n", mf->get_name().c_str(), mf->get_num_value(),
+          mf->get_value_type(), mf->get_dof_per_value(), start_index, mf->get_aggregation_scope());
 
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))

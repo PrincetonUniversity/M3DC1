@@ -80,15 +80,22 @@ int get_next_plane_partid(int partid)
 
 // m3dc1_model
 m3dc1_model::m3dc1_model()
-{
-  model=NULL;
-  phi=NULL;
-  xperiodic=yperiodic=0;
-  local_planeid=0;
-  num_plane=1;
-  group_size = PCU_Comm_Peers();
-  oldComm = PCU_Get_Comm();
-}
+  : model(NULL)
+  , xperiodic(0)
+  , yperiodic(0)
+  , oldComm(PCU_Get_Comm())
+  , group_size(PCU_Comm_Peers())
+  , num_plane(1)
+  , local_planeid(0)
+  , prev_plane_partid(0)
+  , next_plane_partid(0)
+  , phi(NULL)
+  , numEntOrig()
+  , boundingBox()
+  , PlaneGroups()
+  , newModelEnts()
+  , pln_cm(MPI_COMM_NULL)
+{ }
 
 m3dc1_model::~m3dc1_model()
 {
@@ -100,7 +107,6 @@ m3dc1_model::~m3dc1_model()
     delete ptr[1];
     delete [] ptr;
   }
-//  PUMI_Geom_Del(model);
 }
 
 m3dc1_model* m3dc1_model::_instance=NULL;
@@ -931,7 +937,7 @@ void interpolateCubicBSpline( vector<double>& points,vector<double>& knots, vect
   dgesv_( &dim, &one,& (coeffs.at(0)), &dim, &(ipiv.at(0)), &(rhs.at(0)), &dim, &info );
   assert( info==0);
   for ( int i=0; i<numPts+2; i++)
-    ctrlPoints.at(i)=rhs.at(i);  
+    ctrlPoints.at(i)=rhs.at(i);
 }
 
 // **********************************************
@@ -939,17 +945,31 @@ void m3dc1_model::setupCommGroupsPlane()
 // **********************************************
 {
   /**get planeId where the current processor is */
-  int planeId=local_planeid;
+  int planeId = local_planeid;
   int rank = PCU_Comm_Self();
   /**get the localrank of the current processor is */
-  int localrank=rank-planeId*group_size;
+  int localrank = rank - planeId * group_size;
   /** split MPI_COMM_WORLD, put the processors of the same planeId into one CommWorld*/
-  MPI_Comm_split(MPI_COMM_WORLD,localrank,planeId, &(PlaneGroups[localrank]));
+  MPI_Comm_split(M3DC1_COMM_WORLD,localrank,planeId, &(PlaneGroups[localrank]));
   //MPI_Barrier(MPI_COMM_WORLD);
 }
 
+void m3dc1_model::setupPlaneComm()
+{
+  int & pid = local_planeid;
+  int rnk = PCU_Comm_Self();
+  int gbl_sz = PCU_Comm_Peers();
+  int pids[gbl_sz];
+  MPI_Allgather(&pid,1,MPI_INTEGER,&pids[0],1,MPI_INTEGER,M3DC1_COMM_WORLD);
+  int key = -1;
+  for(int ii = 0; ii < gbl_sz; ++ii)
+    if(pids[ii] == pid && ii < rnk)
+      ++key;
+  MPI_Comm_split(M3DC1_COMM_WORLD,pid,key,&pln_cm);
+}
+
 // **********************************************
-MPI_Comm & m3dc1_model:: getMPICommPlane()
+MPI_Comm & m3dc1_model::getMPICommPlane()
 // **********************************************
 {
   int rank = PCU_Comm_Self();

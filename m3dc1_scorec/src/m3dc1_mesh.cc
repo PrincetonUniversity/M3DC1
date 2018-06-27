@@ -1342,9 +1342,9 @@ void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remo
 // and rebuild the existing dof data in updated field.
 void update_field (int fid, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices)
 {
-  int num_values, scalar_type, old_numdof;
+  int num_values, scalar_type, old_numdof, agg_scp;
   const char * fnm = m3dc1_field_getname(&fid);
-  m3dc1_field_getinfo (&fid, &num_values, &scalar_type, &old_numdof);
+  m3dc1_field_getinfo (&fid, &num_values, &scalar_type, &old_numdof, &agg_scp);
 
   // get the field info and save it for later creation
   m3dc1_field * mf = m3dc1_mesh::instance()->get_field(fid);
@@ -1391,7 +1391,7 @@ void update_field (int fid, int ndof_per_value, int num_2d_vtx, MeshEntity** rem
   mf = NULL;
 
   // create the field with same attributes
-  m3dc1_field_create (&fid, fnm, &num_values, &scalar_type, &ndof_per_value);
+  m3dc1_field_create (&fid, fnm, &num_values, &scalar_type, &ndof_per_value,&agg_scp);
   mf = m3dc1_mesh::instance()->get_field(fid);
 
   // re-construct the dof data

@@ -17,7 +17,6 @@ void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
   apf::MeshIterator * it = NULL;
 
   PCU_Comm_Begin();
-
   for(int dd = 0; dd < dim; ++dd)
   {
     if (shp->hasNodesIn(dd))
@@ -134,7 +133,6 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   int dof_id_offset = lcl_strd * ndfs;
   int nd_idx = 0;
   MPI_Exscan(&dof_id_offset,&nd_idx,1,MPI_INTEGER,MPI_SUM,cm);
-
   for(int dd = 0; dd < dim; ++dd)
   {
     if(shp->hasNodesIn(dd))
@@ -165,8 +163,6 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
     }
   }
   // get intra-comm offsets
-  int rnk = -1;
-  MPI_Comm_rank(cm,&rnk);
   /* // won't work when cm != MPI_COMM_SELF and isn't needed when cm == MPI_COMM_SELF
   int intra_comm_offset = nd_idx; * apf::countComponents(fld); // would prefer to directly record this value
   int lcl_intra_offset = 0;
@@ -174,11 +170,15 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   */
   // get inter-comm offsets
   // only rank zero in each comm cm will have a nonzero value
-  int inter_comm_offset = (int)(!(bool)rnk) * (lcl_strd * nv * ndfs);
+  int scp_rnk = -1;
+  MPI_Comm_rank(cm,&scp_rnk);
+  int inter_comm_offset = (int)(!(bool)scp_rnk) * (strd * nv * ndfs);
   int lcl_offset = 0;
   // todo : replace with MSI_COMM_WORLD when we pull this into msi
-  MPI_Exscan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
+  MPI_Scan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
+  // subtract local part from the scan (can't just use exscan cause the comms are arbitrary sizes
+  //  and we don't want to bother making new comms)
+  lcl_offset -= (strd * nv * ndfs);
   apf::setNumberingOffset(num,lcl_offset,m3dc1_mesh::instance()->get_ownership());
   apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
-  //synchronize_numbering(msh, num, shp, nv, ndfs);
 }

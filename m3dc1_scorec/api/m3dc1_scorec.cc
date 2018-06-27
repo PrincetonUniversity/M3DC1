@@ -347,12 +347,13 @@ void m3dc1_mesh_build3d (int* num_field, int* field_id,
     m3dc1_model::instance()->set_phi(0.0, 2.0*M3DC1_PI/num_plane*(num_plane-1));
   }
   m3dc1_model::instance()->setupCommGroupsPlane();
+  m3dc1_model::instance()->setupPlaneComm();
   // returns error if num_plane>1
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->get_mesh());
   m3dc1_mesh::instance()->build3d(*num_field, field_id, num_dofs_per_value);
   // update global ID
   compute_globalid(m3dc1_mesh::instance()->get_mesh(), 0);
-  compute_globalid(m3dc1_mesh::instance()->get_mesh(), 3);  
+  compute_globalid(m3dc1_mesh::instance()->get_mesh(), 3);
   // added as per Bill's request -- 03/14/18
   create_backward_plane_ghosting(m3dc1_mesh::instance()->get_mesh());
 #ifdef DEBUG
@@ -533,7 +534,7 @@ void m3dc1_mesh_search(int* initial_simplex,
     }
   }
 }
-void m3dc1_mesh_write(char* filename, int* option)
+void m3dc1_mesh_write(const char* filename, int* option)
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->get_mesh();
   apf::MeshEntity* e;
@@ -908,13 +909,12 @@ void m3dc1_region_getoriginalface(int*  elm, int*  fac)
   *fac = std::min(triFace[0],triFace[1]);
 }
 // field manangement
-// *scalar_type is either M3DC1_REAL or M3DC1_COMPLEX
-void m3dc1_field_create(FieldID* /*in*/ fid, const char*  fnm,
-                         int* /*in*/ blks_per_nd, int* /*in*/ scalar, int* /*in*/ dofs_per_blk)
+// *scalar is either M3DC1_REAL or M3DC1_COMPLEX
+void m3dc1_field_create(FieldID * fid, const char * fnm, int * blks_per_nd, int * scalar, int * dofs_per_blk, int * agg)
 {
-  m3dc1_mesh::instance()->add_field(*fid,new m3dc1_field(*fid,fnm,*blks_per_nd,*scalar,*dofs_per_blk));
+  m3dc1_mesh::instance()->add_field(*fid,new m3dc1_field(*fid,fnm,*blks_per_nd,*scalar,*dofs_per_blk,(m3dc1_field::aggregation_scope)*agg));
 }
-void m3dc1_field_delete (FieldID * /*in*/ fid)
+void m3dc1_field_delete (FieldID * fid)
 {
   m3dc1_mesh::instance()->destroy_field(*fid);
 }
@@ -924,12 +924,13 @@ const char * m3dc1_field_getname(FieldID * fid)
   const std::string & fnm = fld->get_name();
   return fnm.c_str();
 }
-void m3dc1_field_getinfo(FieldID * /*in*/ fid, int * blks_per_nd, int * scalar, int * dofs_per_blk)
+void m3dc1_field_getinfo(FieldID * fid, int * blks_per_nd, int * scalar, int * dofs_per_blk, int * agg_scp)
 {
   m3dc1_field * mf = m3dc1_mesh::instance()->get_field(*fid);
   *blks_per_nd = mf->get_num_value();
   *scalar = mf->get_value_type();
   *dofs_per_blk = mf->get_num_value()*mf->get_dof_per_value();
+  *agg_scp = mf->get_aggregation_scope();
 }
 void m3dc1_field_exist(FieldID * fid, int * exists)
 {
@@ -1113,9 +1114,9 @@ void m3dc1_field_printcompnorm(FieldID*  fid, const char * info)
     j%=num_comp;
   }
   vector<double> buff=norms;
-  MPI_Allreduce(&buff[0],&norms[0], num_comp, MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+  MPI_Allreduce(&buff[0],&norms[0], num_comp, MPI_DOUBLE,MPI_SUM,M3DC1_COMM_WORLD);
   int psize;
-  MPI_Comm_size(MPI_COMM_WORLD,&psize);
+  MPI_Comm_size(M3DC1_COMM_WORLD,&psize);
   if (PCU_Comm_Self() == psize-1)
   {
     std::cout<< "norm of vec "<<info;
@@ -1526,7 +1527,7 @@ void m3dc1_field_compare(FieldID* fid1, FieldID* fid2)
     }
   }
   int global_ierr = 0;
-  MPI_Allreduce(&ierr, &global_ierr, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&ierr, &global_ierr, 1, MPI_INT, MPI_MAX, M3DC1_COMM_WORLD);
   if (global_ierr==M3DC1_FAILURE)
   {
     if (!PCU_Comm_Self())
@@ -1990,7 +1991,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
         errorSum+=pow(errorData[i],d/(p+d/2.0));
     }
     double errorSumBuff=errorSum;
-    MPI_Allreduce(&errorSumBuff, &errorSum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&errorSumBuff, &errorSum, 1, MPI_DOUBLE, MPI_SUM, M3DC1_COMM_WORLD);
     errorSum = *errorAimed*(*errorAimed)/errorSum;
     errorSum = pow(errorSum,1./(2.*p));
   }
@@ -2005,7 +2006,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     size_estimate+=max(1.,1./targetSize/targetSize);
   }
   double size_estimate_buff=size_estimate;
-  MPI_Allreduce(&size_estimate_buff, &size_estimate, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&size_estimate_buff, &size_estimate, 1, MPI_DOUBLE, MPI_SUM, M3DC1_COMM_WORLD);
   int numNodeGlobl=0, dim=0;
   m3dc1_mesh_getnumglobalent(&dim, &numNodeGlobl);
   cout<<" numVert "<<numNodeGlobl<<" size_estimate "<<size_estimate;
@@ -2270,7 +2271,7 @@ void m3dc1_field_max (FieldID* fid, double* max_val, double* min_val)
       if (minVal[i]>dofs[i]) minVal[i]=dofs[i];
     }
   }
-  MPI_Allreduce(&(maxVal[0]), max_val, dofPerEnt, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-  MPI_Allreduce(&(minVal[0]), min_val, dofPerEnt, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(&(maxVal[0]), max_val, dofPerEnt, MPI_DOUBLE, MPI_MAX, M3DC1_COMM_WORLD);
+  MPI_Allreduce(&(minVal[0]), min_val, dofPerEnt, MPI_DOUBLE, MPI_MIN, M3DC1_COMM_WORLD);
 }
 
