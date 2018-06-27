@@ -358,6 +358,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(strcmp("wall_force", scalarname, 10, /fold_case) eq 1) then begin
           d = dimensions(/p0,l0=2)
        endif
+       if(strcmp("flux_thermal", scalarname, 10, /fold_case) eq 1) then begin
+          symbol = '!7C!D!8t!N!X'
+          d = dimensions(/p0,l0=3,t0=-1)
+       endif
    endelse
    
    if(keyword_set(final)) then begin
