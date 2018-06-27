@@ -1809,26 +1809,42 @@ int m3dc1_field_isnan(FieldID* /* in */ field_id, int * isnan)
 }
 
 //=========================================================================
-void write_vector(apf::Mesh2* m, apf::Field* f, const char* filename, int start_index)
+void write_vector(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start_index)
 {
-  char field_filename[256];
-  sprintf(field_filename,"%s-%d",filename, PCU_Comm_Self());
-  FILE * fp =fopen(field_filename, "w");
+  std::string in(filename);
+//  size_t p = in.rfind('.');
+//  std::string base = in.substr(0,p);
+//  std::string ext = in.substr(p+1);
+  std::stringstream s;
+  s <<in << "-"<<PCU_Comm_Self();
+  std::string partFile = s.str();
+  FILE * fp =fopen(partFile.c_str(), "w");
 
   apf::MeshEntity* e;
+  apf::Field* f = mf->get_field();
   int num_dof=countComponents(f);
   double* dof_data = new double[num_dof];
-
+  fprintf(fp, "%s %d %d %d\n", getName(f), mf->get_num_value(), mf->get_dof_per_value(), mf->get_value_type());
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    // write vector
     getComponents(f, e, 0, dof_data);
+    int ndof=0;
     for (int i=0; i<num_dof; ++i)
-      fprintf(fp, "%d\t%E\n", get_ent_globalid(m,e)+start_index, dof_data[i]);
+    {
+      if (!m3dc1_double_isequal(dof_data[i], 0.0))
+        ++ndof;
+    }
+    fprintf(fp, "%d %d %d\n", get_ent_globalid(m,e)+start_index, getMdsIndex(m, e), ndof);
+    for (int i=0; i<num_dof; ++i)
+    {
+      if (!m3dc1_double_isequal(dof_data[i], 0.0))
+        fprintf(fp, "%d %lf\n", i, dof_data[i]);
+    }
   } // while
   m->end(it);
-  fclose(fp);  
+  fclose(fp);
+  delete [] dof_data;
 }
 
 //*******************************************************
@@ -1837,8 +1853,7 @@ int m3dc1_field_write (FieldID* field_id, const char* filename, int* start_index
 {
   if (!PCU_Comm_Self()) cout<<"[M3D-C1 INFO] "<<__func__<<"(field id "<<*field_id<<", file "<<filename<<")\n";
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_field();
-  write_vector(m, f, filename, *start_index);
+  write_vector(m, (*(m3dc1_mesh::instance()->field_container))[*field_id], filename, *start_index);
   return M3DC1_SUCCESS;
 }
 

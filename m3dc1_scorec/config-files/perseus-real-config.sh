@@ -1,11 +1,10 @@
 HOST=perseus
-PEVER=intel17.0
-MPIVER=intel17.0-openmpi1.10.2
-DATE=Jan2018
+MPIVER=intel18.0-mpi2018.3
+DATE=June2018
 SWTYPE=release
 CMAKETYPE=Release
-PETSC_DIR=/home/jinchen/LIB/petsc-3.8.2
-PETSC_ARCH=real-intel17.0-openmpi1.10.2
+PETSC_DIR=/home/jinchen/LIB/petsc-3.8.3 
+PETSC_ARCH=real-intel-mpi-2018.3.64
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 BUILD_ROOT=/home/jinchen/LIB/scorec/$MPIVER
 ZOLTAN_DIR=$BUILD_ROOT
@@ -24,8 +23,8 @@ cmake3 .. \
   -DSCOREC_LIB_DIR="$PREFIX/lib" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
-  -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \
-  -DHDF5_LIB_DIR="$HDF5_DIR/lib" \
+  -DHDF5_INCLUDE_DIR="$HDF5DIR/include" \
+  -DHDF5_LIB_DIR="$HDF5DIR/lib" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DENABLE_TESTING=OFF \
   -DENABLE_COMPLEX=OFF \
