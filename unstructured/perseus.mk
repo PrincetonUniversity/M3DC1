@@ -33,11 +33,11 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 PETSC_DIR=/home/jinchen/LIB/petsc-3.8.3
 ifeq ($(COM), 1)
   #PETSC_ARCH = complex-intel17.0-openmpi1.10.2
-  PETSC_ARCH=cplx-intel-mpi-2018.1.64
+  PETSC_ARCH=cplx-intel-mpi-2018.3.64
 else
   #PETSC_ARCH = real-intel17.0-openmpi1.10.2
   #PETSC_ARCH = real-intel-mpi-2018.1.64-new
-  PETSC_ARCH=real-intel-mpi-2018.1.64
+  PETSC_ARCH=real-intel-mpi-2018.3.64
 endif
 
 #MPI_DIR=/usr/local/openmpi/1.10.2/intel170/x86_64/lib64
@@ -57,7 +57,8 @@ endif
 PETSC_WITH_EXTERNAL_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_DIR) -L$(COMPILER_DIR) -L$(MKL_DIR) -L$(COMPILER_LIN_DIR) -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -Wl,-rpath,$(MPI_DIR) -lpetsc -lsuperlu -lsuperlu_dist $(HYPRE_LIB) -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack  -lzoltan -L$(FFTW3DIR) -lfftw3_mpi -lfftw3 -L$(MKLROOT)/lib/intel64_lin -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_blacs_intelmpi_lp64 -lmkl_cdft_core -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lX11 -lifport -lifcoremt_pic -lmpicxx -lintlc -lrt -lmpi -lmpigi -lrt -lpthread -lm -lpthread -lz -ldl -lstdc++ -lmpi -lmpifort -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lgcc_s -lirc -lpthread -lirc_s -lifport -lifcoremt_pic -lmpicxx -lintlc -lrt -lm -lpthread -lz -ldl -L/opt/intel/compilers_and_libraries_2018.1.163/linux/mpi/intel64/lib/release_mt -L/opt/intel/compilers_and_libraries_2018.1.163/linux/mpi/intel64/lib -lmpifort -lmpi -lmpigi -lrt -lpthread
 
 #SCOREC_DIR = /home/jinchen/LIB/scorec/intel17.0-openmpi1.10.2/Jan2018
-SCOREC_DIR=/home/jinchen/LIB/scorec/intel18.0-mpi2018.1/Feb2018
+#SCOREC_DIR=/home/jinchen/LIB/scorec/intel18.0-mpi2018.1/Feb2018
+SCOREC_DIR=/home/jinchen/LIB/scorec/intel18.0-mpi2018.3/June2018
 SCOREC_UTIL_DIR=/home/jinchen/LIB/scorec/intel18.0-mpi2018.1/bin
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
