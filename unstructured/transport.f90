@@ -515,9 +515,6 @@ function linerad_func(itri)
 
   vectype, dimension(dofs_per_element) :: linerad_func
   vectype, dimension(dofs_per_element) :: temp
-  integer :: j, ierr, nvals
-  real :: val, pso
-  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
@@ -546,9 +543,6 @@ function bremrad_func(itri)
 
   vectype, dimension(dofs_per_element) :: bremrad_func
   vectype, dimension(dofs_per_element) :: temp
-  integer :: j, ierr, nvals
-  real :: val, pso
-  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
@@ -577,9 +571,6 @@ function ionrad_func(itri)
 
   vectype, dimension(dofs_per_element) :: ionrad_func
   vectype, dimension(dofs_per_element) :: temp
-  integer :: j, ierr, nvals
-  real :: val, pso
-  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
@@ -608,9 +599,6 @@ function reckrad_func(itri)
 
   vectype, dimension(dofs_per_element) :: reckrad_func
   vectype, dimension(dofs_per_element) :: temp
-  integer :: j, ierr, nvals
-  real :: val, pso
-  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
@@ -639,9 +627,6 @@ function recprad_func(itri)
 
   vectype, dimension(dofs_per_element) :: recprad_func
   vectype, dimension(dofs_per_element) :: temp
-  integer :: j, ierr, nvals
-  real :: val, pso
-  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
