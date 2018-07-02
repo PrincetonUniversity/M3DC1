@@ -1,4 +1,5 @@
-pro plot_at_boundary, name, field=field, angle=ang, smooth=sm, _EXTRA=ex
+pro plot_at_boundary, name, field=field, angle=ang, smooth=sm, $
+                      outfile=outfile, _EXTRA=ex
 
   xy = get_boundary_path(norm=norm, center=center, angle=angle, $
                          length=length, _EXTRA=ex)
@@ -57,4 +58,10 @@ pro plot_at_boundary, name, field=field, angle=ang, smooth=sm, _EXTRA=ex
   plot, x, real_part(field), _EXTRA=ex, $
         xtitle=xtitle, $
         ytitle=u
+
+  if(n_elements(outfile) eq 1) then begin
+     openw, ifile, outfile, /get_lun
+     for i=0, n_elements(x)-1 do printf, ifile, x[i], field[i]
+     free_lun, ifile
+  end
 end

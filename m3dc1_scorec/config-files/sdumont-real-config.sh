@@ -1,0 +1,36 @@
+DATE=May2018cratch/ntm/software/petsc-3.9.1
+SWTYPE=debugeol@sdumont14 m3dc1_scorec]$ 
+CMAKETYPE=Debug
+SCOREC_DIR=/scratch/ntm/software/scorec$ 
+#PETSC_DIR=/scratch/ntm/software/petsc-3.7.6
+#PETSC_VER=3.7.6sdumont14 m3dc1_scorec]$ 
+#PETSC_ARCH=real-intelETSC_ARCH
+PETSC_DIR=/scratch/ntm/software/petsc-3.9.1
+PETSC_ARCH=petsc391_real_only_metis_superlu
+PETSC_VER=3.9.1OMPILER="mpicxx" \
+ZOLTAN_DIR=$SCOREC_DIRILER="mpiifort" \
+PREFIX=$SCOREC_DIR/$PETSC_VER/$DATEASTER -I$PETSC_DIR/include" \
+PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCHCMASTER -I$PETSC_DIR/include" \
+HDF5_DIR=$PETSC_DIR/$PETSC_ARCH"\
+cmake .. \_INCLUDE_DIR="$PREFIX/include" \
+  -DCMAKE_C_COMPILER="mpicc" \b" \
+  -DCMAKE_CXX_COMPILER="mpicxx" \ib/libzoltan.a" \
+  -DCMAKE_Fortran_COMPILER="mpiifort" \_ARCH/lib/libparmetis.a" \
+  -DCMAKE_C_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_Fortran_FLAGS="-fpic "\TSC_ARCH/lib" \
+  -DSCOREC_INCLUDE_DIR="$PREFIX/include" \
+  -DSCOREC_LIB_DIR="$PREFIX/lib" \
+  -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
+  -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
+  -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
+  -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
+  -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
+  -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \
+  -DHDF5_LIB_DIR="$HDF5_DIR/lib" \orec]$ 
+  -DENABLE_PETSC=ON \
+  -DENABLE_TRILINOS=OFF \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  -DENABLE_COMPLEX=OFF \
+  -DENABLE_TESTING=OFF \
+  -DCMAKE_BUILD_TYPE=$CMAKETYPE

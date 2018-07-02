@@ -12910,7 +12910,7 @@ real function flux_poynting()
 
   temp = -vloop/twopi * &
        (int3(ri2_79,norm79(:,1),pst79(:,OP_DR)) &
-       +int3(ri2_79,norm79(:,1),pst79(:,OP_DZ)))
+       +int3(ri2_79,norm79(:,2),pst79(:,OP_DZ)))
 
   flux_poynting = real(temp)
   return
@@ -12933,19 +12933,35 @@ real function flux_heat()
      return
   endif
 
-  temp = int4(kap79(:,1),norm79(:,1),pt79(:,OP_DR),ni79(:,OP_1)) &
-       + int4(kap79(:,1),norm79(:,2),pt79(:,OP_DZ),ni79(:,OP_1)) &
-       + int4(kap79(:,1),norm79(:,1),pt79(:,OP_1),ni79(:,OP_DR)) &
-       + int4(kap79(:,1),norm79(:,2),pt79(:,OP_1),ni79(:,OP_DZ))
+!!$  temp = int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_DR),ni79(:,OP_1)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_DZ),ni79(:,OP_1)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_1),ni79(:,OP_DR)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_1),ni79(:,OP_DZ))
+!!$
+!!$  if(kappar.ne.0.) then
+!!$     temp79a = ni79(:,OP_1)* &
+!!$          (pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)) &
+!!$          +    pt79(:,OP_1)* &
+!!$          (ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
+!!$     temp79b = norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)
+!!$     temp = temp &
+!!$          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b)
+!!$  endif
+
+  temp = int3(kap79(:,OP_1),norm79(:,1),tet79(:,OP_DR)) &
+       + int3(kap79(:,OP_1),norm79(:,2),tet79(:,OP_DZ))
+  temp = temp &
+       + int3(kap79(:,OP_1),norm79(:,1),tit79(:,OP_DR)) &
+       + int3(kap79(:,OP_1),norm79(:,2),tit79(:,OP_DZ))
 
   if(kappar.ne.0.) then
-     temp79a = ni79(:,OP_1)* &
-          (pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)) &
-          +    pt79(:,OP_1)* &
-          (ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
+     temp79a = (tet79(:,OP_DZ)*pst79(:,OP_DR)-tet79(:,OP_DR)*pst79(:,OP_DZ))
+     temp79c = (tit79(:,OP_DZ)*pst79(:,OP_DR)-tit79(:,OP_DR)*pst79(:,OP_DZ))
      temp79b = norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)
      temp = temp &
-          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b)
+          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b) 
+     temp = temp &
+          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79c,temp79b)
   endif
 
   flux_heat = real(temp)
@@ -13611,6 +13627,23 @@ function q_delta(e)
           -    intx4(e(:,:,OP_1),net79(:,OP_1),tet79(:,OP_1),qd79)
   end if
 end function q_delta
+
+function q_delta1(e,f)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: q_delta1
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+
+  if(surface_int) then
+     q_delta1 = 0.
+  else
+     q_delta1 = intx4(e(:,:,OP_1),f(:,OP_1),net79(:,OP_1),qd79) 
+  end if
+end function q_delta1
 
 vectype function q1ppsi(e,f,g,h)
 

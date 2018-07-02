@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 24
+  integer, parameter :: version = 25
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -73,6 +73,7 @@ module basic
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
   real :: gradp_crit
+  real :: temin_qd    ! minimum temperature used in equipartition term for ipres=1
   real :: efac        ! eta = efac / T^(3/2)
   real :: nufac       ! nu = nufac * n / T^(3/2)
 

@@ -401,6 +401,7 @@ subroutine init
   use basicq
   use runaway_mod
   use kprad_m3dc1
+  use resistive_wall
   
   implicit none
 
@@ -435,6 +436,9 @@ subroutine init
 
   call kprad_init(ierr)
   if(ierr.ne.0) call safestop(601)
+
+  call init_resistive_wall(ierr)
+  if(ierr.ne.0) call safestop(602)
 end subroutine init
 
 
@@ -485,6 +489,7 @@ subroutine safestop(iarg)
   use wall
   use kprad_m3dc1
   use particles
+  use resistive_wall
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -511,6 +516,7 @@ subroutine safestop(iarg)
   call destroy_auxiliary_fields
   call runaway_deallocate
   call kprad_destroy
+  call destroy_resistive_wall
 
   call destroy_wall_dist
 
@@ -1333,8 +1339,9 @@ subroutine calculate_qdfac(itri, z)
         z = z + i**2 * tm79(:,OP_1) / kprad_mz
      end do
   end if
-  where(real(tet79(:,OP_1)).gt.0.)
-     z = z * 3. * me_mp * nufac / tet79(:,OP_1)**(3./2.)
+  temp79a = max(temin_qd,real(tet79(:,OP_1)))
+  where(real(temp79a).gt.0.)
+     z = z * 3. * me_mp * nufac / temp79a**(3./2.)
   elsewhere
      z = 0.
   end where

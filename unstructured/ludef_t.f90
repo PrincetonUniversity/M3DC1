@@ -2380,7 +2380,7 @@ subroutine flux_nolin(trialx, r4term)
 
   r4term = 0.
 
-  if(igauge.eq.1 .or. linear.eq.1) then
+  if(igauge.eq.1) then
      r4term = r4term - dt* &
           vloop*intx1(trialx(:,:,OP_1))/twopi
   endif
@@ -3911,6 +3911,19 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
   ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
 
+  ! Equipartition
+  ! ~~~~~~~~~~~~~
+  if(ipres.eq.1) then
+     if(linear.eq.0 .and. eqsubtract.eq.0) then
+        tempx = dt*(gam-1.)*q_delta1(trialx,lin)
+        if(electron_temperature) tempx = -tempx
+        ssterm(:,ti_g) = ssterm(:,ti_g) +     thimp *tempx
+        ssterm(:,te_g) = ssterm(:,te_g) -     thimp *tempx
+        ddterm(:,ti_g) = ddterm(:,ti_g) - (1.-thimp)*tempx
+        ddterm(:,te_g) = ddterm(:,te_g) + (1.-thimp)*tempx
+     endif
+  endif
+
 
   ! Electron Pressure Advection
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4223,11 +4236,11 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
            if(irad_heating.eq.1) then
               r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
            end if
-           
            ! Equipartition
            r4term = r4term + dt*(gam-1.)*q_delta(trialx)
         end if
      else
+        ! For itemp==1, equipartition term is in temperature_lin
         if(ipres.eq.0) then
            ! Total temperature
            ! ~~~~~~~~~~~~~~~~~
@@ -4241,8 +4254,6 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
              ! ~~~~~~~~~~~~~~~~~~~~~
              r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)*0.5
 
-             ! Equipartition
-             r4term = r4term - dt*(gam-1.)*q_delta(trialx)
            else
              ! Electron temperature
              ! ~~~~~~~~~~~~~~~~~~~~ 
@@ -4251,8 +4262,6 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
                 r4term = r4term + dt*(gam-1.)*b3q(trialx,totrad79)
              end if
 
-             ! Equipartition
-             r4term = r4term + dt*(gam-1.)*q_delta(trialx)
            endif
         end if
      end if

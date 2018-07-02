@@ -22,6 +22,29 @@ subroutine add_var_double_array(name, var, size, default, desc, grp)
        desc//char(0), grp)
 end subroutine add_var_double_array
 
+subroutine add_var_string_array(name, var, ln, size, default, desc, grp)
+  implicit none
+
+  character(len=*), intent(in) :: name, desc
+  integer, intent(in) :: ln
+  integer, intent(in) :: size
+  character(len=*), dimension(size) :: var
+  character(len=*), intent(in) :: default
+  integer, intent(in) :: grp
+
+  integer :: i
+
+!!$  call add_variable_string_array2(name//char(0), var, ln, size, default, &
+!!$       desc//char(0), grp, ' ')
+
+  call add_variable_string_array(name//char(0), ln, size, desc//char(0), &
+       grp, ' ')
+
+  do i=1, size
+     call set_variable_string_array(name//char(0), i-1, var(i), default)
+  end do
+end subroutine add_var_string_array
+
 subroutine add_var_int(name, var, default, desc, grp)
   implicit none
 
@@ -278,6 +301,8 @@ subroutine set_defaults
        "Factor to multiply kappa when grad(p) < gradp_crit", transp_grp)
   call add_var_double("gradp_crit", gradp_crit, 0., &
        "Critical pressure gradient in kappag/kappaf models", transp_grp)
+  call add_var_double("temin_qd", temin_qd, 0., &
+       "Min. Temp. used in Equipartition term for ipres=1", transp_grp)
 
   call add_var_double("denm", denm, 0., &
        "Density hyperdiffusion coefficient", transp_grp)
@@ -716,6 +741,12 @@ subroutine set_defaults
        imax_wall_breaks, 0., "Minimum phi coordinate for wall break", rw_grp)
   call add_var_double_array("wall_break_phimax", wall_break_phimax, &
        imax_wall_breaks, 0., "Maximum phi coordinate for wall break", rw_grp)
+  call add_var_int("iwall_regions", iwall_regions, 0, &
+       "Number of resistive wall regions", rw_grp)
+  call add_var_double_array("wall_region_eta", wall_region_eta, &
+       imax_wall_regions, 1e-3, "Resistivity of each wall region", rw_grp)
+  call add_var_string_array("wall_region_filename", wall_region_filename, 256,&
+       imax_wall_regions, "", "Resistivity of each wall region", rw_grp)
 
 
   ! loop voltage

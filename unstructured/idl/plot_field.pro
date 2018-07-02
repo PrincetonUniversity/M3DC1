@@ -6,7 +6,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 overplot=overplot, phi=phi0, time=realtime, levels=levels, $
                 phase=phase, abs=abs, operation=op, magcoord=magcoord, $
                 outfile=outfile, fac=fac, filename=filename, $
-                psin=psin, coils=coils, _EXTRA=ex
+                psin=psin, coils=coils, axis=axis, _EXTRA=ex
 
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 200
@@ -132,6 +132,16 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            plot_flux_contour, fval, points=p, closed=0, /overplot, $
              thick=!p.thick/2., filename=filename[0], _EXTRA=ex
        endif
+
+       if(keyword_set(axis)) then begin
+          nulls, axis=ax, xpoints=xpoint, _EXTRA=extra, filename=filename
+          dx = (!x.crange[1]-!x.crange[0])/50.
+          dy = (!y.crange[1]-!y.crange[0])/50.
+          oplot, [ax[0]-dx, ax[0]+dx], $
+                 [ax[1]-dy, ax[1]+dy], color=color(6,10)
+          oplot, [ax[0]-dx, ax[0]+dx], $
+                 [ax[1]+dy, ax[1]-dy], color=color(6,10)
+       end
 
        if(keyword_set(lcfs)) then begin
            print, 'passing slice = ', time[0]

@@ -446,15 +446,12 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Flux_thermal  ", efluxt, ntime, error)
   call output_scalar(scalar_group_id, "E_grav        ", epotg,  ntime, error)
 
-  if(rad_source) then
-     call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
-     call output_scalar(scalar_group_id, "line_rad"        , linerad, ntime, error)
-     call output_scalar(scalar_group_id, "brem_rad"        , bremrad, ntime, error)
-     call output_scalar(scalar_group_id, "ion_loss"        , ionrad, ntime, error)
-     call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, error)
-     call output_scalar(scalar_group_id, "recp_rad"        , recprad, ntime, error)
-     
-  endif
+  call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
+  call output_scalar(scalar_group_id, "line_rad"        , linerad, ntime, error)
+  call output_scalar(scalar_group_id, "brem_rad"        , bremrad, ntime, error)
+  call output_scalar(scalar_group_id, "ion_loss"        , ionrad, ntime, error)
+  call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, error)
+  call output_scalar(scalar_group_id, "recp_rad"        , recprad, ntime, error)
 
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
@@ -876,10 +873,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
   ! u
   call write_field(group_id, "phi", u_field(ilin), nelms, error)
 
+#if defined(USE3D) || defined(USECOMPLEX)
   ! electrostatic potential
   if(jadv.eq.0) then
      call write_field(group_id, "potential", e_field(ilin), nelms, error)
   endif
+#endif
 
   ! I
   do i=1, nelms

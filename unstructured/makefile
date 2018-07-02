@@ -126,7 +126,7 @@ READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
 OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
-	random.o spline.o kprad.o \
+	random.o spline.o region.o kprad.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
@@ -184,6 +184,9 @@ a2cc : $(A2CC_OBJS)
 kprad : kprad.f90 kprad_test.f90
 	$(F90) $(F90OPTS) $< -o $@
 
+test_region : region.o test_region.o
+	$(F90) $^ -o $@
+
 .PHONY : bin
 bin : 
 	rm -fr bin
@@ -191,8 +194,8 @@ bin :
 	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/create_smb/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin ; \
 	else \

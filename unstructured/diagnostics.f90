@@ -343,7 +343,7 @@ contains
        temp(69) = pcur_sn        
        temp(70) = m_iz_co        
        temp(71) = m_iz_sn        
-       
+
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -696,7 +696,7 @@ subroutine calculate_scalars()
      endif
 
      if(numvar.ge.3 .or. ipres.eq.1) then
-        def_fields = def_fields + FIELD_P + FIELD_KAP
+        def_fields = def_fields + FIELD_P + FIELD_KAP + FIELD_TE + FIELD_TI
         if(hyper.eq.0.) def_fields = def_fields + FIELD_J
         if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
         if(rad_source) def_fields = def_fields + FIELD_RAD
@@ -936,10 +936,10 @@ subroutine calculate_scalars()
 
         ! Energy fluxes
         ! ~~~~~~~~~~~~~
-        efluxp = efluxp + flux_pressure()
-        efluxt = efluxt + flux_heat()
-        efluxs = efluxs + flux_poynting()
-        efluxk = efluxk + flux_ke()
+        efluxp = efluxp + twopi*flux_pressure()/tpifac
+        efluxt = efluxt + twopi*flux_heat()/tpifac
+        efluxs = efluxs + twopi*flux_poynting()/tpifac
+        efluxk = efluxk + twopi*flux_ke()/tpifac
 
         ! Toroidal momentum fluxes
         ! ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -955,9 +955,9 @@ subroutine calculate_scalars()
         ! Particle fluxes
         ! ~~~~~~~~~~~~~~~
         if(idens.eq.1) then
-           nfluxd = nfluxd - denm* &
+           nfluxd = nfluxd - twopi*denm* &
                 (int2(norm79(:,1),nt79(:,OP_DR)) &
-                +int2(norm79(:,2),nt79(:,OP_DZ)))
+                +int2(norm79(:,2),nt79(:,OP_DZ)))/tpifac
 
            select case(ivform)
            case(0)
@@ -981,6 +981,8 @@ subroutine calculate_scalars()
                       + int4(ri2_79,nt79(:,OP_1),norm79(:,2),cht79(:,OP_DZ))
               endif
            end select
+
+           nfluxv = nfluxv*twopi/tpifac
         end if
 
         ! xray signal
