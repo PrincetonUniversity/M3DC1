@@ -39,11 +39,10 @@ PETSC_ARCH=real
 HYPRE_LIB=
 endif
 
-BLASLAPACK_LIBS =-Wl,-rpath,$(MKLROOT) -L$(MKLROOT)/lib/intel64 \
-        -lmkl_intel_lp64 -lmkl_sequential -lmkl_core
+BLASLAPACK_LIBS = -lfblas -lflapack
 
 HDF5_DIR=/home/ec2-user/hdf5-1.10.2/hdf5
-SCOREC_DIR=
+SCOREC_DIR=$(HOME)/scorec/June2018
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
 SCOREC_UTIL_DIR=
@@ -60,10 +59,11 @@ endif
 
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
 	-lpetsc \
-        -lsuperlu_dist_3.3 -lsuperlu_4.3 \
+        -lsuperlu_dist \
         -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord \
         $(SCALAPACK_LIB) \
         $(HYPRE_LIB) \
+	-lzoltan -lptscotch \
         -lparmetis -lmetis \
         -Wl,--end-group
 
@@ -73,14 +73,14 @@ SCORECLIB= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
 
 LIBS = 	\
 	$(SCORECLIB) \
-        $(TRILINOS_LIBS) \
-        $(ZOLTAN_LIB) \
         $(PETSC_LIBS) \
         $(BLASLAPACK_LIBS) \
 	-lfftw3 \
 	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
-	-lgsl -lgslcblas \
-	-lX11
+	-lgsl -lgslcblas -lstdc++
+
+#\
+#	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
