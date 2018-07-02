@@ -57,7 +57,8 @@ else
   PETSC_ARCH=aws_real
 endif
 
-PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
+PETSC_LIBS = -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
+	-L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 	-lpetsc \
         -lsuperlu_dist \
         -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord \
@@ -67,20 +68,21 @@ PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
         -lparmetis -lmetis \
         -Wl,--end-group
 
-
 SCORECLIB= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
            $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
+
+HDF5_LIBS = -Wl,--start-group,-rpath,$(HDF5_DIR)/lib \
+	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
+	-Wl,--end-group
 
 LIBS = 	\
 	$(SCORECLIB) \
         $(PETSC_LIBS) \
         $(BLASLAPACK_LIBS) \
+	$(HDF5_LIBS) \
 	-lfftw3 \
-	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
 	-lgsl -lgslcblas -lstdc++
 
-#\
-#	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
