@@ -1,13 +1,17 @@
-Copyright (c) 2004, Princeton Plasma Physics Laboratory
+Copyright (c) 2018, Princeton Plasma Physics Laboratory
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
+Use of M3D-C1 in source and binary forms, with or without
+modification, is permitted provided that the following conditions are
+met:
+    * The License-Release form http://theorycodes.pppl.wikispaces.net/file/view/TheoryCodeLicenseReleaseForm.pdf
+      must be completed and signed by the appropriate authority before
+      transferral or use of M3D-C1.
+    * Redistribution of M3D-C1 in source or binary form is not permitted
+      except by the copyright holder or authorized agents thereof.
+    * The copyright holder shall have the opportunity to review any
+      M3D-C1 output, or claims made about M3D-C1 output, prior to public
+      release.
     * Neither the names Princeton, Princeton Plasma Physics Laboratory, M3D-C1,
       nor names of the contributors to M3D-C1 may be used to endorse or 
       promote products derived from this software without specific prior 
