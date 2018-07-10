@@ -1204,8 +1204,14 @@ subroutine gradshafranov_solve
         if(myrank.eq.0 .and. iprint.ge.1) then
            write(*,'(A,1p4e12.4)') ' Error in GS solution: ', error, error2, xmag, zmag
         endif
-        ! if error is NaN, quit
-        if(error.ne.error) call safestop(11)
+        ! if error is NaN, quit if itnum > 2   (needed to run on KNL)
+        if(error.ne.error) then
+             if(itnum.le.2) then
+                   error = 1.  
+             else
+                   call safestop(11)
+             endif
+        endif
 
         ! if error is sufficiently small, stop iterating
         if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
@@ -1452,6 +1458,7 @@ subroutine calculate_error(error, error2, psinew)
   norm = 0.
   sum2 = 0.
   norm2 = 0.
+  temp2 = 0
 
   numnodes = owned_nodes()
   do i=1,numnodes
