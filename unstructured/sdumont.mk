@@ -23,8 +23,8 @@ endif
 
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_DIR=
-  PETSC_ARCH=
+  PETSC_DIR=/scratch/ntm/software/petsc-3.7.6
+  PETSC_ARCH=complex-intel
   HYPRE_LIB = 
 else
   ifeq ($(TRILINOS), 1)
