@@ -368,8 +368,6 @@ contains
        Z_EI = (/24.5876,54.416,1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 4.0
-       write(*,*)   &
-            'ALL AVAILABLE ATOMIC DATA FOR HELIUM WERE LOADED SUCCESSFULLY.'
        
     case (4) !SET BERYLLIUM FOR IMPURITY
         
@@ -402,10 +400,6 @@ contains
        Z_EI= (/9.3227,   18.21114,   153.89661, 217.71865,1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 9.012
-       write(*,*)    &
-            'ALL AVAILABLE ATOMIC DATA FOR BERYLLIUM WERE LOADED', &
-            ' SUCCESSFULLY'
-       
        
     case (6) !CARBON
        
@@ -454,8 +448,6 @@ contains
        Z_EI= (/11.26, 24.384, 47.888, 64.5, 392.1, 490.0, 1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 12.0
-       write(*,*)   &
-            'ALL AVAILABLE ATOMIC DATA FOR CARBON WERE LOADED SUCCESSFULLY.'
        
     case (10)
        
@@ -539,8 +531,6 @@ contains
             (/21.6,41.0,63.5,97.0,126.3,157.9,207.2 ,239.0,1195.0,1362.3,1.0e6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 20.0
-       write(*,*)   &
-            'ALL AVAILABLE ATOMIC DATA FOR NEON WERE LOADED SUCCESSFULLY.'
                
        
     case (18)
@@ -649,9 +639,6 @@ contains
             4120.87,4426.24,1.0e6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 40.0
-        
-       write(*,*)   &
-            'ALL AVAILABLE ATOMIC DATA FOR ARGON WERE LOADED SUCCESSFULLY.'
          
     case DEFAULT
        write(*,*) 'NO DATA FOR THIS ELEMENT EXISTS!'

@@ -114,7 +114,7 @@ contains
     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining BASICJ Equilibrium'
 
     if(basicj_q0 .eq. 0.) then
-       basicj_q0 = 2.*bzero/(rzero*basicj_j0)
+       if(basicj_j0 .ne. 0.) basicj_q0 = 2.*bzero/(rzero*basicj_j0)
     else
        basicj_j0 = 2.*bzero/(rzero*basicj_q0)
     end if
@@ -206,6 +206,7 @@ contains
     call create_mat(dr_matrix, 1, 1, icomplex, 1)
        
     jphi_vec = 0.
+    if(basicj_j0 .eq. 0.) ibound = BOUNDARY_NONE
 !$OMP PARALLEL DO &
 !$OMP& PRIVATE(temp,dofs,imask)
     do itri=1,numelms
@@ -219,15 +220,24 @@ contains
 
        
        call basicj_current(x_79, z_79, temp79a)
-       temp79b = ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2
 
        ! contribution from current density
-       dofs = intx3(mu79(:,:,OP_1),temp79a,temp79b)       
+       if(basicj_j0.eq.0.) then
+          temp79b = p0
+          dofs = intx2(mu79(:,:,OP_1),temp79b)
+       else
+          temp79b = ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2
+          dofs = intx3(mu79(:,:,OP_1),temp79a,temp79b)
+       end if
 
        if(ibasicj_solvep.eq.1) then
           ! Solving for pressure; toroidal field is uniform
-          temp = intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79,ps079(:,OP_DR)) &
-               + intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DZ),r_79,ps079(:,OP_DZ))
+          if(basicj_j0.eq.0.) then
+             temp = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+          else
+             temp =intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79,ps079(:,OP_DR)) &
+               +   intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DZ),r_79,ps079(:,OP_DZ))
+          end if
        else
           ! Solving for toroidal field
           temp = intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DR),ri_79,ps079(:,OP_DR)) &
@@ -251,7 +261,7 @@ contains
 !$OMP END PARALLEL DO
     
     call sum_shared(jphi_vec%vec)
-    call boundary_dc(jphi_vec%vec, jphi_vec%vec, dr_matrix)
+    if(basicj_j0.ne.0.) call boundary_dc(jphi_vec%vec, jphi_vec%vec, dr_matrix)
     call finalize(dr_matrix)
  
     if(ibasicj_solvep.eq.1) then

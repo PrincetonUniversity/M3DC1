@@ -23,44 +23,37 @@ endif
 
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2/
-  PETSC_ARCH=cori-hsw-mpich760-cplx
+  PETSC_DIR =
+  PETSC_ARCH =
   HYPRE_LIB = 
 else
-  ifeq ($(TRILINOS), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
-  else
-    M3DC1_SCOREC_LIB = m3dc1_scorec
-  endif
+  M3DC1_SCOREC_LIB = m3dc1_scorec
   ifeq ($(OMP), 1)
     PETSC_DIR=/global/homes/j/jinchen/project/PETSC/master
     PETSC_ARCH=cori-hsw-knl-mpich760-omp-strumpack
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
   else
-    PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2
-    PETSC_ARCH = cori-hsw-mpich760-real
+    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.1
+    PETSC_ARCH = cori-knl-mpich762-real-nomkl-510
   endif
-  HYPRE_LIB = -lHYPRE
+  HYPRE_LIB =
 endif
 
 PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
      $(HYPRE_LIB) \
      -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
-     -lpord -lsuperlu -lsuperlu_dist $(STRUMPACK_LIB) \
+     -lpord -lsuperlu -lsuperlu_dist -lstrumpack \
      -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++  \
      -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit #\
 #       -lflapack -lfblas
 #       -lstrumpack_sparse \
 
 
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/bin
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Aug2017
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Nov2017
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/debug
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/Dec2017/
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/knl/March2018
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/bin
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/May2018/
+
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \

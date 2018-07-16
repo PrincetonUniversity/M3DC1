@@ -12933,19 +12933,35 @@ real function flux_heat()
      return
   endif
 
-  temp = int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_DR),ni79(:,OP_1)) &
-       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_DZ),ni79(:,OP_1)) &
-       + int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_1),ni79(:,OP_DR)) &
-       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_1),ni79(:,OP_DZ))
+!!$  temp = int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_DR),ni79(:,OP_1)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_DZ),ni79(:,OP_1)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_1),ni79(:,OP_DR)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_1),ni79(:,OP_DZ))
+!!$
+!!$  if(kappar.ne.0.) then
+!!$     temp79a = ni79(:,OP_1)* &
+!!$          (pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)) &
+!!$          +    pt79(:,OP_1)* &
+!!$          (ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
+!!$     temp79b = norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)
+!!$     temp = temp &
+!!$          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b)
+!!$  endif
+
+  temp = int3(kap79(:,OP_1),norm79(:,1),tet79(:,OP_DR)) &
+       + int3(kap79(:,OP_1),norm79(:,2),tet79(:,OP_DZ))
+  temp = temp &
+       + int3(kap79(:,OP_1),norm79(:,1),tit79(:,OP_DR)) &
+       + int3(kap79(:,OP_1),norm79(:,2),tit79(:,OP_DZ))
 
   if(kappar.ne.0.) then
-     temp79a = ni79(:,OP_1)* &
-          (pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)) &
-          +    pt79(:,OP_1)* &
-          (ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
+     temp79a = (tet79(:,OP_DZ)*pst79(:,OP_DR)-tet79(:,OP_DR)*pst79(:,OP_DZ))
+     temp79c = (tit79(:,OP_DZ)*pst79(:,OP_DR)-tit79(:,OP_DR)*pst79(:,OP_DZ))
      temp79b = norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)
      temp = temp &
-          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b)
+          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b) 
+     temp = temp &
+          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79c,temp79b)
   endif
 
   flux_heat = real(temp)

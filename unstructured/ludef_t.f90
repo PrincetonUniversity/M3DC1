@@ -2380,7 +2380,7 @@ subroutine flux_nolin(trialx, r4term)
 
   r4term = 0.
 
-  if(igauge.eq.1 .or. linear.eq.1) then
+  if(igauge.eq.1) then
      r4term = r4term - dt* &
           vloop*intx1(trialx(:,:,OP_1))/twopi
   endif
