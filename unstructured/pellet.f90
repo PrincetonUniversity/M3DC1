@@ -50,12 +50,13 @@ contains
     real, intent(in) :: r, phi, z, pres
     integer, intent(in) :: inorm
 
+    real :: x, y, px, py
+    
     select case(abs(ipellet))
 
-    ! gaussian pellet source
-    case(1)
-
 #ifdef USE3D
+    ! gaussian pellet source
+    case(1, 4)
        pellet_distribution = 1./ &
             (sqrt(2.*pi)**3*pellet_var**2*pellet_var_tor) &
             *exp(-((r-pellet_x)**2 + (z-pellet_z)**2) &
@@ -63,43 +64,68 @@ contains
                  -2.*r*pellet_x*(1.-cos(phi-pellet_phi)) &
                   /(2.*pellet_var_tor**2))
 
-#else
-       pellet_distribution = 1./(2.*pi*pellet_var**2) &
-            *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
-            /(2.*pellet_var**2))
-       if(itor.eq.1) pellet_distribution = pellet_distribution / r
-#endif
-
     !......distributed source added 11/23/2011   (scj)
     case(2)
        pellet_distribution = den0*(max(pedge,real(pres))/p0)**expn
 
     ! gaussian pellet source
     case(3)
-#ifdef USE3D
        pellet_distribution = pres/(sqrt(2.*pi)*pellet_var)**3 &
             *exp(-(r**2 + pellet_x**2 -2.*r*pellet_x*cos(phi-pellet_phi) &
             + (z - pellet_z)**2) / (2.*pellet_var**2))
+
+    ! toroidal, axisymmetric gaussian
+    case(5)
+       pellet_distribution = 1./(2.*pi*pellet_var**2) &
+            *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
+            /(2.*pellet_var**2))
+       if(itor.eq.1) pellet_distribution = pellet_distribution / r
+
+    ! spherical, cartesian gaussian
+    case(6)
+       x = r*cos(phi)
+       y = r*sin(phi)
+       px = pellet_x*cos(pellet_phi)
+       py = pellet_x*sin(pellet_phi)
+
+       pellet_distribution = 1./ &
+            (sqrt(2.*pi*pellet_var)**3) &
+            *exp(-((x-px)**2 + (y-py)**2 + (z-pellet_z)**2) &
+                  /(2.*pellet_var**2))
+
 #else
+
+    ! axisymmetric gaussian pellet source
+    case(1, 5)
+       pellet_distribution = 1./(2.*pi*pellet_var**2) &
+            *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
+            /(2.*pellet_var**2))
+       if(itor.eq.1) pellet_distribution = pellet_distribution / r
+
+    !......distributed source added 11/23/2011   (scj)
+    case(2)
+       pellet_distribution = den0*(max(pedge,real(pres))/p0)**expn
+
+    ! pressure-weighted gaussian pellet source
+    case(3)
        pellet_distribution = pres/(2.*pi*pellet_var**2) &
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
             /(2.*pellet_var**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
-#endif
 
+    ! different normalization of axisymmetric gaussian
     case(4)
-
-#ifdef USE3D
-       pellet_distribution = 1./ &
-            (sqrt(2.*pi)**3*(pellet_var)**2*pellet_var_tor) &
-            *exp(-((r-pellet_x)**2 + (z-pellet_z)**2) &
-            /(2.*(pellet_var)**2) &
-            -2.*r*pellet_x*(1.-cos(phi-pellet_phi)) &
-            /(2.*pellet_var_tor**2))
-#else
        pellet_distribution = 1./sqrt(2.*pi*(pellet_var)**2) &
             *exp(-((r - pellet_x)**2 + (z - pellet_z)**2) &
             /(2.*(pellet_var)**2))
+
+    ! circular, cartesian gaussian
+    case(6)
+       pellet_distribution = 1./ &
+            (2.*pi*pellet_var**2) &
+            *exp(-((r-pellet_x)**2 + (z-pellet_z)**2) &
+                  /(2.*pellet_var**2))
+
 #endif
 
     case default
