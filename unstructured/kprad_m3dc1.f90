@@ -352,7 +352,7 @@ contains
     source = 0.
 
     def_fields = FIELD_N + FIELD_TE
-    if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) &
+    if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
          def_fields = def_fields + FIELD_P
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix'
@@ -372,7 +372,7 @@ contains
        end do
        ne = net79(:,OP_1)
 
-       if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) then
+       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
           source = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
        end if
