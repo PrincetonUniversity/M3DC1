@@ -364,10 +364,10 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
 
   ! Pellet stuff
-  call output_scalar(scalar_group_id, "pellet_x",   pellet_x,   ntime, error)
+  call output_scalar(scalar_group_id, "pellet_r",   pellet_r,   ntime, error)
   call output_scalar(scalar_group_id, "pellet_phi", pellet_phi, ntime, error)
   call output_scalar(scalar_group_id, "pellet_z",   pellet_z,   ntime, error)
-  call output_scalar(scalar_group_id, "pellet_velx", pellet_velx, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_velr", pellet_velr, ntime, error)
   call output_scalar(scalar_group_id, "pellet_velphi", pellet_velphi, ntime, error)
   call output_scalar(scalar_group_id, "pellet_velz", pellet_velz, ntime, error)
   call output_scalar(scalar_group_id, "pellet_var", pellet_var, ntime, error)

@@ -141,7 +141,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
     endif else $
      if (strcmp("pellet R position", scalarname, /fold_case) eq 1) or $
      (strcmp("pelrpos", scalarname, /fold_case) eq 1) then begin
-       data = s.pellet_x._data
+       if(version lt 26) then begin
+          data = s.pellet_x._data
+       endif else begin
+          data = s.pellet_r._data
+       end
        title = 'Pellet R position'
        symbol = '!8V!DL!N!X'
        d = dimensions(/l0, _EXTRA=extra)

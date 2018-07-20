@@ -769,7 +769,7 @@ subroutine set_defaults
        "1 = include a gaussian pellet source", source_grp)
   call add_var_int("ipellet_z", ipellet_z, 0, &
        "Atomic number of pellet (0 = main ion species)", source_grp)
-  call add_var_double("pellet_x", pellet_x, 0., &
+  call add_var_double("pellet_r", pellet_r, 0., &
        "Initial radial position of the pellet", source_grp)
   call add_var_double("pellet_phi", pellet_phi, 0., &
        "Initial toroidal position of the pellet", source_grp)
@@ -778,12 +778,12 @@ subroutine set_defaults
   call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
   call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
   call add_var_double("pellet_var_tor", pellet_var_tor, 0., "", source_grp)
-  call add_var_double("pellet_velx", pellet_velx, 0., &
-       "Radial velocity of the pellet", source_grp)
+  call add_var_double("pellet_velr", pellet_velr, 0., &
+       "Initial radial velocity of the pellet", source_grp)
   call add_var_double("pellet_velphi", pellet_velphi, 0., &
-       "Toroidal velocity of the pellet", source_grp)
+       "Initial toroidal velocity of the pellet", source_grp)
   call add_var_double("pellet_velz", pellet_velz, 0., &
-       "Vertical velocity of the pellet", source_grp)
+       "Initial vertical velocity of the pellet", source_grp)
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
   call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
