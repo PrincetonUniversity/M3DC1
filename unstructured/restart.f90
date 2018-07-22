@@ -73,7 +73,7 @@ subroutine wrrestart
      write(56) data_buff(j1)
   enddo
   write(56) pellet_r, pellet_phi, pellet_z, &
-       pellet_velr, pellet_velphi, pellet_velz, pellet_var
+       pellet_velr, pellet_velphi, pellet_velz, pellet_vx, pellet_vy, pellet_var
   write(56) version
   write(56) icsubtract
   if(icsubtract.eq.1) then
@@ -234,7 +234,7 @@ else
   call m3dc1_field_set(bf_field(0)%vec%id, data_buff, ndofs)
 
   read(56, END=1199) pellet_r, pellet_phi, pellet_z, &
-       pellet_velr, pellet_velphi, pellet_velz, pellet_var
+       pellet_velr, pellet_velphi, pellet_velz, pellet_vx, pellet_vy, pellet_var
 
   read(56, END=1199) version_in
 
@@ -439,7 +439,7 @@ subroutine rdrestart_2d23d
     call m3dc1_field_sync (bf_field(0)%vec%id)
 
   read(56, END=1199) pellet_r, pellet_phi, pellet_z, &
-       pellet_velr, pellet_velphi, pellet_velz, pellet_var
+       pellet_velr, pellet_velphi, pellet_velz, pellet_vx, pellet_vy, pellet_var
 
   read(56, END=1199) version_in
 
@@ -650,7 +650,7 @@ subroutine rdrestart_cplx
   call m3dc1_field_set(bf_field(0)%vec%id, data_buff, ndofs)
 
   read(56, END=1199) pellet_r, pellet_phi, pellet_z, &
-       pellet_velr, pellet_velphi, pellet_velz, pellet_var
+       pellet_velr, pellet_velphi, pellet_velz, pellet_vx, pellet_vy, pellet_var
 
   read(56, END=1199) version_in
 
@@ -1202,6 +1202,8 @@ subroutine wrrestart_adios
     call adios_write (adios_handle, "pellet_velr", pellet_velr, adios_err)
     call adios_write (adios_handle, "pellet_velphi", pellet_velphi, adios_err)
     call adios_write (adios_handle, "pellet_velz", pellet_velz, adios_err)
+    call adios_write (adios_handle, "pellet_vx", pellet_vx, adios_err)
+    call adios_write (adios_handle, "pellet_vy", pellet_vy, adios_err)
     call adios_write (adios_handle, "pellet_var", pellet_var, adios_err)
     call adios_write (adios_handle, "r_p", r_p, adios_err)
     call adios_write (adios_handle, "version", version, adios_err)
@@ -1359,6 +1361,10 @@ subroutine rdrestart_adios
     end if
     call adios_read_local_var (gh, "pellet_velphi",        group_rank, start, readsize, pellet_velphi, read_bytes)
     call adios_read_local_var (gh, "pellet_velz",group_rank, start, readsize, pellet_velz, read_bytes)
+    if(version_in.ge.26) then
+       call adios_read_local_var (gh, "pellet_vx",group_rank, start, readsize, pellet_vx, read_bytes)
+       call adios_read_local_var (gh, "pellet_vy",group_rank, start, readsize, pellet_vy, read_bytes)
+    end if
     call adios_read_local_var (gh, "pellet_var", group_rank, start, readsize, pellet_var, read_bytes)
     if(version_in.ge.12) then
        call adios_read_local_var (gh, "pellet_rate", group_rank, start, readsize, pellet_rate, read_bytes)

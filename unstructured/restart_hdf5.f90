@@ -122,6 +122,10 @@ contains
     end if
     call read_scalar(scalar_group_id, "pellet_velphi",  pellet_velphi, ntime, error)
     call read_scalar(scalar_group_id, "pellet_velz",    pellet_velz,   ntime, error)
+    if(version_in.ge.26) then
+       call read_scalar(scalar_group_id, "pellet_vx",    pellet_vx,   ntime, error)
+       call read_scalar(scalar_group_id, "pellet_vy",    pellet_vy,   ntime, error)
+    end if
     call read_scalar(scalar_group_id, "pellet_var",     pellet_var,    ntime, error)
     call read_scalar(scalar_group_id, "r_p",            r_p,           ntime, error)
     call read_scalar(scalar_group_id, "pellet_rate",    pellet_rate,   ntime, error)

@@ -17,7 +17,7 @@ module pellet
   real :: pellet_velr
   real :: pellet_velphi
   real :: pellet_velz
-  real :: pellet_velx, pellet_vely
+  real :: pellet_vx, pellet_vy
 
   integer :: ipellet_abl
   real :: r_p
@@ -42,8 +42,8 @@ contains
     if(pellet_var_tor.le.0) pellet_var_tor = pellet_var
 
     ! initialize Cartesian velocities
-    pellet_velx = pellet_velr*cos(pellet_phi) - pellet_velphi*sin(pellet_phi)
-    pellet_vely = pellet_velr*sin(pellet_phi) + pellet_velphi*cos(pellet_phi)
+    pellet_vx = pellet_velr*cos(pellet_phi) - pellet_velphi*sin(pellet_phi)
+    pellet_vy = pellet_velr*sin(pellet_phi) + pellet_velphi*cos(pellet_phi)
     
   end subroutine pellet_init
 
@@ -153,8 +153,8 @@ contains
     x = pellet_r*cos(pellet_phi)
     y = pellet_r*sin(pellet_phi)
 
-    x        = x        + pellet_velx*dt
-    y        = y        + pellet_vely*dt
+    x        = x        + pellet_vx*dt
+    y        = y        + pellet_vy*dt
     pellet_z = pellet_z + pellet_velz*dt
 
     pellet_r   = sqrt(x**2 + y**2)
