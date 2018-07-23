@@ -23,8 +23,8 @@ endif
 
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_DIR =
-  PETSC_ARCH =
+  PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
+  PETSC_ARCH = cori-knl-mpich771-cplx-nomkl-540
   HYPRE_LIB = 
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
@@ -34,8 +34,8 @@ else
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
   else
-    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.1
-    PETSC_ARCH = cori-knl-mpich762-real-nomkl-510
+    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
+    PETSC_ARCH = cori-knl-mpich771-real-nomkl-540
   endif
   HYPRE_LIB =
 endif
@@ -53,7 +53,7 @@ PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 
 SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/bin
 SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/May2018/
-
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.0/knl-petsc3.9.3/July2018
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
