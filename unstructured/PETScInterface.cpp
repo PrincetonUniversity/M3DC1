@@ -79,6 +79,8 @@ extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){
 //                          PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
 //  ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
 
+    ierr = KSPSetInitialGuessNonzero(*ksp,PETSC_TRUE);CHKERRQ(ierr);
+
     // lgmres set up for hard problem #5 and #17
     if(matrixid==5 || matrixid==17) {
        PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
