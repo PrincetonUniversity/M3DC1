@@ -70,13 +70,12 @@ module adapt
           p_dt = 0.
           p_steps = 1
        end if
-       print *, "PELLET INFO", p_steps, p_dt
+
        do j=1, p_steps
           x = x0 + pellet_vx*(j-1)*p_dt
           y = y0 + pellet_vy*(j-1)*p_dt
           xp_adapt(j) = sqrt(x**2 + y**2)
           zp_adapt(j) = pellet_z + pellet_velz*(j-1)*p_dt
-          print *, j, xp_adapt(j), zp_adapt(j)
        end do
     end if
 
@@ -168,7 +167,7 @@ module adapt
           do j = 1, p_steps
              temp79c = temp79c + &
                   exp(-((x_79 - xp_adapt(j))**2 + (z_79 - zp_adapt(j))**2) / &
-                       (2.*adapt_pellet_delta**2))/1.27
+                       (2.*adapt_pellet_delta**2))/1.27 ! BCL: 1.27 "normalizes" this
           end do
           where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c
