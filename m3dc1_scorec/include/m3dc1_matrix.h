@@ -91,7 +91,7 @@ public:
   int iterNum;
 private:  
   int setUpRemoteAStruct();
-  int setKspType();
+  int setKspType(Vec *b, Vec *x);
   int kspSet;
   KSP* ksp; 
   Mat remoteA;
