@@ -1530,7 +1530,7 @@ subroutine validate_input
      call pellet_init
      
      if(ipellet_z.ne.0 .and. &
-        (ikprad.eq.0 .or. ipellet_z.ne.kprad_z)) then
+        (ikprad.ne.0 .and. ipellet_z.ne.kprad_z)) then
         if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
         call safestop(1)
      end if
