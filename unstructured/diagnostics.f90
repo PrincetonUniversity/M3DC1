@@ -1040,8 +1040,8 @@ subroutine calculate_scalars()
      print *, "  Recombination radiation (potential) = ", recprad
      if(ipellet_abl.gt.0) then
         print *, "  nsource = ", nsource
-        print *, "  pellet particles injected = ",pellet_rate*(n0_norm*l0_norm**3)
-        print *, "  pellet radius (in m) = ", r_p*l0_norm
+        print *, "  pellet particles injected = ",pellet_rate*dt*(n0_norm*l0_norm**3)
+        print *, "  pellet radius (in cm) = ", r_p*l0_norm
         print *, "  Electron temperature around the pellet (in eV) = ", temp_pel
         print *, "  Electron density around the pellet (in ne14) = ", nsource_pel
         print *, "  rpdot (in cm/s) = ", rpdot*l0_norm/t0_norm
