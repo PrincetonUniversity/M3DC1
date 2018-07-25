@@ -383,6 +383,13 @@ contains
             -(91.*(1-x)**(25./2.))/5.+(70.*(1-x)**(27./2.))/27.-(5.*(1-x)**(29./2.))/29.)
        
        qfunc=-psi/xbtheta
+
+    case(32)
+    if(psi .lt. q2_qp) then
+       qfunc = q0_qp
+    else
+       qfunc = q0_qp + q4_qp*(psi - q2_qp)**2
+    endif
        
     end select
   end function qfunc
@@ -453,7 +460,13 @@ contains
             -(1144.*15.*(1-x)**(13./2.))/2.+(15015.*(1-x)**(15./2.))/2.-(10010.*(1-x)**(17./2.))/2. &
             +(715.*7.*(1-x)**(19./2.))/2.-(1820.*(1-x)**(21./2.))/2.+(91.*5.*(1-x)**(23./2.))/2. &
             -(70.*(1-x)**(25./2.))/2.+(5.*(1-x)**(27./2.))/2.))/(2.*x*xbtheta**2) 
-       
+
+    case(32)
+       if(psi .lt. q2_qp) then
+          qpfunc = 0
+       else
+          qpfunc = 2.*q4_qp*(psi - q2_qp)
+       endif
     end select
   end function qpfunc
 
@@ -480,7 +493,9 @@ contains
        else
           pfunc = pedge_qp
        endif
-       
+
+    case(32)
+       pfunc = p0_qp*(1. - psi) + pedge_qp
     end select
     return
   end function pfunc
@@ -507,6 +522,9 @@ contains
        else
           ppfunc = 0.
        endif
+
+    case(32)
+       ppfunc = -p0_qp
        
     end select
   end function ppfunc
