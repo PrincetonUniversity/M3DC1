@@ -167,7 +167,7 @@ contains
        if(max_change .lt. 0.02) then
           ! If ne change is < 2%, increase time step
           dts = dts * 1.5
-       elseif(max_change .gt. 0.2) then
+       elseif((max_change .gt. 0.2) .and. (dts .gt. dts_min)) then
           ! If ne change is > 20%, backtrack changes and reduce time step
           t = t - dts
           dw_ion = dw_ion - pion*dts
@@ -178,6 +178,7 @@ contains
           ne = ne_old
           nz = nz_old
           dts = dts / 2.
+          last_step = .false.
 
           if(dts.lt.dts_min) dts = dts_min
        end if
