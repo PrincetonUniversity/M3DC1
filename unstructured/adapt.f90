@@ -88,10 +88,10 @@ module adapt
        ! if adapt_psin_wall or adapt_psin_vacuum is set in multi-region mesh,
        ! set psin in the wall or vacuum region to the appropriate value
        if(imulti_region.eq.1) then
-          if(izone.eq.2 .and. adapt_psin_wall.ne.0) then
+          if(izone.eq.2 .and. adapt_psin_wall.ge.0) then
              temp79b = adapt_psin_wall
           end if
-          if(izone.ge.3 .and. adapt_psin_vacuum.ne.0) then
+          if(izone.ge.3 .and. adapt_psin_vacuum.ge.0) then
              temp79b = adapt_psin_vacuum
           end if
        end if

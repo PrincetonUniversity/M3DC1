@@ -986,9 +986,9 @@ subroutine set_defaults
   call add_var_double("adapt_hmin_rel", adapt_hmin_rel, 0.5, "", adapt_grp)
   call add_var_double("adapt_hmax_rel", adapt_hmax_rel, 2.0, "", adapt_grp)
   call add_var_double("adapt_smooth", adapt_smooth, 2./3., "", adapt_grp)
-  call add_var_double("adapt_psin_vacuum", adapt_psin_vacuum, 0., &
+  call add_var_double("adapt_psin_vacuum", adapt_psin_vacuum, -1., &
        "", adapt_grp)
-  call add_var_double("adapt_psin_wall", adapt_psin_wall, 0., &
+  call add_var_double("adapt_psin_wall", adapt_psin_wall, -1., &
        "", adapt_grp)
   call add_var_int("iadapt_pack_rationals", iadapt_pack_rationals, 0, &
        "Number of mode-rational surfaces to pack mesh around", adapt_grp)
