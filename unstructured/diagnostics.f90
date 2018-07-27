@@ -15,6 +15,8 @@ module diagnostics
   real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne
   real :: totrad, linerad, bremrad, ionrad, reckrad, recprad
   real :: w_pe   ! electron thermal energy
+  real :: w_m    ! totoidal poloidal magnetic energy inside plasma
+  real :: w_p    ! totoidal poloidal magnetic energy inside plasma
   real :: totre  ! total number of runaway electrons
 
   ! wall forces in R, phi, and Z directions
@@ -243,6 +245,8 @@ contains
 
     totre = 0.
     w_pe = 0.
+    w_m = 0.
+    w_p = 0.
 
     wall_force_n0_x = 0.
     wall_force_n0_y = 0.
@@ -250,6 +254,7 @@ contains
     wall_force_n1_x = 0.
     wall_force_n1_y = 0.
     wall_force_n1_z = 0.
+
   end subroutine reset_scalars
 
 
@@ -266,7 +271,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 71
+    integer, parameter :: num_scalars = 73
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -343,7 +348,8 @@ contains
        temp(69) = pcur_sn        
        temp(70) = m_iz_co        
        temp(71) = m_iz_sn        
-
+       temp(72) = w_m
+       temp(73) = w_p
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -420,6 +426,8 @@ contains
        pcur_sn = temp2(69)
        m_iz_co = temp2(70)
        m_iz_sn = temp2(71)
+       w_m     = temp2(72)
+       w_p     = temp2(73)
     endif !if maxrank .gt. 1
 
   end subroutine distribute_scalars
@@ -717,7 +725,7 @@ subroutine calculate_scalars()
   numelms = local_elements()
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -790,6 +798,7 @@ subroutine calculate_scalars()
      if(ike_only.eq.1) cycle
 
      emagp  = emagp  + twopi*energy_mp ()/tpifac
+     w_m    = w_m    + twopi*energy_mp (mr)/tpifac
      emagpd = emagpd + twopi*energy_mpd()/tpifac
 !     emagph = emagph - twopi*qpsipsieta(tm79)/tpifac
 
@@ -799,6 +808,7 @@ subroutine calculate_scalars()
 
      emag3 = emag3 + twopi*energy_p()/tpifac
      w_pe = w_pe + twopi*energy_pe()/tpifac
+     w_p  = w_p +  twopi*energy_p(mr)/tpifac
 
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
