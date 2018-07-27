@@ -889,7 +889,8 @@ function kappa_func()
      if(kappa0.eq.0) then
         temp79a = 0.
      else
-        temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))      
+        temp79b = max(den_edge*pedge,real(nt79(:,OP_1))*real(pt79(:,OP_1)))
+        temp79a = kappa0*sqrt(1./temp79b)      
      end if
 
   case(4)

@@ -879,7 +879,7 @@ contains
      b2i79 = 0.
 
      temp79a = ri2_79* &
-          (pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2 + bztx79(:,OP_1)**2)
+          (pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2 + k_fac*bztx79(:,OP_1)**2)
 
 #if defined(USECOMPLEX) || defined(USE3D)
      temp79b = &
@@ -894,10 +894,10 @@ contains
      bi79(1:npoints,OP_1)  = sqrt(b2i79(1:npoints,OP_1))
      b2i79(:,OP_DR) = ri2_79 * &
           (pstx79(:,OP_DR)*pstx79(:,OP_DRR)+pstx79(:,OP_DZ)*pstx79(:,OP_DRZ) &
-          +bztx79(:,OP_1 )*bztx79(:,OP_DR ))
+          +k_fac*bztx79(:,OP_1 )*bztx79(:,OP_DR ))
      b2i79(:,OP_DZ) = ri2_79 * &
           (pstx79(:,OP_DR)*pstx79(:,OP_DRZ)+pstx79(:,OP_DZ)*pstx79(:,OP_DZZ) &
-          +bztx79(:,OP_1 )*bztx79(:,OP_DZ ))
+          +k_fac*bztx79(:,OP_1 )*bztx79(:,OP_DZ ))
 
      if(itor.eq.1) then 
         b2i79(:,OP_DR) = b2i79(:,OP_DR) - ri_79*temp79a
