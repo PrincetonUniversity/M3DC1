@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 25
+  integer, parameter :: version = 26
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -66,6 +66,7 @@ module basic
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappah      ! phenomenological model for H-mode
   real :: kappar      ! coefficient of field-aligned temperature diffusion
+  real :: k_fac   ! factor by which the toroidal field is multiplied in 1/B^2 that appears in kappa_parallel
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: kappag
   real :: kappaf

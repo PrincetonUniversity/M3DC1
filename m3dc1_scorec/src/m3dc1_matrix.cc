@@ -30,7 +30,12 @@ using std::complex;
 // extern "C" int setPETScMat(int matrixid, Mat * A) {};
 // extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){};
 extern "C" int setPETScMat(int matrixid, Mat * A);
+#ifndef PETSCMASTER
+// petsc 3.8.2 and older
 extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A);
+#else
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A, Vec *b, Vec *x);
+#endif
 extern "C" int get_iter_num_( int * iter_num_p) {*iter_num_p=-1;};
 
 using std::vector;
@@ -984,7 +989,7 @@ int matrix_solve::solve(FieldID field_id)
   copyField2PetscVec(field_id, b, get_scalar_type());
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
   ksp = new KSP;
-  setKspType();
+  setKspType(&b,&x);
   // as per Sherri's suggestion 03/05/2018
   KSPSetUp(*ksp);
   KSPSetUpOnBlocks(*ksp);
@@ -1006,11 +1011,16 @@ int matrix_solve::solve(FieldID field_id)
   delete ksp;
 }
 
-int matrix_solve::setKspType()
+int matrix_solve::setKspType(Vec *b, Vec *x)
 {
   PetscErrorCode ierr;
   KSPCreate(MPI_COMM_WORLD, ksp);
-  ierr = setPETScKSP(id, ksp, A); CHKERRQ(ierr);
+#ifndef PETSCMASTER
+  ierr = setPETScKSP(id, ksp, A); 
+#else
+  ierr = setPETScKSP(id, ksp, A, b, x);
+#endif
+  CHKERRQ(ierr);
 
   ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
   ierr = KSPSetTolerances(*ksp, .000001, .000000001,

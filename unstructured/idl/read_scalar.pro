@@ -145,15 +145,31 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(/n0, t0=-1, _EXTRA=extra)
    endif else $
      if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
-       data = scalar_beta(filename=filename)
-       title = 'Average Beta'
+      if(version lt 26) then begin
+         print, 'Beta = int(P) / int(B^2/2); integration over XMHD region'
+         data = scalar_beta(filename=filename)
+         title = 'Global Beta'
+      endif else begin
+         print, 'Beta = int(P) / int(B^2/2); integration over plasma volume'
+         gamma = read_parameter('gam', filename=filename)
+         data = (gamma - 1.)*s.W_P._data / (s.E_MP._data + s.E_MT._data)
+         title = 'Plasma Beta'
+      endelse
        symbol = '!7b!X'
        d = dimensions(_EXTRA=extra)
    endif else if $
      (strcmp("poloidal beta", scalarname, /fold_case) eq 1) or $
      (strcmp("bp", scalarname, /fold_case) eq 1) then begin
-       data = scalar_beta_poloidal(filename=filename)
-       title = 'Poloidal Beta'
+      if(version lt 26) then begin
+         print, 'Beta_poloidal = 2.*int(P) / IP^2; integration over XMHD region'
+         data = scalar_beta_poloidal(filename=filename)
+         title = 'Global Poloidal Beta'
+      endif else begin
+         print, 'Beta_poloidal = W_P / W_M; integration over plasma volume'
+         gamma = read_parameter('gam',filename=filename)
+         data = (gamma-1.)*s.w_p._data/s.w_m._data
+         title = 'Plasma Poloidal Beta'
+      endelse
        symbol = '!7b!D!8P!N!X'
        d = dimensions(_EXTRA=extra)
    endif else $
@@ -184,6 +200,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.E_MP._data + s.E_MT._data 
        title = 'Magnetic Energy'
        symbol = '!8ME!X'
+       d = dimensions(/energy, _EXTRA=extra)
+   endif else if $
+     (strcmp("poloidal magnetic energy", scalarname, /fold_case) eq 1) or $
+     (strcmp("Wm", scalarname, /fold_case) eq 1)then begin
+       nv = read_parameter("numvar", filename=filename)
+       data = s.E_MP._data
+       title = 'Poloidal Magnetic Energy'
+       symbol = '!8W!Dm!N!X'
        d = dimensions(/energy, _EXTRA=extra)
    endif else if $
      (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
@@ -273,6 +297,13 @@ function read_scalar, scalarname, filename=filename, title=title, $
               / s.toroidal_current_p._data / rzero
        title = 'Normalized Internal Inductance'
        symbol = '!13l!Di!X'
+       d = dimensions(_EXTRA=extra)
+   endif else if (strcmp("li3", scalarname, /fold_case) eq 1) then begin
+      rzero = read_parameter('rzero', filename=filename)
+       Wm = s.E_MP._data
+       data = 4.*Wm / s.toroidal_current_p._data^2 / rzero
+       title = 'Normalized Internal Inductance'
+       symbol = '!13l!Di!N!6(3)!X'
        d = dimensions(_EXTRA=extra)
    endif else if (strcmp("xmag", scalarname, /fold_case) eq 1) then begin
        data = s.xmag._data

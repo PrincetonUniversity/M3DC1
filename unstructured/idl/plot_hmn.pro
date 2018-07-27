@@ -1,5 +1,6 @@
 pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
-                yrange=yrange, smooth=sm, overplot=over, _EXTRA=extra, ke=ke, me=me
+                yrange=yrange, smooth=sm, overplot=over, _EXTRA=extra, $
+              ke=ke, me=me, xscale=xscale
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
    if(hdf5_file_test(filename) eq 0) then return
 
@@ -65,20 +66,21 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    ; get plot's yrange, default to minmax(...)
    if(n_elements(yrange) eq 0) then yrange=[min(tmp), max(tmp)]
 
+   if(n_elements(xscale) eq 0) then xscale = 1.
 
    c = get_colors(n)
    for n=0, maxn-1 do begin
 
       if(n lt 1 and not keyword_set(over)) then begin
-         plot, time[1:ntimes-1], tmp[n,1:ntimes-1], $
+         plot, time[1:ntimes-1]*xscale, tmp[n,1:ntimes-1], $
                xtitle=xtitle, ytitle=ytitle, yrange=yrange, $
                _EXTRA=extra
       endif else begin
-         oplot, time, tmp[n,*], linestyle=0, color=c[n]
+         oplot, time*xscale, tmp[n,*], linestyle=0, color=c[n]
       endelse
 
       numberAsString = STRTRIM(n, 2)
-      xyouts, time[ntimes/2], tmp[n,ntimes/2], numberAsString, color=c[n]
+      xyouts, time[ntimes/2]*xscale, tmp[n,ntimes/2], numberAsString, color=c[n]
    endfor
    plot_legend, string(format='("!8n!6=",I0,"!X")',indgen(maxn)), $
                 color=c, _EXTRA=extra
