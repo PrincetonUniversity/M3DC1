@@ -103,7 +103,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   if(keyword_set(sm)) then data = smooth(data, sm)
 
-  if(n_elements(x) eq 0) then begin   
+  if(n_elements(x) eq 0) then begin
       if(not keyword_set(overplot)) then begin
           plot, tdata*xscale, data, xtitle=xtitle, ytitle=ytitle, $
             title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
