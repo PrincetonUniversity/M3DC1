@@ -162,7 +162,7 @@ contains
 
     ! Pellet cloud radius which contains the same number of particles as the realistic pellet
     if(ipellet_abl.gt.0) then
-       pellet_var = cloud_pel*r_p
+       pellet_var = max(cloud_pel*r_p,1e-8)
     endif
 
   end subroutine pellet_advance
