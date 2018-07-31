@@ -12333,58 +12333,67 @@ end function qchichimu
 
 ! Poloidal magnetic
 ! -----------------
-real function energy_mp()
+real function energy_mp(mask)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
+  vectype, intent(in), optional, dimension(MAX_PTS) :: mask
+
   vectype :: temp
+
+  if(present(mask)) then
+     temp79a = mask
+  else
+     temp79a = 1.
+  end if
+
 
   if(linear.eq.1) then
      temp = .5* &
-          (int3(ri2_79,ps179(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ))) &
-          +int3(ri2_79,ps179(:,OP_DR),CONJUGATE(ps179(:,OP_DR))))
+          (int4(ri2_79,ps179(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ)),temp79a) &
+          +int4(ri2_79,ps179(:,OP_DR),CONJUGATE(ps179(:,OP_DR)),temp79a))
 #ifdef USECOMPLEX
      if(numvar.gt.1) then
         temp = temp + .5* &
-             (int2(bf179(:,OP_DZP),CONJUGATE(bf179(:,OP_DZP))) &
-             +int2(bf179(:,OP_DRP),CONJUGATE(bf179(:,OP_DRP))) &
-             +int3(ri_79,ps179(:,OP_DZ),CONJUGATE(bf179(:,OP_DRP))) &
-             -int3(ri_79,ps179(:,OP_DR),CONJUGATE(bf179(:,OP_DZP))) &
-             +int3(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf179(:,OP_DRP)) &
-             -int3(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP)))
+             (int3(bf179(:,OP_DZP),CONJUGATE(bf179(:,OP_DZP)),temp79a) &
+             +int3(bf179(:,OP_DRP),CONJUGATE(bf179(:,OP_DRP)),temp79a) &
+             +int4(ri_79,ps179(:,OP_DZ),CONJUGATE(bf179(:,OP_DRP)),temp79a) &
+             -int4(ri_79,ps179(:,OP_DR),CONJUGATE(bf179(:,OP_DZP)),temp79a) &
+             +int4(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf179(:,OP_DRP),temp79a) &
+             -int4(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP),temp79a))
      endif
 #endif
   else
 !    nonlinear:   subtract off equilibrium piece
      temp = .5* &
-          (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ)) &
-          +int3(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR))) &
+          (int4(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),temp79a) &
+          +int4(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR),temp79a)) &
           - .5* &
-          (int3(ri2_79,ps079(:,OP_DZ),ps079(:,OP_DZ)) &
-          +int3(ri2_79,ps079(:,OP_DR),ps079(:,OP_DR)))
+          (int4(ri2_79,ps079(:,OP_DZ),ps079(:,OP_DZ),temp79a) &
+          +int4(ri2_79,ps079(:,OP_DR),ps079(:,OP_DR),temp79a))
 #if defined(USE3D)
      if(numvar.gt.1) then
         temp = temp   &
              + .5* &
-             (int2(bft79(:,OP_DZP),bft79(:,OP_DZP)) &
-             +int2(bft79(:,OP_DRP),bft79(:,OP_DRP)) &
-             +2.*int3(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP)) &
-             -2.*int3(ri_79,pst79(:,OP_DR),bft79(:,OP_DRP)) )
+             (int3(bft79(:,OP_DZP),bft79(:,OP_DZP),temp79a) &
+             +int3(bft79(:,OP_DRP),bft79(:,OP_DRP),temp79a) &
+             +2.*int4(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP),temp79a) &
+             -2.*int4(ri_79,pst79(:,OP_DR),bft79(:,OP_DRP),temp79a) )
      endif
 #endif
 
 #ifdef USECOMPLEX
      if(numvar.gt.1) then
         temp = temp + .5* &
-             (int2(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP))) &
-             +int2(bft79(:,OP_DRP),CONJUGATE(bft79(:,OP_DRP))) &
-             +int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bft79(:,OP_DRP))) &
-             -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bft79(:,OP_DRP))) &
-             +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bft79(:,OP_DRP)) &
-             -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bft79(:,OP_DZP)))
+             (int3(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP)),temp79a) &
+             +int3(bft79(:,OP_DRP),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
+             +int4(ri_79,pst79(:,OP_DZ),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
+             -int4(ri_79,pst79(:,OP_DR),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
+             +int4(ri_79,CONJUGATE(pst79(:,OP_DZ)),bft79(:,OP_DRP),temp79a) &
+             -int4(ri_79,CONJUGATE(pst79(:,OP_DR)),bft79(:,OP_DZP),temp79a))
      endif
 #endif
   endif
@@ -12420,23 +12429,31 @@ end function energy_mt
 
 ! Pressure
 ! --------
-real function energy_p()
+real function energy_p(mask)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
+  vectype, intent(in), optional, dimension(MAX_PTS) :: mask
+
   vectype :: temp
+
+  if(present(mask)) then
+     temp79a = mask
+  else
+     temp79a = 1.
+  end if
 
   if(gam.le.1.) then 
      temp = 0.
   else
      if(linear.eq.1) then
-        temp = int1(p179) / (gam - 1.)
+        temp = int2(p179,temp79a) / (gam - 1.)
      else
 !.......nonlinear: subtract off equilibrium piece
-        temp = (int1(pt79) - int1(p079))/ (gam - 1.)
+        temp = (int2(pt79,temp79a) - int2(p079,temp79a))/ (gam - 1.)
      endif
   endif
 
