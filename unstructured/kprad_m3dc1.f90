@@ -107,7 +107,7 @@ contains
 
     integer :: itri, nelms, def_fields
     vectype, dimension(dofs_per_element) :: dofs
-    real, dimension(MAX_PTS) :: p, den
+    real, dimension(MAX_PTS) :: p
 
     if(ikprad.eq.0) return
 
@@ -126,9 +126,8 @@ contains
 
        if(ipellet.lt.0. .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
-          den = nt79(:,OP_1)
           temp79a = temp79a + &
-               pellet_deposition(x_79, phi_79, z_79, p, den, 0.)
+               pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
        end if
 
        dofs = intx2(mu79(:,:,OP_1),temp79a)
@@ -353,7 +352,7 @@ contains
     source = 0.
 
     def_fields = FIELD_N + FIELD_TE
-    if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) &
+    if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
          def_fields = def_fields + FIELD_P
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix'
@@ -373,9 +372,9 @@ contains
        end do
        ne = net79(:,OP_1)
 
-       if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) then
+       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
-          source = pellet_deposition(x_79, phi_79, z_79, p, ne, 0.)
+          source = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
        end if
 
        n0_old = sum(nz(:,1:kprad_z),2)

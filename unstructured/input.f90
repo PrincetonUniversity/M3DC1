@@ -771,7 +771,7 @@ subroutine set_defaults
        "1 = include a gaussian pellet source", source_grp)
   call add_var_int("ipellet_z", ipellet_z, 0, &
        "Atomic number of pellet (0 = main ion species)", source_grp)
-  call add_var_double("pellet_x", pellet_x, 0., &
+  call add_var_double("pellet_r", pellet_r, 0., &
        "Initial radial position of the pellet", source_grp)
   call add_var_double("pellet_phi", pellet_phi, 0., &
        "Initial toroidal position of the pellet", source_grp)
@@ -780,19 +780,20 @@ subroutine set_defaults
   call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
   call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
   call add_var_double("pellet_var_tor", pellet_var_tor, 0., "", source_grp)
-  call add_var_double("pellet_velx", pellet_velx, 0., &
-       "Radial velocity of the pellet", source_grp)
+  call add_var_double("pellet_velr", pellet_velr, 0., &
+       "Initial radial velocity of the pellet", source_grp)
   call add_var_double("pellet_velphi", pellet_velphi, 0., &
-       "Toroidal velocity of the pellet", source_grp)
+       "Initial toroidal velocity of the pellet", source_grp)
   call add_var_double("pellet_velz", pellet_velz, 0., &
-       "Vertical velocity of the pellet", source_grp)
+       "Initial vertical velocity of the pellet", source_grp)
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
   call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
-  call add_var_double("r_p2", r_p2, 1.e-3, "", source_grp)
-  call add_var_double("pellet_volume", pellet_volume, 1.e-9, "", source_grp)
-  call add_var_double("pellet_volume_2D", pellet_volume_2D, 1.e-7, "", source_grp)
   call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)
+  call add_var_double("pellet_mix", pellet_mix, 0.,&
+       "Molar fraction of deuterium in pellet", source_grp)
+  call add_var_double("temin_abl", temin_abl, 0., &
+       "Min. Temp. at which ablation turns on", source_grp)
 
 
   ! beam source
@@ -998,6 +999,10 @@ subroutine set_defaults
        "Width of Lorentzian (in psi_N) for rational mesh packing", adapt_grp)
   call add_var_double("adapt_coil_delta", adapt_coil_delta, 0., &
        "Parameter for packing mesh around coil locations", adapt_grp)
+  call add_var_double("adapt_pellet_length", adapt_pellet_length, 0., &
+       "Length of pellet path to pack mesh along", adapt_grp)
+  call add_var_double("adapt_pellet_delta", adapt_pellet_delta, 0., &
+       "Parameter for packing mesh along pellet path", adapt_grp)
 
 
   ! Mesh
@@ -1527,7 +1532,7 @@ subroutine validate_input
      call pellet_init
      
      if(ipellet_z.ne.0 .and. &
-        (ikprad.eq.0 .or. ipellet_z.ne.kprad_z)) then
+        (ikprad.ne.0 .and. ipellet_z.ne.kprad_z)) then
         if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
         call safestop(1)
      end if
