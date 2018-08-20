@@ -177,7 +177,7 @@ find_package(Scorec REQUIRED)
 list(APPEND LINK_LIBS ${SCOREC_LIBRARIES})
 list(APPEND INCLUDE_DIRS ${SCOREC_INCLUDE_DIRS})
 
-add_library(${SCOREC_LIB_NAME} ${SOURCES})
+add_library(${SCOREC_LIB_NAME} STATIC ${SOURCES})
 target_include_directories(${SCOREC_LIB_NAME} PUBLIC
                                        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                        $<INSTALL_INTERFACE:include>
