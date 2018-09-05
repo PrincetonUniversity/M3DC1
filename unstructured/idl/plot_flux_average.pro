@@ -31,10 +31,10 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    
    if(n_elements(field) gt 1) then begin
        if(keyword_set(bw)) then begin
-           ls = indgen(nfiles)
+           if(n_elements(ls) eq 1) then ls = indgen(nfiles)
            colors = replicate(color(0,1), n_elements(field))
        endif else begin
-           if(n_elements(colors) eq 0) then col = shift(get_colors(),-1)
+           if(n_elements(colors) eq 0) then colors = shift(get_colors(),-1)
            ls = replicate(0,n_elements(field))
        endelse
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, n_elements(field))
@@ -62,11 +62,11 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    if(nfiles gt 1 and not keyword_set(sum)) then begin
        if(n_elements(names) eq 0) then names=filename
        if(keyword_set(bw)) then begin
-           if(n_elements(ls) eq 0) then ls = indgen(nfiles)
+           if(n_elements(ls) eq 1) then ls = indgen(nfiles)
            colors = replicate(color(0,1), nfiles)
        endif else begin
            if(n_elements(colors) eq 0) then colors = shift(get_colors(),-1)
-           if(n_elements(ls) eq 0) then ls = replicate(0,nfiles)
+           ls = replicate(0,nfiles)
        endelse
        if(n_elements(time) eq 1) then time = replicate(time,nfiles)
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nfiles)
