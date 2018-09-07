@@ -42,6 +42,9 @@ subroutine init_random(x,phi,z,outarr)
   vectype, dimension(MAX_PTS) :: temp, phase
   real :: alx, alz, kx, kp, kz, px, pp, pz, random, roundoff
 
+  outarr = 0.
+  if(eps.eq.0.) return
+
   call get_bounding_box_size(alx, alz)
 
 !
@@ -62,7 +65,6 @@ subroutine init_random(x,phi,z,outarr)
 #else
   phase = cos(ntor*phi - mpol*theta)
 #endif
-  outarr = 0.
 
   select case (icsym)
 
@@ -208,6 +210,9 @@ subroutine init_perturbations
 
   call destroy_field(psi_vec)
   call destroy_field(phi_vec)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, 'Done defining initial perturbations'
 end subroutine init_perturbations
 
 subroutine den_eq
