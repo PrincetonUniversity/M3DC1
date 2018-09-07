@@ -1,5 +1,5 @@
 function path_contains_point, path, pt
-  point_in_plane = boolean(0)
+  point_in_plane = 0
 
  ; For each line segment, determine if line running from
  ; (x,y) to (infinity, y) passes through the segment.
