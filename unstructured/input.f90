@@ -219,6 +219,9 @@ subroutine set_defaults
   call add_var_int("iread_ne", iread_ne, 0, "", input_grp)
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
   call add_var_int("iread_p", iread_p, 0, "", input_grp)
+  call add_var_int("iread_f", iread_f, 0, &
+       "Read profile_f file containing F=R*B_phi vs Psi_N for GS solve", &
+       input_grp)
   call add_var_int("iread_heatsource", iread_heatsource, 0, "", input_grp)
   call add_var_int("iheat_sink", iheat_sink, 0, "", source_grp)
   call add_var_int("iread_particlesource", iread_particlesource, 0, "", input_grp)
