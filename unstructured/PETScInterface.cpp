@@ -84,13 +84,13 @@ extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A, Vec *b, Vec *x) {
 //  ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
 
 #ifdef PETSCMASTER
-    ierr = KSPSetInitialGuessNonzero(*ksp,PETSC_TRUE);CHKERRQ(ierr);
-
-    // lgmres set up for hard problem #5 and #17
-    if(matrixid==5 || matrixid==17) {
-       PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
-       ierr = KSPSetOptionsPrefix(*ksp,"hard_");CHKERRQ(ierr);
-    }
+//    ierr = KSPSetInitialGuessNonzero(*ksp,PETSC_TRUE);CHKERRQ(ierr);
+//
+//    // lgmres set up for hard problem #5 and #17
+//    if(matrixid==5 || matrixid==17) {
+//       PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
+//       ierr = KSPSetOptionsPrefix(*ksp,"hard_");CHKERRQ(ierr);
+//    }
 #endif
   return 0;
 }
