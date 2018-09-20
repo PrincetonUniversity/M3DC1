@@ -9,7 +9,9 @@
 ;==================================================================
 function power_spectrum, f, frequency=frequency, t=t
   
+  f = f / max(f)
   fft = fft(f)
+  fft = fft*max(f)
   n = n_elements(fft)
 
   phi_old = abs(fft)^2

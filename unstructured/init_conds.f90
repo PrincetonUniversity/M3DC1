@@ -518,6 +518,8 @@ subroutine initial_conditions()
   use rmp
   use init_common
   use kprad_m3dc1
+  use pellet
+  use diagnostics
 
   implicit none
 
@@ -578,7 +580,7 @@ subroutine initial_conditions()
            call int_kink_init()
         case(20)
            call kstar_profiles()
-        case(21,22,25,26,27,28,30)
+        case(21,22,25,26,27,28,30,32)
            call fixed_q_profiles()
         case(23)
            call frs1_init()
@@ -633,6 +635,10 @@ subroutine initial_conditions()
      call unload_neo
   end if
 
+  if(ipellet.ne.0) then
+     ! need to calculate norm for pellet_distribution
+     call calculate_Lor_vol
+  end if
   call den_eq
   call den_per
   call kprad_init_conds

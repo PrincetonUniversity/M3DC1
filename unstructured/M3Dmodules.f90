@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 25
+  integer, parameter :: version = 26
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -66,6 +66,7 @@ module basic
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappah      ! phenomenological model for H-mode
   real :: kappar      ! coefficient of field-aligned temperature diffusion
+  real :: k_fac   ! factor by which the toroidal field is multiplied in 1/B^2 that appears in kappa_parallel
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: kappag
   real :: kappaf
@@ -391,6 +392,7 @@ module basic
   integer :: iread_ne      
   integer :: iread_te
   integer :: iread_p
+  integer :: iread_f
   integer :: iread_heatsource ! 1 = read heat source profile (in terms of Psi normalized), source is scaled with ghs_rate
   integer :: iread_particlesource ! 1 = read particle source profile (in terms of Psi normalized), source is scaled with pellet_rate
   integer :: iheat_sink   !  add a sink term in p equation (initially for itaylor=27)

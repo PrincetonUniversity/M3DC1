@@ -24,16 +24,24 @@ function path_at_flux, psi,x,z,t,flux,refine=refine,$
    endif
 
    ; find the biggest closed path
-   if(n_elements(info) gt 1 and keyword_set(contiguous)) then begin
-       ibig = 0
-       nbig = 0
-       for k=0, n_elements(info)-1 do begin
-           if(info[k].n gt nbig) then begin
-               ibig = k
-               nbig = info[k].n
-           end
-       end
-       xy = xy[*,info[ibig].offset:info[ibig].offset+info[ibig].n-1]
+   if(n_elements(info) gt 1 and keyword_set(contiguous) $
+      and n_elements(axis) ne 0) then begin
+      for k=0, n_elements(info)-1 do begin
+         path = xy[*,info[k].offset:info[k].offset+info[k].n-1]
+         if(path_contains_point(path, axis)) then begin
+            xy = path
+            break
+         end
+      end
+;       ibig = 0
+;       nbig = 0
+;       for k=0, n_elements(info)-1 do begin
+;           if(info[k].n gt nbig) then begin
+;               ibig = k
+;               nbig = info[k].n
+;           end
+;       end
+;       xy = xy[*,info[ibig].offset:info[ibig].offset+info[ibig].n-1]
    end
 
    if(n_elements(interval) ne 0) then begin

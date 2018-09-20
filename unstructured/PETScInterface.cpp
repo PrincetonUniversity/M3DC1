@@ -70,7 +70,11 @@ extern "C" int setPETScMat(int matrixid, Mat * A) {
 /* 
    below sets the PETSc options for the solver for matrix with id "matrixid"
 */
+#ifndef PETSCMASTER
 extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){
+#else
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A, Vec *b, Vec *x) {
+#endif
   PetscErrorCode ierr;
 
 //  ierr = KSPCreate(MPI_COMM_WORLD, ksp);CHKERRQ(ierr);
@@ -79,13 +83,15 @@ extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){
 //                          PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
 //  ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
 
-    ierr = KSPSetInitialGuessNonzero(*ksp,PETSC_TRUE);CHKERRQ(ierr);
-
-    // lgmres set up for hard problem #5 and #17
-    if(matrixid==5 || matrixid==17) {
-       PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
-       ierr = KSPSetOptionsPrefix(*ksp,"hard_");CHKERRQ(ierr);
-    }
+#ifdef PETSCMASTER
+//    ierr = KSPSetInitialGuessNonzero(*ksp,PETSC_TRUE);CHKERRQ(ierr);
+//
+//    // lgmres set up for hard problem #5 and #17
+//    if(matrixid==5 || matrixid==17) {
+//       PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
+//       ierr = KSPSetOptionsPrefix(*ksp,"hard_");CHKERRQ(ierr);
+//    }
+#endif
   return 0;
 }
 
