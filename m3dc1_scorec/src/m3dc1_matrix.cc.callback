@@ -10,8 +10,8 @@
 #ifdef M3DC1_PETSC
 #include "m3dc1_matrix.h"
 #include "apf.h"
-#include "apfMDS.h"
 #include "apfMesh.h"
+#include "apfMDS.h"
 #include <vector>
 #include "PCU.h"
 #include "m3dc1_mesh.h"
@@ -23,6 +23,20 @@
 #include <complex>
 using std::complex;
 #endif
+
+// function defined in m3dc1
+// for internal test, define the two functions as blank
+// add two lines in your main.cc to get rid of undefined symbol
+// extern "C" int setPETScMat(int matrixid, Mat * A) {};
+// extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){};
+extern "C" int setPETScMat(int matrixid, Mat * A);
+#ifndef PETSCMASTER
+// petsc 3.8.2 and older
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A);
+#else
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A, Vec *b, Vec *x);
+#endif
+extern "C" int get_iter_num_( int * iter_num_p) {*iter_num_p=-1;};
 
 using std::vector;
 
@@ -98,9 +112,10 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
 
 int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
 {
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof=0, vertex_type=0;
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0],num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
   int dofPerEnt=0;
+
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
 
   std::vector<PetscInt> ix(dofPerEnt);
@@ -113,7 +128,7 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
   apf::MeshEntity* ent;
   for (int inode=0; inode<num_vtx; inode++)
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh,vertex_type,inode);
+    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type,inode);
     if (!is_ent_original(m3dc1_mesh::instance()->mesh, ent)) continue;
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -331,6 +346,7 @@ int  m3dc1_matrix::preAllocateParaMat()
   int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0],num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
   int dofPerEnt=0;
+
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
 
   if (strcmp(type, MATSEQAIJ)==0 || strcmp(type, MATMPIAIJ)==0) 
@@ -431,11 +447,10 @@ int matrix_solve::setUpRemoteAStruct()
         remotePidOwned.insert(it->first);
     }
   }
-  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF,&remoteA);
-  CHKERRQ(ierr);
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF,&remoteA); CHKERRQ(ierr);
   ierr = MatSetType(remoteA, MATSEQBAIJ);CHKERRQ(ierr);
   ierr = MatSetBlockSize(remoteA, dofPerVar); CHKERRQ(ierr);
-  ierr = MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE); 
+  ierr = MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE);
   CHKERRQ(ierr);
   MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]);
   ierr = MatSetUp (remoteA);CHKERRQ(ierr);
@@ -461,8 +476,7 @@ int  m3dc1_matrix::preAllocateSeqMat()
   int numBlocks = num_dof / bs;
   int numBlockNode = dofPerEnt / bs;
   std::vector<PetscInt> nnz(numBlocks);
-  int brgType = 2;
-  if (m3dc1_mesh::instance()->mesh->getDimension()==3) brgType = 3;
+  int brgType = m3dc1_mesh::instance()->mesh->getDimension();
 
   apf::MeshEntity* ent;
   for (int inode=0; inode<num_vtx; inode++)
@@ -500,11 +514,13 @@ int m3dc1_matrix::setupParaMat()
   m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+
   PetscInt mat_dim = num_own_dof;
 
   // create matrix
-  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, A);
-  CHKERRQ(ierr);
+  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, A); CHKERRQ(ierr);
+  ierr = setPETScMat(id, A);CHKERRQ(ierr);
+
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 
@@ -524,8 +540,9 @@ int m3dc1_matrix::setupSeqMat()
   PetscInt mat_dim = num_dof;
 
   // create matrix
-  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, A);
-  CHKERRQ(ierr);
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, A); CHKERRQ(ierr);
+  ierr = setPETScMat(id, A);CHKERRQ(ierr);
+  
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 
@@ -972,10 +989,11 @@ int matrix_solve::solve(FieldID field_id)
   copyField2PetscVec(field_id, b, get_scalar_type());
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
   ksp = new KSP;
-  setKspType();
+  setKspType(&b,&x);
+  // as per Sherri's suggestion 03/05/2018
   KSPSetUp(*ksp);
-  KSPSetUpOnBlocks(*ksp); CHKERRQ(ierr);
-  ierr = KSPSolve(*ksp, b, x); CHKERRQ(ierr);
+  KSPSetUpOnBlocks(*ksp);
+  ierr = KSPSolve(*ksp, b, x);
   CHKERRQ(ierr);
   PetscInt its;
   ierr = KSPGetIterationNumber(*ksp, &its);
@@ -993,10 +1011,17 @@ int matrix_solve::solve(FieldID field_id)
   delete ksp;
 }
 
-int matrix_solve:: setKspType()
+int matrix_solve::setKspType(Vec *b, Vec *x)
 {
   PetscErrorCode ierr;
   KSPCreate(MPI_COMM_WORLD, ksp);
+#ifndef PETSCMASTER
+  ierr = setPETScKSP(id, ksp, A); 
+#else
+  ierr = setPETScKSP(id, ksp, A, b, x);
+#endif
+  CHKERRQ(ierr);
+
   ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
   ierr = KSPSetTolerances(*ksp, .000001, .000000001,
                           PETSC_DEFAULT, 1000);CHKERRQ(ierr);
@@ -1012,7 +1037,7 @@ int matrix_solve:: setKspType()
     ierr=KSPGetPC(*ksp, &pc); CHKERRQ(ierr);
     ierr=PCSetType(pc,PCLU); CHKERRQ(ierr);
 #ifndef PETSCMASTER
-// petsc-3.8.3 and older
+    // petsc-3.8.3 and older
     ierr=PCFactorSetMatSolverPackage(pc,MATSOLVERSUPERLU_DIST);
 #else
     ierr=PCFactorSetMatSolverType(pc,MATSOLVERSUPERLU_DIST);
