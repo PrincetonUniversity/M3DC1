@@ -33,10 +33,10 @@ else
     PETSC_ARCH = cori-knl-mpich770-real-nomkl-600
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
-  else
+#  else
     PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
     PETSC_ARCH = cori-knl-mpich771-real-nomkl-540
-  endif
+#  endif
   HYPRE_LIB =
 endif
 

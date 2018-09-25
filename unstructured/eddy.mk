@@ -34,7 +34,7 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 # define where you want to locate the mesh adapt libraries
 PETSC_DIR=/home/jinchen/LIB/petsc-3.9.3
 ifeq ($(COM), 1)
-PETSC_ARCH=
+PETSC_ARCH=eddy-intel-openmpi-cplx
 HYPRE_LIB=
 else
 PETSC_ARCH=eddy-intel-openmpi-real
@@ -46,7 +46,7 @@ BLASLAPACK_LIBS =-Wl,-rpath,$(BLASLAPACK_DIR)/lib -L$(BLASLAPACK_DIR)/lib -lflap
 SCALAPACK_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
 SCALAPACK_LIB=-Wl,-rpath,$(SCALAPACK_DIR)/lib -L$(SCALAPACK_DIR) -lscalapack
 
-SCOREC_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/Sep2018
+SCOREC_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/petsc-3.9.3
 SCOREC_UTIL_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/bin
 PUMI_LIBS = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
