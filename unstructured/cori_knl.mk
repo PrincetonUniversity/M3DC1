@@ -14,7 +14,7 @@ else
 endif
 
 #NEWSOLVERDEVELOPMENT needs more tests.
-OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS -DPETSC_VERSION=38 #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS -DPETSC_VERSION=39 #-DNEWSOLVERDEVELOPMENT
 
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
@@ -29,8 +29,8 @@ ifeq ($(COM), 1)
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
   ifeq ($(OMP), 1)
-    PETSC_DIR=/global/homes/j/jinchen/project/PETSC/master
-    PETSC_ARCH=cori-hsw-knl-mpich760-omp-strumpack
+    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3-superludist-6.0.0
+    PETSC_ARCH = cori-knl-mpich770-real-nomkl-600
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
   else
