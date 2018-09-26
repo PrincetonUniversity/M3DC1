@@ -25,8 +25,10 @@ module pellet
   real :: pellet_mix      ! (moles D2)/(moles D2 + moles impurity)
   real :: temin_abl
   real :: pellet_rate_D2  ! rate of deuterium deposition from mixed pellets
+  real :: pellet_ret_time  ! retarded time for evaluating ablation rate
 
   real :: nsource_pel, temp_pel, Lor_vol
+  real, allocatable :: time_ret nsource_ret, temp_ret
   real :: rpdot
 
 contains
@@ -40,6 +42,12 @@ contains
     if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
     
     if(pellet_var_tor.le.0) pellet_var_tor = pellet_var
+
+    if(pellet_ret_time .gt. 0) then
+       allocate(time_ret(ntimemax))
+       allocate(nsource_ret(ntimemax))
+       allocate(temp_ret(ntimemax))
+    end if
 
     ! initialize Cartesian velocities
     pellet_vx = pellet_velr*cos(pellet_phi) - pellet_velphi*sin(pellet_phi)
@@ -203,6 +211,8 @@ contains
        return
     end if
 
+    if((pellet_ret_time .gt. 0) .and. (ntime*dt .gt. pellet_ret_time)) then
+       call cubic_interpolation(ntime, time_ret, ntime*dt, )
 
     ! Define density and molar mass for various Z
 

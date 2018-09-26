@@ -797,6 +797,8 @@ subroutine set_defaults
        "Molar fraction of deuterium in pellet", source_grp)
   call add_var_double("temin_abl", temin_abl, 0., &
        "Min. Temp. at which ablation turns on", source_grp)
+  call add_var_double("pellet_ret_time", pellet_ret_time, 0., &
+       "Retarded time for evaluation ablation rate", source_grp)
 
 
   ! beam source
