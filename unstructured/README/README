@@ -1,0 +1,44 @@
+!=================
+! COMPILING M3D-C1
+!=================
+
+The 2D real, 2D complex, and 3D real versions of the code can be built
+by running
+
+make OPT=1
+make OPT=1 COM=1
+make OPT=1 3D=1 MAX_PTS=60
+
+respectively from the "unstructured" directory.  System-specific
+makefile elements are specified in files named $(M3DC1_ARCH).mk.
+Information regarding how to build on some specific systems can be
+found in the readme.* files in this directory.
+
+All exceutables associated with M3D-C1 can then be assembled into the
+subdirectory _$(M3DC1_ARCH)/bin by running
+
+make bin
+
+These executables will be installed into $(M3DC1_INSTALL_DIR) by
+running
+
+make install
+
+
+!===============
+! RUNNING M3D-C1
+!===============
+
+Executables are installed on several systems.  Environment modules are
+available on these systems in the following locations: 
+
+GA Iris cluster :       /fusion/projects/codes/m3dc1/modules
+NERSC Edison :          /project/projectdirs/mp288/C1/modules/edison
+NERSC Cori :            /project/projectdirs/mp288/C1/modules/cori
+PPPL research cluster : /p/m3dc1/modules
+Princeton Perseus :     /home/nferraro/modules
+
+For example, to set the environment variables to run M3DC1 version 1.9
+on PPPL, one would execute "module load /p/m3dc1/modules" followed by
+"module load m3dc1/1.9".  Loading this module will also load any
+additional modules needed, or alert you to module conflicts.

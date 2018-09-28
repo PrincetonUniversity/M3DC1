@@ -149,7 +149,7 @@ contains
     ! Define Jphi
     numelms = local_elements()
 !$OMP PARALLEL DO &
-!$OMP& PRIVATE(temp,dofs,imask)
+!$OMP& PRIVATE(temp,dofs,dofs_p,imask)
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)

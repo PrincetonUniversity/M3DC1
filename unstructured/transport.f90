@@ -28,6 +28,7 @@ function sigma_func(izone)
   integer :: iregion, j
   integer :: nvals
   real :: val, valp, valpp, pso
+  real :: rate
   real, allocatable :: xvals(:), yvals(:)
 
   ! Don't allow particle source in wall or vacuum region
@@ -40,29 +41,20 @@ function sigma_func(izone)
 
   ! Pellet injection model
 
-  if(ipellet.gt.0 .and. ipellet_z.eq.0) then
+  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.)) then
 
-     if(ipellet_abl.gt.0.) then
-
-        if(pellet_var.lt.1.e-8) then
-           pellet_var = 0.
-           temp79a = 0.
+     if(ipellet_abl.gt.0. .and. pellet_var.lt.1.e-8) then
+        pellet_var = 0.
+        temp79a = 0.
+     else
+        if(pellet_mix.eq.0.) then
+           rate = pellet_rate
         else
-           select case(ipellet_abl)
-           case(1)
-              temp79a = pellet_deposition(x_79, phi_79, z_79, &
-                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate1)
-           case(2)
-              temp79a = pellet_deposition(x_79, phi_79, z_79, &
-                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate2)
-           end select
-        endif
-
-      else 
-          temp79a = pellet_deposition(x_79, phi_79, z_79, &
-                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate)
-      endif
-
+           rate = pellet_rate_D2
+        end if
+        temp79a = rate*pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+     endif
+     
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 
   endif
@@ -889,7 +881,8 @@ function kappa_func()
      if(kappa0.eq.0) then
         temp79a = 0.
      else
-        temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))      
+        temp79b = max(den_edge*pedge,real(nt79(:,OP_1))*real(pt79(:,OP_1)))
+        temp79a = kappa0*sqrt(1./temp79b)      
      end if
 
   case(4)
@@ -1081,6 +1074,8 @@ subroutine define_transport_coefficients()
   use newvar_mod
   use sparse
   use neutral_beam
+  use pellet
+  use diagnostics
 
   implicit none
 
@@ -1163,6 +1158,11 @@ subroutine define_transport_coefficients()
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
+  if(ipellet.ne.0) then
+     ! make sure normalization for pellet_distribution defined
+     call calculate_Lor_vol
+  end if
+  
   ! Calculate RHS
   numelms = local_elements()
 !$OMP PARALLEL DO &

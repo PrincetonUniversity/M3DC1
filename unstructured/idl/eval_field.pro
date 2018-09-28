@@ -127,20 +127,26 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    end
 
    ; for each triangle, evaluate points within triangle which fall on
-   ; rectilinear output grid
+   ; rectilinear output grid.  This is MUCH faster than looping through
+   ; rectilinear grid points and searching for the appropriate triangles
    for i=long(0),nelms-1 do begin
+       if(threed eq 1) then begin
+           d = mesh.elements._data[ib+1,i]
+           phi = mesh.elements._data[ib+2,i]
+           localphi = phi0 - phi
+           if(localphi lt 0 or localphi gt d) then begin
+              ; this assumes elements are ordered by plane
+              i = i + nelms / mesh.nplanes._data - 1
+              continue
+           end
+       endif
        a = mesh.elements._data[0,i]
        b = mesh.elements._data[1,i]
        c = mesh.elements._data[2,i]
        t = mesh.elements._data[3,i]
        x = mesh.elements._data[4,i]
        y = mesh.elements._data[5,i]
-       if(threed eq 1) then begin
-           d = mesh.elements._data[ib+1,i]
-           phi = mesh.elements._data[ib+2,i]
-           localphi = phi0 - phi
-           if(localphi lt 0 or localphi gt d) then  continue
-       endif
+
        co = cos(t)
        sn = sin(t)
 

@@ -219,6 +219,9 @@ subroutine set_defaults
   call add_var_int("iread_ne", iread_ne, 0, "", input_grp)
   call add_var_int("iread_te", iread_te, 0, "", input_grp)
   call add_var_int("iread_p", iread_p, 0, "", input_grp)
+  call add_var_int("iread_f", iread_f, 0, &
+       "Read profile_f file containing F=R*B_phi vs Psi_N for GS solve", &
+       input_grp)
   call add_var_int("iread_heatsource", iread_heatsource, 0, "", input_grp)
   call add_var_int("iheat_sink", iheat_sink, 0, "", source_grp)
   call add_var_int("iread_particlesource", iread_particlesource, 0, "", input_grp)
@@ -293,6 +296,8 @@ subroutine set_defaults
   call add_var_double("kappa0", kappa0, 0., "", transp_grp)
   call add_var_double("kappar", kappar, 0., &
        "Parallel thermal conductivity", transp_grp)
+  call add_var_double("k_fac", k_fac, 1., &
+       "multiplies toroidal field in denominator of PTC", transp_grp)
   call add_var_double("kappax", kappax, 0., "", transp_grp)
   call add_var_double("kappah", kappah, 0., "", transp_grp)
   call add_var_double("kappag", kappag, 0., &
@@ -769,7 +774,7 @@ subroutine set_defaults
        "1 = include a gaussian pellet source", source_grp)
   call add_var_int("ipellet_z", ipellet_z, 0, &
        "Atomic number of pellet (0 = main ion species)", source_grp)
-  call add_var_double("pellet_x", pellet_x, 0., &
+  call add_var_double("pellet_r", pellet_r, 0., &
        "Initial radial position of the pellet", source_grp)
   call add_var_double("pellet_phi", pellet_phi, 0., &
        "Initial toroidal position of the pellet", source_grp)
@@ -778,19 +783,20 @@ subroutine set_defaults
   call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
   call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
   call add_var_double("pellet_var_tor", pellet_var_tor, 0., "", source_grp)
-  call add_var_double("pellet_velx", pellet_velx, 0., &
-       "Radial velocity of the pellet", source_grp)
+  call add_var_double("pellet_velr", pellet_velr, 0., &
+       "Initial radial velocity of the pellet", source_grp)
   call add_var_double("pellet_velphi", pellet_velphi, 0., &
-       "Toroidal velocity of the pellet", source_grp)
+       "Initial toroidal velocity of the pellet", source_grp)
   call add_var_double("pellet_velz", pellet_velz, 0., &
-       "Vertical velocity of the pellet", source_grp)
+       "Initial vertical velocity of the pellet", source_grp)
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
   call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
-  call add_var_double("r_p2", r_p2, 1.e-3, "", source_grp)
-  call add_var_double("pellet_volume", pellet_volume, 1.e-9, "", source_grp)
-  call add_var_double("pellet_volume_2D", pellet_volume_2D, 1.e-7, "", source_grp)
   call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)
+  call add_var_double("pellet_mix", pellet_mix, 0.,&
+       "Molar fraction of deuterium in pellet", source_grp)
+  call add_var_double("temin_abl", temin_abl, 0., &
+       "Min. Temp. at which ablation turns on", source_grp)
 
 
   ! beam source
@@ -986,9 +992,9 @@ subroutine set_defaults
   call add_var_double("adapt_hmin_rel", adapt_hmin_rel, 0.5, "", adapt_grp)
   call add_var_double("adapt_hmax_rel", adapt_hmax_rel, 2.0, "", adapt_grp)
   call add_var_double("adapt_smooth", adapt_smooth, 2./3., "", adapt_grp)
-  call add_var_double("adapt_psin_vacuum", adapt_psin_vacuum, 0., &
+  call add_var_double("adapt_psin_vacuum", adapt_psin_vacuum, -1., &
        "", adapt_grp)
-  call add_var_double("adapt_psin_wall", adapt_psin_wall, 0., &
+  call add_var_double("adapt_psin_wall", adapt_psin_wall, -1., &
        "", adapt_grp)
   call add_var_int("iadapt_pack_rationals", iadapt_pack_rationals, 0, &
        "Number of mode-rational surfaces to pack mesh around", adapt_grp)
@@ -996,6 +1002,10 @@ subroutine set_defaults
        "Width of Lorentzian (in psi_N) for rational mesh packing", adapt_grp)
   call add_var_double("adapt_coil_delta", adapt_coil_delta, 0., &
        "Parameter for packing mesh around coil locations", adapt_grp)
+  call add_var_double("adapt_pellet_length", adapt_pellet_length, 0., &
+       "Length of pellet path to pack mesh along", adapt_grp)
+  call add_var_double("adapt_pellet_delta", adapt_pellet_delta, 0., &
+       "Parameter for packing mesh along pellet path", adapt_grp)
 
 
   ! Mesh
@@ -1525,7 +1535,7 @@ subroutine validate_input
      call pellet_init
      
      if(ipellet_z.ne.0 .and. &
-        (ikprad.eq.0 .or. ipellet_z.ne.kprad_z)) then
+        (ikprad.ne.0 .and. ipellet_z.ne.kprad_z)) then
         if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
         call safestop(1)
      end if

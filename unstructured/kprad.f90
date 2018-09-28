@@ -15,7 +15,8 @@ module kprad
   ! radiation and ionization rates, respectively
   integer, private :: m1, m2
 
-  real, private :: kprad_min_dt = 0.     ! minimum final timestep from previous calculation
+  real, private, parameter :: kprad_min_dt_default = 1e10
+  real, private :: kprad_min_dt = kprad_min_dt_default     ! minimum final timestep from previous calculation
   real, private :: kprad_dt = 1e-10      ! kprad integration time step (in seconds)
   
 contains
@@ -32,7 +33,7 @@ contains
          MPI_MIN, MPI_COMM_WORLD, ier)
 
     kprad_dt = temp
-    kprad_min_dt = 0.
+    kprad_min_dt = kprad_min_dt_default
   end subroutine kprad_rebase_dt
 
   subroutine kprad_deallocate()
@@ -121,7 +122,8 @@ contains
     last_step = .false.
     do while(.not.last_step)
        if(t+dts.ge.dt) then
-          if(kprad_min_dt.eq.0. .or. dts.lt.kprad_min_dt) kprad_min_dt = dts
+          if(kprad_min_dt.eq.kprad_min_dt_default .or. dts.lt.kprad_min_dt) &
+               kprad_min_dt = dts
           dts = dt - t
           last_step = .true.
        end if
@@ -167,7 +169,7 @@ contains
        if(max_change .lt. 0.02) then
           ! If ne change is < 2%, increase time step
           dts = dts * 1.5
-       elseif(max_change .gt. 0.2) then
+       elseif((max_change .gt. 0.2) .and. (dts .gt. dts_min)) then
           ! If ne change is > 20%, backtrack changes and reduce time step
           t = t - dts
           dw_ion = dw_ion - pion*dts
@@ -178,6 +180,7 @@ contains
           ne = ne_old
           nz = nz_old
           dts = dts / 2.
+          last_step = .false.
 
           if(dts.lt.dts_min) dts = dts_min
        end if

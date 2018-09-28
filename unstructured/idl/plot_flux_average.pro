@@ -19,6 +19,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(linfac) eq 0) then linfac = 1.
+   if(n_elements(ls) eq 0) then ls = 0
 
    if(n_elements(time) eq 0) then time=0
    if(keyword_set(last)) then $
@@ -30,10 +31,10 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    
    if(n_elements(field) gt 1) then begin
        if(keyword_set(bw)) then begin
-           ls = indgen(nfiles)
+           if(n_elements(ls) eq 1) then ls = indgen(nfiles)
            colors = replicate(color(0,1), n_elements(field))
        endif else begin
-           if(n_elements(colors) eq 0) then col = shift(get_colors(),-1)
+           if(n_elements(colors) eq 0) then colors = shift(get_colors(),-1)
            ls = replicate(0,n_elements(field))
        endelse
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, n_elements(field))
@@ -51,7 +52,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              stotal=total, q_contours=qcon, rho=rho, nolegend=nolegend, $
              linfac=linfac[i], regularize=regularize
        end
-       if(n_elements(names) ne 0) then begin
+       if(n_elements(names) ne 0 and not keyword_set(nolengend)) then begin
            plot_legend, names, colors=col, linestyle=ls, _EXTRA=extra
        end
        return
@@ -61,12 +62,13 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    if(nfiles gt 1 and not keyword_set(sum)) then begin
        if(n_elements(names) eq 0) then names=filename
        if(keyword_set(bw)) then begin
-           if(n_elements(ls) eq 0) then ls = indgen(nfiles)
+           if(n_elements(ls) eq 1) then ls = indgen(nfiles)
            colors = replicate(color(0,1), nfiles)
        endif else begin
            if(n_elements(colors) eq 0) then colors = shift(get_colors(),-1)
-           if(n_elements(ls) eq 0) then ls = replicate(0,nfiles)
+           ls = replicate(0,nfiles)
        endelse
+       if(n_elements(ls) eq 1) then ls = replicate(ls, nfiles)
        if(n_elements(time) eq 1) then time = replicate(time,nfiles)
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nfiles)
        if(n_elements(multiply_flux) eq 1) then $
@@ -88,7 +90,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        if(n_elements(names) gt 0 and not keyword_set(nolegend)) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
              linestyle=ls, _EXTRA=extra
-       endif    
+       endif
        
        return
    endif
@@ -102,7 +104,9 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        endif else begin
            if(n_elements(colors) eq 0) then colors = get_colors()
            if(time[0] gt 0) then colors = shift(colors,-1)
-           ls = replicate(0,nt)
+           if(n_elements(ls) eq 1) then begin
+              ls = replicate(ls,nt)
+           endif
        endelse
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nt)
        for i=0, n_elements(time)-1 do begin
@@ -123,7 +127,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        end
 
        if(n_elements(names) eq 0) then names=nn
-       if(n_elements(names) gt 0) then begin
+       if(n_elements(names) gt 0 and not keyword_set(nolegend)) then begin
            plot_legend, names, color=colors, ylog=ylog, xlog=xlog, $
              linestyle=ls, _EXTRA=extra
        endif

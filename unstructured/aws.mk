@@ -22,8 +22,8 @@ ifeq ($(TAU), 1)
 else
   CC = mpicc
   CPP = mpicxx
-  F90 = mpif90
-  F77 = mpif90
+  F90 = mpif90 -ffree-form -ffree-line-length-0
+  F77 = mpif90 -ffree-form -ffree-line-length-0
   LOADER = mpif90
   LDOPTS := $(LDOPTS)
 endif
