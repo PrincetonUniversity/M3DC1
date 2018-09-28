@@ -12,6 +12,12 @@ ifeq ($(PAR), 1)
   FOPTS := $(FOPTS) -DUSEPARTICLES
 endif
 
+ifeq ($(OMP), 1)
+  LDOPTS := $(LDOPTS) -openmp 
+  FOPTS  := $(FOPTS)  -openmp 
+  CCOPTS := $(CCOPTS) -openmp 
+endif
+
 ifeq ($(TAU), 1)
   TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=../select.tau
   CC     = tau_cc.sh $(TAU_OPTIONS)
