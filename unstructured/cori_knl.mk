@@ -14,7 +14,7 @@ else
 endif
 
 #NEWSOLVERDEVELOPMENT needs more tests.
-OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS -DPETSC_VERSION=38 #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS -DPETSC_VERSION=39 #-DNEWSOLVERDEVELOPMENT
 
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
@@ -29,8 +29,8 @@ ifeq ($(COM), 1)
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
   ifeq ($(OMP), 1)
-    PETSC_DIR=/global/homes/j/jinchen/project/PETSC/master
-    PETSC_ARCH=cori-hsw-knl-mpich760-omp-strumpack
+    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3-superludist-6.0.0
+    PETSC_ARCH = cori-knl-mpich770-real-nomkl-600
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
   else
@@ -52,7 +52,7 @@ PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 
 
 SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/bin
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/May2018/
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/May2018/
 SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.0/knl-petsc3.9.3/July2018
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \

@@ -495,7 +495,9 @@ contains
        endif
 
     case(32)
-       pfunc = p0_qp*(1. - psi) + pedge_qp
+       pfunc = (1.-kappae_qp)*p0_qp*(1. - psi   )    &
+             +     kappae_qp *p0_qp*(1. - psi**2)    & 
+             + pedge_qp
     end select
     return
   end function pfunc
@@ -524,7 +526,8 @@ contains
        endif
 
     case(32)
-       ppfunc = -p0_qp
+       ppfunc = - (1.- kappae_qp)*p0_qp    &
+                -    kappae_qp   *p0_qp*2.*psi
        
     end select
   end function ppfunc

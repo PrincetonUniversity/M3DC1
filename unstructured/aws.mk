@@ -2,14 +2,20 @@ CCOPTS := -c $(OPTS) -DPETSC_VERSION=38
 FOPTS := -c $(OPTS) -cpp -fdefault-real-8 -Wall -DUSEBLAS -DPETSC_VERSION=38
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -O
-  CCOPTS := $(CCOPTS) -O
+  FOPTS  := $(FOPTS) -O3
+  CCOPTS := $(CCOPTS) -O3
 else
   FOPTS := $(FOPTS) -g
 endif
 
 ifeq ($(PAR), 1)
   FOPTS := $(FOPTS) -DUSEPARTICLES
+endif
+
+ifeq ($(OMP), 1)
+  LDOPTS := $(LDOPTS) -openmp 
+  FOPTS  := $(FOPTS)  -openmp 
+  CCOPTS := $(CCOPTS) -openmp 
 endif
 
 ifeq ($(TAU), 1)
