@@ -520,6 +520,7 @@ subroutine initial_conditions()
   use kprad_m3dc1
   use pellet
   use diagnostics
+  use cylinder
 
   implicit none
 
@@ -588,6 +589,8 @@ subroutine initial_conditions()
            call rwm_init()
         case(29,31)
            call basicj_init()
+        case(33)
+           call cyl_init()
         end select
      else
         ! toroidal equilibria
