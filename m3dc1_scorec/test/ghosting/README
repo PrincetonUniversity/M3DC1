@@ -1,6 +1,0 @@
-Let the absolute path to the binary be $BIN, and assuming you are running from the current directory.
-
-Example usage:
-
-mpirun -n 1 $BIN/ghosting_test ../analytic-1part/AnalyticModel ../analytic-1part/AnalyticModel.smb
-

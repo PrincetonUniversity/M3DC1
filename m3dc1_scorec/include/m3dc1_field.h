@@ -25,28 +25,35 @@ public:
     GLOBAL_AGGREGATION = 2
   };
 public:
-  m3dc1_field(int i, const char * str, int n, int t, int ndof, aggregation_scope scp);
+  m3dc1_field(int i,
+              const char * str,
+              int blks_per_nd,
+              int dofs_per_blk,
+              aggregation_scope scp);
   ~m3dc1_field();
-  int get_id() { return id; }
-  const std::string & get_name() { return name; }
-  apf::Field * get_field() { return fld; }
-  apf::Numbering * get_global_numbering() { return num; }
-  int get_num_value() { return num_value; }
-  int get_value_type() { return value_type; }
-  int get_dof_per_value() {return num_dof; }
-  int get_aggregation_scope() { return agg_scp; }
+  int getId() { return id; }
+  const std::string & getName() { return name; }
+  apf::Field * getCoreField() { return fld; }
+  apf::Numbering * getGlobalNumbering() { return gbl_num; }
+  apf::Numbering * getLocalNumbering() { return lcl_num; }
+  int getBlocksPerNode() { return blks_per_nd; }
+  int getDofsPerBlock() { return dofs_per_blk; }
+  int getDofsPerNode() { return blks_per_nd * dofs_per_blk; }
+  int getAggregationScope() { return agg_scp; }
+  void zero() { apf::zeroField(fld); }
 private:
   int id;
   std::string name;
-  //apf::Field** fields; // name and #dofs are available from apf::Field
   apf::Field * fld;
-  int num_value;
-  int value_type;
-  int num_dof;
-  apf::Numbering * num;
+  apf::Numbering * gbl_num;
+  apf::Numbering * lcl_num;
   int agg_scp;
+  int blks_per_nd;
+  int dofs_per_blk;
+  int dofs_per_nd;
 };
 
+void get_ent_xxxdofid(bool lcl, m3dc1_field * mf, int ent_lid, int * dof_id, int * dof_cnt);
 void get_ent_localdofid(m3dc1_field* mf, int ent_lid, int* dof_id, int* dof_cnt);
 void get_ent_globaldofid(m3dc1_field* mf, int ent_lid, int* dof_id, int* dof_cnt);
 void get_ent_dofdata(m3dc1_field* mf, apf::MeshEntity* e, double* dof_data);

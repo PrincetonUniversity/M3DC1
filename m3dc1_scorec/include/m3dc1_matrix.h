@@ -18,15 +18,48 @@
 void las_init(int * argc, char ** argv[], MPI_Comm cm);
 class m3dc1_matrix;
 class m3dc1_mesh;
+
+void double2petsc(const int n, double * in, PetscScalar *& out);
+void petsc2double(const int n, PetscScalar * in, double *& out);
+
+void field2Vec(m3dc1_field * fld, Vec v);
+void vec2Field(Vec v, m3dc1_field * fld);
+
+// does the allocated matrix locally own row rw
+bool ownRow(Mat A, int rw);
+// will the unallocated matrix locally own row rw
+//bool willOwnRow(Mat A, int lcl_rws, int rw);
+// get the rank of the owner of row rw for allocated matrices
+int getRowOwner(Mat A, int rw);
+// get the rank of the owner of row rw for unallocated matrices
+//int calcRowOwner(Mat A, int lcl_rws, int rw);
+
+void get_block_ids(m3dc1_field * fld, bool lcl, int ent_dim, int eid, int * blk_ids);
+
+
 // the mat has the field implicitly, should make it explicit
-void insert_element_blocks(m3dc1_matrix * mat, int * ent_dim, int * eid, double * vals);
-void insert_node_blocks(m3dc1_matrix * mat, int * ent_dim, int * eid, int * nd1, int * nd2, double * vals);
+void insert_element_blocks(m3dc1_matrix * mat,
+                           int ent_dim,
+                           int eid,
+                           double * vals);
+void insert_node_blocks(m3dc1_matrix * mat,
+                        int ent_dim,
+                        int eid,
+                        int nd1,
+                        int nd2,
+                        double * vals);
 void printMemStat();
 class m3dc1_matrix
 {
 public:
   m3dc1_matrix(int i, int s, m3dc1_mesh * msh,  m3dc1_field * f, MPI_Comm cm);
   ~m3dc1_matrix();
+  void multiply(m3dc1_field * in, m3dc1_field * out);
+  void solve(m3dc1_field * lhs);
+  bool willOwn(int rw);
+  int  whoOwns(int rw);
+  int  calcFirstRow();
+  int  calcLastRowP1();
   bool is_fixed() { return fixed; }
   int get_scalar_type() { return scalar_type; }
   m3dc1_field * get_field() { return fld; }
@@ -41,9 +74,11 @@ public:
   void add_blocks(int blk_rw_cnt, int * blk_rws, int blk_col_cnt, int * blk_cls, double * vals);
   int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
   void fix();
-  void solve(m3dc1_field * lhs);
   int solver_iteration_count();
-  void multiply(m3dc1_field * in, m3dc1_field * out);
+  Vec * getRHS() { return &b; }
+  Vec * getLHS() { return &x; }
+  void printAssemblyInfo();
+  void printNNZStats();
   void write(const char * fn);
 protected:
   MPI_Comm cm;
@@ -57,6 +92,11 @@ protected:
   m3dc1_field * fld;
   int is_par;
   int blk_sz;
+  int * ownership;
+  int low_row;
+  int hgh_row;
+  int non_lcl_nnz_cnt;
+  int lcl_nnz_cnt;
 };
 class m3dc1_solver
 {

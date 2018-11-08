@@ -1,11 +1,8 @@
 /******************************************************************************
-
   (c) 2005-2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
-
 *******************************************************************************/
 #include "m3dc1_mesh.h"
 #include "m3dc1_scorec.h"
@@ -23,13 +20,10 @@
 #include <string.h>
 #include <iostream>
 #include <assert.h>
-
 using namespace apf;
-
 #ifdef _OPENMP
 #include "omp.h"
 #endif
-
 //*******************************************************
 void compute_globalid(apf::Mesh2* m, int d)
 //*******************************************************
@@ -37,14 +31,11 @@ void compute_globalid(apf::Mesh2* m, int d)
   apf::MeshTag* tag = m->findTag("global_id");
   if (!tag)  // update existing tag
     tag = m->createIntTag("global_id",1);
-
   if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] global entity ID for dimension "<<d<<" generated\n";
   int num_own_ent = m3dc1_mesh::instance()->get_own_count(d);
-
   apf::MeshEntity* e;
   PCU_Exscan_Ints(&num_own_ent,1);
   int start=num_own_ent;
-
   PCU_Comm_Begin();
   apf::MeshIterator* it = m->begin(d);
   while ((e = m->iterate(it)))
@@ -72,7 +63,6 @@ void compute_globalid(apf::Mesh2* m, int d)
   }
   m->end(it);
   PCU_Comm_Send();
-
   int value;
   while (PCU_Comm_Listen())
   {
@@ -85,7 +75,6 @@ void compute_globalid(apf::Mesh2* m, int d)
     }
   }
 }
-
 void set_remote(Mesh2* m, MeshEntity* e, int p, MeshEntity* r)
 {
   Copies remotes;
@@ -105,7 +94,6 @@ void set_remote(Mesh2* m, MeshEntity* e, int p, MeshEntity* r)
   else
     m->addRemote(e, p, r);
 }
-
 int get_ent_localid (Mesh2* mesh, MeshEntity* e)
 {
   if (mesh->hasTag(e,m3dc1_mesh::instance()->local_id_tag()))
@@ -116,7 +104,6 @@ int get_ent_localid (Mesh2* mesh, MeshEntity* e)
   }
   return getMdsIndex(mesh, e);
 }
-
 int get_ent_globalid(apf::Mesh2* m, apf::MeshEntity* e)
 {
   MeshTag* tag = m->findTag("global_id");
@@ -125,30 +112,24 @@ int get_ent_globalid(apf::Mesh2* m, apf::MeshEntity* e)
   m->getIntTag(e, tag, &id);
   return id;
 }
-
 bool is_ent_original(apf::MeshEntity* e)
 {
   return pumi_ment_isOwned (e, m3dc1_mesh::instance()->get_ownership());
 }
-
 int get_ent_ownpartid(apf::MeshEntity* e)
 {
   return pumi_ment_getOwnPID (e, m3dc1_mesh::instance()->get_ownership());
 }
-
 apf::MeshEntity* get_ent_owncopy(apf::MeshEntity* e)
 {
   return pumi_ment_getOwnEnt  (e, m3dc1_mesh::instance()->get_ownership());
 }
-
 struct m3dc1Ownership : public Ownership
 {
   m3dc1Ownership(pMesh m)
   { o = new apf::NormalSharing(m); }
-
   ~m3dc1Ownership()
   { delete o; }
-
   int getOwner(pMeshEnt e)
   {
     pMesh m = m3dc1_mesh::instance()->get_mesh();
@@ -157,21 +138,16 @@ struct m3dc1Ownership : public Ownership
       m->getIntTag(e, m3dc1_mesh::instance()->get_own_part_tag(), &own_partid);
     return own_partid;
   }
-
   bool isOwned(pMeshEnt e)
   { return (PCU_Comm_Self() == getOwner(e)); }
-
   /* this will return only remote copies - no ghost copies */
   void getCopies(pMeshEnt e, CopyArray& copies)
   { o->getCopies(e, copies); }
-
   bool isShared(pMeshEnt  e)
   { return o->isShared(e); }
-
 private:
   pOwnership o;
 };
-
 m3dc1_mesh::m3dc1_mesh()
   : mesh(nullptr)
   , local_entid_tag(nullptr)
@@ -182,22 +158,18 @@ m3dc1_mesh::m3dc1_mesh()
 {
   reset();
 }
-
 void m3dc1_mesh::initialize()
 {
   if (!local_entid_tag) local_entid_tag = mesh->createIntTag("m3dc1_local_ent_id", 1);
   if (!own_partid_tag) own_partid_tag = mesh->createIntTag("m3dc1_own_part_id", 1);
   if (!num_global_adj_node_tag) num_global_adj_node_tag = mesh->createIntTag("m3dc1_num_global_adj_node", 1);
   if (!num_own_adj_node_tag) num_own_adj_node_tag = mesh->createIntTag("m3dc1_num_own_adj_node", 1);
-
   reset();
-
   ownership = new m3dc1Ownership(mesh);
   MeshEntity * e = nullptr;
   int counter = 0;
   int own_partid = -1;
   int local_partid = PCU_Comm_Self();
-
   for (int d=0; d<4; ++d)
   {
     num_local_ent[d] = countEntitiesOfType(mesh, d);
@@ -216,39 +188,34 @@ void m3dc1_mesh::initialize()
   MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, PCU_Get_Comm());
   set_node_adj_tag();
 }
-
 m3dc1_mesh::~m3dc1_mesh()
 {}
-
 void m3dc1_mesh::clean()
 {
   // destroy field AND numbering
   for(auto fld = field_container.begin(); fld != field_container.end();)
   {
-    if (!PCU_Comm_Self()) std::cout<<" destroy field "<<fld->second->get_name()<<std::endl;
+    if (!PCU_Comm_Self())
+      std::cout << " destroy field " << fld->second->getName() << std::endl;
     FieldID id = fld->first;
-    std::map<FieldID, m3dc1_field*>::iterator it_next=++fld;
+    std::map<FieldID, m3dc1_field*>::iterator it_next = ++fld;
     m3dc1_field_delete(&id);
-    fld=it_next;
+    fld = it_next;
   }
-
   // delete user-defined ownership
   delete ownership;
-
   // destroy tag data
   removeTagFromDimension(mesh, own_partid_tag, 0);
   for (int d=0; d<4; ++d)
     removeTagFromDimension(mesh, local_entid_tag, d);
   removeTagFromDimension(mesh, num_global_adj_node_tag, 0);
   removeTagFromDimension(mesh, num_own_adj_node_tag, 0);
-
   // destroy tag
   mesh->destroyTag(local_entid_tag);
   mesh->destroyTag(own_partid_tag);
   mesh->destroyTag(num_global_adj_node_tag);
   mesh->destroyTag(num_own_adj_node_tag);
 }
-
 m3dc1_mesh* m3dc1_mesh::_instance=NULL;
 m3dc1_mesh* m3dc1_mesh::instance()
 {
@@ -256,7 +223,6 @@ m3dc1_mesh* m3dc1_mesh::instance()
     _instance = new m3dc1_mesh();
   return _instance;
 }
-
 void m3dc1_mesh::reset()
 {
   for (int i=0; i<4; ++i)
@@ -266,7 +232,6 @@ void m3dc1_mesh::reset()
     num_global_ent[i] = 0;
   }
 }
-
 // **********************************************
 void push_new_entities (Mesh2* mesh, std::map<MeshEntity*, MeshEntity*>& new_entities)
 // **********************************************
@@ -274,17 +239,13 @@ void push_new_entities (Mesh2* mesh, std::map<MeshEntity*, MeshEntity*>& new_ent
   MeshEntity* e;
   MeshEntity* new_e;
   int value;
-
   PCU_Comm_Begin();
-
   for (std::map<MeshEntity*, MeshEntity*>::const_iterator ent_it=new_entities.begin(); ent_it!=new_entities.end();++ent_it)
   {
     e = ent_it->first;
     new_e = ent_it->second;             // current global pid
-
     Copies remotes;
     mesh->getRemotes(e, remotes);
-
     APF_ITERATE(Copies, remotes, it)
     {
        if (it->first==m3dc1_model::instance()->prev_plane_partid) continue;
@@ -294,7 +255,6 @@ void push_new_entities (Mesh2* mesh, std::map<MeshEntity*, MeshEntity*>& new_ent
     }
   }
   PCU_Comm_Send();
-
    // receive phase begins
   while (PCU_Comm_Listen())
   {
@@ -307,7 +267,7 @@ void push_new_entities (Mesh2* mesh, std::map<MeshEntity*, MeshEntity*>& new_ent
     }
   }
 }
-void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int rank_to, 
+void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int rank_to,
     MeshEntity**, MeshEntity**, MeshEntity**)
 {
   MeshEntity* e;
@@ -317,19 +277,17 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
   {
     e = *ent_it;
     own_partid=get_ent_ownpartid(e);
-
     Copies remotes;
     mesh->getRemotes(e, remotes);
     num_remote = remotes.size();
     PCU_COMM_PACK(rank_to, remotes[rank_to]);
-    PCU_Comm_Pack(rank_to, &own_partid,sizeof(int));  
+    PCU_Comm_Pack(rank_to, &own_partid,sizeof(int));
     PCU_Comm_Pack(rank_to, &num_remote,sizeof(int));
-
     MeshEntity** remote_copy = new MeshEntity*[num_remote];
     int* remote_pid = new int[num_remote];
     index=0;
     APF_ITERATE(Copies, remotes, it)
-    { 
+    {
       if (it->first==rank_to)
       {
         remote_pid[index] = myrank;
@@ -346,9 +304,8 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
     PCU_Comm_Pack(rank_to, &(remote_copy[0]), num_remote*sizeof(MeshEntity*));
     delete [] remote_copy;
     delete [] remote_pid;
-  } 
+  }
   PCU_Comm_Send();
-
   // receive phase begins
   while (PCU_Comm_Listen())
   {
@@ -371,7 +328,6 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
     }
   }
 }
-
 void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
                            std::map<int, MeshEntity*>* partbdry_entities)
 {
@@ -392,7 +348,6 @@ void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
       int* e_own_partid = new int[num_ent];
       int* e_global_id = new int[num_ent];
       int* e_rmt_num = new int[num_ent];
-
       PCU_Comm_Unpack(&(v_coords[0]), num_ent*3*sizeof(double));
       PCU_Comm_Unpack(&(v_params[0]), num_ent*3*sizeof(double));
       PCU_Comm_Unpack(&(e_geom_type[0]), num_ent*sizeof(int));
@@ -420,17 +375,14 @@ void m3dc1_receiveVertices(Mesh2* mesh, MeshTag* partbdry_id_tag,
           param[k] = v_params[index*3+k];
         }
         new_ent = mesh->createVertex((ModelEntity*)geom_ent, coord, param);
-
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_id_tag(), &index);
         own_partid=proc_grp_rank*proc_grp_size+e_own_partid[index];
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->get_own_part_tag(), &own_partid);
-
         if (e_global_id[index]!=-1)
         {
           partbdry_entities[0][e_global_id[index]] = new_ent;
           mesh->setIntTag(new_ent, partbdry_id_tag, &(e_global_id[index]));
         }
-
         for (int i=0; i<e_rmt_num[index]; ++i)
         {
           mesh->addRemote(new_ent, proc_grp_rank*proc_grp_size+e_rmt_pid[rinfo_pos], NULL);
@@ -455,7 +407,6 @@ void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, Mes
   int myrank=PCU_Comm_Self();
   int proc_grp_rank = myrank/m3dc1_model::instance()->group_size;
   int proc_grp_size = m3dc1_model::instance()->group_size;
-
   int num_ent, num_remote;
   MeshEntity* new_ent;
   gmi_ent* geom_ent;
@@ -480,7 +431,6 @@ void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, Mes
       PCU_Comm_Unpack(&num_remote, sizeof(int));
       int* e_rmt_pid = new int[num_remote];
       if (num_remote) PCU_Comm_Unpack(&(e_rmt_pid[0]), num_remote*sizeof(int));
-
       // create edge
       int rinfo_pos=0;
       for (int index=0; index<num_ent; ++index)
@@ -490,7 +440,6 @@ void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, Mes
         down_ent[1] =  getMdsEntity(mesh, 0, e_down_lid[index*2+1]);
         new_ent = mesh->createEntity(apf::Mesh::EDGE, (ModelEntity*)geom_ent, down_ent);
         mesh->setIntTag(new_ent, m3dc1_mesh::instance()->local_id_tag(), &index);
-
         if (e_global_id[index]!=-1)
         {
           partbdry_entities[1][e_global_id[index]] = new_ent;
@@ -513,9 +462,7 @@ void m3dc1_receiveEdges(Mesh2* mesh, MeshTag* partbdry_id_tag, std::map<int, Mes
       m3dc1_mesh::instance()->update_local_count(1);
     } // while ( ! PCU_Comm_Unpacked())
   } // while (PCU_Comm_Listen())
-
 }
-
 // *********************************************************
 void m3dc1_receiveFaces(Mesh2* mesh)
 // *********************************************************
@@ -531,7 +478,6 @@ void m3dc1_receiveFaces(Mesh2* mesh)
     {
       PCU_Comm_Unpack(&num_ent, sizeof(int));
       PCU_Comm_Unpack(&num_down, sizeof(int));
-
       int* f_down_num = new int[num_ent];
       int* e_down_lid = new int[num_down];
       int* e_geom_type = new int[num_ent];
@@ -565,7 +511,6 @@ void m3dc1_receiveFaces(Mesh2* mesh)
     } // while ( ! PCU_Comm_Unpacked())
   } // while (PCU_Comm_Listen())
 }
-
 // *********************************************************
 void m3dc1_stitchLink(Mesh2* mesh, MeshTag* partbdry_id_tag,
                       std::map<int, MeshEntity*>* partbdry_entities)
@@ -573,7 +518,6 @@ void m3dc1_stitchLink(Mesh2* mesh, MeshTag* partbdry_id_tag,
 {
   PCU_Comm_Begin();
   MeshEntity* e;
-
   int ent_info[3];
   int global_id;
   for (int dim=0; dim<2; ++dim)
@@ -595,7 +539,6 @@ void m3dc1_stitchLink(Mesh2* mesh, MeshTag* partbdry_id_tag,
       }
     }
   } //  for (int dim=0; dim<2; ++dim)
-
   PCU_Comm_Send();
   while (PCU_Comm_Listen())
   {
@@ -610,14 +553,12 @@ void m3dc1_stitchLink(Mesh2* mesh, MeshTag* partbdry_id_tag,
     } // while ( ! PCU_Comm_Unpacked())
   } // while (PCU_Comm_Listen())
 }
-
 // *********************************************************
 void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
 // *********************************************************
 {
   int own_partid, num_ent = m3dc1_mesh::instance()->get_local_count(dim);
   if (dim>2 || !num_ent) return;
-
   double* v_coords;
   double* v_params;
   int* e_geom_type = new int[num_ent];
@@ -626,10 +567,8 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
   int* e_own_partid; // for vertices and edges
   int* e_global_id; // for vertices and edges
   int* e_rmt_num;  // for vertices and edges
-
   MeshEntity* e;
   gmi_ent* geom_ent;
-
   if (dim==0)
   {
     v_coords = new double[num_ent*3];  // for vertices
@@ -643,7 +582,6 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
     e_global_id = new int[num_ent];
     e_rmt_num = new int[num_ent];
   }
-
   int num_down=0, num_remote=0;
   MeshIterator* it = mesh->begin(dim);
   while ((e = mesh->iterate(it)))
@@ -655,7 +593,6 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
       case apf::Mesh::EDGE: num_down+=2; break;
       default: break;
     }
-
     if (mesh->isShared(e))
     {
       Copies remotes;
@@ -664,12 +601,9 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
     }
   }
   mesh->end(it);
-
   std::vector<int> e_down_lid;
   int* e_rmt_pid = new int[num_remote];
-
   int global_id, rinfo_pos=0, index=0, num_down_ent;
-
   it = mesh->begin(dim);
   Vector3 coord;
   Vector3 param;
@@ -694,11 +628,9 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
                     e_down_lid.push_back(get_ent_localid(mesh, down_ent[i]));
                 }
     } // switch
-
     geom_ent = (gmi_ent*)(mesh->toModel(e));
     e_geom_type[index] = gmi_dim(m3dc1_model::instance()->model, geom_ent);
     e_geom_tag[index] = gmi_tag(m3dc1_model::instance()->model, geom_ent);
-
     if (dim!=2) // for vertices and edges
     {
       own_partid=get_ent_ownpartid(e);
@@ -725,7 +657,6 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
     ++index;
   }
   mesh->end(it);
-
   int proc=PCU_Comm_Self()+m3dc1_model::instance()->group_size;
   while (proc<PCU_Comm_Peers())
   {
@@ -755,7 +686,6 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
     }
     proc+=m3dc1_model::instance()->group_size;
   }
-
   if (dim==0)
   {
     delete [] v_coords;
@@ -763,7 +693,6 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
   }
   delete [] e_geom_type;
   delete [] e_geom_tag;
-
   if (dim==2)
     delete [] f_down_num;
   else
@@ -774,15 +703,12 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
     if (num_remote) delete [] e_rmt_pid;
   }
 }
-
 // *********************************************************
 void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
 // *********************************************************
 {
   MeshEntity* e;
-
   int own_partid, num_own_partbdry=0, myrank=PCU_Comm_Self();
-
   MeshIterator* it = mesh->begin(dim);
   while ((e = mesh->iterate(it)))
   {
@@ -791,10 +717,8 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
       ++num_own_partbdry;
   }
   mesh->end(it);
-
   PCU_Exscan_Ints(&num_own_partbdry,1);
   int initial_id=num_own_partbdry;
-
   PCU_Comm_Begin();
   it = mesh->begin(dim);
   while ((e = mesh->iterate(it)))
@@ -814,7 +738,6 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
     }
   }
   mesh->end(it);
-
   PCU_Comm_Send();
   int global_id;
   while (PCU_Comm_Listen())
@@ -826,29 +749,21 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
       mesh->setIntTag(remote_ent, partbdry_id_tag, &global_id);
     }
 }
-
 void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices);
-
 // *********************************************************
 void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 // *********************************************************
 {
   if (!PCU_Comm_Self())
     std::cout<<"\n*** SWITCHED MESH TO 3D ***\n\n";
-
   int local_partid=PCU_Comm_Self();
-
   changeMdsDimension(mesh, 3);
-
   // assign uniq id to part bdry entities
   MeshTag* partbdry_id_tag = mesh->createIntTag("m3dc1_pbdry_globid", 1);
-
   for (int dim=0; dim<2; ++dim)
     assign_uniq_partbdry_id(mesh, dim, partbdry_id_tag);
-
   // copy 2D mesh in process group 0 to other process groups
   std::map<int, MeshEntity*> partbdry_entities[2];
-
   for (int dim=0; dim<3; ++dim)
   {
     PCU_Comm_Begin();
@@ -862,9 +777,7 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
       default: break;
     }
   }
-
   m3dc1_stitchLink(mesh, partbdry_id_tag, partbdry_entities);
-
   MeshEntity* e;
   for (int dim=0; dim<2; ++dim)
   {
@@ -884,28 +797,23 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     mesh->end(ent_it);
   }
   mesh->destroyTag(partbdry_id_tag);
-
   // construct 3D model
   m3dc1_model::instance()->create3D();
-
   // construct 3D mesh
   MeshEntity * new_ent;
   gmi_ent * geom_ent;
-
   int index, new_id, local_id, local_id_0, local_id_1, local_id_2;
   double local_plane_phi = m3dc1_model::instance()->get_phi(local_partid);
   double next_plane_phi = m3dc1_model::instance()->get_phi(m3dc1_model::instance()->next_plane_partid);
   bool flip_wedge=false;
   if (local_plane_phi>next_plane_phi) // last plane
     flip_wedge=true;
-
   // create remote copy of vertices on next plane
   gmi_ent* new_geom_ent = NULL;
   int num_local_vtx=num_local_ent[0];
   MeshEntity** remote_vertices=new MeshEntity*[num_local_vtx];
   Vector3 cur_coord;
   Vector3 new_coord;
-
   for (index=0;index<num_local_vtx;++index)
   {
     e = getMdsEntity(mesh, 0, index);
@@ -925,7 +833,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     cur_coord[2] = local_plane_phi;
     mesh->setPoint(e, 0, cur_coord);
   }
-
   // create remote copy of edges on next plane
   int num_local_edge=num_local_ent[1];
   Downward down_vtx;
@@ -934,23 +841,18 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
   for (index=0;index<num_local_edge;++index)
   {
     e = getMdsEntity(mesh, 1, index);
-
     mesh->getDownward(e, 0, down_vtx);
     local_id_0 = get_ent_localid(mesh, down_vtx[0]);
     local_id_1 = get_ent_localid(mesh, down_vtx[1]);
-
     geom_ent = (gmi_ent*)(mesh->toModel(e));
     new_geom_ent = m3dc1_model::instance()->geomEntNextPlane(geom_ent);
-
     new_down_vtx[0] = remote_vertices[local_id_0];
     new_down_vtx[1] = remote_vertices[local_id_1];
     new_ent = mesh->createEntity(apf::Mesh::EDGE, (ModelEntity*)new_geom_ent, new_down_vtx);
-
     new_id = num_local_edge+index;
     mesh->setIntTag(new_ent, local_entid_tag, &new_id);
     remote_edges[index]=new_ent;
   }
-
   // create remote copy of faces on next plane
   int num_local_face=num_local_ent[2];
   Downward down_edge;
@@ -959,56 +861,44 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
   for (index=0;index<num_local_face;++index)
   {
     e = getMdsEntity(mesh, 2, index);
-
     mesh->getDownward(e, 1, down_edge);
     local_id_0 = get_ent_localid(mesh, down_edge[0]);
     local_id_1 = get_ent_localid(mesh, down_edge[1]);
     local_id_2 = get_ent_localid(mesh, down_edge[2]);
-
     geom_ent = (gmi_ent*)(mesh->toModel(e));
     new_geom_ent = m3dc1_model::instance()->geomEntNextPlane(geom_ent);
-
     new_down_edge[0] = remote_edges[local_id_0];
     new_down_edge[1] = remote_edges[local_id_1];
     new_down_edge[2] = remote_edges[local_id_2];
-
     new_ent = mesh->createEntity(apf::Mesh::TRIANGLE, (ModelEntity*)new_geom_ent, new_down_edge);
     new_id = num_local_face+index;
     mesh->setIntTag(new_ent, local_entid_tag, &new_id);
     remote_faces[index]=new_ent;
   }
-
   // create edges, faces and regions between planes.
   // if edges are classified on geom edge, a new face is classified on geom_surface_face
   // otherwise, a new face is classified on geom_region
-
   Downward quad_faces;
   Downward wedge_faces;
-
   int edge_counter=0, face_counter=0, rgn_counter=0;
   std::vector<MeshEntity*> btw_plane_edges;
   std::vector<MeshEntity*> btw_plane_faces;
   std::vector<MeshEntity*> btw_plane_regions;
   std::vector<MeshEntity*> vertex_edges;
   std::vector<MeshEntity*> edge_faces;
-
   Downward edgesNextPlane;
   Downward edgesBtwPlane;
   int num_upward;
-
   for (index=0;index<num_local_face;++index)
   {
     e = getMdsEntity(mesh, 2, index);
-
     mesh->getDownward(e, 0, down_vtx);
     mesh->getDownward(e, 1, down_edge);
-
     for (int pos=0; pos<3; ++pos)
     {
       local_id = get_ent_localid(mesh, down_edge[pos]);
       edgesNextPlane[pos] = remote_edges[local_id];
     }
-
     /**create edges between planes*/
     for (int pos=0; pos<3; ++pos)
     {
@@ -1018,7 +908,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
       num_upward = mesh->countUpward(down_vtx[pos]);
       for (int i=0; i<num_upward; ++i)
         vertex_edges.push_back(mesh->getUpward(down_vtx[pos], i));
-
       for (unsigned int i=0; i<vertex_edges.size();++i)
       {
         // get the local id
@@ -1029,25 +918,19 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
           break; // get out of for loop
         }
       }
-
       if (edgesBtwPlane[pos]!=NULL) continue;
-
       // create new edges between vertices[pos] and its remote vertex if not found
       local_id = get_ent_localid(mesh, down_vtx[pos]);
-
       geom_ent = (gmi_ent*)(mesh->toModel(down_vtx[pos]));
       new_geom_ent = m3dc1_model::instance()->geomEntBtwPlane(geom_ent);
       new_down_vtx[0] = down_vtx[pos];
       new_down_vtx[1] = remote_vertices[local_id],
-
       edgesBtwPlane[pos] = mesh->createEntity(apf::Mesh::EDGE, (ModelEntity*)new_geom_ent, new_down_vtx);
-
       new_id =num_local_edge*2+edge_counter;
       mesh->setIntTag(edgesBtwPlane[pos], local_entid_tag, &new_id);
       btw_plane_edges.push_back(edgesBtwPlane[pos]);
       ++edge_counter;
     }// for (int pos=0; pos<3; ++pos)
-
     /**create quads between planes*/
     for (int pos=0; pos<3; ++pos)
     {
@@ -1055,10 +938,8 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
       quad_faces[pos]=NULL;
       edge_faces.clear();
       num_upward = mesh->countUpward(down_edge[pos]);
-
       for (int i=0; i<num_upward; ++i)
         edge_faces.push_back(mesh->getUpward(down_edge[pos],i));
-
       for (unsigned int i=0; i<edge_faces.size(); ++i)
       {
         local_id = get_ent_localid(mesh, edge_faces[i]);
@@ -1069,7 +950,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
         }
       }
       if (quad_faces[pos]!=NULL) continue;
-
       /**create new quad between two planes if found*/
       Downward quad_edges;
       quad_edges[0]=down_edge[pos];
@@ -1086,10 +966,8 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
           break; // get out of for loop
         }
       }
-
       quad_edges[2]=edgesNextPlane[pos];
       MeshEntity * vtx_2 = down_edge_vtx[0];
-
       for (int i=0; i<3; ++i)
       {
         Downward edgeBtw_down;
@@ -1102,14 +980,12 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
       }
       geom_ent = (gmi_ent*)(mesh->toModel(down_edge[pos]));
       new_geom_ent = m3dc1_model::instance()->geomEntBtwPlane(geom_ent);
-
       quad_faces[pos]= mesh->createEntity(apf::Mesh::QUAD, (ModelEntity*)new_geom_ent, quad_edges);
       btw_plane_faces.push_back(quad_faces[pos]);
       new_id = num_local_face*2+face_counter;
       mesh->setIntTag(quad_faces[pos], local_entid_tag, &new_id);
       ++face_counter;
     } //     for (int pos=0;pos<3; ++pos)
-
     // create regions per face on local plane
     wedge_faces[0]=e;
     wedge_faces[1]=quad_faces[0];
@@ -1117,13 +993,11 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     wedge_faces[3]=quad_faces[2];
     local_id = get_ent_localid(mesh, e);
     wedge_faces[4]=remote_faces[local_id];
-
     if (flip_wedge) // flip top & bottom of wedge to avoid negative volume in the last plane
     {
       wedge_faces[4]=e;
       wedge_faces[0]=remote_faces[local_id];
     }
-
     /**create new region between the local and forward plane*/
     geom_ent = (gmi_ent*)(mesh->toModel(e));
     new_geom_ent = m3dc1_model::instance()->geomEntBtwPlane(geom_ent);
@@ -1133,7 +1007,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     mesh->setIntTag(new_ent, local_entid_tag, &rgn_counter);
     ++rgn_counter;
   }
-
   // exchange remote copies to set remote copy links
   PCU_Comm_Begin();
   int num_entities = num_local_vtx+num_local_edge+num_local_face;
@@ -1149,7 +1022,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     entities[pos]=remote_edges[index];
     ++pos;
   }
-
   for (int index=0; index<num_local_face; ++index)
   {
     entities[pos]=remote_faces[index];
@@ -1159,7 +1031,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
   PCU_Comm_Pack(m3dc1_model::instance()->next_plane_partid, &(entities[0]),num_entities*sizeof(MeshEntity*));
   PCU_Comm_Send();
   delete [] entities;
-
   // receive phase begins
   std::vector<MeshEntity*> ent_vec;
   std::map<MeshEntity*, MeshEntity*> partbdry_ent_map;
@@ -1200,10 +1071,8 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
       delete [] s_ent;
     }
   }
-
   push_new_entities(mesh, partbdry_ent_map);
   bounce_orig_entities(mesh, ent_vec, m3dc1_model::instance()->prev_plane_partid,remote_vertices,remote_edges,remote_faces);
-
   // update partition classification
   for (int index=0; index<num_local_vtx; ++index)
   {
@@ -1216,7 +1085,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     parts.insert(local_partid);
     mesh->setResidence(e, parts);
   }
-
   for (int index=0; index<num_local_vtx; ++index)
   {
     e = remote_vertices[index];
@@ -1228,7 +1096,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     parts.insert(local_partid);
     mesh->setResidence(e, parts);
   }
-
   for (int index=0; index<num_local_edge; ++index)
   {
     e = getMdsEntity(mesh, 1, index);
@@ -1240,7 +1107,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     parts.insert(local_partid);
     mesh->setResidence(e, parts);
   }
-
   for (int index=0; index<num_local_edge; ++index)
   {
     e = remote_edges[index];
@@ -1252,7 +1118,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     parts.insert(local_partid);
     mesh->setResidence(e, parts);
   }
-
   for (int index=0; index<num_local_face; ++index)
   {
     e = getMdsEntity(mesh, 2, index);
@@ -1264,7 +1129,6 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     parts.insert(local_partid);
     mesh->setResidence(e, parts);
   }
-
   for (int index=0; index<num_local_face; ++index)
   {
     e = remote_faces[index];
@@ -1276,35 +1140,27 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
     parts.insert(local_partid);
     mesh->setResidence(e, parts);
   }
-
   // update partition model
   mesh->acceptChanges();
-
   // update m3dc1_mesh internal data (# local, owned and global entities)
   update_partbdry(remote_vertices, remote_edges, remote_faces, btw_plane_edges, btw_plane_faces, btw_plane_regions);
-
   // delete existing local numbering
   apf::Numbering * local_n = mesh->findNumbering(mesh->getShape()->getName());
   if (local_n)
     destroyNumbering(local_n);
-
   // re-create the field and copy field data on master process group to non-master
   // why is this not applied to all fields? TODO
   for (int i=0; i<num_field; ++i)
     update_field(field_id[i], num_dofs_per_value[i], num_local_vtx, remote_vertices);
-
   // clear temp memory
   delete [] remote_vertices;
   delete [] remote_edges;
   delete [] remote_faces;
-
   set_node_adj_tag();
-
 #ifdef DEBUG
   printStats(mesh);
 #endif
 }
-
 void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remote_edges, MeshEntity** remote_faces,
     std::vector<MeshEntity*>& btw_plane_edges, std::vector<MeshEntity*>& btw_plane_faces, std::vector<MeshEntity*>& btw_plane_regions)
 {
@@ -1314,12 +1170,10 @@ void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remo
   int num_orig_vtx = num_local_ent[0];
   int num_orig_edge = num_local_ent[1];
   int num_orig_face = num_local_ent[2];
-
   num_local_ent[0] = num_orig_vtx*2;
   num_local_ent[1] = num_orig_edge*2+btw_plane_edges.size();
   num_local_ent[2] = num_orig_face*2+btw_plane_faces.size();
   num_local_ent[3] = btw_plane_regions.size();
-
   // update owned & global ent counter
   int local_partid=PCU_Comm_Self();
   apf::MeshEntity* e;
@@ -1334,34 +1188,30 @@ void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remo
     }
     mesh->end(it);
   }
-
   MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, PCU_Get_Comm());
 }
-
 // upon  mesh modification, update field wrt memory for dof data and numbering
 // and rebuild the existing dof data in updated field.
 void update_field (int fid, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices)
 {
-  int num_values, scalar_type, old_numdof, agg_scp;
+  int num_values = 0;
+  int old_numdof = 0;
+  int agg_scp = -1;
   const char * fnm = m3dc1_field_getname(&fid);
-  m3dc1_field_getinfo (&fid, &num_values, &scalar_type, &old_numdof, &agg_scp);
-
+  m3dc1_field_getinfo (&fid, &num_values, &old_numdof, &agg_scp);
   // get the field info and save it for later creation
   m3dc1_field * mf = m3dc1_mesh::instance()->get_field(fid);
   //int nv=mf->get_num_value();
   //double** dof_val = new double*[nv];
   //double** recv_dof_val = new double*[nv];
-
   apf::Field * f = NULL;
-
   // copy the existing dof data
-  int old_total_ndof = apf::countComponents(mf->get_field());
-
+  int old_total_ndof = apf::countComponents(mf->getCoreField());
   PCU_Comm_Begin();
   double * dof_val = new double[old_total_ndof*num_2d_vtx];
   if (!m3dc1_model::instance()->local_planeid)
   {
-    f = mf->get_field();
+    f = mf->getCoreField();
     freeze(f); // switch dof data from tag to array
     memcpy(&(dof_val[0]), apf::getArrayData(f), old_total_ndof*num_2d_vtx*sizeof(double));
     int proc=PCU_Comm_Self()+m3dc1_model::instance()->group_size;
@@ -1385,17 +1235,14 @@ void update_field (int fid, int ndof_per_value, int num_2d_vtx, MeshEntity** rem
       PCU_Comm_Unpack(&(recv_dof_val[0]), old_total_ndof*recv_num_ent*sizeof(double));
     }
   }
-
   // delete the field
   m3dc1_field_delete(&fid);
   mf = NULL;
-
   // create the field with same attributes
-  m3dc1_field_create (&fid, fnm, &num_values, &scalar_type, &ndof_per_value,&agg_scp);
+  m3dc1_field_create (&fid, fnm, &num_values, &ndof_per_value, &agg_scp);
   mf = m3dc1_mesh::instance()->get_field(fid);
-
   // re-construct the dof data
-  f = mf->get_field();
+  f = mf->getCoreField();
   int new_total_ndof = apf::countComponents(f);
   double * dof_data = new double[new_total_ndof];
   memset(&dof_data[0],0,sizeof(double)*new_total_ndof);
@@ -1422,7 +1269,6 @@ void update_field (int fid, int ndof_per_value, int num_2d_vtx, MeshEntity** rem
   } // while
   delete [] dof_data;
 }
-
  struct entMsg
   {
     int pid;
@@ -1496,7 +1342,6 @@ void m3dc1_mesh::set_node_adj_tag2()
   }
 }
 */
-
 // FIXME: this crashes when called with ghosted mesh
 // **********************************************
 void m3dc1_mesh::set_node_adj_tag()
@@ -1513,7 +1358,6 @@ void m3dc1_mesh::set_node_adj_tag()
     Adjacent elements;
     getBridgeAdjacent(mesh, e, brgType, 0, elements);
     int num_adj = elements.getSize();
-
     for (int i=0; i<num_adj; i++)
     {
       if (pumi_ment_isOwned(elements[i], m3dc1_mesh::instance()->ownership))
@@ -1521,20 +1365,16 @@ void m3dc1_mesh::set_node_adj_tag()
     }
     mesh->setIntTag(e, num_own_adj_node_tag, &num_adj_node);
     //mesh->setIntTag(e,num_global_adj_node_tag, &num_adj_node);
-
     if (!mesh->isShared(e)) continue;
     // first pass msg size to owner
     int own_partid = get_ent_ownpartid(e);
     if (own_partid==PCU_Comm_Self()) continue;
-
     MeshEntity* own_copy = get_ent_owncopy(e);
     PCU_COMM_PACK(own_partid, own_copy);
     PCU_Comm_Pack(own_partid, &num_adj,sizeof(int));
   }
   mesh->end(it);
-
   PCU_Comm_Send();
-
   std::map<apf::MeshEntity*, std::map<int, int> > count_map;
   while (PCU_Comm_Listen())
   {
@@ -1545,7 +1385,6 @@ void m3dc1_mesh::set_node_adj_tag()
       count_map[e][PCU_Comm_Sender()]=value;
     }
   }
-
   // pass entities to owner
   std::map<apf::MeshEntity*, std::set<entMsg, classcomp> > count_map2;
   it = mesh->begin(0);
@@ -1556,7 +1395,6 @@ void m3dc1_mesh::set_node_adj_tag()
     std::vector<entMsg> msgs;
     Adjacent elements;
     getBridgeAdjacent(mesh, e, brgType, 0, elements);
-
     MeshEntity* ownerEnt=get_ent_owncopy(e);
     int own_partid = get_ent_ownpartid(e);
     for(size_t i=0; i<elements.getSize(); i++)
@@ -1569,7 +1407,6 @@ void m3dc1_mesh::set_node_adj_tag()
         count_map2[e].insert(*msgs.rbegin());
       }
     }
-
     if(own_partid!=PCU_Comm_Self())
     {
       PCU_COMM_PACK(own_partid, ownerEnt);
@@ -1592,7 +1429,6 @@ void m3dc1_mesh::set_node_adj_tag()
       }
     }
   }
-
   int num_global_adj;
   for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); mit!=count_map2.end(); ++mit)
   {
@@ -1609,7 +1445,6 @@ void m3dc1_mesh::set_node_adj_tag()
     if (!pumi_ment_isOwned(e, m3dc1_mesh::instance()->ownership))
       continue;
     mesh->getIntTag(e, num_global_adj_node_tag, &num_global_adj);
-
     if (mesh->isShared(e))
     {
       Copies remotes;
@@ -1632,9 +1467,7 @@ void m3dc1_mesh::set_node_adj_tag()
     }
   }
   mesh->end(it);
-
   PCU_Comm_Send();
-
   apf::MeshEntity* r;
   int r_int;
   while (PCU_Comm_Listen())
@@ -1647,7 +1480,6 @@ void m3dc1_mesh::set_node_adj_tag()
     }
   }
 }
-
 void m3dc1_mesh::print(int LINE)
 {
   int num_own[4];
@@ -1664,7 +1496,6 @@ void m3dc1_mesh::print(int LINE)
     }
     mesh->end(it);
   }
-
   for (int pid=0; pid<PCU_Comm_Peers(); ++pid)
   {
     if (pid==PCU_Comm_Self() && mesh->count(0))
@@ -1678,7 +1509,6 @@ void m3dc1_mesh::print(int LINE)
     MPI_Barrier(MPI_COMM_WORLD);
   } // for pid
 }
-
 void send_dof(pMesh m, pMeshEnt e, pField f)
 {
   void* msg_send;
@@ -1762,7 +1592,6 @@ void verify_field(pMesh m, pField f)
   m->end(it);
   PCU_Comm_Send();
   int mismatch = receive_dof(f);
-
   int global_mismatch = PCU_Max_Int(mismatch);
   if (global_mismatch)
   {
@@ -1775,4 +1604,3 @@ void verify_field(pMesh m, pField f)
       std::cout<<": passed\n";
   }
 }
-

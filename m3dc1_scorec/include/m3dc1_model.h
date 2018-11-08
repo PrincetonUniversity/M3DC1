@@ -12,9 +12,10 @@
 #include "apf.h"
 #include "apfMesh.h"
 #include "gmi.h"
-#include <mpi.h>
+#include <cassert>
 #include <map>
 #include <vector>
+#include <mpi.h>
 
 int get_prev_plane_partid(int plane_id);
 int get_next_plane_partid(int plane_id);
@@ -116,7 +117,11 @@ public:
   void setupCommGroupsPlane();
   MPI_Comm & getMPICommPlane();
   std::map<int,MPI_Comm> PlaneGroups;
-  MPI_Comm & getPlaneComm() { return pln_cm; }
+  MPI_Comm & getPlaneComm()
+  {
+    assert(pln_cm != MPI_COMM_NULL);
+    return pln_cm;
+  }
   void setupPlaneComm();
 private:
   static m3dc1_model* _instance;

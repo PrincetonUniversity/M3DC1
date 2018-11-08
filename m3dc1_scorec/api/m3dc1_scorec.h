@@ -24,23 +24,38 @@ extern MPI_Comm M3DC1_COMM_WORLD;
 extern "C" {
 #endif
 typedef int FieldID;
-enum m3dc1_coord_system { /*0*/ M3DC1_RZPHI,  // default
-                          /*1*/ M3DC1_XYZ};
+enum m3dc1_coord_system
+{
+  M3DC1_RZPHI = 0,  // default
+  M3DC1_XYZ = 1
+};
 
 // M3DC1_SOLVER_ORDER should be default -Fan
-enum m3dc1_ordering { /*0*/ M3DC1_NO_ORDER=0,  // no reordering applied - default
-                      /*2*/ M3DC1_ADJ_ORDER, // use adjaceny-based reordering on local mesh;
-                      /*2*/ M3DC1_SOLVER_ORDER, // use solver's reordering;
-                      /*3*/ M3DC1_ADJ_SOLVER_ORDER}; // use both adjaceny-based and solver's reordering
+enum m3dc1_ordering
+{
+  M3DC1_NO_ORDER = 0,  // no reordering applied - default
+  M3DC1_ADJ_ORDER = 1, // use adjaceny-based reordering on local mesh;
+  M3DC1_SOLVER_ORDER = 2, // use solver's reordering;
+  M3DC1_ADJ_SOLVER_ORDER = 3 // use both adjaceny-based and solver's reordering
+};
 
-enum m3dc1_field_type { /*0*/ M3DC1_REAL=0,  // real number for field value
-                        /*1*/ M3DC1_COMPLEX}; // complex number for field value
+enum m3dc1_field_type
+{
+  M3DC1_REAL = 0,  // real number for field value
+  M3DC1_COMPLEX = 1  // complex number for field value
+};
 
-enum m3dc1_matrix_type { /*0*/ M3DC1_MULTIPLY=0,
-                         /*1*/ M3DC1_SOLVE};
+enum m3dc1_matrix_type
+{
+  M3DC1_LOCAL_MAT = 0,
+  M3DC1_PARALLEL_MAT = 1
+};
 
-enum m3dc1_matrix_status { /*0*/ M3DC1_NOT_FIXED=0,
-                           /*2*/ M3DC1_FIXED};
+enum m3dc1_matrix_status
+{
+  M3DC1_NOT_FIXED = 0,
+  M3DC1_FIXED = 1
+};
 
 bool m3dc1_double_isequal(double A, double B);
 
@@ -50,9 +65,8 @@ void m3dc1_scorec_init(int * argc, char ** argv[]);
 void m3dc1_scorec_finalize();
 
 /** plane functions */
-void m3dc1_plane_setnum(int*);
-void m3dc1_plane_getnum(int*);
-void m3dc1_plane_getid(int * /* out */ plane_id);
+//void m3dc1_plane_getnum(int * );
+//void m3dc1_plane_getid(int * plane_id);
 void m3dc1_plane_setphirange(double* minValue, double* maxValue);
 void m3dc1_plane_setphi(int* planeid, double* phi);
 void m3dc1_plane_getphi(int* planeid, double* phi);
@@ -86,7 +100,7 @@ void m3dc1_mesh_search(int* initial_simplex, double* final_position, int* final_
 /* mesh entity functions */
 void m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);
 void m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
-		            int* /* out */ geom_class_dim, int* /* out */ geom_class_id);
+                            int* /* out */ geom_class_dim, int* /* out */ geom_class_id);
 void m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim,
                       int* /* out */ adj_ent, int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent);
 void m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim, int* /* out */ num_adj_ent);
@@ -107,39 +121,52 @@ void m3dc1_node_write (const char* filename, int* start_index);
 void m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac);
 
 /** field manangement */
-void m3dc1_field_getnewid (FieldID* /*out*/ fid);
-// *value_type is either M3DC1_REAL or M3DC1_COMPLEX
+void m3dc1_field_getnewid(FieldID * /*out*/ fid);
 // agg_scp == 0, local aggregation,
 // agg_scp == 1, per-plane aggregation,
 // agg_scp == 2, global aggregation
-void m3dc1_field_create (FieldID* /*in*/ fid, const char* /* in */ field_name, int* num_values, int* value_type, int* num_dofs_per_value, int * agg_scp);
-void m3dc1_field_delete (FieldID* /*in*/ fid);
+void m3dc1_field_create (FieldID * fid,
+                         const char * fnm,
+                         int * blks_per_vtx,
+                         int * dofs_per_blk,
+                         int * blk_agg_scp);
+void m3dc1_field_delete (FieldID * fid);
 
-const char * m3dc1_field_getname(FieldID* fid);
-void m3dc1_field_getinfo(FieldID* /*in*/ fid, int* num_values, int* value_type, int* total_num_dof, int * agg_scp);
+const char * m3dc1_field_getname(FieldID * fid);
+
+void m3dc1_field_getinfo(FieldID * fid,
+                         int * blks_per_vtx,
+                         int * dofs_per_blk,
+                         int * blk_agg_scp);
 
 void m3dc1_field_exist(FieldID* fid, int * exist);//checkppplveccreated_
-void m3dc1_field_sync (FieldID* /* in */ fid); // updatesharedppplvecvals_;
-void m3dc1_field_sum (FieldID* /* in */ fid); // sumsharedppplvecvals_
-void m3dc1_field_sumsq (FieldID* /* in */ fid, double* /* out */ sum);
+void m3dc1_field_sync (FieldID * fid); // updatesharedppplvecvals_;
+void m3dc1_field_sum (FieldID * fid); // sumsharedppplvecvals_
+void m3dc1_field_sumsq (FieldID * fid, double * sum);
 
-/** field dof functions */
-void m3dc1_field_getlocaldofid (FieldID* fid, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-void m3dc1_field_getowndofid (FieldID* fid, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-void m3dc1_field_getglobaldofid ( FieldID* fid, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-void m3dc1_field_getghostdofid (FieldID* fid, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+void m3dc1_field_getlocaldofid(FieldID * fid,
+                               int * start_dof_id,
+                               int * end_dof_id_plus_one);
 
-void m3dc1_field_getnumlocaldof (FieldID* fid, int* /* out */ num_local_dof);
-void m3dc1_field_getnumowndof (FieldID* fid, int* /* out */ num_own_dof);
-void m3dc1_field_getnumglobaldof (FieldID* fid, int* /* out */ num_global_dof);
-void m3dc1_field_getnumghostdof (FieldID* fid, int* /* out */ num_ghost_dof);
+void m3dc1_field_getowndofid(FieldID * fid,
+                             int * start_dof_id,
+                             int * end_dof_id_plus_one);
+
+void m3dc1_field_getglobaldofid(FieldID * fid,
+                                int * start_dof_id,
+                                int * end_dof_id_plus_one);
+
+void m3dc1_field_getnumlocaldof(FieldID * fid, int * num_local_dof);
+void m3dc1_field_getnumowndof(FieldID * fid, int * num_own_dof);
+void m3dc1_field_getnumglobaldof(FieldID * fid, int * num_global_dof);
+void m3dc1_field_getnumghostdof(FieldID * fid, int * num_ghost_dof);
 
 void m3dc1_field_getdataptr (FieldID* fid, double** pts);
 
-void m3dc1_field_add(FieldID* /*inout*/ fid1, FieldID* /*in*/ fid2);
-void m3dc1_field_mult(FieldID* /*inout*/ fid, double* fac, int * scalar_type);
-void m3dc1_field_assign(FieldID* /*inout*/ fid, double* fac, int * scalar_type);
-void m3dc1_field_copy(FieldID* /* out */ fid1, FieldID* /* in */ fid2);
+void m3dc1_field_add(FieldID * fid1, FieldID * fid2);
+void m3dc1_field_mult(FieldID * fid, double * fac);
+void m3dc1_field_assign(FieldID * fid, double * fac);
+void m3dc1_field_copy(FieldID * fid1, FieldID * fid2);
 
 void m3dc1_field_retrieve (FieldID* /* in */ fid, double * /*out*/ data, int * /* in */size);
 void m3dc1_field_set (FieldID* /* in */ fid, double * /*in*/ data, int * /* in */size);
@@ -154,13 +181,18 @@ void m3dc1_field_load (FieldID* /*out*/ fid, const char * /*in*/ filename);
 void m3dc1_field_write(FieldID* fid, const char * filename, int* start_index);
 void m3dc1_field_print(FieldID* fid);
 void m3dc1_field_sum_plane (FieldID* /* in */ fid);
+
+// todo: this needs to be documented way better
 void m3dc1_field_printcompnorm(FieldID* /* in */ fid, const char * info);
 void m3dc1_field_max (FieldID* fid, double * max_val, double * min_val);
 
 void m3dc1_field_verify();
 
-void m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* fid,
-                       int* dof_id, int* /* out */ dof_cnt);
+void m3dc1_ent_getlocaldofid(int* /* in */ ent_dim,
+                             int* /* in */ ent_id,
+                             FieldID* fid,
+                             int* dof_id,
+                             int* /* out */ dof_cnt);
 void m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* fid,
                        int* dof_id, int* /* out */ dof_cnt);
 void m3dc1_ent_getnumdof (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* fid, int* /* out */ num_dof);
@@ -193,6 +225,7 @@ void m3dc1_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *c
 void m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol); //solveSysEqu_
 void m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num);
 void m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputvecid); //matrixvectormult_
+void m3dc1_matrix_getfieldid(int* matrix_id, FieldID * x_fld_id);
 
 // for performance test
 void m3dc1_matrix_setassembleoption(int * op);
@@ -232,12 +265,12 @@ void m3dc1_epetra_write(int* matrix_id, const char*, int* skip_zero, int* start_
 void m3dc1_epetra_print(int* matrix_id);
 
 void m3dc1_solver_aztec(int* matrix_id, FieldID* x_fieldid, FieldID*
-		       b_fieldid, int* num_iter, double* tolerance,
-		       const char* krylov_solver, const char*
-		       preconditioner, const char* sub_dom_solver,
-		       int* overlap, int* graph_fill, double*
-		       ilu_drop_tol,  double* ilu_fill,
-		       double* ilu_omega, int* poly_ord);
+                       b_fieldid, int* num_iter, double* tolerance,
+                       const char* krylov_solver, const char*
+                       preconditioner, const char* sub_dom_solver,
+                       int* overlap, int* graph_fill, double*
+                       ilu_drop_tol,  double* ilu_fill,
+                       double* ilu_omega, int* poly_ord);
 
 void m3dc1_solver_amesos(int* matrix_id, FieldID* in_fieldid, FieldID* out_fieldid, const char* solver_name);
 void m3dc1_solver_getnumiter(int* matrix_id, int * iter_num);

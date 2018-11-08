@@ -94,12 +94,15 @@ void synchronize_numbering(apf::Mesh2* msh, apf::Numbering * num,
     }
 }
 
-void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
+void aggregateNumbering(MPI_Comm agg_cm, apf::Numbering * num, int nv, int ndfs, MPI_Comm gbl_cm = M3DC1_COMM_WORLD)
 {
-  apf::Field * fld = apf::getField(num);
-  apf::Mesh2 * msh = static_cast<apf::Mesh2*>(apf::getMesh(fld));
-  apf::FieldShape * shp = apf::getShape(fld);
-  //int cmps = apf::countComponents(fld);
+  MPI_Comm o_gbl_cm = PCU_Get_Comm();
+  PCU_Switch_Comm(gbl_cm);
+  int gbl_sz = 0;
+  MPI_Comm_size(gbl_cm,&gbl_sz);
+  bool lcl = (gbl_sz == 1);
+  apf::Mesh2 * msh = static_cast<apf::Mesh2*>(apf::getMesh(num));
+  apf::FieldShape * shp = apf::getShape(num);
   // currently this assertion will only work for non-complex fields, need to create a complex field type
   //  the function and numbering should work fine regardless
   //assert(cmps == nv * nd);
@@ -115,7 +118,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(is_ent_original(ent))
+        if(is_ent_original(ent) || lcl)
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -127,12 +130,12 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   }
   // sum the stride across the comm
   int lcl_strd = strd;
-  MPI_Allreduce(&lcl_strd,&strd,1,MPI_INTEGER,MPI_SUM,cm);
+  MPI_Allreduce(&lcl_strd,&strd,1,MPI_INTEGER,MPI_SUM,agg_cm);
   //int dof_head = 0;
-  // the first dof id is the exscan of the #of nodes times the number of dofs in the first block on the node on the cm
-  int dof_id_offset = lcl_strd * ndfs;
+  // the first dof id is the exscan of the #of nodes times the number of dofs in the first block on the node on the agg_cm
+  //int dof_id_offset = lcl_strd * ndfs;
   int nd_idx = 0;
-  MPI_Exscan(&dof_id_offset,&nd_idx,1,MPI_INTEGER,MPI_SUM,cm);
+  MPI_Exscan(&lcl_strd,&nd_idx,1,MPI_INTEGER,MPI_SUM,agg_cm);
   for(int dd = 0; dd < dim; ++dd)
   {
     if(shp->hasNodesIn(dd))
@@ -140,7 +143,7 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if (is_ent_original(ent))
+        if (is_ent_original(ent) || lcl)
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -171,14 +174,16 @@ void aggregateNumbering(MPI_Comm cm, apf::Numbering * num, int nv, int ndfs)
   // get inter-comm offsets
   // only rank zero in each comm cm will have a nonzero value
   int scp_rnk = -1;
-  MPI_Comm_rank(cm,&scp_rnk);
+  MPI_Comm_rank(agg_cm,&scp_rnk);
   int inter_comm_offset = (int)(!(bool)scp_rnk) * (strd * nv * ndfs);
   int lcl_offset = 0;
   // todo : replace with MSI_COMM_WORLD when we pull this into msi
-  MPI_Scan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,M3DC1_COMM_WORLD);
+  MPI_Scan(&inter_comm_offset,&lcl_offset,1,MPI_INTEGER,MPI_SUM,gbl_cm);
   // subtract local part from the scan (can't just use exscan cause the comms are arbitrary sizes
   //  and we don't want to bother making new comms)
   lcl_offset -= (strd * nv * ndfs);
   apf::setNumberingOffset(num,lcl_offset,m3dc1_mesh::instance()->get_ownership());
-  apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
+  if(!lcl)
+    apf::synchronize(num,m3dc1_mesh::instance()->get_ownership(),false);
+  PCU_Switch_Comm(o_gbl_cm);
 }

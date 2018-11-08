@@ -29,11 +29,13 @@ endmacro(hdf5LibCheck)
 
 set(HDF5_LIBS "")
 set(HDF5_LIB_NAMES
- hdf5hl_fortran
- hdf5_fortran
  hdf5_hl
  hdf5
  z)
+
+# hdf5hl_fortran
+# hdf5_fortran
+
 
 hdf5LibCheck("${HDF5_LIB_NAMES}" TRUE)
 

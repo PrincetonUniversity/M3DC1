@@ -760,26 +760,23 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
 #endif
 }
 
-// *********************************************************
 void m3dc1_model::set_num_plane(int factor)
-// *********************************************************
 {
   num_plane = factor;
   int self = PCU_Comm_Self();
-  group_size = PCU_Comm_Peers()/factor;
-  local_planeid = self/group_size; // divide
-
-  prev_plane_partid = (PCU_Comm_Self()-group_size)%PCU_Comm_Peers();
-  if (prev_plane_partid<0)
-    prev_plane_partid = prev_plane_partid+PCU_Comm_Peers();
-  next_plane_partid = (self+group_size)%PCU_Comm_Peers();
-
-  if (factor==1) return;
-
-  int groupRank = self%group_size; // modulo
-
+  int peers = PCU_Comm_Peers();
+  group_size = peers / num_plane;
+  local_planeid = self / group_size;
+  prev_plane_partid = (self - group_size) % peers;
+  if (prev_plane_partid < 0)
+    prev_plane_partid = prev_plane_partid + peers;
+  next_plane_partid = (self + group_size) % peers;
+  if (num_plane == 1)
+    return;
+  int groupRank = self % group_size;
   MPI_Comm groupComm;
   MPI_Comm_split(oldComm, local_planeid, groupRank, &groupComm);
+  setupPlaneComm();
   PCU_Switch_Comm(groupComm);
 }
 
@@ -951,7 +948,6 @@ void m3dc1_model::setupCommGroupsPlane()
   int localrank = rank - planeId * group_size;
   /** split MPI_COMM_WORLD, put the processors of the same planeId into one CommWorld*/
   MPI_Comm_split(M3DC1_COMM_WORLD,localrank,planeId, &(PlaneGroups[localrank]));
-  //MPI_Barrier(MPI_COMM_WORLD);
 }
 
 void m3dc1_model::setupPlaneComm()
@@ -968,9 +964,7 @@ void m3dc1_model::setupPlaneComm()
   MPI_Comm_split(M3DC1_COMM_WORLD,pid,key,&pln_cm);
 }
 
-// **********************************************
 MPI_Comm & m3dc1_model::getMPICommPlane()
-// **********************************************
 {
   int rank = PCU_Comm_Self();
   int planeId=local_planeid;
@@ -980,15 +974,13 @@ MPI_Comm & m3dc1_model::getMPICommPlane()
 }
 
 // use clamped b-spline as underlying representation
-// **********************************************
 void attach_periodic_cubic_curve ( int* edge, int * numPts, double * points)
-// **********************************************
 {
   edgeType[*edge]=BSPLINE;
   std::pair< int, int> vtx=edgeContainer[*edge];
   assert(vtx.first==vtx.second);
- 
-  int order_p=4; 
+
+  int order_p=4;
   int knotsize=2*order_p+*numPts-2;
   vector<double> knots(knotsize,0.);
   vector<double> ctrlPointsX(*numPts+2),ctrlPointsY(*numPts+2),weight;

@@ -191,45 +191,47 @@ message(STATUS "Linking against : \n\t ${LINK_LIBS}")
 
 INSTALL(FILES ${HEADERS} DESTINATION include)
 INSTALL(TARGETS ${SCOREC_LIB_NAME}
-      LIBRARY DESTINATION lib
-      ARCHIVE DESTINATION lib)
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
 
 if(ENABLE_TESTING)
-if(ENABLE_PETSC)
+
+  add_executable(fieldOps test/fieldOps/main.cc)
+  target_link_libraries(fieldOps ${LINK_LIBS} ${SCOREC_LIB_NAME})
+
+  if(NOT ENABLE_COMPLEX)
+    add_executable(aggOrdering test/aggOrdering/main.cc)
+    target_link_libraries(aggOrdering ${LINK_LIBS})
+    target_link_libraries(aggOrdering ${SCOREC_LIB_NAME})
+  endif()
+
+  add_executable(field2vec2field test/f2v2f/main.cc)
+  target_link_libraries(field2vec2field ${LINK_LIBS} ${SCOREC_LIB_NAME})
+
+  add_executable(allocate test/allocate/main.cc)
+  target_link_libraries(allocate ${LINK_LIBS} ${SCOREC_LIB_NAME})
+
   add_executable(solver test/solver/main.cc)
   target_link_libraries(solver ${LINK_LIBS})
   target_link_libraries(solver ${SCOREC_LIB_NAME})
   INSTALL(TARGETS solver RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
 
-if(ENABLE_SIMMETRIX)
-  add_executable(m3dc1_meshgen test/meshgen/m3dc1_meshgen.cc)
-  target_link_libraries(m3dc1_meshgen ${LINK_LIBS})
-  target_link_libraries(m3dc1_meshgen ${SCOREC_LIB_NAME})
-  INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+  if(ENABLE_SIMMETRIX)
+    add_executable(m3dc1_meshgen test/meshgen/m3dc1_meshgen.cc)
+    target_link_libraries(m3dc1_meshgen ${LINK_LIBS})
+    target_link_libraries(m3dc1_meshgen ${SCOREC_LIB_NAME})
+    INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
-  add_executable(convert_polar test/convert_polar/main.cc)
-  target_link_libraries(convert_polar ${LINK_LIBS})
-  target_link_libraries(convert_polar ${SCOREC_LIB_NAME})
-  INSTALL(TARGETS convert_polar RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
+    add_executable(convert_polar test/convert_polar/main.cc)
+    target_link_libraries(convert_polar ${LINK_LIBS})
+    target_link_libraries(convert_polar ${SCOREC_LIB_NAME})
+    INSTALL(TARGETS convert_polar RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+  endif()
 
-if(ENABLE_TRILINOS)
-    add_executable(epetra test/epetra/main.cc)
-    target_link_libraries(epetra ${LINK_LIBS})
-    target_link_libraries(epetra ${SCOREC_LIB_NAME})
-    INSTALL(TARGETS epetra RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
-
-#add_executable(ghosting_test test/ghosting/main.cc)
-#target_link_libraries(ghosting_test ${LINK_LIBS})
-#target_link_libraries(ghosting_test ${SCOREC_LIB_NAME})
-#INSTALL(TARGETS ghosting_test RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-
-add_executable(show_meshcount test/create_smb/show_meshcount.cc)
-target_link_libraries(show_meshcount ${LINK_LIBS})
-target_link_libraries(show_meshcount ${SCOREC_LIB_NAME})
-INSTALL(TARGETS show_meshcount RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+  add_executable(show_meshcount test/create_smb/show_meshcount.cc)
+  target_link_libraries(show_meshcount ${LINK_LIBS})
+  target_link_libraries(show_meshcount ${SCOREC_LIB_NAME})
+  INSTALL(TARGETS show_meshcount RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif() #enable_testing
 
 #binary distribution package

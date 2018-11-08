@@ -82,7 +82,7 @@ public:
   {
     auto fld_it = field_container.find(fid);
     assert(fld_it != field_container.end() && "[M3D-C1 Error] Field with specified id does not exist!");
-    apf::destroyField(fld_it->second->get_field());
+    apf::destroyField(fld_it->second->getCoreField());
     field_container.erase(fld_it);
   }
   bool field_exists(FieldID fid)
@@ -94,8 +94,8 @@ public:
     for(auto fld = field_container.begin(); fld != field_container.end(); ++fld)
     {
       if(!PCU_Comm_Self())
-        std::cout << "[M3D-C1 INFO] verifying field " << fld->second->get_name() << std::endl;
-      verify_field(m3dc1_mesh::instance()->mesh, fld->second->get_field());
+        std::cout << "[M3D-C1 INFO] verifying field " << fld->second->getName() << std::endl;
+      verify_field(m3dc1_mesh::instance()->mesh, fld->second->getCoreField());
     }
   }
   template <class O>
