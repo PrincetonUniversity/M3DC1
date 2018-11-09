@@ -20,6 +20,21 @@
 #include <complex>
 using std::complex;
 #endif
+
+// function defined in m3dc1
+// for internal test, define the two functions as blank
+// add two lines in your main.cc to get rid of undefined symbol
+// extern "C" int setPETScMat(int matrixid, Mat * A) {};
+// extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){};
+extern "C" int setPETScMat(int matrixid, Mat * A);
+#ifndef PETSCMASTER
+// petsc 3.8.2 and older
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A);
+#else
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A, Vec *b, Vec *x);
+#endif
+extern "C" int get_iter_num_(int * iter_num_p) {*iter_num_p=-1; return *iter_num_p;}
+
 inline void double2petsc(const int n, double * in, PetscScalar *& out)
 {
 #ifdef PETSC_USE_COMPLEX
@@ -133,9 +148,6 @@ void insert_node_blocks(m3dc1_matrix * mat,
   mat->add_blocks(blks_per_nd,&blk_ids[nd1 * blks_per_nd],blks_per_nd,&blk_ids[nd2 * blks_per_nd],vals);
   delete [] blk_ids;
 }
-// ***********************************
-//              HELPER
-// ***********************************
 void describeMatrix(Mat A)
 {
   MPI_Comm cm = MPI_COMM_NULL;
@@ -635,7 +647,7 @@ void m3dc1_matrix::zero()
 {
   MatZeroEntries(A);
   fixed = false;
-};
+}
 void m3dc1_matrix::zero_rows(int rw_cnt, int * rows)
 {
   MatZeroRows(A,rw_cnt,rows,0.0,PETSC_NULL,PETSC_NULL);

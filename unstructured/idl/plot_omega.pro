@@ -43,13 +43,13 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
   w_star_e = -db*peprime / den
 
   get_normalizations, b0=b0_norm, n0=n0_norm, l0=l0_norm, $
-    zeff=zeff, ion_mass=ion_mass, filename=filename
+    ion_mass=ion_mass, filename=filename
   convert_units, v_omega, dimensions(t0=-1), $
-    b0_norm, n0_norm, l0_norm, zeff, ion_mass, /mks
+    b0_norm, n0_norm, l0_norm, ion_mass, /mks
   convert_units, w_star_i, dimensions(t0=-1), $
-    b0_norm, n0_norm, l0_norm, zeff, ion_mass, /mks
+    b0_norm, n0_norm, l0_norm, ion_mass, /mks
   convert_units, w_star_e, dimensions(t0=-1), $
-    b0_norm, n0_norm, l0_norm, zeff, ion_mass, /mks
+    b0_norm, n0_norm, l0_norm, ion_mass, /mks
 
   omega_ExB = v_omega - w_star_i
   ve_omega = omega_ExB + w_star_e

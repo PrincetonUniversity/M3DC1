@@ -575,7 +575,7 @@ contains
        call h5sclose_f(filespace, error)
     else
        call h5dopen_f(parent_id, name, dset_id, error)
-       call h5dextend_f(dset_id, dims, error)
+       call h5dset_extent_f(dset_id, dims, error)
     endif
 
     if(myrank.eq.0) then

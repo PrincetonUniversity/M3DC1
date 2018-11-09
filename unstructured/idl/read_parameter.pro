@@ -28,8 +28,8 @@ function read_parameter, name, filename=filename, print=pr, mks=mks, cgs=cgs
       itor = read_parameter('itor', filename=filename)
       symbol = field_data(name, units=d, itor=itor)
       d0 = d
-      get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,zeff=zeff,ion=mi
-      convert_units, attr, d0, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+      get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,ion=mi
+      convert_units, attr, d0, b0, n0, l0, mi, cgs=cgs, mks=mks
    end
 
    if(keyword_set(pr)) then print, name, " = ", attr

@@ -9,13 +9,32 @@ module kprad
   real, allocatable, private, dimension(:,:) :: c, sion_coeff
 
   ! mass of chosen impurity species (in amu)
-  integer, private :: kprad_mz
+  integer :: kprad_mz
 
   ! polynomial order for evaluating 
   ! radiation and ionization rates, respectively
   integer, private :: m1, m2
+
+  real, private, parameter :: kprad_min_dt_default = 1e10
+  real, private :: kprad_min_dt = kprad_min_dt_default     ! minimum final timestep from previous calculation
+  real, private :: kprad_dt = 1e-10      ! kprad integration time step (in seconds)
   
 contains
+
+  subroutine kprad_rebase_dt()
+    implicit none
+
+    include 'mpif.h'
+
+    integer :: ier
+    real :: temp
+
+    call mpi_allreduce(kprad_min_dt, temp, 1, MPI_DOUBLE_PRECISION, &
+         MPI_MIN, MPI_COMM_WORLD, ier)
+
+    kprad_dt = temp
+    kprad_min_dt = kprad_min_dt_default
+  end subroutine kprad_rebase_dt
 
   subroutine kprad_deallocate()
     implicit none
@@ -27,45 +46,90 @@ contains
 
   end subroutine kprad_deallocate
 
-
-  subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem)
+  subroutine kprad_instantaneous_radiation(npts, z, ne, te, nz, prad, pbrem)
     implicit none
 
-    real, intent(in) :: dt                    ! time step to advance densities
     integer, intent(in) :: npts
     integer, intent(in) :: z
     real, intent(in) :: ne(npts)             ! electron density in cm^-3
     real, intent(in) :: te(npts)             ! electron temperature in eV
     real, intent(inout) :: nz(npts,0:z)      ! density
+    real, intent(out) :: prad(npts,0:z)    ! energy lost via radiation
+    real, intent(out) :: pbrem(npts)       ! energy lost via bremsstrahlung
+    
+    real, dimension(npts,0:z-1) :: sion
+    real, dimension(npts,0:z) :: srec
+    real, dimension(npts,z+1) :: pion, preck, precp
+    real, dimension(npts, 2) :: nzeff
+
+    ! calculate ionization and recombination rates
+    call kprad_ionization_rate(npts,ne,te,z,sion)
+    call kprad_recombination_rate(npts,ne,te,z,srec)
+    call kprad_energy_losses(npts,z,te, &
+         ne,sion,srec,nz,nzeff,pion,preck,precp,prad,pbrem)
+           
+  end subroutine kprad_instantaneous_radiation
+
+
+  subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem,&
+       dw_ion, dw_reck, dw_recp, source)
+    implicit none
+
+    real, intent(in) :: dt                    ! time step to advance densities
+    integer, intent(in) :: npts
+    integer, intent(in) :: z
+    real, intent(inout) :: ne(npts)          ! electron density in cm^-3
+    real, intent(in) :: te(npts)             ! electron temperature in eV
+    real, intent(inout) :: nz(npts,0:z)      ! density
     real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
     real, intent(out) :: dw_brem(npts)       ! energy lost via bremsstrahlung
+    real, intent(out) :: dw_ion(npts,0:z)    ! energy lost via ionization
+    real, intent(out) :: dw_reck(npts,0:z)   ! kinetic energy lost via recombination
+    real, intent(out) :: dw_recp(npts,0:z)   ! potential energy lost via recombination
+    real, intent(in) :: source(npts)         ! optional neutral density source
     
     real :: t, dts
-    integer :: i, ntime, ntimemax
+    integer :: i
+    real, dimension(npts) :: ne_old, delta
+    real, dimension(npts,0:z) :: nz_old
     real, dimension(npts,0:z-1) :: sion
     real, dimension(npts,0:z) :: srec
     real, dimension(npts) :: pbrem
-    real, dimension(npts,z+1) :: imp_rad, pion, prec
+    real, dimension(npts,z+1) :: imp_rad, pion, preck, precp
     real, dimension(npts, 2) :: nzeff
     real, dimension(npts,0:z) :: aimp, bimp, cimp, dimp, ework, fwork
+    real :: max_change
+    logical :: last_step
+    real :: dts_min
 
     ! calculate ionization and recombination rates
     call kprad_ionization_rate(npts,ne,te,z,sion)
     call kprad_recombination_rate(npts,ne,te,z,srec)
 
-    dts = 1e-10
+    dts_min = dt/1e6
+    dts = kprad_dt
     t = 0.
+    dw_ion = 0.
+    dw_reck = 0.
+    dw_recp = 0.
     dw_rad = 0.
     dw_brem = 0.
-    ntimemax = dt / dts
 
     aimp(:,0) = 0.0
     cimp(:,z) = 0.0
- 
+
     ! start time loop
-    do ntime=1, ntimemax
-       t = t + dts
-       if(t.ge.dt) return
+    last_step = .false.
+    do while(.not.last_step)
+       if(t+dts.ge.dt) then
+          if(kprad_min_dt.eq.kprad_min_dt_default .or. dts.lt.kprad_min_dt) &
+               kprad_min_dt = dts
+          dts = dt - t
+          last_step = .true.
+       end if
+
+       nz_old = nz
+       ne_old = ne
 
        do i=0, z
           if(i.gt.0) aimp(:,i) = -dts*sion(:,i-1)
@@ -76,21 +140,56 @@ contains
           end if
           dimp(:,i) = nz(:,i)
        enddo
-       
+
+       dimp(:,0) = dimp(:,0) + source*dts
+      
        call tridiag(aimp,bimp,cimp,dimp,nz, &
             ework,fwork,npts,z)
        
        call kprad_energy_losses(npts,z,te, &
-            ne,sion,srec,nz,nzeff,pion,prec,imp_rad,pbrem)
-       
+            ne,sion,srec,nz,nzeff,pion,preck,precp,imp_rad,pbrem)
+
+       t = t + dts
+       dw_ion  = dw_ion + pion*dts
+       dw_reck = dw_reck + preck*dts
+       dw_recp = dw_recp + precp*dts
        dw_brem = dw_brem + pbrem*dts
-       dw_rad = dw_rad + imp_rad*dts
+       dw_rad  = dw_rad + imp_rad*dts
        
-       dts = dts * 1.02
-       if(t+dts.gt.dt) dts = dt-t
+       do i=1, z
+          ne = ne + i*(nz(:,i) - nz_old(:,i))
+       end do
+
+       where(ne_old.gt.0.)
+          delta = abs(ne - ne_old)/ne_old
+       elsewhere
+          delta = 0.
+       end where
+       max_change = maxval(delta)
+       if(max_change .lt. 0.02) then
+          ! If ne change is < 2%, increase time step
+          dts = dts * 1.5
+       elseif((max_change .gt. 0.2) .and. (dts .gt. dts_min)) then
+          ! If ne change is > 20%, backtrack changes and reduce time step
+          t = t - dts
+          dw_ion = dw_ion - pion*dts
+          dw_reck = dw_reck - preck*dts
+          dw_recp = dw_recp - precp*dts
+          dw_brem = dw_brem - pbrem*dts
+          dw_rad = dw_rad - imp_rad*dts
+          ne = ne_old
+          nz = nz_old
+          dts = dts / 2.
+          last_step = .false.
+
+          if(dts.lt.dts_min) dts = dts_min
+       end if
     enddo
-    
+
+
   end subroutine kprad_advance_densities
+
+
 
 !-----------------------------------------------------------------------
 ! kprad_ionization_rates gets the ionization rates for each charge state
@@ -144,12 +243,12 @@ contains
   ! kprad_energy_losses gets the radiated power,ionization power, etc.     
   !-----------------------------------------------------------------------
   subroutine KPRAD_ENERGY_LOSSES(N,Z,TE,NE,SION,             &
-       SREC,NZ,nZeff,pion,prec,IMP_RAD,PBREM)
+       SREC,NZ,nZeff,pion,preck,precp,IMP_RAD,PBREM)
 
     implicit none 
                                                                         
     integer, intent(in) :: N,Z
-    real, intent(out) :: IMP_RAD(N,Z+1),PION(N,Z+1),PREC(N,Z+1)
+    real, intent(out) :: IMP_RAD(N,Z+1),PION(N,Z+1),PRECK(N,Z+1),PRECP(N,Z+1)
     real, intent(out) :: PBREM(N)
     real, intent(in) :: TE(N), NE(N)
     real, intent(in) :: SION(N,0:Z-1),SREC(N,0:Z),NZ(N,0:Z)
@@ -172,14 +271,16 @@ contains
        nZeff(:,1)=nZeff(:,1)+real(L)*NZ(:,L-1)/SNZ
        nZeff(:,2)=nZeff(:,2)+real((L**2-L))*NZ(:,L-1)/NE
        
-       PREC(:,L) = SREC(:,L)*NZ(:,L)*(Z_EI(L)+TE)*1.6E-19 
+       PRECK(:,L) = SREC(:,L)*NZ(:,L)*TE*1.6E-19 
+       PRECP(:,L) = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19 
     end do
     
     PION(:,Z+1)  = sum(PION(:,1:Z),2) 
     !Total recombination losses                                      
     
     !totals -- recombination                                         
-    PREC(:,Z+1)=sum(PREC(:,1:Z),2) 
+    PRECK(:,Z+1)=sum(PRECK(:,1:Z),2) 
+    PRECP(:,Z+1)=sum(PRECP(:,1:Z),2) 
                                                                         
                                                  !sum of all charge stat
     IMP_RAD(:,Z+1)=sum(IMP_RAD(:,1:Z),DIM=2) 
@@ -270,8 +371,6 @@ contains
        Z_EI = (/24.5876,54.416,1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 4.0
-       write(*,*)   &
-            'ALL AVAILABLE ATOMIC DATA FOR HELIUM WERE LOADED SUCCESSFULLY.'
        
     case (4) !SET BERYLLIUM FOR IMPURITY
         
@@ -304,10 +403,6 @@ contains
        Z_EI= (/9.3227,   18.21114,   153.89661, 217.71865,1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 9.012
-       write(*,*)    &
-            'ALL AVAILABLE ATOMIC DATA FOR BERYLLIUM WERE LOADED', &
-            ' SUCCESSFULLY'
-       
        
     case (6) !CARBON
        
@@ -356,8 +451,6 @@ contains
        Z_EI= (/11.26, 24.384, 47.888, 64.5, 392.1, 490.0, 1.0E6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 12.0
-       write(*,*)   &
-            'ALL AVAILABLE ATOMIC DATA FOR CARBON WERE LOADED SUCCESSFULLY.'
        
     case (10)
        
@@ -441,8 +534,6 @@ contains
             (/21.6,41.0,63.5,97.0,126.3,157.9,207.2 ,239.0,1195.0,1362.3,1.0e6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 20.0
-       write(*,*)   &
-            'ALL AVAILABLE ATOMIC DATA FOR NEON WERE LOADED SUCCESSFULLY.'
                
        
     case (18)
@@ -551,9 +642,6 @@ contains
             4120.87,4426.24,1.0e6/)
        ZED=(/(real(I),I=0,Z)/)
        kprad_mz = 40.0
-        
-       write(*,*)   &
-            'ALL AVAILABLE ATOMIC DATA FOR ARGON WERE LOADED SUCCESSFULLY.'
          
     case DEFAULT
        write(*,*) 'NO DATA FOR THIS ELEMENT EXISTS!'

@@ -93,8 +93,7 @@ LIBS := $(LIBS) \
 	-L$(MKLROOT)/lib/intel64 -lmkl_intel_lp64 \
         $(ADIOS_FLIB)
 
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
 CCOPTS  = -c $(OPTS)
 
 # Optimization flags

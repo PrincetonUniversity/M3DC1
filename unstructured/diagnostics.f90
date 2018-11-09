@@ -12,7 +12,11 @@ module diagnostics
   real :: tflux0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totrad
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne
+  real :: totrad, linerad, bremrad, ionrad, reckrad, recprad
+  real :: w_pe   ! electron thermal energy
+  real :: w_m    ! totoidal poloidal magnetic energy inside plasma
+  real :: w_p    ! totoidal poloidal magnetic energy inside plasma
   real :: totre  ! total number of runaway electrons
 
   ! wall forces in R, phi, and Z directions
@@ -23,7 +27,7 @@ module diagnostics
   real :: wall_force_n1_x, wall_force_n1_y, wall_force_n1_z
 
   ! scalars integrated within lcfs
-  real :: pflux, parea, pcur, pden, pmom, pvol, m_iz
+  real :: pflux, parea, pcur, pcur_co, pcur_sn, pden, pmom, pvol, m_iz, m_iz_co, m_iz_sn
 
   real :: chierror, psi0
 
@@ -59,7 +63,7 @@ module diagnostics
   real :: t_ludefall, t_sources, t_smoother, t_aux, t_onestep
   real :: t_solve_v, t_solve_n, t_solve_p, t_solve_b, t_mvm
   real :: t_output_cgm, t_output_hdf5, t_output_reset
-  real :: t_gs
+  real :: t_gs, t_kprad
 
   integer, parameter :: imag_probes_max = 100
   integer :: imag_probes
@@ -99,6 +103,7 @@ contains
     t_output_reset = 0.
     t_mvm = 0.
     t_onestep = 0.
+    t_kprad = 0.
   end subroutine reset_timings
 
 
@@ -113,7 +118,8 @@ contains
 
     include 'mpif.h'
     integer :: ier
-    real, dimension(13) :: vin, vout
+    integer, parameter :: num_scalars = 14
+    real, dimension(num_scalars) :: vin, vout
 
     vin(1) =  t_ludefall
     vin(2) =  t_sources
@@ -128,7 +134,8 @@ contains
     vin(11) = t_output_reset
     vin(12) = t_mvm
     vin(13) = t_onestep
-    call MPI_ALLREDUCE(vin, vout, 13, MPI_DOUBLE_PRECISION, &
+    vin(14) = t_kprad
+    call MPI_ALLREDUCE(vin, vout, num_scalars, MPI_DOUBLE_PRECISION, &
          MPI_SUM, MPI_COMM_WORLD, ier)
     t_ludefall      = vout(1)
     t_sources       = vout(2)
@@ -143,6 +150,7 @@ contains
     t_output_reset  = vout(11)
     t_mvm           = vout(12)
     t_onestep       = vout(13)
+    t_kprad         = vout(14)
     
   end subroutine distribute_timings
 
@@ -194,12 +202,22 @@ contains
     wallcur = 0.
     tflux = 0.
     totden = 0.
+    totne = 0.
     totrad = 0.
+    linerad = 0.
+    bremrad = 0.
+    ionrad = 0.
+    reckrad = 0.
+    recprad = 0.
     tmom = 0.
     tvor = 0.
     parea = 0.
     pcur = 0.
+    pcur_co = 0.
+    pcur_sn = 0.
     m_iz = 0.
+    m_iz_co = 0.
+    m_iz_sn = 0.
     pflux = 0.
     pden = 0.
     pmom = 0.
@@ -217,7 +235,6 @@ contains
     nsource = 0.
     nsource_pel = 0.
     temp_pel = 0.
-    Lor_vol = 0.
 
     bwb2 = 0.
 
@@ -226,6 +243,9 @@ contains
     psi0 = 0.
 
     totre = 0.
+    w_pe = 0.
+    w_m = 0.
+    w_p = 0.
 
     wall_force_n0_x = 0.
     wall_force_n0_y = 0.
@@ -233,6 +253,7 @@ contains
     wall_force_n1_x = 0.
     wall_force_n1_y = 0.
     wall_force_n1_z = 0.
+
   end subroutine reset_scalars
 
 
@@ -249,7 +270,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 60
+    integer, parameter :: num_scalars = 72
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -305,83 +326,106 @@ contains
        temp(48) = wallcur
        temp(49) = nsource_pel
        temp(50) = temp_pel
-       temp(51) = Lor_vol
-       temp(52) = totrad
-       temp(53) = totre
-       temp(54) = m_iz
-       temp(55) = wall_force_n0_x
-       temp(56) = wall_force_n0_y
-       temp(57) = wall_force_n0_z
-       temp(58) = wall_force_n1_x
-       temp(59) = wall_force_n1_y
-       temp(60) = wall_force_n1_z
+       temp(51) = totrad         
+       temp(52) = linerad        
+       temp(53) = bremrad        
+       temp(54) = ionrad         
+       temp(55) = reckrad        
+       temp(56) = recprad        
+       temp(57) = totre          
+       temp(58) = m_iz           
+       temp(59) = wall_force_n0_x
+       temp(60) = wall_force_n0_y
+       temp(61) = wall_force_n0_z
+       temp(62) = wall_force_n1_x
+       temp(63) = wall_force_n1_y
+       temp(64) = wall_force_n1_z
+       temp(65) = totne          
+       temp(66) = w_pe           
+       temp(67) = pcur_co        
+       temp(68) = pcur_sn        
+       temp(69) = m_iz_co        
+       temp(70) = m_iz_sn        
+       temp(71) = w_m
+       temp(72) = w_p
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
             MPI_SUM, MPI_COMM_WORLD, ier) 
          
-       ekinp =  temp2( 1)
-       emagp =  temp2( 2)
-       ekinpd = temp2( 3)
-       emagpd = temp2( 4)      
-       ekint =  temp2( 5)
-       emagt =  temp2( 6)
-       ekintd = temp2( 7)
-       emagtd = temp2( 8)
-       ekinph = temp2( 9)
-       ekinth = temp2(10)
-       emagph = temp2(11)
-       emagth = temp2(12)
-       ekin3 =  temp2(13)
-       ekin3d = temp2(14)
-       ekin3h = temp2(15)
-       emag3 =  temp2(16)
-       emag3d = temp2(17)
-       emag3h = temp2(18)
-       efluxp = temp2(19)
-       efluxk = temp2(20)
-       efluxs = temp2(21)
-       efluxt = temp2(22)
-       epotg =  temp2(23)
-       area =   temp2(24)
-       totcur = temp2(25)
-       totden = temp2(26)
-       tflux =  temp2(27)
-       tmom =   temp2(28)
-       tvor =   temp2(29)
-       parea =  temp2(30)
-       pcur  =  temp2(31)
-       pflux =  temp2(32)
-       pden =   temp2(33)
-       pmom =   temp2(34)
-       pvol =   temp2(35)
-       nfluxd = temp2(36)
-       nfluxv = temp2(37)
-       nsource= temp2(38)
-       tau_em  =temp2(39)
-       tau_sol =temp2(40)
-       tau_com =temp2(41)
-       tau_visc=temp2(42)
-       tau_gyro=temp2(43)
-       tau_parvisc=temp2(44)
-       bwb2    =temp2(45)
-       volume  =temp2(46)
-       xray_signal=temp2(47)
-       wallcur =temp2(48)
-       nsource_pel = temp2(49)
-       temp_pel=temp2(50)
-       Lor_vol =temp2(51)
-       totrad = temp2(52)
-       totre =  temp2(53)
-       m_iz =   temp2(54)
-       wall_force_n0_x = temp2(55)
-       wall_force_n0_y = temp2(56)
-       wall_force_n0_z = temp2(57)
-       wall_force_n1_x = temp2(58)
-       wall_force_n1_y = temp2(59)
-       wall_force_n1_z = temp2(60)
-
-    endif !if maxrank .gt. 1
+       ekinp           = temp2( 1)
+       emagp           = temp2( 2)
+       ekinpd          = temp2( 3)
+       emagpd          = temp2( 4)      
+       ekint           = temp2( 5)
+       emagt           = temp2( 6)
+       ekintd          = temp2( 7)
+       emagtd          = temp2( 8)
+       ekinph          = temp2( 9)
+       ekinth          = temp2(10)
+       emagph          = temp2(11)
+       emagth          = temp2(12)
+       ekin3           = temp2(13)
+       ekin3d          = temp2(14)
+       ekin3h          = temp2(15)
+       emag3           = temp2(16)
+       emag3d          = temp2(17)
+       emag3h          = temp2(18)
+       efluxp          = temp2(19)
+       efluxk          = temp2(20)
+       efluxs          = temp2(21)
+       efluxt          = temp2(22)
+       epotg           = temp2(23)
+       area            = temp2(24)
+       totcur          = temp2(25)
+       totden          = temp2(26)
+       tflux           = temp2(27)
+       tmom            = temp2(28)
+       tvor            = temp2(29)
+       parea           = temp2(30)
+       pcur            = temp2(31)
+       pflux           = temp2(32)
+       pden            = temp2(33)
+       pmom            = temp2(34)
+       pvol            = temp2(35)
+       nfluxd          = temp2(36)
+       nfluxv          = temp2(37)
+       nsource         = temp2(38)
+       tau_em          = temp2(39)
+       tau_sol         = temp2(40)
+       tau_com         = temp2(41)
+       tau_visc        = temp2(42)
+       tau_gyro        = temp2(43)
+       tau_parvisc     = temp2(44)
+       bwb2            = temp2(45)
+       volume          = temp2(46)
+       xray_signal     = temp2(47)
+       wallcur         = temp2(48)
+       nsource_pel     = temp2(49)
+       temp_pel        = temp2(50)
+       totrad          = temp2(51)
+       linerad         = temp2(52)
+       bremrad         = temp2(53)
+       ionrad          = temp2(54)
+       reckrad         = temp2(55)
+       recprad         = temp2(56)
+       totre           = temp2(57)
+       m_iz            = temp2(58)
+       wall_force_n0_x = temp2(59)
+       wall_force_n0_y = temp2(60)
+       wall_force_n0_z = temp2(61)
+       wall_force_n1_x = temp2(62)
+       wall_force_n1_y = temp2(63)
+       wall_force_n1_z = temp2(64)
+       totne           = temp2(65)
+       w_pe            = temp2(66)
+       pcur_co         = temp2(67)
+       pcur_sn         = temp2(68)
+       m_iz_co         = temp2(69)
+       m_iz_sn         = temp2(70)
+       w_m             = temp2(71)
+       w_p             = temp2(72)
+    endif
 
   end subroutine distribute_scalars
 
@@ -557,6 +601,31 @@ end subroutine evaluate
   end subroutine second
 
 
+!   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
+subroutine tpi_factors(tpifac,tpirzero)
+  use basic
+  use math
+  implicit none
+  real, intent(out) :: tpifac, tpirzero
+  if(nplanes.eq.1) then
+     if(itor.eq.1) then
+        tpifac = 1.
+        tpirzero = 1.
+     else
+        tpifac = 1./rzero
+        tpirzero = 1.
+     endif
+  else
+     if(itor.eq.1) then
+        tpifac = twopi
+        tpirzero = twopi
+     else
+        tpifac = twopi
+        tpirzero = twopi*rzero
+     endif
+  endif
+end subroutine tpi_factors
+
 ! ======================================================================
 ! calculate scalars
 ! -----------------
@@ -589,24 +658,7 @@ subroutine calculate_scalars()
   vectype, dimension(MAX_PTS) :: mr
   vectype, dimension(MAX_PTS) :: co, sn
 
- !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
-  if(nplanes.eq.1) then
-    if(itor.eq.1) then
-      tpifac = 1.
-      tpirzero = 1.
-    else
-      tpifac = 1./rzero
-      tpirzero = 1.
-    endif
-  else
-    if(itor.eq.1) then
-      tpifac = twopi
-      tpirzero = twopi
-    else
-      tpifac = twopi
-      tpirzero = twopi*rzero
-    endif
-  endif
+  call tpi_factors(tpifac,tpirzero)
 
   ptoto = ptot
 
@@ -657,7 +709,7 @@ subroutine calculate_scalars()
      endif
 
      if(numvar.ge.3 .or. ipres.eq.1) then
-        def_fields = def_fields + FIELD_P + FIELD_KAP
+        def_fields = def_fields + FIELD_P + FIELD_KAP + FIELD_TE + FIELD_TI
         if(hyper.eq.0.) def_fields = def_fields + FIELD_J
         if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
         if(rad_source) def_fields = def_fields + FIELD_RAD
@@ -676,9 +728,11 @@ subroutine calculate_scalars()
   call finalize(field_vec)
 
   numelms = local_elements()
+  
+  if(ipellet.ne.0) call calculate_Lor_vol
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -689,8 +743,8 @@ subroutine calculate_scalars()
      if(gyro.eq.1) call gyro_common
 
 #ifdef USE3D
-     co = cos(phi_79)
-     sn = sin(phi_79)
+     co = cos(phi_79*twopi/toroidal_period)
+     sn = sin(phi_79*twopi/toroidal_period)
 #endif
 
      if(imulti_region.eq.1 .and. izone.eq.2) then
@@ -751,6 +805,7 @@ subroutine calculate_scalars()
      if(ike_only.eq.1) cycle
 
      emagp  = emagp  + twopi*energy_mp ()/tpifac
+     w_m    = w_m    + twopi*energy_mp (mr)/tpifac
      emagpd = emagpd + twopi*energy_mpd()/tpifac
 !     emagph = emagph - twopi*qpsipsieta(tm79)/tpifac
 
@@ -759,7 +814,8 @@ subroutine calculate_scalars()
 !     emagth = emagth - twopi*qbbeta(tm79)/tpifac
 
      emag3 = emag3 + twopi*energy_p()/tpifac
-
+     w_pe = w_pe + twopi*energy_pe()/tpifac
+     w_p  = w_p +  twopi*energy_p(mr)/tpifac
 
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
@@ -770,11 +826,19 @@ subroutine calculate_scalars()
      ! toroidal current
      totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
      pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero
+#ifdef USE3D
+     pcur_co = pcur_co - int4(ri2_79,pst79(:,OP_GS),mr,co)/tpirzero * 2.
+     pcur_sn = pcur_sn - int4(ri2_79,pst79(:,OP_GS),mr,sn)/tpirzero * 2.
+#endif
 
      ! M_iz = int(dV Z*J)
      ! This is used for calculating the vertical "center" of the plasma current
      temp79a = z_79
      m_iz   = m_iz   - int4(ri2_79,temp79a,pst79(:,OP_GS),mr)/tpirzero
+#ifdef USE3D
+     m_iz_co = m_iz_co - int5(ri2_79,temp79a,pst79(:,OP_GS),mr,co)/tpirzero * 2.
+     m_iz_sn = m_iz_sn - int5(ri2_79,temp79a,pst79(:,OP_GS),mr,sn)/tpirzero * 2.
+#endif
 
      ! toroidal flux
      tflux = tflux + int2(ri2_79,bzt79(:,OP_1))/tpirzero
@@ -796,10 +860,16 @@ subroutine calculate_scalars()
 
      ! particle number
      totden = totden + twopi*int1(nt79(:,OP_1))/tpifac
+     totne = totne + twopi*int1(net79(:,OP_1))/tpifac
      pden = pden + twopi*int2(nt79(:,OP_1),mr)/tpifac
       ! radiation
-     totrad = totrad + twopi*int1(rad79(:,OP_1))/tpifac
-
+     totrad = totrad + twopi*int1(totrad79(:,OP_1))/tpifac
+     linerad = linerad + twopi*int1(linerad79(:,OP_1))/tpifac
+     bremrad = bremrad + twopi*int1(bremrad79(:,OP_1))/tpifac
+     ionrad = ionrad + twopi*int1(ionrad79(:,OP_1))/tpifac
+     reckrad = reckrad + twopi*int1(reckrad79(:,OP_1))/tpifac
+     recprad = recprad + twopi*int1(recprad79(:,OP_1))/tpifac
+     
      if(irunaway.gt.0) then
         totre = totre + twopi*int1(nre79(:,OP_1))/tpifac
      end if
@@ -809,30 +879,17 @@ subroutine calculate_scalars()
         nsource = nsource - twopi*int1(sig79)/tpifac
      
         ! Pellet radius and density/temperature at the pellet surface
-        if(ipellet.eq.4) then
-           
-#ifdef USE3D
-       
-           Lorentz_pel = 1./ &
-            (sqrt(2.*pi)**3*(pellet_var)**2*pellet_var_tor) &
-            *exp(-((x_79-pellet_x)**2 + (z_79-pellet_z)**2) &
-            /(2.*(pellet_var)**2) &
-            -2.*x_79*pellet_x*(1.-cos(phi_79-pellet_phi)) &
-            /(2.*pellet_var_tor**2))
-#else
-           Lorentz_pel = 1./sqrt(2.*pi*(1.e-3)**2) &
-            *exp(-((x_79 - pellet_x)**2 + (z_79 - pellet_z)**2) &
-            /(2.*(1.e-3)**2))
-#endif
-           
-           Lor_vol = Lor_vol + twopi*int1(Lorentz_pel)/tpifac
-
-           nsource_pel = nsource_pel + twopi*int2(ne079(:,OP_1),Lorentz_pel)/tpifac
-
-           temp_pel = temp_pel + twopi*int2(pe079(:,OP_1)/ne079(:,OP_1),Lorentz_pel)/tpifac
-
+        if(ipellet_abl.gt.0) then
+           if(r_p.ge.1e-8) then
+              ! weight density/temp by pellet distribution (normalized)
+              temp79a = pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+              nsource_pel = nsource_pel + twopi*int2(net79(:,OP_1),temp79a)/tpifac
+              temp_pel = temp_pel + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
+           else
+              nsource_pel = 0.
+              temp_pel = 0.
+           end if
        endif
-
      endif
 
      ! gravitational potential energy
@@ -883,10 +940,10 @@ subroutine calculate_scalars()
 
         ! Energy fluxes
         ! ~~~~~~~~~~~~~
-        efluxp = efluxp + flux_pressure()
-        efluxt = efluxt + flux_heat()
-        efluxs = efluxs + flux_poynting()
-        efluxk = efluxk + flux_ke()
+        efluxp = efluxp + twopi*flux_pressure()/tpifac
+        efluxt = efluxt + twopi*flux_heat()/tpifac
+        efluxs = efluxs + twopi*flux_poynting()/tpifac
+        efluxk = efluxk + twopi*flux_ke()/tpifac
 
         ! Toroidal momentum fluxes
         ! ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -902,9 +959,9 @@ subroutine calculate_scalars()
         ! Particle fluxes
         ! ~~~~~~~~~~~~~~~
         if(idens.eq.1) then
-           nfluxd = nfluxd - denm* &
+           nfluxd = nfluxd - twopi*denm* &
                 (int2(norm79(:,1),nt79(:,OP_DR)) &
-                +int2(norm79(:,2),nt79(:,OP_DZ)))
+                +int2(norm79(:,2),nt79(:,OP_DZ)))/tpifac
 
            select case(ivform)
            case(0)
@@ -928,6 +985,8 @@ subroutine calculate_scalars()
                       + int4(ri2_79,nt79(:,OP_1),norm79(:,2),cht79(:,OP_DZ))
               endif
            end select
+
+           nfluxv = nfluxv*twopi/tpifac
         end if
 
         ! xray signal
@@ -942,19 +1001,7 @@ subroutine calculate_scalars()
 
   call distribute_scalars
 
-  if(ipellet.eq.4) then
-
-     ! Pellet ablation rates for Parks models
-     ! Normalisation of the density/temperature by the Lor volume (to check)
-
-     nsource_pel = nsource_pel/Lor_vol
-
-     temp_pel = temp_pel/Lor_vol
-
-     te_norm = (p0_norm / n0_norm) / 1.6022e-12  
-
-     call calculate_parks_model
-  endif
+  if(ipellet_abl.gt.0) call calculate_ablation
 
   ekin = ekinp + ekint + ekin3
   emag = emagp + emagt + emag3
@@ -996,24 +1043,69 @@ subroutine calculate_scalars()
      print *, "  Volume = ", volume
      print *, "  Total particles = ", totden
      print *, "  Total radiation = ", totrad
+     print *, "  Line radiation = ", linerad
+     print *, "  Bremsstrahlung radiation = ", bremrad
+     print *, "  Ionization loss = ", ionrad
+     print *, "  Recombination radiation (kinetic) = ", reckrad
+     print *, "  Recombination radiation (potential) = ", recprad
      if(ipellet_abl.gt.0) then
         print *, "  nsource = ", nsource
-        print *, "  pellet_rate = ", pellet_ablrate
-        print *, "  pellet particles injected = ", 6.022e23*pellet_rate2*dt*t0_norm
-        print *, "  pellet radius (in m) = ", r_p2
-        print *, "  pellet volume (in m3) = ", pellet_volume
-        print *, "  pellet volume 2D case (in m3) = ", pellet_volume_2D
-        print *, "  Electron temperature around the pellet (in eV) = ", te_norm*temp_pel
+        print *, "  pellet particles injected = ",pellet_rate*dt*(n0_norm*l0_norm**3)
+        print *, "  pellet radius (in cm) = ", r_p*l0_norm
+        print *, "  Electron temperature around the pellet (in eV) = ", temp_pel
         print *, "  Electron density around the pellet (in ne14) = ", nsource_pel
-        print *, "  Ablation coefficient C_abl = ", C_abl
-        print *, "  Ablation rate (in moles/s) = ", C_abl*Xn_abl
-        print *, "  rpdot (in cm/s) = ", C_abl*Xp_abl
-        print *, "Lor_vol = ", Lor_vol
-        print *, "X position of granule: ", pellet_x
+        print *, "  rpdot (in cm/s) = ", rpdot*l0_norm/t0_norm
+        print *, "  Lor_vol = ", Lor_vol
+        print *, "  R position of pellet: ", pellet_r*l0_norm
+        print *, "  phi position of pellet: ", pellet_phi
+        print *, "  Z position of pellet: ", pellet_z*l0_norm
      endif
   endif
 
 end subroutine calculate_scalars
+
+
+
+subroutine calculate_Lor_vol()
+
+  use basic
+  use mesh_mod
+  use m3dc1_nint
+  use math
+  use pellet
+
+  implicit none
+ 
+  include 'mpif.h'
+
+  integer :: itri, numelms, ier
+  integer :: is_edge(3)  ! is inode on boundary
+  real :: tpifac,tpirzero
+  integer :: izone, izonedim
+  real :: temp
+
+  call tpi_factors(tpifac,tpirzero)
+
+  numelms = local_elements()
+
+  temp = 0.
+
+  do itri=1,numelms
+
+     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+     if(izone.ne.1) cycle
+     call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
+     call define_fields(itri, FIELD_P, 0, 0)
+
+     ! perform volume integral of pellet cloud (without normalization)
+     temp79a = pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
+     temp = temp + twopi*int1(temp79a)/tpifac
+     
+  end do
+
+  call mpi_allreduce(temp, Lor_vol, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
+
+end subroutine calculate_Lor_vol
 
 
 !======================================================================
@@ -1778,7 +1870,7 @@ end function bremsstrahlung
 ! calculates each Fourer harmonics for kinetic energy
 !======================================================================
 subroutine calculate_ke()
-
+#ifdef USE3D
   use basic
   use mesh_mod
   use arrays
@@ -2054,7 +2146,7 @@ subroutine calculate_ke()
      call destroy_field(chi_transformc)
      call destroy_field(chi_transforms)
 !    call destroy_vector(transform_field)
-
+#endif
 end subroutine calculate_ke
 
 
@@ -2065,7 +2157,7 @@ end subroutine calculate_ke
 ! calculates each Fourer harmonics for magnetic energy
 !======================================================================
 subroutine calculate_bh()
-
+#ifdef USE3D
   use basic
   use mesh_mod
   use arrays
@@ -2310,7 +2402,7 @@ subroutine calculate_bh()
      call destroy_field(F_transforms)
      call destroy_field(fp_transformc)
      call destroy_field(fp_transforms)
-
+#endif
 end subroutine calculate_bh
 
 

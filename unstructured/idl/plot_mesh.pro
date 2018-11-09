@@ -20,9 +20,9 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
          mesh.elements._data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
-   get_normalizations, b0=b0, n0=n0, l0=l0, zeff=zeff, ion_mass=mi, _EXTRA=ex
+   get_normalizations, b0=b0, n0=n0, l0=l0, ion_mass=mi, _EXTRA=ex
    fac = 1.
-   convert_units, fac, dimensions(/l0), b0, n0, l0, zeff, mi, _EXTRA=ex
+   convert_units, fac, dimensions(/l0), b0, n0, l0, mi, _EXTRA=ex
 
    ct3
    col = color(9,16)

@@ -27,7 +27,7 @@ contains
       endif
 
     select case (pid%icontrol_type)
-    case(0)   ! this was the original coding and is the default
+    case(0)   ! this was the original coding
       if(pid%target_val.gt.0) then
         control_param = control_param - control_param*dt* &
             (err_p*pid%p + pid%err_i*pid%i + err_d*pid%d)
@@ -47,5 +47,16 @@ contains
     pid%err_p_old = err_p
 
   end subroutine control
+
+   subroutine variable_tcur(tcuri, tcurf, tcur_t0, tcur_tw, time, tcur)
+     implicit none
+
+     real, intent(in) :: tcuri, tcurf, tcur_t0, tcur_tw, time
+     real, intent(out) :: tcur
+
+     tcur = tcuri + (tcurf-tcuri)*.5*(1.+tanh((time - tcur_t0)/tcur_tw))
+
+     return
+   end subroutine variable_tcur
 
 end module pid_controller

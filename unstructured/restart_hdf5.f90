@@ -2,7 +2,7 @@ module restart_hdf5
   implicit none
 
   integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
-
+  integer, private :: ikprad_in, kprad_z_in
 contains
   
   subroutine rdrestart_hdf5()
@@ -12,6 +12,7 @@ contains
     use pellet
     use arrays
     use kprad_m3dc1
+    use init_common
 
     implicit none
 
@@ -35,6 +36,8 @@ contains
 
     ! Read Time Slice
     ! ~~~~~~~~~~~~~~~
+    if(irestart_slice.ge.0 .and. irestart_slice.le.times_output) times_output = irestart_slice
+
     if(myrank.eq.0) print *, 'Reading data from time slice', times_output
     call read_int_attr(root_id, "ntime", times_output_in, error)
     if(times_output_in .le. times_output) then
@@ -82,8 +85,10 @@ contains
     end if
 
     if(version_in.ge.19) then
-!       call read_int_attr(root_id, "ikprad", ikprad,  error)
-!       call read_int_attr(root_id, "kprad_z", kprad_z,  error)
+       call read_int_attr(root_id, "ikprad", ikprad_in,  error)
+       call read_int_attr(root_id, "kprad_z", kprad_z_in,  error)
+    else
+       ikprad_in = 0
     end if
 
     ! Read Scalars
@@ -103,27 +108,36 @@ contains
     call read_scalar(scalar_group_id, "zmag"        , zmag    , ntime, error)
 
     ! Pellet stuff
-    call read_scalar(scalar_group_id, "pellet_x",       pellet_x,      ntime, error)
+    if(version_in.le.25) then
+       call read_scalar(scalar_group_id, "pellet_x",       pellet_r,      ntime, error)
+    else
+       call read_scalar(scalar_group_id, "pellet_r",       pellet_r,      ntime, error)
+    end if
     call read_scalar(scalar_group_id, "pellet_phi",     pellet_phi,    ntime, error)
     call read_scalar(scalar_group_id, "pellet_z",       pellet_z,      ntime, error)
-    call read_scalar(scalar_group_id, "pellet_velx",    pellet_velx,   ntime, error)
+    if(version_in.le.25) then
+       call read_scalar(scalar_group_id, "pellet_velx",    pellet_velr,   ntime, error)
+    else
+       call read_scalar(scalar_group_id, "pellet_velr",    pellet_velr,   ntime, error)
+    end if
     call read_scalar(scalar_group_id, "pellet_velphi",  pellet_velphi, ntime, error)
     call read_scalar(scalar_group_id, "pellet_velz",    pellet_velz,   ntime, error)
+    if(version_in.ge.26) then
+       call read_scalar(scalar_group_id, "pellet_vx",    pellet_vx,   ntime, error)
+       call read_scalar(scalar_group_id, "pellet_vy",    pellet_vy,   ntime, error)
+    end if
     call read_scalar(scalar_group_id, "pellet_var",     pellet_var,    ntime, error)
     call read_scalar(scalar_group_id, "r_p",            r_p,           ntime, error)
-    call read_scalar(scalar_group_id, "r_p2",           r_p2,          ntime, error)
     call read_scalar(scalar_group_id, "pellet_rate",    pellet_rate,   ntime, error)
-    call read_scalar(scalar_group_id, "pellet_rate1",   pellet_rate1,  ntime, error)
-    call read_scalar(scalar_group_id, "pellet_rate2",   pellet_rate2,  ntime, error)
-    call read_scalar(scalar_group_id, "pellet_ablrate", pellet_ablrate,ntime, error)
-    
-    ! Controllers
-    call read_scalar(scalar_group_id, "loop_voltage",                  vloop,     ntime, error)
+
+    ! Only read vloop if Ip is under current control
+    if(control_type.ne.-1) then
+       call read_scalar(scalar_group_id, "loop_voltage",                  vloop,     ntime, error)
+    end if
     call read_scalar(scalar_group_id, "i_control%err_i",     i_control%err_i,     ntime, error)
     call read_scalar(scalar_group_id, "i_control%err_p_old", i_control%err_p_old, ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_i",     n_control%err_i,     ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_p_old", n_control%err_p_old, ntime, error)
-
 
     call h5gclose_f(scalar_group_id, error)
 
@@ -176,6 +190,20 @@ contains
        irestart = 0
        call hdf5_finalize(error)
        call hdf5_initialize(.false., error)
+
+       if(eqsubtract.eq.0) then
+         psi_field(0) = psi_field(1)
+         psi_field(1) = 0.
+         u_field(0) = u_field(1)
+         u_field(1) = 0.
+       endif
+       call init_perturbations
+       if(eqsubtract.eq.0) then
+         call add_field_to_field(psi_field(1),psi_field(0))
+         psi_field(0) = 0.
+         call add_field_to_field(u_field(1),u_field(0))
+         u_field(0) = 0.
+       endif
     end if
   end subroutine rdrestart_hdf5
 
@@ -258,11 +286,25 @@ contains
     call h5r_read_field(group_id, "te",  te_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
 
-    if(ikprad.eq.1) then
+    if(ikprad.eq.1 .and. ikprad_in.eq.1) then
        do i=0, kprad_z
           write(field_name, '(A,I2.2)') "kprad_n_", i
           call h5r_read_field(group_id,trim(field_name),kprad_n(i),nelms,error)
        end do
+       call h5r_read_field(group_id,"kprad_sigma_e",kprad_sigma_e,nelms,error)
+       call h5r_read_field(group_id,"kprad_sigma_i",kprad_sigma_i,nelms,error)
+       call h5r_read_field(group_id,"kprad_rad",    kprad_rad,    nelms,error)
+       if(version.ge.22) then 
+          call h5r_read_field(group_id,"kprad_brem",kprad_brem,   nelms,error)
+       end if
+       if(version.eq.23) then
+          call h5r_read_field(group_id,"kprad_ion",kprad_ion,   nelms,error)
+          call h5r_read_field(group_id,"kprad_rec",kprad_reck,   nelms,error)
+       else if(version.ge.24) then
+          call h5r_read_field(group_id,"kprad_ion",kprad_ion,   nelms,error)
+          call h5r_read_field(group_id,"kprad_reck",kprad_reck,   nelms,error)
+          call h5r_read_field(group_id,"kprad_recp",kprad_recp,   nelms,error)
+       end if
     end if
     
     call h5gclose_f(group_id, error)

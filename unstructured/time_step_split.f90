@@ -1,4 +1,5 @@
 module time_step_split
+
   use field
   use matrix_mod
   use model
@@ -6,7 +7,7 @@ module time_step_split
   type(vector_type), private :: phi_vec, phip_vec
   type(vector_type), private :: vel_vec, veln_vec
   type(vector_type), private :: pres_vec
-  type(vector_type), private :: den_vec, denold_vec
+  type(vector_type), private :: den_vec, denold_vec, ne_vec, neold_vec
   type(vector_type), private :: pret_vec
 
   ! the following pointers point to the vector containing the named field.
@@ -23,6 +24,7 @@ module time_step_split
   type(field_type), private ::  bf_v
   type(field_type), private ::  te_v
   type(field_type), private ::  ti_v
+  type(field_type), private ::  ne_v
 
   integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p, vecsize_t
 
@@ -98,6 +100,8 @@ contains
 
     call create_vector(den_vec,    vecsize_n)
     call create_vector(denold_vec, vecsize_n)
+    call create_vector(ne_vec,     1)
+    call create_vector(neold_vec,  1)
     call create_vector(qn4_vec,    vecsize_n)
 
     call create_vector(b1_vel, vecsize_vel)
@@ -378,6 +382,7 @@ contains
     endif  !  on ipressplit.eq.1
     
     call associate_field(den_v,  den_vec,    den_i)
+    call associate_field(ne_v,    ne_vec,        1)
     
     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
        call associate_field(e_v, phi_vec, e_i)
@@ -547,6 +552,7 @@ subroutine import_time_advance_vectors_split
   endif   ! on ipressplit.eq.0
 
   den_v = den_field(1)
+  ne_v = ne_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)
 
@@ -602,13 +608,16 @@ subroutine export_time_advance_vectors_split
         endif
      endif
   else    ! on ipressplit.eq.0
-      p_field(1) = p_v 
+      p_field(1) = p_v
       te_field(1) = te_v
       if(ipres.eq.0) then
-         pe_field(1) = p_v
-         call mult(pe_field(1), pefac)
-         ti_field(1) = te_v
-         call mult(ti_field(1), (1.-pefac)/pefac)
+         if(itemp.eq.1) then
+            ti_field(1) = te_v
+            call mult(ti_field(1), (1.-pefac)/pefac)
+         else
+            pe_field(1) = p_v
+            call mult(pe_field(1), pefac)
+         end if
       else
          pe_field(1) = pe_v
          ti_field(1) = ti_v 
@@ -616,7 +625,10 @@ subroutine export_time_advance_vectors_split
 
   endif   ! on ipressplit.eq.0
 
-  if(idens.eq.1) den_field(1) = den_v
+  if(idens.eq.1) then
+     ne_field(1) = ne_v
+     den_field(1) = den_v
+  end if
   if(imp_bf.eq.1) bf_field(1) = bf_v
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_field(1) = e_v
 
@@ -639,6 +651,7 @@ subroutine step_split(calc_matrices)
   use mesh_mod 
   use model
   use transport_coefficients
+  use auxiliary_fields
 
   implicit none
 
@@ -850,6 +863,12 @@ subroutine step_split(calc_matrices)
         call export_time_advance_vectors_split
         call define_transport_coefficients
      end if
+
+     ! Electron temperature
+     neold_vec = ne_vec
+     call calculate_ne(1, den_v, ne_v, eqsubtract)
+     ne_field(1) = ne_v    ! This is needed so that boundary_te works properly
+     den_field(1) = den_v
   endif    ! on idens=1
      
   !
@@ -950,8 +969,11 @@ subroutine step_split(calc_matrices)
      pres_vec = temp
      call destroy_vector(temp)
      call destroy_vector(temp2)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before get_temperatures"
-     call get_temperatures(den_v, p_v, pe_v, te_v, ti_v)
+!     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before get_temperatures"
+     call export_time_advance_vectors_split
+     call calculate_temperatures(1, te_field(1), ti_field(1), pe_field(1), p_field(1), ne_field(1), den_field(1), eqsubtract)
+     if(numvar.ge.3.    .or.  ipres.eq.1) te_v = te_field(1)
+     if(ipressplit.eq.1 .and. ipres.eq.1) ti_v = ti_field(1)
   endif
 
   ! Advance Temperature
@@ -1049,7 +1071,15 @@ subroutine step_split(calc_matrices)
      pret_vec = temp
      call destroy_vector(temp)
      call destroy_vector(temp2)
-     call get_pressures(den_v, te_v, ti_v, p_v, pe_v)
+     call export_time_advance_vectors_split
+     if(ipres.eq.1) then
+        call calculate_pressures(1, pe_v, p_v, ne_field(1), &
+             den_field(1), te_v, ti_v, eqsubtract)
+     else
+        call calculate_pressures(1, pe_field(1), p_v, ne_field(1), &
+             den_field(1), te_v, ti_field(1), eqsubtract)
+     end if
+
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--end"
   endif
 
@@ -1074,10 +1104,14 @@ subroutine step_split(calc_matrices)
 
      ! Inculde density terms
      if(idens.eq.1) then
-        call matvecmult(r42_mat,den_vec,b2_phi)
+        call matvecmult(r42_mat,ne_vec,b2_phi)
         call add(b1_phi, b2_phi)
-        call matvecmult(q42_mat,denold_vec,b2_phi)
+        call matvecmult(q42_mat,neold_vec,b2_phi)
         call add(b1_phi, b2_phi)
+!!$        call matvecmult(r42_mat,den_vec,b2_phi)
+!!$        call add(b1_phi, b2_phi)
+!!$        call matvecmult(q42_mat,denold_vec,b2_phi)
+!!$        call add(b1_phi, b2_phi)
      end if
 
      ! Include linear f terms

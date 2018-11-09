@@ -5865,7 +5865,7 @@ function b1psid(e,f,g)
      temp = intx3(e(:,:,OP_1),f(:,OP_GS),g(:,OP_1))
   endif
 
-  b1psid = temp*me_mi*mass_ratio*db**2
+  b1psid = temp*me_mp*mass_ratio*db**2
 end function b1psid
 
 
@@ -8354,7 +8354,7 @@ function b2bd(e,f,g)
           +intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_1)))
   end if
 
-  b2bd = temp*me_mi*mass_ratio*db**2
+  b2bd = temp*me_mp*mass_ratio*db**2
 end function b2bd
 
 
@@ -12333,58 +12333,67 @@ end function qchichimu
 
 ! Poloidal magnetic
 ! -----------------
-real function energy_mp()
+real function energy_mp(mask)
 
   use basic
   use m3dc1_nint
 
   implicit none
 
+  vectype, intent(in), optional, dimension(MAX_PTS) :: mask
+
   vectype :: temp
+
+  if(present(mask)) then
+     temp79a = mask
+  else
+     temp79a = 1.
+  end if
+
 
   if(linear.eq.1) then
      temp = .5* &
-          (int3(ri2_79,ps179(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ))) &
-          +int3(ri2_79,ps179(:,OP_DR),CONJUGATE(ps179(:,OP_DR))))
+          (int4(ri2_79,ps179(:,OP_DZ),CONJUGATE(ps179(:,OP_DZ)),temp79a) &
+          +int4(ri2_79,ps179(:,OP_DR),CONJUGATE(ps179(:,OP_DR)),temp79a))
 #ifdef USECOMPLEX
      if(numvar.gt.1) then
         temp = temp + .5* &
-             (int2(bf179(:,OP_DZP),CONJUGATE(bf179(:,OP_DZP))) &
-             +int2(bf179(:,OP_DRP),CONJUGATE(bf179(:,OP_DRP))) &
-             +int3(ri_79,ps179(:,OP_DZ),CONJUGATE(bf179(:,OP_DRP))) &
-             -int3(ri_79,ps179(:,OP_DR),CONJUGATE(bf179(:,OP_DZP))) &
-             +int3(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf179(:,OP_DRP)) &
-             -int3(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP)))
+             (int3(bf179(:,OP_DZP),CONJUGATE(bf179(:,OP_DZP)),temp79a) &
+             +int3(bf179(:,OP_DRP),CONJUGATE(bf179(:,OP_DRP)),temp79a) &
+             +int4(ri_79,ps179(:,OP_DZ),CONJUGATE(bf179(:,OP_DRP)),temp79a) &
+             -int4(ri_79,ps179(:,OP_DR),CONJUGATE(bf179(:,OP_DZP)),temp79a) &
+             +int4(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf179(:,OP_DRP),temp79a) &
+             -int4(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP),temp79a))
      endif
 #endif
   else
 !    nonlinear:   subtract off equilibrium piece
      temp = .5* &
-          (int3(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ)) &
-          +int3(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR))) &
+          (int4(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),temp79a) &
+          +int4(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR),temp79a)) &
           - .5* &
-          (int3(ri2_79,ps079(:,OP_DZ),ps079(:,OP_DZ)) &
-          +int3(ri2_79,ps079(:,OP_DR),ps079(:,OP_DR)))
+          (int4(ri2_79,ps079(:,OP_DZ),ps079(:,OP_DZ),temp79a) &
+          +int4(ri2_79,ps079(:,OP_DR),ps079(:,OP_DR),temp79a))
 #if defined(USE3D)
      if(numvar.gt.1) then
         temp = temp   &
              + .5* &
-             (int2(bft79(:,OP_DZP),bft79(:,OP_DZP)) &
-             +int2(bft79(:,OP_DRP),bft79(:,OP_DRP)) &
-             +2.*int3(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP)) &
-             -2.*int3(ri_79,pst79(:,OP_DR),bft79(:,OP_DRP)) )
+             (int3(bft79(:,OP_DZP),bft79(:,OP_DZP),temp79a) &
+             +int3(bft79(:,OP_DRP),bft79(:,OP_DRP),temp79a) &
+             +2.*int4(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP),temp79a) &
+             -2.*int4(ri_79,pst79(:,OP_DR),bft79(:,OP_DRP),temp79a) )
      endif
 #endif
 
 #ifdef USECOMPLEX
      if(numvar.gt.1) then
         temp = temp + .5* &
-             (int2(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP))) &
-             +int2(bft79(:,OP_DRP),CONJUGATE(bft79(:,OP_DRP))) &
-             +int3(ri_79,pst79(:,OP_DZ),CONJUGATE(bft79(:,OP_DRP))) &
-             -int3(ri_79,pst79(:,OP_DR),CONJUGATE(bft79(:,OP_DRP))) &
-             +int3(ri_79,CONJUGATE(pst79(:,OP_DZ)),bft79(:,OP_DRP)) &
-             -int3(ri_79,CONJUGATE(pst79(:,OP_DR)),bft79(:,OP_DZP)))
+             (int3(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP)),temp79a) &
+             +int3(bft79(:,OP_DRP),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
+             +int4(ri_79,pst79(:,OP_DZ),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
+             -int4(ri_79,pst79(:,OP_DR),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
+             +int4(ri_79,CONJUGATE(pst79(:,OP_DZ)),bft79(:,OP_DRP),temp79a) &
+             -int4(ri_79,CONJUGATE(pst79(:,OP_DR)),bft79(:,OP_DZP),temp79a))
      endif
 #endif
   endif
@@ -12420,7 +12429,42 @@ end function energy_mt
 
 ! Pressure
 ! --------
-real function energy_p()
+real function energy_p(mask)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), optional, dimension(MAX_PTS) :: mask
+
+  vectype :: temp
+
+  if(present(mask)) then
+     temp79a = mask
+  else
+     temp79a = 1.
+  end if
+
+  if(gam.le.1.) then 
+     temp = 0.
+  else
+     if(linear.eq.1) then
+        temp = int2(p179,temp79a) / (gam - 1.)
+     else
+!.......nonlinear: subtract off equilibrium piece
+        temp = (int2(pt79,temp79a) - int2(p079,temp79a))/ (gam - 1.)
+     endif
+  endif
+
+  energy_p = temp
+  return
+end function energy_p
+
+
+! Electron Pressure
+! -----------------
+real function energy_pe()
 
   use basic
   use m3dc1_nint
@@ -12433,16 +12477,16 @@ real function energy_p()
      temp = 0.
   else
      if(linear.eq.1) then
-        temp = int1(p179) / (gam - 1.)
+        temp = int1(pe179) / (gam - 1.)
      else
 !.......nonlinear: subtract off equilibrium piece
-        temp = (int1(pt79) - int1(p079))/ (gam - 1.)
+        temp = (int1(pet79) - int1(pe079))/ (gam - 1.)
      endif
   endif
 
-  energy_p = temp
+  energy_pe = temp
   return
-end function energy_p
+end function energy_pe
 
 
 
@@ -12883,7 +12927,7 @@ real function flux_poynting()
 
   temp = -vloop/twopi * &
        (int3(ri2_79,norm79(:,1),pst79(:,OP_DR)) &
-       +int3(ri2_79,norm79(:,1),pst79(:,OP_DZ)))
+       +int3(ri2_79,norm79(:,2),pst79(:,OP_DZ)))
 
   flux_poynting = real(temp)
   return
@@ -12906,19 +12950,35 @@ real function flux_heat()
      return
   endif
 
-  temp = int4(kap79(:,1),norm79(:,1),pt79(:,OP_DR),ni79(:,OP_1)) &
-       + int4(kap79(:,1),norm79(:,2),pt79(:,OP_DZ),ni79(:,OP_1)) &
-       + int4(kap79(:,1),norm79(:,1),pt79(:,OP_1),ni79(:,OP_DR)) &
-       + int4(kap79(:,1),norm79(:,2),pt79(:,OP_1),ni79(:,OP_DZ))
+!!$  temp = int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_DR),ni79(:,OP_1)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_DZ),ni79(:,OP_1)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,1),pt79(:,OP_1),ni79(:,OP_DR)) &
+!!$       + int4(kap79(:,OP_1),norm79(:,2),pt79(:,OP_1),ni79(:,OP_DZ))
+!!$
+!!$  if(kappar.ne.0.) then
+!!$     temp79a = ni79(:,OP_1)* &
+!!$          (pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)) &
+!!$          +    pt79(:,OP_1)* &
+!!$          (ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
+!!$     temp79b = norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)
+!!$     temp = temp &
+!!$          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b)
+!!$  endif
+
+  temp = int3(kap79(:,OP_1),norm79(:,1),tet79(:,OP_DR)) &
+       + int3(kap79(:,OP_1),norm79(:,2),tet79(:,OP_DZ))
+  temp = temp &
+       + int3(kap79(:,OP_1),norm79(:,1),tit79(:,OP_DR)) &
+       + int3(kap79(:,OP_1),norm79(:,2),tit79(:,OP_DZ))
 
   if(kappar.ne.0.) then
-     temp79a = ni79(:,OP_1)* &
-          (pt79(:,OP_DZ)*pst79(:,OP_DR) - pt79(:,OP_DR)*pst79(:,OP_DZ)) &
-          +    pt79(:,OP_1)* &
-          (ni79(:,OP_DZ)*pst79(:,OP_DR) - ni79(:,OP_DR)*pst79(:,OP_DZ))
+     temp79a = (tet79(:,OP_DZ)*pst79(:,OP_DR)-tet79(:,OP_DR)*pst79(:,OP_DZ))
+     temp79c = (tit79(:,OP_DZ)*pst79(:,OP_DR)-tit79(:,OP_DR)*pst79(:,OP_DZ))
      temp79b = norm79(:,1)*pst79(:,OP_DZ) - norm79(:,2)*pst79(:,OP_DR)
      temp = temp &
-          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b)
+          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b) 
+     temp = temp &
+          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79c,temp79b)
   endif
 
   flux_heat = real(temp)
@@ -13568,25 +13628,39 @@ function teffkappar(e,f,g,h,j,k)
 end function teffkappar
 
 
-function b3peeta(e,f,g)
+function q_delta(e)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, dimension(dofs_per_element) :: b3peeta
+  vectype, dimension(dofs_per_element) :: q_delta
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
-     temp = 0.
+     q_delta = 0.
   else
-     temp = intx3(e(:,:,OP_1),f(:,OP_1),g(:,OP_1))
+     q_delta = intx4(e(:,:,OP_1),net79(:,OP_1),tit79(:,OP_1),qd79) &
+          -    intx4(e(:,:,OP_1),net79(:,OP_1),tet79(:,OP_1),qd79)
   end if
+end function q_delta
 
-  b3peeta = temp
-end function b3peeta
+function q_delta1(e,f)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: q_delta1
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+
+  if(surface_int) then
+     q_delta1 = 0.
+  else
+     q_delta1 = intx4(e(:,:,OP_1),f(:,OP_1),net79(:,OP_1),qd79) 
+  end if
+end function q_delta1
 
 vectype function q1ppsi(e,f,g,h)
 
@@ -13660,26 +13734,6 @@ vectype function q1pf(e,f,g,h)
   return
 end function q1pf
 
-
-function t3tneta(e,f,g,h)
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: t3tneta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-  vectype, dimension(dofs_per_element) :: temp
-
-  if(surface_int) then
-     temp = 0.
-  else
-     temp = intx4(e(:,:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_1))
-  end if
-
-  t3tneta = temp
-end function t3tneta
 
 function t3tn(e,f,g)
   use basic

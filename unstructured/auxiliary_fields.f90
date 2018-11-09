@@ -23,6 +23,8 @@ module auxiliary_fields
   type(field_type) :: deldotq_par
   type(field_type) :: eta_jsq
   type(field_type) :: mesh_zone
+  type(field_type) :: z_effective
+  type(field_type) :: kprad_totden
 
   logical, private :: initialized = .false.
 
@@ -30,6 +32,7 @@ contains
 
 subroutine create_auxiliary_fields
   use basic
+  use kprad_m3dc1
   implicit none
 
   call create_field(bdotgradp)
@@ -44,6 +47,8 @@ subroutine create_auxiliary_fields
   call create_field(ef_par)
   call create_field(eta_j)
   call create_field(mesh_zone)
+  call create_field(z_effective)
+  if(ikprad.eq.1) call create_field(kprad_totden)
   if(jadv.eq.0) then
      call create_field(psidot)
      call create_field(veldif)
@@ -73,6 +78,7 @@ end subroutine create_auxiliary_fields
 
 subroutine destroy_auxiliary_fields
   use basic
+  use kprad_m3dc1
   implicit none
 
   if(.not.initialized) return
@@ -88,6 +94,8 @@ subroutine destroy_auxiliary_fields
   call destroy_field(ef_par)
   call destroy_field(eta_j)
   call destroy_field(mesh_zone)
+  call destroy_field(z_effective)
+  if(ikprad.eq.1) call destroy_field(kprad_totden)
   if(jadv.eq.0) then
      call destroy_field(psidot)
      call destroy_field(veldif)
@@ -114,7 +122,7 @@ subroutine destroy_auxiliary_fields
   endif
 end subroutine destroy_auxiliary_fields
   
-subroutine calculate_temperatures(ilin, te, ti, ieqsub)
+subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
   use math
   use basic
   use m3dc1_nint
@@ -122,21 +130,140 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
   use diagnostics
   use metricterms_new
   use field
+  use arrays
+  use kprad_m3dc1
 
   implicit none
 
-  type(field_type) :: te, ti
-  integer, intent(in) :: ilin, ieqsub
+  type(field_type) :: pe, p, te, ti, ne, nion
+  integer, intent(in) :: ilin    ! 0 = calculate only equilibrium part
+  integer, intent(in) :: ieqsub  ! 1 = supplied fields are only perturbed parts
 
-  integer :: def_fields
-  integer :: numelms
-  integer :: itri
+  integer :: numelms, itri, i
+
+  type(field_type) :: pe_f, p_f
+
+  vectype, dimension(dofs_per_element) :: dofs_p, dofs_pe
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating pressures'
+
+  call create_field(pe_f)
+  call create_field(p_f)
+
+  pe_f = 0.
+  p_f = 0.
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, 0, 1, 0, ieqsub)
+
+     call eval_ops(itri, ne, ne179, rfac)
+     call eval_ops(itri, nion, n179, rfac)
+     call eval_ops(itri, te, te179, rfac)
+     call eval_ops(itri, ti, ti179, rfac)
+     if(ieqsub.eq.1 .and. ilin.eq.1) then
+        call eval_ops(itri, ne_field(0), ne079, rfac)
+        call eval_ops(itri, den_field(0), n079, rfac)
+        call eval_ops(itri, te_field(0), te079, rfac)
+        call eval_ops(itri, ti_field(0), ti079, rfac)
+        nt79  = n179  + n079
+        net79 = ne179 + ne079
+        tit79 = ti179 + ti079
+        tet79 = te179 + te079
+     else
+        nt79  = n179
+        net79 = ne179
+        tit79 = ti179
+        tet79 = te179
+     end if
+
+     ! ion pressure
+     if(linear.eq.1 .and. ilin.eq.1) then 
+        temp79a = n079(:,OP_1)*ti179(:,OP_1) + n179(:,OP_1)*ti079(:,OP_1)
+     else
+        ! calculate the full pressure even when eqsubtract=1,
+        ! since we don't store the equilibrium impurity density
+        temp79a = nt79(:,OP_1)*tit79(:,OP_1)
+
+        ! Add impurity pressure
+        if(ikprad.eq.1) then
+           do i=1, kprad_z
+              call eval_ops(itri, kprad_n(i), n079, rfac)
+              temp79a = temp79a + n079(:,OP_1)*tit79(:,OP_1)
+           end do
+        end if
+     end if
+
+     ! electron pressure
+     if(linear.eq.1 .and. ilin.eq.1) then 
+        temp79b = ne079(:,OP_1)*te179(:,OP_1) + ne179(:,OP_1)*te079(:,OP_1)
+     else
+        ! calculate the full pressure even when eqsubtract=1,
+        ! since we don't store the equilibrium impurity density
+        temp79b = net79(:,OP_1)*tet79(:,OP_1)
+     end if
+
+
+     ! Total pressure is ion pressure plus electron pressure
+     temp79a = temp79a + temp79b
+
+
+     ! If eqsubtract = 1, subtract the equilibrium pressure
+     if(ieqsub.eq.1 .and. ilin.eq.1 .and. linear.eq.0) then
+        call eval_ops(itri, p_field(0), p079, rfac)
+        call eval_ops(itri, pe_field(0), pe079, rfac)
+
+        temp79a = temp79a - p079(:,OP_1)
+        temp79b = temp79b - pe079(:,OP_1)
+     end if
+
+     dofs_p  = intx2(mu79(:,:,OP_1),temp79a)
+     dofs_pe = intx2(mu79(:,:,OP_1),temp79b)
+
+     call vector_insert_block(pe_f%vec,itri,1,dofs_pe,VEC_ADD)
+     call vector_insert_block(p_f%vec,itri,1,dofs_p,VEC_ADD)
+  end do
+
+  call newvar_solve(pe_f%vec, mass_mat_lhs)
+  call newvar_solve(p_f%vec, mass_mat_lhs)
+
+  pe = pe_f
+  p = p_f
+
+  call destroy_field(pe_f)
+  call destroy_field(p_f)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Done calculating pressures'
+  
+end subroutine calculate_pressures
+
+
+subroutine calculate_temperatures(ilin, te, ti, pe, p, ne, nion, ieqsub)
+  use math
+  use basic
+  use m3dc1_nint
+  use newvar_mod
+  use diagnostics
+  use metricterms_new
+  use field
+  use arrays
+  use kprad_m3dc1
+
+  implicit none
+
+  type(field_type) :: pe, p, te, ti, ne, nion
+  integer, intent(in) :: ilin    ! 0 = calculate only equilibrium part
+  integer, intent(in) :: ieqsub  ! 1 = supplied fields are only perturbed parts
+
+  integer :: numelms, itri, i
 
   type(field_type) :: te_f, ti_f
 
-  vectype, dimension(dofs_per_element) :: dofs
+  vectype, dimension(dofs_per_element) :: dofs_ti, dofs_te
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating temperatures'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating Temperatures'
 
   call create_field(te_f)
   call create_field(ti_f)
@@ -144,68 +271,310 @@ subroutine calculate_temperatures(ilin, te, ti, ieqsub)
   te_f = 0.
   ti_f = 0.
 
-  ! specify which primitive fields are to be evalulated
-  def_fields = FIELD_N + FIELD_P + FIELD_PE
-
   numelms = local_elements()
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
-     call define_fields(itri, def_fields, 1, 0, ieqsub)
+     call define_fields(itri, 0, 1, 0, ieqsub)
 
-     ! electron temperature
-     if(linear.eq.1 .and. ilin.eq.1) then
-        temp79a = pe179(:,OP_1)/ne079(:,OP_1) &
-             - ne179(:,OP_1)*pe079(:,OP_1)/ne079(:,OP_1)**2
+     call eval_ops(itri, ne, ne179, rfac)
+     call eval_ops(itri, nion, n179,  rfac)
+     call eval_ops(itri, p, p179, rfac)
+     call eval_ops(itri, pe, pe179, rfac)
+     if(ieqsub.eq.1 .and. ilin.eq.1) then
+        call eval_ops(itri, ne_field(0), ne079, rfac)
+        call eval_ops(itri, den_field(0), n079, rfac)
+        call eval_ops(itri, pe_field(0), pe079, rfac)
+        call eval_ops(itri, p_field(0),   p079, rfac)
+        nt79  = n179  +  n079
+        net79 = ne179 + ne079
+        pt79  = p179  +  p079
+        pet79 = pe179 + pe079
      else
-        if(ilin.eq.1) then
+        nt79  =  n179
+        net79 = ne179
+        pt79  =  p179
+        pet79 = pe179
+     end if
+
+     ! Electron temperature
+     if(linear.eq.1 .and. ilin.eq.1) then 
+        where(real(ne079(:,OP_1)).gt.0.)
+           temp79a = pe179(:,OP_1)/ne079(:,OP_1) &
+                - ne179(:,OP_1)*pe079(:,OP_1)/ne079(:,OP_1)**2
+        elsewhere
+           temp79a = 0.
+        end where
+     else
+        ! calculate the full temperature even when eqsubtract=1,
+        ! since we don't store the equilibrium impurity density
+        where(real(net79(:,OP_1)).gt.0.)
            temp79a = pet79(:,OP_1)/net79(:,OP_1)
-           if(ieqsub.eq.1) then
-              temp79a = temp79a - pe079(:,OP_1)/ne079(:,OP_1)
-           end if
-        else
-           temp79a = pe079(:,OP_1)/ne079(:,OP_1)
-        end if
+        elsewhere
+           temp79a = 0.
+        end where
      end if
-     dofs = intx2(mu79(:,:,OP_1),temp79a)
-     where(dofs.ne.dofs)
-        dofs = 0.
-     end where
-     call vector_insert_block(te_f%vec,itri,1,dofs,VEC_ADD)
 
-     ! ion temperature
+     ! Ion temperature
+     ! Ti = (p - pe) / [n_i + sum(n_z)]
      if(linear.eq.1 .and. ilin.eq.1) then
-        temp79a = pi179(:,OP_1)/n079(:,OP_1) &
-             - n179(:,OP_1)*pi079(:,OP_1)/n079(:,OP_1)**2
+        where(real(n079(:,OP_1)).gt.0.)
+           temp79b = (p179(:,OP_1) - pe179(:,OP_1))/n079(:,OP_1) &
+                - n179(:,OP_1)*(p079(:,OP_1) - pe079(:,OP_1))/n079(:,OP_1)**2
+        elsewhere
+           temp79b = 0.
+        end where
      else
-        if(ilin.eq.1) then
-           temp79a = pit79(:,OP_1)/nt79(:,OP_1)
-           if(ieqsub.eq.1) then
-              temp79a = temp79a - pi079(:,OP_1)/n079(:,OP_1)
-           end if
-        else
-           temp79a = pi079(:,OP_1)/n079(:,OP_1)
+           
+        ! ion density
+        temp79c = nt79(:,OP_1)
+        ! Add impurity density
+        if(ikprad.eq.1) then
+           do i=1, kprad_z
+              call eval_ops(itri, kprad_n(i), n079, rfac)
+              temp79c = temp79c + n079(:,OP_1)
+           end do
+        end if
+        
+        ! calculate the full temperature even when eqsubtract=1,
+        ! since we don't store the equilibrium impurity density
+        where(real(temp79c) .gt. 0.)
+           temp79b = (pt79(:,OP_1) - pet79(:,OP_1))/temp79c
+        elsewhere
+           temp79b = 0.
+        end where
+     end if
+
+     ! If eqsubtract = 1, subtract the equilibrium pressure
+     if(ieqsub.eq.1 .and. ilin.eq.1 .and. linear.eq.0) then
+        call eval_ops(itri, te_field(0), te079, rfac)
+        temp79a = temp79a - te079(:,OP_1)
+
+        if(ipressplit.eq.1 .and. ipres.eq.1) then
+           call eval_ops(itri, ti_field(0), ti079, rfac)
+           temp79b = temp79b - ti079(:,OP_1)
         end if
      end if
-     dofs = intx2(mu79(:,:,OP_1),temp79a)
-     where(dofs.ne.dofs)
-        dofs = 0.
-     end where
-     call vector_insert_block(ti_f%vec,itri,1,dofs,VEC_ADD)
+
+     dofs_te = intx2(mu79(:,:,OP_1),temp79a)
+     dofs_ti = intx2(mu79(:,:,OP_1),temp79b)
+        
+     call vector_insert_block(te_f%vec,itri,1,dofs_te,VEC_ADD)
+     call vector_insert_block(ti_f%vec,itri,1,dofs_ti,VEC_ADD)
   end do
 
   call newvar_solve(te_f%vec, mass_mat_lhs)
-  call newvar_solve(ti_f%vec, mass_mat_lhs)
-
   te = te_f
-  ti = ti_f
-
   call destroy_field(te_f)
+
+  call newvar_solve(ti_f%vec, mass_mat_lhs)
+  ti = ti_f
   call destroy_field(ti_f)
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, ' Done calculating temperatures'
   
 end subroutine calculate_temperatures
+
+
+
+subroutine calculate_ne(ilin, nion, ne, ieqsub)
+  use math
+  use basic
+  use m3dc1_nint
+  use newvar_mod
+  use diagnostics
+  use metricterms_new
+  use field
+  use kprad_m3dc1
+  use arrays
+
+  implicit none
+
+  type(field_type) :: ne, nion
+  integer, intent(in) :: ilin, ieqsub
+
+  integer :: numelms
+  integer :: itri, i
+
+  type(field_type) :: ne_f
+
+  vectype, dimension(dofs_per_element) :: dofs
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating electron density'
+
+  if(ikprad.eq.0 .or. linear.eq.1) then
+     ne = nion
+     call mult(ne, z_ion)
+     return
+  end if
+  
+  call create_field(ne_f)
+  ne_f = 0.
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, 0, 1, 0, ieqsub)
+
+     ! always calculate the full electron density (regardless of eqsubtract)
+     ! since we don't store the equilibrium impurity density
+     call eval_ops(itri, nion, n179, rfac)
+     if(ieqsub.eq.1 .and. ilin.eq.1) then
+        call eval_ops(itri, den_field(0), n079, rfac)
+        call eval_ops(itri, ne_field(0), ne079, rfac)
+        nt79 = n179 + n079
+     else
+        nt79 = n179
+     end if
+
+     temp79a = nt79(:,OP_1)*z_ion
+
+     if(ikprad.eq.1) then
+        do i=1, kprad_z
+           call eval_ops(itri, kprad_n(i), n079, rfac)
+           temp79a = temp79a + i*n079(:,OP_1)
+        end do
+     end if
+
+     ! If eqsubtract = 1, subtract the equilibrium electron density.
+     if(ieqsub.eq.1 .and. ilin.eq.1) then
+        temp79a = temp79a - ne079(:,OP_1)
+     end if
+
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+
+     call vector_insert_block(ne_f%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(ne_f%vec, mass_mat_lhs)
+
+  ne = ne_f
+
+  call destroy_field(ne_f)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, ' Done calculating electron density'
+  
+end subroutine calculate_ne
+
+
+subroutine calculate_rho(itri)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+  integer :: i
+
+  rho79 = nt79
+
+  if(ikprad.eq.1) then 
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        rho79 = rho79 + tm79*kprad_mz/ion_mass
+     end do
+  end if
+  
+end subroutine calculate_rho
+
+subroutine calculate_sigma_e(itri)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  sie79 = sig79
+
+  if(ikprad.eq.1) then 
+     call eval_ops(itri, kprad_sigma_e, tm79, rfac)
+
+     sie79 = sie79 + tm79
+  end if
+  
+end subroutine calculate_sigma_e
+
+
+subroutine calculate_sigma_i(itri)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  sii79 = sig79
+
+  if(ikprad.eq.1) then 
+     call eval_ops(itri, kprad_sigma_i, tm79, rfac)
+
+     sii79 = sii79 + tm79
+  end if
+  
+end subroutine calculate_sigma_i
+
+
+subroutine calculate_weighted_density(itri)
+  use basic
+  use m3dc1_nint
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  real :: ti_over_te
+  integer :: i
+
+  ! Ion density
+  nw79 = nt79
+
+  if(ikprad.eq.1) then
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        nw79 = nw79 + tm79
+     end do
+  end if
+
+  if(ipres.eq.0) then
+     ! Total weighted density
+     ti_over_te = (1. - pefac) / pefac
+
+     nw79 = ti_over_te*nw79 + net79
+  end if
+end subroutine calculate_weighted_density
+
+! Total impurity ion density
+subroutine calculate_kprad_totden(itri, z)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  integer :: i
+  vectype, dimension(MAX_PTS), intent(out) :: z
+
+  z = 0.
+  if(ikprad.eq.1) then 
+     do i=0, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        z = z + tm79(:,OP_1)
+     end do
+  end if
+end subroutine calculate_kprad_totden
+
 
 subroutine calculate_auxiliary_fields(ilin)
   use math
@@ -216,6 +585,7 @@ subroutine calculate_auxiliary_fields(ilin)
   use metricterms_new
   use electric_field
   use temperature_plots
+  use kprad_m3dc1
 
   implicit none
 
@@ -241,6 +611,8 @@ subroutine calculate_auxiliary_fields(ilin)
   ef_par = 0.
   eta_j = 0.
   mesh_zone = 0.
+  z_effective = 0.
+  if(ikprad.eq.1) kprad_totden = 0.
   if(jadv.eq.0) then
      psidot = 0.
      veldif = 0.
@@ -276,7 +648,7 @@ subroutine calculate_auxiliary_fields(ilin)
   if(rad_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_RAD
 
   numelms = local_elements()
-if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
+
   ! EM Torque density
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
@@ -506,8 +878,17 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
 
      call electric_field_eta_j(ilin,temp79a)
      dofs = intx2(mu79(:,:,OP_1),temp79a)
-
      call vector_insert_block(eta_j%vec,itri,1,dofs,VEC_ADD)
+
+     call calculate_zeff(itri, temp79a)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(z_effective%vec,itri,1,dofs,VEC_ADD)
+
+     if(ikprad.eq.1) then
+        call calculate_kprad_totden(itri, temp79a)
+        dofs = intx2(mu79(:,:,OP_1),temp79a)
+        call vector_insert_block(kprad_totden%vec,itri,1,dofs,VEC_ADD)
+     end if
      
      if(jadv.eq.0) then
         call electric_field_psidot(ilin,temp79a)
@@ -611,6 +992,8 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   call newvar_solve(ef_par%vec, mass_mat_lhs)
   call newvar_solve(eta_j%vec, mass_mat_lhs)
   call newvar_solve(mesh_zone%vec, mass_mat_lhs)
+  call newvar_solve(z_effective%vec, mass_mat_lhs)
+  if(ikprad.eq.1) call newvar_solve(kprad_totden%vec, mass_mat_lhs)
   if(jadv.eq.0) then
      call newvar_solve(psidot%vec, mass_mat_lhs)
      call newvar_solve(veldif%vec, mass_mat_lhs)

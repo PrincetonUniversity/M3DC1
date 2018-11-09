@@ -1,6 +1,6 @@
 function read_scalar, scalarname, filename=filename, title=title, $
                       symbol=symbol, units=units, time=time, final=final, $
-                      _EXTRA=extra
+                      integrate=integrate, _EXTRA=extra
 
    if(n_elements(scalarname) eq 0) then begin
        print, "Error: no scalar name provided"
@@ -21,6 +21,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
 
    s = read_scalars(filename=filename)
    itor = read_parameter('itor', filename=filename)
+   version = read_parameter('version', filename=filename)
    if(n_tags(s) eq 0) then return, 0
 
    time = s.time._data
@@ -106,53 +107,82 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.pellet_rate._data
        title = 'Pellet Rate'
        symbol = '!8V!DL!N!X'
-       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+       d = dimensions(/n0, l0=3, t0=-1, _EXTRA=extra)
    endif else $
- if (strcmp("pellet ablation rate", scalarname, /fold_case) eq 1) or $
-     (strcmp("pelablr", scalarname, /fold_case) eq 1) then begin
-       data = s.pellet_ablrate._data
-       title = 'Pellet Ablation Rate'
-       symbol = '!8V!DL!N!X'
-       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+   if (strcmp("pellet ablation rate", scalarname, /fold_case) eq 1) or $
+      (strcmp("pelablr", scalarname, /fold_case) eq 1) then begin
+      if(version lt 26) then begin
+         data = s.pellet_ablrate._data
+         title = 'Pellet Ablation Rate'
+         symbol = '!8V!DL!N!X'
+         d = dimensions(/n0, t0=-1, _EXTRA=extra)
+      endif else begin
+         print, 'Error, this data is not present in this version of M3D-C1.'
+         data = 0.
+      end
     endif else $
      if (strcmp("pellet var", scalarname, /fold_case) eq 1) or $
      (strcmp("pelvar", scalarname, /fold_case) eq 1) then begin
        data = s.pellet_var._data
        title = 'Pellet Var'
        symbol = '!8V!DL!N!X'
-       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+       d = dimensions(/l0)
    endif else $
      if (strcmp("pellet radius", scalarname, /fold_case) eq 1) or $
      (strcmp("pelrad", scalarname, /fold_case) eq 1) then begin
-       data = s.r_p2._data
+      if (version lt 26) then begin
+         data = s.r_p2._data
+      endif else begin
+         data = s.r_p._data
+      end
        title = 'Pellet Radius'
        symbol = '!8V!DL!N!X'
-       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+       d = dimensions(/l0, _EXTRA=extra)
     endif else $
      if (strcmp("pellet R position", scalarname, /fold_case) eq 1) or $
      (strcmp("pelrpos", scalarname, /fold_case) eq 1) then begin
-       data = s.pellet_x._data
+       if(version lt 26) then begin
+          data = s.pellet_x._data
+       endif else begin
+          data = s.pellet_r._data
+       end
        title = 'Pellet R position'
        symbol = '!8V!DL!N!X'
-       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+       d = dimensions(/l0, _EXTRA=extra)
     endif else $
      if (strcmp("pellet Z position", scalarname, /fold_case) eq 1) or $
      (strcmp("pelzpos", scalarname, /fold_case) eq 1) then begin
        data = s.pellet_z._data
        title = 'Pellet Z position'
        symbol = '!8V!DL!N!X'
-       d = dimensions(/n0, t0=-1, _EXTRA=extra)
+       d = dimensions(/l0, _EXTRA=extra)
    endif else $
      if (strcmp("beta", scalarname, /fold_case) eq 1) then begin
-       data = scalar_beta(filename=filename)
-       title = 'Average Beta'
+      if(version lt 26) then begin
+         print, 'Beta = int(P) / int(B^2/2); integration over XMHD region'
+         data = scalar_beta(filename=filename)
+         title = 'Global Beta'
+      endif else begin
+         print, 'Beta = int(P) / int(B^2/2); integration over plasma volume'
+         gamma = read_parameter('gam', filename=filename)
+         data = (gamma - 1.)*s.W_P._data / (s.E_MP._data + s.E_MT._data)
+         title = 'Plasma Beta'
+      endelse
        symbol = '!7b!X'
        d = dimensions(_EXTRA=extra)
    endif else if $
      (strcmp("poloidal beta", scalarname, /fold_case) eq 1) or $
      (strcmp("bp", scalarname, /fold_case) eq 1) then begin
-       data = scalar_beta_poloidal(filename=filename)
-       title = 'Poloidal Beta'
+      if(version lt 26) then begin
+         print, 'Beta_poloidal = 2.*int(P) / IP^2; integration over XMHD region'
+         data = scalar_beta_poloidal(filename=filename)
+         title = 'Global Poloidal Beta'
+      endif else begin
+         print, 'Beta_poloidal = W_P / W_M; integration over plasma volume'
+         gamma = read_parameter('gam',filename=filename)
+         data = (gamma-1.)*s.w_p._data/s.w_m._data
+         title = 'Plasma Poloidal Beta'
+      endelse
        symbol = '!7b!D!8P!N!X'
        d = dimensions(_EXTRA=extra)
    endif else $
@@ -185,11 +215,30 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8ME!X'
        d = dimensions(/energy, _EXTRA=extra)
    endif else if $
-     (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
-     (strcmp("te", scalarname, /fold_case) eq 1)then begin
+     (strcmp("poloidal magnetic energy", scalarname, /fold_case) eq 1) or $
+     (strcmp("Wm", scalarname, /fold_case) eq 1)then begin
        nv = read_parameter("numvar", filename=filename)
+       data = s.E_MP._data
+       title = 'Poloidal Magnetic Energy'
+       symbol = '!8W!Dm!N!X'
+       d = dimensions(/energy, _EXTRA=extra)
+   endif else if $
+     (strcmp("thermal energy", scalarname, /fold_case) eq 1) or $
+     (strcmp("p", scalarname, /fold_case) eq 1)then begin
        data = s.E_P._data 
        title = 'Thermal Energy'
+       symbol = '!8TE!X'
+       d = dimensions(/energy, _EXTRA=extra)
+   endif else if $
+     (strcmp("electron thermal energy", scalarname, /fold_case) eq 1) or $
+     (strcmp("pe", scalarname, /fold_case) eq 1)then begin
+      if(version ge 20) then begin
+         data = s.E_PE._data 
+      endif else begin
+         print, 'Error, this data is not present in this version of M3D-C1.'
+         data = 0.
+      end
+       title = 'Electron Thermal Energy'
        symbol = '!8TE!X'
        d = dimensions(/energy, _EXTRA=extra)
    endif else if $
@@ -205,6 +254,18 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.particle_number._data
        title = 'Particle Number'
        symbol = '!8N!X'
+       d = dimensions(/n0,l0=3, _EXTRA=extra)
+   endif else if $
+     (strcmp("electrons", scalarname, /fold_case) eq 1) or $
+     (strcmp("ne", scalarname, /fold_case) eq 1) then begin
+      if(version ge 20) then begin
+         data = s.electron_number._data
+      endif else begin
+         zeff = read_parameter('zeff', filename=filename)
+         data = s.particle_number._data*zeff
+      end
+      title = 'Electron Number'
+      symbol = '!8N!De!N!X'
        d = dimensions(/n0,l0=3, _EXTRA=extra)
    endif else if $
      (strcmp("angular momentum", scalarname, /fold_case) eq 1) then begin
@@ -250,6 +311,13 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = 'Normalized Internal Inductance'
        symbol = '!13l!Di!X'
        d = dimensions(_EXTRA=extra)
+   endif else if (strcmp("li3", scalarname, /fold_case) eq 1) then begin
+      rzero = read_parameter('rzero', filename=filename)
+       Wm = s.E_MP._data
+       data = 4.*Wm / s.toroidal_current_p._data^2 / rzero
+       title = 'Normalized Internal Inductance'
+       symbol = '!13l!Di!N!6(3)!X'
+       d = dimensions(_EXTRA=extra)
    endif else if (strcmp("xmag", scalarname, /fold_case) eq 1) then begin
        data = s.xmag._data
        title = '!8R!6-Coordinate of Magnetic Axis!6'
@@ -277,6 +345,46 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Radiated Power!6'
        symbol = '!8P!D!6rad!N!X'
        d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("line_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("pline", scalarname, /fold_case) eq 1) then begin
+       data = -s.line_rad._data
+       title = '!6Line Radiation Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("brem_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("pbrem", scalarname, /fold_case) eq 1) then begin
+       data = -s.brem_rad._data
+       title = '!6Bremsstrahlung Radiation Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("ion_loss", scalarname, /fold_case) eq 1 $
+       or strcmp("pion", scalarname, /fold_case) eq 1) then begin
+       data = -s.ion_loss._data
+       title = '!6Ionization Power!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("reck_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("preck", scalarname, /fold_case) eq 1) then begin
+       data = -s.reck_rad._data
+       title = '!6Recombination Radiation Power (Kinetic)!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("recp_rad", scalarname, /fold_case) eq 1 $
+       or strcmp("precp", scalarname, /fold_case) eq 1) then begin
+       data = -s.recp_rad._data
+       title = '!6Recombination Radiation Power (Potential)!6'
+       symbol = '!8P!D!6rad!N!X'
+       d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
+   endif else if (strcmp("temax", scalarname, /fold_case) eq 1) then begin
+       data = s.temax._data
+       title = '!6Maximum Te!6'
+       symbol = '!6max[!8T!De!N!6]!X'
+       d = dimensions(/temp,_EXTRA=extra)
+   endif else if (strcmp("POhm", scalarname, /fold_case) eq 1) then begin
+       data = -(s.e_mpd._data + s.e_mtd._data)
+       title = '!6Ohmic Heating!6'
+       symbol = '!8P!D!6ohm!N!X'
+       d = dimensions(/p0,t0=-1,l0=3,_EXTRA=extra)
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)
@@ -294,16 +402,27 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(strcmp("wall_force", scalarname, 10, /fold_case) eq 1) then begin
           d = dimensions(/p0,l0=2)
        endif
+       if(strcmp("flux_thermal", scalarname, 10, /fold_case) eq 1) then begin
+          symbol = '!7C!D!8t!N!X'
+          d = dimensions(/p0,l0=3,t0=-1)
+       endif
    endelse
    
    if(keyword_set(final)) then begin
        data = data[n_elements(data)-1]
    endif
 
-   get_normalizations, b0=b0,n0=n0,l0=l0, zeff=zeff, ion_mass=mi, $
+   if(keyword_set(integrate)) then begin
+       d = d + dimensions(/t0)
+       data = cumtrapz(time,data)
+       title = 'Integrated '+title
+       symbol = '!Mi '+symbol+'!6 dt!6'
+   endif
+
+   get_normalizations, b0=b0,n0=n0,l0=l0, ion_mass=mi, $
      filename=filename, _EXTRA=extra
-   convert_units, data, d, b0, n0, l0, zeff, mi, _EXTRA=extra
-   convert_units, time, dimensions(/t0), b0, n0, l0, zeff, mi, _EXTRA=extra
+   convert_units, data, d, b0, n0, l0, mi, _EXTRA=extra
+   convert_units, time, dimensions(/t0), b0, n0, l0, mi, _EXTRA=extra
    units = parse_units(d, _EXTRA=extra)
 
    if(n_elements(data) gt n_elements(time)) then $

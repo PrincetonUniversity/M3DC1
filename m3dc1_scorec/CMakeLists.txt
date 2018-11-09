@@ -216,6 +216,7 @@ if(ENABLE_TESTING)
   target_link_libraries(solver ${SCOREC_LIB_NAME})
   INSTALL(TARGETS solver RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
+
   if(ENABLE_SIMMETRIX)
     add_executable(m3dc1_meshgen test/meshgen/m3dc1_meshgen.cc)
     target_link_libraries(m3dc1_meshgen ${LINK_LIBS})

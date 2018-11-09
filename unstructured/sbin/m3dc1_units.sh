@@ -40,7 +40,7 @@ else
     else
 	echo "ion_mass not found.  Using default value"
     fi
-    ZLINE=`grep zeff C1input`
+    ZLINE=`grep 'zeff\|z_ion' C1input`
     if [ $? == 0 ]; then
 	ZEFF=`echo $ZLINE | awk '{ print $3 }'`
     else

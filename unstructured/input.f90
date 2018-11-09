@@ -22,6 +22,29 @@ subroutine add_var_double_array(name, var, size, default, desc, grp)
        desc//char(0), grp)
 end subroutine add_var_double_array
 
+subroutine add_var_string_array(name, var, ln, size, default, desc, grp)
+  implicit none
+
+  character(len=*), intent(in) :: name, desc
+  integer, intent(in) :: ln
+  integer, intent(in) :: size
+  character(len=*), dimension(size) :: var
+  character(len=*), intent(in) :: default
+  integer, intent(in) :: grp
+
+  integer :: i
+
+!!$  call add_variable_string_array2(name//char(0), var, ln, size, default, &
+!!$       desc//char(0), grp, ' ')
+
+  call add_variable_string_array(name//char(0), ln, size, desc//char(0), &
+       grp, ' ')
+
+  do i=1, size
+     call set_variable_string_array(name//char(0), i-1, var(i), default)
+  end do
+end subroutine add_var_string_array
+
 subroutine add_var_int(name, var, default, desc, grp)
   implicit none
 
@@ -270,6 +293,8 @@ subroutine set_defaults
   call add_var_double("kappa0", kappa0, 0., "", transp_grp)
   call add_var_double("kappar", kappar, 0., &
        "Parallel thermal conductivity", transp_grp)
+  call add_var_double("k_fac", k_fac, 1., &
+       "multiplies toroidal field in denominator of PTC", transp_grp)
   call add_var_double("kappax", kappax, 0., "", transp_grp)
   call add_var_double("kappah", kappah, 0., "", transp_grp)
   call add_var_double("kappag", kappag, 0., &
@@ -278,6 +303,8 @@ subroutine set_defaults
        "Factor to multiply kappa when grad(p) < gradp_crit", transp_grp)
   call add_var_double("gradp_crit", gradp_crit, 0., &
        "Critical pressure gradient in kappag/kappaf models", transp_grp)
+  call add_var_double("temin_qd", temin_qd, 0., &
+       "Min. Temp. used in Equipartition term for ipres=1", transp_grp)
 
   call add_var_double("denm", denm, 0., &
        "Density hyperdiffusion coefficient", transp_grp)
@@ -290,7 +317,7 @@ subroutine set_defaults
        "Factor multiplying physical value of ion skin depth", misc_grp)
   call add_var_double("mass_ratio", mass_ratio, 0., "", misc_grp)
   call add_var_double("lambdae", lambdae, 0., "", misc_grp)
-  call add_var_double("zeff", zeff, 1., "Z effective", misc_grp)
+  call add_var_double("z_ion", z_ion, 1., "Z effective", misc_grp)
   call add_var_double("ion_mass", ion_mass, 1., &
        "Ion mass (in units of m_p)", misc_grp)
   call add_var_double("lambda_coulomb", lambda_coulomb, 17., &
@@ -336,6 +363,10 @@ subroutine set_defaults
   call add_var_int("nosig", nosig, 0, "", model_grp)
   call add_var_int("itor", itor, 0, &
        "1: Use toroidal geometry", model_grp)
+  call add_var_int("iohmic_heating", iohmic_heating, 1, &
+       "1: Include Ohmic heating", model_grp)
+  call add_var_int("irad_heating", irad_heating, 1, &
+       "1: Include radiation heat source", model_grp)
 
   call add_var_double("gravr", gravr, 0., "", model_grp)
   call add_var_double("gravz", gravz, 0., "", model_grp)
@@ -540,10 +571,10 @@ subroutine set_defaults
   call add_var_double("pi0", pi0, 0.005, "", gs_grp)
   call add_var_double("p1", p1, 0., "", gs_grp)
   call add_var_double("p2", p2, 0., "", gs_grp)
-  call add_var_double("pedge", pedge, -1., &
-       "Pressure outside separatrix (ignore if < 0)", gs_grp)
-  call add_var_double("tedge", tedge, -1., &
-       "Electron temperature outside separatrix (ignore if < 0)", gs_grp)
+  call add_var_double("pedge", pedge, 0., &
+       "Pressure outside separatrix (ignore if <= 0)", gs_grp)
+  call add_var_double("tedge", tedge, 0., &
+       "Electron temperature outside separatrix (ignore if <= 0)", gs_grp)
   call add_var_double("tiedge", tiedge, 0., &
        "Outermost ion temperature (ignore if <= 0)", gs_grp)
   call add_var_double("expn", expn, 0., &
@@ -712,21 +743,35 @@ subroutine set_defaults
        imax_wall_breaks, 0., "Minimum phi coordinate for wall break", rw_grp)
   call add_var_double_array("wall_break_phimax", wall_break_phimax, &
        imax_wall_breaks, 0., "Maximum phi coordinate for wall break", rw_grp)
+  call add_var_int("iwall_regions", iwall_regions, 0, &
+       "Number of resistive wall regions", rw_grp)
+  call add_var_double_array("wall_region_eta", wall_region_eta, &
+       imax_wall_regions, 1e-3, "Resistivity of each wall region", rw_grp)
+  call add_var_string_array("wall_region_filename", wall_region_filename, 256,&
+       imax_wall_regions, "", "Resistivity of each wall region", rw_grp)
 
 
   ! loop voltage
   call add_var_double("vloop", vloop, 0., "", source_grp)
   call add_var_double("tcur", tcur, 0., "", source_grp)
+
+  call add_var_double("tcuri", tcuri, 0., "", source_grp)
+  call add_var_double("tcurf", tcurf, 0., "", source_grp)
+  call add_var_double("tcur_t0", tcur_t0, 0., "", source_grp)
+  call add_var_double("tcur_tw", tcur_tw, 0., "", source_grp)
+
   call add_var_double("control_p", control_p, 0., "", source_grp)
   call add_var_double("control_i", control_i, 0., "", source_grp)
   call add_var_double("control_d", control_d, 0., "", source_grp)
-  call add_var_int("control_type", control_type, 0, "", source_grp)
+  call add_var_int("control_type", control_type, -1, "", source_grp)
 
   
   ! density source
   call add_var_int("ipellet", ipellet, 0, &
        "1 = include a gaussian pellet source", source_grp)
-  call add_var_double("pellet_x", pellet_x, 0., &
+  call add_var_int("ipellet_z", ipellet_z, 0, &
+       "Atomic number of pellet (0 = main ion species)", source_grp)
+  call add_var_double("pellet_r", pellet_r, 0., &
        "Initial radial position of the pellet", source_grp)
   call add_var_double("pellet_phi", pellet_phi, 0., &
        "Initial toroidal position of the pellet", source_grp)
@@ -735,19 +780,20 @@ subroutine set_defaults
   call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
   call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
   call add_var_double("pellet_var_tor", pellet_var_tor, 0., "", source_grp)
-  call add_var_double("pellet_velx", pellet_velx, 0., &
-       "Radial velocity of the pellet", source_grp)
+  call add_var_double("pellet_velr", pellet_velr, 0., &
+       "Initial radial velocity of the pellet", source_grp)
   call add_var_double("pellet_velphi", pellet_velphi, 0., &
-       "Toroidal velocity of the pellet", source_grp)
+       "Initial toroidal velocity of the pellet", source_grp)
   call add_var_double("pellet_velz", pellet_velz, 0., &
-       "Vertical velocity of the pellet", source_grp)
+       "Initial vertical velocity of the pellet", source_grp)
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
   call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
-  call add_var_double("r_p2", r_p2, 1.e-3, "", source_grp)
-  call add_var_double("pellet_volume", pellet_volume, 1.e-9, "", source_grp)
-  call add_var_double("pellet_volume_2D", pellet_volume_2D, 1.e-7, "", source_grp)
   call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)
+  call add_var_double("pellet_mix", pellet_mix, 0.,&
+       "Molar fraction of deuterium in pellet", source_grp)
+  call add_var_double("temin_abl", temin_abl, 0., &
+       "Min. Temp. at which ablation turns on", source_grp)
 
 
   ! beam source
@@ -877,6 +923,8 @@ subroutine set_defaults
        "ne.0: bdgp plot contains only partial results ", output_grp)
   call add_var_int("idouble_out", idouble_out, 0, &
        "1: Use double-precision floating points in output", output_grp)
+  call add_var_int("irestart_slice", irestart_slice, -1, &
+       "Field output slice from which to restart", output_grp)
 
   call add_var_int("iveldif", iveldif, 0, &
        "ne.0: veldif plot contains only partial results ", output_grp)
@@ -941,9 +989,9 @@ subroutine set_defaults
   call add_var_double("adapt_hmin_rel", adapt_hmin_rel, 0.5, "", adapt_grp)
   call add_var_double("adapt_hmax_rel", adapt_hmax_rel, 2.0, "", adapt_grp)
   call add_var_double("adapt_smooth", adapt_smooth, 2./3., "", adapt_grp)
-  call add_var_double("adapt_psin_vacuum", adapt_psin_vacuum, 0., &
+  call add_var_double("adapt_psin_vacuum", adapt_psin_vacuum, -1., &
        "", adapt_grp)
-  call add_var_double("adapt_psin_wall", adapt_psin_wall, 0., &
+  call add_var_double("adapt_psin_wall", adapt_psin_wall, -1., &
        "", adapt_grp)
   call add_var_int("iadapt_pack_rationals", iadapt_pack_rationals, 0, &
        "Number of mode-rational surfaces to pack mesh around", adapt_grp)
@@ -951,6 +999,10 @@ subroutine set_defaults
        "Width of Lorentzian (in psi_N) for rational mesh packing", adapt_grp)
   call add_var_double("adapt_coil_delta", adapt_coil_delta, 0., &
        "Parameter for packing mesh around coil locations", adapt_grp)
+  call add_var_double("adapt_pellet_length", adapt_pellet_length, 0., &
+       "Length of pellet path to pack mesh along", adapt_grp)
+  call add_var_double("adapt_pellet_delta", adapt_pellet_delta, 0., &
+       "Parameter for packing mesh along pellet path", adapt_grp)
 
 
   ! Mesh
@@ -1007,6 +1059,7 @@ subroutine set_defaults
   call add_var_int("igs_method", igs_method, -1, "", deprec_grp)
   call add_var_int("iwrite_restart", iwrite_restart, 0, &
        "1: Write restart files", deprec_grp)
+  call add_var_double("zeff", zeff_xxx, 0., "Z of main ion species", deprec_grp)
 
 end subroutine set_defaults
 
@@ -1035,7 +1088,7 @@ subroutine validate_input
 #endif
 
   integer :: ier
-  real :: efac
+  real :: de
 
   if(myrank.eq.0) then
      print *, "============================================="
@@ -1099,8 +1152,13 @@ subroutine validate_input
      end if
   end if
 
-  if(zeff .ne. 1.0 .and. itemp.eq.1) then
-     if(myrank.eq.0) print *, "itemp=1 not allowed with zeff .gt. 1"
+  if(zeff_xxx .ne. .0 .and. itemp.eq.1) then
+     if(myrank.eq.0) print *, "zeff is deprecated.  Use z_ion instead."
+     call safestop(1)
+  endif
+
+  if(z_ion .ne. 1.0 .and. itemp.eq.1) then
+     if(myrank.eq.0) print *, "itemp=1 not allowed with z_ion .gt. 1"
      call safestop(1)
   endif
 
@@ -1314,7 +1372,8 @@ subroutine validate_input
   ! Determine which source terms will be used
   ! ~~~~~~~~~
   density_source = idens.eq.1 .and. linear.eq.0 .and. &
-       (ipellet.ge.1 .or. ionization.ge.1 .or. isink.gt.0 &
+       ((ipellet.ge.1 .and. ipellet_z.eq.0) &
+       .or. ionization.ge.1 .or. isink.gt.0 &
        .or. idenfloor.gt.0 .or. ibeam.eq.1 &
        .or. ibeam.eq.2 .or. iread_particlesource.eq.1 &
        .or. iarc_source.ne.0)
@@ -1338,8 +1397,34 @@ subroutine validate_input
   end if
   !==========================================
 
+  if(den_edge.gt.0 .and. pedge.gt.0 .and. tedge.gt.0) then
+     print *, 'ERROR: pedge, den_edge, and tedge cannot all be set'
+     call safestop(1)
+  end if 
 
-  if(den_edge .eq.0) den_edge = den0*(pedge/p0)**expn
+  if(den_edge.le.0.) then
+     de = den0*(pedge/p0)**expn
+  else
+     de = den_edge
+     if(iread_ne.ne.0) then
+        if(myrank.eq.0) print *, 'Error: den_edge is incompatible with iread_ne'
+        call safestop(1)
+     end if
+  end if
+
+  if(tedge.gt.0.) then
+     if(iread_te.ne.0) then
+        if(myrank.eq.0) print *, 'Error: tedge is incompatible with iread_te'
+        call safestop(1)
+     end if
+     if(pedge.le.0.) then
+        pedge = de*tedge/pefac
+        if(myrank.eq.0) print *, 'Setting pedge = ', pedge
+     else
+        den_edge = pedge*pefac/tedge
+        if(myrank.eq.0) print *, 'Setting den_edge = ', den_edge
+     end if
+  end if
 
   if(irmp.eq.0 .and. iread_ext_field.eq.0 &
        .and. tf_tilt.eq.0. .and. tf_shift.eq.0. &
@@ -1350,17 +1435,6 @@ subroutine validate_input
      end if
   end if
 
-  if(eta_max.le.0.) eta_max = eta_vac
-  if(myrank.eq.0) then
-     efac =  (eta_fac * &
-          3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
-          *zeff*lambda_coulomb*sqrt(ion_mass))
-     print *, 'efac = ', efac
-     print *, 'Te associated with eta_max = ', (efac/ eta_max)**(2./3.) &
-          * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
-     print *, 'Te associated with eta_max = ', (efac/eta_max)**(2./3.), &
-          ' dimensionless'
-  end if
 
   if(iprad.eq.1 .and. myrank.eq.0) then
      if( (prad_z .ne. 6) .and. (prad_z .ne. 18) .and. (prad_z .ne. 26) ) then
@@ -1406,15 +1480,36 @@ subroutine validate_input
 #endif
   endif
 
-  v0_norm = b0_norm / sqrt(4.*pi*ion_mass*m_p*n0_norm)
+  m0_norm = m_p*ion_mass
+  v0_norm = b0_norm / sqrt(4.*pi*m0_norm*n0_norm)
   t0_norm = l0_norm / v0_norm
   p0_norm = b0_norm**2/(4.*pi)
   e0_norm = v0_norm*b0_norm / c_light
   j0_norm = c_light*b0_norm/(4.*pi*l0_norm)
 
+  ! For pure Hydrogen plasma
+  ! nu_e = nufac * n_e / T_e^(3/2) 
+  ! eta_perp = etafac / T_e^(3/2)
+  ! (all in normlized units)
+  nufac  = eta_fac * (4.*sqrt(2.*pi)*(4.*pi)**2 / 3.) &
+       * e_c**4 * sqrt(m0_norm / m_e) * lambda_coulomb  &
+       * (n0_norm**3 * l0_norm / B0_norm**4)
+  efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
+  if(eta_max.le.0.) eta_max = eta_vac
+
+  if(myrank.eq.0 .and. iprint.ge.1) then
+     print *, 'nufac = ', nufac
+     print *, 'efac = ', efac
+     print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.) &
+          * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
+     print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.), &
+          ' dimensionless'
+  end if
+  
+
   if(db.lt.0.) then
      db = c_light / &
-          sqrt(4.*pi*n0_norm*(zeff*e_c)**2/(ion_mass*m_p)) / &
+          sqrt(4.*pi*n0_norm*(z_ion*e_c)**2/m0_norm) / &
           l0_norm
      if(myrank.eq.0 .and. iprint.ge.1) then
         print *, 'Physical value of db = ', db
@@ -1424,15 +1519,24 @@ subroutine validate_input
   end if
 
   if(ihypeta.gt.2) then
-  bharhypeta = 0.
+     bharhypeta = 0.
      if(ihypeta .gt. ibh_harmonics) then
-         print *, 'Error:  ihypeta > ibh_harmonics', ihypeta, ibh_harmonics
-         call safestop(1)
+        if(myrank.eq.0) print *, 'Error:  ihypeta > ibh_harmonics', &
+             ihypeta, ibh_harmonics
+        call safestop(1)
      endif
   endif
-  
+
   if(ibeam.ge.1) call neutral_beam_init
-  if(ipellet.ne.0) call pellet_init
+  if(ipellet.ne.0) then
+     call pellet_init
+     
+     if(ipellet_z.ne.0 .and. &
+        (ikprad.ne.0 .and. ipellet_z.ne.kprad_z)) then
+        if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
+        call safestop(1)
+     end if
+  end if
 
   if(myrank.eq.0) then
      print *, "============================================="

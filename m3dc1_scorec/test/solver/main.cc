@@ -15,6 +15,10 @@
 #include <fenv.h>
 #include <iostream>
 #include <stdlib.h>
+
+//extern "C" int setPETScMat(int matrixid, Mat * A);
+//extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A);
+
 #if defined(__linux__)
 #include <malloc.h>
 #else

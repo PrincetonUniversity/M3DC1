@@ -17,6 +17,7 @@ module adapt
   !type(vector_type), private :: error_vec
 
   real :: adapt_coil_delta
+  real :: adapt_pellet_length, adapt_pellet_delta
   
   contains
   subroutine adapt_by_psi
@@ -47,8 +48,36 @@ module adapt
     complex, dimension(maxfilaments) :: ic_adapt
     integer :: numcoils_adapt
 
+    real, dimension(maxfilaments) :: xp_adapt, zp_adapt
+    integer :: p_steps
+    real :: p_dt, p_v
+    real :: x0, y0, x, y
+
     call create_field(temporary_field)
     temporary_field = 0.
+
+    if(adapt_pellet_delta.gt.0) then
+       ! determine pellet path to adapt along
+       x0 = pellet_r*cos(pellet_phi)
+       y0 = pellet_r*sin(pellet_phi)
+       p_steps = ceiling(adapt_pellet_length/(2.*adapt_pellet_delta))+1
+       p_steps = min(p_steps,maxfilaments)
+       p_v = sqrt(pellet_vx**2 + pellet_vy**2 + pellet_velz**2)
+       if(p_v.gt.0.) then
+          p_dt = 2.*adapt_pellet_delta/p_v
+       else
+          ! if not moving, just adapt along stationary pellet position
+          p_dt = 0.
+          p_steps = 1
+       end if
+
+       do j=1, p_steps
+          x = x0 + pellet_vx*(j-1)*p_dt
+          y = y0 + pellet_vy*(j-1)*p_dt
+          xp_adapt(j) = sqrt(x**2 + y**2)
+          zp_adapt(j) = pellet_z + pellet_velz*(j-1)*p_dt
+       end do
+    end if
 
     numelms = local_elements()
     do itri=1,numelms
@@ -88,10 +117,10 @@ module adapt
        ! if adapt_psin_wall or adapt_psin_vacuum is set in multi-region mesh,
        ! set psin in the wall or vacuum region to the appropriate value
        if(imulti_region.eq.1) then
-          if(izone.eq.2 .and. adapt_psin_wall.ne.0) then
+          if(izone.eq.2 .and. adapt_psin_wall.ge.0) then
              temp79b = adapt_psin_wall
           end if
-          if(izone.ge.3 .and. adapt_psin_vacuum.ne.0) then
+          if(izone.ge.3 .and. adapt_psin_vacuum.ge.0) then
              temp79b = adapt_psin_vacuum
           end if
        end if
@@ -127,6 +156,18 @@ module adapt
              temp79c = temp79c + &
                   exp(-((x_79 - xc_adapt(j))**2 + (z_79 - zc_adapt(j))**2) / &
                        (2.*adapt_coil_delta**2))
+          end do
+          where(real(temp79c).gt.1.) temp79c = 1.
+          temp79b = temp79b*(1.-temp79c) + temp79c
+       end if
+
+       ! do adaptation along pellet path
+       if(adapt_pellet_delta.gt.0) then
+          temp79c = 0.
+          do j = 1, p_steps
+             temp79c = temp79c + &
+                  exp(-((x_79 - xp_adapt(j))**2 + (z_79 - zp_adapt(j))**2) / &
+                       (2.*adapt_pellet_delta**2))/1.27 ! BCL: 1.27 "normalizes" this
           end do
           where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c
@@ -319,7 +360,14 @@ iadapt_max_node, adapt_control);
        if(ipforce.gt.0) pmach_field = 0.
        if(momentum_source) Fphi_field = 0.
        if(heat_source) Q_field = 0.
-       if(rad_source) Rad_field = 0.
+       if(rad_source) then 
+          Totrad_field = 0.
+          Linerad_field = 0.
+          Bremrad_field = 0.
+          Ionrad_field = 0.
+          Reckrad_field = 0.
+          Recprad_field = 0.
+       endif
        if(icd_source.gt.0) cd_field = 0.
        bf_field(0) = 0.
        bf_field(1) = 0.

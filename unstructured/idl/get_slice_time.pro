@@ -13,7 +13,7 @@ function get_slice_time, filename=filename, slice=slice, _EXTRA=extra
    t = fltarr(n)
 
    get_normalizations, filename=filename, b0=b0, n0=n0, l0=l0, $
-                       zeff=zeff, ion_mass=mi, _EXTRA=extra
+                       ion_mass=mi, _EXTRA=extra
 
    for i=0, n-1 do begin
        file_id = h5f_open(filename)
@@ -22,7 +22,7 @@ function get_slice_time, filename=filename, slice=slice, _EXTRA=extra
 
        tt = h5a_read(time_id)
        convert_units, tt, dimensions(/t0), $
-                      b0, n0, l0, zeff, mi, _EXTRA=extra
+                      b0, n0, l0, mi, _EXTRA=extra
        t[i] = tt
 
        h5a_close, time_id

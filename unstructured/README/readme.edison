@@ -7,7 +7,7 @@
 
     module load cray-parallel-netcdf
     module load cray-hdf5-parallel
-    module load fftw
+    module load cray-fftw
     module load gsl
     module load cray-tpsl
     module load cray-trilinos/11.12.1.5

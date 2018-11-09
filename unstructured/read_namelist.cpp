@@ -22,7 +22,7 @@ struct variable {
   void* data;
 
   variable(std::string n, void* var, std::string desc, int g)
-  { 
+  {
     array_size = 1;
     name = n;
     description = desc;
@@ -58,43 +58,100 @@ struct string_variable : public variable {
   int size;
   char pad;
 
-  string_variable(std::string n, char* var, const int s, const char* val, 
-		  std::string desc, int g, const char p='\0')
+// String arrays work differently since there is no standard way 
+// of passing an array of strings from fortran to c++.
+// We require that each string in the array is manually associated
+// with an index of the string_variable using set_variable
+  string_variable(std::string n,  const int s, const int sz, 
+		  std::string desc, const int g, const char p='\0')
+    : variable(n, (void*)new char*[sz], desc, g)
+  {
+    array_size = sz;
+    size = s; pad=p;
+  }
+  string_variable(std::string n, char** var, const int s, const int sz, 
+		  const char* val, std::string desc, 
+		  const int g, const char p='\0')
     : variable(n, (void*)var, desc, g)
-  { size = s; pad=p; strncpy(var, val, size); do_padding(); }
+  {
+    array_size = sz;
+    size = s; pad=p;
+    for(int i=0; i<array_size; i++) {
+      strncpy(var[i], val, size);
+      do_padding(var[i]);
+    }
+  }
+  string_variable(std::string n, char* var, const int s, const char* val, 
+		  std::string desc, const int g, const char p='\0')
+    : variable(n, (void*)var, desc, g)
+  { size = s; pad=p; strncpy(var, val, size); do_padding(var); }
+  ~string_variable()
+  {
+    if(array_size>1) delete[] (char**)data;
+  }
+  virtual bool set_variable(const int i, char* var, const char* val)
+  { 
+    if(i<0 || i>=array_size) {
+      std::cerr << "Error: index out of bounds: " 
+		<< name << " " << i << std::endl;
+      return false;
+    }
+    ((char**)data)[i] = var;
+    strncpy(var, val, size); 
+    do_padding(var);
+    return true;
+  }
   virtual int get_type() const 
   { return STRING_TYPE; }
   virtual bool read(const std::string s, int i)
   {
-    if(i != 0) {
-      std::cerr << "Error: string arrays not supported" << std::endl;
+    if(i<0 || i>=array_size) {
+      std::cerr << "Error: index out of bounds: " 
+		<< name << " " << i << std::endl;
       return false;
     }
-    strncpy((char*)data, s.c_str(), size);
-    do_padding();
+    char* d;
+    if(array_size==1) {
+      d = ((char*)(data));
+    } else {
+      d = ((char**)(data))[i];
+    }
+    strncpy(d, s.c_str(), size);
+      
+    do_padding(d);
     return true;
   }
   virtual void printval() const
   { 
-    int l = 0;
-    if(pad != '\0') {
-      for(int i=0; i<size; i++) {
-	if(((char*)data)[i] != pad) l = i;
+    for(int j=0; j<array_size; j++) {
+      char* d;
+      if(array_size==1) {
+	d = (char*)data;
+      } else {
+	d = ((char**)data)[j];
       }
-      ((char*)data)[l+1] = '\0';
-    }
-    std::cout << (char*)data; 
-    if(pad != '\0') {
-      ((char*)data)[l+1] = pad;
+      
+      int l = 0;
+      if(pad != '\0') {
+	for(int i=0; i<size; i++) {
+	  if(d[i] != pad) l = i;
+	}
+	d[l+1] = '\0';
+      }
+      std::cout << d << " "; 
+      if(pad != '\0') {
+	d[l+1] = pad;
+      }
     }
   }
 
 private:
-  void do_padding() {
+  void do_padding(char* d) {
     if(pad=='\0') return;
+
     for(int i=0; i<size; i++) {
-      if(((char*)data)[i] == '\0') 
-	((char*)data)[i] = pad;
+      if(d[i] == '\0') 
+	d[i] = pad;
     }
   }
 };
@@ -163,10 +220,13 @@ struct double_variable : public variable {
 };
 
 class variable_list {
+public:
   typedef std::map<std::string, variable*> variable_map;
   typedef std::deque<std::string> group_deque;
   typedef std::map<int, int> type_map;
   variable_map variables;
+
+private:
   group_deque groups;
   type_map type_num;
 
@@ -403,8 +463,17 @@ public:
       k = 0;
       while(i != variables.end()) {
 	if(i->second->get_type() == STRING_TYPE) {
-	  MPI_Bcast(i->second->data, ((string_variable*)i->second)->size, 
-	    MPI_CHAR, 0, MPI_COMM_WORLD);
+	  if(i->second->get_size()==1) {
+	    MPI_Bcast((char*)i->second->data, 
+		      ((string_variable*)i->second)->size, 
+		      MPI_CHAR, 0, MPI_COMM_WORLD);
+	  } else {
+	    for(int j=0; j<i->second->get_size(); j++) {
+	      MPI_Bcast(((char**)i->second->data)[j], 
+			((string_variable*)i->second)->size, 
+			MPI_CHAR, 0, MPI_COMM_WORLD);
+	    }
+	  }
 	  k++;
 	}
 	i++;
@@ -454,13 +523,56 @@ extern "C" void add_variable_double_array_(const char*name, double*v, int*sz,
 						description, *group));
 }
 
-extern "C" void add_variable_string_(const char* name, char* v, const int* sz,
+extern "C" void add_variable_string_(const char* name, char* v, const int* s,
 				     const char* def, const char* description,
 				     const int* group, const char* pad)
 {
-  variables.create_variable(new string_variable(name, v, *sz, def,
+  variables.create_variable(new string_variable(name, v, *s, def,
 						description, *group, *pad));
 }
+
+extern "C" void add_variable_string_array2_(const char* name, char** v, 
+					   const int* l, const int* sz,
+					   const char* def, 
+					   const char* description, 
+					   const int* group, const char* pad)
+{
+  std::cerr << "HERE!" << std::endl;
+  std::cerr << name << std::endl;
+  std::cerr << description << std::endl;
+  std::cerr << "sz = " << *sz << std::endl;
+  std::cerr << v[0] << std::endl;
+  variables.create_variable(new string_variable(name, v, *l, *sz, def, 
+						description, *group, *pad));
+  std::cerr << "DONE CREATING" << std::endl;
+}
+
+
+extern "C" void add_variable_string_array_(const char* name, 
+					   const int* l, const int* sz,
+					   const char* description, 
+					   const int* group, const char* pad)
+{
+  variables.create_variable(new string_variable(name, *l, *sz, 
+						description, *group, *pad));
+}
+
+extern "C" void set_variable_string_array_(const char* name, const int* index,
+					   char* v, const char* def)
+{
+  
+  variable_list::variable_map::iterator i = variables.variables.find(name);
+
+  if(i == variables.variables.end()) {
+    std::cerr << "Error: variable " << name << " does not exist."
+	      << std::endl;
+    return;
+  }
+
+  ((string_variable*)(i->second))->set_variable(*index, v, def);
+}
+
+
 
 // ierr = 0: success
 // ierr = 1: unknown variable

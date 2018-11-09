@@ -192,13 +192,13 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
   nz = n_elements(z)
   rdim = max(x) - min(x)
   zdim = max(z) - min(z)
-  xplas = 1.
   ccon = min(x)
   zmid = (max(z) + min(z))/2.
   rmag = axis[0]
   zmag = axis[1]
   zip = tcur[0]
-  bcentr = bzero*rzero/rmag
+  rcentr = rmag
+  bcentr = bzero*rzero/rcentr
   beta0 = beta0
   beta_n = 100.*(bzero*rzero/rmag)*beta0/(zip/1e6)
   xdum = 0.
@@ -230,7 +230,7 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
   openw, file, eqfile
 
   printf, file, format=f2000, name, idum, nr, nz
-  printf, file, format=f2020, rdim, zdim, xplas, ccon, zmid
+  printf, file, format=f2020, rdim, zdim, rcentr, ccon, zmid
   printf, file, format=f2020, rmag, zmag, psimin, psilim, bcentr
   printf, file, format=f2020, zip, psimin, beta0, rmag, betacent
   printf, file, format=f2020, zmag, beta_n, psilim, xdum, xdum

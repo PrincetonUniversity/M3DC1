@@ -1,12 +1,13 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEBLAS
 # FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
-CCOPTS  = -c -O
+CCOPTS  = -c
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
+  CCOPTS := $(CCOPTS) -g -check-uninit -debug all
 endif
 
 ifeq ($(PAR), 1)
@@ -94,16 +95,14 @@ LIBS = 	\
         $(ZOLTAN_LIB) \
         $(PETSC_LIBS) \
         $(BLASLAPACK_LIBS) \
-	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 \
-	-L$(ZLIB_DIR) -lz \
-	-L$(GSLHOME)/lib -lgsl -lgslcblas \
+	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 -lz \
+	-L$(GSL_HOME)/lib -lgsl -lgslcblas \
 	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
         -I$(HDF5_DIR)/include \
-        -I$(GSLHOME)/include \
-	-I$(FFTWHOME)/include
+        -I$(GSL_HOME)/include
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@

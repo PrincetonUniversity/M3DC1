@@ -51,7 +51,7 @@
 	iconstflux = 0  ! 1 = conserve toroidal flux
 !
 	ipellet = 1
-	pellet_x = 0.6
+	pellet_r = 0.6
 	pellet_z = 0.
 	pellet_var = 0.1
 	pellet_rate = 1e-2

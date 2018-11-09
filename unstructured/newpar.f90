@@ -307,7 +307,7 @@ Program Reducedquintic
 #ifdef USEPARTICLES
   if (kinetic.eq.1) then
      call particle_test
-     call safestop(0)
+     !call safestop(0)
   endif
 #endif
 
@@ -342,6 +342,12 @@ Program Reducedquintic
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. i_control%icontrol_type .ge. 0) then
      ! feedback control on toroidal current
+          if(tcurf .ne. tcuri) then
+          ! time varying target current
+            call variable_tcur(tcuri,tcurf,tcur_t0,tcur_tw,time,tcur)
+            i_control%target_val = tcur
+          endif
+
           if(myrank.eq.0 .and. iprint.ge.1) &
              print *, " Applying current feedback", &
              vloop, totcur, i_control%p, &
@@ -395,6 +401,7 @@ subroutine init
   use basicq
   use runaway_mod
   use kprad_m3dc1
+  use resistive_wall
   
   implicit none
 
@@ -429,6 +436,9 @@ subroutine init
 
   call kprad_init(ierr)
   if(ierr.ne.0) call safestop(601)
+
+  call init_resistive_wall(ierr)
+  if(ierr.ne.0) call safestop(602)
 end subroutine init
 
 
@@ -478,6 +488,8 @@ subroutine safestop(iarg)
   use runaway_mod
   use wall
   use kprad_m3dc1
+  use particles
+  use resistive_wall
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -494,9 +506,17 @@ subroutine safestop(iarg)
   integer :: ier
   character*10 :: datec, timec
 
+#ifdef USEPARTICLES
+  if (kinetic.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *,"  finalizing particles..."
+     call finalize_particles
+  endif
+#endif
+
   call destroy_auxiliary_fields
   call runaway_deallocate
   call kprad_destroy
+  call destroy_resistive_wall
 
   call destroy_wall_dist
 
@@ -679,7 +699,6 @@ subroutine derived_quantities(ilin)
      call lcfs(psi_field(1))
   endif
 
-
   ! Find maximum temperature:  te_max
   ! ~~~~~~~~~
   ier = 0
@@ -707,6 +726,9 @@ subroutine derived_quantities(ilin)
     endif
   endif
 
+  ! Electron temperature
+  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
+
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
@@ -718,6 +740,7 @@ subroutine derived_quantities(ilin)
   if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"
      call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
+          pe_field(ilin), p_field(ilin), ne_field(ilin), den_field(ilin), &
           eqsubtract)
   end if
 
@@ -1189,7 +1212,14 @@ subroutine space(ifirstcall)
      if(momentum_source) call create_field(Fphi_field)
      if(heat_source) call create_field(Q_field)
      if(icd_source.gt.0) call create_field(cd_field)
-     if(rad_source) call create_field(Rad_field)
+     if(rad_source) then
+        call create_field(Totrad_field)
+        call create_field(Linerad_field)
+        call create_field(Bremrad_field)
+        call create_field(Ionrad_field)
+        call create_field(Reckrad_field)
+        call create_field(Recprad_field)
+     end if
      call create_field(bf_field(0))
      call create_field(bf_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)
@@ -1233,7 +1263,8 @@ subroutine space(ifirstcall)
   call associate_field(p_field(1),   field_vec, p_g)
   call associate_field(te_field(1),  field_vec, te_g)
   call associate_field(ti_field(1),  field_vec, ti_g)
-  call associate_field(e_field(1),  field_vec, e_g)
+  call associate_field(e_field(1),   field_vec, e_g)
+  call associate_field(ne_field(1),  field_vec, ne_g)
 
   call associate_field(u_field(0),   field0_vec, u_g)
   call associate_field(vz_field(0),  field0_vec, vz_g)
@@ -1245,6 +1276,8 @@ subroutine space(ifirstcall)
   call associate_field(p_field(0),   field0_vec, p_g)
   call associate_field(te_field(0),  field0_vec, te_g)
   call associate_field(ti_field(0),  field0_vec, ti_g)
+  call associate_field(e_field(0),   field0_vec, e_g )
+  call associate_field(ne_field(0),  field0_vec, ne_g)
 
   call allocate_kspits
 
@@ -1258,3 +1291,58 @@ subroutine space(ifirstcall)
 
   return
 end subroutine space
+
+subroutine calculate_zeff(itri, z)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  integer :: i
+  vectype, dimension(MAX_PTS), intent(out) :: z
+
+  z = z_ion**2*nt79(:,OP_1)
+
+  if(ikprad.eq.1) then 
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        z = z + i**2*tm79(:,OP_1)
+     end do
+  end if
+
+  z = z / net79(:,OP_1)
+end subroutine calculate_zeff
+
+! Calculate the factor that multiplies ne * (Ti - Te) in Q_Delta term
+subroutine calculate_qdfac(itri, z)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+  vectype, dimension(MAX_PTS), intent(out) :: z
+
+  integer :: i
+
+  z = z_ion**2 * nt79(:,OP_1) / ion_mass
+
+  if(ikprad.eq.1) then 
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        z = z + i**2 * tm79(:,OP_1) / kprad_mz
+     end do
+  end if
+  temp79a = max(temin_qd,real(tet79(:,OP_1)))
+  where(real(temp79a).gt.0.)
+     z = z * 3. * me_mp * nufac / temp79a**(3./2.)
+  elsewhere
+     z = 0.
+  end where
+end subroutine calculate_qdfac

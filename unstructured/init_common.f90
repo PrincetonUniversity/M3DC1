@@ -135,8 +135,6 @@ subroutine init_perturbations
   integer :: itri, numelms, i, izone, imr
   vectype, dimension(dofs_per_element) :: dofs
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations'
-
   call create_field(psi_vec)
   call create_field(phi_vec)
 
@@ -144,6 +142,8 @@ subroutine init_perturbations
   phi_vec = 0.
 
   numelms = local_elements()
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations', numelms
   do itri=1,numelms
      call get_zone(itri, izone)
 
@@ -154,6 +154,11 @@ subroutine init_perturbations
 
      call eval_ops(itri, p_field(0), p079)
      call eval_ops(itri, psi_field(0), ps079)
+     call eval_ops(itri, p_field(1), p179)
+     call eval_ops(itri, psi_field(1), ps179)
+     pt79  = p079  + p179
+     pst79 = ps079 + ps179
+ 
 
      ps179 = 0.
      ph179 = 0.
@@ -166,11 +171,11 @@ subroutine init_perturbations
      ! apply mask
      if(p0 .gt. 0.) then 
         do i=1, npoints
-           imr = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+           imr = magnetic_region(pst79(i,OP_1),pst79(i,OP_DR),pst79(i,OP_DZ), &
                 x_79(i), z_79(i))
            if(imr.eq.0) then
-              if(real(p079(i,OP_1)).gt.pedge) then
-                 temp79a(i) = (p079(i,OP_1) - pedge)/p0
+              if(real(pt79(i,OP_1)).gt.pedge) then
+                 temp79a(i) = (pt79(i,OP_1) - pedge)/p0
               else
                  temp79a(i) = 0.
               end if
@@ -219,10 +224,12 @@ subroutine den_eq
 
   type(field_type) :: den_vec
   integer :: itri, numelms, def_fields
+  real :: rate
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
   
-  if(idenfunc.eq.0 .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
+  if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
+  if(ipellet_z.ne.0 .and. pellet_mix.eq.0.) return
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
@@ -254,8 +261,12 @@ subroutine den_eq
      if(ipellet.gt.0 .and. linear.eq.1) then
         n = 0.
         p = 0.
-        n079(:,OP_1) = n079(:,OP_1) + &
-             pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
+        if(pellet_mix.eq.0.) then
+           rate = pellet_rate
+        else
+           rate = pellet_rate_D2
+        end if
+        n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
      end if
 
      dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
@@ -281,10 +292,11 @@ subroutine den_per
 
   type(field_type) :: den_vec
   integer :: numelms, itri
+  real :: rate
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
 
-  if(ipellet.ge.0) return
+  if(ipellet.ge.0 .or. (ipellet_z.ne.0 .and. pellet_mix.eq.0.)) return
 
   call create_field(den_vec)
   den_vec = 0.
@@ -298,8 +310,12 @@ subroutine den_per
      if(ipellet.lt.0) then
         n = 0.
         p = 0.
-        n179(:,OP_1) = n179(:,OP_1) + &
-             pellet_deposition(x_79, phi_79, z_79, p, n, pellet_rate)
+        if(pellet_mix.eq.0) then
+           rate = pellet_rate
+        else
+           rate = pellet_rate_D2
+        end if
+        n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
      end if
 
      dofs = intx2(mu79(:,:,OP_1),n179(:,OP_1))

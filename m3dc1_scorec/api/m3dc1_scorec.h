@@ -279,4 +279,29 @@ void m3dc1_solver_getnumiter(int* matrix_id, int * iter_num);
 #ifdef __cplusplus
 }
 #endif
+#ifdef NOM3DC1
+#include "petscksp.h"
+extern "C" void resizevec_(double *, int*) {}
+extern "C" void space_() {}
+extern "C" int setPETScMat(int matrixid, Mat * A)
+{
+  PetscErrorCode ierr;
+  ierr = MatSetType(*A, MATMPIAIJ);CHKERRQ(ierr);
+  PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATMPIAIJ\n", matrixid);
+  ierr = MatSetFromOptions(*A);CHKERRQ(ierr);
+  return 0;
+}
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A)
+{
+  PetscErrorCode ierr;
+  ierr = KSPCreate(MPI_COMM_WORLD, ksp);CHKERRQ(ierr);
+  ierr = KSPSetOperators(*ksp, *A, *A, SAME_PRECONDITIONER /*DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
+  ierr = KSPSetTolerances(*ksp, .000001, .000000001,
+                          PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
+  ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
+  PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
+  return 0;
+}
+#endif
+
 #endif

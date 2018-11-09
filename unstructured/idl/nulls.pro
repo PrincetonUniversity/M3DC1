@@ -3,7 +3,7 @@ pro read_nulls, axis=axis, xpoints=xpoint, _EXTRA=extra
 
    t0 = get_slice_time(_EXTRA=extra)
 
-   dum = min(s.time._data - t0, i, /abs)
+   dum = min(s.time._data - t0[0], i, /abs)
 
    xpoint = fltarr(2)
    axis = fltarr(2)

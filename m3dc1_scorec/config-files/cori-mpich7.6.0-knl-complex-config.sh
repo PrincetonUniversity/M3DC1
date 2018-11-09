@@ -1,9 +1,9 @@
 HOST=cori
 MPIVER=mpich7.6.0
 ARCH=knl
-DATE=debug
-SWTYPE=debug
-CMAKETYPE=Debug
+DATE=May2018
+SWTYPE=release
+CMAKETYPE=Release
 PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.7.6
 PETSC_ARCH=cori-hsw-knl-mpich760-cplx
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
@@ -14,9 +14,9 @@ cmake .. \
   -DCMAKE_C_COMPILER="cc" \
   -DCMAKE_CXX_COMPILER="CC" \
   -DCMAKE_Fortran_COMPILER="ftn" \
-  -DCMAKE_C_FLAGS=" -g -O2 -DDEBUG -xMIC-AVX512 -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS=" -g -O2 -DDEBUG -xMIC-AVX512 -I$PETSC_DIR/include" \
-  -DCMAKE_Fortran_FLAGS="-fpic -g -O2 -DDEBUG -xMIC-AVX512" \
+  -DCMAKE_C_FLAGS=" -g -O2 -DPETSCMASTER -xMIC-AVX512 -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O2 -DPETSCMASTER -xMIC-AVX512 -I$PETSC_DIR/include" \
+  -DCMAKE_Fortran_FLAGS="-fpic -g -O2 -xMIC-AVX512" \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \

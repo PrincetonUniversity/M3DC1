@@ -1460,6 +1460,7 @@ void m3dc1_matrix_assemble(int * mid)
   assert(mat && "[M3D-C1 Error] Matrix with specified ID does not exist.");
   mat->fix();
 }
+
 void m3dc1_matrix_delete(int * mid)
 {
   m3dc1_solver::instance()->destroy_matrix(*mid);

@@ -98,6 +98,7 @@ protected:
   int non_lcl_nnz_cnt;
   int lcl_nnz_cnt;
 };
+
 class m3dc1_solver
 {
 public:

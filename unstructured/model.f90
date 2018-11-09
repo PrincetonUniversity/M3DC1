@@ -567,7 +567,7 @@ subroutine boundary_te(rhs, te_v, mat)
   integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z, phi
   logical :: is_boundary
-  vectype, dimension(dofs_per_node) :: temp
+  vectype, dimension(dofs_per_node) :: temp, temp2, temp3
 
   integer :: i_n
 
@@ -593,6 +593,25 @@ subroutine boundary_te(rhs, te_v, mat)
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+     else if(iconst_p.eq.1) then
+        call get_node_data(pe_field(1), i, temp)
+        call get_node_data(ne_field(1), i, temp2)
+        if(eqsubtract.eq.1) then
+           call get_node_data(ne_field(0), i, temp3)
+           temp2 = temp2 + temp3
+        end if
+
+        temp3 = 0.
+        temp3(1) = temp(1) / temp2(1)
+        temp3(2) = temp(2) / temp2(1) - temp2(2) * temp(1) / temp2(1)**2 
+        temp3(3) = temp(3) / temp2(1) - temp2(3) * temp(1) / temp2(1)**2 
+
+        if(eqsubtract.eq.1 .and. idiff.eq.0) then
+           call get_node_data(te_field(0),i,temp2)
+           temp3 = temp3 - temp2
+        end if
+
+        call set_dirichlet_bc(i_n,rhs,temp3,normal,curv,izonedim,mat)
      end if
 
   end do
@@ -606,6 +625,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   use arrays
   use matrix_mod
   use boundary_conditions
+  use kprad_m3dc1
   implicit none
   
   type(vector_type) :: rhs
@@ -615,7 +635,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z, phi
   logical :: is_boundary
-  vectype, dimension(dofs_per_node) :: temp
+  vectype, dimension(dofs_per_node) :: temp, temp2, temp3
 
   integer :: i_n
 
@@ -635,12 +655,40 @@ subroutine boundary_ti(rhs, ti_v, mat)
         temp = 0.
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
-     if(iconst_t.eq.1) then
+     if(iconst_t.eq.1 .or. iconst_p.eq.1) then
         call get_node_data(ti_field(1), i, temp)
 
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+!!$     else if(iconst_p.eq.1) then
+!!$        call get_node_data(p_field(1), i, temp)
+!!$        call get_node_data(pe_field(1), i, temp2)
+!!$        temp = temp - temp2
+!!$
+!!$        call get_node_data(den_field(1), i, temp2)
+!!$        if(eqsubtract.eq.1) then
+!!$           call get_node_data(den_field(0), i, temp3)
+!!$           temp2 = temp2 + temp3
+!!$        end if
+!!$        if(ikprad.eq.1) then
+!!$           do i=1, kprad_z
+!!$              call get_node_data(kprad_n(i), i, temp3)
+!!$              temp2 = temp2 + temp3
+!!$           end do
+!!$        end if
+!!$
+!!$        temp3 = 0.
+!!$        temp3(1) = temp(1) / temp2(1)
+!!$        temp3(2) = temp(2) / temp2(1) - temp2(2) * temp(1) / temp2(1)**2 
+!!$        temp3(3) = temp(3) / temp2(1) - temp2(3) * temp(1) / temp2(1)**2 
+!!$
+!!$        if(eqsubtract.eq.1 .and. idiff.eq.0) then
+!!$           call get_node_data(ti_field(0),i,temp2)
+!!$           temp3 = temp3 - temp2
+!!$        end if
+!!$
+!!$        call set_dirichlet_bc(i_n,rhs,temp3,normal,curv,izonedim,mat)
      end if
 
   end do
@@ -750,646 +798,6 @@ subroutine boundary_pe(rhs, pe_v, mat)
   end do
 
 end subroutine boundary_pe
-
-
- subroutine get_temperatures(den_v, p_v, pe_v, te_v, ti_v)
-
-  use basic
-  use arrays
-  use field
-  use mesh_mod
-  implicit none
-  integer :: i, numnodes, icounter_t
-  type(field_type) :: den_v, p_v, pe_v
-  type(field_type), optional :: te_v, ti_v
-   if(numvar.lt.3 .and. ipres.eq.0) return
-
-   numnodes = owned_nodes()
-   do icounter_t=1,numnodes
-     i = nodes_owned(icounter_t)
-
-     if(idens.eq.1) then
-        call get_node_data(den_v,i,den1_l)
-     else
-        if(eqsubtract.eq.1) then
-           den1_l = 0.
-        else
-           den1_l(1) = 1.
-           den1_l(2:dofs_per_node) = 0.
-        endif
-     endif
-
-     if(numvar.eq.3) then
-        if(ipres.eq.1) then
-           call get_node_data(p_v,i,p1_l)
-           call get_node_data(pe_v,i,pe1_l)
-        else
-           if(ipressplit.eq.0) then
-              call get_node_data(pe_v,i,p1_l)
-           else
-              call get_node_data(p_v,i,p1_l)
-           endif
-           pe1_l = pefac*p1_l
-        endif
-     else
-        if(ipres.eq.1) then
-           call get_node_data(p_v,i,p1_l)
-           pe1_l = pefac*p1_l
-           call get_node_data(p_field(0),i,p0_l)
-           pe0_l = pefac*p0_l
-        endif
-     endif
-
-     if(eqsubtract.eq.1) then
-        call get_node_data(p_field(0),i,p0_l)
-        call get_node_data(pe_field(0),i,pe0_l)
-        call get_node_data(den_field(0),i,den0_l)
-     end if
-
-     if(eqsubtract.eq.1) then
-        call calc_lin_electron_temperature(te1_l, pe0_l, den0_l, pe1_l, den1_l)
-        call calc_lin_ion_temperature(ti1_l, p0_l, pe0_l, den0_l, p1_l, pe1_l, den1_l)
-     else
-        call calc_electron_temperature(te1_l,pe1_l,den1_l)
-        call calc_ion_temperature(ti1_l, p1_l, pe1_l, den1_l)
-     endif
-
-     if(present(te_v)) call set_node_data(te_v,i,te1_l)
-     if(present(ti_v)) then
-        if(ipressplit.eq.1 .and. ipres.eq.1) call set_node_data(ti_v,i,ti1_l)
-     end if
-   enddo
- end subroutine get_temperatures
-
- subroutine get_pressures(den_v, te_v, ti_v, p_v, pe_v)
-
-  use basic
-  use arrays
-  use field
-  use mesh_mod
-  implicit none
-  type(field_type) :: den_v, te_v, ti_v, p_v, pe_v
-
-  integer :: i, numnodes, icounter_t
-  
-   if(numvar.lt.3 .and. ipres.eq.0) return
-
-   numnodes = owned_nodes()
-   do icounter_t=1,numnodes
-     i = nodes_owned(icounter_t)
-
-     call get_node_data(den_v,i,den1_l)
-     call get_node_data(den_field(0),i,den0_l)
-
-     call get_node_data(te_v,i,te1_l)
-     call get_node_data(te_field(0),i,te0_l)
-     call get_node_data(ti_field(0),i,ti0_l)
-     if(ipressplit.eq.1 .and. ipres.eq.1) then
-        call get_node_data(ti_v,i,ti1_l)
-     else
-        ti1_l = te1_l*(1.-pefac)/pefac
-     endif
-
-     if(linear.eq.1 .or. eqsubtract.eq.1) then
-        call calc_lin_electron_pressure(pe1_l, te0_l, den0_l, te1_l, den1_l)
-        call calc_lin_pressure(p1_l, te0_l, ti0_l, den0_l, te1_l, ti1_l, den1_l)
-     else
-        call calc_tot_electron_pressure(pe1_l,te1_l,den1_l)
-        call calc_tot_pressure(p1_l, te1_l, ti1_l, den1_l)
-     endif
-
-     call set_node_data(p_v,i,p1_l)
-     if(ipres.eq.1) call set_node_data(pe_v,i,pe1_l)
-   enddo
-
-
-   return
- end subroutine get_pressures
-! calc_electron_temperature
-! ~~~~~~~~~~~~~~~~~~~~~~
-!
-! calculates the electron temperature
-!======================================================================
-subroutine calc_electron_temperature(te, pe0, n0)
-  use basic
-
-  implicit none
-
-  vectype, intent(out), dimension(dofs_per_node) :: te
-  vectype, intent(in), dimension(dofs_per_node) :: pe0, n0
-
-     te(1) = pe0(1)/n0(1)
-     te(2) = pe0(2)/n0(1) - pe0(1)*n0(2)/n0(1)**2
-     te(3) = pe0(3)/n0(1) - pe0(1)*n0(3)/n0(1)**2
-     te(4) = pe0(4)/n0(1) - 2.*pe0(2)*n0(2)/n0(1)**2                       &
-           - pe0(1)*n0(4)/n0(1)**2 + 2*pe0(1)*n0(2)*n0(2)/n0(1)**3
-     te(5) = pe0(5)/n0(1) - pe0(3)*n0(2)/n0(1)**2  - pe0(2)*n0(3)/n0(1)**2  &
-           - pe0(1)*n0(5)/n0(1)**2 + 2*pe0(1)*n0(3)*n0(2)/n0(1)**3
-     te(6) = pe0(6)/n0(1) - 2.*pe0(3)*n0(3)/n0(1)**2                       &
-           - pe0(1)*n0(6)/n0(1)**2 + 2*pe0(1)*n0(3)*n0(3)/n0(1)**3
-#if defined(USE3D)
-!    added 08/22/2012
-     te(7) = pe0(7)/n0(1) - pe0(1)*n0(7)/n0(1)**2
-     te(8) = pe0(8)/n0(1)         - pe0(7)*n0(2)/n0(1)**2   &
-           - pe0(2)*n0(7)/n0(1)**2 - pe0(1)*n0(8)/n0(1)**2   &
-                                + 2*pe0(1)*n0(2)*n0(7)/n0(1)**3
-     te(9) = pe0(9)/n0(1)         - pe0(7)*n0(3)/n0(1)**2   &
-           - pe0(2)*n0(7)/n0(1)**2 - pe0(1)*n0(9)/n0(1)**2   &
-                                + 2*pe0(1)*n0(3)*n0(7)/n0(1)**3
-     te(10) = pe0(10)/n0(1)          - pe0(8)*n0(2)/n0(1)**2   &
-            - pe0(8)*n0(2)/n0(1)**2  - pe0(7)*n0(4)/n0(1)**2   &
-                                     +2.*pe0(7)*n0(2)*n0(2)/n0(1)**3   &
-            - pe0(4)*n0(7)/n0(1)**2         - pe0(2)*n0(8)/n0(1)**2   &
-            - pe0(2)*n0(8)/n0(1)**2         - pe0(1)*n0(10)/n0(1)**2   &
-            +2.*pe0(2)*n0(7)*n0(2)/n0(1)**3 +2.*pe0(1)*n0(8)*n0(2)/n0(1)**2   &
-                                + 2*pe0(2)*n0(2)*n0(7)/n0(1)**3  &
-                                + 2*pe0(1)*n0(4)*n0(7)/n0(1)**3  &
-                                + 2*pe0(1)*n0(2)*n0(8)/n0(1)**3  &
-                                - 6*pe0(1)*n0(2)*n0(7)*n0(2)/n0(1)**4
-     te(11) = pe0(11)/n0(1)          - pe0(9)*n0(2)/n0(1)**2   &
-            - pe0(8)*n0(3)/n0(1)**2  - pe0(7)*n0(5)/n0(1)**2   &
-                                     +2.*pe0(7)*n0(3)*n0(2)/n0(1)**3   &
-            - pe0(5)*n0(7)/n0(1)**2         - pe0(2)*n0(9)/n0(1)**2   &
-            - pe0(3)*n0(8)/n0(1)**2         - pe0(1)*n0(11)/n0(1)**2   &
-            +2.*pe0(2)*n0(7)*n0(3)/n0(1)**3 +2.*pe0(1)*n0(9)*n0(2)/n0(1)**2   &
-                                + 2*pe0(3)*n0(2)*n0(7)/n0(1)**3  &
-                                + 2*pe0(1)*n0(5)*n0(7)/n0(1)**3  &
-                                + 2*pe0(1)*n0(3)*n0(8)/n0(1)**3  &
-                                - 6*pe0(1)*n0(3)*n0(7)*n0(2)/n0(1)**4
-     te(12) = pe0(12)/n0(1)          - pe0(9)*n0(3)/n0(1)**2   &
-            - pe0(9)*n0(3)/n0(1)**2  - pe0(7)*n0(6)/n0(1)**2   &
-                                     +2.*pe0(7)*n0(3)*n0(3)/n0(1)**3   &
-            - pe0(6)*n0(7)/n0(1)**2         - pe0(3)*n0(9)/n0(1)**2   &
-            - pe0(2)*n0(9)/n0(1)**2         - pe0(1)*n0(12)/n0(1)**2   &
-            +2.*pe0(3)*n0(7)*n0(3)/n0(1)**3 +2.*pe0(1)*n0(9)*n0(3)/n0(1)**2   &
-                                + 2*pe0(3)*n0(3)*n0(7)/n0(1)**3  &
-                                + 2*pe0(1)*n0(6)*n0(7)/n0(1)**3  &
-                                + 2*pe0(1)*n0(3)*n0(9)/n0(1)**3  &
-                                - 6*pe0(1)*n0(3)*n0(7)*n0(3)/n0(1)**4
-#endif
-
-     ! account for fact that n0 is ion (not electron) density
-     te = te/zeff
-end subroutine calc_electron_temperature
-! calc_ion_temperature
-! ~~~~~~~~~~~~~~~~~~~~~~
-!
-! calculates the ion temperature
-!======================================================================
-subroutine calc_ion_temperature(ti, pres0, pe0, n0)
-  use basic
-
-  implicit none
-
-  vectype, intent(in), dimension(dofs_per_node)  :: pres0, pe0, n0
-  vectype, intent(out), dimension(dofs_per_node) :: ti
-  vectype, dimension(dofs_per_node) :: pion0
-
-     pion0 = pres0 - pe0
-
-     ti(1) = pion0(1)/n0(1)
-     ti(2) = pion0(2)/n0(1) - pion0(1)*n0(2)/n0(1)**2
-     ti(3) = pion0(3)/n0(1) - pion0(1)*n0(3)/n0(1)**2
-     ti(4) = pion0(4)/n0(1) - 2.*pion0(2)*n0(2)/n0(1)**2                       &
-           - pion0(1)*n0(4)/n0(1)**2 + 2*pion0(1)*n0(2)*n0(2)/n0(1)**3
-     ti(5) = pion0(5)/n0(1) - pion0(3)*n0(2)/n0(1)**2  - pion0(2)*n0(3)/n0(1)**2  &
-           - pion0(1)*n0(5)/n0(1)**2 + 2*pion0(1)*n0(3)*n0(2)/n0(1)**3
-     ti(6) = pion0(6)/n0(1) - 2.*pion0(3)*n0(3)/n0(1)**2                       &
-           - pion0(1)*n0(6)/n0(1)**2 + 2*pion0(1)*n0(3)*n0(3)/n0(1)**3
-#if defined(USE3D)
-!    added 08/22/2012
-     ti(7) = pion0(7)/n0(1) - pion0(1)*n0(7)/n0(1)**2
-     ti(8) = pion0(8)/n0(1)         - pion0(7)*n0(2)/n0(1)**2   &
-           - pion0(2)*n0(7)/n0(1)**2 - pion0(1)*n0(8)/n0(1)**2   &
-                                + 2*pion0(1)*n0(2)*n0(7)/n0(1)**3
-     ti(9) = pion0(9)/n0(1)         - pion0(7)*n0(3)/n0(1)**2   &
-           - pion0(2)*n0(7)/n0(1)**2 - pion0(1)*n0(9)/n0(1)**2   &
-                                + 2*pion0(1)*n0(3)*n0(7)/n0(1)**3
-     ti(10) = pion0(10)/n0(1)          - pion0(8)*n0(2)/n0(1)**2   &
-            - pion0(8)*n0(2)/n0(1)**2  - pion0(7)*n0(4)/n0(1)**2   &
-                                     +2.*pion0(7)*n0(2)*n0(2)/n0(1)**3   &
-            - pion0(4)*n0(7)/n0(1)**2         - pion0(2)*n0(8)/n0(1)**2   &
-            - pion0(2)*n0(8)/n0(1)**2         - pion0(1)*n0(10)/n0(1)**2   &
-            +2.*pion0(2)*n0(7)*n0(2)/n0(1)**3 +2.*pion0(1)*n0(8)*n0(2)/n0(1)**3   &
-                                + 2*pion0(2)*n0(2)*n0(7)/n0(1)**3  &
-                                + 2*pion0(1)*n0(4)*n0(7)/n0(1)**3  &
-                                + 2*pion0(1)*n0(2)*n0(8)/n0(1)**3  &
-                                - 6*pion0(1)*n0(2)*n0(7)*n0(2)/n0(1)**4
-     ti(11) = pion0(11)/n0(1)          - pion0(9)*n0(2)/n0(1)**2   &
-            - pion0(8)*n0(3)/n0(1)**2  - pion0(7)*n0(5)/n0(1)**2   &
-                                     +2.*pion0(7)*n0(3)*n0(2)/n0(1)**3   &
-            - pion0(5)*n0(7)/n0(1)**2         - pion0(2)*n0(9)/n0(1)**2   &
-            - pion0(3)*n0(8)/n0(1)**2         - pion0(1)*n0(11)/n0(1)**2   &
-            +2.*pion0(2)*n0(7)*n0(3)/n0(1)**3 +2.*pion0(1)*n0(9)*n0(2)/n0(1)**3   &
-                                + 2*pion0(3)*n0(2)*n0(7)/n0(1)**3  &
-                                + 2*pion0(1)*n0(5)*n0(7)/n0(1)**3  &
-                                + 2*pion0(1)*n0(3)*n0(8)/n0(1)**3  &
-                                - 6*pion0(1)*n0(3)*n0(7)*n0(2)/n0(1)**4
-     ti(12) = pion0(12)/n0(1)          - pion0(9)*n0(3)/n0(1)**2   &
-            - pion0(9)*n0(3)/n0(1)**2  - pion0(7)*n0(6)/n0(1)**2   &
-                                     +2.*pion0(7)*n0(3)*n0(3)/n0(1)**3   &
-            - pion0(6)*n0(7)/n0(1)**2         - pion0(3)*n0(9)/n0(1)**2   &
-            - pion0(3)*n0(9)/n0(1)**2         - pion0(1)*n0(12)/n0(1)**2   &
-            +2.*pion0(3)*n0(7)*n0(3)/n0(1)**3 +2.*pion0(1)*n0(9)*n0(3)/n0(1)**3   &
-                                + 2*pion0(3)*n0(3)*n0(7)/n0(1)**3  &
-                                + 2*pion0(1)*n0(6)*n0(7)/n0(1)**3  &
-                                + 2*pion0(1)*n0(3)*n0(9)/n0(1)**3  &
-                                - 6*pion0(1)*n0(3)*n0(7)*n0(3)/n0(1)**4
-#endif
-
-end subroutine calc_ion_temperature
-! calc_lin_electron_temperature
-! ~~~~~~~~~~~~~~~~~~~~~~
-!
-! calculates the linearized electron temperature
-!======================================================================
-subroutine calc_lin_electron_temperature(te, pe0, n0, pe1, n1)
-  use basic
-
-  implicit none
-
-  vectype, intent(out), dimension(dofs_per_node) :: te
-  vectype, intent(in), dimension(dofs_per_node) :: pe0, n0, pe1, n1
-  vectype, dimension(dofs_per_node) :: petot, ntot
-
-  petot = pe0 + pe1
-  ntot = n0 + n1
-  te(1) = petot(1)/ntot(1)  &
-       -pe0(1)/n0(1)
-  te(2) = petot(2)/ntot(1) &
-       - petot(1)*ntot(2)/ntot(1)**2  &
-       -pe0(2)/n0(1) + pe0(1)*n0(2)/n0(1)**2
-  te(3) = petot(3)/ntot(1) &
-       - petot(1)*ntot(3)/ntot(1)**2  &
-       -pe0(3)/n0(1) + pe0(1)*n0(3)/n0(1)**2
-  te(4) = petot(4)/ntot(1) &
-       - 2.*petot(2)*ntot(2)/ntot(1)**2    &
-       - petot(1)*ntot(4)/ntot(1)**2  &
-       + 2*petot(1)*ntot(2)*ntot(2)/ntot(1)**3   &
-       - pe0(4)/n0(1) + 2.*pe0(2)*n0(2)/n0(1)**2                         &
-       +  pe0(1)*n0(4)/n0(1)**2 - 2*pe0(1)*n0(2)*n0(2)/n0(1)**3
-  te(5) = petot(5)/ntot(1) &
-       - petot(3)*ntot(2)/ntot(1)**2  &
-       - petot(2)*ntot(3)/ntot(1)**2  &
-       - petot(1)*ntot(5)/ntot(1)**2 &
-       + 2*petot(1)*ntot(3)*ntot(2)/ntot(1)**3  &
-       - pe0(5)/n0(1) + pe0(3)*n0(2)/n0(1)**2  + pe0(2)*n0(3)/n0(1)**2  &
-       +  pe0(1)*n0(5)/n0(1)**2 - 2*pe0(1)*n0(3)*n0(2)/n0(1)**3
-  te(6) = petot(6)/ntot(1) &
-       - 2.*petot(3)*ntot(3)/ntot(1)**2  &
-       - petot(1)*ntot(6)/ntot(1)**2   &
-       + 2*petot(1)*ntot(3)*ntot(3)/ntot(1)**3   &
-       -  pe0(6)/n0(1) + 2.*pe0(3)*n0(3)/n0(1)**2                         &
-       +  pe0(1)*n0(6)/n0(1)**2 - 2*pe0(1)*n0(3)*n0(3)/n0(1)**3
-#if defined(USE3D)
-!    added 08/22/2012
-     te(7) = petot(7)/ntot(1) - petot(1)*ntot(7)/ntot(1)**2
-     te(8) = petot(8)/ntot(1)         - petot(7)*ntot(2)/ntot(1)**2   &
-           - petot(2)*ntot(7)/ntot(1)**2 - petot(1)*ntot(8)/ntot(1)**2   &
-                                + 2*petot(1)*ntot(2)*ntot(7)/ntot(1)**3
-     te(9) = petot(9)/ntot(1)         - petot(7)*ntot(3)/ntot(1)**2   &
-           - petot(2)*ntot(7)/ntot(1)**2 - petot(1)*ntot(9)/ntot(1)**2   &
-                                + 2*petot(1)*ntot(3)*ntot(7)/ntot(1)**3
-     te(10) = petot(10)/ntot(1)          - petot(8)*ntot(2)/ntot(1)**2   &
-            - petot(8)*ntot(2)/ntot(1)**2  - petot(7)*ntot(4)/ntot(1)**2   &
-                                     +2.*petot(7)*ntot(2)*ntot(2)/ntot(1)**3   &
-            - petot(4)*ntot(7)/ntot(1)**2         - petot(2)*ntot(8)/ntot(1)**2   &
-            - petot(2)*ntot(8)/ntot(1)**2         - petot(1)*ntot(10)/ntot(1)**2   &
-          +2.*petot(2)*ntot(7)*ntot(2)/ntot(1)**3 +2.*petot(1)*ntot(8)*ntot(2)/ntot(1)**3 &
-                                + 2*petot(2)*ntot(2)*ntot(7)/ntot(1)**3  &
-                                + 2*petot(1)*ntot(4)*ntot(7)/ntot(1)**3  &
-                                + 2*petot(1)*ntot(2)*ntot(8)/ntot(1)**3  &
-                                - 6*petot(1)*ntot(2)*ntot(7)*ntot(2)/ntot(1)**4
-     te(11) = petot(11)/ntot(1)          - petot(9)*ntot(2)/ntot(1)**2   &
-            - petot(8)*ntot(3)/ntot(1)**2  - petot(7)*ntot(5)/ntot(1)**2   &
-                                     +2.*petot(7)*ntot(3)*ntot(2)/ntot(1)**3   &
-            - petot(5)*ntot(7)/ntot(1)**2         - petot(2)*ntot(9)/ntot(1)**2   &
-            - petot(3)*ntot(8)/ntot(1)**2         - petot(1)*ntot(11)/ntot(1)**2   &
-          +2.*petot(2)*ntot(7)*ntot(3)/ntot(1)**3 +2.*petot(1)*ntot(9)*ntot(2)/ntot(1)**3 &
-                                + 2*petot(3)*ntot(2)*ntot(7)/ntot(1)**3  &
-                                + 2*petot(1)*ntot(5)*ntot(7)/ntot(1)**3  &
-                                + 2*petot(1)*ntot(3)*ntot(8)/ntot(1)**3  &
-                                - 6*petot(1)*ntot(3)*ntot(7)*ntot(2)/ntot(1)**4
-     te(12) = petot(12)/ntot(1)          - petot(9)*ntot(3)/ntot(1)**2   &
-            - petot(9)*ntot(3)/ntot(1)**2  - petot(7)*ntot(6)/ntot(1)**2   &
-                                     +2.*petot(7)*ntot(3)*ntot(3)/ntot(1)**3   &
-            - petot(6)*ntot(7)/ntot(1)**2         - petot(3)*ntot(9)/ntot(1)**2   &
-            - petot(3)*ntot(9)/ntot(1)**2         - petot(1)*ntot(12)/ntot(1)**2   &
-          +2.*petot(3)*ntot(7)*ntot(3)/ntot(1)**3 +2.*petot(1)*ntot(9)*ntot(3)/ntot(1)**3 &
-                                + 2*petot(3)*ntot(3)*ntot(7)/ntot(1)**3  &
-                                + 2*petot(1)*ntot(6)*ntot(7)/ntot(1)**3  &
-                                + 2*petot(1)*ntot(3)*ntot(9)/ntot(1)**3  &
-                                - 6*petot(1)*ntot(3)*ntot(7)*ntot(3)/ntot(1)**4
-#endif
-
-  ! account for fact that n0 is ion (not electron) density
-  te = te/zeff
-end subroutine calc_lin_electron_temperature
-! calc_lin_ion_temperature
-! ~~~~~~~~~~~~~~~~~~~~~~
-!
-! calculates the linearized ion temperature
-!======================================================================
-subroutine calc_lin_ion_temperature(ti, pres0, pe0, n0, pres1, pe1, n1)
-  use basic
-
-  implicit none
-
-  vectype, intent(in), dimension(dofs_per_node)  :: pres0, pe0, n0, pres1, pe1, n1
-  vectype, intent(out), dimension(dofs_per_node) :: ti
-  vectype, dimension(dofs_per_node) :: pion0, pion1, ptot, ntot
-
-     pion0 = pres0 - pe0
-     pion1 = pres1 - pe1
-     ptot = pion0 + pion1
-     ntot = n0 + n1
-
-     ti(1) = ptot(1)/ntot(1)  &
-           -pion0(1)/n0(1)
-     ti(2) = ptot(2)/ntot(1) &
-           - ptot(1)*ntot(2)/ntot(1)**2   &
-            -pion0(2)/n0(1) + pion0(1)*n0(2)/n0(1)**2
-     ti(3) = ptot(3)/ntot(1) &
-           - ptot(1)*ntot(3)/ntot(1)**2   &
-             -pion0(3)/n0(1) + pion0(1)*n0(3)/n0(1)**2
-     ti(4) = ptot(4)/ntot(1) &
-           - 2.*ptot(2)*ntot(2)/ntot(1)**2   &
-           - ptot(1)*ntot(4)/ntot(1)**2 &
-           + 2*ptot(1)*ntot(2)*ntot(2)/ntot(1)**3   &
-           - pion0(4)/n0(1) + 2.*pion0(2)*n0(2)/n0(1)**2       &              
-           + pion0(1)*n0(4)/n0(1)**2 - 2*pion0(1)*n0(2)*n0(2)/n0(1)**3
-
-     ti(5) = ptot(5)/ntot(1) &
-           - ptot(3)*ntot(2)/ntot(1)**2  &
-           - ptot(2)*ntot(3)/ntot(1)**2  &
-           - ptot(1)*ntot(5)/ntot(1)**2  &
-         + 2*ptot(1)*ntot(3)*ntot(2)/ntot(1)**3   &
-            - pion0(5)/n0(1) + pion0(3)*n0(2)/n0(1)**2  &
-            + pion0(2)*n0(3)/n0(1)**2  &
-            + pion0(1)*n0(5)/n0(1)**2 - 2*pion0(1)*n0(3)*n0(2)/n0(1)**3
-
-     ti(6) = ptot(6)/ntot(1) &
-           - 2.*ptot(3)*ntot(3)/ntot(1)**2   &
-           - ptot(1)*ntot(6)/ntot(1)**2 &
-           + 2*ptot(1)*ntot(3)*ntot(3)/ntot(1)**3  &
-           -  pion0(6)/n0(1) + 2.*pion0(3)*n0(3)/n0(1)**2                       &
-           +  pion0(1)*n0(6)/n0(1)**2 - 2*pion0(1)*n0(3)*n0(3)/n0(1)**3
-#if defined(USE3D)
-!    added 08/22/2012
-     ti(7) = ptot(7)/ntot(1) - ptot(1)*ntot(7)/ntot(1)**2
-     ti(8) = ptot(8)/ntot(1)         - ptot(7)*ntot(2)/ntot(1)**2   &
-           - ptot(2)*ntot(7)/ntot(1)**2 - ptot(1)*ntot(8)/ntot(1)**2   &
-                                + 2*ptot(1)*ntot(2)*ntot(7)/ntot(1)**3
-     ti(9) = ptot(9)/ntot(1)         - ptot(7)*ntot(3)/ntot(1)**2   &
-           - ptot(2)*ntot(7)/ntot(1)**2 - ptot(1)*ntot(9)/ntot(1)**2   &
-                                + 2*ptot(1)*ntot(3)*ntot(7)/ntot(1)**3
-     ti(10) = ptot(10)/ntot(1)          - ptot(8)*ntot(2)/ntot(1)**2   &
-            - ptot(8)*ntot(2)/ntot(1)**2  - ptot(7)*ntot(4)/ntot(1)**2   &
-                                     +2.*ptot(7)*ntot(2)*ntot(2)/ntot(1)**3   &
-            - ptot(4)*ntot(7)/ntot(1)**2         - ptot(2)*ntot(8)/ntot(1)**2   &
-            - ptot(2)*ntot(8)/ntot(1)**2         - ptot(1)*ntot(10)/ntot(1)**2   &
-          +2.*ptot(2)*ntot(7)*ntot(2)/ntot(1)**3 +2.*ptot(1)*ntot(8)*ntot(2)/ntot(1)**3 &
-                                + 2*ptot(2)*ntot(2)*ntot(7)/ntot(1)**3  &
-                                + 2*ptot(1)*ntot(4)*ntot(7)/ntot(1)**3  &
-                                + 2*ptot(1)*ntot(2)*ntot(8)/ntot(1)**3  &
-                                - 6*ptot(1)*ntot(2)*ntot(7)*ntot(2)/ntot(1)**4
-     ti(11) = ptot(11)/ntot(1)          - ptot(9)*ntot(2)/ntot(1)**2   &
-            - ptot(8)*ntot(3)/ntot(1)**2  - ptot(7)*ntot(5)/ntot(1)**2   &
-                                     +2.*ptot(7)*ntot(3)*ntot(2)/ntot(1)**3   &
-            - ptot(5)*ntot(7)/ntot(1)**2         - ptot(2)*ntot(9)/ntot(1)**2   &
-            - ptot(3)*ntot(8)/ntot(1)**2         - ptot(1)*ntot(11)/ntot(1)**2   &
-          +2.*ptot(2)*ntot(7)*ntot(3)/ntot(1)**3 +2.*ptot(1)*ntot(9)*ntot(2)/ntot(1)**3 &
-                                + 2*ptot(3)*ntot(2)*ntot(7)/ntot(1)**3  &
-                                + 2*ptot(1)*ntot(5)*ntot(7)/ntot(1)**3  &
-                                + 2*ptot(1)*ntot(3)*ntot(8)/ntot(1)**3  &
-                                - 6*ptot(1)*ntot(3)*ntot(7)*ntot(2)/ntot(1)**4
-     ti(12) = ptot(12)/ntot(1)          - ptot(9)*ntot(3)/ntot(1)**2   &
-            - ptot(9)*ntot(3)/ntot(1)**2  - ptot(7)*ntot(6)/ntot(1)**2   &
-                                     +2.*ptot(7)*ntot(3)*ntot(3)/ntot(1)**3   &
-            - ptot(6)*ntot(7)/ntot(1)**2         - ptot(3)*ntot(9)/ntot(1)**2   &
-            - ptot(3)*ntot(9)/ntot(1)**2         - ptot(1)*ntot(12)/ntot(1)**2   &
-          +2.*ptot(3)*ntot(7)*ntot(3)/ntot(1)**3 +2.*ptot(1)*ntot(9)*ntot(3)/ntot(1)**3 &
-                                + 2*ptot(3)*ntot(3)*ntot(7)/ntot(1)**3  &
-                                + 2*ptot(1)*ntot(6)*ntot(7)/ntot(1)**3  &
-                                + 2*ptot(1)*ntot(3)*ntot(9)/ntot(1)**3  &
-                                - 6*ptot(1)*ntot(3)*ntot(7)*ntot(3)/ntot(1)**4
-#endif
-    
-     return
-
-end subroutine calc_lin_ion_temperature
-! ~~~~~~~~~~~~~~~~~~~~~~
-!
-!======================================================================
-subroutine calc_tot_electron_pressure(pe, te0, n0)
-  use basic
-
-  implicit none
-
-  vectype, intent(out), dimension(dofs_per_node) :: pe
-  vectype, intent(in), dimension(dofs_per_node) :: te0, n0
-
-     pe(1) = te0(1)*n0(1)
-     pe(2) = te0(2)*n0(1) + te0(1)*n0(2)
-     pe(3) = te0(3)*n0(1) + te0(1)*n0(3)
-     pe(4) = te0(4)*n0(1) + 2.*te0(2)*n0(2) + te0(1)*n0(4) 
-     pe(5) = te0(5)*n0(1) + te0(3)*n0(2)  &
-           + te0(2)*n0(3) + te0(1)*n0(5)
-     pe(6) = te0(6)*n0(1) + 2.*te0(3)*n0(3) + te0(1)*n0(6)
-
-#if defined(USE3D)
-!   added 8/21/2012
-     pe(7) = te0(7)*n0(1) &
-          +  te0(1)*n0(7)
-     pe(8) = te0(8)*n0(1) + te0(7)*n0(2) &
-           + te0(1)*n0(8) +  te0(2)*n0(7) 
-     pe(9) = te0(9)*n0(1) + te0(3)*n0(7) &
-           + te0(1)*n0(9) + te0(7)*n0(3)
-     pe(10)= te0(10)*n0(1) + 2.*te0(8)*n0(2) + te0(7)*n0(4) &
-           + te0(1)*n0(10) + 2.*te0(2)*n0(8) + te0(4)*n0(7) 
-     pe(11)= te0(11)*n0(1) + te0(9)*n0(2)  + te0(8)*n0(3) + te0(7)*n0(5) &
-           + te0(1)*n0(11) + te0(2)*n0(9)  + te0(3)*n0(8) + te0(5)*n0(7) 
-         
-     pe(12)= te0(12)*n0(1) + 2.*te0(9)*n0(3) + te0(7)*n0(6) &
-           + te0(1)*n0(12) + 2.*te0(3)*n0(9) + te0(6)*n0(7)
-#endif
-
-     return
-
-end subroutine calc_tot_electron_pressure
-! calc_tot_pressure
-! ~~~~~~~~~~~~~~~~~~~~~~
-!
-! calculates the total pressure
-!======================================================================
-subroutine calc_tot_pressure(pres0, te0, ti0, n0)
-  use basic
-
-  implicit none
-
-  vectype, intent(in), dimension(dofs_per_node)  :: te0, ti0, n0
-  vectype, intent(out), dimension(dofs_per_node) :: pres0
-  vectype, dimension(dofs_per_node) :: tepti
-
-     tepti = te0 + ti0
-
-     pres0(1) = tepti(1)*n0(1)
-     pres0(2) = tepti(2)*n0(1) + tepti(1)*n0(2)
-     pres0(3) = tepti(3)*n0(1) + tepti(1)*n0(3)
-     pres0(4) = tepti(4)*n0(1) + 2.*tepti(2)*n0(2) + tepti(1)*n0(4) 
-     pres0(5) = tepti(5)*n0(1) + tepti(3)*n0(2)  &
-              + tepti(2)*n0(3) + tepti(1)*n0(5)
-     pres0(6) = tepti(6)*n0(1) + 2.*tepti(3)*n0(3) + tepti(1)*n0(6)
-
-#if defined(USE3D)
-!   added 8/21/2012
-     pres0(7) = tepti(7)*n0(1) &
-             +  tepti(1)*n0(7)
-     pres0(8) = tepti(8)*n0(1) + tepti(7)*n0(2) &
-              + tepti(1)*n0(8) +  tepti(2)*n0(7) 
-     pres0(9) = tepti(9)*n0(1) + tepti(3)*n0(7) &
-              + tepti(1)*n0(9) + tepti(7)*n0(3)
-     pres0(10)= tepti(10)*n0(1) + 2.*tepti(8)*n0(2) + tepti(7)*n0(4) &
-              + tepti(1)*n0(10) + 2.*tepti(2)*n0(8) + tepti(4)*n0(7) 
-     pres0(11)= tepti(11)*n0(1) + tepti(9)*n0(2)  + tepti(8)*n0(3) + tepti(7)*n0(5) &
-              + tepti(1)*n0(11) + tepti(2)*n0(9)  + tepti(3)*n0(8) + tepti(5)*n0(7) 
-         
-     pres0(12)= tepti(12)*n0(1) + 2.*tepti(9)*n0(3) + tepti(7)*n0(6) &
-              + tepti(1)*n0(12) + 2.*tepti(3)*n0(9) + tepti(6)*n0(7)
-#endif
-
-     return
-
-end subroutine calc_tot_pressure
-subroutine calc_lin_electron_pressure(pe, te0, n0, te1, n1)
-  use basic
-
-  implicit none
-
-  vectype, intent(out), dimension(dofs_per_node) :: pe
-  vectype, intent(in), dimension(dofs_per_node) :: te0, n0, te1, n1
-  vectype, dimension(dofs_per_node) :: ttot, ntot
-
-     ttot = te0 + te1
-     ntot = n0 + n1
-     pe(1) = ttot(1)*ntot(1) &
-           -  te0(1)*n0(1)
-
-     pe(2) = ttot(2)*ntot(1) &
-           + ttot(1)*ntot(2) &
-           -  te0(2)*n0(1) - te0(1)*n0(2)
- 
-
-     pe(3) = ttot(3)*ntot(1) &
-           + ttot(1)*ntot(3) &
-           -  te0(3)*n0(1) - te0(1)*n0(3)
-
-     pe(4) = ttot(4)*ntot(1) &
-           + 2.*ttot(2)*ntot(2) &
-           + ttot(1)*ntot(4)    &
-           - te0(4)*n0(1) - 2.*te0(2)*n0(2) - te0(1)*n0(4)
-
-     pe(5) = ttot(5)*ntot(1) &
-           + ttot(3)*ntot(2) &
-           + ttot(2)*ntot(3) &
-           + ttot(1)*ntot(5) &
-           - te0(5)*n0(1) - te0(3)*n0(2) -  te0(2)*n0(3) - te0(1)*n0(5)
-
-     pe(6) = ttot(6)*ntot(1) &
-           + 2.*ttot(3)*ntot(3) &
-           + ttot(1)*ntot(6) &
-           - te0(6)*n0(1) - 2.*te0(3)*n0(3) - te0(1)*n0(6)
-#if defined(USE3D)
-!   added 8/21/2012
-     pe(7) = te1(7)*ntot(1) &
-          +  ttot(1)*n1(7)
-     pe(8) = te1(8)*ntot(1) + te1(7)*ntot(2) &
-           + ttot(1)*n1(8) +  ttot(2)*n1(7)
-     pe(9) = te1(9)*ntot(1) + ttot(3)*n1(7) &
-           + ttot(1)*n1(9) + te1(7)*ntot(3)
-     pe(10)= te1(10)*ntot(1) + 2.*te1(8)*ntot(2) + te1(7)*ntot(4) &
-           + ttot(1)*n1(10) + 2.*ttot(2)*n1(8) + ttot(4)*n1(7)
-     pe(11)= te1(11)*ntot(1) + te1(9)*ntot(2)  + te1(8)*ntot(3) + te1(7)*ntot(5) &
-           + ttot(1)*n1(11) + ttot(2)*n1(9)  + ttot(3)*n1(8) + ttot(5)*n1(7)
-     pe(12)= te1(12)*ntot(1) + 2.*te1(9)*ntot(3) + te1(7)*ntot(6) &
-           + ttot(1)*n1(12) + 2.*ttot(3)*n1(9) + ttot(6)*n1(7)
-#endif
-
-     return
-
-end subroutine calc_lin_electron_pressure
-! calc_linearized pressure
-! ~~~~~~~~~~~~~~~~~~~~~~
-!
-! calculates the linearized pressure
-!======================================================================
-subroutine calc_lin_pressure(pres1, te0, ti0, n0, te1, ti1, n1)
-  use basic
-
-  implicit none
-
-  vectype, intent(in), dimension(dofs_per_node)  :: te0, ti0, n0, te1, ti1, n1
-  vectype, intent(out), dimension(dofs_per_node) :: pres1
-  vectype, dimension(dofs_per_node) :: tepti, tepti0, nt
-
-     tepti0 = te0 + ti0
-     tepti  = te0 + te1 + ti0 + ti1
-     nt = n0 + n1
-
-     pres1(1) = tepti(1)*nt(1) - tepti0(1)*n0(1)
-     pres1(2) = tepti(2)*nt(1) + tepti(1)*nt(2) &
-             -  tepti0(2)*n0(1)- tepti0(1)*n0(2)
-     pres1(3) = tepti(3)*nt(1) + tepti(1)*nt(3) &
-              - tepti0(3)*n0(1)- tepti0(1)*n0(3)
-     pres1(4) = tepti(4)*nt(1) + 2.*tepti(2)*nt(2) + tepti(1)*nt(4) &
-              - tepti0(4)*n0(1)- 2.*tepti0(2)*n0(2)- tepti0(1)*n0(4)
-     pres1(5) = tepti(5)*nt(1) + tepti(3)*nt(2)  &
-              + tepti(2)*nt(3) + tepti(1)*nt(5)  &
-              - tepti0(5)*n0(1)- tepti0(3)*n0(2) &
-              - tepti0(2)*n0(3)- tepti0(1)*n0(5)
-     pres1(6) = tepti(6)*nt(1) + 2.*tepti(3)*nt(3) + tepti(1)*nt(6) &
-              - tepti0(6)*n0(1)- 2.*tepti0(3)*n0(3)- tepti0(1)*n0(6)
-
-#if defined(USE3D)
-!   added 8/21/2012
-     pres1(7) = tepti(7)*nt(1) &
-             +  tepti(1)*nt(7)
-     pres1(8) = tepti(8)*nt(1) + tepti(7)*nt(2) &
-              + tepti(1)*nt(8) +  tepti(2)*nt(7) 
-     pres1(9) = tepti(9)*nt(1) + tepti(3)*nt(7) &
-              + tepti(1)*nt(9) + tepti(7)*nt(3)
-     pres1(10)= tepti(10)*nt(1) + 2.*tepti(8)*nt(2) + tepti(7)*nt(4) &
-              + tepti(1)*nt(10) + 2.*tepti(2)*nt(8) + tepti(4)*nt(7) 
-     pres1(11)= tepti(11)*nt(1) + tepti(9)*nt(2)  + tepti(8)*nt(3) + tepti(7)*nt(5) &
-              + tepti(1)*nt(11) + tepti(2)*nt(9)  + tepti(3)*nt(8) + tepti(5)*nt(7) 
-         
-     pres1(12)= tepti(12)*nt(1) + 2.*tepti(9)*nt(3) + tepti(7)*nt(6) &
-              + tepti(1)*nt(12) + 2.*tepti(3)*nt(9) + tepti(6)*nt(7)
-#endif
-
-
-
-
-     return
-
-end subroutine calc_lin_pressure
-
-!!$subroutine calcnorm(temp, nsize, l2norm)
-!!$  use basic
-!!$  use arrays
-!!$  use field
-!!$  use mesh_mod
-!!$  implicit none
-!!$  integer :: nsize, numnodes
-!!$  real :: l2norm, sum
-!!$  type(vector_type), intent(in) :: temp
-!!$
-!!$  numnodes = owned_nodes()
-!!$
-!!$  sum = 0.
-!!$  call m3dc1_field_sumsq (temp%id, sum)
-!!$  l2norm = sqrt(sum)
-!!$end subroutine calcnorm
 
 
 end module model

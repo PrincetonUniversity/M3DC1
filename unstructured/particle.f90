@@ -131,7 +131,7 @@ contains
 
     !Initialize particle population
     call second(tstart)
-    call init_particles(.true., ierr)
+    call init_particles(irestart.gt.0, ierr)
     if (ierr.ne.0) return
     if (myrank.eq.0) then
        call second(tend)
