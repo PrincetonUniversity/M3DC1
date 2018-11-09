@@ -274,10 +274,6 @@ void vec2Field(Vec V, m3dc1_field * fld)
       m3dc1_ent_setdofdata(&vtx_dim,&vtx,&fid,&dof_per_vtx,&data[0]);
     }
   }
-  //MPI_Comm ocm = PCU_Get_Comm();
-  //PCU_Switch_Comm(vcm);
-  //m3dc1_field_sync(&fid);
-  //PCU_Switch_Comm(ocm);
   delete [] dof_ids;
   delete [] dof_data_cmplx;
   delete [] dof_data;
@@ -659,4 +655,5 @@ int m3dc1_matrix::solver_iteration_count()
   KSPGetIterationNumber(ksp,&itr);
   return itr;
 }
+
 #endif //#ifndef M3DC1_MESHGEN

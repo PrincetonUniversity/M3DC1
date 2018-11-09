@@ -404,6 +404,41 @@ subroutine define_profiles
      end do
   end if
 
+
+  ! define toroidal field profile
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' defining R*Bphi profile'
+  ierr = 0
+  select case(iread_f)
+     
+  case(1)
+     ! Read in T*m
+     nvals = 0
+     call read_ascii_column('profile_f', xvals, nvals, icol=1)
+     call read_ascii_column('profile_f', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     yvals = yvals * 1e6 / (b0_norm*l0_norm)
+
+  case default
+
+  end select
+
+  if(allocated(yvals)) then
+     bzero = yvals(nvals)/rzero
+     yvals = 0.5*(yvals**2 - yvals(nvals)**2)
+     call destroy_spline(g0_spline)
+     call create_spline(g0_spline, nvals, xvals, yvals)
+     deallocate(xvals, yvals)
+
+     call destroy_spline(ffprime_spline)
+     call copy_spline(ffprime_spline, g0_spline)
+     do i=1, ffprime_spline%n
+        call evaluate_spline(g0_spline, ffprime_spline%x(i), pval, ppval)
+        ffprime_spline%y(i) = ppval
+     end do
+  end if
+
+
   ! If p' and ff' profiles are not yet defined, define them
   if(.not.allocated(p0_spline%x)) then
      if(inumgs .eq. 1) then

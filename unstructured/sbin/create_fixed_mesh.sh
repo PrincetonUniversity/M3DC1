@@ -5,6 +5,7 @@ meshgen=$(which m3dc1_meshgen)
 if [ -x "${meshgen}" ]; then
     echo "m3dc1_meshgen found."
     FILE="input_AnalyticModel"
+    rm -f $FILE
 
     echo "!simVer: 0   - the latest SimModeler (5.0 as of 06/15/16)" > $FILE
     echo "!        100 - SimModeler 5.0" >> $FILE

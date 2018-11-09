@@ -147,7 +147,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	init_gmode.o init_strauss.o init_mri.o init_rotating_cylinder.o \
         init_eqdsk.o init_dskbal.o init_jsolver.o \
 	init_3dwave.o init_3ddiffusion.o init_frs.o init_ftz.o init_eigen.o \
-	init_intkink.o init_lz.o init_kstar.o init_basicq.o \
+	init_intkink.o init_lz.o init_kstar.o init_basicq.o init_cyl.o \
 	transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \

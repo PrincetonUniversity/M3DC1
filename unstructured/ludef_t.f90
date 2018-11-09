@@ -1742,36 +1742,21 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      if(itime_independent.eq.0) ddterm(:,psi_g) = ddterm(:,psi_g) + tempx*bdf
   end if
 
-  ! Resistive and Hyper Terms
+  ! Resistive  Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   tempx = b1psieta(trialx,lin,eta79,vzt79,eta_mod.eq.1)
   ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
   ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
-  ! implicit hyperresistivity
-  if(jadv.eq.1 .and. imp_hyper.eq.1) then
-     tempx = b1jeta(trialx,lin,eta79)
-     ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
-  endif
 
   if(numvar.ge.2) then
      tempx = b1beta(trialx,lin,eta79)
      ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
      ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
-     ! implicit hyperresistivity
-     if(jadv.eq.1 .and. imp_hyper.eq.2) then
-        tempx = b1bj(trialx,bzt79,lin) + b1psij(trialx,pst79,lin)
-        ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
-     endif
 
      if(i3d.eq.1) then
         tempx = b1feta(trialx,lin,eta79)
         r_bf = r_bf -     thimp_bf     *dt*tempx
         q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
-        ! implicit hyperrestivity
-        if(jadv.eq.1 .and. imp_hyper.eq.2) then
-           tempx = b1fj(trialx,bft79,lin)
-           ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
-        endif
      end if
   endif
 
@@ -1791,6 +1776,26 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   ! Zone 2: E = eta J
   if(izone.ne.1) return
 
+  ! implicit hyperresistivity
+  if(jadv.eq.1 .and. imp_hyper.eq.1) then
+     tempx = b1jeta(trialx,lin,eta79)
+     ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
+  endif
+  if(numvar.ge.2) then
+     ! implicit hyperresistivity
+     if(jadv.eq.1 .and. imp_hyper.eq.2) then
+        tempx = b1bj(trialx,bzt79,lin) + b1psij(trialx,pst79,lin)
+        ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
+     endif
+
+     if(i3d.eq.1) then
+        ! implicit hyperrestivity
+        if(jadv.eq.1 .and. imp_hyper.eq.2) then
+           tempx = b1fj(trialx,bft79,lin)
+           ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
+        endif
+     end if
+  endif
 
   ! VxB
   ! ~~~
@@ -3750,7 +3755,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   q_bf = 0.
 
   if(izone.ne.1) then
-     tempx = t3tn(trialx,lin,nnw79)
+     tempx = t3t(trialx,lin)
      ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
      return
