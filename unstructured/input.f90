@@ -798,26 +798,28 @@ subroutine set_defaults
        "1 = include a gaussian pellet source", source_grp)
   call add_var_int("ipellet_z", ipellet_z, 0, &
        "Atomic number of pellet (0 = main ion species)", source_grp)
-  call add_var_double("pellet_r", pellet_r, 0., &
+  call add_var_int("iread_pellet", iread_pellet, 0, &
+       "1: read pellet info from pellet.dat", source_grp)
+  call add_var_double("pellet_r", pellet_r_scl, 0., &
        "Initial radial position of the pellet", source_grp)
-  call add_var_double("pellet_phi", pellet_phi, 0., &
+  call add_var_double("pellet_phi", pellet_phi_scl, 0., &
        "Initial toroidal position of the pellet", source_grp)
-  call add_var_double("pellet_z", pellet_z, 0., &
+  call add_var_double("pellet_z", pellet_z_scl, 0., &
        "Initial vertical position of the pellet", source_grp)
-  call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
-  call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
-  call add_var_double("pellet_var_tor", pellet_var_tor, 0., "", source_grp)
-  call add_var_double("pellet_velr", pellet_velr, 0., &
+  call add_var_double("pellet_rate", pellet_rate_scl, 0., "", source_grp)
+  call add_var_double("pellet_var", pellet_var_scl, 1., "", source_grp)
+  call add_var_double("pellet_var_tor", pellet_var_tor_scl, 0., "", source_grp)
+  call add_var_double("pellet_velr", pellet_velr_scl, 0., &
        "Initial radial velocity of the pellet", source_grp)
-  call add_var_double("pellet_velphi", pellet_velphi, 0., &
+  call add_var_double("pellet_velphi", pellet_velphi_scl, 0., &
        "Initial toroidal velocity of the pellet", source_grp)
-  call add_var_double("pellet_velz", pellet_velz, 0., &
+  call add_var_double("pellet_velz", pellet_velz_scl, 0., &
        "Initial vertical velocity of the pellet", source_grp)
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
-  call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
-  call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)
-  call add_var_double("pellet_mix", pellet_mix, 0.,&
+  call add_var_double("r_p", r_p_scl, 1.e-3, "", source_grp)
+  call add_var_double("cloud_pel", cloud_pel_scl, 1., "", source_grp)
+  call add_var_double("pellet_mix", pellet_mix_scl, 0.,&
        "Molar fraction of deuterium in pellet", source_grp)
   call add_var_double("temin_abl", temin_abl, 0., &
        "Min. Temp. at which ablation turns on", source_grp)

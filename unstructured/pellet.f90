@@ -6,27 +6,37 @@ module pellet
                        ! See User Guide for description of each option
   integer :: ipellet_z ! Atomic number of pellet source (0 = main ion)
 
-  real :: pellet_r    ! x coordinate of pellet
-  real :: pellet_phi  ! phi coordinate of pellet
-  real :: pellet_z    ! z coordinate of pellet
-  real :: pellet_rate ! amplitude of pellet density source
-  real :: pellet_var  ! spatial dispersion of density source
-  real :: pellet_var_tor  ! spatial dispersion of density source
+  integer :: iread_pellet  ! 1 = read pellet info from pellet.dat
 
-  real :: pellet_velr
-  real :: pellet_velphi
-  real :: pellet_velz
-  real :: pellet_vx, pellet_vy
+  integer, parameter :: maxpellets = 128
+  integer :: npellets
+
+  real, dimension(maxpellets) :: pellet_r    ! x coordinate of pellet
+  real, dimension(maxpellets) :: pellet_phi  ! phi coordinate of pellet
+  real, dimension(maxpellets) :: pellet_z    ! z coordinate of pellet
+  real, dimension(maxpellets) :: pellet_rate ! amplitude of pellet density source
+  real, dimension(maxpellets) :: pellet_var  ! spatial dispersion of density source
+  real, dimension(maxpellets) :: pellet_var_tor  ! spatial dispersion of density source
+
+  real, dimension(maxpellets) :: pellet_velr
+  real, dimension(maxpellets) :: pellet_velphi
+  real, dimension(maxpellets) :: pellet_velz
+  real, dimension(maxpellets) :: pellet_vx, pellet_vy
 
   integer :: ipellet_abl
-  real :: r_p
-  real :: cloud_pel
-  real :: pellet_mix      ! (moles D2)/(moles D2 + moles impurity)
+  real, dimension(maxpellets) :: r_p
+  real, dimension(maxpellets) :: cloud_pel
+  real, dimension(maxpellets) :: pellet_mix      ! (moles D2)/(moles D2 + moles impurity)
   real :: temin_abl
-  real :: pellet_rate_D2  ! rate of deuterium deposition from mixed pellets
+  real, dimension(maxpellets) :: pellet_rate_D2  ! rate of deuterium deposition from mixed pellets
 
-  real :: nsource_pel, temp_pel, Lor_vol
-  real :: rpdot
+  real, dimension(maxpellets) :: nsource_pel, temp_pel, Lor_vol
+  real, dimension(maxpellets) :: rpdot
+
+  real :: pellet_r_scl, pellet_phi_scl, pellet_z_scl
+  real :: pellet_rate_scl, pellet_var_scl, pellet_var_tor_scl
+  real :: pellet_velr_scl, pellet_velphi_scl, pellet_velz_scl
+  real :: r_p_scl, cloud_pel_scl, pellet_mix_scl
 
 contains
 
@@ -34,16 +44,49 @@ contains
     use basic
 !    use diagnostics
     implicit none
-    
+    character(LEN=10), parameter :: pellet_filename = 'pellet.dat'
+
+    if(iread_pellet.eq.0) then
+       ! use the scalar values
+       npellets = 1
+       pellet_r(1)       = pellet_r_scl
+       pellet_phi(1)     = pellet_phi_scl
+       pellet_z(1)       = pellet_z_scl
+       pellet_rate(1)    = pellet_rate_scl
+       pellet_var(1)     = pellet_var_scl
+       pellet_var_tor(1) = pellet_var_tor_scl
+       pellet_velr(1)    = pellet_velr_scl
+       pellet_velphi(1)  = pellet_velphi_scl
+       pellet_velz(1)    = pellet_velz_scl
+       r_p(1)            = r_p_scl
+       cloud_pel(1)      = cloud_pel_scl
+       pellet_mix(1)     = pellet_mix_scl
+
+    else
+       npellets = 0
+       call read_ascii_column(pellet_filename, pellet_r,       npellets, icol=1)
+       call read_ascii_column(pellet_filename, pellet_phi,     npellets, icol=2)
+       call read_ascii_column(pellet_filename, pellet_z,       npellets, icol=3)
+       call read_ascii_column(pellet_filename, pellet_rate,    npellets, icol=4)
+       call read_ascii_column(pellet_filename, pellet_var,     npellets, icol=5)
+       call read_ascii_column(pellet_filename, pellet_var_tor, npellets, icol=6)
+       call read_ascii_column(pellet_filename, pellet_velr,    npellets, icol=7)
+       call read_ascii_column(pellet_filename, pellet_velphi,  npellets, icol=8)
+       call read_ascii_column(pellet_filename, pellet_velz,    npellets, icol=9)
+       call read_ascii_column(pellet_filename, r_p,            npellets, icol=10)
+       call read_ascii_column(pellet_filename, cloud_pel,      npellets, icol=11)
+       call read_ascii_column(pellet_filename, pellet_mix,     npellets, icol=12)
+    end if
+
     ! if we're ablating, pellet_var set by pellet & cloud size
     if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
-    
-    if(pellet_var_tor.le.0) pellet_var_tor = pellet_var
+
+    where(pellet_var_tor.le.0) pellet_var_tor = pellet_var
 
     ! initialize Cartesian velocities
     pellet_vx = pellet_velr*cos(pellet_phi) - pellet_velphi*sin(pellet_phi)
     pellet_vy = pellet_velr*sin(pellet_phi) + pellet_velphi*cos(pellet_phi)
-    
+
   end subroutine pellet_init
 
   vectype elemental function pellet_distribution(r, phi, z, pres, inorm)
@@ -55,7 +98,7 @@ contains
     integer, intent(in) :: inorm
 
     real :: x, y, px, py
-    
+
     select case(abs(ipellet))
 
 #ifdef USE3D
@@ -98,7 +141,7 @@ contains
             /(2.*pellet_var**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
-    
+
 #else
 
     ! axisymmetric gaussian pellet source
