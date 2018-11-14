@@ -235,7 +235,7 @@ subroutine den_eq
   real, dimension(MAX_PTS) :: n, p
   
   if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
-  if(ipellet_z.ne.0 .and. pellet_mix.eq.0.) return
+  if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
@@ -267,12 +267,14 @@ subroutine den_eq
      if(ipellet.gt.0 .and. linear.eq.1) then
         n = 0.
         p = 0.
-        if(pellet_mix.eq.0.) then
-           rate = pellet_rate
-        else
-           rate = pellet_rate_D2
-        end if
-        n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+        do ip=1,npellets
+           if(pellet_mix(ip).eq.0.) then
+              rate = pellet_rate(ip)
+           else
+              rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
+           end if
+           n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+        end do
      end if
 
      dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
@@ -302,7 +304,7 @@ subroutine den_per
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
 
-  if(ipellet.ge.0 .or. (ipellet_z.ne.0 .and. pellet_mix.eq.0.)) return
+  if(ipellet.ge.0 .or. (ipellet_z.ne.0 .and. all(pellet_mix.eq.0.))) return
 
   call create_field(den_vec)
   den_vec = 0.
@@ -317,12 +319,14 @@ subroutine den_per
      if(ipellet.lt.0) then
         n = 0.
         p = 0.
-        if(pellet_mix.eq.0) then
-           rate = pellet_rate
-        else
-           rate = 2.0*pellet_rate_D2
-        end if
-        n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+        do ip=0,npellets
+           if(pellet_mix(ip).eq.0) then
+              rate = pellet_rate(ip)
+           else
+              rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
+           end if
+           n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+        end do
      end if
 
      dofs = intx2(mu79(:,:,OP_1),n179(:,OP_1))

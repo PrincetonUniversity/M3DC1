@@ -188,37 +188,40 @@ contains
 
   end function pellet_distribution
 
-  subroutine pellet_advance(ip)
+  subroutine pellet_advance
     use basic
 !    use diagnostics
     implicit none
-    real, intent(in) :: ip
-    real :: x, y
+    real, dimension(maxpellets) :: x, y
 
-    x = pellet_r(ip)*cos(pellet_phi(ip))
-    y = pellet_r(ip)*sin(pellet_phi(ip))
+    where((pellet_vx**2  + pellet_vy**2 + pellet_vz**2).gt.0.)
+       x = pellet_r*cos(pellet_phi)
+       y = pellet_r*sin(pellet_phi)
 
-    x        = x        + pellet_vx(ip)*dt
-    y        = y        + pellet_vy(ip)*dt
-    pellet_z(ip) = pellet_z(ip) + pellet_velz(ip)*dt
+       x        = x        + pellet_vx*dt
+       y        = y        + pellet_vy*dt
+       pellet_z = pellet_z + pellet_velz*dt
 
-    pellet_r(ip)   = sqrt(x**2 + y**2)
-    pellet_phi(ip) = atan2(y,x)
+       pellet_r   = sqrt(x**2 + y**2)
+       pellet_phi = atan2(y,x)
+    end where
 
     ! Pellet cloud radius which contains the same number of particles as the realistic pellet
     if(ipellet_abl.gt.0) then
-       pellet_var(ip) = max(cloud_pel(ip)*r_p(ip),1e-8)
+       pellet_var = cloud_pel*r_p
+       where(pellet_var.lt.1e-8) pellet_var = 1e-8
     endif
+
+ end do
 
   end subroutine pellet_advance
 
-  subroutine calculate_ablation(ip)
+  subroutine calculate_ablation
     use basic
     use math
 
     implicit none
 
-    real, intent(in) :: ip
     real :: dr_p
     real :: q_s, shield_p, f_b
     integer :: z_abl
@@ -232,165 +235,166 @@ contains
     real, parameter :: N_A  = 6.022140857e23  ! Avogadro's number
     real, parameter :: inv3 = 1./3.
 
+    do ip=1, npellets
+       pellet_rate_D2(ip) = 0. ! no mixture by default
 
-    pellet_rate_D2(ip) = 0. ! no mixture by default
-
-    temin_eV = temin_abl*p0_norm/(1.6022e-12*n0_norm)
-    if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV) then
-       if((r_p(ip)*l0_norm).lt.1e-8) then
-          if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
-          r_p(ip) = 0.
-       else
-          if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation"
+       temin_eV = temin_abl*p0_norm/(1.6022e-12*n0_norm)
+       if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV) then
+          if((r_p(ip)*l0_norm).lt.1e-8) then
+             if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
+             r_p(ip) = 0.
+          else
+             if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation"
+          end if
+          pellet_rate(ip) = 0.
+          pellet_rate_D2(ip) = 0.
+          rpdot(ip) = 0.
+          return
        end if
-       pellet_rate(ip) = 0.
-       pellet_rate_D2(ip) = 0.
-       rpdot(ip) = 0.
-       return
-    end if
 
 
-    ! Define density and molar mass for various Z
+       ! Define density and molar mass for various Z
 
-    z_abl = ipellet_z
-    if(z_abl.eq.0) then
-       select case(ipellet_abl)
-       case(1,2)
-          ! Lithium by default for backward compatibility
-          z_abl = 3
+       z_abl = ipellet_z
+       if(z_abl.eq.0) then
+          select case(ipellet_abl)
+          case(1,2)
+             ! Lithium by default for backward compatibility
+             z_abl = 3
+          case(3)
+             ! Only valid for neon for now
+             z_abl = 10
+          case default
+             ! Diatomic deuterium
+             z_abl = 1
+          end select
+       end if
+
+       select case(z_abl)
+       case(1)
+          ! Assume diatomic deuterium
+          rho_z = n_D2
+          M_z = M_D2
        case(3)
-          ! Only valid for neon for now
-          z_abl = 10
+          ! Lithium
+          rho_z = 0.534
+          M_z = 6.941
+       case(4)
+          ! Beryllium
+          rho_z = 1.85
+          M_z = 9.012182
+       case(6)
+          ! Carbon (graphite)
+          rho_z = 2.267
+          M_z = 12.0107
+       case(10)
+          ! Neon
+          rho_z = 1.444
+          M_z = 20.1797
+       case(18)
+          ! Argon
+          rho_z = 1.623
+          M_z = 39.948
        case default
-          ! Diatomic deuterium
-          z_abl = 1
+          if(myrank.eq.0) print *, "Cannot ablate for this ipellet_z"
+          ipellet_abl = 0
+          return
        end select
-    end if
 
-    select case(z_abl)
-    case(1)
-       ! Assume diatomic deuterium
-       rho_z = n_D2
-       M_z = M_D2
-    case(3)
-       ! Lithium
-       rho_z = 0.534
-       M_z = 6.941
-    case(4)
-       ! Beryllium
-       rho_z = 1.85
-       M_z = 9.012182
-    case(6)
-       ! Carbon (graphite)
-       rho_z = 2.267
-       M_z = 12.0107
-    case(10)
-       ! Neon
-       rho_z = 1.444
-       M_z = 20.1797
-    case(18)
-       ! Argon
-       rho_z = 1.623
-       M_z = 39.948
-    case default
-       if(myrank.eq.0) print *, "Cannot ablate for this ipellet_z"
-       ipellet_abl = 0
-       return
-    end select
+       select case(ipellet_abl)
+       case(1)
 
-    select case(ipellet_abl)
-    case(1)
+          if(z_abl.ne.3 .and. myrank.eq.0) print *, "Warning: ipellet_abl=1 only valid for lithium"
 
-       if(z_abl.ne.3 .and. myrank.eq.0) print *, "Warning: ipellet_abl=1 only valid for lithium"
+          if(pellet_mix(ip).gt.0) then
+             if(myrank.eq.0) print*, "Warning: setting pellet_mix=0. for ipellet_abl=1"
+             pellet_mix(ip) = 0.
+          end if
 
-       if(pellet_mix(ip).gt.0) then
-          if(myrank.eq.0) print*, "Warning: setting pellet_mix=0. for ipellet_abl=1"
-          pellet_mix(ip) = 0.
+          rho0 = rho_z
+
+          ! First model: Parks NF 94 + Lunsford
+          shield_p = 0.3
+          f_b = 0.5  ! From Parks NF 94
+          f_l = 0.16
+          T_S = 0.14 !in eV
+          subl = 1.6 !in eV/atom
+          Mach = 1.
+
+          q_s = 0.5*nsource_pel(ip)*temp_pel(ip)*sqrt(8.*temp_pel(ip)/(pi*1.e3*m_p*me_mp))
+          pellet_rate(ip) = 4.*pi*(l0_norm*pellet_var(ip))**2*q_s*shield_p*f_b*0.906!/(1.e-3*rho_z*(subl+10./3.*T_s))
+          pellet_rate(ip) = t0_norm*pellet_rate(ip)/n0_norm
+
+          rpdot(ip) = shield_p*f_b*f_l*1.e-6*1.e-5*sqrt(1.e-5)*q_s*0.906!/&     !(rho_z*(subl+T_S*(2.5+0.833*Mach**2)))
+
+       case(2)
+
+          if(z_abl.ne.3 .and. myrank.eq.0) print *, "Warning: ipellet_abl=2 only valid for lithium"
+          if(pellet_mix(ip).gt.0) then
+             if(myrank.eq.0) print*, "Warning: setting pellet_mix=0. for ipellet_abl=2"
+             pellet_mix(ip) = 0.
+          end if
+
+          rho0 = rho_z
+
+          ! Second model: Parks 2015 with multienergetic electrons
+          B_Li = inv3*sqrt(1./(2.*log(7.69e1*1.97836e-3*sqrt(2.*temp_pel(ip))*3.**(-inv3)/(6e-1))*&
+               log((2.*temp_pel(ip))/(3.33e1)*sqrt(exp(1.)/2.))))
+
+          f_l = 0.2*(1.-0.0946*log((4.**1.3878+1.9155)/(1.9155)))
+
+          Xn_abl = 8.1468e-9*(5.*inv3-1.)**(inv3)*f_l**inv3*M_z**(-inv3)*(r_p(ip)*l0_norm)**(4.*inv3)&
+               *(n0_norm*nsource_pel(ip))**inv3*temp_pel(ip)**(5.5*inv3)*B_Li**(2.*inv3)
+
+          Xp_abl = Xn_abl*M_z/(4.*pi*rho_z*(r_p(ip)*l0_norm)**2)
+
+          a_Te = 9.0624343*(1.25e-3*temp_pel(ip))**(log(9.0091993/9.0624343)/log(2.5))
+          b_Te = 1.5915421*(1.25e-3*temp_pel(ip))**(log(1.1109535/1.5915421)/log(2.5))
+          c_Te = 1.9177788*(1.25e-3*temp_pel(ip))**(log(1.7309993/1.9177788)/log(2.5))
+          d_Te = 6.6657409*(1.25e-3*temp_pel(ip))**(log(4.10722254/6.6657409)/log(2.5))
+
+          C_abl = a_Te*log(1.+b_Te*(r_p(ip)*l0_norm)**(2.*inv3)*(nsource_pel(ip)/0.45)**(2.*inv3))/&
+               log(c_Te+d_Te*(r_p(ip)*l0_norm)**(2.*inv3)*(nsource_pel(ip)/0.45)**(2.*inv3))
+
+          pellet_rate(ip) = N_A*C_abl*Xn_abl*t0_norm/(n0_norm*l0_norm**3)
+
+          rpdot(ip) = C_abl*Xp_abl*1.e-2
+
+       case(3)
+          ! Parks composite neon-deuterium model from 6/20/2017 (implemented 6/11/18 BCL)
+          if(z_abl.ne.10 .and. myrank.eq.0) print *, "Warning: ipellet_abl=3 only valid for neon"
+
+          lambda = 27.0837 + tan(1.48709*pellet_mix(ip))
+          G = lambda*(temp_pel(ip)*5e-4)**(5.*inv3)*(5.*r_p(ip)*l0_norm)**(4.*inv3)*nsource_pel(ip)**(inv3)  ! g/s
+
+          ! impurity number
+          Xn_abl = (1.-pellet_mix(ip))*G/(M_z*(1.-pellet_mix(ip)) + pellet_mix(ip)*M_D2) ! mole/s
+          pellet_rate(ip) = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
+
+          ! D2 number
+          Xn_abl = pellet_mix(ip)*G/(M_z*(1.-pellet_mix(ip)) + pellet_mix(ip)*M_D2) ! mole/s
+          pellet_rate_D2(ip) = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
+
+          ! pellet surface recession speed
+          rho0 = ((1.-pellet_mix(ip))*M_z + pellet_mix(ip)*M_D2)/((1.-pellet_mix(ip))*(M_z/rho_z) + pellet_mix(ip)*(M_D2/n_D2)) ! g/cm^3
+          rpdot(ip) = (G/(4.*pi*rho0*(r_p(ip)*l0_norm)**2))*(t0_norm/l0_norm)
+
+       end select
+
+       dr_p = dt*rpdot(ip)  ! change in pellet radius
+
+       if(dr_p.gt.r_p(ip)) then
+          ! we've ablated the whole pellet
+          if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p(ip)
+          pellet_rate(ip)    = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*(1.-pellet_mix(ip))/&
+                               (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
+          pellet_rate_D2(ip) = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*pellet_mix(ip)/&
+                               (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
+          r_p(ip) = 0.0
+       else
+          r_p(ip) = r_p(ip) - dr_p
        end if
-
-       rho0 = rho_z
-
-       ! First model: Parks NF 94 + Lunsford
-       shield_p = 0.3
-       f_b = 0.5  ! From Parks NF 94
-       f_l = 0.16
-       T_S = 0.14 !in eV
-       subl = 1.6 !in eV/atom
-       Mach = 1.
-
-       q_s = 0.5*nsource_pel(ip)*temp_pel(ip)*sqrt(8.*temp_pel(ip)/(pi*1.e3*m_p*me_mp))
-       pellet_rate(ip) = 4.*pi*(l0_norm*pellet_var(ip))**2*q_s*shield_p*f_b*0.906!/(1.e-3*rho_z*(subl+10./3.*T_s))
-       pellet_rate(ip) = t0_norm*pellet_rate(ip)/n0_norm
-
-       rpdot(ip) = shield_p*f_b*f_l*1.e-6*1.e-5*sqrt(1.e-5)*q_s*0.906!/&     !(rho_z*(subl+T_S*(2.5+0.833*Mach**2)))
-
-    case(2)
-
-       if(z_abl.ne.3 .and. myrank.eq.0) print *, "Warning: ipellet_abl=2 only valid for lithium"
-       if(pellet_mix(ip).gt.0) then
-          if(myrank.eq.0) print*, "Warning: setting pellet_mix=0. for ipellet_abl=2"
-          pellet_mix(ip) = 0.
-       end if
-
-       rho0 = rho_z
-
-       ! Second model: Parks 2015 with multienergetic electrons
-       B_Li = inv3*sqrt(1./(2.*log(7.69e1*1.97836e-3*sqrt(2.*temp_pel(ip))*3.**(-inv3)/(6e-1))*&
-            log((2.*temp_pel(ip))/(3.33e1)*sqrt(exp(1.)/2.))))
-
-       f_l = 0.2*(1.-0.0946*log((4.**1.3878+1.9155)/(1.9155)))
-
-       Xn_abl = 8.1468e-9*(5.*inv3-1.)**(inv3)*f_l**inv3*M_z**(-inv3)*(r_p(ip)*l0_norm)**(4.*inv3)&
-            *(n0_norm*nsource_pel(ip))**inv3*temp_pel(ip)**(5.5*inv3)*B_Li**(2.*inv3)
-
-       Xp_abl = Xn_abl*M_z/(4.*pi*rho_z*(r_p(ip)*l0_norm)**2)
-
-       a_Te = 9.0624343*(1.25e-3*temp_pel(ip))**(log(9.0091993/9.0624343)/log(2.5))
-       b_Te = 1.5915421*(1.25e-3*temp_pel(ip))**(log(1.1109535/1.5915421)/log(2.5))
-       c_Te = 1.9177788*(1.25e-3*temp_pel(ip))**(log(1.7309993/1.9177788)/log(2.5))
-       d_Te = 6.6657409*(1.25e-3*temp_pel(ip))**(log(4.10722254/6.6657409)/log(2.5))
-
-       C_abl = a_Te*log(1.+b_Te*(r_p(ip)*l0_norm)**(2.*inv3)*(nsource_pel(ip)/0.45)**(2.*inv3))/&
-            log(c_Te+d_Te*(r_p(ip)*l0_norm)**(2.*inv3)*(nsource_pel(ip)/0.45)**(2.*inv3))
-
-       pellet_rate(ip) = N_A*C_abl*Xn_abl*t0_norm/(n0_norm*l0_norm**3)
-
-       rpdot(ip) = C_abl*Xp_abl*1.e-2
-
-    case(3)
-       ! Parks composite neon-deuterium model from 6/20/2017 (implemented 6/11/18 BCL)
-       if(z_abl.ne.10 .and. myrank.eq.0) print *, "Warning: ipellet_abl=3 only valid for neon"
-
-       lambda = 27.0837 + tan(1.48709*pellet_mix(ip))
-       G = lambda*(temp_pel(ip)*5e-4)**(5.*inv3)*(5.*r_p(ip)*l0_norm)**(4.*inv3)*nsource_pel(ip)**(inv3)  ! g/s
-
-       ! impurity number
-       Xn_abl = (1.-pellet_mix(ip))*G/(M_z*(1.-pellet_mix(ip)) + pellet_mix(ip)*M_D2) ! mole/s
-       pellet_rate(ip) = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
-
-       ! D2 number
-       Xn_abl = pellet_mix(ip)*G/(M_z*(1.-pellet_mix(ip)) + pellet_mix(ip)*M_D2) ! mole/s
-       pellet_rate_D2(ip) = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
-
-       ! pellet surface recession speed
-       rho0 = ((1.-pellet_mix(ip))*M_z + pellet_mix(ip)*M_D2)/((1.-pellet_mix(ip))*(M_z/rho_z) + pellet_mix(ip)*(M_D2/n_D2)) ! g/cm^3
-       rpdot(ip) = (G/(4.*pi*rho0*(r_p(ip)*l0_norm)**2))*(t0_norm/l0_norm)
-
-    end select
-
-    dr_p = dt*rpdot(ip)  ! change in pellet radius
-
-    if(dr_p.gt.r_p(ip)) then
-       ! we've ablated the whole pellet
-       if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p(ip)
-       pellet_rate(ip)    = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*(1.-pellet_mix(ip))/&
-                            (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
-       pellet_rate_D2(ip) = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*pellet_mix(ip)/&
-                            (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
-       r_p(ip) = 0.0
-    else
-       r_p(ip) = r_p(ip) - dr_p
-    end if
+    end do
 
   end subroutine calculate_ablation
 
