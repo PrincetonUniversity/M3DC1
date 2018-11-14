@@ -126,8 +126,10 @@ contains
 
        if(ipellet.lt.0. .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
-          temp79a = temp79a + &
-               pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+          do ip=1,npellets
+             temp79a = temp79a + &
+                  pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+          end do
        end if
 
        dofs = intx2(mu79(:,:,OP_1),temp79a)
@@ -374,7 +376,9 @@ contains
 
        if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
-          source = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+          do ip=1,npellets
+             source = source + pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+          end do
        end if
 
        n0_old = sum(nz(:,1:kprad_z),2)

@@ -363,17 +363,20 @@ Program Reducedquintic
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .ge. 0) then
      ! feedback control on density source
-          if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, " Applying density feedback", &
-             pellet_rate, totden, n_control%p, &
-             n_control%target_val, n_control%err_p_old, n_control%err_i
+          if(myrank.eq.0 .and. iprint.ge.1) print *, " Applying density feedback"
+             do ip=1,npellets
+                if(myrank.eq.0 .and. iprint.ge.1) print *, "   ", pellet_rate(ip), totden, n_control%p, &
+                                                           n_control%target_val, n_control%err_p_old, n_control%err_i
+                call control(totden, pellet_rate(ip), n_control, dt) ! ???
+             end do
 
-          call control(totden, pellet_rate, n_control, dt)
-
-          if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, " After density feedback", &
-             pellet_rate, totden, n_control%p, &
-             n_control%target_val, n_control%err_p_old, n_control%err_i
+          if(myrank.eq.0 .and. iprint.ge.1) then
+             print *, " After density feedback"
+             do ip=1,npellets
+                print *, "   ", pellet_rate(ip), totden, n_control%p, &
+                         n_control%target_val, n_control%err_p_old, n_control%err_i
+             end do
+          end if
      endif
 
      ! Write output

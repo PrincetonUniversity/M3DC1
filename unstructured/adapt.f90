@@ -48,7 +48,7 @@ module adapt
     complex, dimension(maxfilaments) :: ic_adapt
     integer :: numcoils_adapt
 
-    real, dimension(maxfilaments) :: xp_adapt, zp_adapt
+    real, dimension(maxfilaments,maxpellets) :: xp_adapt, zp_adapt
     integer :: p_steps
     real :: p_dt, p_v
     real :: x0, y0, x, y
@@ -58,24 +58,26 @@ module adapt
 
     if(adapt_pellet_delta.gt.0) then
        ! determine pellet path to adapt along
-       x0 = pellet_r*cos(pellet_phi)
-       y0 = pellet_r*sin(pellet_phi)
-       p_steps = ceiling(adapt_pellet_length/(2.*adapt_pellet_delta))+1
-       p_steps = min(p_steps,maxfilaments)
-       p_v = sqrt(pellet_vx**2 + pellet_vy**2 + pellet_velz**2)
-       if(p_v.gt.0.) then
-          p_dt = 2.*adapt_pellet_delta/p_v
-       else
-          ! if not moving, just adapt along stationary pellet position
-          p_dt = 0.
-          p_steps = 1
-       end if
+       do ip=1, npellets
+          x0 = pellet_r(ip)*cos(pellet_phi(ip))
+          y0 = pellet_r(ip)*sin(pellet_phi(ip))
+          p_steps = ceiling(adapt_pellet_length/(2.*adapt_pellet_delta))+1
+          p_steps = min(p_steps,maxfilaments)
+          p_v = sqrt(pellet_vx(ip)**2 + pellet_vy(ip)**2 + pellet_velz(ip)**2)
+          if(p_v.gt.0.) then
+             p_dt = 2.*adapt_pellet_delta/p_v
+          else
+             ! if not moving, just adapt along stationary pellet position
+             p_dt = 0.
+             p_steps = 1
+          end if
 
-       do j=1, p_steps
-          x = x0 + pellet_vx*(j-1)*p_dt
-          y = y0 + pellet_vy*(j-1)*p_dt
-          xp_adapt(j) = sqrt(x**2 + y**2)
-          zp_adapt(j) = pellet_z + pellet_velz*(j-1)*p_dt
+          do j=1, p_steps
+             x = x0 + pellet_vx(ip)*(j-1)*p_dt
+             y = y0 + pellet_vy(ip)*(j-1)*p_dt
+             xp_adapt(j,ip) = sqrt(x**2 + y**2)
+             zp_adapt(j,ip) = pellet_z(ip) + pellet_velz(ip)*(j-1)*p_dt
+          end do
        end do
     end if
 
@@ -164,10 +166,12 @@ module adapt
        ! do adaptation along pellet path
        if(adapt_pellet_delta.gt.0) then
           temp79c = 0.
-          do j = 1, p_steps
-             temp79c = temp79c + &
-                  exp(-((x_79 - xp_adapt(j))**2 + (z_79 - zp_adapt(j))**2) / &
-                       (2.*adapt_pellet_delta**2))/1.27 ! BCL: 1.27 "normalizes" this
+          do ip = 1, npellets
+             do j = 1, p_steps
+                temp79c = temp79c + &
+                     exp(-((x_79 - xp_adapt(j,ip))**2 + (z_79 - zp_adapt(j,ip))**2) / &
+                         (2.*adapt_pellet_delta**2))/1.27 ! BCL: 1.27 "normalizes" this
+             end do
           end do
           where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c

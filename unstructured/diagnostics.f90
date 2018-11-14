@@ -233,8 +233,8 @@ contains
     nfluxd = 0.
     nfluxv = 0.
     nsource = 0.
-    nsource_pel = 0.
-    temp_pel = 0.
+    nsource_pel = 0. ! this is an array
+    temp_pel = 0.    ! this is an array
 
     bwb2 = 0.
 
@@ -270,9 +270,10 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 72
+    integer, parameter :: num_scalars = 70
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
+    double precision, dimension(maxpellets)  :: ptemp
 
     ! Allreduce energy terms
     if(maxrank .gt. 1) then
@@ -324,30 +325,28 @@ contains
        temp(46) = volume
        temp(47) = xray_signal
        temp(48) = wallcur
-       temp(49) = nsource_pel
-       temp(50) = temp_pel
-       temp(51) = totrad         
-       temp(52) = linerad        
-       temp(53) = bremrad        
-       temp(54) = ionrad         
-       temp(55) = reckrad        
-       temp(56) = recprad        
-       temp(57) = totre          
-       temp(58) = m_iz           
-       temp(59) = wall_force_n0_x
-       temp(60) = wall_force_n0_y
-       temp(61) = wall_force_n0_z
-       temp(62) = wall_force_n1_x
-       temp(63) = wall_force_n1_y
-       temp(64) = wall_force_n1_z
-       temp(65) = totne          
-       temp(66) = w_pe           
-       temp(67) = pcur_co        
-       temp(68) = pcur_sn        
-       temp(69) = m_iz_co        
-       temp(70) = m_iz_sn        
-       temp(71) = w_m
-       temp(72) = w_p
+       temp(49) = totrad         
+       temp(50) = linerad        
+       temp(51) = bremrad        
+       temp(52) = ionrad         
+       temp(53) = reckrad        
+       temp(54) = recprad        
+       temp(55) = totre          
+       temp(56) = m_iz           
+       temp(57) = wall_force_n0_x
+       temp(58) = wall_force_n0_y
+       temp(59) = wall_force_n0_z
+       temp(60) = wall_force_n1_x
+       temp(61) = wall_force_n1_y
+       temp(62) = wall_force_n1_z
+       temp(63) = totne          
+       temp(64) = w_pe           
+       temp(65) = pcur_co        
+       temp(66) = pcur_sn        
+       temp(67) = m_iz_co        
+       temp(68) = m_iz_sn        
+       temp(69) = w_m
+       temp(70) = w_p
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -401,30 +400,36 @@ contains
        volume          = temp2(46)
        xray_signal     = temp2(47)
        wallcur         = temp2(48)
-       nsource_pel     = temp2(49)
-       temp_pel        = temp2(50)
-       totrad          = temp2(51)
-       linerad         = temp2(52)
-       bremrad         = temp2(53)
-       ionrad          = temp2(54)
-       reckrad         = temp2(55)
-       recprad         = temp2(56)
-       totre           = temp2(57)
-       m_iz            = temp2(58)
-       wall_force_n0_x = temp2(59)
-       wall_force_n0_y = temp2(60)
-       wall_force_n0_z = temp2(61)
-       wall_force_n1_x = temp2(62)
-       wall_force_n1_y = temp2(63)
-       wall_force_n1_z = temp2(64)
-       totne           = temp2(65)
-       w_pe            = temp2(66)
-       pcur_co         = temp2(67)
-       pcur_sn         = temp2(68)
-       m_iz_co         = temp2(69)
-       m_iz_sn         = temp2(70)
-       w_m             = temp2(71)
-       w_p             = temp2(72)
+       totrad          = temp2(49)
+       linerad         = temp2(50)
+       bremrad         = temp2(51)
+       ionrad          = temp2(52)
+       reckrad         = temp2(53)
+       recprad         = temp2(54)
+       totre           = temp2(55)
+       m_iz            = temp2(56)
+       wall_force_n0_x = temp2(57)
+       wall_force_n0_y = temp2(58)
+       wall_force_n0_z = temp2(59)
+       wall_force_n1_x = temp2(60)
+       wall_force_n1_y = temp2(61)
+       wall_force_n1_z = temp2(62)
+       totne           = temp2(63)
+       w_pe            = temp2(64)
+       pcur_co         = temp2(65)
+       pcur_sn         = temp2(66)
+       m_iz_co         = temp2(67)
+       m_iz_sn         = temp2(68)
+       w_m             = temp2(69)
+       w_p             = temp2(70)
+
+       ptemp = nsource_pel
+       call mpi_allreduce(ptemp, nsource_pel, npellets, MPI_DOUBLE_PRECISION,  &
+                          MPI_SUM, MPI_COMM_WORLD, ier)
+       ptemp = temp_pel
+       call mpi_allreduce(ptemp, temp_pel, npellets, MPI_DOUBLE_PRECISION,  &
+                          MPI_SUM, MPI_COMM_WORLD, ier)
+
     endif
 
   end subroutine distribute_scalars
@@ -880,15 +885,17 @@ subroutine calculate_scalars()
      
         ! Pellet radius and density/temperature at the pellet surface
         if(ipellet_abl.gt.0) then
-           if(r_p.ge.1e-8) then
-              ! weight density/temp by pellet distribution (normalized)
-              temp79a = pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
-              nsource_pel = nsource_pel + twopi*int2(net79(:,OP_1),temp79a)/tpifac
-              temp_pel = temp_pel + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
-           else
-              nsource_pel = 0.
-              temp_pel = 0.
-           end if
+           do ip=1,npellets
+              if(r_p.ge.1e-8) then
+                 ! weight density/temp by pellet distribution (normalized)
+                 temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+                 nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
+                 temp_pel(ip) = temp_pel(ip) + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
+              else
+                 nsource_pel(ip) = 0.
+                 temp_pel(ip) = 0.
+              end if
+           end do
        endif
      endif
 
@@ -1048,22 +1055,23 @@ subroutine calculate_scalars()
      print *, "  Ionization loss = ", ionrad
      print *, "  Recombination radiation (kinetic) = ", reckrad
      print *, "  Recombination radiation (potential) = ", recprad
-     if(ipellet_abl.gt.0) then
-        print *, "  nsource = ", nsource
-        print *, "  pellet particles injected = ",pellet_rate*dt*(n0_norm*l0_norm**3)
-        print *, "  pellet radius (in cm) = ", r_p*l0_norm
-        print *, "  Electron temperature around the pellet (in eV) = ", temp_pel
-        print *, "  Electron density around the pellet (in ne14) = ", nsource_pel
-        print *, "  rpdot (in cm/s) = ", rpdot*l0_norm/t0_norm
-        print *, "  Lor_vol = ", Lor_vol
-        print *, "  R position of pellet: ", pellet_r*l0_norm
-        print *, "  phi position of pellet: ", pellet_phi
-        print *, "  Z position of pellet: ", pellet_z*l0_norm
+     if(ipellet_abl.gt.0 .and. iprint.ge.2) then
+        do ip=1,npellets
+           print *  "  Pellet #", ip
+           print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
+           print *, "    radius (in cm) = ", r_p(ip)*l0_norm
+           print *, "    local electron temperature (in eV) = ", temp_pel(ip)
+           print *, "    local electron density (in ne14) = ", nsource_pel(ip)
+           print *, "    rpdot (in cm/s) = ", rpdot(ip)*l0_norm/t0_norm
+           print *, "    Lor_vol = ", Lor_vol(ip)
+           print *, "    R position: ", pellet_r(ip)*l0_norm
+           print *, "    phi position: ", pellet_phi(ip)
+           print *, "    Z position: ", pellet_z(ip)*l0_norm
+        end do
      endif
   endif
 
 end subroutine calculate_scalars
-
 
 
 subroutine calculate_Lor_vol()
@@ -1082,7 +1090,7 @@ subroutine calculate_Lor_vol()
   integer :: is_edge(3)  ! is inode on boundary
   real :: tpifac,tpirzero
   integer :: izone, izonedim
-  real :: temp
+  real, dimension(maxpellets) :: temp
 
   call tpi_factors(tpifac,tpirzero)
 
@@ -1098,12 +1106,14 @@ subroutine calculate_Lor_vol()
      call define_fields(itri, FIELD_P, 0, 0)
 
      ! perform volume integral of pellet cloud (without normalization)
-     temp79a = pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
-     temp = temp + twopi*int1(temp79a)/tpifac
-     
+     do ip=1,npellets
+        temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
+        temp(ip) = temp(ip) + twopi*int1(temp79a)/tpifac
+     end do
+
   end do
 
-  call mpi_allreduce(temp, Lor_vol, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
+  call mpi_allreduce(temp, Lor_vol, npellets, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
 
 end subroutine calculate_Lor_vol
 
