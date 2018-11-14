@@ -89,11 +89,12 @@ contains
 
   end subroutine pellet_init
 
-  vectype elemental function pellet_distribution(r, phi, z, pres, inorm)
+  vectype elemental function pellet_distribution(ip, r, phi, z, pres, inorm)
     use math
     use basic
 !    use diagnostics
     implicit none
+    integer, intent(in) :: ip
     real, intent(in) :: r, phi, z, pres
     integer, intent(in) :: inorm
 
@@ -105,11 +106,11 @@ contains
     ! gaussian pellet source
     case(1, 4, 11)
        pellet_distribution = 1./ &
-            (sqrt(2.*pi)**3*pellet_var**2*pellet_var_tor) &
-            *exp(-((r-pellet_r)**2 + (z-pellet_z)**2) &
-                  /(2.*pellet_var**2) &
-                 -2.*r*pellet_r*(1.-cos(phi-pellet_phi)) &
-                  /(2.*pellet_var_tor**2))
+            (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
+            *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
+                  /(2.*pellet_var(ip)**2) &
+                 -2.*r*pellet_r(ip)*(1.-cos(phi-pellet_phi(ip))) &
+                  /(2.*pellet_var_tor(ip)**2))
 
     !......distributed source added 11/23/2011   (scj)
     case(2)
@@ -117,28 +118,29 @@ contains
 
     ! gaussian pellet source
     case(3)
-       pellet_distribution = pres/(sqrt(2.*pi)*pellet_var)**3 &
-            *exp(-(r**2 + pellet_r**2 -2.*r*pellet_r*cos(phi-pellet_phi) &
-            + (z - pellet_z)**2) / (2.*pellet_var**2))
+       pellet_distribution = pres/(sqrt(2.*pi)*pellet_var(ip))**3 &
+            *exp(-(r**2 + pellet_r(ip)**2 &
+            - 2.*r*pellet_r(ip)*cos(phi-pellet_phi(ip)) &
+            + (z - pellet_z(ip))**2) / (2.*pellet_var(ip)**2))
 
 
     ! spherical, cartesian gaussian
     case(12)
        x  = r*cos(phi)
        y  = r*sin(phi)
-       px = pellet_r*cos(pellet_phi)
-       py = pellet_r*sin(pellet_phi)
+       px = pellet_r(ip)*cos(pellet_phi(ip))
+       py = pellet_r(ip)*sin(pellet_phi(ip))
 
        pellet_distribution = 1./ &
-            (sqrt(2.*pi*pellet_var)**3) &
-            *exp(-((x-px)**2 + (y-py)**2 + (z-pellet_z)**2) &
-                  /(2.*pellet_var**2))
+            (sqrt(2.*pi*pellet_var(ip))**3) &
+            *exp(-((x-px)**2 + (y-py)**2 + (z-pellet_z(ip))**2) &
+                  /(2.*pellet_var(ip)**2))
 
     ! toroidal, axisymmetric gaussian
     case(13)
-       pellet_distribution = 1./(2.*pi*pellet_var**2) &
-            *exp(-((r - pellet_r)**2 + (z - pellet_z)**2) &
-            /(2.*pellet_var**2))
+       pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
+            *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
+            /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
 
@@ -146,9 +148,9 @@ contains
 
     ! axisymmetric gaussian pellet source
     case(1, 11, 13)
-       pellet_distribution = 1./(2.*pi*pellet_var**2) &
-            *exp(-((r - pellet_r)**2 + (z - pellet_z)**2) &
-            /(2.*pellet_var**2))
+       pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
+            *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
+            /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
     !......distributed source added 11/23/2011   (scj)
@@ -157,23 +159,23 @@ contains
 
     ! pressure-weighted gaussian pellet source
     case(3)
-       pellet_distribution = pres/(2.*pi*pellet_var**2) &
-            *exp(-((r - pellet_r)**2 + (z - pellet_z)**2) &
-            /(2.*pellet_var**2))
+       pellet_distribution = pres/(2.*pi*pellet_var(ip)**2) &
+            *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
+            /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
     ! different normalization of axisymmetric gaussian
     case(4)
-       pellet_distribution = 1./sqrt(2.*pi*(pellet_var)**2) &
-            *exp(-((r - pellet_r)**2 + (z - pellet_z)**2) &
-            /(2.*(pellet_var)**2))
+       pellet_distribution = 1./sqrt(2.*pi*(pellet_var(ip))**2) &
+            *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
+            /(2.*(pellet_var(ip))**2))
 
     ! circular, cartesian gaussian
     case(12)
        pellet_distribution = 1./ &
-            (2.*pi*pellet_var**2) &
-            *exp(-((r-pellet_r)**2 + (z-pellet_z)**2) &
-                  /(2.*pellet_var**2))
+            (2.*pi*pellet_var(ip)**2) &
+            *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
+                  /(2.*pellet_var(ip)**2))
 
 #endif
 
@@ -182,39 +184,41 @@ contains
     end select
 
     ! normalize distribution to Lor_vol (for distributions with ipellet double digits)
-    if(inorm.ne.0 .and. ipellet.ge.10) pellet_distribution = pellet_distribution/Lor_vol
+    if(inorm.ne.0 .and. ipellet.ge.10) pellet_distribution = pellet_distribution/Lor_vol(ip)
 
   end function pellet_distribution
 
-  subroutine pellet_advance
+  subroutine pellet_advance(ip)
     use basic
 !    use diagnostics
     implicit none
+    real, intent(in) :: ip
     real :: x, y
 
-    x = pellet_r*cos(pellet_phi)
-    y = pellet_r*sin(pellet_phi)
+    x = pellet_r(ip)*cos(pellet_phi(ip))
+    y = pellet_r(ip)*sin(pellet_phi(ip))
 
-    x        = x        + pellet_vx*dt
-    y        = y        + pellet_vy*dt
-    pellet_z = pellet_z + pellet_velz*dt
+    x        = x        + pellet_vx(ip)*dt
+    y        = y        + pellet_vy(ip)*dt
+    pellet_z(ip) = pellet_z(ip) + pellet_velz(ip)*dt
 
-    pellet_r   = sqrt(x**2 + y**2)
-    pellet_phi = atan2(y,x)
+    pellet_r(ip)   = sqrt(x**2 + y**2)
+    pellet_phi(ip) = atan2(y,x)
 
     ! Pellet cloud radius which contains the same number of particles as the realistic pellet
     if(ipellet_abl.gt.0) then
-       pellet_var = max(cloud_pel*r_p,1e-8)
+       pellet_var(ip) = max(cloud_pel(ip)*r_p(ip),1e-8)
     endif
 
   end subroutine pellet_advance
 
-  subroutine calculate_ablation
+  subroutine calculate_ablation(ip)
     use basic
     use math
 
     implicit none
 
+    real, intent(in) :: ip
     real :: dr_p
     real :: q_s, shield_p, f_b
     integer :: z_abl
@@ -229,19 +233,19 @@ contains
     real, parameter :: inv3 = 1./3.
 
 
-    pellet_rate_D2 = 0. ! no mixture by default
+    pellet_rate_D2(ip) = 0. ! no mixture by default
 
     temin_eV = temin_abl*p0_norm/(1.6022e-12*n0_norm)
-    if((r_p*l0_norm).lt.1e-8 .or. temp_pel.lt.temin_eV) then
-       if((r_p*l0_norm).lt.1e-8) then
+    if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV) then
+       if((r_p(ip)*l0_norm).lt.1e-8) then
           if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
-          r_p = 0.
+          r_p(ip) = 0.
        else
           if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation"
        end if
-       pellet_rate = 0.
-       pellet_rate_D2 = 0.
-       rpdot = 0.
+       pellet_rate(ip) = 0.
+       pellet_rate_D2(ip) = 0.
+       rpdot(ip) = 0.
        return
     end if
 
@@ -299,9 +303,9 @@ contains
 
        if(z_abl.ne.3 .and. myrank.eq.0) print *, "Warning: ipellet_abl=1 only valid for lithium"
 
-       if(pellet_mix.gt.0) then
+       if(pellet_mix(ip).gt.0) then
           if(myrank.eq.0) print*, "Warning: setting pellet_mix=0. for ipellet_abl=1"
-          pellet_mix = 0.
+          pellet_mix(ip) = 0.
        end if
 
        rho0 = rho_z
@@ -314,78 +318,78 @@ contains
        subl = 1.6 !in eV/atom
        Mach = 1.
 
-       q_s = 0.5*nsource_pel*temp_pel*sqrt(8.*temp_pel/(pi*1.e3*m_p*me_mp))
-       pellet_rate = 4.*pi*(l0_norm*pellet_var)**2*q_s*shield_p*f_b*0.906!/(1.e-3*rho_z*(subl+10./3.*T_s))
-       pellet_rate = t0_norm*pellet_rate/n0_norm
+       q_s = 0.5*nsource_pel(ip)*temp_pel(ip)*sqrt(8.*temp_pel(ip)/(pi*1.e3*m_p*me_mp))
+       pellet_rate(ip) = 4.*pi*(l0_norm*pellet_var(ip))**2*q_s*shield_p*f_b*0.906!/(1.e-3*rho_z*(subl+10./3.*T_s))
+       pellet_rate(ip) = t0_norm*pellet_rate(ip)/n0_norm
 
-       rpdot = shield_p*f_b*f_l*1.e-6*1.e-5*sqrt(1.e-5)*q_s*0.906!/&     !(rho_z*(subl+T_S*(2.5+0.833*Mach**2)))
+       rpdot(ip) = shield_p*f_b*f_l*1.e-6*1.e-5*sqrt(1.e-5)*q_s*0.906!/&     !(rho_z*(subl+T_S*(2.5+0.833*Mach**2)))
 
     case(2)
 
        if(z_abl.ne.3 .and. myrank.eq.0) print *, "Warning: ipellet_abl=2 only valid for lithium"
-       if(pellet_mix.gt.0) then
+       if(pellet_mix(ip).gt.0) then
           if(myrank.eq.0) print*, "Warning: setting pellet_mix=0. for ipellet_abl=2"
-          pellet_mix=0.
+          pellet_mix(ip) = 0.
        end if
 
        rho0 = rho_z
 
        ! Second model: Parks 2015 with multienergetic electrons
-       B_Li = inv3*sqrt(1./(2.*log(7.69e1*1.97836e-3*sqrt(2.*temp_pel)*3.**(-inv3)/(6e-1))*&
-            log((2.*temp_pel)/(3.33e1)*sqrt(exp(1.)/2.))))
+       B_Li = inv3*sqrt(1./(2.*log(7.69e1*1.97836e-3*sqrt(2.*temp_pel(ip))*3.**(-inv3)/(6e-1))*&
+            log((2.*temp_pel(ip))/(3.33e1)*sqrt(exp(1.)/2.))))
 
        f_l = 0.2*(1.-0.0946*log((4.**1.3878+1.9155)/(1.9155)))
 
-       Xn_abl = 8.1468e-9*(5.*inv3-1.)**(inv3)*f_l**inv3*M_z**(-inv3)*(r_p*l0_norm)**(4.*inv3)&
-            *(n0_norm*nsource_pel)**inv3*temp_pel**(5.5*inv3)*B_Li**(2.*inv3)
+       Xn_abl = 8.1468e-9*(5.*inv3-1.)**(inv3)*f_l**inv3*M_z**(-inv3)*(r_p(ip)*l0_norm)**(4.*inv3)&
+            *(n0_norm*nsource_pel(ip))**inv3*temp_pel(ip)**(5.5*inv3)*B_Li**(2.*inv3)
 
-       Xp_abl = Xn_abl*M_z/(4.*pi*rho_z*(r_p*l0_norm)**2)
+       Xp_abl = Xn_abl*M_z/(4.*pi*rho_z*(r_p(ip)*l0_norm)**2)
 
-       a_Te = 9.0624343*(1.25e-3*temp_pel)**(log(9.0091993/9.0624343)/log(2.5))
-       b_Te = 1.5915421*(1.25e-3*temp_pel)**(log(1.1109535/1.5915421)/log(2.5))
-       c_Te = 1.9177788*(1.25e-3*temp_pel)**(log(1.7309993/1.9177788)/log(2.5))
-       d_Te = 6.6657409*(1.25e-3*temp_pel)**(log(4.10722254/6.6657409)/log(2.5))
+       a_Te = 9.0624343*(1.25e-3*temp_pel(ip))**(log(9.0091993/9.0624343)/log(2.5))
+       b_Te = 1.5915421*(1.25e-3*temp_pel(ip))**(log(1.1109535/1.5915421)/log(2.5))
+       c_Te = 1.9177788*(1.25e-3*temp_pel(ip))**(log(1.7309993/1.9177788)/log(2.5))
+       d_Te = 6.6657409*(1.25e-3*temp_pel(ip))**(log(4.10722254/6.6657409)/log(2.5))
 
-       C_abl = a_Te*log(1.+b_Te*(r_p*l0_norm)**(2.*inv3)*(nsource_pel/0.45)**(2.*inv3))/&
-            log(c_Te+d_Te*(r_p*l0_norm)**(2.*inv3)*(nsource_pel/0.45)**(2.*inv3))
+       C_abl = a_Te*log(1.+b_Te*(r_p(ip)*l0_norm)**(2.*inv3)*(nsource_pel(ip)/0.45)**(2.*inv3))/&
+            log(c_Te+d_Te*(r_p(ip)*l0_norm)**(2.*inv3)*(nsource_pel(ip)/0.45)**(2.*inv3))
 
-       pellet_rate = N_A*C_abl*Xn_abl*t0_norm/(n0_norm*l0_norm**3)
+       pellet_rate(ip) = N_A*C_abl*Xn_abl*t0_norm/(n0_norm*l0_norm**3)
 
-       rpdot = C_abl*Xp_abl*1.e-2
+       rpdot(ip) = C_abl*Xp_abl*1.e-2
 
     case(3)
        ! Parks composite neon-deuterium model from 6/20/2017 (implemented 6/11/18 BCL)
        if(z_abl.ne.10 .and. myrank.eq.0) print *, "Warning: ipellet_abl=3 only valid for neon"
 
-       lambda = 27.0837 + tan(1.48709*pellet_mix)
-       G = lambda*(temp_pel*5e-4)**(5.*inv3)*(5.*r_p*l0_norm)**(4.*inv3)*nsource_pel**(inv3)  ! g/s
+       lambda = 27.0837 + tan(1.48709*pellet_mix(ip))
+       G = lambda*(temp_pel(ip)*5e-4)**(5.*inv3)*(5.*r_p(ip)*l0_norm)**(4.*inv3)*nsource_pel(ip)**(inv3)  ! g/s
 
        ! impurity number
-       Xn_abl = (1.-pellet_mix)*G/(M_z*(1.-pellet_mix) + pellet_mix*M_D2) ! mole/s
-       pellet_rate = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
+       Xn_abl = (1.-pellet_mix(ip))*G/(M_z*(1.-pellet_mix(ip)) + pellet_mix(ip)*M_D2) ! mole/s
+       pellet_rate(ip) = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
 
        ! D2 number
-       Xn_abl = pellet_mix*G/(M_z*(1.-pellet_mix) + pellet_mix*M_D2) ! mole/s
-       pellet_rate_D2 = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
+       Xn_abl = pellet_mix(ip)*G/(M_z*(1.-pellet_mix(ip)) + pellet_mix(ip)*M_D2) ! mole/s
+       pellet_rate_D2(ip) = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
 
        ! pellet surface recession speed
-       rho0 = ((1.-pellet_mix)*M_z + pellet_mix*M_D2)/((1.-pellet_mix)*(M_z/rho_z) + pellet_mix*(M_D2/n_D2)) ! g/cm^3
-       rpdot = (G/(4.*pi*rho0*(r_p*l0_norm)**2))*(t0_norm/l0_norm)
+       rho0 = ((1.-pellet_mix(ip))*M_z + pellet_mix(ip)*M_D2)/((1.-pellet_mix(ip))*(M_z/rho_z) + pellet_mix(ip)*(M_D2/n_D2)) ! g/cm^3
+       rpdot(ip) = (G/(4.*pi*rho0*(r_p(ip)*l0_norm)**2))*(t0_norm/l0_norm)
 
     end select
 
-    dr_p = dt*rpdot  ! change in pellet radius
+    dr_p = dt*rpdot(ip)  ! change in pellet radius
 
-    if(dr_p.gt.r_p) then
+    if(dr_p.gt.r_p(ip)) then
        ! we've ablated the whole pellet
-       if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p
-       pellet_rate    = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p*l0_norm)**3)*rho0*(1.-pellet_mix)/&
-                        (M_z*(1.-pellet_mix)+M_D2*pellet_mix)
-       pellet_rate_D2 = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p*l0_norm)**3)*rho0*pellet_mix/&
-                        (M_z*(1.-pellet_mix)+M_D2*pellet_mix)
-       r_p = 0.0
+       if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p(ip)
+       pellet_rate(ip)    = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*(1.-pellet_mix(ip))/&
+                            (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
+       pellet_rate_D2(ip) = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*pellet_mix(ip)/&
+                            (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
+       r_p(ip) = 0.0
     else
-       r_p = r_p-dr_p
+       r_p(ip) = r_p(ip) - dr_p
     end if
 
   end subroutine calculate_ablation
