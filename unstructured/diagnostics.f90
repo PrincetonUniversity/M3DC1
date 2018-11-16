@@ -1189,7 +1189,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
   type(element_data) :: d
   integer :: inews
-  integer :: i, ier, in_domain, converged
+  integer :: i, ier, in_domain, converged, izone
   real :: x1, z1, x, z, si, zi, eta, h
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
@@ -1197,13 +1197,14 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   real :: xnew, znew, denom, sinew, etanew
   real :: xtry, ztry, rdiff
   vectype, dimension(coeffs_per_element) :: avector
-  real, dimension(5) :: temp1, temp2
+  real, dimension(6) :: temp1, temp2
   integer, save :: itri = 0
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,2E12.4)') '  magaxis: guess = ', xguess, zguess
 
   converged = 0
+  izone = 0
 
   x = xguess
   z = zguess
@@ -1214,6 +1215,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
      ! calculate position of minimum
      if(itri.gt.0) then
+        call get_zone(itri,izone)
         call calcavector(itri, psi, avector)
         call get_element_data(itri, d)
 
@@ -1310,6 +1312,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         rdiff = 0.
         in_domain = 0
         converged = 0
+        izone = 0
      endif  ! on itri.gt.0
      
      ! communicate new minimum to all processors
@@ -1319,13 +1322,15 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         temp1(3) = sum
         temp1(4) = in_domain
         temp1(5) = converged
-        call mpi_allreduce(temp1, temp2, 5, &
+        temp1(6) = izone
+        call mpi_allreduce(temp1, temp2, 6, &
              MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
         xnew  = temp2(1)
         znew  = temp2(2)
         sum   = temp2(3)
         in_domain = temp2(4)
         converged = temp2(5)
+        izone = temp2(6)
 
         if(in_domain .gt. 1) then
            if(myrank.eq.0 .and. iprint.ge.1) &
@@ -1356,6 +1361,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   zguess = z
   psim = sum
   ier = 0
+  if(izone.ne.1) ier = 2
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
