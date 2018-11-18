@@ -661,10 +661,14 @@ subroutine set_defaults
        "Guess for R-coordinate of active x-point", gs_grp)
   call add_var_double("znull", znull, 0., &
        "Guess for Z-coordinate of axtive x-point", gs_grp)
+  call add_var_int("mod_null_rs",mod_null_rs,0, &
+       "if 1, you can modify xnull,znull at restart", gs_grp)
   call add_var_double("xnull2", xnull2, 0., &
        "Guess for R-coordinate of inactive x-point", gs_grp)
   call add_var_double("znull2", znull2, 0., &
        "Guess for Z-coordinate of inaxtive x-point", gs_grp)
+  call add_var_int("mod_null_rs2",mod_null_rs2,0, &
+       "if 1, you can modify xnull2,znul2l at restart", gs_grp)
   call add_var_double("gs_pf_psi_width", gs_pf_psi_width, 0., &
        "Width of psi smoothing into private flux region", gs_grp)
   call add_var_double("xnull0", xnull0, 0., &
