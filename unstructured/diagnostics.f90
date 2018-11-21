@@ -1662,7 +1662,7 @@ subroutine lcfs(psi, test_wall, findx)
         
         if(((x-xmag)*real(data(2)) + (z-zmag)*real(data(3))) &
              *(real(data(1))-psimin).lt.0.) cycle
-        
+        if(z*zmag .lt. 0) cycle    !  added 11/21/2018 scj        
         if(first_point) then
            psib = real(data(1))
            first_point =.false.
