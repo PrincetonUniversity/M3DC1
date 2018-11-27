@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(m3dc1)
-enable_language(Fortran)
-enable_language(C)
-enable_language(CXX)
+project(m3dc1 LANGUAGES Fortran C CXX)
 
 macro(checkSetParam varName isRequired)
   if("${${varName}}" STREQUAL "") # if varName is empty
@@ -17,7 +14,8 @@ endmacro(checkSetParam varName)
 cmake_host_system_information(RESULT HOST QUERY HOSTNAME)
 message(STATUS "Configuring to build on: ${HOST}")
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+# rhel/centos place x86-64 libs in lib64 instead of lib
+set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE)
 
 # prefer static libraries unless we explicitly specify no to
 set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")

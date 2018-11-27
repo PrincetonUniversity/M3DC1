@@ -43,8 +43,8 @@ set(HEADERS
   include/ReducedQuintic.h)
 
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/m3dc1_scorecConfig.cmake.in"
-    "${CMAKE_BINARY_DIR}/m3dc1_scorecConfig.cmake")
+  "${CMAKE_CURRENT_SOURCE_DIR}/m3dc1_scorecConfig.cmake.in"
+  "${CMAKE_BINARY_DIR}/m3dc1_scorecConfig.cmake")
 
 set(SCOREC_LIB_NAME m3dc1_scorec)
 
@@ -97,11 +97,11 @@ list(APPEND INCLUDE_DIRS ${SCOREC_INCLUDE_DIRS})
 
 add_library(${SCOREC_LIB_NAME} ${SOURCES})
 target_include_directories(${SCOREC_LIB_NAME} PUBLIC
-                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                       $<INSTALL_INTERFACE:include>
-                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api>
-                                       $<INSTALL_INTERFACE:api>
-                                       ${INCLUDE_DIRS})
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api>
+  $<INSTALL_INTERFACE:api>
+  ${INCLUDE_DIRS})
 target_link_libraries(${SCOREC_LIB_NAME} ${LINK_LIBS})
 
 message(STATUS "Include directories : \n\t ${INCLUDE_DIRS}")
@@ -109,27 +109,41 @@ message(STATUS "Linking against : \n\t ${LINK_LIBS}")
 
 INSTALL(FILES ${HEADERS} DESTINATION include)
 INSTALL(TARGETS ${SCOREC_LIB_NAME}
-      LIBRARY DESTINATION lib
-      ARCHIVE DESTINATION lib)
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
 
 if(ENABLE_TESTING)
-if(ENABLE_PETSC)
+  add_executable(fieldOps test/fieldOps/main.cc)
+  target_link_libraries(fieldOps ${LINK_LIBS} ${SCOREC_LIB_NAME})
+
+  if(NOT ENABLE_COMPLEX)
+    add_executable(aggOrdering test/aggOrdering/main.cc)
+    target_link_libraries(aggOrdering ${LINK_LIBS})
+    target_link_libraries(aggOrdering ${SCOREC_LIB_NAME})
+  endif()
+
+  add_executable(field2vec2field test/f2v2f/main.cc)
+  target_link_libraries(field2vec2field ${LINK_LIBS} ${SCOREC_LIB_NAME})
+
+  add_executable(allocate test/allocate/main.cc)
+  target_link_libraries(allocate ${LINK_LIBS} ${SCOREC_LIB_NAME})
+
   add_executable(solver test/solver/main.cc)
   target_link_libraries(solver ${LINK_LIBS})
   target_link_libraries(solver ${SCOREC_LIB_NAME})
   INSTALL(TARGETS solver RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
 
-if(ENABLE_SIMMETRIX)
-  add_executable(m3dc1_meshgen test/meshgen/m3dc1_meshgen.cc)
-  target_link_libraries(m3dc1_meshgen ${LINK_LIBS})
-  target_link_libraries(m3dc1_meshgen ${SCOREC_LIB_NAME})
-  INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+  if(ENABLE_SIMMETRIX)
+    add_executable(m3dc1_meshgen test/meshgen/m3dc1_meshgen.cc)
+    target_link_libraries(m3dc1_meshgen ${LINK_LIBS})
+    target_link_libraries(m3dc1_meshgen ${SCOREC_LIB_NAME})
+    INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
-  add_executable(convert_polar test/convert_polar/main.cc)
-  target_link_libraries(convert_polar ${LINK_LIBS})
-  target_link_libraries(convert_polar ${SCOREC_LIB_NAME})
-  INSTALL(TARGETS convert_polar RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+    add_executable(convert_polar test/convert_polar/main.cc)
+    target_link_libraries(convert_polar ${LINK_LIBS})
+    target_link_libraries(convert_polar ${SCOREC_LIB_NAME})
+    INSTALL(TARGETS convert_polar RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+  endif()
 endif()
 
 if(ENABLE_TRILINOS)
@@ -161,20 +175,20 @@ include(CTest)
 # This will be set to ON by the CTest driver script (and only by that)
 option(ENABLE_TESTING "Build for CTest" OFF)
 set(MPIRUN "mpirun"
-    CACHE string
-    "the mpirun or srun executable")
+  CACHE string
+  "the mpirun or srun executable")
 set(MPIRUN_PROCFLAG "-np"
-    CACHE string
-    "the command line flag to give process count to MPIRUN")
+  CACHE string
+  "the command line flag to give process count to MPIRUN")
 
 #Doxygen generation system
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
-               ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-add_custom_target(doc
-${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-COMMENT "Generating API documentation with Doxygen" VERBATIM
-)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
+    ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+  add_custom_target(doc
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen" VERBATIM
+    )
 endif(DOXYGEN_FOUND)

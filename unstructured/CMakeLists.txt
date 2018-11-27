@@ -14,6 +14,7 @@ set(SOURCES
     iterdb.f90
     read_gyro.f90
     read_neo.f90
+    region.f90
     radiation.f90
     element.f90
     field.f90
@@ -50,6 +51,7 @@ set(SOURCES
     readgeqdsk.f90
     read_jsolver.f90
     read_dskbal.f90
+    init_cyl.f90
     init_rwm.f90
     init_solovev.f90
     init_circle.f90
