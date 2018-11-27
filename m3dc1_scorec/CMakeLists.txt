@@ -146,13 +146,6 @@ if(ENABLE_TESTING)
   endif()
 endif()
 
-if(ENABLE_TRILINOS)
-    add_executable(epetra test/epetra/main.cc)
-    target_link_libraries(epetra ${LINK_LIBS})
-    target_link_libraries(epetra ${SCOREC_LIB_NAME})
-    INSTALL(TARGETS epetra RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
-
 #add_executable(ghosting_test test/ghosting/main.cc)
 #target_link_libraries(ghosting_test ${LINK_LIBS})
 #target_link_libraries(ghosting_test ${SCOREC_LIB_NAME})
