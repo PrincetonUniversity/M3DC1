@@ -19,7 +19,8 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    version = read_parameter('version', filename=filename)
    print, 'Version = ', version
 
-   sz = size(mesh.elements._data, /dimensions)
+   elm_data = mesh.elements._data
+   sz = size(elm_data, /dimensions)
    if(sz[0] ge 10 and version lt 15) then begin
       print, 'Size = ', sz[0]
       print, 'Warning: mismatch between data size and version type.'
@@ -33,8 +34,8 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
        nonrect = read_parameter('nonrect', filename=filename)
        if(nonrect eq 0.) then begin
-           xmin = min(mesh.elements._data[4,*])
-           ymin = min(mesh.elements._data[5,*])
+           xmin = min(elm_data[4,*])
+           ymin = min(elm_data[5,*])
        endif else begin
            xmin = 0.
            ymin = 0.
@@ -64,18 +65,19 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
    ; find minimum and maximum node coordinates
    if(n_elements(xrange) lt 2 or n_elements(yrange) lt 2) then begin
-       minx = min(mesh.elements._data[4,*])
-       maxx = max(mesh.elements._data[4,*])
-       miny = min(mesh.elements._data[5,*])
-       maxy = max(mesh.elements._data[5,*])
+       minx = min(elm_data[4,*])
+       maxx = max(elm_data[4,*])
+       miny = min(elm_data[5,*])
+       maxy = max(elm_data[5,*])
        
        for i=long(0),nelms-1 do begin
-           a = mesh.elements._data[0,i]
-           b = mesh.elements._data[1,i]
-           c = mesh.elements._data[2,i]
-           t = mesh.elements._data[3,i]
-           x = mesh.elements._data[4,i]
-           y = mesh.elements._data[5,i]
+           i_data = elm_data[*,i]
+           a = i_data[0]
+           b = i_data[1]
+           c = i_data[2]
+           t = i_data[3]
+           x = i_data[4]
+           y = i_data[5]
            co = cos(t)
            sn = sin(t)
 
@@ -113,7 +115,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    small = 1e-3
    localphi = 0.
 
-   sz = size(mesh.elements._data, /dim)
+   sz = size(elm_data, /dim)
    if(sz[0] gt 8) then begin
        threed = 1
    endif else begin
@@ -130,9 +132,10 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    ; rectilinear output grid.  This is MUCH faster than looping through
    ; rectilinear grid points and searching for the appropriate triangles
    for i=long(0),nelms-1 do begin
+       i_data = elm_data[*,i]
        if(threed eq 1) then begin
-           d = mesh.elements._data[ib+1,i]
-           phi = mesh.elements._data[ib+2,i]
+           d = i_data[ib+1]
+           phi = i_data[ib+2]
            localphi = phi0 - phi
            if(localphi lt 0 or localphi gt d) then begin
               ; this assumes elements are ordered by plane
@@ -140,12 +143,12 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
               continue
            end
        endif
-       a = mesh.elements._data[0,i]
-       b = mesh.elements._data[1,i]
-       c = mesh.elements._data[2,i]
-       t = mesh.elements._data[3,i]
-       x = mesh.elements._data[4,i]
-       y = mesh.elements._data[5,i]
+       a = i_data[0]
+       b = i_data[1]
+       c = i_data[2]
+       t = i_data[3]
+       x = i_data[4]
+       y = i_data[5]
 
        co = cos(t)
        sn = sin(t)
