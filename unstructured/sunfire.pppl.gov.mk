@@ -40,48 +40,45 @@ PETSC_VER=petsc-3.7.6
 PETSCVER=petsc3.7.6
 
 PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$(PETSC_VER)
+
 ifeq ($(COM), 1)
-PETSC_ARCH=complex-openmpi-3.0.0
+PETSC_ARCH=cplx-intel2018-openmpi3.0.0-gcc6.1.0
 HYPRE_LIB=
 else
 PETSC_ARCH=real-intel2018-openmpi3.0.0-gcc6.1.0
 HYPRE_LIB=-lHYPRE
 endif
 
-SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2018-openmpi3.0.0-gcc6.1.0/$(PETSCVER)
+SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2018-openmpi3.0.0-gcc6.1.0
+
+ZOLTAN_LIB=-L$(SCOREC_DIR)/lib -lzoltan
+
+PUMI_DIR=$(SCOREC_DIR)/$(PETSCVER)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
+SCOREC_LIB = -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
+           $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
 
-SCOREC_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-3.0.0/bin
+SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
-ifeq ($(TRILINOS), 1)
-  TRILINOS_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/trilinos-11.12.1
-  ZOLTAN_LIB=-L$(TRILINOS_DIR)/lib -lzoltan
-  TRILINOS_LIBS = -Wl,--start-group,-rpath,$(TRILINOS_DIR)/lib -L$(TRILINOS_DIR)/lib \
-        -lstdc++  -lamesos -ltpetra -lkokkosnodeapi -ltpi -laztecoo -lepetra -lepetraext \
-        -lsacado -lteuchosparameterlist -lteuchoscomm -lteuchoscore -lteuchosnumerics -lteuchosremainder
-  PETSC_LIBS=
-else
-  ZOLTAN_LIB=-L/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2018-openmpi3.0.0-gcc6.1.0/lib -lzoltan
-  TRILINOS_LIBS=
-  PETSC_LIBS =-L/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.7.6/real-intel2018-openmpi3.0.0-gcc6.1.0/lib -Wl,-rpath,/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.7.6/real-intel2018-openmpi3.0.0-gcc6.1.0/lib -L/usr/pppl/intel/2018-pkgs/openmpi-3.0.0/lib -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/pppl/gcc/6.1.0/lib/gcc/x86_64-pc-linux-gnu/6.1.0 -L/usr/pppl/gcc/6.1.0/lib64 -L/usr/pppl/gcc/6.1.0/lib -Wl,-rpath,/usr/pppl/intel/2018-pkgs/openmpi-3.0.0/lib -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lsuperlu -lHYPRE -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhwloc -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lX11 -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lifport -lifcoremt_pic -lintlc -ldl -L/usr/pppl/intel/2018-pkgs/openmpi-3.0.0/lib -lmpi -L/usr/pppl/intel/2018-pkgs/openmpi-3.0.0/lib -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/gcc/6.1.0/lib/gcc/x86_64-pc-linux-gnu/6.1.0 -L/usr/pppl/gcc/6.1.0/lib64 -L/usr/pppl/gcc/6.1.0/lib64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/pppl/gcc/6.1.0/lib -Wl,-rpath,/usr/pppl/intel/2018-pkgs/openmpi-3.0.0/lib -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lstdc++ -lgcc_s -lirc -lpthread -lirc_s -L/usr/pppl/intel/2018-pkgs/openmpi-3.0.0/lib -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/gcc/6.1.0/lib/gcc/x86_64-pc-linux-gnu/6.1.0 -L/usr/pppl/gcc/6.1.0/lib64 -L/usr/pppl/gcc/6.1.0/lib64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/pppl/gcc/6.1.0/lib -ldl 
-endif
+IPP_LIB_DIR=/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64
+COMP_LIB_DIR=/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin
+MPI_LIB_DIR=/usr/pppl/intel/2018-pkgs/openmpi-3.0.0/lib
+MKL_LIB_DIR=$(MKLROOT)/lib/intel64_lin
+TBB_DIR=/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib
+TBB_LIB_DIR=$(TBB_DIR)/intel64/gcc4.4
+TBB_LIN_DIR=$(TBB_DIR)/intel64_lin/gcc4.4
+DAAL_LIB_DIR=/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin
+
+PETSC_LIBS =-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_LIB_DIR) -L$(IPP_LIB_DIR) -L$(COMP_LIB_DIR) -L$(MKL_LIB_DIR) -L$(TBB_LIB_DIR) -L$(DAAL_LIB_DIR) -L$(TBB_LIN_DIR) -L$(GCC_HOME)/lib/gcc/x86_64-pc-linux-gnu/6.1.0 -L$(GCC_HOME)/lib64 -L$(GCC_HOME)/lib -Wl,-rpath,$(MPI_LIB_DIR) -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lsuperlu $(HYPRE_LIB) -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhwloc -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lX11 -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lifport -lifcoremt_pic -lintlc -ldl -L$(MPI_LIB_DIR) -lmpi -L$(IPP_LIB_DIR) -L$(COMP_LIB_DIR) -L$(MKL_LIB_DIR) -L$(TBB_LIB_DIR) -L$(DAAL_LIB_DIR) -L$(DAAL_LIB_DIR) -L$(TBB_LIN_DIR) -L$(GCC_HOME)/lib/gcc/x86_64-pc-linux-gnu/6.1.0 -L$(GCC_HOME)/lib64 -L$(GCC_HOME)/lib -Wl,-rpath,$(MPI_LIB_DIR) -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lstdc++ -lgcc_s -lirc -lpthread -lirc_s -ldl
 
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
-  ifeq ($(TRILINOS), 1)
-    M3DC1_SCOREC_LIB=-lm3dc1_scorec_trilinos
-  else
-    M3DC1_SCOREC_LIB=-lm3dc1_scorec
-  endif
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-SCORECLIB= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-           $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
-
 LIBS = 	\
-	$(SCORECLIB) \
-        $(TRILINOS_LIBS) \
+	$(SCOREC_LIB) \
         $(ZOLTAN_LIB) \
         $(PETSC_LIBS) \
 	-L$(GSL_HOME)/lib -lgsl -lgslcblas \

@@ -19,7 +19,7 @@ Updated
     - add PAR=1 for PIC 
 
 5. mesh utility
-	/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-3.0.0/petsc-3.7.6/gcc-6.1.0/
+	/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2018-openmpi3.0.0-gcc6.1.0/bin
 
 6. prepare jobscript
 
