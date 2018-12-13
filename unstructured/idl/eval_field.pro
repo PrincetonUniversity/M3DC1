@@ -62,6 +62,12 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
    end
    phi0 = phi0 - floor(phi0/period)*period
    
+   sz = size(elm_data, /dim)
+   if(sz[0] gt 8) then begin
+     threed = 1
+   endif else begin
+     threed = 0
+   endelse
 
    ; find minimum and maximum node coordinates
    if(n_elements(xrange) lt 2 or n_elements(yrange) lt 2) then begin
@@ -71,6 +77,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        maxy = max(elm_data[5,*])
        
        for i=long(0),nelms-1 do begin
+           if(threed eq 1 and i ge (nelms/mesh.nplanes._data)) then break
            i_data = elm_data[*,i]
            a = i_data[0]
            b = i_data[1]
@@ -114,13 +121,6 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
    small = 1e-3
    localphi = 0.
-
-   sz = size(elm_data, /dim)
-   if(sz[0] gt 8) then begin
-       threed = 1
-   endif else begin
-       threed = 0
-   endelse
 
    if(version lt 15) then begin
       ib = 6

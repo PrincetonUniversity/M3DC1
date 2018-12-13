@@ -6,18 +6,19 @@ function find_next_boundary_point, list, xy, mesh=mesh, index=index, $
    if(n_elements(index) eq 0) then index=long(-1)
 
    i0 = index
-
+   elm_data = mesh.elements._data
    for j=long(0), n-1 do begin
       index = long(j + i0 + 1) mod n
       i = list[index]
+      i_data = elm_data[*,i]
 
-       a = mesh.elements._data[0,i]
-       b = mesh.elements._data[1,i]
-       c = mesh.elements._data[2,i]
-       t = mesh.elements._data[3,i]
-       x = mesh.elements._data[4,i]
-       y = mesh.elements._data[5,i]
-       bound = fix(mesh.elements._data[6,i])
+       a = i_data[0]
+       b = i_data[1]
+       c = i_data[2]
+       t = i_data[3]
+       x = i_data[4]
+       y = i_data[5]
+       bound = fix(i_data[6])
 
        p1 = [x, y]
        p2 = p1 + [(b+a) * cos(t), (b+a) * sin(t)]
@@ -87,10 +88,10 @@ function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
    if(n_tags(mesh) eq 0) then return, [0,0]
 
    nelms = mesh.nelms._data
-
+   elm_data = mesh.elements._data
    nbound = 0
    for i=long(0), nelms-1 do begin
-       bound = fix(mesh.elements._data[6,i])
+       bound = fix(elm_data[6,i])
        if((bound and 1) eq 1) then begin
           izone = (bound and 30720)/2^3 + 1 
           if(imulti eq 1) then begin
@@ -123,7 +124,7 @@ function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
    list = lonarr(nbound)
    j = 0
    for i=long(0), nelms-1 do begin
-       bound = fix(mesh.elements._data[6,i])
+       bound = fix(elm_data[6,i])
        if((bound and 1) eq 1) then begin
           izone = (bound and 30720)/2^3 + 1 
           if(imulti eq 1) then begin

@@ -2,19 +2,19 @@ function get_mesh_planes, mesh, filename=filename, slice=slice
   if(n_params() eq 0) then begin
      mesh = read_mesh(filename=filename, slice=slice)
   end
-
-  if(n_elements(mesh.elements._data[*,0]) lt 9) then begin
-     print, n_elements(mesh.elements._data[*,0])
+  elm_data = mesh.elements._data
+  if(n_elements(elm_data[*,0]) lt 9) then begin
+     print, n_elements(elm_data[*,0])
      return, 0.
   endif
 
   nelms = mesh.nelms._data 
-
-  phi = float(mesh.elements._data[8,0])
+  phi_data = elm_data[8,*]
+  phi = float(phi_data[0])
   nplanes = 1
 
   for i=long(1), nelms-1 do begin
-     phi0 = mesh.elements._data[8,i]
+     phi0 = phi_data[i]
      newplane = 1
      for j=0, nplanes-1 do begin
         if(phi0 eq phi[j]) then begin
