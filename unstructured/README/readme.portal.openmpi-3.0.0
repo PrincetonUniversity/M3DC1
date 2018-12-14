@@ -6,7 +6,8 @@ Updated
 2. code
 
 3. load modules and set enviroments
-        module load intel/2018.u1 openmpi/3.0.0 gsl gcc
+        module load intel/2018.u1 openmpi/3.0.0 gcc/6.1.0
+        module load gsl fftw/3.3.7 szip/2.1.1 hdf5-parallel/1.10.2
         setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/portalr6
 
 4. compile code
