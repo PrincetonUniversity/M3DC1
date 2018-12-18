@@ -63,13 +63,12 @@ SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 IPP_LIB_DIR=/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64
 COMP_LIB_DIR=/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin
 MPI_LIB_DIR=/usr/pppl/intel/2018-pkgs/openmpi-3.0.0/lib
-MKL_LIB_DIR=$(MKLROOT)/lib/intel64_lin
 TBB_DIR=/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/tbb/lib
 TBB_LIB_DIR=$(TBB_DIR)/intel64/gcc4.4
 TBB_LIN_DIR=$(TBB_DIR)/intel64_lin/gcc4.4
 DAAL_LIB_DIR=/usr/pppl/intel/2018.u1/compilers_and_libraries_2018.1.163/linux/daal/lib/intel64_lin
 
-PETSC_LIBS =-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_LIB_DIR) -L$(IPP_LIB_DIR) -L$(COMP_LIB_DIR) -L$(MKL_LIB_DIR) -L$(TBB_LIB_DIR) -L$(DAAL_LIB_DIR) -L$(TBB_LIN_DIR) -L$(GCC_HOME)/lib/gcc/x86_64-pc-linux-gnu/6.1.0 -L$(GCC_HOME)/lib64 -L$(GCC_HOME)/lib -Wl,-rpath,$(MPI_LIB_DIR) -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lsuperlu $(HYPRE_LIB) -lscalapack -lflapack -lfblas -lhwloc -lX11 -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lifport -lifcoremt_pic -lintlc -ldl -L$(MPI_LIB_DIR) -lmpi -L$(IPP_LIB_DIR) -L$(COMP_LIB_DIR) -L$(MKL_LIB_DIR) -L$(TBB_LIB_DIR) -L$(DAAL_LIB_DIR) -L$(DAAL_LIB_DIR) -L$(TBB_LIN_DIR) -L$(GCC_HOME)/lib/gcc/x86_64-pc-linux-gnu/6.1.0 -L$(GCC_HOME)/lib64 -L$(GCC_HOME)/lib -Wl,-rpath,$(MPI_LIB_DIR) -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lstdc++ -lgcc_s -lirc -lpthread -lirc_s -ldl
+PETSC_LIBS =-Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_LIB_DIR) -L$(IPP_LIB_DIR) -L$(COMP_LIB_DIR) -L$(MKLROOT)/lib/intel64_lin -L$(TBB_LIB_DIR) -L$(DAAL_LIB_DIR) -L$(TBB_LIN_DIR) -L$(GCC_HOME)/lib/gcc/x86_64-pc-linux-gnu/6.1.0 -L$(GCC_HOME)/lib64 -L$(GCC_HOME)/lib -Wl,-rpath,$(MPI_LIB_DIR) -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lsuperlu $(HYPRE_LIB) -lscalapack -lflapack -lfblas -lhwloc -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lifport -lifcoremt_pic -lintlc -ldl -lstdc++ -lmpi -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lgcc_s -lirc -lpthread -lirc_s -ldl -lstdc++
 
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
@@ -83,8 +82,7 @@ LIBS = 	\
         $(PETSC_LIBS) \
         -L$(HDF5_HOME)/lib  -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 \
         -L$(FFTW_HOME)/lib -lfftw3_mpi -lfftw3 \
-	-L$(GSL_HOME)/lib -lgsl -lgslcblas \
-	-lX11
+	-L$(GSL_HOME)/lib -lgsl -lgslcblas 
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \

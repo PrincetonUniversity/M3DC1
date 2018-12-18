@@ -6,18 +6,8 @@ Updated
 2. code
 
 3. load modules and set enviroments
-        module load intel/2015.u1
-	module load openmpi/1.10.3
-	module load scalapack/2.0.2
-	module load gsl
-	module load szip
-	module load hdf5-parallel/1.8.17
-	module load zlib
+        module load intel/2015.u1 openmpi/1.10.3 git gsl szip hdf5-parallel
         setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/portalr6
-
-  For Trilinos,
-        module load netcdf
-        module load trilinos/11.12.1
 
 4. compile code
   For PETSc-real
@@ -28,11 +18,8 @@ Updated
     - make OPT=1 COM=1
     - add PAR=1 for PIC 
 
-  For Trilinos-real
-    - add TRILINOS=1 
-
 5. mesh utility
-	/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/utilities/
+    /p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7/bin
 
 6. prepare jobscript
 
