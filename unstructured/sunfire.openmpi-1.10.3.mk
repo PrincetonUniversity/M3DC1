@@ -63,9 +63,8 @@ SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 COMP_LIB_DIR=/usr/pppl/intel/2015.u1/composer_xe_2015.1.133/compiler/lib/intel64
 MPI_LIB_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3/lib
 GCC_HOME=/usr/lib/gcc/x86_64-redhat-linux/4.4.7
-FFTW_HOME=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/fftw-3.3.7
 
-PETSC_LIBS =-Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_LIB_DIR) -L$(COMP_LIB_DIR) -L$(GCC_HOME) -Wl,-rpath,$(MPI_LIB_DIR) -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lsuperlu $(HYPRE_LIB) -lscalapack -lflapack -lfblas -lhwloc -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lifport -lifcore -lmpi_cxx -lintlc -ldl -lstdc++ -lmpi -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lgcc_s -lirc -lpthread -lirc_s -ldl -lstdc++
+PETSC_LIBS =-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_LIB_DIR) -L$(COMP_LIB_DIR) -L$(GCC_HOME) -Wl,-rpath,$(MPI_LIB_DIR) -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lsuperlu $(HYPRE_LIB) -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhwloc -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lifport -lifcore -lmpi_cxx -lintlc -ldl -lstdc++ -L$(MPI_LIB_DIR) -lmpi -L$(COMP_LIB_DIR) -L$(GCC_HOME) -Wl,-rpath,$(MPI_LIB_DIR) -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lgcc_s -lirc -lpthread -lirc_s -L$(COMP_LIB_DIR) -L$(GCC_HOME) -ldl -lstdc++
 
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
@@ -78,7 +77,6 @@ LIBS = 	\
         $(ZOLTAN_LIB) \
         $(PETSC_LIBS) \
         -L$(HDF5_HOME)/lib  -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 \
-        -L$(FFTW_HOME)/lib -lfftw3_mpi -lfftw3 \
 	-L$(GSL_HOME)/lib -lgsl -lgslcblas 
 
 INCLUDE = -I$(PETSC_DIR)/include \
