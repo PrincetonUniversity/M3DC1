@@ -42,10 +42,12 @@ PETSCVER=petsc3.7.6
 PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$(PETSC_VER)
 
 ifeq ($(COM), 1)
-PETSC_ARCH=cplx-intel2018-openmpi3.0.0-gcc6.1.0
+#PETSC_ARCH=cplx-intel2018-openmpi3.0.0-gcc6.1.0
+PETSC_ARCH=cplx-intel2015-openmpi1.10.3-gcc4.4.7
 HYPRE_LIB=
 else
-PETSC_ARCH=real-intel2018-openmpi3.0.0-gcc6.1.0
+#PETSC_ARCH=real-intel2018-openmpi3.0.0-gcc6.1.0
+PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
 HYPRE_LIB=-lHYPRE
 endif
 
