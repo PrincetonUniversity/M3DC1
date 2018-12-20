@@ -15,6 +15,9 @@ cmake_host_system_information(RESULT HOST QUERY HOSTNAME)
 message(STATUS "Configuring to build on: ${HOST}")
 
 # rhel/centos place x86-64 libs in lib64 instead of lib
+# this *shouldn't* effect searching the lib directory
+# first on other distros where the default install location
+# is lib instead of lib64 (like debian derivatives)
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE)
 
 # prefer static libraries unless we explicitly specify no to
