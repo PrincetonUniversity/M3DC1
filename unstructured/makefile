@@ -156,7 +156,8 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o \
 	init_conds.o \
-	get_pc_skip_count.o
+	get_pc_skip_count.o \
+	parse_solver_options.o
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o

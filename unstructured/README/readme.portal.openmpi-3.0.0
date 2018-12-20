@@ -6,8 +6,8 @@ Updated
 2. code
 
 3. load modules and set enviroments
-  	module load intel/2015.u1 openmpi/1.10.3 gcc/6.1.0
-        module load gsl szip hdf5-parallel/1.8.17
+        module load intel/2018.u1 openmpi/3.0.0 gcc/6.1.0
+        module load gsl fftw/3.3.7 szip/2.1.1 hdf5-parallel/1.10.2
         setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/portalr6
 
 4. compile code
@@ -20,12 +20,12 @@ Updated
     - add PAR=1 for PIC 
 
 5. mesh utility
-    /p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7/bin
+    /p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2018-openmpi3.0.0-gcc6.1.0/bin
 
 6. prepare jobscript
 
 	#!/bin/bash -vx
-        #SBATCH --partition=kruskal;mque;ellis etc.
+        #SBATCH --partition=kruskal;mque;ellis;greene etc.
         #SBATCH --ntasks=N (max=64)
         #SBATCH -J m3dc1
 	#SBATCH -t 01:00:00
@@ -41,9 +41,20 @@ Updated
 	#3D real with PETSc
 	mpirun --bind-to none  -np N ./m3dc1_3d -ipetsc -options_file options_bjacobi
 
-       #3D real with Trilinos
-       mpirun --bind-to none  -np N ./m3dc1_3d_trilinos
- 
+   **** 6.1 options_bjacobi ***
+	-pc_type bjacobi
+	-pc_bjacobi_blocks 16
+	-sub_pc_type lu
+	-sub_pc_factor_mat_solver_package superlu_dist
+	-sub_ksp_type preonly
+	-ksp_type fgmres
+	-ksp_max_it 10000
+	-ksp_rtol 1.e-9
+	-ksp_atol 1.e-20
+	-ksp_converged_reason
+	-on_error_abort
+
+
 7. submit job
         sbatch jobscript
 	

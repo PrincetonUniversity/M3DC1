@@ -12367,13 +12367,13 @@ real function energy_mp(mask)
      endif
 #endif
   else
-!    nonlinear:   subtract off equilibrium piece
+!    nonlinear:  do not subtract off equilibrium piece
      temp = .5* &
           (int4(ri2_79,pst79(:,OP_DZ),pst79(:,OP_DZ),temp79a) &
-          +int4(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR),temp79a)) &
-          - .5* &
-          (int4(ri2_79,ps079(:,OP_DZ),ps079(:,OP_DZ),temp79a) &
-          +int4(ri2_79,ps079(:,OP_DR),ps079(:,OP_DR),temp79a))
+          +int4(ri2_79,pst79(:,OP_DR),pst79(:,OP_DR),temp79a)) ! &
+!          - .5* &
+!          (int4(ri2_79,ps079(:,OP_DZ),ps079(:,OP_DZ),temp79a) &
+!          +int4(ri2_79,ps079(:,OP_DR),ps079(:,OP_DR),temp79a))
 #if defined(USE3D)
      if(numvar.gt.1) then
         temp = temp   &

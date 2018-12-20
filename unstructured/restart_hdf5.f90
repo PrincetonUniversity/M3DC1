@@ -21,6 +21,7 @@ contains
     character(LEN=19) :: time_group_name
 
     integer :: times_output_in, i3d_in, istartnew
+    real :: xnullt,znullt,xnull2t,znull2t
 
     if(myrank.eq.0) print *, 'Reading HDF5 file for restart.'
 
@@ -100,12 +101,21 @@ contains
     call read_scalar(scalar_group_id, "time"        , time    , ntime, error)
 
     ! Magnetic Geometry
-    call read_scalar(scalar_group_id, "xnull"       , xnull   , ntime, error)
-    call read_scalar(scalar_group_id, "znull"       , znull   , ntime, error)
-    call read_scalar(scalar_group_id, "xnull2"      , xnull2  , ntime, error)
-    call read_scalar(scalar_group_id, "znull2"      , znull2  , ntime, error)
+    call read_scalar(scalar_group_id, "xnull"       , xnullt   , ntime, error)
+    call read_scalar(scalar_group_id, "znull"       , znullt   , ntime, error)
+    call read_scalar(scalar_group_id, "xnull2"      , xnull2t  , ntime, error)
+    call read_scalar(scalar_group_id, "znull2"      , znull2t  , ntime, error)
     call read_scalar(scalar_group_id, "xmag"        , xmag    , ntime, error)
     call read_scalar(scalar_group_id, "zmag"        , zmag    , ntime, error)
+
+    if(mod_null_rs .eq.0) then
+      xnull = xnullt
+      znull = znullt
+    endif
+    if(mod_null_rs2 .eq.0) then
+      xnull2 = xnull2t
+      znull2 = znull2t
+    endif
 
     ! Pellet stuff
     if(version_in.le.25) then
