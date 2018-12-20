@@ -10,6 +10,10 @@ Updated
         module load gsl fftw/3.3.7 szip/2.1.1 hdf5-parallel/1.10.2
         setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/portalr6
 
+    and
+
+    copy sunfire.openmpi-3.0.0.mk sunfire.pppl.gov.mk
+
 4. compile code
   For PETSc-real
     - (2D) make OPT=1
