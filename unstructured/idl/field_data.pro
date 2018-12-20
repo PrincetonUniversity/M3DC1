@@ -130,6 +130,35 @@ function field_data, name, units=units, itor=itor, filename=filename
    endif else if(strcmp(name, 'kprad_sigma_e', /fold_case) eq 1) then begin
       units = dimensions(n0=1,t0=-1)
       return, "!7r!D!6KPRAD,e!N!X"
+   endif else if(strcmp(name, 'kprad_totden', /fold_case) eq 1) then begin
+      units = dimensions(n0=1)
+      return, "!8n!D!6Z,KPRAD!N!X"
+   endif else if(strcmp(name, 'kprad_rad', /fold_case) eq 1) then begin
+      units = dimensions(/p0,t0=-1)
+      version = read_parameter('version',filename=filename)
+      if(version lt 22) then begin
+         return, "!8P!D!6KPRAD,total!N!X"
+      endif else begin
+         return, "!8P!D!6KPRAD,line!N!X"
+      end
+   endif else if(strcmp(name, 'kprad_brem', /fold_case) eq 1) then begin
+      units = dimensions(/p0,t0=-1)
+      return, "!8P!D!6KPRAD,brem!N!X"
+   endif else if(strcmp(name, 'kprad_ion', /fold_case) eq 1) then begin
+      units = dimensions(/p0,t0=-1)
+      return, "!8P!D!6KPRAD,ion!N!X"
+   endif else if(strcmp(name, 'kprad_reck', /fold_case) eq 1) then begin
+      units = dimensions(/p0,t0=-1)
+      return, "!8P!D!6KPRAD,reck!N!X"
+    endif else if(strcmp(name, 'kprad_recp', /fold_case) eq 1) then begin
+      units = dimensions(/p0,t0=-1)
+      return, "!8P!D!6KPRAD,recp!N!X"
+endif else if(strcmp(name, 'rad_source', /fold_case) eq 1) then begin
+      units = dimensions(/p0,t0=-1)
+      return, "!8Q!D!6rad!N!X"
+   endif else if(strcmp(name, 'zeff', /fold_case) eq 1) then begin
+      units = dimensions()
+      return, "!8Z!D!8eff!N!X"
    endif else if(strcmp(name, 'kprad_n', 7, /fold_case) eq 1) then begin
       z = fix(read_parameter('kprad_z', filename=filename))
       nz = fix(strmid(name, 8, 2))

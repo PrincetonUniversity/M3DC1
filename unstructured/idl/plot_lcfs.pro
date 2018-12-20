@@ -14,11 +14,11 @@ pro plot_lcfs, psi, x, z, psival=psival, _EXTRA=extra
 
     ; if psival not passed, choose limiter value
     if(n_elements(psival) eq 0) then $
-      psival = lcfs(psi,x,z,_EXTRA=extra)
+      psival = lcfs(psi,x,z,axis=axis,_EXTRA=extra)
 
     ; plot contour
     loadct, 12
-    xy = path_at_flux(psi, x, z, t, psival, /contiguous)
+    xy = path_at_flux(psi, x, z, t, psival, /contiguous, axis=axis)
 
     oplot, xy[0,*], xy[1,*], thick=!p.thick*1.5, color=color(6,10)
 end

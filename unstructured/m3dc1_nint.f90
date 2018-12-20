@@ -87,21 +87,21 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
        temp79d, temp79e, temp79f
 !$OMP THREADPRIVATE(temp79a,temp79b,temp79c,temp79d,temp79e,temp79f)
-  vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, nei79, b2i79, bi79
-!$OMP THREADPRIVATE(tm79,ni79,nei79,b2i79,bi79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, b2i79, bi79
+!$OMP THREADPRIVATE(tm79,ni79,b2i79,bi79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
        ph179, vz179, ch179, p179, ne179, pi179
 !$OMP THREADPRIVATE(ps179,bz179,pe179,n179,ph179,vz179,ch179,p179,ne179,pi179)
   vectype, dimension(MAX_PTS, OP_NUM) :: pst79, bzt79, pet79, nt79, &
        pht79, vzt79, cht79, pt79, net79
 !$OMP THREADPRIVATE(pst79,bzt79,pet79,nt79,pht79,vzt79,cht79,pt79,net79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: rho79
-!$OMP THREADPRIVATE(rho79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: rho79, nw79
+!$OMP THREADPRIVATE(rho79, nw79)
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, fy79, q79, cd79, rad79, sie79, sii79
-!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,rad79,sie79,sii79)
+       eta79, sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79
+!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
 !$OMP THREADPRIVATE(bf079,bf179,bft79)
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
@@ -127,6 +127,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(nre79)
   vectype, dimension(MAX_PTS, OP_NUM) :: wall79
 !$OMP THREADPRIVATE(wall79)
+  vectype, dimension(MAX_PTS) :: qd79
+!$OMP THREADPRIVATE(qd79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -433,8 +435,8 @@ contains
     integer, intent(in) :: itri, fieldi, gdef, ilin
     integer, intent(in), optional :: ieqs
 
-    real :: fac, efac
-    integer :: izone, ieqsub, fields
+    real :: fac
+    integer :: izone, ieqsub, fields, i
     type(element_data) :: d
 
     fields = fieldi
@@ -691,6 +693,7 @@ contains
              pt79(:,OP_1) = pe_floor
           end where
        end if
+
     endif
    
     
@@ -722,7 +725,7 @@ contains
                    n079(:,OP_1) = den_edge
                 end where
              end if
-             ne079 = n079*zeff
+             ne079 = n079*z_ion
           else
              call eval_ops(itri, den_field(0), n079)
              call eval_ops(itri, ne_field(0), ne079)
@@ -783,7 +786,52 @@ contains
      ni79(:,OP_GSPP) = -nt79(:,OP_GSPP)*ni79(:,OP_1)**2 &
           - 2.*nt79(:,OP_GSP)*ni79(:,OP_1)*ni79(:,OP_DP)
 #endif
-     nei79 = ni79/zeff
+
+
+     if(linear.eq.0) then
+        where(ni79.ne.ni79) ni79 = 0.
+        where(real(ni79(:,OP_1)).lt.0.) ni79(:,OP_1) = 0.
+     end if
+  endif
+
+  ! TE
+  ! ~~~
+  if(iand(fields, FIELD_TE).eq.FIELD_TE) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TE..."
+     
+     if(ilin.eq.0) then
+        call eval_ops(itri, te_field(1), te179, rfac)
+     else
+        te179 = 0.
+     endif
+     
+     if(ieqsub.eq.1) then
+        call eval_ops(itri, te_field(0), te079)
+        tet79 = te079 + te179
+     else
+        te079 = 0.
+        tet79 = te179
+     endif
+  endif
+  
+  ! TI
+  ! ~~~
+  if(iand(fields, FIELD_TI).eq.FIELD_TI) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TI..."
+     
+     if(ilin.eq.0) then
+        call eval_ops(itri, ti_field(1), ti179, rfac)
+     else
+        ti179 = 0.
+     endif
+     
+     if(ieqsub.eq.1) then
+        call eval_ops(itri, ti_field(0), ti079)
+        tit79 = ti079 + ti179
+     else
+        ti079 = 0.
+        tit79 = ti179
+     endif
   endif
   
   ! J
@@ -831,7 +879,7 @@ contains
      b2i79 = 0.
 
      temp79a = ri2_79* &
-          (pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2 + bztx79(:,OP_1)**2)
+          (pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2 + k_fac*bztx79(:,OP_1)**2)
 
 #if defined(USECOMPLEX) || defined(USE3D)
      temp79b = &
@@ -846,10 +894,10 @@ contains
      bi79(1:npoints,OP_1)  = sqrt(b2i79(1:npoints,OP_1))
      b2i79(:,OP_DR) = ri2_79 * &
           (pstx79(:,OP_DR)*pstx79(:,OP_DRR)+pstx79(:,OP_DZ)*pstx79(:,OP_DRZ) &
-          +bztx79(:,OP_1 )*bztx79(:,OP_DR ))
+          +k_fac*bztx79(:,OP_1 )*bztx79(:,OP_DR ))
      b2i79(:,OP_DZ) = ri2_79 * &
           (pstx79(:,OP_DR)*pstx79(:,OP_DRZ)+pstx79(:,OP_DZ)*pstx79(:,OP_DZZ) &
-          +bztx79(:,OP_1 )*bztx79(:,OP_DZ ))
+          +k_fac*bztx79(:,OP_1 )*bztx79(:,OP_DZ ))
 
      if(itor.eq.1) then 
         b2i79(:,OP_DR) = b2i79(:,OP_DR) - ri_79*temp79a
@@ -927,17 +975,16 @@ contains
            eta79 = eta79*eta_fac
            !     else if(iresfunc.eq.0 .or. iresfunc.eq.4) then
         else if(iresfunc.eq.4) then
-           ! eta = efac / T^1.5
-           efac = eta_fac * &
-                3.4e-22*n0_norm**2/(b0_norm**4*l0_norm) &
-                *zeff*lambda_coulomb*sqrt(ion_mass)
-
            ! Here eta79 = 1/T^1.5 .  Factor of efac is included later
            eta79 = 0.
            eta79(:,OP_1) = eta_max / efac
 
            ! Te
-           temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
+           if(itemp.eq.1) then
+              temp79b = tet79(:,OP_1) - eta_te_offset
+           else
+              temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
+           end if
 
 #ifdef USE3D
            ! dTe/dphi
@@ -987,10 +1034,20 @@ contains
            end where
 
            eta79 = eta79 * efac
+
+           call calculate_zeff(itri,temp79a)
+           do i=1, OP_NUM
+              eta79(:,i) = eta79(:,i) * temp79a
+           end do
         else
            call eval_ops(itri, resistivity_field, eta79)
         end if
+
+        where(eta79.ne.eta79) eta79 = 0.
+        where(real(eta79(:,OP_1)).lt.0.) eta79(:,OP_1) = 0.
+        where(real(eta79(:,OP_1)).gt.eta_max) eta79(:,OP_1) = eta_max
      end if
+
   end if
 
   ! KAP
@@ -1049,9 +1106,20 @@ contains
        .and. rad_source) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Rad..."
 
-     call eval_ops(itri, Rad_field, rad79)
+     call eval_ops(itri, Totrad_field,  totrad79)
+     call eval_ops(itri, Linerad_field, linerad79)
+     call eval_ops(itri, Bremrad_field, bremrad79)
+     call eval_ops(itri, Ionrad_field,  ionrad79)
+     call eval_ops(itri, Reckrad_field, reckrad79)
+     call eval_ops(itri, Recprad_field, recprad79)
+     
   else
-     rad79 = 0.
+     totrad79 = 0.
+     linerad79 = 0.
+     bremrad79 = 0.
+     ionrad79 = 0.
+     reckrad79 = 0.
+     recprad79 = 0.
   end if
 
   ! cd
@@ -1107,45 +1175,6 @@ contains
     endif
 
 
-    ! TE
-    ! ~~~
-    if(iand(fields, FIELD_TE).eq.FIELD_TE) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TE..."
-       
-       if(ilin.eq.0) then
-          call eval_ops(itri, te_field(1), te179, rfac)
-       else
-          te179 = 0.
-       endif
-       
-       if(ieqsub.eq.1) then
-          call eval_ops(itri, te_field(0), te079)
-          tet79 = te079 + te179
-       else
-          te079 = 0.
-          tet79 = te179
-       endif
-    endif
-
-    ! TI
-    ! ~~~
-    if(iand(fields, FIELD_TI).eq.FIELD_TI) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   TI..."
-       
-       if(ilin.eq.0) then
-          call eval_ops(itri, ti_field(1), ti179, rfac)
-       else
-          ti179 = 0.
-       endif
-       
-       if(ieqsub.eq.1) then
-          call eval_ops(itri, ti_field(0), ti079)
-          tit79 = ti079 + ti179
-       else
-          ti079 = 0.
-          tit79 = ti179
-       endif
-    endif
     ! Electrostatic Potential
     ! ~~~
     if((iand(fields, FIELD_ES).eq.FIELD_ES)   &

@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 21
+  integer, parameter :: version = 26
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -20,8 +20,10 @@ module basic
 
   real, parameter :: c_light = 2.9979e10
   real, parameter :: e_c = 4.8032e-10
-  real, parameter :: m_p = 1.6726e-24
-  real, parameter :: me_mi = 1./1836.2
+  real, parameter :: m_p = 1.6726219e-24
+  real, parameter :: m_e = 9.1094e-28
+  real, parameter :: me_mp = m_e / m_p
+  real, parameter :: mp_me = m_p / m_e
 
   logical :: print_help
 
@@ -39,6 +41,7 @@ module basic
   real :: p0_norm
   real :: e0_norm
   real :: j0_norm
+  real :: m0_norm
 
   ! transport coefficients
   real :: amu         ! incompressible viscosity
@@ -63,6 +66,7 @@ module basic
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappah      ! phenomenological model for H-mode
   real :: kappar      ! coefficient of field-aligned temperature diffusion
+  real :: k_fac   ! factor by which the toroidal field is multiplied in 1/B^2 that appears in kappa_parallel
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: kappag
   real :: kappaf
@@ -70,6 +74,9 @@ module basic
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
   real :: gradp_crit
+  real :: temin_qd    ! minimum temperature used in equipartition term for ipres=1
+  real :: efac        ! eta = efac / T^(3/2)
+  real :: nufac       ! nu = nufac * n / T^(3/2)
 
 
   ! physical parameters
@@ -80,7 +87,7 @@ module basic
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
   real :: mass_ratio  ! me/mi (in units of me/mp)
-  real :: zeff        ! Effective Z of ion fluid
+  real :: z_ion       ! Z of main ion species
   real :: ion_mass    ! Effective mass of ions (in proton mass/particle)
   real :: lambda_coulomb ! coulomb logarithm
   real :: thermal_force_coeff
@@ -149,6 +156,7 @@ module basic
   integer :: irestart ! 1 = reads restart file as initial condition
                       ! 2 = reads restart file to initialize GS solve
                       ! 3 = reads 2D RL=1 restart file o initialize 2D COM=1 run
+  integer :: irestart_slice   ! field output timeslice from which to restart
   integer :: version_in  ! Version of restart file
   integer :: itaylor  ! equilibrium
   integer :: idevice  ! for itor=1, itaylor=1, selects tokamak configuration
@@ -275,6 +283,8 @@ module basic
   integer :: kinetic     ! 1 = use kinetic PIC hot ion pressure tensor
                          ! 2 = CGL form for the pressure tensor (incompressible)
                          ! 3 = CGL form for pressure tensor (full)
+  integer :: iohmic_heating  ! 1 = include ohmic heating
+  integer :: irad_heating  ! 1 = include radiation heat source
 
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
@@ -340,7 +350,11 @@ module basic
   real :: xray_sigma     ! spread of xray detector chord (degrees)
 
   ! current controller parameters
-  real :: tcur           ! target toroidal current
+  real :: tcur           ! target toroidal current (constant in time)
+  real :: tcuri          ! initial current for variable target current
+  real :: tcurf          ! final current for variable target current
+  real :: tcur_t0        ! transition time for variable target current
+  real :: tcur_tw        ! transition time width for variable target current
   real :: control_p      ! proportionality constant
   real :: control_i      ! integral control inverse time-scale
   real :: control_d      ! derivative control time-scale
@@ -378,6 +392,8 @@ module basic
   integer :: iread_ne      
   integer :: iread_te
   integer :: iread_p
+  integer :: iread_f
+  integer :: iread_j
   integer :: iread_heatsource ! 1 = read heat source profile (in terms of Psi normalized), source is scaled with ghs_rate
   integer :: iread_particlesource ! 1 = read particle source profile (in terms of Psi normalized), source is scaled with pellet_rate
   integer :: iheat_sink   !  add a sink term in p equation (initially for itaylor=27)
@@ -428,6 +444,9 @@ module basic
 
   integer :: ntime, ntime0
 
+  ! Deprecated
+  real :: zeff_xxx       ! Effective Z of ion fluid
+
   ! MPI variable(s)
   integer myrank, maxrank
 
@@ -455,7 +474,8 @@ module arrays
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
   type(field_type) :: resistivity_field, kappa_field
-  type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field, Rad_field
+  type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
+  type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
 
   type(field_type) :: temporary_field

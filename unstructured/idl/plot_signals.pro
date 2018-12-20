@@ -10,7 +10,7 @@ pro plot_signals, signal, deriv=der, filename=filename, power_spectrum=pspec, $
      ifl = read_parameter('imag_probes', filename=filename)
      sigdir = 'mag_probes'
      if(keyword_set(der)) then begin
-        dim = dimensions(/b0, t0=-1)
+        dim = dimensions(/b0)
         ytitle='!9p!8!Dt!N!5B!9.!5n!6 (' + $
                make_units(/b0,t0=-1,filename=filename,_EXTRA=extra)+')!X'
      endif else begin
@@ -22,9 +22,9 @@ pro plot_signals, signal, deriv=der, filename=filename, power_spectrum=pspec, $
      ifl = read_parameter('iflux_loops', filename=filename)
      sigdir = 'flux_loops'
      if(keyword_set(der)) then begin
-        dim = dimensions(/b0, l0=2, t0=-1)
+        dim = dimensions(/b0, l0=2)
         ytitle='!9p!8!Dt!N!7W!D!8p!N!6 (' + $
-               make_units(/b0,l0=2,t0=-1,filename=filename,_EXTRA=extra)+')!X'
+               make_units(/pot,filename=filename,_EXTRA=extra)+')!X'
      endif else begin
         dim = dimensions(/b0, l0=2)
         ytitle='!7W!D!8p!N!6 (' + $
@@ -79,7 +79,7 @@ pro plot_signals, signal, deriv=der, filename=filename, power_spectrum=pspec, $
   if(n_elements(outfile) eq 1) then begin
      openw, ifile, outfile, /get_lun
      for i=0, n_elements(tdata)-1 do begin
-        printf, format='(100F12.4)', ifile, tdata[i], data[*,i]
+        printf, format='(100G12.4)', ifile, tdata[i], data[*,i]
      end
      free_lun, ifile
   end

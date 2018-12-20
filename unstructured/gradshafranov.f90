@@ -404,6 +404,41 @@ subroutine define_profiles
      end do
   end if
 
+
+  ! define toroidal field profile
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, ' defining R*Bphi profile'
+  ierr = 0
+  select case(iread_f)
+     
+  case(1)
+     ! Read in T*m
+     nvals = 0
+     call read_ascii_column('profile_f', xvals, nvals, icol=1)
+     call read_ascii_column('profile_f', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     yvals = yvals * 1e6 / (b0_norm*l0_norm)
+
+  case default
+
+  end select
+
+  if(allocated(yvals)) then
+     bzero = yvals(nvals)/rzero
+     yvals = 0.5*(yvals**2 - yvals(nvals)**2)
+     call destroy_spline(g0_spline)
+     call create_spline(g0_spline, nvals, xvals, yvals)
+     deallocate(xvals, yvals)
+
+     call destroy_spline(ffprime_spline)
+     call copy_spline(ffprime_spline, g0_spline)
+     do i=1, ffprime_spline%n
+        call evaluate_spline(g0_spline, ffprime_spline%x(i), pval, ppval)
+        ffprime_spline%y(i) = ppval
+     end do
+  end if
+
+
   ! If p' and ff' profiles are not yet defined, define them
   if(.not.allocated(p0_spline%x)) then
      if(inumgs .eq. 1) then
@@ -579,7 +614,7 @@ subroutine define_profiles
      call copy_spline(n0_spline, te_spline)
      do i=1, te_spline%n
         call evaluate_spline(p0_spline, n0_spline%x(i), pval)
-        n0_spline%y(i) = pefac*pval/(zeff*te_spline%y(i))
+        n0_spline%y(i) = pefac*pval/(z_ion*te_spline%y(i))
      end do
      call destroy_spline(te_spline)
 
@@ -598,14 +633,14 @@ subroutine define_profiles
              if(myrank.eq.0 .and. iprint.ge.0) print *,"nvals=0 when reading profile_ne"
              call safestop(5)
         endif
-        yvals = yvals * 1e14 / n0_norm / zeff
+        yvals = yvals * 1e14 / n0_norm / z_ion
         
      case(2)
         ! Read in 10^19/m^3 vs Psi
         call read_ascii_column('dne.xy', xvals, nvals, skip=3, icol=1)
         call read_ascii_column('dne.xy', yvals, nvals, skip=3, icol=7)
         if(nvals.eq.0) call safestop(5)
-        yvals = yvals * 1e13 / n0_norm / zeff
+        yvals = yvals * 1e13 / n0_norm / z_ion
         
      case(4)
         ! Read in cm^-3 vs Rho (sqrt Phi)
@@ -613,7 +648,7 @@ subroutine define_profiles
         call read_ascii_column('profile_ne_rho_0', xvals, nvals, icol=1)
         call read_ascii_column('profile_ne_rho_0', yvals, nvals, icol=2)
         if(nvals.eq.0) call safestop(5)
-        yvals = yvals / n0_norm / zeff
+        yvals = yvals / n0_norm / z_ion
         xvals = xvals / xvals(nvals) ! normalize rho
         call rho_to_psi(nvals, xvals, xvals)
 
@@ -625,7 +660,7 @@ subroutine define_profiles
         call read_ascii_column('corsica', yvals, nvals, icol=8, &
           read_until='profile data:', skip=2)
         if(nvals.eq.0) call safestop(5)
-        yvals = yvals * 1e14 / n0_norm / zeff
+        yvals = yvals * 1e14 / n0_norm / z_ion
 
      case(20)
         ! Read from iterdb text file (m^-3 vs Psi)
@@ -634,7 +669,7 @@ subroutine define_profiles
         xvals = idb_psi
         xvals = (xvals(:) - xvals(1)) / (xvals(nvals) - xvals(1))
         yvals = idb_ne
-        yvals = yvals / 1e6 / n0_norm / zeff
+        yvals = yvals / 1e6 / n0_norm / z_ion
         
      case default
         call density_profile
@@ -657,9 +692,9 @@ subroutine define_profiles
      end if
 
      if(allocated(te_spline%y)) then
-        ! pedge = ni*(Zeff*Te + Tiedge)
+        ! pedge = ni*(Z*Te + Tiedge)
         pedge = n0_spline%y(n0_spline%n)* &
-             (Zeff*te_spline%y(te_spline%n) + tiedge)
+             (z_ion*te_spline%y(te_spline%n) + tiedge)
      else
         ! (1-pefac) * pedge = ni*Tiedge
         pedge = n0_spline%y(n0_spline%n)*tiedge / (1. - pefac)
@@ -674,11 +709,11 @@ subroutine define_profiles
         teold = te_spline%y(te_spline%n)
         te_spline%y = te_spline%y - teold + tedge
      else
-        teold = pefac*p0_spline%y(p0_spline%n)/n0_spline%y(n0_spline%n)/zeff
+        teold = pefac*p0_spline%y(p0_spline%n)/n0_spline%y(n0_spline%n)/z_ion
      end if
      ! add difference to pressure profile, so ion temp is not affected.
      if(pedge.le.0.) then
-        p0_spline%y = p0_spline%y + n0_spline%n*(tedge - teold)*zeff
+        p0_spline%y = p0_spline%y + n0_spline%n*(tedge - teold)*z_ion
      end if
   end if
 
@@ -846,8 +881,8 @@ subroutine calc_omega_profile
               call evaluate_spline(te_spline, omega_spline%x(i), &
                    te0,tep,iout=iout)
               if(iout.eq.1) tep = 0.
-              dia = db*(ppval/nval - zeff*(1.+thermal_force_coeff)*tep &
-                   - zeff*te0*np/nval)
+              dia = db*(ppval/nval - z_ion*(1.+thermal_force_coeff)*tep &
+                   - z_ion*te0*np/nval)
            else
               dia = db*(1.-pefac)*ppval/nval
            endif
@@ -907,7 +942,7 @@ subroutine extend_pressure
         call evaluate_spline(n0_spline, pe_spline%x(i), n_val)
      if(allocated(te_spline%y)) then
         call evaluate_spline(te_spline, pe_spline%x(i), t_val)
-        pe_spline%y(i) = t_val*n_val*zeff
+        pe_spline%y(i) = t_val*n_val*z_ion
      else
         pe_spline%y(i) = p0_val*(p0-pi0)/p0*(n_val/n0_val)
      end if
@@ -1204,8 +1239,14 @@ subroutine gradshafranov_solve
         if(myrank.eq.0 .and. iprint.ge.1) then
            write(*,'(A,1p4e12.4)') ' Error in GS solution: ', error, error2, xmag, zmag
         endif
-        ! if error is NaN, quit
-        if(error.ne.error) call safestop(11)
+        ! if error is NaN, quit if itnum > 2   (needed to run on KNL)
+        if(error.ne.error) then
+             if(itnum.le.2) then
+                   error = 1.  
+             else
+                   call safestop(11)
+             endif
+        endif
 
         ! if error is sufficiently small, stop iterating
         if(itnum .gt. 1 .and. error2 .lt. tol_gs) exit mainloop
@@ -1379,7 +1420,7 @@ subroutine gradshafranov_solve
      call eval_ops(itri, pe_field(0), pe079)
      call eval_ops(itri, den_field(0), n079)
      
-     temp79a = (pe079(:,OP_1)) / (zeff*n079(:,OP_1))
+     temp79a = (pe079(:,OP_1)) / (z_ion*n079(:,OP_1))
      temp79b = (p079(:,OP_1) - pe079(:,OP_1)) / n079(:,OP_1)
      
      temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
@@ -1452,6 +1493,7 @@ subroutine calculate_error(error, error2, psinew)
   norm = 0.
   sum2 = 0.
   norm2 = 0.
+  temp2 = 0
 
   numnodes = owned_nodes()
   do i=1,numnodes
@@ -2716,7 +2758,7 @@ subroutine calc_electron_pressure(ps0, pe, x, z, izone)
         call evaluate_spline(te_spline,psii,te0)
      end if
      call calc_density(ps0, n0, x, z, izone)
-     pe = zeff*n0*te0    ! (ni = n0; ne = ni*Zeff)
+     pe = z_ion*n0*te0    ! (ni = n0; ne = ni*Z_ion)
   else
      call calc_pressure(ps0, pres0, x, z, izone)
      pe = pres0*pefac

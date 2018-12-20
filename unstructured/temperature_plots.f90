@@ -228,42 +228,39 @@ subroutine ohmic(o)
   implicit none
 
   vectype, dimension(MAX_PTS), intent(out) :: o
-  real :: ohfac
-  ohfac = 1.
-  if(ipres.eq.0) ohfac = 0.5
 
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
-      o = (gam-1.)*ohfac* &
+      o = (gam-1.)* &
               ri2_79*pst79(:,OP_GS)* pst79(:,OP_GS)* eta79(:,OP_1)   
 #if defined(USE3D) || defined(USECOMPLEX)
-       o = o + (gam-1)*ohfac*   &
+       o = o + (gam-1)*   &
            (ri4_79*pst79(:,OP_DRP)*pst79(:,OP_DRP)*eta79(:,OP_1)   &
          +  ri4_79*pst79(:,OP_DZP)*pst79(:,OP_DZP)*eta79(:,OP_1))
 #endif
 
        if(numvar.ge.2) then
          
-         o = o + (gam-1.)*ohfac* &
+         o = o + (gam-1.)* &
               (ri2_79*bzt79(:,OP_DZ)*bzt79(:,OP_DZ)*eta79(:,OP_1) &
               +ri2_79*bzt79(:,OP_DR)*bzt79(:,OP_DR)*eta79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-         o = o + 2.*(gam-1.)*ohfac* &
+         o = o + 2.*(gam-1.)* &
               (ri3_79*pst79(:,OP_DZP)*bzt79(:,OP_DR)*eta79(:,OP_1)  &
               -ri3_79*pst79(:,OP_DRP)*bzt79(:,OP_DZ)*eta79(:,OP_1))
 
           if(i3d .eq. 1) then
 
-             o = o +  2.*(gam-1.)*ohfac* &
+             o = o +  2.*(gam-1.)* &
              (ri3_79*pst79(:,OP_DZP)*bft79(:,OP_DRPP)*eta79(:,OP_1)  &
              -ri3_79*pst79(:,OP_DRP)*bft79(:,OP_DZPP)*eta79(:,OP_1))
 
-             o = o + (gam-1.)*ohfac* &
+             o = o + (gam-1.)* &
              (ri2_79*bzt79(:,OP_DZ)*bft79(:,OP_DZPP)*eta79(:,OP_1) &
              +ri2_79*bzt79(:,OP_DR)*bft79(:,OP_DRPP)*eta79(:,OP_1))
 
-             o = o + (gam-1.)*ohfac* &
+             o = o + (gam-1.)* &
                (ri2_79*bft79(:,OP_DZPP)*bft79(:,OP_DZPP)*eta79(:,OP_1) &
              +  ri2_79*bft79(:,OP_DRPP)*bft79(:,OP_DRPP)*eta79(:,OP_1))      
           endif
@@ -424,24 +421,20 @@ subroutine f3eplot_sub(term)
   implicit none
   vectype, intent(out), dimension(dofs_per_element) :: term
 
-  vectype :: ohfac
   vectype, dimension(dofs_per_element) :: tempx
-
-  ohfac = 1.
-  if(ipres.eq.0) ohfac = 0.5
-
 
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
   tempx = b3psipsieta(mu79,pst79,pst79,eta79) &
        +  b3bbeta    (mu79,bzt79,bzt79,eta79) &
        +  b3psibeta  (mu79,pst79,bzt79,eta79) 
-  term = tempx*ohfac
+  term = tempx
+
   if(i3d .eq. 1) then
      tempx = b3psifeta(mu79,pst79,bft79,eta79) &
           +  b3bfeta  (mu79,bzt79,bft79,eta79) &
           +  b3ffeta  (mu79,bft79,bft79,eta79)   
-     term = term + tempx*ohfac
+     term = term + tempx
   endif
 
   ! Perpendicular Heat Flux

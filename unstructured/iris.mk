@@ -5,8 +5,7 @@ F77 = mpif90
 LOADER = mpif90
 
 FOPTS = -c -cpp -fdefault-real-8 -fdefault-double-8 -Wall -static $(OPTS) \
-        -Wno-unused-variable -ffree-line-length-0 -Wno-unused-dummy-argument \
-        -Dglobalinsertval=insertval -Dglobalentdofs=entdofs
+        -Wno-unused-variable -ffree-line-length-0 -Wno-unused-dummy-argument
 
 CCOPTS  = -c  -Wall -Wwrite-strings -Wno-strict-aliasing -Wno-unknown-pragmas -g3 $(OPTS)
 

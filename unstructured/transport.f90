@@ -28,6 +28,7 @@ function sigma_func(izone)
   integer :: iregion, j
   integer :: nvals
   real :: val, valp, valpp, pso
+  real :: rate
   real, allocatable :: xvals(:), yvals(:)
 
   ! Don't allow particle source in wall or vacuum region
@@ -40,29 +41,20 @@ function sigma_func(izone)
 
   ! Pellet injection model
 
-  if(ipellet.gt.0 .and. ipellet_z.eq.0) then
+  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.)) then
 
-     if(ipellet_abl.gt.0.) then
-
-        if(pellet_var.lt.1.e-8) then
-           pellet_var = 0.
-           temp79a = 0.
+     if(ipellet_abl.gt.0. .and. pellet_var.lt.1.e-8) then
+        pellet_var = 0.
+        temp79a = 0.
+     else
+        if(pellet_mix.eq.0.) then
+           rate = pellet_rate
         else
-           select case(ipellet_abl)
-           case(1)
-              temp79a = pellet_deposition(x_79, phi_79, z_79, &
-                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate1)
-           case(2)
-              temp79a = pellet_deposition(x_79, phi_79, z_79, &
-                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate2)
-           end select
-        endif
-
-      else 
-          temp79a = pellet_deposition(x_79, phi_79, z_79, &
-                real(pt79(:,OP_1)), real(nt79(:,OP_1)), pellet_rate)
-      endif
-
+           rate = pellet_rate_D2*2.0 ! two deuterium ions per D2 molecule
+        end if
+        temp79a = rate*pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+     endif
+     
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 
   endif
@@ -396,7 +388,7 @@ function q_func(izone)
      do j=1,npoints
         rsq = r(j)**2
 !       temp79a(j) = coolrate*(pfunc(rsq)-pt79(j,OP_1))
-        temp79a(j) = coolrate*(pfunc(rsq)) ! now use new time p in pressure_lin
+        temp79a(j) = pefac*coolrate*(pfunc(rsq)) ! now use new time p in pressure_lin
      end do
      temp79a = temp79a*(1. + tanh((r-libetap)/p1))
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
@@ -405,7 +397,7 @@ function q_func(izone)
   q_func = temp
 end function q_func
 
-function rad_func(itri)
+function totrad_func(itri)
   use math
   use basic
   use m3dc1_nint
@@ -420,7 +412,7 @@ function rad_func(itri)
 
   integer, intent(in) :: itri
 
-  vectype, dimension(dofs_per_element) :: rad_func
+  vectype, dimension(dofs_per_element) :: totrad_func
   vectype, dimension(dofs_per_element) :: temp
   integer :: j, ierr, nvals
   real :: val, pso
@@ -487,10 +479,158 @@ function rad_func(itri)
   if(ikprad.ne.0) then
      call eval_ops(itri, kprad_rad, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+     call eval_ops(itri, kprad_brem, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+     call eval_ops(itri, kprad_ion, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+     call eval_ops(itri, kprad_reck, tm79, rfac) ! only kinetic recombination
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if
 
-  rad_func = temp
-end function rad_func
+  totrad_func = temp
+end function totrad_func
+
+function linerad_func(itri)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+  use read_ascii
+  use radiation
+  use basicq
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  vectype, dimension(dofs_per_element) :: linerad_func
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+
+  if(ikprad.ne.0) then
+     call eval_ops(itri, kprad_rad, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+  end if
+
+  linerad_func = temp
+end function linerad_func
+
+function bremrad_func(itri)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+  use read_ascii
+  use radiation
+  use basicq
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  vectype, dimension(dofs_per_element) :: bremrad_func
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+
+  if(ikprad.ne.0) then
+     call eval_ops(itri, kprad_brem, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+  end if
+
+  bremrad_func = temp
+end function bremrad_func
+
+function ionrad_func(itri)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+  use read_ascii
+  use radiation
+  use basicq
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  vectype, dimension(dofs_per_element) :: ionrad_func
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+
+  if(ikprad.ne.0) then
+     call eval_ops(itri, kprad_ion, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+  end if
+
+  ionrad_func = temp
+end function ionrad_func
+
+function reckrad_func(itri)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+  use read_ascii
+  use radiation
+  use basicq
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  vectype, dimension(dofs_per_element) :: reckrad_func
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+
+  if(ikprad.ne.0) then
+     call eval_ops(itri, kprad_reck, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+  end if
+
+  reckrad_func = temp
+end function reckrad_func
+
+function recprad_func(itri)
+  use math
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use neutral_beam
+  use read_ascii
+  use radiation
+  use basicq
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  vectype, dimension(dofs_per_element) :: recprad_func
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+
+  if(ikprad.ne.0) then
+     call eval_ops(itri, kprad_recp, tm79, rfac)
+     temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
+  end if
+
+  recprad_func = temp
+end function recprad_func
+
+
 
 ! Current Drive sources
 ! ~~~~~~~~~~~~~~~~~~
@@ -741,7 +881,8 @@ function kappa_func()
      if(kappa0.eq.0) then
         temp79a = 0.
      else
-        temp79a = kappa0*sqrt(1./(nt79(:,OP_1)*pt79(:,OP_1)))      
+        temp79b = max(den_edge*pedge,real(nt79(:,OP_1))*real(pt79(:,OP_1)))
+        temp79a = kappa0*sqrt(1./temp79b)      
      end if
 
   case(4)
@@ -933,6 +1074,8 @@ subroutine define_transport_coefficients()
   use newvar_mod
   use sparse
   use neutral_beam
+  use pellet
+  use diagnostics
 
   implicit none
 
@@ -943,9 +1086,12 @@ subroutine define_transport_coefficients()
 
   logical, save :: first_time = .true.
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
-       solve_visc_e, solve_q, solve_rad, solve_cd, solve_f, solve_fp, solve_be, solve_al, solve_bs
+       solve_visc_e, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
+       solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
+       solve_fp, solve_be, solve_al, solve_bs
 
-  integer, dimension(13) :: temp, temp2
+  integer, parameter :: num_scalars = 18
+  integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
   ! transport coefficients are only calculated once in linear mode
@@ -963,7 +1109,12 @@ subroutine define_transport_coefficients()
   solve_visc_e = .false.
   solve_f = .false.
   solve_q = .false.
-  solve_rad = .false.
+  solve_totrad = .false.
+  solve_linerad = .false.
+  solve_bremrad = .false.
+  solve_ionrad = .false.
+  solve_reckrad = .false.
+  solve_recprad = .false.
   solve_cd = .false.
   solve_fp = .false.
   solve_be = .false.
@@ -978,7 +1129,14 @@ subroutine define_transport_coefficients()
   if(density_source) sigma_field = 0.  
   if(momentum_source) Fphi_field = 0.
   if(heat_source) Q_field = 0.
-  if(rad_source) Rad_field = 0.
+  if(rad_source) then
+     Totrad_field = 0.
+     Linerad_field = 0.
+     Bremrad_field = 0.
+     Ionrad_field = 0.
+     Reckrad_field = 0.
+     Recprad_field = 0.
+  end if
   if(icd_source .gt. 0) cd_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
   if(ipforce.gt.0) pforce_field = 0.
@@ -1000,6 +1158,11 @@ subroutine define_transport_coefficients()
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
+  if(ipellet.ne.0) then
+     ! make sure normalization for pellet_distribution defined
+     call calculate_Lor_vol
+  end if
+  
   ! Calculate RHS
   numelms = local_elements()
 !$OMP PARALLEL DO &
@@ -1078,13 +1241,48 @@ subroutine define_transport_coefficients()
      end if
 
      if(rad_source) then
-        dofs = rad_func(itri)
-        if(.not.solve_rad) solve_rad = any(dofs.ne.0.)
-
+        dofs = totrad_func(itri)
+        if(.not.solve_totrad) solve_totrad = any(dofs.ne.0.)
 !$OMP CRITICAL
-        if(solve_rad) &
-             call vector_insert_block(Rad_field%vec,itri,1,dofs,VEC_ADD)
+        if(solve_totrad) &
+             call vector_insert_block(Totrad_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL
+        
+        dofs = linerad_func(itri)
+        if(.not.solve_linerad) solve_linerad = any(dofs.ne.0.)
+!$OMP CRITICAL
+        if(solve_linerad) &
+             call vector_insert_block(Linerad_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+        
+        dofs = bremrad_func(itri)
+        if(.not.solve_bremrad) solve_bremrad = any(dofs.ne.0.)
+!$OMP CRITICAL
+        if(solve_bremrad) &
+             call vector_insert_block(Bremrad_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+        
+        dofs = ionrad_func(itri)
+        if(.not.solve_ionrad) solve_ionrad = any(dofs.ne.0.)
+!$OMP CRITICAL
+        if(solve_ionrad) &
+             call vector_insert_block(Ionrad_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+        
+        dofs = reckrad_func(itri)
+        if(.not.solve_reckrad) solve_reckrad = any(dofs.ne.0.)
+!$OMP CRITICAL
+        if(solve_reckrad) &
+             call vector_insert_block(Reckrad_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+        
+        dofs = recprad_func(itri)
+        if(.not.solve_recprad) solve_recprad = any(dofs.ne.0.)
+!$OMP CRITICAL
+        if(solve_recprad) &
+             call vector_insert_block(Recprad_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+        
      end if
 
      if(icd_source .gt. 0) then
@@ -1122,11 +1320,19 @@ subroutine define_transport_coefficients()
      if(solve_q)           temp(7) = 1
      if(solve_fp)          temp(8) = 1
      if(solve_cd)          temp(9) = 1
-     if(solve_rad)         temp(10) = 1
-     if(solve_be)          temp(11) = 1
-     if(solve_al)          temp(12) = 1
-     if(solve_bs)          temp(13) = 1
-     call mpi_allreduce(temp,temp2,13,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+     if(solve_totrad)      temp(10) = 1
+     if(solve_linerad)      temp(11) = 1
+     if(solve_bremrad)     temp(12) = 1
+     if(solve_ionrad)      temp(13) = 1
+     if(solve_reckrad)     temp(14) = 1
+     if(solve_recprad)     temp(15) = 1
+     if(solve_be)          temp(16) = 1
+     if(solve_al)          temp(17) = 1
+     if(solve_bs)          temp(18) = 1
+
+     call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
+          MPI_MAX, MPI_COMM_WORLD, ier)
+
      solve_resistivity = temp2(1).eq.1
      solve_kappa       = temp2(2).eq.1
      solve_sigma       = temp2(3).eq.1
@@ -1136,10 +1342,15 @@ subroutine define_transport_coefficients()
      solve_q           = temp2(7).eq.1
      solve_fp          = temp2(8).eq.1
      solve_cd          = temp2(9).eq.1
-     solve_rad         = temp2(10).eq.1
-     solve_be          = temp2(11).eq.1
-     solve_al          = temp2(12).eq.1
-     solve_bs          = temp2(13).eq.1
+     solve_totrad      = temp2(10).eq.1
+     solve_linerad      = temp2(11).eq.1
+     solve_bremrad     = temp2(12).eq.1
+     solve_ionrad      = temp2(13).eq.1
+     solve_reckrad     = temp2(14).eq.1
+     solve_recprad     = temp2(15).eq.1
+     solve_be          = temp2(16).eq.1
+     solve_al          = temp2(17).eq.1
+     solve_bs          = temp2(18).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -1179,9 +1390,34 @@ subroutine define_transport_coefficients()
      call newvar_solve(Q_field%vec, mass_mat_lhs_dc)
   endif
 
-  if(solve_rad) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Rad'
-     call newvar_solve(Rad_field%vec, mass_mat_lhs)
+  if(solve_totrad) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Totrad'
+     call newvar_solve(Totrad_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_linerad) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Linerad'
+     call newvar_solve(Linerad_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_bremrad) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Bremrad'
+     call newvar_solve(Bremrad_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_ionrad) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Ionrad'
+     call newvar_solve(Ionrad_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_reckrad) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Reckrad'
+     call newvar_solve(Reckrad_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_recprad) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  Recprad'
+     call newvar_solve(Recprad_field%vec, mass_mat_lhs)
   endif
 
   if(solve_cd) then

@@ -20,13 +20,6 @@ else
   else
     V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
   endif
-  ifeq ($(RW), 1)
-    USERW = 1
-    OPTS := $(OPTS) -DUSERW
-    BIN_POSTFIX := $(BIN_POSTFIX)-rw
-  else
-    OPTS := $(OPTS) -Dglobalinsertval=insertval -Dglobalentdofs=entdofs
-  endif
 endif
 
 # determine whether 2d, 3d, or 2d-complex
@@ -88,7 +81,7 @@ OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 
 # add date stamp
-OPTS := $(OPTS) -DNOUSE -DDATE_BUILT='"$(shell date)"' -DRELEASE_VERSION='"$(shell cat release_version)"' #-DBUILD_INFO="'$(shell svn info)'"
+OPTS := $(OPTS) -DDATE_BUILT='"$(shell date)"' -DRELEASE_VERSION='"$(shell cat release_version)"' #-DBUILD_INFO="'$(shell svn info)'"
 
 export OPT
 export OPTS
@@ -133,7 +126,7 @@ READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
 OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
-	random.o spline.o kprad.o \
+	random.o spline.o region.o kprad.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
@@ -144,17 +137,17 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	temperature_plots.o \
 	electrostatic_potential.o newvar.o runaway.o diagnostics.o \
 	read_schaffer_field.o  neutral_beam.o \
-	coils.o coil_sets.o model.o \
+	coils.o coil_sets.o kprad_m3dc1.o model.o \
 	fit_magnetics.o wall.o \
 	init_common.o \
-	gradshafranov.o rmp.o kprad_m3dc1.o \
+	gradshafranov.o rmp.o  \
 	readgeqdsk.o read_jsolver.o read_dskbal.o \
 	init_rwm.o init_solovev.o init_circle.o init_basicj.o \
 	init_tilt.o init_taylor.o init_force_free.o init_gem.o init_wave.o \
 	init_gmode.o init_strauss.o init_mri.o init_rotating_cylinder.o \
         init_eqdsk.o init_dskbal.o init_jsolver.o \
 	init_3dwave.o init_3ddiffusion.o init_frs.o init_ftz.o init_eigen.o \
-	init_intkink.o init_lz.o init_kstar.o init_basicq.o \
+	init_intkink.o init_lz.o init_kstar.o init_basicq.o init_cyl.o \
 	transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
@@ -191,6 +184,9 @@ a2cc : $(A2CC_OBJS)
 kprad : kprad.f90 kprad_test.f90
 	$(F90) $(F90OPTS) $< -o $@
 
+test_region : region.o test_region.o
+	$(F90) $^ -o $@
+
 .PHONY : bin
 bin : 
 	rm -fr bin
@@ -198,14 +194,15 @@ bin :
 	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/create_smb/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin ; \
 	else \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/seed0.smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/collapse bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/convert_sim_sms bin ; \
@@ -217,8 +214,8 @@ bin :
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60-omp/m3dc1_3d_omp bin
 	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin
 	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
-	ln -s $(SRCDIR)/sbin/$(ARCH)/create_mesh.sh bin
-	ln -s $(SRCDIR)/sbin/$(ARCH)/part_mesh.sh bin
-	ln -s $(SRCDIR)/sbin/$(ARCH)/create_fixed_mesh.sh bin
+	ln -s $(SRCDIR)/sbin/create_mesh.sh bin
+	ln -s $(SRCDIR)/sbin/create_fixed_mesh.sh bin
+	ln -s $(SRCDIR)/sbin/part_mesh.sh bin
 
 endif

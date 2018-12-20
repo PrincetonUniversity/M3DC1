@@ -10,7 +10,11 @@ module kprad_m3dc1
 
   type(field_type), allocatable :: kprad_n(:)
   type(field_type), allocatable, private :: kprad_temp(:)
-  type(field_type) :: kprad_rad
+  type(field_type) :: kprad_rad      ! power lost to line radiation
+  type(field_type) :: kprad_brem     ! power lost to bremsstrahlung
+  type(field_type) :: kprad_ion      ! power lost to ionization
+  type(field_type) :: kprad_reck     ! power lost to recombination (kinetic)
+  type(field_type) :: kprad_recp     ! power lost to recombination (potential)
   type(field_type) :: kprad_sigma_e  ! electron source / sink due to ionization / recomb
   type(field_type) :: kprad_sigma_i  ! total ion source / sink due to ionization / recomb
 
@@ -48,6 +52,10 @@ contains
        call create_field(kprad_temp(i))
     end do
     call create_field(kprad_rad)
+    call create_field(kprad_brem)
+    call create_field(kprad_ion)
+    call create_field(kprad_reck)
+    call create_field(kprad_recp)
     call create_field(kprad_sigma_e)
     call create_field(kprad_sigma_i)
 
@@ -71,6 +79,10 @@ contains
        end do
        deallocate(kprad_n, kprad_temp)
        call destroy_field(kprad_rad)
+       call destroy_field(kprad_brem)
+       call destroy_field(kprad_ion)
+       call destroy_field(kprad_reck)
+       call destroy_field(kprad_recp)
        call destroy_field(kprad_sigma_e)
        call destroy_field(kprad_sigma_i)
     end if
@@ -85,17 +97,44 @@ contains
   ! ~~~~~~~~~~~~~~~~
   !==================================
   subroutine kprad_init_conds()
+    use basic
     use arrays
+    use pellet
+    use m3dc1_nint
+    use newvar_mod
 
     implicit none
 
+    integer :: itri, nelms, def_fields
+    vectype, dimension(dofs_per_element) :: dofs
+    real, dimension(MAX_PTS) :: p
+
     if(ikprad.eq.0) return
 
-    ! initial neutral impurity density is
-    ! nz_0 = kprad_fz*ni + kprad_nz
-    kprad_n(0) = den_field(0)
-    call mult(kprad_n(0), kprad_fz)
-    call add(kprad_n(0), kprad_nz)
+    kprad_n(0) = 0.
+
+    def_fields = FIELD_N + FIELD_TE
+    if(ipellet.lt.0. .and. ipellet_z.eq.kprad_z) &
+         def_fields = def_fields + FIELD_P
+
+    nelms = local_elements()
+    do itri=1, nelms
+       call define_element_quadrature(itri,int_pts_main,5)
+       call define_fields(itri,def_fields,1,1,1)
+
+       temp79a = kprad_nz +  kprad_fz*nt79(:,OP_1)
+
+       if(ipellet.lt.0. .and. ipellet_z.eq.kprad_z) then
+          p = pt79(:,OP_1)
+          temp79a = temp79a + &
+               pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+       end if
+
+       dofs = intx2(mu79(:,:,OP_1),temp79a)
+       call vector_insert_block(kprad_n(0)%vec,itri,1,dofs,VEC_ADD)
+    end do
+
+    call newvar_solve(kprad_n(0)%vec, mass_mat_lhs)
 
   end subroutine kprad_init_conds
 
@@ -161,7 +200,6 @@ contains
     use boundary_conditions
     use metricterms_new
     use sparse
-    use model
 
     implicit none
 
@@ -250,7 +288,7 @@ contains
     
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
-    do j=0, kprad_z
+    do j=1, kprad_z
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
@@ -286,14 +324,16 @@ contains
     real, intent(in) :: dti
     
     real :: dt_s
-    real, dimension(MAX_PTS) :: ne, te, n0_old
+    real, dimension(MAX_PTS) :: ne, te, n0_old, p
     real, dimension(MAX_PTS,0:kprad_z) :: nz
     real, dimension(MAX_PTS) :: dw_brem
-    real, dimension(MAX_PTS,0:kprad_z) :: dw_rad
+    real, dimension(MAX_PTS,0:kprad_z) :: dw_rad, dw_ion, dw_reck, dw_recp
+    real, dimension(MAX_PTS) :: source    ! neutral particle source
 
     integer :: i, itri, nelms, def_fields, izone
+    real, parameter :: min_te = .01
+    real, parameter :: min_ne = 1e8
     vectype, dimension(dofs_per_element) :: dofs
-    vectype, dimension(MAX_PTS) :: source    ! neutral particle source
 
     if(ikprad.ne.1) return
 
@@ -303,12 +343,16 @@ contains
        kprad_temp(i) = 0.
     end do
     kprad_rad = 0.
+    kprad_brem = 0.
+    kprad_ion = 0.
+    kprad_reck = 0.
+    kprad_recp = 0.
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
     source = 0.
 
     def_fields = FIELD_N + FIELD_TE
-    if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) &
+    if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
          def_fields = def_fields + FIELD_P
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix'
@@ -321,11 +365,6 @@ contains
        call define_element_quadrature(itri,int_pts_main,5)
        call define_fields(itri,def_fields,1,0)
 
-       if(ipellet.eq.1 .and. ipellet_z.eq.kprad_z) then
-          source = pellet_deposition(x_79, phi_79, z_79, pt79(:,OP_1), &
-               net79(:,OP_1), 0.)
-       end if
-
        ! evaluate impurity density
        do i=0, kprad_z
           call eval_ops(itri, kprad_n(i), ph079, rfac)
@@ -333,29 +372,35 @@ contains
        end do
        ne = net79(:,OP_1)
 
-       where(nz.lt.0.) nz = 0.
-       where(ne.lt.0.) ne = 0.
+       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
+          p = pt79(:,OP_1)
+          source = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+       end if
 
-       n0_old = nz(:,0)
+       n0_old = sum(nz(:,1:kprad_z),2)
 
        ! convert nz, ne, te, dt to cgs / eV
        nz = nz*n0_norm
        ne = ne*n0_norm
        source = source*n0_norm/t0_norm
        te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
-       where(te.lt.0. .or. te.ne.te) te = 0.
        dt_s = dti*t0_norm
+
+       where(te.lt.min_te .or. te.ne.te) te = min_te
+       where(nz.lt.0.) nz = 0.
+       where(ne.lt.min_ne) ne = min_ne
 
        ! advance densities at each integration point
        ! for one MHD timestep (dt_s)
        if(izone.eq.1) then
           call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
-               ne, te, nz, dw_rad, dw_brem, source)
-          where(ne .ne. ne) ne = 0.
-          where(nz .ne. nz) nz = 0.
+               ne, te, nz, dw_rad, dw_brem, dw_ion, dw_reck, dw_recp, source)
        else
           dw_rad = 0.
           dw_brem = 0.
+          dw_ion = 0.
+          dw_reck = 0.
+          dw_recp = 0.
        end if
        
        ! convert nz, dw_rad, dw_brem to normalized units
@@ -367,7 +412,10 @@ contains
        ! factor of 1e7 needed to convert J to erg
        dw_rad = dw_rad * 1.e7 / p0_norm
        dw_brem = dw_brem * 1.e7 / p0_norm
-
+       dw_ion  = dw_ion * 1.e7 / p0_norm
+       dw_reck = dw_reck * 1.e7 / p0_norm
+       dw_recp = dw_recp * 1.e7 / p0_norm
+       
        ! New charge state densities
        do i=0, kprad_z
           temp79a = nz(:,i)
@@ -375,19 +423,43 @@ contains
           call vector_insert_block(kprad_temp(i)%vec,itri,1,dofs,VEC_ADD)
        end do
 
-       ! Radiation
-       temp79b = (dw_rad(:,kprad_z) + dw_brem) / dti
+       ! Line Radiation
+       temp79b = dw_rad(:,kprad_z) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
+
+       ! Bremsstrahlung
+       temp79b = dw_brem / dti
+       where(temp79b.ne.temp79b) temp79b = 0.
+       dofs = intx2(mu79(:,:,OP_1),temp79b)
+       call vector_insert_block(kprad_brem%vec, itri,1,dofs,VEC_ADD)
+
+       ! Ionization
+       temp79b = dw_ion(:,kprad_z) / dti
+       where(temp79b.ne.temp79b) temp79b = 0.
+       dofs = intx2(mu79(:,:,OP_1),temp79b)
+       call vector_insert_block(kprad_ion%vec, itri,1,dofs,VEC_ADD)
+
+       ! Recombination (kinetic)
+       temp79b = dw_reck(:,kprad_z) / dti
+       where(temp79b.ne.temp79b) temp79b = 0.
+       dofs = intx2(mu79(:,:,OP_1),temp79b)
+       call vector_insert_block(kprad_reck%vec, itri,1,dofs,VEC_ADD)
+
+       ! Recombination (potential)
+       temp79b = dw_recp(:,kprad_z) / dti
+       where(temp79b.ne.temp79b) temp79b = 0.
+       dofs = intx2(mu79(:,:,OP_1),temp79b)
+       call vector_insert_block(kprad_recp%vec, itri,1,dofs,VEC_ADD)
 
        ! Electron source
        temp79c = ne - net79(:,OP_1)
        dofs = intx2(mu79(:,:,OP_1),temp79c) / dti
        call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
 
-       ! Total ion source is (calculated as opposite of neutral source)
-       temp79d = n0_old - nz(:,0)
+       ! Total ion source
+       temp79d = sum(nz(:,1:kprad_z),2) - n0_old
        dofs = intx2(mu79(:,:,OP_1),temp79d) / dti
        call vector_insert_block(kprad_sigma_i%vec, itri,1,dofs,VEC_ADD)
     end do
@@ -399,6 +471,10 @@ contains
        kprad_n(i) = kprad_temp(i)
     end do
     call newvar_solve(kprad_rad%vec, mass_mat_lhs)
+    call newvar_solve(kprad_brem%vec, mass_mat_lhs)
+    call newvar_solve(kprad_ion%vec, mass_mat_lhs)
+    call newvar_solve(kprad_reck%vec, mass_mat_lhs)
+    call newvar_solve(kprad_recp%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_e%vec, mass_mat_lhs)
     call newvar_solve(kprad_sigma_i%vec, mass_mat_lhs)
 

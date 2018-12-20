@@ -19,6 +19,8 @@
 #include <iostream>
 #include <assert.h>
 
+extern "C" int setPETScMat(int matrixid, Mat * A) {};
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){};
 
 using namespace std;
 static char help[] = "testing solver functions; \n first do mat-vec product A*b=c; solve Ax=c; compare x and b\n\n";

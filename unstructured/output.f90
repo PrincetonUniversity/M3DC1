@@ -245,7 +245,7 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "n0_norm"    , n0_norm,    error)
   call write_real_attr(root_id, "l0_norm"    , l0_norm,    error)  
   call write_real_attr(root_id, "eta_wall"   , eta_wall,   error)
-  call write_real_attr(root_id, "zeff"       , zeff,       error)
+  call write_real_attr(root_id, "z_ion"      , z_ion,      error)
   call write_real_attr(root_id, "ion_mass"   , ion_mass,   error)
   call write_real_attr(root_id, "frequency"  , frequency,  error)
   call write_int_attr (root_id, "ibootstrap_model", ibootstrap_model, error)
@@ -364,19 +364,17 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
 
   ! Pellet stuff
-  call output_scalar(scalar_group_id, "pellet_x",   pellet_x,   ntime, error)
+  call output_scalar(scalar_group_id, "pellet_r",   pellet_r,   ntime, error)
   call output_scalar(scalar_group_id, "pellet_phi", pellet_phi, ntime, error)
   call output_scalar(scalar_group_id, "pellet_z",   pellet_z,   ntime, error)
-  call output_scalar(scalar_group_id, "pellet_velx", pellet_velx, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_velr", pellet_velr, ntime, error)
   call output_scalar(scalar_group_id, "pellet_velphi", pellet_velphi, ntime, error)
   call output_scalar(scalar_group_id, "pellet_velz", pellet_velz, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_vx", pellet_vx, ntime, error)
+  call output_scalar(scalar_group_id, "pellet_vy", pellet_vy, ntime, error)
   call output_scalar(scalar_group_id, "pellet_var", pellet_var, ntime, error)
   call output_scalar(scalar_group_id, "r_p",        r_p,        ntime, error)
-  call output_scalar(scalar_group_id, "r_p2",       r_p2,       ntime, error)
   call output_scalar(scalar_group_id, "pellet_rate", pellet_rate, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_rate1",  pellet_rate1, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_rate2", pellet_rate2, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_ablrate", pellet_ablrate, ntime, error)
 
   ! Controllers
   call output_scalar(scalar_group_id, "loop_voltage",        vloop,               ntime, error)
@@ -438,7 +436,9 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "E_K3D", ekin3d, ntime, error)
   call output_scalar(scalar_group_id, "E_PH", emag3h, ntime, error)
   call output_scalar(scalar_group_id, "E_K3H", ekin3h, ntime, error)
-  call output_scalar(scalar_group_id, "E_PE", w_pe ,ntime, error)
+  call output_scalar(scalar_group_id, "E_PE", w_pe , ntime, error)
+  call output_scalar(scalar_group_id, "W_P",  w_p  , ntime, error)
+  call output_scalar(scalar_group_id, "W_M",  w_m  , ntime, error)
 
   call output_scalar(scalar_group_id, "Flux_pressure ", efluxp, ntime, error)
   call output_scalar(scalar_group_id, "Flux_kinetic  ", efluxk, ntime, error)
@@ -446,9 +446,12 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "Flux_thermal  ", efluxt, ntime, error)
   call output_scalar(scalar_group_id, "E_grav        ", epotg,  ntime, error)
 
-  if(rad_source) then
-     call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
-  endif
+  call output_scalar(scalar_group_id, "radiation"       , totrad, ntime, error)
+  call output_scalar(scalar_group_id, "line_rad"        , linerad, ntime, error)
+  call output_scalar(scalar_group_id, "brem_rad"        , bremrad, ntime, error)
+  call output_scalar(scalar_group_id, "ion_loss"        , ionrad, ntime, error)
+  call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, error)
+  call output_scalar(scalar_group_id, "recp_rad"        , recprad, ntime, error)
 
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
@@ -870,10 +873,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
   ! u
   call write_field(group_id, "phi", u_field(ilin), nelms, error)
 
+#if defined(USE3D) || defined(USECOMPLEX)
   ! electrostatic potential
   if(jadv.eq.0) then
      call write_field(group_id, "potential", e_field(ilin), nelms, error)
   endif
+#endif
 
   ! I
   do i=1, nelms
@@ -969,7 +974,11 @@ subroutine output_fields(time_group_id, equilibrium, error)
      end do
      call write_field(group_id, "kprad_sigma_e", kprad_sigma_e, nelms, error)
      call write_field(group_id, "kprad_sigma_i", kprad_sigma_i, nelms, error)
-     call write_field(group_id, "kprad_rad", kprad_rad, nelms, error)
+     call write_field(group_id, "kprad_rad",     kprad_rad,     nelms, error)
+     call write_field(group_id, "kprad_brem",    kprad_brem,    nelms, error)
+     call write_field(group_id, "kprad_ion",     kprad_ion,     nelms, error)
+     call write_field(group_id, "kprad_reck",    kprad_reck,     nelms, error)
+     call write_field(group_id, "kprad_recp",    kprad_recp,     nelms, error)
   end if
 
   ! transport coefficients do not change with time in linear calculations
@@ -1006,7 +1015,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
     call write_field(group_id,"torque_ntv", torque_density_ntv, nelms, error)
     call write_field(group_id, "bdotgradp", bdotgradp, nelms, error)
     call write_field(group_id, "bdotgradt", bdotgradt, nelms, error)
-
+    call write_field(group_id, "zeff", z_effective, nelms, error)
+    if(ikprad.eq.1) then
+       call write_field(group_id, "kprad_totden", kprad_totden, nelms, error)
+    end if
     if(itemp_plot .eq. 1) then
        call write_field(group_id, "vdotgradt", vdotgradt, nelms, error)
        call write_field(group_id, "adv1", adv1, nelms, error)
@@ -1051,7 +1063,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
     
     ! radiation source
     if(rad_source) then
-       call write_field(group_id, "rad_source", rad_field, nelms, error,.true.)
+       call write_field(group_id, "rad_source",     Totrad_field, nelms, error,.true.)
+       call write_field(group_id, "linerad_source", Linerad_field, nelms, error,.true.)
+       call write_field(group_id, "bremrad_source", Bremrad_field, nelms, error,.true.)
+       call write_field(group_id, "ionrad_source",  Ionrad_field, nelms, error,.true.)
+       call write_field(group_id, "reckrad_source", Reckrad_field, nelms, error,.true.)
+       call write_field(group_id, "recprad_source", Recprad_field, nelms, error,.true.)
     endif
     
     ! current drive source

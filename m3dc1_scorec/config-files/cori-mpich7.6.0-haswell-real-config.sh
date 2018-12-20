@@ -1,7 +1,7 @@
 HOST=cori
 MPIVER=mpich7.6.0
 ARCH=haswell
-DATE=Dec2017
+DATE=May2018
 SWTYPE=release
 CMAKETYPE=Release
 PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6
@@ -14,8 +14,8 @@ cmake .. \
   -DCMAKE_C_COMPILER="cc" \
   -DCMAKE_CXX_COMPILER="CC" \
   -DCMAKE_Fortran_COMPILER="ftn" \
-  -DCMAKE_C_FLAGS=" -g -O2 -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS=" -g -O2 -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic -g -O2" \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \

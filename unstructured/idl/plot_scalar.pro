@@ -4,9 +4,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  power_spectrum=pspec, per_length=per_length, $
                  growth_rate=growth_rate, bw=bw, nolegend=nolegend, $
                  cgs=cgs,mks=mks,linestyle=ls, color=co, outfile=outfile, $
-                 smooth=sm, compensate_renorm=comp
+                 smooth=sm, compensate_renorm=comp, integrate=integrate, $
+                 xscale=xscale
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
+  if(n_elements(xscale) eq 0) then xscale=1.
 
   if(n_elements(names) eq 0) then names=filename
 
@@ -29,7 +31,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 power_spectrum=pspec, per_length=per_length, $
                 growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff, $
-                           comp=comp
+                           comp=comp, integrate=integrate, xscale=xscale
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
@@ -37,7 +39,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 power_spectrum=pspec, per_length=per_length, $
                 growth_rate=growth_rate, nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff, $
-                           comp=comp
+                           comp=comp, integrate=integrate, xscale=xscale
           endelse
       end
 
@@ -50,7 +52,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endif 
 
   data = read_scalar(scalarname, filename=filename, time=time, $
-                     title=title, symbol=symbol, units=units, cgs=cgs, mks=mks)
+                     title=title, symbol=symbol, units=units, cgs=cgs, mks=mks, integrate=integrate)
   if(keyword_set(comp)) then data = compensate_renorm(data)
   if(n_elements(data) le 1) then return
 
@@ -101,13 +103,13 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   if(keyword_set(sm)) then data = smooth(data, sm)
 
-  if(n_elements(x) eq 0) then begin   
+  if(n_elements(x) eq 0) then begin
       if(not keyword_set(overplot)) then begin
-          plot, tdata, data, xtitle=xtitle, ytitle=ytitle, $
+          plot, tdata*xscale, data, xtitle=xtitle, ytitle=ytitle, $
             title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
             /nodata
       end     
-      oplot, tdata, data, color=co, linestyle=ls, _EXTRA=extra
+      oplot, tdata*xscale, data, color=co, linestyle=ls, _EXTRA=extra
   endif else begin
       xi = x
       x = fltarr(1)

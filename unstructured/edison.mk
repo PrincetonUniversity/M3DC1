@@ -18,6 +18,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
+OPTS := $(OPTS) -DPETSC_VERSION=37 -DUSEBLAS
 
 SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/edison/scorec/mpich7.6.0/bin/
 
@@ -63,8 +64,6 @@ OPTS := $(OPTS) -DUSEADIOS
 ADIOS_FLIB = ${ADIOSREAD_FLIB_V1} \
 	-L/usr/lib64/ -llustreapi
 
-OPTS := $(OPTS) -DPETSC_VERSION=37
-
 INCLUDE := $(INCLUDE) $(FFTW_INCLUDE_OPTS) \
         -I$(SCOREC_DIR)/include \
 	-I$(PETSC_DIR)/include \
@@ -86,9 +85,8 @@ ifeq ($(TRILINOS),1)
          -L/usr/lib64/gcc/x86_64-suse-linux/4.3 -lstdc++
 endif
 
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) \
-	-Dglobalinsertval=insertval -Dglobalentdofs=entdofs
-CCOPTS  = -c $(OPTS)
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
+CCOPTS = -c $(OPTS)
 
 ifeq ($(PAR), 1)
   FOPTS := $(FOPTS) -DUSEPARTICLES

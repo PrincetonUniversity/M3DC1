@@ -537,23 +537,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
       d = dimensions(/temperature, _EXTRA=extra)
 
    ;===========================================
-   ; electron density
-   ;===========================================
-   endif else if(strcmp('electron density', name, /fold_case) eq 1) or $
-     (strcmp('ne', name, /fold_case) eq 1) then begin
-
-       n = read_field('den', x, y, t, slices=time, mesh=mesh, $
-                       filename=filename, points=pts, $
-                       rrange=xrange, zrange=yrange, linear=linear, $
-                      complex=complex, phi=phi0)
-       zeff = read_parameter("zeff", filename=filename)
-       if(zeff eq 0) then zeff = 1.
-       data = zeff*n
-  
-       symbol = '!8n!De!N!X'
-       d = dimensions(/n0, _EXTRA=extra)
-
-   ;===========================================
    ; delta_W
    ;===========================================
    endif else if(strcmp('delta_W', name, /fold_case) eq 1) then begin
@@ -1724,6 +1707,24 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8J!Dp!N!X'
        d = dimensions(/j0,_EXTRA=extra)
 
+
+   ;===========================================
+   ; eta * Jy^2
+   ;===========================================
+   endif else if(strcmp('etaJ2', name, /fold_case) eq 1) then begin
+
+       jy = read_field('jy', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange, $
+                          complex=complex, phi=phi0)
+       eta = read_field('eta', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, linear=linear, $
+                        rrange=xrange, zrange=yrange, $
+                          complex=complex, phi=phi0)
+
+       data = eta*jy^2
+       symbol = field_data('!7g!8J!6!U2!N', units=d, itor=itor)
+       d = dimensions(/p0,/t0,_EXTRA=extra)
        
    ;===========================================
    ; del*(psi)
@@ -2840,9 +2841,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        ; convert from mks back to normalized units
        d = dimensions(/potential,l0=-1,_EXTRA=extra)
-       get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,zeff=zeff,ion=mi
+       get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,ion=mi
        e_norm = 1.
-       convert_units, e_norm, d, b0, n0, l0, zeff, mi, /mks
+       convert_units, e_norm, d, b0, n0, l0, mi, /mks
        data = data / e_norm
 
        symbol = '!8E!D!6Dreicer!N!X'
@@ -4221,7 +4222,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
 
        db = read_parameter('db',filename=filename)
-       zeff = read_parameter('zeff',filename=filename)
        ntor = read_parameter('ntor',filename=filename)
        ion_mass = read_parameter('ion_mass',filename=filename)
        n0_norm = read_parameter('n0_norm',filename=filename)
@@ -4238,7 +4238,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        pi0 = p0-pe0
        Ti = pi0/n0 > 0.01
-       Te = pe0/(zeff*n0) > 0.01
+       Te = pe0/(ne0) > 0.01
 
        tprime = abs(s_bracket(Te,psi0,x,y)) 
        xi = -Te1/tprime*gradpsi
@@ -4450,12 +4450,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    ; convert to appropriate units
    d0 = d
-   get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,zeff=zeff,ion=mi
-   convert_units, data, d0, b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
-   convert_units, x, dimensions(/l0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
-   convert_units, y, dimensions(/l0), b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+   get_normalizations, filename=filename,b0=b0,n0=n0,l0=l0,ion=mi
+   convert_units, data, d0, b0, n0, l0, mi, cgs=cgs, mks=mks
+   convert_units, x, dimensions(/l0), b0, n0, l0, mi, cgs=cgs, mks=mks
+   convert_units, y, dimensions(/l0), b0, n0, l0, mi, cgs=cgs, mks=mks
    convert_units, realtime, dimensions(/t0), $
-     b0, n0, l0, zeff, mi, cgs=cgs, mks=mks
+     b0, n0, l0, mi, cgs=cgs, mks=mks
    units = parse_units(d0, cgs=cgs, mks=mks)
 
    if(n_elements(h_symmetry) eq 1) then begin

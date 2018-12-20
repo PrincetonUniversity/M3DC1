@@ -55,9 +55,48 @@ enum FortranMatrixID {
   q10matrix_sm = 26,
   r10matrix_sm = 27
 };
-// remove later
-extern "C" int setPETScMat(int matrixid, Mat * A) {}
-extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){}
+
+// revive 2018-may-10
+/* 
+   below sets the PETSc matrix type for the matrix with id "matrixid"
+*/
+extern "C" int setPETScMat(int matrixid, Mat * A) {
+//  PetscErrorCode ierr;
+//    ierr = MatSetType(*A, MATMPIAIJ);CHKERRQ(ierr);
+//    PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScMat %d to MATMPIAIJ\n", matrixid);
+//    ierr = MatSetFromOptions(*A);CHKERRQ(ierr);
+  return 0;
+}
+/* 
+   below sets the PETSc options for the solver for matrix with id "matrixid"
+*/
+#if PETSC_VERSION >= 39
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A, Vec *b, Vec *x) {
+#else
+extern "C" int setPETScKSP(int matrixid, KSP * ksp, Mat * A){
+#endif
+  PetscErrorCode ierr;
+
+//  ierr = KSPCreate(MPI_COMM_WORLD, ksp);CHKERRQ(ierr);
+//  ierr = KSPSetOperators(*ksp, *A, *A, SAME_PRECONDITIONER /*DIFFERENT_NONZERO_PATTERN*/);CHKERRQ(ierr);
+//  ierr = KSPSetTolerances(*ksp, .000001, .000000001,
+//                          PETSC_DEFAULT, PETSC_DEFAULT);CHKERRQ(ierr);
+//  ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
+
+#if PETSC_VERSION >= 39
+#ifdef USE3D
+    ierr = KSPSetInitialGuessNonzero(*ksp,PETSC_TRUE);CHKERRQ(ierr);
+
+    // lgmres set up for hard problem #5 and #17
+    if(matrixid==5 || matrixid==17) {
+       PetscPrintf(PETSC_COMM_WORLD, "\tsetPETScKSP for %d\n", matrixid);
+       ierr = KSPSetOptionsPrefix(*ksp,"hard_");CHKERRQ(ierr);
+    }
+#endif
+#endif
+  return 0;
+}
+
 /* 
    below sets the Superlu_Dist Solver options May 02, 2011
 */
@@ -70,6 +109,7 @@ int setSuperluOptions(int matrixid, superlu_options_t * options) {
 //    PetscPrintf(PETSC_COMM_WORLD, "\tsetSuperluOptions to ConditionNumber = YES\n");
   return 0;
 }
+
 
 /*
    dec 1, 2010 cj

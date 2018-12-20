@@ -23,6 +23,8 @@ module auxiliary_fields
   type(field_type) :: deldotq_par
   type(field_type) :: eta_jsq
   type(field_type) :: mesh_zone
+  type(field_type) :: z_effective
+  type(field_type) :: kprad_totden
 
   logical, private :: initialized = .false.
 
@@ -30,6 +32,7 @@ contains
 
 subroutine create_auxiliary_fields
   use basic
+  use kprad_m3dc1
   implicit none
 
   call create_field(bdotgradp)
@@ -44,6 +47,8 @@ subroutine create_auxiliary_fields
   call create_field(ef_par)
   call create_field(eta_j)
   call create_field(mesh_zone)
+  call create_field(z_effective)
+  if(ikprad.eq.1) call create_field(kprad_totden)
   if(jadv.eq.0) then
      call create_field(psidot)
      call create_field(veldif)
@@ -73,6 +78,7 @@ end subroutine create_auxiliary_fields
 
 subroutine destroy_auxiliary_fields
   use basic
+  use kprad_m3dc1
   implicit none
 
   if(.not.initialized) return
@@ -88,6 +94,8 @@ subroutine destroy_auxiliary_fields
   call destroy_field(ef_par)
   call destroy_field(eta_j)
   call destroy_field(mesh_zone)
+  call destroy_field(z_effective)
+  if(ikprad.eq.1) call destroy_field(kprad_totden)
   if(jadv.eq.0) then
      call destroy_field(psidot)
      call destroy_field(veldif)
@@ -151,13 +159,9 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
      call define_fields(itri, 0, 1, 0, ieqsub)
 
      call eval_ops(itri, ne, ne179, rfac)
-     call eval_ops(itri, nion, n179,  rfac)
+     call eval_ops(itri, nion, n179, rfac)
      call eval_ops(itri, te, te179, rfac)
-     if(ipres.eq.1) then
-        call eval_ops(itri, ti, ti179, rfac)
-     else
-        ti179 = te179*(1.-pefac)/pefac
-     end if
+     call eval_ops(itri, ti, ti179, rfac)
      if(ieqsub.eq.1 .and. ilin.eq.1) then
         call eval_ops(itri, ne_field(0), ne079, rfac)
         call eval_ops(itri, den_field(0), n079, rfac)
@@ -217,14 +221,14 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
      dofs_p  = intx2(mu79(:,:,OP_1),temp79a)
      dofs_pe = intx2(mu79(:,:,OP_1),temp79b)
 
-     if(ipres.eq.1) call vector_insert_block(pe_f%vec,itri,1,dofs_pe,VEC_ADD)
+     call vector_insert_block(pe_f%vec,itri,1,dofs_pe,VEC_ADD)
      call vector_insert_block(p_f%vec,itri,1,dofs_p,VEC_ADD)
   end do
 
-  if(ipres.eq.1)  call newvar_solve(pe_f%vec, mass_mat_lhs)
+  call newvar_solve(pe_f%vec, mass_mat_lhs)
   call newvar_solve(p_f%vec, mass_mat_lhs)
 
-  if(ipres.eq.1) pe = pe_f
+  pe = pe_f
   p = p_f
 
   call destroy_field(pe_f)
@@ -275,11 +279,7 @@ subroutine calculate_temperatures(ilin, te, ti, pe, p, ne, nion, ieqsub)
      call eval_ops(itri, ne, ne179, rfac)
      call eval_ops(itri, nion, n179,  rfac)
      call eval_ops(itri, p, p179, rfac)
-     if(ipres.eq.1) then
-        call eval_ops(itri, pe, pe179, rfac)
-     else
-        pe179 = p179*pefac
-     end if
+     call eval_ops(itri, pe, pe179, rfac)
      if(ieqsub.eq.1 .and. ilin.eq.1) then
         call eval_ops(itri, ne_field(0), ne079, rfac)
         call eval_ops(itri, den_field(0), n079, rfac)
@@ -404,7 +404,7 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
 
   if(ikprad.eq.0 .or. linear.eq.1) then
      ne = nion
-     call mult(ne, zeff)
+     call mult(ne, z_ion)
      return
   end if
   
@@ -427,7 +427,7 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
         nt79 = n179
      end if
 
-     temp79a = nt79(:,OP_1)*zeff
+     temp79a = nt79(:,OP_1)*z_ion
 
      if(ikprad.eq.1) then
         do i=1, kprad_z
@@ -522,6 +522,60 @@ subroutine calculate_sigma_i(itri)
 end subroutine calculate_sigma_i
 
 
+subroutine calculate_weighted_density(itri)
+  use basic
+  use m3dc1_nint
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  real :: ti_over_te
+  integer :: i
+
+  ! Ion density
+  nw79 = nt79
+
+  if(ikprad.eq.1) then
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        nw79 = nw79 + tm79
+     end do
+  end if
+
+  if(ipres.eq.0) then
+     ! Total weighted density
+     ti_over_te = (1. - pefac) / pefac
+
+     nw79 = ti_over_te*nw79 + net79
+  end if
+end subroutine calculate_weighted_density
+
+! Total impurity ion density
+subroutine calculate_kprad_totden(itri, z)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  integer :: i
+  vectype, dimension(MAX_PTS), intent(out) :: z
+
+  z = 0.
+  if(ikprad.eq.1) then 
+     do i=0, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        z = z + tm79(:,OP_1)
+     end do
+  end if
+end subroutine calculate_kprad_totden
+
+
 subroutine calculate_auxiliary_fields(ilin)
   use math
   use basic
@@ -531,6 +585,7 @@ subroutine calculate_auxiliary_fields(ilin)
   use metricterms_new
   use electric_field
   use temperature_plots
+  use kprad_m3dc1
 
   implicit none
 
@@ -556,6 +611,8 @@ subroutine calculate_auxiliary_fields(ilin)
   ef_par = 0.
   eta_j = 0.
   mesh_zone = 0.
+  z_effective = 0.
+  if(ikprad.eq.1) kprad_totden = 0.
   if(jadv.eq.0) then
      psidot = 0.
      veldif = 0.
@@ -591,7 +648,7 @@ subroutine calculate_auxiliary_fields(ilin)
   if(rad_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_RAD
 
   numelms = local_elements()
-if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
+
   ! EM Torque density
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
@@ -821,8 +878,17 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
 
      call electric_field_eta_j(ilin,temp79a)
      dofs = intx2(mu79(:,:,OP_1),temp79a)
-
      call vector_insert_block(eta_j%vec,itri,1,dofs,VEC_ADD)
+
+     call calculate_zeff(itri, temp79a)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(z_effective%vec,itri,1,dofs,VEC_ADD)
+
+     if(ikprad.eq.1) then
+        call calculate_kprad_totden(itri, temp79a)
+        dofs = intx2(mu79(:,:,OP_1),temp79a)
+        call vector_insert_block(kprad_totden%vec,itri,1,dofs,VEC_ADD)
+     end if
      
      if(jadv.eq.0) then
         call electric_field_psidot(ilin,temp79a)
@@ -926,6 +992,8 @@ if(myrank.eq.0 .and. iprint.ge.1) print *, ' before EM Torque density'
   call newvar_solve(ef_par%vec, mass_mat_lhs)
   call newvar_solve(eta_j%vec, mass_mat_lhs)
   call newvar_solve(mesh_zone%vec, mass_mat_lhs)
+  call newvar_solve(z_effective%vec, mass_mat_lhs)
+  if(ikprad.eq.1) call newvar_solve(kprad_totden%vec, mass_mat_lhs)
   if(jadv.eq.0) then
      call newvar_solve(psidot%vec, mass_mat_lhs)
      call newvar_solve(veldif%vec, mass_mat_lhs)
