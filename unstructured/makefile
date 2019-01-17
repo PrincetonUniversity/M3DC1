@@ -147,7 +147,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	init_gmode.o init_strauss.o init_mri.o init_rotating_cylinder.o \
         init_eqdsk.o init_dskbal.o init_jsolver.o \
 	init_3dwave.o init_3ddiffusion.o init_frs.o init_ftz.o init_eigen.o \
-	init_intkink.o init_lz.o init_kstar.o init_basicq.o \
+	init_intkink.o init_lz.o init_kstar.o init_basicq.o init_cyl.o \
 	transport.o \
 	auxiliary_fields.o  \
 	time_step_split.o time_step_unsplit.o \
@@ -156,7 +156,8 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o \
 	init_conds.o \
-	get_pc_skip_count.o
+	get_pc_skip_count.o \
+	parse_solver_options.o
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o

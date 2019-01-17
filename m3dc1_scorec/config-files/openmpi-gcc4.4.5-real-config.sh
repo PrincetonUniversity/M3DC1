@@ -27,7 +27,7 @@ cmake .. \
   -DSTDCPP_LIBRARY="/usr/lib/gcc/x86_64-linux-gnu/4.4.5/libstdc++.a" \
   -DNETCDF_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libnetcdf.a" \
   -DENABLE_COMPLEX=OFF \
-  -DENABLE_TESTING=ON \
+  -DENABLE_TESTING=OFF \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_INSTALL_PREFIX=$PREFIX
 

@@ -61,7 +61,7 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutx=cutx, cutz=cutz, $
      endif else begin
         print, 'PHI = ', phi[j]
         ff = read_field(field,x,z,t,symbol=symbol,units=units,$
-                        phi=phi[j],_EXTRA=extra)
+                        phi=phi[j],slice=slice,_EXTRA=extra)
      endelse
      kni = field_at_point(ff,x,z,rr,zz)
 

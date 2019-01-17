@@ -313,7 +313,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(_EXTRA=extra)
    endif else if (strcmp("li3", scalarname, /fold_case) eq 1) then begin
       rzero = read_parameter('rzero', filename=filename)
-       Wm = s.E_MP._data
+       Wm = s.w_m._data
        data = 4.*Wm / s.toroidal_current_p._data^2 / rzero
        title = 'Normalized Internal Inductance'
        symbol = '!13l!Di!N!6(3)!X'

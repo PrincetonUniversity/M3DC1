@@ -12,12 +12,13 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    if(n_tags(mesh) eq 0) then return
 
    nelms = mesh.nelms._data
+   elm_data = mesh.elements._data
    
    if(not keyword_set(oplot)) then begin
        xtitle = make_label('!8R!X',/l0,_EXTRA=ex)
        ytitle = make_label('!8Z!X',/l0,_EXTRA=ex)
-       plot, mesh.elements._data[4,*], xtitle=xtitle, ytitle=ytitle, $
-         mesh.elements._data[5,*], psym = 3, _EXTRA=ex, /nodata
+       plot, elm_data[4,*], xtitle=xtitle, ytitle=ytitle, $
+         elm_data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
    get_normalizations, b0=b0, n0=n0, l0=l0, ion_mass=mi, _EXTRA=ex
@@ -41,19 +42,28 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
        boundary = 1
    endif else boundary = 0
 
-   maxr = [max(mesh.elements._data[4,*]), max(mesh.elements._data[5,*])]*fac
-   minr = [min(mesh.elements._data[4,*]), min(mesh.elements._data[5,*])]*fac
+   maxr = [max(elm_data[4,*]), max(elm_data[5,*])]*fac
+   minr = [min(elm_data[4,*]), min(elm_data[5,*])]*fac
 
    czone = [1, 2, 2, 3, 3, 4, 4]
+   
+   sz = size(elm_data, /dim)
+   if(sz[0] gt 8) then begin
+     threed = 1
+   endif else begin
+     threed = 0
+   endelse
 
    for i=long(0), nelms-1 do begin
-       a = mesh.elements._data[0,i]*fac
-       b = mesh.elements._data[1,i]*fac
-       c = mesh.elements._data[2,i]*fac
-       t = mesh.elements._data[3,i]
-       x = mesh.elements._data[4,i]*fac
-       y = mesh.elements._data[5,i]*fac
-       bound = fix(mesh.elements._data[6,i])
+       if(threed eq 1 and i ge (nelms/mesh.nplanes._data)) then break
+       i_data = elm_data[*,i]
+       a = i_data[0]*fac
+       b = i_data[1]*fac
+       c = i_data[2]*fac
+       t = i_data[3]
+       x = i_data[4]*fac
+       y = i_data[5]*fac
+       bound = fix(i_data[6])
 
        p1 = [x, y]
        p2 = p1 + [(b+a) * cos(t), (b+a) * sin(t)]

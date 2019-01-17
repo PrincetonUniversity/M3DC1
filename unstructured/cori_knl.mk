@@ -28,15 +28,15 @@ ifeq ($(COM), 1)
   HYPRE_LIB = 
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
-#  ifeq ($(OMP), 1)
-#   PETSC_DIR=/global/homes/j/jinchen/project/PETSC/master
-#   PETSC_ARCH=cori-hsw-knl-mpich760-omp-strumpack
+  ifeq ($(OMP), 1)
+    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3-superludist-6.0.0
+    PETSC_ARCH = cori-knl-mpich770-real-nomkl-600
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
-#  else
+  else
     PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
     PETSC_ARCH = cori-knl-mpich771-real-nomkl-540
-#  endif
+  endif
   HYPRE_LIB =
 endif
 
