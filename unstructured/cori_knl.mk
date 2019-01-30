@@ -24,7 +24,7 @@ endif
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB = m3dc1_scorec_complex
   PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
-  PETSC_ARCH = cori-knl-mpich771-cplx-nomkl-540
+  PETSC_ARCH = cori-knl-mpich773-cplx-nomkl-510
   HYPRE_LIB = 
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
@@ -35,7 +35,7 @@ else
     STRUMPACK_LIB = -lstrumpack_sparse
   else
     PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
-    PETSC_ARCH = cori-knl-mpich771-real-nomkl-540
+    PETSC_ARCH = cori-knl-mpich773-real-nomkl-510
   endif
   HYPRE_LIB =
 endif
@@ -45,7 +45,7 @@ PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      $(HYPRE_LIB) \
      -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
      -lpord -lsuperlu -lsuperlu_dist -lstrumpack \
-     -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++  \
+     -lparmetis -lmetis -lpthread -ldl -lstdc++  \
      -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit #\
 #       -lflapack -lfblas
 #       -lstrumpack_sparse \
@@ -53,7 +53,9 @@ PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 
 SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/bin
 #SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/May2018/
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.0/knl-petsc3.9.3/July2018
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.0/knl-petsc3.9.3/July2018
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
+SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
@@ -71,7 +73,9 @@ ADIOS_FLIB_V1 = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
 #             -L/usr/lib64/ -llustreapi
 
-MKL_LIB = $(MKLROOT)/lib/intel64/libmkl_blas95_lp64.a -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
+MKL_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+
+#MKL_LIB = $(MKLROOT)/lib/intel64/libmkl_blas95_lp64.a -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
@@ -106,7 +110,7 @@ ifeq ($(OPT), 1)
 #  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
 #  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
 #  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
-  LDOPTS := $(LDOPTS) -dynamic -qopt-report=5 -qopt-report-phase=vec,loop
+  LDOPTS := $(LDOPTS) -static -qopt-report=5 -qopt-report-phase=vec,loop
   FOPTS  := $(FOPTS)  -qopt-report=5 -qopt-report-phase=vec,loop
   CCOPTS := $(CCOPTS) -qopt-report=5 -qopt-report-phase=vec,loop
 else
