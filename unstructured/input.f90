@@ -1382,7 +1382,7 @@ subroutine validate_input
   ! Determine which source terms will be used
   ! ~~~~~~~~~
   density_source = idens.eq.1 .and. linear.eq.0 .and. &
-       ((ipellet.ge.1 .and. ipellet_z.eq.0) &
+       ((ipellet.ge.1 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.)) &
        .or. ionization.ge.1 .or. isink.gt.0 &
        .or. idenfloor.gt.0 .or. ibeam.eq.1 &
        .or. ibeam.eq.2 .or. iread_particlesource.eq.1 &
