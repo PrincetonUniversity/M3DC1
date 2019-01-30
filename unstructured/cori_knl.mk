@@ -29,8 +29,9 @@ ifeq ($(COM), 1)
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
   ifeq ($(OMP), 1)
-    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3-superludist-6.0.0
-    PETSC_ARCH = cori-knl-mpich770-real-nomkl-600
+    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
+    PETSC_ARCH = cori-knl-mpich773-cplx-nomkl-510
+   #PETSC_ARCH = cori-knl-mpich770-real-nomkl-600
     OPTS := $(OPTS) -DSTRUMPACK
     STRUMPACK_LIB = -lstrumpack_sparse
   else
