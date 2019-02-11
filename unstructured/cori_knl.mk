@@ -28,16 +28,8 @@ ifeq ($(COM), 1)
   HYPRE_LIB = 
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
-  ifeq ($(OMP), 1)
-    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
-    PETSC_ARCH = cori-knl-mpich773-cplx-nomkl-510
-   #PETSC_ARCH = cori-knl-mpich770-real-nomkl-600
-    OPTS := $(OPTS) -DSTRUMPACK
-    STRUMPACK_LIB = -lstrumpack_sparse
-  else
-    PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
-    PETSC_ARCH = cori-knl-mpich773-real-nomkl-510
-  endif
+  PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
+  PETSC_ARCH = cori-knl-mpich773-real-nomkl-510
   HYPRE_LIB =
 endif
 
@@ -52,9 +44,6 @@ PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
 #       -lstrumpack_sparse \
 
 
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/bin
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/knl/May2018/
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.0/knl-petsc3.9.3/July2018
 SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
 SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
@@ -115,6 +104,7 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS)  -qopt-report=5 -qopt-report-phase=vec,loop
   CCOPTS := $(CCOPTS) -qopt-report=5 -qopt-report-phase=vec,loop
 else
+  LDOPTS := $(LDOPTS) -static
   FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
 endif
