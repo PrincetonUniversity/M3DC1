@@ -1,6 +1,6 @@
 function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
                      filename=filename, xrange=xrange, yrange=yrange, $
-                     mask=mask, phi=phi0
+                     mask=mask, phi=phi0, wall_mask=wall_mask
 
    if(n_elements(phi0) eq 0) then phi0 = 0.
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -124,6 +124,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
    if(version lt 15) then begin
       ib = 6
+      izone = 1
    endif else begin
       ib = 7
    end
@@ -149,6 +150,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        t = i_data[3]
        x = i_data[4]
        y = i_data[5]
+       if(version ge 16) then izone = i_data[ib]
 
        co = cos(t)
        sn = sin(t)
@@ -179,9 +181,13 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
                    if (index[0] ge 0) and (index[0] lt p) then begin
                        if(is_in_tri(localpos,a,b,c) eq 1) then begin
-                           result[index[0], index[1]] = $
-                             eval(field, localpos, t, i, op=op)
-                           mask[index[0], index[1]] = 0
+                          if(keyword_set(wall_mask) and izone ne 2) then begin
+                             result[index[0], index[1]] = 0.
+                          endif else begin
+                             result[index[0], index[1]] = $
+                                eval(field, localpos, t, i, op=op)
+                             mask[index[0], index[1]] = 0
+                          endelse
                        endif
                    endif
                                 
