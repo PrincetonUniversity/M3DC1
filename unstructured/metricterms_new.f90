@@ -14693,22 +14693,23 @@ function incchipsi(e,f,g)
   end if
 end function incchipsi
 
-subroutine JxB_r(o)
+subroutine JxB_r(o, opol)
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(out), dimension(MAX_PTS) :: o
+  vectype, intent(out), dimension(MAX_PTS) :: o, opol
+  vectype, dimension(MAX_PTS) :: otor
 
-  o = &
-       - ri2_79*pst79(:,OP_GS)*pstx79(:,OP_DR)  &
-       - ri2_79*bztx79(:,OP_1)*bzt79(:,OP_DR)
+  otor = - ri2_79*pst79(:,OP_GS)*pstx79(:,OP_DR)
+  opol = - ri2_79*bztx79(:,OP_1)*bzt79(:,OP_DR)
 #if defined(USE3D) || defined(USECOMPLEX)
-  o = o &
+  otor = otor + ri_79*pst79(:,OP_GS)*bftx79(:,OP_DZP)
+  opol = opol &
        - ri2_79*bztx79(:,OP_1)*bft79(:,OP_DRPP) &
-       - ri3_79*bztx79(:,OP_1)*pst79(:,OP_DZP)  &
-       + ri_79*pst79(:,OP_GS)*bftx79(:,OP_DZP)
+       - ri3_79*bztx79(:,OP_1)*pst79(:,OP_DZP)
 #endif
+  o = opol + otor
 end subroutine JxB_r
 
 subroutine JxB_phi(o)
@@ -14738,23 +14739,24 @@ subroutine JxB_phi(o)
 
 end subroutine JxB_phi
        
-subroutine JxB_z(o)
+subroutine JxB_z(o, opol)
   use m3dc1_nint
 
   implicit none
 
-  vectype, intent(out), dimension(MAX_PTS) :: o
+  vectype, intent(out), dimension(MAX_PTS) :: o, opol
+  vectype, dimension(MAX_PTS) :: otor
 
-  o = &
-       - ri2_79*pst79(:,OP_GS)*pstx79(:,OP_DZ)  &
-       - ri2_79*bztx79(:,OP_1)*bzt79(:,OP_DZ)
+  otor = - ri2_79*pst79(:,OP_GS)*pstx79(:,OP_DZ)
+  opol = - ri2_79*bztx79(:,OP_1)*bzt79(:,OP_DZ)
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  o = o &
+  otor = otor - ri_79*pst79(:,OP_GS)*bftx79(:,OP_DRP)
+  opol = opol  &
        - ri2_79*bztx79(:,OP_1)*bft79(:,OP_DZPP) &
-       + ri3_79*bztx79(:,OP_1)*pst79(:,OP_DRP)  &
-       - ri_79*pst79(:,OP_GS)*bftx79(:,OP_DRP)
+       + ri3_79*bztx79(:,OP_1)*pst79(:,OP_DRP)
 #endif
+  o = opol + otor
   
 end subroutine JxB_z
 

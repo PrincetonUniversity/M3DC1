@@ -21,6 +21,7 @@ module diagnostics
 
   ! wall forces in R, phi, and Z directions
   real :: wall_force_n0_x, wall_force_n0_y, wall_force_n0_z
+  real :: wall_force_n0_x_halo, wall_force_n0_z_halo
 
   ! wall forces in x, y, and z directions
   ! note: x = R cos(phi), y = R sin(phi)
@@ -253,6 +254,9 @@ contains
     wall_force_n1_x = 0.
     wall_force_n1_y = 0.
     wall_force_n1_z = 0.
+    wall_force_n0_x_halo = 0.
+    wall_force_n0_z_halo = 0.
+
 
   end subroutine reset_scalars
 
@@ -270,7 +274,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 72
+    integer, parameter :: num_scalars = 74
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -348,6 +352,8 @@ contains
        temp(70) = m_iz_sn        
        temp(71) = w_m
        temp(72) = w_p
+       temp(73) = wall_force_n0_x_halo
+       temp(74) = wall_force_n0_z_halo
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -425,6 +431,8 @@ contains
        m_iz_sn         = temp2(70)
        w_m             = temp2(71)
        w_p             = temp2(72)
+       wall_force_n0_x_halo = temp2(73)
+       wall_force_n0_z_halo = temp2(74)
     endif
 
   end subroutine distribute_scalars
@@ -732,7 +740,7 @@ subroutine calculate_scalars()
   if(ipellet.ne.0) call calculate_Lor_vol
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -750,13 +758,16 @@ subroutine calculate_scalars()
      if(imulti_region.eq.1 .and. izone.eq.2) then
         wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
 
-        call jxb_r(temp79a)
+        call jxb_r(temp79a, temp79d)
         call jxb_phi(temp79b)
-        call jxb_z(temp79c)
+        call jxb_z(temp79c, temp79e)
 
         wall_force_n0_x = wall_force_n0_x + int1(temp79a)
         wall_force_n0_y = wall_force_n0_y + int1(temp79b)
         wall_force_n0_z = wall_force_n0_z + int1(temp79c)
+
+        wall_force_n0_x_halo = wall_force_n0_x_halo + int1(temp79d)
+        wall_force_n0_z_halo = wall_force_n0_z_halo + int1(temp79e)
 
 #ifdef USE3D
         wall_force_n1_x = wall_force_n1_x &
