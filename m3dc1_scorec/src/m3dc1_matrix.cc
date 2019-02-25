@@ -1068,15 +1068,6 @@ int matrix_solve::assemble()
   ierr = MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
   mat_status=M3DC1_FIXED;
-
-  PetscViewer vw;
-  PetscViewerCreate(PETSC_COMM_WORLD,&vw);
-  PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Amat.m",&vw);
-  PetscViewerPushFormat(vw,PETSC_VIEWER_ASCII_MATLAB);
-  //PetscViewerMatlabOpen(PETSC_COMM_WORLD,"A",FILE_MODE_WRITE,&vw);
-  MatView(*A,vw);
-  PetscViewerPopFormat(vw);
-  PetscViewerDestroy(&vw);
 }
 
 int matrix_solve::set_bc(int row)
