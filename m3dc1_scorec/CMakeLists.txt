@@ -70,25 +70,27 @@ set(SOURCES
   src/CMODGeoExpression.cc
   src/m3dc1_matrix.cc
   src/m3dc1_model.cc
+  src/m3dc1_numbering.cc
   src/m3dc1_slnTransfer.cc
   src/ReducedQuinticExplicit.cc
-  src/slntransferUtil.cc 
+  src/slntransferUtil.cc
   fortran/c1_12_element.F90
   fortran/explicit_element.F90
   fortran/explicit_element_interface.F90)
 
 set(HEADERS
   api/name_convert.h
-  api/m3dc1_scorec.h 
+  api/m3dc1_scorec.h
   include/BSpline.h
   include/m3dc1_field.h
   include/m3dc1_ls.h
   include/m3dc1_mesh.h
   include/m3dc1_model.h
+  include/m3dc1_numbering.h
   include/m3dc1_slnTransfer.h
   include/PolyNomial.h
   include/ReducedQuinticImplicit.h
-  include/CMODGeoExpression.h  
+  include/CMODGeoExpression.h
   include/m3dc1_matrix.h
   include/m3dc1_sizeField.h
   include/ReducedQuinticExplicit.h
@@ -97,8 +99,8 @@ set(HEADERS
 
   include/ReducedQuintic.h)
 
-set(CMAKE_MODULE_PATH 
-   ${CMAKE_MODULE_PATH} 
+set(CMAKE_MODULE_PATH
+   ${CMAKE_MODULE_PATH}
    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -144,8 +146,8 @@ else()
 endif()
 
 if (ENABLE_PETSC)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DM3DC1_PETSC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DM3DC1_PETSC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DM3DC1_PETSC -DPETSCMASTER")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DM3DC1_PETSC -DPETSCMASTER")
 find_package(Hdf5 QUIET REQUIRED)
 set(DEP_LIBS ${DEP_LIBS} ${HDF5_LIBRARIES} )
 find_package(PETSc QUIET REQUIRED)
@@ -186,6 +188,10 @@ if (ENABLE_PETSC)
   target_link_libraries(solver ${DEP_LIBS})
   target_link_libraries(solver ${TARGET_LIB_NAME})
   INSTALL(TARGETS solver RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
+  add_executable(aggregate_numbering test/aggregate_numbering/main.cc)
+  target_link_libraries(aggregate_numbering ${DEP_LIBS} ${TARGET_LIB_NAME})
+  INSTALL(TARGETS aggregate_numbering RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif()
 
 if (ENABLE_TRILINOS)

@@ -111,7 +111,7 @@ contains
   ! ~~~~~~
   ! creates a scorec solve matrix with index imat and size isize
   !====================================================================
-  subroutine scorec_matrix_create(mat, m, n, icomplex, lhs)
+  subroutine scorec_matrix_create(mat, m, n, icomplex, lhs, agg_blk_cnt_opt, agg_scp_opt)
 
 
 #ifndef M3DC1_TRILINOS
@@ -132,6 +132,23 @@ contains
     type(scorec_matrix) :: mat
     integer, intent(in) :: m, n, icomplex
     integer, intent(in) :: lhs
+    integer, intent(in), optional :: agg_blk_cnt_opt
+    integer, intent(in), optional :: agg_scp_opt
+
+    integer :: agg_blk_cnt
+    integer :: agg_scp
+
+    if(.not. present(agg_blk_cnt_opt)) then
+       agg_blk_cnt = 1
+    else
+       agg_blk_cnt = agg_blk_cnt_opt
+    end if
+
+    if(.not. present(agg_scp_opt)) then
+       agg_scp = 0
+    else
+       agg_scp = agg_scp_opt
+    end if
 
 !    integer :: ierr
 
@@ -155,7 +172,7 @@ contains
 #ifdef M3DC1_TRILINOS
     call m3dc1_epetra_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
 #else
-    call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
+    call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize, agg_blk_cnt, agg_scp)
 #endif
   end subroutine scorec_matrix_create
 

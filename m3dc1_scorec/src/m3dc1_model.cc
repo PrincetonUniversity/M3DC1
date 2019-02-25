@@ -774,6 +774,7 @@ void m3dc1_model::set_num_plane(int factor)
 
   MPI_Comm groupComm;
   MPI_Comm_split(oldComm, local_planeid, groupRank, &groupComm);
+  setupPlaneComm();
   PCU_Switch_Comm(groupComm);
 }
 
@@ -946,6 +947,20 @@ void m3dc1_model::setupCommGroupsPlane()
   /** split MPI_COMM_WORLD, put the processors of the same planeId into one CommWorld*/
   MPI_Comm_split(MPI_COMM_WORLD,localrank,planeId, &(PlaneGroups[localrank]));
   //MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void m3dc1_model::setupPlaneComm()
+{
+  int & pid = local_planeid;
+  int rnk = PCU_Comm_Self();
+  int gbl_sz = PCU_Comm_Peers();
+  int pids[gbl_sz];
+  MPI_Allgather(&pid,1,MPI_INTEGER,&pids[0],1,MPI_INTEGER,M3DC1_COMM_WORLD);
+  int key = -1;
+  for(int ii = 0; ii < gbl_sz; ++ii)
+    if(pids[ii] == pid && ii < rnk)
+      ++key;
+  MPI_Comm_split(M3DC1_COMM_WORLD,pid,key,&pln_cm);
 }
 
 // **********************************************

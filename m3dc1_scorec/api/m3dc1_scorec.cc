@@ -1,11 +1,8 @@
-/****************************************************************************** 
-
-  (c) 2005-2017 Scientific Computation Research Center, 
+/******************************************************************************
+  (c) 2005-2017 Scientific Computation Research Center,
       Rensselaer Polytechnic Institute. All rights reserved.
-  
   This work is open source software, licensed under the terms of the
   BSD license as described in the LICENSE file in the top-level directory.
- 
 *******************************************************************************/
 #include "m3dc1_scorec.h"
 #include "m3dc1_matrix.h"
@@ -30,6 +27,8 @@
 #include "m3dc1_ls.h"
 #endif
 #include <alloca.h>
+
+MPI_Comm M3DC1_COMM_WORLD = MPI_COMM_WORLD;
 
 double begin_mem, begin_time;
 // helper routines
@@ -736,7 +735,7 @@ void verify_field(pMesh m, pField f)
   pMeshEnt e;
   while ((e = m->iterate(it)))
   {
-    if (is_ent_original(m, e) && (m->isShared(e) || m->isGhosted(e)))
+    if (is_ent_original(e) && (m->isShared(e) || m->isGhosted(e)))
       send_dof(m, e, f);
   }
   m->end(it);
@@ -882,7 +881,7 @@ int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id,
 {
   apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(e);
-  *owning_partid = get_ent_ownpartid(m3dc1_mesh::instance()->mesh, e);
+  *owning_partid = get_ent_ownpartid(e);
   return M3DC1_SUCCESS;
 }
 
@@ -897,7 +896,7 @@ int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id,
   apf::MeshEntity* e = getMdsEntity(m, *ent_dim, *ent_id);
   assert(e);
 
-  if (is_ent_original(m,e)) 
+  if (is_ent_original(e)) 
      *ismine = 1;   // 
   else
      *ismine = 0; 
@@ -1234,7 +1233,8 @@ int m3dc1_field_getinfo(FieldID* /*in*/ field_id,
     return M3DC1_FAILURE;
   m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
   apf::Field* f = mf ->get_field();
-  strcpy(field_name, getName(f));
+  if(field_name != NULL)
+    strcpy(field_name, getName(f));
   *num_values = mf -> get_num_value();
   *scalar_type = mf ->get_value_type();
   *total_num_dof = countComponents(f);
@@ -1269,7 +1269,7 @@ void synchronize_field(apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    if (!is_ent_original(m,e) || (!m->isShared(e)&&!m->isGhosted(e)))
+    if (!is_ent_original(e) || (!m->isShared(e)&&!m->isGhosted(e)))
       continue;
       
     getComponents(f, e, 0, dof_data);
@@ -1348,11 +1348,11 @@ void accumulate_field(apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    own_partid=get_ent_ownpartid(m, e);
+    own_partid=get_ent_ownpartid(e);
     if (own_partid==PCU_Comm_Self() || pumi_ment_isGhost(e)) continue;
     assert(m->isShared(e));
 
-    own_e = get_ent_owncopy(m, e);
+    own_e = get_ent_owncopy(e);
 
     getComponents(f, e, 0, &(dof_data[0]));
       
@@ -1429,7 +1429,7 @@ int m3dc1_field_sumsq (FieldID* /* in */ field_id, double* /* out */ sum)
   apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(0);
   while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
   {
-    if (!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;
+    if (!is_ent_original(e)) continue;
     getComponents(f, e, 0, dof_data);
     for (int i=0; i<num_dof; ++i)
       *sum+=dof_data[i]*dof_data[i];
@@ -1441,8 +1441,9 @@ int m3dc1_field_sumsq (FieldID* /* in */ field_id, double* /* out */ sum)
 
 /** field dof functions */
 //*******************************************************
-int m3dc1_field_getlocaldofid (FieldID* field_id, 
-         int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
+int m3dc1_field_getlocaldofid (FieldID* field_id,
+                               int* /* out */ start_dof_id,
+                               int* /* out */ end_dof_id_plus_one)
 //*******************************************************
 {
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
@@ -1467,7 +1468,7 @@ int m3dc1_field_getowndofid (FieldID* field_id,
 
   int num_own_ent = m3dc1_mesh::instance()->num_own_ent[0];
   int num_dof = (mf->get_value_type())?countComponents(f)/2:countComponents(f);
-  
+
   int start_id = num_own_ent;
   PCU_Exscan_Ints(&start_id,1);
 
@@ -1475,7 +1476,7 @@ int m3dc1_field_getowndofid (FieldID* field_id,
   *end_dof_id_plus_one=*start_dof_id+num_own_ent*num_dof;
   return M3DC1_SUCCESS;
 }
- 
+
 //******************************************************* 
 int m3dc1_field_getglobaldofid ( FieldID* field_id, 
          int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one)
@@ -2204,42 +2205,47 @@ std::map<int, int> matHit;
 int getMatHit(int id) { return matHit[id];};
 void addMatHit(int id) { matHit[id]++; }
 
-//*******************************************************
-int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID *field_id)
-//*******************************************************
+int m3dc1_matrix_create(int * matrix_id,
+                        int * matrix_type,
+                        int * scalar_type,
+                        FieldID * field_id,
+                        int * agg_blk_cnt,
+                        int * agg_scp)
 {
-  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+  int agg_blk_cnt_val = (agg_blk_cnt == NULL ? 1 : *agg_blk_cnt);
+  int agg_scp_val = (agg_scp == NULL ? 0 : *agg_scp);
+  m3dc1_matrix * mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+    
 
   if (mat)
   {
     if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" already created\n";
-    return M3DC1_FAILURE; 
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" already created" << std::endl;
+    return M3DC1_FAILURE;
   }
   // check field exists
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
   {
     if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist\n";
-    return M3DC1_FAILURE; 
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist" << std::endl;
+    return M3DC1_FAILURE;
   }
 
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-    std::cout<<"[M3D-C1 INFO] "<<__func__<<": matrix "<<*matrix_id<<", field "<<*field_id<<"\n";
-#endif 
+    std::cout<<"[M3D-C1 INFO] "<<__func__<<": matrix "<<*matrix_id<<", field "<<*field_id<< std::endl;
+#endif
 
+  m3dc1_matrix * new_mat = NULL;
   if (*matrix_type==M3DC1_MULTIPLY) // matrix for multiplication
-  {
-    matrix_mult* new_mat = new matrix_mult(*matrix_id, *scalar_type, *field_id);
-    m3dc1_solver::instance()->add_matrix(*matrix_id, (m3dc1_matrix*)new_mat);
-  }
-  else 
-  {
-    matrix_solve* new_mat= new matrix_solve(*matrix_id, *scalar_type, *field_id);
-    m3dc1_solver::instance()->add_matrix(*matrix_id, (m3dc1_matrix*)new_mat);
-  }
-
+    new_mat = new matrix_mult(*matrix_id, *scalar_type, *field_id);
+  else
+    new_mat = new matrix_solve(*matrix_id,
+                               *scalar_type,
+                               *field_id,
+                               agg_blk_cnt_val,
+                               agg_scp_val);
+  m3dc1_solver::instance()->add_matrix(*matrix_id, (m3dc1_matrix*)new_mat);
   return M3DC1_SUCCESS;
 }
 
@@ -2623,9 +2629,11 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
     int offset=0;
     for (int inode=0; inode<nodes_per_element; inode++)
     {
+      /*
       if (nodeOwner[inode]!=PCU_Comm_Self()&&!m3dc1_solver::instance()->assembleOption)
         smat->add_blockvalues(1, rows_bloc+inode, nodes_per_element, columns_bloc, values+offset);
-      else 
+      else
+      */
         smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*nodes_per_element, columns, values+offset);
       offset+=numValuesNode;
     }
@@ -2958,7 +2966,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     for (int i=0; i<numVert; i++)
     {
-      if (is_ent_original(m3dc1_mesh::instance()->mesh,getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i)))
+      if (is_ent_original(getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i)))
         errorSum+=pow(errorData[i],d/(p+d/2.0));
     }
     double errorSumBuff=errorSum;
@@ -2972,7 +2980,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
     assert(e);
-    if (!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;
+    if (!is_ent_original(e)) continue;
     double size = sf.getSize(e);
     double targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
     size_estimate+=max(1.,1./targetSize/targetSize);
@@ -3157,9 +3165,11 @@ int m3dc1_mesh_write(char* filename, int *option)
     mesh->end(it);
     apf::writeVtkFiles(filename,m3dc1_mesh::instance()->mesh);
     int one=1;
-    if (*option==3) output_face_data (&one, &geoId[0], "geoId");
-    /*apf::removeTagFromDimension(mesh, tag, dim);
-    mesh->destroyTag(tag);*/
+    if (*option==3)
+    {
+      std::string geoid("geoId");
+      output_face_data(&one, &geoId[0], geoid.c_str());
+    }
   }
   else
   {
@@ -3196,8 +3206,8 @@ int sum_edge_data (double * data, int* size)
   for (int i=0; i<num_edge; i++)
   {
     apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
-    int own_partid=get_ent_ownpartid(m, e);
-    apf::MeshEntity* own_e = get_ent_owncopy(m, e);
+    int own_partid=get_ent_ownpartid(e);
+    apf::MeshEntity* own_e = get_ent_owncopy(e);
     if (own_partid==PCU_Comm_Self()) continue;
     PCU_COMM_PACK(own_partid, own_e);
     PCU_Comm_Pack(own_partid,&(data[i*(*size)]),(*size)*sizeof(double));
@@ -3220,7 +3230,7 @@ int sum_edge_data (double * data, int* size)
   for (int i=0; i<num_edge; i++)
   {
     apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
-    if (!is_ent_original(m,e) || !m->isShared(e))
+    if (!is_ent_original(e) || !m->isShared(e))
       continue;
 
     apf::Copies remotes;
@@ -3266,8 +3276,8 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
   for (int i=0; i<num_node; i++)
   {
     apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
-    int own_partid=get_ent_ownpartid(m, e);
-    apf::MeshEntity* own_e = get_ent_owncopy(m, e);
+    int own_partid=get_ent_ownpartid(e);
+    apf::MeshEntity* own_e = get_ent_owncopy(e);
     apf::Adjacent adjacent;
     m->getAdjacent(e,2,adjacent);
     for (int j=0; j<adjacent.getSize(); j++)
@@ -3312,7 +3322,7 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
   for (int i=0; i<num_node; i++)
   {
     apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
-    if (!is_ent_original(m,e) || !m->isShared(e))
+    if (!is_ent_original(e) || !m->isShared(e))
       continue;
     apf::Copies remotes;
     m->getRemotes(e,remotes);

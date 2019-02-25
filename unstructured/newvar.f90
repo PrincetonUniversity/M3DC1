@@ -85,16 +85,18 @@ contains
     ! assign the proper reference indicies to each matrix
     call set_newvar_indices
 
-    call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, 1)
+    ! aggregate the first parallel matrix using one block for each dof, and
+    !  aggregate across the plane comm
+    call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, 1, agg_blk_cnt=12, agg_scp=1)
     call create_newvar_matrix(mass_mat_lhs,    NV_NOBOUND,NV_I_MATRIX, 1)
     call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat newvar mass_mat_lhs_dc", mass_mat_lhs_dc%mat%imatrix
-    print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix     
+    print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix
     print *, "create_mat newvar gs_mat_rhs_dc",   gs_mat_rhs_dc%mat%imatrix
-#endif 
+#endif
 
-    if(inocurrent_tor.eq.0) then 
+    if(inocurrent_tor.eq.0) then
        call create_newvar_matrix(gs_mat_rhs,  NV_NOBOUND,NV_GS_MATRIX, 0)
     endif
 
@@ -203,7 +205,7 @@ end subroutine apply_bc
 !   NV_NMBOUND: Neumann boundary conditions
 ! itype: operator (NV_I_MATRIX, etc..)
 !============================================
-subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
+subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags, agg_blk_cnt, agg_scp)
   use vector_mod
   use basic
   use m3dc1_nint
@@ -216,6 +218,8 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
   integer, intent(in) :: ibound
   integer, intent(in) :: itype
   integer, intent(in) :: is_lhs
+  integer, intent(in), optional :: agg_blk_cnt
+  integer, intent(in), optional :: agg_scp
   type(tag_list), intent(in), optional :: tags
 
   integer :: numelms, itri, m, n, isize
@@ -235,7 +239,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
   if(itype.eq.NV_SV_MATRIX .and. ihypamu.eq.1) hyp = hypc*amu
   if(itype.eq.NV_SC_MATRIX .and. ihypamu.eq.1) hyp = hypc*amuc
 
-  call create_mat(mat%mat, isize, isize, icomplex, is_lhs)
+  call create_mat(mat%mat, isize, isize, icomplex, is_lhs, agg_blk_cnt, agg_scp)
   mat%ibound = ibound
 
   allocate(temp(dofs_per_element, dofs_per_element, isize, isize))
