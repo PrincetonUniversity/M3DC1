@@ -137,6 +137,7 @@ subroutine set_defaults
   use pellet
   use mesh_mod
   use vector_mod
+  use matrix_mod
   use gradshafranov
   use adapt
   use error_estimate
@@ -1029,6 +1030,10 @@ subroutine set_defaults
        "1 = the input mesh is partitioned", mesh_grp)
   call add_var_int("imatassemble", imatassemble, 0, &
        "0: use scorec matrix parallel assembly; 1 use petsc", mesh_grp)
+  call add_var_int("is1_agg_blks", is1_agg_blk_cnt, 1, &
+       "number of blocks to divide each node of dofs into for matrix s1", mesh_grp)
+  call add_var_int("is1_agg_scp", is1_agg_scp, 0, &
+       "0: per-rank aggregation, 1: per-plane aggregation, 2: global aggregation", mesh_grp)
 
   call add_var_int("imulti_region", imulti_region, 0, &
        "1 = Mesh has multiple physical regions", mesh_grp)

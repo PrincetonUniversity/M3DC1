@@ -87,7 +87,7 @@ contains
 
     ! aggregate the first parallel matrix using one block for each dof, and
     !  aggregate across the plane comm
-    call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, 1, agg_blk_cnt=12, agg_scp=1)
+    call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, 1)
     call create_newvar_matrix(mass_mat_lhs,    NV_NOBOUND,NV_I_MATRIX, 1)
     call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP

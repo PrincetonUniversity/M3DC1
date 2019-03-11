@@ -53,7 +53,7 @@ contains
     ! Matrices
     call set_matrix_index(s1_mat, s1_mat_index)
     call set_matrix_index(d1_mat, d1_mat_index)
-    call create_mat(s1_mat, vecsize_phi, vecsize_phi, icomplex, 1)
+    call create_mat(s1_mat, vecsize_phi, vecsize_phi, icomplex, 1, is1_agg_blk_cnt, is1_agg_scp)
     call create_mat(d1_mat, vecsize_phi, vecsize_phi, icomplex, 0)
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat time_step s1_mat", s1_mat%imatrix     

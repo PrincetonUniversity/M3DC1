@@ -16,6 +16,9 @@ module scorec_matrix_mod
   integer, parameter :: maxnumofsolves = 4
   real, allocatable:: kspits(:)
 
+  integer, parameter :: is1_agg_blk_cnt = 1
+  integer, parameter :: is1_agg_scp = 0
+
   interface clear_mat
      module procedure scorec_matrix_clear
   end interface

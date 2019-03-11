@@ -115,7 +115,7 @@ contains
     call set_matrix_index(q1_mat, q1_mat_index)
     call set_matrix_index(r14_mat, r14_mat_index)
        
-    call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, 1)
+    call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, 1, is1_agg_blk_cnt, is1_agg_scp)
     call create_mat(d1_mat, vecsize_vel, vecsize_vel, icomplex, 0)
     call create_mat(q1_mat, vecsize_vel, vecsize_phi, icomplex, 0)
     call create_mat(r14_mat, vecsize_vel, vecsize_n, icomplex, 0)
