@@ -39,7 +39,7 @@ Program Reducedquintic
   integer :: ier, i, adapt_flag
   real :: tstart, tend, dtsave, period, t_solve, t_compute
   character*10 :: datec, timec
-  character*256 :: arg
+  character*256 :: arg, solveroption_filename
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -76,6 +76,12 @@ Program Reducedquintic
   do i=1, command_argument_count()
      call get_command_argument(i, arg)
      if(trim(arg) == '--help') print_help = .true.
+#ifdef USE3D
+     if(trim(arg) == '-options_file') then
+        call get_command_argument(i+1, solveroption_filename)
+        !if(myrank==0) print '(2a)', 'solver option file : ', trim(solveroption_filename)
+     endif
+#endif
   end do
 
   ! Write version information
@@ -126,6 +132,11 @@ Program Reducedquintic
      call safestop(1)
   endif
 #endif
+
+#ifdef USE3D
+  if(myrank==0) call parse_solver_options(trim(solveroption_filename)//C_NULL_CHAR)
+#endif
+
   ! read input file
   if(myrank.eq.0) print *, ' Reading input'
   call input

@@ -387,8 +387,10 @@ contains
        if(dr_p.gt.r_p(ip)) then
           ! we've ablated the whole pellet
           if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p(ip)
-          pellet_rate(ip)    = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*(1.-pellet_mix(ip))/(M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
-          pellet_rate_D2(ip) = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*pellet_mix(ip)/(M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
+          pellet_rate(ip)    = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*(1.-pellet_mix(ip))/&
+                               (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
+          pellet_rate_D2(ip) = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*pellet_mix(ip)/&
+                               (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
           r_p(ip) = 0.0
        else
           r_p(ip) = r_p(ip) - dr_p

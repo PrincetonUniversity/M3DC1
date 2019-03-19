@@ -21,6 +21,7 @@ module diagnostics
 
   ! wall forces in R, phi, and Z directions
   real :: wall_force_n0_x, wall_force_n0_y, wall_force_n0_z
+  real :: wall_force_n0_x_halo, wall_force_n0_z_halo
 
   ! wall forces in x, y, and z directions
   ! note: x = R cos(phi), y = R sin(phi)
@@ -253,6 +254,9 @@ contains
     wall_force_n1_x = 0.
     wall_force_n1_y = 0.
     wall_force_n1_z = 0.
+    wall_force_n0_x_halo = 0.
+    wall_force_n0_z_halo = 0.
+
 
   end subroutine reset_scalars
 
@@ -270,7 +274,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 70
+    integer, parameter :: num_scalars = 72
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, dimension(maxpellets)  :: ptemp
@@ -347,6 +351,8 @@ contains
        temp(68) = m_iz_sn        
        temp(69) = w_m
        temp(70) = w_p
+       temp(71) = wall_force_n0_x_halo
+       temp(72) = wall_force_n0_z_halo
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -422,6 +428,8 @@ contains
        m_iz_sn         = temp2(68)
        w_m             = temp2(69)
        w_p             = temp2(70)
+       wall_force_n0_x_halo = temp2(71)
+       wall_force_n0_z_halo = temp2(72)
 
        ptemp = nsource_pel
        call mpi_allreduce(ptemp, nsource_pel, npellets, MPI_DOUBLE_PRECISION,  &
@@ -737,7 +745,7 @@ subroutine calculate_scalars()
   if(ipellet.ne.0) call calculate_Lor_vol
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -755,13 +763,16 @@ subroutine calculate_scalars()
      if(imulti_region.eq.1 .and. izone.eq.2) then
         wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
 
-        call jxb_r(temp79a)
+        call jxb_r(temp79a, temp79d)
         call jxb_phi(temp79b)
-        call jxb_z(temp79c)
+        call jxb_z(temp79c, temp79e)
 
         wall_force_n0_x = wall_force_n0_x + int1(temp79a)
         wall_force_n0_y = wall_force_n0_y + int1(temp79b)
         wall_force_n0_z = wall_force_n0_z + int1(temp79c)
+
+        wall_force_n0_x_halo = wall_force_n0_x_halo + int1(temp79d)
+        wall_force_n0_z_halo = wall_force_n0_z_halo + int1(temp79e)
 
 #ifdef USE3D
         wall_force_n1_x = wall_force_n1_x &
@@ -1199,7 +1210,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
   type(element_data) :: d
   integer :: inews
-  integer :: i, ier, in_domain, converged
+  integer :: i, ier, in_domain, converged, izone
   real :: x1, z1, x, z, si, zi, eta, h
   real :: sum, sum1, sum2, sum3, sum4, sum5
   real :: term1, term2, term3, term4, term5
@@ -1207,13 +1218,14 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   real :: xnew, znew, denom, sinew, etanew
   real :: xtry, ztry, rdiff
   vectype, dimension(coeffs_per_element) :: avector
-  real, dimension(5) :: temp1, temp2
+  real, dimension(6) :: temp1, temp2
   integer, save :: itri = 0
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,2E12.4)') '  magaxis: guess = ', xguess, zguess
 
   converged = 0
+  izone = 0
 
   x = xguess
   z = zguess
@@ -1224,6 +1236,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
      ! calculate position of minimum
      if(itri.gt.0) then
+        call get_zone(itri,izone)
         call calcavector(itri, psi, avector)
         call get_element_data(itri, d)
 
@@ -1320,6 +1333,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         rdiff = 0.
         in_domain = 0
         converged = 0
+        izone = 0
      endif  ! on itri.gt.0
      
      ! communicate new minimum to all processors
@@ -1329,13 +1343,15 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         temp1(3) = sum
         temp1(4) = in_domain
         temp1(5) = converged
-        call mpi_allreduce(temp1, temp2, 5, &
+        temp1(6) = izone
+        call mpi_allreduce(temp1, temp2, 6, &
              MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
         xnew  = temp2(1)
         znew  = temp2(2)
         sum   = temp2(3)
         in_domain = temp2(4)
         converged = temp2(5)
+        izone = temp2(6)
 
         if(in_domain .gt. 1) then
            if(myrank.eq.0 .and. iprint.ge.1) &
@@ -1366,6 +1382,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   zguess = z
   psim = sum
   ier = 0
+  if(izone.ne.1) ier = 2
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
@@ -1666,7 +1683,7 @@ subroutine lcfs(psi, test_wall, findx)
         
         if(((x-xmag)*real(data(2)) + (z-zmag)*real(data(3))) &
              *(real(data(1))-psimin).lt.0.) cycle
-        
+        if(z*zmag .lt. 0) cycle    !  added 11/21/2018 scj        
         if(first_point) then
            psib = real(data(1))
            first_point =.false.

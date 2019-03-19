@@ -156,7 +156,8 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
 	restart.o \
 	init_conds.o \
-	get_pc_skip_count.o
+	get_pc_skip_count.o \
+	parse_solver_options.o
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o
@@ -194,7 +195,7 @@ bin :
 	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/create_smb/make_model bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin ; \
