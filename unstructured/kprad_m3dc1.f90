@@ -108,6 +108,7 @@ contains
     integer :: itri, nelms, def_fields
     vectype, dimension(dofs_per_element) :: dofs
     real, dimension(MAX_PTS) :: p
+    integer :: ip
 
     if(ikprad.eq.0) return
 
@@ -336,6 +337,7 @@ contains
     real, parameter :: min_te = .01
     real, parameter :: min_ne = 1e8
     vectype, dimension(dofs_per_element) :: dofs
+    integer :: ip
 
     if(ikprad.ne.1) return
 

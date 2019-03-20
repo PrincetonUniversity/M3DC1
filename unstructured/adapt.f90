@@ -48,15 +48,20 @@ module adapt
     complex, dimension(maxfilaments) :: ic_adapt
     integer :: numcoils_adapt
 
-    real, dimension(maxfilaments,maxpellets) :: xp_adapt, zp_adapt
+    real, allocatable :: xp_adapt(:,:), zp_adapt(:,:)
     integer :: p_steps
     real :: p_dt, p_v
     real :: x0, y0, x, y
+    integer :: ip
 
     call create_field(temporary_field)
     temporary_field = 0.
 
     if(adapt_pellet_delta.gt.0) then
+
+       allocate(xp_adapt(maxfilaments,npellets))
+       allocate(zp_adapt(maxfilaments,npellets))
+       
        ! determine pellet path to adapt along
        do ip=1, npellets
           x0 = pellet_r(ip)*cos(pellet_phi(ip))
@@ -175,6 +180,8 @@ module adapt
           end do
           where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c
+
+          deallocate(xp_adapt,zp_adapt)
        end if
 
        ! convert back to un-normalized psi

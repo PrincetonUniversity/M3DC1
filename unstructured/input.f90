@@ -1384,8 +1384,7 @@ subroutine validate_input
   ! Determine which source terms will be used
   ! ~~~~~~~~~
   density_source = idens.eq.1 .and. linear.eq.0 .and. &
-       ((ipellet.ge.1 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.)) &
-       .or. ionization.ge.1 .or. isink.gt.0 &
+       (ionization.ge.1 .or. isink.gt.0 &
        .or. idenfloor.gt.0 .or. ibeam.eq.1 &
        .or. ibeam.eq.2 .or. iread_particlesource.eq.1 &
        .or. iarc_source.ne.0)
@@ -1543,6 +1542,12 @@ subroutine validate_input
   if(ipellet.ne.0) then
      call pellet_init
      
+     if(.not.density_source) then
+        density_source = idens.eq.1 .and. linear.eq.0 .and. ipellet.ge.1 &
+                         .and. (ipellet_z.eq.0 .or. any(pellet_mix.gt.0.))
+        print *, 'Density source with pellets: ', density_source
+     end if
+
      if(ipellet_z.ne.0 .and. &
         (ikprad.ne.0 .and. ipellet_z.ne.kprad_z)) then
         if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
