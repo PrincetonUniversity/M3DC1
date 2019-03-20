@@ -119,26 +119,26 @@ contains
 
     ! Pellet stuff
     if(version_in.le.25) then
-       call read_scalar(scalar_group_id, "pellet_x",       pellet_r,      ntime, error)
+       call read_scalar(scalar_group_id, "pellet_x",       pellet_r(1),      ntime, error)
     else
-       call read_scalar(scalar_group_id, "pellet_r",       pellet_r,      ntime, error)
+       call read_scalar(scalar_group_id, "pellet_r",       pellet_r(1),      ntime, error)
     end if
-    call read_scalar(scalar_group_id, "pellet_phi",     pellet_phi,    ntime, error)
-    call read_scalar(scalar_group_id, "pellet_z",       pellet_z,      ntime, error)
+    call read_scalar(scalar_group_id, "pellet_phi",     pellet_phi(1),    ntime, error)
+    call read_scalar(scalar_group_id, "pellet_z",       pellet_z(1),      ntime, error)
     if(version_in.le.25) then
-       call read_scalar(scalar_group_id, "pellet_velx",    pellet_velr,   ntime, error)
+       call read_scalar(scalar_group_id, "pellet_velx",    pellet_velr(1),   ntime, error)
     else
-       call read_scalar(scalar_group_id, "pellet_velr",    pellet_velr,   ntime, error)
+       call read_scalar(scalar_group_id, "pellet_velr",    pellet_velr(1),   ntime, error)
     end if
-    call read_scalar(scalar_group_id, "pellet_velphi",  pellet_velphi, ntime, error)
-    call read_scalar(scalar_group_id, "pellet_velz",    pellet_velz,   ntime, error)
+    call read_scalar(scalar_group_id, "pellet_velphi",  pellet_velphi(1), ntime, error)
+    call read_scalar(scalar_group_id, "pellet_velz",    pellet_velz(1),   ntime, error)
     if(version_in.ge.26) then
-       call read_scalar(scalar_group_id, "pellet_vx",    pellet_vx,   ntime, error)
-       call read_scalar(scalar_group_id, "pellet_vy",    pellet_vy,   ntime, error)
+       call read_scalar(scalar_group_id, "pellet_vx",    pellet_vx(1),   ntime, error)
+       call read_scalar(scalar_group_id, "pellet_vy",    pellet_vy(1),   ntime, error)
     end if
-    call read_scalar(scalar_group_id, "pellet_var",     pellet_var,    ntime, error)
-    call read_scalar(scalar_group_id, "r_p",            r_p,           ntime, error)
-    call read_scalar(scalar_group_id, "pellet_rate",    pellet_rate,   ntime, error)
+    call read_scalar(scalar_group_id, "pellet_var",     pellet_var(1),    ntime, error)
+    call read_scalar(scalar_group_id, "r_p",            r_p(1),           ntime, error)
+    call read_scalar(scalar_group_id, "pellet_rate",    pellet_rate(1),   ntime, error)
 
     ! Only read vloop if Ip is under current control
     if(control_type.ne.-1) then
