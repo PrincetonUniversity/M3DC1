@@ -8,30 +8,29 @@ module pellet
 
   integer :: iread_pellet  ! 1 = read pellet info from pellet.dat
 
-  integer, parameter :: maxpellets = 128
   integer :: npellets
 
-  real, dimension(maxpellets) :: pellet_r    ! x coordinate of pellet
-  real, dimension(maxpellets) :: pellet_phi  ! phi coordinate of pellet
-  real, dimension(maxpellets) :: pellet_z    ! z coordinate of pellet
-  real, dimension(maxpellets) :: pellet_rate ! amplitude of pellet density source
-  real, dimension(maxpellets) :: pellet_var  ! spatial dispersion of density source
-  real, dimension(maxpellets) :: pellet_var_tor  ! spatial dispersion of density source
+  real, allocatable :: pellet_r(:)    ! x coordinate of pellet
+  real, allocatable :: pellet_phi(:)  ! phi coordinate of pellet
+  real, allocatable :: pellet_z(:)    ! z coordinate of pellet
+  real, allocatable :: pellet_rate(:) ! amplitude of pellet density source
+  real, allocatable :: pellet_var(:)  ! spatial dispersion of density source
+  real, allocatable :: pellet_var_tor(:)  ! spatial dispersion of density source
 
-  real, dimension(maxpellets) :: pellet_velr
-  real, dimension(maxpellets) :: pellet_velphi
-  real, dimension(maxpellets) :: pellet_velz
-  real, dimension(maxpellets) :: pellet_vx, pellet_vy
+  real, allocatable :: pellet_velr(:)
+  real, allocatable :: pellet_velphi(:)
+  real, allocatable :: pellet_velz(:)
+  real, allocatable :: pellet_vx(:), pellet_vy(:)
 
   integer :: ipellet_abl
-  real, dimension(maxpellets) :: r_p
-  real, dimension(maxpellets) :: cloud_pel
-  real, dimension(maxpellets) :: pellet_mix      ! (moles D2)/(moles D2 + moles impurity)
+  real, allocatable :: r_p(:)
+  real, allocatable :: cloud_pel(:)
+  real, allocatable :: pellet_mix(:)   ! (moles D2)/(moles D2 + moles impurity)
   real :: temin_abl
-  real, dimension(maxpellets) :: pellet_rate_D2  ! rate of deuterium deposition from mixed pellets
+  real, allocatable :: pellet_rate_D2(:)  ! rate of deuterium deposition from mixed pellets
 
-  real, dimension(maxpellets) :: nsource_pel, temp_pel, Lor_vol
-  real, dimension(maxpellets) :: rpdot
+  real, allocatable :: nsource_pel(:), temp_pel(:), Lor_vol(:)
+  real, allocatable :: rpdot(:)
 
   real :: pellet_r_scl, pellet_phi_scl, pellet_z_scl
   real :: pellet_rate_scl, pellet_var_scl, pellet_var_tor_scl
@@ -42,6 +41,7 @@ contains
 
   subroutine pellet_init()
     use basic
+    use read_ascii
 !    use diagnostics
     implicit none
     character(LEN=10), parameter :: pellet_filename = 'pellet.dat'
@@ -49,6 +49,19 @@ contains
     if(iread_pellet.eq.0) then
        ! use the scalar values
        npellets = 1
+       allocate(pellet_r(npellets))
+       allocate(pellet_phi(npellets))
+       allocate(pellet_z(npellets))
+       allocate(pellet_rate(npellets))
+       allocate(pellet_var(npellets))
+       allocate(pellet_var_tor(npellets))
+       allocate(pellet_velr(npellets))
+       allocate(pellet_velphi(npellets))
+       allocate(pellet_velz(npellets))
+       allocate(r_p(npellets))
+       allocate(cloud_pel(npellets))
+       allocate(pellet_mix(npellets))
+       
        pellet_r(1)       = pellet_r_scl
        pellet_phi(1)     = pellet_phi_scl
        pellet_z(1)       = pellet_z_scl
@@ -63,7 +76,6 @@ contains
        pellet_mix(1)     = pellet_mix_scl
 
     else
-       npellets = 0
        call read_ascii_column(pellet_filename, pellet_r,       npellets, icol=1)
        call read_ascii_column(pellet_filename, pellet_phi,     npellets, icol=2)
        call read_ascii_column(pellet_filename, pellet_z,       npellets, icol=3)
@@ -78,6 +90,14 @@ contains
        call read_ascii_column(pellet_filename, pellet_mix,     npellets, icol=12)
     end if
 
+    allocate(pellet_vx(npellets))
+    allocate(pellet_vy(npellets))
+    allocate(pellet_rate_D2(npellets))
+    allocate(nsource_pel(npellets))
+    allocate(temp_pel(npellets))
+    allocate(Lor_vol(npellets))
+    allocate(rpdot(npellets))
+    
     ! if we're ablating, pellet_var set by pellet & cloud size
     if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
 
@@ -192,9 +212,12 @@ contains
     use basic
 !    use diagnostics
     implicit none
-    real, dimension(maxpellets) :: x, y
+    real, allocatable :: x(:), y(:)
 
-    where((pellet_vx**2  + pellet_vy**2 + pellet_vz**2).gt.0.)
+    allocate(x(npellets))
+    allocate(y(npellets))
+    
+    where((pellet_vx**2  + pellet_vy**2 + pellet_velz**2).gt.0.)
        x = pellet_r*cos(pellet_phi)
        y = pellet_r*sin(pellet_phi)
 
@@ -212,7 +235,7 @@ contains
        where(pellet_var.lt.1e-8) pellet_var = 1e-8
     endif
 
- end do
+    deallocate(x,y)
 
   end subroutine pellet_advance
 
@@ -234,6 +257,8 @@ contains
     real, parameter :: M_D2 = 4.0282 ! molar weight of D2
     real, parameter :: N_A  = 6.022140857e23  ! Avogadro's number
     real, parameter :: inv3 = 1./3.
+
+    integer :: ip
 
     do ip=1, npellets
        pellet_rate_D2(ip) = 0. ! no mixture by default

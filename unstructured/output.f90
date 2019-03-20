@@ -328,7 +328,7 @@ subroutine hdf5_write_scalars(error)
 
   integer, intent(out) :: error
 
-  integer(HID_T) :: root_id, scalar_group_id, fl_group_id, mp_group_id
+  integer(HID_T) :: root_id, scalar_group_id, fl_group_id, mp_group_id, pel_group_id
 
   real :: temp
 

@@ -279,7 +279,7 @@ contains
     integer, parameter :: num_scalars = 73
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
-    double precision, dimension(maxpellets)  :: ptemp
+    double precision, allocatable  :: ptemp(:)
 
     ! Allreduce energy terms
     if(maxrank .gt. 1) then
@@ -435,12 +435,16 @@ contains
        wall_force_n0_z_halo = temp2(72)
        helicity        = temp2(73)
 
+       allocate(ptemp(npellets))
+
        ptemp = nsource_pel
        call mpi_allreduce(ptemp, nsource_pel, npellets, MPI_DOUBLE_PRECISION,  &
                           MPI_SUM, MPI_COMM_WORLD, ier)
        ptemp = temp_pel
        call mpi_allreduce(ptemp, temp_pel, npellets, MPI_DOUBLE_PRECISION,  &
                           MPI_SUM, MPI_COMM_WORLD, ier)
+
+       deallocate(ptemp)
 
     endif
 
@@ -675,6 +679,8 @@ subroutine calculate_scalars()
   vectype, dimension(MAX_PTS) :: mr
   vectype, dimension(MAX_PTS) :: co, sn
 
+  integer :: ip
+
   call tpi_factors(tpifac,tpirzero)
 
   ptoto = ptot
@@ -905,7 +911,7 @@ subroutine calculate_scalars()
         ! Pellet radius and density/temperature at the pellet surface
         if(ipellet_abl.gt.0) then
            do ip=1,npellets
-              if(r_p.ge.1e-8) then
+              if(r_p(ip).ge.1e-8) then
                  ! weight density/temp by pellet distribution (normalized)
                  temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
                  nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
@@ -1055,7 +1061,7 @@ subroutine calculate_scalars()
      print *, "  Recombination radiation (potential) = ", recprad
      if(ipellet_abl.gt.0 .and. iprint.ge.2) then
         do ip=1,npellets
-           print *  "  Pellet #", ip
+           print *, "  Pellet #", ip
            print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
            print *, "    radius (in cm) = ", r_p(ip)*l0_norm
            print *, "    local electron temperature (in eV) = ", temp_pel(ip)
@@ -1088,12 +1094,14 @@ subroutine calculate_Lor_vol()
   integer :: is_edge(3)  ! is inode on boundary
   real :: tpifac,tpirzero
   integer :: izone, izonedim
-  real, dimension(maxpellets) :: temp
+  real, allocatable :: temp(:)
+  integer :: ip
 
   call tpi_factors(tpifac,tpirzero)
 
   numelms = local_elements()
 
+  allocate(temp(npellets))
   temp = 0.
 
   do itri=1,numelms
@@ -1112,6 +1120,8 @@ subroutine calculate_Lor_vol()
   end do
 
   call mpi_allreduce(temp, Lor_vol, npellets, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
+
+  deallocate(temp)
 
 end subroutine calculate_Lor_vol
 

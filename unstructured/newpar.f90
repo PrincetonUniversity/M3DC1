@@ -41,6 +41,7 @@ Program Reducedquintic
   real :: tstart, tend, dtsave, period, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
+  integer :: ip
 
   ! Initialize MPI
 #ifdef _OPENMP

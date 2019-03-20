@@ -233,6 +233,7 @@ subroutine den_eq
   real :: rate
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
+  integer :: ip
   
   if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
   if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
@@ -303,6 +304,7 @@ subroutine den_per
   real :: rate
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
+  integer :: ip
 
   if(ipellet.ge.0 .or. (ipellet_z.ne.0 .and. all(pellet_mix.eq.0.))) return
 

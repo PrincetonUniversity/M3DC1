@@ -31,6 +31,7 @@ function sigma_func(izone)
   real :: val, valp, valpp, pso
   real :: rate
   real, allocatable :: xvals(:), yvals(:)
+  integer :: ip
 
   ! Don't allow particle source in wall or vacuum region
   if(izone.ne.1) then
@@ -104,7 +105,7 @@ function sigma_func(izone)
            pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         end if
         call evaluate_spline(particlesource_spline,pso,val,valp,valpp)
-        temp79a(j) = val * pellet_rate_scl ! ???
+        temp79a(j) = val * pellet_rate(1)
      end do
 
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)

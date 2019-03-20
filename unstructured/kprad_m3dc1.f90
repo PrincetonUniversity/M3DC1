@@ -122,6 +122,7 @@ contains
     integer :: itri, nelms, def_fields
     vectype, dimension(dofs_per_element) :: dofs
     real, dimension(MAX_PTS) :: p
+    integer :: ip
 
     if(ikprad.eq.0) return
 
@@ -409,6 +410,7 @@ contains
 
     integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
+    integer :: ip
 
     if(ikprad.ne.1) return
 
