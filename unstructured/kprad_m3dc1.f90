@@ -378,6 +378,7 @@ contains
 
        if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
+          source = 0.
           do ip=1,npellets
              source = source + pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
           end do
