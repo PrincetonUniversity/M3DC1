@@ -22,6 +22,8 @@ function read_scalar, scalarname, filename=filename, title=title, $
    s = read_scalars(filename=filename)
    itor = read_parameter('itor', filename=filename)
    version = read_parameter('version', filename=filename)
+   threed = read_parameter('3d', filename=filename)
+
    if(n_tags(s) eq 0) then return, 0
 
    time = s.time._data
@@ -401,6 +403,9 @@ function read_scalar, scalarname, filename=filename, title=title, $
        
        if(strcmp("wall_force", scalarname, 10, /fold_case) eq 1) then begin
           d = dimensions(/p0,l0=2)
+          if((version lt 27) and (threed eq 0)) then begin
+             data = data*2.*!pi
+          end
        endif
        if(strcmp("flux_thermal", scalarname, 10, /fold_case) eq 1) then begin
           symbol = '!7C!D!8t!N!X'
