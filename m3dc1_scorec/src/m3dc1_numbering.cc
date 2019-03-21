@@ -72,7 +72,7 @@ void aggregateNumbering(MPI_Comm agg_cm,
               for(int dof = 0; dof < ndfs; ++dof)
               {
                 int cmp = blk * ndfs + dof;
-                int nbr = blk * strd + nd_idx * ndfs + dof;
+                int nbr = (blk * strd + nd_idx) * ndfs + dof;
                 apf::number(num,ent,nd,cmp,nbr);
               }
             }
