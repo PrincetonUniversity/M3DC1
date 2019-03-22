@@ -97,6 +97,11 @@ contains
     allocate(temp_pel(npellets))
     allocate(Lor_vol(npellets))
     allocate(rpdot(npellets))
+    pellet_rate_D2 = 0.
+    nsource_pel = 0.
+    temp_pel = 0.
+    Lor_vol = 0.
+    rpdot = 0.
     
     ! if we're ablating, pellet_var set by pellet & cloud size
     if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
