@@ -117,7 +117,7 @@ contains
           if(myrank.eq.0) print *, 'Error: could not find profile_omega'
           call safestop(5)
        end if
-       yvals = yvals / t0_norm * 1e3
+       yvals = yvals * t0_norm * 1e3
 
        ! convert from angular frequency to velocity
        yvals = yvals * toroidal_period / (2.*pi)
