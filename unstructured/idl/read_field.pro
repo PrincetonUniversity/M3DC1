@@ -129,6 +129,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ilin = read_parameter('linear', filename=filename)
    isubeq = read_parameter('eqsubtract', filename=filename)
    extsubtract = read_parameter('extsubtract', filename=filename)
+   rzero = read_parameter('rzero', filename=filename)
+   if(itor eq 1) then begin
+      period = 2.*!pi*rzero
+   endif else begin
+      period = 2.*!pi
+   endelse
 
    if(keyword_set(last)) then time = nt-1
    if(keyword_set(equilibrium)) then begin
@@ -1965,6 +1971,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endif else if(ivform eq 1) then begin
            data = v
        endif
+       if(itor eq 0) then begin
+          data = 2.*!pi*data / period
+       end
+
        symbol = '!7X!X'
        d = dimensions(t0=-1, _EXTRA=extra)
 
