@@ -1,5 +1,8 @@
 module eqcalc
   implicit none
+
+  real, parameter   :: pi = 3.141592653589793238462643383279502884197
+
 contains
 
 
@@ -27,12 +30,33 @@ real function intexheat(rho)     result(y)
   y   = 0.5*(rho - 0.5*rho**3.0)
 end function intexheat
 
-
 !! Define the q-profile
 real function qprof(rho,epsilon)     result(y)
   real, intent(in)  :: rho, epsilon !input
   y   = 10 * 2.1 * epsilon / (2 - 1.0*rho**2.0)
 end function qprof
+
+!! Define the viscosity profile
+real function m(rho)     result(y)
+  real, intent(in)  :: rho !input
+  y   = 1
+end function m
+
+!! Define the derivative of the viscosity profile
+real function dm(rho)    result(y)
+  real, intent(in)  :: rho !input
+  y   = 0
+end function dm
+
+!! Define the momentum input profile
+real function f_m(rho)     result(y)
+  real, intent(in)  :: rho !input
+  real              :: a_div_sigma
+  a_div_sigma   = 5.
+  y   = exp( -0.5 * a_div_sigma**2.0 * rho**2.0) / (2.*pi) * a_div_sigma**2.0
+end function f_m
+
+
 
 
 
@@ -172,17 +196,74 @@ real function beta_p0(epsilon,drho,btheta_prof,bz_prof,n_nodes,p_inf) result(y)
   y             =   betap_arr(2)
 end function beta_p0
 
+!! Routine that calculates v_end as a function of alpha
+real function v_end(alpha,drho) result(y)
+  real, intent(in)  :: alpha, drho
+  real              :: rho, dhdrho
+  real, dimension(:), allocatable :: v_arr, h_arr
+  integer           :: rho_idx, n_nodes
+
+  n_nodes = ceiling(1/drho)+1
+  allocate ( v_arr(n_nodes) )
+  allocate ( h_arr(n_nodes) )
+
+  !! First two by hand
+  h_arr(1)        = 0
+  v_arr(1)        = 1
+  h_arr(2)        = h_arr(1) - alpha*f_m(0.0)/2.0 * drho
+  v_arr(2)        = v_arr(1) + h_arr(1) * drho
+
+
+  !! Calculate the profile
+  do rho_idx = 3, n_nodes
+    rho             = (rho_idx-1)*drho
+    dhdrho          = -( alpha*f_m(rho)/m(rho) + h_arr(rho_idx-1)/rho + dm(rho)/m(rho)*h_arr(rho_idx-1) )
+    h_arr(rho_idx)  = h_arr(rho_idx-1) + dhdrho * drho
+    v_arr(rho_idx)  = v_arr(rho_idx-1) + h_arr(rho_idx-1) * drho
+  end do
+
+  !! Return v_end
+  y             = v_arr(n_nodes)
+end function v_end
+
+!! Routine that solves v_end(alpha) = val. for alpha
+real function alpha_fin(drho,v_fin) result(y)
+  real, intent(in)  :: drho, v_fin
+  real, dimension(2):: alpha_arr, v_end_arr
+
+
+  ! Make two guesses
+  alpha_arr     = (/ 1.0E-1, 1.0E0  /)
+  v_end_arr(1)  = v_end(alpha_arr(1),drho)
+  v_end_arr(2)  = v_end(alpha_arr(2),drho)
+
+  ! Newton Rhapson
+  do while (abs(v_end_arr(2)-v_fin) .gt. 1E-6)
+    alpha_arr(1)  = alpha_arr(1) - ( v_end_arr(1) - v_fin) * ( alpha_arr(2) -&
+                    alpha_arr(1) ) / ( v_end_arr(2) - v_end_arr(1) )
+    alpha_arr     = alpha_arr(2:1:-1)
+
+    v_end_arr(1) = v_end(alpha_arr(2),drho)
+    v_end_arr    = v_end_arr(2:1:-1)
+  end do
+
+  ! Return final beta
+  y             =   alpha_arr(2)
+end function alpha_fin
+
 
 
 
 !! Calculates all profiles
 subroutine all_profs(drho,n_nodes,t_prof,g_prof,beta,gamma,btheta_prof,p_prof,&
-     betap,epsilon,bz_arr,rho_arr,b_flat,t_end,p_inf)
+     betap,epsilon,bz_arr,rho_arr,b_flat,t_end,p_inf,alpha,v_arr,v_fin)
   real, intent(in)        :: drho, beta, gamma, epsilon, t_end, p_inf
   integer, intent(in)     :: n_nodes, b_flat
-  real                    :: rho, betap, dbtheta2drho, dbz2drho, dpdrho
+  real                    :: rho, betap, dbtheta2drho, dbz2drho, dpdrho, alpha, &
+                             dhdrho, v_fin
   real, dimension(n_nodes):: t_prof, g_prof, btheta_prof, k_arr, &
-                             p_prof, intexheat_arr, q_arr, rho_arr, bz_arr
+                             p_prof, intexheat_arr, q_arr, rho_arr, bz_arr, &
+                             v_arr, h_arr
   integer                 :: rho_idx
 
   !! Do first two steps by hand due to limits
@@ -241,6 +322,27 @@ subroutine all_profs(drho,n_nodes,t_prof,g_prof,beta,gamma,btheta_prof,p_prof,&
     p_prof(rho_idx) = p_prof(rho_idx-1) + dpdrho*drho
   end do
 
+  !! Calculate the velocity profile in the axial direction
+  !! Find dimensionless constant alpha for given profile and v_end
+  alpha = alpha_fin(drho,v_fin)
+
+  !! Calculate profiles using forward Euler.
+  !! First two by hand
+  h_arr(1)        = 0
+  v_arr(1)        = 1
+  h_arr(2)        = h_arr(1) - alpha*f_m(0.0)/2.0 * drho
+  v_arr(2)        = v_arr(1) + h_arr(1) * drho
+
+
+  !! Calculate the profile
+  do rho_idx = 3, n_nodes
+    rho             = (rho_idx-1)*drho
+    dhdrho          = -( alpha*f_m(rho)/m(rho) + h_arr(rho_idx-1)/rho + dm(rho)/m(rho)*h_arr(rho_idx-1) )
+    h_arr(rho_idx)  = h_arr(rho_idx-1) + dhdrho * drho
+    v_arr(rho_idx)  = v_arr(rho_idx-1) + h_arr(rho_idx-1) * drho
+  end do
+
+
 end subroutine all_profs
 
 
@@ -265,14 +367,14 @@ program eqcalc_2
 
   use eqcalc
   implicit none
-  real, parameter   :: pi = 3.141592653589793238462643383279502884197
   real              :: drho, beta, gamma,t1, betap, b_zval, t_end, p_inf
   real              :: eta0, a, Ip, kappa0, R0, T0, VL, mu0, epsilon, &
                        B1, p_tot, p0, eta_fac, ln_lambda, z_ion
   integer           :: b_flat
-  real, dimension(:), allocatable  :: t_prof, g_prof, btheta_prof,rho_array, p_prof, bz_arr, rho_arr
-  real,dimension(:,:),allocatable  :: profile_j, profile_p, profile_ne, profile_f, profile_q, profile_t
+  real, dimension(:), allocatable  :: t_prof, g_prof, btheta_prof,rho_array, p_prof, bz_arr, rho_arr, v_arr
+  real,dimension(:,:),allocatable  :: profile_j, profile_p, profile_ne, profile_f, profile_q, profile_t, profile_omega
   integer           :: n_nodes, write_idx
+  real              :: v_fin, alpha, F0, mu_v, q0
 
   !! Declare main varibales
   ln_lambda = 17.
@@ -289,7 +391,7 @@ program eqcalc_2
   IF ( beta .gt. abs( k(1.0)*t1/( gamma*p_tot ) ))  THEN
    write(*,*) 'Beta too large. Decrease beta.'
    stop
- end if
+  end if
 
 
   eta_fac = 100.
@@ -305,8 +407,9 @@ program eqcalc_2
   b_flat  = 0         ! Parameter indiciating if the pressure will be calculated
                       ! consistently via the q profile (b_flat = 1),
                       ! or if one will assume a flat b_z profile (b_flat = 0).
-
-
+  v_fin   = 0.0       ! Edge value of velocity profile.
+  F0      = 1.0       ! Total toroidal force (in Newtons)
+  mu_v    = 1e-6      ! viscosity value at centre
 
   !! Allocate memory for profiles
   n_nodes = ceiling(1/drho)+1
@@ -317,15 +420,17 @@ program eqcalc_2
   allocate ( rho_array(n_nodes) )
   allocate ( bz_arr(n_nodes) )
   allocate ( rho_arr(n_nodes) )
-  call all_profs(drho,n_nodes,t_prof,g_prof,beta,gamma,btheta_prof,p_prof,betap,epsilon,bz_arr,rho_arr,b_flat,t_end,p_inf)
+  allocate ( v_arr(n_nodes) )
+  call all_profs(drho,n_nodes,t_prof,g_prof,beta,gamma,btheta_prof,p_prof,betap, &
+                  epsilon,bz_arr,rho_arr,b_flat,t_end,p_inf,alpha,v_arr,v_fin)
 
   !! Calculate dimensionfull quantities
   T0 =  (eta0**0.4*gamma**0.4*Ip**0.8)/(a**0.8*kappa0**0.4*(2*pi)**0.8*(abs(beta*gamma*p_tot - k(1.0)*t1))**0.8)
   VL =  (2*2**0.2*eta0**0.4*gamma**0.4*kappa0**0.6*pi**1.2*R0*(abs(beta*gamma*p_tot - k(1.0)*t1))**0.2)/(a**0.8*Ip**0.2)
   p0 =  mu0*Ip**2.0/(8.0 * pi**2.0 * a**2.0 * betap )
-
-  b_zval  = B1*(btheta_prof(2) - btheta_prof(1))/epsilon/drho
-            ! Value for const. magnetic field such that q(0) = 1
+  q0      = 3.0     !! Centre value for q
+  b_zval  = q0*B1*(btheta_prof(2) - btheta_prof(1))/epsilon/drho
+            ! Value for const. magnetic field such that q(0) = q0
 
 
   !! Make to be written matrices
@@ -359,16 +464,12 @@ program eqcalc_2
     profile_q(2,:) = a*rho_arr*b_zval/(R0*btheta_prof*B1)
   end if
 
-
-  !! Check if p osscilates between positive and negative values
-  if ( ANY( p_prof(1:n_nodes-1) .lt. 0. ) ) then
-    write(*,*) 'q-profile unphysical - requires negative pressures. Change q profile'
-  end if
-  !! Check if p0 is less than zero
-  if ( betap .lt. 0. )  then
-    write(*,*) 'q-profile unphysical - requires negative pressures. Change q profile'
-  end if
-
+  allocate ( profile_omega(2,n_nodes) )
+  profile_omega(1,:)  = a*rho_arr
+  profile_omega(2,:)  = v_arr * ( F0 * a**2.0 /(mu_v * alpha) )
+  print *, 'Core rotation (m/s) :', profile_omega(2,1)
+  ! convert from m/s to krad/s
+  profile_omega(2,:) = profile_omega(2,:) / R0 / 1e3
 
 
   !! Write output
@@ -412,6 +513,30 @@ program eqcalc_2
   end do
   close(unit=7)
 
-  deallocate(profile_j, profile_p, profile_ne, profile_f, profile_t)
+  open (unit=8,file="profile_omega",action="write",status="replace")
+  do write_idx = 2, n_nodes-1
+    write(8,*) profile_omega(:,write_idx)
+  end do
+  close(unit=8)
 
+  open (unit=9,file="profile_q",action="write",status="replace")
+  do write_idx = 2, n_nodes-1
+    write(9,*) profile_q(:,write_idx)
+  end do
+  close(unit=9)
+
+  open (unit=10,file="profile_mu",action="write",status="replace")
+  do write_idx = 2, n_nodes-1
+     write(10,*) a*rho_arr(write_idx), mu_v*m(rho_arr(write_idx))
+  end do
+  close(unit=10)
+
+  open (unit=11,file="profile_force",action="write",status="replace")
+  do write_idx = 2, n_nodes-1
+     write(11,*) a*rho_arr(write_idx), F0*f_m(rho_arr(write_idx))
+  end do
+  close(unit=11)
+
+
+  deallocate(profile_j, profile_p, profile_ne, profile_f, profile_t,profile_omega)
 end program eqcalc_2
