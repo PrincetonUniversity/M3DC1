@@ -40,6 +40,8 @@ set(PETSC_LIB_NAMES
   pord
   pthread
   scalapack
+  fftw3_mpi
+  fftw3
   flapack
   fblas
   hdf5hl_fortran
@@ -48,6 +50,7 @@ set(PETSC_LIB_NAMES
   hdf5
   parmetis
   metis
+  z
   X11
   pthread
   m
@@ -56,8 +59,9 @@ set(PETSC_LIB_NAMES
   quadmath
   mpicxx
   stdc++
+  dl
   gcc_s
-  dl)
+)
 
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
 
