@@ -1044,7 +1044,7 @@ contains
         end if
 
         where(eta79.ne.eta79) eta79 = 0.
-        where(real(eta79(:,OP_1)).lt.0.) eta79(:,OP_1) = 0.
+        where(real(eta79(:,OP_1)).lt.eta_min) eta79(:,OP_1) = eta_min
         where(real(eta79(:,OP_1)).gt.eta_max) eta79(:,OP_1) = eta_max
      end if
 

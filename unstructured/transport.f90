@@ -677,7 +677,7 @@ function resistivity_func()
   implicit none
 
   vectype, dimension(dofs_per_element) :: resistivity_func
-  real :: tmin
+  real :: tmin, tmax
   integer :: nvals, j
   real, allocatable :: xvals(:), yvals(:)
   real :: val, valp, valpp, pso
@@ -687,6 +687,7 @@ function resistivity_func()
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
      if(eta0.ne.0.) then
         tmin = (eta_fac*eta0/(eta_max - etar*eta_fac))**(2./3.)
+        tmax = (eta_fac*eta0/(eta_min - etar*eta_fac))**(2./3.)
 
         if(itemp.eq.1) then
            temp79b = tet79(:,OP_1) - eta_te_offset
@@ -695,6 +696,8 @@ function resistivity_func()
         endif
         where(real(temp79b).lt.tmin)
            temp79a = eta_max - etar*eta_fac
+        elsewhere(real(temp79b).gt.tmax)
+           temp79a = eta_min - etar*eta_fac
         elsewhere
            temp79a = eta_fac*eta0*temp79b**(-1.5)
         end where

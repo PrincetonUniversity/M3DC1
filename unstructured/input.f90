@@ -285,6 +285,8 @@ subroutine set_defaults
        "1 = remove d/dphi terms in resistivity", transp_grp)
   call add_var_double("eta_te_offset", eta_te_offset, 0., &
        "Offset in Te when calculating eta", transp_grp)
+  call add_var_double("eta_min", eta_min, 0., &
+       "Minimum value of resistivity in the plasma region", transp_grp)
   call add_var_double("eta_max", eta_max, 0., &
        "Maximum value of resistivity in the plasma region", transp_grp)
 
@@ -1505,6 +1507,7 @@ subroutine validate_input
        * e_c**4 * sqrt(m0_norm / m_e) * lambda_coulomb  &
        * (n0_norm**3 * l0_norm / B0_norm**4)
   efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
+  if(eta_min.lt.0.) eta_min = 0.
   if(eta_max.le.0.) eta_max = eta_vac
 
   if(myrank.eq.0 .and. iprint.ge.1) then
@@ -1514,6 +1517,12 @@ subroutine validate_input
           * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
      print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.), &
           ' dimensionless'
+     if(eta_min.gt.0.) then
+        print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.) &
+             * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
+        print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.), &
+             ' dimensionless'
+     end if
   end if
   
 

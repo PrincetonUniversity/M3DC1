@@ -54,6 +54,7 @@ module basic
   integer :: ikappar_ni
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: eta_fac
+  real :: eta_min
   real :: eta_max
   integer :: eta_mod
   real :: eta_te_offset  ! offset in Te when calculating eta
