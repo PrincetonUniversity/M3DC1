@@ -2,15 +2,14 @@
 #module load cmake/3.13.1-hwuwodx
 #module load mpich/3.2.1-niuhmad
 #module load gsl/2.5-hnrtuln
-MPI_DIR=/opt/scorec/spack/install/linux-rhel7-x86_64/gcc-7.3.0/mpich-3.2.1-niuhmadq72otoeruzmhwp6f7b3rqe24y
-PREFIX=/lore/seol/mpich3.2.1-niuhmad-install
-ZOLTAN_DIR=$PREFIX
 PETSC_DIR=/lore/seol/petsc-3.8.2
-PETSC_ARCH=real-mpich3.2.1
+PETSC_ARCH=real-mpich3.2.1-gcc7.3.0
+PREFIX=/lore/seol/mpich3.2.1-gcc7.3.0-install
+ZOLTAN_DIR=$PREFIX
 cmake .. \
-  -DCMAKE_C_COMPILER="$MPI_DIR/bin/mpicc" \
-  -DCMAKE_CXX_COMPILER="$MPI_DIR/bin/mpicxx" \
-  -DCMAKE_Fortran_COMPILER="/$MPI_DIR/bin/mpif90" \
+  -DCMAKE_C_COMPILER="$MPICH_ROOT/bin/mpicc" \
+  -DCMAKE_CXX_COMPILER="$MPICH_ROOT/bin/mpicxx" \
+  -DCMAKE_Fortran_COMPILER="/$MPICH_ROOT/bin/mpif90" \
   -DCMAKE_C_FLAGS=" -g -O0  -I$PETSC_DIR/include" \
   -DCMAKE_CXX_FLAGS=" -g -O0 -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
