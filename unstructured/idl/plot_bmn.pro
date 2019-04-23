@@ -62,6 +62,12 @@ pro plot_bmn, filename, file=fn, vac=vac, names=names, nolegend=nolegend, $
        oplot, psin[i,*], data[i,*], color=c[i], psym=sym[i mod 4]
     end
 
+   for i=0, n_elements(data[*,0])-1 do begin
+      for j=1, n_elements(data[0,*])-1 do begin
+         print, psin[i,j], q[i,j], data[i,j]
+      end
+   end
+
    if(n_elements(out) gt 0) then begin
       if(n_elements(out) eq 1 and n_elements(data[*,0]) gt 1) then begin
          out = replicate(out, n_elements(data[*,0]))
