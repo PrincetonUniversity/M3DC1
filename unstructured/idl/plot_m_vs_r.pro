@@ -1,6 +1,7 @@
 pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
                  srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra, phase=phase, $
-                 jmn=jmn, out=outfile
+                 jmn=jmn, out=outfile, overplot=over, nolegend=nolegend, $
+                 linestyle=linestyle
 
   if(n_elements(factor) eq 0) then factor = 1.
 
@@ -40,8 +41,10 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
      yran = [0, max(data)]
      ytitle=label
   endelse
-  plot, [0,1], yran, /nodata, _EXTRA=extra, $
-        xtitle=xtitle, ylog=ylog, ytitle=ytitle
+  if(not keyword_set(over)) then begin
+     plot, [0,1], yran, /nodata, _EXTRA=extra, $
+           xtitle=xtitle, ylog=ylog, ytitle=ytitle
+  end
 
   n = mrange[1]-mrange[0]+1
   mm = indgen(n) + mrange[0]
@@ -65,10 +68,12 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
      if(keyword_set(ylog)) then begin
         yrange = 10^!y.crange
      endif else yrange = !y.crange
-     oplot, psi, data[i,*], color=c[j]
+     oplot, psi, data[i,*], color=c[j], linestyle=linestyle
      oplot, [psin[j],psin[j]], yrange, color=c[j], linestyle=2
   end
-  plot_legend, name, color=c, ylog=ylog
+  if(not keyword_set(nolegend)) then begin
+     plot_legend, name, color=c, ylog=ylog, _EXTRA=extra
+  end
 
   if(n_elements(outfile) eq 1) then begin
      openw, ifile, outfile, /get_lun
