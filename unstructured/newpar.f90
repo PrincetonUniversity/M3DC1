@@ -134,7 +134,7 @@ Program Reducedquintic
 #endif
 
 #ifdef USE3D
-  if(myrank==0) call parse_solver_options(trim(solveroption_filename)//C_NULL_CHAR)
+  if(myrank==0) call parse_solver_options(trim(solveroption_filename)//PETSC_NULL_CHARACTER)
 #endif
 
   ! read input file

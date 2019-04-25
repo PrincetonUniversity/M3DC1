@@ -29,17 +29,39 @@ endmacro(petscLibCheck)
 
 set(PETSC_LIBS "")
 set(PETSC_LIB_NAMES
- petsc
-  pthread 
-  ssl 
-  crypto 
-  m 
-  numa 
-  rt 
-  nsl  
-  util 
-  pthread 
-  dl)
+  petsc
+  superlu
+  superlu_dist
+  cmumps
+  dmumps
+  smumps
+  zmumps
+  mumps_common
+  pord
+  pthread
+  scalapack
+  fftw3_mpi
+  fftw3
+  flapack
+  fblas
+  hdf5hl_fortran
+  hdf5_fortran
+  hdf5_hl
+  hdf5
+  parmetis
+  metis
+  z
+  X11
+  pthread
+  m
+  mpifort
+  gfortran
+  quadmath
+  mpicxx
+  stdc++
+  dl
+  gcc_s
+)
 
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
 

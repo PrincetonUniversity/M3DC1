@@ -762,20 +762,22 @@ subroutine calculate_scalars()
         call jxb_phi(temp79b)
         call jxb_z(temp79c, temp79e)
 
-        wall_force_n0_x = wall_force_n0_x + int1(temp79a)
-        wall_force_n0_y = wall_force_n0_y + int1(temp79b)
-        wall_force_n0_z = wall_force_n0_z + int1(temp79c)
+        wall_force_n0_x = wall_force_n0_x + int1(temp79a)*twopi/tpifac
+        wall_force_n0_y = wall_force_n0_y + int1(temp79b)*twopi/tpifac
+        wall_force_n0_z = wall_force_n0_z + int1(temp79c)*twopi/tpifac
 
-        wall_force_n0_x_halo = wall_force_n0_x_halo + int1(temp79d)
-        wall_force_n0_z_halo = wall_force_n0_z_halo + int1(temp79e)
+        wall_force_n0_x_halo = wall_force_n0_x_halo + &
+             int1(temp79d)*twopi/tpifac
+        wall_force_n0_z_halo = wall_force_n0_z_halo + &
+             int1(temp79e)*twopi/tpifac
 
 #ifdef USE3D
         wall_force_n1_x = wall_force_n1_x &
-             + int2(temp79a,co) &
-             - int2(temp79b,sn)
+             + int2(temp79a,co)*twopi/tpifac &
+             - int2(temp79b,sn)*twopi/tpifac
         wall_force_n1_y = wall_force_n1_y &
-             + int2(temp79a,sn) &
-             + int2(temp79b,co)
+             + int2(temp79a,sn)*twopi/tpifac &
+             + int2(temp79b,co)*twopi/tpifac
 #endif
      end if
 
