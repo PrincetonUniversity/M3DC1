@@ -63,7 +63,7 @@ contains
 
 #ifdef USEPARTICLES
 !#define JBDEBUG
-#define ORIGVDIST
+!#define ORIGVDIST
 #define DELTA_F
 
   !Define MPI datatype for particle communication
@@ -271,16 +271,14 @@ contains
 
     real, intent(out) :: speed
     real, parameter :: c_mks = 2.9979e+8
-    real EmaxeV, A_ion, Z_ion
+    real EmaxeV
 
     n_ion = 1.0e+17                             !Mean hot ion number density in m^-3
     EmaxeV = 10000.0                            !Peak ion kinetic energy in eV
-    A_ion = 1.0                                 !Ion atomic mass number
-    m_ion = A_ion * m_proton                    !Ion mass in kg
-    Z_ion = 1.0                                 !Ion atomic number (charge state)
+    m_ion = ion_mass * m_proton                 !Ion mass in kg
     q_ion = Z_ion * e_mks                       !Ion charge in C
     qm_ion = q_ion / m_ion                      !Ion charge/mass ratio
-    speed = sqrt(EmaxeV / A_ion) * vp1eV        !Peak ion speed in m/s
+    speed = sqrt(EmaxeV / ion_mass) * vp1eV     !Peak ion speed in m/s
     if (myrank.eq.0) print *,'peak ion speed = ',speed,' m/s = ',speed/c_mks,' c.'
   end subroutine get_ion_physics_params
 
@@ -375,7 +373,8 @@ contains
        if (myrank.eq.0) print *,'read_parts returned with ierr=',ierr
     else
 
-    npr = 32;  npphi = 8;  npz = 16;  npe = 10;  npmu = 8
+    npr = 80;  npphi = 12;  npz = 80;  npe = 30;  npmu = 15
+    !npr = 32;  npphi = 8;  npz = 16;  npe = 10;  npmu = 8
     nphiv = 4  !Note: full orbit only!
 
     !Particle spatial ranges
@@ -459,7 +458,7 @@ contains
 #endif
     enddo !iz
 
-    write(0,'(I6,A,I9,A,f9.2,A)')myrank,':',locparts,' local particle(s). (avg',&
+    write(0,'(I6,A,I9,A,f12.2,A)')myrank,':',locparts,' local particle(s). (avg',&
          locparts/real(nle),' per cell)'
     lc = sum(pdata(:)%np)
     if (lc.ne.locparts) print *,myrank,': mismatch in local particle count.'
@@ -467,7 +466,7 @@ contains
     call mpi_reduce(locparts, nparticles, 1, MPI_INTEGER, MPI_SUM, 0, &
          MPI_COMM_WORLD, ierr)
     if (myrank.eq.0) then
-       write(0,'(I8,A,I8,A)')nparticles,' particle(s) assigned out of ',&
+       write(0,'(I10,A,I11,A)')nparticles,' particle(s) assigned out of ',&
             npz*pperrow,' candidates.'
     endif
 
@@ -553,11 +552,6 @@ contains
 
     !Define custom MPI datatype for particle communication
     call define_mpi_particle(ierr)
-
-    !Return to non-ghosted mesh
-    call m3dc1_ghost_delete
-    call reset_trimats
-    call mpi_barrier(MPI_COMM_WORLD, ierr)
   end subroutine init_particles
 
 !---------------------------------------------------------------------------
@@ -719,12 +713,7 @@ subroutine particle_step(psubsteps, pdt)
   real, intent(in) :: pdt
 
   real    :: tstart, tend
-  integer :: istep, ierr
-
-  !Load ghost mesh
-  call m3dc1_ghost_load(nglayers)
-  call mpi_barrier(MPI_COMM_WORLD, ierr)
-  call reset_trimats
+  integer :: istep
 
   !Advance particle positions
   call second(tstart)
@@ -763,10 +752,6 @@ subroutine update_particle_pressure
   !Copy data to non-ghosted mesh
   call m3dc1_field_sync(p_i_perp%vec%id)
   call m3dc1_field_sync(p_i_par%vec%id)
-
-  !Return to non-ghosted mesh
-  call m3dc1_ghost_delete
-  call reset_trimats
 
   !Invert mass matrix to solve for field components
   call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -957,7 +942,9 @@ end subroutine update_particle_pressure
     integer, dimension(ndnbr) :: npin, jinoffset
     integer, dimension(2*ndnbr) :: nbreq
 
-    !if (myrank.eq.0) print *,'advancing particles by ',tinc
+#ifdef JBDEBUG
+    if (myrank.eq.0) print *,'advancing particles by ',tinc
+#endif
     if (tinc.le.0.0) return
 
     nelms = size(pdata)
@@ -976,7 +963,7 @@ end subroutine update_particle_pressure
        nlost = 0;  lunf = 0
        jmppar(:)%np = 0; jmploc(:)%np = 0  !Clear jumping particle buffers
 
-       !Loop over all local elements (good candidate for OMP parallelization)
+       !Loop over all local elements
 !$OMP PARALLEL DEFAULT(FIRSTPRIVATE), &
 !$OMP          SHARED(pdata, tinc, nelms, dnbr, ndnbr, jmppar), &
 !$OMP          REDUCTION(+:thop,treas,nlost,lunf)
@@ -1145,9 +1132,7 @@ end subroutine update_particle_pressure
        enddo !ipart
 
 #ifdef JBDEBUG
-       if (totin.gt.0) then
-          print *,myrank,': ',totin,' jumps receieved.'
-       endif
+       if (totin.gt.0) print *,myrank,': ',totin,' jumps received.'
 #endif
        locparts = locparts + totin
 
@@ -2075,6 +2060,7 @@ end subroutine update_particle_pressure
     use math
     use m3dc1_nint
     implicit none
+    include 'mpif.h'
     intrinsic matmul
 
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
@@ -2090,6 +2076,7 @@ end subroutine update_particle_pressure
     type(xgeomterms) :: geomterms
     real             :: B0, vpar, ppar, pperp, nrmfac
     integer          :: ierr, nelms, ielm, ipart, itri, tridex, isghost
+    !integer          :: ibp, iwe, iok
 
     nelms = size(pdata)
     elcoefs(:)%itri = 0
@@ -2125,6 +2112,7 @@ end subroutine update_particle_pressure
 #endif
 
        !Sum over particles within this element
+       !ibp = 0;  iwe = 0;  iok = 0
        do ipart=1,pdata(ielm)%np
 
           !Calculate B field at particle location
@@ -2133,12 +2121,17 @@ end subroutine update_particle_pressure
                geomterms, .false., ierr)
           if (ierr.ne.0) then
              print *,myrank,': Bad particle in pressure tensor integral; skipping.'
+             !ibp = ibp + 1
              cycle !next particle
           endif
           if (itri.ne.ielm) then
-             print *,myrank,': Particle in wrong element in pressure tensor integral.'
+             print *,myrank,': Particle in wrong element in pressure tensor integral:',pdata(ielm)%ion(ipart)%gid
+             !print *,ipart,': ',itri,'.ne.',ielm
+             !print *,myrank,': pcoord ',pdata(ielm)%ion(ipart)%gid,' = ',pdata(ielm)%ion(ipart)%x
+             !iwe = iwe + 1
              cycle !next particle
           endif
+          !iok = iok + 1
           call getBcyl(pdata(ielm)%ion(ipart)%x, elcoefs(tridex), geomterms, B_part, &
                deltaB)
           B0 = sqrt(dot_product(B_part, B_part))
@@ -2174,6 +2167,7 @@ end subroutine update_particle_pressure
           dofspen = dofspen + pperp*phfac*wnuhere
 #endif
        enddo !ipart
+       !PRINT *,'DB',myrank,ielm,pdata(ielm)%np,ibp,iwe,iok
 
        !Insert element sums into field data
        ! Note: this is only correct if the local index ielm refers to the
@@ -2607,6 +2601,34 @@ end subroutine update_particle_pressure
   end subroutine hdf5_read_particles
 
 #ifdef JBDEBUG
+!-----------------------------------------------------------------------
+  subroutine elreport(rank, lidx)
+    use basic
+    implicit none
+    integer, intent(in) :: rank, lidx
+    integer :: i, isghost, gid, inode(nodes_per_element)
+    real    :: x, phi, z
+
+    if(myrank.eq.rank) then
+       print *,myrank,': reporting on local element ',lidx
+       call m3dc1_ent_isghost(2, lidx-1, isghost)
+       print *,'ghost? ',isghost
+       call m3dc1_ent_getglobalid(2, lidx-1, gid)
+       print *,'gid = ',gid
+       call get_element_nodes(lidx, inode)
+       print *,'nodes = ',inode
+       do i=1,3
+          call get_node_pos(inode(i), x, phi, z)
+          print *,' (R,phi,z)_',i,' = ',x,phi,z
+       enddo
+       call get_element_nodes(lidx-1, inode)
+       print *,'nodes_m1 = ',inode
+       do i=1,3
+          call get_node_pos(inode(i), x, phi, z)
+          print *,' (R,phi,z)_',i,' = ',x,phi,z
+       enddo
+    endif
+  end subroutine elreport
 !---------------------------------------------------------------------------
   subroutine dump_constants(prefix, junit)
     use basic

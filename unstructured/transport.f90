@@ -1,6 +1,7 @@
 module transport_coefficients
   use spline
 
+  type(spline1d), private :: eta_spline
   type(spline1d), private :: kappa_spline
   type(spline1d), private :: amu_spline
   type(spline1d), private :: heatsource_spline
@@ -670,11 +671,17 @@ function resistivity_func()
   use basic
   use m3dc1_nint
   use diagnostics
+  use math
+  use read_ascii
 
   implicit none
 
   vectype, dimension(dofs_per_element) :: resistivity_func
   real :: tmin
+  integer :: nvals, j
+  real, allocatable :: xvals(:), yvals(:)
+  real :: val, valp, valpp, pso
+
 
   select case (iresfunc)
   case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
@@ -724,8 +731,36 @@ function resistivity_func()
      temp79b = sqrt(((x_79 - xmag)**2 + (z_79 - zmag)**2)/rzero**2)
      temp79a = temp79c/(1. - 1.46*sqrt(temp79b))
 
+  case(10,11)
+     if(.not.allocated(eta_spline%x)) then
+        ! Read in ohm-m (10) or normalized units (11)
+        nvals = 0
+        call read_ascii_column('profile_eta', xvals, nvals, icol=1)
+        call read_ascii_column('profile_eta', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(6)
+        if(iresfunc.eq.10) then
+           yvals = yvals / (c_light**2 / 1.e11)            ! convert from ohm-m to s
+           yvals = yvals / (4.*pi*(v0_norm/c_light)**2 * t0_norm)  ! convert from s
+        end if
+        call create_spline(eta_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     
+     do j=1, npoints
+        if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j),z_79(j)).ne.0) then
+           pso = 1.
+        else
+           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+        end if
+        call evaluate_spline(eta_spline,pso,val,valp,valpp)
+        temp79a(j) = val
+        if(myrank.eq.0) print *, pso, val
+     end do
+
   case default
-     temp79a = 0.
+     if(myrank.eq.0) print *, 'Error: invalid value for iresfunc: ', iresfunc
+     call safestop(73)
 
   end select
 
@@ -816,8 +851,10 @@ function viscosity_func()
         end if
         temp79a(j) = val
      end do
+
   case default
-     temp79a = 0.
+     if(myrank.eq.0) print *, 'Error: invalid value for ivisfunc: ', ivisfunc
+     call safestop(73)
      
   end select
 
@@ -945,8 +982,10 @@ function kappa_func()
         end if
         temp79a(j) = val
      end do
+
   case default
-     temp79a = 0.
+     if(myrank.eq.0) print *, 'Error: invalid value for ikappafunc: ', ikappafunc
+     call safestop(73)
   end select
 
   temp79a = temp79a + kappat

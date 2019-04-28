@@ -1,6 +1,6 @@
 pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
                 yrange=yrange, smooth=sm, overplot=over, _EXTRA=extra, $
-              ke=ke, me=me, xscale=xscale, labelx=labelx
+              ke=ke, me=me, xscale=xscale, labelx=labelx, nolegend=nolegend
    if(n_elements(labelx) eq 0) then labelx = 0.5
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
    if(hdf5_file_test(filename) eq 0) then return
@@ -84,7 +84,9 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
       m = min([ntimes*labelx, ntimes-1])
       xyouts, time[m]*xscale, tmp[n,m], numberAsString, color=c[n]
    endfor
-   plot_legend, string(format='("!8n!6=",I0,"!X")',indgen(maxn)), $
-                color=c, _EXTRA=extra
+   if(not keyword_set(nolegend)) then begin
+      plot_legend, string(format='("!8n!6=",I0,"!X")',indgen(maxn)), $
+                   color=c, _EXTRA=extra
+   end
 
 end

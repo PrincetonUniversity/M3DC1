@@ -2828,14 +2828,8 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   }
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
   ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
-  //ma::Input* in = ma::configure(mesh,&sfv);
   in->maximumIterations = 9;
-  //char filename[256];
-  //sprintf(filename,"before%d",adapt_time);
-  //apf::writeVtkFiles(filename,mesh);
-  //set<int> field_keep;
-  //field_keep.insert(*fieldId);
-  //m3dc1_mesh ::instance ()->clean(field_keep);
+  in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
   ma::adapt(in);
   reorderMdsMesh(mesh);
@@ -3057,6 +3051,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
   ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
   in->maximumIterations = 5;
+  in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
   //set<int> field_keep;
   //field_keep.insert(*fieldId);

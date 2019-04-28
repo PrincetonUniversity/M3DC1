@@ -18,47 +18,56 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/haswell/bin
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.2/haswell/May2018
-
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/bin
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Aug2017/
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Nov2017/
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/debug
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Dec2017/
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-    PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.1
-    PETSC_ARCH= 
-    HYPRE_LIB = 
-    PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
-       $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord \
-       -lsuperlu -lsuperlu_dist -lstrumpack \
-       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++  \
-       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
-       -lflapack -lfblas
-    PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-    OPTS := $(OPTS) -DPETSC_VERSION=39
+    ZOLTAN_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2/cori-hsw-mpich760-cplx
+    ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
 else
+  ifeq ($(TRILINOS), 1)
+    M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
+  else
     M3DC1_SCOREC_LIB = m3dc1_scorec
-    PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.1
-    PETSC_ARCH=cori-hsw-mpich762-real-nomkl-530
-    HYPRE_LIB =
-    PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-        $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord \
-       -lsuperlu -lsuperlu_dist -lstrumpack \
-       -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++  \
-       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
-       -lflapack -lfblas 
-#       -lstrumpack_sparse \
-
-    PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-    OPTS := $(OPTS) -DPETSC_VERSION=39
+  endif
+    ZOLTAN_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2/cori-hsw-mpich760-real
+    ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
 endif
-
-ZOLTAN_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
+ifeq ($(COM), 1)
+      PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2
+      PETSC_ARCH = cori-hsw-mpich760-cplx
+      HYPRE_LIB = 
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
+       $(HYPRE_LIB) \
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
+       -lparmetis -lmetis -lpthread -ldl -lstdc++  \
+       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
+       -lflapack -lfblas
+      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+      OPTS := $(OPTS) -DPETSC_VERSION=38
+else
+      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.8.2
+      PETSC_ARCH = cori-hsw-mpich760-real
+      HYPRE_LIB = -lHYPRE
+      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
+        $(HYPRE_LIB) \
+       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
+       -lparmetis -lmetis -lpthread -ldl -lstdc++  \
+       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
+       -lflapack -lfblas 
+#       -lstrumpack_sparse \
+
+      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
+      OPTS := $(OPTS) -DPETSC_VERSION=38
+endif
 
 # Include option to use adios
 OPTS := $(OPTS) -DUSEADIOS
@@ -105,7 +114,7 @@ endif
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -dynamic -qopt-report
+  LDOPTS := $(LDOPTS) -static -qopt-report
   FOPTS  := $(FOPTS)  -qopt-report
   CCOPTS := $(CCOPTS) -qopt-report
 else
