@@ -17,33 +17,32 @@ ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
   LOADER := hpclink $(LOADER)
 endif
+ 
+OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=37
 
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/bin
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Aug2017/
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Nov2017/
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/debug
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.6.0/haswell/Dec2017/
+PETSC_VER=petsc-3.7.6
+PETSCVER=petsc3.7.6
+
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/haswell-petsc3.7.6
+
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-    ZOLTAN_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2/cori-hsw-mpich760-cplx
-    ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
 else
-  ifeq ($(TRILINOS), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
-  else
     M3DC1_SCOREC_LIB = m3dc1_scorec
-  endif
-    ZOLTAN_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2/cori-hsw-mpich760-real
-    ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
 endif
+
+ZOLTAN_DIR=$(SCOREC_DIR)
+ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
+PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/petsc-3.7.6
+PETSC_ARCH=real-intel-mpi7.7.3-hsw
+
 ifeq ($(COM), 1)
-      PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.8.2
-      PETSC_ARCH = cori-hsw-mpich760-cplx
+      PETSC_ARCH=real-intel-mpi7.7.3-hsw
       HYPRE_LIB = 
       PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
        $(HYPRE_LIB) \
@@ -54,23 +53,9 @@ ifeq ($(COM), 1)
       PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
       OPTS := $(OPTS) -DPETSC_VERSION=38
 else
-      PETSC_DIR = /global/homes/j/jinchen/project/PETSC/petsc-3.8.2
-      PETSC_ARCH = cori-hsw-mpich760-real
-      HYPRE_LIB = -lHYPRE
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-        $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
-       -lparmetis -lmetis -lpthread -ldl -lstdc++  \
-       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
-       -lflapack -lfblas 
-#       -lstrumpack_sparse \
-
-      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-      OPTS := $(OPTS) -DPETSC_VERSION=38
+  PETSC_ARCH=real-intel-mpi7.7.3-hsw
+PETSC_WITH_EXTERNAL_LIB = -L/global/project/projectdirs/mp288/cori/petsc/petsc-3.7.6/real-intel-mpi7.7.3-hsw/lib -Wl,-rpath,/global/project/projectdirs/mp288/cori/petsc/petsc-3.7.6/real-intel-mpi7.7.3-hsw/lib -Wl,-rpath,/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0/lib -L/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
 endif
-
-# Include option to use adios
-OPTS := $(OPTS) -DUSEADIOS
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
@@ -85,7 +70,6 @@ ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
 OPTS := $(OPTS) -DUSEBLAS -DNEWSOLVERDEVELOPMENT
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
-           $(FFTW_INCLUDE_OPTS) \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
@@ -94,9 +78,8 @@ INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
-        $(PETSC_LIB) $(PETSC_EXTERNAL_LIB_BASIC) \
+        $(PETSC_WITH_EXTERNAL_LIB) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
-	$(FFTW_POST_LINK_OPTS) -lfftw3 \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB)
 #        $(HYBRID_LIBS) \
