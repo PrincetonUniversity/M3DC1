@@ -21,7 +21,7 @@ endif
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39
 
 SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/hsw-petsc3.9.3
-#SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
+SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex

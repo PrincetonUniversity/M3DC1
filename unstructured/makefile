@@ -198,7 +198,6 @@ bin : a2cc mackenbach_profiles
 	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin ; \
@@ -207,9 +206,15 @@ bin : a2cc mackenbach_profiles
 		ln -s $(SCOREC_UTIL_DIR)/seed0.smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/collapse bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/convert_sim_sms bin ; \
+	fi
+	if [ -f $(SCOREC_UTIL_DIR)/split_smb/make_model ]; then \
+		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
+	elif [ -f $(SCOREC_UTIL_DIR)/create_smb/make_model ]; then \
+		ln -s $(SCOREC_UTIL_DIR)/create_smb/make_model bin ; \
+	else \
+		ln -s $(SCOREC_UTIL_DIR)/make_model bin ; \
 	fi
 	ln -s $(SRCDIR)/_$(ARCH)/a2cc bin
 	ln -s $(SRCDIR)/_$(ARCH)/mackenbach_profiles bin
