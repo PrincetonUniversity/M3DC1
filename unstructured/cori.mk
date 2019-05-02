@@ -18,12 +18,10 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
  
-OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=37
+OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39
 
-PETSC_VER=petsc-3.7.6
-PETSCVER=petsc3.7.6
-
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/haswell-petsc3.7.6
+SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/hsw-petsc3.9.3
+#SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
@@ -38,24 +36,14 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
-PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/petsc-3.7.6
-PETSC_ARCH=real-intel-mpi7.7.3-hsw
-
+PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/petsc-3.9.3
 ifeq ($(COM), 1)
-      PETSC_ARCH=real-intel-mpi7.7.3-hsw
-      HYPRE_LIB = 
-      PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib $(HYPRE_LIB) \
-       $(HYPRE_LIB) \
-       -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lsuperlu -lsuperlu_dist \
-       -lparmetis -lmetis -lpthread -ldl -lstdc++  \
-       -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit \
-       -lflapack -lfblas
-      PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-      OPTS := $(OPTS) -DPETSC_VERSION=38
+  PETSC_ARCH=cplx-intel-mpi7.7.3-hsw
 else
   PETSC_ARCH=real-intel-mpi7.7.3-hsw
-PETSC_WITH_EXTERNAL_LIB = -L/global/project/projectdirs/mp288/cori/petsc/petsc-3.7.6/real-intel-mpi7.7.3-hsw/lib -Wl,-rpath,/global/project/projectdirs/mp288/cori/petsc/petsc-3.7.6/real-intel-mpi7.7.3-hsw/lib -Wl,-rpath,/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0/lib -L/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
 endif
+
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
@@ -79,7 +67,7 @@ LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
-        -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
+        -L$(HDF5_DIR)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB)
 #        $(HYBRID_LIBS) \
