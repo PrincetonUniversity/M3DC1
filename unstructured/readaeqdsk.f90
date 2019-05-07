@@ -60,6 +60,7 @@ module eqdsk_a
   real, private, allocatable :: csilop(:,:)
   real, private, allocatable :: cmpr2(:,:)
   real, private, allocatable :: ccbrsp(:,:)
+  integer, private, allocatable :: turns(:)
   real, private, allocatable :: eccurt(:,:)
 
   character(len=4), dimension(ntime) :: limloc
@@ -161,6 +162,7 @@ subroutine load_eqdsk_a(filename)
         allocate(csilop(nsilop0,ntime))
         allocate(cmpr2(magpri0,ntime))
         allocate(ccbrsp(nfcoil0,ntime))
+        allocate(turns(nfcoil0))
         allocate(eccurt(nesum0,ntime))
 
         read (neqdsk,1040,end=98) (csilop(k,jj),k=1,nsilop0), (cmpr2(k,jj),k=1,magpri0)
@@ -613,7 +615,15 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp(11,1)/1000.  ! VICS3L
      write(*,1100) ccbrsp(12,1)/1000.  ! VICS2L
      write(*,1100) ccbrsp(12,1)/1000.  ! VICS1L
-
+  else if(nfcoil0.eq.101) then
+     write(0,*) 'Assuming MAST '
+     turns = 1
+     turns(:23) = (/ 1, 12, 8, 12, 8, 8, 8, 23, 23, 23, 23, 4, 4, 4, 4, 8, 8, 4, 4, 4, 4, 4, 4/)
+     do j = 1, nfcoil0
+        do i = 1, turns(j)
+           write(*,1100) ccbrsp( j,1)/(turns(j)*1000.) 
+        end do
+     end do
   end if
 
 1100 format (f12.4)
