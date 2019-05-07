@@ -173,7 +173,7 @@ void parse_solver_options_(const char *filename)
     sprintf(tmp, "%s %s", "-hard_ksp_lgmres_augment", "4");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
-    sprintf(tmp, "%s %s", "-hard_-ksp_gmres_restart", "220");
+    sprintf(tmp, "%s %s", "-hard_ksp_gmres_restart", "220");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     sprintf(tmp, "%s %s", "-hard_ksp_rtol", "1.e-9");
