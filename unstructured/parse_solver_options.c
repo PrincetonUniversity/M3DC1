@@ -38,11 +38,8 @@ void parse_solver_options_(const char *filename)
 
     char *token;
     char *pc_bjacobi_blocks="-pc_bjacobi_blocks";
-#if PETSC_VERSION >= 39
-    char *sub_solver="-sub_pc_factor_mat_solver_type";
-#else
-    char *sub_solver="-sub_pc_factor_mat_solver_package";
-#endif
+    char *sub_solver_type="-sub_pc_factor_mat_solver_type";
+    char *sub_solver_package="-sub_pc_factor_mat_solver_package";
     char *which_solver;
     char *superlu="superlu_dist";
     char *mumps="mumps";
@@ -58,7 +55,13 @@ void parse_solver_options_(const char *filename)
           nblocks=atoi(num_of_pc_bjacobi_blocks);
           //PetscPrintf(PETSC_COMM_WORLD, "       %s \n", num_of_pc_bjacobi_blocks );
        }
-       if(strcmp(token,sub_solver)==0) {//matched
+       if(strcmp(token,sub_solver_type)==0) {//matched
+          which_solver = strtok(NULL, s);
+          if(strcmp(which_solver,superlu)==0) { isuperlu=1; imumps=0; }
+          if(strcmp(which_solver,mumps)==0) { isuperlu=0; imumps=1; }
+          //PetscPrintf(PETSC_COMM_WORLD, "       %s \n", which_solver );
+       }
+       if(strcmp(token,sub_solver_package)==0) {//matched
           which_solver = strtok(NULL, s);
           if(strcmp(which_solver,superlu)==0) { isuperlu=1; imumps=0; }
           if(strcmp(which_solver,mumps)==0) { isuperlu=0; imumps=1; }
