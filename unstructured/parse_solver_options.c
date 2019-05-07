@@ -38,7 +38,11 @@ void parse_solver_options_(const char *filename)
 
     char *token;
     char *pc_bjacobi_blocks="-pc_bjacobi_blocks";
+#if PETSC_VERSION >= 39
     char *sub_solver="-sub_pc_factor_mat_solver_type";
+#else
+    char *sub_solver="-sub_pc_factor_mat_solver_package";
+#endif
     char *which_solver;
     char *superlu="superlu_dist";
     char *mumps="mumps";
@@ -91,11 +95,19 @@ void parse_solver_options_(const char *filename)
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     if(isuperlu==1) {
+#if PETSC_VERSION >= 39
        sprintf(tmp, "%s %s", "-sub_pc_factor_mat_solver_type", "superlu_dist");
+#else
+       sprintf(tmp, "%s %s", "-sub_pc_factor_mat_solver_package", "superlu_dist");
+#endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     } else { //imump==1
+#if PETSC_VERSION >= 39
        sprintf(tmp, "%s %s", "-sub_pc_factor_mat_solver_type", "mumps");
+#else
+       sprintf(tmp, "%s %s", "-sub_pc_factor_mat_solver_package", "mumps");
+#endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
        sprintf(tmp, "%s %s", "-mat_mumps_icntl_14", "50");
@@ -127,13 +139,25 @@ void parse_solver_options_(const char *filename)
     sprintf(tmp, "%s %s", "-hard_sub_pc_type", "lu");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
+#if PETSC_VERSION >= 39
     sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_type", "superlu_dist");
+#else
+    sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_package", "superlu_dist");
+#endif
     if(isuperlu==1) {
+#if PETSC_VERSION >= 39
        sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_type", "superlu_dist");
+#else
+       sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_package", "superlu_dist");
+#endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     } else { //imump==1
+#if PETSC_VERSION >= 39
        sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_type", "mumps");
+#else
+       sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_package", "mumps");
+#endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
        sprintf(tmp, "%s %s", "-hard_mat_mumps_icntl_14", "50");
