@@ -55,7 +55,7 @@ ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L/usr/lib64/ -llustreapi
 
 
-OPTS := $(OPTS) -DUSEBLAS -DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
