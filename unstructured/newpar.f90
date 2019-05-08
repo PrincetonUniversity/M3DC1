@@ -1179,7 +1179,7 @@ subroutine space(ifirstcall)
   character(len=32) :: field_name
 #endif
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, " Entering space..."
+  if (myrank.eq.0 .and. iprint.ge.1) print *, " Entering space..."
 
 !.....create numberings
 #ifdef USESCOREC
