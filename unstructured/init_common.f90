@@ -145,7 +145,8 @@ subroutine init_perturbations
 
   numelms = local_elements()
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations', numelms
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining initial perturbations'
+
   do itri=1,numelms
      call get_zone(itri, izone)
 
