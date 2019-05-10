@@ -1,0 +1,41 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    suffix="${M3DC1_ARCH}"
+else
+    suffix="$1"
+fi
+
+echo "Suffix = $suffix"
+
+wd=`pwd`
+
+# these are the test cases to run
+dir=( "KPRAD_2D" "RMP" )
+
+# What to name the test directory
+test="${M3DC1_VERSION}_${suffix}"
+
+# Command to run in each test directory
+run="sbatch batchjob.${suffix}"
+
+
+for i in "${dir[@]}"; do 
+    cd $i
+
+    # write out the full path here so we don't accidentally 
+    # delete a home directory if $test is set wrong
+    test_dir="$wd/$i/$test"
+    echo "$test_dir"
+
+    if [ -d "$test_dir" ]; then
+	echo "Directory exists"
+	rm -fr "$test_dir"
+    fi
+    cp -r base "$test_dir"
+    cd "$test_dir"
+    rm C1ke
+    $run
+
+    cd $wd
+done
