@@ -618,7 +618,7 @@ subroutine load_eqdsk_a(filename)
   else if(nfcoil0.eq.101) then
      write(0,*) 'Assuming MAST '
      turns = 1
-     turns(:23) = (/ 1, 12, 8, 12, 8, 8, 8, 23, 23, 23, 23, 4, 4, 4, 4, 8, 8, 4, 4, 4, 4, 4, 4/)
+     turns(14:23) = (/ 4, 4, 8, 8, 4, 4, 4, 4, 4, 4/) ! coil cases
      do j = 1, nfcoil0
         do i = 1, turns(j)
            write(*,1100) ccbrsp( j,1)/(turns(j)*1000.) 
