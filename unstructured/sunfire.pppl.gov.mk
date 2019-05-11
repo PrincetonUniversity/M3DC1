@@ -1,5 +1,5 @@
-FOPTS = -c -O2 -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEBLAS
-CCOPTS  = -c -O
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEBLAS -DPETSC_VERSION=37
+CCOPTS  = -c -DPETSC_VERSION=37
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec
@@ -35,12 +35,12 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
 
-PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.7.6
 ifeq ($(COM), 1)
-  PETSC_ARCH=complex-openmpi-1.10.3
+  PETSC_ARCH=cplx-intel2015-openmpi1.10.3-gcc4.4.7
   HYPRE_LIB=
 else
-  PETSC_ARCH=real-openmpi-1.10.3
+  PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
   HYPRE_LIB=-lHYPRE
 endif
 
@@ -56,7 +56,7 @@ ZOLTAN_LIB=-L/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/lib -lzoltan
 SCALAPACK_LIB=-Wl,-rpath,$(SCALAPACK_HOME)/lib -L$(SCALAPACK_HOME) -lscalapack
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
         -lpetsc \
-        -lsuperlu_dist_3.3 -lsuperlu_4.3 \
+        -lsuperlu_dist -lsuperlu \
         -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord \
         $(SCALAPACK_LIB) \
         -lfftw3 -lfftw3_mpi \

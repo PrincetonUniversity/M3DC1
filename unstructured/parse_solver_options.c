@@ -21,6 +21,9 @@ void parse_solver_options_(const char *filename)
   PetscInt nblocks;
   PetscInt isuperlu=0, imumps=0;
 
+  const size_t len=256;
+  char filename_out[len];
+
   //PetscPrintf(PETSC_COMM_WORLD,"\nsolver options from the file:%s\n\n", filename);
 
   char c[1024];
@@ -79,7 +82,8 @@ void parse_solver_options_(const char *filename)
   //PetscPrintf(PETSC_COMM_WORLD, "\n\n-------------------------------------\n\n");
 
      /* open the file for writing*/
-    if ((fptr = fopen(filename, "w")) == NULL)
+    sprintf(filename_out, "%s.out", filename);
+    if ((fptr = fopen(filename_out, "w")) == NULL)
     {
        PetscPrintf(PETSC_COMM_WORLD,"Error! opening file again\n");
        exit(1);         
@@ -170,7 +174,7 @@ void parse_solver_options_(const char *filename)
     sprintf(tmp, "%s %s", "-hard_sub_ksp_type", "preonly");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
-    sprintf(tmp, "%s %s", "-hard_ksp_type", "lgmres");
+    sprintf(tmp, "%s %s", "-hard_ksp_type", "fgmres");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     sprintf(tmp, "%s %s", "-hard_ksp_lgmres_augment", "4");
