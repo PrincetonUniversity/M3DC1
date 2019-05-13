@@ -148,6 +148,9 @@ subroutine set_defaults
   use resistive_wall
   use radiation
   use kprad_m3dc1
+#ifdef REORDERED
+  use matrix_mod
+#endif
 
   implicit none
 
@@ -1045,7 +1048,12 @@ subroutine set_defaults
        "1 = the input mesh is partitioned", mesh_grp)
   call add_var_int("imatassemble", imatassemble, 0, &
        "0: use scorec matrix parallel assembly; 1 use petsc", mesh_grp)
-
+#ifdef REORDERED
+  call add_var_int("is1_agg_blks", is1_agg_blk_cnt, 1, &
+       "number of blocks to divide each node of dofs into for matrix s1", mesh_grp)
+  call add_var_int("is1_agg_scp", is1_agg_scp, 0, &
+       "0: per-rank aggregation, 1: per-plane aggregation, 2: global aggregation", mesh_grp)
+#endif
   call add_var_int("imulti_region", imulti_region, 0, &
        "1 = Mesh has multiple physical regions", mesh_grp)
   call add_var_double("toroidal_pack_factor", toroidal_pack_factor, 1., &
