@@ -49,8 +49,13 @@ module gradshafranov
   real, dimension(maxcoils) :: gs_radial_feedback_x
   real, dimension(maxcoils) :: gs_vertical_feedback_x_i
   real, dimension(maxcoils) :: gs_radial_feedback_x_i
+  real, dimension(maxcoils) :: gs_vertical_feedback_x2
+  real, dimension(maxcoils) :: gs_radial_feedback_x2
+  real, dimension(maxcoils) :: gs_vertical_feedback_x2_i
+  real, dimension(maxcoils) :: gs_radial_feedback_x2_i
   real :: xmag0, zmag0, xmagi, zmagi
   real :: xnull0, znull0, xnulli, znulli
+  real :: xnull02, znull02, xnulli2, znulli2
 
   integer :: igs_start_xpoint_search
   integer :: igs_forcefree_lcfs
@@ -132,7 +137,9 @@ subroutine coil_feedback(itnum)
   integer :: i, ierr
   
   if(myrank.eq.0 .and. iprint.ge.2) then 
-     print *, 'Doing feedback', xmag-xmag0, zmag-zmag0,xnull-xnull0,znull-znull0
+     print *, 'Doing axis feedback', xmag-xmag0,     zmag-zmag0
+     print *, 'Doing X1 feedback', xnull-xnull0,   znull-znull0
+     print *, 'Doing X2 feedback', xnull2-xnull02, znull2-znull02
   end if
 
   xmagi = xmagi + (xmag-xmag0)
@@ -140,6 +147,8 @@ subroutine coil_feedback(itnum)
   if(itnum.gt.10) then
      xnulli = xnulli + (xnull-xnull0)
      znulli = znulli + (znull-znull0)
+     xnulli2 = xnulli2 + (xnull2-xnull02)
+     znulli2 = znulli2 + (znull2-znull02)
   end if
 
   if(myrank.eq.0) then
@@ -164,6 +173,14 @@ subroutine coil_feedback(itnum)
                 +gs_radial_feedback_x(coil_mask(i))*(xnull-xnull0) &
                 +gs_vertical_feedback_x_i(coil_mask(i))*znulli &
                 +gs_radial_feedback_x_i(coil_mask(i))*xnulli)
+        end if
+        if(xnull02.gt.0. .and. itnum.gt.10) then
+           ic_out(i) = ic_out(i) &
+                + (amu0 * 1000. / twopi) / filaments(i) * &
+                (gs_vertical_feedback_x2(coil_mask(i))*(znull2-znull02) &
+                +gs_radial_feedback_x2(coil_mask(i))*(xnull2-xnull02) &
+                +gs_vertical_feedback_x2_i(coil_mask(i))*znulli2 &
+                +gs_radial_feedback_x2_i(coil_mask(i))*xnulli2)
         end if
      end do
   end if
@@ -1123,6 +1140,10 @@ subroutine gradshafranov_solve
              (gs_radial_feedback_x(i) .ne. 0)) then
            do_feedback_x = .true.
         end if
+        if((gs_vertical_feedback_x2(i) .ne. 0) .or. &
+             (gs_radial_feedback_x2(i) .ne. 0)) then
+           do_feedback_x = .true.
+        end if
      end do
   end if
   if(do_feedback) then 
@@ -1138,8 +1159,14 @@ subroutine gradshafranov_solve
         xnull0 = xnull
         znull0 = znull
      end if
+     if(xnull02.eq.0) then
+        xnull02 = xnull2
+        znull02 = znull2
+     end if
      xnulli = 0.
      znulli = 0.
+     xnulli2 = 0.
+     znulli2 = 0.
   end if
 
   if(igs.ne.0) call lcfs(psi_vec, iwall_is_limiter.eq.1, &

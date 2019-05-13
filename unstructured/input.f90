@@ -620,16 +620,28 @@ subroutine set_defaults
        "Integral feedback of each coil to radial displacements", gs_grp)
   call add_var_double_array("gs_vertical_feedback_x", gs_vertical_feedback_x, &
        maxcoils, 0., &
-       "Proportional feedback of each coil to vertical displacements", gs_grp)
+       "Proportional feedback of each coil to X vertical displacements", gs_grp)
   call add_var_double_array("gs_radial_feedback_x", gs_radial_feedback_x, &
        maxcoils, 0., &
-       "Proportional feedback of each coil to radial displacements", gs_grp)
+       "Proportional feedback of each coil to X radial displacements", gs_grp)
   call add_var_double_array("gs_vertical_feedback_x_i", gs_vertical_feedback_x_i, &
        maxcoils, 0., &
-       "Integral feedback of each coil to vertical displacements", gs_grp)
+       "Integral feedback of each coil to X vertical displacements", gs_grp)
   call add_var_double_array("gs_radial_feedback_x_i", gs_radial_feedback_x_i, &
        maxcoils, 0., &
-       "Integral feedback of each coil to radial displacements", gs_grp)
+       "Integral feedback of each coil to X radial displacements", gs_grp)
+  call add_var_double_array("gs_vertical_feedback_x2", gs_vertical_feedback_x2, &
+       maxcoils, 0., &
+       "Proportional feedback of each coil to X2 vertical displacements", gs_grp)
+  call add_var_double_array("gs_radial_feedback_x2", gs_radial_feedback_x2, &
+       maxcoils, 0., &
+       "Proportional feedback of each coil to X2 radial displacements", gs_grp)
+  call add_var_double_array("gs_vertical_feedback_x2_i", gs_vertical_feedback_x2_i, &
+       maxcoils, 0., &
+       "Integral feedback of each coil to X2 vertical displacements", gs_grp)
+  call add_var_double_array("gs_radial_feedback_x2_i", gs_radial_feedback_x2_i, &
+       maxcoils, 0., &
+       "Integral feedback of each coil to X2 radial displacements", gs_grp)
 
   call add_var_int("irot", irot, 0, &
        "Include toroidal rotation", gs_grp)
@@ -672,9 +684,13 @@ subroutine set_defaults
   call add_var_double("gs_pf_psi_width", gs_pf_psi_width, 0., &
        "Width of psi smoothing into private flux region", gs_grp)
   call add_var_double("xnull0", xnull0, 0., &
-       "Target R-coordinate of x-point for feedback", gs_grp)
+       "Target R-coordinate of x-point 1 for feedback", gs_grp)
   call add_var_double("znull0", znull0, 0., &
-       "Target Z-coordinate of x-point for feedback", gs_grp)
+       "Target Z-coordinate of x-point 1 for feedback", gs_grp)
+  call add_var_double("xnull02", xnull02, 0., &
+       "Target R-coordinate of x-point 2 for feedback", gs_grp)
+  call add_var_double("znull02", znull02, 0., &
+       "Target Z-coordinate of x-point 2 for feedback", gs_grp)
 
 
   ! Hyper diffusion

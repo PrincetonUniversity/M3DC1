@@ -1154,7 +1154,7 @@ elemental integer function magnetic_region(psi, psix, psiz, x, z)
      pl = sqrt(real(psix)**2 + real(psiz)**2)
      rl = sqrt((x-xmag)**2 + (z-zmag)**2)
      if(pl.eq.0. .or. rl.eq.0.) return
-     
+
      al = (real(psix)*(x-xmag) + real(psiz)*(z-zmag))/(pl*rl)
      if(al*dpsii/abs(dpsii) .lt. 0.3) then
         magnetic_region = 2
@@ -1666,8 +1666,8 @@ subroutine lcfs(psi, test_wall, findx)
   numnodes = owned_nodes()
   if(tw .and. (iwall_is_limiter.eq.1)) then
      do icounter_t=1,numnodes
-        inode = nodes_owned(icounter_t) 
-        call boundary_node(inode,is_boundary,izone,izonedim,normal,curv, &
+        inode = nodes_owned(icounter_t)  
+       call boundary_node(inode,is_boundary,izone,izonedim,normal,curv, &
              x,phi,z, inner_wall)
         if(.not.is_boundary) cycle
         
@@ -1684,6 +1684,9 @@ subroutine lcfs(psi, test_wall, findx)
                 psib = real(data(1))
         endif
      end do
+  else
+     ! wall is not limiter
+     psib = 1e10*psimin
   end if
 
   if(first_point) then
@@ -1720,32 +1723,28 @@ subroutine lcfs(psi, test_wall, findx)
      end if
      if(xnull2.gt.0.) then
         call evaluate(xnull2,0.,znull2,dum1,temp_field,itri,ier2)
-        psix = dum1(OP_1)
+        psix2 = dum1(OP_1)
      end if
-     
   end if
-  if(ier.eq.0) then
-     if(myrank.eq.0 .and. iprint.ge.1) then
-        write(*,'(A,2E12.4)') '  X-point found at ', xnull, znull
-        write(*,'(A,2E12.4)') '   Psi_x = ', psix
-     end if
-  else 
-     psix = psib
-     if(myrank.eq.0 .and. iprint.ge.1) then 
-        write(*,'(A,2E12.4)') '  no X-point found near ', xnull, znull
-     end if
-  endif
+
+  if(xnull .gt. 0) then
+     if(ier.eq.0) then
+        if(myrank.eq.0 .and. iprint.ge.1) then
+           write(*,'(A,2E12.4)') '  X-point found at ', xnull, znull
+           write(*,'(A,2E12.4)') '   Psi_x = ', psix
+        end if
+     else 
+        psix = psib
+        if(myrank.eq.0 .and. iprint.ge.1) then 
+           write(*,'(A,2E12.4)') '  no X-point found near ', xnull, znull
+        end if
+     endif
+  end if
   if(xnull2 .gt. 0) then
      if(ier2.eq.0) then
         if(myrank.eq.0 .and. iprint.ge.1) then
            write(*,'(A,2E12.4)') '  X-point found at ', xnull2, znull2
            write(*,'(A,2E12.4)') '   Psi_x = ', psix2
-        end if
-        if(abs(psix2 - psimin).lt.abs(psix - psimin)) then
-           psix = psix2
-           if(myrank.eq.0 .and. iprint.ge.1) print *, '  X-point 2 is active '
-        else
-           if(myrank.eq.0 .and. iprint.ge.1) print *, '  X-point 1 is active '
         end if
      else 
         psix2 = psib
@@ -1755,14 +1754,20 @@ subroutine lcfs(psi, test_wall, findx)
      endif
   end if
 
-  if(abs(psix - psimin).lt.abs(psib - psimin)) then
-     is_diverted = .true.
+  
+  if(psix.ne.psib .and. abs(psix - psimin).lt.abs(psix2 - psimin))then
      psibound = psix
-  else
      is_diverted = .true.
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  X-point 1 is active '
+  else if(psix2.ne.psib .and. abs(psix2 - psimin).lt.abs(psix - psimin)) then
+     psibound = psix2
+     is_diverted = .true.
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  X-point 2 is active '
+  else
      psibound = psib
+     is_diverted = .false.
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  No active X-point '
   end if
-
 
   ! Calculate psi at the limiter
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1806,10 +1811,10 @@ subroutine lcfs(psi, test_wall, findx)
   endif
 
   if(myrank.eq.0 .and. iprint.ge.1) then
-     write(*,'(1A10,6A11)') 'psi at:', &
-          'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
-     write(*,'(1I10,1p6e11.3)') myrank,  &
-          psimin, psib, psix, psilim, psilim2, psibound
+     write(*,'(1A10,7A11)') 'psi at:', &
+          'axis', 'wall', 'div1', 'div2', 'lim1', 'lim2', 'lcfs'
+     write(*,'(1I10,1p7e11.3)') myrank,  &
+          psimin, psib, psix, psix2, psilim, psilim2, psibound
   endif
 
   ! daignostic output
@@ -1817,7 +1822,9 @@ subroutine lcfs(psi, test_wall, findx)
      if(psibound.eq.psib) then
         print *, ' Plasma is limited by wall'
      else if(psibound.eq.psix) then
-        print *, ' Plasma is diverted'
+        print *, ' Plasma is diverted by X-point 1'
+     else if(psibound.eq.psix2) then
+        print *, ' Plasma is diverted by X-point 2'
      else if(psibound.eq.psilim) then
         print *, ' Plasma is limited by internal limiter #1.'
      else if(psibound.eq.psilim2) then
