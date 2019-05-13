@@ -39,16 +39,21 @@ else
   # specify whether real or complex
   ifeq ($(COM), 1)
     OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
-  ifeq ($(PAR), 1)
-    BIN_POSTFIX := $(BIN_POSTFIX)-pic
-  else
     BIN_POSTFIX := $(BIN_POSTFIX)-complex
-  endif
     USECOMPLEX = 1
   else
     OPTS := $(OPTS) -Dvectype=real
     USECOMPLEX = 0
   endif
+endif
+
+ifeq ($(REORDERED), 1)
+  OPTS := $(OPTS) -DREORDERED
+  BIN_POSTFIX := $(BIN_POSTFIX)-reordered
+endif
+
+ifeq ($(PAR), 1)
+  BIN_POSTFIX := $(BIN_POSTFIX)-pic
 endif
 
 # specify whether debug or optimization 
@@ -182,6 +187,9 @@ read_jsolver_exec.o : read_jsolver.f90
 a2cc : $(A2CC_OBJS)
 	$(LOADER) $(LDOPTS) $(A2CC_OBJS) -o $@
 
+mackenbach_profiles : mackenbach_profiles.f90
+	$(F90) -r8 -warn all -implicitnone $< -o $@
+
 kprad : kprad.f90 kprad_test.f90
 	$(F90) $(F90OPTS) $< -o $@
 
@@ -189,13 +197,12 @@ test_region : region.o test_region.o
 	$(F90) $^ -o $@
 
 .PHONY : bin
-bin : 
+bin : a2cc mackenbach_profiles
 	rm -fr bin
 	mkdir -p bin
 	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin ; \
@@ -204,11 +211,18 @@ bin :
 		ln -s $(SCOREC_UTIL_DIR)/seed0.smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/collapse bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/make_model bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/convert_sim_sms bin ; \
 	fi
+	if [ -f $(SCOREC_UTIL_DIR)/split_smb/make_model ]; then \
+		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
+	elif [ -f $(SCOREC_UTIL_DIR)/create_smb/make_model ]; then \
+		ln -s $(SCOREC_UTIL_DIR)/create_smb/make_model bin ; \
+	else \
+		ln -s $(SCOREC_UTIL_DIR)/make_model bin ; \
+	fi
 	ln -s $(SRCDIR)/_$(ARCH)/a2cc bin
+	ln -s $(SRCDIR)/_$(ARCH)/mackenbach_profiles bin
 	ln -s $(SRCDIR)/_$(ARCH)-opt-25/m3dc1_2d bin
 	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25/m3dc1_2d_complex bin
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60/m3dc1_3d bin

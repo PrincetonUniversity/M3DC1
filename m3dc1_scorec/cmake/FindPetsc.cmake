@@ -29,17 +29,36 @@ endmacro(petscLibCheck)
 
 set(PETSC_LIBS "")
 set(PETSC_LIB_NAMES
- petsc
-  pthread 
-  ssl 
-  crypto 
-  m 
-  numa 
-  rt 
-  nsl  
-  util 
-  pthread 
-  dl)
+  petsc
+  superlu_dist 
+  cmumps
+  dmumps
+  smumps
+  zmumps
+  mumps_common
+  pord
+  parmetis
+  metis
+  scalapack
+  superlu
+  fftw3_mpi
+  fftw3
+  flapack
+  fblas
+  hdf5hl_fortran
+  hdf5_fortran
+  hdf5_hl
+  hdf5
+  z
+  X11
+  m
+  numa
+  rt
+  nsl
+  util
+  pthread
+  dl
+)
 
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
 
@@ -50,8 +69,21 @@ if(NOT EXISTS "${PETSC_INCLUDE_DIR}")
   message(FATAL_ERROR "PETSC include dir not found")
 endif()
 
-set(PETSC_LIBRARIES ${PETSC_LIBS} )
+set(PETSC_LIBRARIES ${PETSC_LIBS} ${GFORTRAN_LIBRARY})
 set(PETSC_INCLUDE_DIRS ${PETSC_INCLUDE_DIR} )
+
+if (NOT EXISTS "${MPI_DIR}")
+  set(MPI_DIR "/usr/local/openmpi/latest")
+endif()
+find_library(${MPI_DIR} mpi)
+set(PETSC_LIBRARIES ${PETSC_LIBRARIES} ${MPI_DIR}/lib/libmpi.a ${MPI_DIR}/lib/libmpi_f90.a ${MPI_DIR}/lib/libmpi_f77.a ${MPI_DIR}/lib/libmpi_cxx.a)
+
+if (NOT EXISTS "${GCC_DIR}")
+  set (GCC_DIR "/usr/lib/gcc/x86_64-linux-gnu/4.4.5")
+endif()
+find_library(${GCC_DIR} gfortran)
+
+set(PETSC_LIBRARIES ${PETSC_LIBRARIES} ${GCC_DIR}/libgcc_s.a ${GCC_DIR}/libgfortran.a ${GCC_DIR}/libstdc++.a)
 
 string(REGEX REPLACE 
   "/include$" "" 
