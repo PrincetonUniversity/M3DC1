@@ -50,7 +50,7 @@ HDF5_DIR=$(HDF5_HOME)
 SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/Aug2017/openmpi-1.10.3/debug
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
-SCOREC_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/bin
+SCOREC_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7/bin
 
 ZOLTAN_LIB=-L/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3/lib -lzoltan
 SCALAPACK_LIB=-Wl,-rpath,$(SCALAPACK_HOME)/lib -L$(SCALAPACK_HOME) -lscalapack
