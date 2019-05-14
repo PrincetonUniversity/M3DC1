@@ -1,21 +1,46 @@
-To run the regression tests on 8 processors, run the following command:
+The regression tests here work by copying the "base" subdirectory to a
+new subdirectory, running the code in the new directory, and comparing
+the resulting C1ke file with that in the "base" subdirectory.
 
-make N=8
 
-If the test is successful, the word "Success!" will be printed at the
-end of each test, and the make command will return successfully.
+IMPORTANT NOTE FOR DEVELOPERS:
+=============================
+Binary files, including mesh files, should NOT be included in the git
+repository.  Mesh files can be copied to the "base" directories on
+systems that do not have the appropriate mesh generation software. 
 
-If one of the tests fails, the make command will return with an error
-before proceeding to subsequent tests.
 
-To clear the results of the tests, run:
+RUNNING
+=======
 
-make clean
+To submit the regression tests run the following command:
 
-A brief description of each test follows.
+./run <config>
 
-nstx1: Real, 2D NSTX case in a rectangular domain, with numvar=1
-nstx2: Same, but with numvar=2
-nstx3: Same, but with numvar=3
-nstx4: Same, with numvar=3 and ipressplit=1
-kink1: Complex, 2D kink mode case in a curved domain
+where <config> is an optional keyword describing the particular
+configuration you want to use.  New test subdirectories will be named
+${M3DC1_VERSION}_<config>, and the batch script batchjob.<config>
+(defined in the "base" directories) will be used to launch the jobs.
+If <config> is not included, it defaults to $M3DC1_ARCH.
+
+
+CHECKING RESULTS
+================
+
+To check the results of the regression tests, run the following
+command:
+
+./check <config>
+
+where <config> has the same value supplied to the "run" script.  The
+"check" script will indicate whether the tests have started or
+finished.  If they have finished, it will compare the C1ke file with
+those in the "base" directory.
+
+
+CLEANING UP
+===========
+
+The test subdirectories can be deleted by running
+
+./clean <config>
