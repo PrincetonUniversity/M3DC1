@@ -1,15 +1,13 @@
-MPIVER=openmpi-1.10.3
+MPIVER=intel2015-openmpi1.10.3-gcc4.4.7
 ZOLTAN_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
-PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.5.4
-PETSC_ARCH=real-openmpi-1.10.3
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.7.6
+PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
-#SIM_DIR=/usr/pppl/Simmetrix/9.0-150404
-#SIM_DIR=/usr/pppl/Simmetrix/simmodsuite/10.0-160429
-SIM_DIR=/usr/pppl/Simmetrix/simmodsuite/11.0-171020
-#SIM_ARCHOS=x64_rhel5_gcc41
+SIM_VER=14.0-190402dev
+SIM_DIR=/usr/pppl/Simmetrix/simmodsuite/$SIM_VER
 SIM_ARCHOS=x64_rhel6_gcc44
-PREFIX=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
-
+PREFIX=$ZOLTAN_DIR
+LAPACK_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3
 cmake .. \
   -DCMAKE_C_COMPILER=mpicc \
   -DCMAKE_CXX_COMPILER=mpicxx \
@@ -26,7 +24,7 @@ cmake .. \
   -DENABLE_SIMMETRIX=ON \
   -DSIMMETRIX_INCLUDE_DIR=$SIM_DIR/include \
   -DSIMMETRIX_LIB_DIR=$SIM_DIR/lib/$SIM_ARCHOS \
-  -DLAPACK_LIB_DIR=$PREFIX/lib \
+  -DLAPACK_LIB_DIR=$LAPACK_DIR/lib \
   -DENABLE_TESTING=OFF \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_BUILD_TYPE=Debug
