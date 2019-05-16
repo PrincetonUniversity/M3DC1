@@ -54,7 +54,7 @@ subroutine get_temp_mask(itri, imask)
 
   ibound = 0
   if(inograd_t.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(iconst_t.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  if(iconst_t.eq.1 .or. iconst_p.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_temp_mask
