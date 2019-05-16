@@ -6,8 +6,9 @@ the resulting C1ke file with that in the "base" subdirectory.
 IMPORTANT NOTE FOR DEVELOPERS:
 =============================
 Binary files, including mesh files, should NOT be included in the git
-repository.  Mesh files can be copied to the "base" directories on
-systems that do not have the appropriate mesh generation software. 
+repository.  Mesh files can be copied to the "base" directories so
+that these cases can run when simmetrix licenses are not available,
+but shouldn't be added to git.
 
 
 RUNNING
