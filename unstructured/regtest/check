@@ -58,7 +58,7 @@ for d in */ ; do
     if [ $retval -eq 0 ]; then
 	echo -e "\t${green}PASSED${nc}"
     else
-	echo -e "\t${red}FAILED${nc}$: C1ke file does not match"
+	echo -e "\t${red}FAILED${nc}: C1ke files do not match"
     fi
 done
 
