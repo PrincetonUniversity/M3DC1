@@ -1,0 +1,19 @@
+#!/bin/bash
+#SBATCH -p debug
+#SBATCH -C knl,quad,cache
+#SBATCH -N 3
+#SBATCH -J M3DC1_regtest_KPRAD_2D
+#SBATCH -t 00:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+create_fixed_mesh.sh AnalyticModel 0.06
+echo $? > mesh_created
+
+part_mesh.sh analytic-2K.smb 192
+echo $? > mesh_partitioned
+
+$M3DC1_MPIRUN -n 192 -c 4 m3dc1_2d -pc_factor_mat_solver_package mumps
+
+touch finished
