@@ -287,20 +287,14 @@ vectype function b4psiv(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-  select case(ivform)
-  case(0)
-     ! not yet implemented
-     temp = 0.
-  case(1)
-     if(surface_int) then 
-        temp = int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
-             + int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1))
-     else
-        temp = &
-             - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
-             - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1))
-     endif
-  end select
+  if(surface_int) then 
+     temp = int5(ri2_79,e(:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+          + int5(ri2_79,e(:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1))
+  else
+     temp = &
+          - int4(ri2_79,e(:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
+          - int4(ri2_79,e(:,OP_DR),f(:,OP_DR),g(:,OP_1))
+  endif
   
   b4psiv = temp
 end function b4psiv
@@ -317,20 +311,14 @@ vectype function b4bu(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-  select case(ivform)
-  case(0)
-     ! not yet implemented
-     temp = 0.
-  case(1)
-     if(surface_int) then 
-        temp = &
-             - int5(ri2_79,e(:,OP_1),norm79(:,1),g(:,OP_DR),f(:,OP_1)) &
-             - int5(ri2_79,e(:,OP_1),norm79(:,2),g(:,OP_DZ),f(:,OP_1))
-     else
-        temp = int4(ri2_79,e(:,OP_DZ),g(:,OP_DZ),f(:,OP_1)) &
-             + int4(ri2_79,e(:,OP_DR),g(:,OP_DR),f(:,OP_1))
-     endif
-  end select
+  if(surface_int) then 
+     temp = &
+          - int5(ri2_79,e(:,OP_1),norm79(:,1),g(:,OP_DR),f(:,OP_1)) &
+          - int5(ri2_79,e(:,OP_1),norm79(:,2),g(:,OP_DZ),f(:,OP_1))
+  else
+     temp = int4(ri2_79,e(:,OP_DZ),g(:,OP_DZ),f(:,OP_1)) &
+          + int4(ri2_79,e(:,OP_DR),g(:,OP_DR),f(:,OP_1))
+  endif
   
   b4bu = temp
 end function b4bu
@@ -347,19 +335,13 @@ vectype function b4bchi(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
-  select case(ivform)
-  case(0)
-     ! not yet implemented
-     temp = 0.
-  case(1)
-     if(surface_int) then 
-        temp = int5(ri5_79,e(:,OP_1),norm79(:,2),g(:,OP_DR),f(:,OP_1)) &
-             - int5(ri5_79,e(:,OP_1),norm79(:,1),g(:,OP_DZ),f(:,OP_1))
-     else
-        temp = int4(ri5_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_1)) &
-             - int4(ri5_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_1))
-     endif
-  end select
+  if(surface_int) then 
+     temp = int5(ri5_79,e(:,OP_1),norm79(:,2),g(:,OP_DR),f(:,OP_1)) &
+          - int5(ri5_79,e(:,OP_1),norm79(:,1),g(:,OP_DZ),f(:,OP_1))
+  else
+     temp = int4(ri5_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_1)) &
+          - int4(ri5_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_1))
+  endif
   
   b4bchi = temp
 end function b4bchi
@@ -377,19 +359,13 @@ vectype function b4fv(e,f,g)
   vectype :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  select case(ivform)
-  case(0)
-     ! not yet implemented
-     temp = 0.
-  case(1)
-     if(surface_int) then 
-        temp = int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
-             - int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
-     else
-        temp = int4(ri_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1)) &
-             - int4(ri_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1))
-     endif
-  end select
+  if(surface_int) then 
+     temp = int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
+          - int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
+  else
+     temp = int4(ri_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1)) &
+          - int4(ri_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1))
+  endif
 #else
   temp = 0.
 #endif

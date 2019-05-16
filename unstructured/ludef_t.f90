@@ -4590,7 +4590,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      endif
 
      if(isurface.eq.0) cycle
-     if(.not.(nonrect.eq.1 .and. ivform.eq.1)) cycle
+     if(nonrect.eq.0) cycle
 
      ! add surface terms
      call boundary_edge(itri, is_edge, n, idim)

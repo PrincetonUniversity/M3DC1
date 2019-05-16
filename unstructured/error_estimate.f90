@@ -440,7 +440,7 @@ fn_eval(1:npoint_int)
       eph079 =0.
       eps079 =0.
     end if
-    if(ivform .eq. 1 .and. itor .eq. 1) then
+    if(itor .eq. 1) then
       do i=1, EOP_NUM
          eph179(:,i)=eph179(:,i)*er_79**2
          eph179_pre(:,i)=eph179_pre(:,i)*er_79**2
