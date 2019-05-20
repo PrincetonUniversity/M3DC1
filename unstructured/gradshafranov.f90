@@ -2540,12 +2540,7 @@ end subroutine readpgfiles
            (bz079(:,OP_DR)*ps079(:,OP_DR) + bz079(:,OP_DZ)*ps079(:,OP_DZ))
       
       if(irot.eq.1) then
-         select case(ivform)
-         case(0)
-            temp79d = ri_79*n079(:,OP_1)*vz079(:,OP_1)**2*ps079(:,OP_DR)
-         case(1)
-            temp79d = r3_79*n079(:,OP_1)*vz079(:,OP_1)**2*ps079(:,OP_DR)
-         end select
+         temp79d = r3_79*n079(:,OP_1)*vz079(:,OP_1)**2*ps079(:,OP_DR)
       else 
          temp79d = 0.
       endif
@@ -2808,11 +2803,6 @@ subroutine calc_rotation(ps0,omega, x, z, izone)
   call evaluate_spline(omega_spline,psii,w0)
 
   omega = w0
-
-  if(ivform.eq.0) then
-     ! V = omega*r^2
-     omega = x**2 * omega
-  endif
 end subroutine calc_rotation
 
 !=======================================================

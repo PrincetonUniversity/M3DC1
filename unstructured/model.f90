@@ -300,12 +300,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
 
      ! no compression
      if(com_bc.eq.1 .and. numvar.ge.3) then
-        select case(ivform)
-        case(0)
-           call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,x,mat)
-        case(1)
-           call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,-x,mat)
-        end select
+        call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,-x,mat)
      endif
   end do
 end subroutine boundary_vel
@@ -376,12 +371,7 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
 
      ! no compression
      if(com_bc.eq.1 .and. numvar.ge.3) then
-        select case(ivform)
-        case(0)
-           call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,x,mat)
-        case(1)
-           call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,-x,mat)
-        end select
+        call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,-x,mat)
      endif
   end do
 end subroutine boundary_vpol
