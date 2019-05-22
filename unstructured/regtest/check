@@ -32,20 +32,22 @@ for d in */ ; do
 	echo -e "\tJob not yet finished."
 	continue
     fi
-    mesh_created=`cat $d$test/mesh_created`
-    if [ ! $mesh_created -eq 0 ]; then
-	echo -e "\tWarning: there was an error creating the mesh."
-
-	if grep -q "All licenses in use" "$d$test/C1stdout" 
-	then
-	    echo -e "\t\tAll geosim_core licenses in use"
-	elif grep -q "No license" "$d$test/C1stdout"
-	then
-	    echo "\t\tNo geosim_core license found"
+    if [ -e "$d$test/mesh_created" ]; then 
+	mesh_created=`cat $d$test/mesh_created`
+	if [ ! $mesh_created -eq 0 ]; then
+	    echo -e "\tWarning: there was an error creating the mesh."
+	    
+	    if grep -q "All licenses in use" "$d$test/C1stdout" 
+	    then
+		echo -e "\t\tAll geosim_core licenses in use"
+	    elif grep -q "No license" "$d$test/C1stdout"
+	    then
+		echo "\t\tNo geosim_core license found"
+	    fi
 	fi
     fi
     mesh_partitioned=`cat $d$test/mesh_partitioned`
-    if [ ! $mesh_created -eq 0 ]; then
+    if [ ! $mesh_partitioned -eq 0 ]; then
 	echo -e "\tWarning: there was an error partitioning the mesh."
     fi
 

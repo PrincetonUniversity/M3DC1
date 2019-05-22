@@ -13,7 +13,7 @@ inFile DIIID
 outFile diiid
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
-meshSize 0.04 0.04 0.1
+meshSize 0.06 0.06 0.2
 
 ! for parametrized vacuum model only.
 useVacuumParams 0
