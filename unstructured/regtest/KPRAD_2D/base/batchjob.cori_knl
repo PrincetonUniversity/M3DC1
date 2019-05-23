@@ -8,8 +8,8 @@
 
 touch started
 
-create_fixed_mesh.sh AnalyticModel 0.06
-echo $? > mesh_created
+#create_fixed_mesh.sh AnalyticModel 0.06
+#echo $? > mesh_created
 
 part_mesh.sh analytic-2K.smb 192
 echo $? > mesh_partitioned
