@@ -6,14 +6,18 @@ else
     suffix="$1"
 fi
 
+# Test cases to run
+if [ -z "$2" ]; then
+    dir=( "KPRAD_2D" "RMP" "RMP_nonlin" )
+else
+    dir="$2"
+fi
+
 echo "Suffix = $suffix"
 
 wd=`pwd`
 
-# these are the test cases to run
-dir=( "KPRAD_2D" "RMP" )
-
-# What to name the test directory
+# Name of test directory
 test="${M3DC1_VERSION}_${suffix}"
 
 # Command to run in each test directory
@@ -21,6 +25,11 @@ run="sbatch batchjob.${suffix}"
 
 
 for i in "${dir[@]}"; do 
+    if [ ! -e "$wd/$i/$test/batchjob.${suffix}" ]; then
+	echo "No batch file found for ${suffix} in $i"
+	continue
+    fi
+
     cd $i
 
     # write out the full path here so we don't accidentally 
