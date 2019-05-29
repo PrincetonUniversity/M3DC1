@@ -465,12 +465,7 @@ subroutine print_info
 
   ! velocity form
   if(myrank.eq.0) then
-     select case(ivform)
-     case(0)
-        print*, "V = grad(U)xgrad(phi) + V grad(phi) + grad(chi)"
-     case(1)
-        print*, "V = R^2 grad(U)xgrad(phi) + R^2 V grad(phi) + grad(chi)/R^2"
-     end select
+     print*, "V = R^2 grad(U)xgrad(phi) + R^2 V grad(phi) + grad(chi)/R^2"
   endif
 
   ! check time-integration options
@@ -1179,7 +1174,7 @@ subroutine space(ifirstcall)
   character(len=32) :: field_name
 #endif
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, " Entering space..."
+  if (myrank.eq.0 .and. iprint.ge.1) print *, " Entering space..."
 
 !.....create numberings
 #ifdef USESCOREC

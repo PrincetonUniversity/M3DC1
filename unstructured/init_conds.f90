@@ -403,12 +403,7 @@ subroutine set_neo_vel
 
         ! assemble RHS
         ! toroidal rotation
-        select case(ivform)
-        case(0)
-           temp2(i) = int3(r_79,mu79(i,:,OP_1),vz)
-        case(1)
-           temp2(i) = int3(ri_79,mu79(i,:,OP_1),vz)
-        end select
+        temp2(i) = int3(ri_79,mu79(i,:,OP_1),vz)
 
         ! vorticity
         if(imask_vor(i).eq.0) then

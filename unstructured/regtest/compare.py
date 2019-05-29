@@ -1,7 +1,7 @@
 import sys
 
-f1 = open("C1ke.base", "r")
-f2 = open("C1ke", "r")
+f1 = open(str(sys.argv[1]), "r")
+f2 = open(str(sys.argv[2]), "r")
 exitval = 0
 tol = 1e-3
 

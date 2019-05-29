@@ -187,11 +187,7 @@ function force_func(izone)
   if(ibeam.eq.1 .or. ibeam.eq.4 .or. ibeam.eq.5) then
      temp79a = neutral_beam_deposition(x_79,z_79)
      temp = temp + nb_v*beam_fracpar*intx2(mu79(:,:,OP_1),temp79a)
-     if(ivform.eq.0) then
-        temp = temp - intx4(mu79(:,:,OP_1),ri_79,temp79a,vzt79(:,OP_1))
-     else
-        temp = temp - intx4(mu79(:,:,OP_1),r_79,temp79a,vzt79(:,OP_1))
-     endif
+     temp = temp - intx4(mu79(:,:,OP_1),r_79,temp79a,vzt79(:,OP_1))
   endif
 
   force_func = temp
@@ -345,15 +341,9 @@ function q_func(izone)
   if(ibeam.ge.1 .and. ibeam.le.4) then
      temp79a = 0.5*neutral_beam_deposition(x_79,z_79)
      temp = temp + (nb_v**2 + nb_dv**2)*intx2(mu79(:,:,OP_1),temp79a)
-     if(ivform.eq.0) then
-        temp = temp &
-             - 2.*nb_v*intx4(mu79(:,:,OP_1),ri_79,temp79a,vzt79(:,OP_1)) &
-             + intx5(mu79(:,:,OP_1),ri2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
-     else
-        temp = temp &
-             - 2.*nb_v*intx4(mu79(:,:,OP_1),r_79,temp79a,vzt79(:,OP_1)) &
-             + intx5(mu79(:,:,OP_1),r2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
-     endif
+     temp = temp &
+          - 2.*nb_v*intx4(mu79(:,:,OP_1),r_79,temp79a,vzt79(:,OP_1)) &
+          + intx5(mu79(:,:,OP_1),r2_79,temp79a,vzt79(:,OP_1),vzt79(:,OP_1))
   endif
 
   ! Read numerical heat source profile

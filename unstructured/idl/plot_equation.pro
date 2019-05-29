@@ -1,5 +1,5 @@
 pro plot_equation, equation, cutz=cutz, _EXTRA=extra, $
-                   func=func
+                   func=func, outfile=outfile
 
   call_procedure, 'eqn_' + equation, nterms=nterms, names=names, term=term, $
                   title=title, x=x, z=z, _EXTRA=extra
@@ -52,5 +52,25 @@ pro plot_equation, equation, cutz=cutz, _EXTRA=extra, $
   window, 0
   contour_and_legend, abs(total), x, z, /zlog
   oplot, !x.crange, [cutz, cutz]
+
+  if(n_elements(outfile)) then begin
+     openw, ifile, outfile, /get_lun
+
+     s = strtrim(string(nterms+2))
+     printf, format='('+s+'A15)', $
+             ifile, [xtitle, names]
+     dat = fltarr(nterms+2)
+     for k=0, n_elements(xdat)-1 do begin
+        dat[0] = xdat[k]
+        dat[1] = f[nterms,k]
+        for i=0, nterms-1 do begin
+           dat[i+2] = f[i,k]
+        end
+        print, dat
+        printf, format='('+s+'G15.5)', $
+                ifile, dat
+     end
+     close, ifile
+  end
 
 end

@@ -1,0 +1,66 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    suffix="${M3DC1_ARCH}"
+else
+    suffix="$1"
+fi
+
+wd=`pwd`
+
+# Name of the test directory
+test="${M3DC1_VERSION}_${suffix}"
+
+red='\033[0;31m'
+green='\033[0;32m'
+nc='\033[0;0m'
+bold=$(tput bold)
+normal=$(tput sgr0)
+
+
+for d in */ ; do
+    if [ ! -d "$d$test" ]; then
+#	echo "$d$test does not exist."
+	continue
+    fi
+    echo -e "${bold}$d${normal}$test:"
+    if [ ! -f "$d$test/started" ]; then
+	echo -e "\tJob not yet started."
+	continue
+    fi
+    if [ ! -f "$d$test/finished" ]; then
+	echo -e "\tJob not yet finished."
+	continue
+    fi
+    if [ -e "$d$test/mesh_created" ]; then 
+	mesh_created=`cat $d$test/mesh_created`
+	if [ ! $mesh_created -eq 0 ]; then
+	    echo -e "\tWarning: there was an error creating the mesh."
+	    
+	    if grep -q "All licenses in use" "$d$test/C1stdout" 
+	    then
+		echo -e "\t\tAll geosim_core licenses in use"
+	    elif grep -q "No license" "$d$test/C1stdout"
+	    then
+		echo "\t\tNo geosim_core license found"
+	    fi
+	fi
+    fi
+    mesh_partitioned=`cat $d$test/mesh_partitioned`
+    if [ ! $mesh_partitioned -eq 0 ]; then
+	echo -e "\tWarning: there was an error partitioning the mesh."
+    fi
+
+    if [ ! -f "$d$test/C1ke" ]; then
+	echo -e "\t${red}FAILED${nc}: Job finished, but C1ke file not found."
+	continue
+    fi
+    python compare.py "${d}base/C1ke" "$d$test/C1ke"
+    retval=$?
+    if [ $retval -eq 0 ]; then
+	echo -e "\t${green}PASSED${nc}"
+    else
+	echo -e "\t${red}FAILED${nc}: C1ke files do not match"
+    fi
+done
+

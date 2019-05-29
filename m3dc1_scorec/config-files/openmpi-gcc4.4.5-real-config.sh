@@ -1,8 +1,9 @@
-PREFIX=/lore/seol/openmpi-gcc4.4.5-install
+PREFIX=/lore/seol/openmpi-petsc3.7.6-install
 ZOLTAN_DIR=$PREFIX
-PETSC_DIR=/lore/seol/petsc-3.5.4
-PETSC_ARCH=real-openmpi1.6.5
-#PETSC_ARCH=complex-openmpi1.6.5
+PETSC_DIR=/lore/seol/petsc-3.7.6
+PETSC_ARCH=real-openmpi
+#PETSC_DIR=/lore/seol/petsc-3.5.4
+#PETSC_ARCH=real-openmpi1.6.5
 cmake .. \
   -DCMAKE_C_COMPILER="/usr/local/openmpi/latest/bin/mpicc" \
   -DCMAKE_CXX_COMPILER="/usr/local/openmpi/latest/bin/mpicxx" \
@@ -20,6 +21,7 @@ cmake .. \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
   -DHDF5_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DHDF5_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
+  -DGCC_DIR="/usr/lib/gcc/x86_64-linux-gnu/4.4.5" \
   -DENABLE_TRILINOS=OFF \
   -DTRILINOS_INCLUDE_DIR="/fasttmp/seol/openmpi-gcc4.4.5-install/include" \
   -DTRILINOS_LIB_DIR="/fasttmp/seol/openmpi-gcc4.4.5-install/lib" \

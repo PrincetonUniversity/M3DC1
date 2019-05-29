@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    suffix="${M3DC1_ARCH}"
+else
+    suffix="$1"
+fi
+
+echo "Suffix = $suffix"
+
+wd=`pwd`
+
+# Name of the test directory
+test="${M3DC1_VERSION}_${suffix}"
+
+for d in */ ; do
+    if [ -d "${wd}/${d}${test}" ]; then
+        rm -fr "${wd}/${d}${test}"
+    fi
+done

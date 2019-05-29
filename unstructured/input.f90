@@ -148,6 +148,9 @@ subroutine set_defaults
   use resistive_wall
   use radiation
   use kprad_m3dc1
+#ifdef REORDERED
+  use matrix_mod
+#endif
 
   implicit none
 
@@ -251,6 +254,8 @@ subroutine set_defaults
        "1: KPRad module with one impurity species", kprad_grp)
   call add_var_int("kprad_z", kprad_z, 1, &
        "Z of impurity species in KPRad module", kprad_grp)
+  call add_var_int("ikprad_evolve_neutrals", ikprad_evolve_neutrals, 0, &
+       "Model for advection/diffusion of neutrals", kprad_grp)
   call add_var_double("kprad_fz", kprad_fz, 0., &
        "Density of neutral impurity species in KPRad module, as fraction of ne", &
        kprad_grp)
@@ -442,9 +447,6 @@ subroutine set_defaults
   ! Numerical methods
   call add_var_int("jadv", jadv, 1, &
        "Use Del*(psi) eqn. instead of psi eqn.", num_grp)
-  call add_var_int("ivform", ivform, 1, &
-       "V = R^J Grad(U)XGrad(phi) + R^K V Grad(phi) + R^L Grad(chi) |&
-       &0: J=0, K=0, L=0;  1: J=2, K=2, L=-2", num_grp)
 
   call add_var_int("int_pts_main", int_pts_main, 25, "", num_grp)
   call add_var_int("int_pts_aux", int_pts_aux, 25, "", num_grp)
@@ -1031,7 +1033,12 @@ subroutine set_defaults
        "1 = the input mesh is partitioned", mesh_grp)
   call add_var_int("imatassemble", imatassemble, 0, &
        "0: use scorec matrix parallel assembly; 1 use petsc", mesh_grp)
-
+#ifdef REORDERED
+  call add_var_int("is1_agg_blks", is1_agg_blk_cnt, 1, &
+       "number of blocks to divide each node of dofs into for matrix s1", mesh_grp)
+  call add_var_int("is1_agg_scp", is1_agg_scp, 0, &
+       "0: per-rank aggregation, 1: per-plane aggregation, 2: global aggregation", mesh_grp)
+#endif
   call add_var_int("imulti_region", imulti_region, 0, &
        "1 = Mesh has multiple physical regions", mesh_grp)
   call add_var_double("toroidal_pack_factor", toroidal_pack_factor, 1., &
@@ -1072,6 +1079,8 @@ subroutine set_defaults
   call add_var_int("iwrite_restart", iwrite_restart, 0, &
        "1: Write restart files", deprec_grp)
   call add_var_double("zeff", zeff_xxx, 0., "Z of main ion species", deprec_grp)
+  call add_var_int("ivform", ivform, 1, &
+       "ivform is deprecated.  Only ivform=1 is now implemented.", deprec_grp)
 
 end subroutine set_defaults
 
@@ -1143,11 +1152,6 @@ subroutine validate_input
         call safestop(1)
      endif
   endif
-
-  if(amupar.ne.0 .and. ivform.eq.0) then
-     if(myrank.eq.0) print *, "Parallel viscosity not implemented for ivform=0"
-     call safestop(1)
-  end if
 
   if(ipressplit.eq.0 .and. itemp.eq.1) then
      if(myrank.eq.0) print *, "itemp=1 not allowed with ipressplit=0"
@@ -1459,10 +1463,9 @@ subroutine validate_input
         isplitstep.ne.0 .or.    &
         ipres.ne.1      .or.    &
         itemp.ne.0      .or.    &
-        ivform.ne.1     .or.    &
         ipressplit.ne.0) then   
            print *, "for kinetic.eq.2 or 3, must have",     &
-           'linear=1, isplitstep=0, ipres=1,itemp=0,ivform=1,ipressplit=0'
+           'linear=1, isplitstep=0, ipres=1,itemp=0,ipressplit=0'
            call safestop(1)
       endif
   endif

@@ -21,6 +21,9 @@ void parse_solver_options_(const char *filename)
   PetscInt nblocks;
   PetscInt isuperlu=0, imumps=0;
 
+  const size_t len=256;
+  char filename_out[len];
+
   //PetscPrintf(PETSC_COMM_WORLD,"\nsolver options from the file:%s\n\n", filename);
 
   char c[1024];
@@ -38,7 +41,8 @@ void parse_solver_options_(const char *filename)
 
     char *token;
     char *pc_bjacobi_blocks="-pc_bjacobi_blocks";
-    char *sub_solver="-sub_pc_factor_mat_solver_type";
+    char *sub_solver_type="-sub_pc_factor_mat_solver_type";
+    char *sub_solver_package="-sub_pc_factor_mat_solver_package";
     char *which_solver;
     char *superlu="superlu_dist";
     char *mumps="mumps";
@@ -54,7 +58,13 @@ void parse_solver_options_(const char *filename)
           nblocks=atoi(num_of_pc_bjacobi_blocks);
           //PetscPrintf(PETSC_COMM_WORLD, "       %s \n", num_of_pc_bjacobi_blocks );
        }
-       if(strcmp(token,sub_solver)==0) {//matched
+       if(strcmp(token,sub_solver_type)==0) {//matched
+          which_solver = strtok(NULL, s);
+          if(strcmp(which_solver,superlu)==0) { isuperlu=1; imumps=0; }
+          if(strcmp(which_solver,mumps)==0) { isuperlu=0; imumps=1; }
+          //PetscPrintf(PETSC_COMM_WORLD, "       %s \n", which_solver );
+       }
+       if(strcmp(token,sub_solver_package)==0) {//matched
           which_solver = strtok(NULL, s);
           if(strcmp(which_solver,superlu)==0) { isuperlu=1; imumps=0; }
           if(strcmp(which_solver,mumps)==0) { isuperlu=0; imumps=1; }
@@ -72,7 +82,8 @@ void parse_solver_options_(const char *filename)
   //PetscPrintf(PETSC_COMM_WORLD, "\n\n-------------------------------------\n\n");
 
      /* open the file for writing*/
-    if ((fptr = fopen(filename, "w")) == NULL)
+    sprintf(filename_out, "%s.out", filename);
+    if ((fptr = fopen(filename_out, "w")) == NULL)
     {
        PetscPrintf(PETSC_COMM_WORLD,"Error! opening file again\n");
        exit(1);         
@@ -91,11 +102,19 @@ void parse_solver_options_(const char *filename)
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     if(isuperlu==1) {
+#if PETSC_VERSION >= 39
        sprintf(tmp, "%s %s", "-sub_pc_factor_mat_solver_type", "superlu_dist");
+#else
+       sprintf(tmp, "%s %s", "-sub_pc_factor_mat_solver_package", "superlu_dist");
+#endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     } else { //imump==1
+#if PETSC_VERSION >= 39
        sprintf(tmp, "%s %s", "-sub_pc_factor_mat_solver_type", "mumps");
+#else
+       sprintf(tmp, "%s %s", "-sub_pc_factor_mat_solver_package", "mumps");
+#endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
        sprintf(tmp, "%s %s", "-mat_mumps_icntl_14", "50");
@@ -127,13 +146,25 @@ void parse_solver_options_(const char *filename)
     sprintf(tmp, "%s %s", "-hard_sub_pc_type", "lu");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
+#if PETSC_VERSION >= 39
     sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_type", "superlu_dist");
+#else
+    sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_package", "superlu_dist");
+#endif
     if(isuperlu==1) {
+#if PETSC_VERSION >= 39
        sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_type", "superlu_dist");
+#else
+       sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_package", "superlu_dist");
+#endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     } else { //imump==1
+#if PETSC_VERSION >= 39
        sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_type", "mumps");
+#else
+       sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_solver_package", "mumps");
+#endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
        sprintf(tmp, "%s %s", "-hard_mat_mumps_icntl_14", "50");
@@ -143,13 +174,13 @@ void parse_solver_options_(const char *filename)
     sprintf(tmp, "%s %s", "-hard_sub_ksp_type", "preonly");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
-    sprintf(tmp, "%s %s", "-hard_ksp_type", "lgmres");
+    sprintf(tmp, "%s %s", "-hard_ksp_type", "fgmres");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     sprintf(tmp, "%s %s", "-hard_ksp_lgmres_augment", "4");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
-    sprintf(tmp, "%s %s", "-hard_-ksp_gmres_restart", "220");
+    sprintf(tmp, "%s %s", "-hard_ksp_gmres_restart", "220");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     sprintf(tmp, "%s %s", "-hard_ksp_rtol", "1.e-9");

@@ -4590,7 +4590,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      endif
 
      if(isurface.eq.0) cycle
-     if(.not.(nonrect.eq.1 .and. ivform.eq.1)) cycle
+     if(nonrect.eq.0) cycle
 
      ! add surface terms
      call boundary_edge(itri, is_edge, n, idim)
@@ -5024,7 +5024,11 @@ subroutine ludefphi_n(itri)
      else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
         call get_bz_mask(itri, imask)
      else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
-        call get_pres_mask(itri, imask)
+        if(itemp.eq.0) then
+           call get_pres_mask(itri, imask)
+        else
+           call get_temp_mask(itri, imask)
+        end if
      else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
         call get_bf_mask(itri, imask)
      else if(ieq(k).eq.e_i) then
@@ -5251,7 +5255,11 @@ subroutine ludefpres_n(itri)
      endif  ! ipressplit
 
      ! Zero-out rows that will be used for boundary conditions
-     call get_pres_mask(itri, imask)
+     if(itemp.eq.0) then
+        call get_pres_mask(itri, imask)
+     else
+        call get_temp_mask(itri, imask)
+     end if
      do i=1, num_fields
         call apply_boundary_mask(itri, 0, ss(:,:,i), imask)
         call apply_boundary_mask(itri, 0, dd(:,:,i), imask)

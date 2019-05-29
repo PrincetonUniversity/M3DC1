@@ -1,0 +1,50 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    suffix="${M3DC1_ARCH}"
+else
+    suffix="$1"
+fi
+
+# Test cases to run
+if [ -z "$2" ]; then
+    dir=( "KPRAD_2D" "RMP" "RMP_nonlin" )
+else
+    dir="$2"
+fi
+
+echo "Suffix = $suffix"
+
+wd=`pwd`
+
+# Name of test directory
+test="${M3DC1_VERSION}_${suffix}"
+
+# Command to run in each test directory
+run="sbatch batchjob.${suffix}"
+
+
+for i in "${dir[@]}"; do 
+    if [ ! -e "$wd/$i/$test/batchjob.${suffix}" ]; then
+	echo "No batch file found for ${suffix} in $i"
+	continue
+    fi
+
+    cd $i
+
+    # write out the full path here so we don't accidentally 
+    # delete a home directory if $test is set wrong
+    test_dir="$wd/$i/$test"
+    echo "$test_dir"
+
+    if [ -d "$test_dir" ]; then
+	echo "Directory exists"
+	rm -fr "$test_dir"
+    fi
+    cp -r base "$test_dir"
+    cd "$test_dir"
+    rm C1ke
+    $run
+
+    cd $wd
+done

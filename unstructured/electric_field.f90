@@ -33,9 +33,6 @@ subroutine electric_field_R(ilin,o,izone)
 
   ! -VxB
   ! ~~~~
-  if(ivform.eq.0) then
-     
-  else
      if(ilin.eq.1) then
         o = o &
              + bz079(:,OP_1)*ph179(:,OP_DR) &
@@ -65,7 +62,6 @@ subroutine electric_field_R(ilin,o,izone)
         o = o + vzt79(:,OP_1)*r_79*bftx79(:,OP_DZP)
 #endif
      end if
-  end if
 
   ! JxB
   ! ~~~
@@ -150,9 +146,6 @@ subroutine electric_field_Z(ilin,o,izone)
 
   ! -VxB
   ! ~~~~
-  if(ivform.eq.0) then
-
-  else
      if(ilin.eq.1) then 
         o = o &
              + bz079(:,OP_1)*ph179(:,OP_DZ) &
@@ -183,7 +176,7 @@ subroutine electric_field_Z(ilin,o,izone)
         o = o - vzt79(:,OP_1)*r_79*bftx79(:,OP_DRP)
 #endif
      end if
-  end if
+
 
   ! JxB
   ! ~~~
@@ -259,9 +252,6 @@ subroutine electric_field_phi(ilin,o, izone)
 
   ! VxB
   ! ~~~
-  if(ivform.eq.0) then
-
-  else
      if(ilin.eq.1) then
         o = o &
              +ps079(:,OP_DZ)*ph179(:,OP_DR)-ps079(:,OP_DR)*ph179(:,OP_DZ) &
@@ -303,7 +293,7 @@ subroutine electric_field_phi(ilin,o, izone)
              -cht79(:,OP_DR)*bftx79(:,OP_DZP))
 #endif
      end if
-  end if
+
 
   ! JxB
   ! ~~~
@@ -465,9 +455,6 @@ subroutine electric_field_psidot(ilin,o)
 
   ! VxB
   ! ~~~
-  if(ivform.eq.0) then
-     o = 0.
-  else
      if(ilin.eq.1) then
         o =   ps079(:,OP_DZ)*ph179(:,OP_DR)-ps079(:,OP_DR)*ph179(:,OP_DZ) &
              +ps179(:,OP_DZ)*ph079(:,OP_DR)-ps179(:,OP_DR)*ph079(:,OP_DZ) &
@@ -502,7 +489,7 @@ subroutine electric_field_psidot(ilin,o)
              -cht79(:,OP_DR)*bftx79(:,OP_DZP))
 #endif
      end if
-  end if
+
 
   ! eta J
   ! ~~~~~
@@ -585,9 +572,6 @@ subroutine electric_field_veldif(ilin,o)
   case(0)   !default
   ! VxB
   ! ~~~
-  if(ivform.eq.0) then
-     o = 0.
-  else
      if(ilin.eq.1) then
         o =   ps079(:,OP_DZ)*ph179(:,OP_DR)-ps079(:,OP_DR)*ph179(:,OP_DZ) &
              +ps179(:,OP_DZ)*ph079(:,OP_DR)-ps179(:,OP_DR)*ph079(:,OP_DZ) &
@@ -622,7 +606,7 @@ subroutine electric_field_veldif(ilin,o)
              -cht79(:,OP_DR)*bftx79(:,OP_DZP))
 #endif
      end if
-  end if
+
 
   ! electric potential
   ! ~~~~~~~~~~~~~~~~~~

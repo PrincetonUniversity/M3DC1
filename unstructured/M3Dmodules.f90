@@ -255,7 +255,7 @@ module basic
                          ! 3 = zero out chi only
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
-  integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)
+  integer :: ivform      ! deprecated
   integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
