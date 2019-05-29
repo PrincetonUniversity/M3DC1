@@ -858,14 +858,9 @@ subroutine calculate_scalars()
      pflux = pflux + int3(ri2_79,bzt79(:,OP_1),mr)/tpirzero
      
      ! enstrophy
-     select case(ivform)
-     case(0)
-        tvor   = tvor   - int2(ri2_79,pht79(:,OP_GS))/tpirzero
-     case(1)
-        tvor   = tvor &
-             -    (int1(pht79(:,OP_LP)) &
-             + 2.*int2(ri4_79,cht79(:,OP_DZ)))/tpirzero
-     end select
+     tvor   = tvor &
+          -    (int1(pht79(:,OP_LP)) &
+          + 2.*int2(ri4_79,cht79(:,OP_DZ)))/tpirzero
 
      ! volume
      volume = volume + twopi*int0()/tpifac
@@ -910,18 +905,10 @@ subroutine calculate_scalars()
 
      ! toroidal (angular) momentum
      if(numvar.ge.2) then
-        select case(ivform)
-        case(0)
-           tmom = tmom &
-                + int2(vzt79(:,OP_1),nt79(:,OP_1))
-           pmom = pmom &
-                + int3(vzt79(:,OP_1),nt79(:,OP_1),mr)
-        case(1)
-           tmom = tmom &
-                + int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1))
-           pmom = pmom &
-                + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),mr)
-        end select
+        tmom = tmom &
+             + int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1))
+        pmom = pmom &
+             + int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),mr)
      endif
 
      if(amupar.ne.0.) then
@@ -976,28 +963,15 @@ subroutine calculate_scalars()
                 (int2(norm79(:,1),nt79(:,OP_DR)) &
                 +int2(norm79(:,2),nt79(:,OP_DZ)))/tpifac
 
-           select case(ivform)
-           case(0)
+           nfluxv = nfluxv &
+                + int4(r_79,nt79(:,OP_1),norm79(:,2),pht79(:,OP_DR)) &
+                - int4(r_79,nt79(:,OP_1),norm79(:,1),pht79(:,OP_DZ))
+           
+           if(numvar.ge.3) then
               nfluxv = nfluxv &
-                   + int4(ri_79,nt79(:,OP_1),norm79(:,2),pht79(:,OP_DR)) &
-                   - int4(ri_79,nt79(:,OP_1),norm79(:,1),pht79(:,OP_DZ))
-              
-              if(numvar.ge.3) then
-                 nfluxv = nfluxv &
-                      + int3(nt79(:,OP_1),norm79(:,1),cht79(:,OP_DR)) &
-                      + int3(nt79(:,OP_1),norm79(:,2),cht79(:,OP_DZ))
-              endif
-           case(1)
-              nfluxv = nfluxv &
-                   + int4(r_79,nt79(:,OP_1),norm79(:,2),pht79(:,OP_DR)) &
-                   - int4(r_79,nt79(:,OP_1),norm79(:,1),pht79(:,OP_DZ))
-              
-              if(numvar.ge.3) then
-                 nfluxv = nfluxv &
-                      + int4(ri2_79,nt79(:,OP_1),norm79(:,1),cht79(:,OP_DR)) &
-                      + int4(ri2_79,nt79(:,OP_1),norm79(:,2),cht79(:,OP_DZ))
-              endif
-           end select
+                   + int4(ri2_79,nt79(:,OP_1),norm79(:,1),cht79(:,OP_DR)) &
+                   + int4(ri2_79,nt79(:,OP_1),norm79(:,2),cht79(:,OP_DZ))
+           endif
 
            nfluxv = nfluxv*twopi/tpifac
         end if
