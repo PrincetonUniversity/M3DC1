@@ -254,6 +254,8 @@ subroutine set_defaults
        "1: KPRad module with one impurity species", kprad_grp)
   call add_var_int("kprad_z", kprad_z, 1, &
        "Z of impurity species in KPRad module", kprad_grp)
+  call add_var_int("ikprad_evolve_neutrals", ikprad_evolve_neutrals, 0, &
+       "Model for advection/diffusion of neutrals", kprad_grp)
   call add_var_double("kprad_fz", kprad_fz, 0., &
        "Density of neutral impurity species in KPRad module, as fraction of ne", &
        kprad_grp)
