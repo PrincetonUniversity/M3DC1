@@ -5,8 +5,8 @@
 
 3. load modules
 
-      module load intel/18.0/64/18.0.1.163
-      module load intel-mpi/intel/2018.1/64
+      module load intel/18.0/64/18.0.3.222
+      module load intel-mpi/intel/2018.3/64
       module load gsl/2.4
       module load hdf5/intel-17.0/intel-mpi/1.10.0
       module load fftw/intel-16.0/intel-mpi/3.3.4
