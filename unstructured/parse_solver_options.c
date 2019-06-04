@@ -127,6 +127,12 @@ void parse_solver_options_(const char *filename)
     sprintf(tmp, "%s %s", "-ksp_type", "fgmres");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
+    sprintf(tmp, "%s %s", "-ksp_gmres_restart", "220");
+       //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
+          PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
+    sprintf(tmp, "%s %s", "-ksp_max_it", "10000");
+       //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
+          PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     sprintf(tmp, "%s %s", "-ksp_rtol", "1.e-9");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
@@ -167,7 +173,7 @@ void parse_solver_options_(const char *filename)
 #endif
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
-       sprintf(tmp, "%s %s", "-hard_mat_mumps_icntl_14", "50");
+       sprintf(tmp, "%s %s", "-hard_sub_pc_factor_mat_mumps_icntl_14", "50");
           //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     }
@@ -181,6 +187,9 @@ void parse_solver_options_(const char *filename)
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     sprintf(tmp, "%s %s", "-hard_ksp_gmres_restart", "220");
+       //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
+          PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
+    sprintf(tmp, "%s %s", "-hard_ksp_max_it", "10000");
        //PetscPrintf(PETSC_COMM_WORLD,"%s\n", tmp);
           PetscFPrintf(PETSC_COMM_WORLD,fptr,"%s\n", tmp);
     sprintf(tmp, "%s %s", "-hard_ksp_rtol", "1.e-9");
