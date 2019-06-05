@@ -25,7 +25,7 @@ run="sbatch batchjob.${suffix}"
 
 
 for i in "${dir[@]}"; do 
-    if [ ! -e "$wd/$i/$test/batchjob.${suffix}" ]; then
+    if [ ! -e "$wd/$i/base/batchjob.${suffix}" ]; then
 	echo "No batch file found for ${suffix} in $i"
 	continue
     fi
