@@ -69,6 +69,13 @@ install_templates : templates
 	echo $(INSTALL_DIR)/templates/*/*_response $(INSTALL_DIR)/templates/*/*_stability | xargs -n 1 cp $(INSTALL_DIR)/batch/batch_script.2d_complex
 	find $(INSTALL_DIR)/templates -type f -exec chmod 644 {} \;
 
+.PHONY: install_device_data
+install_device_data : device_data
+	mkdir -m 755 -p $(INSTALL_DIR)/device_data
+	cp -r device_data/* $(INSTALL_DIR)/device_data
+	find $(INSTALL_DIR)/device_data -type d -exec chmod 755 {} \;
+	find $(INSTALL_DIR)/device_data -type f -exec chmod 644 {} \;
+
 #.PHONY: install_scorec
 #install_scorec : 
 #	mkdir -m 755 -p $(INSTALL_DIR)/bin
@@ -89,7 +96,7 @@ install_templates : templates
 #	-chmod 755 $(INSTALL_DIR)/bin/convert_sim_sms
 
 .PHONY: install
-install : install_idl install_doc #install_scorec
+install : install_idl install_doc install_device_data #install_scorec
 	echo $(ARCH)
 	mkdir -m 755 -p $(INSTALL_DIR)
 	mkdir -m 755 -p $(INSTALL_DIR)/batch
