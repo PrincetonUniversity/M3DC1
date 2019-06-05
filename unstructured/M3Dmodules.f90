@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 27
+  integer, parameter :: version = 28
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -188,6 +188,7 @@ module basic
   integer :: iread_ext_field
   integer :: isample_ext_field
   integer :: isample_ext_field_pol
+  integer :: iread_lp_source
   real :: scale_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions

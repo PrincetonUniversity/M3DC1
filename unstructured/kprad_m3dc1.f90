@@ -25,6 +25,8 @@ module kprad_m3dc1
   real :: kprad_fz
   real :: kprad_nz
 
+  type(field_type), allocatable :: kprad_particle_source(:)
+
 contains
 
   !==================================
@@ -46,10 +48,13 @@ contains
     
     allocate(kprad_n(0:kprad_z))
     allocate(kprad_temp(0:kprad_z))
+    allocate(kprad_particle_source(0:kprad_z))
     
     do i=0, kprad_z
        call create_field(kprad_n(i))
        call create_field(kprad_temp(i))
+       call create_field(kprad_particle_source(i))
+       kprad_particle_source(i) = 0.
     end do
     call create_field(kprad_rad)
     call create_field(kprad_brem)
@@ -76,6 +81,7 @@ contains
        do i=0, kprad_z
           call destroy_field(kprad_n(i))
           call destroy_field(kprad_temp(i))
+          call destroy_field(kprad_particle_source(i))
        end do
        deallocate(kprad_n, kprad_temp)
        call destroy_field(kprad_rad)
@@ -349,7 +355,6 @@ contains
     kprad_recp = 0.
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
-    source = 0.
 
     def_fields = FIELD_N + FIELD_TE
     if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
@@ -360,6 +365,8 @@ contains
     ! Do ionization / recombination step
     nelms = local_elements()
     do itri=1, nelms
+       source = 0.
+
        call get_zone(itri, izone)
 
        call define_element_quadrature(itri,int_pts_main,5)
@@ -375,6 +382,11 @@ contains
        if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
           source = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+       end if
+
+       if(iread_lp_source.eq.1) then
+          call eval_ops(itri, kprad_particle_source(0), ch079, rfac)
+          source = source + ch079(:,OP_1)
        end if
 
        n0_old = sum(nz(:,1:kprad_z),2)
@@ -482,5 +494,175 @@ contains
 
     if(myrank.eq.0) print *, ' Done advancing KPRAD'
   end subroutine kprad_ionize
+
+  subroutine read_lp_source(filename, ierr)
+    use basic
+    use read_ascii
+    use pellet
+    use newvar_mod
+
+    implicit none
+
+    integer, intent(out) :: ierr
+    character(len=*), intent(in) :: filename
+
+    integer :: n, i
+    real, allocatable :: x_vals(:), y_vals(:), z_vals(:), phi_vals(:), temp_vals(:)
+    real, allocatable :: n_vals(:,:)
+    
+
+    if(iprint.ge.1 .and. myrank.eq.0) print *, 'Reading LP source...'
+    ierr = 0
+
+    if(ikprad.eq.0 .or. kprad_z.le.0) then
+       if(myrank.eq.0) print *, 'Error: kprad must be enabled to read LP source'
+       call safestop(8)
+    end if
+       
+    ! Read the data
+    if(iprint.ge.2 .and. myrank.eq.0) print *, ' reading file ', filename
+    
+    n = 0
+    call read_ascii_column(filename, x_vals, n, icol=1)
+    call read_ascii_column(filename, y_vals, n, icol=2)
+    call read_ascii_column(filename, z_vals, n, icol=3)
+    allocate(n_vals(n,0:kprad_z))
+    do i=0, kprad_z
+       if(iprint.ge.2 .and. myrank.eq.0) print *, ' reading column', 12+i
+       call read_ascii_column(filename, temp_vals, n, icol=12+i)
+       n_vals(:,i) = temp_vals
+       deallocate(temp_vals)
+    end do
+    if(n.eq.0) then
+       if(myrank.eq.0) print *, 'Error: no data in LP source file ', filename
+       ierr = 1
+       return
+    end if
+    allocate(phi_vals(n))
+
+    ! convert from cgs to normalized units
+    x_vals = x_vals / l0_norm
+    y_vals = y_vals / l0_norm
+    z_vals = z_vals / l0_norm
+    n_vals = n_vals / n0_norm
+
+    ! convert from local to (R,phi,Z)
+    x_vals = x_vals + pellet_r
+    y_vals = y_vals + pellet_z
+
+    ! convert z from length to angle
+    phi_vals = z_vals / x_vals + pellet_phi
+    
+    ! construct fields using data
+    if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
+    do i=0, kprad_z
+       kprad_particle_source(i) = 0.
+       call deltafuns(n,x_vals,phi_vals,y_vals,n_vals(:,i),kprad_particle_source(i),ierr)
+       call newvar_solve(kprad_particle_source(i)%vec,mass_mat_lhs)
+    end do
+
+    ! free temporary arrays
+    if(iprint.ge.2 .and. myrank.eq.0) print *, ' freeing data'
+    deallocate(x_vals, y_vals, z_vals, n_vals, phi_vals)
+    
+    if(iprint.ge.1 .and. myrank.eq.0) print *, 'Done reading LP source'
+
+  end subroutine read_lp_source
+
+  
+
+! ===========================================================
+! deltafuns
+! ~~~~~~~~~
+! sets jout_i =  <mu_i | -val*delta(R-x)delta(Z-z)> 
+! ===========================================================
+subroutine deltafuns(n,x,phi,z,val,jout, ier)
+
+  use mesh_mod
+  use basic
+  use arrays
+  use field
+  use m3dc1_nint
+  use math
+
+  implicit none
+
+  include 'mpif.h'
+
+  type(element_data) :: d
+  integer, intent(in) :: n
+  real, intent(in), dimension(n) :: x, phi, z, val
+  type(field_type), intent(inout) :: jout
+  integer, intent(out) :: ier
+
+  integer, dimension(n) :: itri, in_domain, in_domains
+  integer :: i, j, k, it
+  real, dimension(n) :: x1, z1, val2
+  real :: si, zi, eta
+  vectype, dimension(dofs_per_element) :: temp
+  real, dimension(dofs_per_element,coeffs_per_element) :: c
+
+  ier = 0
+  itri = 0
+  it = 0
+  do j=1, n
+     call whattri(x(j), phi(j), z(j), it, x1(j), z1(j))
+     itri(j) = it
+  end do
+  where(itri.gt.0)
+     in_domain = 1
+  elsewhere 
+     in_domain = 0
+  end where
+
+  call mpi_allreduce(in_domain,in_domains,n,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ier)
+  if(ier.ne.0) return
+
+  ! Check to make sure all points are in domain
+  do j=1, n
+     if(in_domains(j).eq.0) then
+        if(myrank.eq.0) &
+             print *, 'Error: point not found in domain', j, x(j), phi(j), z(j)
+        ier = 1
+        return
+     end if
+  end do
+
+  ! If a point is in multiple partitions, divide it among partitions
+  where(in_domains.gt.0) 
+     val2 = val/in_domains
+  elsewhere
+     val2 = 0.
+  end where
+  
+  do j=1, n
+     if(itri(j).le.0) cycle
+
+     temp = 0.
+
+     ! calculate local coordinates
+     call get_element_data(itri(j), d)
+     call global_to_local(d, x(j), phi(j), z(j), si, zi, eta)
+        
+     ! calculate temp_i = val*mu_i(si,zi,eta)
+     call local_coeff_vector(itri(j), c)
+     do i=1,dofs_per_element
+        do k=1, coeffs_per_tri
+#ifdef USE3D
+           temp(i) = temp(i) + val2(j)*c(i,k)*si**mi(k)*eta**ni(k)*zi**li(k)
+#else
+           temp(i) = temp(i) + val2(j)*c(i,k)*si**mi(k)*eta**ni(k)
+#endif
+
+        end do
+        if(equilibrate.ne.0) temp(i) = temp(i)*equil_fac(i, itri(j))
+     end do
+
+     call vector_insert_block(jout%vec, itri(j), jout%index, temp, VEC_ADD)
+  end do
+
+  call sum_shared(jout%vec)
+end subroutine deltafuns
+
 
 end module kprad_m3dc1
