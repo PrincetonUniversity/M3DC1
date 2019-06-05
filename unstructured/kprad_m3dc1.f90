@@ -21,6 +21,10 @@ module kprad_m3dc1
   integer :: ikprad     ! 1 = use kprad model
   integer :: kprad_z    ! Z of impurity species
 
+  ! Model for advection/diffusion of neutrals
+  ! 0 = no adv/diff, 1 = advect & diff, 2 = diffuse only
+  integer :: ikprad_evolve_neutrals
+
   ! variables for setting initial conditions
   real :: kprad_fz
   real :: kprad_nz
@@ -212,7 +216,7 @@ contains
     real, intent(in) :: dti
     type(matrix_type) :: nmat_lhs, nmat_rhs
     type(field_type) :: rhs
-    integer :: itri, j, numelms, ierr, def_fields, izone
+    integer :: itri, j, numelms, ierr, def_fields, izone, minz
 !    integer, dimension(dofs_per_element) :: imask
     vectype, dimension(dofs_per_element) :: tempx
     vectype, dimension(dofs_per_element,dofs_per_element) :: tempxx
@@ -229,7 +233,6 @@ contains
     call clear_mat(nmat_lhs)
     call clear_mat(nmat_rhs)
     call create_field(rhs)
-
 
     def_fields = FIELD_PHI + FIELD_V + FIELD_CHI
 
@@ -252,11 +255,15 @@ contains
        do j=1, dofs_per_element
           ! NUMVAR = 1
           ! ~~~~~~~~~~      
-          tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79) &
-               +  n1nu   (mu79,nu79(j,:,:),pht79)
+          tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
           ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
           ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           
+          tempx = n1nu(mu79,nu79(j,:,:),pht79)
+          ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+          ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
+
+
 #if defined(USECOMPLEX) || defined(USE3D)
           ! NUMVAR = 2
           ! ~~~~~~~~~~
@@ -284,6 +291,7 @@ contains
 
        call insert_block(nmat_lhs,itri,1,1,ssterm,MAT_ADD)
        call insert_block(nmat_rhs,itri,1,1,ddterm,MAT_ADD)
+       
     end do
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  finalizing'
@@ -294,7 +302,14 @@ contains
     
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
-    do j=1, kprad_z
+    if(ikprad_evolve_neutrals.eq.1) then
+       ! advect and diffuse neutrals
+       minz = 0
+    else
+       minz = 1
+    end if
+
+    do j=minz, kprad_z
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
@@ -302,6 +317,55 @@ contains
        call newsolve(nmat_lhs, rhs%vec, ierr)
        kprad_n(j) = rhs
     end do
+
+
+    if(ikprad_evolve_neutrals.eq.2) then
+       ! Neutrals diffuse only
+       call clear_mat(nmat_lhs)
+       call clear_mat(nmat_rhs)
+    
+       if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating neutral matrix'
+    
+       do itri=1, numelms
+          
+          call get_zone(itri, izone)
+          
+          call define_element_quadrature(itri, int_pts_main, 5)
+          call define_fields(itri, def_fields, 1, linear)
+          
+          tempxx = n1n(mu79,nu79)
+          ssterm = tempxx
+          ddterm = tempxx
+          
+          if(izone.ne.1) goto 200
+    
+          do j=1, dofs_per_element
+             tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
+             ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
+          end do
+
+200       continue
+
+          call insert_block(nmat_lhs,itri,1,1,ssterm,MAT_ADD)
+          call insert_block(nmat_rhs,itri,1,1,ddterm,MAT_ADD)
+
+        end do
+    
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  finalizing neutral'
+
+        call finalize(nmat_rhs)
+        call finalize(nmat_lhs)
+        
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving neutral'
+        
+        rhs = 0.
+        call matvecmult(nmat_rhs, kprad_n(0)%vec, rhs%vec)
+        ierr = 0
+        call newsolve(nmat_lhs, rhs%vec, ierr)
+        kprad_n(0) = rhs
+
+    end if
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  destroying'
 
