@@ -449,8 +449,10 @@ contains
        end if
 
        if(iread_lp_source.eq.1) then
-          call eval_ops(itri, kprad_particle_source(0), ch079, rfac)
-          source(:,i) = source(:,i) + ch079(:,OP_1)
+          do i=0, kprad_z
+             call eval_ops(itri, kprad_particle_source(i), ch079, rfac)
+             source(:,i) = source(:,i) + ch079(:,OP_1)
+          end do
        end if
 
        n0_old = sum(nz(:,1:kprad_z),2)
