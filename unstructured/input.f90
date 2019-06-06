@@ -265,6 +265,10 @@ subroutine set_defaults
   call add_var_int("iread_lp_source", iread_lp_source, 0, &
        "Read source from Lagrangian Particle code", &
        kprad_grp)
+  call add_var_double("kprad_nemin", kprad_nemin, 1e-12, &
+       "Minimum elec. density for KPRAD evolution", kprad_grp)
+  call add_var_double("kprad_temin", kprad_temin, 2e-7, &
+       "Minimum elec. temperature for KPRAD evolution", kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)

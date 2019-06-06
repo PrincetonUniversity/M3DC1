@@ -31,6 +31,10 @@ module kprad_m3dc1
 
   type(field_type), allocatable :: kprad_particle_source(:)
 
+  ! minimum values for KPRAD evolution
+  real :: kprad_nemin
+  real :: kprad_temin
+
 contains
 
   !==================================
@@ -395,14 +399,13 @@ contains
     
     real :: dt_s
     real, dimension(MAX_PTS) :: ne, te, n0_old, p
-    real, dimension(MAX_PTS,0:kprad_z) :: nz
+    real, dimension(MAX_PTS,0:kprad_z) :: nz, nz_nokprad
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad, dw_ion, dw_reck, dw_recp
     real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
+    logical, dimension(MAX_PTS) :: advance_kprad
 
     integer :: i, itri, nelms, def_fields, izone
-    real, parameter :: min_te = .01
-    real, parameter :: min_ne = 1e8
     vectype, dimension(dofs_per_element) :: dofs
 
     if(ikprad.ne.1) return
@@ -441,7 +444,9 @@ contains
           call eval_ops(itri, kprad_n(i), ph079, rfac)
           nz(:,i) = ph079(:,OP_1)
        end do
+
        ne = net79(:,OP_1)
+       te = tet79(:,OP_1)
 
        if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
@@ -457,87 +462,98 @@ contains
 
        n0_old = sum(nz(:,1:kprad_z),2)
 
-       ! convert nz, ne, te, dt to cgs / eV
-       nz = nz*n0_norm
-       ne = ne*n0_norm
-       source = source*n0_norm/t0_norm
-       te = tet79(:,OP_1)*p0_norm/n0_norm / 1.6022e-12
-       dt_s = dti*t0_norm
-
-       where(te.lt.min_te .or. te.ne.te) te = min_te
        where(nz.lt.0.) nz = 0.
-       where(ne.lt.min_ne) ne = min_ne
 
-       ! advance densities at each integration point
-       ! for one MHD timestep (dt_s)
-       if(izone.eq.1) then
-          call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
-               ne, te, nz, dw_rad, dw_brem, dw_ion, dw_reck, dw_recp, source)
-       else
-          dw_rad = 0.
-          dw_brem = 0.
-          dw_ion = 0.
-          dw_reck = 0.
-          dw_recp = 0.
+       ! determine where KPRAD advance will be used
+       ! and impurity densities if charge states don't advance
+       !  old nz (with source added to neutrals)
+       advance_kprad = .not.(te.lt.kprad_temin .or. te.ne.te .or. &
+                             ne.lt.kprad_nemin .or. ne.ne.ne)
+       nz_nokprad = nz
+       nz_nokprad(:,0) = nz_nokprad(:,0) + dti*source
+
+       if(any(advance_kprad)) then ! skip if no KPRAD advance in this triangle
+
+          ! convert nz, ne, te, dt to cgs / eV
+          nz = nz*n0_norm
+          ne = ne*n0_norm
+          source = source*n0_norm/t0_norm
+          te = te*p0_norm/n0_norm / 1.6022e-12
+          dt_s = dti*t0_norm
+       
+          ! advance densities at each integration point
+          ! for one MHD timestep (dt_s)
+          if(izone.eq.1) then
+             call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
+                  ne, te, nz, dw_rad, dw_brem, dw_ion, dw_reck, dw_recp, source)
+          else
+             dw_rad = 0.
+             dw_brem = 0.
+             dw_ion = 0.
+             dw_reck = 0.
+             dw_recp = 0.
+          end if
+       
+          ! convert nz, dw_rad, dw_brem to normalized units
+          ! nz is given in /cm^3
+          nz = nz / n0_norm
+          ne = ne / n0_norm
+
+          ! dw is given in J/cm^3
+          ! factor of 1e7 needed to convert J to erg
+          dw_rad = dw_rad * 1.e7 / p0_norm
+          dw_brem = dw_brem * 1.e7 / p0_norm
+          dw_ion  = dw_ion * 1.e7 / p0_norm
+          dw_reck = dw_reck * 1.e7 / p0_norm
+          dw_recp = dw_recp * 1.e7 / p0_norm
+
        end if
-       
-       ! convert nz, dw_rad, dw_brem to normalized units
-       ! nz is given in /cm^3
-       nz = nz / n0_norm
-       ne = ne / n0_norm
 
-       ! dw is given in J/cm^3
-       ! factor of 1e7 needed to convert J to erg
-       dw_rad = dw_rad * 1.e7 / p0_norm
-       dw_brem = dw_brem * 1.e7 / p0_norm
-       dw_ion  = dw_ion * 1.e7 / p0_norm
-       dw_reck = dw_reck * 1.e7 / p0_norm
-       dw_recp = dw_recp * 1.e7 / p0_norm
-       
        ! New charge state densities
+       ! Old nz or source added to neutrals if not advancing KPRAD at that point
        do i=0, kprad_z
-          temp79a = nz(:,i)
+          temp79a = merge(nz(:,i), nz_nokprad(:,i), advance_kprad)
           dofs = intx2(mu79(:,:,OP_1), temp79a)
           call vector_insert_block(kprad_temp(i)%vec,itri,1,dofs,VEC_ADD)
        end do
 
-       ! Line Radiation
-       temp79b = dw_rad(:,kprad_z) / dti
+       ! Line Radiation (0 if not advancing KPRAD at that point)
+       temp79b = merge(dw_rad(:,kprad_z), 0., advance_kprad) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
 
-       ! Bremsstrahlung
-       temp79b = dw_brem / dti
+       ! Bremsstrahlung  (0 if not advancing KPRAD at that point)
+       temp79b = merge(dw_brem, 0., advance_kprad) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_brem%vec, itri,1,dofs,VEC_ADD)
 
-       ! Ionization
-       temp79b = dw_ion(:,kprad_z) / dti
+       ! Ionization (0 if not advancing KPRAD at that point)
+       temp79b = merge(dw_ion(:,kprad_z), 0., advance_kprad) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_ion%vec, itri,1,dofs,VEC_ADD)
 
-       ! Recombination (kinetic)
-       temp79b = dw_reck(:,kprad_z) / dti
+       ! Recombination (kinetic) (0 if not advancing KPRAD at that point)
+       temp79b = merge(dw_reck(:,kprad_z), 0., advance_kprad) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_reck%vec, itri,1,dofs,VEC_ADD)
 
-       ! Recombination (potential)
-       temp79b = dw_recp(:,kprad_z) / dti
+       ! Recombination (potential) (0 if not advancing KPRAD at that point)
+       temp79b = merge(dw_recp(:,kprad_z), 0., advance_kprad) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_recp%vec, itri,1,dofs,VEC_ADD)
 
-       ! Electron source
-       temp79c = ne - net79(:,OP_1)
+       ! Electron source (0 if not advancing KPRAD at that point)
+       temp79c = merge(ne - net79(:,OP_1), 0., advance_kprad)
        dofs = intx2(mu79(:,:,OP_1),temp79c) / dti
        call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
 
-       ! Total ion source
-       temp79d = sum(nz(:,1:kprad_z),2) - n0_old
+       ! Total ion source (0 if not advancing KPRAD at that point)
+       temp79d = merge(sum(nz(:,1:kprad_z),2) - n0_old, 0., advance_kprad)
        dofs = intx2(mu79(:,:,OP_1),temp79d) / dti
        call vector_insert_block(kprad_sigma_i%vec, itri,1,dofs,VEC_ADD)
     end do
