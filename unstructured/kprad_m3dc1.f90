@@ -572,7 +572,7 @@ contains
     integer, intent(out) :: ierr
     character(len=*), intent(in) :: filename
 
-    integer :: n, i
+    integer :: n, i, m
     real, allocatable :: x_vals(:), y_vals(:), z_vals(:), phi_vals(:), temp_vals(:)
     real, allocatable :: n_vals(:,:)
     
@@ -623,7 +623,11 @@ contains
     if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
     do i=0, kprad_z
        kprad_particle_source(i) = 0.
-       call deltafuns(n,x_vals,phi_vals,y_vals,n_vals(:,i),kprad_particle_source(i),ierr)
+    end do
+    m = kprad_z+1
+    call deltafuns(n,x_vals,phi_vals,y_vals,m,n_vals,kprad_particle_source,ierr)
+    if(iprint.ge.2 .and. myrank.eq.0) print *, ' solving fields'
+    do i=0, kprad_z
        call newvar_solve(kprad_particle_source(i)%vec,mass_mat_lhs)
     end do
 
@@ -642,7 +646,7 @@ contains
 ! ~~~~~~~~~
 ! sets jout_i =  <mu_i | -val*delta(R-x)delta(Z-z)> 
 ! ===========================================================
-subroutine deltafuns(n,x,phi,z,val,jout, ier)
+subroutine deltafuns(n,x,phi,z,m,val,jout, ier)
 
   use mesh_mod
   use basic
@@ -655,17 +659,18 @@ subroutine deltafuns(n,x,phi,z,val,jout, ier)
 
   include 'mpif.h'
 
-  type(element_data) :: d
-  integer, intent(in) :: n
-  real, intent(in), dimension(n) :: x, phi, z, val
-  type(field_type), intent(inout) :: jout
+  integer, intent(in) :: n, m
+  real, intent(in), dimension(n) :: x, phi, z
+  real, intent(in), dimension(n,m) :: val
+  type(field_type), intent(inout), dimension(m) :: jout
   integer, intent(out) :: ier
 
+  type(element_data) :: d
   integer, dimension(n) :: itri, in_domain, in_domains
   integer :: i, j, k, it
-  real, dimension(n) :: x1, z1, val2
+  real, dimension(n) :: x1, z1
   real :: si, zi, eta
-  vectype, dimension(dofs_per_element) :: temp
+  vectype, dimension(dofs_per_element) :: temp, temp2
   real, dimension(dofs_per_element,coeffs_per_element) :: c
 
   ier = 0
@@ -694,17 +699,8 @@ subroutine deltafuns(n,x,phi,z,val,jout, ier)
      end if
   end do
 
-  ! If a point is in multiple partitions, divide it among partitions
-  where(in_domains.gt.0) 
-     val2 = val/in_domains
-  elsewhere
-     val2 = 0.
-  end where
-  
   do j=1, n
      if(itri(j).le.0) cycle
-
-     temp = 0.
 
      ! calculate local coordinates
      call get_element_data(itri(j), d)
@@ -712,22 +708,25 @@ subroutine deltafuns(n,x,phi,z,val,jout, ier)
         
      ! calculate temp_i = val*mu_i(si,zi,eta)
      call local_coeff_vector(itri(j), c)
-     do i=1,dofs_per_element
-        do k=1, coeffs_per_tri
+     temp = 0.
+     do k=1, coeffs_per_tri
 #ifdef USE3D
-           temp(i) = temp(i) + val2(j)*c(i,k)*si**mi(k)*eta**ni(k)*zi**li(k)
+        temp(:) = temp(:) + c(:,k)*si**mi(k)*eta**ni(k)*zi**li(k)
 #else
-           temp(i) = temp(i) + val2(j)*c(i,k)*si**mi(k)*eta**ni(k)
+        temp(:) = temp(:) + c(:,k)*si**mi(k)*eta**ni(k)
 #endif
-
-        end do
-        if(equilibrate.ne.0) temp(i) = temp(i)*equil_fac(i, itri(j))
      end do
+     if(equilibrate.ne.0) temp(:) = temp(:)*equil_fac(:, itri(j))
 
-     call vector_insert_block(jout%vec, itri(j), jout%index, temp, VEC_ADD)
+     do i=1, m
+        temp2 = temp*val(j,i)/in_domains(j)
+        call vector_insert_block(jout(i)%vec, itri(j), jout(i)%index, temp2, VEC_ADD)
+     end do
   end do
 
-  call sum_shared(jout%vec)
+  do i=1, m
+     call sum_shared(jout(i)%vec)
+  end do
 end subroutine deltafuns
 
 
