@@ -1105,6 +1105,7 @@ subroutine define_transport_coefficients()
   use neutral_beam
   use pellet
   use diagnostics
+  use kprad_m3dc1
 
   implicit none
 
@@ -1474,6 +1475,16 @@ subroutine define_transport_coefficients()
   call add(resistivity_field, etar*eta_fac)
   call add(visc_field, amu)
   call add(visc_c_field, amuc)
+
+
+  ! Read LP data
+  if(iread_lp_source.eq.1) then
+     call read_lp_source('cloud.txt', ier)
+     if(ier.ne.0) then
+        if(myrank.eq.0) print *, 'Error reading LP source ', 'cloud.txt'
+        call safestop(8)
+     end if
+  end if
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        print *, 'done define_transport_coefficients'

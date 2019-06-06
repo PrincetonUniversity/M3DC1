@@ -1,23 +1,23 @@
 HOST=cori
-MPIVER=mpich7.4.4
-ARCH=haswell
-DATE=Nov2017
-SWTYPE=debug
-CMAKETYPE=Debug
-#PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.6
-#PETSC_ARCH=cori-hsw-mpich760
-PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.7.4
-PETSC_ARCH=cori-hsw
+MPIVER=mpich7.7.3
+ARCH=hsw
+CMAKETYPE=Release
+PETSC_VER=petsc-3.9.3
+PETSCVER=petsc3.9.3
+#PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/$PETSC_VER
+#PETSC_ARCH=cori-hsw-mpich773-real-nomkl-510
+PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/$PETSC_VER
+PETSC_ARCH=real-intel-mpi7.7.3-$ARCH
+#load module cray-hdf5-parallel
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
-BUILD_ROOT=/global/project/projectdirs/mp288/$HOST/scorec/$MPIVER/$ARCH
-ZOLTAN_DIR=$BUILD_ROOT
-PREFIX=$BUILD_ROOT/$DATE
+ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/$ARCH-$PETSCVER
+PREFIX=$ZOLTAN_DIR
 cmake .. \
   -DCMAKE_C_COMPILER="cc" \
   -DCMAKE_CXX_COMPILER="CC" \
   -DCMAKE_Fortran_COMPILER="ftn" \
-  -DCMAKE_C_FLAGS=" -g -O2 -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS=" -g -O2 -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic -g -O2" \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \

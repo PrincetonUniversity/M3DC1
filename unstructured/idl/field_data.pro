@@ -170,6 +170,17 @@ endif else if(strcmp(name, 'rad_source', /fold_case) eq 1) then begin
                 'XVIII', 'XIX', 'XX']
       units = dimensions(/n0)
       return, "!8" + zstr[z] + " " + nzstr[nz] + "!X"
+   endif else if(strcmp(name, 'kprad_particle_source', 21, /fold_case) eq 1) then begin
+      z = fix(read_parameter('kprad_z', filename=filename))
+      nz = fix(strmid(name, 8, 2))
+      zstr = ['0', 'H', 'He', $
+              'Li', 'Be', 'B',  'C',  'N', 'O', 'F',  'Ne', $
+              'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar']
+      nzstr = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', $
+                'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI', 'XVII', $
+                'XVIII', 'XIX', 'XX']
+      units = dimensions(/n0, t0=-1)
+      return, "!8" + zstr[z] + " " + nzstr[nz] + " Source!X"
    endif  
 
    return, '!8' + name + '!X'

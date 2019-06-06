@@ -262,6 +262,9 @@ subroutine set_defaults
   call add_var_double("kprad_nz", kprad_nz, 0., &
        "Density of neutral impurity species in KPRAD module", &
        kprad_grp)
+  call add_var_int("iread_lp_source", iread_lp_source, 0, &
+       "Read source from Lagrangian Particle code", &
+       kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -1444,7 +1447,7 @@ subroutine validate_input
        .and. tf_tilt.eq.0. .and. tf_shift.eq.0. &
        .and. all(pf_tilt.eq.0.) .and. all(pf_shift.eq.0.)) then
      if(extsubtract.ne.0) then
-        print *, 'Error: with no external fields, set extsubtract=0'
+        if(myrank.eq.0) print *, 'Error: with no external fields, set extsubtract=0'
         call safestop(1)
      end if
   end if
@@ -1452,8 +1455,10 @@ subroutine validate_input
 
   if(iprad.eq.1 .and. myrank.eq.0) then
      if( (prad_z .ne. 6) .and. (prad_z .ne. 18) .and. (prad_z .ne. 26) ) then
-         print *, 'your prad_z =', prad_z
-         print *, 'Warning:  prad only implemented for prad_z=6,18,26'
+        if(myrank.eq.0) then
+           print *, 'your prad_z =', prad_z
+           print *, 'Warning:  prad only implemented for prad_z=6,18,26'
+        end if
      endif
   endif
   if(kinetic.eq.2 .or. kinetic.eq.3) then
@@ -1462,10 +1467,12 @@ subroutine validate_input
         ipres.ne.1      .or.    &
         itemp.ne.0      .or.    &
         ipressplit.ne.0) then   
+        if(myrank.eq.0) then
            print *, "for kinetic.eq.2 or 3, must have",     &
-           'linear=1, isplitstep=0, ipres=1,itemp=0,ipressplit=0'
-           call safestop(1)
-      endif
+                'linear=1, isplitstep=0, ipres=1,itemp=0,ipressplit=0'
+        end if
+        call safestop(1)
+     endif
   endif
   if(ifbound.eq.-1) then
 #ifdef USECOMPLEX
