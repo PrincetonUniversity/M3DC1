@@ -398,7 +398,7 @@ contains
     real, dimension(MAX_PTS,0:kprad_z) :: nz
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad, dw_ion, dw_reck, dw_recp
-    real, dimension(MAX_PTS) :: source    ! neutral particle source
+    real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
 
     integer :: i, itri, nelms, def_fields, izone
     real, parameter :: min_te = .01
@@ -445,12 +445,12 @@ contains
 
        if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
-          source = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+          source(:,0) = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
        end if
 
        if(iread_lp_source.eq.1) then
           call eval_ops(itri, kprad_particle_source(0), ch079, rfac)
-          source = source + ch079(:,OP_1)
+          source(:,i) = source(:,i) + ch079(:,OP_1)
        end if
 
        n0_old = sum(nz(:,1:kprad_z),2)
