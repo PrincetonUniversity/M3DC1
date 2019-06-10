@@ -447,11 +447,10 @@ contains
 
        ne = net79(:,OP_1)
        te = tet79(:,OP_1)
+       p = pt79(:,OP_1)
 
-       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
-          p = pt79(:,OP_1)
+       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
           source = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
-       end if
 
        if(iread_lp_source.eq.1) then
           call eval_ops(itri, kprad_particle_source(0), ch079, rfac)
@@ -473,6 +472,7 @@ contains
        if(any(advance_kprad)) then ! skip if no KPRAD advance in this triangle
 
           ! convert nz, ne, te, dt to cgs / eV
+          p = p*p0_norm
           nz = nz*n0_norm
           ne = ne*n0_norm
           source = source*n0_norm/t0_norm
@@ -482,8 +482,8 @@ contains
           ! advance densities at each integration point
           ! for one MHD timestep (dt_s)
           if(izone.eq.1) then
-             call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, &
-                  ne, te, nz, dw_rad, dw_brem, dw_ion, dw_reck, dw_recp, source)
+             call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, p, ne, &
+                  te, nz, dw_rad, dw_brem, dw_ion, dw_reck, dw_recp, source)
           else
              dw_rad = 0.
              dw_brem = 0.
