@@ -203,8 +203,6 @@ contains
 
     enddo
 
-    if(any((te-te_int)/te .gt. 0.2)) print *, te_int
-
   end subroutine kprad_advance_densities
 
 
