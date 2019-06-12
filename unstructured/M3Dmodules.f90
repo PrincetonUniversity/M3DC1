@@ -70,6 +70,7 @@ module basic
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: kappag
   real :: kappaf
+  real :: kappai_fac
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp

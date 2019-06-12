@@ -122,6 +122,7 @@
 	kappat = 4.58459028e-6	! isotropic thermal diffusion
 	kappar = 1.		! field-aligned thermal conductivity
 	ikapscale = 0
+	kappai_fac = 0.
 
 	gam = 1.66666666666667	! adiabatic constant
 

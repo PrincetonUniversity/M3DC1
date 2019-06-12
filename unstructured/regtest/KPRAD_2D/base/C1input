@@ -104,6 +104,7 @@
 	kappa0 = 0.	!  kappa = kappat + kappa0*p/T^(3/2)
 	kappar = 1.	! field-aligned thermal conductivity
 	ikapscale = 0
+	kappai_fac = 0.
 
  	db = 0.00	! ion skin depth
 

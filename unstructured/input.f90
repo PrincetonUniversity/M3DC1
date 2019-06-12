@@ -319,6 +319,9 @@ subroutine set_defaults
        "Critical pressure gradient in kappag/kappaf models", transp_grp)
   call add_var_double("temin_qd", temin_qd, 0., &
        "Min. Temp. used in Equipartition term for ipres=1", transp_grp)
+  call add_var_double("kappai_fac", kappai_fac, 1., &
+       "Factor to multiply kappa when evaluating ion perp. thermal diffusivity", transp_grp)
+
 
   call add_var_double("denm", denm, 0., &
        "Density hyperdiffusion coefficient", transp_grp)
@@ -1499,6 +1502,11 @@ subroutine validate_input
      call safestop(1)
 #endif
   endif
+
+  if(itemp.eq.0 .and. kappai_fac.ne.1.) then
+     if(myrank.eq.0) print *, 'Error: kappai_fac must equal 1 when itemp=0.'
+     call safestop(1)
+  end if
 
   m0_norm = m_p*ion_mass
   v0_norm = b0_norm / sqrt(4.*pi*m0_norm*n0_norm)

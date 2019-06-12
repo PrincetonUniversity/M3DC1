@@ -3913,6 +3913,14 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! Perpendicular Heat Flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   tempx = b3tekappa(trialx,lin,kap79,vzt79)
+  if(ipres.eq.0) then
+     ! Add ion heat flux
+     tempx = (1. + kappai_fac*(1.-pefac)/pefac)*tempx
+  else
+     if(.not. electron_temperature) then 
+        tempx = tempx * kappai_fac
+     end if
+  end if
   ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
   ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
 
