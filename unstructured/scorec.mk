@@ -18,17 +18,21 @@ endif
 F90OPTS = $(F90FLAGS) $(FOPTS) 
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
-PETSC_DIR = /lore/seol/petsc-3.5.4
+
 ifeq ($(COM), 1)
+  PETSC_DIR = /lore/seol/petsc-3.5.4
   PETSC_ARCH =complex-openmpi1.6.5
 else
-  PETSC_ARCH =real-openmpi1.6.5
+  PETSC_DIR=/lore/seol/petsc-3.7.6
+  PETSC_ARCH=real-openmpi
 endif
 
+SCOREC_DIR=/lore/seol/openmpi-petsc3.7.6-install
+ZOLTAN_DIR = $(SCOREC_DIR)
+PREFIX=/lore/seol/openmpi-petsc3.7.6-reordered-install
 
 MPI_DIR = /usr/local/openmpi/latest
-SCOREC_DIR = /lore/seol/openmpi-gcc4.4.5-install
-ZOLTAN_DIR = /lore/seol/openmpi-gcc4.4.5-install
+
 HDF5_DIR =  $(PETSC_DIR)/$(PETSC_ARCH)
 GSL_DIR = /usr/lib64
 ZLIB_DIR = /usr/lib64
@@ -41,12 +45,13 @@ INCLUDE = -I$(MPI_DIR)/include \
 	  -I$(HDF5_DIR)/include \
 	  -I$(PETSC_DIR)/include \
           -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-          -I$(SCOREC_DIR)/include
+          -I$(SCOREC_DIR)/include \
+          -I$(PREFIX)/include
 
 ifeq ($(COM), 1)
-  PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib  -lpetsc -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu_dist_3.3 -lsuperlu_4.3 -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -L$(MPI_DIR)/lib -L/usr/lib/x86_64-linux-gnu -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L$(MPI_DIR)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L$(MPI_DIR)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib  -lpetsc -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu_dist_3.3 -lsuperlu_4.3 -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -L$(MPI_DIR)/lib -L/usr/lib/x86_64-linux-gnu -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L$(MPI_DIR)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L$(MPI_DIR)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
 else
-  PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib  -lpetsc -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu_dist_3.3 -lsuperlu_4.3 -lHYPRE -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -L$(MPI_DIR)/lib -L/usr/lib/x86_64-linux-gnu -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L$(MPI_DIR)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L$(MPI_DIR)/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+PETSC_WITH_EXTERNAL_LIB = -L/lore/seol/petsc-3.7.6/real-openmpi/lib -Wl,-rpath,/lore/seol/petsc-3.7.6/real-openmpi/lib -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lX11 -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl 
 endif
 
 BLASLAPACK_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
@@ -69,7 +74,7 @@ endif
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
 ifeq ($(TRILINOS), 1)
 TRILINOS_LIBS = -Wl,--start-group,-rpath,$(TRILINOS_DIR)/lib -L$(TRILINOS_DIR)/lib \
@@ -80,11 +85,12 @@ TRILINOS_LIBS = -Wl,--start-group,-rpath,$(TRILINOS_DIR)/lib -L$(TRILINOS_DIR)/l
 endif
 
 LIBS = 	\
+        -L$(PREFIX)/lib -l$(M3DC1_SCOREC_LIB) \
 	$(SCOREC_LIBS) \
         $(TRILINOS_LIBS) \
         -L$(STDCPP_DIR) -lstdc++ \
         -L$(ZOLTAN_DIR)/lib -lzoltan \
-        $(PETSC_LIBS) \
+        $(PETSC_WITH_EXTERNAL_LIB) \
         $(BLASLAPACK_LIBS) \
 	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 \
         -L$(FFTW_DIR)/lib -lfftw3 -lfftw3_threads \

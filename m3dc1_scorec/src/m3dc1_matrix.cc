@@ -784,13 +784,13 @@ matrix_solve::matrix_solve(int i, int s, FieldID f, int agg_blk_cnt, int agg_scp
   // only need to use aggregation if agg_blk_cnt > 1 becase if the block
   //  size is the same as the number of dofs per node the
   //  aggregation will be equivalent to the natural ordering
-  if(agg_blk_cnt > 1)
+  if (agg_blk_cnt > 1)
   {
     int blk_sz = dofs_per_nd / agg_blk_cnt;
-    auto msh = m3dc1_mesh::instance();
-    auto apf_msh = (apf::Mesh2*)msh->mesh;
-    auto fld = (*msh->field_container)[f];
-    auto apf_fld = fld->get_field();
+    m3dc1_mesh* msh = m3dc1_mesh::instance();
+    apf::Mesh2* apf_msh = (apf::Mesh2*)msh->mesh;
+    m3dc1_field* fld = (*msh->field_container)[f];
+    apf::Field* apf_fld = fld->get_field();
     std::string nm = apf::getName(apf_fld);
     nm += "_agg_num_mat_";
     nm += i;

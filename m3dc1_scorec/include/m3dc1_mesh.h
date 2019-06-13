@@ -17,7 +17,7 @@
 #include "apf.h"
 #include "m3dc1_scorec.h"
 #include "m3dc1_field.h"
-#include <pumi.h>
+#include "pumi.h"
 
 void compute_globalid(apf::Mesh2* m, int d);
 
@@ -66,10 +66,10 @@ public:
   // tags for second order adjanceny info
   apf::MeshTag* num_global_adj_node_tag;
   apf::MeshTag* num_own_adj_node_tag;
-  pOwnership get_ownership() { return ownership; }
+  apf::Sharing* get_ownership() { return ownership; }
 private:
   void set_node_adj_tag();
   static m3dc1_mesh* _instance;
-  pOwnership ownership;
+  apf::Sharing* ownership;
 };
 #endif

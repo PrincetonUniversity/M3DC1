@@ -1,16 +1,20 @@
-PREFIX=/lore/seol/openmpi-gcc4.4.5-install
-ZOLTAN_DIR=$PREFIX
-PETSC_DIR=/lore/seol/petsc-3.5.4
-PETSC_ARCH=real-openmpi1.6.5
+SCOREC_DIR=/lore/seol/openmpi-petsc3.7.6-install
+ZOLTAN_DIR=$SCOREC_DIR
+PREFIX=/lore/seol/openmpi-petsc3.7.6-reordered-install
+PETSC_DIR=/lore/seol/petsc-3.7.6
+PETSC_ARCH=real-openmpi
+#PETSC_DIR=/lore/seol/petsc-3.5.4
+#PETSC_ARCH=real-openmpi1.6.5
+#PETSC_ARCH=complex-openmpi1.6.5
 cmake .. \
   -DCMAKE_C_COMPILER="/usr/local/openmpi/latest/bin/mpicc" \
   -DCMAKE_CXX_COMPILER="/usr/local/openmpi/latest/bin/mpicxx" \
   -DCMAKE_Fortran_COMPILER="/usr/local/openmpi/latest/bin/mpif90" \
-  -DCMAKE_C_FLAGS=" -g -O2 -DDEBUG -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS=" -g -O2 -DDEBUG -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS=" -g -O0  -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O0 -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
-  -DSCOREC_INCLUDE_DIR=$PREFIX/include \
-  -DSCOREC_LIB_DIR=$PREFIX/lib \
+  -DSCOREC_INCLUDE_DIR=$SCOREC_DIR/include \
+  -DSCOREC_LIB_DIR=$SCOREC_DIR/lib \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
@@ -19,6 +23,7 @@ cmake .. \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
   -DHDF5_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DHDF5_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
+  -DGCC_DIR="/usr/lib/gcc/x86_64-linux-gnu/4.4.5" \
   -DENABLE_TRILINOS=OFF \
   -DTRILINOS_INCLUDE_DIR="/fasttmp/seol/openmpi-gcc4.4.5-install/include" \
   -DTRILINOS_LIB_DIR="/fasttmp/seol/openmpi-gcc4.4.5-install/lib" \
