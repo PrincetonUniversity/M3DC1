@@ -232,17 +232,14 @@ m3dc1_mesh::~m3dc1_mesh()
 void m3dc1_mesh::clean()
 {
  // destroy field AND numbering
-  if (field_container)
+  for(auto it : field_container)
   {
-    for (std::map<FieldID, m3dc1_field*>::iterator f_it=field_container->begin(); f_it!=field_container->end();)
-    {
-      if (!PCU_Comm_Self()) std::cout<<" destroy field "<<getName(f_it->second->get_field())<<std::endl;
-      FieldID id = f_it->first;
-      std::map<FieldID, m3dc1_field*>::iterator it_next=++f_it;
-      m3dc1_field_delete(&id);
-      f_it=it_next;
-    }
+    if (!PCU_Comm_Self())
+      std::cout << " destroy field " << apf::getName(it.second->get_field()) << std::endl;
+    int fid = it.first;
+    m3dc1_field_delete(&fid);
   }
+  field_container.erase(field_container.begin(),field_container.end());
   delete ownership;
   // destroy tag data
   removeTagFromDimension(mesh, own_partid_tag, 0);
@@ -1405,7 +1402,7 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
   old_ndof_per_value = old_numdof/num_values;
 
   // copy the existing dof data
-  apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
+  apf::Field* f = m3dc1_mesh::instance()->get_field(field_id)->get_field();
   int old_total_ndof = apf::countComponents(f);
   double* dof_val;
 
@@ -1446,7 +1443,7 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
   m3dc1_field_create (&field_id, f_name, &num_values, &scalar_type, &ndof_per_value);
 
   // re-construct the dof data
-  f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
+  f = m3dc1_mesh::instance()->get_field(field_id)->get_field();
   int new_total_ndof = apf::countComponents(f);
   double* dof_data = new double[new_total_ndof];
   if (!m3dc1_model::instance()->local_planeid)

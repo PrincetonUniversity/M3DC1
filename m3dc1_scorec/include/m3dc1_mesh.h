@@ -9,15 +9,17 @@
 *******************************************************************************/
 #ifndef M3DC1_MESH_H
 #define M3DC1_MESH_H
-#include "map"
-#include <set>
-#include "utility"
 #include "apfMesh.h"
 #include "apfMesh2.h"
 #include "apf.h"
 #include "m3dc1_scorec.h"
 #include "m3dc1_field.h"
 #include "pumi.h"
+#include <cassert>
+#include <map>
+#include <set>
+#include <utility>
+
 
 void compute_globalid(apf::Mesh2* m, int d);
 
@@ -54,8 +56,35 @@ public:
   int num_global_ent[4];
   int num_own_ent[4];
 
+
+  void add_field(int fid, m3dc1_field * fld)
+  {
+    auto ofld = field_container.find(fid);
+    assert(ofld == field_container.end());
+    field_container.insert(std::make_pair(fid,fld));
+  }
+  m3dc1_field * get_field(int fid)
+  {
+    auto fld = field_container.find(fid);
+    assert(fld != field_container.end());
+    return fld->second;
+  }
+  bool check_field(int fid)
+  {
+    auto fld = field_container.find(fid);
+    return (fld != field_container.end());
+  }
+  void delete_field(int fid)
+  {
+    auto fld = field_container.find(fid);
+    if(fld != field_container.end())
+    {
+      apf::destroyField(fld->second->get_field());
+      field_container.erase(fld);
+    }
+  }
   // field container
-  std::map<FieldID, m3dc1_field*>* field_container;
+  std::map<FieldID, m3dc1_field*> field_container;
 
   // tag for local entity id
   apf::MeshTag* local_entid_tag;

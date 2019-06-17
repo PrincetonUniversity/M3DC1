@@ -545,8 +545,8 @@ int  m3dc1_matrix::preAllocateSeqMat()
   MatType type;
   MatGetType(*A, &type);
 
-  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[fieldOrdering];
+  int num_vtx = m3dc1_mesh::instance()->num_local_ent[0];
+  m3dc1_field * mf = m3dc1_mesh::instance()->get_field(fieldOrdering);
   int num_dof = (m3dc1_mesh::instance()->num_local_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
 
   int dofPerEnt=0;
@@ -613,7 +613,7 @@ int m3dc1_matrix::setupSeqMat()
 {
   int num_ent=m3dc1_mesh::instance()->num_local_ent[0];
 
-  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[fieldOrdering];
+  m3dc1_field * mf = m3dc1_mesh::instance()->get_field(fieldOrdering);
   int num_dof = (m3dc1_mesh::instance()->num_local_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
 
   int dofPerEnt=0;
@@ -706,11 +706,11 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
   else
   {
     Vec b, c;
-    m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[in_field];
+    m3dc1_field * mf = m3dc1_mesh::instance()->get_field(in_field);
     int num_dof = (m3dc1_mesh::instance()->num_local_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
 
 #ifdef DEBUG
-    m3dc1_field * mf2 = (*(m3dc1_mesh::instance()->field_container))[out_field];
+    m3dc1_field * mf2 = m3dc1_mesh::instance()->get_field(out_field);
     int num_dof2 = (m3dc1_mesh::instance()->num_local_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
     assert(num_dof==num_dof2);
 #endif
@@ -789,7 +789,7 @@ matrix_solve::matrix_solve(int i, int s, FieldID f, int agg_blk_cnt, int agg_scp
     int blk_sz = dofs_per_nd / agg_blk_cnt;
     m3dc1_mesh* msh = m3dc1_mesh::instance();
     apf::Mesh2* apf_msh = (apf::Mesh2*)msh->mesh;
-    m3dc1_field* fld = (*msh->field_container)[f];
+    m3dc1_field * fld = msh->get_field(f);
     apf::Field* apf_fld = fld->get_field();
     std::string nm = apf::getName(apf_fld);
     nm += "_agg_num_mat_";
