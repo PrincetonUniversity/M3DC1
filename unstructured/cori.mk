@@ -20,8 +20,14 @@ endif
  
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
 
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/hsw-petsc3.9.3
-SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
+SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/hsw-petsc3.9.3
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+
+ifeq ($(REORDERED), 1)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/reordered
+else
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
+endif
 
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
@@ -29,8 +35,7 @@ else
     M3DC1_SCOREC_LIB = m3dc1_scorec
 endif
 
-ZOLTAN_DIR=$(SCOREC_DIR)
-ZOLTAN_LIB=-L$(ZOLTAN_DIR)/lib -lzoltan
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
