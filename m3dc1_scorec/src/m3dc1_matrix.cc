@@ -161,10 +161,18 @@ int copyPetscVec2Field(Vec & petscVec,
                        int scalar_type,
                        dof_permutation * pmt)
 {
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof=0, vertex_type=0;
+  Vec seq_vec;
+  VecScatter sctr;
+  VecScatterCreateToAll(petscVec,&sctr,&seq_vec);
+  VecScatterBegin(sctr,petscVec,seq_vec,INSERT_VALUES,SCATTER_FORWARD);
+  VecScatterEnd(sctr,petscVec,seq_vec,INSERT_VALUES,SCATTER_FORWARD);
+  VecScatterDestroy(&sctr);
+
+  int num_own_ent = m3dc1_mesh::instance()->num_own_ent[0], num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
-  int dofPerEnt=0;
-  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+  int dofPerEnt = 0;
+  if (num_own_ent)
+    dofPerEnt = num_own_dof / num_own_ent;
 
   std::vector<PetscInt> ix(dofPerEnt);
   std::vector<PetscScalar> values(dofPerEnt);
@@ -173,21 +181,22 @@ int copyPetscVec2Field(Vec & petscVec,
 
   int ierr;
 
-  apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; inode++)
+  apf::MeshEntity * ent = NULL;
+  for (int inode=0; inode < num_vtx; inode++)
   {
     ent = getMdsEntity(m3dc1_mesh::instance()->mesh,vertex_type,inode);
     if (!is_ent_original(ent)) continue;
-    int start_global_dof_id, end_global_dof_id_plus_one;
+    int start_global_dof_id = -1;
+    int end_global_dof_id_plus_one = -1;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
 
     for (int i=0; i<dofPerEnt; i++)
       ix[i] = (pmt ? (*pmt)[startIdx + i] : startIdx + i);
 
-    ierr=VecGetValues(petscVec, dofPerEnt, &ix[0], &values[0]); CHKERRQ(ierr);
-    startIdx=0;
-    for (int i=0; i<dofPerEnt; i++)
+    ierr = VecGetValues(seq_vec, dofPerEnt, &ix[0], &values[0]); CHKERRQ(ierr);
+    startIdx = 0;
+    for (int i = 0; i < dofPerEnt; i++)
     {
       if (scalar_type == M3DC1_REAL)
       {
@@ -210,7 +219,7 @@ int copyPetscVec2Field(Vec & petscVec,
 #endif
       }
     }
-    m3dc1_ent_setdofdata (&vertex_type, &inode, &field_id, &dofPerEnt, &dof_data[0]);
+    m3dc1_ent_setdofdata(&vertex_type, &inode, &field_id, &dofPerEnt, &dof_data[0]);
   }
   m3dc1_field_sync(&field_id);
   return 0;
