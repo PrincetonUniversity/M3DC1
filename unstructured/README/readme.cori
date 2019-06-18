@@ -26,6 +26,8 @@
 	make OPT=1 COM=1 MAX_PTS=25 ARCH=cori_knl
 	make 3D=1 OPT=1 MAX_PTS=60 ARCH=cori_knl
 
+   Add REORDERED=1 to use aggregated DOF's (unknowns)
+
 5. mesh utility
         /global/project/projectdirs/mp288/cori/scorec/utilities
 
