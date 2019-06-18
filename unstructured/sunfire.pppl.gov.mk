@@ -50,27 +50,30 @@ HYPRE_LIB=-lHYPRE
 endif
 
 SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7
-
+SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 ZOLTAN_LIB=-L$(SCOREC_DIR)/lib -lzoltan
 
-PUMI_DIR=$(SCOREC_DIR)/$(PETSCVER)
+ifeq ($(REORDERED), 1)
+  PUMI_DIR=$(SCOREC_DIR)/$(PETSCVER)/reordered
+else
+  PUMI_DIR=$(SCOREC_DIR)/$(PETSCVER)
+endif
+
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
+ifeq ($(COM), 1)
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+else
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+endif
+
 SCOREC_LIB = -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
-
-SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
 COMP_LIB_DIR=/usr/pppl/intel/2015.u1/composer_xe_2015.1.133/compiler/lib/intel64
 MPI_LIB_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3/lib
 GCC_HOME=/usr/lib/gcc/x86_64-redhat-linux/4.4.7
 
 PETSC_LIBS =-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_LIB_DIR) -L$(COMP_LIB_DIR) -L$(GCC_HOME) -Wl,-rpath,$(MPI_LIB_DIR) -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lsuperlu $(HYPRE_LIB) -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhwloc -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lifport -lifcore -lmpi_cxx -lintlc -ldl -lstdc++ -L$(MPI_LIB_DIR) -lmpi -L$(COMP_LIB_DIR) -L$(GCC_HOME) -Wl,-rpath,$(MPI_LIB_DIR) -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lgcc_s -lirc -lpthread -lirc_s -L$(COMP_LIB_DIR) -L$(GCC_HOME) -ldl -lstdc++
-
-ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
-else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec
-endif
 
 LIBS = 	\
 	$(SCOREC_LIB) \
