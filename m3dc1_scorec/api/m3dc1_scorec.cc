@@ -2154,7 +2154,6 @@ int m3dc1_matrix_create(int * matrix_id,
   int agg_blk_cnt_val = (agg_blk_cnt == NULL ? 1 : *agg_blk_cnt);
   int agg_scp_val = (agg_scp == NULL ? 0 : *agg_scp);
   m3dc1_matrix * mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
-    
 
   if (mat)
   {
@@ -2163,7 +2162,7 @@ int m3dc1_matrix_create(int * matrix_id,
     return M3DC1_FAILURE;
   }
   // check field exists
-  if (m3dc1_mesh::instance()->check_field(*field_id))
+  if(!m3dc1_mesh::instance()->check_field(*field_id))
   {
     if (!PCU_Comm_Self())
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: field with id "<<*field_id<<" doesn't exist" << std::endl;

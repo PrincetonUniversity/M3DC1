@@ -41,6 +41,7 @@ Program Reducedquintic
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
 
+
   ! Initialize MPI
 #ifdef _OPENMP
   integer :: omp_provided, omp_requested

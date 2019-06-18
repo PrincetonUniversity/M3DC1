@@ -16,6 +16,7 @@
 #include "m3dc1_field.h"
 #include "pumi.h"
 #include <cassert>
+#include <iostream>
 #include <map>
 #include <set>
 #include <utility>
@@ -55,7 +56,6 @@ public:
   int num_local_ent[4];
   int num_global_ent[4];
   int num_own_ent[4];
-
 
   void add_field(int fid, m3dc1_field * fld)
   {

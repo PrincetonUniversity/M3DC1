@@ -263,10 +263,9 @@ contains
 
   ! ======================================================================
   ! distribute_scalars
-  ! 
   ! distributes diagnostic energy and scalar quantities
   ! ======================================================================
-  subroutine distribute_scalars()    
+  subroutine distribute_scalars()
     use basic
     use pellet
 
@@ -276,14 +275,14 @@ contains
 
     integer, parameter :: num_scalars = 74
     integer :: ier
-    double precision, dimension(num_scalars) :: temp, temp2
+    real, dimension(num_scalars) :: temp, temp2
 
     ! Allreduce energy terms
     if(maxrank .gt. 1) then
        temp(1) = ekinp
        temp(2) = emagp
        temp(3) = ekinpd
-       temp(4) = emagpd      
+       temp(4) = emagpd
        temp(5) = ekint
        temp(6) = emagt
        temp(7) = ekintd
@@ -330,39 +329,38 @@ contains
        temp(48) = wallcur
        temp(49) = nsource_pel
        temp(50) = temp_pel
-       temp(51) = totrad         
-       temp(52) = linerad        
-       temp(53) = bremrad        
-       temp(54) = ionrad         
-       temp(55) = reckrad        
-       temp(56) = recprad        
-       temp(57) = totre          
-       temp(58) = m_iz           
+       temp(51) = totrad
+       temp(52) = linerad
+       temp(53) = bremrad
+       temp(54) = ionrad
+       temp(55) = reckrad
+       temp(56) = recprad
+       temp(57) = totre
+       temp(58) = m_iz
        temp(59) = wall_force_n0_x
        temp(60) = wall_force_n0_y
        temp(61) = wall_force_n0_z
        temp(62) = wall_force_n1_x
        temp(63) = wall_force_n1_y
        temp(64) = wall_force_n1_z
-       temp(65) = totne          
-       temp(66) = w_pe           
-       temp(67) = pcur_co        
-       temp(68) = pcur_sn        
-       temp(69) = m_iz_co        
-       temp(70) = m_iz_sn        
+       temp(65) = totne
+       temp(66) = w_pe
+       temp(67) = pcur_co
+       temp(68) = pcur_sn
+       temp(69) = m_iz_co
+       temp(70) = m_iz_sn
        temp(71) = w_m
        temp(72) = w_p
        temp(73) = wall_force_n0_x_halo
        temp(74) = wall_force_n0_z_halo
 
-       !checked that this should be MPI_DOUBLE_PRECISION
-       call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
-            MPI_SUM, MPI_COMM_WORLD, ier) 
-         
+       temp2 = 0
+       call mpi_allreduce(temp, temp2, num_scalars, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ier)
+
        ekinp           = temp2( 1)
        emagp           = temp2( 2)
        ekinpd          = temp2( 3)
-       emagpd          = temp2( 4)      
+       emagpd          = temp2( 4)
        ekint           = temp2( 5)
        emagt           = temp2( 6)
        ekintd          = temp2( 7)
@@ -736,7 +734,7 @@ subroutine calculate_scalars()
   call finalize(field_vec)
 
   numelms = local_elements()
-  
+
   if(ipellet.ne.0) call calculate_Lor_vol
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
@@ -1029,13 +1027,13 @@ subroutine calculate_scalars()
   ! internal dissipation
   etot = ekin + emag - ptoto
 !
-!   volume averaged pressure for beta calculation
-    avep = (gam - 1.)*(emag3 / (volume))
+  !   volume averaged pressure for beta calculation
+  avep = (gam - 1.) * (emag3 / (volume))
 
     ! psi on axis
-    itri = 0
-    call evaluate(xmag,0.,zmag,dum1,psi_field(1),itri,ier)
-    psi0 = dum1(OP_1)
+  itri = 0
+  call evaluate(xmag,0.,zmag,dum1,psi_field(1),itri,ier)
+  psi0 = dum1(OP_1)
 
 #ifdef USE3D
   if(ike_harmonics .gt. 0) call calculate_ke()
@@ -1210,7 +1208,8 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   real :: xnew, znew, denom, sinew, etanew
   real :: xtry, ztry, rdiff
   vectype, dimension(coeffs_per_element) :: avector
-  real, dimension(6) :: temp1, temp2
+  real, dimension(3) :: temp1, temp2
+  integer, dimension(3) :: itemp1, itemp2
   integer, save :: itri = 0
 
   if(myrank.eq.0 .and. iprint.ge.2) &
@@ -1327,23 +1326,27 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         converged = 0
         izone = 0
      endif  ! on itri.gt.0
-     
+
      ! communicate new minimum to all processors
      if(maxrank.gt.1) then
         temp1(1) = xnew
         temp1(2) = znew
         temp1(3) = sum
-        temp1(4) = in_domain
-        temp1(5) = converged
-        temp1(6) = izone
-        call mpi_allreduce(temp1, temp2, 6, &
-             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+
+        itemp1(1) = in_domain
+        itemp1(2) = converged
+        itemp1(3) = izone
+
+        call mpi_allreduce(temp1, temp2, 3, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ier)
+        call mpi_allreduce(itemp1, itemp2, 3, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
+
         xnew  = temp2(1)
         znew  = temp2(2)
         sum   = temp2(3)
-        in_domain = temp2(4)
-        converged = temp2(5)
-        izone = temp2(6)
+
+        in_domain = itemp2(1)
+        converged = itemp2(2)
+        izone = itemp2(3)
 
         if(in_domain .gt. 1) then
            if(myrank.eq.0 .and. iprint.ge.1) &
@@ -1416,7 +1419,8 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
   real :: xnew, znew, denom, sinew, etanew
   real :: xtry, ztry, rdiff
   vectype, dimension(coeffs_per_element) :: avector
-  real, dimension(5) :: temp1, temp2
+  real, dimension(3) :: temp1, temp2
+  integer, dimension(2) :: itemp1, itemp2
   integer, save :: itri = 0
 
   if(myrank.eq.0 .and. iprint.ge.2) &
@@ -1534,21 +1538,21 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
         in_domain = 0
         converged = 0
      endif  ! on itri.gt.0
-     
+
      ! communicate new maximum to all processors
      if(maxrank.gt.1) then
         temp1(1) = xnew
         temp1(2) = znew
         temp1(3) = sum
-        temp1(4) = in_domain
-        temp1(5) = converged
-        call mpi_allreduce(temp1, temp2, 5, &
-             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+        itemp1(1) = in_domain
+        itemp1(2) = converged
+        call mpi_allreduce(temp1, temp2, 3, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ier)
+        call mpi_allreduce(itemp1, itemp2, 2, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
         xnew  = temp2(1)
         znew  = temp2(2)
         sum   = temp2(3)
-        in_domain = temp2(4)
-        converged = temp2(5)
+        in_domain = itemp2(1)
+        converged = itemp2(2)
 
         if(in_domain .gt. 1) then
            if(myrank.eq.0 .and. iprint.ge.1) &

@@ -8,6 +8,8 @@
    The added options are: lgmres and lgmres_argument.
 */
 #include <petscsys.h>
+#include <mpi.h>
+#include <fenv.h>
 void parse_solver_options_(const char * filename)
 {
   PetscErrorCode ierr;
