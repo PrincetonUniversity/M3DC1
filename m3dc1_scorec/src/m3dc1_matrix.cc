@@ -674,16 +674,16 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
 
 matrix_solve::matrix_solve(int i, int s, FieldID f): m3dc1_matrix(i,s,f) 
 {  
-  // ksp = new KSP;
+  ksp = new KSP;
   kspSet=0;
   initialize();
 }
 
 matrix_solve::~matrix_solve()
 {
-  //if (kspSet)
-  //  KSPDestroy(ksp);
-  // delete ksp;
+  if (kspSet)
+    KSPDestroy(ksp);
+    delete ksp;
   MatDestroy(&remoteA);
 }
 
@@ -971,8 +971,8 @@ int matrix_solve::solve(FieldID field_id)
   Vec x, b;
   copyField2PetscVec(field_id, b, get_scalar_type());
   int ierr = VecDuplicate(b, &x);CHKERRQ(ierr);
-  ksp = new KSP;
-  setKspType();
+  //ksp = new KSP;
+  if(!kspSet) setKspType();
   KSPSetUp(*ksp);
   KSPSetUpOnBlocks(*ksp); CHKERRQ(ierr);
   ierr = KSPSolve(*ksp, b, x); CHKERRQ(ierr);
@@ -989,8 +989,8 @@ int matrix_solve::solve(FieldID field_id)
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
   // delete ksp
-  KSPDestroy(ksp);
-  delete ksp;
+  //KSPDestroy(ksp);
+  //delete ksp;
 }
 
 int matrix_solve:: setKspType()
@@ -1021,7 +1021,7 @@ int matrix_solve:: setKspType()
   }
 
   ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
- // ++kspSet;
+  kspSet = 1;
 }
 
 #endif //#ifndef M3DC1_MESHGEN
