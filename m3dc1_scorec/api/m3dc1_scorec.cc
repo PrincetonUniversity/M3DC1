@@ -2488,10 +2488,7 @@ int m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num)
   *iter_num = dynamic_cast<matrix_solve*> (mat)->iterNum;
 }
 
-//*******************************************************
-int m3dc1_matrix_insertblock(int* matrix_id, int * ielm, 
-          int* rowIdx, int * columnIdx, double * values)
-//*******************************************************
+int m3dc1_matrix_insertblock(int* matrix_id, int * ielm, int* rowIdx, int * columnIdx, double * values)
 {
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
 #ifdef DEBUG

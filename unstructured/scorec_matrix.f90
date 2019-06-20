@@ -535,7 +535,7 @@ contains
     implicit none
     type(matrix_type) :: mat
     integer, intent(in) :: itri, m, n, iop
-    vectype, intent(in), dimension(dofs_per_element,dofs_per_element) :: val
+    vectype, intent(in), dimension(:,:) :: val
 
     integer, dimension(mat%m,dofs_per_element) :: irow
     integer, dimension(mat%n,dofs_per_element) :: icol

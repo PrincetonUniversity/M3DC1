@@ -348,8 +348,7 @@ subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags, agg_blk_cnt, a
      case(NV_SCBOUND)
 
      case(NV_CYBOUND)
-        call apply_boundary_mask(itri, & 
-             BOUNDARY_DIRICHLET + BOUNDARY_NEUMANN, temp(:,:,1,1), tags=tags)
+        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET + BOUNDARY_NEUMANN, temp(:,:,1,1), tags=tags)
 
      end select
 
