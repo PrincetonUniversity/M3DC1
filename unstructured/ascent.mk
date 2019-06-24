@@ -67,7 +67,7 @@ LIBS := $(LIBS) \
 
 #FIXME: please check if FOPTS is correct
 # See https://gcc.gnu.org/onlinedocs/gfortran/Option-Summary.html#Option-Summary
-FOPTS = -c -fdefault-real-8 -fimplicit-none -cpp -Wall$(OPTS)
+FOPTS = -c -fdefault-real-8 -fimplicit-none -cpp -Wall $(OPTS)
 
 CCOPTS  = -c $(OPTS)
 
@@ -85,7 +85,8 @@ ifeq ($(OPT), 1)
 #  FOPTS  := $(FOPTS)  -qopt-report
 #  CCOPTS := $(CCOPTS) -qopt-report
 else
-  FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -traceback -debug extended
+  # Options for debugging program - see https://gcc.gnu.org/onlinedocs/gfortran/Debugging-Options.html
+  FOPTS := $(FOPTS) -g -fbacktrace -fbounds-check -fcheck=all -ffpe-summary=all 
   CCOPTS := $(CCOPTS)
 endif
 
