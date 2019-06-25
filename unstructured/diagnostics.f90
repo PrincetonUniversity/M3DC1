@@ -1004,7 +1004,7 @@ subroutine calculate_scalars()
   etot = ekin + emag - ptoto
 !
 !   volume averaged pressure for beta calculation
-    avep = (gam - 1.)*(emag3 / (volume))
+    avep = (gam - 1.)*(w_p / pvol)
 
     ! psi on axis
     itri = 0
