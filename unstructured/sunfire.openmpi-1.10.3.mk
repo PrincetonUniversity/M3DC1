@@ -54,9 +54,9 @@ SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 
 ifeq ($(REORDERED), 1)
-  PUMI_DIR=$(SCOREC_DIR)/$(PETSCVER)/reordered
+  PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)/reordered
 else
-  PUMI_DIR=$(SCOREC_DIR)/$(PETSCVER)
+  PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
 endif
 
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion

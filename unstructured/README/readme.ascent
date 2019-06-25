@@ -1,0 +1,65 @@
+1. login 
+	ssh your_id@login1.ascent.olcf.ornl.gov 
+
+2. code
+
+3. load modules and set environment
+  module load gcc 
+  module load cuda
+  module load fftw
+  module load gsl
+  module load netlib-scalapack
+  module load netlib-lapack
+  module load hdf5
+  module load metis
+  module load parmetis
+  module load git
+  export HOST=ascent
+
+4. compile code
+   cp $OLCF_HDF5_ROOT/include/hdf5.mod .
+   make OPT=1 RL=1 MAX_PTS=25 
+   make OPT=1 COM=1 MAX_PTS=25 (not supported as of June 22, 2019) 
+   make 3D=1 OPT=1 MAX_PTS=60 
+
+5. mesh utility
+   unavailable
+
+6. run jobscript:
+
+   6.1 options_bjacobi *****
+
+        -pc_type bjacobi
+        -pc_bjacobi_blocks 4
+        -sub_pc_type lu
+        -sub_pc_factor_mat_solver_type superlu_dist
+        -sub_ksp_type preonly
+        -ksp_type fgmres
+        -ksp_rtol 1.e-9
+        -ksp_atol 1.e-20
+        -ksp_converged_reason
+
+        -hard_pc_type bjacobi
+        -hard_pc_bjacobi_blocks 4
+        -hard_sub_pc_type lu
+        -hard_sub_pc_factor_mat_solver_type superlu_dist
+        -hard_sub_ksp_type preonly
+        -hard_ksp_type fgmres
+        -hard_ksp_rtol 1.e-9
+        -hard_ksp_atol 1.e-20
+        -hard_ksp_converged_reason
+
+        -on_error_abort
+
+   Please change the number of blocks (here 4) to match the number of plane in your 'C1input' file.
+
+   We have another set of options with 'hard_" as the prefix for PETSC VERSION 3.8 or newer
+   to isolate the hard solves (#5, #17) from easier ones for optimization purpose.
+
+7. submit job
+
+8. list all curent jobs for a user
+
+9. delete a job
+
+10. setup idl
