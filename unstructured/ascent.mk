@@ -1,33 +1,15 @@
-ifeq ($(TAU), 1)
-  TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=select.tau
-  CPP    = tau_cxx.sh $(TAU_OPTIONS)
-  CC     = tau_cc.sh  $(TAU_OPTIONS)
-  F90    = tau_f90.sh $(TAU_OPTIONS)
-  F77    = tau_f90.sh $(TAU_OPTIONS)
-  LOADER = tau_f90.sh $(TAU_OPTIONS)
-else
-  CPP = mpic++ 
+  CPP = mpi++
   CC = mpicc
   F90 = mpifort
   F77 = mpifort
   LOADER = mpifort
-endif
 
-ifeq ($(HPCTK), 1)
-  OPTS := $(OPTS) -gopt
-  LOADER := hpclink $(LOADER)
-endif
- 
-OPTS := $(OPTS) -DPETSC_VERSION=37 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=37 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
 
-SCOREC_BASE_DIR=/gpfs/wolf/gen127/proj-shared/scorec/gcc8.1-cuda10.1-mpi110.3
+SCOREC_BASE_DIR=/gpfs/wolf/gen127/proj-shared/scorec/pgi19.4-cuda10.1-mpi110.3
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
-ifeq ($(REORDERED), 1)
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/reordered
-else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)
-endif
+SCOREC_DIR=$(SCOREC_BASE_DIR)
 
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
@@ -35,39 +17,37 @@ else
     M3DC1_SCOREC_LIB = m3dc1_scorec
 endif
 
-#ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
+ZOLTAN_LIB=
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
-PETSC_DIR=/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.6
+PETSC_DIR=/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.62
 ifeq ($(COM), 1)
-  PETSC_ARCH=cplx-gcc-cuda-mpi10.3.0
+  PETSC_ARCH=
 else
-  PETSC_ARCH=real-gcc-cuda-mpi10.3.0
+  PETSC_ARCH=arch-pwr9-opt-pgi19.5
 endif
 
+PETSC_WITH_EXTERNAL_LIB = -L/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.62/arch-pwr9-opt-pgi19.5/lib -Wl,-rpath,/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.62/arch-pwr9-opt-pgi19.5/lib /autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib/pgi.ld -L/autofs/nccsopen-svm1_sw/ascent/.swci/1-compute/opt/spack/20180914/linux-rhel7-ppc64le/pgi-19.4/spectrum-mpi-10.3.0.0-20190419-g3kwpin7ogaq52oiigyrebjbgflxnbt7/lib -L/autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -Wl,-rpath,/autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib -lpetsc -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lflapack -lfblas -lmpi_ibm_usempi -lmpi_ibm_mpifh -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -lrt -lpgatm -lstdc++ -L/autofs/nccsopen-svm1_sw/ascent/.swci/1-compute/opt/spack/20180914/linux-rhel7-ppc64le/pgi-19.4/spectrum-mpi-10.3.0.0-20190419-g3kwpin7ogaq52oiigyrebjbgflxnbt7/lib -L/autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -ldl -lpthread -lmpiprofilesupport -lmpi_ibm -Wl,-rpath,/autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib -latomic -lpgkomp -lomp -lomptarget -lpgmath -lpgc -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -ldl
+#PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
 
-PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(OLCF_PARMETIS_ROOT)/lib -L$(OLCF_PARMETIS_ROOT)/lib -Wl,-rpath,$(OLCF_METIS_ROOT)/lib -L$(OLCF_METIS_ROOT)/lib -Wl,-rpath,$(OLCF_NETLIB_SCALAPACK_ROOT)/lib -L$(OLCF_NETLIB_SCALAPACK_ROOT)/lib -Wl,-rpath,$(OLCF_NETLIB_LAPACK_ROOT)/lib64 -L$(OLCF_NETLIB_LAPACK_ROOT)/lib64 -lpetsc -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lscalapack -llapack -lblas -lX11 -lhwloc -lm -ldl -lstdc++
-
+#only define them if adios-1.3 is used; otherwise use hopper default
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-	   -I$(OLCF_GSL_ROOT)/include # \
+	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 #           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 #
 LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
+        $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
-        -L$(OLCF_HDF5_ROOT)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
-        -L$(OLCF_FFTW_ROOT)/lib -lfftw3_mpi -lfftw3 \
-	-L$(OLCF_GSL_ROOT)/lib -lgsl -lgslcblas #-lhugetlbfs 
-#        $(HYBRID_LIBS) \
+        -L$(HDF5_DIR)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
+	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs 
 
-#FIXME: please check if FOPTS is correct
-# See https://gcc.gnu.org/onlinedocs/gfortran/Option-Summary.html#Option-Summary
-FOPTS = -c -fdefault-real-8 -fimplicit-none -cpp -Wall $(OPTS)
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
 
 CCOPTS  = -c $(OPTS)
 
@@ -79,14 +59,13 @@ ifeq ($(VTUNE), 1)
 endif
 
 # Optimization flags
+# FIXME 
 ifeq ($(OPT), 1)
-# FIXME
-#  LDOPTS := $(LDOPTS) -static -qopt-report
-#  FOPTS  := $(FOPTS)  -qopt-report
-#  CCOPTS := $(CCOPTS) -qopt-report
+  LDOPTS := $(LDOPTS) #-static -qopt-report
+  FOPTS  := $(FOPTS)  #-qopt-report
+  CCOPTS := $(CCOPTS) #-qopt-report
 else
-  # Options for debugging program - see https://gcc.gnu.org/onlinedocs/gfortran/Debugging-Options.html
-  FOPTS := $(FOPTS) -g -fbacktrace -fbounds-check -fcheck=all -ffpe-summary=all 
+  FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
 endif
 

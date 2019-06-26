@@ -4,23 +4,31 @@
 2. code
 
 3. load modules and set environment
-  module load gcc 
+
   module load cuda
   module load fftw
+  module load hdf5
+  module load git
+  export HOST=ascent
+
+[FOR PGI]
+  module load pgi
+
+[FOR GCC + GSL]
+  module load gcc 
   module load gsl
   module load netlib-scalapack
   module load netlib-lapack
-  module load hdf5
   module load metis
   module load parmetis
-  module load git
-  export HOST=ascent
 
 4. compile code
    cp $OLCF_HDF5_ROOT/include/hdf5.mod .
    make OPT=1 RL=1 MAX_PTS=25 
    make OPT=1 COM=1 MAX_PTS=25 (not supported as of June 22, 2019) 
    make 3D=1 OPT=1 MAX_PTS=60 
+
+   Add ARCH=ascent_gcc to compile with gnu compiler
 
 5. mesh utility
    unavailable
