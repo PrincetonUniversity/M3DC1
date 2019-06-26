@@ -12,7 +12,8 @@
   export HOST=ascent
 
 [FOR PGI]
-  module load pgi
+  module load pgi/18.10      
+  module load spectrum-mpi/10.3.0.0-20190419
 
 [FOR GCC + GSL]
   module load gcc 

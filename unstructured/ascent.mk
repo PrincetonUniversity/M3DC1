@@ -1,4 +1,4 @@
-  CPP = mpi++
+  CPP = mpic++
   CC = mpicc
   F90 = mpifort
   F77 = mpifort
@@ -23,15 +23,14 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
-PETSC_DIR=/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.62
+PETSC_DIR=/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.6
 ifeq ($(COM), 1)
-  PETSC_ARCH=
+  PETSC_ARCH=cplx-pgi-cuda-mpi10.3.0
 else
-  PETSC_ARCH=arch-pwr9-opt-pgi19.5
+  PETSC_ARCH=real-pgi-cuda-mpi10.3.0
 endif
 
-PETSC_WITH_EXTERNAL_LIB = -L/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.62/arch-pwr9-opt-pgi19.5/lib -Wl,-rpath,/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.62/arch-pwr9-opt-pgi19.5/lib /autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib/pgi.ld -L/autofs/nccsopen-svm1_sw/ascent/.swci/1-compute/opt/spack/20180914/linux-rhel7-ppc64le/pgi-19.4/spectrum-mpi-10.3.0.0-20190419-g3kwpin7ogaq52oiigyrebjbgflxnbt7/lib -L/autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -Wl,-rpath,/autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib -lpetsc -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lflapack -lfblas -lmpi_ibm_usempi -lmpi_ibm_mpifh -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -lrt -lpgatm -lstdc++ -L/autofs/nccsopen-svm1_sw/ascent/.swci/1-compute/opt/spack/20180914/linux-rhel7-ppc64le/pgi-19.4/spectrum-mpi-10.3.0.0-20190419-g3kwpin7ogaq52oiigyrebjbgflxnbt7/lib -L/autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -ldl -lpthread -lmpiprofilesupport -lmpi_ibm -Wl,-rpath,/autofs/nccsopen-svm1_sw/ascent/.swci/0-core/opt/spack/20180914/linux-rhel7-ppc64le/gcc-4.8.5/pgi-19.4-6acz4xyqjlpoaonjiiqjme2aknrfnzoy/linuxpower/19.4/lib -latomic -lpgkomp -lomp -lomptarget -lpgmath -lpgc -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -ldl
-#PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath, $(PETSC_DIR)/$(PETSC_ARCH)/lib $(OLCF_PGI_ROOT)/linuxpower/18.10/lib/pgi.ld -L$(MPI_ROOT)/lib -L$(OLCF_PGI_ROOT)/linuxpower/18.10/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -Wl,-rpath, $(OLCF_PGI_ROOT)/linuxpower/18.10/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lscalapack -lflapack -lfblas -lptesmumps -lptscotch -lptscotcherr -lscotch -lscotcherr -lmpi_ibm_usempi -lmpi_ibm_mpifh -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -lrt -lpgatm -lstdc++ -lrt -lm -lpthread -lz -L$(MPI_ROOT)/lib -L$(OLCF_PGI_ROOT)/linuxpower/18.10/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -ldl -lpthread -lmpiprofilesupport -lmpi_ibm -Wl,-rpath, $(OLCF_PGI_ROOT)/linuxpower/18.10/lib -latomic -lpgkomp -lpgompstub -lomptarget -lpgmath -lpgc -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -ldl
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
