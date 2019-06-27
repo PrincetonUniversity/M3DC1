@@ -2,7 +2,7 @@ module eqcalc
   implicit none
 
   real, parameter   :: pi = 3.141592653589793238462643383279502884197
-
+  real, parameter   :: mu0 = pi*4.e-7
 contains
 
 
@@ -368,21 +368,23 @@ program eqcalc_2
   use eqcalc
   implicit none
   real              :: drho, beta, gamma,t1, betap, b_zval, t_end, p_inf
-  real              :: eta0, a, Ip, kappa0, R0, T0, VL, mu0, epsilon, &
+  real              :: eta0, a, Ip, kappa0, R0, T0, VL, epsilon, &
                        B1, p_tot, p0, eta_fac, ln_lambda, z_ion
   integer           :: b_flat
   real, dimension(:), allocatable  :: t_prof, g_prof, btheta_prof,rho_array, p_prof, bz_arr, rho_arr, v_arr
   real,dimension(:,:),allocatable  :: profile_j, profile_p, profile_ne, profile_f, profile_q, profile_t, profile_omega
-  integer           :: n_nodes, write_idx
+  integer           :: n_nodes, write_idx, d, n_out
   real              :: v_fin, alpha, F0, mu_v, q0
 
-  !! Declare main varibales
+  !! Declare main variables
+  n_out = 100
   ln_lambda = 17.
   z_ion   = 1.
   drho    = 1E-5      ! step size in rho space
   beta    = 0       ! fraction of non-ohmic heating
   t_end   = 5e-2    ! Fraction of T0 at edge
   p_inf   = 1e-3    ! Fraction of p0 at the edge
+
   gamma   = gamma_final(beta, drho, t_end) ! the value of dimless const. gamma
   t1      = abs(dtdrhoa(gamma,beta,drho,t_end)) ! t profile derivative at t1
   p_tot   = intexheat(1.0)
@@ -394,22 +396,21 @@ program eqcalc_2
   end if
 
 
-  eta_fac = 100.
+  eta_fac = 1000.
 !  eta0    = 28.05E-9 * (1.6022e-19)**1.5 * eta_fac ! Prefactor for spitzer conductivity
   eta0    = 1.03e-4 * z_ion * ln_lambda * (1.6022e-19)**1.5 * eta_fac
   a       = 1.0       ! Minor radius
   Ip      = 1E6       ! Total plasma current
-  kappa0  = 1E21      ! Heat diffusivity
+  kappa0  = 1E22      ! Heat diffusivity
   R0      = 10.0      ! Major radius
-  mu0     = 4*pi*1E-7 ! Vacuum permeability
   B1      = mu0*Ip/(2*pi*a) ! Strength of poloidal magnetic field at edge
   epsilon = a/R0      ! Minor of Major radius
   b_flat  = 0         ! Parameter indiciating if the pressure will be calculated
                       ! consistently via the q profile (b_flat = 1),
                       ! or if one will assume a flat b_z profile (b_flat = 0).
   v_fin   = 0.0       ! Edge value of velocity profile.
-  F0      = 1.0       ! Total toroidal force (in Newtons)
-  mu_v    = 1e-6      ! viscosity value at centre
+  F0      = 10.0      ! Total toroidal force per axial length (in Newtons / m)
+  mu_v    = 1e-5      ! viscosity value at centre
 
   !! Allocate memory for profiles
   n_nodes = ceiling(1/drho)+1
@@ -471,34 +472,35 @@ program eqcalc_2
   ! convert from m/s to krad/s
   profile_omega(2,:) = profile_omega(2,:) / R0 / 1e3
 
+  d = n_nodes / n_out
 
   !! Write output
   open (unit=1,file="profile_j",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
     write(1,*) profile_j(:,write_idx)
   end do
   close(unit=1)
 
   open (unit=2,file="profile_p",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
     write(2,*) profile_p(:,write_idx)
   end do
   close(unit=2)
 
   open (unit=3,file="profile_ne",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
     write(3,*) profile_ne(:,write_idx)
   end do
   close(unit=3)
 
   open (unit=4,file="profile_f",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
     write(4,*) profile_f(:,write_idx)
   end do
   close(unit=4)
 
   open (unit=5,file="profile_kappa",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
      write(5,*) a*rho_arr(write_idx), kappa0*k(rho_arr(write_idx))
   end do
   close(unit=5)
@@ -508,35 +510,45 @@ program eqcalc_2
   close(unit=6)
 
   open (unit=7,file="profile_te",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
     write(7,*) profile_t(:,write_idx)
   end do
   close(unit=7)
 
   open (unit=8,file="profile_omega",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
     write(8,*) profile_omega(:,write_idx)
   end do
   close(unit=8)
 
   open (unit=9,file="profile_q",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
     write(9,*) profile_q(:,write_idx)
   end do
   close(unit=9)
 
   open (unit=10,file="profile_mu",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
      write(10,*) a*rho_arr(write_idx), mu_v*m(rho_arr(write_idx))
   end do
   close(unit=10)
 
   open (unit=11,file="profile_force",action="write",status="replace")
-  do write_idx = 2, n_nodes-1
+  do write_idx = 2, n_nodes-1, d
      write(11,*) a*rho_arr(write_idx), F0*f_m(rho_arr(write_idx))
   end do
   close(unit=11)
 
 
   deallocate(profile_j, profile_p, profile_ne, profile_f, profile_t,profile_omega)
+
+  print *, "eta_fac = ", eta_fac
+  print *, "kappat = ", kappa0/ 2.18122e+26
+  print *, "amu = ", mu_v / 0.364831
+  print *, "vloop = ", VL/2.18122e+06 
+  print *, "tcur = ", IP/795217.
+  print *, "beam_v =", 1e5
+  print *, "beam_rate = ", F0*8.595e21
+  print *, "beam_dr = ", 0.2
+
 end program eqcalc_2
