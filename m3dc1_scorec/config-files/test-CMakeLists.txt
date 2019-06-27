@@ -15,6 +15,7 @@ function(test_exe_func exename srcname)
 endfunction(test_exe_func)
 
 util_exe_func(make_model make_model.cc)
+util_exe_func(collapse collapse.cc)
 util_exe_func(create_smb create_smb.cc)
 util_exe_func(split_smb split_smb.cc)
 

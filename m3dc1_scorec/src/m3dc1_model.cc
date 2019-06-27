@@ -204,7 +204,6 @@ void load_model(const char* filename)
   FILE* fp= fopen(filename, "r");
   int numL,separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop;
   fscanf(fp,"%d %d %d %d %d\n", &numL, &separatrixLoop, &innerWallLoop, &outerWallLoop, &vacuumLoop);
-  if (!PCU_Comm_Self()) std::cout<<"[PUMI INFO] "<<__func__<<": Number loops in the model: "<<numL<<std::endl;
   for( int i=0; i< numL; i++)
   {
     int numE;
