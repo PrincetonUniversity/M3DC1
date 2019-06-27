@@ -16,17 +16,19 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(n_elements(phi0) ne 0) then print, 'phi0 = ', phi0
 
+   itor = read_parameter('itor', filename=filename)
+   rzero = read_parameter('rzero', filename=filename)
+   if(itor eq 1) then begin
+      period = 2.*!pi
+   endif else begin
+      period = 2.*!pi*rzero
+   end
+
    if(keyword_set(taverage)) then begin
        data = 0
        if(taverage eq 1) then taverage=16
-       itor = read_parameter('itor', filename=filename)
-       if(itor eq 1) then begin
-          period = 360.
-       endif else begin
-          rzero = read_parameter('rzero', filename=filename)
-          period = 2.*!pi*rzero
-       end
        phi = period*findgen(taverage) / taverage
+       if(itor eq 1) then period = period*180./!pi
        for i=0, taverage-1 do begin
            data = data + $
              read_field(name, x, y, t, slices=time, mesh=mesh, $
@@ -113,7 +115,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    version = read_parameter("version", filename=filename)
    nt = read_parameter("ntime", filename=filename)
    nv = read_parameter("numvar", filename=filename)
-   itor = read_parameter("itor", filename=filename)
    ntor = read_parameter("ntor", filename=filename)
    version = read_parameter('version', filename=filename)
    ivform = read_parameter('ivform', filename=filename)
@@ -129,12 +130,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ilin = read_parameter('linear', filename=filename)
    isubeq = read_parameter('eqsubtract', filename=filename)
    extsubtract = read_parameter('extsubtract', filename=filename)
-   rzero = read_parameter('rzero', filename=filename)
-   if(itor eq 1) then begin
-      period = 2.*!pi*rzero
-   endif else begin
-      period = 2.*!pi
-   endelse
 
    if(keyword_set(last)) then time = nt-1
    if(keyword_set(equilibrium)) then begin

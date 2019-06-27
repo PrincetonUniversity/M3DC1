@@ -90,7 +90,7 @@ contains
     real, intent(out) :: dw_ion(npts,0:z)    ! energy lost via ionization
     real, intent(out) :: dw_reck(npts,0:z)   ! kinetic energy lost via recombination
     real, intent(out) :: dw_recp(npts,0:z)   ! potential energy lost via recombination
-    real, intent(in) :: source(npts)         ! optional neutral density source
+    real, intent(in) :: source(npts,0:z)     ! optional density source
     
     real :: t, dts
     integer :: i
@@ -151,11 +151,9 @@ contains
              bimp(:,i) = bimp(:,i) + dts*sion(:,i)
              cimp(:,i) = -dts*srec(:,i+1)
           end if
-          dimp(:,i) = nz(:,i)
+          dimp(:,i) = nz(:,i) + source(:,i)*dts
        enddo
-
-       dimp(:,0) = dimp(:,0) + source*dts
-      
+     
        call tridiag(aimp,bimp,cimp,dimp,nz, &
             ework,fwork,npts,z)
        

@@ -6,11 +6,11 @@ ifeq ($(TAU), 1)
   F77    = tau_f90.sh $(TAU_OPTIONS)
   LOADER = tau_f90.sh $(TAU_OPTIONS)
 else
-  CPP = CC
-  CC = cc
-  F90 = ftn
-  F77 = ftn
-  LOADER = ftn
+  CPP = mpic++ 
+  CC = mpicc
+  F90 = mpifort
+  F77 = mpifort
+  LOADER = mpifort
 endif
 
 ifeq ($(HPCTK), 1)
@@ -18,9 +18,9 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
  
-OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -DPETSC_VERSION=37 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
 
-SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/hsw-petsc3.9.3
+SCOREC_BASE_DIR=/gpfs/wolf/gen127/proj-shared/scorec/gcc8.1-cuda10.1-mpi110.3
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ifeq ($(REORDERED), 1)
@@ -35,49 +35,39 @@ else
     M3DC1_SCOREC_LIB = m3dc1_scorec
 endif
 
-ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
+#ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
-PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/petsc-3.9.3
+PETSC_DIR=/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.6
 ifeq ($(COM), 1)
-  PETSC_ARCH=cplx-intel-mpi7.7.3-hsw
+  PETSC_ARCH=cplx-gcc-cuda-mpi10.3.0
 else
-  PETSC_ARCH=real-intel-mpi7.7.3-hsw
+  PETSC_ARCH=real-gcc-cuda-mpi10.3.0
 endif
 
-PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
 
-#only define them if adios-1.3 is used; otherwise use hopper default
-#ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
-#ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
-#ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
-ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
-ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-             -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
-             -L/usr/lib64/ -llustreapi
-
-MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(OLCF_PARMETIS_ROOT)/lib -L$(OLCF_PARMETIS_ROOT)/lib -Wl,-rpath,$(OLCF_METIS_ROOT)/lib -L$(OLCF_METIS_ROOT)/lib -Wl,-rpath,$(OLCF_NETLIB_SCALAPACK_ROOT)/lib -L$(OLCF_NETLIB_SCALAPACK_ROOT)/lib -Wl,-rpath,$(OLCF_NETLIB_LAPACK_ROOT)/lib64 -L$(OLCF_NETLIB_LAPACK_ROOT)/lib64 -lpetsc -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lscalapack -llapack -lblas -lX11 -lhwloc -lm -ldl -lstdc++
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-	   -I$(GSL_DIR)/include # \
+	   -I$(OLCF_GSL_ROOT)/include # \
 #        -I$(HYBRID_HOME)/include
 #           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 #
 LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
-        $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
-        -L$(HDF5_DIR)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
-	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
-	$(ADIOS_FLIB) \
-	$(MKL_LIB)
+        -L$(OLCF_HDF5_ROOT)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
+        -L$(OLCF_FFTW_ROOT)/lib -lfftw3_mpi -lfftw3 \
+	-L$(OLCF_GSL_ROOT)/lib -lgsl -lgslcblas #-lhugetlbfs 
 #        $(HYBRID_LIBS) \
 
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
+#FIXME: please check if FOPTS is correct
+# See https://gcc.gnu.org/onlinedocs/gfortran/Option-Summary.html#Option-Summary
+FOPTS = -c -fdefault-real-8 -fimplicit-none -cpp -Wall $(OPTS)
 
 CCOPTS  = -c $(OPTS)
 
@@ -90,11 +80,13 @@ endif
 
 # Optimization flags
 ifeq ($(OPT), 1)
-  LDOPTS := $(LDOPTS) -static -qopt-report
-  FOPTS  := $(FOPTS)  -qopt-report
-  CCOPTS := $(CCOPTS) -qopt-report
+# FIXME
+#  LDOPTS := $(LDOPTS) -static -qopt-report
+#  FOPTS  := $(FOPTS)  -qopt-report
+#  CCOPTS := $(CCOPTS) -qopt-report
 else
-  FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
+  # Options for debugging program - see https://gcc.gnu.org/onlinedocs/gfortran/Debugging-Options.html
+  FOPTS := $(FOPTS) -g -fbacktrace -fbounds-check -fcheck=all -ffpe-summary=all 
   CCOPTS := $(CCOPTS)
 endif
 

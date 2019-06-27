@@ -147,7 +147,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   case(2)
 
      if(itor.eq.1) then
-        if(myrank.eq.0) print *, 'ERROR: irmp==2 only implemented for itor=1'
+        if(myrank.eq.0) print *, 'ERROR: irmp==2 only implemented for itor=0'
         call safestop(1)
         br = 0.
         bphi = 0.
@@ -181,6 +181,10 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if
+
+  case default
+     if(myrank.eq.0) print *, 'Error: Option not recognized: irmp = ', irmp
+     call safestop(1)
      
   end select
 
