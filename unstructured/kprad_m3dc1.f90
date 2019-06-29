@@ -467,11 +467,11 @@ contains
 
        ! determine where KPRAD advance will be used
        ! and impurity densities if charge states don't advance
-       !  old nz (with source added to neutrals)
+       !  old nz (with source added)
        advance_kprad = .not.(te.lt.kprad_temin .or. te.ne.te .or. &
                              ne.lt.kprad_nemin .or. ne.ne.ne)
        nz_nokprad = nz
-       nz_nokprad(:,0) = nz_nokprad(:,0) + dti*source
+       nz_nokprad = nz_nokprad + dti*source
 
        if(any(advance_kprad)) then ! skip if no KPRAD advance in this triangle
 
