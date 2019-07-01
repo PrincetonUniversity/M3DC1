@@ -6,7 +6,7 @@
 
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=37 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
 
-SCOREC_BASE_DIR=/gpfs/wolf/gen127/proj-shared/scorec/pgi19.4-cuda10.1-mpi110.3
+SCOREC_BASE_DIR=/gpfs/wolf/gen127/proj-shared/scorec/pgi18.10-cuda10.1-mpi10.3
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 SCOREC_DIR=$(SCOREC_BASE_DIR)
@@ -25,12 +25,12 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
 
 PETSC_DIR=/gpfs/wolf/gen127/proj-shared/petsc/petsc-3.7.6
 ifeq ($(COM), 1)
-  PETSC_ARCH=cplx-pgi-cuda-mpi10.3.0
+  PETSC_ARCH=cplx-pgi18.10-cuda-mpi10.3.0
 else
-  PETSC_ARCH=real-pgi-cuda-mpi10.3.0
+  PETSC_ARCH=real-pgi18.10-cuda-mpi10.3.0
 endif
 
-PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath, $(PETSC_DIR)/$(PETSC_ARCH)/lib $(OLCF_PGI_ROOT)/linuxpower/18.10/lib/pgi.ld -L$(MPI_ROOT)/lib -L$(OLCF_PGI_ROOT)/linuxpower/18.10/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -Wl,-rpath, $(OLCF_PGI_ROOT)/linuxpower/18.10/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lscalapack -lflapack -lfblas -lptesmumps -lptscotch -lptscotcherr -lscotch -lscotcherr -lmpi_ibm_usempi -lmpi_ibm_mpifh -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -lrt -lpgatm -lstdc++ -lrt -lm -lpthread -lz -L$(MPI_ROOT)/lib -L$(OLCF_PGI_ROOT)/linuxpower/18.10/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -ldl -lpthread -lmpiprofilesupport -lmpi_ibm -Wl,-rpath, $(OLCF_PGI_ROOT)/linuxpower/18.10/lib -latomic -lpgkomp -lpgompstub -lomptarget -lpgmath -lpgc -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -ldl
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath, $(PETSC_DIR)/$(PETSC_ARCH)/lib $(OLCF_PGI_ROOT)/linuxpower/18.10/lib/pgi.ld –L$(MPI_ROOT)/lib -L$(OLCF_PGI_ROOT)/linuxpower/18.10/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -Wl,-rpath, $(OLCF_PGI_ROOT)/linuxpower/18.10/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lscalapack -lflapack -lfblas -lptesmumps -lptscotch -lptscotcherr -lscotch -lscotcherr -lmpi_ibm_usempi -lmpi_ibm_mpifh -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -lrt -lpgatm -lstdc++ -lrt -lm -lpthread -lz -L$(MPI_ROOT)/lib -L$(OLCF_PGI_ROOT)/linuxpower/18.10/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -ldl -lpthread -lmpiprofilesupport -lmpi_ibm -Wl,-rpath, $(OLCF_PGI_ROOT)/linuxpower/18.10/lib -latomic -lpgkomp -lpgompstub -lomptarget -lpgmath -lpgc -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -ldl
 
 #only define them if adios-1.3 is used; otherwise use hopper default
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \

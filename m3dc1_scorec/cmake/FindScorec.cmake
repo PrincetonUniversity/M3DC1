@@ -64,9 +64,7 @@ set(SCOREC_LIB_NAMES
 else()
 set(SCOREC_LIB_NAMES
 crv
-dsp
 ph
-size
 sam
 spr
 ma
