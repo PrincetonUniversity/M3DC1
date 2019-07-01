@@ -566,7 +566,6 @@ contains
     use read_ascii
     use pellet
     use newvar_mod
-    use math
 
     implicit none
 
@@ -618,10 +617,8 @@ contains
     y_vals = y_vals + pellet_z
 
     ! convert z from length to angle
-    phi_vals = atan2(z_vals, x_vals) + pellet_phi
-    where(phi_vals.lt.0.) phi_vals = phi_vals + twopi
-
-
+    phi_vals = z_vals / x_vals + pellet_phi
+    
     ! construct fields using data
     if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
     do i=0, kprad_z
