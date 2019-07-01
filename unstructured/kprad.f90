@@ -95,7 +95,7 @@ contains
     real :: t, dts
     integer :: i
     real, dimension(npts) :: ne_old, delta
-    real, dimension(npts) :: te_int, p_int   ! internal Te and p
+    real, dimension(npts) :: te_int, p_int, dp_int   ! internal Te and p
     real, dimension(npts,0:z) :: nz_old
     real, dimension(npts,0:z-1) :: sion
     real, dimension(npts,0:z) :: srec
@@ -164,11 +164,18 @@ contains
           ne = ne + i*(nz(:,i) - nz_old(:,i))
        end do
 
+       dp_int = (imp_rad(:,z) + pion(:,z) + pbrem + preck(:,z))*dts * 1.e7
+
+       ! change in electron density
        where(ne_old.gt.0.)
           delta = abs(ne - ne_old)/ne_old
        elsewhere
           delta = 0.
        end where
+
+       ! change in thermal energy
+       where(p_int.gt.0) delta = sqrt(delta**2 + (dp_int/p_int)**2)
+
        max_change = maxval(delta)
 
        if((max_change .gt. 0.2) .and. (dts .gt. dts_min)) then
@@ -190,8 +197,7 @@ contains
           dw_brem = dw_brem + pbrem*dts
           dw_rad  = dw_rad + imp_rad*dts
 
-          p_int = p_int - (imp_rad(:,z) + pion(:,z) + &
-                           pbrem + preck(:,z))*dts * 1.e7
+          p_int = p_int - dp_int
 
           te_int = p_int/(ne*1.6022e-12)
           if(ipres.eq.0) te_int = pefac*te_int
