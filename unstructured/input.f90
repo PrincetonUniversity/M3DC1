@@ -274,6 +274,9 @@ subroutine set_defaults
        "Use maximum value of dt for KPRAD ionization", kprad_grp)
   call add_var_int("ikprad_evolve_internal", ikprad_evolve_internal, 0, &
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
+  call add_var_double("lp_source_dt", lp_source_dt, 0., &
+       "Time step of Lagrangian Particle code (for rate definition)", &
+       kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -1574,6 +1577,7 @@ subroutine validate_input
         call safestop(1)
      end if
   end if
+  if((iread_lp_source.gt.0).and.(lp_source_dt.le.0.)) lp_source_dt = dt
 
   if(myrank.eq.0) then
      print *, "============================================="

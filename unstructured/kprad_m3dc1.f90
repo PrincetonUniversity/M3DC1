@@ -29,6 +29,8 @@ module kprad_m3dc1
   real :: kprad_fz
   real :: kprad_nz
 
+  integer :: iread_lp_source
+  real :: lp_source_dt
   type(field_type), allocatable :: kprad_particle_source(:)
 
   ! minimum values for KPRAD evolution
@@ -623,6 +625,9 @@ contains
        return
     end if
     allocate(phi_vals(n))
+
+    ! convert density to rate
+    n_vals = n_vals / lp_source_dt
 
     ! convert from cgs to normalized units
     x_vals = x_vals / l0_norm

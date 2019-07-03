@@ -189,7 +189,7 @@ module basic
   integer :: iread_ext_field
   integer :: isample_ext_field
   integer :: isample_ext_field_pol
-  integer :: iread_lp_source
+
   real :: scale_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
