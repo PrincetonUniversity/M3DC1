@@ -29,6 +29,8 @@ module pellet
   real :: nsource_pel, temp_pel, Lor_vol
   real :: rpdot
 
+  real, dimension(92) :: rho_table, M_table ! solid density (g/cm^3), molar weight (mol/g)
+
 contains
 
   subroutine pellet_init()
@@ -44,7 +46,31 @@ contains
     ! initialize Cartesian velocities
     pellet_vx = pellet_velr*cos(pellet_phi) - pellet_velphi*sin(pellet_phi)
     pellet_vy = pellet_velr*sin(pellet_phi) + pellet_velphi*cos(pellet_phi)
-    
+
+    ! Diatomic deuterium
+    rho_table(1) = 0.2
+    M_table(1) = 4.0282
+
+    ! Lithium
+    rho_table(3) = 0.534
+    M_table(3) = 6.941
+
+    ! Beryllium
+    rho_table(4) = 1.85
+    M_table(4) = 9.012182
+
+    ! Carbon (graphite)
+    rho_table(6) = 2.267
+    M_table(6) = 12.0107
+
+    ! Neon
+    rho_table(10) = 1.444
+    M_table(10) = 20.1797
+
+    ! Argon
+    rho_table(18) = 1.623
+    M_table(18) = 39.948
+
   end subroutine pellet_init
 
   vectype elemental function pellet_distribution(r, phi, z, pres, inorm)
@@ -181,9 +207,7 @@ contains
     real :: C_abl, Xp_abl, Xn_abl, a_Te, b_Te, c_Te, d_Te, B_Li
     real :: G, lambda, rho0
     real :: temin_eV
-    real, parameter :: n_D2 = 0.2    ! density of solid D2
-    real, parameter :: M_D2 = 4.0282 ! molar weight of D2
-    real, parameter :: N_A  = 6.022140857e23  ! Avogadro's number
+    real :: rho_D2, M_D2
     real, parameter :: inv3 = 1./3.
 
 
@@ -210,8 +234,7 @@ contains
     if(z_abl.eq.0) then
        select case(ipellet_abl)
        case(1,2)
-          ! Lithium by default for backward compatibility
-          z_abl = 3
+          ! Lithium by default for backward compatibility z_abl = 3
        case(3)
           ! Only valid for neon for now
           z_abl = 10
@@ -221,36 +244,16 @@ contains
        end select
     end if
 
-    select case(z_abl)
-    case(1)
-       ! Assume diatomic deuterium
-       rho_z = n_D2
-       M_z = M_D2
-    case(3)
-       ! Lithium
-       rho_z = 0.534
-       M_z = 6.941
-    case(4)
-       ! Beryllium
-       rho_z = 1.85
-       M_z = 9.012182
-    case(6)
-       ! Carbon (graphite)
-       rho_z = 2.267
-       M_z = 12.0107
-    case(10)
-       ! Neon
-       rho_z = 1.444
-       M_z = 20.1797
-    case(18)
-       ! Argon
-       rho_z = 1.623
-       M_z = 39.948
-    case default
+    rho_z = rho_table(z_abl)
+    M_z = M_table(z_abl)
+    rho_D2 = rho_table(1)
+    M_D2 = M_table(1)
+
+    if( rho_z.eq.0. .or. M_z.eq.0.) then
        if(myrank.eq.0) print *, "Cannot ablate for this ipellet_z"
        ipellet_abl = 0
        return
-    end select
+    end if
 
     select case(ipellet_abl)
     case(1)
@@ -307,7 +310,7 @@ contains
        C_abl = a_Te*log(1.+b_Te*(r_p*l0_norm)**(2.*inv3)*(nsource_pel/0.45)**(2.*inv3))/&
             log(c_Te+d_Te*(r_p*l0_norm)**(2.*inv3)*(nsource_pel/0.45)**(2.*inv3))
 
-       pellet_rate = N_A*C_abl*Xn_abl*t0_norm/(n0_norm*l0_norm**3)
+       pellet_rate = N_Avo*C_abl*Xn_abl*t0_norm/(n0_norm*l0_norm**3)
 
        rpdot = C_abl*Xp_abl*1.e-2
 
@@ -320,14 +323,14 @@ contains
 
        ! impurity number
        Xn_abl = (1.-pellet_mix)*G/(M_z*(1.-pellet_mix) + pellet_mix*M_D2) ! mole/s
-       pellet_rate = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
+       pellet_rate = N_Avo*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
 
        ! D2 number
        Xn_abl = pellet_mix*G/(M_z*(1.-pellet_mix) + pellet_mix*M_D2) ! mole/s
-       pellet_rate_D2 = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
+       pellet_rate_D2 = N_Avo*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
 
        ! pellet surface recession speed
-       rho0 = ((1.-pellet_mix)*M_z + pellet_mix*M_D2)/((1.-pellet_mix)*(M_z/rho_z) + pellet_mix*(M_D2/n_D2)) ! g/cm^3
+       rho0 = ((1.-pellet_mix)*M_z + pellet_mix*M_D2)/((1.-pellet_mix)*(M_z/rho_z) + pellet_mix*(M_D2/rho_D2)) ! g/cm^3
        rpdot = (G/(4.*pi*rho0*(r_p*l0_norm)**2))*(t0_norm/l0_norm)
 
     end select
@@ -337,9 +340,9 @@ contains
     if(dr_p.gt.r_p) then
        ! we've ablated the whole pellet
        if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p
-       pellet_rate    = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p*l0_norm)**3)*rho0*(1.-pellet_mix)/&
+       pellet_rate    = (N_Avo/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p*l0_norm)**3)*rho0*(1.-pellet_mix)/&
                         (M_z*(1.-pellet_mix)+M_D2*pellet_mix)
-       pellet_rate_D2 = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p*l0_norm)**3)*rho0*pellet_mix/&
+       pellet_rate_D2 = (N_Avo/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p*l0_norm)**3)*rho0*pellet_mix/&
                         (M_z*(1.-pellet_mix)+M_D2*pellet_mix)
        r_p = 0.0
     else

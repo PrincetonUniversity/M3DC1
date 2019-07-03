@@ -1478,7 +1478,7 @@ subroutine define_transport_coefficients()
 
 
   ! Read LP data
-  if(iread_lp_source.eq.1) then
+  if(iread_lp_source.gt.0) then
      call read_lp_source('cloud.txt', ier)
      if(ier.ne.0) then
         if(myrank.eq.0) print *, 'Error reading LP source ', 'cloud.txt'

@@ -24,6 +24,7 @@ module basic
   real, parameter :: m_e = 9.1094e-28
   real, parameter :: me_mp = m_e / m_p
   real, parameter :: mp_me = m_p / m_e
+  real, parameter :: N_Avo = 6.022140857e23
 
   logical :: print_help
 

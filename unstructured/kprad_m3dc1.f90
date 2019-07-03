@@ -31,6 +31,8 @@ module kprad_m3dc1
 
   integer :: iread_lp_source
   real :: lp_source_dt
+  real :: lp_source_mass
+  real, allocatable :: lp_source_rate(:)
   type(field_type), allocatable :: kprad_particle_source(:)
 
   ! minimum values for KPRAD evolution
@@ -59,7 +61,7 @@ contains
     allocate(kprad_n(0:kprad_z))
     allocate(kprad_temp(0:kprad_z))
     allocate(kprad_particle_source(0:kprad_z))
-    
+    allocate(lp_source_rate(0:kprad_z))
     do i=0, kprad_z
        call create_field(kprad_n(i))
        call create_field(kprad_temp(i))
@@ -451,7 +453,7 @@ contains
        te = tet79(:,OP_1)
        p = pt79(:,OP_1)
 
-       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
+       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z .and. iread_lp_source.eq.0) then
           p = pt79(:,OP_1)
           source(:,0) = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
        end if
@@ -460,6 +462,11 @@ contains
           do i=0, kprad_z
              call eval_ops(itri, kprad_particle_source(i), ch079, rfac)
              source(:,i) = source(:,i) + ch079(:,OP_1)
+          end do
+       else if (iread_lp_source.eq.2) then
+          p = pt79(:,OP_1)
+          do i=0, kprad_z
+             source(:,i) = source(:,i) + lp_source_rate(i)*pellet_distribution(x_79, phi_79, z_79, p, 1)
           end do
        end if
 
@@ -592,9 +599,10 @@ contains
     integer, intent(out) :: ierr
     character(len=*), intent(in) :: filename
 
-    integer :: n, i, m
+    integer :: n, i, j, m
     real, allocatable :: x_vals(:), y_vals(:), z_vals(:), phi_vals(:), temp_vals(:)
     real, allocatable :: n_vals(:,:)
+    real :: N_per_LP, ntot
     
 
     if(iprint.ge.1 .and. myrank.eq.0) print *, 'Reading LP source...'
@@ -626,37 +634,56 @@ contains
     end if
     allocate(phi_vals(n))
 
-    ! convert density to rate
-    n_vals = n_vals / lp_source_dt
-
     ! convert from cgs to normalized units
     x_vals = x_vals / l0_norm
     y_vals = y_vals / l0_norm
     z_vals = z_vals / l0_norm
     n_vals = n_vals / n0_norm
 
-    ! convert from local to (R,phi,Z)
-    x_vals = x_vals + pellet_r
-    y_vals = y_vals + pellet_z
+    if(iread_lp_source.eq.1) then
 
-    ! convert z from length to angle
-    phi_vals = z_vals / x_vals + pellet_phi
+       ! Read LP distribution directly
+
+       ! convert from local to (R,phi,Z)
+       x_vals = x_vals + pellet_r
+       y_vals = y_vals + pellet_z
+
+       ! convert z from length to angle
+       phi_vals = z_vals / x_vals + pellet_phi
     
-    ! construct fields using data
-    if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
-    do i=0, kprad_z
-       kprad_particle_source(i) = 0.
-    end do
-    m = kprad_z+1
-    call deltafuns(n,x_vals,phi_vals,y_vals,m,n_vals,kprad_particle_source,ierr)
-    if(iprint.ge.2 .and. myrank.eq.0) print *, ' solving fields'
-    do i=0, kprad_z
-       call newvar_solve(kprad_particle_source(i)%vec,mass_mat_lhs)
-    end do
+       ! convert density to rate
+       n_vals = n_vals / lp_source_dt
 
-    ! free temporary arrays
-    if(iprint.ge.2 .and. myrank.eq.0) print *, ' freeing data'
-    deallocate(x_vals, y_vals, z_vals, n_vals, phi_vals)
+       ! construct fields using data
+       if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
+       do i=0, kprad_z
+          kprad_particle_source(i) = 0.
+       end do
+       m = kprad_z+1
+       call deltafuns(n,x_vals,phi_vals,y_vals,m,n_vals,kprad_particle_source,ierr)
+       if(iprint.ge.2 .and. myrank.eq.0) print *, ' solving fields'
+       do i=0, kprad_z
+          call newvar_solve(kprad_particle_source(i)%vec,mass_mat_lhs)
+       end do
+
+       ! free temporary arrays
+       if(iprint.ge.2 .and. myrank.eq.0) print *, ' freeing data'
+       deallocate(x_vals, y_vals, z_vals, n_vals, phi_vals)
+
+    else if(iread_lp_source.eq.2) then
+       ! Sum LP density to get impurity rate
+       ! Each LP has same impurity mass, defined by lp_source_mass
+       N_per_LP = (N_Avo/(n0_norm*l0_norm**3))*lp_source_mass/M_table(kprad_z)
+       lp_source_rate = 0.
+       do j=1, n
+          ntot = sum(n_vals(j,:))
+          lp_source_rate = lp_source_rate + N_per_LP*n_vals(j,:)/ntot
+       end do
+
+       ! convert particle # to rate
+       lp_source_rate = lp_source_rate / lp_source_dt
+
+    end if
     
     if(iprint.ge.1 .and. myrank.eq.0) print *, 'Done reading LP source'
 

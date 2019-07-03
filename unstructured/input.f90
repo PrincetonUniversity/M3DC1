@@ -277,6 +277,9 @@ subroutine set_defaults
   call add_var_double("lp_source_dt", lp_source_dt, 0., &
        "Time step of Lagrangian Particle code (for rate definition)", &
        kprad_grp)
+  call add_var_double("lp_source_mass", lp_source_mass, 0., &
+       "Mass of each Lagrangian Particle", &
+       kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -1568,7 +1571,7 @@ subroutine validate_input
   endif
 
   if(ibeam.ge.1) call neutral_beam_init
-  if(ipellet.ne.0) then
+  if(ipellet.ne.0 .or. iread_lp_source.gt.0) then
      call pellet_init
      
      if(ipellet_z.ne.0 .and. &
@@ -1577,7 +1580,13 @@ subroutine validate_input
         call safestop(1)
      end if
   end if
-  if((iread_lp_source.gt.0).and.(lp_source_dt.le.0.)) lp_source_dt = dt
+  if(iread_lp_source.gt.0) then
+     if (lp_source_dt.le.0.) then
+        lp_source_dt = dt
+     else
+        lp_source_dt = lp_source_dt / t0_norm
+     end if
+  end if
 
   if(myrank.eq.0) then
      print *, "============================================="
