@@ -1,18 +1,14 @@
-#module load intel/2015.u1 openmpi/1.10.3 git gsl szip hdf5-parallel cmake
-#module load simmodsuite/14.0-190513dev
-#module load simmodsuite/14.0-190402dev
 MPIVER=intel2015-openmpi1.10.3-gcc4.4.7
-ZOLTAN_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
-PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.7.6
+PETSCVER=petsc3.7.6
+PETSC_VER=petsc-3.7.6
+SWTYPE=release 
+CMAKETYPE=Release
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$PETSC_VER
 PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
-SIM_VER=14.0-190402dev
-SIM_DIR=/usr/pppl/Simmetrix/simmodsuite/$SIM_VER
-SIM_ARCHOS=x64_rhel6_gcc44
-CMAKETYPE=Release
-PREFIX=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER/petsc3.7.6
-TRILINOS_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/trilinos-11.12.1
-BOOST_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/boost_1_60_0
+ZOLTAN_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
+PUMIVER= #-6cc556e
+PREFIX=$ZOLTAN_DIR/$PETSCVER$PUMIVER
 HDF5_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3-pkgs/hdf5-parallel-1.8.17
 cmake .. \
   -DCMAKE_C_COMPILER=mpicc \
