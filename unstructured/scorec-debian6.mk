@@ -29,10 +29,13 @@ ZLIB_DIR = /usr/lib64
 TRILINOS_DIR = /fasttmp/seol/openmpi-gcc4.4.5-install
 STDCPP_DIR = /usr/lib/gcc/x86_64-linux-gnu/4.4.5
 
+SCOREC_BASE_DIR=/lore/seol/openmpi-petsc3.7.6-install
 ifeq ($(REORDERED), 1)
-  SCOREC_DIR = /lore/seol/openmpi-petsc3.7.6-reordered-install
-else
-  SCOREC_DIR = /lore/seol/openmpi-petsc3.7.6-install
+  SCORECVER=reordered
+endif
+
+ifdef SCORECVER
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 endif
 
 ZOLTAN_DIR = /lore/seol/openmpi-petsc3.7.6-install

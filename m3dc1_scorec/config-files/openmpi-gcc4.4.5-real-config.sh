@@ -1,3 +1,4 @@
+#PREFIX=/lore/seol/openmpi-petsc3.7.6-install
 PREFIX=/lore/seol/openmpi-petsc3.7.6-install
 ZOLTAN_DIR=$PREFIX
 PETSC_DIR=/lore/seol/petsc-3.7.6
