@@ -1,10 +1,14 @@
-pro movie_field, name, maxtime, outfile=outfile,rate=rate, width=width, height=height, lcfs=lcfs,_EXTRA=ex
+pro movie_field, name, maxtime, outfile=outfile,rate=rate, width=width, height=height, lcfs=lcfs, ext=ext, _EXTRA=ex
 
   if n_elements(width) eq 0 then width = 580
   if n_elements(height) eq 0 then height = 750
+  
+  ; Available formats: avi flv gif matroska mjpeg mov mp4 swf wav webm
+  if n_elements(ext) eq 0 then ext='mp4'
+  
   window, 0, xsize=width, ysize=height
   
-  if n_elements(outfile) eq 0 then outfile=name+'.mp4'
+  if n_elements(outfile) eq 0 then outfile=name+'.'+ext
 
   oVid = IDLffVideoWrite(outfile)
   if n_elements(rate) eq 0 then rate=5
