@@ -41,15 +41,25 @@ SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-pet
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ifeq ($(REORDERED), 1)
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/reordered
+  SCORECVER=reordered
+endif
+
+ifdef SCORECVER
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
+endif
+
+ifeq ($(COM), 1)
+    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+else
+    M3DC1_SCOREC_LIB = m3dc1_scorec
 endif
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
 # Include option to use ADIOS
 OPTS := $(OPTS) -DUSEADIOS
@@ -75,6 +85,7 @@ INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 #
 LIBS := \
         $(LIBS) \
+        -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB)\
         $(PETSC_LIB) \
