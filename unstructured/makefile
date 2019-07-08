@@ -51,6 +51,10 @@ ifeq ($(REORDERED), 1)
   OPTS := $(OPTS) -DREORDERED
 endif
 
+ifeq ($(SCORECVER), reordered)
+  OPTS := $(OPTS) -DREORDERED
+endif
+
 ifdef SCORECVER
   BIN_POSTFIX := $(BIN_POSTFIX)-$(SCORECVER)
 endif
