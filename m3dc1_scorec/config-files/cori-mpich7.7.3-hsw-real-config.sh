@@ -22,8 +22,8 @@ cmake .. \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \
-  -DSCOREC_INCLUDE_DIR="$PREFIX/include" \
-  -DSCOREC_LIB_DIR="$PREFIX/lib" \
+  -DSCOREC_INCLUDE_DIR="$ZOLTAN_DIR/include" \
+  -DSCOREC_LIB_DIR="$ZOLTAN_DIR/lib" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
   -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \
