@@ -140,24 +140,6 @@ contains
     type(scorec_matrix) :: mat
     integer, intent(in) :: m, n, icomplex
     integer, intent(in) :: lhs
-    integer, intent(in), optional :: agg_blk_cnt_opt
-    integer, intent(in), optional :: agg_scp_opt
-
-    integer :: agg_blk_cnt
-    integer :: agg_scp
-
-    if(.not. present(agg_blk_cnt_opt)) then
-       agg_blk_cnt = 1
-    else
-       agg_blk_cnt = agg_blk_cnt_opt
-    end if
-
-    if(.not. present(agg_scp_opt)) then
-       agg_scp = 0
-    else
-       agg_scp = agg_scp_opt
-    end if
-
 #ifdef REORDERED
     integer, intent(in), optional :: agg_blk_cnt_opt
     integer, intent(in), optional :: agg_scp_opt
@@ -202,8 +184,11 @@ contains
     call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize, agg_blk_cnt, agg_scp)
 #else
     call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
-#endif !reordered
+!reordered
 #endif
+
+#endif
+
   end subroutine scorec_matrix_create
 
 

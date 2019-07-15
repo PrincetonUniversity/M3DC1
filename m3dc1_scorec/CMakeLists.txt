@@ -35,10 +35,10 @@ include(CTest)
 #This will be set to ON by the CTest driver script (and only by that)
 option(ENABLE_TESTING "Build for CTest" OFF)
 set(MPIRUN "mpirun"
-    CACHE string 
+    CACHE STRING
     "the mpirun or srun executable")
 set(MPIRUN_PROCFLAG "-np"
-    CACHE string 
+    CACHE STRING
     "the command line flag to give process count to MPIRUN")
 
 #Doxygen generation system
