@@ -94,7 +94,7 @@ void compute_globalid(apf::Mesh2* m, int d)
   apf::MeshIterator* it = m->begin(d);
   while ((e = m->iterate(it)))
   {
-    if (!is_ent_original(e)) continue;
+    if (!is_ent_original(m,e)) continue;
     m->setIntTag(e, tag, &start);
     apf::Copies remotes;
     m->getRemotes(e,remotes);
@@ -151,19 +151,42 @@ void set_remote(Mesh2* m, MeshEntity* e, int p, MeshEntity* r)
     m->addRemote(e, p, r);
 }
 
-bool is_ent_original(MeshEntity * e)
+bool is_ent_original(apf::Mesh2* m, MeshEntity * e)
 {
-  return pumi_ment_isOwned(e,m3dc1_mesh::instance()->get_ownership());
+  if(m->isGhost(e)) return false;
+  return (PCU_Comm_Self() == get_ent_ownpartid(m,e));
 }
 
-int get_ent_ownpartid(MeshEntity * e)
+int get_ent_ownpartid(apf::Mesh2* m, MeshEntity * e)
 {
-  return pumi_ment_getOwnPID(e, m3dc1_mesh::instance()->get_ownership());
+  int own_partid = -1;
+  if(m->hasTag(e,m3dc1_mesh::instance()->own_partid_tag))
+    m->getIntTag(e,m3dc1_mesh::instance()->own_partid_tag,&own_partid);
+  else
+    own_partid = m->getOwner(e);
+  return own_partid;
 }
 
-MeshEntity * get_ent_owncopy(MeshEntity * e)
+MeshEntity * get_ent_owncopy(apf::Mesh2* m, MeshEntity * e)
 {
-  return pumi_ment_getOwnEnt(e, m3dc1_mesh::instance()->get_ownership());
+  if(!(m->isShared(e)))
+    return e;
+  int own_partid = get_ent_ownpartid(m,e);
+  if(own_partid == PCU_Comm_Self())
+    return e;
+  if(m->isShared(e))
+  {
+    apf::Copies remotes;
+    m->getRemotes(e,remotes);
+    return remotes[own_partid];
+  }
+  if(m->isGhost(e))
+  {
+    apf::Copies ghosts;
+    m->getGhosts(e,ghosts);
+    return ghosts[own_partid];
+  }
+  assert(0);
 }
 
 struct m3dc1Ownership : public Ownership
@@ -325,7 +348,7 @@ void bounce_orig_entities (Mesh2* mesh, std::vector<MeshEntity*>& mesh_ents, int
   for (std::vector<MeshEntity*>::iterator ent_it=mesh_ents.begin(); ent_it!=mesh_ents.end();++ent_it)
   {
     e = *ent_it;
-    own_partid=get_ent_ownpartid(e);
+    own_partid=get_ent_ownpartid(mesh,e);
 
     apf::Copies remotes;
     mesh->getRemotes(e, remotes);
@@ -726,7 +749,7 @@ void m3dc1_sendEntities(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
 
     if (dim!=2) // for vertices and edges
     {
-      own_partid=get_ent_ownpartid(e);
+      own_partid=get_ent_ownpartid(mesh,e);
       e_own_partid[index] = own_partid;
       apf::Copies remotes;
       mesh->getRemotes(e, remotes);
@@ -811,7 +834,7 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
   MeshIterator* it = mesh->begin(dim);
   while ((e = mesh->iterate(it)))
   {
-    own_partid = get_ent_ownpartid(e);
+    own_partid = get_ent_ownpartid(mesh,e);
     if (own_partid==myrank && mesh->isShared(e))
       ++num_own_partbdry;
   }
@@ -824,7 +847,7 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
   it = mesh->begin(dim);
   while ((e = mesh->iterate(it)))
   {
-    own_partid = get_ent_ownpartid(e);
+    own_partid = get_ent_ownpartid(mesh,e);
     if (own_partid==myrank && mesh->isShared(e))
     {
       mesh->setIntTag(e, partbdry_id_tag, &initial_id);
@@ -1514,15 +1537,15 @@ void m3dc1_mesh::set_node_adj_tag()
 
     for (int i=0; i<num_adj; i++)
     {
-      if (is_ent_original(elements[i]))
+      if (is_ent_original(mesh,elements[i]))
         ++num_adj_node;
     }
     mesh->setIntTag(e, num_own_adj_node_tag, &num_adj_node);
 
     if (!mesh->isShared(e)) continue;
     // first pass msg size to owner
-    int own_partid = get_ent_ownpartid(e);
-    MeshEntity* own_copy = get_ent_owncopy(e);
+    int own_partid = get_ent_ownpartid(mesh,e);
+    MeshEntity* own_copy = get_ent_owncopy(mesh,e);
 
     if (own_partid==PCU_Comm_Self()) continue;
     PCU_COMM_PACK(own_partid, own_copy);
@@ -1555,12 +1578,12 @@ void m3dc1_mesh::set_node_adj_tag()
     apf::Adjacent elements;
     getBridgeAdjacent(mesh, e, brgType, 0, elements);
 
-    MeshEntity* ownerEnt=get_ent_owncopy(e);
-    int own_partid = get_ent_ownpartid(e);
+    MeshEntity* ownerEnt=get_ent_owncopy(mesh,e);
+    int own_partid = get_ent_ownpartid(mesh,e);
     for (int i=0; i<elements.getSize(); i++)
     {
-      MeshEntity* ownerEnt2=get_ent_owncopy(elements[i]);
-      int owner=get_ent_ownpartid(elements[i]);
+      MeshEntity* ownerEnt2=get_ent_owncopy(mesh,elements[i]);
+      int owner=get_ent_ownpartid(mesh,elements[i]);
       msgs.push_back(entMsg(owner, ownerEnt2));
       if (own_partid==PCU_Comm_Self())
       {

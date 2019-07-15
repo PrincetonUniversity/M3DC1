@@ -731,7 +731,7 @@ void verify_field(pMesh m, pField f)
   pMeshEnt e;
   while ((e = m->iterate(it)))
   {
-    if (is_ent_original(e) && (m->isShared(e) || m->isGhosted(e)))
+    if (is_ent_original(m,e) && (m->isShared(e) || m->isGhosted(e)))
       send_dof(m, e, f);
   }
   m->end(it);
@@ -859,40 +859,41 @@ int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     m3dc1_mesh::instance()->mesh->getAdjacent(e,*adj_dim,adjacent);
     *num_adj_ent = adjacent.getSize();
   }
-  else if (*adj_dim<*ent_dim) 
+  else if (*adj_dim<*ent_dim)
   {
     apf::Downward downward;
     *num_adj_ent = m3dc1_mesh::instance()->mesh->getDownward(e, *adj_dim, downward);
   }
-  return M3DC1_SUCCESS; 
-}
-
-//*******************************************************
-int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, 
-                            int* /* out */ owning_partid)
-//*******************************************************
-{
-  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
-  assert(e);
-  *owning_partid = get_ent_ownpartid(e);
   return M3DC1_SUCCESS;
 }
 
 //*******************************************************
-int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id, 
+int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id,
+                            int* /* out */ owning_partid)
+//*******************************************************
+{
+  apf::Mesh2 * m = m3dc1_mesh::instance()->mesh;
+  apf::MeshEntity* e = getMdsEntity(m, *ent_dim, *ent_id);
+  assert(e);
+  *owning_partid = get_ent_ownpartid(m,e);
+  return M3DC1_SUCCESS;
+}
+
+//*******************************************************
+int m3dc1_ent_ismine (int* /* in */ ent_dim, int* /* in */ ent_id,
                             int* /* out */ ismine)
 //*******************************************************
 {
   *ent_id -= 1; //index change from Fortran to C
- 
+
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   apf::MeshEntity* e = getMdsEntity(m, *ent_dim, *ent_id);
   assert(e);
 
-  if (is_ent_original(e)) 
-     *ismine = 1;   // 
+  if (is_ent_original(m,e))
+     *ismine = 1;
   else
-     *ismine = 0; 
+     *ismine = 0;
   return M3DC1_SUCCESS;
 }
 
@@ -1245,7 +1246,7 @@ void synchronize_field(apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    if (!is_ent_original(e) || (!m->isShared(e)&&!m->isGhosted(e)))
+    if (!is_ent_original(m,e) || (!m->isShared(e)&&!m->isGhosted(e)))
       continue;
 
     getComponents(f, e, 0, dof_data);
@@ -1309,7 +1310,7 @@ void accumulate_field(apf::Field* f)
 //*******************************************************
 {
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::MeshEntity* e;       
+  apf::MeshEntity* e;
 
   int num_dof, own_partid, n = countComponents(f);
   double* dof_data = new double[n];
@@ -1323,14 +1324,14 @@ void accumulate_field(apf::Field* f)
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
-    own_partid=get_ent_ownpartid(e);
+    own_partid=get_ent_ownpartid(m,e);
     if (own_partid==PCU_Comm_Self() || pumi_ment_isGhost(e)) continue;
     assert(m->isShared(e));
 
-    own_e = get_ent_owncopy(e);
+    own_e = get_ent_owncopy(m,e);
 
     getComponents(f, e, 0, &(dof_data[0]));
-      
+
     PCU_COMM_PACK(own_partid, own_e);
     PCU_Comm_Pack(own_partid,&(dof_data[0]),n*sizeof(double));
   }
@@ -1343,7 +1344,7 @@ void accumulate_field(apf::Field* f)
       PCU_COMM_UNPACK(r);
       PCU_Comm_Unpack(&(sender_data[0]),n*sizeof(double));
       for (int i = 0; i < n; ++i)
-        save_map[r].push_back(sender_data[i]);      
+        save_map[r].push_back(sender_data[i]);
     }
 
   for (std::map<apf::MeshEntity*, std::vector<double> >::iterator mit=save_map.begin(); mit!=save_map.end(); ++mit)
@@ -1396,16 +1397,17 @@ int m3dc1_field_sumsq (FieldID* /* in */ field_id, double* /* out */ sum)
   int num_dof = countComponents(f);
 
   double* dof_data= new double[num_dof];
+  apf::Mesh2 * m = m3dc1_mesh::instance()->mesh;
   apf::MeshEntity* e;
-  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(0);
-  while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
+  apf::MeshIterator* it = m->begin(0);
+  while ((e = m->iterate(it)))
   {
-    if (!is_ent_original(e)) continue;
+    if (!is_ent_original(m,e)) continue;
     getComponents(f, e, 0, dof_data);
     for (int i=0; i<num_dof; ++i)
       *sum+=dof_data[i]*dof_data[i];
   }
-  m3dc1_mesh::instance()->mesh->end(it);
+  m->end(it);
   delete [] dof_data;
   return M3DC1_SUCCESS;
 }
@@ -2904,7 +2906,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     for (int i=0; i<numVert; i++)
     {
-      if (is_ent_original(getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i)))
+      if (is_ent_original(mesh,getMdsEntity(mesh, 0, i)))
         errorSum+=pow(errorData[i],d/(p+d/2.0));
     }
     double errorSumBuff=errorSum;
@@ -2918,7 +2920,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
     assert(e);
-    if (!is_ent_original(e)) continue;
+    if (!is_ent_original(mesh,e)) continue;
     double size = sf.getSize(e);
     double targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
     size_estimate+=max(1.,1./targetSize/targetSize);
@@ -3141,8 +3143,8 @@ int sum_edge_data (double * data, int* size)
   for (int i=0; i<num_edge; i++)
   {
     apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
-    int own_partid=get_ent_ownpartid(e);
-    apf::MeshEntity* own_e = get_ent_owncopy(e);
+    int own_partid=get_ent_ownpartid(m,e);
+    apf::MeshEntity* own_e = get_ent_owncopy(m,e);
     if (own_partid==PCU_Comm_Self()) continue;
     PCU_COMM_PACK(own_partid, own_e);
     PCU_Comm_Pack(own_partid,&(data[i*(*size)]),(*size)*sizeof(double));
@@ -3165,7 +3167,7 @@ int sum_edge_data (double * data, int* size)
   for (int i=0; i<num_edge; i++)
   {
     apf::MeshEntity* e = getMdsEntity(m, edg_dim, i);
-    if (!is_ent_original(e) || !m->isShared(e))
+    if (!is_ent_original(m,e) || !m->isShared(e))
       continue;
 
     apf::Copies remotes;
@@ -3211,8 +3213,8 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
   for (int i=0; i<num_node; i++)
   {
     apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
-    int own_partid=get_ent_ownpartid(e);
-    apf::MeshEntity* own_e = get_ent_owncopy(e);
+    int own_partid=get_ent_ownpartid(m,e);
+    apf::MeshEntity* own_e = get_ent_owncopy(m,e);
     apf::Adjacent adjacent;
     m->getAdjacent(e,2,adjacent);
     for (int j=0; j<adjacent.getSize(); j++)
@@ -3257,7 +3259,7 @@ int get_node_error_from_elm (double * elm_data, int * size, double* nod_data)
   for (int i=0; i<num_node; i++)
   {
     apf::MeshEntity* e = getMdsEntity(m, nod_dim, i);
-    if (!is_ent_original(e) || !m->isShared(e))
+    if (!is_ent_original(m,e) || !m->isShared(e))
       continue;
     apf::Copies remotes;
     m->getRemotes(e,remotes);

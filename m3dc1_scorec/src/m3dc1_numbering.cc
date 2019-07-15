@@ -36,7 +36,7 @@ void aggregateNumbering(MPI_Comm agg_cm,
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if(is_ent_original(ent) || lcl)
+        if(is_ent_original(msh,ent) || lcl)
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);
@@ -61,7 +61,7 @@ void aggregateNumbering(MPI_Comm agg_cm,
       it = msh->begin(dd);
       while((ent = msh->iterate(it)))
       {
-        if (is_ent_original(ent) || lcl)
+        if (is_ent_original(msh,ent) || lcl)
         {
           int tp = msh->getType(ent);
           int nds = shp->countNodesOn(tp);

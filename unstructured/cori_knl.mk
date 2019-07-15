@@ -96,7 +96,7 @@ ifeq ($(OPT), 1)
   CCOPTS := $(CCOPTS) -qopt-report=5 -qopt-report-phase=vec,loop
 else
   LDOPTS := $(LDOPTS) -static
-  FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
+  FOPTS := $(FOPTS) -g -Mbounds -check none -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
 endif
 

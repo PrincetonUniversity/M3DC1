@@ -98,7 +98,8 @@ void printMemStat()
 
 int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type, dof_permutation * pmt)
 {
-  int num_own_ent= m3dc1_mesh::instance()->num_own_ent[0];
+  m3dc1_mesh * msh = m3dc1_mesh::instance();
+  int num_own_ent= msh->num_own_ent[0];
   int num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
   int dofPerEnt=0;
@@ -112,17 +113,18 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type, dof_per
   CHKERRQ(ierr);
   VecAssemblyBegin(petscVec);
 
-  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
+  int num_vtx=msh->num_local_ent[0];
 
   double dof_data[FIXSIZEBUFF];
   assert(sizeof(dof_data)>=dofPerEnt*2*sizeof(double));
   int nodeCounter=0;
 
+  apf::Mesh2 * m = msh->mesh;
   apf::MeshEntity* ent;
   for (int inode=0; inode<num_vtx; inode++)
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh,vertex_type,inode);
-    if (!is_ent_original(ent)) continue;
+    ent = getMdsEntity(m,vertex_type,inode);
+    if (!is_ent_original(m,ent)) continue;
       nodeCounter++;
     int num_dof;
     m3dc1_ent_getdofdata (&vertex_type, &inode, &field_id, &num_dof, dof_data);
@@ -181,11 +183,12 @@ int copyPetscVec2Field(Vec & petscVec,
 
   int ierr;
 
+  apf::Mesh2 * m = m3dc1_mesh::instance()->mesh;
   apf::MeshEntity * ent = NULL;
   for (int inode=0; inode < num_vtx; inode++)
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh,vertex_type,inode);
-    if (!is_ent_original(ent)) continue;
+    ent = getMdsEntity(m,vertex_type,inode);
+    if (!is_ent_original(m,ent)) continue;
     int start_global_dof_id = -1;
     int end_global_dof_id_plus_one = -1;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
@@ -509,17 +512,19 @@ int matrix_solve::setUpRemoteAStruct()
   int num_vtx = m3dc1_mesh::instance()->num_local_ent[0];
 
   std::vector<int> nnz_remote(num_values*num_vtx);
-  int brgType = m3dc1_mesh::instance()->mesh->getDimension();
+
+  apf::Mesh2 * m = m3dc1_mesh::instance()->mesh;
+  int brgType = m->getDimension();
 
   apf::MeshEntity* ent;
   for (int inode=0; inode<num_vtx; inode++)
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type, inode);
-    int owner=get_ent_ownpartid(ent);
+    ent = getMdsEntity(m, vertex_type, inode);
+    int owner=get_ent_ownpartid(m,ent);
     if (owner!=PCU_Comm_Self())
     {
       apf::Adjacent elements;
-      getBridgeAdjacent(m3dc1_mesh::instance()->mesh, ent, brgType, 0, elements);
+      getBridgeAdjacent(m, ent, brgType, 0, elements);
       int num_elem=0;
       for (int i=0; i<elements.getSize(); ++i)
       {

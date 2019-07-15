@@ -24,9 +24,9 @@
 
 void compute_globalid(apf::Mesh2* m, int d);
 
-bool is_ent_original(apf::MeshEntity* e);
-int get_ent_ownpartid(apf::MeshEntity* ent);
-apf::MeshEntity* get_ent_owncopy(apf::MeshEntity* ent);
+bool is_ent_original(apf::Mesh2* m, apf::MeshEntity* e);
+int get_ent_ownpartid(apf::Mesh2* m, apf::MeshEntity* ent);
+apf::MeshEntity* get_ent_owncopy(apf::Mesh2* m, apf::MeshEntity* ent);
 int get_ent_localid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_globalid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 // plane related stuffs should be put into model -- Fan
