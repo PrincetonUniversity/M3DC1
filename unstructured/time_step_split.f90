@@ -44,6 +44,8 @@ contains
     vecsize_vel = numvar
     vecsize_n = 1
     vecsize_p = 1
+    imode = 1
+    if(itemp.eq.1) imode = 2
 !   if(ipressplit.eq.1 .and. numvar.eq.3 .and. linear.eq.0 .and. eqsubtract.eq.0) then
     if(ipressplit.eq.1 .and. numvar.eq.3) then
        !split pressure solve from field solve
@@ -114,8 +116,12 @@ contains
     call set_matrix_index(d1_mat, d1_mat_index)
     call set_matrix_index(q1_mat, q1_mat_index)
     call set_matrix_index(r14_mat, r14_mat_index)
-       
+
+#ifdef REORDERED
     call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, 1, is1_agg_blk_cnt, is1_agg_scp)
+#else
+    call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, 1)
+#endif
     call create_mat(d1_mat, vecsize_vel, vecsize_vel, icomplex, 0)
     call create_mat(q1_mat, vecsize_vel, vecsize_phi, icomplex, 0)
     call create_mat(r14_mat, vecsize_vel, vecsize_n, icomplex, 0)
@@ -338,7 +344,7 @@ contains
     if(ipressplit.eq.1) then
        p_i  = 1
        te_i = 1
-       if(ipres.eq.1) then
+       if(ipres.eq.1 .and. numvar.eq.3) then
           pe_i = 2
           ti_i = 2
        endif
@@ -368,7 +374,7 @@ contains
     
     if(ipressplit.eq.1) then
        call associate_field(p_v, pres_vec, p_i)
-       if(ipres.eq.1) then
+       if(ipres.eq.1 .and. numvar.eq.3) then
           call associate_field(pe_v, pres_vec, pe_i)
           call associate_field(ti_v, pret_vec, ti_i)
        endif
@@ -545,7 +551,7 @@ subroutine import_time_advance_vectors_split
   else    ! on ipressplit.eq.0
      p_v  = p_field(1)
      te_v = te_field(1)
-     if(ipres.eq.1) then
+     if(ipres.eq.1 .and. numvar.ge.3) then
         pe_v = pe_field(1)
         ti_v = ti_field(1)
      endif
@@ -610,7 +616,7 @@ subroutine export_time_advance_vectors_split
   else    ! on ipressplit.eq.0
       p_field(1) = p_v
       te_field(1) = te_v
-      if(ipres.eq.0) then
+      if(ipres.eq.0 .or. (ipres.eq.1 .and. numvar.lt.3)) then
          if(itemp.eq.1) then
             ti_field(1) = te_v
             call mult(ti_field(1), (1.-pefac)/pefac)
@@ -913,12 +919,12 @@ subroutine step_split(calc_matrices)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(calc_matrices.eq.1) then
         call boundary_p(temp, p_v, s9_mat)
-        if(ipressplit.eq.1 .and. ipres.eq.1) &
+        if(ipressplit.eq.1 .and. ipres.eq.1 .and. numvar.ge.3) &
              call boundary_pe(temp, pe_v, s9_mat)
         call finalize(s9_mat)
      else
         call boundary_p(temp, p_v)
-        if(ipressplit.eq.1 .and. ipres.eq.1) &
+        if(ipressplit.eq.1 .and. ipres.eq.1 .and. numvar.ge.3) &
              call boundary_pe(temp, pe_v)
      endif
      if(myrank.eq.0 .and. itimer.eq.1) then
@@ -973,7 +979,7 @@ subroutine step_split(calc_matrices)
      call export_time_advance_vectors_split
      call calculate_temperatures(1, te_field(1), ti_field(1), pe_field(1), p_field(1), ne_field(1), den_field(1), eqsubtract)
      if(numvar.ge.3.    .or.  ipres.eq.1) te_v = te_field(1)
-     if(ipressplit.eq.1 .and. ipres.eq.1) ti_v = ti_field(1)
+     if(ipressplit.eq.1 .and. ipres.eq.1 .and. numvar.ge.3) ti_v = ti_field(1)
   endif
 
   ! Advance Temperature
@@ -991,7 +997,6 @@ subroutine step_split(calc_matrices)
      ! q9matrix_sm * vel(n)
      call matvecmult(q9_mat,veln_vec,temp2)
      call add(temp, temp2)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature -- before o9matrix"
 
      ! o9matrix_sm * phi(n)
      call matvecmult(o9_mat,phi_vec,temp2)
@@ -1004,24 +1009,23 @@ subroutine step_split(calc_matrices)
 
  
      ! Include linear f terms
-     if(i3d.eq.1 .and. (ipres.eq.1 .or. ipressplit.eq.1)) then
+     if(i3d.eq.1 .and. numvar.ge.3 .and. (ipres.eq.1 .or. ipressplit.eq.1)) then
         call matvecmult(o3_mat,bf_field(1)%vec,temp2)
         call add(temp, temp2)
      endif
 
     
      call add(temp, qp4_vec)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature -- before boundary_temp"
      
      ! Insert boundary conditions
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(calc_matrices.eq.1) then
         call boundary_te(temp, te_v, s9_mat)
-        if(ipres.eq.1) call boundary_ti(temp, ti_v, s9_mat)
+        if(ipres.eq.1 .and. numvar.ge.3) call boundary_ti(temp, ti_v, s9_mat)
         call finalize(s9_mat)
      else
         call boundary_te(temp, te_v)
-        if(ipres.eq.1) call boundary_ti(temp, ti_v)
+        if(ipres.eq.1 .and. numvar.ge.3) call boundary_ti(temp, ti_v)
      endif
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -1039,9 +1043,7 @@ subroutine step_split(calc_matrices)
   endif
 #endif 
 
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--before newsolve"
      call newsolve(s9_mat, temp, jer)
-     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Temperature--after newsolve"
 #ifdef NEWSOLVERDEVELOPMENT
      if(linear.eq.0) call zero_mat(s9_mat)
 #else
@@ -1072,7 +1074,7 @@ subroutine step_split(calc_matrices)
      call destroy_vector(temp)
      call destroy_vector(temp2)
      call export_time_advance_vectors_split
-     if(ipres.eq.1) then
+     if(ipres.eq.1 .and. numvar.ge.3) then
         call calculate_pressures(1, pe_v, p_v, ne_field(1), &
              den_field(1), te_v, ti_v, eqsubtract)
      else

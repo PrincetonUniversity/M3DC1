@@ -10,7 +10,7 @@ else
   CC = cc
   F90 = ftn
   F77 = ftn
-  LOADER = ftn
+  LOADER = ftn -static
 endif
 
 ifeq ($(HPCTK), 1)
@@ -20,10 +20,10 @@ endif
 
 OPTS := $(OPTS) -DPETSC_VERSION=37 -DUSEBLAS
 
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/edison/scorec/mpich7.6.0/bin/
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/edison/scorec/mpich7.6.0/bin
 
-SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/mpich7.6.0/July2017/
-ZOLTAN_LIB = -L$(CRAY_TRILINOS_PREFIX_DIR)/lib -lzoltan
+SCOREC_DIR = /global/project/projectdirs/mp288/edison/scorec/mpich7.6.0/July2017
+ZOLTAN_LIB = -L/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.7/edison-intel1801163-mpich773/lib -lzoltan
 
 ifeq ($(TRILINOS), 1)
     TRILINOS_LIBS = -Wl,--start-group,-rpath,$(CRAY_TRILINOS_PREFIX_DIR)/lib -L$(CRAY_TRILINOS_PREFIX_DIR)/lib \
@@ -42,15 +42,18 @@ else
   else
     HYPRE_LIB=-lHYPRE
     M3DC1_SCOREC_LIB=-lm3dc1_scorec
-    PETSC_DIR=/opt/cray/pe/petsc/3.7.6.0/real/INTEL/16.0/sandybridge
-    PETSC_LIB = -lcraypetsc_intel_real
+   #PETSC_DIR=/opt/cray/pe/petsc/3.7.6.0/real/INTEL/16.0/sandybridge
+   #PETSC_LIB = -lcraypetsc_intel_real
+    PETSC_DIR=/project/projectdirs/mp288/jinchen/PETSC/petsc-3.7.7
+    PETSC_ARCH=edison-intel1801163-mpich773
+    PETSC_LIB = -lpetsc
   endif
 
-  PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/lib -L$(PETSC_DIR)/lib \
-                $(HYPRE_LIB) -lsuperlu -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
-                -lpord -lsuperlu_dist -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr \
-                -lsci_intel_mpi_mp -lsci_intel_mp -liomp5 -lsundials_cvode -lsundials_cvodes -lsundials_ida \
-                -lsundials_idas -lsundials_kinsol -lsundials_nvecparallel -lsundials_nvecserial $(PETSC_LIB) \
+  PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
+                $(PETSC_LIB) $(HYPRE_LIB) \
+                -lsuperlu -lsuperlu_dist -lflapack -lfblas -lscalapack \
+                -lcmumps -ldmumps -lesmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord \
+                -lparmetis -lmetis -lptscotch -lscotch -lptscotcherr -lscotcherr \
                 -lpthread -ldl
 endif
 
@@ -66,7 +69,7 @@ ADIOS_FLIB = ${ADIOSREAD_FLIB_V1} \
 
 INCLUDE := $(INCLUDE) $(FFTW_INCLUDE_OPTS) \
         -I$(SCOREC_DIR)/include \
-	-I$(PETSC_DIR)/include \
+	-I$(PETSC_DIR)/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 	-I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 

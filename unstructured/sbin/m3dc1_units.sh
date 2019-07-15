@@ -72,6 +72,9 @@ J0_MKS=$(echo - | awk "{ print $J0 / 3e5 }" )
 ETA0=$(echo - | awk "{ print 4*$PI*$T0*$V0*$V0/($C*$C) }" )
 ETA0_MKS=$(echo - | awk "{ print $ETA0*$C*$C/1e11 }" )
 
+MU0=$(echo - | awk "{ print $MP*$N0*$L0*$L0/$T0 }" )
+MU0_MKS=$(echo - | awk "{ print $MU0/10. }" )
+
 KAP0=$(echo - | awk "{ print $N0*$L0*$L0/$T0 }" | awk '{ printf "%.5e", $1 }' )
 KAP0_MKS=$(echo - | awk "{ print 100.*$N0*$L0*$L0/$T0 }" | awk '{ printf "%.5e", $1 }' )
 
@@ -92,5 +95,6 @@ echo "Pressure:        $P0 dyne/cm^2 = $P0_MKS pascal"
 echo "Temperature:     $W0_EV eV"
 echo "Current density: $J0 s.a./cm^2 = $J0_MKS A/m^2"
 echo "Resistivity:     $ETA0 s = $ETA0_MKS Ohm-m"
-echo "Kappa:           $KAP0 particles/(cm-s) = $KAP0_MKS particles/(m-s)"
+echo "Viscosity:       $MU0 g/(cm-s) = $MU0_MKS kg/(m-s)"
+echo "Thermal diff.:   $KAP0 particles/(cm-s) = $KAP0_MKS particles/(m-s)"
 echo "Voltage:         $VOLT0 s.v. = $VOLT0_MKS V"

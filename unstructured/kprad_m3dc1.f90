@@ -21,9 +21,15 @@ module kprad_m3dc1
   integer :: ikprad     ! 1 = use kprad model
   integer :: kprad_z    ! Z of impurity species
 
+  ! Model for advection/diffusion of neutrals
+  ! 0 = no adv/diff, 1 = advect & diff, 2 = diffuse only
+  integer :: ikprad_evolve_neutrals
+
   ! variables for setting initial conditions
   real :: kprad_fz
   real :: kprad_nz
+
+  type(field_type), allocatable :: kprad_particle_source(:)
 
 contains
 
@@ -46,10 +52,13 @@ contains
     
     allocate(kprad_n(0:kprad_z))
     allocate(kprad_temp(0:kprad_z))
+    allocate(kprad_particle_source(0:kprad_z))
     
     do i=0, kprad_z
        call create_field(kprad_n(i))
        call create_field(kprad_temp(i))
+       call create_field(kprad_particle_source(i))
+       kprad_particle_source(i) = 0.
     end do
     call create_field(kprad_rad)
     call create_field(kprad_brem)
@@ -76,6 +85,7 @@ contains
        do i=0, kprad_z
           call destroy_field(kprad_n(i))
           call destroy_field(kprad_temp(i))
+          call destroy_field(kprad_particle_source(i))
        end do
        deallocate(kprad_n, kprad_temp)
        call destroy_field(kprad_rad)
@@ -206,7 +216,7 @@ contains
     real, intent(in) :: dti
     type(matrix_type) :: nmat_lhs, nmat_rhs
     type(field_type) :: rhs
-    integer :: itri, j, numelms, ierr, def_fields, izone
+    integer :: itri, j, numelms, ierr, def_fields, izone, minz
 !    integer, dimension(dofs_per_element) :: imask
     vectype, dimension(dofs_per_element) :: tempx
     vectype, dimension(dofs_per_element,dofs_per_element) :: tempxx
@@ -223,7 +233,6 @@ contains
     call clear_mat(nmat_lhs)
     call clear_mat(nmat_rhs)
     call create_field(rhs)
-
 
     def_fields = FIELD_PHI + FIELD_V + FIELD_CHI
 
@@ -246,11 +255,15 @@ contains
        do j=1, dofs_per_element
           ! NUMVAR = 1
           ! ~~~~~~~~~~      
-          tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79) &
-               +  n1nu   (mu79,nu79(j,:,:),pht79)
+          tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
           ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
           ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           
+          tempx = n1nu(mu79,nu79(j,:,:),pht79)
+          ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+          ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
+
+
 #if defined(USECOMPLEX) || defined(USE3D)
           ! NUMVAR = 2
           ! ~~~~~~~~~~
@@ -278,6 +291,7 @@ contains
 
        call insert_block(nmat_lhs,itri,1,1,ssterm,MAT_ADD)
        call insert_block(nmat_rhs,itri,1,1,ddterm,MAT_ADD)
+       
     end do
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  finalizing'
@@ -288,7 +302,14 @@ contains
     
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
-    do j=1, kprad_z
+    if(ikprad_evolve_neutrals.eq.1) then
+       ! advect and diffuse neutrals
+       minz = 0
+    else
+       minz = 1
+    end if
+
+    do j=minz, kprad_z
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
@@ -296,6 +317,55 @@ contains
        call newsolve(nmat_lhs, rhs%vec, ierr)
        kprad_n(j) = rhs
     end do
+
+
+    if(ikprad_evolve_neutrals.eq.2) then
+       ! Neutrals diffuse only
+       call clear_mat(nmat_lhs)
+       call clear_mat(nmat_rhs)
+    
+       if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating neutral matrix'
+    
+       do itri=1, numelms
+          
+          call get_zone(itri, izone)
+          
+          call define_element_quadrature(itri, int_pts_main, 5)
+          call define_fields(itri, def_fields, 1, linear)
+          
+          tempxx = n1n(mu79,nu79)
+          ssterm = tempxx
+          ddterm = tempxx
+          
+          if(izone.ne.1) goto 200
+    
+          do j=1, dofs_per_element
+             tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
+             ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
+          end do
+
+200       continue
+
+          call insert_block(nmat_lhs,itri,1,1,ssterm,MAT_ADD)
+          call insert_block(nmat_rhs,itri,1,1,ddterm,MAT_ADD)
+
+        end do
+    
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  finalizing neutral'
+
+        call finalize(nmat_rhs)
+        call finalize(nmat_lhs)
+        
+        if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving neutral'
+        
+        rhs = 0.
+        call matvecmult(nmat_rhs, kprad_n(0)%vec, rhs%vec)
+        ierr = 0
+        call newsolve(nmat_lhs, rhs%vec, ierr)
+        kprad_n(0) = rhs
+
+    end if
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  destroying'
 
@@ -328,7 +398,7 @@ contains
     real, dimension(MAX_PTS,0:kprad_z) :: nz
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad, dw_ion, dw_reck, dw_recp
-    real, dimension(MAX_PTS) :: source    ! neutral particle source
+    real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
 
     integer :: i, itri, nelms, def_fields, izone
     real, parameter :: min_te = .01
@@ -349,7 +419,6 @@ contains
     kprad_recp = 0.
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
-    source = 0.
 
     def_fields = FIELD_N + FIELD_TE
     if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
@@ -360,6 +429,8 @@ contains
     ! Do ionization / recombination step
     nelms = local_elements()
     do itri=1, nelms
+       source = 0.
+
        call get_zone(itri, izone)
 
        call define_element_quadrature(itri,int_pts_main,5)
@@ -374,7 +445,14 @@ contains
 
        if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
-          source = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+          source(:,0) = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+       end if
+
+       if(iread_lp_source.eq.1) then
+          do i=0, kprad_z
+             call eval_ops(itri, kprad_particle_source(i), ch079, rfac)
+             source(:,i) = source(:,i) + ch079(:,OP_1)
+          end do
        end if
 
        n0_old = sum(nz(:,1:kprad_z),2)
@@ -482,5 +560,174 @@ contains
 
     if(myrank.eq.0) print *, ' Done advancing KPRAD'
   end subroutine kprad_ionize
+
+  subroutine read_lp_source(filename, ierr)
+    use basic
+    use read_ascii
+    use pellet
+    use newvar_mod
+
+    implicit none
+
+    integer, intent(out) :: ierr
+    character(len=*), intent(in) :: filename
+
+    integer :: n, i, m
+    real, allocatable :: x_vals(:), y_vals(:), z_vals(:), phi_vals(:), temp_vals(:)
+    real, allocatable :: n_vals(:,:)
+    
+
+    if(iprint.ge.1 .and. myrank.eq.0) print *, 'Reading LP source...'
+    ierr = 0
+
+    if(ikprad.eq.0 .or. kprad_z.le.0) then
+       if(myrank.eq.0) print *, 'Error: kprad must be enabled to read LP source'
+       call safestop(8)
+    end if
+       
+    ! Read the data
+    if(iprint.ge.2 .and. myrank.eq.0) print *, ' reading file ', filename
+    
+    n = 0
+    call read_ascii_column(filename, x_vals, n, icol=1)
+    call read_ascii_column(filename, y_vals, n, icol=2)
+    call read_ascii_column(filename, z_vals, n, icol=3)
+    allocate(n_vals(n,0:kprad_z))
+    do i=0, kprad_z
+       if(iprint.ge.2 .and. myrank.eq.0) print *, ' reading column', 12+i
+       call read_ascii_column(filename, temp_vals, n, icol=12+i)
+       n_vals(:,i) = temp_vals
+       deallocate(temp_vals)
+    end do
+    if(n.eq.0) then
+       if(myrank.eq.0) print *, 'Error: no data in LP source file ', filename
+       ierr = 1
+       return
+    end if
+    allocate(phi_vals(n))
+
+    ! convert from cgs to normalized units
+    x_vals = x_vals / l0_norm
+    y_vals = y_vals / l0_norm
+    z_vals = z_vals / l0_norm
+    n_vals = n_vals / n0_norm
+
+    ! convert from local to (R,phi,Z)
+    x_vals = x_vals + pellet_r
+    y_vals = y_vals + pellet_z
+
+    ! convert z from length to angle
+    phi_vals = z_vals / x_vals + pellet_phi
+    
+    ! construct fields using data
+    if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
+    do i=0, kprad_z
+       kprad_particle_source(i) = 0.
+    end do
+    m = kprad_z+1
+    call deltafuns(n,x_vals,phi_vals,y_vals,m,n_vals,kprad_particle_source,ierr)
+    if(iprint.ge.2 .and. myrank.eq.0) print *, ' solving fields'
+    do i=0, kprad_z
+       call newvar_solve(kprad_particle_source(i)%vec,mass_mat_lhs)
+    end do
+
+    ! free temporary arrays
+    if(iprint.ge.2 .and. myrank.eq.0) print *, ' freeing data'
+    deallocate(x_vals, y_vals, z_vals, n_vals, phi_vals)
+    
+    if(iprint.ge.1 .and. myrank.eq.0) print *, 'Done reading LP source'
+
+  end subroutine read_lp_source
+
+  
+
+! ===========================================================
+! deltafuns
+! ~~~~~~~~~
+! sets jout_i =  <mu_i | -val*delta(R-x)delta(Z-z)> 
+! ===========================================================
+subroutine deltafuns(n,x,phi,z,m,val,jout, ier)
+
+  use mesh_mod
+  use basic
+  use arrays
+  use field
+  use m3dc1_nint
+  use math
+
+  implicit none
+
+  include 'mpif.h'
+
+  integer, intent(in) :: n, m
+  real, intent(in), dimension(n) :: x, phi, z
+  real, intent(in), dimension(n,m) :: val
+  type(field_type), intent(inout), dimension(m) :: jout
+  integer, intent(out) :: ier
+
+  type(element_data) :: d
+  integer, dimension(n) :: itri, in_domain, in_domains
+  integer :: i, j, k, it
+  real, dimension(n) :: x1, z1
+  real :: si, zi, eta
+  vectype, dimension(dofs_per_element) :: temp, temp2
+  real, dimension(dofs_per_element,coeffs_per_element) :: c
+
+  ier = 0
+  itri = 0
+  it = 0
+  do j=1, n
+     call whattri(x(j), phi(j), z(j), it, x1(j), z1(j))
+     itri(j) = it
+  end do
+  where(itri.gt.0)
+     in_domain = 1
+  elsewhere 
+     in_domain = 0
+  end where
+
+  call mpi_allreduce(in_domain,in_domains,n,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ier)
+  if(ier.ne.0) return
+
+  ! Check to make sure all points are in domain
+  do j=1, n
+     if(in_domains(j).eq.0) then
+        if(myrank.eq.0) &
+             print *, 'Error: point not found in domain', j, x(j), phi(j), z(j)
+        ier = 1
+        return
+     end if
+  end do
+
+  do j=1, n
+     if(itri(j).le.0) cycle
+
+     ! calculate local coordinates
+     call get_element_data(itri(j), d)
+     call global_to_local(d, x(j), phi(j), z(j), si, zi, eta)
+        
+     ! calculate temp_i = val*mu_i(si,zi,eta)
+     call local_coeff_vector(itri(j), c)
+     temp = 0.
+     do k=1, coeffs_per_tri
+#ifdef USE3D
+        temp(:) = temp(:) + c(:,k)*si**mi(k)*eta**ni(k)*zi**li(k)
+#else
+        temp(:) = temp(:) + c(:,k)*si**mi(k)*eta**ni(k)
+#endif
+     end do
+     if(equilibrate.ne.0) temp(:) = temp(:)*equil_fac(:, itri(j))
+
+     do i=1, m
+        temp2 = temp*val(j,i)/in_domains(j)
+        call vector_insert_block(jout(i)%vec, itri(j), jout(i)%index, temp2, VEC_ADD)
+     end do
+  end do
+
+  do i=1, m
+     call sum_shared(jout(i)%vec)
+  end do
+end subroutine deltafuns
+
 
 end module kprad_m3dc1

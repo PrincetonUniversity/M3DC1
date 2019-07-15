@@ -43,7 +43,7 @@ subroutine eqdsk_init()
   end if
 
   ! create spline containing q profile as function of psi_N
-  if( .not. isnan(qpsi(nw))) then
+  if(qpsi(nw) .eq. qpsi(nw)) then       ! ensure that qpsi isn't NaN
     allocate(nflux(nw))
     do l=1, nw
        nflux(l) = l / (nw-1.)
@@ -192,7 +192,7 @@ subroutine eqdsk_init()
         end do
         call create_profile(nw,press,pprime,fpol,ffprim,flux)
         
-        if(.not. isnan(qpsi(nw))) then
+        if(qpsi(nw) .eq. qpsi(nw)) then   ! ensure that qpsi isn't NaN
            call create_rho_from_q(nw,flux,qpsi)
         else
            if(myrank.eq.0) print *, "toroidal flux not defined"

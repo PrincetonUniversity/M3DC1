@@ -21,35 +21,45 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
+PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
   PETSC_ARCH = cori-knl-mpich773-cplx-nomkl-510
-  HYPRE_LIB = 
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
-  PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
   PETSC_ARCH = cori-knl-mpich773-real-nomkl-510
-  HYPRE_LIB =
 endif
 
 PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
-     $(HYPRE_LIB) \
      -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
      -lpord -lsuperlu -lsuperlu_dist -lstrumpack \
      -lparmetis -lmetis -lpthread -ldl -lstdc++  \
      -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit #\
-#       -lflapack -lfblas
-#       -lstrumpack_sparse \
 
+SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
-SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
+ifeq ($(REORDERED), 1)
+  SCORECVER=reordered
+endif
 
+ifdef SCORECVER
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
+else
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
+endif
+
+ifeq ($(COM), 1)
+    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+else
+    M3DC1_SCOREC_LIB = m3dc1_scorec
+endif
+
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
 # Include option to use ADIOS
 OPTS := $(OPTS) -DUSEADIOS
@@ -75,8 +85,9 @@ INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 #
 LIBS := \
         $(LIBS) \
+        -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
         $(SCOREC_LIBS) \
-        -lzoltan \
+        $(ZOLTAN_LIB)\
         $(PETSC_LIB) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \

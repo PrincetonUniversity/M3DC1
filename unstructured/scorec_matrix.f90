@@ -16,8 +16,10 @@ module scorec_matrix_mod
   integer, parameter :: maxnumofsolves = 4
   real, allocatable:: kspits(:)
 
+#ifdef REORDERED
   integer :: is1_agg_blk_cnt = 1
   integer :: is1_agg_scp = 0
+#endif
 
   interface clear_mat
      module procedure scorec_matrix_clear
@@ -114,8 +116,11 @@ contains
   ! ~~~~~~
   ! creates a scorec solve matrix with index imat and size isize
   !====================================================================
+#ifdef REORDERED
   subroutine scorec_matrix_create(mat, m, n, icomplex, lhs, agg_blk_cnt_opt, agg_scp_opt)
-
+#else
+  subroutine scorec_matrix_create(mat, m, n, icomplex, lhs)
+#endif
 
 #ifndef M3DC1_TRILINOS
 
@@ -153,7 +158,25 @@ contains
        agg_scp = agg_scp_opt
     end if
 
-!    integer :: ierr
+#ifdef REORDERED
+    integer, intent(in), optional :: agg_blk_cnt_opt
+    integer, intent(in), optional :: agg_scp_opt
+
+    integer :: agg_blk_cnt
+    integer :: agg_scp
+
+    if(.not. present(agg_blk_cnt_opt)) then
+       agg_blk_cnt = 1
+    else
+       agg_blk_cnt = agg_blk_cnt_opt
+    end if
+
+    if(.not. present(agg_scp_opt)) then
+       agg_scp = 0
+    else
+       agg_scp = agg_scp_opt
+    end if
+#endif
 
     if(mat%imatrix .le. 0) then
        print*, 'Error: scorec matrix index not set!'
@@ -175,7 +198,11 @@ contains
 #ifdef M3DC1_TRILINOS
     call m3dc1_epetra_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
 #else
+#ifdef REORDERED
     call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize, agg_blk_cnt, agg_scp)
+#else
+    call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
+#endif !reordered
 #endif
   end subroutine scorec_matrix_create
 

@@ -214,7 +214,7 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "integrator" , integrator, error)
   call write_int_attr (root_id, "ipellet"    , ipellet,    error)
   call write_int_attr (root_id, "ipellet_abl", ipellet_abl,error)
-  call write_int_attr (root_id, "ivform"     , ivform,     error)
+  call write_int_attr (root_id, "ivform"     , 1,          error)
   call write_int_attr (root_id, "ntor"       , ntor,       error)
   call write_int_attr (root_id, "nonrect"    , nonrect,    error)
   call write_int_attr (root_id, "ifixedb"    , ifixedb,    error)
@@ -973,6 +973,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
      do i=0, kprad_z
         write(field_name, '(A,I2.2)') "kprad_n_", i
         call write_field(group_id, trim(field_name), kprad_n(i), nelms, error)
+        write(field_name, '(A,I2.2)') "kprad_particle_source_", i
+        call write_field(group_id, trim(field_name), kprad_particle_source(i), nelms, error)
      end do
      call write_field(group_id, "kprad_sigma_e", kprad_sigma_e, nelms, error)
      call write_field(group_id, "kprad_sigma_i", kprad_sigma_i, nelms, error)

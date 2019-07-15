@@ -26,6 +26,9 @@
 	make OPT=1 COM=1 MAX_PTS=25 ARCH=cori_knl
 	make 3D=1 OPT=1 MAX_PTS=60 ARCH=cori_knl
 
+   For reordered matrix (aggregated unknowns), add REORDERED=1 or SCORECVER=reordered
+   For new solver development (-DNEWSOLVERDEVELOPMENT), add SCORECVER=062019
+
 5. mesh utility
         /global/project/projectdirs/mp288/cori/scorec/utilities
 

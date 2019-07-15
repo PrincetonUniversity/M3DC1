@@ -45,14 +45,12 @@ endif()
 set(SCOREC_LIBS "")
 if(ENABLE_SIMMETRIX)
 set(SCOREC_LIB_NAMES
-  pumi
   ma
   mds
-  apf
   apf_sim
   apf_zoltan
+  apf
   parma
-  dsp
   gmi
   gmi_sim
   mth
@@ -62,23 +60,21 @@ set(SCOREC_LIB_NAMES
   crv
   lion
   ph 
-  size
   )
 else()
 set(SCOREC_LIB_NAMES
-pumi
-ma
 crv
 ph
 sam
 spr
+ma
 apf_zoltan
 parma
 mds
 apf
 lion
-gmi
 mth
+gmi
 pcu
   )
 endif()

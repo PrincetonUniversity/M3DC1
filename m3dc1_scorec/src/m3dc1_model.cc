@@ -165,8 +165,11 @@ void make_edge_topo(gmi_model* m, gmi_ent* e, int v0tag, int v1tag)
 void m3dc1_model::load_analytic_model(const char *name)
 // **********************************************
 {
-  if(strstr(name,"AnalyticModel"))
+  std::string filename(name);
+  std::string analyticmodel("AnalyticModel");
+  if (!filename.compare(analyticmodel))
   {
+    if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] loading model file \"AnalyticModel\"\n";
     FILE *fp = fopen(name, "r");
     assert(fp);
     double para[5];
@@ -187,7 +190,10 @@ void m3dc1_model::load_analytic_model(const char *name)
     gmi_add_analytic(model, 2, model->n[2]+1, faceFunction, facePeriodic, faceRanges, NULL);
   }
   else 
+  {
+    if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] loading model file \""<<name<<"\"\n";
     load_model(name);
+  }
   return;
 }
 
@@ -198,7 +204,6 @@ void load_model(const char* filename)
   FILE* fp= fopen(filename, "r");
   int numL,separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop;
   fscanf(fp,"%d %d %d %d %d\n", &numL, &separatrixLoop, &innerWallLoop, &outerWallLoop, &vacuumLoop);
-  if (!PCU_Comm_Self()) std::cout<<"[PUMI INFO] "<<__func__<<": Number loops in the model: "<<numL<<std::endl;
   for( int i=0; i< numL; i++)
   {
     int numE;
@@ -483,7 +488,7 @@ void attach_b_spline_curve( int* edge, int * order, int* numPts, double* ctrlPts
   double edgeRange[2] = {0.0, 1.0};
   gmi_ent* gedge = gmi_add_analytic(m3dc1_model::instance()->model, 1, *edge, edgeFunction, &edgePeriodic, &edgeRange, data);
   make_edge_topo(m3dc1_model::instance()->model,gedge, vtx.first, vtx.second);
-  if (!PCU_Comm_Self()) std::cout<<"[p"<<PCU_Comm_Self()<<"] "<<__func__<<": new edge "<<*edge<<" vtx("<<vtx.first<<", "<<vtx.second<<")\n";
+  //if (!PCU_Comm_Self()) std::cout<<"[p"<<PCU_Comm_Self()<<"] "<<__func__<<": new edge "<<*edge<<" vtx("<<vtx.first<<", "<<vtx.second<<")\n";
 }
 
 // **********************************************

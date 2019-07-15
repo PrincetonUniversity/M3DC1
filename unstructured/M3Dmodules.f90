@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 27
+  integer, parameter :: version = 28
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -70,6 +70,7 @@ module basic
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: kappag
   real :: kappaf
+  real :: kappai_fac
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
@@ -188,6 +189,7 @@ module basic
   integer :: iread_ext_field
   integer :: isample_ext_field
   integer :: isample_ext_field_pol
+  integer :: iread_lp_source
   real :: scale_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
@@ -254,7 +256,7 @@ module basic
                          ! 3 = zero out chi only
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
-  integer :: ivform      ! 0: V = v grad(phi).  1: V = R^2 v grad(phi)
+  integer :: ivform      ! deprecated
   integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2

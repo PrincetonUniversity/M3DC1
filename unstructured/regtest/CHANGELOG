@@ -1,0 +1,14 @@
+This file should contain a log of all changes to the regression tests,
+and the reason for the change.  This could be a change only to the
+output (e.g. due to a bugfix); a change to the input (e.g. due to
+renaming or obsoleting an input variable); or a change to both
+(e.g. due to a substantive change to the mesh or other input files).
+
+
+5/22/2019
+Changed: KPRAD_2D
+Reason: Bug fix for itemp=1 iconst_p=0 iconst_t=1 boundary conditions
+
+5/22/2019
+Changed: RMP 
+Reason: New mesh file to make test case smaller

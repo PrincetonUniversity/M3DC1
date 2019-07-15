@@ -1,21 +1,67 @@
-To run the regression tests on 8 processors, run the following command:
+The regression tests here work by copying the "base" subdirectory to a
+new subdirectory, running the code in the new directory, and comparing
+the resulting C1ke file with that in the "base" subdirectory.
 
-make N=8
+If you are adding or modifying a regression test, please see the
+"Notes for Developers" section at the end of this README.
 
-If the test is successful, the word "Success!" will be printed at the
-end of each test, and the make command will return successfully.
 
-If one of the tests fails, the make command will return with an error
-before proceeding to subsequent tests.
+RUNNING
+=======
 
-To clear the results of the tests, run:
+To submit the regression tests run the following command:
 
-make clean
+./run <config>
 
-A brief description of each test follows.
+where <config> is an optional keyword describing the particular
+configuration you want to use.  New test subdirectories will be named
+${M3DC1_VERSION}_<config>, and the batch script batchjob.<config>
+(defined in the "base" directories) will be used to launch the jobs.
+If <config> is not included, it defaults to $M3DC1_ARCH.
 
-nstx1: Real, 2D NSTX case in a rectangular domain, with numvar=1
-nstx2: Same, but with numvar=2
-nstx3: Same, but with numvar=3
-nstx4: Same, with numvar=3 and ipressplit=1
-kink1: Complex, 2D kink mode case in a curved domain
+
+CHECKING RESULTS
+================
+
+To check the results of the regression tests, run the following
+command:
+
+./check <config>
+
+where <config> has the same value supplied to the "run" script.  The
+"check" script will indicate whether the tests have started or
+finished.  If they have finished, it will compare the C1ke file with
+those in the "base" directory.
+
+
+CLEANING UP
+===========
+
+The test subdirectories can be deleted by running
+
+./clean <config>
+
+
+NOTES FOR DEVELOPERS
+====================
+
+Mesh files
+~~~~~~~~~~
+
+Since results depend sensitively on the discretization, mesh files
+(*.smb) can be included in the repository.  However, these files can
+be large, and should be stored using git-lfs.  To enable git-lfs in
+your local directory, run "git lfs install".  .smb files can then be
+added to the repository using the normal git commands (i.e. "git add
+mesh.smb").  The .gitattributes file in this repository will ensure
+that git-lfs is automatically used for .smb files.
+
+
+Changing Results
+~~~~~~~~~~~~~~~~
+
+Sometimes due to a bugfix or other change to the code, the "correct"
+C1ke output will change.  If this change is expected and understood,
+the base/C1ke file can be overwritten with the "correct" C1ke output.
+Whenever this happens, a note should be added to the CHANGELOG
+explaining the cause of the change.
