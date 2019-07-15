@@ -13,54 +13,42 @@ else
   LOADER = ftn
 endif
 
+OPTS := $(OPTS) -DPETSC_VERSION=39 -DUSEBLAS -DUSEBLAS
+
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
   LOADER := hpclink $(LOADER)
 endif
 
-OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS
-
-#SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
-
-SCOREC_BASE_DIR=/global/homes/w/wtobin/cori/m3d/install/core
-M3DC1_SCOREC_DIR=/global/homes/w/wtobin/cori/m3d/install/m3dc1/
-SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-
+PETSC_DIR = /global/project/projectdirs/mp288/cori/petsc/petsc-3.9.3
 ifeq ($(COM), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+  M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+  PETSC_ARCH=cplx-intel-mpi7.7.3-hsw
 else
-    M3DC1_SCOREC_LIB = m3dc1_scorec
+  M3DC1_SCOREC_LIB = m3dc1_scorec
+  PETSC_ARCH=real-intel-mpi7.7.3-hsw
 endif
+
+PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
+     -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
+     -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common \
+     -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist\
+     -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr \
+     -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
+
+SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -L$(M3DC1_SCOREC_DIR)/lib  -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
-
-
-#PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/petsc-3.9.3
-PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
-ifeq ($(COM), 1)
-  PETSC_ARCH=cplx-intel-mpi7.7.3-hsw
-else
-  #PETSC_ARCH=real-intel-mpi7.7.3-hsw
-
-  PETSC_ARCH=cori-knl-mpich773-real-nomkl-510
-  PETSC_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc
-  OPTS := $(OPTS) -DPETSC_VERSION=39
-endif
-
-#PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps -lpord -lstrumpack -lsuperlu -lsuperlu_dist -lparmetis -lmetis -lpthread -ldl -lstdc++ -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit -lflapack -lfblas
-
-PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
+             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
 ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
              -L/usr/lib64/ -llustreapi
-
-#MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 
@@ -71,20 +59,20 @@ HDF5_DIR=/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0
 OPTS := $(OPTS) -DUSEBLAS -DNEWSOLVERDEVELOPMENT
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
-	   -I$(FFTW_DIR)/include \
-	   -I$(HDF5_DIR)/include \
-	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-	   -I$(GSL_DIR)/include
+           -I$(FFTW_DIR)/include \
+           -I$(HDF5_DIR)/include \
+           -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
+           -I$(GSL_DIR)/include
 
 LIBS := $(LIBS) \
         -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
-        $(PETSC_WITH_EXTERNAL_LIB) \
+        $(PETSC_LIB) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
-	-L$(FFTW_DIR)/lib -lfftw3 \
-	-L$(GSL_DIR)/lib -lgsl -lgslcblas -lhugetlbfs \
-	$(ADIOS_FLIB)
+        -L$(FFTW_DIR)/lib -lfftw3 \
+        -L$(GSL_DIR)/lib -lgsl -lgslcblas -lhugetlbfs \
+        $(ADIOS_FLIB)
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
 
