@@ -2223,7 +2223,7 @@ int m3dc1_matrix_delete(int* matrix_id)
 #endif
   typedef std::map<int, m3dc1_matrix*> matrix_container_map;
   m3dc1_solver::instance()->matrix_container->erase(matrix_container_map::key_type(*matrix_id));
-  delete mat;
+  //delete mat;
   return M3DC1_SUCCESS;
 }
 

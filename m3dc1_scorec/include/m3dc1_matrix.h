@@ -56,6 +56,7 @@ protected:
   int mat_status;
   int fieldOrdering; // the field that provide numbering
   int dofs_per_nd; // dofs per node in the field
+  int agg_blk_cnt;
   dof_permutation * pmt;
 };
 

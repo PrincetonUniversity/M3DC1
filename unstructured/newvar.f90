@@ -203,11 +203,8 @@ end subroutine apply_bc
 !   NV_NMBOUND: Neumann boundary conditions
 ! itype: operator (NV_I_MATRIX, etc..)
 !============================================
-#ifdef REORDERED
   subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags, agg_blk_cnt, agg_scp)
-#else
-  subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
-#endif
+
   use vector_mod
   use basic
   use m3dc1_nint
@@ -220,13 +217,9 @@ end subroutine apply_bc
   integer, intent(in) :: ibound
   integer, intent(in) :: itype
   integer, intent(in) :: is_lhs
-
-#ifdef REORDERED
+  type(tag_list), intent(in), optional :: tags
   integer, intent(in), optional :: agg_blk_cnt
   integer, intent(in), optional :: agg_scp
-#endif
-
-  type(tag_list), intent(in), optional :: tags
 
   integer :: numelms, itri, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
@@ -245,11 +238,7 @@ end subroutine apply_bc
   if(itype.eq.NV_SV_MATRIX .and. ihypamu.eq.1) hyp = hypc*amu
   if(itype.eq.NV_SC_MATRIX .and. ihypamu.eq.1) hyp = hypc*amuc
 
-#ifdef REORDERED
   call create_mat(mat%mat, isize, isize, icomplex, is_lhs, agg_blk_cnt, agg_scp)
-#else
-  call create_mat(mat%mat, isize, isize, icomplex, is_lhs)
-#endif
   mat%ibound = ibound
 
   allocate(temp(dofs_per_element, dofs_per_element, isize, isize))

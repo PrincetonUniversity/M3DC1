@@ -271,6 +271,7 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, FieldID f, int agg, int agg_scp)
   , mat_status(M3DC1_NOT_FIXED)
   , fieldOrdering(f)
   , dofs_per_nd(0)
+  , agg_blk_cnt(agg)
   , pmt(NULL)
 {
   int nv = 0;
@@ -286,7 +287,7 @@ int m3dc1_matrix::destroy()
 
 m3dc1_matrix::~m3dc1_matrix()
 {
-  if(pmt) delete pmt;
+  //if(pmt) delete pmt;
   destroy();
   delete A;
 }
@@ -822,6 +823,8 @@ matrix_solve::matrix_solve(int i, int s, FieldID f, int agg_blk_cnt, int agg_scp
 matrix_solve::~matrix_solve()
 {
   MatDestroy(&remoteA);
+  if(pmt)
+    delete pmt;
 }
 
 int matrix_solve::initialize()
@@ -1154,7 +1157,14 @@ int matrix_solve:: setKspType()
   }
 
   ierr = KSPSetFromOptions(*ksp);CHKERRQ(ierr);
- // ++kspSet;
+
+  if(agg_blk_cnt > 1)
+  {
+    int pln_cnt = m3dc1_model::instance()->get_num_plane();
+    PC pc;
+    KSPGetPC(*ksp,&pc);
+    PCBJacobiSetTotalBlocks(pc,pln_cnt*agg_blk_cnt,NULL);
+  }
 }
 
 #endif //#ifndef M3DC1_MESHGEN

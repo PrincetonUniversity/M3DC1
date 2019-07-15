@@ -87,6 +87,7 @@ public:
   void create3D(); // create 3D region
 
   void set_num_plane(int);
+  int get_num_plane() { return num_plane; }
   void set_phi(double min_val, double max_val);
   double get_phi(int part_id);
   void set_phi(int plane_id, double phi);
