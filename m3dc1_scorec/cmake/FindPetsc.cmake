@@ -10,7 +10,7 @@
 #         include/*.h
 #         lib/*.a
 
-
+set(PETSC_INSTALL_DIR ${PETSC_DIR}/${PETSC_ARCH})
 set(PETSC_LIB_DIR ${PETSC_DIR}/${PETSC_ARCH}/lib)
 set(PETSC_INCLUDE_DIR ${PETSC_DIR}/include)
 set(PETSC_INCLUDE_DIR2 ${PETSC_DIR}/${PETSC_ARCH}/include)
@@ -66,9 +66,6 @@ set(PETSC_LIB_NAMES
 #  crypto
 #  dl
 
-
-
-
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
 
 find_path(PETSC_INCLUDE_DIR
@@ -78,16 +75,15 @@ if(NOT EXISTS "${PETSC_INCLUDE_DIR}")
   message(FATAL_ERROR "PETSC include dir not found")
 endif()
 
-set(PETSC_LIBRARIES ${PETSC_LIBS} ${GFORTRAN_LIBRARY})
-set(PETSC_INCLUDE_DIRS ${PETSC_INCLUDE_DIR} )
+find_path(PETSC_INCLUDE_DIR2
+  NAMES petscconf.h
+  PATHS ${PETSC_INCLUDE_DIR2})
+if(NOT EXISTS "${PETSC_INCLUDE_DIR2}")
+  message(FATAL_ERROR "PETSc include dir not found")
+endif()
 
 set(PETSC_LIBRARIES ${PETSC_LIBS} )
 set(PETSC_INCLUDE_DIRS ${PETSC_INCLUDE_DIR} ${PETSC_INCLUDE_DIR2})
-
-string(REGEX REPLACE
-  "/include$" ""
-  PETSC_INSTALL_DIR
-  "${PETSC_INCLUDE_DIR}")
 
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set PARMETIS_FOUND to TRUE
@@ -95,7 +91,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PETSC  DEFAULT_MSG
                                   PETSC_LIBS PETSC_INCLUDE_DIR)
 
-mark_as_advanced(PETSC_INCLUDE_DIR PETSC_LIBS)
+mark_as_advanced(PETSC_INCLUDE_DIRS PETSC_LIBS)
 
 set(PETSC_LINK_LIBS "")
 foreach(lib ${PETSC_LIB_NAMES})
