@@ -222,6 +222,7 @@ int copyPetscVec2Field(Vec & petscVec,
     m3dc1_ent_setdofdata(&vertex_type, &inode, &field_id, &dofPerEnt, &dof_data[0]);
   }
   m3dc1_field_sync(&field_id);
+  VecDestroy(seq_vec);
   return 0;
 }
 
