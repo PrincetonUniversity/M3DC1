@@ -16,10 +16,8 @@ module scorec_matrix_mod
   integer, parameter :: maxnumofsolves = 4
   real, allocatable:: kspits(:)
 
-#ifdef REORDERED
   integer :: is1_agg_blk_cnt = 1
   integer :: is1_agg_scp = 0
-#endif
 
   interface clear_mat
      module procedure scorec_matrix_clear
@@ -116,12 +114,7 @@ contains
   ! ~~~~~~
   ! creates a scorec solve matrix with index imat and size isize
   !====================================================================
-#ifdef REORDERED
   subroutine scorec_matrix_create(mat, m, n, icomplex, lhs, agg_blk_cnt_opt, agg_scp_opt)
-#else
-  subroutine scorec_matrix_create(mat, m, n, icomplex, lhs)
-#endif
-
 #ifndef M3DC1_TRILINOS
 
 #if PETSC_VERSION >= 38
@@ -140,8 +133,6 @@ contains
     type(scorec_matrix) :: mat
     integer, intent(in) :: m, n, icomplex
     integer, intent(in) :: lhs
-
-#ifdef REORDERED
     integer, intent(in), optional :: agg_blk_cnt_opt
     integer, intent(in), optional :: agg_scp_opt
 
@@ -159,7 +150,6 @@ contains
     else
        agg_scp = agg_scp_opt
     end if
-#endif
 
     if(mat%imatrix .le. 0) then
        print*, 'Error: scorec matrix index not set!'
@@ -181,12 +171,10 @@ contains
 #ifdef M3DC1_TRILINOS
     call m3dc1_epetra_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
 #else
-#ifdef REORDERED
     call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize, agg_blk_cnt, agg_scp)
-#else
-    call m3dc1_matrix_create(mat%imatrix, lhs, mat%icomplex, mat%isize)
-#endif !reordered
+
 #endif
+
   end subroutine scorec_matrix_create
 
 
@@ -545,7 +533,7 @@ contains
     implicit none
     type(matrix_type) :: mat
     integer, intent(in) :: itri, m, n, iop
-    vectype, intent(in), dimension(dofs_per_element,dofs_per_element) :: val
+    vectype, intent(in), dimension(:,:) :: val
 
     integer, dimension(mat%m,dofs_per_element) :: irow
     integer, dimension(mat%n,dofs_per_element) :: icol

@@ -1,23 +1,22 @@
-/* 
-2018-dec-17
-This function is called to prepare options for 3D linear solver.
-The original options is give in a filename by "-options_file" as a command line option.
-This filename will be rewritten here with added "-hard_" solver options 
-for "hard_" "prefix"ed solvers 
-to avoid mistakes.
-
-The added options are: lgmres and lgmres_argument.
+/*
+   2018-dec-17
+   This function is called to prepare options for 3D linear solver.
+   The original options is give in a filename by "-options_file" as a command line option.
+   This filename will be rewritten here with added "-hard_" solver options
+   for "hard_" "prefix"ed solvers
+   to avoid mistakes.
+   The added options are: lgmres and lgmres_argument.
 */
-
 #include <petscsys.h>
-
-void parse_solver_options_(const char *filename)
-  {
+#include <mpi.h>
+#include <fenv.h>
+void parse_solver_options_(const char * filename)
+{
   PetscErrorCode ierr;
   PetscBool      flg;
-  FILE *fptr;
+  FILE * fptr;
   const char s[2] = " ";
-  char *num_of_pc_bjacobi_blocks;
+  char * num_of_pc_bjacobi_blocks;
   PetscInt nblocks;
   PetscInt isuperlu=0, imumps=0;
 
@@ -25,20 +24,17 @@ void parse_solver_options_(const char *filename)
   char filename_out[len];
 
   //PetscPrintf(PETSC_COMM_WORLD,"\nsolver options from the file:%s\n\n", filename);
-
   char c[1024];
   if ((fptr = fopen(filename, "r")) == NULL)
   {
-     PetscPrintf(PETSC_COMM_WORLD,"Error! opening file\n");
-     exit(1);         
+    PetscPrintf(PETSC_COMM_WORLD,"Error! opening file\n");
+    exit(1);
   }
-
-  // reads text until newline 
+  // reads text until newline
   while (fgets(c, sizeof(c), fptr) != NULL)
   {
     c[strlen(c) - 1] = '\0'; // eat the newline fgets() stores
     //PetscPrintf(PETSC_COMM_WORLD,"%s\n", c);
-
     char *token;
     char *pc_bjacobi_blocks="-pc_bjacobi_blocks";
     char *sub_solver_type="-sub_pc_factor_mat_solver_type";
@@ -75,12 +71,10 @@ void parse_solver_options_(const char *filename)
           //PetscPrintf(PETSC_COMM_WORLD, "       %s \n", token );
     }
   }
-          //PetscPrintf(PETSC_COMM_WORLD, "       %d %d %d\n", nblocks,isuperlu,imumps );
-          //PetscPrintf(PETSC_COMM_WORLD, "       %s \n", num_of_pc_bjacobi_blocks );
-    fclose(fptr);
-
+  //PetscPrintf(PETSC_COMM_WORLD, "       %d %d %d\n", nblocks,isuperlu,imumps );
+  //PetscPrintf(PETSC_COMM_WORLD, "       %s \n", num_of_pc_bjacobi_blocks );
+  fclose(fptr);
   //PetscPrintf(PETSC_COMM_WORLD, "\n\n-------------------------------------\n\n");
-
      /* open the file for writing*/
     sprintf(filename_out, "%s.out", filename);
     if ((fptr = fopen(filename_out, "w")) == NULL)

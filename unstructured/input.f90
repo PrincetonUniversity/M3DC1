@@ -137,6 +137,7 @@ subroutine set_defaults
   use pellet
   use mesh_mod
   use vector_mod
+  use matrix_mod
   use gradshafranov
   use adapt
   use error_estimate
@@ -148,9 +149,7 @@ subroutine set_defaults
   use resistive_wall
   use radiation
   use kprad_m3dc1
-#ifdef REORDERED
   use matrix_mod
-#endif
 
   implicit none
 
@@ -1037,12 +1036,12 @@ subroutine set_defaults
        "1 = the input mesh is partitioned", mesh_grp)
   call add_var_int("imatassemble", imatassemble, 0, &
        "0: use scorec matrix parallel assembly; 1 use petsc", mesh_grp)
-#ifdef REORDERED
+
   call add_var_int("is1_agg_blks", is1_agg_blk_cnt, 1, &
-       "number of blocks to divide each node of dofs into for matrix s1", mesh_grp)
+       "number of blocks to divide each node of dofs into for velocity matrix", mesh_grp)
   call add_var_int("is1_agg_scp", is1_agg_scp, 0, &
        "0: per-rank aggregation, 1: per-plane aggregation, 2: global aggregation", mesh_grp)
-#endif
+
   call add_var_int("imulti_region", imulti_region, 0, &
        "1 = Mesh has multiple physical regions", mesh_grp)
   call add_var_double("toroidal_pack_factor", toroidal_pack_factor, 1., &
@@ -1050,9 +1049,9 @@ subroutine set_defaults
   call add_var_double("toroidal_pack_angle", toroidal_pack_angle, 0., &
        "toroidal angle of maximum mesh packing", mesh_grp)
 
-  ! Solver 
+  ! Solver
   call add_var_double("solver_tol", solver_tol,0.000000001,&
-       "solver tolerance", solver_grp) 
+       "solver tolerance", solver_grp)
   call add_var_int("solver_type", solver_type, 0, "Solver type", solver_grp)
   call add_var_int("num_iter", num_iter, 100, "Maximum number of iterations", solver_grp)
 

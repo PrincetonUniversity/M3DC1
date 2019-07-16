@@ -14,9 +14,9 @@ contains
     implicit none
 
     integer :: ier
-    
+
     call hdf5_initialize(irestart.ne.0,ier)
-    if(ier.lt.0) then 
+    if(ier.lt.0) then
        print *, "Error initializing HDF5"
        call safestop(5)
     end if
