@@ -723,10 +723,6 @@ subroutine deltafuns(n,x,phi,z,m,val,jout, ier)
         call vector_insert_block(jout(i)%vec, itri(j), jout(i)%index, temp2, VEC_ADD)
      end do
   end do
-
-  do i=1, m
-     call sum_shared(jout(i)%vec)
-  end do
 end subroutine deltafuns
 
 
