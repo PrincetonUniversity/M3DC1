@@ -13,7 +13,8 @@ else
   LOADER = ftn
 endif
 
-OPTS := $(OPTS) -xMIC-AVX512 -DPETSC_VERSION=39 -DUSEADIOS -DUSEBLAS
+#NEWSOLVERDEVELOPMENT needs more tests.
+OPTS := $(OPTS) -xMIC-AVX512 -DUSEBLAS -DPETSC_VERSION=39 #-DNEWSOLVERDEVELOPMENT
 
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
@@ -34,46 +35,65 @@ PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
      -lpord -lsuperlu -lsuperlu_dist -lstrumpack \
      -lparmetis -lmetis -lpthread -ldl -lstdc++  \
-     -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit
+     -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit #\
+
+SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ifeq ($(REORDERED), 1)
   SCORECVER=reordered
 endif
 
-SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
-SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
+ifdef SCORECVER
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
+else
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
+endif
 
-ZOLTAN_LIB=-L$(SCOREC_DIR)/lib -lzoltan
+ifeq ($(COM), 1)
+    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+else
+    M3DC1_SCOREC_LIB = m3dc1_scorec
+endif
 
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
+# Include option to use ADIOS
+OPTS := $(OPTS) -DUSEADIOS
+#
+##only define them if adios-1.3 is used; otherwise use hopper default
+##ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
+##ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
+##ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
 ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
-ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
+ADIOS_FLIB_V1 = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
-             -L/usr/lib64/ -llustreapi
+#             -L/usr/lib64/ -llustreapi
 
-FFTW_DIR=/opt/cray/pe/fftw/3.3.8.2/mic_knl
-GSL_DIR=/usr/common/software/gsl/2.1/intel
-HDF5_DIR=/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0
+MKL_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+
+#MKL_LIB = $(MKLROOT)/lib/intel64/libmkl_blas95_lp64.a -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
-           -I$(FFTW_DIR)/include \
-           -I$(HDF5_DIR)/include \
-           -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-           -I$(GSL_DIR)/include
-
-LIBS := $(LIBS) \
+	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
+	   -I$(GSL_DIR)/include # \
+#        -I$(HYBRID_HOME)/include
+#           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
+#
+LIBS := \
+        $(LIBS) \
         -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB)\
         $(PETSC_LIB) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
-        -L$(FFTW_DIR)/lib -lfftw3 \
-        -L$(GSL_DIR)/lib -lgsl -lgslcblas -lhugetlbfs \
-        $(ADIOS_FLIB)
+	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
+	$(ADIOS_FLIB_V1) \
+	$(MKL_LIB)
+#        $(HYBRID_LIBS) \
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
 
@@ -96,7 +116,7 @@ ifeq ($(OPT), 1)
   CCOPTS := $(CCOPTS) -qopt-report=5 -qopt-report-phase=vec,loop
 else
   LDOPTS := $(LDOPTS) -static
-  FOPTS := $(FOPTS) -g -Mbounds -check none -fpe0 -warn -traceback -debug extended
+  FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
 endif
 

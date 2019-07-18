@@ -34,7 +34,7 @@ subroutine init_random(x,phi,z,outarr)
 
   implicit none
 
-  real, intent(in), dimension(:) :: x, phi, z
+  real, intent(in), dimension(MAX_PTS) :: x, phi, z
   vectype, intent(out), dimension(MAX_PTS) :: outarr
   integer, allocatable :: seed(:)
   integer :: i, j, n

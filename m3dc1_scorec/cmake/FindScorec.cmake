@@ -44,8 +44,7 @@ endif()
 
 set(SCOREC_LIBS "")
 if(ENABLE_SIMMETRIX)
-  set(SCOREC_LIB_NAMES
-    pumi
+set(SCOREC_LIB_NAMES
   ma
   mds
   apf_sim
@@ -63,8 +62,7 @@ if(ENABLE_SIMMETRIX)
   ph 
   )
 else()
-  set(SCOREC_LIB_NAMES
-    pumi
+set(SCOREC_LIB_NAMES
 crv
 ph
 sam

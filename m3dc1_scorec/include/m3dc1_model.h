@@ -87,7 +87,6 @@ public:
   void create3D(); // create 3D region
 
   void set_num_plane(int);
-  int get_num_plane() { return num_plane; }
   void set_phi(double min_val, double max_val);
   double get_phi(int part_id);
   void set_phi(int plane_id, double phi);
@@ -117,11 +116,7 @@ public:
   void setupCommGroupsPlane();
   MPI_Comm & getMPICommPlane();
   std::map<int,MPI_Comm> PlaneGroups;
-
-  MPI_Comm getPlaneComm() {return pln_cm;}
-  void setupPlaneComm();
 private:
-  MPI_Comm pln_cm;
   static m3dc1_model* _instance;
   std::map<gmi_ent*, std::pair<gmi_ent*,gmi_ent*> > newModelEnts;
 };

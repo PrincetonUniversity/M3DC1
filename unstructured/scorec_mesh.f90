@@ -25,7 +25,7 @@ module scorec_mesh_mod
   character(len=256) mesh_filename
   character(len=256) name_buff
   integer :: ipartitioned
-  integer :: imatassemble
+  integer :: imatassemble  
   integer :: imulti_region
 
   real :: toroidal_pack_factor

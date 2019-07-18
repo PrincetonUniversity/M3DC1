@@ -5,7 +5,6 @@ PETSC_DIR=/lore/seol/petsc-3.7.6
 PETSC_ARCH=real-openmpi
 #PETSC_DIR=/lore/seol/petsc-3.5.4
 #PETSC_ARCH=real-openmpi1.6.5
-
 cmake .. \
   -DCMAKE_C_COMPILER="/usr/local/openmpi/latest/bin/mpicc" \
   -DCMAKE_CXX_COMPILER="/usr/local/openmpi/latest/bin/mpicxx" \
@@ -13,8 +12,8 @@ cmake .. \
   -DCMAKE_C_FLAGS=" -g -O0  -I$PETSC_DIR/include" \
   -DCMAKE_CXX_FLAGS=" -g -O0 -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
-  -DSCOREC_INCLUDE_DIR=$SCOREC_DIR/include \
-  -DSCOREC_LIB_DIR=$SCOREC_DIR/lib \
+  -DSCOREC_INCLUDE_DIR=$PREFIX/include \
+  -DSCOREC_LIB_DIR=$PREFIX/lib \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
