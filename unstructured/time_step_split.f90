@@ -116,8 +116,7 @@ contains
     call set_matrix_index(d1_mat, d1_mat_index)
     call set_matrix_index(q1_mat, q1_mat_index)
     call set_matrix_index(r14_mat, r14_mat_index)
-
-#ifdef REORDERED
+#ifdef REORDERED       
     call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, 1, is1_agg_blk_cnt, is1_agg_scp)
 #else
     call create_mat(s1_mat, vecsize_vel, vecsize_vel, icomplex, 1)

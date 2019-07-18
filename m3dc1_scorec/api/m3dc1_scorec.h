@@ -17,7 +17,6 @@
 #define C1TRIDOFNODE 6
 
 #include "name_convert.h"
-#include <mpi.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,8 +41,6 @@ enum m3dc1_matrix_status { /*0*/ M3DC1_NOT_FIXED=0,
                            /*2*/ M3DC1_FIXED};
 
 bool m3dc1_double_isequal(double A, double B);
-
-extern MPI_Comm M3DC1_COMM_WORLD;
 
 int m3dc1_scorec_init();
 int m3dc1_scorec_finalize();
@@ -120,9 +117,9 @@ int m3dc1_field_sum (FieldID* /* in */ field_id); // sumsharedppplvecvals_
 int m3dc1_field_sumsq (FieldID* /* in */ field_id, double* /* out */ sum);
 
 /** field dof functions */
-int m3dc1_field_getlocaldofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-int m3dc1_field_getowndofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
-int m3dc1_field_getglobaldofid ( FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
+int m3dc1_field_getlocaldofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one); 
+int m3dc1_field_getowndofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);  
+int m3dc1_field_getglobaldofid ( FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);  
 int m3dc1_field_getghostdofid (FieldID* field_id, int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);
 
 int m3dc1_field_getnumlocaldof (FieldID* field_id, int* /* out */ num_local_dof);
@@ -152,9 +149,9 @@ void m3dc1_field_verify();
 int m3dc1_model_getplaneid(int * /* out */ plane_id);
 
 
-int m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id,
+int m3dc1_ent_getlocaldofid(int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
                        int* /* out */ start_dof_id, int* /* out */ end_dof_id_plus_one);  //entdofs_
-int m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id,
+int m3dc1_ent_getglobaldofid (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, 
                        int* /* out */ start_global_dof_id, int* /* out */ end_global_dof_id_plus_one); //globalentdofs_
 int m3dc1_ent_getnumdof (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, int* /* out */ num_dof);
 int m3dc1_ent_setdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* field_id, int* /* ou
@@ -163,7 +160,7 @@ int m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
 
 #ifdef M3DC1_PETSC
 /** matrix and solver functions with PETSc */
-int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id, int * agg_blk_cnt = NULL, int * agg_scp = NULL);
+int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id); //zerosuperlumatrix_
 int m3dc1_matrix_assemble(int* matrix_id); //finalizematrix_
 int m3dc1_matrix_delete(int* matrix_id); //deletematrix_
 void m3dc1_matrix_reset(int* matrix_id);
@@ -193,7 +190,7 @@ int adapt_by_error_field (double * errorField, double * errorAimed, int* max_nod
 // for adaptation
 int set_mesh_size_bound (double* abs_size, double * rel_size);
 int set_adapt_smooth_factor (double* fac);
-int output_face_data (int * size, double * data, const char * vtkfile);
+int output_face_data (int * size, double * data, char * vtkfile);
 int sum_edge_data (double * data, int * size);
 int get_node_error_from_elm (double * elm_data, int * size, double* nod_data);
 

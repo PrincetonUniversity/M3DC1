@@ -90,11 +90,11 @@ contains
     call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX, 0)
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat newvar mass_mat_lhs_dc", mass_mat_lhs_dc%mat%imatrix
-    print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix
+    print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix     
     print *, "create_mat newvar gs_mat_rhs_dc",   gs_mat_rhs_dc%mat%imatrix
-#endif
+#endif 
 
-    if(inocurrent_tor.eq.0) then
+    if(inocurrent_tor.eq.0) then 
        call create_newvar_matrix(gs_mat_rhs,  NV_NOBOUND,NV_GS_MATRIX, 0)
     endif
 
@@ -203,8 +203,11 @@ end subroutine apply_bc
 !   NV_NMBOUND: Neumann boundary conditions
 ! itype: operator (NV_I_MATRIX, etc..)
 !============================================
+#ifdef REORDERED
   subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags, agg_blk_cnt, agg_scp)
-
+#else
+  subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
+#endif
   use vector_mod
   use basic
   use m3dc1_nint
@@ -217,9 +220,11 @@ end subroutine apply_bc
   integer, intent(in) :: ibound
   integer, intent(in) :: itype
   integer, intent(in) :: is_lhs
-  type(tag_list), intent(in), optional :: tags
+#ifdef REORDERED
   integer, intent(in), optional :: agg_blk_cnt
   integer, intent(in), optional :: agg_scp
+#endif
+  type(tag_list), intent(in), optional :: tags
 
   integer :: numelms, itri, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
@@ -238,7 +243,11 @@ end subroutine apply_bc
   if(itype.eq.NV_SV_MATRIX .and. ihypamu.eq.1) hyp = hypc*amu
   if(itype.eq.NV_SC_MATRIX .and. ihypamu.eq.1) hyp = hypc*amuc
 
+#ifdef REORDERED
   call create_mat(mat%mat, isize, isize, icomplex, is_lhs, agg_blk_cnt, agg_scp)
+#else
+  call create_mat(mat%mat, isize, isize, icomplex, is_lhs)
+#endif
   mat%ibound = ibound
 
   allocate(temp(dofs_per_element, dofs_per_element, isize, isize))
@@ -347,7 +356,8 @@ end subroutine apply_bc
      case(NV_SCBOUND)
 
      case(NV_CYBOUND)
-        call apply_boundary_mask(itri, BOUNDARY_DIRICHLET + BOUNDARY_NEUMANN, temp(:,:,1,1), tags=tags)
+        call apply_boundary_mask(itri, & 
+             BOUNDARY_DIRICHLET + BOUNDARY_NEUMANN, temp(:,:,1,1), tags=tags)
 
      end select
 
