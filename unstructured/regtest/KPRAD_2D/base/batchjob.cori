@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p debug
-#SBATCH -C knl,quad,cache
+#SBATCH -C haswell
 #SBATCH -N 3
 #SBATCH -J M3DC1_regtest_KPRAD_2D
 #SBATCH -t 00:30:00

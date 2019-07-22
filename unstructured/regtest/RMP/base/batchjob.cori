@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p debug
-#SBATCH -C knl,quad,cache
+#SBATCH -C haswell
 #SBATCH -N 1
 #SBATCH -J M3DC1_regtest_RMP
 #SBATCH -t 0:10:00
