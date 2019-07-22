@@ -69,7 +69,7 @@ endif
 
 SCOREC_BASE_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/petsc-3.9.3
 SCOREC_UTIL_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/bin
-SCOREC_DIR=$(SCOREC_BASE_DIR)
+SCOREC_DIR=/home/jinchen/LIB/m3dc1_scorec/build
 
 ZOLTAN_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
 
@@ -78,7 +78,7 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
 LIBS = 	\
-        -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
+        -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
 	$(SCOREC_LIBS) \
         $(TRILINOS_LIBS) \
         $(ZOLTAN_LIB) \

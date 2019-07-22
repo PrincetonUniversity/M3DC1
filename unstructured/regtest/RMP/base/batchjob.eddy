@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH -p pppl
+#SBATCH -n 16
+#SBATCH -J M3DC1_regtest_RMP
+#SBATCH -t 0:10:00
+#SBATCH -o C1stdout
+
+touch started
+
+#create_mesh.sh
+#echo $? > mesh_created
+
+part_mesh.sh diiid-0.02-2.5-4.0-4K.smb $SLURM_NTASKS
+echo $? > mesh_partitioned
+
+$M3DC1_MPIRUN -np $SLURM_NTASKS m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+
+touch finished

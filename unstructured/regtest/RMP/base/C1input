@@ -2,8 +2,8 @@
 
 ! I/O Options
 ! ===========
-	ntimemax = 1	! number of time steps
-	ntimepr = 1	! number of time steps per output
+	ntimemax = 5	! number of time steps
+	ntimepr = 5	! number of time steps per output
 	iprint = 2	! 1 = print detailed debug info
 	itimer = 0	! 1 = print timing info
 
