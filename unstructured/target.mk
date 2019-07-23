@@ -70,7 +70,7 @@ install_templates : templates
 	find $(INSTALL_DIR)/templates -type f -exec chmod 644 {} \;
 
 .PHONY: install_device_data
-install_device_data : device_data
+install_device_data : # device_data
 	mkdir -m 755 -p $(INSTALL_DIR)/device_data
 	cp -r device_data/* $(INSTALL_DIR)/device_data
 	find $(INSTALL_DIR)/device_data -type d -exec chmod 755 {} \;
