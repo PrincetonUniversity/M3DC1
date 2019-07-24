@@ -6,11 +6,15 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 
   CCOPTS := $(CCOPTS) -O
 else
-  FOPTS := $(FOPTS) -g noarg_temp_created 
+  FOPTS := $(FOPTS) -fcheck-array-temporaries
 endif
 
-MPI_DIR = /usr/local/openmpi/latest
-GCC_DIR = /usr/lib/gcc/x86_64-linux-gnu/4.4.5
+PETSC_DIR=/lore/wtobin/dev_deb6/m3d/petsc/petsc-3.7.7/
+PETSC_ARCH=real-openmpi/
+
+MPI_DIR = /usr/local/openmpi/latest/
+#GCC_DIR = /usr/lib/gcc/x86_64-linux-gnu/4.4.5
+GCC_DIR = /opt/tools/gcc-4.9.2_2/lib64/
 
 CC = $(MPI_DIR)/bin/mpicc
 CPP = $(MPI_DIR)/bin/mpicxx
@@ -21,25 +25,18 @@ LOADER = $(MPI_DIR)/bin/mpif90 -gcc
 F90OPTS = $(F90FLAGS) $(FOPTS) 
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
-MPI_DIR = /usr/local/openmpi/latest
-HDF5_DIR =  $(PETSC_DIR)/$(PETSC_ARCH)
+HDF5_DIR = $(PETSC_DIR)/$(PETSC_ARCH)
 GSL_DIR = /usr/lib64
 ZLIB_DIR = /usr/lib64
 
-TRILINOS_DIR = /fasttmp/seol/openmpi-gcc4.4.5-install
-STDCPP_DIR = /usr/lib/gcc/x86_64-linux-gnu/4.4.5
+#TRILINOS_DIR = /fasttmp/seol/openmpi-gcc4.4.5-install
+#STDCPP_DIR = /usr/lib/gcc/x86_64-linux-gnu/4.4.5
+STDCPP_DIR = /opt/tools/gcc-4.9.2_2/lib64/
 
-SCOREC_BASE_DIR=/lore/seol/openmpi-petsc3.7.6-install
-ifeq ($(REORDERED), 1)
-  SCORECVER=reordered
-endif
+SCOREC_DIR=/lore/wtobin/dev_deb6/m3d/install/core
+M3DC1_DIR=/lore/wtobin/dev_deb6/m3d/install/m3dc1_scorec
 
-ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
-endif
-
-ZOLTAN_DIR = /lore/seol/openmpi-petsc3.7.6-install
-PETSC_DIR = /lore/seol/petsc-3.7.6
+ZOLTAN_DIR = /lore/wtobin/dev_deb6/m3d/install/zoltan
 ifeq ($(COM), 1)
   PETSC_ARCH =cplx-openmpi
 else
@@ -50,9 +47,9 @@ INCLUDE = -I$(MPI_DIR)/include \
 	  -I$(HDF5_DIR)/include \
 	  -I$(PETSC_DIR)/include \
           -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-          -I$(SCOREC_DIR)/include
+          -I$(SCOREC_DIR)/include -I$(M3DC1_DIR)/include
 
-PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_DIR)/lib -L$(GCC_DIR) -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lfftw3_mpi -lfftw3 -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lX11 -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L$(MPI_DIR)lib -L$(GCC_DIR) -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L$(MPI_DIR)/lib -L$(GCC_DIR) -L$(GCC_DIR) -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_DIR)/lib -L$(GCC_DIR) -lpetsc -lHYPRE -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lfftw3_mpi -lfftw3 -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lX11 -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -lmpi_cxx -lstdc++ -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
 
 BLASLAPACK_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
 	-lflapack -lfblas  \
@@ -74,7 +71,7 @@ endif
 
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+             -lpcu -lph -lsam -lspr -lcrv -L$(M3DC1_DIR)/lib -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
 
 ifeq ($(TRILINOS), 1)
 TRILINOS_DIR = /fasttmp/seol/openmpi-gcc4.4.5-install
@@ -87,13 +84,13 @@ endif
 LIBS = 	\
 	$(SCOREC_LIBS) \
         $(TRILINOS_LIBS) \
-        -L$(STDCPP_DIR) -lstdc++ \
         -L$(ZOLTAN_DIR)/lib -lzoltan \
         $(PETSC_WITH_EXTERNAL_LIB) \
         $(BLASLAPACK_LIBS) \
 	-L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5 \
 	-L$(ZLIB_DIR) -lz \
 	-L$(GSL_DIR)/lib -lgsl -lgslcblas \
+        -L$(STDCPP_DIR) -lstdc++ \
 	-L/usr/lib64 -lX11
 
 %.o : %.c

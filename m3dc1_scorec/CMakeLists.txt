@@ -174,8 +174,20 @@ if(ENABLE_OPENMP)
   set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_openmp)
 endif()
 
+if(${CMAKE_VERSION} VERSION_LESS "3.1.0")
+  # only valid for older gcc versions, if we need to use 
+  # cmake < 3.1.0 and a newer gcc version add a two-stage check
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+endif()
+
 add_library(${TARGET_LIB_NAME} ${SOURCES})
 target_link_libraries(${TARGET_LIB_NAME} ${DEP_LIBS})
+
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.1.0")
+  set_target_properties(${TARGET_LIB_NAME} PROPERTIES CXX_STANDARD 11 
+                                                      CXX_STANDARD_REQUIRED YES 
+                                                      CXX_EXTENSIONS NO)
+endif()
 
 INSTALL(FILES ${HEADERS} DESTINATION include)
 INSTALL(TARGETS ${TARGET_LIB_NAME}
