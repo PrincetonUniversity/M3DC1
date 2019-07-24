@@ -1311,7 +1311,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
         itemp1(2) = converged
         itemp1(3) = izone
 
-        call mpi_allreduce(temp1, temp2, 3, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ier)
+        call mpi_allreduce(temp1, temp2, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ier)
         call mpi_allreduce(itemp1, itemp2, 3, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
 
         xnew  = temp2(1)
@@ -1520,7 +1520,7 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
         temp1(3) = sum
         itemp1(1) = in_domain
         itemp1(2) = converged
-        call mpi_allreduce(temp1, temp2, 3, MPI_REAL, MPI_SUM, MPI_COMM_WORLD, ier)
+        call mpi_allreduce(temp1, temp2, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ier)
         call mpi_allreduce(itemp1, itemp2, 2, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ier)
         xnew  = temp2(1)
         znew  = temp2(2)
