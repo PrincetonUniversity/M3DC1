@@ -63,6 +63,7 @@ set(SOURCES
   src/BSpline.cc
   src/Expression.cc
   src/m3dc1_ls.cc
+  src/m3dc1_field.cc
   src/m3dc1_mesh.cc
   src/m3dc1_sizeField.cc
   src/PolyNomial.cc

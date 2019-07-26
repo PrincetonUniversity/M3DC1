@@ -29,4 +29,6 @@ private:
   int value_type;
   int dof_per_value;
 };
+
+void synchronize_field(apf::Field* f);
 #endif
