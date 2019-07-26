@@ -6,7 +6,7 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 
   CCOPTS := $(CCOPTS) -O
 else
-  FOPTS := $(FOPTS) -fcheck-array-temporaries
+  FOPTS := $(FOPTS) -g -fcheck-array-temporaries
 endif
 
 PETSC_DIR=/lore/wtobin/dev_deb6/m3d/petsc/petsc-3.7.7/

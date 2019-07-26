@@ -189,10 +189,10 @@ contains
     type(scorec_matrix), intent(inout) :: mat
 #ifdef M3DC1_TRILINOS
     call m3dc1_epetra_delete (mat%imatrix)
-#else
-    call m3dc1_matrix_delete (mat%imatrix)
-#endif
     call create_mat(mat,mat%m,mat%n,mat%icomplex,mat%lhs)
+#else
+    call m3dc1_matrix_reset(mat%imatrix)
+#endif
   end subroutine scorec_matrix_clear
 
 
