@@ -46,13 +46,6 @@ BLASLAPACK_LIBS =-Wl,-rpath,$(BLASLAPACK_DIR)/lib -L$(BLASLAPACK_DIR)/lib -lflap
 SCALAPACK_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
 SCALAPACK_LIB=-Wl,-rpath,$(SCALAPACK_DIR)/lib -L$(SCALAPACK_DIR) -lscalapack
 
-SCOREC_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/petsc-3.9.3
-SCOREC_UTIL_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/bin
-PUMI_LIBS = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
-
-ZOLTAN_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
-TRILINOS_LIBS=
-
 PETSC_LIBS = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group \
       -lpetsc \
       -lptscotcherr -lscotch -lptscotcherrexit -lscotcherr -lptesmumps -lscotcherrexit -lptscotch \
@@ -74,10 +67,18 @@ else
   endif
 endif
 
-SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-           $(PUMI_LIBS) $(M3DC1_SCOREC_LIB) -Wl,--end-group
+SCOREC_BASE_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/petsc-3.9.3
+SCOREC_UTIL_DIR=/home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/bin
+SCOREC_DIR=/home/jinchen/LIB/m3dc1_scorec/build
+
+ZOLTAN_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
+
+SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
+             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
+             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
 LIBS = 	\
+        -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
 	$(SCOREC_LIBS) \
         $(TRILINOS_LIBS) \
         $(ZOLTAN_LIB) \

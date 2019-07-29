@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p general
+#SBATCH -p pppl
 #SBATCH -n 64
 #SBATCH -J M3DC1_regtest_RMP_nonlin
 #SBATCH -t 0:30:00

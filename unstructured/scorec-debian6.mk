@@ -33,10 +33,7 @@ SCOREC_BASE_DIR=/lore/seol/openmpi-petsc3.7.6-install
 ifeq ($(REORDERED), 1)
   SCORECVER=reordered
 endif
-
-ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
-endif
+SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 
 ZOLTAN_DIR = /lore/seol/openmpi-petsc3.7.6-install
 PETSC_DIR = /lore/seol/petsc-3.7.6
@@ -72,9 +69,10 @@ else
   endif 
 endif
 
-SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+SCOREC_LIBS= -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
+             -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
 ifeq ($(TRILINOS), 1)
 TRILINOS_DIR = /fasttmp/seol/openmpi-gcc4.4.5-install
