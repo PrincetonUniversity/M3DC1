@@ -65,7 +65,7 @@ contains
 
     integer :: i, ix, myrank, ierr
     integer, parameter :: ifile = 112
-    character(len=256) :: buff, tok
+    character(len=1024) :: buff, tok
 
     call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
 

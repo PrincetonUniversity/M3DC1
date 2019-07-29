@@ -384,7 +384,7 @@ contains
        
        qfunc=-psi/xbtheta
 
-    case(32)
+    case(32,34)
     if(psi .lt. q2_qp) then
        qfunc = q0_qp
     else
@@ -461,7 +461,7 @@ contains
             +(715.*7.*(1-x)**(19./2.))/2.-(1820.*(1-x)**(21./2.))/2.+(91.*5.*(1-x)**(23./2.))/2. &
             -(70.*(1-x)**(25./2.))/2.+(5.*(1-x)**(27./2.))/2.))/(2.*x*xbtheta**2) 
 
-    case(32)
+    case(32,34)
        if(psi .lt. q2_qp) then
           qpfunc = 0
        else
@@ -498,6 +498,8 @@ contains
        pfunc = (1.-kappae_qp)*p0_qp*(1. - psi   )    &
              +     kappae_qp *p0_qp*(1. - psi**2)    & 
              + pedge_qp
+    case(34)
+       pfunc = p0_qp*(1. - psi )**2 + pedge_qp
     end select
     return
   end function pfunc
@@ -528,6 +530,8 @@ contains
     case(32)
        ppfunc = - (1.- kappae_qp)*p0_qp    &
                 -    kappae_qp   *p0_qp*2.*psi
+    case(34)
+       ppfunc = -2.*p0_qp*(1.-psi)
        
     end select
   end function ppfunc

@@ -41,8 +41,6 @@ set(PETSC_LIB_NAMES
   metis
   scalapack
   superlu
-  fftw3_mpi
-  fftw3
   flapack
   fblas
   hdf5hl_fortran

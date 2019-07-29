@@ -3,21 +3,20 @@
 ; ======================================
 function scalar_beta_toroidal, filename=filename
 
-   gamma = read_parameter('gam', filename=filename)
-   xmag = read_parameter('xmag', filename=filename)
-   rzero = read_parameter('rzero', filename=filename)
-   if(rzero eq 0) then rzero = xmag
-   bzero = read_parameter('bzero', filename=filename)
-
-   bt0 = bzero*(rzero/xmag)
-   
    s = read_scalars(filename=filename)
+
+   bzero = read_parameter('bzero', filename=filename)
+   rzero = read_parameter('rzero', filename=filename)
+
+   shape = get_shape(filename=filename, slice=-1)
+   a = shape.a
+   r0 = shape.r0
+   bt0 = abs(bzero*rzero/r0)
+
+   print, 'R0 = ', rzero
+   print, 'BT (T) = ', bt0
 
    beta_t = 2.*s.Ave_P._data/bt0^2
    
-   print, 'bt0 =', bt0
-   print, 'rzero = ', rzero
-   print, 'bzero = ', bzero
-
    return, beta_t
 end

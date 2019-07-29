@@ -41,8 +41,11 @@ contains
     implicit none
     real, intent(in) :: r, z
     
-    neutral_beam_deposition = nb_n/(4.*r*(pi**2)*nb_dr**2) &
+    neutral_beam_deposition = nb_n/(2.*pi*nb_dr**2) &
           *exp(-((r-nb_r)**2 + (z-nb_z)**2)/(2.*nb_dr**2))
+
+    neutral_beam_deposition = neutral_beam_deposition / toroidal_period
+    if(itor.eq.1) neutral_beam_deposition = neutral_beam_deposition/r
   end function neutral_beam_deposition
 
 end module neutral_beam

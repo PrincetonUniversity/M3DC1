@@ -3694,7 +3694,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   real :: thimpb, thimp_bf, nv
   integer :: pp_g
 
-  if(ipres.eq.0) then
+  if((ipres.eq.0 .and. numvar.ge.3) .or. (ipres.eq.1 .and. numvar.lt.3)) then
      ! Total temperature equation
      pp079 = te079
      pp179 = te179
@@ -3784,10 +3784,11 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
-  ! ipres = 0                           : total temperature
-  ! ipres = 1, electron_temperature = T : electron temperature
-  ! ipres = 1, electron_temperature = F : ion temperature (no Q_Ohm)
-  if((ipres.eq.0 .or. electron_temperature) .and. iohmic_heating.eq.1) then
+  ! ipres = 0 and numvar.ge.3 or ipres=1 and numvar lt 3 : total temperature
+  ! ipres = 1 and numvar.ge.3 electron_temperature=T: electron temperature
+  ! ipres = 1 and numvar.ge.3 electron_temperature=F: ion temperature (no Q_Ohm)
+  if(((ipres.eq.0 .and. numvar.ge.3).or.(ipres.eq.1 .and. numvar.lt.3) &
+      .or. electron_temperature) .and. iohmic_heating.eq.1) then
      if(linear.eq.0) then
        tempx = b3psipsieta(trialx,lin,ps179,eta79) &
             + b3psipsieta(trialx,ps179,lin,eta79)
@@ -3913,12 +3914,20 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! Perpendicular Heat Flux
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   tempx = b3tekappa(trialx,lin,kap79,vzt79)
+  if((ipres.eq.0 .and. numvar.ge.3) .or. (ipres.eq.1 .and. numvar.lt.3)) then
+     ! Add ion heat flux
+     tempx = (1. + kappai_fac*(1.-pefac)/pefac)*tempx
+  else
+     if(.not. electron_temperature) then 
+        tempx = tempx * kappai_fac
+     end if
+  end if
   ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
   ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
 
   ! Equipartition
   ! ~~~~~~~~~~~~~
-  if(ipres.eq.1) then
+  if(ipres.eq.1 .and. numvar.ge.3) then
      if(linear.eq.0 .and. eqsubtract.eq.0) then
         tempx = dt*(gam-1.)*q_delta1(trialx,lin)
         if(electron_temperature) tempx = -tempx
@@ -4246,7 +4255,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         end if
      else
         ! For itemp==1, equipartition term is in temperature_lin
-        if(ipres.eq.0) then
+        if((ipres.eq.0 .and. numvar.ge.3) .or. (ipres.eq.1 .and. numvar.lt.3)) then
            ! Total temperature
            ! ~~~~~~~~~~~~~~~~~
            r4term = r4term + dt*(gam-1.)*b3q(trialx,q79)
@@ -4996,16 +5005,14 @@ subroutine ludefphi_n(itri)
         end if
      end do
 
-     if(izone.eq.1) then
-        if(ieq(k).eq.psi_i) then
-           call flux_nolin(mu79,q4)
-        else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
-           call axial_field_nolin(mu79,q4)
-        else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
-           call pressure_nolin(mu79,q4,ipres.eq.0)
-        else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
-           call bf_equation_nolin(mu79,q4)
-        end if
+     if(ieq(k).eq.psi_i) then
+        if(izone.eq.1) call flux_nolin(mu79,q4)
+     else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
+        if(izone.eq.1) call axial_field_nolin(mu79,q4)
+     else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
+        if(izone.eq.1) call pressure_nolin(mu79,q4,ipres.eq.0)
+     else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
+        call bf_equation_nolin(mu79,q4)
      end if
     
      ! If electron pressure equation is not included,

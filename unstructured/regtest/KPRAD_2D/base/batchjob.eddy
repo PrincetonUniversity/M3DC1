@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH -A pppl
-#SBATCH -N 3
-#SBATCH --ntasks-per-node=16
+#SBATCH -n 48
 #SBATCH -J M3DC1_regtest_KPRAD_2D
 #SBATCH -t 00:30:00
 #SBATCH -o C1stdout
