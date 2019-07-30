@@ -6,6 +6,10 @@ else
     suffix="$1"
 fi
 
+if [ -z "${suffix}" ]; then
+    suffix="test"
+fi
+
 echo "Suffix = $suffix"
 
 wd=`pwd`

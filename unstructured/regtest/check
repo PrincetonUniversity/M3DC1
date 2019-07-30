@@ -6,6 +6,10 @@ else
     suffix="$1"
 fi
 
+if [ -z "${suffix}" ]; then
+    suffix="test"
+fi
+
 wd=`pwd`
 
 # Name of the test directory

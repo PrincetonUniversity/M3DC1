@@ -45,6 +45,25 @@ The test subdirectories can be deleted by running
 NOTES FOR DEVELOPERS
 ====================
 
+Adding new regression tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To add a new test (for example, we'll call it "new_test") :
+1. Make a subdirectory for the new test: (e.g. unstructured/regtest/new_test/)
+2. Make a sub-subdirectory called "base":  unstructured/regtest/new_test/base/
+3. Put the C1input file, mesh file, and any other needed input files in unstructured/regtest/new_test/base/
+5. 
+6. Follow the batch script conventions used in the other tests.  These conventions must be followed for the ./run and ./check scripts to work properly
+7. Add "new_test" to the "dir" variable in the "run" script
+
+Please keep the following in mind:
+* The mesh files should be very small, preferrably < 1 MB.
+* The test case should run quickly (less than 5 min) on a few nodes or
+fewer.
+* Only the input files and C1ke file in base/ should be added to the
+repository.  Don't add any code output to the repository, other than
+the C1ke file.
+
+
 Mesh files
 ~~~~~~~~~~
 

@@ -6,6 +6,10 @@ else
     suffix="$1"
 fi
 
+if [ -z "${suffix}" ]; then
+    suffix="test"
+fi
+
 # Test cases to run
 if [ -z "$2" ]; then
     dir=( "KPRAD_2D" "RMP" "RMP_nonlin" )
