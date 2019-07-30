@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p pppl
+#SBATCH -A pppl
 #SBATCH -n 48
 #SBATCH -J M3DC1_regtest_KPRAD_2D
 #SBATCH -t 00:30:00
