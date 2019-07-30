@@ -2,6 +2,16 @@ The regression tests here work by copying the "base" subdirectory to a
 new subdirectory, running the code in the new directory, and comparing
 the resulting C1ke file with that in the "base" subdirectory.
 
+The test batch scripts assume that m3dc1_2d, m3dc1_2d_complex,
+m3dc1_3d, part_mesh.sh, and the SCOREC utility execultables are all in
+a directory included in ${PATH}.  Test directory naming conventions
+assume that ${M3DC1_VERSION} and ${M3DC1_ARCH} are set properly.
+These environment variables are all set by the m3dc1 modules, so
+please load those if they are available.  To use a version for which
+there is no module (i.e. a version compiled from the source code),
+please run "make bin" from the unstructured directory, and add the
+"unstructured/_${M3DC1_ARC}/bin" path to the ${PATH} variable.
+
 If you are adding or modifying a regression test, please see the
 "Notes for Developers" section at the end of this README.
 
