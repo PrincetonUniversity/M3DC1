@@ -12,6 +12,6 @@ part_mesh.sh circle-0.10-0.0-0.0-1K.smb 16
 echo $? > mesh_partitioned
 
 # Run M3D-C1
-${M3DC1_MPIRUN} -n 64 m3dc1_3d -ipetsc -options_file options_bjacobi.dawson_mumps
+${M3DC1_MPIRUN} -n 64 m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps
 
 touch finished
