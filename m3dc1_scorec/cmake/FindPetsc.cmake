@@ -30,32 +30,12 @@ endmacro(petscLibCheck)
 set(PETSC_LIBS "")
 set(PETSC_LIB_NAMES
   petsc
-  superlu_dist 
-  cmumps
-  dmumps
-  smumps
-  zmumps
-  mumps_common
-  pord
-  parmetis
   metis
+  parmetis
   scalapack
   superlu
   flapack
   fblas
-  hdf5hl_fortran
-  hdf5_fortran
-  hdf5_hl
-  hdf5
-  z
-  X11
-  m
-  numa
-  rt
-  nsl
-  util
-  pthread
-  dl
 )
 
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
