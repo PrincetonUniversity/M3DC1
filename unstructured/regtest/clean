@@ -10,7 +10,12 @@ if [ -z "${suffix}" ]; then
     suffix="test"
 fi
 
+if [ -z "${M3DC1_VERSION}" ]; then
+    M3DC1_VERSION="local"
+fi
+
 echo "Suffix = $suffix"
+echo "M3DC1_VERSION = $M3DC1_VERSION"
 
 wd=`pwd`
 

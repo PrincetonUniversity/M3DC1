@@ -10,10 +10,18 @@ if [ -z "${suffix}" ]; then
     suffix="test"
 fi
 
-wd=`pwd`
+if [ -z "${M3DC1_VERSION}" ]; then
+    M3DC1_VERSION="local"
+fi
+
+echo "Suffix = $suffix"
+echo "M3DC1_VERSION = $M3DC1_VERSION"
+
 
 # Name of the test directory
 test="${M3DC1_VERSION}_${suffix}"
+
+wd=`pwd`
 
 red='\033[0;31m'
 green='\033[0;32m'
