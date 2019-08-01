@@ -21,7 +21,7 @@ endif
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
 
 SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/hsw-petsc3.9.3
-SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/hsw-bin
 
 ifeq ($(REORDERED), 1)
   SCORECVER=reordered
