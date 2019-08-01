@@ -21,23 +21,23 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-PETSC_DIR = /global/project/projectdirs/mp288/jinchen/PETSC/petsc-3.9.3
+PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.9.3
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_ARCH = cori-knl-mpich773-cplx-nomkl-510
+  PETSC_ARCH = cori-knl-mpich776-cplx-nomkl-510
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
-  PETSC_ARCH = cori-knl-mpich773-real-nomkl-510
+  PETSC_ARCH = cori-knl-mpich776-real-nomkl-510
 endif
 
 PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
      -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
-     -lpord -lsuperlu -lsuperlu_dist -lstrumpack \
+     -lpord -lsuperlu -lsuperlu_dist \
      -lparmetis -lmetis -lpthread -ldl -lstdc++  \
      -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit #\
 
-SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/knl-petsc3.9.3
+SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/knl-petsc3.9.3
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ifeq ($(REORDERED), 1)
