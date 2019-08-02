@@ -148,6 +148,7 @@ subroutine set_defaults
   use resistive_wall
   use radiation
   use kprad_m3dc1
+  use kprad
 #ifdef REORDERED
   use matrix_mod
 #endif
@@ -269,6 +270,8 @@ subroutine set_defaults
        "Minimum elec. density for KPRAD evolution", kprad_grp)
   call add_var_double("kprad_temin", kprad_temin, 2e-7, &
        "Minimum elec. temperature for KPRAD evolution", kprad_grp)
+  call add_var_int("ikprad_max_dt", ikprad_max_dt, 0, &
+       "Use maximum value of dt for KPRAD advance", kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)

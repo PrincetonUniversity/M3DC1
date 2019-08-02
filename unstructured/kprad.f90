@@ -11,6 +11,10 @@ module kprad
   ! mass of chosen impurity species (in amu)
   integer :: kprad_mz
 
+  ! use max dt in KPRAD evolution
+  integer :: ikprad_max_dt
+
+
   ! polynomial order for evaluating 
   ! radiation and ionization rates, respectively
   integer, private :: m1, m2
@@ -105,9 +109,10 @@ contains
     real, dimension(npts,0:z) :: aimp, bimp, cimp, dimp, ework, fwork
     real :: max_change
     logical :: last_step
-    real :: dts_min
+    real :: dts_min, dts_max
 
     dts_min = dt/1e6
+    if(ikprad_max_dt.eq.1) dts_max = dt/(z+1.0)  ! use one step per charge state
     dts = kprad_dt
     t = 0.
     dw_ion = 0.
@@ -204,6 +209,7 @@ contains
 
           ! If ne change is < 2%, increase time step
           if(max_change .lt. 0.02) dts = dts * 1.5
+          if((ikprad_max_dt.eq.1).and.(dts.gt.dts_max)) dts = dts_max
 
        end if
 
