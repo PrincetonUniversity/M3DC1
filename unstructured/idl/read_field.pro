@@ -16,8 +16,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    if(n_elements(phi0) ne 0) then print, 'phi0 = ', phi0
 
-   itor = read_parameter('itor', filename=filename)
-   rzero = read_parameter('rzero', filename=filename)
+   if(n_elements(filename) gt 1) then begin
+      itor = read_parameter('itor', filename=filename[0])
+      rzero = read_parameter('rzero', filename=filename[0])
+   endif else begin
+      itor = read_parameter('itor', filename=filename)
+      rzero = read_parameter('rzero', filename=filename)
+  end
    if(itor eq 1) then begin
       period = 2.*!pi
    endif else begin
