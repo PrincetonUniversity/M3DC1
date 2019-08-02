@@ -271,7 +271,9 @@ subroutine set_defaults
   call add_var_double("kprad_temin", kprad_temin, 2e-7, &
        "Minimum elec. temperature for KPRAD evolution", kprad_grp)
   call add_var_int("ikprad_max_dt", ikprad_max_dt, 0, &
-       "Use maximum value of dt for KPRAD advance", kprad_grp)
+       "Use maximum value of dt for KPRAD ionization", kprad_grp)
+  call add_var_int("ikprad_evolve_internal", ikprad_evolve_internal, 0, &
+       "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
