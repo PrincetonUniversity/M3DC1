@@ -548,7 +548,7 @@ contains
        call vector_insert_block(kprad_recp%vec, itri,1,dofs,VEC_ADD)
 
        ! Electron source (0 if not advancing KPRAD at that point)
-       temp79c = merge(ne - net79(:,OP_1), 0., advance_kprad)
+       temp79c = merge(ne - real(net79(:,OP_1)), 0., advance_kprad)
        dofs = intx2(mu79(:,:,OP_1),temp79c) / dti
        call vector_insert_block(kprad_sigma_e%vec, itri,1,dofs,VEC_ADD)
 
