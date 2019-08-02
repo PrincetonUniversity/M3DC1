@@ -45,26 +45,16 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
-ifdef SCORECVER
-  PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/petsc-3.9.3
-  ifeq ($(COM), 1)
-    PETSC_ARCH=cplx-intel-mpi7.7.6-hsw
-  else
-    PETSC_ARCH=real-intel-mpi7.7.6-hsw
-  endif  
-  MKL_LIB =
-  PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0/lib -L/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
+PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.9.3
+ifeq ($(COM), 1)
+  PETSC_ARCH=cori-hsw-mpich776-cplx-nomkl-510
 else
-  PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.9.3
-  ifeq ($(COM), 1)
-    PETSC_ARCH=cori-hsw-mpich776-cplx-nomkl-510
-  else
-    PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
-  endif
+  PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
+endif
 
   MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
   PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
-endif
+
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
