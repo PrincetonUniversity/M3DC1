@@ -1,16 +1,16 @@
 HOST=cori
-MPIVER=mpich7.7.3
+MPIVER=mpich7.7.6
 ARCH=hsw
 CMAKETYPE=Release
 PETSC_VER=petsc-3.9.3
 PETSCVER=petsc3.9.3
-#PETSC_DIR=/global/project/projectdirs/mp288/jinchen/PETSC/$PETSC_VER
-#PETSC_ARCH=cori-hsw-mpich773-real-nomkl-510
 PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/$PETSC_VER
-PETSC_ARCH=real-intel-mpi7.7.3-$ARCH
+PETSC_ARCH=real-intel-$MPIVER-$ARCH
+#PETSC_DIR=/global/homes/j/jinchen/project/PETSC/$PETSC_VER
+#PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
 #load module cray-hdf5-parallel
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
-ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/$ARCH-$PETSCVER
+ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/$MPIVER/$ARCH-$PETSCVER
 PREFIX=$ZOLTAN_DIR
 cmake .. \
   -DCMAKE_C_COMPILER="cc" \
@@ -22,8 +22,8 @@ cmake .. \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \
-  -DSCOREC_INCLUDE_DIR="$PREFIX/include" \
-  -DSCOREC_LIB_DIR="$PREFIX/lib" \
+  -DSCOREC_INCLUDE_DIR="$ZOLTAN_DIR/include" \
+  -DSCOREC_LIB_DIR="$ZOLTAN_DIR/lib" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
   -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \

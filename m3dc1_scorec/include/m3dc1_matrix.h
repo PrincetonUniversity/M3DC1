@@ -59,7 +59,7 @@ protected:
 class matrix_mult: public m3dc1_matrix
 {
 public:
-  matrix_mult(int i, int s, FieldID field): m3dc1_matrix(i,s,field), localMat(1) { initialize();}
+  matrix_mult(int i, int s, FieldID field);
   virtual int initialize();
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
@@ -88,16 +88,17 @@ public:
   virtual int assemble(); 
   virtual int setupMat();
   virtual int preAllocate();
-  int iterNum;
+  PetscInt its;
 private:  
   int setUpRemoteAStruct();
   int setKspType(); 
   int kspSet;
   KSP* ksp; 
   Mat remoteA;
-  std::set<int> remotePidOwned;
-  std::map<int, std::map<int, int> > remoteNodeRow; // <pid, <locnode>, numAdj >
-  std::map<int, int> remoteNodeRowSize;
+  // remoteA related data
+  std::set<int>* remotePidOwned;
+  std::map<int, std::map<int, int> >* remoteNodeRow; // <pid, <locnode>, numAdj >
+  std::map<int, int>* remoteNodeRowSize;
 };
 
 class m3dc1_solver

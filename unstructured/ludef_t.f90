@@ -5005,16 +5005,14 @@ subroutine ludefphi_n(itri)
         end if
      end do
 
-     if(izone.eq.1) then
-        if(ieq(k).eq.psi_i) then
-           call flux_nolin(mu79,q4)
-        else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
-           call axial_field_nolin(mu79,q4)
-        else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
-           call pressure_nolin(mu79,q4,ipres.eq.0)
-        else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
-           call bf_equation_nolin(mu79,q4)
-        end if
+     if(ieq(k).eq.psi_i) then
+        if(izone.eq.1) call flux_nolin(mu79,q4)
+     else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
+        if(izone.eq.1) call axial_field_nolin(mu79,q4)
+     else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
+        if(izone.eq.1) call pressure_nolin(mu79,q4,ipres.eq.0)
+     else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
+        call bf_equation_nolin(mu79,q4)
      end if
     
      ! If electron pressure equation is not included,

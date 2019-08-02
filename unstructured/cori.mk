@@ -20,11 +20,15 @@ endif
  
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
 
-SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/hsw-petsc3.9.3
-SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/hsw-petsc3.9.3
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/hsw-bin
 
 ifeq ($(REORDERED), 1)
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/reordered
+  SCORECVER=reordered
+endif
+
+ifdef SCORECVER
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
@@ -37,19 +41,30 @@ endif
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 
-SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
-PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/petsc-3.9.3
-ifeq ($(COM), 1)
-  PETSC_ARCH=cplx-intel-mpi7.7.3-hsw
+ifdef SCORECVER
+  PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/petsc-3.9.3
+  ifeq ($(COM), 1)
+    PETSC_ARCH=cplx-intel-mpi7.7.6-hsw
+  else
+    PETSC_ARCH=real-intel-mpi7.7.6-hsw
+  endif  
+  MKL_LIB =
+  PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0/lib -L/opt/cray/pe/hdf5-parallel/1.10.2.0/INTEL/16.0/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
 else
-  PETSC_ARCH=real-intel-mpi7.7.3-hsw
+  PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.9.3
+  ifeq ($(COM), 1)
+    PETSC_ARCH=cori-hsw-mpich776-cplx-nomkl-510
+  else
+    PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
+  endif
+
+  MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+  PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
 endif
-
-PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lstrumpack -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
-
 #only define them if adios-1.3 is used; otherwise use hopper default
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
 #ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
@@ -59,8 +74,6 @@ ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
              -L/usr/lib64/ -llustreapi
 
-MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
-
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
@@ -68,6 +81,7 @@ INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 #           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 #
 LIBS := $(LIBS) \
+        -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \

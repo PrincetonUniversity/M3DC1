@@ -6,6 +6,14 @@ else
     suffix="$1"
 fi
 
+if [ -z "${suffix}" ]; then
+    suffix="test"
+fi
+
+if [ -z "${M3DC1_VERSION}" ]; then
+    M3DC1_VERSION="local"
+fi
+
 # Test cases to run
 if [ -z "$2" ]; then
     dir=( "KPRAD_2D" "RMP" "RMP_nonlin" )
@@ -13,7 +21,44 @@ else
     dir="$2"
 fi
 
+# Test whether executables are in PATH
+BADPATH='F'
+if ! [ -x "$(command -v m3dc1_2d)" ]; then
+  echo 'Error: m3dc1_2d not found in PATH'
+  BADPATH='T'
+fi
+if ! [ -x "$(command -v m3dc1_2d_complex)" ]; then
+  echo 'Error: m3dc1_2d_complex not found in PATH'
+  BADPATH='T'
+fi
+if ! [ -x "$(command -v m3dc1_3d)" ]; then
+  echo 'Error: m3dc1_3d not found in PATH'
+  BADPATH='T'
+fi
+if ! [ -x "$(command -v part_mesh.sh)" ]; then
+  echo 'Error: part_mesh.sh not found in PATH'
+  BADPATH='T'
+fi
+if ! [ -x "$(command -v make_model)" ]; then
+  echo 'Error: make_model not found in PATH'
+  BADPATH='T'
+fi
+if ! [ -x "$(command -v split_smb)" ]; then
+  echo 'Error: split_smb not found in PATH'
+  BADPATH='T'
+fi
+if [ "${BADPATH}" = 'T' ]; then
+    echo
+    echo "Please load m3dc1 module or set PATH to include M3DC1 executables"
+    echo "Running 'make bin' from 'unstructured' directory will make a"
+    echo "directory '_{M3DC1_ARCH}/bin' that contains all M3DC1 executables"
+    echo
+    exit 1;
+fi
+
+
 echo "Suffix = $suffix"
+echo "M3DC1_VERSION = $M3DC1_VERSION"
 
 wd=`pwd`
 

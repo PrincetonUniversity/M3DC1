@@ -1,53 +1,51 @@
-// ===================================
-// INSTALLATION WITHOUT SIMMETRIX
-// ===================================
+// ========================================
+// INSTALLATION WITHOUT SIMMETRIX ON PPPL
+// ========================================
 
-//   to install PUMI on SCOREC linux
+// 1. install Zoltan
 
-  svn co http://redmine.scorec.rpi.edu/svn/pumi/trunk pumi
+$tar xvf /p/tsc/m3dc1/lib/SCORECLib/rhel6/Zoltan_v3.8.tar
+$cd Zoltan_v3.8
 
-  $cd pumi
-  $cp openmpi-gcc4.4.5-config.sh config.sh
-  In config.sh, edit CMAKE_INSTALL_PREFIX
-  $cd build
-  $../config.sh
-  $make install
+$setenv PREFIX your_zoltan_install_dir
+$setenv PARMETIS_DIR your_parmetis_install_dir
+  (ex) /p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.7.6/real-intel2015-openmpi1.10.3-gcc4.4.7
+$mkdir build
+$cd build
+$../configure -prefix=$PREFIX -with-parmetis -with-parmetis-incdir="$PARMETIS_DIR/include"  -with-parmetis-libdir="$PARMETIS_DIR/lib" CC=mpicc CXX=mpicxx CXXCPP='mpicxx -E' --enable-mpi --disable-examples --with-gnumake
+$make everything
+$make install
 
-//   to install m3dc1_scorec with PETSc
+// 2. install PUMI
+$tar xvf /p/tsc/m3dc1/lib/SCORECLib/rhel6/pumi-072019.tar 
+$cd pumi
+modify portal-openmpi-1.10.3-config.sh as needed
+ (ex) PREFIX - your_pumi_install_dir
+      PARMETIS_DIR - your_parmetis_install_dir
+      ZOLTAN_DIR - your_zoltan_install_dir
+$mkdir build
+$cd build
+$../portal-openmpi-1.10.3-config.sh 
+$make install
 
-  $svn co http://redmine.scorec.rpi.edu/svn/pafs/trunk m3dc1_scorec
-  $cd m3dc1_scorec
-  $cp config-files/openmpi-gcc4.4.5-config.sh config.sh
-  In config.sh, edit SCOREC_INCLUDE_DIR, SCOREC_LIB_DIR, CMAKE_INSTALL_PREFIX
-  (Note: CMAKE_INSTALL_PREFIX should be the same as that of core-sim)
-  $cd build
-  $../config.sh
-  $make install
+// 3. install m3dc1_scorec with PETSc
 
-  Note: 
-    - CMAKE_INSTALL_PREFIX should be the same as that of PUMI
-    - to install m3dc1_scorec with Trilinos, set ENABLE_TRILINOS to ON
-
-// to compile test program on scorec
-Set -DENABLE_TESTING=ON or 
-
-/usr/local/openmpi/latest/bin/mpicc ../test/solver/main.cc -o solver -DDEBUG -DM3DC1_PETSC -I/usr/local/openmpi/latest/include  -I/lore/seol/petsc-3.5.4/real-openmpi1.6.5/include -I/lore/seol/petsc-3.5.4/include -I/lore/seol/openmpi-gcc4.4.5-install/include -Wl,--start-group,-rpath,/lore/seol/openmpi-gcc4.4.5-install/lib -L/lore/seol/openmpi-gcc4.4.5-install/lib -lm3dc1_scorec -lpumi -lcrv -lph -lsam -lspr -lma -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -lzoltan -Wl,--end-group -L/lore/seol/petsc-3.5.4/real-openmpi1.6.5/lib  -lpetsc -Wl,-rpath,/lore/seol/petsc-3.5.4/real-openmpi1.6.5/lib -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lHYPRE -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -lsuperlu_4.3 -lsuperlu_dist_3.3 -lflapack -lfblas -lparmetis -lmetis -lpthread -lssl -lcrypto -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl 
-
-
-// 2D
-/usr/local/openmpi/latest/bin/mpirun -np 4 ./solver ../test/AnalyticModel ../test/12K-4part/part.smb 1
-// 3D
-/usr/local/openmpi/latest/bin/mpirun -np 12 ./solver ../test/AnalyticModel ../test/12K-4part/part.smb 3
-
-
-// 2D
-/usr/local/openmpi/latest/bin/mpirun -np 4 ./solver ../test/AnalyticModel ../test/12K-4part/part.smb 1
-// 3D
-/usr/local/openmpi/latest/bin/mpirun -np 12 ./solver ../test/AnalyticModel ../test/12K-4part/part.smb 3
-
-
-//  to compile test program on Edison with Trilinos
-CC ../test/create_smb/show_meshcount.cc -o show_meshcount -DDEBUG -I/global/project/projectdirs/mp288/edison/scorec/Apr2016-mpich7.2.5/include -I/opt/cray/petsc/3.5.2.1/real/INTEL/140/sandybridge/include -Wl,--start-group,-rpath,/global/project/projectdirs/mp288/edison/scorec/Apr2016-mpich7.2.5/lib -L/global/project/projectdirs/mp288/edison/scorec/Apr2016-mpich7.2.5/lib -lcrv -ldsp -lph -lsize -lsam -lspr -lma -lapf_zoltan -lparma -lmds -lapf -llion -lmth -lgmi -lpcu -lm3dc1_scorec_trilinos -Wl,--end-group -L/opt/cray/trilinos/11.10.1.0/INTEL/140/sandybridge/lib -lzoltan -Wl,-rpath,/opt/cray/petsc/3.5.2.1/real/INTEL/140/sandybridge/lib -L/opt/cray/tpsl/1.4.3/INTEL/140/sandybridge/lib -lparmetis -lmetis -lpthread -lssl -lcrypto -Wl,-rpath,/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -L/opt/cray/hdf5-parallel/1.8.11/intel/130/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -ldl -lstdc++
+$tar xvf /p/tsc/m3dc1/lib/SCORECLib/rhel6/m3dc1_scorec-072019.tar 
+$cd m3dc1_scorec 
+modify config-files/portal-openmpi-1.10.3-real|cplx-config.sh as needed
+ (ex) add -DPETSCMASTER if petsc version is 3.8.3 or higher
+      PREFIX - your_m3dc1_scorec_install_dir
+      PETSC_DIR - your_petsc_install_dir
+      PETSC_ARCH - your_petsc_arch_dir
+      HDF5_DIR - your_hfd5_parallel_dir
+      PARMETIS_DIR - your_parmetis_install_dir
+      ZOLTAN_DIR - your_zoltan_install_dir
+      SCOREC_DIR - your_pumi_install_dir
+      ENABLE_COMPLEX - ON (complex) or OFF (real) 
+$mkdir build
+$cd build
+$../config-files/portal-openmpi-1.10.3-real|cplx-config.sh
+$make install
 
 
 // ===================================
