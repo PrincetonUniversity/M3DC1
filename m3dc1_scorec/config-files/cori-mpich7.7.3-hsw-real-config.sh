@@ -4,14 +4,14 @@ ARCH=hsw
 CMAKETYPE=Release
 PETSC_VER=petsc-3.9.3
 PETSCVER=petsc3.9.3
-PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/$PETSC_VER
-PETSC_ARCH=real-intel-$MPIVER-$ARCH
-#PETSC_DIR=/global/homes/j/jinchen/project/PETSC/$PETSC_VER
-#PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
+#PETSC_DIR=/global/project/projectdirs/mp288/cori/petsc/$PETSC_VER
+#PETSC_ARCH=real-intel-$MPIVER-$ARCH
+PETSC_DIR=/global/homes/j/jinchen/project/PETSC/$PETSC_VER
+PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
 #load module cray-hdf5-parallel
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/$MPIVER/$ARCH-$PETSCVER
-PREFIX=$ZOLTAN_DIR
+PREFIX=$ZOLTAN_DIR/082019
 cmake .. \
   -DCMAKE_C_COMPILER="cc" \
   -DCMAKE_CXX_COMPILER="CC" \
