@@ -131,6 +131,11 @@ contains
     end if
     te_int = te
 
+    if(ikprad_evolve_internal.eq.0) then
+       call kprad_ionization_rate(npts, ne, te, z, sion)
+       call kprad_recombination_rate(npts, ne, te, z, srec)
+    end if
+
     ! start time loop
     last_step = .false.
     do while(.not.last_step)
@@ -145,9 +150,10 @@ contains
        ne_old = ne
 
        ! calculate ionization and recombination rates
-       call kprad_ionization_rate(npts, ne, te_int, z, sion)
-       call kprad_recombination_rate(npts, ne, te_int, z, srec)
-
+       if(ikprad_evolve_internal.eq.1) then
+          call kprad_ionization_rate(npts, ne, te_int, z, sion)
+          call kprad_recombination_rate(npts, ne, te_int, z, srec)
+       end if
 
        do i=0, z
           if(i.gt.0) aimp(:,i) = -dts*sion(:,i-1)
