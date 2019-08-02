@@ -11,8 +11,8 @@ module kprad
   ! mass of chosen impurity species (in amu)
   integer :: kprad_mz
 
-  ! use max dt in KPRAD evolution
-  integer :: ikprad_max_dt
+  integer :: ikprad_max_dt ! use max dt in KPRAD evolution
+  integer :: ikprad_evolve_internal
 
 
   ! polynomial order for evaluating 
@@ -169,8 +169,6 @@ contains
           ne = ne + i*(nz(:,i) - nz_old(:,i))
        end do
 
-       dp_int = (imp_rad(:,z) + pion(:,z) + pbrem + preck(:,z))*dts * 1.e7
-
        ! change in electron density
        where(ne_old.gt.0.)
           delta = abs(ne - ne_old)/ne_old
@@ -178,8 +176,11 @@ contains
           delta = 0.
        end where
 
-       ! change in thermal energy
-       where(p_int.gt.0) delta = sqrt(delta**2 + (dp_int/p_int)**2)
+       if(ikprad_evolve_internal.eq.1) then
+          ! change in thermal energy
+          dp_int = (imp_rad(:,z) + pion(:,z) + pbrem + preck(:,z))*dts * 1.e7
+          where(p_int.gt.0) delta = sqrt(delta**2 + (dp_int/p_int)**2)
+       end if
 
        max_change = maxval(delta)
 
@@ -202,10 +203,11 @@ contains
           dw_brem = dw_brem + pbrem*dts
           dw_rad  = dw_rad + imp_rad*dts
 
-          p_int = p_int - dp_int
-
-          te_int = p_int/(ne*1.6022e-12)
-          if(ipres.eq.0) te_int = pefac*te_int
+          if(ikprad_evolve_internal.eq.1) then
+             p_int = p_int - dp_int
+             te_int = p_int/(ne*1.6022e-12)
+             if(ipres.eq.0) te_int = pefac*te_int
+          end if
 
           ! If ne change is < 2%, increase time step
           if(max_change .lt. 0.02) dts = dts * 1.5
