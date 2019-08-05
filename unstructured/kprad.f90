@@ -11,6 +11,10 @@ module kprad
   ! mass of chosen impurity species (in amu)
   integer :: kprad_mz
 
+  integer :: ikprad_max_dt ! use max dt in KPRAD evolution
+  integer :: ikprad_evolve_internal
+
+
   ! polynomial order for evaluating 
   ! radiation and ionization rates, respectively
   integer, private :: m1, m2
@@ -71,13 +75,17 @@ contains
   end subroutine kprad_instantaneous_radiation
 
 
-  subroutine kprad_advance_densities(dt, npts, z, ne, te, nz, dw_rad, dw_brem,&
+  subroutine kprad_advance_densities(dt, npts, z, p, ne, te, nz, dw_rad, dw_brem,&
        dw_ion, dw_reck, dw_recp, source)
+
+    use basic, only : pefac, ipres
+
     implicit none
 
     real, intent(in) :: dt                    ! time step to advance densities
     integer, intent(in) :: npts
     integer, intent(in) :: z
+    real, intent(in) :: p(npts)              ! pressure in dyne/cm^2
     real, intent(inout) :: ne(npts)          ! electron density in cm^-3
     real, intent(in) :: te(npts)             ! electron temperature in eV
     real, intent(inout) :: nz(npts,0:z)      ! density
@@ -91,6 +99,7 @@ contains
     real :: t, dts
     integer :: i
     real, dimension(npts) :: ne_old, delta
+    real, dimension(npts) :: te_int, p_int, dp_int   ! internal Te and p
     real, dimension(npts,0:z) :: nz_old
     real, dimension(npts,0:z-1) :: sion
     real, dimension(npts,0:z) :: srec
@@ -100,13 +109,10 @@ contains
     real, dimension(npts,0:z) :: aimp, bimp, cimp, dimp, ework, fwork
     real :: max_change
     logical :: last_step
-    real :: dts_min
-
-    ! calculate ionization and recombination rates
-    call kprad_ionization_rate(npts,ne,te,z,sion)
-    call kprad_recombination_rate(npts,ne,te,z,srec)
+    real :: dts_min, dts_max
 
     dts_min = dt/1e6
+    if(ikprad_max_dt.eq.1) dts_max = dt/(z+1.0)  ! use one step per charge state
     dts = kprad_dt
     t = 0.
     dw_ion = 0.
@@ -117,6 +123,18 @@ contains
 
     aimp(:,0) = 0.0
     cimp(:,z) = 0.0
+
+    if(ipres.eq.0) then
+       p_int = p ! use total pressure
+    else if(ipres.eq.1) then
+       p_int = ne*te*1.6022e-12 ! use electron pressure (in erg/cm^3)
+    end if
+    te_int = te
+
+    if(ikprad_evolve_internal.eq.0) then
+       call kprad_ionization_rate(npts, ne, te, z, sion)
+       call kprad_recombination_rate(npts, ne, te, z, srec)
+    end if
 
     ! start time loop
     last_step = .false.
@@ -131,6 +149,12 @@ contains
        nz_old = nz
        ne_old = ne
 
+       ! calculate ionization and recombination rates
+       if(ikprad_evolve_internal.eq.1) then
+          call kprad_ionization_rate(npts, ne, te_int, z, sion)
+          call kprad_recombination_rate(npts, ne, te_int, z, srec)
+       end if
+
        do i=0, z
           if(i.gt.0) aimp(:,i) = -dts*sion(:,i-1)
           bimp(:,i) =  1. + dts*srec(:,i)
@@ -144,46 +168,60 @@ contains
        call tridiag(aimp,bimp,cimp,dimp,nz, &
             ework,fwork,npts,z)
        
-       call kprad_energy_losses(npts,z,te, &
+       call kprad_energy_losses(npts,z,te_int, &
             ne,sion,srec,nz,nzeff,pion,preck,precp,imp_rad,pbrem)
 
-       t = t + dts
-       dw_ion  = dw_ion + pion*dts
-       dw_reck = dw_reck + preck*dts
-       dw_recp = dw_recp + precp*dts
-       dw_brem = dw_brem + pbrem*dts
-       dw_rad  = dw_rad + imp_rad*dts
-       
        do i=1, z
           ne = ne + i*(nz(:,i) - nz_old(:,i))
        end do
 
+       ! change in electron density
        where(ne_old.gt.0.)
           delta = abs(ne - ne_old)/ne_old
        elsewhere
           delta = 0.
        end where
+
+       if(ikprad_evolve_internal.eq.1) then
+          ! change in thermal energy
+          dp_int = (imp_rad(:,z) + pion(:,z) + pbrem + preck(:,z))*dts * 1.e7
+          where(p_int.gt.0) delta = sqrt(delta**2 + (dp_int/p_int)**2)
+       end if
+
        max_change = maxval(delta)
-       if(max_change .lt. 0.02) then
-          ! If ne change is < 2%, increase time step
-          dts = dts * 1.5
-       elseif((max_change .gt. 0.2) .and. (dts .gt. dts_min)) then
+
+       if((max_change .gt. 0.2) .and. (dts .gt. dts_min)) then
+
           ! If ne change is > 20%, backtrack changes and reduce time step
-          t = t - dts
-          dw_ion = dw_ion - pion*dts
-          dw_reck = dw_reck - preck*dts
-          dw_recp = dw_recp - precp*dts
-          dw_brem = dw_brem - pbrem*dts
-          dw_rad = dw_rad - imp_rad*dts
           ne = ne_old
           nz = nz_old
           dts = dts / 2.
           last_step = .false.
 
           if(dts.lt.dts_min) dts = dts_min
-       end if
-    enddo
 
+       else
+
+          t = t + dts
+          dw_ion  = dw_ion + pion*dts
+          dw_reck = dw_reck + preck*dts
+          dw_recp = dw_recp + precp*dts
+          dw_brem = dw_brem + pbrem*dts
+          dw_rad  = dw_rad + imp_rad*dts
+
+          if(ikprad_evolve_internal.eq.1) then
+             p_int = p_int - dp_int
+             te_int = p_int/(ne*1.6022e-12)
+             if(ipres.eq.0) te_int = pefac*te_int
+          end if
+
+          ! If ne change is < 2%, increase time step
+          if(max_change .lt. 0.02) dts = dts * 1.5
+          if((ikprad_max_dt.eq.1).and.(dts.gt.dts_max)) dts = dts_max
+
+       end if
+
+    enddo
 
   end subroutine kprad_advance_densities
 
