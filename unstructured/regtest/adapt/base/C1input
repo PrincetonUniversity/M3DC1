@@ -1,0 +1,149 @@
+&inputnl
+
+! I/O Options
+! ===========
+	ntimemax = 0	! number of time steps
+	ntimepr = 100	! number of time steps per output
+	iprint = 0	! 1 = print detailed debug info
+	itimer = 1	! 1 = print timing info
+
+	irestart = 0	! 1 = read restart
+
+	iwrite_aux_vars = 1
+	iwrite_transport_coeffs = 1
+
+	ike_harmonics = 4
+	ibh_harmonics = 4
+
+	iadapt = 1
+	adapt_smooth = 0.02
+
+! Numerical Method Options
+! ========================
+	dt = 100.	! time step
+
+	integrator = 0	! 0 = Crank-Nicholson, 1 = BDF2
+	thimp = 1.0	! implicitness parameter for CN
+	imp_mod = 0
+	isplitstep = 1
+
+	int_pts_main = 25
+	int_pts_aux = 25
+	int_pts_diag = 25
+
+	ivform = 1
+	jadv = 1
+	isurface = 0
+
+	itime_independent = 0
+	imp_bf = 0
+
+	regular = 1e-8
+
+	max_ke = 0.
+
+! Model Options
+! =============
+	itor = 0	! 1 = toroidal geometry, 0 = slab geometry
+
+	linear = 0	! 0 = nonlinear; 1 = linear
+	eqsubtract = 0	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 3	! 1 = 2-field; 2 = 4-field; 3 = 6-field
+      	idens = 1	! 1 = advance density
+	ipres = 0	! 1 = include electron pressure equation
+	itemp = 1
+	ipressplit = 1
+	gyro = 0
+
+	inertia = 1
+
+	ion_mass = 1.
+	z_ion = 1.
+
+	tcur = 1.2575
+	vloop = -5.837545416804388E-004
+	control_type = 1
+	control_p = -0.01
+	control_d =  0.
+	control_i = -1e-4
+
+	ibeam = 5
+	beam_rate = 2.718e22
+	beam_x = 10.
+	beam_z = 0.
+	beam_v = 1e6
+	beam_dr = 0.2
+
+
+! Equilibrium Options
+! ===================
+      	itaylor = 33	! determines initial conditions
+			! 0: Tilting Cylinder
+			! 1: Taylor reconnection
+			! 2: Force-free Taylor state
+			! 3: GEM-reconnection
+			! 4: Wave propagation
+
+
+	iread_j = 1
+	iread_f = 1
+	iread_p = 1
+	iread_ne = 1
+	iread_omega = 1
+
+	xlim = 11.0
+	zlim = 0.0
+
+	rzero = 10.
+	p0 = 4e-2	! total pressure
+	pi0 = 2e-2	! ion pressure
+
+	irmp = 2
+	xzero = 10.
+	zzero = 0.
+	mpol = 3
+	eps = 1e-3	! size of initial perturbation
+
+!	maxn = 20
+
+	ln = 1.0	
+
+
+
+! Transport Parameters
+! ====================
+	iresfunc = 4
+	eta_fac = 1000.
+	eta_wall = 1.
+      	amu = 2.740995145697597E-005	! kinematic viscosity 
+	amuc = 0.
+	amupar = 0.
+	denm = 0.		! density diffusion
+	kappat = 4.584590275167108E-005	! isotropic thermal diffusion
+	kappar = 1.		! field-aligned thermal conductivity
+	ikapscale = 0
+
+	gam = 1.66666666666667	! adiabatic constant
+
+!	db = 0.0322	! ion skin depth
+
+
+! Boundary Conditions
+! ===================
+	nonrect = 1
+
+	imulti_region = 1
+	
+	mesh_filename = 'part.smb'
+!	mesh_filename = 'AnalyticModel.smb'
+	mesh_model = 'circle-0.02-0.0-0.0.txt'
+	
+
+	xmag = 10.	! x-coordinate of magnetic axis
+	zmag = 0.	! z-coordinate of magnetic axis
+	pedge = 0.
+
+	ntor = 1
+
+	nplanes = 1
+ /
