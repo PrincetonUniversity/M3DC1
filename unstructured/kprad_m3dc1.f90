@@ -593,6 +593,7 @@ contains
     use read_ascii
     use pellet
     use newvar_mod
+    use math
 
     implicit none
 
@@ -650,6 +651,7 @@ contains
 
        ! convert z from length to angle
        phi_vals = z_vals / x_vals + pellet_phi
+       where(phi_vals.lt.0.) phi_vals = phi_vals + 2.*pi
     
        ! convert density to rate
        n_vals = n_vals / lp_source_dt
