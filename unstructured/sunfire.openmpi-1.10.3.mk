@@ -56,20 +56,23 @@ ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 ifeq ($(REORDERED), 1)
   SCORECVER=reordered
 endif
+PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
+
 ifdef SCORECVER
-  PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)-$(SCORECVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)/$(SCORECVER)
 else
-  PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
 endif
 
-PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-SCOREC_LIB = -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
+SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
+            -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
 
 COMP_LIB_DIR=/usr/pppl/intel/2015.u1/composer_xe_2015.1.133/compiler/lib/intel64

@@ -23,8 +23,9 @@ Updated
     - make OPT=1 COM=1
     - add PAR=1 for PIC 
 
-  For reordered matrix (aggregated unknowns), add REORDERED=1 or SCORECVER=reordered
-  For new solver development (-DNEWSOLVERDEVELOPMENT), add SCORECVER=062019
+  Set SCORECVER in order to link with various m3dc1_scorec versions
+  (ex) if SCORECVER=reordered, it will link to reordered matrix (aggregated unknowns) repo
+       if SCORECVER=082019, it will link to master repo which supports -DNEWSOLVERDEVELOPMENT
 
 5. mesh utility
     /p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7/bin
