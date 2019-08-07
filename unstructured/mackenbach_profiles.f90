@@ -547,8 +547,8 @@ program eqcalc_2
   print *, "amu = ", mu_v / 0.364831
   print *, "vloop = ", VL/2.18122e+06 
   print *, "tcur = ", IP/795217.
-  print *, "beam_v =", 1e5
-  print *, "beam_rate = ", F0*8.595e21
+  print *, "beam_v =", 1e6
+  print *, "beam_rate = ", F0*2.718e21
   print *, "beam_dr = ", 0.2
 
 end program eqcalc_2
