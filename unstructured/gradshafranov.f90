@@ -28,6 +28,7 @@ module gradshafranov
   real, private :: gamma2, gamma3, gamma4  
 
   logical, private :: constraint = .false.
+  logical, private :: do_feedback, do_feedback_x
 
   real, private :: gnorm, libetapeff, fac2
 
@@ -135,11 +136,20 @@ subroutine coil_feedback(itnum)
      print *, 'Doing feedback', xmag-xmag0, zmag-zmag0,xnull-xnull0,znull-znull0
   end if
 
-  xmagi = xmagi + (xmag-xmag0)
-  zmagi = zmagi + (zmag-zmag0)
-  if(itnum.gt.10) then
+  if(do_feedback) then
+     xmagi = xmagi + (xmag-xmag0)
+     zmagi = zmagi + (zmag-zmag0)
+  else
+     xmagi = 0.
+     zmagi = 0.
+  end if
+
+  if((itnum.gt.10).and.(do_feedback_x)) then
      xnulli = xnulli + (xnull-xnull0)
      znulli = znulli + (znull-znull0)
+  else
+     xnulli = 0.
+     znulli = 0.
   end if
 
   if(myrank.eq.0) then
@@ -147,7 +157,7 @@ subroutine coil_feedback(itnum)
         ic_out(i) = ic_vac(i)
 
         ! Do magnetic axis control
-        if(xmag0.gt.0.) then
+        if((xmag0.gt.0.).and.(do_feedback)) then
            ic_out(i) = ic_out(i) &
                 + (amu0 * 1000. / twopi) / filaments(i) * &
                 (gs_vertical_feedback(coil_mask(i))*(zmag-zmag0) &
@@ -157,7 +167,7 @@ subroutine coil_feedback(itnum)
         end if
 
         ! Do x-point control
-        if(xnull0.gt.0. .and. itnum.gt.10) then
+        if((xnull0.gt.0. .and. itnum.gt.10).and.(do_feedback_x)) then
            ic_out(i) = ic_out(i) &
                 + (amu0 * 1000. / twopi) / filaments(i) * &
                 (gs_vertical_feedback_x(coil_mask(i))*(znull-znull0) &
@@ -1010,7 +1020,6 @@ subroutine gradshafranov_solve
   integer :: itri, i, ier, itnum, ibound, izone
   integer :: numelms, numnodes
   real :: feedfac
-  logical :: do_feedback, do_feedback_x
 
   real :: error, error2, error3 
 
