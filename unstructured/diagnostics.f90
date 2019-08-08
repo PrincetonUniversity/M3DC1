@@ -235,8 +235,10 @@ contains
     nfluxd = 0.
     nfluxv = 0.
     nsource = 0.
-    nsource_pel = 0. ! this is an array
-    temp_pel = 0.    ! this is an array
+    if(ipellet_abl.gt.0) then
+       nsource_pel = 0. ! this is an array
+       temp_pel = 0.    ! this is an array
+    end if
 
     bwb2 = 0.
 
@@ -435,16 +437,18 @@ contains
        wall_force_n0_z_halo = temp2(72)
        helicity        = temp2(73)
 
-       allocate(ptemp(npellets))
+       if(ipellet_abl.gt.0) then
+          allocate(ptemp(npellets))
 
-       ptemp = nsource_pel
-       call mpi_allreduce(ptemp, nsource_pel, npellets, MPI_DOUBLE_PRECISION,  &
-                          MPI_SUM, MPI_COMM_WORLD, ier)
-       ptemp = temp_pel
-       call mpi_allreduce(ptemp, temp_pel, npellets, MPI_DOUBLE_PRECISION,  &
-                          MPI_SUM, MPI_COMM_WORLD, ier)
+          ptemp = nsource_pel
+          call mpi_allreduce(ptemp, nsource_pel, npellets, MPI_DOUBLE_PRECISION,  &
+                             MPI_SUM, MPI_COMM_WORLD, ier)
+          ptemp = temp_pel
+          call mpi_allreduce(ptemp, temp_pel, npellets, MPI_DOUBLE_PRECISION,  &
+                            MPI_SUM, MPI_COMM_WORLD, ier)
 
-       deallocate(ptemp)
+          deallocate(ptemp)
+       end if
 
     endif
 

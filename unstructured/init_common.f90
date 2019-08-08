@@ -236,7 +236,9 @@ subroutine den_eq
   integer :: ip
   
   if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
-  if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
+  if(ipellet.ne.0) then
+     if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
+  end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
@@ -306,7 +308,8 @@ subroutine den_per
   real, dimension(MAX_PTS) :: n, p
   integer :: ip
 
-  if(ipellet.ge.0 .or. (ipellet_z.ne.0 .and. all(pellet_mix.eq.0.))) return
+  if(ipellet.ge.0) return
+  if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
 
   call create_field(den_vec)
   den_vec = 0.
