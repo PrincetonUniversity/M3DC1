@@ -1,0 +1,159 @@
+&inputnl
+
+! I/O Options
+! ===========
+	ntimemax = 3	! number of time steps
+	ntimepr = 1	! number of time steps per output
+	iprint = 2	! 1 = print detailed debug info
+	itimer = 1	! 1 = print timing info
+
+	iglobalout = 0
+	iglobalin = 0
+	irestart = 0	! 1 = read restart
+
+	iread_hdf5 = 1
+
+	iread_eqdsk = 1
+	iwrite_aux_vars = 1
+	iwrite_transport_coeffs = 1
+	itemp_plot=0
+
+	irmp = 0
+!	extsubtract = 1
+!
+!
+! Numerical Method Options
+! ========================
+	dt = 1.0 	! time step
+
+	thimp = 1.0	! implicitness parameter for CN
+	imp_mod = 0
+	isplitstep = 1  ! 1 = split implicit method
+
+	int_pts_main = 12
+	int_pts_aux = 12
+	int_pts_diag = 12
+
+	ivform = 1
+	jadv = 1
+	isurface = 0
+
+	max_ke = 0.
+	imp_bf = 0
+
+	regular = 1.e-6
+
+! Model Options
+! =============
+	itor = 1	! 1 = toroidal geometry, 0 = slab geometry
+	linear = 0	! 0 = nonlinear; 1 = linear
+	eqsubtract = 0	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 3	! 1 = 2-field; 2 = 4-field; 3 = 6-field
+      	idens = 1	! 1 = advance density
+	ipres = 1       ! 1 = include both ion and electron pressure equation
+        itemp = 1       ! 1 = solve for temperature instead of pressure
+        ipressplit = 1  ! 1 = split pressure solve from magnetic solve
+	gyro = 0        ! 1 = include gyroviscosity
+
+	inertia = 1
+
+	ion_mass = 2.
+	z_ion = 1.
+	eta_fac = 1.
+
+        pedge    = 5e-5
+
+	ipellet = 11
+	pellet_r = 1.2
+	pellet_phi = 0.0
+	pellet_z = 0.5
+	pellet_velr = -0.3
+	pellet_velz = -0.5
+	pellet_velphi = 0.1
+!	pellet_mix = 0.5
+	ipellet_abl = 3
+	r_p = 1e-2
+	cloud_pel = 10.
+	pellet_var_tor = 3.14159 !0.78540
+
+	ikprad = 1
+	kprad_z = 10.
+	
+	
+	
+
+! Equilibrium Options
+! ===================
+      	itaylor = 1	! determines initial conditions
+			! 1: when itor=1, solve GS equation
+	idevice = 1	! when itor=1 and itaylor=1
+                        !-1: coils from coil.dat and current.dat files
+			! 0: vertical field
+
+	bzero = 0.4395	! toroidal field strength
+	rzero = 0.991
+	p0 = 1.		! total pressure
+	pi0 = 0.5	! ion pressure
+
+	eps = 0.   ! initial perturbation
+	verzero = 00.  ! initial vertical velocity
+
+	irot = 0     ! no rotation in initial equilibrium
+
+	iread_ne = 0
+	iread_te = 0
+
+
+! Transport Parameters
+! ====================
+	eta_te_offset = 9e-4   ! offset temperature for vacuum resistivity
+	eta_max = 1e-3
+	iresfunc = 4
+	eta0 = 1.e-4
+	etar = 1.e-8	! resistivity = etar + eta0/T^(3/2)
+      	amu = 1.e-4	! kinematic viscosity
+	amuc = 1.e-3
+	amupar = 0.
+	denm = 1.e-6	! density diffusion
+	kappat = 1.e-6	! isotropic thermal conductivity
+	kappa0 = 0.	!  kappa = kappat + kappa0*p/T^(3/2)
+	kappar = 1.	! field-aligned thermal conductivity
+	ikapscale = 0
+
+ 	db = 0.00	! ion skin depth
+
+! Boundary Conditions
+! ==================
+
+        iconst_p = 0
+	iconst_t = 1
+	iconst_bz = 0
+	ifbound = 1
+
+	nonrect = 1
+	nplanes = 4
+	ike_harmonics = 2
+	ibh_harmonics = 2
+
+	mesh_filename = 'part.smb'
+	mesh_model = 'analytic.txt'
+
+
+! Grad-Shafranov Options
+! ======================
+	xlim = 0.2
+	zlim = 0.
+	xmag0 = .991	! x-coordinate of magnetic axis
+	zmag0 = -0.0153	! z-coordinate of magnetic axis
+	tcuro = -0.5821 ! initial toroidal current (MA)
+	th_gs = 0.6
+	igs = 60 	! number of grad-shafranov iterations
+	sigma0 = 0.1	! half width of inital current
+	expn = 0.4
+	divertors = 0
+	xnull = 0.545
+	znull = -1.238
+	xnull2 = 0.5116
+ 	znull2 = 1.238
+	
+ /
