@@ -64,17 +64,18 @@
         pedge    = 5e-5
 
 	ipellet = 11
+	ipellet_z = 10
 	pellet_r = 1.2
 	pellet_phi = 0.0
 	pellet_z = 0.5
-	pellet_velr = -0.3
+	pellet_velr = -0.5
 	pellet_velz = -0.5
-	pellet_velphi = 0.1
-!	pellet_mix = 0.5
+	pellet_velphi = 0.25
+	pellet_mix = 0.5
 	ipellet_abl = 3
 	r_p = 1e-2
 	cloud_pel = 10.
-	pellet_var_tor = 3.14159 !0.78540
+	pellet_var_tor = 1.5708
 
 	ikprad = 1
 	kprad_z = 10.
