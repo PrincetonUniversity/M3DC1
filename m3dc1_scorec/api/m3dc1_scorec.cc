@@ -2772,11 +2772,13 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
   ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
   in->maximumIterations = 9;
-  //if (!pumi_rank())  std::cout<<"in->sholdSnap & in->shouldTransferToClosestPoint "<<
-  //  in->shouldSnap <<", "<<in->shouldTransferToClosestPoint<<"\n";
+
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
-  in->shouldRunPostZoltan = true;
+  in->shouldRunPostZoltan = false;
+  in->shouldRunPostZoltanRib=false;
+  in->shouldRunPostParma=true;
+
   ma::adapt(in);
   reorderMdsMesh(mesh);
 
@@ -2999,10 +3001,10 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   in->maximumIterations = 5;
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
-  in->shouldRunPostZoltan = true;
-  //set<int> field_keep;
-  //field_keep.insert(*fieldId);
-  //m3dc1_mesh ::instance ()->clean(field_keep);
+  in->shouldRunPostZoltan = false;
+  in->shouldRunPostZoltanRib=false;
+  in->shouldRunPostParma=true;
+
   ma::adapt(in);
   reorderMdsMesh(mesh);
   //mesh->verify();

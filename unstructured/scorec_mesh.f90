@@ -640,6 +640,7 @@ contains
     curv = 0.
 
     call m3dc1_ent_getgeomclass(0,inode-1,izonedim,izone)
+    call get_node_pos(inode,x,phi,z)
 
     if(is_rectilinear) then
        if(izonedim.ge.2) then
@@ -725,8 +726,6 @@ contains
        end if
 
     end if
-    call get_node_pos(inode,x,phi,z)
-
   end subroutine boundary_node
 
   subroutine boundary_edge(itrin, is_edge, normal, idim, tags)
