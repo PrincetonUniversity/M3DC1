@@ -400,6 +400,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
+  call output_scalar(scalar_group_id, "helicity"        ,helicity,ntime, error)
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
@@ -452,6 +453,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "ion_loss"        , ionrad, ntime, error)
   call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, error)
   call output_scalar(scalar_group_id, "recp_rad"        , recprad, ntime, error)
+
 
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)

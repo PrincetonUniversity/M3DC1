@@ -18,7 +18,8 @@ module diagnostics
   real :: w_m    ! totoidal poloidal magnetic energy inside plasma
   real :: w_p    ! totoidal poloidal magnetic energy inside plasma
   real :: totre  ! total number of runaway electrons
-
+  real :: helicity ! total helicity
+  
   ! wall forces in R, phi, and Z directions
   real :: wall_force_n0_x, wall_force_n0_y, wall_force_n0_z
   real :: wall_force_n0_x_halo, wall_force_n0_z_halo
@@ -257,6 +258,7 @@ contains
     wall_force_n0_x_halo = 0.
     wall_force_n0_z_halo = 0.
 
+    helicity = 0.
 
   end subroutine reset_scalars
 
@@ -274,7 +276,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 74
+    integer, parameter :: num_scalars = 75
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
 
@@ -354,6 +356,7 @@ contains
        temp(72) = w_p
        temp(73) = wall_force_n0_x_halo
        temp(74) = wall_force_n0_z_halo
+       temp(75) = helicity
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -433,6 +436,7 @@ contains
        w_p             = temp2(72)
        wall_force_n0_x_halo = temp2(73)
        wall_force_n0_z_halo = temp2(74)
+       helicity        = temp2(75)
     endif
 
   end subroutine distribute_scalars
@@ -740,7 +744,7 @@ subroutine calculate_scalars()
   if(ipellet.ne.0) call calculate_Lor_vol
 
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -881,6 +885,13 @@ subroutine calculate_scalars()
      if(irunaway.gt.0) then
         totre = totre + twopi*int1(nre79(:,OP_1))/tpifac
      end if
+
+     helicity = helicity &
+          + twopi*int3(ri2_79,pstx79(:,OP_1),bztx79(:,OP_1))/tpifac
+#if defined(USE3D) || defined(USECOMPLEX)
+     helicity = helicity &
+          + twopi*int2(bftx79(:,OP_1),pst79(:,OP_GS))/tpifac
+#endif
 
      ! particle source
      if(idens.eq.1) then        
