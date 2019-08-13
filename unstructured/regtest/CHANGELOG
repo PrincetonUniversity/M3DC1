@@ -12,3 +12,9 @@ Reason: Bug fix for itemp=1 iconst_p=0 iconst_t=1 boundary conditions
 5/22/2019
 Changed: RMP 
 Reason: New mesh file to make test case smaller
+
+8/13/2019
+Changed: adapt
+Reason: New scorec libraries result in different C1ke file.  Mesh
+still looks good; not sure if adapted mesh is different or if there is
+a difference in how solution transfer is done.
