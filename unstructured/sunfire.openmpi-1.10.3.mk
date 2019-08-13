@@ -73,7 +73,7 @@ endif
 
 SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
-           $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
+           $(PUMI_LIB) -Wl,--end-group
 
 COMP_LIB_DIR=/usr/pppl/intel/2015.u1/composer_xe_2015.1.133/compiler/lib/intel64
 MPI_LIB_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3/lib
