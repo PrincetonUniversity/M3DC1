@@ -1,4 +1,4 @@
-diiid-13K0.smb : input
+jet-10K0.smb : input
 	create_mesh.sh input
 
 .PHONY : clean
