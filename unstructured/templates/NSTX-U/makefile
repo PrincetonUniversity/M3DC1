@@ -6,8 +6,8 @@ dirs = fw1_adapt fw1_response fw1_stability \
 all : $(dirs)
 	cp fw1_adapt/nstxu.txt fw1_response
 	cp fw1_adapt/nstxu.txt fw1_stability
-	cp rw1_adapt/nstxu-0.02-2.20-4.00.txt rw1_response
-	cp rw1_adapt/nstxu-0.02-2.20-4.00.txt rw1_stability
+	cp rw1_adapt/nstxu-0.02-2.2-4.0.txt rw1_response
+	cp rw1_adapt/nstxu-0.02-2.2-4.0.txt rw1_stability
 
 $(dirs) : 
 	cd $@ ; $(MAKE) $(MAKECMDGOALS)
