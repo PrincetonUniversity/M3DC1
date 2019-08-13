@@ -49,15 +49,21 @@ PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
 HYPRE_LIB=-lHYPRE
 endif
 
-SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7
-SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
-ZOLTAN_LIB=-L$(SCOREC_DIR)/lib -lzoltan
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 
 ifeq ($(REORDERED), 1)
-  PUMI_DIR=$(SCOREC_DIR)/$(PETSCVER)/reordered
-else
-  PUMI_DIR=$(SCOREC_DIR)/$(PETSCVER)
+  SCORECVER=reordered
 endif
+#SCORECVER=082019
+ifdef SCORECVER
+  PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)/$(SCORECVER)
+else
+  PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+endif
+
+#PUMI_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/Aug2017/openmpi-1.10.3/debug
 
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 ifeq ($(COM), 1)
