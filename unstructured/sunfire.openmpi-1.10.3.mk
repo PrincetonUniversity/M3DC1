@@ -51,7 +51,7 @@ endif
 
 SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/$(PETSCVER)/lib -lzoltan
 
 ifeq ($(REORDERED), 1)
   SCORECVER=reordered

@@ -2775,9 +2775,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
 
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
-  in->shouldRunPostZoltan = false;
-  in->shouldRunPostZoltanRib=false;
-  in->shouldRunPostParma=true;
+  in->shouldRunPostZoltan = true;
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
@@ -3001,31 +2999,11 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   in->maximumIterations = 5;
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
-  in->shouldRunPostZoltan = false;
-  in->shouldRunPostZoltanRib=false;
-  in->shouldRunPostParma=true;
+  in->shouldRunPostZoltan = true;
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
-  //mesh->verify();
   
-  /*while(mesh->countFields())
-  {
-    Field* f = mesh->getField(0);
-    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<getName(f)<<" deleted\n";
-    destroyField(f);
-  }*/
-  /*
-  while(mesh->countNumberings())
-  {
-    Numbering* n = mesh->getNumbering(0);
-    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
-    destroyNumbering(n);
-  }*/
-  //sprintf(filename,"adapted%d",adapt_time++);
-  //apf::writeVtkFiles(filename,mesh);
-  //mesh->writeNative("adapted.smb");
-
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
