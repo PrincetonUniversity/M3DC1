@@ -16,7 +16,7 @@ fi
 
 # Test cases to run
 if [ -z "$2" ]; then
-    dir=( "KPRAD_2D" "RMP" "RMP_nonlin" "adapt" )
+    dir=( "KPRAD_2D" "RMP" "RMP_nonlin" "adapt" "pellet" )
 else
     dir="$2"
 fi
