@@ -36,6 +36,7 @@ module adapt
     use scorec_mesh_mod
     use m3dc1_nint
     use coils
+    use transport_coefficients
 
     integer :: izone, izonedim, i, j
     integer :: numelms, itri
@@ -218,6 +219,8 @@ module adapt
     i_control%err_p_old = 0.
     n_control%err_i = 0.
     n_control%err_p_old = 0.
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+    call define_transport_coefficients
     call derived_quantities(1)
     !ke_previous = ekin
   end subroutine adapt_by_psi
@@ -234,6 +237,7 @@ module adapt
     use time_step
     use auxiliary_fields
     use scorec_mesh_mod
+    use transport_coefficients
 !#include "mpif.h"
     vectype, allocatable :: edge_error(:,:)
     vectype, allocatable :: elm_error(:,:), elm_error_res(:,:), elm_error_sum(:,:)
@@ -323,7 +327,7 @@ module adapt
     end if
     if (myrank .eq. 0) print *, "estimated error in engergy norm, solution in energy norm", max_error, solutionH2Norm
     if (iadapt .eq. 2 .and. (max_error(1) .gt. error_tol * adapt_target_error .or. max_error(2) &
-.gt. error_tol * adapt_target_error)) then
+         .gt. error_tol * adapt_target_error)) then
        if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
        call straighten_fields()
        abs_size(1) = adapt_hmin
@@ -388,6 +392,8 @@ iadapt_max_node, adapt_control);
        n_control%err_i = 0.
        n_control%err_p_old = 0.
        call reset_scalars
+       if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+       call define_transport_coefficients
        if(eqsubtract.eq.1) then
          call derived_quantities(0)
        end if

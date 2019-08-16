@@ -85,6 +85,7 @@ subroutine onestep
   use pellet
   use runaway_mod
   use kprad_m3dc1
+  use transport_coefficients
 
   implicit none
 
@@ -113,6 +114,9 @@ subroutine onestep
      call second(tend)
      t_kprad = t_kprad + tend - tstart
   endif
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+  call define_transport_coefficients
 
   ! start of loop to repeat timestep if max iterations exceeded in 3D
   do irepeat = 1, max_repeat

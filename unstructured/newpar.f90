@@ -24,6 +24,7 @@ Program Reducedquintic
   use wall
   use neutral_beam
   use kprad_m3dc1
+  use transport_coefficients
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -272,6 +273,8 @@ Program Reducedquintic
   if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
 
      if(eqsubtract.eq.1) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+        call define_transport_coefficients
         call derived_quantities(0)
         if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
      end if
@@ -290,6 +293,8 @@ Program Reducedquintic
 
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+  call define_transport_coefficients
   call derived_quantities(1)
 
 
@@ -732,16 +737,13 @@ subroutine derived_quantities(ilin)
     endif
   endif
 
-  ! Electron temperature
+  ! Electron density
   call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
 
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-  call define_transport_coefficients
 
   if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"

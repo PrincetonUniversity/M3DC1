@@ -1,10 +1,9 @@
 module pellet
   implicit none
 
-  integer :: ipellet   ! 1 = include pellet injection density source
-                       ! 2 = distributed density source
-                       ! 3 = Gaussian source
-                       ! 4 = Gaussian source including realistic ablation model
+  integer :: ipellet   ! positive: pellet source at each time step
+                       ! negative: pellet source as initial condition
+                       ! See User Guide for description of each option
   integer :: ipellet_z ! Atomic number of pellet source (0 = main ion)
 
   real :: pellet_r    ! x coordinate of pellet

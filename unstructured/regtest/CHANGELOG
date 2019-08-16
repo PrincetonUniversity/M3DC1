@@ -10,7 +10,7 @@ Changed: KPRAD_2D
 Reason: Bug fix for itemp=1 iconst_p=0 iconst_t=1 boundary conditions
 
 5/22/2019
-Changed: RMP 
+Changed: RMP
 Reason: New mesh file to make test case smaller
 
 8/13/2019
@@ -18,3 +18,9 @@ Changed: adapt
 Reason: New scorec libraries result in different C1ke file.  Mesh
 still looks good; not sure if adapted mesh is different or if there is
 a difference in how solution transfer is done.
+
+8/16/2019
+Changed: KPRAD_2D, pellet
+Reason: Moved define_transport_coefficients before solve, so a couple changes.
+Particle source now gets initialized for the first time step (corrects bug).
+Resistivity now gets updated *after* KPRAD ionize, so Zeff changes.
