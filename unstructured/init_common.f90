@@ -313,13 +313,14 @@ subroutine den_per
      call define_fields(itri,0,1,0)
 
      n179(:,OP_1) = 0.
+     ! negative ipellet in initial perturbation
      if(ipellet.lt.0) then
         n = 0.
         p = 0.
         if(pellet_mix.eq.0) then
            rate = pellet_rate
         else
-           rate = pellet_rate_D2
+           rate = 2.0*pellet_rate_D2
         end if
         n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
      end if
