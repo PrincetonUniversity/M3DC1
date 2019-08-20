@@ -181,8 +181,6 @@ module adapt
           end do
           where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c
-
-          deallocate(xp_adapt,zp_adapt)
        end if
 
        ! convert back to un-normalized psi
@@ -193,6 +191,11 @@ module adapt
        end do
        call vector_insert_block(temporary_field%vec,itri,1,dofs,VEC_ADD)
     end do
+
+    if(adapt_pellet_delta.gt.0) then
+       deallocate(xp_adapt)
+       deallocate(zp_adapt)
+    end if
 
     call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
