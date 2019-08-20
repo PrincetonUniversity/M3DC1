@@ -25,7 +25,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
    itor = read_parameter('itor', filename=filename)
    version = read_parameter('version', filename=filename)
    threed = read_parameter('3d', filename=filename)
-   if(version ge 28) then p = read_pellets(filename=filename)
+   if(version ge 31) then p = read_pellets(filename=filename)
 
    if(n_tags(s) eq 0) then return, 0
 
@@ -108,7 +108,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
    endif else $
      if (strcmp("pellet rate", scalarname, /fold_case) eq 1) or $
         (strcmp("pelr", scalarname, /fold_case) eq 1) then begin
-       if(version lt 28) then begin
+       if(version lt 31) then begin
           data = s.pellet_rate._data
        endif else begin
           data = p.pellet_rate._data[ipellet,*]
@@ -131,7 +131,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
     endif else $
      if (strcmp("pellet var", scalarname, /fold_case) eq 1) or $
      (strcmp("pelvar", scalarname, /fold_case) eq 1) then begin
-       if(version lt 28) then begin
+       if(version lt 31) then begin
           data = s.pellet_var._data
        endif else begin
           data = p.pellet_var._data[ipellet,*]
@@ -145,7 +145,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
       if (version lt 26) then begin
          data = s.r_p2._data
       endif else begin
-        if(version lt 28) then begin
+        if(version lt 31) then begin
           data = s.r_p._data
         endif else begin
           data = p.r_p._data[ipellet,*]
@@ -160,7 +160,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(version lt 26) then begin
           data = s.pellet_x._data
        endif else begin
-         if(version lt 28) then begin
+         if(version lt 31) then begin
            data = s.pellet_r._data
          endif else begin
            data = p.pellet_r._data[ipellet,*]
@@ -172,7 +172,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
     endif else $
      if (strcmp("pellet Z position", scalarname, /fold_case) eq 1) or $
      (strcmp("pelzpos", scalarname, /fold_case) eq 1) then begin
-       if(version lt 28) then begin
+       if(version lt 31) then begin
           data = s.pellet_z._data
        endif else begin
           data = p.pellet_z._data[ipellet,*]
@@ -423,7 +423,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        s = read_scalars(filename=filename)
        n = tag_names(s)
        smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
-       if(version ge 28) then begin
+       if(version ge 31) then begin
           p = read_pellets(filename=filename)
           n = tag_names(p)
           pmatch = where(strcmp(n, scalarname, /fold_case) eq 1,pcount)
