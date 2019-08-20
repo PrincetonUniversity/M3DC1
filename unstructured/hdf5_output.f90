@@ -771,7 +771,7 @@ contains
     use hdf5
 
     implicit none
-    
+
     integer(HID_T), intent(in) :: parent_id
     character(LEN=*), intent(in) :: name
     integer, intent(in) :: NMAX, t
@@ -801,7 +801,7 @@ contains
     off(1) = 0
     off(2) = t
     num_elements = NMAX
-    
+
     call h5lexists_f(parent_id, name, exists, error)
 
     if(.not.exists) then
@@ -843,5 +843,63 @@ contains
 
   end subroutine output_1dextendarr
 
+  ! read_1dextendarr
+  ! =============
+  subroutine read_1dextendarr(parent_id, name, value, NMAX, t, error)
+    use basic
+    use hdf5
+
+    implicit none
+
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: NMAX, t
+    real, intent(out) :: value(NMAX)
+    integer, intent(out) :: error
+
+    integer, parameter ::  rank = 2
+    integer(HSIZE_T) :: chunk_size(2)
+    integer(HSIZE_T) :: dims(2), maxdims(2), local_dims(2), off(2)
+    integer(SIZE_T) :: num_elements
+    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
+    logical :: exists
+
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
+
+    dims(1) = NMAX
+    dims(2) = t+1
+    maxdims(1) = NMAX
+    maxdims(2) = H5S_UNLIMITED_F
+    local_dims(1) = NMAX
+    local_dims(2) = 1
+    chunk_size(1) = NMAX
+    chunk_size(2) = 1
+    off(1) = 0
+    off(2) = t
+    num_elements = NMAX
+
+    call h5dopen_f(parent_id, name, dset_id, error)
+
+    call h5dget_space_f(dset_id, filespace, error)
+    call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off, local_dims, &
+         error)
+    call h5screate_simple_f(rank, local_dims, memspace, error)
+
+    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
+    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F, error)
+
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, value, local_dims, error, &
+         file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
+
+    ! Close HDF5 handles
+    call h5pclose_f(plist_id, error)
+    call h5sclose_f(filespace, error)
+    call h5sclose_f(memspace, error)
+    call h5dclose_f(dset_id, error)
+
+  end subroutine read_1dextendarr
 
 end module hdf5_output
