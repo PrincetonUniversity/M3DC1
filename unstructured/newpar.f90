@@ -24,6 +24,7 @@ Program Reducedquintic
   use wall
   use neutral_beam
   use kprad_m3dc1
+  use transport_coefficients
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -40,6 +41,7 @@ Program Reducedquintic
   real :: tstart, tend, dtsave, period, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
+  integer :: ip
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -272,6 +274,8 @@ Program Reducedquintic
   if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
 
      if(eqsubtract.eq.1) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+        call define_transport_coefficients
         call derived_quantities(0)
         if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
      end if
@@ -290,6 +294,8 @@ Program Reducedquintic
 
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+  call define_transport_coefficients
   call derived_quantities(1)
 
 
@@ -374,17 +380,20 @@ Program Reducedquintic
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .ge. 0) then
      ! feedback control on density source
-          if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, " Applying density feedback", &
-             pellet_rate, totden, n_control%p, &
-             n_control%target_val, n_control%err_p_old, n_control%err_i
+          if(myrank.eq.0 .and. iprint.ge.1) print *, " Applying density feedback"
+             do ip=1,npellets
+                if(myrank.eq.0 .and. iprint.ge.1) print *, "   ", pellet_rate(ip), totden, n_control%p, &
+                                                           n_control%target_val, n_control%err_p_old, n_control%err_i
+                call control(totden, pellet_rate(ip), n_control, dt) ! ???
+             end do
 
-          call control(totden, pellet_rate, n_control, dt)
-
-          if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, " After density feedback", &
-             pellet_rate, totden, n_control%p, &
-             n_control%target_val, n_control%err_p_old, n_control%err_i
+          if(myrank.eq.0 .and. iprint.ge.1) then
+             print *, " After density feedback"
+             do ip=1,npellets
+                print *, "   ", pellet_rate(ip), totden, n_control%p, &
+                         n_control%target_val, n_control%err_p_old, n_control%err_i
+             end do
+          end if
      endif
 
      ! Write output
@@ -732,16 +741,13 @@ subroutine derived_quantities(ilin)
     endif
   endif
 
-  ! Electron temperature
+  ! Electron density
   call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
 
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-  call define_transport_coefficients
 
   if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"

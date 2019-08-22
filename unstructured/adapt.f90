@@ -36,6 +36,7 @@ module adapt
     use scorec_mesh_mod
     use m3dc1_nint
     use coils
+    use transport_coefficients
 
     integer :: izone, izonedim, i, j
     integer :: numelms, itri
@@ -48,34 +49,41 @@ module adapt
     complex, dimension(maxfilaments) :: ic_adapt
     integer :: numcoils_adapt
 
-    real, dimension(maxfilaments) :: xp_adapt, zp_adapt
+    real, allocatable :: xp_adapt(:,:), zp_adapt(:,:)
     integer :: p_steps
     real :: p_dt, p_v
     real :: x0, y0, x, y
+    integer :: ip
 
     call create_field(temporary_field)
     temporary_field = 0.
 
     if(adapt_pellet_delta.gt.0) then
-       ! determine pellet path to adapt along
-       x0 = pellet_r*cos(pellet_phi)
-       y0 = pellet_r*sin(pellet_phi)
-       p_steps = ceiling(adapt_pellet_length/(2.*adapt_pellet_delta))+1
-       p_steps = min(p_steps,maxfilaments)
-       p_v = sqrt(pellet_vx**2 + pellet_vy**2 + pellet_velz**2)
-       if(p_v.gt.0.) then
-          p_dt = 2.*adapt_pellet_delta/p_v
-       else
-          ! if not moving, just adapt along stationary pellet position
-          p_dt = 0.
-          p_steps = 1
-       end if
 
-       do j=1, p_steps
-          x = x0 + pellet_vx*(j-1)*p_dt
-          y = y0 + pellet_vy*(j-1)*p_dt
-          xp_adapt(j) = sqrt(x**2 + y**2)
-          zp_adapt(j) = pellet_z + pellet_velz*(j-1)*p_dt
+       allocate(xp_adapt(maxfilaments,npellets))
+       allocate(zp_adapt(maxfilaments,npellets))
+       
+       ! determine pellet path to adapt along
+       do ip=1, npellets
+          x0 = pellet_r(ip)*cos(pellet_phi(ip))
+          y0 = pellet_r(ip)*sin(pellet_phi(ip))
+          p_steps = ceiling(adapt_pellet_length/(2.*adapt_pellet_delta))+1
+          p_steps = min(p_steps,maxfilaments)
+          p_v = sqrt(pellet_vx(ip)**2 + pellet_vy(ip)**2 + pellet_velz(ip)**2)
+          if(p_v.gt.0.) then
+             p_dt = 2.*adapt_pellet_delta/p_v
+          else
+             ! if not moving, just adapt along stationary pellet position
+             p_dt = 0.
+             p_steps = 1
+          end if
+
+          do j=1, p_steps
+             x = x0 + pellet_vx(ip)*(j-1)*p_dt
+             y = y0 + pellet_vy(ip)*(j-1)*p_dt
+             xp_adapt(j,ip) = sqrt(x**2 + y**2)
+             zp_adapt(j,ip) = pellet_z(ip) + pellet_velz(ip)*(j-1)*p_dt
+          end do
        end do
     end if
 
@@ -164,10 +172,12 @@ module adapt
        ! do adaptation along pellet path
        if(adapt_pellet_delta.gt.0) then
           temp79c = 0.
-          do j = 1, p_steps
-             temp79c = temp79c + &
-                  exp(-((x_79 - xp_adapt(j))**2 + (z_79 - zp_adapt(j))**2) / &
-                       (2.*adapt_pellet_delta**2))/1.27 ! BCL: 1.27 "normalizes" this
+          do ip = 1, npellets
+             do j = 1, p_steps
+                temp79c = temp79c + &
+                     exp(-((x_79 - xp_adapt(j,ip))**2 + (z_79 - zp_adapt(j,ip))**2) / &
+                         (2.*adapt_pellet_delta**2))/1.27 ! BCL: 1.27 "normalizes" this
+             end do
           end do
           where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c
@@ -181,6 +191,11 @@ module adapt
        end do
        call vector_insert_block(temporary_field%vec,itri,1,dofs,VEC_ADD)
     end do
+
+    if(adapt_pellet_delta.gt.0) then
+       deallocate(xp_adapt)
+       deallocate(zp_adapt)
+    end if
 
     call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
@@ -218,6 +233,8 @@ module adapt
     i_control%err_p_old = 0.
     n_control%err_i = 0.
     n_control%err_p_old = 0.
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+    call define_transport_coefficients
     call derived_quantities(1)
     !ke_previous = ekin
   end subroutine adapt_by_psi
@@ -234,6 +251,7 @@ module adapt
     use time_step
     use auxiliary_fields
     use scorec_mesh_mod
+    use transport_coefficients
 !#include "mpif.h"
     vectype, allocatable :: edge_error(:,:)
     vectype, allocatable :: elm_error(:,:), elm_error_res(:,:), elm_error_sum(:,:)
@@ -323,7 +341,7 @@ module adapt
     end if
     if (myrank .eq. 0) print *, "estimated error in engergy norm, solution in energy norm", max_error, solutionH2Norm
     if (iadapt .eq. 2 .and. (max_error(1) .gt. error_tol * adapt_target_error .or. max_error(2) &
-.gt. error_tol * adapt_target_error)) then
+         .gt. error_tol * adapt_target_error)) then
        if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
        call straighten_fields()
        abs_size(1) = adapt_hmin
@@ -388,6 +406,8 @@ iadapt_max_node, adapt_control);
        n_control%err_i = 0.
        n_control%err_p_old = 0.
        call reset_scalars
+       if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+       call define_transport_coefficients
        if(eqsubtract.eq.1) then
          call derived_quantities(0)
        end if
