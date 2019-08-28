@@ -118,7 +118,7 @@ contains
     endif
 
     ! Pellet stuff
-    if(version_in.le.27) then
+    if(version_in.le.30) then
        ! pellets are scalars
        npellets = 1
        if(version_in.le.25) then

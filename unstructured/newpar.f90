@@ -191,6 +191,7 @@ Program Reducedquintic
   case(0)
      ! Initialize from routine
 
+     version_in = -1
      ptot = 0.
      ntime = 0
      time = 0.

@@ -348,7 +348,8 @@ subroutine hdf5_write_scalars(error)
      call update_int_attr(scalar_group_id, "ntimestep", ntime, error)
      if(imag_probes.ne.0) call h5gopen_f(root_id, "mag_probes", mp_group_id, error)
      if(iflux_loops.ne.0) call h5gopen_f(root_id, "flux_loops", fl_group_id, error)
-     if(ipellet.ne.0) call h5gopen_f(root_id, "pellet", pel_group_id, error)
+     if((ipellet.ne.0).and.((irestart.eq.0).or.(version_in.ge.31))) &
+          call h5gopen_f(root_id, "pellet", pel_group_id, error)
   endif
 
   ! State Variables (needed for restart)
@@ -368,21 +369,35 @@ subroutine hdf5_write_scalars(error)
 
   ! Pellet stuff
   if(ipellet.ne.0) then
-     call output_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
-     call output_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+     if((irestart.eq.0).or.(version_in.ge.31)) then
+        call output_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+     else
+        call output_scalar(scalar_group_id, "pellet_r",   pellet_r(1),   ntime, error)
+        call output_scalar(scalar_group_id, "pellet_phi", pellet_phi(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_z",   pellet_z(1),   ntime, error)
+        call output_scalar(scalar_group_id, "pellet_velr", pellet_velr(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_velphi", pellet_velphi(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_velz", pellet_velz(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_vx", pellet_vx(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_vy", pellet_vy(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_var", pellet_var(1), ntime, error)
+        call output_scalar(scalar_group_id, "r_p",        r_p(1),        ntime, error)
+        call output_scalar(scalar_group_id, "pellet_rate", pellet_rate(1), ntime, error)
+     end if
   end if
  
   ! Controllers
@@ -512,7 +527,8 @@ subroutine hdf5_write_scalars(error)
   call h5gclose_f(scalar_group_id, error)
   if(imag_probes.ne.0) call h5gclose_f(mp_group_id, error)
   if(iflux_loops.ne.0) call h5gclose_f(fl_group_id, error)
-
+  if((ipellet.ne.0).and.((irestart.eq.0).or.(version_in.ge.31))) &
+          call h5gclose_f(pel_group_id, error)
   call h5gclose_f(root_id, error)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done writing scalars'
