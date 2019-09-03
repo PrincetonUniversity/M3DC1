@@ -72,8 +72,8 @@ subroutine wrrestart
   do j1=1,ndofs 
      write(56) data_buff(j1)
   enddo
-  write(56) pellet_r(1), pellet_phi(1), pellet_z(1), &
-       pellet_velr(1), pellet_velphi(1), pellet_velz(1), pellet_vx(1), pellet_vy(1), pellet_var(1)
+  write(56) pellet_r, pellet_phi, pellet_z, &
+       pellet_velr, pellet_velphi, pellet_velz, pellet_vx, pellet_vy, pellet_var
   write(56) version
   write(56) icsubtract
   if(icsubtract.eq.1) then
@@ -97,9 +97,9 @@ subroutine wrrestart
         write(56) data_buff(j1)
      enddo
   end if
-  write(56) pellet_rate(1)
+  write(56) pellet_rate
   write(56) xnull2, znull2
-  write(56) r_p(1)
+  write(56) r_p
 
   deallocate(data_buff)
   close(56)
@@ -233,8 +233,8 @@ else
   enddo
   call m3dc1_field_set(bf_field(0)%vec%id, data_buff, ndofs)
 
-  read(56, END=1199) pellet_r(1), pellet_phi(1), pellet_z(1), &
-       pellet_velr(1), pellet_velphi(1), pellet_velz(1), pellet_vx(1), pellet_vy(1), pellet_var(1)
+  read(56, END=1199) pellet_r, pellet_phi, pellet_z, &
+       pellet_velr, pellet_velphi, pellet_velz, pellet_vx, pellet_vy, pellet_var
 
   read(56, END=1199) version_in
 
@@ -270,17 +270,17 @@ else
   end if
 
   if(version_in.ge.12) then 
-     pelletratesave = pellet_rate(1)
-     read(56,END=1199) pellet_rate(1)
+     pelletratesave = pellet_rate
+     read(56,END=1199) pellet_rate
      ! use pellet_rate from input if no control
-     if(n_control%icontrol_type .eq. -1) pellet_rate(1) = pelletratesave  
+     if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
   end if
 
   if(version_in.ge.13) then
      read(56,END=1199) xnull2, znull2
   end if
   if(version_in.ge.14) then
-     read(56,END=1199) r_p(1)
+     read(56,END=1199) r_p
   end if
 
   deallocate (data_buff)
@@ -438,8 +438,8 @@ subroutine rdrestart_2d23d
     enddo
     call m3dc1_field_sync (bf_field(0)%vec%id)
 
-  read(56, END=1199) pellet_r(1), pellet_phi(1), pellet_z(1), &
-       pellet_velr(1), pellet_velphi(1), pellet_velz(1), pellet_vx(1), pellet_vy(1), pellet_var(1)
+  read(56, END=1199) pellet_r, pellet_phi, pellet_z, &
+       pellet_velr, pellet_velphi, pellet_velz, pellet_vx, pellet_vy, pellet_var
 
   read(56, END=1199) version_in
 
@@ -501,17 +501,17 @@ subroutine rdrestart_2d23d
   end if
 
   if(version_in.ge.12) then 
-     pelletratesave = pellet_rate(1)
-     read(56,END=1199) pellet_rate(1)
+     pelletratesave = pellet_rate
+     read(56,END=1199) pellet_rate
      ! use pellet_rate from input if no control
-     if(n_control%icontrol_type .eq. -1) pellet_rate(1) = pelletratesave  
+     if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
   end if
 
   if(version_in.ge.13) then
      read(56,END=1199) xnull2, znull2
   end if
   if(version_in.ge.14) then
-     read(56,END=1199) r_p(1)
+     read(56,END=1199) r_p
   end if
 
   deallocate(data_buf)
@@ -649,8 +649,8 @@ subroutine rdrestart_cplx
   enddo
   call m3dc1_field_set(bf_field(0)%vec%id, data_buff, ndofs)
 
-  read(56, END=1199) pellet_r(1), pellet_phi(1), pellet_z(1), &
-       pellet_velr(1), pellet_velphi(1), pellet_velz(1), pellet_vx(1), pellet_vy(1), pellet_var(1)
+  read(56, END=1199) pellet_r, pellet_phi, pellet_z, &
+       pellet_velr, pellet_velphi, pellet_velz, pellet_vx, pellet_vy, pellet_var
 
   read(56, END=1199) version_in
 
@@ -709,17 +709,17 @@ subroutine rdrestart_cplx
   end if
 
   if(version_in.ge.12) then 
-     pelletratesave = pellet_rate(1)
-     read(56,END=1199) pellet_rate(1)
+     pelletratesave = pellet_rate
+     read(56,END=1199) pellet_rate
      ! use pellet_rate from input if no control
-     if(n_control%icontrol_type .eq. -1) pellet_rate(1) = pelletratesave  
+     if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  
   end if
 
   if(version_in.ge.13) then
      read(56,END=1199) xnull2, znull2
   end if
   if(version_in.ge.14) then
-     read(56,END=1199) r_p(1)
+     read(56,END=1199) r_p
   end if
 
 
@@ -1196,18 +1196,18 @@ subroutine wrrestart_adios
     call adios_write (adios_handle, "tmp_bz_ext", tmp_bz_ext, adios_err)
     call adios_write (adios_handle, "tmp_bf_ext", tmp_bf_ext, adios_err)
     call adios_write (adios_handle, "tmp_psi_coil_field",tmp_psi_coil_field, adios_err)
-    call adios_write (adios_handle, "pellet_r", pellet_r(1), adios_err)
-    call adios_write (adios_handle, "pellet_phi", pellet_phi(1), adios_err)
-    call adios_write (adios_handle, "pellet_z", pellet_z(1), adios_err)
-    call adios_write (adios_handle, "pellet_velr", pellet_velr(1), adios_err)
-    call adios_write (adios_handle, "pellet_velphi", pellet_velphi(1), adios_err)
-    call adios_write (adios_handle, "pellet_velz", pellet_velz(1), adios_err)
-    call adios_write (adios_handle, "pellet_vx", pellet_vx(1), adios_err)
-    call adios_write (adios_handle, "pellet_vy", pellet_vy(1), adios_err)
-    call adios_write (adios_handle, "pellet_var", pellet_var(1), adios_err)
-    call adios_write (adios_handle, "r_p", r_p(1), adios_err)
+    call adios_write (adios_handle, "pellet_r", pellet_r, adios_err)
+    call adios_write (adios_handle, "pellet_phi", pellet_phi, adios_err)
+    call adios_write (adios_handle, "pellet_z", pellet_z, adios_err)
+    call adios_write (adios_handle, "pellet_velr", pellet_velr, adios_err)
+    call adios_write (adios_handle, "pellet_velphi", pellet_velphi, adios_err)
+    call adios_write (adios_handle, "pellet_velz", pellet_velz, adios_err)
+    call adios_write (adios_handle, "pellet_vx", pellet_vx, adios_err)
+    call adios_write (adios_handle, "pellet_vy", pellet_vy, adios_err)
+    call adios_write (adios_handle, "pellet_var", pellet_var, adios_err)
+    call adios_write (adios_handle, "r_p", r_p, adios_err)
     call adios_write (adios_handle, "version", version, adios_err)
-    call adios_write (adios_handle, "pellet_rate", pellet_rate(1), adios_err)
+    call adios_write (adios_handle, "pellet_rate", pellet_rate, adios_err)
     call adios_write (adios_handle, "icsubtract", icsubtract, adios_err)
     call adios_write (adios_handle, "extsubtract", extsubtract, adios_err)
     
@@ -1307,7 +1307,7 @@ subroutine rdrestart_adios
     start = 0
     readsize = 1 ! number of elements of a type, not bytes!
     vloopsave = vloop
-    pelletratesave = pellet_rate(1)
+    pelletratesave = pellet_rate
 
 
     ! These scalars are varying over processors so we use adios_read_local_var() to 
@@ -1348,26 +1348,26 @@ subroutine rdrestart_adios
     call adios_read_local_var (gh, "ndofs_2",    group_rank, start, readsize, prev_ndofs2, read_bytes)
     call adios_read_local_var (gh, "version",    group_rank, start, readsize, version_in, read_bytes)
     if(version_in.le.25) then
-       call adios_read_local_var (gh, "pellet_x",   group_rank, start, readsize, pellet_r(1), read_bytes)
+       call adios_read_local_var (gh, "pellet_x",   group_rank, start, readsize, pellet_r, read_bytes)
     else
-       call adios_read_local_var (gh, "pellet_r",   group_rank, start, readsize, pellet_r(1), read_bytes)
+       call adios_read_local_var (gh, "pellet_r",   group_rank, start, readsize, pellet_r, read_bytes)
     end if
-    call adios_read_local_var (gh, "pellet_phi", group_rank, start, readsize, pellet_phi(1), read_bytes)
-    call adios_read_local_var (gh, "pellet_z",   group_rank, start, readsize, pellet_z(1), read_bytes)
+    call adios_read_local_var (gh, "pellet_phi", group_rank, start, readsize, pellet_phi, read_bytes)
+    call adios_read_local_var (gh, "pellet_z",   group_rank, start, readsize, pellet_z, read_bytes)
     if(version_in.le.25) then
-       call adios_read_local_var (gh, "pellet_velx",group_rank, start, readsize, pellet_velr(1), read_bytes)
+       call adios_read_local_var (gh, "pellet_velx",group_rank, start, readsize, pellet_velr, read_bytes)
     else
-       call adios_read_local_var (gh, "pellet_velr",group_rank, start, readsize, pellet_velr(1), read_bytes)
+       call adios_read_local_var (gh, "pellet_velr",group_rank, start, readsize, pellet_velr, read_bytes)
     end if
-    call adios_read_local_var (gh, "pellet_velphi",        group_rank, start, readsize, pellet_velphi(1), read_bytes)
-    call adios_read_local_var (gh, "pellet_velz",group_rank, start, readsize, pellet_velz(1), read_bytes)
+    call adios_read_local_var (gh, "pellet_velphi",        group_rank, start, readsize, pellet_velphi, read_bytes)
+    call adios_read_local_var (gh, "pellet_velz",group_rank, start, readsize, pellet_velz, read_bytes)
     if(version_in.ge.26) then
-       call adios_read_local_var (gh, "pellet_vx",group_rank, start, readsize, pellet_vx(1), read_bytes)
-       call adios_read_local_var (gh, "pellet_vy",group_rank, start, readsize, pellet_vy(1), read_bytes)
+       call adios_read_local_var (gh, "pellet_vx",group_rank, start, readsize, pellet_vx, read_bytes)
+       call adios_read_local_var (gh, "pellet_vy",group_rank, start, readsize, pellet_vy, read_bytes)
     end if
-    call adios_read_local_var (gh, "pellet_var", group_rank, start, readsize, pellet_var(1), read_bytes)
+    call adios_read_local_var (gh, "pellet_var", group_rank, start, readsize, pellet_var, read_bytes)
     if(version_in.ge.12) then
-       call adios_read_local_var (gh, "pellet_rate", group_rank, start, readsize, pellet_rate(1), read_bytes)
+       call adios_read_local_var (gh, "pellet_rate", group_rank, start, readsize, pellet_rate, read_bytes)
     end if
     if(version_in.ge.13) then
        call adios_read_local_var (gh, "xnull2",      group_rank, start, readsize, xnull, read_bytes)
@@ -1394,7 +1394,7 @@ subroutine rdrestart_adios
     end if
 
     if(control_type .eq. -1) vloop = vloopsave  !  vloop from input if no I control
-    if(n_control%icontrol_type .eq. -1) pellet_rate(1) = pelletratesave  !  vloop from input if no I control
+    if(n_control%icontrol_type .eq. -1) pellet_rate = pelletratesave  !  vloop from input if no I control
 
   if (numvar .ne. prev_numvar .or. prev_myrank .ne. group_rank .or. &
       prev_iper .ne. iper .or. prev_jper .ne. jper) then

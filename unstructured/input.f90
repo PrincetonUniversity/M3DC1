@@ -798,28 +798,26 @@ subroutine set_defaults
        "1 = include a gaussian pellet source", source_grp)
   call add_var_int("ipellet_z", ipellet_z, 0, &
        "Atomic number of pellet (0 = main ion species)", source_grp)
-  call add_var_int("iread_pellet", iread_pellet, 0, &
-       "1: read pellet info from pellet.dat", source_grp)
-  call add_var_double("pellet_r", pellet_r_scl, 0., &
+  call add_var_double("pellet_r", pellet_r, 0., &
        "Initial radial position of the pellet", source_grp)
-  call add_var_double("pellet_phi", pellet_phi_scl, 0., &
+  call add_var_double("pellet_phi", pellet_phi, 0., &
        "Initial toroidal position of the pellet", source_grp)
-  call add_var_double("pellet_z", pellet_z_scl, 0., &
+  call add_var_double("pellet_z", pellet_z, 0., &
        "Initial vertical position of the pellet", source_grp)
-  call add_var_double("pellet_rate", pellet_rate_scl, 0., "", source_grp)
-  call add_var_double("pellet_var", pellet_var_scl, 1., "", source_grp)
-  call add_var_double("pellet_var_tor", pellet_var_tor_scl, 0., "", source_grp)
-  call add_var_double("pellet_velr", pellet_velr_scl, 0., &
+  call add_var_double("pellet_rate", pellet_rate, 0., "", source_grp)
+  call add_var_double("pellet_var", pellet_var, 1., "", source_grp)
+  call add_var_double("pellet_var_tor", pellet_var_tor, 0., "", source_grp)
+  call add_var_double("pellet_velr", pellet_velr, 0., &
        "Initial radial velocity of the pellet", source_grp)
-  call add_var_double("pellet_velphi", pellet_velphi_scl, 0., &
+  call add_var_double("pellet_velphi", pellet_velphi, 0., &
        "Initial toroidal velocity of the pellet", source_grp)
-  call add_var_double("pellet_velz", pellet_velz_scl, 0., &
+  call add_var_double("pellet_velz", pellet_velz, 0., &
        "Initial vertical velocity of the pellet", source_grp)
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
-  call add_var_double("r_p", r_p_scl, 1.e-3, "", source_grp)
-  call add_var_double("cloud_pel", cloud_pel_scl, 1., "", source_grp)
-  call add_var_double("pellet_mix", pellet_mix_scl, 0.,&
+  call add_var_double("r_p", r_p, 1.e-3, "", source_grp)
+  call add_var_double("cloud_pel", cloud_pel, 1., "", source_grp)
+  call add_var_double("pellet_mix", pellet_mix, 0.,&
        "Molar fraction of deuterium in pellet", source_grp)
   call add_var_double("temin_abl", temin_abl, 0., &
        "Min. Temp. at which ablation turns on", source_grp)
@@ -1403,7 +1401,8 @@ subroutine validate_input
   ! Determine which source terms will be used
   ! ~~~~~~~~~
   density_source = idens.eq.1 .and. linear.eq.0 .and. &
-       (ionization.ge.1 .or. isink.gt.0 &
+       ((ipellet.ge.1 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.)) &
+       .or. ionization.ge.1 .or. isink.gt.0 &
        .or. idenfloor.gt.0 .or. ibeam.eq.1 &
        .or. ibeam.eq.2 .or. iread_particlesource.eq.1 &
        .or. iarc_source.ne.0)
@@ -1569,12 +1568,6 @@ subroutine validate_input
   if(ipellet.ne.0) then
      call pellet_init
      
-     if(.not.density_source) then
-        density_source = idens.eq.1 .and. linear.eq.0 .and. ipellet.ge.1 &
-                         .and. (ipellet_z.eq.0 .or. any(pellet_mix.gt.0.))
-        print *, 'Density source with pellets: ', density_source
-     end if
-
      if(ipellet_z.ne.0 .and. &
         (ikprad.ne.0 .and. ipellet_z.ne.kprad_z)) then
         if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
