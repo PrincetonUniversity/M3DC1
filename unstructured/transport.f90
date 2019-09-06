@@ -31,6 +31,7 @@ function sigma_func(izone)
   real :: val, valp, valpp, pso
   real :: rate
   real, allocatable :: xvals(:), yvals(:)
+  integer :: ip
 
   ! Don't allow particle source in wall or vacuum region
   if(izone.ne.1) then
@@ -42,22 +43,23 @@ function sigma_func(izone)
 
   ! Pellet injection model
 
-  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.)) then
+  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. any(pellet_mix.gt.0.))) then
 
-     if(ipellet_abl.gt.0. .and. pellet_var.lt.1.e-8) then
-        pellet_var = 0.
-        temp79a = 0.
-     else
-        if(pellet_mix.eq.0.) then
-           rate = pellet_rate
+     do ip=1, npellets
+        if(ipellet_abl.gt.0. .and. pellet_var(ip).lt.1.e-8) then
+           pellet_var(ip) = 0.
+           temp79a = 0.
         else
-           rate = pellet_rate_D2*2.0 ! two deuterium ions per D2 molecule
-        end if
-        temp79a = rate*pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
-     endif
+           if(pellet_mix(ip).eq.0.) then
+              rate = pellet_rate(ip)
+           else
+              rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
+           end if
+           temp79a = rate*pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+        endif
      
-     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
-
+        temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+     end do
   endif
 
 
@@ -103,7 +105,7 @@ function sigma_func(izone)
            pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         end if
         call evaluate_spline(particlesource_spline,pso,val,valp,valpp)
-        temp79a(j) = val * pellet_rate
+        temp79a(j) = val * pellet_rate(1)
      end do
 
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)

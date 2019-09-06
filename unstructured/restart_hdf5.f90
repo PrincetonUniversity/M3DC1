@@ -2,7 +2,7 @@ module restart_hdf5
   implicit none
 
   integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
-  integer, private :: ikprad_in, kprad_z_in
+  integer, private :: ikprad_in, kprad_z_in, ipellet_in
 contains
   
   subroutine rdrestart_hdf5()
@@ -17,7 +17,7 @@ contains
     implicit none
 
     integer :: error
-    integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id
+    integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id
     character(LEN=19) :: time_group_name
 
     integer :: times_output_in, i3d_in, istartnew, i
@@ -124,27 +124,55 @@ contains
     endif
 
     ! Pellet stuff
-    if(version_in.le.25) then
-       call read_scalar(scalar_group_id, "pellet_x",       pellet_r,      ntime, error)
+    if(version_in.le.30) then
+       ! pellets are scalars
+       npellets = 1
+       if(version_in.le.25) then
+          call read_scalar(scalar_group_id, "pellet_x",       pellet_r(1),      ntime, error)
+       else
+          call read_scalar(scalar_group_id, "pellet_r",       pellet_r(1),      ntime, error)
+       end if
+       call read_scalar(scalar_group_id, "pellet_phi",     pellet_phi(1),    ntime, error)
+       call read_scalar(scalar_group_id, "pellet_z",       pellet_z(1),      ntime, error)
+       if(version_in.le.25) then
+          call read_scalar(scalar_group_id, "pellet_velx",    pellet_velr(1),   ntime, error)
+       else
+          call read_scalar(scalar_group_id, "pellet_velr",    pellet_velr(1),   ntime, error)
+       end if
+       call read_scalar(scalar_group_id, "pellet_velphi",  pellet_velphi(1), ntime, error)
+       call read_scalar(scalar_group_id, "pellet_velz",    pellet_velz(1),   ntime, error)
+       if(version_in.ge.26) then
+          call read_scalar(scalar_group_id, "pellet_vx",    pellet_vx(1),   ntime, error)
+          call read_scalar(scalar_group_id, "pellet_vy",    pellet_vy(1),   ntime, error)
+       end if
+       call read_scalar(scalar_group_id, "pellet_var",     pellet_var(1),    ntime, error)
+       call read_scalar(scalar_group_id, "r_p",            r_p(1),           ntime, error)
+       call read_scalar(scalar_group_id, "pellet_rate",    pellet_rate(1),   ntime, error)
     else
-       call read_scalar(scalar_group_id, "pellet_r",       pellet_r,      ntime, error)
+       ! pellets are arrays
+       call read_int_attr(root_id, "ipellet", ipellet_in,  error)
+       if(ipellet_in.ne.0) then
+          call read_int_attr(root_id, "npellets", npellets,  error)
+          call h5gopen_f(root_id, "pellet", pel_group_id, error)
+          
+          call read_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
+          call read_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+          call h5gclose_f(pel_group_id, error)
+       end if
     end if
-    call read_scalar(scalar_group_id, "pellet_phi",     pellet_phi,    ntime, error)
-    call read_scalar(scalar_group_id, "pellet_z",       pellet_z,      ntime, error)
-    if(version_in.le.25) then
-       call read_scalar(scalar_group_id, "pellet_velx",    pellet_velr,   ntime, error)
-    else
-       call read_scalar(scalar_group_id, "pellet_velr",    pellet_velr,   ntime, error)
-    end if
-    call read_scalar(scalar_group_id, "pellet_velphi",  pellet_velphi, ntime, error)
-    call read_scalar(scalar_group_id, "pellet_velz",    pellet_velz,   ntime, error)
-    if(version_in.ge.26) then
-       call read_scalar(scalar_group_id, "pellet_vx",    pellet_vx,   ntime, error)
-       call read_scalar(scalar_group_id, "pellet_vy",    pellet_vy,   ntime, error)
-    end if
-    call read_scalar(scalar_group_id, "pellet_var",     pellet_var,    ntime, error)
-    call read_scalar(scalar_group_id, "r_p",            r_p,           ntime, error)
-    call read_scalar(scalar_group_id, "pellet_rate",    pellet_rate,   ntime, error)
 
     ! Only read vloop if Ip is under current control
     if(control_type.ne.-1) then
