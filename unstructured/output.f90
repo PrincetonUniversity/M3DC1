@@ -576,6 +576,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   character(LEN=19) :: time_file_name
   integer(HID_T) :: time_file_id, time_root_id, plist_id
   integer :: info
+  logical :: link_exists
 
   call hdf5_get_local_elms(nelms, error)
 
@@ -590,7 +591,8 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 
   ! remove the time group link if it already exists
   ! from before a restart
-  if(irestart.ne.0 .and. ntime.eq.ntime0) then
+  call h5lexists_f(file_id, time_group_name, link_exists, error)
+  if(link_exists) then
      call h5gunlink_f(file_id, time_group_name, error)
   endif
 

@@ -20,7 +20,7 @@ contains
     integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id
     character(LEN=19) :: time_group_name
 
-    integer :: times_output_in, i3d_in, istartnew
+    integer :: times_output_in, i3d_in, istartnew, i
     real :: xnullt,znullt,xnull2t,znull2t
 
     if(myrank.eq.0) print *, 'Reading HDF5 file for restart.'
@@ -37,8 +37,14 @@ contains
 
     ! Read Time Slice
     ! ~~~~~~~~~~~~~~~
-    if(irestart_slice.ge.0 .and. irestart_slice.le.times_output) times_output = irestart_slice
-
+    if(irestart_slice.ge.0 .and. irestart_slice.lt.times_output) then
+       ! unlink output files beyond irestart_slice
+       do i = irestart_slice+1, times_output
+          write(time_group_name, '("time_",I3.3)') i
+          call h5gunlink_f(file_id, time_group_name, error)
+       end do
+       times_output = irestart_slice
+    end if
     if(myrank.eq.0) print *, 'Reading data from time slice', times_output
     call read_int_attr(root_id, "ntime", times_output_in, error)
     if(times_output_in .le. times_output) then
