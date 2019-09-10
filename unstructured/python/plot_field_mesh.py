@@ -29,7 +29,7 @@ def plot_field_mesh(field, coord='scalar', file_name='C1.h5', time=0, phi=0, mes
     Arguments:
 
     **field**
-    The field that is to be plotted, i.e. 'magnetic field'
+    The field that is to be plotted, i.e. 'B', or 'j', etc..
 
     **coord**
     The chosen part of a vector field to be plotted, options are:

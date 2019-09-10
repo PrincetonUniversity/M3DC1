@@ -18,7 +18,7 @@ def eval_field(field, R, phi, Z, coord='scalar', file_name='C1.h5', time=0):
     Arguments:
 
     **field**
-    The field that is to be evaluated, i.e. 'magnetic field'
+    The field that is to be evaluated, i.e. 'B' or 'j', etc..
 
     **coord**
     The chosen part of a field to be plotted, options are:

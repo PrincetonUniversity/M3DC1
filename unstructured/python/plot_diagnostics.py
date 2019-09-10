@@ -4,6 +4,12 @@ from unit_conv import unit_conv
 
 
 def plot_diagnostics(file_name='C1.h5',units='mks'):
+    """
+    This plots three diagnostics.
+    1 - The time needed per timestep
+    2 - The number of iterations needed per timestep
+    3 - The temporal values of each time-slice
+    ""
     
     sim     =  fpy.sim_data(file_name)
     t_slices=  sim.get_diagnostic('slice times')
