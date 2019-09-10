@@ -8,7 +8,5 @@ from plot_field_mesh     import plot_field_mesh
 from plot_field          import plot_field
 from plot_line           import plot_line
 from plot_mesh           import plot_mesh
-from plot_shape          import plot_shape
 from plot_time_trace     import plot_time_trace
-from plot_vector_field   import plot_vector_field
 from unit_conv           import unit_conv
