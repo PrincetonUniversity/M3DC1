@@ -514,7 +514,6 @@ subroutine initial_conditions()
   use init_common
   use kprad_m3dc1
   use pellet
-  use diagnostics
   use cylinder
 
   implicit none

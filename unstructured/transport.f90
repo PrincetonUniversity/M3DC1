@@ -1598,7 +1598,7 @@ subroutine define_pellet_source(ilin)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "begin define_pellet_source"
   
-  if(ntime.ne.0) then
+  if(ntime.gt.1) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  Advance pellet position"
      call pellet_advance
   end if
