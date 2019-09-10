@@ -28,7 +28,7 @@ def plot_line(field, coord='scalar', angle=0, file_name='C1.h5', time=0, phi=0, 
     Arguments:
 
     **field**
-    The field that is to be plotted, i.e. 'magnetic field'
+    The field that is to be plotted, i.e. 'B', or 'j'.
 
     **coord**
     The chosen part of a vector field to be plotted, options are:
