@@ -114,6 +114,53 @@ contains
 
   end subroutine pellet_init
 
+  subroutine calculate_Lor_vol()
+
+    use basic
+    use mesh_mod
+    use m3dc1_nint
+    use math
+    use diagnostics
+
+    implicit none
+
+    include 'mpif.h'
+
+    integer :: itri, numelms, ier
+    real :: tpifac,tpirzero
+    integer :: izone, izonedim
+    real, allocatable :: temp(:)
+    integer :: ip
+
+    call tpi_factors(tpifac,tpirzero)
+
+    numelms = local_elements()
+
+    allocate(temp(npellets))
+    temp = 0.
+
+    do itri=1,numelms
+
+       call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+       if(izone.ne.1) cycle
+       call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
+       call define_fields(itri, FIELD_P, 0, 0)
+
+       ! perform volume integral of pellet cloud (without normalization)
+       do ip=1,npellets
+          temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
+          temp(ip) = temp(ip) + twopi*int1(temp79a)/tpifac
+       end do
+
+    end do
+
+    call mpi_allreduce(temp, Lor_vol, npellets, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
+
+    deallocate(temp)
+
+  end subroutine calculate_Lor_vol
+
+
   vectype elemental function pellet_distribution(ip, r, phi, z, pres, inorm)
     use math
     use basic

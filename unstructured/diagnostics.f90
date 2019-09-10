@@ -80,9 +80,6 @@ module diagnostics
   real, dimension(iflux_loops_max) :: flux_loop_val
   integer, dimension(iflux_loops_max) :: flux_loop_itri
 
-  vectype, dimension(MAX_PTS) :: rhop79
-  vectype, dimension(MAX_PTS) :: Lorentz_pel
-
 contains
 
   ! ======================================================================
@@ -164,7 +161,6 @@ contains
   ! resets diagnostic energy and scalar quantities to zero
   ! ======================================================================
   subroutine reset_scalars()
-    use pellet
 
     implicit none
 
@@ -235,10 +231,6 @@ contains
     nfluxd = 0.
     nfluxv = 0.
     nsource = 0.
-    if(ipellet_abl.gt.0) then
-       nsource_pel = 0. ! this is an array
-       temp_pel = 0.    ! this is an array
-    end if
 
     bwb2 = 0.
 
@@ -272,7 +264,6 @@ contains
   ! ======================================================================
   subroutine distribute_scalars()    
     use basic
-    use pellet
 
     implicit none
 
@@ -281,7 +272,6 @@ contains
     integer, parameter :: num_scalars = 73
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
-    double precision, allocatable  :: ptemp(:)
 
     ! Allreduce energy terms
     if(maxrank .gt. 1) then
@@ -436,19 +426,6 @@ contains
        wall_force_n0_x_halo = temp2(71)
        wall_force_n0_z_halo = temp2(72)
        helicity        = temp2(73)
-
-       if(ipellet_abl.gt.0) then
-          allocate(ptemp(npellets))
-
-          ptemp = nsource_pel
-          call mpi_allreduce(ptemp, nsource_pel, npellets, MPI_DOUBLE_PRECISION,  &
-                             MPI_SUM, MPI_COMM_WORLD, ier)
-          ptemp = temp_pel
-          call mpi_allreduce(ptemp, temp_pel, npellets, MPI_DOUBLE_PRECISION,  &
-                            MPI_SUM, MPI_COMM_WORLD, ier)
-
-          deallocate(ptemp)
-       end if
 
     endif
 
@@ -669,7 +646,6 @@ subroutine calculate_scalars()
   use boundary_conditions
   use math
   use gyroviscosity
-  use pellet
 
   implicit none
  
@@ -755,13 +731,9 @@ subroutine calculate_scalars()
   call finalize(field_vec)
 
   numelms = local_elements()
-  
-  if(ipellet.ne.0) call calculate_Lor_vol
 
-  ! BCL Warning: nsource_pel and temp_pel are now vectors
-  !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -911,25 +883,8 @@ subroutine calculate_scalars()
 #endif
 
      ! particle source
-     if(idens.eq.1) then        
-        nsource = nsource - twopi*int1(sig79)/tpifac
+     if(idens.eq.1) nsource = nsource - twopi*int1(sig79)/tpifac
      
-        ! Pellet radius and density/temperature at the pellet surface
-        if(ipellet_abl.gt.0) then
-           do ip=1,npellets
-              if(r_p(ip).ge.1e-8) then
-                 ! weight density/temp by pellet distribution (normalized)
-                 temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
-                 nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
-                 temp_pel(ip) = temp_pel(ip) + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
-              else
-                 nsource_pel(ip) = 0.
-                 temp_pel(ip) = 0.
-              end if
-           end do
-       endif
-     endif
-
      ! gravitational potential energy
      epotg = epotg + grav_pot()
 
@@ -1018,8 +973,6 @@ subroutine calculate_scalars()
 
   call distribute_scalars
 
-  if(ipellet_abl.gt.0) call calculate_ablation
-
   ekin = ekinp + ekint + ekin3
   emag = emagp + emagt + emag3
   ekind = ekinpd + ekintd + ekin3d
@@ -1065,72 +1018,9 @@ subroutine calculate_scalars()
      print *, "  Ionization loss = ", ionrad
      print *, "  Recombination radiation (kinetic) = ", reckrad
      print *, "  Recombination radiation (potential) = ", recprad
-     if(ipellet_abl.gt.0 .and. iprint.ge.2) then
-        do ip=1,npellets
-           print *, "  Pellet #", ip
-           print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
-           print *, "    radius (in cm) = ", r_p(ip)*l0_norm
-           print *, "    local electron temperature (in eV) = ", temp_pel(ip)
-           print *, "    local electron density (in ne14) = ", nsource_pel(ip)
-           print *, "    rpdot (in cm/s) = ", rpdot(ip)*l0_norm/t0_norm
-           print *, "    Lor_vol = ", Lor_vol(ip)
-           print *, "    R position: ", pellet_r(ip)*l0_norm
-           print *, "    phi position: ", pellet_phi(ip)
-           print *, "    Z position: ", pellet_z(ip)*l0_norm
-        end do
-     endif
   endif
 
 end subroutine calculate_scalars
-
-
-subroutine calculate_Lor_vol()
-
-  use basic
-  use mesh_mod
-  use m3dc1_nint
-  use math
-  use pellet
-
-  implicit none
- 
-  include 'mpif.h'
-
-  integer :: itri, numelms, ier
-  integer :: is_edge(3)  ! is inode on boundary
-  real :: tpifac,tpirzero
-  integer :: izone, izonedim
-  real, allocatable :: temp(:)
-  integer :: ip
-
-  call tpi_factors(tpifac,tpirzero)
-
-  numelms = local_elements()
-
-  allocate(temp(npellets))
-  temp = 0.
-
-  do itri=1,numelms
-
-     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
-     if(izone.ne.1) cycle
-     call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
-     call define_fields(itri, FIELD_P, 0, 0)
-
-     ! perform volume integral of pellet cloud (without normalization)
-     do ip=1,npellets
-        temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
-        temp(ip) = temp(ip) + twopi*int1(temp79a)/tpifac
-     end do
-
-  end do
-
-  call mpi_allreduce(temp, Lor_vol, npellets, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
-
-  deallocate(temp)
-
-end subroutine calculate_Lor_vol
-
 
 !======================================================================
 ! magnetic_region

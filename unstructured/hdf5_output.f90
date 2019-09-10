@@ -862,7 +862,6 @@ contains
     integer(HSIZE_T) :: dims(2), maxdims(2), local_dims(2), off(2)
     integer(SIZE_T) :: num_elements
     integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
-    logical :: exists
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from

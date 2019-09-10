@@ -275,8 +275,6 @@ Program Reducedquintic
   if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
 
      if(eqsubtract.eq.1) then
-        if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-        call define_transport_coefficients
         call derived_quantities(0)
         if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
      end if
@@ -295,8 +293,6 @@ Program Reducedquintic
 
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-  call define_transport_coefficients
   call derived_quantities(1)
 
 
@@ -677,8 +673,7 @@ end subroutine smooth_fields
 ! ======================================================================
 ! derived_quantities
 ! ~~~~~~~~~~~~~~~~~~
-! calculates all derived quantities, including auxiliary fields
-! and scalars
+! calculates all derived quantities, including scalars
 ! ======================================================================
 subroutine derived_quantities(ilin)
   use basic
@@ -687,7 +682,6 @@ subroutine derived_quantities(ilin)
   use diagnostics
   use sparse
   use transport_coefficients
-  use auxiliary_fields
 
   implicit none
 
@@ -697,6 +691,10 @@ subroutine derived_quantities(ilin)
   real :: tstart, tend
 
   vectype :: temp
+
+  ! Density and temperature are now updated within define_transport_coefficients
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+  call define_transport_coefficients(ilin)
 
   ! Find lcfs
   ! ~~~~~~~~~
@@ -738,24 +736,13 @@ subroutine derived_quantities(ilin)
     endif
   else
     if(myrank.eq.0 .and. iprint.ge.1) then
-      write(*,'(A,2e12.4)') ' no temperatue maximum found near ',xmag,zmag
+      write(*,'(A,2e12.4)') ' no temperature maximum found near ',xmag,zmag
     endif
   endif
-
-  ! Electron density
-  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
-
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-  if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"
-     call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
-          pe_field(ilin), p_field(ilin), ne_field(ilin), den_field(ilin), &
-          eqsubtract)
-  end if
 
   !   toroidal current
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  toroidal current"

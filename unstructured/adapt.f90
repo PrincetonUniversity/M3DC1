@@ -233,8 +233,6 @@ module adapt
     i_control%err_p_old = 0.
     n_control%err_i = 0.
     n_control%err_p_old = 0.
-    if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-    call define_transport_coefficients
     call derived_quantities(1)
     !ke_previous = ekin
   end subroutine adapt_by_psi
@@ -406,8 +404,6 @@ iadapt_max_node, adapt_control);
        n_control%err_i = 0.
        n_control%err_p_old = 0.
        call reset_scalars
-       if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-       call define_transport_coefficients
        if(eqsubtract.eq.1) then
          call derived_quantities(0)
        end if

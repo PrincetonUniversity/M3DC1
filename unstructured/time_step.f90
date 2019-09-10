@@ -107,6 +107,11 @@ subroutine onestep
      calc_matrices = 0
   endif
 
+  if(ipellet.ne.0) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "  define pellet source"
+     call define_pellet_source(1)
+  end if
+
   ! Advance impurity charge states
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call kprad_ionize(dt)
@@ -116,7 +121,10 @@ subroutine onestep
   endif
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-  call define_transport_coefficients
+  call define_transport_coefficients(1)
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  sources"
+  call define_sources(1)
 
   ! start of loop to repeat timestep if max iterations exceeded in 3D
   do irepeat = 1, max_repeat
@@ -177,8 +185,6 @@ subroutine onestep
   dtold = dt
   if(ntime.gt.1 .and. linear.eq.0) call variable_timestep
 
-  call pellet_advance
-
   call runaway_advance
 
   ! copy time advance vectors to field data
@@ -187,9 +193,6 @@ subroutine onestep
 ! if(eqsubtract.eq.0) call subtract_axi    !DEBUG
   call export_time_advance_vectors
 
-  ! Calculate all quantities derived from basic fields
-  call derived_quantities(1)
-
   ! Advect impurity charge states
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
   call kprad_advect(dt)
@@ -197,6 +200,10 @@ subroutine onestep
      call second(tend)
      t_kprad = t_kprad + tend - tstart
   endif
+
+  ! Calculate all quantities derived from basic fields
+  call derived_quantities(1)
+
 
   ! Conserve toroidal flux
   if(iconstflux.eq.1 .and. numvar.ge.2) then

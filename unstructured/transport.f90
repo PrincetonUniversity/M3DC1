@@ -1112,7 +1112,7 @@ end function bs_func
 
 ! define_transport_coefficients
 ! =============================
-subroutine define_transport_coefficients()
+subroutine define_transport_coefficients(ilin)
 
   use basic
   use arrays
@@ -1123,21 +1123,20 @@ subroutine define_transport_coefficients()
   use pellet
   use diagnostics
   use kprad_m3dc1
+  use auxiliary_fields
 
   implicit none
 
   include 'mpif.h'
 
+  integer, intent(in) :: ilin
   integer :: itri, izone
   integer :: numelms, def_fields,ier
 
   logical, save :: first_time = .true.
-  logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
-       solve_visc_e, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
-       solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
-       solve_fp
+  logical :: solve_kappa, solve_visc, solve_resistivity, solve_visc_e
 
-  integer, parameter :: num_scalars = 15
+  integer, parameter :: num_scalars = 4
   integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -1145,46 +1144,26 @@ subroutine define_transport_coefficients()
   if((linear.eq.1).and.(.not.first_time)) return
   first_time = .false.
 
-  if(myrank.eq.0 .and. iprint.ge.1) &
-       print *, "Calculating transport coefficients"
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating transport coefficients"
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  Calculate electron density and temperatures"
+  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
+  if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) &
+       call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
+                                   pe_field(ilin), p_field(ilin), ne_field(ilin), &
+                                   den_field(ilin),eqsubtract)
 
   ! which transport coefficients need matrix solve
   solve_resistivity = .false.
   solve_visc = .false.
   solve_kappa = .false.
-  solve_sigma = .false.
   solve_visc_e = .false.
-  solve_f = .false.
-  solve_q = .false.
-  solve_totrad = .false.
-  solve_linerad = .false.
-  solve_bremrad = .false.
-  solve_ionrad = .false.
-  solve_reckrad = .false.
-  solve_recprad = .false.
-  solve_cd = .false.
-  solve_fp = .false.
 
   ! clear variables
   resistivity_field = 0.
   kappa_field = 0.
-
   visc_field = 0.
-  if(density_source) sigma_field = 0.  
-  if(momentum_source) Fphi_field = 0.
-  if(heat_source) Q_field = 0.
-  if(rad_source) then
-     Totrad_field = 0.
-     Linerad_field = 0.
-     Bremrad_field = 0.
-     Ionrad_field = 0.
-     Reckrad_field = 0.
-     Recprad_field = 0.
-  end if
-  if(icd_source .gt. 0) cd_field = 0.
   if(ibootstrap.ne.0) visc_e_field = 0.
-  if(ipforce.gt.0) pforce_field = 0.
-  if(ipforce.gt.0) pmach_field = 0.
 
   call finalize(field0_vec)
   call finalize(field_vec)
@@ -1195,18 +1174,9 @@ subroutine define_transport_coefficients()
   if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
        def_fields = def_fields + FIELD_ETA
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
-  if(ibeam.ge.1) def_fields = def_fields + FIELD_V
-  if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
-
-  if(iarc_source.ne.0) def_fields = def_fields + FIELD_WALL
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
-  if(ipellet.ne.0) then
-     ! make sure normalization for pellet_distribution defined
-     call calculate_Lor_vol
-  end if
-  
   ! Calculate RHS
   numelms = local_elements()
 !$OMP PARALLEL DO &
@@ -1234,6 +1204,175 @@ subroutine define_transport_coefficients()
           call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL
 
+     dofs = viscosity_func()
+     if(.not.solve_visc) solve_visc = any(dofs.ne.0.)
+!$OMP CRITICAL
+     if(solve_visc) &
+          call vector_insert_block(visc_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+
+     if(ibootstrap.ne.0) then
+        dofs = electron_viscosity_func()
+        if(.not.solve_visc_e) solve_visc_e = any(dofs.ne.0.)
+!$OMP CRITICAL
+        if(solve_visc_e) &
+             call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+     end if
+  end do
+!$OMP END PARALLEL DO
+
+
+  ! Solve all the variables that have been defined
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  ! make sure all processes agree on what needs to be solved
+  if(maxrank.gt.1) then
+     temp = 0
+     temp2 = 0
+     if(solve_resistivity) temp(1) = 1
+     if(solve_kappa)       temp(2) = 1
+     if(solve_visc)        temp(3) = 1
+     if(solve_visc_e)      temp(4) = 1
+
+     call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
+          MPI_MAX, MPI_COMM_WORLD, ier)
+
+     solve_resistivity = temp2(1).eq.1
+     solve_kappa       = temp2(2).eq.1
+     solve_visc        = temp2(3).eq.1
+     solve_visc_e      = temp2(4).eq.1
+  end if
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
+
+  if(solve_resistivity) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  resistivity'
+     call newvar_solve(resistivity_field%vec, mass_mat_lhs)
+  end if
+
+  if(solve_kappa) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
+     call newvar_solve(kappa_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_visc) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
+     call newvar_solve(visc_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_visc_e) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  electron viscosity'
+     call newvar_solve(visc_e_field%vec, mass_mat_lhs)
+  endif
+
+  ! the "compressible" viscosity is the same as the "incompressible"
+  ! viscosity up to a constant
+  visc_c_field = visc_field
+
+  ! add in constant components
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  call add(resistivity_field, etar*eta_fac)
+  call add(visc_field, amu)
+  call add(visc_c_field, amuc)
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, 'done define_transport_coefficients'
+
+end subroutine define_transport_coefficients
+
+
+! define_sources
+! =============================
+subroutine define_sources(ilin)
+
+  use basic
+  use arrays
+  use m3dc1_nint
+  use newvar_mod
+  use sparse
+  use neutral_beam
+  use pellet
+  use diagnostics
+  use kprad_m3dc1
+  use auxiliary_fields
+
+  implicit none
+
+  include 'mpif.h'
+
+  integer, intent(in) :: ilin
+  integer :: itri, izone
+  integer :: numelms, def_fields,ier
+
+  logical :: solve_sigma, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
+             solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, solve_fp
+
+  integer, parameter :: num_scalars = 11
+  integer, dimension(num_scalars) :: temp, temp2
+  vectype, dimension(dofs_per_element) :: dofs
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, "Calculating sources"
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  Calculate electron density and temperatures"
+  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
+  if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) &
+       call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
+                                   pe_field(ilin), p_field(ilin), ne_field(ilin), &
+                                   den_field(ilin),eqsubtract)
+
+
+  ! which transport coefficients need matrix solve
+  solve_sigma = .false.
+  solve_f = .false.
+  solve_q = .false.
+  solve_totrad = .false.
+  solve_linerad = .false.
+  solve_bremrad = .false.
+  solve_ionrad = .false.
+  solve_reckrad = .false.
+  solve_recprad = .false.
+  solve_cd = .false.
+  solve_fp = .false.
+
+  ! clear variables
+  if(density_source) sigma_field = 0.  
+  if(momentum_source) Fphi_field = 0.
+  if(heat_source) Q_field = 0.
+  if(rad_source) then
+     Totrad_field = 0.
+     Linerad_field = 0.
+     Bremrad_field = 0.
+     Ionrad_field = 0.
+     Reckrad_field = 0.
+     Recprad_field = 0.
+  end if
+  if(icd_source .gt. 0) cd_field = 0.
+  if(ipforce.gt.0) pforce_field = 0.
+  if(ipforce.gt.0) pmach_field = 0.
+
+  call finalize(field0_vec)
+  call finalize(field_vec)
+
+  ! specify which primitive fields are to be evalulated
+  def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
+  if(itemp.ge.1) def_fields = def_fields + FIELD_TE
+  if(ibeam.ge.1) def_fields = def_fields + FIELD_V
+  if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
+
+  if(iarc_source.ne.0) def_fields = def_fields + FIELD_WALL
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
+  
+  ! Calculate RHS
+  numelms = local_elements()
+!$OMP PARALLEL DO &
+!$OMP& PRIVATE(dofs)
+  do itri=1,numelms
+
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, def_fields, 1, linear)
+
+     call get_zone(itri, izone)
 
      if(density_source) then
         dofs = sigma_func(izone)
@@ -1243,13 +1382,6 @@ subroutine define_transport_coefficients()
              call vector_insert_block(sigma_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL
      end if
-
-     dofs = viscosity_func()
-     if(.not.solve_visc) solve_visc = any(dofs.ne.0.)
-!$OMP CRITICAL
-     if(solve_visc) &
-          call vector_insert_block(visc_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
 
      if(momentum_source) then 
         dofs = force_func(izone)
@@ -1335,14 +1467,6 @@ subroutine define_transport_coefficients()
              call vector_insert_block(cd_field%vec,itri,1,dofs,VEC_ADD)
      end if
 
-     if(ibootstrap.ne.0) then
-        dofs = electron_viscosity_func()
-        if(.not.solve_visc_e) solve_visc_e = any(dofs.ne.0.)
-!$OMP CRITICAL
-        if(solve_visc_e) &
-             call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
-     end if
   end do
 !$OMP END PARALLEL DO
 
@@ -1354,67 +1478,39 @@ subroutine define_transport_coefficients()
   if(maxrank.gt.1) then 
      temp = 0
      temp2 = 0
-     if(solve_resistivity) temp(1) = 1
-     if(solve_kappa)       temp(2) = 1
-     if(solve_sigma)       temp(3) = 1
-     if(solve_visc)        temp(4) = 1
-     if(solve_visc_e)      temp(5) = 1
-     if(solve_f)           temp(6) = 1
-     if(solve_q)           temp(7) = 1
-     if(solve_fp)          temp(8) = 1
-     if(solve_cd)          temp(9) = 1
-     if(solve_totrad)      temp(10) = 1
-     if(solve_linerad)      temp(11) = 1
-     if(solve_bremrad)     temp(12) = 1
-     if(solve_ionrad)      temp(13) = 1
-     if(solve_reckrad)     temp(14) = 1
-     if(solve_recprad)     temp(15) = 1
+     if(solve_sigma)       temp(1) = 1
+     if(solve_f)           temp(2) = 1
+     if(solve_q)           temp(3) = 1
+     if(solve_fp)          temp(4) = 1
+     if(solve_cd)          temp(5) = 1
+     if(solve_totrad)      temp(6) = 1
+     if(solve_linerad)     temp(7) = 1
+     if(solve_bremrad)     temp(8) = 1
+     if(solve_ionrad)      temp(9) = 1
+     if(solve_reckrad)     temp(10) = 1
+     if(solve_recprad)     temp(11) = 1
 
      call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
           MPI_MAX, MPI_COMM_WORLD, ier)
 
-     solve_resistivity = temp2(1).eq.1
-     solve_kappa       = temp2(2).eq.1
-     solve_sigma       = temp2(3).eq.1
-     solve_visc        = temp2(4).eq.1
-     solve_visc_e      = temp2(5).eq.1
-     solve_f           = temp2(6).eq.1
-     solve_q           = temp2(7).eq.1
-     solve_fp          = temp2(8).eq.1
-     solve_cd          = temp2(9).eq.1
-     solve_totrad      = temp2(10).eq.1
-     solve_linerad      = temp2(11).eq.1
-     solve_bremrad     = temp2(12).eq.1
-     solve_ionrad      = temp2(13).eq.1
-     solve_reckrad     = temp2(14).eq.1
-     solve_recprad     = temp2(15).eq.1
+     solve_sigma       = temp2(1).eq.1
+     solve_f           = temp2(2).eq.1
+     solve_q           = temp2(3).eq.1
+     solve_fp          = temp2(4).eq.1
+     solve_cd          = temp2(5).eq.1
+     solve_totrad      = temp2(6).eq.1
+     solve_linerad     = temp2(7).eq.1
+     solve_bremrad     = temp2(8).eq.1
+     solve_ionrad      = temp2(9).eq.1
+     solve_reckrad     = temp2(10).eq.1
+     solve_recprad     = temp2(11).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
 
-  if(solve_resistivity) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  resistivity'
-     call newvar_solve(resistivity_field%vec, mass_mat_lhs)
-  end if
-
-  if(solve_kappa) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
-     call newvar_solve(kappa_field%vec, mass_mat_lhs)
-  endif
-
-  if(solve_sigma) then
+   if(solve_sigma) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  sigma'
      call newvar_solve(sigma_field%vec, mass_mat_lhs_dc)
-  endif
-
-  if(solve_visc) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  viscosity'
-     call newvar_solve(visc_field%vec, mass_mat_lhs)
-  endif
-
-  if(solve_visc_e) then
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  electron viscosity'
-     call newvar_solve(visc_e_field%vec, mass_mat_lhs)
   endif
 
   if(solve_f) then
@@ -1465,27 +1561,54 @@ subroutine define_transport_coefficients()
   if(solve_fp) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  pforce'
      call newvar_solve(pforce_field%vec, mass_mat_lhs)
-
-     if(myrank.eq.0 .and. iprint.ge.1) print *, '  pmach'
-     call newvar_solve(pmach_field%vec, mass_mat_lhs)
-
   endif
 
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       print *, 'done define_sources'
 
-  ! the "compressible" viscosity is the same as the "incompressible"
-  ! viscosity up to a constant
-  visc_c_field = visc_field
+end subroutine define_sources
 
+
+! define pellet source
+! =============================
+subroutine define_pellet_source(ilin)
+
+  use basic
+  use mesh_mod
+  use arrays
+  use m3dc1_nint
+  use diagnostics
+  use metricterms_new
+  use kprad_m3dc1
+  use pellet
+  use math
+  use auxiliary_fields
+
+  implicit none
+
+  include 'mpif.h'
+
+  integer, intent(in) :: ilin    ! 0 for equilibrium fields, 1 for perturbed
+  integer :: itri, numelms, def_fields, ier
+  integer :: ip
+  integer :: izone, izonedim
+  real :: tpifac, tpirzero
+  double precision, allocatable  :: ptemp(:)
+
+  if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, "begin define_pellet_source"
   
-  ! add in constant components
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
-  call add(resistivity_field, etar*eta_fac)
-  call add(visc_field, amu)
-  call add(visc_c_field, amuc)
+  if(ntime.ne.0) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "  Advance pellet position"
+     call pellet_advance
+  end if
 
+  ! Define normalization for pellet_distribution
+  call calculate_Lor_vol
 
   ! Read LP data
   if(iread_lp_source.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "  Read LP source"
      call read_lp_source('cloud.txt', ier)
      if(ier.ne.0) then
         if(myrank.eq.0) print *, 'Error reading LP source ', 'cloud.txt'
@@ -1493,9 +1616,83 @@ subroutine define_transport_coefficients()
      end if
   end if
 
-  if(myrank.eq.0 .and. iprint.ge.2) &
-       print *, 'done define_transport_coefficients'
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  Calculate electron density and temperatures"
+  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
+  if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) &
+       call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
+                                   pe_field(ilin), p_field(ilin), ne_field(ilin), &
+                                   den_field(ilin),eqsubtract)
 
-end subroutine define_transport_coefficients
+  if(ipellet_abl.gt.0) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "  Calculate ablation inputs"
+
+     call tpi_factors(tpifac,tpirzero)
+     nsource_pel = 0.
+     temp_pel = 0.
+
+     def_fields = FIELD_P + FIELD_N
+     call finalize(field0_vec)
+     call finalize(field_vec)
+     numelms = local_elements()
+
+!$OMP PARALLEL DO PRIVATE(itri,ier,izone,izonedim,ip) &
+!$OMP& REDUCTION(+:nsource_pel,temp_pel)
+     do itri=1,numelms
+
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        if(izone.ne.1) cycle
+        call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
+        call define_fields(itri, def_fields, 0, 0)
+
+        ! Pellet radius and density/temperature at the pellet surface
+        do ip=1,npellets
+           if(r_p(ip).ge.1e-8) then
+              ! weight density/temp by pellet distribution (normalized)
+              temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+              nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
+              temp_pel(ip) = temp_pel(ip) + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
+           else
+              nsource_pel(ip) = 0.
+              temp_pel(ip) = 0.
+           end if
+        end do
+     end do
+!$OMP END PARALLEL DO
+
+     allocate(ptemp(npellets))
+     ptemp = nsource_pel
+     call mpi_allreduce(ptemp, nsource_pel, npellets, MPI_DOUBLE_PRECISION,  &
+                        MPI_SUM, MPI_COMM_WORLD, ier)
+     ptemp = temp_pel
+     call mpi_allreduce(ptemp, temp_pel, npellets, MPI_DOUBLE_PRECISION,  &
+                        MPI_SUM, MPI_COMM_WORLD, ier)
+     deallocate(ptemp)
+
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "  Calculate ablation rate"
+     call calculate_ablation
+
+  end if
+
+  if(myrank.eq.0 .and. iprint.ge.2) then
+     do ip=1,npellets
+        print *, "  Pellet #", ip
+        print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
+        print *, "    Lor_vol = ", Lor_vol(ip)
+        print *, "    R position: ", pellet_r(ip)*l0_norm
+        print *, "    phi position: ", pellet_phi(ip)
+        print *, "    Z position: ", pellet_z(ip)*l0_norm
+        if(ipellet_abl.gt.0) then
+           print *, "    radius (in cm) = ", r_p(ip)*l0_norm
+           print *, "    local electron temperature (in eV) = ", temp_pel(ip)
+           print *, "    local electron density (in ne14) = ", nsource_pel(ip)
+           print *, "    rpdot (in cm/s) = ", rpdot(ip)*l0_norm/t0_norm
+        end if
+     end do
+  end if
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'done define_pellet_source'
+
+end subroutine define_pellet_source
+
 
 end module transport_coefficients

@@ -143,12 +143,11 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
 	element.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o resistive_wall.o kprad.o \
-	 m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
+	m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
-	electric_field.o pellet.o parallel_heat_flux.o \
-	temperature_plots.o \
+	electric_field.o parallel_heat_flux.o temperature_plots.o \
 	electrostatic_potential.o newvar.o runaway.o diagnostics.o \
-	read_schaffer_field.o  neutral_beam.o \
+	pellet.o read_schaffer_field.o  neutral_beam.o \
 	coils.o coil_sets.o kprad_m3dc1.o model.o \
 	fit_magnetics.o wall.o \
 	init_common.o \
@@ -160,8 +159,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
         init_eqdsk.o init_dskbal.o init_jsolver.o \
 	init_3dwave.o init_3ddiffusion.o init_frs.o init_ftz.o init_eigen.o \
 	init_intkink.o init_lz.o init_kstar.o init_basicq.o init_cyl.o \
-	transport.o \
-	auxiliary_fields.o  \
+	auxiliary_fields.o transport.o \
 	time_step_split.o time_step_unsplit.o \
         hdf5_output.o particle.o   \
 	time_step.o output.o restart_hdf5.o \

@@ -864,16 +864,17 @@ subroutine step_split(calc_matrices)
      call destroy_vector(temp)
      call destroy_vector(temp2)
 
-     if(irecalc_eta.eq.1) then
-        call export_time_advance_vectors_split
-        call define_transport_coefficients
-     end if
-
-     ! Electron temperature
+     ! Electron density
      neold_vec = ne_vec
      call calculate_ne(1, den_v, ne_v, eqsubtract)
      ne_field(1) = ne_v    ! This is needed so that boundary_te works properly
      den_field(1) = den_v
+
+     if(irecalc_eta.eq.1) then
+        call export_time_advance_vectors_split
+        call define_transport_coefficients(1)
+     end if
+
   endif    ! on idens=1
      
   !
@@ -1103,7 +1104,7 @@ subroutine step_split(calc_matrices)
      call matvecmult(d2_mat,phi_vec,b2_phi)
      call add(b1_phi, b2_phi)
 
-     ! Inculde density terms
+     ! Include density terms
      if(idens.eq.1) then
         call matvecmult(r42_mat,ne_vec,b2_phi)
         call add(b1_phi, b2_phi)
@@ -1204,7 +1205,7 @@ subroutine step_split(calc_matrices)
         call export_time_advance_vectors_split
         ! redefine transport coefficients with new den/pe values
         call lcfs(psi_field(1))
-        call define_transport_coefficients
+        call define_transport_coefficients(1)
         ! revert fields to old values
         phi_vec = b2_phi
         
