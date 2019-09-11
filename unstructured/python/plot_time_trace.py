@@ -8,7 +8,7 @@ import sys
 from matplotlib import rc
 rc('text', usetex=True)
 
-def plot_time_trace(trace,units='mks',file_name='C1.h5'):
+def plot_time_trace(trace,units='mks',file_name='C1.h5',growth=False):
     """
     Plots the time trace of some quantity. All available
     time traces can be found in the M3DC1 documentation.
@@ -23,6 +23,10 @@ def plot_time_trace(trace,units='mks',file_name='C1.h5'):
 
     **file_name**
     Contains the path to the C1.h5 file.
+
+    **growth**
+    Determines wether to calculate the derivative.
+    True/False
     """
     
     sim =  fpy.sim_data(file_name)
@@ -360,6 +364,8 @@ def plot_time_trace(trace,units='mks',file_name='C1.h5'):
         time   = time[0:maxidx]
         y_axis = y_axis[0:maxidx]
 
+    if growth==True:
+        y_axis = np.gradient(y_axis, time)
     plt.plot(time,y_axis)
     plt.ticklabel_format( axis='y', style='sci',useOffset=False)
     plt.show()

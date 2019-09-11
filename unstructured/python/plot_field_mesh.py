@@ -1,3 +1,4 @@
+
 # plotfpy.py: set of plotting function meant to emulate the existing routines available in M3DC1
 # Make use of the fpy module to keep it pythonic
 #
@@ -16,12 +17,13 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib.ticker as ticker
 from plot_mesh import plot_mesh
+from scipy.spatial import Delaunay
 rc('text', usetex=True)
 
 
 
 
-def plot_field_mesh(field, coord='scalar', file_name='C1.h5', time=0, phi=0, mesh=False, linear=False, diff=False, tor_av=1, bound=False, units='mks'):
+def plot_field_mesh(field, coord='scalar', file_name='C1.h5', time=0, phi=0, mesh=False, linear=False, diff=False, tor_av=1, bound=False, units='mks',res=0):
     """
     Plots the field of a file, but evaluates them only on
     the mesh points.
@@ -70,6 +72,11 @@ def plot_field_mesh(field, coord='scalar', file_name='C1.h5', time=0, phi=0, mes
 
     **tor_av**
     Calculates the average field over tor_av number of toroidal planes
+
+    **res**
+    The resolution of the grid. For res=0 only the mesh points will be included.
+    For res=1, the centre points of Delaunay triangles will be calculated and included
+    in the evluation. For res=n, this process will be iterated n times.
     """
     # make file name iterable if it is a string and not a list of strings
     file_name = (file_name,) if not isinstance(file_name, (tuple, list)) else file_name
@@ -128,6 +135,16 @@ def plot_field_mesh(field, coord='scalar', file_name='C1.h5', time=0, phi=0, mes
     mesh_pts     = mesh_ob.elements
     R_linspace   = mesh_pts[:,4]
     Z_linspace   = mesh_pts[:,5]
+    # Calculate centrepoints if res>1
+    for tri_iter in range(0,res):
+        triangles = Delaunay(np.transpose(np.asarray([R_linspace,Z_linspace])))
+        for tuplet in triangles.simplices:
+            p0 = triangles.points[tuplet[0],:]
+            p1 = triangles.points[tuplet[1],:]
+            p2 = triangles.points[tuplet[2],:]
+            pnew = (p0+p1+p2)/3
+            R_linspace = np.append(R_linspace,pnew[0])
+            Z_linspace = np.append(Z_linspace,pnew[1])
     phi_linspace = np.linspace(phi,      (360+phi), tor_av, endpoint=False)
     R, phi       = np.meshgrid(R_linspace, phi_linspace)
     Z, phi       = np.meshgrid(Z_linspace, phi_linspace)
@@ -260,6 +277,7 @@ def plot_field_mesh(field, coord='scalar', file_name='C1.h5', time=0, phi=0, mes
         b = int(b)
         return r'${} \cdot 10^{{{}}}$'.format(a, b)
 
+    print('Evaluated on {} points in the R Z plane'.format(len(R_linspace)))
 
 
     
