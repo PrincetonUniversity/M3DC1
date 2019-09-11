@@ -9,6 +9,7 @@ function read_pellets, filename=filename
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
    if(hdf5_file_test(filename) eq 0) then return, 0
+   if(read_parameter("ipellet", filename=filename) eq 0) then return, !NULL
 
    file_id = h5f_open(filename)
    root_id = h5g_open(file_id, "/")

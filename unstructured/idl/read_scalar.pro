@@ -110,6 +110,9 @@ function read_scalar, scalarname, filename=filename, title=title, $
         (strcmp("pelr", scalarname, /fold_case) eq 1) then begin
        if(version lt 31) then begin
           data = s.pellet_rate._data
+       endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
        endif else begin
           data = p.pellet_rate._data[ipellet,*]
        endelse
@@ -125,15 +128,18 @@ function read_scalar, scalarname, filename=filename, title=title, $
          symbol = '!8V!DL!N!X'
          d = dimensions(/n0, t0=-1, _EXTRA=extra)
       endif else begin
-         print, 'Error, this data is not present in this version of M3D-C1.'
-         data = 0.
+         print, 'Error: this data is not present in this version of M3D-C1.'
+         return, 0
       end
     endif else $
      if (strcmp("pellet var", scalarname, /fold_case) eq 1) or $
      (strcmp("pelvar", scalarname, /fold_case) eq 1) then begin
        if(version lt 31) then begin
           data = s.pellet_var._data
-       endif else begin
+        endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
+        endif else begin
           data = p.pellet_var._data[ipellet,*]
        endelse
        title = 'Pellet Var'
@@ -147,6 +153,9 @@ function read_scalar, scalarname, filename=filename, title=title, $
       endif else begin
         if(version lt 31) then begin
           data = s.r_p._data
+        endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
         endif else begin
           data = p.r_p._data[ipellet,*]
         endelse
@@ -162,6 +171,9 @@ function read_scalar, scalarname, filename=filename, title=title, $
        endif else begin
          if(version lt 31) then begin
            data = s.pellet_r._data
+         endif else if(p eq !NULL) then begin
+           print, 'Error: pellet data not present in this file'
+           return, 0
          endif else begin
            data = p.pellet_r._data[ipellet,*]
          endelse
@@ -174,6 +186,9 @@ function read_scalar, scalarname, filename=filename, title=title, $
      (strcmp("pelzpos", scalarname, /fold_case) eq 1) then begin
        if(version lt 31) then begin
           data = s.pellet_z._data
+       endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
        endif else begin
           data = p.pellet_z._data[ipellet,*]
        endelse
@@ -425,8 +440,13 @@ function read_scalar, scalarname, filename=filename, title=title, $
        smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
        if(version ge 31) then begin
           p = read_pellets(filename=filename)
-          n = tag_names(p)
-          pmatch = where(strcmp(n, scalarname, /fold_case) eq 1,pcount)
+          if (p eq !NULL) then begin
+            print, 'Warning: pellet data not present in this file'
+            pcount = 0
+          endif else begin
+            n = tag_names(p)
+            pmatch = where(strcmp(n, scalarname, /fold_case) eq 1,pcount)
+          endelse
        endif else begin
           pcount = 0
        endelse
