@@ -233,6 +233,7 @@ module adapt
     i_control%err_p_old = 0.
     n_control%err_i = 0.
     n_control%err_p_old = 0.
+    call define_transport_coefficients(1)
     call derived_quantities(1)
     !ke_previous = ekin
   end subroutine adapt_by_psi
@@ -405,8 +406,10 @@ iadapt_max_node, adapt_control);
        n_control%err_p_old = 0.
        call reset_scalars
        if(eqsubtract.eq.1) then
-         call derived_quantities(0)
+          call define_transport_coefficients(0)
+          call derived_quantities(0)
        end if
+       call define_transport_coefficients(1)
        call derived_quantities(1)
        meshAdapted =1
     end if

@@ -275,6 +275,7 @@ Program Reducedquintic
   if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
 
      if(eqsubtract.eq.1) then
+        call define_transport_coefficients(0)
         call derived_quantities(0)
         if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
      end if
@@ -293,6 +294,7 @@ Program Reducedquintic
 
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  call define_transport_coefficients(1)
   call derived_quantities(1)
 
 
@@ -682,6 +684,7 @@ subroutine derived_quantities(ilin)
   use diagnostics
   use sparse
   use transport_coefficients
+  use auxiliary_fields
 
   implicit none
 
@@ -692,10 +695,14 @@ subroutine derived_quantities(ilin)
 
   vectype :: temp
 
-  ! Density and temperature are now updated within define_transport_coefficients
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-  call define_transport_coefficients(ilin)
-
+  ! Update density and temperature
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  Calculate electron density and temperatures"
+  call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
+  if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) &
+       call calculate_temperatures(ilin, te_field(ilin), ti_field(ilin), &
+                                   pe_field(ilin), p_field(ilin), ne_field(ilin), &
+                                   den_field(ilin),eqsubtract)
+  
   ! Find lcfs
   ! ~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  finding lcfs"
