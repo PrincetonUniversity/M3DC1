@@ -436,6 +436,7 @@ contains
     integer, intent(in), optional :: ieqs
 
     real :: fac
+    real :: p_floor
     integer :: izone, ieqsub, fields, i
     type(element_data) :: d
 
@@ -677,23 +678,41 @@ contains
        pi079 = p079 - pe079
        pit79 = pt79 - pet79
 
+       p_floor = iset_pe_floor*pe_floor + iset_pi_floor*pi_floor
+
        if(iset_pe_floor.eq.1) then
-          if(ilin.eq.0) then 
+          if(ilin.eq.0) then
              where(real(pet79(:,OP_1)).lt.pe_floor)
                 pe179(:,OP_1) = pe_floor - pe079(:,OP_1)
-             end where
-             where(real(pt79(:,OP_1)).lt.pe_floor)
-                p179(:,OP_1) = pe_floor - p079(:,OP_1)
              end where
           end if
           where(real(pet79(:,OP_1)).lt.pe_floor)
              pet79(:,OP_1) = pe_floor
           end where
-          where(real(pt79(:,OP_1)).lt.pe_floor)
-             pt79(:,OP_1) = pe_floor
+       end if
+
+       if(iset_pi_floor.eq.1) then
+          if(ilin.eq.0) then
+             where(real(pit79(:,OP_1)).lt.pi_floor)
+                pi179(:,OP_1) = pi_floor - pi079(:,OP_1)
+             end where
+          end if
+          where(real(pit79(:,OP_1)).lt.pi_floor)
+             pit79(:,OP_1) = pi_floor
           end where
        end if
 
+       if(iset_pe_floor.eq.1 .or. iset_pi_floor.eq.1) then
+          if(ilin.eq.0) then
+             where(real(pt79(:,OP_1)).lt.p_floor)
+                p179(:,OP_1) = p_floor - p079(:,OP_1)
+             end where
+          end if
+          where(real(pt79(:,OP_1)).lt.p_floor)
+             pt79(:,OP_1) = p_floor
+          end where
+       end if
+       
     endif
    
     
@@ -812,6 +831,18 @@ contains
         te079 = 0.
         tet79 = te179
      endif
+
+     if(iset_te_floor.eq.1) then
+        if(ilin.eq.0) then
+           where(real(tet79(:,OP_1)).lt.te_floor)
+              te179(:,OP_1) = te_floor - te079(:,OP_1)
+           end where
+        end if
+        where(real(tet79(:,OP_1)).lt.te_floor)
+           tet79(:,OP_1) = te_floor
+        end where
+     end if
+
   endif
   
   ! TI
@@ -832,6 +863,18 @@ contains
         ti079 = 0.
         tit79 = ti179
      endif
+
+     if(iset_ti_floor.eq.1) then
+        if(ilin.eq.0) then
+           where(real(tit79(:,OP_1)).lt.ti_floor)
+              ti179(:,OP_1) = ti_floor - ti079(:,OP_1)
+           end where
+        end if
+        where(real(tit79(:,OP_1)).lt.ti_floor)
+           tit79(:,OP_1) = ti_floor
+        end where
+     end if
+
   endif
   
   ! J
