@@ -1584,7 +1584,7 @@ subroutine validate_input
      if(.not.density_source) then
         density_source = idens.eq.1 .and. linear.eq.0 .and. ipellet.ge.1 &
                          .and. (ipellet_z.eq.0 .or. any(pellet_mix.gt.0.))
-        print *, 'Density source with pellets: ', density_source
+        if(myrank.eq.0) print *, 'Density source with pellets: ', density_source
      end if
 
      if(ipellet_z.ne.0 .and. &
