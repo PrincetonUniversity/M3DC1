@@ -938,6 +938,21 @@ function kappa_func()
              -2.*temp79d*pet79(:,OP_1) / net79(:,OP_1)**3))
      end if
      
+  case(5)
+     ! kappa ~ 1/|Te|
+
+     if(kappa0.eq.0) then
+        temp79a = 0.
+     else
+        if(itemp.eq.0) then
+           temp79a = kappa0*abs(real(net79(:,OP_1))/real(pet79(:,OP_1)))
+        else
+           temp79a = kappa0/abs(real(tet79(:,OP_1)))
+        end if
+     end if
+
+     where(real(temp79a).gt.(kappa_max-kappat)) temp79a = kappa_max - kappat
+
   case(10,11)
      if(.not.allocated(kappa_spline%x)) then
         ! Read in m^2/s (10) or normalized units (11)

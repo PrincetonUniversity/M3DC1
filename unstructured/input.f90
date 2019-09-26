@@ -326,6 +326,8 @@ subroutine set_defaults
        "Factor to multiply kappa when grad(p) < gradp_crit", transp_grp)
   call add_var_double("gradp_crit", gradp_crit, 0., &
        "Critical pressure gradient in kappag/kappaf models", transp_grp)
+  call add_var_double("kappa_max", kappa_max, 0., &
+       "Maximum value of kappa in the plasma region", transp_grp)
   call add_var_double("temin_qd", temin_qd, 0., &
        "Min. Temp. used in Equipartition term for ipres=1", transp_grp)
   call add_var_double("kappai_fac", kappai_fac, 1., &
@@ -1546,6 +1548,7 @@ subroutine validate_input
        * (n0_norm**3 * l0_norm / B0_norm**4)
   efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
   if(eta_max.le.0.) eta_max = eta_vac
+  if(kappa_max.le.0.) kappa_max = kappar
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, 'nufac = ', nufac
