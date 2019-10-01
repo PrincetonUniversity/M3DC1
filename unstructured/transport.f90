@@ -939,19 +939,9 @@ function kappa_func()
      end if
      
   case(5)
-     ! kappa ~ 1/|Te|
+     ! kappa ~ 1/Te (with a maximum)
 
-     if(kappa0.eq.0) then
-        temp79a = 0.
-     else
-        if(itemp.eq.0) then
-           temp79a = kappa0*abs(real(net79(:,OP_1))/real(pet79(:,OP_1)))
-        else
-           temp79a = kappa0/abs(real(tet79(:,OP_1)))
-        end if
-     end if
-
-     where(real(temp79a).gt.(kappa_max-kappat)) temp79a = kappa_max - kappat
+     temp79a = kap79(:,OP_1) - kappat
 
   case(10,11)
      if(.not.allocated(kappa_spline%x)) then
@@ -997,7 +987,8 @@ function kappa_func()
 
   temp79a = temp79a + kappat
 
-  if(kappaf.ge.0. .and. gradp_crit.ne.0) then
+  ! BCL 9/30/19: ikappafunc condition added here since defined in m3dc1_nint.f90
+  if(kappaf.ge.0. .and. gradp_crit.ne.0 .and. ikappafunc.ne.5) then
      temp79b = pt79(:,OP_DR)**2 + pt79(:,OP_DZ)**2
 #ifdef USE3D
      temp79b = temp79b + ri2_79*pt79(:,OP_DP)**2
@@ -1009,12 +1000,13 @@ function kappa_func()
 
   temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 
-  if(kappah.ne.0.) then
+  ! BCL 9/30/19: ikappafunc condition added here since defined in m3dc1_nint.f90
+  if(kappah.ne.0. .and. ikappafunc.ne.5) then
      temp79b = (pst79(:,OP_1) - psimin)/(psibound - psimin)
      temp79a = kappah*tanh((real(temp79b) - 1.)/.2)**2
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   end if
-  
+
   kappa_func = temp
 end function kappa_func
 
@@ -1194,6 +1186,7 @@ subroutine define_transport_coefficients()
   if(itemp.ge.1) def_fields = def_fields + FIELD_TE
   if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
        def_fields = def_fields + FIELD_ETA
+  if(ikappafunc.eq.5) def_fields = def_fields + FIELD_KAP
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
