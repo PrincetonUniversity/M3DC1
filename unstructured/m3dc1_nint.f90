@@ -493,7 +493,16 @@ contains
     end if
     if(iand(fields, FIELD_ETA).eq.FIELD_ETA) then
        if(iresfunc.eq.2 .or. iresfunc.eq.3) fields = ior(fields,FIELD_PSI)
-       if(iresfunc.eq.4) fields = ior(ior(fields,FIELD_N),FIELD_P)
+       if(iresfunc.eq.4) then
+          fields = ior(ior(fields,FIELD_N),FIELD_P)
+          if(itemp.eq.1) fields = ior(fields,FIELD_TE)
+       end if
+    end if
+    if(iand(fields, FIELD_KAP).eq.FIELD_KAP) then
+       if(ikappafunc.eq.5) then
+          fields = ior(ior(ior(fields,FIELD_N),FIELD_P),FIELD_PSI)
+          if(itemp.eq.1) fields = ior(fields,FIELD_TE)
+       end if
     end if
     if(iand(fields, FIELD_MU).eq.FIELD_MU) then
        if(ivisfunc.eq.3) fields = ior(fields,FIELD_PSI)
@@ -1098,7 +1107,98 @@ contains
   if(iand(fields, FIELD_KAP).eq.FIELD_KAP) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kappa..."
 
-     call eval_ops(itri, kappa_field, kap79)
+     if(ikappafunc.eq.5) then
+        kap79 = 0.
+        if(izone.eq.1. .and. kappa0.gt.0) then
+           ! Te
+           if(itemp.eq.1) then
+              temp79b = tet79(:,OP_1)
+           else
+              temp79b = pet79(:,OP_1)/net79(:,OP_1)
+           end if
+
+           kap79 = 0.
+           where(real(temp79b).gt.(kappa0/(kappa_max-kappat)))
+              kap79(:,OP_1) = net79(:,OP_1)/pet79(:,OP_1)
+              kap79(:,OP_DR) = net79(:,OP_DR)/pet79(:,OP_1) &
+                   - net79(:,OP_1)*pet79(:,OP_DR)/pet79(:,OP_1)**2
+              kap79(:,OP_DZ) = net79(:,OP_DZ)/pet79(:,OP_1) &
+                   - net79(:,OP_1)*pet79(:,OP_DZ)/pet79(:,OP_1)**2
+              kap79(:,OP_DRR) = net79(:,OP_DRR)/pet79(:,OP_1) &
+                   - 2.*net79(:,OP_DR)*pet79(:,OP_DR)/pet79(:,OP_1)**2 &
+                   + 2.*net79(:,OP_1)*pet79(:,OP_DR)**2/pet79(:,OP_1)**3 &
+                   - net79(:,OP_1)*pet79(:,OP_DRR)/pet79(:,OP_1)**2
+              kap79(:,OP_DRZ) = net79(:,OP_DRZ)/pet79(:,OP_1) &
+                   - (net79(:,OP_DR)*pet79(:,OP_DZ) + &
+                      net79(:,OP_DZ)*pet79(:,OP_DR))/pet79(:,OP_1)**2 &
+                   + 2.*net79(:,OP_1)*pet79(:,OP_DR)*pet79(:,OP_DZ)/pet79(:,OP_1)**3 &
+                   - net79(:,OP_1)*pet79(:,OP_DRZ)/pet79(:,OP_1)**2
+              kap79(:,OP_DZZ) = net79(:,OP_DZZ)/pet79(:,OP_1) &
+                   - 2.*net79(:,OP_DZ)*pet79(:,OP_DZ)/pet79(:,OP_1)**2 &
+                   + 2.*net79(:,OP_1)*pet79(:,OP_DZ)**2/pet79(:,OP_1)**3 &
+                   - net79(:,OP_1)*pet79(:,OP_DZZ)/pet79(:,OP_1)**2
+#ifdef USE3D
+              kap79(:,OP_DP) = net79(:,OP_DP)/pet79(:,OP_1) &
+                   - net79(:,OP_1)*pet79(:,OP_DP)/pet79(:,OP_1)**2
+#endif
+           end where
+
+           kap79 = kap79*kappa0
+           kap79(:,OP_1) = kap79(:,OP_1) + kappat
+
+           where(real(temp79b).le.(kappa0/(kappa_max-kappat)))
+              kap79(:,OP_1) = kappa_max
+           end where
+
+           if(kappaf.ge.0. .and. gradp_crit.ne.0) then
+              temp79a = pt79(:,OP_DR)**2 + pt79(:,OP_DZ)**2
+#ifdef USE3D
+              temp79a = temp79a + ri2_79*pt79(:,OP_DP)**2
+#endif
+              do i=1, OP_NUM
+                 where(real(temp79a).lt.gradp_crit**2) kap79(:,i) = kap79(:,i) * kappaf
+              end do
+           end if
+
+           if(kappah.ne.0.) then
+              tm79 = (pst79 - psimin)/(psibound - psimin)
+              temp79a = tanh((real(tm79(:,OP_1))-1.)/.2)
+              temp79b = cosh((real(tm79(:,OP_1))-1.)/.2)**-1
+              kap79(:,OP_1) = kap79(:,OP_1) + kappah*temp79a**2
+              kap79(:,OP_DR) = kap79(:,OP_DR) &
+                   + kappah*temp79a*temp79b**2*tm79(:,OP_DR)
+              kap79(:,OP_DZ) = kap79(:,OP_DZ) &
+                   + kappah*temp79a*temp79b**2*tm79(:,OP_DZ)
+              kap79(:,OP_DRR) = kap79(:,OP_DRR) &
+                   + kappah*(temp79a*temp79b**2*tm79(:,OP_DRR) &
+                             + 0.5*(temp79b**4)*(tm79(:,OP_DR)**2) &
+                             - (temp79a**2)*(temp79b**2)*(tm79(:,OP_DR)**2))
+              kap79(:,OP_DRZ) = kap79(:,OP_DRZ) &
+                   + kappah*(temp79a*temp79b**2*tm79(:,OP_DRZ) &
+                             + 0.5*(temp79b**4)*(tm79(:,OP_DR)**2) &
+                             - (temp79a**2)*(temp79b**2)*(tm79(:,OP_DR)**2))
+              kap79(:,OP_DZZ) = kap79(:,OP_DZZ) &
+                   + kappah*(temp79a*temp79b**2*tm79(:,OP_DZZ) &
+                             + 0.5*(temp79b**4)*tm79(:,OP_DR)*tm79(:,OP_DZ) &
+                             - (temp79a**2)*(temp79b**2)*tm79(:,OP_DR)*tm79(:,OP_DZ))
+#ifdef USE3D
+              kap79(:,OP_DP) = kap79(:,OP_DP) &
+                   + kappah*temp79a*temp79b**2*tm79(:,OP_DP)
+#endif
+           end if
+
+           where(kap79.ne.kap79) kap79 = 0.
+           temp79a = kap79(:,OP_1)
+           do i=1, OP_NUM
+              where(real(temp79a).lt.0.) kap79(:,i) = 0.
+              where(real(temp79a).gt.kappa_max) kap79(:,i) = 0.
+           end do
+           where(real(temp79a).gt.kappa_max) kap79(:,OP_1) = kappa_max
+
+        end if
+     else
+        call eval_ops(itri, kappa_field, kap79)
+     end if
 
      if(ikapscale.eq.1) then
         kar79 = kappar*kap79
