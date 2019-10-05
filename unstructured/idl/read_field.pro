@@ -33,7 +33,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        data = 0
        if(taverage eq 1) then taverage=16
        phi = period*findgen(taverage) / taverage
-       if(itor eq 1) then period = period*180./!pi
+       if(itor eq 1) then phi = phi*180./!pi
        for i=0, taverage-1 do begin
            data = data + $
              read_field(name, x, y, t, slices=time, mesh=mesh, $
