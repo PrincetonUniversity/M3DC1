@@ -71,6 +71,7 @@ module basic
   real :: kappag
   real :: kappaf
   real :: kappai_fac
+  real :: kappa_max
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
@@ -308,7 +309,8 @@ module basic
   integer :: isurface    ! include surface terms
   integer :: equilibrate ! 1 = scale trial functions so L2 norms = 1
   integer :: itime_independent ! 1 = exclude d/dt terms
-  integer :: iset_pe_floor
+  integer :: iset_pe_floor, iset_pi_floor
+  integer :: iset_te_floor, iset_ti_floor
   integer :: idiff       ! 1 = solve for difference in solution in B,p from n to n+1
   integer :: idifv       ! 1 = solve for difference in solution in v from n to n+1
   integer :: ksp_max     ! if.gt.0  max number of petsc iterations before time step is repeated
@@ -325,7 +327,8 @@ module basic
   real :: chiiner        ! factor to multiply chi inertial terms
   real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
   real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
-  real :: pe_floor
+  real :: pe_floor, pi_floor
+  real :: te_floor, ti_floor
   real :: frequency      ! frequency in time-independent calculation
 
   ! poloidal force parameters

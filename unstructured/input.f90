@@ -326,6 +326,8 @@ subroutine set_defaults
        "Factor to multiply kappa when grad(p) < gradp_crit", transp_grp)
   call add_var_double("gradp_crit", gradp_crit, 0., &
        "Critical pressure gradient in kappag/kappaf models", transp_grp)
+  call add_var_double("kappa_max", kappa_max, 0., &
+       "Maximum value of kappa in the plasma region", transp_grp)
   call add_var_double("temin_qd", temin_qd, 0., &
        "Min. Temp. used in Equipartition term for ipres=1", transp_grp)
   call add_var_double("kappai_fac", kappai_fac, 1., &
@@ -473,6 +475,18 @@ subroutine set_defaults
        "1: Do not let pe drop below pe_floor", num_grp)
   call add_var_double("pe_floor", pe_floor, 0., &
        "Minimum allowed value for pe when iset_pe_floor=1", num_grp)
+  call add_var_int("iset_pi_floor", iset_pi_floor, 0, &
+       "1: Do not let pi drop below pi_floor", num_grp)
+  call add_var_double("pi_floor", pi_floor, 0., &
+       "Minimum allowed value for pi when iset_pi_floor=1", num_grp)
+  call add_var_int("iset_te_floor", iset_te_floor, 0, &
+       "1: Do not let Te drop below te_floor", num_grp)
+  call add_var_double("te_floor", te_floor, 0., &
+       "Minimum allowed value for Te when iset_te_floor=1", num_grp)
+  call add_var_int("iset_ti_floor", iset_ti_floor, 0, &
+       "1: Do not let Ti drop below ti_floor", num_grp)
+  call add_var_double("ti_floor", ti_floor, 0., &
+       "Minimum allowed value for Ti when iset_ti_floor=1", num_grp)
   call add_var_int("iprecompute_metric", iprecompute_metric, 0, &
        "1: precompute full metric tensor", num_grp)
 
@@ -1534,6 +1548,7 @@ subroutine validate_input
        * (n0_norm**3 * l0_norm / B0_norm**4)
   efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
   if(eta_max.le.0.) eta_max = eta_vac
+  if(kappa_max.le.0.) kappa_max = kappar
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, 'nufac = ', nufac
@@ -1572,7 +1587,7 @@ subroutine validate_input
      if(.not.density_source) then
         density_source = idens.eq.1 .and. linear.eq.0 .and. ipellet.ge.1 &
                          .and. (ipellet_z.eq.0 .or. any(pellet_mix.gt.0.))
-        print *, 'Density source with pellets: ', density_source
+        if(myrank.eq.0) print *, 'Density source with pellets: ', density_source
      end if
 
      if(ipellet_z.ne.0 .and. &
