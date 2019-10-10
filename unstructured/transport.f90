@@ -1165,6 +1165,7 @@ subroutine define_transport_coefficients(ilin)
   if(itemp.ge.1) def_fields = def_fields + FIELD_TE
   if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
        def_fields = def_fields + FIELD_ETA
+  if(ikappafunc.eq.5) def_fields = def_fields + FIELD_KAP
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
