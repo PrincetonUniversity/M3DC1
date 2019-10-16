@@ -541,11 +541,13 @@ contains
     integer(HSIZE_T) :: chunk_size(1) = (/ 100 /)
     integer(HSIZE_T) :: dims(1)
     integer(HSIZE_T) :: maxdims(1)
-    integer(HSIZE_T), parameter :: local_dims(1) = (/ 1 /)
-    integer(HSIZE_T), dimension(1,1) :: coord
-    integer(SIZE_T), parameter :: num_elements = 1
+    integer(HSIZE_T) :: local_dims(1)
+    integer(HSIZE_T), allocatable :: coord(:,:)
+    integer(SIZE_T)  :: num_elements
     integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
-    real :: values(1)
+    integer(HSIZE_T) :: curdim
+    integer :: i
+    real, allocatable :: values(:)
     logical :: exists
 
 #ifdef USETAU
@@ -555,12 +557,12 @@ contains
 
     dims(1) = t+1
     maxdims(1) = H5S_UNLIMITED_F
-    values(1) = value
-    coord(1,1) = t + 1
-    
+
+    !@if(myrank.eq.0 .and. iprint.ge.2) print *, "   ", name
     call h5lexists_f(parent_id, name, exists, error)
 
     if(.not.exists) then
+       num_elements = 1
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)
@@ -573,20 +575,35 @@ contains
        end if
        call h5pclose_f(p_id, error)
        call h5sclose_f(filespace, error)
+       curdim = dims(1)
     else
        call h5dopen_f(parent_id, name, dset_id, error)
-       call h5dset_extent_f(dset_id, dims, error)
+       call h5dget_space_f(dset_id, filespace, error)
+       call h5sget_simple_extent_npoints_f(filespace, curdim, error)
+       call h5sclose_f(filespace, error)
+       if(dims(1).gt.curdim) then
+          num_elements = 1
+          call h5dset_extent_f(dset_id, dims, error)
+          curdim = dims(1)
+       else
+          num_elements = curdim - dims(1) + 1
+       end if
     endif
+
+    local_dims(1) = num_elements
+    allocate(values(num_elements))
+    allocate(coord(1,num_elements))
+    values = sqrt(-1.)
+    values(1) = value
+    coord(1,:) = (/ (i, i = dims(1), curdim) /)
 
     if(myrank.eq.0) then
        call h5screate_simple_f(1, local_dims, memspace, error)
        call h5dget_space_f(dset_id, filespace, error)
-       call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
-            num_elements, coord, error)
-       
        call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
        call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F, error)
-
+       call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
+            num_elements, coord, error)
        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
             file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
 
@@ -596,6 +613,9 @@ contains
        call h5sclose_f(memspace, error)
     endif
     call h5dclose_f(dset_id, error)
+
+    deallocate(values)
+    deallocate(coord)
 
   end subroutine output_scalar
 
