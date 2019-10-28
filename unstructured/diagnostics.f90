@@ -1936,8 +1936,8 @@ subroutine calculate_ke()
 !    create the sin and cos arrays
      do N = 0, NMAX
         do k = 1, nplanes
-       call ke_I1(nplanes, NMAX, k, N, i1ck(k,N), i1sk(k,N))
-       call ke_I2(nplanes, NMAX, k, N, i2ck(k,N), i2sk(k,N))
+       call ke_I1(NMAX, k, N, i1ck(k,N), i1sk(k,N))
+       call ke_I2(NMAX, k, N, i2ck(k,N), i2sk(k,N))
         enddo
      enddo
 
@@ -2222,8 +2222,8 @@ subroutine calculate_bh()
 !    create the sin and cos arrays
      do N = 0, BNMAX
         do k = 1, nplanes
-       call ke_I1(nplanes, BNMAX, k, N, i1ck(k,N), i1sk(k,N))
-       call ke_I2(nplanes, BNMAX, k, N, i2ck(k,N), i2sk(k,N))
+       call ke_I1(BNMAX, k, N, i1ck(k,N), i1sk(k,N))
+       call ke_I2(BNMAX, k, N, i2ck(k,N), i2sk(k,N))
         enddo
      enddo
 
@@ -2441,11 +2441,14 @@ end subroutine calculate_bh
 ! input: k, N
 ! output: i1ck, i1sk
 ! eq 10
-  subroutine ke_I1(nplanes, NMAX, k, N, i1ck, i1sk)
+  subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
+    use basic, ONLY: myrank
     use math
+    use mesh_mod
     implicit none
-    integer:: k, N, nplanes, NMAX
+    integer:: k, N, NMAX
     real:: i1ck, i1sk
+    integer:: iplane
 
     real:: delta_phi
 
@@ -2461,11 +2464,22 @@ end subroutine calculate_bh
 #else
 !  use 3/8 Simpson's rule
     real:: hh, x1, x2, x3, x4, f1, f2, f3, f4
-    real:: phi1, phi2, phi3, phi4
+    real:: phi1, phi2, phi3, phi4, phik, phik1
 #endif
 
 
+#ifdef OLD
    delta_phi = 2. * pi / nplanes
+#else
+   call m3dc1_plane_getphi(k-1, phik)
+   if(k==nplanes) then
+      phik1=2. * pi
+   else
+      call m3dc1_plane_getphi(k, phik1)
+   endif
+   delta_phi = phik1-phik
+   if(myrank.eq.0) print *, 'ke_I1 Plane ', k, 'at angle ', phik, phik1
+#endif
 
 ! $ \Phi_1(x) = ( |x|-1)^2( 2|x|+1), |x| \leq 1 $
    if(N .le. 0) then
@@ -2602,11 +2616,14 @@ end subroutine ke_I1
 ! input: N, k, delta_phi
 ! output: i2ck, i2sk
 ! eq 10
-  subroutine ke_I2(nplanes, NMAX, k, N, i2ck, i2sk)
+  subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
+    use basic, ONLY: myrank
     use math
+    use mesh_mod
     implicit none
-    integer:: k, N, nplanes, NMAX
+    integer:: k, N, NMAX
     real:: i2ck, i2sk
+    integer:: iplane
 
     real:: delta_phi
 
@@ -2622,10 +2639,21 @@ end subroutine ke_I1
 #else
 !  use 3/8 Simpson's rule
     real:: hh, x1, x2, x3, x4, f1, f2, f3, f4
-    real:: phi1, phi2, phi3, phi4
+    real:: phi1, phi2, phi3, phi4, phik, phik1
 #endif
 
+#ifdef OLD
    delta_phi = 2. * pi / nplanes
+#else
+   call m3dc1_plane_getphi(k-1, phik)
+   if(k==nplanes) then
+      phik1=2. * pi
+   else
+      call m3dc1_plane_getphi(k, phik1)
+   endif
+   delta_phi = phik1-phik
+   if(myrank.eq.0) print *, 'ke_I2 Plane ', k, 'at angle ', phik, phik1
+#endif
 
 !  $ \Phi_2(x) = x ( |x|-1)^2, |x| \leq 1 $
    if(N .le. 0) then
@@ -3057,6 +3085,7 @@ subroutine phi_int(x,z,ans,fin,itri,ierr)
 
   iplane = local_plane()
   call m3dc1_plane_getphi(iplane, phi)
+  if(myrank.eq.0) print *, 'diagnostics Plane ', iplane, 'at angle ', phi
 
   if(itri.eq.0) then
      call whattri(x,phi,z,itri,x1,z1)
