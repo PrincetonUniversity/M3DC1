@@ -6,15 +6,15 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   
   theta = 2.*!pi*findgen(ntheta)/(ntheta) - !pi
   phi = 2.*!pi*findgen(nphi)/(nphi)
-  r = fltarr(nr,ntheta,nphi)
-  z = fltarr(nr,ntheta,nphi)
+  r = fltarr(nr,nphi,ntheta)
+  z = fltarr(nr,nphi,ntheta)
 
   for i=0, nphi-1 do begin
      plot_perturbed_surface, q, $
                              xy_out=xy_out, theta=theta, phi=phi[i]*180./!pi, $
                              flux=flux, scale=10, _EXTRA=extra, overplot=(i gt 0)
-     r[*,*,i] = xy_out[0,*,0,*]
-     z[*,*,i] = xy_out[0,*,1,*]
+     r[*,i,*] = xy_out[0,*,0,*]
+     z[*,i,*] = xy_out[0,*,1,*]
   end
 
   ne0 = flux_average('ne',flux=qflux,psi=psi0,x=x,z=z,t=t,fc=fc,$
@@ -42,8 +42,8 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   ncdf_attput, id, 'version', 1, /short, /global
 
   nr_id = ncdf_dimdef(id, 'nr', nr)
-  ntheta_id = ncdf_dimdef(id, 'ntheta', ntheta)
   nphi_id = ncdf_dimdef(id, 'nphi', nphi)
+  ntheta_id = ncdf_dimdef(id, 'ntheta', ntheta)
 
   psi_var = ncdf_vardef(id, 'psi0', [nr_id], /float)
   Te_var = ncdf_vardef(id, 'Te0', [nr_id], /float)
