@@ -27,9 +27,12 @@ macro(scorecLibCheck libs isRequired)
   endforeach()
 endmacro(scorecLibCheck)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "PGI")
+else()
 find_library(ZOLTAN_LIBRARY zoltan)
 if (NOT EXISTS "${ZOLTAN_LIBRARY}")
   message(FATAL ERROR "ZOLTAN library not found")
+endif()
 endif()
 
 find_library(PARMETIS_LIBRARY parmetis)
