@@ -219,6 +219,8 @@ contains
     implicit none
     real, allocatable :: x(:), y(:)
 
+    if(ipellet.eq.0) return
+
     allocate(x(npellets))
     allocate(y(npellets))
     
