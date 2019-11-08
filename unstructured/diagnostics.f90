@@ -1910,6 +1910,7 @@ subroutine calculate_ke()
   use metricterms_new
   use boundary_conditions
   use math
+  use auxiliary_fields
   implicit none
   include 'mpif.h'
   integer :: itri, numelms, def_fields
@@ -1923,7 +1924,6 @@ subroutine calculate_ke()
 !  type(vector_type) :: transform_field
   type(field_type) :: u_transformc, vz_transformc, chi_transformc
   type(field_type) :: u_transforms, vz_transforms, chi_transforms
-
 
   NMAX = ike_harmonics
   numnodes = owned_nodes()
@@ -1962,9 +1962,6 @@ subroutine calculate_ke()
   ! for each Fourier mode
   do N=0,NMAX
 
-     fac = 2.
-     if (N.eq.0) fac = 1.
-
      k = local_plane()
 
      !eq 12: U cos
@@ -1972,12 +1969,12 @@ subroutine calculate_ke()
         l = nodes_owned(icounter_t)
         call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
         
-        vec_l(1)= fac*(u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N))
-        vec_l(2)= fac*(u1_l(2) * i1ck(k,N) + u1_l( 8)*i2ck(k,N))
-        vec_l(3)= fac*(u1_l(3) * i1ck(k,N) + u1_l( 9)*i2ck(k,N))
-        vec_l(4)= fac*(u1_l(4) * i1ck(k,N) + u1_l(10)*i2ck(k,N))
-        vec_l(5)= fac*(u1_l(5) * i1ck(k,N) + u1_l(11)*i2ck(k,N))
-        vec_l(6)= fac*(u1_l(6) * i1ck(k,N) + u1_l(12)*i2ck(k,N))
+        vec_l(1)= u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N)
+        vec_l(2)= u1_l(2) * i1ck(k,N) + u1_l( 8)*i2ck(k,N)
+        vec_l(3)= u1_l(3) * i1ck(k,N) + u1_l( 9)*i2ck(k,N)
+        vec_l(4)= u1_l(4) * i1ck(k,N) + u1_l(10)*i2ck(k,N)
+        vec_l(5)= u1_l(5) * i1ck(k,N) + u1_l(11)*i2ck(k,N)
+        vec_l(6)= u1_l(6) * i1ck(k,N) + u1_l(12)*i2ck(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         
         call set_node_data(u_transformc,l,vec_l)
@@ -1991,14 +1988,12 @@ subroutine calculate_ke()
         l = nodes_owned(icounter_t)
         call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
         
-        fac = 2.
-        if (N.eq.0) fac = 1.
-        vec_l(1)= fac*(u1_l(1) * i1sk(k,N) + u1_l( 7)*i2sk(k,N))
-        vec_l(2)= fac*(u1_l(2) * i1sk(k,N) + u1_l( 8)*i2sk(k,N))
-        vec_l(3)= fac*(u1_l(3) * i1sk(k,N) + u1_l( 9)*i2sk(k,N))
-        vec_l(4)= fac*(u1_l(4) * i1sk(k,N) + u1_l(10)*i2sk(k,N))
-        vec_l(5)= fac*(u1_l(5) * i1sk(k,N) + u1_l(11)*i2sk(k,N))
-        vec_l(6)= fac*(u1_l(6) * i1sk(k,N) + u1_l(12)*i2sk(k,N))
+        vec_l(1)= u1_l(1) * i1sk(k,N) + u1_l( 7)*i2sk(k,N)
+        vec_l(2)= u1_l(2) * i1sk(k,N) + u1_l( 8)*i2sk(k,N)
+        vec_l(3)= u1_l(3) * i1sk(k,N) + u1_l( 9)*i2sk(k,N)
+        vec_l(4)= u1_l(4) * i1sk(k,N) + u1_l(10)*i2sk(k,N)
+        vec_l(5)= u1_l(5) * i1sk(k,N) + u1_l(11)*i2sk(k,N)
+        vec_l(6)= u1_l(6) * i1sk(k,N) + u1_l(12)*i2sk(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(u_transforms,l,vec_l)
      enddo
@@ -2011,12 +2006,12 @@ subroutine calculate_ke()
         l = nodes_owned(icounter_t)
         call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
         
-        vec_l(1)= fac*(vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N))
-        vec_l(2)= fac*(vz1_l(2) * i1ck(k,N) + vz1_l( 8)*i2ck(k,N))
-        vec_l(3)= fac*(vz1_l(3) * i1ck(k,N) + vz1_l( 9)*i2ck(k,N))
-        vec_l(4)= fac*(vz1_l(4) * i1ck(k,N) + vz1_l(10)*i2ck(k,N))
-        vec_l(5)= fac*(vz1_l(5) * i1ck(k,N) + vz1_l(11)*i2ck(k,N))
-        vec_l(6)= fac*(vz1_l(6) * i1ck(k,N) + vz1_l(12)*i2ck(k,N))
+        vec_l(1)= vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N)
+        vec_l(2)= vz1_l(2) * i1ck(k,N) + vz1_l( 8)*i2ck(k,N)
+        vec_l(3)= vz1_l(3) * i1ck(k,N) + vz1_l( 9)*i2ck(k,N)
+        vec_l(4)= vz1_l(4) * i1ck(k,N) + vz1_l(10)*i2ck(k,N)
+        vec_l(5)= vz1_l(5) * i1ck(k,N) + vz1_l(11)*i2ck(k,N)
+        vec_l(6)= vz1_l(6) * i1ck(k,N) + vz1_l(12)*i2ck(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(vz_transformc,l,vec_l)
      enddo
@@ -2029,12 +2024,12 @@ subroutine calculate_ke()
         l = nodes_owned(icounter_t)
         call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
         
-        vec_l(1)= fac*(vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N))
-        vec_l(2)= fac*(vz1_l(2) * i1sk(k,N) + vz1_l( 8)*i2sk(k,N))
-        vec_l(3)= fac*(vz1_l(3) * i1sk(k,N) + vz1_l( 9)*i2sk(k,N))
-        vec_l(4)= fac*(vz1_l(4) * i1sk(k,N) + vz1_l(10)*i2sk(k,N))
-        vec_l(5)= fac*(vz1_l(5) * i1sk(k,N) + vz1_l(11)*i2sk(k,N))
-        vec_l(6)= fac*(vz1_l(6) * i1sk(k,N) + vz1_l(12)*i2sk(k,N))
+        vec_l(1)= vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N)
+        vec_l(2)= vz1_l(2) * i1sk(k,N) + vz1_l( 8)*i2sk(k,N)
+        vec_l(3)= vz1_l(3) * i1sk(k,N) + vz1_l( 9)*i2sk(k,N)
+        vec_l(4)= vz1_l(4) * i1sk(k,N) + vz1_l(10)*i2sk(k,N)
+        vec_l(5)= vz1_l(5) * i1sk(k,N) + vz1_l(11)*i2sk(k,N)
+        vec_l(6)= vz1_l(6) * i1sk(k,N) + vz1_l(12)*i2sk(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(vz_transforms,l,vec_l)
      enddo
@@ -2047,14 +2042,12 @@ subroutine calculate_ke()
         l = nodes_owned(icounter_t)
         call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
         
-        fac = 2.
-        If (N.eq.0) fac = 1.
-        vec_l(1)= fac*(chi1_l(1) * i1ck(k,N) + chi1_l( 7)*i2ck(k,N))
-        vec_l(2)= fac*(chi1_l(2) * i1ck(k,N) + chi1_l( 8)*i2ck(k,N))
-        vec_l(3)= fac*(chi1_l(3) * i1ck(k,N) + chi1_l( 9)*i2ck(k,N))
-        vec_l(4)= fac*(chi1_l(4) * i1ck(k,N) + chi1_l(10)*i2ck(k,N))
-        vec_l(5)= fac*(chi1_l(5) * i1ck(k,N) + chi1_l(11)*i2ck(k,N))
-        vec_l(6)= fac*(chi1_l(6) * i1ck(k,N) + chi1_l(12)*i2ck(k,N))
+        vec_l(1)= chi1_l(1) * i1ck(k,N) + chi1_l( 7)*i2ck(k,N)
+        vec_l(2)= chi1_l(2) * i1ck(k,N) + chi1_l( 8)*i2ck(k,N)
+        vec_l(3)= chi1_l(3) * i1ck(k,N) + chi1_l( 9)*i2ck(k,N)
+        vec_l(4)= chi1_l(4) * i1ck(k,N) + chi1_l(10)*i2ck(k,N)
+        vec_l(5)= chi1_l(5) * i1ck(k,N) + chi1_l(11)*i2ck(k,N)
+        vec_l(6)= chi1_l(6) * i1ck(k,N) + chi1_l(12)*i2ck(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(chi_transformc,l,vec_l)
      enddo
@@ -2067,12 +2060,12 @@ subroutine calculate_ke()
         l = nodes_owned(icounter_t)
         call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
         
-        vec_l(1)= fac*(chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N))
-        vec_l(2)= fac*(chi1_l(2) * i1sk(k,N) + chi1_l( 8)*i2sk(k,N))
-        vec_l(3)= fac*(chi1_l(3) * i1sk(k,N) + chi1_l( 9)*i2sk(k,N))
-        vec_l(4)= fac*(chi1_l(4) * i1sk(k,N) + chi1_l(10)*i2sk(k,N))
-        vec_l(5)= fac*(chi1_l(5) * i1sk(k,N) + chi1_l(11)*i2sk(k,N))
-        vec_l(6)= fac*(chi1_l(6) * i1sk(k,N) + chi1_l(12)*i2sk(k,N))
+        vec_l(1)= chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N)
+        vec_l(2)= chi1_l(2) * i1sk(k,N) + chi1_l( 8)*i2sk(k,N)
+        vec_l(3)= chi1_l(3) * i1sk(k,N) + chi1_l( 9)*i2sk(k,N)
+        vec_l(4)= chi1_l(4) * i1sk(k,N) + chi1_l(10)*i2sk(k,N)
+        vec_l(5)= chi1_l(5) * i1sk(k,N) + chi1_l(11)*i2sk(k,N)
+        vec_l(6)= chi1_l(6) * i1sk(k,N) + chi1_l(12)*i2sk(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(chi_transforms,l,vec_l)
      enddo
@@ -2091,39 +2084,58 @@ subroutine calculate_ke()
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
         call define_fields(itri, def_fields, 1, 0)
+        call calculate_rho(itri)
 !
 !       cosine harmonics
         call eval_ops(itri,  u_transformc,pht79)
         call eval_ops(itri, vz_transformc,vzt79)
         call eval_ops(itri,chi_transformc,cht79)
 !
-        ke_N = ke_N + int3(r2_79,  pht79(:,OP_DR), pht79(:,OP_DR))   &
-                    + int3(r2_79,  pht79(:,OP_DZ), pht79(:,OP_DZ))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
 
-        ke_N = ke_N + int3(r2_79,  vzt79(:,OP_1), vzt79(:,OP_1))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
 
-        ke_N = ke_N + int3(ri4_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
-                    + int3(ri4_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
+        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DR), cht79(:,OP_DR))
+        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DZ), cht79(:,OP_DZ))
+
+        ke_N = ke_N + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
+        ke_N = ke_N - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
+
 !
 !       sine harmonics
         call eval_ops(itri,  u_transforms,pht79)
         call eval_ops(itri, vz_transforms,vzt79)
         call eval_ops(itri,chi_transforms,cht79)
 !
-        ke_N = ke_N + int3(r2_79,  pht79(:,OP_DR), pht79(:,OP_DR))   &
-                    + int3(r2_79,  pht79(:,OP_DZ), pht79(:,OP_DZ))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
 
-        ke_N = ke_N + int3(r2_79,  vzt79(:,OP_1), vzt79(:,OP_1))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
 
-        ke_N = ke_N + int3(ri4_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
-                    + int3(ri4_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
+        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DR), cht79(:,OP_DR))
+        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DZ), cht79(:,OP_DZ))
+
+        ke_N = ke_N + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
+        ke_N = ke_N - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
+
      end do
 !$OMP END PARALLEL DO
 
      call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
-                        MPI_SUM, mpi_comm_world, ier)
+          MPI_SUM, mpi_comm_world, ier)
 
-     keharmonic(N) = ketotal / 4.
+!     BCL 11/5/19: I think this factor of pi/2pi is already in the integration
+!     ketotal = pi*ketotal
+!     if(N.eq.0) ketotal = 2.*ketotal
+
+! BCL 11/6/19: All transform vectors are constant in phi
+!              so integral picks up a 2*pi
+!              this is correct for n=0, but twice size for n>0
+     if(N.gt.0) ketotal = 0.5*ketotal
+
+     keharmonic(N) = 0.5*ketotal ! 0.5 for 1/2 rho v^2
+
   end do
 
 !!!!!....we need to save keharmonic for output <===
@@ -2212,9 +2224,6 @@ subroutine calculate_bh()
   ! for each Fourier mode
   do N=0,BNMAX
 
-     fac = 2.
-     if (N.eq.0) fac = 1.
-     
      k = local_plane()
 
      !eq 12: psi cos
@@ -2222,12 +2231,12 @@ subroutine calculate_bh()
         l = nodes_owned(icounter_t)
         call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
         
-        vec_l(1)= fac*(psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N))
-        vec_l(2)= fac*(psi1_l(2) * i1ck(k,N) + psi1_l( 8)*i2ck(k,N))
-        vec_l(3)= fac*(psi1_l(3) * i1ck(k,N) + psi1_l( 9)*i2ck(k,N))
-        vec_l(4)= fac*(psi1_l(4) * i1ck(k,N) + psi1_l(10)*i2ck(k,N))
-        vec_l(5)= fac*(psi1_l(5) * i1ck(k,N) + psi1_l(11)*i2ck(k,N))
-        vec_l(6)= fac*(psi1_l(6) * i1ck(k,N) + psi1_l(12)*i2ck(k,N))
+        vec_l(1)= psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N)
+        vec_l(2)= psi1_l(2) * i1ck(k,N) + psi1_l( 8)*i2ck(k,N)
+        vec_l(3)= psi1_l(3) * i1ck(k,N) + psi1_l( 9)*i2ck(k,N)
+        vec_l(4)= psi1_l(4) * i1ck(k,N) + psi1_l(10)*i2ck(k,N)
+        vec_l(5)= psi1_l(5) * i1ck(k,N) + psi1_l(11)*i2ck(k,N)
+        vec_l(6)= psi1_l(6) * i1ck(k,N) + psi1_l(12)*i2ck(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         
         call set_node_data(psi_transformc,l,vec_l)
@@ -2240,14 +2249,12 @@ subroutine calculate_bh()
         l = nodes_owned(icounter_t)
         call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
         
-        fac = 2.
-        if (N.eq.0) fac = 1.
-        vec_l(1)= fac*(psi1_l(1) * i1sk(k,N) + psi1_l( 7)*i2sk(k,N))
-        vec_l(2)= fac*(psi1_l(2) * i1sk(k,N) + psi1_l( 8)*i2sk(k,N))
-        vec_l(3)= fac*(psi1_l(3) * i1sk(k,N) + psi1_l( 9)*i2sk(k,N))
-        vec_l(4)= fac*(psi1_l(4) * i1sk(k,N) + psi1_l(10)*i2sk(k,N))
-        vec_l(5)= fac*(psi1_l(5) * i1sk(k,N) + psi1_l(11)*i2sk(k,N))
-        vec_l(6)= fac*(psi1_l(6) * i1sk(k,N) + psi1_l(12)*i2sk(k,N))
+        vec_l(1)= psi1_l(1) * i1sk(k,N) + psi1_l( 7)*i2sk(k,N)
+        vec_l(2)= psi1_l(2) * i1sk(k,N) + psi1_l( 8)*i2sk(k,N)
+        vec_l(3)= psi1_l(3) * i1sk(k,N) + psi1_l( 9)*i2sk(k,N)
+        vec_l(4)= psi1_l(4) * i1sk(k,N) + psi1_l(10)*i2sk(k,N)
+        vec_l(5)= psi1_l(5) * i1sk(k,N) + psi1_l(11)*i2sk(k,N)
+        vec_l(6)= psi1_l(6) * i1sk(k,N) + psi1_l(12)*i2sk(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(psi_transforms,l,vec_l)
      enddo
@@ -2259,12 +2266,12 @@ subroutine calculate_bh()
         l = nodes_owned(icounter_t)
         call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
         
-        vec_l(1)= fac*(bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N))
-        vec_l(2)= fac*(bz1_l(2) * i1ck(k,N) + bz1_l( 8)*i2ck(k,N))
-        vec_l(3)= fac*(bz1_l(3) * i1ck(k,N) + bz1_l( 9)*i2ck(k,N))
-        vec_l(4)= fac*(bz1_l(4) * i1ck(k,N) + bz1_l(10)*i2ck(k,N))
-        vec_l(5)= fac*(bz1_l(5) * i1ck(k,N) + bz1_l(11)*i2ck(k,N))
-        vec_l(6)= fac*(bz1_l(6) * i1ck(k,N) + bz1_l(12)*i2ck(k,N))
+        vec_l(1)= bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N)
+        vec_l(2)= bz1_l(2) * i1ck(k,N) + bz1_l( 8)*i2ck(k,N)
+        vec_l(3)= bz1_l(3) * i1ck(k,N) + bz1_l( 9)*i2ck(k,N)
+        vec_l(4)= bz1_l(4) * i1ck(k,N) + bz1_l(10)*i2ck(k,N)
+        vec_l(5)= bz1_l(5) * i1ck(k,N) + bz1_l(11)*i2ck(k,N)
+        vec_l(6)= bz1_l(6) * i1ck(k,N) + bz1_l(12)*i2ck(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(F_transformc,l,vec_l)
      enddo
@@ -2277,12 +2284,12 @@ subroutine calculate_bh()
         l = nodes_owned(icounter_t)
         call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
         
-        vec_l(1)= fac*(bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N))
-        vec_l(2)= fac*(bz1_l(2) * i1sk(k,N) + bz1_l( 8)*i2sk(k,N))
-        vec_l(3)= fac*(bz1_l(3) * i1sk(k,N) + bz1_l( 9)*i2sk(k,N))
-        vec_l(4)= fac*(bz1_l(4) * i1sk(k,N) + bz1_l(10)*i2sk(k,N))
-        vec_l(5)= fac*(bz1_l(5) * i1sk(k,N) + bz1_l(11)*i2sk(k,N))
-        vec_l(6)= fac*(bz1_l(6) * i1sk(k,N) + bz1_l(12)*i2sk(k,N))
+        vec_l(1)= bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N)
+        vec_l(2)= bz1_l(2) * i1sk(k,N) + bz1_l( 8)*i2sk(k,N)
+        vec_l(3)= bz1_l(3) * i1sk(k,N) + bz1_l( 9)*i2sk(k,N)
+        vec_l(4)= bz1_l(4) * i1sk(k,N) + bz1_l(10)*i2sk(k,N)
+        vec_l(5)= bz1_l(5) * i1sk(k,N) + bz1_l(11)*i2sk(k,N)
+        vec_l(6)= bz1_l(6) * i1sk(k,N) + bz1_l(12)*i2sk(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(F_transforms,l,vec_l)
      enddo
@@ -2294,14 +2301,12 @@ subroutine calculate_bh()
         l = nodes_owned(icounter_t)
         call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
         
-        fac = 2.
-        If (N.eq.0) fac = 1.
-        vec_l(1)= fac*(bf1_l(1) * i1ck(k,N) + bf1_l( 7)*i2ck(k,N))
-        vec_l(2)= fac*(bf1_l(2) * i1ck(k,N) + bf1_l( 8)*i2ck(k,N))
-        vec_l(3)= fac*(bf1_l(3) * i1ck(k,N) + bf1_l( 9)*i2ck(k,N))
-        vec_l(4)= fac*(bf1_l(4) * i1ck(k,N) + bf1_l(10)*i2ck(k,N))
-        vec_l(5)= fac*(bf1_l(5) * i1ck(k,N) + bf1_l(11)*i2ck(k,N))
-        vec_l(6)= fac*(bf1_l(6) * i1ck(k,N) + bf1_l(12)*i2ck(k,N))
+        vec_l(1)= bf1_l(1) * i1ck(k,N) + bf1_l( 7)*i2ck(k,N)
+        vec_l(2)= bf1_l(2) * i1ck(k,N) + bf1_l( 8)*i2ck(k,N)
+        vec_l(3)= bf1_l(3) * i1ck(k,N) + bf1_l( 9)*i2ck(k,N)
+        vec_l(4)= bf1_l(4) * i1ck(k,N) + bf1_l(10)*i2ck(k,N)
+        vec_l(5)= bf1_l(5) * i1ck(k,N) + bf1_l(11)*i2ck(k,N)
+        vec_l(6)= bf1_l(6) * i1ck(k,N) + bf1_l(12)*i2ck(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(fp_transformc,l,vec_l)
      enddo
@@ -2313,12 +2318,12 @@ subroutine calculate_bh()
         l = nodes_owned(icounter_t)
         call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
         
-        vec_l(1)= fac*(bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N))
-        vec_l(2)= fac*(bf1_l(2) * i1sk(k,N) + bf1_l( 8)*i2sk(k,N))
-        vec_l(3)= fac*(bf1_l(3) * i1sk(k,N) + bf1_l( 9)*i2sk(k,N))
-        vec_l(4)= fac*(bf1_l(4) * i1sk(k,N) + bf1_l(10)*i2sk(k,N))
-        vec_l(5)= fac*(bf1_l(5) * i1sk(k,N) + bf1_l(11)*i2sk(k,N))
-        vec_l(6)= fac*(bf1_l(6) * i1sk(k,N) + bf1_l(12)*i2sk(k,N))
+        vec_l(1)= bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N)
+        vec_l(2)= bf1_l(2) * i1sk(k,N) + bf1_l( 8)*i2sk(k,N)
+        vec_l(3)= bf1_l(3) * i1sk(k,N) + bf1_l( 9)*i2sk(k,N)
+        vec_l(4)= bf1_l(4) * i1sk(k,N) + bf1_l(10)*i2sk(k,N)
+        vec_l(5)= bf1_l(5) * i1sk(k,N) + bf1_l(11)*i2sk(k,N)
+        vec_l(6)= bf1_l(6) * i1sk(k,N) + bf1_l(12)*i2sk(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(fp_transforms,l,vec_l)
      enddo
@@ -2341,7 +2346,9 @@ subroutine calculate_bh()
 !       cosine harmonics
         call eval_ops(itri,psi_transformc,ps179)
         call eval_ops(itri,F_transformc,bz179)
-        call eval_ops(itri,fp_transformc,bf179)
+        ! prime means, for cos component, we need sin and multiply by N
+        call eval_ops(itri,fp_transforms,bf179)
+        bf179 = N*bf179
 
         bh_N = bh_N + int3(ri2_79, ps179(:,OP_DR), ps179(:,OP_DR))   &
                     + int3(ri2_79, ps179(:,OP_DZ), ps179(:,OP_DZ))
@@ -2349,13 +2356,17 @@ subroutine calculate_bh()
         bh_N = bh_N + int3(ri2_79, bz179(:,OP_1), bz179(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bf179(:,OP_DRP), bf179(:,OP_DRP))   &
-                    + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
+        bh_N = bh_N + int2(bf179(:,OP_DR), bf179(:,OP_DR))   &
+                    + int2(bf179(:,OP_DZ), bf179(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, ps179(:,OP_DR), bf179(:,OP_DZ)) &
+                    + 2.*int3(ri_79, ps179(:,OP_DZ), bf179(:,OP_DR))
 #endif
 !       sine harmonics
         call eval_ops(itri,psi_transforms,ps179)
         call eval_ops(itri,F_transforms,bz179)
+        ! prime means, for sin component, we need cos and multiply by -N
         call eval_ops(itri,fp_transforms,bf179)
+        bf179 = -N*bf179
 
         bh_N = bh_N + int3(ri2_79,  ps179(:,OP_DR), ps179(:,OP_DR))   &
                     + int3(ri2_79,  ps179(:,OP_DZ), ps179(:,OP_DZ))
@@ -2363,8 +2374,10 @@ subroutine calculate_bh()
         bh_N = bh_N + int3(ri2_79,  bz179(:,OP_1), bz179(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bf179(:,OP_DRP), bf179(:,OP_DRP))   &
-                    + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
+        bh_N = bh_N + int2(bf179(:,OP_DR), bf179(:,OP_DR))   &
+                    + int2(bf179(:,OP_DZ), bf179(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, ps179(:,OP_DR), bf179(:,OP_DZ)) &
+                    + 2.*int3(ri_79, ps179(:,OP_DZ), bf179(:,OP_DR))
 #endif
      end do
 !$OMP END PARALLEL DO
@@ -2372,10 +2385,22 @@ subroutine calculate_bh()
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)
 
-     bharmonic(N) = bhtotal / (2.*fac)
+!     BCL 11/5/19: I think this factor of pi/2pi is already in the integration
+!     bhtotal = pi*bhtotal
+!     if(N.eq.0) bhtotal = 2.*bhtotal
+
+! BCL 11/6/19: All transform vectors are constant in phi
+!              so integral picks up a 2*pi
+!              this is correct for n=0, but twice size for n>0
+     if(N.gt.0) bhtotal = 0.5*bhtotal
+
+     ! 0.5 for proper normalization
+     bharmonic(N) = 0.5*bhtotal
   end do
 !    NOTE:  bharmonic must be divided by (2 pi)**2 mu_0 to get actual SI magnetic energy
 !           This is done in the idl routine plot_bhmn.pro
+!    BCL 11/7/19: Not sure this ^ is correct
+
 !  save one harmonic to scale hyper for ihypeta .gt. 2
   if(ihypeta.gt.2) bharhypeta = bharmonic(ihypeta)
 
@@ -2430,10 +2455,8 @@ subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
   hm = x0 - xm
   hp = xp - x0
   
-  if(myrank.eq.0) print *, 'ke_I1 Plane ', k, 'at angle ', xm, x0, xp
-
   if(N .eq. 0) then
-     i1ck = 0.5*(hm + hp)/twopi
+     i1ck = (hm + hp)/(4.*pi)
      i1sk = 0.
      return
   endif
@@ -2484,24 +2507,22 @@ subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
   hm = x0 - xm
   hp = xp - x0
   
-  if(myrank.eq.0) print *, 'ke_I2 Plane ', k, 'at angle ', xm, x0, xp
-
   if(N .le. 0) then
-     i2ck = (hp - hm)/(12.*twopi)
+     i2ck = (hp**2 - hm**2)/(24.*pi)
      i2sk = 0.
      return
   endif
 
   i2ck = ((-6 + hm**2*N**2)*Cos(N*x0) + 6*Cos(N*(-hm + x0)) & 
-          -2*hm*N*(2*Sin(N*x0) + Sin(N*(-hm + x0))))/(hm**3*N**4) &
+          -2*hm*N*(2*Sin(N*x0) + Sin(N*(-hm + x0))))/(hm**2*N**4) &
        + (( 6 - hp**2*N**2)*Cos(N*x0) - 6*Cos(N*( hp + x0)) &
-          -2*hp*N*(2*Sin(N*x0) + Sin(N*( hp + x0))))/(hp**3*N**4)
+          -2*hp*N*(2*Sin(N*x0) + Sin(N*( hp + x0))))/(hp**2*N**4)
   i2ck = i2ck/pi
 
   i2sk =  (hm*N*(4*Cos(N*x0) + 2*Cos(N*(-hm + x0)) + hm*N*Sin(N*x0)) &
-           - 6*(Sin(N*(hm - x0)) + Sin(N*x0)))/(hm**3*N**4) &
+           - 6*(Sin(N*(hm - x0)) + Sin(N*x0)))/(hm**2*N**4) &
          +(hp*N*(4*Cos(N*x0) + 2*Cos(N*( hp + x0)) - hp*N*Sin(N*x0)) &
-           + 6*(Sin(N*x0) - Sin(N*(hp + x0))))/(hp**3*N**4)
+           + 6*(Sin(N*x0) - Sin(N*(hp + x0))))/(hp**2*N**4)
   i2sk = i2sk/pi
   
 end subroutine ke_I2
