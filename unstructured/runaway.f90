@@ -55,14 +55,16 @@ contains
     real, intent(in) :: Dens ! [1/m^3]
     real, intent(in) :: Zeff ! [1]
     real, intent(out) :: jpar,dndt
-    real :: Clog,x,Ecrit,nu,vth,jsign
+    real :: Clog,x,Ecrit,nu,vth,jsign,teval
 
+
+    teval = max(10.,Temp)
     jsign = sign(1.,Epar)
-    Clog = 14.9D0-0.5*log(dens/1.d20)+log(temp/1.d3)
+    Clog = 14.9D0-0.5*log(dens/1.d20)+log(teval/1.d3)
     Ecrit = ec**3*Dens*Clog/(4*pi*eps0**2*me*c**2) 
-    vth = sqrt(2*ec*Temp/me)
+    vth = sqrt(2*ec*teval/me)
     nu = dens*ec**4*clog/(4*pi*eps0**2*me**2*vth**3) 
-    x = (abs(Epar)*ec*temp)/(Ecrit*me*c**2)
+    x = (abs(Epar)*ec*teval)/(Ecrit*me*c**2)
     if(abs(Epar).gt.Ecrit) then
        dndt = dens*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
             *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x))
