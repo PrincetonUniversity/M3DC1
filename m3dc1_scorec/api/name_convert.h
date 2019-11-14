@@ -110,3 +110,14 @@
 #define m3dc1_solver_aztec m3dc1_solver_aztec_
 #define m3dc1_solver_amesos m3dc1_solver_amesos_
 #define m3dc1_solver_getnumiter m3dc1_solver_getnumiter_
+#define m3dc1_matrix_getstatus checkMatrixStatus_
+#define m3dc1_matrix_getlocalnumdof getMatrixLocalDofNum_
+#define m3dc1_matrix_getglobalnumdof getMatrixGlobalDofs_
+#define m3dc1_matrix_getpetscdnnzonnz getMatrixPetscDnnzOnnz_
+#define m3dc1_matrix_getnnzrowsize getMatrixNNZRowSize_
+#define m3dc1_matrix_getnnzrowid getMatrixNNZRowId_
+#define m3dc1_matrix_getnnzcolsize getMatrixNNZColSize_
+#define m3dc1_matrix_getnnzvalue getMatrixNNZValues_
+#define m3dc1_matrix_getmatrixfirstdof getMatrixFirstDof_
+#define m3dc1_matrix_reset cleanMatrixValues_
+#define m3dc1_matrix_setsoln setMatrixSoln_
