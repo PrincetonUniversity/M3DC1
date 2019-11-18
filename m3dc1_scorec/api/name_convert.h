@@ -119,5 +119,4 @@
 #define m3dc1_matrix_getnnzcolsize getMatrixNNZColSize_
 #define m3dc1_matrix_getnnzvalue getMatrixNNZValues_
 #define m3dc1_matrix_getmatrixfirstdof getMatrixFirstDof_
-#define m3dc1_matrix_reset cleanMatrixValues_
 #define m3dc1_matrix_setsoln setMatrixSoln_

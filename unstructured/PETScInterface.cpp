@@ -401,7 +401,7 @@ int solve2_(int *matrixId, double * rhs_sol, int * valType, int * ier)
   setMatrixSoln_(matrixId, valType, rhs_sol);
   
   /* Step 11: clean the stored data */
-  cleanMatrixValues_(matrixId); 
+  m3dc1_matrix_reset_(matrixId); 
   ierr = VecDestroy(&u); CHKERRQ(ierr);
   ierr = VecDestroy(&b); CHKERRQ(ierr); 
   (ksp_array[whichMatrix].same_pc_count)++;
@@ -687,7 +687,7 @@ int hybridsolve_(int *matrixId, double *rhs_sol, int *valType, int *ier)
   setMatrixSoln_(matrixId, valType, rhs_sol);
 
   /* Step 11: clean the stored data */
-  cleanMatrixValues_(matrixId); 
+  m3dc1_matrix_reset_(matrixId); 
 /*free(hs_array[whichMatrix].A.lrowptr);
   free(hs_array[whichMatrix].A.lnzval);
   free(hs_array[whichMatrix].A.lcolind); 
