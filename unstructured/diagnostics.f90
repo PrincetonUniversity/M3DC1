@@ -670,7 +670,6 @@ subroutine calculate_scalars()
   use math
   use gyroviscosity
   use pellet
-  use auxiliary_fields
 
   implicit none
  
@@ -1876,6 +1875,30 @@ subroutine get_chord_mask(r0, phi0, z0, r, phi, z, npts, theta, sigma, mask)
   mask = exp(-t**2/(2.*sigma**2))/l**2
 end subroutine get_chord_mask
 
+
+subroutine calculate_rho(itri)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+  integer :: i
+
+  rho79 = nt79
+
+  if(ikprad.eq.1) then 
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        rho79 = rho79 + tm79*kprad_mz/ion_mass
+     end do
+  end if
+  
+end subroutine calculate_rho
+
+
 !======================================================================
 ! bremsstrahlung
 ! ~~~~~~~~~~~~~~
@@ -1913,7 +1936,7 @@ subroutine calculate_ke()
   use metricterms_new
   use boundary_conditions
   use math
-  use auxiliary_fields
+
   implicit none
   include 'mpif.h'
   integer :: itri, numelms, def_fields

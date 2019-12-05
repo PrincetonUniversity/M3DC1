@@ -458,28 +458,6 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
 end subroutine calculate_ne
 
 
-subroutine calculate_rho(itri)
-  use basic
-  use kprad
-  use kprad_m3dc1
-  use m3dc1_nint
-
-  implicit none
-
-  integer, intent(in) :: itri
-  integer :: i
-
-  rho79 = nt79
-
-  if(ikprad.eq.1) then 
-     do i=1, kprad_z
-        call eval_ops(itri, kprad_n(i), tm79, rfac)
-        rho79 = rho79 + tm79*kprad_mz/ion_mass
-     end do
-  end if
-  
-end subroutine calculate_rho
-
 subroutine calculate_sigma_e(itri)
   use basic
   use kprad
