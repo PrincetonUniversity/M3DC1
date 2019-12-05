@@ -670,6 +670,7 @@ subroutine calculate_scalars()
   use math
   use gyroviscosity
   use pellet
+  use auxiliary_fields
 
   implicit none
  
@@ -720,7 +721,7 @@ subroutine calculate_scalars()
 
   ! Specify which fields need to be calculated
   if(ike_only.eq.1) then
-     def_fields = FIELD_PHI
+     def_fields = FIELD_PHI + FIELD_N
      if(numvar.ge.2) def_fields = def_fields + FIELD_V
      if(numvar.ge.3) def_fields = def_fields + FIELD_CHI
   else
@@ -769,6 +770,7 @@ subroutine calculate_scalars()
 
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)
+     call calculate_rho(itri)
      if(gyro.eq.1) call gyro_common
 
 #ifdef USE3D
@@ -966,6 +968,7 @@ subroutine calculate_scalars()
 
         call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
         call define_fields(itri, def_fields, 1, 0)
+        call calculate_rho(itri)
         if(gyro.eq.1) call gyro_common
 
         ! Energy fluxes
@@ -1916,6 +1919,7 @@ subroutine calculate_ke()
   integer :: itri, numelms, def_fields
   real :: ke_N, ketotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
+  integer :: izone, izonedim
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -1967,8 +1971,12 @@ subroutine calculate_ke()
      !eq 12: U cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
-        call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
-        
+        call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(u_field(0), l , u0_l )
+           u1_l = u1_l + u0_l
+        end if
+
         vec_l(1)= u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N)
         vec_l(2)= u1_l(2) * i1ck(k,N) + u1_l( 8)*i2ck(k,N)
         vec_l(3)= u1_l(3) * i1ck(k,N) + u1_l( 9)*i2ck(k,N)
@@ -1986,8 +1994,12 @@ subroutine calculate_ke()
      !eq 12: U sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
-        call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
-        
+        call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(u_field(0), l , u0_l )
+           u1_l = u1_l + u0_l
+        end if
+
         vec_l(1)= u1_l(1) * i1sk(k,N) + u1_l( 7)*i2sk(k,N)
         vec_l(2)= u1_l(2) * i1sk(k,N) + u1_l( 8)*i2sk(k,N)
         vec_l(3)= u1_l(3) * i1sk(k,N) + u1_l( 9)*i2sk(k,N)
@@ -2005,7 +2017,11 @@ subroutine calculate_ke()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(vz_field(0), l , vz0_l)
+           vz1_l = vz1_l + vz0_l
+        end if
+
         vec_l(1)= vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N)
         vec_l(2)= vz1_l(2) * i1ck(k,N) + vz1_l( 8)*i2ck(k,N)
         vec_l(3)= vz1_l(3) * i1ck(k,N) + vz1_l( 9)*i2ck(k,N)
@@ -2023,7 +2039,11 @@ subroutine calculate_ke()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(vz_field(0), l , vz0_l)
+           vz1_l = vz1_l + vz0_l
+        end if
+
         vec_l(1)= vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N)
         vec_l(2)= vz1_l(2) * i1sk(k,N) + vz1_l( 8)*i2sk(k,N)
         vec_l(3)= vz1_l(3) * i1sk(k,N) + vz1_l( 9)*i2sk(k,N)
@@ -2041,7 +2061,11 @@ subroutine calculate_ke()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(chi_field(0), l , chi0_l )
+           chi1_l = chi1_l + chi0_l
+        end if
+
         vec_l(1)= chi1_l(1) * i1ck(k,N) + chi1_l( 7)*i2ck(k,N)
         vec_l(2)= chi1_l(2) * i1ck(k,N) + chi1_l( 8)*i2ck(k,N)
         vec_l(3)= chi1_l(3) * i1ck(k,N) + chi1_l( 9)*i2ck(k,N)
@@ -2059,7 +2083,11 @@ subroutine calculate_ke()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(chi_field(0), l , chi0_l )
+           chi1_l = chi1_l + chi0_l
+        end if
+
         vec_l(1)= chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N)
         vec_l(2)= chi1_l(2) * i1sk(k,N) + chi1_l( 8)*i2sk(k,N)
         vec_l(3)= chi1_l(3) * i1sk(k,N) + chi1_l( 9)*i2sk(k,N)
@@ -2076,11 +2104,13 @@ subroutine calculate_ke()
      !eq 4b: Calculate energy for each Fourier Harminics N
    
      ke_N = 0.
-     def_fields = 0
+     def_fields = FIELD_N
      numelms = local_elements()
      
 !$OMP PARALLEL DO REDUCTION(+:ke_N)
      do itri=1,numelms
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        if(izone.ne.1) cycle
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
         call define_fields(itri, def_fields, 1, 0)
@@ -2090,7 +2120,7 @@ subroutine calculate_ke()
         call eval_ops(itri,  u_transformc,pht79)
         call eval_ops(itri, vz_transformc,vzt79)
         call eval_ops(itri,chi_transformc,cht79)
-!
+
         ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
         ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
 
@@ -2107,7 +2137,7 @@ subroutine calculate_ke()
         call eval_ops(itri,  u_transforms,pht79)
         call eval_ops(itri, vz_transforms,vzt79)
         call eval_ops(itri,chi_transforms,cht79)
-!
+
         ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
         ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
 
@@ -2124,10 +2154,6 @@ subroutine calculate_ke()
 
      call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
           MPI_SUM, mpi_comm_world, ier)
-
-!     BCL 11/5/19: I think this factor of pi/2pi is already in the integration
-!     ketotal = pi*ketotal
-!     if(N.eq.0) ketotal = 2.*ketotal
 
 ! BCL 11/6/19: All transform vectors are constant in phi
 !              so integral picks up a 2*pi
@@ -2179,6 +2205,7 @@ subroutine calculate_bh()
   integer :: itri, numelms, def_fields
   real:: bh_N, bhtotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
+  integer :: izone, izonedim
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -2230,7 +2257,15 @@ subroutine calculate_bh()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(psi_field(0), l, psi0_l)
+           psi1_l = psi1_l + psi0_l
+        end if
+        if(icsubtract.eq.1) then
+           call get_node_data(psi_coil_field, l, psi0_l)
+           psi1_l = psi1_l + psi0_l
+        end if
+
         vec_l(1)= psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N)
         vec_l(2)= psi1_l(2) * i1ck(k,N) + psi1_l( 8)*i2ck(k,N)
         vec_l(3)= psi1_l(3) * i1ck(k,N) + psi1_l( 9)*i2ck(k,N)
@@ -2248,7 +2283,15 @@ subroutine calculate_bh()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(psi_field(0), l, psi0_l)
+           psi1_l = psi1_l + psi0_l
+        end if
+        if(icsubtract.eq.1) then
+           call get_node_data(psi_coil_field, l, psi0_l)
+           psi1_l = psi1_l + psi0_l
+        end if
+
         vec_l(1)= psi1_l(1) * i1sk(k,N) + psi1_l( 7)*i2sk(k,N)
         vec_l(2)= psi1_l(2) * i1sk(k,N) + psi1_l( 8)*i2sk(k,N)
         vec_l(3)= psi1_l(3) * i1sk(k,N) + psi1_l( 9)*i2sk(k,N)
@@ -2265,7 +2308,11 @@ subroutine calculate_bh()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
-        
+        if(eqsubtract.eq.1) then
+          call get_node_data(bz_field(0), l, bz0_l)
+          bz1_l = bz1_l + bz0_l
+       end if
+
         vec_l(1)= bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N)
         vec_l(2)= bz1_l(2) * i1ck(k,N) + bz1_l( 8)*i2ck(k,N)
         vec_l(3)= bz1_l(3) * i1ck(k,N) + bz1_l( 9)*i2ck(k,N)
@@ -2283,7 +2330,11 @@ subroutine calculate_bh()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(bz_field(0), l, bz0_l)
+           bz1_l = bz1_l + bz0_l
+        end if
+
         vec_l(1)= bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N)
         vec_l(2)= bz1_l(2) * i1sk(k,N) + bz1_l( 8)*i2sk(k,N)
         vec_l(3)= bz1_l(3) * i1sk(k,N) + bz1_l( 9)*i2sk(k,N)
@@ -2300,7 +2351,11 @@ subroutine calculate_bh()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(bf_field(0), l, bf0_l)
+           bf1_l = bf1_l + bf0_l
+        end if
+
         vec_l(1)= bf1_l(1) * i1ck(k,N) + bf1_l( 7)*i2ck(k,N)
         vec_l(2)= bf1_l(2) * i1ck(k,N) + bf1_l( 8)*i2ck(k,N)
         vec_l(3)= bf1_l(3) * i1ck(k,N) + bf1_l( 9)*i2ck(k,N)
@@ -2317,7 +2372,11 @@ subroutine calculate_bh()
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
         call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
-        
+        if(eqsubtract.eq.1) then
+           call get_node_data(bf_field(0), l, bf0_l)
+           bf1_l = bf1_l + bf0_l
+        end if
+
         vec_l(1)= bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N)
         vec_l(2)= bf1_l(2) * i1sk(k,N) + bf1_l( 8)*i2sk(k,N)
         vec_l(3)= bf1_l(3) * i1sk(k,N) + bf1_l( 9)*i2sk(k,N)
@@ -2339,55 +2398,53 @@ subroutine calculate_bh()
      
 !$OMP PARALLEL DO REDUCTION(+:bh_N)
      do itri=1,numelms
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        if(izone.ne.1) cycle
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
         call define_fields(itri, def_fields, 1, 0)
         
 !       cosine harmonics
-        call eval_ops(itri,psi_transformc,ps179)
-        call eval_ops(itri,F_transformc,bz179)
+        call eval_ops(itri,psi_transformc,pst79)
+        call eval_ops(itri,F_transformc,bzt79)
         ! prime means, for cos component, we need sin and multiply by N
-        call eval_ops(itri,fp_transforms,bf179)
-        bf179 = N*bf179
+        call eval_ops(itri,fp_transforms,bft79)
+        bft79 = N*bft79
 
-        bh_N = bh_N + int3(ri2_79, ps179(:,OP_DR), ps179(:,OP_DR))   &
-                    + int3(ri2_79, ps179(:,OP_DZ), ps179(:,OP_DZ))
+        bh_N = bh_N + int3(ri2_79, pst79(:,OP_DR), pst79(:,OP_DR))   &
+                    + int3(ri2_79, pst79(:,OP_DZ), pst79(:,OP_DZ))
 
-        bh_N = bh_N + int3(ri2_79, bz179(:,OP_1), bz179(:,OP_1))
+        bh_N = bh_N + int3(ri2_79, bzt79(:,OP_1), bzt79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bf179(:,OP_DR), bf179(:,OP_DR))   &
-                    + int2(bf179(:,OP_DZ), bf179(:,OP_DZ))
-        bh_N = bh_N - 2.*int3(ri_79, ps179(:,OP_DR), bf179(:,OP_DZ)) &
-                    + 2.*int3(ri_79, ps179(:,OP_DZ), bf179(:,OP_DR))
+        bh_N = bh_N + int2(bft79(:,OP_DR), bft79(:,OP_DR))   &
+                    + int2(bft79(:,OP_DZ), bft79(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bft79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bft79(:,OP_DR))
 #endif
 !       sine harmonics
-        call eval_ops(itri,psi_transforms,ps179)
-        call eval_ops(itri,F_transforms,bz179)
+        call eval_ops(itri,psi_transforms,pst79)
+        call eval_ops(itri,F_transforms,bzt79)
         ! prime means, for sin component, we need cos and multiply by -N
-        call eval_ops(itri,fp_transforms,bf179)
-        bf179 = -N*bf179
+        call eval_ops(itri,fp_transformc,bft79)
+        bft79 = -N*bft79
 
-        bh_N = bh_N + int3(ri2_79,  ps179(:,OP_DR), ps179(:,OP_DR))   &
-                    + int3(ri2_79,  ps179(:,OP_DZ), ps179(:,OP_DZ))
+        bh_N = bh_N + int3(ri2_79,  pst79(:,OP_DR), pst79(:,OP_DR))   &
+                    + int3(ri2_79,  pst79(:,OP_DZ), pst79(:,OP_DZ))
 
-        bh_N = bh_N + int3(ri2_79,  bz179(:,OP_1), bz179(:,OP_1))
+        bh_N = bh_N + int3(ri2_79,  bzt79(:,OP_1), bzt79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bf179(:,OP_DR), bf179(:,OP_DR))   &
-                    + int2(bf179(:,OP_DZ), bf179(:,OP_DZ))
-        bh_N = bh_N - 2.*int3(ri_79, ps179(:,OP_DR), bf179(:,OP_DZ)) &
-                    + 2.*int3(ri_79, ps179(:,OP_DZ), bf179(:,OP_DR))
+        bh_N = bh_N + int2(bft79(:,OP_DR), bft79(:,OP_DR))   &
+                    + int2(bft79(:,OP_DZ), bft79(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bft79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bft79(:,OP_DR))
 #endif
      end do
 !$OMP END PARALLEL DO
 
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)
-
-!     BCL 11/5/19: I think this factor of pi/2pi is already in the integration
-!     bhtotal = pi*bhtotal
-!     if(N.eq.0) bhtotal = 2.*bhtotal
 
 ! BCL 11/6/19: All transform vectors are constant in phi
 !              so integral picks up a 2*pi
