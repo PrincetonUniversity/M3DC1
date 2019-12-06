@@ -1349,6 +1349,10 @@ subroutine define_sources(ilin)
   ! specify which primitive fields are to be evalulated
   def_fields = FIELD_N + FIELD_PE + FIELD_P + FIELD_PSI + FIELD_I + FIELD_B2I
   if(itemp.ge.1) def_fields = def_fields + FIELD_TE
+  if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
+       def_fields = def_fields + FIELD_ETA
+  if(ikappafunc.eq.5) def_fields = def_fields + FIELD_KAP
+  if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
 

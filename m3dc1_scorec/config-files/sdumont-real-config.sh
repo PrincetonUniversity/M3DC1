@@ -1,24 +1,25 @@
-DATE=May2018cratch/ntm/software/petsc-3.9.1
-SWTYPE=debugeol@sdumont14 m3dc1_scorec]$ 
+#export RLM_LICENSE=sdumont12@2800
+#export LD_LIBRARY_PATH=/scratch/ntm/software/Simmetrix/extra-libs:$LD_LIBRARY_PATH
+#source /scratch/app/modulos/intel-psxe-2019.sh
+#module load cmake git intel_psxe/2019
+SWTYPE=debug
 CMAKETYPE=Debug
-SCOREC_DIR=/scratch/ntm/software/scorec$ 
-#PETSC_DIR=/scratch/ntm/software/petsc-3.7.6
-#PETSC_VER=3.7.6sdumont14 m3dc1_scorec]$ 
-#PETSC_ARCH=real-intelETSC_ARCH
-PETSC_DIR=/scratch/ntm/software/petsc-3.9.1
-PETSC_ARCH=petsc391_real_only_metis_superlu
-PETSC_VER=3.9.1OMPILER="mpicxx" \
-ZOLTAN_DIR=$SCOREC_DIRILER="mpiifort" \
-PREFIX=$SCOREC_DIR/$PETSC_VER/$DATEASTER -I$PETSC_DIR/include" \
-PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCHCMASTER -I$PETSC_DIR/include" \
-HDF5_DIR=$PETSC_DIR/$PETSC_ARCH"\
-cmake .. \_INCLUDE_DIR="$PREFIX/include" \
-  -DCMAKE_C_COMPILER="mpicc" \b" \
-  -DCMAKE_CXX_COMPILER="mpicxx" \ib/libzoltan.a" \
-  -DCMAKE_Fortran_COMPILER="mpiifort" \_ARCH/lib/libparmetis.a" \
-  -DCMAKE_C_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS=" -g -O2 -DPETSCMASTER -I$PETSC_DIR/include" \
-  -DCMAKE_Fortran_FLAGS="-fpic "\TSC_ARCH/lib" \
+PETSCVER=3.9.3
+MPIVER=intel-psxe2019
+PETSC_DIR=/scratch/ntm/software/petsc/petsc-$PETSCVER
+PETSC_ARCH=real-intel-psxe2019
+PREFIX=/scratch/ntm/software/scorec/$MPIVER/petsc$PETSCVER
+PARMETIS_DIR=$PETSC_ARCH/$PETSC_VER
+ZOLTAN_DIR=$PREFIX
+
+HDF5_DIR=$PETSC_DIR/$PETSC_ARCH
+cmake .. \
+  -DCMAKE_C_COMPILER=mpiicc \
+  -DCMAKE_CXX_COMPILER=mpiicpc \
+  -DCMAKE_Fortran_COMPILER=mpiifort \
+  -DCMAKE_C_FLAGS=" -ftz -fPIC -O -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -shared-intel -ftz -fPIC -O -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_Fortran_FLAGS="-assume no2underscores -ftz -fPIC -O" \
   -DSCOREC_INCLUDE_DIR="$PREFIX/include" \
   -DSCOREC_LIB_DIR="$PREFIX/lib" \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
@@ -27,7 +28,7 @@ cmake .. \_INCLUDE_DIR="$PREFIX/include" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
   -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \
-  -DHDF5_LIB_DIR="$HDF5_DIR/lib" \orec]$ 
+  -DHDF5_LIB_DIR="$HDF5_DIR/lib" \
   -DENABLE_PETSC=ON \
   -DENABLE_TRILINOS=OFF \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \

@@ -145,10 +145,11 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	M3Dmodules.o resistive_wall.o kprad.o \
 	m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
-	electric_field.o parallel_heat_flux.o temperature_plots.o \
-	electrostatic_potential.o newvar.o runaway.o diagnostics.o \
-	pellet.o read_schaffer_field.o  neutral_beam.o \
-	coils.o coil_sets.o kprad_m3dc1.o model.o \
+	electric_field.o pellet.o parallel_heat_flux.o \
+	temperature_plots.o electrostatic_potential.o \
+	newvar.o kprad_m3dc1.o runaway.o diagnostics.o \
+	read_schaffer_field.o  neutral_beam.o \
+	coils.o coil_sets.o model.o \
 	fit_magnetics.o wall.o \
 	init_common.o \
 	gradshafranov.o rmp.o  \

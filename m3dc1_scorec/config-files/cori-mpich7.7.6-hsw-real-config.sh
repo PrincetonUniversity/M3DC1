@@ -11,7 +11,7 @@ PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
 #load module cray-hdf5-parallel
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/$MPIVER/$ARCH-$PETSCVER
-PREFIX=$ZOLTAN_DIR/082019
+PREFIX=$ZOLTAN_DIR
 cmake .. \
   -DCMAKE_C_COMPILER="cc" \
   -DCMAKE_CXX_COMPILER="CC" \
