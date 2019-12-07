@@ -458,6 +458,33 @@ module basic
 
   type(spline1d) :: q_spline
 
+contains
+
+  !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
+  !   BCL moved 12/6/2019
+  subroutine tpi_factors(tpifac,tpirzero)
+    use math
+    implicit none
+    real, intent(out) :: tpifac, tpirzero
+    if(nplanes.eq.1) then
+       if(itor.eq.1) then
+          tpifac = 1.
+          tpirzero = 1.
+       else
+          tpifac = 1./rzero
+          tpirzero = 1.
+       endif
+    else
+       if(itor.eq.1) then
+          tpifac = twopi
+          tpirzero = twopi
+       else
+          tpifac = twopi
+          tpirzero = twopi*rzero
+       endif
+    endif
+  end subroutine tpi_factors
+
 end module basic
 
 module arrays

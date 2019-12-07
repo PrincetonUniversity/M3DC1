@@ -1574,7 +1574,6 @@ subroutine define_pellet_source(ilin)
   use mesh_mod
   use arrays
   use m3dc1_nint
-  use diagnostics
   use metricterms_new
   use kprad_m3dc1
   use pellet

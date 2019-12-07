@@ -42,7 +42,7 @@ contains
   subroutine pellet_init()
     use basic
     use read_ascii
-!    use diagnostics
+
     implicit none
     character(LEN=10), parameter :: pellet_filename = 'pellet.dat'
 
@@ -120,7 +120,6 @@ contains
     use mesh_mod
     use m3dc1_nint
     use math
-    use diagnostics
 
     implicit none
 
@@ -164,7 +163,7 @@ contains
   vectype elemental function pellet_distribution(ip, r, phi, z, pres, inorm)
     use math
     use basic
-!    use diagnostics
+
     implicit none
     integer, intent(in) :: ip
     real, intent(in) :: r, phi, z, pres
@@ -262,7 +261,7 @@ contains
 
   subroutine pellet_advance
     use basic
-!    use diagnostics
+
     implicit none
     real, allocatable :: x(:), y(:)
 
