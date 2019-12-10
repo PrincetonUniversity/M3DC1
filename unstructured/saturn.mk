@@ -28,9 +28,10 @@ MPIVER=mpich-gcc4.7.2
 PETSCVER=petsc3.12.1
 PETSC_VER=petsc-3.12.1
 PETSC_DIR=/fusion/projects/codes/m3dc1/scorec/$(PETSC_VER)
-PETSC_ARCH=real-$(MPIVER)
+
 SCOREC_BASE_DIR=/fusion/projects/codes/m3dc1/scorec/$(MPIVER)/$(PETSCVER)
-SCOREC_UTIL_DIR=$(PUMI_BASE_DIR)/bin
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
@@ -43,23 +44,20 @@ else
 endif
 
 ifeq ($(COM), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+  M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+  PETSC_ARCH=cplx-$(MPIVER)
 else
-    M3DC1_SCOREC_LIB = m3dc1_scorec
+  M3DC1_SCOREC_LIB = m3dc1_scorec
+  PETSC_ARCH=real-$(MPIVER)
 endif
 
-# define where you want to locate the mesh adapt libraries
-#HYBRID_HOME =  /scratch2/scratchdirs/xyuan/Software_Hopper/pdslin_0.0
-#HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lpdslin
-MPI_DIR = /act/mpich/gcc-4.7.2
-
-PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/fusion/projects/codes/m3dc1/scorec/petsc-3.12.1/real-mpich-gcc4.7.2/lib -L/fusion/projects/codes/m3dc1/scorec/petsc-3.12.1/real-mpich-gcc4.7.2/lib -Wl,-rpath,/fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2/lib -L/fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2/lib -Wl,-rpath,/fusion/usc/opt/hdf5/hdf5-1.8.16-mpich-gcc-4.7.2/lib -L/fusion/usc/opt/hdf5/hdf5-1.8.16-mpich-gcc-4.7.2/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,${PETSC_DIR}/${PETSC_ARCH}/lib -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2/lib -L/fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2/lib -Wl,-rpath,/fusion/usc/opt/hdf5/hdf5-1.8.16-mpich-gcc-4.7.2/lib -L/fusion/usc/opt/hdf5/hdf5-1.8.16-mpich-gcc-4.7.2/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 	-I$(FFTW_DIR)/include \
+        -I$(HDF5_DIR)/include \
         -I$(PETSC_DIR)/include \
-        -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-        -I$(HDF5_DIR)/include
+        -I$(PETSC_DIR)/$(PETSC_ARCH)/include
 
 LIBS := $(LIBS) \
         -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
