@@ -5,10 +5,11 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  growth_rate=growth_rate, bw=bw, nolegend=nolegend, $
                  cgs=cgs,mks=mks,linestyle=ls, color=co, outfile=outfile, $
                  smooth=sm, compensate_renorm=comp, integrate=integrate, $
-                 xscale=xscale, ipellet=ipellet
+                 xscale=xscale, ipellet=ipellet, factor=fac
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
   if(n_elements(xscale) eq 0) then xscale=1.
+  if(n_elements(fac) eq 0) then fac=1.
 
   if(n_elements(names) eq 0) then names=filename
 
@@ -31,7 +32,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 power_spectrum=pspec, per_length=per_length, $
                 growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff, $
-                           comp=comp, integrate=integrate, xscale=xscale, ipellet=ipellet
+                           comp=comp, integrate=integrate, xscale=xscale, ipellet=ipellet, $
+                           factor=fac
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
@@ -39,7 +41,8 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 power_spectrum=pspec, per_length=per_length, $
                 growth_rate=growth_rate, nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff, $
-                           comp=comp, integrate=integrate, xscale=xscale, ipellet=ipellet
+                           comp=comp, integrate=integrate, xscale=xscale, ipellet=ipellet, $
+                           factor=fac
           endelse
       end
 
@@ -53,6 +56,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   data = read_scalar(scalarname, filename=filename, time=time, ipellet=ipellet, $
                      title=title, symbol=symbol, units=units, cgs=cgs, mks=mks, integrate=integrate)
+  data = data*fac
   if(keyword_set(comp)) then data = compensate_renorm(data)
   if(n_elements(data) le 1) then return
 
