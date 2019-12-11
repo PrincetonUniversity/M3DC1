@@ -77,7 +77,7 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
        maxy = max(elm_data[5,*])
        
        for i=long(0),nelms-1 do begin
-           if(threed eq 1 and i ge (nelms/mesh.nplanes._data)) then break
+           if(threed eq 1) then if(i ge (nelms/mesh.nplanes._data)) then break
            i_data = elm_data[*,i]
            a = i_data[0]
            b = i_data[1]

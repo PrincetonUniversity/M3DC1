@@ -1,22 +1,21 @@
 MPIVER=intel18.0-openmpi3.3.0
 CMAKETYPE=Release
-PETSCVER=petsc3.7.6
-PETSC_VER=petsc-3.7.6
-PREFIX=/home/jinchen/LIB/scorec/$MPIVER/$PETSCVER
-PETSC_DIR=/home/jinchen/LIB/petsc-3.7.6
-PETSC_ARCH=real-intel18.0-openmpi3.0.0 
-SCOREC_DIR=/home/jinchen/LIB/scorec/$MPIVER
-ZOLTAN_DIR=$SCOREC_DIR
+PETSC_VER=petsc-3.12.0
+PETSCVER=petsc3.12.0
+PETSC_DIR=/home/jinchen/LIB/$PETSC_VER
+PETSC_ARCH=eddy-intelmpi-2019
+SCOREC_DIR=/home/jinchen/LIB/scorec/$MPIVER/$PETSCVER
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
-HDF5_DIR==$PETSC_DIR/$PETSC_ARCH
-PREFIX=$SCOREC_DIR/$PETSCVER
+ZOLTAN_DIR=$SCOREC_DIR
+PREFIX=$SCOREC_DIR
+#module load intel/18.0/64/18.0.3.222 openmpi/intel-18.0/3.0.0/64
 #add -DPETSCMASTER for petsc 3.8.3 or higher
 cmake3 .. \
   -DCMAKE_C_COMPILER=mpicc \
   -DCMAKE_CXX_COMPILER=mpic++ \
   -DCMAKE_Fortran_COMPILER=mpif90 \
-  -DCMAKE_C_FLAGS=" -g -O0 -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS=" -g -O0 -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS=" -g -O0  -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS=" -g -O0 -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DSCOREC_INCLUDE_DIR="$SCOREC_DIR/include" \
   -DSCOREC_LIB_DIR="$SCOREC_DIR/lib" \
@@ -25,8 +24,6 @@ cmake3 .. \
   -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
-  -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \
-  -DHDF5_LIB_DIR="$HDF5_DIR/lib64" \
   -DENABLE_PETSC=ON \
   -DENABLE_COMPLEX=OFF \
   -DENABLE_TESTING=OFF \
