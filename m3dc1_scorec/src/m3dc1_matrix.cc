@@ -46,8 +46,10 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
 
-  int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec);
-  CHKERRQ(ierr);
+/*int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec); */
+  int ierr = VecCreate(MPI_COMM_WORLD, &petscVec); CHKERRQ(ierr);
+  ierr = VecSetSizes(petscVec, num_own_dof, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(petscVec);CHKERRQ(ierr);
   VecAssemblyBegin(petscVec);
 
   int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
@@ -508,6 +510,7 @@ int m3dc1_matrix::setupParaMat()
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 
   ierr = MatSetType(*A, MATMPIAIJ); CHKERRQ(ierr);
+  ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
 }
 
 int m3dc1_matrix::setupSeqMat()
