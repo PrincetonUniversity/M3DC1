@@ -10304,7 +10304,7 @@ real function energy_mp(mask)
              (int3(bft79(:,OP_DZP),bft79(:,OP_DZP),temp79a) &
              +int3(bft79(:,OP_DRP),bft79(:,OP_DRP),temp79a) &
              +2.*int4(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP),temp79a) &
-             -2.*int4(ri_79,pst79(:,OP_DR),bft79(:,OP_DRP),temp79a) )
+             -2.*int4(ri_79,pst79(:,OP_DR),bft79(:,OP_DZP),temp79a) )
      endif
 #endif
 
@@ -10340,9 +10340,9 @@ real function energy_mt()
   if(linear.eq.1) then
      temp = .5*int3(ri2_79,bz179(:,OP_1),CONJUGATE(bz179(:,OP_1)))
   else
-!....nonlinear:  subtract off equilibrium piece
-     temp = .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1))   &
-          - .5*int3(ri2_79,bz079(:,OP_1),bz079(:,OP_1))
+!....nonlinear:  do not subtract off equilibrium piece
+     temp = .5*int3(ri2_79,bzt79(:,OP_1),bzt79(:,OP_1))!   &
+!          - .5*int3(ri2_79,bz079(:,OP_1),bz079(:,OP_1))
   endif
 
   energy_mt = temp
@@ -10430,8 +10430,8 @@ real function energy_kp()
              +int4(r2_79,ph179(:,OP_DR),CONJUGATE(ph179(:,OP_DR)),n079(:,OP_1)))
      else
         temp = .5* &
-             (int4(r2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),nt79(:,OP_1)) &
-             +int4(r2_79,pht79(:,OP_DR),pht79(:,OP_DR),nt79(:,OP_1)))
+             (int4(r2_79,pht79(:,OP_DZ),pht79(:,OP_DZ),rho79(:,OP_1)) &
+             +int4(r2_79,pht79(:,OP_DR),pht79(:,OP_DR),rho79(:,OP_1)))
      endif
 
   energy_kp = temp
@@ -10453,7 +10453,7 @@ real function energy_kt()
      if(linear.eq.1) then
         temp = .5*int4(r2_79,vz179(:,OP_1),CONJUGATE(vz179(:,OP_1)),n079(:,OP_1))
      else
-        temp = .5*int4(r2_79,vzt79(:,OP_1),vzt79(:,OP_1),nt79(:,OP_1))
+        temp = .5*int4(r2_79,vzt79(:,OP_1),vzt79(:,OP_1),rho79(:,OP_1))
      endif
 
   energy_kt = temp
@@ -10482,12 +10482,12 @@ real function energy_k3()
           -int4(ri_79,CONJUGATE(ch179(:,OP_DR)),ph179(:,OP_DZ),n079(:,OP_1)))
      else
         temp = .5* &
-          (int4(ri4_79,cht79(:,OP_DZ),cht79(:,OP_DZ),nt79(:,OP_1)) &
-          +int4(ri4_79,cht79(:,OP_DR),cht79(:,OP_DR),nt79(:,OP_1)) &
-          +int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1)) &
-          +int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),nt79(:,OP_1)) &
-          -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),nt79(:,OP_1)))
+          (int4(ri4_79,cht79(:,OP_DZ),cht79(:,OP_DZ),rho79(:,OP_1)) &
+          +int4(ri4_79,cht79(:,OP_DR),cht79(:,OP_DR),rho79(:,OP_1)) &
+          +int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),rho79(:,OP_1)) &
+          -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),rho79(:,OP_1)) &
+          +int4(ri_79,cht79(:,OP_DZ),pht79(:,OP_DR),rho79(:,OP_1)) &
+          -int4(ri_79,cht79(:,OP_DR),pht79(:,OP_DZ),rho79(:,OP_1)))
      endif
 
   energy_k3 = temp
