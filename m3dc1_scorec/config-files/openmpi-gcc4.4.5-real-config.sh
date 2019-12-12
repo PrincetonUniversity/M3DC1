@@ -2,7 +2,7 @@ SCOREC_BASE_DIR=/lore/seol/openmpi-petsc3.7.6-install
 ZOLTAN_DIR=$SCOREC_BASE_DIR
 PETSC_DIR=/lore/seol/petsc-3.7.6
 PETSC_ARCH=real-openmpi
-PREFIX=$SCOREC_BASE_DIR/new
+PREFIX=$SCOREC_BASE_DIR
 cmake .. \
   -DCMAKE_C_COMPILER="/usr/local/openmpi/latest/bin/mpicc" \
   -DCMAKE_CXX_COMPILER="/usr/local/openmpi/latest/bin/mpicxx" \

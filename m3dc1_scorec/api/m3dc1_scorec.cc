@@ -2258,16 +2258,7 @@ int m3dc1_matrix_insert(int* matrix_id, int* row,
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
     return M3DC1_FAILURE;
   }
-#endif
 
-  if (mat->get_status()==M3DC1_FIXED)
-  {
-    if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" is fixed\n";
-    return M3DC1_FAILURE;
-  }
-
-#ifdef DEBUG
   int field = mat->get_fieldOrdering();
   int num_values, value_type, total_num_dof;
   char field_name[256];
@@ -2299,16 +2290,7 @@ int m3dc1_matrix_add (int* matrix_id, int* row, int* col,
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
     return M3DC1_FAILURE;
   }
-#endif
 
-  if (mat->get_status()==M3DC1_FIXED)
-  {
-    if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" is fixed\n";
-    return M3DC1_FAILURE;
-  }
-
-#ifdef DEBUG
   int field = mat->get_fieldOrdering();
   int num_values, value_type, total_num_dof;
   char field_name[256];
@@ -2626,7 +2608,6 @@ int m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
   assert(index == vals.size());
   return M3DC1_SUCCESS;
 }
-
 
 //*******************************************************
 int m3dc1_matrix_print(int* matrix_id)
@@ -4184,3 +4165,169 @@ int m3dc1_epetra_assemble(int* matrix_id)
 #endif
 }
 
+// for solver debugging
+
+//*******************************************************
+int m3dc1_matrix_getstatus (int* matrix_id, int* status) // checkMatrixStatus_
+//*******************************************************
+{
+  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+  *status = mat->get_status();
+}
+
+// getMatrixLocalDofNum_
+//*******************************************************
+void m3dc1_matrix_getlocalnumdof(int* matrix_id, int *num_own_dof) 
+//*******************************************************
+{
+/*
+  int NumberingId;
+  Matrix *mat = getMatrix(*matrix_id);
+  NumberingId = mat->getNumberingid();
+  NumberingContainer * ncptr = getNumberingContainer(NumberingId);
+  // this is equivalent to mat_dim
+  *ldb = ncptr->proclastdofplusone - ncptr->procfirstdof;  
+*/
+  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0];
+  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[mat->fieldOrdering];
+  *num_own_dof = (m3dc1_mesh::instance()->num_own_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
+}
+
+// getMatrixGlobalDofs_
+//*******************************************************
+void m3dc1_matrix_getglobalnumdof(int *matrix_id, int *num_global_dof)
+//*******************************************************
+{
+/*
+  Matrix *mat = getMatrix(*matrix_id);
+  int NumberingId = mat->getNumberingid();
+  NumberingContainer * ncptr = getNumberingContainer(NumberingId);
+  *numglobaldofs =  ncptr->numglobaldofs;
+*/
+  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+
+  int num_own_ent=m3dc1_mesh::instance()->num_global_ent[0];
+  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[mat->fieldOrdering];
+  *num_global_dof = (m3dc1_mesh::instance()->num_global_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
+}
+
+// getMatrixPetscDnnzOnnz_
+//*******************************************************
+void m3dc1_matrix_getpetscdnnzonnz(int *matrix_id, int *valType, int *d_nnz, int *o_nnz)
+//*******************************************************
+{
+/*
+  Matrix *mat = getMatrix(*matrix_id);
+  solveMatrix *smat = (solveMatrix*) mat;
+  // a member function of the solve matrix 
+  smat->assembleDnnzOnnz(valType, d_nnz, o_nnz); 
+*/
+  // FIXME: to be provided
+  if (!PCU_Comm_Self())
+    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported\n";
+}
+
+// getMatrixNNZRowSize_
+//*******************************************************
+void gm3dc1_matrix_getnnzrowsize(int *matrix_id, int *valType, int *rowSize)
+//*******************************************************
+{
+/*
+  Matrix *mat = getMatrix(*matrix_id);
+  solveMatrix *smat = (solveMatrix*) mat;
+  
+  *rowSize = smat->getRowSize(*valType);
+*/
+  // FIXME: to be provided
+  if (!PCU_Comm_Self())
+    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported\n";
+}
+
+// getMatrixNNZRowId_
+//*******************************************************
+void m3dc1_matrix_getnnzrowid(int *matrix_id, int *valType, int* ith, int *rowId)
+//*******************************************************
+{
+/*
+  Matrix *mat = getMatrix(*matrix_id);
+  solveMatrix *smat = (solveMatrix*) mat;
+  *rowId = smat->getRowId(*valType, *ith)+1;
+*/
+  // FIXME: to be provided
+  if (!PCU_Comm_Self())
+    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported\n";
+}
+
+// getMatrixNNZColSize_
+//*******************************************************
+void  m3dc1_matrix_getnnzcolsize(int *matrix_id, int *valType, int *rowId, int *colSize)
+//*******************************************************
+{
+/*
+  Matrix *mat = getMatrix(*matrix_id);
+  solveMatrix *smat = (solveMatrix*) mat;
+  *colSize = smat->getColSize(*valType, *rowId-1);
+*/
+  // FIXME: to be provided
+  if (!PCU_Comm_Self())
+    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported\n";
+}
+
+// getMatrixNNZValues_
+//*******************************************************
+void m3dc1_matrix_getnnzvalue(int *matrix_id, int *valType, int *rowId, int *colId, double *dvalues)
+//*******************************************************
+{
+/*
+  Matrix *mat =  getMatrix(*matrix_id);
+  solveMatrix *smat = (solveMatrix*) mat;
+  smat->getNNZValues(*valType, *rowId-1, colId, dvalues);
+*/
+  // FIXME: to be provided
+  if (!PCU_Comm_Self())
+    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported\n";
+}
+
+// getMatrixFirstDof_
+//*******************************************************
+void m3dc1_matrix_getmatrixfirstdof(int *matrix_id, int *firstdof)
+//*******************************************************
+{
+/*
+  Matrix *mat = getMatrix(*matrix_id);
+  int NumberingId = mat->getNumberingid();
+
+  NumberingContainer * ncptr = getNumberingContainer(NumberingId);
+  *firstdof = ncptr->procfirstdof+1;
+*/
+  // FIXME: to be provided
+  if (!PCU_Comm_Self())
+    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported\n";
+}
+
+// cleanMatrixValues_ is identical to m3dc1_matrix_reset
+
+// setMatrixSoln_
+//*******************************************************
+void m3dc1_matrix_setsoln(int *matrix_id, int *valType, double *soln)
+//*******************************************************
+{
+/*
+  Matrix *mat = getMatrix(*matrixid);
+  int NumberingId = mat->getNumberingid();
+  NumberingContainer * ncptr = getNumberingContainer(NumberingId);
+  ncptr->shareInfo(soln, 1+(*valType));
+  mat->setStatus(4);
+*/
+  // FIXME: to be provided
+  if (!PCU_Comm_Self())
+    std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported\n";
+
+}
+
+
+
+
+#define m3dc1_matrix_setsoln setMatrixSoln_

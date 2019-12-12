@@ -111,7 +111,7 @@
 
 	nonrect = 1
 
-	mesh_filename = 'nstx-12K.smb'
+	mesh_filename = 'nstx-14K.smb'
 	mesh_model = 'nstx.txt'
 
 

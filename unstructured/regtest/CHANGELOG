@@ -24,3 +24,8 @@ Changed: KPRAD_2D, pellet
 Reason: Moved define_transport_coefficients before solve, so a couple changes.
 Particle source now gets initialized for the first time step (corrects bug).
 Resistivity now gets updated *after* KPRAD ionize, so Zeff changes.
+
+12/10/2019
+Changed: KPRAD_2D, KPRAD_restart, pellet
+Reason: Kinetic energy scalars changed to use mass density (rho),
+so changes regression tests that have impurities

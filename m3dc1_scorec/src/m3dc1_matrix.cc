@@ -46,8 +46,10 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
 
-  int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec);
-  CHKERRQ(ierr);
+/*int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec); */
+  int ierr = VecCreate(MPI_COMM_WORLD, &petscVec); CHKERRQ(ierr);
+  ierr = VecSetSizes(petscVec, num_own_dof, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(petscVec);CHKERRQ(ierr);
   VecAssemblyBegin(petscVec);
 
   int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
@@ -207,8 +209,13 @@ m3dc1_matrix::~m3dc1_matrix()
 
 int m3dc1_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<int>& columns, vector<double>& values)
 {
-  if (mat_status != M3DC1_FIXED)
+  if (!mat_status)  // matrix is not fixed
+  {
+    if (!PCU_Comm_Self())
+      std::cout <<__func__<<" failed: matrix "<<id<<" is not fixed\n";
     return M3DC1_FAILURE;
+  }
+
 #ifdef PETSC_USE_COMPLEX
    if (!PCU_Comm_Self())
      std::cout<<"[M3DC1 ERROR] "<<__func__<<": not supported for complex\n";
@@ -242,8 +249,13 @@ int m3dc1_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<i
 
 int m3dc1_matrix::set_value(int row, int col, int operation, double real_val, double imag_val) //insertion/addition with global numbering
 {
-  if (mat_status == M3DC1_FIXED)
+  if (mat_status) // matrix is fixed
+  {
+    if (!PCU_Comm_Self())
+      std::cout <<__func__<<" failed: matrix "<<id<<" is fixed\n";
     return M3DC1_FAILURE;
+  }
+
   PetscErrorCode ierr;
   
   if (scalar_type==M3DC1_REAL) // real
@@ -272,8 +284,13 @@ int m3dc1_matrix::set_value(int row, int col, int operation, double real_val, do
 
 int m3dc1_matrix::add_values(int rsize, int * rows, int csize, int * columns, double* values)
 {
-  if (mat_status == M3DC1_FIXED)
+  if (mat_status) // matrix is fixed
+  {
+    if (!PCU_Comm_Self())
+      std::cout <<__func__<<" failed: matrix "<<id<<" is fixed\n";
     return M3DC1_FAILURE;
+  }
+
   PetscErrorCode ierr;
 #if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
   vector<PetscScalar> petscValues(rsize*csize);
@@ -508,6 +525,7 @@ int m3dc1_matrix::setupParaMat()
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 
   ierr = MatSetType(*A, MATMPIAIJ); CHKERRQ(ierr);
+  ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
 }
 
 int m3dc1_matrix::setupSeqMat()
@@ -587,7 +605,7 @@ int matrix_mult::assemble()
   CHKERRQ(ierr);
   ierr = MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY);
   CHKERRQ(ierr);
-  set_status(M3DC1_FIXED);
+  mat_status = M3DC1_FIXED;
 }
 
 int matrix_mult::multiply(FieldID in_field, FieldID out_field)
@@ -713,7 +731,7 @@ void matrix_solve::reset_values()
 { 
   MatZeroEntries(*A); 
   MatZeroEntries(remoteA); 
-  set_status(M3DC1_NOT_FIXED); // allow matrix value modification
+  mat_status = M3DC1_NOT_FIXED; // allow matrix value modification
 #ifdef DEBUG_
   PetscInt rstart, rend, r_rstart, r_rend, ncols;
   const PetscInt *cols;
@@ -1017,6 +1035,7 @@ int matrix_solve::solve(FieldID field_id)
 
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
+  mat_status = M3DC1_SOLVED;
 }
 
 int matrix_solve:: setKspType()

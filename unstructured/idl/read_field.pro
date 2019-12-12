@@ -1091,6 +1091,33 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(/l0, _EXTRA=extra)
 
    ;===========================================
+   ; qstar (local cylindrical approximation to q)
+   ;===========================================
+   endif else if(strcmp('q_cyl', name, /fold_case) eq 1) then begin
+
+       rho = read_field('r', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       bp = read_field('bp', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       bt = read_field('bt', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange)
+       
+       if(itor eq 1) then begin
+          r = radius_matrix(x,y,t)
+       endif else begin
+          r = 2.*!pi*rzero
+       end
+       
+       data = rho*bt / (r*bp)
+
+       symbol = '!8q!D!3*!N!X'
+       d = dimensions(_EXTRA=extra)
+
+
+   ;===========================================
    ; polodal angle
    ;===========================================
    endif else if(strcmp('polodal angle', name, /fold_case) eq 1) or $

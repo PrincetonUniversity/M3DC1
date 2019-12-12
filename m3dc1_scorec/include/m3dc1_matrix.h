@@ -32,7 +32,7 @@ public:
   // values use column-wise, size * size block
   int add_values(int rsize, int * rows, int csize, int * columns, double* values);
   int get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values);
-  void set_status(int s) {mat_status=s;}
+
   int get_status() {return mat_status;}
   int get_scalar_type() { return scalar_type; }
   int get_fieldOrdering() { return fieldOrdering;}
@@ -45,15 +45,19 @@ public:
   int printInfo();
   // PETSc data structures
   Mat* A;
+  int fieldOrdering; // the field that provide numbering
 protected:
   int setupSeqMat();
   int setupParaMat();
   int preAllocateSeqMat();
   int preAllocateParaMat();
   int id;
+  // 0 is for real, 1 is for complex
   int scalar_type;
-  int mat_status; 
-  int fieldOrdering; // the field that provide numbering
+  // 0: A is not allocated/used
+  // 1: A is allocated/used but not solved
+  // 2: A is solved
+  int mat_status;
 };
 
 class matrix_mult: public m3dc1_matrix
@@ -64,7 +68,7 @@ public:
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
   int multiply(FieldID in_field, FieldID out_field);
-  void reset_values() { MatZeroEntries(*A);   set_status(M3DC1_NOT_FIXED); };
+  void reset_values() { MatZeroEntries(*A);   mat_status=M3DC1_NOT_FIXED; };
   virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
