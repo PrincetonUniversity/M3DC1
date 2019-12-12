@@ -15,16 +15,15 @@ Sun Apr 12 22:41:24 EDT 2015
 
 3. load modules
 
-	module load fftw
-	module load idl
+   module load gcc-4.7.2 mpich/gcc-4.7.2 hdf5/1.8.16-gcc4.7.2 fftw/3.3.4-mpich
 
 4. compile code
 	make OPT=1 RL=1 MAX_PTS=25
 	make OPT=1 COM=1 MAX_PTS=25
 	make 3D=1 OPT=1 MAX_PTS=60
 
-5. mesh utility (NOT SUPPORTED YET)
-        /fusion/projects/codes/m3dc1/scorec/tools
+5. mesh utility
+   /fusion/projects/codes/m3dc1/scorec/mpich-gcc4.7.2/petsc3.12.1/bin
 
 6. run 
 

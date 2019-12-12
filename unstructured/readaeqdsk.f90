@@ -201,24 +201,48 @@ subroutine load_eqdsk_a(filename)
 
   if(nfcoil0.eq.18) then 
      write(0,*) 'Assuming DIII-D'
-     write(*,1100) ccbrsp( 4,1)/1000.
-     write(*,1100) ccbrsp( 3,1)/1000.
-     write(*,1100) ccbrsp( 2,1)/1000.
-     write(*,1100) ccbrsp( 1,1)/1000.
-     write(*,1100) ccbrsp(10,1)/1000.
-     write(*,1100) ccbrsp(11,1)/1000.
-     write(*,1100) ccbrsp(12,1)/1000.
-     write(*,1100) ccbrsp(13,1)/1000.
-     write(*,1100) ccbrsp( 5,1)/1000.
-     write(*,1100) ccbrsp(14,1)/1000.
-     write(*,1100) ccbrsp( 8,1)/1000.
-     write(*,1100) ccbrsp(17,1)/1000.
-     write(*,1100) ccbrsp( 9,1)/1000.
-     write(*,1100) ccbrsp(18,1)/1000.
-     write(*,1100) ccbrsp( 7,1)/1000.
-     write(*,1100) ccbrsp(16,1)/1000.
-     write(*,1100) ccbrsp( 6,1)/1000.
-     write(*,1100) ccbrsp(15,1)/1000.
+     if(maxval(abs(ccbrsp(1:18,1))).lt.20000.) then
+        write(0,*) 'File data is in Amps'
+        write(*,1100) ccbrsp( 4,1)/1000.*58.
+        write(*,1100) ccbrsp( 3,1)/1000.*58.
+        write(*,1100) ccbrsp( 2,1)/1000.*58.
+        write(*,1100) ccbrsp( 1,1)/1000.*58.
+        write(*,1100) ccbrsp(10,1)/1000.*58.
+        write(*,1100) ccbrsp(11,1)/1000.*58.
+        write(*,1100) ccbrsp(12,1)/1000.*58.
+        write(*,1100) ccbrsp(13,1)/1000.*55.
+        write(*,1100) ccbrsp( 5,1)/1000.*58.
+        write(*,1100) ccbrsp(14,1)/1000.*55.
+        write(*,1100) ccbrsp( 8,1)/1000.*58.
+        write(*,1100) ccbrsp(17,1)/1000.*55.
+        write(*,1100) ccbrsp( 9,1)/1000.*58.
+        write(*,1100) ccbrsp(18,1)/1000.*55.
+        write(*,1100) ccbrsp( 7,1)/1000.*58.
+        write(*,1100) ccbrsp(16,1)/1000.*55.
+        write(*,1100) ccbrsp( 6,1)/1000.*58.
+        write(*,1100) ccbrsp(15,1)/1000.*55.
+     else
+        write(0,*) 'File data is in Amp-turns'
+        write(*,1100) ccbrsp( 4,1)/1000.
+        write(*,1100) ccbrsp( 3,1)/1000.
+        write(*,1100) ccbrsp( 2,1)/1000.
+        write(*,1100) ccbrsp( 1,1)/1000.
+        write(*,1100) ccbrsp(10,1)/1000.
+        write(*,1100) ccbrsp(11,1)/1000.
+        write(*,1100) ccbrsp(12,1)/1000.
+        write(*,1100) ccbrsp(13,1)/1000.
+        write(*,1100) ccbrsp( 5,1)/1000.
+        write(*,1100) ccbrsp(14,1)/1000.
+        write(*,1100) ccbrsp( 8,1)/1000.
+        write(*,1100) ccbrsp(17,1)/1000.
+        write(*,1100) ccbrsp( 9,1)/1000.
+        write(*,1100) ccbrsp(18,1)/1000.
+        write(*,1100) ccbrsp( 7,1)/1000.
+        write(*,1100) ccbrsp(16,1)/1000.
+        write(*,1100) ccbrsp( 6,1)/1000.
+        write(*,1100) ccbrsp(15,1)/1000.
+     end if
+
   else if(nfcoil0.eq.12) then 
      write(0,*) 'Assuming EAST'
      write(*,1100) ccbrsp( 1,1)/1000.  ! PF1
