@@ -107,7 +107,7 @@ contains
     dofs = intx2(mu79(:,:,OP_1),nre79(:,OP_1)) + &
          intx2(mu79(:,:,OP_1),dndt)*dt
 
-    call vector_insert_block(dnre_field%vec,itri,1,dofs,VEC_SET)
+    call vector_insert_block(dnre_field%vec,itri,1,dofs,VEC_ADD)
 #endif
 
   end subroutine eval_runaway
