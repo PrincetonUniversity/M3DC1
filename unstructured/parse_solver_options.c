@@ -24,10 +24,14 @@ void parse_solver_options_(const char *filename)
   const size_t len=256;
   char filename_out[len];
 
-  //PetscPrintf(PETSC_COMM_WORLD,"\nsolver options from the file:%s\n\n", filename);
+// remove heading and trailing gabrage
+      char buf[len];
+      sscanf(filename, "%s", buf); // Trimming on both sides occurs here
+  //PetscPrintf(PETSC_COMM_WORLD,"\nsolver options from the file:%s\n\n", buf);
 
   char c[1024];
-  if ((fptr = fopen(filename, "r")) == NULL)
+  //if ((fptr = fopen(filename, "r")) == NULL)
+  if ((fptr = fopen(buf, "r")) == NULL)
   {
      PetscPrintf(PETSC_COMM_WORLD,"Error! opening file\n");
      exit(1);         
@@ -82,7 +86,8 @@ void parse_solver_options_(const char *filename)
   //PetscPrintf(PETSC_COMM_WORLD, "\n\n-------------------------------------\n\n");
 
      /* open the file for writing*/
-    sprintf(filename_out, "%s.out", filename);
+    //sprintf(filename_out, "%s.out", filename);
+    sprintf(filename_out, "%s.out", buf);
     if ((fptr = fopen(filename_out, "w")) == NULL)
     {
        PetscPrintf(PETSC_COMM_WORLD,"Error! opening file again\n");
