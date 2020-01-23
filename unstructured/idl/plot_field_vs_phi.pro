@@ -2,9 +2,22 @@ pro plot_field_vs_phi, field, _EXTRA=extra, cutx=cutx, cutz=cutz, $
                        tpts=tpts, mesh=mesh, phirange=phirange, $
                        slice=slice
 
-  if(n_elements(phirange) eq 0) then phirange = [0, 360.]
 
-  ytitle = '!9P!6 (deg)!X'
+  itor = read_parameter('itor',_EXTRA=extra)
+  if(n_elements(phirange) eq 0) then begin
+     if(itor eq 1) then begin
+        phirange = [0, 360.]
+     endif else begin
+        rzero = read_parameter('rzero',_EXTRA=extra)
+        phirange = [0, 2.*!pi*rzero]
+     end
+  end
+
+  if(itor eq 1) then begin
+     ytitle = '!9P!6 (deg)!X'
+  endif else begin
+     ytitle = '!8y!6 (m)!X'
+  end
 
   complex = read_parameter('icomplex',_EXTRA=extra)
 
