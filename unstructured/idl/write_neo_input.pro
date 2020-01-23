@@ -49,7 +49,7 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   ncdf_attput, id, 'version', 1, /short, /global
   ncdf_attput, id, 'ion_mass', ion_mass , /global
 
-  nr_id = ncdf_dimdef(id, 'nr', nr)
+  nr_id = ncdf_dimdef(id, 'nr', nr)      ; number of radial points
   np_id = ncdf_dimdef(id, 'np', ntheta)  ; number of poloidal points
   nt_id = ncdf_dimdef(id, 'nt', nphi)    ; number of toroidal points
 
@@ -68,8 +68,8 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   ncdf_varput, id, 'psi0', reform(flux)
   ncdf_varput, id, 'Te0', reform(Te0_x)
   ncdf_varput, id, 'Ti0', reform(Ti0_x)
-  ncdf_varput, id, 'Te0', reform(ne0_x)
-  ncdf_varput, id, 'Ti0', reform(ni0_x)
+  ncdf_varput, id, 'ne0', reform(ne0_x)
+  ncdf_varput, id, 'ni0', reform(ni0_x)
   ncdf_varput, id, 'R', r
   ncdf_varput, id, 'Z', z
   ncdf_close, id
