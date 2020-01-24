@@ -43,11 +43,14 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
 ;  stop
 
   ion_mass = read_parameter('ion_mass', _EXTRA=extra)
+  psilim = read_lcfs(axis=axis, xpoint=xpoint, flux0=flux0,/mks,_EXTRA=extra)
 
   if(n_elements(outfile) eq 0) then outfile='m3dc1_neo.nc'
   id = ncdf_create(outfile, /clobber)
   ncdf_attput, id, 'version', 1, /short, /global
   ncdf_attput, id, 'ion_mass', ion_mass , /global
+  ncdf_attput, id, 'psi_0', flux0, /global
+  ncdf_attput, id, 'psi_1', psilim, /global
 
   nr_id = ncdf_dimdef(id, 'nr', nr)      ; number of radial points
   np_id = ncdf_dimdef(id, 'np', ntheta)  ; number of poloidal points
