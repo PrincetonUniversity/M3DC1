@@ -5,6 +5,7 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts, $
                             ntheta=ntheta, axis=axis_out, flux=flux, $
                             noplot=noplot
 
+   if(n_elements(filename) eq 0) then filename='C1.h5'
    n = n_elements(filename)
    nr = n_elements(q)
    if(n_elements(theta) eq 0) then begin
