@@ -91,6 +91,8 @@
 #define m3dc1_matrix_solve m3dc1_matrix_solve_
 #define m3dc1_matrix_multiply m3dc1_matrix_multiply_
 #define m3dc1_matrix_getnumiter m3dc1_matrix_getiternum_
+#define m3dc1_matrix_getlocalnumdof m3dc1_matrix_getlocalnumdof_
+#define m3dc1_matrix_getglobalnumdof m3dc1_matrix_getglobalnumdof_
 #define m3dc1_matrix_insertblock m3dc1_matrix_insertblock_
 #define m3dc1_matrix_setlaplacebc m3dc1_matrix_setlaplacebc_
 #define m3dc1_matrix_setassembleoption m3dc1_matrix_setassembleoption_
@@ -111,8 +113,8 @@
 #define m3dc1_solver_amesos m3dc1_solver_amesos_
 #define m3dc1_solver_getnumiter m3dc1_solver_getnumiter_
 #define m3dc1_matrix_getstatus checkMatrixStatus_
-#define m3dc1_matrix_getlocalnumdof getMatrixLocalDofNum_
-#define m3dc1_matrix_getglobalnumdof getMatrixGlobalDofs_
+//#define m3dc1_matrix_getlocalnumdof getMatrixLocalDofNum_
+//#define m3dc1_matrix_getglobalnumdof getMatrixGlobalDofs_
 #define m3dc1_matrix_getpetscdnnzonnz getMatrixPetscDnnzOnnz_
 #define m3dc1_matrix_getnnzrowsize getMatrixNNZRowSize_
 #define m3dc1_matrix_getnnzrowid getMatrixNNZRowId_
