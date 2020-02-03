@@ -16,6 +16,8 @@ contains
 
     implicit none
 
+    include 'mpif.h'
+
     integer :: error
     integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id
     character(LEN=19) :: time_group_name
@@ -233,7 +235,7 @@ contains
        ntime = 0
        irestart = 0
        call hdf5_finalize(error)
-       call hdf5_initialize(.false., 1, error)
+       call hdf5_initialize(.false., MPI_COMM_WORLD, error)
 
        if(eqsubtract.eq.0) then
          psi_field(0) = psi_field(1)
