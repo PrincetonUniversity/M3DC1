@@ -229,11 +229,11 @@ contains
        istartnew = 1
     end if
 
-    if(istartnew.eq.1) then
+    if (istartnew.eq.1) then
        ntime = 0
        irestart = 0
        call hdf5_finalize(error)
-       call hdf5_initialize(.false., error)
+       call hdf5_initialize(.false., 1, error)
 
        if(eqsubtract.eq.0) then
          psi_field(0) = psi_field(1)

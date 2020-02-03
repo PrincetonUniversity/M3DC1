@@ -1699,6 +1699,7 @@ int m3dc1_field_insert(FieldID* /* in */ field_id, int /* in */ * local_dof,
   if (!value_type) assert(!(*type)); // can not insert complex value to real vector
   for (int i=0; i<*size*(1+(*type)); i++)
   {
+    // FIXME: crash on SCOREC linux clusters with 3d/3p
     assert(values[i]==values[i]);
   }
 #endif

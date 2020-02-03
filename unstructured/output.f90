@@ -8,14 +8,15 @@ module m3dc1_output
 
 contains
 
-  subroutine initialize_output
+  subroutine initialize_output (comm)
     use basic
     use hdf5_output
     implicit none
 
+    integer, intent(in) :: comm     ! MPI_Comm for HDF5 parallel IO setup
     integer :: ier
     
-    call hdf5_initialize(irestart.ne.0,ier)
+    call hdf5_initialize(irestart.ne.0, comm, ier)
     if(ier.lt.0) then 
        print *, "Error initializing HDF5"
        call safestop(5)

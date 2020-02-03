@@ -41,7 +41,7 @@ Program Reducedquintic
   real :: tstart, tend, dtsave, period, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
-  integer :: ip
+  integer :: ip, group_id, in_group_rank, comm
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -174,7 +174,15 @@ Program Reducedquintic
   call print_info
 
   ! initialize output
-  call initialize_output
+  ! initialize output for HDF5 and C1ke
+  if (irestart_factor.gt.1) then !open up another hdf5 library with splitted comm
+    group_id = mod (myrank, irestart_factor)
+    in_group_rank = myrank / irestart_factor
+    call MPI_Comm_split(MPI_COMM_WORLD, group_id, in_group_rank, comm)
+  else
+    comm = MPI_COMM_WORLD
+  endif
+  call initialize_output (comm)
 
   ! create the newvar matrices
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -226,6 +234,12 @@ Program Reducedquintic
            call rdrestart_adios
         else if(iread_hdf5.eq.1) then
            call rdrestart_hdf5
+             if (irestart_factor.gt.1) then !discard the group comm and re-open hdf5
+             call hdf5_finalize(ier)
+             ! FIXME: compilation error - Unclassifiable statement
+             !MPI_Comm_free(comm)
+             call hdf5_initialize(.false., MPI_COMM_WORLD, ier)
+           endif
         else
            call rdrestart
         endif

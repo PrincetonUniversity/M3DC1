@@ -30,7 +30,7 @@ contains
 
   ! hdf5_initialize
   ! ===============
-  subroutine hdf5_initialize(restart, error)
+  subroutine hdf5_initialize(restart, comm, error)
     use hdf5
 
     implicit none
@@ -38,6 +38,7 @@ contains
     include 'mpif.h'
 
     logical, intent(in) :: restart     ! if true, do not overwrite file
+    integer, intent(in) :: comm     ! MPI_Comm for HDF5 parallel IO setup
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
@@ -52,7 +53,7 @@ contains
     ! Set up the file access property list with parallel I/O
     call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
     info = MPI_INFO_NULL
-    call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
+    call h5pset_fapl_mpio_f(plist_id, comm, info, error)
 
     if(.not.restart) then
        ! create hdf5 file
@@ -111,7 +112,8 @@ contains
 
     call h5close_f(error)
     if(error .lt. 0) print *, "Error closing hdf5 library"
-    
+    initialized = .false.
+
   end subroutine hdf5_finalize
 
   subroutine hdf5_get_local_elms(nelms, error)

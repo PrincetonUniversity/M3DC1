@@ -158,6 +158,7 @@ module basic
   integer :: irestart ! 1 = reads restart file as initial condition
                       ! 2 = reads restart file to initialize GS solve
                       ! 3 = reads 2D RL=1 restart file o initialize 2D COM=1 run
+  integer :: irestart_factor ! multiplication factor of nplanes in 3D restart (default: 1)
   integer :: irestart_slice   ! field output timeslice from which to restart
   integer :: version_in  ! Version of restart file
   integer :: itaylor  ! equilibrium
