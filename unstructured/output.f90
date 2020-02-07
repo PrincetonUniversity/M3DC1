@@ -8,15 +8,15 @@ module m3dc1_output
 
 contains
 
-  subroutine initialize_output (comm)
+  subroutine initialize_output ()
     use basic
     use hdf5_output
     implicit none
 
-    integer, intent(in) :: comm     ! MPI_Comm for HDF5 parallel IO setup
     integer :: ier
     
-    call hdf5_initialize(irestart.ne.0, comm, ier)
+   call hdf5_initialize(irestart.ne.0, ier)
+
     if(ier.lt.0) then 
        print *, "Error initializing HDF5"
        call safestop(5)
@@ -182,8 +182,6 @@ subroutine hdf5_write_parameters(error)
 
   integer(HID_T) :: root_id
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'Writing attributes'
-
   call h5gopen_f(file_id, "/", root_id, error)
 
 #ifdef USE3D
@@ -197,6 +195,9 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "nplanes"    , nplanes,    error)
 
   call write_int_attr (root_id, "version"    , version,    error)
+
+  if (myrank.eq.0) print *, 'Writing HDF5 file for restart: version=', version
+
   call write_int_attr (root_id, "numvar"     , numvar,     error)
   call write_int_attr (root_id, "idens"      , idens,      error)
   call write_int_attr (root_id, "ipres"      , ipres,      error)
