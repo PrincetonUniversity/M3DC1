@@ -32,6 +32,7 @@ contains
   ! ===============
   subroutine hdf5_initialize(restart, error)
     use hdf5
+    use basic
 
     implicit none
 
@@ -41,7 +42,7 @@ contains
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
-    integer :: info
+    integer :: info, comm
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -52,7 +53,21 @@ contains
     ! Set up the file access property list with parallel I/O
     call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
     info = MPI_INFO_NULL
-    call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
+
+#ifdef RESTART_FACTOR
+   if (irestart_factor.gt.1) then !discard the group comm and re-open hdf5
+     call m3dc1_comm_split(irestart_factor, comm)
+     if (myrank .eq. 0) print *, "HDF5 initialized with group MPI_Comm of factor ", irestart_factor
+     irestart_factor=1
+   else
+#endif
+     comm=MPI_COMM_WORLD
+     if (myrank .eq. 0) print *, "HDF5 initialized with MPI_COMM_WORLD"
+#ifdef RESTART_FACTOR
+   endif
+#endif
+ 
+   call h5pset_fapl_mpio_f(plist_id, comm, info, error)
 
     if(.not.restart) then
        ! create hdf5 file
@@ -89,6 +104,7 @@ contains
     call h5pclose_f(plist_id, error)
 
     initialized = .true.
+
   end subroutine hdf5_initialize
 
 
@@ -96,7 +112,7 @@ contains
   ! =============
   subroutine hdf5_finalize(error)
     use hdf5
-    
+
     implicit none
     
     integer, intent(out) :: error
@@ -111,7 +127,7 @@ contains
 
     call h5close_f(error)
     if(error .lt. 0) print *, "Error closing hdf5 library"
-    
+    initialized = .false.
   end subroutine hdf5_finalize
 
   subroutine hdf5_get_local_elms(nelms, error)

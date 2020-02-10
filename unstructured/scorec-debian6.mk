@@ -1,12 +1,12 @@
-OPTS := $(OPTS) -DUSEBLAS
-FOPTS = -c -fdefault-real-8 -Wall -cpp -DPETSC_VERSION=37 $(OPTS) 
-CCOPTS  = -c -O -DPETSC_VERSION=37
+OPTS := $(OPTS) 
+FOPTS =  $(OPTS) -c -fdefault-real-8 -Wall -cpp -DPETSC_VERSION=37 #-DRESTART_FACTOR
+CCOPTS  = -c -O  -DPETSC_VERSION=37
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 
   CCOPTS := $(CCOPTS) -O
 else
-  FOPTS := $(FOPTS) -g noarg_temp_created 
+  FOPTS := $(FOPTS) -g -O0
 endif
 
 MPI_DIR = /usr/local/openmpi/latest
@@ -29,13 +29,6 @@ ZLIB_DIR = /usr/lib64
 TRILINOS_DIR = /fasttmp/seol/openmpi-gcc4.4.5-install
 STDCPP_DIR = /usr/lib/gcc/x86_64-linux-gnu/4.4.5
 
-SCOREC_BASE_DIR=/lore/seol/openmpi-petsc3.7.6-install
-ifeq ($(REORDERED), 1)
-  SCORECVER=reordered
-endif
-SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
-
-ZOLTAN_DIR = /lore/seol/openmpi-petsc3.7.6-install
 PETSC_DIR = /lore/seol/petsc-3.7.6
 ifeq ($(COM), 1)
   PETSC_ARCH =cplx-openmpi
@@ -69,8 +62,17 @@ else
   endif 
 endif
 
+PUMI_DIR=/lore/seol/openmpi-petsc3.7.6-install/debug
+SCOREC_BASE_DIR=/lore/seol/openmpi-petsc3.7.6-install
+ZOLTAN_DIR = /lore/seol/openmpi-petsc3.7.6-install
+ifdef SCORECVER
+  SCOREC_DIR=/lore/seol/openmpi-petsc3.7.6-install/$(SCORECVER)
+else
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
+endif
+
 SCOREC_LIBS= -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
-             -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
+             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
