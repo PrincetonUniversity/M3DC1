@@ -22,6 +22,7 @@ Program Reducedquintic
   use m3dc1_omp
   use restart_hdf5
   use wall
+  use geometry 
   use neutral_beam
   use kprad_m3dc1
   use transport_coefficients
@@ -189,6 +190,7 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Generating newvar matrices'
   call create_newvar_matrices
 
+  call calc_geometry
   call calc_wall_dist
 
 

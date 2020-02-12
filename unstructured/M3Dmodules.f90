@@ -513,6 +513,7 @@ module arrays
   type(field_type) :: u_field_pre, psi_field_pre
   type(field_type) :: nre_field  ! runaway electron density
   type(field_type) :: wall_dist
+  type(field_type) :: Rst, Zst ! Stellarator geometry
 #ifdef USEPARTICLES
    type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
    type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components

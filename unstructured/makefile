@@ -151,6 +151,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	read_schaffer_field.o  neutral_beam.o \
 	coils.o coil_sets.o model.o \
 	fit_magnetics.o wall.o \
+	geometry.o \
 	init_common.o \
 	gradshafranov.o rmp.o  \
 	readgeqdsk.o read_jsolver.o read_dskbal.o \
