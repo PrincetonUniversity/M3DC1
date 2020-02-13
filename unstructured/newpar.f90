@@ -226,14 +226,7 @@ Program Reducedquintic
            call rdrestart_adios
         else if(iread_hdf5.eq.1) then
            call rdrestart_hdf5
-#ifdef RESTART_FACTOR
-             if (irestart_factor.gt.1) then !discard the group comm and re-open hdf5
-             call finalize_output ()
-             ! FIXME: compilation error - Unclassifiable statement
-             call m3dc1_comm_merge
-             call initialize_output ()
-           endif
-#endif
+           irestart_factor=1
         else
            call rdrestart
         endif

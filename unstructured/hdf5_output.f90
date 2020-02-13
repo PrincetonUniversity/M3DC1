@@ -53,21 +53,7 @@ contains
     ! Set up the file access property list with parallel I/O
     call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
     info = MPI_INFO_NULL
-
-#ifdef RESTART_FACTOR
-   if (irestart_factor.gt.1) then !discard the group comm and re-open hdf5
-     call m3dc1_comm_split(irestart_factor, comm)
-     if (myrank .eq. 0) print *, "HDF5 initialized with group MPI_Comm of factor ", irestart_factor
-     irestart_factor=1
-   else
-#endif
-     comm=MPI_COMM_WORLD
-     if (myrank .eq. 0) print *, "HDF5 initialized with MPI_COMM_WORLD"
-#ifdef RESTART_FACTOR
-   endif
-#endif
- 
-   call h5pset_fapl_mpio_f(plist_id, comm, info, error)
+    call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
 
     if(.not.restart) then
        ! create hdf5 file
@@ -132,6 +118,7 @@ contains
 
   subroutine hdf5_get_local_elms(nelms, error)
     use mesh_mod
+    use basic
 
     implicit none
 
@@ -139,13 +126,21 @@ contains
 
     integer, intent(out) :: nelms
     integer, intent(out) :: error
+    integer::color, comm;
 
     nelms = local_elements()
 
   ! Calculate offset of current process
-    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+    comm = MPI_COMM_WORLD
+    if (irestart_factor.gt.1) then
+      color = mod(myrank, irestart_factor)
+      call MPI_Comm_split(MPI_COMM_WORLD, color, 1, comm, error)
+    endif
+    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, comm, error)
+
     offset = offset - nelms
-!  print *, "Offset of ", myrank, " = ", offset
+    ! print *, "[",myrank,"] hdf5_get_local_elms Offset ", offset
+
 !  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
 !  print *, 'myrank, local_elms, global_elms, offset', &
 !       myrank, nelms, global_elms, offset

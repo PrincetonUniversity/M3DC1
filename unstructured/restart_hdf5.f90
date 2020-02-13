@@ -291,6 +291,8 @@ contains
     call h5r_read_field(group_id, "I",    bz_field(ilin), nelms, error)
 
     call h5r_read_field(group_id, "phi",   u_field(ilin), nelms, error)
+!    call m3dc1_field_write(u_field(ilin)%vec%id, "phi-r", 0)
+
     call h5r_read_field(group_id, "V",    vz_field(ilin), nelms, error)
     call h5r_read_field(group_id, "chi", chi_field(ilin), nelms, error)
 
@@ -317,7 +319,7 @@ contains
        end if
     end if
 
-    if(use_external_fields) then
+    if (use_external_fields) then
        call h5r_read_field(group_id, "psi_ext", psi_ext, nelms, error)
        call h5r_read_field(group_id,   "I_ext",  bz_ext, nelms, error)
        call h5r_read_field(group_id,   "f_ext",  bf_ext, nelms, error)       

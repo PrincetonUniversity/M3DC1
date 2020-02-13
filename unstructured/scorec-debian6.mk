@@ -1,5 +1,5 @@
 OPTS := $(OPTS) 
-FOPTS =  $(OPTS) -c -fdefault-real-8 -Wall -cpp -DPETSC_VERSION=37 #-DRESTART_FACTOR
+FOPTS =  $(OPTS) -c -fdefault-real-8 -Wall -cpp -DPETSC_VERSION=37
 CCOPTS  = -c -O  -DPETSC_VERSION=37
 
 ifeq ($(OPT), 1)
