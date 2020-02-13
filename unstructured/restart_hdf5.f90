@@ -16,6 +16,8 @@ contains
 
     implicit none
 
+    include 'mpif.h'
+
     integer :: error
     integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id
     character(LEN=19) :: time_group_name
@@ -23,11 +25,12 @@ contains
     integer :: times_output_in, i3d_in, istartnew, i
     real :: xnullt,znullt,xnull2t,znull2t
 
-    if(myrank.eq.0) print *, 'Reading HDF5 file for restart.'
-
     call h5gopen_f(file_id, "/", root_id, error)
 
     call read_int_attr(root_id, "version", version_in, error)
+    
+    if (myrank.eq.0) print *, 'Reading HDF5 file: version=', version_in
+  
     if(version_in.lt.16) then
        if(myrank.eq.0) print *, 'Error: HDF5 file is from too old a version to use iread_hdf5=1.'
        call h5gclose_f(root_id, error)
@@ -229,7 +232,7 @@ contains
        istartnew = 1
     end if
 
-    if(istartnew.eq.1) then
+    if (istartnew.eq.1) then
        ntime = 0
        irestart = 0
        call hdf5_finalize(error)
