@@ -424,6 +424,7 @@ subroutine init
   use runaway_mod
   use kprad_m3dc1
   use resistive_wall
+  use pellet
   
   implicit none
 
@@ -461,6 +462,9 @@ subroutine init
 
   call init_resistive_wall(ierr)
   if(ierr.ne.0) call safestop(602)
+
+  call pellet_domain
+
 end subroutine init
 
 

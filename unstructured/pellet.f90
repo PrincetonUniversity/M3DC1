@@ -22,6 +22,8 @@ module pellet
   real, allocatable :: pellet_velz(:)
   real, allocatable :: pellet_vx(:), pellet_vy(:)
 
+  integer, allocatable :: pellet_state(:) ! 0: never been in plasma, 1: in plasma, 2: left plasma
+
   integer :: ipellet_abl
   real, allocatable :: r_p(:)
   real, allocatable :: cloud_pel(:)
@@ -92,6 +94,7 @@ contains
 
     allocate(pellet_vx(npellets))
     allocate(pellet_vy(npellets))
+    allocate(pellet_state(npellets))
     allocate(pellet_rate_D2(npellets))
     allocate(nsource_pel(npellets))
     allocate(temp_pel(npellets))
@@ -102,6 +105,7 @@ contains
     temp_pel = 0.
     Lor_vol = 0.
     rpdot = 0.
+    pellet_state = 0
     
     ! if we're ablating, pellet_var set by pellet & cloud size
     if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
@@ -124,6 +128,11 @@ contains
     integer, intent(in) :: inorm
 
     real :: x, y, px, py
+
+    if(pellet_state(ip).ne.1) then
+       pellet_distribution = 0.
+       return
+    end if
 
     select case(abs(ipellet))
 
@@ -213,10 +222,52 @@ contains
 
   end function pellet_distribution
 
+  ! Keep track if a pellet has left the plasma domain and should no longer
+  ! deposit material
+  subroutine pellet_domain
+
+    use basic
+
+    implicit none
+
+    include 'mpif.h'
+
+    integer :: j
+    integer :: itri, izone, ier
+    real :: xr, zr
+
+    do j=1, npellets
+       itri = 0
+       ier = 0
+       izone = 0
+       call whattri(pellet_r(j), pellet_phi(j), pellet_z(j), itri, xr, zr)
+       if(itri.gt.0) then
+          call get_zone(itri, izone)
+       else
+          izone = 0
+       end if
+
+       call mpi_allreduce(izone,izone,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ier)
+
+       if((izone.eq.1).and.(pellet_state(j).eq.0)) then
+          ! pellet has entered plasma domain for the first time
+          pellet_state(j) = 1
+       else if((izone.ne.1).and.(pellet_state(j).eq.1)) then
+          ! pellet has left the plasma domain; turn off
+          pellet_state(j) = 2
+          pellet_vx(j) = 0.
+          pellet_vy(j) = 0.
+          pellet_velz(j) = 0.
+       end if
+    end do
+
+  end subroutine pellet_domain
+
   subroutine pellet_advance
     use basic
 !    use diagnostics
     implicit none
+
     real, allocatable :: x(:), y(:)
 
     if(ipellet.eq.0) return
@@ -235,6 +286,8 @@ contains
        pellet_r   = sqrt(x**2 + y**2)
        pellet_phi = atan2(y,x)
     end where
+
+    call pellet_domain
 
     ! Pellet cloud radius which contains the same number of particles as the realistic pellet
     if(ipellet_abl.gt.0) then
@@ -271,12 +324,14 @@ contains
        pellet_rate_D2(ip) = 0. ! no mixture by default
 
        temin_eV = temin_abl*p0_norm/(1.6022e-12*n0_norm)
-       if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV) then
+       if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV .or. pellet_state(ip).ne.1) then
           if((r_p(ip)*l0_norm).lt.1e-8) then
              if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
              r_p(ip) = 0.
-          else
+          else if(temp_pel(ip).lt.temin_eV) then
              if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation"
+          else
+             if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet not in plasmas domain"
           end if
           pellet_rate(ip) = 0.
           pellet_rate_D2(ip) = 0.
