@@ -47,10 +47,6 @@ bool m3dc1_double_isequal(double A, double B);
 int m3dc1_scorec_init();
 int m3dc1_scorec_finalize();
 
-void m3dc1_comm_get(MPI_Comm* currentComm);
-void m3dc1_comm_split(int* num_out_comm, MPI_Comm* newComm);
-void m3dc1_comm_merge();
-
 /** plane functions */
 int m3dc1_plane_setnum(int*);
 int m3dc1_plane_getnum(int*);

@@ -77,30 +77,6 @@ int m3dc1_scorec_finalize()
   return M3DC1_SUCCESS; 
 }
 
-void m3dc1_comm_get(MPI_Comm* currentComm)
-{
-  *currentComm = PCU_Get_Comm();
-}
-
-void m3dc1_comm_split(int* num_out_comm, MPI_Comm* newComm)
-{
-  if (*num_out_comm==1) return;
-//  newComm = pumi_comm_split(*num_out_comm);
-  int self = PCU_Comm_Self();
-  int group_id = self % *num_out_comm;
-  int in_group_rank = self / *num_out_comm;
-  MPI_Comm_split(PCU_Get_Comm(), group_id, in_group_rank, newComm);
-  PCU_Switch_Comm(*newComm);
-}
-
-void m3dc1_comm_merge()
-{
-  //pumi_comm_merge(MPI_COMM_WORLD);
-  MPI_Comm prevComm = PCU_Get_Comm();
-  PCU_Switch_Comm(MPI_COMM_WORLD);
-  MPI_Comm_free(&prevComm);
-}
-
 /** plane functions */
 
 //*******************************************************
@@ -1287,11 +1263,9 @@ int m3dc1_field_sync (FieldID* /* in */ field_id)
 #endif
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
     return M3DC1_FAILURE;
-  MPI_Comm prevComm = PCU_Get_Comm();
-  PCU_Switch_Comm(MPI_COMM_WORLD);
 
   synchronize_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
-  PCU_Switch_Comm(prevComm);
+
 #ifdef DEBUG
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
@@ -1370,12 +1344,9 @@ int m3dc1_field_sum (FieldID* /* in */ field_id)
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
     return M3DC1_FAILURE;
 
-  MPI_Comm prevComm = PCU_Get_Comm();
-  PCU_Switch_Comm(MPI_COMM_WORLD);
-
   accumulate_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
   synchronize_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
-  PCU_Switch_Comm(MPI_COMM_WORLD);
+
 #ifdef DEBUG
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
