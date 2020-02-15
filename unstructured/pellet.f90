@@ -233,21 +233,22 @@ contains
     include 'mpif.h'
 
     integer :: j
-    integer :: itri, izone, ier
+    integer :: itri, iz, izone, ier
     real :: xr, zr
 
     do j=1, npellets
        itri = 0
        ier = 0
+       iz = 0
        izone = 0
        call whattri(pellet_r(j), pellet_phi(j), pellet_z(j), itri, xr, zr)
        if(itri.gt.0) then
-          call get_zone(itri, izone)
+          call get_zone(itri, iz)
        else
-          izone = 0
+          iz= 0
        end if
 
-       call mpi_allreduce(izone,izone,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ier)
+       call mpi_allreduce(iz,izone,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ier)
 
        if((izone.eq.1).and.(pellet_state(j).eq.0)) then
           ! pellet has entered plasma domain for the first time
