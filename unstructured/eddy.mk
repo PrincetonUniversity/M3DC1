@@ -61,7 +61,7 @@ else
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
 endif
 
-ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/$(PETSCVER)/lib -lzoltan
 
 SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
              -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
