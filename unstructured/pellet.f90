@@ -248,7 +248,7 @@ contains
           iz= 0
        end if
 
-       call mpi_allreduce(iz,izone,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ier)
+       call mpi_allreduce(iz,izone,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
 
        if((izone.eq.1).and.(pellet_state(j).eq.0)) then
           ! pellet has entered plasma domain for the first time
