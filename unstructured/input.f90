@@ -950,6 +950,7 @@ subroutine set_defaults
   call add_var_int("ibh_harmonics", ibh_harmonics, 0, &
        "Number of Fourier harmonics of magnetic perturbation to be calculated and output", output_grp)
   call add_var_int("irestart", irestart, 0, "", output_grp)
+  call add_var_int("irestart_factor", irestart_factor, 1, "", output_grp)
   call add_var_int("iread_adios", iread_adios, 0, &
        "1: Use ADIOS to read restart files", output_grp)
   call add_var_int("iread_hdf5", iread_hdf5, 1, &

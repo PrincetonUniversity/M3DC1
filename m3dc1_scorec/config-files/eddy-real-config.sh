@@ -1,20 +1,21 @@
-MPIVER=intel18.0-openmpi3.3.0
+MPIVER=intel18.0-mpi2018.3.64
 CMAKETYPE=Release
 PETSC_VER=petsc-3.12.0
 PETSCVER=petsc3.12.0
 PETSC_DIR=/home/jinchen/LIB/$PETSC_VER
-PETSC_ARCH=eddy-intelmpi-2019
+PETSC_ARCH=real-eddy-intelmpi-2019
 SCOREC_DIR=/home/jinchen/LIB/scorec/$MPIVER/$PETSCVER
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=$SCOREC_DIR
 PREFIX=$SCOREC_DIR
-#module load intel/18.0/64/18.0.3.222 openmpi/intel-18.0/3.0.0/64
+#module load intel/18.0/64/18.0.3.222 intel-mpi/intel/2018.3/64 
 #add -DPETSCMASTER for petsc 3.8.3 or higher
+
 cmake3 .. \
   -DCMAKE_C_COMPILER=mpicc \
-  -DCMAKE_CXX_COMPILER=mpic++ \
+  -DCMAKE_CXX_COMPILER=mpicxx \
   -DCMAKE_Fortran_COMPILER=mpif90 \
-  -DCMAKE_C_FLAGS=" -g -O0  -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS=" -g -O0 -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_CXX_FLAGS=" -g -O0 -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DSCOREC_INCLUDE_DIR="$SCOREC_DIR/include" \

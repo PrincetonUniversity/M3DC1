@@ -499,6 +499,31 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8M!X'
        d = dimensions(_EXTRA=extra)
 
+
+   ;===========================================
+   ; electron density
+   ;===========================================
+  endif else if(strcmp('electron density', name, /fold_case) eq 1) or $
+    (strcmp('ne', name, /fold_case) eq 1) then begin
+
+     print, 'WARNING: calculating ne using ne = z_ion * ni'
+
+     ni = read_field('den', x, y, t, slices=time, mesh=mesh, $
+                      filename=filename, points=pts, $
+                      rrange=xrange, zrange=yrange, linear=linear, $
+                   complex=complex, op=op)
+
+     if(version ge 23) then  begin
+        z_ion = read_parameter('z_ion', filename=filename)
+     endif else begin
+        z_ion = read_parameter('zeff', filename=filename)
+     end
+     data = ni*z_ion
+
+      symbol = '!8n!De!N!X'
+      d = dimensions(/n0, _EXTRA=extra)
+
+
    ;===========================================
    ; electron temperature
    ;===========================================

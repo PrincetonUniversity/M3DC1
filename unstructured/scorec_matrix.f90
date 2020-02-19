@@ -408,6 +408,7 @@ contains
 #else
        !2013-jan-17 only for hopper
     call m3dc1_matrix_getiternum(mat%imatrix,num_iter)
+!    if(mat%imatrix==5) call m3dc1_matrix_getinfo(mat%imatrix,v%id)
 #endif
    if(mat%imatrix== 5) kspits(1)=num_iter
    if(mat%imatrix== 1) kspits(2)=num_iter
@@ -598,5 +599,60 @@ contains
     implicit none
   if(.not.allocated(kspits)) allocate(kspits(1:maxnumofsolves))
   end subroutine scorec_allocate_kspits
+
+
+#ifdef TODO
+  !====================================================================
+  ! m3dc1_matrix_getinfo
+  ! ~~~~~~~~
+  ! get matrix info
+  !====================================================================
+  subroutine m3dc1_matrix_getinfo(imatrix,ivec)
+    use vector_mod
+    use petsc
+    implicit none
+
+    integer :: ierr, myrank
+    integer :: imatrix,ivec
+    integer :: num_local_dof, num_global_dof
+    integer :: num_local_dof_f, num_own_dof_f, num_global_dof_f, num_ghost_dof_f
+    integer :: num_local_ent, num_own_ent, num_global_ent, num_ghost_ent
+    integer :: num_local_elements, num_own_elements, num_global_elements, num_ghost_elements, tot_elms
+
+    call m3dc1_matrix_getlocalnumdof(imatrix,num_local_dof)
+    call m3dc1_matrix_getglobalnumdof(imatrix,num_global_dof)
+
+    call m3dc1_field_getnumlocaldof(ivec, num_local_dof_f)
+    call m3dc1_field_getnumowndof(ivec, num_own_dof_f)
+    call m3dc1_field_getnumglobaldof(ivec, num_global_dof_f)
+    call m3dc1_field_getnumghostdof(ivec, num_ghost_dof_f)
+
+    call m3dc1_mesh_getnument(0, num_local_ent)
+    call m3dc1_mesh_getnumownent(0, num_own_ent)
+    call m3dc1_mesh_getnumglobalent(0, num_global_ent)
+    call m3dc1_mesh_getnumghostent(0, num_ghost_ent)
+
+    call m3dc1_mesh_getnument(3, num_local_elements)
+    call m3dc1_mesh_getnumglobalent(3, num_global_elements)
+
+    call mpi_allreduce(num_local_elements, tot_elms, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)  
+
+    call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
+    if(myrank==0) then
+       write(*,'(a,I8)') "CJ num_local_dof_mat5=", num_local_dof
+       write(*,'(a,I8)') "CJ num_global_dof_mat5=", num_global_dof
+
+       write(*,'(a,I8)') "CJ num_local_dof_f=", num_local_dof_f
+       write(*,'(a,I8)') "CJ num_own_dof_f=", num_own_dof_f       !=num_local_dof
+       write(*,'(a,I8)') "CJ num_global_dof_f=", num_global_dof_f !=num_global_dof
+
+       write(*,'(a,I8)') "CJ num_local_ent=", num_local_ent
+       write(*,'(a,I8)') "CJ num_global_ent=", num_global_ent
+
+       write(*,'(a,I8)') "CJ num_local_elements=", num_local_elements
+       write(*,'(a,I8,2x,I8)') "CJ num_global_elements=", num_global_elements, tot_elms
+    endif
+  end subroutine m3dc1_matrix_getinfo
+#endif
 
 end module scorec_matrix_mod

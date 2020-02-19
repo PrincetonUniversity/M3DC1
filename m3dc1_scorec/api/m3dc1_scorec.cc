@@ -1126,7 +1126,7 @@ void write_node(apf::Mesh2* m, const char* filename, int start_index)
   {
     apf::Vector3 xyz;
     m->getPoint(e, 0, xyz);
-    fprintf(np, "%d\t%lf\t%lf\t%lf\n", get_ent_globalid(m,e)+start_index, xyz[0],xyz[1],xyz[2]);
+    fprintf(np, "global ID: %d\t%lf\t%lf\t%lf\n", get_ent_globalid(m,e)+start_index, xyz[0],xyz[1],xyz[2]);
   } // while
   m->end(it);
   fclose(np);
@@ -1263,7 +1263,9 @@ int m3dc1_field_sync (FieldID* /* in */ field_id)
 #endif
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
     return M3DC1_FAILURE;
+
   synchronize_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
+
 #ifdef DEBUG
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
@@ -1341,8 +1343,10 @@ int m3dc1_field_sum (FieldID* /* in */ field_id)
 #endif
   if (!m3dc1_mesh::instance()->field_container || !m3dc1_mesh::instance()->field_container->count(*field_id))
     return M3DC1_FAILURE;
+
   accumulate_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
   synchronize_field((*m3dc1_mesh::instance()->field_container)[*field_id]->get_field());
+
 #ifdef DEBUG
   m3dc1_field_isnan(field_id, &isnan);
   assert(isnan==0);
@@ -1699,6 +1703,7 @@ int m3dc1_field_insert(FieldID* /* in */ field_id, int /* in */ * local_dof,
   if (!value_type) assert(!(*type)); // can not insert complex value to real vector
   for (int i=0; i<*size*(1+(*type)); i++)
   {
+    // FIXME: crash on SCOREC linux clusters with 3d/3p
     assert(values[i]==values[i]);
   }
 #endif
@@ -1767,7 +1772,7 @@ void write_vector(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int star
   apf::Field* f = mf->get_field();
   int num_dof=countComponents(f);
   double* dof_data = new double[num_dof];
-  fprintf(fp, "%s %d %d %d\n", getName(f), mf->get_num_value(), mf->get_dof_per_value(), mf->get_value_type());
+  fprintf(fp, "name %s, #value %d, #dof/value %d, scalar type %d\n", getName(f), mf->get_num_value(), mf->get_dof_per_value(), mf->get_value_type());
   apf::MeshIterator* it = m->begin(0);
   while ((e = m->iterate(it)))
   {
@@ -1778,11 +1783,11 @@ void write_vector(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int star
       if (!m3dc1_double_isequal(dof_data[i], 0.0))
         ++ndof;
     }
-    fprintf(fp, "%d %d %d\n", get_ent_globalid(m,e)+start_index, getMdsIndex(m, e), ndof);
+    fprintf(fp, "\nglobal ID %d, local ID %d, #dof %d\n", get_ent_globalid(m,e)+start_index, getMdsIndex(m, e), ndof);
     for (int i=0; i<num_dof; ++i)
     {
       if (!m3dc1_double_isequal(dof_data[i], 0.0))
-        fprintf(fp, "%d %lf\n", i, dof_data[i]);
+        fprintf(fp, "dof %d: %lf\n", i, dof_data[i]);
     }
   } // while
   m->end(it);
