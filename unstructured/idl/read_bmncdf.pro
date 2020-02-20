@@ -110,8 +110,8 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
                    /(complex(0.,1.)*m[i]*mu0)
      end     
 
-     print, 'max(bmn, jmn, bpol, rpath, rho, flux_pol) = ', max(abs(bmn)), max(abs(jmn)), $
-            max(abs(bpol)), max(abs(rpath)), max(abs(rho)), max(abs(flux_pol))
+;     print, 'max(bmn, jmn, bpol, rpath, rho, flux_pol) = ', max(abs(bmn)), max(abs(jmn)), $
+;            max(abs(bpol)), max(abs(rpath)), max(abs(rho)), max(abs(flux_pol))
 
 ;     for j=0, n_elements(psi)-1 do begin
         ;; jmn[*,j] = gpsipsi * jmn[*,j]  * drhodpsi[j] $
@@ -121,7 +121,7 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
 ;        jmn[*,j] = gpsipsi * drhodpsi[j]
 
 ;     end
-     print, 'max(jmn)', max(abs(jmn))
+;     print, 'max(jmn)', max(abs(jmn))
 
      ; normalize rho
      rho = rho / sqrt(rho[n_elements(rho)-1])
