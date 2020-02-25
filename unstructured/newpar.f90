@@ -190,7 +190,9 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Generating newvar matrices'
   call create_newvar_matrices
 
+#ifdef USEST
   call calc_geometry
+#endif
   call calc_wall_dist
 
 
@@ -519,6 +521,7 @@ subroutine safestop(iarg)
   use auxiliary_fields
   use runaway_mod
   use wall
+  use geometry 
   use kprad_m3dc1
   use particles
   use resistive_wall
@@ -537,6 +540,10 @@ subroutine safestop(iarg)
   integer, intent(in) :: iarg
   integer :: ier
   character*10 :: datec, timec
+
+#ifdef USEST
+  call destroy_geometry
+#endif
 
 #ifdef USEPARTICLES
   if (kinetic.eq.1) then

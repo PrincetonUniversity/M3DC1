@@ -47,6 +47,15 @@ else
   endif
 endif
 
+# determine whether to use stellarator extension
+ifeq ($(ST), 1)
+  OPTS := $(OPTS) -DUSEST 
+  BIN_POSTFIX := $(BIN_POSTFIX)-st
+  USEST = 1
+else 
+  USEST = 0 
+endif
+
 ifeq ($(REORDERED), 1)
   OPTS := $(OPTS) -DREORDERED
 endif

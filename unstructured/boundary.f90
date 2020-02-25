@@ -121,6 +121,9 @@ end subroutine get_boundary_mask
 
 subroutine apply_boundary_mask(itri, ibound, vals, imaskin, tags)
   use element
+  use basic 
+  implicit none
+
   integer, intent(in) :: itri, ibound
   vectype, intent(inout), dimension(dofs_per_element,dofs_per_element) :: vals
   integer, dimension(dofs_per_element), optional :: imaskin

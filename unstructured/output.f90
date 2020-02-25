@@ -993,6 +993,11 @@ subroutine output_fields(time_group_id, equilibrium, error)
   endif
 #endif
 
+#ifdef USEST
+  call write_field(group_id, "rst", rst, nelms, error, .true.)
+  call write_field(group_id, "zst", zst, nelms, error, .true.)
+#endif
+
   if(use_external_fields) then 
      call write_field(group_id, "psi_ext", psi_ext, nelms, error)
      call write_field(group_id, "I_ext", bz_ext, nelms, error)    
