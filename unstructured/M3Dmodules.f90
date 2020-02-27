@@ -515,7 +515,7 @@ module arrays
   type(field_type) :: nre_field  ! runaway electron density
   type(field_type) :: wall_dist
 #ifdef USEST
-  type(field_type) :: rst, zst ! Stellarator geometry
+  type(field_type) :: rst, zst ! Stellarator geometry field
 #endif
 #ifdef USEPARTICLES
    type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
@@ -684,7 +684,8 @@ module sparse
   integer, parameter :: wall_mat_index = 64
   integer, parameter :: kprad_lhs_index = 65
   integer, parameter :: kprad_rhs_index = 66
-  integer, parameter :: num_matrices = 66
+  integer, parameter :: st_mat_index = 67
+  integer, parameter :: num_matrices = 67
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

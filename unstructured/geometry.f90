@@ -13,16 +13,15 @@ contains
     use sparse
     use mesh_mod
     use m3dc1_nint
+    use nintegrate
     use matrix_mod
-    use newvar_mod
     use field
     use boundary_conditions
 
     implicit none
-    type(matrix_type) :: lp_matrix
+    type(matrix_type) :: st_matrix 
     integer :: itri, numelms, ibound, ier
-    real, dimension(dofs_per_element) :: dofs
-    real, dimension(MAX_PTS) :: rst_79, zst_79 
+    vectype, dimension(dofs_per_element) :: dofs
     vectype, dimension(dofs_per_element, dofs_per_element) :: mat_dofs
 
     ! Define coordinate mappings to be solved for 
@@ -33,32 +32,33 @@ contains
 
     numelms = local_elements()
 
+    ! Create a matrix for solving geometry 
+    call set_matrix_index(st_matrix, st_mat_index)
+    call create_mat(st_matrix, 1, 1, icomplex, 1)
+
     select case(igeometry)
 
     case(1) ! prescribed geometry
+
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
        call define_fields(itri,0,1,0)
 
-       call prescribe_geometry(rst_79, zst_79, x_79, phi_79, z_79)
+       call prescribe_geometry(rst79(:,OP_1), zst79(:,OP_1), x_79, phi_79, z_79)
 
-       dofs = intx2(mu79(:,:,OP_1),rst_79)
+       dofs = intx2(must79(:,:,OP_1),rst79(:,OP_1))
        call vector_insert_block(rst%vec, itri, 1, dofs, VEC_ADD)
 
-       dofs = intx2(mu79(:,:,OP_1),zst_79)
+       dofs = intx2(must79(:,:,OP_1),zst79(:,OP_1))
        call vector_insert_block(zst%vec, itri, 1, dofs, VEC_ADD)
+
+       mat_dofs = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+       call insert_block(st_matrix, itri, 1, 1, mat_dofs, MAT_ADD)
 
     enddo
 
-    call newvar_solve(rst%vec, mass_mat_lhs)
-    call newvar_solve(zst%vec, mass_mat_lhs)
-
     case(2) ! solve geometry from Laplace's equation
-
-    ! Create a matrix for solving Laplace Eq. 
-    call set_matrix_index(lp_matrix, lp_mat_index)
-    call create_mat(lp_matrix, 1, 1, icomplex, 1)
 
     ibound = BOUNDARY_DIRICHLET
 
@@ -67,43 +67,46 @@ contains
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
        call define_fields(itri,0,1,0)
 
-       mat_dofs = -intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),ri_79) 
-                 !+intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DPP),ri3_79)
+       mat_dofs = -intxx3(must79(:,:,OP_1),nust79(:,:,OP_LP),ri_79) 
+                 !+intxx3(must79(:,:,OP_1),nust79(:,:,OP_DPP),ri3_79)
        
        call apply_boundary_mask(itri, ibound, mat_dofs, tags=inner_wall)
 
-       call insert_block(lp_matrix, itri, 1, 1, mat_dofs, MAT_ADD)
+       call insert_block(st_matrix, itri, 1, 1, mat_dofs, MAT_ADD)
     enddo
 
-    call boundary_geometry(rst%vec, zst%vec, lp_matrix)
-    call finalize(lp_matrix)
-   
-    call newsolve(lp_matrix,rst%vec,ier)
-    call newsolve(lp_matrix,zst%vec,ier)
-
-    call destroy_mat(lp_matrix)
+    call boundary_geometry(rst%vec, zst%vec, st_matrix)
 
     case default ! identity geometry
+
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
        call define_fields(itri,0,1,0)
 
-       rst_79 = x_79
-       zst_79 = z_79
+       rst79(:,OP_1) = x_79
+       zst79(:,OP_1) = z_79
 
-       dofs = intx2(mu79(:,:,OP_1),rst_79)
+       dofs = intx2(must79(:,:,OP_1),rst79(:,OP_1))
        call vector_insert_block(rst%vec, itri, 1, dofs, VEC_ADD)
 
-       dofs = intx2(mu79(:,:,OP_1),zst_79)
+       dofs = intx2(must79(:,:,OP_1),zst79(:,OP_1))
        call vector_insert_block(zst%vec, itri, 1, dofs, VEC_ADD)
 
+       mat_dofs = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+       call insert_block(st_matrix, itri, 1, 1, mat_dofs, MAT_ADD)
+
     enddo
-
-    call newvar_solve(rst%vec, mass_mat_lhs)
-    call newvar_solve(zst%vec, mass_mat_lhs)
-
     end select
+
+    call finalize(st_matrix)
+
+    call sum_shared(rst%vec)
+    call sum_shared(zst%vec)
+    call newsolve(st_matrix,rst%vec,ier)
+    call newsolve(st_matrix,zst%vec,ier)
+
+    call destroy_mat(st_matrix)
 
   end subroutine calc_geometry
 
@@ -164,7 +167,7 @@ contains
     implicit none
 
     real, intent(in) :: x, phi, z
-    real, intent(out) :: rout, zout 
+    vectype, intent(out) :: rout, zout 
     real :: theta
 
     theta = -atan2(z - zzero, x - xzero)
@@ -183,7 +186,7 @@ contains
     implicit none
 
     real, intent(in), dimension(MAX_PTS) :: x, phi, z
-    real, intent(out), dimension(MAX_PTS) :: rout, zout 
+    vectype, intent(out), dimension(MAX_PTS) :: rout, zout 
     real, dimension(MAX_PTS) :: r, theta
 
     r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)

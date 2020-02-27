@@ -185,14 +185,15 @@ Program Reducedquintic
   endif
   call initialize_output (comm)
 
+#ifdef USEST 
+  call calc_geometry
+#endif
+
   ! create the newvar matrices
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Generating newvar matrices'
   call create_newvar_matrices
 
-#ifdef USEST
-  call calc_geometry
-#endif
   call calc_wall_dist
 
 
