@@ -371,10 +371,6 @@ contains
     integer :: i
     vectype, dimension(MAX_PTS) :: di_79, di2_79, di3_79
     
-    ! copy logical basis functions
-    must79 = mu79
-    nust79 = mu79
-
     ! calculate logical derivatives of geometry
     call eval_ops(itri, rst, rst79)
     call eval_ops(itri, zst, zst79)
@@ -503,7 +499,7 @@ contains
   !=====================================================
   ! define_fields
   !=====================================================
-  subroutine define_fields(itri, fieldi, gdef, ilin, ieqs)
+  subroutine define_fields(itri, fieldi, gdef, ilin, ieqs, iphy)
     use basic
     use mesh_mod
     use arrays
@@ -514,6 +510,7 @@ contains
   
     integer, intent(in) :: itri, fieldi, gdef, ilin
     integer, intent(in), optional :: ieqs
+    logical, intent(in), optional :: iphy
 
     real :: fac
     real :: p_floor
@@ -568,10 +565,16 @@ contains
     call define_basis(itri)
 
 #ifdef USEST 
-!    call calc_geometry
-!    call define_physical_basis(itri)
-    nust79 = mu79
+    ! copy logical basis functions
     must79 = mu79
+    nust79 = mu79
+    if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, iphy 
+    if(iphy) then
+        call define_physical_basis(itri)
+        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "physical basis"
+    else
+        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "logical basis"
+    end if
 #endif
 
     ! some field calculations require other field calculation first

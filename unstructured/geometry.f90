@@ -43,7 +43,7 @@ contains
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-       call define_fields(itri,0,1,0)
+       call define_fields(itri,0,1,0,iphy=.false.)
 
        call prescribe_geometry(rst79(:,OP_1), zst79(:,OP_1), x_79, phi_79, z_79)
 
@@ -65,7 +65,7 @@ contains
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-       call define_fields(itri,0,1,0)
+       call define_fields(itri,0,1,0,iphy=.false.)
 
        mat_dofs = -intxx3(must79(:,:,OP_1),nust79(:,:,OP_LP),ri_79) 
                  !+intxx3(must79(:,:,OP_1),nust79(:,:,OP_DPP),ri3_79)
@@ -82,7 +82,7 @@ contains
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-       call define_fields(itri,0,1,0)
+       call define_fields(itri,0,1,0,iphy=.false.)
 
        rst79(:,OP_1) = x_79
        zst79(:,OP_1) = z_79
