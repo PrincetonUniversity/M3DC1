@@ -196,6 +196,7 @@ MeshEntity* get_ent_owncopy(Mesh2* mesh, MeshEntity* e)
     return ghosts[own_partid];
   }
   assert(0); // this should not called
+  return NULL;
 }
 
 // *********************************************************
@@ -1418,9 +1419,8 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
 {
   // get the field info and save it for later creation
   char f_name[100];
-  int num_values, scalar_type, old_ndof_per_value, old_numdof;   
+  int num_values, scalar_type, old_numdof;   
   m3dc1_field_getinfo (&field_id, f_name, &num_values, &scalar_type, &old_numdof);
-  old_ndof_per_value = old_numdof/num_values;
 
   // copy the existing dof data
   apf::Field* f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
