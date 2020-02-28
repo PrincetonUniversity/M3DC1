@@ -362,7 +362,7 @@ contains
   end subroutine define_basis
 
 #ifdef USEST !calculate physical basis functions from logical basis functions
-  subroutine define_physical_basis(itri)
+  subroutine define_physical_basis(itri,ri)
     use basic
     use arrays
     implicit none
@@ -370,6 +370,7 @@ contains
     integer, intent(in) :: itri
     integer :: i
     vectype, dimension(MAX_PTS) :: di_79, di2_79, di3_79
+    vectype, dimension(MAX_PTS), intent(in) :: ri
     
     ! calculate logical derivatives of geometry
     call eval_ops(itri, rst, rst79)
@@ -428,6 +429,12 @@ contains
                        + temp79d*rst79(:,OP_DZ)*di3_79)*must79(i,:,OP_DR)&
                        - ((zst79(:,OP_DR)*rst79(:,OP_DRZ) - zst79(:,OP_DZ)*rst79(:,OP_DRR))*di2_79&
                        - temp79d*rst79(:,OP_DR)*di3_79)*must79(i,:,OP_DZ)
+      mu79(i,:,OP_LP) = mu79(i,:,OP_DRR) + mu79(i,:,OP_DZZ) 
+      mu79(i,:,OP_GS) = mu79(i,:,OP_LP) 
+      if(itor.eq.1) then !toroidal corrections
+        mu79(i,:,OP_LP) = mu79(i,:,OP_LP) + mu79(i,:,OP_DRZ)*ri(:) 
+        mu79(i,:,OP_GS) = mu79(i,:,OP_GS) - mu79(i,:,OP_DRZ)*ri(:) 
+      end if
     end do
     nu79 = mu79
   end subroutine define_physical_basis
@@ -499,7 +506,7 @@ contains
   !=====================================================
   ! define_fields
   !=====================================================
-  subroutine define_fields(itri, fieldi, gdef, ilin, ieqs, iphy)
+  subroutine define_fields(itri, fieldi, gdef, ilin, ieqs, ilog)
     use basic
     use mesh_mod
     use arrays
@@ -509,8 +516,8 @@ contains
     implicit none
   
     integer, intent(in) :: itri, fieldi, gdef, ilin
-    integer, intent(in), optional :: ieqs
-    logical, intent(in), optional :: iphy
+    ! use logical basis only when ilog is present
+    integer, intent(in), optional :: ieqs, ilog 
 
     real :: fac
     real :: p_floor
@@ -568,12 +575,8 @@ contains
     ! copy logical basis functions
     must79 = mu79
     nust79 = mu79
-    if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, iphy 
-    if(iphy) then
-        call define_physical_basis(itri)
-        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "physical basis"
-    else
-        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "logical basis"
+    if(.not.present(ilog)) then 
+        !call define_physical_basis(itri,ri_79)
     end if
 #endif
 

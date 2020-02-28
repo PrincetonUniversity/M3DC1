@@ -43,7 +43,7 @@ contains
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-       call define_fields(itri,0,1,0,iphy=.false.)
+       call define_fields(itri,0,1,0,ilog=1)
 
        call prescribe_geometry(rst79(:,OP_1), zst79(:,OP_1), x_79, phi_79, z_79)
 
@@ -65,7 +65,7 @@ contains
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-       call define_fields(itri,0,1,0,iphy=.false.)
+       call define_fields(itri,0,1,0,ilog=1)
 
        mat_dofs = -intxx3(must79(:,:,OP_1),nust79(:,:,OP_LP),ri_79) 
                  !+intxx3(must79(:,:,OP_1),nust79(:,:,OP_DPP),ri3_79)
@@ -82,7 +82,7 @@ contains
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-       call define_fields(itri,0,1,0,iphy=.false.)
+       call define_fields(itri,0,1,0,ilog=1)
 
        rst79(:,OP_1) = x_79
        zst79(:,OP_1) = z_79
@@ -151,9 +151,10 @@ contains
        ibegin = node_index(rst, i, 1)
        rtemp = 0.
        ztemp = 0.
-       call get_boundary_geometry(rtemp(1),ztemp(1),x,phi,z) 
+       call get_boundary_geometry(rtemp,ztemp,x,phi,z) 
        call set_dirichlet_bc(ibegin,rst,rtemp,normal,curv,izonedim,mat)
-       call set_dirichlet_bc(ibegin,zst,ztemp,normal,curv,izonedim)
+       ! do not pass mat on the second call 
+       call set_dirichlet_bc(ibegin,zst,ztemp,normal,curv,izonedim) 
     end do
   end subroutine boundary_geometry
 
@@ -167,12 +168,14 @@ contains
     implicit none
 
     real, intent(in) :: x, phi, z
-    vectype, intent(out) :: rout, zout 
+    vectype, intent(out), dimension(dofs_per_node) :: rout, zout 
     real :: theta
 
     theta = -atan2(z - zzero, x - xzero)
-    rout = 1.0 + 0.4*cos(theta) 
-    zout = 0.8*sin(theta)
+    rout(1) = x 
+    rout(2) = 1. 
+    zout(1) = z 
+    zout(3) = 1.
 
   end subroutine get_boundary_geometry
 
