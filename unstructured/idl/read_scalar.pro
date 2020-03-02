@@ -61,6 +61,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8I!D!9P!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
    endif else $
+     if(strcmp("halo current", scalarname, /fold_case) eq 1) or $
+       (strcmp("ih", scalarname, /fold_case) eq 1) then begin
+       data = s.toroidal_current._data - $
+              s.toroidal_current_p._data
+       title = 'Toroidal Halo Current'
+       symbol = '!8I!D!9P!N!X'
+       d = dimensions(/j0, l0=2, _EXTRA=extra)
+   endif else $
      if(strcmp("volume", scalarname, /fold_case) eq 1) then begin
        data = s.volume_p._data
        title = 'Plasma Volume'

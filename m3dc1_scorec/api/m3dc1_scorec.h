@@ -17,6 +17,7 @@
 #define C1TRIDOFNODE 6
 
 #include "name_convert.h"
+#include "mpi.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -32,6 +32,7 @@ contains
   ! ===============
   subroutine hdf5_initialize(restart, error)
     use hdf5
+    use basic
 
     implicit none
 
@@ -41,7 +42,7 @@ contains
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
-    integer :: info
+    integer :: info, comm
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -89,6 +90,7 @@ contains
     call h5pclose_f(plist_id, error)
 
     initialized = .true.
+
   end subroutine hdf5_initialize
 
 
@@ -96,7 +98,7 @@ contains
   ! =============
   subroutine hdf5_finalize(error)
     use hdf5
-    
+
     implicit none
     
     integer, intent(out) :: error
@@ -111,11 +113,12 @@ contains
 
     call h5close_f(error)
     if(error .lt. 0) print *, "Error closing hdf5 library"
-    
+    initialized = .false.
   end subroutine hdf5_finalize
 
   subroutine hdf5_get_local_elms(nelms, error)
     use mesh_mod
+    use basic
 
     implicit none
 
@@ -123,13 +126,21 @@ contains
 
     integer, intent(out) :: nelms
     integer, intent(out) :: error
+    integer::color, comm;
 
     nelms = local_elements()
 
   ! Calculate offset of current process
-    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+    comm = MPI_COMM_WORLD
+    if (irestart_factor.gt.1) then
+      color = mod(myrank, irestart_factor)
+      call MPI_Comm_split(MPI_COMM_WORLD, color, 1, comm, error)
+    endif
+    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, comm, error)
+
     offset = offset - nelms
-!  print *, "Offset of ", myrank, " = ", offset
+    ! print *, "[",myrank,"] hdf5_get_local_elms Offset ", offset
+
 !  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
 !  print *, 'myrank, local_elms, global_elms, offset', &
 !       myrank, nelms, global_elms, offset
