@@ -361,8 +361,9 @@ contains
 
   end subroutine define_basis
 
-#ifdef USEST !calculate physical basis functions from logical basis functions
-  subroutine define_physical_basis(itri,ri)
+#ifdef USEST 
+  ! calculate physical basis functions from logical basis functions
+  subroutine define_physical_basis(itri)
     use basic
     use arrays
     implicit none
@@ -370,7 +371,6 @@ contains
     integer, intent(in) :: itri
     integer :: i
     vectype, dimension(MAX_PTS) :: di_79, di2_79, di3_79
-    vectype, dimension(MAX_PTS), intent(in) :: ri
     
     ! calculate logical derivatives of geometry
     call eval_ops(itri, rst, rst79)
@@ -412,7 +412,7 @@ contains
       ! fZZ = (Ry/D)^2*fxx + (Rx/D)^2*fyy - 2(Rx*Ry/D^2)*fxy
       !     + [(Ry*Rxy - Rx*Ryy)/D^2 + F*Ry/D^3]*fx      
       !     + [(Rx*Rxy - Ry*Rxx)/D^2 - F*Rx/D^3]*fy      
-      mu79(i,:,OP_DRR) = di2_79*rst79(:,OP_DZ)**2*must79(i,:,OP_DRR)& 
+      mu79(i,:,OP_DZZ) = di2_79*rst79(:,OP_DZ)**2*must79(i,:,OP_DRR)& 
                        + di2_79*rst79(:,OP_DR)**2*must79(i,:,OP_DZZ)& 
                        - 2*di2_79*rst79(:,OP_DR)*rst79(:,OP_DZ)*must79(i,:,OP_DRZ)& 
                        + ((rst79(:,OP_DZ)*rst79(:,OP_DRZ) - rst79(:,OP_DR)*rst79(:,OP_DZZ))*di2_79&
@@ -422,7 +422,7 @@ contains
       ! fZZ = [(Rx*Zy + RyZx)/D^2]*fxy - (Ry*Zy/D^2)*fxx - (Rx*Zx/D^2)*fyy 
       !     - [(Zy*Rxy - Zx*Ryy)/D^2 + G*Ry/D^3]*fx      
       !     - [(Zx*Rxy - Zy*Rxx)/D^2 - G*Rx/D^3]*fy      
-      mu79(i,:,OP_DRR) = di2_79*(rst79(:,OP_DR)*zst79(:,OP_DZ) + zst79(:,OP_DR)*rst79(:,OP_DZ))*must79(i,:,OP_DRZ)& 
+      mu79(i,:,OP_DRZ) = di2_79*(rst79(:,OP_DR)*zst79(:,OP_DZ) + zst79(:,OP_DR)*rst79(:,OP_DZ))*must79(i,:,OP_DRZ)& 
                        - di2_79*rst79(:,OP_DR)*zst79(:,OP_DR)*must79(i,:,OP_DZZ)& 
                        - di2_79*rst79(:,OP_DZ)*zst79(:,OP_DZ)*must79(i,:,OP_DRR) & 
                        - ((zst79(:,OP_DZ)*rst79(:,OP_DRZ) - zst79(:,OP_DR)*rst79(:,OP_DZZ))*di2_79&
@@ -431,12 +431,14 @@ contains
                        - temp79d*rst79(:,OP_DR)*di3_79)*must79(i,:,OP_DZ)
       mu79(i,:,OP_LP) = mu79(i,:,OP_DRR) + mu79(i,:,OP_DZZ) 
       mu79(i,:,OP_GS) = mu79(i,:,OP_LP) 
-      if(itor.eq.1) then !toroidal corrections
-        mu79(i,:,OP_LP) = mu79(i,:,OP_LP) + mu79(i,:,OP_DRZ)*ri(:) 
-        mu79(i,:,OP_GS) = mu79(i,:,OP_GS) - mu79(i,:,OP_DRZ)*ri(:) 
+      if(itor.eq.1) then ! toroidal corrections
+        mu79(i,:,OP_LP) = mu79(i,:,OP_LP) + mu79(i,:,OP_DR)*ri_79(:) 
+        mu79(i,:,OP_GS) = mu79(i,:,OP_GS) - mu79(i,:,OP_DR)*ri_79(:) 
       end if
     end do
     nu79 = mu79
+    ! modify Jabobian
+    if(ijacobian.eq.1) weight_79 = weight_79/di_79 
   end subroutine define_physical_basis
 #endif
 
@@ -576,7 +578,10 @@ contains
     must79 = mu79
     nust79 = mu79
     if(.not.present(ilog)) then 
-        !call define_physical_basis(itri,ri_79)
+       call define_physical_basis(itri)
+    else
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, &
+       "Use logical basis..."
     end if
 #endif
 
