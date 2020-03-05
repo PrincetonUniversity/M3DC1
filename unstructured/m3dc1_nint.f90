@@ -376,21 +376,45 @@ contains
     call eval_ops(itri, rst, rst79)
     call eval_ops(itri, zst, zst79)
 
+    ! update physical element data
+    x_79 = rst79(:,OP_1)
+    z_79 = zst79(:,OP_1)
+    if(itor.eq.1) then 
+       r_79 = x_79 
+    else 
+       r_79 = 1.
+    endif
+    ri_79 = 1./r_79
+    ri2_79 = ri_79*ri_79
+    ri3_79 = ri2_79*ri_79
+    ri4_79 = ri2_79*ri2_79
+    ri5_79 = ri3_79*ri2_79
+    ri6_79 = ri3_79*ri3_79
+    ri7_79 = ri4_79*ri3_79
+    ri8_79 = ri4_79*ri4_79
+    r2_79 = r_79*r_79
+    r3_79 = r2_79*r_79
+
     ! calculate expressions needed
     ! inverse of D = Rx*Zy - Ry*Zx
     di_79 = 1./(rst79(:,OP_DR)*zst79(:,OP_DZ) - zst79(:,OP_DR)*rst79(:,OP_DZ))
     di2_79 = di_79*di_79
     di3_79 = di_79*di2_79
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, di_79(1) 
     ! Dx = Rx*Zxy + Rxx*Zy - Ry*Zxx - Rxy*Zx  
     temp79a = rst79(:,OP_DR)*zst79(:,OP_DRZ) + rst79(:,OP_DRR)*zst79(:,OP_DZ)&
             - rst79(:,OP_DZ)*zst79(:,OP_DRR) - rst79(:,OP_DRZ)*zst79(:,OP_DR)
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79a(1) 
     ! Dy = Rx*Zyy + Rxy*Zy - Ry*Zxy - Ryy*Zx 
     temp79b = rst79(:,OP_DR)*zst79(:,OP_DZZ) + rst79(:,OP_DRZ)*zst79(:,OP_DZ)&
             - rst79(:,OP_DZ)*zst79(:,OP_DRZ) - rst79(:,OP_DZZ)*zst79(:,OP_DR)
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79b(1) 
     ! F = Rx*Dy - Ry*Dx
     temp79c = rst79(:,OP_DR)*temp79b - rst79(:,OP_DZ)*temp79a
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79c(1) 
     ! G = Zx*Dy - Zy*Dx
     temp79d = zst79(:,OP_DR)*temp79b - zst79(:,OP_DZ)*temp79a
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79d(1) 
     
     do i=1, dofs_per_element
       ! fR = (Zy/D)*fx - (Zx/D)*fy
@@ -432,10 +456,12 @@ contains
       mu79(i,:,OP_LP) = mu79(i,:,OP_DRR) + mu79(i,:,OP_DZZ) 
       mu79(i,:,OP_GS) = mu79(i,:,OP_LP) 
       if(itor.eq.1) then ! toroidal corrections
-        mu79(i,:,OP_LP) = mu79(i,:,OP_LP) + mu79(i,:,OP_DR)*ri_79(:) 
-        mu79(i,:,OP_GS) = mu79(i,:,OP_GS) - mu79(i,:,OP_DR)*ri_79(:) 
+        mu79(i,:,OP_LP) = mu79(i,:,OP_LP) + mu79(i,:,OP_DR)*ri_79 
+        mu79(i,:,OP_GS) = mu79(i,:,OP_GS) - mu79(i,:,OP_DR)*ri_79 
       end if
     end do
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, mu79(1,1,:) 
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, must79(1,1,:) 
     nu79 = mu79
     ! modify Jabobian
     if(ijacobian.eq.1) weight_79 = weight_79/di_79 
@@ -568,8 +594,6 @@ contains
     r2_79 = r_79*r_79
     r3_79 = r2_79*r_79
     
-    if(ijacobian.eq.1) weight_79 = weight_79 * r_79
-
     call precalculate_terms(xi_79,zi_79,eta_79,d%co,d%sn,ri_79,npoints)
     call define_basis(itri)
 
@@ -584,6 +608,8 @@ contains
        "Use logical basis..."
     end if
 #endif
+
+    if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
     ! some field calculations require other field calculation first
     if(iand(fields, FIELD_N).eq.FIELD_N) then

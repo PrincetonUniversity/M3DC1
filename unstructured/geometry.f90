@@ -171,7 +171,7 @@ contains
     vectype, intent(out), dimension(dofs_per_node) :: rout, zout 
     real :: theta
 
-    theta = -atan2(z - zzero, x - xzero)
+    theta = atan2(z - zzero, x - xzero)
     rout(1) = x 
     rout(2) = 1. 
     zout(1) = z 
@@ -193,9 +193,9 @@ contains
     real, dimension(MAX_PTS) :: r, theta
 
     r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
-    theta = -atan2(z - zzero, x - xzero)
-    rout = 1.0 + 0.6*r*cos(theta) 
-    zout = 0.4*r*sin(theta) 
+    theta = atan2(z - zzero, x - xzero)
+    rout = xzero + 1.2*r*cos(theta+0.*sin(theta)) 
+    zout = zzero + 1.6*r*sin(theta) 
 
   end subroutine prescribe_geometry
   
