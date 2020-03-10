@@ -83,7 +83,7 @@ void compute_globalid(apf::Mesh2* m, int d)
   if (!tag)  // update existing tag
     tag = m->createIntTag("global_id",1);
 
-  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] global entity ID for dimension "<<d<<" generated\n";
+//  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] global entity ID for dimension "<<d<<" generated\n";
   int num_own_ent = m3dc1_mesh::instance()->num_own_ent[d];
 
   apf::MeshEntity* e;

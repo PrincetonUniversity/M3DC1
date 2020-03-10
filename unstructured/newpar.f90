@@ -41,7 +41,8 @@ Program Reducedquintic
   real :: tstart, tend, dtsave, period, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
-  integer :: ip, comm
+  integer :: ip
+  character(len=32) :: mesh_file_name
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -304,8 +305,15 @@ Program Reducedquintic
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
 #ifdef USESCOREC
-  if (iadapt .eq. 1) then
-   if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi call:  psibound, psimin", psibound, psimin
+  ! iadapt_writevtk=1, write the initial mesh before adaptation
+  if (iadapt.gt.0 .and. iadapt_writevtk .eq. 1) then
+    write(mesh_file_name,"(A7,A)") 'initial', 0
+    call m3dc1_mesh_write (mesh_file_name,0,0)
+  endif
+
+  !if (iadapt .eq. 1) then
+  if (mod (iadapt, 2) .eq. 1) then
+    if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
     call adapt_by_psi
   end if
 #endif
@@ -401,8 +409,15 @@ Program Reducedquintic
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
-     call run_adapt(adapt_flag)
-     if(adapt_flag .eq. 1 .and. iadapt .gt. 1) call adapt_by_error
+
+      if (iadapt .gt. 1) then
+      ! adapt_flag=1 if
+      !(1) iadapt_ntime(N)>0 -- run adapt_by_error at the end of every N time steps
+      !(2) non-linear & iadapt_ntime=0 -- run adapt_by_error at the end of every time step
+      !(3) linear, adapt_ke>0 & ekin>adapt_ke -- run adapt_by_error in this time step  
+        call diagnose_adapt(adapt_flag)
+       if(adapt_flag .eq. 1) call adapt_by_error
+     endif
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."

@@ -180,7 +180,7 @@ int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputve
 
 // for performance test
 int m3dc1_matrix_setassembleoption(int * op);
-int m3dc1_matrix_write(int* matrix_id, const char* file_name, int* start_index);
+int m3dc1_matrix_write(int*, const char*, int*, int*);
 int m3dc1_matrix_print(int* matrix_id);
 #endif // #ifdef M3DC1_PETSC
 

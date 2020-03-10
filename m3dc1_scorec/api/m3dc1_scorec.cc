@@ -2700,20 +2700,31 @@ int m3dc1_field_sum_plane (FieldID* /* in */ field_id)
 int adapt_time=0;
 int adapt_by_field (int * fieldId, double* psi0, double * psil)
 {
+  if (!PCU_Comm_Self()) 
+  std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
+
   FILE *fp = fopen("sizefieldParam", "r");
   if (!fp)
   {
-    std::cout<<" file sizefieldParam not found "<<std::endl;
-    throw 1;
+    std::cout<<"[M3D-C1 ERROR] file \"sizefieldParam\" not found\n";
+    return M3DC1_FAILURE;
   }
   double param[13];
   set<int> field_keep;
   field_keep.insert(*fieldId);
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 
-  for (int i=0; i<13; i++)
+  if (!PCU_Comm_Self()) 
+    std::cout<<"[M3D-C1 INFO] size field parameters: ";
+
+  for (int i=0; i<13; ++i)
+  {
     fscanf(fp, "%lf ", &param[i]);
+     if (!PCU_Comm_Self()) std::cout<<std::setprecision(5)<<param[i]<<" ";
+  }
   fclose(fp);
+  if (!PCU_Comm_Self()) std::cout<<"\n";
+
   apf::Field* psiField = (*(m3dc1_mesh::instance()->field_container))[*fieldId]->get_field();
 
   // delete all the matrix
@@ -2751,7 +2762,6 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     assert(valueType==complexType);
     if (complexType) group_complex_dof(field, 1);
     if (isFrozen(field)) unfreeze(field);
-    if (!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
     fields.push_back(field);
     it++;
   }
@@ -2890,6 +2900,9 @@ int set_adapt_p (double * pp)
 
 int adapt_by_error_field (double * errorData, double * errorAimed, int * max_adapt_node, int * option)
 {
+  if (!PCU_Comm_Self()) 
+  std::cout<<"[M3D-C1 INFO] running adaptation by error estimator\n";
+
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
   apf::Field* sizeField = createPackedField(m3dc1_mesh::instance()->mesh, "size_field", 1);
   SizeFieldError sf (m3dc1_mesh::instance()->mesh, sizeField, *errorAimed);
@@ -3066,10 +3079,14 @@ int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info)
   return M3DC1_SUCCESS;
 }
 
-int m3dc1_mesh_write(char* filename, int *option)
+int m3dc1_mesh_write(char* filename, int *option, int* timestep)
 {
+  char filename_buff[256];
+  // vtk
   if (*option==0 ||*option==3)
   {
+    sprintf(filename_buff, "ts%d-%s",*timestep,filename);
+
     apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
     apf::MeshEntity* e;
     int dim=2, num_ent=m3dc1_mesh::instance()->mesh->count(2);
@@ -3084,16 +3101,19 @@ int m3dc1_mesh_write(char* filename, int *option)
       geoId.at(ent_id)=geom_class_id;
     }
     mesh->end(it);
-    apf::writeVtkFiles(filename,m3dc1_mesh::instance()->mesh);
+
+    apf::writeVtkFiles(filename_buff,m3dc1_mesh::instance()->mesh);
     int one=1;
     if (*option==3) output_face_data (&one, &geoId[0], "geoId");
-    /*apf::removeTagFromDimension(mesh, tag, dim);
-    mesh->destroyTag(tag);*/
+
+    if (!PCU_Comm_Self()) 
+      std::cout<<"[M3D-C1 INFO] "<<__func__<<": vtk folder \""<<filename_buff<<"\"\n";
+
   }
-  else
+  else // smb
   {
-    char filename_buff[256];
-    sprintf(filename_buff, "%s.smb",filename);
+    sprintf(filename_buff, "ts%d-%s.smb",*timestep,filename);
+
     int fieldID=12;
     double dofBuff[1024];
     m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[fieldID];
@@ -3113,6 +3133,8 @@ int m3dc1_mesh_write(char* filename, int *option)
     m3dc1_mesh::instance()->mesh->writeNative(filename_buff);
     apf::removeTagFromDimension(mesh, tag, dim);
     mesh->destroyTag(tag);
+    if (!PCU_Comm_Self()) 
+      std::cout<<"[M3D-C1 INFO] "<<__func__<<": file \""<<filename_buff<<"\"\n";
   }
   return M3DC1_SUCCESS;
 }
