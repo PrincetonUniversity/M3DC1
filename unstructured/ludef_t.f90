@@ -4883,6 +4883,9 @@ subroutine ludefphi_n(itri)
   vectype, dimension(MAX_PTS, OP_NUM) :: mu79i, nu79j
   vectype, dimension(dofs_per_element,num_fields) :: ssj, ddj
   vectype, dimension(num_fields) :: ssij, ddij
+  vectype, dimension(dofs_per_element) :: r_bfj, q_bfj
+  vectype :: r_bfij, q_bfij
+  vectype, dimension(dofs_per_element,2) :: q_nij
   
 
   type(matrix_type), pointer :: bb1, bb0, bv1, bv0, bf0, bf1, bn1, bn0
@@ -4974,39 +4977,45 @@ subroutine ludefphi_n(itri)
 
      ssj = 0.
      ddj = 0.
-     
+     q_nij = 0.
+     r_bfj = 0.
+     q_bfj = 0.
     
      do j=1,dofs_per_element
         nu79j = nu79(j,:,:)
         if     (ieq(k).eq.psi_i) then
            if(.not.surface_int) then
               call flux_lin(mu79,nu79j, &
-                   ssj,ddj,q_ni(:,j,:),r_bf(:,j),q_bf(:,j),izone)
+                   ssj,ddj,q_nij,r_bfj,q_bf(:,j),izone)
            end if
         else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
            call axial_field_lin(mu79,nu79j, &
-                ssj,ddj,q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
+                ssj,ddj,q_nij,r_bfj,q_bf(:,j), &
                 izone)
         else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
               ! if ipres==0, this is the total pressure equation
               ! if ipres==1, this is the electron pressure equation
            call pressure_lin(mu79,nu79j, &
-                   ssj,ddj,q_ni(:,j,:),r_bf(:,j),q_bf(:,j), &
+                   ssj,ddj,q_nij,r_bfj,q_bf(:,j), &
                    ipres.eq.0, thimp, izone)
         else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
            call bf_equation_lin(mu79,nu79j, &
-                ssj,ddj,r_bf(:,j),q_bf(:,j))
+                ssj,ddj,r_bfj,q_bf(:,j))
         else if(ieq(k).eq.e_i) then
            if(jadv.eq.0) then
               do i=1,dofs_per_element
-                 call potential_lin(mu79(i,:,:),nu79j, &
-                      ssij,ddij,q_ni(i,j,1),r_bf(i,j),q_bf(i,j))
+                 mu79i = mu79(i,:,:)
+                 call potential_lin(mu79i,nu79j, &
+                      ssij,ddij,q_ni(i,j,1),r_bfij, q_bfij)
                  ssj(i,:) = ssij
                  ddj(i,:) = ddij
+                 r_bfj(i) = r_bfij
+                 q_bfj(i) = q_bfij
               end do
            else   !jadv.eq.1
               do i=1,dofs_per_element
-                 call j_equation_lin(mu79(i,:,:),nu79j, &
+                 mu79i = mu79(i,:,:)
+                 call j_equation_lin(mu79i,nu79j, &
                       ssij,ddij,r_bf(i,j),q_bf(i,j))  
                  ssj(i,:) = ssij
                  ddj(i,:) = ddij 
@@ -5019,6 +5028,9 @@ subroutine ludefphi_n(itri)
         end if
         ss(:,j,:) = ssj
         dd(:,j,:) = ddj
+        q_ni(:,j,:) = q_nij
+        r_bf(:,j) = r_bfj
+        r_bf(:,j) = r_bfj
      end do
 
      if(ieq(k).eq.psi_i) then
