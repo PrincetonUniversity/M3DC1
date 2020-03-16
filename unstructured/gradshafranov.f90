@@ -2828,6 +2828,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   use vector_mod
   use matrix_mod
   use boundary_conditions
+  use geometry 
 
   implicit none
   
@@ -2859,6 +2860,9 @@ subroutine boundary_gs(rhs, feedfac, mat)
      call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           domain_boundary)
      if(is_boundary) then
+#ifdef USEST ! recalculate curvature using physical coordinates
+        call get_boundary_curv(normal,curv,x,phi,z)
+#endif
 
         ! add feedback field
         if(idevice .eq. 0 .and. ifixedb .eq. 0 .and. feedfac.ne.0.) then

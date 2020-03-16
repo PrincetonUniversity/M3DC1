@@ -1,21 +1,21 @@
 ! This module provides routines for defining the stellarator geometry,
 ! specifically, the logical to physical coordinate transformation.
 module geometry
+  use mesh_mod
+  use basic
+  use matrix_mod
+  use field
+  use arrays 
   implicit none
 
 #ifdef USEST
-
+  real :: r1, z1, r2
+ 
 contains
 
   subroutine calc_geometry
-    use basic
-    use arrays
     use sparse
-    use mesh_mod
     use m3dc1_nint
-    use nintegrate
-    use matrix_mod
-    use field
     use boundary_conditions
 
     implicit none
@@ -111,8 +111,6 @@ contains
   end subroutine calc_geometry
 
   subroutine destroy_geometry
-    use arrays
-
     implicit none
 
     call destroy_field(rst)
@@ -121,10 +119,6 @@ contains
 
   ! set Dirichlet BC for solving Laplace equation 
   subroutine boundary_geometry(rst, zst, mat)
-    use basic
-    use field
-    use arrays
-    use matrix_mod
     use boundary_conditions
     implicit none
     
@@ -160,11 +154,6 @@ contains
 
   ! specify geometry of boundary
   subroutine get_boundary_geometry(rout, zout, x, phi, z)
-    use basic
-    use field
-    use arrays
-    use matrix_mod
-    use boundary_conditions
     implicit none
 
     real, intent(in) :: x, phi, z
@@ -181,23 +170,41 @@ contains
 
   ! Calculate rst and zst given x, phi, z 
   subroutine prescribe_geometry(rout, zout, x, phi, z)
-    use basic
-    use field
-    use arrays
-    use matrix_mod
-    use boundary_conditions
     implicit none
 
     real, intent(in), dimension(MAX_PTS) :: x, phi, z
     vectype, intent(out), dimension(MAX_PTS) :: rout, zout 
     real, dimension(MAX_PTS) :: r, theta
 
+    r1 = 1.5
+    r2 = 0.
+    z1 = 1.
     r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
     theta = atan2(z - zzero, x - xzero)
-    rout = xzero + 1.2*r*cos(theta+0.*sin(theta)) 
-    zout = zzero + 1.6*r*sin(theta) 
+    rout = xzero + r1*r*cos(theta+r2*sin(theta)) 
+    zout = zzero + z1*r*sin(theta) 
 
   end subroutine prescribe_geometry
   
+  ! calculate curvature and normal vector
+  subroutine get_boundary_curv(normal, curv, x, phi, z)
+    implicit none
+
+    real, intent(in) :: x, phi, z
+    real, intent(out) :: normal(2), curv
+    real :: dr, ddr, dz, ddz, theta 
+
+    theta = atan2(z - zzero, x - xzero)
+    dr = -r1*sin(theta+r2*sin(theta))*(1+r2*cos(theta)) 
+    ddr = -r1*cos(theta+r2*sin(theta))*(1+r2*cos(theta))**2 &
+          +r1*sin(theta+r2*sin(theta))*r2*sin(theta)
+    dz = z1*cos(theta) 
+    ddz = -z1*sin(theta) 
+    curv = (dr*ddz - dz*ddr)/((dr**2 + dz**2)*sqrt(dr**2 + dz**2))
+    normal(1) = -dz/sqrt(dr**2 + dz**2)
+    normal(2) = -dr/sqrt(dr**2 + dz**2)
+
+  end subroutine get_boundary_curv
+
 #endif
 end module geometry 
