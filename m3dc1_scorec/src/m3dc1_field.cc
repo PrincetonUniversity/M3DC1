@@ -12,7 +12,7 @@ void synchronize_field(apf::Field* f)
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   apf::MeshEntity* e;       
 
-  int num_dof, n = countComponents(f);
+  int n = countComponents(f);
   double* sender_data = new double[n];
   double* dof_data = new double[n]; 
 

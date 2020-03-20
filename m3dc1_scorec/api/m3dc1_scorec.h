@@ -47,10 +47,6 @@ bool m3dc1_double_isequal(double A, double B);
 int m3dc1_scorec_init();
 int m3dc1_scorec_finalize();
 
-void m3dc1_comm_get(MPI_Comm* currentComm);
-void m3dc1_comm_split(int* num_out_comm, MPI_Comm* newComm);
-void m3dc1_comm_merge();
-
 /** plane functions */
 int m3dc1_plane_setnum(int*);
 int m3dc1_plane_getnum(int*);
@@ -184,7 +180,7 @@ int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputve
 
 // for performance test
 int m3dc1_matrix_setassembleoption(int * op);
-int m3dc1_matrix_write(int* matrix_id, const char* file_name, int* start_index);
+int m3dc1_matrix_write(int*, const char*, int*, int*);
 int m3dc1_matrix_print(int* matrix_id);
 #endif // #ifdef M3DC1_PETSC
 

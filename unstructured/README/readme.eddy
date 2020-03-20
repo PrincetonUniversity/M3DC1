@@ -24,7 +24,8 @@
 	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=eddy
         
 5. mesh utility
-        /home/jinchen/LIB/scorec/intel18.0-openmpi3.3.0/bin
+      Intel-MPI: /home/jinchen/LIB/scorec/intel18.0-mpi2018.3.64/petsc3.12.0/bin
+      OpenMPI:   /home/jinchen/LIB/scorec/intel18.0-openmpi3.3.0/petsc3.12.0/bin
 
 6. run a job 
 
