@@ -18,6 +18,7 @@
 #include <gmi_analytic.h>
 #include <map>
 #include <cstring>
+#include <iomanip> // setprecision
 #include "apfMDS.h"
 #include "Expression.h"
 #include "m3dc1_slnTransfer.h"
