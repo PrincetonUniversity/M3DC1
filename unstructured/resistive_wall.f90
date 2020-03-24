@@ -95,8 +95,8 @@ contains
        f = cos(ntor_rekc*(phi-phi_rekc) - mpol_rekc*(theta-theta_rekc))
        f = exp((f-1.)/sigma_rekc**2)
 
-!       wall_resistivity = 10.**(log10(wall_resistivity)*(1.-f) + log10(eta_rekc)*f)
-       wall_resistivity = wall_resistivity*(1.-f) + eta_rekc*f
+       wall_resistivity = 10.**(log10(wall_resistivity)*(1.-f) + log10(eta_rekc)*f)
+!       wall_resistivity = wall_resistivity*(1.-f) + eta_rekc*f
 
     end if
 #endif
