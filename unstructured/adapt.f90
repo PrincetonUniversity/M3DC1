@@ -204,8 +204,8 @@ module adapt
     !call m3dc1_mesh_write (mesh_file_name, 0)
     call adapt_by_field(temporary_field%vec%id,psimin,psibound)
     write(mesh_file_name,"(A7,A)") 'adapted', 0
-    if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0)
-    if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1)
+    if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
+    if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
 
     call destroy_field(temporary_field)
     call space(0)
@@ -268,7 +268,7 @@ module adapt
     vectype :: maxPhi, maxPs
     vectype, dimension(NUMTERM) :: jump_sum
 
-    write(mesh_file_name,"(A5,I0,A)") 'adapt', ntime,0 
+    write(mesh_file_name,"(A7,A)") 'adapted', 0
     write(file_name1, "(A9,I0,A)") 'errorJump', ntime,0
     write(file_name2, "(A8,I0,A)") 'errorElm', ntime,0
     write(file_name3,"(A8,I0,A)") 'errorSum', ntime,0
@@ -297,7 +297,6 @@ module adapt
     do ii=1, NUMTERM
        jump_sum(ii) =sum(edge_error(:,ii))
     end do
-    print *, "jump_sum", jump_sum
     do ii=1, num_edge
        call m3dc1_ent_getadj (1, ii-1, 2, elms, 2, num_get)
        do jj=1, num_get 
@@ -326,7 +325,7 @@ module adapt
     deallocate(elm_error_sum)
     deallocate(elm_error_res)
 
-    if(adapt_control .eq. 0) then
+    if (adapt_control .eq. 0) then
       max_error(1)= maxval(node_error(1,:))
       max_error(2)= maxval(node_error(2,:))
       buff = max_error
@@ -337,12 +336,18 @@ module adapt
       !max_error= maxval(node_error(:,:))
       buff = max_error
       call mpi_allreduce (buff, max_error, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
-      if (myrank .eq. 0) print *, "estimated error in engergy norm, solution in energy norm", max_error, solutionH2Norm
     end if
-    if (myrank .eq. 0) print *, "estimated error in engergy norm, solution in energy norm", max_error, solutionH2Norm
-    if (iadapt .eq. 2 .and. (max_error(1) .gt. error_tol * adapt_target_error .or. max_error(2) &
-         .gt. error_tol * adapt_target_error)) then
-       if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
+
+    if (max_error(1) .gt. error_tol * adapt_target_error .or. max_error(2) &
+         .gt. error_tol * adapt_target_error) then
+
+      if (myrank .eq. 0) then
+        print *, "jump_sum:", jump_sum
+        print *, "estimated error in engergy norm", max_error
+        print *, "estimated error in solution in energy norm", solutionH2Norm
+      end if
+
+      !  if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
        call straighten_fields()
        abs_size(1) = adapt_hmin
        abs_size(2) = adapt_hmax
@@ -355,8 +360,8 @@ module adapt
 #endif
        call adapt_by_error_field(sqrt(node_error(1,:)**2+node_error(2,:)**2), adapt_target_error, &
 iadapt_max_node, adapt_control);
-       if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0)
-       if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1)
+       if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
+       if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
        call space(0)
        call update_nodes_owned()
        call tridef
@@ -413,25 +418,35 @@ iadapt_max_node, adapt_control);
        end if
        call derived_quantities(1)
        meshAdapted =1
+    else
+      if (myrank .eq. 0) print *, "error did not exceed tolerance -- adaptation not needed"
     end if
     deallocate(node_error)
   end subroutine adapt_by_error
  
-  subroutine run_adapt ( flag)
+  subroutine diagnose_adapt (flag)
     use diagnostics
     use basic
     integer :: flag
-    !print *, "check run_adaptA: ke_previous, ekin, ntime",ke_previous,ekin,ntime
+    !print *, "check diagnose_adapt: ke_previous, ekin, ntime",ke_previous,ekin,ntime
     flag = 0
-    !if(mod(ntime,1) .eq. 0) then
-     ! run_adapt=1
-      !ke_previous = ekin;
-    !end if
-    if(iadapt_ntime .gt. 0 .and. mod(ntime,iadapt_ntime) .eq. 0) flag=1
-    if(iadapt_ntime .eq. 0 .and. linear .eq. 0 .and. mod(ntime,1) .eq. 0) flag=1
-    if(adapt_ke .gt. 0. .and. linear .eq. 1 .and. ekin .gt. adapt_ke) flag=1
-    if(iadapt_ntime .gt. 0 .and. linear .eq. 1 .and. ntime .eq. iadapt_ntime) flag=1
-  end subroutine run_adapt
+
+    !if iadapt_ntime>0, run adapt_by_error at the end of every N time steps
+    if (iadapt_ntime .gt. 0 .and. mod(ntime, iadapt_ntime) .eq. 0) then
+      flag=1
+      if (myrank .eq. 0) print *, "diagnose_adapt: run adaptation every", iadapt_ntime, "time step(s)"
+    endif
+    !if non-linear & iadapt_ntime=0, run adapt_by_error at the end of every time step
+    if (linear .eq. 0 .and. iadapt_ntime .eq. 0) then
+      flag=1
+      if (myrank .eq. 0) print *, "diagnose_adapt: run adaptation every time step (non-linear)"
+    endif
+    !if linear, adapt_ke>0 & ekin>adapt_ke, run adapt_by_error at the end of time step
+    if(linear .eq. 1 .and. adapt_ke .gt. 0 .and. ekin .gt. adapt_ke) then
+      flag=1
+      if (myrank .eq. 0) print *, "diagnose_adapt: run adaptation as ekin is greater than adapt_ke", adapt_ke, "(linear)"
+    endif
+  end subroutine diagnose_adapt
 
   subroutine straighten_fields ()
     use diagnostics
