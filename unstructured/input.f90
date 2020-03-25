@@ -178,8 +178,11 @@ subroutine set_defaults
   integer :: prad_grp
   integer :: kprad_grp
 
-  integer :: idum
-  real :: dum
+  ! Dummy variables for reading deprecated options
+  ! These must be "saved" so that they will exist when they are written to
+  ! (which happens outside of this subroutine)
+  integer, save :: idum
+  real, save :: dum
 
   call add_group("Model Options", model_grp)
   call add_group("Equilibrium", eq_grp)
