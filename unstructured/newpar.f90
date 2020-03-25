@@ -220,18 +220,8 @@ Program Reducedquintic
      ! Read restart file(s)
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading restart file(s)'
-     if(iglobalin.eq.1) then
-        call rdrestartglobal
-     else
-        if(iread_adios.eq.1) then
-           call rdrestart_adios
-        else if(iread_hdf5.eq.1) then
-           call rdrestart_hdf5
-           irestart_factor=1
-        else
-           call rdrestart
-        endif
-     endif
+     call rdrestart_hdf5
+     irestart_factor=1
 !
 !....use timestep from input file if not a variable timestep run
     if(dtkecrit.eq.0) dt = dtsave
@@ -241,11 +231,7 @@ Program Reducedquintic
 !
 !....save timestep from input file
      dtsave = dt
-     if(iread_hdf5.eq.1) then
-        call rdrestart_hdf5
-     else
-        call rdrestart_cplx
-     end if
+     call rdrestart_hdf5
      dt = dtsave
 
   end select                     !  end of the branch on restart/no restart
