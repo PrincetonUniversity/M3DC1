@@ -1281,7 +1281,7 @@ contains
         recprad79(:,OP_1) = 0.
      end where
 
-     where(real(totrad79(:,OP_1)).lt.0.)
+     where(real(totrad79(:,OP_1)).gt.0.)
         totrad79(:,OP_1) = 0.
         linerad79(:,OP_1) = 0.
         bremrad79(:,OP_1) = 0.
