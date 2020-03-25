@@ -217,7 +217,7 @@ contains
   !==============================================================
   ! owned_nodes
   ! ~~~~~~~~~~~
-  ! returns the number of elements owned by to this process
+  ! returns the number of nodes owned by to this process
   !==============================================================
   integer function owned_nodes()
     implicit none
