@@ -1,0 +1,22 @@
+1. Make sure you are using Python 3. The routines might work in Python 2, but this is not guaranteed.
+
+2. Obtain fusion-io. The source of this library can be obtained from https://github.com/nferraro/fusion-io
+   Compiled versions are already available on portal, eddy and cori. Contact akleiner@pppl.gov for details.
+
+3. Copy the this directory called 'm3dc1' into $PYTHONPATH
+
+4. Import module in Python: import m3dc1 as m
+
+5. Use the available functions in the way: m.functionname(args)
+
+
+Examples:
+
+sim = fpy.sim_data(time=0)
+
+m.plot_field('p',sim=sim,lcfs=True,bound=True)
+
+m.plot_time_trace_fast('ke',growth=True)
+
+m.plot_flux_average('alpha',sim=sim)
+
