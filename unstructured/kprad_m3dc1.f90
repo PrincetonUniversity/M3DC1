@@ -31,10 +31,6 @@ module kprad_m3dc1
 
   type(field_type), allocatable :: kprad_particle_source(:)
 
-  ! minimum values for KPRAD evolution
-  real :: kprad_nemin
-  real :: kprad_temin
-
 contains
 
   !==================================
@@ -395,6 +391,7 @@ contains
     use newvar_mod
     use m3dc1_nint
     use pellet
+    use kprad
 
     implicit none
 

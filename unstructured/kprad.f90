@@ -14,6 +14,11 @@ module kprad
   integer :: ikprad_max_dt ! use max dt in KPRAD evolution
   integer :: ikprad_evolve_internal
 
+  ! minimum values for KPRAD evolution
+  !   N.B. These are used in kprad_m3dc1 and elsewhere
+  !        Put here to avoid circular module references
+  real :: kprad_nemin
+  real :: kprad_temin
 
   ! polynomial order for evaluating 
   ! radiation and ionization rates, respectively

@@ -429,6 +429,7 @@ contains
     use arrays
     use math
     use resistive_wall
+    use kprad
 
     implicit none
   
@@ -498,7 +499,11 @@ contains
           if(itemp.eq.1) fields = ior(fields,FIELD_TE)
        end if
     end if
-    if(iand(fields, FIELD_KAP).eq.FIELD_KAP) then
+    if(iand(fields, FIELD_RAD).eq.FIELD_RAD) then
+       fields = ior(ior(fields,FIELD_N),FIELD_P)
+       if(itemp.eq.1) fields = ior(fields,FIELD_TE)
+    end if
+    If(iand(fields, FIELD_KAP).eq.FIELD_KAP) then
        if(ikappafunc.eq.5) then
           fields = ior(ior(ior(fields,FIELD_N),FIELD_P),FIELD_PSI)
           if(itemp.eq.1) fields = ior(fields,FIELD_TE)
@@ -1255,6 +1260,36 @@ contains
      call eval_ops(itri, Ionrad_field,  ionrad79)
      call eval_ops(itri, Reckrad_field, reckrad79)
      call eval_ops(itri, Recprad_field, recprad79)
+
+     ! Te
+     if(itemp.eq.1) then
+        temp79b = tet79(:,OP_1)
+     else
+        temp79b = pet79(:,OP_1)/net79(:,OP_1)
+     end if
+
+     ! ne
+     temp79a = net79(:,OP_1)
+
+     where(real(temp79b).lt.kprad_temin .or. temp79b.ne.temp79b .or. &
+           real(temp79a).lt.kprad_nemin .or. temp79a.ne.temp79a)
+        totrad79(:,OP_1) = 0.
+        linerad79(:,OP_1) = 0.
+        bremrad79(:,OP_1) = 0.
+        ionrad79(:,OP_1) = 0.
+        reckrad79(:,OP_1) = 0.
+        recprad79(:,OP_1) = 0.
+     end where
+
+     where(real(totrad79(:,OP_1)).lt.0.)
+        totrad79(:,OP_1) = 0.
+        linerad79(:,OP_1) = 0.
+        bremrad79(:,OP_1) = 0.
+        ionrad79(:,OP_1) = 0.
+        reckrad79(:,OP_1) = 0.
+        recprad79(:,OP_1) = 0.
+     end where
+     
      
   else
      totrad79 = 0.
