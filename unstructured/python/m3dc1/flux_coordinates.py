@@ -40,20 +40,34 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     **phit**
     Toroidal angle of the plane where flux coordinates shall be calculated.
     
-    **phit**
+    **points**
+    Number of points in radial and poloidal direction, i.e.
+    number of flux surfaces and poloidal points
     
-    **phit**
+    **fbins**
+    Number of radial points (flux surfaces)
     
-    **phit**
+    **tbins**
+    Number of poloidal points
     
-    **phit**
+    **itor**
+    Same as in M3DC1
     
-    **phit**
+    **r0**
+    Same as in M3DC1
     
-    **phit**
+    **psin_range**
+    Range of normalized psi in which the flux coordinates are calculated.
+    Has to start at 0.0
     
-    **phit**
+    **njac**
+    Calculate Jacobian numerically
     
+    **makeplot**
+    Show plot flux coordinates
+    
+    **fignum**
+    Figure number for flux coordinate plot
     """
     if isinstance(sim,fpy.sim_data)==False:
         sim = fpy.sim_data(file_name,time=time)
