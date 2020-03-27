@@ -14,7 +14,7 @@ import fpy
 import m3dc1.fpylib as fpyl
 
 
-def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,pub=False):
+def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=None,meshcol='C0',pub=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
@@ -40,6 +40,12 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,pub=Fals
 
     **ax**
     Matplotlib axes object. If not None, 
+
+    **fignum**
+    Figure number for mesh plot
+
+    **meshcol**
+    Color of mesh lines
 
     **pub**
     If True, plot will be formatted for publication
@@ -212,7 +218,7 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,pub=Fals
     for ax in axarray:
         if boundary!=True:
             if len(plot1x) > 0:
-                pltreg = ax.add_collection(LineCollection(np.stack((plot1x,plot1y), axis=2),linewidths=0.25, colors='C0',zorder=4))
+                pltreg = ax.add_collection(LineCollection(np.stack((plot1x,plot1y), axis=2),linewidths=0.25, colors=meshcol,zorder=4))
             else:
                 pltreg = None
         if len(plot2x) > 0:

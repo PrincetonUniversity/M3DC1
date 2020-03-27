@@ -21,7 +21,7 @@ rc('text', usetex=True)
 
 
 
-def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False):
+def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False):
     """
     Plots the field of a file. 
     
@@ -360,7 +360,11 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
             norm = colors.DivergingNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
             cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
         else:
-            cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
+            if isinstance(prange,(tuple,list)):
+                norm = colors.DivergingNorm(vmin=prange[0], vmax=prange[1])
+                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
+            else:
+                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
         # Set and format axes limits and labels
         ax.set_xlim([fpyl.get_axlim(np.amin(R_ave),'min',0.1),fpyl.get_axlim(np.amax(R_ave),'max',0.1)])
         ax.set_ylim([fpyl.get_axlim(np.amin(Z_ave),'min',0.1),fpyl.get_axlim(np.amax(Z_ave),'max',0.1)])

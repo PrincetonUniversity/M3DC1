@@ -176,9 +176,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,file_name='C1.h5',fcoords=None,points
             spec[:,i] = np.abs(np.fft.rfft(ef[:,i]))/pathshape[1] #Using normalization by number of elements on forward transformation
         
         #Identify largest modes
-        mmax = np.zeros(nspec)
-        mmax = [np.amax(spec[j,:]) for j in range(nspec)]
-        
+        mmax = np.asarray([np.amax(spec[j,:]) for j in range(nspec)])
         mmax_ind = mmax.argsort()
         
         # Plot Fourier spectrum
