@@ -8,7 +8,7 @@
 import fpy
 import math
 import numpy as np
-from scipy import interpolate as sciint
+from scipy.interpolate import interp1d
 import h5py
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -51,10 +51,10 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     Number of poloidal points
     
     **itor**
-    Same as in M3DC1
+    Same as itor in M3DC1
     
     **r0**
-    Same as in M3DC1
+    Same as rzero in M3DC1
     
     **psin_range**
     Range of normalized psi in which the flux coordinates are calculated.
@@ -404,9 +404,9 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
             #    plt.plot(rpath[:,j])
             #rpath[:,j] = interpolate(rpath[*,j],newm)
             #zpath[:,j] = interpolate(zpath[*,j],newm)
-            tempr = sciint.interp1d(theta_sfl[:,j],rpath[:,j])
+            tempr = interp1d(theta_sfl[:,j],rpath[:,j])
             rpath[:,j] = tempr(theta)
-            tempz = sciint.interp1d(theta_sfl[:,j],zpath[:,j])
+            tempz = interp1d(theta_sfl[:,j],zpath[:,j])
             zpath[:,j] = tempz(theta)
             if(itor == 1):
                 rp[:,j] = rpath[:,j]
