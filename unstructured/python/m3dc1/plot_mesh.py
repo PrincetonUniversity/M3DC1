@@ -1,35 +1,59 @@
-# plotfpy.py: set of plotting function meant to emulate the existing routines available in M3DC1
-# Make use of the fpy module to keep it pythonic
-#
+#!/usr/bin/env python3
 #
 # Coded on 08/27/2019 by:
 # Andreas Kleiner:    akleiner@pppl.gov
 # Ralf Mackenbach:    rmackenb@pppl.gov
 # Chris Smiet    :    csmiet@pppl.gov
 
-
 import math
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
-import fio_py
+import fpy
+import m3dc1.fpylib as fpyl
 
 
-
-def plot_mesh(elms,boundary=False,ax=None,fs=1.):
+def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=None,meshcol='C0',pub=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
-    First create a simulation object and then a mesh object using
-    the fpy library.
+    plot_mesh can take the mesh object as input. This is better for large
+    meshes since it can take a while to calculate the mesh connectivity.
+    Example:
     sim = fpy.sim_data(time=0)
     elms = sim.get_mesh(time=0)
+    m.plot_mesh(elms=elms)
 
-    plot_mesh takes the mesh object as input. This
-    is done because for large meshes it can take a while to calculate
-    the mesh connectivity and it is better to do this only once, not
-    everytime a plot is created.
+    Arguments:
+
+    **elms**
+    mesh object
+
+    **time**
+    If no mesh object is provided, read mesh at this time slice
+
+    **file_name**
+    If no mesh object is provided, read file with this name
+
+    **boundary**
+    If True, only boundary (resistive wall and vacuum boundary) will be ploted
+
+    **ax**
+    Matplotlib axes object. If not None, 
+
+    **fignum**
+    Figure number for mesh plot
+
+    **meshcol**
+    Color of mesh lines
+
+    **pub**
+    If True, plot will be formatted for publication
     """
+    if elms==None:
+        simplot = fpy.sim_data(file_name)
+        elms = simplot.get_mesh(time=time)
+    
     mesh = elms.elements
     version = elms.version
     nplanes = elms.nplanes
@@ -58,20 +82,33 @@ def plot_mesh(elms,boundary=False,ax=None,fs=1.):
     # Create figure and plot mesh points only. If you want them to be visible,
     # increase marker size.
     
+    # Set font sizes and plot style parameters
+    if pub==False:
+        axlblfs = 12
+        ticklblfs = 12
+        linew = 1
+        bdlw = 1
+    elif pub==True:
+        axlblfs = 20
+        ticklblfs = 18
+        linew = 1
+        bdlw = 1
+    
     if type(ax)!=np.ndarray and isinstance(ax,matplotlib.axes._axes.Axes)==False:
         fig, ax = plt.subplots(num=1)
         fig.set_figheight(8)
         plt.plot(mesh[:,4],mesh[:,5],lw=0,marker='.',ms=0)
         plt.grid(True)
         ax.set_aspect('equal',adjustable='box')
-        plt.xlabel(r'$R$',fontsize=18*fs)
-        plt.ylabel(r'$Z$',fontsize=18*fs)
-        ax.tick_params(labelsize=16*fs)
-        ax.set_xlim(math.floor(minr),math.ceil(maxr))
+        plt.xlabel(r'$R$',fontsize=axlblfs)
+        plt.ylabel(r'$Z$',fontsize=axlblfs)
+        ax.tick_params(labelsize=ticklblfs)
+        ax.set_xlim(fpyl.get_axlim(minr,'min'),fpyl.get_axlim(maxr,'max'))
+        ax.set_ylim(fpyl.get_axlim(minz,'min'),fpyl.get_axlim(maxz,'max'))
         plt.tight_layout()
     
     if version==0:
-        print("WARNING: xzero and zzero not set!")
+        fpyl.printwarn("WARNING: xzero and zzero not set!")
     else:
         xzero = 0.
         zzero = 0.
@@ -113,7 +150,7 @@ def plot_mesh(elms,boundary=False,ax=None,fs=1.):
         q2 = delta*p1 + (1.-2.*delta)*p2 + delta*p3
         q3 = delta*p1 + delta*p2 + (1.-2.*delta)*p3
         
-        # Identify lines that are part of the wall or boundary. These are plotted in different colors.
+        # Identify lines that are part of the wall or boundary. These will be plotted in different colors.
         if boundary==True:
             pp=bound
         else:
@@ -181,19 +218,20 @@ def plot_mesh(elms,boundary=False,ax=None,fs=1.):
     for ax in axarray:
         if boundary!=True:
             if len(plot1x) > 0:
-                pltreg = ax.add_collection(LineCollection(np.stack((plot1x,plot1y), axis=2),linewidths=0.25, colors='C0',zorder=4))
+                pltreg = ax.add_collection(LineCollection(np.stack((plot1x,plot1y), axis=2),linewidths=0.25, colors=meshcol,zorder=4))
             else:
                 pltreg = None
         if len(plot2x) > 0:
-            pltwin = ax.add_collection(LineCollection(np.stack((plot2x,plot2y), axis=2),linewidths=2, colors='r',zorder=5))
+            pltwin = ax.add_collection(LineCollection(np.stack((plot2x,plot2y), axis=2),linewidths=bdlw, colors='r',zorder=5))
+            #pltwin = ax.add_collection(LineCollection(np.stack((plot2x,plot2y), axis=2),linewidths=bdlw, colors=r'#1f77b4', linestyles='--', zorder=5)) #For CLT paper
         else:
             pltwin = None
         if len(plot3x) > 0:
-            pltwout = ax.add_collection(LineCollection(np.stack((plot3x,plot3y), axis=2),linewidths=2, colors='g',zorder=5))
+            pltwout = ax.add_collection(LineCollection(np.stack((plot3x,plot3y), axis=2),linewidths=bdlw, colors='g',zorder=5))
         else:
             pltwout = None
         if len(plot4x) > 0:
-            pltbd = ax.add_collection(LineCollection(np.stack((plot4x,plot4y), axis=2),linewidths=2, colors='c',zorder=5))
+            pltbd = ax.add_collection(LineCollection(np.stack((plot4x,plot4y), axis=2),linewidths=bdlw, colors='c',zorder=5))
         else:
             pltbd = None
     

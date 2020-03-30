@@ -1,14 +1,16 @@
-import matplotlib.pyplot as plt
+#!/usr/bin/env python3
+
+import sys
+import numpy as np
 import pint
 import os
-import fpy
-from unit_conv import unit_conv
-import numpy as np
-import sys
+import matplotlib.pyplot as plt
 from matplotlib import rc
+import fpy
+from m3dc1.unit_conv import unit_conv
 rc('text', usetex=True)
 
-def plot_time_trace(trace,units='mks',file_name='C1.h5',growth=False):
+def plot_time_trace(trace,sim=None,units='mks',file_name='C1.h5',growth=False,renorm=False,yscale='linear'):
     """
     Plots the time trace of some quantity. All available
     time traces can be found in the M3DC1 documentation.
@@ -17,6 +19,10 @@ def plot_time_trace(trace,units='mks',file_name='C1.h5',growth=False):
 
     **trace**
     String containing the trace to be plotted
+
+    **sim**
+    simulation sim_data object. If none is provided,
+    a new object will be created.
 
     **units**
     The units in which the trace will be plotted
@@ -27,9 +33,21 @@ def plot_time_trace(trace,units='mks',file_name='C1.h5',growth=False):
     **growth**
     Determines wether to calculate the derivative.
     True/False
-    """
+
+    **renorm**
+    Removes spikes that are caused by renormalizations
+    in linear stability calculations. Interpolates at
+    the locations of the spike. Should only be used if
+    growth=True.
     
-    sim =  fpy.sim_data(file_name)
+    **yscale**
+    Scale of y axis, e.g. linear, log
+    """
+    if isinstance(sim,fpy.sim_data)==False:
+        if sim!=None:
+            print('Specified sim is not a sim_data object. Reading simulation...')
+        sim =  fpy.sim_data(file_name)
+    
     plt.ylabel(trace)
     time = sim.get_time_traces('time').values
     plt.xlabel(r'time $\tau_A$')
@@ -49,9 +67,14 @@ def plot_time_trace(trace,units='mks',file_name='C1.h5',growth=False):
         y_axis = sim.get_time_traces('E_KP').values + \
                  sim.get_time_traces('E_KT').values + \
                  sim.get_time_traces('E_K3').values
+        if growth == True:
+            plt.ylabel(r'$\gamma/\omega_A$')
         if units=='mks':
             y_axis = unit_conv(y_axis, arr_dim='M3DC1', energy=1)
-            plt.ylabel(r'Kinetic energy $[J]$')
+            if growth == True:
+                plt.ylabel(r'$\gamma$ $[s^{-1}]$')
+            else:
+                plt.ylabel(r'Kinetic energy $[J]$')
         
     if trace=='it':
         y_axis = sim.get_time_traces('toroidal_current').values
@@ -351,9 +374,17 @@ def plot_time_trace(trace,units='mks',file_name='C1.h5',growth=False):
         plt.show()
         sys.exit(0)
 
-
-
+    #if growth==True:
+    #    y_axis = np.gradient(y_axis, time)
+    if growth == True:
+        y_axis = 1.0/y_axis[1:] * np.diff(y_axis)/np.diff(time)
     
+    if renorm == True:
+        for i in range(len(y_axis)-1):
+            if(abs(y_axis[i+1]/y_axis[i]) < 1E-9):
+                print('Renormalization found at '+str(time[i]))
+                print(y_axis[i],y_axis[i-1]+y_axis[i+1])
+                y_axis[i] = (y_axis[i-1] + y_axis[i+1])/2.0
 
     # If one array has new data but the other one doesn't 
     # plot only previous data
@@ -363,9 +394,9 @@ def plot_time_trace(trace,units='mks',file_name='C1.h5',growth=False):
         maxidx = np.amin([ymax,tmax])
         time   = time[0:maxidx]
         y_axis = y_axis[0:maxidx]
-
-    if growth==True:
-        y_axis = np.gradient(y_axis, time)
+    
+    plt.grid(True)
     plt.plot(time,y_axis)
+    plt.yscale(yscale)
     plt.ticklabel_format( axis='y', style='sci',useOffset=False)
     plt.show()
