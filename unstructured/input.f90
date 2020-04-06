@@ -1551,7 +1551,7 @@ subroutine validate_input
        * (n0_norm**3 * l0_norm / B0_norm**4)
   efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
   if(eta_max.le.0.) eta_max = eta_vac
-  if(eta_min.le.0.) eta_max = 0.
+  if(eta_min.le.0.) eta_min = 0.
   if(kappa_max.le.0.) kappa_max = kappar
 
   if(myrank.eq.0 .and. iprint.ge.1) then
