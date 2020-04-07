@@ -455,7 +455,8 @@ contains
 
   ! read_field
   ! ==========
-  subroutine read_field(parent_id, name, values, ndofs, nelms, error)
+  subroutine read_field(parent_id, name, values, ndofs, nelms, &
+       offset_loc, global_elms_loc, error)
     use hdf5
     
     implicit none
@@ -470,6 +471,7 @@ contains
     integer(HID_T) :: filespace, memspace, dset_id, plist_id
     integer(HSIZE_T), dimension(rank) :: local_dims, global_dims
     integer(HSSIZE_T), dimension(rank) :: off
+    integer :: offset_loc, global_elms_loc 
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
@@ -479,9 +481,9 @@ contains
     local_dims(1) = ndofs
     local_dims(2) = nelms
     global_dims(1) = ndofs
-    global_dims(2) = global_elms
+    global_dims(2) = global_elms_loc
     off(1) = 0
-    off(2) = offset
+    off(2) = offset_loc
 
     call h5dopen_f(parent_id, name, dset_id, error)
     call h5dget_space_f(dset_id, filespace, error)
