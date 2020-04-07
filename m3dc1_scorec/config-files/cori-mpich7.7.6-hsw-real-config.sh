@@ -11,7 +11,8 @@ PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
 #load module cray-hdf5-parallel
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=/global/project/projectdirs/mp288/cori/scorec/$MPIVER/$ARCH-$PETSCVER
-PREFIX=$ZOLTAN_DIR
+PUMI_DIR=$ZOLTAN_DIR
+PREFIX=$ZOLTAN_DIR/adapt
 cmake .. \
   -DCMAKE_C_COMPILER="cc" \
   -DCMAKE_CXX_COMPILER="CC" \
@@ -22,12 +23,10 @@ cmake .. \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \
   -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \
-  -DSCOREC_INCLUDE_DIR="$ZOLTAN_DIR/include" \
-  -DSCOREC_LIB_DIR="$ZOLTAN_DIR/lib" \
+  -DSCOREC_INCLUDE_DIR="$PUMI_DIR/include" \
+  -DSCOREC_LIB_DIR="$PUMI_DIR/lib" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
-  -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \
-  -DHDF5_LIB_DIR="$HDF5_DIR/lib" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DENABLE_TESTING=OFF \
   -DENABLE_COMPLEX=OFF \

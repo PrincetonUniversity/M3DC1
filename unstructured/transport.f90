@@ -690,6 +690,10 @@ function resistivity_func()
         elsewhere
            temp79a = eta_fac*eta0*temp79b**(-1.5)
         end where
+        where(real(temp79a).lt.(eta_min-etar*eta_fac))
+           temp79a = eta_min - etar*eta_fac
+        endwhere
+
      else
         temp79a = 0.
      end if

@@ -1,6 +1,4 @@
-# plotfpy.py: set of plotting function meant to emulate the existing routines available in M3DC1
-# Make use of the fpy module to keep it pythonic
-#
+#!/usr/bin/env python3
 #
 # Coded on August 28th 2019 by:
 # Andreas Kleiner:    akleiner@pppl.gov
@@ -10,12 +8,12 @@
 import fpy
 import sys
 import numpy as np
-from unit_conv  import unit_conv
-from eval_field import eval_field
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib.ticker as ticker
-from plot_mesh import plot_mesh
+from m3dc1.unit_conv  import unit_conv
+from m3dc1.eval_field import eval_field
+from m3dc1.plot_mesh import plot_mesh
 rc('text', usetex=True)
 
 

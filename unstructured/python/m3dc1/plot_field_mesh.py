@@ -1,7 +1,4 @@
-
-# plotfpy.py: set of plotting function meant to emulate the existing routines available in M3DC1
-# Make use of the fpy module to keep it pythonic
-#
+#!/usr/bin/env python3
 #
 # Coded on August 16th 2019 by:
 # Andreas Kleiner:    akleiner@pppl.gov
@@ -11,13 +8,13 @@
 import fpy
 import sys
 import numpy as np
-from unit_conv  import unit_conv
-from eval_field import eval_field
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib.ticker as ticker
-from plot_mesh import plot_mesh
 from scipy.spatial import Delaunay
+from m3dc1.unit_conv  import unit_conv
+from m3dc1.eval_field import eval_field
+from m3dc1.plot_mesh import plot_mesh
 rc('text', usetex=True)
 
 
@@ -25,7 +22,7 @@ rc('text', usetex=True)
 
 def plot_field_mesh(field, coord='scalar', file_name='C1.h5', time=0, phi=0, mesh=False, linear=False, diff=False, tor_av=1, bound=False, units='mks',res=0):
     """
-    Plots the field of a file, but evaluates them only on
+    Plots the field of a file, but evaluates it only on
     the mesh points.
     
     Arguments:

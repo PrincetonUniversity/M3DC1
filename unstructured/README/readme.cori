@@ -4,6 +4,8 @@
 2. code
 
 3. load modules
+   module swap intel/19.0.3.199 intel/19.1.0.166
+
    FOR KNL
         module swap craype-haswell craype-mic-knl
 

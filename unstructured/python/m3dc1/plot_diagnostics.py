@@ -1,14 +1,26 @@
+#!/usr/bin/env python3
 import fpy
 import matplotlib.pyplot as plt
-from unit_conv import unit_conv
+from m3dc1.unit_conv import unit_conv
 
 
-def plot_diagnostics(file_name='C1.h5',units='mks'):
+def plot_diagnostics(file_name='C1.h5',units='mks',fignum=None):
     """
     This plots three diagnostics.
     1 - The time needed per timestep
     2 - The number of iterations needed per timestep
     3 - The temporal values of each time-slice
+
+    Arguments:
+
+    **file_name**
+    Contains the path to the C1.h5 file.
+
+    **units**
+    The units in which the results will be plotted
+    
+    **fignum**
+    Number of figure in which the reults are plotted
     """
     
     sim     =  fpy.sim_data(file_name)
@@ -18,7 +30,7 @@ def plot_diagnostics(file_name='C1.h5',units='mks'):
 
     
     
-    f = plt.figure(1)
+    f = plt.figure()
     plt.subplot(121)
     sum = []
     for string in list(timings.diagnostic.keys()):
@@ -52,6 +64,4 @@ def plot_diagnostics(file_name='C1.h5',units='mks'):
     plt.ylabel('Time slice label')
     g.show()
 
-
-
-    
+    return
