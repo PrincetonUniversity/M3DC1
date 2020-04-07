@@ -253,7 +253,6 @@ module basic
                          ! 3 = zero out chi only
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
-  integer :: ivform      ! deprecated
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
                          ! >2 hyper-resistivity also scaled by keharmonic(ihypeta)
