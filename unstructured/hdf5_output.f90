@@ -42,7 +42,7 @@ contains
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
-    integer :: info, comm
+    integer :: info
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -126,17 +126,11 @@ contains
 
     integer, intent(out) :: nelms
     integer, intent(out) :: error
-    integer::color, comm;
 
     nelms = local_elements()
 
   ! Calculate offset of current process
-    comm = MPI_COMM_WORLD
-    if (irestart_factor.gt.1) then
-      color = mod(myrank, irestart_factor)
-      call MPI_Comm_split(MPI_COMM_WORLD, color, 1, comm, error)
-    endif
-    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, comm, error)
+    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
 
     offset = offset - nelms
     ! print *, "[",myrank,"] hdf5_get_local_elms Offset ", offset
@@ -874,8 +868,7 @@ contains
     integer(HSIZE_T) :: chunk_size(2)
     integer(HSIZE_T) :: dims(2), maxdims(2), local_dims(2), off(2)
     integer(SIZE_T) :: num_elements
-    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
-    logical :: exists
+    integer(HID_T) :: memspace, filespace, dset_id, plist_id
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from

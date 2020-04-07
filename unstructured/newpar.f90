@@ -221,7 +221,6 @@ Program Reducedquintic
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading restart file(s)'
      call rdrestart_hdf5
-     irestart_factor=1
 !
 !....use timestep from input file if not a variable timestep run
     if(dtkecrit.eq.0) dt = dtsave
