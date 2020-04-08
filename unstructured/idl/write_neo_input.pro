@@ -16,7 +16,7 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   for i=0, nphi-1 do begin
      plot_perturbed_surface, q, $
                              xy_out=xy_out, theta=theta, phi=phi[i]*180./!pi, $
-                             flux=flux, scale=10, _EXTRA=extra, overplot=(i gt 0), noplot=(nr ge 10)
+                             flux=flux, _EXTRA=extra, overplot=(i gt 0), noplot=(nr ge 10)
      r0[*,i,*] = xy_out[0,*,0,*]
      z0[*,i,*] = xy_out[0,*,1,*]
   end
