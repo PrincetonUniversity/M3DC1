@@ -4146,21 +4146,47 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
       symbol = '!5J!9X!5B!9.!9P!X'
 
    ;===========================================
-   ; toroidal angular momentum flux
+   ; Total vertical force density
    ;===========================================
    endif else if(strcmp('JxB_z', name, /fold_case) eq 1) then begin
       bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       
       data = (jx*by - jy*bx)
       d = dimensions(/p0, l0=-1)
       symbol = '!5J!9X!5B!9.!8Z!X'
+
+   ;===========================================
+   ; Vertical force contribution 1
+   ;===========================================
+      endif else if(strcmp('JxBy_z', name, /fold_case) eq 1) then begin
+      by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+      jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+ 
+      data = (jx*by)
+      d = dimensions(/p0, l0=-1)
+      symbol = '!8J!DR!N!8B!D!9P!X'
+
+   ;===========================================
+   ; Vertical force contribution 2
+   ;===========================================
+      endif else if(strcmp('JyBx_z', name, /fold_case) eq 1) then begin
+      bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+      jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+
+      data = -(jy*bx)
+      d = dimensions(/p0, l0=-1)
+      symbol = '-!8J!D!9P!N!8B!DR!X'
 
    ;===========================================
    ; toroidal angular momentum flux

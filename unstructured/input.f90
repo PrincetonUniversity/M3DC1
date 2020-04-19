@@ -178,6 +178,11 @@ subroutine set_defaults
   integer :: prad_grp
   integer :: kprad_grp
 
+  ! Dummy variables for reading deprecated options
+  ! These must be "saved" so that they will exist when they are written to
+  ! (which happens outside of this subroutine)
+  integer, save :: idum
+  real, save :: dum
 
   call add_group("Model Options", model_grp)
   call add_group("Equilibrium", eq_grp)
@@ -304,6 +309,8 @@ subroutine set_defaults
        "Offset in Te when calculating eta", transp_grp)
   call add_var_double("eta_max", eta_max, 0., &
        "Maximum value of resistivity in the plasma region", transp_grp)
+  call add_var_double("eta_min", eta_min, 0., &
+       "Minimum value of resistivity in the plasma region", transp_grp)
 
   call add_var_int("ikappafunc", ikappafunc, 0, "", transp_grp)
   call add_var_int("ikapscale", ikapscale, 0, "", transp_grp)
@@ -936,10 +943,6 @@ subroutine set_defaults
        "Number of time steps per field output", output_grp)
   call add_var_int("ntimers", ntimers, 0, &
        "Number of time steps per restart output", output_grp)
-  call add_var_int("iglobalout", iglobalout, 0, "", output_grp)
-  call add_var_int("iglobalin", iglobalin, 0, "", output_grp)
-  call add_var_int("iwrite_adios", iwrite_adios, 0, &
-       "1: Use ADIOS to write restart files", output_grp)
   call add_var_int("ifout",  ifout, -1, "", output_grp)
   call add_var_int("icalc_scalars", icalc_scalars, 1, &
        "1: Calculate scalar diagnostics", output_grp)
@@ -950,11 +953,6 @@ subroutine set_defaults
   call add_var_int("ibh_harmonics", ibh_harmonics, 0, &
        "Number of Fourier harmonics of magnetic perturbation to be calculated and output", output_grp)
   call add_var_int("irestart", irestart, 0, "", output_grp)
-  call add_var_int("irestart_factor", irestart_factor, 1, "", output_grp)
-  call add_var_int("iread_adios", iread_adios, 0, &
-       "1: Use ADIOS to read restart files", output_grp)
-  call add_var_int("iread_hdf5", iread_hdf5, 1, &
-       "1: Restart using HDF5 files", output_grp)
   call add_var_int("itimer", itimer, 0, &
        "1: Output internal timer data", output_grp)
   call add_var_int("iwrite_transport_coeffs", iwrite_transport_coeffs, 1, &
@@ -1104,13 +1102,24 @@ subroutine set_defaults
        "Polynomial order for certain preconditioners", trilinos_grp)
 
   ! Deprecated
-  call add_var_int("ibform", ibform, -1, "", deprec_grp)
-  call add_var_int("igs_method", igs_method, -1, "", deprec_grp)
-  call add_var_int("iwrite_restart", iwrite_restart, 0, &
+  call add_var_int("ibform", idum, -1, "", deprec_grp)
+  call add_var_int("igs_method", idum, -1, "", deprec_grp)
+  call add_var_int("iwrite_restart", idum, 0, &
        "1: Write restart files", deprec_grp)
-  call add_var_double("zeff", zeff_xxx, 0., "Z of main ion species", deprec_grp)
-  call add_var_int("ivform", ivform, 1, &
+  call add_var_double("zeff", dum, 0., &
+       "zeff is deprecated.  Use z_ion instead.", deprec_grp)
+  call add_var_int("ivform", idum, 1, &
        "ivform is deprecated.  Only ivform=1 is now implemented.", deprec_grp)
+  call add_var_int("iwrite_adios", idum, 0, &
+       "iwrite_adios is deprecated.", deprec_grp)
+  call add_var_int("iglobalout", idum, 0, &
+       "iglobalout is deprecated", deprec_grp)
+  call add_var_int("iglobalin", idum, 0, &
+       "iglobalin is deprecated", deprec_grp)
+  call add_var_int("iread_adios", idum, 0, &
+       "iread_adios is deprecated", deprec_grp)
+  call add_var_int("iread_hdf5", idum, 1, &
+       "iread_hdf5 is deprecated", deprec_grp)
 
 end subroutine set_defaults
 
@@ -1198,11 +1207,6 @@ subroutine validate_input
      end if
   end if
 
-  if(zeff_xxx .ne. .0 .and. itemp.eq.1) then
-     if(myrank.eq.0) print *, "zeff is deprecated.  Use z_ion instead."
-     call safestop(1)
-  endif
-
   if(z_ion .ne. 1.0 .and. itemp.eq.1) then
      if(myrank.eq.0) print *, "itemp=1 not allowed with z_ion .gt. 1"
      call safestop(1)
@@ -1217,13 +1221,6 @@ subroutine validate_input
      if(myrank.eq.0) print *, "idiff=1 not allowed with isplitstep=0"
      call safestop(1)
   endif
-
-  if(igs_method.ne.-1) then 
-     if(myrank.eq.0) print *, "WARNING: igs_method is now deprecated"
-  end if
-  if(iwrite_restart.ne.0) then 
-     if(myrank.eq.0) print *, "WARNING: iwrite_restart is now deprecated"
-  end if
 
   
   ! calculate pfac (pe*pfac = electron pressure)
@@ -1246,9 +1243,6 @@ subroutine validate_input
    endif
 
   if(ifout.eq.-1) ifout = i3d
-  if(ibform.ne.-1) then
-     if(myrank.eq.0) print *, 'WARNING: ibform input parameter deprecated'
-  endif
   if(i3d.eq.1 .and. jadv.eq.0) then
      if(myrank.eq.0) &
           print *, 'WARNING: nonaxisymmetric cases should use jadv=1'
@@ -1510,16 +1504,6 @@ subroutine validate_input
 #endif
   end if
 
-#ifndef USEADIOS
-  if(iwrite_adios.ne.0 .or. iread_adios.ne.0) then
-     if(myrank.eq.0) then
-        print *, 'Error: iwrite_adios and iread_adios cannot be used.'
-        print *, 'This installation was not built with ADIOS'
-     end if
-     call safestop(1)
-  end if
-#endif
-
   if(kinetic.eq.1) then !Hybrid model sanity check goes here
 #ifdef USEPARTICLES
 #else
@@ -1549,6 +1533,7 @@ subroutine validate_input
        * (n0_norm**3 * l0_norm / B0_norm**4)
   efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
   if(eta_max.le.0.) eta_max = eta_vac
+  if(eta_min.le.0.) eta_min = 0.
   if(kappa_max.le.0.) kappa_max = kappar
 
   if(myrank.eq.0 .and. iprint.ge.1) then
@@ -1557,6 +1542,10 @@ subroutine validate_input
      print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.) &
           * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
      print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.), &
+          ' dimensionless'
+     print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.) &
+          * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
+     print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.), &
           ' dimensionless'
   end if
   

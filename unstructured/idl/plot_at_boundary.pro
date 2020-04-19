@@ -1,5 +1,5 @@
 pro plot_at_boundary, name, field=field, angle=ang, smooth=sm, $
-                      outfile=outfile, _EXTRA=ex
+                      overplot=overplot, outfile=outfile, _EXTRA=ex
 
   xy = get_boundary_path(norm=norm, center=center, angle=angle, $
                          length=length, _EXTRA=ex)
@@ -55,9 +55,13 @@ pro plot_at_boundary, name, field=field, angle=ang, smooth=sm, $
      field = smooth(field, sm)
   end
 
-  plot, x, real_part(field), _EXTRA=ex, $
+  if(n_elements(overplot) le 0) then begin
+     plot, x, real_part(field), _EXTRA=ex, $
         xtitle=xtitle, $
         ytitle=u
+  endif else begin
+     oplot, x, real_part(field), _EXTRA=ex
+  endelse
 
   if(n_elements(outfile) eq 1) then begin
      openw, ifile, outfile, /get_lun

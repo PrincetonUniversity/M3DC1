@@ -54,7 +54,7 @@ module basic
   integer :: ikappar_ni
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: eta_fac
-  real :: eta_max
+  real :: eta_max, eta_min
   integer :: eta_mod
   real :: eta_te_offset  ! offset in Te when calculating eta
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
@@ -158,7 +158,6 @@ module basic
   integer :: irestart ! 1 = reads restart file as initial condition
                       ! 2 = reads restart file to initialize GS solve
                       ! 3 = reads 2D RL=1 restart file o initialize 2D COM=1 run
-  integer :: irestart_factor ! multiplication factor of nplanes in 3D restart (default: 1)
   integer :: irestart_slice   ! field output timeslice from which to restart
   integer :: version_in  ! Version of restart file
   integer :: itaylor  ! equilibrium
@@ -205,11 +204,6 @@ module basic
   integer :: igs_extend_p ! extend p past psi=1 using te and ne profiles
   integer :: igs_extend_diamag ! extend diamagnetic rotation past psi=1
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
-  integer :: igs_method  ! 1 = use node-based method (fastest, least accurate)
-                         ! 2 = use element-based method, and calculate p from
-                         !     input p profile (closest fit to input equil.)
-                         ! 3 = use element-based method, and calculate p from
-                         !     input p' profile (best gs solution)
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -258,8 +252,6 @@ module basic
                          ! 3 = zero out chi only
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
-  integer :: ivform      ! deprecated
-  integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
                          ! >2 hyper-resistivity also scaled by keharmonic(ihypeta)
@@ -378,8 +370,6 @@ module basic
   integer :: itimer        ! print timing info
   integer :: ntimepr       ! number of timesteps per output  
   integer :: ntimers       ! number of timesteps per restart output
-  integer :: iglobalout    ! 1 = write global restart files
-  integer :: iglobalin     ! 1 = read global restart files
   integer :: icalc_scalars ! 1 = calculate scalars
   integer :: ike_only      ! 1 = only calculate kinetic energy
   integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
@@ -405,10 +395,6 @@ module basic
   integer :: iheat_sink   !  add a sink term in p equation (initially for itaylor=27)
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
-  integer :: iwrite_restart ! 0 = don't write restart files
-  integer :: iwrite_adios
-  integer :: iread_adios
-  integer :: iread_hdf5
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization

@@ -278,12 +278,12 @@ contains
     error = 0
     call hdf5_get_local_elms(nelms, error)
 
-    if(nplanes.ne.nplanes_in) then
-       if(myrank.eq.0) print *, '3D gloabl_nelms: ', global_elms
-       global_elms = global_elms * nplanes_in / nplanes
-       if(myrank.eq.0) print *, '2D global_nelms: ', global_elms
-       offset = modulo(offset, global_elms)
-    end if
+!    if(nplanes.ne.nplanes_in) then
+!       if(myrank.eq.0) print *, '3D gloabl_nelms: ', global_elms
+!       global_elms = global_elms * nplanes_in / nplanes
+!       if(myrank.eq.0) print *, '2D global_nelms: ', global_elms
+!       offset = modulo(offset, global_elms)
+!    end if
 
     call h5gopen_f(time_group_id, "fields", group_id, error)
 
@@ -291,6 +291,8 @@ contains
     call h5r_read_field(group_id, "I",    bz_field(ilin), nelms, error)
 
     call h5r_read_field(group_id, "phi",   u_field(ilin), nelms, error)
+!    call m3dc1_field_write(u_field(ilin)%vec%id, "phi-r", 0)
+
     call h5r_read_field(group_id, "V",    vz_field(ilin), nelms, error)
     call h5r_read_field(group_id, "chi", chi_field(ilin), nelms, error)
 
@@ -317,7 +319,7 @@ contains
        end if
     end if
 
-    if(use_external_fields) then
+    if (use_external_fields) then
        call h5r_read_field(group_id, "psi_ext", psi_ext, nelms, error)
        call h5r_read_field(group_id,   "I_ext",  bz_ext, nelms, error)
        call h5r_read_field(group_id,   "f_ext",  bf_ext, nelms, error)       
@@ -377,6 +379,11 @@ contains
     vectype, dimension(coeffs_per_element,nelms) :: zdum
     integer :: i, coefs
     logical :: ir
+    integer :: elms_per_plane, new_plane, old_plane, plane_fac, k
+    integer :: offset_in, global_elms_in
+    real :: dphi
+    logical :: transform
+    vectype, dimension(dofs_per_element, dofs_per_element) :: trans_mat
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, 'Reading ', name
 
@@ -390,23 +397,55 @@ contains
 
     if(nplanes_in.eq.1) then
        coefs = coeffs_per_tri
+       global_elms_in = global_elms * nplanes_in / nplanes
+       offset_in = modulo(offset, global_elms_in)
        dum = 0.
+       transform = .false.
+    else if(nplanes_in .ne. nplanes) then 
+       if(mod(nplanes,nplanes_in).ne.0 .or. nplanes .lt. nplanes_in) then 
+          if(myrank.eq.0) then
+             print *, 'Error: new nplanes must be integer multiple of existing nplanes.'
+             call safestop(42)
+          end if
+       end if
+       coefs = coeffs_per_element
+       plane_fac = nplanes / nplanes_in
+       elms_per_plane = global_elms / nplanes
+       new_plane = offset / elms_per_plane
+       old_plane = new_plane / plane_fac
+       offset_in = offset - elms_per_plane*(new_plane - old_plane)
+       global_elms_in = global_elms / plane_fac
+       k = new_plane - old_plane * plane_fac
+       dphi = toroidal_period / nplanes_in
+       call get_nplane_transformation_matrix(trans_mat, k, plane_fac, dphi)
+       transform = .true.
     else
        coefs = coeffs_per_element
+       offset_in = offset
+       global_elms_in = global_elms
+       transform = .false.
     end if
 
-    call read_field(group_id, name, dum(1:coefs,:), coefs, nelms, error)
+    call read_field(group_id, name, dum(1:coefs,:), coefs, nelms, &
+         offset_in, global_elms_in, error)
     zdum = dum
     if(icomplex_in.eq.1 .and. .not.ir) then
-       call read_field(group_id,name//"_i", dum(1:coefs,:), coefs, nelms, error)
+       call read_field(group_id,name//"_i", dum(1:coefs,:), coefs, nelms, &
+            offset_in, global_elms_in, error)
 #ifdef USECOMPLEX
        zdum = zdum + (0.,1.)*dum
 #endif
     end if
     f = 0.
-    do i=1, nelms
-       call setavector(i, f, zdum(:,i))
-    end do   
+    if(transform) then
+       do i=1, nelms
+          call setavector(i, f, zdum(:,i), trans_mat)
+       end do
+    else
+       do i=1, nelms
+          call setavector(i, f, zdum(:,i))
+       end do
+    end if
     
   end subroutine h5r_read_field
 

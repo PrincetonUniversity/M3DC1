@@ -20,8 +20,8 @@ endif
  
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
 
-SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/hsw-petsc3.9.3
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/hsw-bin
+SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/hsw-petsc3.12.4
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/hsw-petsc3.12.4/bin
 
 ifeq ($(REORDERED), 1)
   SCORECVER=reordered
@@ -32,6 +32,7 @@ ifdef SCORECVER
 else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
+#SCOREC_DIR=/global/homes/j/jinchen/project/LIB
 
 ifeq ($(COM), 1)
     M3DC1_SCOREC_LIB = m3dc1_scorec_complex
@@ -45,20 +46,16 @@ SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
-PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.9.3
+PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
 ifeq ($(COM), 1)
-  PETSC_ARCH=cori-hsw-mpich776-cplx-nomkl-510
+  PETSC_ARCH=corihsw-PrgEnvintel605-craympich7710-master-cplx
 else
-  PETSC_ARCH=cori-hsw-mpich776-real-nomkl-510
+  PETSC_ARCH=corihsw-PrgEnvintel605-craympich7710-master-real
 endif
 
   MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
-  PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
+  PETSC_WITH_EXTERNAL_LIB = -Wl,--start-group -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist  -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lptscotchparmetis -lesmumps -lscotch -lscotcherr -lscotchmetis -Wl,--end-group -lrt -lm -lpthread -lz -ldl -lstdc++
 
-#only define them if adios-1.3 is used; otherwise use hopper default
-#ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
-#ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
-#ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
 ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
@@ -75,6 +72,7 @@ LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
+	-L$(FFTW_DIR)/lib -lfftw3_mpi -lfftw3 \
         -L$(HDF5_DIR)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB) \

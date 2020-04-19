@@ -1,4 +1,4 @@
-pro write_neo_input, q, _EXTRA=extra, out=outfile
+pro write_neo_input, q, _EXTRA=extra, out=outfile, nphi=nphi, scalefac=scalefac
 
   if(n_elements(q) eq 0) then begin
      q = flux_average('q', flux=qflux, psi=psi0, x=x,z=z,t=t,fc=fc, $
@@ -6,7 +6,7 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   end
   nr = n_elements(q)
   ntheta = 100
-  nphi = 16
+  if(n_elements(nphi) eq 0) then nphi = 16
   
   theta = 2.*!pi*findgen(ntheta)/(ntheta) - !pi
   phi = 2.*!pi*findgen(nphi)/(nphi)
@@ -16,7 +16,8 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   for i=0, nphi-1 do begin
      plot_perturbed_surface, q, $
                              xy_out=xy_out, theta=theta, phi=phi[i]*180./!pi, $
-                             flux=flux, scale=10, _EXTRA=extra, overplot=(i gt 0), noplot=(nr ge 10)
+                             flux=flux, _EXTRA=extra, overplot=(i gt 0), $
+                             scalefac=scalefac, noplot=(nr ge 10)
      r0[*,i,*] = xy_out[0,*,0,*]
      z0[*,i,*] = xy_out[0,*,1,*]
   end
@@ -30,7 +31,11 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
                      bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
   Ti0 = flux_average('Ti',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,$
                      bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-  
+
+
+  if(n_elements(qflux) eq 0) then begin
+     qflux = flux_at_q(q, psi=psi0,x=x,z=z,t=t)
+  end
   ;; ne0_x = interpol(ne0,qflux,flux)
   ;; ni0_x = interpol(ni0,qflux,flux)
   ;; Te0_x = interpol(Te0,qflux,flux)

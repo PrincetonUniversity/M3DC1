@@ -199,6 +199,7 @@ int m3dc1_matrix::destroy()
 {
   PetscErrorCode ierr = MatDestroy(A);
   CHKERRQ(ierr);    
+  return M3DC1_SUCCESS;
 }
 
 m3dc1_matrix::~m3dc1_matrix()
@@ -512,7 +513,7 @@ int  m3dc1_matrix::preAllocateSeqMat()
 
 int m3dc1_matrix::setupParaMat()
 {
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], vertex_type=0, num_own_dof;
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
   m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
@@ -793,13 +794,11 @@ int matrix_solve::add_blockvalues(int rbsize, int * rows, int cbsize, int * colu
 int matrix_solve::assemble()
 {
   PetscErrorCode ierr;
-  double t1 = MPI_Wtime(), t2=t1;
   if (!m3dc1_solver::instance()->assembleOption)
   {
     ierr = MatAssemblyBegin(remoteA, MAT_FINAL_ASSEMBLY);
     CHKERRQ(ierr);
     ierr = MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY);
-    t2 = MPI_Wtime();
     //pass remoteA to ownnering process
     int brgType = m3dc1_mesh::instance()->mesh->getDimension();
 

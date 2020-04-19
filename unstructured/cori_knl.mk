@@ -21,24 +21,25 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc-3.9.3
+PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_ARCH = cori-knl-mpich776-cplx-nomkl-510
+  PETSC_ARCH = coriknl-PrgEnvintel605-craympich7710-master-cplx
 else
   M3DC1_SCOREC_LIB = m3dc1_scorec
-  PETSC_ARCH = cori-knl-mpich776-real-nomkl-510
+  PETSC_ARCH = coriknl-PrgEnvintel605-craympich7710-master-real
 endif
 
-PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
+PETSC_LIB = -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
-     -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lptesmumps \
+     -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lesmumps -lptesmumps \
      -lpord -lsuperlu -lsuperlu_dist \
      -lparmetis -lmetis -lpthread -ldl -lstdc++  \
-     -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit #\
+     -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit -lscotchmetis \
+     -Wl,--end-group
 
-SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/knl-petsc3.9.3
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.6/knl-bin
+SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/knl-petsc3.12.4/
+SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/knl-petsc3.12.4/bin
 
 ifeq ($(REORDERED), 1)
   SCORECVER=reordered

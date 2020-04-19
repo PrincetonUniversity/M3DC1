@@ -42,7 +42,7 @@ contains
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
-    integer :: info, comm
+    integer :: info
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -53,21 +53,7 @@ contains
     ! Set up the file access property list with parallel I/O
     call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
     info = MPI_INFO_NULL
-
-#ifdef RESTART_FACTOR
-   if (irestart_factor.gt.1) then !discard the group comm and re-open hdf5
-     call m3dc1_comm_split(irestart_factor, comm)
-     if (myrank .eq. 0) print *, "HDF5 initialized with group MPI_Comm of factor ", irestart_factor
-     irestart_factor=1
-   else
-#endif
-     comm=MPI_COMM_WORLD
-     if (myrank .eq. 0) print *, "HDF5 initialized with MPI_COMM_WORLD"
-#ifdef RESTART_FACTOR
-   endif
-#endif
- 
-   call h5pset_fapl_mpio_f(plist_id, comm, info, error)
+    call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
 
     if(.not.restart) then
        ! create hdf5 file
@@ -132,6 +118,7 @@ contains
 
   subroutine hdf5_get_local_elms(nelms, error)
     use mesh_mod
+    use basic
 
     implicit none
 
@@ -144,8 +131,10 @@ contains
 
   ! Calculate offset of current process
     call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+
     offset = offset - nelms
-!  print *, "Offset of ", myrank, " = ", offset
+    ! print *, "[",myrank,"] hdf5_get_local_elms Offset ", offset
+
 !  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
 !  print *, 'myrank, local_elms, global_elms, offset', &
 !       myrank, nelms, global_elms, offset
@@ -460,7 +449,8 @@ contains
 
   ! read_field
   ! ==========
-  subroutine read_field(parent_id, name, values, ndofs, nelms, error)
+  subroutine read_field(parent_id, name, values, ndofs, nelms, &
+       offset_loc, global_elms_loc, error)
     use hdf5
     
     implicit none
@@ -475,6 +465,7 @@ contains
     integer(HID_T) :: filespace, memspace, dset_id, plist_id
     integer(HSIZE_T), dimension(rank) :: local_dims, global_dims
     integer(HSSIZE_T), dimension(rank) :: off
+    integer :: offset_loc, global_elms_loc 
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
@@ -484,9 +475,9 @@ contains
     local_dims(1) = ndofs
     local_dims(2) = nelms
     global_dims(1) = ndofs
-    global_dims(2) = global_elms
+    global_dims(2) = global_elms_loc
     off(1) = 0
-    off(2) = offset
+    off(2) = offset_loc
 
     call h5dopen_f(parent_id, name, dset_id, error)
     call h5dget_space_f(dset_id, filespace, error)
@@ -877,8 +868,7 @@ contains
     integer(HSIZE_T) :: chunk_size(2)
     integer(HSIZE_T) :: dims(2), maxdims(2), local_dims(2), off(2)
     integer(SIZE_T) :: num_elements
-    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
-    logical :: exists
+    integer(HID_T) :: memspace, filespace, dset_id, plist_id
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from

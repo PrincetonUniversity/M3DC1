@@ -166,7 +166,6 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
         hdf5_output.o particle.o   \
 	time_step.o output.o restart_hdf5.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
-	restart.o \
 	init_conds.o \
 	get_pc_skip_count.o \
 	parse_solver_options.o

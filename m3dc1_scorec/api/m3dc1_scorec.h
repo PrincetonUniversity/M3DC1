@@ -47,10 +47,6 @@ bool m3dc1_double_isequal(double A, double B);
 int m3dc1_scorec_init();
 int m3dc1_scorec_finalize();
 
-void m3dc1_comm_get(MPI_Comm* currentComm);
-void m3dc1_comm_split(int* num_out_comm, MPI_Comm* newComm);
-void m3dc1_comm_merge();
-
 /** plane functions */
 int m3dc1_plane_setnum(int*);
 int m3dc1_plane_getnum(int*);
@@ -71,7 +67,7 @@ int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); /
 /** mesh functions */
 
 int m3dc1_mesh_load(char* mesh_file);
-int m3dc1_mesh_write(char* filename, int *option); // 0: vtk file with field; 1:smb file
+int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk file with field; 1:smb file
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
 int m3dc1_ghost_create (int* num_layer ); 

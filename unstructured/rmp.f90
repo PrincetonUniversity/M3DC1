@@ -106,6 +106,8 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   if(present(p)) p = 0.
 
   select case(irmp)
+  case(0)
+
   case(1)
      fr   = 0.    ! B_R
      fphi = 0.    ! B_phi

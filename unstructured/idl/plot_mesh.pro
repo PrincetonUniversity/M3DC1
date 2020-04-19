@@ -17,7 +17,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    if(not keyword_set(oplot)) then begin
        xtitle = make_label('!8R!X',/l0,_EXTRA=ex)
        ytitle = make_label('!8Z!X',/l0,_EXTRA=ex)
-       plot, elm_data[4,*], xtitle=xtitle, ytitle=ytitle, $
+       plot, elm_data[4,*], xrange=xrange, yrange=yrange, xtitle=xtitle, ytitle=ytitle, $
          elm_data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
