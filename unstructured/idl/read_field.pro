@@ -1638,7 +1638,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        i_z = read_field('i', x, y, t, slices=time, mesh=mesh, op=3, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange, complex=complex, $
-                       wall_mask=wall_mask)
+                       phi=phi0, wall_mask=wall_mask)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -1650,12 +1650,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            psi_rp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=12, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                              wall_mask=wall_mask)
+                            phi=phi0,  wall_mask=wall_mask)
 
            f_zpp = read_field('f', x, y, t, slices=time, mesh=mesh, op=23, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                             wall_mask=wall_mask)
+                          phi=phi0,  wall_mask=wall_mask)
 
            data = data - f_zpp / r + psi_rp/r^2
        endif else if(ntor ne 0) then begin
@@ -1727,7 +1727,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        i_r = read_field('i', x, y, t, slices=time, mesh=mesh, op=2, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange, complex=complex, $
-                        wall_mask=wall_mask)
+                      phi=phi0, wall_mask=wall_mask)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -1739,12 +1739,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            psi_zp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=13, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                              wall_mask=wall_mask)
+                            phi=phi0, wall_mask=wall_mask)
 
            f_rpp = read_field('f', x, y, t, slices=time, mesh=mesh, op=22, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                              wall_mask=wall_mask)
+                          phi=phi0,  wall_mask=wall_mask)
 
            data = data + f_rpp / r + psi_zp/r^2
         endif else if(ntor ne 0) then begin
@@ -4112,13 +4112,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('JxB_x', name, /fold_case) eq 1) then begin
       by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
       bz = read_field('bz',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
       jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
       jz = read_field('jz',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
       
       data = (jy*bz - jz*by)
       d = dimensions(/p0, l0=-1)
@@ -4129,16 +4129,16 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('JxB_y', name, /fold_case) eq 1) then begin
       bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,linear=linear,$
                      complex=complex,wall_mask=wall_mask)
       bz = read_field('bz',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,linear=linear,$
                      complex=complex,wall_mask=wall_mask)
       jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,linear=linear,$
                      complex=complex,wall_mask=wall_mask)
       jz = read_field('jz',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,linear=linear,$
                      complex=complex,wall_mask=wall_mask)
       
       data = (jz*conj(bx) - jx*conj(bz))
@@ -4150,13 +4150,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('JxB_z', name, /fold_case) eq 1) then begin
       bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       
       data = (jx*by - jy*bx)
       d = dimensions(/p0, l0=-1)
@@ -4167,9 +4167,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
       endif else if(strcmp('JxBy_z', name, /fold_case) eq 1) then begin
       by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
  
       data = (jx*by)
       d = dimensions(/p0, l0=-1)
@@ -4180,9 +4180,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
       endif else if(strcmp('JyBx_z', name, /fold_case) eq 1) then begin
       bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
 
       data = -(jy*bx)
       d = dimensions(/p0, l0=-1)
