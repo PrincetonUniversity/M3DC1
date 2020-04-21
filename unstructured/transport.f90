@@ -99,11 +99,11 @@ function sigma_func(izone)
 
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+             x_79(j),z_79(j)).eq.2) then
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+
         call evaluate_spline(particlesource_spline,pso,val,valp,valpp)
         temp79a(j) = val * pellet_rate(1)
      end do
@@ -362,12 +362,12 @@ function q_func(izone)
 
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) &
+             x_79(j),z_79(j)).eq.2) &
              then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+
         call evaluate_spline(heatsource_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
@@ -744,11 +744,11 @@ function resistivity_func()
      
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+             x_79(j),z_79(j)).eq.2) then
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+
         call evaluate_spline(eta_spline,pso,val,valp,valpp)
         temp79a(j) = val
         if(myrank.eq.0) print *, pso, val
@@ -828,12 +828,12 @@ function viscosity_func()
      
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) &
+             x_79(j),z_79(j)).eq.2) &
              then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+
         call evaluate_spline(amu_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
@@ -963,11 +963,10 @@ function kappa_func()
      
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+             x_79(j),z_79(j)).eq.2) then
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         call evaluate_spline(kappa_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
