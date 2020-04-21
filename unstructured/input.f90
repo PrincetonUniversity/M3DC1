@@ -768,7 +768,8 @@ subroutine set_defaults
        "1: Periodic boundary condition in R direction", bc_grp)
   call add_var_int("jper", jper, 0, &
        "1: Preiodic boundary condition in Z direction", bc_grp)
-
+  call add_var_double("tebound", tebound, -1., "", bc_grp)
+  call add_var_double("tibound", tibound, -1., "", bc_grp)
   
   ! resistive wall
   call add_var_double("eta_wall", eta_wall, 1e-3, &

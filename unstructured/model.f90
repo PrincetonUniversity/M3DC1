@@ -578,7 +578,12 @@ subroutine boundary_te(rhs, te_v, mat)
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
      if(iconst_t.eq.1) then
-        call get_node_data(te_field(1), i, temp)
+        if(tebound.gt.0.) then
+           temp = 0.
+           temp(1) = tebound
+        else
+           call get_node_data(te_field(1), i, temp)
+        end if
 
         if(idiff .gt. 0) temp = 0.
 
@@ -646,7 +651,12 @@ subroutine boundary_ti(rhs, ti_v, mat)
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
      if(iconst_t.eq.1 .or. iconst_p.eq.1) then
-        call get_node_data(ti_field(1), i, temp)
+        if(tibound.gt.0.) then
+           temp = 0.
+           temp(1) = tibound
+        else
+           call get_node_data(ti_field(1), i, temp)
+        end if
 
         if(idiff .gt. 0) temp = 0.
 

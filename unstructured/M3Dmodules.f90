@@ -213,6 +213,8 @@ module basic
   real :: p1, p2
   real :: pedge       ! pressure in SOL
   real :: tedge       ! electron temperature in SOL
+  real :: tebound      ! boundary condition for electron temperature
+  real :: tibound      ! boundary condition for ion temperature
   real :: expn        ! density = pressure**expn
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
