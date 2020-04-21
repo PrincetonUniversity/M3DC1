@@ -5,7 +5,6 @@
 #SBATCH -J M3DC1_regtest_pellet
 #SBATCH -t 0:30:00
 #SBATCH -o C1stdout
-#SBATCH --mem=10000
 
 touch started
 
