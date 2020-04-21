@@ -12490,21 +12490,21 @@ subroutine JxB_phi(o)
   vectype, intent(out), dimension(MAX_PTS) :: o
 
   o = &
-       - ri2_79*bzt79(:,OP_DZ)*pstx79(:,OP_DR) &
-       + ri2_79*bzt79(:,OP_DR)*pstx79(:,OP_DZ)
+       + ri2_79*bzt79(:,OP_DZ)*pstx79(:,OP_DR) &
+       - ri2_79*bzt79(:,OP_DR)*pstx79(:,OP_DZ)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   o = o &
-       - ri2_79*bft79(:,OP_DZPP)*pstx79(:,OP_DR) &
-       + ri2_79*bft79(:,OP_DRPP)*pstx79(:,OP_DZ) &
+       + ri2_79*bft79(:,OP_DZPP)*pstx79(:,OP_DR) &
+       - ri2_79*bft79(:,OP_DRPP)*pstx79(:,OP_DZ) &
        - ri_79*bzt79(:,OP_DZ)*bftx79(:,OP_DZP) &
        - ri_79*bzt79(:,OP_DR)*bftx79(:,OP_DRP) &
        - ri_79*bft79(:,OP_DZPP)*bftx79(:,OP_DZP) &
        - ri_79*bft79(:,OP_DRPP)*bftx79(:,OP_DRP) &
        - ri3_79*pst79(:,OP_DZP)*pstx79(:,OP_DZ) &
        - ri3_79*pst79(:,OP_DRP)*pstx79(:,OP_DR) &
-       - ri3_79*pst79(:,OP_DZP)*bftx79(:,OP_DR) &
-       + ri3_79*pst79(:,OP_DRP)*bftx79(:,OP_DZ)
+       - ri2_79*pst79(:,OP_DZP)*bftx79(:,OP_DRP) &
+       + ri2_79*pst79(:,OP_DRP)*bftx79(:,OP_DZP)
 #endif       
 
 end subroutine JxB_phi
