@@ -246,7 +246,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
             end
          endif else begin
             for i=0, n_elements(flux)-1 do begin
-               printf, ifile, format='(2E16.6)', flux[i], fa[i]
+               printf, ifile, format='(2E16.6)', flux[i], real_part(fa[i])
             end
          endelse
          free_lun, ifile
