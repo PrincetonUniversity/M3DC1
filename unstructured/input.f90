@@ -340,7 +340,7 @@ subroutine set_defaults
   call add_var_double("kappai_fac", kappai_fac, 1., &
        "Factor to multiply kappa when evaluating ion perp. thermal diffusivity", transp_grp)
 
-
+  call add_var_int("idenmfunc", idenmfunc, 0, "", transp_grp)
   call add_var_double("denm", denm, 0., &
        "Density hyperdiffusion coefficient", transp_grp)
   

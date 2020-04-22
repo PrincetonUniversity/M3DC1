@@ -4521,6 +4521,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
        + FIELD_ETA + FIELD_MU &
        + FIELD_N + FIELD_NI
 
+  if(idens.eq.1) then
+     def_fields = def_fields + FIELD_DENM
+  end if
+
   if(numvar.ge.3 .or. ipres.eq.1) then
      def_fields = def_fields + FIELD_KAP
   end if
@@ -5454,7 +5458,7 @@ subroutine ludefden_n(itri)
 
   do j=1,dofs_per_element
      
-     tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79) &
+     tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79) &
           +  n1nu   (mu79,nu79(j,:,:),pht79)
      ssterm(:,j) = ssterm(:,j) -     thimp     *dt*tempx
      ddterm(:,j) = ddterm(:,j) + (1.-thimp*bdf)*dt*tempx

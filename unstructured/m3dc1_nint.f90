@@ -75,6 +75,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_KIN  =33554432
   integer, parameter :: FIELD_RE   =67108864 
   integer, parameter :: FIELD_WALL =134217728  ! 2^27
+  integer, parameter :: FIELD_DENM =268435456  ! 2^28
 
 ! NOTE: All element-specific variables should be declared OMP THREADPRIVATE
 
@@ -106,6 +107,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(bf079,bf179,bft79)
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
 !$OMP THREADPRIVATE(kap79,kar79,kax79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: denm79
+!$OMP THREADPRIVATE(denm79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
        ph079, vz079, ch079, p079, ne079, pi079
 !$OMP THREADPRIVATE(ps079,bz079,pe079,n079,ph079,vz079,ch079,p079,ne079,pi079)
@@ -766,6 +769,7 @@ contains
           ne079 = 0.
           net79 = ne179
        endif
+
     endif
 
   ! NI
@@ -1101,6 +1105,16 @@ contains
      end if
 
   end if
+
+  ! denm
+  ! ~~~~
+  if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
+
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   denm..."
+     
+     call eval_ops(itri, denm_field, denm79)
+  end if
+
 
   ! KAP
   ! ~~~

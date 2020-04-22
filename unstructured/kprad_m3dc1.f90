@@ -241,7 +241,7 @@ contains
     call clear_mat(nmat_rhs)
     call create_field(rhs)
 
-    def_fields = FIELD_PHI + FIELD_V + FIELD_CHI
+    def_fields = FIELD_PHI + FIELD_V + FIELD_CHI + FIELD_DENM
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating matrix'
 
@@ -262,7 +262,7 @@ contains
        do j=1, dofs_per_element
           ! NUMVAR = 1
           ! ~~~~~~~~~~      
-          tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
+          tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79)
           ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
           ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           
@@ -347,7 +347,7 @@ contains
           if(izone.ne.1) goto 200
     
           do j=1, dofs_per_element
-             tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
+             tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79)
              ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
              ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           end do
@@ -427,7 +427,7 @@ contains
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
 
-    def_fields = FIELD_N + FIELD_TE
+    def_fields = FIELD_N + FIELD_TE + FIELD_DENM
     if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
          def_fields = def_fields + FIELD_P
 

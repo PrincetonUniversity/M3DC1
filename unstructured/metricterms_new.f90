@@ -8098,28 +8098,28 @@ function n1ndenm(e,f,g,h)
 
   vectype, dimension(dofs_per_element) :: n1ndenm
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,h
-  real, intent(in) :: g
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      if(inograd_n.eq.1) then
         temp = 0.
      else
-        temp = g* &
-             (intx3(e(:,:,OP_1),norm79(:,1),f(:,OP_DR)) &
-             +intx3(e(:,:,OP_1),norm79(:,2),f(:,OP_DZ)))
+        temp =  &
+             (intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+             +intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DZ),g(:,OP_1)))
      end if
   else
-     temp = -g* &
-          (intx2(e(:,:,OP_DZ),f(:,OP_DZ)) + intx2(e(:,:,OP_DR),f(:,OP_DR)))
+     temp = -(intx3(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
+          +   intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_1)))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-     temp79a = g
+     temp79a = g(:,OP_1)
      if(iupstream .eq. 1) then   
         temp79a = temp79a+abs(h(:,OP_1))*magus
      endif
-     temp = temp + intx4(e(:,:,OP_1),ri2_79,f(:,OP_DPP),temp79a)
+     temp = temp + intx4(e(:,:,OP_1),ri2_79,f(:,OP_DPP),temp79a) &
+          + intx4(e(:,:,OP_1),ri2_79,f(:,OP_DP),g(:,OP_DP))
      if(iupstream .eq. 2) then   
         temp79a = abs(h(:,OP_1))*magus
         temp = temp - intx4(e(:,:,OP_DPP),ri4_79,f(:,OP_DPP),temp79a)
@@ -8128,7 +8128,7 @@ function n1ndenm(e,f,g,h)
 
      if(hypp.ne.0.) then
         if(ihypkappa.eq.1) then
-           temp = temp - hypp*g*intx2(e(:,:,OP_LP),f(:,OP_LP))
+           temp = temp - hypp*intx3(e(:,:,OP_LP),f(:,OP_LP),g(:,OP_1))
         else
            temp = temp - hypp*intx2(e(:,:,OP_LP),f(:,OP_LP))
         endif

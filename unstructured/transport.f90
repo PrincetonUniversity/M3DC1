@@ -3,6 +3,7 @@ module transport_coefficients
 
   type(spline1d), private :: eta_spline
   type(spline1d), private :: kappa_spline
+  type(spline1d), private :: denm_spline
   type(spline1d), private :: amu_spline
   type(spline1d), private :: heatsource_spline
   type(spline1d), private :: particlesource_spline
@@ -1013,6 +1014,60 @@ function kappa_func()
   kappa_func = temp
 end function kappa_func
 
+! denm
+! ~~~~
+function denm_func()
+  use math
+  use read_ascii
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use basicq
+  use basicj
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: denm_func
+  integer :: nvals, j
+  real :: val, valp, valpp, pso
+  real, allocatable :: xvals(:), yvals(:)
+
+  select case (idenmfunc)
+  case(0)
+       temp79a = denm
+
+  case(10,11)
+     if(.not.allocated(denm_spline%x)) then
+        ! Read in m^2/s (10) or normalized units (11)
+        nvals = 0
+        call read_ascii_column('profile_denm', xvals, nvals, icol=1)
+        call read_ascii_column('profile_denm', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(6)
+        if(idenmfunc.eq.10) then
+           yvals = yvals * 1e4 / (l0_norm * v0_norm)
+        end if
+        call create_spline(denm_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     
+     do j=1, npoints
+        if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j),z_79(j)).eq.2) then
+           pso = 2. - pso
+        end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+        call evaluate_spline(denm_spline,pso,val,valp,valpp)
+        temp79a(j) = val
+     end do
+
+  case default
+     if(myrank.eq.0) print *, 'Error: invalid value for idenmfunc: ', idenmfunc
+     call safestop(73)
+  end select
+
+  denm_func = intx2(mu79(:,:,OP_1),temp79a)
+end function denm_func
+
 
 ! Electron viscosity
 ! ~~~~~~~~~~~~~~~~~~
@@ -1130,9 +1185,9 @@ subroutine define_transport_coefficients()
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
        solve_visc_e, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
        solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
-       solve_fp
+       solve_fp, solve_denm
 
-  integer, parameter :: num_scalars = 15
+  integer, parameter :: num_scalars = 16
   integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -1147,6 +1202,7 @@ subroutine define_transport_coefficients()
   solve_resistivity = .false.
   solve_visc = .false.
   solve_kappa = .false.
+  solve_denm = .false.
   solve_sigma = .false.
   solve_visc_e = .false.
   solve_f = .false.
@@ -1163,6 +1219,7 @@ subroutine define_transport_coefficients()
   ! clear variables
   resistivity_field = 0.
   kappa_field = 0.
+  denm_field = 0.
 
   visc_field = 0.
   if(density_source) sigma_field = 0.  
@@ -1228,6 +1285,13 @@ subroutine define_transport_coefficients()
 !$OMP CRITICAL
      if(solve_kappa) &
           call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+
+     dofs = denm_func()
+     if(.not.solve_denm) solve_denm = any(dofs.ne.0.)
+!$OMP CRITICAL
+     if(solve_denm) &
+          call vector_insert_block(denm_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL
 
 
@@ -1365,6 +1429,7 @@ subroutine define_transport_coefficients()
      if(solve_ionrad)      temp(13) = 1
      if(solve_reckrad)     temp(14) = 1
      if(solve_recprad)     temp(15) = 1
+     if(solve_denm)        temp(16) = 1
 
      call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
           MPI_MAX, MPI_COMM_WORLD, ier)
@@ -1379,11 +1444,12 @@ subroutine define_transport_coefficients()
      solve_fp          = temp2(8).eq.1
      solve_cd          = temp2(9).eq.1
      solve_totrad      = temp2(10).eq.1
-     solve_linerad      = temp2(11).eq.1
+     solve_linerad     = temp2(11).eq.1
      solve_bremrad     = temp2(12).eq.1
      solve_ionrad      = temp2(13).eq.1
      solve_reckrad     = temp2(14).eq.1
      solve_recprad     = temp2(15).eq.1
+     solve_denm        = temp2(16).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -1396,6 +1462,11 @@ subroutine define_transport_coefficients()
   if(solve_kappa) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
      call newvar_solve(kappa_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_denm) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  denm'
+     call newvar_solve(denm_field%vec, mass_mat_lhs)
   endif
 
   if(solve_sigma) then
