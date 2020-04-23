@@ -590,7 +590,7 @@ subroutine boundary_dc(rhs, bvec, mat)
   use basic
   use vector_mod
   use matrix_mod
-  use geometry
+  !use geometry
 
   implicit none
   
@@ -617,7 +617,7 @@ subroutine boundary_dc(rhs, bvec, mat)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
      if(.not.is_boundary) cycle
 #ifdef USEST ! recalculate curvature using physical coordinates
-     call get_boundary_curv(normal,curv,x,phi,z)
+     !call get_boundary_curv(normal,curv,x,phi,z)
 #endif
      ibegin = node_index(rhs, i, 1)
 

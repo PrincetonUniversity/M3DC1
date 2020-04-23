@@ -9,7 +9,6 @@ module geometry
   implicit none
 
 #ifdef USEST
-  real :: r1, z1, r2
  
 contains
 
@@ -103,8 +102,10 @@ contains
 
     call sum_shared(rst%vec)
     call sum_shared(zst%vec)
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "calculating geometry"
     call newsolve(st_matrix,rst%vec,ier)
     call newsolve(st_matrix,zst%vec,ier)
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "geometry calculated"
 
     call destroy_mat(st_matrix)
 
@@ -174,37 +175,13 @@ contains
 
     real, intent(in), dimension(MAX_PTS) :: x, phi, z
     vectype, intent(out), dimension(MAX_PTS) :: rout, zout 
-    real, dimension(MAX_PTS) :: r, theta
-
-    r1 = 1.5
-    r2 = 0.
-    z1 = 1.
-    r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
-    theta = atan2(z - zzero, x - xzero)
-    rout = xzero + r1*r*cos(theta+r2*sin(theta)) 
-    zout = zzero + z1*r*sin(theta) 
-
+    !real, dimension(MAX_PTS) :: r, theta
+    integer :: i
+    
+    do i=1, MAX_PTS
+      call physical_geometry(rout(i), zout(i), x(i), phi(i), z(i))
+    enddo
   end subroutine prescribe_geometry
   
-  ! calculate curvature and normal vector
-  subroutine get_boundary_curv(normal, curv, x, phi, z)
-    implicit none
-
-    real, intent(in) :: x, phi, z
-    real, intent(out) :: normal(2), curv
-    real :: dr, ddr, dz, ddz, theta 
-
-    theta = atan2(z - zzero, x - xzero)
-    dr = -r1*sin(theta+r2*sin(theta))*(1+r2*cos(theta)) 
-    ddr = -r1*cos(theta+r2*sin(theta))*(1+r2*cos(theta))**2 &
-          +r1*sin(theta+r2*sin(theta))*r2*sin(theta)
-    dz = z1*cos(theta) 
-    ddz = -z1*sin(theta) 
-    curv = (dr*ddz - dz*ddr)/((dr**2 + dz**2)*sqrt(dr**2 + dz**2))
-    normal(1) = -dz/sqrt(dr**2 + dz**2)
-    normal(2) = -dr/sqrt(dr**2 + dz**2)
-
-  end subroutine get_boundary_curv
-
 #endif
 end module geometry 

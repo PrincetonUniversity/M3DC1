@@ -10,6 +10,17 @@ module scorec_mesh_mod
   integer :: iper, jper
   integer :: icurv
   integer :: nplanes
+  integer :: nfp
+#ifdef USEST
+  real, allocatable :: rbc(:), zbs(:)
+  real, allocatable :: rmnc(:,:), zmns(:,:)
+  real, allocatable :: raxiscc(:), zaxiscs(:)
+  integer, allocatable :: mb(:), nb(:)
+  real, allocatable :: xm(:), xn(:)
+  integer :: mn_mode, ns, n_tor 
+  integer :: iread_vmec 
+  real :: rm1, rm2, zm1
+#endif 
 
   integer, parameter :: maxi = 20
 
@@ -49,8 +60,6 @@ contains
     integer, allocatable :: ranks(:)
 #endif
 
-    toroidal_period = period
-
     ! initialize scorec solvers
 
     if(imulti_region.eq.1) then
@@ -87,6 +96,17 @@ contains
     ! load mesh
     call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
+
+#ifdef USEST
+    if (iread_vmec==1) then ! read geometry from VMEC file
+        call read_vmec_h5(myrank)
+    else ! read boudary geometry
+        call read_boundary_geometry(myrank)
+    end if
+#endif
+
+    toroidal_period = period/nfp ! nfp may be modified by reading geometry
+
 #ifdef USE3D   
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes
     call m3dc1_model_setnumplane(nplanes)
@@ -319,6 +339,11 @@ contains
     real :: x1, z1
     
     call m3dc1_node_getcoord(inode-1,coords)
+#ifdef USEST
+    call physical_geometry(x, z, coords(1), coords(3), coords(2))
+    !x = coords(1)
+    !z = coords(2)
+#else
     x = coords(1)
     z = coords(2)
 
@@ -327,6 +352,8 @@ contains
        x = x + xzero - x1
        z = z + zzero - z1
     endif
+#endif
+
 #ifdef USE3D
     phi = coords(3)
 #else
@@ -377,6 +404,7 @@ contains
     d%c = z3p
     if(d%c .le. 0.) then
        print *, 'ERROR: clockwise node ordering for element',itri
+       print *, d%R, d%Z, d%phi, x2, z2, x3, z3 
        call abort()
     endif
 
@@ -620,7 +648,7 @@ contains
   ! about boundary surface
   !======================================================================
   subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,&
-       x,phi,z,tags)
+       x,phi,z,tags,ilog)
 
     use math
     
@@ -632,6 +660,7 @@ contains
     real, intent(out) :: x,phi,z              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
     type(tag_list), intent(in), optional :: tags
+    integer, intent(in), optional :: ilog     ! return logical if present
     
     integer :: ibottom, iright, ileft, itop, ib
     real :: angler
@@ -709,6 +738,9 @@ contains
        call m3dc1_node_isongeombdry(inode-1,ib)
        is_boundary = ib.eq.1
        if(.not.is_boundary) return
+#ifdef USEST  
+       call get_boundary_curv(normal,curv,inode)
+#else
        call m3dc1_node_getnormvec(inode-1, norm)
        normal = norm(1:2)
        if(icurv.eq.0) then
@@ -716,7 +748,7 @@ contains
        else
           call m3dc1_node_getcurv(inode-1, curv)
        end if
-
+#endif 
        if(imulti_region.eq.1) then
           if(present(tags)) then
              is_boundary = in_tag_list(tags, izone)         
@@ -724,7 +756,6 @@ contains
              is_boundary = in_tag_list(domain_boundary, izone)
           end if
        end if
-
     end if
   end subroutine boundary_node
 
@@ -902,5 +933,192 @@ contains
 
   end subroutine local_dofs
 
+#ifdef USEST
+  ! Return rst and zst given x, phi, z 
+  subroutine physical_geometry(rout, zout, x, phi, z)
+    use math
+    implicit none
+
+    real, intent(in):: x, phi, z
+    vectype, intent(out):: rout, zout 
+    real :: r, theta, ds, r2n
+    integer :: i, js
+
+    rm1 = 1.
+    rm2 = .0
+    zm1 = 1.
+    r = sqrt((x - xzero)**2 + (z - zzero)**2 + 0e-6)
+    theta = atan2(z - zzero, x - xzero)
+!    rout = 5.4 + rm1*r*cos(theta+rm2*sin(theta)) 
+!    zout = 0 + zm1*r*sin(theta) 
+    rout = 0
+    zout = 0
+    if (iread_vmec==1) then ! use VMEC surfaces to calculate geometry
+      r2n = r**2*(ns-1)
+      js = ceiling(r2n)
+      if (js>(ns-1)) js = ns-1 
+      if (js>1) then ! interpolate between surfaces
+        ds = js - r2n 
+        rbc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
+        zbs = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
+        do i = 1, mn_mode 
+          rout = rout + rbc(i)*cos(xm(i)*theta+xn(i)*phi)
+          zout = zout + zbs(i)*sin(xm(i)*theta+xn(i)*phi)
+        end do
+      else ! near axis, use routine 
+        ds = sqrt(r2n) 
+        rbc = rmnc(:,js+1)
+        zbs = zmns(:,js+1)
+        do i = 1, mn_mode 
+          rout = rout + rbc(i)*cos(xm(i)*theta+xn(i)*phi)*ds**xm(i)
+          zout = zout + zbs(i)*sin(xm(i)*theta+xn(i)*phi)*ds**xm(i)
+        end do
+      end if
+    else ! use routine to generate from boundary geometry
+      do i = 1, mn_mode 
+        if ((mb(i)<7).and.(abs(nb(i))<5)) then
+          rout = rout + rbc(i)*cos(mb(i)*theta-nb(i)*phi*nfp)*r**mb(i)
+          zout = zout + zbs(i)*sin(mb(i)*theta-nb(i)*phi*nfp)*r**mb(i)
+        end if
+      end do
+    end if
+  end subroutine physical_geometry
+
+  ! Calculate curvature and normal vector on physical boundary
+  subroutine get_boundary_curv(normal, curv, inode)
+    implicit none
+
+    integer, intent(in) :: inode 
+    real, intent(out) :: normal(2), curv
+    real :: dr, ddr, dz, ddz, theta, x, phi, z
+    real :: coords(3)
+
+    ! get logical coordinates    
+    call m3dc1_node_getcoord(inode-1,coords)
+    x = coords(1)
+    z = coords(2)
+    phi = coords(3)
+
+    theta = atan2(z - zzero, x - xzero)
+    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
+    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
+          +rm1*sin(theta+rm2*sin(theta))*rm2*sin(theta)
+    dz = zm1*cos(theta) 
+    ddz = -zm1*sin(theta) 
+    curv = (dr*ddz - dz*ddr)/((dr**2 + dz**2)*sqrt(dr**2 + dz**2))
+    normal(1) = dz/sqrt(dr**2 + dz**2)
+    normal(2) = -dr/sqrt(dr**2 + dz**2)
+
+  end subroutine get_boundary_curv
+
+  subroutine read_vmec_h5(myrank)
+    use hdf5
+    
+    implicit none
+    
+    character(len=256) :: vmec_filename = "geometry.h5"
+
+    integer, intent(in) :: myrank 
+    integer :: error
+    
+    integer(HID_T) :: file_id, dset_id, attr_id
+    integer(HSIZE_T), dimension(1) :: dim0 = 1
+    integer(HSIZE_T), dimension(1) :: dim1 
+    integer(HSIZE_T), dimension(2) :: dim2
+
+    call h5open_f(error)
+    call h5fopen_f(vmec_filename, H5F_ACC_RDONLY_F, file_id, error)
+
+    ! read attributes ns, n_tor, nfp, and mn_mode
+    call h5gopen_f(file_id, '/', dset_id, error)
+    call h5aopen_name_f(dset_id, 'ns', attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, ns, dim0, error)
+    call h5aclose_f(attr_id, error)
+    call h5aopen_name_f(dset_id, 'ntor', attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, n_tor, dim0, error)
+    call h5aclose_f(attr_id, error)
+    call h5aopen_name_f(dset_id, 'nfp', attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, nfp, dim0, error)
+    call h5aclose_f(attr_id, error)
+    call h5aopen_name_f(dset_id, 'mnmode', attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, mn_mode, dim0, error)
+    call h5aclose_f(attr_id, error)
+    call h5gclose_f(dset_id, error)
+    if(myrank.eq.0) print *, 'attributes read'
+    if(myrank.eq.0) print *, mn_mode, ns, nfp
+
+    dim1(1) = mn_mode
+    allocate(xm(mn_mode))
+    allocate(xn(mn_mode))
+    ! read 1d arrays xm and xn 
+    call h5dopen_f(file_id, 'xm', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xm, dim1, error)
+    call h5dclose_f(dset_id, error)
+    call h5dopen_f(file_id, 'xn', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xn, dim1, error)
+    call h5dclose_f(dset_id, error)
+    if(myrank.eq.0) print *, 'xm, xn read'
+
+    dim1(1) = n_tor+1
+    allocate(raxiscc(n_tor+1))
+    allocate(zaxiscs(n_tor+1))
+    ! read 1d arrays raxisicc and zaxiscs 
+    call h5dopen_f(file_id, 'raxiscc', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, raxiscc, dim1, error)
+    call h5dclose_f(dset_id, error)
+    call h5dopen_f(file_id, 'zaxiscs', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zaxiscs, dim1, error)
+    call h5dclose_f(dset_id, error)
+    if(myrank.eq.0) print *, 'raxiscc, zaxiscs read'
+    if(myrank.eq.0) print *, raxiscc(:) 
+    if(myrank.eq.0) print *, zaxiscs(:) 
+
+    dim2(1) = mn_mode
+    dim2(2) = ns
+    allocate(rmnc(mn_mode,ns))
+    allocate(zmns(mn_mode,ns))
+    ! read 2d arrays rmnc and zmns
+    call h5dopen_f(file_id, 'rmnc', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, rmnc, dim2, error)
+    call h5dclose_f(dset_id, error)
+    call h5dopen_f(file_id, 'zmns', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zmns, dim2, error)
+    call h5dclose_f(dset_id, error)
+    if(myrank.eq.0) print *, 'rmnc, zmns read'
+
+    call h5fclose_f(file_id, error)
+    call h5close_f(error)
+    allocate(rbc(mn_mode))
+    allocate(zbs(mn_mode))
+
+    if(mn_mode.eq.0) then 
+      if(myrank.eq.0) print *, 'Error: could not find geometry'
+      call safestop(5)
+    else
+      if(myrank.eq.0) print *, 'VMEC geometry read'
+    end if
+  endsubroutine read_vmec_h5
+
+  ! read boundary geometry from file
+  subroutine read_boundary_geometry(myrank)
+    use read_ascii 
+    implicit none
+
+    integer, intent(in) :: myrank 
+    character(len=256) :: boundary_fname = "boundary"
+
+    mn_mode = 0
+    call read_ascii_column(boundary_fname, nb, mn_mode, icol=1)
+    call read_ascii_column(boundary_fname, mb, mn_mode, icol=2)
+    call read_ascii_column(boundary_fname, rbc, mn_mode, icol=3)
+    call read_ascii_column(boundary_fname, zbs, mn_mode, icol=6)
+    if(mn_mode.eq.0) then 
+      if(myrank.eq.0) print *, 'Error: could not find geometry'
+      call safestop(5)
+    else
+      if(myrank.eq.0) print *, 'Bounary geometry read'
+    end if
+  endsubroutine read_boundary_geometry
+#endif 
 
 end module scorec_mesh_mod

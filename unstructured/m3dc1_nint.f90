@@ -602,7 +602,7 @@ contains
     must79 = mu79
     nust79 = mu79
     if(.not.present(ilog)) then 
-       call define_physical_basis(itri)
+       !call define_physical_basis(itri)
     else
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, &
        "Use logical basis..."

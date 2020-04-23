@@ -1053,6 +1053,10 @@ subroutine set_defaults
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &
        "Number of toroidal planes", mesh_grp)
+  call add_var_int("nfp", nfp, 1, &
+       "Number of field periods", mesh_grp)
+  call add_var_int("iread_vmec",iread_vmec,0,&
+       "1 = read geometry from VMEC file", mesh_grp)
   call add_var_double("xzero", xzero, 0., "", mesh_grp)
   call add_var_double("zzero", zzero, 0., "", mesh_grp)
   call add_var_double("tiltangled", tiltangled, 0., "", mesh_grp)

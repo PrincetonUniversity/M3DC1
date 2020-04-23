@@ -2828,7 +2828,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
   use vector_mod
   use matrix_mod
   use boundary_conditions
-  use geometry 
+  !use geometry 
 
   implicit none
   
@@ -2861,7 +2861,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
           domain_boundary)
      if(is_boundary) then
 #ifdef USEST ! recalculate curvature using physical coordinates
-        call get_boundary_curv(normal,curv,x,phi,z)
+        !call get_boundary_curv(normal,curv,x,phi,z)
 #endif
 
         ! add feedback field

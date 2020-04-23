@@ -747,6 +747,7 @@ subroutine output_mesh(time_group_id, nelms, error)
   call write_int_attr(mesh_group_id, "3D", 0, error)
 #endif
   call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
+  call write_int_attr(mesh_group_id, "nfp", nfp, error)
   call write_real_attr(mesh_group_id, "period", toroidal_period, error)
 
   ! Output the mesh data
@@ -994,8 +995,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
 
 #ifdef USEST
-  call write_field(group_id, "rst", rst, nelms, error, .true.)
-  call write_field(group_id, "zst", zst, nelms, error, .true.)
+  !call write_field(group_id, "rst", rst, nelms, error, .true.)
+  !call write_field(group_id, "zst", zst, nelms, error, .true.)
 #endif
 
   if(use_external_fields) then 
