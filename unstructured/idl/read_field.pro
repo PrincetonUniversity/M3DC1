@@ -1662,12 +1662,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                             wall_mask=wall_mask)
+                            phi=phi0,  wall_mask=wall_mask)
 
            f_z = read_field('f', x, y, t, slices=time, mesh=mesh, op=3, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                            wall_mask=wall_mask)
+                          phi=phi0,  wall_mask=wall_mask)
 
            data = data + ntor^2 * f_z / r + complex(0., ntor)*psi_r/r^2
        endif
@@ -1751,12 +1751,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            psi_z = read_field('psi', x, y, t, slices=time, mesh=mesh, op=3, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                              wall_mask=wall_mask)
+                            phi=phi0,  wall_mask=wall_mask)
 
            f_r = read_field('f', x, y, t, slices=time, mesh=mesh, op=2, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                           wall_mask=wall_mask)
+                          phi=phi0, wall_mask=wall_mask)
 
            data = data - ntor^2 * f_r / r + complex(0., ntor)*psi_z/r^2
         end
@@ -4108,7 +4108,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!6Beam Torque!X'
 
    ;===========================================
-   ; toroidal angular momentum flux
+   ; Force density - Radial
    ;===========================================
    endif else if(strcmp('JxB_x', name, /fold_case) eq 1) then begin
       by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
@@ -4124,8 +4124,28 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
       d = dimensions(/p0, l0=-1)
       symbol = '!5J!9X!5B!9.!8R!X'
 
+   endif else if(strcmp('JyBz', name, /fold_case) eq 1) then begin
+      bz = read_field('bz',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+      jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+
+      data = (jy*bz)
+      d = dimensions(/p0, l0=-1)
+      symbol = '!8J!D!9P!N!8B!DZ!X'
+
+   endif else if(strcmp('JzBy', name, /fold_case) eq 1) then begin
+      by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+      jz = read_field('jz',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+
+      data = -(jz*by)
+      d = dimensions(/p0, l0=-1)
+      symbol = '-!8J!DZ!N!8B!D!9P!X'
+
    ;===========================================
-   ; toroidal angular momentum flux
+   ; Force density - toroidal
    ;===========================================
    endif else if(strcmp('JxB_y', name, /fold_case) eq 1) then begin
       bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
@@ -4144,6 +4164,30 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
       data = (jz*conj(bx) - jx*conj(bz))
       d = dimensions(/p0, l0=-1)
       symbol = '!5J!9X!5B!9.!9P!X'
+
+   endif else if(strcmp('JzBx', name, /fold_case) eq 1) then begin
+      bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                     complex=complex,wall_mask=wall_mask)
+      jz = read_field('jz',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                     complex=complex,wall_mask=wall_mask)
+
+      data = (jz*conj(bx))
+      d = dimensions(/p0, l0=-1)
+      symbol = '!8J!DZ!N!8B!DR!X'
+
+   endif else if(strcmp('JxBz', name, /fold_case) eq 1) then begin
+      bz = read_field('bz',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                     complex=complex,wall_mask=wall_mask)
+      jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,linear=linear,$
+                     complex=complex,wall_mask=wall_mask)
+
+      data = -(jx*conj(bz))
+      d = dimensions(/p0, l0=-1)
+      symbol = '-!8J!DR!N!8B!DZ!X'
 
    ;===========================================
    ; Total vertical force density
@@ -4165,7 +4209,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; Vertical force contribution 1
    ;===========================================
-      endif else if(strcmp('JxBy_z', name, /fold_case) eq 1) then begin
+      endif else if(strcmp('JxBy', name, /fold_case) eq 1) then begin
       by = read_field('by',x,y,t,filename=filename,slices=time,mesh=mesh,$
                       phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       jx = read_field('jx',x,y,t,filename=filename,slices=time,mesh=mesh,$
@@ -4178,7 +4222,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    ; Vertical force contribution 2
    ;===========================================
-      endif else if(strcmp('JyBx_z', name, /fold_case) eq 1) then begin
+      endif else if(strcmp('JyBx', name, /fold_case) eq 1) then begin
       bx = read_field('bx',x,y,t,filename=filename,slices=time,mesh=mesh,$
                       phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask, mask=mask)
       jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
