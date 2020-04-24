@@ -264,9 +264,9 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
                           last=last,filename=filename,_EXTRA=extra)
            J2 = Jx^2 + Jy^2 + Jz^2
 
-           p = read_field('p',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
-           n = read_field('den',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
-           temp = p/n
+           te = read_field('Te',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
+           ti = read_field('Ti',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
+           temp = te + ti
 
            pprime = s_bracket(temp,psi,x,z)
            GradP = flux_average_field(pprime, psi, x, z, t, psi=psi, i0=i, $
@@ -287,7 +287,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
 
            return, -Q/(dV*GradP)
 
-        endif else $
+       endif else $
           if(strcmp(field, 'amu_implied', /fold_case) eq 1) then begin
            Q =  flux_average('torque', psi=psi, i0=i, x=x, z=z, t=t, $
              r0=r0, flux=flux, nflux=nflux, area=area, bins=bins, $
@@ -305,6 +305,27 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            d = dimensions(/p0, /t0)
            units = parse_units(d, _EXTRA=extra)
            name = '!7l!X'
+
+           return, -Q/(dV*GradW)
+
+        endif else $
+          if(strcmp(field, 'denm_implied', /fold_case) eq 1) then begin
+           Q =  flux_average('sigma', psi=psi, i0=i, x=x, z=z, t=t, $
+             r0=r0, flux=flux, nflux=nflux, area=area, bins=bins, $
+             points=points, filename=filename, fc=fc, _EXTRA=extra, /integrate)
+           w= read_field('den',x,z,t,points=points,last=last,filename=filename, _EXTRA=extra)
+           r = radius_matrix(x,z,t)
+           wprime = s_bracket(w,psi,x,z)
+           GradW = flux_average_field(wprime, psi, x, z, t, r0=r0, flux=flux, $
+                                      nflux=nflux, area=area, fc=fc, $
+                                      bins=bins, filename=filename, _EXTRA=extra)
+
+           dV = fc.dV_dchi / fc.dpsi_dchi
+
+           symbol = '!8D!Dn!N!X'
+           d = dimensions(l0=2, t0=-1)
+           units = parse_units(d, _EXTRA=extra)
+           name = '!8D!Dn!N!X'
 
            return, -Q/(dV*GradW)
 
