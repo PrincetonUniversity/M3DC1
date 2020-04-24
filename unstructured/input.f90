@@ -443,6 +443,7 @@ subroutine set_defaults
   call add_var_double("harned_mikic", harned_mikic, 0., "", time_grp)
   call add_var_int("isources", isources, 0, "", time_grp)
   call add_var_int("nskip", nskip, 1, "", time_grp)
+  call add_var_int("pskip", pskip, 1, "", time_grp)
   call add_var_int("iskippc", iskippc, 1, "", time_grp)
   call add_var_double("dt", dt, 0.1, &
        "Size of time step", time_grp)
