@@ -4166,7 +4166,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! terms due to time-dependent density
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(idens.eq.1 .and. iadiabat.eq.1) then
-     tempx = t3tndenm(trialx,lin,nnt79,denm) 
+     tempx = t3tndenm(trialx,lin,nnt79,denm79) 
      tempx = tempx + t3ts(trialx,lin,siw79)
      ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
@@ -4294,7 +4294,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
 
      if(itemp.eq.1 .and. iadiabat.eq.1) then
         r4term = r4term + dt* &
-             (t3tndenm(trialx,pp079,nn179,denm) &
+             (t3tndenm(trialx,pp079,nn179,denm79) &
              +t3ts(trialx,pp079,sig79))
      endif
   endif

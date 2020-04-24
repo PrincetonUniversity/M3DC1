@@ -8256,36 +8256,37 @@ function t3tndenm(e,f,g,h)
 
   vectype, dimension(dofs_per_element) :: t3tndenm
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  real, intent(in) :: h
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   vectype, dimension(dofs_per_element) :: temp
 
   if(surface_int) then
      if(inograd_n.eq.1) then
         temp = 0.
      else
-        temp = -h* &
-             (intx4(e(:,:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR)) &
-             +intx4(e(:,:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ)))
+        temp = - &
+             (intx5(e(:,:,OP_1),f(:,OP_1),norm79(:,1),g(:,OP_DR),h(:,OP_1)) &
+             +intx5(e(:,:,OP_1),f(:,OP_1),norm79(:,2),g(:,OP_DZ),h(:,OP_1)))
      end if
   else
-     temp =  h* &
-          (intx3(e(:,:,OP_DZ),f(:,OP_1),g(:,OP_DZ)) &
-          +intx3(e(:,:,OP_DR),f(:,OP_1),g(:,OP_DR)) &
-          +intx3(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZ)) &
-          +intx3(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DR)))
+     temp =  &
+          (intx4(e(:,:,OP_DZ),f(:,OP_1),g(:,OP_DZ),h(:,OP_1)) &
+          +intx4(e(:,:,OP_DR),f(:,OP_1),g(:,OP_DR),h(:,OP_1)) &
+          +intx4(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+          +intx4(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1)))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-     temp = temp - h*intx4(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_DPP))
+     temp = temp - &
+          (   intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_DPP),h(:,OP_1 )) &
+          +   intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_DP ),h(:,OP_DP)))
 #endif
 
      if(hypp.ne.0.) then
         if(ihypkappa.eq.1) then
-           temp = temp + hypp*h* &
-                ( intx3(e(:,:,OP_LP),f(:,OP_1),g(:,OP_LP))   &
-                + intx3(e(:,:,OP_1),f(:,OP_LP),g(:,OP_LP))   &
-                + 2.*intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_LP))&
-                + 2.*intx3(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_LP)))
+           temp = temp + hypp* &
+                ( intx4(e(:,:,OP_LP),f(:,OP_1),g(:,OP_LP),h(:,OP_1))   &
+                + intx4(e(:,:,OP_1),f(:,OP_LP),g(:,OP_LP),h(:,OP_1))   &
+                + 2.*intx4(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_LP),h(:,OP_1))&
+                + 2.*intx4(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_LP),h(:,OP_1)))
         else
            temp = temp + hypp* &
                 (intx3(e(:,:,OP_LP),f(:,OP_1),g(:,OP_LP))   &
