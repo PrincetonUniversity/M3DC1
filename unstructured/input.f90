@@ -566,7 +566,6 @@ subroutine set_defaults
   call add_var_double("basicj_dvac",basicj_dvac,1.,"", eq_grp)
   call add_var_int("ibasicj_solvep",ibasicj_solvep,0, &
        "0: Uniform pressure, solve for F.  1: Uniform F, solve for pressure", eq_grp)
-  call add_var_int("igeometry", igeometry, 0, "", eq_grp)
   
   ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
@@ -1057,6 +1056,7 @@ subroutine set_defaults
        "Number of field periods", mesh_grp)
   call add_var_int("iread_vmec",iread_vmec,0,&
        "1 = read geometry from VMEC file", mesh_grp)
+  call add_var_int("igeometry", igeometry, 0, "0: default, identity", mesh_grp)
   call add_var_double("xzero", xzero, 0., "", mesh_grp)
   call add_var_double("zzero", zzero, 0., "", mesh_grp)
   call add_var_double("tiltangled", tiltangled, 0., "", mesh_grp)

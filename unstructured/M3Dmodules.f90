@@ -195,8 +195,6 @@ module basic
   real :: scale_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
-  integer :: igeometry   ! default = identity; 1 = prescribed; 2 = solve Laplace equation  
-
 
   ! grad-shafranov options
   integer :: divertors! number of divertors

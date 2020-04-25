@@ -11,14 +11,16 @@ module scorec_mesh_mod
   integer :: icurv
   integer :: nplanes
   integer :: nfp
+  integer :: iread_vmec 
+  integer :: igeometry   ! 0 = identity; 1 = prescribed; 2 = solve Laplace equation  
 #ifdef USEST
   real, allocatable :: rbc(:), zbs(:)
+  real, allocatable :: rstc(:), zsts(:)
   real, allocatable :: rmnc(:,:), zmns(:,:)
-  real, allocatable :: raxiscc(:), zaxiscs(:)
+!  real, allocatable :: raxiscc(:), zaxiscs(:)
   integer, allocatable :: mb(:), nb(:)
-  real, allocatable :: xm(:), xn(:)
+  real, allocatable :: xmv(:), xnv(:)
   integer :: mn_mode, ns, n_tor 
-  integer :: iread_vmec 
   real :: rm1, rm2, zm1
 #endif 
 
@@ -98,10 +100,12 @@ contains
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
 
 #ifdef USEST
-    if (iread_vmec==1) then ! read geometry from VMEC file
-        call read_vmec_h5(myrank)
-    else ! read boudary geometry
-        call read_boundary_geometry(myrank)
+    if (igeometry>0) then ! do nothing when igeometry==0 
+        if (iread_vmec==1) then ! read geometry from VMEC file
+            call read_vmec_h5(myrank)
+        else ! read boudary geometry
+            call read_boundary_geometry(myrank)
+        end if
     end if
 #endif
 
@@ -340,19 +344,21 @@ contains
     
     call m3dc1_node_getcoord(inode-1,coords)
 #ifdef USEST
-    call physical_geometry(x, z, coords(1), coords(3), coords(2))
-    !x = coords(1)
-    !z = coords(2)
-#else
+    if (igeometry>0) then ! Use original mesh when igeometry==0 
+       call physical_geometry(x, z, coords(1), coords(3), coords(2))
+    else
+#endif
     x = coords(1)
     z = coords(2)
+#ifdef USEST
+    endif
+#endif
 
     if(is_rectilinear) then
        call m3dc1_model_getmincoord(x1, z1)
        x = x + xzero - x1
        z = z + zzero - z1
     endif
-#endif
 
 #ifdef USE3D
     phi = coords(3)
@@ -739,14 +745,18 @@ contains
        is_boundary = ib.eq.1
        if(.not.is_boundary) return
 #ifdef USEST  
-       call get_boundary_curv(normal,curv,inode)
-#else
+       if (igeometry>0) then ! do nothing when igeometry==0 
+          call get_boundary_curv(normal,curv,inode)
+       else
+#endif
        call m3dc1_node_getnormvec(inode-1, norm)
        normal = norm(1:2)
        if(icurv.eq.0) then
           curv = 0.
        else
           call m3dc1_node_getcurv(inode-1, curv)
+       end if
+#ifdef USEST  
        end if
 #endif 
        if(imulti_region.eq.1) then
@@ -941,9 +951,11 @@ contains
 
     real, intent(in):: x, phi, z
     vectype, intent(out):: rout, zout 
-    real :: r, theta, ds, r2n
+    real :: r, theta, ds, r2n, m_max, dphi
     integer :: i, js
 
+    dphi = 1.*toroidal_period/2
+    m_max = 15.5
     rm1 = 1.
     rm2 = .0
     zm1 = 1.
@@ -959,26 +971,30 @@ contains
       if (js>(ns-1)) js = ns-1 
       if (js>1) then ! interpolate between surfaces
         ds = js - r2n 
-        rbc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
-        zbs = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
+        rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
+        zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
         do i = 1, mn_mode 
-          rout = rout + rbc(i)*cos(xm(i)*theta+xn(i)*phi)
-          zout = zout + zbs(i)*sin(xm(i)*theta+xn(i)*phi)
+          if (xmv(i)<m_max) then
+            rout = rout + rstc(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))
+            zout = zout + zsts(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))
+          end if
         end do
       else ! near axis, use routine 
         ds = sqrt(r2n) 
-        rbc = rmnc(:,js+1)
-        zbs = zmns(:,js+1)
+        rstc = rmnc(:,js+1)
+        zsts = zmns(:,js+1)
         do i = 1, mn_mode 
-          rout = rout + rbc(i)*cos(xm(i)*theta+xn(i)*phi)*ds**xm(i)
-          zout = zout + zbs(i)*sin(xm(i)*theta+xn(i)*phi)*ds**xm(i)
+          if (xmv(i)<m_max) then
+            rout = rout + rstc(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*ds**xmv(i)
+            zout = zout + zsts(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*ds**xmv(i)
+          end if
         end do
       end if
     else ! use routine to generate from boundary geometry
       do i = 1, mn_mode 
-        if ((mb(i)<7).and.(abs(nb(i))<5)) then
-          rout = rout + rbc(i)*cos(mb(i)*theta-nb(i)*phi*nfp)*r**mb(i)
-          zout = zout + zbs(i)*sin(mb(i)*theta-nb(i)*phi*nfp)*r**mb(i)
+        if ((mb(i)<m_max).and.(abs(nb(i))<5)) then
+          rout = rout + rbc(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nfp)*r**mb(i)
+          zout = zout + zbs(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nfp)*r**mb(i)
         end if
       end do
     end if
@@ -990,21 +1006,47 @@ contains
 
     integer, intent(in) :: inode 
     real, intent(out) :: normal(2), curv
-    real :: dr, ddr, dz, ddz, theta, x, phi, z
+    real :: dr, ddr, dz, ddz, theta, x, phi, z, m_max, dphi 
     real :: coords(3)
+    integer :: i
 
     ! get logical coordinates    
     call m3dc1_node_getcoord(inode-1,coords)
     x = coords(1)
     z = coords(2)
     phi = coords(3)
-
+   
+    dphi = 1.*toroidal_period/2
+    m_max = 15.5
     theta = atan2(z - zzero, x - xzero)
-    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
-    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
-          +rm1*sin(theta+rm2*sin(theta))*rm2*sin(theta)
-    dz = zm1*cos(theta) 
-    ddz = -zm1*sin(theta) 
+!    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
+!    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
+!          +rm1*sin(theta+rm2*sin(theta))*rm2*sin(theta)
+!    dz = zm1*cos(theta) 
+!    ddz = -zm1*sin(theta) 
+    dr = 0
+    dz = 0
+    ddr = 0
+    ddz = 0
+    if (iread_vmec==1) then
+      do i = 1, mn_mode 
+        if (xmv(i)<m_max) then
+          dr = dr - rbc(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)
+          dz = dz + zbs(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)
+          ddr = ddr - rbc(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)**2
+          ddz = ddz - zbs(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)**2
+        end if
+      end do
+    else
+      do i = 1, mn_mode 
+        if ((mb(i)<m_max).and.(abs(nb(i))<5)) then
+          dr = dr - rbc(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nfp)*mb(i)
+          dz = dz + zbs(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nfp)*mb(i)
+          ddr = ddr - rbc(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nfp)*mb(i)**2
+          ddz = ddz - zbs(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nfp)*mb(i)**2
+        end if 
+      end do
+    end if 
     curv = (dr*ddz - dz*ddr)/((dr**2 + dz**2)*sqrt(dr**2 + dz**2))
     normal(1) = dz/sqrt(dr**2 + dz**2)
     normal(2) = -dr/sqrt(dr**2 + dz**2)
@@ -1048,30 +1090,30 @@ contains
     if(myrank.eq.0) print *, mn_mode, ns, nfp
 
     dim1(1) = mn_mode
-    allocate(xm(mn_mode))
-    allocate(xn(mn_mode))
-    ! read 1d arrays xm and xn 
+    allocate(xmv(mn_mode))
+    allocate(xnv(mn_mode))
+    ! read 1d arrays xmv and xnv 
     call h5dopen_f(file_id, 'xm', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xm, dim1, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xmv, dim1, error)
     call h5dclose_f(dset_id, error)
     call h5dopen_f(file_id, 'xn', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xn, dim1, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xnv, dim1, error)
     call h5dclose_f(dset_id, error)
-    if(myrank.eq.0) print *, 'xm, xn read'
+    if(myrank.eq.0) print *, 'xmv, xnv read'
 
-    dim1(1) = n_tor+1
-    allocate(raxiscc(n_tor+1))
-    allocate(zaxiscs(n_tor+1))
-    ! read 1d arrays raxisicc and zaxiscs 
-    call h5dopen_f(file_id, 'raxiscc', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, raxiscc, dim1, error)
-    call h5dclose_f(dset_id, error)
-    call h5dopen_f(file_id, 'zaxiscs', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zaxiscs, dim1, error)
-    call h5dclose_f(dset_id, error)
-    if(myrank.eq.0) print *, 'raxiscc, zaxiscs read'
-    if(myrank.eq.0) print *, raxiscc(:) 
-    if(myrank.eq.0) print *, zaxiscs(:) 
+!    dim1(1) = n_tor+1
+!    allocate(raxiscc(n_tor+1))
+!    allocate(zaxiscs(n_tor+1))
+!    ! read 1d arrays raxisicc and zaxiscs 
+!    call h5dopen_f(file_id, 'raxiscc', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, raxiscc, dim1, error)
+!    call h5dclose_f(dset_id, error)
+!    call h5dopen_f(file_id, 'zaxiscs', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zaxiscs, dim1, error)
+!    call h5dclose_f(dset_id, error)
+!    if(myrank.eq.0) print *, 'raxiscc, zaxiscs read'
+!    if(myrank.eq.0) print *, raxiscc(:) 
+!    if(myrank.eq.0) print *, zaxiscs(:) 
 
     dim2(1) = mn_mode
     dim2(2) = ns
@@ -1090,6 +1132,10 @@ contains
     call h5close_f(error)
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
+    allocate(rstc(mn_mode))
+    allocate(zsts(mn_mode))
+    rbc = rmnc(:,ns)
+    zbs = zmns(:,ns)
 
     if(mn_mode.eq.0) then 
       if(myrank.eq.0) print *, 'Error: could not find geometry'
@@ -1116,7 +1162,7 @@ contains
       if(myrank.eq.0) print *, 'Error: could not find geometry'
       call safestop(5)
     else
-      if(myrank.eq.0) print *, 'Bounary geometry read'
+      if(myrank.eq.0) print *, 'Boundary geometry read'
     end if
   endsubroutine read_boundary_geometry
 #endif 
