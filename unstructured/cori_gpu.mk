@@ -18,7 +18,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
  
-OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS
 
 SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.3/gpu-petsc3.9.3
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin

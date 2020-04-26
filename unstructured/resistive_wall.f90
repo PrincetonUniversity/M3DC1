@@ -7,7 +7,7 @@ module resistive_wall
 
   integer, parameter :: imax_wall_breaks = 20
 
-  real :: eta_wall
+  real :: eta_wall, eta_wallRZ
   real, dimension(imax_wall_breaks) :: eta_break
   real, dimension(imax_wall_breaks) :: wall_break_xmin, wall_break_xmax
   real, dimension(imax_wall_breaks) :: wall_break_zmin, wall_break_zmax
@@ -17,7 +17,7 @@ module resistive_wall
   integer, parameter :: imax_wall_regions = 20
   integer :: iwall_regions
   character(len=256), dimension(imax_wall_regions) :: wall_region_filename
-  real, dimension(imax_wall_regions) :: wall_region_eta
+  real, dimension(imax_wall_regions) :: wall_region_eta, wall_region_etaRZ
   type(region_type), dimension(imax_wall_regions), private :: wall_region
 
 contains
@@ -82,5 +82,41 @@ contains
     end do
 
   end function wall_resistivity
+
+ elemental real function wall_resistivityRZ(x, phi, z)
+    implicit none
+
+    real, intent(in) :: x, phi, z
+
+    integer :: i
+
+    wall_resistivityRZ = eta_wallRZ
+
+    do i=iwall_regions, 1, -1
+       if(point_in_region(wall_region(i), x, phi, z)) then
+          wall_resistivityRZ = wall_region_etaRZ(i)
+          exit
+       end if
+    end do
+
+    do i=iwall_breaks, 1, -1
+#ifdef USE3D
+       if(phi.ge.wall_break_phimin(i) .and. &
+            phi.le.wall_break_phimax(i)) then
+#endif
+          if(x.ge.wall_break_xmin(i) .and. &
+               x.le.wall_break_xmax(i) .and. &
+               z.ge.wall_break_zmin(i) .and. &
+               z.le.wall_break_zmax(i)) then
+             wall_resistivityRZ = eta_break(i)
+             exit
+          end if
+#ifdef USE3D
+       endif
+#endif
+    end do
+
+  end function wall_resistivityRZ
+
 
 end module resistive_wall

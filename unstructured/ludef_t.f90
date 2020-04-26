@@ -1744,17 +1744,31 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Resistive  Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  tempx = b1psieta(trialx,lin,eta79,vzt79,eta_mod.eq.1)
+  if(izone.ne.2) then
+     tempx = b1psieta1(trialx,lin,eta79,vzt79,eta_mod.eq.1) &
+           + b1psieta2(trialx,lin,eta79,vzt79,eta_mod.eq.1)
+  else
+     tempx = b1psieta1(trialx,lin,eta79  ,vzt79,eta_mod.eq.1) &
+       	   + b1psieta2(trialx,lin,etaRZ79,vzt79,eta_mod.eq.1)
+  endif
   ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
   ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
 
   if(numvar.ge.2) then
-     tempx = b1beta(trialx,lin,eta79)
+     if(izone.ne.2) then
+        tempx = b1beta(trialx,lin,eta79)
+     else
+        tempx = b1beta(trialx,lin,etaRZ79)
+     endif
      ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
      ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
 
      if(i3d.eq.1) then
-        tempx = b1feta(trialx,lin,eta79)
+        if(izone.ne.2) then
+           tempx = b1feta(trialx,lin,eta79)
+        else
+           tempx = b1feta(trialx,lin,etaRZ79)
+        endif
         r_bf = r_bf -     thimp_bf     *dt*tempx
         q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
      end if
@@ -2520,16 +2534,27 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  tempx = b2psieta(trialx,lin,eta79)
+  if(izone.ne.2) then
+    tempx = b2psieta(trialx,lin,eta79)
+  else
+    tempx = b2psieta(trialx,lin,etaRZ79)
+  endif
   ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
   ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
-  
-  tempx = b2beta(trialx,lin,eta79,vzt79)
+  if(izone.ne.2) then
+    tempx = b2beta(trialx,lin,eta79,vzt79)
+  else
+    tempx = b2beta(trialx,lin,etaRZ79,vzt79)
+  endif
   ssterm(:,bz_g) = ssterm(:,bz_g) -     thimp     *dt*tempx
   ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
 
   if(i3d.eq.1) then
-     tempx = b2feta(trialx,lin,eta79)
+     if(izone.ne.2) then
+       tempx = b2feta(trialx,lin,eta79)
+     else
+       tempx = b2feta(trialx,lin,etaRZ79)
+     endif
      r_bf = r_bf -     thimp_bf     *dt*tempx
      q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
 
@@ -4506,11 +4531,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " initializing matrices..."
 
-#ifdef NEWSOLVERDEVELOPMENT
-  if(myrank.eq.0) print *, " zero matrices..."
-#else
   call clear_matrices
-#endif
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " populating matrices..."

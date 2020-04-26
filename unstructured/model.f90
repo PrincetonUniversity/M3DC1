@@ -556,7 +556,7 @@ subroutine boundary_te(rhs, te_v, mat)
   
   integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z, phi
-  logical :: is_boundary
+  logical :: is_boundary, is_inner
   vectype, dimension(dofs_per_node) :: temp, temp2, temp3
 
   integer :: i_n
@@ -570,7 +570,9 @@ subroutine boundary_te(rhs, te_v, mat)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
-
+     call boundary_node(i,is_inner,izone,izonedim,normal,curv,x,phi,z, &
+          inner_wall)
+     
      i_n = node_index(te_v, i)
 
      if(inograd_t.eq.1) then
@@ -578,7 +580,7 @@ subroutine boundary_te(rhs, te_v, mat)
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
      if(iconst_t.eq.1) then
-        if(tebound.gt.0.) then
+        if((tebound.gt.0.) .and. is_inner) then
            temp = 0.
            temp(1) = tebound
         else
@@ -629,7 +631,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   
   integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z, phi
-  logical :: is_boundary
+  logical :: is_boundary, is_inner
   vectype, dimension(dofs_per_node) :: temp, temp2, temp3
 
   integer :: i_n
@@ -643,7 +645,9 @@ subroutine boundary_ti(rhs, ti_v, mat)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
-
+     call boundary_node(i,is_inner,izone,izonedim,normal,curv,x,phi,z, &
+          inner_wall)
+     
      i_n = node_index(ti_v, i)
 
      if(inograd_t.eq.1) then
@@ -651,7 +655,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
      if(iconst_t.eq.1 .or. iconst_p.eq.1) then
-        if(tibound.gt.0.) then
+        if((tibound.gt.0.) .and. is_inner) then
            temp = 0.
            temp(1) = tibound
         else

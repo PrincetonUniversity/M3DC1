@@ -393,7 +393,8 @@ subroutine f2eplot_sub(term)
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
   jadvs = jadv
   jadv = 1   ! only for evaluation of this function
-  temp = b1psieta(mu79,pst79,eta79,vz079,eta_mod.eq.1)
+    temp = b1psieta1(mu79,pst79,eta79,vz079,eta_mod.eq.1) &
+         + b1psieta2(mu79,pst79,eta79,vz079,eta_mod.eq.1)
   jadv = jadvs
 
   term = temp

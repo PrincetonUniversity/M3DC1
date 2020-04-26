@@ -18,7 +18,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
  
-OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS
 
 SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/hsw-petsc3.12.4
 SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/hsw-petsc3.12.4/bin
@@ -68,8 +68,8 @@ INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 #           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 #
 LIBS := $(LIBS) \
-        -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
-        $(SCOREC_LIBS) \
+-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -l$(M3DC1_SCOREC_LIB) \
+        -L$(SCOREC_DIR)/lib $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
 	-L$(FFTW_DIR)/lib -lfftw3_mpi -lfftw3 \

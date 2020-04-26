@@ -13,8 +13,7 @@ else
   LOADER = mpiifort 
 endif
 
-#NEWSOLVERDEVELOPMENT needs more tests.
-OPTS := $(OPTS) -DPETSC_VERSION=37 #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -DPETSC_VERSION=37
 
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
