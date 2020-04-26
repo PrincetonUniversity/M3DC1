@@ -4723,13 +4723,13 @@ end function b1bchi
 
 ! B1psieta
 ! ========
-function b1psieta(e,f,g,h,imod)
+function b1psieta1(e,f,g,h,imod)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, dimension(dofs_per_element) :: b1psieta
+  vectype, dimension(dofs_per_element) :: b1psieta1
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   vectype, dimension(dofs_per_element) :: temp
@@ -4783,9 +4783,7 @@ function b1psieta(e,f,g,h,imod)
            temp = temp
         else
            if(.not.imod) then
-              temp = temp &
-                   + intx5(e(:,:,OP_1),ri4_79,norm79(:,1),f(:,OP_DRPP),g(:,OP_1)) &
-                   + intx5(e(:,:,OP_1),ri4_79,norm79(:,2),f(:,OP_DZPP),g(:,OP_1))
+              temp = temp 
            end if
         endif
 #endif
@@ -4794,11 +4792,7 @@ function b1psieta(e,f,g,h,imod)
 
 #if defined(USE3D) || defined(USECOMPLEX)
         if(.not.imod) then
-           temp = temp - &
-                (intx4(e(:,:,OP_DZ),ri4_79,f(:,OP_DZPP),g(:,OP_1)) &
-                +intx4(e(:,:,OP_DR),ri4_79,f(:,OP_DRPP),g(:,OP_1)) &
-                +intx4(e(:,:,OP_DZ),ri4_79,f(:,OP_DZP),g(:,OP_DP)) &
-                +intx4(e(:,:,OP_DR),ri4_79,f(:,OP_DRP),g(:,OP_DP)))
+           temp = temp 
            if(iupstream.eq.1) then   
               temp79a = abs(h(:,OP_1))*magus
               temp = temp - &
@@ -4822,8 +4816,59 @@ function b1psieta(e,f,g,h,imod)
      end if
   endif
 
-  b1psieta = temp
-end function b1psieta
+  b1psieta1 = temp
+end function b1psieta1
+function b1psieta2(e,f,g,h,imod)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: b1psieta2
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
+  logical, intent(in) :: imod
+
+  if(jadv.eq.0) then
+
+     if(surface_int) then
+        temp = 0.
+     else
+        temp = 0.
+     endif
+
+  else
+     if(surface_int) then
+        temp = 0
+
+#if defined(USE3D) || defined(USECOMPLEX)
+        if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
+           temp = temp
+        else
+           if(.not.imod) then
+              temp = temp &
+                   + intx5(e(:,:,OP_1),ri4_79,norm79(:,1),f(:,OP_DRPP),g(:,OP_1)) &
+                   + intx5(e(:,:,OP_1),ri4_79,norm79(:,2),f(:,OP_DZPP),g(:,OP_1))
+           end if
+        endif
+#endif
+     else
+
+#if defined(USE3D) || defined(USECOMPLEX)
+        if(.not.imod) then
+           temp = - &
+                (intx4(e(:,:,OP_DZ),ri4_79,f(:,OP_DZPP),g(:,OP_1)) &
+                +intx4(e(:,:,OP_DR),ri4_79,f(:,OP_DRPP),g(:,OP_1)) &
+                +intx4(e(:,:,OP_DZ),ri4_79,f(:,OP_DZP),g(:,OP_DP)) &
+                +intx4(e(:,:,OP_DR),ri4_79,f(:,OP_DRP),g(:,OP_DP)))
+        end if
+#endif
+     end if
+  endif
+
+  b1psieta2 = temp
+end function b1psieta2
 
 
 ! B1jeta

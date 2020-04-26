@@ -101,8 +101,8 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79
-!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79)
+       eta79, etaRZ79,sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79
+!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,etaRZ79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
 !$OMP THREADPRIVATE(bf079,bf179,bft79)
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
@@ -996,6 +996,8 @@ contains
      else if(izone.eq.2) then
         eta79 = 0.
         eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79)
+        etaRZ79 = 0
+        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79)
      else 
         if(iresfunc.eq.2) then
            if(linear.eq.1) then
