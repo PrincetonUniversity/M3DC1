@@ -775,6 +775,8 @@ subroutine set_defaults
   ! resistive wall
   call add_var_double("eta_wall", eta_wall, 1e-3, &
        "Resistivity of conducting wall region", rw_grp)
+  call add_var_double("eta_wallRZ", eta_wallRZ, -1., &
+       "Resistivity of conducting wall region", rw_grp)
   call add_var_double("eta_vac", eta_vac, 1., &
        "Resistivity of vacuum region", rw_grp)
   call add_var_int("iwall_breaks", iwall_breaks, 0, &
@@ -797,6 +799,9 @@ subroutine set_defaults
        "Number of resistive wall regions", rw_grp)
   call add_var_double_array("wall_region_eta", wall_region_eta, &
        imax_wall_regions, 1e-3, "Resistivity of each wall region", rw_grp)
+  call add_var_double_array("wall_region_etaRZ", wall_region_eta, &
+       imax_wall_regions, -1. , "Poloidal Resistivity of each wall region", rw_grp)
+
   call add_var_string_array("wall_region_filename", wall_region_filename, 256,&
        imax_wall_regions, "", "Resistivity of each wall region", rw_grp)
 
@@ -1149,7 +1154,7 @@ subroutine validate_input
 #include "finclude/petsc.h"
 #endif
 
-  integer :: ier
+  integer :: ier,i
   real :: de
 
   if(myrank.eq.0) then
@@ -1393,6 +1398,18 @@ subroutine validate_input
      end if
      iread_omega = iread_omega_ExB
   end if
+
+  if(eta_wallRZ .lt. 0) eta_wallRZ = eta_wall
+  if(iwall_regions.gt.0) then
+    do i=1,iwall_regions
+       if(wall_region_etaRZ(i) .lt. 0) then
+          wall_region_etaRZ(i) = wall_region_eta(i)
+       endif
+    enddo
+  endif
+
+
+
 
 !#ifndef M3DC1_TRILINOS
 !  ! Read PETSc options
