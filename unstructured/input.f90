@@ -1052,7 +1052,7 @@ subroutine set_defaults
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &
        "Number of toroidal planes", mesh_grp)
-  call add_var_int("nfp", nfp, 1, &
+  call add_var_int("nperiods", nperiods, 1, &
        "Number of field periods", mesh_grp)
   call add_var_int("iread_vmec",iread_vmec,0,&
        "1 = read geometry from VMEC file", mesh_grp)
