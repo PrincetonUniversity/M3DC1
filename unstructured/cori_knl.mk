@@ -22,10 +22,8 @@ endif
 
 PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
 ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB = m3dc1_scorec_complex
   PETSC_ARCH = coriknl-PrgEnvintel605-craympich7710-master-cplx
 else
-  M3DC1_SCOREC_LIB = m3dc1_scorec
   PETSC_ARCH = coriknl-PrgEnvintel605-craympich7710-master-real
 endif
 
@@ -38,11 +36,11 @@ PETSC_LIB = -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      -Wl,--end-group
 
 SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/knl-petsc3.12.4/
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/knl-petsc3.12.4/bin
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
-ifeq ($(REORDERED), 1)
-  SCORECVER=reordered
-endif
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
+PUMI_DIR=$(SCOREC_BASE_DIR)
+PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
@@ -51,15 +49,14 @@ else
 endif
 
 ifeq ($(COM), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
-    M3DC1_SCOREC_LIB = m3dc1_scorec
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
-SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
+SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
+            -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
+           $(PUMI_LIB) -Wl,--end-group
 
 # Include option to use ADIOS
 OPTS := $(OPTS) -DUSEADIOS
@@ -77,7 +74,7 @@ MKL_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROO
 
 #MKL_LIB = $(MKLROOT)/lib/intel64/libmkl_blas95_lp64.a -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
 
-INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
+INCLUDE := $(INCLUDE) -I$(SCOREC_BASE_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
@@ -85,8 +82,7 @@ INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 #
 LIBS := \
         $(LIBS) \
-        -L$(SCOREC_DIR)/lib -l$(M3DC1_SCOREC_LIB) \
-        $(SCOREC_LIBS) \
+        $(SCOREC_LIB) \
         $(ZOLTAN_LIB)\
         $(PETSC_LIB) \
         -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \

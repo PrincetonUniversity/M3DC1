@@ -10,12 +10,7 @@
         module swap craype-haswell craype-mic-knl
 
    REAL AND COMPLEX MODEL
-        module load cray-fftw
-        module load subversion
-        module load cmake
-        module load gsl
-        module load cray-hdf5-parallel
-	module load idl
+        module load cray-fftw gsl cray-hdf5-parallel idl 
 	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
 
 4. compile code
@@ -34,7 +29,7 @@
                           new solver development (-DNEWSOLVERDEVELOPMENT)
 
 5. mesh utility
-        /global/project/projectdirs/mp288/cori/scorec/utilities
+   See $(SCOREC_UTIL_DIR) in .mk file
 
 6. run jobscript:
    FOR HASWELL

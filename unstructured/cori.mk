@@ -21,30 +21,27 @@ endif
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS
 
 SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/hsw-petsc3.12.4
-SCOREC_UTIL_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/hsw-petsc3.12.4/bin
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
-ifeq ($(REORDERED), 1)
-  SCORECVER=reordered
-endif
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
+PUMI_DIR=$(SCOREC_BASE_DIR)
+PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
-#SCOREC_DIR=/global/homes/j/jinchen/project/LIB
 
 ifeq ($(COM), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
-    M3DC1_SCOREC_LIB = m3dc1_scorec
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
-
-SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
-             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
+SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
+            -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
+           $(PUMI_LIB) -Wl,--end-group
 
 PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
 ifeq ($(COM), 1)
@@ -53,23 +50,23 @@ else
   PETSC_ARCH=corihsw-PrgEnvintel605-craympich7710-master-real
 endif
 
-  MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
-  PETSC_WITH_EXTERNAL_LIB = -Wl,--start-group -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist  -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lptscotchparmetis -lesmumps -lscotch -lscotcherr -lscotchmetis -Wl,--end-group -lrt -lm -lpthread -lz -ldl -lstdc++
+MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+PETSC_WITH_EXTERNAL_LIB = -Wl,--start-group -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist  -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lptscotchparmetis -lesmumps -lscotch -lscotcherr -lscotchmetis -Wl,--end-group -lrt -lm -lpthread -lz -ldl -lstdc++
 
 ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
              -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
              -L/usr/lib64/ -llustreapi
 
-INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
+INCLUDE := $(INCLUDE) -I$(SCOREC_BASE_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
 #        -I$(HYBRID_HOME)/include
 #           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 #
 LIBS := $(LIBS) \
--L$(PETSC_DIR)/$(PETSC_ARCH)/lib -l$(M3DC1_SCOREC_LIB) \
-        -L$(SCOREC_DIR)/lib $(SCOREC_LIBS) \
+        -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
+        $(SCOREC_LIB) \
         $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
 	-L$(FFTW_DIR)/lib -lfftw3_mpi -lfftw3 \
