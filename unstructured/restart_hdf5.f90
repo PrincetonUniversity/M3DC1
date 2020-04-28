@@ -125,7 +125,7 @@ contains
       xnull2 = xnull2t
       znull2 = znull2t
     endif
-
+   if(ipellet.gt.0) then
     ! Pellet stuff
     if(version_in.le.30) then
        ! pellets are scalars
@@ -176,6 +176,7 @@ contains
           call h5gclose_f(pel_group_id, error)
        end if
     end if
+  endif
 
     ! Only read vloop if Ip is under current control
     if(control_type.ne.-1) then
