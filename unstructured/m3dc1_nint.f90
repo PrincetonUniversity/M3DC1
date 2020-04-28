@@ -85,6 +85,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(must79,nust79)
   vectype, dimension(MAX_PTS,OP_NUM) :: rst79, zst79 
 !$OMP THREADPRIVATE(rst79,zst79)
+  vectype, dimension(MAX_PTS) :: xl_79, zl_79 ! logical coordinates
+!$OMP THREADPRIVATE(xl_79,zl_79)
 #endif
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
      ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79, ri8_79
@@ -376,6 +378,9 @@ contains
     call eval_ops(itri, rst, rst79)
     call eval_ops(itri, zst, zst79)
 
+    ! save logical coordinates
+    xl_79 = x_79
+    zl_79 = z_79
     ! update physical element data
     x_79 = rst79(:,OP_1)
     z_79 = zst79(:,OP_1)
@@ -598,14 +603,16 @@ contains
     call define_basis(itri)
 
 #ifdef USEST 
-    ! copy logical basis functions
-    must79 = mu79
-    nust79 = mu79
-    if(.not.present(ilog)) then 
-       !call define_physical_basis(itri)
-    else
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, &
-       "Use logical basis..."
+    if (igeometry.eq.1) then
+       ! copy logical basis functions
+       must79 = mu79
+       nust79 = mu79
+       if(.not.present(ilog)) then 
+          call define_physical_basis(itri)
+       else
+          if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, &
+          "Use logical basis..."
+       end if
     end if
 #endif
 

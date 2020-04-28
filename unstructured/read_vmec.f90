@@ -7,6 +7,8 @@ module read_vmec
   real, allocatable :: rbc(:), zbs(:)
   real, allocatable :: rstc(:), zsts(:)
   real, allocatable :: rmnc(:,:), zmns(:,:)
+  real, allocatable :: bsupumnc(:,:), bsupvmnc(:,:)
+  real, allocatable :: presf(:)
 !  real, allocatable :: raxiscc(:), zaxiscs(:)
   integer, allocatable :: mb(:), nb(:)
   real, allocatable :: xmv(:), xnv(:)
@@ -62,6 +64,14 @@ contains
     call h5dclose_f(dset_id, error)
     if(myrank.eq.0) print *, 'xmv, xnv read'
 
+    dim1(1) = ns
+    allocate(presf(ns))
+    ! read 1d array presf
+    call h5dopen_f(file_id, 'presf', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, presf, dim1, error)
+    call h5dclose_f(dset_id, error)
+    if(myrank.eq.0) print *, 'presf read'
+
 !    dim1(1) = n_tor+1
 !    allocate(raxiscc(n_tor+1))
 !    allocate(zaxiscs(n_tor+1))
@@ -80,6 +90,8 @@ contains
     dim2(2) = ns
     allocate(rmnc(mn_mode,ns))
     allocate(zmns(mn_mode,ns))
+    allocate(bsupumnc(mn_mode,ns))
+    allocate(bsupvmnc(mn_mode,ns))
     ! read 2d arrays rmnc and zmns
     call h5dopen_f(file_id, 'rmnc', dset_id, error)
     call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, rmnc, dim2, error)
@@ -88,6 +100,13 @@ contains
     call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zmns, dim2, error)
     call h5dclose_f(dset_id, error)
     if(myrank.eq.0) print *, 'rmnc, zmns read'
+    call h5dopen_f(file_id, 'bsupumnc', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bsupumnc, dim2, error)
+    call h5dclose_f(dset_id, error)
+    call h5dopen_f(file_id, 'bsupvmnc', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bsupvmnc, dim2, error)
+    call h5dclose_f(dset_id, error)
+    if(myrank.eq.0) print *, 'bsupumnc, bsupvmnc read'
 
     call h5fclose_f(file_id, error)
     call h5close_f(error)

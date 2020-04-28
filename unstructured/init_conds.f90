@@ -512,6 +512,7 @@ subroutine initial_conditions()
   use basicj
   use rmp
   use init_common
+  use init_vmec
   use kprad_m3dc1
   use pellet
   use diagnostics
@@ -624,8 +625,14 @@ subroutine initial_conditions()
            call rwm_init()
         case(29,31)
            call basicj_init()
+#ifdef USEST
+        case(40)
+           if (igeometry.eq.1 .and. iread_vmec.eq.1) then
+              call vmec_init()
+           end if
+#endif
         end select
-     endif
+     end if
   end if
 
   if(iread_neo.eq.1) then

@@ -94,7 +94,7 @@ contains
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
 
 #ifdef USEST
-    if (igeometry>0) then ! do nothing when igeometry==0 
+    if (igeometry.gt.0) then ! do nothing when igeometry==0 
         if (iread_vmec==1) then ! read geometry from VMEC file
             call read_vmec_h5(myrank)
             nperiods = nfp ! nfp may be read from VMEC geometry
@@ -338,7 +338,7 @@ contains
     
     call m3dc1_node_getcoord(inode-1,coords)
 #ifdef USEST
-    if (igeometry>0) then ! Use original mesh when igeometry==0 
+    if (igeometry.gt.1) then ! Use original mesh when igeometry==0 or 1 
        call physical_geometry(x, z, coords(1), coords(3), coords(2))
     else
 #endif
@@ -739,7 +739,7 @@ contains
        is_boundary = ib.eq.1
        if(.not.is_boundary) return
 #ifdef USEST  
-       if (igeometry>0) then ! do nothing when igeometry==0 
+       if (igeometry.gt.0) then ! do nothing when igeometry==0 
           call get_boundary_curv(normal,curv,inode)
        else
 #endif

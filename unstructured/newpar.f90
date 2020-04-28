@@ -22,7 +22,7 @@ Program Reducedquintic
   use m3dc1_omp
   use restart_hdf5
   use wall
-  !use geometry 
+  use geometry 
   use neutral_beam
   use kprad_m3dc1
   use transport_coefficients
@@ -186,7 +186,9 @@ Program Reducedquintic
   call initialize_output (comm)
 
 #ifdef USEST 
-  !call calc_geometry
+  if (igeometry.eq.1) then
+     call calc_geometry
+  end if
 #endif
 
   ! create the newvar matrices
@@ -522,7 +524,7 @@ subroutine safestop(iarg)
   use auxiliary_fields
   use runaway_mod
   use wall
-  !use geometry 
+  use geometry 
   use kprad_m3dc1
   use particles
   use resistive_wall
@@ -543,7 +545,10 @@ subroutine safestop(iarg)
   character*10 :: datec, timec
 
 #ifdef USEST
-  !call destroy_geometry
+  if (igeometry.eq.1) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *,"  destroying geometry..."
+     call destroy_geometry
+  end if
 #endif
 
 #ifdef USEPARTICLES
