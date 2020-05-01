@@ -1185,6 +1185,9 @@ elemental integer function magnetic_region(psi, psix, psiz, x, z)
         endif
      end if
   end if
+#ifdef USEST
+  if (igeometry.eq.1) magnetic_region = 0 
+#endif
 end function magnetic_region
 
 !=====================================================
@@ -1391,6 +1394,13 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
+#ifdef USEST
+  if (igeometry.eq.1) then
+     call physical_geometry(xmagp,zmagp,x,0.,z)
+     if(myrank.eq.0 .and. iprint.ge.2) &
+        print *, ' physical magaxis: x, z = ', xmagp, zmagp
+  end if
+#endif
   
 end subroutine magaxis
 

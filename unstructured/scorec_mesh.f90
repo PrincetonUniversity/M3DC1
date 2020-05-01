@@ -949,10 +949,10 @@ contains
     integer :: i, js
 
     dphi = 1.*toroidal_period/2
-    m_max = 15.5
-    rm1 = 1.
-    rm2 = .0
-    zm1 = 1.
+    m_max = 12.5
+!    rm1 = .8
+!    rm2 = .3
+!    zm1 = 1.2
     r = sqrt((x - xzero)**2 + (z - zzero)**2 + 0e-6)
     theta = atan2(z - zzero, x - xzero)
 !    rout = 5.4 + rm1*r*cos(theta+rm2*sin(theta)) 
@@ -1011,7 +1011,7 @@ contains
     phi = coords(3)
    
     dphi = 1.*toroidal_period/2
-    m_max = 15.5
+    m_max = 12.5
     theta = atan2(z - zzero, x - xzero)
 !    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
 !    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &

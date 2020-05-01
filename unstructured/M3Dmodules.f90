@@ -210,6 +210,9 @@ module basic
                          ! 3 = use element-based method, and calculate p from
                          !     input p' profile (best gs solution)
   real :: xmag, zmag  ! position of magnetic axis
+#ifdef USEST
+  real :: xmagp, zmagp  ! physical position of magnetic axis
+#endif
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
   real :: tcuro       ! initial toroidal current
