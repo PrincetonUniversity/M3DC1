@@ -463,6 +463,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      else if(iconst_bz.eq.1 .and. numvar.ge.2) then
         call get_node_data(bz_field(1), i, temp)
         if(idiff .gt. 0) temp = 0
+        temp(1) = temp(1) + dt*vloopRZ
         call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      endif
 

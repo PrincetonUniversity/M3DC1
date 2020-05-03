@@ -89,6 +89,7 @@ module basic
   real :: gam         ! ratio of specific heats
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
+  real :: vloopRZ     ! rate at which boundary TF changes
   real :: mass_ratio  ! me/mi (in units of me/mp)
   real :: z_ion       ! Z of main ion species
   real :: ion_mass    ! Effective mass of ions (in proton mass/particle)

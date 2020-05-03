@@ -808,6 +808,7 @@ subroutine set_defaults
 
   ! loop voltage
   call add_var_double("vloop", vloop, 0., "", source_grp)
+  call add_var_double("vloopRZ", vloopRZ, 0., "", source_grp)
   call add_var_double("tcur", tcur, 0., "", source_grp)
 
   call add_var_double("tcuri", tcuri, 0., "", source_grp)
