@@ -20,6 +20,7 @@ contains
     implicit none
     type(matrix_type) :: st_matrix 
     integer :: itri, numelms, ibound, ier
+    integer :: inode, numnodes, ii
     vectype, dimension(dofs_per_element) :: dofs
     vectype, dimension(dofs_per_element, dofs_per_element) :: mat_dofs
 
@@ -109,6 +110,17 @@ contains
 
     call destroy_mat(st_matrix)
 
+    if (igeometry.eq.1) then
+      numnodes = owned_nodes()
+      allocate(rnode(dofs_per_node, numnodes))
+      allocate(znode(dofs_per_node, numnodes))
+      do inode=1,numnodes
+        ii=nodes_owned(inode) 
+        call get_node_data(rst, ii, rnode(:,inode))
+        call get_node_data(zst, ii, znode(:,inode))
+      end do
+    end if
+
   end subroutine calc_geometry
 
   subroutine destroy_geometry
@@ -116,6 +128,10 @@ contains
 
     call destroy_field(rst)
     call destroy_field(zst)
+    if (igeometry.eq.1) then
+      deallocate(rnode)
+      deallocate(znode)
+    end if 
   end subroutine destroy_geometry
 
   ! set Dirichlet BC for solving Laplace equation 

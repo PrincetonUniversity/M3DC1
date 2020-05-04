@@ -150,7 +150,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	random.o spline.o region.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
-	element.o read_vmec.o $(V_OBJ) field.o nintegrate_mod.o \
+	element.o read_vmec.o physical_mesh.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o resistive_wall.o kprad.o \
 	 m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
