@@ -799,7 +799,7 @@ subroutine set_defaults
        "Number of resistive wall regions", rw_grp)
   call add_var_double_array("wall_region_eta", wall_region_eta, &
        imax_wall_regions, 1e-3, "Resistivity of each wall region", rw_grp)
-  call add_var_double_array("wall_region_etaRZ", wall_region_eta, &
+  call add_var_double_array("wall_region_etaRZ", wall_region_etaRZ,&
        imax_wall_regions, -1. , "Poloidal Resistivity of each wall region", rw_grp)
 
   call add_var_string_array("wall_region_filename", wall_region_filename, 256,&
