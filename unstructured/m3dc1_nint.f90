@@ -1004,7 +1004,7 @@ contains
               tm79 = ((ps079-psimin)/(psibound-psimin) - etaoff) / etadelt
            else
               tm79 = ((pst79-psimin)/(psibound-psimin) - etaoff) / etadelt
-           endif
+           end if
            eta79 = 0.
            eta79(:,OP_1 )  = 1. + tanh(real(tm79(:,OP_1)))
            eta79(:,OP_DR)  = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DR)
