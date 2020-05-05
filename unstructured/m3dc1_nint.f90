@@ -448,7 +448,7 @@ contains
                        + temp79c*rst79(:,OP_DZ)*di3_79)*must79(i,:,OP_DR)&
                        + ((rst79(:,OP_DR)*rst79(:,OP_DRZ) - rst79(:,OP_DZ)*rst79(:,OP_DRR))*di2_79&
                        - temp79c*rst79(:,OP_DR)*di3_79)*must79(i,:,OP_DZ)
-      ! fZZ = [(Rx*Zy + RyZx)/D^2]*fxy - (Ry*Zy/D^2)*fxx - (Rx*Zx/D^2)*fyy 
+      ! fRZ = [(Rx*Zy + Ry*Zx)/D^2]*fxy - (Ry*Zy/D^2)*fxx - (Rx*Zx/D^2)*fyy 
       !     - [(Zy*Rxy - Zx*Ryy)/D^2 + G*Ry/D^3]*fx      
       !     - [(Zx*Rxy - Zy*Rxx)/D^2 - G*Rx/D^3]*fy      
       mu79(i,:,OP_DRZ) = di2_79*(rst79(:,OP_DR)*zst79(:,OP_DZ) + zst79(:,OP_DR)*rst79(:,OP_DZ))*must79(i,:,OP_DRZ)& 

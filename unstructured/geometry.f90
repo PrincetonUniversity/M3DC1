@@ -23,6 +23,9 @@ contains
     integer :: inode, numnodes, ii
     vectype, dimension(dofs_per_element) :: dofs
     vectype, dimension(dofs_per_element, dofs_per_element) :: mat_dofs
+    real :: l2p(dofs_per_node, dofs_per_node) 
+    real :: p2l(dofs_per_node, dofs_per_node) 
+    real :: mat(dofs_per_node, dofs_per_node) 
 
     ! Define coordinate mappings to be solved for 
     call create_field(rst)
@@ -45,7 +48,7 @@ contains
       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
       call define_fields(itri,0,1,0,ilog=1)
 
-      call prescribe_geometry(rst79(:,OP_1), zst79(:,OP_1), x_79, phi_79, z_79)
+      call physical_geometry(rst79(:,OP_1), zst79(:,OP_1), x_79, phi_79, z_79)
 
       dofs = intx2(must79(:,:,OP_1),rst79(:,OP_1))
       call vector_insert_block(rst%vec, itri, 1, dofs, VEC_ADD)
@@ -110,15 +113,21 @@ contains
 
     call destroy_mat(st_matrix)
 
+    ! populate rnode & znode arrays
     if (igeometry.eq.1) then
-      numnodes = owned_nodes()
+      numnodes = local_nodes()
       allocate(rnode(dofs_per_node, numnodes))
       allocate(znode(dofs_per_node, numnodes))
       do inode=1,numnodes
-        ii=nodes_owned(inode) 
-        call get_node_data(rst, ii, rnode(:,inode))
-        call get_node_data(zst, ii, znode(:,inode))
+        call get_node_data(rst, inode, rnode(:,inode))
+        call get_node_data(zst, inode, znode(:,inode))
       end do
+      call l2p_matrix(l2p,1)
+      call p2l_matrix(p2l,1)
+      mat = matmul(l2p,p2l)
+      if(myrank.eq.0 .and. iprint.ge.2) print *, l2p 
+      if(myrank.eq.0 .and. iprint.ge.2) print *, p2l 
+      if(myrank.eq.0 .and. iprint.ge.2) print *, mat 
     end if
 
   end subroutine calc_geometry
@@ -186,18 +195,18 @@ contains
   end subroutine get_boundary_geometry
 
   ! Calculate rst and zst given x, phi, z 
-  subroutine prescribe_geometry(rout, zout, x, phi, z)
-    implicit none
-
-    real, intent(in), dimension(MAX_PTS) :: x, phi, z
-    vectype, intent(out), dimension(MAX_PTS) :: rout, zout 
-    !real, dimension(MAX_PTS) :: r, theta
-    integer :: i
+!  subroutine prescribe_geometry(rout, zout, x, phi, z)
+!    implicit none
+!
+!    real, intent(in), dimension(MAX_PTS) :: x, phi, z
+!    vectype, intent(out), dimension(MAX_PTS) :: rout, zout 
+!    !real, dimension(MAX_PTS) :: r, theta
+!    integer :: i
     
-    do i=1, MAX_PTS
-      call physical_geometry(rout(i), zout(i), x(i), phi(i), z(i))
-    enddo
-  end subroutine prescribe_geometry
+!    do i=1, MAX_PTS
+!      call physical_geometry(rout(i), zout(i), x(i), phi(i), z(i))
+!    enddo
+!  end subroutine prescribe_geometry
   
 #endif
 end module geometry 

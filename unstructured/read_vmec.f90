@@ -5,7 +5,6 @@ module read_vmec
 #ifdef USEST
   integer :: nfp
   real, allocatable :: rbc(:), zbs(:)
-  real, allocatable :: rstc(:), zsts(:)
   real, allocatable :: rmnc(:,:), zmns(:,:)
   real, allocatable :: bsupumnc(:,:), bsupvmnc(:,:)
   real, allocatable :: presf(:)
@@ -112,8 +111,8 @@ contains
     call h5close_f(error)
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
-    allocate(rstc(mn_mode))
-    allocate(zsts(mn_mode))
+!    allocate(rstc(mn_mode))
+!    allocate(zsts(mn_mode))
     rbc = rmnc(:,ns)
     zbs = zmns(:,ns)
 
