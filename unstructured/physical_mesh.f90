@@ -9,11 +9,13 @@ module physical_mesh
   integer :: iread_vmec 
   integer :: nperiods
 #ifdef USEST
+  ! 0 = physical basis;, 1 = logical basis & DoF; 2= logical basis, physical DoF. 
+  integer :: ilog        
   real :: mesh_period 
   real :: rm1, rm2, zm1
   ! arrays to store dofs of rst & zst fields 
-  real, allocatable :: rnode(:,:)
-  real, allocatable :: znode(:,:)
+  real, allocatable :: rstnode(:,:)
+  real, allocatable :: zstnode(:,:)
 
 contains
 
@@ -24,15 +26,13 @@ contains
 
     real, intent(in):: x, phi, z
     vectype, intent(out):: rout, zout 
-    real :: r, theta, ds, r2n, m_max, dphi
+    real :: r, theta, ds, r2n
     integer :: i, js
     real, dimension(mn_mode) :: rstc, zsts
+    real :: m_max, dphi
 
     dphi = 1.*mesh_period/2
-    m_max = 12.5
-!    rm1 = .8
-!    rm2 = .3
-!    zm1 = 1.2
+    m_max = 15.5
     r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
     theta = atan2(z - zcenter, x - xcenter)
 !    rout = 5.4 + rm1*r*cos(theta+rm2*sin(theta)) 
@@ -43,7 +43,7 @@ contains
       r2n = r**2*(ns-1)
       js = ceiling(r2n)
       if (js>(ns-1)) js = ns-1 
-      if (js>1) then ! interpolate between surfaces
+      if (js>0) then ! interpolate between surfaces
         ds = js - r2n 
         rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
         zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
@@ -80,9 +80,10 @@ contains
 
     integer, intent(in) :: inode 
     real, intent(out) :: normal(2), curv
-    real :: dr, ddr, dz, ddz, theta, x, phi, z, m_max, dphi 
+    real :: dr, ddr, dz, ddz, theta, x, phi, z
     real :: coords(3)
     integer :: i
+    real :: m_max, dphi
 
     ! get logical coordinates    
     call m3dc1_node_getcoord(inode-1,coords)
@@ -90,8 +91,11 @@ contains
     z = coords(2)
     phi = coords(3)
    
+!    rm1 = 1.
+!    rm2 = .0
+!    zm1 = 1.
     dphi = 1.*mesh_period/2
-    m_max = 12.5
+    m_max = 15.5
     theta = atan2(z - zcenter, x - xcenter)
 !    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
 !    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
@@ -136,8 +140,8 @@ contains
     real :: di, di2, di3, dx, dy, f, g
     real, dimension(dofs_per_node) :: rn, zn 
 
-    rn = rnode(inode,:) 
-    zn = znode(inode,:) 
+    rn = rstnode(:,inode) 
+    zn = zstnode(:,inode) 
 
     ! calculate expressions needed
     ! inverse of D = Rx*Zy - Ry*Zx
@@ -209,8 +213,8 @@ contains
     real, intent(out) :: p2l(dofs_per_node, dofs_per_node) 
     real, dimension(dofs_per_node) :: rn, zn 
 
-    rn = rnode(inode,:) 
-    zn = znode(inode,:) 
+    rn = rstnode(:,inode) 
+    zn = zstnode(:,inode) 
 
     p2l = 0
     p2l(DOF_1,DOF_1) = 1.
@@ -243,7 +247,6 @@ contains
     p2l(DOF_DRZ,DOF_DZ) = zn(DOF_DRZ)
 
   end subroutine p2l_matrix
-
 
 #endif 
 

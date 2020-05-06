@@ -46,7 +46,8 @@ contains
     do itri=1,numelms
 
       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-      call define_fields(itri,0,1,0,ilog=1)
+      !call define_fields(itri,0,1,0,ilog=1)
+      call define_fields(itri,0,1,0)
 
       call physical_geometry(rst79(:,OP_1), zst79(:,OP_1), x_79, phi_79, z_79)
 
@@ -69,6 +70,7 @@ contains
 
 !      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
 !      call define_fields(itri,0,1,0,ilog=1)
+!      call define_fields(itri,0,1,0)
 
 !      mat_dofs = -intxx3(must79(:,:,OP_1),nust79(:,:,OP_LP),ri_79) 
 !                !+intxx3(must79(:,:,OP_1),nust79(:,:,OP_DPP),ri3_79)
@@ -85,7 +87,8 @@ contains
     do itri=1,numelms
 
       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-      call define_fields(itri,0,1,0,ilog=1)
+      !call define_fields(itri,0,1,0,ilog=1)
+      call define_fields(itri,0,1,0)
 
       rst79(:,OP_1) = x_79
       zst79(:,OP_1) = z_79
@@ -113,21 +116,26 @@ contains
 
     call destroy_mat(st_matrix)
 
-    ! populate rnode & znode arrays
-    if (igeometry.eq.1) then
+    if (ilog.eq.1) then
+      ! populate rstnode & zstnode arrays
       numnodes = local_nodes()
-      allocate(rnode(dofs_per_node, numnodes))
-      allocate(znode(dofs_per_node, numnodes))
+      allocate(rstnode(dofs_per_node, numnodes))
+      allocate(zstnode(dofs_per_node, numnodes))
       do inode=1,numnodes
-        call get_node_data(rst, inode, rnode(:,inode))
-        call get_node_data(zst, inode, znode(:,inode))
+        call get_node_data(rst, inode, rstnode(:,inode))
+        call get_node_data(zst, inode, zstnode(:,inode))
       end do
-      call l2p_matrix(l2p,1)
-      call p2l_matrix(p2l,1)
-      mat = matmul(l2p,p2l)
-      if(myrank.eq.0 .and. iprint.ge.2) print *, l2p 
-      if(myrank.eq.0 .and. iprint.ge.2) print *, p2l 
-      if(myrank.eq.0 .and. iprint.ge.2) print *, mat 
+!      call l2p_matrix(l2p,numnodes)
+!      call p2l_matrix(p2l,numnodes)
+!      mat = matmul(l2p,p2l)
+!      if(myrank.eq.0 .and. iprint.ge.2) print *, 'l2p', l2p 
+!      if(myrank.eq.0 .and. iprint.ge.2) print *, 'p2l',p2l 
+!      if(myrank.eq.0 .and. iprint.ge.2) print *, 'mat',mat 
+      ! set ilog = 2 to recalculate logical basis 
+      ilog = 2
+    else if (ilog.eq.2) then
+      ! set ilog = 0, use physical basis from now on
+      ilog = 0
     end if
 
   end subroutine calc_geometry
@@ -138,8 +146,8 @@ contains
     call destroy_field(rst)
     call destroy_field(zst)
     if (igeometry.eq.1) then
-      deallocate(rnode)
-      deallocate(znode)
+      deallocate(rstnode)
+      deallocate(zstnode)
     end if 
   end subroutine destroy_geometry
 

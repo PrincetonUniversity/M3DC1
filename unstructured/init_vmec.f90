@@ -38,7 +38,7 @@ contains
 
     select case(igeometry)
 
-    case(1) ! prescribed geometry when igeometry==1
+    case(1) 
 
     do itri=1,numelms
 
@@ -52,61 +52,15 @@ contains
 
     enddo
 
-!    case(2) ! solve geometry from Laplace's equation
+!    case(2) 
 
-!    ibound = BOUNDARY_DIRICHLET
+    case default 
 
-!    do itri=1,numelms
-
-!      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-!      call define_fields(itri,0,1,0,ilog=1)
-
-!      mat_dofs = -intxx3(must79(:,:,OP_1),nust79(:,:,OP_LP),ri_79) 
-!                !+intxx3(must79(:,:,OP_1),nust79(:,:,OP_DPP),ri3_79)
-       
-!      call apply_boundary_mask(itri, ibound, mat_dofs, tags=inner_wall)
-
-!      call insert_block(st_matrix, itri, 1, 1, mat_dofs, MAT_ADD)
-!    enddo
-
-!    call boundary_geometry(rst%vec, zst%vec, st_matrix)
-
-!    case default ! identity geometry
-
-!    do itri=1,numelms
-
-!      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-!      call define_fields(itri,0,1,0,ilog=1)
-
-!      rst79(:,OP_1) = x_79
-!      zst79(:,OP_1) = z_79
-
-!      dofs = intx2(must79(:,:,OP_1),rst79(:,OP_1))
-!      call vector_insert_block(rst%vec, itri, 1, dofs, VEC_ADD)
-
-!      dofs = intx2(must79(:,:,OP_1),zst79(:,OP_1))
-!      call vector_insert_block(zst%vec, itri, 1, dofs, VEC_ADD)
-
-!      mat_dofs = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-!      call insert_block(st_matrix, itri, 1, 1, mat_dofs, MAT_ADD)
-
-!    enddo
     end select
 
     call newvar_solve(p_vec%vec,mass_mat_lhs)
     p_field(0) = p_vec
     call destroy_field(p_vec)
-
-!    call finalize(st_matrix)
-
-!    call sum_shared(rst%vec)
-!    call sum_shared(zst%vec)
-!    if(myrank.eq.0 .and. iprint.ge.2) print *, "calculating geometry"
-!    call newsolve(st_matrix,rst%vec,ier)
-!    call newsolve(st_matrix,zst%vec,ier)
-!    if(myrank.eq.0 .and. iprint.ge.2) print *, "geometry calculated"
-
-!    call destroy_mat(st_matrix)
 
   end subroutine vmec_init
 

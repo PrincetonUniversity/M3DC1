@@ -187,7 +187,12 @@ Program Reducedquintic
 
 #ifdef USEST 
   if (igeometry.eq.1) then
-     call calc_geometry
+     ! calculate rst & zst fields
+     call calc_geometry 
+     ! recalculate gtri such that DoFs are in physical derivatives 
+     call tridef
+     ! recalculate rst & zst fields using new gtri 
+     call calc_geometry 
   end if
 #endif
 
@@ -1004,7 +1009,9 @@ end subroutine rotation
     real, dimension(dofs_per_tri) :: temp_vec
 
     real, dimension(nodes_per_element) :: node_sz
-
+#ifdef USEST
+    real, dimension(dofs_per_tri, dofs_per_tri) :: p2l_mat 
+#endif
 
     numelms = local_elements()
     numnodes = local_nodes()
@@ -1042,6 +1049,12 @@ end subroutine rotation
                all_boundaries)
 
           k = (i-1)*6 + 1
+#ifdef USEST
+          if(igeometry.eq.1.and.ilog.eq.2) then
+            call p2l_matrix(p2l_mat(k:k+5,k:k+5),inode(i))
+          end if
+          !if(is_boundary.and.(igeometry.ne.1.or.ilog.ne.1)) then
+#endif
           if(is_boundary) then
              newrot(k  ,k  ) = 1.
              newrot(k+1,k+1) =  norm(1)
@@ -1069,7 +1082,11 @@ end subroutine rotation
              end do
           end if
        end do     
-
+#ifdef USEST
+       if(igeometry.eq.1.and.ilog.eq.2) then
+            newrot = matmul(newrot,transpose(p2l_mat))
+       end if
+#endif
        ! form the matrix g by multiplying ti and rot
        do k=1, coeffs_per_tri
           do j=1, dofs_per_tri

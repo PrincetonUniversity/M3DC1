@@ -88,6 +88,7 @@ contains
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
 
 #ifdef USEST
+    ilog = 1       ! use logical basis funtions first
     if (igeometry.gt.0) then ! do nothing when igeometry==0 
         if (iread_vmec==1) then ! read geometry from VMEC file
             call read_vmec_h5(myrank)
@@ -643,7 +644,7 @@ contains
   ! about boundary surface
   !======================================================================
   subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,&
-       x,phi,z,tags,ilog)
+       x,phi,z,tags)
 
     use math
     
@@ -655,7 +656,6 @@ contains
     real, intent(out) :: x,phi,z              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
     type(tag_list), intent(in), optional :: tags
-    integer, intent(in), optional :: ilog     ! return logical if present
     
     integer :: ibottom, iright, ileft, itop, ib
     real :: angler

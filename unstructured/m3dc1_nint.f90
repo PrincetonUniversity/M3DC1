@@ -85,7 +85,7 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(must79,nust79)
   vectype, dimension(MAX_PTS,OP_NUM) :: rst79, zst79 
 !$OMP THREADPRIVATE(rst79,zst79)
-  vectype, dimension(MAX_PTS) :: xl_79, zl_79 ! logical coordinates
+  vectype, dimension(MAX_PTS) :: xl_79, zl_79 ! logical coords of quadratures
 !$OMP THREADPRIVATE(xl_79,zl_79)
 #endif
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
@@ -539,7 +539,7 @@ contains
   !=====================================================
   ! define_fields
   !=====================================================
-  subroutine define_fields(itri, fieldi, gdef, ilin, ieqs, ilog)
+  subroutine define_fields(itri, fieldi, gdef, ilin, ieqs)
     use basic
     use mesh_mod
     use arrays
@@ -549,8 +549,7 @@ contains
     implicit none
   
     integer, intent(in) :: itri, fieldi, gdef, ilin
-    ! use logical basis only when ilog is present
-    integer, intent(in), optional :: ieqs, ilog 
+    integer, intent(in), optional :: ieqs
 
     real :: fac
     real :: p_floor
@@ -607,7 +606,7 @@ contains
        ! copy logical basis functions
        must79 = mu79
        nust79 = mu79
-       if(.not.present(ilog)) then 
+       if(ilog.eq.0) then  ! use physical basis when ilog==0 
           call define_physical_basis(itri)
        else
           if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, &
