@@ -1,12 +1,14 @@
 function flux_at_q, qval, normalized_flux=norm, points=pts, $
                     q=q, flux=flux, psi=psi, x=x, z=z, t=t, $
-                    guess=guess, _EXTRA=extra
+                    guess=guess, fc=fc, _EXTRA=extra
 
   if(n_elements(q) eq 0 or n_elements(flux) eq 0) then begin
 ;     q = flux_average('q', flux=flux, nflux=nflux, /equilibrium, points=pts, $
 ;                      _EXTRA=extra, psi=psi, x=x, z=z, t=t)
-     fc = flux_coordinates(_EXTRA=extra, points=pts, psi0=psi, x=x, z=z, $
-                          /equilibrium)
+     if(not isa(fc)) then begin
+        fc = flux_coordinates(_EXTRA=extra, points=pts, psi0=psi, x=x, z=z, $
+                              /equilibrium)
+     end
      q = abs(fc.q)
      if(keyword_set(norm)) then flux=fc.psi_norm else flux=fc.psi
   end

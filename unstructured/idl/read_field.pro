@@ -9,24 +9,80 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      time=realtime, abs=abs, phase=phase, dimensions=d, $
                      flux_average=flux_av, rvector=rvector, zvector=zvector, $
                      yvector=yvector, taverage=taverage, sum=sum, $
+                     tpoints=nphi, $
                      is_nonlinear=is_nonlinear, outval=mask_val, wall_mask=wall_mask
 
    if(n_elements(slices) ne 0) then time=slices else time=0
    is_nonlinear = 0
 
-   if(n_elements(phi0) ne 0) then print, 'phi0 = ', phi0
-
-   if(n_elements(filename) gt 1) then begin
-      itor = read_parameter('itor', filename=filename[0])
-      rzero = read_parameter('rzero', filename=filename[0])
-   endif else begin
-      itor = read_parameter('itor', filename=filename)
-      rzero = read_parameter('rzero', filename=filename)
-  end
+   icomplex = read_parameter('icomplex', filename=filename[0])
+   itor = read_parameter('itor', filename=filename[0])
+   rzero = read_parameter('rzero', filename=filename[0])
    if(itor eq 1) then begin
       period = 2.*!pi
    endif else begin
       period = 2.*!pi*rzero
+   end
+   if(n_elements(pts) eq 0) then pts=200.
+   if(n_elements(phi0) eq 0) then phi0=0.
+   if(n_elements(nphi) eq 0) then begin
+      nphi = n_elements(phi0)
+   endif else begin
+      phi0 = findgen(nphi)/nphi * period
+      if(itor eq 1) then phi0 = phi0*180./!pi
+   end
+
+   if(nphi gt 1) then begin
+      if(icomplex eq 1) then begin
+         ntor = read_parameter('ntor', filename=filename)
+         data = complexarr(nphi,pts,pts)
+         data[0,*,*] = read_field(name, x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, fac=fac, $
+                        rrange=xrange, zrange=yrange, $
+                        h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                        diff=diff, operation=op, dimensions=d, $
+                        last=last,symbol=symbol,units=units, $
+                        cgs=cgs, mks=mks, time=realtime, $
+                        rvector=rvector, zvector=zvector, yvector=yvector,$
+                        phi=phi0[0], wall_mask=wall_mask, /linear, /complex)
+         for i=1, nphi-1 do begin
+            phi_rad = (phi0[i]-phi0[0])*!pi/180.
+            data[i,*,*] = data[0,*,*]*exp(complex(0.,ntor)*phi_rad)
+         end
+         data = real_part(data)
+
+         if(not keyword_set(linear) and time ge 0) then begin
+            data0 = read_field(name, x, y, t, slices=-1, mesh=mesh, $
+                        filename=filename, points=pts, fac=fac, $
+                        rrange=xrange, zrange=yrange, $
+                        h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                        diff=diff, operation=op, dimensions=d, $
+                        symbol=symbol,units=units, $
+                        cgs=cgs, mks=mks, time=realtime, $
+                        rvector=rvector, zvector=zvector, yvector=yvector,$
+                        phi=0., wall_mask=wall_mask)
+            for i=0, nphi-1 do begin
+               data[i,*,*] = data[i,*,*] + data0
+            end
+         end
+
+         return, real_part(data)
+      endif else begin
+         data = fltarr(nphi,pts,pts)
+         for i=0, nphi-1 do begin
+            data[i,*,*] = $
+               read_field(name, x, y, t, slices=time, mesh=mesh, $
+                          filename=filename, points=pts, fac=fac, $
+                          rrange=xrange, zrange=yrange, complex=complex, $
+                          h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
+                          diff=diff, operation=op, dimensions=d, $
+                          linear=linear, last=last,symbol=symbol,units=units, $
+                          cgs=cgs, mks=mks, time=realtime, $
+                          rvector=rvector, zvector=zvector, yvector=yvector,$
+                          phi=phi0[i], wall_mask=wall_mask)         
+         end
+         return, data
+      end
    end
 
    if(keyword_set(taverage)) then begin
@@ -123,7 +179,6 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ntor = read_parameter("ntor", filename=filename)
    version = read_parameter('version', filename=filename)
    ivform = read_parameter('ivform', filename=filename)
-   icomplex = read_parameter('icomplex', filename=filename)
    i3d = read_parameter('3d', filename=filename)
    if(version eq 0) then begin
        xzero = read_parameter("xzero", filename=filename)
@@ -149,7 +204,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    realtime = get_slice_time(filename=filename, slice=time)
 
-   data = fltarr(1, pts, pts)
+   data = fltarr(nphi, pts, pts)
    if(isubeq eq 1) then base = fltarr(pts,pts)
 
    d = dimensions()
@@ -238,6 +293,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                /linear, last=last,symbol=symbol, $
                                units=units, dimensions=d, $
                                equilibrium=equilibrium, wall_mask=wall_mask)
+
            data_i = read_field(name+'_i',x,y,t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, complex=0, $
@@ -248,13 +304,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                equilibrium=equilibrium, wall_mask=wall_mask)
            data = complex(data_r, data_i)
 
-
-           ; evaluate at phi0
-           ; it is okay to do this here since complex cases are always linear
+             ; evaluate at phi0
+             ; it is okay to do this here since complex cases are always linear
            if(n_elements(phi0) ne 0) then begin
-               print, 'evaluating at angle ', phi0, ' with ntor = ', ntor
-               data = data* $
-                 complex(cos(ntor*phi0*!pi/180.), sin(ntor*phi0*!pi/180.))
+              data = data*exp(complex(0.,ntor)*phi0[0]*!pi/180.)
            end
        endif else if (keyword_set(linear) and isubeq eq 0) then begin
            h5g_close, field_group_id
@@ -741,17 +794,25 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        complex=complex, phi=phi0)
        
 
-       Te0 = read_field('Te', x, y, t, mesh=mesh, $
+       Te0_r = read_field('Te', x, y, t, mesh=mesh, op=2, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
-
+       Te0_z = read_field('Te', x, y, t, mesh=mesh, op=3, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=-1)
        psi0 = read_field('psi', x, y, t, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
+       psi0_r = read_field('psi', x, y, t, mesh=mesh, op=2, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=-1)
+       psi0_z = read_field('psi', x, y, t, mesh=mesh, op=3, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, slice=-1)
       
-       tprime = s_bracket(Te0,psi0,x,y)
+       tprime = Te0_r*psi0_r + Te0_z*psi0_z
 
-       data = -Te1/tprime*sqrt(s_bracket(psi0,psi0,x,y))
+       data = -Te1/tprime*sqrt(psi0_r^2 + psi0_z^2)
 
        psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
        if(psis lt flux0) then begin

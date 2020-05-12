@@ -40,7 +40,7 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
       itor = read_parameter('itor', filename=filename)
       r0 =read_parameter('rzero', filename=filename)
       fc = flux_coordinates(points=points,filename=filename,$
-                            tbins=bins,fbins=bins,itor=itor,r0=r0, $
+                            tbins=points,fbins=bins,itor=itor,r0=r0, $
                             psi0=psi,i0=i0,x=x,z=z,_EXTRA=extra)
       if(isa(fc, "Int")) then begin
          print, 'Error calculating flux coordinates'
