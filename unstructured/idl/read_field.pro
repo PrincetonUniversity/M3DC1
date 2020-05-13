@@ -12,6 +12,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      tpoints=nphi, $
                      is_nonlinear=is_nonlinear, outval=mask_val, wall_mask=wall_mask
 
+  if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(slices) ne 0) then time=slices else time=0
    is_nonlinear = 0
 
