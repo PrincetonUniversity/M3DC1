@@ -18,7 +18,7 @@ else
   ifeq ($(TRILINOS), 1)
     V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o
   else
-    V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
+    V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o #PETScInterface.o
   endif
 endif
 
