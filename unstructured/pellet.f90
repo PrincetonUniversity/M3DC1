@@ -44,7 +44,8 @@ contains
   subroutine pellet_init()
     use basic
     use read_ascii
-!    use diagnostics
+    use math
+
     implicit none
     character(LEN=10), parameter :: pellet_filename = 'pellet.dat'
 
@@ -91,6 +92,8 @@ contains
        call read_ascii_column(pellet_filename, cloud_pel,      npellets, icol=11)
        call read_ascii_column(pellet_filename, pellet_mix,     npellets, icol=12)
     end if
+
+    where(pellet_phi .lt. 0) pellet_phi = pellet_phi + 2.*pi
 
     allocate(pellet_vx(npellets))
     allocate(pellet_vy(npellets))
@@ -266,7 +269,8 @@ contains
 
   subroutine pellet_advance
     use basic
-!    use diagnostics
+    use math
+
     implicit none
 
     real, allocatable :: x(:), y(:)
@@ -286,6 +290,7 @@ contains
 
        pellet_r   = sqrt(x**2 + y**2)
        pellet_phi = atan2(y,x)
+       where(pellet_phi .lt. 0.) pellet_phi = pellet_phi + 2.*pi
     end where
 
     call pellet_domain
