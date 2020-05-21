@@ -174,6 +174,9 @@ contains
              call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+             if(version_in.ge.33) then
+                call read_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
+             end if
              call h5gclose_f(pel_group_id, error)
           end if
        end if

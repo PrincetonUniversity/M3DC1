@@ -361,6 +361,9 @@ subroutine hdf5_write_scalars(error)
         call output_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
         call output_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
         call output_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+        if((irestart.eq.0).or.(version_in.ge.33)) then
+           call output_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
+        end if
      else
         call output_scalar(scalar_group_id, "pellet_r",   pellet_r(1),   ntime, error)
         call output_scalar(scalar_group_id, "pellet_phi", pellet_phi(1), ntime, error)
