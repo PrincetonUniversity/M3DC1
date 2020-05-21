@@ -39,6 +39,8 @@ module pellet
   real :: pellet_velr_scl, pellet_velphi_scl, pellet_velz_scl
   real :: r_p_scl, cloud_pel_scl, pellet_mix_scl
 
+  real :: pellet_cauchy_frac
+
 contains
 
   subroutine pellet_init()
@@ -130,7 +132,7 @@ contains
     real, intent(in) :: r, phi, z, pres
     integer, intent(in) :: inorm
 
-    real :: x, y, px, py
+    real :: x, y, px, py, gamma
 
     if(pellet_state(ip).ne.1) then
        pellet_distribution = 0.
@@ -180,11 +182,21 @@ contains
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
+    ! poloidal gaussian, toroidal blend of von Mises and Cauchy
+    case(14)
+       pellet_distribution = 1./ &
+            (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
+            *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
+                  /(2.*pellet_var(ip)**2))
+       gamma = pellet_var_tor(ip)/sqrt(r*pellet_r(ip))
+       pellet_distribution = pellet_distribution * &
+            ((1.-pellet_cauchy_frac)*exp(-(1.-cos(phi-pellet_phi(ip)))/gamma**2) + &
+             pellet_cauchy_frac*(cosh(gamma) - cos(pellet_phi))/(cosh(gamma) - cos(phi-pellet_phi(ip))))
 
 #else
 
     ! axisymmetric gaussian pellet source
-    case(1, 11, 13)
+    case(1, 11, 13, 14)
        pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
