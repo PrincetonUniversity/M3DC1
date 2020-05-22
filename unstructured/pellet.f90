@@ -192,7 +192,7 @@ contains
        gamma = pellet_var_tor(ip)/sqrt(r*pellet_r(ip))
        pellet_distribution = pellet_distribution * &
             ((1.-cauchy_fraction(ip))*exp(-(1.-cos(phi-pellet_phi(ip)))/gamma**2) + &
-            cauchy_fraction(ip)*(cosh(gamma) - cos(pellet_phi))/(cosh(gamma) - cos(phi-pellet_phi(ip))))
+            cauchy_fraction(ip)*(cosh(gamma) - cos(pellet_phi(ip)))/(cosh(gamma) - cos(phi-pellet_phi(ip))))
 
 #else
 
