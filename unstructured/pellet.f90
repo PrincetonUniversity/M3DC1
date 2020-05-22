@@ -30,6 +30,7 @@ module pellet
   real, allocatable :: pellet_mix(:)   ! (moles D2)/(moles D2 + moles impurity)
   real :: temin_abl
   real, allocatable :: pellet_rate_D2(:)  ! rate of deuterium deposition from mixed pellets
+  real, allocatable :: cauchy_fraction(:)
 
   real, allocatable :: nsource_pel(:), temp_pel(:), Lor_vol(:)
   real, allocatable :: rpdot(:)
@@ -37,7 +38,7 @@ module pellet
   real :: pellet_r_scl, pellet_phi_scl, pellet_z_scl
   real :: pellet_rate_scl, pellet_var_scl, pellet_var_tor_scl
   real :: pellet_velr_scl, pellet_velphi_scl, pellet_velz_scl
-  real :: r_p_scl, cloud_pel_scl, pellet_mix_scl
+  real :: r_p_scl, cloud_pel_scl, pellet_mix_scl, cauchy_fraction_scl
 
 contains
 
@@ -64,33 +65,35 @@ contains
        allocate(r_p(npellets))
        allocate(cloud_pel(npellets))
        allocate(pellet_mix(npellets))
+       allocate(cauchy_fraction(npellets))
        
-       pellet_r(1)       = pellet_r_scl
-       pellet_phi(1)     = pellet_phi_scl
-       pellet_z(1)       = pellet_z_scl
-       pellet_rate(1)    = pellet_rate_scl
-       pellet_var(1)     = pellet_var_scl
-       pellet_var_tor(1) = pellet_var_tor_scl
-       pellet_velr(1)    = pellet_velr_scl
-       pellet_velphi(1)  = pellet_velphi_scl
-       pellet_velz(1)    = pellet_velz_scl
-       r_p(1)            = r_p_scl
-       cloud_pel(1)      = cloud_pel_scl
-       pellet_mix(1)     = pellet_mix_scl
-
+       pellet_r(1)        = pellet_r_scl
+       pellet_phi(1)      = pellet_phi_scl
+       pellet_z(1)        = pellet_z_scl
+       pellet_rate(1)     = pellet_rate_scl
+       pellet_var(1)      = pellet_var_scl
+       pellet_var_tor(1)  = pellet_var_tor_scl
+       pellet_velr(1)     = pellet_velr_scl
+       pellet_velphi(1)   = pellet_velphi_scl
+       pellet_velz(1)     = pellet_velz_scl
+       r_p(1)             = r_p_scl
+       cloud_pel(1)       = cloud_pel_scl
+       pellet_mix(1)      = pellet_mix_scl
+       cauchy_fraction(1) = cauchy_fraction_scl
     else
-       call read_ascii_column(pellet_filename, pellet_r,       npellets, icol=1)
-       call read_ascii_column(pellet_filename, pellet_phi,     npellets, icol=2)
-       call read_ascii_column(pellet_filename, pellet_z,       npellets, icol=3)
-       call read_ascii_column(pellet_filename, pellet_rate,    npellets, icol=4)
-       call read_ascii_column(pellet_filename, pellet_var,     npellets, icol=5)
-       call read_ascii_column(pellet_filename, pellet_var_tor, npellets, icol=6)
-       call read_ascii_column(pellet_filename, pellet_velr,    npellets, icol=7)
-       call read_ascii_column(pellet_filename, pellet_velphi,  npellets, icol=8)
-       call read_ascii_column(pellet_filename, pellet_velz,    npellets, icol=9)
-       call read_ascii_column(pellet_filename, r_p,            npellets, icol=10)
-       call read_ascii_column(pellet_filename, cloud_pel,      npellets, icol=11)
-       call read_ascii_column(pellet_filename, pellet_mix,     npellets, icol=12)
+       call read_ascii_column(pellet_filename, pellet_r,        npellets, icol=1)
+       call read_ascii_column(pellet_filename, pellet_phi,      npellets, icol=2)
+       call read_ascii_column(pellet_filename, pellet_z,        npellets, icol=3)
+       call read_ascii_column(pellet_filename, pellet_rate,     npellets, icol=4)
+       call read_ascii_column(pellet_filename, pellet_var,      npellets, icol=5)
+       call read_ascii_column(pellet_filename, pellet_var_tor,  npellets, icol=6)
+       call read_ascii_column(pellet_filename, pellet_velr,     npellets, icol=7)
+       call read_ascii_column(pellet_filename, pellet_velphi,   npellets, icol=8)
+       call read_ascii_column(pellet_filename, pellet_velz,     npellets, icol=9)
+       call read_ascii_column(pellet_filename, r_p,             npellets, icol=10)
+       call read_ascii_column(pellet_filename, cloud_pel,       npellets, icol=11)
+       call read_ascii_column(pellet_filename, pellet_mix,      npellets, icol=12)
+       call read_ascii_column(pellet_filename, cauchy_fraction, npellets, icol=13)
     end if
 
     where(pellet_phi .lt. 0) pellet_phi = pellet_phi + 2.*pi
@@ -130,7 +133,7 @@ contains
     real, intent(in) :: r, phi, z, pres
     integer, intent(in) :: inorm
 
-    real :: x, y, px, py
+    real :: x, y, px, py, gamma
 
     if(pellet_state(ip).ne.1) then
        pellet_distribution = 0.
@@ -180,11 +183,21 @@ contains
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
+    ! poloidal gaussian, toroidal blend of von Mises and Cauchy
+    case(14)
+       pellet_distribution = 1./ &
+            (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
+            *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
+                  /(2.*pellet_var(ip)**2))
+       gamma = pellet_var_tor(ip)/sqrt(r*pellet_r(ip))
+       pellet_distribution = pellet_distribution * &
+            ((1.-cauchy_fraction(ip))*exp(-(1.-cos(phi-pellet_phi(ip)))/gamma**2) + &
+            cauchy_fraction(ip)*(cosh(gamma) - cos(pellet_phi(ip)))/(cosh(gamma) - cos(phi-pellet_phi(ip))))
 
 #else
 
     ! axisymmetric gaussian pellet source
-    case(1, 11, 13)
+    case(1, 11, 13, 14)
        pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
