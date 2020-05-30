@@ -1,3 +1,4 @@
+
 module temperature_plots
 
 contains
@@ -402,8 +403,10 @@ subroutine f3vplot_sub(term)
   
   implicit none
   vectype, intent(out), dimension(dofs_per_element) :: term
+  vectype, dimension(dofs_per_element) :: temp
 
-  term = (gam-1)*(q_delta1(mu79,tit79)-q_delta1(mu79,tet79))
+  temp = (gam-1)*(q_delta1(mu79,tit79)-q_delta1(mu79,tet79))
+  term = temp
 end subroutine f3vplot_sub
 
 subroutine f3eplot_sub(term)
