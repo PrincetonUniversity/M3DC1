@@ -852,6 +852,9 @@ subroutine set_defaults
        "Molar fraction of deuterium in pellet", source_grp)
   call add_var_double("temin_abl", temin_abl, 0., &
        "Min. Temp. at which ablation turns on", source_grp)
+  call add_var_double("cauchy_fraction", cauchy_fraction_scl, 0., &
+       "For ipellet=14, fraction of distribution that is Cauchy, vs von Mises", &
+       source_grp)
 
 
   ! beam source

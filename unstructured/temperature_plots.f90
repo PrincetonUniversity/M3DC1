@@ -1,3 +1,4 @@
+
 module temperature_plots
 
 contains
@@ -386,19 +387,13 @@ subroutine f2eplot_sub(term)
   
   implicit none
   vectype, intent(out), dimension(dofs_per_element) :: term
-  integer :: jadvs
   vectype, dimension(dofs_per_element) :: temp
 
-      ! Resistive and Hyper Terms
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  jadvs = jadv
-  jadv = 1   ! only for evaluation of this function
-    temp = b1psieta1(mu79,pst79,eta79,vz079,eta_mod.eq.1) &
-         + b1psieta2(mu79,pst79,eta79,vz079,eta_mod.eq.1)
-  jadv = jadvs
-
+  if(iadiabat.eq.1) then
+    temp =  t3tndenm(mu79,tet79,net79,denm79)  &
+         +  t3ts(mu79,tet79,sie79)
+  endif
   term = temp
-
 end subroutine f2eplot_sub
 
 subroutine f3vplot_sub(term)
@@ -408,10 +403,10 @@ subroutine f3vplot_sub(term)
   
   implicit none
   vectype, intent(out), dimension(dofs_per_element) :: term
+  vectype, dimension(dofs_per_element) :: temp
 
-  term = t3tnu  (mu79,tet79,nt79,pht79) &
-       + t3tnv  (mu79,tet79,nt79,vzt79) &
-       + t3tnchi(mu79,tet79,nt79,cht79)
+  temp = (gam-1)*(q_delta1(mu79,tit79)-q_delta1(mu79,tet79))
+  term = temp
 end subroutine f3vplot_sub
 
 subroutine f3eplot_sub(term)

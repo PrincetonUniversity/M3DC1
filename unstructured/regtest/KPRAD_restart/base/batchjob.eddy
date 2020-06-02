@@ -14,9 +14,9 @@ part_mesh.sh analytic-2K.smb 48
 echo $? > mesh_partitioned
 
 cp C1input.1 C1input
-$M3DC1_MPIRUN -n 48 m3dc1_2d -pc_factor_mat_solver_package mumps -mat_mumps_icntl_14 100
+$M3DC1_MPIRUN -n 48 m3dc1_2d -pc_factor_mat_solver_type mumps -mat_mumps_icntl_14 100
 
 cp C1input.2 C1input
-$M3DC1_MPIRUN -n 48 m3dc1_2d -pc_factor_mat_solver_package mumps -mat_mumps_icntl_14 100
+$M3DC1_MPIRUN -n 48 m3dc1_2d -pc_factor_mat_solver_type mumps -mat_mumps_icntl_14 100
 
 touch finished
