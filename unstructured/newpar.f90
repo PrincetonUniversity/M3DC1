@@ -246,7 +246,7 @@ Program Reducedquintic
            call rdrestart_adios
         else if(iread_hdf5.eq.1) then
            call rdrestart_hdf5
-             if (irestart_factor.gt.1) then !discard the group comm and re-open hdf5
+           if (irestart_factor.gt.1) then !discard the group comm and re-open hdf5
              call hdf5_finalize(ier)
              ! FIXME: compilation error - Unclassifiable statement
              !MPI_Comm_free(comm)
@@ -1084,7 +1084,7 @@ end subroutine rotation
        end do     
 #ifdef USEST
        if(igeometry.eq.1.and.ilog.eq.2) then
-            newrot = matmul(newrot,transpose(p2l_mat))
+          newrot = matmul(newrot,transpose(p2l_mat))
        end if
 #endif
        ! form the matrix g by multiplying ti and rot

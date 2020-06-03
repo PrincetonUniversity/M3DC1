@@ -12,7 +12,6 @@ module physical_mesh
   ! 0 = physical basis;, 1 = logical basis & DoF; 2= logical basis, physical DoF. 
   integer :: ilog        
   real :: mesh_period 
-  real :: rm1, rm2, zm1
   ! arrays to store dofs of rst & zst fields 
   real, allocatable :: rstnode(:,:)
   real, allocatable :: zstnode(:,:)
@@ -25,25 +24,25 @@ contains
     implicit none
 
     real, intent(in):: x, phi, z
-    vectype, intent(out):: rout, zout 
+    real, intent(out):: rout, zout 
     real :: r, theta, ds, r2n
     integer :: i, js
     real, dimension(mn_mode) :: rstc, zsts
-    real :: m_max, dphi
+    real :: m_max, dphi, r1, r2, z1, z2
+    real :: rm1, rm2, zm1
 
-    dphi = 1.*mesh_period/2
+    dphi = 0.*mesh_period/2
     m_max = 15.5
     r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
     theta = atan2(z - zcenter, x - xcenter)
-!    rout = 5.4 + rm1*r*cos(theta+rm2*sin(theta)) 
-!    zout = 0 + zm1*r*sin(theta) 
     rout = 0
     zout = 0
     if (iread_vmec==1) then ! use VMEC surfaces to calculate geometry
       r2n = r**2*(ns-1)
       js = ceiling(r2n)
       if (js>(ns-1)) js = ns-1 
-      if (js>0) then ! interpolate between surfaces
+!      if (js>1) then ! interpolate between surfaces
+      if (js>ns) then ! do not interpolate 
         ds = js - r2n 
         rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
         zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
@@ -54,24 +53,36 @@ contains
           end if
         end do
       else ! near axis, use routine 
-        ds = sqrt(r2n) 
-        rstc = rmnc(:,js+1)
-        zsts = zmns(:,js+1)
+!        ds = sqrt(r2n) 
+!        rstc = rmnc(:,js+1)
+!        zsts = zmns(:,js+1)
+        ds = r 
+        rstc = rbc
+        zsts = zbs
         do i = 1, mn_mode 
           if (xmv(i)<m_max) then
             rout = rout + rstc(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*ds**xmv(i)
             zout = zout + zsts(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*ds**xmv(i)
           end if
         end do
+        do i = 1, n_tor ! shift axis to magnetic axis 
+            rout = rout + (rmnc(i,1)-rbc(i))*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*(1-ds**2)
+            zout = zout + (zmns(i,1)-zbs(i))*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*(1-ds**2)
+        end do
       end if
     else ! use routine to generate from boundary geometry
       do i = 1, mn_mode 
-        if ((mb(i)<m_max).and.(abs(nb(i))<5)) then
+        if ((mb(i)<m_max)) then
           rout = rout + rbc(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*r**mb(i)
           zout = zout + zbs(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*r**mb(i)
         end if
       end do
     end if
+    rm1 = .675
+    rm2 = .4
+    zm1 = 1.6
+    rout = .88 + rm1*r*cos(theta+rm2*sin(theta)) 
+    zout = 0 + zm1*r*sin(theta) 
   end subroutine physical_geometry
 
   ! Calculate curvature and normal vector on physical boundary
@@ -84,6 +95,7 @@ contains
     real :: coords(3)
     integer :: i
     real :: m_max, dphi
+    real :: rm1, rm2, zm1
 
     ! get logical coordinates    
     call m3dc1_node_getcoord(inode-1,coords)
@@ -91,17 +103,9 @@ contains
     z = coords(2)
     phi = coords(3)
    
-!    rm1 = 1.
-!    rm2 = .0
-!    zm1 = 1.
-    dphi = 1.*mesh_period/2
+    dphi = 0.*mesh_period/2
     m_max = 15.5
     theta = atan2(z - zcenter, x - xcenter)
-!    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
-!    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
-!          +rm1*sin(theta+rm2*sin(theta))*rm2*sin(theta)
-!    dz = zm1*cos(theta) 
-!    ddz = -zm1*sin(theta) 
     dr = 0
     dz = 0
     ddr = 0
@@ -117,7 +121,7 @@ contains
       end do
     else
       do i = 1, mn_mode 
-        if ((mb(i)<m_max).and.(abs(nb(i))<5)) then
+        if ((mb(i)<m_max)) then
           dr = dr - rbc(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i)
           dz = dz + zbs(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i)
           ddr = ddr - rbc(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i)**2
@@ -125,6 +129,14 @@ contains
         end if 
       end do
     end if 
+    rm1 = .675
+    rm2 = .4
+    zm1 = 1.6
+    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
+    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
+          +rm1*sin(theta+rm2*sin(theta))*rm2*sin(theta)
+    dz = zm1*cos(theta) 
+    ddz = -zm1*sin(theta) 
     curv = (dr*ddz - dz*ddr)/((dr**2 + dz**2)*sqrt(dr**2 + dz**2))
     normal(1) = dz/sqrt(dr**2 + dz**2)
     normal(2) = -dr/sqrt(dr**2 + dz**2)

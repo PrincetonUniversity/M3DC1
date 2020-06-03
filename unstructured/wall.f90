@@ -29,7 +29,7 @@ contains
     call create_field(wall_dist)
     wall_dist = 0.
 
-    ibound = iand(BOUNDARY_DIRICHLET,BOUNDARY_NEUMANN)
+    ibound = ior(BOUNDARY_DIRICHLET,BOUNDARY_NEUMANN)
 
     numelms = local_elements()
 

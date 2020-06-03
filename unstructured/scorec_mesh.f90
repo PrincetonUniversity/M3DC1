@@ -912,6 +912,11 @@ contains
     real :: norm(2)
     vectype, dimension(dofs_per_element) :: temp
 
+#ifdef USEST
+    integer :: inode(nodes_per_element)
+    real, dimension(dofs_per_tri, dofs_per_tri) :: l2p_mat 
+#endif
+
     call local_dof_vector(itri, cl)
 
     temp = 0
@@ -928,8 +933,18 @@ contains
        j = (i-1)*dofs_per_node+1
        k = j + dofs_per_node - 1
        call rotate_dofs(temp(j:k), dof(j:k), norm, 0., -1)
+#ifdef USEST
+       if(igeometry.eq.1.and.ilog.eq.0) then
+          call get_element_nodes(itri, inode)
+          call l2p_matrix(l2p_mat(j:k,j:k),inode(i))
+       end if
+#endif
     end do
-
+#ifdef USEST
+       if(igeometry.eq.1.and.ilog.eq.0) then
+          dof = matmul(l2p_mat,dof)
+       end if
+#endif
   end subroutine local_dofs
 
 end module scorec_mesh_mod

@@ -1153,6 +1153,10 @@ elemental integer function magnetic_region(psi, psix, psiz, x, z)
 
   magnetic_region = 0
 
+#ifdef USEST
+  if (igeometry.ge.1) return 
+#endif
+
   dpsii = psibound - psimin
   if(dpsii.eq.0.) return
 
@@ -1185,9 +1189,6 @@ elemental integer function magnetic_region(psi, psix, psiz, x, z)
         endif
      end if
   end if
-#ifdef USEST
-  if (igeometry.eq.1) magnetic_region = 0 
-#endif
 end function magnetic_region
 
 !=====================================================

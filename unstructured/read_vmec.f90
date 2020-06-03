@@ -111,8 +111,6 @@ contains
     call h5close_f(error)
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
-!    allocate(rstc(mn_mode))
-!    allocate(zsts(mn_mode))
     rbc = rmnc(:,ns)
     zbs = zmns(:,ns)
 
