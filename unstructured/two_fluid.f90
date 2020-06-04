@@ -605,7 +605,7 @@ function v3hvpsi(e,f,g)
           + intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_GS)) &
           + intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ),g(:,OP_GS))
      if(itor.eq.1) then
-        temp = temp + &
+        temp = temp &
              + 2.*intx4(e(:,:,OP_DR),ri3_79,f(:,OP_1),g(:,OP_GS))
      end if
   end if
