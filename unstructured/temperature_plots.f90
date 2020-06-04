@@ -271,6 +271,10 @@ subroutine ohmic(o)
 ! ADD heat source if present
   if(heat_source) o = o + (gam-1.)*q79(:,OP_1)
 
+! ADD rad source if present
+  if(rad_source) o = o + (gam-1.)*totrad79(:,OP_1)
+
+
 end subroutine ohmic
 subroutine vpar_get(o)
   use basic
