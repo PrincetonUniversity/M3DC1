@@ -9,7 +9,7 @@ module kprad
   real, allocatable, private, dimension(:,:) :: c, sion_coeff
 
   ! mass of chosen impurity species (in amu)
-  integer :: kprad_mz
+  real :: kprad_mz
 
   integer :: ikprad_max_dt ! use max dt in KPRAD evolution
   integer :: ikprad_evolve_internal

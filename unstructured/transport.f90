@@ -963,11 +963,11 @@ function kappa_func()
      end if
      
      do j=1, npoints
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
              x_79(j),z_79(j)).eq.2) then
            pso = 2. - pso
         end if
-        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         call evaluate_spline(kappa_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
@@ -1051,11 +1051,11 @@ function denm_func()
      end if
      
      do j=1, npoints
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
              x_79(j),z_79(j)).eq.2) then
            pso = 2. - pso
         end if
-        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         call evaluate_spline(denm_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do

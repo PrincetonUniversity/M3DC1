@@ -114,8 +114,10 @@ contains
     call read_scalar(scalar_group_id, "znull"       , znullt   , ntime, error)
     call read_scalar(scalar_group_id, "xnull2"      , xnull2t  , ntime, error)
     call read_scalar(scalar_group_id, "znull2"      , znull2t  , ntime, error)
-    call read_scalar(scalar_group_id, "xmag"        , xmag    , ntime, error)
-    call read_scalar(scalar_group_id, "zmag"        , zmag    , ntime, error)
+    call read_scalar(scalar_group_id, "xmag"        , xmag     , ntime, error)
+    call read_scalar(scalar_group_id, "zmag"        , zmag     , ntime, error)
+    call read_scalar(scalar_group_id, "psibound"    , psibound , ntime, error)
+    call read_scalar(scalar_group_id, "psimin"      , psimin   , ntime, error)
 
     if(mod_null_rs .eq.0) then
        xnull = xnullt
@@ -174,6 +176,9 @@ contains
              call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+             if(version_in.ge.33) then
+                call read_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
+             end if
              call h5gclose_f(pel_group_id, error)
           end if
        end if

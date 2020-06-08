@@ -39,7 +39,7 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 PETSC_VER=petsc-3.9.4
 PETSCVER=petsc3.9.4
 
-
+#PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/$(PETSC_VER)
 PETSC_DIR=/p/swim/jchen/PETSC/petsc-3.12.0
 ifeq ($(COM), 1)
 PETSC_ARCH=cplx-intel2019u3-openmpi4.0.1
