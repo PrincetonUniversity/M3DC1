@@ -116,7 +116,7 @@ contains
     call read_scalar(scalar_group_id, "znull2"      , znull2t  , ntime, error)
     call read_scalar(scalar_group_id, "xmag"        , xmag     , ntime, error)
     call read_scalar(scalar_group_id, "zmag"        , zmag     , ntime, error)
-    call read_scalar(scalar_group_id, "psibound"    , psibound , ntime, error)
+    call read_scalar(scalar_group_id, "psi_lcfs"    , psibound , ntime, error)
     call read_scalar(scalar_group_id, "psimin"      , psimin   , ntime, error)
 
     if(mod_null_rs .eq.0) then
