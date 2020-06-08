@@ -1029,7 +1029,7 @@ int matrix_solve::solve(FieldID field_id)
   if(kspSet==2) {
          ierr= KSPSetOperators(*ksp,*A,*A); CHKERRQ(ierr);
          if (!PCU_Comm_Self())
-           std::cout <<"\t-- Reuse Preconditioner" << std::endl;
+           std::cout <<"\t-- Update A, Reuse Preconditioner" << std::endl;
   }
 
   //KSPSetUp(*ksp);
@@ -1061,8 +1061,8 @@ int matrix_solve:: setKspType()
          // all linear solves.  This approach is often effective when the
          // linear systems do not change very much between successive steps.
          ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
-         if (!PCU_Comm_Self())
-           std::cout <<"\t-- Reuse Preconditioner" << std::endl;
+         //if (!PCU_Comm_Self())
+         //  std::cout <<"\t-- Reuse Preconditioner" << std::endl;
   ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/); 
   CHKERRQ(ierr);
   ierr = KSPSetTolerances(*ksp, .000001, .000000001, PETSC_DEFAULT, 1000);
