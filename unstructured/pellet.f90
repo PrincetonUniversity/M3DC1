@@ -327,11 +327,18 @@ contains
     real :: dr_p
     real :: q_s, shield_p, f_b
     integer :: z_abl
-    real :: rho_z, M_z  ! density (g/cm^3) and molar weight (g/mol) for atom Z
+    real :: rho_z      ! density (g/cm^3)
+    real :: M_z        ! Molar weight (g/mol) for atom Z
+    real :: A_z        ! Pellet mass number
+    real :: gamma_ad   ! Adiabatic index
+    real :: pellet_rate_aux
+    real :: Ieff       ! Effective ionization potential (eV)
     real :: subl, T_S, Mach, f_l
     real :: C_abl, Xp_abl, Xn_abl, a_Te, b_Te, c_Te, d_Te, B_Li
     real :: G, lambda, rho0
     real :: temin_eV
+    real :: ve_th !electron thermal velocity (cm/s)
+    real :: Int_E1 !exponential integral E_1(x)
     real, parameter :: n_D2 = 0.2    ! density of solid D2
     real, parameter :: M_D2 = 4.0282 ! molar weight of D2
     real, parameter :: N_A  = 6.022140857e23  ! Avogadro's number
@@ -390,9 +397,15 @@ contains
           rho_z = 1.85
           M_z = 9.012182
        case(6)
-          ! Carbon (graphite)
-          rho_z = 2.267
+          !rho_z = 2.267   !Carbon (graphite)
+          rho_z = 1.51     !Vitreous Carbon: This is what is supposed to be used in NSTX-U
           M_z = 12.0107
+          A_z = 12.0
+         ! For ipellet_abl = 4x
+             gamma_ad = 5./3.       !Ablation to Carbon atoms. 
+             subl = 8.79 !eV        !Sublimation energy for Carbon [Sergeev06]
+             T_S = 5000./1.1604e4   !Carbon Surface temperature in eV
+             Ieff = 5.5*real(z_abl) !Effective ionization potential (eV)
        case(10)
           ! Neon
           rho_z = 1.444
@@ -485,7 +498,34 @@ contains
           rho0 = ((1.-pellet_mix(ip))*M_z + pellet_mix(ip)*M_D2)/((1.-pellet_mix(ip))*(M_z/rho_z) + pellet_mix(ip)*(M_D2/n_D2)) ! g/cm^3
           rpdot(ip) = (G/(4.*pi*rho0*(r_p(ip)*l0_norm)**2))*(t0_norm/l0_norm)
 
-       end select
+
+      case(43)
+        ! --------------------
+        !Sergeev06: Sergeev et al., Plasma Phys. Rep. 32 (2006) 363
+        ! --------------------
+        !intermediate shielding
+        ! (delta: shielding factor = q_at_pellet_surf/q_plasma)
+        ! This is an interpolation between Eq(26)(with delta=1) Eq(20):
+        ! rate43 = rate_Eq26*rate_Eq20/(rate_Eq26 + rate_Eq20)
+
+        ve_th = 4.19e7*sqrt(temp_pel(ip)) !sqrt(T_e/m_e) [cm/sec]  !temp_pel has to be in eV
+
+        !pellet_rate [Particles/Second]:
+        pellet_rate(ip) = sqrt(8.*pi)*(temp_pel(ip)/subl)*nsource_pel(ip)*n0_norm*(r_p(ip)*l0_norm)**2*ve_th
+        pellet_rate_aux = 1.94e14*(nsource_pel(ip)*n0_norm)**(0.45)*temp_pel(ip)**(1.72)*(r_p(ip)*l0_norm)**(1.44)*&
+                          subl**(-0.16)*A_z**(-0.28)*real(z_abl,8)**(-0.56)*(gamma_ad-1.)**(0.28)
+
+        pellet_rate(ip) = pellet_rate(ip)*pellet_rate_aux/(pellet_rate_aux + pellet_rate(ip))
+        !pellet radius derivative (cm/s)
+        rpdot(ip) = 1./(4.*pi*(N_A/M_z)*rho_z)*pellet_rate(ip)/r_p(ip)/r_p(ip)/l0_norm/l0_norm
+
+        !Adimensional quantity
+        pellet_rate(ip) = pellet_rate(ip)*t0_norm/(n0_norm*l0_norm**3)
+        rpdot(ip) = rpdot(ip) * (t0_norm/l0_norm)
+
+      end select
+
+
 
        dr_p = dt*rpdot(ip)  ! change in pellet radius
 
