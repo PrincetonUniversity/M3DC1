@@ -1,0 +1,31 @@
+#!/bin/bash
+#SBATCH --account=FUA34_WPJET1
+#SBATCH --partition=skl_fua_dbg # partition name
+##SBATCH --partition=skl_fua_prod # partition name
+#SBATCH --nodes=4                    # 1 node
+#SBATCH --ntasks-per-node=32         # 36 tasks per node
+##SBATCH --cpus-per-task=1
+#SBATCH --time=0:30:00
+##SBATCH --qos=<qos_name>             # quality of service
+#SBATCH --job-name=M3DC1_regtest_RMP_nonlin
+
+touch started
+
+## partition mesh
+#part_mesh.sh circle-0.10-0.0-0.0-1K.smb 32
+#echo $? > mesh_partitioned
+
+cd $CINECA_SCRATCH
+mkdir -p RMP_nonlin
+cd RMP_nonlin
+
+cp -p $SLURM_SUBMIT_DIR/* .
+cp -p /marconi/home/userexternal/jchen000/project/SRC/M3DC1/unstructured/_marconi-3d-opt-60/m3dc1_3d .
+# Run M3D-C1
+srun -n 128 -c 1 ./m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps>& log.mumps
+
+
+
+
+
+touch finished
