@@ -13,75 +13,56 @@ else
   LOADER = mpiifort 
 endif
 
-OPTS := $(OPTS) -DPETSC_VERSION=37
-
+#NEWSOLVERDEVELOPMENT needs more tests.
 ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
   LOADER := hpclink $(LOADER)
 endif
 
 ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB = m3dc1_scorec_complex
-  PETSC_DIR=/scratch/ntm/software/petsc-3.7.6
-  PETSC_ARCH=complex-intel
-  HYPRE_LIB = 
+  M3DC1_SCOREC_LIB=m3dc1_scorec_complex
+  PETSC_ARCH=cplx-intel-psxe2019
 else
-  ifeq ($(TRILINOS), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_trilinos
-  else
-    M3DC1_SCOREC_LIB = m3dc1_scorec
-  endif
-  ifeq ($(OMP), 1)
-    PETSC_DIR=
-    PETSC_ARCH=
-  else
-    PETSC_DIR=/scratch/ntm/software/petsc-3.7.6
-    PETSC_ARCH=real-intel
-  endif
-  HYPRE_LIB = -lHYPRE
+  M3DC1_SCOREC_LIB=m3dc1_scorec
+  PETSC_ARCH=real-intel-psxe2019
 endif
 
-PETSC_LIB = -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-     -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
-     $(HYPRE_LIB) \
-     -lsuperlu -lsuperlu_dist \
-     -lparmetis -lmetis -lpthread -lssl -lcrypto -ldl -lstdc++
+ifeq ($(PETSCVER), 37)
+  PETSCVER=37
+  PETSC_DIR=/scratch/ntm/software/petsc/petsc-3.7.6
+  SCOREC_DIR=/scratch/ntm/software/scorec/intel-psxe2019/petsc3.7.6
+  PETSC_WITH_EXTERNAL_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group -L$(MKLROOT)/lib/intel64_lin -Wl,--end-group -lpetsc -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lmkl_blas95_lp64 -lmkl_scalapack_lp64 -lmkl_lapack95_lp64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_lp64 -liomp5 -lpthread -lm -ldl -lfftw3_mpi -lfftw3 -lmkl_blas95_lp64 -lmkl_lapack95_lp64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lptesmumps -lptscotch -lptscotcherr -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
+else
+  PETSCVER=39
+  PETSC_DIR=/scratch/ntm/software/petsc/petsc-3.9.3
+  SCOREC_DIR=/scratch/ntm/software/scorec/intel-psxe2019/petsc3.9.3
+  PETSC_WITH_EXTERNAL_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group -L$(MKLROOT)/lib/intel64_lin -Wl,--end-group -lpetsc -lmkl_blas95_lp64 -lmkl_scalapack_lp64 -lmkl_lapack95_lp64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_lp64 -liomp5 -lpthread -lm -ldl -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lmkl_blas95_lp64 -lmkl_lapack95_lp64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
+endif
 
+GSL_DIR=/scratch/app/gsl/2.5_gnu
+ZOLTAN_DIR=$(SCOREC_DIR)
+SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
-SCOREC_UTIL_DIR=
-SCOREC_DIR=/scratch/ntm/software/scorec/3.7.6/May2018
-ZOLTAN_DIR=/scratch/ntm/software/scorec
+PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
-SCOREC_LIBS= -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
-             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
-             -lpcu -lph -lsam -lspr -lcrv -l$(M3DC1_SCOREC_LIB) -Wl,--end-group
+SCOREC_LIB = -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+           -l$(M3DC1_SCOREC_LIB) $(PUMI_LIB) -Wl,--end-group
 
-# Include option to use ADIOS
-#OPTS := $(OPTS) -DUSEADIOS
-#ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
-#ADIOS_FLIB_V1 = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-#             -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
-             -L/usr/lib64/ -llustreapi
-
-MKL_LIB = $(MKLROOT)/lib/intel64_lin/libmkl_blas95_lp64.a -L$(MKLROOT)/lib/intel64_lin -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
-
-INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
-	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-	   -I$(GSL_DIR)/include # \
-
-LIBS := \
-        $(LIBS) \
-        $(SCOREC_LIBS) \
+LIBS =  $(SCOREC_LIB) \
         -L$(ZOLTAN_DIR)/lib -lzoltan \
-        $(PETSC_LIB) \
-        -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
-	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
-	$(ADIOS_FLIB_V1) \
-	$(MKL_LIB)
+        $(PETSC_WITH_EXTERNAL_LIB) \
+        -L$(GSL_DIR)/lib -lgsl -lgslcblas
+
+INCLUDE = -I$(SCOREC_DIR)/include \
+        -I$(PETSC_DIR)/include \
+        -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+        -I$(GSL_DIR)/include
 
 # Optimization flags
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
-CCOPTS  = -c $(OPTS)
+FOPTS = -c -r8 -implicitnone -fpp -warn all \
+        -DPETSC_VERSION=$(PETSCVER) $(OPTS)
+CCOPTS  = -c \
+        -DPETSC_VERSION=$(PETSCVER) $(OPTS)
 ifeq ($(OPT), 0)
   FOPTS := $(FOPTS) -g -O0 -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
