@@ -19,7 +19,7 @@ module adapt
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
 
-  real, allocatable :: adapt_qs
+  real, allocatable :: adapt_qs(:)
   
   contains
   subroutine adapt_by_psi

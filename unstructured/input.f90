@@ -1256,7 +1256,7 @@ subroutine validate_input
 !      if(myrank.eq.0) print *, "ERROR:  must use real version of code for iadapt.gt.0"
 !      call safestop(1)
 #endif
-     if((iadapt_pack_factor.gt.0) .and. (ntor.eq.0)) iadapt_pack_factor = 0
+     if((iadapt_pack_rationals.gt.0) .and. (ntor.eq.0)) iadapt_pack_rationals = 0
    endif
 
   if(ifout.eq.-1) ifout = i3d
