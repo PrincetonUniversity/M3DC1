@@ -18,6 +18,8 @@ module adapt
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
+
+  real, allocatable :: adapt_qs
   
   contains
   subroutine adapt_by_psi
@@ -135,7 +137,7 @@ module adapt
 
        ! change psi_N inside plasma to be sum of Lorentzians around
        ! rational surfaces
-       if(iadapt_pack_rationals.gt.0 .and. ntor.ne.0) then
+       if(iadapt_pack_rationals.ne.0) then
           if(.not.allocated(q_spline%y)) then
              print *, 'Error, iadapt_pack_rationals > 0, but q profile not set'
              call safestop(6)
@@ -147,13 +149,18 @@ module adapt
              call evaluate_spline(q_spline, real(temp79a(i)), q)
 
              temp79b(i) = 0.
-             do j=1, iadapt_pack_rationals
-                tmp = (q*ntor - j) / (q*ntor*adapt_pack_factor)
+             do j=1, abs(iadapt_pack_rationals)
+                if (iadapt_pack_rationals.gt.0) then
+                   tmp = (q*ntor - j) / (q*ntor*adapt_pack_factor)
+                else
+                   tmp = (q - adapt_qs(j))/(q*adapt_pack_factor)
+                end if
                 temp79b(i) = temp79b(i) + 1./(tmp**2 + 1.)
                 if(real(temp79b(i)).gt.1.) temp79b(i) = 1.
              end do
+
           end do
-       end if
+       end if  
 
        ! do adaptation around coils
        if(adapt_coil_delta.gt.0) then

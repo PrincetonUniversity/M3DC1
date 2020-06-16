@@ -1048,6 +1048,11 @@ subroutine set_defaults
        "", adapt_grp)
   call add_var_int("iadapt_pack_rationals", iadapt_pack_rationals, 0, &
        "Number of mode-rational surfaces to pack mesh around", adapt_grp)
+  if(iadapt_pack_rationals.lt.0) then
+     allocate(adapt_qs(-iadapt_pack_rationals))
+     call add_var_double_array("adapt_qs", adapt_qs, -iadapt_pack_rationals, 0., &
+       "Array of q values to adapt around", adapt_grp)
+  end if
   call add_var_double("adapt_pack_factor", adapt_pack_factor, 0.02, &
        "Width of Lorentzian (in psi_N) for rational mesh packing", adapt_grp)
   call add_var_double("adapt_coil_delta", adapt_coil_delta, 0., &
@@ -1251,6 +1256,7 @@ subroutine validate_input
 !      if(myrank.eq.0) print *, "ERROR:  must use real version of code for iadapt.gt.0"
 !      call safestop(1)
 #endif
+     if((iadapt_pack_factor.gt.0) .and. (ntor.eq.0)) iadapt_pack_factor = 0
    endif
 
   if(ifout.eq.-1) ifout = i3d
