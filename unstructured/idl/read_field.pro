@@ -417,14 +417,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        I = read_field('I',x,y,t,slices=time,mesh=mesh,filename=filename,$
                       points=pts, rrange=xrange, zrange=yrange, $
                       linear=linear, complex=complex, phi=phi0, $
-                      wall_mask=wall_mask)
+                      wall_mask=wall_mask,outval=mask_val,mask=mask)
 
        if(extsubtract eq 1 and version lt 8) then begin
            I = I + read_field('I_ext', x, y, t, mesh=mesh, $
                               filename=filename, points=pts, slices=time, $
                               rrange=xrange, zrange=yrange, complex=complex, $
                               linear=linear, mask=mask, phi=phi0, $
-                              wall_mask=wall_mask)
+                              wall_mask=wall_mask,outval=mask_val)
        end
 
        if(itor eq 1) then begin
@@ -1134,11 +1134,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        lp = read_field('psi_plasma', x, y, t, slices=time, mesh=mesh, op=7, $
                          filename=filename, points=pts, mask=mask, $
                          rrange=xrange, zrange=yrange, linear=linear, $
-                      complex=complex,phi=phi0,wall_mask=wall_mask)
+                      complex=complex,phi=phi0,wall_mask=wall_mask,outval=mask_val)
        psir = read_field('psi_plasma', x, y, t, slices=time, mesh=mesh, op=2, $
                          filename=filename, points=pts, mask=mask, $
                          rrange=xrange, zrange=yrange, linear=linear, $
-                        complex=complex,phi=phi0,wall_mask=wall_mask)
+                        complex=complex,phi=phi0,wall_mask=wall_mask,outval=mask_val)
 
 
        if(itor eq 1) then begin
@@ -1700,7 +1700,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        i_z = read_field('i', x, y, t, slices=time, mesh=mesh, op=3, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange, complex=complex, $
-                       phi=phi0, wall_mask=wall_mask)
+                       phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -1712,24 +1712,24 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            psi_rp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=12, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                            phi=phi0,  wall_mask=wall_mask)
+                            phi=phi0,  wall_mask=wall_mask,outval=mask_val,mask=mask)
 
            f_zpp = read_field('f', x, y, t, slices=time, mesh=mesh, op=23, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                          phi=phi0,  wall_mask=wall_mask)
+                          phi=phi0,  wall_mask=wall_mask,outval=mask_val,mask=mask)
 
            data = data - f_zpp / r + psi_rp/r^2
        endif else if(ntor ne 0) then begin
            psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, op=2, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                            phi=phi0,  wall_mask=wall_mask)
+                            phi=phi0,  wall_mask=wall_mask,outval=mask_val,mask=mask)
 
            f_z = read_field('f', x, y, t, slices=time, mesh=mesh, op=3, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                          phi=phi0,  wall_mask=wall_mask)
+                          phi=phi0,  wall_mask=wall_mask,outval=mask_val,mask=mask)
 
            data = data + ntor^2 * f_z / r + complex(0., ntor)*psi_r/r^2
        endif
@@ -1789,7 +1789,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        i_r = read_field('i', x, y, t, slices=time, mesh=mesh, op=2, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange, complex=complex, $
-                      phi=phi0, wall_mask=wall_mask)
+                      phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
 
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -1801,24 +1801,24 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            psi_zp = read_field('psi', x, y, t, slices=time, mesh=mesh, op=13, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                            phi=phi0, wall_mask=wall_mask)
+                            phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
 
            f_rpp = read_field('f', x, y, t, slices=time, mesh=mesh, op=22, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                          phi=phi0,  wall_mask=wall_mask)
+                          phi=phi0,  wall_mask=wall_mask,outval=mask_val,mask=mask)
 
            data = data + f_rpp / r + psi_zp/r^2
         endif else if(ntor ne 0) then begin
            psi_z = read_field('psi', x, y, t, slices=time, mesh=mesh, op=3, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                            phi=phi0,  wall_mask=wall_mask)
+                            phi=phi0,  wall_mask=wall_mask,outval=mask_val,mask=mask)
 
            f_r = read_field('f', x, y, t, slices=time, mesh=mesh, op=2, $
                           filename=filename, points=pts, linear=linear, $
                           rrange=xrange, zrange=yrange, complex=complex, $
-                          phi=phi0, wall_mask=wall_mask)
+                          phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
 
            data = data - ntor^2 * f_r / r + complex(0., ntor)*psi_z/r^2
         end
@@ -2883,38 +2883,38 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, complex=complex, $
                         linear=linear, mask=mask, phi=phi0, $
-                          wall_mask=wall_mask)
+                          wall_mask=wall_mask,outval=mask_val)
 
        if(extsubtract eq 1 and version lt 8) then begin
            psi_z = psi_z + read_field('psi_ext', x, y, t, mesh=mesh, operation=3, $
                                       filename=filename, points=pts, slices=time, $
                                       rrange=xrange, zrange=yrange, complex=complex, $
                                       linear=linear, mask=mask, phi=phi0, $
-                                     wall_mask=wall_mask)
+                                     wall_mask=wall_mask,outval=mask_val)
        end
 
        if(i3d eq 1) then begin
            f_rp = read_field('f', x, y, t, mesh=mesh, operation=12, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                            linear=linear, phi=phi0, wall_mask=wall_mask)
+                            linear=linear, phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
            if(extsubtract eq 1 and version lt 8) then begin
                f_rp = f_rp + read_field('f_ext', x, y, t, mesh=mesh, operation=12, $
                                         filename=filename, points=pts, slices=time, $
                                         rrange=xrange, zrange=yrange, complex=complex, $
-                                        linear=linear, phi=phi0, wall_mask=wall_mask)
+                                        linear=linear, phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
            end
 
        endif else if(icomplex eq 1 and time ge 0) then begin
            f_r = read_field('f', x, y, t, mesh=mesh, operation=2, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
-                            linear=linear, phi=phi0, wall_mask=wall_mask)
+                            linear=linear, phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
            if(extsubtract eq 1 and version lt 8) then begin
                f_r = f_r + read_field('f_ext', x, y, t, mesh=mesh, operation=2, $
                                       filename=filename, points=pts, slices=time, $
                                       rrange=xrange, zrange=yrange, complex=complex, $
-                                      linear=linear, phi=phi0, wall_mask=wall_mask)
+                                      linear=linear, phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
            end
 
            f_rp = complex(0.,ntor)*f_r
@@ -2936,14 +2936,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        psi_r = read_field('psi', x, y, t, mesh=mesh, operation=2, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, complex=complex, $
-                        linear=linear, mask=mask, phi=phi0, wall_mask=wall_mask)
+                        linear=linear, mask=mask, phi=phi0, wall_mask=wall_mask,outval=mask_val)
 
        if(extsubtract eq 1 and version lt 8) then begin
            psi_r = psi_r + read_field('psi_ext', x, y, t, mesh=mesh, operation=2, $
                                       filename=filename, points=pts, slices=time, $
                                       rrange=xrange, zrange=yrange, complex=complex, $
                                       linear=linear, mask=mask, phi=phi0, $
-                                     wall_mask=wall_mask)
+                                     wall_mask=wall_mask,outval=mask_val)
        end
 
        if(i3d eq 1) then begin
@@ -2951,13 +2951,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
                             linear=linear, phi=phi0, $
-                            wall_mask=wall_mask)
+                            wall_mask=wall_mask,outval=mask_val,mask=mask)
            if(extsubtract eq 1 and version lt 8) then begin
                f_zp = f_zp + read_field('f_ext', x, y, t, mesh=mesh, operation=13, $
                                  filename=filename, points=pts, slices=time, $
                                  rrange=xrange, zrange=yrange, complex=complex, $
                                  linear=linear, phi=phi0, $
-                                        wall_mask=wall_mask)
+                                        wall_mask=wall_mask,outval=mask_val,mask=mask)
            end
 
        endif else if(icomplex eq 1 and time ge 0) then begin
@@ -2965,13 +2965,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, complex=complex, $
                             linear=linear, phi=phi0, $
-                           wall_mask=wall_mask)
+                           wall_mask=wall_mask,outval=mask_val,mask=mask)
            if(extsubtract eq 1 and version lt 8) then begin
                f_z = f_z + read_field('f_ext', x, y, t, mesh=mesh, operation=3, $
                                  filename=filename, points=pts, slices=time, $
                                  rrange=xrange, zrange=yrange, complex=complex, $
                                  linear=linear, phi=phi0, $
-                                     wall_mask=wall_mask)
+                                     wall_mask=wall_mask,outval=mask_val,mask=mask)
            end
            f_zp = complex(0.,ntor)*f_z
        endif else f_zp = 0.
@@ -4188,9 +4188,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    endif else if(strcmp('JyBz', name, /fold_case) eq 1) then begin
       bz = read_field('bz',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask,outval=mask_val,mask=mask)
       jy = read_field('jy_plasma',x,y,t,filename=filename,slices=time,mesh=mesh,$
-                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask)
+                      phi=phi0, rrange=xrange,zrange=yrange,points=pts,wall_mask=wall_mask,outval=mask_val,mask=mask)
 
       data = (jy*bz)
       d = dimensions(/p0, l0=-1)
@@ -4668,23 +4668,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        bx   = read_field('bx', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        phi=phi0,rrange=xrange, zrange=yrange)
        by   = read_field('by', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        phi=phi0,rrange=xrange, zrange=yrange)
        bz   = read_field('bz', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        phi=phi0,rrange=xrange, zrange=yrange)
        ex   = read_field('e_r', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        phi=phi0,rrange=xrange, zrange=yrange)
        ey   = read_field('e_phi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
+                        phi=phi0,rrange=xrange, zrange=yrange)
        ez   = read_field('e_z', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
-                        rrange=xrange, zrange=yrange)
-      
+                        phi=phi0,rrange=xrange, zrange=yrange)
+       
        data = ex*bx + ey*by + ez*bz / sqrt(bx^2 + by^2 + bz^2)
        d = dimensions(/potential,l0=-1)
        symbol = '!8E!D!3||!N!X'
