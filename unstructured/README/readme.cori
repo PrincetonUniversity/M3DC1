@@ -13,7 +13,7 @@
         module load cray-fftw gsl cray-hdf5-parallel idl 
 	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
 
-4. compile code
+4. compile codemodu
    FOR HASWELL
 	make OPT=1 RL=1 MAX_PTS=25 
 	make OPT=1 COM=1 MAX_PTS=25 

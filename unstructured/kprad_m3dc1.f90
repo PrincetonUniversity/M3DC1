@@ -408,7 +408,7 @@ contains
     real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
     logical, dimension(MAX_PTS) :: advance_kprad
 
-    integer :: i, itri, nelms, def_fields, izone
+    integer :: i, itri, nelms, def_fields, izone, j
     vectype, dimension(dofs_per_element) :: dofs
     integer :: ip
 
@@ -529,6 +529,13 @@ contains
        ! Line Radiation (0 if not advancing KPRAD at that point)
        temp79b = merge(dw_rad(:,kprad_z), 0., advance_kprad) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
+!Check for and delete spurius values   (scj 6/21/20)
+       do i=1,MAX_PTS
+          if(abs(temp79b(i)) .gt. 1.e0) then
+            temp79b(i) = 0.
+          endif
+       enddo
+!
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
 
