@@ -389,7 +389,7 @@ subroutine electric_field_par(ilin,o, izone)
   o = o + eta79(:,OP_1)* &
        (ri2_79* &
        (bft79(:,OP_DRPP)*pstx79(:,OP_DR) + bft79(:,OP_DZPP)*pstx79(:,OP_DZ) &
-       -(bftx79(:,OP_DRP)*pst79(:,OP_DR) + bftx79(:,OP_DZP)*pst79(:,OP_DZ))) &
+       -(bftx79(:,OP_DRP)*pst79(:,OP_DRP) + bftx79(:,OP_DZP)*pst79(:,OP_DZP))) &
        -ri3_79* &
        (pstx79(:,OP_DZ)*pst79(:,OP_DRP) - pstx79(:,OP_DR)*pst79(:,OP_DZP)) &
        +ri_79* &
