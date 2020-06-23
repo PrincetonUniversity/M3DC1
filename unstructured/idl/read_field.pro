@@ -4685,7 +4685,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, $
                         phi=phi0,rrange=xrange, zrange=yrange)
        
-       data = ex*bx + ey*by + ez*bz / sqrt(bx^2 + by^2 + bz^2)
+       data = (ex*bx + ey*by + ez*bz) / sqrt(bx^2 + by^2 + bz^2)
        d = dimensions(/potential,l0=-1)
        symbol = '!8E!D!3||!N!X'
 
