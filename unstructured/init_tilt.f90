@@ -18,14 +18,25 @@ subroutine tilting_cylinder_init()
 
   integer :: l, numnodes, icounter_tt
   real :: x, phi, z, alx, alz
+#ifdef USEST
+  real :: xout, zout
+#endif
 
   call get_bounding_box_size(alx, alz)
+  alx = 5.
+  alz = 4.
 
   numnodes = owned_nodes()
   do icounter_tt=1,numnodes
      l = nodes_owned(icounter_tt)
      call get_node_pos(l, x, phi, z)
-
+#ifdef USEST
+     if(igeometry.eq.1) then
+       call physical_geometry(xout, zout, x, phi, z) 
+       x = xout
+       z = zout
+     end if
+#endif
      x = x - alx*.5 - xzero
      z = z - alz*.5 - zzero
 

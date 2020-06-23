@@ -914,7 +914,12 @@ contains
 
 #ifdef USEST
     integer :: inode(nodes_per_element)
-    real, dimension(dofs_per_tri, dofs_per_tri) :: l2p_mat 
+    real, dimension(dofs_per_element, dofs_per_element) :: l2p_mat 
+    real, dimension(dofs_per_node, dofs_per_node) :: p2l_mat 
+
+    integer :: info1, info2
+    real :: wkspce(9400)
+    integer :: ipiv(dofs_per_node)
 #endif
 
     call local_dof_vector(itri, cl)
@@ -929,14 +934,25 @@ contains
     norm(1) = d%co
     norm(2) = d%sn
 
+#ifdef USEST
+    if(igeometry.eq.1.and.ilog.eq.0) then
+       call get_element_nodes(itri, inode)
+    end if
+#endif
     do i=1, nodes_per_element
        j = (i-1)*dofs_per_node+1
        k = j + dofs_per_node - 1
        call rotate_dofs(temp(j:k), dof(j:k), norm, 0., -1)
 #ifdef USEST
        if(igeometry.eq.1.and.ilog.eq.0) then
-          call get_element_nodes(itri, inode)
-          call l2p_matrix(l2p_mat(j:k,j:k),inode(i))
+          info1 = 0
+          info2 = 0
+          call p2l_matrix(p2l_mat, inode(i)) 
+          call dgetrf(dofs_per_node,dofs_per_node,p2l_mat,dofs_per_node,ipiv,info1)
+          call dgetri(dofs_per_node,p2l_mat,dofs_per_node,ipiv,wkspce,400,info2)
+          if(info1.ne.0.or.info2.ne.0) write(*,'(3I5)') info1,info2
+          l2p_mat(j:k,j:k) = p2l_mat
+          !call l2p_matrix(l2p_mat(j:k,j:k),inode(i))
        end if
 #endif
     end do
