@@ -1,12 +1,13 @@
 MPIVER=intel2019u3-openmpi4.0.1
-PETSCVER=petsc3.9.4
-PETSC_VER=petsc-3.9.4
+PETSCVER=petsc3.9.3
+PETSC_VER=petsc-3.9.3
 CMAKETYPE=Release
 PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/$PETSC_VER
 PETSC_ARCH=real-intel2019u3-openmpi4.0.1
 PARMETIS_INSTALL_DIR=/usr/pppl/intel/2019-pkgs/openmpi-4.0.1-pkgs/petsc-3.12.1/real
-PARMETIS_DIR=PETSC_DIR/$PETSC_ARCH
+PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_INSTALL_DIR=/usr/pppl/intel/2019-pkgs/openmpi-4.0.1-pkgs/petsc-3.12.1/real
+ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
 PREFIX=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER/$PETSCVER
 cmake .. \
   -DCMAKE_C_COMPILER="mpicc" \
@@ -18,8 +19,8 @@ cmake .. \
   -DZOLTAN_LIBRARY="$ZOLTAN_INSTALL_DIR/lib/libzoltan.a;$PARMETIS_INSTALL_DIR/lib/libscotch.a;$PARMETIS_INSTALL_DIR/lib/libscotcherr.a;$PARMETIS_INSTALL_DIR/lib/libscotcherrexit.a;$PARMETIS_INSTALL_DIR/lib/libscotchmetis.a;$PARMETIS_INSTALL_DIR/lib/libptscotch.a;$PARMETIS_INSTALL_DIR/lib/libptscotcherr.a;$PARMETIS_INSTALL_DIR/lib/libptscotcherrexit.a;$PARMETIS_INSTALL_DIR/lib/libptscotchparmetis.a" \
   -DPARMETIS_INCLUDE_DIR="$PARMETIS_INSTALL_DIR/include" \
   -DPARMETIS_LIBRARY="$PARMETIS_INSTALL_DIR/lib/libparmetis.a" \
-  -DMETIS_LIBRARY="$PARMETIS_INSTALL_DIR/lib/libmetis.a" \
   -DMETIS_INCLUDE_DIR="$PARMETIS_INSTALL_DIR/include" \
+  -DMETIS_LIBRARY="$PARMETIS_INSTALL_DIR/lib/libmetis.a" \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DIS_TESTING=OFF \
   -DENABLE_ZOLTAN=ON \

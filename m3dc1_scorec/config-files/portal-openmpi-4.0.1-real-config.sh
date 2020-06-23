@@ -1,14 +1,14 @@
 MPIVER=intel2019u3-openmpi4.0.1
-PETSCVER=petsc3.9.4
-PETSC_VER=petsc-3.9.4
+PETSCVER=petsc3.9.3
+PETSC_VER=petsc-3.9.3
 CMAKETYPE=Release
 PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/$PETSC_VER
 PETSC_ARCH=real-intel2019u3-openmpi4.0.1
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
-ZOLTAN_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER/$PETSCVER
-SCOREC_DIR=$ZOLTAN_DIR
+ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
+SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER/$PETSCVER
 PREFIX=$SCOREC_DIR
-#module load intel/2019.u3 openmpi/4.0.1 gsl szip hdf5-parallel/1.10.5
+#module load intel/2019.u3 openmpi/4.0.1 gsl szip scalapack
 cmake .. \
   -DCMAKE_C_COMPILER=mpicc \
   -DCMAKE_CXX_COMPILER=mpicxx \
