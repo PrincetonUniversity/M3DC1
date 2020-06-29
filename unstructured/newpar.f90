@@ -299,7 +299,11 @@ Program Reducedquintic
   !if (iadapt .eq. 1) then
   if (mod (iadapt, 2) .eq. 1) then
     if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
-    call adapt_by_psi
+    if (nplanes .eq. 1) then 
+      call adapt_by_psi
+    else
+      call adapt_by_error
+    end if
   end if
 #endif
 
