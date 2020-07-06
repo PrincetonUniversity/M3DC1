@@ -6,11 +6,10 @@ Updated
 2. code
 
 3. load modules and set enviroments
-    module load intel/2019.u3 openmpi/4.0.1 gsl szip scalapack
 
-    and
-
-    copy sunfire.openmpi-4.0.1.mk sunfire.pppl.gov.mk
+   setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+   module use /p/m3dc1/modules
+   module load m3dc1/devel-4.0.1
 
 4. compile code
   For PETSc-real

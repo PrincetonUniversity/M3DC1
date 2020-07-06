@@ -7,7 +7,9 @@
    git clone https://github.com/PrincetonUniversity/M3DC1.git
 
 3. load modules
-   module load cmake python git intel openmpi hdf5-parallel/1.10.5
+   setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+   module use /p/m3dc1/modules
+   module load m3dc1/devel-dentos7
 
 4. compile code
 	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=centos7
