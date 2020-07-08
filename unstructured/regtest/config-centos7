@@ -1,0 +1,13 @@
+#!/bin/csh
+
+setenv M3DC1_CODE_DIR "/p/tsc/C1/src"
+
+module purge
+module use /p/m3dc1/modules
+module load m3dc1/devel-centos7
+module load git
+module list
+
+setenv GIT_SSH_COMMAND 'ssh -i /u/nferraro/.ssh/id_rsa_0 -l nferraro'
+set BATCH_SUFFIX = centos7
+set MAILTO = 'nferraro@pppl.gov'
