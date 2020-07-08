@@ -9,12 +9,12 @@
 3. load modules
    setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
    module use /p/m3dc1/modules
-   module load m3dc1/devel-dentos7
+   module load m3dc1/devel-centos7
 
 4. compile code
-	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=centos7
-	2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=centos7
-	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=centos7
+	2D real: make OPT=1 RL=1 MAX_PTS=25
+	2D complex: make OPT=1 COM=1 MAX_PTS=25
+	3D real: make 3D=1 OPT=1 MAX_PTS=60
         
 5. mesh utility
       OpenMPI:   /p/swim/jchen/PETSC/core/build/bin
