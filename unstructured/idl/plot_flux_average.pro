@@ -66,11 +66,12 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            colors = replicate(color(0,1), nfiles)
        endif else begin
            if(n_elements(colors) eq 0) then colors = shift(get_colors(),-1)
-           ls = replicate(0,nfiles)
+           if(n_elements(ls) eq 0) then ls = replicate(0,nfiles)
        endelse
        if(n_elements(ls) eq 1) then ls = replicate(ls, nfiles)
        if(n_elements(time) eq 1) then time = replicate(time,nfiles)
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nfiles)
+       if(n_elements(fac) eq 1) then fac=replicate(fac, nfiles)
        if(n_elements(multiply_flux) eq 1) then $
          multiply_flux = replicate(multiply_flux,nfiles)
        if(n_elements(outfile) eq 0) then outfile = replicate('',nfiles)
@@ -81,7 +82,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
-             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
+             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac[i], $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
              stotal=total, q_contours=q_contours, rho=rho, nolegend=nolegend, $
