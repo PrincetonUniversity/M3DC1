@@ -73,7 +73,7 @@ contains
     real :: r, r2n, ds 
     integer :: js 
     
-    r = sqrt((x - xzero)**2 + (z - zzero)**2 + 0e-6)
+    r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
 !    theta = atan2(z - zzero, x - xzero)
     pout = 0
     r2n = r**2*(ns-1)

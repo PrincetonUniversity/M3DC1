@@ -25,15 +25,18 @@ contains
 
     real, intent(in):: x, phi, z
     real, intent(out):: rout, zout 
-    real :: r, theta, ds, r2n
+    real :: r, theta, ds, r2n, mf
     integer :: i, js
     real, dimension(mn_mode) :: rstc, zsts
-    real :: m_max, dphi, r1, r2, z1, z2
+    real :: m_max, n_max, dphi, r1, r2, z1, z2
     real :: rm1, rm2, zm1
 
+    ! metric factor for phi when itor=0
+    mf = twopi/(mesh_period*nperiods)
     dphi = 1.*twopi/(2*nperiods)
     !dphi = 1.*mesh_period/2
-    m_max = 15.5
+    m_max = 1.5
+    n_max = 3.5
     r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
     theta = atan2(z - zcenter, x - xcenter)
     rout = 0
@@ -48,9 +51,9 @@ contains
         rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
         zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
         do i = 1, mn_mode 
-          if (xmv(i)<m_max) then
-            rout = rout + rstc(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))
-            zout = zout + zsts(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))
+          if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
+            rout = rout + rstc(i)*cos(xmv(i)*theta+xnv(i)*(phi*mf+dphi))
+            zout = zout + zsts(i)*sin(xmv(i)*theta+xnv(i)*(phi*mf+dphi))
           end if
         end do
       else ! near axis, use routine 
@@ -61,42 +64,48 @@ contains
         rstc = rbc
         zsts = zbs
         do i = 1, mn_mode 
-          if (xmv(i)<m_max) then
-            rout = rout + rstc(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*ds**xmv(i)
-            zout = zout + zsts(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*ds**xmv(i)
+          if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
+            rout = rout + rstc(i)*cos(xmv(i)*theta+xnv(i)*(phi*mf+dphi))*ds**xmv(i)
+            zout = zout + zsts(i)*sin(xmv(i)*theta+xnv(i)*(phi*mf+dphi))*ds**xmv(i)
           end if
         end do
         do i = 1, n_tor ! shift axis to magnetic axis 
-            rout = rout + (rmnc(i,1)-rbc(i))*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*(1-ds**2)
-            zout = zout + (zmns(i,1)-zbs(i))*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*(1-ds**2)
+            if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
+              !rout = rout + (rmnc(i,1)-rbc(i))*cos(xmv(i)*theta+xnv(i)*(phi*mf+dphi))*(1-ds**2)
+              !zout = zout + (zmns(i,1)-zbs(i))*sin(xmv(i)*theta+xnv(i)*(phi*mf+dphi))*(1-ds**2)
+            end if
         end do
       end if
     else ! use routine to generate from boundary geometry
       do i = 1, mn_mode 
         if ((mb(i)<m_max)) then
-          rout = rout + rbc(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*r**mb(i)
-          zout = zout + zbs(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*r**mb(i)
+          rout = rout + rbc(i)*cos(mb(i)*theta-nb(i)*(phi*mf+dphi)*nperiods)*r**mb(i)
+          zout = zout + zbs(i)*sin(mb(i)*theta-nb(i)*(phi*mf+dphi)*nperiods)*r**mb(i)
         end if
       end do
     end if
-    rm1 = 2.5
-    rm2 = .5
-    zm1 = 2.
-    rout = 6. + rm1*r*cos(theta+rm2*sin(theta)) 
-    zout = 0 + zm1*r*sin(theta) 
+!    rm1 = 2.5
+!    rm2 = 0.
+!    zm1 = 2.
+!    rout = 6. + rm1*r*cos(theta+rm2*sin(theta)) 
+!    zout = 0 + zm1*r*sin(theta) 
   end subroutine physical_geometry
 
   ! Calculate curvature and normal vector on physical boundary
-  subroutine get_boundary_curv(normal, curv, inode)
+  subroutine get_boundary_curv(normal, curv, inode, curv3)
     use math
     implicit none
 
     integer, intent(in) :: inode 
     real, intent(out) :: normal(2), curv
+    real, intent(out), optional :: curv3(2)
     real :: dr, ddr, dz, ddz, theta, x, phi, z
+#ifdef USE3D
+    real :: dr1, ddr1, dz1, ddz1 
+#endif
     real :: coords(3)
     integer :: i
-    real :: m_max, dphi
+    real :: m_max, n_max, dphi, mf
     real :: rm1, rm2, zm1
 
     ! get logical coordinates    
@@ -104,22 +113,38 @@ contains
     x = coords(1)
     z = coords(2)
     phi = coords(3)
-   
+ 
+    mf = twopi/(mesh_period*nperiods)
+    phi = phi*mf
+
     dphi = 1.*twopi/(2*nperiods)
     !dphi = 1.*mesh_period/(2*rzero)
-    m_max = 15.5
+    m_max = 1.5
+    n_max = 3.5
     theta = atan2(z - zcenter, x - xcenter)
     dr = 0
     dz = 0
     ddr = 0
     ddz = 0
+#ifdef USE3D
+    dr1 = 0
+    dz1 = 0
+    ddr1 = 0
+    ddz1 = 0
+#endif
     if (iread_vmec==1) then
       do i = 1, mn_mode 
-        if (xmv(i)<m_max) then
+        if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
           dr = dr - rbc(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)
           dz = dz + zbs(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)
           ddr = ddr - rbc(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)**2
           ddz = ddz - zbs(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)**2
+#ifdef USE3D
+          dr1 = dr1 - rbc(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)*xnv(i)
+          dz1 = dz1 - zbs(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)*xnv(i)
+          ddr1 = ddr1 + rbc(i)*sin(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)**2*xnv(i)
+          ddz1 = ddz1 - zbs(i)*cos(xmv(i)*theta+xnv(i)*(phi+dphi))*xmv(i)**2*xnv(i)
+#endif
         end if
       end do
     else
@@ -129,21 +154,43 @@ contains
           dz = dz + zbs(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i)
           ddr = ddr - rbc(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i)**2
           ddz = ddz - zbs(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i)**2
+#ifdef USE3D
+          dr1 = dr1 - rbc(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i) &
+                                            *(-nb(i))*nperiods
+          dz1 = dz1 - zbs(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i) &
+                                            *(-nb(i))*nperiods
+          ddr1 = ddr1 + rbc(i)*sin(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i)**2 &
+                                            *(-nb(i))*nperiods
+          ddz1 = ddz1 - zbs(i)*cos(mb(i)*theta-nb(i)*(phi+dphi)*nperiods)*mb(i)**2 &
+                                            *(-nb(i))*nperiods
+#endif
         end if 
       end do
     end if 
-    rm1 = 2.5
-    rm2 = .5
-    zm1 = 2.
-    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
-    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
-          +rm1*sin(theta+rm2*sin(theta))*rm2*sin(theta)
-    dz = zm1*cos(theta) 
-    ddz = -zm1*sin(theta) 
+!    rm1 = 2.5
+!    rm2 = 0.
+!    zm1 = 2.
+!    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
+!    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
+!          +rm1*sin(theta+rm2*sin(theta))*rm2*sin(theta)
+!    dz = zm1*cos(theta) 
+!    ddz = -zm1*sin(theta) 
+#ifdef USE3D
+!    dr1 = 0.
+!    dz1 = 0.
+!    ddr1 = 0.
+!    ddz1 = 0.
+#endif
     curv = (dr*ddz - dz*ddr)/((dr**2 + dz**2)*sqrt(dr**2 + dz**2))
     normal(1) = dz/sqrt(dr**2 + dz**2)
     normal(2) = -dr/sqrt(dr**2 + dz**2)
-
+#ifdef USE3D
+    if(present(curv3)) then
+       curv3(1) = (dr*dz1 - dz*dr1)/(dr**2 + dz**2)
+       curv3(2) = ((dr1*ddz + dr*ddz1 - dz1*ddr - dz*ddr1)/(sqrt(dr**2 + dz**2))&
+                  - 3*curv*(dr*dr1 + dz*dz1))/(dr**2 + dz**2) 
+    end if
+#endif
   end subroutine get_boundary_curv
 
   ! calculate matrix that transforms logical dofs to physical
@@ -231,6 +278,9 @@ contains
     rn = rstnode(:,inode) 
     zn = zstnode(:,inode) 
 
+!    rn(DOF_DP:DOF_DZZP) = 0.
+!    zn(DOF_DP:DOF_DZZP) = 0.
+
     p2l = 0
     p2l(DOF_1,DOF_1) = 1.
     ! fx = Rx*fR + Zx*fZ
@@ -240,27 +290,80 @@ contains
     p2l(DOF_DZ,DOF_DR) = rn(DOF_DZ)
     p2l(DOF_DZ,DOF_DZ) = zn(DOF_DZ)
     ! fxx = Rx^2*fRR + Zx^2*fZZ + 2(Rx*Zx)*fRZ
-    !     + Rxx*fR + Zxx*fZ      
+    !     + Rxx*fR + Zxx*fZ 
     p2l(DOF_DRR,DOF_DRR) = rn(DOF_DR)**2
     p2l(DOF_DRR,DOF_DZZ) = zn(DOF_DR)**2
     p2l(DOF_DRR,DOF_DRZ) = 2*zn(DOF_DR)*rn(DOF_DR)
     p2l(DOF_DRR,DOF_DR) = rn(DOF_DRR)
     p2l(DOF_DRR,DOF_DZ) = zn(DOF_DRR)
     ! fyy = Ry^2*fRR + Zy^2*fZZ + 2(Ry*Zy)*fRZ
-    !     + Ryy*fR + Zyy*fZ      
+    !     + Ryy*fR + Zyy*fZ
     p2l(DOF_DZZ,DOF_DRR) = rn(DOF_DZ)**2
     p2l(DOF_DZZ,DOF_DZZ) = zn(DOF_DZ)**2
     p2l(DOF_DZZ,DOF_DRZ) = 2*zn(DOF_DZ)*rn(DOF_DZ)
     p2l(DOF_DZZ,DOF_DR) = rn(DOF_DZZ)
     p2l(DOF_DZZ,DOF_DZ) = zn(DOF_DZZ)
     ! fxy = Ry*Rx*fRR + Zy*Zx*fZZ + (Rx*Zy+Ry*Zx)*fRZ
-    !     + Rxy*fR + Zxy*fZ      
+    !     + Rxy*fR + Zxy*fZ 
     p2l(DOF_DRZ,DOF_DRR) = rn(DOF_DZ)*rn(DOF_DR)
     p2l(DOF_DRZ,DOF_DZZ) = zn(DOF_DR)*zn(DOF_DZ) 
     p2l(DOF_DRZ,DOF_DRZ) = rn(DOF_DR)*zn(DOF_DZ) + zn(DOF_DR)*rn(DOF_DZ) 
     p2l(DOF_DRZ,DOF_DR) = rn(DOF_DRZ) 
     p2l(DOF_DRZ,DOF_DZ) = zn(DOF_DRZ)
-
+#ifdef USE3D
+    p2l(DOF_DP,DOF_DP) = 1.
+    ! fxz = Rx*fRz + Zx*fZz + Rxz* fR + Zxz * fZ
+    p2l(DOF_DRP,DOF_DRP) = rn(DOF_DR)
+    p2l(DOF_DRP,DOF_DZP) = zn(DOF_DR)
+    p2l(DOF_DRP,DOF_DR) = rn(DOF_DRP)
+    p2l(DOF_DRP,DOF_DZ) = zn(DOF_DRP)
+    ! fyz = Ry*fRz + Zy*fZz + Ryz* fR + Zyz * fZ
+    p2l(DOF_DZP,DOF_DRP) = rn(DOF_DZ)
+    p2l(DOF_DZP,DOF_DZP) = zn(DOF_DZ)
+    p2l(DOF_DZP,DOF_DR) = rn(DOF_DZP)
+    p2l(DOF_DZP,DOF_DZ) = zn(DOF_DZP)
+    ! fxxz = Rx^2*fRRz + Zx^2*fZZz + 2(Rx*Zx)*fRZz
+    !     + Rxx*fRz + Zxx*fZz + Rxxz*fR + Zxxz*fZ 
+    !     + 2*Rx*Rxz*fRR + 2*Zx*Zxz*fZZ + 2(Rxz*Zx+Rx*Zxz)*fRZ
+    p2l(DOF_DRRP,DOF_DRRP) = rn(DOF_DR)**2
+    p2l(DOF_DRRP,DOF_DZZP) = zn(DOF_DR)**2
+    p2l(DOF_DRRP,DOF_DRZP) = 2*zn(DOF_DR)*rn(DOF_DR)
+    p2l(DOF_DRRP,DOF_DRP) = rn(DOF_DRR)
+    p2l(DOF_DRRP,DOF_DZP) = zn(DOF_DRR)
+    p2l(DOF_DRRP,DOF_DRR) = 2*rn(DOF_DR)*rn(DOF_DRP)
+    p2l(DOF_DRRP,DOF_DZZ) = 2*zn(DOF_DR)*zn(DOF_DRP)
+    p2l(DOF_DRRP,DOF_DRZ) = 2*(zn(DOF_DRP)*rn(DOF_DR)+zn(DOF_DR)*rn(DOF_DRP))
+    p2l(DOF_DRRP,DOF_DR) = rn(DOF_DRRP)
+    p2l(DOF_DRRP,DOF_DZ) = zn(DOF_DRRP)
+    ! fyyz = Ry^2*fRRz + Zy^2*fZZz + 2(Ry*Zy)*fRZz
+    !     + Ryy*fRz + Zyy*fZz + Ryyz*fR + Zyyz*fZ 
+    !     + 2*Ry*Ryz*fRR + 2*Zy*Zyz*fZZ + 2(Ry*Zyz+Ryz*Zy)*fRZ
+    p2l(DOF_DZZP,DOF_DRRP) = rn(DOF_DZ)**2
+    p2l(DOF_DZZP,DOF_DZZP) = zn(DOF_DZ)**2
+    p2l(DOF_DZZP,DOF_DRZP) = 2*zn(DOF_DZ)*rn(DOF_DZ)
+    p2l(DOF_DZZP,DOF_DRP) = rn(DOF_DZZ)
+    p2l(DOF_DZZP,DOF_DZP) = zn(DOF_DZZ)
+    p2l(DOF_DZZP,DOF_DRR) = 2*rn(DOF_DZ)*rn(DOF_DZP)
+    p2l(DOF_DZZP,DOF_DZZ) = 2*zn(DOF_DZ)*zn(DOF_DZP)
+    p2l(DOF_DZZP,DOF_DRZ) = 2*(zn(DOF_DZP)*rn(DOF_DZ)+zn(DOF_DZ)*rn(DOF_DZP))
+    p2l(DOF_DZZP,DOF_DR) = rn(DOF_DZZP)
+    p2l(DOF_DZZP,DOF_DZ) = zn(DOF_DZZP)
+    ! fxyz = Ry*Rx*fRRz + Zy*Zx*fZZz + (Rx*Zy+Ry*Zx)*fRZz
+    !     + Rxy*fRz + Zxy*fZz + Rxyz*fR + Zxyz*fZ
+    !     + (Ry*Rxz+Ryz*Rx)*fRR + (Zy*Zxz+Zyz*Zx)*fZZ 
+    !     + (Rx*Zyz+Rxz*Zy+Ry*Zxz+Ryz*Zx)*fRZ
+    p2l(DOF_DRZP,DOF_DRRP) = rn(DOF_DZ)*rn(DOF_DR)
+    p2l(DOF_DRZP,DOF_DZZP) = zn(DOF_DR)*zn(DOF_DZ) 
+    p2l(DOF_DRZP,DOF_DRZP) = rn(DOF_DR)*zn(DOF_DZ) + zn(DOF_DR)*rn(DOF_DZ) 
+    p2l(DOF_DRZP,DOF_DRP) = rn(DOF_DRZ) 
+    p2l(DOF_DRZP,DOF_DZP) = zn(DOF_DRZ)
+    p2l(DOF_DRZP,DOF_DRR) = rn(DOF_DZP)*rn(DOF_DR)+rn(DOF_DZ)*rn(DOF_DRP)
+    p2l(DOF_DRZP,DOF_DZZ) = zn(DOF_DRP)*zn(DOF_DZ)+zn(DOF_DR)*zn(DOF_DZP)  
+    p2l(DOF_DRZP,DOF_DRZ) = rn(DOF_DRP)*zn(DOF_DZ) + zn(DOF_DRP)*rn(DOF_DZ) & 
+                          + rn(DOF_DR)*zn(DOF_DZP) + zn(DOF_DR)*rn(DOF_DZP) 
+    p2l(DOF_DRZP,DOF_DR) = rn(DOF_DRZP) 
+    p2l(DOF_DRZP,DOF_DZ) = zn(DOF_DRZP)
+#endif
   end subroutine p2l_matrix
 
 #endif 

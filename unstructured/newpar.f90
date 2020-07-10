@@ -188,10 +188,13 @@ Program Reducedquintic
 #ifdef USEST 
   if (igeometry.eq.1) then
      ! calculate rst & zst fields
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating geometry'
      call calc_geometry 
      ! recalculate gtri such that DoFs are in physical derivatives 
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Redoing tridef'
      call tridef
      ! recalculate rst & zst fields using new gtri 
+     if(myrank.eq.0 .and. iprint.ge.1) print *, ' Recalculating geometry'
      call calc_geometry 
   end if
 #endif
@@ -995,7 +998,14 @@ end subroutine rotation
     type(element_data) :: d
     integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs, ierr
     real, dimension(coeffs_per_tri,coeffs_per_tri) :: ti, t
-    real, dimension(dofs_per_tri, dofs_per_tri) :: rot, newrot
+    real, dimension(dofs_per_tri, dofs_per_tri) :: rot
+#ifdef USEST
+    real, dimension(dofs_per_element, dofs_per_element) :: newrot
+    real :: curv3(2)
+    integer :: l, m, n, idof, ip
+#else
+    real, dimension(dofs_per_tri, dofs_per_tri) :: newrot
+#endif
     real :: sum, theta, mean_area, tot_area, mean_len
     real :: norm(2), curv, x, phi, z
     integer :: inode(nodes_per_element)
@@ -1006,11 +1016,11 @@ end subroutine rotation
     real :: wkspce(9400)
     integer :: ipiv(coeffs_per_tri)
 
-    real, dimension(dofs_per_tri) :: temp_vec
+!    real, dimension(dofs_per_tri) :: temp_vec
 
     real, dimension(nodes_per_element) :: node_sz
 #ifdef USEST
-    real, dimension(dofs_per_tri, dofs_per_tri) :: p2l_mat 
+    real, dimension(dofs_per_element, dofs_per_element) :: p2l_mat 
 #endif
 
     numelms = local_elements()
@@ -1043,17 +1053,23 @@ end subroutine rotation
        newrot = 0.
        call get_element_nodes(itri, inode)
 
+#ifdef USEST
+       do i=1, nodes_per_element 
+          call boundary_node(inode(i), &
+               is_boundary, izone, izonedim, norm, curv, x, phi, z, &
+               all_boundaries, curv3)
+          k = (i-1)*dofs_per_node + 1
+          if(igeometry.eq.1.and.ilog.eq.2) then
+             call p2l_matrix(&
+                 p2l_mat(k:(k+dofs_per_node-1), k:(k+dofs_per_node-1)),&
+                 inode(i))
+          end if
+#else
        do i=1, 3
           call boundary_node(inode(i), &
                is_boundary, izone, izonedim, norm, curv, x, phi, z, &
                all_boundaries)
-
           k = (i-1)*6 + 1
-#ifdef USEST
-          if(igeometry.eq.1.and.ilog.eq.2) then
-            call p2l_matrix(p2l_mat(k:k+5,k:k+5),inode(i))
-          end if
-          !if(is_boundary.and.(igeometry.ne.1.or.ilog.ne.1)) then
 #endif
           if(is_boundary) then
              newrot(k  ,k  ) = 1.
@@ -1076,17 +1092,74 @@ end subroutine rotation
              newrot(k+5,k+3) =  norm(2)**2
              newrot(k+5,k+4) = -norm(1)*norm(2)
              newrot(k+5,k+5) =  norm(1)**2
+#if defined(USEST) && defined (USE3D)
+             newrot(k+6:k+11,k+6:k+11) = newrot(k:k+5,k:k+5)
+             newrot(k+1,k+7) =  norm(2)*curv3(1)
+             newrot(k+2,k+7) = -norm(1)*curv3(1)
+             newrot(k+1,k+8) =  norm(1)*curv3(1)
+             newrot(k+2,k+8) = -norm(2)*curv3(1)
+             newrot(k+1,k+9) =  2*norm(1)*norm(2)*curv3(1)*curv+norm(2)**2*curv3(2)
+             newrot(k+2,k+9) =  2*(norm(1)**2-norm(2)**2)*curv3(1)*curv &
+                               +2*norm(1)*norm(2)*curv3(2)
+             newrot(k+3,k+9) = -2*norm(1)*norm(2)*curv3(1)
+             newrot(k+4,k+9) = -2*(norm(1)**2-norm(2)**2)*curv3(1)
+             newrot(k+5,k+9) =  2*norm(1)*norm(2)*curv3(1)
+             newrot(k+1,k+10) = -(norm(1)**2-norm(2)**2)*curv3(1)*curv &
+                                -norm(1)*norm(2)*curv3(2)
+             newrot(k+2,k+10) =  4*norm(1)*norm(2)*curv3(1)*curv &
+                                -(norm(1)**2-norm(2)**2)*curv3(2)
+             newrot(k+3,k+10) =  (norm(1)**2-norm(2)**2)*curv3(1)
+             newrot(k+4,k+10) = -4*norm(1)*norm(2)*curv3(1)
+             newrot(k+5,k+10) = -(norm(1)**2-norm(2)**2)*curv3(1)
+             newrot(k+1,k+11) = -2*norm(1)*norm(2)*curv3(1)*curv+norm(1)**2*curv3(2)
+             newrot(k+2,k+11) = -2*(norm(1)**2-norm(2)**2)*curv3(1)*curv &
+                                -2*norm(1)*norm(2)*curv3(2)
+             newrot(k+3,k+11) =  2*norm(1)*norm(2)*curv3(1)
+             newrot(k+4,k+11) =  2*(norm(1)**2-norm(2)**2)*curv3(1)
+             newrot(k+5,k+11) = -2*norm(1)*norm(2)*curv3(1)
+          else
+             do j=1, dofs_per_node
+#else
           else
              do j=1, 6
+#endif
                 newrot(k+j-1,k+j-1) = 1.
              end do
           end if
        end do     
 #ifdef USEST
+       ! newrot now includes transformation between physical & logical DoFs
        if(igeometry.eq.1.and.ilog.eq.2) then
           newrot = matmul(newrot,transpose(p2l_mat))
        end if
-#endif
+       ! form the matrix g using indexing similar to local_coeff_vec 
+       do k=1, coeffs_per_tri
+          do j=1, dofs_per_element
+             sum = 0.
+             do ii = 1, dofs_per_tri
+!                do jj=1, dofs_per_tri
+!                   sum = sum + newrot(j,jj)*ti(k,ii)*rot(ii,jj)
+                idof = 0
+                do jj=1,tor_nodes_per_element
+                   do l=1,pol_nodes_per_element
+                      do m=1,tor_dofs_per_node
+                         do n=1,pol_dofs_per_node
+                            idof = idof + 1
+                            ip = n + (l-1)*pol_dofs_per_node
+                            sum = sum + newrot(j,idof) &
+                                  *ti(k,ii)*rot(ii,ip)
+
+!                do l=1, nodes_per_element 
+!                   do jj=1, dofs_per_node
+!                      lr = mod(l-1, pol_nodes_per_element)+1 
+!                      jr = mod(jj-1, pol_dofs_per_node)+1
+!                      sum = sum + newrot(j,jj+(l-1)*dofs_per_node) &
+!                           *ti(k,ii)*rot(ii,jr+(lr-1)*pol_dofs_per_node)
+
+                         end do
+                      end do
+                   end do
+#else
        ! form the matrix g by multiplying ti and rot
        do k=1, coeffs_per_tri
           do j=1, dofs_per_tri
@@ -1094,7 +1167,8 @@ end subroutine rotation
              do ii = 1, dofs_per_tri
                 do jj=1, dofs_per_tri
                    sum = sum + newrot(j,jj)*ti(k,ii)*rot(ii,jj)
-                end do
+#endif
+                enddo
              enddo
              gtri(k,j,itri) = sum
           enddo
@@ -1175,7 +1249,7 @@ end subroutine rotation
        
     case(2)
 
-       temp_vec = 0.
+!       temp_vec = 0.
        do itri=1, numelms
 #ifdef USESCOREC
           !call getelmsizes(itri, node_sz)
@@ -1305,7 +1379,11 @@ subroutine space(ifirstcall)
   endif
   
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating tri...'
+#ifdef USEST
+  allocate(gtri(coeffs_per_tri,dofs_per_element,numelms))
+#else
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
+#endif
   allocate(htri(coeffs_per_dphi,dofs_per_dphi,numelms))
   if(iprecompute_metric.eq.1) &
        allocate(ctri(dofs_per_element,coeffs_per_element,numelms))

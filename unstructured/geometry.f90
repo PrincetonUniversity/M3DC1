@@ -33,11 +33,11 @@ contains
     call create_field(zst)
     zst = 0.
 
-    numelms = local_elements()
-
     ! Create a matrix for solving geometry 
     call set_matrix_index(st_matrix, st_mat_index)
     call create_mat(st_matrix, 1, 1, icomplex, 1)
+
+    numelms = local_elements()
 
     select case(igeometry)
 
@@ -104,6 +104,7 @@ contains
 
     enddo
     end select
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "finalizing matrix"
 
     call finalize(st_matrix)
 

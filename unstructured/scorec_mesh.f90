@@ -644,7 +644,7 @@ contains
   ! about boundary surface
   !======================================================================
   subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,&
-       x,phi,z,tags)
+       x,phi,z,tags,curv3)
 
     use math
     
@@ -656,6 +656,7 @@ contains
     real, intent(out) :: x,phi,z              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
     type(tag_list), intent(in), optional :: tags
+    real, intent(out), optional :: curv3(2)
     
     integer :: ibottom, iright, ileft, itop, ib
     real :: angler
@@ -735,7 +736,12 @@ contains
        if(.not.is_boundary) return
 #ifdef USEST  
        if (igeometry.gt.0) then ! do nothing when igeometry==0 
-          call get_boundary_curv(normal,curv,inode)
+          if(present(curv3)) then 
+             call get_boundary_curv(normal,curv,inode,curv3)
+             !curv3 = 0.
+          else
+             call get_boundary_curv(normal,curv,inode)
+          end if
        else
 #endif
        call m3dc1_node_getnormvec(inode-1, norm)

@@ -587,6 +587,12 @@ subroutine initial_conditions()
            call basicj_init()
         case(33)
            call cyl_init()
+#ifdef USEST
+        case(40)
+           if (igeometry.eq.1 .and. iread_vmec.eq.1) then
+              call vmec_init()
+           end if
+#endif
         end select
      else
         ! toroidal equilibria
