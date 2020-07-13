@@ -8,7 +8,7 @@
 
 3. load modules
    setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
-   module use /p/m3dc1/modules
+   module use $M3DC1_CODE_DIR/unstructured/modules/pppl
    module load m3dc1/devel-centos7
 
 4. compile code

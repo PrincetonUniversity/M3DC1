@@ -1,0 +1,76 @@
+#%Module1.0
+##
+
+## Required internal variables
+
+set             name            m3dc1
+set             version         latest-1.10.3
+set             root            $env(M3DC1_CODE_DIR)
+set		arch		sunfire.openmpi-1.10.3
+
+## List conflicting modules here
+
+conflict $name
+
+## List prerequisite modules here
+
+set             fullname        M3D-C1
+set             externalurl     http://theorycodes.pppl.wikispaces.net/M3D-C1
+set             description     "M3D-C1 is an extended-MHD code"
+
+## Required for "module help ..."
+
+proc ModulesHelp { } {
+  global description externalurl
+  puts stderr "Description - $description"
+  puts stderr "Other Docs  - $externalurl"
+}
+
+## Required for "module display ..." and SWDB
+
+module-whatis                   "$description"
+
+## Software-specific settings exported to user environment
+
+if { ! [ is-loaded intel/2015.u1 ] } {
+   module load intel/2015.u1
+}
+
+if { ! [ is-loaded openmpi/1.10.3 ] } {
+   module load openmpi/1.10.3
+}
+prereq openmpi/1.10.3
+
+if { ! [ is-loaded szip/2.1 ] } {
+   module load szip/2.1
+}
+
+if { ! [ is-loaded hdf5-parallel/1.8.17 ] } {
+   module load hdf5-parallel/1.8.17
+}
+prereq hdf5-parallel/1.8.17
+
+if { ! [ is-loaded gsl/2.4 ] } {
+   module load gsl/2.4
+}
+prereq gsl
+
+if { ! [ is-loaded scalapack/2.0.2 ] } {
+   module load scalapack/2.0.2
+}
+
+if { ! [ is-loaded rlm ] } {
+   module load rlm
+}
+
+
+setenv		PSPLINE_DIR	/p/swim/jchen/PSPLINE/LINUX/portalr6
+
+setenv          M3DC1_VERSION   $version
+setenv		M3DC1_DIR	$root
+setenv		M3DC1_ARCH	$arch
+setenv		M3DC1_MPIRUN	mpirun
+setenv		M3DC1_PETSC_PT	package
+
+prepend-path    PATH             $root/unstructured/_$arch/bin
+prepend-path    IDL_PATH         $root/unstructured/idl
