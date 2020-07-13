@@ -11,10 +11,10 @@
    module load m3dc1/devel
 
 4. compile code
-	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=eddy
-	2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=eddy
+	2D real: make OPT=1 RL=1 MAX_PTS=25
+	2D complex: make OPT=1 COM=1 MAX_PTS=25
             - add PAR=1 to run PIC
-	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=eddy
+	3D real: make 3D=1 OPT=1 MAX_PTS=60
         
 5. mesh utility
       /home/jinchen/LIB/scorec/intel18.0-mpi2018.3.64/petsc3.12.0/bin
