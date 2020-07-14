@@ -6,9 +6,13 @@
 
 3. load modules
 
-   setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
-   module use $M3DC1_CODE_DIR/unstructured/modules/eddy
-   module load m3dc1/devel
+   for release version modules:
+       module use /home/nferraro/modules
+
+   for development modules:
+       setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+       module use $M3DC1_CODE_DIR/unstructured/modules/eddy
+       module load m3dc1/devel
 
 4. compile code
 	2D real: make OPT=1 RL=1 MAX_PTS=25
