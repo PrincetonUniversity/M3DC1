@@ -96,8 +96,8 @@ contains
         else ! read boudary geometry
             call read_boundary_geometry(myrank)
         end if
+        call physical_mesh_setup(period)
     end if
-    mesh_period = period/nperiods 
 #endif
     toroidal_period = period/nperiods 
 
