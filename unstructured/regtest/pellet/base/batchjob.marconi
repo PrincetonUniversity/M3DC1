@@ -28,4 +28,5 @@ srun -n 128 -c 1 m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps
 
 touch finished
 
-mv equilibrium.h5 time_*.h5 C1.h5 C1ke finished C1stdout $SLURM_SUBMIT_DIR
+mv mesh_partitioned equilibrium.h5 time_*.h5 C1.h5 C1ke finished C1stdout $SLURM_SUBMIT_DIR
+
