@@ -4,7 +4,7 @@
 ## Required internal variables
 
 set             name            m3dc1
-set             version         latest
+set             version         devel
 set             root            $env(M3DC1_CODE_DIR)
 
 ## List conflicting modules here
