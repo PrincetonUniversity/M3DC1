@@ -4,24 +4,23 @@
 2. code
 
 3. load modules
-   module swap intel/19.0.3.199 intel/19.1.0.166
 
-   FOR KNL
-        module swap craype-haswell craype-mic-knl
+   for release version modules:
+       module use /global/project/projectdirs/mp288/C1/modules/cori
 
-   REAL AND COMPLEX MODEL
-        module load cray-fftw gsl cray-hdf5-parallel idl 
-	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
+   for development modules:
+       setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+       module use $M3DC1_CODE_DIR/unstructured/modules/cori
+       module load m3dc1/devel-haswell   [ for haswell ]
+       module load m3dc1/devel-knl	 [ for knl ]
 
-4. compile codemodu
-   FOR HASWELL
-	make OPT=1 RL=1 MAX_PTS=25 
-	make OPT=1 COM=1 MAX_PTS=25 
-	make 3D=1 OPT=1 MAX_PTS=60 
-   FOR KNL
-	make OPT=1 RL=1 MAX_PTS=25 ARCH=cori_knl
-	make OPT=1 COM=1 MAX_PTS=25 ARCH=cori_knl
-	make 3D=1 OPT=1 MAX_PTS=60 ARCH=cori_knl
+4. compile
+
+   The code will compile for haswell or knl depending on which module is loaded
+   
+   make OPT=1 RL=1 MAX_PTS=25 
+   make OPT=1 COM=1 MAX_PTS=25 
+   make 3D=1 OPT=1 MAX_PTS=60 
 
    For different SCOREC install, add SCORECVER
    (ex) SCORECVER=reordered: reordered matrix (aggregated unknowns)

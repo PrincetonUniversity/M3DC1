@@ -116,7 +116,13 @@ contains
     ! if we're ablating, pellet_var set by pellet & cloud size
     if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
 
-    where(pellet_var_tor.le.0) pellet_var_tor = pellet_var
+    if (ipellet .eq. 15) then
+       ! default: angle of pellet_var arc length at initial pellet position
+       where(pellet_var_tor.le.0) pellet_var_tor = pellet_var/pellet_r
+    else
+       where(pellet_var_tor.le.0) pellet_var_tor = pellet_var
+    end if
+
 
     ! initialize Cartesian velocities
     pellet_vx = pellet_velr*cos(pellet_phi) - pellet_velphi*sin(pellet_phi)
@@ -143,7 +149,7 @@ contains
     select case(abs(ipellet))
 
 #ifdef USE3D
-    ! gaussian pellet source
+    ! Poloidal gaussian with toroidal von Mises (pellet_var_tor is a distance)
     case(1, 4, 11)
        pellet_distribution = 1./ &
             (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
@@ -194,10 +200,15 @@ contains
             ((1.-cauchy_fraction(ip))*exp(-(1.-cos(phi-pellet_phi(ip)))/gamma**2) + &
             cauchy_fraction(ip)*(cosh(gamma) - cos(pellet_phi(ip)))/(cosh(gamma) - cos(phi-pellet_phi(ip))))
 
+    ! Poloidal gaussian with toroidal von Mises (pellet_var_tor in radians)
+    case(15)
+       pellet_distribution = exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2)/(2.*pellet_var(ip)**2) &
+                                 + cos(phi-pellet_phi(ip))/(pellet_var_tor(ip)**2))
+
 #else
 
     ! axisymmetric gaussian pellet source
-    case(1, 11, 13, 14)
+    case(1, 11, 13, 14, 15)
        pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
