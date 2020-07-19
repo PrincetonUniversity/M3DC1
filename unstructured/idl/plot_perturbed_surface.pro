@@ -59,6 +59,8 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts,  $
    end
    if(n_elements(scalefac) eq 0) then scalefac=1.
    if(n_elements(scalefac) lt n) then scalefac = replicate(scalefac, n)
+   if(n_elements(plotscale) eq 0) then plotscale=1.
+   if(n_elements(plotscale) lt n) then plotscale = replicate(plotscale, n)
    if(n_elements(phase) eq 0) then phase = 0.
    if(n_elements(phase) lt n) then phase = replicate(phase, n)
 

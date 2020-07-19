@@ -6,13 +6,10 @@ Updated
 2. code
 
 3. load modules and set enviroments
-  	module load intel/2015.u1 openmpi/1.10.3
-        module load gsl szip hdf5-parallel/1.8.17
-        setenv PSPLINE_DIR /p/swim/jchen/PSPLINE/LINUX/portalr6
-
-    and
-
-    copy sunfire.openmpi-1.10.3.mk sunfire.pppl.gov.mk
+   
+   setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+   module use /p/m3dc1/modules
+   module load m3dc1/devel-1.10.3
 
 4. compile code
   For PETSc-real

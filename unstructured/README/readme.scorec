@@ -2,85 +2,65 @@ This document describes how to install and run M3D-C1 on SCOREC linux machines:
  
 1. LOAD MODULES
 
-module load gcc/4.7.0
-module load openmpi/latest
-module load cmake/latest
+module load openmpi/1.6.5-ib cmake git-2.21.0-gcc-4.9.2-5sxljib
 
 2. INSTALL PUMI
 
-git clone https://github.com/SCOREC/core.git 
-cd core
-cp ~seol/public/core-openmpi-gcc4.7.0-config.sh config.sh
-EDIT config.sh
+git clone https://github.com/SCOREC/core.git pumi
+git clone https://github.com/PrincetonUniversity/M3DC1
+
+cd pumi 
+cp M3DC1/m3dc1_scorec/config-files/core-openmpi-gcc4.4.5-config.sh config.sh
+EDIT config.sh as needed
 mkdir build
 cd build
 ../config.sh
-make
 make install
 
 2. INSTALL M3DC1_SCOREC
 
-svn co http://redmine.scorec.rpi.edu/svn/pafs/trunk m3dc1_scorec
-cd m3dc1_scorec
-In LINE 39 of CMakeLists.txt, modify the machine "avatar" to your host 
-copy ~seol/public/m3dc1_scorec-openmpi-gcc4.7.0-config.sh config.sh 
-EDIT config.sh
+cd M3DC1/m3dc1_scorec
+cp M3DC1/m3dc1_scorec/config-files/openmpi-gcc4.4.5-real-config.sh config.sh
+EDIT config.sh as needed
 mkdir build
 cd build
 ../config.sh
-make
 make install
 
 [Notes] 
-  - in config.sh, -DENABLE_TRILINOS and -DENABLE_COMPLEX are OFF by default
+  - in config.sh, -DENABLE_COMPLEX are OFF by default
   - the target library name is m3dc1_scorec by default
-  - To build complex version, set -DENABLE_COMPLEX=ON. "_complex" is appended to the target library name
-  - To enable trilinos, set -DENABLE_TRILINOS=ON. "_trilinos" is appended to the target library name
-  - CMAKE_INSTALL_PREFIX should be the same for PUMI and m3dc1_scorec
+  - To build complex version, set -DENABLE_COMPLEX=ON" then _complex" is appended to the target library name
 
 3. INSTALL M3DC1
 
-copy ~seol/public/unstructured-feb29-2016.tar
-copy scorec.mk to "hostname.mk". For instance, if you install on "avatar", "cp scorec.mk avatar.mk"
-In hostname.mk, MODIFY SCOREC_HOME to your path to SCOREC install 
+Copy scorec-*.mk to "hostname.mk". For instance, if you install on "avatar", "cp scorec-*.mk avatar.mk"
+Modify hostname.mk as needed
 
-To compile M3D-C1 with PETSc
+Compile M3D-C1 with PETSc
   - 2D real: make OPT=1
     (the executable program is $PWD/_hostname-opt-25/m3dc1_2d)
   - 2D complex: make OPT=1 COM=1
   - 3D real: make OPT=1 MAX_PTS=60 3D=1
     (the executable program is $PWD/_hostname-opt-60/m3dc1_3d)
 
-To compile M3D-C1 with Trilinos
-  - you should have m3dc1_scorec_trilinos in SCOREC_HOME/lib.
-  - 2D real: make OPT=1 TRILINOS=1
-    (the executable program is $PWD/_hostname-opt-25-trilinos/m3dc1_2d_trilinos)
-  - 2D complex: NOT AVAILABLE
-  - 3D real: make OPT=1 MAX_PTS=60 3D=1 TRILINOS=1
-    (the executable program is $PWD/_hostname-3d-opt-60-trilinos/m3dc1_3d_trilinos)
-
 4. RUN M3DC1
 
-export LD_LIBRARY_PATH=:/usr/local/intel/latest/lib:/usr/local/intel/mkl72/lib/32:/fasttmp/seol/openmpi-gcc4.7.0-install/lib:/fasttmp/seol/petsc-3.5.4-real/openmpi1.6.5/lib:/usr/lib/x86_64-linux-gnu:/usr/local/gcc/4.7.0/lib64:/usr/lib6
+Many test cases are available in /lore/seol/tests
 
-copy test cases from /fasttmp/seol/tests
 [to run 2d real test]
 cd 2d/2p
-modify the file "C1input" to change the input parameters
-/usr/local/openmpi/latest/bin/mpirun -np 2 ~/develop/m3dc1/_avatar-opt-25/m3dc1_2d 
-/usr/local/openmpi/latest/bin/mpirun -np 2 ~/develop/m3dc1/_avatar-opt-25-trilinos/m3dc1_2d_trilinos
+Modify the file "C1input" to change the input parameters
+/usr/local/openmpi/latest/bin/mpirun -np 2 YOUR_M3DC1/unstructured/_avatar-opt-25/m3dc1_2d 
 
 [to run 2d complex test]
-cd complex/nate-48p
-modify the file "C1input" to change the input parameters
-/usr/local/openmpi/latest/bin/mpirun -np 48 ~/develop/m3dc1/_avatar-complex-opt-25/m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+cd complex/48p
+Modify the file "C1input" to change the input parameters
+/usr/local/openmpi/latest/bin/mpirun -np 48 YOUR_M3DC1/unstructured/_avatar-complex-opt-25/m3dc1_2d_complex -pc_factor_mat_solver_package mumps
 
 [to run 3d test]
 cd 3d/16p
 modify the file "C1input" to change the input parameters
-  - for trilinos, set the solver tolerance in the parameter "solver_tol" (default: 1E-8) 
-/usr/local/openmpi/latest/bin/mpirun -np 16 ~/develop/m3dc1/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options_file options_bjacobi
-/usr/local/openmpi/latest/bin/mpirun -np 16 ~/develop/m3dc1/_avatar-3d-opt-60-trilinos/m3dc1_3d_trilinos
+/usr/local/openmpi/latest/bin/mpirun -np 16 YOUR_M3DC1/unstructured/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options_file options_bjacobi
 
-For complete information on M3D-C1, see User's Guide available in http://w3.pppl.gov/~jardin/M3DC1/NEWDOC-latest.pdf
-
+For the details, see User's Guide available in https://m3dc1.pppl.gov/NEWDOC-latest.pdf

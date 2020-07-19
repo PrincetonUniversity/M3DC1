@@ -5,10 +5,11 @@
    git clone https://github.com/PrincetonUniversity/M3DC1.git
 
 3. load modules
-   module load intel intelmpi fftw mkl cmake
+   module load intel/pe-xe-2018--binary intelmpi/2018--binary fftw/3.3.7--intelmpi--2018--binary mkl/2018--binary cmake/3.12.0 
    module load autoload hdf5/1.8.18--intelmpi--2018--binary
    module load profile/neurosc
    module load autoload gsl/2.2.1--gnu--7.4.0
+   module load git
 
 4. compile code
    make OPT=1 RL=1 MAX_PTS=25 ARCH=marconi
@@ -94,3 +95,38 @@
     In your home directory, create a subdirectory "idl" with a single file .startup
     that contains the following line:
     device, retain=2, decomposed=0, true_color=24
+
+11. regtest
+Please note that an error may occurred at step 3 "make bin". You can ignore that and keep going. Thanks, -- Jin
+11.1) compile all versions from "unstructured"
+   make OPT=1 COM=1 MAX_PTS=25 ARCH=marconi; 
+   make OPT=1 RL=1  MAX_PTS=25 ARCH=marconi; 
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=marconi
+
+11.2) export M3DC1_MPIRUN=srun M3DC1_VERSION=local M3DC1_ARCH=marconi
+   (other M3DC1_MPIRUN=mpiexec, other M3DC1_ARCH=eddy,dawson,cori)
+   export M3DC1_MPIRUN=srun
+   export M3DC1_VERSION=local
+   export M3DC1_ARCH=marconi
+
+11.3) from ../unstructured do “make bin”
+   make bin
+   cd unstructured/$M3DC1_ARCH/bin
+   ln -s /marconi/home/userexternal/jchen000/project/PUMI/core/build/bin/create_smb
+   ln -s /marconi/home/userexternal/jchen000/project/PUMI/core/build/bin/split_smb
+   ln -s /marconi/home/userexternal/jchen000/project/PUMI/core/build/bin/make_model
+   ls -s /marconi/home/userexternal/jchen000/project/SRC/M3DC1/unstructured/_marconi/bin/part_mesh.sh 
+   ln -s ../../_marconi-opt-25/m3dc1_2d
+   ln -s ../../_marconi-complex-opt-25/m3dc1_2d_complex
+   ln -s ../../_marconi-3d-opt-60/m3dc1_3d
+
+11.4) set binary path
+   export PATH=`pwd`:$PATH
+
+11.5) cd unstructured/regtest, do
+   ./clean $M3DC1_ARCH
+   ./run $M3DC1_ARCH
+         (wait until jobs finish)
+   ./check $M3DC1_ARCH
+
+

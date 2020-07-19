@@ -5,27 +5,23 @@
    git clone https://github.com/PrincetonUniversity/M3DC1.git
 
 3. load modules
-      Run code with OpenMPI:
-      module load intel/18.0/64/18.0.3.222
-      module load openmpi/intel-18.0/3.0.0/64
-      module load gsl/2.4
 
-      Run code with Intel-MPI:
-      module load intel/18.0/64/18.0.3.222
-      module load intel-mpi/intel/2018.3/64
-      module load fftw/intel-16.0/intel-mpi/3.3.4
-      module load hdf5/intel-16.0/intel-mpi/1.8.16
-      module load gsl
+   for release version modules:
+       module use /home/nferraro/modules
+
+   for development modules:
+       setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+       module use $M3DC1_CODE_DIR/unstructured/modules/eddy
+       module load m3dc1/devel
 
 4. compile code
-	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=eddy
-	2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=eddy
+	2D real: make OPT=1 RL=1 MAX_PTS=25
+	2D complex: make OPT=1 COM=1 MAX_PTS=25
             - add PAR=1 to run PIC
-	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=eddy
+	3D real: make 3D=1 OPT=1 MAX_PTS=60
         
 5. mesh utility
-      Intel-MPI: /home/jinchen/LIB/scorec/intel18.0-mpi2018.3.64/petsc3.12.0/bin
-      OpenMPI:   /home/jinchen/LIB/scorec/intel18.0-openmpi3.3.0/petsc3.12.0/bin
+      /home/jinchen/LIB/scorec/intel18.0-mpi2018.3.64/petsc3.12.0/bin
 
 6. run a job 
 

@@ -8,30 +8,29 @@
 #SBATCH --time=0:30:00
 ##SBATCH --qos=<qos_name>             # quality of service
 #SBATCH --job-name=M3DC1_regtest_KPRAD_restart
+#SBATCH -o C1stdout
 
 touch started
 
 #create_fixed_mesh.sh AnalyticModel 0.06
 #echo $? > mesh_created
 
-#part_mesh.sh analytic-2K.smb 96
-#echo $? > mesh_partitioned
-
 cd $CINECA_SCRATCH
 mkdir -p KPRAD_restart
 cd KPRAD_restart
-
-
 cp -p $SLURM_SUBMIT_DIR/* .
-cp -p /marconi/home/userexternal/jchen000/project/SRC/M3DC1/unstructured/_marconi-opt-25/m3dc1_2d .
 
+part_mesh.sh analytic-2K.smb 96
+echo $? > mesh_partitioned
 
 # Run M3D-C1
 cp C1input.1 C1input
-srun -n 96 -c 1 ./m3dc1_2d -pc_factor_mat_solver_type mumps >& log.mumps0
+srun -n 96 -c 1 m3dc1_2d -pc_factor_mat_solver_type mumps
 
 cp C1input.2 C1input
-srun -n 96 -c 1 ./m3dc1_2d -pc_factor_mat_solver_type mumps >& log.mumps1
+srun -n 96 -c 1 m3dc1_2d -pc_factor_mat_solver_type mumps
 
 touch finished
+
+mv mesh_partitioned equilibrium.h5 time_*.h5 C1.h5 C1ke finished C1stdout $SLURM_SUBMIT_DIR
 

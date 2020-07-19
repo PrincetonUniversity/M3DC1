@@ -19,7 +19,7 @@ contains
     include 'mpif.h'
 
     integer :: error
-    integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id
+    integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id, mesh_id
     character(LEN=19) :: time_group_name
 
     integer :: times_output_in, i3d_in, istartnew, i
@@ -70,7 +70,10 @@ contains
     
     call read_int_attr(root_id, "eqsubtract", eqsubtract_in, error)
     call read_int_attr(root_id, "icomplex", icomplex_in, error)
-    call read_int_attr(root_id, "nplanes", nplanes_in, error)
+
+    call h5gopen_f(time_id, "mesh", mesh_id, error)
+    call read_int_attr(mesh_id, "nplanes", nplanes_in, error)
+    call h5gclose_f(mesh_id, error)
 
     call read_int_attr(root_id, "3d", i3d_in, error)
     if(i3d_in.eq.1 .or. icomplex_in.eq.1) then
@@ -414,6 +417,8 @@ contains
              print *, 'Error: new nplanes must be integer multiple of existing nplanes.'
              call safestop(42)
           end if
+       else
+          if(myrank.eq.0) print *, "Restarting ", nplanes_in, " planes case with ", nplanes, " planes"
        end if
        coefs = coeffs_per_element
        plane_fac = nplanes / nplanes_in
