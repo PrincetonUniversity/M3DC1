@@ -4,6 +4,12 @@ output (e.g. due to a bugfix); a change to the input (e.g. due to
 renaming or obsoleting an input variable); or a change to both
 (e.g. due to a substantive change to the mesh or other input files).
 
+7/20/2020
+Changed: adapt
+Reason: C1ke now differs from base version consistently on all systems.
+Presumably this difference is due to an algorithmic change in the
+SCOREC libraries.  Adaptation still seems to work fine, so we're taking
+the new version to be the "correct" one now.
 
 5/22/2019
 Changed: KPRAD_2D
