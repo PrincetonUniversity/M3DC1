@@ -735,10 +735,9 @@ contains
        is_boundary = ib.eq.1
        if(.not.is_boundary) return
 #ifdef USEST  
-       if (igeometry.gt.0) then ! do nothing when igeometry==0 
+       if (igeometry.gt.0 .and. ilog.ne.1) then ! do nothing when igeometry==0 
           if(present(curv3)) then 
              call get_boundary_curv(normal,curv,inode,curv3)
-             !curv3 = 0.
           else
              call get_boundary_curv(normal,curv,inode)
           end if

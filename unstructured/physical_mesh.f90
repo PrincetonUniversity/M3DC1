@@ -30,11 +30,11 @@ contains
     ! metric factor for phi when itor=0
     mf = twopi/(mesh_period*nperiods)
     ! phase shift
-    dphi = 1.*twopi/(2*nperiods)
+    dphi = 0.*twopi/(2*nperiods)
     !dphi = 1.*mesh_period/2
     ! maxium m & n numbers
-    m_max = 1.5
-    n_max = 3.5
+    m_max = 10.5
+    n_max = 18.5
     ! 2D analytical boundary parameters
     rm0 = 6.
     rm1 = 2.5
@@ -95,8 +95,8 @@ contains
         end do
         do i = 1, n_tor ! shift axis to magnetic axis 
             if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
-              !rout = rout + (rmnc(i,1)-rbc(i))*co(i)*(1-ds**2)
-              !zout = zout + (zmns(i,1)-zbs(i))*sn(i)*(1-ds**2)
+              rout = rout + (rmnc(i,1)-rbc(i))*co(i)*(1-ds**2)
+              zout = zout + (zmns(i,1)-zbs(i))*sn(i)*(1-ds**2)
             end if
         end do
       end if
@@ -114,7 +114,8 @@ contains
 !    zout = zm0 + zm1*r*sin(theta) 
   end subroutine physical_geometry
 
-  ! Calculate curvature and normal vector on physical boundary
+  ! Calculate curvature and normal vector on physical boundary. 
+  ! Works only for circular logical meshes.
   subroutine get_boundary_curv(normal, curv, inode, curv3)
     use math
     implicit none
@@ -129,6 +130,7 @@ contains
 #endif
     real :: coords(3)
     integer :: i
+    real, dimension(dofs_per_node) :: rn, zn 
 
     ! get logical coordinates    
     call m3dc1_node_getcoord(inode-1,coords)
@@ -148,40 +150,65 @@ contains
     ddr1 = 0
     ddz1 = 0
 #endif
-    if (iread_vmec==1) then
-      co = cos(xmv*theta+xnv*phis)
-      sn = sin(xmv*theta+xnv*phis)
-      do i = 1, mn_mode 
-        if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
-          dr = dr - rbc(i)*sn(i)*xmv(i)
-          dz = dz + zbs(i)*co(i)*xmv(i)
-          ddr = ddr - rbc(i)*co(i)*xmv(i)**2
-          ddz = ddz - zbs(i)*sn(i)*xmv(i)**2
+
+    if (igeometry.eq.1 .and. ilog.ne.1) then ! use rst, zst node data 
+       rn = rstnode(:,inode) 
+       zn = zstnode(:,inode) 
+       dr = rn(DOF_DR)*(-z) + rn(DOF_DZ)*x
+       dz = zn(DOF_DR)*(-z) + zn(DOF_DZ)*x
+       ddr = rn(DOF_DRR)*(-z)**2 + rn(DOF_DZZ)*x**2 &
+            +2*rn(DOF_DRZ)*(-x*z) &
+            +rn(DOF_DR)*(-x) + rn(DOF_DZ)*(-z)
+       ddz = zn(DOF_DRR)*(-z)**2 + zn(DOF_DZZ)*x**2 &
+            +2*zn(DOF_DRZ)*(-x*z) &
+            +zn(DOF_DR)*(-x) + zn(DOF_DZ)*(-z)
 #ifdef USE3D
-          dr1 = dr1 - rbc(i)*co(i)*xmv(i)*xnv(i)*mf
-          dz1 = dz1 - zbs(i)*sn(i)*xmv(i)*xnv(i)*mf
-          ddr1 = ddr1 + rbc(i)*sn(i)*xmv(i)**2*xnv(i)*mf
-          ddz1 = ddz1 - zbs(i)*co(i)*xmv(i)**2*xnv(i)*mf
+       dr1 = rn(DOF_DRP)*(-z) + rn(DOF_DZP)*x
+       dz1 = zn(DOF_DRP)*(-z) + zn(DOF_DZP)*x
+       ddr1 = rn(DOF_DRRP)*(-z)**2 + rn(DOF_DZZP)*x**2 &
+             +2*rn(DOF_DRZP)*(-x*z) &
+             +rn(DOF_DRP)*(-x) + rn(DOF_DZP)*(-z)
+       ddz1 = zn(DOF_DRRP)*(-z)**2 + zn(DOF_DZZP)*x**2 &
+             +2*zn(DOF_DRZP)*(-x*z) &
+             +zn(DOF_DRP)*(-x) + zn(DOF_DZP)*(-z)
 #endif
-        end if
-      end do
-    else
-      co = cos(mb*theta-nb*phis*nperiods)
-      sn = sin(mb*theta-nb*phis*nperiods)
-      do i = 1, mn_mode 
-        if ((mb(i)<m_max)) then
-          dr = dr - rbc(i)*sn(i)*mb(i)
-          dz = dz + zbs(i)*co(i)*mb(i)
-          ddr = ddr - rbc(i)*co(i)*mb(i)**2
-          ddz = ddz - zbs(i)*sn(i)*mb(i)**2
+       !if (inode.eq.1) print *, 'this is a test' 
+    else ! use Fourier coefficients
+       if (iread_vmec==1) then
+         co = cos(xmv*theta+xnv*phis)
+         sn = sin(xmv*theta+xnv*phis)
+         do i = 1, mn_mode 
+           if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
+             dr = dr - rbc(i)*sn(i)*xmv(i)
+             dz = dz + zbs(i)*co(i)*xmv(i)
+             ddr = ddr - rbc(i)*co(i)*xmv(i)**2
+             ddz = ddz - zbs(i)*sn(i)*xmv(i)**2
 #ifdef USE3D
-          dr1 = dr1 - rbc(i)*co(i)*mb(i)*(-nb(i))*nperiods*mf
-          dz1 = dz1 - zbs(i)*sn(i)*mb(i)*(-nb(i))*nperiods*mf
-          ddr1 = ddr1 + rbc(i)*sn(i)*mb(i)**2*(-nb(i))*nperiods*mf
-          ddz1 = ddz1 - zbs(i)*co(i)*mb(i)**2*(-nb(i))*nperiods*mf
+             dr1 = dr1 - rbc(i)*co(i)*xmv(i)*xnv(i)*mf
+             dz1 = dz1 - zbs(i)*sn(i)*xmv(i)*xnv(i)*mf
+             ddr1 = ddr1 + rbc(i)*sn(i)*xmv(i)**2*xnv(i)*mf
+             ddz1 = ddz1 - zbs(i)*co(i)*xmv(i)**2*xnv(i)*mf
 #endif
-        end if 
-      end do
+           end if
+         end do
+       else
+         co = cos(mb*theta-nb*phis*nperiods)
+         sn = sin(mb*theta-nb*phis*nperiods)
+         do i = 1, mn_mode 
+           if ((mb(i)<m_max)) then
+             dr = dr - rbc(i)*sn(i)*mb(i)
+             dz = dz + zbs(i)*co(i)*mb(i)
+             ddr = ddr - rbc(i)*co(i)*mb(i)**2
+             ddz = ddz - zbs(i)*sn(i)*mb(i)**2
+#ifdef USE3D
+             dr1 = dr1 - rbc(i)*co(i)*mb(i)*(-nb(i))*nperiods*mf
+             dz1 = dz1 - zbs(i)*sn(i)*mb(i)*(-nb(i))*nperiods*mf
+             ddr1 = ddr1 + rbc(i)*sn(i)*mb(i)**2*(-nb(i))*nperiods*mf
+             ddz1 = ddz1 - zbs(i)*co(i)*mb(i)**2*(-nb(i))*nperiods*mf
+#endif
+           end if 
+         end do
+       end if 
     end if 
 !    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
 !    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &
@@ -202,7 +229,6 @@ contains
        curv3(1) = (dr*dz1 - dz*dr1)/(dr**2 + dz**2)
        curv3(2) = ((dr1*ddz + dr*ddz1 - dz1*ddr - dz*ddr1)/(sqrt(dr**2 + dz**2))&
                   - 3.*curv*(dr*dr1 + dz*dz1))/(dr**2 + dz**2) 
-       curv3(2) = 0.
     end if
 #endif
   end subroutine get_boundary_curv
