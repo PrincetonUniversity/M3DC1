@@ -22,12 +22,15 @@ module pellet
   real, allocatable :: pellet_velz(:)
   real, allocatable :: pellet_vx(:), pellet_vy(:)
 
+  integer, allocatable :: pellet_state(:) ! 0: never been in plasma, 1: in plasma, 2: left plasma
+
   integer :: ipellet_abl
   real, allocatable :: r_p(:)
   real, allocatable :: cloud_pel(:)
   real, allocatable :: pellet_mix(:)   ! (moles D2)/(moles D2 + moles impurity)
   real :: temin_abl
   real, allocatable :: pellet_rate_D2(:)  ! rate of deuterium deposition from mixed pellets
+  real, allocatable :: cauchy_fraction(:)
 
   real, allocatable :: nsource_pel(:), temp_pel(:), Lor_vol(:)
   real, allocatable :: rpdot(:)
@@ -35,14 +38,15 @@ module pellet
   real :: pellet_r_scl, pellet_phi_scl, pellet_z_scl
   real :: pellet_rate_scl, pellet_var_scl, pellet_var_tor_scl
   real :: pellet_velr_scl, pellet_velphi_scl, pellet_velz_scl
-  real :: r_p_scl, cloud_pel_scl, pellet_mix_scl
+  real :: r_p_scl, cloud_pel_scl, pellet_mix_scl, cauchy_fraction_scl
 
 contains
 
   subroutine pellet_init()
     use basic
     use read_ascii
-!    use diagnostics
+    use math
+
     implicit none
     character(LEN=10), parameter :: pellet_filename = 'pellet.dat'
 
@@ -61,37 +65,42 @@ contains
        allocate(r_p(npellets))
        allocate(cloud_pel(npellets))
        allocate(pellet_mix(npellets))
+       allocate(cauchy_fraction(npellets))
        
-       pellet_r(1)       = pellet_r_scl
-       pellet_phi(1)     = pellet_phi_scl
-       pellet_z(1)       = pellet_z_scl
-       pellet_rate(1)    = pellet_rate_scl
-       pellet_var(1)     = pellet_var_scl
-       pellet_var_tor(1) = pellet_var_tor_scl
-       pellet_velr(1)    = pellet_velr_scl
-       pellet_velphi(1)  = pellet_velphi_scl
-       pellet_velz(1)    = pellet_velz_scl
-       r_p(1)            = r_p_scl
-       cloud_pel(1)      = cloud_pel_scl
-       pellet_mix(1)     = pellet_mix_scl
-
+       pellet_r(1)        = pellet_r_scl
+       pellet_phi(1)      = pellet_phi_scl
+       pellet_z(1)        = pellet_z_scl
+       pellet_rate(1)     = pellet_rate_scl
+       pellet_var(1)      = pellet_var_scl
+       pellet_var_tor(1)  = pellet_var_tor_scl
+       pellet_velr(1)     = pellet_velr_scl
+       pellet_velphi(1)   = pellet_velphi_scl
+       pellet_velz(1)     = pellet_velz_scl
+       r_p(1)             = r_p_scl
+       cloud_pel(1)       = cloud_pel_scl
+       pellet_mix(1)      = pellet_mix_scl
+       cauchy_fraction(1) = cauchy_fraction_scl
     else
-       call read_ascii_column(pellet_filename, pellet_r,       npellets, icol=1)
-       call read_ascii_column(pellet_filename, pellet_phi,     npellets, icol=2)
-       call read_ascii_column(pellet_filename, pellet_z,       npellets, icol=3)
-       call read_ascii_column(pellet_filename, pellet_rate,    npellets, icol=4)
-       call read_ascii_column(pellet_filename, pellet_var,     npellets, icol=5)
-       call read_ascii_column(pellet_filename, pellet_var_tor, npellets, icol=6)
-       call read_ascii_column(pellet_filename, pellet_velr,    npellets, icol=7)
-       call read_ascii_column(pellet_filename, pellet_velphi,  npellets, icol=8)
-       call read_ascii_column(pellet_filename, pellet_velz,    npellets, icol=9)
-       call read_ascii_column(pellet_filename, r_p,            npellets, icol=10)
-       call read_ascii_column(pellet_filename, cloud_pel,      npellets, icol=11)
-       call read_ascii_column(pellet_filename, pellet_mix,     npellets, icol=12)
+       call read_ascii_column(pellet_filename, pellet_r,        npellets, icol=1)
+       call read_ascii_column(pellet_filename, pellet_phi,      npellets, icol=2)
+       call read_ascii_column(pellet_filename, pellet_z,        npellets, icol=3)
+       call read_ascii_column(pellet_filename, pellet_rate,     npellets, icol=4)
+       call read_ascii_column(pellet_filename, pellet_var,      npellets, icol=5)
+       call read_ascii_column(pellet_filename, pellet_var_tor,  npellets, icol=6)
+       call read_ascii_column(pellet_filename, pellet_velr,     npellets, icol=7)
+       call read_ascii_column(pellet_filename, pellet_velphi,   npellets, icol=8)
+       call read_ascii_column(pellet_filename, pellet_velz,     npellets, icol=9)
+       call read_ascii_column(pellet_filename, r_p,             npellets, icol=10)
+       call read_ascii_column(pellet_filename, cloud_pel,       npellets, icol=11)
+       call read_ascii_column(pellet_filename, pellet_mix,      npellets, icol=12)
+       call read_ascii_column(pellet_filename, cauchy_fraction, npellets, icol=13)
     end if
+
+    where(pellet_phi .lt. 0) pellet_phi = pellet_phi + 2.*pi
 
     allocate(pellet_vx(npellets))
     allocate(pellet_vy(npellets))
+    allocate(pellet_state(npellets))
     allocate(pellet_rate_D2(npellets))
     allocate(nsource_pel(npellets))
     allocate(temp_pel(npellets))
@@ -102,11 +111,18 @@ contains
     temp_pel = 0.
     Lor_vol = 0.
     rpdot = 0.
+    pellet_state = 0
     
     ! if we're ablating, pellet_var set by pellet & cloud size
     if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
 
-    where(pellet_var_tor.le.0) pellet_var_tor = pellet_var
+    if (ipellet .eq. 15) then
+       ! default: angle of pellet_var arc length at initial pellet position
+       where(pellet_var_tor.le.0) pellet_var_tor = pellet_var/pellet_r
+    else
+       where(pellet_var_tor.le.0) pellet_var_tor = pellet_var
+    end if
+
 
     ! initialize Cartesian velocities
     pellet_vx = pellet_velr*cos(pellet_phi) - pellet_velphi*sin(pellet_phi)
@@ -123,12 +139,17 @@ contains
     real, intent(in) :: r, phi, z, pres
     integer, intent(in) :: inorm
 
-    real :: x, y, px, py
+    real :: x, y, px, py, gamma
+
+    if(pellet_state(ip).ne.1) then
+       pellet_distribution = 0.
+       return
+    end if
 
     select case(abs(ipellet))
 
 #ifdef USE3D
-    ! gaussian pellet source
+    ! Poloidal gaussian with toroidal von Mises (pellet_var_tor is a distance)
     case(1, 4, 11)
        pellet_distribution = 1./ &
             (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
@@ -168,11 +189,26 @@ contains
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
+    ! poloidal gaussian, toroidal blend of von Mises and Cauchy
+    case(14)
+       pellet_distribution = 1./ &
+            (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
+            *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
+                  /(2.*pellet_var(ip)**2))
+       gamma = pellet_var_tor(ip)/sqrt(r*pellet_r(ip))
+       pellet_distribution = pellet_distribution * &
+            ((1.-cauchy_fraction(ip))*exp(-(1.-cos(phi-pellet_phi(ip)))/gamma**2) + &
+            cauchy_fraction(ip)*(cosh(gamma) - cos(pellet_phi(ip)))/(cosh(gamma) - cos(phi-pellet_phi(ip))))
+
+    ! Poloidal gaussian with toroidal von Mises (pellet_var_tor in radians)
+    case(15)
+       pellet_distribution = exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2)/(2.*pellet_var(ip)**2) &
+                                 + cos(phi-pellet_phi(ip))/(pellet_var_tor(ip)**2))
 
 #else
 
     ! axisymmetric gaussian pellet source
-    case(1, 11, 13)
+    case(1, 11, 13, 14, 15)
        pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
@@ -213,10 +249,54 @@ contains
 
   end function pellet_distribution
 
+  ! Keep track if a pellet has left the plasma domain and should no longer
+  ! deposit material
+  subroutine pellet_domain
+
+    use basic
+
+    implicit none
+
+    include 'mpif.h'
+
+    integer :: j
+    integer :: itri, iz, izone, ier
+    real :: xr, zr
+
+    do j=1, npellets
+       itri = 0
+       ier = 0
+       iz = 0
+       izone = 0
+       call whattri(pellet_r(j), pellet_phi(j), pellet_z(j), itri, xr, zr)
+       if(itri.gt.0) then
+          call get_zone(itri, iz)
+       else
+          iz= 0
+       end if
+
+       call mpi_allreduce(iz,izone,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+
+       if((izone.eq.1).and.(pellet_state(j).eq.0)) then
+          ! pellet has entered plasma domain for the first time
+          pellet_state(j) = 1
+       else if((izone.ne.1).and.(pellet_state(j).eq.1)) then
+          ! pellet has left the plasma domain; turn off
+          pellet_state(j) = 2
+          pellet_vx(j) = 0.
+          pellet_vy(j) = 0.
+          pellet_velz(j) = 0.
+       end if
+    end do
+
+  end subroutine pellet_domain
+
   subroutine pellet_advance
     use basic
-!    use diagnostics
+    use math
+
     implicit none
+
     real, allocatable :: x(:), y(:)
 
     if(ipellet.eq.0) return
@@ -234,7 +314,10 @@ contains
 
        pellet_r   = sqrt(x**2 + y**2)
        pellet_phi = atan2(y,x)
+       where(pellet_phi .lt. 0.) pellet_phi = pellet_phi + 2.*pi
     end where
+
+    call pellet_domain
 
     ! Pellet cloud radius which contains the same number of particles as the realistic pellet
     if(ipellet_abl.gt.0) then
@@ -255,11 +338,18 @@ contains
     real :: dr_p
     real :: q_s, shield_p, f_b
     integer :: z_abl
-    real :: rho_z, M_z  ! density (g/cm^3) and molar weight (g/mol) for atom Z
+    real :: rho_z      ! density (g/cm^3)
+    real :: M_z        ! Molar weight (g/mol) for atom Z
+    real :: A_z        ! Pellet mass number
+    real :: gamma_ad   ! Adiabatic index
+    real :: pellet_rate_aux
+    real :: Ieff       ! Effective ionization potential (eV)
     real :: subl, T_S, Mach, f_l
     real :: C_abl, Xp_abl, Xn_abl, a_Te, b_Te, c_Te, d_Te, B_Li
     real :: G, lambda, rho0
     real :: temin_eV
+    real :: ve_th !electron thermal velocity (cm/s)
+    real :: Int_E1 !exponential integral E_1(x)
     real, parameter :: n_D2 = 0.2    ! density of solid D2
     real, parameter :: M_D2 = 4.0282 ! molar weight of D2
     real, parameter :: N_A  = 6.022140857e23  ! Avogadro's number
@@ -271,12 +361,14 @@ contains
        pellet_rate_D2(ip) = 0. ! no mixture by default
 
        temin_eV = temin_abl*p0_norm/(1.6022e-12*n0_norm)
-       if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV) then
+       if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV .or. pellet_state(ip).ne.1) then
           if((r_p(ip)*l0_norm).lt.1e-8) then
              if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
              r_p(ip) = 0.
-          else
+          else if(temp_pel(ip).lt.temin_eV) then
              if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation"
+          else
+             if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet not in plasmas domain"
           end if
           pellet_rate(ip) = 0.
           pellet_rate_D2(ip) = 0.
@@ -316,9 +408,15 @@ contains
           rho_z = 1.85
           M_z = 9.012182
        case(6)
-          ! Carbon (graphite)
-          rho_z = 2.267
+          !rho_z = 2.267   !Carbon (graphite)
+          rho_z = 1.51     !Vitreous Carbon: This is what is supposed to be used in NSTX-U
           M_z = 12.0107
+          A_z = 12.0
+         ! For ipellet_abl = 4x
+             gamma_ad = 5./3.       !Ablation to Carbon atoms. 
+             subl = 8.79 !eV        !Sublimation energy for Carbon [Sergeev06]
+             T_S = 5000./1.1604e4   !Carbon Surface temperature in eV
+             Ieff = 5.5*real(z_abl) !Effective ionization potential (eV)
        case(10)
           ! Neon
           rho_z = 1.444
@@ -411,7 +509,34 @@ contains
           rho0 = ((1.-pellet_mix(ip))*M_z + pellet_mix(ip)*M_D2)/((1.-pellet_mix(ip))*(M_z/rho_z) + pellet_mix(ip)*(M_D2/n_D2)) ! g/cm^3
           rpdot(ip) = (G/(4.*pi*rho0*(r_p(ip)*l0_norm)**2))*(t0_norm/l0_norm)
 
-       end select
+
+      case(43)
+        ! --------------------
+        !Sergeev06: Sergeev et al., Plasma Phys. Rep. 32 (2006) 363
+        ! --------------------
+        !intermediate shielding
+        ! (delta: shielding factor = q_at_pellet_surf/q_plasma)
+        ! This is an interpolation between Eq(26)(with delta=1) Eq(20):
+        ! rate43 = rate_Eq26*rate_Eq20/(rate_Eq26 + rate_Eq20)
+
+        ve_th = 4.19e7*sqrt(temp_pel(ip)) !sqrt(T_e/m_e) [cm/sec]  !temp_pel has to be in eV
+
+        !pellet_rate [Particles/Second]:
+        pellet_rate(ip) = sqrt(8.*pi)*(temp_pel(ip)/subl)*nsource_pel(ip)*n0_norm*(r_p(ip)*l0_norm)**2*ve_th
+        pellet_rate_aux = 1.94e14*(nsource_pel(ip)*n0_norm)**(0.45)*temp_pel(ip)**(1.72)*(r_p(ip)*l0_norm)**(1.44)*&
+                          subl**(-0.16)*A_z**(-0.28)*real(z_abl,8)**(-0.56)*(gamma_ad-1.)**(0.28)
+
+        pellet_rate(ip) = pellet_rate(ip)*pellet_rate_aux/(pellet_rate_aux + pellet_rate(ip))
+        !pellet radius derivative (cm/s)
+        rpdot(ip) = 1./(4.*pi*(N_A/M_z)*rho_z)*pellet_rate(ip)/r_p(ip)/r_p(ip)/l0_norm/l0_norm
+
+        !Adimensional quantity
+        pellet_rate(ip) = pellet_rate(ip)*t0_norm/(n0_norm*l0_norm**3)
+        rpdot(ip) = rpdot(ip) * (t0_norm/l0_norm)
+
+      end select
+
+
 
        dr_p = dt*rpdot(ip)  ! change in pellet radius
 

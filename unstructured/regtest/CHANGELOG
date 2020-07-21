@@ -4,20 +4,17 @@ output (e.g. due to a bugfix); a change to the input (e.g. due to
 renaming or obsoleting an input variable); or a change to both
 (e.g. due to a substantive change to the mesh or other input files).
 
-
-5/22/2019
-Changed: KPRAD_2D
-Reason: Bug fix for itemp=1 iconst_p=0 iconst_t=1 boundary conditions
-
-5/22/2019
-Changed: RMP
-Reason: New mesh file to make test case smaller
-
-8/13/2019
+7/20/2020
 Changed: adapt
-Reason: New scorec libraries result in different C1ke file.  Mesh
-still looks good; not sure if adapted mesh is different or if there is
-a difference in how solution transfer is done.
+Reason: C1ke now differs from base version consistently on all systems.
+Presumably this difference is due to an algorithmic change in the
+SCOREC libraries.  Adaptation still seems to work fine, so we're taking
+the new version to be the "correct" one now.
+
+12/10/2019
+Changed: KPRAD_2D, KPRAD_restart, pellet
+Reason: Kinetic energy scalars changed to use mass density (rho),
+so changes regression tests that have impurities
 
 8/16/2019
 Changed: KPRAD_2D, pellet
@@ -25,7 +22,16 @@ Reason: Moved define_transport_coefficients before solve, so a couple changes.
 Particle source now gets initialized for the first time step (corrects bug).
 Resistivity now gets updated *after* KPRAD ionize, so Zeff changes.
 
-12/10/2019
-Changed: KPRAD_2D, KPRAD_restart, pellet
-Reason: Kinetic energy scalars changed to use mass density (rho),
-so changes regression tests that have impurities
+8/13/2019
+Changed: adapt
+Reason: New scorec libraries result in different C1ke file.  Mesh
+still looks good; not sure if adapted mesh is different or if there is
+a difference in how solution transfer is done.
+
+5/22/2019
+Changed: RMP
+Reason: New mesh file to make test case smaller
+
+5/22/2019
+Changed: KPRAD_2D
+Reason: Bug fix for itemp=1 iconst_p=0 iconst_t=1 boundary conditions

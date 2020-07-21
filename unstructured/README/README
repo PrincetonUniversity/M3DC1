@@ -1,8 +1,72 @@
-!=================
-! COMPILING M3D-C1
-!=================
+0.  Introduction
+================
 
-The 2D real, 2D complex, and 3D real versions of the code can be built
+This file describes how to set up the environment for building and
+running M3D-C1.  In general, it is recommended to run pre-installed
+executables for release versions of M3D-C1.  If this is the intent,
+disregard the instructions for downloading and building the code, and
+skip to section 3a.
+
+
+==============================================================
+Table of Contents
+-----------------
+1. Downloading
+2. Building
+   2a. Setting up the build environment
+   2b. Executing the build
+3. Running M3D-C1
+   3a. Setting up the run environment -- release versions
+   3b. Setting up the run environment -- developmental version
+==============================================================
+
+
+1. Downloading
+==============
+
+The M3D-C1 source code is hosted in a private repository at
+github.com.  To gain access, please contact Nate Ferraro at
+nferraro@pppl.gov.  If you have access, the code can be downloaded using
+
+git clone git@github.com:PrincetonUniversity/M3DC1.git $HOME/src/M3DC1
+
+
+2. Building
+===========
+
+2a. Setting up the build environment
+------------------------------------
+
+The following commands will set the appropriate paths and environment
+variables for building and running the developmental version of M3DC1.
+(It is recommended that developers put these commands into their login
+scripts.)
+
+setenv M3DC1_CODE_DIR $HOME/src/M3DC1
+module use $M3DC1_CODE_DIR/unstructured/modules/<system>
+module load m3dc1/devel[-*]
+
+where <system> is one of
+pppl
+eddy
+cori
+
+Additional information about the available modules is given in the
+readme.<system> files in this directory.
+
+If you are on a system for which a developmental module is not
+available, then the following environment variables should be set:
+
+M3DC1_ARCH (set so that ${M3DC1_ARCH}.mk is the system-specific
+makefile)
+PATH += $M3DC1_CODE_DIR/unstructured/_$M3DC1_ARCH/bin
+IDL_PATH += $M3DC1_CODE_DIR/unstructured/idl
+
+
+2b. Executing the build
+-----------------------
+
+The 2D real, 2D complex, and 3D real versions of the code can then be built
 by running
 
 make OPT=1
@@ -14,10 +78,19 @@ makefile elements are specified in files named $(M3DC1_ARCH).mk.
 Information regarding how to build on some specific systems can be
 found in the readme.* files in this directory.
 
-All exceutables associated with M3D-C1 can then be assembled into the
+An ancillary program for extracting the coil currents from EFIT
+"a"-eqdsk files can be constructed by running
+
+make a2cc
+
+All executables associated with M3D-C1 should then be assembled into the
 subdirectory _$(M3DC1_ARCH)/bin by running
 
 make bin
+
+
+2c.  Installing
+--------------- 
 
 These executables will be installed into $(M3DC1_INSTALL_DIR) by
 running
@@ -25,20 +98,50 @@ running
 make install
 
 
-!===============
-! RUNNING M3D-C1
-!===============
 
-Executables are installed on several systems.  Environment modules are
-available on these systems in the following locations: 
+3. RUNNING M3D-C1
+=================
+
+3a. Setting up the run environment -- release versions
+------------------------------------------------------
+
+It is highly recommended to run the latest release version of the code
+(rather than the developmental version), as these are stable versions
+that do not change in time and are expected to give consistent and
+repeatable results across different platforms.
+
+Executables for release versions of M3D-C1 are installed on several
+systems.  Environment modules are available on these systems in the
+following locations:
 
 GA Iris cluster :       /fusion/projects/codes/m3dc1/modules
 NERSC Edison :          /project/projectdirs/mp288/C1/modules/edison
 NERSC Cori :            /project/projectdirs/mp288/C1/modules/cori
 PPPL research cluster : /p/m3dc1/modules
-Princeton Perseus :     /home/nferraro/modules
+Princeton Eddy :        /home/nferraro/modules
 
-For example, to set the environment variables to run M3DC1 version 1.9
-on PPPL, one would execute "module load /p/m3dc1/modules" followed by
-"module load m3dc1/1.9".  Loading this module will also load any
-additional modules needed, or alert you to module conflicts.
+For example, to set the environment variables to run M3DC1 version 1.11
+on PPPL, one would execute 
+
+module load /p/m3dc1/modules
+module load m3dc1/1.11.
+
+Loading this module will also load any additional modules needed, or
+alert you to module conflicts.
+
+
+3b. Setting up the run environment -- developmental version
+-----------------------------------------------------------
+
+It is not generally recommended to run the developmental version if a
+release version of the code is available that has the needed features.
+If you would like to run the developmental version, the procedure for
+downloading and building the code described in sections 1--2 should be
+followed.  If you are on a system where the developmental modules are
+available (m3dc1/devel[-*]), these modules will also set the
+appropriate paths for running.  If the modules are not available on
+your system, then make sure to add
+$M3DC1_CODE_DIR/_$M3DC1_ARCH/bin to your PATH environment variable.
+
+
+

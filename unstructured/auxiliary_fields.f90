@@ -619,7 +619,7 @@ subroutine calculate_auxiliary_fields(ilin)
   ! specify which fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
   def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
-  def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
+  def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_TI + FIELD_KAP
   def_fields = def_fields + FIELD_MU + FIELD_B2I
   if(jadv.eq.0) def_fields = def_fields + FIELD_ES
   if(heat_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_Q
@@ -929,10 +929,10 @@ subroutine calculate_auxiliary_fields(ilin)
 
         call f2vplot_sub(dofs)
         call vector_insert_block(f2vplot%vec,itri,1,dofs,VEC_ADD)
-
+        call calculate_sigma_e(itri)
         call f2eplot_sub(dofs)
         call vector_insert_block(f2eplot%vec,itri,1,dofs,VEC_ADD)
-
+        call calculate_qdfac(itri,qd79)
         call f3vplot_sub(dofs)
         call vector_insert_block(f3vplot%vec,itri,1,dofs,VEC_ADD)
 

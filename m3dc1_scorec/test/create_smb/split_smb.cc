@@ -11,6 +11,7 @@
 #include <apfZoltan.h>
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 
 namespace {
 
@@ -76,6 +77,7 @@ int main(int argc, char** argv)
 {
   MPI_Init(&argc,&argv);
   PCU_Comm_Init();
+  double t0 = PCU_Time();
 #ifdef HAVE_SIMMETRIX
   SimUtil_start();
   Sim_readLicenseFile(0);
@@ -96,6 +98,9 @@ int main(int argc, char** argv)
   }
   switchToAll();
   m = apf::repeatMdsMesh(m, g, plan, partitionFactor);
+  if (!PCU_Comm_Self())
+    std::cout<<"[PUMI INFO] mesh splitted into "<<PCU_Comm_Peers()<<" parts in "
+             <<PCU_Time()-t0<<"(sec)\n";
   Parma_PrintPtnStats(m, "");
   m->writeNative(outFile);
   freeMesh(m);

@@ -4,10 +4,10 @@
   F77 = mpifort
   LOADER = mpifort
 
-OPTS := $(OPTS) -DPETSC_VERSION=990 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -DPETSC_VERSION=990 -DUSEBLAS
 
-PETSCVER=petsc
-PETSC_VER=petsc
+PETSCVER=petsc3.12.4
+PETSC_VER=petsc-3.12.4
 
 PETSC_DIR=/home/jinchen/project/PETSC/petsc
 ifeq ($(COM), 1)
@@ -18,23 +18,27 @@ else
   #PETSC_ARCH=traverse-pgi-openmpi-199-master
 endif
 
-SCOREC_BASE_DIR=$(PETSC_DIR)/$(PETSC_ARCH)/scorec199/
-SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-    SCOREC_DIR=$(PETSC_DIR)/$(PETSC_ARCH)/pumi199/
-		
-#zoltan is not available		
-ZOLTAN_LIB=
-		
 ifeq ($(COM), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
-    M3DC1_SCOREC_LIB = m3dc1_scorec
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-SCOREC_LIBS= -L$(SCOREC_BASE_DIR)/lib -l$(M3DC1_SCOREC_LIB) -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+SCOREC_BASE_DIR=/projects/M3DC1/scorec/pgi19.9-openmpi4.0.2/$(PETSCVER)
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+ifdef SCORECVER
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
+else
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
+endif
+
+#zoltan is not available
+ZOLTAN_LIB=
+
+SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
+             -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
-
 
 ifeq ($(PAR), 1)
   OPTS := $(OPTS) -DUSEPARTICLES

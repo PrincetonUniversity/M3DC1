@@ -440,9 +440,7 @@ contains
   subroutine scorec_matrix_zero(mat)
     implicit none
     type(scorec_matrix) :: mat   
-#ifdef NEWSOLVERDEVELOPMENT
      call m3dc1_matrix_reset(mat%imatrix)
-#endif
   end subroutine scorec_matrix_zero
 
 

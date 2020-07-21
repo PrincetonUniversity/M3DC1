@@ -241,7 +241,7 @@ contains
     call clear_mat(nmat_rhs)
     call create_field(rhs)
 
-    def_fields = FIELD_PHI + FIELD_V + FIELD_CHI
+    def_fields = FIELD_PHI + FIELD_V + FIELD_CHI + FIELD_DENM
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating matrix'
 
@@ -262,7 +262,7 @@ contains
        do j=1, dofs_per_element
           ! NUMVAR = 1
           ! ~~~~~~~~~~      
-          tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
+          tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79)
           ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
           ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           
@@ -347,7 +347,7 @@ contains
           if(izone.ne.1) goto 200
     
           do j=1, dofs_per_element
-             tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
+             tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79)
              ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
              ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           end do
@@ -408,7 +408,7 @@ contains
     real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
     logical, dimension(MAX_PTS) :: advance_kprad
 
-    integer :: i, itri, nelms, def_fields, izone
+    integer :: i, itri, nelms, def_fields, izone, j
     vectype, dimension(dofs_per_element) :: dofs
     integer :: ip
 
@@ -427,7 +427,7 @@ contains
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
 
-    def_fields = FIELD_N + FIELD_TE
+    def_fields = FIELD_N + FIELD_TE + FIELD_DENM
     if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
          def_fields = def_fields + FIELD_P
 
@@ -529,6 +529,13 @@ contains
        ! Line Radiation (0 if not advancing KPRAD at that point)
        temp79b = merge(dw_rad(:,kprad_z), 0., advance_kprad) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
+!Check for and delete spurius values   (scj 6/21/20)
+       do i=1,MAX_PTS
+          if(abs(temp79b(i)) .gt. 1.e0) then
+            temp79b(i) = 0.
+          endif
+       enddo
+!
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
 

@@ -18,7 +18,7 @@
 	3D real: make 3D=1 OPT=1 MAX_PTS=60 
         
 5. mesh utility
-        ??? /home/jinchen/LIB/intel17.0-openmpi1.10.2/bin
+        See $(SCOREC_UTIL_DIR) in .mk file
 
 6. run a job 
     for details, see http://www.princeton.edu/researchcomputing/computational-hardware/perseus/user-guidelines
@@ -51,8 +51,10 @@
             module load hdf5/intel-17.0/intel-mpi/1.10.0
             module load fftw/intel-16.0/intel-mpi/3.3.4
         #2D complex
-            srun -n 28 m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+            srun -n 28 m3dc1_2d_complex -pc_factor_mat_solver_type mumps
+            srun -n 28 m3dc1_2d_complex
         #2D real with petsc
+            srun -n 28 m3dc1_2d -pc_factor_mat_solver_type mumps
             srun -n 28 m3dc1_2d
         #3D real with petsc
             srun -n 448 m3dc1_3d -ipetsc -options_file options_bjacobi

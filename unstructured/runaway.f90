@@ -44,7 +44,7 @@ contains
     dnre_field = 0.
   end subroutine runaway_init
   
-  elemental subroutine runaway_current(nre,epar,Temp,Dens,Zeff,jpar,dndt)
+  elemental subroutine runaway_current(nre,epar,Temp,Dens,Zeff,jpar,dndt,mr)
     use math
 
     implicit none
@@ -55,14 +55,21 @@ contains
     real, intent(in) :: Dens ! [1/m^3]
     real, intent(in) :: Zeff ! [1]
     real, intent(out) :: jpar,dndt
-    real :: Clog,x,Ecrit,nu,vth,jsign
+    real :: Clog,x,Ecrit,nu,vth,jsign,teval
+    integer, intent(in) :: mr
 
+    dndt = 0
+    jpar=0
+    if(mr.ne.0) return
+
+!   based on formula in Stahl, et al, PRL 114 115002 (2015)
+    teval = max(1.,Temp)   ! note: this sets a minimum temperature of 1 eV for runaway production
     jsign = sign(1.,Epar)
-    Clog = 14.9D0-0.5*log(dens/1.d20)+log(temp/1.d3)
+    Clog = 14.9D0-0.5*log(dens/1.d20)+log(teval/1.d3)
     Ecrit = ec**3*Dens*Clog/(4*pi*eps0**2*me*c**2) 
-    vth = sqrt(2*ec*Temp/me)
+    vth = sqrt(2*ec*teval/me)
     nu = dens*ec**4*clog/(4*pi*eps0**2*me**2*vth**3) 
-    x = (abs(Epar)*ec*temp)/(Ecrit*me*c**2)
+    x = (abs(Epar)*ec*teval)/(Ecrit*me*c**2)
     if(abs(Epar).gt.Ecrit) then
        dndt = dens*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
             *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x))
@@ -76,12 +83,14 @@ contains
     use basic
     use m3dc1_nint
     use electric_field
+    use diagnostics
     implicit none
 
     integer, intent(in) :: itri,izone
     vectype, dimension(MAX_PTS) :: epar, te, ne, nre
     vectype, dimension(MAX_PTS) :: dndt
     vectype, dimension(dofs_per_element) :: dofs
+    integer, dimension(MAX_PTS) :: mr
 
     if(irunaway.eq.0 .or. izone.ne.1) return
 #ifdef USECOMPLEX
@@ -95,8 +104,8 @@ contains
     te = tet79(:,OP_1)*(p0_norm/n0_norm)/1.6022e-12
     ne = net79(:,OP_1)*n0_norm*1e6
     nre = nre79(:,OP_1)*n0_norm*1e6
-
-    call runaway_current(nre,epar,te,ne,z_ion,re_j79,dndt)
+    mr = magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ),x_79,Z_79)
+    call runaway_current(nre,epar,te,ne,z_ion,re_j79,dndt,mr)
 
     ! convert back to normalized units
     dndt = dndt*t0_norm/(n0_norm*1e6)
@@ -105,7 +114,7 @@ contains
     dofs = intx2(mu79(:,:,OP_1),nre79(:,OP_1)) + &
          intx2(mu79(:,:,OP_1),dndt)*dt
 
-    call vector_insert_block(dnre_field%vec,itri,1,dofs,VEC_SET)
+    call vector_insert_block(dnre_field%vec,itri,1,dofs,VEC_ADD)
 #endif
 
   end subroutine eval_runaway

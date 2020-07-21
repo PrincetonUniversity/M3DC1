@@ -1,0 +1,132 @@
+1. login 
+   ssh your_id@login.marconi.cineca.it
+
+2. code
+   git clone https://github.com/PrincetonUniversity/M3DC1.git
+
+3. load modules
+   module load intel/pe-xe-2018--binary intelmpi/2018--binary fftw/3.3.7--intelmpi--2018--binary mkl/2018--binary cmake/3.12.0 
+   module load autoload hdf5/1.8.18--intelmpi--2018--binary
+   module load profile/neurosc
+   module load autoload gsl/2.2.1--gnu--7.4.0
+   module load git
+
+4. compile code
+   make OPT=1 RL=1 MAX_PTS=25 ARCH=marconi
+   make OPT=1 COM=1 MAX_PTS=25 ARCH=marconi
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=marconi
+
+5. mesh utility
+   See $(SCOREC_UTIL_DIR) in marconi.mk file
+
+6. run jobscript:
+        #SBATCH --account=FUA34_WPJET1
+        #SBATCH --partition=skl_fua_dbg # partition name
+        ##SBATCH --partition=skl_fua_prod # partition name
+        #SBATCH --nodes=4                    # 1 node
+        #SBATCH --ntasks-per-node=32         # 36 tasks per node
+        ##SBATCH --cpus-per-task=1
+        #SBATCH --time=0:30:00
+        ##SBATCH --qos=<qos_name>             # quality of service
+        #SBATCH --job-name=M3DC1_regtest
+
+        cd $CINECA_SCRATCH
+        mkdir -p regtest
+        cd regtest
+
+
+        #2D complex
+        (for regular i/o) srun -n 96 -c 1  m3dc1_2d_complex -pc_factor_mat_solver_type superlu_dist
+
+        #2D real
+        (for regular i/o) srun -n 96 -c 1  m3dc1_2d
+ 
+        #3D real
+        (for regular i/o) srun -n 96 -c 1  m3dc1_3d -ipetsc -options_file options_bjacobi
+
+        please refer to
+        https://wiki.u-gov.it/confluence/display/SCAIUS/EUROfusion+users%3A+Marconi+and+D.A.V.I.D.E.-Fusion+environment
+
+   6.1 options_bjacobi using superlu_dist *****
+
+        -pc_type bjacobi
+        -pc_bjacobi_blocks 4
+        -sub_pc_type lu
+        -sub_pc_factor_mat_solver_type superlu_dist
+        -sub_ksp_type preonly
+        -ksp_type fgmres
+        -ksp_gmres_restart 220
+        -ksp_max_it 10000
+        -ksp_rtol 1.e-9
+        -ksp_atol 1.e-20
+        -ksp_converged_reason
+
+        -on_error_abort
+
+   6.2 options_bjacobi using mumps *****
+
+        -pc_type bjacobi
+        -pc_bjacobi_blocks 4
+        -sub_pc_type lu
+        -sub_pc_factor_mat_solver_type mumps
+        -mat_mumps_icntl_14 100
+        -sub_ksp_type preonly
+        -ksp_type fgmres
+        -ksp_gmres_restart 220
+        -ksp_max_it 10000
+        -ksp_rtol 1.e-9
+        -ksp_atol 1.e-20
+        -ksp_converged_reason
+
+        -on_error_abort
+
+   Please change the number of blocks (here 4) to match the number of plane in your 'C1input' file.
+
+7. submit job
+	sbatch job_script
+
+8. list all curent jobs for a user
+	squeue -u your_id
+
+9. delete a job
+   	scancel job_id
+
+10. setup idl
+    In your home directory, create a subdirectory "idl" with a single file .startup
+    that contains the following line:
+    device, retain=2, decomposed=0, true_color=24
+
+11. regtest
+Please note that an error may occurred at step 3 "make bin". You can ignore that and keep going. Thanks, -- Jin
+11.1) compile all versions from "unstructured"
+   make OPT=1 COM=1 MAX_PTS=25 ARCH=marconi; 
+   make OPT=1 RL=1  MAX_PTS=25 ARCH=marconi; 
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=marconi
+
+11.2) export M3DC1_MPIRUN=srun M3DC1_VERSION=local M3DC1_ARCH=marconi
+   (other M3DC1_MPIRUN=mpiexec, other M3DC1_ARCH=eddy,dawson,cori)
+   export M3DC1_MPIRUN=srun
+   export M3DC1_VERSION=local
+   export M3DC1_ARCH=marconi
+
+11.3) from ../unstructured do “make bin”
+   make bin
+   cd unstructured/$M3DC1_ARCH/bin
+   ln -s /marconi/home/userexternal/jchen000/project/PUMI/core/build/bin/create_smb
+   ln -s /marconi/home/userexternal/jchen000/project/PUMI/core/build/bin/split_smb
+   ln -s /marconi/home/userexternal/jchen000/project/PUMI/core/build/bin/make_model
+   ls -s /marconi/home/userexternal/jchen000/project/SRC/M3DC1/unstructured/_marconi/bin/part_mesh.sh 
+   ln -s ../../_marconi-opt-25/m3dc1_2d
+   ln -s ../../_marconi-complex-opt-25/m3dc1_2d_complex
+   ln -s ../../_marconi-3d-opt-60/m3dc1_3d
+
+11.4) set binary path
+   export PATH=`pwd`:$PATH
+
+11.5) cd unstructured/regtest, do
+   ./clean $M3DC1_ARCH
+   ./run $M3DC1_ARCH
+         (wait until jobs finish)
+   ./check $M3DC1_ARCH
+
+

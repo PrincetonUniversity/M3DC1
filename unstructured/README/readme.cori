@@ -4,27 +4,23 @@
 2. code
 
 3. load modules
-   FOR KNL
-        module swap craype-haswell craype-mic-knl
 
-   REAL AND COMPLEX MODEL
-        module load cray-fftw
-        module load subversion
-        module load cmake
-        module load gsl
-        module load cray-hdf5-parallel
-	module load idl
-	export IDL_STARTUP='/global/homes/u/YOURUSERNAME/idl/.startup'  #<==
+   for release version modules:
+       module use /global/project/projectdirs/mp288/C1/modules/cori
 
-4. compile code
-   FOR HASWELL
-	make OPT=1 RL=1 MAX_PTS=25 
-	make OPT=1 COM=1 MAX_PTS=25 
-	make 3D=1 OPT=1 MAX_PTS=60 
-   FOR KNL
-	make OPT=1 RL=1 MAX_PTS=25 ARCH=cori_knl
-	make OPT=1 COM=1 MAX_PTS=25 ARCH=cori_knl
-	make 3D=1 OPT=1 MAX_PTS=60 ARCH=cori_knl
+   for development modules:
+       setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+       module use $M3DC1_CODE_DIR/unstructured/modules/cori
+       module load m3dc1/devel-haswell   [ for haswell ]
+       module load m3dc1/devel-knl	 [ for knl ]
+
+4. compile
+
+   The code will compile for haswell or knl depending on which module is loaded
+   
+   make OPT=1 RL=1 MAX_PTS=25 
+   make OPT=1 COM=1 MAX_PTS=25 
+   make 3D=1 OPT=1 MAX_PTS=60 
 
    For different SCOREC install, add SCORECVER
    (ex) SCORECVER=reordered: reordered matrix (aggregated unknowns)
@@ -32,7 +28,7 @@
                           new solver development (-DNEWSOLVERDEVELOPMENT)
 
 5. mesh utility
-        /global/project/projectdirs/mp288/cori/scorec/utilities
+   See $(SCOREC_UTIL_DIR) in .mk file
 
 6. run jobscript:
    FOR HASWELL
@@ -51,7 +47,7 @@
 	export OMP_PROC_BIND=spread
 
         #2D complex
-        (for regular i/o) srun -n 256 -c 2 --cpu_bind=cores m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+        (for regular i/o) srun -n 256 -c 2 --cpu_bind=cores m3dc1_2d_complex -pc_factor_mat_solver_type mumps
         (for adios i/o)   NOT AVAILABLE
 
         #2D real
@@ -79,7 +75,7 @@
 	export OMP_PROC_BIND=spread
 
         #2D complex
-        (for regular i/o) srun -n 256 -c 8 --cpu_bind=cores m3dc1_2d_complex -pc_factor_mat_solver_package superlu_dist
+        (for regular i/o) srun -n 256 -c 8 --cpu_bind=cores m3dc1_2d_complex -pc_factor_mat_solver_type superlu_dist
         (for adios i/o)   NOT AVAILABLE
 
         #2D real

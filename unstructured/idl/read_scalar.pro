@@ -61,6 +61,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8I!D!9P!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
    endif else $
+     if(strcmp("halo current", scalarname, /fold_case) eq 1) or $
+       (strcmp("ih", scalarname, /fold_case) eq 1) then begin
+       data = s.toroidal_current._data - $
+              s.toroidal_current_p._data
+       title = 'Toroidal Halo Current'
+       symbol = '!8I!D!9P!N!X'
+       d = dimensions(/j0, l0=2, _EXTRA=extra)
+   endif else $
      if(strcmp("volume", scalarname, /fold_case) eq 1) then begin
        data = s.volume_p._data
        title = 'Plasma Volume'
@@ -179,6 +187,20 @@ function read_scalar, scalarname, filename=filename, title=title, $
          endelse
        end
        title = 'Pellet R position'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/l0, _EXTRA=extra)
+    endif else $
+     if (strcmp("pellet phi position", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelphipos", scalarname, /fold_case) eq 1) then begin
+       if(version lt 31) then begin
+          data = s.pellet_phi._data
+       endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
+       endif else begin
+          data = p.pellet_phi._data[ipellet,*]
+       endelse
+       title = 'Pellet !9P!X position'
        symbol = '!8V!DL!N!X'
        d = dimensions(/l0, _EXTRA=extra)
     endif else $

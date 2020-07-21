@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --account=FUA34_WPJET1
+#SBATCH --partition=skl_fua_dbg # partition name
+##SBATCH --partition=skl_fua_prod # partition name
+#SBATCH --nodes=1                    # 1 node
+#SBATCH --ntasks-per-node=16         # 36 tasks per node
+##SBATCH --cpus-per-task=1
+#SBATCH --time=0:30:00
+##SBATCH --qos=<qos_name>             # quality of service
+#SBATCH --job-name=M3DC1_regtest_KPRAD_2D
+#SBATCH -o C1stdout
+
+touch started
+
+#create_mesh.sh
+#echo $? > mesh_created
+
+cd $CINECA_SCRATCH
+mkdir -p adapt
+cd adapt
+cp -p $SLURM_SUBMIT_DIR/* .
+
+part_mesh.sh circle-0.02-0.0-0.0-2K.smb 16
+echo $? > mesh_partitioned
+
+# Run M3D-C1
+srun -n 16 -c 1 m3dc1_2d -pc_factor_mat_solver_type mumps
+
+touch finished
+
+mv mesh_partitioned equilibrium.h5 time_*.h5 C1.h5 C1ke finished C1stdout $SLURM_SUBMIT_DIR
+

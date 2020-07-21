@@ -18,7 +18,7 @@ else
   ifeq ($(TRILINOS), 1)
     V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o
   else
-    V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o PETScInterface.o
+    V_OBJ := scorec_mesh.o scorec_vector.o scorec_matrix.o #PETScInterface.o
   endif
 endif
 
@@ -156,7 +156,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
 	electric_field.o pellet.o parallel_heat_flux.o \
 	temperature_plots.o electrostatic_potential.o \
-	newvar.o kprad_m3dc1.o runaway.o diagnostics.o \
+	newvar.o kprad_m3dc1.o diagnostics.o runaway.o \
 	read_schaffer_field.o  neutral_beam.o \
 	coils.o coil_sets.o model.o \
 	fit_magnetics.o wall.o \
@@ -176,7 +176,6 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
         hdf5_output.o particle.o   \
 	time_step.o output.o restart_hdf5.o \
 	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
-	restart.o \
 	init_conds.o \
 	get_pc_skip_count.o \
 	parse_solver_options.o

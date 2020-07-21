@@ -1,13 +1,14 @@
-MPIVER=intel2015-openmpi1.10.3-gcc4.4.7
-ZOLTAN_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
-PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/petsc-3.7.6
-PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
-PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
+MPIVER=intel2019u3-openmpi4.0.1
 SIM_VER=14.0-190402dev
 SIM_DIR=/usr/pppl/Simmetrix/simmodsuite/$SIM_VER
 SIM_ARCHOS=x64_rhel6_gcc44
-PREFIX=$ZOLTAN_DIR
-LAPACK_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/openmpi-1.10.3
+PREFIX=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
+ZOLTAN_DIR=$PREFIX/petsc3.9.4
+PARMETIS_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/petsc-3.9.4/real-intel2019u3-openmpi4.0.1
+PUMI_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
+LAPACK_DIR=$LAPACK_HOME #/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
+PREFIX=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER
+#module load lapack simmodeler/7.0-190402dev simmodsuite/14.0-190402dev
 cmake .. \
   -DCMAKE_C_COMPILER=mpicc \
   -DCMAKE_CXX_COMPILER=mpicxx \
@@ -16,10 +17,10 @@ cmake .. \
   -DCMAKE_CXX_FLAGS="-O2 -g -Wall" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
-  -DPARMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libparmetis.a" \
-  -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
-  -DSCOREC_INCLUDE_DIR=$PREFIX/include \
-  -DSCOREC_LIB_DIR=$PREFIX/lib \
+  -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \
+  -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \
+  -DSCOREC_INCLUDE_DIR=$PUMI_DIR/include \
+  -DSCOREC_LIB_DIR=$PUMI_DIR/lib \
   -DENABLE_COMPLEX=OFF \
   -DENABLE_SIMMETRIX=ON \
   -DSIMMETRIX_INCLUDE_DIR=$SIM_DIR/include \

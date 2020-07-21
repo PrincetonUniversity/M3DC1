@@ -42,7 +42,8 @@ Program Reducedquintic
   real :: tstart, tend, dtsave, period, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
-  integer :: ip, group_id, in_group_rank, comm
+  integer :: ip
+  character(len=32) :: mesh_file_name
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -174,17 +175,6 @@ Program Reducedquintic
   ! output info about simulation to be run
   call print_info
 
-  ! initialize output
-  ! initialize output for HDF5 and C1ke
-  if (irestart_factor.gt.1) then !open up another hdf5 library with splitted comm
-    group_id = mod (myrank, irestart_factor)
-    in_group_rank = myrank / irestart_factor
-    call MPI_Comm_split(MPI_COMM_WORLD, group_id, in_group_rank, comm)
-  else
-    comm = MPI_COMM_WORLD
-  endif
-  call initialize_output (comm)
-
 #ifdef USEST 
   if (igeometry.eq.1) then
      ! calculate rst & zst fields
@@ -210,6 +200,9 @@ Program Reducedquintic
   ! Set initial conditions either from restart file
   ! or from initialization routine
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! initialize output for HDF5 and C1ke
+  call initialize_output ()
+
   select case (irestart)
   case(0)
      ! Initialize from routine
@@ -242,23 +235,7 @@ Program Reducedquintic
      ! Read restart file(s)
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading restart file(s)'
-     if(iglobalin.eq.1) then
-        call rdrestartglobal
-     else
-        if(iread_adios.eq.1) then
-           call rdrestart_adios
-        else if(iread_hdf5.eq.1) then
-           call rdrestart_hdf5
-           if (irestart_factor.gt.1) then !discard the group comm and re-open hdf5
-             call hdf5_finalize(ier)
-             ! FIXME: compilation error - Unclassifiable statement
-             !MPI_Comm_free(comm)
-             call hdf5_initialize(.false., MPI_COMM_WORLD, ier)
-           endif
-        else
-           call rdrestart
-        endif
-     endif
+     call rdrestart_hdf5
 !
 !....use timestep from input file if not a variable timestep run
     if(dtkecrit.eq.0) dt = dtsave
@@ -268,11 +245,7 @@ Program Reducedquintic
 !
 !....save timestep from input file
      dtsave = dt
-     if(iread_hdf5.eq.1) then
-        call rdrestart_hdf5
-     else
-        call rdrestart_cplx
-     end if
+     call rdrestart_hdf5
      dt = dtsave
 
   end select                     !  end of the branch on restart/no restart
@@ -332,9 +305,20 @@ Program Reducedquintic
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
 #ifdef USESCOREC
-  if (iadapt .eq. 1) then
-   if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi call:  psibound, psimin", psibound, psimin
-    call adapt_by_psi
+  ! iadapt_writevtk=1, write the initial mesh before adaptation
+  if (iadapt.gt.0 .and. iadapt_writevtk .eq. 1) then
+    write(mesh_file_name,"(A7,A)") 'initial', 0
+    call m3dc1_mesh_write (mesh_file_name,0,0)
+  endif
+
+  !if (iadapt .eq. 1) then
+  if (mod (iadapt, 2) .eq. 1) then
+    if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
+    if (nplanes .eq. 1) then 
+      call adapt_by_psi
+    else
+      call adapt_by_error
+    end if
   end if
 #endif
 
@@ -429,8 +413,15 @@ Program Reducedquintic
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
-     call run_adapt(adapt_flag)
-     if(adapt_flag .eq. 1 .and. iadapt .gt. 1) call adapt_by_error
+
+      if (iadapt .gt. 1) then
+      ! adapt_flag=1 if
+      !(1) iadapt_ntime(N)>0 -- run adapt_by_error at the end of every N time steps
+      !(2) non-linear & iadapt_ntime=0 -- run adapt_by_error at the end of every time step
+      !(3) linear, adapt_ke>0 & ekin>adapt_ke -- run adapt_by_error in this time step  
+        call diagnose_adapt(adapt_flag)
+       if(adapt_flag .eq. 1) call adapt_by_error
+     endif
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
@@ -452,6 +443,7 @@ subroutine init
   use runaway_mod
   use kprad_m3dc1
   use resistive_wall
+  use pellet
   
   implicit none
 
@@ -489,6 +481,9 @@ subroutine init
 
   call init_resistive_wall(ierr)
   if(ierr.ne.0) call safestop(602)
+
+  call pellet_domain
+
 end subroutine init
 
 
@@ -1339,6 +1334,7 @@ subroutine space(ifirstcall)
      call create_field(com_field)
      call create_field(resistivity_field)
      call create_field(kappa_field)
+     call create_field(denm_field)
      call create_field(visc_field)
      call create_field(visc_c_field)
      if(ipforce.gt.0) call create_field(pforce_field)

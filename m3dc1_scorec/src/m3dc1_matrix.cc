@@ -199,6 +199,7 @@ int m3dc1_matrix::destroy()
 {
   PetscErrorCode ierr = MatDestroy(A);
   CHKERRQ(ierr);    
+  return M3DC1_SUCCESS;
 }
 
 m3dc1_matrix::~m3dc1_matrix()
@@ -512,7 +513,7 @@ int  m3dc1_matrix::preAllocateSeqMat()
 
 int m3dc1_matrix::setupParaMat()
 {
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], vertex_type=0, num_own_dof;
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
   m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
@@ -729,9 +730,19 @@ int matrix_solve::preAllocate ()
 
 void matrix_solve::reset_values() 
 { 
-  MatZeroEntries(*A); 
-  MatZeroEntries(remoteA); 
+  int ierr = MatZeroEntries(*A); 
+  //MatZeroEntries(remoteA); 
+    delete remotePidOwned;
+    delete remoteNodeRow;
+    delete remoteNodeRowSize;
+    ierr =MatDestroy(&remoteA);
+    if (!m3dc1_solver::instance()->assembleOption) setUpRemoteAStruct();
+
   mat_status = M3DC1_NOT_FIXED; // allow matrix value modification
+  //start second solve
+  if(kspSet==1) kspSet=2;
+    if (!PCU_Comm_Self())
+    std::cout<<"[M3DC1 ERROR] "<<__func__<<": mat_status=M3DC1_NOT_FIXED "<<mat_status<<" kspSet="<<kspSet<<"\n";
 #ifdef DEBUG_
   PetscInt rstart, rend, r_rstart, r_rend, ncols;
   const PetscInt *cols;
@@ -793,13 +804,11 @@ int matrix_solve::add_blockvalues(int rbsize, int * rows, int cbsize, int * colu
 int matrix_solve::assemble()
 {
   PetscErrorCode ierr;
-  double t1 = MPI_Wtime(), t2=t1;
   if (!m3dc1_solver::instance()->assembleOption)
   {
     ierr = MatAssemblyBegin(remoteA, MAT_FINAL_ASSEMBLY);
     CHKERRQ(ierr);
     ierr = MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY);
-    t2 = MPI_Wtime();
     //pass remoteA to ownnering process
     int brgType = m3dc1_mesh::instance()->mesh->getDimension();
 
@@ -1017,6 +1026,11 @@ int matrix_solve::solve(FieldID field_id)
   int ierr = VecDuplicate(b, &x); CHKERRQ(ierr);
 
   if(!kspSet) setKspType();
+  if(kspSet==2) {
+         ierr= KSPSetOperators(*ksp,*A,*A); CHKERRQ(ierr);
+         if (!PCU_Comm_Self())
+           std::cout <<"\t-- Update A, Reuse Preconditioner" << std::endl;
+  }
 
   //KSPSetUp(*ksp);
  // KSPSetUpOnBlocks(*ksp); CHKERRQ(ierr);
@@ -1041,7 +1055,14 @@ int matrix_solve::solve(FieldID field_id)
 int matrix_solve:: setKspType()
 {
   PetscErrorCode ierr;
-  KSPCreate(MPI_COMM_WORLD, ksp);
+  ierr = KSPCreate(MPI_COMM_WORLD, ksp);
+  CHKERRQ(ierr);
+         // Set operators, keeping the identical preconditioner matrix for
+         // all linear solves.  This approach is often effective when the
+         // linear systems do not change very much between successive steps.
+         ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
+         //if (!PCU_Comm_Self())
+         //  std::cout <<"\t-- Reuse Preconditioner" << std::endl;
   ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/); 
   CHKERRQ(ierr);
   ierr = KSPSetTolerances(*ksp, .000001, .000000001, PETSC_DEFAULT, 1000);

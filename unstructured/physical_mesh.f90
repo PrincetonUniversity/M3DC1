@@ -15,7 +15,7 @@ module physical_mesh
   ! arrays to store dofs of rst & zst fields 
   real, allocatable :: rstnode(:,:)
   real, allocatable :: zstnode(:,:)
-  real :: m_max, n_max, dphi, mf
+  real :: m_max, n_max, mesh_phase, mf
   real :: rm0, rm1, rm2, zm0, zm1
 
 contains
@@ -29,9 +29,9 @@ contains
     mesh_period = period/nperiods 
     ! metric factor for phi when itor=0
     mf = twopi/(mesh_period*nperiods)
-    ! phase shift
-    dphi = 0.*twopi/(2*nperiods)
-    !dphi = 1.*mesh_period/2
+    ! mesh phase shift
+    mesh_phase = 0.*twopi/(2*nperiods)
+    !mesh_phase = 1.*mesh_period/2
     ! maxium m & n numbers
     m_max = 10.5
     n_max = 18.5
@@ -57,7 +57,7 @@ contains
     real, dimension(mn_mode) :: rstc, zsts, co, sn 
     real :: phis
 
-    phis = phi*mf+dphi
+    phis = phi*mf+mesh_phase
 
     r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
     theta = atan2(z - zcenter, x - xcenter)
@@ -137,7 +137,7 @@ contains
     x = coords(1)
     z = coords(2)
     phi = coords(3)
-    phis = phi*mf + dphi
+    phis = phi*mf + mesh_phase
 
     theta = atan2(z - zcenter, x - xcenter)
     dr = 0

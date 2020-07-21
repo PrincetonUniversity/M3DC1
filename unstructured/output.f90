@@ -8,15 +8,15 @@ module m3dc1_output
 
 contains
 
-  subroutine initialize_output (comm)
+  subroutine initialize_output ()
     use basic
     use hdf5_output
     implicit none
 
-    integer, intent(in) :: comm     ! MPI_Comm for HDF5 parallel IO setup
     integer :: ier
     
-    call hdf5_initialize(irestart.ne.0, comm, ier)
+   call hdf5_initialize(irestart.ne.0, ier)
+
     if(ier.lt.0) then 
        print *, "Error initializing HDF5"
        call safestop(5)
@@ -124,32 +124,6 @@ contains
   1002 format("OUTPUT: hdf5_flush           ", I5, 1p2e16.8,i5)
     end if    
 
-    ! only write restart file evey ntimers timesteps
-    if(iwrite_restart.eq.1 .and. mod(ntime-ntime0,ntimers).eq.0 .and. ntime.ne.ntime0) then
-       if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-       if(myrank.eq.0 .and. iprint.ge.1) print *, "  writing restart files"
-       if(iglobalout.eq.1) then
-          call wrrestartglobal
-       else
-          if(iwrite_adios.eq.1) then
-             call wrrestart_adios
-          else
-!...........sequential restart writing
-             do i=0,maxrank-1
-                if(myrank.eq.i) call wrrestart
-                call MPI_Barrier(MPI_COMM_WORLD,ier)
-             enddo
-          end if
-       endif
-       if(myrank.eq.0 .and. itimer.eq.1) then
-          call second(tend)
-          diff = tend - tstart
-          if(iprint.ge.1) write(*,1006) ntime,diff,t_output_hdf5
-1006      format("OUTPUT: wrrestart            ", I5, 1p2e16.8)
-       endif
-    endif
- 
-
     ! Write C1ke data
     if(myrank.eq.0) then
        if((ekin+ekino)*dtold.eq.0. .or. ekin.eq.0.) then
@@ -182,8 +156,6 @@ subroutine hdf5_write_parameters(error)
 
   integer(HID_T) :: root_id
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'Writing attributes'
-
   call h5gopen_f(file_id, "/", root_id, error)
 
 #ifdef USE3D
@@ -197,6 +169,9 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "nplanes"    , nplanes,    error)
 
   call write_int_attr (root_id, "version"    , version,    error)
+
+  if (myrank.eq.0) print *, 'Writing HDF5 file for restart: version=', version
+
   call write_int_attr (root_id, "numvar"     , numvar,     error)
   call write_int_attr (root_id, "idens"      , idens,      error)
   call write_int_attr (root_id, "ipres"      , ipres,      error)
@@ -387,6 +362,9 @@ subroutine hdf5_write_scalars(error)
         call output_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
         call output_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
         call output_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+        if((irestart.eq.0).or.(version_in.ge.33)) then
+           call output_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
+        end if
      else
         call output_scalar(scalar_group_id, "pellet_r",   pellet_r(1),   ntime, error)
         call output_scalar(scalar_group_id, "pellet_phi", pellet_phi(1), ntime, error)
@@ -1031,8 +1009,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
      call write_field(group_id, "eta", resistivity_field, nelms, error, .true.)
      call write_field(group_id, "visc", visc_field, nelms, error, .true.)
-     call write_field(group_id, "visc_c", visc_c_field, nelms, error)
-     call write_field(group_id, "kappa", kappa_field, nelms, error)
+     call write_field(group_id, "visc_c", visc_c_field, nelms, error, .true.)
+     call write_field(group_id, "kappa", kappa_field, nelms, error, .true.)
+     call write_field(group_id, "denm", denm_field, nelms, error, .true.)
      
      ! poloidal force and mach number
      if(ipforce.gt.0) then

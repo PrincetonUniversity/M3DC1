@@ -14,7 +14,7 @@ echo $? > mesh_partitioned
 
 # Run M3D-C1
 $M3DC1_MPIRUN -n 16 -c 4 m3dc1_2d
-$M3DC1_MPIRUN -n 16 -c 4 collapse circle-0.02-0.0-0.0.dmg adapted.smb mesh.smb 16
+$M3DC1_MPIRUN -n 16 -c 4 collapse circle-0.02-0.0-0.0.dmg ts0-adapted.smb mesh.smb 16
 
 if ! [ -f mesh0.smb ]; then
     echo 0 > C1ke

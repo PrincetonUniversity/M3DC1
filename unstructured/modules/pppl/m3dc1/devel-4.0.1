@@ -1,0 +1,73 @@
+#%Module1.0
+##
+
+## Required internal variables
+
+set             name            m3dc1
+set             version         devel-4.0.1
+set		arch		sunfire.openmpi-4.0.1
+set 		root 		$env(M3DC1_CODE_DIR)
+
+## List conflicting modules here
+
+conflict $name
+
+## List prerequisite modules here
+
+set             fullname        M3D-C1
+set             externalurl     http://w3.pppl.gov/~nferraro/m3dc1.html
+set             description     "M3D-C1 is an extended-MHD code"
+
+## Required for "module help ..."
+
+proc ModulesHelp { } {
+  global description externalurl
+  puts stderr "Description - $description"
+  puts stderr "Other Docs  - $externalurl"
+}
+
+## Required for "module display ..." and SWDB
+
+module-whatis                   "$description"
+
+## Software-specific settings exported to user environment
+
+if { ! [ is-loaded intel/2019.u3 ] } {
+   module load intel/2019.u3
+}
+
+if { ! [ is-loaded openmpi/4.0.1 ] } {
+   module load openmpi/4.0.1
+}
+prereq openmpi/4.0.1
+
+if { ! [ is-loaded szip/2.1.1 ] } {
+   module load szip/2.1.1
+}
+
+#if { ! [ is-loaded hdf5-parallel/1.10.5 ] } {
+#   module load hdf5-parallel/1.10.5
+#}
+#prereq hdf5-parallel/1.10.5
+
+if { ! [ is-loaded gsl/2.4 ] } {
+   module load gsl/2.4
+}
+prereq gsl
+
+if { ! [ is-loaded scalapack/2.0.2 ] } {
+   module load scalapack/2.0.2
+}
+
+if { ! [ is-loaded rlm ] } {
+   module load rlm
+}
+
+setenv          M3DC1_VERSION   $version
+setenv		M3DC1_DIR	$root
+setenv		M3DC1_ARCH	$arch
+setenv		M3DC1_MPIRUN	mpiexec
+setenv		M3DC1_PETSC_PT	type
+
+prepend-path    PATH             $root/unstructured/_$arch/bin
+prepend-path    IDL_PATH         $root/unstructured/idl

@@ -72,7 +72,7 @@ J0_MKS=$(echo - | awk "{ print $J0 / 3e5 }" )
 ETA0=$(echo - | awk "{ print 4*$PI*$T0*$V0*$V0/($C*$C) }" )
 ETA0_MKS=$(echo - | awk "{ print $ETA0*$C*$C/1e11 }" )
 
-MU0=$(echo - | awk "{ print $MP*$N0*$L0*$L0/$T0 }" )
+MU0=$(echo - | awk "{ print $MP*$MU*$N0*$L0*$L0/$T0 }" )
 MU0_MKS=$(echo - | awk "{ print $MU0/10. }" )
 
 KAP0=$(echo - | awk "{ print $N0*$L0*$L0/$T0 }" | awk '{ printf "%.5e", $1 }' )

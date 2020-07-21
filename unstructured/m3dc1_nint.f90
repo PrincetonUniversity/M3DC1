@@ -75,6 +75,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_KIN  =33554432
   integer, parameter :: FIELD_RE   =67108864 
   integer, parameter :: FIELD_WALL =134217728  ! 2^27
+  integer, parameter :: FIELD_DENM =268435456  ! 2^28
 
 ! NOTE: All element-specific variables should be declared OMP THREADPRIVATE
 
@@ -108,12 +109,14 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79
-!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79)
+       eta79, etaRZ79,sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79
+!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,etaRZ79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
 !$OMP THREADPRIVATE(bf079,bf179,bft79)
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
 !$OMP THREADPRIVATE(kap79,kar79,kax79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: denm79
+!$OMP THREADPRIVATE(denm79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
        ph079, vz079, ch079, p079, ne079, pi079
 !$OMP THREADPRIVATE(ps079,bz079,pe079,n079,ph079,vz079,ch079,p079,ne079,pi079)
@@ -896,6 +899,7 @@ contains
           ne079 = 0.
           net79 = ne179
        endif
+
     endif
 
   ! NI
@@ -1122,13 +1126,15 @@ contains
      else if(izone.eq.2) then
         eta79 = 0.
         eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79)
+        etaRZ79 = 0
+        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79)
      else 
         if(iresfunc.eq.2) then
            if(linear.eq.1) then
               tm79 = ((ps079-psimin)/(psibound-psimin) - etaoff) / etadelt
            else
               tm79 = ((pst79-psimin)/(psibound-psimin) - etaoff) / etadelt
-           endif
+           end if
            eta79 = 0.
            eta79(:,OP_1 )  = 1. + tanh(real(tm79(:,OP_1)))
            eta79(:,OP_DR)  = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DR)
@@ -1226,11 +1232,21 @@ contains
         end if
 
         where(eta79.ne.eta79) eta79 = 0.
-        where(real(eta79(:,OP_1)).lt.0.) eta79(:,OP_1) = 0.
+        where(real(eta79(:,OP_1)).lt.eta_min) eta79(:,OP_1) = eta_min
         where(real(eta79(:,OP_1)).gt.eta_max) eta79(:,OP_1) = eta_max
      end if
 
   end if
+
+  ! denm
+  ! ~~~~
+  if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
+
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   denm..."
+     
+     call eval_ops(itri, denm_field, denm79)
+  end if
+
 
   ! KAP
   ! ~~~
