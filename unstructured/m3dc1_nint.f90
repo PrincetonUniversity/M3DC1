@@ -375,7 +375,7 @@ contains
 
     integer, intent(in) :: itri
     integer :: i
-    vectype, dimension(MAX_PTS) :: di_79, di2_79, di3_79
+    vectype, dimension(MAX_PTS) :: di_79, di2_79
     
     ! calculate logical derivatives of geometry
     call eval_ops(itri, rst, rst79)
@@ -407,7 +407,6 @@ contains
     ! inverse of D = Rx*Zy - Ry*Zx
     di_79 = 1./(rst79(:,OP_DR)*zst79(:,OP_DZ) - zst79(:,OP_DR)*rst79(:,OP_DZ))
     di2_79 = di_79*di_79
-    di3_79 = di_79*di2_79
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, di_79(1) 
     ! Dx = Rx*Zxy + Rxx*Zy - Ry*Zxx - Rxy*Zx  
     temp79a = rst79(:,OP_DR)*zst79(:,OP_DRZ) + rst79(:,OP_DRR)*zst79(:,OP_DZ)&
@@ -420,10 +419,14 @@ contains
     ! F = Rx*Dy - Ry*Dx
     temp79c = rst79(:,OP_DR)*temp79b - rst79(:,OP_DZ)*temp79a
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79c(1) 
-    ! G = Zx*Dy - Zy*Dx
-    temp79d = zst79(:,OP_DR)*temp79b - zst79(:,OP_DZ)*temp79a
+    ! G = Zy*Dx - Zx*Dy
+    temp79d = zst79(:,OP_DZ)*temp79a - zst79(:,OP_DR)*temp79b
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79d(1) 
-    
+#ifdef USE3D
+    ! Dz = Rx*Zyz + Rxz*Zy - Ry*Zxz - Ryz*Zx  
+    temp79e = rst79(:,OP_DR)*zst79(:,OP_DZP) + rst79(:,OP_DRP)*zst79(:,OP_DZ)&
+            - rst79(:,OP_DZ)*zst79(:,OP_DRP) - rst79(:,OP_DZP)*zst79(:,OP_DR)
+#endif    
     do i=1, dofs_per_element
       ! fR = (Zy/D)*fx - (Zx/D)*fy
       mu79(i,:,OP_DR) = di_79*zst79(:,OP_DZ)*must79(i,:,OP_DR)&
@@ -432,41 +435,78 @@ contains
       mu79(i,:,OP_DZ) = di_79*rst79(:,OP_DR)*must79(i,:,OP_DZ)&
                       - di_79*rst79(:,OP_DZ)*must79(i,:,OP_DR) 
       ! fRR = (Zy/D)^2*fxx + (Zx/D)^2*fyy - 2(Zx*Zy/D^2)*fxy
-      !     + [(Zy*Zxy - Zx*Zyy)/D^2 + G*Zy/D^3]*fx      
-      !     + [(Zx*Zxy - Zy*Zxx)/D^2 - G*Zx/D^3]*fy      
-      mu79(i,:,OP_DRR) = di2_79*zst79(:,OP_DZ)**2*must79(i,:,OP_DRR)& 
-                       + di2_79*zst79(:,OP_DR)**2*must79(i,:,OP_DZZ)& 
-                       - 2*di2_79*zst79(:,OP_DR)*zst79(:,OP_DZ)*must79(i,:,OP_DRZ)& 
-                       + ((zst79(:,OP_DZ)*zst79(:,OP_DRZ) - zst79(:,OP_DR)*zst79(:,OP_DZZ))*di2_79&
-                       + temp79d*zst79(:,OP_DZ)*di3_79)*must79(i,:,OP_DR)&
-                       + ((zst79(:,OP_DR)*zst79(:,OP_DRZ) - zst79(:,OP_DZ)*zst79(:,OP_DRR))*di2_79&
-                       - temp79d*zst79(:,OP_DR)*di3_79)*must79(i,:,OP_DZ)
+      !     + [(Zy*Zxy - Zx*Zyy)/D^2 ]*fx      
+      !     + [(Zx*Zxy - Zy*Zxx)/D^2 ]*fy - (G/D^2)*fR      
+      mu79(i,:,OP_DRR) = (zst79(:,OP_DZ)**2*must79(i,:,OP_DRR)& 
+                       + zst79(:,OP_DR)**2*must79(i,:,OP_DZZ)& 
+                       - 2*zst79(:,OP_DR)*zst79(:,OP_DZ)*must79(i,:,OP_DRZ)& 
+                       + (zst79(:,OP_DZ)*zst79(:,OP_DRZ) - zst79(:,OP_DR)*zst79(:,OP_DZZ))&
+                       * must79(i,:,OP_DR) + must79(i,:,OP_DZ) &  
+                       * (zst79(:,OP_DR)*zst79(:,OP_DRZ) - zst79(:,OP_DZ)*zst79(:,OP_DRR))&
+                       - temp79d*mu79(i,:,OP_DR))*di2_79
       ! fZZ = (Ry/D)^2*fxx + (Rx/D)^2*fyy - 2(Rx*Ry/D^2)*fxy
-      !     + [(Ry*Rxy - Rx*Ryy)/D^2 + F*Ry/D^3]*fx      
-      !     + [(Rx*Rxy - Ry*Rxx)/D^2 - F*Rx/D^3]*fy      
-      mu79(i,:,OP_DZZ) = di2_79*rst79(:,OP_DZ)**2*must79(i,:,OP_DRR)& 
-                       + di2_79*rst79(:,OP_DR)**2*must79(i,:,OP_DZZ)& 
-                       - 2*di2_79*rst79(:,OP_DR)*rst79(:,OP_DZ)*must79(i,:,OP_DRZ)& 
-                       + ((rst79(:,OP_DZ)*rst79(:,OP_DRZ) - rst79(:,OP_DR)*rst79(:,OP_DZZ))*di2_79&
-                       + temp79c*rst79(:,OP_DZ)*di3_79)*must79(i,:,OP_DR)&
-                       + ((rst79(:,OP_DR)*rst79(:,OP_DRZ) - rst79(:,OP_DZ)*rst79(:,OP_DRR))*di2_79&
-                       - temp79c*rst79(:,OP_DR)*di3_79)*must79(i,:,OP_DZ)
+      !     + [(Ry*Rxy - Rx*Ryy)/D^2 ]*fx      
+      !     + [(Rx*Rxy - Ry*Rxx)/D^2 ]*fy -(F/D^2)*fZ 
+      mu79(i,:,OP_DZZ) = (rst79(:,OP_DZ)**2*must79(i,:,OP_DRR)& 
+                       + rst79(:,OP_DR)**2*must79(i,:,OP_DZZ)& 
+                       - 2*rst79(:,OP_DR)*rst79(:,OP_DZ)*must79(i,:,OP_DRZ)& 
+                       + (rst79(:,OP_DZ)*rst79(:,OP_DRZ) - rst79(:,OP_DR)*rst79(:,OP_DZZ))&
+                       * must79(i,:,OP_DR) + must79(i,:,OP_DZ) &
+                       * (rst79(:,OP_DR)*rst79(:,OP_DRZ) - rst79(:,OP_DZ)*rst79(:,OP_DRR))&
+                       - temp79c*mu79(i,:,OP_DZ))*di2_79
       ! fRZ = [(Rx*Zy + Ry*Zx)/D^2]*fxy - (Ry*Zy/D^2)*fxx - (Rx*Zx/D^2)*fyy 
-      !     - [(Zy*Rxy - Zx*Ryy)/D^2 + G*Ry/D^3]*fx      
-      !     - [(Zx*Rxy - Zy*Rxx)/D^2 - G*Rx/D^3]*fy      
-      mu79(i,:,OP_DRZ) = di2_79*(rst79(:,OP_DR)*zst79(:,OP_DZ) + zst79(:,OP_DR)*rst79(:,OP_DZ))*must79(i,:,OP_DRZ)& 
-                       - di2_79*rst79(:,OP_DR)*zst79(:,OP_DR)*must79(i,:,OP_DZZ)& 
-                       - di2_79*rst79(:,OP_DZ)*zst79(:,OP_DZ)*must79(i,:,OP_DRR) & 
-                       - ((zst79(:,OP_DZ)*rst79(:,OP_DRZ) - zst79(:,OP_DR)*rst79(:,OP_DZZ))*di2_79&
-                       + temp79d*rst79(:,OP_DZ)*di3_79)*must79(i,:,OP_DR)&
-                       - ((zst79(:,OP_DR)*rst79(:,OP_DRZ) - zst79(:,OP_DZ)*rst79(:,OP_DRR))*di2_79&
-                       - temp79d*rst79(:,OP_DR)*di3_79)*must79(i,:,OP_DZ)
+      !     - [(Zy*Rxy - Zx*Ryy)/D^2 ]*fx      
+      !     - [(Zx*Rxy - Zy*Rxx)/D^2 ]*fy - (G/D^2)*fZ     
+      mu79(i,:,OP_DRZ) = ((rst79(:,OP_DR)*zst79(:,OP_DZ)&
+                       + zst79(:,OP_DR)*rst79(:,OP_DZ))*must79(i,:,OP_DRZ)& 
+                       - rst79(:,OP_DR)*zst79(:,OP_DR)*must79(i,:,OP_DZZ)& 
+                       - rst79(:,OP_DZ)*zst79(:,OP_DZ)*must79(i,:,OP_DRR)& 
+                       - (zst79(:,OP_DZ)*rst79(:,OP_DRZ) - zst79(:,OP_DR)*rst79(:,OP_DZZ))&
+                       * must79(i,:,OP_DR) - must79(i,:,OP_DZ) &
+                       * (zst79(:,OP_DR)*rst79(:,OP_DRZ) - zst79(:,OP_DZ)*rst79(:,OP_DRR))&
+                       - temp79d*mu79(i,:,OP_DZ))*di2_79
       mu79(i,:,OP_LP) = mu79(i,:,OP_DRR) + mu79(i,:,OP_DZZ) 
       mu79(i,:,OP_GS) = mu79(i,:,OP_LP) 
       if(itor.eq.1) then ! toroidal corrections
         mu79(i,:,OP_LP) = mu79(i,:,OP_LP) + mu79(i,:,OP_DR)*ri_79 
         mu79(i,:,OP_GS) = mu79(i,:,OP_GS) - mu79(i,:,OP_DR)*ri_79 
       end if
+#ifdef USE3D
+      ! fP = - Rz*fR - Zz*fZ + fz
+      mu79(i,:,OP_DP) = - rst79(:,OP_DP)*mu79(i,:,OP_DR)&
+                        - zst79(:,OP_DP)*mu79(i,:,OP_DZ)& 
+                        + must79(i,:,OP_DP)
+      ! fRz = (Zy/D)*fxz - (Zx/D)*fyz - (Dz/D)*fR + (Zyz/D)*fx - (Zxz/D)*fy
+      mu79(i,:,OP_DRP) = (zst79(:,OP_DZ)*must79(i,:,OP_DRP)&
+                       - zst79(:,OP_DR)*must79(i,:,OP_DZP)& 
+                       + zst79(:,OP_DZP)*must79(i,:,OP_DR)&
+                       - zst79(:,OP_DRP)*must79(i,:,OP_DZ)& 
+                       - temp79e*mu79(i,:,OP_DR))*di_79 
+      ! fZz = (Rx/D)*fyz - (Ry/D)*fxz - (Dz/D)*fZ + (Rxz/D)*fy - (Ryz/D)*fx
+      mu79(i,:,OP_DZP) = (rst79(:,OP_DR)*must79(i,:,OP_DZP)&
+                       - rst79(:,OP_DZ)*must79(i,:,OP_DRP)& 
+                       + rst79(:,OP_DRP)*must79(i,:,OP_DZ)& 
+                       - rst79(:,OP_DZP)*must79(i,:,OP_DR)&
+                       - temp79e*mu79(i,:,OP_DZ))*di_79 
+      ! fPz = - Rz*fRz - Zz*fZz + fzz - Rzz*fR -Zzz*fZ
+      mu79(i,:,OP_DPP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRP)&
+                         - zst79(:,OP_DP)*mu79(i,:,OP_DZP)& 
+                         - rst79(:,OP_DPP)*mu79(i,:,OP_DR)&
+                         - zst79(:,OP_DPP)*mu79(i,:,OP_DZ)& 
+                         + must79(i,:,OP_DPP)
+      ! fRP = - Rz*fRR - Zz*fZR + fRz
+      mu79(i,:,OP_DRP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRR)&
+                         - zst79(:,OP_DP)*mu79(i,:,OP_DRZ)& 
+                         + mu79(i,:,OP_DRP)
+      ! fZP = - Rz*fRZ - Zz*fZZ + fZz
+      mu79(i,:,OP_DZP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRZ)&
+                         - zst79(:,OP_DP)*mu79(i,:,OP_DZZ)& 
+                         + mu79(i,:,OP_DZP)
+      ! fPP = - Rz*fRP - Zz*fZP + fPz
+      mu79(i,:,OP_DZP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRP)&
+                         - zst79(:,OP_DP)*mu79(i,:,OP_DZP)& 
+                         + mu79(i,:,OP_DPP)
+#endif
     end do
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, mu79(1,1,:) 
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, must79(1,1,:) 
