@@ -1,14 +1,14 @@
 pro write_neo_input, q, _EXTRA=extra, out=outfile, nphi=nphi, $
                      scalefac=scalefac, phase=phase, sum=sum, points=pts, $
                      plotscale=plotscale, filename=filename, $
-                     nonlinear=nonlinear, slice=slice
+                     nonlinear=nonlinear, slice=slice, smooth=smooth
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
   if(n_elements(nonlinear) eq 0) then nonlinear=1
   if(n_elements(pts) eq 0) then pts=600
   if(n_elements(bins) eq 0) then bins = 50
   ntheta = 400
-  smooth = 3
+  if(n_elements(smooth) eq 0) then smooth = 3
   if(n_elements(nphi) eq 0) then nphi = 16
   if(n_elements(plotscale) eq 0) then plotscale=10.
   if(n_elements(q) eq 0) then begin
