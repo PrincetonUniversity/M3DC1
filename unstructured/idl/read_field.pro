@@ -4519,6 +4519,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         /equilibrium,_EXTRA=extra)
        n0 = read_field('den',x,y,t,filename=filename,points=pts,$
                        /equilibrium,_EXTRA=extra)
+       ne0 = read_field('ne',x,y,t,filename=filename,points=pts,$
+                       /equilibrium,_EXTRA=extra)
        psi = read_field('psi',x,y,t,filename=filename,points=pts,$
                        slice=time,/linear,complex=icomplex,_EXTRA=extra)
        i = read_field('I',x,y,t,filename=filename,points=pts,$
@@ -4571,7 +4573,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        
 ;        nu_i = (64.*!pi^(5/2)/3.)*(zeff*4.8032e-10*n0_norm)^4*lambda $
 ;          * l0_norm/(n0_norm*B0_norm^4) * n0/Ti^1.5
-       nu_i = 1.988e-35*(n0/Ti^1.5)*lambda*zeff^4*n0_norm^3*l0_norm/B0_norm^4
+       z_ion = read_parameter('z_ion', filename=filename)
+       nu_i = 1.988e-35*(n0/Ti^1.5)*lambda*z_ion^4*n0_norm^3*l0_norm/B0_norm^4
        print, 'min, max(nu_i)', min(nu_i/t0_norm), max(nu_i/t0_norm)
        print, 'min, max(w_B)', min(w_B/t0_norm), max(w_B/t0_norm)
        print, 'min, max(w_E)', min(w_E/t0_norm), max(w_E/t0_norm)

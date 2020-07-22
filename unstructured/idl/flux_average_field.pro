@@ -55,5 +55,6 @@ function flux_average_field, field, psi, x, z, t, bins=bins, flux=flux, $
    dV = fc.dV_dchi
    area = fc.area
    volume = fc.v
+   r0 = fc.r0
    return, result
 end
