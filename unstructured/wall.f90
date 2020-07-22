@@ -47,7 +47,7 @@ contains
     call boundary_wall_dist(wall_dist%vec, wall_matrix)
     call finalize(wall_matrix)
     
-    call newsolve(wall_matrix,wall_dist%vec,ier)
+    !call newsolve(wall_matrix,wall_dist%vec,ier)
 
     call destroy_mat(wall_matrix)
 
@@ -74,7 +74,8 @@ contains
     type(matrix_type), optional :: mat
     
     integer :: i, izone, izonedim, numnodes, icounter_t
-    real :: normal(2), curv, x, z, phi
+    real :: normal(2), curv(3), x, z, phi
+
     logical :: is_boundary
     vectype, dimension(dofs_per_node) :: temp
     

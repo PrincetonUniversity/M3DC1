@@ -191,7 +191,7 @@ contains
     integer :: i,numnodes
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
 
     numnodes = local_nodes()
 
@@ -630,7 +630,7 @@ contains
     type(tag_list), intent(in), optional :: tags
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
 
     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,&
          x,phi,z,tags)
@@ -644,7 +644,7 @@ contains
   ! about boundary surface
   !======================================================================
   subroutine boundary_node(inode,is_boundary,izone,izonedim,normal,curv,&
-       x,phi,z,tags,curv3)
+       x,phi,z,tags)
 
     use math
     
@@ -652,11 +652,10 @@ contains
     
     integer, intent(in) :: inode              ! node index
     integer, intent(out) :: izone,izonedim    ! zone type/dimension
-    real, intent(out) :: normal(2), curv
+    real, intent(out) :: normal(2), curv(3)
     real, intent(out) :: x,phi,z              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
     type(tag_list), intent(in), optional :: tags
-    real, intent(out), optional :: curv3(2)
     
     integer :: ibottom, iright, ileft, itop, ib
     real :: angler
@@ -736,11 +735,7 @@ contains
        if(.not.is_boundary) return
 #ifdef USEST  
        if (igeometry.gt.0 .and. ilog.ne.1) then ! do nothing when igeometry==0 
-          if(present(curv3)) then 
-             call get_boundary_curv(normal,curv,inode,curv3)
-          else
-             call get_boundary_curv(normal,curv,inode)
-          end if
+          call get_boundary_curv(normal,curv,inode)
        else
 #endif
        call m3dc1_node_getnormvec(inode-1, norm)
@@ -748,7 +743,7 @@ contains
        if(icurv.eq.0) then
           curv = 0.
        else
-          call m3dc1_node_getcurv(inode-1, curv)
+          call m3dc1_node_getcurv(inode-1, curv(1))
        end if
 #ifdef USEST  
        end if
@@ -914,7 +909,7 @@ contains
 
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
     integer :: i, j, k
-    real :: norm(2)
+    real :: norm(2), curv(3)
     vectype, dimension(dofs_per_element) :: temp
 
 #ifdef USEST
@@ -938,6 +933,7 @@ contains
     call get_element_data(itri,d)
     norm(1) = d%co
     norm(2) = d%sn
+    curv = 0.
 
 #ifdef USEST
     if(igeometry.eq.1.and.ilog.eq.0) then
@@ -947,7 +943,7 @@ contains
     do i=1, nodes_per_element
        j = (i-1)*dofs_per_node+1
        k = j + dofs_per_node - 1
-       call rotate_dofs(temp(j:k), dof(j:k), norm, 0., -1)
+       call rotate_dofs(temp(j:k), dof(j:k), norm, curv, -1)
 #ifdef USEST
        if(igeometry.eq.1.and.ilog.eq.0) then
           info1 = 0

@@ -1495,7 +1495,7 @@ subroutine calculate_error(error, error2, psinew)
   type(field_type), intent(in) :: psinew
 
   integer :: i,inode, numnodes, izone, izonedim, ier
-  real :: sum, sum2, norm, norm2, normal(2), curv, x, phi, z, lhs, rhs
+  real :: sum, sum2, norm, norm2, normal(2), curv(3), x, phi, z, lhs, rhs
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: psi0, psi1, f1, f2, f3, f4
   real, dimension(5) :: temp1, temp2
@@ -2872,7 +2872,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
     
   integer :: i, inode, izone, izonedim, index
   integer :: numnodes, ineg
-  real :: normal(2), curv
+  real :: normal(2), curv(3)
   real :: x, z, phi
   real, dimension(1,1,6) :: g
   real, dimension(1) :: xp, zp, xc, zc

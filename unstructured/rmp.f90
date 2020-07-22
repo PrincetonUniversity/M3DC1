@@ -566,7 +566,7 @@ subroutine boundary_rmp(rhs, mat)
   
   integer, parameter :: numvarsm = 2
   integer :: i, izone, izonedim, i_psi, i_f, numnodes, icounter_t
-  real :: normal(2), curv
+  real :: normal(2), curv(3)
   real :: x, z, phi
   logical :: is_boundary
 !!$  real, dimension(1) :: xv, phiv, zv

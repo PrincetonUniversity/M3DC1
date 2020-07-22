@@ -1639,7 +1639,7 @@ subroutine lcfs(psi, test_wall, findx)
   logical :: is_boundary, first_point
   real, dimension(2) :: normal
   real, dimension(OP_NUM) :: dum1
-  real :: curv
+  real :: curv(3)
   logical :: tw, fx
   vectype, dimension(dofs_per_node) :: data
 

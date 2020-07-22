@@ -161,7 +161,7 @@ contains
     type(matrix_type), optional :: mat
     
     integer :: i, izone, izonedim, numnodes, icounter_t
-    real :: normal(2), curv, x, z, phi
+    real :: normal(2), curv(3), x, z, phi
     logical :: is_boundary
     vectype, dimension(dofs_per_node) :: rtemp, ztemp
     

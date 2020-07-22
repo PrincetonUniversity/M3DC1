@@ -116,13 +116,12 @@ contains
 
   ! Calculate curvature and normal vector on physical boundary. 
   ! Works only for circular logical meshes.
-  subroutine get_boundary_curv(normal, curv, inode, curv3)
+  subroutine get_boundary_curv(normal, curv, inode)
     use math
     implicit none
 
     integer, intent(in) :: inode 
-    real, intent(out) :: normal(2), curv
-    real, intent(out), optional :: curv3(2)
+    real, intent(out) :: normal(2), curv(3)
     real :: dr, ddr, dz, ddz, theta, x, phi, z, phis
     real, dimension(mn_mode) :: co, sn 
 #ifdef USE3D
@@ -138,7 +137,7 @@ contains
     z = coords(2)
     phi = coords(3)
     phis = phi*mf + mesh_phase
-
+    curv = 0.
     theta = atan2(z - zcenter, x - xcenter)
     dr = 0
     dz = 0
@@ -221,14 +220,14 @@ contains
 !    ddr1 = 0.
 !    ddz1 = 0.
 #endif
-    curv = (dr*ddz - dz*ddr)/((dr**2 + dz**2)*sqrt(dr**2 + dz**2))
+    curv(1) = (dr*ddz - dz*ddr)/((dr**2 + dz**2)*sqrt(dr**2 + dz**2))
     normal(1) = dz/sqrt(dr**2 + dz**2)
     normal(2) = -dr/sqrt(dr**2 + dz**2)
 #ifdef USE3D
-    if(present(curv3)) then
-       curv3(1) = (dr*dz1 - dz*dr1)/(dr**2 + dz**2)
-       curv3(2) = ((dr1*ddz + dr*ddz1 - dz1*ddr - dz*ddr1)/(sqrt(dr**2 + dz**2))&
-                  - 3.*curv*(dr*dr1 + dz*dz1))/(dr**2 + dz**2) 
+    if(igeometry.eq.1 .and. ilog.ne.1) then
+       curv(2) = (dr*dz1 - dz*dr1)/(dr**2 + dz**2)
+       curv(3) = ((dr1*ddz + dr*ddz1 - dz1*ddr - dz*ddr1)/(sqrt(dr**2 + dz**2))&
+                  - 3.*curv(1)*(dr*dr1 + dz*dz1))/(dr**2 + dz**2) 
     end if
 #endif
   end subroutine get_boundary_curv

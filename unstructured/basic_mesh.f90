@@ -21,7 +21,7 @@ module basic_mesh_mod
   type, private :: node_type
      integer :: izone, idim
      real :: R, Phi, Z
-     real :: normal(2), curv
+     real :: normal(2), curv(3)
   end type node_type
 
   type, private :: element_type
@@ -165,7 +165,7 @@ contains
           l0 = sqrt((z1*co)**2 + (x1*(1.+x2*co)*ss)**2)
           nodes(i)%normal(1) = z1*co/l0
           nodes(i)%normal(2) = x1*(1.+x2*co)*ss/l0
-          nodes(i)%curv = x1*z1*(co*(1.+x2*co)**2*cs + sn*ss)/l0**3
+          nodes(i)%curv(1) = x1*z1*(co*(1.+x2*co)**2*cs + sn*ss)/l0**3
 !          write(*,'(6f12.4)') (nodes(i)%R-x0)/x1, (nodes(i)%Z-z0)/z1, &
 !               nodes(i)%normal(1), nodes(i)%normal(2), nodes(i)%curv
        end do
@@ -827,7 +827,7 @@ contains
     integer, intent(in) :: inode
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi,  z
+    real :: normal(2), curv(3), x, phi,  z
 
     call boundary_node(inode, is_boundary, izone, izonedim, normal, curv, &
          x, phi, z)
@@ -847,7 +847,7 @@ contains
     
     integer, intent(in) :: inode              ! node index
     integer, intent(out) :: izone,izonedim    ! zone type/dimension
-    real, intent(out) :: normal(2), curv
+    real, intent(out) :: normal(2), curv(3)
     real, intent(out) :: x,z,phi              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
 

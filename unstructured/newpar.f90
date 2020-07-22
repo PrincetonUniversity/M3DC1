@@ -996,13 +996,12 @@ end subroutine rotation
     real, dimension(dofs_per_tri, dofs_per_tri) :: rot
 #ifdef USEST
     real, dimension(dofs_per_element, dofs_per_element) :: newrot
-    real :: curv3(2)
     integer :: l, m, n, idof, ip
 #else
     real, dimension(dofs_per_tri, dofs_per_tri) :: newrot
 #endif
     real :: sum, theta, mean_area, tot_area, mean_len
-    real :: norm(2), curv, x, phi, z
+    real :: norm(2), curv(3), x, phi, z
     integer :: inode(nodes_per_element)
     logical :: is_boundary
     integer :: izone, izonedim
@@ -1052,7 +1051,7 @@ end subroutine rotation
        do i=1, nodes_per_element 
           call boundary_node(inode(i), &
                is_boundary, izone, izonedim, norm, curv, x, phi, z, &
-               all_boundaries, curv3)
+               all_boundaries)
           k = (i-1)*dofs_per_node + 1
           if(igeometry.eq.1.and.ilog.eq.2) then
              call p2l_matrix(&
@@ -1070,14 +1069,14 @@ end subroutine rotation
              newrot(k  ,k  ) = 1.
              newrot(k+1,k+1) =  norm(1)
              newrot(k+1,k+2) =  norm(2)
-             newrot(k+1,k+3) =  curv*norm(2)**2
-             newrot(k+1,k+4) = -curv*norm(1)*norm(2)
-             newrot(k+1,k+5) =  curv*norm(1)**2
+             newrot(k+1,k+3) =  curv(1)*norm(2)**2
+             newrot(k+1,k+4) = -curv(1)*norm(1)*norm(2)
+             newrot(k+1,k+5) =  curv(1)*norm(1)**2
              newrot(k+2,k+1) = -norm(2)
              newrot(k+2,k+2) =  norm(1)
-             newrot(k+2,k+3) =  2.*curv*norm(1)*norm(2)
-             newrot(k+2,k+4) = -curv*(norm(1)**2 - norm(2)**2) 
-             newrot(k+2,k+5) = -2.*curv*norm(1)*norm(2)
+             newrot(k+2,k+3) =  2.*curv(1)*norm(1)*norm(2)
+             newrot(k+2,k+4) = -curv(1)*(norm(1)**2 - norm(2)**2) 
+             newrot(k+2,k+5) = -2.*curv(1)*norm(1)*norm(2)
              newrot(k+3,k+3) =  norm(1)**2 
              newrot(k+3,k+4) =  norm(1)*norm(2)
              newrot(k+3,k+5) =  norm(2)**2
@@ -1090,29 +1089,29 @@ end subroutine rotation
 #if defined(USEST) && defined (USE3D)
              newrot(k+6:k+11,k+6:k+11) = newrot(k:k+5,k:k+5)
              if(igeometry.eq.1.and.ilog.eq.2) then
-                newrot(k+1,k+7) = -norm(2)*curv3(1)
-                newrot(k+2,k+7) = -norm(1)*curv3(1)
-                newrot(k+1,k+8) =  norm(1)*curv3(1)
-                newrot(k+2,k+8) = -norm(2)*curv3(1)
-                newrot(k+1,k+9) =  2.*norm(1)*norm(2)*curv3(1)*curv+norm(2)**2*curv3(2)
-                newrot(k+2,k+9) =  2.*(norm(1)**2-norm(2)**2)*curv3(1)*curv &
-                                  +2.*norm(1)*norm(2)*curv3(2)
-                newrot(k+3,k+9) = -2.*norm(1)*norm(2)*curv3(1)
-                newrot(k+4,k+9) = -2.*(norm(1)**2-norm(2)**2)*curv3(1)
-                newrot(k+5,k+9) =  2.*norm(1)*norm(2)*curv3(1)
-                newrot(k+1,k+10) = -(norm(1)**2-norm(2)**2)*curv3(1)*curv &
-                                   -norm(1)*norm(2)*curv3(2)
-                newrot(k+2,k+10) =  4.*norm(1)*norm(2)*curv3(1)*curv &
-                                   -(norm(1)**2-norm(2)**2)*curv3(2)
-                newrot(k+3,k+10) =  (norm(1)**2-norm(2)**2)*curv3(1)
-                newrot(k+4,k+10) = -4.*norm(1)*norm(2)*curv3(1)
-                newrot(k+5,k+10) = -(norm(1)**2-norm(2)**2)*curv3(1)
-                newrot(k+1,k+11) = -2.*norm(1)*norm(2)*curv3(1)*curv+norm(1)**2*curv3(2)
-                newrot(k+2,k+11) = -2.*(norm(1)**2-norm(2)**2)*curv3(1)*curv &
-                                   -2.*norm(1)*norm(2)*curv3(2)
-                newrot(k+3,k+11) =  2.*norm(1)*norm(2)*curv3(1)
-                newrot(k+4,k+11) =  2.*(norm(1)**2-norm(2)**2)*curv3(1)
-                newrot(k+5,k+11) = -2.*norm(1)*norm(2)*curv3(1)
+                newrot(k+1,k+7) = -norm(2)*curv(2)
+                newrot(k+2,k+7) = -norm(1)*curv(2)
+                newrot(k+1,k+8) =  norm(1)*curv(2)
+                newrot(k+2,k+8) = -norm(2)*curv(2)
+                newrot(k+1,k+9) =  2.*norm(1)*norm(2)*curv(2)*curv(1)+norm(2)**2*curv(3)
+                newrot(k+2,k+9) =  2.*(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
+                                  +2.*norm(1)*norm(2)*curv(3)
+                newrot(k+3,k+9) = -2.*norm(1)*norm(2)*curv(2)
+                newrot(k+4,k+9) = -2.*(norm(1)**2-norm(2)**2)*curv(2)
+                newrot(k+5,k+9) =  2.*norm(1)*norm(2)*curv(2)
+                newrot(k+1,k+10) = -(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
+                                   -norm(1)*norm(2)*curv(3)
+                newrot(k+2,k+10) =  4.*norm(1)*norm(2)*curv(2)*curv(1) &
+                                   -(norm(1)**2-norm(2)**2)*curv(3)
+                newrot(k+3,k+10) =  (norm(1)**2-norm(2)**2)*curv(2)
+                newrot(k+4,k+10) = -4.*norm(1)*norm(2)*curv(2)
+                newrot(k+5,k+10) = -(norm(1)**2-norm(2)**2)*curv(2)
+                newrot(k+1,k+11) = -2.*norm(1)*norm(2)*curv(2)*curv(1)+norm(1)**2*curv(3)
+                newrot(k+2,k+11) = -2.*(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
+                                   -2.*norm(1)*norm(2)*curv(3)
+                newrot(k+3,k+11) =  2.*norm(1)*norm(2)*curv(2)
+                newrot(k+4,k+11) =  2.*(norm(1)**2-norm(2)**2)*curv(2)
+                newrot(k+5,k+11) = -2.*norm(1)*norm(2)*curv(2)
              end if
           else
              do j=1, dofs_per_node

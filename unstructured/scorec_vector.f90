@@ -268,7 +268,7 @@ contains
     
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
     vectype, dimension(v%isize*dofs_per_node) :: dofs
     integer :: index, numDofs
@@ -317,7 +317,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2   
     vectype, dimension(v%isize*dofs_per_node) :: dofs
     integer :: index, numDofs
@@ -360,7 +360,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
 
     vectype, dimension(v%isize*dofs_per_node) :: dofs
@@ -404,7 +404,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2    
     vectype, dimension(v%isize*dofs_per_node) :: dofs
     integer :: index, numDofs
