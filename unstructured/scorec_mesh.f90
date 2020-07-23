@@ -738,13 +738,13 @@ contains
           call get_boundary_curv(normal,curv,inode)
        else
 #endif
-       call m3dc1_node_getnormvec(inode-1, norm)
-       normal = norm(1:2)
-       if(icurv.eq.0) then
-          curv = 0.
-       else
-          call m3dc1_node_getcurv(inode-1, curv(1))
-       end if
+          call m3dc1_node_getnormvec(inode-1, norm)
+          normal = norm(1:2)
+          if(icurv.eq.0) then
+             curv = 0.
+          else
+             call m3dc1_node_getcurv(inode-1, curv(1))
+          end if
 #ifdef USEST  
        end if
 #endif 

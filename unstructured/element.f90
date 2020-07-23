@@ -209,7 +209,12 @@ contains
     
     vectype, dimension(dofs_per_node), intent(in) :: invec
     vectype, dimension(dofs_per_node), intent(out) :: outvec
+#ifdef USEST
+    real :: newrot(dofs_per_node,dofs_per_node) 
 
+    call newrot_matrix(newrot,normal,curv,ic)
+          outvec = matmul(newrot,invec)
+#else
     ! Transformation from (R,Z) coeffs to (n,t) coeffs
     if(ic.eq.1) then
        outvec(1) = invec(1)
@@ -332,7 +337,108 @@ contains
             - normal(1)*normal(2)*invec(11)
 #endif
     endif
+#endif
   end subroutine rotate_dofs
+
+#ifdef USEST
+  ! define the matrces that are used in rotate_dofs
+  subroutine newrot_matrix(newrot,norm,curv,ic)
+    implicit none
+     
+    real, intent(in) :: curv(3), norm(2) 
+    integer, intent(in) :: ic
+    real, intent(out) :: newrot(dofs_per_node,dofs_per_node) 
+
+    newrot = 0.
+    if(ic.eq.-1 .or. ic.eq.2) then
+       ! newrot as used in tridef
+       newrot(1,1) = 1.
+       newrot(2,2) =  norm(1)
+       newrot(2,3) =  norm(2)
+       newrot(2,4) =  curv(1)*norm(2)**2
+       newrot(2,5) = -curv(1)*norm(1)*norm(2)
+       newrot(2,6) =  curv(1)*norm(1)**2
+       newrot(3,2) = -norm(2)
+       newrot(3,3) =  norm(1)
+       newrot(3,4) =  2.*curv(1)*norm(1)*norm(2)
+       newrot(3,5) = -curv(1)*(norm(1)**2 - norm(2)**2) 
+       newrot(3,6) = -2.*curv(1)*norm(1)*norm(2)
+       newrot(4,4) =  norm(1)**2 
+       newrot(4,5) =  norm(1)*norm(2)
+       newrot(4,6) =  norm(2)**2
+       newrot(5,4) = -2.*norm(1)*norm(2)
+       newrot(5,5) =  norm(1)**2 - norm(2)**2
+       newrot(5,6) =  2.*norm(1)*norm(2)
+       newrot(6,4) =  norm(2)**2
+       newrot(6,5) = -norm(1)*norm(2)
+       newrot(6,6) =  norm(1)**2
+#ifdef USE3D
+       newrot(7:12,7:12) = newrot(1:6,1:6)
+       newrot(2,8) = -norm(2)*curv(2)
+       newrot(3,8) = -norm(1)*curv(2)
+       newrot(2,9) =  norm(1)*curv(2)
+       newrot(3,9) = -norm(2)*curv(2)
+       newrot(2,10) =  2.*norm(1)*norm(2)*curv(2)*curv(1)+norm(2)**2*curv(3)
+       newrot(3,10) =  2.*(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
+                         +2.*norm(1)*norm(2)*curv(3)
+       newrot(4,10) = -2.*norm(1)*norm(2)*curv(2)
+       newrot(5,10) = -2.*(norm(1)**2-norm(2)**2)*curv(2)
+       newrot(6,10) =  2.*norm(1)*norm(2)*curv(2)
+       newrot(2,11) = -(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
+                          -norm(1)*norm(2)*curv(3)
+       newrot(3,11) =  4.*norm(1)*norm(2)*curv(2)*curv(1) &
+                          -(norm(1)**2-norm(2)**2)*curv(3)
+       newrot(4,11) =  (norm(1)**2-norm(2)**2)*curv(2)
+       newrot(5,11) = -4.*norm(1)*norm(2)*curv(2)
+       newrot(6,11) = -(norm(1)**2-norm(2)**2)*curv(2)
+       newrot(2,12) = -2.*norm(1)*norm(2)*curv(2)*curv(1)+norm(1)**2*curv(3)
+       newrot(3,12) = -2.*(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
+                          -2.*norm(1)*norm(2)*curv(3)
+       newrot(4,12) =  2.*norm(1)*norm(2)*curv(2)
+       newrot(5,12) =  2.*(norm(1)**2-norm(2)**2)*curv(2)
+       newrot(6,12) = -2.*norm(1)*norm(2)*curv(2)
+#endif
+       ! transpose of newrot
+       if(ic.eq.-1) newrot = transpose(newrot)
+    else if(ic.eq.1 .or. ic.eq.-2) then
+       ! inverse of newrot
+       newrot(1,1) = 1.
+       newrot(2,2) =  norm(1)
+       newrot(2,3) = -norm(2)
+       newrot(2,5) = -curv(1)*norm(2)
+       newrot(2,6) = -curv(1)*norm(1)
+       newrot(3,2) =  norm(2)
+       newrot(3,3) =  norm(1)
+       newrot(3,5) =  curv(1)*norm(1) 
+       newrot(3,6) = -curv(1)*norm(2)
+       newrot(4,4) =  norm(1)**2 
+       newrot(4,5) = -norm(1)*norm(2)
+       newrot(4,6) =  norm(2)**2
+       newrot(5,4) =  2.*norm(1)*norm(2)
+       newrot(5,5) =  norm(1)**2 - norm(2)**2
+       newrot(5,6) = -2.*norm(1)*norm(2)
+       newrot(6,4) =  norm(2)**2
+       newrot(6,5) =  norm(1)*norm(2)
+       newrot(6,6) =  norm(1)**2
+#ifdef USE3D
+       newrot(7:12,7:12) = newrot(1:6,1:6)
+       newrot(2,8) = -norm(2)*curv(2)
+       newrot(3,8) =  norm(1)*curv(2)
+       newrot(2,9) = -norm(1)*curv(2)
+       newrot(3,9) = -norm(2)*curv(2)
+       newrot(2:6,10) = 2*curv(2)*(newrot(2:6,5)-curv(1)*newrot(2:6,3)) 
+       newrot(2:6,11) = curv(2)*(newrot(2:6,6)-newrot(2:6,4)&
+                       +curv(1)*newrot(2:6,2)) + curv(3)*newrot(2:6,3) 
+       newrot(2:6,12) =-2*curv(2)*(newrot(2:6,5)-curv(1)*newrot(2:6,3)) &
+                       -curv(3)*newrot(2:6,2) 
+#endif
+       ! transpose of inverse of newrot
+       if(ic.eq.1) newrot = transpose(newrot)
+    else 
+       print *, 'rotate_dof option not recognized'
+    end if 
+  end subroutine newrot_matrix
+#endif
 
   !============================================================
   ! tmatrix
