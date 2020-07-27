@@ -47,7 +47,7 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile, nphi=nphi, $
   print, 'C'
 
   if(n_elements(qflux) eq 0) then begin
-     qflux = flux_at_q(q, psi=psi0,x=x,z=z,t=t,fc=fc)
+     qflux = flux_at_q(q, psi=psi0,x=x,z=z,t=t,fc=fc, /unique)
   end
   ;; ne0_x = interpol(ne0,qflux,flux)
   ;; ni0_x = interpol(ni0,qflux,flux)
