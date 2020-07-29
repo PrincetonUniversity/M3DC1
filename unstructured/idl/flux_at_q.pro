@@ -69,7 +69,7 @@ function flux_at_q, qval, q, normalized_flux=norm, points=pts, $
 
 
    if(nv eq 0) then begin
-      print, 'flux_at_q: could find surface with q = ', qval
+      print, 'flux_at_q: could not find surface with q = ', qval
       return, 0
    end
    return, fval
