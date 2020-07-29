@@ -58,6 +58,7 @@ module basic
   real :: eta_max, eta_min
   integer :: eta_mod
   real :: eta_te_offset  ! offset in Te when calculating eta
+  integer :: ikprad_te_offset  ! if 1, eta_te_offset also applied to kprad and ablation
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
   real :: amuoff, amudelt, amuoff2, amudelt2

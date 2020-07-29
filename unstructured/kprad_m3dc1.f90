@@ -451,6 +451,7 @@ contains
 
        ne = net79(:,OP_1)
        te = tet79(:,OP_1)
+       if(ikprad_te_offset .gt. 0) te = te - eta_te_offset
        p = pt79(:,OP_1)
 
        if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
