@@ -922,7 +922,9 @@ subroutine calculate_scalars()
                  ! weight density/temp by pellet distribution (normalized)
                  temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
                  nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
-                 temp_pel(ip) = temp_pel(ip) + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
+                 temp79b = pet79(:,OP_1)/net79(:,OP_1)
+                 if(ikprad_te_offset .gt. 0) temp79b = temp79b - eta_te_offset
+                 temp_pel(ip) = temp_pel(ip) + twopi*int2(temp79b,temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
               else
                  nsource_pel(ip) = 0.
                  temp_pel(ip) = 0.
