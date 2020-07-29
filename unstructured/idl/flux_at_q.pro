@@ -20,7 +20,7 @@ function flux_at_q, qval, q, normalized_flux=norm, points=pts, $
    if(n gt 1) then begin
       for k=0, n-1 do begin
          temp_f = flux_at_q(qval[k], q, normalized_flux=norm, points=pts, $
-                  q=temp_q, fc=fc, flux=flux, _EXTRA=extra)
+                  q=temp_q, fc=fc, flux=flux, unique=unique, _EXTRA=extra)
          if(temp_f[0] eq 0) then continue
          
          if(n_elements(fval) eq 0) then begin
