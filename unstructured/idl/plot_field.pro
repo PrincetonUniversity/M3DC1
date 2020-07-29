@@ -129,8 +129,11 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
        if(n_elements(q_contours) ne 0) then begin
            fval = flux_at_q(q_contours,points=p,_EXTRA=ex,$
                            filename=filename[0])
-           plot_flux_contour, fval, points=p, closed=0, /overplot, $
-             thick=!p.thick/2., filename=filename[0], _EXTRA=ex
+           if(fval[0] ne 0) then begin
+              plot_flux_contour, fval, points=p, closed=0, /overplot, $
+                                 thick=!p.thick/2., filename=filename[0], $
+                                 _EXTRA=ex
+           end
        endif
 
        if(keyword_set(axis)) then begin
