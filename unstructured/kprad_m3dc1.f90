@@ -408,7 +408,7 @@ contains
     real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
     logical, dimension(MAX_PTS) :: advance_kprad
 
-    integer :: i, itri, nelms, def_fields, izone, j
+    integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
     integer :: ip
 
