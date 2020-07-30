@@ -54,6 +54,7 @@ else
 endif
 
 SCOREC_BASE_DIR=/home/jinchen/LIB/scorec/intel18.0-mpi2018.3.64/$(PETSCVER)
+#SCOREC_BASE_DIR=/home/jinchen/LIB/scorec/intel18.0-openmpi3.3.0/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
