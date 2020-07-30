@@ -10847,8 +10847,8 @@ real function flux_heat()
   temp = int3(kap79(:,OP_1),norm79(:,1),tet79(:,OP_DR)) &
        + int3(kap79(:,OP_1),norm79(:,2),tet79(:,OP_DZ))
   temp = temp &
-       + int3(kap79(:,OP_1),norm79(:,1),tit79(:,OP_DR)) &
-       + int3(kap79(:,OP_1),norm79(:,2),tit79(:,OP_DZ))
+       + kappai_fac*(  int3(kap79(:,OP_1),norm79(:,1),tit79(:,OP_DR)) &
+                     + int3(kap79(:,OP_1),norm79(:,2),tit79(:,OP_DZ)))
 
   if(kappar.ne.0.) then
      temp79a = (tet79(:,OP_DZ)*pst79(:,OP_DR)-tet79(:,OP_DR)*pst79(:,OP_DZ))

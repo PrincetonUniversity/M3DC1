@@ -20,7 +20,7 @@
 ; OUTPUTS
 ;  
 
-pro plot_perturbed_surface, q, scalefac=scalefac, points=pts,  $
+pro plot_perturbed_surface, psi_norm, scalefac=scalefac, points=pts,  $
                             filename=filename, phi=phi0, _EXTRA=extra, $
                             out=out, color=color, names=names, $
                             overplot=overplot, xy_out=xy_out, theta=theta, $
@@ -31,7 +31,7 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts,  $
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    n = n_elements(filename)
-   nr = n_elements(q)
+   nr = n_elements(psi_norm)
    if(n_elements(theta) eq 0) then begin
       if(n_elements(ntheta) eq 0) then ntheta = 400
       theta = 2.*!pi*findgen(ntheta)/(ntheta) - !pi
@@ -60,20 +60,20 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts,  $
    if(n_elements(scalefac) eq 0) then scalefac=1.
    if(n_elements(scalefac) lt n) then scalefac = replicate(scalefac, n)
    if(n_elements(plotscale) eq 0) then plotscale=1.
-   if(n_elements(plotscale) lt n) then plotscale = replicate(plotscale, n)
    if(n_elements(phase) eq 0) then phase = 0.
    if(n_elements(phase) lt n) then phase = replicate(phase, n)
 
-   xy_out = fltarr(n,nr,2,nphi,ntheta)
-   xy0 = fltarr(nr,2,nphi,ntheta)
-   axis_out = fltarr(n,2)
-   flux = fltarr(n,nr)
+   nn = n
+   if(keyword_set(sum)) then nn=1
+   xy_out = fltarr(nn,nr,2,nphi,ntheta)
+   axis_out = fltarr(nn,2)
+   flux = fltarr(nn,nr)
 
    if(n gt 1 and not keyword_set(sum)) then begin
        c = shift(get_colors(), -1)
 
        for i=0, n-1 do begin
-           plot_perturbed_surface, q, scalefac=scalefac[i], points=pts, $
+           plot_perturbed_surface, psi_norm, scalefac=scalefac[i], points=pts,$
                                    filename=filename[i], phi=phi0, color=c[i],$
                                    overplot=(i ne 0), xy_out=xy_out_tmp, $
                                    axis=axis_tmp, flux=flux_tmp, $
@@ -139,10 +139,10 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts,  $
    end
 
    if(n_elements(bins) eq 0) then bins = n_elements(x)
-   fvals = flux_at_q(q, points=pts, filename=filename, $
-                     normalized_flux=norm, bins=bins, fc=fc)
+
+   psilim = lcfs(file=filename[0], flux0=psimin)
+   fvals = psimin + psi_norm*(psilim - psimin)
    flux[0,*] = fvals
-   print, fvals
 
    xhat = psi0_r/sqrt(psi0_r^2 + psi0_z^2)
    zhat = psi0_z/sqrt(psi0_r^2 + psi0_z^2)
@@ -168,6 +168,8 @@ pro plot_perturbed_surface, q, scalefac=scalefac, points=pts,  $
 
    nk = 1
    if(n_elements(fvals) gt 8) then nk = ceil(n_elements(fvals) / 8)
+
+   xy0 = fltarr(nr,2,nphi,ntheta)
 
    for k=0, n_elements(fvals)-1 do begin
       for m=0, nphi-1 do begin

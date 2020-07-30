@@ -136,16 +136,14 @@ Program Reducedquintic
   endif
 #endif
 
-#ifdef USE3D
-  if(myrank==0) call parse_solver_options(trim(solveroption_filename)//PETSC_NULL_CHARACTER)
-#endif
-
   ! read input file
   if(myrank.eq.0) print *, ' Reading input'
   call input
 
   ! load mesh
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
+  if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
+
 
 #ifndef M3DC1_TRILINOS
   call m3dc1_matrix_setassembleoption(imatassemble)

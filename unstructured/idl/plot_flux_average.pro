@@ -19,6 +19,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(linfac) eq 0) then linfac = 1.
+   if(n_elements(fac) eq 0) then fac = 1.
    if(n_elements(ls) eq 0) then ls = 0
 
    if(n_elements(time) eq 0) then time=0
@@ -224,17 +225,24 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    endif
 
    if(n_elements(q_contours) ne 0) then begin
-       fvals = flux_at_q(q_contours, points=pts, filename=filename, $
-                         slice=time, normalized_flux=norm, bins=bins)
+       fvals = flux_at_q(q_contours, points=pts, filename=filename, fc=fc, $
+                         slice=time, normalized_flux=norm, bins=bins, q=q)
+       if(fvals[0] gt 0) then begin
+
        for k=0, n_elements(fvals)-1 do begin
            oplot, [fvals[k], fvals[k]], !y.crange, linestyle=1, color=colors
+           xyouts, fvals[k], (!y.crange[1]-!y.crange[0])*0.8 + !y.crange[0], $
+                   '!8q!6=' + string(format='(F0.2)', q[k]) +'!X', orient=90
        end
        result = interpol(fa, flux, fvals)
        print, 'filename = ', filename
        val_at_q = result
        qflux = fvals
+       print, "q's =  ", q
        print, "flux at q's =  ", qflux
        print, "values at q's =  ", val_at_q
+
+       end
    endif
 
    if(n_elements(outfile) eq 1) then begin

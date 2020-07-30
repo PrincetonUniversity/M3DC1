@@ -307,6 +307,8 @@ subroutine set_defaults
        "1 = remove d/dphi terms in resistivity", transp_grp)
   call add_var_double("eta_te_offset", eta_te_offset, 0., &
        "Offset in Te when calculating eta", transp_grp)
+  call add_var_int("ikprad_te_offset", ikprad_te_offset,0, &
+       "If 1, eta_te_offset also applied to kprad", transp_grp)
   call add_var_double("eta_max", eta_max, 0., &
        "Maximum value of resistivity in the plasma region", transp_grp)
   call add_var_double("eta_min", eta_min, 0., &
@@ -1061,6 +1063,8 @@ subroutine set_defaults
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &
        "Number of toroidal planes", mesh_grp)
+  call add_var_int("iread_planes", iread_planes, 0, &
+       "Read positions of toroidal planes from plane_positions", mesh_grp)
   call add_var_double("xzero", xzero, 0., "", mesh_grp)
   call add_var_double("zzero", zzero, 0., "", mesh_grp)
   call add_var_double("tiltangled", tiltangled, 0., "", mesh_grp)
