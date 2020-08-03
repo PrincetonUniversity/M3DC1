@@ -125,7 +125,7 @@
 	nonrect = 1
 
 	mesh_filename = 'part.smb'
-	mesh_model = 'kstar-0.02-2.20-3.60.txt'
+	mesh_model = 'kstar-0.02-2.2-3.6.txt'
 
 	icsubtract = 1
 	imulti_region = 1

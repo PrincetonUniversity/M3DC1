@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 29
+  integer, parameter :: version = 33
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -52,12 +52,14 @@ module basic
   integer :: iresfunc   ! if 1, use new resistivity function
   integer :: ivisfunc   ! if 1, use new resistivity function
   integer :: ikappafunc ! if 1, use new resistivity function
+  integer :: idenmfunc
   integer :: ikappar_ni
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: eta_fac
-  real :: eta_max
+  real :: eta_max, eta_min
   integer :: eta_mod
   real :: eta_te_offset  ! offset in Te when calculating eta
+  integer :: ikprad_te_offset  ! if 1, eta_te_offset also applied to kprad and ablation
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
   real :: amuoff, amudelt, amuoff2, amudelt2
@@ -72,6 +74,7 @@ module basic
   real :: kappag
   real :: kappaf
   real :: kappai_fac
+  real :: kappa_max
   real :: denm        ! artificial density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
@@ -88,6 +91,7 @@ module basic
   real :: gam         ! ratio of specific heats
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
+  real :: vloopRZ     ! rate at which boundary TF changes
   real :: mass_ratio  ! me/mi (in units of me/mp)
   real :: z_ion       ! Z of main ion species
   real :: ion_mass    ! Effective mass of ions (in proton mass/particle)
@@ -204,11 +208,6 @@ module basic
   integer :: igs_extend_p ! extend p past psi=1 using te and ne profiles
   integer :: igs_extend_diamag ! extend diamagnetic rotation past psi=1
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
-  integer :: igs_method  ! 1 = use node-based method (fastest, least accurate)
-                         ! 2 = use element-based method, and calculate p from
-                         !     input p profile (closest fit to input equil.)
-                         ! 3 = use element-based method, and calculate p from
-                         !     input p' profile (best gs solution)
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -218,6 +217,8 @@ module basic
   real :: p1, p2
   real :: pedge       ! pressure in SOL
   real :: tedge       ! electron temperature in SOL
+  real :: tebound      ! boundary condition for electron temperature
+  real :: tibound      ! boundary condition for ion temperature
   real :: expn        ! density = pressure**expn
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
@@ -257,8 +258,6 @@ module basic
                          ! 3 = zero out chi only
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
-  integer :: ivform      ! deprecated
-  integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
                          ! >2 hyper-resistivity also scaled by keharmonic(ihypeta)
@@ -292,6 +291,7 @@ module basic
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
+  integer :: pskip       ! number of timesteps per perconditioner recalculation
   integer :: iskippc     ! number of times preconditioner is reused
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
@@ -309,7 +309,8 @@ module basic
   integer :: isurface    ! include surface terms
   integer :: equilibrate ! 1 = scale trial functions so L2 norms = 1
   integer :: itime_independent ! 1 = exclude d/dt terms
-  integer :: iset_pe_floor
+  integer :: iset_pe_floor, iset_pi_floor
+  integer :: iset_te_floor, iset_ti_floor
   integer :: idiff       ! 1 = solve for difference in solution in B,p from n to n+1
   integer :: idifv       ! 1 = solve for difference in solution in v from n to n+1
   integer :: ksp_max     ! if.gt.0  max number of petsc iterations before time step is repeated
@@ -326,7 +327,8 @@ module basic
   real :: chiiner        ! factor to multiply chi inertial terms
   real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
   real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
-  real :: pe_floor
+  real :: pe_floor, pi_floor
+  real :: te_floor, ti_floor
   real :: frequency      ! frequency in time-independent calculation
 
   ! poloidal force parameters
@@ -375,8 +377,6 @@ module basic
   integer :: itimer        ! print timing info
   integer :: ntimepr       ! number of timesteps per output  
   integer :: ntimers       ! number of timesteps per restart output
-  integer :: iglobalout    ! 1 = write global restart files
-  integer :: iglobalin     ! 1 = read global restart files
   integer :: icalc_scalars ! 1 = calculate scalars
   integer :: ike_only      ! 1 = only calculate kinetic energy
   integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
@@ -402,10 +402,6 @@ module basic
   integer :: iheat_sink   !  add a sink term in p equation (initially for itaylor=27)
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
-  integer :: iwrite_restart ! 0 = don't write restart files
-  integer :: iwrite_adios
-  integer :: iread_adios
-  integer :: iread_hdf5
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
@@ -477,7 +473,7 @@ module arrays
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
-  type(field_type) :: resistivity_field, kappa_field
+  type(field_type) :: resistivity_field, kappa_field, denm_field
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field

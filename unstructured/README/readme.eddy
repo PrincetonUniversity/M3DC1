@@ -2,26 +2,37 @@
 	ssh your_id@eddy.princeton.edu
 
 2. code
+   git clone https://github.com/PrincetonUniversity/M3DC1.git
 
 3. load modules
-      module load intel/16.0/64/16.0.4.258
-      module load openmpi/intel-16.0/1.10.2/64
-      module load hdf5/intel-16.0/openmpi-1.10.2/1.8.16
-      module load fftw/intel-16.0/openmpi-1.10.2/3.3.4
-      module load gsl/2.4
+
+   for release version modules:
+       module use /home/nferraro/modules
+
+   for development modules:
+       setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+       module use $M3DC1_CODE_DIR/unstructured/modules/eddy
+       module load m3dc1/devel
 
 4. compile code
-	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=eddy
-	2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=eddy
+	2D real: make OPT=1 RL=1 MAX_PTS=25
+	2D complex: make OPT=1 COM=1 MAX_PTS=25
             - add PAR=1 to run PIC
-	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=eddy
+	3D real: make 3D=1 OPT=1 MAX_PTS=60
         
 5. mesh utility
-        home/jinchen/LIB/scorec/intel16.0-openmpi1.10.2/bin
+      /home/jinchen/LIB/scorec/intel18.0-mpi2018.3.64/petsc3.12.0/bin
 
 6. run a job 
 
 6.1 interactive mode
+  
+  $salloc -n N -t HH:MM:SS 
+  $module load intel/18.0/64/18.0.3.222 openmpi/intel-18.0/3.0.0/64 gsl/2.4
+  (complex) $srun -n N ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps
+  (2D real) $srun -n N  ./m3dc1_2d
+  (3D real) $srun -n N ./m3dc1_3d -ipetsc -options_file options_bjacobi
+  $exit
 
 6.2 batch mode
 
@@ -33,6 +44,7 @@
 	#SBATCH --ntasks-per-node=16
 	#SBATCH -J JOB
 	#SBATCH --time=00:30:00
+        module load intel/18.0/64/18.0.3.222 openmpi/intel-18.0/3.0.0/64 gsl/2.4
         #2D complex
             srun -n 8 ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps
         #2D real with petsc

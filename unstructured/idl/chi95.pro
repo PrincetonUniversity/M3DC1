@@ -1,11 +1,12 @@
-function chi95, filename, psi0=psi0, current=cur, sum_files=sum_files
+function chi95, filename, psi0=psi0, current=cur, sum_files=sum_files, $
+                netcdf=netcdf
 
    if(n_elements(psi0) eq 0) then psi0 = 0.95
    if(n_elements(psi0) lt n_elements(filename)) then $
      psi0 = replicate(psi0, n_elements(filename))
 
    chi = chirikov(filename, psin=psin, psimid=psimid, current=cur, $
-                  sum_files=sum_files)
+                  sum_files=sum_files, netcdf=netcdf)
 
    m = n_elements(chi[0,*])
 ;   if(keyword_set(sum_files)) then n = 1 else n =

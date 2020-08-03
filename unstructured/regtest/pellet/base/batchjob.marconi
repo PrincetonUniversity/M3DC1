@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --account=FUA34_WPJET1
+#SBATCH --partition=skl_fua_dbg # partition name
+##SBATCH --partition=skl_fua_prod # partition name
+#SBATCH --nodes=4                    # 1 node
+#SBATCH --ntasks-per-node=32         # 36 tasks per node
+##SBATCH --cpus-per-task=1
+#SBATCH --time=0:30:00
+##SBATCH --qos=<qos_name>             # quality of service
+#SBATCH --job-name=M3DC1_regtest_pellet
+#SBATCH -o C1stdout
+
+touch started
+
+#create_mesh.sh
+#echo $? > mesh_created
+
+cd $CINECA_SCRATCH
+mkdir -p pellet
+cd pellet
+cp -p $SLURM_SUBMIT_DIR/* .
+
+# partition mesh
+part_mesh.sh analytic-2K.smb 32
+echo $? > mesh_partitioned
+
+srun -n 128 -c 1 m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps
+
+touch finished
+
+mv mesh_partitioned equilibrium.h5 time_*.h5 C1.h5 C1ke finished C1stdout $SLURM_SUBMIT_DIR
+

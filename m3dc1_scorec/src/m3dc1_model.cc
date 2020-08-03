@@ -252,7 +252,7 @@ void load_model(const char* filename)
           break;
         }
         default: std::cout<<"[M3DC1 ERROR] "<<__func__<<": unsupported curve type "<<std::endl; 
-                 throw 1; break;
+                 throw 1; 
       }
     }
     create_loop( &loop, &numE, edges);
@@ -1080,7 +1080,7 @@ void save_model(const char* filename)
           break;
         }
         default: std::cout<<"[M3DC1 ERROR] "<<__func__<<": unsupported curve type "<<std::endl; 
-                 throw 1; break;
+                 throw 1; 
       }
     }
   } 

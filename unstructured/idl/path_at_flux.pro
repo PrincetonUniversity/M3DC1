@@ -3,7 +3,8 @@ function path_at_flux, psi,x,z,t,flux,refine=refine,$
                        contiguous=contiguous, path_points=pts
 
    contour, psi[0,*,*], x, z, levels=flux, closed=0, $
-     path_xy=xy, path_info=info, /path_data_coords, /overplot
+     path_xy=xy, path_info=info, /path_data_coords, /overplot, /path_double
+            
 
    if(n_elements(xy) eq 0) then begin
        print, 'Error: no points at this flux value', flux
@@ -33,6 +34,7 @@ function path_at_flux, psi,x,z,t,flux,refine=refine,$
             break
          end
       end
+
 ;       ibig = 0
 ;       nbig = 0
 ;       for k=0, n_elements(info)-1 do begin
@@ -42,6 +44,13 @@ function path_at_flux, psi,x,z,t,flux,refine=refine,$
 ;           end
 ;       end
 ;       xy = xy[*,info[ibig].offset:info[ibig].offset+info[ibig].n-1]
+
+      ; make sure path is closed
+;      path = xy
+;      xy = fltarr(2, n_elements(path[0,*])+1)
+;      xy[0,*] = [reform(path[0,*]), reform(path[0,0])]
+;      xy[1,*] = [reform(path[1,*]), reform(path[1,0])]
+      
    end
 
    if(n_elements(interval) ne 0) then begin

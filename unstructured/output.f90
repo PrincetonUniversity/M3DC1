@@ -8,14 +8,15 @@ module m3dc1_output
 
 contains
 
-  subroutine initialize_output
+  subroutine initialize_output ()
     use basic
     use hdf5_output
     implicit none
 
     integer :: ier
     
-    call hdf5_initialize(irestart.ne.0,ier)
+   call hdf5_initialize(irestart.ne.0, ier)
+
     if(ier.lt.0) then 
        print *, "Error initializing HDF5"
        call safestop(5)
@@ -123,32 +124,6 @@ contains
   1002 format("OUTPUT: hdf5_flush           ", I5, 1p2e16.8,i5)
     end if    
 
-    ! only write restart file evey ntimers timesteps
-    if(iwrite_restart.eq.1 .and. mod(ntime-ntime0,ntimers).eq.0 .and. ntime.ne.ntime0) then
-       if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-       if(myrank.eq.0 .and. iprint.ge.1) print *, "  writing restart files"
-       if(iglobalout.eq.1) then
-          call wrrestartglobal
-       else
-          if(iwrite_adios.eq.1) then
-             call wrrestart_adios
-          else
-!...........sequential restart writing
-             do i=0,maxrank-1
-                if(myrank.eq.i) call wrrestart
-                call MPI_Barrier(MPI_COMM_WORLD,ier)
-             enddo
-          end if
-       endif
-       if(myrank.eq.0 .and. itimer.eq.1) then
-          call second(tend)
-          diff = tend - tstart
-          if(iprint.ge.1) write(*,1006) ntime,diff,t_output_hdf5
-1006      format("OUTPUT: wrrestart            ", I5, 1p2e16.8)
-       endif
-    endif
- 
-
     ! Write C1ke data
     if(myrank.eq.0) then
        if((ekin+ekino)*dtold.eq.0. .or. ekin.eq.0.) then
@@ -181,8 +156,6 @@ subroutine hdf5_write_parameters(error)
 
   integer(HID_T) :: root_id
 
-  if(myrank.eq.0 .and. iprint.ge.2) print *, 'Writing attributes'
-
   call h5gopen_f(file_id, "/", root_id, error)
 
 #ifdef USE3D
@@ -196,6 +169,9 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "nplanes"    , nplanes,    error)
 
   call write_int_attr (root_id, "version"    , version,    error)
+
+  if (myrank.eq.0) print *, 'Writing HDF5 file for restart: version=', version
+
   call write_int_attr (root_id, "numvar"     , numvar,     error)
   call write_int_attr (root_id, "idens"      , idens,      error)
   call write_int_attr (root_id, "ipres"      , ipres,      error)
@@ -214,6 +190,7 @@ subroutine hdf5_write_parameters(error)
   call write_int_attr (root_id, "integrator" , integrator, error)
   call write_int_attr (root_id, "ipellet"    , ipellet,    error)
   call write_int_attr (root_id, "ipellet_abl", ipellet_abl,error)
+  call write_int_attr (root_id, "npellets"   , npellets,   error)
   call write_int_attr (root_id, "ivform"     , 1,          error)
   call write_int_attr (root_id, "ntor"       , ntor,       error)
   call write_int_attr (root_id, "nonrect"    , nonrect,    error)
@@ -327,7 +304,7 @@ subroutine hdf5_write_scalars(error)
 
   integer, intent(out) :: error
 
-  integer(HID_T) :: root_id, scalar_group_id, fl_group_id, mp_group_id
+  integer(HID_T) :: root_id, scalar_group_id, fl_group_id, mp_group_id, pel_group_id
 
   real :: temp
 
@@ -341,11 +318,14 @@ subroutine hdf5_write_scalars(error)
      call write_int_attr(scalar_group_id, "ntimestep", ntime, error)
      if(imag_probes.ne.0) call h5gcreate_f(root_id, "mag_probes", mp_group_id, error)
      if(iflux_loops.ne.0) call h5gcreate_f(root_id, "flux_loops", fl_group_id, error)
+     if(ipellet.ne.0) call h5gcreate_f(root_id, "pellet", pel_group_id, error)
   else
      call h5gopen_f(root_id, "scalars", scalar_group_id, error)
      call update_int_attr(scalar_group_id, "ntimestep", ntime, error)
      if(imag_probes.ne.0) call h5gopen_f(root_id, "mag_probes", mp_group_id, error)
      if(iflux_loops.ne.0) call h5gopen_f(root_id, "flux_loops", fl_group_id, error)
+     if((ipellet.ne.0).and.((irestart.eq.0).or.(version_in.ge.31))) &
+          call h5gopen_f(root_id, "pellet", pel_group_id, error)
   endif
 
   ! State Variables (needed for restart)
@@ -364,18 +344,41 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "zmag"    ,zmag    ,ntime,error)
 
   ! Pellet stuff
-  call output_scalar(scalar_group_id, "pellet_r",   pellet_r,   ntime, error)
-  call output_scalar(scalar_group_id, "pellet_phi", pellet_phi, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_z",   pellet_z,   ntime, error)
-  call output_scalar(scalar_group_id, "pellet_velr", pellet_velr, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_velphi", pellet_velphi, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_velz", pellet_velz, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_vx", pellet_vx, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_vy", pellet_vy, ntime, error)
-  call output_scalar(scalar_group_id, "pellet_var", pellet_var, ntime, error)
-  call output_scalar(scalar_group_id, "r_p",        r_p,        ntime, error)
-  call output_scalar(scalar_group_id, "pellet_rate", pellet_rate, ntime, error)
-
+  if(ipellet.ne.0) then
+     if((irestart.eq.0).or.(version_in.ge.31)) then
+        call output_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
+        call output_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+        if((irestart.eq.0).or.(version_in.ge.33)) then
+           call output_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
+        end if
+     else
+        call output_scalar(scalar_group_id, "pellet_r",   pellet_r(1),   ntime, error)
+        call output_scalar(scalar_group_id, "pellet_phi", pellet_phi(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_z",   pellet_z(1),   ntime, error)
+        call output_scalar(scalar_group_id, "pellet_velr", pellet_velr(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_velphi", pellet_velphi(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_velz", pellet_velz(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_vx", pellet_vx(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_vy", pellet_vy(1), ntime, error)
+        call output_scalar(scalar_group_id, "pellet_var", pellet_var(1), ntime, error)
+        call output_scalar(scalar_group_id, "r_p",        r_p(1),        ntime, error)
+        call output_scalar(scalar_group_id, "pellet_rate", pellet_rate(1), ntime, error)
+     end if
+  end if
+ 
   ! Controllers
   call output_scalar(scalar_group_id, "loop_voltage",        vloop,               ntime, error)
   call output_scalar(scalar_group_id, "i_control%err_i",     i_control%err_i,     ntime, error)
@@ -400,6 +403,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
+  call output_scalar(scalar_group_id, "helicity"        ,helicity,ntime, error)
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
@@ -453,6 +457,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, error)
   call output_scalar(scalar_group_id, "recp_rad"        , recprad, ntime, error)
 
+
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
   end if
@@ -501,7 +506,8 @@ subroutine hdf5_write_scalars(error)
   call h5gclose_f(scalar_group_id, error)
   if(imag_probes.ne.0) call h5gclose_f(mp_group_id, error)
   if(iflux_loops.ne.0) call h5gclose_f(fl_group_id, error)
-
+  if((ipellet.ne.0).and.((irestart.eq.0).or.(version_in.ge.31))) &
+          call h5gclose_f(pel_group_id, error)
   call h5gclose_f(root_id, error)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done writing scalars'
@@ -574,6 +580,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   character(LEN=19) :: time_file_name
   integer(HID_T) :: time_file_id, time_root_id, plist_id
   integer :: info
+  logical :: link_exists
 
   call hdf5_get_local_elms(nelms, error)
 
@@ -588,7 +595,8 @@ subroutine hdf5_write_time_slice(equilibrium, error)
 
   ! remove the time group link if it already exists
   ! from before a restart
-  if(irestart.ne.0 .and. ntime.eq.ntime0) then
+  call h5lexists_f(file_id, time_group_name, link_exists, error)
+  if(link_exists) then
      call h5gunlink_f(file_id, time_group_name, error)
   endif
 
@@ -992,8 +1000,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
      call write_field(group_id, "eta", resistivity_field, nelms, error, .true.)
      call write_field(group_id, "visc", visc_field, nelms, error, .true.)
-     call write_field(group_id, "visc_c", visc_c_field, nelms, error)
-     call write_field(group_id, "kappa", kappa_field, nelms, error)
+     call write_field(group_id, "visc_c", visc_c_field, nelms, error, .true.)
+     call write_field(group_id, "kappa", kappa_field, nelms, error, .true.)
+     call write_field(group_id, "denm", denm_field, nelms, error, .true.)
      
      ! poloidal force and mach number
      if(ipforce.gt.0) then
@@ -1233,7 +1242,6 @@ subroutine hdf5_write_kspits(error)
   else
      call h5gopen_f(root_id, "kspits", kspits_group_id, error)
   endif
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'before output_1dextendarr'
 
   ! ksp iteration number for solve #5(velocity) #17(pressure) #6(field) stored in array kspits(3)
   ! kspits(1) : #5(velocity)
@@ -1241,7 +1249,6 @@ subroutine hdf5_write_kspits(error)
   ! kspits(3) : #17(pressure)
   ! kspits(4) : #6(field)
   call output_1dextendarr(kspits_group_id, "kspits" , kspits, maxnumofsolves, ntime, error)
-  if(myrank.eq.0 .and. iprint.ge.1) print *, error, 'after output_1dextendarr', error
 
   call h5gclose_f(kspits_group_id, error)
   call h5gclose_f(root_id, error)

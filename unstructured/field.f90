@@ -573,17 +573,22 @@ contains
   ! sets dofs of field of field fout in element itri 
   ! given the polynomial coefficients avector
   !==========================================================
-  subroutine setavector(itri, fout, avector)
+  subroutine setavector(itri, fout, avector, trans_mat)
     use mesh_mod
     implicit none
     
     integer, intent(in) :: itri
     type(field_type), intent(inout) :: fout
+    vectype, optional, dimension(dofs_per_element, dofs_per_element) :: &
+         trans_mat
 
     vectype, dimension(coeffs_per_element), intent(in) :: avector
     vectype, dimension(dofs_per_element) :: dofs
 
     call local_dofs(itri, dofs, avector)
+    if(present(trans_mat)) then 
+       dofs = matmul(trans_mat,dofs)
+    end if
     call set_element_dofs(fout, itri, dofs)
   end subroutine setavector
 

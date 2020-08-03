@@ -1,0 +1,24 @@
+#!/bin/bash
+#SBATCH -p general
+#SBATCH -n 48
+#SBATCH --mem-per-cpu=2000M
+#SBATCH -J M3DC1_regtest_KPRAD_2D
+#SBATCH -t 00:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+#create_fixed_mesh.sh AnalyticModel 0.06
+#echo $? > mesh_created
+
+part_mesh.sh analytic-2K.smb 48
+echo $? > mesh_partitioned
+
+cp C1input.1 C1input
+$M3DC1_MPIRUN -n 48 m3dc1_2d -pc_factor_mat_solver_type mumps -mat_mumps_icntl_14 100
+
+cp C1input.2 C1input
+$M3DC1_MPIRUN -n 48 m3dc1_2d -pc_factor_mat_solver_type mumps -mat_mumps_icntl_14 100
+
+
+touch finished

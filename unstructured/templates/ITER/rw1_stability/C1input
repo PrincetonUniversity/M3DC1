@@ -125,7 +125,7 @@
 	nonrect = 1
 
 	mesh_filename = 'part.smb'
-	mesh_model = 'iter-0.05-6.00-9.00.txt'
+	mesh_model = 'iter-0.05-6.0-9.0.txt'
 
 !	icsubtract = 1
 	imulti_region = 1

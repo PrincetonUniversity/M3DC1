@@ -1,12 +1,13 @@
 pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
                  srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra, phase=phase, $
                  jmn=jmn, out=outfile, overplot=over, nolegend=nolegend, $
-                 linestyle=linestyle
+                 linestyle=linestyle, current=cur
 
   if(n_elements(factor) eq 0) then factor = 1.
 
   read_bmncdf, file=filename, _EXTRA=extra, bmn=bmn, psi=psi, m=m, q=q, $
-               rho=rho, ntor=ntor, symbol=symbol, units=units, jmn=j
+               rho=rho, ntor=ntor, symbol=symbol, units=units, jmn=j, $
+               current=cur
 
   if(keyword_set(jmn)) then begin
      bmn = j
@@ -50,7 +51,7 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
   mm = indgen(n) + mrange[0]
   qq = float(mm)/float(ntor)
 
-  psin = flux_at_q(abs(qq),q=abs(q),flux=psi)
+  psin = flux_at_q(abs(qq),abs(q),flux=psi,q=qout)
 
   ct3
   c = intarr(n)
@@ -69,7 +70,12 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
         yrange = 10^!y.crange
      endif else yrange = !y.crange
      oplot, psi, data[i,*], color=c[j], linestyle=linestyle
-     oplot, [psin[j],psin[j]], yrange, color=c[j], linestyle=2
+     
+     if(psin[0] eq 0) then continue
+     for k=0, n_elements(psin)-1 do begin
+        if(abs(abs(qout[k])-abs(qq[j])) gt 0.001) then continue
+        oplot, [psin[k],psin[k]], yrange, color=c[j], linestyle=2
+     end
   end
   if(not keyword_set(nolegend)) then begin
      plot_legend, name, color=c, ylog=ylog, _EXTRA=extra

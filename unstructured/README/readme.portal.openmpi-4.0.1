@@ -1,0 +1,66 @@
+Updated
+
+1. login from pppl portal
+	ssh portal
+
+2. code
+
+3. load modules and set enviroments
+
+   setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+   module use /p/m3dc1/modules
+   module load m3dc1/devel-4.0.1
+
+4. compile code
+  For PETSc-real
+    - (2D) make OPT=1
+    - (3D) make 3D=1 OPT=1 MAX_PTS=60
+
+  For PETSc-complex, 
+    - make OPT=1 COM=1
+    - add PAR=1 for PIC 
+
+  Set SCORECVER in order to link with various m3dc1_scorec versions
+  (ex) if SCORECVER=debug it will link to a debug version of SCOREC libraries 
+       (lots of print statements & sanity check)
+
+5. mesh utility
+  See $(SCOREC_UTIL_DIR) in .mk file
+
+6. prepare jobscript
+
+	#!/bin/bash -vx
+        #SBATCH --partition=kruskal;mque;ellis etc.
+        #SBATCH --ntasks=N (max=64)
+        #SBATCH -J m3dc1
+	#SBATCH -t 01:00:00
+        #SBATCH --mail-type=END
+        #SBATCH --mail-user=<username>@pppl.gov
+
+	#2D complex
+	mpirun --bind-to none -np N ./m3dc1_2d_complex -pc_factor_mat_solver_type mumps
+
+	#2D real
+	mpirun --bind-to none -np N ./m3dc1_2d
+
+	#3D real with PETSc
+	mpirun --bind-to none  -np N ./m3dc1_3d -ipetsc -options_file options_bjacobi
+
+       #3D real with Trilinos
+       mpirun --bind-to none  -np N ./m3dc1_3d_trilinos
+ 
+7. submit job
+        sbatch jobscript
+	
+	or:   sbatch --dependency=afterok:123 jobscript
+
+8. list all curent jobs for a user
+        squeue -u <username>
+
+9. delete a job
+        scancel <jobid>
+
+NOTE:  To enable subsequent jobs to run on separate processes, use:
+       mpiexec --bind-to none -np 16 .....
+       DO NOT include #SBATCH --exclusive
+

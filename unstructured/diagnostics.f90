@@ -18,7 +18,8 @@ module diagnostics
   real :: w_m    ! totoidal poloidal magnetic energy inside plasma
   real :: w_p    ! totoidal poloidal magnetic energy inside plasma
   real :: totre  ! total number of runaway electrons
-
+  real :: helicity ! total helicity
+  
   ! wall forces in R, phi, and Z directions
   real :: wall_force_n0_x, wall_force_n0_y, wall_force_n0_z
   real :: wall_force_n0_x_halo, wall_force_n0_z_halo
@@ -234,8 +235,10 @@ contains
     nfluxd = 0.
     nfluxv = 0.
     nsource = 0.
-    nsource_pel = 0.
-    temp_pel = 0.
+    if(ipellet_abl.gt.0) then
+       nsource_pel = 0. ! this is an array
+       temp_pel = 0.    ! this is an array
+    end if
 
     bwb2 = 0.
 
@@ -257,6 +260,7 @@ contains
     wall_force_n0_x_halo = 0.
     wall_force_n0_z_halo = 0.
 
+    helicity = 0.
 
   end subroutine reset_scalars
 
@@ -274,9 +278,10 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 74
+    integer, parameter :: num_scalars = 73
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
+    double precision, allocatable  :: ptemp(:)
 
     ! Allreduce energy terms
     if(maxrank .gt. 1) then
@@ -328,32 +333,31 @@ contains
        temp(46) = volume
        temp(47) = xray_signal
        temp(48) = wallcur
-       temp(49) = nsource_pel
-       temp(50) = temp_pel
-       temp(51) = totrad         
-       temp(52) = linerad        
-       temp(53) = bremrad        
-       temp(54) = ionrad         
-       temp(55) = reckrad        
-       temp(56) = recprad        
-       temp(57) = totre          
-       temp(58) = m_iz           
-       temp(59) = wall_force_n0_x
-       temp(60) = wall_force_n0_y
-       temp(61) = wall_force_n0_z
-       temp(62) = wall_force_n1_x
-       temp(63) = wall_force_n1_y
-       temp(64) = wall_force_n1_z
-       temp(65) = totne          
-       temp(66) = w_pe           
-       temp(67) = pcur_co        
-       temp(68) = pcur_sn        
-       temp(69) = m_iz_co        
-       temp(70) = m_iz_sn        
-       temp(71) = w_m
-       temp(72) = w_p
-       temp(73) = wall_force_n0_x_halo
-       temp(74) = wall_force_n0_z_halo
+       temp(49) = totrad         
+       temp(50) = linerad        
+       temp(51) = bremrad        
+       temp(52) = ionrad         
+       temp(53) = reckrad        
+       temp(54) = recprad        
+       temp(55) = totre          
+       temp(56) = m_iz           
+       temp(57) = wall_force_n0_x
+       temp(58) = wall_force_n0_y
+       temp(59) = wall_force_n0_z
+       temp(60) = wall_force_n1_x
+       temp(61) = wall_force_n1_y
+       temp(62) = wall_force_n1_z
+       temp(63) = totne          
+       temp(64) = w_pe           
+       temp(65) = pcur_co        
+       temp(66) = pcur_sn        
+       temp(67) = m_iz_co        
+       temp(68) = m_iz_sn        
+       temp(69) = w_m
+       temp(70) = w_p
+       temp(71) = wall_force_n0_x_halo
+       temp(72) = wall_force_n0_z_halo
+       temp(73) = helicity
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -407,32 +411,45 @@ contains
        volume          = temp2(46)
        xray_signal     = temp2(47)
        wallcur         = temp2(48)
-       nsource_pel     = temp2(49)
-       temp_pel        = temp2(50)
-       totrad          = temp2(51)
-       linerad         = temp2(52)
-       bremrad         = temp2(53)
-       ionrad          = temp2(54)
-       reckrad         = temp2(55)
-       recprad         = temp2(56)
-       totre           = temp2(57)
-       m_iz            = temp2(58)
-       wall_force_n0_x = temp2(59)
-       wall_force_n0_y = temp2(60)
-       wall_force_n0_z = temp2(61)
-       wall_force_n1_x = temp2(62)
-       wall_force_n1_y = temp2(63)
-       wall_force_n1_z = temp2(64)
-       totne           = temp2(65)
-       w_pe            = temp2(66)
-       pcur_co         = temp2(67)
-       pcur_sn         = temp2(68)
-       m_iz_co         = temp2(69)
-       m_iz_sn         = temp2(70)
-       w_m             = temp2(71)
-       w_p             = temp2(72)
-       wall_force_n0_x_halo = temp2(73)
-       wall_force_n0_z_halo = temp2(74)
+       totrad          = temp2(49)
+       linerad         = temp2(50)
+       bremrad         = temp2(51)
+       ionrad          = temp2(52)
+       reckrad         = temp2(53)
+       recprad         = temp2(54)
+       totre           = temp2(55)
+       m_iz            = temp2(56)
+       wall_force_n0_x = temp2(57)
+       wall_force_n0_y = temp2(58)
+       wall_force_n0_z = temp2(59)
+       wall_force_n1_x = temp2(60)
+       wall_force_n1_y = temp2(61)
+       wall_force_n1_z = temp2(62)
+       totne           = temp2(63)
+       w_pe            = temp2(64)
+       pcur_co         = temp2(65)
+       pcur_sn         = temp2(66)
+       m_iz_co         = temp2(67)
+       m_iz_sn         = temp2(68)
+       w_m             = temp2(69)
+       w_p             = temp2(70)
+       wall_force_n0_x_halo = temp2(71)
+       wall_force_n0_z_halo = temp2(72)
+       helicity        = temp2(73)
+
+       if(ipellet_abl.gt.0) then
+          allocate(ptemp(npellets))
+
+          ptemp = nsource_pel
+          call mpi_allreduce(ptemp, nsource_pel, npellets, MPI_DOUBLE_PRECISION,  &
+                             MPI_SUM, MPI_COMM_WORLD, ier)
+          ptemp = temp_pel
+          call mpi_allreduce(ptemp, temp_pel, npellets, MPI_DOUBLE_PRECISION,  &
+                            MPI_SUM, MPI_COMM_WORLD, ier)
+
+          deallocate(ptemp)
+       end if
+
     endif
 
   end subroutine distribute_scalars
@@ -666,6 +683,8 @@ subroutine calculate_scalars()
   vectype, dimension(MAX_PTS) :: mr
   vectype, dimension(MAX_PTS) :: co, sn
 
+  integer :: ip
+
   call tpi_factors(tpifac,tpirzero)
 
   ptoto = ptot
@@ -701,7 +720,7 @@ subroutine calculate_scalars()
 
   ! Specify which fields need to be calculated
   if(ike_only.eq.1) then
-     def_fields = FIELD_PHI
+     def_fields = FIELD_PHI + FIELD_N
      if(numvar.ge.2) def_fields = def_fields + FIELD_V
      if(numvar.ge.3) def_fields = def_fields + FIELD_CHI
   else
@@ -739,8 +758,10 @@ subroutine calculate_scalars()
   
   if(ipellet.ne.0) call calculate_Lor_vol
 
+  ! BCL Warning: nsource_pel and temp_pel are now vectors
+  !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -748,6 +769,7 @@ subroutine calculate_scalars()
 
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)
+     call calculate_rho(itri)
      if(gyro.eq.1) call gyro_common
 
 #ifdef USE3D
@@ -882,21 +904,32 @@ subroutine calculate_scalars()
         totre = totre + twopi*int1(nre79(:,OP_1))/tpifac
      end if
 
+     helicity = helicity &
+          + twopi*int3(ri2_79,pstx79(:,OP_1),bztx79(:,OP_1))/tpifac
+#if defined(USE3D) || defined(USECOMPLEX)
+     helicity = helicity &
+          + twopi*int2(bftx79(:,OP_1),pst79(:,OP_GS))/tpifac
+#endif
+
      ! particle source
      if(idens.eq.1) then        
         nsource = nsource - twopi*int1(sig79)/tpifac
      
         ! Pellet radius and density/temperature at the pellet surface
         if(ipellet_abl.gt.0) then
-           if(r_p.ge.1e-8) then
-              ! weight density/temp by pellet distribution (normalized)
-              temp79a = pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
-              nsource_pel = nsource_pel + twopi*int2(net79(:,OP_1),temp79a)/tpifac
-              temp_pel = temp_pel + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
-           else
-              nsource_pel = 0.
-              temp_pel = 0.
-           end if
+           do ip=1,npellets
+              if(r_p(ip).ge.1e-8) then
+                 ! weight density/temp by pellet distribution (normalized)
+                 temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+                 nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
+                 temp79b = pet79(:,OP_1)/net79(:,OP_1)
+                 if(ikprad_te_offset .gt. 0) temp79b = temp79b - eta_te_offset
+                 temp_pel(ip) = temp_pel(ip) + twopi*int2(temp79b,temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
+              else
+                 nsource_pel(ip) = 0.
+                 temp_pel(ip) = 0.
+              end if
+           end do
        endif
      endif
 
@@ -936,6 +969,7 @@ subroutine calculate_scalars()
 
         call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
         call define_fields(itri, def_fields, 1, 0)
+        call calculate_rho(itri)
         if(gyro.eq.1) call gyro_common
 
         ! Energy fluxes
@@ -1035,22 +1069,23 @@ subroutine calculate_scalars()
      print *, "  Ionization loss = ", ionrad
      print *, "  Recombination radiation (kinetic) = ", reckrad
      print *, "  Recombination radiation (potential) = ", recprad
-     if(ipellet_abl.gt.0) then
-        print *, "  nsource = ", nsource
-        print *, "  pellet particles injected = ",pellet_rate*dt*(n0_norm*l0_norm**3)
-        print *, "  pellet radius (in cm) = ", r_p*l0_norm
-        print *, "  Electron temperature around the pellet (in eV) = ", temp_pel
-        print *, "  Electron density around the pellet (in ne14) = ", nsource_pel
-        print *, "  rpdot (in cm/s) = ", rpdot*l0_norm/t0_norm
-        print *, "  Lor_vol = ", Lor_vol
-        print *, "  R position of pellet: ", pellet_r*l0_norm
-        print *, "  phi position of pellet: ", pellet_phi
-        print *, "  Z position of pellet: ", pellet_z*l0_norm
+     if(ipellet_abl.gt.0 .and. iprint.ge.2) then
+        do ip=1,npellets
+           print *, "  Pellet #", ip
+           print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
+           print *, "    radius (in cm) = ", r_p(ip)*l0_norm
+           print *, "    local electron temperature (in eV) = ", temp_pel(ip)
+           print *, "    local electron density (in ne14) = ", nsource_pel(ip)
+           print *, "    rpdot (in cm/s) = ", rpdot(ip)*l0_norm/t0_norm
+           print *, "    Lor_vol = ", Lor_vol(ip)
+           print *, "    R position: ", pellet_r(ip)*l0_norm
+           print *, "    phi position: ", pellet_phi(ip)
+           print *, "    Z position: ", pellet_z(ip)*l0_norm
+        end do
      endif
   endif
 
 end subroutine calculate_scalars
-
 
 
 subroutine calculate_Lor_vol()
@@ -1069,12 +1104,14 @@ subroutine calculate_Lor_vol()
   integer :: is_edge(3)  ! is inode on boundary
   real :: tpifac,tpirzero
   integer :: izone, izonedim
-  real :: temp
+  real, allocatable :: temp(:)
+  integer :: ip
 
   call tpi_factors(tpifac,tpirzero)
 
   numelms = local_elements()
 
+  allocate(temp(npellets))
   temp = 0.
 
   do itri=1,numelms
@@ -1085,12 +1122,16 @@ subroutine calculate_Lor_vol()
      call define_fields(itri, FIELD_P, 0, 0)
 
      ! perform volume integral of pellet cloud (without normalization)
-     temp79a = pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
-     temp = temp + twopi*int1(temp79a)/tpifac
-     
+     do ip=1,npellets
+        temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
+        temp(ip) = temp(ip) + twopi*int1(temp79a)/tpifac
+     end do
+
   end do
 
-  call mpi_allreduce(temp, Lor_vol, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
+  call mpi_allreduce(temp, Lor_vol, npellets, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
+
+  deallocate(temp)
 
 end subroutine calculate_Lor_vol
 
@@ -1836,6 +1877,30 @@ subroutine get_chord_mask(r0, phi0, z0, r, phi, z, npts, theta, sigma, mask)
   mask = exp(-t**2/(2.*sigma**2))/l**2
 end subroutine get_chord_mask
 
+
+subroutine calculate_rho(itri)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+  integer :: i
+
+  rho79 = nt79
+
+  if(ikprad.eq.1) then 
+     do i=1, kprad_z
+        call eval_ops(itri, kprad_n(i), tm79, rfac)
+        rho79 = rho79 + tm79*kprad_mz/ion_mass
+     end do
+  end if
+  
+end subroutine calculate_rho
+
+
 !======================================================================
 ! bremsstrahlung
 ! ~~~~~~~~~~~~~~
@@ -1873,11 +1938,13 @@ subroutine calculate_ke()
   use metricterms_new
   use boundary_conditions
   use math
+
   implicit none
   include 'mpif.h'
   integer :: itri, numelms, def_fields
   real :: ke_N, ketotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
+  integer :: izone, izonedim
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -1887,258 +1954,256 @@ subroutine calculate_ke()
   type(field_type) :: u_transformc, vz_transformc, chi_transformc
   type(field_type) :: u_transforms, vz_transforms, chi_transforms
 
+  NMAX = ike_harmonics
+  numnodes = owned_nodes()
+  if(.not.allocated(keharmonic)) allocate(keharmonic(0:NMAX))
+  allocate(i1ck(0:nplanes-1,0:NMAX))
+  allocate(i1sk(0:nplanes-1,0:NMAX))
+  allocate(i2ck(0:nplanes-1,0:NMAX))
+  allocate(i2sk(0:nplanes-1,0:NMAX))
 
-     NMAX = ike_harmonics
-     numnodes = owned_nodes()
-     if(.not.allocated(keharmonic)) allocate(keharmonic(0:NMAX))
-     allocate(i1ck(nplanes,0:NMAX))
-     allocate(i1sk(nplanes,0:NMAX))
-     allocate(i2ck(nplanes,0:NMAX))
-     allocate(i2sk(nplanes,0:NMAX))
-
-!    create the sin and cos arrays
-     do N = 0, NMAX
-        do k = 1, nplanes
-       call ke_I1(nplanes, NMAX, k, N, i1ck(k,N), i1sk(k,N))
-       call ke_I2(nplanes, NMAX, k, N, i2ck(k,N), i2sk(k,N))
-        enddo
+  ! create the sin and cos arrays
+  do N = 0, NMAX
+     do k = 0, nplanes-1
+        call ke_I1(NMAX, k, N, i1ck(k,N), i1sk(k,N))
+        call ke_I2(NMAX, k, N, i2ck(k,N), i2sk(k,N))
      enddo
+  enddo
 
-    if(myrank.eq.0 .and. iprint.eq.1) then
-       write(*,900) ntime, numnodes, NMAX
-       900 format("calculate_ke called-1,   ntime  numnodes  NMAX=",3i6)
-     endif
+  if(myrank.eq.0 .and. iprint.eq.1) then
+     write(*,900) ntime, numnodes, NMAX
+900  format("calculate_ke called-1,   ntime  numnodes  NMAX=",3i6)
+  endif
 
-!    call create_vector(transform_field,6)
-!   
-     call create_field(  u_transformc)
-     call create_field(  u_transforms)
-     call create_field( vz_transformc)
-     call create_field( vz_transforms)
-     call create_field(chi_transformc)
-     call create_field(chi_transforms)
+  
+  call create_field(  u_transformc)
+  call create_field(  u_transforms)
+  call create_field( vz_transformc)
+  call create_field( vz_transforms)
+  call create_field(chi_transformc)
+  call create_field(chi_transforms)
 
-!     call associate_field(  u_transformc,transform_field,1)
-!     call associate_field(  u_transforms,transform_field,2)
-!     call associate_field( vz_transformc,transform_field,3)
-!     call associate_field( vz_transforms,transform_field,4)
-!     call associate_field(chi_transformc,transform_field,5)
-!     call associate_field(chi_transforms,transform_field,6)
+  if(myrank.eq.0 .and. iprint.eq.1) then
+     write(*,901) ntime
+901  format("calculate_ke called-2,   ntime=",i6)
+  endif
 
-     if(myrank.eq.0 .and. iprint.eq.1) then
-       write(*,901) ntime
-       901 format("calculate_ke called-2,   ntime=",i6)
-     endif
-
-
-! for each Fourier mode
+  ! for each Fourier mode
   do N=0,NMAX
 
-  fac = 2.
-  If (N.eq.0) fac = 1.
+     k = local_plane()
 
-        k = local_plane() + 1
+     !eq 12: U cos
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(u_field(0), l , u0_l )
+           u1_l = u1_l + u0_l
+        end if
 
-!test   delta_phi = 2. * pi / nplanes
-!test1  u_field(1)=10.
-!test2  u_field(1)= cos(2. * k * delta_phi)
-!test3  u_field(1)= sin(2. * k * delta_phi)
-        !eq 12: U cos
-        do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
+        vec_l(1)= u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N)
+        vec_l(2)= u1_l(2) * i1ck(k,N) + u1_l( 8)*i2ck(k,N)
+        vec_l(3)= u1_l(3) * i1ck(k,N) + u1_l( 9)*i2ck(k,N)
+        vec_l(4)= u1_l(4) * i1ck(k,N) + u1_l(10)*i2ck(k,N)
+        vec_l(5)= u1_l(5) * i1ck(k,N) + u1_l(11)*i2ck(k,N)
+        vec_l(6)= u1_l(6) * i1ck(k,N) + u1_l(12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        
+        call set_node_data(u_transformc,l,vec_l)
+     enddo
+     call finalize(u_transformc%vec)
+     call m3dc1_field_sum_plane(u_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
 
-           vec_l(1)= fac*(u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N))
-           vec_l(2)= fac*(u1_l(2) * i1ck(k,N) + u1_l( 8)*i2ck(k,N))
-           vec_l(3)= fac*(u1_l(3) * i1ck(k,N) + u1_l( 9)*i2ck(k,N))
-           vec_l(4)= fac*(u1_l(4) * i1ck(k,N) + u1_l(10)*i2ck(k,N))
-           vec_l(5)= fac*(u1_l(5) * i1ck(k,N) + u1_l(11)*i2ck(k,N))
-           vec_l(6)= fac*(u1_l(6) * i1ck(k,N) + u1_l(12)*i2ck(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
+     
+     !eq 12: U sin
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(u_field(0), l , u0_l )
+           u1_l = u1_l + u0_l
+        end if
 
-           call set_node_data(u_transformc,l,vec_l)
-        enddo
-        call finalize(u_transformc%vec)
-        call m3dc1_field_sum_plane(u_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-!
-!test1  u_field(1)=10.
-!test2  u_field(1)= cos(2. * k * delta_phi)
-!test3  u_field(1)= sin(2. * k * delta_phi)
-        !eq 12: U sin
-        do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(u_field(1), l , u1_l ) ! u1_l is “U” (dimension 12)
-
-           fac = 2.
-           If (N.eq.0) fac = 1.
-           vec_l(1)= fac*(u1_l(1) * i1sk(k,N) + u1_l( 7)*i2sk(k,N))
-           vec_l(2)= fac*(u1_l(2) * i1sk(k,N) + u1_l( 8)*i2sk(k,N))
-           vec_l(3)= fac*(u1_l(3) * i1sk(k,N) + u1_l( 9)*i2sk(k,N))
-           vec_l(4)= fac*(u1_l(4) * i1sk(k,N) + u1_l(10)*i2sk(k,N))
-           vec_l(5)= fac*(u1_l(5) * i1sk(k,N) + u1_l(11)*i2sk(k,N))
-           vec_l(6)= fac*(u1_l(6) * i1sk(k,N) + u1_l(12)*i2sk(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-           call set_node_data(u_transforms,l,vec_l)
-        enddo
-        call finalize(u_transforms%vec)
-        call m3dc1_field_sum_plane(u_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-!
-!test1  vz_field(1)=10.
-!test2  vz_field(1)= cos(2. * k * delta_phi)
-!test3  vz_field(1)= sin(2. * k * delta_phi)
-        !eq 12: omega cos
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
-
-           vec_l(1)= fac*(vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N))
-           vec_l(2)= fac*(vz1_l(2) * i1ck(k,N) + vz1_l( 8)*i2ck(k,N))
-           vec_l(3)= fac*(vz1_l(3) * i1ck(k,N) + vz1_l( 9)*i2ck(k,N))
-           vec_l(4)= fac*(vz1_l(4) * i1ck(k,N) + vz1_l(10)*i2ck(k,N))
-           vec_l(5)= fac*(vz1_l(5) * i1ck(k,N) + vz1_l(11)*i2ck(k,N))
-           vec_l(6)= fac*(vz1_l(6) * i1ck(k,N) + vz1_l(12)*i2ck(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-          call set_node_data(vz_transformc,l,vec_l)
-        enddo
-        call finalize(vz_transformc%vec)
-        call m3dc1_field_sum_plane(vz_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-!
-!test1  vz_field(1)=10.
-!test2  vz_field(1)= cos(2. * k * delta_phi)
-!test3  vz_field(1)= sin(2. * k * delta_phi)
-        !eq 12: omega sin
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
-
-           vec_l(1)= fac*(vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N))
-           vec_l(2)= fac*(vz1_l(2) * i1sk(k,N) + vz1_l( 8)*i2sk(k,N))
-           vec_l(3)= fac*(vz1_l(3) * i1sk(k,N) + vz1_l( 9)*i2sk(k,N))
-           vec_l(4)= fac*(vz1_l(4) * i1sk(k,N) + vz1_l(10)*i2sk(k,N))
-           vec_l(5)= fac*(vz1_l(5) * i1sk(k,N) + vz1_l(11)*i2sk(k,N))
-           vec_l(6)= fac*(vz1_l(6) * i1sk(k,N) + vz1_l(12)*i2sk(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-           call set_node_data(vz_transforms,l,vec_l)
-        enddo
-        call finalize(vz_transforms%vec)
-        call m3dc1_field_sum_plane(vz_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-!
-!test1  chi_field(1)=10.
-!test2  chi_field(1)= cos(2. * k * delta_phi)
-!test3  chi_field(1)= sin(2. * k * delta_phi)
-        !eq 12: chi cos
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
-
-           fac = 2.
-           If (N.eq.0) fac = 1.
-           vec_l(1)= fac*(chi1_l(1) * i1ck(k,N) + chi1_l( 7)*i2ck(k,N))
-           vec_l(2)= fac*(chi1_l(2) * i1ck(k,N) + chi1_l( 8)*i2ck(k,N))
-           vec_l(3)= fac*(chi1_l(3) * i1ck(k,N) + chi1_l( 9)*i2ck(k,N))
-           vec_l(4)= fac*(chi1_l(4) * i1ck(k,N) + chi1_l(10)*i2ck(k,N))
-           vec_l(5)= fac*(chi1_l(5) * i1ck(k,N) + chi1_l(11)*i2ck(k,N))
-           vec_l(6)= fac*(chi1_l(6) * i1ck(k,N) + chi1_l(12)*i2ck(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-           call set_node_data(chi_transformc,l,vec_l)
-        enddo
-        call finalize(chi_transformc%vec)
-        call m3dc1_field_sum_plane(chi_transformc%vec%id) ! sum vec%datator of size 6 at each (R,Z) node over k
-
-!
-!test1  chi_field(1)=10.
-!test2  chi_field(1)= cos(2. * k * delta_phi)
-!test3  chi_field(1)= sin(2. * k * delta_phi)
-        ! eq 12: chi sin
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
-
-           vec_l(1)= fac*(chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N))
-           vec_l(2)= fac*(chi1_l(2) * i1sk(k,N) + chi1_l( 8)*i2sk(k,N))
-           vec_l(3)= fac*(chi1_l(3) * i1sk(k,N) + chi1_l( 9)*i2sk(k,N))
-           vec_l(4)= fac*(chi1_l(4) * i1sk(k,N) + chi1_l(10)*i2sk(k,N))
-           vec_l(5)= fac*(chi1_l(5) * i1sk(k,N) + chi1_l(11)*i2sk(k,N))
-           vec_l(6)= fac*(chi1_l(6) * i1sk(k,N) + chi1_l(12)*i2sk(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-           call set_node_data(chi_transforms,l,vec_l)
-        enddo
-        call finalize(chi_transforms%vec)
-        call m3dc1_field_sum_plane(chi_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-!    enddo
-!    call finalize(transform_field)
+        vec_l(1)= u1_l(1) * i1sk(k,N) + u1_l( 7)*i2sk(k,N)
+        vec_l(2)= u1_l(2) * i1sk(k,N) + u1_l( 8)*i2sk(k,N)
+        vec_l(3)= u1_l(3) * i1sk(k,N) + u1_l( 9)*i2sk(k,N)
+        vec_l(4)= u1_l(4) * i1sk(k,N) + u1_l(10)*i2sk(k,N)
+        vec_l(5)= u1_l(5) * i1sk(k,N) + u1_l(11)*i2sk(k,N)
+        vec_l(6)= u1_l(6) * i1sk(k,N) + u1_l(12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(u_transforms,l,vec_l)
+     enddo
+     call finalize(u_transforms%vec)
+     call m3dc1_field_sum_plane(u_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 
-!eq 4b: Calculate energy for each Fourier Harminics N
+     !eq 12: omega cos
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(vz_field(0), l , vz0_l)
+           vz1_l = vz1_l + vz0_l
+        end if
+
+        vec_l(1)= vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N)
+        vec_l(2)= vz1_l(2) * i1ck(k,N) + vz1_l( 8)*i2ck(k,N)
+        vec_l(3)= vz1_l(3) * i1ck(k,N) + vz1_l( 9)*i2ck(k,N)
+        vec_l(4)= vz1_l(4) * i1ck(k,N) + vz1_l(10)*i2ck(k,N)
+        vec_l(5)= vz1_l(5) * i1ck(k,N) + vz1_l(11)*i2ck(k,N)
+        vec_l(6)= vz1_l(6) * i1ck(k,N) + vz1_l(12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(vz_transformc,l,vec_l)
+     enddo
+     call finalize(vz_transformc%vec)
+     call m3dc1_field_sum_plane(vz_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
+
+
+     !eq 12: omega sin
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(vz_field(0), l , vz0_l)
+           vz1_l = vz1_l + vz0_l
+        end if
+
+        vec_l(1)= vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N)
+        vec_l(2)= vz1_l(2) * i1sk(k,N) + vz1_l( 8)*i2sk(k,N)
+        vec_l(3)= vz1_l(3) * i1sk(k,N) + vz1_l( 9)*i2sk(k,N)
+        vec_l(4)= vz1_l(4) * i1sk(k,N) + vz1_l(10)*i2sk(k,N)
+        vec_l(5)= vz1_l(5) * i1sk(k,N) + vz1_l(11)*i2sk(k,N)
+        vec_l(6)= vz1_l(6) * i1sk(k,N) + vz1_l(12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(vz_transforms,l,vec_l)
+     enddo
+     call finalize(vz_transforms%vec)
+     call m3dc1_field_sum_plane(vz_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
+
+
+     !eq 12: chi cos
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(chi_field(0), l , chi0_l )
+           chi1_l = chi1_l + chi0_l
+        end if
+
+        vec_l(1)= chi1_l(1) * i1ck(k,N) + chi1_l( 7)*i2ck(k,N)
+        vec_l(2)= chi1_l(2) * i1ck(k,N) + chi1_l( 8)*i2ck(k,N)
+        vec_l(3)= chi1_l(3) * i1ck(k,N) + chi1_l( 9)*i2ck(k,N)
+        vec_l(4)= chi1_l(4) * i1ck(k,N) + chi1_l(10)*i2ck(k,N)
+        vec_l(5)= chi1_l(5) * i1ck(k,N) + chi1_l(11)*i2ck(k,N)
+        vec_l(6)= chi1_l(6) * i1ck(k,N) + chi1_l(12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(chi_transformc,l,vec_l)
+     enddo
+     call finalize(chi_transformc%vec)
+     call m3dc1_field_sum_plane(chi_transformc%vec%id) ! sum vec%datator of size 6 at each (R,Z) node over k
+     
+
+     ! eq 12: chi sin
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(chi_field(0), l , chi0_l )
+           chi1_l = chi1_l + chi0_l
+        end if
+
+        vec_l(1)= chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N)
+        vec_l(2)= chi1_l(2) * i1sk(k,N) + chi1_l( 8)*i2sk(k,N)
+        vec_l(3)= chi1_l(3) * i1sk(k,N) + chi1_l( 9)*i2sk(k,N)
+        vec_l(4)= chi1_l(4) * i1sk(k,N) + chi1_l(10)*i2sk(k,N)
+        vec_l(5)= chi1_l(5) * i1sk(k,N) + chi1_l(11)*i2sk(k,N)
+        vec_l(6)= chi1_l(6) * i1sk(k,N) + chi1_l(12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(chi_transforms,l,vec_l)
+     enddo
+     call finalize(chi_transforms%vec)
+     call m3dc1_field_sum_plane(chi_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
+     
+
+     !eq 4b: Calculate energy for each Fourier Harminics N
    
-!
-  ke_N = 0.
-  def_fields = 0
+     ke_N = 0.
+     def_fields = FIELD_N
      numelms = local_elements()
-
+     
 !$OMP PARALLEL DO REDUCTION(+:ke_N)
      do itri=1,numelms
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        if(izone.ne.1) cycle
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
         call define_fields(itri, def_fields, 1, 0)
+        call calculate_rho(itri)
 !
 !       cosine harmonics
         call eval_ops(itri,  u_transformc,pht79)
         call eval_ops(itri, vz_transformc,vzt79)
         call eval_ops(itri,chi_transformc,cht79)
-!
-        ke_N = ke_N + int3(r2_79,  pht79(:,OP_DR), pht79(:,OP_DR))   &
-                    + int3(r2_79,  pht79(:,OP_DZ), pht79(:,OP_DZ))
 
-        ke_N = ke_N + int3(r2_79,  vzt79(:,OP_1), vzt79(:,OP_1))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
 
-        ke_N = ke_N + int3(ri4_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
-                    + int3(ri4_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
+
+        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DR), cht79(:,OP_DR))
+        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DZ), cht79(:,OP_DZ))
+
+        ke_N = ke_N + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
+        ke_N = ke_N - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
+
 !
 !       sine harmonics
         call eval_ops(itri,  u_transforms,pht79)
         call eval_ops(itri, vz_transforms,vzt79)
         call eval_ops(itri,chi_transforms,cht79)
-!
-        ke_N = ke_N + int3(r2_79,  pht79(:,OP_DR), pht79(:,OP_DR))   &
-                    + int3(r2_79,  pht79(:,OP_DZ), pht79(:,OP_DZ))
 
-        ke_N = ke_N + int3(r2_79,  vzt79(:,OP_1), vzt79(:,OP_1))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
 
-        ke_N = ke_N + int3(ri4_79,  cht79(:,OP_DR), cht79(:,OP_DR))   &
-                    + int3(ri4_79,  cht79(:,OP_DZ), cht79(:,OP_DZ))
+        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
+
+        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DR), cht79(:,OP_DR))
+        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DZ), cht79(:,OP_DZ))
+
+        ke_N = ke_N + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
+        ke_N = ke_N - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
+
      end do
 !$OMP END PARALLEL DO
 
      call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
-                        MPI_SUM, mpi_comm_world, ier)
+          MPI_SUM, mpi_comm_world, ier)
 
-     keharmonic(N) = ketotal / 4.
+! BCL 11/6/19: All transform vectors are constant in phi
+!              so integral picks up a 2*pi
+!              this is correct for n=0, but twice size for n>0
+     if(N.gt.0) ketotal = 0.5*ketotal
+
+     keharmonic(N) = 0.5*ketotal ! 0.5 for 1/2 rho v^2
+
   end do
 
 !!!!!....we need to save keharmonic for output <===
   if(myrank.eq.0 .and. iprint.ge.1) then
-      write(*,1001) ntime
-      write(*,1002) (keharmonic(N),N=0,NMAX)
- 1001 format(" keharmonics at cycle",i6)
- 1002 format(1p5e12.4)
+     write(*,1001) ntime
+     write(*,1002) (keharmonic(N),N=0,NMAX)
+1001 format(" keharmonics at cycle",i6)
+1002 format(1p5e12.4)
   endif
 
-! deallocate(keharmonic)
   deallocate(i1ck, i1sk, i2ck, i2sk)
-!   
-     call destroy_field(  u_transformc)
-     call destroy_field(  u_transforms)
-     call destroy_field( vz_transformc)
-     call destroy_field( vz_transforms)
-     call destroy_field(chi_transformc)
-     call destroy_field(chi_transforms)
-!    call destroy_vector(transform_field)
+  call destroy_field(  u_transformc)
+  call destroy_field(  u_transforms)
+  call destroy_field( vz_transformc)
+  call destroy_field( vz_transforms)
+  call destroy_field(chi_transformc)
+  call destroy_field(chi_transforms)
 #endif
 end subroutine calculate_ke
 
@@ -2165,6 +2230,7 @@ subroutine calculate_bh()
   integer :: itri, numelms, def_fields
   real:: bh_N, bhtotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
+  integer :: izone, izonedim
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -2173,198 +2239,231 @@ subroutine calculate_bh()
   type(field_type) :: psi_transformc, F_transformc, fp_transformc
   type(field_type) :: psi_transforms, F_transforms, fp_transforms
 
-
-     BNMAX = ibh_harmonics
-     numnodes = owned_nodes()
-     if(.not.allocated(bharmonic)) allocate(bharmonic(0:BNMAX))
-     allocate(i1ck(nplanes,0:BNMAX))
-     allocate(i1sk(nplanes,0:BNMAX))
-     allocate(i2ck(nplanes,0:BNMAX))
-     allocate(i2sk(nplanes,0:BNMAX))
-
-!    create the sin and cos arrays
-     do N = 0, BNMAX
-        do k = 1, nplanes
-       call ke_I1(nplanes, BNMAX, k, N, i1ck(k,N), i1sk(k,N))
-       call ke_I2(nplanes, BNMAX, k, N, i2ck(k,N), i2sk(k,N))
-        enddo
+  BNMAX = ibh_harmonics
+  numnodes = owned_nodes()
+  if(.not.allocated(bharmonic)) allocate(bharmonic(0:BNMAX))
+  allocate(i1ck(0:nplanes-1,0:BNMAX))
+  allocate(i1sk(0:nplanes-1,0:BNMAX))
+  allocate(i2ck(0:nplanes-1,0:BNMAX))
+  allocate(i2sk(0:nplanes-1,0:BNMAX))
+  
+  ! create the sin and cos arrays
+  do N = 0, BNMAX
+     do k = 0, nplanes-1
+        call ke_I1(BNMAX, k, N, i1ck(k,N), i1sk(k,N))
+        call ke_I2(BNMAX, k, N, i2ck(k,N), i2sk(k,N))
      enddo
+  enddo
+  
+  if(myrank.eq.0 .and. iprint.eq.1) then
+     write(*,900) ntime, numnodes, BNMAX
+900  format("calculate_bh called-1,   ntime  numnodes  BNMAX=",3i6)
+  endif
+  
+  call create_field(psi_transformc)
+  call create_field(psi_transforms)
+  call create_field(F_transformc)
+  call create_field(F_transforms)
+  call create_field(fp_transformc)
+  call create_field(fp_transforms)
+  
+  if(myrank.eq.0 .and. iprint.eq.1) then
+     write(*,901) ntime
+901  format("calculate_bh called-2,   ntime=",i6)
+  endif
+  
 
-    if(myrank.eq.0 .and. iprint.eq.1) then
-       write(*,900) ntime, numnodes, BNMAX
-       900 format("calculate_bh called-1,   ntime  numnodes  BNMAX=",3i6)
-     endif
-
-     call create_field(psi_transformc)
-     call create_field(psi_transforms)
-     call create_field(F_transformc)
-     call create_field(F_transforms)
-     call create_field(fp_transformc)
-     call create_field(fp_transforms)
-
-     if(myrank.eq.0 .and. iprint.eq.1) then
-       write(*,901) ntime
-       901 format("calculate_bh called-2,   ntime=",i6)
-     endif
-
-
-! for each Fourier mode
+  ! for each Fourier mode
   do N=0,BNMAX
 
-  fac = 2.
-  If (N.eq.0) fac = 1.
+     k = local_plane()
 
-        k = local_plane() + 1
+     !eq 12: psi cos
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(psi_field(0), l, psi0_l)
+           psi1_l = psi1_l + psi0_l
+        end if
+        if(icsubtract.eq.1) then
+           call get_node_data(psi_coil_field, l, psi0_l)
+           psi1_l = psi1_l + psi0_l
+        end if
 
-        !eq 12: psi cos
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
+        vec_l(1)= psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N)
+        vec_l(2)= psi1_l(2) * i1ck(k,N) + psi1_l( 8)*i2ck(k,N)
+        vec_l(3)= psi1_l(3) * i1ck(k,N) + psi1_l( 9)*i2ck(k,N)
+        vec_l(4)= psi1_l(4) * i1ck(k,N) + psi1_l(10)*i2ck(k,N)
+        vec_l(5)= psi1_l(5) * i1ck(k,N) + psi1_l(11)*i2ck(k,N)
+        vec_l(6)= psi1_l(6) * i1ck(k,N) + psi1_l(12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        
+        call set_node_data(psi_transformc,l,vec_l)
+     enddo
+     call finalize(psi_transformc%vec)
+     call m3dc1_field_sum_plane(psi_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
+     
+     !eq 12: psi sin
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(psi_field(0), l, psi0_l)
+           psi1_l = psi1_l + psi0_l
+        end if
+        if(icsubtract.eq.1) then
+           call get_node_data(psi_coil_field, l, psi0_l)
+           psi1_l = psi1_l + psi0_l
+        end if
 
-           vec_l(1)= fac*(psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N))
-           vec_l(2)= fac*(psi1_l(2) * i1ck(k,N) + psi1_l( 8)*i2ck(k,N))
-           vec_l(3)= fac*(psi1_l(3) * i1ck(k,N) + psi1_l( 9)*i2ck(k,N))
-           vec_l(4)= fac*(psi1_l(4) * i1ck(k,N) + psi1_l(10)*i2ck(k,N))
-           vec_l(5)= fac*(psi1_l(5) * i1ck(k,N) + psi1_l(11)*i2ck(k,N))
-           vec_l(6)= fac*(psi1_l(6) * i1ck(k,N) + psi1_l(12)*i2ck(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
+        vec_l(1)= psi1_l(1) * i1sk(k,N) + psi1_l( 7)*i2sk(k,N)
+        vec_l(2)= psi1_l(2) * i1sk(k,N) + psi1_l( 8)*i2sk(k,N)
+        vec_l(3)= psi1_l(3) * i1sk(k,N) + psi1_l( 9)*i2sk(k,N)
+        vec_l(4)= psi1_l(4) * i1sk(k,N) + psi1_l(10)*i2sk(k,N)
+        vec_l(5)= psi1_l(5) * i1sk(k,N) + psi1_l(11)*i2sk(k,N)
+        vec_l(6)= psi1_l(6) * i1sk(k,N) + psi1_l(12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(psi_transforms,l,vec_l)
+     enddo
+     call finalize(psi_transforms%vec)
+     call m3dc1_field_sum_plane(psi_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
 
-           call set_node_data(psi_transformc,l,vec_l)
-        enddo
-        call finalize(psi_transformc%vec)
-        call m3dc1_field_sum_plane(psi_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
+     !eq 12: F cos
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
+        if(eqsubtract.eq.1) then
+          call get_node_data(bz_field(0), l, bz0_l)
+          bz1_l = bz1_l + bz0_l
+       end if
 
-        !eq 12: psi sin
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
-
-           fac = 2.
-           If (N.eq.0) fac = 1.
-           vec_l(1)= fac*(psi1_l(1) * i1sk(k,N) + psi1_l( 7)*i2sk(k,N))
-           vec_l(2)= fac*(psi1_l(2) * i1sk(k,N) + psi1_l( 8)*i2sk(k,N))
-           vec_l(3)= fac*(psi1_l(3) * i1sk(k,N) + psi1_l( 9)*i2sk(k,N))
-           vec_l(4)= fac*(psi1_l(4) * i1sk(k,N) + psi1_l(10)*i2sk(k,N))
-           vec_l(5)= fac*(psi1_l(5) * i1sk(k,N) + psi1_l(11)*i2sk(k,N))
-           vec_l(6)= fac*(psi1_l(6) * i1sk(k,N) + psi1_l(12)*i2sk(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-           call set_node_data(psi_transforms,l,vec_l)
-        enddo
-        call finalize(psi_transforms%vec)
-        call m3dc1_field_sum_plane(psi_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-        !eq 12: F cos
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
-
-           vec_l(1)= fac*(bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N))
-           vec_l(2)= fac*(bz1_l(2) * i1ck(k,N) + bz1_l( 8)*i2ck(k,N))
-           vec_l(3)= fac*(bz1_l(3) * i1ck(k,N) + bz1_l( 9)*i2ck(k,N))
-           vec_l(4)= fac*(bz1_l(4) * i1ck(k,N) + bz1_l(10)*i2ck(k,N))
-           vec_l(5)= fac*(bz1_l(5) * i1ck(k,N) + bz1_l(11)*i2ck(k,N))
-           vec_l(6)= fac*(bz1_l(6) * i1ck(k,N) + bz1_l(12)*i2ck(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-          call set_node_data(F_transformc,l,vec_l)
-        enddo
-        call finalize(F_transformc%vec)
-        call m3dc1_field_sum_plane(F_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-
-        !eq 12: F sin
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
-
-           vec_l(1)= fac*(bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N))
-           vec_l(2)= fac*(bz1_l(2) * i1sk(k,N) + bz1_l( 8)*i2sk(k,N))
-           vec_l(3)= fac*(bz1_l(3) * i1sk(k,N) + bz1_l( 9)*i2sk(k,N))
-           vec_l(4)= fac*(bz1_l(4) * i1sk(k,N) + bz1_l(10)*i2sk(k,N))
-           vec_l(5)= fac*(bz1_l(5) * i1sk(k,N) + bz1_l(11)*i2sk(k,N))
-           vec_l(6)= fac*(bz1_l(6) * i1sk(k,N) + bz1_l(12)*i2sk(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-           call set_node_data(F_transforms,l,vec_l)
-        enddo
-        call finalize(F_transforms%vec)
-        call m3dc1_field_sum_plane(F_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-        !eq 12: f' cos
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
-
-           fac = 2.
-           If (N.eq.0) fac = 1.
-           vec_l(1)= fac*(bf1_l(1) * i1ck(k,N) + bf1_l( 7)*i2ck(k,N))
-           vec_l(2)= fac*(bf1_l(2) * i1ck(k,N) + bf1_l( 8)*i2ck(k,N))
-           vec_l(3)= fac*(bf1_l(3) * i1ck(k,N) + bf1_l( 9)*i2ck(k,N))
-           vec_l(4)= fac*(bf1_l(4) * i1ck(k,N) + bf1_l(10)*i2ck(k,N))
-           vec_l(5)= fac*(bf1_l(5) * i1ck(k,N) + bf1_l(11)*i2ck(k,N))
-           vec_l(6)= fac*(bf1_l(6) * i1ck(k,N) + bf1_l(12)*i2ck(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-           call set_node_data(fp_transformc,l,vec_l)
-        enddo
-        call finalize(fp_transformc%vec)
-        call m3dc1_field_sum_plane(fp_transformc%vec%id) ! sum vec%datator of size 6 at each (R,Z) node over k
-
-        ! eq 12: f' sin
-       do icounter_t=1,numnodes
-           l = nodes_owned(icounter_t)
-           call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
-
-           vec_l(1)= fac*(bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N))
-           vec_l(2)= fac*(bf1_l(2) * i1sk(k,N) + bf1_l( 8)*i2sk(k,N))
-           vec_l(3)= fac*(bf1_l(3) * i1sk(k,N) + bf1_l( 9)*i2sk(k,N))
-           vec_l(4)= fac*(bf1_l(4) * i1sk(k,N) + bf1_l(10)*i2sk(k,N))
-           vec_l(5)= fac*(bf1_l(5) * i1sk(k,N) + bf1_l(11)*i2sk(k,N))
-           vec_l(6)= fac*(bf1_l(6) * i1sk(k,N) + bf1_l(12)*i2sk(k,N))
-           vec_l(7:12) = 0. ! pad with zeros
-           call set_node_data(fp_transforms,l,vec_l)
-        enddo
-        call finalize(fp_transforms%vec)
-        call m3dc1_field_sum_plane(fp_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
+        vec_l(1)= bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N)
+        vec_l(2)= bz1_l(2) * i1ck(k,N) + bz1_l( 8)*i2ck(k,N)
+        vec_l(3)= bz1_l(3) * i1ck(k,N) + bz1_l( 9)*i2ck(k,N)
+        vec_l(4)= bz1_l(4) * i1ck(k,N) + bz1_l(10)*i2ck(k,N)
+        vec_l(5)= bz1_l(5) * i1ck(k,N) + bz1_l(11)*i2ck(k,N)
+        vec_l(6)= bz1_l(6) * i1ck(k,N) + bz1_l(12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(F_transformc,l,vec_l)
+     enddo
+     call finalize(F_transformc%vec)
+     call m3dc1_field_sum_plane(F_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
 
 
-!eq 4b: Calculate energy for each Fourier Harminics N
-   
-  bh_N = 0.
-  def_fields = 0
+     !eq 12: F sin
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(bz_field(0), l, bz0_l)
+           bz1_l = bz1_l + bz0_l
+        end if
+
+        vec_l(1)= bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N)
+        vec_l(2)= bz1_l(2) * i1sk(k,N) + bz1_l( 8)*i2sk(k,N)
+        vec_l(3)= bz1_l(3) * i1sk(k,N) + bz1_l( 9)*i2sk(k,N)
+        vec_l(4)= bz1_l(4) * i1sk(k,N) + bz1_l(10)*i2sk(k,N)
+        vec_l(5)= bz1_l(5) * i1sk(k,N) + bz1_l(11)*i2sk(k,N)
+        vec_l(6)= bz1_l(6) * i1sk(k,N) + bz1_l(12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(F_transforms,l,vec_l)
+     enddo
+     call finalize(F_transforms%vec)
+     call m3dc1_field_sum_plane(F_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
+     
+     !eq 12: f' cos
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(bf_field(0), l, bf0_l)
+           bf1_l = bf1_l + bf0_l
+        end if
+
+        vec_l(1)= bf1_l(1) * i1ck(k,N) + bf1_l( 7)*i2ck(k,N)
+        vec_l(2)= bf1_l(2) * i1ck(k,N) + bf1_l( 8)*i2ck(k,N)
+        vec_l(3)= bf1_l(3) * i1ck(k,N) + bf1_l( 9)*i2ck(k,N)
+        vec_l(4)= bf1_l(4) * i1ck(k,N) + bf1_l(10)*i2ck(k,N)
+        vec_l(5)= bf1_l(5) * i1ck(k,N) + bf1_l(11)*i2ck(k,N)
+        vec_l(6)= bf1_l(6) * i1ck(k,N) + bf1_l(12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(fp_transformc,l,vec_l)
+     enddo
+     call finalize(fp_transformc%vec)
+     call m3dc1_field_sum_plane(fp_transformc%vec%id) ! sum vec%datator of size 6 at each (R,Z) node over k
+     
+     ! eq 12: f' sin
+     do icounter_t=1,numnodes
+        l = nodes_owned(icounter_t)
+        call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
+        if(eqsubtract.eq.1) then
+           call get_node_data(bf_field(0), l, bf0_l)
+           bf1_l = bf1_l + bf0_l
+        end if
+
+        vec_l(1)= bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N)
+        vec_l(2)= bf1_l(2) * i1sk(k,N) + bf1_l( 8)*i2sk(k,N)
+        vec_l(3)= bf1_l(3) * i1sk(k,N) + bf1_l( 9)*i2sk(k,N)
+        vec_l(4)= bf1_l(4) * i1sk(k,N) + bf1_l(10)*i2sk(k,N)
+        vec_l(5)= bf1_l(5) * i1sk(k,N) + bf1_l(11)*i2sk(k,N)
+        vec_l(6)= bf1_l(6) * i1sk(k,N) + bf1_l(12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(fp_transforms,l,vec_l)
+     enddo
+     call finalize(fp_transforms%vec)
+     call m3dc1_field_sum_plane(fp_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
+     
+     
+     !eq 4b: Calculate energy for each Fourier Harminics N
+     
+     bh_N = 0.
+     def_fields = 0
      numelms = local_elements()
-
+     
 !$OMP PARALLEL DO REDUCTION(+:bh_N)
      do itri=1,numelms
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        if(izone.ne.1) cycle
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
         call define_fields(itri, def_fields, 1, 0)
-
+        
 !       cosine harmonics
-        call eval_ops(itri,psi_transformc,ps179)
-        call eval_ops(itri,F_transformc,bz179)
-        call eval_ops(itri,fp_transformc,bf179)
+        call eval_ops(itri,psi_transformc,pst79)
+        call eval_ops(itri,F_transformc,bzt79)
+        ! prime means, for cos component, we need sin and multiply by N
+        call eval_ops(itri,fp_transforms,bft79)
+        bft79 = N*bft79
 
-        bh_N = bh_N + int3(ri2_79, ps179(:,OP_DR), ps179(:,OP_DR))   &
-                    + int3(ri2_79, ps179(:,OP_DZ), ps179(:,OP_DZ))
+        bh_N = bh_N + int3(ri2_79, pst79(:,OP_DR), pst79(:,OP_DR))   &
+                    + int3(ri2_79, pst79(:,OP_DZ), pst79(:,OP_DZ))
 
-        bh_N = bh_N + int3(ri2_79, bz179(:,OP_1), bz179(:,OP_1))
+        bh_N = bh_N + int3(ri2_79, bzt79(:,OP_1), bzt79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bf179(:,OP_DRP), bf179(:,OP_DRP))   &
-                    + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
+        bh_N = bh_N + int2(bft79(:,OP_DR), bft79(:,OP_DR))   &
+                    + int2(bft79(:,OP_DZ), bft79(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bft79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bft79(:,OP_DR))
 #endif
-
 !       sine harmonics
-        call eval_ops(itri,psi_transforms,ps179)
-        call eval_ops(itri,F_transforms,bz179)
-        call eval_ops(itri,fp_transforms,bf179)
+        call eval_ops(itri,psi_transforms,pst79)
+        call eval_ops(itri,F_transforms,bzt79)
+        ! prime means, for sin component, we need cos and multiply by -N
+        call eval_ops(itri,fp_transformc,bft79)
+        bft79 = -N*bft79
 
-        bh_N = bh_N + int3(ri2_79,  ps179(:,OP_DR), ps179(:,OP_DR))   &
-                    + int3(ri2_79,  ps179(:,OP_DZ), ps179(:,OP_DZ))
+        bh_N = bh_N + int3(ri2_79,  pst79(:,OP_DR), pst79(:,OP_DR))   &
+                    + int3(ri2_79,  pst79(:,OP_DZ), pst79(:,OP_DZ))
 
-        bh_N = bh_N + int3(ri2_79,  bz179(:,OP_1), bz179(:,OP_1))
+        bh_N = bh_N + int3(ri2_79,  bzt79(:,OP_1), bzt79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bf179(:,OP_DRP), bf179(:,OP_DRP))   &
-                    + int2(bf179(:,OP_DZP), bf179(:,OP_DZP))
+        bh_N = bh_N + int2(bft79(:,OP_DR), bft79(:,OP_DR))   &
+                    + int2(bft79(:,OP_DZ), bft79(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bft79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bft79(:,OP_DR))
 #endif
      end do
 !$OMP END PARALLEL DO
@@ -2372,192 +2471,90 @@ subroutine calculate_bh()
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)
 
-     bharmonic(N) = bhtotal / (2.*fac)
+! BCL 11/6/19: All transform vectors are constant in phi
+!              so integral picks up a 2*pi
+!              this is correct for n=0, but twice size for n>0
+     if(N.gt.0) bhtotal = 0.5*bhtotal
+
+     ! 0.5 for proper normalization
+     bharmonic(N) = 0.5*bhtotal
   end do
 !    NOTE:  bharmonic must be divided by (2 pi)**2 mu_0 to get actual SI magnetic energy
 !           This is done in the idl routine plot_bhmn.pro
+!    BCL 11/7/19: Not sure this ^ is correct
+
 !  save one harmonic to scale hyper for ihypeta .gt. 2
   if(ihypeta.gt.2) bharhypeta = bharmonic(ihypeta)
 
 
   if(myrank.eq.0 .and. iprint.ge.1) then
-      write(*,1001) ntime
-      write(*,1002) (bharmonic(N),N=0,BNMAX)
- 1001 format(" calculate_bh called-2,   bharmonics at cycle",i6)
- 1002 format(1p5e12.4)
+     write(*,1001) ntime
+     write(*,1002) (bharmonic(N),N=0,BNMAX)
+1001 format(" calculate_bh called-2,   bharmonics at cycle",i6)
+1002 format(1p5e12.4)
   endif
-
+  
   deallocate(i1ck, i1sk, i2ck, i2sk)
 
-     call destroy_field(psi_transformc)
-     call destroy_field(psi_transforms)
-     call destroy_field(F_transformc)
-     call destroy_field(F_transforms)
-     call destroy_field(fp_transformc)
-     call destroy_field(fp_transforms)
+  call destroy_field(psi_transformc)
+  call destroy_field(psi_transforms)
+  call destroy_field(F_transformc)
+  call destroy_field(F_transforms)
+  call destroy_field(fp_transformc)
+  call destroy_field(fp_transforms)
 #endif
 end subroutine calculate_bh
-
 
 
 !...........................................................
 ! input: k, N
 ! output: i1ck, i1sk
 ! eq 10
-  subroutine ke_I1(nplanes, NMAX, k, N, i1ck, i1sk)
-    use math
-    implicit none
-    integer:: k, N, nplanes, NMAX
-    real:: i1ck, i1sk
+subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
+  use basic, ONLY: myrank
+  use math
+  use mesh_mod
+  implicit none
+  integer:: k, N, NMAX
+  real:: i1ck, i1sk
+  
+  real:: hm, hp
+  real:: xm, x0, xp
+  
+  if(k==0) then
+     call m3dc1_plane_getphi(nplanes-1, xm)
+     xm = xm - 2.*pi
+  else
+     call m3dc1_plane_getphi(k-1, xm)
+  endif
+  call m3dc1_plane_getphi(k, x0)
+  if(k==nplanes-1) then
+     call m3dc1_plane_getphi(0, xp)
+     xp = xp + 2.*pi
+  else
+     call m3dc1_plane_getphi(k+1, xp)
+  endif
+  hm = x0 - xm
+  hp = xp - x0
+  
+  if(N .eq. 0) then
+     i1ck = (hm + hp)/(4.*pi)
+     i1sk = 0.
+     return
+  endif
 
-    real:: delta_phi
+  i1ck = ( hm*N*((6 + hm**2*N**2)*Sin(N*x0) + 6*Sin(N*(-hm + x0))) & 
+          + 12*(Cos(N*x0) - Cos(N*(-hm + x0))))/(hm**3*N**4) &
+       + (-hp*N*((6 + hp**2*N**2)*Sin(N*x0) + 6*Sin(N*(hp + x0))) &
+          + 12*(Cos(N*x0) - Cos(N*( hp + x0))))/(hp**3*N**4)
+  i1ck = i1ck/pi
 
-#ifdef OLD
-    real:: I1_cNk_minus, I1_cNk_plus, I1_sNk_minus, I1_sNk_plus
-    real:: Phi_1_plus, Phi_1_zero, Phi_1_minus, &
-           Phi_1p_plus, Phi_1p_zero, Phi_1p_minus, &
-           Phi_1pp_plus, Phi_1pp_zero, Phi_1pp_minus, &
-           Phi_1ppp_plus, Phi_1ppp_zero_up, Phi_1ppp_zero_dn, Phi_1ppp_minus
-    real:: sin_plus, sin_zero, sin_minus, &
-           cos_plus, cos_zero, cos_minus 
-
-#else
-!  use 3/8 Simpson's rule
-    real:: hh, x1, x2, x3, x4, f1, f2, f3, f4
-    real:: phi1, phi2, phi3, phi4
-#endif
-
-
-   delta_phi = 2. * pi / nplanes
-
-! $ \Phi_1(x) = ( |x|-1)^2( 2|x|+1), |x| \leq 1 $
-   if(N .le. 0) then
-      i1ck = delta_phi
-      i1sk = 0.
-      return
-   endif
-
-#ifdef OLD
-   Phi_1_plus  =0. ! x=1 \\
-   Phi_1_zero  =1. ! x=0 \\
-   Phi_1_minus =0. ! x=-1
-
-   Phi_1p_plus  =0. ! x=1 \\
-   Phi_1p_zero  =0. ! x=0 \\
-   Phi_1p_minus =0. ! x=-1
-
-   Phi_1pp_plus  = 6.  ! x=1 \\
-   Phi_1pp_zero  =-6.  ! x=0 \\
-   Phi_1pp_minus = 6.  ! x=-1
-
-   Phi_1ppp_plus    = 12.  ! x=1 \\
-   Phi_1ppp_zero_up = 12.  ! x=0 \mbox{  in interval } [0,1]\\
-   Phi_1ppp_zero_dn =-12.  ! x=0 \mbox{  in interval } [-1,0]\\
-   Phi_1ppp_minus   =-12.  ! x=-1
-
-   sin_plus  = N*( 1 + k-1) * delta_phi
-   sin_zero  = N*( 0 + k-1) * delta_phi
-   sin_minus = N*(-1 + k-1) * delta_phi
-   cos_plus  = N*( 1 + k-1) * delta_phi
-   cos_zero  = N*( 0 + k-1) * delta_phi
-   cos_minus = N*(-1 + k-1) * delta_phi
-
-   I1_cNk_minus =                                                                    &
-     (                                                                               &
-     + delta_phi * 1./(N*delta_phi)**1 * Phi_1_zero * sin_zero                       &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_zero * cos_zero                      &
-     - delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_zero * sin_zero                     &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero_dn * cos_zero                 &
-     )                                                                               &
-     -                                                                               &
-     (                                                                               &
-     + delta_phi * 1./(N*delta_phi)**1 * Phi_1_minus * sin_minus                     &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_minus * cos_minus                    &
-     - delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_minus * sin_minus                   &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_minus * cos_minus                  &
-     )
-
-   I1_cNk_plus =                                                                     &
-     (                                                                               &
-     + delta_phi * 1./(N*delta_phi)**1 * Phi_1_plus * sin_plus                       &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_plus * cos_plus                      &
-     - delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_plus * sin_plus                     &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_plus * cos_plus                    &
-     )                                                                               &
-     -                                                                               &
-     (                                                                               &
-     + delta_phi * 1./(N*delta_phi)**1 * Phi_1_zero * sin_zero                       &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_zero * cos_zero                      &
-     - delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_zero * sin_zero                     &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero_up * cos_zero                 &
-     )
-
-   i1ck =  I1_cNk_minus + I1_cNk_plus
-
-#else
-!  use 3/8 Simpson's rule
-   hh = 2. / 3.
-   x1 = -1.
-   x2 = -1. + hh
-   x3 =  1. - hh
-   x4 =  1.
-   phi1 = ( abs(x1) - 1. ) * ( abs(x1) - 1. ) * ( 2. * abs(x1) + 1. )
-   phi2 = ( abs(x2) - 1. ) * ( abs(x2) - 1. ) * ( 2. * abs(x2) + 1. )
-   phi3 = ( abs(x3) - 1. ) * ( abs(x3) - 1. ) * ( 2. * abs(x3) + 1. )
-   phi4 = ( abs(x4) - 1. ) * ( abs(x4) - 1. ) * ( 2. * abs(x4) + 1. )
-   f1 = cos(N*(x1+k-1)*delta_phi) * phi1
-   f2 = cos(N*(x2+k-1)*delta_phi) * phi2
-   f3 = cos(N*(x3+k-1)*delta_phi) * phi3
-   f4 = cos(N*(x4+k-1)*delta_phi) * phi4
-   i1ck =  hh*3./8. * ( f1 + 3.*f2 + 3.*f3 + f4)
-   i1ck =  i1ck * delta_phi
-#endif
-
-
-#ifdef OLD
-   I1_sNk_minus  =                                                                   &
-     (                                                                               &
-     - delta_phi * 1./(N*delta_phi)**1 * Phi_1_zero * cos_zero                       &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_zero * sin_zero                      &
-     + delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_zero * cos_zero                     &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero_dn * sin_zero                 &
-     )                                                                               &
-    -                                                                                &
-     (                                                                               &
-     - delta_phi * 1./(N*delta_phi)**1 * Phi_1_minus * cos_minus                     &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_minus * sin_minus                    &
-     + delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_minus * cos_minus                   &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_minus * sin_minus                  &
-     )
-
-   I1_sNk_plus =                                                                     &
-     (                                                                               &
-     - delta_phi * 1./(N*delta_phi)**1 * Phi_1_plus * cos_plus                       &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_plus * sin_plus                      &
-     + delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_plus * cos_plus                     &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_plus * sin_plus                    &
-     )                                                                               &
-     -                                                                               &
-     (                                                                               &
-     - delta_phi * 1./(N*delta_phi)**1 * Phi_1_zero * cos_zero                       &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_1p_zero * sin_zero                      &
-     + delta_phi * 1./(N*delta_phi)**3 * Phi_1pp_zero * cos_zero                     &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_1ppp_zero_up * sin_zero                 &
-     )
-
-   i1sk =  I1_sNk_minus + I1_sNk_plus
-
-#else
-!  use 3/8 Simpson's rule
-   f1 = sin(N*(x1+k-1)*delta_phi) * phi1
-   f2 = sin(N*(x2+k-1)*delta_phi) * phi2
-   f3 = sin(N*(x3+k-1)*delta_phi) * phi3
-   f4 = sin(N*(x4+k-1)*delta_phi) * phi4
-   i1sk =  hh*3./8. * ( f1 + 3.*f2 + 3.*f3 + f4)
-   i1sk =  i1sk * delta_phi
-#endif
-
-
+  i1sk = (-hm*N*(6 + hm**2*N**2)*Cos(N*x0) - 6*hm*N*Cos(N*(-hm + x0)) &
+          + 12*(Sin(N*(hm - x0)) + Sin(N*x0)))/(hm**3*N**4) &
+       + ( hp*N*(6 + hp**2*N**2)*Cos(N*x0) + 6*hp*N*Cos(N*( hp + x0)) &
+          + 12*(Sin(N*x0) - Sin(N*(hp + x0))))/(hp**3*N**4)
+  i1sk = i1sk/pi
+  
 end subroutine ke_I1
 
 
@@ -2565,159 +2562,51 @@ end subroutine ke_I1
 ! input: N, k, delta_phi
 ! output: i2ck, i2sk
 ! eq 10
-  subroutine ke_I2(nplanes, NMAX, k, N, i2ck, i2sk)
-    use math
-    implicit none
-    integer:: k, N, nplanes, NMAX
-    real:: i2ck, i2sk
+subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
+  use basic, ONLY: myrank
+  use math
+  use mesh_mod
+  implicit none
+  integer:: k, N, NMAX
+  real:: i2ck, i2sk
+  
+  real:: hm, hp
+  real:: xm, x0, xp
+  
+  if(k==0) then
+     call m3dc1_plane_getphi(nplanes-1, xm)
+     xm = xm - 2.*pi
+  else
+     call m3dc1_plane_getphi(k-1, xm)
+  endif
+  call m3dc1_plane_getphi(k, x0)
+  if(k==nplanes-1) then
+     call m3dc1_plane_getphi(0, xp)
+     xp = xp + 2.*pi
+  else
+     call m3dc1_plane_getphi(k+1, xp)
+  endif
+  hm = x0 - xm
+  hp = xp - x0
+  
+  if(N .le. 0) then
+     i2ck = (hp**2 - hm**2)/(24.*pi)
+     i2sk = 0.
+     return
+  endif
 
-    real:: delta_phi
+  i2ck = ((-6 + hm**2*N**2)*Cos(N*x0) + 6*Cos(N*(-hm + x0)) & 
+          -2*hm*N*(2*Sin(N*x0) + Sin(N*(-hm + x0))))/(hm**2*N**4) &
+       + (( 6 - hp**2*N**2)*Cos(N*x0) - 6*Cos(N*( hp + x0)) &
+          -2*hp*N*(2*Sin(N*x0) + Sin(N*( hp + x0))))/(hp**2*N**4)
+  i2ck = i2ck/pi
 
-#ifdef OLD
-    real:: I2_cNk_minus, I2_cNk_plus, I2_sNk_minus, I2_sNk_plus
-    real:: Phi_2_plus, Phi_2_zero, Phi_2_minus, &
-           Phi_2p_plus, Phi_2p_zero, Phi_2p_minus, &
-           Phi_2pp_plus, Phi_2pp_zero_up, Phi_2pp_zero_dn, Phi_2pp_minus, &
-           Phi_2ppp_plus, Phi_2ppp_zero, Phi_2ppp_minus
-    real:: sin_plus, sin_zero, sin_minus, &
-           cos_plus, cos_zero, cos_minus
-
-#else
-!  use 3/8 Simpson's rule
-    real:: hh, x1, x2, x3, x4, f1, f2, f3, f4
-    real:: phi1, phi2, phi3, phi4
-#endif
-
-   delta_phi = 2. * pi / nplanes
-
-!  $ \Phi_2(x) = x ( |x|-1)^2, |x| \leq 1 $
-   if(N .le. 0) then
-      i2ck = 0.
-      i2sk = 0.
-      return
-   endif
-
-#ifdef OLD
-   Phi_2_plus  =0. ! x=1 \\
-   Phi_2_zero  =0. ! x=0 \\
-   Phi_2_minus =0. ! x=-1 
-
-   Phi_2p_plus  =0. ! x=1 \\
-   Phi_2p_zero  =1. ! x=0 \\
-   Phi_2p_minus =0. ! x=-1 
-
-   Phi_2pp_plus    =  2. ! x=1 \\
-   Phi_2pp_zero_up = -4. ! x=0 \mbox{  in interval  } [0, 1]\\
-   Phi_2pp_zero_dn =  4. ! x=-1 \mbox{  in interval  } [-1, 0] \\
-   Phi_2pp_minus   = -2. ! x=-1
-
-   Phi_2ppp_plus  = 6.  ! x=1 \\
-   Phi_2ppp_zero  = 6.  ! x=0 \\
-   Phi_2ppp_minus = 6.  ! x=-1 \\
-
-   sin_plus  = N*( 1 + k-1) * delta_phi
-   sin_zero  = N*( 0 + k-1) * delta_phi
-   sin_minus = N*(-1 + k-1) * delta_phi
-   cos_plus  = N*( 1 + k-1) * delta_phi
-   cos_zero  = N*( 0 + k-1) * delta_phi
-   cos_minus = N*(-1 + k-1) * delta_phi
-
-   I2_cNk_minus =                                                            &
-     (                                                                       &
-     + delta_phi * 1./(N*delta_phi)**1 * Phi_2_zero * sin_zero               &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_zero * cos_zero              &
-     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero_dn * sin_zero          &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_zero * cos_zero            &
-     )                                                                       &
-     -                                                                       &
-     (                                                                       &
-     + delta_phi * 1./(N*delta_phi)**1 * Phi_2_minus * sin_minus             &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_minus * cos_minus            &
-     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_minus * sin_minus           &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_minus * cos_minus          &
-     )          
-
-   I2_cNk_plus =                                                             & 
-     (                                                                       &
-     + delta_phi * 1./(N*delta_phi)**1 * Phi_2_plus * sin_plus               &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_plus * cos_plus              &
-     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_plus * sin_plus             &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_plus * cos_plus            &
-     )                                                                       &
-     -                                                                       &
-     (                                                                       &
-     + delta_phi * 1./(N*delta_phi)**1 * Phi_2_zero * sin_zero               &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_zero * cos_zero              &
-     - delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero_up * sin_zero          &  
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_zero * cos_zero            &
-     )
-
-   i2ck =  I2_cNk_minus + I2_cNk_plus
-
-#else
-!  use 3/8 Simpson's rule
-   hh = 2. / 3.
-   x1 = -1.
-   x2 = -1. + hh
-   x3 =  1. - hh
-   x4 =  1.
-   phi1 = x1 * ( abs(x1) - 1. ) * ( abs(x1) - 1. )
-   phi2 = x2 * ( abs(x2) - 1. ) * ( abs(x2) - 1. )
-   phi3 = x3 * ( abs(x3) - 1. ) * ( abs(x3) - 1. )
-   phi4 = x4 * ( abs(x4) - 1. ) * ( abs(x4) - 1. )
-   f1 = cos(N*(x1+k-1)*delta_phi) * phi1
-   f2 = cos(N*(x2+k-1)*delta_phi) * phi2
-   f3 = cos(N*(x3+k-1)*delta_phi) * phi3
-   f4 = cos(N*(x4+k-1)*delta_phi) * phi4
-   i2ck =  hh*3./8. * ( f1 + 3.*f2 + 3.*f3 + f4)
-   i2ck =  i2ck * delta_phi
-#endif
-
-
-#ifdef OLD
-   I2_sNk_minus  =                                                           &
-     (                                                                       &
-     - delta_phi * 1./(N*delta_phi)**1 * Phi_2_zero * cos_zero               &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_zero * sin_zero              &
-     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero_dn * cos_zero          &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_zero * sin_zero            &
-     )                                                                       &
-    -                                                                        &
-     (                                                                       &
-     - delta_phi * 1./(N*delta_phi)**1 * Phi_2_minus * cos_minus             &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_minus * sin_minus            &
-     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_minus * cos_minus           &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_minus * sin_minus          &
-     )
-
-   I2_sNk_plus =                                                             &
-     (                                                                       &
-     - delta_phi * 1./(N*delta_phi)**1 * Phi_2_plus * cos_plus               &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_plus * sin_plus              &
-     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_plus * cos_plus             &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_plus * sin_plus            &
-     )                                                                       &
-     -                                                                       &
-     (                                                                       &
-     - delta_phi * 1./(N*delta_phi)**1 * Phi_2_zero * cos_zero               &
-     + delta_phi * 1./(N*delta_phi)**2 * Phi_2p_zero * sin_zero              &
-     + delta_phi * 1./(N*delta_phi)**3 * Phi_2pp_zero_up * cos_zero          &
-     - delta_phi * 1./(N*delta_phi)**4 * Phi_2ppp_zero * sin_zero            &
-     )
-
-   i2sk =  I2_sNk_minus + I2_sNk_plus
-
-#else
-!  use 3/8 Simpson's rule
-   f1 = sin(N*(x1+k-1)*delta_phi) * phi1
-   f2 = sin(N*(x2+k-1)*delta_phi) * phi2
-   f3 = sin(N*(x3+k-1)*delta_phi) * phi3
-   f4 = sin(N*(x4+k-1)*delta_phi) * phi4
-   i2sk =  hh*3./8. * ( f1 + 3.*f2 + 3.*f3 + f4)
-   i2sk =  i2sk * delta_phi
-#endif
-
-
+  i2sk =  (hm*N*(4*Cos(N*x0) + 2*Cos(N*(-hm + x0)) + hm*N*Sin(N*x0)) &
+           - 6*(Sin(N*(hm - x0)) + Sin(N*x0)))/(hm**2*N**4) &
+         +(hp*N*(4*Cos(N*x0) + 2*Cos(N*( hp + x0)) - hp*N*Sin(N*x0)) &
+           + 6*(Sin(N*x0) - Sin(N*(hp + x0))))/(hp**2*N**4)
+  i2sk = i2sk/pi
+  
 end subroutine ke_I2
 
 
@@ -3020,6 +2909,7 @@ subroutine phi_int(x,z,ans,fin,itri,ierr)
 
   iplane = local_plane()
   call m3dc1_plane_getphi(iplane, phi)
+  if(myrank.eq.0) print *, 'diagnostics Plane ', iplane, 'at angle ', phi
 
   if(itri.eq.0) then
      call whattri(x,phi,z,itri,x1,z1)

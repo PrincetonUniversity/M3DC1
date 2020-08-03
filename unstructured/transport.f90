@@ -3,6 +3,7 @@ module transport_coefficients
 
   type(spline1d), private :: eta_spline
   type(spline1d), private :: kappa_spline
+  type(spline1d), private :: denm_spline
   type(spline1d), private :: amu_spline
   type(spline1d), private :: heatsource_spline
   type(spline1d), private :: particlesource_spline
@@ -31,6 +32,7 @@ function sigma_func(izone)
   real :: val, valp, valpp, pso
   real :: rate
   real, allocatable :: xvals(:), yvals(:)
+  integer :: ip
 
   ! Don't allow particle source in wall or vacuum region
   if(izone.ne.1) then
@@ -42,22 +44,23 @@ function sigma_func(izone)
 
   ! Pellet injection model
 
-  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. pellet_mix.gt.0.)) then
+  if(ipellet.gt.0 .and. (ipellet_z.eq.0 .or. any(pellet_mix.gt.0.))) then
 
-     if(ipellet_abl.gt.0. .and. pellet_var.lt.1.e-8) then
-        pellet_var = 0.
-        temp79a = 0.
-     else
-        if(pellet_mix.eq.0.) then
-           rate = pellet_rate
+     do ip=1, npellets
+        if(ipellet_abl.gt.0. .and. pellet_var(ip).lt.1.e-8) then
+           pellet_var(ip) = 0.
+           temp79a = 0.
         else
-           rate = pellet_rate_D2*2.0 ! two deuterium ions per D2 molecule
-        end if
-        temp79a = rate*pellet_distribution(x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
-     endif
+           if(pellet_mix(ip).eq.0.) then
+              rate = pellet_rate(ip)
+           else
+              rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
+           end if
+           temp79a = rate*pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+        endif
      
-     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
-
+        temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+     end do
   endif
 
 
@@ -97,13 +100,13 @@ function sigma_func(izone)
 
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+             x_79(j),z_79(j)).eq.2) then
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+
         call evaluate_spline(particlesource_spline,pso,val,valp,valpp)
-        temp79a(j) = val * pellet_rate
+        temp79a(j) = val * pellet_rate(1)
      end do
 
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
@@ -360,12 +363,12 @@ function q_func(izone)
 
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) &
+             x_79(j),z_79(j)).eq.2) &
              then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+
         call evaluate_spline(heatsource_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
@@ -688,6 +691,10 @@ function resistivity_func()
         elsewhere
            temp79a = eta_fac*eta0*temp79b**(-1.5)
         end where
+        where(real(temp79a).lt.(eta_min-etar*eta_fac))
+           temp79a = eta_min - etar*eta_fac
+        endwhere
+
      else
         temp79a = 0.
      end if
@@ -738,11 +745,11 @@ function resistivity_func()
      
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+             x_79(j),z_79(j)).eq.2) then
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+
         call evaluate_spline(eta_spline,pso,val,valp,valpp)
         temp79a(j) = val
         if(myrank.eq.0) print *, pso, val
@@ -822,12 +829,12 @@ function viscosity_func()
      
      do j=1, npoints
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) &
+             x_79(j),z_79(j)).eq.2) &
              then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+           pso = 2. - pso
         end if
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+
         call evaluate_spline(amu_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
@@ -936,6 +943,11 @@ function kappa_func()
              -2.*temp79d*pet79(:,OP_1) / net79(:,OP_1)**3))
      end if
      
+  case(5)
+     ! kappa ~ 1/Te (with a maximum)
+
+     temp79a = kap79(:,OP_1) - kappat
+
   case(10,11)
      if(.not.allocated(kappa_spline%x)) then
         ! Read in m^2/s (10) or normalized units (11)
@@ -951,11 +963,10 @@ function kappa_func()
      end if
      
      do j=1, npoints
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
         if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).ne.0) then
-           pso = 1.
-        else
-           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+             x_79(j),z_79(j)).eq.2) then
+           pso = 2. - pso
         end if
         call evaluate_spline(kappa_spline,pso,val,valp,valpp)
         temp79a(j) = val
@@ -980,7 +991,8 @@ function kappa_func()
 
   temp79a = temp79a + kappat
 
-  if(kappaf.ge.0. .and. gradp_crit.ne.0) then
+  ! BCL 9/30/19: ikappafunc condition added here since defined in m3dc1_nint.f90
+  if(kappaf.ge.0. .and. gradp_crit.ne.0 .and. ikappafunc.ne.5) then
      temp79b = pt79(:,OP_DR)**2 + pt79(:,OP_DZ)**2
 #ifdef USE3D
      temp79b = temp79b + ri2_79*pt79(:,OP_DP)**2
@@ -992,14 +1004,69 @@ function kappa_func()
 
   temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 
-  if(kappah.ne.0.) then
+  ! BCL 9/30/19: ikappafunc condition added here since defined in m3dc1_nint.f90
+  if(kappah.ne.0. .and. ikappafunc.ne.5) then
      temp79b = (pst79(:,OP_1) - psimin)/(psibound - psimin)
      temp79a = kappah*tanh((real(temp79b) - 1.)/.2)**2
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   end if
-  
+
   kappa_func = temp
 end function kappa_func
+
+! denm
+! ~~~~
+function denm_func()
+  use math
+  use read_ascii
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use basicq
+  use basicj
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: denm_func
+  integer :: nvals, j
+  real :: val, valp, valpp, pso
+  real, allocatable :: xvals(:), yvals(:)
+
+  select case (idenmfunc)
+  case(0)
+       temp79a = denm
+
+  case(10,11)
+     if(.not.allocated(denm_spline%x)) then
+        ! Read in m^2/s (10) or normalized units (11)
+        nvals = 0
+        call read_ascii_column('profile_denm', xvals, nvals, icol=1)
+        call read_ascii_column('profile_denm', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(6)
+        if(idenmfunc.eq.10) then
+           yvals = yvals * 1e4 / (l0_norm * v0_norm)
+        end if
+        call create_spline(denm_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     
+     do j=1, npoints
+        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+        if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+             x_79(j),z_79(j)).eq.2) then
+           pso = 2. - pso
+        end if
+        call evaluate_spline(denm_spline,pso,val,valp,valpp)
+        temp79a(j) = val
+     end do
+
+  case default
+     if(myrank.eq.0) print *, 'Error: invalid value for idenmfunc: ', idenmfunc
+     call safestop(73)
+  end select
+
+  denm_func = intx2(mu79(:,:,OP_1),temp79a)
+end function denm_func
 
 
 ! Electron viscosity
@@ -1118,9 +1185,9 @@ subroutine define_transport_coefficients()
   logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
        solve_visc_e, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
        solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
-       solve_fp, solve_be, solve_al, solve_bs
+       solve_fp, solve_denm
 
-  integer, parameter :: num_scalars = 18
+  integer, parameter :: num_scalars = 16
   integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -1135,6 +1202,7 @@ subroutine define_transport_coefficients()
   solve_resistivity = .false.
   solve_visc = .false.
   solve_kappa = .false.
+  solve_denm = .false.
   solve_sigma = .false.
   solve_visc_e = .false.
   solve_f = .false.
@@ -1147,13 +1215,11 @@ subroutine define_transport_coefficients()
   solve_recprad = .false.
   solve_cd = .false.
   solve_fp = .false.
-  solve_be = .false.
-  solve_al = .false.
-  solve_bs = .false.
 
   ! clear variables
   resistivity_field = 0.
   kappa_field = 0.
+  denm_field = 0.
 
   visc_field = 0.
   if(density_source) sigma_field = 0.  
@@ -1180,6 +1246,7 @@ subroutine define_transport_coefficients()
   if(itemp.ge.1) def_fields = def_fields + FIELD_TE
   if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
        def_fields = def_fields + FIELD_ETA
+  if(ikappafunc.eq.5) def_fields = def_fields + FIELD_KAP
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
@@ -1218,6 +1285,13 @@ subroutine define_transport_coefficients()
 !$OMP CRITICAL
      if(solve_kappa) &
           call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+
+     dofs = denm_func()
+     if(.not.solve_denm) solve_denm = any(dofs.ne.0.)
+!$OMP CRITICAL
+     if(solve_denm) &
+          call vector_insert_block(denm_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL
 
 
@@ -1312,7 +1386,6 @@ subroutine define_transport_coefficients()
         if(solve_recprad) &
              call vector_insert_block(Recprad_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL
-        
      end if
 
      if(icd_source .gt. 0) then
@@ -1356,9 +1429,7 @@ subroutine define_transport_coefficients()
      if(solve_ionrad)      temp(13) = 1
      if(solve_reckrad)     temp(14) = 1
      if(solve_recprad)     temp(15) = 1
-     if(solve_be)          temp(16) = 1
-     if(solve_al)          temp(17) = 1
-     if(solve_bs)          temp(18) = 1
+     if(solve_denm)        temp(16) = 1
 
      call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
           MPI_MAX, MPI_COMM_WORLD, ier)
@@ -1373,14 +1444,12 @@ subroutine define_transport_coefficients()
      solve_fp          = temp2(8).eq.1
      solve_cd          = temp2(9).eq.1
      solve_totrad      = temp2(10).eq.1
-     solve_linerad      = temp2(11).eq.1
+     solve_linerad     = temp2(11).eq.1
      solve_bremrad     = temp2(12).eq.1
      solve_ionrad      = temp2(13).eq.1
      solve_reckrad     = temp2(14).eq.1
      solve_recprad     = temp2(15).eq.1
-     solve_be          = temp2(16).eq.1
-     solve_al          = temp2(17).eq.1
-     solve_bs          = temp2(18).eq.1
+     solve_denm        = temp2(16).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -1393,6 +1462,11 @@ subroutine define_transport_coefficients()
   if(solve_kappa) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
      call newvar_solve(kappa_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_denm) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  denm'
+     call newvar_solve(denm_field%vec, mass_mat_lhs)
   endif
 
   if(solve_sigma) then

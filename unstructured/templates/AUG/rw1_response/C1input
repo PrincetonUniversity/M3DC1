@@ -128,7 +128,7 @@
 	nonrect = 1
 
 	mesh_filename = 'part.smb'
-	mesh_model = 'aug-0.02-1.70-2.20.txt'
+	mesh_model = 'aug-0.02-1.7-2.2.txt'
 
 	icsubtract = 1
 	imulti_region = 1

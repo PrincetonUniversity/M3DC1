@@ -402,7 +402,13 @@ contains
     use basic
     implicit none
 
+    if(mod(ntime,pskip)==0) then
+        if(myrank.eq.0) print *, " clear_mat s1_mat",ntime, s1_mat%imatrix
     call clear_mat(s1_mat)
+    else
+        if(myrank.eq.0) print *, " zero_mat  s1_mat",ntime, s1_mat%imatrix
+        call zero_mat(s1_mat)
+    endif
     call clear_mat(d1_mat)
     call clear_mat(q1_mat)
     call clear_mat(r14_mat)
@@ -750,11 +756,7 @@ subroutine step_split(calc_matrices)
 #endif
 
      call newsolve(s1_mat, b1_vel, jer)
-#ifdef NEWSOLVERDEVELOPMENT
-     if(linear.eq.0) call zero_mat(s1_mat)
-#else
-     if(linear.eq.0) call clear_mat(s1_mat)
-#endif
+     !if(linear.eq.0) call clear_mat(s1_mat)
 
      if(idifv .gt.0) then
         call add(b1_vel,vel_vec)
@@ -836,11 +838,7 @@ subroutine step_split(calc_matrices)
          call add(temp,den_vec)  ! add time n density to increment to get time n+1 value
      endif
 
-#ifdef NEWSOLVERDEVELOPMENT
-     if(linear.eq.0) call zero_mat(s8_mat)
-#else
-     if(linear.eq.0) call clear_mat(s8_mat)
-#endif
+     !if(linear.eq.0) call clear_mat(s8_mat)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -944,11 +942,7 @@ subroutine step_split(calc_matrices)
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before newsolve"
      call newsolve(s9_mat, temp, jer)
-#ifdef NEWSOLVERDEVELOPMENT
-     if(linear.eq.0) call zero_mat(s9_mat)
-#else
-     if(linear.eq.0) call clear_mat(s9_mat)
-#endif
+     !if(linear.eq.0) call clear_mat(s9_mat)
 
     if(idiff .gt. 0) then
          call add(temp,pres_vec)
@@ -1043,11 +1037,7 @@ subroutine step_split(calc_matrices)
 #endif 
 
      call newsolve(s9_mat, temp, jer)
-#ifdef NEWSOLVERDEVELOPMENT
-     if(linear.eq.0) call zero_mat(s9_mat)
-#else
-     if(linear.eq.0) call clear_mat(s9_mat)
-#endif
+     !if(linear.eq.0) call clear_mat(s9_mat)
 
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then
@@ -1164,11 +1154,7 @@ subroutine step_split(calc_matrices)
 #endif 
 
      call newsolve(s2_mat, b1_phi, jer)
-#ifdef NEWSOLVERDEVELOPMENT
-     if(linear.eq.0 .and. iteratephi.eq.0) call zero_mat(s2_mat)
-#else
-     if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s2_mat)
-#endif
+     !if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s2_mat)
 
 
    if(idiff .gt. 0) then
@@ -1286,11 +1272,7 @@ subroutine step_split(calc_matrices)
 #endif 
 
         call newsolve(s2_mat, b1_phi, jer)
-#ifdef NEWSOLVERDEVELOPMENT
-        if(linear.eq.0) call zero_mat(s2_mat)
-#else
-        if(linear.eq.0) call clear_mat(s2_mat)
-#endif
+        !if(linear.eq.0) call clear_mat(s2_mat)
         
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.2) then

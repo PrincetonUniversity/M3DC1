@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH -p debug
+#SBATCH -C haswell
+#SBATCH -N 4
+#SBATCH -J M3DC1_regtest_pellet
+#SBATCH -t 0:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+# partition mesh
+part_mesh.sh analytic-2K.smb 32
+echo $? > mesh_partitioned
+
+# Run M3D-C1
+${M3DC1_MPIRUN} -n 128 -c 2 m3dc1_3d -ipetsc -options_file options_bjacobi.type_superludist
+
+touch finished

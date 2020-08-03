@@ -19,6 +19,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(linfac) eq 0) then linfac = 1.
+   if(n_elements(fac) eq 0) then fac = 1.
    if(n_elements(ls) eq 0) then ls = 0
 
    if(n_elements(time) eq 0) then time=0
@@ -66,11 +67,12 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
            colors = replicate(color(0,1), nfiles)
        endif else begin
            if(n_elements(colors) eq 0) then colors = shift(get_colors(),-1)
-           ls = replicate(0,nfiles)
+           if(n_elements(ls) eq 0) then ls = replicate(0,nfiles)
        endelse
        if(n_elements(ls) eq 1) then ls = replicate(ls, nfiles)
        if(n_elements(time) eq 1) then time = replicate(time,nfiles)
        if(n_elements(linfac) eq 1) then linfac=replicate(linfac, nfiles)
+       if(n_elements(fac) eq 1) then fac=replicate(fac, nfiles)
        if(n_elements(multiply_flux) eq 1) then $
          multiply_flux = replicate(multiply_flux,nfiles)
        if(n_elements(outfile) eq 0) then outfile = replicate('',nfiles)
@@ -81,7 +83,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
              overplot=((i gt 0) or keyword_set(overplot)), points=pts, $
              color=colors[i], _EXTRA=extra, ylog=ylog, xlog=xlog, lcfs=lcfs, $
              normalized_flux=norm, minor_radius=minor_radius, smooth=sm, $
-             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac, $
+             rms=rms, linestyle=ls[i], srnorm=srnorm, bins=bins, fac=fac[i], $
              linear=linear, multiply_flux=multiply_flux[i], mks=mks, cgs=cgs, $
              integrate=integrate, complex=complex, abs=abs, phase=phase, $
              stotal=total, q_contours=q_contours, rho=rho, nolegend=nolegend, $
@@ -223,17 +225,24 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
    endif
 
    if(n_elements(q_contours) ne 0) then begin
-       fvals = flux_at_q(q_contours, points=pts, filename=filename, $
-                         slice=time, normalized_flux=norm, bins=bins)
+       fvals = flux_at_q(q_contours, points=pts, filename=filename, fc=fc, $
+                         slice=time, normalized_flux=norm, bins=bins, q=q)
+       if(fvals[0] gt 0) then begin
+
        for k=0, n_elements(fvals)-1 do begin
            oplot, [fvals[k], fvals[k]], !y.crange, linestyle=1, color=colors
+           xyouts, fvals[k], (!y.crange[1]-!y.crange[0])*0.8 + !y.crange[0], $
+                   '!8q!6=' + string(format='(F0.2)', q[k]) +'!X', orient=90
        end
        result = interpol(fa, flux, fvals)
        print, 'filename = ', filename
        val_at_q = result
        qflux = fvals
+       print, "q's =  ", q
        print, "flux at q's =  ", qflux
        print, "values at q's =  ", val_at_q
+
+       end
    endif
 
    if(n_elements(outfile) eq 1) then begin
@@ -246,7 +255,7 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
             end
          endif else begin
             for i=0, n_elements(flux)-1 do begin
-               printf, ifile, format='(2E16.6)', flux[i], fa[i]
+               printf, ifile, format='(2E16.6)', flux[i], real_part(fa[i])
             end
          endelse
          free_lun, ifile

@@ -32,10 +32,8 @@ set(PETSC_LIB_NAMES
   petsc
   metis
   parmetis
-  scalapack
   superlu
-  flapack
-  fblas
+  superlu_dist
 )
 
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)

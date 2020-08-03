@@ -169,9 +169,11 @@ BSpline & BSpline :: operator = ( const PolyNomial& pn)
     ctr/=(double)calcuBinomial(order-1,i);
     ctrlPts.at(i)=ctr;
   }
+#ifdef DEBUG
   double tol=1e-6;
   assert(fabs(ctrlPts.at(0)-pn.eval(0.0))<tol);
   assert(fabs(ctrlPts.at(order-1)-pn.eval(1.0))<tol);
+#endif
   calcuDerivCoeff();
   return *this;
 }

@@ -5,22 +5,42 @@
 2. code
 
 3. load modules
-        source /scratch/app/modulos/intel-psxe-2017.sh
-        module load git
-        module load gsl
+        source /scratch/app/modulos/intel-psxe-2019.sh
+        module load git intel_psxe/2019 gsl
+        export HOST=sdumont
 
 4. compile code
-	make 3D=1 OPT=1 MAX_PTS=60 ARCH=sdumont
+	for 2D real, make OPT=1
+        for 2D complex, make OPT=1 COM=1
+        for 3D real, make 3D=1 OPT=1 MAX_PTS=60
 
 5. mesh utility
+(1) mesh generation 
+  with Simmetrix 11.0
+	/scratch/ntm/software/scorec/intel-psxe2019/sim11.0-180914/bin/m3dc1_meshgen
+  with Simmetrix 12.0
+	/scratch/ntm/software/scorec/intel-psxe2019/sim12.0-181027/bin/m3dc1_meshgen
+(2) other binaries 
+  with parmetis in PETSc 3.7.6
+ 	/scratch/ntm/software/scorec/intel-psxe2019/petsc3.7.6/bin
+  with parmetis in PETSC 3.9.3
+	/scratch/ntm/software/scorec/intel-psxe2019/petsc3.9.3/bin
+ 
+6. run 
+(1) interactive mode
+   cd your test folder in /prj/ntm/your_id/scratch
+   salloc -n num_proc -t hh:mm:ss -p cpu_small
+   srun -n num_proc ./m3dc1_3d -options_file options_bjacobi > log.A_more 
+   exit
 
-6. run jobscript:
+(2) batch mode
+   create a script:
 	#!/bin/bash
 	#SBATCH --nodes=16                     #Numero de Nós
 	#SBATCH --ntasks-per-node=24           #Numero de tarefas por Nó
 	#SBATCH -p cpu_small                   #Fila (partition) a ser utilizada
 	#SBATCH -J jcA                         #Nome job
-	#SBATCH --time=00:59:00		       #Altera o tempo limite para 5 minutos
+	#SBATCH --time=hh:mm:ss		       #Altera o tempo limite para 5 minutos
 	#SBATCH --exclusive                    #Utilização exclusiva dos nós durante a execução do job
 
 	echo $SLURM_JOB_NODELIST
@@ -28,20 +48,19 @@
 
 	cd $SLURM_SUBMIT_DIR
 
-	source /scratch/app/modulos/intel-psxe-2017.sh
-	module load gsl/2.4_gnu
+	source /scratch/app/modulos/intel-psxe-2019.sh
+	module load intel_psxe/2019 gsl 
 	export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
 
 	srun -n 384 ./m3dc1_3d -options_file options_bjacobi > log.A_more 2>&1
 
-7. submit job
-	run from /prj/ntm/your_id/scratch
-
+   then submit job
+	cd your test folder in /prj/ntm/your_id/scratch
 	sbatch job_script
 
-8. list all curent jobs for a user
+7. list all curent jobs for a user
 	squeue -u your_id
 
-9. delete a job
+8. delete a job
    	scancel job_id
 

@@ -17,6 +17,7 @@
 #define C1TRIDOFNODE 6
 
 #include "name_convert.h"
+#include "mpi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +39,8 @@ enum m3dc1_matrix_type { /*0*/ M3DC1_MULTIPLY=0,
                          /*1*/ M3DC1_SOLVE}; 
 
 enum m3dc1_matrix_status { /*0*/ M3DC1_NOT_FIXED=0,
-                           /*2*/ M3DC1_FIXED};
+                           /*1*/ M3DC1_FIXED,
+                           /*2*/ M3DC1_SOLVED};
 
 bool m3dc1_double_isequal(double A, double B);
 
@@ -65,7 +67,7 @@ int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); /
 /** mesh functions */
 
 int m3dc1_mesh_load(char* mesh_file);
-int m3dc1_mesh_write(char* filename, int *option); // 0: vtk file with field; 1:smb file
+int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk file with field; 1:smb file
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
 int m3dc1_ghost_create (int* num_layer ); 
@@ -163,7 +165,7 @@ int m3dc1_ent_getdofdata (int* /* in */ ent_dim, int* /* in */ ent_id, FieldID* 
 int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, FieldID* field_id); //zerosuperlumatrix_
 int m3dc1_matrix_assemble(int* matrix_id); //finalizematrix_
 int m3dc1_matrix_delete(int* matrix_id); //deletematrix_
-void m3dc1_matrix_reset(int* matrix_id);
+void m3dc1_matrix_reset(int* matrix_id); // cleanMatrixValues_
 
 int m3dc1_matrix_insert(int* matrix_id, int* row, int* column, int* scalar_type, double* val);
 int m3dc1_matrix_add(int* matrix_id, int* row, int* column, int* scalar_type, double* val); //globalinsertval_
@@ -225,6 +227,27 @@ int m3dc1_solver_amesos(int* matrix_id, FieldID* in_fieldid, FieldID* out_fieldi
 int m3dc1_solver_getnumiter(int* matrix_id, int * iter_num);
 #endif //#ifdef M3DC1_TRILINOS
 
+// for internal debugging purpose
+// checkMatrixStatus_
+int m3dc1_matrix_getstatus (int* matrix_id, int* status);
+// getMatrixLocalDofNum_
+void m3dc1_matrix_getlocalnumdof(int* matrix_id, int *num_own_dof);
+// getMatrixGlobalDofs_
+void m3dc1_matrix_getglobalnumdof(int *matrix_id, int *num_global_dof);
+// getMatrixPetscDnnzOnnz_
+void m3dc1_matrix_getpetscdnnzonnz(int *matrix_id, int *valType, int *d_nnz, int *o_nnz);
+// getMatrixNNZRowSize_
+void gm3dc1_matrix_getnnzrowsize(int *matrix_id, int *valType, int *rowSize);
+// getMatrixNNZRowId_
+void m3dc1_matrix_getnnzrowid(int *matrix_id, int *valType, int* ith, int *rowId);
+// getMatrixNNZColSize_
+void  m3dc1_matrix_getnnzcolsize(int *matrix_id, int *valType, int *rowId, int *colSize);
+// getMatrixNNZValues_
+void m3dc1_matrix_getnnzvalue(int *matrix_id, int *valType, int *rowId, int *colId, double *dvalues);
+// getMatrixFirstDof_
+void m3dc1_matrix_getmatrixfirstdof(int *matrix_id, int *firstdof);
+// setMatrixSoln_
+void m3dc1_matrix_setsoln(int *matrix_id, int *valType, double *soln);
 #ifdef __cplusplus
 }
 #endif

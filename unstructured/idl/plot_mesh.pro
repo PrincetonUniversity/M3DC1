@@ -17,7 +17,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    if(not keyword_set(oplot)) then begin
        xtitle = make_label('!8R!X',/l0,_EXTRA=ex)
        ytitle = make_label('!8Z!X',/l0,_EXTRA=ex)
-       plot, elm_data[4,*], xtitle=xtitle, ytitle=ytitle, $
+       plot, elm_data[4,*], xrange=xrange, yrange=yrange, xtitle=xtitle, ytitle=ytitle, $
          elm_data[5,*], psym = 3, _EXTRA=ex, /nodata
    endif  
 
@@ -55,7 +55,9 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    endelse
 
    for i=long(0), nelms-1 do begin
-       if(threed eq 1 and i ge (nelms/mesh.nplanes._data)) then break
+       if(threed eq 1) then begin
+          if(i ge (nelms/mesh.nplanes._data)) then break
+       end
        i_data = elm_data[*,i]
        a = i_data[0]*fac
        b = i_data[1]*fac

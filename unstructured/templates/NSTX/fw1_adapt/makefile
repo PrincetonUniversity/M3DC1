@@ -1,4 +1,4 @@
-nstx-12K0.smb : input
+nstx-14K0.smb : input
 	create_mesh.sh input
 
 .PHONY : clean

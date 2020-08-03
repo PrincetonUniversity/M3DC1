@@ -1,4 +1,4 @@
-dirs = AUG DIII-D NSTX NSTX-U KSTAR ITER
+dirs = AUG DIII-D NSTX NSTX-U KSTAR ITER JET
 
 .PHONY : $(dirs) clean all
 

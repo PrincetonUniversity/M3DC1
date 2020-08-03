@@ -1,6 +1,6 @@
 function read_scalar, scalarname, filename=filename, title=title, $
                       symbol=symbol, units=units, time=time, final=final, $
-                      integrate=integrate, _EXTRA=extra
+                      integrate=integrate, ipellet=ipellet, _EXTRA=extra
 
    if(n_elements(scalarname) eq 0) then begin
        print, "Error: no scalar name provided"
@@ -8,6 +8,8 @@ function read_scalar, scalarname, filename=filename, title=title, $
    end
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
+   
+   if(n_elements(ipellet) eq 0) then ipellet=0
 
    if(n_elements(filename) gt 1) then begin
        data = fltarr(n_elements(filename))
@@ -23,11 +25,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
    itor = read_parameter('itor', filename=filename)
    version = read_parameter('version', filename=filename)
    threed = read_parameter('3d', filename=filename)
+   if(version ge 31) then p = read_pellets(filename=filename)
 
    if(n_tags(s) eq 0) then return, 0
 
    time = s.time._data
-
    d = dimensions()
 
    if(strcmp("toroidal current", scalarname, /fold_case) eq 1) or $
@@ -56,6 +58,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.toroidal_current_w._data + $
               s.toroidal_current._data
        title = 'Total Current'
+       symbol = '!8I!D!9P!N!X'
+       d = dimensions(/j0, l0=2, _EXTRA=extra)
+   endif else $
+     if(strcmp("halo current", scalarname, /fold_case) eq 1) or $
+       (strcmp("ih", scalarname, /fold_case) eq 1) then begin
+       data = s.toroidal_current._data - $
+              s.toroidal_current_p._data
+       title = 'Toroidal Halo Current'
        symbol = '!8I!D!9P!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
    endif else $
@@ -105,8 +115,15 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(/pot, _EXTRA=extra)
    endif else $
      if (strcmp("pellet rate", scalarname, /fold_case) eq 1) or $
-     (strcmp("pelr", scalarname, /fold_case) eq 1) then begin
-       data = s.pellet_rate._data
+        (strcmp("pelr", scalarname, /fold_case) eq 1) then begin
+       if(version lt 31) then begin
+          data = s.pellet_rate._data
+       endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
+       endif else begin
+          data = p.pellet_rate._data[ipellet,*]
+       endelse
        title = 'Pellet Rate'
        symbol = '!8V!DL!N!X'
        d = dimensions(/n0, l0=3, t0=-1, _EXTRA=extra)
@@ -119,13 +136,20 @@ function read_scalar, scalarname, filename=filename, title=title, $
          symbol = '!8V!DL!N!X'
          d = dimensions(/n0, t0=-1, _EXTRA=extra)
       endif else begin
-         print, 'Error, this data is not present in this version of M3D-C1.'
-         data = 0.
+         print, 'Error: this data is not present in this version of M3D-C1.'
+         return, 0
       end
     endif else $
      if (strcmp("pellet var", scalarname, /fold_case) eq 1) or $
      (strcmp("pelvar", scalarname, /fold_case) eq 1) then begin
-       data = s.pellet_var._data
+       if(version lt 31) then begin
+          data = s.pellet_var._data
+        endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
+        endif else begin
+          data = p.pellet_var._data[ipellet,*]
+       endelse
        title = 'Pellet Var'
        symbol = '!8V!DL!N!X'
        d = dimensions(/l0)
@@ -135,7 +159,14 @@ function read_scalar, scalarname, filename=filename, title=title, $
       if (version lt 26) then begin
          data = s.r_p2._data
       endif else begin
-         data = s.r_p._data
+        if(version lt 31) then begin
+          data = s.r_p._data
+        endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
+        endif else begin
+          data = p.r_p._data[ipellet,*]
+        endelse
       end
        title = 'Pellet Radius'
        symbol = '!8V!DL!N!X'
@@ -146,15 +177,43 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(version lt 26) then begin
           data = s.pellet_x._data
        endif else begin
-          data = s.pellet_r._data
+         if(version lt 31) then begin
+           data = s.pellet_r._data
+         endif else if(p eq !NULL) then begin
+           print, 'Error: pellet data not present in this file'
+           return, 0
+         endif else begin
+           data = p.pellet_r._data[ipellet,*]
+         endelse
        end
        title = 'Pellet R position'
        symbol = '!8V!DL!N!X'
        d = dimensions(/l0, _EXTRA=extra)
     endif else $
+     if (strcmp("pellet phi position", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelphipos", scalarname, /fold_case) eq 1) then begin
+       if(version lt 31) then begin
+          data = s.pellet_phi._data
+       endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
+       endif else begin
+          data = p.pellet_phi._data[ipellet,*]
+       endelse
+       title = 'Pellet !9P!X position'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/l0, _EXTRA=extra)
+    endif else $
      if (strcmp("pellet Z position", scalarname, /fold_case) eq 1) or $
      (strcmp("pelzpos", scalarname, /fold_case) eq 1) then begin
-       data = s.pellet_z._data
+       if(version lt 31) then begin
+          data = s.pellet_z._data
+       endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
+       endif else begin
+          data = p.pellet_z._data[ipellet,*]
+       endelse
        title = 'Pellet Z position'
        symbol = '!8V!DL!N!X'
        d = dimensions(/l0, _EXTRA=extra)
@@ -392,15 +451,36 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Average Pressure!6'
        symbol = '!3<!8p!3>!X'
        d = dimensions(/p0,_EXTRA=extra)
+   endif else if (strcmp("helicity", scalarname, /fold_case) eq 1) then begin
+       data = s.helicity._data
+       title = '!6Magnetic Helicity!6'
+       symbol = '!8H!X'
+       d = dimensions(b0=2,l0=4,_EXTRA=extra)
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)
-       match = where(strcmp(n, scalarname, /fold_case) eq 1,count)
-       if(count eq 0) then begin
+       smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
+       if(version ge 31) then begin
+          p = read_pellets(filename=filename)
+          if (p eq !NULL) then begin
+            print, 'Warning: pellet data not present in this file'
+            pcount = 0
+          endif else begin
+            n = tag_names(p)
+            pmatch = where(strcmp(n, scalarname, /fold_case) eq 1,pcount)
+          endelse
+       endif else begin
+          pcount = 0
+       endelse
+
+       if(scount ne 0) then begin
+           data = s.(smatch[0])._data
+       endif else if(pcount ne 0) then begin
+           data = p.(pmatch[0])._data[ipellet,*]
+       endif else begin
            print, 'Scalar ', scalarname, ' not recognized.'
            return, 0
-       endif
-       data = s.(match[0])._data
+       endelse
 
        title = ''
        symbol = scalarname

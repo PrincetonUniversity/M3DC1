@@ -135,15 +135,13 @@ void ReducedQuinticImplicit::eval_g( double coord[2], double res[6] )
 void ReducedQuinticImplicit::eval_l( double coord[2], double res[6] )
 {
   double coord_loc[2]={coord[0],coord[1]};
-  double beta[20],coord_poly[20];
+  double beta[20];
   int poly_idx[20][2]={0,0,1,0,0,1,2,0,1,1,0,2,3,0,2,1,1,2,0,3,4,0,3,1,2,2,1,3,0,4,5,0,3,2,2,3,1,4,0,5};
   for( int i=0; i<20; i++)
   {
     beta[i]=0;
     for( int j=0; j<18; j++)
-    {
       beta[i]+=coeffs[j][i]*dofs[j];
-    }
     //cout<<"beta["<<i<<"] "<<beta[i]<<endl;
   }
   double xi_poly[6], eta_poly[6];

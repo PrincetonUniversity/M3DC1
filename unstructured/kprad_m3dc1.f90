@@ -126,6 +126,7 @@ contains
     integer :: itri, nelms, def_fields
     vectype, dimension(dofs_per_element) :: dofs
     real, dimension(MAX_PTS) :: p
+    integer :: ip
 
     if(ikprad.eq.0) return
 
@@ -144,8 +145,10 @@ contains
 
        if(ipellet.lt.0. .and. ipellet_z.eq.kprad_z) then
           p = pt79(:,OP_1)
-          temp79a = temp79a + &
-               pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+          do ip=1,npellets
+             temp79a = temp79a + &
+                  pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+          end do
        end if
 
        dofs = intx2(mu79(:,:,OP_1),temp79a)
@@ -242,7 +245,7 @@ contains
     call clear_mat(nmat_rhs)
     call create_field(rhs)
 
-    def_fields = FIELD_PHI + FIELD_V + FIELD_CHI
+    def_fields = FIELD_PHI + FIELD_V + FIELD_CHI + FIELD_DENM
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating matrix'
 
@@ -263,7 +266,7 @@ contains
        do j=1, dofs_per_element
           ! NUMVAR = 1
           ! ~~~~~~~~~~      
-          tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
+          tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79)
           ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
           ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           
@@ -348,7 +351,7 @@ contains
           if(izone.ne.1) goto 200
     
           do j=1, dofs_per_element
-             tempx = n1ndenm(mu79,nu79(j,:,:),denm,vzt79)
+             tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79)
              ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
              ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           end do
@@ -409,8 +412,9 @@ contains
     real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
     logical, dimension(MAX_PTS) :: advance_kprad
 
-    integer :: i, itri, nelms, def_fields, izone
+    integer :: i, itri, nelms, def_fields, izone, j
     vectype, dimension(dofs_per_element) :: dofs
+    integer :: ip
 
     if(ikprad.ne.1) return
 
@@ -427,7 +431,7 @@ contains
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
 
-    def_fields = FIELD_N + FIELD_TE
+    def_fields = FIELD_N + FIELD_TE + FIELD_DENM
     if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
          def_fields = def_fields + FIELD_P
 
@@ -451,11 +455,15 @@ contains
 
        ne = net79(:,OP_1)
        te = tet79(:,OP_1)
+       if(ikprad_te_offset .gt. 0) te = te - eta_te_offset
        p = pt79(:,OP_1)
 
        if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z .and. iread_lp_source.eq.0) then
           p = pt79(:,OP_1)
-          source(:,0) = pellet_rate*pellet_distribution(x_79, phi_79, z_79, p, 1)
+          source = 0.
+          do ip=1,npellets
+             source(:,0) = source(:,0) + pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+          end do
        end if
 
        if(iread_lp_source.eq.1) then
@@ -531,6 +539,13 @@ contains
        ! Line Radiation (0 if not advancing KPRAD at that point)
        temp79b = merge(dw_rad(:,kprad_z), 0., advance_kprad) / dti
        where(temp79b.ne.temp79b) temp79b = 0.
+!Check for and delete spurius values   (scj 6/21/20)
+       do i=1,MAX_PTS
+          if(abs(temp79b(i)) .gt. 1.e0) then
+            temp79b(i) = 0.
+          endif
+       enddo
+!
        dofs = intx2(mu79(:,:,OP_1),temp79b)
        call vector_insert_block(kprad_rad%vec, itri,1,dofs,VEC_ADD)
 

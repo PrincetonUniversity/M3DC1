@@ -49,20 +49,17 @@ PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
 HYPRE_LIB=-lHYPRE
 endif
 
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015u1-openmpi1.10.3/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 
-ifeq ($(REORDERED), 1)
-  SCORECVER=reordered
-endif
-PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
 ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)/$(SCORECVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
 ifeq ($(COM), 1)
@@ -73,7 +70,7 @@ endif
 
 SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
-           $(PUMI_LIB) $(M3DC1_SCOREC_LIB) -Wl,--end-group
+           $(PUMI_LIB) -Wl,--end-group
 
 COMP_LIB_DIR=/usr/pppl/intel/2015.u1/composer_xe_2015.1.133/compiler/lib/intel64
 MPI_LIB_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3/lib
@@ -90,6 +87,7 @@ LIBS = 	\
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+        -I$(PUMI_DIR)/include -I$(SCOREC_DIR)/include \
         -I$(HDF5_HOME)/include \
         -I$(GSL_HOME)/include
 

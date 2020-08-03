@@ -13,7 +13,7 @@
 void SizeFieldPsi :: getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& h)
 {
   //cout<<" getValue "<<endl;
-  double xyz[3], norm1[3], norm;
+  double norm;
   double hbar[3];
   double fldval;
   double psibar;
@@ -88,9 +88,4 @@ void SizeFieldPsi :: getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& h)
   R[0][2]=0;
   R[1][2]=0;
   R[2][2]=1.;
-  //double beta[3];
-  //for (int i=0; i<3; i++)
-    //beta[i]=1.0/smoothfact;
-  //double beta[]={1.5,1.5,1.5};
-  //((PWLsfield *)tensorField)->anisoSmooth(beta);
 }

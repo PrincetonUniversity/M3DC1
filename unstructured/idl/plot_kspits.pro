@@ -74,7 +74,7 @@ function minmax,array,NAN=nan, DIMEN=dimen, $
  endelse
  end
 
-pro plot_kspits, filename=filename, yrange=yrange
+pro plot_kspits, filename=filename, yrange=yrange, xrange=xrange, _extra=extra_keywords
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
    if(hdf5_file_test(filename) eq 0) then return
 
@@ -102,7 +102,7 @@ pro plot_kspits, filename=filename, yrange=yrange
    
    x = fltarr(ntimes)
    tmp = fltarr(ntimes)
-   
+  
    for n=0, maxn-1 do begin
       for t=0, ntimes-1 do begin
          ind = n + t*dimn[0]
@@ -110,9 +110,10 @@ pro plot_kspits, filename=filename, yrange=yrange
          x[t] = t
       endfor
       if(n lt 1) then begin
-         plot, x, tmp, yrange=yrange, TITLE='KSPSolve iteration numbers for 5, 1, 17, 6', linestyle=0
+         plot, x, tmp, xrange=xrange, yrange=yrange, $
+                      TITLE='KSPSolve iteration numbers for 5, 1, 17, 6', linestyle=0, _extra=extra_keywords
       endif else begin
-         oplot, x, tmp, linestyle=0
+         oplot, x, tmp, linestyle=0, _extra=extra_keywords
       endelse
 
       if(n eq 0) then begin
@@ -128,7 +129,12 @@ pro plot_kspits, filename=filename, yrange=yrange
       isolver=6
       end
       numberAsString = STRTRIM(isolver, 2)
-      xyouts, x[ntimes/2], tmp[ntimes/2]+0.25, numberAsString
+      IF(N_ELEMENTS(xrange) LE 0) THEN BEGIN
+         xyouts, x[ntimes/2], tmp[ntimes/2]+0.25, numberAsString 
+      ENDIF ELSE BEGIN 
+         indtmp = round(xrange[0] + 0.2*(xrange[1]-xrange[0]))
+         xyouts, xrange[0] + 0.2*(xrange[1]-xrange[0]), tmp[indtmp]+0.25, numberAsString
+      ENDELSE
    endfor
 
 end

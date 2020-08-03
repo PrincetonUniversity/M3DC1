@@ -24,6 +24,7 @@ Program Reducedquintic
   use wall
   use neutral_beam
   use kprad_m3dc1
+  use transport_coefficients
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -40,6 +41,8 @@ Program Reducedquintic
   real :: tstart, tend, dtsave, period, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
+  integer :: ip
+  character(len=32) :: mesh_file_name
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -133,16 +136,14 @@ Program Reducedquintic
   endif
 #endif
 
-#ifdef USE3D
-  if(myrank==0) call parse_solver_options(trim(solveroption_filename)//PETSC_NULL_CHARACTER)
-#endif
-
   ! read input file
   if(myrank.eq.0) print *, ' Reading input'
   call input
 
   ! load mesh
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
+  if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
+
 
 #ifndef M3DC1_TRILINOS
   call m3dc1_matrix_setassembleoption(imatassemble)
@@ -171,9 +172,6 @@ Program Reducedquintic
   ! output info about simulation to be run
   call print_info
 
-  ! initialize output
-  call initialize_output
-
   ! create the newvar matrices
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Generating newvar matrices'
@@ -185,10 +183,14 @@ Program Reducedquintic
   ! Set initial conditions either from restart file
   ! or from initialization routine
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ! initialize output for HDF5 and C1ke
+  call initialize_output ()
+
   select case (irestart)
   case(0)
      ! Initialize from routine
 
+     version_in = -1
      ptot = 0.
      ntime = 0
      time = 0.
@@ -216,17 +218,7 @@ Program Reducedquintic
      ! Read restart file(s)
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading restart file(s)'
-     if(iglobalin.eq.1) then
-        call rdrestartglobal
-     else
-        if(iread_adios.eq.1) then
-           call rdrestart_adios
-        else if(iread_hdf5.eq.1) then
-           call rdrestart_hdf5
-        else
-           call rdrestart
-        endif
-     endif
+     call rdrestart_hdf5
 !
 !....use timestep from input file if not a variable timestep run
     if(dtkecrit.eq.0) dt = dtsave
@@ -236,11 +228,7 @@ Program Reducedquintic
 !
 !....save timestep from input file
      dtsave = dt
-     if(iread_hdf5.eq.1) then
-        call rdrestart_hdf5
-     else
-        call rdrestart_cplx
-     end if
+     call rdrestart_hdf5
      dt = dtsave
 
   end select                     !  end of the branch on restart/no restart
@@ -272,6 +260,8 @@ Program Reducedquintic
   if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
 
      if(eqsubtract.eq.1) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+        call define_transport_coefficients
         call derived_quantities(0)
         if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
      end if
@@ -290,15 +280,28 @@ Program Reducedquintic
 
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+  call define_transport_coefficients
   call derived_quantities(1)
 
 
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
 #ifdef USESCOREC
-  if (iadapt .eq. 1) then
-   if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi call:  psibound, psimin", psibound, psimin
-    call adapt_by_psi
+  ! iadapt_writevtk=1, write the initial mesh before adaptation
+  if (iadapt.gt.0 .and. iadapt_writevtk .eq. 1) then
+    write(mesh_file_name,"(A7,A)") 'initial', 0
+    call m3dc1_mesh_write (mesh_file_name,0,0)
+  endif
+
+  !if (iadapt .eq. 1) then
+  if (mod (iadapt, 2) .eq. 1) then
+    if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
+    if (nplanes .eq. 1) then 
+      call adapt_by_psi
+    else
+      call adapt_by_error
+    end if
   end if
 #endif
 
@@ -374,24 +377,34 @@ Program Reducedquintic
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .ge. 0) then
      ! feedback control on density source
-          if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, " Applying density feedback", &
-             pellet_rate, totden, n_control%p, &
-             n_control%target_val, n_control%err_p_old, n_control%err_i
+          if(myrank.eq.0 .and. iprint.ge.1) print *, " Applying density feedback"
+             do ip=1,npellets
+                if(myrank.eq.0 .and. iprint.ge.1) print *, "   ", pellet_rate(ip), totden, n_control%p, &
+                                                           n_control%target_val, n_control%err_p_old, n_control%err_i
+                call control(totden, pellet_rate(ip), n_control, dt) ! ???
+             end do
 
-          call control(totden, pellet_rate, n_control, dt)
-
-          if(myrank.eq.0 .and. iprint.ge.1) &
-             print *, " After density feedback", &
-             pellet_rate, totden, n_control%p, &
-             n_control%target_val, n_control%err_p_old, n_control%err_i
+          if(myrank.eq.0 .and. iprint.ge.1) then
+             print *, " After density feedback"
+             do ip=1,npellets
+                print *, "   ", pellet_rate(ip), totden, n_control%p, &
+                         n_control%target_val, n_control%err_p_old, n_control%err_i
+             end do
+          end if
      endif
 
      ! Write output
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
-     call run_adapt(adapt_flag)
-     if(adapt_flag .eq. 1 .and. iadapt .gt. 1) call adapt_by_error
+
+      if (iadapt .gt. 1) then
+      ! adapt_flag=1 if
+      !(1) iadapt_ntime(N)>0 -- run adapt_by_error at the end of every N time steps
+      !(2) non-linear & iadapt_ntime=0 -- run adapt_by_error at the end of every time step
+      !(3) linear, adapt_ke>0 & ekin>adapt_ke -- run adapt_by_error in this time step  
+        call diagnose_adapt(adapt_flag)
+       if(adapt_flag .eq. 1) call adapt_by_error
+     endif
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
@@ -413,6 +426,7 @@ subroutine init
   use runaway_mod
   use kprad_m3dc1
   use resistive_wall
+  use pellet
   
   implicit none
 
@@ -450,6 +464,9 @@ subroutine init
 
   call init_resistive_wall(ierr)
   if(ierr.ne.0) call safestop(602)
+
+  call pellet_domain
+
 end subroutine init
 
 
@@ -732,16 +749,13 @@ subroutine derived_quantities(ilin)
     endif
   endif
 
-  ! Electron temperature
+  ! Electron density
   call calculate_ne(ilin, den_field(ilin), ne_field(ilin), eqsubtract)
 
 
   ! Define auxiliary fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-  call define_transport_coefficients
 
   if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0) .and. imp_temp.eq.0) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  temperatures"
@@ -1210,6 +1224,7 @@ subroutine space(ifirstcall)
      call create_field(com_field)
      call create_field(resistivity_field)
      call create_field(kappa_field)
+     call create_field(denm_field)
      call create_field(visc_field)
      call create_field(visc_c_field)
      if(ipforce.gt.0) call create_field(pforce_field)

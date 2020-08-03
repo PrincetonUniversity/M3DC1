@@ -1,0 +1,43 @@
+1. login from portal at PPPL
+	ssh sunfire14
+	ssh sunfire1r
+	ssh sunfire49
+
+2. code
+   git clone https://github.com/PrincetonUniversity/M3DC1.git
+
+3. load modules
+   setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+   module use $M3DC1_CODE_DIR/unstructured/modules/pppl
+   module load m3dc1/devel-centos7
+
+4. compile code
+	2D real: make OPT=1 RL=1 MAX_PTS=25
+	2D complex: make OPT=1 COM=1 MAX_PTS=25
+	3D real: make 3D=1 OPT=1 MAX_PTS=60
+        
+5. mesh utility
+      OpenMPI:   /p/swim/jchen/PETSC/core/build/bin
+
+6. run a job 
+   use superlu_dist for real 2D and 3D runs
+   use mumps for complex runs
+
+  sample job_script
+	#!/bin/bash
+	#SBATCH -p centos7
+	#SBATCH -n 16
+	#SBATCH --mem-per-cpu=2000M
+	#SBATCH -J m3dc1
+	#SBATCH -t 0:10:00
+	#SBATCH -o C1stdout
+	mpirun -n $SLURM_NTASKS m3dc1_2d_complex -pc_factor_mat_solver_type mumps
+
+  submit job
+	sbatch job_script
+
+  list all curent jobs for a user
+	squeue -u your_id
+
+  delete a job
+   	scancel job_id

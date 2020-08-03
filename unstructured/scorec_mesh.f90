@@ -10,6 +10,7 @@ module scorec_mesh_mod
   integer :: iper, jper
   integer :: icurv
   integer :: nplanes
+  integer :: iread_planes
 
   integer, parameter :: maxi = 20
 
@@ -37,6 +38,7 @@ contains
 
   subroutine load_mesh(period)
     use math
+    use read_ascii
     implicit none
 
     real, intent(in) :: period
@@ -47,6 +49,8 @@ contains
     real :: angle, beta
     integer :: i,procs_per_plane, full_group, plane_group
     integer, allocatable :: ranks(:)
+    real, allocatable :: xvals(:)
+    integer :: nvals
 #endif
 
     toroidal_period = period
@@ -107,19 +111,39 @@ contains
     call m3dc1_mesh_load (name_buff)
 
     ! set up toroidal angles
-    do i=0, nplanes-1
-       if(toroidal_pack_factor.gt.1. .and. i.gt.0) then
-          beta = 2.*sqrt(alog(toroidal_pack_factor))
-          angle = toroidal_pack_angle + &
-               (toroidal_period/2.)*(1. + &
-               erf(beta*(real(i)/real(nplanes) - 0.5)) / &
-               erf(beta/2.))
-       else
-          angle = toroidal_period*real(i)/real(nplanes)
+    if(iread_planes.eq.1) then
+       nvals = 0
+       call read_ascii_column('plane_positions', xvals, nvals, icol=1)
+       if(nvals.ne.nplanes) then
+          if(myrank.eq.0) &
+               print *, 'Error: number of planes in plane_positions != nplanes'
+          call safestop(8)
        end if
-       call m3dc1_plane_setphi(i, angle)
-       if(myrank.eq.0) print *, 'Plane ', i, 'at angle ', angle
-    end do
+       do i=1, nvals
+          if(xvals(i).lt.0. .or. xvals(i).ge.toroidal_period) then 
+             if(myrank.eq.0) print *, 'Error: plane ', i, ' is at angle ', xvals(i), ' which is outside the range [ 0, ', toroidal_period, ').'
+             call safestop(8)
+          end if
+          call m3dc1_plane_setphi(i-1, xvals(i))
+          if(myrank.eq.0) print *, 'Plane ', i, 'at angle ', xvals(i)
+       end do
+       deallocate(xvals)
+    else
+       do i=0, nplanes-1
+          if(toroidal_pack_factor.gt.1. .and. i.gt.0) then
+             beta = 2.*sqrt(alog(toroidal_pack_factor))
+             angle = toroidal_pack_angle + &
+                  (toroidal_period/2.)*(1. + &
+                  erf(beta*(real(i)/real(nplanes) - 0.5)) / &
+                  erf(beta/2.))
+          else
+             angle = toroidal_period*real(i)/real(nplanes)
+          end if
+          call m3dc1_plane_setphi(i, angle)
+          if(myrank.eq.0) print *, 'Plane ', i+1, 'at angle ', angle
+       end do
+    end if
+
 
     ! build mesh
     if(myrank.eq.0) print *, 'setting up 3D mesh...'
@@ -217,7 +241,7 @@ contains
   !==============================================================
   ! owned_nodes
   ! ~~~~~~~~~~~
-  ! returns the number of elements owned by to this process
+  ! returns the number of nodes owned by to this process
   !==============================================================
   integer function owned_nodes()
     implicit none
@@ -640,6 +664,7 @@ contains
     curv = 0.
 
     call m3dc1_ent_getgeomclass(0,inode-1,izonedim,izone)
+    call get_node_pos(inode,x,phi,z)
 
     if(is_rectilinear) then
        if(izonedim.ge.2) then
@@ -725,8 +750,6 @@ contains
        end if
 
     end if
-    call get_node_pos(inode,x,phi,z)
-
   end subroutine boundary_node
 
   subroutine boundary_edge(itrin, is_edge, normal, idim, tags)
