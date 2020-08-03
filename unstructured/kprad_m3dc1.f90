@@ -613,9 +613,12 @@ contains
 
     implicit none
 
+    include 'mpif.h'
+
+    integer :: mpierr
     integer, intent(out) :: ierr
     character(len=*), intent(in) :: filename
-
+    integer, parameter :: ifile = 113
     integer :: n, i, j, m
     real, allocatable :: x_vals(:), y_vals(:), z_vals(:), phi_vals(:), temp_vals(:)
     real, allocatable :: n_vals(:,:)
@@ -632,15 +635,24 @@ contains
        
     ! Read the data
     if(iprint.ge.2 .and. myrank.eq.0) print *, ' reading file ', filename
+
+    ! Read lp_source_dt and lp_source_mass
+    if(myrank.eq.0) then
+       open(unit=ifile, file=filename, status='old', action='read')
+       read(ifile, *) lp_source_dt, lp_source_mass
+       close(ifile)
+    end if
+    call MPI_bcast(lp_source_dt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,mpierr)
+    call MPI_bcast(lp_source_mass,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,mpierr)
     
     n = 0
-    call read_ascii_column(filename, x_vals, n, icol=1)
-    call read_ascii_column(filename, y_vals, n, icol=2)
-    call read_ascii_column(filename, z_vals, n, icol=3)
+    call read_ascii_column(filename, x_vals, n, skip=1, icol=1)
+    call read_ascii_column(filename, y_vals, n, skip=1, icol=2)
+    call read_ascii_column(filename, z_vals, n, skip=1, icol=3)
     allocate(n_vals(n,0:kprad_z))
     do i=0, kprad_z
        if(iprint.ge.2 .and. myrank.eq.0) print *, ' reading column', 12+i
-       call read_ascii_column(filename, temp_vals, n, icol=12+i)
+       call read_ascii_column(filename, temp_vals, n, skip=1, icol=12+i)
        n_vals(:,i) = temp_vals
        deallocate(temp_vals)
     end do
@@ -656,6 +668,7 @@ contains
     y_vals = y_vals / l0_norm
     z_vals = z_vals / l0_norm
     n_vals = n_vals / n0_norm
+    lp_source_dt = lp_source_dt / t0_norm
 
     if(iread_lp_source.eq.1) then
 

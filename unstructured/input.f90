@@ -279,12 +279,6 @@ subroutine set_defaults
        "Use maximum value of dt for KPRAD ionization", kprad_grp)
   call add_var_int("ikprad_evolve_internal", ikprad_evolve_internal, 0, &
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
-  call add_var_double("lp_source_dt", lp_source_dt, 0., &
-       "Time step of Lagrangian Particle code (for rate definition)", &
-       kprad_grp)
-  call add_var_double("lp_source_mass", lp_source_mass, 0., &
-       "Mass of each Lagrangian Particle", &
-       kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -1619,17 +1613,9 @@ subroutine validate_input
         call safestop(1)
      end if
   end if
-  if(iread_lp_source.gt.0) then
-     if(npellets.gt.1) then
-        if(myrank.eq.0) print *, "Error: Can't use multiple pellets iread_lp_source"
-        call safestop(1)
-     end if
-
-     if (lp_source_dt.le.0.) then
-        lp_source_dt = dt
-     else
-        lp_source_dt = lp_source_dt / t0_norm
-     end if
+  if(iread_lp_source.gt.0 .and. npellets.gt.1) then
+     if(myrank.eq.0) print *, "Error: Can't use multiple pellets iread_lp_source"
+     call safestop(1)
   end if
 
   if(myrank.eq.0) then
