@@ -474,7 +474,8 @@ contains
        else if (iread_lp_source.eq.2) then
           p = pt79(:,OP_1)
           do i=0, kprad_z
-             source(:,i) = source(:,i) + lp_source_rate(i)*pellet_distribution(x_79, phi_79, z_79, p, 1)
+             ! Deposit over distribution of pellet #1
+             source(:,i) = source(:,i) + lp_source_rate(i)*pellet_distribution(1, x_79, phi_79, z_79, p, 1)
           end do
        end if
 
@@ -659,13 +660,14 @@ contains
     if(iread_lp_source.eq.1) then
 
        ! Read LP distribution directly
+       ! Assumes a single pellet
 
        ! convert from local to (R,phi,Z)
-       x_vals = x_vals + pellet_r
-       y_vals = y_vals + pellet_z
+       x_vals = x_vals + pellet_r(1)
+       y_vals = y_vals + pellet_z(1)
 
        ! convert z from length to angle
-       phi_vals = z_vals / x_vals + pellet_phi
+       phi_vals = z_vals / x_vals + pellet_phi(1)
        where(phi_vals.lt.0.) phi_vals = phi_vals + 2.*pi
     
        ! convert density to rate

@@ -1620,6 +1620,11 @@ subroutine validate_input
      end if
   end if
   if(iread_lp_source.gt.0) then
+     if(npellets.gt.1) then
+        if(myrank.eq.0) print *, "Error: Can't use multiple pellets iread_lp_source"
+        call safestop(1)
+     end if
+
      if (lp_source_dt.le.0.) then
         lp_source_dt = dt
      else
