@@ -700,6 +700,10 @@ contains
     
        ! convert density to rate
        n_vals = n_vals / lp_source_dt
+#ifndef USE3D
+       ! need density rate per radian in 2D
+       n_vals = n_vals / twopi
+#endif
 
        ! construct fields using data
        if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
