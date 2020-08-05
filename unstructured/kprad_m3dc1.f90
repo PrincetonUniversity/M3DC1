@@ -670,6 +670,16 @@ contains
     n_vals = n_vals / n0_norm
     lp_source_dt = lp_source_dt / t0_norm
 
+    ! Each LP has same impurity mass, defined by lp_source_mass
+    N_per_LP = (N_Avo/(n0_norm*l0_norm**3))*lp_source_mass/M_table(kprad_z)
+    if(iprint.ge.1 .and. myrank.eq.0) then
+       print *, 'PELLET N_per_LP: ', N_per_LP
+    end if
+    do j=1, n
+       ntot = sum(n_vals(j,:))
+       n_vals(j,:) = n_vals(j,:)*N_per_LP/ntot
+    end do
+
     if(iread_lp_source.eq.1) then
 
        ! Read LP distribution directly
@@ -682,6 +692,11 @@ contains
        ! convert z from length to angle
        phi_vals = z_vals / x_vals + pellet_phi(1)
        where(phi_vals.lt.0.) phi_vals = phi_vals + 2.*pi
+
+       if(iprint.ge.1 .and. myrank.eq.0) then
+          print *, 'PELLET sum(n_vals): ', sum(n_vals)
+          print *, 'PELLET lp_source_dt: ', lp_source_dt
+       end if
     
        ! convert density to rate
        n_vals = n_vals / lp_source_dt
@@ -704,12 +719,9 @@ contains
 
     else if(iread_lp_source.eq.2) then
        ! Sum LP density to get impurity rate
-       ! Each LP has same impurity mass, defined by lp_source_mass
-       N_per_LP = (N_Avo/(n0_norm*l0_norm**3))*lp_source_mass/M_table(kprad_z)
        lp_source_rate = 0.
        do j=1, n
-          ntot = sum(n_vals(j,:))
-          lp_source_rate = lp_source_rate + N_per_LP*n_vals(j,:)/ntot
+          lp_source_rate = lp_source_rate + n_vals(j,:)
        end do
 
        ! convert particle # to rate
