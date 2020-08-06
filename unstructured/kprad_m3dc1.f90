@@ -412,7 +412,7 @@ contains
     real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
     logical, dimension(MAX_PTS) :: advance_kprad
 
-    integer :: i, itri, nelms, def_fields, izone, j
+    integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
     integer :: ip
 
@@ -691,7 +691,8 @@ contains
 
        ! convert z from length to angle
        phi_vals = z_vals / x_vals + pellet_phi(1)
-       where(phi_vals.lt.0.) phi_vals = phi_vals + 2.*pi
+       where(phi_vals.lt.0.) phi_vals = phi_vals + toroidal_period
+       where(phi_vals.gt.toroidal_period) phi_vals = phi_vals - toroidal_period
 
        if(iprint.ge.1 .and. myrank.eq.0) then
           print *, 'PELLET sum(n_vals): ', sum(n_vals)

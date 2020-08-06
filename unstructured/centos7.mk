@@ -86,8 +86,7 @@ LIBS = 	$(SCOREC_LIB) \
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-        -I$(HDF5_HOME)/include \
-        -I$(GSL_HOME)/include
+        -I$(HDF5_HOME)/include
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
