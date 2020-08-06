@@ -703,7 +703,7 @@ contains
        n_vals = n_vals / lp_source_dt
 #ifndef USE3D
        ! need density rate per radian in 2D
-       n_vals = n_vals / twopi
+       n_vals = n_vals / toroidal_period
 #endif
 
        ! construct fields using data

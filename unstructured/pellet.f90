@@ -98,7 +98,8 @@ contains
        call read_ascii_column(pellet_filename, cauchy_fraction, npellets, icol=13)
     end if
 
-    where(pellet_phi .lt. 0) pellet_phi = pellet_phi + 2.*pi
+    where(pellet_phi .lt. 0) pellet_phi = pellet_phi + toroidal_period
+    where(pellet_phi .gt. toroidal_period) pellet_phi = pellet_phi - toroidal_period
 
     allocate(pellet_vx(npellets))
     allocate(pellet_vy(npellets))
@@ -179,7 +180,7 @@ contains
     ! Poloidal gaussian with toroidal von Mises (pellet_var_tor is a distance)
     case(1, 4, 11)
        pellet_distribution = 1./ &
-            (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
+            (sqrt(twopi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
             *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
                   /(2.*pellet_var(ip)**2) &
                  -2.*r*pellet_r(ip)*(1.-cos(phi-pellet_phi(ip))) &
@@ -191,7 +192,7 @@ contains
 
     ! gaussian pellet source
     case(3)
-       pellet_distribution = pres/(sqrt(2.*pi)*pellet_var(ip))**3 &
+       pellet_distribution = pres/(sqrt(twopi)*pellet_var(ip))**3 &
             *exp(-(r**2 + pellet_r(ip)**2 &
             - 2.*r*pellet_r(ip)*cos(phi-pellet_phi(ip)) &
             + (z - pellet_z(ip))**2) / (2.*pellet_var(ip)**2))
@@ -205,13 +206,13 @@ contains
        py = pellet_r(ip)*sin(pellet_phi(ip))
 
        pellet_distribution = 1./ &
-            (sqrt(2.*pi*pellet_var(ip))**3) &
+            (sqrt(twopi*pellet_var(ip))**3) &
             *exp(-((x-px)**2 + (y-py)**2 + (z-pellet_z(ip))**2) &
                   /(2.*pellet_var(ip)**2))
 
     ! toroidal, axisymmetric gaussian
     case(13)
-       pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
+       pellet_distribution = 1./(twopi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
@@ -219,7 +220,7 @@ contains
     ! poloidal gaussian, toroidal blend of von Mises and Cauchy
     case(14)
        pellet_distribution = 1./ &
-            (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
+            (sqrt(twopi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
             *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
                   /(2.*pellet_var(ip)**2))
        gamma = pellet_var_tor(ip)/sqrt(r*pellet_r(ip))
@@ -236,7 +237,7 @@ contains
 
     ! axisymmetric gaussian pellet source
     case(1, 11, 13, 14, 15)
-       pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
+       pellet_distribution = 1./(twopi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
@@ -247,21 +248,21 @@ contains
 
     ! pressure-weighted gaussian pellet source
     case(3)
-       pellet_distribution = pres/(2.*pi*pellet_var(ip)**2) &
+       pellet_distribution = pres/(twopi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
     ! different normalization of axisymmetric gaussian
     case(4)
-       pellet_distribution = 1./sqrt(2.*pi*(pellet_var(ip))**2) &
+       pellet_distribution = 1./sqrt(twopi*(pellet_var(ip))**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*(pellet_var(ip))**2))
 
     ! circular, cartesian gaussian
     case(12)
        pellet_distribution = 1./ &
-            (2.*pi*pellet_var(ip)**2) &
+            (twopi*pellet_var(ip)**2) &
             *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
                   /(2.*pellet_var(ip)**2))
 
@@ -341,7 +342,8 @@ contains
 
        pellet_r   = sqrt(x**2 + y**2)
        pellet_phi = atan2(y,x)
-       where(pellet_phi .lt. 0.) pellet_phi = pellet_phi + 2.*pi
+       where(pellet_phi.lt.0.) pellet_phi = pellet_phi + toroidal_period
+       where(pellet_phi.gt.toroidal_period) pellet_phi = pellet_phi - toroidal_period
     end where
 
     call pellet_domain
