@@ -74,7 +74,6 @@ contains
     integer :: js 
     
     r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
-!    theta = atan2(z - zzero, x - xzero)
     pout = 0
     r2n = r**2*(ns-1)
     js = ceiling(r2n)
@@ -82,6 +81,59 @@ contains
     ds = js - r2n 
     pout = presf(js+1)*(1-ds) + presf(js)*ds
   end subroutine vmec_pressure
+
+  ! Calculate VMEC fields given x, phi, z 
+  elemental subroutine vmec_fields(x, phi, z, br, bphi, bz, p)
+    implicit none
+
+    real, intent(in) :: x, phi, z
+    real, intent(out) :: p, br, bphi, bz
+    real :: r, r2n, ds, rout, bu, bv, theta 
+    integer :: js, i 
+    real, dimension(mn_mode) :: rstc, zsts, co, sn, buc, bvc 
+    real :: dr, dz, dr1, dz1, phis
+
+    phis = phi*mf+mesh_phase
+    
+    r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
+    theta = atan2(z - zcenter, x - xcenter)
+    p = 0
+    r2n = r**2*(ns-1)
+    js = ceiling(r2n)
+    if (js>(ns-1)) js = ns-1 
+    ds = js - r2n 
+    co = cos(xmv*theta+xnv*phis)
+    sn = sin(xmv*theta+xnv*phis)
+!    p = presf(js+1)*(1-ds) + presf(js)*ds
+    call evaluate_spline(presf_spline, r**2, p)
+    call zernike_evaluate(r,rmncz,rstc)
+    call zernike_evaluate(r,zmnsz,zsts)
+    call zernike_evaluate(r,bsupumncz,buc)
+    call zernike_evaluate(r,bsupvmncz,bvc)
+!    rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
+!    zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
+!    buc = bsupumnc(:,js+1)*(1-ds) + bsupumnc(:,js)*ds
+!    bvc = bsupvmnc(:,js+1)*(1-ds) + bsupvmnc(:,js)*ds
+    rout = 0.
+    dr = 0.
+    dz = 0.
+    dr1 = 0.
+    dz1 = 0.
+    bu = 0.
+    bv = 0.
+    do i = 1, mn_mode 
+      rout = rout + rstc(i)*co(i)
+      dr = dr - rstc(i)*sn(i)*xmv(i)
+      dz = dz + zsts(i)*co(i)*xmv(i)
+      dr1 = dr - rstc(i)*sn(i)*xnv(i)*mf
+      dz1 = dz + zsts(i)*co(i)*xnv(i)*mf
+      bu = bu + buc(i)*co(i) 
+      bv = bv + bvc(i)*co(i) 
+    end do
+    br = bu*dr + bv*dr1    
+    bphi = rout*bv
+    bz = bu*dz + bv*dz1
+  end subroutine vmec_fields
   
 #endif
 end module init_vmec 

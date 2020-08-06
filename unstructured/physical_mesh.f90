@@ -29,6 +29,7 @@ contains
     mesh_period = period/nperiods 
     ! metric factor for phi when itor=0
     mf = twopi/(mesh_period*nperiods)
+    !mf = 0.
     ! mesh phase shift
     mesh_phase = 0.*twopi/(2*nperiods)
     !mesh_phase = 1.*mesh_period/2
@@ -48,11 +49,12 @@ contains
   ! Return rst and zst given x, phi, z 
   elemental subroutine physical_geometry(rout, zout, x, phi, z)
     use math
+
     implicit none
 
     real, intent(in) :: x, phi, z
     real, intent(out) :: rout, zout 
-    real :: r, theta, ds, r2n
+    real :: r, theta, ds, r2n, s1, s0
     integer :: i, js
     real, dimension(mn_mode) :: rstc, zsts, co, sn 
     real :: phis
@@ -63,17 +65,25 @@ contains
     theta = atan2(z - zcenter, x - xcenter)
     rout = 0
     zout = 0
-    if (iread_vmec==1) then ! use VMEC surfaces to calculate geometry
+    if (iread_vmec.ge.1) then ! use VMEC surfaces to calculate geometry
       co = cos(xmv*theta+xnv*phis)
       sn = sin(xmv*theta+xnv*phis)
       r2n = r**2*(ns-1)
       js = ceiling(r2n)
-      if (js>(ns-1)) js = ns-1 
-!      if (js>1) then ! interpolate between surfaces
-      if (js>ns) then ! do not interpolate 
-        ds = js - r2n 
-        rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
-        zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
+      if (js>(ns-1)) js = ns-1
+      if (js>0) then ! interpolate between surfaces
+        call zernike_evaluate(r,rmncz,rstc)
+        call zernike_evaluate(r,zmnsz,zsts)
+        !call vmec_interpl(r,rmnc,rstc)
+        !call vmec_interpl(r,zmns,zsts)
+!      if (js>ns) then ! do not interpolate 
+!        s1 = 1.*js/(ns-1) 
+!        s0 = 1.*(js-1)/(ns-1) 
+!        ds = js - r2n 
+!        rstc = (rmnc(:,js+1)*(1-ds)*s1**(-xmv/2+1)& 
+!              + rmnc(:,js)*ds*s0**(-xmv/2+1))*r**(xmv-2) 
+!        zsts = (zmns(:,js+1)*(1-ds)*s1**(-xmv/2+1)&
+!              + zmns(:,js)*ds*s0**(-xmv/2+1))*r**(xmv-2)
         do i = 1, mn_mode 
           if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
             rout = rout + rstc(i)*co(i)
@@ -81,22 +91,22 @@ contains
           end if
         end do
       else ! near axis, use routine 
-!        ds = sqrt(r2n) 
-!        rstc = rmnc(:,js+1)
-!        zsts = zmns(:,js+1)
-        ds = r 
-        rstc = rbc
-        zsts = zbs
+        ds = sqrt(r2n) 
+        rstc = rmnc(:,js+1)
+        zsts = zmns(:,js+1)
+!        ds = r 
+!        rstc = rbc
+!        zsts = zbs
         do i = 1, mn_mode 
           if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
             rout = rout + rstc(i)*co(i)*ds**xmv(i)
             zout = zout + zsts(i)*sn(i)*ds**xmv(i)
           end if
         end do
-        do i = 1, n_tor ! shift axis to magnetic axis 
+        do i = 1, n_tor+1 ! shift axis to magnetic axis 
             if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
-              rout = rout + (rmnc(i,1)-rbc(i))*co(i)*(1-ds**2)
-              zout = zout + (zmns(i,1)-zbs(i))*sn(i)*(1-ds**2)
+!              rout = rout + (rmnc(i,1)-rbc(i))*co(i)*(1-ds**2)
+!              zout = zout + (zmns(i,1)-zbs(i))*sn(i)*(1-ds**2)
             end if
         end do
       end if
@@ -173,7 +183,7 @@ contains
 #endif
        !if (inode.eq.1) print *, 'this is a test' 
     else ! use Fourier coefficients
-       if (iread_vmec==1) then
+       if (iread_vmec.ge.1) then
          co = cos(xmv*theta+xnv*phis)
          sn = sin(xmv*theta+xnv*phis)
          do i = 1, mn_mode 

@@ -589,7 +589,7 @@ subroutine initial_conditions()
            call cyl_init()
 #ifdef USEST
         case(40)
-           if (igeometry.eq.1 .and. iread_vmec.eq.1) then
+           if (igeometry.eq.1 .and. iread_vmec.eq.2) then
               call vmec_init()
            end if
 #endif
@@ -633,7 +633,7 @@ subroutine initial_conditions()
            call basicj_init()
 #ifdef USEST
         case(40)
-           if (igeometry.eq.1 .and. iread_vmec.eq.1) then
+           if (igeometry.eq.1 .and. iread_vmec.eq.2) then
               call vmec_init()
            end if
 #endif
@@ -654,9 +654,15 @@ subroutine initial_conditions()
   call den_per
   call kprad_init_conds
 
-  if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
-       tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
+  if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. iread_vmec.eq.2 &
+       .or. tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per()
+
+#ifdef USEST
+  if(igeometry.eq.1) then
+     call destroy_vmec
+  end if   
+#endif
 
   ! calculate equilibrium and perturbed ne and temperature profiles
   call calculate_ne(0, den_field(0), ne_field(0), 1)

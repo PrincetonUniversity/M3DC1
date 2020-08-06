@@ -70,6 +70,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   use basic
   use coils
   use gradshafranov
+  use init_vmec
 
   implicit none
 
@@ -290,6 +291,7 @@ subroutine calculate_external_fields()
   use newvar_mod
   use boundary_conditions
   use gradshafranov
+  use init_vmec 
 
   implicit none
 
@@ -339,7 +341,13 @@ subroutine calculate_external_fields()
         if(sf(i)%vmec) read_p = .true.
      end do
   end if
- 
+
+#ifdef USEST
+  if(iread_vmec.eq.2) then
+     read_p = .true.
+  end if   
+#endif
+
   ! boundary condition on psi
   ipsibound = BOUNDARY_NONE
 
@@ -358,6 +366,13 @@ subroutine calculate_external_fields()
      call rmp_field(npoints, npoints_tor, npoints_pol, &
           x_79, phi_79, z_79, &
           temp79a, temp79b, temp79c, temp79d)
+
+#ifdef USEST
+     ! VMEC fields
+     if(iread_vmec.eq.2) call vmec_fields(xl_79,phi_79,zl_79,temp79a,&
+                                   temp79b,temp79c,temp79d) 
+#endif
+
 
      ! psi_equation
      ! ~~~~~~~~~~~~
