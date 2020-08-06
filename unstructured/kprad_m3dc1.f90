@@ -408,7 +408,7 @@ contains
     real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
     logical, dimension(MAX_PTS) :: advance_kprad
 
-    integer :: i, itri, nelms, def_fields, izone, j
+    integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
     integer :: ip
 
@@ -646,11 +646,17 @@ contains
     n_vals = n_vals / n0_norm
 
     ! convert from local to (R,phi,Z)
-    x_vals = x_vals + pellet_r
-    y_vals = y_vals + pellet_z
+    x_vals = x_vals + pellet_r(1)
+    y_vals = y_vals + pellet_z(1)
 
     ! convert z from length to angle
-    phi_vals = z_vals / x_vals + pellet_phi
+    phi_vals = z_vals / x_vals + pellet_phi(1)
+    where(phi_vals.lt.0.)
+       phi_vals = phi_vals + toroidal_period
+    end where
+    where(phi_vals.gt.toroidal_period)
+       phi_vals = phi_vals - toroidal_period
+    end where
     
     ! construct fields using data
     if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
