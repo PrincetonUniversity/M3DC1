@@ -38,6 +38,7 @@ if { ! [ is-loaded craype-mic-knl ] } {
   module load craype-mic-knl
 }
 if { ! [ is-loaded intel/19.1.0.166 ] } {
+  module unload intel
   module load intel/19.1.0.166
 }
 if { ! [ is-loaded cray-mpich/7.7.10 ] } {
