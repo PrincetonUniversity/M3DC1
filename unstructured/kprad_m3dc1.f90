@@ -29,6 +29,10 @@ module kprad_m3dc1
   real :: kprad_fz
   real :: kprad_nz
 
+  integer :: iread_lp_source
+  real :: lp_source_dt
+  real :: lp_source_mass
+  real, allocatable :: lp_source_rate(:)
   type(field_type), allocatable :: kprad_particle_source(:)
 
   ! minimum values for KPRAD evolution
@@ -57,7 +61,7 @@ contains
     allocate(kprad_n(0:kprad_z))
     allocate(kprad_temp(0:kprad_z))
     allocate(kprad_particle_source(0:kprad_z))
-    
+    allocate(lp_source_rate(0:kprad_z))
     do i=0, kprad_z
        call create_field(kprad_n(i))
        call create_field(kprad_temp(i))
@@ -454,7 +458,7 @@ contains
        if(ikprad_te_offset .gt. 0) te = te - eta_te_offset
        p = pt79(:,OP_1)
 
-       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) then
+       if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z .and. iread_lp_source.eq.0) then
           p = pt79(:,OP_1)
           source = 0.
           do ip=1,npellets
@@ -466,6 +470,12 @@ contains
           do i=0, kprad_z
              call eval_ops(itri, kprad_particle_source(i), ch079, rfac)
              source(:,i) = source(:,i) + ch079(:,OP_1)
+          end do
+       else if (iread_lp_source.eq.2) then
+          p = pt79(:,OP_1)
+          do i=0, kprad_z
+             ! Deposit over distribution of pellet #1
+             source(:,i) = source(:,i) + lp_source_rate(i)*pellet_distribution(1, x_79, phi_79, z_79, p, 1)
           end do
        end if
 
@@ -599,15 +609,20 @@ contains
     use read_ascii
     use pellet
     use newvar_mod
+    use math
 
     implicit none
 
+    include 'mpif.h'
+
+    integer :: mpierr
     integer, intent(out) :: ierr
     character(len=*), intent(in) :: filename
-
-    integer :: n, i, m
+    integer, parameter :: ifile = 113
+    integer :: n, i, j, m
     real, allocatable :: x_vals(:), y_vals(:), z_vals(:), phi_vals(:), temp_vals(:)
     real, allocatable :: n_vals(:,:)
+    real :: N_per_LP, ntot
     
 
     if(iprint.ge.1 .and. myrank.eq.0) print *, 'Reading LP source...'
@@ -620,15 +635,24 @@ contains
        
     ! Read the data
     if(iprint.ge.2 .and. myrank.eq.0) print *, ' reading file ', filename
+
+    ! Read lp_source_dt and lp_source_mass
+    if(myrank.eq.0) then
+       open(unit=ifile, file=filename, status='old', action='read')
+       read(ifile, *) lp_source_dt, lp_source_mass
+       close(ifile)
+    end if
+    call MPI_bcast(lp_source_dt,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,mpierr)
+    call MPI_bcast(lp_source_mass,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,mpierr)
     
     n = 0
-    call read_ascii_column(filename, x_vals, n, icol=1)
-    call read_ascii_column(filename, y_vals, n, icol=2)
-    call read_ascii_column(filename, z_vals, n, icol=3)
+    call read_ascii_column(filename, x_vals, n, skip=1, icol=1)
+    call read_ascii_column(filename, y_vals, n, skip=1, icol=2)
+    call read_ascii_column(filename, z_vals, n, skip=1, icol=3)
     allocate(n_vals(n,0:kprad_z))
     do i=0, kprad_z
        if(iprint.ge.2 .and. myrank.eq.0) print *, ' reading column', 12+i
-       call read_ascii_column(filename, temp_vals, n, icol=12+i)
+       call read_ascii_column(filename, temp_vals, n, skip=1, icol=12+i)
        n_vals(:,i) = temp_vals
        deallocate(temp_vals)
     end do
@@ -644,35 +668,71 @@ contains
     y_vals = y_vals / l0_norm
     z_vals = z_vals / l0_norm
     n_vals = n_vals / n0_norm
+    lp_source_dt = lp_source_dt / t0_norm
 
-    ! convert from local to (R,phi,Z)
-    x_vals = x_vals + pellet_r(1)
-    y_vals = y_vals + pellet_z(1)
+    ! Each LP has same impurity mass, defined by lp_source_mass
+    N_per_LP = (N_Avo/(n0_norm*l0_norm**3))*lp_source_mass/M_table(kprad_z)
+    if(iprint.ge.1 .and. myrank.eq.0) then
+       print *, 'PELLET N_per_LP: ', N_per_LP
+    end if
+    do j=1, n
+       ntot = sum(n_vals(j,:))
+       n_vals(j,:) = n_vals(j,:)*N_per_LP/ntot
+    end do
 
-    ! convert z from length to angle
-    phi_vals = z_vals / x_vals + pellet_phi(1)
-    where(phi_vals.lt.0.)
-       phi_vals = phi_vals + toroidal_period
-    end where
-    where(phi_vals.gt.toroidal_period)
-       phi_vals = phi_vals - toroidal_period
-    end where
+    if(iread_lp_source.eq.1) then
+
+       ! Read LP distribution directly
+       ! Assumes a single pellet
+
+       ! convert from local to (R,phi,Z)
+       x_vals = x_vals + pellet_r(1)
+       y_vals = y_vals + pellet_z(1)
+
+       ! convert z from length to angle
+       phi_vals = z_vals / x_vals + pellet_phi(1)
+       where(phi_vals.lt.0.) phi_vals = phi_vals + toroidal_period
+       where(phi_vals.gt.toroidal_period) phi_vals = phi_vals - toroidal_period
+
+       if(iprint.ge.1 .and. myrank.eq.0) then
+          print *, 'PELLET sum(n_vals): ', sum(n_vals)
+          print *, 'PELLET lp_source_dt: ', lp_source_dt
+       end if
     
-    ! construct fields using data
-    if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
-    do i=0, kprad_z
-       kprad_particle_source(i) = 0.
-    end do
-    m = kprad_z+1
-    call deltafuns(n,x_vals,phi_vals,y_vals,m,n_vals,kprad_particle_source,ierr)
-    if(iprint.ge.2 .and. myrank.eq.0) print *, ' solving fields'
-    do i=0, kprad_z
-       call newvar_solve(kprad_particle_source(i)%vec,mass_mat_lhs)
-    end do
+       ! convert density to rate
+       n_vals = n_vals / lp_source_dt
+#ifndef USE3D
+       ! need density rate per radian in 2D
+       n_vals = n_vals / toroidal_period
+#endif
 
-    ! free temporary arrays
-    if(iprint.ge.2 .and. myrank.eq.0) print *, ' freeing data'
-    deallocate(x_vals, y_vals, z_vals, n_vals, phi_vals)
+       ! construct fields using data
+       if(iprint.ge.2 .and. myrank.eq.0) print *, ' constructing fields'
+       do i=0, kprad_z
+          kprad_particle_source(i) = 0.
+       end do
+       m = kprad_z+1
+       call deltafuns(n,x_vals,phi_vals,y_vals,m,n_vals,kprad_particle_source,ierr)
+       if(iprint.ge.2 .and. myrank.eq.0) print *, ' solving fields'
+       do i=0, kprad_z
+          call newvar_solve(kprad_particle_source(i)%vec,mass_mat_lhs)
+       end do
+
+       ! free temporary arrays
+       if(iprint.ge.2 .and. myrank.eq.0) print *, ' freeing data'
+       deallocate(x_vals, y_vals, z_vals, n_vals, phi_vals)
+
+    else if(iread_lp_source.eq.2) then
+       ! Sum LP density to get impurity rate
+       lp_source_rate = 0.
+       do j=1, n
+          lp_source_rate = lp_source_rate + n_vals(j,:)
+       end do
+
+       ! convert particle # to rate
+       lp_source_rate = lp_source_rate / lp_source_dt
+
+    end if
     
     if(iprint.ge.1 .and. myrank.eq.0) print *, 'Done reading LP source'
 

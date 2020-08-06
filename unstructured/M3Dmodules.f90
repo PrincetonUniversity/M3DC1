@@ -24,6 +24,7 @@ module basic
   real, parameter :: m_e = 9.1094e-28
   real, parameter :: me_mp = m_e / m_p
   real, parameter :: mp_me = m_p / m_e
+  real, parameter :: N_Avo = 6.022140857e23
 
   logical :: print_help
 
@@ -193,7 +194,7 @@ module basic
   integer :: iread_ext_field
   integer :: isample_ext_field
   integer :: isample_ext_field_pol
-  integer :: iread_lp_source
+
   real :: scale_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions

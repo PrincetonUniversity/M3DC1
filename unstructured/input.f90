@@ -1598,7 +1598,7 @@ subroutine validate_input
   endif
 
   if(ibeam.ge.1) call neutral_beam_init
-  if(ipellet.ne.0) then
+  if(ipellet.ne.0 .or. iread_lp_source.gt.0) then
      call pellet_init
      
      if(.not.density_source) then
@@ -1612,6 +1612,10 @@ subroutine validate_input
         if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
         call safestop(1)
      end if
+  end if
+  if(iread_lp_source.gt.0 .and. npellets.gt.1) then
+     if(myrank.eq.0) print *, "Error: Can't use multiple pellets iread_lp_source"
+     call safestop(1)
   end if
 
   if(myrank.eq.0) then
