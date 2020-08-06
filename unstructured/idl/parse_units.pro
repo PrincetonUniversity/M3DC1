@@ -33,7 +33,7 @@ function parse_units, x, cgs=cgs, mks=mks
        x[0] = x[0]   - x[5] - x[6] -   x[7]
        x[1] = x[1]          + x[6]
        x[4] = x[4] + 2*x[5] + x[6] + 2*x[7]
-       x[9] = x[9]          + x[6] - 3*x[7]
+       x[9] = x[9]          + x[6] + 3*x[7]
        x[5] = 0
        x[6] = 0
        x[7] = 0
