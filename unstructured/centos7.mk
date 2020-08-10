@@ -78,6 +78,7 @@ endif
 LIBS = 	$(SCOREC_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
         -L$(HDF5_HOME)/lib  -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 \
+	-lgsl \
 	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
