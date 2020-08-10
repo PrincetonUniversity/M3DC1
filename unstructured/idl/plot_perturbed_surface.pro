@@ -172,6 +172,7 @@ pro plot_perturbed_surface, psi_norm, scalefac=scalefac, points=pts,  $
    xy0 = fltarr(nr,2,nphi,ntheta)
 
    for k=0, n_elements(fvals)-1 do begin
+      print, 'Surface ', k+1, ' of ', n_elements(fvals)
       for m=0, nphi-1 do begin
          xy = path_at_flux(psi0, x, z, t, fvals[k], axis=axis, /contiguous, $
                           /refine)
