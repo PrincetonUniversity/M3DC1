@@ -1,22 +1,22 @@
 #export RLM_LICENSE=sdumont12@2800
 #export LD_LIBRARY_PATH=/scratch/ntm/software/Simmetrix/extra-libs:$LD_LIBRARY_PATH
 #source /scratch/app/modulos/intel-psxe-2019.sh
-#module load cmake git intel_psxe/2019
+#module load openmpi/icc/4.0.4 cmake git intel_psxe/2019
 SWTYPE=debug
 CMAKETYPE=Debug
-PETSCVER=3.9.3
-MPIVER=intel-psxe2019
+PETSCVER=3.9.4
+MPIVER=intel-psxe2019-openmpiicc4.0.4
 PETSC_DIR=/scratch/ntm/software/petsc/petsc-$PETSCVER
-PETSC_ARCH=real-intel-psxe2019
+PETSC_ARCH=cplx-$MPIVER
 PREFIX=/scratch/ntm/software/scorec/$MPIVER/petsc$PETSCVER
 PARMETIS_DIR=$PETSC_ARCH/$PETSC_VER
-ZOLTAN_DIR=$PREFIX
+ZOLTAN_DIR=$PETSC_ARCH/$PETSC_VER
 
 HDF5_DIR=$PETSC_DIR/$PETSC_ARCH
 cmake .. \
-  -DCMAKE_C_COMPILER=mpiicc \
-  -DCMAKE_CXX_COMPILER=mpiicpc \
-  -DCMAKE_Fortran_COMPILER=mpiifort \
+  -DCMAKE_C_COMPILER=mpicc \
+  -DCMAKE_CXX_COMPILER=mpicxx \
+  -DCMAKE_Fortran_COMPILER=mpif90 \
   -DCMAKE_C_FLAGS=" -ftz -fPIC -O -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_CXX_FLAGS=" -shared-intel -ftz -fPIC -O -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-assume no2underscores -ftz -fPIC -O" \
@@ -27,11 +27,9 @@ cmake .. \
   -DMETIS_LIBRARY="$PETSC_DIR/$PETSC_ARCH/lib/libmetis.a" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
-  -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \
-  -DHDF5_LIB_DIR="$HDF5_DIR/lib" \
   -DENABLE_PETSC=ON \
   -DENABLE_TRILINOS=OFF \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-  -DENABLE_COMPLEX=OFF \
+  -DENABLE_COMPLEX=ON \
   -DENABLE_TESTING=OFF \
   -DCMAKE_BUILD_TYPE=$CMAKETYPE
