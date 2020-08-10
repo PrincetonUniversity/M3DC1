@@ -10844,10 +10844,10 @@ real function flux_heat()
 !!$          + int5(ri2_79,kar79(:,OP_1),b2i79(:,OP_1),temp79a,temp79b)
 !!$  endif
 
-  temp = int3(kap79(:,OP_1),norm79(:,1),tet79(:,OP_DR)) &
-       + int3(kap79(:,OP_1),norm79(:,2),tet79(:,OP_DZ))
+  temp = -int3(kap79(:,OP_1),norm79(:,1),tet79(:,OP_DR)) &
+       - int3(kap79(:,OP_1),norm79(:,2),tet79(:,OP_DZ))
   temp = temp &
-       + kappai_fac*(  int3(kap79(:,OP_1),norm79(:,1),tit79(:,OP_DR)) &
+       - kappai_fac*(  int3(kap79(:,OP_1),norm79(:,1),tit79(:,OP_DR)) &
                      + int3(kap79(:,OP_1),norm79(:,2),tit79(:,OP_DZ)))
 
   if(kappar.ne.0.) then
