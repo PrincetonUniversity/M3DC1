@@ -72,8 +72,8 @@ contains
       js = ceiling(r2n)
       if (js>(ns-1)) js = ns-1
       if (js>0) then ! interpolate between surfaces
-        call zernike_evaluate(r,rmncz,rstc)
-        call zernike_evaluate(r,zmnsz,zsts)
+        call zernike_evaluate(r,mn_mode,rmncz,rstc)
+        call zernike_evaluate(r,mn_mode,zmnsz,zsts)
         !call vmec_interpl(r,rmnc,rstc)
         !call vmec_interpl(r,zmns,zsts)
 !      if (js>ns) then ! do not interpolate 

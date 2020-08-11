@@ -89,6 +89,14 @@ INCLUDE = -I$(PETSC_DIR)/include \
         -I$(HDF5_HOME)/include \
         -I$(GSL_HOME)/include
 
+ifeq ($(ST), 1)
+  LIBS += -L$(NETCDF_C_HOME)/lib -lnetcdf \
+          -L$(NETCDF_FORTRAN_HOME)/lib -lnetcdff  
+
+  INCLUDE += -I$(NETCDF_C_HOME)/include \
+             -I$(NETCDF_FORTRAN_HOME)/include
+endif
+
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
 

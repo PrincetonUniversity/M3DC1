@@ -106,10 +106,10 @@ contains
     sn = sin(xmv*theta+xnv*phis)
 !    p = presf(js+1)*(1-ds) + presf(js)*ds
     call evaluate_spline(presf_spline, r**2, p)
-    call zernike_evaluate(r,rmncz,rstc)
-    call zernike_evaluate(r,zmnsz,zsts)
-    call zernike_evaluate(r,bsupumncz,buc)
-    call zernike_evaluate(r,bsupvmncz,bvc)
+    call zernike_evaluate(r,mn_mode,rmncz,rstc)
+    call zernike_evaluate(r,mn_mode,zmnsz,zsts)
+    call zernike_evaluate(r,mn_mode_nyq,bsupumncz,buc)
+    call zernike_evaluate(r,mn_mode_nyq,bsupvmncz,bvc)
 !    rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
 !    zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
 !    buc = bsupumnc(:,js+1)*(1-ds) + bsupumnc(:,js)*ds
@@ -133,6 +133,7 @@ contains
     br = bu*dr + bv*dr1    
     bphi = rout*bv
     bz = bu*dz + bv*dz1
+    p = p + pedge
   end subroutine vmec_fields
   
 #endif

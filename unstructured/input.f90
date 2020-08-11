@@ -1065,6 +1065,8 @@ subroutine set_defaults
        "Number of field periods", mesh_grp)
   call add_var_int("iread_vmec",iread_vmec,0,&
        "1 = read geometry from VMEC file, 2 = read both geometry and fields", mesh_grp)
+  call add_var_string("vmec_filename",vmec_filename,256,"geometry.nc",&
+       "name of vmec data file", mesh_grp)
   call add_var_int("igeometry", igeometry, 0, "0: default, identity", mesh_grp)
   call add_var_double("xcenter", xcenter, 0., "center of logical mesh (x)", mesh_grp)
   call add_var_double("zcenter", zcenter, 0., "center of logical mesh (z)", mesh_grp)

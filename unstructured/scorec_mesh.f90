@@ -91,7 +91,7 @@ contains
     ilog = 1       ! use logical basis funtions first
     if (igeometry.gt.0) then ! do nothing when igeometry==0 
         if (iread_vmec.ge.1) then ! read geometry from VMEC file
-            call read_vmec_h5(myrank)
+            call process_vmec(myrank)
             nperiods = nfp ! nfp may be read from VMEC geometry
         else ! read boudary geometry
             call read_boundary_geometry(myrank)
