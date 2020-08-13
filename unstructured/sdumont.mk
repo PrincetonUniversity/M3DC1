@@ -6,11 +6,11 @@ ifeq ($(TAU), 1)
   F77    = tau_f90.sh $(TAU_OPTIONS)
   LOADER = tau_f90.sh $(TAU_OPTIONS)
 else
-  CPP = mpiicpc 
-  CC = mpiicc 
-  F90 = mpiifort 
-  F77 = mpiifort 
-  LOADER = mpiifort 
+  CPP = mpicxx
+  CC = mpicc 
+  F90 = mpif90
+  F77 = mpif90
+  LOADER = mpif90
 endif
 
 #NEWSOLVERDEVELOPMENT needs more tests.
@@ -19,29 +19,25 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB=m3dc1_scorec_complex
-  PETSC_ARCH=cplx-intel-psxe2019
-else
-  M3DC1_SCOREC_LIB=m3dc1_scorec
-  PETSC_ARCH=real-intel-psxe2019
-endif
-
-ifeq ($(PETSCVER), 37)
-  PETSCVER=37
-  PETSC_DIR=/scratch/ntm/software/petsc/petsc-3.7.6
-  SCOREC_DIR=/scratch/ntm/software/scorec/intel-psxe2019/petsc3.7.6
-  PETSC_WITH_EXTERNAL_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group -L$(MKLROOT)/lib/intel64_lin -Wl,--end-group -lpetsc -lsuperlu_dist -lparmetis -lmetis -lsuperlu -lmkl_blas95_lp64 -lmkl_scalapack_lp64 -lmkl_lapack95_lp64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_lp64 -liomp5 -lpthread -lm -ldl -lfftw3_mpi -lfftw3 -lmkl_blas95_lp64 -lmkl_lapack95_lp64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lptesmumps -lptscotch -lptscotcherr -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
-else
-  PETSCVER=39
-  PETSC_DIR=/scratch/ntm/software/petsc/petsc-3.9.3
-  SCOREC_DIR=/scratch/ntm/software/scorec/intel-psxe2019/petsc3.9.3
-  PETSC_WITH_EXTERNAL_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,--start-group -L$(MKLROOT)/lib/intel64_lin -Wl,--end-group -lpetsc -lmkl_blas95_lp64 -lmkl_scalapack_lp64 -lmkl_lapack95_lp64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lmkl_blacs_intelmpi_lp64 -liomp5 -lpthread -lm -ldl -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lmkl_blas95_lp64 -lmkl_lapack95_lp64 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lesmumps -lscotch -lscotcherr -lrt -lm -lpthread -lz -ldl -lstdc++
-endif
+MPIVER=intel-psxe2019-openmpiicc4.0.4
+PETSCVER=39
+PETSC_DIR=/scratch/ntm/software/petsc/petsc-3.9.4
 
 GSL_DIR=/scratch/app/gsl/2.5_gnu
-ZOLTAN_DIR=$(SCOREC_DIR)
+SCOREC_DIR=/scratch/ntm/software/scorec/$(MPIVER)/petsc3.9.4
 SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
+
+ifeq ($(COM), 1)
+  M3DC1_SCOREC_LIB=m3dc1_scorec_complex
+  PETSC_ARCH=cplx-$(MPIVER)
+  MUMPS_LIBS=-lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord
+else
+  M3DC1_SCOREC_LIB=m3dc1_scorec
+  PETSC_ARCH=real-$(MPIVER)
+  MUMPS_LIBS=
+endif
+
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_ROOT)/lib -L$(I_MPI_ROOT)/intel64/libfabric/lib -L/opt/intel/parallel_studio_xe_2019/intelpython3/lib/libfabric -L/opt/intel/parallel_studio_xe_2019/clck/2019.2.1/lib/intel64 -L$(IPPROOR)/lib/intel64 -L/opt/intel/parallel_studio_xe_2019/compilers_and_libraries_2019.3.199/linux/compiler/lib/intel64_lin -L$(MKLROOT)/lib/intel64_lin -L$(TBBROOT)/lib/intel64/gcc4.7 -L$(DAALROOT)/lib/intel64_lin -L$(TBBROOT)/lib/intel64_lin/gcc4.4 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -Wl,-rpath,$(MPI_ROOT)/lib -lpetsc $(MUMPS_LIBS) -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lzoltan -lparmetis -lmetis -ldl -lstdc++ -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lpthread -lgcc_s -lirc_s -ldl -lstdc++
 
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
@@ -49,7 +45,6 @@ SCOREC_LIB = -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
            -l$(M3DC1_SCOREC_LIB) $(PUMI_LIB) -Wl,--end-group
 
 LIBS =  $(SCOREC_LIB) \
-        -L$(ZOLTAN_DIR)/lib -lzoltan \
         $(PETSC_WITH_EXTERNAL_LIB) \
         -L$(GSL_DIR)/lib -lgsl -lgslcblas
 
