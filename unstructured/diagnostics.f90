@@ -939,9 +939,9 @@ subroutine calculate_scalars()
      ! toroidal (angular) momentum
      if(numvar.ge.2) then
         tmom = tmom &
-             + twopi*int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1))/tpifac
+             + twopi*int3(r2_79,vzt79(:,OP_1),rho79(:,OP_1))/tpifac
         pmom = pmom &
-             + twopi*int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),mr)/tpifac
+             + twopi*int4(r2_79,vzt79(:,OP_1),rho79(:,OP_1),mr)/tpifac
      endif
 
      if(amupar.ne.0.) then
