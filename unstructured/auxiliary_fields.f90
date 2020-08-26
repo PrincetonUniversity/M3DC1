@@ -499,6 +499,25 @@ subroutine calculate_sigma_i(itri)
   
 end subroutine calculate_sigma_i
 
+subroutine calculate_sigma_rho(itri)
+  use basic
+  use kprad
+  use kprad_m3dc1
+  use m3dc1_nint
+
+  implicit none
+
+  integer, intent(in) :: itri
+
+  sir79 = sig79
+
+  if(ikprad.eq.1) then
+     call eval_ops(itri, kprad_sigma_i, tm79, rfac)
+
+     sir79 = sir79 + tm79*kprad_mz/ion_mass
+  end if
+
+end subroutine calculate_sigma_rho
 
 subroutine calculate_weighted_density(itri)
   use basic

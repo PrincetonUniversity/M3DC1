@@ -116,7 +116,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Viscosity
   ! ~~~~~~~~~
   tempx = v1umu(trialx,lin,vis79,vic79) &
-       +  v1us (trialx,lin,sig79)
+       +  v1us (trialx,lin,sir79)
   ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
   ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
   if(numvar.ge.2) then
@@ -126,7 +126,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
   if(numvar.ge.3) then
      tempx = v1chimu(trialx,lin,vis79,vic79) &
-          +  v1chis (trialx,lin,sig79)
+          +  v1chis (trialx,lin,sir79)
      ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
   end if
@@ -701,7 +701,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
 
   tempx = v2vmu(trialx,lin,vis79,vic79) &
-       +  v2vs (trialx,lin,sig79)
+       +  v2vs (trialx,lin,sir79)
   ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
   ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
 
@@ -1224,7 +1224,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Viscosity
   ! ~~~~~~~~~
   tempx = v3umu(trialx,lin,vis79,vic79) &
-       +  v3us (trialx,lin,sig79)
+       +  v3us (trialx,lin,sir79)
   ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
   ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
 
@@ -1233,7 +1233,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
                      
   tempx = v3chimu(trialx,lin,vis79,vic79) &
-       +  v3chis (trialx,lin,sig79)
+       +  v3chis (trialx,lin,sir79)
   ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
   ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
 
@@ -4603,6 +4603,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      call calculate_rho(itri)
      call calculate_sigma_e(itri)
      call calculate_sigma_i(itri)
+     call calculate_sigma_rho(itri)
      if(itemp.eq.1) call calculate_weighted_density(itri)
      if(ipres.eq.1) call calculate_qdfac(itri, qd79)
      if(gyro.eq.1) call gyro_common
