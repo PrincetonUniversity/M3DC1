@@ -4,6 +4,12 @@ output (e.g. due to a bugfix); a change to the input (e.g. due to
 renaming or obsoleting an input variable); or a change to both
 (e.g. due to a substantive change to the mesh or other input files).
 
+8/26/2020
+Changed: KPRAD_2D, KPRAD_restart, pellet
+Reason: Bugs were corrected in the velocity and temperature/pressure equations
+when impurities are included. This significantly changes the kinetic energy
+in all the cases that use KPRAD.
+
 7/20/2020
 Changed: adapt
 Reason: C1ke now differs from base version consistently on all systems.
