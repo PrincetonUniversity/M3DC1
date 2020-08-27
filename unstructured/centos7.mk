@@ -1,6 +1,6 @@
-FOPTS = $(OPTS) -DPETSC_VERSION=39 -c -r8 -implicitnone -fpp -warn all -DLATESTSCOREC -DUSEBLAS
+FOPTS = $(OPTS) -DPETSC_VERSION=313 -c -r8 -implicitnone -fpp -warn all -DLATESTSCOREC -DUSEBLAS
 # FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
-CCOPTS  = -c -DPETSC_VERSION=39
+CCOPTS  = -c -DPETSC_VERSION=313
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec
@@ -36,8 +36,8 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 #HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
-PETSC_VER=petsc-3.9.4
-PETSCVER=petsc3.9.4
+PETSC_VER=petsc-3.13.2
+PETSCVER=petsc3.13.2
 
 ifeq ($(COM), 1)
 PETSC_DIR=/p/swim/jchen/PETSC/branch
@@ -47,9 +47,8 @@ PETSC_DIR=/p/swim/jchen/PETSC/master
 PETSC_ARCH=real-CentOS7-intel2019u3-openmpi401-superlu
 endif
 
-SCOREC_BASE_DIR=/p/swim/jchen/PETSC/core/build
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-ZOLTAN_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
 
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
@@ -57,13 +56,12 @@ PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -l
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
 ifeq ($(COM), 1)
-  SCOREC_DIR=/p/swim/jchen/m3dc1/gitrepo/M3DC1/m3dc1_scorec/build-401-cplx-centos7
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
-  SCOREC_DIR=/p/swim/jchen/m3dc1/gitrepo/M3DC1/m3dc1_scorec/build-401-centos7
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
@@ -78,16 +76,14 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/p/swim/jc
 endif
 
 LIBS = 	$(SCOREC_LIB) \
-        $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
         -L$(HDF5_HOME)/lib  -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 \
-	-L$(GSL_HOME)/lib -lgsl -lgslcblas \
+	-lgsl \
 	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-        -I$(HDF5_HOME)/include \
-        -I$(GSL_HOME)/include
+        -I$(HDF5_HOME)/include 
 
 ifeq ($(ST), 1)
   LIBS += -L$(NETCDF_C_HOME)/lib -lnetcdf \

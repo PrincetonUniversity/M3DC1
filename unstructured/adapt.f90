@@ -176,9 +176,12 @@ module adapt
              do j = 1, p_steps
                 temp79c = temp79c + &
                      exp(-((x_79 - xp_adapt(j,ip))**2 + (z_79 - zp_adapt(j,ip))**2) / &
-                         (2.*adapt_pellet_delta**2))/1.27 ! BCL: 1.27 "normalizes" this
+                         (2.*adapt_pellet_delta**2))
              end do
           end do
+          !BCL: this normalizes the overlapping Gaussians
+          if(p_steps.eq.2) temp79c = temp79c/exp(-2.)
+          if(p_steps.gt.2) temp79c = temp79c/(2.*exp(-2.))
           where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c
        end if

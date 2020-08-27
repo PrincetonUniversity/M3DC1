@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2016 Scientific Computation Research Center, 
+  (c) 2005-2020 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -8,7 +8,7 @@
  
 *******************************************************************************/
 #include "m3dc1_scorec.h"
-#include "m3dc1_scorec.h"
+#include "name_convert.h"
 #include "pumi.h"
 #include <iostream>
 #include <assert.h>

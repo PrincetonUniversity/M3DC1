@@ -2,7 +2,21 @@
 this test will calulate Ab=c, and solve Ax=c; if correct, x should be euquil to b
 
 [Compilation]
-/usr/local/openmpi/latest/bin/mpicxx -g main.cc -o solver -I/usr/include -I/usr/local/openmpi/latest/include -I/users/seol/develop/include -I$PETSC_DIR/include -I$PETSC_DIR/$PETSC_ARCH/include -L/users/seol/develop/lib -Wl,--start-group -lapf -lgmi -lma -lparma -lph -lapf_zoltan -lmds -lpcu -lspr -lm3dc1_scorec -Wl,--end-group -Wl,-rpath,$PARMETIS_HOME -L$PARMETIS_HOME -lmetis -Wl,-rpath,$PARMETIS_HOME -L$PARMETIS_HOME -lparmetis -Wl,-rpath,$ZOLTAN_HOME/lib -L$ZOLTAN_HOME/lib -lzoltan  -Wl,-rpath,$PETSC_DIR/$PETSC_ARCH/lib -L$PETSC_DIR/$PETSC_ARCH/lib -lpetsc -lsuperlu_4.3 -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu_dist_3.3 -lflapack -lfblas -lparmetis -lmetis -lX11 -lpthread -lssl -lcrypto -lhdf5_fortran -lhdf5_hl -lhdf5 -Wl,-rpath,/usr/local/openmpi/latest/lib -L/usr/local/openmpi/latest//lib -Wl,-rpath,/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -Wl,-rpath,/usr/lib/x86_64-linux-gnu -L/usr/lib/x86_64-linux-gnu -lmpi_f90 -lmpi_f77 -lgfortran -lm -lmpi_cxx -lstdc++ -lmpi_cxx -lstdc++ -ldl -lmpi -lopen-rte -lopen-pal -lnsl -lutil -lgcc_s -lpthread -ldl
+PETSC_DIR=/lore/seol/petsc-3.7.6
+PETSC_ARCH=real-openmpi1.6.5
+PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
+PUMI_DIR=/lore/seol/openmpi1.6.5-petsc3.7.6-install
+ZOLTAN_DIR=$PUMI_DIR
+
+#real
+/usr/local/openmpi/latest/bin/mpicxx -g main.cc -o solver -DM3DC1_PETSC -I/usr/include -I/usr/local/openmpi/latest/include -I$PREFIX/include -I$PUMI_DIR/include -I$PETSC_DIR/include -I$PETSC_DIR/$PETSC_ARCH/include -L$PREFIX/lib -lm3dc1_scorec -Wl,--start-group,-rpath,$PUMI_DIR/lib -L$PUMI_DIR/lib -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group -L$ZOLTAN_HOME/lib -lzoltan -L$PETSC_DIR/$PETSC_ARCH/lib -Wl,-rpath,$PETSC_DIR/$PETSC_ARCH/lib -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lHYPRE -lmpi_cxx -lstdc++ -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+
+#complex
+Add -DPETSC_USE_COMPLEX and replace -lm3dc1_scorec with -lm3dc1_scorec_complex
+
+For instance,
+
+/usr/local/openmpi/latest/bin/mpicxx -g main.cc -o solver -DM3DC1_PETSC -DPETSC_USE_COMPLEX -I/usr/include -I/usr/local/openmpi/latest/include -I$PREFIX/include -I$PUMI_DIR/include -I$PETSC_DIR/include -I$PETSC_DIR/$PETSC_ARCH/include -L$PREFIX/lib -lm3dc1_scorec_complex -Wl,--start-group,-rpath,$PUMI_DIR/lib -L$PUMI_DIR/lib -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group -L$ZOLTAN_HOME/lib -lzoltan -L$PETSC_DIR/$PETSC_ARCH/lib -Wl,-rpath,$PETSC_DIR/$PETSC_ARCH/lib -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lHYPRE -lmpi_cxx -lstdc++ -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
 
 [Usage]
 /usr/local/openmpi/latest/bin/mpirun -np P ./solver  model mesh #planes scalar_type (0 for real, 1 for complex) extra_arg

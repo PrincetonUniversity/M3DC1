@@ -3712,6 +3712,31 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(j0=1,b0=1,_EXTRA=extra)
 
    ;===========================================
+   ; diffusive particle flux
+   ;===========================================
+   endif else if(strcmp('flux_denm', name, /fold_case) eq 1) then begin
+
+      denm = read_field('denm', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                       filename=filename, points=pts, complex=complex, $
+                       rrange=xrange, zrange=yrange, phi=phi0)
+      if(max(denm) eq 0.) then begin
+         print, 'denm field not found; using denm parameter'
+         denm = read_parameter('denm', filename=filename)
+      end
+      den = read_field('den', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                       filename=filename, points=pts, complex=complex, $
+                       rrange=xrange, zrange=yrange, phi=phi0)
+      psi = read_field('psi', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+                       filename=filename, points=pts, complex=complex, $
+                       rrange=xrange, zrange=yrange, phi=phi0)
+
+      data = denm*s_bracket(den, psi, x, y) / sqrt(s_bracket(psi, psi, x, y))
+
+
+       symbol = '!7C!D!8D!9G!8n!N!X'
+       d = dimensions(/n0,/l0,t0=-1,_EXTRA=extra)
+
+   ;===========================================
    ; particle flux
    ;===========================================
    endif else if(strcmp('flux_nv', name, /fold_case) eq 1) then begin
@@ -4507,6 +4532,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ; Cole NTV
    ;===========================================
    endif else if(strcmp('cole_ntv', name, /fold_case) eq 1) then begin
+       if(time eq -1) then return, 0
        psi0 = read_field('psi',x,y,t,filename=filename,points=pts,$
                          /equilibrium,_EXTRA=extra)
        i0 = read_field('I',x,y,t,filename=filename,points=pts,$
@@ -4519,6 +4545,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         /equilibrium,_EXTRA=extra)
        n0 = read_field('den',x,y,t,filename=filename,points=pts,$
                        /equilibrium,_EXTRA=extra)
+       ne0 = read_field('ne',x,y,t,filename=filename,points=pts,$
+                       /equilibrium,_EXTRA=extra)
        psi = read_field('psi',x,y,t,filename=filename,points=pts,$
                        slice=time,/linear,complex=icomplex,_EXTRA=extra)
        i = read_field('I',x,y,t,filename=filename,points=pts,$
@@ -4526,7 +4554,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        f = read_field('f',x,y,t,filename=filename,points=pts,$
                        slice=time,/linear,complex=icomplex,_EXTRA=extra)
        Te1 = read_field('Te',x,y,t,filename=filename,points=pts,$
-                       slice=time,/linear,complex=icomplex,_EXTRA=extra)
+                        slice=time,/linear,complex=icomplex,_EXTRA=extra)
 
 
        db = read_parameter('db',filename=filename)
@@ -4548,8 +4576,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        Ti = pi0/n0 > 0.01
        Te = pe0/(ne0) > 0.01
 
-       tprime = abs(s_bracket(Te,psi0,x,y)) 
-       xi = -Te1/tprime*gradpsi
+      tprime = abs(s_bracket(Te,psi0,x,y)) 
+      xi = -Te1/tprime*gradpsi
        psis = read_lcfs(filename=filename, flux0=flux0, _EXTRA=extra)
        if(psis lt flux0) then begin
            xi(where(abs(tprime) lt 1e-6 or psi0 lt psis)) = 0.
@@ -4566,12 +4594,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                             /equilibrium,_EXTRA=extra)/r0
 
        w_B = abs(db*Ti * s_bracket(epsilon,psi0,x,y)/gradpsi^2)
-       w_E = abs(w0 - db*s_bracket(pi0,psi0,x,y)/gradpsi^2 / n0)
+       wstar = w0 - db*s_bracket(pi0,psi0,x,y)/gradpsi^2 / n0
+       w_E = abs(wstar)
        vti = sqrt(2.*Ti)
        
 ;        nu_i = (64.*!pi^(5/2)/3.)*(zeff*4.8032e-10*n0_norm)^4*lambda $
 ;          * l0_norm/(n0_norm*B0_norm^4) * n0/Ti^1.5
-       nu_i = 1.988e-35*(n0/Ti^1.5)*lambda*zeff^4*n0_norm^3*l0_norm/B0_norm^4
+       z_ion = read_parameter('z_ion', filename=filename)
+       nu_i = 1.988e-35*(n0/Ti^1.5)*lambda*z_ion^4*n0_norm^3*l0_norm/B0_norm^4
        print, 'min, max(nu_i)', min(nu_i/t0_norm), max(nu_i/t0_norm)
        print, 'min, max(w_B)', min(w_B/t0_norm), max(w_B/t0_norm)
        print, 'min, max(w_E)', min(w_E/t0_norm), max(w_E/t0_norm)
@@ -4583,16 +4613,20 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        b02 = gradpsi^2/r^2 + i0^2/r^2
        
        if(icomplex eq 1) then begin
-           b1b0 = (s_bracket(psi,psi0,x,y)/r^2 $
-             + i*i0/r^2 $
-             - complex(0.,ntor)*a_bracket(f,psi0,x,y)/r) / sqrt(b02)
-           b1 = b1b0 + xi*s_bracket(sqrt(b02),psi0,x,y)/gradpsi
-           b2 = b1*conj(b1) 
-;            b2 = s_bracket(psi,conj(psi),x,y)/r^2 $
-;              + i*conj(i)/r^2 $
-;              + ntor^2*s_bracket(f,conj(f),x,y) $
-;              - 0.5*complex(0.,ntor)*a_bracket(f,conj(psi),x,y)/r $
-;              + 0.5*complex(0.,ntor)*a_bracket(conj(f),psi,x,y)/r
+          ; this form takes into account the "lagrangian" perturbation
+          ; c.f. https://aip.scitation.org/doi/10.1063/1.3122862
+          b1b0 = (s_bracket(psi,psi0,x,y)/r^2 $
+            + i*i0/r^2 $
+            - complex(0.,ntor)*a_bracket(f,psi0,x,y)/r) / sqrt(b02)
+          b1 = b1b0 + xi*s_bracket(sqrt(b02),psi0,x,y)/gradpsi
+          b2 = b1*conj(b1) 
+
+          ; this form is just the local peturbed field ("eulerian" component)
+            ;; b2 = s_bracket(psi,conj(psi),x,y)/r^2 $
+            ;;   + i*conj(i)/r^2 $
+            ;;   + ntor^2*s_bracket(f,conj(f),x,y) $
+            ;;   - 0.5*complex(0.,ntor)*a_bracket(f,conj(psi),x,y)/r $
+            ;;   + 0.5*complex(0.,ntor)*a_bracket(conj(f),psi,x,y)/r
        end
        
        fa = flux_average_field(b2/b02,psi0,x,y,t,r0=r0,flux=flux,$
@@ -4600,6 +4634,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        b2_av = interpol(fa, flux, psi0)
        
        data = -mu_p*b2_av*n0*r^2*w0
+;       data = -mu_p*b2_av*n0*r^2*(w0 - wstar)
+;       data = b2_av
        d = dimensions(/p0)
        symbol = '!6NTV!X'
 

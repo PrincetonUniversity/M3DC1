@@ -147,6 +147,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
      co = cos(-theta[i])
      sn = sin(-theta[i])
      dpsin_drho = 0.
+     max_drho = sqrt(((x[n_elements(x)-1] - x[0])*co)^2 + $
+                     ((z[n_elements(z)-1] - z[0])*sn)^2) * 0.1
      for j=0, n-1 do begin
         ; do newton iterations to find (R,Z) at (psin, theta)
         converged = 0
@@ -189,6 +191,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
            drho = (psin[j] - psin_x)/dpsin_drho
            if(rho + drho lt 0.) then begin
               rho = rho / 2.
+           endif else if(drho gt max_drho) then begin
+              rho = rho + max_drho
            endif else begin
               rho = rho + drho
            endelse

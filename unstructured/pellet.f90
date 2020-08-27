@@ -40,6 +40,8 @@ module pellet
   real :: pellet_velr_scl, pellet_velphi_scl, pellet_velz_scl
   real :: r_p_scl, cloud_pel_scl, pellet_mix_scl, cauchy_fraction_scl
 
+  real, dimension(92) :: rho_table, M_table ! solid density (g/cm^3), molar weight (mol/g)
+
 contains
 
   subroutine pellet_init()
@@ -96,7 +98,8 @@ contains
        call read_ascii_column(pellet_filename, cauchy_fraction, npellets, icol=13)
     end if
 
-    where(pellet_phi .lt. 0) pellet_phi = pellet_phi + 2.*pi
+    where(pellet_phi .lt. 0) pellet_phi = pellet_phi + toroidal_period
+    where(pellet_phi .gt. toroidal_period) pellet_phi = pellet_phi - toroidal_period
 
     allocate(pellet_vx(npellets))
     allocate(pellet_vy(npellets))
@@ -128,6 +131,31 @@ contains
     pellet_vx = pellet_velr*cos(pellet_phi) - pellet_velphi*sin(pellet_phi)
     pellet_vy = pellet_velr*sin(pellet_phi) + pellet_velphi*cos(pellet_phi)
 
+    ! Diatomic deuterium
+    rho_table(1) = 0.2
+    M_table(1) = 4.0282
+
+    ! Lithium
+    rho_table(3) = 0.534
+    M_table(3) = 6.941
+
+    ! Beryllium
+    rho_table(4) = 1.85
+    M_table(4) = 9.012182
+
+    ! Carbon (graphite)
+    !rho_table(6) = 2.267 ! graphite
+    rho_table(6) = 1.51   ! vitreous carbon: This is what is supposed to be used in NSTX-U
+    M_table(6) = 12.0107
+
+    ! Neon
+    rho_table(10) = 1.444
+    M_table(10) = 20.1797
+
+    ! Argon
+    rho_table(18) = 1.623
+    M_table(18) = 39.948
+
   end subroutine pellet_init
 
   vectype elemental function pellet_distribution(ip, r, phi, z, pres, inorm)
@@ -152,7 +180,7 @@ contains
     ! Poloidal gaussian with toroidal von Mises (pellet_var_tor is a distance)
     case(1, 4, 11)
        pellet_distribution = 1./ &
-            (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
+            (sqrt(twopi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
             *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
                   /(2.*pellet_var(ip)**2) &
                  -2.*r*pellet_r(ip)*(1.-cos(phi-pellet_phi(ip))) &
@@ -164,7 +192,7 @@ contains
 
     ! gaussian pellet source
     case(3)
-       pellet_distribution = pres/(sqrt(2.*pi)*pellet_var(ip))**3 &
+       pellet_distribution = pres/(sqrt(twopi)*pellet_var(ip))**3 &
             *exp(-(r**2 + pellet_r(ip)**2 &
             - 2.*r*pellet_r(ip)*cos(phi-pellet_phi(ip)) &
             + (z - pellet_z(ip))**2) / (2.*pellet_var(ip)**2))
@@ -178,13 +206,13 @@ contains
        py = pellet_r(ip)*sin(pellet_phi(ip))
 
        pellet_distribution = 1./ &
-            (sqrt(2.*pi*pellet_var(ip))**3) &
+            (sqrt(twopi*pellet_var(ip))**3) &
             *exp(-((x-px)**2 + (y-py)**2 + (z-pellet_z(ip))**2) &
                   /(2.*pellet_var(ip)**2))
 
     ! toroidal, axisymmetric gaussian
     case(13)
-       pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
+       pellet_distribution = 1./(twopi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
@@ -192,7 +220,7 @@ contains
     ! poloidal gaussian, toroidal blend of von Mises and Cauchy
     case(14)
        pellet_distribution = 1./ &
-            (sqrt(2.*pi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
+            (sqrt(twopi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
             *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
                   /(2.*pellet_var(ip)**2))
        gamma = pellet_var_tor(ip)/sqrt(r*pellet_r(ip))
@@ -209,7 +237,7 @@ contains
 
     ! axisymmetric gaussian pellet source
     case(1, 11, 13, 14, 15)
-       pellet_distribution = 1./(2.*pi*pellet_var(ip)**2) &
+       pellet_distribution = 1./(twopi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
@@ -220,21 +248,21 @@ contains
 
     ! pressure-weighted gaussian pellet source
     case(3)
-       pellet_distribution = pres/(2.*pi*pellet_var(ip)**2) &
+       pellet_distribution = pres/(twopi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
     ! different normalization of axisymmetric gaussian
     case(4)
-       pellet_distribution = 1./sqrt(2.*pi*(pellet_var(ip))**2) &
+       pellet_distribution = 1./sqrt(twopi*(pellet_var(ip))**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*(pellet_var(ip))**2))
 
     ! circular, cartesian gaussian
     case(12)
        pellet_distribution = 1./ &
-            (2.*pi*pellet_var(ip)**2) &
+            (twopi*pellet_var(ip)**2) &
             *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
                   /(2.*pellet_var(ip)**2))
 
@@ -314,7 +342,8 @@ contains
 
        pellet_r   = sqrt(x**2 + y**2)
        pellet_phi = atan2(y,x)
-       where(pellet_phi .lt. 0.) pellet_phi = pellet_phi + 2.*pi
+       where(pellet_phi.lt.0.) pellet_phi = pellet_phi + toroidal_period
+       where(pellet_phi.gt.toroidal_period) pellet_phi = pellet_phi - toroidal_period
     end where
 
     call pellet_domain
@@ -348,11 +377,9 @@ contains
     real :: C_abl, Xp_abl, Xn_abl, a_Te, b_Te, c_Te, d_Te, B_Li
     real :: G, lambda, rho0
     real :: temin_eV
+    real :: rho_D2, M_D2
     real :: ve_th !electron thermal velocity (cm/s)
     real :: Int_E1 !exponential integral E_1(x)
-    real, parameter :: n_D2 = 0.2    ! density of solid D2
-    real, parameter :: M_D2 = 4.0282 ! molar weight of D2
-    real, parameter :: N_A  = 6.022140857e23  ! Avogadro's number
     real, parameter :: inv3 = 1./3.
 
     integer :: ip
@@ -394,42 +421,25 @@ contains
           end select
        end if
 
-       select case(z_abl)
-       case(1)
-          ! Assume diatomic deuterium
-          rho_z = n_D2
-          M_z = M_D2
-       case(3)
-          ! Lithium
-          rho_z = 0.534
-          M_z = 6.941
-       case(4)
-          ! Beryllium
-          rho_z = 1.85
-          M_z = 9.012182
-       case(6)
-          !rho_z = 2.267   !Carbon (graphite)
-          rho_z = 1.51     !Vitreous Carbon: This is what is supposed to be used in NSTX-U
-          M_z = 12.0107
+       rho_z = rho_table(z_abl)
+       M_z = M_table(z_abl)
+       rho_D2 = rho_table(1)
+       M_D2 = M_table(1)
+
+       if(z_abl.eq.6) then
           A_z = 12.0
-         ! For ipellet_abl = 4x
-             gamma_ad = 5./3.       !Ablation to Carbon atoms. 
-             subl = 8.79 !eV        !Sublimation energy for Carbon [Sergeev06]
-             T_S = 5000./1.1604e4   !Carbon Surface temperature in eV
-             Ieff = 5.5*real(z_abl) !Effective ionization potential (eV)
-       case(10)
-          ! Neon
-          rho_z = 1.444
-          M_z = 20.1797
-       case(18)
-          ! Argon
-          rho_z = 1.623
-          M_z = 39.948
-       case default
+          ! For ipellet_abl = 4x
+          gamma_ad = 5./3.       !Ablation to Carbon atoms. 
+          subl = 8.79 !eV        !Sublimation energy for Carbon [Sergeev06]
+          T_S = 5000./1.1604e4   !Carbon Surface temperature in eV
+          Ieff = 5.5*real(z_abl) !Effective ionization potential (eV)
+       end if
+
+       if( rho_z.eq.0. .or. M_z.eq.0.) then
           if(myrank.eq.0) print *, "Cannot ablate for this ipellet_z"
           ipellet_abl = 0
           return
-       end select
+       end if
 
        select case(ipellet_abl)
        case(1)
@@ -486,8 +496,7 @@ contains
           C_abl = a_Te*log(1.+b_Te*(r_p(ip)*l0_norm)**(2.*inv3)*(nsource_pel(ip)/0.45)**(2.*inv3))/&
                log(c_Te+d_Te*(r_p(ip)*l0_norm)**(2.*inv3)*(nsource_pel(ip)/0.45)**(2.*inv3))
 
-          pellet_rate(ip) = N_A*C_abl*Xn_abl*t0_norm/(n0_norm*l0_norm**3)
-
+          pellet_rate(ip) = N_Avo*C_abl*Xn_abl*t0_norm/(n0_norm*l0_norm**3)
           rpdot(ip) = C_abl*Xp_abl*1.e-2
 
        case(3)
@@ -499,14 +508,14 @@ contains
 
           ! impurity number
           Xn_abl = (1.-pellet_mix(ip))*G/(M_z*(1.-pellet_mix(ip)) + pellet_mix(ip)*M_D2) ! mole/s
-          pellet_rate(ip) = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
+          pellet_rate(ip) = N_Avo*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
 
           ! D2 number
           Xn_abl = pellet_mix(ip)*G/(M_z*(1.-pellet_mix(ip)) + pellet_mix(ip)*M_D2) ! mole/s
-          pellet_rate_D2(ip) = N_A*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
+          pellet_rate_D2(ip) = N_Avo*Xn_abl*t0_norm/(n0_norm*l0_norm**3) ! particles injected
 
           ! pellet surface recession speed
-          rho0 = ((1.-pellet_mix(ip))*M_z + pellet_mix(ip)*M_D2)/((1.-pellet_mix(ip))*(M_z/rho_z) + pellet_mix(ip)*(M_D2/n_D2)) ! g/cm^3
+          rho0 = ((1.-pellet_mix(ip))*M_z + pellet_mix(ip)*M_D2)/((1.-pellet_mix(ip))*(M_z/rho_z) + pellet_mix(ip)*(M_D2/rho_D2)) ! g/cm^3
           rpdot(ip) = (G/(4.*pi*rho0*(r_p(ip)*l0_norm)**2))*(t0_norm/l0_norm)
 
 
@@ -528,7 +537,7 @@ contains
 
         pellet_rate(ip) = pellet_rate(ip)*pellet_rate_aux/(pellet_rate_aux + pellet_rate(ip))
         !pellet radius derivative (cm/s)
-        rpdot(ip) = 1./(4.*pi*(N_A/M_z)*rho_z)*pellet_rate(ip)/r_p(ip)/r_p(ip)/l0_norm/l0_norm
+        rpdot(ip) = 1./(4.*pi*(N_Avo/M_z)*rho_z)*pellet_rate(ip)/r_p(ip)/r_p(ip)/l0_norm/l0_norm
 
         !Adimensional quantity
         pellet_rate(ip) = pellet_rate(ip)*t0_norm/(n0_norm*l0_norm**3)
@@ -543,9 +552,9 @@ contains
        if(dr_p.gt.r_p(ip)) then
           ! we've ablated the whole pellet
           if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p(ip)
-          pellet_rate(ip)    = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*(1.-pellet_mix(ip))/&
+          pellet_rate(ip)    = (N_Avo/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*(1.-pellet_mix(ip))/&
                                (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
-          pellet_rate_D2(ip) = (N_A/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*pellet_mix(ip)/&
+          pellet_rate_D2(ip) = (N_Avo/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*pellet_mix(ip)/&
                                (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
           r_p(ip) = 0.0
        else

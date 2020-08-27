@@ -15,7 +15,7 @@ plot_geo
 unstructured/templates/*/*/*.txt
 
 # Ignore regtest output
-regtest/*/1.*
-regtest/*/devel-*
-
+unstructured/regtest/*/1.*
+unstructured/regtest/*/devel-*
+slurm*
 

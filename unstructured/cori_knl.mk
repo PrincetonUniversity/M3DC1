@@ -77,6 +77,10 @@ MKL_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROO
 INCLUDE := $(INCLUDE) -I$(SCOREC_BASE_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
+
+ifdef SCORECVER
+  INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include
+endif
 #        -I$(HYBRID_HOME)/include
 #           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
 #

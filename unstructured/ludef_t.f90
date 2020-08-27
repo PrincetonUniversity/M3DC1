@@ -116,7 +116,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Viscosity
   ! ~~~~~~~~~
   tempx = v1umu(trialx,lin,vis79,vic79) &
-       +  v1us (trialx,lin,sig79)
+       +  v1us (trialx,lin,sir79)
   ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
   ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
   if(numvar.ge.2) then
@@ -126,7 +126,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   end if
   if(numvar.ge.3) then
      tempx = v1chimu(trialx,lin,vis79,vic79) &
-          +  v1chis (trialx,lin,sig79)
+          +  v1chis (trialx,lin,sir79)
      ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
   end if
@@ -587,11 +587,11 @@ subroutine vorticity_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. eqsubtract.eq.1) then
      r4term = r4term + dt* &
-          v1us(trialx,ph079,sig79)
+          v1us(trialx,ph079,sir79)
              
      if(numvar.ge.3) then
         r4term = r4term + dt* &
-             v1chis(trialx,ch079,sig79)
+             v1chis(trialx,ch079,sir79)
      endif
   endif
 
@@ -701,7 +701,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
 
   tempx = v2vmu(trialx,lin,vis79,vic79) &
-       +  v2vs (trialx,lin,sig79)
+       +  v2vs (trialx,lin,sir79)
   ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
   ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
 
@@ -1095,7 +1095,7 @@ subroutine axial_vel_nolin(trialx, r4term)
   if(idens.eq.1 .and. eqsubtract.eq.1) then
      r4term = r4term + dt* &
           (v2vun(trialx,vz079,ph079,n179) &
-          +v2vs (trialx,vz079,sig79))
+          +v2vs (trialx,vz079,sir79))
   endif
 
   if(momentum_source) then
@@ -1224,7 +1224,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ! Viscosity
   ! ~~~~~~~~~
   tempx = v3umu(trialx,lin,vis79,vic79) &
-       +  v3us (trialx,lin,sig79)
+       +  v3us (trialx,lin,sir79)
   ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
   ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
 
@@ -1233,7 +1233,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
                      
   tempx = v3chimu(trialx,lin,vis79,vic79) &
-       +  v3chis (trialx,lin,sig79)
+       +  v3chis (trialx,lin,sir79)
   ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
   ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
 
@@ -1619,8 +1619,8 @@ subroutine compression_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(idens.eq.1 .and. eqsubtract.eq.1) then
      r4term = r4term + dt* &
-          (v3us     (trialx,ph079,sig79) &
-          +v3chis   (trialx,ch079,sig79))
+          (v3us     (trialx,ph079,sir79) &
+          +v3chis   (trialx,ch079,sir79))
   endif
 
 
@@ -3636,45 +3636,45 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   ! ~~~~~~~~~~~~~~
   if(total_pressure) then
      if(linear.eq.0) then
-        tempx = p1uus  (trialx,lin,ph179,sig79) &
-             + p1uus  (trialx,ph179,lin,sig79) &
-             + p1uchis(trialx,lin,ch179,sig79) 
+        tempx = p1uus  (trialx,lin,ph179,sir79) &
+             + p1uus  (trialx,ph179,lin,sir79) &
+             + p1uchis(trialx,lin,ch179,sir79)
         ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + (.5-thimpb*bdf)*dt*tempx
      
         if(numvar.ge.2) then
-           tempx = p1vvs  (trialx,lin,vz179,sig79) &
-                + p1vvs  (trialx,vz179,lin,sig79)
+           tempx = p1vvs  (trialx,lin,vz179,sir79) &
+                + p1vvs  (trialx,vz179,lin,sir79)
            ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
            ddterm(:,vz_g) = ddterm(:,vz_g) + (.5-thimpb*bdf)*dt*tempx
         end if
         
         if(numvar.ge.3) then
-           tempx = p1chichis(trialx,lin,ch179,sig79) &
-                + p1chichis(trialx,ch179,lin,sig79) &
-                + p1uchis  (trialx,ph179,lin,sig79) 
+           tempx = p1chichis(trialx,lin,ch179,sir79) &
+                + p1chichis(trialx,ch179,lin,sir79) &
+                + p1uchis  (trialx,ph179,lin,sir79)
            ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
            ddterm(:,chi_g) = ddterm(:,chi_g) + (.5-thimpb*bdf)*dt*tempx
         end if
      end if
      if(eqsubtract.eq.1) then
-        tempx = p1uus  (trialx,lin,ph079,sig79) &
-             + p1uus  (trialx,ph079,lin,sig79) &
-             + p1uchis(trialx,lin,ch079,sig79) 
+        tempx = p1uus  (trialx,lin,ph079,sir79) &
+             + p1uus  (trialx,ph079,lin,sir79) &
+             + p1uchis(trialx,lin,ch079,sir79)
         ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
 
         if(numvar.ge.2) then
-           tempx = p1vvs  (trialx,lin,vz079,sig79) &
-                + p1vvs  (trialx,vz079,lin,sig79)
+           tempx = p1vvs  (trialx,lin,vz079,sir79) &
+                + p1vvs  (trialx,vz079,lin,sir79)
            ssterm(:,vz_g) = ssterm(:,vz_g) -     thimpb     *dt*tempx
            ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimpb*bdf)*dt*tempx
         end if
         
         if(numvar.ge.3) then
-           tempx = p1chichis(trialx,lin,ch079,sig79) &
-                + p1chichis(trialx,ch079,lin,sig79) &
-                + p1uchis  (trialx,ph079,lin,sig79) 
+           tempx = p1chichis(trialx,lin,ch079,sir79) &
+                + p1chichis(trialx,ch079,lin,sir79) &
+                + p1uchis  (trialx,ph079,lin,sir79)
            ssterm(:,chi_g) = ssterm(:,chi_g) -     thimpb     *dt*tempx
            ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimpb*bdf)*dt*tempx
         end if
@@ -4311,10 +4311,10 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
   if(idens.eq.1 .and. eqsubtract.eq.1) then
      if(total_pressure) then
         r4term = r4term + dt* &
-             (p1uus    (trialx,ph079,ph079,sig79) &
-             +p1vvs    (trialx,vz079,vz079,sig79) &
-             +p1chichis(trialx,ch079,ch079,sig79) &
-             +p1uchis  (trialx,ph079,ch079,sig79))
+             (p1uus    (trialx,ph079,ph079,sir79) &
+             +p1vvs    (trialx,vz079,vz079,sir79) &
+             +p1chichis(trialx,ch079,ch079,sir79) &
+             +p1uchis  (trialx,ph079,ch079,sir79))
      endif
 
      if(itemp.eq.1 .and. iadiabat.eq.1) then
@@ -4603,6 +4603,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      call calculate_rho(itri)
      call calculate_sigma_e(itri)
      call calculate_sigma_i(itri)
+     call calculate_sigma_rho(itri)
      if(itemp.eq.1) call calculate_weighted_density(itri)
      if(ipres.eq.1) call calculate_qdfac(itri, qd79)
      if(gyro.eq.1) call gyro_common
