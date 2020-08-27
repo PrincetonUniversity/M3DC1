@@ -61,9 +61,17 @@ subroutine init_random(x,phi,z,outarr)
   zz = z - zzero
   theta = atan2(zz,xx)
 #ifdef USECOMPLEX
-  phase = exp((0,1)*(ntor*phi - mpol*theta))
+  if(itor.eq.1) then
+    phase = exp((0,1)*(ntor*phi - mpol*theta))
+  else  
+    phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))
+  end if  
 #else
-  phase = cos(ntor*phi - mpol*theta)
+  if(itor.eq.1) then
+    phase = cos(ntor*phi - mpol*theta)
+  else  
+    phase = cos(ntor*phi/rzero - mpol*theta)
+  end if
 #endif
 
   select case (icsym)

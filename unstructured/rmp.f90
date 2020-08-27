@@ -369,8 +369,8 @@ subroutine calculate_external_fields()
 
 #ifdef USEST
      ! VMEC fields
-     if(iread_vmec.eq.2) call vmec_fields(xl_79,phi_79,zl_79,temp79a,&
-                                   temp79b,temp79c,temp79d) 
+     !if(iread_vmec.eq.2) call vmec_fields(xl_79,phi_79,zl_79,temp79a,&
+     !                              temp79b,temp79c,temp79d) 
 #endif
 
 

@@ -34,8 +34,8 @@ contains
     mesh_phase = 0.*twopi/(2*nperiods)
     !mesh_phase = 1.*mesh_period/2
     ! maxium m & n numbers
-    m_max = 10.5
-    n_max = 18.5
+    m_max = 100.5
+    n_max = 300.5
     ! 2D analytical boundary parameters
     rm0 = 6.
     rm1 = 2.5
@@ -72,10 +72,10 @@ contains
       js = ceiling(r2n)
       if (js>(ns-1)) js = ns-1
       if (js>0) then ! interpolate between surfaces
-        call zernike_evaluate(r,mn_mode,rmncz,rstc)
-        call zernike_evaluate(r,mn_mode,zmnsz,zsts)
-        !call vmec_interpl(r,rmnc,rstc)
-        !call vmec_interpl(r,zmns,zsts)
+        call zernike_evaluate(r,mn_mode,mb,rmncz,rstc)
+        call zernike_evaluate(r,mn_mode,mb,zmnsz,zsts)
+        !call vmec_interpl(r,mn_mode,rmnc,rstc)
+        !call vmec_interpl(r,mn_mode,zmns,zsts)
 !      if (js>ns) then ! do not interpolate 
 !        s1 = 1.*js/(ns-1) 
 !        s0 = 1.*(js-1)/(ns-1) 
@@ -243,6 +243,7 @@ contains
   end subroutine get_boundary_curv
 
   ! calculate matrix that transforms logical dofs to physical
+  ! ONLY implemented in 2D!!! Do not use in 3D!!!
   pure subroutine l2p_matrix(l2p,inode)
     implicit none
 

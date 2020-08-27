@@ -137,8 +137,13 @@ subroutine random_per(x,phi,z,fac)
   ri = 1./sqrt(rsq + roundoff)
   ri3 = ri/rsq
   rexp = exp(-rsq/ln)
-  co = cos(phi)
-  sn = sin(phi)
+  if(itor.eq.1) then
+     co = cos(phi)
+     sn = sin(phi)
+  else  
+     co = cos(phi/rzero)
+     sn = sin(phi/rzero)
+  end if
 
   do i=1,maxn
      kx = pi*i/alx
@@ -633,7 +638,7 @@ subroutine initial_conditions()
            call basicj_init()
 #ifdef USEST
         case(40)
-           if (igeometry.eq.1 .and. iread_vmec.eq.2) then
+           if (igeometry.eq.1 .and. iread_vmec.ge.1) then
               call vmec_init()
            end if
 #endif
