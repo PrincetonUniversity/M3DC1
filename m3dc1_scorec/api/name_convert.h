@@ -122,3 +122,7 @@
 #define m3dc1_matrix_getnnzvalue getMatrixNNZValues_
 #define m3dc1_matrix_getmatrixfirstdof getMatrixFirstDof_
 #define m3dc1_matrix_setsoln setMatrixSoln_
+
+// 3d Adaptation
+#define node_error_3d_mesh node_error_3d_mesh_
+#define find_sizefield find_sizefield_

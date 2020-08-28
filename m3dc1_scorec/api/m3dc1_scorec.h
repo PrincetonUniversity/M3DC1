@@ -189,6 +189,9 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
 
+// 3D Adaptation
+int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);
+int find_sizefield(int num_planes,double* node_error, double * errorAimed, int * max_adapt_node, int * option);
 // for adaptation
 int set_mesh_size_bound (double* abs_size, double * rel_size);
 int set_adapt_smooth_factor (double* fac);

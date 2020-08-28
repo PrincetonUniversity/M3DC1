@@ -4379,3 +4379,231 @@ void m3dc1_matrix_setsoln(int *matrix_id, int *valType, double *soln)
 
 
 #define m3dc1_matrix_setsoln setMatrixSoln_
+
+//================================================================================================================================
+//================================================================================================================================
+// 3D Mesh Adaptation part
+
+// 3D Mesh Adaptation based on Error Field
+// Scorec Core APF: https://www.scorec.rpi.edu/pumi/doxygen/apf.html
+// Steps:
+// 1- Build the 3D Mesh from the starting 2D Poloidal Mesh 
+// 2- Get the error on nodes on 3D Mesh
+// 3- Get the Size Field information of all the vertices of all the poloidal planes (Basically all vertices in 3d Mesh  
+//    as we only have vertices on poloidal planes)
+// 4- Find the smallest size field associated with each vertex
+
+
+
+// int* num_planes: Get the number of planes from the user defined input file
+// double* elm_data:
+// int* size: 1
+// double* nod_data: Error output at the node
+int node_error_3d_mesh (double* elm_data, int* size, double* nod_data)
+{
+  apf::Mesh2* mesh_to_adapt = m3dc1_mesh::instance()->mesh;       // Define the Mesh Instance
+
+  // Set the Number of Planes in 3d and convert it in 3D- Instead Set it in main work flow
+/*
+  m3dc1_model_setnumplane (&num_planes);
+  if (num_planes > 1)     // Must be greater than 1 for the extrusion
+    {
+      m3dc1_model_setnumplane (&num_planes);
+        int num_field = 0;
+      int field_id = 0;
+      int dof_per_value = 0;
+      m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);
+    }
+*/
+
+    // After building the 3D Mesh, collect the mesh informaton
+
+    int num_nodes =  m3dc1_mesh::instance()->mesh->count(0);    //Dim = 0 for nodes
+    int num_elm_2d = m3dc1_mesh::instance()->mesh->count(2);    //Dim = 2 for triangular elements
+    int num_elm_3d = m3dc1_mesh::instance()->mesh->count(6);    //Dim = 6 for 3d wedge elements (To verify number of elements)
+                                    //num_ele_3d should be equal to =(num_planes)*num_ele_2d 
+    PCU_Comm_Begin();
+
+    double* area = new double[num_nodes];
+    for (int i=0; i<num_nodes; ++i)
+    {
+      area[i] = 0.0;
+      apf::MeshEntity* nodes = getMdsEntity(mesh_to_adapt, 0, i);       // Retrieve the nodes of the mesh
+      int own_partid=get_ent_ownpartid(mesh_to_adapt, nodes);           
+      apf::MeshEntity* own_nodes = get_ent_owncopy(mesh_to_adapt, nodes);
+      apf::Adjacent adjacent;
+      mesh_to_adapt->getAdjacent(nodes,2,adjacent);             // Get Adjacent elements(only triangular-no wedges) to the nodes
+      for (int j=0; j<adjacent.getSize(); j++)
+      {
+        apf::MeshElement* m_element = createMeshElement(mesh_to_adapt, adjacent[j]);    
+        double area_ele = apf::measure(m_element);              // Measures the area of triangular element
+        int ielm = getMdsIndex(mesh_to_adapt, adjacent[j]);         // Get the index number for every element
+        assert(ielm>=0 &&ielm<num_elm_2d);                  // Verify that the index start from 0 and ends at num_ele_2d-1
+        for (int k=0; k<*size; k++)
+              nod_data[i*(*size)+k]+=area_ele*elm_data[(*size)*ielm+k];
+          area[i]+=area_ele;
+          destroyMeshElement(m_element);
+      } //Close element loop
+
+      if (own_partid==PCU_Comm_Self()) continue;
+      PCU_COMM_PACK(own_partid, own_nodes);
+      PCU_COMM_PACK(own_partid, area[i]);
+      PCU_Comm_Pack(own_partid, &(nod_data[(*size)*i]), sizeof(double)*(*size));
+    } 
+    
+    double* buff = new double[*size];
+    PCU_Comm_Send();
+  
+    while (PCU_Comm_Listen())
+      while (!PCU_Comm_Unpacked())
+      {
+          apf::MeshEntity* node;
+          PCU_COMM_UNPACK(node);
+          int inode = getMdsIndex(mesh_to_adapt, node);         // Get the index number of every
+          double area_node;
+          PCU_COMM_UNPACK(area_node);
+          area[inode]+=area_node;
+          PCU_Comm_Unpack(buff, (*size)*sizeof(double));
+          for (int i = 0; i < *size; i++)
+            nod_data[inode*(*size)+i]+=buff[i];
+      }
+
+    for (int i=0; i<num_nodes; i++)
+    {
+      for (int j=0; j<*size; j++)
+          nod_data[i*(*size)+j]/=area[i];
+    }
+
+    PCU_Comm_Begin();
+    for (int i=0; i<num_nodes; i++)
+    {
+      apf::MeshEntity* nodes = getMdsEntity(mesh_to_adapt, 0, i);
+      if (!is_ent_original(mesh_to_adapt,nodes) || !mesh_to_adapt->isShared(nodes))
+          continue;
+      apf::Copies remotes;
+      mesh_to_adapt->getRemotes(nodes,remotes);
+      APF_ITERATE(apf::Copies,remotes,it)
+      {
+        PCU_COMM_PACK(it->first,it->second);
+          PCU_Comm_Pack(it->first,&(nod_data[i*(*size)]),(*size)*sizeof(double));
+      }
+    }
+    PCU_Comm_Send();
+    while (PCU_Comm_Listen())
+      while ( ! PCU_Comm_Unpacked())
+      {
+        apf::MeshEntity* node;
+        PCU_COMM_UNPACK(node);
+          PCU_Comm_Unpack(buff, (*size)*sizeof(double));
+          int inode = getMdsIndex(mesh_to_adapt, node);
+          for (int i = 0; i < *size; i++)
+            nod_data[inode*(*size)+i]=buff[i];
+      }
+
+    delete [] buff;
+    delete [] area;  
+    return M3DC1_SUCCESS;
+
+
+}
+
+// Arguments of the function
+// double* node_error: Node error data coming from the function node_error_3d_mesh()
+// int num_planes: User defined number of planes
+//    Must be greater than 1 to extrude the meshes between the planes
+// double* errorAimed: Parameter "adapt_target_error" from the user input parameter file
+//    Target discretization error on the adapted mesh           
+// double* max_adapt_node: Parameter "adapt_max_node" from the user input parameter file
+//      Maximum node number in the adapted mesh. If the estimated mesh node number from adapt_target_error exceeds iadapt_max_node,
+//    the target mesh size in the adapted mesh is scaled such that the mesh node number is below iadapt_max_node.
+// int* option: Parameter "adapt_control" from the user input parameter file and is either 0 or 1
+//    0: adapt_target_error is global (integral over the domain) 
+//    1: adapt_target_error is local (integral over the element)
+
+// 
+int find_sizefield(int num_planes,double* node_error, double * errorAimed, int * max_adapt_node, int * option)   // Add the arguements as development progresses
+{
+   apf::Mesh2* mesh_3d = m3dc1_mesh::instance()->mesh;
+  /*if (num_planes > 1)     // Must be greater than 1 for the extrusion
+    {
+      m3dc1_model_setnumplane (&num_planes);
+        int num_field = 0;
+      int field_id = 0;
+      int dof_per_value = 0;
+      int 3dmesh_success = m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);
+      std::cout << "success" << 3dmesh_success << "\n";
+    }
+  */  
+    apf::Field* sizeField = createPackedField(m3dc1_mesh::instance()->mesh, "size_field", 1);
+    int numVert=m3dc1_mesh::instance()->mesh->count(0);     // Returns the number of vertices in the mesh
+    SizeFieldError sf_3d (m3dc1_mesh::instance()->mesh, sizeField, *errorAimed); 
+
+    // first sum error ^ (2d/(2p+d))
+    double d=2;                           
+    double errorSum=0;
+    // If adapt_target_error is global
+    if (*option)
+    {
+      for (int i=0; i<numVert; i++)
+      {
+          if (is_ent_original(m3dc1_mesh::instance()->mesh,getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i)))   // Determine if the mesh is on the original poloidal plane or on ghost plane
+          	errorSum+=pow(node_error[i],d/(p+d/2.0));    // p coming from set_adapt_p
+      }
+      double errorSumBuff=errorSum;
+      MPI_Allreduce(&errorSumBuff, &errorSum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      errorSum = *errorAimed*(*errorAimed)/errorSum;                          
+      errorSum = pow(errorSum,1./(2.*p));
+    }
+    else 
+      errorSum=pow(*errorAimed,1./(p+d/2.));
+
+    //SizeFieldError sf_3d (m3dc1_mesh::instance()->mesh, sizeField, *errorAimed);
+    double size_estimate=0;
+    for (int i=0; i<numVert; i++)
+    {
+      apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);   // Retrieve the nodes of the mesh 
+      if (!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;             // If not on original poloidal plane, ignore it 
+      double size = sf_3d.getSize(e);
+      double targetSize = errorSum*pow(node_error[i],-1./(p+d/2.));
+      size_estimate+=max(1.,1./targetSize/targetSize);
+    }
+    double size_estimate_buff=size_estimate;
+    MPI_Allreduce(&size_estimate_buff, &size_estimate, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    int numNodeGlobl=0, dim=0;
+    m3dc1_mesh_getnumglobalent(&dim, &numNodeGlobl);
+    cout<<" numVert "<<numNodeGlobl<<" size_estimate "<<size_estimate;
+    if (size_estimate>*max_adapt_node) errorSum*=sqrt(size_estimate/(*max_adapt_node));
+    std::vector <double> target_size;
+    for (int i=0; i<numVert; i++)
+    {
+      
+      apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
+      assert(e);
+      double size = sf_3d.getSize(e);
+      assert(node_error[i]==node_error[i]);
+      double targetSize = errorSum*pow(node_error[i],-1./(p+d/2.));
+      if (targetSize>relSize[1]) targetSize=relSize[1]; // not too much coarsening
+      if (targetSize<relSize[0]) targetSize=relSize[0]; // not too much refining
+      targetSize*=size;
+      if (targetSize>absSize[1]) targetSize=absSize[1];
+      if (targetSize<absSize[0]) targetSize=absSize[0];
+      target_size.push_back(targetSize);
+  }
+  std::vector <double> target_sizefield;
+  double final_target;
+  int num_vert_on_plane = numVert/num_planes;
+  for (int j=0; j<num_vert_on_plane; ++j)
+  {
+    for (int k=1; k<num_planes; ++k)
+    {
+      final_target = target_size[j];
+      if (target_size[j+num_vert_on_plane*k] < final_target)
+      {
+          final_target = target_size[j+num_vert_on_plane*k];
+      }    
+    }
+    target_sizefield.push_back(final_target);     // This is the targetted sizefield for first poloidal plane
+  }  
+  
+} 
+      
