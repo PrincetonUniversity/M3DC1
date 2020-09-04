@@ -16,13 +16,13 @@ while True:
 
     if len(v1) is 0:
         if len(v2) is not 0:
-            print "Error: files are different lengths"
+            print("Error: files are different lengths")
             exitval = 1
             break
         break
     
     if len(v1) is not len(v2):
-        print "Error: lines are different lengths"
+        print("Error: lines are different lengths")
         exitval = 1
         break
 
@@ -32,16 +32,16 @@ while True:
         
         if float(x) == 0.0:
             if float(y) != 0.0:
-                print "Files differ at time", v1[0]
+                print("Files differ at time", v1[0])
                 exitval = 1
                 break
         elif abs((float(x) - float(y)) / float(x)) > tol:
-            print "Files differ at time", v1[0]
-            print c, " (base) = ", float(x)
-            print c, " (new) = ", float(y)
-            print "Fractional difference = ", \
-                  abs((float(x) - float(y)) / float(x))
-            print "Tolerance = ", tol
+            print("Files differ at time", v1[0])
+            print(c, " (base) = ", float(x))
+            print(c, " (new) = ", float(y))
+            print("Fractional difference = ", \
+                  abs((float(x) - float(y)) / float(x)))
+            print("Tolerance = ", tol)
             exitval = 1
             break
         

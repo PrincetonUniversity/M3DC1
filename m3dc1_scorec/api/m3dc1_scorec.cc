@@ -73,7 +73,7 @@ int m3dc1_scorec_finalize()
   m3dc1_mesh::instance()->clean(); // delete tag, field and internal data 
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
 
-  if (!pumi_rank()) std::cout<<"\n* [M3D-C1] time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
+  if (!pumi_rank()) std::cout<<"\n* [M3D-C1 INFO] run time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
   pumi_finalize();
   return M3DC1_SUCCESS; 
 }
@@ -1707,7 +1707,7 @@ int m3dc1_field_insert(FieldID* /* in */ field_id, int /* in */ * local_dof,
   assert(*local_dof<num_local_dof);
   if (!value_type) assert(!(*type)); // can not insert complex value to real vector
   // for (int i=0; i<*size*(1+(*type)); i++)
-    // FIXME: crash on SCOREC linux clusters with 3d/3p
+    // seol #1: crash on SCOREC linux clusters with 3d/3p
     // assert(values[i]==values[i]);
 #endif
   std::vector<double> values_convert(*size*(1+value_type),0);
@@ -2940,7 +2940,9 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   MPI_Allreduce(&size_estimate_buff, &size_estimate, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   int numNodeGlobl=0, dim=0;
   m3dc1_mesh_getnumglobalent(&dim, &numNodeGlobl);
-  cout<<" numVert "<<numNodeGlobl<<" size_estimate "<<size_estimate;
+  if (!pumi_rank())
+    cout<<__func__<<": numVert "<<numNodeGlobl<<" size_estimate "<<size_estimate<<"\n";
+
   if (size_estimate>*max_adapt_node) errorSum*=sqrt(size_estimate/(*max_adapt_node));
   for (int i=0; i<numVert; i++)
   {
@@ -2956,12 +2958,10 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     if (targetSize<absSize[0]) targetSize=absSize[0];
     setComponents(sizeField, e, 0, &targetSize);
   }
-  // only implemented for one process
-  //if (PCU_Comm_Peers()==1)
-  {
-    smooth_size_field(sizeField);
-    smooth_size_field(sizeField);
-  }
+
+  // FIXME: why called twice?
+  smooth_size_field(sizeField);
+  smooth_size_field(sizeField);
   synchronize_field(sizeField);
 
   // delete all the matrix
@@ -4369,7 +4369,6 @@ void m3dc1_matrix_setsoln(int *matrix_id, int *valType, double *soln)
   ncptr->shareInfo(soln, 1+(*valType));
   mat->setStatus(4);
 */
-  // FIXME: to be provided
   if (!PCU_Comm_Self())
     std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported\n";
 
@@ -4521,19 +4520,8 @@ int node_error_3d_mesh (double* elm_data, int* size, double* nod_data)
 //    1: adapt_target_error is local (integral over the element)
 
 // 
-int find_sizefield(int num_planes,double* node_error, double * errorAimed, int * max_adapt_node, int * option)   // Add the arguements as development progresses
+int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node, int * option)   // Add the arguements as development progresses
 {
-   apf::Mesh2* mesh_3d = m3dc1_mesh::instance()->mesh;
-  /*if (num_planes > 1)     // Must be greater than 1 for the extrusion
-    {
-      m3dc1_model_setnumplane (&num_planes);
-        int num_field = 0;
-      int field_id = 0;
-      int dof_per_value = 0;
-      int 3dmesh_success = m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);
-      std::cout << "success" << 3dmesh_success << "\n";
-    }
-  */  
     apf::Field* sizeField = createPackedField(m3dc1_mesh::instance()->mesh, "size_field", 1);
     int numVert=m3dc1_mesh::instance()->mesh->count(0);     // Returns the number of vertices in the mesh
     SizeFieldError sf_3d (m3dc1_mesh::instance()->mesh, sizeField, *errorAimed); 
@@ -4571,7 +4559,9 @@ int find_sizefield(int num_planes,double* node_error, double * errorAimed, int *
     MPI_Allreduce(&size_estimate_buff, &size_estimate, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     int numNodeGlobl=0, dim=0;
     m3dc1_mesh_getnumglobalent(&dim, &numNodeGlobl);
-    cout<<" numVert "<<numNodeGlobl<<" size_estimate "<<size_estimate;
+    if (!pumi_rank())
+      cout<<"\n"<<__func__<<": numVert "<<numNodeGlobl<<" size_estimate "<<size_estimate<<"\n";
+
     if (size_estimate>*max_adapt_node) errorSum*=sqrt(size_estimate/(*max_adapt_node));
     std::vector <double> target_size;
     for (int i=0; i<numVert; i++)
@@ -4580,7 +4570,8 @@ int find_sizefield(int num_planes,double* node_error, double * errorAimed, int *
       apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
       assert(e);
       double size = sf_3d.getSize(e);
-      assert(node_error[i]==node_error[i]);
+      // seol #2: assert stmt fails - what's the purpose of this?
+      // assert(node_error[i]==node_error[i]);
       double targetSize = errorSum*pow(node_error[i],-1./(p+d/2.));
       if (targetSize>relSize[1]) targetSize=relSize[1]; // not too much coarsening
       if (targetSize<relSize[0]) targetSize=relSize[0]; // not too much refining
@@ -4591,6 +4582,8 @@ int find_sizefield(int num_planes,double* node_error, double * errorAimed, int *
   }
   std::vector <double> target_sizefield;
   double final_target;
+  int num_planes = m3dc1_model::instance()->num_plane;
+  // seol #3: if #vertex is N, #vertex in 3D is 2N. what is num_vert_on_plane for? 
   int num_vert_on_plane = numVert/num_planes;
   for (int j=0; j<num_vert_on_plane; ++j)
   {

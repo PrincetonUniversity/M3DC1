@@ -194,7 +194,7 @@ a2cc : $(A2CC_OBJS)
 	$(LOADER) $(LDOPTS) $(A2CC_OBJS) -o $@
 
 mackenbach_profiles : mackenbach_profiles.f90
-	$(F90) -r8 -warn all -implicitnone $< -o $@
+	$(F90) -r8 $< -o $@
 
 kprad : kprad.f90 kprad_test.f90
 	$(F90) $(F90OPTS) $< -o $@

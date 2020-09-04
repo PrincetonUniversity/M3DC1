@@ -4212,7 +4212,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
   vectype, intent(out), dimension(dofs_per_element) :: r4term
   logical, intent(in) :: total_pressure
 
-  vectype, dimension(MAX_PTS, OP_NUM) :: pp079, nn079, nn179
+  vectype, dimension(MAX_PTS, OP_NUM) :: pp079, nn079, nn179, siw79
 
   if(itemp.eq.0) then
      if(total_pressure) then
@@ -4223,15 +4223,24 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         nn079 = ne079
      end if
   else
-     if(total_pressure) then
-        pp079 = ti079
-        nn079 = n079
-        nn179 = n179
-     else
+     if((ipres.eq.0 .and. numvar.ge.3) .or. (ipres.eq.1 .and. numvar.lt.3)) then
         pp079 = te079
         nn079 = ne079
         nn179 = ne179
-     endif
+        siw79 = sie79 + sii79 * (1. - pefac) / pefac
+     else
+        if(total_pressure) then
+           pp079 = ti079
+           nn079 = n079
+           nn179 = n179
+           siw79 = sii79
+        else
+           pp079 = te079
+           nn079 = ne079
+           nn179 = ne179
+           siw79 = sie79
+        endif
+     end if
   endif
   
   r4term = 0.
@@ -4320,7 +4329,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
      if(itemp.eq.1 .and. iadiabat.eq.1) then
         r4term = r4term + dt* &
              (t3tndenm(trialx,pp079,nn179,denm79) &
-             +t3ts(trialx,pp079,sig79))
+             +t3ts(trialx,pp079,siw79))
      endif
   endif
 

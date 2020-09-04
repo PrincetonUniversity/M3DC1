@@ -6,7 +6,7 @@ program a2cc
   integer :: args
   character(len=256) :: filename
 
-  args = iargc()
+  args = command_argument_count()
   if(args.lt.1) then
      write(0,*) 'Usage: a2cc <aeqdsk>'
      stop

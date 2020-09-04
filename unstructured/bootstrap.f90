@@ -269,7 +269,7 @@ contains
 
     temp = 0.
 
-#ifdef defined(USECOMPLEX) || defined(USE3D)
+#if defined(USECOMPLEX) || defined(USE3D)
     if(jadv.eq.0) then
        temp = 0.
     else 
@@ -279,13 +279,13 @@ contains
           temp79a = eta79(:,OP_1)*g(:,OP_1)* &
                (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
 
-          temp = intx4(e(:,:,OP_DRP),ri2_79,temp79a,h(:,OP_DRP) &
+          temp = intx4(e(:,:,OP_DRP),ri2_79,temp79a,h(:,OP_DRP)) &
                + intx4(e(:,:,OP_DZP),ri2_79,temp79a,h(:,OP_DZP))
 
 #ifdef USECOMPLEX
           temp = temp - rfac* &
                (intx4(e(:,:,OP_DR),ri2_79,temp79a,h(:,OP_DRP)) &
-               +intx4(e(:,:,OP_DZ),rie_79,temp79a,h(:,OP_DZP))
+               +intx4(e(:,:,OP_DZ),ri2_79,temp79a,h(:,OP_DZP)))
 #endif
 
        endif
@@ -331,7 +331,7 @@ contains
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
     vectype, dimension(dofs_per_element) :: temp
 
-#ifdef defined(USECOMPLEX) || defined(USE3D)
+#if defined(USECOMPLEX) || defined(USE3D)
     temp79a = eta79(:,OP_1)*g(:,OP_1)* &
          (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
 

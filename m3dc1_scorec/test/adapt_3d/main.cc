@@ -50,7 +50,7 @@ int main( int argc, char* argv[])
     return 0;
   }
 
-  m3dc1_model_print();
+  // m3dc1_model_print();
 
   if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
   {
@@ -78,7 +78,8 @@ int main( int argc, char* argv[])
 
   // printStats (Mesh m): print global mesh entity counts per dimension
   m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);	// Build 3d
-  printStats (m3dc1_mesh::instance()->mesh);
+  
+  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
 
   // Setup the parameters needed to calculate the node error
   // First we need to find element_error_sum for get_node_error_from_elm()
@@ -102,11 +103,12 @@ int main( int argc, char* argv[])
 		node_error[i][j] = sqrt(node_error[i][j]);
   	}
 	final_node_error[j] = sqrt((node_error[1][j]*node_error[1][j])+(node_error[2][j]*node_error[2][j]));
-  	double error_aimed = 0.005;		// Will come from C1 input file (Parameter: adapt_target_error)
-  	int max_adapt_node = 10000;		// Will come from C1 input file (Parameter: iadapt_max_node)
-  	int adapt_option = 1;			// Will come from C1 input file (Parameter: adapt_control)
-  	find_sizefield(num_plane, final_node_error, &error_aimed, &max_adapt_node, &adapt_option );
    }
+  double error_aimed = 0.005;             // Will come from C1 input file (Parameter: adapt_target_error)
+  int max_adapt_node = 10000;             // Will come from C1 input file (Parameter: iadapt_max_node)
+  int adapt_option = 1;                   // Will come from C1 input file (Parameter: adapt_control)
+
+  find_sizefield(final_node_error, &error_aimed, &max_adapt_node, &adapt_option );
 
   PetscFinalize();
   m3dc1_scorec_finalize();

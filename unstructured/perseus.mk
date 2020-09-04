@@ -28,11 +28,11 @@ F90OPTS = $(F90FLAGS) $(FOPTS) -gen-interfaces
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
 # define petsc and other libs
-PETSC_DIR=/home/jinchen/LIB/petsc
+PETSC_DIR=/projects/M3DC1/PETSC/petsc
 ifeq ($(COM), 1)
-  PETSC_ARCH=perseus-intelmpi2018-master-cplx
+  PETSC_ARCH=cplx-intelmpi
 else
-  PETSC_ARCH=perseus-intelmpi2018-master-real
+  PETSC_ARCH=real-intelmpi
 endif
 
 MPI_DIR=/opt/intel/compilers_and_libraries_2018.1.163/linux/mpi/lib64
