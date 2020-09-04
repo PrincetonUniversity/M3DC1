@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH -p m3dc1
+#SBATCH -n 16
+#SBATCH --mem-per-cpu=2000M
+#SBATCH -J M3DC1_regtest_RMP
+#SBATCH -t 0:10:00
+#SBATCH -o C1stdout
+
+touch started
+
+#create_mesh.sh
+#echo $? > mesh_created
+
+part_mesh.sh diiid-0.02-2.5-4.0-4K.smb 4
+echo $? > mesh_partitioned
+
+export OMP_NUM_THREADS=4
+$M3DC1_MPIRUN -n 4 m3dc1_2d_complex -pc_factor_mat_solver_type mumps
+
+touch finished
