@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH --account=m1759
+#SBATCH -J M3DC1_regtest_KPRAD_2D
+#SBATCH --nodes=5
+#SBATCH --tasks-per-node=20
+#SBATCH -C gpu
+#SBATCH -G 40
+#SBATCH -t 0:29:59
+#SBATCH -o C1stdout
+
+touch started
+
+#create_fixed_mesh.sh AnalyticModel 0.06
+#echo $? > mesh_created
+
+#part_mesh.sh analytic-2K.smb 96
+#echo $? > mesh_partitioned
+
+$M3DC1_MPIRUN -n 96 m3dc1_2d 
+
+touch finished

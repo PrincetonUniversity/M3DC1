@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --account=m1759
+#SBATCH -J M3DC1_regtest_RMP
+#SBATCH --nodes=2
+#SBATCH --tasks-per-node=16
+#SBATCH -C gpu
+#SBATCH -G 16
+#SBATCH -t 0:29:59
+#SBATCH -o C1stdout
+
+
+touch started
+
+#create_mesh.sh
+#echo $? > mesh_created
+
+#part_mesh.sh diiid-0.02-2.5-4.0-4K.smb 32
+#echo $? > mesh_partitioned
+
+$M3DC1_MPIRUN -n 32 m3dc1_2d_complex 
+
+touch finished

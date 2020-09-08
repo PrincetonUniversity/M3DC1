@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --account=m1759
+#SBATCH -J M3DC1_regtest_pellet
+#SBATCH --nodes=7
+#SBATCH --tasks-per-node=20
+#SBATCH -C gpu
+#SBATCH -G 56
+#SBATCH -t 0:29:59
+#SBATCH -o C1stdout
+
+touch started
+
+# partition mesh
+#part_mesh.sh analytic-2K.smb 32
+#echo $? > mesh_partitioned
+
+# Run M3D-C1
+${M3DC1_MPIRUN} -n 128 m3dc1_3d -ipetsc -options_file options_bjacobi.type_superludist
+
+touch finished
