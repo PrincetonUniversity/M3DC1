@@ -216,8 +216,15 @@ vectype function b4feta(e,f,g)
      temp = int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZPP),g(:,OP_1)) &
           - int5(ri3_79,e(:,OP_1),norm79(:,2),f(:,OP_DRPP),g(:,OP_1))
   else
+#ifdef USEST
+     temp = - int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_DP)) &
+            + int4(ri3_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_DP)) &
+            - int4(ri3_79,e(:,OP_DZP),f(:,OP_DRP),g(:,OP_1)) &
+            + int4(ri3_79,e(:,OP_DRP),f(:,OP_DZP),g(:,OP_1))
+#else
      temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1)) &
           - int4(ri3_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1))
+#endif
   endif
 #else
   temp = 0.

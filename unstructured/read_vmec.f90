@@ -2,10 +2,10 @@
 module read_vmec 
   use spline
   implicit none
+  character(len=256) :: vmec_filename
 
 #ifdef USEST
   integer :: nfp
-  character(len=256) :: vmec_filename
   real, allocatable :: rbc(:), zbs(:)
   real, allocatable :: rmnc(:,:), zmns(:,:), lmns(:,:), gmnc(:,:)
   real, allocatable :: rmncz(:,:), zmnsz(:,:), lmnsz(:,:), gmncz(:,:)
