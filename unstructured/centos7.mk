@@ -42,17 +42,14 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 #HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
-PETSC_VER=petsc-3.13.2
-PETSCVER=petsc3.13.2
+PETSC_VER=petsc-3.13.5
+PETSCVER=petsc3.13.5
 
-PETSC_DIR=/p/swim/jchen/PETSC/master
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/petsc-3.13.5
 ifeq ($(COM), 1)
-#PETSC_DIR=/p/swim/jchen/PETSC/branch
-PETSC_ARCH=cplx-CentOS7-intel2019u3-openmpi403
-#PETSC_ARCH=cplx-CentOS7-intel2019u3-openmpi401
+PETSC_ARCH=cplx-rhel7-intel2019u3-openmpi4.0.3
 else
-PETSC_ARCH=real-CentOS7-intel2019u3-openmpi403
-#PETSC_ARCH=real-CentOS7-intel2019u3-openmpi401-superlu
+PETSC_ARCH=real-rhel7-intel2019u3-openmpi4.0.3
 endif
 
 SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/$(PETSCVER)
@@ -77,15 +74,10 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
 
-#ifeq ($(COM), 1)
-PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/p/swim/jchen/PETSC/master/real-CentOS7-intel2019u3-openmpi401/lib -L/p/swim/jchen/PETSC/master/real-CentOS7-intel2019u3-openmpi401/lib -L/usr/pppl/intel/2019-pkgs/openmpi-4.0.3/lib -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/mpi/intel64/libfabric/lib -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/ipp/lib/intel64 -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -Wl,-rpath,/usr/pppl/intel/2019-pkgs/openmpi-4.0.3/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lifport -lifcoremt -limf -lsvml -lm -lipgo -lirc -lpthread -lgcc_s -lirc_s -lquadmath -lstdc++ -ldl
-#else
-#PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/p/swim/jchen/PETSC/master/real-CentOS7-intel2019u3-openmpi401-superlu/lib -L/p/swim/jchen/PETSC/master/real-CentOS7-intel2019u3-openmpi401-superlu/lib -L/usr/pppl/intel/2019-pkgs/openmpi-4.0.3/lib -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/mpi/intel64/libfabric/lib -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/ipp/lib/intel64 -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -Wl,-rpath,/usr/pppl/intel/2019-pkgs/openmpi-4.0.3/lib -lpetsc -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lifport -lifcoremt -limf -lsvml -lm -lipgo -lirc -lpthread -lgcc_s -lirc_s -lquadmath -lstdc++ -ldl
-#endif
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,/usr/pppl/intel/2019-pkgs/openmpi-4.0.3-pkgs/fftw-3.3.8/lib -L/usr/pppl/intel/2019-pkgs/openmpi-4.0.3-pkgs/fftw-3.3.8/lib -Wl,-rpath,/usr/pppl/intel/2019-pkgs/openmpi-4.0.3-pkgs/hdf5-parallel-1.10.5/lib -L/usr/pppl/intel/2019-pkgs/openmpi-4.0.3-pkgs/hdf5-parallel-1.10.5/lib -L/usr/pppl/intel/2019-pkgs/openmpi-4.0.3/lib -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/mpi/intel64/libfabric/lib -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/ipp/lib/intel64 -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -Wl,-rpath,/usr/pppl/intel/2019-pkgs/openmpi-4.0.3/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lX11 -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lpthread -lgcc_s -lirc_s -lquadmath -lstdc++ -ldl
 
 LIBS = 	$(SCOREC_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
-        -L$(HDF5_HOME)/lib  -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 \
 	-lgsl \
 	-lX11
 

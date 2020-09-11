@@ -1,5 +1,4 @@
 1. login from portal at PPPL
-	ssh sunfire14
 	ssh sunfire15
 	ssh sunfire49
 
@@ -13,7 +12,7 @@
 
   or
 
-  module load openmpi/4.0.3 intel/2019.u3 hdf5-parallel/1.10.5 
+  module load intel/2019.u3 openmpi/4.0.3 hdf5-parallel/1.10.5 fftw
 
 4. compile code
 	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=centos7
