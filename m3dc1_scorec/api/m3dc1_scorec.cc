@@ -2899,6 +2899,18 @@ int set_adapt_p (double * pp)
   return M3DC1_SUCCESS;
 }
 
+// Arguments of the function
+// double* node_error: Node error data coming from the function node_error_3d_mesh()
+// int num_planes: User defined number of planes
+//    Must be greater than 1 to extrude the meshes between the planes
+// double* errorAimed: Parameter "adapt_target_error" from the user input parameter file
+//    Target discretization error on the adapted mesh
+// double* max_adapt_node: Parameter "adapt_max_node" from the user input parameter file
+//      Maximum node number in the adapted mesh. If the estimated mesh node number from adapt_target_error exceeds iadapt_max_node,
+//    the target mesh size in the adapted mesh is scaled such that the mesh node number is below iadapt_max_node.
+// int* option: Parameter "adapt_control" from the user input parameter file and is either 0 or 1
+//    0: adapt_target_error is global (integral over the domain)
+//    1: adapt_target_error is local (integral over the element)
 int adapt_by_error_field (double * errorData, double * errorAimed, int * max_adapt_node, int * option)
 {
   if (!PCU_Comm_Self()) 
@@ -2917,6 +2929,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   {
     for (int i=0; i<numVert; i++)
     {
+      // Determine if the mesh is on the original poloidal plane or on ghost plane
       if (is_ent_original(m3dc1_mesh::instance()->mesh,getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i)))
         errorSum+=pow(errorData[i],d/(p+d/2.0));
     }
@@ -2925,17 +2938,20 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     errorSum = *errorAimed*(*errorAimed)/errorSum;
     errorSum = pow(errorSum,1./(2.*p));
   }
-  else errorSum=pow(*errorAimed,1./(p+d/2.));
-  double size_estimate=0;
-  for (int i=0; i<numVert; i++)
+  else // default 
+    errorSum=pow(*errorAimed,1./(p+d/2.));
+
+  double size, targetSize, size_estimate=0;
+  for (int i=0; i<numVert; ++i)
   {
     apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
-    assert(e);
-    if (!is_ent_original(m3dc1_mesh::instance()->mesh,e)) continue;
-    double size = sf.getSize(e);
-    double targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
+    // if not on original poloidal plane, ignore it
+    if (!is_ent_original(mesh,e)) continue;
+    size = sf.getSize(e);
+    targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
     size_estimate+=max(1.,1./targetSize/targetSize);
   }
+
   double size_estimate_buff=size_estimate;
   MPI_Allreduce(&size_estimate_buff, &size_estimate, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   int numNodeGlobl=0, dim=0;
@@ -2944,21 +2960,46 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     cout<<__func__<<": numVert "<<numNodeGlobl<<" size_estimate "<<size_estimate<<"\n";
 
   if (size_estimate>*max_adapt_node) errorSum*=sqrt(size_estimate/(*max_adapt_node));
+  std::vector <double> target_size;
+  int num_planes = m3dc1_model::instance()->num_plane;
+  if (num_planes>1) // 3D
+    target_size.resize(numVert);
+
   for (int i=0; i<numVert; i++)
   {
     apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
-    assert(e);
-    double size = sf.getSize(e);
+    size = sf.getSize(e);
     assert(errorData[i]==errorData[i]);
-    double targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
+    targetSize = errorSum*pow(errorData[i],-1./(p+d/2.));
     if (targetSize>relSize[1]) targetSize=relSize[1]; // not too much coarsening
     if (targetSize<relSize[0]) targetSize=relSize[0]; // not too much refining
     targetSize*=size;
     if (targetSize>absSize[1]) targetSize=absSize[1];
     if (targetSize<absSize[0]) targetSize=absSize[0];
-    setComponents(sizeField, e, 0, &targetSize);
+    if (num_planes>1)
+      target_size.push_back(targetSize);
+    else // 2D 
+      setComponents(sizeField, e, 0, &targetSize);
   }
 
+  if (num_planes>1) // 3D
+  {
+    std::vector <double> target_sizefield;
+    double final_target;
+    // seol #3: if #vertex is N, #vertex in 3D is 2N. what is num_vert_on_plane for?
+    int num_vert_on_plane = numVert/num_planes;
+    for (int j=0; j<num_vert_on_plane; ++j)
+    {
+      for (int k=1; k<num_planes; ++k)
+      {
+        final_target = target_size[j];
+        if (target_size[j+num_vert_on_plane*k] < final_target)
+          final_target = target_size[j+num_vert_on_plane*k];
+      }
+      target_sizefield.push_back(final_target);     // This is the targetted sizefield for first poloidal plane
+    }
+  } // if (num_planes>1)
+ 
   // FIXME: why called twice?
   smooth_size_field(sizeField);
   smooth_size_field(sizeField);

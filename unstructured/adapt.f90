@@ -241,7 +241,11 @@ module adapt
     call derived_quantities(1)
     !ke_previous = ekin
   end subroutine adapt_by_psi
+
+
+! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   subroutine adapt_by_error
+! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     use diagnostics
     use basic
     use error_estimate
@@ -255,7 +259,7 @@ module adapt
     use auxiliary_fields
     use scorec_mesh_mod
     use transport_coefficients
-!#include "mpif.h"
+
     vectype, allocatable :: edge_error(:,:)
     vectype, allocatable :: elm_error(:,:), elm_error_res(:,:), elm_error_sum(:,:)
     real, allocatable :: node_error(:,:)
@@ -276,11 +280,10 @@ module adapt
     write(file_name2, "(A8,I0,A)") 'errorElm', ntime,0
     write(file_name3,"(A8,I0,A)") 'errorSum', ntime,0
 
-    !call m3dc1_field_max(jphi_field%vec%id, max_val, min_val)
     call m3dc1_mesh_getnumglobalent (0, num_node_total)
 
     !if(myrank .eq. 0) print*, "time", ntime, "current max", max_val(1), min_val(1), "mesh size before adapt", num_node_total
-    call m3dc1_field_max(field_vec%id, max_val,min_val)
+    call m3dc1_field_max(field_vec%id, max_val, min_val)
     maxPhi = max(abs(max_val(1+(u_g-1)*dofs_per_node)),abs(min_val(1+(u_g-1)*dofs_per_node)))
     maxPs =  max(abs(max_val((psi_g-1)*dofs_per_node)+1),abs(min_val((psi_g-1)*dofs_per_node)+1))
 
@@ -358,9 +361,7 @@ module adapt
        rel_size(2) = adapt_hmax_rel
 
        call set_mesh_size_bound (abs_size, rel_size)
-#ifdef LATESTSCOREC
        call set_adapt_p(iadapt_order_p)
-#endif
        call adapt_by_error_field(sqrt(node_error(1,:)**2+node_error(2,:)**2), adapt_target_error, &
 iadapt_max_node, adapt_control);
        if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)

@@ -1,4 +1,4 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPETSC_VERSION=37 $(OPTS) -DLATESTSCOREC -DUSEBLAS -xMIC-AVX512
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPETSC_VERSION=37 $(OPTS) -DUSEBLAS -xMIC-AVX512
 
 CCOPTS  = -c -O -DPETSC_VERSION=37 -xMIC-AVX512
 

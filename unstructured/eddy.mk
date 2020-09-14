@@ -1,4 +1,4 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEBLAS -DPETSC_VERSION=312
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DUSEBLAS -DPETSC_VERSION=312
 CCOPTS  = -c -DPETSC_VERSION=312
 
 ifeq ($(OPT), 1)

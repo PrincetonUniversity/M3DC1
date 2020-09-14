@@ -46,7 +46,12 @@ Compile M3D-C1 with PETSc
 
 4. RUN M3DC1
 
-Many test cases are available in /lore/seol/tests
+Many test cases are available in ./regtest and /lore/seol/tests
+
+cd ./regtest/adapt/base
+mpirun -n 16 /lore/seol/openmpi1.6.5-petsc3.7.6-install/bin/split_smb circle-0.02-0.0-0.0.dmg circle-0.02-0.0-0.0-2K.smb part.smb 16
+mpirun -n 16 ../../../_avatar-opt-25/m3dc1_2d 
+
 
 [to run 2d real test]
 cd 2d/2p
