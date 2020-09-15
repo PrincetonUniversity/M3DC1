@@ -22,16 +22,17 @@ OPTS := $(OPTS) -DNOTUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS #-DNEWSOLVERDEVELOPME
 
 PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
 ifeq ($(COM), 1)
-  PETSC_ARCH=corigpu-pgi1910-mvapich2.232-cuda10289-master-cplx2
+  PETSC_ARCH=corigpu-pgi1910-mvapich2.232-cuda10289-master-cplx2-zoltan
 else
-  PETSC_ARCH=corigpu-pgi1910-mvapich2.232-cuda10289-master-real2
+  PETSC_ARCH=corigpu-pgi1910-mvapich2.232-cuda10289-master-real2-zoltan
 endif
 PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lsuperlu -lsuperlu_dist -lparmetis -lmetis -lrt -lm -lpthread -lz -ldl -lstdc++ 
 
 
 FFTW_LIB=-L$(FFTW_DIR) -lfftw3_mpi -lfftw3 
 
-SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mvapich2.3.2/cuda10.2-pgi19.10-petsc3.12.4
+#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mvapich2.3.2/cuda10.2-pgi19.10-petsc3.12.4
+SCOREC_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
 SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
 ifeq ($(COM), 1)
