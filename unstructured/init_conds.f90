@@ -594,7 +594,7 @@ subroutine initial_conditions()
            call cyl_init()
 #ifdef USEST
         case(40)
-           if (igeometry.eq.1 .and. iread_vmec.eq.2) then
+           if (igeometry.eq.1 .and. iread_vmec.ge.1) then
               call vmec_init()
            end if
 #endif
@@ -665,7 +665,7 @@ subroutine initial_conditions()
 
 #ifdef USEST
   if(igeometry.eq.1) then
-     call destroy_vmec
+     !call destroy_vmec
   end if   
 #endif
 

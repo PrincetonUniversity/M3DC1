@@ -18,6 +18,7 @@ contains
     use newvar_mod 
     use m3dc1_nint
     use boundary_conditions
+    use init_common
 
     implicit none
 
@@ -25,7 +26,7 @@ contains
     type(matrix_type) :: br_mat
     type(vector_type) :: fg_vec
     type(field_type) :: psi_f, bf_f, g_f, bz_f
-    type(field_type) :: p_vec, phiv_vec, chiv_vec, l_vec, x_vec, y_vec 
+    type(field_type) :: p_vec, phiv_vec, chiv_vec, l_vec, x_vec, y_vec, per_vec 
     integer :: itri, numelms, ibound, ier, igbound, ipsibound, i, k, k1
     integer :: inode(nodes_per_element)
     vectype, dimension(dofs_per_element) :: dofs
@@ -35,12 +36,14 @@ contains
 
     ! Create fields 
     call create_field(p_vec)
+    call create_field(per_vec)
     call create_field(l_vec)
     call create_field(chiv_vec)
     call create_field(phiv_vec)
     call create_field(x_vec)
     call create_field(y_vec)
     p_vec = 0.
+    per_vec = 0.
     l_vec = 0.
     x_vec = 0.
     y_vec = 0.
@@ -60,7 +63,8 @@ contains
       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
       call define_fields(itri,0,1,0)
 
-      call vmec_fields(xl_79, phi_79, zl_79, temp79a, temp79b, temp79c, temp79d)
+      call vmec_fields(xl_79, phi_79, zl_79, temp79a, temp79b, temp79c, &
+                      temp79d, temp79e)
 
       ! VMEC lambda
       dofs = intx2(mu79(:,:,OP_1),temp79a)
@@ -78,6 +82,11 @@ contains
       dofs = intx2(mu79(:,:,OP_1),temp79d)
       call vector_insert_block(p_vec%vec, itri, 1, dofs, VEC_ADD)
 
+      ! perturbation 
+      !dofs = intx2(mu79(:,:,OP_1),temp79e)
+      dofs = intx2(mu79(:,:,OP_1),sin(x_79)*sin(z_79)*sin(phi_79))
+      call vector_insert_block(per_vec%vec, itri, 1, dofs, VEC_ADD)
+
       ! logical x 
       dofs = intx2(mu79(:,:,OP_1),xl_79)
       call vector_insert_block(x_vec%vec, itri, 1, dofs, VEC_ADD)
@@ -94,7 +103,11 @@ contains
     call newvar_solve(y_vec%vec,mass_mat_lhs)
     call newvar_solve(phiv_vec%vec,mass_mat_lhs)
     call newvar_solve(chiv_vec%vec,mass_mat_lhs)
+    call newvar_solve(p_vec%vec,mass_mat_lhs)
+    call newvar_solve(per_vec%vec,mass_mat_lhs)
 
+    p_field(0) = p_vec 
+    u_field(1) = per_vec 
 
     call create_vector(fg_vec,2)
     call associate_field(bf_f,fg_vec,1)
@@ -117,6 +130,7 @@ contains
       call eval_ops(itri, y_vec, y79, rfac)
       call eval_ops(itri, l_vec, lam79, rfac)
       call eval_ops(itri, phiv_vec, pv79, rfac)
+      call eval_ops(itri, per_vec, p079, rfac)
       temp79a = -zl_79/(xl_79**2 + zl_79**2) ! theta_x
       temp79b =  xl_79/(xl_79**2 + zl_79**2) ! theta_y
       temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
@@ -148,10 +162,12 @@ contains
 !      temp2(:,2) = intx3(mu79(:,:,OP_DZ),pv79(:,OP_1),temp79d) &
 !                  +intx3(mu79(:,:,OP_DR),pv79(:,OP_1),temp79c) 
 !
-      temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r_79) 
+      temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r_79) & 
+                      +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
       temp(:,:,1,2) = 0.
-      temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
-                  -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) 
+      temp2(:,1) = -intx3(mu79(:,:,OP_1),2*p079(:,OP_1),r_79) 
+      !temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
+      !            -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) 
 
 !      temp(:,:,1,1) =  intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) &
 !                      +intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) 
@@ -210,11 +226,12 @@ contains
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f & g..."
     call sum_shared(fg_vec)
-    call boundary_vmec(fg_vec,br_mat)
+    call boundary_vmec(fg_vec,br_mat,per_vec)
     call finalize(br_mat)
     call newsolve(br_mat,fg_vec,ier)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f: ier = ", ier
 
+    p_field(0) = bf_f 
 
     call create_field(bz_f)
     call create_field(psi_f)
@@ -231,7 +248,7 @@ contains
       call eval_ops(itri, phiv_vec, pv79, rfac)
       call eval_ops(itri, chiv_vec, cv79, rfac)
       call eval_ops(itri, g_f, g79, rfac)
-      !call eval_ops(itri, bf_f, bf079, rfac)
+!      call eval_ops(itri, bf_f, bf079, rfac)
       temp79a = -zl_79/(xl_79**2 + zl_79**2)
       temp79b =  xl_79/(xl_79**2 + zl_79**2)
       temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
@@ -247,6 +264,7 @@ contains
       ! F = R*(Phi_Z*theta^*_R - Phi_R*theta^*_Z)  
       dofs = intx4(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c,r_79) &
               -intx4(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d,r_79) 
+!      dofs = intx3(mu79(:,:,OP_1),bf079(:,OP_LP),r2_79) 
       call vector_insert_block(bz_f%vec, itri, 1, dofs, VEC_ADD)
 
       ! psi = g_phi + Phi*(theta_phi + lambda_phi) - chi
@@ -259,7 +277,6 @@ contains
 #endif
       call vector_insert_block(psi_f%vec, itri, 1, dofs, VEC_ADD)
 
-
 !      ! Br = -Phi_Z*(theta_phi + lambda_phi)/R 
 !      !      +Phi_phi*(theta_Z + lambda_Z)/R + chi_Z/R
 !      dofs = -intx4(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79e,ri_79) &
@@ -269,32 +286,30 @@ contains
 !
       ! Bz =  Phi_R*(theta_phi + lambda_phi)/R 
       !      -Phi_phi*(theta_R + lambda_R)/R - chi_R/R
-      dofs = +intx4(mu79(:,:,OP_1),pv79(:,OP_DR),temp79e,ri_79) &
-               -intx3(mu79(:,:,OP_1),cv79(:,OP_DR),ri_79) &
-#ifdef USE3D
-               -intx4(mu79(:,:,OP_1),pv79(:,OP_DP),temp79c,ri_79) 
-#else
-              +0.
-#endif
-      call vector_insert_block(p_vec%vec, itri, 1, dofs, VEC_ADD)
+!      dofs = +intx4(mu79(:,:,OP_1),pv79(:,OP_DR),temp79e,ri_79) &
+!               -intx3(mu79(:,:,OP_1),cv79(:,OP_DR),ri_79) &
+!#ifdef USE3D
+!               -intx4(mu79(:,:,OP_1),pv79(:,OP_DP),temp79c,ri_79) 
+!#else
+!              +0.
+!#endif
+!      call vector_insert_block(p_vec%vec, itri, 1, dofs, VEC_ADD)
 
-!      ! Bphi = -Phi_R*(theta_Z + lambda_Z) 
-!      !        +Phi_Z*(theta_R + lambda_R)
+      ! Bphi = -Phi_R*(theta_Z + lambda_Z) 
+      !        +Phi_Z*(theta_R + lambda_R)
 !      dofs = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
 !              -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) 
-!      call vector_insert_block(bphi_f%vec, itri, 1, dofs, VEC_ADD)
+!      call vector_insert_block(bz_f%vec, itri, 1, dofs, VEC_ADD)
 
     end do
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz & psi..."
     call newvar_solve(bz_f%vec,mass_mat_lhs)
     call newvar_solve(psi_f%vec,mass_mat_lhs)
-    call newvar_solve(p_vec%vec,mass_mat_lhs)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
 
     bz_field(0) = bz_f
     psi_field(0) = psi_f
-    p_field(0) = bf_f 
 
     call destroy_field(p_vec)
     call destroy_field(l_vec)
@@ -313,9 +328,11 @@ contains
       call safestop(5)
     end select
 
+    !call init_perturbations
+
   end subroutine vmec_init
 
-  subroutine boundary_vmec(rhs, mat)
+  subroutine boundary_vmec(rhs, mat, vec)
     use basic
     use vector_mod
     use matrix_mod
@@ -323,6 +340,7 @@ contains
   
     implicit none
   
+    type(field_type) :: vec 
     type(vector_type) :: rhs
     type(matrix_type), optional :: mat
     
@@ -346,6 +364,8 @@ contains
        i_f = node_index(rhs, i, 1)
        i_g = node_index(rhs, i, 2)
   
+       call get_node_data(vec, i, temp)
+       !call set_normal_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
        call set_dirichlet_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
     end do
   end subroutine boundary_vmec
@@ -369,11 +389,11 @@ contains
   end subroutine vmec_pressure
 
   ! Calculate VMEC fields given x, phi, z 
-  elemental subroutine vmec_fields(x, phi, z, br, bphi, bz, p)
+  elemental subroutine vmec_fields(x, phi, z, br, bphi, bz, p, per)
     implicit none
 
     real, intent(in) :: x, phi, z
-    real, intent(out) :: p, br, bphi, bz
+    real, intent(out) :: p, br, bphi, bz, per
     real :: r, r2n, ds, rout, bu, bv, theta 
     integer :: js, i 
     real, dimension(mn_mode) :: rstc, zsts, co, sn, ls 
@@ -391,6 +411,8 @@ contains
 !    ds = js - r2n 
     co = cos(xmv*theta+xnv*phis)
     sn = sin(xmv*theta+xnv*phis)
+    ! m, n perturbation
+    per = eps*exp(-r**2/ln**2)*cos(mpol*theta-ntor*phis)*r 
     !co_nyq = cos(xmv_nyq*theta+xnv_nyq*phis)
     !sn_nyq = sin(xmv_nyq*theta+xnv_nyq*phis)
     call evaluate_spline(presf_spline, r**2, p)

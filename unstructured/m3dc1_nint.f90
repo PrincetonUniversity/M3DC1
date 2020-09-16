@@ -503,7 +503,7 @@ contains
                          - zst79(:,OP_DP)*mu79(i,:,OP_DZZ)& 
                          + mu79(i,:,OP_DZP)
       ! fPP = - Rz*fRP - Zz*fZP + fPz
-      mu79(i,:,OP_DZP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRP)&
+      mu79(i,:,OP_DPP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRP)&
                          - zst79(:,OP_DP)*mu79(i,:,OP_DZP)& 
                          + mu79(i,:,OP_DPP)
 #endif

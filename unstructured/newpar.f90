@@ -995,6 +995,7 @@ end subroutine rotation
 #ifdef USEST
     real, dimension(dofs_per_element, dofs_per_element) :: newrot
     integer :: l, m, n, idof, ip
+!    real, dimension(dofs_per_node, dofs_per_node) :: rot1, rot2, rot3
 #else
     real, dimension(dofs_per_tri, dofs_per_tri) :: newrot
 #endif
@@ -1066,6 +1067,11 @@ end subroutine rotation
              call newrot_matrix(&
                   newrot(k:(k+dofs_per_node-1),k:(k+dofs_per_node-1)),&
                   norm,curv,2)
+!             call newrot_matrix(rot1,norm,curv,1)
+!             call newrot_matrix(rot2,norm,curv,-1)
+!             rot3 = matmul(rot1,rot2)
+!             if(myrank.eq.0 .and. inode(i).le.1) print *, rot3
+!             if(myrank.eq.0 .and. inode(i).le.1) print *, 'newrot 3' 
           else
              do j=1, dofs_per_node
 #else

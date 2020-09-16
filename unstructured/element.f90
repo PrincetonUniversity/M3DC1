@@ -428,9 +428,10 @@ contains
        newrot(3,9) = -norm(2)*curv(2)
        newrot(2:6,10) = 2*curv(2)*(newrot(2:6,5)-curv(1)*newrot(2:6,3)) 
        newrot(2:6,11) = curv(2)*(newrot(2:6,6)-newrot(2:6,4)&
-                       +curv(1)*newrot(2:6,2)) + curv(3)*newrot(2:6,3) 
+                       + curv(1)*newrot(2:6,2)) + curv(3)*newrot(2:6,3) & 
+                       + curv(1)*newrot(2:6,9)
        newrot(2:6,12) =-2*curv(2)*(newrot(2:6,5)-curv(1)*newrot(2:6,3)) &
-                       -curv(3)*newrot(2:6,2) 
+                       -curv(3)*newrot(2:6,2) - curv(1)*newrot(2:6,8)
 #endif
        ! transpose of inverse of newrot
        if(ic.eq.1) newrot = transpose(newrot)

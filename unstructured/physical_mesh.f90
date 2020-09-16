@@ -181,7 +181,6 @@ contains
              +2*zn(DOF_DRZP)*(-x*z) &
              +zn(DOF_DRP)*(-x) + zn(DOF_DZP)*(-z)
 #endif
-       !if (inode.eq.1) print *, 'this is a test' 
     else ! use Fourier coefficients
        if (iread_vmec.ge.1) then
          co = cos(xmv*theta+xnv*phis)

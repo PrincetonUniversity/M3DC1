@@ -180,7 +180,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -brv*sin(theta) - bthetav*cos(theta)
 #else
         br =  real(brv)*cos(theta) - real(bthetav)*sin(theta)
-        bphi =  real(bzv)
+        bphi =  real(bzv) + 1.
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if
@@ -590,7 +590,7 @@ subroutine boundary_rmp(rhs, mat)
   vectype, dimension(dofs_per_node) :: temp
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vor called"
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_rmp called"
 
   temp = 0.
 
