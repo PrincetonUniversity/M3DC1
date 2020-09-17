@@ -425,15 +425,15 @@ subroutine f3eplot_sub(term)
 
   ! Ohmic Heating
   ! ~~~~~~~~~~~~~
-  tempx = b3psipsieta(mu79,pst79,pst79,eta79) &
+  tempx = b3psipsieta(mu79,pst79,pst79,eta79,nre179) &
        +  b3bbeta    (mu79,bzt79,bzt79,eta79) &
-       +  b3psibeta  (mu79,pst79,bzt79,eta79) 
+       +  b3psibeta  (mu79,pst79,bzt79,eta79,nre179) 
   term = tempx
 
   if(i3d .eq. 1) then
-     tempx = b3psifeta(mu79,pst79,bft79,eta79) &
-          +  b3bfeta  (mu79,bzt79,bft79,eta79) &
-          +  b3ffeta  (mu79,bft79,bft79,eta79)   
+     tempx = b3psifeta(mu79,pst79,bft79,eta79,nre179) &
+          +  b3bfeta  (mu79,bzt79,bft79,eta79,nre179) &
+          +  b3ffeta  (mu79,bft79,bft79,eta79,nre179)   
      term = term + tempx
   endif
 

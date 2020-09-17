@@ -126,8 +126,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(q179,q079,qt79,qe079,qet79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ppar79, pper79
 !$OMP THREADPRIVATE(ppar79,pper79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: nre79
-!$OMP THREADPRIVATE(nre79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: nre079, nre179
+!$OMP THREADPRIVATE(nre079,nre179)
   vectype, dimension(MAX_PTS, OP_NUM) :: wall79
 !$OMP THREADPRIVATE(wall79)
   vectype, dimension(MAX_PTS) :: qd79
@@ -1357,11 +1357,32 @@ contains
 
     ! Runaway Electron Density
     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-    if((iand(fields, FIELD_RE).eq.FIELD_RE)   &
-        .and. irunaway.gt.0) then
+    if((iand(fields, FIELD_RE).eq.FIELD_RE) .and. irunaway.gt.0) then
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   RE density..."
        
-       call eval_ops(itri, nre_field, nre79)
+       if(ilin.eq.0) then 
+         call eval_ops(itri, nre_field(1), nre179, rfac)
+       else
+         nre179 = 0.
+       endif
+       if(ieqsub.eq.1) then
+          if(idenfunc.eq.3) then
+             if(izone.gt.1) then
+                nre079(:,OP_1) = 0. 
+             else
+                temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+                temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
+                     +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+                where(real(temp79a).ge.denoff .and. real(temp79b).le.0.)
+                   nre079(:,OP_1) = 0.
+                end where
+             end if
+          else
+             call eval_ops(itri, nre_field(0), nre079)
+          end if
+       else
+          nre079 = 0.
+       endif
     endif
 
     ! Wall dist field

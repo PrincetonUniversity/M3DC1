@@ -457,7 +457,7 @@ subroutine init
 
   call init_qp
 
-  call runaway_init
+  if(irunaway .eq. 2) call runaway_init
 
   call kprad_init(ierr)
   if(ierr.ne.0) call safestop(601)
@@ -537,7 +537,7 @@ subroutine safestop(iarg)
 #endif
 
   call destroy_auxiliary_fields
-  call runaway_deallocate
+  if(irunaway .eq. 2) call runaway_deallocate
   call kprad_destroy
   call destroy_resistive_wall
 
@@ -1286,6 +1286,7 @@ subroutine space(ifirstcall)
   call associate_field(ti_field(1),  field_vec, ti_g)
   call associate_field(e_field(1),   field_vec, e_g)
   call associate_field(ne_field(1),  field_vec, ne_g)
+  call associate_field(nre_field(1), field_vec, nre_g)
 
   call associate_field(u_field(0),   field0_vec, u_g)
   call associate_field(vz_field(0),  field0_vec, vz_g)
@@ -1299,6 +1300,7 @@ subroutine space(ifirstcall)
   call associate_field(ti_field(0),  field0_vec, ti_g)
   call associate_field(e_field(0),   field0_vec, e_g )
   call associate_field(ne_field(0),  field0_vec, ne_g)
+  call associate_field(nre_field(0), field0_vec, nre_g)
 
   call allocate_kspits
 

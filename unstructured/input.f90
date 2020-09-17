@@ -393,6 +393,7 @@ subroutine set_defaults
        "1: -electron 2F,  2: ion 2F", model_grp)
   call add_var_int("ibootstrap", ibootstrap, 0, "", model_grp)
   call add_var_int("irunaway", irunaway, 0, "", model_grp)
+  call add_var_int("cre", cre, 0, "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &
