@@ -251,8 +251,6 @@ contains
        if(eqsubtract.eq.0) then
          psi_field(0) = psi_field(1)
          psi_field(1) = 0.
-         nre_field(0) = nre_field(1)
-         nre_field(1) = 0.
          u_field(0) = u_field(1)
          u_field(1) = 0.
        endif
@@ -260,8 +258,6 @@ contains
        if(eqsubtract.eq.0) then
          call add_field_to_field(psi_field(1),psi_field(0))
          psi_field(0) = 0.
-         call add_field_to_field(nre_field(1),nre_field(0))
-         nre_field(0) = 0.
          call add_field_to_field(u_field(1),u_field(0))
          u_field(0) = 0.
        endif
@@ -309,9 +305,6 @@ contains
 
     call h5r_read_field(group_id, "V",    vz_field(ilin), nelms, error)
     call h5r_read_field(group_id, "chi", chi_field(ilin), nelms, error)
-    if(irunaway.gt.0) then
-      call h5r_read_field(group_id, "nre", nre_field(ilin), nelms, error)
-    endif
 
     if(icsubtract.eq.1) then
        call h5r_read_field(group_id, "psi_coil", psi_coil_field, nelms, error, .true.)

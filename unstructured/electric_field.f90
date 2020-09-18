@@ -374,7 +374,7 @@ subroutine electric_field_par(ilin,o, izone)
 
   integer, intent(in) :: ilin, izone
   vectype, dimension(MAX_PTS), intent(out) :: o
-  vectype, dimension(MAX_PTS) :: b2, osign,ere
+  vectype, dimension(MAX_PTS) :: b2
 
   o = 0.
   if(izone.eq.3) return
@@ -420,24 +420,7 @@ subroutine electric_field_par(ilin,o, izone)
        + bftx79(:,OP_DZP)**2 + bftx79(:,OP_DRP)**2
 #endif
 
-    
   o = o / sqrt(b2)
-#if defined(USECOMPLEX)
-  return
-#else  
-  ! eta J_RA
-  ! ~~~~~~~~
-  if(irunaway .gt. 0) then
-      ere = abs(eta79(:,OP_1)*nre179(:,OP_1)*sqrt(b2)/bztx79(:,OP_1))
-      osign = sign(1.0,o)
-      o = osign*(abs(o) - ere)
-      where (sign(1.,o) .ne. osign) 
-      o = 0.
-      end where
-
-  endif
-#endif
- 
 end subroutine electric_field_par
 
 

@@ -4610,189 +4610,6 @@ function b1bu(e,f,g)
   b1bu = temp
 end function b1bu
 
-! B1jrepsieta
-! ====
-function b1jrepsieta(e,f,g,h,i)
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: b1jrepsieta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-  vectype, dimension(dofs_per_element) :: temp
-
-#if defined(USE3D) || defined(USECOMPLEX)
-  if(jadv.eq.0) then
-     temp = 0.
-  else
-     if(surface_int) then
-        temp = -(intx7(e(:,:,OP_1),norm79(:,2),ri3_79, &
-                f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri3_79, &
-                f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1))) &
-               -(intx7(e(:,:,OP_1),norm79(:,2),ri3_79,&
-                f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri3_79, &
-                f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
-     else
-        temp = -(intx6(e(:,:,OP_DZ),ri3_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-               -intx6(e(:,:,OP_DR),ri3_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
-               +intx6(e(:,:,OP_DZ),ri3_79,f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               -intx6(e(:,:,OP_DR),ri3_79,f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
-     end if
-     temp = temp*1.000
-  endif
-
-#else
-  temp  = 0.
-#endif
-  b1jrepsieta = temp
-end function b1jrepsieta
-
-! B1jrebeta
-! ====
-function b1jrebeta(e,f,g,h,i)
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: b1jrebeta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-  vectype, dimension(dofs_per_element) :: temp
-
-  if (jadv .eq. 0) then
-     temp = -intx5(e(:,:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_1),i(:,OP_1))
-  else
-     if(surface_int) then
-        temp = (intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,2),ri2_79, & 
-                f(:,OP_DZ),g(:,OP_1),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_DR),g(:,OP_1),h(:,OP_1),i(:,OP_1)))
-     else
-        temp = (intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               +intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ),g(:,OP_1),h(:,OP_1),i(:,OP_1)) &
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_1),h(:,OP_1),i(:,OP_1)))
-     end if
-  endif
-  temp = temp*1.000
-  b1jrebeta = temp
-end function b1jrebeta
-
-! B1jrefeta
-! ====
-function b1jrefeta(e,f,g,h,i)
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: b1jrefeta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-  vectype, dimension(dofs_per_element) :: temp
-
-#if defined(USE3D) || defined(USECOMPLEX)
-  if(jadv.eq.0) then
-     temp = 0.
-  else
-     if(surface_int) then
-        temp = (intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_DP),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_DP),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_1),g(:,OP_DZPP),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_1),g(:,OP_DRPP),h(:,OP_1),i(:,OP_1)))
-     else
-        temp = (intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_DP),g(:,OP_DZP),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_DP),g(:,OP_DRP),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZPP),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DRPP),h(:,OP_1),i(:,OP_1)))
-     end if
-     temp = temp*1.000
-  endif
-
-#else
-  temp  = 0.
-#endif
-  b1jrefeta = temp
-end function b1jrefeta
-
-! B2jrepsieta
-! ====
-function b2jrepsieta(e,f,g,h,i)
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: b2jrepsieta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-  vectype, dimension(dofs_per_element) :: temp
-
-  if(jadv.eq.0) then
-     temp = 0.
-  else
-     if(surface_int) then
-        temp = -(intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)))
-     else
-        temp = -(intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-                +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)))
-     end if
-     temp = temp*1.000
-  endif
-
-  b2jrepsieta = temp
-end function b2jrepsieta
-
-! B2jrefeta
-! ====
-function b2jrefeta(e,f,g,h,i)
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: b2jrefeta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-  vectype, dimension(dofs_per_element) :: temp
-
-#if defined(USE3D) || defined(USECOMPLEX)
-  if(jadv.eq.0) then
-     temp = 0.
-  else
-     if(surface_int) then
-        temp = -(intx7(e(:,:,OP_1),norm79(:,2),ri_79, &
-                f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-               -intx7(e(:,:,OP_1),norm79(:,1),ri_79, &
-                f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
-     else
-        temp = -(intx6(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-               -intx6(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
-     end if
-     temp = temp*1.000
-  endif
-
-#else
-  temp  = 0.
-#endif
-  b2jrefeta = temp
-end function b2jrefeta
 
 ! B1bv
 ! ====
@@ -7822,7 +7639,7 @@ end function b3q
 
 ! B3psipsieta
 ! ===========
-function b3psipsieta(e,f,g,h,i)
+function b3psipsieta(e,f,g,h)
   use basic
   use m3dc1_nint
 
@@ -7830,7 +7647,7 @@ function b3psipsieta(e,f,g,h,i)
 
   vectype, dimension(dofs_per_element) :: b3psipsieta
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   vectype, dimension(dofs_per_element) :: temp
 
   if(gam.le.1. .or. surface_int) then
@@ -7842,11 +7659,6 @@ function b3psipsieta(e,f,g,h,i)
      temp = temp + (gam-1)*   &
            (intx5(e(:,:,OP_1),ri4_79,f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1))   &
          +  intx5(e(:,:,OP_1),ri4_79,f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1)))
-     if(irunaway .gt. 0) then
-        temp = temp + 1.*(gam-1.) * &
-              (-intx6(e(:,:,OP_1),ri3_79,f(:,OP_DZ),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-              + intx6(e(:,:,OP_1),ri3_79,f(:,OP_DR),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
-     endif
 #endif
   end if
 
@@ -7856,7 +7668,7 @@ end function b3psipsieta
 
 ! B3psibeta
 ! ===========
-function b3psibeta(e,f,g,h,i)
+function b3psibeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
@@ -7864,7 +7676,7 @@ function b3psibeta(e,f,g,h,i)
 
   vectype, dimension(dofs_per_element) :: b3psibeta
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
   vectype, dimension(dofs_per_element) :: temp
 
@@ -7879,20 +7691,13 @@ function b3psibeta(e,f,g,h,i)
 #endif
   end if
 
-  if(irunaway .gt. 0) then
-     temp = temp + 1.*(gam-1.) * &
-                   (-intx6(e(:,:,OP_1),ri2_79,f(:,OP_GS),g(:,OP_1),h(:,OP_1),i(:,OP_1)) &
-                  + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-                  + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
-  end if
-
   b3psibeta = temp
 end function b3psibeta
 
 
 ! B3psifeta
 ! =========
-function b3psifeta(e,f,g,h,i)
+function b3psifeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
@@ -7900,7 +7705,7 @@ function b3psifeta(e,f,g,h,i)
 
   vectype, dimension(dofs_per_element) :: b3psifeta
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
   vectype, dimension(dofs_per_element) :: temp
 
@@ -7912,13 +7717,6 @@ function b3psifeta(e,f,g,h,i)
      temp = 2.*(gam-1.)* &
           (intx5(e(:,:,OP_1),ri3_79,f(:,OP_DZP),g(:,OP_DRPP),h(:,OP_1))  &
           -intx5(e(:,:,OP_1),ri3_79,f(:,OP_DRP),g(:,OP_DZPP),h(:,OP_1)))
-      if(irunaway .gt. 0) then
-         temp = temp + 1.*(gam-1.) * &
-                       (intx6(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRPP),h(:,OP_1),i(:,OP_1)) &
-                      + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZPP),h(:,OP_1),i(:,OP_1)) &
-                      - intx6(e(:,:,OP_1),ri2_79,f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-                      - intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
-      end if 
 #endif
   end if
 
@@ -7954,7 +7752,7 @@ end function b3bbeta
 
 ! B3bfeta
 ! =======
-function b3bfeta(e,f,g,h,i)
+function b3bfeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
@@ -7962,7 +7760,7 @@ function b3bfeta(e,f,g,h,i)
 
   vectype, dimension(dofs_per_element) :: b3bfeta
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
   vectype, dimension(dofs_per_element) :: temp
 
@@ -7975,12 +7773,7 @@ function b3bfeta(e,f,g,h,i)
           (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZPP),h(:,OP_1)) &
           +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRPP),h(:,OP_1)))
 #endif
-     if(irunaway .gt. 0) then
-        temp = temp + 1.*(gam-1.)* &
-                      (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-                     - intx6(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
-     endif
-  endif
+  end if
 
   b3bfeta = temp
 end function b3bfeta
@@ -7988,7 +7781,7 @@ end function b3bfeta
 
 ! B3ffeta
 ! =======
-function b3ffeta(e,f,g,h,i)
+function b3ffeta(e,f,g,h)
   use basic
   use m3dc1_nint
 
@@ -7996,7 +7789,7 @@ function b3ffeta(e,f,g,h,i)
 
   vectype, dimension(dofs_per_element) :: b3ffeta
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   
   vectype, dimension(dofs_per_element) :: temp
 
@@ -8008,11 +7801,6 @@ function b3ffeta(e,f,g,h,i)
      temp = (gam-1.)* &
           (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZPP),g(:,OP_DZPP),h(:,OP_1)) &
           +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DRPP),g(:,OP_DRPP),h(:,OP_1)))
-     if(irunaway .gt. 0) then
-        temp = temp + 1.*(gam-1.)* &
-               (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZPP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-              - intx6(e(:,:,OP_1),ri_79,f(:,OP_DRPP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
-     endif
 #endif
   end if
 
@@ -8578,143 +8366,7 @@ function t3ts(e,f,g)
   t3ts = temp
 end function t3ts
 
-!============================================================================
-! NRE1 TERMS
-!============================================================================
 
-! NRE1nrediff
-! =======
-function nre1nrediff(e,f)
-
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: nre1nrediff
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
-  vectype, dimension(dofs_per_element) :: temp
-
-  temp = 0.
-#if defined(USE3D)
-  ! B . Grad(p)
-  ! [ p, psi] / R + 1/R^2 F p' - <f', p>
-  temp79a = ri_79*(f(:,OP_DZ)*b2i79(:,OP_1)*pstx79(:,OP_DR) - &
-            f(:,OP_DR)*b2i79(:,OP_1)*pstx79(:,OP_DZ))
-  temp79a = temp79a+0.5*ri_79*(f(:,OP_1)*b2i79(:,OP_DZ)*pstx79(:,OP_DR) - &
-            f(:,OP_1)*b2i79(:,OP_DR)*pstx79(:,OP_DZ))
-  temp79a = temp79a &
-          + ri2_79*bztx79(:,OP_1)*b2i79(:,OP_1)*f(:,OP_DP) &
-          - b2i79(:,OP_1)*(bftx79(:,OP_DZP)*f(:,OP_DZ) & 
-          + bftx79(:,OP_DRP)*f(:,OP_DR))
-  if(surface_int) then
-      temp = 0.
-  else
-      temp = intx4(e(:,:,OP_DZ),ri_79,-temp79a,pstx79(:,OP_DR)) &
-           - intx4(e(:,:,OP_DR),ri_79,-temp79a,pstx79(:,OP_DZ))
-      temp = temp &
-         + intx4(e(:,:,OP_DP),ri2_79,-temp79a,bztx79(:,OP_1)) &
-         - intx3(e(:,:,OP_DZ),-temp79a,bftx79(:,OP_DZP)) &
-         - intx3(e(:,:,OP_DR),-temp79a,bftx79(:,OP_DRP))
-  end if
-#else
-  temp79a = ri_79*(f(:,OP_DZ)*b2i79(:,OP_1)*pstx79(:,OP_DR) - &
-            f(:,OP_DR)*b2i79(:,OP_1)*pstx79(:,OP_DZ))
-  temp79a = temp79a+0.5*ri_79*(f(:,OP_1)*b2i79(:,OP_DZ)*pstx79(:,OP_DR) - &
-            f(:,OP_1)*b2i79(:,OP_DR)*pstx79(:,OP_DZ))
-
-  if(surface_int) then
-      temp = 0.
-  else
-      temp = intx4(e(:,:,OP_DZ),ri_79,-temp79a,pstx79(:,OP_DR)) &
-           - intx4(e(:,:,OP_DR),ri_79,-temp79a,pstx79(:,OP_DZ))
-  end if
-#endif
-
-  nre1nrediff = temp
-end function nre1nrediff
-
-! NRE1nrepsi
-! ====
-function nre1nrepsi(e,f,g,h)
-
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: nre1nrepsi
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-  vectype, dimension(dofs_per_element) :: temp
-
-  if(surface_int) then
-     temp = 0.
-  else
-     temp = intx5(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_1),h(:,OP_DR)) &
-        - intx5(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_1),h(:,OP_DZ))
-     temp = temp * 1.000 * cre 
-  endif
-
-  nre1nrepsi = temp
-end function nre1nrepsi
-
-! NRE1nreb
-! ====
-function nre1nreb(e,f,g,h)
-
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: nre1nreb
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-  vectype, dimension(dofs_per_element) :: temp
-
-  temp = 0
-#if defined(USE3D)
-  temp = -intx5(e(:,:,OP_1),ri2_79,f(:,OP_DP),g(:,OP_1),h(:,OP_1)) - &
-          intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_DP),h(:,OP_1)) - &
-          intx5(e(:,:,OP_1),ri2_79,f(:,OP_1),g(:,OP_1),h(:,OP_DP))
-#elif defined(USECOMPLEX)
-  temp = -intx5(e(:,:,OP_1),ri2_79,f(:,OP_DP),g(:,OP_1),h(:,OP_1))
-#endif
-  temp = temp * 1.000 * cre
-
-  nre1nreb = temp
-end function nre1nreb
-
-! NRE1nreu
-! ====
-function nre1nreu(e,f,g)
-
-  use basic
-  use m3dc1_nint
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: nre1nreu
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
-  vectype, dimension(dofs_per_element) :: temp
-
-     if(surface_int) then
-        if(inonormalflow.eq.1) then
-           temp = 0.
-        else
-           temp = intx5(e(:,:,OP_1),r_79,f(:,OP_1),norm79(:,1),g(:,OP_DZ)) &
-                - intx5(e(:,:,OP_1),r_79,f(:,OP_1),norm79(:,2),g(:,OP_DR))
-        endif
-     else
-        temp = intx4(e(:,:,OP_DZ),r_79,f(:,OP_1),g(:,OP_DR)) &
-             - intx4(e(:,:,OP_DR),r_79,f(:,OP_1),g(:,OP_DZ))
-     endif
-
-  nre1nreu = temp
-end function nre1nreu
 
 !============================================================================
 ! P1 TERMS

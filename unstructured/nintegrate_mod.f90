@@ -676,40 +676,6 @@ pure function intx5(vari,varj,vark,varl,varm)
   enddo
 end function intx5
 !==============================================
-!DEC$ ATTRIBUTES FORCEINLINE :: intx6
-pure function intx6(vari,varj,vark,varl,varm,varn)
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: intx6
-  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari
-  vectype, dimension(npoints), intent(in) :: varj, vark, varl, varm, varn
-
-  integer :: k
-
-  intx6 = 0.
-  do k=1, npoints
-     intx6 = intx6 + vari(:,k)*varj(k)*vark(k)*varl(k)*varm(k)*varn(k)*weight_79(k)
-  enddo
-end function intx6
-!==============================================
-!DEC$ ATTRIBUTES FORCEINLINE :: intx7
-pure function intx7(vari,varj,vark,varl,varm,varn,varo)
-
-  implicit none
-
-  vectype, dimension(dofs_per_element) :: intx7
-  vectype, dimension(dofs_per_element, npoints), intent(in) :: vari
-  vectype, dimension(npoints), intent(in) :: varj, vark, varl, varm, varn, varo
-
-  integer :: k
-
-  intx7 = 0.
-  do k=1, npoints
-     intx7 = intx7 + vari(:,k)*varj(k)*vark(k)*varl(k)*varm(k)*varn(k)*varo(k)*weight_79(k)
-  enddo
-end function intx7
-!==============================================
 !DEC$ ATTRIBUTES FORCEINLINE :: intxx0
 pure function intxx0()
 

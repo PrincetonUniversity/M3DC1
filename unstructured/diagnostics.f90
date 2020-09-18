@@ -901,8 +901,7 @@ subroutine calculate_scalars()
      recprad = recprad + twopi*int1(recprad79(:,OP_1))/tpifac
      
      if(irunaway.gt.0) then
-        totre = totre + twopi*int1(nre179(:,OP_1))/tpifac
-        totre = totre + twopi*int1(nre079(:,OP_1))/tpifac
+        totre = totre + twopi*int1(nre79(:,OP_1))/tpifac
      end if
 
      helicity = helicity &
