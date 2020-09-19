@@ -9,6 +9,7 @@ module time_step_split
   type(vector_type), private :: pres_vec
   type(vector_type), private :: den_vec, denold_vec, ne_vec, neold_vec
   type(vector_type), private :: pret_vec
+  type(vector_type), private :: nre_vec, nreold_vec
 
   ! the following pointers point to the vector containing the named field.
   ! set by assign_variables()
@@ -25,6 +26,7 @@ module time_step_split
   type(field_type), private ::  te_v
   type(field_type), private ::  ti_v
   type(field_type), private ::  ne_v
+  type(field_type), private :: nre_v
 
   integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p, vecsize_t
 
@@ -106,6 +108,12 @@ contains
     call create_vector(neold_vec,  1)
     call create_vector(qn4_vec,    vecsize_n)
 
+    if(irunaway .gt. 0) then
+      call create_vector(nre_vec,    vecsize_n)
+      call create_vector(nreold_vec, vecsize_n)
+      call create_vector(qn5_vec,    vecsize_n)
+    endif
+
     call create_vector(b1_vel, vecsize_vel)
     call create_vector(b2_vel, vecsize_vel)
 
@@ -172,6 +180,17 @@ contains
 #endif 
     endif
     
+    if(irunaway .gt. 0) then
+       call set_matrix_index(r43_mat, r43_mat_index)
+       call set_matrix_index(q43_mat, q43_mat_index)
+       call create_mat(r43_mat, vecsize_phi, 1, icomplex, 0)
+       call create_mat(q43_mat, vecsize_phi, 1, icomplex, 0)
+#ifdef CJ_MATRIX_DUMP
+       print *, "create_mat time_step r42_mat", r43_mat%imatrix
+       print *, "create_mat time_step q42_mat", q43_mat%imatrix
+#endif 
+    endif
+
     if(i3d.eq.1) then
        call set_matrix_index(o2_mat, o2_mat_index)
        call create_mat(o2_mat, vecsize_phi, 1, icomplex, 0)
@@ -200,6 +219,27 @@ contains
        print *, "create_mat time_step d8_mat", d8_mat%imatrix     
        print *, "create_mat time_step r8_mat", r8_mat%imatrix     
        print *, "create_mat time_step q8_mat", q8_mat%imatrix     
+#endif 
+    endif
+
+   ! Matrices associated with RE density advance
+   if(irunaway .gt. 0) then
+       call set_matrix_index(s15_mat, s15_mat_index)
+       call set_matrix_index(d15_mat, d15_mat_index)
+       call set_matrix_index(r15_mat, r15_mat_index)
+       call set_matrix_index(q15_mat, q15_mat_index)
+       call set_matrix_index(k15_mat, k15_mat_index)
+       call create_mat(s15_mat, vecsize_n, vecsize_n, icomplex, 1)
+       call create_mat(d15_mat, vecsize_n, vecsize_n, icomplex, 0)
+       call create_mat(r15_mat, vecsize_n, vecsize_phi, icomplex, 0)
+       call create_mat(q15_mat, vecsize_n, vecsize_phi, icomplex, 0)
+       call create_mat(k15_mat, vecsize_n, vecsize_vel, icomplex, 0)
+#ifdef CJ_MATRIX_DUMP
+       print *, "create_mat time_step s15_mat", s15_mat%imatrix
+       print *, "create_mat time_step d15_mat", d15_mat%imatrix
+       print *, "create_mat time_step r15_mat", r15_mat%imatrix
+       print *, "create_mat time_step q15_mat", q15_mat%imatrix
+       print *, "create_mat time_step k15_mat", k15_mat%imatrix
 #endif 
     endif
 
@@ -276,6 +316,10 @@ contains
        call destroy_mat(r42_mat)
        call destroy_mat(q42_mat)
     end if
+    if(irunaway .gt. 0) then
+       call destroy_mat(r43_mat)
+       call destroy_mat(q43_mat)
+    end if
     if(i3d.eq.1) then
       call destroy_mat(o2_mat)
       if(ipres.eq.1 .or. ipressplit.gt.0) call destroy_mat(o3_mat)
@@ -289,6 +333,14 @@ contains
        call destroy_mat(d8_mat)
        call destroy_mat(r8_mat)
        call destroy_mat(q8_mat)
+    endif
+
+    if(irunaway .gt. 0) then
+       call destroy_mat(s15_mat)
+       call destroy_mat(d15_mat)
+       call destroy_mat(r15_mat)
+       call destroy_mat(q15_mat)
+       call destroy_mat(k15_mat)
     endif
 
     if(ipres.eq.1 .or. ipressplit.eq.1) then
@@ -323,6 +375,7 @@ contains
     bz_i = 2
     chi_i = 3
     den_i = 1
+    if(irunaway.gt.0) nre_i = 1
     if(imp_bf.eq.1) then
        if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
          bf_i = vecsize_phi - 1
@@ -388,6 +441,7 @@ contains
     
     call associate_field(den_v,  den_vec,    den_i)
     call associate_field(ne_v,    ne_vec,        1)
+    if(irunaway.gt.0) call associate_field(nre_v,  nre_vec,    nre_i)
     
     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
        call associate_field(e_v, phi_vec, e_i)
@@ -428,6 +482,10 @@ contains
        call clear_mat(r42_mat)
        call clear_mat(q42_mat)
     end if
+    if(irunaway .gt. 0) then
+       call clear_mat(r43_mat)
+       call clear_mat(q43_mat)
+    end if
     if(i3d.eq.1) then
        call clear_mat(o2_mat)
        if(ipres.eq.1 .or. ipressplit.eq.1) call clear_mat(o3_mat)
@@ -441,7 +499,15 @@ contains
        call clear_mat(q8_mat)
        qn4_vec = 0.
     end if
-    
+    if(irunaway .gt. 0) then
+       call clear_mat(s15_mat)
+       call clear_mat(d15_mat)
+       call clear_mat(r15_mat)
+       call clear_mat(q15_mat)
+       call clear_mat(k15_mat)
+       qn5_vec = 0.
+    end if    
+
     if(ipres.eq.1 .or. ipressplit.eq.1) then
        call clear_mat(s9_mat)
        call clear_mat(d9_mat)
@@ -486,6 +552,10 @@ contains
        call finalize(r42_mat)
        call finalize(q42_mat)
     end if
+    if(irunaway .gt. 0) then
+       call finalize(r43_mat)
+       call finalize(q43_mat)
+    end if
     call sum_shared(q4_vec)
     
     if(idens.eq.1) then
@@ -499,6 +569,14 @@ contains
             print *, " before pressure finalize...", vecsize_vel, vecsize_p, vecsize_phi   
     end if
        
+    if(irunaway .gt. 0) then
+       call finalize(d15_mat)
+       call finalize(q15_mat)
+       call finalize(r15_mat)
+       call finalize(k15_mat)
+       call flush(s15_mat)
+       call sum_shared(qn5_vec)
+    endif
     if(ipres.eq.1 .or. ipressplit.eq.1) then
        call finalize(d9_mat)
        call finalize(q9_mat)
@@ -564,6 +642,7 @@ subroutine import_time_advance_vectors_split
 
   den_v = den_field(1)
   ne_v = ne_field(1)
+  if(irunaway .gt. 0) nre_v = nre_field(1)
   if(imp_bf.eq.1) bf_v = bf_field(1)
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)
 
@@ -640,6 +719,9 @@ subroutine export_time_advance_vectors_split
      ne_field(1) = ne_v
      den_field(1) = den_v
   end if
+  if(irunaway .gt. 0) then
+     nre_field(1) = nre_v
+  endif
   if(imp_bf.eq.1) bf_field(1) = bf_v
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_field(1) = e_v
 
@@ -673,7 +755,7 @@ subroutine step_split(calc_matrices)
 
   integer, intent(in) :: calc_matrices
   real :: tstart, tend, t_bound
-  integer :: jer
+  integer :: jer, i 
   type(vector_type) :: temp, temp2
 
   type(field_type) :: phip_1, phip_2, phip_3
@@ -873,8 +955,78 @@ subroutine step_split(calc_matrices)
      ne_field(1) = ne_v    ! This is needed so that boundary_te works properly
      den_field(1) = den_v
   endif    ! on idens=1
-     
-  !
+
+  ! Advance RE Density
+  ! ===============
+  if(irunaway .gt. 0) then
+
+     ! Here
+     call create_vector(temp, vecsize_n)
+     call create_vector(temp2, vecsize_n)
+
+     nreold_vec = nre_vec
+     do i=1,4
+        call matvecmult(q15_mat,phi_vec,temp)
+        call matvecmult(k15_mat,veln_vec,temp2)
+        call add(temp, temp2)
+
+        call matvecmult(d15_mat,nre_vec,temp2)
+        call add(temp, temp2)
+
+        call add(temp, qn5_vec)
+
+        ! Insert boundary conditions
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  inserting bcs"
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+        if((calc_matrices.eq.1).and.(i==1)) then
+           call boundary_nre(temp, nre_v, s15_mat)
+           call finalize(s15_mat)
+        else
+           call boundary_nre(temp, nre_v)
+        endif
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           t_bound = t_bound + tend - tstart
+        end if
+
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  solving"
+        ! solve linear system...LU decomposition done first time
+        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
+        call newsolve(s15_mat, temp, jer)
+
+        if(myrank.eq.0 .and. itimer.eq.1) then
+           call second(tend)
+           write(0,*) "Time spent", tend-tstart
+           t_solve_n = t_solve_n + tend - tstart
+        endif
+
+        if(jer.ne.0) then
+           write(*,*) 'Error in RE solve', jer
+           call safestop(29)
+        endif
+        if(idiff .gt. 0) then
+           call add(temp,nre_vec)  ! add time n RE density to increment to get time n+1 value
+        endif
+        ! new field solution at time n+1 (or n* for second order advance)
+        nre_vec = temp
+     enddo
+     if(linear.eq.0) call clear_mat(s15_mat)
+
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "  done solve"
+
+     call destroy_vector(temp)
+     call destroy_vector(temp2)
+
+     if(irecalc_eta.eq.1) then
+        call export_time_advance_vectors_split
+        call define_transport_coefficients
+     end if
+
+     nre_field(1) = nre_v     
+  endif    ! on irunaway>0
+  
+
   ! Advance Pressure
   ! ================
   if((ipressplit.eq.0 .and. ipres.eq.1) .or. (ipressplit.eq.1 .and. itemp.eq.0)) then
@@ -1105,6 +1257,14 @@ subroutine step_split(calc_matrices)
 !!$        call add(b1_phi, b2_phi)
      end if
 
+     ! Include RE density terms
+     if(irunaway .gt. 0) then
+        call matvecmult(r43_mat,nre_vec,b2_phi)
+        call add(b1_phi, b2_phi)
+        call matvecmult(q43_mat,nreold_vec,b2_phi)
+        call add(b1_phi, b2_phi)
+     end if
+
      ! Include linear f terms
      if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
         ! b2vector = r15 * bf(n)
@@ -1229,6 +1389,14 @@ subroutine step_split(calc_matrices)
            call matvecmult(o2_mat,bf_field(1)%vec,b2_phi)
            call add(b1_phi, b2_phi)
         endif
+
+        ! Include RE density terms
+        if(irunaway .gt. 0) then
+           call matvecmult(r43_mat,nre_vec,b2_phi)
+           call add(b1_phi, b2_phi)
+           call matvecmult(q43_mat,nreold_vec,b2_phi)
+           call add(b1_phi, b2_phi)
+        end if
 
         call add(b1_phi, q4_vec)
        
