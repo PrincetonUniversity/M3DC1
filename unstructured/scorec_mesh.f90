@@ -982,9 +982,9 @@ contains
 #endif
     end do
 #ifdef USEST
-       if(igeometry.eq.1.and.ilog.eq.0) then
-          dof = matmul(l2p_mat,dof)
-       end if
+    if(igeometry.eq.1.and.ilog.eq.0) then
+       dof = matmul(l2p_mat,dof)
+    end if
 #endif
   end subroutine local_dofs
 

@@ -138,6 +138,7 @@ contains
       ! set ilog = 0, use physical basis from now on
       ilog = 0
     end if
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "ilog =", ilog
 
   end subroutine calc_geometry
 

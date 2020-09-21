@@ -326,7 +326,11 @@ contains
     real, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: real_mu
 #endif
 
-    call local_coeff_vector(itri, cl)
+    if(iprecompute_metric.eq.1) then
+       cl = ctri(:,:,itri)
+    else
+       call local_coeff_vector(itri, cl)
+    endif 
 
 #ifdef USEBLAS
 
@@ -376,6 +380,7 @@ contains
     integer, intent(in) :: itri
     integer :: i
     vectype, dimension(MAX_PTS) :: di_79, di2_79
+    real  :: value_nan ! NaN to be assigned to forbidden operations 
     
     ! calculate logical derivatives of geometry
     call eval_ops(itri, rst, rst79)
@@ -510,6 +515,13 @@ contains
     end do
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, mu79(1,1,:) 
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, must79(1,1,:) 
+#ifdef USE3D
+    ! set forbidden operations to NaN
+    value_nan = sqrt(-1.)
+    mu79(:,:,OP_DRRP:OP_GSP) = value_nan
+    mu79(:,:,OP_DRPP:OP_GSPP) = value_nan 
+    !mu79(:,:,OP_GSP) = value_nan 
+#endif
     nu79 = mu79
     ! modify Jabobian
     if(ijacobian.eq.1) weight_79 = weight_79/di_79 

@@ -83,8 +83,8 @@ contains
       call vector_insert_block(p_vec%vec, itri, 1, dofs, VEC_ADD)
 
       ! perturbation 
-      !dofs = intx2(mu79(:,:,OP_1),temp79e)
-      dofs = intx2(mu79(:,:,OP_1),sin(x_79)*sin(z_79)*sin(phi_79))
+      dofs = intx2(mu79(:,:,OP_1),temp79e)
+      !dofs = intx2(mu79(:,:,OP_1),sin(x_79)*sin(z_79)*sin(phi_79))
       call vector_insert_block(per_vec%vec, itri, 1, dofs, VEC_ADD)
 
       ! logical x 
@@ -130,7 +130,7 @@ contains
       call eval_ops(itri, y_vec, y79, rfac)
       call eval_ops(itri, l_vec, lam79, rfac)
       call eval_ops(itri, phiv_vec, pv79, rfac)
-      call eval_ops(itri, per_vec, p079, rfac)
+      !call eval_ops(itri, per_vec, p079, rfac)
       temp79a = -zl_79/(xl_79**2 + zl_79**2) ! theta_x
       temp79b =  xl_79/(xl_79**2 + zl_79**2) ! theta_y
       temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
@@ -165,9 +165,9 @@ contains
       temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r_79) & 
                       +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
       temp(:,:,1,2) = 0.
-      temp2(:,1) = -intx3(mu79(:,:,OP_1),2*p079(:,OP_1),r_79) 
-      !temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
-      !            -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) 
+      !temp2(:,1) = -intx3(mu79(:,:,OP_1),2*p079(:,OP_1),r_79) 
+      temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
+                  -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) 
 
 !      temp(:,:,1,1) =  intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) &
 !                      +intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) 
@@ -231,7 +231,7 @@ contains
     call newsolve(br_mat,fg_vec,ier)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f: ier = ", ier
 
-    p_field(0) = bf_f 
+    !p_field(0) = bf_f 
 
     call create_field(bz_f)
     call create_field(psi_f)
@@ -308,8 +308,8 @@ contains
     call newvar_solve(psi_f%vec,mass_mat_lhs)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
 
-    bz_field(0) = bz_f
-    psi_field(0) = psi_f
+    !bz_field(0) = bz_f
+    !psi_field(0) = psi_f
 
     call destroy_field(p_vec)
     call destroy_field(l_vec)
@@ -364,7 +364,7 @@ contains
        i_f = node_index(rhs, i, 1)
        i_g = node_index(rhs, i, 2)
   
-       call get_node_data(vec, i, temp)
+       !call get_node_data(vec, i, temp)
        !call set_normal_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
        call set_dirichlet_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
     end do

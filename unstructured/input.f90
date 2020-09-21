@@ -1205,6 +1205,10 @@ subroutine validate_input
       endif
     endif
 
+#ifdef USEST
+  ! Always precompute ctri when USEST
+  iprecompute_metric = 1
+#endif
 
   if(amuc.eq.0.) amuc = amu
 

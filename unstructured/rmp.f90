@@ -180,7 +180,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -brv*sin(theta) - bthetav*cos(theta)
 #else
         br =  real(brv)*cos(theta) - real(bthetav)*sin(theta)
-        bphi =  real(bzv) + 1.
+        bphi =  real(bzv) 
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if

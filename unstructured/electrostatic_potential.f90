@@ -69,6 +69,10 @@ vectype function b4psietahyp(e,f,g)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: e,f,g
   vectype :: temp
 
+  if(hypf.eq.0) then
+     b4psietahyp = 0.
+     return
+  endif
 
 #if defined(USE3D) || defined(USECOMPLEX)
 !  modified 12/26/2013  SCJ
@@ -98,7 +102,7 @@ vectype function b4psietahyp(e,f,g)
 !     endif
 !  endif
 
-if(surface_int) then 
+  if(surface_int) then 
      temp = 0.
   else
      if(ihypeta.eq.0) then           
