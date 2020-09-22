@@ -44,11 +44,14 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 PETSC_VER=petsc-3.13.5
 PETSCVER=petsc3.13.5
 
-PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/petsc-3.13.5
+#PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/petsc-3.13.5
+PETSC_DIR=/p/swim/jchen/PETSC/master
 ifeq ($(COM), 1)
-PETSC_ARCH=cplx-rhel7-intel2019u3-openmpi4.0.3
+#PETSC_ARCH=cplx-rhel7-intel2019u3-openmpi4.0.3
+PETSC_ARCH=cplx-CentOS7-intel2019u3-openmpi403
 else
-PETSC_ARCH=real-rhel7-intel2019u3-openmpi4.0.3
+#PETSC_ARCH=real-rhel7-intel2019u3-openmpi4.0.3
+PETSC_ARCH=real-CentOS7-intel2019u3-openmpi403
 endif
 
 SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/$(PETSCVER)
