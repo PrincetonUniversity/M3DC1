@@ -349,6 +349,7 @@ contains
     call h5r_read_field(group_id, "P",   p_field(ilin),   nelms, error)
     call h5r_read_field(group_id, "Pe",  pe_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "den", den_field(ilin), nelms, error)
+    call h5r_read_field(group_id, "ne",  ne_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "te",  te_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
 
