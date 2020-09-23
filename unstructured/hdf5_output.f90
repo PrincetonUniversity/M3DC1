@@ -599,7 +599,8 @@ contains
     local_dims(1) = num_elements
     allocate(values(num_elements))
     allocate(coord(1,num_elements))
-    values = sqrt(-1.)
+    values = -1.
+    values = sqrt(values)
     values(1) = value
     coord(1,:) = (/ (i, i = dims(1), curdim) /)
 

@@ -1,6 +1,6 @@
 pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
-                yrange=yrange, smooth=sm, overplot=over, _EXTRA=extra, $
-              ke=ke, me=me, xscale=xscale, labelx=labelx, nolegend=nolegend
+              yrange=yrange, smooth=sm, overplot=over, thick=thick, linestyle=linestyle, $
+              ke=ke, me=me, xscale=xscale, labelx=labelx, nolegend=nolegend, _EXTRA=extra
    if(n_elements(labelx) eq 0) then labelx = 0.5
    if(n_elements(filename) eq 0) then filename = 'C1.h5'
    if(hdf5_file_test(filename) eq 0) then return
@@ -19,6 +19,10 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    end
    h5g_close, root_id
    h5f_close, file_id
+
+   d = dimensions(/energy, _EXTRA=extra)
+   get_normalizations, b0=b0,n0=n0,l0=l0, ion_mass=mi, filename=filename, _EXTRA=extra
+   convert_units, kehmn, d, b0, n0, l0, mi, _EXTRA=extra
 
    dimn = size(kehmn, /dim)
    print, 'total number of Fourier harmonics and timesteps = ', dimn
@@ -41,6 +45,7 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    if(n_elements(maxn) eq 0) then maxn = dimn[0]
 
    ntimes = dimn[1]
+   time = time[where(finite(time))]
    if(ntimes gt n_elements(time)) then ntimes=n_elements(time)
    print, 'max number of Fourier harmonics to be plotted = ', maxn, ntimes
    ke = fltarr(maxn, ntimes)
@@ -75,9 +80,9 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
       if(n lt 1 and not keyword_set(over)) then begin
          plot, time[1:ntimes-1]*xscale, tmp[n,1:ntimes-1], $
                xtitle=xtitle, ytitle=ytitle, yrange=yrange, $
-               _EXTRA=extra
+               thick=thick,linestyle=linestyle,_EXTRA=extra
       endif else begin
-         oplot, time*xscale, tmp[n,*], linestyle=0, color=c[n]
+         oplot, time*xscale, tmp[n,*], linestyle=linestyle, color=c[n],thick=thick
       endelse
 
       numberAsString = STRTRIM(n, 2)
