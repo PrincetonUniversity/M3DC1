@@ -14,6 +14,9 @@ module kprad
   integer :: ikprad_max_dt ! use max dt in KPRAD evolution
   integer :: ikprad_evolve_internal
 
+  ! minimum values for KPRAD evolution
+  real :: kprad_nemin
+  real :: kprad_temin
 
   ! polynomial order for evaluating 
   ! radiation and ionization rates, respectively
@@ -22,7 +25,7 @@ module kprad
   real, private, parameter :: kprad_min_dt_default = 1e10
   real, private :: kprad_min_dt = kprad_min_dt_default     ! minimum final timestep from previous calculation
   real, private :: kprad_dt = 1e-10      ! kprad integration time step (in seconds)
-  
+  logical, dimension(MAX_PTS) :: advance_kprad
 contains
 
   subroutine kprad_rebase_dt()
@@ -43,12 +46,28 @@ contains
   subroutine kprad_deallocate()
     implicit none
 
-    if(allocated(z_ei)) deallocate(z_ei)
+
     if(allocated(zed)) deallocate(zed)
     if(allocated(c)) deallocate(c)
     if(allocated(sion_coeff)) deallocate(sion_coeff)
 
   end subroutine kprad_deallocate
+
+  subroutine where_kprad_advance(ne, te)
+    use basic
+    implicit none
+
+    real, intent(in), dimension(MAX_PTS) :: ne, te
+    real :: temin, nemin
+
+    ! This assumes ne & te given in cm^-3 and eV
+    temin = kprad_temin*p0_norm/n0_norm / 1.6022e-12
+    nemin = kprad_nemin*n0_norm
+    advance_kprad = .not.(te.lt.temin .or. te.ne.te .or. &
+                          ne.lt.nemin .or. ne.ne.ne)
+
+  end subroutine where_kprad_advance
+    
 
   subroutine kprad_instantaneous_radiation(npts, z, ne, te, nz, prad, pbrem)
     implicit none
@@ -66,6 +85,8 @@ contains
     real, dimension(npts,z+1) :: pion, preck, precp
     real, dimension(npts, 2) :: nzeff
 
+    call where_kprad_advance(ne, te)
+    
     ! calculate ionization and recombination rates
     call kprad_ionization_rate(npts,ne,te,z,sion)
     call kprad_recombination_rate(npts,ne,te,z,srec)
@@ -149,6 +170,8 @@ contains
        nz_old = nz
        ne_old = ne
 
+       call where_kprad_advance(ne, te_int)
+    
        ! calculate ionization and recombination rates
        if(ikprad_evolve_internal.eq.1) then
           call kprad_ionization_rate(npts, ne, te_int, z, sion)
@@ -245,8 +268,12 @@ contains
     integer :: i
     
     do i=0,Z-1 
-       call DPOLY_VAL(M2,N,sion_coeff(:,i+1),log10(TE),siont) 
-       sion(:,i) = ne*10**siont 
+       call DPOLY_VAL(M2,N,sion_coeff(:,i+1),log10(TE),siont)
+       where(advance_kprad)
+          sion(:,i) = ne*10**siont
+       elsewhere
+          sion(:,i) = 0.
+       end where
     enddo
   
   end subroutine KPRAD_IONIZATION_RATE
@@ -268,9 +295,13 @@ contains
     SREC(:,0) = 0.0
     
     do i=1,Z
-       SREC(:,i) = NE(:)*5.2E-14*ZED(i+1)*sqrt(Z_EI(i)/     &
-            TE(:))*(0.43+0.5*log(Z_EI(i)/TE(:)) +           &
-            0.469*(Z_EI(i)/TE(:))**(-0.33))
+       where(advance_kprad)
+          SREC(:,i) = NE(:)*5.2E-14*ZED(i+1)*sqrt(Z_EI(i)/     &
+               TE(:))*(0.43+0.5*log(Z_EI(i)/TE(:)) +           &
+               0.469*(Z_EI(i)/TE(:))**(-0.33))
+       elsewhere
+          SREC(:,i) = 0.
+       end where
     end do
   end subroutine KPRAD_RECOMBINATION_RATE
                                                                         
@@ -280,6 +311,8 @@ contains
   !-----------------------------------------------------------------------
   subroutine KPRAD_ENERGY_LOSSES(N,Z,TE,NE,SION,             &
        SREC,NZ,nZeff,pion,preck,precp,IMP_RAD,PBREM)
+
+    use basic
 
     implicit none 
                                                                         
@@ -300,15 +333,23 @@ contains
     !from all the electrons                          
     do L=1,Z 
        call DPOLY_VAL(M1,N,C(:,L),LOG10(TE*1.0e-3),impradt)
-       
-       IMP_RAD(:,L) = (10.0**impradt)*(NE/1.0E13)*NZ(:,L-1)
-       
-       PION(:,L)= SION(:,L-1)*NZ(:,L-1)*Z_EI(L)*1.6E-19 
+
+       ! no loss power if TE or NE below minimum
+       ! prevents spurious values
+       where(advance_kprad)
+          IMP_RAD(:,L) = (10.0**impradt)*(NE/1.0E13)*NZ(:,L-1)
+          PION(:,L)= SION(:,L-1)*NZ(:,L-1)*Z_EI(L)*1.6E-19 
+          PRECK(:,L) = SREC(:,L)*NZ(:,L)*TE*1.6E-19 
+          PRECP(:,L) = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19
+       elsewhere
+          IMP_RAD(:,L) = 0.
+          PION(:,L)    = 0.
+          PRECK(:,L)   = 0.
+          PRECP(:,L)   = 0.
+       end where
+          
        nZeff(:,1)=nZeff(:,1)+real(L)*NZ(:,L-1)/SNZ
        nZeff(:,2)=nZeff(:,2)+real((L**2-L))*NZ(:,L-1)/NE
-       
-       PRECK(:,L) = SREC(:,L)*NZ(:,L)*TE*1.6E-19 
-       PRECP(:,L) = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19 
     end do
     
     PION(:,Z+1)  = sum(PION(:,1:Z),2) 

@@ -35,10 +35,6 @@ module kprad_m3dc1
   real, allocatable :: lp_source_rate(:)
   type(field_type), allocatable :: kprad_particle_source(:)
 
-  ! minimum values for KPRAD evolution
-  real :: kprad_nemin
-  real :: kprad_temin
-
 contains
 
   !==================================
@@ -399,6 +395,7 @@ contains
     use newvar_mod
     use m3dc1_nint
     use pellet
+    use kprad
 
     implicit none
 
@@ -410,7 +407,6 @@ contains
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad, dw_ion, dw_reck, dw_recp
     real, dimension(MAX_PTS,0:kprad_z) :: source    ! particle source
-    logical, dimension(MAX_PTS) :: advance_kprad
 
     integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
@@ -486,8 +482,9 @@ contains
        ! determine where KPRAD advance will be used
        ! and impurity densities if charge states don't advance
        !  old nz (with source added)
-       advance_kprad = .not.(te.lt.kprad_temin .or. te.ne.te .or. &
-                             ne.lt.kprad_nemin .or. ne.ne.ne)
+       ne = ne*n0_norm
+       te = te*p0_norm/n0_norm / 1.6022e-12
+       call where_kprad_advance(ne, te)
        nz_nokprad = nz
        nz_nokprad = nz_nokprad + dti*source
 
@@ -496,9 +493,7 @@ contains
           ! convert nz, ne, te, dt to cgs / eV
           p = p*p0_norm
           nz = nz*n0_norm
-          ne = ne*n0_norm
           source = source*n0_norm/t0_norm
-          te = te*p0_norm/n0_norm / 1.6022e-12
           dt_s = dti*t0_norm
        
           ! advance densities at each integration point
