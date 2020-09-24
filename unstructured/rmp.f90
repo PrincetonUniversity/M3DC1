@@ -180,7 +180,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -brv*sin(theta) - bthetav*cos(theta)
 #else
         br =  real(brv)*cos(theta) - real(bthetav)*sin(theta)
-        bphi =  real(bzv) 
+        bphi =  real(bzv) + bzero
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if
@@ -352,6 +352,7 @@ subroutine calculate_external_fields()
   ipsibound = BOUNDARY_NONE
 
   ! Boundary condition on f
+  !ibound = BOUNDARY_NEUMANN
   ibound = BOUNDARY_DIRICHLET
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
@@ -409,7 +410,7 @@ subroutine calculate_external_fields()
           -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) &
           + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
 
-     temp2(:,2) = intx3(mu79(:,:,OP_1),r_79,temp79b)
+     temp2(:,2) = intx3(mu79(:,:,OP_1),r_79,temp79b-bzero)
         
      temp3 = intx3(mu79(:,:,OP_1),r_79,temp79b)
         
@@ -475,6 +476,8 @@ subroutine calculate_external_fields()
      psi_field(1) = psi_f
      bf_field(1) = bf_f
   end if
+
+  p_field(1) = bf_f
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)
@@ -606,6 +609,7 @@ subroutine boundary_rmp(rhs, mat)
 !     call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
 
 !!$     if(ifbound.eq.1) then
+     !call set_normal_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
      call set_dirichlet_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
 !!$     else if(ifbound.eq.2) then
 !!$        call set_normal_bc(i_f,rhs,temp,normal,curv,izonedim,mat)

@@ -118,7 +118,7 @@ contains
 !    allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
-    n_zer = m_pol*5
+    n_zer = m_pol*2
     allocate(rmncz(mn_mode,n_zer+1))
     allocate(zmnsz(mn_mode,n_zer+1))
     allocate(lmnsz(mn_mode,n_zer+1))

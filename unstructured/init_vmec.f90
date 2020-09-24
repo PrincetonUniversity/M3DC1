@@ -33,6 +33,13 @@ contains
     vectype, dimension(MAX_PTS, OP_NUM) :: x79, y79, pv79, cv79, lam79, g79 
     vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
     vectype, dimension(dofs_per_element,2) :: temp2
+    real :: fzero
+
+    if(itor.eq.0) then 
+      fzero = bzero
+    else 
+      fzero = bzero*rzero
+    end if
 
     ! Create fields 
     call create_field(p_vec)
@@ -120,7 +127,7 @@ contains
     ipsibound = BOUNDARY_NONE
     igbound = BOUNDARY_NONE
     ibound = BOUNDARY_DIRICHLET
-    !ibound = BOUNDARY_NONE
+    !ibound = BOUNDARY_NEUMANN
 
     do itri=1,numelms
 
@@ -167,7 +174,8 @@ contains
       temp(:,:,1,2) = 0.
       !temp2(:,1) = -intx3(mu79(:,:,OP_1),2*p079(:,OP_1),r_79) 
       temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
-                  -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) 
+                  -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) &
+                  -intx2(mu79(:,:,OP_1),ri_79)*fzero 
 
 !      temp(:,:,1,1) =  intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) &
 !                      +intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) 
@@ -183,7 +191,11 @@ contains
                       -regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79) 
       temp2(:,2) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_1),temp79d,ri2_79) &
                   +intx4(mu79(:,:,OP_DR),pv79(:,OP_1),temp79c,ri2_79) 
-
+      if(itor.eq.0) then 
+        temp2(:,2) = temp2(:,2) + intx2(mu79(:,:,OP_DZ),x_79*ri2_79)*fzero 
+      else 
+        temp2(:,2) = temp2(:,2) + intx2(mu79(:,:,OP_DZ),log(r_79)*ri2_79)*fzero 
+      end if
 
       call apply_boundary_mask(itri, ibound, temp(:,:,1,1), &
           tags=domain_boundary)
@@ -231,7 +243,7 @@ contains
     call newsolve(br_mat,fg_vec,ier)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f: ier = ", ier
 
-    !p_field(0) = bf_f 
+    p_field(0) = bf_f 
 
     call create_field(bz_f)
     call create_field(psi_f)
@@ -308,8 +320,8 @@ contains
     call newvar_solve(psi_f%vec,mass_mat_lhs)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
 
-    !bz_field(0) = bz_f
-    !psi_field(0) = psi_f
+    bz_field(0) = bz_f
+    psi_field(0) = psi_f
 
     call destroy_field(p_vec)
     call destroy_field(l_vec)
@@ -472,7 +484,7 @@ contains
     br = lout
     bphi = -phiv/twopi
     bz = chiv/twopi
-    p = p + pedge
+    p = p !+ pedge 
   end subroutine vmec_fields
   
 #endif

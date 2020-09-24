@@ -178,10 +178,10 @@ Program Reducedquintic
      ! calculate rst & zst fields
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating geometry'
      call calc_geometry 
-     ! recalculate gtri such that DoFs are in physical derivatives 
+     ! recalculate ctri such that DoFs are in physical derivatives 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Redoing tridef'
      call tridef
-     ! recalculate rst & zst fields using new gtri 
+     ! recalculate rst & zst fields using new ctri 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Recalculating geometry'
      call calc_geometry 
   end if
@@ -821,7 +821,8 @@ subroutine derived_quantities(ilin)
   if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
      if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  f", ilin
-        if(ilin.eq.0 .and. eqsubtract.eq.1) then
+        if((ilin.eq.0 .and. eqsubtract.eq.1) &
+            .or. eqsubtract.eq.0) then
            if(itor.eq.0) then
               temp = bzero
            else
@@ -831,7 +832,8 @@ subroutine derived_quantities(ilin)
         endif
         call solve_newvar1(bf_mat_lhs,bf_field(ilin),mass_mat_rhs_bf, &
              bz_field(ilin), bf_field(ilin))
-        if(ilin.eq.0 .and. eqsubtract.eq.1) call add(bz_field(ilin), temp)
+        if((ilin.eq.0 .and. eqsubtract.eq.1) &
+            .or. eqsubtract.eq.0) call add(bz_field(ilin), temp)
      endif
   end if
 
@@ -1137,33 +1139,36 @@ end subroutine rotation
        if(igeometry.eq.1.and.ilog.eq.2) then
           newrot = matmul(newrot,transpose(p2l_mat))
        end if
-       ! form the matrix g using indexing similar to local_coeff_vec 
-       do k=1, coeffs_per_tri
-          do j=1, dofs_per_element
-             sum = 0.
-             do ii = 1, dofs_per_tri
-!                do jj=1, dofs_per_tri
-!                   sum = sum + newrot(j,jj)*ti(k,ii)*rot(ii,jj)
-                idof = 0
-                do jj=1,tor_nodes_per_element
-                   do l=1,pol_nodes_per_element
-                      do m=1,tor_dofs_per_node
-                         do n=1,pol_dofs_per_node
-                            idof = idof + 1
-                            ip = n + (l-1)*pol_dofs_per_node
-                            sum = sum + newrot(j,idof) &
-                                  *ti(k,ii)*rot(ii,ip)
+       
+       gtri(:,:,itri) = matmul(ti(:,1:dofs_per_tri),rot)
 
-!                do l=1, nodes_per_element 
-!                   do jj=1, dofs_per_node
-!                      lr = mod(l-1, pol_nodes_per_element)+1 
-!                      jr = mod(jj-1, pol_dofs_per_node)+1
-!                      sum = sum + newrot(j,jj+(l-1)*dofs_per_node) &
-!                           *ti(k,ii)*rot(ii,jr+(lr-1)*pol_dofs_per_node)
-
-                         end do
-                      end do
-                   end do
+!       ! form the matrix g using indexing similar to local_coeff_vec 
+!       do k=1, coeffs_per_tri
+!          do j=1, dofs_per_element
+!             sum = 0.
+!             do ii = 1, dofs_per_tri
+!!                do jj=1, dofs_per_tri
+!!                   sum = sum + newrot(j,jj)*ti(k,ii)*rot(ii,jj)
+!                idof = 0
+!                do jj=1,tor_nodes_per_element
+!                   do l=1,pol_nodes_per_element
+!                      do m=1,tor_dofs_per_node
+!                         do n=1,pol_dofs_per_node
+!                            idof = idof + 1
+!                            ip = n + (l-1)*pol_dofs_per_node
+!                            sum = sum + newrot(j,idof) &
+!                                  *ti(k,ii)*rot(ii,ip)
+!
+!!                do l=1, nodes_per_element 
+!!                   do jj=1, dofs_per_node
+!!                      lr = mod(l-1, pol_nodes_per_element)+1 
+!!                      jr = mod(jj-1, pol_dofs_per_node)+1
+!!                      sum = sum + newrot(j,jj+(l-1)*dofs_per_node) &
+!!                           *ti(k,ii)*rot(ii,jr+(lr-1)*pol_dofs_per_node)
+!
+!                         end do
+!                      end do
+!                   end do
 #else
        ! form the matrix g by multiplying ti and rot
        do k=1, coeffs_per_tri
@@ -1172,12 +1177,12 @@ end subroutine rotation
              do ii = 1, dofs_per_tri
                 do jj=1, dofs_per_tri
                    sum = sum + newrot(j,jj)*ti(k,ii)*rot(ii,jj)
-#endif
                 enddo
              enddo
              gtri(k,j,itri) = sum
           enddo
        enddo
+#endif
 
        htri(1,1,itri) = 1.
 #ifdef USE3D
@@ -1203,7 +1208,11 @@ end subroutine rotation
        if(iprecompute_metric.eq.1) then
           call local_coeff_vector(itri,ctri(:,:,itri))
        end if
-
+#ifdef USEST
+       if(igeometry.eq.1.and.ilog.eq.2) then
+          ctri(:,:,itri) = matmul((newrot),ctri(:,:,itri))  
+       end if
+#endif
     end do
 
     select case(equilibrate)
@@ -1386,7 +1395,8 @@ subroutine space(ifirstcall)
   
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating tri...'
 #ifdef USEST
-  allocate(gtri(coeffs_per_tri,dofs_per_element,numelms))
+  !allocate(gtri(coeffs_per_tri,dofs_per_element,numelms))
+  allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
 #else
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
 #endif

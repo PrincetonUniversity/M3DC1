@@ -123,8 +123,8 @@ contains
       allocate(rstnode(dofs_per_node, numnodes))
       allocate(zstnode(dofs_per_node, numnodes))
       do inode=1,numnodes
-        call get_node_data(rst, inode, rstnode(:,inode))
-        call get_node_data(zst, inode, zstnode(:,inode))
+        call get_node_data(rst, inode, rstnode(:,inode), .false.)
+        call get_node_data(zst, inode, zstnode(:,inode), .false.)
       end do
 !      call l2p_matrix(l2p,numnodes)
 !      call p2l_matrix(p2l,numnodes)
