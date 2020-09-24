@@ -38,7 +38,7 @@ Program Reducedquintic
 #endif
 
   integer :: ier, i, adapt_flag
-  real :: tstart, tend, dtsave, period, t_solve, t_compute
+  real :: tstart, tend, dtsave, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
   integer :: ip
@@ -149,13 +149,8 @@ Program Reducedquintic
   call m3dc1_matrix_setassembleoption(imatassemble)
 #endif
 
-  if(itor.eq.0) then 
-     period = twopi*rzero
-  else
-     period = twopi
-  end if
-  call load_mesh(period)
-
+  call load_mesh
+  
 !  call print_node_data
 !  call safestop(1)
 
