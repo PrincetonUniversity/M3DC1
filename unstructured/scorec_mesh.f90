@@ -36,12 +36,10 @@ module scorec_mesh_mod
   integer, dimension (:), allocatable :: nodes_owned
 contains
 
-  subroutine load_mesh(period)
+  subroutine load_mesh
     use math
     use read_ascii
     implicit none
-
-    real, intent(in) :: period
 
     integer :: myrank, maxrank, ier
     include 'mpif.h'
@@ -52,8 +50,6 @@ contains
     real, allocatable :: xvals(:)
     integer :: nvals
 #endif
-
-    toroidal_period = period
 
     ! initialize scorec solvers
 

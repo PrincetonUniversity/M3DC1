@@ -1285,6 +1285,12 @@ subroutine validate_input
      endif
   endif
 
+  if(itor.eq.0) then 
+     toroidal_period = twopi*rzero
+  else
+     toroidal_period = twopi
+  end if
+
   if(rzero.le.0) then
      if(myrank.eq.0) print *, 'WARNING: rzero <= 0'
   endif
