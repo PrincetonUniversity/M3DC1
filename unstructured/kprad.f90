@@ -347,9 +347,9 @@ contains
           PRECK(:,L)   = 0.
           PRECP(:,L)   = 0.
        end where
-          
-       nZeff(:,1)=nZeff(:,1)+real(L)*NZ(:,L-1)/SNZ
-       nZeff(:,2)=nZeff(:,2)+real((L**2-L))*NZ(:,L-1)/NE
+
+       where(SNZ.gt.0.) nZeff(:,1) = nZeff(:,1)+real(L)*NZ(:,L-1)/SNZ
+       nZeff(:,2) = nZeff(:,2)+real((L**2-L))*NZ(:,L-1)/NE
     end do
     
     PION(:,Z+1)  = sum(PION(:,1:Z),2) 
