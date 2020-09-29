@@ -46,7 +46,7 @@ contains
   subroutine kprad_deallocate()
     implicit none
 
-
+    if(allocated(z_ei)) deallocate(z_ei)
     if(allocated(zed)) deallocate(zed)
     if(allocated(c)) deallocate(c)
     if(allocated(sion_coeff)) deallocate(sion_coeff)
@@ -153,6 +153,8 @@ contains
     te_int = te
 
     if(ikprad_evolve_internal.eq.0) then
+       ! BCL 9/29/2020: where_kprad_advance already called in kprad_ionize
+       !                may need to call again here if future coding changes
        call kprad_ionization_rate(npts, ne, te, z, sion)
        call kprad_recombination_rate(npts, ne, te, z, srec)
     end if
@@ -169,11 +171,10 @@ contains
 
        nz_old = nz
        ne_old = ne
-
-       call where_kprad_advance(ne, te_int)
     
        ! calculate ionization and recombination rates
        if(ikprad_evolve_internal.eq.1) then
+          call where_kprad_advance(ne, te_int)
           call kprad_ionization_rate(npts, ne, te_int, z, sion)
           call kprad_recombination_rate(npts, ne, te_int, z, srec)
        end if
@@ -338,9 +339,9 @@ contains
        ! prevents spurious values
        where(advance_kprad)
           IMP_RAD(:,L) = (10.0**impradt)*(NE/1.0E13)*NZ(:,L-1)
-          PION(:,L)= SION(:,L-1)*NZ(:,L-1)*Z_EI(L)*1.6E-19 
-          PRECK(:,L) = SREC(:,L)*NZ(:,L)*TE*1.6E-19 
-          PRECP(:,L) = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19
+          PION(:,L)    = SION(:,L-1)*NZ(:,L-1)*Z_EI(L)*1.6E-19
+          PRECK(:,L)   = SREC(:,L)*NZ(:,L)*TE*1.6E-19
+          PRECP(:,L)   = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19
        elsewhere
           IMP_RAD(:,L) = 0.
           PION(:,L)    = 0.
