@@ -1,5 +1,29 @@
-[Description]
-stand-alone test for 3D mesh adaptation
+++++++++++++++++++++++++++++++++++++++++++
+  mesh adaptation by error estimator
+++++++++++++++++++++++++++++++++++++++++++
+
+Modify L295-299 in newpar.f90 as the following:
+
+!    if (nplanes .eq. 1) then
+!      call adapt_by_psi
+!    else
+      call adapt_by_error
+!    end if
+
+module load openmpi
+
+To run in 2D:
+cp 2p-C1input C1input
+mpirun -n 2 your_M3DC1/unstructured/_avatar-opt-25/m3dc1_2d
+
+To run in 3D:
+cp 8p-C1input C1input
+mpirun -np 8 your_M3DC1/unstructured/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options_file options_bjacobi
+
+
+++++++++++++++++++++++++++++++++++++++++++
+  stand-alone test for 3D mesh adaptation
+++++++++++++++++++++++++++++++++++++++++++
 
 [Compilation]
 PETSC_DIR=/lore/seol/petsc-3.7.6
