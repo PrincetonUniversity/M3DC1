@@ -793,7 +793,7 @@ subroutine derived_quantities(ilin)
   if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
      if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  f", ilin
-        if(ilin.eq.0 .and. eqsubtract.eq.1) then
+        if((ilin.eq.0 .and. eqsubtract.eq.1) .or. eqsubtract.eq.0) then
            if(itor.eq.0) then
               temp = bzero
            else
@@ -803,7 +803,7 @@ subroutine derived_quantities(ilin)
         endif
         call solve_newvar1(bf_mat_lhs,bf_field(ilin),mass_mat_rhs_bf, &
              bz_field(ilin), bf_field(ilin))
-        if(ilin.eq.0 .and. eqsubtract.eq.1) call add(bz_field(ilin), temp)
+        if((ilin.eq.0 .and. eqsubtract.eq.1) .or. eqsubtract.eq.0) call add(bz_field(ilin), temp)
      endif
   end if
 
