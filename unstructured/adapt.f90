@@ -263,7 +263,7 @@ module adapt
     vectype, allocatable :: edge_error(:,:)
     vectype, allocatable :: elm_error(:,:), elm_error_res(:,:), elm_error_sum(:,:)
     real, allocatable :: node_error(:,:)
-    integer :: num_edge, ii, jj, num_get, num_elm, num_node, ier
+    integer :: num_adj, elem_dim, num_edge, ii, jj, num_get, num_elm, num_node, ier
     integer, dimension(256) :: elms 
 
     integer, parameter :: vecsize=1 
@@ -282,14 +282,22 @@ module adapt
 
     call m3dc1_mesh_getnumglobalent (0, num_node_total)
 
-    !if(myrank .eq. 0) print*, "time", ntime, "current max", max_val(1), min_val(1), "mesh size before adapt", num_node_total
+    !if (myrank .eq. 0) print*, "time", ntime, "current max", max_val(1), min_val(1), "mesh size before adapt", num_node_total
     call m3dc1_field_max(field_vec%id, max_val, min_val)
     maxPhi = max(abs(max_val(1+(u_g-1)*dofs_per_node)),abs(min_val(1+(u_g-1)*dofs_per_node)))
     maxPs =  max(abs(max_val((psi_g-1)*dofs_per_node)+1),abs(min_val((psi_g-1)*dofs_per_node)+1))
 
     call m3dc1_mesh_getnument(1, num_edge)
     allocate(edge_error(num_edge, NUMTERM))
-    call m3dc1_mesh_getnument(2, num_elm)
+    elem_dim = 2
+    num_adj=2
+    if (nplanes .gt. 1) then
+      elem_dim = 3
+      num_adj = 8
+    end if
+ 
+    call m3dc1_mesh_getnument(elem_dim, num_elm)
+
     allocate(elm_error(num_elm, NUMTERM))
     allocate(elm_error_sum(2,num_elm))
     allocate(elm_error_res(2,num_elm))
@@ -303,15 +311,16 @@ module adapt
     do ii=1, NUMTERM
        jump_sum(ii) =sum(edge_error(:,ii))
     end do
+
     do ii=1, num_edge
-       call m3dc1_ent_getadj (1, ii-1, 2, elms, 2, num_get)
+       call m3dc1_ent_getadj (1, ii-1, elem_dim, elms, num_adj, num_get)
        do jj=1, num_get 
           elm_error(elms(jj)+1,:)=elm_error(elms(jj)+1,:)+0.5*edge_error(ii,:);
        end do
     end do
 
     ! implementated for numvar .eq. 1  
-    if(numvar .eq. 1 ) call elem_residule (elm_error_res(1,:), elm_error_res(2,:))
+    if (numvar .eq. 1 ) call elem_residule (elm_error_res(1,:), elm_error_res(2,:))
 
     elm_error_sum (1,:) = elm_error(:,JUMPU) + elm_error_res (1,:) 
     elm_error_sum (2,:) = elm_error(:,JUMPPSI) + elm_error_res(2,:)
@@ -319,18 +328,15 @@ module adapt
     !call output_face_data (NUMTERM, sqrt(real(elm_error)), file_name1);
     !call output_face_data (2, TRANSPOSE(sqrt(real(elm_error_res))), file_name2);
     !call output_face_data (2, TRANSPOSE(sqrt(real(elm_error_sum))), file_name3);
-
     call get_node_error_from_elm (real(elm_error_sum(1,:)), 1, node_error(1,:));
     call get_node_error_from_elm (real(elm_error_sum(2,:)), 1, node_error(2,:));
 
-       
     node_error = sqrt(node_error)
     !print *, edge_error
     deallocate(edge_error)
     deallocate(elm_error)
     deallocate(elm_error_sum)
     deallocate(elm_error_res)
-
     if (adapt_control .eq. 0) then
       max_error(1)= maxval(node_error(1,:))
       max_error(2)= maxval(node_error(2,:))

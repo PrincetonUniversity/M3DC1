@@ -14,11 +14,11 @@ module load openmpi
 
 To run in 2D:
 cp 2p-C1input C1input
-mpirun -n 2 your_M3DC1/unstructured/_avatar-opt-25/m3dc1_2d
+mpirun -n 2 $M3DC1_DIR/unstructured/_avatar-opt-25/m3dc1_2d
 
 To run in 3D:
 cp 8p-C1input C1input
-mpirun -np 8 your_M3DC1/unstructured/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options_file options_bjacobi
+mpirun -np 8 $M3DC1_DIR/unstructured/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options_file options_bjacobi
 
 
 ++++++++++++++++++++++++++++++++++++++++++
