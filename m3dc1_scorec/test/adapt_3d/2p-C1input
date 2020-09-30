@@ -5,7 +5,7 @@
         mesh_model = tilt.txt
 isplitstep=0
 idens = 0
-iadapt = 1
+iadapt = 4
 ipres = 0
 ivform = 0
 adapt_hmin = 0.01
