@@ -223,8 +223,8 @@ int main( int argc, char** argv)
           m3dc1_ent_getgeomclass (&adj_dim, nodes+i, &geom_class_dim, &geom_class_id);
           m3dc1_node_getnormvec(nodes+i, normal1);
           m3dc1_node_getcurv(nodes+i,&curv1);
-          if (geom_class_dim==0)
-             cout<<"* node classified on geometric vertex with normal "<<normal1[0]<<" "<<normal1[1]<<" curv "<<curv1<<endl;
+//          if (geom_class_dim==0)
+//             cout<<"* node classified on geometric vertex with normal "<<normal1[0]<<" "<<normal1[1]<<" curv "<<curv1<<endl;
 
           m3dc1_node_isongeombdry(nodes+i+3, &is_bdy);
           assert(is_bdy);
@@ -243,16 +243,9 @@ int main( int argc, char** argv)
 //  m3dc1_matrix_print(&matrix_mult);
 //  pumi_sync();
 
-  t6 = MPI_Wtime();
-  m3dc1_matrix_reset(&matrix_mult);
-  m3dc1_matrix_reset(&matrix_solve);
-  t7 = MPI_Wtime();
-
   if(!PCU_Comm_Self())
     cout<<"* time: fill matrix "<<t2-t1<<" assemble "<<t3-t2<<" mult "<<t4-t3
-        <<" solve "<<t5-t4<<" reset "<<t7-t6<<endl; 
-
-  test_matrix(matrix_mult, matrix_solve);
+        <<" solve "<<t5-t4<<endl; 
 
   m3dc1_matrix_delete(&matrix_mult);
   m3dc1_matrix_delete(&matrix_solve);

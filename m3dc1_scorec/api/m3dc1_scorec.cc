@@ -820,30 +820,40 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
                       int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
 //*******************************************************
 {
-  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
-  if (!e || *adj_dim==*ent_dim)
-    return M3DC1_FAILURE;
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+  apf::MeshEntity* e = getMdsEntity(mesh, *ent_dim, *ent_id);
+  assert(e);
 
   if (*adj_dim>*ent_dim) // upward
   {
     apf::Adjacent adjacent;
-    m3dc1_mesh::instance()->mesh->getAdjacent(e,*adj_dim,adjacent);
+    mesh->getAdjacent(e,*adj_dim,adjacent);
     *num_adj_ent = adjacent.getSize();
     if (*adj_ent_allocated_size<*num_adj_ent)
+    {
+      std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
+               <<" failed: not enough array size for adjacent entities (given: "
+               <<*adj_ent_allocated_size<<", needed: "<<*num_adj_ent<<"\n";
       return M3DC1_FAILURE;
+    }
     for (int i=0; i<*num_adj_ent; ++i)
-      adj_ent[i] = getMdsIndex(m3dc1_mesh::instance()->mesh, adjacent[i]);
+      adj_ent[i] = getMdsIndex(mesh, adjacent[i]);
   }
-  else if (*adj_dim<*ent_dim) 
+  else if (*adj_dim<*ent_dim)
   {
     apf::Downward downward;
-    *num_adj_ent = m3dc1_mesh::instance()->mesh->getDownward(e, *adj_dim, downward);
+    *num_adj_ent = mesh->getDownward(e, *adj_dim, downward);
     if (*adj_ent_allocated_size<*num_adj_ent)
+    {
+      std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
+               <<" failed: not enough array size for adjacent entities (given: "
+               <<*adj_ent_allocated_size<<", needed: "<<*num_adj_ent<<"\n";
       return M3DC1_FAILURE;
+    }
     for (int i=0; i<*num_adj_ent; ++i)
-      adj_ent[i] = getMdsIndex(m3dc1_mesh::instance()->mesh, downward[i]);
+      adj_ent[i] = getMdsIndex(mesh, downward[i]);
     //adjust the order to work with m3dc1
-    if (m3dc1_mesh::instance()->mesh->getDimension()==3 && *ent_dim==3 &&*adj_dim==0 &&adj_ent[0]>adj_ent[3])
+    if (mesh->getDimension()==3 && *ent_dim==3 &&*adj_dim==0 &&adj_ent[0]>adj_ent[3])
     {
       int buff[3];
       memcpy(buff, adj_ent, 3*sizeof(int));
@@ -851,8 +861,29 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
       memcpy(adj_ent+3, buff, 3*sizeof(int));
     }
   }
-  return M3DC1_SUCCESS; 
+  else // element's 2nd order adjacency
+  {
+    if (mesh->count(3))
+      assert(*ent_dim==3);
+    else
+      assert(*ent_dim==2);
+
+    apf::Adjacent adjacent;
+    apf::getBridgeAdjacent(mesh, e, *ent_dim-1, *adj_dim, adjacent);
+    *num_adj_ent = adjacent.getSize();
+    if (*adj_ent_allocated_size<*num_adj_ent)
+    {
+      std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
+               <<" failed: not enough array size for adjacent entities (given: "
+               <<*adj_ent_allocated_size<<", needed: "<<*num_adj_ent<<"\n";
+      return M3DC1_FAILURE;
+    }
+    for (int i=0; i<*num_adj_ent; ++i)
+      adj_ent[i] = getMdsIndex(mesh, adjacent[i]);
+  }
+  return M3DC1_SUCCESS;
 }
+
 
 //*******************************************************
 int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
