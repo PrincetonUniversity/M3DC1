@@ -140,7 +140,6 @@ subroutine onestep
     ! copy field data to time-advance vectors
     if(myrank.eq.0 .and. iprint.ge.1) print *,"Importing time advance vectors.."
     call import_time_advance_vectors
-    print *,"finish importing time advance vectors.."
 
     ! advance time
     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing time..."
