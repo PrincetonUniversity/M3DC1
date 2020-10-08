@@ -179,13 +179,16 @@ subroutine onestep
 
   call pellet_advance
 
-  call runaway_advance
+!  call runaway_advance
 
   ! copy time advance vectors to field data
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Exporting time advance vectors.."
 
 ! if(eqsubtract.eq.0) call subtract_axi    !DEBUG
   call export_time_advance_vectors
+  if (irunaway .eq. 2) then
+     call runaway_advance
+  endif
 
   ! Calculate all quantities derived from basic fields
   call derived_quantities(1)

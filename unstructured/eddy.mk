@@ -1,4 +1,4 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEBLAS -DPETSC_VERSION=312
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DUSEBLAS -DPETSC_VERSION=312
 CCOPTS  = -c -DPETSC_VERSION=312
 
 ifeq ($(OPT), 1)
@@ -34,11 +34,13 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 # define where you want to locate the mesh adapt libraries
 PETSCVER=petsc3.12.0
 PETSC_VER=petsc-3.12.0
-PETSC_DIR=/home/jinchen/LIB/$(PETSC_VER)
+PETSC_DIR_OLD=/home/jinchen/LIB/$(PETSC_VER)
+PETSC_DIR=/home/jinchen/LIB/master
 ifeq ($(COM), 1)
-PETSC_ARCH=cplx-eddy-intelmpi-2019
+PETSC_ARCH=cplx-eddy-intelmpi-2020
 else
-PETSC_ARCH=real-eddy-intelmpi-2019
+#PETSC_ARCH=real-eddy-intelmpi-2019
+PETSC_ARCH=real-eddy-intelmpi-2020
 endif
 
 MPI_DIR=/opt/intel/compilers_and_libraries_2018.3.222/linux/mpi
@@ -60,7 +62,7 @@ ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
  #SCOREC_DIR=$(SCOREC_BASE_DIR)
-  SCOREC_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
+  SCOREC_DIR=$(PETSC_DIR_OLD)/$(PETSC_ARCH)
 endif
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan

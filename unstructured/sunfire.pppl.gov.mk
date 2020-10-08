@@ -1,5 +1,4 @@
-FOPTS = $(OPTS) -DPETSC_VERSION=39 -c -r8 -implicitnone -fpp -warn all -DLATESTSCOREC -DUSEBLAS
-# FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
+FOPTS = $(OPTS) -DPETSC_VERSION=39 -c -r8 -implicitnone -fpp -warn all -DUSEBLAS
 CCOPTS  = -c -DPETSC_VERSION=39
 
 ifeq ($(OPT), 1)

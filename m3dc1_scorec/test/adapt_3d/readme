@@ -1,0 +1,50 @@
+++++++++++++++++++++++++++++++++++++++++++
+  mesh adaptation by error estimator
+++++++++++++++++++++++++++++++++++++++++++
+
+Modify L295-299 in newpar.f90 as the following:
+
+!    if (nplanes .eq. 1) then
+!      call adapt_by_psi
+!    else
+      call adapt_by_error
+!    end if
+
+module load openmpi
+
+To run in 2D:
+cp 2p-C1input C1input
+mpirun -n 2 $M3DC1_DIR/unstructured/_avatar-opt-25/m3dc1_2d
+
+To run in 3D:
+cp 8p-C1input C1input
+mpirun -np 8 $M3DC1_DIR/unstructured/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options_file options_bjacobi
+
+
+++++++++++++++++++++++++++++++++++++++++++
+  stand-alone test for 3D mesh adaptation
+++++++++++++++++++++++++++++++++++++++++++
+
+[Compilation]
+PETSC_DIR=/lore/seol/petsc-3.7.6
+PETSC_ARCH=real-openmpi1.6.5
+PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
+PUMI_DIR=/lore/seol/openmpi1.6.5-petsc3.7.6-install
+ZOLTAN_DIR=$PUMI_DIR
+
+#real
+/usr/local/openmpi/latest/bin/mpicxx -g main.cc -o adapt_3d -DM3DC1_PETSC -I/usr/include -I/usr/local/openmpi/latest/include -I$PREFIX/include -I$PUMI_DIR/include -I$PETSC_DIR/include -I$PETSC_DIR/$PETSC_ARCH/include -L$PREFIX/lib -lm3dc1_scorec -Wl,--start-group,-rpath,$PUMI_DIR/lib -L$PUMI_DIR/lib -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group -L$ZOLTAN_HOME/lib -lzoltan -L$PETSC_DIR/$PETSC_ARCH/lib -Wl,-rpath,$PETSC_DIR/$PETSC_ARCH/lib -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lHYPRE -lmpi_cxx -lstdc++ -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+
+#complex
+Add -DPETSC_USE_COMPLEX and replace -lm3dc1_scorec with -lm3dc1_scorec_complex
+
+For instance,
+
+/usr/local/openmpi/latest/bin/mpicxx -g main.cc -o adapt_3d -DM3DC1_PETSC -DPETSC_USE_COMPLEX -I/usr/include -I/usr/local/openmpi/latest/include -I$PREFIX/include -I$PUMI_DIR/include -I$PETSC_DIR/include -I$PETSC_DIR/$PETSC_ARCH/include -L$PREFIX/lib -lm3dc1_scorec_complex -Wl,--start-group,-rpath,$PUMI_DIR/lib -L$PUMI_DIR/lib -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group -L$ZOLTAN_HOME/lib -lzoltan -L$PETSC_DIR/$PETSC_ARCH/lib -Wl,-rpath,$PETSC_DIR/$PETSC_ARCH/lib -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lHYPRE -lmpi_cxx -lstdc++ -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+
+[Usage]
+/usr/local/openmpi/latest/bin/mpirun -np P ./adapt_3d model mesh #planes
+
+[Examples]
+/usr/local/openmpi/latest/bin/mpirun -np 4 ./adapt_3d AnalyticModel AnalyticModel.smb
+

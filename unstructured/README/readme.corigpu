@@ -1,7 +1,7 @@
 Mon Jul  8 09:39:44 PDT 2019
 
 1. login from cori 
-	salloc -C gpu -n 8 --gres=gpu:8 -A m1759 -t 03:59:59  -c 16
+	salloc -C gpu -N 1 -n 20 -G 8 -A m1759 -t 03:59:59 --exclusive -q special
 
 2. code
 
@@ -9,21 +9,19 @@ Mon Jul  8 09:39:44 PDT 2019
 
     module purge
     module load esslurm
-    module load cuda pgi mvapich2
-    module load gsl
-    module load fftw
-    module load 
+    module load cuda/10.2.89 pgi/19.10 mvapich2/2.3.2
+    module load python cmake git 
+    module load gsl fftw/3.3.8 hdf5-parallel/1.10.5-pgi
     module load adios/1.9.0
 
 4. compile code
-   cori_gpu.mk
+   cori_gpu_pgi.mk
 
-   make OPT=1 RL=1 MAX_PTS=25 ARCH=cori_gpu
-   make OPT=1 COM=1 MAX_PTS=25 ARCH=cori_gpu (not supported as of June 22, 2019) 
-   make 3D=1 OPT=1 MAX_PTS=60 ARCH=cori_gpu
+   make OPT=1 RL=1 MAX_PTS=25 ARCH=cori_gpu_pgi
+   make OPT=1 COM=1 MAX_PTS=25 ARCH=cori_gpu_pgi
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=cori_gpu_pgi
 
 5. mesh utility
-   unavailable
 
 6. run jobscript:
 
@@ -58,11 +56,35 @@ Mon Jul  8 09:39:44 PDT 2019
    We have another set of options with 'hard_" as the prefix for PETSC VERSION 3.8 or newer
    to isolate the hard solves (#5, #17) from easier ones for optimization purpose.
 
-7. submit job
-   srun -n 16 -c 4 --cpu_bind=cores m3dc1_3d -ipetsc -options_file options_bjacobi > log.out_corigpu 2>&1
+7. submit job: sample slurm script "batchjob.cori_gpu_pgi"
+   #!/bin/bash
+   #SBATCH --account=m1759
+   #SBATCH -J XX
+   #SBATCH --nodes=2
+   #SBATCH --tasks-per-node=20
+   #SBATCH -C gpu
+   #SBATCH -G 16
+   #SBATCH -t 0:29:59
+   #SBATCH -o C1stdout
 
-8. list all curent jobs for a user
+   srun -n 32 m3dc1_2d_complex 
+   srun -n 32 m3dc1_2d
+   srun -n 32 m3dc1_3d -options_file options_bjacobi.type_superludist
 
-9. delete a job
 
-10. setup idl
+8. regression tests
+   cd unstructured
+   export M3DC1_MPIRUN=srun M3DC1_VERSION=local M3DC1_ARCH=cori_gpu_pgi
+   make bin
+   cd _cori_gpu_pgi/bin/
+   export PATH=`pwd`:$PATH
+   cd ../../regtest/
+   ./run $M3DC1_ARCH
+   cd pellet  #CORIGPU doesn't allow 1-process job make_model to run on 2 nodes
+   sbatch batchjob.cori_gpu_pgi_mesh
+   cd RMP_nonlinear  #CORIGPU doesn't allow 1-process job make_model to run on 2 nodes
+   sbatch batchjob.cori_gpu_pgi_mesh
+   ./run $M3DC1_ARCH
+   ./check $M3DC1_ARCH
+
+

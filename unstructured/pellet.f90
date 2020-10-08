@@ -392,6 +392,7 @@ contains
           if((r_p(ip)*l0_norm).lt.1e-8) then
              if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
              r_p(ip) = 0.
+             pellet_state(ip) = -1
           else if(temp_pel(ip).lt.temin_eV) then
              if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation"
           else

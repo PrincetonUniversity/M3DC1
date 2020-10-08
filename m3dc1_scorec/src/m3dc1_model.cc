@@ -169,7 +169,6 @@ void m3dc1_model::load_analytic_model(const char *name)
   std::string analyticmodel("AnalyticModel");
   if (!filename.compare(analyticmodel))
   {
-    if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] loading model file \"AnalyticModel\"\n";
     FILE *fp = fopen(name, "r");
     assert(fp);
     double para[5];
@@ -190,10 +189,8 @@ void m3dc1_model::load_analytic_model(const char *name)
     gmi_add_analytic(model, 2, model->n[2]+1, faceFunction, facePeriodic, faceRanges, NULL);
   }
   else 
-  {
-    if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] loading model file \""<<name<<"\"\n";
     load_model(name);
-  }
+
   return;
 }
 

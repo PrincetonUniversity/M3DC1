@@ -1025,7 +1025,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   end if !(iwrite_transport_coeffs.eq.1)
 
   if(irunaway.ne.0) then
-     call write_field(group_id, "n_re", nre_field, nelms, error)
+     call write_field(group_id, "nre", nre_field(ilin), nelms, error)
   end if
 
   if(iwrite_aux_vars.eq.1) then 

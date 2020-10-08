@@ -204,7 +204,7 @@ a2cc : $(A2CC_OBJS)
 	$(LOADER) $(LDOPTS) $(A2CC_OBJS) -o $@
 
 mackenbach_profiles : mackenbach_profiles.f90
-	$(F90) -r8 -warn all -implicitnone $< -o $@
+	$(F90) -r8 $< -o $@
 
 kprad : kprad.f90 kprad_test.f90
 	$(F90) $(F90OPTS) $< -o $@
@@ -240,7 +240,9 @@ bin : a2cc mackenbach_profiles
 	ln -s $(SRCDIR)/_$(ARCH)/a2cc bin
 	ln -s $(SRCDIR)/_$(ARCH)/mackenbach_profiles bin
 	ln -s $(SRCDIR)/_$(ARCH)-opt-25/m3dc1_2d bin
+	ln -s $(SRCDIR)/_$(ARCH)-opt-25-omp/m3dc1_2d_omp bin
 	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25/m3dc1_2d_complex bin
+	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25-omp/m3dc1_2d_complex_omp bin
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60/m3dc1_3d bin
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60-omp/m3dc1_3d_omp bin
 	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin

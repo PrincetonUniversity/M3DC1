@@ -53,8 +53,7 @@ else
     M3DC1_SCOREC_LIB = m3dc1_scorec
 endif
 
-SCOREC_BASE_DIR=/lore/seol/openmpi-petsc3.7.6-install
-#/lore/seol/openmpi1.6.5-petsc3.7.6-install
+SCOREC_BASE_DIR=/lore/seol/openmpi1.6.5-petsc3.7.6-install
 PUMI_DIR=$(SCOREC_BASE_DIR)
 ZOLTAN_DIR = $(SCOREC_BASE_DIR)
 ifdef SCORECVER

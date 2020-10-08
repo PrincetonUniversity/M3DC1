@@ -39,7 +39,7 @@ Program Reducedquintic
 #endif
 
   integer :: ier, i, adapt_flag
-  real :: tstart, tend, dtsave, period, t_solve, t_compute
+  real :: tstart, tend, dtsave, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
   integer :: ip
@@ -150,13 +150,8 @@ Program Reducedquintic
   call m3dc1_matrix_setassembleoption(imatassemble)
 #endif
 
-  if(itor.eq.0) then 
-     period = twopi*rzero
-  else
-     period = twopi
-  end if
-  call load_mesh(period)
-
+  call load_mesh
+  
 !  call print_node_data
 !  call safestop(1)
 
@@ -311,13 +306,10 @@ Program Reducedquintic
 
   !if (iadapt .eq. 1) then
   if (mod (iadapt, 2) .eq. 1) then
-    if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
-    if (nplanes .eq. 1) then 
-      call adapt_by_psi
-    else
-      call adapt_by_error
-    end if
-  end if
+    if (iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
+    call adapt_by_psi
+  endif
+  if (iadapt .eq. 4) call adapt_by_error
 #endif
 
   if(irestart.eq.0  .or. iadapt.gt.0) then
@@ -472,7 +464,7 @@ subroutine init
 
   call init_qp
 
-  call runaway_init
+  if(irunaway .eq. 2) call runaway_init
 
   call kprad_init(ierr)
   if(ierr.ne.0) call safestop(601)
@@ -560,7 +552,7 @@ subroutine safestop(iarg)
 #endif
 
   call destroy_auxiliary_fields
-  call runaway_deallocate
+  if(irunaway .eq. 2) call runaway_deallocate
   call kprad_destroy
   call destroy_resistive_wall
 
@@ -1418,6 +1410,7 @@ subroutine space(ifirstcall)
   call associate_field(ti_field(1),  field_vec, ti_g)
   call associate_field(e_field(1),   field_vec, e_g)
   call associate_field(ne_field(1),  field_vec, ne_g)
+  call associate_field(nre_field(1), field_vec, nre_g)
 
   call associate_field(u_field(0),   field0_vec, u_g)
   call associate_field(vz_field(0),  field0_vec, vz_g)
@@ -1431,6 +1424,7 @@ subroutine space(ifirstcall)
   call associate_field(ti_field(0),  field0_vec, ti_g)
   call associate_field(e_field(0),   field0_vec, e_g )
   call associate_field(ne_field(0),  field0_vec, ne_g)
+  call associate_field(nre_field(0), field0_vec, nre_g)
 
   call allocate_kspits
 

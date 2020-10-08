@@ -879,10 +879,6 @@ void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity*
 void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 // *********************************************************
 {
-
-  if (!PCU_Comm_Self())
-    std::cout<<"\n*** SWITCHED MESH TO 3D ***\n\n";
-
   int local_partid=PCU_Comm_Self();
 
   changeMdsDimension(mesh, 3);
@@ -1351,6 +1347,8 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 #ifdef DEBUG
   printStats(mesh);
 #endif
+  if (!PCU_Comm_Self())
+    std::cout<<"\n*** MESH SWITCHED TO 3D ***\n\n";
 }
 
 // *********************************************************

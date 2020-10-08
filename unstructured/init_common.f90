@@ -354,5 +354,87 @@ subroutine den_per
 
 end subroutine den_per
 
+subroutine nre_eq
+  use basic
+  use arrays
+  use diagnostics
+  use math
+  use mesh_mod
+  use m3dc1_nint
+  use newvar_mod
+  use pellet
+
+  implicit none
+
+  type(field_type) :: nre_vec
+  integer :: itri, numelms, def_fields
+  real :: rate, nr_a, nr_b, nr_w
+  vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(MAX_PTS) :: n, rr, mask, nr_f1, nr_f2
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining RE equilibrium'
+  call create_field(nre_vec)
+
+  def_fields = FIELD_PSI + FIELD_RE
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0,1)
+
+     nre079(:,OP_1) = 1.0*ri_79*ps079(:,OP_GS)/1.000
+     if(irunaway == 1) nre079(:,OP_1) = 0.8e-0*nre079(:,OP_1)
+     if(irunaway == 2) nre079(:,OP_1) = 0.
+
+     dofs = intx2(mu79(:,:,OP_1),nre079(:,OP_1))
+     call vector_insert_block(nre_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(nre_vec%vec,mass_mat_lhs)
+  nre_field(0) = nre_vec
+
+  call destroy_field(nre_vec)
+
+end subroutine nre_eq
+
+subroutine nre_per
+  use basic
+  use arrays
+  use pellet
+  use diagnostics
+  use field
+  use m3dc1_nint
+  use newvar_mod
+  use math
+  implicit none
+
+  type(field_type) :: nre_vec
+  integer :: numelms, itri, def_fields
+  real :: rate, nr_a, nr_b, nr_w
+  vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(MAX_PTS) :: n, p
+  real,dimension(MAX_PTS) :: rr,mask,nr_f1,nr_f2
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining RE perturbation'
+  call create_field(nre_vec)
+  nre_vec = 0.
+
+  def_fields = FIELD_PSI + FIELD_RE
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+     nre179(:,OP_1) = 0
+     dofs = intx2(mu79(:,:,OP_1),nre179(:,OP_1))
+
+     call vector_insert_block(nre_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(nre_vec%vec,mass_mat_lhs)
+  nre_field(1) = nre_vec
+
+  call destroy_field(nre_vec)
+
+end subroutine nre_per
 
 end module init_common

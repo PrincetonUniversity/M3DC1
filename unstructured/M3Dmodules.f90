@@ -277,6 +277,7 @@ module basic
   integer :: no_vdg_T    ! 1 = do not include the V dot Grad(T) terms in temperature equation (for debug) 
   integer :: ibootstrap  ! bootstrap current model
   integer :: irunaway    ! runaway electron model
+  integer :: cre         ! runaway speed
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
@@ -497,7 +498,8 @@ module arrays
   integer, parameter :: ti_g = 10
   integer, parameter :: e_g = 11
   integer, parameter :: ne_g = 12
-  integer, parameter :: num_fields = 12
+  integer, parameter :: nre_g = 13
+  integer, parameter :: num_fields = 13
 
 
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
@@ -506,7 +508,7 @@ module arrays
   type(field_type) :: bf_field(0:1), e_field(0:1)
   type(field_type) :: te_field(0:1), ti_field(0:1)
   type(field_type) :: u_field_pre, psi_field_pre
-  type(field_type) :: nre_field  ! runaway electron density
+  type(field_type) :: nre_field(0:1)  ! runaway electron density
   type(field_type) :: wall_dist
 #ifdef USEST
   type(field_type) :: rst, zst ! Stellarator geometry field
@@ -532,6 +534,7 @@ module arrays
   vectype, dimension(dofs_per_node) ::  ti1_l,  ti0_l
   vectype, dimension(dofs_per_node) ::  qe1_l,  qe0_l
   vectype, dimension(dofs_per_node) ::  qi1_l,  qi0_l
+  vectype, dimension(dofs_per_node) :: nre1_l, nre0_l
 
 
 contains
@@ -558,6 +561,7 @@ contains
     call get_node_data(den_field(0), inode, den0_l)
     call get_node_data( te_field(0), inode,  te0_l)
     call get_node_data( ti_field(0), inode,  ti0_l)
+    call get_node_data(nre_field(0), inode, nre0_l)
     call get_node_data(  u_field(1), inode,   u1_l)
     call get_node_data( vz_field(1), inode,  vz1_l)
     call get_node_data(chi_field(1), inode, chi1_l)
@@ -568,6 +572,7 @@ contains
     call get_node_data(den_field(1), inode, den1_l)
     call get_node_data( te_field(1), inode,  te1_l)
     call get_node_data( ti_field(1), inode,  ti1_l)
+    call get_node_data(nre_field(1), inode, nre1_l)
 
   end subroutine get_local_vals
 
@@ -587,6 +592,7 @@ contains
     call set_node_data(den_field(0), inode, den0_l)
     call set_node_data( te_field(0), inode,  te0_l)
     call set_node_data( ti_field(0), inode,  ti0_l)
+    call set_node_data(nre_field(0), inode, nre0_l)
     call set_node_data(  u_field(1), inode,   u1_l)
     call set_node_data( vz_field(1), inode,  vz1_l)
     call set_node_data(chi_field(1), inode, chi1_l)
@@ -597,6 +603,7 @@ contains
     call set_node_data(den_field(1), inode, den1_l)
     call set_node_data( te_field(1), inode,  te1_l)
     call set_node_data( ti_field(1), inode,  ti1_l)
+    call set_node_data(nre_field(1), inode, nre1_l)
 
   end subroutine set_local_vals
 end module arrays
@@ -678,8 +685,15 @@ module sparse
   integer, parameter :: wall_mat_index = 64
   integer, parameter :: kprad_lhs_index = 65
   integer, parameter :: kprad_rhs_index = 66
-  integer, parameter :: st_mat_index = 67
-  integer, parameter :: num_matrices = 67
+  integer, parameter :: s15_mat_index = 67
+  integer, parameter :: d15_mat_index = 68
+  integer, parameter :: r15_mat_index = 69
+  integer, parameter :: q15_mat_index = 70
+  integer, parameter :: k15_mat_index = 71
+  integer, parameter :: q43_mat_index = 72
+  integer, parameter :: r43_mat_index = 73
+  integer, parameter :: st_mat_index = 74
+  integer, parameter :: num_matrices = 74
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2016 Scientific Computation Research Center, 
+  (c) 2005-2020 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -9,37 +9,80 @@
 *******************************************************************************/
 #include "m3dc1_scorec.h"
 #include "m3dc1_mesh.h"
+#include "apf.h"
+#include "apfMesh.h"
+#include <iostream>
 #include "ma.h"
-#include "PCU.h"
+#include "pumi.h"
+#include <mpi.h>
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_sizeField.h"
 #include "ReducedQuinticImplicit.h"
+#include "petscksp.h"
+#include <math.h>
+#include <stdlib.h>
+
 int main( int argc, char* argv[])
 {
   MPI_Init(&argc,&argv);
   m3dc1_scorec_init();
-  if (argc!=3 & !PCU_Comm_Self())
+  PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
+
+  if (argc<3 & !pumi_rank())
   {
-    cout<<"Usage: ./main  model mesh "<<endl;
+    cout<<"Usage: ./main  model mesh #planes"<<endl;
     return M3DC1_FAILURE;
-  } 
-  const char* meshFile = argv[1];
-  m3dc1_model_load(argv[1]);
-  m3dc1_mesh_load(argv[2]); 
+  }
+ 
+  int num_plane=1;
+  if (argc>3)
+  {
+    num_plane = atoi(argv[3]);
+    if (num_plane>1 && pumi_size()%num_plane==0)  
+    	m3dc1_model_setnumplane (&num_plane);
+
+  }
+  if (m3dc1_model_load(argv[1])) // model loading failed
+  {
+    PetscFinalize();
+    m3dc1_scorec_finalize();
+    MPI_Finalize();
+    return 0;
+  }
+
+  // m3dc1_model_print();
+
+  if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
+  {
+    PetscFinalize();
+    m3dc1_scorec_finalize();
+    MPI_Finalize();
+    return 0;
+  }
+  
+  
+  // Set input for m3dc1_mesh_build3d()
+  int num_field = 0;
+  int field_id = 0;
+  int dof_per_value = 0;
+ 
+  if (num_plane>1)
+    m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);    // Build 3d
+
+  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
+ 
+  double center[3]={1.75, 0, 0.};  
   apf::MeshTag* psiTag[6];
   apf::Mesh2*  mesh =m3dc1_mesh::instance()->mesh;
   int tagFound=1;
+
   for(int i=0; i<6; i++)
   {
-    char buff[256];
-    sprintf(buff, "psi%d", i);
-    psiTag[i]=mesh->findTag(buff);
-    if(!psiTag[i]) tagFound=0;
+  	char buff[256];
+    	sprintf(buff, "psi%d", i);
+    	psiTag[i]=mesh->findTag(buff);
+    	if(!psiTag[i]) tagFound=0;
   }
-  double center[3]={1.75, 0, 0.};
-  //double param[13]={0.98, 2, 1, .05, .5, .05, .5, .1, .01, 100., 100., .07, .16};
-  double param[13]={0.98, 2, 1, .05, .5, .05, .5, .05, .01, 100., 100., .07, .16};
-
   if(tagFound)
   {
     apf::Field* psiField=createPackedField(mesh, "psi", 6);
@@ -58,35 +101,17 @@ int main( int argc, char* argv[])
     ReducedQuinticImplicit shape;
     vector<apf::Field*> fields;
     fields.push_back(psiField);
-    ReducedQuinticTransfer slnTrans(mesh, fields, &shape);
+    //ReducedQuinticTransfer slnTrans(mesh, fields, &shape);
     double psi0 = 0.48095979306833486;
     double psil = 0.20875939867733129;
-    //double param[13]={0.98, 2, 1, .05, .5, .05, .5, .1, .01, 100., 100., .07, .16};
     double param[13]={0.98, 2, 1, .05, .5, .05, .5, .05, .01, 100., 100., .07, .16};
-    SizeFieldPsi sf (psiField, psi0, psil, param, center);
-    ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
-  in->shouldRunPreZoltan = true;
-    in->maximumIterations = 9;
-    ma::adapt(in);
+    SizeFieldPsi sf (psiField, psi0, psil, param, 2);
+    std::cout << psi0 << "\n";
   }
-  else
-  {
-    double mmax[2], mmin[2];
-    m3dc1_model_getmaxcoord(mmax,mmax+1);
-    m3dc1_model_getmincoord(mmin,mmin+1);
-    Vortex sfv(mesh, center, mmax[0]-mmin[0]);
-    ma::Input* in = ma::configure(mesh,&sfv,0);
-    in->maximumIterations = 9;
-  in->shouldRunPreZoltan = true;
-    ma::adapt(in);
-  }
-//  in->shouldFixShape=0;
-  //in->goodQuality = 0.5;
-//check(m);
-  //mesh->verify();
-  apf::writeVtkFiles("after",mesh);
-  mesh->destroyNative();
-  apf::destroyMesh(mesh);
+  
+  PetscFinalize();
+  m3dc1_scorec_finalize();
   MPI_Finalize();
+
   return 0;
 }

@@ -37,12 +37,10 @@ module scorec_mesh_mod
   integer, dimension (:), allocatable :: nodes_owned
 contains
 
-  subroutine load_mesh(period)
+  subroutine load_mesh
     use math
     use read_ascii
     implicit none
-
-    real, intent(in) :: period
 
     integer :: myrank, maxrank, ier
     include 'mpif.h'
@@ -100,10 +98,10 @@ contains
         else ! read boudary geometry
             call read_boundary_geometry(myrank)
         end if
-        call physical_mesh_setup(period)
+        call physical_mesh_setup(toroidal_period)
     end if
 #endif
-    toroidal_period = period/nperiods 
+    toroidal_period = toroidal_period/nperiods 
 
 #ifdef USE3D   
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes

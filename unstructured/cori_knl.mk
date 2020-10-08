@@ -20,7 +20,7 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
+PETSC_DIR=/global/homes/j/jinchen/project/PETSC/master
 ifeq ($(COM), 1)
   PETSC_ARCH = coriknl-PrgEnvintel605-craympich7710-master-cplx
 else
@@ -29,10 +29,9 @@ endif
 
 PETSC_LIB = -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
-     -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lesmumps -lptesmumps \
+     -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common \
      -lpord -lsuperlu -lsuperlu_dist \
      -lparmetis -lmetis -lpthread -ldl -lstdc++  \
-     -lptscotch -lptscotcherr -lptscotcherrexit -lptscotchparmetis -lscotch -lscotcherr -lscotcherrexit -lscotchmetis \
      -Wl,--end-group
 
 SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/knl-petsc3.12.4/
