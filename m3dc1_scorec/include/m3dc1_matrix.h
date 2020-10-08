@@ -37,7 +37,7 @@ public:
   int get_scalar_type() { return scalar_type; }
   int get_fieldOrdering() { return fieldOrdering;}
   int write( const char* file_name);
-  virtual void reset_values() = 0;
+  virtual int reset_values() = 0;
   virtual int get_type() const = 0;
   virtual int assemble() = 0;
   virtual int setupMat() =0;
@@ -68,7 +68,7 @@ public:
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
   int multiply(FieldID in_field, FieldID out_field);
-  void reset_values() { MatZeroEntries(*A);   mat_status=M3DC1_NOT_FIXED; };
+  int reset_values() { MatZeroEntries(*A);   mat_status=M3DC1_NOT_FIXED; };
   virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
@@ -87,7 +87,7 @@ public:
   int set_bc( int row);
   int set_row( int row, int numVals, int* colums, double * vals);
   int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
-  void reset_values();
+  int reset_values();
   virtual int get_type() const {return 1; }
   virtual int assemble(); 
   virtual int setupMat();

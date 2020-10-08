@@ -387,6 +387,15 @@ int m3dc1_mesh_load(char* mesh_file)
   return M3DC1_SUCCESS;
 }
 
+void m3dc1_region_delete()
+{
+  m3dc1_mesh::instance()->remove_wedges();
+}
+
+void m3dc1_region_create()
+{
+}
+
 //*******************************************************
 int m3dc1_mesh_build3d (int* num_field, int* field_id,  
                         int* num_dofs_per_value)

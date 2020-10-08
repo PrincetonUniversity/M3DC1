@@ -46,5 +46,6 @@ For instance,
 /usr/local/openmpi/latest/bin/mpirun -np P ./adapt_3d model mesh #planes
 
 [Examples]
-/usr/local/openmpi/latest/bin/mpirun -np 4 ./adapt_3d AnalyticModel AnalyticModel.smb
+/usr/local/openmpi/latest/bin/mpirun -np 8 ./adapt_3d tilt.txt tilt.smb 4
+/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt_3d ../nate-32part/diiid0.05.txt ../nate-32part/mesh.smb 2 
 

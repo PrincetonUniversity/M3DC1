@@ -36,6 +36,7 @@ public:
   // functions
   void reset();
   void clean();
+  void remove_wedges();
   void build3d(int num_field, int* field_id, int* num_dofs_per_value); // old: setup3DMesh(pPart mesh, pGeomMdl model,int ifXYZ) in PlaneManager.h
   void initialize(); // to be called after initial mesh loading. old: updatemeshinfo_
   void update_partbdry(apf::MeshEntity** remote_vertices, apf::MeshEntity** remote_edges, 

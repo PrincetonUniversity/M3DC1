@@ -81,6 +81,9 @@ int main( int argc, char* argv[])
   
   pumi_mesh_print(m3dc1_mesh::instance()->mesh);
 
+  m3dc1_mesh::instance()->remove_wedges();
+  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
+
   // Setup the parameters needed to calculate the node error
   // First we need to find element_error_sum for get_node_error_from_elm()
 

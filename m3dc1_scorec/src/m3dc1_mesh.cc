@@ -873,6 +873,107 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
     }
 }
 
+int get_local_planeid(int p)
+{
+  return p/m3dc1_model::instance()->group_size;
+}
+
+void update_remotes(apf::Mesh2* mesh, MeshEntity* e)
+{
+  int myrank=PCU_Comm_Self();
+
+        Copies remotes;
+        Copies new_remotes;
+        Parts parts;
+        mesh->getRemotes(e,remotes);
+
+        APF_ITERATE(Copies,remotes,rit)
+        {
+          int p=rit->first;
+          if (get_local_planeid(p)==m3dc1_model::instance()->local_planeid) // the same local plane
+          {
+            new_remotes[p]=rit->second; 
+            parts.insert(p);
+          }
+        }
+        parts.insert(myrank);
+        mesh->clearRemotes(e);
+        mesh->setRemotes(e,new_remotes);
+        mesh->setResidence(e, parts);  // set pclassification
+}
+    
+void m3dc1_mesh::remove_wedges()
+{       
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+  MeshEntity* e;
+  int myrank = PCU_Comm_Self();
+  int num_2d_face=mesh->count(3);
+ 
+  // delete regions
+  MeshIterator* ent_it = mesh->begin(3);
+  while ((e = mesh->iterate(ent_it)))
+    mesh->destroy(e);
+  mesh->end(ent_it);
+  m3dc1_mesh::instance()->num_own_ent[3]=m3dc1_mesh::instance()->num_local_ent[3]=0;
+
+  // delete faces
+  ent_it = mesh->begin(2);
+  while ((e = mesh->iterate(ent_it)))
+  {
+    // original entity for 2D plane
+    if (getMdsIndex(mesh, e)<num_2d_face)
+      update_remotes(mesh, e);
+    else
+    {
+      if (get_ent_ownpartid(mesh, e)==myrank)
+          --m3dc1_mesh::instance()->num_own_ent[2];
+       mesh->destroy(e);
+    }
+  }
+  mesh->end(ent_it);
+  m3dc1_mesh::instance()->num_local_ent[2] = mesh->count(2);
+  assert(m3dc1_mesh::instance()->num_own_ent[2]==num_2d_face);
+
+  // remote edges and vertices
+  for (int dim=1; dim>=0; --dim)
+  {
+    ent_it = mesh->begin(dim);
+    while ((e = mesh->iterate(ent_it)))
+    {
+      apf::Adjacent adjacent;
+      mesh->getAdjacent(e,dim+1,adjacent);
+      if (adjacent.getSize()) // original entity for 2D plane
+        update_remotes(mesh, e);
+      else
+      {
+/*        if (dim)
+          std::cout<<PCU_Comm_Self()<<": delete e"<<getMdsIndex(mesh, e)<<"\n"; 
+        else 
+          std::cout<<PCU_Comm_Self()<<": delete v"<<getMdsIndex(mesh, e)<<"\n";
+*/
+        if (get_ent_ownpartid(mesh, e)==myrank)
+          --m3dc1_mesh::instance()->num_own_ent[dim];
+        mesh->destroy(e);
+      }
+    }
+    mesh->end(ent_it);
+    m3dc1_mesh::instance()->num_local_ent[dim]=mesh->count(dim);
+  }
+
+  mesh->acceptChanges(); // update partition model
+
+// update global ent counter
+  MPI_Allreduce(m3dc1_mesh::instance()->num_own_ent, m3dc1_mesh::instance()->num_global_ent, 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  printStats(mesh);
+  for (int dim=0; dim<=3; ++dim)
+    assert(m3dc1_mesh::instance()->num_local_ent[dim] == mesh->count(dim));
+
+  if (!PCU_Comm_Self())
+    std::cout<<"\n*** Wedges between 2D planes removed ***\n\n";
+}
+
+
 void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices);
 
 // *********************************************************
