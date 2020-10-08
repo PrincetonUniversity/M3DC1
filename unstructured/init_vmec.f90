@@ -113,8 +113,11 @@ contains
     call newvar_solve(p_vec%vec,mass_mat_lhs)
     call newvar_solve(per_vec%vec,mass_mat_lhs)
 
-    p_field(0) = p_vec 
     u_field(1) = per_vec 
+
+    p_field(0) = p_vec 
+    pe_field(0) = p_field(0)
+    call mult(pe_field(0),pefac)
 
     call create_vector(fg_vec,2)
     call associate_field(bf_f,fg_vec,1)
@@ -243,7 +246,7 @@ contains
     call newsolve(br_mat,fg_vec,ier)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f: ier = ", ier
 
-    p_field(0) = bf_f 
+    !p_field(0) = bf_f 
 
     call create_field(bz_f)
     call create_field(psi_f)

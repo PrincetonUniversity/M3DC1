@@ -1209,7 +1209,7 @@ end subroutine rotation
           call local_coeff_vector(itri,ctri(:,:,itri))
        end if
 #ifdef USEST
-       if(igeometry.eq.1.and.ilog.eq.2) then
+       if((igeometry.eq.1.and.ilog.eq.2).or.igeometry.eq.0) then
           ctri(:,:,itri) = matmul((newrot),ctri(:,:,itri))  
        end if
 #endif

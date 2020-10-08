@@ -281,8 +281,11 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
      if(numvar.ge.2) then
         ! no slip
         if(inoslip_tor.eq. 1) then
-           !call get_node_data(vz_field(1), i, temp)
+#ifdef USEST
            temp = 0.
+#else
+           call get_node_data(vz_field(1), i, temp)
+#endif
            call set_dirichlet_bc(i_vz,rhs,temp,normal,curv,izonedim,mat)
         end if
         

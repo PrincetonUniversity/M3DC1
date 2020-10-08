@@ -159,13 +159,14 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
         theta = -atan2(z - zzero, x - xzero)
         arg = ntor*r/rzero
-        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))
+        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta-pi/2))
         do i=1, n
            brv(i)     = 0.5*(Bessel_I(mpol-1, arg(i)) + Bessel_I(mpol+1, arg(i)))
            bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
-        fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
+        !fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
+        fac = (ntor/rzero)/(mpol*bzero)
         if(rmp_atten.ne.0) then
            atten = exp((r-1.)/rmp_atten)
         else
@@ -342,12 +343,6 @@ subroutine calculate_external_fields()
      end do
   end if
 
-#ifdef USEST
-  if(iread_vmec.eq.2) then
-     read_p = .true.
-  end if   
-#endif
-
   ! boundary condition on psi
   ipsibound = BOUNDARY_NONE
 
@@ -476,8 +471,6 @@ subroutine calculate_external_fields()
      psi_field(1) = psi_f
      bf_field(1) = bf_f
   end if
-
-  p_field(1) = bf_f
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)
