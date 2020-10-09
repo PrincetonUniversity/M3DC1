@@ -804,6 +804,13 @@ subroutine derived_quantities(ilin)
      endif
   end if
 
+  ! toroidal derivative of vector potential stream function
+     if(i3d.eq.1 .and. numvar.ge.2) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  fp", ilin
+        call solve_newvar1(bf_mat_lhs,bfp_field(ilin),mass_mat_rhs_bfp, &
+             bz_field(ilin), bfp_field(ilin))
+     endif
+
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_aux = t_aux + tend - tstart
@@ -1235,6 +1242,8 @@ subroutine space(ifirstcall)
      end if
      call create_field(bf_field(0))
      call create_field(bf_field(1))
+     call create_field(bfp_field(0))
+     call create_field(bfp_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)
 
      call create_field(psi_coil_field)
@@ -1244,6 +1253,7 @@ subroutine space(ifirstcall)
         call create_field(psi_ext)
         call create_field(bz_ext)
         call create_field(bf_ext)
+        call create_field(bfp_ext)
         use_external_fields = .true.
      end if
 

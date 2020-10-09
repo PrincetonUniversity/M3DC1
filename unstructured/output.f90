@@ -944,6 +944,34 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
   endif
     
+    ! BFP
+  if(i3d.eq.1 .and. numvar.ge.2) then
+     do i=1, nelms
+        call calcavector(i, bfp_field(ilin), dum(:,i))
+     end do
+     if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
+        call output_field(group_id, "fp_plasma", real(dum), coeffs_per_element, &
+             nelms, error)
+#ifdef USECOMPLEX
+        call output_field(group_id,"fp_plasma_i",aimag(dum),coeffs_per_element, &
+             nelms,error)
+#endif
+
+        allocate(dum2(coeffs_per_element,nelms))
+        do i=1, nelms
+           call calcavector(i, bfp_ext, dum2(:,i))
+        end do
+        dum = dum + dum2
+        deallocate(dum2)
+     end if
+     call output_field(group_id, "fp", real(dum), coeffs_per_element, &
+          nelms, error)
+#ifdef USECOMPLEX
+     call output_field(group_id,"fp_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
+#endif
+  endif
+    
   call write_field(group_id, "V",    vz_field(ilin), nelms, error)
   call write_field(group_id, "Pe",   pe_field(ilin), nelms, error)
   call write_field(group_id, "P",     p_field(ilin), nelms, error)

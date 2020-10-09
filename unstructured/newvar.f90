@@ -20,6 +20,7 @@ module newvar_mod
   integer, parameter :: NV_SV_MATRIX = 5  ! Vorticity smoother
   integer, parameter :: NV_SC_MATRIX = 6  ! Compression smoother
   integer, parameter :: NV_DP_MATRIX = 7
+  integer, parameter :: NV_IP_MATRIX = 8
 
   integer, parameter :: NV_RHS = 0
   integer, parameter :: NV_LHS = 1
@@ -38,6 +39,7 @@ module newvar_mod
   type(newvar_matrix) :: gs_mat_rhs
   type(newvar_matrix) :: bf_mat_lhs
   type(newvar_matrix) :: mass_mat_rhs_bf
+  type(newvar_matrix) :: mass_mat_rhs_bfp
   type(newvar_matrix) :: s5_mat, d5_mat
   type(newvar_matrix) :: s7_mat, d7_mat
   type(newvar_matrix) :: s10_mat, d10_mat
@@ -64,6 +66,7 @@ contains
     call set_matrix_index(gs_mat_rhs%mat,      gs_mat_rhs_index)
     call set_matrix_index(bf_mat_lhs%mat,      bf_mat_lhs_dc_index)
     call set_matrix_index(mass_mat_rhs_bf%mat, mass_mat_rhs_dc_index)
+    call set_matrix_index(mass_mat_rhs_bfp%mat, bfp_mat_rhs_index)
     call set_matrix_index(s5_mat%mat,          s5_mat_index)
     call set_matrix_index(d5_mat%mat,          d5_mat_index)
     call set_matrix_index(s7_mat%mat,          s7_mat_index)
@@ -133,11 +136,19 @@ contains
                NV_DCBOUND, NV_BF_MATRIX, 1)
           call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
                NV_I_MATRIX,  0)
+          if(i3d.eq.1 .and. numvar.ge.2) then
+             call create_newvar_matrix(mass_mat_rhs_bfp, NV_DCBOUND, &
+               NV_IP_MATRIX,  0)
+          endif
        else if(ifbound.eq.2) then 
           call create_newvar_matrix(bf_mat_lhs, &
                NV_NMBOUND, NV_BF_MATRIX, 1)
           call create_newvar_matrix(mass_mat_rhs_bf, NV_NMBOUND, &
                NV_I_MATRIX,  0)
+          if(i3d.eq.1 .and. numvar.ge.2) then
+             call create_newvar_matrix(mass_mat_rhs_bfp, NV_NMBOUND, &
+               NV_IP_MATRIX,  0)
+          endif
        end if
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
@@ -269,6 +280,11 @@ end subroutine apply_bc
         
      case(NV_I_MATRIX)
         temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+        
+#if defined(USECOMPLEX) || defined(USE3D)
+     case(NV_IP_MATRIX)
+        temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_DP))
+#endif
 
      case(NV_LP_MATRIX)
         temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_LP))
