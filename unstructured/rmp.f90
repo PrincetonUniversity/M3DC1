@@ -398,14 +398,15 @@ subroutine calculate_external_fields()
      ! f equation
      ! ~~~~~~~~~~
      temp(:,:,2,1) =  0.
-     !     temp(:,:,2,2) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79)
-     temp(:,:,2,2) = &
-          -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79) &
-          -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79) &
-          -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) &
-          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
+          temp(:,:,2,2) = intxx3(mu79(:,:,OP_DP),nu79(:,:,OP_LP),r2_79) 
+          !+ regular*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+     !temp(:,:,2,2) = &
+     !     -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79) &
+     !     -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79) &
+     !     -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) 
+     !     + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
 
-     temp2(:,2) = intx3(mu79(:,:,OP_1),r_79,temp79b-bzero)
+     temp2(:,2) = intx3(mu79(:,:,OP_DP),r_79,temp79b-bzero)
         
      temp3 = intx3(mu79(:,:,OP_1),r_79,temp79b)
         
@@ -471,6 +472,7 @@ subroutine calculate_external_fields()
      psi_field(1) = psi_f
      bf_field(1) = bf_f
   end if
+  !p_field(1) = bf_f
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)

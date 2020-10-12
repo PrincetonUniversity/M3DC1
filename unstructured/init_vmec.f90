@@ -129,6 +129,7 @@ contains
     ! boundary condition on psi, g, and f
     ipsibound = BOUNDARY_NONE
     igbound = BOUNDARY_NONE
+    !ibound = BOUNDARY_NONE
     ibound = BOUNDARY_DIRICHLET
     !ibound = BOUNDARY_NEUMANN
 
@@ -172,10 +173,12 @@ contains
 !      temp2(:,2) = intx3(mu79(:,:,OP_DZ),pv79(:,OP_1),temp79d) &
 !                  +intx3(mu79(:,:,OP_DR),pv79(:,OP_1),temp79c) 
 !
+      !temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DP),r_79) & 
+      !                +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
       temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r_79) & 
                       +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
       temp(:,:,1,2) = 0.
-      !temp2(:,1) = -intx3(mu79(:,:,OP_1),2*p079(:,OP_1),r_79) 
+      !temp2(:,1) = -intx3(mu79(:,:,OP_1),1*p079(:,OP_1),r_79) 
       temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
                   -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) &
                   -intx2(mu79(:,:,OP_1),ri_79)*fzero 
