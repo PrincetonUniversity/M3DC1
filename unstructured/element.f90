@@ -562,17 +562,13 @@ contains
     end if
   end subroutine local_coeffs
 
-  subroutine transform_coeffs_nplanes(a, k, N, dphi, b)
+  subroutine transform_coeffs_nplanes(a, f, b)
     implicit none
 
     vectype, intent(in), dimension(coeffs_per_element) :: a
     vectype, intent(out), dimension(coeffs_per_element) :: b
-    integer, intent(in) :: k, N
-    real, intent(in) :: dphi
+    real, intent(in) :: f             ! The toroidal shift of the new element
     integer :: i, j1,j2,j3,j4
-    real :: f
-
-    f = k*dphi/N
 
     do i=1, coeffs_per_tri
        j1 = i

@@ -400,7 +400,7 @@ contains
     logical :: ir
     integer :: elms_per_plane, new_plane, old_plane, plane_fac, k
     integer :: offset_in, global_elms_in
-    real :: dphi
+    real :: dphi, shift
     logical :: transform
 !    vectype, dimension(dofs_per_element, dofs_per_element) :: trans_mat
 
@@ -436,8 +436,11 @@ contains
        old_plane = new_plane / plane_fac
        offset_in = offset - elms_per_plane*(new_plane - old_plane)
        global_elms_in = global_elms / plane_fac
-       k = new_plane - old_plane * plane_fac
+       ! TODO:
+       !   dphi should be updated to reflect actual width of original element
        dphi = toroidal_period / nplanes_in
+       k = new_plane - old_plane * plane_fac
+       shift = k*dphi / plane_fac
        transform = .true.
     else
        coefs = coeffs_per_element
@@ -460,7 +463,7 @@ contains
 
     do i=1, nelms
        if(transform) then
-          call transform_coeffs_nplanes(zdum(:,i),k,plane_fac,dphi,kdum)
+          call transform_coeffs_nplanes(zdum(:,i),shift,kdum)
           call setavector(i, f, kdum)
        else
           call setavector(i, f, zdum(:,i))
