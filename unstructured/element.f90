@@ -562,50 +562,31 @@ contains
     end if
   end subroutine local_coeffs
 
-  subroutine get_nplane_transformation_matrix(trans_mat, k, N, dphi)
+  subroutine transform_coeffs_nplanes(a, k, N, dphi, b)
     implicit none
 
-    vectype, intent(out), dimension(dofs_per_element,dofs_per_element) :: &
-         trans_mat
+    vectype, intent(in), dimension(coeffs_per_element) :: a
+    vectype, intent(out), dimension(coeffs_per_element) :: b
     integer, intent(in) :: k, N
     real, intent(in) :: dphi
-    integer :: i, ii,j, k1, m0, m1, mm
+    integer :: i, j1,j2,j3,j4
+    real :: f
 
-    ii = pol_dofs_per_node
-    j = dofs_per_node*pol_nodes_per_element
-    k1 = k+1
-    
-    trans_mat = 0.
+    f = k*dphi/N
 
-    do mm=1, pol_nodes_per_element
-       m0 = dofs_per_node*(mm-1)
-       m1 = m0 + j
-
-       do i=1, ii
-          ! First Node
-          trans_mat(m0+   i,m0+   i) = (N-k)**2*(N+2.*k)
-          trans_mat(m0+   i,m0+ii+i) =  k*(N-k)**2 * dphi
-          trans_mat(m0+   i,m1+   i) =  k**2*(3.*N-2.*k)
-          trans_mat(m0+   i,m1+ii+i) = -k**2*(N-k) * dphi
-          trans_mat(m0+ii+i,m0+   i) = -6.*N*k*(N-k) / dphi
-          trans_mat(m0+ii+i,m0+ii+i) =  N*(N-k)*(N-3.*k)   
-          trans_mat(m0+ii+i,m1+   i) =  6.*N*k*(N-k) / dphi
-          trans_mat(m0+ii+i,m1+ii+i) = -N*k*(2.*N - 3.*k)
-          
-          ! Toroidally adjacent node
-          trans_mat(m1+   i,m0+   i) = (N-k1)**2*(N+2.*k1)
-          trans_mat(m1+   i,m0+ii+i) =  k1*(N-k1)**2 * dphi
-          trans_mat(m1+   i,m1+   i) =  k1**2*(3.*N-2.*k1)
-          trans_mat(m1+   i,m1+ii+i) = -k1**2*(N-k1) * dphi
-          trans_mat(m1+ii+i,m0+   i) = -6.*N*k1*(N-k1) / dphi
-          trans_mat(m1+ii+i,m0+ii+i) = N*(N-k1)*(N-3.*k1)
-          trans_mat(m1+ii+i,m1+   i) =  6.*N*k1*(N-k1) / dphi
-          trans_mat(m1+ii+i,m1+ii+i) = -N*k1*(2.*N - 3.*k1)
-       end do
+    do i=1, coeffs_per_tri
+       j1 = i
+       j2 = i + coeffs_per_tri
+       j3 = i + coeffs_per_tri*2
+       j4 = i + coeffs_per_tri*3
+       
+       ! First Node
+       b(j1) = a(j1) + f*a(j2) +    f**2*a(j3) +    f**3*a(j4)
+       b(j2) =           a(j2) + 2.*f   *a(j3) + 3.*f**2*a(j4)
+       b(j3) =                           a(j3) + 3.*f   *a(j4)
+       b(j4) =                                           a(j4)
     end do
-
-    trans_mat = trans_mat / N**3
-  end subroutine get_nplane_transformation_matrix
+  end subroutine transform_coeffs_nplanes
 
 
 !!$  !======================================================================

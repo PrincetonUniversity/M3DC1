@@ -395,13 +395,14 @@ contains
 
     real, dimension(coeffs_per_element,nelms) :: dum
     vectype, dimension(coeffs_per_element,nelms) :: zdum
+    vectype, dimension(coeffs_per_element) :: kdum
     integer :: i, coefs
     logical :: ir
     integer :: elms_per_plane, new_plane, old_plane, plane_fac, k
     integer :: offset_in, global_elms_in
     real :: dphi
     logical :: transform
-    vectype, dimension(dofs_per_element, dofs_per_element) :: trans_mat
+!    vectype, dimension(dofs_per_element, dofs_per_element) :: trans_mat
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, 'Reading ', name
 
@@ -437,7 +438,6 @@ contains
        global_elms_in = global_elms / plane_fac
        k = new_plane - old_plane * plane_fac
        dphi = toroidal_period / nplanes_in
-       call get_nplane_transformation_matrix(trans_mat, k, plane_fac, dphi)
        transform = .true.
     else
        coefs = coeffs_per_element
@@ -457,15 +457,15 @@ contains
 #endif
     end if
     f = 0.
-    if(transform) then
-       do i=1, nelms
-          call setavector(i, f, zdum(:,i), trans_mat)
-       end do
-    else
-       do i=1, nelms
+
+    do i=1, nelms
+       if(transform) then
+          call transform_coeffs_nplanes(zdum(:,i),k,plane_fac,dphi,kdum)
+          call setavector(i, f, kdum)
+       else
           call setavector(i, f, zdum(:,i))
-       end do
-    end if
+       end if
+    end do
     
   end subroutine h5r_read_field
 
