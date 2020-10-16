@@ -345,10 +345,12 @@ subroutine calculate_external_fields()
 
   ! boundary condition on psi
   ipsibound = BOUNDARY_NONE
+  !ipsibound = BOUNDARY_DIRICHLET
 
   ! Boundary condition on f
   !ibound = BOUNDARY_NEUMANN
   ibound = BOUNDARY_DIRICHLET
+  !ibound = BOUNDARY_NONE
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
   nelms = local_elements()
@@ -397,16 +399,28 @@ subroutine calculate_external_fields()
 
      ! f equation
      ! ~~~~~~~~~~
-     temp(:,:,2,1) =  0.
-          temp(:,:,2,2) = intxx3(mu79(:,:,OP_DP),nu79(:,:,OP_LP),r2_79) 
+#if defined(USECOMPLEX) || defined(USE3D)
+     temp(:,:,2,1) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
+          -          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
+     !temp(:,:,2,1) = 0.
+#else
+     temp(:,:,2,1) = 0.
+#endif
+     !temp(:,:,2,2) = intxx3(mu79(:,:,OP_DP),nu79(:,:,OP_LP),r2_79) 
           !+ regular*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
      !temp(:,:,2,2) = &
      !     -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79) &
      !     -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79) &
      !     -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) 
      !     + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
+     temp(:,:,2,2) = &
+          -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DRP)) &
+          -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZP)) &
+          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
 
-     temp2(:,2) = intx3(mu79(:,:,OP_DP),r_79,temp79b-bzero)
+     !temp2(:,2) = intx3(mu79(:,:,OP_DP),r_79,temp79b-bzero)
+     temp2(:,2) = intx2(mu79(:,:,OP_DR),temp79a) &
+                + intx2(mu79(:,:,OP_DZ),temp79c) 
         
      temp3 = intx3(mu79(:,:,OP_1),r_79,temp79b)
         
@@ -472,7 +486,7 @@ subroutine calculate_external_fields()
      psi_field(1) = psi_f
      bf_field(1) = bf_f
   end if
-  !p_field(1) = bf_f
+  p_field(1) = bf_f
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)
@@ -601,7 +615,7 @@ subroutine boundary_rmp(rhs, mat)
      i_psi = node_index(rhs, i, 1)
      i_f = node_index(rhs, i, 2)
 
-!     call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
+     !call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
 
 !!$     if(ifbound.eq.1) then
      !call set_normal_bc(i_f, rhs,temp, normal,curv,izonedim,mat)

@@ -50,6 +50,7 @@ contains
 !    call half2full(mn_mode_nyq,mb_nyq,bsupumnc)
 !    call half2full(mn_mode_nyq,mb_nyq,bsupvmnc)
     if(myrank.eq.0) print *, 'half mesh to full'
+    if(myrank.eq.0) print *, 'n_zer = ', n_zer
 
     ! put VMEC data on Zernike basis
     ! radial grid
