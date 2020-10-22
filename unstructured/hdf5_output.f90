@@ -301,6 +301,30 @@ contains
     endif !dataspace created
   end subroutine write_str_attr
 
+  ! read_vec_attr
+  ! ==============
+  subroutine read_vec_attr(parent_id, name, values, len, error)
+    use hdf5
+
+    implicit none
+
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: len
+    real, dimension(len), intent(out)  :: values
+    integer, intent(out) :: error
+
+    integer(HID_T) :: attr_id
+    integer(HSIZE_T), dimension(1) :: dims
+
+    dims(1) = len
+
+    call h5aopen_name_f(parent_id, name, attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_DOUBLE, values, dims, error)
+    call h5aclose_f(attr_id, error)
+  end subroutine read_vec_attr
+
+
   ! write_vec_attr
   ! ==============
   subroutine write_vec_attr(parent_id, name, values, len, error)

@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH --job-name=skeleton
+#SBATCH --partition=debug
+#SBATCH -C knl
+#SBATCH --nodes=1
+#SBATCH --time=00:30:00
+
+cd $CSCRATCH
+mkdir -p skeleton_knl
+cd skeleton_knl
+
+cp -p $SLURM_SUBMIT_DIR/m3dc1_skeleton_knl .
+
+export OMP_NUM_THREADS=1
+export OMP_PLACES=threads
+export OMP_PROC_BIND=spread
+
+# node=8/64=1, c=64/8*4=32
+srun -n 8 -c 32 --cpu_bind=cores ./m3dc1_skeleton_knl > log.skeleton_knl 2>&1
+
+mv log.skeleton_knl $SLURM_SUBMIT_DIR/.

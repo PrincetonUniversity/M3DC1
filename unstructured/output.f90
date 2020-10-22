@@ -698,6 +698,7 @@ subroutine output_mesh(time_group_id, nelms, error)
   integer :: i
 #ifdef USE3D
   integer, parameter :: vals_per_elm = 10
+  real, allocatable :: phi(:)
 #else
   integer, parameter :: vals_per_elm = 8
 #endif
@@ -760,6 +761,16 @@ subroutine output_mesh(time_group_id, nelms, error)
   end do
   call output_field(mesh_group_id, "elements", elm_data, vals_per_elm, &
        nelms, error)
+
+
+#ifdef USE3D
+  allocate(phi(nplanes))
+  do i=1, nplanes
+     call m3dc1_plane_getphi(i-1, phi(i))
+  end do
+  call write_vec_attr(mesh_group_id, "phi", phi, nplanes, error)
+  deallocate(phi)
+#endif
 
   ! Close the group
   call h5gclose_f(mesh_group_id, error)

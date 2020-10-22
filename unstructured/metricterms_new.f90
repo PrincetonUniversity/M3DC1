@@ -7974,12 +7974,13 @@ function b3bfeta(e,f,g,h,i)
      temp = (gam-1.)* &
           (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZPP),h(:,OP_1)) &
           +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRPP),h(:,OP_1)))
-#endif
+
      if(irunaway .gt. 0) then
         temp = temp + 1.*(gam-1.)* &
-                      (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-                     - intx6(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
+                      (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
+                     - intx6(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
      endif
+#endif
   endif
 
   b3bfeta = temp
@@ -8010,8 +8011,8 @@ function b3ffeta(e,f,g,h,i)
           +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DRPP),g(:,OP_DRPP),h(:,OP_1)))
      if(irunaway .gt. 0) then
         temp = temp + 1.*(gam-1.)* &
-               (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZPP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-              - intx6(e(:,:,OP_1),ri_79,f(:,OP_DRPP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
+               (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZPP),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
+              - intx6(e(:,:,OP_1),ri_79,f(:,OP_DRPP),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
      endif
 #endif
   end if
