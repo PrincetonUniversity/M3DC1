@@ -139,7 +139,10 @@ contains
        dofsbz = intx2(mu79(:,:,OP_1),temp79b)
        dofspr = intx2(mu79(:,:,OP_1),temp79c)
        dofsvz = intx2(mu79(:,:,OP_1),temp79d)
-       dofsden = den0*intx1(mu79(:,:,OP_1))
+       ! dofsden = den0*intx1(mu79(:,:,OP_1))
+      temp79e = den0
+      if(linear.eq.0) temp79e = den0*(temp79c/p0_qp)**expn + den_edge
+      dofsden = intx2(mu79(:,:,OP_1),temp79e)
 
 !$OMP CRITICAL
        call vector_insert_block(psi_vec%vec,itri,1,dofsps,VEC_ADD)
