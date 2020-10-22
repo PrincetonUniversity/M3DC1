@@ -1,0 +1,24 @@
+2020-oct-20-jinchen
+
+1.
+to compile and run the skeleton code on cori haswell, use 
+module swap intel/19.0.3.199 intel/19.1.0.166
+-rw------- 1 jinchen mp288  852 Oct 20 10:08 makefile.corihsw
+-rw-rw---- 1 jinchen mp288 450 Oct 20 10:11 batchscript.hsw
+
+2.
+to compile and run the skeleton code on cori knl, use 
+module swap intel/19.0.3.199 intel/19.1.0.166
+-rw------- 1 jinchen mp288  878 Oct 20 10:08 makefile.coriknl
+-rw-rw---- 1 jinchen mp288 448 Oct 20 10:12 batchscript.knl
+
+3.
+to compile and run the skeleton code on the cpu nodes of corigpu, use 
+module purge; module load esslurm;
+module load cuda/10.2.89  pgi/19.10 mvapich2/2.3.2
+salloc -C gpu -N 1 -n 20 -G 8 -A m1759 -t 03:59:59 --exclusive -q special
+-rw------- 1 jinchen mp288 1028 Oct 20 11:22 makefile.coricpu
+-rw-rw---- 1 jinchen mp288 495 Oct 20 11:30 batchscript.coricpu
+
+4.
+to compare the results, please refer to file "README" created by Nate.

@@ -1,0 +1,36 @@
+BIN = m3dc1_skeleton
+
+#F90 = mpif90
+#LD = mpif90
+F90 = mpiifort
+LD = mpiifort
+
+#F90FLAGS = -Wall -fimplicit-none -O3
+#LDFLAGS = 
+F90FLAGS = -g -debug inline-debug-info -xMIC-AVX512 -implicitnone -r8 -w -O3 -align array64byte -qopt-report=5 -qopt-report-phase=vec,loop -ipo -qopenmp
+LDFLAGS = -g -qopenmp
+
+#LIB = -llapack -lblas
+#INCLUDE = 
+LIB = -L${MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -ldl
+INCLUDE = 
+
+DEFS = -DUSE3D -DMAX_PTS=60
+
+OBJS = etimes.o math.o element.o mesh.o nintegrate.o field.o \
+	m3dc1_data.o m3dc1_nint.o matdef.o main.o
+
+.PHONY : clean dist
+
+$(BIN) : $(OBJS)
+	$(LD) $(LDFLAGS) $(LIB) $(OBJS) -o $@
+
+dist :
+	tar c *.F90 README makefile > m3dc1_skeleton.tar
+	gzip m3dc1_skeleton.tar
+
+clean : 
+	rm -fr *~ *.o *.mod $(BIN)
+
+%.o : %.F90
+	$(F90) -c -fdefault-real-8 $(INCLUDE) $(F90FLAGS) $(DEFS) $< -o $@

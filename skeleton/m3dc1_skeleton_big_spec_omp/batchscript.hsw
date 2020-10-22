@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH --job-name=skeleton
+#SBATCH --partition=debug
+#SBATCH -C haswell
+#SBATCH --nodes=1
+#SBATCH --time=00:30:00
+
+cd $CSCRATCH
+mkdir -p skeleton_hsw
+cd skeleton_hsw
+
+cp -p $SLURM_SUBMIT_DIR/m3dc1_skeleton_hsw .
+
+export OMP_NUM_THREADS=1
+export OMP_PLACES=threads
+export OMP_PROC_BIND=spread
+
+# node=8/32=1, c=32/8*2=8
+srun -n 8 -c 8 --cpu_bind=cores ./m3dc1_skeleton_hsw > log.skeleton_hsw 2>&1
+
+mv log.skeleton_hsw $SLURM_SUBMIT_DIR/.
