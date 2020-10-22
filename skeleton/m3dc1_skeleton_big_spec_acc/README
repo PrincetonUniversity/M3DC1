@@ -1,0 +1,12 @@
+    For OpenACC mode, each mpi task will offloading an OpemACC kernel onto corresponding GPU.
+
+    cuda/10.1.105   
+    pgi/18.10   
+    spectrum-mpi/10.3.0.0-20190419
+
+    make USEOPENACC=1
+
+    bsub -P GEN127 -nnodes 1 -W 30 -alloc_flags "gpumps" -Is /bin/bash
+    jsrun -r1 -n1 -c21 -g4 -a4 ./m3dc1_skeleton_acc
+    Resource: GPU 4 <==> MPI CPUs 4
+

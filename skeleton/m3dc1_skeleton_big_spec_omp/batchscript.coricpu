@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH --account=m1759
+#SBATCH --job-name=skeleton
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=8
+#SBATCH -C gpu
+#SBATCH -G 8
+#SBATCH --time=00:30:00
+#SBATCH -o C1stdout
+
+
+cd $CSCRATCH
+mkdir -p skeleton_gpu
+cd skeleton_gpu
+
+cp -p $SLURM_SUBMIT_DIR/m3dc1_skeleton_gpu .
+
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/common/software/sles15_cgpu/gcc/8.3.0/lib64
+
+# node=8/32=1, c=32/8*2=8
+srun -n 8 ./m3dc1_skeleton_gpu > log.skeleton_gpu 2>&1
+
+mv log.skeleton_gpu $SLURM_SUBMIT_DIR/.

@@ -1,0 +1,37 @@
+This directory contains the source code and makefile for a skeleton
+version of m3dc1.  Building requires linking to the blas and mpi
+libraries.  This version differs from the main version of m3dc1 in
+many ways, including:
+* There is no time-step loop for advancing time-dependent equations
+* The matrix being calculated is for a vastly simpler equation
+* The matrix is never actually solved (or even stored)
+
+The skeleton version does the following:
+1. Loads an unstructured mesh and partitions it among the processes
+2. Allocates a few distributed arrays and initializes the data
+3. Computes matrix elements using the data in the distributed arrays
+
+Step 3 contains the numerically intesive work.  The most intensive
+steps are (probably) the field interpolations (in the eval_ops
+subroutine defined in m3dc1_nint.F90) and the numerical integrations
+(in int0, int1, int2, etc. defined in nintegrate.F90).  In this
+skeleton version, the relative time spent in the numerical
+integrations is probably smaller than in the full code, because the
+full code performes significantly (hundreds) more numerical
+integrations per timestep than the skeleton version.
+
+This version is parallelized; however, since the matrix is never
+stored or solved, no communication among processes ever takes place
+(except for some trivial communication at the end to add together
+results final from the separate processes.
+
+The number of mesh elements can be changed by changing the value of
+"mesh_size" in mesh.F90.  The number of nodes will be mesh_size^2, and
+the number of elements will be 2*(mesh_size-1)^2.
+
+Two quantities are calculated in the skeleton code: the "current" and
+"volume".  The correct results are:
+  volume  = 16*pi =  50.265482457436691
+  current = 64*pi = 201.06192982974676
+These results should be independent of mesh size and processor count
+(although "current" might deviate at low mesh resolutions).
