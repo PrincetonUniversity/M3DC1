@@ -486,8 +486,10 @@ subroutine calculate_external_fields()
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)
+  call destroy_vector(bf_vec)
   call destroy_vector(p_vec)
   call destroy_mat(br_mat)
+  call destroy_mat(bf_mat)
 
   ! Add fields from TF shift / tilt
   ! This is separated because its solution has psi=0.
