@@ -401,8 +401,10 @@ subroutine calculate_external_fields()
 !          -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) &
 !          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
 
-#if defined(USECOMPLEX) || defined(USE3D)
+#if defined(USE3D)
      temp2(:,2) = -intx3(mu79(:,:,OP_DP),r_79,temp79b)
+#elif defined(USECOMPLEX) 
+     temp2(:,2) = intx3(mu79(:,:,OP_1),r_79,temp79b)*rfac
 #else
      temp2(:,2) = 0.
 #endif
