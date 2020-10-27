@@ -137,7 +137,7 @@ contains
           call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
                NV_I_MATRIX,  0)
           if(i3d.eq.1 .and. numvar.ge.2) then
-             call create_newvar_matrix(mass_mat_rhs_bfp, NV_NOBOUND, &
+             call create_newvar_matrix(mass_mat_rhs_bfp, NV_DCBOUND, &
                NV_IP_MATRIX,  0)
           endif
        else if(ifbound.eq.2) then 
