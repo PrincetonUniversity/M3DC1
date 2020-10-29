@@ -1003,6 +1003,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call write_field(group_id, "psi_ext", psi_ext, nelms, error)
      call write_field(group_id, "I_ext", bz_ext, nelms, error)    
      call write_field(group_id, "f_ext", bf_ext, nelms, error)
+     call write_field(group_id, "fp_ext", bfp_ext, nelms, error)
   endif
 
   if(ikprad.eq.1) then

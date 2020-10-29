@@ -20,7 +20,7 @@ module time_step_unsplit
   type(field_type), private :: den_v
   type(field_type), private ::   p_v
   type(field_type), private ::   e_v
-  type(field_type), private ::  bf_v
+  type(field_type), private ::  bfp_v
 
   integer, private :: vecsize_phi
 
@@ -142,7 +142,7 @@ contains
     end if
 
     if(imp_bf.eq.1) then
-       call associate_field(bf_v, phi_vec, bf_i)
+       call associate_field(bfp_v, phi_vec, bf_i)
     end if
     
     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
@@ -206,7 +206,7 @@ subroutine import_time_advance_vectors_unsplit
   end if
 
   if(idens.eq.1) den_v = den_field(1)
-  if(imp_bf.eq.1) bf_v = bf_field(1)
+  if(imp_bf.eq.1) bfp_v = bfp_field(1)
 end subroutine import_time_advance_vectors_unsplit
 
 
@@ -254,7 +254,7 @@ subroutine export_time_advance_vectors_unsplit
   end if
 
   if(idens.eq.1) den_field(1) = den_v
-  if(imp_bf.eq.1) bf_field(1) = bf_v
+  if(imp_bf.eq.1) bfp_field(1) = bfp_v
 end subroutine export_time_advance_vectors_unsplit
 
 
@@ -298,21 +298,21 @@ subroutine step_unsplit(calc_matrices)
      ! Include linear f terms
      if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
         ! b2vector = r15 * bf(n)
-        call matvecmult(o1_mat,bf_field(1)%vec,b2_phi)
+        call matvecmult(o1_mat,bfp_field(1)%vec,b2_phi)
         call add(b1_phi, b2_phi)
      endif
   end if
    
   ! Insert boundary conditions
   if(calc_matrices.eq.1) then
-     call boundary_mag(b1_phi, psi_v, bz_v, bf_v, e_v, s1_mat)
+     call boundary_mag(b1_phi, psi_v, bz_v, bfp_v, e_v, s1_mat)
      call boundary_vel(b1_phi, u_v, vz_v, chi_v, s1_mat)
      if(idens.eq.1) call boundary_den(b1_phi, den_v, s1_mat)
      if(ipres.eq.1 .and. numvar.ge.3) call boundary_pe(b1_phi, pe_v, s1_mat)
      if(ipres.eq.1 .or. numvar.ge.3) call boundary_p(b1_phi, p_v, s1_mat)
      call finalize(s1_mat)
   else
-     call boundary_mag(b1_phi, psi_v, bz_v, bf_v, e_v)
+     call boundary_mag(b1_phi, psi_v, bz_v, bfp_v, e_v)
      call boundary_vel(b1_phi, u_v, vz_v, chi_v)
      if(idens.eq.1) call boundary_den(b1_phi, den_v)
      if(ipres.eq.1 .and. numvar.ge.3) call boundary_pe(b1_phi, pe_v)

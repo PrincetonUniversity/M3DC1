@@ -188,7 +188,7 @@ contains
 #if defined(USE3D) || defined(USECOMPLEX)
     temp79b = temp79b &
          + ri2_79*bztx79(:,OP_1)*f(:,OP_DP) &
-         - (bftx79(:,OP_DZP)*f(:,OP_DZ) + bftx79(:,OP_DRP)*f(:,OP_DR))
+         - (bfptx79(:,OP_DZ)*f(:,OP_DZ) + bfptx79(:,OP_DR)*f(:,OP_DR))
 #endif
 
     if(surface_int) then
@@ -199,8 +199,8 @@ contains
 #if defined(USE3D) || defined(USECOMPLEX)
        temp = temp &
             + intx5(e(:,:,OP_DP),ri2_79,temp79a,temp79b,bztx79(:,OP_1)) &
-            - intx4(e(:,:,OP_DZ),temp79a,temp79b,bftx79(:,OP_DZP)) &
-            - intx4(e(:,:,OP_DR),temp79a,temp79b,bftx79(:,OP_DRP))
+            - intx4(e(:,:,OP_DZ),temp79a,temp79b,bfptx79(:,OP_DZ)) &
+            - intx4(e(:,:,OP_DR),temp79a,temp79b,bfptx79(:,OP_DR))
 #endif
     end if
     
@@ -232,7 +232,7 @@ contains
 #if defined(USE3D) || defined(USECOMPLEX)
     temp79b = temp79b &
          + ri2_79*bztx79(:,OP_1)*g(:,OP_DP) &
-         - (bftx79(:,OP_DZP)*g(:,OP_DZ) + bftx79(:,OP_DRP)*g(:,OP_DR))
+         - (bfptx79(:,OP_DZ)*g(:,OP_DZ) + bfptx79(:,OP_DR)*g(:,OP_DR))
 #endif
 
     if(surface_int) then
@@ -243,8 +243,8 @@ contains
 #if defined(USE3D) || defined(USECOMPLEX)
        temp = temp &
             + intx5(e(:,:,OP_DP),ri2_79,temp79a,temp79b,bztx79(:,OP_1)) &
-            - intx4(e(:,:,OP_DZ),temp79a,temp79b,bftx79(:,OP_DZP)) &
-            - intx4(e(:,:,OP_DR),temp79a,temp79b,bftx79(:,OP_DRP))
+            - intx4(e(:,:,OP_DZ),temp79a,temp79b,bfptx79(:,OP_DZ)) &
+            - intx4(e(:,:,OP_DR),temp79a,temp79b,bfptx79(:,OP_DR))
 #endif
     end if
     

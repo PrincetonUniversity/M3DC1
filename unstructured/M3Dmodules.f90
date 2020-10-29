@@ -520,7 +520,7 @@ module arrays
   vectype, dimension(dofs_per_node) :: chi1_l, chi0_l
   vectype, dimension(dofs_per_node) :: psi1_l, psi0_l
   vectype, dimension(dofs_per_node) ::  bz1_l,  bz0_l
-  vectype, dimension(dofs_per_node) ::  bf1_l,  bf0_l
+  vectype, dimension(dofs_per_node) ::  bfp1_l,  bfp0_l
   vectype, dimension(dofs_per_node) ::  e1_l,  e0_l
   vectype, dimension(dofs_per_node) ::  pe1_l,  pe0_l
   vectype, dimension(dofs_per_node) :: den1_l, den0_l
