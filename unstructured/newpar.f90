@@ -805,7 +805,7 @@ subroutine derived_quantities(ilin)
   end if
 
   ! toroidal derivative of vector potential stream function
-     if(i3d.eq.1 .and. numvar.ge.2) then
+     if(i3d.eq.1 .and. numvar.ge.2 .and. ilin.eq.1) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  fp", ilin
         call solve_newvar1(bf_mat_lhs,bfp_field(ilin),mass_mat_rhs_bfp, &
              bz_field(ilin), bfp_field(ilin))
