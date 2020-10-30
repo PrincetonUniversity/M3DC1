@@ -1212,6 +1212,10 @@ subroutine validate_input
      if(myrank.eq.0) print *, "itemp=1 not allowed with ipressplit=0"
      call safestop(1)
   endif
+   if(ipressplit.eq.1 .and. numvar.ne.3 ) then
+      if(myrank.eq.0) print *, "ipressplit=1 not allowed with numvar < 3"
+      call safestop(1)
+   end if
 
   if(imp_temp.eq.1) then 
      if(ipres.eq.0 .and. numvar.lt.3) then
