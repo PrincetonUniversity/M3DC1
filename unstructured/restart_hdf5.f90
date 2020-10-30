@@ -3,6 +3,7 @@ module restart_hdf5
 
   integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
   integer, private :: ikprad_in, kprad_z_in, ipellet_in
+  real, private, allocatable :: phi_in(:)
 contains
   
   subroutine rdrestart_hdf5()
@@ -73,6 +74,13 @@ contains
 
     call h5gopen_f(time_id, "mesh", mesh_id, error)
     call read_int_attr(mesh_id, "nplanes", nplanes_in, error)
+    if(version_in.ge.34) then
+       allocate(phi_in(nplanes_in))
+       call read_vec_attr(mesh_id, "phi", phi_in, nplanes_in, error)
+       if(myrank.eq.0) then
+          print *, 'Read phi_in = ', phi_in
+       end if
+    end if
     call h5gclose_f(mesh_id, error)
 
     call read_int_attr(root_id, "3d", i3d_in, error)
@@ -266,12 +274,15 @@ contains
          u_field(0) = 0.
        endif
     end if
+
+    if(allocated(phi_in)) deallocate(phi_in)
   end subroutine rdrestart_hdf5
 
 
   subroutine read_fields(time_group_id, equilibrium, error)
     use basic
     use hdf5
+    use h5lt
     use mesh_mod
     use field
     use arrays
@@ -301,6 +312,15 @@ contains
 
     call h5gopen_f(time_group_id, "fields", group_id, error)
 
+    ! check if fp is present
+    if(ilin.eq.1 .and. ifin.eq.1) then
+       irestart_fp = h5ltfind_dataset_f(group_id, "fp")
+       if(irestart_fp.eq.1) then
+          if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is present at restart"
+       else if(irestart_fp.eq.0) then
+          if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is absent at restart"
+       endif
+    endif
 
     call h5r_read_field(group_id, "I",    bz_field(ilin), nelms, error)
 
@@ -329,10 +349,16 @@ contains
        if(ifin.eq.1) then
           call h5r_read_field(group_id, "f_plasma", bf_field(ilin), nelms, error)
        end if
+       if(irestart_fp.eq.1) then
+          call h5r_read_field(group_id, "fp_plasma", bfp_field(ilin), nelms, error)
+       end if
     else
        call h5r_read_field(group_id, "I", bz_field(ilin), nelms, error)
        if(ifin.eq.1) then
           call h5r_read_field(group_id, "f", bf_field(ilin), nelms, error)
+       end if
+       if(irestart_fp.eq.1) then
+          call h5r_read_field(group_id, "fp", bfp_field(ilin), nelms, error)
        end if
     end if
 
@@ -340,6 +366,9 @@ contains
        call h5r_read_field(group_id, "psi_ext", psi_ext, nelms, error)
        call h5r_read_field(group_id,   "I_ext",  bz_ext, nelms, error)
        call h5r_read_field(group_id,   "f_ext",  bf_ext, nelms, error)       
+       if(irestart_fp.eq.1) then
+          call h5r_read_field(group_id, "fp_ext", bfp_ext, nelms, error)
+       end if
     end if
 
     if(jadv.eq.0) then
@@ -400,7 +429,7 @@ contains
     logical :: ir
     integer :: elms_per_plane, new_plane, old_plane, plane_fac, k
     integer :: offset_in, global_elms_in
-    real :: dphi, shift
+    real :: dphi, shift, phi_new
     logical :: transform
 !    vectype, dimension(dofs_per_element, dofs_per_element) :: trans_mat
 
@@ -433,14 +462,19 @@ contains
        plane_fac = nplanes / nplanes_in
        elms_per_plane = global_elms / nplanes
        new_plane = offset / elms_per_plane
-       old_plane = new_plane / plane_fac
-       offset_in = offset - elms_per_plane*(new_plane - old_plane)
        global_elms_in = global_elms / plane_fac
-       ! TODO:
-       !   dphi should be updated to reflect actual width of original element
-       dphi = toroidal_period / nplanes_in
-       k = new_plane - old_plane * plane_fac
-       shift = k*dphi / plane_fac
+
+       if(version_in.lt.34) then
+          old_plane = new_plane / plane_fac
+          dphi = toroidal_period / nplanes_in
+          k = new_plane - old_plane * plane_fac
+          shift = k*dphi / plane_fac
+       else
+          call m3dc1_plane_getphi(new_plane, phi_new)
+          call find_plane_and_shift(nplanes_in, phi_in, phi_new, old_plane, shift)
+          old_plane = old_plane - 1    ! switch to 0-based indexing
+       end if
+       offset_in = offset - elms_per_plane*(new_plane - old_plane)
        transform = .true.
     else
        coefs = coeffs_per_element
@@ -471,5 +505,32 @@ contains
     end do
     
   end subroutine h5r_read_field
+
+  subroutine find_plane_and_shift(nplanes_old, phi_old, phi_new, iplane, shift)
+    use mesh_mod
+    implicit none
+
+    integer, intent(in) :: nplanes_old
+    real, intent(in), dimension(nplanes_old) :: phi_old
+    real, intent(in) :: phi_new
+    integer, intent(out) :: iplane
+    real, intent(out) :: shift
+    real :: tol
+
+    integer :: i
+
+    tol = toroidal_period*1e-5
+
+    iplane = -1
+    do i=1, nplanes_old-1
+       if(phi_new.ge.phi_old(i)-tol .and. phi_new.lt.phi_old(i+1)-tol) then
+          iplane = i
+          exit
+       end if
+    end do
+
+    if(iplane.lt.0) iplane=nplanes_old
+    shift = phi_new - phi_old(iplane)
+  end subroutine find_plane_and_shift
 
 end module restart_hdf5
