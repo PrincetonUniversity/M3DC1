@@ -383,6 +383,7 @@ module basic
   integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
   integer :: ibh_harmonics  ! number of Fourier harmonics of magnetic field perturbation to be calculated and output
   integer :: ifout         ! 1 = output f field
+  integer :: irestart_fp   ! -1 = default; 1 = fp present at restart; 0 = absent; 
   integer :: itemp_plot    ! 1 =output vdotgradt, deldotq_perp, deldotq_par,eta_jsq
   integer :: ibdgp         ! option to make partial plots of b dot grad potential
   integer :: iveldif         ! option to make partial plots of V x B - grad(potential)
