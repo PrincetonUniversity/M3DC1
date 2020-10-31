@@ -242,9 +242,7 @@ function v1hchif(e,f,g)
      temp = 2.*intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DZ),g(:,OP_DRP))  &
           - 2.*intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ),g(:,OP_DZP))  &
           +    intx4(e(:,:,OP_DR),ri2_79,f(:,OP_GSP),g(:,OP_DR))  &
-          +    intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_GSP),g(:,OP_DZ))  &
-          - 2.*intx4(e(:,:,OP_DZ),ri4_79,g(:,OP_DR),f(:,OP_DRP))  &
-          + 2.*intx4(e(:,:,OP_DR),ri4_79,g(:,OP_DZ),f(:,OP_DRP))
+          +    intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_GSP),g(:,OP_DZ))
   end if
   v1hchif = temp
 #else

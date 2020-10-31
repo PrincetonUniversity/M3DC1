@@ -9165,12 +9165,12 @@ function p1psifkappar(e,f,g,h,i,j,k)
 !!$     temp79a = k(:,OP_1)*ri_79*e(:,OP_1)* &
 !!$          (norm79(:,2)*f(:,OP_DR) - norm79(:,1)*f(:,OP_DZ))*j(:,OP_1)
 !!$     temp79b = -k(:,OP_1)*ri_79*e(:,OP_1)* &
-!!$          (norm79(:,2)*g(:,OP_DZP) + norm79(:,1)*g(:,OP_DRP))*j(:,OP_1)
+!!$          (norm79(:,2)*g(:,OP_DZ) + norm79(:,1)*g(:,OP_DR))*j(:,OP_1)
 !!$
-!!$     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
-!!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
-!!$          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
-!!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) &
+!!$     temp = int4(temp79a,g(:,OP_DZ),h(:,OP_DZ),i(:,OP_1 )) &
+!!$          + int4(temp79a,g(:,OP_DR),h(:,OP_DR),i(:,OP_1 )) &
+!!$          + int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DZ)) &
+!!$          + int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DR)) &
 !!$          + int4(temp79b,f(:,OP_DR ),h(:,OP_DZ),i(:,OP_1 )) &
 !!$          - int4(temp79b,f(:,OP_DZ ),h(:,OP_DR),i(:,OP_1 )) &
 !!$          + int4(temp79b,f(:,OP_DR ),h(:,OP_1 ),i(:,OP_DZ)) &
@@ -9246,8 +9246,8 @@ function p1psifpnkappar(e,f,g,h,i,fac1,fac2)
      temp = 0.
 !!$     temp = fac1*int5(temp79a,temp79b,e(:,OP_1),norm79(:,1),f(:,OP_DZ)) &
 !!$          - fac1*int5(temp79a,temp79b,e(:,OP_1),norm79(:,2),f(:,OP_DR)) &
-!!$          - fac2*int5(temp79a,temp79c,e(:,OP_1),norm79(:,1),g(:,OP_DRP)) &
-!!$          - fac2*int5(temp79a,temp79c,e(:,OP_1),norm79(:,2),g(:,OP_DZP))
+!!$          - fac2*int5(temp79a,temp79c,e(:,OP_1),norm79(:,1),g(:,OP_DR)) &
+!!$          - fac2*int5(temp79a,temp79c,e(:,OP_1),norm79(:,2),g(:,OP_DZ))
   else
      temp = fac1*intx4(e(:,:,OP_DZ),temp79a,f(:,OP_DR),temp79b) &
           - fac1*intx4(e(:,:,OP_DR),temp79a,f(:,OP_DZ),temp79b) &
@@ -9316,7 +9316,7 @@ function p1bfkappar(e,f,g,h,i,j,k)
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
 !!$     temp79a = -ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*f(:,OP_1)* &
-!!$          (norm79(:,1)*g(:,OP_DRP) + norm79(:,2)*g(:,OP_DZP))
+!!$          (norm79(:,1)*g(:,OP_DR) + norm79(:,2)*g(:,OP_DZ))
 !!$
 !!$     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
 !!$          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
@@ -9416,8 +9416,8 @@ function p1bfpnkappar(e,f,g,h,i,fac1,fac2)
   if(surface_int) then
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
-!!$     temp = -fac2*intx5(e(:,:,OP_1),temp79a,temp79e,norm79(:,1),g(:,OP_DRP)) &
-!!$          -  fac2*intx5(e(:,:,OP_1),temp79a,temp79e,norm79(:,2),g(:,OP_DZP))
+!!$     temp = -fac2*intx5(e(:,:,OP_1),temp79a,temp79e,norm79(:,1),g(:,OP_DR)) &
+!!$          -  fac2*intx5(e(:,:,OP_1),temp79a,temp79e,norm79(:,2),g(:,OP_DZ))
   else
      ! d(temp79a)/dphi
      temp79b = ri2_79 * &
@@ -9496,12 +9496,12 @@ function p1ffkappar(e,f,g,h,i,j,k)
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
 !!$     temp79a =  k(:,OP_1)*e(:,OP_1)* &
-!!$          (norm79(:,2)*f(:,OP_DZP) + norm79(:,1)*f(:,OP_DRP))*j(:,OP_1)
+!!$          (norm79(:,2)*f(:,OP_DZ) + norm79(:,1)*f(:,OP_DR))*j(:,OP_1)
 !!$
-!!$     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
-!!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
-!!$          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
-!!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) 
+!!$     temp = int4(temp79a,g(:,OP_DZ),h(:,OP_DZ),i(:,OP_1 )) &
+!!$          + int4(temp79a,g(:,OP_DR),h(:,OP_DR),i(:,OP_1 )) &
+!!$          + int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DZ)) &
+!!$          + int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DR)) 
   else
      temp79a = -k(:,OP_1)*j(:,OP_1)*i(:,OP_1)
      temp79b = -k(:,OP_1)*j(:,OP_1)*h(:,OP_1)
