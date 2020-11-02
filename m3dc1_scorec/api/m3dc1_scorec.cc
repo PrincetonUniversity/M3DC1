@@ -3014,6 +3014,30 @@ int set_adapt_p (double * pp)
   return M3DC1_SUCCESS;
 }
 
+//// Function to get Field (Dummy For now- This function will be provided by Brendan)
+ 
+int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1)
+{
+        double average = aver;
+        double lower = boundingbox[0];
+        double upper = boundingbox[1];
+        double x = (pos[0] - lower)/(upper - lower);
+        double sizeFactor = 2;
+        if (x < 0.5)
+                sizeFactor = 5;
+        if (x >= 0.5 && x < 0.8)
+                sizeFactor = 0.5;
+        size_h1 = average;
+        size_h2 = average/sizeFactor;
+        dir_1[0] = 1.0;
+        dir_1[1] = 0.0;
+        dir_1[2] = 0.0;
+
+//      std::cout << " Size " << size_h1 << " , " << size_h2 << "\n";
+        return M3DC1_SUCCESS;
+}
+
+
 // Arguments of the function
 // double* node_error: Node error data coming from the function node_error_3d_mesh()
 // int num_planes: User defined number of planes

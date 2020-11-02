@@ -200,6 +200,10 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
 
+// Anistropic 2D Function for dummy field
+int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
+
+
 // 3D Adaptation
 int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);
 int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node, int * option);
