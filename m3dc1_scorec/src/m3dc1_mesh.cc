@@ -28,7 +28,6 @@ using namespace apf;
 #ifdef _OPENMP
 #include "omp.h"
 #endif
-using namespace apf;
 
 void delete_mesh_array()
 {
@@ -149,78 +148,6 @@ void set_remote(Mesh2* m, MeshEntity* e, int p, MeshEntity* r)
   }
   else
     m->addRemote(e, p, r);
-}
-
-// **********************************************
-bool is_ent_original(Mesh2* mesh, MeshEntity* e)
-// **********************************************
-{
-  if (mesh->isGhost(e)) return false;
-
-  return (PCU_Comm_Self() == get_ent_ownpartid(mesh, e));
-}
-
-// **********************************************
-int get_ent_ownpartid(Mesh2* mesh, MeshEntity* e)
-// **********************************************
-{
-  int own_partid;
-
-  if (mesh->hasTag(e, m3dc1_mesh::instance()->own_partid_tag))
-    mesh->getIntTag(e, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
-  else
-    own_partid=mesh->getOwner(e);
-  return own_partid;
-}
-
-// **********************************************
-MeshEntity* get_ent_owncopy(Mesh2* mesh, MeshEntity* e)
-// **********************************************
-{
-  if (!(mesh->isShared(e))) // internal ent
-    return e;
-
-  int own_partid = get_ent_ownpartid(mesh, e);
-  if (own_partid==PCU_Comm_Self()) return e;
-
-  if (mesh->isShared(e)) 
-  {
-    Copies remotes;
-    mesh->getRemotes(e,remotes);
-    return remotes[own_partid];
-  }
-  if (mesh->isGhost(e))
-  {
-    Copies ghosts;
-    mesh->getGhosts(e,ghosts);
-    return ghosts[own_partid];
-  }
-  assert(0); // this should not called
-  return NULL;
-}
-
-// *********************************************************
-int get_ent_localid (Mesh2* mesh, MeshEntity* e)
-// *********************************************************
-{
-  if (mesh->hasTag(e,m3dc1_mesh::instance()->local_entid_tag))
-  {
-    int local_id;
-    mesh->getIntTag(e, m3dc1_mesh::instance()->local_entid_tag, &local_id);
-    assert(local_id== getMdsIndex(mesh, e));
-  }
-  return getMdsIndex(mesh, e);
-}
-
-// *********************************************************
-int get_ent_globalid(apf::Mesh2* m, apf::MeshEntity* e)
-{
-// *********************************************************
-  MeshTag* tag = m->findTag("global_id");
-  assert(m->hasTag(e, tag));
-  int id;
-  m->getIntTag(e, tag, &id);
-  return id;
 }
 
 // m3dc1_mesh
@@ -982,7 +909,7 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 {
   int local_partid=PCU_Comm_Self();
 
-  changeMdsDimension(mesh, 3);
+//  changeMdsDimension(mesh, 3);
 
   // assign uniq id to part bdry entities
   MeshTag* partbdry_id_tag = mesh->createIntTag("m3dc1_pbdry_globid", 1);
@@ -1032,7 +959,11 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 // update global ent counter
   MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+  apf::writeVtkFiles("2.5d",m3dc1_mesh::instance()->mesh);
+
+
   // construct 3D model
+    changeMdsDimension(mesh, 3);
   m3dc1_model::instance()->create3D();
     
   // construct 3D mesh

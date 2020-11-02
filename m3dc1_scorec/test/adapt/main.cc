@@ -60,7 +60,15 @@ int main( int argc, char* argv[])
     return 0;
   }
   
-  
+  if (num_plane==1)
+  {
+    apf::writeVtkFiles("2d",m3dc1_mesh::instance()->mesh);
+    PetscFinalize();
+    m3dc1_scorec_finalize();
+    MPI_Finalize();
+    return 0;
+  }  
+
   // Set input for m3dc1_mesh_build3d()
   int num_field = 0;
   int field_id = 0;
@@ -68,7 +76,12 @@ int main( int argc, char* argv[])
  
   if (num_plane>1)
     m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);    // Build 3d
+  apf::writeVtkFiles("3d",m3dc1_mesh::instance()->mesh);
 
+  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
+
+
+  m3dc1_mesh::instance()->remove_wedges();
   pumi_mesh_print(m3dc1_mesh::instance()->mesh);
  
   double center[3]={1.75, 0, 0.};  

@@ -78,12 +78,12 @@ int main( int argc, char* argv[])
 
   // printStats (Mesh m): print global mesh entity counts per dimension
   m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);	// Build 3d
-  
+  apf::writeVtkFiles("3d",m3dc1_mesh::instance()->mesh); 
   pumi_mesh_print(m3dc1_mesh::instance()->mesh);
 
   m3dc1_mesh::instance()->remove_wedges();
   pumi_mesh_print(m3dc1_mesh::instance()->mesh);
-
+  apf::writeVtkFiles("2.5d",m3dc1_mesh::instance()->mesh);
   // Setup the parameters needed to calculate the node error
   // First we need to find element_error_sum for get_node_error_from_elm()
 
