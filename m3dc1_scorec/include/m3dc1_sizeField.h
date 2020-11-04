@@ -131,4 +131,74 @@ class Vortex : public ma::AnisotropicFunction
     double modelLen;
     ma::Vector centroid;
 };
+
+// Set the Size Field based on Frames and Size Vector for anisotropic Adaptation
+
+class SetSizeField : public ma::AnisotropicFunction
+{
+  public:
+    SetSizeField(ma::Mesh* m)
+    {
+        mesh = m;
+        average = ma::getAverageEdgeLength(m);
+        ma::getBoundingBox(m,lower,upper);
+    }
+    virtual void getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& H)
+    {
+        ma::Vector p = ma::getPosition(mesh,v);
+        double pos[3] = {p[0],p[1],0.0};
+        double box[2] = {lower[0],upper[0]};
+        double dir_1[3];
+
+        std::cout << " Lower & Upper: " << lower[0] << " , " << upper[0] << "\n";
+        std::cout << "Position Coordinates : " << pos[0] << " , " << pos[1] << "\n";
+        std::cout << "Average = " << average <<"\n";
+
+        double aver = average;
+        double size_h1;
+        double size_h2;
+        int field_success = get_field (aver ,box, pos, size_h1,size_h2, dir_1);
+
+        // Calculate the second unit vector
+        double a, b;
+        double frac_1, frac_2;
+        frac_1 = (dir_1[0])*(dir_1[0]);
+        frac_2 = (dir_1[0])*(dir_1[0]) + (dir_1[1])*(dir_1[1]);
+
+
+        b = sqrt (frac_1/frac_2);
+        a = -(dir_1[1]*b)/dir_1[0];
+
+        double mag = sqrt (a*a + b*b);
+        double dir_2[3];
+        dir_2[0] = a /mag;
+        dir_2[1] = b /mag;
+        dir_2[2] = 0.0;
+
+        ma::Vector h(size_h1, size_h2,size_h2);
+
+        R[0][0]=dir_1[0];
+        R[0][1]=dir_1[1];
+        R[0][2]=0.0;
+
+        R[1][0]= dir_2[0];
+        R[1][1]= dir_2[1];
+        R[1][2]=0.0;
+
+        R[2][0]=0;
+        R[2][1]=0;
+        R[2][2]=1.;
+
+	H = h;
+	
+  }
+  private:
+        ma::Mesh* mesh;
+        double average;
+        ma::Vector lower;
+        ma::Vector upper;
+
+};
+
+
 #endif

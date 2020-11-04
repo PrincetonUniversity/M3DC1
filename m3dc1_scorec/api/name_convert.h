@@ -33,7 +33,9 @@
 #define m3dc1_ent_getglobalid m3dc1_ent_getglobalid_
 #define m3dc1_ent_getgeomclass m3dc1_ent_getgeomclass_
 #define m3dc1_ent_getadj m3dc1_ent_getadj_
+#define m3dc1_ent_getglobaladj m3dc1_ent_getglobaladj_
 #define m3dc1_ent_getnumadj m3dc1_ent_getnumadj_
+#define m3dc1_ent_getnumglobaladj m3dc1_ent_getnumglobaladj_
 #define m3dc1_ent_getownpartid m3dc1_ent_getownpartid_
 #define m3dc1_ent_isowner m3dc1_ent_ismine_
 #define m3dc1_ent_isghost m3dc1_ent_isghost_

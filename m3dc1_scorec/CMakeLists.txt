@@ -65,6 +65,7 @@ set(SOURCES
   src/m3dc1_ls.cc
   src/m3dc1_field.cc
   src/m3dc1_mesh.cc
+  src/m3dc1_entity.cc
   src/m3dc1_sizeField.cc
   src/PolyNomial.cc
   src/ReducedQuinticImplicit.cc

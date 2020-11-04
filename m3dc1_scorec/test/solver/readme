@@ -25,7 +25,6 @@ For instance,
 		   -malloc_log to see memmory usage by petsc
 
 [Examples]
-/usr/local/openmpi/latest/bin/mpirun  -np 20 ./solver ../AnalyticModel ../1K-4part/part.smb 5 -on_error_abort
+/usr/local/openmpi/latest/bin/mpirun -np 8 ./solver ../adapt_3d/tilt.txt ../adapt_3d/tilt.smb 4
 /usr/local/openmpi/latest/bin/mpirun -np 64 ./solver ../nate-32part/diiid0.05.txt ../nate-32part/mesh.smb 2 -on_error_abort
-/usr/local/openmpi/latest/bin/mpirun -np 72 ./solver ../2d-72p/AnalyticModel ../2d-72p/part.smb 1  -on_error_abort
 

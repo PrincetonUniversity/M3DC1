@@ -87,9 +87,17 @@ int m3dc1_mesh_search(int* initial_simplex, double* final_position, int* final_s
 int m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);
 int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id, 
 		            int* /* out */ geom_class_dim, int* /* out */ geom_class_id); 
-int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim,
-                      int* /* out */ adj_ent, int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent);
+int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ entids, int* /* in */ adj_dim,
+                      int* /* out */ adj_ent, int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size);
 int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim, int* /* out */ num_adj_ent);
+
+// mesh-level operator with communications 
+void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* /* in */ num_ent, int* /* in */ adj_dim,
+                      int* /* out */ num_adj_ent, int* /* out */ adj_ent_gids, int* /* out */ adj_ent_pids,
+                      int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size);
+void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* /* in */ num_ent, 
+                      int* /* in */ adj_dim, int* /* out */ num_adj_ent);
+
 int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ owning_partid); //entprocowner_
 int m3dc1_ent_isowner (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ ismine); 
 int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost);
@@ -191,6 +199,10 @@ int m3dc1_matrix_print(int* matrix_id);
 int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
+
+// Anistropic 2D Function for dummy field
+int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
+
 
 // 3D Adaptation
 int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);
