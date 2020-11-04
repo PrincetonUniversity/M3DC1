@@ -4,6 +4,7 @@ module restart_hdf5
   integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
   integer, private :: ikprad_in, kprad_z_in, ipellet_in
   real, private, allocatable :: phi_in(:)
+
 contains
   
   subroutine rdrestart_hdf5()
@@ -71,19 +72,21 @@ contains
     
     call read_int_attr(root_id, "eqsubtract", eqsubtract_in, error)
     call read_int_attr(root_id, "icomplex", icomplex_in, error)
+    call read_int_attr(root_id, "3d", i3d_in, error)
 
     call h5gopen_f(time_id, "mesh", mesh_id, error)
     call read_int_attr(mesh_id, "nplanes", nplanes_in, error)
-    if(version_in.ge.34) then
+
+    if(version_in.ge.34 .and. i3d_in.eq.1) then
        allocate(phi_in(nplanes_in))
        call read_vec_attr(mesh_id, "phi", phi_in, nplanes_in, error)
        if(myrank.eq.0) then
           print *, 'Read phi_in = ', phi_in
        end if
     end if
+
     call h5gclose_f(mesh_id, error)
 
-    call read_int_attr(root_id, "3d", i3d_in, error)
     if(i3d_in.eq.1 .or. icomplex_in.eq.1) then
        ifin = 1
        if(i3d.eq.0) then
@@ -431,7 +434,8 @@ contains
        dum = 0.
        transform = .false.
     else if(nplanes_in .ne. nplanes) then 
-       if(mod(nplanes,nplanes_in).ne.0 .or. nplanes .lt. nplanes_in) then 
+       if((mod(nplanes,nplanes_in).ne.0 .or. nplanes .lt. nplanes_in) &
+            .and. version_in.lt.34) then 
           if(myrank.eq.0) then
              print *, 'Error: new nplanes must be integer multiple of existing nplanes.'
              call safestop(42)
