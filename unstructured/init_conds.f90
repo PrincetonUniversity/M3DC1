@@ -590,6 +590,12 @@ subroutine initial_conditions()
      else
         ! toroidal equilibria
         select case(itaylor)
+        case(-1)
+           bz_field(0) = bzero*rzero
+           vz_field(0) = vzero
+           den_field(0) = den0
+           p_field(0) = p0
+           pe_field(0) = p0*pefac
         case(0)
            call tilting_cylinder_init()
            call cartesian_to_cylindrical_all()
