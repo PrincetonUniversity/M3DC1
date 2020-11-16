@@ -260,21 +260,16 @@ contains
        call hdf5_initialize(.false., error)
 
        if(eqsubtract.eq.0) then
-         psi_field(0) = psi_field(1)
-         psi_field(1) = 0.
+         ! move data to field0 so that equilibrium data is written correctly
+         field0_vec = field_vec
+         field_vec = 0.
          nre_field(0) = nre_field(1)
          nre_field(1) = 0.
-         u_field(0) = u_field(1)
-         u_field(1) = 0.
        endif
        call init_perturbations
        if(eqsubtract.eq.0) then
-         call add_field_to_field(psi_field(1),psi_field(0))
-         psi_field(0) = 0.
          call add_field_to_field(nre_field(1),nre_field(0))
          nre_field(0) = 0.
-         call add_field_to_field(u_field(1),u_field(0))
-         u_field(0) = 0.
        endif
     end if
 
