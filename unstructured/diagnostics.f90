@@ -1390,7 +1390,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   zguess = z
   psim = sum
   ier = 0
-  if(izone.ne.1) ier = 2
+  if(izone.ne.1 .and. iwall_is_limiter.eq.1) ier = 2
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
