@@ -435,6 +435,90 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   return M3DC1_SUCCESS; 
 }
 
+/* new mesh adaptation */
+void m3dc1_mesh_adapt(int* logInterpolation, 
+  int* shouldSnap, 
+  int* shouldTransferParametric, 
+  int* shouldRunPreZoltan,
+  int* shouldRunMidParma, 
+  int* shouldRunPostParma, 
+  int* shouldRefineLayer, 
+  int* maximumIterations,
+  double* goodQuality)
+{
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
+  // delete all the matrix
+  while (m3dc1_solver::instance()-> matrix_container->size())
+  {
+    std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
+    delete mat_it->second;
+    m3dc1_solver::instance()->matrix_container->erase(mat_it);
+  }
+
+  vector<apf::Field*> fields;
+  std::map<FieldID, m3dc1_field*> :: iterator it=m3dc1_mesh::instance()->field_container->begin();
+  while(it!=m3dc1_mesh::instance()->field_container->end())
+  {
+    apf::Field* field = it->second->get_field();
+    int complexType = it->second->get_value_type();
+    if (complexType) group_complex_dof(field, 1);
+    if (isFrozen(field)) unfreeze(field);
+    if (!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
+    fields.push_back(field);
+    it++;
+  }
+
+  while(mesh->countNumberings())
+  {
+    apf::Numbering* n = mesh->getNumbering(0);
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+    apf::destroyNumbering(n);
+  }
+
+  SetSizeField sf(mesh);
+  ma::Input* in = ma::configure(mesh, &sf,0,*logInterpolation);
+
+  if (!PCU_Comm_Self()) std::cout << __func__<<": cansnap() : " << mesh->canSnap() << "\n";
+  in->shouldSnap = *shouldSnap;
+  in->shouldTransferParametric = *shouldTransferParametric;
+  in->shouldRunPreZoltan = *shouldRunPreZoltan;
+  in->shouldRunMidParma = *shouldRunMidParma;
+  in->shouldRunPostParma = *shouldRunPostParma;
+  in->shouldRefineLayer = *shouldRefineLayer;
+  in->maximumIterations=*maximumIterations;
+  in->goodQuality = 0.2;
+
+  ma::adapt(in);
+  reorderMdsMesh(mesh);
+
+  m3dc1_mesh::instance()->initialize();
+  compute_globalid(m3dc1_mesh::instance()->mesh, 0);
+  compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
+
+  it=m3dc1_mesh::instance()->field_container->begin();
+  while(it!=m3dc1_mesh::instance()->field_container->end())
+  {
+    apf::Field* field = it->second->get_field();
+    int complexType = it->second->get_value_type();
+    if (complexType) group_complex_dof(field, 0);
+    if (!isFrozen(field)) freeze(field);
+#ifdef DEBUG
+    int isnan;
+    int fieldId= it->first;
+    m3dc1_field_isnan(&fieldId, &isnan);
+    assert(isnan==0);
+#endif
+    synchronize_field(field);
+
+#ifdef DEBUG
+    m3dc1_field_isnan(&fieldId, &isnan);
+    assert(isnan==0);
+#endif
+    it++;
+  }
+}
+
 /* ghosting functions */
 //*******************************************************
 int m3dc1_ghost_create (int* num_layer )
@@ -3013,30 +3097,6 @@ int set_adapt_p (double * pp)
   p=*pp;
   return M3DC1_SUCCESS;
 }
-
-//// Function to get Field (Dummy For now- This function will be provided by Brendan)
- 
-int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1)
-{
-        double average = aver;
-        double lower = boundingbox[0];
-        double upper = boundingbox[1];
-        double x = (pos[0] - lower)/(upper - lower);
-        double sizeFactor = 2;
-        if (x < 0.5)
-                sizeFactor = 5;
-        if (x >= 0.5 && x < 0.8)
-                sizeFactor = 0.5;
-        size_h1 = average;
-        size_h2 = average/sizeFactor;
-        dir_1[0] = 1.0;
-        dir_1[1] = 0.0;
-        dir_1[2] = 0.0;
-
-//      std::cout << " Size " << size_h1 << " , " << size_h2 << "\n";
-        return M3DC1_SUCCESS;
-}
-
 
 // Arguments of the function
 // double* node_error: Node error data coming from the function node_error_3d_mesh()
