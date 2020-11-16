@@ -778,8 +778,10 @@ subroutine output_mesh(time_group_id, nelms, error)
   call write_int_attr(mesh_group_id, "3D", 0, error)
 #endif
   call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
+
   call write_int_attr(mesh_group_id, "nperiods", nperiods, error)
   call write_int_attr(mesh_group_id, "ifull_torus", ifull_torus, error)
+  call write_int_attr(mesh_group_id, "version", version, error)
   call write_real_attr(mesh_group_id, "period", toroidal_period, error)
 
   ! Output the mesh data
@@ -816,8 +818,18 @@ subroutine output_mesh(time_group_id, nelms, error)
   call output_field(mesh_group_id, "elements", elm_data, vals_per_elm, &
        nelms, error)
 
+  ! Output adjacency info
+  if(iprint.ge.1 .and. myrank.eq.0) then
+     print *, 'Calculating mesh adjacency'
+  end if
+  call populate_adjacency_matrix()
+  call output_field_int(mesh_group_id, "adjacency", adjacent, max_adj, &
+       nelms, error)
+  call clear_adjacency_matrix()
+
 
 #ifdef USE3D
+  ! Output toroidal planes
   allocate(phi(nplanes))
   do i=1, nplanes
      call m3dc1_plane_getphi(i-1, phi(i))

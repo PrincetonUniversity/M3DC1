@@ -52,6 +52,16 @@ module scorec_mesh_mod
   integer, parameter :: max_zones = 20
   integer :: boundary_type(max_bounds)
   integer :: zone_type(max_zones)
+
+  ! adjacency matrix info
+  integer, allocatable, dimension(:) :: n_adjacent ! num of adjacent elements
+  integer, allocatable, dimension(:,:) :: adjacent ! adjacent elements
+#ifdef USE3D
+  integer, parameter :: max_adj = 5
+#else
+  integer, parameter :: max_adj = 3
+#endif
+
 contains
 
   subroutine load_mesh
@@ -318,6 +328,60 @@ contains
     n(:)=n(:)+1
   end subroutine get_element_nodes
 
+  !==============================================================
+  subroutine populate_adjacency_matrix()
+    implicit none
+
+    integer :: nelms, gid_sz
+    integer :: i, j, k
+    integer, allocatable :: gids(:), pids(:), local_id(:)
+    integer :: adj_sz
+
+    nelms = local_elements()
+
+    gid_sz = max_adj*nelms
+
+    allocate(n_adjacent(nelms))
+    allocate(adjacent(max_adj, nelms))
+
+    allocate(local_id(nelms))
+    allocate(pids(gid_sz))
+    allocate(gids(gid_sz))
+
+    do i=1, nelms
+       local_id(i) = i-1
+    end do
+
+    n_adjacent = 0
+#ifdef USE3D
+    call m3dc1_ent_getglobaladj(3, local_id, nelms, 3, &
+         n_adjacent, pids, gids, gid_sz, adj_sz)
+#else
+    call m3dc1_ent_getglobaladj(2, local_id, nelms, 2, &
+         n_adjacent, pids, gids, gid_sz, adj_sz)
+#endif
+
+    k = 1
+    do i=1, nelms
+       do j=1, max_adj
+          if(j.le.n_adjacent(i)) then
+             adjacent(j,i) = gids(k)
+             k = k+1
+          else
+             adjacent(j,i) = -1
+          endif
+       end do
+    end do
+
+    deallocate(local_id, pids, gids)
+  end subroutine populate_adjacency_matrix
+
+  subroutine clear_adjacency_matrix
+    implicit none
+
+    deallocate(n_adjacent)
+    deallocate(adjacent)
+  end subroutine clear_adjacency_matrix
 
   !==============================================================
   ! get_bounding_box
