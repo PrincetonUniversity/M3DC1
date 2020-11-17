@@ -1494,13 +1494,13 @@ function v1psif(e,f,g)
            temp = 0.
         else
            temp =  &
-                + intx4(e(:,:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DRP)) &
-                + intx4(e(:,:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DZP))
+                + intx4(e(:,:,OP_1),f(:,OP_GS),norm79(:,1),g(:,OP_DR)) &
+                + intx4(e(:,:,OP_1),f(:,OP_GS),norm79(:,2),g(:,OP_DZ))
         endif
      else
         temp = &
-             - intx3(e(:,:,OP_DZ),f(:,OP_GS),g(:,OP_DZP)) &
-             - intx3(e(:,:,OP_DR),f(:,OP_GS),g(:,OP_DRP))
+             - intx3(e(:,:,OP_DZ),f(:,OP_GS),g(:,OP_DZ)) &
+             - intx3(e(:,:,OP_DR),f(:,OP_GS),g(:,OP_DR))
      end if
   
 #else
@@ -1530,20 +1530,13 @@ function v1bf(e,f,g)
            temp = 0.
         else
            temp = &
-                + intx5(e(:,:,OP_1),ri_79,f(:,OP_1),norm79(:,1),g(:,OP_DZPP)) &
-                - intx5(e(:,:,OP_1),ri_79,f(:,OP_1),norm79(:,2),g(:,OP_DRPP))
+                + intx5(e(:,:,OP_1),ri_79,f(:,OP_1),norm79(:,1),g(:,OP_DZP)) &
+                - intx5(e(:,:,OP_1),ri_79,f(:,OP_1),norm79(:,2),g(:,OP_DRP))
         end if
      else
         temp = &
-#ifdef USEST
-             - intx4(e(:,:,OP_DZP),ri_79,f(:,OP_1),g(:,OP_DRP)) &
-             + intx4(e(:,:,OP_DRP),ri_79,f(:,OP_1),g(:,OP_DZP)) &
-             - intx4(e(:,:,OP_DZ),ri_79,f(:,OP_DP),g(:,OP_DRP)) &
-             + intx4(e(:,:,OP_DR),ri_79,f(:,OP_DP),g(:,OP_DZP))
-#else
-             + intx4(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_DRPP)) &
-             - intx4(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_DZPP))
-#endif
+             + intx4(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_DRP)) &
+             - intx4(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_DZP))
      end if
 #else
   temp = 0.
@@ -2655,15 +2648,8 @@ function v2psif1(e,f,g)
   end if
 
 #if defined(USE3D) || defined(USECOMPLEX)
-#ifdef USEST
-  v2psif1 = -intx4(e(:,:,OP_DP),ri_79,f(:,OP_DR),g(:,OP_DZP)) &
-            +intx4(e(:,:,OP_DP),ri_79,f(:,OP_DZ),g(:,OP_DRP))&
-            -intx4(e(:,:,OP_1),ri_79,f(:,OP_DRP),g(:,OP_DZP)) &
-            +intx4(e(:,:,OP_1),ri_79,f(:,OP_DZP),g(:,OP_DRP))
-#else
-  v2psif1 = intx4(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZPP)) &
-       -    intx4(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DRPP))
-#endif
+  v2psif1 = intx4(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZP)) &
+       -    intx4(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DRP))
 #else
   v2psif1 = 0.
 #endif
@@ -2688,8 +2674,8 @@ function v2psif2(e,f,g)
   end if
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  v2psif2 = intx4(e(:,:,OP_1),ri_79,f(:,OP_DRP),g(:,OP_DZP)) &
-       -    intx4(e(:,:,OP_1),ri_79,f(:,OP_DZP),g(:,OP_DRP))
+  v2psif2 = intx4(e(:,:,OP_1),ri_79,f(:,OP_DRP),g(:,OP_DZ)) &
+       -    intx4(e(:,:,OP_1),ri_79,f(:,OP_DZP),g(:,OP_DR))
 #else
   v2psif2 = 0.
 #endif
@@ -2716,8 +2702,8 @@ function v2bf(e,f,g)
   endif
 #if defined(USE3D) || defined(USECOMPLEX)
   v2bf = &
-       - intx3(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZP)) &
-       - intx3(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DRP))
+       - intx3(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZ)) &
+       - intx3(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DR))
 #else
   v2bf = 0.
 #endif
@@ -2741,15 +2727,9 @@ function v2ff(e,f,g)
      return
   endif
 #if defined(USE3D) || defined(USECOMPLEX)
-#ifdef USEST
-  v2ff = 0.5*&
-        (intx3(e(:,:,OP_DP),f(:,OP_DZP),g(:,OP_DZP)) &
-        +intx3(e(:,:,OP_DP),f(:,OP_DRP),g(:,OP_DRP)))
-#else
   v2ff = &
-       - intx3(e(:,:,OP_1),f(:,OP_DZPP),g(:,OP_DZP)) &
-       - intx3(e(:,:,OP_1),f(:,OP_DRPP),g(:,OP_DRP))
-#endif
+       - intx3(e(:,:,OP_1),f(:,OP_DZP),g(:,OP_DZ)) &
+       - intx3(e(:,:,OP_1),f(:,OP_DRP),g(:,OP_DR))
 #else
   v2ff = 0.
 #endif
@@ -3358,12 +3338,12 @@ function v3psif(e,f,g)
         if(inocurrent_tor.eq.1 .and. imulti_region.eq.0) then
            temp = 0.
         else
-           temp = intx5(e(:,:,OP_1),ri3_79,f(:,OP_GS),norm79(:,1),g(:,OP_DZP)) &
-                - intx5(e(:,:,OP_1),ri3_79,f(:,OP_GS),norm79(:,2),g(:,OP_DRP))
+           temp = intx5(e(:,:,OP_1),ri3_79,f(:,OP_GS),norm79(:,1),g(:,OP_DZ)) &
+                - intx5(e(:,:,OP_1),ri3_79,f(:,OP_GS),norm79(:,2),g(:,OP_DR))
         end if
      else
-        temp = intx4(e(:,:,OP_DZ),ri3_79,g(:,OP_DRP),f(:,OP_GS)) &
-             - intx4(e(:,:,OP_DR),ri3_79,g(:,OP_DZP),f(:,OP_GS))
+        temp = intx4(e(:,:,OP_DZ),ri3_79,g(:,OP_DR),f(:,OP_GS)) &
+             - intx4(e(:,:,OP_DR),ri3_79,g(:,OP_DZ),f(:,OP_GS))
      end if
 #else
   temp = 0.
@@ -3424,19 +3404,12 @@ function v3bf(e,f,g)
            temp = 0.
         else
            temp = &
-                - intx5(e(:,:,OP_1),ri4_79,norm79(:,1),g(:,OP_DRPP),f(:,OP_1)) &
-                - intx5(e(:,:,OP_1),ri4_79,norm79(:,2),g(:,OP_DZPP),f(:,OP_1))
+                - intx5(e(:,:,OP_1),ri4_79,norm79(:,1),g(:,OP_DRP),f(:,OP_1)) &
+                - intx5(e(:,:,OP_1),ri4_79,norm79(:,2),g(:,OP_DZP),f(:,OP_1))
         end if
      else
-#ifdef USEST
-        temp = - intx4(e(:,:,OP_DR),ri4_79,g(:,OP_DRP),f(:,OP_DP)) &
-               - intx4(e(:,:,OP_DZ),ri4_79,g(:,OP_DZP),f(:,OP_DP)) &
-               - intx4(e(:,:,OP_DRP),ri4_79,g(:,OP_DRP),f(:,OP_1)) &
-               - intx4(e(:,:,OP_DZP),ri4_79,g(:,OP_DZP),f(:,OP_1))
-#else
-        temp = intx4(e(:,:,OP_DR),ri4_79,g(:,OP_DRPP),f(:,OP_1)) &
-             + intx4(e(:,:,OP_DZ),ri4_79,g(:,OP_DZPP),f(:,OP_1))
-#endif
+        temp = intx4(e(:,:,OP_DR),ri4_79,g(:,OP_DRP),f(:,OP_1)) &
+             + intx4(e(:,:,OP_DZ),ri4_79,g(:,OP_DZP),f(:,OP_1))
      end if
 #else
   temp = 0.
@@ -4926,18 +4899,18 @@ function b1jrefeta(e,f,g,h,i)
   else
      if(surface_int) then
         temp = (intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_DP),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
+                f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
                +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_DP),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
+                f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
                +intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_1),g(:,OP_DZPP),h(:,OP_1),i(:,OP_1)) &
+                f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
                +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_1),g(:,OP_DRPP),h(:,OP_1),i(:,OP_1)))
+                f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)))
      else
-        temp = (intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_DP),g(:,OP_DZP),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_DP),g(:,OP_DRP),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZPP),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DRPP),h(:,OP_1),i(:,OP_1)))
+        temp = (intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1))&
+               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1))&
+               +intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1))&
+               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)))
      end if
      temp = temp*1.000
   endif
@@ -4998,12 +4971,12 @@ function b2jrefeta(e,f,g,h,i)
   else
      if(surface_int) then
         temp = -(intx7(e(:,:,OP_1),norm79(:,2),ri_79, &
-                f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
+                f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
                -intx7(e(:,:,OP_1),norm79(:,1),ri_79, &
-                f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
+                f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
      else
-        temp = -(intx6(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-               -intx6(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
+        temp = -(intx6(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
+               -intx6(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
      end if
      temp = temp*1.000
   endif
@@ -5519,8 +5492,8 @@ function b1fj(e,f,g)
                                    + ri2_79*pt79(:,OP_DP)*g(:,OP_DP)      &
                                           + pt79(:,OP_DZ)*g(:,OP_DZ))
      endif
-     temp =  intx5(e(:,:,OP_DRP),ri2_79,b2i79(:,OP_1),f(:,OP_DRP),temp79a)    &
-            +intx5(e(:,:,OP_DZP),ri2_79,b2i79(:,OP_1),f(:,OP_DZP),temp79a)
+     temp =  intx5(e(:,:,OP_DRP),ri2_79,b2i79(:,OP_1),f(:,OP_DR),temp79a)    &
+            +intx5(e(:,:,OP_DZP),ri2_79,b2i79(:,OP_1),f(:,OP_DZ),temp79a)
 #else
   temp = 0.
 #endif
@@ -5734,29 +5707,29 @@ function b1psifd1(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
-        temp = intx5(e(:,:,OP_1),ri_79,f(:,OP_DZP),g(:,OP_DRP ),h(:,OP_1)) &
-             - intx5(e(:,:,OP_1),ri_79,f(:,OP_DRP),g(:,OP_DZP ),h(:,OP_1))
+        temp = intx5(e(:,:,OP_1),ri_79,f(:,OP_DZP),g(:,OP_DR ),h(:,OP_1)) &
+             - intx5(e(:,:,OP_1),ri_79,f(:,OP_DRP),g(:,OP_DZ ),h(:,OP_1))
      end if
   else
      if(surface_int) then
         temp79b = ri3_79*h(:,OP_1)
         temp79c = ri3_79*h(:,OP_DP)
         temp = &
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),g(:,OP_DRPP),f(:,OP_GS ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),g(:,OP_DZPP),f(:,OP_GS ))&
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),g(:,OP_DRP ),f(:,OP_GSP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),g(:,OP_DZP ),f(:,OP_GSP))&
-             - intx5(e(:,:,OP_1),temp79c,norm79(:,2),g(:,OP_DRP ),f(:,OP_GS ))&
-             + intx5(e(:,:,OP_1),temp79c,norm79(:,1),g(:,OP_DZP ),f(:,OP_GS ))
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),g(:,OP_DRP),f(:,OP_GS ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),g(:,OP_DZP),f(:,OP_GS ))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),g(:,OP_DR ),f(:,OP_GSP))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),g(:,OP_DZ ),f(:,OP_GSP))&
+             - intx5(e(:,:,OP_1),temp79c,norm79(:,2),g(:,OP_DR ),f(:,OP_GS ))&
+             + intx5(e(:,:,OP_1),temp79c,norm79(:,1),g(:,OP_DZ ),f(:,OP_GS ))
      else
-        temp = intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DZP),g(:,OP_DRP ),h(:,OP_1)) &
-             - intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DRP),g(:,OP_DZP ),h(:,OP_1)) &
-             + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GSP),g(:,OP_DRP ),h(:,OP_1 )) &
-             - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GSP),g(:,OP_DZP ),h(:,OP_1 )) &
-             + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS ),g(:,OP_DRPP),h(:,OP_1 )) &
-             - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS ),g(:,OP_DZPP),h(:,OP_1 )) &
-             + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS ),g(:,OP_DRP ),h(:,OP_DP)) &
-             - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS ),g(:,OP_DZP ),h(:,OP_DP))
+        temp = intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DZP),g(:,OP_DR ),h(:,OP_1)) &
+             - intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DRP),g(:,OP_DZ ),h(:,OP_1)) &
+             + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GSP),g(:,OP_DR ),h(:,OP_1 )) &
+             - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GSP),g(:,OP_DZ ),h(:,OP_1 )) &
+             + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS ),g(:,OP_DRP),h(:,OP_1 )) &
+             - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS ),g(:,OP_DZP),h(:,OP_1 )) &
+             + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_DP)) &
+             - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_DP))
      endif
   endif
   b1psifd1 = temp
@@ -5789,23 +5762,23 @@ function b1psifd2(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
-        temp = intx5(e(:,:,OP_1),ri_79,f(:,OP_DZ ),g(:,OP_DRPP),h(:,OP_1)) &
-             - intx5(e(:,:,OP_1),ri_79,f(:,OP_DR ),g(:,OP_DZPP),h(:,OP_1))
+        temp = intx5(e(:,:,OP_1),ri_79,f(:,OP_DZ ),g(:,OP_DRP),h(:,OP_1)) &
+             - intx5(e(:,:,OP_1),ri_79,f(:,OP_DR ),g(:,OP_DZP),h(:,OP_1))
      end if
   else
      if(surface_int) then
-        temp79a = f(:,OP_DZ)*g(:,OP_DRP) - f(:,OP_DR)*g(:,OP_DZP)
+        temp79a = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
         temp79b = ri3_79*h(:,OP_1)
         temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),h(:,OP_DR)) &
              + intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),h(:,OP_DZ)) &
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRZ),g(:,OP_DRP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRR),g(:,OP_DZP ))&
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRRP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DR ),g(:,OP_DRZP))&
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZZ),g(:,OP_DRP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DRZ),g(:,OP_DZP ))&
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZ ),g(:,OP_DRZP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DR ),g(:,OP_DZZP))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRZ),g(:,OP_DR ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRR),g(:,OP_DZ ))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRR))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DR ),g(:,OP_DRZ))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZZ),g(:,OP_DR ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DRZ),g(:,OP_DZ ))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZ ),g(:,OP_DRZ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DR ),g(:,OP_DZZ))&
              - intx5(e(:,:,OP_DR),ri3_79,temp79a,norm79(:,1),h(:,OP_1))     &
              - intx5(e(:,:,OP_DZ),ri3_79,temp79a,norm79(:,2),h(:,OP_1))
         if(itor.eq.1) then
@@ -5813,8 +5786,8 @@ function b1psifd2(e,f,g,h)
                 + intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,1),h(:,OP_1))
         endif
      else
-        temp = intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DZ ),g(:,OP_DRPP),h(:,OP_1)) &
-             - intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DR ),g(:,OP_DZPP),h(:,OP_1))
+        temp = intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DZ ),g(:,OP_DRP),h(:,OP_1)) &
+             - intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DR ),g(:,OP_DZP),h(:,OP_1))
      endif
   endif
   b1psifd2 = temp
@@ -5903,23 +5876,23 @@ function b1bfd1(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
-        temp = intx4(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
-             + intx4(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1))
+        temp = intx4(e(:,:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+             + intx4(e(:,:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1))
      end if
   else
      if(surface_int) then
-        temp79a = f(:,OP_DZ)*g(:,OP_DZP) + f(:,OP_DR)*g(:,OP_DRP)
+        temp79a = f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)
         temp79b = ri4_79*h(:,OP_1)
         temp = intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,1),h(:,OP_DR)) &
              + intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,2),h(:,OP_DZ)) &
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRZ),g(:,OP_DZP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRR),g(:,OP_DRP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRZP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DR ),g(:,OP_DRRP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZZ),g(:,OP_DZP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DRZ),g(:,OP_DRP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZ ),g(:,OP_DZZP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DR ),g(:,OP_DRZP))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRZ),g(:,OP_DZ ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRR),g(:,OP_DR ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRZ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DR ),g(:,OP_DRR))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZZ),g(:,OP_DZ ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DRZ),g(:,OP_DR ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZ ),g(:,OP_DZZ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DR ),g(:,OP_DRZ))&
              - intx5(e(:,:,OP_DR),ri4_79,temp79a,norm79(:,1),h(:,OP_1)) &
              - intx5(e(:,:,OP_DZ),ri4_79,temp79a,norm79(:,2),h(:,OP_1))
 
@@ -5928,8 +5901,8 @@ function b1bfd1(e,f,g,h)
                 - 2.*intx5(e(:,:,OP_1),ri5_79,temp79a,norm79(:,1),h(:,OP_1))
         endif
      else
-        temp = intx5(e(:,:,OP_GS),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
-             + intx5(e(:,:,OP_GS),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1))
+        temp = intx5(e(:,:,OP_GS),ri2_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+             + intx5(e(:,:,OP_GS),ri2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1))
      endif
   endif
   b1bfd1 = temp
@@ -5965,27 +5938,27 @@ function b1bfd2(e,f,g,h)
         temp79b = ri4_79*h(:,OP_1)
         temp79c = ri4_79*h(:,OP_DP)
         temp = &
-             - intx5(e(:,:,OP_1),temp79b,f(:,OP_DP),norm79(:,1),g(:,OP_DRPP)) &
-             - intx5(e(:,:,OP_1),temp79b,f(:,OP_DP),norm79(:,2),g(:,OP_DZPP)) &
-             - intx5(e(:,:,OP_1),temp79c,f(:,OP_1 ),norm79(:,1),g(:,OP_DRPP)) &
-             - intx5(e(:,:,OP_1),temp79c,f(:,OP_1 ),norm79(:,2),g(:,OP_DZPP))
+             - intx5(e(:,:,OP_1),temp79b,f(:,OP_DP),norm79(:,1),g(:,OP_DRP)) &
+             - intx5(e(:,:,OP_1),temp79b,f(:,OP_DP),norm79(:,2),g(:,OP_DZP)) &
+             - intx5(e(:,:,OP_1),temp79c,f(:,OP_1 ),norm79(:,1),g(:,OP_DRP)) &
+             - intx5(e(:,:,OP_1),temp79c,f(:,OP_1 ),norm79(:,2),g(:,OP_DZP))
 
      else
 #ifdef USECOMPLEX
-        temp = intx5(e(:,:,OP_DZ),ri4_79,g(:,OP_DZPP),f(:,OP_DP),h(:,OP_1 ))  &
-             + intx5(e(:,:,OP_DR),ri4_79,g(:,OP_DRPP),f(:,OP_DP),h(:,OP_1 ))  &
-             + intx5(e(:,:,OP_DZ),ri4_79,g(:,OP_DZPP),f(:,OP_1 ),h(:,OP_DP))  &
-             + intx5(e(:,:,OP_DR),ri4_79,g(:,OP_DRPP),f(:,OP_1 ),h(:,OP_DP))
+        temp = intx5(e(:,:,OP_DZ),ri4_79,g(:,OP_DZP),f(:,OP_DP),h(:,OP_1 ))  &
+             + intx5(e(:,:,OP_DR),ri4_79,g(:,OP_DRP),f(:,OP_DP),h(:,OP_1 ))  &
+             + intx5(e(:,:,OP_DZ),ri4_79,g(:,OP_DZP),f(:,OP_1 ),h(:,OP_DP))  &
+             + intx5(e(:,:,OP_DR),ri4_79,g(:,OP_DRP),f(:,OP_1 ),h(:,OP_DP))
 
         ! f''' term hack
         temp = temp + rfac* &
-             (intx5(e(:,:,OP_DZ),ri4_79,g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
-             +intx5(e(:,:,OP_DR),ri4_79,g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
+             (intx5(e(:,:,OP_DZ),ri4_79,g(:,OP_DZP),f(:,OP_1),h(:,OP_1))  &
+             +intx5(e(:,:,OP_DR),ri4_79,g(:,OP_DRP),f(:,OP_1),h(:,OP_1)))
 #elif defined(USE3D)
         ! here, we can integrate by parts
         temp = - &
-             (intx5(e(:,:,OP_DZP),ri4_79,g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
-             +intx5(e(:,:,OP_DRP),ri4_79,g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
+             (intx5(e(:,:,OP_DZP),ri4_79,g(:,OP_DZP),f(:,OP_1),h(:,OP_1))  &
+             +intx5(e(:,:,OP_DRP),ri4_79,g(:,OP_DRP),f(:,OP_1),h(:,OP_1)))
 #endif
      endif
   endif
@@ -6255,30 +6228,30 @@ function b1psifn1(e,f,g,h)
         temp = 0.
      else
         temp79a =ri_79*h(:,OP_1)*ni79(:,OP_1)**2
-        temp = intx4(e(:,:,OP_1),temp79a,f(:,OP_DZP),g(:,OP_DRP )) &
-             - intx4(e(:,:,OP_1),temp79a,f(:,OP_DRP),g(:,OP_DZP ))
+        temp = intx4(e(:,:,OP_1),temp79a,f(:,OP_DZP),g(:,OP_DR )) &
+             - intx4(e(:,:,OP_1),temp79a,f(:,OP_DRP),g(:,OP_DZ ))
      end if
   else
      if(surface_int) then
         temp79b = ri3_79*h(:,OP_1)*ni79(:,OP_1)**2
         temp79c = -ri3_79*h(:,OP_DP)*ni79(:,OP_1)**2
         temp = &
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),g(:,OP_DRPP),f(:,OP_GS ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),g(:,OP_DZPP),f(:,OP_GS ))&
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),g(:,OP_DRP ),f(:,OP_GSP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),g(:,OP_DZP ),f(:,OP_GSP))&
-             - intx5(e(:,:,OP_1),temp79c,norm79(:,2),g(:,OP_DRP ),f(:,OP_GS ))&
-             + intx5(e(:,:,OP_1),temp79c,norm79(:,1),g(:,OP_DZP ),f(:,OP_GS ))
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),g(:,OP_DRP),f(:,OP_GS ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),g(:,OP_DZP),f(:,OP_GS ))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),g(:,OP_DR ),f(:,OP_GSP))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),g(:,OP_DZ ),f(:,OP_GSP))&
+             - intx5(e(:,:,OP_1),temp79c,norm79(:,2),g(:,OP_DR ),f(:,OP_GS ))&
+             + intx5(e(:,:,OP_1),temp79c,norm79(:,1),g(:,OP_DZ ),f(:,OP_GS ))
      else
         temp79a = ri3_79*ni79(:,OP_1)**2
-        temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZP),g(:,OP_DRP ),h(:,OP_1)) &
-             - intx5(e(:,:,OP_GS),temp79a,f(:,OP_DRP),g(:,OP_DZP ),h(:,OP_1)) &
-             + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GSP),g(:,OP_DRP ),h(:,OP_1 ))&
-             - intx5(e(:,:,OP_DR),temp79a,f(:,OP_GSP),g(:,OP_DZP ),h(:,OP_1 ))&
-             + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DRPP),h(:,OP_1 ))&
-             - intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZPP),h(:,OP_1 ))&
-             - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DRP ),h(:,OP_DP))&
-             + intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZP ),h(:,OP_DP))
+        temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZP),g(:,OP_DR ),h(:,OP_1)) &
+             - intx5(e(:,:,OP_GS),temp79a,f(:,OP_DRP),g(:,OP_DZ ),h(:,OP_1)) &
+             + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GSP),g(:,OP_DR ),h(:,OP_1 ))&
+             - intx5(e(:,:,OP_DR),temp79a,f(:,OP_GSP),g(:,OP_DZ ),h(:,OP_1 ))&
+             + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DRP),h(:,OP_1 ))&
+             - intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZP),h(:,OP_1 ))&
+             - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_DP))&
+             + intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_DP))
      endif
   endif
   b1psifn1 = temp
@@ -6312,24 +6285,24 @@ function b1psifn2(e,f,g,h)
         temp = 0.
      else
         temp79a = ri_79*h(:,OP_1)*ni79(:,OP_1)**2
-        temp = intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ ),g(:,OP_DRPP)) &
-             - intx4(e(:,:,OP_1),temp79a,f(:,OP_DR ),g(:,OP_DZPP))
+        temp = intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ ),g(:,OP_DRP)) &
+             - intx4(e(:,:,OP_1),temp79a,f(:,OP_DR ),g(:,OP_DZP))
      end if
   else
      if(surface_int) then
-        temp79a = (f(:,OP_DZ)*g(:,OP_DRP) - f(:,OP_DR)*g(:,OP_DZP)) &
+        temp79a = (f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)) &
              *ni79(:,OP_1)**2
         temp79b = ri3_79*h(:,OP_1)*ni79(:,OP_1)**2
         temp =-intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),h(:,OP_DR)) &
              - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),h(:,OP_DZ)) &
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRZ),g(:,OP_DRP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRR),g(:,OP_DZP ))&
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRRP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DR ),g(:,OP_DRZP))&
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZZ),g(:,OP_DRP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DRZ),g(:,OP_DZP ))&
-             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZ ),g(:,OP_DRZP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DR ),g(:,OP_DZZP))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRZ),g(:,OP_DR ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRR),g(:,OP_DZ ))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRR))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DR ),g(:,OP_DRZ))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZZ),g(:,OP_DR ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DRZ),g(:,OP_DZ ))&
+             - intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZ ),g(:,OP_DRZ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DR ),g(:,OP_DZZ))&
              - intx5(e(:,:,OP_DR),ri3_79,temp79a,norm79(:,1),h(:,OP_1))     &
              - intx5(e(:,:,OP_DZ),ri3_79,temp79a,norm79(:,2),h(:,OP_1))
         if(itor.eq.1) then
@@ -6338,8 +6311,8 @@ function b1psifn2(e,f,g,h)
         endif
      else
         temp79a = ri3_79*ni79(:,OP_1)**2
-        temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZ ),g(:,OP_DRPP),h(:,OP_1)) &
-             - intx5(e(:,:,OP_GS),temp79a,f(:,OP_DR ),g(:,OP_DZPP),h(:,OP_1))
+        temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZ ),g(:,OP_DRP),h(:,OP_1)) &
+             - intx5(e(:,:,OP_GS),temp79a,f(:,OP_DR ),g(:,OP_DZP),h(:,OP_1))
      endif
   endif
   b1psifn2 = temp
@@ -6430,24 +6403,24 @@ function b1bfn1(e,f,g,h)
         temp = 0.
      else
         temp79a = h(:,OP_1)*ni79(:,OP_1)**2
-        temp = intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ),g(:,OP_DZP)) &
-             + intx4(e(:,:,OP_1),temp79a,f(:,OP_DR),g(:,OP_DRP))
+        temp = intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ),g(:,OP_DZ)) &
+             + intx4(e(:,:,OP_1),temp79a,f(:,OP_DR),g(:,OP_DR))
      end if
   else
      if(surface_int) then
-        temp79a = (f(:,OP_DZ)*g(:,OP_DZP) + f(:,OP_DR)*g(:,OP_DRP)) &
+        temp79a = (f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)) &
              * ni79(:,OP_1)**2
         temp79b = ri4_79*h(:,OP_1)*ni79(:,OP_1)**2
         temp =-intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,1),h(:,OP_DR)) &
              - intx5(e(:,:,OP_1),ri4_79,temp79a,norm79(:,2),h(:,OP_DZ)) &
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRZ),g(:,OP_DZP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRR),g(:,OP_DRP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRZP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DR ),g(:,OP_DRRP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZZ),g(:,OP_DZP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DRZ),g(:,OP_DRP ))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZ ),g(:,OP_DZZP))&
-             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DR ),g(:,OP_DRZP))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRZ),g(:,OP_DZ ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DRR),g(:,OP_DR ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRZ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,1),f(:,OP_DR ),g(:,OP_DRR))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZZ),g(:,OP_DZ ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DRZ),g(:,OP_DR ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DZ ),g(:,OP_DZZ))&
+             + intx5(e(:,:,OP_1),temp79b,norm79(:,2),f(:,OP_DR ),g(:,OP_DRZ))&
              - intx5(e(:,:,OP_DR),ri4_79,temp79a,norm79(:,1),h(:,OP_1)) &
              - intx5(e(:,:,OP_DZ),ri4_79,temp79a,norm79(:,2),h(:,OP_1))
 
@@ -6457,8 +6430,8 @@ function b1bfn1(e,f,g,h)
         endif
      else
         temp79a = ri2_79*ni79(:,OP_1)**2
-        temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
-             + intx5(e(:,:,OP_GS),temp79a,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1))
+        temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+             + intx5(e(:,:,OP_GS),temp79a,f(:,OP_DR),g(:,OP_DR),h(:,OP_1))
      endif
   endif
   b1bfn1 = temp
@@ -6495,29 +6468,29 @@ function b1bfn2(e,f,g,h)
         temp79b = ri4_79*h(:,OP_1)*ni79(:,OP_1)**2
         temp79c =-ri4_79*h(:,OP_DP)*ni79(:,OP_1)**2
         temp = &
-             - intx5(e(:,:,OP_1),temp79b,f(:,OP_DP),norm79(:,1),g(:,OP_DRPP)) &
-             - intx5(e(:,:,OP_1),temp79b,f(:,OP_DP),norm79(:,2),g(:,OP_DZPP)) &
-             - intx5(e(:,:,OP_1),temp79c,f(:,OP_1 ),norm79(:,1),g(:,OP_DRPP)) &
-             - intx5(e(:,:,OP_1),temp79c,f(:,OP_1 ),norm79(:,2),g(:,OP_DZPP))
+             - intx5(e(:,:,OP_1),temp79b,f(:,OP_DP),norm79(:,1),g(:,OP_DRP)) &
+             - intx5(e(:,:,OP_1),temp79b,f(:,OP_DP),norm79(:,2),g(:,OP_DZP)) &
+             - intx5(e(:,:,OP_1),temp79c,f(:,OP_1 ),norm79(:,1),g(:,OP_DRP)) &
+             - intx5(e(:,:,OP_1),temp79c,f(:,OP_1 ),norm79(:,2),g(:,OP_DZP))
 
      else
 #ifdef USECOMPLEX
         temp79a = ri4_79*ni79(:,OP_1)**2
-        temp = intx5(e(:,:,OP_DZ),temp79a,g(:,OP_DZPP),f(:,OP_DP),h(:,OP_1 )) &
-             + intx5(e(:,:,OP_DR),temp79a,g(:,OP_DRPP),f(:,OP_DP),h(:,OP_1 )) &
-             - intx5(e(:,:,OP_DZ),temp79a,g(:,OP_DZPP),f(:,OP_1 ),h(:,OP_DP)) &
-             - intx5(e(:,:,OP_DR),temp79a,g(:,OP_DRPP),f(:,OP_1 ),h(:,OP_DP))
+        temp = intx5(e(:,:,OP_DZ),temp79a,g(:,OP_DZP),f(:,OP_DP),h(:,OP_1 )) &
+             + intx5(e(:,:,OP_DR),temp79a,g(:,OP_DRP),f(:,OP_DP),h(:,OP_1 )) &
+             - intx5(e(:,:,OP_DZ),temp79a,g(:,OP_DZP),f(:,OP_1 ),h(:,OP_DP)) &
+             - intx5(e(:,:,OP_DR),temp79a,g(:,OP_DRP),f(:,OP_1 ),h(:,OP_DP))
 
         ! f''' term hack
         temp = temp + rfac* &
-             (intx5(e(:,:,OP_DZ),temp79a,g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
-             +intx5(e(:,:,OP_DR),temp79a,g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
+             (intx5(e(:,:,OP_DZ),temp79a,g(:,OP_DZP),f(:,OP_1),h(:,OP_1))  &
+             +intx5(e(:,:,OP_DR),temp79a,g(:,OP_DRP),f(:,OP_1),h(:,OP_1)))
 #elif defined(USE3D)
         temp79a = ri4_79*ni79(:,OP_1)**2
         ! here, we can integrate by parts
         temp = - &
-             (intx5(e(:,:,OP_DZP),temp79a,g(:,OP_DZPP),f(:,OP_1),h(:,OP_1))  &
-             +intx5(e(:,:,OP_DRP),temp79a,g(:,OP_DRPP),f(:,OP_1),h(:,OP_1)))
+             (intx5(e(:,:,OP_DZP),temp79a,g(:,OP_DZP),f(:,OP_1),h(:,OP_1))  &
+             +intx5(e(:,:,OP_DRP),temp79a,g(:,OP_DRP),f(:,OP_1),h(:,OP_1)))
 #endif
      endif
   endif
@@ -6604,16 +6577,16 @@ function b1feta(e,f,g)
         if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
            temp = 0.
         else
-           temp = -intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DZPP),g(:,OP_1)) &
-                  +intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DRPP),g(:,OP_1))
+           temp = -intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DZP),g(:,OP_1)) &
+                  +intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DRP),g(:,OP_1))
         end if
      else
 #ifdef USECOMPLEX
-        temp = rfac*intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZPP),g(:,OP_1)) &
-             - rfac*intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DRPP),g(:,OP_1))
+        temp = intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZPP),g(:,OP_1)) &
+             - intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DRPP),g(:,OP_1))
 #else
-        temp = -intx4(e(:,:,OP_DRP),ri3_79,f(:,OP_DZPP),g(:,OP_1)) &
-             +  intx4(e(:,:,OP_DZP),ri3_79,f(:,OP_DRPP),g(:,OP_1))
+        temp = -intx4(e(:,:,OP_DRP),ri3_79,f(:,OP_DZP),g(:,OP_1)) &
+             +  intx4(e(:,:,OP_DZP),ri3_79,f(:,OP_DRP),g(:,OP_1))
 #endif
      end if
   end if
@@ -6645,22 +6618,22 @@ function b1fu(e,f,g)
            temp = 0.
         else
            temp = &
-                - intx4(e(:,:,OP_1),r2_79,f(:,OP_DZP),g(:,OP_DZ)) &
-                - intx4(e(:,:,OP_1),r2_79,f(:,OP_DRP),g(:,OP_DR))
+                - intx4(e(:,:,OP_1),r2_79,f(:,OP_DZ),g(:,OP_DZ)) &
+                - intx4(e(:,:,OP_1),r2_79,f(:,OP_DR),g(:,OP_DR))
         endif
      else
         if(surface_int) then
-           temp79a = f(:,OP_DZP)*g(:,OP_DZ) + f(:,OP_DRP)*g(:,OP_DR)
+           temp79a = f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)
            temp = intx3(e(:,:,OP_DR),temp79a,norm79(:,1)) &
                 + intx3(e(:,:,OP_DZ),temp79a,norm79(:,1)) &
-                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DRZP),g(:,OP_DZ )) &
-                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DRRP),g(:,OP_DR )) &
-                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DZP ),g(:,OP_DRZ)) &
-                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DRP ),g(:,OP_DRR)) &
-                - intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DZZP),g(:,OP_DZ )) &
-                - intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DRZP),g(:,OP_DR )) &
-                - intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DZP ),g(:,OP_DZZ)) &
-                - intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DRP ),g(:,OP_DRZ))
+                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DRZ),g(:,OP_DZ )) &
+                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DRR),g(:,OP_DR )) &
+                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DZ ),g(:,OP_DRZ)) &
+                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DR ),g(:,OP_DRR)) &
+                - intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DZZ),g(:,OP_DZ )) &
+                - intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DRZ),g(:,OP_DR )) &
+                - intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DZ ),g(:,OP_DZZ)) &
+                - intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DR ),g(:,OP_DRZ))
            if(itor.eq.1) then
               temp = temp &
                    - 2.*intx4(e(:,:,OP_1),ri_79,temp79a,norm79(:,1))
@@ -6668,8 +6641,8 @@ function b1fu(e,f,g)
            
         else
            temp = &
-                - intx3(e(:,:,OP_GS),f(:,OP_DZP),g(:,OP_DZ)) &
-                - intx3(e(:,:,OP_GS),f(:,OP_DRP),g(:,OP_DR))
+                - intx3(e(:,:,OP_GS),f(:,OP_DZ),g(:,OP_DZ)) &
+                - intx3(e(:,:,OP_GS),f(:,OP_DR),g(:,OP_DR))
         endif
      endif
 
@@ -6702,16 +6675,16 @@ function b1fv(e,f,g)
            if(inoslip_tor.eq.1) then
               temp = 0.
            else
-           temp = intx5(e(:,:,OP_1),ri_79,norm79(:,1),f(:,OP_DZPP),g(:,OP_1 ))&
-                - intx5(e(:,:,OP_1),ri_79,norm79(:,2),f(:,OP_DRPP),g(:,OP_1 ))&
-                + intx5(e(:,:,OP_1),ri_79,norm79(:,1),f(:,OP_DZP ),g(:,OP_DP))&
-                - intx5(e(:,:,OP_1),ri_79,norm79(:,2),f(:,OP_DRP ),g(:,OP_DP))
+           temp = intx5(e(:,:,OP_1),ri_79,norm79(:,1),f(:,OP_DZP),g(:,OP_1 ))&
+                - intx5(e(:,:,OP_1),ri_79,norm79(:,2),f(:,OP_DRP),g(:,OP_1 ))&
+                + intx5(e(:,:,OP_1),ri_79,norm79(:,1),f(:,OP_DZ ),g(:,OP_DP))&
+                - intx5(e(:,:,OP_1),ri_79,norm79(:,2),f(:,OP_DR ),g(:,OP_DP))
            endif
         else
-           temp = intx4(e(:,:,OP_DZ),ri_79,f(:,OP_DRPP),g(:,OP_1)) &
-                - intx4(e(:,:,OP_DR),ri_79,f(:,OP_DZPP),g(:,OP_1)) &
-                + intx4(e(:,:,OP_DZ),ri_79,f(:,OP_DRP ),g(:,OP_DP)) &
-                - intx4(e(:,:,OP_DR),ri_79,f(:,OP_DZP ),g(:,OP_DP))
+           temp = intx4(e(:,:,OP_DZ),ri_79,f(:,OP_DRP),g(:,OP_1)) &
+                - intx4(e(:,:,OP_DR),ri_79,f(:,OP_DZP),g(:,OP_1)) &
+                + intx4(e(:,:,OP_DZ),ri_79,f(:,OP_DR ),g(:,OP_DP)) &
+                - intx4(e(:,:,OP_DR),ri_79,f(:,OP_DZ ),g(:,OP_DP))
         endif
      endif
 
@@ -6742,30 +6715,30 @@ function b1fchi(e,f,g)
         if(surface_int) then
            temp = 0.
         else
-           temp = intx4(e(:,:,OP_1),ri_79,f(:,OP_DZP),g(:,OP_DR)) &
-                - intx4(e(:,:,OP_1),ri_79,f(:,OP_DRP),g(:,OP_DZ))
+           temp = intx4(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DR)) &
+                - intx4(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZ))
         endif
      else
         if(surface_int) then
-           temp79a = f(:,OP_DRP)*g(:,OP_DZ) - f(:,OP_DZP)*g(:,OP_DR)
+           temp79a = f(:,OP_DR)*g(:,OP_DZ) - f(:,OP_DZ)*g(:,OP_DR)
            temp = intx4(e(:,:,OP_DR),ri3_79,temp79a,norm79(:,1)) &
                 + intx4(e(:,:,OP_DZ),ri3_79,temp79a,norm79(:,2)) &
-                + intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DRZP),g(:,OP_DR )) &
-                - intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DRRP),g(:,OP_DZ )) &
-                + intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DZP ),g(:,OP_DRR)) &
-                - intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DRP ),g(:,OP_DRZ)) &
-                + intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DZZP),g(:,OP_DR )) &
-                - intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DRZP),g(:,OP_DZ )) &
-                + intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DZP ),g(:,OP_DRZ)) &
-                - intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DRP ),g(:,OP_DZZ))
+                + intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DRZ),g(:,OP_DR )) &
+                - intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DRR),g(:,OP_DZ )) &
+                + intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DZ ),g(:,OP_DRR)) &
+                - intx5(e(:,:,OP_1),ri3_79,norm79(:,1),f(:,OP_DR ),g(:,OP_DRZ)) &
+                + intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DZZ),g(:,OP_DR )) &
+                - intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DRZ),g(:,OP_DZ )) &
+                + intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DZ ),g(:,OP_DRZ)) &
+                - intx5(e(:,:,OP_1),ri3_79,norm79(:,2),f(:,OP_DR ),g(:,OP_DZZ))
            if(itor.eq.1) then
               temp = temp &
                    + 2.*intx4(e(:,:,OP_1),ri4_79,temp79a,norm79(:,1))
            endif
            
         else
-           temp = intx4(e(:,:,OP_GS),ri3_79,f(:,OP_DZP),g(:,OP_DR)) &
-                - intx4(e(:,:,OP_GS),ri3_79,f(:,OP_DRP),g(:,OP_DZ))
+           temp = intx4(e(:,:,OP_GS),ri3_79,f(:,OP_DZ),g(:,OP_DR)) &
+                - intx4(e(:,:,OP_GS),ri3_79,f(:,OP_DR),g(:,OP_DZ))
         endif
      endif
 
@@ -6878,7 +6851,7 @@ function b1psi2bfpe(e,f,g,h,i,j)
 
   temp79a = ri_79*(j(:,OP_DZ)*f(:,OP_DR) - j(:,OP_DR)*f(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
-  temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DRP) + j(:,OP_DZ)*i(:,OP_DZP))   &
+  temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DR) + j(:,OP_DZ)*i(:,OP_DZ))   &
                     + ri2_79*h(:,OP_1)*j(:,OP_DP)
 #endif
   temp79a = temp79a*b2i79(:,OP_1)*ri2_79*ni79(:,OP_1)
@@ -6894,8 +6867,8 @@ function b1psi2bfpe(e,f,g,h,i,j)
 #if defined(USE3D) || defined(USECOMPLEX)
         temp = temp - intx4(e(:,:,OP_DZP),ri_79,temp79a,g(:,OP_DR))   &
                     + intx4(e(:,:,OP_DRP),ri_79,temp79a,g(:,OP_DZ))   &
-                    + intx3(e(:,:,OP_DRP),temp79a,i(:,OP_DRP))        &
-                    + intx3(e(:,:,OP_DZP),temp79a,i(:,OP_DZP))
+                    + intx3(e(:,:,OP_DRP),temp79a,i(:,OP_DR))        &
+                    + intx3(e(:,:,OP_DZP),temp79a,i(:,OP_DZ))
 #endif
      endif
 
@@ -7113,20 +7086,13 @@ function b2feta(e,f,g)
      if(inocurrent_pol.eq.1 .and. imulti_region.eq.0) then
         temp = 0.
      else
-        temp = intx5(e(:,:,OP_1),ri2_79,norm79(:,1),f(:,OP_DRPP),g(:,OP_1)) &
-             + intx5(e(:,:,OP_1),ri2_79,norm79(:,2),f(:,OP_DZPP),g(:,OP_1))
+        temp = intx5(e(:,:,OP_1),ri2_79,norm79(:,1),f(:,OP_DRP),g(:,OP_1)) &
+             + intx5(e(:,:,OP_1),ri2_79,norm79(:,2),f(:,OP_DZP),g(:,OP_1))
      end if
   else
      temp = &
-#ifdef USEST
-          + intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZP),g(:,OP_DP)) &
-          + intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DRP),g(:,OP_DP)) &
-          + intx4(e(:,:,OP_DZP),ri2_79,f(:,OP_DZP),g(:,OP_1)) &
-          + intx4(e(:,:,OP_DRP),ri2_79,f(:,OP_DRP),g(:,OP_1))
-#else
-          - intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZPP),g(:,OP_1)) &
-          - intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DRPP),g(:,OP_1))
-#endif
+          - intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZP),g(:,OP_1)) &
+          - intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DRP),g(:,OP_1))
 
      if(imp_hyper.le.1) then
 
@@ -7134,23 +7100,23 @@ function b2feta(e,f,g)
         if(hypi.ne.0.) then
            if(ihypeta.eq.0) then
               temp = temp + hypi*&
-                   (-intx3(e(:,:,OP_DZZ),ri2_79,f(:,OP_DZZPP)) &
-                   + intx3(e(:,:,OP_DRR),ri2_79,f(:,OP_DZZPP)) &
-                   + intx3(e(:,:,OP_DZZ),ri2_79,f(:,OP_DRRPP)) &
-                   - intx3(e(:,:,OP_DRR),ri2_79,f(:,OP_DRRPP)) &
-                   - 4.*intx3(e(:,:,OP_DRZ),ri2_79,f(:,OP_DRZPP)))
+                   (-intx3(e(:,:,OP_DZZ),ri2_79,f(:,OP_DZZP)) &
+                   + intx3(e(:,:,OP_DRR),ri2_79,f(:,OP_DZZP)) &
+                   + intx3(e(:,:,OP_DZZ),ri2_79,f(:,OP_DRRP)) &
+                   - intx3(e(:,:,OP_DRR),ri2_79,f(:,OP_DRRP)) &
+                   - 4.*intx3(e(:,:,OP_DRZ),ri2_79,f(:,OP_DRZP)))
 
               if(itor.eq.1) then
                  temp = temp + hypi* &
-                      (-intx3(e(:,:,OP_DZZ),ri3_79,f(:,OP_DRPP)) &
-                      + intx3(e(:,:,OP_DRR),ri3_79,f(:,OP_DRPP)) &
-                      - intx3(e(:,:,OP_DR),ri4_79,f(:,OP_DRPP)) &
-                      - 2.*intx3(e(:,:,OP_DRZ),ri3_79,f(:,OP_DZPP)) &
-                      + 4.*intx3(e(:,:,OP_DRZ),ri3_79,f(:,OP_DZPP)) &
-                      - 4.*intx3(e(:,:,OP_DZ),ri4_79,f(:,OP_DZPP)) &
-                      - intx3(e(:,:,OP_DR),ri3_79,f(:,OP_DZZPP)) &
-                      + intx3(e(:,:,OP_DR),ri3_79,f(:,OP_DRRPP)) &
-                      + 2.*intx3(e(:,:,OP_DZ),ri3_79,f(:,OP_DRZPP)))
+                      (-intx3(e(:,:,OP_DZZ),ri3_79,f(:,OP_DRP)) &
+                      + intx3(e(:,:,OP_DRR),ri3_79,f(:,OP_DRP)) &
+                      - intx3(e(:,:,OP_DR),ri4_79,f(:,OP_DRP)) &
+                      - 2.*intx3(e(:,:,OP_DRZ),ri3_79,f(:,OP_DZP)) &
+                      + 4.*intx3(e(:,:,OP_DRZ),ri3_79,f(:,OP_DZP)) &
+                      - 4.*intx3(e(:,:,OP_DZ),ri4_79,f(:,OP_DZP)) &
+                      - intx3(e(:,:,OP_DR),ri3_79,f(:,OP_DZZP)) &
+                      + intx3(e(:,:,OP_DR),ri3_79,f(:,OP_DRRP)) &
+                      + 2.*intx3(e(:,:,OP_DZ),ri3_79,f(:,OP_DRZP)))
               endif
            endif
         endif
@@ -7207,24 +7173,24 @@ function b2fj(e,f,g)
         temp79c = hypf*g(:,OP_DPP)
      endif
      
-     temp = -intx5(e(:,:,OP_DZ),b2i79(:,OP_DR),ri_79,f(:,OP_DRP ),temp79a) &
-          +intx5(e(:,:,OP_DR ),b2i79(:,OP_DR),ri_79,f(:,OP_DZP ),temp79a) &
-          -intx5(e(:,:,OP_DRZ),b2i79(:,OP_1 ),ri_79,f(:,OP_DRP ),temp79a) &
-          +intx5(e(:,:,OP_DRR),b2i79(:,OP_1 ),ri_79,f(:,OP_DZP ),temp79a) &
-          -intx5(e(:,:,OP_DZ ),b2i79(:,OP_1 ),ri_79,f(:,OP_DRRP),temp79a) &
-          +intx5(e(:,:,OP_DR ),b2i79(:,OP_1 ),ri_79,f(:,OP_DRZP),temp79a) &
-          -intx5(e(:,:,OP_DZ ),b2i79(:,OP_DZ),ri_79,f(:,OP_DRP ),temp79b) &
-          +intx5(e(:,:,OP_DR ),b2i79(:,OP_DZ),ri_79,f(:,OP_DZP ),temp79b) &
-          -intx5(e(:,:,OP_DZZ),b2i79(:,OP_1 ),ri_79,f(:,OP_DRP ),temp79b) &
-          +intx5(e(:,:,OP_DRZ),b2i79(:,OP_1 ),ri_79,f(:,OP_DZP ),temp79b) &
-          -intx5(e(:,:,OP_DZ ),b2i79(:,OP_1 ),ri_79,f(:,OP_DRZP),temp79b) &
-          +intx5(e(:,:,OP_DR ),b2i79(:,OP_1 ),ri_79,f(:,OP_DZZP),temp79b) 
+     temp = -intx5(e(:,:,OP_DZ),b2i79(:,OP_DR),ri_79,f(:,OP_DR ),temp79a) &
+          +intx5(e(:,:,OP_DR ),b2i79(:,OP_DR),ri_79,f(:,OP_DZ ),temp79a) &
+          -intx5(e(:,:,OP_DRZ),b2i79(:,OP_1 ),ri_79,f(:,OP_DR ),temp79a) &
+          +intx5(e(:,:,OP_DRR),b2i79(:,OP_1 ),ri_79,f(:,OP_DZ ),temp79a) &
+          -intx5(e(:,:,OP_DZ ),b2i79(:,OP_1 ),ri_79,f(:,OP_DRR),temp79a) &
+          +intx5(e(:,:,OP_DR ),b2i79(:,OP_1 ),ri_79,f(:,OP_DRZ),temp79a) &
+          -intx5(e(:,:,OP_DZ ),b2i79(:,OP_DZ),ri_79,f(:,OP_DR ),temp79b) &
+          +intx5(e(:,:,OP_DR ),b2i79(:,OP_DZ),ri_79,f(:,OP_DZ ),temp79b) &
+          -intx5(e(:,:,OP_DZZ),b2i79(:,OP_1 ),ri_79,f(:,OP_DR ),temp79b) &
+          +intx5(e(:,:,OP_DRZ),b2i79(:,OP_1 ),ri_79,f(:,OP_DZ ),temp79b) &
+          -intx5(e(:,:,OP_DZ ),b2i79(:,OP_1 ),ri_79,f(:,OP_DRZ),temp79b) &
+          +intx5(e(:,:,OP_DR ),b2i79(:,OP_1 ),ri_79,f(:,OP_DZZ),temp79b) 
      if(itor.eq.1) temp = temp &
-          +intx5(e(:,:,OP_DZ ),b2i79(:,OP_1),ri2_79,f(:,OP_DRP ),temp79a) &
-          -intx5(e(:,:,OP_DR ),b2i79(:,OP_1),ri2_79,f(:,OP_DZP ),temp79a) 
+          +intx5(e(:,:,OP_DZ ),b2i79(:,OP_1),ri2_79,f(:,OP_DR ),temp79a) &
+          -intx5(e(:,:,OP_DR ),b2i79(:,OP_1),ri2_79,f(:,OP_DZ ),temp79a) 
      temp = temp                                                         &
-          +intx5(e(:,:,OP_DZ ),b2i79(:,OP_1),ri3_79,f(:,OP_DRP ),temp79c) &
-          -intx5(e(:,:,OP_DR ),b2i79(:,OP_1),ri3_79,f(:,OP_DZP ),temp79c) 
+          +intx5(e(:,:,OP_DZ ),b2i79(:,OP_1),ri3_79,f(:,OP_DR ),temp79c) &
+          -intx5(e(:,:,OP_DR ),b2i79(:,OP_1),ri3_79,f(:,OP_DZ ),temp79c) 
   endif
 
   b2fj = temp
@@ -7440,12 +7406,12 @@ function b2fv(e,f,g)
         if(inoslip_tor.eq.1) then
            temp = 0.
         else
-           temp = intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
-                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
+           temp = intx4(e(:,:,OP_1),norm79(:,2),f(:,OP_DR),g(:,OP_1)) &
+                - intx4(e(:,:,OP_1),norm79(:,1),f(:,OP_DZ),g(:,OP_1))
         endif
      else
-        temp = intx3(e(:,:,OP_DZ),f(:,OP_DZP),g(:,OP_1)) &
-             + intx3(e(:,:,OP_DR),f(:,OP_DRP),g(:,OP_1))
+        temp = intx3(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_1)) &
+             + intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_1))
      endif
 
 #else
@@ -7620,12 +7586,12 @@ function b2psifd(e,f,g,h)
      else
         temp79a = f(:,OP_GS)*h(:,OP_1)
         temp = &
-             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,1),g(:,OP_DRP)) &
-             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,2),g(:,OP_DZP))
+             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,1),g(:,OP_DR)) &
+             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,2),g(:,OP_DZ))
      endif
   else
-     temp = intx5(e(:,:,OP_DZ),ri2_79,f(:,OP_GS),g(:,OP_DZP),h(:,OP_1)) &
-          + intx5(e(:,:,OP_DR),ri2_79,f(:,OP_GS),g(:,OP_DRP),h(:,OP_1))
+     temp = intx5(e(:,:,OP_DZ),ri2_79,f(:,OP_GS),g(:,OP_DZ),h(:,OP_1)) &
+          + intx5(e(:,:,OP_DR),ri2_79,f(:,OP_GS),g(:,OP_DR),h(:,OP_1))
   end if
   b2psifd = temp
 #else
@@ -7657,13 +7623,13 @@ function b2bfd(e,f,g,h)
         temp = 0.
      else 
         temp79a = f(:,OP_1)*h(:,OP_1)
-        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),g(:,OP_DRPP)) &
-             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),g(:,OP_DZPP))
+        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),g(:,OP_DRP)) &
+             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),g(:,OP_DZP))
      endif
   else
      temp = - &
-          (intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_1),g(:,OP_DRPP),h(:,OP_1)) &
-          -intx5(e(:,:,OP_DR),ri3_79,f(:,OP_1),g(:,OP_DZPP),h(:,OP_1)))
+          (intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_1)) &
+          -intx5(e(:,:,OP_DR),ri3_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_1)))
   end if
   
   b2bfd = temp
@@ -7841,13 +7807,13 @@ function b2psifn(e,f,g,h)
      else
         temp79a = f(:,OP_GS)*h(:,OP_1)*ni79(:,OP_1)**2
         temp = &
-             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,1),g(:,OP_DRP)) &
-             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,2),g(:,OP_DZP))
+             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,1),g(:,OP_DR)) &
+             - intx5(e(:,:,OP_1),ri2_79,temp79a,norm79(:,2),g(:,OP_DZ))
      endif
   else
      temp79a = ri2_79*ni79(:,OP_1)**2
-     temp = intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS),g(:,OP_DZP),h(:,OP_1)) &
-          + intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS),g(:,OP_DRP),h(:,OP_1))
+     temp = intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS),g(:,OP_DZ),h(:,OP_1)) &
+          + intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS),g(:,OP_DR),h(:,OP_1))
   end if
   b2psifn = temp
 #else
@@ -7879,14 +7845,14 @@ function b2bfn(e,f,g,h)
         temp = 0.
      else 
         temp79a = f(:,OP_1)*h(:,OP_1)*ni79(:,OP_1)**2
-        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),g(:,OP_DRPP)) &
-             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),g(:,OP_DZPP))
+        temp = intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,2),g(:,OP_DRP)) &
+             - intx5(e(:,:,OP_1),ri3_79,temp79a,norm79(:,1),g(:,OP_DZP))
      endif
   else
      temp79a = ri3_79*ni79(:,OP_1)**2
      temp = - &
-          (intx5(e(:,:,OP_DZ),temp79a,f(:,OP_1),g(:,OP_DRPP),h(:,OP_1)) &
-          -intx5(e(:,:,OP_DR),temp79a,f(:,OP_1),g(:,OP_DZPP),h(:,OP_1)))
+          (intx5(e(:,:,OP_DZ),temp79a,f(:,OP_1),g(:,OP_DRP),h(:,OP_1)) &
+          -intx5(e(:,:,OP_DR),temp79a,f(:,OP_1),g(:,OP_DZP),h(:,OP_1)))
   end if
   
   b2bfn = temp
@@ -7951,7 +7917,7 @@ function b2psi2bfpe(e,f,g,h,i,j)
 
   temp79a = ri_79*(j(:,OP_DZ)*f(:,OP_DR) - j(:,OP_DR)*f(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
-  temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DRP) + j(:,OP_DZ)*i(:,OP_DZP))   &
+  temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DR) + j(:,OP_DZ)*i(:,OP_DZ))   &
                     + ri2_79*h(:,OP_1)*j(:,OP_DP)
 #endif
   temp79a = temp79a*b2i79(:,OP_1)*ni79(:,OP_1)
@@ -7963,8 +7929,8 @@ function b2psi2bfpe(e,f,g,h,i,j)
         temp = intx4(e(:,:,OP_DR),ri2_79,temp79a,g(:,OP_DR))    &
              + intx4(e(:,:,OP_DZ),ri2_79,temp79a,g(:,OP_DZ))
 #if defined(USE3D) || defined(USECOMPLEX)
-        temp = temp + intx4(e(:,:,OP_DZ),ri_79,temp79a,i(:,OP_DRP))   &
-                    - intx4(e(:,:,OP_DR),ri_79,temp79a,i(:,OP_DZP))
+        temp = temp + intx4(e(:,:,OP_DZ),ri_79,temp79a,i(:,OP_DR))   &
+                    - intx4(e(:,:,OP_DR),ri_79,temp79a,i(:,OP_DZ))
 #endif
 
   end if
@@ -8137,14 +8103,14 @@ function b3psifeta(e,f,g,h,i)
      temp = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
      temp = 2.*(gam-1.)* &
-          (intx5(e(:,:,OP_1),ri3_79,f(:,OP_DZP),g(:,OP_DRPP),h(:,OP_1))  &
-          -intx5(e(:,:,OP_1),ri3_79,f(:,OP_DRP),g(:,OP_DZPP),h(:,OP_1)))
+          (intx5(e(:,:,OP_1),ri3_79,f(:,OP_DZP),g(:,OP_DRP),h(:,OP_1))  &
+          -intx5(e(:,:,OP_1),ri3_79,f(:,OP_DRP),g(:,OP_DZP),h(:,OP_1)))
       if(irunaway .gt. 0) then
          temp = temp + 1.*(gam-1.) * &
-                       (intx6(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRPP),h(:,OP_1),i(:,OP_1)) &
-                      + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZPP),h(:,OP_1),i(:,OP_1)) &
-                      - intx6(e(:,:,OP_1),ri2_79,f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
-                      - intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
+                       (intx6(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
+                      + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
+                      - intx6(e(:,:,OP_1),ri2_79,f(:,OP_DRP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
+                      - intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
       end if 
 #endif
   end if
@@ -8199,17 +8165,8 @@ function b3bfeta(e,f,g,h,i)
      temp = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
      temp = (gam-1.)* &
-#ifdef USEST
-          (-intx5(e(:,:,OP_DP),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
-           -intx5(e(:,:,OP_DP),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
-           -intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1)) &
-           -intx5(e(:,:,OP_1),ri2_79,f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1)) &
-           -intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_DP)) &
-           -intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_DP))) 
-#else
-          (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZPP),h(:,OP_1)) &
-          +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRPP),h(:,OP_1)))
-#endif
+          (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
+          +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)))
 #endif
      if(irunaway .gt. 0) then
         temp = temp + 1.*(gam-1.)* &
@@ -8242,12 +8199,12 @@ function b3ffeta(e,f,g,h,i)
      temp = 0.
 #if defined(USE3D) || defined(USECOMPLEX)
      temp = (gam-1.)* &
-          (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZPP),g(:,OP_DZPP),h(:,OP_1)) &
-          +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DRPP),g(:,OP_DRPP),h(:,OP_1)))
+          (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1)) &
+          +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1)))
      if(irunaway .gt. 0) then
         temp = temp + 1.*(gam-1.)* &
-               (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZPP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-              - intx6(e(:,:,OP_1),ri_79,f(:,OP_DRPP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
+               (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
+              - intx6(e(:,:,OP_1),ri_79,f(:,OP_DRP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
      endif
 #endif
   end if
@@ -8341,11 +8298,11 @@ function b3pefd(e,f,g,h)
      return
   end if
 
-  temp = intx5(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DRPP),h(:,OP_1)) &
-        -intx5(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZPP),h(:,OP_1)) &
+  temp = intx5(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DRP),h(:,OP_1)) &
+        -intx5(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZP),h(:,OP_1)) &
        + gam* &
-       (intx5(e(:,:,OP_1),ri_79,f(:,OP_1),g(:,OP_DRPP),h(:,OP_DZ)) &
-       -intx5(e(:,:,OP_1),ri_79,f(:,OP_1),g(:,OP_DZPP),h(:,OP_DR)))
+       (intx5(e(:,:,OP_1),ri_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_DZ)) &
+       -intx5(e(:,:,OP_1),ri_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_DR)))
 
   b3pefd = temp
 #else
@@ -8842,8 +8799,8 @@ function nre1nrediff(e,f)
             f(:,OP_1)*b2i79(:,OP_DR)*pstx79(:,OP_DZ))
   temp79a = temp79a &
           + ri2_79*bztx79(:,OP_1)*b2i79(:,OP_1)*f(:,OP_DP) &
-          - b2i79(:,OP_1)*(bftx79(:,OP_DZP)*f(:,OP_DZ) & 
-          + bftx79(:,OP_DRP)*f(:,OP_DR))
+          - b2i79(:,OP_1)*(bfptx79(:,OP_DZ)*f(:,OP_DZ) & 
+          + bfptx79(:,OP_DR)*f(:,OP_DR))
   if(surface_int) then
       temp = 0.
   else
@@ -8851,8 +8808,8 @@ function nre1nrediff(e,f)
            - intx4(e(:,:,OP_DR),ri_79,-temp79a,pstx79(:,OP_DZ))
       temp = temp &
          + intx4(e(:,:,OP_DP),ri2_79,-temp79a,bztx79(:,OP_1)) &
-         - intx3(e(:,:,OP_DZ),-temp79a,bftx79(:,OP_DZP)) &
-         - intx3(e(:,:,OP_DR),-temp79a,bftx79(:,OP_DRP))
+         - intx3(e(:,:,OP_DZ),-temp79a,bfptx79(:,OP_DZ)) &
+         - intx3(e(:,:,OP_DR),-temp79a,bfptx79(:,OP_DR))
   end if
 #else
   temp79a = ri_79*(f(:,OP_DZ)*b2i79(:,OP_1)*pstx79(:,OP_DR) - &
@@ -9401,12 +9358,12 @@ function p1psifkappar(e,f,g,h,i,j,k)
 !!$     temp79a = k(:,OP_1)*ri_79*e(:,OP_1)* &
 !!$          (norm79(:,2)*f(:,OP_DR) - norm79(:,1)*f(:,OP_DZ))*j(:,OP_1)
 !!$     temp79b = -k(:,OP_1)*ri_79*e(:,OP_1)* &
-!!$          (norm79(:,2)*g(:,OP_DZP) + norm79(:,1)*g(:,OP_DRP))*j(:,OP_1)
+!!$          (norm79(:,2)*g(:,OP_DZ) + norm79(:,1)*g(:,OP_DR))*j(:,OP_1)
 !!$
-!!$     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
-!!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
-!!$          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
-!!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) &
+!!$     temp = int4(temp79a,g(:,OP_DZ),h(:,OP_DZ),i(:,OP_1 )) &
+!!$          + int4(temp79a,g(:,OP_DR),h(:,OP_DR),i(:,OP_1 )) &
+!!$          + int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DZ)) &
+!!$          + int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DR)) &
 !!$          + int4(temp79b,f(:,OP_DR ),h(:,OP_DZ),i(:,OP_1 )) &
 !!$          - int4(temp79b,f(:,OP_DZ ),h(:,OP_DR),i(:,OP_1 )) &
 !!$          + int4(temp79b,f(:,OP_DR ),h(:,OP_1 ),i(:,OP_DZ)) &
@@ -9415,22 +9372,22 @@ function p1psifkappar(e,f,g,h,i,j,k)
      temp79a = k(:,OP_1)*ri_79*j(:,OP_1)*i(:,OP_1)
      temp79b = k(:,OP_1)*ri_79*j(:,OP_1)*h(:,OP_1)
 
-     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79b,g(:,OP_DZP),i(:,OP_DZ)) &
-          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79b,g(:,OP_DZP),i(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79b,g(:,OP_DRP),i(:,OP_DR)) &
-          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79b,g(:,OP_DRP),i(:,OP_DR)) &
-          + intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
-          - intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
-          - intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
-          + intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79b,f(:,OP_DR ),i(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79b,f(:,OP_DR ),i(:,OP_DZ)) &
-          - intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79b,f(:,OP_DZ ),i(:,OP_DR)) &
-          - intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79b,f(:,OP_DZ ),i(:,OP_DR))
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DR),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DR),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79b,g(:,OP_DZ),i(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79b,g(:,OP_DZ),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79b,g(:,OP_DR),i(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79b,g(:,OP_DR),i(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),g(:,OP_DZ),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DR),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DZ),g(:,OP_DZ),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),g(:,OP_DR),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),g(:,OP_DZ),temp79b,f(:,OP_DR ),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DR),temp79b,f(:,OP_DR ),i(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DZ),g(:,OP_DZ),temp79b,f(:,OP_DZ ),i(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),g(:,OP_DR),temp79b,f(:,OP_DZ ),i(:,OP_DR))
   end if
   p1psifkappar = (gam - 1.) * temp
 #else
@@ -9464,11 +9421,11 @@ function p1psifpnkappar(e,f,g,h,i,fac1,fac2)
 
   ! n*<T,f'>
   temp79b = ni79(:,OP_1)*h(:,OP_1)* &
-       (i(:,OP_DR)*g(:,OP_DRP) + i(:,OP_DZ)*g(:,OP_DZP)) &
+       (i(:,OP_DR)*g(:,OP_DR) + i(:,OP_DZ)*g(:,OP_DZ)) &
        + ni79(:,OP_1)*i(:,OP_1)* &
-       (h(:,OP_DR)*g(:,OP_DRP) + h(:,OP_DZ)*g(:,OP_DZP)) &
+       (h(:,OP_DR)*g(:,OP_DR) + h(:,OP_DZ)*g(:,OP_DZ)) &
        + 2.*h(:,OP_1)*i(:,OP_1)* &
-       (ni79(:,OP_DR)*g(:,OP_DRP) + ni79(:,OP_DZ)*g(:,OP_DZP))
+       (ni79(:,OP_DR)*g(:,OP_DR) + ni79(:,OP_DZ)*g(:,OP_DZ))
   ! n*[T,psi]
   temp79c = ni79(:,OP_1)*h(:,OP_1)* &
        (i(:,OP_DZ)*f(:,OP_DR) - i(:,OP_DR)*f(:,OP_DZ)) &
@@ -9482,13 +9439,13 @@ function p1psifpnkappar(e,f,g,h,i,fac1,fac2)
      temp = 0.
 !!$     temp = fac1*int5(temp79a,temp79b,e(:,OP_1),norm79(:,1),f(:,OP_DZ)) &
 !!$          - fac1*int5(temp79a,temp79b,e(:,OP_1),norm79(:,2),f(:,OP_DR)) &
-!!$          - fac2*int5(temp79a,temp79c,e(:,OP_1),norm79(:,1),g(:,OP_DRP)) &
-!!$          - fac2*int5(temp79a,temp79c,e(:,OP_1),norm79(:,2),g(:,OP_DZP))
+!!$          - fac2*int5(temp79a,temp79c,e(:,OP_1),norm79(:,1),g(:,OP_DR)) &
+!!$          - fac2*int5(temp79a,temp79c,e(:,OP_1),norm79(:,2),g(:,OP_DZ))
   else
      temp = fac1*intx4(e(:,:,OP_DZ),temp79a,f(:,OP_DR),temp79b) &
           - fac1*intx4(e(:,:,OP_DR),temp79a,f(:,OP_DZ),temp79b) &
-          + fac2*intx4(e(:,:,OP_DR),temp79a,g(:,OP_DRP),temp79c) &
-          + fac2*intx4(e(:,:,OP_DZ),temp79a,g(:,OP_DZP),temp79c)
+          + fac2*intx4(e(:,:,OP_DR),temp79a,g(:,OP_DR),temp79c) &
+          + fac2*intx4(e(:,:,OP_DZ),temp79a,g(:,OP_DZ),temp79c)
   end if
   p1psifpnkappar = (gam - 1.) * temp
 #else
@@ -9552,32 +9509,32 @@ function p1bfkappar(e,f,g,h,i,j,k)
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
 !!$     temp79a = -ri2_79*k(:,OP_1)*j(:,OP_1)*e(:,OP_1)*f(:,OP_1)* &
-!!$          (norm79(:,1)*g(:,OP_DRP) + norm79(:,2)*g(:,OP_DZP))
+!!$          (norm79(:,1)*g(:,OP_DR) + norm79(:,2)*g(:,OP_DZ))
 !!$
 !!$     temp = int3(temp79a,h(:,OP_DP),i(:,OP_1 )) &
 !!$          + int3(temp79a,h(:,OP_1 ),i(:,OP_DP))
   else
      temp79a = k(:,OP_1)*ri2_79*f(:,OP_1)*j(:,OP_1)
 
-     temp79b = g(:,OP_DZP)*(h(:,OP_DZ)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DZ)) &
-          +    g(:,OP_DRP)*(h(:,OP_DR)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DR))
+     temp79b = g(:,OP_DZ)*(h(:,OP_DZ)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DZ)) &
+          +    g(:,OP_DR)*(h(:,OP_DR)*i(:,OP_1) + h(:,OP_1)*i(:,OP_DR))
 
-     temp79c = g(:,OP_DZPP)*(h(:,OP_DZ )*i(:,OP_1 ) + h(:,OP_1 )*i(:,OP_DZ )) &
-          +    g(:,OP_DRPP)*(h(:,OP_DR )*i(:,OP_1 ) + h(:,OP_1 )*i(:,OP_DR )) &
-          +    g(:,OP_DZP )*(h(:,OP_DZP)*i(:,OP_1 ) + h(:,OP_DP)*i(:,OP_DZ )) &
-          +    g(:,OP_DRP )*(h(:,OP_DRP)*i(:,OP_1 ) + h(:,OP_DP)*i(:,OP_DR )) &
-          +    g(:,OP_DZP )*(h(:,OP_DZ )*i(:,OP_DP) + h(:,OP_1 )*i(:,OP_DZP)) &
-          +    g(:,OP_DRP )*(h(:,OP_DR )*i(:,OP_DP) + h(:,OP_1 )*i(:,OP_DRP))
+     temp79c = g(:,OP_DZP)*(h(:,OP_DZ )*i(:,OP_1 ) + h(:,OP_1 )*i(:,OP_DZ )) &
+          +    g(:,OP_DRP)*(h(:,OP_DR )*i(:,OP_1 ) + h(:,OP_1 )*i(:,OP_DR )) &
+          +    g(:,OP_DZ )*(h(:,OP_DZP)*i(:,OP_1 ) + h(:,OP_DP)*i(:,OP_DZ )) &
+          +    g(:,OP_DR )*(h(:,OP_DRP)*i(:,OP_1 ) + h(:,OP_DP)*i(:,OP_DR )) &
+          +    g(:,OP_DZ )*(h(:,OP_DZ )*i(:,OP_DP) + h(:,OP_1 )*i(:,OP_DZP)) &
+          +    g(:,OP_DR )*(h(:,OP_DR )*i(:,OP_DP) + h(:,OP_1 )*i(:,OP_DRP))
 
      temp79d = temp79c*f(:,OP_1 )*j(:,OP_1 )*k(:,OP_1 ) &
           +    temp79b*f(:,OP_DP)*j(:,OP_1 )*k(:,OP_1 ) &
           +    temp79b*f(:,OP_1 )*j(:,OP_DP)*k(:,OP_1 ) &
           +    temp79b*f(:,OP_1 )*j(:,OP_1 )*k(:,OP_DP)
 
-     temp = intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,h(:,OP_DP),i(:,OP_1 )) &
-          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,h(:,OP_DP),i(:,OP_1 )) &
-          + intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,h(:,OP_1 ),i(:,OP_DP)) &
-          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,h(:,OP_1 ),i(:,OP_DP)) &
+     temp = intx5(e(:,:,OP_DZ),g(:,OP_DZ),temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DR),temp79a,h(:,OP_DP),i(:,OP_1 )) &
+          + intx5(e(:,:,OP_DZ),g(:,OP_DZ),temp79a,h(:,OP_1 ),i(:,OP_DP)) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DR),temp79a,h(:,OP_1 ),i(:,OP_DP)) &
           - intx3(e(:,:,OP_1),ri2_79,temp79d)
   end if
   p1bfkappar = (gam - 1.) * temp
@@ -9652,8 +9609,8 @@ function p1bfpnkappar(e,f,g,h,i,fac1,fac2)
   if(surface_int) then
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
-!!$     temp = -fac2*intx5(e(:,:,OP_1),temp79a,temp79e,norm79(:,1),g(:,OP_DRP)) &
-!!$          -  fac2*intx5(e(:,:,OP_1),temp79a,temp79e,norm79(:,2),g(:,OP_DZP))
+!!$     temp = -fac2*intx5(e(:,:,OP_1),temp79a,temp79e,norm79(:,1),g(:,OP_DR)) &
+!!$          -  fac2*intx5(e(:,:,OP_1),temp79a,temp79e,norm79(:,2),g(:,OP_DZ))
   else
      ! d(temp79a)/dphi
      temp79b = ri2_79 * &
@@ -9664,46 +9621,42 @@ function p1bfpnkappar(e,f,g,h,i,fac1,fac2)
 
      ! n*<T, f'> = n*<n p/n^2, f'>
      temp79c = ni79(:,OP_1)*h(:,OP_1)* &
-          (i(:,OP_DR)*g(:,OP_DRP) + i(:,OP_DZ)*g(:,OP_DZP)) &
+          (i(:,OP_DR)*g(:,OP_DR) + i(:,OP_DZ)*g(:,OP_DZ)) &
           + ni79(:,OP_1)*i(:,OP_1)* &
-          (h(:,OP_DR)*g(:,OP_DRP) + h(:,OP_DZ)*g(:,OP_DZP)) &
+          (h(:,OP_DR)*g(:,OP_DR) + h(:,OP_DZ)*g(:,OP_DZ)) &
           + 2.*h(:,OP_1)*i(:,OP_1)* &
-          (ni79(:,OP_DR)*g(:,OP_DRP) + ni79(:,OP_DZ)*g(:,OP_DZP))
+          (ni79(:,OP_DR)*g(:,OP_DR) + ni79(:,OP_DZ)*g(:,OP_DZ))
 
      ! d(temp79c)/dphi
      temp79d = ni79(:,OP_DP)*h(:,OP_1)* &
-          (i(:,OP_DR)*g(:,OP_DRP) + i(:,OP_DZ)*g(:,OP_DZP)) &
+          (i(:,OP_DR)*g(:,OP_DR) + i(:,OP_DZ)*g(:,OP_DZ)) &
           + ni79(:,OP_DP)*i(:,OP_1)* &
-          (h(:,OP_DR)*g(:,OP_DRP) + h(:,OP_DZ)*g(:,OP_DZP)) &
+          (h(:,OP_DR)*g(:,OP_DR) + h(:,OP_DZ)*g(:,OP_DZ)) &
           + 2.*h(:,OP_1)*i(:,OP_1)* &
-          (ni79(:,OP_DRP)*g(:,OP_DRP) + ni79(:,OP_DZP)*g(:,OP_DZP)) &
+          (ni79(:,OP_DRP)*g(:,OP_DR) + ni79(:,OP_DZP)*g(:,OP_DZ)) &
           +    ni79(:,OP_1)*h(:,OP_1)* &
-          (i(:,OP_DR)*g(:,OP_DRPP) + i(:,OP_DZ)*g(:,OP_DZPP)) &
-          + ni79(:,OP_1)*i(:,OP_1)* &
-          (h(:,OP_DR)*g(:,OP_DRPP) + h(:,OP_DZ)*g(:,OP_DZPP)) &
-          + 2.*h(:,OP_1)*i(:,OP_1)* &
-          (ni79(:,OP_DR)*g(:,OP_DRPP) + ni79(:,OP_DZ)*g(:,OP_DZPP)) &
-          +    ni79(:,OP_1)*h(:,OP_DP)* &
           (i(:,OP_DR)*g(:,OP_DRP) + i(:,OP_DZ)*g(:,OP_DZP)) &
           + ni79(:,OP_1)*i(:,OP_1)* &
-          (h(:,OP_DRP)*g(:,OP_DRP) + h(:,OP_DZP)*g(:,OP_DZP)) &
-          + 2.*h(:,OP_DP)*i(:,OP_1)* &
-          (ni79(:,OP_DR)*g(:,OP_DRP) + ni79(:,OP_DZ)*g(:,OP_DZP)) &
-          +    ni79(:,OP_1)*h(:,OP_1)* &
-          (i(:,OP_DRP)*g(:,OP_DRP) + i(:,OP_DZP)*g(:,OP_DZP)) &
-          + ni79(:,OP_1)*i(:,OP_DP)* &
           (h(:,OP_DR)*g(:,OP_DRP) + h(:,OP_DZ)*g(:,OP_DZP)) &
+          + 2.*h(:,OP_1)*i(:,OP_1)* &
+          (ni79(:,OP_DR)*g(:,OP_DRP) + ni79(:,OP_DZ)*g(:,OP_DZP)) &
+          +    ni79(:,OP_1)*h(:,OP_DP)* &
+          (i(:,OP_DR)*g(:,OP_DR) + i(:,OP_DZ)*g(:,OP_DZ)) &
+          + ni79(:,OP_1)*i(:,OP_1)* &
+          (h(:,OP_DRP)*g(:,OP_DR) + h(:,OP_DZP)*g(:,OP_DZ)) &
+          + 2.*h(:,OP_DP)*i(:,OP_1)* &
+          (ni79(:,OP_DR)*g(:,OP_DR) + ni79(:,OP_DZ)*g(:,OP_DZ)) &
+          +    ni79(:,OP_1)*h(:,OP_1)* &
+          (i(:,OP_DRP)*g(:,OP_DR) + i(:,OP_DZP)*g(:,OP_DZ)) &
+          + ni79(:,OP_1)*i(:,OP_DP)* &
+          (h(:,OP_DR)*g(:,OP_DR) + h(:,OP_DZ)*g(:,OP_DZ)) &
           + 2.*h(:,OP_1)*i(:,OP_DP)* &
-          (ni79(:,OP_DR)*g(:,OP_DRP) + ni79(:,OP_DZ)*g(:,OP_DZP))
+          (ni79(:,OP_DR)*g(:,OP_DR) + ni79(:,OP_DZ)*g(:,OP_DZ))
 
-     temp = fac2*intx4(e(:,:,OP_DR),temp79a,g(:,OP_DRP),temp79e) &
-          + fac2*intx4(e(:,:,OP_DZ),temp79a,g(:,OP_DZP),temp79e) &
-#ifdef USEST
-          + fac1*intx3(e(:,:,OP_DP),temp79a,temp79c)
-#else
+     temp = fac2*intx4(e(:,:,OP_DR),temp79a,g(:,OP_DR),temp79e) &
+          + fac2*intx4(e(:,:,OP_DZ),temp79a,g(:,OP_DZ),temp79e) &
           - fac1*intx3(e(:,:,OP_1),temp79a,temp79d) &
           - fac1*intx3(e(:,:,OP_1),temp79b,temp79c)
-#endif
   end if
   p1bfpnkappar = (gam - 1.) * temp
 #else
@@ -9736,24 +9689,24 @@ function p1ffkappar(e,f,g,h,i,j,k)
      ! assert natural b.c. B.grad(T) = 0
      temp = 0.
 !!$     temp79a =  k(:,OP_1)*e(:,OP_1)* &
-!!$          (norm79(:,2)*f(:,OP_DZP) + norm79(:,1)*f(:,OP_DRP))*j(:,OP_1)
+!!$          (norm79(:,2)*f(:,OP_DZ) + norm79(:,1)*f(:,OP_DR))*j(:,OP_1)
 !!$
-!!$     temp = int4(temp79a,g(:,OP_DZP),h(:,OP_DZ),i(:,OP_1 )) &
-!!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_DR),i(:,OP_1 )) &
-!!$          + int4(temp79a,g(:,OP_DZP),h(:,OP_1 ),i(:,OP_DZ)) &
-!!$          + int4(temp79a,g(:,OP_DRP),h(:,OP_1 ),i(:,OP_DR)) 
+!!$     temp = int4(temp79a,g(:,OP_DZ),h(:,OP_DZ),i(:,OP_1 )) &
+!!$          + int4(temp79a,g(:,OP_DR),h(:,OP_DR),i(:,OP_1 )) &
+!!$          + int4(temp79a,g(:,OP_DZ),h(:,OP_1 ),i(:,OP_DZ)) &
+!!$          + int4(temp79a,g(:,OP_DR),h(:,OP_1 ),i(:,OP_DR)) 
   else
      temp79a = -k(:,OP_1)*j(:,OP_1)*i(:,OP_1)
      temp79b = -k(:,OP_1)*j(:,OP_1)*h(:,OP_1)
 
-     temp = intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          + intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79b,g(:,OP_DZP),i(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79b,g(:,OP_DZP),i(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79b,g(:,OP_DRP),i(:,OP_DR)) &
-          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79b,g(:,OP_DRP),i(:,OP_DR)) 
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DZ),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DR),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DZ),temp79a,g(:,OP_DR),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DR),temp79a,g(:,OP_DR),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DZ),temp79b,g(:,OP_DZ),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DR),temp79b,g(:,OP_DZ),i(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DZ),temp79b,g(:,OP_DR),i(:,OP_DR)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DR),temp79b,g(:,OP_DR),i(:,OP_DR)) 
   end if
   p1ffkappar = (gam - 1.) * temp
 #else
@@ -9790,14 +9743,14 @@ function p1ffpnkappar(e,f,g,h,i)
 
      ! <T, f'>*n = <n p/n^2, f'>*n
      temp79c = ni79(:,OP_1)*h(:,OP_1)* &
-          (i(:,OP_DR)*g(:,OP_DRP) + i(:,OP_DZ)*g(:,OP_DZP)) &
+          (i(:,OP_DR)*g(:,OP_DR) + i(:,OP_DZ)*g(:,OP_DZ)) &
           + ni79(:,OP_1)*i(:,OP_1)* &
-          (h(:,OP_DR)*g(:,OP_DRP) + h(:,OP_DZ)*g(:,OP_DZP)) &
+          (h(:,OP_DR)*g(:,OP_DR) + h(:,OP_DZ)*g(:,OP_DZ)) &
           + 2.*h(:,OP_1)*i(:,OP_1)* &
-          (ni79(:,OP_DR)*g(:,OP_DRP) + ni79(:,OP_DZ)*g(:,OP_DZP))
+          (ni79(:,OP_DR)*g(:,OP_DR) + ni79(:,OP_DZ)*g(:,OP_DZ))
 
-     temp = -intx4(e(:,:,OP_DR),temp79a,f(:,OP_DRP),temp79c) &
-          -  intx4(e(:,:,OP_DZ),temp79a,f(:,OP_DZP),temp79c)
+     temp = -intx4(e(:,:,OP_DR),temp79a,f(:,OP_DR),temp79c) &
+          -  intx4(e(:,:,OP_DZ),temp79a,f(:,OP_DZ),temp79c)
   end if
   p1ffpnkappar = (gam - 1.) * temp
 #else
@@ -9830,8 +9783,8 @@ vectype function p1qfkappar(e,f,g,h,i)
      temp79a = i(:,OP_1)*h(:,OP_1)
 
 
-     temp = int4(temp79a,e(:,OP_DR),g(:,OP_DRP),f(:,OP_1)) &
-          + int4(temp79a,e(:,OP_DZ),g(:,OP_DZP),f(:,OP_1))
+     temp = int4(temp79a,e(:,OP_DR),g(:,OP_DR),f(:,OP_1)) &
+          + int4(temp79a,e(:,OP_DZ),g(:,OP_DZ),f(:,OP_1))
   end if
 #else
   temp = 0.
@@ -10915,12 +10868,12 @@ real function energy_mp(mask)
 #ifdef USECOMPLEX
      if(numvar.gt.1) then
         temp = temp + .5* &
-             (int3(bf179(:,OP_DZP),CONJUGATE(bf179(:,OP_DZP)),temp79a) &
-             +int3(bf179(:,OP_DRP),CONJUGATE(bf179(:,OP_DRP)),temp79a) &
-             +int4(ri_79,ps179(:,OP_DZ),CONJUGATE(bf179(:,OP_DRP)),temp79a) &
-             -int4(ri_79,ps179(:,OP_DR),CONJUGATE(bf179(:,OP_DZP)),temp79a) &
-             +int4(ri_79,CONJUGATE(ps179(:,OP_DZ)),bf179(:,OP_DRP),temp79a) &
-             -int4(ri_79,CONJUGATE(ps179(:,OP_DR)),bf179(:,OP_DZP),temp79a))
+             (int3(bfp179(:,OP_DZ),CONJUGATE(bfp179(:,OP_DZ)),temp79a) &
+             +int3(bfp179(:,OP_DR),CONJUGATE(bfp179(:,OP_DR)),temp79a) &
+             +int4(ri_79,ps179(:,OP_DZ),CONJUGATE(bfp179(:,OP_DR)),temp79a) &
+             -int4(ri_79,ps179(:,OP_DR),CONJUGATE(bfp179(:,OP_DZ)),temp79a) &
+             +int4(ri_79,CONJUGATE(ps179(:,OP_DZ)),bfp179(:,OP_DR),temp79a) &
+             -int4(ri_79,CONJUGATE(ps179(:,OP_DR)),bfp179(:,OP_DZ),temp79a))
      endif
 #endif
   else
@@ -10935,22 +10888,22 @@ real function energy_mp(mask)
      if(numvar.gt.1) then
         temp = temp   &
              + .5* &
-             (int3(bft79(:,OP_DZP),bft79(:,OP_DZP),temp79a) &
-             +int3(bft79(:,OP_DRP),bft79(:,OP_DRP),temp79a) &
-             +2.*int4(ri_79,pst79(:,OP_DZ),bft79(:,OP_DRP),temp79a) &
-             -2.*int4(ri_79,pst79(:,OP_DR),bft79(:,OP_DZP),temp79a) )
+             (int3(bfpt79(:,OP_DZ),bfpt79(:,OP_DZ),temp79a) &
+             +int3(bfpt79(:,OP_DR),bfpt79(:,OP_DR),temp79a) &
+             +2.*int4(ri_79,pst79(:,OP_DZ),bfpt79(:,OP_DR),temp79a) &
+             -2.*int4(ri_79,pst79(:,OP_DR),bfpt79(:,OP_DZ),temp79a) )
      endif
 #endif
 
 #ifdef USECOMPLEX
      if(numvar.gt.1) then
         temp = temp + .5* &
-             (int3(bft79(:,OP_DZP),CONJUGATE(bft79(:,OP_DZP)),temp79a) &
-             +int3(bft79(:,OP_DRP),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
-             +int4(ri_79,pst79(:,OP_DZ),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
-             -int4(ri_79,pst79(:,OP_DR),CONJUGATE(bft79(:,OP_DRP)),temp79a) &
-             +int4(ri_79,CONJUGATE(pst79(:,OP_DZ)),bft79(:,OP_DRP),temp79a) &
-             -int4(ri_79,CONJUGATE(pst79(:,OP_DR)),bft79(:,OP_DZP),temp79a))
+             (int3(bfpt79(:,OP_DZ),CONJUGATE(bfpt79(:,OP_DZ)),temp79a) &
+             +int3(bfpt79(:,OP_DR),CONJUGATE(bfpt79(:,OP_DR)),temp79a) &
+             +int4(ri_79,pst79(:,OP_DZ),CONJUGATE(bfpt79(:,OP_DR)),temp79a) &
+             -int4(ri_79,pst79(:,OP_DR),CONJUGATE(bfpt79(:,OP_DR)),temp79a) &
+             +int4(ri_79,CONJUGATE(pst79(:,OP_DZ)),bfpt79(:,OP_DR),temp79a) &
+             -int4(ri_79,CONJUGATE(pst79(:,OP_DR)),bfpt79(:,OP_DZ),temp79a))
      endif
 #endif
   endif
@@ -11910,23 +11863,23 @@ function tepsifkappar(e,f,g,h,j,k)
      temp79a = k(:,OP_1)*ri_79* &
           (norm79(:,2)*f(:,OP_DR) - norm79(:,1)*f(:,OP_DZ))*j(:,OP_1)
      temp79b = -k(:,OP_1)*ri_79* &
-          (norm79(:,2)*g(:,OP_DZP) + norm79(:,1)*g(:,OP_DRP))*j(:,OP_1)
+          (norm79(:,2)*g(:,OP_DZ) + norm79(:,1)*g(:,OP_DR))*j(:,OP_1)
 
-     temp = intx4(e(:,:,OP_1),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + intx4(e(:,:,OP_1),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
+     temp = intx4(e(:,:,OP_1),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          + intx4(e(:,:,OP_1),temp79a,g(:,OP_DR),h(:,OP_DR)) &
           + intx4(e(:,:,OP_1),temp79b,f(:,OP_DR ),h(:,OP_DZ)) &
           - intx4(e(:,:,OP_1),temp79b,f(:,OP_DZ ),h(:,OP_DR))
   else
      temp79a = k(:,OP_1)*ri_79*j(:,OP_1)
 
-     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          + intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
-          - intx5(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
-          - intx5(e(:,:,OP_DR),g(:,OP_DRP),temp79a,f(:,OP_DZ ),h(:,OP_DR))
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DR),temp79a,g(:,OP_DR),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),f(:,OP_DZ),temp79a,g(:,OP_DR),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DZ),g(:,OP_DZ),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),g(:,OP_DR),temp79a,f(:,OP_DR ),h(:,OP_DZ)) &
+          - intx5(e(:,:,OP_DZ),g(:,OP_DZ),temp79a,f(:,OP_DZ ),h(:,OP_DR)) &
+          - intx5(e(:,:,OP_DR),g(:,OP_DR),temp79a,f(:,OP_DZ ),h(:,OP_DR))
   end if
   tepsifkappar = (gam - 1.) * temp
 #else
@@ -11954,19 +11907,19 @@ function tebfkappar(e,f,g,h,j,k)
 
   if(surface_int) then
      temp79a = -ri2_79*k(:,OP_1)*j(:,OP_1)*f(:,OP_1)* &
-          (norm79(:,1)*g(:,OP_DRP) + norm79(:,2)*g(:,OP_DZP))
+          (norm79(:,1)*g(:,OP_DR) + norm79(:,2)*g(:,OP_DZ))
 
      temp = intx3(e(:,:,OP_1),temp79a,h(:,OP_DP))
   else
      temp79a = k(:,OP_1)*ri2_79*f(:,OP_1)*j(:,OP_1)
 
-     temp79b = g(:,OP_DZP)*(h(:,OP_DZ) )&
-          +    g(:,OP_DRP)*(h(:,OP_DR) )
+     temp79b = g(:,OP_DZ)*(h(:,OP_DZ) )&
+          +    g(:,OP_DR)*(h(:,OP_DR) )
 
      temp79d = temp79b*f(:,OP_1 )*j(:,OP_1 )*k(:,OP_1 )
 
-     temp = intx4(e(:,:,OP_DZ),g(:,OP_DZP),temp79a,h(:,OP_DP)) &
-          + intx4(e(:,:,OP_DR),g(:,OP_DRP),temp79a,h(:,OP_DP)) &
+     temp = intx4(e(:,:,OP_DZ),g(:,OP_DZ),temp79a,h(:,OP_DP)) &
+          + intx4(e(:,:,OP_DR),g(:,OP_DR),temp79a,h(:,OP_DP)) &
           + intx3(e(:,:,OP_DP),ri2_79,temp79d)
   end if
   tebfkappar = (gam - 1.) * temp
@@ -11997,8 +11950,8 @@ function tebfkapparl(e,f,g,h,i,j)
 
 
   if(surface_int) then
-     temp = -intx5(e(:,:,OP_1),temp79a,h(:,OP_DP),norm79(:,1),g(:,OP_DRP)) &
-          -  intx5(e(:,:,OP_1),temp79a,h(:,OP_DP),norm79(:,2),g(:,OP_DZP))
+     temp = -intx5(e(:,:,OP_1),temp79a,h(:,OP_DP),norm79(:,1),g(:,OP_DR)) &
+          -  intx5(e(:,:,OP_1),temp79a,h(:,OP_DP),norm79(:,2),g(:,OP_DZ))
   else
      ! d(temp79a)/dphi
      temp79b = ri2_79 * &
@@ -12007,22 +11960,18 @@ function tebfkapparl(e,f,g,h,i,j)
           +j(:,OP_1)*i(:,OP_1)* f(:,OP_DP))
 
      !  <T, f'> 
-     temp79c =  (h(:,OP_DR)*g(:,OP_DRP) + h(:,OP_DZ)*g(:,OP_DZP)) 
+     temp79c =  (h(:,OP_DR)*g(:,OP_DR) + h(:,OP_DZ)*g(:,OP_DZ)) 
     
 
      ! d(temp79c)/dphi
      temp79d =  &
-         +(h(:,OP_DR)*g(:,OP_DRPP) + h(:,OP_DZ)*g(:,OP_DZPP)) &
-         +(h(:,OP_DRP)*g(:,OP_DRP) + h(:,OP_DZP)*g(:,OP_DZP)) 
+         +(h(:,OP_DR)*g(:,OP_DRP) + h(:,OP_DZ)*g(:,OP_DZP)) &
+         +(h(:,OP_DRP)*g(:,OP_DR) + h(:,OP_DZP)*g(:,OP_DZ)) 
 
-     temp = intx4(e(:,:,OP_DR),temp79a,g(:,OP_DRP),h(:,OP_DP)) &
-          + intx4(e(:,:,OP_DZ),temp79a,g(:,OP_DZP),h(:,OP_DP)) &
-#ifdef USEST
-          + intx3(e(:,:,OP_DP),temp79a,temp79c)
-#else
+     temp = intx4(e(:,:,OP_DR),temp79a,g(:,OP_DR),h(:,OP_DP)) &
+          + intx4(e(:,:,OP_DZ),temp79a,g(:,OP_DZ),h(:,OP_DP)) &
           - intx3(e(:,:,OP_1),temp79a,temp79d) &
           - intx3(e(:,:,OP_1),temp79b,temp79c)
-#endif
   end if
   tebfkapparl = (gam - 1.) * temp
 #else
@@ -12053,17 +12002,17 @@ function teffkappar(e,f,g,h,j,k)
 
   if(surface_int) then
      temp79a =  k(:,OP_1)* &
-          (norm79(:,2)*f(:,OP_DZP) + norm79(:,1)*f(:,OP_DRP))*j(:,OP_1)
+          (norm79(:,2)*f(:,OP_DZ) + norm79(:,1)*f(:,OP_DR))*j(:,OP_1)
 
-     temp = intx4(e(:,:,OP_1),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + intx4(e(:,:,OP_1),temp79a,g(:,OP_DRP),h(:,OP_DR))
+     temp = intx4(e(:,:,OP_1),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          + intx4(e(:,:,OP_1),temp79a,g(:,OP_DR),h(:,OP_DR))
   else
      temp79a = -k(:,OP_1)*j(:,OP_1)
 
-     temp = intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79a,g(:,OP_DZP),h(:,OP_DZ)) &
-          + intx5(e(:,:,OP_DZ),f(:,OP_DZP),temp79a,g(:,OP_DRP),h(:,OP_DR)) &
-          + intx5(e(:,:,OP_DR),f(:,OP_DRP),temp79a,g(:,OP_DRP),h(:,OP_DR))
+     temp = intx5(e(:,:,OP_DZ),f(:,OP_DZ),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DR),temp79a,g(:,OP_DZ),h(:,OP_DZ)) &
+          + intx5(e(:,:,OP_DZ),f(:,OP_DZ),temp79a,g(:,OP_DR),h(:,OP_DR)) &
+          + intx5(e(:,:,OP_DR),f(:,OP_DR),temp79a,g(:,OP_DR),h(:,OP_DR))
   end if
 
   teffkappar = (gam - 1.) * temp
@@ -12169,8 +12118,8 @@ vectype function q1pf(e,f,g,h)
   if(surface_int) then
      temp = 0.
   else
-     temp = - int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
-            - int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DRP),h(:,OP_1))
+     temp = - int4(e(:,OP_1),f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+            - int4(e(:,OP_1),f(:,OP_DR),g(:,OP_DR),h(:,OP_1))
   end if
 
   q1pf = temp
@@ -12353,10 +12302,10 @@ vectype function j1b2ipsif(e,f,g,h)
 
   vectype :: temp
 #if defined(USE3D) || defined(USECOMPLEX)
-  temp = int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DRPP))    &
-       + int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DZPP))    &
-       - int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DRP),h(:,OP_DRP))    &
-       - int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZP),h(:,OP_DZP))
+  temp = int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DRP))    &
+       + int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DZP))    &
+       - int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DRP),h(:,OP_DR))    &
+       - int5(ri2_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZP),h(:,OP_DZ))
 #else
   temp = 0
 #endif
@@ -12377,8 +12326,8 @@ vectype function j1b2ifb(e,f,g,h)
   vectype :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  temp = - int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZP),h(:,OP_DR))    &
-         + int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DRP),h(:,OP_DZ))
+  temp = - int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DR))    &
+         + int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DZ))
 #else
   temp = 0
 #endif
@@ -12400,8 +12349,8 @@ vectype function j1b2iff(e,f,g,h)
   vectype :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  temp = - int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZP),h(:,OP_DRPP))    &
-         + int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DRP),h(:,OP_DZPP))
+  temp = - int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DZ),h(:,OP_DRP))    &
+         + int5(ri_79,e(:,OP_1),f(:,OP_1),g(:,OP_DR),h(:,OP_DZP))
 #else
   temp = 0
 #endif
@@ -13112,9 +13061,9 @@ subroutine JxB_r(o, opol)
   otor = - ri2_79*pst79(:,OP_GS)*pstx79(:,OP_DR)
   opol = - ri2_79*bztx79(:,OP_1)*bzt79(:,OP_DR)
 #if defined(USE3D) || defined(USECOMPLEX)
-  otor = otor + ri_79*pst79(:,OP_GS)*bftx79(:,OP_DZP)
+  otor = otor + ri_79*pst79(:,OP_GS)*bfptx79(:,OP_DZ)
   opol = opol &
-       - ri2_79*bztx79(:,OP_1)*bft79(:,OP_DRPP) &
+       - ri2_79*bztx79(:,OP_1)*bfpt79(:,OP_DRP) &
        - ri3_79*bztx79(:,OP_1)*pst79(:,OP_DZP)
 #endif
   o = opol + otor
@@ -13133,16 +13082,16 @@ subroutine JxB_phi(o)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   o = o &
-       + ri2_79*bft79(:,OP_DZPP)*pstx79(:,OP_DR) &
-       - ri2_79*bft79(:,OP_DRPP)*pstx79(:,OP_DZ) &
-       - ri_79*bzt79(:,OP_DZ)*bftx79(:,OP_DZP) &
-       - ri_79*bzt79(:,OP_DR)*bftx79(:,OP_DRP) &
-       - ri_79*bft79(:,OP_DZPP)*bftx79(:,OP_DZP) &
-       - ri_79*bft79(:,OP_DRPP)*bftx79(:,OP_DRP) &
+       + ri2_79*bfpt79(:,OP_DZP)*pstx79(:,OP_DR) &
+       - ri2_79*bfpt79(:,OP_DRP)*pstx79(:,OP_DZ) &
+       - ri_79*bzt79(:,OP_DZ)*bfptx79(:,OP_DZ) &
+       - ri_79*bzt79(:,OP_DR)*bfptx79(:,OP_DR) &
+       - ri_79*bfpt79(:,OP_DZP)*bfptx79(:,OP_DZ) &
+       - ri_79*bfpt79(:,OP_DRP)*bfptx79(:,OP_DR) &
        - ri3_79*pst79(:,OP_DZP)*pstx79(:,OP_DZ) &
        - ri3_79*pst79(:,OP_DRP)*pstx79(:,OP_DR) &
-       - ri2_79*pst79(:,OP_DZP)*bftx79(:,OP_DRP) &
-       + ri2_79*pst79(:,OP_DRP)*bftx79(:,OP_DZP)
+       - ri2_79*pst79(:,OP_DZP)*bfptx79(:,OP_DR) &
+       + ri2_79*pst79(:,OP_DRP)*bfptx79(:,OP_DZ)
 #endif       
 
 end subroutine JxB_phi
@@ -13159,9 +13108,9 @@ subroutine JxB_z(o, opol)
   opol = - ri2_79*bztx79(:,OP_1)*bzt79(:,OP_DZ)
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  otor = otor - ri_79*pst79(:,OP_GS)*bftx79(:,OP_DRP)
+  otor = otor - ri_79*pst79(:,OP_GS)*bfptx79(:,OP_DR)
   opol = opol  &
-       - ri2_79*bztx79(:,OP_1)*bft79(:,OP_DZPP) &
+       - ri2_79*bztx79(:,OP_1)*bfpt79(:,OP_DZP) &
        + ri3_79*bztx79(:,OP_1)*pst79(:,OP_DRP)
 #endif
   o = opol + otor

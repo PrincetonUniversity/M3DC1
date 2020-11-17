@@ -1225,6 +1225,10 @@ subroutine validate_input
      if(myrank.eq.0) print *, "itemp=1 not allowed with ipressplit=0"
      call safestop(1)
   endif
+   if(ipressplit.eq.1 .and. numvar.ne.3 ) then
+      if(myrank.eq.0) print *, "ipressplit=1 not allowed with numvar < 3"
+      call safestop(1)
+   end if
 
   if(imp_temp.eq.1) then 
      if(ipres.eq.0 .and. numvar.lt.3) then
@@ -1272,6 +1276,7 @@ subroutine validate_input
    endif
 
   if(ifout.eq.-1) ifout = i3d
+  irestart_fp = -1
   if(i3d.eq.1 .and. jadv.eq.0) then
      if(myrank.eq.0) &
           print *, 'WARNING: nonaxisymmetric cases should use jadv=1'

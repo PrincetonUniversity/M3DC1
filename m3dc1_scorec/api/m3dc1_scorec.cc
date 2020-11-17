@@ -387,6 +387,15 @@ int m3dc1_mesh_load(char* mesh_file)
   return M3DC1_SUCCESS;
 }
 
+void m3dc1_region_delete()
+{
+  m3dc1_mesh::instance()->remove_wedges();
+}
+
+void m3dc1_region_create()
+{
+}
+
 //*******************************************************
 int m3dc1_mesh_build3d (int* num_field, int* field_id,  
                         int* num_dofs_per_value)
@@ -424,6 +433,90 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   compute_globalid(m3dc1_mesh::instance()->mesh, 3);
 
   return M3DC1_SUCCESS; 
+}
+
+/* new mesh adaptation */
+void m3dc1_mesh_adapt(int* logInterpolation, 
+  int* shouldSnap, 
+  int* shouldTransferParametric, 
+  int* shouldRunPreZoltan,
+  int* shouldRunMidParma, 
+  int* shouldRunPostParma, 
+  int* shouldRefineLayer, 
+  int* maximumIterations,
+  double* goodQuality)
+{
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
+  // delete all the matrix
+  while (m3dc1_solver::instance()-> matrix_container->size())
+  {
+    std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
+    delete mat_it->second;
+    m3dc1_solver::instance()->matrix_container->erase(mat_it);
+  }
+
+  vector<apf::Field*> fields;
+  std::map<FieldID, m3dc1_field*> :: iterator it=m3dc1_mesh::instance()->field_container->begin();
+  while(it!=m3dc1_mesh::instance()->field_container->end())
+  {
+    apf::Field* field = it->second->get_field();
+    int complexType = it->second->get_value_type();
+    if (complexType) group_complex_dof(field, 1);
+    if (isFrozen(field)) unfreeze(field);
+    if (!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
+    fields.push_back(field);
+    it++;
+  }
+
+  while(mesh->countNumberings())
+  {
+    apf::Numbering* n = mesh->getNumbering(0);
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+    apf::destroyNumbering(n);
+  }
+
+  SetSizeField sf(mesh);
+  ma::Input* in = ma::configure(mesh, &sf,0,*logInterpolation);
+
+  if (!PCU_Comm_Self()) std::cout << __func__<<": cansnap() : " << mesh->canSnap() << "\n";
+  in->shouldSnap = *shouldSnap;
+  in->shouldTransferParametric = *shouldTransferParametric;
+  in->shouldRunPreZoltan = *shouldRunPreZoltan;
+  in->shouldRunMidParma = *shouldRunMidParma;
+  in->shouldRunPostParma = *shouldRunPostParma;
+  in->shouldRefineLayer = *shouldRefineLayer;
+  in->maximumIterations=*maximumIterations;
+  in->goodQuality = 0.2;
+
+  ma::adapt(in);
+  reorderMdsMesh(mesh);
+
+  m3dc1_mesh::instance()->initialize();
+  compute_globalid(m3dc1_mesh::instance()->mesh, 0);
+  compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
+
+  it=m3dc1_mesh::instance()->field_container->begin();
+  while(it!=m3dc1_mesh::instance()->field_container->end())
+  {
+    apf::Field* field = it->second->get_field();
+    int complexType = it->second->get_value_type();
+    if (complexType) group_complex_dof(field, 0);
+    if (!isFrozen(field)) freeze(field);
+#ifdef DEBUG
+    int isnan;
+    int fieldId= it->first;
+    m3dc1_field_isnan(&fieldId, &isnan);
+    assert(isnan==0);
+#endif
+    synchronize_field(field);
+
+#ifdef DEBUG
+    m3dc1_field_isnan(&fieldId, &isnan);
+    assert(isnan==0);
+#endif
+    it++;
+  }
 }
 
 /* ghosting functions */
@@ -817,7 +910,7 @@ int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
 //*******************************************************
 int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
                       int* /* in */ adj_dim, int* /* out */ adj_ent, 
-                      int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent)
+                      int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size)
 //*******************************************************
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
@@ -828,29 +921,29 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
   {
     apf::Adjacent adjacent;
     mesh->getAdjacent(e,*adj_dim,adjacent);
-    *num_adj_ent = adjacent.getSize();
-    if (*adj_ent_allocated_size<*num_adj_ent)
+    *adj_ent_size = adjacent.getSize();
+    if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
                <<" failed: not enough array size for adjacent entities (given: "
-               <<*adj_ent_allocated_size<<", needed: "<<*num_adj_ent<<"\n";
+               <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
-    for (int i=0; i<*num_adj_ent; ++i)
+    for (int i=0; i<*adj_ent_size; ++i)
       adj_ent[i] = getMdsIndex(mesh, adjacent[i]);
   }
   else if (*adj_dim<*ent_dim)
   {
     apf::Downward downward;
-    *num_adj_ent = mesh->getDownward(e, *adj_dim, downward);
-    if (*adj_ent_allocated_size<*num_adj_ent)
+    *adj_ent_size = mesh->getDownward(e, *adj_dim, downward);
+    if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
                <<" failed: not enough array size for adjacent entities (given: "
-               <<*adj_ent_allocated_size<<", needed: "<<*num_adj_ent<<"\n";
+               <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
-    for (int i=0; i<*num_adj_ent; ++i)
+    for (int i=0; i<*adj_ent_size; ++i)
       adj_ent[i] = getMdsIndex(mesh, downward[i]);
     //adjust the order to work with m3dc1
     if (mesh->getDimension()==3 && *ent_dim==3 &&*adj_dim==0 &&adj_ent[0]>adj_ent[3])
@@ -870,15 +963,15 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
 
     apf::Adjacent adjacent;
     apf::getBridgeAdjacent(mesh, e, *ent_dim-1, *adj_dim, adjacent);
-    *num_adj_ent = adjacent.getSize();
-    if (*adj_ent_allocated_size<*num_adj_ent)
+    *adj_ent_size = adjacent.getSize();
+    if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
                <<" failed: not enough array size for adjacent entities (given: "
-               <<*adj_ent_allocated_size<<", needed: "<<*num_adj_ent<<"\n";
+               <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
-    for (int i=0; i<*num_adj_ent; ++i)
+    for (int i=0; i<*adj_ent_size; ++i)
       adj_ent[i] = getMdsIndex(mesh, adjacent[i]);
   }
   return M3DC1_SUCCESS;
@@ -906,6 +999,81 @@ int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     *num_adj_ent = m3dc1_mesh::instance()->mesh->getDownward(e, *adj_dim, downward);
   }
   return M3DC1_SUCCESS; 
+}
+
+void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* /* in */ num_ent, 
+                      int* /* in */ adj_dim,
+                      int* /* out */ num_adj_ent, int* /* out */ adj_ent_pids, int* /* out */ adj_ent_gids, 
+                      int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size)
+{
+  if (*adj_dim<*ent_dim)
+  {
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 ERROR] "<<__func__
+               <<" failed: adjacency dimension ("<<*adj_dim
+               <<") should be greater than or equal to entity dimention ("
+               <<").\n\t Use m3dc1_ent_getadj for downward adjacency\n";
+    return;
+  }
+  else if (*adj_dim>*ent_dim)
+  {
+    if (!PCU_Comm_Self()) 
+      std::cout<<"[M3D-C1 ERROR] "<<__func__<<" not supported yet for upward adjacency\n";
+
+  }
+
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
+  int mesh_dim=mesh->count(3)?3:2;
+  assert(*ent_dim==mesh_dim);
+
+  apf::MeshEntity* e;
+  std::vector<apf::MeshEntity*> ent_vec;
+  std::vector<int> adj_gid_vec;
+  std::vector<int> adj_pid_vec;
+  std::vector<int> num_adj_vec;
+  for (int i=0; i<*num_ent; ++i)
+   ent_vec.push_back(getMdsEntity(mesh, *ent_dim, ent_ids[i]));
+  *adj_ent_size = get_ent_global2ndadj(mesh, *ent_dim, *adj_dim, ent_vec, num_adj_vec, adj_pid_vec, adj_gid_vec);
+  
+  if (*adj_ent_allocated_size<*adj_ent_size)
+  {
+      std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
+               <<" failed: not enough array size for adjacent entities (given: "
+               <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
+      return;
+  }
+
+  memcpy(num_adj_ent, &(num_adj_vec[0]), num_adj_vec.size()*sizeof(int));
+  memcpy(adj_ent_pids, &(adj_pid_vec[0]), adj_pid_vec.size()*sizeof(int));
+  memcpy(adj_ent_gids, &(adj_gid_vec[0]), adj_gid_vec.size()*sizeof(int));
+}
+
+void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* /* in */ num_ent,
+                      int* /* in */ adj_dim, int* /* out */ num_adj_ent)
+{
+  if (*adj_dim<*ent_dim)
+  {
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 ERROR] "<<__func__
+               <<" failed: adjacency dimension ("<<*adj_dim
+               <<") should be greater than or equal to entity dimention ("
+               <<").\n\t Use m3dc1_ent_getnumadj for downward adjacency\n";
+    return;
+  }
+  else if (*adj_dim>*ent_dim)
+  {
+    if (!PCU_Comm_Self()) 
+      std::cout<<"[M3D-C1 ERROR] "<<__func__<<" not supported yet for upward adjacency\n";
+      
+  }
+
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh; 
+  apf::MeshEntity* e;
+  std::vector<apf::MeshEntity*> ent_vec;
+  std::vector<int> num_adj_vec;
+  for (int i=0; i<*num_ent; ++i)
+   ent_vec.push_back(getMdsEntity(mesh, *ent_dim, ent_ids[i]));
+  get_ent_numglobaladj(mesh, *ent_dim, *adj_dim, ent_vec, num_adj_vec);
+  memcpy(num_adj_ent, &(num_adj_vec[0]), (*num_ent)*sizeof(int));
 }
 
 //*******************************************************

@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 33
+  integer, parameter :: version = 34
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -385,6 +385,7 @@ module basic
   integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
   integer :: ibh_harmonics  ! number of Fourier harmonics of magnetic field perturbation to be calculated and output
   integer :: ifout         ! 1 = output f field
+  integer :: irestart_fp   ! -1 = default; 1 = fp present at restart; 0 = absent; 
   integer :: itemp_plot    ! 1 =output vdotgradt, deldotq_perp, deldotq_par,eta_jsq
   integer :: ibdgp         ! option to make partial plots of b dot grad potential
   integer :: iveldif         ! option to make partial plots of V x B - grad(potential)
@@ -472,7 +473,7 @@ module arrays
   type(vector_type), target :: field_vec_pre
 
   ! Arrays containing external fields
-  type(field_type) :: psi_ext, bz_ext, bf_ext
+  type(field_type) :: psi_ext, bz_ext, bf_ext, bfp_ext
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
@@ -505,7 +506,7 @@ module arrays
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
   type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)
   type(field_type) :: den_field(0:1), p_field(0:1), ne_field(0:1)
-  type(field_type) :: bf_field(0:1), e_field(0:1)
+  type(field_type) :: bf_field(0:1), bfp_field(0:1), e_field(0:1)
   type(field_type) :: te_field(0:1), ti_field(0:1)
   type(field_type) :: u_field_pre, psi_field_pre
   type(field_type) :: nre_field(0:1)  ! runaway electron density
@@ -525,7 +526,7 @@ module arrays
   vectype, dimension(dofs_per_node) :: chi1_l, chi0_l
   vectype, dimension(dofs_per_node) :: psi1_l, psi0_l
   vectype, dimension(dofs_per_node) ::  bz1_l,  bz0_l
-  vectype, dimension(dofs_per_node) ::  bf1_l,  bf0_l
+  vectype, dimension(dofs_per_node) ::  bfp1_l,  bfp0_l
   vectype, dimension(dofs_per_node) ::  e1_l,  e0_l
   vectype, dimension(dofs_per_node) ::  pe1_l,  pe0_l
   vectype, dimension(dofs_per_node) :: den1_l, den0_l
@@ -657,7 +658,7 @@ module sparse
   integer, parameter :: d7_mat_index = 36
   integer, parameter :: ppmatrix_lhs = 37
   integer, parameter :: br_mat_index = 38
-  integer, parameter :: bf_mat_rhs_index = 39
+  integer, parameter :: bfp_mat_rhs_index = 39
   integer, parameter :: dp_mat_lhs_index = 40
   integer, parameter :: mass_mat_rhs_index = 41
   integer, parameter :: rwpsi_mat_index = 42

@@ -728,7 +728,7 @@ int matrix_solve::preAllocate ()
   preAllocateParaMat();
 }
 
-void matrix_solve::reset_values() 
+int matrix_solve::reset_values() 
 { 
   int ierr = MatZeroEntries(*A); 
   //MatZeroEntries(remoteA); 
@@ -740,8 +740,16 @@ void matrix_solve::reset_values()
 
   mat_status = M3DC1_NOT_FIXED; // allow matrix value modification
   //start second solve
-  if(kspSet==1) kspSet=2;
-    if (!PCU_Comm_Self())
+  if(kspSet==1) 
+  {
+    kspSet=2;
+    // Set operators, keeping the identical preconditioner matrix for
+    // all linear solves.  This approach is often effective when the
+    // linear systems do not change very much between successive steps.
+    ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
+  }
+  
+  if (!PCU_Comm_Self())
     std::cout<<"[M3DC1 ERROR] "<<__func__<<": mat_status=M3DC1_NOT_FIXED "<<mat_status<<" kspSet="<<kspSet<<"\n";
 #ifdef DEBUG_
   PetscInt rstart, rend, r_rstart, r_rend, ncols;
@@ -1060,7 +1068,7 @@ int matrix_solve:: setKspType()
          // Set operators, keeping the identical preconditioner matrix for
          // all linear solves.  This approach is often effective when the
          // linear systems do not change very much between successive steps.
-         ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
+         //ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
          //if (!PCU_Comm_Self())
          //  std::cout <<"\t-- Reuse Preconditioner" << std::endl;
   ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/); 

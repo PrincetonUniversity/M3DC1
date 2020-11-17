@@ -41,20 +41,18 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 #HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
+MPIVER=intel2019u3-openmpi4.0.3
 PETSC_VER=petsc-3.13.5
 PETSCVER=petsc3.13.5
 
-#PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/petsc-3.13.5
-PETSC_DIR=/p/swim/jchen/PETSC/master
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/$(PETSC_VER)
 ifeq ($(COM), 1)
-#PETSC_ARCH=cplx-rhel7-intel2019u3-openmpi4.0.3
-PETSC_ARCH=cplx-CentOS7-intel2019u3-openmpi403
+PETSC_ARCH=cplx-rhel7-$(MPIVER)
 else
-#PETSC_ARCH=real-rhel7-intel2019u3-openmpi4.0.3
-PETSC_ARCH=real-CentOS7-intel2019u3-openmpi403
+PETSC_ARCH=real-rhel7-$(MPIVER)-slmaster
 endif
 
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/$(PETSCVER)
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 PUMI_DIR=$(SCOREC_BASE_DIR)

@@ -699,6 +699,7 @@ subroutine output_mesh(time_group_id, nelms, error)
   integer :: i
 #ifdef USE3D
   integer, parameter :: vals_per_elm = 10
+  real, allocatable :: phi(:)
 #else
   integer, parameter :: vals_per_elm = 8
 #endif
@@ -762,6 +763,16 @@ subroutine output_mesh(time_group_id, nelms, error)
   end do
   call output_field(mesh_group_id, "elements", elm_data, vals_per_elm, &
        nelms, error)
+
+
+#ifdef USE3D
+  allocate(phi(nplanes))
+  do i=1, nplanes
+     call m3dc1_plane_getphi(i-1, phi(i))
+  end do
+  call write_vec_attr(mesh_group_id, "phi", phi, nplanes, error)
+  deallocate(phi)
+#endif
 
   ! Close the group
   call h5gclose_f(mesh_group_id, error)
@@ -946,6 +957,34 @@ subroutine output_fields(time_group_id, equilibrium, error)
 #endif
   endif
     
+    ! BFP
+  if(i3d.eq.1 .and. numvar.ge.2) then
+     do i=1, nelms
+        call calcavector(i, bfp_field(ilin), dum(:,i))
+     end do
+     if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then 
+        call output_field(group_id, "fp_plasma", real(dum), coeffs_per_element, &
+             nelms, error)
+#ifdef USECOMPLEX
+        call output_field(group_id,"fp_plasma_i",aimag(dum),coeffs_per_element, &
+             nelms,error)
+#endif
+
+        allocate(dum2(coeffs_per_element,nelms))
+        do i=1, nelms
+           call calcavector(i, bfp_ext, dum2(:,i))
+        end do
+        dum = dum + dum2
+        deallocate(dum2)
+     end if
+     call output_field(group_id, "fp", real(dum), coeffs_per_element, &
+          nelms, error)
+#ifdef USECOMPLEX
+     call output_field(group_id,"fp_i",aimag(dum),coeffs_per_element, &
+          nelms,error)
+#endif
+  endif
+    
   call write_field(group_id, "V",    vz_field(ilin), nelms, error)
   call write_field(group_id, "Pe",   pe_field(ilin), nelms, error)
   call write_field(group_id, "P",     p_field(ilin), nelms, error)
@@ -984,6 +1023,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call write_field(group_id, "psi_ext", psi_ext, nelms, error)
      call write_field(group_id, "I_ext", bz_ext, nelms, error)    
      call write_field(group_id, "f_ext", bf_ext, nelms, error)
+     call write_field(group_id, "fp_ext", bfp_ext, nelms, error)
   endif
 
   if(ikprad.eq.1) then

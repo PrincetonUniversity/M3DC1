@@ -148,11 +148,39 @@ int main( int argc, char** argv)
   //m3dc1_mesh_write("geoId", &three);
 
   printStats(m3dc1_mesh::instance()->mesh);
+  int ent_dim=2;
   if (num_plane>1)
   {
     int zero=0;
+    ent_dim=3;
     m3dc1_mesh_build3d(&zero, &zero, &zero);
   }
+ 
+   int num_ent = 10;
+  int* ent_ids=new int[num_ent];
+  int* num_adj_ent=new int[num_ent];
+
+  // M3DC1 assumption - local ID is continuous 
+  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(ent_dim-1);
+  apf::MeshEntity* e;
+  int i=0;
+  while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
+  {
+    ent_ids[i++] =  get_ent_localid(m3dc1_mesh::instance()->mesh,e);
+    if (i==10) break;
+  }
+  m3dc1_mesh::instance()->mesh->end(it);
+  m3dc1_ent_getnumglobaladj (&ent_dim, ent_ids, &num_ent, &ent_dim, num_adj_ent);
+/*
+  for (int p=0; p<PCU_Comm_Peers();++p)
+  {
+    if (p==PCU_Comm_Self())   
+      for (int i=0; i<10; ++i)
+        std::cout<<"("<<p<<") # adj element of elem "<<i<<" = "<<num_adj_ent[i]<<"\n";
+   MPI_Barrier(MPI_COMM_WORLD) ;
+  }
+    
+*/
 
   int num_layer=2;
   m3dc1_ghost_create(&num_layer);
