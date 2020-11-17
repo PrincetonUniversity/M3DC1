@@ -22,7 +22,7 @@ module time_step_split
   type(field_type), private :: den_v
   type(field_type), private ::   p_v
   type(field_type), private ::   e_v
-  type(field_type), private ::  bf_v
+  type(field_type), private ::  bfp_v
   type(field_type), private ::  te_v
   type(field_type), private ::  ti_v
   type(field_type), private ::  ne_v
@@ -448,7 +448,7 @@ contains
     end if
     
     if(imp_bf.eq.1) then
-       call associate_field(bf_v, phi_vec, bf_i)
+       call associate_field(bfp_v, phi_vec, bf_i)
     end if
   end subroutine assign_variables_split
 
@@ -643,7 +643,7 @@ subroutine import_time_advance_vectors_split
   den_v = den_field(1)
   ne_v = ne_field(1)
   if(irunaway .gt. 0) nre_v = nre_field(1)
-  if(imp_bf.eq.1) bf_v = bf_field(1)
+  if(imp_bf.eq.1) bfp_v = bfp_field(1)
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)
 
 end subroutine import_time_advance_vectors_split
@@ -722,7 +722,7 @@ subroutine export_time_advance_vectors_split
   if(irunaway .gt. 0) then
      nre_field(1) = nre_v
   endif
-  if(imp_bf.eq.1) bf_field(1) = bf_v
+  if(imp_bf.eq.1) bfp_field(1) = bfp_v
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_field(1) = e_v
 
 end subroutine export_time_advance_vectors_split
@@ -804,7 +804,7 @@ subroutine step_split(calc_matrices)
 
      ! o1matrix_sm * bf(n)
      if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf .eq. 0) then
-        call matvecmult(o1_mat,bf_field(1)%vec,b2_vel)
+        call matvecmult(o1_mat,bfp_field(1)%vec,b2_vel)
         call add(b1_vel, b2_vel)
      endif
 
@@ -1155,7 +1155,7 @@ subroutine step_split(calc_matrices)
  
      ! Include linear f terms
      if(i3d.eq.1 .and. numvar.ge.3 .and. (ipres.eq.1 .or. ipressplit.eq.1)) then
-        call matvecmult(o3_mat,bf_field(1)%vec,temp2)
+        call matvecmult(o3_mat,bfp_field(1)%vec,temp2)
         call add(temp, temp2)
      endif
 
@@ -1268,7 +1268,7 @@ subroutine step_split(calc_matrices)
      ! Include linear f terms
      if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
         ! b2vector = r15 * bf(n)
-        call matvecmult(o2_mat,bf_field(1)%vec,b2_phi)
+        call matvecmult(o2_mat,bfp_field(1)%vec,b2_phi)
         call add(b1_phi, b2_phi)
      endif
 
@@ -1278,7 +1278,7 @@ subroutine step_split(calc_matrices)
      if(myrank.eq.0 .and. iprint.ge.2) print *, "  inserting bcs"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      if(calc_matrices.eq.1) then
-        call boundary_mag(b1_phi, psi_v, bz_v, bf_v, e_v, s2_mat)
+        call boundary_mag(b1_phi, psi_v, bz_v, bfp_v, e_v, s2_mat)
         if(ipressplit.eq.0 .and. numvar.ge.3) then
            if(ipres.eq.1) then
               call boundary_pe(b1_phi, pe_v, s2_mat)
@@ -1288,7 +1288,7 @@ subroutine step_split(calc_matrices)
         endif
         call finalize(s2_mat)
      else 
-        call boundary_mag(b1_phi, psi_v, bz_v, bf_v, e_v)
+        call boundary_mag(b1_phi, psi_v, bz_v, bfp_v, e_v)
         if(ipressplit.eq.0 .and. numvar.ge.3) then
            if(ipres.eq.1) then
               call boundary_pe(b1_phi, pe_v)
@@ -1386,7 +1386,7 @@ subroutine step_split(calc_matrices)
         ! Include linear f terms
         if(numvar.ge.2 .and. i3d.eq.1 .and. imp_bf.eq.0) then
            ! b2vector = r15 * bf(n)
-           call matvecmult(o2_mat,bf_field(1)%vec,b2_phi)
+           call matvecmult(o2_mat,bfp_field(1)%vec,b2_phi)
            call add(b1_phi, b2_phi)
         endif
 
@@ -1403,7 +1403,7 @@ subroutine step_split(calc_matrices)
         ! Insert boundary conditions
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         if(calc_matrices.eq.1) then
-           call boundary_mag(b1_phi, psi_v, bz_v, bf_v, e_v, s2_mat)
+           call boundary_mag(b1_phi, psi_v, bz_v, bfp_v, e_v, s2_mat)
            if(ipressplit.eq.0 .and. numvar.ge.3) then
               if(ipres.eq.1) then
                  call boundary_pe(b1_phi, pe_v, s2_mat)
@@ -1414,7 +1414,7 @@ subroutine step_split(calc_matrices)
 
            call finalize(s2_mat)
         else 
-           call boundary_mag(b1_phi, psi_v, bz_v, bf_v, e_v)
+           call boundary_mag(b1_phi, psi_v, bz_v, bfp_v, e_v)
            if(ipressplit.eq.0 .and. numvar.ge.3) then
               if(ipres.eq.1) then
                  call boundary_pe(b1_phi, pe_v)

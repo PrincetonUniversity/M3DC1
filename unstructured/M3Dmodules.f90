@@ -383,6 +383,7 @@ module basic
   integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
   integer :: ibh_harmonics  ! number of Fourier harmonics of magnetic field perturbation to be calculated and output
   integer :: ifout         ! 1 = output f field
+  integer :: irestart_fp   ! -1 = default; 1 = fp present at restart; 0 = absent; 
   integer :: itemp_plot    ! 1 =output vdotgradt, deldotq_perp, deldotq_par,eta_jsq
   integer :: ibdgp         ! option to make partial plots of b dot grad potential
   integer :: iveldif         ! option to make partial plots of V x B - grad(potential)
@@ -520,7 +521,7 @@ module arrays
   vectype, dimension(dofs_per_node) :: chi1_l, chi0_l
   vectype, dimension(dofs_per_node) :: psi1_l, psi0_l
   vectype, dimension(dofs_per_node) ::  bz1_l,  bz0_l
-  vectype, dimension(dofs_per_node) ::  bf1_l,  bf0_l
+  vectype, dimension(dofs_per_node) ::  bfp1_l,  bfp0_l
   vectype, dimension(dofs_per_node) ::  e1_l,  e0_l
   vectype, dimension(dofs_per_node) ::  pe1_l,  pe0_l
   vectype, dimension(dofs_per_node) :: den1_l, den0_l

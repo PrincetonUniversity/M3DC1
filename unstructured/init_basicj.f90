@@ -291,16 +291,16 @@ contains
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
        call define_fields(itri,0,1,0)
 
-       call eval_ops(itri, jphi_vec, bf079, rfac)
+       call eval_ops(itri, jphi_vec, jt79, rfac)
 
        call basicj_vz(x_79, z_79, temp79b)
        dofs_vz = intx2(mu79(:,:,OP_1),temp79b)
 
        if(ibasicj_solvep.eq.0) then
           if(itor.eq.1) then 
-             temp79a = sqrt(2.*bf079(:,OP_1) + (bzero*rzero)**2)
+             temp79a = sqrt(2.*jt79(:,OP_1) + (bzero*rzero)**2)
           else
-             temp79a = sqrt(2.*bf079(:,OP_1) + bzero**2)
+             temp79a = sqrt(2.*jt79(:,OP_1) + bzero**2)
           end if
           dofs = intx2(mu79(:,:,OP_1),temp79a)
        end if

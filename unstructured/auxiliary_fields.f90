@@ -663,12 +663,12 @@ subroutine calculate_auxiliary_fields(ilin)
         dofs = &
              + intx4(mu79(:,:,OP_1),ps179(:,OP_DR),conjg(bz179(:,OP_DZ)),ri_79)&
              - intx4(mu79(:,:,OP_1),ps179(:,OP_DZ),conjg(bz179(:,OP_DR)),ri_79)&
-             - intx3(mu79(:,:,OP_1),bf179(:,OP_DRP),conjg(bz179(:,OP_DR))) &
-             - intx3(mu79(:,:,OP_1),bf179(:,OP_DZP),conjg(bz179(:,OP_DZ))) &
+             - intx3(mu79(:,:,OP_1),bfp179(:,OP_DR),conjg(bz179(:,OP_DR))) &
+             - intx3(mu79(:,:,OP_1),bfp179(:,OP_DZ),conjg(bz179(:,OP_DZ))) &
              + intx4(mu79(:,:,OP_1),conjg(ps179(:,OP_DR)),bz179(:,OP_DZ),ri_79)&
              - intx4(mu79(:,:,OP_1),conjg(ps179(:,OP_DZ)),bz179(:,OP_DR),ri_79)&
-             - intx3(mu79(:,:,OP_1),conjg(bf179(:,OP_DRP)),bz179(:,OP_DR)) &
-             - intx3(mu79(:,:,OP_1),conjg(bf179(:,OP_DZP)),bz179(:,OP_DZ))
+             - intx3(mu79(:,:,OP_1),conjg(bfp179(:,OP_DR)),bz179(:,OP_DR)) &
+             - intx3(mu79(:,:,OP_1),conjg(bfp179(:,OP_DZ)),bz179(:,OP_DZ))
      endif
      dofs = dofs / 2.
 #else
@@ -678,8 +678,8 @@ subroutine calculate_auxiliary_fields(ilin)
 #ifdef USE3D
      if(numvar.gt.1) then
         dofs = dofs &
-             - intx3(mu79(:,:,OP_1),bft79(:,OP_DRP),bzt79(:,OP_DR)) &
-             - intx3(mu79(:,:,OP_1),bft79(:,OP_DZP),bzt79(:,OP_DZ))
+             - intx3(mu79(:,:,OP_1),bfpt79(:,OP_DR),bzt79(:,OP_DR)) &
+             - intx3(mu79(:,:,OP_1),bfpt79(:,OP_DZ),bzt79(:,OP_DZ))
      endif
 #endif
      
@@ -787,8 +787,8 @@ subroutine calculate_auxiliary_fields(ilin)
         if(numvar.gt.1) then
            dofs = dofs &
                 + intx4(mu79(:,:,OP_1),p179(:,OP_DP),bz079(:,OP_1),ri2_79) &
-                - intx3(mu79(:,:,OP_1),p079(:,OP_DZ),bf179(:,OP_DZP)) &
-                - intx3(mu79(:,:,OP_1),p079(:,OP_DR),bf179(:,OP_DRP))
+                - intx3(mu79(:,:,OP_1),p079(:,OP_DZ),bfp179(:,OP_DZ)) &
+                - intx3(mu79(:,:,OP_1),p079(:,OP_DR),bfp179(:,OP_DR))
         endif
 #endif
      else
@@ -798,8 +798,8 @@ subroutine calculate_auxiliary_fields(ilin)
         if(numvar.gt.1) then
            dofs = dofs &
                 + intx4(mu79(:,:,OP_1),pt79(:,OP_DP),bzt79(:,OP_1),ri2_79) &
-                - intx3(mu79(:,:,OP_1),pt79(:,OP_DZ),bft79(:,OP_DZP)) &
-                - intx3(mu79(:,:,OP_1),pt79(:,OP_DR),bft79(:,OP_DRP))
+                - intx3(mu79(:,:,OP_1),pt79(:,OP_DZ),bfpt79(:,OP_DZ)) &
+                - intx3(mu79(:,:,OP_1),pt79(:,OP_DR),bfpt79(:,OP_DR))
         endif
 #endif
      end if
@@ -819,8 +819,8 @@ subroutine calculate_auxiliary_fields(ilin)
         dofs = dofs + intx4(mu79(:,:,OP_1),ri2_79,te179(:,OP_DP),bz079(:,OP_1))
         if(numvar.gt.1) then
            dofs = dofs &
-                -intx3(mu79(:,:,OP_1),te079(:,OP_DZ),bf179(:,OP_DZP)) &
-                -intx3(mu79(:,:,OP_1),te079(:,OP_DR),bf179(:,OP_DRP))
+                -intx3(mu79(:,:,OP_1),te079(:,OP_DZ),bfp179(:,OP_DZ)) &
+                -intx3(mu79(:,:,OP_1),te079(:,OP_DR),bfp179(:,OP_DR))
         endif
 #endif
      else
@@ -833,8 +833,8 @@ subroutine calculate_auxiliary_fields(ilin)
 
         if(numvar.gt.1) then
            dofs = dofs &
-                -intx3(mu79(:,:,OP_1),tet79(:,OP_DZ),bft79(:,OP_DZP)) &
-                -intx3(mu79(:,:,OP_1),tet79(:,OP_DR),bft79(:,OP_DRP))
+                -intx3(mu79(:,:,OP_1),tet79(:,OP_DZ),bfpt79(:,OP_DZ)) &
+                -intx3(mu79(:,:,OP_1),tet79(:,OP_DR),bfpt79(:,OP_DR))
         endif
 #endif
      end if

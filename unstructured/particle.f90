@@ -21,7 +21,7 @@ module particles
 
   type elfield
      vectype, dimension(coeffs_per_element) :: psiv0, psiv1, Bzv0, Bzv1
-     vectype, dimension(coeffs_per_element) :: Bfv
+     vectype, dimension(coeffs_per_element) :: Bfpv
      vectype, dimension(coeffs_per_element) :: er, ephi, ez
      integer :: itri
   end type elfield
@@ -1658,7 +1658,7 @@ end subroutine update_particle_pressure
     !Always get magnetic field components
     call calcavector(ielm, psi_field(0), fh%psiv0)
     call calcavector(ielm, bz_field(0), fh%Bzv0)
-    if (use_f) call calcavector(ielm, bf_field(linear), fh%Bfv)
+    if (use_f) call calcavector(ielm, bfp_field(linear), fh%Bfpv)
     if (linear.eq.1) then
        call calcavector(ielm, psi_field(1), fh%psiv1)
        call calcavector(ielm, bz_field(1), fh%Bzv1)
@@ -1697,8 +1697,8 @@ end subroutine update_particle_pressure
     Bcyl(3) =  Rinv*dot_product(fh%psiv0, gh%dr)
 #ifdef USE3D
     !Non-axisymmetric B_poloidal term: - grad f'
-    Bcyl(1) = Bcyl(1) - dot_product(fh%Bfv, gh%drphi)
-    Bcyl(3) = Bcyl(3) - dot_product(fh%Bfv, gh%dzphi)
+    Bcyl(1) = Bcyl(1) - dot_product(fh%Bfpv, gh%dr)
+    Bcyl(3) = Bcyl(3) - dot_product(fh%Bfpv, gh%dz)
 #endif
 
     !B_toroidal = B_Z / R
@@ -1710,8 +1710,8 @@ end subroutine update_particle_pressure
        temp(3) =  Rinv*dot_product(fh%psiv1, gh%dr)
        temp(2) =  Rinv*dot_product(fh%Bzv1,  gh%g)
 #ifdef USECOMPLEX
-       temp(1) = temp(1) - dot_product(fh%Bfv, gh%dr) * rfac
-       temp(3) = temp(3) - dot_product(fh%Bfv, gh%dz) * rfac
+       temp(1) = temp(1) - dot_product(fh%Bfpv, gh%dr)
+       temp(3) = temp(3) - dot_product(fh%Bfpv, gh%dz)
        deltaB = real(temp * exp(rfac*x(2)))
 #else
        deltaB = temp
@@ -1757,15 +1757,15 @@ end subroutine update_particle_pressure
 
 #ifdef USE3D
     !Non-axisymmetric B_poloidal term: - grad f'
-    Bcyl(1) = Bcyl(1) - dot_product(fh%Bfv, gh%drphi)
-    dBdR(1) = dBdR(1) - dot_product(fh%Bfv, gh%drrphi)
-    dBdphi(1) = -Rinv*dot_product(fh%psiv0, gh%dzphi) - dot_product(fh%Bfv, gh%drphiphi)
-    dBdz(1) = dBdz(1) - dot_product(fh%Bfv, gh%drzphi)
+    Bcyl(1) = Bcyl(1) - dot_product(fh%Bfpv, gh%dr)
+    dBdR(1) = dBdR(1) - dot_product(fh%Bfpv, gh%drr)
+    dBdphi(1) = -Rinv*dot_product(fh%psiv0, gh%dzphi) - dot_product(fh%Bfpv, gh%drphi)
+    dBdz(1) = dBdz(1) - dot_product(fh%Bfpv, gh%drz)
 
-    Bcyl(3) = Bcyl(3) - dot_product(fh%Bfv, gh%dzphi)
-    dBdR(3) = dBdR(3) - dot_product(fh%Bfv, gh%drzphi)
-    dBdphi(3) = Rinv*dot_product(fh%psiv0, gh%drphi) - dot_product(fh%Bfv, gh%dzphiphi)
-    dBdz(3) = dBdz(3) - dot_product(fh%Bfv, gh%dzzphi)
+    Bcyl(3) = Bcyl(3) - dot_product(fh%Bfpv, gh%dz)
+    dBdR(3) = dBdR(3) - dot_product(fh%Bfpv, gh%drz)
+    dBdphi(3) = Rinv*dot_product(fh%psiv0, gh%drphi) - dot_product(fh%Bfpv, gh%dzphi)
+    dBdz(3) = dBdz(3) - dot_product(fh%Bfpv, gh%dzz)
 
     dBdphi(2) = Rinv*dot_product(fh%Bzv0, gh%dphi)
 #else
@@ -1791,16 +1791,16 @@ end subroutine update_particle_pressure
        if (itor.eq.1) tempR = tempR - Rinv*temp
 
 #ifdef USECOMPLEX
-       temp(1) = temp(1) - dot_product(fh%Bfv, gh%dr) * rfac
-       temp(3) = temp(3) - dot_product(fh%Bfv, gh%dz) * rfac
+       temp(1) = temp(1) - dot_product(fh%Bfpv, gh%dr) 
+       temp(3) = temp(3) - dot_product(fh%Bfpv, gh%dz) 
        deltaB = real(temp * exp(rfac*x(2)))
 
-       tempR(1) = tempR(1) - dot_product(fh%Bfv, gh%drr) * rfac
-       tempR(3) = tempR(3) - dot_product(fh%Bfv, gh%drz) * rfac
+       tempR(1) = tempR(1) - dot_product(fh%Bfpv, gh%drr) 
+       tempR(3) = tempR(3) - dot_product(fh%Bfpv, gh%drz) 
        dBdR = dBdR + real(tempR * exp(rfac*x(2)))
 
-       tempz(1) = tempz(1) - dot_product(fh%Bfv, gh%drz) * rfac
-       tempz(3) = tempz(3) - dot_product(fh%Bfv, gh%dzz) * rfac
+       tempz(1) = tempz(1) - dot_product(fh%Bfpv, gh%drz) 
+       tempz(3) = tempz(3) - dot_product(fh%Bfpv, gh%dzz) 
        dBdz = dBdz + real(tempz * exp(rfac*x(2)))
 
        dBdphi = real(temp * rfac * exp(rfac*x(2)))

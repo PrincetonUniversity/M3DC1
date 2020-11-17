@@ -787,7 +787,7 @@ subroutine derived_quantities(ilin)
   endif
 
   ! vector potential stream function
-  if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
+  !if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
      if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  f", ilin
         if((ilin.eq.0 .and. eqsubtract.eq.1) .or. eqsubtract.eq.0) then
@@ -802,14 +802,26 @@ subroutine derived_quantities(ilin)
              bz_field(ilin), bf_field(ilin))
         if((ilin.eq.0 .and. eqsubtract.eq.1) .or. eqsubtract.eq.0) call add(bz_field(ilin), temp)
      endif
-  end if
+  !end if
 
   ! toroidal derivative of vector potential stream function
-     if(i3d.eq.1 .and. numvar.ge.2) then
+  if(imp_bf.eq.0 .or. ntime.eq.ntime0) then
+     if(i3d.eq.1 .and. numvar.ge.2 .and. ilin.eq.1) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  fp", ilin
-        call solve_newvar1(bf_mat_lhs,bfp_field(ilin),mass_mat_rhs_bfp, &
-             bz_field(ilin), bfp_field(ilin))
+        ! solve fp = df/dphi when restarting absent fp 
+        if(irestart_fp.eq.0 .and. ntime.eq.ntime0) then 
+           call solve_newvar1(mass_mat_lhs,bfp_field(ilin),dp_mat_rhs_bfp, &
+               bf_field(ilin))
+           if(extsubtract.eq.1) then ! also, external bfp
+              call solve_newvar1(mass_mat_lhs,bfp_ext,dp_mat_rhs_bfp, &
+                  bf_ext)
+           endif
+        else 
+           call solve_newvar1(bf_mat_lhs,bfp_field(ilin),dp_mat_rhs_bfp, &
+                bz_field(ilin), bfp_field(ilin))
+        endif
      endif
+  endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)

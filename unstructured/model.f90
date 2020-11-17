@@ -403,7 +403,7 @@ end subroutine boundary_vpol
 ! sets boundary conditions for magnetic fields
 ! and electron pressure 
 !=======================================================
-subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
+subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
   use math
   use basic
   use field
@@ -414,7 +414,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
   implicit none
   
   type(vector_type), intent(inout) :: rhs
-  type(field_type) :: psi_v, bz_v, bf_v, e_v
+  type(field_type) :: psi_v, bz_v, bfp_v, e_v
   type(matrix_type), optional :: mat
 
   vectype, dimension(dofs_per_node) :: temp !, temp2, temp3
@@ -436,7 +436,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      if(numvar.ge.2) i_bz = node_index(bz_v, i)
 !     if(numvar.ge.3 .and. ipressplit.eq.0) i_pe = node_index(pe_v, i)
      if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) i_e = node_index(e_v, i)
-     if(imp_bf.eq.1) i_bf = node_index(bf_v, i)
+     if(imp_bf.eq.1) i_bf = node_index(bfp_v, i)
 
      ! constant normal field = -t.grad(psi)/R - n.grad(f')
      if(iconst_bn.eq.1) then

@@ -270,6 +270,7 @@ subroutine scaleback
 
   call mult(field_vec, scalefac)
   if(i3d.eq.1) call mult(bf_field(1), scalefac)
+  if(i3d.eq.1) call mult(bfp_field(1), scalefac)
   
 end subroutine scaleback
 
