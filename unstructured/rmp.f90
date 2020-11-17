@@ -165,8 +165,8 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
            bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
-        !fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
-        fac = (ntor/rzero)/(mpol*bzero)
+        fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
+        !fac = (ntor/rzero)/(mpol*bzero)
         if(rmp_atten.ne.0) then
            atten = exp((r-1.)/rmp_atten)
         else
@@ -181,7 +181,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -brv*sin(theta) - bthetav*cos(theta)
 #else
         br =  real(brv)*cos(theta) - real(bthetav)*sin(theta)
-        bphi =  real(bzv) + bzero
+        bphi =  real(bzv) !+ bzero
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if
@@ -365,13 +365,6 @@ subroutine calculate_external_fields()
           x_79, phi_79, z_79, &
           temp79a, temp79b, temp79c, temp79d)
 
-#ifdef USEST
-     ! VMEC fields
-     !if(iread_vmec.eq.2) call vmec_fields(xl_79,phi_79,zl_79,temp79a,&
-     !                              temp79b,temp79c,temp79d) 
-#endif
-
-
      ! psi_equation
      ! ~~~~~~~~~~~~
      ! Mininize BR, BZ
@@ -399,28 +392,26 @@ subroutine calculate_external_fields()
 
      ! f equation
      ! ~~~~~~~~~~
-#if defined(USECOMPLEX) || defined(USE3D)
-     temp(:,:,2,1) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
-          -          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
-     !temp(:,:,2,1) = 0.
-#else
+
+     !temp(:,:,2,1) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
+     !     -          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
      temp(:,:,2,1) = 0.
-#endif
-     !temp(:,:,2,2) = intxx3(mu79(:,:,OP_DP),nu79(:,:,OP_LP),r2_79) 
+
+     temp(:,:,2,2) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79) 
           !+ regular*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
      !temp(:,:,2,2) = &
      !     -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79) &
      !     -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79) &
      !     -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) 
      !     + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
-     temp(:,:,2,2) = &
-          -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DRP)) &
-          -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZP)) &
-          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
+     !temp(:,:,2,2) = &
+     !     -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DRP)) &
+     !     -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZP)) &
+     !     + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
 
-     !temp2(:,2) = intx3(mu79(:,:,OP_DP),r_79,temp79b-bzero)
-     temp2(:,2) = intx2(mu79(:,:,OP_DR),temp79a) &
-                + intx2(mu79(:,:,OP_DZ),temp79c) 
+     temp2(:,2) = intx3(mu79(:,:,OP_1),r_79,temp79b)
+     !temp2(:,2) = intx2(mu79(:,:,OP_DR),temp79a) &
+     !           + intx2(mu79(:,:,OP_DZ),temp79c) 
         
      temp3 = intx3(mu79(:,:,OP_1),r_79,temp79b)
         

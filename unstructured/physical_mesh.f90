@@ -91,12 +91,12 @@ contains
           end if
         end do
       else ! near axis, use routine 
-        ds = sqrt(r2n) 
-        rstc = rmnc(:,js+1)
-        zsts = zmns(:,js+1)
-!        ds = r 
-!        rstc = rbc
-!        zsts = zbs
+!        ds = sqrt(r2n) 
+!        rstc = rmnc(:,js+1)
+!        zsts = zmns(:,js+1)
+        ds = r 
+        rstc = rbc
+        zsts = zbs
         do i = 1, mn_mode 
           if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
             rout = rout + rstc(i)*co(i)*ds**xmv(i)
