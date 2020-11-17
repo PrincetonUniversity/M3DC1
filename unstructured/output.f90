@@ -628,7 +628,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   integer :: info
   logical :: link_exists
 
-  call hdf5_get_local_elms(nelms, error)
+  nelms = local_elements()
 
   ! create the name of the group
   if(equilibrium.eq.1) then

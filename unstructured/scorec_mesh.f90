@@ -53,6 +53,8 @@ module scorec_mesh_mod
   integer :: boundary_type(max_bounds)
   integer :: zone_type(max_zones)
 
+  integer :: offset_elms, global_elms, elms_per_plane
+
   ! adjacency matrix info
   integer, allocatable, dimension(:) :: n_adjacent ! num of adjacent elements
   integer, allocatable, dimension(:,:) :: adjacent ! adjacent elements
@@ -210,6 +212,9 @@ contains
     call m3dc1_mesh_load (name_buff)
 #endif
     call update_nodes_owned
+
+    call get_global_dims
+
     initialized = .true.
   end subroutine load_mesh
 
@@ -252,6 +257,33 @@ contains
        write(*,'(7f12.4)') x, z, normal(1), normal(2), curv
     end do
   end subroutine print_node_data
+
+  subroutine get_global_dims
+
+    implicit none
+
+    include 'mpif.h'
+
+    integer :: nelms, error
+
+    nelms = local_elements()
+
+  ! Calculate offset of current process
+    call mpi_scan(nelms, offset_elms, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+
+    offset_elms = offset_elms - nelms
+    ! print *, "[",myrank,"] hdf5_get_local_elms Offset ", offset
+
+!  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
+!  print *, 'myrank, local_elms, global_elms, offset', &
+!       myrank, nelms, global_elms, offset
+    call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, &
+         MPI_SUM, MPI_COMM_WORLD, error)
+
+    elms_per_plane = global_elms / nplanes
+
+  end subroutine get_global_dims
+
 
   !======================================================================
   ! local_plane
@@ -371,6 +403,20 @@ contains
              adjacent(j,i) = -1
           endif
        end do
+#ifdef USE3D
+       ! Manually add toroidal adjacencies
+       if(n_adjacent(i)+2 .gt. max_adj) then
+          print *, 'Error: adding toroidal adjacencies results in n_adjacent > max_adj'
+       else
+          j = i-1-elms_per_plane
+          if(j .lt. 0) j = j + global_elms
+          adjacent(n_adjacent(i)+1,i) = j
+
+          j = i-1+elms_per_plane
+          if(j .ge. global_elms) j = j - global_elms
+          adjacent(n_adjacent(i)+2,i) = j
+       end if
+#endif
     end do
 
     deallocate(local_id, pids, gids)

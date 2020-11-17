@@ -5,7 +5,6 @@ module hdf5_output
   implicit none
 
   integer(HID_T) :: file_id
-  integer :: offset, global_elms
   integer :: times_output
   logical, private :: initialized = .false.
   character(LEN=7), parameter, private :: hdf5_filename = "C1.h5"
@@ -115,33 +114,6 @@ contains
     if(error .lt. 0) print *, "Error closing hdf5 library"
     initialized = .false.
   end subroutine hdf5_finalize
-
-  subroutine hdf5_get_local_elms(nelms, error)
-    use mesh_mod
-    use basic
-
-    implicit none
-
-    include 'mpif.h'
-
-    integer, intent(out) :: nelms
-    integer, intent(out) :: error
-
-    nelms = local_elements()
-
-  ! Calculate offset of current process
-    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
-
-    offset = offset - nelms
-    ! print *, "[",myrank,"] hdf5_get_local_elms Offset ", offset
-
-!  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
-!  print *, 'myrank, local_elms, global_elms, offset', &
-!       myrank, nelms, global_elms, offset
-    call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, &
-         MPI_SUM, MPI_COMM_WORLD, error)
-
-  end subroutine hdf5_get_local_elms
 
   ! read_int_attr
   ! =============
@@ -360,6 +332,7 @@ contains
   ! =================
   subroutine output_field(parent_id, name, values, ndofs, nelms, error)
     use hdf5
+    use mesh_mod
     
     implicit none
     
@@ -384,7 +357,7 @@ contains
     global_dims(1) = ndofs
     global_dims(2) = global_elms
     off(1) = 0
-    off(2) = offset
+    off(2) = offset_elms
 
     ! Create global dataset
     call h5screate_simple_f(rank, global_dims, filespace, error)
@@ -475,6 +448,7 @@ contains
   ! ================
   subroutine output_field_int(parent_id, name, values, ndofs, nelms, error)
     use hdf5
+    use mesh_mod
 
     implicit none
 
@@ -499,7 +473,7 @@ contains
     global_dims(1) = ndofs
     global_dims(2) = global_elms
     off(1) = 0
-    off(2) = offset
+    off(2) = offset_elms
 
     ! Create global dataset
     call h5screate_simple_f(rank, global_dims, filespace, error)
