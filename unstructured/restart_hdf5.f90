@@ -97,6 +97,14 @@ contains
           call h5gclose_f(root_id, error)
           call safestop(1)
        end if
+       ! check if fp is present
+       if(version_in.ge.35) then
+          irestart_fp = 1
+          if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is present at restart"
+       else
+          irestart_fp = 0
+          if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is absent at restart"
+       endif
     else
        ifin = 0
     end if
@@ -314,16 +322,6 @@ contains
 !    end if
 
     call h5gopen_f(time_group_id, "fields", group_id, error)
-
-    ! check if fp is present
-    if(ilin.eq.1 .and. ifin.eq.1) then
-       irestart_fp = h5ltfind_dataset_f(group_id, "fp")
-       if(irestart_fp.eq.1) then
-          if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is present at restart"
-       else if(irestart_fp.eq.0) then
-          if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is absent at restart"
-       endif
-    endif
 
     call h5r_read_field(group_id, "I",    bz_field(ilin), nelms, error)
 
