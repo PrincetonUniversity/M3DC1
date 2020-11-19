@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+  (c) 2005-2020 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -16,6 +16,9 @@
 #include <iostream>
 #include <vector>
 #include <assert.h>
+
+// Anistropic 2D Function for dummy field
+int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
 
 using namespace std;
 class SizeFieldError : public ma::IsotropicFunction
@@ -55,6 +58,7 @@ class SizeFieldError : public ma::IsotropicFunction
     apf::Field* field;
     double targetError;
 };
+
 class SizeFieldPsi : public ma::AnisotropicFunction
 {
   public:
@@ -149,11 +153,11 @@ class SetSizeField : public ma::AnisotropicFunction
         double pos[3] = {p[0],p[1],0.0};
         double box[2] = {lower[0],upper[0]};
         double dir_1[3];
-
+#ifdef _DEBUG
         std::cout << " Lower & Upper: " << lower[0] << " , " << upper[0] << "\n";
         std::cout << "Position Coordinates : " << pos[0] << " , " << pos[1] << "\n";
         std::cout << "Average = " << average <<"\n";
-
+#endif
         double aver = average;
         double size_h1;
         double size_h2;
@@ -197,7 +201,6 @@ class SetSizeField : public ma::AnisotropicFunction
         double average;
         ma::Vector lower;
         ma::Vector upper;
-
 };
 
 

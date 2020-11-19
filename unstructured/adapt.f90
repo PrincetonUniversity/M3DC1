@@ -404,6 +404,8 @@ iadapt_max_node, adapt_control);
        if(icd_source.gt.0) cd_field = 0.
        bf_field(0) = 0.
        bf_field(1) = 0.
+       bfp_field(0) = 0.
+       bfp_field(1) = 0.
        if(ibootstrap.gt.0) visc_e_field = 0.
        psi_coil_field = 0.
        !call destroy_auxiliary_fields

@@ -73,6 +73,8 @@ void m3dc1_region_create();
 
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
+void m3dc1_mesh_adapt(int*, int*, int*, int*, int* ,int*, int*, int*, double*);
+
 int m3dc1_ghost_create (int* num_layer ); 
 int m3dc1_ghost_delete ();
 
@@ -199,10 +201,6 @@ int m3dc1_matrix_print(int* matrix_id);
 int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
-
-// Anistropic 2D Function for dummy field
-int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
-
 
 // 3D Adaptation
 int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);

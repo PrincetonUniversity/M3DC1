@@ -295,15 +295,15 @@ subroutine calculate_external_fields()
 
   include 'mpif.h'
 
-  type(matrix_type) :: br_mat
-  type(vector_type) :: psi_vec, bz_vec, p_vec
+  type(matrix_type) :: br_mat, bf_mat
+  type(vector_type) :: psi_vec, bz_vec, p_vec, bf_vec
   integer :: i, itri, nelms, ier, ibound, ipsibound
 
   vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
   vectype, dimension(dofs_per_element,2) :: temp2
   vectype, dimension(dofs_per_element) :: temp3, temp4
 
-  type(field_type) :: psi_f, bz_f, p_f, bf_f
+  type(field_type) :: psi_f, bz_f, p_f, bf_f, bfp_f
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
 
@@ -322,13 +322,20 @@ subroutine calculate_external_fields()
 
   call create_vector(psi_vec,2)
   call associate_field(psi_f,psi_vec,1)
-  call associate_field(bf_f,psi_vec,2)
+  call associate_field(bfp_f,psi_vec,2)
 
   call create_vector(bz_vec,1)
   call associate_field(bz_f,bz_vec,1)
 
+  call create_vector(bf_vec,1)
+  call associate_field(bf_f,bf_vec,1)
+
   call set_matrix_index(br_mat, br_mat_index)
   call create_mat(br_mat, 2, 2, icomplex, 1)
+
+  call set_matrix_index(bf_mat, bf_mat_index)
+  call create_mat(bf_mat, 1, 1, icomplex, 1)
+
 #ifdef CJ_MATRIX_DUMP
   print *, "create_mat coils br_mat", br_mat%imatrix 
 #endif
@@ -366,8 +373,8 @@ subroutine calculate_external_fields()
                    +          intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
                    + regular* intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79)
 #if defined(USECOMPLEX) || defined(USE3D)
-     temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DRP),ri_79) &
-          -          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZP),ri_79)
+     temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
+          -          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
 #else
      temp(:,:,1,2) = 0.
 #endif
@@ -387,14 +394,20 @@ subroutine calculate_external_fields()
      ! f equation
      ! ~~~~~~~~~~
      temp(:,:,2,1) =  0.
-     !     temp(:,:,2,2) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79)
-     temp(:,:,2,2) = &
-          -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79) &
-          -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79) &
-          -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) &
-          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
+     temp(:,:,2,2) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79)
+!     temp(:,:,2,2) = &
+!          -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79) &
+!          -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79) &
+!          -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) &
+!          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
 
-     temp2(:,2) = intx3(mu79(:,:,OP_1),r_79,temp79b)
+#if defined(USE3D)
+     temp2(:,2) = -intx3(mu79(:,:,OP_DP),r_79,temp79b)
+#elif defined(USECOMPLEX) 
+     temp2(:,2) = intx3(mu79(:,:,OP_1),r_79,temp79b)*rfac
+#else
+     temp2(:,2) = 0.
+#endif
         
      temp3 = intx3(mu79(:,:,OP_1),r_79,temp79b)
         
@@ -415,10 +428,14 @@ subroutine calculate_external_fields()
      call insert_block(br_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
      call insert_block(br_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
 
+     call insert_block(bf_mat, itri, 1, 1, temp(:,:,2,2), MAT_ADD)
+
      call vector_insert_block(psi_vec, itri, 1, temp2(:,1), MAT_ADD)
      call vector_insert_block(psi_vec, itri, 2, temp2(:,2), MAT_ADD)
 
      call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
+     call vector_insert_block(bf_vec, itri, 1, temp3(:), MAT_ADD)
+
      if(read_p) call vector_insert_block(p_vec, itri, 1, temp4(:), MAT_ADD)
 !$OMP END CRITICAL
   end do
@@ -427,6 +444,9 @@ subroutine calculate_external_fields()
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'Finalizing...'
   call sum_shared(bz_vec)
   if(read_p) call sum_shared(p_vec)
+  call sum_shared(bf_vec)
+  call boundary_dc(bf_vec,mat=bf_mat)
+  call finalize(bf_mat)
  
   !solve p
   if(read_p) then
@@ -440,10 +460,15 @@ subroutine calculate_external_fields()
      ! Solve F = R B_phi
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
      call newsolve(mass_mat_lhs%mat,bz_vec,ier)
+     ! Solve for f
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bf..."
+     call newsolve(bf_mat,bf_vec,ier)
      if(extsubtract.eq.1) then
         bz_ext = bz_f     
+        bf_ext = bf_f     
      else
         bz_field(1) = bz_f
+        bf_field(1) = bf_f
      end if
   end if
 
@@ -455,16 +480,18 @@ subroutine calculate_external_fields()
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
   if(extsubtract.eq.1) then
      psi_ext = psi_f
-     bf_ext = bf_f
+     bfp_ext = bfp_f
   else
      psi_field(1) = psi_f
-     bf_field(1) = bf_f
+     bfp_field(1) = bfp_f
   end if
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)
+  call destroy_vector(bf_vec)
   call destroy_vector(p_vec)
   call destroy_mat(br_mat)
+  call destroy_mat(bf_mat)
 
   ! Add fields from TF shift / tilt
   ! This is separated because its solution has psi=0.
@@ -484,11 +511,11 @@ subroutine tf_shift_tilt
 
   implicit none
 
-  type(matrix_type) :: bz_mat
-  type(field_type) :: ff, bzf
+  type(matrix_type) :: bz_mat, fp_mat
+  type(field_type) :: ff, bzf, fpf
   integer :: nelms, itri, ier
   vectype, dimension(dofs_per_element) :: temp1
-  vectype, dimension(dofs_per_element, dofs_per_element) :: temp2
+  vectype, dimension(dofs_per_element, dofs_per_element) :: temp2, temp3
 
 #ifdef USECOMPLEX
   complex :: shift_co, tilt_sn
@@ -498,10 +525,14 @@ subroutine tf_shift_tilt
 
   call set_matrix_index(bz_mat, 100)
   call create_mat(bz_mat, 1, 1, icomplex, 0)
+  call set_matrix_index(fp_mat, 101)
+  call create_mat(fp_mat, 1, 1, icomplex, 0)
 
   call create_field(ff)
+  call create_field(fpf)
   call create_field(bzf)
   ff = 0.
+  fpf = 0.
   bzf = 0.
 
   nelms = local_elements()
@@ -521,11 +552,18 @@ subroutine tf_shift_tilt
      temp1 = intx2(mu79(:,:,OP_1),temp79a)
 
      temp2 = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79)
+#if defined(USECOMPLEX) || defined(USE3D)
+     temp3 = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_DP))
+#else
+     temp3 = 0.
+#endif 
 
      call vector_insert_block(ff%vec, itri, 1, temp1, VEC_ADD)
      call insert_block(bz_mat, itri, 1, 1, temp2, MAT_ADD)
+     call insert_block(fp_mat, itri, 1, 1, temp3, MAT_ADD)
   end do
   call finalize(bz_mat)
+  call finalize(fp_mat)
 
   call newvar_solve(ff%vec, mass_mat_lhs)
   if(extsubtract.eq.1) then 
@@ -534,6 +572,14 @@ subroutine tf_shift_tilt
      call add(bf_field(1), ff)
   end if
   
+  call matvecmult(fp_mat, ff%vec, fpf%vec)
+  call newsolve(mass_mat_lhs%mat, fpf%vec, ier)
+  if(extsubtract.eq.1) then
+     call add(bfp_ext, fpf)
+  else
+     call add(bfp_field(1), fpf)
+  end if
+
   call matvecmult(bz_mat, ff%vec, bzf%vec)
   call newsolve(mass_mat_lhs%mat, bzf%vec, ier)
   if(extsubtract.eq.1) then
@@ -543,8 +589,10 @@ subroutine tf_shift_tilt
   end if
 
   call destroy_field(ff)
+  call destroy_field(fpf)
   call destroy_field(bzf)
   call destroy_mat(bz_mat)
+  call destroy_mat(fp_mat)
   
 end subroutine tf_shift_tilt
 

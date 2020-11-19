@@ -10,6 +10,28 @@
 #include "m3dc1_sizeField.h"
 #include "m3dc1_mesh.h"
 #include "PCU.h"
+//// Function to get Field (Dummy For now- This function will be provided by Brendan)
+int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1)
+{
+        double average = aver;
+        double lower = boundingbox[0];
+        double upper = boundingbox[1];
+        double x = (pos[0] - lower)/(upper - lower);
+        double sizeFactor = 2;
+        if (x < 0.5)
+                sizeFactor = 5;
+        if (x >= 0.5 && x < 0.8)
+                sizeFactor = 0.5;
+        size_h1 = average;
+        size_h2 = average/sizeFactor;
+        dir_1[0] = 1.0;
+        dir_1[1] = 0.0;
+        dir_1[2] = 0.0;
+
+//      std::cout << " Size " << size_h1 << " , " << size_h2 << "\n";
+        return M3DC1_SUCCESS;
+}
+
 void SizeFieldPsi :: getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& h)
 {
   //cout<<" getValue "<<endl;

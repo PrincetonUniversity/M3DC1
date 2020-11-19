@@ -21,6 +21,7 @@
 #include "petscksp.h"
 #include <math.h>
 #include <stdlib.h>
+#include "PCU.h"
 
 int main( int argc, char* argv[])
 {
@@ -60,17 +61,6 @@ int main( int argc, char* argv[])
     return 0;
   }
 
-  // set/get field dof values
-  int num_vertex, nvertex=m3dc1_mesh::instance()->mesh->count(0);
-  int num_edge, nedge=m3dc1_mesh::instance()->mesh->count(1);
-  int num_elem, nelem=m3dc1_mesh::instance()->mesh->count(2);
-
-  MPI_Allreduce(&nvertex, &num_vertex, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD); 
-  MPI_Allreduce(&nedge, &num_edge, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD); 
-  MPI_Allreduce(&nelem, &num_elem, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD); 
-
-  // After getting the input model,mesh and number of planes, build 3D mesh
- 
   // Set input for m3dc1_mesh_build3d()
   int num_field = 0;	
   int field_id = 0;
@@ -78,40 +68,27 @@ int main( int argc, char* argv[])
 
   // printStats (Mesh m): print global mesh entity counts per dimension
   m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);	// Build 3d
-  apf::writeVtkFiles("3d",m3dc1_mesh::instance()->mesh); 
-  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
+//  apf::writeVtkFiles("3d",m3dc1_mesh::instance()->mesh); 
+//  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
 
-  m3dc1_mesh::instance()->remove_wedges();
-  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
-  apf::writeVtkFiles("2.5d",m3dc1_mesh::instance()->mesh);
-  // Setup the parameters needed to calculate the node error
-  // First we need to find element_error_sum for get_node_error_from_elm()
+//  apf::writeVtkFiles("before-adapt",m3dc1_mesh::instance()->mesh);
 
-  int NUM_TERM = 12;
+  int logInterpolation = 1;
+  int shouldSnap=0;
+  int shouldTransferParametric=0;
+  int shouldRunPreZoltan=1;
+  int shouldRunMidParma=1;
+  int shouldRunPostParma=1;
+  int shouldRefineLayer=0;
+  int maximumIterations=5;
+  double goodQuality =0.2;
+ 
+  if (!PCU_Comm_Self()) std::cout << "start adaptation\n";
 
-  double edge_error[num_edge][NUM_TERM];
-  double elem_error [num_elem][NUM_TERM];
-  double elm_error_sum[2][num_elem];
-  double elem_error_res[2][num_elem];
-  
-  // node_error output from here will go as input to find_sizefield()
-  double node_error[2][num_vertex];
-  double final_node_error[num_vertex];  
-  int size = 1; 
-  for (int j=0; j<num_vertex; ++j)
-  {
-  	for (int i=0; i<2; ++i)
-  	{
-  		node_error_3d_mesh (&elm_error_sum[i][j], &size, &node_error[i][j]);
-		node_error[i][j] = sqrt(node_error[i][j]);
-  	}
-	final_node_error[j] = sqrt((node_error[1][j]*node_error[1][j])+(node_error[2][j]*node_error[2][j]));
-   }
-  double error_aimed = 0.005;             // Will come from C1 input file (Parameter: adapt_target_error)
-  int max_adapt_node = 10000;             // Will come from C1 input file (Parameter: iadapt_max_node)
-  int adapt_option = 1;                   // Will come from C1 input file (Parameter: adapt_control)
+  m3dc1_mesh_adapt(&logInterpolation, &shouldSnap, &shouldTransferParametric, &shouldRunPreZoltan,
+      &shouldRunMidParma, &shouldRunPostParma, &shouldRefineLayer, &maximumIterations, &goodQuality);
 
-  find_sizefield(final_node_error, &error_aimed, &max_adapt_node, &adapt_option );
+  if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";
 
   PetscFinalize();
   m3dc1_scorec_finalize();

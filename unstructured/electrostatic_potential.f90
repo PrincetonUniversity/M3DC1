@@ -213,11 +213,11 @@ vectype function b4feta(e,f,g)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then 
-     temp = int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZPP),g(:,OP_1)) &
-          - int5(ri3_79,e(:,OP_1),norm79(:,2),f(:,OP_DRPP),g(:,OP_1))
+     temp = int5(ri3_79,e(:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1)) &
+          - int5(ri3_79,e(:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1))
   else
-     temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_DRPP),g(:,OP_1)) &
-          - int4(ri3_79,e(:,OP_DR),f(:,OP_DZPP),g(:,OP_1))
+     temp = int4(ri3_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1)) &
+          - int4(ri3_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1))
   endif
 #else
   temp = 0.
@@ -360,11 +360,11 @@ vectype function b4fv(e,f,g)
 
 #if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then 
-     temp = int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DRP),g(:,OP_1)) &
-          - int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DZP),g(:,OP_1))
+     temp = int5(ri_79,e(:,OP_1),norm79(:,2),f(:,OP_DR),g(:,OP_1)) &
+          - int5(ri_79,e(:,OP_1),norm79(:,1),f(:,OP_DZ),g(:,OP_1))
   else
-     temp = int4(ri_79,e(:,OP_DR),f(:,OP_DZP),g(:,OP_1)) &
-          - int4(ri_79,e(:,OP_DZ),f(:,OP_DRP),g(:,OP_1))
+     temp = int4(ri_79,e(:,OP_DR),f(:,OP_DZ),g(:,OP_1)) &
+          - int4(ri_79,e(:,OP_DZ),f(:,OP_DR),g(:,OP_1))
   endif
 #else
   temp = 0.
@@ -459,11 +459,11 @@ vectype function b4psifd(e,f,g,h)
 #if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = ri3_79*e(:,OP_1)*f(:,OP_GS)*h(:,OP_1)
-     temp = int3(temp79a,norm79(:,2),g(:,OP_DRP)) &
-          + int3(temp79a,norm79(:,1),g(:,OP_DZP))
+     temp = int3(temp79a,norm79(:,2),g(:,OP_DR)) &
+          + int3(temp79a,norm79(:,1),g(:,OP_DZ))
   else
-     temp = int5(ri3_79,e(:,OP_DR),g(:,OP_DZP),f(:,OP_GS),h(:,OP_1)) &
-          - int5(ri3_79,e(:,OP_DZ),g(:,OP_DRP),f(:,OP_GS),h(:,OP_1))
+     temp = int5(ri3_79,e(:,OP_DR),g(:,OP_DZ),f(:,OP_GS),h(:,OP_1)) &
+          - int5(ri3_79,e(:,OP_DZ),g(:,OP_DR),f(:,OP_GS),h(:,OP_1))
   endif
 #else
   temp = 0.
@@ -524,12 +524,12 @@ vectype function b4bfd(e,f,g,h)
 #if defined(USE3D) || defined(USECOMPLEX)
   if(surface_int) then
      temp79a = ri4_79*e(:,OP_1)*f(:,OP_1)*h(:,OP_1)
-     temp = int3(temp79a,norm79(:,1),g(:,OP_DRPP)) &
-          + int3(temp79a,norm79(:,2),g(:,OP_DZPP))
+     temp = int3(temp79a,norm79(:,1),g(:,OP_DRP)) &
+          + int3(temp79a,norm79(:,2),g(:,OP_DZP))
   else
      temp = &
-          - int5(ri4_79,e(:,OP_DZ),g(:,OP_DZPP),f(:,OP_1),h(:,OP_1)) &
-          - int5(ri4_79,e(:,OP_DR),g(:,OP_DRPP),f(:,OP_1),h(:,OP_1))
+          - int5(ri4_79,e(:,OP_DZ),g(:,OP_DZP),f(:,OP_1),h(:,OP_1)) &
+          - int5(ri4_79,e(:,OP_DR),g(:,OP_DRP),f(:,OP_1),h(:,OP_1))
   endif
 #else
   temp = 0.
@@ -715,15 +715,15 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
 
   if(i3d.eq.1 .and. numvar.ge.2) then 
-     temp = b4fv(trial,bft79,lin)
+     temp = b4fv(trial,bfpt79,lin)
      ssterm(vz_g) = ssterm(vz_g) -     thimpb_e *temp
      ddterm(vz_g) = ddterm(vz_g) + (1.-thimpb_e)*temp*bdf
 
-     temp = b4psifd(trial,lin,bft79,ni79)*db
+     temp = b4psifd(trial,lin,bfpt79,ni79)*db
      ssterm(psi_g) = ssterm(psi_g) -     thimpf_e     *dt*temp
      ddterm(psi_g) = ddterm(psi_g) + (1.-thimpf_e*bdf)*dt*temp
 
-     temp = b4bfd(trial,lin,bft79,ni79)*db
+     temp = b4bfd(trial,lin,bfpt79,ni79)*db
      ssterm(bz_g) = ssterm(bz_g) -     thimpf_e     *dt*temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimpf_e*bdf)*dt*temp
 

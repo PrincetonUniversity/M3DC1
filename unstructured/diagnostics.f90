@@ -2376,18 +2376,18 @@ subroutine calculate_bh()
      !eq 12: f' cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
-        call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
+        call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
         if(eqsubtract.eq.1) then
-           call get_node_data(bf_field(0), l, bf0_l)
-           bf1_l = bf1_l + bf0_l
+           call get_node_data(bfp_field(0), l, bfp0_l)
+           bfp1_l = bfp1_l + bfp0_l
         end if
 
-        vec_l(1)= bf1_l(1) * i1ck(k,N) + bf1_l( 7)*i2ck(k,N)
-        vec_l(2)= bf1_l(2) * i1ck(k,N) + bf1_l( 8)*i2ck(k,N)
-        vec_l(3)= bf1_l(3) * i1ck(k,N) + bf1_l( 9)*i2ck(k,N)
-        vec_l(4)= bf1_l(4) * i1ck(k,N) + bf1_l(10)*i2ck(k,N)
-        vec_l(5)= bf1_l(5) * i1ck(k,N) + bf1_l(11)*i2ck(k,N)
-        vec_l(6)= bf1_l(6) * i1ck(k,N) + bf1_l(12)*i2ck(k,N)
+        vec_l(1)= bfp1_l(1) * i1ck(k,N) + bfp1_l( 7)*i2ck(k,N)
+        vec_l(2)= bfp1_l(2) * i1ck(k,N) + bfp1_l( 8)*i2ck(k,N)
+        vec_l(3)= bfp1_l(3) * i1ck(k,N) + bfp1_l( 9)*i2ck(k,N)
+        vec_l(4)= bfp1_l(4) * i1ck(k,N) + bfp1_l(10)*i2ck(k,N)
+        vec_l(5)= bfp1_l(5) * i1ck(k,N) + bfp1_l(11)*i2ck(k,N)
+        vec_l(6)= bfp1_l(6) * i1ck(k,N) + bfp1_l(12)*i2ck(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(fp_transformc,l,vec_l)
      enddo
@@ -2397,18 +2397,18 @@ subroutine calculate_bh()
      ! eq 12: f' sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
-        call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
+        call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
         if(eqsubtract.eq.1) then
-           call get_node_data(bf_field(0), l, bf0_l)
-           bf1_l = bf1_l + bf0_l
+           call get_node_data(bfp_field(0), l, bfp0_l)
+           bfp1_l = bfp1_l + bfp0_l
         end if
 
-        vec_l(1)= bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N)
-        vec_l(2)= bf1_l(2) * i1sk(k,N) + bf1_l( 8)*i2sk(k,N)
-        vec_l(3)= bf1_l(3) * i1sk(k,N) + bf1_l( 9)*i2sk(k,N)
-        vec_l(4)= bf1_l(4) * i1sk(k,N) + bf1_l(10)*i2sk(k,N)
-        vec_l(5)= bf1_l(5) * i1sk(k,N) + bf1_l(11)*i2sk(k,N)
-        vec_l(6)= bf1_l(6) * i1sk(k,N) + bf1_l(12)*i2sk(k,N)
+        vec_l(1)= bfp1_l(1) * i1sk(k,N) + bfp1_l( 7)*i2sk(k,N)
+        vec_l(2)= bfp1_l(2) * i1sk(k,N) + bfp1_l( 8)*i2sk(k,N)
+        vec_l(3)= bfp1_l(3) * i1sk(k,N) + bfp1_l( 9)*i2sk(k,N)
+        vec_l(4)= bfp1_l(4) * i1sk(k,N) + bfp1_l(10)*i2sk(k,N)
+        vec_l(5)= bfp1_l(5) * i1sk(k,N) + bfp1_l(11)*i2sk(k,N)
+        vec_l(6)= bfp1_l(6) * i1sk(k,N) + bfp1_l(12)*i2sk(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(fp_transforms,l,vec_l)
      enddo
@@ -2433,9 +2433,7 @@ subroutine calculate_bh()
 !       cosine harmonics
         call eval_ops(itri,psi_transformc,pst79)
         call eval_ops(itri,F_transformc,bzt79)
-        ! prime means, for cos component, we need sin and multiply by N
-        call eval_ops(itri,fp_transforms,bft79)
-        bft79 = N*bft79
+        call eval_ops(itri,fp_transformc,bfpt79)
 
         bh_N = bh_N + int3(ri2_79, pst79(:,OP_DR), pst79(:,OP_DR))   &
                     + int3(ri2_79, pst79(:,OP_DZ), pst79(:,OP_DZ))
@@ -2443,17 +2441,15 @@ subroutine calculate_bh()
         bh_N = bh_N + int3(ri2_79, bzt79(:,OP_1), bzt79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bft79(:,OP_DR), bft79(:,OP_DR))   &
-                    + int2(bft79(:,OP_DZ), bft79(:,OP_DZ))
-        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bft79(:,OP_DZ)) &
-                    + 2.*int3(ri_79, pst79(:,OP_DZ), bft79(:,OP_DR))
+        bh_N = bh_N + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
+                    + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
 #endif
 !       sine harmonics
         call eval_ops(itri,psi_transforms,pst79)
         call eval_ops(itri,F_transforms,bzt79)
-        ! prime means, for sin component, we need cos and multiply by -N
-        call eval_ops(itri,fp_transformc,bft79)
-        bft79 = -N*bft79
+        call eval_ops(itri,fp_transforms,bfpt79)
 
         bh_N = bh_N + int3(ri2_79,  pst79(:,OP_DR), pst79(:,OP_DR))   &
                     + int3(ri2_79,  pst79(:,OP_DZ), pst79(:,OP_DZ))
@@ -2461,10 +2457,10 @@ subroutine calculate_bh()
         bh_N = bh_N + int3(ri2_79,  bzt79(:,OP_1), bzt79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bft79(:,OP_DR), bft79(:,OP_DR))   &
-                    + int2(bft79(:,OP_DZ), bft79(:,OP_DZ))
-        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bft79(:,OP_DZ)) &
-                    + 2.*int3(ri_79, pst79(:,OP_DZ), bft79(:,OP_DR))
+        bh_N = bh_N + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
+                    + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
 #endif
      end do
 !$OMP END PARALLEL DO

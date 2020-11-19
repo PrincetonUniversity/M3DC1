@@ -1263,6 +1263,7 @@ subroutine validate_input
    endif
 
   if(ifout.eq.-1) ifout = i3d
+  irestart_fp = -1
   if(i3d.eq.1 .and. jadv.eq.0) then
      if(myrank.eq.0) &
           print *, 'WARNING: nonaxisymmetric cases should use jadv=1'

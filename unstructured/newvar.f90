@@ -39,7 +39,7 @@ module newvar_mod
   type(newvar_matrix) :: gs_mat_rhs
   type(newvar_matrix) :: bf_mat_lhs
   type(newvar_matrix) :: mass_mat_rhs_bf
-  type(newvar_matrix) :: mass_mat_rhs_bfp
+  type(newvar_matrix) :: dp_mat_rhs_bfp
   type(newvar_matrix) :: s5_mat, d5_mat
   type(newvar_matrix) :: s7_mat, d7_mat
   type(newvar_matrix) :: s10_mat, d10_mat
@@ -66,7 +66,7 @@ contains
     call set_matrix_index(gs_mat_rhs%mat,      gs_mat_rhs_index)
     call set_matrix_index(bf_mat_lhs%mat,      bf_mat_lhs_dc_index)
     call set_matrix_index(mass_mat_rhs_bf%mat, mass_mat_rhs_dc_index)
-    call set_matrix_index(mass_mat_rhs_bfp%mat, bfp_mat_rhs_index)
+    call set_matrix_index(dp_mat_rhs_bfp%mat,  bfp_mat_rhs_index)
     call set_matrix_index(s5_mat%mat,          s5_mat_index)
     call set_matrix_index(d5_mat%mat,          d5_mat_index)
     call set_matrix_index(s7_mat%mat,          s7_mat_index)
@@ -137,7 +137,7 @@ contains
           call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
                NV_I_MATRIX,  0)
           if(i3d.eq.1 .and. numvar.ge.2) then
-             call create_newvar_matrix(mass_mat_rhs_bfp, NV_NOBOUND, &
+             call create_newvar_matrix(dp_mat_rhs_bfp, NV_NOBOUND, &
                NV_IP_MATRIX,  0)
           endif
        else if(ifbound.eq.2) then 
@@ -146,7 +146,7 @@ contains
           call create_newvar_matrix(mass_mat_rhs_bf, NV_NMBOUND, &
                NV_I_MATRIX,  0)
           if(i3d.eq.1 .and. numvar.ge.2) then
-             call create_newvar_matrix(mass_mat_rhs_bfp, NV_NMBOUND, &
+             call create_newvar_matrix(dp_mat_rhs_bfp, NV_NOBOUND, &
                NV_IP_MATRIX,  0)
           endif
        end if

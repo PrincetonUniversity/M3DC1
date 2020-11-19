@@ -135,8 +135,8 @@ function sigma_func(izone)
           -    bzt79(:,OP_DR)*wall79(:,OP_DZ)*ri_79
 #if defined(USE3D) || defined(COMPLEX)
      temp79a = temp79a  &
-          + bft79(:,OP_DZPP)*wall79(:,OP_DR)*ri_79 &
-          - bft79(:,OP_DRPP)*wall79(:,OP_DZ)*ri_79 &
+          + bfpt79(:,OP_DZP)*wall79(:,OP_DR)*ri_79 &
+          - bfpt79(:,OP_DRP)*wall79(:,OP_DZ)*ri_79 &
           - pst79(:,OP_DRP)*wall79(:,OP_DR)*ri2_79 &
           - pst79(:,OP_DZP)*wall79(:,OP_DZ)*ri2_79
 #endif
@@ -1149,8 +1149,8 @@ function bs_func()
           (pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2 + bztx79(:,OP_1)**2)
 
 #if defined(USECOMPLEX) || defined(USE3D)
-     temp79b = (bftx79(:,OP_DRP)**2 + bftx79(:,OP_DZP)**2) &
-             + 2.*ri_79*(pstx79(:,OP_DZ)*bftx79(:,OP_DRP) - pstx79(:,OP_DR)*bftx79(:,OP_DZP))
+     temp79b = (bfptx79(:,OP_DR)**2 + bfptx79(:,OP_DZ)**2) &
+             + 2.*ri_79*(pstx79(:,OP_DZ)*bfptx79(:,OP_DR) - pstx79(:,OP_DR)*bfptx79(:,OP_DZ))
      temp79c  =  (temp79a  + temp79b )
 #else
      temp79c  =  temp79a

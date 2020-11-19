@@ -15,6 +15,7 @@
 #define m3dc1_model_getplaneid m3dc1_model_getplaneid_
 #define m3dc1_mesh_load m3dc1_mesh_load_
 #define m3dc1_mesh_build3d m3dc1_mesh_build3d_
+#define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
 #define m3dc1_mesh_getnument m3dc1_mesh_getnument_
 #define m3dc1_mesh_getnumghostent m3dc1_mesh_getnumghostent_
