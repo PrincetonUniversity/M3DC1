@@ -436,6 +436,18 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
 }
 
 /* new mesh adaptation */
+/* Input Parameters
+ * logInterpolation(0,1): If true uses logarithmic interpolation for evaluation of fields on new vertices
+ * shouldSnap(0,1) : Snaps new vertices to the model surface (Set it to 0 for the being. Need to work on Model format to make this parameter work) 
+ * shouldTransferParametric(0,1): Transfer parametric coordinates (Set it to 0 for the being. Need to work on Model format to make this parameter work)
+ * shouldRunPreZoltan(0,1): Whether to run zoltan predictive load balancing
+ * shouldRunMidParma(0,1): Whether to run parma during adaptation
+ * shouldRunPostParma(0,1): Whether to run zoltan after adapting
+ * shouldRefineLayer(0,1): Whether to allow layer refinement
+ * maximumIterations: Number of refine/coarsen iterations to run
+ * goodQuality): Minimum desired mean ratio cubed for simplex elements
+ * NOTE: Make sure to set shouldSnap and  shouldTransferParametric to 0. These are true in default SCOREC adaptation tools that will lead to failure of adaptation
+*/
 void m3dc1_mesh_adapt(int* logInterpolation, 
   int* shouldSnap, 
   int* shouldTransferParametric, 
