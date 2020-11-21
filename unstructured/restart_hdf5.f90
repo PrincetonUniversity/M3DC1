@@ -188,16 +188,19 @@ contains
              call read_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
              call read_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+             if(irestart_pellet.eq.0) then     
+                  call read_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
+                  call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
+                  call read_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
+             end if
+
              if(version_in.ge.33) then
                 call read_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
              end if
