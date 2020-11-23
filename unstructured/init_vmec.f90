@@ -24,10 +24,10 @@ contains
 
 
     type(matrix_type) :: br_mat
-    type(vector_type) :: fg_vec
-    type(field_type) :: psi_f, bf_f, g_f, bz_f
+    type(vector_type) :: fppsi_vec
+    type(field_type) :: psi_f, bf_f, bfp_f, bz_f
     type(field_type) :: p_vec, phiv_vec, chiv_vec, l_vec, x_vec, y_vec, per_vec 
-    integer :: itri, numelms, ibound, ier, igbound, ipsibound, i, k, k1
+    integer :: itri, numelms, ifpbound, ier, ipsibound, ipsifpbound, i, k, k1
     integer :: inode(nodes_per_element)
     vectype, dimension(dofs_per_element) :: dofs
     vectype, dimension(MAX_PTS, OP_NUM) :: x79, y79, pv79, cv79, lam79, g79 
@@ -119,20 +119,20 @@ contains
     pe_field(0) = p_field(0)
     call mult(pe_field(0),pefac)
 
-    call create_vector(fg_vec,2)
-    call associate_field(bf_f,fg_vec,1)
-    call associate_field(g_f,fg_vec,2)
+    call create_vector(fppsi_vec,2)
+    call associate_field(bfp_f,fppsi_vec,1)
+    call associate_field(psi_f,fppsi_vec,2)
 
     call set_matrix_index(br_mat, br_mat_index)
     call create_mat(br_mat, 2, 2, icomplex, 1)
 
     ! boundary condition on psi, g, and f
+    ipsifpbound = BOUNDARY_NONE
+    !ipsibound = BOUNDARY_DIRICHLET
     ipsibound = BOUNDARY_NONE
-    !igbound = BOUNDARY_DIRICHLET
-    igbound = BOUNDARY_NONE
-    !ibound = BOUNDARY_NONE
-    ibound = BOUNDARY_DIRICHLET
-    !ibound = BOUNDARY_NEUMANN
+    !ifpbound = BOUNDARY_NONE
+    ifpbound = BOUNDARY_DIRICHLET
+    !ifpbound = BOUNDARY_NEUMANN
 
     do itri=1,numelms
 
@@ -185,26 +185,26 @@ contains
       !                +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
 
 
-!      temp(:,:,1,1) = &
-!          -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DRP)) &
-!          -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZP)) &
-!          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
-!      temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
-!                    - intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
-!      temp2(:,1) = intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79d,ri_79) &
-!                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_DZ),temp79e,ri_79) & 
-!                  +intx3(mu79(:,:,OP_DR),cv79(:,OP_DZ),ri_79) & 
-!                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79c,ri_79) &
-!                  +intx4(mu79(:,:,OP_DZ),pv79(:,OP_DR),temp79e,ri_79) & 
-!                  -intx3(mu79(:,:,OP_DZ),cv79(:,OP_DR),ri_79) 
+      temp(:,:,1,1) = &
+          -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) &
+          -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) 
+          !+ regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
+      temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
+                    - intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
+      temp2(:,1) = intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79d,ri_79) &
+                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_DZ),temp79e,ri_79) & 
+                  +intx3(mu79(:,:,OP_DR),cv79(:,OP_DZ),ri_79) & 
+                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79c,ri_79) &
+                  +intx4(mu79(:,:,OP_DZ),pv79(:,OP_DR),temp79e,ri_79) & 
+                  -intx3(mu79(:,:,OP_DZ),cv79(:,OP_DR),ri_79) 
 
-      temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r_79) & 
-                      +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
-      temp(:,:,1,2) = 0.
-      !temp2(:,1) = -intx3(mu79(:,:,OP_1),1*p079(:,OP_1),r_79) 
-      temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
-                  -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) &
-                  -intx2(mu79(:,:,OP_1),ri_79)*fzero 
+!      temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r_79) & 
+!                      +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
+!      temp(:,:,1,2) = 0.
+!      !temp2(:,1) = -intx3(mu79(:,:,OP_1),1*p079(:,OP_1),r_79) 
+!      temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
+!                  -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) &
+!                  -intx2(mu79(:,:,OP_1),ri_79)*fzero 
 
 !      temp(:,:,1,1) =  intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) &
 !                      +intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) 
@@ -213,85 +213,65 @@ contains
 !      temp2(:,1) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_1),temp79c,ri_79) &
 !                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_1),temp79d,ri_79) 
 
-!      temp(:,:,2,1) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DRP),ri_79) &
-!                      +intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZP),ri_79) 
-!      temp(:,:,2,2) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
-!                      -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79) &
-!                      -regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79) 
-!      temp2(:,2) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79d,ri2_79) &
-!                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DZ),temp79e,ri2_79) & 
-!                  +intx3(mu79(:,:,OP_DZ),cv79(:,OP_DZ),ri2_79) & 
-!                  +intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79c,ri2_79) &
-!                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_DR),temp79e,ri2_79) & 
-!                  +intx3(mu79(:,:,OP_DR),cv79(:,OP_DR),ri2_79) 
-
-
       temp(:,:,2,1) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
                       +intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79) 
       temp(:,:,2,2) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
                       -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79) &
                       -regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79) 
-      temp2(:,2) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_1),temp79d,ri2_79) &
-                  +intx4(mu79(:,:,OP_DR),pv79(:,OP_1),temp79c,ri2_79) 
-      if(itor.eq.0) then 
-        temp2(:,2) = temp2(:,2) + intx2(mu79(:,:,OP_DZ),x_79*ri2_79)*fzero 
-      else 
-        temp2(:,2) = temp2(:,2) + intx2(mu79(:,:,OP_DZ),log(r_79)*ri2_79)*fzero 
-      end if
+      temp2(:,2) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79d,ri2_79) &
+                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DZ),temp79e,ri2_79) & 
+                  +intx3(mu79(:,:,OP_DZ),cv79(:,OP_DZ),ri2_79) & 
+                  +intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79c,ri2_79) &
+                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_DR),temp79e,ri2_79) & 
+                  +intx3(mu79(:,:,OP_DR),cv79(:,OP_DR),ri2_79) 
 
-      call apply_boundary_mask(itri, ibound, temp(:,:,1,1), &
-          tags=domain_boundary)
-      call apply_boundary_mask(itri, ibound, temp(:,:,1,2), &
-          tags=domain_boundary)
-      call apply_boundary_mask(itri, igbound, temp(:,:,2,1), &
-          tags=domain_boundary)
-      call apply_boundary_mask(itri, igbound, temp(:,:,2,2), &
-          tags=domain_boundary)
 
-      ! set constant for g on one node
-!      if(mod(myrank,nplanes).eq.0) then
-!        call get_element_nodes(itri, inode)
-!        do i=1, nodes_per_element
-!          k = (i-1)*dofs_per_node + 1
-!          k1 = k + dofs_per_node*pol_nodes_per_element
-!          if(inode(i).eq.nodes_owned(1)) then
-!            temp(k,:,2,1) = 0. 
-!            temp(k,:,2,2) = 0. 
-!            temp(k,k,2,2) = 1. 
-!            temp2(k,2) = 0.
-!            temp(k1,:,2,1) = 0. 
-!            temp(k1,:,2,2) = 0. 
-!            temp(k1,k1,2,2) = 1. 
-!            temp2(k1,2) = 0.
-!            if(myrank.eq.0) print *, 'regularizing', myrank, local_plane(), itri, i, inode(i)
-!          end if
-!        end do 
+!      temp(:,:,2,1) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
+!                      +intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79) 
+!      temp(:,:,2,2) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
+!                      -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79) &
+!                      -regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79) 
+!      temp2(:,2) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_1),temp79d,ri2_79) &
+!                  +intx4(mu79(:,:,OP_DR),pv79(:,OP_1),temp79c,ri2_79) 
+!      if(itor.eq.0) then 
+!        temp2(:,2) = temp2(:,2) + intx2(mu79(:,:,OP_DZ),x_79*ri2_79)*fzero 
+!      else 
+!        temp2(:,2) = temp2(:,2) + intx2(mu79(:,:,OP_DZ),log(r_79)*ri2_79)*fzero 
 !      end if
+
+      call apply_boundary_mask(itri, ifpbound, temp(:,:,1,1), &
+          tags=domain_boundary)
+      call apply_boundary_mask(itri, ifpbound, temp(:,:,1,2), &
+          tags=domain_boundary)
+      call apply_boundary_mask(itri, ipsibound, temp(:,:,2,1), &
+          tags=domain_boundary)
+      call apply_boundary_mask(itri, ipsibound, temp(:,:,2,2), &
+          tags=domain_boundary)
 
       call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
       call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
       call insert_block(br_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
       call insert_block(br_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
 
-      call vector_insert_block(fg_vec, itri, 1, temp2(:,1), MAT_ADD)
-      call vector_insert_block(fg_vec, itri, 2, temp2(:,2), MAT_ADD)
+      call vector_insert_block(fppsi_vec, itri, 1, temp2(:,1), MAT_ADD)
+      call vector_insert_block(fppsi_vec, itri, 2, temp2(:,2), MAT_ADD)
 
     end do
 
-    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f & g..."
-    call sum_shared(fg_vec)
-    call boundary_vmec(fg_vec,br_mat,per_vec)
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving fp & psi..."
+    call sum_shared(fppsi_vec)
+    call boundary_vmec(fppsi_vec,br_mat,per_vec)
     call finalize(br_mat)
-    call newsolve(br_mat,fg_vec,ier)
-    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving f: ier = ", ier
+    call newsolve(br_mat,fppsi_vec,ier)
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
 
-    !p_field(0) = bf_f 
-    !psi_field(0) = g_f
+    bfp_field(0) = bfp_f 
+    psi_field(0) = psi_f
 
     call create_field(bz_f)
-    call create_field(psi_f)
+    call create_field(bf_f)
     bz_f = 0.
-    psi_f = 0.
+    bf_f = 0.
 
     do itri=1,numelms
 
@@ -302,8 +282,6 @@ contains
       call eval_ops(itri, l_vec, lam79, rfac)
       call eval_ops(itri, phiv_vec, pv79, rfac)
       call eval_ops(itri, chiv_vec, cv79, rfac)
-      call eval_ops(itri, g_f, g79, rfac)
-!      call eval_ops(itri, bf_f, bf079, rfac)
       temp79a = -zl_79/(xl_79**2 + zl_79**2)
       temp79b =  xl_79/(xl_79**2 + zl_79**2)
       temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
@@ -321,16 +299,17 @@ contains
               -intx4(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d,r_79) 
 !      dofs = intx3(mu79(:,:,OP_1),bf079(:,OP_LP),r2_79) 
       call vector_insert_block(bz_f%vec, itri, 1, dofs, VEC_ADD)
+      call vector_insert_block(bf_f%vec, itri, 1, dofs, VEC_ADD)
 
-      ! psi = g_phi + Phi*(theta_phi + lambda_phi) - chi
-      dofs = intx3(mu79(:,:,OP_1),pv79(:,OP_1),temp79e) &
-              -intx2(mu79(:,:,OP_1),cv79(:,OP_1)) &
-#ifdef USE3D
-              +intx2(mu79(:,:,OP_1),g79(:,OP_DP))
-#else
-              +0.
-#endif
-      call vector_insert_block(psi_f%vec, itri, 1, dofs, VEC_ADD)
+!      ! psi = g_phi + Phi*(theta_phi + lambda_phi) - chi
+!      dofs = intx3(mu79(:,:,OP_1),pv79(:,OP_1),temp79e) &
+!              -intx2(mu79(:,:,OP_1),cv79(:,OP_1)) &
+!#ifdef USE3D
+!              +intx2(mu79(:,:,OP_1),g79(:,OP_DP))
+!#else
+!              +0.
+!#endif
+!      call vector_insert_block(psi_f%vec, itri, 1, dofs, VEC_ADD)
 
 !      ! Br = -Phi_Z*(theta_phi + lambda_phi)/R 
 !      !      +Phi_phi*(theta_Z + lambda_Z)/R + chi_Z/R
@@ -358,13 +337,12 @@ contains
 
     end do
 
-    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz & psi..."
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz & bf..."
     call newvar_solve(bz_f%vec,mass_mat_lhs)
-    call newvar_solve(psi_f%vec,mass_mat_lhs)
-    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
+    call newvar_solve(bf_f%vec,bf_mat_lhs)
 
     bz_field(0) = bz_f
-    psi_field(0) = psi_f
+    bf_field(0) = bf_f
 
     call destroy_field(p_vec)
     call destroy_field(l_vec)
@@ -372,10 +350,10 @@ contains
     call destroy_field(y_vec)
     call destroy_field(chiv_vec)
     call destroy_field(phiv_vec)
-    call destroy_field(psi_f)
+    call destroy_field(bf_f)
     call destroy_field(bz_f)
 
-    call destroy_vector(fg_vec)
+    call destroy_vector(fppsi_vec)
     call destroy_mat(br_mat)
 
     case default 

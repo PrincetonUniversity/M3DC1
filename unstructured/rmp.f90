@@ -165,8 +165,8 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
            bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
-        fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
-        !fac = (ntor/rzero)/(mpol*bzero)
+        !fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
+        fac = (ntor/rzero)/(mpol*bzero)
         if(rmp_atten.ne.0) then
            atten = exp((r-1.)/rmp_atten)
         else
@@ -181,7 +181,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -brv*sin(theta) - bthetav*cos(theta)
 #else
         br =  real(brv)*cos(theta) - real(bthetav)*sin(theta)
-        bphi =  real(bzv) !+ bzero
+        bphi =  real(bzv) + bzero
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if
@@ -503,7 +503,6 @@ subroutine calculate_external_fields()
      psi_field(1) = psi_f
      bfp_field(1) = bfp_f
   end if
-  p_field(1) = bf_f
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)
