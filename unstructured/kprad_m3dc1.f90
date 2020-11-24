@@ -405,7 +405,7 @@ contains
     real, intent(in) :: dti
     
     real :: dt_s
-    real, dimension(MAX_PTS) :: ne, te, n0_old, p
+    real, dimension(MAX_PTS) :: ne, te, den, ti, n0_old, p
     real, dimension(MAX_PTS,0:kprad_z) :: nz, nz_nokprad
     real, dimension(MAX_PTS) :: dw_brem
     real, dimension(MAX_PTS,0:kprad_z) :: dw_rad, dw_ion, dw_reck, dw_recp
@@ -431,7 +431,7 @@ contains
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
 
-    def_fields = FIELD_N + FIELD_TE + FIELD_DENM
+    def_fields = FIELD_N + FIELD_TE + FIELD_TI + FIELD_DENM
     if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
          def_fields = def_fields + FIELD_P
 
@@ -455,6 +455,8 @@ contains
 
        ne = net79(:,OP_1)
        te = tet79(:,OP_1)
+       den = nt79(:,OP_1)
+       ti = tit79(:,OP_1)
        if(ikprad_te_offset .gt. 0) te = te - eta_te_offset
        p = pt79(:,OP_1)
 
@@ -497,15 +499,17 @@ contains
           p = p*p0_norm
           nz = nz*n0_norm
           ne = ne*n0_norm
+          den = den*n0_norm
           source = source*n0_norm/t0_norm
           te = te*p0_norm/n0_norm / 1.6022e-12
+          ti = ti*p0_norm/n0_norm / 1.6022e-12
           dt_s = dti*t0_norm
        
           ! advance densities at each integration point
           ! for one MHD timestep (dt_s)
           if(izone.eq.1) then
              call kprad_advance_densities(dt_s, MAX_PTS, kprad_z, p, ne, &
-                  te, nz, dw_rad, dw_brem, dw_ion, dw_reck, dw_recp, source)
+                  te, den, ti, nz, dw_rad, dw_brem, dw_ion, dw_reck, dw_recp, source)
           else
              dw_rad = 0.
              dw_brem = 0.
