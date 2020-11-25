@@ -8,6 +8,8 @@
 
 *******************************************************************************/
 #include "m3dc1_mesh.h"
+#include "m3dc1_model.h"
+#include "gmi.h"
 #include "apf.h"
 #include "apfMesh2.h"
 #include "apfMDS.h"
@@ -18,6 +20,12 @@
 #include <stdlib.h>
 
 using namespace apf;
+
+int get_ent_gclasdim(Mesh2* m, MeshEntity* e)
+{
+  gmi_ent* clas=(gmi_ent*)m->toModel(e);
+  return gmi_dim(m3dc1_model::instance()->model, clas);
+}
 
 // **********************************************
 bool is_ent_original(Mesh2* mesh, MeshEntity* e)
@@ -92,7 +100,7 @@ int get_ent_globalid(Mesh2* m, MeshEntity* e)
 }
 
 // exchange adjacency info of part boundary entities
-void send_upadj(Mesh2* m, MeshEntity* e, int adj_dim, MeshTag* tag)
+void send_upadj(Mesh2* m, MeshEntity* e, int up_dim, MeshTag* tag)
 {
   void* msg_send;
   MeshEntity** s_ent;
@@ -100,9 +108,11 @@ void send_upadj(Mesh2* m, MeshEntity* e, int adj_dim, MeshTag* tag)
 
   // upward adjacency
   Adjacent adjacent;
-  m->getAdjacent(e,adj_dim,adjacent);
+  m->getAdjacent(e,up_dim,adjacent);
   int num_adj = adjacent.getSize();
-  assert(num_adj==1);
+  if (num_adj!=1)
+    std::cout<<"[M3DC1 WARNING] (p"<<PCU_Comm_Self()<<") #upward adj of element "
+             <<getMdsIndex(m,e)<<" is "<<num_adj<<"\n";
 
   size_t msg_size=sizeof(MeshEntity*)+num_adj*sizeof(int);
   Copies remotes;
@@ -137,7 +147,6 @@ int receive_adj(Mesh2* m, MeshTag* adj_pid_tag, MeshTag* adj_gid_tag)
     e = *((MeshEntity**)msg_recv); 
     int* r_values = (int*)((char*)msg_recv+sizeof(MeshEntity*)); 
     int n = (msg_size-sizeof(MeshEntity*))/sizeof(int);
-    assert(1==n);
 
     m->setIntTag(e, adj_pid_tag, &pid_from);
     m->setIntTag(e, adj_gid_tag, &(r_values[0]));
@@ -147,7 +156,6 @@ int receive_adj(Mesh2* m, MeshTag* adj_pid_tag, MeshTag* adj_gid_tag)
 // this works only for elements (ent_dim==mesh_dim)
 // *********************************************************
 int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
-                        std::vector<MeshEntity*>& ents,
                         std::vector<int>& num_adj_ent,
                         std::vector<int>& adj_ent_pid,
                         std::vector<int>& adj_ent_gid)
@@ -163,20 +171,32 @@ int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
   MeshTag* adj_pid_tag = m->createIntTag("remote adj pid", 1);
   MeshTag* adj_gid_tag = m->createIntTag("remote adj gid", 1);
 
-  for ( std::vector<MeshEntity*>::iterator vit=ents.begin(); vit!=ents.end(); ++vit)
+  int down_size;
+  MeshEntity* down_e;
+  MeshIterator* it = m->begin(ent_dim);
+  while ((e = m->iterate(it)))
   {
-    e = *vit;
-    if (m->isShared(e))
-      send_upadj(m, e, ent_dim, gid_tag);
-  }
-  PCU_Comm_Send();
+    Downward downward;
+    down_size = m->getDownward(e, ent_dim-1, downward);
 
+    for (int i=0; i<down_size; ++i)
+    {
+      down_e = downward[i];
+      if (m->isShared(down_e))
+        send_upadj(m, down_e, ent_dim, gid_tag);
+    }
+  }
+  m->end(it);
+
+  PCU_Comm_Send();
+  
   receive_adj(m, adj_pid_tag, adj_gid_tag); 
 
   int total_num_adj=0, num_adj, pid, gid, myrank=PCU_Comm_Self();
-  for ( std::vector<MeshEntity*>::iterator vit=ents.begin(); vit!=ents.end(); ++vit)
+  it = m->begin(ent_dim);
+  int cnt=0;
+  while ((e = m->iterate(it)))
   {
-    e = *vit;
     Adjacent adjacent;
     getBridgeAdjacent(m, e, ent_dim-1, ent_dim, adjacent);
     num_adj = adjacent.getSize();
@@ -186,17 +206,31 @@ int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
       m->getIntTag(adjacent[i], gid_tag, &gid);
       adj_ent_gid.push_back(gid);
     }
-    if (m->hasTag(e,adj_pid_tag))
-    { 
-      ++num_adj;
-      m->getIntTag(e, adj_pid_tag, &pid);
-      m->getIntTag(e, adj_gid_tag, &gid);
-      adj_ent_pid.push_back(pid);
-      adj_ent_gid.push_back(gid);
+
+    Downward downward;
+    down_size = m->getDownward(e, ent_dim-1, downward);
+
+    for (int i=0; i<down_size; ++i)
+    {
+      down_e = downward[i];
+      if (m->isShared(down_e))
+      {
+        assert (m->hasTag(down_e,adj_pid_tag));
+        ++num_adj;
+        m->getIntTag(down_e, adj_pid_tag, &pid);
+        m->getIntTag(down_e, adj_gid_tag, &gid);
+        adj_ent_pid.push_back(pid);
+        adj_ent_gid.push_back(gid);
+        //std::cout<<"(p"<<PCU_Comm_Self()<<") elm "<<cnt<<" downward "<<i
+        //            <<" on part bdry (gdim "<<get_ent_gclasdim(m,e)<<")\n";
+      }
     }
     num_adj_ent.push_back(num_adj);
+    //std::cout<<"(p"<<PCU_Comm_Self()<<") element "<<cnt<<" num_adj="<<num_adj<<"\n";
     total_num_adj+=num_adj;
+    ++cnt;
   }
+  m->end(it);
 
   m->destroyTag(adj_pid_tag);
   m->destroyTag(adj_gid_tag);
@@ -205,12 +239,11 @@ int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
 
 // *********************************************************
 void get_ent_numglobaladj (Mesh2* m, int ent_dim, int adj_dim,
-                        std::vector<MeshEntity*>& ent_vec,
                         std::vector<int>& num_adj_ent)
 // *********************************************************
 {
   std::vector<int> adj_ent_pid;
   std::vector<int> adj_ent_gid;  
   get_ent_global2ndadj (m, ent_dim, adj_dim,
-                        ent_vec, num_adj_ent,adj_ent_pid, adj_ent_gid);
+                        num_adj_ent, adj_ent_pid, adj_ent_gid);
 }
