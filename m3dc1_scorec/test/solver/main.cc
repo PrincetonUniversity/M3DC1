@@ -15,6 +15,7 @@
 #include "m3dc1_mesh.h" // debugging purpose
 #include <parma.h>
 #include "PCU.h"
+#include "apfMDS.h"
 #include "petscksp.h"
 #include <iostream>
 #include <assert.h>
@@ -147,6 +148,7 @@ int main( int argc, char** argv)
   //int three=3;
   //m3dc1_mesh_write("geoId", &three);
 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   printStats(m3dc1_mesh::instance()->mesh);
   int ent_dim=2;
   if (num_plane>1)
@@ -158,12 +160,24 @@ int main( int argc, char** argv)
  
   int num_ent = (m3dc1_mesh::instance()->mesh->count(3))? 
                m3dc1_mesh::instance()->mesh->count(3):m3dc1_mesh::instance()->mesh->count(2);
+  num_ent/=2;
+  int* ent_id = new int[num_ent];
   int* num_adj_ent=new int[num_ent];
 
   // M3DC1 assumption - local ID is continuous 
   apf::MeshEntity* e;
-  apf::MeshEntity* down_e;
-  m3dc1_ent_getnumglobaladj (&ent_dim, &ent_dim, num_adj_ent);
+  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(ent_dim);
+  int cnt=0;
+  while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
+  {
+    ent_id[cnt] = apf::getMdsIndex(m, e);
+    cnt++;
+    if (cnt==num_ent) break;
+  }
+  m->end(it);
+
+  m3dc1_ent_getnumglobaladj (&ent_dim, ent_id, &num_ent, &ent_dim, num_adj_ent);
+
 /*
   int adj_cnt=(m3dc1_mesh::instance()->mesh->count(3))? 5:3;
   int count=0, down_size;  

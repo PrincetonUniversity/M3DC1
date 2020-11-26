@@ -26,9 +26,9 @@ apf::MeshEntity* get_ent_owncopy(apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_localid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_globalid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 
-int get_ent_global2ndadj (apf::Mesh2*, int, int, 
+int get_ent_global2ndadj (apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&,
     std::vector<int>&, std::vector<int>&, std::vector<int>&);
-void get_ent_numglobaladj(apf::Mesh2*, int, int, std::vector<int>&);
+void get_ent_numglobaladj(apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&, std::vector<int>&);
 
 class m3dc1_mesh
 {

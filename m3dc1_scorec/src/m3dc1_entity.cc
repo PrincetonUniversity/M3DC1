@@ -156,6 +156,7 @@ int receive_adj(Mesh2* m, MeshTag* adj_pid_tag, MeshTag* adj_gid_tag)
 // this works only for elements (ent_dim==mesh_dim)
 // *********************************************************
 int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
+                        std::vector<MeshEntity*>& ents,
                         std::vector<int>& num_adj_ent,
                         std::vector<int>& adj_ent_pid,
                         std::vector<int>& adj_ent_gid)
@@ -173,18 +174,11 @@ int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
 
   int down_size;
   MeshEntity* down_e;
-  MeshIterator* it = m->begin(ent_dim);
+  MeshIterator* it = m->begin(ent_dim-1);
   while ((e = m->iterate(it)))
   {
-    Downward downward;
-    down_size = m->getDownward(e, ent_dim-1, downward);
-
-    for (int i=0; i<down_size; ++i)
-    {
-      down_e = downward[i];
-      if (m->isShared(down_e))
-        send_upadj(m, down_e, ent_dim, gid_tag);
-    }
+    if (m->isShared(e))
+      send_upadj(m, e, ent_dim, gid_tag);
   }
   m->end(it);
 
@@ -193,10 +187,9 @@ int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
   receive_adj(m, adj_pid_tag, adj_gid_tag); 
 
   int total_num_adj=0, num_adj, pid, gid, myrank=PCU_Comm_Self();
-  it = m->begin(ent_dim);
-  int cnt=0;
-  while ((e = m->iterate(it)))
+  for (std::vector<MeshEntity*>::iterator vit=ents.begin(); vit!=ents.end(); ++vit)
   {
+    e = *vit;
     Adjacent adjacent;
     getBridgeAdjacent(m, e, ent_dim-1, ent_dim, adjacent);
     num_adj = adjacent.getSize();
@@ -213,24 +206,44 @@ int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
     for (int i=0; i<down_size; ++i)
     {
       down_e = downward[i];
-      if (m->isShared(down_e))
+      if (m->hasTag(down_e, adj_pid_tag))
       {
-        assert (m->hasTag(down_e,adj_pid_tag));
+        assert (m->isShared(down_e));
         ++num_adj;
         m->getIntTag(down_e, adj_pid_tag, &pid);
         m->getIntTag(down_e, adj_gid_tag, &gid);
         adj_ent_pid.push_back(pid);
         adj_ent_gid.push_back(gid);
-        //std::cout<<"(p"<<PCU_Comm_Self()<<") elm "<<cnt<<" downward "<<i
-        //            <<" on part bdry (gdim "<<get_ent_gclasdim(m,e)<<")\n";
       }
     }
     num_adj_ent.push_back(num_adj);
-    //std::cout<<"(p"<<PCU_Comm_Self()<<") element "<<cnt<<" num_adj="<<num_adj<<"\n";
+
+// FIXME: wrong geom-class in 3D results in failure with the verification
+#ifdef DEBUG
+    int correct_num_adj=(mesh_dim==3)?5:3;
+
+    int bdry_cnt=0;
+    for (int i=0; i<down_size; ++i)
+    {
+      down_e = downward[i];
+      if (get_ent_gclasdim(m,down_e)==ent_dim-1)
+        ++bdry_cnt;
+    }
+    if (bdry_cnt+num_adj!=correct_num_adj)
+    {
+      std::cout<<"("<<PCU_Comm_Self()<<") elm "<<getMdsIndex(m,e)<<" num adj elm "<<num_adj<<"\n";
+      for (int i=0; i<down_size; ++i)
+      {
+        down_e = downward[i];
+        std::cout<<"("<<PCU_Comm_Self()<<") elm "<<getMdsIndex(m,e)<<" down "<<i
+                 <<" g-dim "<<get_ent_gclasdim(m,down_e)<<"\n";
+      }
+    }
+   // assert(bdry_cnt+num_adj==correct_num_adj);
+#endif
+
     total_num_adj+=num_adj;
-    ++cnt;
   }
-  m->end(it);
 
   m->destroyTag(adj_pid_tag);
   m->destroyTag(adj_gid_tag);
@@ -239,11 +252,12 @@ int get_ent_global2ndadj (Mesh2* m, int ent_dim, int adj_dim,
 
 // *********************************************************
 void get_ent_numglobaladj (Mesh2* m, int ent_dim, int adj_dim,
+                        std::vector<MeshEntity*>& ent_vec,
                         std::vector<int>& num_adj_ent)
 // *********************************************************
 {
   std::vector<int> adj_ent_pid;
   std::vector<int> adj_ent_gid;  
-  get_ent_global2ndadj (m, ent_dim, adj_dim,
+  get_ent_global2ndadj (m, ent_dim, adj_dim, ent_vec,
                         num_adj_ent, adj_ent_pid, adj_ent_gid);
 }

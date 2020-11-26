@@ -1013,7 +1013,9 @@ int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id,
   return M3DC1_SUCCESS; 
 }
 
-void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ adj_dim,
+void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, 
+                      int* /* in */ ent_ids, int* /* in */ num_ent,
+                      int* /* in */ adj_dim,
                       int* /* out */ num_adj_ent, int* /* out */ adj_ent_pids, int* /* out */ adj_ent_gids, 
                       int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size)
 {
@@ -1038,10 +1040,14 @@ void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ adj_dim,
   assert(*ent_dim==mesh_dim);
 
   apf::MeshEntity* e;
+  std::vector<apf::MeshEntity*> ent_vec;
   std::vector<int> adj_gid_vec;
   std::vector<int> adj_pid_vec;
   std::vector<int> num_adj_vec;
-  *adj_ent_size = get_ent_global2ndadj(mesh, *ent_dim, *adj_dim, num_adj_vec, adj_pid_vec, adj_gid_vec);
+  for (int i=0; i<*num_ent; ++i)
+    ent_vec.push_back(getMdsEntity(mesh, *ent_dim, ent_ids[i]));
+
+  *adj_ent_size = get_ent_global2ndadj(mesh, *ent_dim, *adj_dim, ent_vec, num_adj_vec, adj_pid_vec, adj_gid_vec);
   
   if (*adj_ent_allocated_size<*adj_ent_size)
   {
@@ -1058,6 +1064,7 @@ void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ adj_dim,
 
 // allocated size of num_adj_ent should be greater than or equal to the element size
 void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, 
+                      int* /* in */ ent_ids, int* /* in */ num_ent,
                       int* /* in */ adj_dim, int* /* out */ num_adj_ent)
 {
   if (*adj_dim<*ent_dim)
@@ -1076,10 +1083,12 @@ void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim,
   }
 
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh; 
-  int num_ent = mesh->count(3)? mesh->count(3): mesh->count(2);
+  std::vector<apf::MeshEntity*> ent_vec;
   std::vector<int> num_adj_vec;
-  get_ent_numglobaladj(mesh, *ent_dim, *adj_dim, num_adj_vec);
-  memcpy(num_adj_ent, &(num_adj_vec[0]), num_ent*sizeof(int));
+  for (int i=0; i<*num_ent; ++i)
+    ent_vec.push_back(getMdsEntity(mesh, *ent_dim, ent_ids[i]));
+  get_ent_numglobaladj(mesh, *ent_dim, *adj_dim, ent_vec, num_adj_vec);
+  memcpy(num_adj_ent, &(num_adj_vec[0]), *num_ent*sizeof(int));
 }
 
 //*******************************************************
