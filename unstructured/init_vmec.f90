@@ -191,10 +191,14 @@ contains
           !+ regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
       temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
                     - intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
+#ifdef USE3D
       temp2(:,1) = intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79d,ri_79) &
+                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79c,ri_79) &
+#else
+      temp2(:,2) = 0. &
+#endif 
                   -intx4(mu79(:,:,OP_DR),pv79(:,OP_DZ),temp79e,ri_79) & 
                   +intx3(mu79(:,:,OP_DR),cv79(:,OP_DZ),ri_79) & 
-                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79c,ri_79) &
                   +intx4(mu79(:,:,OP_DZ),pv79(:,OP_DR),temp79e,ri_79) & 
                   -intx3(mu79(:,:,OP_DZ),cv79(:,OP_DR),ri_79) 
 
@@ -218,10 +222,14 @@ contains
       temp(:,:,2,2) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
                       -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79) &
                       -regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79) 
+#ifdef USE3D
       temp2(:,2) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79d,ri2_79) &
+                  +intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79c,ri2_79) &
+#else
+      temp2(:,2) = 0. &
+#endif 
                   -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DZ),temp79e,ri2_79) & 
                   +intx3(mu79(:,:,OP_DZ),cv79(:,OP_DZ),ri2_79) & 
-                  +intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79c,ri2_79) &
                   -intx4(mu79(:,:,OP_DR),pv79(:,OP_DR),temp79e,ri2_79) & 
                   +intx3(mu79(:,:,OP_DR),cv79(:,OP_DR),ri2_79) 
 

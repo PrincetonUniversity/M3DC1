@@ -76,6 +76,12 @@ LIBS := $(LIBS) \
 	$(MKL_LIB)
 #        $(HYBRID_LIBS) \
 
+ifeq ($(ST), 1)
+  LIBS += -L$(NETCDFDIR)/lib64 -lnetcdf -lnetcdff
+
+  INCLUDE += -I$(NETCDFDIR)/include 
+endif
+
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
 
 CCOPTS  = -c $(OPTS)
