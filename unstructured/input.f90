@@ -1059,6 +1059,9 @@ subroutine set_defaults
        "Length of pellet path to pack mesh along", adapt_grp)
   call add_var_double("adapt_pellet_delta", adapt_pellet_delta, 0., &
        "Parameter for packing mesh along pellet path", adapt_grp)
+  call add_var_double_array("adapt_qs", adapt_qs, &
+       maxqs, 0., &
+       "Safety factor values to pack around", gs_grp)
 
 
   ! Mesh

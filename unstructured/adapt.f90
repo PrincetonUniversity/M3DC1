@@ -18,6 +18,9 @@ module adapt
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
+
+  integer, parameter :: maxqs = 32
+  real, dimension(maxqs) :: adapt_qs
   
   contains
   subroutine adapt_by_psi
@@ -154,6 +157,33 @@ module adapt
              end do
           end do
        end if
+
+       ! do adaptation around specified safety factor values
+       if(any(adapt_qs.ne.0.)) then
+          if(.not.allocated(q_spline%y)) then
+             print *, 'Error, iadapt_pack_rationals > 0, but q profile not set'
+             call safestop(6)
+          end if
+
+          temp79c = 0.
+          do i=1, npoints
+
+             if(mr(i).ne.0) cycle
+
+             call evaluate_spline(q_spline, real(temp79a(i)), q)
+
+             do j=1, maxqs
+                if(adapt_qs(j).ne.0.) then
+                   temp79c(i) = temp79c(i) + &
+                        exp(-(q - adapt_qs(j))**2 / (2.*adapt_pack_factor**2))
+                end if
+             end do
+
+          end do
+          where(real(temp79c).gt.1.) temp79c = 1.
+          temp79b = temp79b*(1.-temp79c) + temp79c
+       end if
+
 
        ! do adaptation around coils
        if(adapt_coil_delta.gt.0) then
