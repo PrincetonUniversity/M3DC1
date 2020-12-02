@@ -547,18 +547,6 @@ contains
         pellet_rate(ip) = pellet_rate(ip)*t0_norm/(n0_norm*l0_norm**3)
         rpdot(ip) = rpdot(ip) * (t0_norm/l0_norm)
 
-      case(100)
-        ! This is a special case in which the ablation rate is constant
-        ! the ablation rate has to be specified with the C1input variable: pellet_rate
-        ! pellet_rate in C1input file is stored in pellet_rate_scl  
-        ! It has to be in [Particles/second]
-
-        !Adimensional ablation:
-        pellet_rate(ip) = pellet_rate_scl*t0_norm/(n0_norm*l0_norm**3)
-
-        !The pellet Radius here is not relevant
-        rpdot(ip) = 0.0
-
       end select
 
 
