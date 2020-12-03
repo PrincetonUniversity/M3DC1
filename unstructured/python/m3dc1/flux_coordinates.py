@@ -103,19 +103,19 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     geo = False
     
     if fcoords.lower()=='pest':
-        print('Creating flux coordinates using PEST angle')
+        fpyl.printnote('Creating flux coordinates using PEST angle')
         fast = False
     elif fcoords.lower()=='boozer':
-        print('Creating flux coordinates using BOOZER angle')
+        fpyl.printnote('Creating flux coordinates using BOOZER angle')
         fast = False
     elif fcoords.lower()=='hamada':
-        print('Creating flux coordinates using HAMADA angle')
+        fpyl.printnote('Creating flux coordinates using HAMADA angle')
         fast = False
     elif fcoords.lower()=='canonical':
-        print('Creating flux coordinates using CANONICAL (equal arc length) angle')
+        fpyl.printnote('Creating flux coordinates using CANONICAL (equal arc length) angle')
         fast = False
     else:
-        print('Creating flux coordinates using GEOMETRIC angle')
+        fpyl.printnote('Creating flux coordinates using GEOMETRIC angle')
         geo = True
         fast=False
     
@@ -132,7 +132,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     # Read fields
     print('Reading fields...', end=' ', flush=True)
     A = sim.get_field('A',sim.timeslice)
-    gradA = sim.get_field('gradA',sim.timeslice)
+    gradA = sim.get_field('A',sim.timeslice)
     B = sim.get_field('B',sim.timeslice)
 
     # Get flux on axis and lcfs and magnetic axis position at the given time slice
@@ -159,10 +159,10 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
             val = R*Aphi
         elif field == 'psi0_r':
             Aphi = A.evaluate((R,phi,Z))[1]
-            dAphidR = gradA.evaluate((R,phi,Z))[1]
+            dAphidR = gradA.evaluate_deriv((R,phi,Z))[1]
             val = Aphi+R*dAphidR
         elif field == 'psi0_z':
-            dAphidZ = gradA.evaluate((R,phi,Z))[7]
+            dAphidZ = gradA.evaluate_deriv((R,phi,Z))[7]
             val = R*dAphidZ
         elif field == 'psin0':
             psi0 = field_at_point('psi0',R,phi,Z)
@@ -213,7 +213,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
 
     tol_psin = 6e-5
     tol_r = 1e-4*(np.amax(R_linspace) - np.amin(R_linspace))
-    maxits = 20
+    maxits = 30
     rho_old = 0.
     psin_old = 0.
 
@@ -470,7 +470,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     # Create flux coordinates object
     # psi = poloidal flux
     # phi = toroidal flux
-    fc = fpy.flux_coordinates(m,n,rpath,zpath,axis,omega,psi,psin,period,theta,jac,q,area,dV,fcoords,V,phi,itor,r0,current,dpsi_dpsin)
+    fc = fpy.flux_coordinates(m,n,rpath,zpath,axis,omega,psi,psin,period,theta,jac,q,area,dV,fcoords,V,phi,itor,r0,current,dpsi_dpsin,points)
     sim.fc = fc
 
     if makeplot==True:
