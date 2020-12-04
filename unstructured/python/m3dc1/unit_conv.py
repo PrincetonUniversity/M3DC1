@@ -21,10 +21,26 @@ def unit_conv(array, arr_dim='M3DC1', time=0, length=0, particles=0, magnetic_fi
     input energy=2 and current_density=-1.
     """
     
-    dim_path = os.environ['DIM_TXT']
-    ureg = pint.UnitRegistry(dim_path)
-    #ureg = pint.UnitRegistry()
-    
+    ureg = pint.UnitRegistry(None)
+    ureg.define('second       = [time] = s = sec')
+    ureg.define('meter 	     = [length]')
+    ureg.define('particles      = [number_of_particles] = N')
+    ureg.define('Gauss = (1.0*10.0**-4) * Tesla')
+    ureg.define('Tesla = [magnetic_field_strength] = T')
+    ureg.define('Ampere       = [current] = A = Amp')
+    ureg.define('AmperePerSquareMeter = [current_density]')
+    ureg.define('SquareMeterPerSecond = [diffusion]')
+    ureg.define('Joules = [energy] = J')
+    ureg.define('Newton = [force] = N')
+    ureg.define('Pascal = [pressure] = Pa')
+    ureg.define('OhmMeter = [resistivity]')
+    ureg.define('eV = [temperature]')
+    ureg.define('MeterPerSecond = [velocity]')
+    ureg.define('Volts        = [voltage]')
+    ureg.define('KilogramPerMeterPerSecond = [viscosity]')
+    ureg.define('PerMeterPerSecond 	 = [thermal_conductivity]')
+    ureg.define('VoltsPerMeter      = [electric_field]')
+
     B0 = readParameter('b0_norm',fname='C1.h5',listc=False)
     N0 = readParameter('n0_norm',fname='C1.h5',listc=False)
     L0 = readParameter('l0_norm',fname='C1.h5',listc=False)
