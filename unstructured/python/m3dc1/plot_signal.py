@@ -60,7 +60,7 @@ def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=Fals
     #print(nprobes)
     
     if units.lower()=='mks':
-        time = unit_conv(time,time=1)
+        time = unit_conv(time, file_name=file_name, time=1)
         #y_axis = unit_conv(y_axis, arr_dim='M3DC1', energy=1)
     
     if renorm == True:

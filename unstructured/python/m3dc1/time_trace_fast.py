@@ -60,9 +60,9 @@ def get_timetrace(trace,file_name='C1.h5',units='m3dc1',growth=False,renorm=Fals
     time = np.asarray(time)
     y_axis = np.asarray(y_axis)
     if units=='mks':
-        time = unit_conv(time, arr_dim='M3DC1', time=1)
+        time = unit_conv(time, arr_dim='M3DC1', file_name=file_name, time=1)
         if trace == 'ke':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', energy=1)
+            y_axis = unit_conv(y_axis, arr_dim='M3DC1', file_name=file_name, energy=1)
         else:
             y_axis = fpyl.get_conv_trace('mks',trace,y_axis)
             #fpyl.printwarn('WARNING: Unit conversion for traces other than ke not yet implemented.')
@@ -135,8 +135,8 @@ def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',growth=False,renorm=Tru
     
     
     if units.lower() == 'mks':
-        #start_time = unit_conv(time[start_ind],arr_dim='mks',time=1)
-        time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',time=1)
+        #start_time = unit_conv(time[start_ind],arr_dim='mks',file_name=file_name,time=1)
+        time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',file_name=file_name,time=1)
     
     #print(start_time,time_low_lim)
     
@@ -226,7 +226,7 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
             start_ind = int(np.floor(len(ke)/2))
             start_time = ke_time[start_ind]
             if units.lower() == 'mks':
-                time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',time=1)
+                time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',file_name=file_name,time=1)
             #print(start_time,time_low_lim)
             if start_time < time_low_lim:
                 start_ind = np.argmax(ke_time>time_low_lim)
@@ -707,14 +707,14 @@ def create_plot_time_trace_fast(time,y_axis,trace,units='mks',file_name='C1.h5',
     
     
     if units=='mks':
-        #time = unit_conv(time,time=1)
+        #time = unit_conv(time,file_name=file_name,time=1)
         plt.xlabel(r'time $[s]$',fontsize=axlblfs)
     else:
         plt.xlabel(r'time $[\tau_A]$',fontsize=axlblfs)
     
     if trace == 'ke':
         if units=='mks':
-            #y_axis = unit_conv(y_axis, arr_dim='M3DC1', energy=1)
+            #y_axis = unit_conv(y_axis, arr_dim='M3DC1', file_name=file_name, energy=1)
             if growth == True:
                 plt.ylabel(r'$\gamma$ $[s^{-1}]$')
             else:
@@ -734,7 +734,7 @@ def create_plot_time_trace_fast(time,y_axis,trace,units='mks',file_name='C1.h5',
         if np.amax(y_axis[1:]) < y_axis[0]:
             start_time=250
             if units=='mks':
-                start_time = unit_conv(start_time,arr_dim='m3dc1',time=1)
+                start_time = unit_conv(start_time,arr_dim='m3dc1',file_name=file_name,time=1)
             start_ind = int(fpyl.find_nearest(time,start_time))
             top_lim=1.1*np.amax(y_axis[start_ind:])
             plt.ylim([0,top_lim])
@@ -805,7 +805,7 @@ def double_plot_time_trace_fast(trace,file_name='C1.h5',renorm=False,rescale=Fal
         if np.amax(y_axis[1:]) < y_axis[0]:
             start_time=250
             if units=='mks':
-                start_time = unit_conv(start_time,arr_dim='m3dc1',time=1)
+                start_time = unit_conv(start_time,arr_dim='m3dc1',file_name=file_name,time=1)
             start_ind = int(fpyl.find_nearest(time,start_time))
             top_lim=1.1*np.amax(y_axis[start_ind:])
         else:

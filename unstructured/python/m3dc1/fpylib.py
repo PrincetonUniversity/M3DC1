@@ -272,60 +272,60 @@ def get_fieldlabel(units,field):
     return label, unit_label
 
 
-def get_conv_field(units,field,field1_ave):
+def get_conv_field(units,field,field1_ave,file_name='C1.h5'):
     """
     Returns converted field depending on chosen system of units
     """
     if units.lower()=='m3dc1':
         if field == 'j':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',current_density=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,current_density=1)
         elif field == 'ni':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',particles=1,length=-3)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,particles=1,length=-3)
         elif field == 'ne':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',particles=1,length=-3)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,particles=1,length=-3)
         elif field == 'v':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',velocity=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,velocity=1)
         elif field == 'B':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',magnetic_field=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,magnetic_field=1)
         elif field == 'p':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',pressure=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
         elif field == 'pi':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',pressure=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
         elif field == 'pe':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',pressure=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
         elif field == 'ti':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',temperature=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,temperature=1)
         elif field == 'te':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',temperature=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,temperature=1)
         elif field == 'A':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',magnetic_field=1,length=1)
-        elif field == 'grad A':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',magnetic_field=1)#ToDo: Normalization for derivative wrt phi
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,magnetic_field=1,length=1)
+#        elif field == 'grad A':
+#            field1_ave = unit_conv(field1_ave,arr_dim='mks',magnetic_field=1)#ToDo: Normalization for derivative wrt phi
         elif field == 'E':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',electric_field=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,electric_field=1)
     return field1_ave
 
 
-def get_conv_trace(units,trace,trace_arr):
+def get_conv_trace(units,trace,trace_arr,file_name='C1.h5'):
     """
     Returns converted time trace depending on chosen system of units
     """
     #ToDo: Add missing traces
     if units.lower()=='mks':
         if trace == 'time':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',time=1)
+            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,time=1)
         elif trace == 'ke':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',energy=1)
+            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
         elif trace == 'me':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',energy=1)
+            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
         elif trace == 'p':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',energy=1)
+            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
         elif trace == 'ip':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',current=1)
+            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
         elif trace == 'it':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',current=1)
+            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
         elif trace == 'iw':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',current=1)
+            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
         else:
             printwarn('WARNING: Unit conversion not yet implemented for ' + trace + '. Feel free to add it.')
     return trace_arr
