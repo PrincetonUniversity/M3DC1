@@ -202,37 +202,37 @@ def plot_field_basic(field, coord='scalar', file_name='C1.h5', time=0, phi=0, me
 
     if units=='M3DC1':
         if field == 'j':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',current_density=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,current_density=1)
             label = 'current density (M3DC1 units)'
         if field == 'ni':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',particles=1,length=-3)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,particles=1,length=-3)
             label = 'number density (M3DC1 units)'
         if field == 'ne':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',particles=1,length=-3)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,particles=1,length=-3)
             label = 'number density (M3DC1 units)'
         if field == 'v':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',velocity=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,velocity=1)
             label = 'velocity (M3DC1 units)'
         if field == 'B':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',magnetic_field=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,magnetic_field=1)
             label = 'magnetic field strength (M3DC1 units)'
         if field == 'p':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',pressure=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
             label = 'pressure (M3DC1 units)'
         if field == 'pi':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',pressure=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
             label = 'pressure (M3DC1 units)'
         if field == 'pe':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',pressure=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
             label = 'pressure (M3DC1 units)'
         if field == 'ti':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',temperature=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,temperature=1)
             label = 'temperature (M3DC1 units)'
         if field == 'te':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',temperature=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,temperature=1)
             label = 'temperature (M3DC1 units)'
         if field == 'A':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',magnetic_field=1,length=1)
+            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,magnetic_field=1,length=1)
             label = 'vector potential (M3DC1 units)'
     
     if units=='mks':
