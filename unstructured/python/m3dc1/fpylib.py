@@ -191,143 +191,164 @@ def smooth(vin, w, nan='replace'):
 # Unit conversion
 #-------------------------------------------
 
+def get_unitexpns():
+    return {'time':0, 'length':0, 'particles':0, 'magnetic_field':0,
+            'current':0, 'current_density':0, 'diffusion':0, 'energy':0,
+            'force':0, 'pressure':0, 'resistivity':0, 'temperature':0,
+            'velocity':0, 'voltage':0, 'viscosity':0,
+            'thermal_conductivity':0, 'electric_field':0}
+
 
 # Returns field label depending on chosen system of units
 def get_fieldlabel(units,field):
+
+    labels = {'j':'current density', 'ni':'ion density','ne':'electron density',
+              'v':'velocity', 'B':'magnetic field strength', 'p':'pressure',
+              'pi':'ion pressure', 'pe':'electron pressure',
+              'ti':'ion temperature', 'te':'electron temperature',
+              'A':'vector potential', 'gradA':'grad vector potential',
+              'E':'electric field ', 'default':field}
+
     if units.lower()=='m3dc1':
-        if field == 'j':
-            label = 'current density'
-        elif field == 'ni':
-            label = 'ion density'
-        elif field == 'ne':
-            label = 'electron density'
-        elif field == 'v':
-            label = 'velocity'
-        elif field == 'B':
-            label = 'magnetic field strength'
-        elif field == 'p':
-            label = 'pressure'
-        elif field == 'pi':
-            label = 'ion pressure'
-        elif field == 'pe':
-            label = 'electron pressure'
-        elif field == 'ti':
-            label = 'ion temperature'
-        elif field == 'te':
-            label = 'electron temperature'
-        elif field == 'A':
-            label = 'vector potential'
-        elif field == 'gradA':
-            label = 'grad vector potential'
-        elif field == 'E':
-            label = 'electric field '
-        else:
-            label = field
-        unit_label = 'M3DC1 units'
-    
-    if units.lower()=='mks':
-        if field == 'j':
-            label = 'current density'
-            unit_label = '$A/m^2$'
-        elif field == 'ni':
-            label = 'ion density'
-            unit_label = 'particles/$m^3$'
-        elif field == 'ne':
-            label = 'electron density'
-            unit_label = 'particles/$m^3$'
-        elif field == 'v':
-            label = 'velocity'
-            unit_label = '$m/s$'
-        elif field == 'B':
-            label = 'magnetic field strength'
-            unit_label = '$T$'
-        elif field == 'p':
-            label = 'pressure'
-            unit_label = '$Pa$'
-        elif field == 'pi':
-            label = 'ion pressure'
-            unit_label = '$Pa$'
-        elif field == 'pe':
-            label = 'electron pressure'
-            unit_label = '$Pa$'
-        elif field == 'ti':
-            label = 'ion temperature'
-            unit_label = '$eV$'
-        elif field == 'te':
-            label = 'electron temperature'
-            unit_label = '$eV$'
-        elif field == 'A':
-            label = 'vector potential'
-            unit_label = '$Tesla \cdot m$'
-        elif field == 'gradA':
-            label = 'grad vector potential'
-            unit_label = '$(Tesla \cdot m)$ / (m or rad)'
-        elif field == 'E':
-            label = 'electric field'
-            unit_label = '$V/m$'
-        else:
-            label = field
-            unit_label = 'MKS units'
-        #label = field + ' (' + label + ')'
-    return label, unit_label
+        units = {'default':'M3DC1 units'}
+    elif units.lower()=='mks':
+        units = {'j':'$A/m^2$', 'ni':'particles/$m^3$', 'ne':'particles/$m^3$',
+                 'v':'$m/s$', 'B':'$T$', 'p':'$Pa$', 'pi':'$Pa$', 'pe':'$Pa$',
+                 'ti':'$eV$', 'te':'$eV$', 'A':'$Tesla \cdot m$',
+                 'gradA':'$(Tesla \cdot m)$ / (m or rad)', 'E':'$V/m$',
+                 'default':'MKS units'}
+
+    if field in labels:
+        label = labels[field]
+    else:
+        label = labels['default']
+
+    if field in units:
+        unit = units[field]
+    else:
+        unit = units['default']
+
+    return label, unit
 
 
-def get_conv_field(units,field,field1_ave,file_name='C1.h5'):
+def get_conv_field(units,field,field1_ave,file_name='C1.h5',h5file=None):
     """
     Returns converted field depending on chosen system of units
     """
+
+    if h5file is None:
+        h5file = openH5File(file_name)
+
+    expns = get_unitexpns()
+    fields = {'j':{'current_density':1}, 'ni':{'particles':1,'length':-3},
+              'ne':{'particles':1,'length':-3}, 'v':{'velocity':1},
+              'B':{'magnetic_field':1}, 'p':{'pressure':1}, 'pi':{'pressure':1},
+              'pe':{'pressure':1}, 'ti':{'temperature':1},
+              'te':{'temperature':1}, 'A':{'magnetic_field':1,'length':1},
+              'E':{'electric_field':1},
+              }
+    if field in fields:
+        expns.update(units[field])
+
     if units.lower()=='m3dc1':
-        if field == 'j':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,current_density=1)
-        elif field == 'ni':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,particles=1,length=-3)
-        elif field == 'ne':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,particles=1,length=-3)
-        elif field == 'v':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,velocity=1)
-        elif field == 'B':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,magnetic_field=1)
-        elif field == 'p':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
-        elif field == 'pi':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
-        elif field == 'pe':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
-        elif field == 'ti':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,temperature=1)
-        elif field == 'te':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,temperature=1)
-        elif field == 'A':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,magnetic_field=1,length=1)
-#        elif field == 'grad A':
-#            field1_ave = unit_conv(field1_ave,arr_dim='mks',magnetic_field=1)#ToDo: Normalization for derivative wrt phi
-        elif field == 'E':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,electric_field=1)
+        field1_ave = unit_conv(field1_ave,arr_dim='mks',h5file=h5file,**expns)
     return field1_ave
 
 
-def get_conv_trace(units,trace,trace_arr,file_name='C1.h5'):
+def get_conv_trace(units,trace,trace_arr,file_name='C1.h5',h5file=None,itor=1,custom=None):
     """
     Returns converted time trace depending on chosen system of units
     """
-    #ToDo: Add missing traces
+
+    if h5file is None:
+        h5file = openH5File(file_name)
+
+    expns = get_unitexpns()
+
+    traces = {'Ave_P':{'pressure':1}, 'E_K3':{'energy':1},
+              'E_K3D':{'energy':1,'time':-1}, 'E_K3H':{'energy':1,'time':-1},
+              'E_KP':{'energy':1}, 'E_KPD':{'energy':1,'time':-1},
+              'E_KPH':{'energy':1,'time':-1}, 'E_KT':{'energy':1},
+              'E_KTD':{'energy':1,'time':-1}, 'E_KTH':{'energy':1,'time':-1},
+              'E_MP':{'energy':1}, 'E_MPD':{'energy':1,'time':-1},
+              'E_MPH':{'energy':1,'time':-1}, 'E_MT':{'energy':1},
+              'E_MTD':{'energy':1,'time':-1}, 'E_MTH':{'energy':1,'time':-1},
+              'E_P':{'energy':1}, 'E_PD':{'energy':1,'time':-1},
+              'E_PE':{'energy':1}, 'E_PH':{'energy':1,'time':-1},
+              'E_grav':{'energy':1}, 'Flux_kinetic':{'energy':1,'time':-1},
+              'Flux_poynting':{'energy':1,'time':-1},
+              'Flux_pressure':{'energy':1,'time':-1},
+              'Flux_thermal':{'energy':1,'time':-1}, 'IP_co':{'current':1},
+              'IP_sn':{'current':1}, 'M_IZ':{'current':1,'length':2},
+              'M_IZ_co':{'current':1,'length':2},
+              'M_IZ_sn':{'current':1,'length':2},
+              'Parallel_viscous_heating':{'energy':1,'time':-1},
+              'Particle_Flux_convective':{'particles':1,'time':-1},
+              'Particle_Flux_diffusive':{'particles':1,'time':-1},
+              'Particle_source':{'particles':1,'time':-1},
+              'Torque_com':{'force':1,'length':1},
+              'Torque_em':{'force':1,'length':1},
+              'Torque_gyro':{'force':1,'length':1},
+              'Torque_parvisc':{'force':1,'length':1},
+              'Torque_sol':{'force':1,'length':1},
+              'Torque_visc':{'force':1,'length':1},
+              'W_M':{'energy':1}, 'W_P':{'energy':1},
+              'Wall_Force_n0_x':{'force':1}, 'Wall_Force_n0_x_halo':{'force':1},
+              'Wall_Force_n0_y':{'force':1}, 'Wall_Force_n0_z':{'force':1},
+              'Wall_Force_n0_z_halo':{'force':1}, 'Wall_Force_n1_x':{'force':1},
+              'Wall_Force_n1_y':{'force':1},
+              'angular_momentum':{'force':1,'length':1,'time':1},
+              'angular_momentum_p':{'force':1,'length':1,'time':1},
+              'area':{'length':2}, 'area_p':{'length':2},
+              'brem_rad':{'energy':1,'time':-1},
+              'circulation':{'velocity':1,'length':1}, 'dt':{'time':1},
+              'electron_number':{'particles':1},
+              'helicity':{'magnetic_field':2,'length':4},
+              'i_control%err_i':{'current':1,'time':1},
+              'i_control%err_p_old':{'current':1},
+              'ion_loss':{'energy':1,'time':-1},
+              'line_rad':{'energy':1,'time':-1},
+              'loop_voltage':{'voltage':1},
+              'n_control%err_i':{'particles':1,'time':1},
+              'n_control%err_p_old':{'particles':1},
+              'particle_number':{'particles':1},
+              'particle_number_p':{'particles':1},
+              'psi0':{'magnetic_field':1,'length':2},
+              'psi_lcfs':{'magnetic_field':1,'length':2},
+              'psimin':{'magnetic_field':1,'length':2},
+              'radiation':{'energy':1,'time':-1},
+              'reconnected_flux':{'magnetic_field':1,'length':1+itor},
+              'reck_rad':{'energy':1,'time':-1},
+              'recp_rad':{'energy':1,'time':-1}, 'runaways':{'particles':1},
+              'temax':{'temperature':1}, 'time':{'time':1},
+              'toroidal_current':{'current':1},
+              'toroidal_current_p':{'current':1},
+              'toroidal_current_w':{'current':1},
+              'toroidal_flux':{'magnetic_field':1,'length':2},
+              'toroidal_flux_p':{'magnetic_field':1,'length':2},
+              'volume':{'length':3}, 'volume_p':{'length':3}, 'xmag':{'length':1},
+              'xnull':{'length':1}, 'xnull2':{'length':1}, 'zmag':{'length':1},
+              'znull':{'length':1}, 'znull2':{'length':1},
+              'bharmonics':{'energy':1}, 'keharmonics':{'energy':1},
+              'cauchy_fraction':{}, 'cloud_pel':{}, 'pellet_mix':{},
+              'pellet_phi':{}, 'pellet_r':{'length':1},
+              'pellet_rate':{'particles':1,'time':-1},
+              'pellet_rate_D2':{'particles':1,'time':-1},
+              'pellet_ablrate':{'particles':1,'time':-1},
+              'pellet_var':{'length':1}, 'pellet_var_tor':{'length':1},
+              'pellet_velphi':{'velocity':1}, 'pellet_velr':{'velocity':1},
+              'pellet_velz':{'velocity':1}, 'pellet_vx':{'velocity':1},
+              'pellet_vy':{'velocity':1}, 'pellet_z':{'length':1},
+              'r_p':{'length':1},
+              }
+
+    if custom is not None:
+        expns.update(custom)
+    elif trace in traces:
+        expns.update(traces[trace])
+
     if units.lower()=='mks':
-        if trace == 'time':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,time=1)
-        elif trace == 'ke':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
-        elif trace == 'me':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
-        elif trace == 'p':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
-        elif trace == 'ip':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
-        elif trace == 'it':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
-        elif trace == 'iw':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
-        else:
-            printwarn('WARNING: Unit conversion not yet implemented for ' + trace + '. Feel free to add it.')
+        trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',h5file=h5file,**expns)
     return trace_arr
 
 
