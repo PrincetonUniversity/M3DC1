@@ -90,7 +90,7 @@ def plot_vector_field(field, file_name='C1.h5', time=0, linear=False, diff=False
     
     
     # Make 3D grid based on max and min values of mesh points
-    mesh_field  = fpy.sim_data(file_name[0]).get_mesh(time=0).elements
+    mesh_field  = fpy.sim_data(file_name[0]).get_mesh(file_name=file_name[0],time=0).elements
     
 
     # Check simulation bounds

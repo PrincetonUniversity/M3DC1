@@ -38,7 +38,7 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, file_name='C1.h5
     """
     
     # First, let's get the field and mesh from the simulation output
-    if isinstance(sim,fpy.sim_data)==False:
+    if not isinstance(sim,fpy.sim_data):
         field = fpy.sim_data(file_name,time=time).get_field(field_name,time)
     else:
         field = sim.get_field(field_name,sim.timeslice)

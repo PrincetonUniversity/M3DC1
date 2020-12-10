@@ -123,7 +123,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     print('Using FC resolution '+str(tbins)+' , '+str(fbins))
 
     #ToDo: Reconsider mesh
-    elms = sim.get_mesh(time=sim.timeslice)
+    elms = sim.get_mesh(file_name=file_name,time=sim.timeslice)
     mp = elms.elements
     R_linspace_grid = mp[:,4]
     R_linspace = R_linspace_grid

@@ -52,7 +52,7 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     """
     if elms==None:
         simplot = fpy.sim_data(file_name)
-        elms = simplot.get_mesh(time=time)
+        elms = simplot.get_mesh(file_name=file_name,time=time)
     
     mesh = elms.elements
     version = elms.version

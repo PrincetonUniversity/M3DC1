@@ -111,7 +111,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     #    raise Exception('linear=True. Please enter a time slice > 0.')
     
     # make simulation object iterable if it is a single object and not if it is list of objects
-    if sim != None:
+    if sim is not None:
         if not isinstance(sim, (tuple, list)):
             if isinstance(sim,fpy.sim_data):
                 sims = [sim,None]
@@ -144,17 +144,17 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         time[0] = int(sims[0].timeslice)
     
     ### More input error handling ###
-    if linear == True and time[0] == -1:
+    if linear and (time[0] == -1):
         raise Exception('linear=True. Please enter a time slice > 0.')
-    if diff==True:
-        if len(time)!=2 and (isinstance(sims[0],fpy.sim_data)==False and isinstance(sims[1],fpy.sim_data)==False) :
+    if diff:
+        if (len(time)!=2) and (not isinstance(sims[0],fpy.sim_data)) and (not isinstance(sims[1],fpy.sim_data)):
             raise Exception('Please input two times for differences or specify two sim_data objects.')
     
-    if diff==True and linear==True:
+    if diff and linear:
         raise Exception('Please choose diff or linear, not both.')
 
-    if diff==False:
-        if (len(file_name)>1 or len(time)>1 and (isinstance(sims[0],fpy.sim_data)==False and isinstance(sims[1],fpy.sim_data)==False)):
+    if not diff:
+        if (len(file_name)>1) or (len(time)>1) and ((not isinstance(sims[0],fpy.sim_data)) and (not isinstance(sims[1],fpy.sim_data))):
             raise Exception('Multiple file/time slices detected. Please set diff=True or input single slices')
     
     
@@ -190,7 +190,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         file_name = [file_name[0],file_name[0]]
     
     # Make 3D grid based on the mesh points
-    mesh_ob      = sims[0].get_mesh(int(time[0]))
+    mesh_ob      = sims[0].get_mesh(file_name=file_name[0],time=int(time[0]))
     mesh_pts     = mesh_ob.elements
     R_mesh       = mesh_pts[:,4]
     Z_mesh       = mesh_pts[:,5]
@@ -304,7 +304,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     Z_ave          = np.average(Z, 0)
     
     if units.lower()=='m3dc1':
-        field1_ave = fpyl.get_conv_field(units,field,field1_ave)
+        field1_ave = fpyl.get_conv_field(units,field,field1_ave,file_name=file_name[0])
 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field)
     if units.lower()=='m3dc1':
