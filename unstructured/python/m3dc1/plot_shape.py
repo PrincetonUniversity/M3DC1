@@ -18,7 +18,7 @@ from m3dc1.eval_field import eval_field
 
 
 
-def plot_shape(sim=None, file_name='C1.h5', time=0, phi=0, Nlvl_in=10, Nlvl_out=1, mesh=False, bound=False, lcfs=False, ax=None, pub=False):
+def plot_shape(sim=None, filename='C1.h5', time=0, phi=0, Nlvl_in=10, Nlvl_out=1, mesh=False, bound=False, lcfs=False, ax=None, pub=False):
     """
     Plot flux surfaces in poloidal plane
     
@@ -28,7 +28,7 @@ def plot_shape(sim=None, file_name='C1.h5', time=0, phi=0, Nlvl_in=10, Nlvl_out=
     simulation sim_data object. If none is provided, plot_shape will read a file and create
     an object.
 
-    **file_name**
+    **filename**
     File name which will be read, i.e. "../C1.h5"
     Can also be a list of two filepaths when used for diff
 
@@ -57,7 +57,7 @@ def plot_shape(sim=None, file_name='C1.h5', time=0, phi=0, Nlvl_in=10, Nlvl_out=
     if isinstance(sim,fpy.sim_data)==False:
         if sim!=None:
             print('Specified sim is not a sim_data object. Reading simulation...')
-        simplot = fpy.sim_data(file_name)
+        simplot = fpy.sim_data(filename)
     else:
         simplot = sim
     
@@ -69,7 +69,7 @@ def plot_shape(sim=None, file_name='C1.h5', time=0, phi=0, Nlvl_in=10, Nlvl_out=
     
     
     fac = 1.0
-    elms = simplot.get_mesh(file_name=file_name,time=time)
+    elms = simplot.get_mesh(filename=filename,time=time)
     mp = elms.elements
     R = mp[:,4]*fac
     Z = mp[:,5]*fac

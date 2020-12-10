@@ -231,13 +231,13 @@ def get_fieldlabel(units,field):
     return label, unit
 
 
-def get_conv_field(units,field,field1_ave,file_name='C1.h5',h5file=None):
+def get_conv_field(units,field,field1_ave,filename='C1.h5',h5file=None):
     """
     Returns converted field depending on chosen system of units
     """
 
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
 
     expns = get_unitexpns()
     fields = {'j':{'current_density':1}, 'ni':{'particles':1,'length':-3},
@@ -255,13 +255,13 @@ def get_conv_field(units,field,field1_ave,file_name='C1.h5',h5file=None):
     return field1_ave
 
 
-def get_conv_trace(units,trace,trace_arr,file_name='C1.h5',h5file=None,itor=1,custom=None):
+def get_conv_trace(units,trace,trace_arr,filename='C1.h5',h5file=None,itor=1,custom=None):
     """
     Returns converted time trace depending on chosen system of units
     """
 
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
 
     expns = get_unitexpns()
 
@@ -447,16 +447,16 @@ def printnote(string):
 # File input / output. For reading hdf5 files please see read_h5.py.
 #-------------------------------------------
 
-def ReadTwoColFile(file_name):
+def ReadTwoColFile(filename):
     """
     Reads a text file by column
     
     Arguments:
 
-    **file_name**
+    **filename**
     Name of file to be read
     """
-    with open(file_name, 'r') as data:
+    with open(filename, 'r') as data:
         col1 = []
         col2 = []
         for line in data:
@@ -469,19 +469,19 @@ def ReadTwoColFile(file_name):
 
 
 
-def ReadTwoColFile2(file_name,header=0):
+def ReadTwoColFile2(filename,header=0):
     """
     Reads a text file by column
     
     Arguments:
 
-    **file_name**
+    **filename**
     Name of file to be read
 
     **header**
     Number of lines on top of file that are not part of the data columns
     """
-    with open(file_name, 'r') as data:
+    with open(filename, 'r') as data:
         col1 = []
         col2 = []
         if header > 0:

@@ -20,7 +20,7 @@ rc('text', usetex=False)
 
 
 
-def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=False, deriv=False, pspec=False, units='mks', time_low_lim=500, pub=False):
+def plot_signal(signal='mag_probes', filename='C1.h5', renorm=False, scale=False, deriv=False, pspec=False, units='mks', time_low_lim=500, pub=False):
     """
     Plots diagnostics signal
     
@@ -29,7 +29,7 @@ def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=Fals
     **signal**
     Type of diagnostics to plot the signal of, e.g. 'mag_probes' or 'flux_loops'
 
-    **file_name**
+    **filename**
     File name which will be read, i.e. "../C1.h5".
 
     **renorm**
@@ -60,7 +60,7 @@ def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=Fals
     #print(nprobes)
     
     if units.lower()=='mks':
-        time = unit_conv(time, file_name=file_name, time=1)
+        time = unit_conv(time, filename=filename, time=1)
         #y_axis = unit_conv(y_axis, arr_dim='M3DC1', energy=1)
     
     if renorm == True:
@@ -69,7 +69,7 @@ def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=Fals
     
     # ToDo: Add this calculation
     if scale==True:
-        gamma = 0.5*growth_rate(n=None,units=units,file_name=file_name,time_low_lim=time_low_lim,slurm=False,plottrace=False)[0]
+        gamma = 0.5*growth_rate(n=None,units=units,filename=filename,time_low_lim=time_low_lim,slurm=False,plottrace=False)[0]
         print(gamma)
         for i in range(nprobes):
             tg = time*gamma

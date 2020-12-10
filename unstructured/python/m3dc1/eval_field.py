@@ -11,7 +11,7 @@ import numpy as np
 
 
 
-def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, file_name='C1.h5', time=0):
+def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=0):
     """
     Evaluates the field at the locations specified by the 
     R, Z, phi arrays. The output will be array/arrays of the same size.
@@ -25,7 +25,7 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, file_name='C1.h5
     The chosen part of a field to be plotted, options are:
     'phi', 'R', 'Z', 'scalar', 'vector'. 'vector' will return three arrays.
 
-    **file_name**
+    **filename**
     File name which will be read, i.e. "../C1.h5"
 
     **time**
@@ -39,7 +39,7 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, file_name='C1.h5
     
     # First, let's get the field and mesh from the simulation output
     if not isinstance(sim,fpy.sim_data):
-        field = fpy.sim_data(file_name,time=time).get_field(field_name,time)
+        field = fpy.sim_data(filename,time=time).get_field(field_name,time)
     else:
         field = sim.get_field(field_name,sim.timeslice)
     

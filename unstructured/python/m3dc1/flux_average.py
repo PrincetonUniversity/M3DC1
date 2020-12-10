@@ -16,7 +16,7 @@ from m3dc1.unit_conv import unit_conv
 
 #ToDo: Implement unit conversion
 #ToDo: Allow for linear option, i.e. flux averaging of a difference between two time slides
-def flux_average(field,coord='scalar',sim=None, linear=False, phit=0.0, file_name='C1.h5', time=0, fcoords=None, psin_range=None, units='m3dc1'):
+def flux_average(field,coord='scalar',sim=None, linear=False, phit=0.0, filename='C1.h5', time=0, fcoords=None, psin_range=None, units='m3dc1'):
     """
     Calculates the flux average of a quantity
     
@@ -40,7 +40,7 @@ def flux_average(field,coord='scalar',sim=None, linear=False, phit=0.0, file_nam
     """
     
     if isinstance(sim,fpy.sim_data)==False:
-        sim = fpy.sim_data(file_name,time=time)
+        sim = fpy.sim_data(filename,time=time)
     # Calculate flux coodinates if it was not calculated yet or a different flux coordinate system than sim.fc.fcoords is desired
     if isinstance(sim.fc,fpy.flux_coordinates)==False or (fcoords!=None and (sim.fc.fcoords!=fcoords)):
         if fcoords==None:

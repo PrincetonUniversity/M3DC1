@@ -30,7 +30,7 @@ rc('text', usetex=True)
 plt.rcParams.update({'figure.max_open_warning': 40})
 
 
-def get_timetrace(trace,file_name='C1.h5',h5file=None,ipellet=0,
+def get_timetrace(trace,filename='C1.h5',h5file=None,ipellet=0,
                   units='m3dc1',growth=False,renorm=False,quiet=False):
     """
     Read a time trace directly from an hdf5 file. This function does not use fusion-io.
@@ -40,7 +40,7 @@ def get_timetrace(trace,file_name='C1.h5',h5file=None,ipellet=0,
     **trace**
     Name of trace (scalar)
 
-    **file_name**
+    **filename**
     Name or path to C1.h5 file to read
 
     **units**
@@ -58,7 +58,7 @@ def get_timetrace(trace,file_name='C1.h5',h5file=None,ipellet=0,
     """
 
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
 
     itor = readParameter('itor', h5file=h5file)
     version = readParameter('version', h5file=h5file)
@@ -268,7 +268,7 @@ def get_timetrace(trace,file_name='C1.h5',h5file=None,ipellet=0,
 
 
 
-def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',h5file=None,
+def avg_time_trace(trace,units='m3dc1',filename='C1.h5',h5file=None,
                    growth=False,renorm=True,start=None,time_low_lim=500):
     """
     Calculates the mean and standard deviation of a M3DC1 scalar (time trace) starting from a certain point in time
@@ -278,7 +278,7 @@ def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',h5file=None,
     **trace**
     Name of trace (scalar)
 
-    **file_name**
+    **filename**
     Name or path to C1.h5 file to read
 
     **units**
@@ -300,7 +300,7 @@ def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',h5file=None,
     """
 
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
     time,scalar = get_timetrace(trace,h5file=h5file,units=units,growth=growth,
                                 renorm=renorm,quiet=False)
     
@@ -331,7 +331,7 @@ def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',h5file=None,
     return avg, std,time_short,scalar_short
 
 
-def growth_rate(n=None,units='m3dc1',file_name='C1.h5',h5file=None,
+def growth_rate(n=None,units='m3dc1',filename='C1.h5',h5file=None,
                 time_low_lim=500,slurm=True,plottrace=False):
     """
     Evaluates kinetic energy growth rate. The growth rate is the mean of the logarithmic derivative of ke.
@@ -353,7 +353,7 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',h5file=None,
     Show and save plots of growth rate in directory
     """
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
 
     if n==None:
         n = readParameter('ntor',h5file=h5file,listc=False)
@@ -570,7 +570,7 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',h5file=None,
 
 
 
-def scan_n(nmin=1,nmax=10,units='m3dc1',file_name='C1.h5',h5file=None,time_low_lim=500,slurm=True,plottrace=False):
+def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',h5file=None,time_low_lim=500,slurm=True,plottrace=False):
     """
     Traverses all subdirectories named nXX in a directory (where XX is the toroidal mode number),
     and reads the growth rate.
@@ -598,7 +598,7 @@ def scan_n(nmin=1,nmax=10,units='m3dc1',file_name='C1.h5',h5file=None,time_low_l
     """
 
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
     
     n_list = []
     gamma_list = []
@@ -832,12 +832,12 @@ def eval_growth_n(nmin=1,nmax=10,plotef=True,units='m3dc1'):
 
 
 
-def create_plot_time_trace_fast(time,scalar,trace,units='mks',file_name='C1.h5',
+def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
                                 h5file=None,growth=False,yscale='linear',
                                 rescale=False,save=False,savedir=None,pub=False):
 
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
 
     # If one array has new data but the other one doesn't 
     # plot only previous data
@@ -914,7 +914,7 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',file_name='C1.h5',
 
 
 
-def double_plot_time_trace_fast(trace,file_name='C1.h5',h5file=None,
+def double_plot_time_trace_fast(trace,filename='C1.h5',h5file=None,
                                 renorm=False,rescale=False,units='m3dc1',
                                 title=None,pub=False):
     """
@@ -925,7 +925,7 @@ def double_plot_time_trace_fast(trace,file_name='C1.h5',h5file=None,
     **trace**
     String containing the trace to be plotted
 
-    **file_name**
+    **filename**
     Contains the path to the C1.h5 file.
 
     **renorm**
@@ -949,7 +949,7 @@ def double_plot_time_trace_fast(trace,file_name='C1.h5',h5file=None,
     """
 
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
 
     time,scalar = get_timetrace(trace,h5file=h5file,units=units,growth=False,renorm=renorm,quiet=True)
     time_growth,scalar_growth = get_timetrace(trace,h5file=h5file,units=units,growth=True,renorm=renorm,quiet=True)
@@ -996,7 +996,7 @@ def double_plot_time_trace_fast(trace,file_name='C1.h5',h5file=None,
     return
 
 
-def plot_time_trace_fast(trace,units='mks',file_name='C1.h5',h5file=None,
+def plot_time_trace_fast(trace,units='mks',filename='C1.h5',h5file=None,
                          growth=False,renorm=False,yscale='linear',
                          rescale=False,save=False,savedir=None,pub=False):
     """
@@ -1011,7 +1011,7 @@ def plot_time_trace_fast(trace,units='mks',file_name='C1.h5',h5file=None,
     **units**
     The units in which the trace will be plotted
 
-    **file_name**
+    **filename**
     Contains the path to the C1.h5 file.
 
     **growth**
@@ -1041,7 +1041,7 @@ def plot_time_trace_fast(trace,units='mks',file_name='C1.h5',h5file=None,
     If True, format figure for publication (larger labels and thicker lines)
     """
     if h5file is None:
-        h5file = openH5File(file_name)
+        h5file = openH5File(filename)
     time,scalar = get_timetrace(trace,h5file=h5file,units=units,
                                 growth=growth,renorm=renorm)
     create_plot_time_trace_fast(time,scalar,trace,units=units,h5file=h5file,

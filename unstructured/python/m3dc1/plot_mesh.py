@@ -14,7 +14,7 @@ import fpy
 import m3dc1.fpylib as fpyl
 
 
-def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=None,meshcol='C0',pub=False):
+def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=None,meshcol='C0',pub=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
@@ -32,7 +32,7 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     **time**
     If no mesh object is provided, read mesh at this time slice
 
-    **file_name**
+    **filename**
     If no mesh object is provided, read file with this name
 
     **boundary**
@@ -51,8 +51,8 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     If True, plot will be formatted for publication
     """
     if elms==None:
-        simplot = fpy.sim_data(file_name)
-        elms = simplot.get_mesh(file_name=file_name,time=time)
+        simplot = fpy.sim_data(filename)
+        elms = simplot.get_mesh(filename=filename,time=time)
     
     mesh = elms.elements
     version = elms.version

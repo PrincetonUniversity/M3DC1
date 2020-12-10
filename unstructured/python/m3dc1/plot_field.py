@@ -20,7 +20,7 @@ rc('text', usetex=True)
 
 
 
-def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False,showtitle=True,n=None):
+def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False,showtitle=True,n=None):
     """
     Plots the field of a file. 
     
@@ -43,7 +43,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     **sim**
     simulation sim_data object or list of sim_data objects. If none is provided, the object will be created.
 
-    **file_name**
+    **filename**
     File name which will be read, i.e. "../../C1.h5"
     Can also be a list of two filepaths when used for diff
 
@@ -59,9 +59,9 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
 
     **diff**
     Plot the difference of two fields. 
-    This could be the difference of two files (file_name=['a/C1.h5','b/C1.h5']),
+    This could be the difference of two files (filename=['a/C1.h5','b/C1.h5']),
     or the difference between two time-slices (time=[t1,t2])
-    If list for both time and file_name are given file1 will be evaluated at time1,
+    If list for both time and filename are given file1 will be evaluated at time1,
     and file2 at time2
 
     **tor_av**
@@ -100,7 +100,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     If True, format figure for publication (larger labels and thicker lines)
     """
     # make file name iterable if it is a string and not a list of strings
-    file_name = (file_name,) if not isinstance(file_name, (tuple, list)) else file_name
+    filename = (filename,) if not isinstance(filename, (tuple, list)) else filename
     
     # make time iterable if it is a single int and not if it is list of ints
     time = [time,] if not isinstance(time, (tuple, list)) else time
@@ -139,7 +139,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
             else:
                 raise Exception('sim is not a list of fpy.sim_data objects.')
     else:
-        sim = fpy.sim_data(file_name[0],time=time[0])
+        sim = fpy.sim_data(filename[0],time=time[0])
         sims = [sim,None]
         time[0] = int(sims[0].timeslice)
     
@@ -154,7 +154,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         raise Exception('Please choose diff or linear, not both.')
 
     if not diff:
-        if (len(file_name)>1) or (len(time)>1) and ((not isinstance(sims[0],fpy.sim_data)) and (not isinstance(sims[1],fpy.sim_data))):
+        if (len(filename)>1) or (len(time)>1) and ((not isinstance(sims[0],fpy.sim_data)) and (not isinstance(sims[1],fpy.sim_data))):
             raise Exception('Multiple file/time slices detected. Please set diff=True or input single slices')
     
     
@@ -183,14 +183,14 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         time = [int(time[0]),int(-1)]
     
     
-    # If either file_name or time is a list, we will convert both of them to lists of length two.
-    if (len(file_name)==2 and len(time)==1):
+    # If either filename or time is a list, we will convert both of them to lists of length two.
+    if (len(filename)==2 and len(time)==1):
         time = [time, time]
-    if (len(file_name)==1 and len(time)==2):
-        file_name = [file_name[0],file_name[0]]
+    if (len(filename)==1 and len(time)==2):
+        filename = [filename[0],filename[0]]
     
     # Make 3D grid based on the mesh points
-    mesh_ob      = sims[0].get_mesh(file_name=file_name[0],time=int(time[0]))
+    mesh_ob      = sims[0].get_mesh(filename=filename[0],time=int(time[0]))
     mesh_pts     = mesh_ob.elements
     R_mesh       = mesh_pts[:,4]
     Z_mesh       = mesh_pts[:,5]
@@ -212,12 +212,12 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     if coord != 'poloidal' and coord !='radial' and coord !='vector' and coord !='tensor':
         # Evaluate field
         print('Evaluating field... ', end=' ', flush=True)
-        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sims[0], file_name=file_name[0], time=time[0])
+        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sims[0], filename=filename[0], time=time[0])
         print('[DONE]')
         # Evaluate second field and calculate difference between two if linear or diff is True
         if (diff == True or linear==True):
             print('Evaluating second field... ', end=' ', flush=True)
-            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sims[1], file_name=file_name[1], time=time[1])
+            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sims[1], filename=filename[1], time=time[1])
             field1 = field1 - field2
             print('[DONE]')
 
@@ -225,14 +225,14 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     # Evaluate poloidal/radial field components or all field components (coord='vector')
     if coord == 'poloidal' or coord == 'radial' or coord == 'vector':
         print('Evaluating ' + str(coord) + ' field... ')
-        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sims[0], file_name=file_name[0], time=time[0])
+        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sims[0], filename=filename[0], time=time[0])
         if (diff == True or linear==True):
             print('Evaluating second field... ', end=' ', flush=True)
-            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sims[1], file_name=file_name[1], time=time[1])
+            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sims[1], filename=filename[1], time=time[1])
             print('[DONE]')
     elif coord =='tensor':
         print('Evaluating ' + str(coord) + ' field... ')
-        field1RR, field1phiR, field1ZR, field1Rphi, field1phiphi, field1Zphi, field1RZ, field1phiZ, field1ZZ  = eval_field(field, R, phi, Z, coord='tensor', sim=sims[0], file_name=file_name[0], time=time[0])
+        field1RR, field1phiR, field1ZR, field1Rphi, field1phiphi, field1Zphi, field1RZ, field1phiZ, field1ZZ  = eval_field(field, R, phi, Z, coord='tensor', sim=sims[0], filename=filename[0], time=time[0])
         if row == 1:
             field1R = field1RR
             field1phi = field1phiR
@@ -247,7 +247,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
             field1Z = field1ZZ
         if (diff == True or linear==True):
             print('Evaluating second field... ', end=' ', flush=True)
-            field2RR, field2phiR, field2ZR, field2Rphi, field2phiphi, field2Zphi, field2RZ, field2phiZ, field2ZZ  = eval_field(field, R, phi, Z, coord='tensor', sim=sims[1], file_name=file_name[1], time=time[1])
+            field2RR, field2phiR, field2ZR, field2Rphi, field2phiphi, field2Zphi, field2RZ, field2phiZ, field2ZZ  = eval_field(field, R, phi, Z, coord='tensor', sim=sims[1], filename=filename[1], time=time[1])
             if row == 1:
                 field2R = field2RR
                 field2phi = field2phiR
@@ -304,7 +304,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     Z_ave          = np.average(Z, 0)
     
     if units.lower()=='m3dc1':
-        field1_ave = fpyl.get_conv_field(units,field,field1_ave,file_name=file_name[0])
+        field1_ave = fpyl.get_conv_field(units,field,field1_ave,filename=filename[0])
 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field)
     if units.lower()=='m3dc1':
@@ -410,7 +410,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     if lcfs == True:
         psi_lcfs = sims[0].get_time_traces('psi_lcfs').values[0]
         print("Psi at LCFS: "+str(psi_lcfs))
-        Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sims[0], file_name=file_name[0], time=sims[0].timeslice)
+        Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sims[0], filename=filename[0], time=sims[0].timeslice)
         
         psifield = R_ave*Aphi
         for i,ax in enumerate(axs):

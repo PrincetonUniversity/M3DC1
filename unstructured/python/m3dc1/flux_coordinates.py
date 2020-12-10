@@ -16,7 +16,7 @@ import m3dc1.fpylib as fpyl
 from m3dc1.read_h5 import readParameter
 
 #ToDo: Allow psin_range to start at a value > 0
-def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, points=200, fbins=None, tbins=None, itor=None, r0=None, psin_range=None, njac=False, makeplot=False,fignum=501):
+def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, points=200, fbins=None, tbins=None, itor=None, r0=None, psin_range=None, njac=False, makeplot=False,fignum=501):
     """
     Calculates flux coordinates and returns a fpy.sim_data object containing a flux
     coordinate object as property sim.fc. Possibilities are PEST, Boozer, Hamada coordinates
@@ -25,9 +25,9 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     Arguments:
 
     **sim**
-    simulation data object. If none is provided, file_name and time must be specified.
+    simulation data object. If none is provided, filename and time must be specified.
 
-    **file_name**
+    **filename**
     Name of file that will be read, i.e. "../C1.h5". Used when no sim object is given.
 
     **time**
@@ -70,11 +70,11 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     Figure number for flux coordinate plot
     """
     if isinstance(sim,fpy.sim_data)==False:
-        sim = fpy.sim_data(file_name,time=time)
+        sim = fpy.sim_data(filename,time=time)
 
     # Read parameters from attributes in HDF5 file
     if itor==None or r0==None:
-        f = h5py.File(file_name,'r')
+        f = h5py.File(filename,'r')
         if itor == None:
             itor = f.attrs["itor"]
         if r0 == None:
@@ -123,7 +123,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     print('Using FC resolution '+str(tbins)+' , '+str(fbins))
 
     #ToDo: Reconsider mesh
-    elms = sim.get_mesh(file_name=file_name,time=sim.timeslice)
+    elms = sim.get_mesh(filename=filename,time=sim.timeslice)
     mp = elms.elements
     R_linspace_grid = mp[:,4]
     R_linspace = R_linspace_grid

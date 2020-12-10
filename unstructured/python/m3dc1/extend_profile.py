@@ -15,7 +15,7 @@ import m3dc1.fpylib as fpyl
 
 
 
-def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,smooth=0,weighted=True,suffix='.extended'):
+def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smooth=0,weighted=True,suffix='.extended'):
     """
     Extends profile beyond the last closed flux surface (psi_n=1) based on a tanh fit. If desired,
     the fit parameters are adjusted such that the profile and its first derivative are continuous
@@ -23,7 +23,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
 
     Arguments:
 
-    **file_name**
+    **filename**
     File containing the profile information, e.g. 'profile_ne'
 
     **psimax**
@@ -49,7 +49,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     **suffix**
     File extension for output file
     """
-    x,y = fpyl.ReadTwoColFile(file_name)
+    x,y = fpyl.ReadTwoColFile(filename)
     
     if isinstance(fitrange, float) or isinstance(fitrange, int):
             fitrange = [fitrange,max(x)]
@@ -190,7 +190,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     f2_ax4.set_ylim([np.amin(ynewp)-(np.abs(0.05*np.amin(ynewp))),np.amax(ynewp)*1.05])
     f2_ax4.grid()
     
-    fig.suptitle(file_name, size=12)
+    fig.suptitle(filename, size=12)
     
     #psi_n_smooth,prof_smooth = fpyl.ReadTwoColFile('profile_te.extended_smooth')
     #deriv_smooth = fpyl.deriv(prof_smooth,psi_n_smooth)
@@ -207,7 +207,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     
     
     # Write new profile to file
-    outfile = file_name+suffix
+    outfile = filename+suffix
     with open(outfile, 'w') as f:
         for i in range(len(xnew)):
             f.write('{:12.6f}{:12.6f}'.format(xnew[i],ynew[i]) +'\n')

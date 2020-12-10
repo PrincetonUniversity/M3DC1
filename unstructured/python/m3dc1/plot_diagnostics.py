@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from m3dc1.unit_conv import unit_conv
 
 
-def plot_diagnostics(file_name='C1.h5',units='mks',fignum=None):
+def plot_diagnostics(filename='C1.h5',units='mks',fignum=None):
     """
     This plots three diagnostics.
     1 - The time needed per timestep
@@ -13,7 +13,7 @@ def plot_diagnostics(file_name='C1.h5',units='mks',fignum=None):
 
     Arguments:
 
-    **file_name**
+    **filename**
     Contains the path to the C1.h5 file.
 
     **units**
@@ -23,7 +23,7 @@ def plot_diagnostics(file_name='C1.h5',units='mks',fignum=None):
     Number of figure in which the reults are plotted
     """
     
-    sim     =  fpy.sim_data(file_name)
+    sim     =  fpy.sim_data(filename)
     t_slices=  sim.get_diagnostic('slice times')
     timings =  sim.get_diagnostic('timings')
     kspits  =  sim.get_diagnostic('iterations')
@@ -58,7 +58,7 @@ def plot_diagnostics(file_name='C1.h5',units='mks',fignum=None):
     x_axis = t_slices.x_axis
     plt.xlabel('Time')
     if units=='mks':
-        x_axis = unit_conv(x_axis, file_name=file_name, time=1)
+        x_axis = unit_conv(x_axis, filename=filename, time=1)
         plt.xlabel('Time [s]')
     plt.scatter(x_axis,t_slices.diagnostic)
     plt.ylabel('Time slice label')
