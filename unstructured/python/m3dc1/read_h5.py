@@ -9,11 +9,15 @@ import numpy as np
 import h5py
 
 
-def list_contents(fname='C1.h5',h5file=None):
-    if h5file is None:
+def list_contents(fname='C1.h5',h5file=None,sim=None):
+    if sim is not None:
+        h5file = sim._all_attrs
+    elif h5file is None:
         h5file = openH5File(fname)
+
     print('=========================================================\nGroups and datasets of file '+str(fname)+'\n---------------------------------------------------------')
     h5file.visititems(print)
+
     print('\n\n=========================================================\nAttributes in the root group of file '+str(fname)+'\n---------------------------------------------------------')
     for item in h5file.attrs.keys():
         print(item + ":", h5file.attrs[item])
@@ -24,7 +28,7 @@ def openH5File(fname):
         fname='equilibrium.h5'
     return h5py.File(fname,'r')
 
-def readParameter(pname,fname='C1.h5',h5file=None,listc=False):
+def readParameter(pname,fname='C1.h5',h5file=None,sim=None,listc=False):
     """
     Read single parameter from M3DC1 C1.h5 output file.
     
@@ -42,15 +46,18 @@ def readParameter(pname,fname='C1.h5',h5file=None,listc=False):
     **listc**
     Print content of h5 file to screen.
     """
-    if h5file is None:
+    if sim is not None:
+        h5file = sim._all_attrs
+    elif h5file is None:
         h5file = openH5File(fname)
+
     if listc:
         list_contents(h5file=h5file)
     param = h5file.attrs[pname]
     return param
 
 
-def readC1File(scalar=None,signal=None,fname='C1.h5',h5file=None,listc=False):
+def readC1File(scalar=None,signal=None,fname='C1.h5',h5file=None,sim=None,listc=False):
     """
     Read M3DC1 C1.h5 output file and either return data or show content.
     
@@ -74,8 +81,12 @@ def readC1File(scalar=None,signal=None,fname='C1.h5',h5file=None,listc=False):
     """
     if (scalar is None) == (signal is None):
         raise RuntimeError('Please provide either a scalar or a signal name!')
-    if h5file is None:
+
+    if sim is not None:
+        h5file = sim._all_attrs
+    elif h5file is None:
         h5file = openH5File(fname)
+
     if listc:
         list_contents(h5file=h5file)
 
@@ -109,7 +120,7 @@ def readC1File(scalar=None,signal=None,fname='C1.h5',h5file=None,listc=False):
     return time, trace
 
 
-def readTimeFile(field=None,fname='time_000.h5',h5file=None,listc=False):
+def readTimeFile(field=None,fname='time_000.h5',h5file=None,sim=None,listc=False):
     """
     Read M3DC1 time_xxx.h5 output files containing field information.
     
@@ -127,8 +138,11 @@ def readTimeFile(field=None,fname='time_000.h5',h5file=None,listc=False):
     **listc**
     Print content of h5 file to screen.
     """
-    if h5file is None:
+    if sim is not None:
+        h5file = sim._all_attrs
+    elif h5file is None:
         h5file = openH5File(fname)
+
     if listc:
         list_contents(h5file=h5file)
     

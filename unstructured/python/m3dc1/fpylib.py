@@ -5,6 +5,7 @@ Created on Wed Oct  2 14:24:12 2019
 
 @author: akleiner
 """
+import fpy
 import numpy as np
 import math
 from termcolor import colored
@@ -231,13 +232,10 @@ def get_fieldlabel(units,field):
     return label, unit
 
 
-def get_conv_field(units,field,field1_ave,filename='C1.h5',h5file=None):
+def get_conv_field(units,field,field1_ave,filename='C1.h5',sim=None):
     """
     Returns converted field depending on chosen system of units
     """
-
-    if h5file is None:
-        h5file = openH5File(filename)
 
     expns = get_unitexpns()
     fields = {'j':{'current_density':1}, 'ni':{'particles':1,'length':-3},
@@ -251,17 +249,16 @@ def get_conv_field(units,field,field1_ave,filename='C1.h5',h5file=None):
         expns.update(units[field])
 
     if units.lower()=='m3dc1':
-        field1_ave = unit_conv(field1_ave,arr_dim='mks',h5file=h5file,**expns)
+        if sim is None:
+            sim = fpy.sim_data(filename=filename)
+        field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim,**expns)
     return field1_ave
 
 
-def get_conv_trace(units,trace,trace_arr,filename='C1.h5',h5file=None,itor=1,custom=None):
+def get_conv_trace(units,trace,trace_arr,filename='C1.h5',sim=None,itor=1,custom=None):
     """
     Returns converted time trace depending on chosen system of units
     """
-
-    if h5file is None:
-        h5file = openH5File(filename)
 
     expns = get_unitexpns()
 
@@ -348,8 +345,11 @@ def get_conv_trace(units,trace,trace_arr,filename='C1.h5',h5file=None,itor=1,cus
         expns.update(traces[trace])
 
     if units.lower()=='mks':
-        trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',h5file=h5file,**expns)
-    return trace_arr
+        if sim is None:
+            sim = fpy.sim_data(filename=filename)
+        time   = unit_conv(trace_arr.time,   arr_dim='M3DC1', sim=sim, time=1)
+        values = unit_conv(trace_arr.values, arr_dim='M3DC1', sim=sim, **expns)
+    return fpy.sim_data.time_trace(values,time=time)
 
 
 

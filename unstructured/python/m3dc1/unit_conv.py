@@ -11,7 +11,7 @@ import os
 import math
 from m3dc1.read_h5 import readParameter
 
-def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', h5file=None, time=0, length=0, particles=0, magnetic_field=0, current=0, current_density=0, diffusion=0, energy=0, force=0, pressure=0, resistivity=0, temperature=0, velocity=0, voltage=0, viscosity=0, thermal_conductivity=0, electric_field=0):
+def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length=0, particles=0, magnetic_field=0, current=0, current_density=0, diffusion=0, energy=0, force=0, pressure=0, resistivity=0, temperature=0, velocity=0, voltage=0, viscosity=0, thermal_conductivity=0, electric_field=0):
     """
     Converts an array from M3DC1 units to mks or vice versa. arr_dim
     contains the type of dimension the array is in (so 'M3DC1', or 
@@ -41,15 +41,20 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', h5file=None, time=0, len
     ureg.define('PerMeterPerSecond 	 = [thermal_conductivity]')
     ureg.define('VoltsPerMeter      = [electric_field]')
 
-    if h5file is None:
-        h5file = openH5File(filename)
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+    h5file = sim._all_attrs
 
     B0 = readParameter('b0_norm',h5file=h5file)
     N0 = readParameter('n0_norm',h5file=h5file)
     L0 = readParameter('l0_norm',h5file=h5file)
     mi = readParameter('ion_mass',h5file=h5file)
-    Zeff = readParameter('z_ion',h5file=h5file)
-    
+    version = readParameter('version',h5file=h5file)
+    if version >= 23:
+        Zeff = readParameter('z_ion',h5file=h5file)
+    else:
+        Zeff = readParameter('zeff',h5file=h5file)
+
     #mi=1 # Uncomment for benchmarking
     
     mu0=1.0 # Magnetic permeability in cgs units

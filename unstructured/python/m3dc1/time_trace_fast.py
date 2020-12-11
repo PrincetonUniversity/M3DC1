@@ -21,7 +21,7 @@ import fpy
 import m3dc1.fpylib as fpyl
 from m3dc1.unit_conv import unit_conv
 from m3dc1.plot_field  import plot_field
-from m3dc1.read_h5 import readC1File, readParameter, openH5File
+from m3dc1.read_h5 import readParameter
 from m3dc1.gamma_file import Gamma_file
 from m3dc1.gamma_data import Gamma_data
 from m3dc1.flux_average import flux_average
@@ -30,8 +30,8 @@ rc('text', usetex=True)
 plt.rcParams.update({'figure.max_open_warning': 40})
 
 
-def get_timetrace(trace,filename='C1.h5',h5file=None,ipellet=0,
-                  units='m3dc1',growth=False,renorm=False,quiet=False):
+def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
+                  growth=False,renorm=False,quiet=False,returnas='tuple'):
     """
     Read a time trace directly from an hdf5 file. This function does not use fusion-io.
     
@@ -57,12 +57,12 @@ def get_timetrace(trace,filename='C1.h5',h5file=None,ipellet=0,
     If True, do not print renormalization times to screen.
     """
 
-    if h5file is None:
-        h5file = openH5File(filename)
-
-    itor = readParameter('itor', h5file=h5file)
-    version = readParameter('version', h5file=h5file)
-    gamma = readParameter('gam', h5file=h5file)
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+    constants = sim.get_constants()
+    itor    = constants.itor
+    version = constants.version
+    gamma   = constants.gamma
 
     # Direct transformation of one name to another
     transform = {'toroidal current':'toroidal_current', 'it':'toroidal_current',
@@ -139,42 +139,41 @@ def get_timetrace(trace,filename='C1.h5',h5file=None,ipellet=0,
         trace = transform[trace]
 
     if trace == 'reconnected flux':
-        time,scalar = readC1File(scalar='reconnected_flux',h5file=h5file)
-        scalar = np.abs(scalar)
+        scalar = abs(sim.get_time_trace('reconnected_flux'))
         custom = {'magnetic_field':1,'length':1+itor}
 
     elif trace == 'r_p':
         if (version < 26):
-            time,scalar = readC1File(scalar='r_p2',h5file=h5file)
+            scalar = sim.get_time_trace('r_p2')
         else:
-            time,scalar = readC1File(scalar='r_p',h5file=h5file)
+            scalar = sim.get_time_trace('r_p')
         custom = None
 
     elif trace == 'pellet_r':
         if (version < 26):
-            time,scalar = readC1File(scalar='pellet_x',h5file=h5file)
+            scalar = sim.get_time_trace('pellet_x')
         else:
-            time,scalar = readC1File(scalar='pellet_r',h5file=h5file)
+            scalar = sim.get_time_trace('pellet_r')
         custom = None
 
     elif trace == 'beta':
         if (version < 26):
-            time,scalar = readC1File(scalar='E_P',h5file=h5file)
+            scalar = sim.get_time_trace('E_P')
         else:
-            time,scalar = readC1File(scalar='W_P',h5file=h5file)
-        t, E_MP= readC1File(scalar='E_MP',h5file=h5file)
-        t, E_MT = readC1File(scalar='E_MT',h5file=h5file)
+            scalar = sim.get_time_trace('W_P')
+        E_MP = sim.get_time_trace('E_MP')
+        E_MT = sim.get_time_trace('E_MT')
         scalar *= (gamma-1.)/(E_MP + E_MT)
         custom = None
 
     elif trace == 'betap':
         if (version < 26):
-            time,scalar = readC1File(scalar='E_P',h5file=h5file)
-            t,it = readC1File(scalar='toroidal_current',h5file=h5file)
+            scalar = sim.get_time_trace('E_P')
+            it     = sim.get_time_trace('toroidal_current')
             scalar *= 2.*(gamma-1.)/it**2
         else:
-            time,scalar = readC1File(scalar='W_P',h5file=h5file)
-            t, W_M = readC1File(scalar='W_M',h5file=h5file)
+            scalar = sim.get_time_trace('W_P')
+            W_M    = sim.get_time_trace('W_M')
             scalar *= (gamma-1.)/W_M
         custom = None
 
@@ -183,92 +182,94 @@ def get_timetrace(trace,filename='C1.h5',h5file=None,ipellet=0,
 
     elif trace == 'electron_number':
         if version <= 20:
-            zeff = readParameter('zeff', h5file=h5file)
-            time,scalar = readC1File(scalar='particle_number',h5file=h5file)
+            zeff = readParameter('zeff', sim=sim)
+            scalar = sim.get_time_trace('particle_number')
             scalar *= zeff
         else:
-            time,scalar = readC1File(scalar=trace,h5file=h5file)
+            scalar = sim.get_time_trace(trace)
 
-        custom = {'particles':1}
+        custom = None
 
     elif trace == 'bwb2':
-        amupar = readParameter('amupar', h5file=h5file)
-        time,scalar = readC1File(scalar='parallel_viscous_heating',h5file=h5file)
+        amupar = constants.amupar
+        scalar = sim.get_time_trace('parallel_viscous_heating')
         scalar *= 4./(3.*amupar)
         custom = {'length':3, 'time':-2}
 
     elif trace == 'li':
-        rzero = readParameter('rzero', h5file=h5file)
-        time,psi_lcfs = readC1File(scalar='psi_lcfs',h5file=h5file)
-        time,psimin = readC1File(scalar='psimin',h5file=h5file)
-        time,ip = readC1File(scalar='toroidal_current_p',h5file=h5file)
+        R0 = constants.R0
+        psi_lcfs = sim.get_time_trace('psi_lcfs')
+        psimin   = sim.get_time_trace('psimin')
+        ip       = sim.get_time_trace('toroidal_current_p')
 
-        scalar = -4.*np.pi*(psi_lcfs - psimin)/(rzero*ip)
+        scalar = -4.*np.pi*(psi_lcfs - psimin)/(R0*ip)
         custom = None
 
     elif trace == 'li3':
-        rzero = readParameter('rzero', h5file=h5file)
-        time,W_M = readC1File(scalar='W_M',h5file=h5file)
-        time,ip = readC1File(scalar='toroidal_current_p',h5file=h5file)
+        R0 = constants.R0
+        W_M = sim.get_time_trace('W_M')
+        ip = sim.get_time_trace('toroidal_current_p')
 
-        scalar = 4.*W_M/(rzero*ip**2)
+        scalar = 4.*W_M/(R0*ip**2)
         custom = None
 
     elif trace in combos:
         # trace is linear combination of native scalars
         combo, custom = combos[trace]
         for i, (name, fac) in enumerate(combo):
-            t, y = readC1File(scalar=name,h5file=h5file)
+            y = sim.get_time_trace(name)
             if i==0:
-                time = t
                 scalar = fac*y
             else:
                 scalar += fac*y
 
     else:
         # trace is a native scalar
-        time,scalar = readC1File(scalar=trace,h5file=h5file)
+        scalar = sim.get_time_trace(trace)
         custom = None
-
 
     if ('pellet_' in trace) or (trace in ['cauchy_fraction','cloud_pel','r_p']):
         # if ipellet is given, get just that pellet's data
-        if (ipellet != 'all') and (scalar.ndim==2):
-            scalar = scalar[ipellet,:]
+        if (ipellet != 'all') and (scalar.values.ndim==2):
+            scalar.values = scalar.values[:,ipellet]
 
     if units=='mks':
-        time = unit_conv(time, arr_dim='M3DC1', h5file=h5file, time=1)
-        scalar = fpyl.get_conv_trace('mks',trace,scalar,h5file=h5file,itor=itor,custom=custom)
+        scalar = fpyl.get_conv_trace('mks',trace,scalar,sim=sim,itor=itor,custom=custom)
         
+    # now separate time and values arrays
+    time = scalar.time
+    values = scalar.values
     if growth == True:
-        scalar = 1.0/scalar[1:] * np.diff(scalar)/np.diff(time)
+        values = 1.0/values[1:] * np.diff(values)/np.diff(time)
         time = time[:-1]
     
     if renorm == True:
         renormlist = []
-        for i in range(len(scalar)-1):
-            if(abs(scalar[i+1]/scalar[i]) < 1E-9):
+        for i in range(len(values)-1):
+            if(abs(values[i+1]/values[i]) < 1E-9):
                 renormlist.append(str(time[i]))
-                #print(scalar[i],scalar[i-1]+scalar[i+1])
                 # Only average value if growth rate is calculated
                 if growth == True:
-                    scalar[i] = (scalar[i-1] + scalar[i+1])/2.0
+                    values[i] = (values[i-1] + values[i+1])/2.0
         # When growth rate is calculated, check for normalization at last time
         #   step and drop this point, since it carres no information.
         if growth == True:
-            if(abs(scalar[-2]/scalar[-1]) < 1E-9):
+            if(abs(values[-2]/values[-1]) < 1E-9):
                 renormlist.append(str(time[-1]))
-                scalar = scalar[:-1]
+                values = values[:-1]
                 time = time[:-1]
         renormstr = ", ".join(renormlist)
         if quiet==False:
             if len(renormstr) > 0:
                 print('Renormalization found at '+renormstr)
-    return time, scalar
+    if returnas=='tuple':
+        return time, values
+    elif returnas=='time_trace':
+        return fpy.sim_data.time_trace(values,time=time)
 
 
 
-def avg_time_trace(trace,units='m3dc1',filename='C1.h5',h5file=None,
+def avg_time_trace(trace,units='m3dc1',filename='C1.h5',sim=None,
                    growth=False,renorm=True,start=None,time_low_lim=500):
     """
     Calculates the mean and standard deviation of a M3DC1 scalar (time trace) starting from a certain point in time
@@ -299,13 +300,12 @@ def avg_time_trace(trace,units='m3dc1',filename='C1.h5',h5file=None,
     start time is moved to the earliest time larger than time_low_lim
     """
 
-    if h5file is None:
-        h5file = openH5File(filename)
-    time,scalar = get_timetrace(trace,h5file=h5file,units=units,growth=growth,
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+    time,values = get_timetrace(trace,sim=sim,units=units,growth=growth,
                                 renorm=renorm,quiet=False)
-    
     if start==None:
-        start_ind = int(np.floor(len(scalar)/2))
+        start_ind = int(np.floor(len(values)/2))
         start_time = time[start_ind]
     else:
         start_time = start
@@ -314,7 +314,7 @@ def avg_time_trace(trace,units='m3dc1',filename='C1.h5',h5file=None,
     
     
     if units.lower() == 'mks':
-        time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',h5file=h5file,time=1)
+        time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',sim=sim,time=1)
     
     if start_time < time_low_lim:
         if time_low_lim < time[-1]:
@@ -323,15 +323,15 @@ def avg_time_trace(trace,units='m3dc1',filename='C1.h5',h5file=None,
         else:
             fpyl.printwarn('WARNING: time_low_lim > time[-1]. Start of trace averaging has been moved to t='+str(time[start_ind])+'. Please verify validity of results.')
     
-    scalar_short = scalar[start_ind:]
+    values_short = values[start_ind:]
     time_short = time[start_ind:]
     
-    avg = np.mean(scalar_short)
-    std = np.std(scalar_short)
-    return avg, std,time_short,scalar_short
+    avg = np.mean(values_short)
+    std = np.std(values_short)
+    return avg, std,time_short,values_short
 
 
-def growth_rate(n=None,units='m3dc1',filename='C1.h5',h5file=None,
+def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
                 time_low_lim=500,slurm=True,plottrace=False):
     """
     Evaluates kinetic energy growth rate. The growth rate is the mean of the logarithmic derivative of ke.
@@ -352,13 +352,13 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',h5file=None,
     **plottrace**
     Show and save plots of growth rate in directory
     """
-    if h5file is None:
-        h5file = openH5File(filename)
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
 
     if n==None:
-        n = readParameter('ntor',h5file=h5file,listc=False)
+        n = readParameter('ntor',sim=sim,listc=False)
         fpyl.printnote('Set n=ntor='+"{:d}".format(n)+' as read from C1.h5 file.')
-    gamma, dgamma,time,gamma_trace = avg_time_trace('ke',units,h5file=h5file,
+    gamma, dgamma,time,gamma_trace = avg_time_trace('ke',units,sim=sim,
                                                     growth=True,renorm=True,
                                                     start=None,
                                                     time_low_lim=time_low_lim)
@@ -398,14 +398,14 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',h5file=None,
             fpyl.printnote('NOTE: no noise detected for n='+str(n)+'!')
             # Check whether the kinetic energy is overall increasing or
             #   decreasing by looking at the evolution of the maxima.
-            ke_time,ke = get_timetrace('ke',h5file=h5file,units=units,
+            ke_time,ke = get_timetrace('ke',sim=sim,units=units,
                                        growth=False,renorm=True)
             
             start_ind = int(np.floor(len(ke)/2))
             start_time = ke_time[start_ind]
             if units.lower() == 'mks':
                 time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',
-                                         h5file=h5file,time=1)
+                                         sim=sim,time=1)
             if start_time < time_low_lim:
                 start_ind = np.argmax(ke_time>time_low_lim)
             ke_short = ke[start_ind:]
@@ -498,7 +498,7 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',h5file=None,
                     #ToDo: Test averaging from start_time in various units using
                     #         various values for time and limits
                     start_time = fpyl.prompt('Please enter a start time for mean calculation : ',float)
-                    gamma, dgamma,_,_ = avg_time_trace('ke',units,h5file=h5file,
+                    gamma, dgamma,_,_ = avg_time_trace('ke',units,sim=sim,
                                                        growth=True,renorm=True,
                                                        start=start_time,
                                                        time_low_lim=time_low_lim)
@@ -570,7 +570,7 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',h5file=None,
 
 
 
-def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',h5file=None,time_low_lim=500,slurm=True,plottrace=False):
+def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',sim=None,time_low_lim=500,slurm=True,plottrace=False):
     """
     Traverses all subdirectories named nXX in a directory (where XX is the toroidal mode number),
     and reads the growth rate.
@@ -597,8 +597,8 @@ def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',h5file=None,time_low_li
     Show and save plots of growth rate in directory
     """
 
-    if h5file is None:
-        h5file = openH5File(filename)
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
     
     n_list = []
     gamma_list = []
@@ -621,7 +621,7 @@ def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',h5file=None,time_low_li
         print('----------------------------------------------')
         print('n='+str(n)+':')
 
-        gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = growth_rate(n,units=units,h5file=h5file,time_low_lim=time_low_lim,slurm=slurm,plottrace=True)
+        gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = growth_rate(n,units=units,sim=sim,time_low_lim=time_low_lim,slurm=slurm,plottrace=True)
         
         gamma_list.append(gamma)
         dgamma_list.append(dgamma)
@@ -833,11 +833,11 @@ def eval_growth_n(nmin=1,nmax=10,plotef=True,units='m3dc1'):
 
 
 def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
-                                h5file=None,growth=False,yscale='linear',
+                                sim=None,growth=False,yscale='linear',
                                 rescale=False,save=False,savedir=None,pub=False):
 
-    if h5file is None:
-        h5file = openH5File(filename)
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
 
     # If one array has new data but the other one doesn't 
     # plot only previous data
@@ -847,8 +847,8 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
         maxidx = np.amin([ymax,tmax])
         time   = time[0:maxidx]
         scalar = scalar[0:maxidx]
-    
-    ntor = readParameter('ntor',h5file=h5file)
+
+    ntor = readParameter('ntor',sim=sim)
     
     plt.figure()
     
@@ -891,7 +891,7 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
         if np.amax(scalar[1:]) < scalar[0]:
             start_time=250
             if units=='mks':
-                start_time = unit_conv(start_time,arr_dim='m3dc1',h5file=h5file,time=1)
+                start_time = unit_conv(start_time,arr_dim='m3dc1',sim=sim,time=1)
             start_ind = int(fpyl.find_nearest(time,start_time))
             top_lim=1.1*np.amax(scalar[start_ind:])
             plt.ylim([0,top_lim])
@@ -914,7 +914,7 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
 
 
 
-def double_plot_time_trace_fast(trace,filename='C1.h5',h5file=None,
+def double_plot_time_trace_fast(trace,filename='C1.h5',sim=None,
                                 renorm=False,rescale=False,units='m3dc1',
                                 title=None,pub=False):
     """
@@ -948,11 +948,11 @@ def double_plot_time_trace_fast(trace,filename='C1.h5',h5file=None,
     If True, format figure for publication (larger labels and thicker lines)
     """
 
-    if h5file is None:
-        h5file = openH5File(filename)
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
 
-    time,scalar = get_timetrace(trace,h5file=h5file,units=units,growth=False,renorm=renorm,quiet=True)
-    time_growth,scalar_growth = get_timetrace(trace,h5file=h5file,units=units,growth=True,renorm=renorm,quiet=True)
+    time,scalar = get_timetrace(trace,sim=sim,units=units,growth=False,renorm=renorm,quiet=True)
+    time_growth,scalar_growth = get_timetrace(trace,sim=sim,units=units,growth=True,renorm=renorm,quiet=True)
     
     if units=='mks':
         xlbl = r'time $[s]$'
@@ -968,7 +968,7 @@ def double_plot_time_trace_fast(trace,filename='C1.h5',h5file=None,
         if np.amax(scalar[1:]) < scalar[0]:
             start_time=250
             if units=='mks':
-                start_time = unit_conv(start_time,arr_dim='m3dc1',h5file=h5file,time=1)
+                start_time = unit_conv(start_time,arr_dim='m3dc1',sim=sim,time=1)
             start_ind = int(fpyl.find_nearest(time,start_time))
             top_lim=1.1*np.amax(scalar[start_ind:])
         else:
@@ -990,13 +990,13 @@ def double_plot_time_trace_fast(trace,filename='C1.h5',h5file=None,
     f2_ax2.set_ylabel(ylbl_right)
     f2_ax2.grid()
     
-    ntor = readParameter('ntor',h5file=h5file)
+    ntor = readParameter('ntor',sim=sim)
     fig.suptitle('n='+str(ntor), size=20)
     
     return
 
 
-def plot_time_trace_fast(trace,units='mks',filename='C1.h5',h5file=None,
+def plot_time_trace_fast(trace,units='mks',filename='C1.h5',sim=None,
                          growth=False,renorm=False,yscale='linear',
                          rescale=False,save=False,savedir=None,pub=False):
     """
@@ -1040,11 +1040,11 @@ def plot_time_trace_fast(trace,units='mks',filename='C1.h5',h5file=None,
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
     """
-    if h5file is None:
-        h5file = openH5File(filename)
-    time,scalar = get_timetrace(trace,h5file=h5file,units=units,
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+    time,scalar = get_timetrace(trace,sim=sim,units=units,
                                 growth=growth,renorm=renorm)
-    create_plot_time_trace_fast(time,scalar,trace,units=units,h5file=h5file,
+    create_plot_time_trace_fast(time,scalar,trace,units=units,sim=sim,
                                 growth=growth,yscale=yscale,rescale=rescale,
                                 save=save,savedir=savedir,pub=pub)
     return
