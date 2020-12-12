@@ -51,7 +51,7 @@ if { ! [ is-loaded gsl/2.4 ] } {
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
 setenv		M3DC1_ARCH	eddy
-setenv		M3DC1_MPIRUN	mpiexec
+setenv		M3DC1_MPIRUN	srun
 
 prepend-path    PATH             $root/unstructured/_eddy/bin
 prepend-path    IDL_PATH         $root/unstructured/idl:<IDL_DEFAULT>
