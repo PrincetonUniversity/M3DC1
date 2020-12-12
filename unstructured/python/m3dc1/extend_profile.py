@@ -74,15 +74,15 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     
     # Fit profile
     w = yf
-    if minval==None:
+    if minval is None:
         a = [0.98, 1./0.01, max(yf), 0., min(yf)]
-        if weighted==True:
+        if weighted:
             yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a, sigma=w, absolute_sigma=True)
         else:
             yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a)
     else:
         a = [0.98, 1./0.01, max(yf), 0.]
-        if weighted==True:
+        if weighted:
             yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a, sigma=w, absolute_sigma=True)
         else:
             yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a)
@@ -90,7 +90,7 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     print('Fit center: '+str(yfit[0]))
     print('Fit width: '+str(1.0/yfit[1]))
     print('Fit height: '+str(yfit[2]))
-    if minval==None:
+    if minval is None:
         print('Fit floor: '+str(yfit[4]))
         if yfit[4]<=0:
             fpyl.printerr('ERROR: fit asymptotes to negative values')
@@ -99,14 +99,14 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     print('---------------------------------------------------------')
     #print(yfit)
     
-    if minval==None:
+    if minval is None:
         minval = yfit[4]
     
     x_bd = x[-1]
     yp = fpyl.deriv(y,x)
     yp_bd = yp[-1]
     
-    if match==True:
+    if match:
         print('\nMatching profile and its derivative with fit at boundary value...')
         
         b_new,c_new = fsolve(equations,(yfit[1],yfit[2]),args=(x_bd,yfit[0],yfit[3],y[-1],yp_bd,minval),xtol=1.0e-10)
@@ -130,7 +130,7 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     x_ext = x[-1] + (np.arange(m)+1)*dx
     
     
-    if minval==None:
+    if minval is None:
         y_ext = tanhfit(x_ext, yfit[0],yfit[1],yfit[2],yfit[3],yfit[4])+minval
     else:
         y_ext = tanhfit(x_ext, yfit[0],yfit[1],yfit[2],yfit[3])+minval
@@ -138,7 +138,7 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     xnew = np.concatenate((x,x_ext))
     ynew = np.concatenate((y,y_ext))
     if smooth > 0:
-        if match==False:
+        if not match:
             ynew = fpyl.smooth(ynew,w=smooth,nan='replace')
         else:
             raise Exception('Sorry, cannot match and smooth at the same time!')

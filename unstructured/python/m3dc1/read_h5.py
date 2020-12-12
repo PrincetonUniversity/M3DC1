@@ -146,6 +146,6 @@ def readTimeFile(field=None,fname='time_000.h5',h5file=None,sim=None,listc=False
     if listc:
         list_contents(h5file=h5file)
     
-    if type(field) == str:
+    if isinstance(field,str):
         field = list(h5file['fields/'+field])
     return field

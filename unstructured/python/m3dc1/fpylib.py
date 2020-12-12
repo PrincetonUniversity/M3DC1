@@ -35,7 +35,7 @@ def plot2d(xdata,ydata,equal=False):
     plt.plot(xdata,ydata)
     plt.grid(True)
     plt.show()
-    if equal==True:
+    if equal:
         plt.axis('equal')
     
     return
@@ -62,6 +62,56 @@ def fmt(x, pos):
     return r'${} \cdot 10^{{{}}}$'.format(a, b)
 
 
+# sets up arrays for sim and time
+def setup_sims(sim,filename,time,linear,diff):
+    # make iterable
+    if sim is None:
+        sim = np.empty(0)
+        filename = np.atleast_1d(filename)
+        for f in filename:
+            sim = np.append(sim,fpy.sim_data(f))
+    else:
+        sim = np.atleast_1d(sim)
+
+    time = np.atleast_1d(time)
+
+    if len(time)==1 and len(sim)>1:
+        time = np.repeat(time,len(sim))
+    elif len(sim)==1 and len(time)>1:
+        sim = np.repeat(sim,len(time))
+    elif len(sim) != len(time):
+        raise RuntimeError('Length of time does not match length of sim/file_name')
+
+    if linear:
+        if len(sim)>1:
+            raise RuntimeError('Provide a single simulation for linear=True')
+        if (time[0]==-1) or ((time[0] is None) and (sim[0].timeslice==-1)):
+            raise RuntimeError('time or sim.timeslice must be greater than -1 for linear=True')
+        sim = np.repeat(sim,2)
+        time = np.append(time,-1)
+
+    ### Input error handling ###
+    if diff and (len(time) != 2):
+        raise RuntimeError('Please input twoxs times for differences or specify two sim_data objects.')
+
+    if diff and linear:
+        raise RuntimeError('Please choose diff or linear, not both.')
+
+    if (not diff) and (not linear) and (len(sim)>1):
+        raise RuntimeError('Multiple simulations detected. Please set diff=True or input single slices')
+
+    return sim, time
+
+# identify index for given coordinate
+def get_field_idx(coord):
+
+    field_idx = {'R':0, 'scalar':0, 'phi':1, 'Z':2}
+    if coord in field_idx:
+        return field_idx[coord]
+    elif coord in ['poloidal', 'radial', 'vector', 'tensor']:
+        return None
+    else:
+        raise RuntimeError('Please enter valid coordinate. Accepted: \'R\', \'phi\', \'Z\', \'poloidal\', \'radial\', \'scalar\', \'vector\'')
 
 
 #-------------------------------------------
@@ -85,7 +135,7 @@ def deriv(y,x=None):
     """
     yp = np.zeros_like(y)
     
-    if (type(x) is np.ndarray or type(x) is list):
+    if isinstance(x, (np.ndarray,list)):
         if len(x)!=len(y):
             raise Exception('x and y do not have the same length.')
         for i in range(len(y)):
@@ -246,7 +296,7 @@ def get_conv_field(units,field,field1_ave,filename='C1.h5',sim=None):
               'E':{'electric_field':1},
               }
     if field in fields:
-        expns.update(units[field])
+        expns.update(fields[field])
 
     if units.lower()=='m3dc1':
         if sim is None:
@@ -361,7 +411,7 @@ def get_conv_trace(units,trace,trace_arr,filename='C1.h5',sim=None,itor=1,custom
 def get_ind_at_val(arr, val, unique=True):
     #ToDo: Check type and length of val. In principle this can be a list
     ind = np.argwhere(arr==val)
-    if unique==True:
+    if unique:
         if len(ind[0])>1:
             raise Exception('Multiple occurences of '+str(val)+' found in '+str(arr)+'!')
         else:
@@ -415,9 +465,9 @@ def prompt(message,options):
     """
     input_str = ''
     if options == float:
-        while type(input_str) is not float:
+        while not isinstance(input_str,float):
             input_str = input(message)
-            if isfloat(input_str)==True:
+            if isfloat(input_str):
                 input_str = float(input_str)
         #print('    '+str(input_str))
     else:

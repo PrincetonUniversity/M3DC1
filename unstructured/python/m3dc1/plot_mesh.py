@@ -7,14 +7,14 @@
 
 import math
 import numpy as np
-import matplotlib
+import matplotlib.axes as mplax
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import fpy
 import m3dc1.fpylib as fpyl
 
 
-def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=None,meshcol='C0',pub=False):
+def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=None,fignum=None,meshcol='C0',pub=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
@@ -50,9 +50,10 @@ def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=No
     **pub**
     If True, plot will be formatted for publication
     """
-    if elms==None:
-        simplot = fpy.sim_data(filename)
-        elms = simplot.get_mesh(filename=filename,time=time)
+    if elms is None:
+        if sim is None:
+            sim = fpy.sim_data(filename)
+        elms = sim.get_mesh(time=time)
     
     mesh = elms.elements
     version = elms.version
@@ -62,17 +63,9 @@ def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=No
     
     nelms = meshshape[0]
     
-    sz = meshshape[1]
-    if(sz > 8):
-        threed = 1
-    else:
-        threed = 0
+    threed = [0,1][meshshape[1]>8]
     
-    if(boundary==True and version >= 3):
-        boundary = True
-    else:
-        boundary = False
-    
+    boundary = boundary and (version >= 3)
     
     minr = np.amin(mesh[:,4])
     maxr = np.amax(mesh[:,4])
@@ -83,18 +76,18 @@ def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=No
     # increase marker size.
     
     # Set font sizes and plot style parameters
-    if pub==False:
-        axlblfs = 12
-        ticklblfs = 12
-        linew = 1
-        bdlw = 1
-    elif pub==True:
+    if pub:
         axlblfs = 20
         ticklblfs = 18
         linew = 1
         bdlw = 1
+    else:
+        axlblfs = 12
+        ticklblfs = 12
+        linew = 1
+        bdlw = 1
     
-    if type(ax)!=np.ndarray and isinstance(ax,matplotlib.axes._axes.Axes)==False:
+    if not isinstance(ax, (np.ndarray, mplax._axes.Axes)):
         fig, ax = plt.subplots(num=1)
         fig.set_figheight(8)
         plt.plot(mesh[:,4],mesh[:,5],lw=0,marker='.',ms=0)
@@ -129,7 +122,7 @@ def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=No
     
     #The following loop 
     for i in range(nelms):
-        if(threed == 1 & i >= (nelms/nplanes)):
+        if (threed == 1) and (i >= (nelms/nplanes)):
             break
         
         # Mesh information
@@ -151,10 +144,7 @@ def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=No
         q3 = delta*p1 + delta*p2 + (1.-2.*delta)*p3
         
         # Identify lines that are part of the wall or boundary. These will be plotted in different colors.
-        if boundary==True:
-            pp=bound
-        else:
-            pp=7
+        pp = [7, bound][boundary]
         
         if((pp & 1) == 1):
             if((bound & 1) == 1):
@@ -209,14 +199,10 @@ def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=No
     # Plot mesh lines. Plotting all lines of a certain color at once is the fasted way.
     # Calls to any plotting function are slow and should thus be minimized.
     
-    #Check if an axis object or a an array of axis objects was passed to this routine and plot in each axis.
-    if type(ax)==np.ndarray:
-        axarray = ax
-    else:
-        axarray = np.asarray([ax])
+    axarray = np.atleast_1d(ax)
     
     for ax in axarray:
-        if boundary!=True:
+        if not boundary:
             if len(plot1x) > 0:
                 pltreg = ax.add_collection(LineCollection(np.stack((plot1x,plot1y), axis=2),linewidths=0.25, colors=meshcol,zorder=4))
             else:
@@ -235,7 +221,7 @@ def plot_mesh(elms=None,time=0,filename='C1.h5',boundary=False,ax=None,fignum=No
         else:
             pltbd = None
     
-    if boundary!=True:
-        return pltreg, pltwin, pltwout, pltbd
-    else:
+    if boundary:
         return pltwin, pltwout, pltbd
+    else:
+        return pltreg, pltwin, pltwout, pltbd
