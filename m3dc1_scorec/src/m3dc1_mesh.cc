@@ -28,7 +28,6 @@ using namespace apf;
 #ifdef _OPENMP
 #include "omp.h"
 #endif
-using namespace apf;
 
 void delete_mesh_array()
 {
@@ -149,78 +148,6 @@ void set_remote(Mesh2* m, MeshEntity* e, int p, MeshEntity* r)
   }
   else
     m->addRemote(e, p, r);
-}
-
-// **********************************************
-bool is_ent_original(Mesh2* mesh, MeshEntity* e)
-// **********************************************
-{
-  if (mesh->isGhost(e)) return false;
-
-  return (PCU_Comm_Self() == get_ent_ownpartid(mesh, e));
-}
-
-// **********************************************
-int get_ent_ownpartid(Mesh2* mesh, MeshEntity* e)
-// **********************************************
-{
-  int own_partid;
-
-  if (mesh->hasTag(e, m3dc1_mesh::instance()->own_partid_tag))
-    mesh->getIntTag(e, m3dc1_mesh::instance()->own_partid_tag, &own_partid);
-  else
-    own_partid=mesh->getOwner(e);
-  return own_partid;
-}
-
-// **********************************************
-MeshEntity* get_ent_owncopy(Mesh2* mesh, MeshEntity* e)
-// **********************************************
-{
-  if (!(mesh->isShared(e))) // internal ent
-    return e;
-
-  int own_partid = get_ent_ownpartid(mesh, e);
-  if (own_partid==PCU_Comm_Self()) return e;
-
-  if (mesh->isShared(e)) 
-  {
-    Copies remotes;
-    mesh->getRemotes(e,remotes);
-    return remotes[own_partid];
-  }
-  if (mesh->isGhost(e))
-  {
-    Copies ghosts;
-    mesh->getGhosts(e,ghosts);
-    return ghosts[own_partid];
-  }
-  assert(0); // this should not called
-  return NULL;
-}
-
-// *********************************************************
-int get_ent_localid (Mesh2* mesh, MeshEntity* e)
-// *********************************************************
-{
-  if (mesh->hasTag(e,m3dc1_mesh::instance()->local_entid_tag))
-  {
-    int local_id;
-    mesh->getIntTag(e, m3dc1_mesh::instance()->local_entid_tag, &local_id);
-    assert(local_id== getMdsIndex(mesh, e));
-  }
-  return getMdsIndex(mesh, e);
-}
-
-// *********************************************************
-int get_ent_globalid(apf::Mesh2* m, apf::MeshEntity* e)
-{
-// *********************************************************
-  MeshTag* tag = m->findTag("global_id");
-  assert(m->hasTag(e, tag));
-  int id;
-  m->getIntTag(e, tag, &id);
-  return id;
 }
 
 // m3dc1_mesh
@@ -873,19 +800,116 @@ void  assign_uniq_partbdry_id(Mesh2* mesh, int dim, MeshTag* partbdry_id_tag)
     }
 }
 
+int get_local_planeid(int p)
+{
+  return p/m3dc1_model::instance()->group_size;
+}
+
+void update_remotes(apf::Mesh2* mesh, MeshEntity* e)
+{
+  int myrank=PCU_Comm_Self();
+
+        Copies remotes;
+        Copies new_remotes;
+        Parts parts;
+        mesh->getRemotes(e,remotes);
+
+        APF_ITERATE(Copies,remotes,rit)
+        {
+          int p=rit->first;
+          if (get_local_planeid(p)==m3dc1_model::instance()->local_planeid) // the same local plane
+          {
+            new_remotes[p]=rit->second; 
+            parts.insert(p);
+          }
+        }
+        parts.insert(myrank);
+        mesh->clearRemotes(e);
+        mesh->setRemotes(e,new_remotes);
+        mesh->setResidence(e, parts);  // set pclassification
+}
+    
+void m3dc1_mesh::remove_wedges()
+{       
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+  MeshEntity* e;
+  int myrank = PCU_Comm_Self();
+  int num_2d_face=mesh->count(3);
+ 
+  // delete regions
+  MeshIterator* ent_it = mesh->begin(3);
+  while ((e = mesh->iterate(ent_it)))
+    mesh->destroy(e);
+  mesh->end(ent_it);
+  m3dc1_mesh::instance()->num_own_ent[3]=m3dc1_mesh::instance()->num_local_ent[3]=0;
+
+  // delete faces
+  ent_it = mesh->begin(2);
+  while ((e = mesh->iterate(ent_it)))
+  {
+    // original entity for 2D plane
+    if (getMdsIndex(mesh, e)<num_2d_face)
+      update_remotes(mesh, e);
+    else
+    {
+      if (get_ent_ownpartid(mesh, e)==myrank)
+          --m3dc1_mesh::instance()->num_own_ent[2];
+       mesh->destroy(e);
+    }
+  }
+  mesh->end(ent_it);
+  m3dc1_mesh::instance()->num_local_ent[2] = mesh->count(2);
+  assert(m3dc1_mesh::instance()->num_own_ent[2]==num_2d_face);
+
+  // remote edges and vertices
+  for (int dim=1; dim>=0; --dim)
+  {
+    ent_it = mesh->begin(dim);
+    while ((e = mesh->iterate(ent_it)))
+    {
+      apf::Adjacent adjacent;
+      mesh->getAdjacent(e,dim+1,adjacent);
+      if (adjacent.getSize()) // original entity for 2D plane
+        update_remotes(mesh, e);
+      else
+      {
+/*        if (dim)
+          std::cout<<PCU_Comm_Self()<<": delete e"<<getMdsIndex(mesh, e)<<"\n"; 
+        else 
+          std::cout<<PCU_Comm_Self()<<": delete v"<<getMdsIndex(mesh, e)<<"\n";
+*/
+        if (get_ent_ownpartid(mesh, e)==myrank)
+          --m3dc1_mesh::instance()->num_own_ent[dim];
+        mesh->destroy(e);
+      }
+    }
+    mesh->end(ent_it);
+    m3dc1_mesh::instance()->num_local_ent[dim]=mesh->count(dim);
+  }
+
+  mesh->acceptChanges(); // update partition model
+
+// update global ent counter
+  MPI_Allreduce(m3dc1_mesh::instance()->num_own_ent, m3dc1_mesh::instance()->num_global_ent, 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  printStats(mesh);
+  for (int dim=0; dim<=3; ++dim)
+    assert(m3dc1_mesh::instance()->num_local_ent[dim] == mesh->count(dim));
+
+  if (!PCU_Comm_Self())
+    std::cout<<"\n*** Wedges between 2D planes removed ***\n\n";
+}
+
+
 void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices);
 
 // *********************************************************
 void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 // *********************************************************
 {
-
-  if (!PCU_Comm_Self())
-    std::cout<<"\n*** SWITCHED MESH TO 3D ***\n\n";
-
   int local_partid=PCU_Comm_Self();
 
-  changeMdsDimension(mesh, 3);
+//  changeMdsDimension(mesh, 3);
 
   // assign uniq id to part bdry entities
   MeshTag* partbdry_id_tag = mesh->createIntTag("m3dc1_pbdry_globid", 1);
@@ -935,7 +959,11 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 // update global ent counter
   MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+  apf::writeVtkFiles("2.5d",m3dc1_mesh::instance()->mesh);
+
+
   // construct 3D model
+    changeMdsDimension(mesh, 3);
   m3dc1_model::instance()->create3D();
     
   // construct 3D mesh
@@ -1351,6 +1379,8 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value)
 #ifdef DEBUG
   printStats(mesh);
 #endif
+  if (!PCU_Comm_Self())
+    std::cout<<"\n*** MESH SWITCHED TO 3D ***\n\n";
 }
 
 // *********************************************************

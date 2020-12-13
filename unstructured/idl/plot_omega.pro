@@ -128,14 +128,13 @@ pro plot_omega, filename=filename, slice=time, points=pts, $
 
   if(n_elements(q_val) ne 0) then begin
       ntor = read_parameter('ntor', filename=filename)
-      m = fix(q_val*ntor+0.001)
-      psin = flux_at_q(q_val,slice=slice,filename=filename,$
+      psin = flux_at_q(q_val,slice=slice,filename=filename,q=q,fc=fc,$
                        points=pts,bins=bins,/norm,_EXTRA=extra)
-      print, psin
+      m = fix(q*ntor+0.001)
       if(n_elements(mtop) eq 0) then mtop = 0.05
       if(n_elements(mslope) eq 0) then mslope = 0.
       top =  $
-        (!y.crange[1] - !y.crange[0])*mslope*findgen(n_elements(q_val)) $
+        (!y.crange[1] - !y.crange[0])*mslope*findgen(n_elements(q)) $
         +(!y.crange[1] - !y.crange[0])*(1.-mtop) $
         + !y.crange[0]
       m_str = string(format='(I2)', m)

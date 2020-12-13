@@ -38,7 +38,7 @@ Program Reducedquintic
 #endif
 
   integer :: ier, i, adapt_flag
-  real :: tstart, tend, dtsave, period, t_solve, t_compute
+  real :: tstart, tend, dtsave, t_solve, t_compute
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
   integer :: ip
@@ -136,28 +136,21 @@ Program Reducedquintic
   endif
 #endif
 
-#ifdef USE3D
-  if(myrank==0) call parse_solver_options(trim(solveroption_filename)//PETSC_NULL_CHARACTER)
-#endif
-
   ! read input file
   if(myrank.eq.0) print *, ' Reading input'
   call input
 
   ! load mesh
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh'
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
+  if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
+
 
 #ifndef M3DC1_TRILINOS
   call m3dc1_matrix_setassembleoption(imatassemble)
 #endif
 
-  if(itor.eq.0) then 
-     period = twopi*rzero
-  else
-     period = twopi
-  end if
-  call load_mesh(period)
-
+  call load_mesh
+  
 !  call print_node_data
 !  call safestop(1)
 
@@ -220,18 +213,7 @@ Program Reducedquintic
      ! Read restart file(s)
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Reading restart file(s)'
-     if(iglobalin.eq.1) then
-        call rdrestartglobal
-     else
-        if(iread_adios.eq.1) then
-           call rdrestart_adios
-        else if(iread_hdf5.eq.1) then
-           call rdrestart_hdf5
-           irestart_factor=1
-        else
-           call rdrestart
-        endif
-     endif
+     call rdrestart_hdf5
 !
 !....use timestep from input file if not a variable timestep run
     if(dtkecrit.eq.0) dt = dtsave
@@ -241,11 +223,7 @@ Program Reducedquintic
 !
 !....save timestep from input file
      dtsave = dt
-     if(iread_hdf5.eq.1) then
-        call rdrestart_hdf5
-     else
-        call rdrestart_cplx
-     end if
+     call rdrestart_hdf5
      dt = dtsave
 
   end select                     !  end of the branch on restart/no restart
@@ -313,9 +291,10 @@ Program Reducedquintic
 
   !if (iadapt .eq. 1) then
   if (mod (iadapt, 2) .eq. 1) then
-    if(iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
+    if (iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
     call adapt_by_psi
-  end if
+  endif
+  if (iadapt .eq. 4) call adapt_by_error
 #endif
 
   if(irestart.eq.0  .or. iadapt.gt.0) then
@@ -470,7 +449,7 @@ subroutine init
 
   call init_qp
 
-  call runaway_init
+  if(irunaway .eq. 2) call runaway_init
 
   call kprad_init(ierr)
   if(ierr.ne.0) call safestop(601)
@@ -550,7 +529,7 @@ subroutine safestop(iarg)
 #endif
 
   call destroy_auxiliary_fields
-  call runaway_deallocate
+  if(irunaway .eq. 2) call runaway_deallocate
   call kprad_destroy
   call destroy_resistive_wall
 
@@ -808,10 +787,10 @@ subroutine derived_quantities(ilin)
   endif
 
   ! vector potential stream function
-  if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
+  !if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
      if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  f", ilin
-        if(ilin.eq.0 .and. eqsubtract.eq.1) then
+        if((ilin.eq.0 .and. eqsubtract.eq.1) .or. eqsubtract.eq.0) then
            if(itor.eq.0) then
               temp = bzero
            else
@@ -821,9 +800,28 @@ subroutine derived_quantities(ilin)
         endif
         call solve_newvar1(bf_mat_lhs,bf_field(ilin),mass_mat_rhs_bf, &
              bz_field(ilin), bf_field(ilin))
-        if(ilin.eq.0 .and. eqsubtract.eq.1) call add(bz_field(ilin), temp)
+        if((ilin.eq.0 .and. eqsubtract.eq.1) .or. eqsubtract.eq.0) call add(bz_field(ilin), temp)
      endif
-  end if
+  !end if
+
+  ! toroidal derivative of vector potential stream function
+  if(imp_bf.eq.0 .or. ntime.eq.ntime0) then
+     if(i3d.eq.1 .and. numvar.ge.2 .and. ilin.eq.1) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, "  fp", ilin
+        ! solve fp = df/dphi when restarting absent fp 
+        if(irestart_fp.eq.0 .and. ntime.eq.ntime0) then 
+           call solve_newvar1(mass_mat_lhs,bfp_field(ilin),dp_mat_rhs_bfp, &
+               bf_field(ilin))
+           if(extsubtract.eq.1) then ! also, external bfp
+              call solve_newvar1(mass_mat_lhs,bfp_ext,dp_mat_rhs_bfp, &
+                  bf_ext)
+           endif
+        else 
+           call solve_newvar1(bf_mat_lhs,bfp_field(ilin),dp_mat_rhs_bfp, &
+                bz_field(ilin), bfp_field(ilin))
+        endif
+     endif
+  endif
 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
@@ -1237,6 +1235,7 @@ subroutine space(ifirstcall)
      call create_field(com_field)
      call create_field(resistivity_field)
      call create_field(kappa_field)
+     call create_field(denm_field)
      call create_field(visc_field)
      call create_field(visc_c_field)
      if(ipforce.gt.0) call create_field(pforce_field)
@@ -1255,6 +1254,8 @@ subroutine space(ifirstcall)
      end if
      call create_field(bf_field(0))
      call create_field(bf_field(1))
+     call create_field(bfp_field(0))
+     call create_field(bfp_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)
 
      call create_field(psi_coil_field)
@@ -1264,6 +1265,7 @@ subroutine space(ifirstcall)
         call create_field(psi_ext)
         call create_field(bz_ext)
         call create_field(bf_ext)
+        call create_field(bfp_ext)
         use_external_fields = .true.
      end if
 
@@ -1298,6 +1300,7 @@ subroutine space(ifirstcall)
   call associate_field(ti_field(1),  field_vec, ti_g)
   call associate_field(e_field(1),   field_vec, e_g)
   call associate_field(ne_field(1),  field_vec, ne_g)
+  call associate_field(nre_field(1), field_vec, nre_g)
 
   call associate_field(u_field(0),   field0_vec, u_g)
   call associate_field(vz_field(0),  field0_vec, vz_g)
@@ -1311,6 +1314,7 @@ subroutine space(ifirstcall)
   call associate_field(ti_field(0),  field0_vec, ti_g)
   call associate_field(e_field(0),   field0_vec, e_g )
   call associate_field(ne_field(0),  field0_vec, ne_g)
+  call associate_field(nre_field(0), field0_vec, nre_g)
 
   call allocate_kspits
 

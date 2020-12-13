@@ -1,4 +1,4 @@
-pro extract_boundary, shot, time, points=n
+pro extract_boundary, shot, time, points=n, direct=direct
   x = readg(shot, time)
 
   if(n_elements(n) eq 0) then n=100
@@ -37,8 +37,14 @@ pro extract_boundary, shot, time, points=n
      theta0 = [theta0, !pi]
   end
   
-  r = interpol(r0, theta0, theta)
-  z = interpol(z0, theta0, theta)
+  if(keyword_set(direct)) then begin
+     r = r0
+     z = z0
+     n = n_elements(r0)
+  endif else begin
+     r = interpol(r0, theta0, theta)
+     z = interpol(z0, theta0, theta)
+  end
 
   openw, ifile, 'boundary.dat', /get_lun
   printf, ifile, n

@@ -9,7 +9,7 @@ module kprad
   real, allocatable, private, dimension(:,:) :: c, sion_coeff
 
   ! mass of chosen impurity species (in amu)
-  integer :: kprad_mz
+  real :: kprad_mz
 
   integer :: ikprad_max_dt ! use max dt in KPRAD evolution
   integer :: ikprad_evolve_internal
@@ -75,10 +75,10 @@ contains
   end subroutine kprad_instantaneous_radiation
 
 
-  subroutine kprad_advance_densities(dt, npts, z, p, ne, te, nz, dw_rad, dw_brem,&
+  subroutine kprad_advance_densities(dt, npts, z, p, ne, te, den, ti, nz, dw_rad, dw_brem,&
        dw_ion, dw_reck, dw_recp, source)
 
-    use basic, only : pefac, ipres
+    use basic, only : pefac, ipres, itemp
 
     implicit none
 
@@ -88,6 +88,8 @@ contains
     real, intent(in) :: p(npts)              ! pressure in dyne/cm^2
     real, intent(inout) :: ne(npts)          ! electron density in cm^-3
     real, intent(in) :: te(npts)             ! electron temperature in eV
+    real, intent(in) :: den(npts)            ! main ion density in cm^-3
+    real, intent(in) :: ti(npts)             ! ion temperature in eV
     real, intent(inout) :: nz(npts,0:z)      ! density
     real, intent(out) :: dw_rad(npts,0:z)    ! energy lost via radiation
     real, intent(out) :: dw_brem(npts)       ! energy lost via bremsstrahlung
@@ -98,7 +100,7 @@ contains
     
     real :: t, dts
     integer :: i
-    real, dimension(npts) :: ne_old, delta
+    real, dimension(npts) :: ne_old, nzt, delta, ti_over_te
     real, dimension(npts) :: te_int, p_int, dp_int   ! internal Te and p
     real, dimension(npts,0:z) :: nz_old
     real, dimension(npts,0:z-1) :: sion
@@ -124,16 +126,25 @@ contains
     aimp(:,0) = 0.0
     cimp(:,z) = 0.0
 
-    if(ipres.eq.0) then
-       p_int = p ! use total pressure
-    else if(ipres.eq.1) then
-       p_int = ne*te*1.6022e-12 ! use electron pressure (in erg/cm^3)
-    end if
     te_int = te
 
     if(ikprad_evolve_internal.eq.0) then
        call kprad_ionization_rate(npts, ne, te, z, sion)
        call kprad_recombination_rate(npts, ne, te, z, srec)
+    else
+       if(ipres.eq.0) then
+          ! use total pressure
+          p_int = p
+          if(itemp.eq.1) then
+             ti_over_te = ti/te
+             if(any(abs(1. - ti_over_te*size(ti_over_te)/sum(ti_over_te)).gt.1e-3)) then
+                print *, "Warning: Ti/Te not constant in kprad_advance_densities"
+             end if
+          end if
+       else if(ipres.eq.1) then
+          ! use electron pressure (in erg/cm^3)
+          p_int = ne*te*1.6022e-12
+       end if
     end if
 
     ! start time loop
@@ -171,8 +182,10 @@ contains
        call kprad_energy_losses(npts,z,te_int, &
             ne,sion,srec,nz,nzeff,pion,preck,precp,imp_rad,pbrem)
 
+       nzt = 0.
        do i=1, z
           ne = ne + i*(nz(:,i) - nz_old(:,i))
+          nzt = nzt + nz(:,i)
        end do
 
        ! change in electron density
@@ -211,8 +224,15 @@ contains
 
           if(ikprad_evolve_internal.eq.1) then
              p_int = p_int - dp_int
-             te_int = p_int/(ne*1.6022e-12)
-             if(ipres.eq.0) te_int = pefac*te_int
+             if(ipres.eq.0) then
+                if(itemp.eq.0) then
+                   te_int = pefac*p_int/(ne*1.6022e-12)
+                else
+                   te_int = p_int/((ne + (den+nzt)*ti_over_te)*1.6022e-12)
+                end if
+             else
+                te_int = p_int/(ne*1.6022e-12)
+             end if
           end if
 
           ! If ne change is < 2%, increase time step

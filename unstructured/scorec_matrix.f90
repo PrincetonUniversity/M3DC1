@@ -410,6 +410,10 @@ contains
     call m3dc1_matrix_getiternum(mat%imatrix,num_iter)
 !    if(mat%imatrix==5) call m3dc1_matrix_getinfo(mat%imatrix,v%id)
 #endif
+   if (num_iter.ge.10000) then
+      print*, 'Error: solver', mat%imatrix, 'diverged. JOB stopped'
+      call safestop(10000)
+   endif
    if(mat%imatrix== 5) kspits(1)=num_iter
    if(mat%imatrix== 1) kspits(2)=num_iter
    if(mat%imatrix==17) kspits(3)=num_iter
@@ -440,9 +444,7 @@ contains
   subroutine scorec_matrix_zero(mat)
     implicit none
     type(scorec_matrix) :: mat   
-#ifdef NEWSOLVERDEVELOPMENT
      call m3dc1_matrix_reset(mat%imatrix)
-#endif
   end subroutine scorec_matrix_zero
 
 

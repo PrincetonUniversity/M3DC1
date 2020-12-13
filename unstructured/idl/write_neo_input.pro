@@ -1,36 +1,49 @@
-pro write_neo_input, q, _EXTRA=extra, out=outfile
+pro write_neo_input, psi_norm, _EXTRA=extra, out=outfile, nphi=nphi, $
+                     scalefac=scalefac, phase=phase, sum=sum, points=pts, $
+                     plotscale=plotscale, filename=filename, $
+                     nonlinear=nonlinear, slice=slice, smooth=smooth
 
-  if(n_elements(q) eq 0) then begin
-     q = flux_average('q', flux=qflux, psi=psi0, x=x,z=z,t=t,fc=fc, $
-                      bins=bin, i0=i0, slice=-1, _EXTRA=extra)
-  end
-  nr = n_elements(q)
-  ntheta = 100
-  nphi = 16
+  if(n_elements(filename) eq 0) then filename='C1.h5'
+  if(n_elements(nonlinear) eq 0) then nonlinear=1
+  if(n_elements(pts) eq 0) then pts=600
+  if(n_elements(bins) eq 0) then bins = 50
+  ntheta = 400
+  if(n_elements(smooth) eq 0) then smooth = 3
+  if(n_elements(nphi) eq 0) then nphi = 16
+  if(n_elements(plotscale) eq 0) then plotscale=10.
+  if(n_elements(psi_norm) eq 0) then psi_norm = (findgen(bins)+1.)/(bins+1.)
+  nr = n_elements(psi_norm)
   
   theta = 2.*!pi*findgen(ntheta)/(ntheta) - !pi
-  phi = 2.*!pi*findgen(nphi)/(nphi)
+  phi = 360.*findgen(nphi)/(nphi)  ; toroidal angle in degrees
   r0 = fltarr(nr,nphi,ntheta)
   z0 = fltarr(nr,nphi,ntheta)
 
-  for i=0, nphi-1 do begin
-     plot_perturbed_surface, q, $
-                             xy_out=xy_out, theta=theta, phi=phi[i]*180./!pi, $
-                             flux=flux, scale=10, _EXTRA=extra, overplot=(i gt 0), noplot=(nr ge 10)
-     r0[*,i,*] = xy_out[0,*,0,*]
-     z0[*,i,*] = xy_out[0,*,1,*]
-  end
-
-
-  ne0 = flux_average('ne',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,$
-                     bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-  ni0 = flux_average('den',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,$
-                     bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-  Te0 = flux_average('Te',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,$
-                     bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
-  Ti0 = flux_average('Ti',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,$
-                     bins=bins, i0=i0, slice=-1,/mks,_EXTRA=extra)
+  plot_perturbed_surface, psi_norm, filename=filename, $
+                          xy_out=xy_out, theta=theta, phi=phi, $
+                          flux=qflux, nonlinear=nonlinear,  $
+                          scalefac=scalefac, phase=phase, smooth=smooth, $
+                          /sum, points=pts, plotscale=plotscale, slice=slice
   
+
+
+  r0[*,*,*] = xy_out[0,*,0,*,*]
+  z0[*,*,*] = xy_out[0,*,1,*,*]
+
+  ne0 = flux_average('ne',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,points=pts,$
+                     bins=bins, i0=i0, slice=-1,/mks,filename=filename[0])
+  ni0 = flux_average('den',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,points=pts,$
+                     bins=bins, i0=i0, slice=-1,/mks,filename=filename[0])
+  Te0 = flux_average('Te',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,points=pts,$
+                     bins=bins, i0=i0, slice=-1,/mks,filename=filename[0])
+  Ti0 = flux_average('Ti',flux=flux,psi=psi0,x=x,z=z,t=t,fc=fc,points=pts,$
+                     bins=bins, i0=i0, slice=-1,/mks,filename=filename[0])
+
+  q = interpol(fc.q,flux,qflux)
+
+  ;; if(n_elements(qflux) eq 0) then begin
+  ;;    qflux = flux_at_q(q, psi=psi0,x=x,z=z,t=t,fc=fc, /unique)
+  ;; end
   ;; ne0_x = interpol(ne0,qflux,flux)
   ;; ni0_x = interpol(ni0,qflux,flux)
   ;; Te0_x = interpol(Te0,qflux,flux)
@@ -42,8 +55,9 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   ;; endif
 ;  stop
 
-  ion_mass = read_parameter('ion_mass', _EXTRA=extra)
-  psilim = read_lcfs(axis=axis, xpoint=xpoint, flux0=flux0,/mks,_EXTRA=extra)
+  ion_mass = read_parameter('ion_mass', filename=filename[0])
+  psilim = read_lcfs(axis=axis, xpoint=xpoint, flux0=flux0,/mks, $
+                     filename=filename[0])
 
   if(n_elements(outfile) eq 0) then outfile='m3dc1_neo.nc'
   id = ncdf_create(outfile, /clobber)
@@ -69,10 +83,10 @@ pro write_neo_input, q, _EXTRA=extra, out=outfile
   r_var = ncdf_vardef(id, 'R', [nr_id,nt_id,np_id], /float)
   z_var = ncdf_vardef(id, 'Z', [nr_id,nt_id,np_id], /float)
   ncdf_control, id, /endef
-  ncdf_varput, id, 'q', q
-  ncdf_varput, id, 'psi', reform(qflux)
-  ncdf_varput, id, 'Phi', phi*180./!pi
-  ncdf_varput, id, 'psi0', reform(flux)
+  ncdf_varput, id, 'q', reform(q)
+  ncdf_varput, id, 'psi', reform(qflux) ; flux values of surfaces
+  ncdf_varput, id, 'Phi', phi
+  ncdf_varput, id, 'psi0', reform(flux) ; flux values of profile points
   ncdf_varput, id, 'Te0', reform(Te0)
   ncdf_varput, id, 'Ti0', reform(Ti0)
   ncdf_varput, id, 'ne0', reform(ne0)

@@ -1,5 +1,5 @@
 pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
-                 rho=rho, cur=cur, flux_pol=flux_pol, area=area, bpol=bpol, $
+                 rho=rho, current=cur, flux_pol=flux_pol, area=area, bpol=bpol, $
                  symbol=symbol, units=units, version=version, boozer=boozer, $
                  amn=amn, ip=ip, fpol=fpol, jacobian=jacobian, jmn=jmn
 
@@ -68,7 +68,7 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      end
 
      ncdf_close, id
-     
+
      bmn = complex(bmnr, bmni)*cur
 
      ; calculate rho
@@ -110,8 +110,8 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
                    /(complex(0.,1.)*m[i]*mu0)
      end     
 
-     print, 'max(bmn, jmn, bpol, rpath, rho, flux_pol) = ', max(abs(bmn)), max(abs(jmn)), $
-            max(abs(bpol)), max(abs(rpath)), max(abs(rho)), max(abs(flux_pol))
+;     print, 'max(bmn, jmn, bpol, rpath, rho, flux_pol) = ', max(abs(bmn)), max(abs(jmn)), $
+;            max(abs(bpol)), max(abs(rpath)), max(abs(rho)), max(abs(flux_pol))
 
 ;     for j=0, n_elements(psi)-1 do begin
         ;; jmn[*,j] = gpsipsi * jmn[*,j]  * drhodpsi[j] $
@@ -121,7 +121,7 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
 ;        jmn[*,j] = gpsipsi * drhodpsi[j]
 
 ;     end
-     print, 'max(jmn)', max(abs(jmn))
+;     print, 'max(jmn)', max(abs(jmn))
 
      ; normalize rho
      rho = rho / sqrt(rho[n_elements(rho)-1])
@@ -136,12 +136,12 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
         if(i eq 0) then begin
            read_bmncdf, file=filename[i], bmn=bmn, psi=psi, m=m, q=q, $
                         ntor=ntor, rho=rho, area=area, bpol=bpol, $
-                        symbol=symbol, units=units
+                        symbol=symbol, units=units, current=cur[i]
         endif else begin
            read_bmncdf, file=filename[i], $
                         bmn=bmn1, psi=psi1, m=m1, q=q1, ntor=ntor1, $
                         rho=rho, area=area, bpol=bpol, $
-                        symbol=symbol, units=units
+                        current=cur[i]
 
            if(ntor1 ne ntor) then begin
               print, "Error: ntor doesn't match"

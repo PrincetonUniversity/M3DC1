@@ -1,0 +1,38 @@
+BIN = m3dc1_skeleton_gpu
+
+F90 = mpif90
+LD = mpif90
+#F90 = ftn
+#LD = ftn
+
+#F90FLAGS = -Wall -fimplicit-none -O3
+#LDFLAGS = 
+F90FLAGS = -g -r8 -w -O3
+LDFLAGS = -g
+
+#LIB = -llapack -lblas
+#INCLUDE = 
+#LIB = -L${MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -ldl
+#MKL_LIB = -L/usr/common/software/pgi/linux86-64/18.10/lib -lblas -llapack
+CUDA_LIB:=-L/usr/common/software/cuda/10.2.89/lib64 -lcusolver_static -lcublas_static -lcusparse_static -lcudart_static -lcudadevrt -lcublasLt_static -lculibos -L/usr/common/software/pgi/19.10/linux86-64-llvm/19.10/lib -lblas -lcudaforblas -llapack
+INCLUDE = 
+
+DEFS = -DUSE3D -DMAX_PTS=60
+
+OBJS = etimes.o math.o element.o mesh.o nintegrate.o field.o \
+	m3dc1_data.o m3dc1_nint.o matdef.o main.o
+
+.PHONY : clean dist
+
+$(BIN) : $(OBJS)
+	$(LD) $(LDFLAGS) $(CUDA_LIB) $(OBJS) -o $@
+
+dist :
+	tar c *.F90 README makefile > m3dc1_skeleton.tar
+	gzip m3dc1_skeleton.tar
+
+clean : 
+	rm -fr *~ *.o *.mod $(BIN)
+
+%.o : %.F90
+	$(F90) -c $(INCLUDE) $(F90FLAGS) $(DEFS) $< -o $@

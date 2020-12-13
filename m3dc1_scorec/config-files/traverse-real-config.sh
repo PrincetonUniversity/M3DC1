@@ -1,13 +1,15 @@
 MPIVER=pgi19.9-openmpi4.0.2
 CMAKETYPE=Release
-PETSC_VER=petsc-3.12.0
-PETSCVER=petsc3.12.0
-PETSC_DIR=/home/jinchen/project/PETSC/$PETSC_VER
-PETSC_ARCH=traverse-pgi-openmpi-2019
-#load module load pgi openmpi/pgi-19.5/4.0.2rc1/64
+PETSC_VER=petsc-3.12.4
+PETSCVER=petsc3.12.4
+PETSC_DIR=/home/jinchen/project/PETSC/petsc
+#   PETSC_ARCH=traverse-pgi-openmpi-199-gpu-cuda-cplx-master
+PETSC_ARCH=traverse-pgi-openmpi-199-gpu-cuda-master
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 SCOREC_DIR=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
+ZOLTAN_DIR=$SCOREC_DIR
 PREFIX=$SCOREC_DIR
+#load module load pgi openmpi/pgi-19.5/4.0.2rc1/64
 #add -DPETSCMASTER for petsc 3.8.3 or higher
 cmake3 .. \
   -DCMAKE_C_COMPILER=mpicc \
@@ -23,10 +25,8 @@ cmake3 .. \
   -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
-  -DHDF5_INCLUDE_DIR="$HDF5_DIR/include" \
-  -DHDF5_LIB_DIR="$HDF5_DIR/lib64" \
   -DENABLE_PETSC=ON \
   -DENABLE_COMPLEX=OFF \
   -DENABLE_TESTING=OFF \
-  -DCMAKE_BUILD_TYPE=$CMAKETYPE \
-  -DCMAKE_INSTALL_PREFIX="$PREFIX"
+  -DCMAKE_INSTALL_PREFIX=$PREFIX \
+  -DCMAKE_BUILD_TYPE=$CMAKETYPE

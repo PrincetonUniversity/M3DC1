@@ -901,7 +901,8 @@ subroutine calculate_scalars()
      recprad = recprad + twopi*int1(recprad79(:,OP_1))/tpifac
      
      if(irunaway.gt.0) then
-        totre = totre + twopi*int1(nre79(:,OP_1))/tpifac
+        totre = totre + twopi*int1(nre179(:,OP_1))/tpifac
+        totre = totre + twopi*int1(nre079(:,OP_1))/tpifac
      end if
 
      helicity = helicity &
@@ -922,7 +923,9 @@ subroutine calculate_scalars()
                  ! weight density/temp by pellet distribution (normalized)
                  temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
                  nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
-                 temp_pel(ip) = temp_pel(ip) + twopi*int2(pet79(:,OP_1)/net79(:,OP_1),temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
+                 temp79b = pet79(:,OP_1)/net79(:,OP_1)
+                 if(ikprad_te_offset .gt. 0) temp79b = temp79b - eta_te_offset
+                 temp_pel(ip) = temp_pel(ip) + twopi*int2(temp79b,temp79a)*p0_norm/(1.6022e-12*n0_norm*tpifac)
               else
                  nsource_pel(ip) = 0.
                  temp_pel(ip) = 0.
@@ -937,9 +940,9 @@ subroutine calculate_scalars()
      ! toroidal (angular) momentum
      if(numvar.ge.2) then
         tmom = tmom &
-             + twopi*int3(r2_79,vzt79(:,OP_1),nt79(:,OP_1))/tpifac
+             + twopi*int3(r2_79,vzt79(:,OP_1),rho79(:,OP_1))/tpifac
         pmom = pmom &
-             + twopi*int4(r2_79,vzt79(:,OP_1),nt79(:,OP_1),mr)/tpifac
+             + twopi*int4(r2_79,vzt79(:,OP_1),rho79(:,OP_1),mr)/tpifac
      endif
 
      if(amupar.ne.0.) then
@@ -2373,18 +2376,18 @@ subroutine calculate_bh()
      !eq 12: f' cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
-        call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
+        call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
         if(eqsubtract.eq.1) then
-           call get_node_data(bf_field(0), l, bf0_l)
-           bf1_l = bf1_l + bf0_l
+           call get_node_data(bfp_field(0), l, bfp0_l)
+           bfp1_l = bfp1_l + bfp0_l
         end if
 
-        vec_l(1)= bf1_l(1) * i1ck(k,N) + bf1_l( 7)*i2ck(k,N)
-        vec_l(2)= bf1_l(2) * i1ck(k,N) + bf1_l( 8)*i2ck(k,N)
-        vec_l(3)= bf1_l(3) * i1ck(k,N) + bf1_l( 9)*i2ck(k,N)
-        vec_l(4)= bf1_l(4) * i1ck(k,N) + bf1_l(10)*i2ck(k,N)
-        vec_l(5)= bf1_l(5) * i1ck(k,N) + bf1_l(11)*i2ck(k,N)
-        vec_l(6)= bf1_l(6) * i1ck(k,N) + bf1_l(12)*i2ck(k,N)
+        vec_l(1)= bfp1_l(1) * i1ck(k,N) + bfp1_l( 7)*i2ck(k,N)
+        vec_l(2)= bfp1_l(2) * i1ck(k,N) + bfp1_l( 8)*i2ck(k,N)
+        vec_l(3)= bfp1_l(3) * i1ck(k,N) + bfp1_l( 9)*i2ck(k,N)
+        vec_l(4)= bfp1_l(4) * i1ck(k,N) + bfp1_l(10)*i2ck(k,N)
+        vec_l(5)= bfp1_l(5) * i1ck(k,N) + bfp1_l(11)*i2ck(k,N)
+        vec_l(6)= bfp1_l(6) * i1ck(k,N) + bfp1_l(12)*i2ck(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(fp_transformc,l,vec_l)
      enddo
@@ -2394,18 +2397,18 @@ subroutine calculate_bh()
      ! eq 12: f' sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
-        call get_node_data(bf_field(1), l, bf1_l) ! bf1_l is f (dimension 12)
+        call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
         if(eqsubtract.eq.1) then
-           call get_node_data(bf_field(0), l, bf0_l)
-           bf1_l = bf1_l + bf0_l
+           call get_node_data(bfp_field(0), l, bfp0_l)
+           bfp1_l = bfp1_l + bfp0_l
         end if
 
-        vec_l(1)= bf1_l(1) * i1sk(k,N) + bf1_l( 7)*i2sk(k,N)
-        vec_l(2)= bf1_l(2) * i1sk(k,N) + bf1_l( 8)*i2sk(k,N)
-        vec_l(3)= bf1_l(3) * i1sk(k,N) + bf1_l( 9)*i2sk(k,N)
-        vec_l(4)= bf1_l(4) * i1sk(k,N) + bf1_l(10)*i2sk(k,N)
-        vec_l(5)= bf1_l(5) * i1sk(k,N) + bf1_l(11)*i2sk(k,N)
-        vec_l(6)= bf1_l(6) * i1sk(k,N) + bf1_l(12)*i2sk(k,N)
+        vec_l(1)= bfp1_l(1) * i1sk(k,N) + bfp1_l( 7)*i2sk(k,N)
+        vec_l(2)= bfp1_l(2) * i1sk(k,N) + bfp1_l( 8)*i2sk(k,N)
+        vec_l(3)= bfp1_l(3) * i1sk(k,N) + bfp1_l( 9)*i2sk(k,N)
+        vec_l(4)= bfp1_l(4) * i1sk(k,N) + bfp1_l(10)*i2sk(k,N)
+        vec_l(5)= bfp1_l(5) * i1sk(k,N) + bfp1_l(11)*i2sk(k,N)
+        vec_l(6)= bfp1_l(6) * i1sk(k,N) + bfp1_l(12)*i2sk(k,N)
         vec_l(7:12) = 0. ! pad with zeros
         call set_node_data(fp_transforms,l,vec_l)
      enddo
@@ -2430,9 +2433,7 @@ subroutine calculate_bh()
 !       cosine harmonics
         call eval_ops(itri,psi_transformc,pst79)
         call eval_ops(itri,F_transformc,bzt79)
-        ! prime means, for cos component, we need sin and multiply by N
-        call eval_ops(itri,fp_transforms,bft79)
-        bft79 = N*bft79
+        call eval_ops(itri,fp_transformc,bfpt79)
 
         bh_N = bh_N + int3(ri2_79, pst79(:,OP_DR), pst79(:,OP_DR))   &
                     + int3(ri2_79, pst79(:,OP_DZ), pst79(:,OP_DZ))
@@ -2440,17 +2441,15 @@ subroutine calculate_bh()
         bh_N = bh_N + int3(ri2_79, bzt79(:,OP_1), bzt79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bft79(:,OP_DR), bft79(:,OP_DR))   &
-                    + int2(bft79(:,OP_DZ), bft79(:,OP_DZ))
-        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bft79(:,OP_DZ)) &
-                    + 2.*int3(ri_79, pst79(:,OP_DZ), bft79(:,OP_DR))
+        bh_N = bh_N + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
+                    + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
 #endif
 !       sine harmonics
         call eval_ops(itri,psi_transforms,pst79)
         call eval_ops(itri,F_transforms,bzt79)
-        ! prime means, for sin component, we need cos and multiply by -N
-        call eval_ops(itri,fp_transformc,bft79)
-        bft79 = -N*bft79
+        call eval_ops(itri,fp_transforms,bfpt79)
 
         bh_N = bh_N + int3(ri2_79,  pst79(:,OP_DR), pst79(:,OP_DR))   &
                     + int3(ri2_79,  pst79(:,OP_DZ), pst79(:,OP_DZ))
@@ -2458,10 +2457,10 @@ subroutine calculate_bh()
         bh_N = bh_N + int3(ri2_79,  bzt79(:,OP_1), bzt79(:,OP_1))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-        bh_N = bh_N + int2(bft79(:,OP_DR), bft79(:,OP_DR))   &
-                    + int2(bft79(:,OP_DZ), bft79(:,OP_DZ))
-        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bft79(:,OP_DZ)) &
-                    + 2.*int3(ri_79, pst79(:,OP_DZ), bft79(:,OP_DR))
+        bh_N = bh_N + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
+                    + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
+        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
 #endif
      end do
 !$OMP END PARALLEL DO

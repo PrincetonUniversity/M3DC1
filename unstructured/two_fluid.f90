@@ -74,8 +74,8 @@ function v1huf(e,f,g)
   if(surface_int) then 
      temp = 0.
   else
-     temp = -intx4(e(:,:,OP_DZ),r_79,f(:,OP_LP),g(:,OP_DRPP))  &
-          +  intx4(e(:,:,OP_DR),r_79,f(:,OP_LP),g(:,OP_DZPP))
+     temp = -intx4(e(:,:,OP_DZ),r_79,f(:,OP_LP),g(:,OP_DRP))  &
+          +  intx4(e(:,:,OP_DR),r_79,f(:,OP_LP),g(:,OP_DZP))
   end if
   v1huf = temp
 #else
@@ -155,8 +155,8 @@ function v1hvf(e,f,g)
      temp = 0.
   else
      temp79a = r2_79*f(:,OP_LP) + 2.*r_79*f(:,OP_DR)
-     temp = -intx3(e(:,:,OP_DR),temp79a,g(:,OP_DRP))   &
-          -  intx3(e(:,:,OP_DZ),temp79a,g(:,OP_DZP))
+     temp = -intx3(e(:,:,OP_DR),temp79a,g(:,OP_DR))   &
+          -  intx3(e(:,:,OP_DZ),temp79a,g(:,OP_DZ))
   end if
   v1hvf = temp
 #else
@@ -239,12 +239,10 @@ function v1hchif(e,f,g)
   if(surface_int) then 
      temp = 0.
   else
-     temp = 2.*intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DZ),g(:,OP_DRPP))  &
-          - 2.*intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ),g(:,OP_DZPP))  &
-          +    intx4(e(:,:,OP_DR),ri2_79,f(:,OP_GSP),g(:,OP_DRP))  &
-          +    intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_GSP),g(:,OP_DZP))  &
-          - 2.*intx4(e(:,:,OP_DZ),ri4_79,g(:,OP_DR),f(:,OP_DRP))  &
-          + 2.*intx4(e(:,:,OP_DR),ri4_79,g(:,OP_DZ),f(:,OP_DRP))
+     temp = 2.*intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DZ),g(:,OP_DRP))  &
+          - 2.*intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ),g(:,OP_DZP))  &
+          +    intx4(e(:,:,OP_DR),ri2_79,f(:,OP_GSP),g(:,OP_DR))  &
+          +    intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_GSP),g(:,OP_DZ))
   end if
   v1hchif = temp
 #else
@@ -322,13 +320,13 @@ function v2huf(e,f,g)
   if(surface_int) then 
      temp = 0.
   else
-     temp = intx3(e(:,:,OP_1),f(:,OP_DRPP),g(:,OP_DRP))   &
-          + intx3(e(:,:,OP_1),f(:,OP_DZPP),g(:,OP_DZP))   &
-          + intx3(e(:,:,OP_1),f(:,OP_DRP),g(:,OP_DRPP))   &
-          + intx3(e(:,:,OP_1),f(:,OP_DZP),g(:,OP_DZPP))   &
-          - intx4(e(:,:,OP_DR),r2_79,f(:,OP_LP),g(:,OP_DRP)) &
-          - intx4(e(:,:,OP_DZ),r2_79,f(:,OP_LP),g(:,OP_DZP)) &
-          - intx4(e(:,:,OP_1),r2_79,f(:,OP_LP), g(:,OP_LPP)) 
+     temp = intx3(e(:,:,OP_1),f(:,OP_DRPP),g(:,OP_DR))   &
+          + intx3(e(:,:,OP_1),f(:,OP_DZPP),g(:,OP_DZ))   &
+          + intx3(e(:,:,OP_1),f(:,OP_DRP),g(:,OP_DRP))   &
+          + intx3(e(:,:,OP_1),f(:,OP_DZP),g(:,OP_DZP))   &
+          - intx4(e(:,:,OP_DR),r2_79,f(:,OP_LP),g(:,OP_DR)) &
+          - intx4(e(:,:,OP_DZ),r2_79,f(:,OP_LP),g(:,OP_DZ)) &
+          - intx4(e(:,:,OP_1),r2_79,f(:,OP_LP), g(:,OP_LP)) 
   end if
   v2huf = temp
 #else
@@ -403,12 +401,12 @@ function v2hvf(e,f,g)
   if(surface_int) then 
      temp = 0.
   else
-     temp =   intx4(e(:,:,OP_1),r_79,g(:,OP_DZPP),f(:,OP_DR))  &
-          -   intx4(e(:,:,OP_1),r_79,g(:,OP_DRPP),f(:,OP_DZ))  &
-          +2.*intx3(e(:,:,OP_1),f(:,OP_1),g(:,OP_DZPP))        &
-          +   intx4(e(:,:,OP_1),r_79,g(:,OP_DZP),f(:,OP_DRP))  &
-          -   intx4(e(:,:,OP_1),r_79,g(:,OP_DRP),f(:,OP_DZP))  &
-          +2.*intx3(e(:,:,OP_1),f(:,OP_DP),g(:,OP_DZP))
+     temp =   intx4(e(:,:,OP_1),r_79,g(:,OP_DZP),f(:,OP_DR))  &
+          -   intx4(e(:,:,OP_1),r_79,g(:,OP_DRP),f(:,OP_DZ))  &
+          +2.*intx3(e(:,:,OP_1),f(:,OP_1),g(:,OP_DZP))        &
+          +   intx4(e(:,:,OP_1),r_79,g(:,OP_DZ),f(:,OP_DRP))  &
+          -   intx4(e(:,:,OP_1),r_79,g(:,OP_DR),f(:,OP_DZP))  &
+          +2.*intx3(e(:,:,OP_1),f(:,OP_DP),g(:,OP_DZ))
   end if
   v2hvf = temp
 #else
@@ -490,13 +488,13 @@ function v2hchif(e,f,g)
   if(surface_int) then 
      temp = 0.
   else
-     temp =2.*intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DZ), g(:,OP_DRP))  &
-          +2.*intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ) ,g(:,OP_DZP))  &
-          +2.*intx4(e(:,:,OP_1), ri2_79,f(:,OP_DZ) ,g(:,OP_LPP))  &
-          -   intx4(e(:,:,OP_1),ri3_79,g(:,OP_DZPP),f(:,OP_DRP))  &
-          +   intx4(e(:,:,OP_1),ri3_79,g(:,OP_DRPP),f(:,OP_DZP))  &
-          -   intx4(e(:,:,OP_1),ri3_79,g(:,OP_DZP),f(:,OP_DRPP))  &
-          +   intx4(e(:,:,OP_1),ri3_79,g(:,OP_DRP),f(:,OP_DZPP))
+     temp =2.*intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DZ), g(:,OP_DR))  &
+          +2.*intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ) ,g(:,OP_DZ))  &
+          +2.*intx4(e(:,:,OP_1), ri2_79,f(:,OP_DZ) ,g(:,OP_LP))  &
+          -   intx4(e(:,:,OP_1),ri3_79,g(:,OP_DZP),f(:,OP_DRP))  &
+          +   intx4(e(:,:,OP_1),ri3_79,g(:,OP_DRP),f(:,OP_DZP))  &
+          -   intx4(e(:,:,OP_1),ri3_79,g(:,OP_DZ),f(:,OP_DRPP))  &
+          +   intx4(e(:,:,OP_1),ri3_79,g(:,OP_DR),f(:,OP_DZPP))
   end if
   v2hchif = temp
 #else
@@ -575,8 +573,8 @@ function v3huf(e,f,g)
   if(surface_int) then 
      temp = 0.
   else
-     temp = -intx4(e(:,:,OP_DR),ri2_79,f(:,OP_LP),g(:,OP_DRPP)) &
-          -  intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_LP),g(:,OP_DZPP))
+     temp = -intx4(e(:,:,OP_DR),ri2_79,f(:,OP_LP),g(:,OP_DRP)) &
+          -  intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_LP),g(:,OP_DZP))
   end if
   v3huf = temp
 #else
@@ -605,7 +603,7 @@ function v3hvpsi(e,f,g)
           + intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_GS)) &
           + intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ),g(:,OP_GS))
      if(itor.eq.1) then
-        temp = temp + &
+        temp = temp &
              + 2.*intx4(e(:,:,OP_DR),ri3_79,f(:,OP_1),g(:,OP_GS))
      end if
   end if
@@ -656,18 +654,18 @@ function v3hvf(e,f,g)
      temp = 0.
   else
      temp79a = f(:,OP_DR) + 2.*ri_79*f(:,OP_1)
-     temp = -intx4(e(:,:,OP_DRZ),temp79a,ri_79 ,g(:,OP_DRP))   &
-          +intx4(e(:,:,OP_DRR),temp79a,ri_79 ,g(:,OP_DZP))   &
-          -intx4(e(:,:,OP_DZ),temp79a,ri_79 ,g(:,OP_DRRP))   &
-          +intx4(e(:,:,OP_DR),temp79a,ri_79 ,g(:,OP_DRZP))   &
+     temp = -intx4(e(:,:,OP_DRZ),temp79a,ri_79 ,g(:,OP_DR))   &
+          +intx4(e(:,:,OP_DRR),temp79a,ri_79 ,g(:,OP_DZ))   &
+          -intx4(e(:,:,OP_DZ),temp79a,ri_79 ,g(:,OP_DRR))   &
+          +intx4(e(:,:,OP_DR),temp79a,ri_79 ,g(:,OP_DRZ))   &
           
-          +intx4(e(:,:,OP_DZ),temp79a,ri2_79,g(:,OP_DRP))   &
-          -intx4(e(:,:,OP_DR),temp79a,ri2_79,g(:,OP_DZP))   &
+          +intx4(e(:,:,OP_DZ),temp79a,ri2_79,g(:,OP_DR))   &
+          -intx4(e(:,:,OP_DR),temp79a,ri2_79,g(:,OP_DZ))   &
           
-          -intx3(e(:,:,OP_DZZ),f(:,OP_DZ),g(:,OP_DRP))  &
-          +intx3(e(:,:,OP_DRZ),f(:,OP_DZ),g(:,OP_DZP))  &
-          -intx3(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_DRZP))  &
-          +intx3(e(:,:,OP_DR),f(:,OP_DZ),g(:,OP_DZZP))  
+          -intx3(e(:,:,OP_DZZ),f(:,OP_DZ),g(:,OP_DR))  &
+          +intx3(e(:,:,OP_DRZ),f(:,OP_DZ),g(:,OP_DZ))  &
+          -intx3(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_DRZ))  &
+          +intx3(e(:,:,OP_DR),f(:,OP_DZ),g(:,OP_DZZ))  
   end if
   v3hvf = temp
 #else
@@ -752,21 +750,21 @@ function v3hchif(e,f,g)
   if(surface_int) then 
      temp = 0.
   else
-     temp = 2.*intx4(e(:,:,OP_DR),ri6_79,f(:,OP_DZ),g(:,OP_DRPP))  &
-          +2.*intx4(e(:,:,OP_DZ),ri6_79,f(:,OP_DZ),g(:,OP_DZPP))  &
+     temp = 2.*intx4(e(:,:,OP_DR),ri6_79,f(:,OP_DZ),g(:,OP_DRP))  &
+          +2.*intx4(e(:,:,OP_DZ),ri6_79,f(:,OP_DZ),g(:,OP_DZP))  &
           
-          +intx4(e(:,:,OP_DRZ),ri5_79,f(:,OP_DRP),g(:,OP_DRP))  &
-          -intx4(e(:,:,OP_DRR),ri5_79,f(:,OP_DRP),g(:,OP_DZP))  &
-          +intx4(e(:,:,OP_DZ),ri5_79,f(:,OP_DRP),g(:,OP_DRRP))  &
-          -intx4(e(:,:,OP_DR),ri5_79,f(:,OP_DRP),g(:,OP_DRZP))  &
+          +intx4(e(:,:,OP_DRZ),ri5_79,f(:,OP_DRP),g(:,OP_DR))  &
+          -intx4(e(:,:,OP_DRR),ri5_79,f(:,OP_DRP),g(:,OP_DZ))  &
+          +intx4(e(:,:,OP_DZ),ri5_79,f(:,OP_DRP),g(:,OP_DRR))  &
+          -intx4(e(:,:,OP_DR),ri5_79,f(:,OP_DRP),g(:,OP_DRZ))  &
           
-          -intx4(e(:,:,OP_DZ),ri6_79,f(:,OP_DRP),g(:,OP_DRP))  &
-          +intx4(e(:,:,OP_DR),ri6_79,f(:,OP_DRP),g(:,OP_DZP))  &
+          -intx4(e(:,:,OP_DZ),ri6_79,f(:,OP_DRP),g(:,OP_DR))  &
+          +intx4(e(:,:,OP_DR),ri6_79,f(:,OP_DRP),g(:,OP_DZ))  &
           
-          +intx4(e(:,:,OP_DZZ),ri5_79,f(:,OP_DZP),g(:,OP_DRP))  &
-          -intx4(e(:,:,OP_DRZ),ri5_79,f(:,OP_DZP),g(:,OP_DZP))  &
-          +intx4(e(:,:,OP_DZ),ri5_79,f(:,OP_DZP),g(:,OP_DRZP))  &
-          -intx4(e(:,:,OP_DR),ri5_79,f(:,OP_DZP),g(:,OP_DZZP))  
+          +intx4(e(:,:,OP_DZZ),ri5_79,f(:,OP_DZP),g(:,OP_DR))  &
+          -intx4(e(:,:,OP_DRZ),ri5_79,f(:,OP_DZP),g(:,OP_DZ))  &
+          +intx4(e(:,:,OP_DZ),ri5_79,f(:,OP_DZP),g(:,OP_DRZ))  &
+          -intx4(e(:,:,OP_DR),ri5_79,f(:,OP_DZP),g(:,OP_DZZ))  
   end if
   v3hchif = temp
 #else

@@ -15,6 +15,7 @@
 #define m3dc1_model_getplaneid m3dc1_model_getplaneid_
 #define m3dc1_mesh_load m3dc1_mesh_load_
 #define m3dc1_mesh_build3d m3dc1_mesh_build3d_
+#define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
 #define m3dc1_mesh_getnument m3dc1_mesh_getnument_
 #define m3dc1_mesh_getnumghostent m3dc1_mesh_getnumghostent_
@@ -33,7 +34,9 @@
 #define m3dc1_ent_getglobalid m3dc1_ent_getglobalid_
 #define m3dc1_ent_getgeomclass m3dc1_ent_getgeomclass_
 #define m3dc1_ent_getadj m3dc1_ent_getadj_
+#define m3dc1_ent_getglobaladj m3dc1_ent_getglobaladj_
 #define m3dc1_ent_getnumadj m3dc1_ent_getnumadj_
+#define m3dc1_ent_getnumglobaladj m3dc1_ent_getnumglobaladj_
 #define m3dc1_ent_getownpartid m3dc1_ent_getownpartid_
 #define m3dc1_ent_isowner m3dc1_ent_ismine_
 #define m3dc1_ent_isghost m3dc1_ent_isghost_
@@ -122,3 +125,7 @@
 #define m3dc1_matrix_getnnzvalue getMatrixNNZValues_
 #define m3dc1_matrix_getmatrixfirstdof getMatrixFirstDof_
 #define m3dc1_matrix_setsoln setMatrixSoln_
+
+// 3d Adaptation
+#define node_error_3d_mesh node_error_3d_mesh_
+#define find_sizefield find_sizefield_

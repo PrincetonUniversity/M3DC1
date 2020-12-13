@@ -4,12 +4,13 @@
   F77 = mpifort
   LOADER = mpifort
 
-OPTS := $(OPTS) -DPETSC_VERSION=990 -DUSEBLAS #-DNEWSOLVERDEVELOPMENT
+OPTS := $(OPTS) -DPETSC_VERSION=990 -DUSEBLAS
 
-PETSCVER=petsc
-PETSC_VER=petsc
+PETSCVER=petsc3.12.4
+PETSC_VER=petsc-3.12.4
 
 PETSC_DIR=/home/jinchen/project/PETSC/petsc
+#PETSC_DIR=/home/jinchen/project/PETSC/petsc.rh7
 ifeq ($(COM), 1)
    PETSC_ARCH=traverse-pgi-openmpi-199-gpu-cuda-cplx-master
   #PETSC_ARCH=traverse-pgi-openmpi-199-cplx-master
@@ -18,32 +19,37 @@ else
   #PETSC_ARCH=traverse-pgi-openmpi-199-master
 endif
 
-SCOREC_BASE_DIR=$(PETSC_DIR)/$(PETSC_ARCH)/scorec199/
-SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-    SCOREC_DIR=$(PETSC_DIR)/$(PETSC_ARCH)/pumi199/
-		
-#zoltan is not available		
-ZOLTAN_LIB=
-		
 ifeq ($(COM), 1)
-    M3DC1_SCOREC_LIB = m3dc1_scorec_complex
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
-    M3DC1_SCOREC_LIB = m3dc1_scorec
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-SCOREC_LIBS= -L$(SCOREC_BASE_DIR)/lib -l$(M3DC1_SCOREC_LIB) -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+#SCOREC_BASE_DIR=/projects/M3DC1/scorec/pgi19.9-openmpi4.0.2/$(PETSCVER)
+SCOREC_BASE_DIR=/projects/M3DC1/scorec/pgi20.4-openmpi4.0.4/petsc3.13.4/
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+ifdef SCORECVER
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
+else
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
+endif
+
+#zoltan is not available
+ZOLTAN_LIB=
+
+SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
+             -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
-
 
 ifeq ($(PAR), 1)
   OPTS := $(OPTS) -DUSEPARTICLES
 endif
 		
 ifeq ($(COM), 1)
-PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,${PETSC_DIR}/${PETSC_ARCH}/lib /opt/pgi/19.5/linuxpower/19.5/lib/pgi.ld -L/usr/local/pgi/lib64 -L/usr/local/pgi/lib64/openmpi -L/usr/local/openmpi/4.0.2rc1/pgi195/ppc64le/lib64 -L/opt/pgi/19.5/linuxpower/19.5/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -Wl,-rpath,/usr/local/pgi/lib64 -Wl,-rpath,/usr/local/pgi/lib64/openmpi -Wl,-rpath,/usr/local/openmpi/4.0.2rc1/pgi195/ppc64le/lib64 -Wl,-rpath,/opt/pgi/19.5/linuxpower/19.5/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lparmetis -lmetis -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -latomic -lpgkomp -lomp -lomptarget -lpthread -lpgmath -lpgc -lrt -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -lstdc++ -ldl
+PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,${PETSC_DIR}/${PETSC_ARCH}/lib -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/usr/local/cuda-10.2/lib64 -L/usr/local/cuda-10.2/lib64 /opt/pgi/20.4/linuxpower/20.4/lib/pgi.ld -L/usr/local/pgi/lib64 -L/usr/local/pgi/lib64/openmpi -L/usr/local/openmpi/4.0.4/pgi204/ppc64le/lib64 -L/opt/pgi/20.4/linuxpower/20.4/lib -L/usr/lib/gcc/ppc64le-redhat-linux/8 -Wl,-rpath,/usr/local/pgi/lib64 -Wl,-rpath,/usr/local/pgi/lib64/openmpi -Wl,-rpath,/usr/local/openmpi/4.0.4/pgi204/ppc64le/lib64 -Wl,-rpath,/opt/pgi/20.4/linuxpower/20.4/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lparmetis -lmetis -lcufft -lcublas -lcudart -lcusparse -lcusolver -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -latomic -lnvomp -lpthread -lpgmath -lnvc -lrt -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -lstdc++ -ldl
 else
-PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,${PETSC_DIR}/${PETSC_ARCH}/lib /opt/pgi/19.5/linuxpower/19.5/lib/pgi.ld -L/usr/local/pgi/lib64 -L/usr/local/pgi/lib64/openmpi -L/usr/local/openmpi/4.0.2rc1/pgi195/ppc64le/lib64 -L/opt/pgi/19.5/linuxpower/19.5/lib -L/usr/lib/gcc/ppc64le-redhat-linux/4.8.5 -Wl,-rpath,/usr/local/pgi/lib64 -Wl,-rpath,/usr/local/pgi/lib64/openmpi -Wl,-rpath,/usr/local/openmpi/4.0.2rc1/pgi195/ppc64le/lib64 -Wl,-rpath,/opt/pgi/19.5/linuxpower/19.5/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lparmetis -lmetis -lml -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -latomic -lpgkomp -lomp -lomptarget -lpthread -lpgmath -lpgc -lrt -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -lstdc++ -ldl
+PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,${PETSC_DIR}/${PETSC_ARCH}/lib -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/usr/local/cuda-10.2/lib64 -L/usr/local/cuda-10.2/lib64 /opt/pgi/20.4/linuxpower/20.4/lib/pgi.ld -L/usr/local/pgi/lib64 -L/usr/local/pgi/lib64/openmpi -L/usr/local/openmpi/4.0.4/pgi204/ppc64le/lib64 -L/opt/pgi/20.4/linuxpower/20.4/lib -L/usr/lib/gcc/ppc64le-redhat-linux/8 -Wl,-rpath,/usr/local/pgi/lib64 -Wl,-rpath,/usr/local/pgi/lib64/openmpi -Wl,-rpath,/usr/local/openmpi/4.0.4/pgi204/ppc64le/lib64 -Wl,-rpath,/opt/pgi/20.4/linuxpower/20.4/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lml -lfftw3_mpi -lfftw3 -lflapack -lfblas -lparmetis -lmetis -lcufft -lcublas -lcudart -lcusparse -lcusolver -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lpgf90rtl -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgftnrtl -latomic -lnvomp -lpthread -lpgmath -lnvc -lrt -lmass_simdp9 -lmassvp9 -lmassp9 -lm -lgcc_s -lstdc++ -ldl
 endif
 
 #only define them if adios-1.3 is used; otherwise use hopper default

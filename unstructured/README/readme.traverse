@@ -17,7 +17,7 @@
 	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=traverse
         
 5. mesh utility
-        /projects/M3DC1/PETSC/petsc/traverse-pgi-openmpi-199-gpu-cuda-master/pumi199
+        See $(SCOREC_UTIL_DIR) in .mk file
 
 6. run a job 
 

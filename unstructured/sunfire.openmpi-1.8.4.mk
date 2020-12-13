@@ -1,5 +1,5 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEBLAS
-# FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
+FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DUSEBLAS
+# FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DUSEPARTICLES
 CCOPTS  = -c -O
 
 ifeq ($(OPT), 1)

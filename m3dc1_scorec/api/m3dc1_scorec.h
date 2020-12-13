@@ -68,7 +68,12 @@ int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); /
 
 int m3dc1_mesh_load(char* mesh_file);
 int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk file with field; 1:smb file
+void m3dc1_region_delete();
+void m3dc1_region_create();
+
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
+
+void m3dc1_mesh_adapt(int*, int*, int*, int*, int* ,int*, int*, int*, double*);
 
 int m3dc1_ghost_create (int* num_layer ); 
 int m3dc1_ghost_delete ();
@@ -84,9 +89,22 @@ int m3dc1_mesh_search(int* initial_simplex, double* final_position, int* final_s
 int m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);
 int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id, 
 		            int* /* out */ geom_class_dim, int* /* out */ geom_class_id); 
-int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim,
-                      int* /* out */ adj_ent, int* /* in */ adj_ent_allocated_size, int* /* out */ num_adj_ent);
+int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ entids, int* /* in */ adj_dim,
+                      int* /* out */ adj_ent, int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size);
 int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim, int* /* out */ num_adj_ent);
+
+// mesh-level operator with communications 
+// at the moment, this works only for 2 kinds 2nd order adjacency
+// which are face-edge-face or region-face-region (ent_dim and adj_dim are 2 for 2D, 3 for 3D)
+void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, 
+                      int* /* in */ ent_ids, int* /* in */ num_ent,
+                      int* /* in */ adj_dim,
+                      int* /* out */ num_adj_ent, int* /* out */ adj_ent_gids, int* /* out */ adj_ent_pids,
+                      int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size);
+void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, 
+                      int* /* in */ ent_ids, int* /* in */ num_ent,
+                      int* /* in */ adj_dim, int* /* out */ num_adj_ent);
+
 int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ owning_partid); //entprocowner_
 int m3dc1_ent_isowner (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ ismine); 
 int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost);
@@ -189,6 +207,9 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
 
+// 3D Adaptation
+int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);
+int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node, int * option);
 // for adaptation
 int set_mesh_size_bound (double* abs_size, double * rel_size);
 int set_adapt_smooth_factor (double* fac);

@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 31
+  integer, parameter :: version = 35
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -24,6 +24,7 @@ module basic
   real, parameter :: m_e = 9.1094e-28
   real, parameter :: me_mp = m_e / m_p
   real, parameter :: mp_me = m_p / m_e
+  real, parameter :: N_Avo = 6.022140857e23
 
   logical :: print_help
 
@@ -51,12 +52,14 @@ module basic
   integer :: iresfunc   ! if 1, use new resistivity function
   integer :: ivisfunc   ! if 1, use new resistivity function
   integer :: ikappafunc ! if 1, use new resistivity function
+  integer :: idenmfunc
   integer :: ikappar_ni
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
   real :: eta_fac
-  real :: eta_max
+  real :: eta_max, eta_min
   integer :: eta_mod
   real :: eta_te_offset  ! offset in Te when calculating eta
+  integer :: ikprad_te_offset  ! if 1, eta_te_offset also applied to kprad and ablation
   real :: etaoff, etadelt !iresfunc=1: = etar + .5 eta0 (1+tanh(psi-psilim(1+etaoff*DP)/etadelt*DP))
   !                                                      DP = psilim - psimin
   real :: amuoff, amudelt, amuoff2, amudelt2
@@ -88,6 +91,7 @@ module basic
   real :: gam         ! ratio of specific heats
   real :: gravr,gravz ! gravitational acceleration
   real :: vloop       ! loop voltage
+  real :: vloopRZ     ! rate at which boundary TF changes
   real :: mass_ratio  ! me/mi (in units of me/mp)
   real :: z_ion       ! Z of main ion species
   real :: ion_mass    ! Effective mass of ions (in proton mass/particle)
@@ -158,7 +162,6 @@ module basic
   integer :: irestart ! 1 = reads restart file as initial condition
                       ! 2 = reads restart file to initialize GS solve
                       ! 3 = reads 2D RL=1 restart file o initialize 2D COM=1 run
-  integer :: irestart_factor ! multiplication factor of nplanes in 3D restart (default: 1)
   integer :: irestart_slice   ! field output timeslice from which to restart
   integer :: version_in  ! Version of restart file
   integer :: itaylor  ! equilibrium
@@ -191,7 +194,7 @@ module basic
   integer :: iread_ext_field
   integer :: isample_ext_field
   integer :: isample_ext_field_pol
-  integer :: iread_lp_source
+
   real :: scale_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
@@ -205,11 +208,6 @@ module basic
   integer :: igs_extend_p ! extend p past psi=1 using te and ne profiles
   integer :: igs_extend_diamag ! extend diamagnetic rotation past psi=1
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
-  integer :: igs_method  ! 1 = use node-based method (fastest, least accurate)
-                         ! 2 = use element-based method, and calculate p from
-                         !     input p profile (closest fit to input equil.)
-                         ! 3 = use element-based method, and calculate p from
-                         !     input p' profile (best gs solution)
   real :: xmag, zmag  ! position of magnetic axis
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
@@ -219,6 +217,8 @@ module basic
   real :: p1, p2
   real :: pedge       ! pressure in SOL
   real :: tedge       ! electron temperature in SOL
+  real :: tebound      ! boundary condition for electron temperature
+  real :: tibound      ! boundary condition for ion temperature
   real :: expn        ! density = pressure**expn
   real :: q0          ! safety factor at magnetic axis
   real :: th_gs       ! relaxation factor
@@ -258,8 +258,6 @@ module basic
                          ! 3 = zero out chi only
   integer :: iestatic    ! 1 = do not advance fields
   integer :: igauge
-  integer :: ivform      ! deprecated
-  integer :: ibform      ! 0: multiply bz equation by r^2
   integer :: ihypeta     ! 1 = scale hyper-resistivity with eta
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
                          ! >2 hyper-resistivity also scaled by keharmonic(ihypeta)
@@ -277,6 +275,7 @@ module basic
   integer :: no_vdg_T    ! 1 = do not include the V dot Grad(T) terms in temperature equation (for debug) 
   integer :: ibootstrap  ! bootstrap current model
   integer :: irunaway    ! runaway electron model
+  integer :: cre         ! runaway speed
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
@@ -293,6 +292,7 @@ module basic
   ! numerical parameters
   integer :: ntimemax    ! number of timesteps
   integer :: nskip       ! number of timesteps per matrix recalculation
+  integer :: pskip       ! number of timesteps per perconditioner recalculation
   integer :: iskippc     ! number of times preconditioner is reused
   integer :: iconstflux  ! 1 = conserve toroidal flux
   integer :: integrator  ! 0 = Crank-Nicholson, 1 = BDF2
@@ -378,13 +378,12 @@ module basic
   integer :: itimer        ! print timing info
   integer :: ntimepr       ! number of timesteps per output  
   integer :: ntimers       ! number of timesteps per restart output
-  integer :: iglobalout    ! 1 = write global restart files
-  integer :: iglobalin     ! 1 = read global restart files
   integer :: icalc_scalars ! 1 = calculate scalars
   integer :: ike_only      ! 1 = only calculate kinetic energy
   integer :: ike_harmonics  ! number of Fourier harmonics of ke to be calculated and output
   integer :: ibh_harmonics  ! number of Fourier harmonics of magnetic field perturbation to be calculated and output
   integer :: ifout         ! 1 = output f field
+  integer :: irestart_fp   ! -1 = default; 1 = fp present at restart; 0 = absent; 
   integer :: itemp_plot    ! 1 =output vdotgradt, deldotq_perp, deldotq_par,eta_jsq
   integer :: ibdgp         ! option to make partial plots of b dot grad potential
   integer :: iveldif         ! option to make partial plots of V x B - grad(potential)
@@ -405,10 +404,6 @@ module basic
   integer :: iheat_sink   !  add a sink term in p equation (initially for itaylor=27)
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
-  integer :: iwrite_restart ! 0 = don't write restart files
-  integer :: iwrite_adios
-  integer :: iread_adios
-  integer :: iread_hdf5
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
@@ -476,11 +471,11 @@ module arrays
   type(vector_type), target :: field_vec_pre
 
   ! Arrays containing external fields
-  type(field_type) :: psi_ext, bz_ext, bf_ext
+  type(field_type) :: psi_ext, bz_ext, bf_ext, bfp_ext
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
-  type(field_type) :: resistivity_field, kappa_field
+  type(field_type) :: resistivity_field, kappa_field, denm_field
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
@@ -502,16 +497,17 @@ module arrays
   integer, parameter :: ti_g = 10
   integer, parameter :: e_g = 11
   integer, parameter :: ne_g = 12
-  integer, parameter :: num_fields = 12
+  integer, parameter :: nre_g = 13
+  integer, parameter :: num_fields = 13
 
 
   type(field_type) :: u_field(0:1), vz_field(0:1), chi_field(0:1)
   type(field_type) :: psi_field(0:1), bz_field(0:1), pe_field(0:1)
   type(field_type) :: den_field(0:1), p_field(0:1), ne_field(0:1)
-  type(field_type) :: bf_field(0:1), e_field(0:1)
+  type(field_type) :: bf_field(0:1), bfp_field(0:1), e_field(0:1)
   type(field_type) :: te_field(0:1), ti_field(0:1)
   type(field_type) :: u_field_pre, psi_field_pre
-  type(field_type) :: nre_field  ! runaway electron density
+  type(field_type) :: nre_field(0:1)  ! runaway electron density
   type(field_type) :: wall_dist
 #ifdef USEPARTICLES
    type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
@@ -525,7 +521,7 @@ module arrays
   vectype, dimension(dofs_per_node) :: chi1_l, chi0_l
   vectype, dimension(dofs_per_node) :: psi1_l, psi0_l
   vectype, dimension(dofs_per_node) ::  bz1_l,  bz0_l
-  vectype, dimension(dofs_per_node) ::  bf1_l,  bf0_l
+  vectype, dimension(dofs_per_node) ::  bfp1_l,  bfp0_l
   vectype, dimension(dofs_per_node) ::  e1_l,  e0_l
   vectype, dimension(dofs_per_node) ::  pe1_l,  pe0_l
   vectype, dimension(dofs_per_node) :: den1_l, den0_l
@@ -534,6 +530,7 @@ module arrays
   vectype, dimension(dofs_per_node) ::  ti1_l,  ti0_l
   vectype, dimension(dofs_per_node) ::  qe1_l,  qe0_l
   vectype, dimension(dofs_per_node) ::  qi1_l,  qi0_l
+  vectype, dimension(dofs_per_node) :: nre1_l, nre0_l
 
 
 contains
@@ -560,6 +557,7 @@ contains
     call get_node_data(den_field(0), inode, den0_l)
     call get_node_data( te_field(0), inode,  te0_l)
     call get_node_data( ti_field(0), inode,  ti0_l)
+    call get_node_data(nre_field(0), inode, nre0_l)
     call get_node_data(  u_field(1), inode,   u1_l)
     call get_node_data( vz_field(1), inode,  vz1_l)
     call get_node_data(chi_field(1), inode, chi1_l)
@@ -570,6 +568,7 @@ contains
     call get_node_data(den_field(1), inode, den1_l)
     call get_node_data( te_field(1), inode,  te1_l)
     call get_node_data( ti_field(1), inode,  ti1_l)
+    call get_node_data(nre_field(1), inode, nre1_l)
 
   end subroutine get_local_vals
 
@@ -589,6 +588,7 @@ contains
     call set_node_data(den_field(0), inode, den0_l)
     call set_node_data( te_field(0), inode,  te0_l)
     call set_node_data( ti_field(0), inode,  ti0_l)
+    call set_node_data(nre_field(0), inode, nre0_l)
     call set_node_data(  u_field(1), inode,   u1_l)
     call set_node_data( vz_field(1), inode,  vz1_l)
     call set_node_data(chi_field(1), inode, chi1_l)
@@ -599,6 +599,7 @@ contains
     call set_node_data(den_field(1), inode, den1_l)
     call set_node_data( te_field(1), inode,  te1_l)
     call set_node_data( ti_field(1), inode,  ti1_l)
+    call set_node_data(nre_field(1), inode, nre1_l)
 
   end subroutine set_local_vals
 end module arrays
@@ -652,7 +653,7 @@ module sparse
   integer, parameter :: d7_mat_index = 36
   integer, parameter :: ppmatrix_lhs = 37
   integer, parameter :: br_mat_index = 38
-  integer, parameter :: bf_mat_rhs_index = 39
+  integer, parameter :: bfp_mat_rhs_index = 39
   integer, parameter :: dp_mat_lhs_index = 40
   integer, parameter :: mass_mat_rhs_index = 41
   integer, parameter :: rwpsi_mat_index = 42
@@ -680,7 +681,14 @@ module sparse
   integer, parameter :: wall_mat_index = 64
   integer, parameter :: kprad_lhs_index = 65
   integer, parameter :: kprad_rhs_index = 66
-  integer, parameter :: num_matrices = 66
+  integer, parameter :: s15_mat_index = 67
+  integer, parameter :: d15_mat_index = 68
+  integer, parameter :: r15_mat_index = 69
+  integer, parameter :: q15_mat_index = 70
+  integer, parameter :: k15_mat_index = 71
+  integer, parameter :: q43_mat_index = 72
+  integer, parameter :: r43_mat_index = 73
+  integer, parameter :: num_matrices = 73
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

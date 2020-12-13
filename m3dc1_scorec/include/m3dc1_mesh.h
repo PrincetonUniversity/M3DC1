@@ -25,7 +25,10 @@ int get_ent_ownpartid(apf::Mesh2* mesh, apf::MeshEntity* ent);
 apf::MeshEntity* get_ent_owncopy(apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_localid (apf::Mesh2* mesh, apf::MeshEntity* ent);
 int get_ent_globalid (apf::Mesh2* mesh, apf::MeshEntity* ent);
-// plane related stuffs should be put into model -- Fan
+
+int get_ent_global2ndadj (apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&,
+    std::vector<int>&, std::vector<int>&, std::vector<int>&);
+void get_ent_numglobaladj(apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&, std::vector<int>&);
 
 class m3dc1_mesh
 {
@@ -36,6 +39,7 @@ public:
   // functions
   void reset();
   void clean();
+  void remove_wedges();
   void build3d(int num_field, int* field_id, int* num_dofs_per_value); // old: setup3DMesh(pPart mesh, pGeomMdl model,int ifXYZ) in PlaneManager.h
   void initialize(); // to be called after initial mesh loading. old: updatemeshinfo_
   void update_partbdry(apf::MeshEntity** remote_vertices, apf::MeshEntity** remote_edges, 

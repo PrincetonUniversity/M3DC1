@@ -6,17 +6,18 @@ module model
   integer, allocatable :: global_dof_ids_1(:)
   integer, allocatable :: global_dof_ids_row(:), global_dof_ids_col(:)
 
-  type(vector_type), target :: q4_vec, r4_vec, qp4_vec, qn4_vec
+  type(vector_type), target :: q4_vec, r4_vec, qp4_vec, qn4_vec, qn5_vec
 
   ! matrices
   type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat
   type(matrix_type), target :: o1_mat, p1_mat
-  type(matrix_type), target :: q42_mat, r42_mat
+  type(matrix_type), target :: q42_mat, r42_mat, q43_mat, r43_mat
   type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat, o3_mat
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
   type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat, o9_mat
   type(matrix_type), target :: qp42_mat, rp42_mat
   type(matrix_type), target :: s11_mat, d11_mat, s12_mat, d12_mat
+  type(matrix_type), target :: s15_mat, d15_mat, r15_mat, q15_mat, k15_mat
 
   ! positions
   integer :: u_i, vz_i, chi_i
@@ -24,6 +25,7 @@ module model
   integer :: den_i, p_i
   integer :: bf_i, e_i
   integer :: te_i, ti_i
+  integer :: nre_i
 
 contains
 
@@ -42,6 +44,22 @@ subroutine get_den_mask(itri, imask)
   
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_den_mask
+
+subroutine get_nre_mask(itri, imask)
+  use element
+  use basic
+  use boundary_conditions
+  implicit none
+  integer, intent(in) :: itri
+  integer, intent(out), dimension(dofs_per_element) :: imask
+  integer :: ibound
+
+  ibound = 0
+  if(0.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
+  if(1.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
+end subroutine get_nre_mask
 
 subroutine get_temp_mask(itri, imask)
   use element
@@ -385,7 +403,7 @@ end subroutine boundary_vpol
 ! sets boundary conditions for magnetic fields
 ! and electron pressure 
 !=======================================================
-subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
+subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
   use math
   use basic
   use field
@@ -396,7 +414,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
   implicit none
   
   type(vector_type), intent(inout) :: rhs
-  type(field_type) :: psi_v, bz_v, bf_v, e_v
+  type(field_type) :: psi_v, bz_v, bfp_v, e_v
   type(matrix_type), optional :: mat
 
   vectype, dimension(dofs_per_node) :: temp !, temp2, temp3
@@ -418,7 +436,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      if(numvar.ge.2) i_bz = node_index(bz_v, i)
 !     if(numvar.ge.3 .and. ipressplit.eq.0) i_pe = node_index(pe_v, i)
      if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) i_e = node_index(e_v, i)
-     if(imp_bf.eq.1) i_bf = node_index(bf_v, i)
+     if(imp_bf.eq.1) i_bf = node_index(bfp_v, i)
 
      ! constant normal field = -t.grad(psi)/R - n.grad(f')
      if(iconst_bn.eq.1) then
@@ -463,6 +481,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bf_v, e_v, mat)
      else if(iconst_bz.eq.1 .and. numvar.ge.2) then
         call get_node_data(bz_field(1), i, temp)
         if(idiff .gt. 0) temp = 0
+        temp(1) = temp(1) + dt*vloopRZ
         call set_dirichlet_bc(i_bz,rhs,temp,normal,curv,izonedim,mat)
      endif
 
@@ -537,6 +556,58 @@ subroutine boundary_den(rhs, den_v, mat)
 end subroutine boundary_den
 
 !=======================================================
+! boundary_nre
+! ~~~~~~~~~~~~
+!
+! sets boundary conditions for RE
+!=======================================================
+subroutine boundary_nre(rhs, nre_v, mat)
+  use basic
+  use field
+  use arrays
+  use matrix_mod
+  use boundary_conditions
+  implicit none
+
+  type(vector_type) :: rhs
+  type(field_type) :: nre_v
+  type(matrix_type), optional :: mat
+
+  integer :: i, izone, izonedim, numnodes, icounter_t
+  real :: normal(2), curv, x,z, phi
+  logical :: is_boundary
+  vectype, dimension(dofs_per_node) :: temp
+
+  integer :: i_n
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_nre called"
+
+  numnodes = owned_nodes()
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
+          all_boundaries)
+     if(.not.is_boundary) cycle
+
+     i_n = node_index(nre_v, i)
+
+     if(0.eq.1) then
+        temp = 0.
+        call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+     end if
+     if(1.eq.1) then
+        call get_node_data(nre_field(1), i, temp)
+        if(idiff .gt. 0) temp = 0.   ! this is for change in density from n to n+1
+        call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+     end if
+
+  end do
+
+end subroutine boundary_nre
+
+
+!=======================================================
 ! boundary_te
 ! ~~~~~~~~~~~
 !
@@ -556,7 +627,7 @@ subroutine boundary_te(rhs, te_v, mat)
   
   integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z, phi
-  logical :: is_boundary
+  logical :: is_boundary, is_inner
   vectype, dimension(dofs_per_node) :: temp, temp2, temp3
 
   integer :: i_n
@@ -570,7 +641,9 @@ subroutine boundary_te(rhs, te_v, mat)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
-
+     call boundary_node(i,is_inner,izone,izonedim,normal,curv,x,phi,z, &
+          inner_wall)
+     
      i_n = node_index(te_v, i)
 
      if(inograd_t.eq.1) then
@@ -578,7 +651,12 @@ subroutine boundary_te(rhs, te_v, mat)
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
      if(iconst_t.eq.1) then
-        call get_node_data(te_field(1), i, temp)
+        if((tebound.gt.0.) .and. is_inner) then
+           temp = 0.
+           temp(1) = tebound
+        else
+           call get_node_data(te_field(1), i, temp)
+        end if
 
         if(idiff .gt. 0) temp = 0.
 
@@ -624,7 +702,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   
   integer :: i, izone, izonedim, numnodes, icounter_t
   real :: normal(2), curv, x,z, phi
-  logical :: is_boundary
+  logical :: is_boundary, is_inner
   vectype, dimension(dofs_per_node) :: temp, temp2, temp3
 
   integer :: i_n
@@ -638,7 +716,9 @@ subroutine boundary_ti(rhs, ti_v, mat)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           all_boundaries)
      if(.not.is_boundary) cycle
-
+     call boundary_node(i,is_inner,izone,izonedim,normal,curv,x,phi,z, &
+          inner_wall)
+     
      i_n = node_index(ti_v, i)
 
      if(inograd_t.eq.1) then
@@ -646,7 +726,12 @@ subroutine boundary_ti(rhs, ti_v, mat)
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
      if(iconst_t.eq.1 .or. iconst_p.eq.1) then
-        call get_node_data(ti_field(1), i, temp)
+        if((tibound.gt.0.) .and. is_inner) then
+           temp = 0.
+           temp(1) = tibound
+        else
+           call get_node_data(ti_field(1), i, temp)
+        end if
 
         if(idiff .gt. 0) temp = 0.
 

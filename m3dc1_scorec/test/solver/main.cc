@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2016 Scientific Computation Research Center, 
+  (c) 2005-2020 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -8,13 +8,14 @@
  
 *******************************************************************************/
 #include "m3dc1_scorec.h"
-#include "m3dc1_scorec.h"
+#include "name_convert.h"
 #include "pumi.h"
 #include <iostream>
 #include <assert.h>
 #include "m3dc1_mesh.h" // debugging purpose
 #include <parma.h>
 #include "PCU.h"
+#include "apfMDS.h"
 #include "petscksp.h"
 #include <iostream>
 #include <assert.h>
@@ -147,13 +148,60 @@ int main( int argc, char** argv)
   //int three=3;
   //m3dc1_mesh_write("geoId", &three);
 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   printStats(m3dc1_mesh::instance()->mesh);
+  int ent_dim=2;
   if (num_plane>1)
   {
     int zero=0;
+    ent_dim=3;
     m3dc1_mesh_build3d(&zero, &zero, &zero);
   }
+ 
+  int num_ent = (m3dc1_mesh::instance()->mesh->count(3))? 
+               m3dc1_mesh::instance()->mesh->count(3):m3dc1_mesh::instance()->mesh->count(2);
+  num_ent/=2;
+  int* ent_id = new int[num_ent];
+  int* num_adj_ent=new int[num_ent];
 
+  // M3DC1 assumption - local ID is continuous 
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(ent_dim);
+  int cnt=0;
+  while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
+  {
+    ent_id[cnt] = apf::getMdsIndex(m, e);
+    cnt++;
+    if (cnt==num_ent) break;
+  }
+  m->end(it);
+
+  m3dc1_ent_getnumglobaladj (&ent_dim, ent_id, &num_ent, &ent_dim, num_adj_ent);
+
+/*
+  int adj_cnt=(m3dc1_mesh::instance()->mesh->count(3))? 5:3;
+  int count=0, down_size;  
+  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(ent_dim);
+  while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
+  {
+    if (num_adj_ent[count]!=adj_cnt)
+    {
+      std::cout<<"(p"<<PCU_Comm_Self()<<") # adj element of elem "<<count<<" = "<<num_adj_ent[count]<<"\n";
+      apf::Downward downward;
+      down_size = m3dc1_mesh::instance()->mesh->getDownward(e, ent_dim-1, downward);
+
+      for (int i=0; i<down_size; ++i)
+      {
+        down_e = downward[i];
+       // if (m3dc1_mesh::instance()->mesh->isShared(down_e)) 
+       //   std::cout<<"(p"<<PCU_Comm_Self()<<") downward "<<i<<" is on part bdry\n";
+      }
+    }
+    count++;
+  } 
+  m3dc1_mesh::instance()->mesh->end(it);
+    //MPI_Barrier(MPI_COMM_WORLD) ;
+*/
   int num_layer=2;
   m3dc1_ghost_create(&num_layer);
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
@@ -223,8 +271,8 @@ int main( int argc, char** argv)
           m3dc1_ent_getgeomclass (&adj_dim, nodes+i, &geom_class_dim, &geom_class_id);
           m3dc1_node_getnormvec(nodes+i, normal1);
           m3dc1_node_getcurv(nodes+i,&curv1);
-          if (geom_class_dim==0)
-             cout<<"* node classified on geometric vertex with normal "<<normal1[0]<<" "<<normal1[1]<<" curv "<<curv1<<endl;
+//          if (geom_class_dim==0)
+//             cout<<"* node classified on geometric vertex with normal "<<normal1[0]<<" "<<normal1[1]<<" curv "<<curv1<<endl;
 
           m3dc1_node_isongeombdry(nodes+i+3, &is_bdy);
           assert(is_bdy);
@@ -243,16 +291,9 @@ int main( int argc, char** argv)
 //  m3dc1_matrix_print(&matrix_mult);
 //  pumi_sync();
 
-  t6 = MPI_Wtime();
-  m3dc1_matrix_reset(&matrix_mult);
-  m3dc1_matrix_reset(&matrix_solve);
-  t7 = MPI_Wtime();
-
   if(!PCU_Comm_Self())
     cout<<"* time: fill matrix "<<t2-t1<<" assemble "<<t3-t2<<" mult "<<t4-t3
-        <<" solve "<<t5-t4<<" reset "<<t7-t6<<endl; 
-
-  test_matrix(matrix_mult, matrix_solve);
+        <<" solve "<<t5-t4<<endl; 
 
   m3dc1_matrix_delete(&matrix_mult);
   m3dc1_matrix_delete(&matrix_solve);

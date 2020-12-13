@@ -1,5 +1,5 @@
-FOPTS = $(OPTS) -DPETSC_VERSION=37 -c -r8 -implicitnone -fpp -warn all -DLATESTSCOREC -DUSEBLAS
-# FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
+FOPTS = $(OPTS) -DPETSC_VERSION=37 -c -r8 -implicitnone -fpp -warn all -DUSEBLAS
+# FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DUSEPARTICLES
 CCOPTS  = -c -DPETSC_VERSION=37
 
 ifeq ($(OPT), 1)
@@ -49,20 +49,17 @@ PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
 HYPRE_LIB=-lHYPRE
 endif
 
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015u1-openmpi1.10.3/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/$(PETSCVER)/lib -lzoltan
+ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 
-ifeq ($(REORDERED), 1)
-  SCORECVER=reordered
-endif
-PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
 ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)/$(SCORECVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
 ifeq ($(COM), 1)
@@ -90,6 +87,7 @@ LIBS = 	\
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
+        -I$(PUMI_DIR)/include -I$(SCOREC_DIR)/include \
         -I$(HDF5_HOME)/include \
         -I$(GSL_HOME)/include
 

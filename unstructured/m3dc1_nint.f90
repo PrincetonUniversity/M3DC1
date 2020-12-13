@@ -75,6 +75,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_KIN  =33554432
   integer, parameter :: FIELD_RE   =67108864 
   integer, parameter :: FIELD_WALL =134217728  ! 2^27
+  integer, parameter :: FIELD_DENM =268435456  ! 2^28
 
 ! NOTE: All element-specific variables should be declared OMP THREADPRIVATE
 
@@ -100,21 +101,25 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
   vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
-       eta79, sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79
-!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79)
+       eta79, etaRZ79,sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79, sir79
+!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,etaRZ79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79,sir79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: bfp079, bfp179, bfpt79
+!$OMP THREADPRIVATE(bfp079,bfp179,bfpt79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
 !$OMP THREADPRIVATE(bf079,bf179,bft79)
   vectype, dimension(MAX_PTS, OP_NUM) :: kap79, kar79, kax79
 !$OMP THREADPRIVATE(kap79,kar79,kax79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: denm79
+!$OMP THREADPRIVATE(denm79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ps079, bz079, pe079, n079, &
        ph079, vz079, ch079, p079, ne079, pi079
 !$OMP THREADPRIVATE(ps079,bz079,pe079,n079,ph079,vz079,ch079,p079,ne079,pi079)
   vectype, dimension(MAX_PTS, OP_NUM) :: pss79, bzs79
 !$OMP THREADPRIVATE(pss79,bzs79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfx79, psc79
-!$OMP THREADPRIVATE(bzx79,psx79,bfx79,psc79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bftx79
-!$OMP THREADPRIVATE(pstx79,bztx79,bftx79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: bzx79, psx79, bfpx79, bfx79, psc79
+!$OMP THREADPRIVATE(bzx79,psx79,bfpx79,bfx79,psc79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: pstx79, bztx79, bfptx79, bftx79
+!$OMP THREADPRIVATE(pstx79,bztx79,bfptx79,bftx79)
   vectype, dimension(MAX_PTS, OP_NUM) :: te179, te079, tet79
 !$OMP THREADPRIVATE(te179,te079,tet79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ti179, ti079, tit79
@@ -123,8 +128,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(q179,q079,qt79,qe079,qet79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ppar79, pper79
 !$OMP THREADPRIVATE(ppar79,pper79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: nre79
-!$OMP THREADPRIVATE(nre79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: nre079, nre179
+!$OMP THREADPRIVATE(nre079,nre179)
   vectype, dimension(MAX_PTS, OP_NUM) :: wall79
 !$OMP THREADPRIVATE(wall79)
   vectype, dimension(MAX_PTS) :: qd79
@@ -593,20 +598,24 @@ contains
           call eval_ops(itri, bz_ext, bzx79, rfac)
 #if defined(USECOMPLEX) || defined(USE3D)    
           call eval_ops(itri, bf_ext, bfx79, rfac)
+          call eval_ops(itri, bfp_ext, bfpx79, rfac)
 #endif
        else
           bzx79 = 0.
           bfx79 = 0.
+          bfpx79 = 0.
        endif
  
        if(ilin.eq.0) then
           call eval_ops(itri, bz_field(1), bz179, rfac)
 #if defined(USECOMPLEX) || defined(USE3D)    
           call eval_ops(itri, bf_field(1), bf179, rfac)
+          call eval_ops(itri, bfp_field(1), bfp179, rfac)
 #endif
        else
           bz179 = 0.
           bf179 = 0.
+          bfp179 = 0.
        endif
        
        if(ieqsub.eq.1) then
@@ -617,6 +626,8 @@ contains
 #if defined(USECOMPLEX) || defined(USE3D)
           call eval_ops(itri, bf_field(0), bf079)
           bft79 = bf079 + bf179
+          call eval_ops(itri, bfp_field(0), bfp079)
+          bfpt79 = bfp079 + bfp179
 #endif
        else
           bz079 = 0.
@@ -626,12 +637,15 @@ contains
 #if defined(USECOMPLEX) || defined(USE3D)
           bf079 = 0.
           bft79 = bf179
+          bfp079 = 0.
+          bfpt79 = bfp179
 #endif
        endif
 
        bztx79 = bzt79 + bzx79
 #if defined(USECOMPLEX) || defined(USE3D)
        bftx79 = bft79 + bfx79
+       bfptx79 = bfpt79 + bfpx79
 #endif
 
        if(numvar.eq.1) bzs79 = bzt79
@@ -766,6 +780,7 @@ contains
           ne079 = 0.
           net79 = ne179
        endif
+
     endif
 
   ! NI
@@ -935,9 +950,9 @@ contains
 
 #if defined(USECOMPLEX) || defined(USE3D)
      temp79b = &
-          (bftx79(:,OP_DRP)**2 + bftx79(:,OP_DZP)**2) &
+          (bfptx79(:,OP_DR)**2 + bfptx79(:,OP_DZ)**2) &
           + 2.*ri_79* &
-          (pstx79(:,OP_DZ)*bftx79(:,OP_DRP) - pstx79(:,OP_DR)*bftx79(:,OP_DZP))
+          (pstx79(:,OP_DZ)*bfptx79(:,OP_DR) - pstx79(:,OP_DR)*bfptx79(:,OP_DZ))
 
      b2i79(1:npoints,OP_1 ) = 1./(temp79a(1:npoints) + temp79b(1:npoints))
 #else
@@ -957,23 +972,23 @@ contains
 
 #if defined(USECOMPLEX) || defined(USE3D)
      b2i79(:,OP_DR) = b2i79(:,OP_DR) + ri_79* &
-          (pstx79(:,OP_DZ )*bftx79(:,OP_DRRP) &
-          -pstx79(:,OP_DR )*bftx79(:,OP_DRZP) &
-          +pstx79(:,OP_DRZ)*bftx79(:,OP_DRP ) &
-          -pstx79(:,OP_DRR)*bftx79(:,OP_DZP ))&
-          +bftx79(:,OP_DRRP)*bftx79(:,OP_DRP) &
-          +bftx79(:,OP_DRZP)*bftx79(:,OP_DZP)
+          (pstx79(:,OP_DZ )*bfptx79(:,OP_DRR) &
+          -pstx79(:,OP_DR )*bfptx79(:,OP_DRZ) &
+          +pstx79(:,OP_DRZ)*bfptx79(:,OP_DR ) &
+          -pstx79(:,OP_DRR)*bfptx79(:,OP_DZ ))&
+          +bfptx79(:,OP_DRR)*bfptx79(:,OP_DR) &
+          +bfptx79(:,OP_DRZ)*bfptx79(:,OP_DZ)
      b2i79(:,OP_DZ) = b2i79(:,OP_DZ) + ri_79* &
-          (pstx79(:,OP_DZ )*bftx79(:,OP_DRZP) &
-          -pstx79(:,OP_DR )*bftx79(:,OP_DZZP) &
-          +pstx79(:,OP_DZZ)*bftx79(:,OP_DRP ) &
-          -pstx79(:,OP_DRZ)*bftx79(:,OP_DZP ))&
-          +bftx79(:,OP_DRZP)*bftx79(:,OP_DRP) &
-          +bftx79(:,OP_DZZP)*bftx79(:,OP_DZP)
+          (pstx79(:,OP_DZ )*bfptx79(:,OP_DRZ) &
+          -pstx79(:,OP_DR )*bfptx79(:,OP_DZZ) &
+          +pstx79(:,OP_DZZ)*bfptx79(:,OP_DR ) &
+          -pstx79(:,OP_DRZ)*bfptx79(:,OP_DZ ))&
+          +bfptx79(:,OP_DRZ)*bfptx79(:,OP_DR) &
+          +bfptx79(:,OP_DZZ)*bfptx79(:,OP_DZ)
 
      if(itor.eq.1) then
         b2i79(:,OP_DR) = b2i79(:,OP_DR) - ri2_79* &
-          (pstx79(:,OP_DZ)*bftx79(:,OP_DRP) - pstx79(:,OP_DR)*bftx79(:,OP_DZP))
+          (pstx79(:,OP_DZ)*bfptx79(:,OP_DR) - pstx79(:,OP_DR)*bfptx79(:,OP_DZ))
      endif
 #endif
 
@@ -992,13 +1007,15 @@ contains
      else if(izone.eq.2) then
         eta79 = 0.
         eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79)
+        etaRZ79 = 0
+        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79)
      else 
         if(iresfunc.eq.2) then
            if(linear.eq.1) then
               tm79 = ((ps079-psimin)/(psibound-psimin) - etaoff) / etadelt
            else
               tm79 = ((pst79-psimin)/(psibound-psimin) - etaoff) / etadelt
-           endif
+           end if
            eta79 = 0.
            eta79(:,OP_1 )  = 1. + tanh(real(tm79(:,OP_1)))
            eta79(:,OP_DR)  = sech(real(tm79(:,OP_1)))**2 * tm79(:,OP_DR)
@@ -1096,11 +1113,21 @@ contains
         end if
 
         where(eta79.ne.eta79) eta79 = 0.
-        where(real(eta79(:,OP_1)).lt.0.) eta79(:,OP_1) = 0.
+        where(real(eta79(:,OP_1)).lt.eta_min) eta79(:,OP_1) = eta_min
         where(real(eta79(:,OP_1)).gt.eta_max) eta79(:,OP_1) = eta_max
      end if
 
   end if
+
+  ! denm
+  ! ~~~~
+  if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
+
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   denm..."
+     
+     call eval_ops(itri, denm_field, denm79)
+  end if
+
 
   ! KAP
   ! ~~~
@@ -1341,11 +1368,32 @@ contains
 
     ! Runaway Electron Density
     ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-    if((iand(fields, FIELD_RE).eq.FIELD_RE)   &
-        .and. irunaway.gt.0) then
+    if((iand(fields, FIELD_RE).eq.FIELD_RE) .and. irunaway.gt.0) then
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   RE density..."
        
-       call eval_ops(itri, nre_field, nre79)
+       if(ilin.eq.0) then 
+         call eval_ops(itri, nre_field(1), nre179, rfac)
+       else
+         nre179 = 0.
+       endif
+       if(ieqsub.eq.1) then
+          if(idenfunc.eq.3) then
+             if(izone.gt.1) then
+                nre079(:,OP_1) = 0. 
+             else
+                temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+                temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
+                     +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+                where(real(temp79a).ge.denoff .and. real(temp79b).le.0.)
+                   nre079(:,OP_1) = 0.
+                end where
+             end if
+          else
+             call eval_ops(itri, nre_field(0), nre079)
+          end if
+       else
+          nre079 = 0.
+       endif
     endif
 
     ! Wall dist field

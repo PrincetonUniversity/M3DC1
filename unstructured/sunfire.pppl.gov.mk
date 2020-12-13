@@ -1,6 +1,5 @@
-FOPTS = $(OPTS) -DPETSC_VERSION=37 -c -r8 -implicitnone -fpp -warn all -DLATESTSCOREC -DUSEBLAS
-# FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DLATESTSCOREC -DUSEPARTICLES
-CCOPTS  = -c -DPETSC_VERSION=37
+FOPTS = $(OPTS) -DPETSC_VERSION=39 -c -r8 -implicitnone -fpp -warn all -DUSEBLAS
+CCOPTS  = -c -DPETSC_VERSION=39
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec
@@ -36,33 +35,27 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 #HYBRID_HOME = /p/swim/jchen/hybrid.test
 #HYBRID_HOME = /u/iyamazak/release/v2/hybrid.test
 #HYBRID_LIBS = -L$(HYBRID_HOME)/lib -lhsolver
-PETSC_VER=petsc-3.7.6
-PETSCVER=petsc3.7.6
+PETSC_VER=petsc-3.9.3
+PETSCVER=petsc3.9.3
 
-PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$(PETSC_VER)
+PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/$(PETSC_VER)
 
 ifeq ($(COM), 1)
-PETSC_ARCH=cplx-intel2015-openmpi1.10.3-gcc4.4.7
-HYPRE_LIB=
+PETSC_ARCH=cplx-intel2019u3-openmpi4.0.1
 else
-PETSC_ARCH=real-intel2015-openmpi1.10.3-gcc4.4.7
-HYPRE_LIB=-lHYPRE
+PETSC_ARCH=real-intel2019u3-openmpi4.0.1
 endif
 
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2015-openmpi1.10.3-gcc4.4.7
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/intel2019u3-openmpi4.0.1/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/$(PETSCVER)/lib -lzoltan
 
-ifeq ($(REORDERED), 1)
-  SCORECVER=reordered
-endif
-PUMI_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
 ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)/$(SCORECVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(PETSCVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
 ifeq ($(COM), 1)
@@ -75,22 +68,17 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
 
-COMP_LIB_DIR=/usr/pppl/intel/2015.u1/composer_xe_2015.1.133/compiler/lib/intel64
-MPI_LIB_DIR=/usr/pppl/intel/2015-pkgs/openmpi-1.10.3/lib
-GCC_HOME=/usr/lib/gcc/x86_64-redhat-linux/4.4.7
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,/usr/pppl/intel/2019-pkgs/openmpi-4.0.1-pkgs/scalapack-2.0.2/lib -L/usr/pppl/intel/2019-pkgs/openmpi-4.0.1-pkgs/scalapack-2.0.2/lib -L/usr/pppl/intel/2019-pkgs/openmpi-4.0.1/lib -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/mpi/intel64/libfabric/lib -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/ipp/lib/intel64 -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/compiler/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/mkl/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/tbb/lib/intel64/gcc4.4 -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/daal/lib/intel64_lin -L/usr/pppl/intel/2019.u3/compilers_and_libraries_2019.3.199/linux/tbb/lib/intel64_lin/gcc4.4 -L/usr/lib/gcc/x86_64-redhat-linux/4.4.7 -Wl,-rpath,/usr/pppl/intel/2019-pkgs/openmpi-4.0.1/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -ldl -lstdc++ -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lpthread -lgcc_s -lirc_s -ldl -lstdc++
 
-PETSC_LIBS =-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_LIB_DIR) -L$(COMP_LIB_DIR) -L$(GCC_HOME) -Wl,-rpath,$(MPI_LIB_DIR) -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lsuperlu $(HYPRE_LIB) -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhwloc -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lifport -lifcore -lmpi_cxx -lintlc -ldl -lstdc++ -L$(MPI_LIB_DIR) -lmpi -L$(COMP_LIB_DIR) -L$(GCC_HOME) -Wl,-rpath,$(MPI_LIB_DIR) -limf -lsvml -lirng -lm -lipgo -ldecimal -lcilkrts -lgcc_s -lirc -lpthread -lirc_s -L$(COMP_LIB_DIR) -L$(GCC_HOME) -ldl -lstdc++
+HDF5_HOME=$(PETSC_DIR)/$(PETSC_ARCH)
 
-LIBS = 	\
-	$(SCOREC_LIB) \
-        $(ZOLTAN_LIB) \
-        $(PETSC_LIBS) \
+LIBS = 	$(SCOREC_LIB) \
+        $(PETSC_WITH_EXTERNAL_LIB) \
         -L$(HDF5_HOME)/lib  -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 \
 	-L$(GSL_HOME)/lib -lgsl -lgslcblas 
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-        -I$(HDF5_HOME)/include \
         -I$(GSL_HOME)/include
 
 %.o : %.c

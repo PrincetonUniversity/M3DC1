@@ -10,6 +10,7 @@ BUILD_ROOT=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
 ZOLTAN_DIR=$BUILD_ROOT
 PREFIX=$BUILD_ROOT
 #add -DPETSCMASTER for petsc 3.8.3 or higher
+#module load intel/18.0/64/18.0.3.222  intel-mpi/intel/2018.3/64
 cmake3 .. \
   -DCMAKE_C_COMPILER="mpicc" \
   -DCMAKE_CXX_COMPILER="mpicxx" \

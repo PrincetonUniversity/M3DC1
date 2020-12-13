@@ -3,6 +3,8 @@ module restart_hdf5
 
   integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
   integer, private :: ikprad_in, kprad_z_in, ipellet_in
+  real, private, allocatable :: phi_in(:)
+
 contains
   
   subroutine rdrestart_hdf5()
@@ -19,7 +21,7 @@ contains
     include 'mpif.h'
 
     integer :: error
-    integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id
+    integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id, mesh_id
     character(LEN=19) :: time_group_name
 
     integer :: times_output_in, i3d_in, istartnew, i
@@ -70,9 +72,21 @@ contains
     
     call read_int_attr(root_id, "eqsubtract", eqsubtract_in, error)
     call read_int_attr(root_id, "icomplex", icomplex_in, error)
-    call read_int_attr(root_id, "nplanes", nplanes_in, error)
-
     call read_int_attr(root_id, "3d", i3d_in, error)
+
+    call h5gopen_f(time_id, "mesh", mesh_id, error)
+    call read_int_attr(mesh_id, "nplanes", nplanes_in, error)
+
+    if(version_in.ge.34 .and. i3d_in.eq.1) then
+       allocate(phi_in(nplanes_in))
+       call read_vec_attr(mesh_id, "phi", phi_in, nplanes_in, error)
+       if(myrank.eq.0) then
+          print *, 'Read phi_in = ', phi_in
+       end if
+    end if
+
+    call h5gclose_f(mesh_id, error)
+
     if(i3d_in.eq.1 .or. icomplex_in.eq.1) then
        ifin = 1
        if(i3d.eq.0) then
@@ -83,6 +97,14 @@ contains
           call h5gclose_f(root_id, error)
           call safestop(1)
        end if
+       ! check if fp is present
+       if(version_in.ge.35 .and. numvar.gt.1) then
+          irestart_fp = 1
+          if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is present at restart"
+       else
+          irestart_fp = 0
+          if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is absent at restart"
+       endif
     else
        ifin = 0
     end if
@@ -114,68 +136,75 @@ contains
     call read_scalar(scalar_group_id, "znull"       , znullt   , ntime, error)
     call read_scalar(scalar_group_id, "xnull2"      , xnull2t  , ntime, error)
     call read_scalar(scalar_group_id, "znull2"      , znull2t  , ntime, error)
-    call read_scalar(scalar_group_id, "xmag"        , xmag    , ntime, error)
-    call read_scalar(scalar_group_id, "zmag"        , zmag    , ntime, error)
+    call read_scalar(scalar_group_id, "xmag"        , xmag     , ntime, error)
+    call read_scalar(scalar_group_id, "zmag"        , zmag     , ntime, error)
+    call read_scalar(scalar_group_id, "psi_lcfs"    , psibound , ntime, error)
+    call read_scalar(scalar_group_id, "psimin"      , psimin   , ntime, error)
 
     if(mod_null_rs .eq.0) then
-      xnull = xnullt
-      znull = znullt
+       xnull = xnullt
+       znull = znullt
     endif
     if(mod_null_rs2 .eq.0) then
-      xnull2 = xnull2t
-      znull2 = znull2t
+       xnull2 = xnull2t
+       znull2 = znull2t
     endif
-
-    ! Pellet stuff
-    if(version_in.le.30) then
-       ! pellets are scalars
-       npellets = 1
-       if(version_in.le.25) then
-          call read_scalar(scalar_group_id, "pellet_x",       pellet_r(1),      ntime, error)
+   
+    if(ipellet.ne.0) then
+       ! Pellet stuff
+       if(version_in.le.30) then
+          ! pellets are scalars
+          npellets = 1
+          if(version_in.le.25) then
+             call read_scalar(scalar_group_id, "pellet_x",       pellet_r(1),      ntime, error)
+          else
+             call read_scalar(scalar_group_id, "pellet_r",       pellet_r(1),      ntime, error)
+          end if
+          call read_scalar(scalar_group_id, "pellet_phi",     pellet_phi(1),    ntime, error)
+          call read_scalar(scalar_group_id, "pellet_z",       pellet_z(1),      ntime, error)
+          if(version_in.le.25) then
+             call read_scalar(scalar_group_id, "pellet_velx",    pellet_velr(1),   ntime, error)
+          else
+             call read_scalar(scalar_group_id, "pellet_velr",    pellet_velr(1),   ntime, error)
+          end if
+          call read_scalar(scalar_group_id, "pellet_velphi",  pellet_velphi(1), ntime, error)
+          call read_scalar(scalar_group_id, "pellet_velz",    pellet_velz(1),   ntime, error)
+          if(version_in.ge.26) then
+             call read_scalar(scalar_group_id, "pellet_vx",    pellet_vx(1),   ntime, error)
+             call read_scalar(scalar_group_id, "pellet_vy",    pellet_vy(1),   ntime, error)
+          end if
+          call read_scalar(scalar_group_id, "pellet_var",     pellet_var(1),    ntime, error)
+          call read_scalar(scalar_group_id, "r_p",            r_p(1),           ntime, error)
+          call read_scalar(scalar_group_id, "pellet_rate",    pellet_rate(1),   ntime, error)
        else
-          call read_scalar(scalar_group_id, "pellet_r",       pellet_r(1),      ntime, error)
+          ! pellets are arrays
+          call read_int_attr(root_id, "ipellet", ipellet_in,  error)
+          if(ipellet_in.ne.0) then
+             call read_int_attr(root_id, "npellets", npellets,  error)
+             call h5gopen_f(root_id, "pellet", pel_group_id, error)
+             
+             call read_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
+             call read_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+             if(version_in.ge.33) then
+                call read_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
+             end if
+             call h5gclose_f(pel_group_id, error)
+          end if
        end if
-       call read_scalar(scalar_group_id, "pellet_phi",     pellet_phi(1),    ntime, error)
-       call read_scalar(scalar_group_id, "pellet_z",       pellet_z(1),      ntime, error)
-       if(version_in.le.25) then
-          call read_scalar(scalar_group_id, "pellet_velx",    pellet_velr(1),   ntime, error)
-       else
-          call read_scalar(scalar_group_id, "pellet_velr",    pellet_velr(1),   ntime, error)
-       end if
-       call read_scalar(scalar_group_id, "pellet_velphi",  pellet_velphi(1), ntime, error)
-       call read_scalar(scalar_group_id, "pellet_velz",    pellet_velz(1),   ntime, error)
-       if(version_in.ge.26) then
-          call read_scalar(scalar_group_id, "pellet_vx",    pellet_vx(1),   ntime, error)
-          call read_scalar(scalar_group_id, "pellet_vy",    pellet_vy(1),   ntime, error)
-       end if
-       call read_scalar(scalar_group_id, "pellet_var",     pellet_var(1),    ntime, error)
-       call read_scalar(scalar_group_id, "r_p",            r_p(1),           ntime, error)
-       call read_scalar(scalar_group_id, "pellet_rate",    pellet_rate(1),   ntime, error)
-    else
-       ! pellets are arrays
-       call read_int_attr(root_id, "ipellet", ipellet_in,  error)
-       if(ipellet_in.ne.0) then
-          call read_int_attr(root_id, "npellets", npellets,  error)
-          call h5gopen_f(root_id, "pellet", pel_group_id, error)
-          
-          call read_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
-          call read_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
-          call h5gclose_f(pel_group_id, error)
-       end if
-    end if
+    endif
 
     ! Only read vloop if Ip is under current control
     if(control_type.ne.-1) then
@@ -241,6 +270,8 @@ contains
        if(eqsubtract.eq.0) then
          psi_field(0) = psi_field(1)
          psi_field(1) = 0.
+         nre_field(0) = nre_field(1)
+         nre_field(1) = 0.
          u_field(0) = u_field(1)
          u_field(1) = 0.
        endif
@@ -248,16 +279,21 @@ contains
        if(eqsubtract.eq.0) then
          call add_field_to_field(psi_field(1),psi_field(0))
          psi_field(0) = 0.
+         call add_field_to_field(nre_field(1),nre_field(0))
+         nre_field(0) = 0.
          call add_field_to_field(u_field(1),u_field(0))
          u_field(0) = 0.
        endif
     end if
+
+    if(allocated(phi_in)) deallocate(phi_in)
   end subroutine rdrestart_hdf5
 
 
   subroutine read_fields(time_group_id, equilibrium, error)
     use basic
     use hdf5
+    use h5lt
     use mesh_mod
     use field
     use arrays
@@ -278,15 +314,14 @@ contains
     error = 0
     call hdf5_get_local_elms(nelms, error)
 
-    if(nplanes.ne.nplanes_in) then
-       if(myrank.eq.0) print *, '3D gloabl_nelms: ', global_elms
-       global_elms = global_elms * nplanes_in / nplanes
-       if(myrank.eq.0) print *, '2D global_nelms: ', global_elms
-       offset = modulo(offset, global_elms)
-    end if
+!    if(nplanes.ne.nplanes_in) then
+!       if(myrank.eq.0) print *, '3D gloabl_nelms: ', global_elms
+!       global_elms = global_elms * nplanes_in / nplanes
+!       if(myrank.eq.0) print *, '2D global_nelms: ', global_elms
+!       offset = modulo(offset, global_elms)
+!    end if
 
     call h5gopen_f(time_group_id, "fields", group_id, error)
-
 
     call h5r_read_field(group_id, "I",    bz_field(ilin), nelms, error)
 
@@ -295,6 +330,9 @@ contains
 
     call h5r_read_field(group_id, "V",    vz_field(ilin), nelms, error)
     call h5r_read_field(group_id, "chi", chi_field(ilin), nelms, error)
+    if(irunaway.gt.0) then
+      call h5r_read_field(group_id, "nre", nre_field(ilin), nelms, error)
+    endif
 
     if(icsubtract.eq.1) then
        call h5r_read_field(group_id, "psi_coil", psi_coil_field, nelms, error, .true.)
@@ -312,10 +350,16 @@ contains
        if(ifin.eq.1) then
           call h5r_read_field(group_id, "f_plasma", bf_field(ilin), nelms, error)
        end if
+       if(irestart_fp.eq.1) then
+          call h5r_read_field(group_id, "fp_plasma", bfp_field(ilin), nelms, error)
+       end if
     else
        call h5r_read_field(group_id, "I", bz_field(ilin), nelms, error)
        if(ifin.eq.1) then
           call h5r_read_field(group_id, "f", bf_field(ilin), nelms, error)
+       end if
+       if(irestart_fp.eq.1) then
+          call h5r_read_field(group_id, "fp", bfp_field(ilin), nelms, error)
        end if
     end if
 
@@ -323,6 +367,9 @@ contains
        call h5r_read_field(group_id, "psi_ext", psi_ext, nelms, error)
        call h5r_read_field(group_id,   "I_ext",  bz_ext, nelms, error)
        call h5r_read_field(group_id,   "f_ext",  bf_ext, nelms, error)       
+       if(irestart_fp.eq.1) then
+          call h5r_read_field(group_id, "fp_ext", bfp_ext, nelms, error)
+       end if
     end if
 
     if(jadv.eq.0) then
@@ -332,6 +379,7 @@ contains
     call h5r_read_field(group_id, "P",   p_field(ilin),   nelms, error)
     call h5r_read_field(group_id, "Pe",  pe_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "den", den_field(ilin), nelms, error)
+    call h5r_read_field(group_id, "ne",  ne_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "te",  te_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
 
@@ -377,8 +425,14 @@ contains
 
     real, dimension(coeffs_per_element,nelms) :: dum
     vectype, dimension(coeffs_per_element,nelms) :: zdum
+    vectype, dimension(coeffs_per_element) :: kdum
     integer :: i, coefs
     logical :: ir
+    integer :: elms_per_plane, new_plane, old_plane, plane_fac, k
+    integer :: offset_in, global_elms_in
+    real :: dphi, shift, phi_new
+    logical :: transform
+!    vectype, dimension(dofs_per_element, dofs_per_element) :: trans_mat
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, 'Reading ', name
 
@@ -392,24 +446,93 @@ contains
 
     if(nplanes_in.eq.1) then
        coefs = coeffs_per_tri
+       global_elms_in = global_elms * nplanes_in / nplanes
+       offset_in = modulo(offset, global_elms_in)
        dum = 0.
+       transform = .false.
+    else if(nplanes_in .ne. nplanes) then 
+       if((mod(nplanes,nplanes_in).ne.0 .or. nplanes .lt. nplanes_in) &
+            .and. version_in.lt.34) then 
+          if(myrank.eq.0) then
+             print *, 'Error: new nplanes must be integer multiple of existing nplanes.'
+             call safestop(42)
+          end if
+       else
+          if(myrank.eq.0) print *, "Restarting ", nplanes_in, " planes case with ", nplanes, " planes"
+       end if
+       coefs = coeffs_per_element
+       plane_fac = nplanes / nplanes_in
+       elms_per_plane = global_elms / nplanes
+       new_plane = offset / elms_per_plane
+       global_elms_in = global_elms / plane_fac
+
+       if(version_in.lt.34) then
+          old_plane = new_plane / plane_fac
+          dphi = toroidal_period / nplanes_in
+          k = new_plane - old_plane * plane_fac
+          shift = k*dphi / plane_fac
+       else
+          call m3dc1_plane_getphi(new_plane, phi_new)
+          call find_plane_and_shift(nplanes_in, phi_in, phi_new, old_plane, shift)
+          old_plane = old_plane - 1    ! switch to 0-based indexing
+       end if
+       offset_in = offset - elms_per_plane*(new_plane - old_plane)
+       transform = .true.
     else
        coefs = coeffs_per_element
+       offset_in = offset
+       global_elms_in = global_elms
+       transform = .false.
     end if
 
-    call read_field(group_id, name, dum(1:coefs,:), coefs, nelms, error)
+    call read_field(group_id, name, dum(1:coefs,:), coefs, nelms, &
+         offset_in, global_elms_in, error)
     zdum = dum
     if(icomplex_in.eq.1 .and. .not.ir) then
-       call read_field(group_id,name//"_i", dum(1:coefs,:), coefs, nelms, error)
+       call read_field(group_id,name//"_i", dum(1:coefs,:), coefs, nelms, &
+            offset_in, global_elms_in, error)
 #ifdef USECOMPLEX
        zdum = zdum + (0.,1.)*dum
 #endif
     end if
     f = 0.
+
     do i=1, nelms
-       call setavector(i, f, zdum(:,i))
-    end do   
+       if(transform) then
+          call transform_coeffs_nplanes(zdum(:,i),shift,kdum)
+          call setavector(i, f, kdum)
+       else
+          call setavector(i, f, zdum(:,i))
+       end if
+    end do
     
   end subroutine h5r_read_field
+
+  subroutine find_plane_and_shift(nplanes_old, phi_old, phi_new, iplane, shift)
+    use mesh_mod
+    implicit none
+
+    integer, intent(in) :: nplanes_old
+    real, intent(in), dimension(nplanes_old) :: phi_old
+    real, intent(in) :: phi_new
+    integer, intent(out) :: iplane
+    real, intent(out) :: shift
+    real :: tol
+
+    integer :: i
+
+    tol = toroidal_period*1e-5
+
+    iplane = -1
+    do i=1, nplanes_old-1
+       if(phi_new.ge.phi_old(i)-tol .and. phi_new.lt.phi_old(i+1)-tol) then
+          iplane = i
+          exit
+       end if
+    end do
+
+    if(iplane.lt.0) iplane=nplanes_old
+    shift = phi_new - phi_old(iplane)
+  end subroutine find_plane_and_shift
 
 end module restart_hdf5

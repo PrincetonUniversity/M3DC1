@@ -20,7 +20,7 @@
 	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=perseusamd
         
 5. mesh utility
-        /projects/M3DC1/scorec/intel18.0-mpi2018.3/petsc3.12.4/bin
+        See $(SCOREC_UTIL_DIR) in .mk file
 
 6. run a job 
     for details, see http://www.princeton.edu/researchcomputing/computational-hardware/perseus/user-guidelines

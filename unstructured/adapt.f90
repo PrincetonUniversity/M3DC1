@@ -18,6 +18,9 @@ module adapt
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
+
+  integer, parameter :: maxqs = 32
+  real, dimension(maxqs) :: adapt_qs
   
   contains
   subroutine adapt_by_psi
@@ -155,6 +158,33 @@ module adapt
           end do
        end if
 
+       ! do adaptation around specified safety factor values
+       if(any(adapt_qs.ne.0.)) then
+          if(.not.allocated(q_spline%y)) then
+             print *, 'Error, iadapt_pack_rationals > 0, but q profile not set'
+             call safestop(6)
+          end if
+
+          temp79c = 0.
+          do i=1, npoints
+
+             if(mr(i).ne.0) cycle
+
+             call evaluate_spline(q_spline, real(temp79a(i)), q)
+
+             do j=1, maxqs
+                if(adapt_qs(j).ne.0.) then
+                   temp79c(i) = temp79c(i) + &
+                        exp(-(q - adapt_qs(j))**2 / (2.*adapt_pack_factor**2))
+                end if
+             end do
+
+          end do
+          where(real(temp79c).gt.1.) temp79c = 1.
+          temp79b = temp79b*(1.-temp79c) + temp79c
+       end if
+
+
        ! do adaptation around coils
        if(adapt_coil_delta.gt.0) then
           call load_coils(xc_adapt,zc_adapt,ic_adapt,numcoils_adapt, &
@@ -176,9 +206,12 @@ module adapt
              do j = 1, p_steps
                 temp79c = temp79c + &
                      exp(-((x_79 - xp_adapt(j,ip))**2 + (z_79 - zp_adapt(j,ip))**2) / &
-                         (2.*adapt_pellet_delta**2))/1.27 ! BCL: 1.27 "normalizes" this
+                         (2.*adapt_pellet_delta**2))
              end do
           end do
+          !BCL: this normalizes the overlapping Gaussians
+          if(p_steps.eq.2) temp79c = temp79c/exp(-2.)
+          if(p_steps.gt.2) temp79c = temp79c/(2.*exp(-2.))
           where(real(temp79c).gt.1.) temp79c = 1.
           temp79b = temp79b*(1.-temp79c) + temp79c
        end if
@@ -238,7 +271,11 @@ module adapt
     call derived_quantities(1)
     !ke_previous = ekin
   end subroutine adapt_by_psi
+
+
+! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   subroutine adapt_by_error
+! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     use diagnostics
     use basic
     use error_estimate
@@ -252,11 +289,11 @@ module adapt
     use auxiliary_fields
     use scorec_mesh_mod
     use transport_coefficients
-!#include "mpif.h"
+
     vectype, allocatable :: edge_error(:,:)
     vectype, allocatable :: elm_error(:,:), elm_error_res(:,:), elm_error_sum(:,:)
     real, allocatable :: node_error(:,:)
-    integer :: num_edge, ii, jj, num_get, num_elm, num_node, ier
+    integer :: num_adj, elem_dim, num_edge, ii, jj, num_get, num_elm, num_node, ier
     integer, dimension(256) :: elms 
 
     integer, parameter :: vecsize=1 
@@ -273,17 +310,24 @@ module adapt
     write(file_name2, "(A8,I0,A)") 'errorElm', ntime,0
     write(file_name3,"(A8,I0,A)") 'errorSum', ntime,0
 
-    !call m3dc1_field_max(jphi_field%vec%id, max_val, min_val)
     call m3dc1_mesh_getnumglobalent (0, num_node_total)
 
-    !if(myrank .eq. 0) print*, "time", ntime, "current max", max_val(1), min_val(1), "mesh size before adapt", num_node_total
-    call m3dc1_field_max(field_vec%id, max_val,min_val)
+    !if (myrank .eq. 0) print*, "time", ntime, "current max", max_val(1), min_val(1), "mesh size before adapt", num_node_total
+    call m3dc1_field_max(field_vec%id, max_val, min_val)
     maxPhi = max(abs(max_val(1+(u_g-1)*dofs_per_node)),abs(min_val(1+(u_g-1)*dofs_per_node)))
     maxPs =  max(abs(max_val((psi_g-1)*dofs_per_node)+1),abs(min_val((psi_g-1)*dofs_per_node)+1))
 
     call m3dc1_mesh_getnument(1, num_edge)
     allocate(edge_error(num_edge, NUMTERM))
-    call m3dc1_mesh_getnument(2, num_elm)
+    elem_dim = 2
+    num_adj=2
+    if (nplanes .gt. 1) then
+      elem_dim = 3
+      num_adj = 8
+    end if
+ 
+    call m3dc1_mesh_getnument(elem_dim, num_elm)
+
     allocate(elm_error(num_elm, NUMTERM))
     allocate(elm_error_sum(2,num_elm))
     allocate(elm_error_res(2,num_elm))
@@ -297,15 +341,16 @@ module adapt
     do ii=1, NUMTERM
        jump_sum(ii) =sum(edge_error(:,ii))
     end do
+
     do ii=1, num_edge
-       call m3dc1_ent_getadj (1, ii-1, 2, elms, 2, num_get)
+       call m3dc1_ent_getadj (1, ii-1, elem_dim, elms, num_adj, num_get)
        do jj=1, num_get 
           elm_error(elms(jj)+1,:)=elm_error(elms(jj)+1,:)+0.5*edge_error(ii,:);
        end do
     end do
 
     ! implementated for numvar .eq. 1  
-    if(numvar .eq. 1 ) call elem_residule (elm_error_res(1,:), elm_error_res(2,:))
+    if (numvar .eq. 1 ) call elem_residule (elm_error_res(1,:), elm_error_res(2,:))
 
     elm_error_sum (1,:) = elm_error(:,JUMPU) + elm_error_res (1,:) 
     elm_error_sum (2,:) = elm_error(:,JUMPPSI) + elm_error_res(2,:)
@@ -313,18 +358,15 @@ module adapt
     !call output_face_data (NUMTERM, sqrt(real(elm_error)), file_name1);
     !call output_face_data (2, TRANSPOSE(sqrt(real(elm_error_res))), file_name2);
     !call output_face_data (2, TRANSPOSE(sqrt(real(elm_error_sum))), file_name3);
-
     call get_node_error_from_elm (real(elm_error_sum(1,:)), 1, node_error(1,:));
     call get_node_error_from_elm (real(elm_error_sum(2,:)), 1, node_error(2,:));
 
-       
     node_error = sqrt(node_error)
     !print *, edge_error
     deallocate(edge_error)
     deallocate(elm_error)
     deallocate(elm_error_sum)
     deallocate(elm_error_res)
-
     if (adapt_control .eq. 0) then
       max_error(1)= maxval(node_error(1,:))
       max_error(2)= maxval(node_error(2,:))
@@ -355,9 +397,7 @@ module adapt
        rel_size(2) = adapt_hmax_rel
 
        call set_mesh_size_bound (abs_size, rel_size)
-#ifdef LATESTSCOREC
        call set_adapt_p(iadapt_order_p)
-#endif
        call adapt_by_error_field(sqrt(node_error(1,:)**2+node_error(2,:)**2), adapt_target_error, &
 iadapt_max_node, adapt_control);
        if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
@@ -394,6 +434,8 @@ iadapt_max_node, adapt_control);
        if(icd_source.gt.0) cd_field = 0.
        bf_field(0) = 0.
        bf_field(1) = 0.
+       bfp_field(0) = 0.
+       bfp_field(1) = 0.
        if(ibootstrap.gt.0) visc_e_field = 0.
        psi_coil_field = 0.
        !call destroy_auxiliary_fields

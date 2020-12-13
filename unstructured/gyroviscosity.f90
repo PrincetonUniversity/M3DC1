@@ -22,8 +22,8 @@ contains
     psiz = pst79(:,OP_DZ)
 #ifdef USE3D
     ! f' = 0 in complex case, so this is only needed for USE3D
-    psir = psir - r_79*bft79(:,OP_DZP)
-    psiz = psiz + r_79*bft79(:,OP_DRP)
+    psir = psir - r_79*bfpt79(:,OP_DZ)
+    psiz = psiz + r_79*bfpt79(:,OP_DR)
 #endif
 
     gbb = 3.*ri2_79*b2i79(:,OP_1)*bzt79(:,OP_1)**2

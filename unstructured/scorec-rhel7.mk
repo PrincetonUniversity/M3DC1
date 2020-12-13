@@ -1,4 +1,4 @@
-FOPTS = -c -fdefault-real-8 -Wall -cpp -DPETSC_VERSION=38 -DLATESTSCOREC -DUSEBLAS $(OPTS) 
+FOPTS = -c -fdefault-real-8 -Wall -cpp -DPETSC_VERSION=38 -DUSEBLAS $(OPTS) 
 CCOPTS  = -c -O -DPETSC_VERSION=38
 
 ifeq ($(OPT), 1)

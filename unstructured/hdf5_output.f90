@@ -42,7 +42,7 @@ contains
     integer, intent(out) :: error
 
     integer(HID_T) :: root_id, plist_id
-    integer :: info, comm
+    integer :: info
 
     call h5open_f(error)
     if(error.lt.0) then
@@ -126,17 +126,11 @@ contains
 
     integer, intent(out) :: nelms
     integer, intent(out) :: error
-    integer::color, comm;
 
     nelms = local_elements()
 
   ! Calculate offset of current process
-    comm = MPI_COMM_WORLD
-    if (irestart_factor.gt.1) then
-      color = mod(myrank, irestart_factor)
-      call MPI_Comm_split(MPI_COMM_WORLD, color, 1, comm, error)
-    endif
-    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, comm, error)
+    call mpi_scan(nelms, offset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
 
     offset = offset - nelms
     ! print *, "[",myrank,"] hdf5_get_local_elms Offset ", offset
@@ -307,6 +301,30 @@ contains
     endif !dataspace created
   end subroutine write_str_attr
 
+  ! read_vec_attr
+  ! ==============
+  subroutine read_vec_attr(parent_id, name, values, len, error)
+    use hdf5
+
+    implicit none
+
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: len
+    real, dimension(len), intent(out)  :: values
+    integer, intent(out) :: error
+
+    integer(HID_T) :: attr_id
+    integer(HSIZE_T), dimension(1) :: dims
+
+    dims(1) = len
+
+    call h5aopen_name_f(parent_id, name, attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_DOUBLE, values, dims, error)
+    call h5aclose_f(attr_id, error)
+  end subroutine read_vec_attr
+
+
   ! write_vec_attr
   ! ==============
   subroutine write_vec_attr(parent_id, name, values, len, error)
@@ -455,7 +473,8 @@ contains
 
   ! read_field
   ! ==========
-  subroutine read_field(parent_id, name, values, ndofs, nelms, error)
+  subroutine read_field(parent_id, name, values, ndofs, nelms, &
+       offset_loc, global_elms_loc, error)
     use hdf5
     
     implicit none
@@ -470,6 +489,7 @@ contains
     integer(HID_T) :: filespace, memspace, dset_id, plist_id
     integer(HSIZE_T), dimension(rank) :: local_dims, global_dims
     integer(HSSIZE_T), dimension(rank) :: off
+    integer :: offset_loc, global_elms_loc 
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
@@ -479,9 +499,9 @@ contains
     local_dims(1) = ndofs
     local_dims(2) = nelms
     global_dims(1) = ndofs
-    global_dims(2) = global_elms
+    global_dims(2) = global_elms_loc
     off(1) = 0
-    off(2) = offset
+    off(2) = offset_loc
 
     call h5dopen_f(parent_id, name, dset_id, error)
     call h5dget_space_f(dset_id, filespace, error)
@@ -552,11 +572,13 @@ contains
     integer(HSIZE_T) :: chunk_size(1) = (/ 100 /)
     integer(HSIZE_T) :: dims(1)
     integer(HSIZE_T) :: maxdims(1)
-    integer(HSIZE_T), parameter :: local_dims(1) = (/ 1 /)
-    integer(HSIZE_T), dimension(1,1) :: coord
-    integer(SIZE_T), parameter :: num_elements = 1
+    integer(HSIZE_T) :: local_dims(1)
+    integer(HSIZE_T), allocatable :: coord(:,:)
+    integer(SIZE_T)  :: num_elements
     integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
-    real :: values(1)
+    integer(HSIZE_T) :: curdim
+    integer :: i
+    real, allocatable :: values(:)
     logical :: exists
 
 #ifdef USETAU
@@ -566,12 +588,11 @@ contains
 
     dims(1) = t+1
     maxdims(1) = H5S_UNLIMITED_F
-    values(1) = value
-    coord(1,1) = t + 1
-    
+
     call h5lexists_f(parent_id, name, exists, error)
 
     if(.not.exists) then
+       num_elements = 1
        call h5screate_simple_f(1, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, 1, chunk_size, error)
@@ -584,20 +605,36 @@ contains
        end if
        call h5pclose_f(p_id, error)
        call h5sclose_f(filespace, error)
+       curdim = dims(1)
     else
        call h5dopen_f(parent_id, name, dset_id, error)
-       call h5dset_extent_f(dset_id, dims, error)
+       call h5dget_space_f(dset_id, filespace, error)
+       call h5sget_simple_extent_npoints_f(filespace, curdim, error)
+       call h5sclose_f(filespace, error)
+       if(dims(1).gt.curdim) then
+          num_elements = 1
+          call h5dset_extent_f(dset_id, dims, error)
+          curdim = dims(1)
+       else
+          num_elements = curdim - dims(1) + 1
+       end if
     endif
+
+    local_dims(1) = num_elements
+    allocate(values(num_elements))
+    allocate(coord(1,num_elements))
+    values = -1.
+    values = sqrt(values)
+    values(1) = value
+    coord(1,:) = (/ (i, i = dims(1), curdim) /)
 
     if(myrank.eq.0) then
        call h5screate_simple_f(1, local_dims, memspace, error)
        call h5dget_space_f(dset_id, filespace, error)
-       call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
-            num_elements, coord, error)
-       
        call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
        call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_INDEPENDENT_F, error)
-
+       call h5sselect_elements_f(filespace, H5S_SELECT_SET_F, 1, &
+            num_elements, coord, error)
        call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, local_dims, error, &
             file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
 
@@ -607,6 +644,9 @@ contains
        call h5sclose_f(memspace, error)
     endif
     call h5dclose_f(dset_id, error)
+
+    deallocate(values)
+    deallocate(coord)
 
   end subroutine output_scalar
 
@@ -792,46 +832,66 @@ contains
     integer, parameter ::  rank = 2
     integer(HSIZE_T) :: chunk_size(2)
     integer(HSIZE_T) :: dims(2), maxdims(2), local_dims(2), off(2)
-    integer(SIZE_T) :: num_elements
-    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
+    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id, type_id
     logical :: exists
+
+    integer :: NOUT
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
     dummy = 0            ! breaking formatting requirements
 #endif
 
+    NOUT = NMAX
+
     dims(1) = NMAX
     dims(2) = t+1
-    maxdims(1) = NMAX
-    maxdims(2) = H5S_UNLIMITED_F
-    local_dims(1) = NMAX
-    local_dims(2) = 1
-    chunk_size(1) = NMAX
-    chunk_size(2) = 1
     off(1) = 0
     off(2) = t
-    num_elements = NMAX
 
     call h5lexists_f(parent_id, name, exists, error)
 
     if(.not.exists) then
+
+       chunk_size(1) = NMAX
+       chunk_size(2) = 1
+       maxdims(1) = H5S_UNLIMITED_F
+       maxdims(2) = H5S_UNLIMITED_F
+
        call h5screate_simple_f(rank, dims, filespace, error, maxdims)
        call h5pcreate_f(H5P_DATASET_CREATE_F, p_id, error)
        call h5pset_chunk_f(p_id, rank, chunk_size, error)
        if(idouble_out.eq.1) then
-          call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, &
-               filespace, dset_id, error, p_id)
+          type_id = H5T_NATIVE_DOUBLE
        else
-          call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, &
-               filespace, dset_id, error, p_id)
+          type_id = H5T_NATIVE_REAL
        end if
+       call h5dcreate_f(parent_id, name, type_id, &
+            filespace, dset_id, error, p_id)
+       call h5pset_fill_value_f(p_id, type_id, 0., error)
        call h5pclose_f(p_id, error)
        call h5sclose_f(filespace, error)
     else
        call h5dopen_f(parent_id, name, dset_id, error)
-       call h5dextend_f(dset_id, dims, error)
+
+       if(irestart.ne.0  .and. version_in.lt.32) then
+
+          ! in older versions, N dimension can't change [maxdims(1) was NMAX]
+          ! reset dims to have same NMAX dimension as original
+          call h5dget_space_f(dset_id, filespace, error)
+          call h5sget_simple_extent_dims_f(filespace, dims, maxdims, error)
+          call h5sclose_f(filespace, error)
+
+          ! Extend t dimension but only output original NMAX
+          dims(2) = t+1
+          NOUT = dims(1)
+       end if
+       call h5dset_extent_f(dset_id, dims, error)
+
     endif
+
+    local_dims(1) = NOUT
+    local_dims(2) = 1
 
     if(myrank.eq.0) then
        call h5screate_simple_f(rank, local_dims, memspace, error)
@@ -869,32 +929,29 @@ contains
     integer, intent(out) :: error
 
     integer, parameter ::  rank = 2
-    integer(HSIZE_T) :: chunk_size(2)
     integer(HSIZE_T) :: dims(2), maxdims(2), local_dims(2), off(2)
-    integer(SIZE_T) :: num_elements
-    integer(HID_T) :: memspace, filespace, dset_id, p_id, plist_id
-    logical :: exists
+    integer(HID_T) :: memspace, filespace, dset_id, plist_id
 
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
     dummy = 0            ! breaking formatting requirements
 #endif
 
-    dims(1) = NMAX
-    dims(2) = t+1
-    maxdims(1) = NMAX
-    maxdims(2) = H5S_UNLIMITED_F
     local_dims(1) = NMAX
     local_dims(2) = 1
-    chunk_size(1) = NMAX
-    chunk_size(2) = 1
     off(1) = 0
     off(2) = t
-    num_elements = NMAX
 
     call h5dopen_f(parent_id, name, dset_id, error)
 
     call h5dget_space_f(dset_id, filespace, error)
+
+    if(irestart.ne.0  .and. version_in.lt.32) then
+       ! Ensure NMAX isn't too long
+       call h5sget_simple_extent_dims_f(filespace, dims, maxdims, error)
+       if(maxdims(1).lt.NMAX) local_dims(1) = maxdims(1)
+    end if
+
     call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off, local_dims, &
          error)
     call h5screate_simple_f(rank, local_dims, memspace, error)

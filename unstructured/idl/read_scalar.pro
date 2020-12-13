@@ -190,6 +190,20 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8V!DL!N!X'
        d = dimensions(/l0, _EXTRA=extra)
     endif else $
+     if (strcmp("pellet phi position", scalarname, /fold_case) eq 1) or $
+     (strcmp("pelphipos", scalarname, /fold_case) eq 1) then begin
+       if(version lt 31) then begin
+          data = s.pellet_phi._data
+       endif else if(p eq !NULL) then begin
+          print, 'Error: pellet data not present in this file'
+          return, 0
+       endif else begin
+          data = p.pellet_phi._data[ipellet,*]
+       endelse
+       title = 'Pellet !9P!X position'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/l0, _EXTRA=extra)
+    endif else $
      if (strcmp("pellet Z position", scalarname, /fold_case) eq 1) or $
      (strcmp("pelzpos", scalarname, /fold_case) eq 1) then begin
        if(version lt 31) then begin

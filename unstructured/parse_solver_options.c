@@ -11,7 +11,7 @@ The added options are: lgmres and lgmres_argument.
 
 #include <petscsys.h>
 
-void parse_solver_options_(const char *filename)
+void parse_solver_options_(const int *nplanes, const char *filename)
   {
   PetscErrorCode ierr;
   PetscBool      flg;
@@ -60,6 +60,10 @@ void parse_solver_options_(const char *filename)
           /* get the second token */
           num_of_pc_bjacobi_blocks = strtok(NULL, s);
           nblocks=atoi(num_of_pc_bjacobi_blocks);
+          if(*nplanes!=nblocks) {
+             PetscPrintf(PETSC_COMM_WORLD, "\nError! %s: The number of Jacobi blocks %d does not match nplanes % din file C1input. Please change the block number in your solver options file and resubmit the job.\n", buf, nblocks, *nplanes);
+               exit(1);
+          }
           //PetscPrintf(PETSC_COMM_WORLD, "       %s \n", num_of_pc_bjacobi_blocks );
        }
        if(strcmp(token,sub_solver_type)==0) {//matched
