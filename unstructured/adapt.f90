@@ -1,6 +1,10 @@
 module adapt
   use vector_mod
   implicit none
+  !adaptation control parameters
+  integer :: iadapt_snap, iadapt_pre_zoltan, iadapt_post_zoltan
+  integer :: iadapt_refine_layer, iadapt_max_iter
+  real :: iadapt_quality
   real :: adapt_ke
   integer :: iadapt_ntime
   real :: adapt_target_error
@@ -14,7 +18,6 @@ module adapt
   real :: adapt_hmin_rel, adapt_hmax_rel
   data rel_size /0.5, 2.0/
   integer :: iadapt_writevtk, iadapt_writesmb
-  !type(vector_type), private :: error_vec
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta

@@ -448,15 +448,13 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
  * goodQuality): Minimum desired mean ratio cubed for simplex elements
  * NOTE: Make sure to set shouldSnap and  shouldTransferParametric to 0. These are true in default SCOREC adaptation tools that will lead to failure of adaptation
 */
-void m3dc1_mesh_adapt(int* logInterpolation, 
-  int* shouldSnap, 
-  int* shouldTransferParametric, 
-  int* shouldRunPreZoltan,
-  int* shouldRunMidParma, 
-  int* shouldRunPostParma, 
-  int* shouldRefineLayer, 
-  int* maximumIterations,
-  double* goodQuality)
+void m3dc1_mesh_adapt(int* field_0, int* field_1, int* angle,
+int* shouldSnap, 
+int* shouldRunPreZoltan, 
+int*shouldRunPostZoltan,
+int* shouldRefineLayer,
+int* maximumIterations, 
+double* goodQuality)
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 
@@ -489,17 +487,19 @@ void m3dc1_mesh_adapt(int* logInterpolation,
   }
 
   SetSizeField sf(mesh);
-  ma::Input* in = ma::configure(mesh, &sf,0,*logInterpolation);
+  int logInterpolation=true;
+  ma::Input* in = ma::configure(mesh, &sf,0,logInterpolation);
 
   if (!PCU_Comm_Self()) std::cout << __func__<<": cansnap() : " << mesh->canSnap() << "\n";
   in->shouldSnap = *shouldSnap;
-  in->shouldTransferParametric = *shouldTransferParametric;
+  in->shouldTransferParametric = 0;
   in->shouldRunPreZoltan = *shouldRunPreZoltan;
-  in->shouldRunMidParma = *shouldRunMidParma;
-  in->shouldRunPostParma = *shouldRunPostParma;
+  in->shouldRunPostZoltan = *shouldRunPostZoltan;
+  in->shouldRunMidParma = 0;
+  in->shouldRunPostParma = 0;
   in->shouldRefineLayer = *shouldRefineLayer;
   in->maximumIterations=*maximumIterations;
-  in->goodQuality = 0.2;
+  in->goodQuality = *goodQuality;
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
