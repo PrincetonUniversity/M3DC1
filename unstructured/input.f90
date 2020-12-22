@@ -807,7 +807,23 @@ subroutine set_defaults
 
   call add_var_string_array("wall_region_filename", wall_region_filename, 256,&
        imax_wall_regions, "", "Resistivity of each wall region", rw_grp)
-
+  call add_var_double("eta_rekc", eta_rekc, 0., &
+       "Resistivity of runaway-electron killer coil (REKC)", rw_grp)
+  call add_var_int("ntor_rekc", ntor_rekc, 0, &
+       "Toroidal mode number of REKC", rw_grp)
+  call add_var_int("mpol_rekc", mpol_rekc, 0, &
+       "Poloidal mode number of REKC", rw_grp)
+  call add_var_double("phi_rekc", phi_rekc, 0., &
+       "Toroidal angle of fixed point of REKC", rw_grp)
+  call add_var_double("theta_rekc", theta_rekc, 0., &
+       "Poloidal angle of fixed point of REKC", rw_grp)
+  call add_var_double("sigma_rekc", sigma_rekc, 0., &
+       "Angular half-width of REKC", rw_grp)
+  call add_var_double("rzero_rekc", rzero_rekc, 0., &
+       "R0 for computing theta of REKC", rw_grp)
+  call add_var_double("zzero_rekc", zzero_rekc, 0., &
+       "Z0 for computing theta of REKC", rw_grp)
+  
 
   ! loop voltage
   call add_var_double("vloop", vloop, 0., "", source_grp)
