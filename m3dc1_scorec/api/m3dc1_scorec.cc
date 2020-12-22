@@ -441,20 +441,25 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
  * shouldSnap(0,1) : Snaps new vertices to the model surface (Set it to 0 for the being. Need to work on Model format to make this parameter work) 
  * shouldTransferParametric(0,1): Transfer parametric coordinates (Set it to 0 for the being. Need to work on Model format to make this parameter work)
  * shouldRunPreZoltan(0,1): Whether to run zoltan predictive load balancing
- * shouldRunMidParma(0,1): Whether to run parma during adaptation
- * shouldRunPostParma(0,1): Whether to run zoltan after adapting
  * shouldRefineLayer(0,1): Whether to allow layer refinement
  * maximumIterations: Number of refine/coarsen iterations to run
  * goodQuality): Minimum desired mean ratio cubed for simplex elements
  * NOTE: Make sure to set shouldSnap and  shouldTransferParametric to 0. These are true in default SCOREC adaptation tools that will lead to failure of adaptation
 */
-void m3dc1_mesh_adapt(int* field_0, int* field_1, int* angle,
+
+
+// Option 2: Instead of Setting the field in the SetSizeField routine, Calculate all the 3 fields separately and provide the values here as shown in the given API
+
+/*void m3dc1_mesh_adapt(double* field_0, double* field_1, double* angle,
 int* shouldSnap, 
 int* shouldRunPreZoltan, 
 int*shouldRunPostZoltan,
 int* shouldRefineLayer,
 int* maximumIterations, 
-double* goodQuality)
+double* goodQuality)*/
+
+// Option 1: Provide the 3 fields values in the routine where we set the size field in SCOREC routines (in m3dc1_sizeField.h)
+void m3dc1_mesh_adapt(int* shouldSnap,int* shouldRunPreZoltan,int*shouldRunPostZoltan,int* shouldRefineLayer,int* maximumIterations,double* goodQuality)
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 

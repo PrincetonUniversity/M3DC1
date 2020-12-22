@@ -18,7 +18,7 @@
 #include <assert.h>
 
 // Anistropic 2D Function for dummy field
-int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
+int get_field (double average, double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
 
 using namespace std;
 class SizeFieldError : public ma::IsotropicFunction
@@ -137,7 +137,7 @@ class Vortex : public ma::AnisotropicFunction
 };
 
 // Set the Size Field based on Frames and Size Vector for anisotropic Adaptation
-
+// This function gets the 3 fields (2 sizes + 1 direction) and finds the other direction and set the field in the SCOREC adaptation routines
 class SetSizeField : public ma::AnisotropicFunction
 {
   public:
@@ -161,6 +161,9 @@ class SetSizeField : public ma::AnisotropicFunction
         double aver = average;
         double size_h1;
         double size_h2;
+
+	// Option 1: The function from Brendan will come here. 
+        // int get_field (double*  pos, double &size_h1,double &size_h2, double* dir_1)
         int field_success = get_field (aver ,box, pos, size_h1,size_h2, dir_1);
 
         // Calculate the second unit vector
@@ -179,6 +182,9 @@ class SetSizeField : public ma::AnisotropicFunction
         dir_2[1] = b /mag;
         dir_2[2] = 0.0;
 
+	// End: Calculation of second direction vector
+
+	// Now set the fields 	
         ma::Vector h(size_h1, size_h2,size_h2);
 
         R[0][0]=dir_1[0];
