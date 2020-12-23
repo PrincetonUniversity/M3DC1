@@ -669,7 +669,7 @@ subroutine initial_conditions()
 
 #ifdef USEST
   if(igeometry.eq.1) then
-     !call destroy_vmec
+     call destroy_vmec
   end if   
 #endif
 

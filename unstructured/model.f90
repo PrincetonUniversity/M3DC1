@@ -496,7 +496,8 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
      endif
 
      if(imp_bf.eq.1) then
-        temp = 0.
+        !temp = 0.
+        call get_node_data(bfp_field(1), i, temp)
         if(ifbound.eq.1) then 
            call set_dirichlet_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
         else if(ifbound.eq.2) then 

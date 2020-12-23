@@ -317,9 +317,15 @@ function q_func(izone)
 
   ! Gaussian heat source model
   if(igaussian_heat_source.eq.1) then
+#ifdef USEST
+     temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
+          *exp(-((xl_79 - ghs_x)**2 + (zl_79 - ghs_z)**2) &
+          /(2.*ghs_var**2))
+#else
      temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
           *exp(-((x_79 - ghs_x)**2 + (z_79 - ghs_z)**2) &
           /(2.*ghs_var**2))
+#endif
 #ifdef USE3D
      if(ghs_var_tor .gt. 0) then
         if(itor.eq.1) then 

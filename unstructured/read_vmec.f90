@@ -1,4 +1,4 @@
-! This module reads     presf = presf*pi*in data from VMEC files
+! This module reads in and processes data from VMEC files
 module read_vmec 
   use spline
   implicit none
@@ -7,14 +7,14 @@ module read_vmec
 #ifdef USEST
   integer :: nfp
   real, allocatable :: rbc(:), zbs(:)
-  real, allocatable :: rmnc(:,:), zmns(:,:), lmns(:,:), gmnc(:,:)
-  real, allocatable :: rmncz(:,:), zmnsz(:,:), lmnsz(:,:), gmncz(:,:)
-  real, allocatable :: bsupumnc(:,:), bsupvmnc(:,:)
-  real, allocatable :: bsupumncz(:,:), bsupvmncz(:,:)
+  real, allocatable :: rmnc(:,:), zmns(:,:), lmns(:,:)!, gmnc(:,:)
+  real, allocatable :: rmncz(:,:), zmnsz(:,:), lmnsz(:,:)!, gmncz(:,:)
+!  real, allocatable :: bsupumnc(:,:), bsupvmnc(:,:)
+!  real, allocatable :: bsupumncz(:,:), bsupvmncz(:,:)
   real, allocatable :: presf(:), phiv(:), chiv(:)
 !  real, allocatable :: raxiscc(:), zaxiscs(:)
-  integer, allocatable :: mb(:), nb(:), mb_nyq(:), nb_nyq(:)
-  real, allocatable :: xmv(:), xnv(:), xnv_nyq(:), xmv_nyq(:)
+  integer, allocatable :: mb(:), nb(:)!, mb_nyq(:), nb_nyq(:)
+  real, allocatable :: xmv(:), xnv(:)!, xnv_nyq(:), xmv_nyq(:)
   integer :: mn_mode, mn_mode_nyq, ns, n_tor, n_zer, m_pol 
   real, allocatable :: s_vmec(:) 
   type(spline1d) :: presf_spline      ! total pressure
@@ -45,11 +45,11 @@ contains
     zbs = zmns(:,ns)
 
     ! Change from half to full mesh
-    call half2full(mn_mode,mb,lmns)
+    if(myrank.eq.0) print *, 'half mesh to full'
+    call half2full(lmns)
 !    call half2full(mn_mode_nyq,mb_nyq,gmnc)
 !    call half2full(mn_mode_nyq,mb_nyq,bsupumnc)
 !    call half2full(mn_mode_nyq,mb_nyq,bsupvmnc)
-    if(myrank.eq.0) print *, 'half mesh to full'
     if(myrank.eq.0) print *, 'n_zer = ', n_zer
 
     ! put VMEC data on Zernike basis
@@ -148,10 +148,10 @@ contains
     if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'mn_mode = ', mn_mode
      
-    ierr = nf90_inq_dimid(ncid, "mn_mode_nyq", id)
-    ierr = ierr + nf90_inquire_dimension(ncid, id, len=mn_mode_nyq)
-    if(ierr.ne.0) call safestop(5) 
-    if(myrank.eq.0) print *, 'mn_mode_nyq = ', mn_mode_nyq
+!    ierr = nf90_inq_dimid(ncid, "mn_mode_nyq", id)
+!    ierr = ierr + nf90_inquire_dimension(ncid, id, len=mn_mode_nyq)
+!    if(ierr.ne.0) call safestop(5) 
+!    if(myrank.eq.0) print *, 'mn_mode_nyq = ', mn_mode_nyq
 
     ! Get constants
     ierr = nf90_inq_varid(ncid, "ns", id)
@@ -240,108 +240,109 @@ contains
 
   end subroutine read_vmec_nc
 
-  subroutine read_vmec_h5(myrank)
-    use hdf5
-    
-    implicit none
-    
-
-    integer, intent(in) :: myrank 
-    integer :: error 
-
-    integer(HID_T) :: file_id, dset_id, attr_id
-    integer(HSIZE_T), dimension(1) :: dim0 = 1
-    integer(HSIZE_T), dimension(1) :: dim1 
-    integer(HSIZE_T), dimension(2) :: dim2
-
-    vmec_filename = "geometry.h5"
-    call h5open_f(error)
-    call h5fopen_f(vmec_filename, H5F_ACC_RDONLY_F, file_id, error)
-
-    ! read attributes ns, n_tor, m_pol, nfp, and mn_mode
-    call h5gopen_f(file_id, '/', dset_id, error)
-    call h5aopen_name_f(dset_id, 'ns', attr_id, error)
-    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, ns, dim0, error)
-    call h5aclose_f(attr_id, error)
-    call h5aopen_name_f(dset_id, 'ntor', attr_id, error)
-    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, n_tor, dim0, error)
-    call h5aclose_f(attr_id, error)
-    call h5aopen_name_f(dset_id, 'mpol', attr_id, error)
-    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, m_pol, dim0, error)
-    call h5aclose_f(attr_id, error)
-    call h5aopen_name_f(dset_id, 'nfp', attr_id, error)
-    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, nfp, dim0, error)
-    call h5aclose_f(attr_id, error)
-    call h5aopen_name_f(dset_id, 'mnmode', attr_id, error)
-    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, mn_mode, dim0, error)
-    call h5aclose_f(attr_id, error)
-    call h5gclose_f(dset_id, error)
-    mn_mode_nyq = mn_mode
-    if(myrank.eq.0) print *, 'attributes read'
-    if(myrank.eq.0) print *, mn_mode, mn_mode_nyq, ns, nfp
-
-    call allocate_vmec()
-
-    dim1(1) = mn_mode
-    ! read 1d arrays xmv and xnv 
-    call h5dopen_f(file_id, 'xm', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xmv, dim1, error)
-    call h5dclose_f(dset_id, error)
-    call h5dopen_f(file_id, 'xn', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xnv, dim1, error)
-    call h5dclose_f(dset_id, error)
-    if(myrank.eq.0) print *, 'xmv, xnv read'
-
-    dim1(1) = ns
-    ! read 1d array presf
-    call h5dopen_f(file_id, 'presf', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, presf, dim1, error)
-    call h5dclose_f(dset_id, error)
-    if(myrank.eq.0) print *, 'presf read'
-
-!    dim1(1) = n_tor+1
-!    allocate(raxiscc(n_tor+1))
-!    allocate(zaxiscs(n_tor+1))
-!    ! read 1d arrays raxisicc and zaxiscs 
-!    call h5dopen_f(file_id, 'raxiscc', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, raxiscc, dim1, error)
+!! Depracated 
+!  subroutine read_vmec_h5(myrank)
+!    use hdf5
+!    
+!    implicit none
+!    
+!
+!    integer, intent(in) :: myrank 
+!    integer :: error 
+!
+!    integer(HID_T) :: file_id, dset_id, attr_id
+!    integer(HSIZE_T), dimension(1) :: dim0 = 1
+!    integer(HSIZE_T), dimension(1) :: dim1 
+!    integer(HSIZE_T), dimension(2) :: dim2
+!
+!    vmec_filename = "geometry.h5"
+!    call h5open_f(error)
+!    call h5fopen_f(vmec_filename, H5F_ACC_RDONLY_F, file_id, error)
+!
+!    ! read attributes ns, n_tor, m_pol, nfp, and mn_mode
+!    call h5gopen_f(file_id, '/', dset_id, error)
+!    call h5aopen_name_f(dset_id, 'ns', attr_id, error)
+!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, ns, dim0, error)
+!    call h5aclose_f(attr_id, error)
+!    call h5aopen_name_f(dset_id, 'ntor', attr_id, error)
+!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, n_tor, dim0, error)
+!    call h5aclose_f(attr_id, error)
+!    call h5aopen_name_f(dset_id, 'mpol', attr_id, error)
+!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, m_pol, dim0, error)
+!    call h5aclose_f(attr_id, error)
+!    call h5aopen_name_f(dset_id, 'nfp', attr_id, error)
+!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, nfp, dim0, error)
+!    call h5aclose_f(attr_id, error)
+!    call h5aopen_name_f(dset_id, 'mnmode', attr_id, error)
+!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, mn_mode, dim0, error)
+!    call h5aclose_f(attr_id, error)
+!    call h5gclose_f(dset_id, error)
+!    mn_mode_nyq = mn_mode
+!    if(myrank.eq.0) print *, 'attributes read'
+!    if(myrank.eq.0) print *, mn_mode, mn_mode_nyq, ns, nfp
+!
+!    call allocate_vmec()
+!
+!    dim1(1) = mn_mode
+!    ! read 1d arrays xmv and xnv 
+!    call h5dopen_f(file_id, 'xm', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xmv, dim1, error)
 !    call h5dclose_f(dset_id, error)
-!    call h5dopen_f(file_id, 'zaxiscs', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zaxiscs, dim1, error)
+!    call h5dopen_f(file_id, 'xn', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xnv, dim1, error)
 !    call h5dclose_f(dset_id, error)
-!    if(myrank.eq.0) print *, 'raxiscc, zaxiscs read'
-!    if(myrank.eq.0) print *, raxiscc(:) 
-!    if(myrank.eq.0) print *, zaxiscs(:) 
-
-    dim2(1) = mn_mode
-    dim2(2) = ns
-    ! read 2d arrays rmnc and zmns
-    call h5dopen_f(file_id, 'rmnc', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, rmnc, dim2, error)
-    call h5dclose_f(dset_id, error)
-    call h5dopen_f(file_id, 'zmns', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zmns, dim2, error)
-    call h5dclose_f(dset_id, error)
-    if(myrank.eq.0) print *, 'rmnc, zmns read'
-    call h5dopen_f(file_id, 'bsupumnc', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bsupumnc, dim2, error)
-    call h5dclose_f(dset_id, error)
-    call h5dopen_f(file_id, 'bsupvmnc', dset_id, error)
-    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bsupvmnc, dim2, error)
-    call h5dclose_f(dset_id, error)
-    if(myrank.eq.0) print *, 'bsupumnc, bsupvmnc read'
-
-    call h5fclose_f(file_id, error)
-    call h5close_f(error)
-
-    if(mn_mode.eq.0) then 
-      if(myrank.eq.0) print *, 'Error: could not find geometry'
-      call safestop(5)
-    else
-      if(myrank.eq.0) print *, 'VMEC geometry read'
-    end if
-
-  endsubroutine read_vmec_h5
+!    if(myrank.eq.0) print *, 'xmv, xnv read'
+!
+!    dim1(1) = ns
+!    ! read 1d array presf
+!    call h5dopen_f(file_id, 'presf', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, presf, dim1, error)
+!    call h5dclose_f(dset_id, error)
+!    if(myrank.eq.0) print *, 'presf read'
+!
+!!    dim1(1) = n_tor+1
+!!    allocate(raxiscc(n_tor+1))
+!!    allocate(zaxiscs(n_tor+1))
+!!    ! read 1d arrays raxisicc and zaxiscs 
+!!    call h5dopen_f(file_id, 'raxiscc', dset_id, error)
+!!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, raxiscc, dim1, error)
+!!    call h5dclose_f(dset_id, error)
+!!    call h5dopen_f(file_id, 'zaxiscs', dset_id, error)
+!!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zaxiscs, dim1, error)
+!!    call h5dclose_f(dset_id, error)
+!!    if(myrank.eq.0) print *, 'raxiscc, zaxiscs read'
+!!    if(myrank.eq.0) print *, raxiscc(:) 
+!!    if(myrank.eq.0) print *, zaxiscs(:) 
+!
+!    dim2(1) = mn_mode
+!    dim2(2) = ns
+!    ! read 2d arrays rmnc and zmns
+!    call h5dopen_f(file_id, 'rmnc', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, rmnc, dim2, error)
+!    call h5dclose_f(dset_id, error)
+!    call h5dopen_f(file_id, 'zmns', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zmns, dim2, error)
+!    call h5dclose_f(dset_id, error)
+!    if(myrank.eq.0) print *, 'rmnc, zmns read'
+!    call h5dopen_f(file_id, 'bsupumnc', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bsupumnc, dim2, error)
+!    call h5dclose_f(dset_id, error)
+!    call h5dopen_f(file_id, 'bsupvmnc', dset_id, error)
+!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bsupvmnc, dim2, error)
+!    call h5dclose_f(dset_id, error)
+!    if(myrank.eq.0) print *, 'bsupumnc, bsupvmnc read'
+!
+!    call h5fclose_f(file_id, error)
+!    call h5close_f(error)
+!
+!    if(mn_mode.eq.0) then 
+!      if(myrank.eq.0) print *, 'Error: could not find geometry'
+!      call safestop(5)
+!    else
+!      if(myrank.eq.0) print *, 'VMEC geometry read'
+!    end if
+!
+!  endsubroutine read_vmec_h5
 
   ! read boundary geometry from file
   subroutine read_boundary_geometry(myrank)
@@ -550,13 +551,13 @@ contains
   end subroutine vmec_interpl
 
   ! half mesh VMEC data to full mesh
-  subroutine half2full(mn,m,fmn)
+  subroutine half2full(fmn)
     implicit none
 
-    integer, intent(in) :: mn 
-    integer, dimension(mn), intent(in) :: m 
-    real, dimension(mn,ns), intent(inout) :: fmn
-    real, dimension(mn,ns) :: ftemp
+    !integer, intent(in) :: mn 
+    !integer, dimension(mn), intent(in) :: m 
+    real, dimension(mn_mode,ns), intent(inout) :: fmn
+    real, dimension(mn_mode,ns) :: ftemp
     integer :: i 
 
 !    fmn(:,1) = fmn(:,2)*1.5 - fmn(:,3)*.5
@@ -571,8 +572,8 @@ contains
        ftemp(:,i) = .5*(fmn(:,i+1) + fmn(:,i)) 
     end do
     fmn = ftemp
-    do i = 1, mn
-       if(m(i).ne.0) fmn(i,1) = 0
+    do i = 1, mn_mode
+       if(mb(i).ne.0) fmn(i,1) = 0
     end do 
   end subroutine half2full
 

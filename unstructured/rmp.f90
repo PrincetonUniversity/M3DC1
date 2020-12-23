@@ -159,19 +159,21 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
         theta = -atan2(z - zzero, x - xzero)
         arg = ntor*r/rzero
-        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta-pi/2))
+        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))!-pi/2))
         do i=1, n
            brv(i)     = 0.5*(Bessel_I(mpol-1, arg(i)) + Bessel_I(mpol+1, arg(i)))
            bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
-        !fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
-        fac = (ntor/rzero)/(mpol*bzero)
+        fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
+        !fac = (ntor/rzero)/(mpol*bzero)
+        !fac = eps 
         if(rmp_atten.ne.0) then
            atten = exp((r-1.)/rmp_atten)
         else
            atten = 1.
         end if
+        !if(present(p)) p = real(phase*bzv     *eps / fac * atten)
         brv     =        (ntor/rzero)*phase*brv     *eps / fac * atten
         bthetav = -(0,1)*mpol        *phase*bthetav *eps / fac * atten
         bzv     =  (0,1)*(ntor/rzero)*phase*bzv     *eps / fac * atten
@@ -305,6 +307,7 @@ subroutine calculate_external_fields()
   vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
   vectype, dimension(dofs_per_element,2) :: temp2
   vectype, dimension(dofs_per_element) :: temp3, temp4
+  vectype, dimension(dofs_per_element,dofs_per_element) :: temp5
 
   type(field_type) :: psi_f, bz_f, p_f, bf_f, bfp_f
 
@@ -344,6 +347,7 @@ subroutine calculate_external_fields()
 #endif
 
   read_p = .false.
+  !read_p = .true.
   if(iread_ext_field.ne.0) then
      do i=1, iread_ext_field 
         if(sf(i)%vmec) read_p = .true.
@@ -376,7 +380,7 @@ subroutine calculate_external_fields()
      ! ~~~~~~~~~~~~
      ! Mininize BR, BZ
      temp(:,:,1,1) = intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79) &
-                   +          intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
+                   + intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
                    + regular* intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79)
 #if defined(USECOMPLEX) || defined(USE3D)
      temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
@@ -385,6 +389,8 @@ subroutine calculate_external_fields()
      temp(:,:,1,2) = 0.
 #endif
 
+     !temp2(:,1) = 0.
+ 
      temp2(:,1) = intx3(mu79(:,:,OP_DR),temp79c,ri_79) &
           -       intx3(mu79(:,:,OP_DZ),temp79a,ri_79)
 
@@ -404,21 +410,18 @@ subroutine calculate_external_fields()
      !     -          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
      temp(:,:,2,1) = 0.
 
-     temp(:,:,2,2) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79) 
-          !+ regular*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
+     temp(:,:,2,2) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79) !& 
+     !     + regular*intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
      !temp(:,:,2,2) = &
      !     -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79) &
      !     -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79) &
      !     -2.*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DR),r_79) 
      !     + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
      !temp(:,:,2,2) = &
-     !     -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DRP)) &
-     !     -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZP)) &
+     !     -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) &
+     !     -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) &
      !     + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
 
-
-     !temp2(:,2) = intx2(mu79(:,:,OP_DR),temp79a) &
-     !           + intx2(mu79(:,:,OP_DZ),temp79c) 
 #if defined(USE3D)
      temp2(:,2) = -intx3(mu79(:,:,OP_DP),r_79,temp79b)
 #elif defined(USECOMPLEX) 
@@ -426,10 +429,17 @@ subroutine calculate_external_fields()
 #else
      temp2(:,2) = 0.
 #endif
+
+     !temp2(:,2) = intx2(mu79(:,:,OP_DR),temp79a) &
+     !           + intx2(mu79(:,:,OP_DZ),temp79c) 
         
+     !temp3 = 0. 
      temp3 = intx3(mu79(:,:,OP_1),r_79,temp79b)
         
      if(read_p) temp4 = intx2(mu79(:,:,OP_1),temp79d)
+
+     temp5 = temp(:,:,2,2) ! &
+     !      + intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DPP),ri4_79)  
 
      call apply_boundary_mask(itri, ipsibound, temp(:,:,1,1), &
           tags=domain_boundary)
@@ -440,21 +450,24 @@ subroutine calculate_external_fields()
      call apply_boundary_mask(itri, ibound, temp(:,:,2,2), &
           tags=domain_boundary)
 
+     call apply_boundary_mask(itri, ibound, temp5, &
+          tags=domain_boundary)
+
 !$OMP CRITICAL
      call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
      call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
      call insert_block(br_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
      call insert_block(br_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
 
-     call insert_block(bf_mat, itri, 1, 1, temp(:,:,2,2), MAT_ADD)
+     call insert_block(bf_mat, itri, 1, 1, temp5, MAT_ADD)
 
      call vector_insert_block(psi_vec, itri, 1, temp2(:,1), MAT_ADD)
      call vector_insert_block(psi_vec, itri, 2, temp2(:,2), MAT_ADD)
 
-     call vector_insert_block(bz_vec, itri, 1, temp3(:), MAT_ADD)
-     call vector_insert_block(bf_vec, itri, 1, temp3(:), MAT_ADD)
+     call vector_insert_block(bz_vec, itri, 1, temp3, MAT_ADD)
+     call vector_insert_block(bf_vec, itri, 1, temp3, MAT_ADD)
 
-     if(read_p) call vector_insert_block(p_vec, itri, 1, temp4(:), MAT_ADD)
+     if(read_p) call vector_insert_block(p_vec, itri, 1, temp4, MAT_ADD)
 !$OMP END CRITICAL
   end do
 !OMP END PARALLEL DO
@@ -463,8 +476,6 @@ subroutine calculate_external_fields()
   call sum_shared(bz_vec)
   if(read_p) call sum_shared(p_vec)
   call sum_shared(bf_vec)
-  call boundary_dc(bf_vec,mat=bf_mat)
-  call finalize(bf_mat)
  
   !solve p
   if(read_p) then
@@ -474,6 +485,9 @@ subroutine calculate_external_fields()
      p_field(1) = p_f
   end if
 
+  call boundary_dc(bf_vec,mat=bf_mat)
+  !call boundary_dc(bf_vec,p_vec,bf_mat)
+  call finalize(bf_mat)
   if(numvar.ge.2) then
      ! Solve F = R B_phi
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz..."
@@ -503,6 +517,17 @@ subroutine calculate_external_fields()
      psi_field(1) = psi_f
      bfp_field(1) = bfp_f
   end if
+  !psi_field(1) = 0.
+  !bfp_field(1) = 0. 
+  !bz_field(1) = bf_f
+  !call mult(bz_field(1), -1.) 
+  !call add(bz_field(1), p_field(1))
+  !p_field(1) = bfp_field(1)
+  !call pow(p_field(1), 2.) 
+
+  !call add(bfp_field(1), p_field(1))
+  !call add(bfp_field(1), p_field(1))
+  !bfp_field(1) = 0.
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)

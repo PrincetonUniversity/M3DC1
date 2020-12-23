@@ -1225,6 +1225,11 @@ end subroutine rotation
        end if
 #endif
     end do
+#ifdef USEST
+    if((igeometry.eq.1.and.ilog.eq.2).or.igeometry.eq.0) then
+       deallocate(gtri,htri)
+    end if
+#endif
 
     select case(equilibrate)
     case(1)
