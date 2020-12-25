@@ -79,7 +79,8 @@ int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 	int* shouldRunPreZoltan, int*shouldRunPostZoltan,
 	int* shouldRefineLayer,
 	int* maximumIterations, double* goodQuality);*/
-void m3dc1_mesh_adapt(int* shouldSnap,int* shouldRunPreZoltan,int*shouldRunPostZoltan,int* shouldRefineLayer,int* maximumIterations,double* goodQuality);
+void m3dc1_mesh_adapt(int* shouldSnap, int* shouldRunPreZoltan, int* shouldRunPostZoltan,
+        int* shouldRefineLayer, int* maximumIterations, double* goodQuality);
 
 int m3dc1_ghost_create (int* num_layer ); 
 int m3dc1_ghost_delete ();
@@ -116,6 +117,8 @@ int m3dc1_ent_isowner (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out 
 int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost);
 
 // node-specific functions
+void m3dc1_node_setfield (int* /* in */ node_id, int* /* in */ field_id, double* /* in */ values, int* /* in */ num_values);
+void m3dc1_node_getfield (int* /* in */ node_id, int* /* in */ field_id, double* /* out */ values, int* /* out */ num_values);
 int m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);  
 int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord ); 
 int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyz);

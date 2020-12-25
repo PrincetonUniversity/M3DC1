@@ -459,7 +459,8 @@ int* maximumIterations,
 double* goodQuality)*/
 
 // Option 1: Provide the 3 fields values in the routine where we set the size field in SCOREC routines (in m3dc1_sizeField.h)
-void m3dc1_mesh_adapt(int* shouldSnap,int* shouldRunPreZoltan,int*shouldRunPostZoltan,int* shouldRefineLayer,int* maximumIterations,double* goodQuality)
+void m3dc1_mesh_adapt(int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
+    int* shouldRefineLayer, int* maximumIterations, double* goodQuality)
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 
@@ -942,7 +943,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
-               <<" failed: not enough array size for adjacent entities (given: "
+               <<" failed: not enough array size for adjacent entities (allocated: "
                <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
@@ -956,7 +957,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
-               <<" failed: not enough array size for adjacent entities (given: "
+               <<" failed: not enough array size for adjacent entities (allocated: "
                <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
@@ -984,7 +985,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
-               <<" failed: not enough array size for adjacent entities (given: "
+               <<" failed: not enough array size for adjacent entities (allocated: "
                <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
@@ -1057,7 +1058,7 @@ void m3dc1_ent_getglobaladj (int* /* in */ ent_dim,
   if (*adj_ent_allocated_size<*adj_ent_size)
   {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
-               <<" failed: not enough array size for adjacent entities (given: "
+               <<" failed: not enough array size for adjacent entities (allocated: "
                <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return;
   }
@@ -1137,6 +1138,43 @@ int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 
 
 // node-specific functions
+//*******************************************************
+void m3dc1_node_setfield (int* /* in */ node_id, int* /* in */ field_id,
+                          double* /* in */ data, int* /* in */ size_data)
+//*******************************************************
+{
+  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
+  assert(e);
+  apf::Field* f = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+  if (*size_data != countComponents(f))
+  {
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 ERROR] "<<__func__
+               <<" failed: #data mismatch for field "<<getName(f)<<" (given: "
+               <<*size_data <<", needed: "<<countComponents(f)<<"\n";
+  }
+
+  assert(*size_data == countComponents(f));
+  apf::setComponents(f, e, 0, data);
+}
+
+//*******************************************************
+void m3dc1_node_getfield (int* /* in */ node_id, int* /* in */ field_id,
+                          double* /* inout */ data, int* /* in */ allocated_data)
+//*******************************************************
+{
+  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
+  assert(e);
+  apf::Field* f = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+  if (*allocated_data < countComponents(f))
+  {
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 ERROR] "<<__func__
+               <<" failed: not enough array size for field "<<getName(f) <<" (allocated: "
+               <<*allocated_data <<", needed: "<<countComponents(f)<<"\n";
+      return;
+  }
+  apf::getComponents(f, e, 0, data);
+}
+
 //*******************************************************
 int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
 //*******************************************************

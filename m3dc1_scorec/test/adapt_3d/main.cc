@@ -73,20 +73,17 @@ int main( int argc, char* argv[])
 
 //  apf::writeVtkFiles("before-adapt",m3dc1_mesh::instance()->mesh);
 
-  int logInterpolation = 1;
-  int shouldSnap=0;
-  int shouldTransferParametric=0;
+  int shouldSnap=1;
   int shouldRunPreZoltan=1;
-  int shouldRunMidParma=1;
-  int shouldRunPostParma=1;
+  int shouldRunPostZoltan=1;
   int shouldRefineLayer=0;
   int maximumIterations=5;
   double goodQuality =0.2;
  
   if (!PCU_Comm_Self()) std::cout << "start adaptation\n";
 
-  m3dc1_mesh_adapt(&logInterpolation, &shouldSnap, &shouldTransferParametric, &shouldRunPreZoltan,
-      &shouldRunMidParma, &shouldRunPostParma, &shouldRefineLayer, &maximumIterations, &goodQuality);
+  m3dc1_mesh_adapt(&shouldSnap, &shouldRunPreZoltan,
+      &shouldRunPostZoltan, &shouldRefineLayer, &maximumIterations, &goodQuality);
 
   if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";
 
