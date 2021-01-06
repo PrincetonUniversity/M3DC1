@@ -15,8 +15,8 @@ module read_vmec
 !  real, allocatable :: raxiscc(:), zaxiscs(:)
   integer, allocatable :: mb(:), nb(:)!, mb_nyq(:), nb_nyq(:)
   real, allocatable :: xmv(:), xnv(:)!, xnv_nyq(:), xmv_nyq(:)
-  integer :: mn_mode, mn_mode_nyq, ns, n_tor, n_zer, m_pol 
-  real, allocatable :: s_vmec(:) 
+  integer :: mn_mode, mn_mode_nyq, ns, n_tor, n_zer, m_pol, n_quad 
+  real, allocatable :: s_vmec(:), quad(:,:) 
   type(spline1d) :: presf_spline      ! total pressure
   type(spline1d) :: phiv_spline       ! toroidal flux
   type(spline1d) :: chiv_spline       ! poloidal flux
@@ -55,8 +55,10 @@ contains
     ! put VMEC data on Zernike basis
     ! radial grid
     do i = 1, ns
-       s_vmec(i) = 1.*(i-1)/(ns-1)
+      s_vmec(i) = 1.*(i-1)/(ns-1)
     end do
+    ! calculate Gauss quadradure
+    call gaussquad(n_quad,quad) 
     ! perform Zernike transform
     call zernike_transform(rmnc,rmncz)
     if(myrank.eq.0) print *, 'rmnc transformed'
@@ -119,6 +121,7 @@ contains
 !    allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
+
     n_zer = m_pol*2
     allocate(rmncz(mn_mode,n_zer+1))
     allocate(zmnsz(mn_mode,n_zer+1))
@@ -127,6 +130,14 @@ contains
 !    allocate(bsupumncz(mn_mode_nyq,n_zer+1))
 !    allocate(bsupvmncz(mn_mode_nyq,n_zer+1))
     allocate(s_vmec(ns))
+
+!    if(mod(n_zer,2).eq.1) then
+!      n_quad = (n_zer+1)/2
+!    else 
+!      n_quad = n_zer/2
+!    end if 
+    n_quad = 2*n_zer + 1
+    allocate(quad(2,n_quad))
   end subroutine allocate_vmec
 
   subroutine read_vmec_nc(myrank)
@@ -436,25 +447,37 @@ contains
 
     fout = 0.
 
-    nt = 1024*n_zer 
-
-    do k = 1, nt
-       rho = sqrt((k-1.)/(nt-1))
+    do k = 1, n_quad
+       rho = .5*(1.+quad(1,k))
        call vmec_interpl(rho,fmn,ftemp)
        do i = 1, mn_mode
           do j = mb(i), n_zer-2, 2
              call zernike_polynomial(rho,j,mb(i),zmn) 
-             if (k.eq.1 .or. k.eq.nt) then
-                fout(i,j+1) = fout(i,j+1) + ftemp(i)*zmn*(j+1)/(2*nt-2) 
-             else
-                fout(i,j+1) = fout(i,j+1) + ftemp(i)*zmn*(j+1)/(nt-1) 
-             end if 
+             fout(i,j+1) = fout(i,j+1) + ftemp(i)*zmn*(j+1)*rho*quad(2,k)
           end do
-          ! calculate integral in s, substract end points
-          !fout(i,j+1) = (sum(fmn(i,:)*zmn)-fmn(i,1)*zmn(1)/2&
-          !            -fmn(i,ns)*zmn(ns)/2)/(ns-1)*(j+1)
        end do
     end do
+
+!    nt = 1024*n_zer 
+!
+!    do k = 1, nt
+!       rho = sqrt((k-1.)/(nt-1))
+!       call vmec_interpl(rho,fmn,ftemp)
+!       do i = 1, mn_mode
+!          do j = mb(i), n_zer-2, 2
+!             call zernike_polynomial(rho,j,mb(i),zmn) 
+!             if (k.eq.1 .or. k.eq.nt) then
+!                fout(i,j+1) = fout(i,j+1) + ftemp(i)*zmn*(j+1)/(2*nt-2) 
+!             else
+!                fout(i,j+1) = fout(i,j+1) + ftemp(i)*zmn*(j+1)/(nt-1) 
+!             end if 
+!          end do
+!          ! calculate integral in s, substract end points
+!          !fout(i,j+1) = (sum(fmn(i,:)*zmn)-fmn(i,1)*zmn(1)/2&
+!          !            -fmn(i,ns)*zmn(ns)/2)/(ns-1)*(j+1)
+!       end do
+!    end do
+
     ! make sure the coefficients sum up to the boundary value 
     do i = 1, mn_mode
        zmn = fmn(i,ns) 
@@ -577,6 +600,46 @@ contains
     end do 
   end subroutine half2full
 
+  ! Adapted from https://rosettacode.org/wiki/Numerical_integration/Gauss-Legendre_Quadrature#Fortran
+  subroutine gaussquad(n,quad)
+    use math
+    integer, parameter :: p = 16 ! quadruple precision
+    integer, intent(in) :: n
+    real, intent(inout) :: quad(2, n)
+    real(kind = p) :: r(2, n)
+    real(kind = p) :: x, f, df, dx
+    integer :: i, k, iter
+    !real(kind = p), allocatable :: p0(:), p1(:), tmp(:)
+    real(kind = p) :: p0(n+1), p1(n+1), tmp(n+1)
+  
+    p0 = 0._p
+    p1 = 0._p
+    tmp = 0._p
+   
+    p0(1) = 1._p
+    p1(1:2) = [1._p, 0._p]
+   
+    do k = 2, n
+      tmp(1:k+1) = ((2*k-1)*p1(1:k+1)-(k-1)*[0._p, 0._p,p0(1:k-1)])/k
+      p0 = p1; p1 = tmp
+    end do
+    do i = 1, n
+      x = cos(pi*(i-0.25_p)/(n+0.5_p))
+      do iter = 1, 10
+        f = p1(1); df = 0._p
+        do k = 2, size(p1)
+          df = f + x*df
+          f  = p1(k) + x * f
+        end do
+        dx =  f / df
+        x = x - dx
+        if (abs(dx)<10*epsilon(dx)) exit
+      end do
+      r(1,i) = x
+      r(2,i) = 2/((1-x**2)*df**2)
+    end do
+    quad = dble(r)
+  end subroutine 
 
 #endif
 end module read_vmec 
