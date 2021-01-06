@@ -446,23 +446,22 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
  * goodQuality): Minimum desired mean ratio cubed for simplex elements
  * NOTE: Make sure to set shouldSnap and  shouldTransferParametric to 0. These are true in default SCOREC adaptation tools that will lead to failure of adaptation
 */
-
-
-// Option 2: Instead of Setting the field in the SetSizeField routine, Calculate all the 3 fields separately and provide the values here as shown in the given API
-
-/*void m3dc1_mesh_adapt(double* field_0, double* field_1, double* angle,
-int* shouldSnap, 
-int* shouldRunPreZoltan, 
-int*shouldRunPostZoltan,
-int* shouldRefineLayer,
-int* maximumIterations, 
-double* goodQuality)*/
-
-// Option 1: Provide the 3 fields values in the routine where we set the size field in SCOREC routines (in m3dc1_sizeField.h)
-void m3dc1_mesh_adapt(int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
+void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
+    int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
     int* shouldRefineLayer, int* maximumIterations, double* goodQuality)
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
+  apf::Field* f_h1 = (*m3dc1_mesh::instance()->field_container)[*field_id_h1]->get_field();
+  int num_dof = countComponents(f_h1);
+  if (!isFrozen(f_h1)) freeze(f_h1);
+  double* data_h1= new double[num_dof*mesh->count(0)];
+  data_h1 = apf::getArrayData(f_h1);
+
+  apf::Field* f_h2 = (*m3dc1_mesh::instance()->field_container)[*field_id_h2]->get_field();
+  if (!isFrozen(f_h2)) freeze(f_h2);
+  double* data_h2= new double[num_dof*mesh->count(0)];
+  data_h2 = apf::getArrayData(f_h2);
 
   // delete all the matrix
   while (m3dc1_solver::instance()-> matrix_container->size())
@@ -492,11 +491,11 @@ void m3dc1_mesh_adapt(int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPo
     apf::destroyNumbering(n);
   }
 
-  SetSizeField sf(mesh);
-  int logInterpolation=true;
-  ma::Input* in = ma::configure(mesh, &sf,0,logInterpolation);
+  SetIsoSizeField sf(mesh, data_h1, data_h2, dir);
+  ma::Input* in = ma::configure(mesh, &sf,0,1 /*logInterpolation*/);
 
   if (!PCU_Comm_Self()) std::cout << __func__<<": cansnap() : " << mesh->canSnap() << "\n";
+/*
   in->shouldSnap = *shouldSnap;
   in->shouldTransferParametric = 0;
   in->shouldRunPreZoltan = *shouldRunPreZoltan;
@@ -506,6 +505,16 @@ void m3dc1_mesh_adapt(int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPo
   in->shouldRefineLayer = *shouldRefineLayer;
   in->maximumIterations=*maximumIterations;
   in->goodQuality = *goodQuality;
+*/
+
+  if (!PCU_Comm_Self()) std::cout << "M3DC1 INFO "<<__func__<<": cansnap() : " << mesh->canSnap() << "\n";
+  in->shouldSnap = false;
+  in->shouldTransferParametric = false;
+  in->shouldRunPreZoltan = true;
+  in->shouldRunMidParma = true;
+  in->shouldRunPostParma = true;
+  in->shouldRefineLayer = true;
+  in->goodQuality = 0.2;
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
