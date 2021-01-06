@@ -59,7 +59,6 @@ contains
 
     real, intent(in) :: x, phi, z
     real :: theta, f
-
     integer :: i
 
     wall_resistivity = eta_wall
@@ -91,13 +90,9 @@ contains
 #ifdef USE3D
     if(eta_rekc.gt.0) then
        theta = atan2(z-zzero_rekc, x-rzero_rekc)
-
        f = cos(ntor_rekc*(phi-phi_rekc) - mpol_rekc*(theta-theta_rekc))
        f = exp((f-1.)/sigma_rekc**2)
-
        wall_resistivity = 10.**(log10(wall_resistivity)*(1.-f) + log10(eta_rekc)*f)
-!       wall_resistivity = wall_resistivity*(1.-f) + eta_rekc*f
-
     end if
 #endif
 
@@ -107,7 +102,7 @@ contains
     implicit none
 
     real, intent(in) :: x, phi, z
-
+    real :: theta, f
     integer :: i
 
     wall_resistivityRZ = eta_wallRZ
@@ -135,6 +130,15 @@ contains
        endif
 #endif
     end do
+
+#ifdef USE3D
+    if(eta_rekc.gt.0) then
+       theta = atan2(z-zzero_rekc, x-rzero_rekc)
+       f = cos(ntor_rekc*(phi-phi_rekc) - mpol_rekc*(theta-theta_rekc))
+       f = exp((f-1.)/sigma_rekc**2)
+       wall_resistivityRZ = 10.**(log10(wall_resistivityRZ)*(1.-f) + log10(eta_rekc)*f)
+    end if
+#endif
 
   end function wall_resistivityRZ
 
