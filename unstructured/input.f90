@@ -1046,7 +1046,7 @@ subroutine set_defaults
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
 
   !Mesh adapataion contol parameters
-  call add_var_int("iadapt_snap", iadapt_snap, 1, "", adapt_grp)
+  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp)
   call add_var_int("iadapt_pre_zoltan", iadapt_pre_zoltan, 1, "", adapt_grp)
   call add_var_int("iadapt_post_zoltan", iadapt_post_zoltan, 1, "", adapt_grp)
   call add_var_int("iadapt_refine_layer", iadapt_refine_layer, 1, "", adapt_grp)
