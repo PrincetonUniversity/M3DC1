@@ -200,7 +200,11 @@ contains
                  call read_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
                  call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
                  call read_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
-             else !if(irestart_pellet.eq.1) then !if more options are added, uncomment.
+                 if(version_in.ge.33) then
+                    call read_1dextendarr(pel_group_id, "cauchy_fraction",cauchy_fraction, npellets, ntime, error)
+                 end if
+
+             else if(irestart_pellet.eq.1) then
                  ! Control ablated cloud size and others parameters from C1input
                  call read_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
                  call read_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
@@ -211,10 +215,11 @@ contains
                  call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
                  call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
                  call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
-             end if
-
-             if(version_in.ge.33) then
-                call read_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
+             else
+                 if(myrank.eq.0) then
+                    print *, 'Error: irestart_pellet not available for this value: ',irestart_pellet
+                    call safestop(30)
+                end if         
              end if
              call h5gclose_f(pel_group_id, error)
           end if
