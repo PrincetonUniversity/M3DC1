@@ -8,6 +8,9 @@ module pellet
 
   integer :: iread_pellet  ! 1 = read pellet info from pellet.dat
 
+  integer :: irestart_pellet ! 0 = read restart from hdf5
+                             ! 1 = read some restart parameters from C1input
+
   integer :: npellets
 
   real, allocatable :: pellet_r(:)    ! x coordinate of pellet
