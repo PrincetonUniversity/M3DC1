@@ -437,6 +437,7 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
 
 /* new mesh adaptation */
 /* Input Parameters
+ * dir: direction per node. The length of dir should be #nodes * 3 
  * logInterpolation(0,1): If true uses logarithmic interpolation for evaluation of fields on new vertices
  * shouldSnap(0,1) : Snaps new vertices to the model surface (Set it to 0 for the being. Need to work on Model format to make this parameter work) 
  * shouldTransferParametric(0,1): Transfer parametric coordinates (Set it to 0 for the being. Need to work on Model format to make this parameter work)
@@ -494,8 +495,6 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   SetIsoSizeField sf(mesh, data_h1, data_h2, dir);
   ma::Input* in = ma::configure(mesh, &sf,0,1 /*logInterpolation*/);
 
-  if (!PCU_Comm_Self()) std::cout << __func__<<": cansnap() : " << mesh->canSnap() << "\n";
-/*
   in->shouldSnap = *shouldSnap;
   in->shouldTransferParametric = 0;
   in->shouldRunPreZoltan = *shouldRunPreZoltan;
@@ -505,19 +504,16 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   in->shouldRefineLayer = *shouldRefineLayer;
   in->maximumIterations=*maximumIterations;
   in->goodQuality = *goodQuality;
-*/
 
-  if (!PCU_Comm_Self()) std::cout << "M3DC1 INFO "<<__func__<<": cansnap() : " << mesh->canSnap() << "\n";
-  in->shouldSnap = false;
-  in->shouldTransferParametric = false;
-  in->shouldRunPreZoltan = true;
-  in->shouldRunMidParma = true;
-  in->shouldRunPostParma = true;
-  in->shouldRefineLayer = true;
-  in->goodQuality = 0.2;
+  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": snap "<<*shouldSnap
+      <<", runPreZoltan "<<*shouldRunPreZoltan<<", runPostZoltan "<<*shouldRunPostZoltan<<"\n";
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
+
+
+  delete [] data_h1;
+  delete [] data_h2;
 
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);

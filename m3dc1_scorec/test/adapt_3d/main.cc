@@ -22,13 +22,8 @@
 
 void find_isofield (ma::Mesh* m, int* field_id1, int* field_id2, double* dir)
 {
-  ma::Vector low;
-  ma::Vector up;
   double average = ma::getAverageEdgeLength(m);
-  ma::getBoundingBox(m,low,up);
 
-  double lower = low[0];
-  double upper = up[0];
   double data = average/2.0;
 
   int size_data=1;
@@ -87,11 +82,20 @@ int main( int argc, char* argv[])
     m3dc1_mesh_build3d(&zero, &zero, &zero);
 
   int shouldSnap=0;
-  if (argc>4) shouldSnap=atoi(argv[4]);
+  if (argc>4) 
+    shouldSnap=atoi(argv[4]);
+  else
+    if (!PCU_Comm_Self()) std::cout <<"Missing Input Args argv[4]: shouldSnap, argv[5]: shouldRunPreZoltan, "
+         <<"argv[6]: shouldRunPostZoltan, argv[7]: shouldefineLayer\n"
+         <<"Default value 0 is used for all\n"; 
+
   int shouldRunPreZoltan=0;
   int shouldRunPostZoltan=0;
+  int shouldRefineLayer=0;
+
   if (argc>5) shouldRunPreZoltan=atoi(argv[5]);
-  if (argc>6) shouldRunPreZoltan=atoi(argv[6]);
+  if (argc>6) shouldRunPostZoltan=atoi(argv[6]);
+  if (argc>7) shouldRefineLayer=atoi(argv[7]);
     
 //  apf::writeVtkFiles("before-adapt",m3dc1_mesh::instance()->mesh);
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
@@ -108,7 +112,6 @@ int main( int argc, char* argv[])
 
   find_isofield (m, &fid_size1, &fid_size2, dir);
 
-  int shouldRefineLayer=0;
   int maximumIterations=5;
   double goodQuality =0.2;
  
