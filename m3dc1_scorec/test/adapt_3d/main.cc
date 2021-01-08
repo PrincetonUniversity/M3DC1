@@ -15,6 +15,8 @@
 #include "ma.h"
 #include "pumi.h"
 #include <mpi.h>
+#include <gmi_mesh.h>
+#include <apfMDS.h>
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_sizeField.h"
 #include "petscksp.h"
@@ -57,29 +59,39 @@ int main( int argc, char* argv[])
     if (num_plane>1 && pumi_size()%num_plane==0)
       m3dc1_model_setnumplane (&num_plane);
   }
+ 
+   apf::Mesh2* m;
 
-  if (m3dc1_model_load(argv[1])) // model loading failed
+  if (!atoi(argv[3]))
   {
-    PetscFinalize();
-    m3dc1_scorec_finalize();
-    MPI_Finalize();
-    return 0;
+    gmi_register_mesh();
+    gmi_model* g = gmi_load(argv[1]);
+    m3dc1_mesh::instance()->mesh = apf::loadMdsMesh(g, argv[2]);
+  }
+  else
+  {
+    if (m3dc1_model_load(argv[1])) // model loading failed
+    {
+      PetscFinalize();
+      m3dc1_scorec_finalize();
+      MPI_Finalize();
+      return 0;
+    }
+
+    if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
+    {
+      PetscFinalize();
+      m3dc1_scorec_finalize();
+      MPI_Finalize();
+      return 0;
+    }
+    int zero=0;
+
+    if (num_plane>1)
+      m3dc1_mesh_build3d(&zero, &zero, &zero);
   }
 
-  if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
-  {
-    PetscFinalize();
-    m3dc1_scorec_finalize();
-    MPI_Finalize();
-    return 0;
-  }
-
-  // Set input for m3dc1_mesh_build3d()
-  int zero=0;
-
-  // printStats (Mesh m): print global mesh entity counts per dimension
-  if (num_plane>1)
-    m3dc1_mesh_build3d(&zero, &zero, &zero);
+  m = m3dc1_mesh::instance()->mesh; 
 
   int shouldSnap=0;
   if (argc>4) 
@@ -98,7 +110,6 @@ int main( int argc, char* argv[])
   if (argc>7) shouldRefineLayer=atoi(argv[7]);
     
 //  apf::writeVtkFiles("before-adapt",m3dc1_mesh::instance()->mesh);
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
 
   int fid_size1=1;
   int fid_size2=2;
