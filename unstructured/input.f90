@@ -844,6 +844,8 @@ subroutine set_defaults
   ! density source
   call add_var_int("ipellet", ipellet, 0, &
        "1 = include a gaussian pellet source", source_grp)
+  call add_var_int("irestart_pellet", irestart_pellet, 0, &
+       "1 = read some pellet restart parameters from C1input", source_grp)
   call add_var_int("ipellet_z", ipellet_z, 0, &
        "Atomic number of pellet (0 = main ion species)", source_grp)
   call add_var_int("iread_pellet", iread_pellet, 0, &
