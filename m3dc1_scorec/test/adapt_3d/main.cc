@@ -26,10 +26,10 @@ void find_isofield (ma::Mesh* m, int* field_id1, int* field_id2, double* dir)
 {
   double average = ma::getAverageEdgeLength(m);
 
-  double data = average/2.0;
+  double data = average*2;
 
   int size_data=1;
-  for (int i=0; i<m3dc1_mesh::instance()->mesh->count(0); ++i)
+  for (int i=0; i<m->count(0); ++i)
   {
     m3dc1_node_setfield(&i, field_id1, &data, &size_data);
     m3dc1_node_setfield(&i, field_id2, &data, &size_data);
@@ -38,6 +38,8 @@ void find_isofield (ma::Mesh* m, int* field_id1, int* field_id2, double* dir)
     dir[i*3+1] = 0.0;
     dir[i*3+2] = 0.0;
   }
+  m3dc1_field_sync(field_id1);
+  m3dc1_field_sync(field_id2);
 }
 
 int main( int argc, char* argv[])
@@ -101,9 +103,9 @@ int main( int argc, char* argv[])
          <<"argv[6]: shouldRunPostZoltan, argv[7]: shouldefineLayer\n"
          <<"Default value 0 is used for all\n"; 
 
-  int shouldRunPreZoltan=0;
-  int shouldRunPostZoltan=0;
-  int shouldRefineLayer=0;
+  int shouldRunPreZoltan=1;
+  int shouldRunPostZoltan=1;
+  int shouldRefineLayer=1;
 
   if (argc>5) shouldRunPreZoltan=atoi(argv[5]);
   if (argc>6) shouldRunPostZoltan=atoi(argv[6]);
@@ -130,6 +132,8 @@ int main( int argc, char* argv[])
 
   m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir, &shouldSnap, &shouldRunPreZoltan,
       &shouldRunPostZoltan, &shouldRefineLayer, &maximumIterations, &goodQuality);
+
+  pumi_mesh_print(m);
 
   if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";
 
