@@ -38,8 +38,11 @@ void find_isofield (ma::Mesh* m, int* field_id1, int* field_id2, double* dir)
     dir[i*3+1] = 0.0;
     dir[i*3+2] = 0.0;
   }
-  m3dc1_field_sync(field_id1);
-  m3dc1_field_sync(field_id2);
+  if (PCU_Comm_Peers()>1)
+  {
+    m3dc1_field_sync(field_id1);
+    m3dc1_field_sync(field_id2);
+  }
 }
 
 int main( int argc, char* argv[])
