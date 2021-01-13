@@ -554,7 +554,9 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
     apf::destroyNumbering(n);
   }
 
-  ma::Input* in = ma::configure(mesh, size_field, frame_field);
+  ReducedQuinticImplicit shape;
+  ReducedQuinticTransfer slnTransfer(mesh,fields, &shape);
+  ma::Input* in = ma::configure(mesh, size_field, frame_field, &slnTransfer);
 
   in->shouldSnap = 0; // FIXME: crash if *shouldSnap==1;
   in->shouldTransferParametric = 0;
