@@ -448,8 +448,8 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
     angle_1[1] = angle[(i*3)+1];
     angle_1[2] = angle[(i*3)+2];
 
-    // Calculate the second unit vector
-    double a, b;
+ // Calculate the second unit vector
+/*  double a, b;
     double frac_1, frac_2;
     frac_1 = (angle_1[0])*(angle_1[0]);
     frac_2 = (angle_1[0])*(angle_1[0]) + (angle_1[1])*(angle_1[1]);
@@ -463,6 +463,11 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
     dir_2[0] = a /mag;
     dir_2[1] = b /mag;
     dir_2[2] = 0.0;
+*/
+    double dir_2[3];
+    dir_2[0] = -angle_1[1];
+    dir_2[1] =  angle_1[0];
+    dir_2[2] =  0.0;
 
     ma::Vector h(h1, h2, h2);
 
@@ -481,7 +486,8 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
 
     apf::MeshEntity* vert = getMdsEntity(m, 0, i);
     apf::setVector(sizefield, vert, 0, h);
-    apf::setMatrix(framefield, vert, 0, r);
+//  apf::setMatrix(framefield, vert, 0, r);
+    apf::setMatrix(framefield, vert, 0, apf::transpose(r));	// For Shock Test Case
   }
   // sync the fields to make sure verts on part boundaries end up with the same size and frame
   apf::synchronize(sizefield);
@@ -503,6 +509,7 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
 */
 #include "apfShape.h" // getLagrange
 
+
 void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
     int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
     int* shouldRefineLayer, int* maximumIterations, double* goodQuality)
@@ -521,12 +528,13 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   apf::Field* size_field = apf::createField(mesh, "size_field", apf::VECTOR, apf::getLagrange(1));
   apf::Field* frame_field = apf::createField(mesh, "frame_field", apf::MATRIX, apf::getLagrange(1));
 
-  compute_size_and_frame_fields(mesh, data_h1, data_h2, dir, size_field, frame_field);
-  
-  m3dc1_field_delete (field_id_h1);
-  m3dc1_field_delete (field_id_h2);
+   
+   compute_size_and_frame_fields(mesh, data_h1, data_h2, dir, size_field, frame_field);
+  	 
+   m3dc1_field_delete (field_id_h1);
+   m3dc1_field_delete (field_id_h2);
 
-  // delete all the matrix
+   // delete all the matrix
   while (m3dc1_solver::instance()-> matrix_container->size())
   {
     std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
@@ -553,11 +561,11 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
     if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
     apf::destroyNumbering(n);
   }
-
+	
   ReducedQuinticImplicit shape;
   ReducedQuinticTransfer slnTransfer(mesh,fields, &shape);
   ma::Input* in = ma::configure(mesh, size_field, frame_field, &slnTransfer);
-
+	
   in->shouldSnap = 0; // FIXME: crash if *shouldSnap==1;
   in->shouldTransferParametric = 0;
   in->shouldRunPreZoltan = *shouldRunPreZoltan;
@@ -569,19 +577,23 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   in->goodQuality = *goodQuality;
 
   if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": snap "<<*shouldSnap
-      <<", runPreZoltan "<<*shouldRunPreZoltan<<", runPostZoltan "<<*shouldRunPostZoltan<<"\n";
+  	  <<", runPreZoltan "<<*shouldRunPreZoltan<<", runPostZoltan "<<*shouldRunPostZoltan<<"\n";
 
   apf::writeVtkFiles("before-adapt", mesh);
+  mesh->writeNative("mesh.smb");
+ 
   ma::adapt(in);
+//ma::adaptVerbose(in);
+
 
   mesh->removeField(size_field);
   mesh->removeField(frame_field);
   apf::destroyField(size_field);
   apf::destroyField(frame_field);
-
   reorderMdsMesh(mesh);
 
   apf::writeVtkFiles("after-adapt", mesh);
+  
 
   m3dc1_mesh::instance()->initialize();
   compute_globalid(mesh, 0);
@@ -594,6 +606,7 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
     int complexType = it->second->get_value_type();
     if (complexType) group_complex_dof(field, 0);
     if (!isFrozen(field)) freeze(field);
+
 #ifdef DEBUG
     int isnan;
     int fieldId= it->first;
@@ -609,6 +622,7 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
     it++;
   }
 }
+
 
 /* ghosting functions */
 //*******************************************************
