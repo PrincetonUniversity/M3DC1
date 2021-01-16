@@ -1055,7 +1055,7 @@ subroutine calculate_scalars()
   call evaluate_flux_loops
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
-     print *, "Total energy = ", etot
+     print *, "Total energy = ", etot, emagp, emagt,emag3
      print *, "Total energy lost = ", ptot
  
      print *, "Scalars:"
