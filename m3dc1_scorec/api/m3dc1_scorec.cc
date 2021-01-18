@@ -486,8 +486,8 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
 
     apf::MeshEntity* vert = getMdsEntity(m, 0, i);
     apf::setVector(sizefield, vert, 0, h);
-//  apf::setMatrix(framefield, vert, 0, r);
-    apf::setMatrix(framefield, vert, 0, apf::transpose(r));	// For Shock Test Case
+    apf::setMatrix(framefield, vert, 0, r);
+//  apf::setMatrix(framefield, vert, 0, apf::transpose(r));	// For Shock Test Case
   }
   // sync the fields to make sure verts on part boundaries end up with the same size and frame
   apf::synchronize(sizefield);
