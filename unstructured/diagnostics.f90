@@ -778,7 +778,7 @@ subroutine calculate_scalars()
 #endif
 
      if(imulti_region.eq.1 .and. izone.eq.2) then
-        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
+        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero   ! changed from tpifac on 1/18/21 scj
 
         call jxb_r(temp79a, temp79d)
         call jxb_phi(temp79b)
