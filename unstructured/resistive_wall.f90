@@ -55,6 +55,8 @@ contains
 
   elemental real function wall_resistivity(x, phi, z)
 
+    use math
+
     implicit none
 
     real, intent(in) :: x, phi, z
@@ -90,7 +92,8 @@ contains
 #ifdef USE3D
     if(eta_rekc.gt.0) then
        theta = atan2(z-zzero_rekc, x-rzero_rekc)
-       f = cos(ntor_rekc*(phi-phi_rekc) - mpol_rekc*(theta-theta_rekc))
+       f = ntor_rekc*(phi-phi_rekc)*twopi/toroidal_period
+       f = cos(f - mpol_rekc*(theta-theta_rekc))
        f = exp((f-1.)/sigma_rekc**2)
        wall_resistivity = 10.**(log10(wall_resistivity)*(1.-f) + log10(eta_rekc)*f)
     end if
@@ -98,7 +101,10 @@ contains
 
   end function wall_resistivity
 
- elemental real function wall_resistivityRZ(x, phi, z)
+  elemental real function wall_resistivityRZ(x, phi, z)
+
+    use math
+
     implicit none
 
     real, intent(in) :: x, phi, z
@@ -134,7 +140,8 @@ contains
 #ifdef USE3D
     if(eta_rekc.gt.0) then
        theta = atan2(z-zzero_rekc, x-rzero_rekc)
-       f = cos(ntor_rekc*(phi-phi_rekc) - mpol_rekc*(theta-theta_rekc))
+       f = ntor_rekc*(phi-phi_rekc)*twopi/toroidal_period
+       f = cos(f - mpol_rekc*(theta-theta_rekc))
        f = exp((f-1.)/sigma_rekc**2)
        wall_resistivityRZ = 10.**(log10(wall_resistivityRZ)*(1.-f) + log10(eta_rekc)*f)
     end if
