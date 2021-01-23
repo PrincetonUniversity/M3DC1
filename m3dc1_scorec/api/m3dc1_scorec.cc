@@ -517,24 +517,25 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 
   apf::Field* f_h1 = (*m3dc1_mesh::instance()->field_container)[*field_id_h1]->get_field();
+  synchronize_field(f_h1);
   int num_dof = countComponents(f_h1);
   if (!isFrozen(f_h1)) freeze(f_h1);
   double* data_h1= apf::getArrayData(f_h1);
 
   apf::Field* f_h2 = (*m3dc1_mesh::instance()->field_container)[*field_id_h2]->get_field();
+  synchronize_field(f_h2);
   if (!isFrozen(f_h2)) freeze(f_h2);
   double* data_h2= apf::getArrayData(f_h2);
 
   apf::Field* size_field = apf::createField(mesh, "size_field", apf::VECTOR, apf::getLagrange(1));
   apf::Field* frame_field = apf::createField(mesh, "frame_field", apf::MATRIX, apf::getLagrange(1));
 
-   
-   compute_size_and_frame_fields(mesh, data_h1, data_h2, dir, size_field, frame_field);
+  compute_size_and_frame_fields(mesh, data_h1, data_h2, dir, size_field, frame_field);
   	 
-   m3dc1_field_delete (field_id_h1);
-   m3dc1_field_delete (field_id_h2);
+  m3dc1_field_delete (field_id_h1);
+  m3dc1_field_delete (field_id_h2);
 
-   // delete all the matrix
+  // delete all the matrix
   while (m3dc1_solver::instance()-> matrix_container->size())
   {
     std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
@@ -1604,6 +1605,8 @@ int m3dc1_field_exist(FieldID* field_id, int * exist)
 int m3dc1_field_sync (FieldID* /* in */ field_id)
 //*******************************************************
 {
+  if (PCU_Comm_Peers()==0) return 0;
+
 #ifdef DEBUG
   int isnan;
   m3dc1_field_isnan(field_id, &isnan);

@@ -41,11 +41,8 @@ void find_isofield (ma::Mesh* m, int* field_id1, int* field_id2, double* dir)
     dir[i*3+1] = 0.0;
     dir[i*3+2] = 0.0;
   }
-  if (PCU_Comm_Peers()>1)
-  {
-    m3dc1_field_sync(field_id1);
-    m3dc1_field_sync(field_id2);
-  }
+  m3dc1_field_sync(field_id1);
+  m3dc1_field_sync(field_id2);
 }
 
 // Anisotropic Mesh Size Field
@@ -90,12 +87,8 @@ int find_anisofield (ma::Mesh* m, int* field_id1, int* field_id2, double* dir)
     		dir[i*3+1] = 0.0;
     		dir[i*3+2] = 0.0;
         }
-	
-  	if (PCU_Comm_Peers()>1)
-  	{
-  	  m3dc1_field_sync(field_id1);
-    	  m3dc1_field_sync(field_id2);
-  	}
+  	m3dc1_field_sync(field_id1);
+    	m3dc1_field_sync(field_id2);
 	
 }
 
@@ -161,12 +154,8 @@ int find_anisofield_shock (ma::Mesh* m, int* field_id1, int* field_id2, double* 
                 m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
 
         }
-
-        if (PCU_Comm_Peers()>1)
-        {
           m3dc1_field_sync(field_id1);
           m3dc1_field_sync(field_id2);
-        }
 
 }
 
@@ -184,23 +173,22 @@ int main( int argc, char* argv[])
   }
   
   int num_plane=pumi_size();
-  if (argc>3)
+  gmi_model* g;
+  apf::Mesh2* m;
+  
+  if (!atoi(argv[3]))
+  {
+    gmi_register_mesh();
+    g = gmi_load(argv[1]);
+    m3dc1_mesh::instance()->mesh = apf::loadMdsMesh(g, argv[2]);
+    m3dc1_mesh::instance()->initialize();
+  }
+  else
   {
     num_plane = atoi(argv[3]);
     if (num_plane>1 && pumi_size()%num_plane==0)
       m3dc1_model_setnumplane (&num_plane);
-  }
- 
-   apf::Mesh2* m;
 
-  if (!atoi(argv[3]))
-  {
-    gmi_register_mesh();
-    gmi_model* g = gmi_load(argv[1]);
-    m3dc1_mesh::instance()->mesh = apf::loadMdsMesh(g, argv[2]);
-  }
-  else
-  {
     if (m3dc1_model_load(argv[1])) // model loading failed
     {
       PetscFinalize();
@@ -222,32 +210,34 @@ int main( int argc, char* argv[])
       m3dc1_mesh_build3d(&zero, &zero, &zero);
   }
 
-  //m = m3dc1_mesh::instance()->mesh; 
+  m = m3dc1_mesh::instance()->mesh; 
   int num_adapt_iter = 1; 
-  if (argc>4) 
- 	num_adapt_iter=atoi(argv[4]);
-  std::cout << "Number of Adapt Iterations = " << num_adapt_iter << "\n";
-  int shouldSnap=0;
   if (argc>5) 
+ 	num_adapt_iter=atoi(argv[4]);
+  if (!PCU_Comm_Self()) std::cout << "size of adapt loops = " << num_adapt_iter << "\n";
+  int shouldSnap=0;
+  if (argc>6) 
     shouldSnap=atoi(argv[5]);
   else
-    if (!PCU_Comm_Self()) std::cout <<"Missing Input Args argv[5]: shouldSnap, argv[6]: shouldRunPreZoltan, "
-         <<"argv[7]: shouldRunPostZoltan, argv[8]: shouldefineLayer\n"
-         <<"Default value 0 is used for all\n"; 
+    if (!PCU_Comm_Self()) std::cout <<"Missing input args: argv[5] shouldSnap, argv[6] shouldRunPreZoltan, "
+         <<"argv[7] shouldRunPostZoltan, argv[8] shouldefineLayer\n";
 
   int shouldRunPreZoltan=1;
   int shouldRunPostZoltan=1;
   int shouldRefineLayer=1;
+  int maximumIterations=5;
+  double goodQuality =0.4;
 
-  if (argc>6) shouldRunPreZoltan=atoi(argv[6]);
-  if (argc>7) shouldRunPostZoltan=atoi(argv[7]);
-  if (argc>8) shouldRefineLayer=atoi(argv[8]);
+  if (argc>7) shouldRunPreZoltan=atoi(argv[6]);
+  if (argc>8) shouldRunPostZoltan=atoi(argv[7]);
+  if (argc>9) shouldRefineLayer=atoi(argv[8]);
+  if (argc>10) maximumIterations=atoi(argv[9]);
+  if (argc>11) goodQuality =atof(argv[10]);
     
  // apf::writeVtkFiles("before-adapt",m3dc1_mesh::instance()->mesh);
 
   for (int n = 0; n<num_adapt_iter; ++n)
   {
-	m = m3dc1_mesh::instance()->mesh;
   	int fid_size1=1;
   	int fid_size2=2;
   	int scalar_type=0;
@@ -264,11 +254,8 @@ int main( int argc, char* argv[])
   //	find_anisofield (m, &fid_size1, &fid_size2, dir);   
    	find_anisofield_shock (m, &fid_size1, &fid_size2, dir);
 
-  	int maximumIterations=5;
-  	double goodQuality =0.4;
-    
-  	if (!PCU_Comm_Self()) std::cout << "start adaptation\n";
-
+  	if (!PCU_Comm_Self()) std::cout << "start adaptation with # max iterations "
+                                        <<maximumIterations<<", goodQuality "<<goodQuality<<"\n";
   
   	m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir, &shouldSnap, &shouldRunPreZoltan,
 		&shouldRunPostZoltan, &shouldRefineLayer, &maximumIterations, &goodQuality);
