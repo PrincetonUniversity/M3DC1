@@ -660,106 +660,113 @@ end function cd_func
 
 ! Resistivity
 ! ~~~~~~~~~~~
-function resistivity_func()
+function resistivity_func(izone)
   use basic
   use m3dc1_nint
   use diagnostics
   use math
   use read_ascii
+  use resistive_wall
 
   implicit none
 
   vectype, dimension(dofs_per_element) :: resistivity_func
+  integer, intent(in) :: izone
   real :: tmin
   integer :: nvals, j
   real, allocatable :: xvals(:), yvals(:)
   real :: val, valp, valpp, pso
 
+  if(izone.eq.1) then
+     select case (iresfunc)
+     case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
+        if(eta0.ne.0.) then
+           tmin = (eta_fac*eta0/(eta_max - etar*eta_fac))**(2./3.)
 
-  select case (iresfunc)
-  case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
-     if(eta0.ne.0.) then
-        tmin = (eta_fac*eta0/(eta_max - etar*eta_fac))**(2./3.)
+           if(itemp.eq.1) then
+              temp79b = tet79(:,OP_1) - eta_te_offset
+           else
+              temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
+           endif
+           where(real(temp79b).lt.tmin)
+              temp79a = eta_max - etar*eta_fac
+           elsewhere
+              temp79a = eta_fac*eta0*temp79b**(-1.5)
+           end where
+           where(real(temp79a).lt.(eta_min-etar*eta_fac))
+              temp79a = eta_min - etar*eta_fac
+           endwhere
 
-        if(itemp.eq.1) then
-           temp79b = tet79(:,OP_1) - eta_te_offset
         else
-           temp79b = pet79(:,OP_1)/net79(:,OP_1) - eta_te_offset
-        endif
-        where(real(temp79b).lt.tmin)
-           temp79a = eta_max - etar*eta_fac
-        elsewhere
-           temp79a = eta_fac*eta0*temp79b**(-1.5)
-        end where
-        where(real(temp79a).lt.(eta_min-etar*eta_fac))
-           temp79a = eta_min - etar*eta_fac
-        endwhere
+           temp79a = 0.
+        end if
 
-     else
-        temp79a = 0.
-     end if
+     case(1)      ! added 08/05/08 for stability benchmarking
+          temp79a = eta_fac*eta0*.5* &
+               (1. + &
+               tanh((real(pst79(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
+               /(etadelt*(psilim-psimin))))
 
-  case(1)      ! added 08/05/08 for stability benchmarking
-       temp79a = eta_fac*eta0*.5* &
-            (1. + &
-            tanh((real(pst79(:,OP_1))-(psilim+etaoff*(psilim-psimin)))&
-            /(etadelt*(psilim-psimin))))
+     case(2)
+        temp79a = eta79(:,OP_1) - etar*eta_fac
 
-  case(2)
-     temp79a = eta79(:,OP_1) - etar*eta_fac
+     case(3)
+        temp79a = eta79(:,OP_1) - etar*eta_fac
 
-  case(3)
-     temp79a = eta79(:,OP_1) - etar*eta_fac
+     case(4)
+        temp79a = eta79(:,OP_1) - etar*eta_fac
 
-  case(4)
-     temp79a = eta79(:,OP_1) - etar*eta_fac
-
-  case(5)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)/(1 - 2 sqrt(eps))
-           ! neoclassical:  Park, et al NF 30 2413 (1990)
-     if(eta0.ne.0.) then
-        if(itemp.eq.1) then
-           temp79c = eta_fac*eta0*tet79(:,OP_1)**(-1.5)
+     case(5)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)/(1 - 2 sqrt(eps))
+              ! neoclassical:  Park, et al NF 30 2413 (1990)
+        if(eta0.ne.0.) then
+           if(itemp.eq.1) then
+              temp79c = eta_fac*eta0*tet79(:,OP_1)**(-1.5)
+           else
+              temp79c = eta_fac*eta0*sqrt((net79(:,OP_1)/pet79(:,OP_1))**3)
+           endif
         else
-           temp79c = eta_fac*eta0*sqrt((net79(:,OP_1)/pet79(:,OP_1))**3)
+           temp79c = 0.
         endif
-     else
-        temp79c = 0.
-     endif
-     temp79b = sqrt(((x_79 - xmag)**2 + (z_79 - zmag)**2)/rzero**2)
-     temp79a = temp79c/(1. - 1.46*sqrt(temp79b))
+        temp79b = sqrt(((x_79 - xmag)**2 + (z_79 - zmag)**2)/rzero**2)
+        temp79a = temp79c/(1. - 1.46*sqrt(temp79b))
 
-  case(10,11)
-     if(.not.allocated(eta_spline%x)) then
-        ! Read in ohm-m (10) or normalized units (11)
-        nvals = 0
-        call read_ascii_column('profile_eta', xvals, nvals, icol=1)
-        call read_ascii_column('profile_eta', yvals, nvals, icol=2)
-        if(nvals.eq.0) call safestop(6)
-        if(iresfunc.eq.10) then
-           yvals = yvals / (c_light**2 / 1.e11)            ! convert from ohm-m to s
-           yvals = yvals / (4.*pi*(v0_norm/c_light)**2 * t0_norm)  ! convert from s
+     case(10,11)
+        if(.not.allocated(eta_spline%x)) then
+           ! Read in ohm-m (10) or normalized units (11)
+           nvals = 0
+           call read_ascii_column('profile_eta', xvals, nvals, icol=1)
+           call read_ascii_column('profile_eta', yvals, nvals, icol=2)
+           if(nvals.eq.0) call safestop(6)
+           if(iresfunc.eq.10) then
+              yvals = yvals / (c_light**2 / 1.e11)            ! convert from ohm-m to s
+              yvals = yvals / (4.*pi*(v0_norm/c_light)**2 * t0_norm)  ! convert from s
+           end if
+           call create_spline(eta_spline, nvals, xvals, yvals)
+           deallocate(xvals, yvals)
         end if
-        call create_spline(eta_spline, nvals, xvals, yvals)
-        deallocate(xvals, yvals)
-     end if
-     
-     do j=1, npoints
-        if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j),z_79(j)).eq.2) then
-           pso = 2. - pso
-        end if
-        pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+        
+        do j=1, npoints
+           if(magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+                x_79(j),z_79(j)).eq.2) then
+              pso = 2. - pso
+           end if
+           pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
 
-        call evaluate_spline(eta_spline,pso,val,valp,valpp)
-        temp79a(j) = val
-        if(myrank.eq.0) print *, pso, val
-     end do
+           call evaluate_spline(eta_spline,pso,val,valp,valpp)
+           temp79a(j) = val
+           if(myrank.eq.0) print *, pso, val
+        end do
 
-  case default
-     if(myrank.eq.0) print *, 'Error: invalid value for iresfunc: ', iresfunc
-     call safestop(73)
+     case default
+        if(myrank.eq.0) print *, 'Error: invalid value for iresfunc: ', iresfunc
+        call safestop(73)
 
-  end select
+     end select
+  else if(izone.eq.2) then
+     temp79a = wall_resistivity(x_79,phi_79,z_79) - etar*eta_fac
+  else if(izone.eq.3) then
+     temp79a = eta_vac - etar*eta_fac
+  end if
 
   resistivity_func = intx2(mu79(:,:,OP_1),temp79a)
 end function resistivity_func
@@ -1272,7 +1279,7 @@ subroutine define_transport_coefficients()
      call get_zone(itri, izone)
 
 
-     dofs = resistivity_func()
+     dofs = resistivity_func(izone)
      if(.not.solve_resistivity) solve_resistivity = any(dofs.ne.0.)
 
 !$OMP CRITICAL

@@ -807,7 +807,23 @@ subroutine set_defaults
 
   call add_var_string_array("wall_region_filename", wall_region_filename, 256,&
        imax_wall_regions, "", "Resistivity of each wall region", rw_grp)
-
+  call add_var_double("eta_rekc", eta_rekc, 0., &
+       "Resistivity of runaway-electron killer coil (REKC)", rw_grp)
+  call add_var_int("ntor_rekc", ntor_rekc, 0, &
+       "Toroidal mode number of REKC", rw_grp)
+  call add_var_int("mpol_rekc", mpol_rekc, 0, &
+       "Poloidal mode number of REKC", rw_grp)
+  call add_var_double("phi_rekc", phi_rekc, 0., &
+       "Toroidal angle of fixed point of REKC", rw_grp)
+  call add_var_double("theta_rekc", theta_rekc, 0., &
+       "Poloidal angle of fixed point of REKC", rw_grp)
+  call add_var_double("sigma_rekc", sigma_rekc, 0., &
+       "Angular half-width of REKC", rw_grp)
+  call add_var_double("rzero_rekc", rzero_rekc, 0., &
+       "R0 for computing theta of REKC", rw_grp)
+  call add_var_double("zzero_rekc", zzero_rekc, 0., &
+       "Z0 for computing theta of REKC", rw_grp)
+  
 
   ! loop voltage
   call add_var_double("vloop", vloop, 0., "", source_grp)
@@ -828,6 +844,8 @@ subroutine set_defaults
   ! density source
   call add_var_int("ipellet", ipellet, 0, &
        "1 = include a gaussian pellet source", source_grp)
+  call add_var_int("irestart_pellet", irestart_pellet, 0, &
+       "1 = read some pellet restart parameters from C1input", source_grp)
   call add_var_int("ipellet_z", ipellet_z, 0, &
        "Atomic number of pellet (0 = main ion species)", source_grp)
   call add_var_int("iread_pellet", iread_pellet, 0, &
@@ -1028,6 +1046,16 @@ subroutine set_defaults
 
   ! Mesh adaptation
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
+
+  !Mesh adapataion contol parameters
+  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp)
+  call add_var_int("iadapt_pre_zoltan", iadapt_pre_zoltan, 1, "", adapt_grp)
+  call add_var_int("iadapt_post_zoltan", iadapt_post_zoltan, 1, "", adapt_grp)
+  call add_var_int("iadapt_refine_layer", iadapt_refine_layer, 1, "", adapt_grp)
+  call add_var_int("iadapt_max_iter", iadapt_max_iter, 9, "", adapt_grp)
+  call add_var_double("iadapt_quality", iadapt_quality, 0.2, "", adapt_grp)
+
+  !Micellaneous parameters or mesh adaptation
   call add_var_int("iadapt_writevtk", iadapt_writevtk, 0, "", adapt_grp)
   call add_var_int("iadapt_writesmb", iadapt_writesmb, 1, "", adapt_grp)
   call add_var_int("iadapt_useH1", iadapt_useH1, 0, "",adapt_grp)
@@ -1059,6 +1087,9 @@ subroutine set_defaults
        "Length of pellet path to pack mesh along", adapt_grp)
   call add_var_double("adapt_pellet_delta", adapt_pellet_delta, 0., &
        "Parameter for packing mesh along pellet path", adapt_grp)
+  call add_var_double_array("adapt_qs", adapt_qs, &
+       maxqs, 0., &
+       "Safety factor values to pack around", gs_grp)
 
 
   ! Mesh

@@ -583,6 +583,7 @@ subroutine calculate_auxiliary_fields(ilin)
   use electric_field
   use temperature_plots
   use kprad_m3dc1
+  use arrays
 
   implicit none
 
@@ -948,6 +949,8 @@ subroutine calculate_auxiliary_fields(ilin)
 
         call f2vplot_sub(dofs)
         call vector_insert_block(f2vplot%vec,itri,1,dofs,VEC_ADD)
+        sig79 = 0
+        if(density_source) call eval_ops(itri, sigma_field, sig79)
         call calculate_sigma_e(itri)
         call f2eplot_sub(dofs)
         call vector_insert_block(f2eplot%vec,itri,1,dofs,VEC_ADD)

@@ -31,16 +31,6 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    time = read_scalar('time', filename=filename, units=u, _EXTRA=extra)
    xtitle = '!8t !6(' + u + ')!X'
 
-   ; write harmonics [N, ntimes] into "outfile"
-      if(keyword_set(outfile)) then begin
-         ;format=string(39B)+'(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'+string(39B)
-         format='(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'
-         print, format
-         openw,ifile,outfile,/get_lun
-         printf,ifile,format=format,[transpose(time),kehmn]
-         free_lun, ifile
-      endif
-
    ; get the maximum number of fourier harmonics to be plotted, default to dim[0]
    if(n_elements(maxn) eq 0) then maxn = dimn[0]
 
@@ -48,6 +38,18 @@ pro plot_hmn, filename=filename,  maxn=maxn, growth=growth, outfile=outfile,$
    time = time[where(finite(time))]
    if(ntimes gt n_elements(time)) then ntimes=n_elements(time)
    print, 'max number of Fourier harmonics to be plotted = ', maxn, ntimes
+
+   ; write harmonics [N, ntimes] into "outfile"
+   if(keyword_set(outfile)) then begin
+      ;format=string(39B)+'(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'+string(39B)
+      format='(' + STRTRIM(1+dimn[0], 2) + 'E16.6)'
+      print, format
+      openw,ifile,outfile,/get_lun
+      print
+      printf,ifile,format=format,[transpose(time),kehmn]
+      free_lun, ifile
+   endif
+
    ke = fltarr(maxn, ntimes)
    grate=fltarr(maxn ,ntimes)
    for n=0, maxn-1 do begin

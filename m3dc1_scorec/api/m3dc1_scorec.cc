@@ -435,18 +435,105 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   return M3DC1_SUCCESS; 
 }
 
+void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2, 
+     double* angle, apf::Field* sizefield, apf::Field* framefield)
+{
+  for (int i = 0; i<m->count(0); ++i)
+  {
+    double h1 = size_1[i];
+    double h2 = size_2[i];
+
+    double angle_1[3];
+    angle_1[0] = angle[(i*3)];
+    angle_1[1] = angle[(i*3)+1];
+    angle_1[2] = angle[(i*3)+2];
+
+ // Calculate the second unit vector
+/*  double a, b;
+    double frac_1, frac_2;
+    frac_1 = (angle_1[0])*(angle_1[0]);
+    frac_2 = (angle_1[0])*(angle_1[0]) + (angle_1[1])*(angle_1[1]);
+
+
+    b = sqrt (frac_1/frac_2);
+    a = -(angle_1[1]*b)/angle_1[0];
+
+    double mag = sqrt (a*a + b*b);
+    double dir_2[3];
+    dir_2[0] = a /mag;
+    dir_2[1] = b /mag;
+    dir_2[2] = 0.0;
+*/
+    double dir_2[3];
+    dir_2[0] = -angle_1[1];
+    dir_2[1] =  angle_1[0];
+    dir_2[2] =  0.0;
+
+    ma::Vector h(h1, h2, h2);
+
+    ma::Matrix r;
+    r[0][0]=angle_1[0];
+    r[0][1]=angle_1[1];
+    r[0][2]=0.0;
+
+    r[1][0]= dir_2[0];
+    r[1][1]= dir_2[1];
+    r[1][2]=0.0;
+
+    r[2][0]=0;
+    r[2][1]=0;
+    r[2][2]=1.;
+
+    apf::MeshEntity* vert = getMdsEntity(m, 0, i);
+    apf::setVector(sizefield, vert, 0, h);
+    apf::setMatrix(framefield, vert, 0, r);
+//  apf::setMatrix(framefield, vert, 0, apf::transpose(r));	// For Shock Test Case
+  }
+  // sync the fields to make sure verts on part boundaries end up with the same size and frame
+  apf::synchronize(sizefield);
+  apf::synchronize(framefield);
+}
+
+
 /* new mesh adaptation */
-void m3dc1_mesh_adapt(int* logInterpolation, 
-  int* shouldSnap, 
-  int* shouldTransferParametric, 
-  int* shouldRunPreZoltan,
-  int* shouldRunMidParma, 
-  int* shouldRunPostParma, 
-  int* shouldRefineLayer, 
-  int* maximumIterations,
-  double* goodQuality)
+/* Input Parameters
+ * dir: direction per node. The length of dir should be #nodes * 3 
+ * logInterpolation(0,1): If true uses logarithmic interpolation for evaluation of fields on new vertices
+ * shouldSnap(0,1) : Snaps new vertices to the model surface (Set it to 0 for the being. Need to work on Model format to make this parameter work) 
+ * shouldTransferParametric(0,1): Transfer parametric coordinates (Set it to 0 for the being. Need to work on Model format to make this parameter work)
+ * shouldRunPreZoltan(0,1): Whether to run zoltan predictive load balancing
+ * shouldRefineLayer(0,1): Whether to allow layer refinement
+ * maximumIterations: Number of refine/coarsen iterations to run
+ * goodQuality): Minimum desired mean ratio cubed for simplex elements
+ * NOTE: Make sure to set shouldSnap and  shouldTransferParametric to 0. These are true in default SCOREC adaptation tools that will lead to failure of adaptation
+*/
+#include "apfShape.h" // getLagrange
+
+
+void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
+    int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
+    int* shouldRefineLayer, int* maximumIterations, double* goodQuality)
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
+  apf::Field* f_h1 = (*m3dc1_mesh::instance()->field_container)[*field_id_h1]->get_field();
+  synchronize_field(f_h1);
+  int num_dof = countComponents(f_h1);
+  if (!isFrozen(f_h1)) freeze(f_h1);
+  double* data_h1= apf::getArrayData(f_h1);
+
+  apf::Field* f_h2 = (*m3dc1_mesh::instance()->field_container)[*field_id_h2]->get_field();
+  synchronize_field(f_h2);
+  if (!isFrozen(f_h2)) freeze(f_h2);
+  double* data_h2= apf::getArrayData(f_h2);
+
+  apf::Field* size_field = apf::createField(mesh, "size_field", apf::VECTOR, apf::getLagrange(1));
+  apf::Field* frame_field = apf::createField(mesh, "frame_field", apf::MATRIX, apf::getLagrange(1));
+
+  compute_size_and_frame_fields(mesh, data_h1, data_h2, dir, size_field, frame_field);
+  	 
+  m3dc1_field_delete (field_id_h1);
+  m3dc1_field_delete (field_id_h2);
 
   // delete all the matrix
   while (m3dc1_solver::instance()-> matrix_container->size())
@@ -475,26 +562,43 @@ void m3dc1_mesh_adapt(int* logInterpolation,
     if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
     apf::destroyNumbering(n);
   }
-
-  SetSizeField sf(mesh);
-  ma::Input* in = ma::configure(mesh, &sf,0,*logInterpolation);
-
-  if (!PCU_Comm_Self()) std::cout << __func__<<": cansnap() : " << mesh->canSnap() << "\n";
-  in->shouldSnap = *shouldSnap;
-  in->shouldTransferParametric = *shouldTransferParametric;
+	
+  ReducedQuinticImplicit shape;
+  ReducedQuinticTransfer slnTransfer(mesh,fields, &shape);
+  ma::Input* in = ma::configure(mesh, size_field, frame_field, &slnTransfer);
+	
+  in->shouldSnap = 0; // FIXME: crash if *shouldSnap==1;
+  in->shouldTransferParametric = 0;
   in->shouldRunPreZoltan = *shouldRunPreZoltan;
-  in->shouldRunMidParma = *shouldRunMidParma;
-  in->shouldRunPostParma = *shouldRunPostParma;
+  in->shouldRunPostZoltan = *shouldRunPostZoltan;
+  in->shouldRunMidParma = 0;
+  in->shouldRunPostParma = 0;
   in->shouldRefineLayer = *shouldRefineLayer;
   in->maximumIterations=*maximumIterations;
-  in->goodQuality = 0.2;
+  in->goodQuality = *goodQuality;
 
+  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": snap "<<*shouldSnap
+  	  <<", runPreZoltan "<<*shouldRunPreZoltan<<", runPostZoltan "<<*shouldRunPostZoltan<<"\n";
+
+  apf::writeVtkFiles("before-adapt", mesh);
+  mesh->writeNative("mesh.smb");
+ 
   ma::adapt(in);
+//ma::adaptVerbose(in);
+
+
+  mesh->removeField(size_field);
+  mesh->removeField(frame_field);
+  apf::destroyField(size_field);
+  apf::destroyField(frame_field);
   reorderMdsMesh(mesh);
 
+  apf::writeVtkFiles("after-adapt", mesh);
+  
+
   m3dc1_mesh::instance()->initialize();
-  compute_globalid(m3dc1_mesh::instance()->mesh, 0);
-  compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
+  compute_globalid(mesh, 0);
+  compute_globalid(mesh, mesh->getDimension());
 
   it=m3dc1_mesh::instance()->field_container->begin();
   while(it!=m3dc1_mesh::instance()->field_container->end())
@@ -503,6 +607,7 @@ void m3dc1_mesh_adapt(int* logInterpolation,
     int complexType = it->second->get_value_type();
     if (complexType) group_complex_dof(field, 0);
     if (!isFrozen(field)) freeze(field);
+
 #ifdef DEBUG
     int isnan;
     int fieldId= it->first;
@@ -518,6 +623,7 @@ void m3dc1_mesh_adapt(int* logInterpolation,
     it++;
   }
 }
+
 
 /* ghosting functions */
 //*******************************************************
@@ -925,7 +1031,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
-               <<" failed: not enough array size for adjacent entities (given: "
+               <<" failed: not enough array size for adjacent entities (allocated: "
                <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
@@ -939,7 +1045,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
-               <<" failed: not enough array size for adjacent entities (given: "
+               <<" failed: not enough array size for adjacent entities (allocated: "
                <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
@@ -967,7 +1073,7 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     if (*adj_ent_allocated_size<*adj_ent_size)
     {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
-               <<" failed: not enough array size for adjacent entities (given: "
+               <<" failed: not enough array size for adjacent entities (allocated: "
                <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return M3DC1_FAILURE;
     }
@@ -1001,7 +1107,8 @@ int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id,
   return M3DC1_SUCCESS; 
 }
 
-void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* /* in */ num_ent, 
+void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, 
+                      int* /* in */ ent_ids, int* /* in */ num_ent,
                       int* /* in */ adj_dim,
                       int* /* out */ num_adj_ent, int* /* out */ adj_ent_pids, int* /* out */ adj_ent_gids, 
                       int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size)
@@ -1032,13 +1139,14 @@ void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* 
   std::vector<int> adj_pid_vec;
   std::vector<int> num_adj_vec;
   for (int i=0; i<*num_ent; ++i)
-   ent_vec.push_back(getMdsEntity(mesh, *ent_dim, ent_ids[i]));
+    ent_vec.push_back(getMdsEntity(mesh, *ent_dim, ent_ids[i]));
+
   *adj_ent_size = get_ent_global2ndadj(mesh, *ent_dim, *adj_dim, ent_vec, num_adj_vec, adj_pid_vec, adj_gid_vec);
   
   if (*adj_ent_allocated_size<*adj_ent_size)
   {
       std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<" "<<__func__
-               <<" failed: not enough array size for adjacent entities (given: "
+               <<" failed: not enough array size for adjacent entities (allocated: "
                <<*adj_ent_allocated_size<<", needed: "<<*adj_ent_size<<"\n";
       return;
   }
@@ -1048,7 +1156,9 @@ void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* 
   memcpy(adj_ent_gids, &(adj_gid_vec[0]), adj_gid_vec.size()*sizeof(int));
 }
 
-void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* /* in */ num_ent,
+// allocated size of num_adj_ent should be greater than or equal to the element size
+void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, 
+                      int* /* in */ ent_ids, int* /* in */ num_ent,
                       int* /* in */ adj_dim, int* /* out */ num_adj_ent)
 {
   if (*adj_dim<*ent_dim)
@@ -1067,13 +1177,12 @@ void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, in
   }
 
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh; 
-  apf::MeshEntity* e;
   std::vector<apf::MeshEntity*> ent_vec;
   std::vector<int> num_adj_vec;
   for (int i=0; i<*num_ent; ++i)
-   ent_vec.push_back(getMdsEntity(mesh, *ent_dim, ent_ids[i]));
+    ent_vec.push_back(getMdsEntity(mesh, *ent_dim, ent_ids[i]));
   get_ent_numglobaladj(mesh, *ent_dim, *adj_dim, ent_vec, num_adj_vec);
-  memcpy(num_adj_ent, &(num_adj_vec[0]), (*num_ent)*sizeof(int));
+  memcpy(num_adj_ent, &(num_adj_vec[0]), *num_ent*sizeof(int));
 }
 
 //*******************************************************
@@ -1117,6 +1226,43 @@ int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 
 
 // node-specific functions
+//*******************************************************
+void m3dc1_node_setfield (int* /* in */ node_id, int* /* in */ field_id,
+                          double* /* in */ data, int* /* in */ size_data)
+//*******************************************************
+{
+  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
+  assert(e);
+  apf::Field* f = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+  if (*size_data != countComponents(f))
+  {
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 ERROR] "<<__func__
+               <<" failed: #data mismatch for field "<<getName(f)<<" (given: "
+               <<*size_data <<", needed: "<<countComponents(f)<<"\n";
+  }
+
+  assert(*size_data == countComponents(f));
+  apf::setComponents(f, e, 0, data);
+}
+
+//*******************************************************
+void m3dc1_node_getfield (int* /* in */ node_id, int* /* in */ field_id,
+                          double* /* inout */ data, int* /* in */ allocated_data)
+//*******************************************************
+{
+  apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
+  assert(e);
+  apf::Field* f = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+  if (*allocated_data < countComponents(f))
+  {
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 ERROR] "<<__func__
+               <<" failed: not enough array size for field "<<getName(f) <<" (allocated: "
+               <<*allocated_data <<", needed: "<<countComponents(f)<<"\n";
+      return;
+  }
+  apf::getComponents(f, e, 0, data);
+}
+
 //*******************************************************
 int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
 //*******************************************************
@@ -1459,6 +1605,8 @@ int m3dc1_field_exist(FieldID* field_id, int * exist)
 int m3dc1_field_sync (FieldID* /* in */ field_id)
 //*******************************************************
 {
+  if (PCU_Comm_Peers()==0) return 0;
+
 #ifdef DEBUG
   int isnan;
   m3dc1_field_isnan(field_id, &isnan);

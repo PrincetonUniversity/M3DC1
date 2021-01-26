@@ -73,7 +73,9 @@ void m3dc1_region_create();
 
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
-void m3dc1_mesh_adapt(int*, int*, int*, int*, int* ,int*, int*, int*, double*);
+void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
+    int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
+    int* shouldRefineLayer, int* maximumIterations, double* goodQuality);
 
 int m3dc1_ghost_create (int* num_layer ); 
 int m3dc1_ghost_delete ();
@@ -94,10 +96,15 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ entids, int* /* in */
 int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim, int* /* out */ num_adj_ent);
 
 // mesh-level operator with communications 
-void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* /* in */ num_ent, int* /* in */ adj_dim,
+// at the moment, this works only for 2 kinds 2nd order adjacency
+// which are face-edge-face or region-face-region (ent_dim and adj_dim are 2 for 2D, 3 for 3D)
+void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, 
+                      int* /* in */ ent_ids, int* /* in */ num_ent,
+                      int* /* in */ adj_dim,
                       int* /* out */ num_adj_ent, int* /* out */ adj_ent_gids, int* /* out */ adj_ent_pids,
                       int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size);
-void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, int* /* in */ ent_ids, int* /* in */ num_ent, 
+void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim, 
+                      int* /* in */ ent_ids, int* /* in */ num_ent,
                       int* /* in */ adj_dim, int* /* out */ num_adj_ent);
 
 int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ owning_partid); //entprocowner_
@@ -105,6 +112,8 @@ int m3dc1_ent_isowner (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out 
 int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost);
 
 // node-specific functions
+void m3dc1_node_setfield (int* /* in */ node_id, int* /* in */ field_id, double* /* in */ values, int* /* in */ num_values);
+void m3dc1_node_getfield (int* /* in */ node_id, int* /* in */ field_id, double* /* out */ values, int* /* out */ num_values);
 int m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);  
 int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord ); 
 int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyz);

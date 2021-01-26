@@ -45,6 +45,8 @@
 #define m3dc1_ent_getnumdof m3dc1_ent_getnumdof_
 #define m3dc1_ent_setdofdata m3dc1_ent_setdofdata_
 #define m3dc1_ent_getdofdata m3dc1_ent_getdofdata_
+#define m3dc1_node_setfield m3dc1_node_setfield_
+#define m3dc1_node_getfield m3dc1_node_getfield_
 #define m3dc1_node_getglobalid m3dc1_node_getglobalid_
 #define m3dc1_node_getcurv m3dc1_node_getcurv_
 #define m3dc1_node_getcoord m3dc1_node_getcoord_

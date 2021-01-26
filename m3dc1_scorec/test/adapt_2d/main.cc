@@ -1,6 +1,7 @@
 #include "m3dc1_scorec.h"
 #include "m3dc1_mesh.h"
 #include "apf.h"
+#include <apfMDS.h>
 #include "apfMesh.h"
 #include <gmi_mesh.h>
 #include <iostream>
@@ -16,97 +17,156 @@
 #include <stdlib.h>
 
 
-// Function Prototype
-int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
+int find_isofield (ma::Mesh* m, std::vector <double>& size_h1,std::vector <double>& size_h2,std::vector <double>& dir_1);
+int find_anisofield (ma::Mesh* m, std::vector <double>& size_h1,std::vector <double>& size_h2,std::vector <double>& dir_1);
 
-// Function to get Field (Dummy For now)
-int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1)    
+
+// Function to create Isotropic Size Field
+int find_isofield (ma::Mesh* m, std::vector <double>& size_h1,std::vector <double>& size_h2,std::vector <double>& dir_1)
 {
-        double average = aver;
-        double lower = boundingbox[0];
-        double upper = boundingbox[1];
-        double x = (pos[0] - lower)/(upper - lower);
-        double sizeFactor = 2;
-        if (x < 0.5)
-                sizeFactor = 5;
-	if (x >= 0.5 && x < 0.8)
-		sizeFactor = 0.5;
-        size_h1 = average;
-        size_h2 = average/sizeFactor;
-        dir_1[0] = 1.0;
-        dir_1[1] = 0.0;
-        dir_1[2] = 0.0;
+	
+        ma::Mesh* mesh;
+        ma::Vector low;
+        ma::Vector up;
 
-//	std::cout << " Size " << size_h1 << " , " << size_h2 << "\n"; 
+	double average = ma::getAverageEdgeLength(m);	
+        ma::getBoundingBox(m,low,up);
+        
+        double lower = low[0];
+        double upper = up[0];
+
+ 	int numVert=m3dc1_mesh::instance()->mesh->count(0);
+	std::cout << " Number of vertices are: " << numVert << "\n";
+	for (int i=0; i<numVert; i++)
+	{
+	//	apf::MeshEntity* e = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
+		double coord[3];
+		m3dc1_node_getcoord(&i, coord);
+		double pos = coord[0];	
+        	double sizeFactor = 2;
+
+	//	std::cout << average/sizeFactor << "\n";
+        	size_h1.push_back(average/sizeFactor);
+        	size_h2.push_back(average/sizeFactor);
+        	dir_1.push_back(1.0);
+		dir_1.push_back(0.0);
+		dir_1.push_back(0.0);
+	}
         return M3DC1_SUCCESS;
 }
 
-// Class to define the sizeField
-class SetSizeField : public ma::AnisotropicFunction
+//// Function to create AnIsotropic Size Field
+int find_anisofield (ma::Mesh* m, std::vector <double>& size_h1,std::vector <double>& size_h2,std::vector <double>& dir_1)
+{
+
+        ma::Mesh* mesh;
+        ma::Vector low;
+        ma::Vector up;
+
+        double average = ma::getAverageEdgeLength(m);
+        ma::getBoundingBox(m,low,up);
+
+        double lower = low[0];
+        double upper = up[0];
+
+        int numVert=m3dc1_mesh::instance()->mesh->count(0);
+        std::cout << " Number of vertices are: " << numVert << "\n";
+        for (int i=0; i<numVert; i++)
+        {
+                double coord[3];
+                m3dc1_node_getcoord(&i, coord);
+                double pos = coord[0];
+
+                double x = (pos - lower)/(upper - lower);
+                double sizeFactor = 2;
+		
+		if (x < 0.5)
+                	sizeFactor = 5;
+        	if (x >= 0.5 && x < 0.8)
+                	sizeFactor = 0.5;
+			
+                size_h1.push_back(average);
+                size_h2.push_back(average/sizeFactor);
+                dir_1.push_back(1.0);
+                dir_1.push_back(0.0);
+                dir_1.push_back(0.0);
+        }
+        return M3DC1_SUCCESS;
+}
+
+
+class SetIsoSizeField : public ma::AnisotropicFunction
 {
   public:
-    SetSizeField(ma::Mesh* m)
+    SetIsoSizeField(ma::Mesh* m,std::vector <double>& size_h1,std::vector <double>& size_h2,std::vector <double>& dir_1 )
     {
-        mesh = m;
-        average = ma::getAverageEdgeLength(m);
-        ma::getBoundingBox(m,lower,upper);
+	mesh = m;
+	int arr_size = size_h1.size();
+	double size_1[arr_size], size_2[arr_size];
+        double angle[3*arr_size];
+	for (int i = 0; i<arr_size; ++i)
+	{
+		size_1[i] = size_h1[i];
+                size_2[i] = size_h2[i];
+                angle[(i*3)] = dir_1[(i*3)];
+		angle[(i*3)+1] = dir_1[(i*3)+1];
+		angle[(i*3)+2] = dir_1[(i*3)+2];
+	}	
+
     }
+
     virtual void getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& H)
     {
-        ma::Vector p = ma::getPosition(mesh,v);
-        double pos[3] = {p[0],p[1],0.0};
-        double box[2] = {lower[0],upper[0]};
-        double dir_1[3];
-	
-	std::cout << " Lower & Upper: " << lower[0] << " , " << upper[0] << "\n";
-	std::cout << "Position Coordinates : " << pos[0] << " , " << pos[1] << "\n";
-	std::cout << "Average = " << average <<"\n";
 
-        double aver = average;
-        double size_h1;     
-	double size_h2;     
-        int field_success = get_field (aver ,box, pos, size_h1,size_h2, dir_1);
+        double h1, h2;
+        double angle_1[3];
 
-        // Calculate the second unit vector
-        double a, b;
-        double frac_1, frac_2;
-        frac_1 = (dir_1[0])*(dir_1[0]);
-        frac_2 = (dir_1[0])*(dir_1[0]) + (dir_1[1])*(dir_1[1]);
+        for (int i = 0; i<arr_size; ++i)
+        {
+                h1 = size_1[i];
+                h2 = size_2[i];
+                
+ 		angle_1[0] = angle[(i*3)];
+                angle_1[1] = angle[(i*3)+1];
+                angle_1[2] = angle[(i*3)+2];  
+    
+   	   	// Calculate the second unit vector
+        	double a, b;
+        	double frac_1, frac_2;
+        	frac_1 = (angle_1[0])*(angle_1[0]);
+        	frac_2 = (angle_1[0])*(angle_1[0]) + (angle_1[1])*(angle_1[1]);
 
 
-        b = sqrt (frac_1/frac_2);
-        a = -(dir_1[1]*b)/dir_1[0];
+        	b = sqrt (frac_1/frac_2);
+        	a = -(angle_1[1]*b)/angle_1[0];
 
-        double mag = sqrt (a*a + b*b);
-        double dir_2[3];
-        dir_2[0] = a /mag;
-        dir_2[1] = b /mag;
-        dir_2[2] = 0.0;
+        	double mag = sqrt (a*a + b*b);
+        	double dir_2[3];
+        	dir_2[0] = a /mag;
+        	dir_2[1] = b /mag;
+        	dir_2[2] = 0.0;
 
-	ma::Vector h(size_h1, size_h2,size_h2);
+		ma::Vector h(h1, h2,h2);
 
-	R[0][0]=dir_1[0];
-  	R[0][1]=dir_1[1];
-  	R[0][2]=0.0;
- 
-  	R[1][0]= dir_2[0];
-  	R[1][1]= dir_2[1];
-  	R[1][2]=0.0;
-	
-  	R[2][0]=0;
-  	R[2][1]=0;
-  	R[2][2]=1.;
-		
-	H = h;
+		R[0][0]=angle_1[0];
+  		R[0][1]=angle_1[1];
+  		R[0][2]=0.0;
 
+  		R[1][0]= dir_2[0];
+  		R[1][1]= dir_2[1];
+  		R[1][2]=0.0;
+
+  		R[2][0]=0;
+  		R[2][1]=0;
+  		R[2][2]=1.;
+
+		H = h;
+	}	
     }
   private:
         ma::Mesh* mesh;
-        double average;
-        ma::Vector lower;
-        ma::Vector upper;
-
 };
+
 
 
 int main( int argc, char* argv[])
@@ -141,11 +201,17 @@ int main( int argc, char* argv[])
     return 0;
   }
   apf::writeVtkFiles("adapt_before",mesh);
+  
 
+  std::vector <double> size_h1;
+  std::vector <double> size_h2;
+  std::vector <double> dir_1;
 
-  SetSizeField sf(mesh);
+  int field_success = find_isofield (mesh, size_h1,size_h2, dir_1);
+  
+  std::cout << "Debug-A" << "\n";
+  SetIsoSizeField sf(mesh, size_h1, size_h2, dir_1);
   ma::Input* in = ma::configure(mesh, &sf,0,logInterpolation);
- // ma::Input* in = ma::configureUniformRefine (mesh, 1);
 
   std::cout << "cansnap() : " << mesh->canSnap() << "\n";
   in->shouldSnap = false;

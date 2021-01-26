@@ -13,7 +13,6 @@ from matplotlib import colors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import m3dc1.fpylib as fpyl
-from m3dc1.unit_conv import unit_conv
 from m3dc1.eval_field import eval_field
 from m3dc1.plot_mesh import plot_mesh
 rc('text', usetex=True)
@@ -21,7 +20,7 @@ rc('text', usetex=True)
 
 
 
-def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False):
+def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False,showtitle=True,n=None):
     """
     Plots the field of a file. 
     
@@ -349,7 +348,8 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     if species != None:
         titlestr = titlestr+' - Species: '+str(species)
     # ToDo: Main title does not show up in vector plot
-    plt.title(titlestr,fontsize=titlefs)
+    if showtitle==True:
+        plt.title(titlestr,fontsize=titlefs)
     
     if mesh == True or bound==True:
         meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,pub=pub)
@@ -361,7 +361,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
             cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
         else:
             if isinstance(prange,(tuple,list)):
-                norm = colors.DivergingNorm(vmin=prange[0], vmax=prange[1])
+                norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
             else:
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
@@ -398,6 +398,9 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         cbar.ax.yaxis.offsetText.set(size=cbarticklblfs)
         cbar.set_label(unitlabel,fontsize=cbarlblfs) #ToDo: Comment this line for CLT paper
         
+        # Fix for white lines in contourf plot when exported as PDF
+        for c in cont.collections:
+            c.set_edgecolor("face")
 
         ax.set_aspect('equal')
         ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
@@ -412,6 +415,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         psifield = R_ave*Aphi
         for i,ax in enumerate(axs):
             cont = ax.contour(R_ave, Z_ave, np.average(psifield,0),[psi_lcfs],colors='magenta',linewidths=lcfslw,zorder=10)
+    
     
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     #if coord=='vector':
@@ -430,7 +434,11 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
             fieldstr = str(field)
         if savedir != None:
             fieldstr = savedir + fieldstr
+        if n==None:
+            nout=sims[0].ntor
+        else:
+            nout=n
         
-        plt.savefig(fieldstr + '_' + timestr + '_n'+"{:d}".format(sims[0].ntor)+'.png', format='png',dpi=900,bbox_inches='tight')
+        plt.savefig(fieldstr + '_' + timestr + '_n'+"{:d}".format(nout)+'.png', format='png',dpi=900,bbox_inches='tight')
     
     return

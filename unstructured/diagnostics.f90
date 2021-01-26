@@ -627,26 +627,30 @@ end subroutine evaluate
 
 
 !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
-subroutine tpi_factors(tpifac,tpirzero)
+subroutine tpi_factors(tpifac,tpirzero,tpirzero2)
   use basic
   use math
   implicit none
-  real, intent(out) :: tpifac, tpirzero
+  real, intent(out) :: tpifac, tpirzero,tpirzero2
   if(nplanes.eq.1) then
      if(itor.eq.1) then
         tpifac = 1.
         tpirzero = 1.
+        tpirzero2 = 1
      else
         tpifac = 1./rzero
         tpirzero = 1.
+        tpirzero2 = rzero
      endif
   else
      if(itor.eq.1) then
         tpifac = twopi
         tpirzero = twopi
+        tpirzero2 = twopi
      else
         tpifac = twopi
         tpirzero = twopi*rzero
+        tpirzero2 = twopi*rzero**2
      endif
   endif
 end subroutine tpi_factors
@@ -677,7 +681,7 @@ subroutine calculate_scalars()
 
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3),tpifac,tpirzero
+  real :: n(2,3),tpifac,tpirzero,tpirzero2
   integer :: iedge, idim(3), izone, izonedim, i
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
@@ -685,7 +689,7 @@ subroutine calculate_scalars()
 
   integer :: ip
 
-  call tpi_factors(tpifac,tpirzero)
+  call tpi_factors(tpifac,tpirzero,tpirzero2)
 
   ptoto = ptot
 
@@ -778,7 +782,7 @@ subroutine calculate_scalars()
 #endif
 
      if(imulti_region.eq.1 .and. izone.eq.2) then
-        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
+        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero2   ! changed from tpifac on 1/23/21 scj
 
         call jxb_r(temp79a, temp79d)
         call jxb_phi(temp79b)
@@ -859,8 +863,8 @@ subroutine calculate_scalars()
      parea  = parea  + int2(ri_79,mr)/tpirzero
 
      ! toroidal current
-     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
-     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero2
+     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero2
 #ifdef USE3D
      pcur_co = pcur_co - int4(ri2_79,pst79(:,OP_GS),mr,co)/tpirzero * 2.
      pcur_sn = pcur_sn - int4(ri2_79,pst79(:,OP_GS),mr,sn)/tpirzero * 2.
@@ -1055,7 +1059,7 @@ subroutine calculate_scalars()
   call evaluate_flux_loops
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
-     print *, "Total energy = ", etot
+     print *, "Total energy = ", etot, emagp, emagt,emag3
      print *, "Total energy lost = ", ptot
  
      print *, "Scalars:"
@@ -1103,12 +1107,12 @@ subroutine calculate_Lor_vol()
 
   integer :: itri, numelms, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: tpifac,tpirzero
+  real :: tpifac,tpirzero,tpirzero2
   integer :: izone, izonedim
   real, allocatable :: temp(:)
   integer :: ip
 
-  call tpi_factors(tpifac,tpirzero)
+  call tpi_factors(tpifac,tpirzero,tpirzero2)
 
   numelms = local_elements()
 
