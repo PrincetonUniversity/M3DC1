@@ -68,8 +68,6 @@ int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); /
 
 int m3dc1_mesh_load(char* mesh_file);
 int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk file with field; 1:smb file
-void m3dc1_region_delete();
-void m3dc1_region_create();
 
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
