@@ -9,6 +9,7 @@
 *******************************************************************************/
 #include "m3dc1_scorec.h"
 #include "m3dc1_mesh.h"
+#include "m3dc1_model.h"
 #include "apf.h"
 #include "apfMesh.h"
 #include <iostream>
@@ -222,8 +223,8 @@ int main( int argc, char* argv[])
     if (!PCU_Comm_Self()) std::cout <<"Missing input args: argv[5] shouldSnap, argv[6] shouldRunPreZoltan, "
          <<"argv[7] shouldRunPostZoltan, argv[8] shouldefineLayer\n";
 
-  int shouldRunPreZoltan=1;
-  int shouldRunPostZoltan=1;
+  int shouldRunPreZoltan=0;
+  int shouldRunPostZoltan=0;
   int shouldRefineLayer=1;
   int maximumIterations=5;
   double goodQuality =0.4;
@@ -236,8 +237,8 @@ int main( int argc, char* argv[])
     
  // apf::writeVtkFiles("before-adapt",m3dc1_mesh::instance()->mesh);
 
-  for (int n = 0; n<num_adapt_iter; ++n)
-  {
+    for (int n = 0; n<num_adapt_iter; ++n)
+    {
   	int fid_size1=1;
   	int fid_size2=2;
   	int scalar_type=0;
@@ -256,17 +257,15 @@ int main( int argc, char* argv[])
 
   	if (!PCU_Comm_Self()) std::cout << "start adaptation with # max iterations "
                                         <<maximumIterations<<", goodQuality "<<goodQuality<<"\n";
-  
-  	m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir, &shouldSnap, &shouldRunPreZoltan,
+         m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir, &shouldSnap, &shouldRunPreZoltan,
 		&shouldRunPostZoltan, &shouldRefineLayer, &maximumIterations, &goodQuality);
-  
-
-  	pumi_mesh_print(m);
+         pumi_mesh_print(m);
 
   	if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";
   
   	delete [] dir;
-  }
+    } // adaptive loop
+
   PetscFinalize();
   m3dc1_scorec_finalize();
   MPI_Finalize();

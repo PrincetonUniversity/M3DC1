@@ -387,14 +387,6 @@ int m3dc1_mesh_load(char* mesh_file)
   return M3DC1_SUCCESS;
 }
 
-void m3dc1_region_delete()
-{
-  m3dc1_mesh::instance()->remove_wedges();
-}
-
-void m3dc1_region_create()
-{
-}
 
 //*******************************************************
 int m3dc1_mesh_build3d (int* num_field, int* field_id,  
@@ -583,9 +575,28 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   apf::writeVtkFiles("before-adapt", mesh);
   mesh->writeNative("mesh.smb");
  
-  ma::adapt(in);
-//ma::adaptVerbose(in);
+  MPI_Comm groupComm;
+  if (m3dc1_model::instance()->num_plane>1) // 3d
+  {
+    m3dc1_mesh::instance()->remove_wedges();
+    pumi_mesh_print(mesh);
+    int group_size = PCU_Comm_Peers()/m3dc1_model::instance()->num_plane;
+    int groupRank = PCU_Comm_Self()%group_size; // modulo
 
+    MPI_Comm_split(m3dc1_model::instance()->oldComm, m3dc1_model::instance()->local_planeid, groupRank, &groupComm);
+    PCU_Switch_Comm(groupComm);
+  }
+
+  if (m3dc1_model::instance()->local_planeid == 0) // master plane
+    ma::adapt(in);
+
+  if (m3dc1_model::instance()->num_plane>1) // 3d
+  {
+    PCU_Switch_Comm(m3dc1_model::instance()->oldComm);
+    MPI_Comm_free(&groupComm);
+
+    // re-construct wedges
+  }
 
   mesh->removeField(size_field);
   mesh->removeField(frame_field);
@@ -593,7 +604,9 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   apf::destroyField(frame_field);
   reorderMdsMesh(mesh);
 
-  apf::writeVtkFiles("after-adapt", mesh);
+  // FIXME: crash in 3D 
+  if (m3dc1_model::instance()->num_plane==1)
+    apf::writeVtkFiles("after-adapt", mesh);
   
 
   m3dc1_mesh::instance()->initialize();
