@@ -23,6 +23,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
 
    s = read_scalars(filename=filename)
    itor = read_parameter('itor', filename=filename)
+   rzero = read_parameter('rzero', filename=filename)
    version = read_parameter('version', filename=filename)
    threed = read_parameter('3d', filename=filename)
    if(version ge 31) then p = read_pellets(filename=filename)
@@ -35,6 +36,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
    if(strcmp("toroidal current", scalarname, /fold_case) eq 1) or $
      (strcmp("it", scalarname, /fold_case) eq 1) then begin
        data = s.toroidal_current._data
+       if(itor eq 0 and version lt 36) then begin
+          print, 'WARNING: correcting for incorrect plasma current definition with itor=0 and version<36'
+          data = data/rzero
+       end
        title = 'Toroidal Current'
        symbol = '!8I!D!9P!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
@@ -42,6 +47,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
      if(strcmp("plasma current", scalarname, /fold_case) eq 1) or $
        (strcmp("ip", scalarname, /fold_case) eq 1) then begin
        data = s.toroidal_current_p._data
+       if(itor eq 0 and version lt 36) then begin
+          print, 'WARNING: correcting for incorrect plasma current definition with itor=0 and version<36'
+          data = data/rzero
+       end
        title = 'Plasma Current'
        symbol = '!8I!DP!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
@@ -49,6 +58,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
      if(strcmp("wall current", scalarname, /fold_case) eq 1) or $
        (strcmp("iw", scalarname, /fold_case) eq 1) then begin
        data = s.toroidal_current_w._data
+       if(itor eq 0 and version lt 36) then begin
+          print, 'WARNING: correcting for incorrect plasma current definition with itor=0 and version<36'
+          data = data/rzero
+       end
        title = 'Wall Current'
        symbol = '!8I!DW!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
@@ -57,6 +70,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
        (strcmp("itot", scalarname, /fold_case) eq 1) then begin
        data = s.toroidal_current_w._data + $
               s.toroidal_current._data
+       if(itor eq 0 and version lt 36) then begin
+          print, 'WARNING: correcting for incorrect plasma current definition with itor=0 and version<36'
+          data = data/rzero
+       end
        title = 'Total Current'
        symbol = '!8I!D!9P!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
@@ -65,6 +82,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
        (strcmp("ih", scalarname, /fold_case) eq 1) then begin
        data = s.toroidal_current._data - $
               s.toroidal_current_p._data
+       if(itor eq 0 and version lt 36) then begin
+          print, 'WARNING: correcting for incorrect plasma current definition with itor=0 and version<36'
+          data = data/rzero
+       end
        title = 'Toroidal Halo Current'
        symbol = '!8I!D!9P!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
@@ -369,6 +390,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
       rzero = read_parameter('rzero', filename=filename)
        data = -4.*!pi*(s.psi_lcfs._data - s.psimin._data) $
               / s.toroidal_current_p._data / rzero
+       if(itor eq 0 and version lt 36) then begin
+          print, 'WARNING: correcting for incorrect plasma current definition with itor=0 and version<36'
+          data = data*rzero
+       end
        title = 'Normalized Internal Inductance'
        symbol = '!13l!Di!X'
        d = dimensions(_EXTRA=extra)
@@ -376,6 +401,10 @@ function read_scalar, scalarname, filename=filename, title=title, $
       rzero = read_parameter('rzero', filename=filename)
        Wm = s.w_m._data
        data = 4.*Wm / s.toroidal_current_p._data^2 / rzero
+       if(itor eq 0 and version lt 36) then begin
+          print, 'WARNING: correcting for incorrect plasma current definition with itor=0 and version<36'
+          data = data*rzero^2
+       end
        title = 'Normalized Internal Inductance'
        symbol = '!13l!Di!N!6(3)!X'
        d = dimensions(_EXTRA=extra)
