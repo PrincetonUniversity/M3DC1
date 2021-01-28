@@ -295,6 +295,7 @@ Program Reducedquintic
     call adapt_by_psi
   endif
   if (iadapt .eq. 4) call adapt_by_error
+  if (iadapt .eq. 10) call adapt_test
 #endif
 
   if(irestart.eq.0  .or. iadapt.gt.0) then

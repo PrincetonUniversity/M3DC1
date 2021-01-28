@@ -124,7 +124,9 @@ module adapt
          
           ! if point is in private flux region, set psi_N -> 2 - psi_N
           if(mr(i).eq.2) then 
-             temp79b(i) = 2. - temp79a(i)
+             temp79b(i) = 1. + 10.*(1. - temp79a(i))
+          else if((mr(i).eq.1).and.(abs(z_79(i)-0.15).gt.1.25)) then
+             temp79b(i) = 1. + sqrt(temp79a(i) - 1.)
           end if
        end do
 
@@ -178,7 +180,7 @@ module adapt
              do j=1, maxqs
                 if(adapt_qs(j).ne.0.) then
                    temp79c(i) = temp79c(i) + &
-                        exp(-(q - adapt_qs(j))**2 / (2.*adapt_pack_factor**2))
+                        exp(-(q/adapt_qs(j) - 1.)**2 / (2.*adapt_pack_factor**2))
                 end if
              end do
 
@@ -274,6 +276,117 @@ module adapt
     call derived_quantities(1)
     !ke_previous = ekin
   end subroutine adapt_by_psi
+
+
+  subroutine adapt_test
+    use basic
+    use arrays
+    use newvar_mod
+    use transport_coefficients
+
+    integer :: izone, izonedim, i
+    integer :: numelms, numnodes, itri, inode
+    integer, dimension(nodes_per_element) :: nodeids
+    character(len=32) :: mesh_file_name
+    integer, dimension(MAX_PTS) :: mr
+    vectype, dimension(dofs_per_node) :: dofs1, dofs2
+    type(field_type) :: size1, size2
+    real, allocatable :: unit1(:)
+    real :: x, phi, z, r, w
+    real, parameter :: mins = 0.001, maxs = 0.1, aniso = 5.
+    real, parameter :: x0 = 1.7, z0 =  0.1, w0 = 0.05
+
+    if(myrank.eq.0) print *, "ADAPT TEST"
+
+    call create_field(size1)
+    call create_field(size2)
+    numelms = local_elements()
+    numnodes = owned_nodes()
+    allocate(unit1(3*numnodes))
+
+    size1 = 0.
+    size2 = 0.
+    dofs1 = 0.
+    dofs2 = 0.
+    unit1 = 0.
+
+    do itri=1,numelms
+       call m3dc1_ent_getgeomclass(2, itri-1, izonedim, izone)
+       
+       call get_element_nodes(itri,nodeids)
+
+       do i=1,nodes_per_element
+
+          ! BCL 1/25/21: I'm not sure about this nodes_owned
+          inode = nodes_owned(nodeids(i))
+          call get_node_pos(inode, x, phi, z)
+
+          r = sqrt((x - x0)**2 + (z - z0)**2)
+          w = abs(r-0.3)
+          if(w > w0) then
+             dofs1(1) = maxs
+             dofs2(1) = maxs
+             unit1((inode-1)*3+1) = 1.0
+             unit1((inode-1)*3+2) = 0.0
+             unit1((inode-1)*3+3) = 0.0
+          else
+             dofs1(1) = mins + (maxs - mins)*w/w0
+             dofs2(1) = maxs
+             unit1((inode-1)*3+1) = (x-x0)/r
+             unit1((inode-1)*3+2) = (z-z0)/r
+             unit1((inode-1)*3+3) = 0.0
+          end if
+          
+          call set_node_data(size1,inode,dofs1)
+          call set_node_data(size2,inode,dofs2)
+             
+       end do
+
+    end do
+    call finalize(size1%vec)
+    call finalize(size2%vec)
+
+    call straighten_fields()
+    print *, "BEFORE ADAPT"
+    call m3dc1_mesh_adapt(size1%vec%id, size2%vec%id, unit1, 0, 0, 0, 1, 5, 0.4)
+    print *, "AFTER ADAPT"
+    if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
+    if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
+
+    deallocate(unit1)
+    call destroy_field(size1)
+    call destroy_field(size2)
+    call space(0)
+    call update_nodes_owned()
+    call tridef
+    call unstraighten_fields()
+
+    call create_newvar_matrices
+    if(irestart .ne. 0) return
+    field_vec = 0.
+    field0_vec = 0.
+    if (myrank .eq. 0) print *, "re-calculate equlibrium after adapt .."
+    call initial_conditions
+    ! combine the equilibrium and perturbed fields of linear=0
+    ! unless eqsubtract = 1
+    if(eqsubtract.eq.0) then
+       call add(field_vec, field0_vec)
+       field0_vec = 0.
+    endif
+    i_control%err_i = 0.
+    i_control%err_p_old = 0.
+    n_control%err_i = 0.
+    n_control%err_p_old = 0.
+    i_control%err_i = 0.
+    i_control%err_p_old = 0.
+    n_control%err_i = 0.
+    n_control%err_p_old = 0.
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+    call define_transport_coefficients
+    call derived_quantities(1)
+    !ke_previous = ekin
+
+  end subroutine adapt_test
 
 
 ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
