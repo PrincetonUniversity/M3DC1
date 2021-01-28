@@ -351,9 +351,9 @@ subroutine set_neo_vel
      temp79e = sqrt((ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)*ri2_79)
 
      do i=1, int_pts_main
-        imag = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
-             x_79(i), z_79(i))
-        if(imag.ne.0) then
+        call magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+             x_79(i), z_79(i), imag)
+        if(imag.ne.REGION_PLASMA) then
            vz(i) = 0.
            vp(i) = 0.
            iout(i) = 1

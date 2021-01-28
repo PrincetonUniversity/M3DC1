@@ -61,6 +61,8 @@ module adapt
     real :: x0, y0, x, y
     integer :: ip
 
+    real :: psib
+
     call create_field(temporary_field)
     temporary_field = 0.
 
@@ -119,12 +121,12 @@ module adapt
        
        ! determine magnetic region of each point
        do i=1, npoints
-          mr(i) = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
-               x_79(i),z_79(i))
+          call magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+               x_79(i),z_79(i),mr(i),psib)
          
           ! if point is in private flux region, set psi_N -> 2 - psi_N
-          if(mr(i).eq.2) then 
-             temp79b(i) = 2. - temp79a(i)
+          if(mr(i).eq.REGION_PF) then 
+             temp79b(i) = 2.*psib - temp79a(i)
           end if
        end do
 

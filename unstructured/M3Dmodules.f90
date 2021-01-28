@@ -438,6 +438,7 @@ module basic
   logical :: is_diverted    ! whether plasma is diverted or not
   real :: xnull, znull      ! coordinates of the limiting x-point
   real :: xnull2, znull2    ! coordinates of the limiting x-point
+  real :: psinull, psinull2
   integer :: mod_null_rs, mod_null_rs2  ! if 1, modify xnull,znull or xnull2,znull2 at restart
   real :: temax            ! maximum temperature
 

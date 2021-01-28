@@ -592,6 +592,7 @@ subroutine calculate_auxiliary_fields(ilin)
   integer :: def_fields
   integer :: numelms
   integer :: i, itri, izone
+  integer, dimension(MAX_PTS) :: mr
 
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -852,8 +853,9 @@ subroutine calculate_auxiliary_fields(ilin)
      end if
 
      ! magnetic_region
-     temp79a = magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ),&
-          x_79,z_79)
+     call magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ),&
+          x_79,z_79,mr)
+     temp79a = mr
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(mag_reg%vec,itri,1,dofs,VEC_ADD)
 
