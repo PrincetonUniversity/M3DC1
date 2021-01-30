@@ -518,6 +518,7 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
     data_h1 = apf::getArrayData(f_h1);
   else 
   {
+    data_h1 = new double[mesh->count(0)];
     double* temp_data = apf::getArrayData(f_h1);
     for (int i=0; i<mesh->count(0); ++i)
       data_h1[i] = temp_data[i*num_dof];
@@ -531,6 +532,7 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
     data_h2 = apf::getArrayData(f_h2);
   else
   {
+    data_h2= new double[mesh->count(0)];
     double* temp_data = apf::getArrayData(f_h2);
     for (int i=0; i<mesh->count(0); ++i)
       data_h2[i] = temp_data[i*num_dof];
@@ -543,6 +545,11 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   	 
   m3dc1_field_delete (field_id_h1);
   m3dc1_field_delete (field_id_h2);
+  if (num_dof>1)
+  {
+    delete [] data_h1;
+    delete [] data_h2;
+  }
 
   // delete all the matrix
   while (m3dc1_solver::instance()-> matrix_container->size())
