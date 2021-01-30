@@ -279,7 +279,6 @@ Program Reducedquintic
   call define_transport_coefficients
   call derived_quantities(1)
 
-
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
 #ifdef USESCOREC

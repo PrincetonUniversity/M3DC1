@@ -512,12 +512,29 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   synchronize_field(f_h1);
   int num_dof = countComponents(f_h1);
   if (!isFrozen(f_h1)) freeze(f_h1);
-  double* data_h1= apf::getArrayData(f_h1);
+  double* data_h1;
+
+  if (num_dof==1)
+    data_h1 = apf::getArrayData(f_h1);
+  else 
+  {
+    double* temp_data = apf::getArrayData(f_h1);
+    for (int i=0; i<mesh->count(0); ++i)
+      data_h1[i] = temp_data[i*num_dof];
+  }
 
   apf::Field* f_h2 = (*m3dc1_mesh::instance()->field_container)[*field_id_h2]->get_field();
   synchronize_field(f_h2);
   if (!isFrozen(f_h2)) freeze(f_h2);
-  double* data_h2= apf::getArrayData(f_h2);
+  double* data_h2;
+  if (num_dof==1)
+    data_h2 = apf::getArrayData(f_h2);
+  else
+  {
+    double* temp_data = apf::getArrayData(f_h2);
+    for (int i=0; i<mesh->count(0); ++i)
+      data_h2[i] = temp_data[i*num_dof];
+  }
 
   apf::Field* size_field = apf::createField(mesh, "size_field", apf::VECTOR, apf::getLagrange(1));
   apf::Field* frame_field = apf::createField(mesh, "frame_field", apf::MATRIX, apf::getLagrange(1));
