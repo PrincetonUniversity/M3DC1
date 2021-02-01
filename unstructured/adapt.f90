@@ -27,6 +27,7 @@ module adapt
   
   contains
 
+#ifdef ADAPT
 subroutine adapt_mesh
     use basic
     use arrays
@@ -136,7 +137,7 @@ subroutine adapt_mesh
     !ke_previous = ekin
 
   end subroutine adapt_mesh
-
+#endif
   subroutine adapt_by_psi
     use basic
     use mesh_mod
