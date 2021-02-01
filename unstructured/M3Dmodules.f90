@@ -689,7 +689,8 @@ module sparse
   integer, parameter :: k15_mat_index = 71
   integer, parameter :: q43_mat_index = 72
   integer, parameter :: r43_mat_index = 73
-  integer, parameter :: num_matrices = 73
+  integer, parameter :: pot2_mat_lhs_index = 74
+  integer, parameter :: num_matrices = 74
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

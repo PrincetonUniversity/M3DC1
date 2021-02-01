@@ -813,6 +813,8 @@ subroutine set_defaults
        "Toroidal mode number of REKC", rw_grp)
   call add_var_int("mpol_rekc", mpol_rekc, 0, &
        "Poloidal mode number of REKC", rw_grp)
+  call add_var_int("isym_rekc", isym_rekc, 0, &
+       "if nonzero, a double helix", rw_grp) 
   call add_var_double("phi_rekc", phi_rekc, 0., &
        "Toroidal angle of fixed point of REKC", rw_grp)
   call add_var_double("theta_rekc", theta_rekc, 0., &

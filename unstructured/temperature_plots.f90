@@ -473,6 +473,46 @@ subroutine f3eplot_sub(term)
   endif
 end subroutine f3eplot_sub
 
+subroutine potential2(dofs)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element), intent(out) :: dofs
+
+  ! Electrical Potential due to resistive terms
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  dofs = - ( intx4(mu79(:,:,OP_DZ),eta79(:,OP_1), ri_79,bzt79(:,OP_DR)) &
+           - intx4(mu79(:,:,OP_DR),eta79(:,OP_1), ri_79,bzt79(:,OP_DZ)) )
+#if defined(USE3D) || defined(USECOMPLEX)
+  dofs = dofs - ( intx4(mu79(:,:,OP_DZ),eta79(:,OP_1), ri_79,bfpt79(:,OP_DRP)) &
+                - intx4(mu79(:,:,OP_DR),eta79(:,OP_1), ri_79,bfpt79(:,OP_DZP)) &
+                + intx4(mu79(:,:,OP_DR),eta79(:,OP_1),ri3_79,pst79(:,OP_DRP)) &
+                + intx4(mu79(:,:,OP_DZ),eta79(:,OP_1),ri3_79,pst79(:,OP_DZP)) )
+#endif
+!  if(izone.ne.1) return
+  dofs = dofs - intx3(mu79(:,:,OP_DR),pht79(:,OP_DR),bzt79(:,OP_1)) &
+              - intx3(mu79(:,:,OP_DZ),pht79(:,OP_DZ),bzt79(:,OP_1)) &
+              + intx3(mu79(:,:,OP_DR),pst79(:,OP_DR),vzt79(:,OP_1)) &       
+              + intx3(mu79(:,:,OP_DZ),pst79(:,OP_DZ),vzt79(:,OP_1)) &
+              + intx4(mu79(:,:,OP_DZ),bzt79(:,OP_1), ri3_79,cht79(:,OP_DR)) &
+              - intx4(mu79(:,:,OP_DR),bzt79(:,OP_1), ri3_79,cht79(:,OP_DZ))
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  dofs = dofs + intx4(mu79(:,:,OP_DZ),vzt79(:,OP_1), r_79,bfpt79(:,OP_DR)) &
+       	      -	intx4(mu79(:,:,OP_DR),vzt79(:,OP_1), r_79,bfpt79(:,OP_DZ))
+
+#endif
+
+
+
+
+
+
+ 
+
+end subroutine potential2
 
 end module temperature_plots
 

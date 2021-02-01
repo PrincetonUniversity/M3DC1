@@ -21,7 +21,7 @@ module resistive_wall
   type(region_type), dimension(imax_wall_regions), private :: wall_region
 
   real :: eta_rekc
-  integer :: ntor_rekc, mpol_rekc
+  integer :: ntor_rekc, mpol_rekc, isym_rekc
   real :: phi_rekc, theta_rekc, sigma_rekc
   real :: rzero_rekc, zzero_rekc
 
@@ -60,7 +60,7 @@ contains
     implicit none
 
     real, intent(in) :: x, phi, z
-    real :: theta, f
+    real :: theta, f, f1, f2
     integer :: i
 
     wall_resistivity = eta_wall
@@ -95,9 +95,17 @@ contains
 #ifdef USE3D
        f = ntor_rekc*(phi-phi_rekc)*twopi/toroidal_period
 #endif
-       f = cos(f - mpol_rekc*(theta-theta_rekc))
-       f = exp((f-1.)/sigma_rekc**2)
-       wall_resistivity = 10.**(log10(wall_resistivity)*(1.-f) + log10(eta_rekc)*f)
+       if(isym_rekc .eq. 0) then
+          f = cos(f - mpol_rekc*(theta-theta_rekc))
+          f = exp((f-1.)/sigma_rekc**2)
+          wall_resistivity = 10.**(log10(wall_resistivity)*(1.-f) + log10(eta_rekc)*f)
+       else
+          f1 = cos(f - mpol_rekc*(theta-theta_rekc))
+          f1 = exp((f1-1.)/sigma_rekc**2)
+          f2 = cos(f + mpol_rekc*(theta-theta_rekc))
+          f2 = exp((f2-1.)/sigma_rekc**2)
+          wall_resistivity = 10.**(log10(wall_resistivity)*(1.-max(f1,f2)) + log10(eta_rekc)*max(f1,f2))
+      endif
     end if
 
   end function wall_resistivity
@@ -109,7 +117,7 @@ contains
     implicit none
 
     real, intent(in) :: x, phi, z
-    real :: theta, f
+    real :: theta, f, f1, f2
     integer :: i
 
     wall_resistivityRZ = eta_wallRZ
@@ -144,11 +152,18 @@ contains
 #ifdef USE3D
        f = ntor_rekc*(phi-phi_rekc)*twopi/toroidal_period
 #endif
-       f = cos(f - mpol_rekc*(theta-theta_rekc))
-       f = exp((f-1.)/sigma_rekc**2)
-       wall_resistivityRZ = 10.**(log10(wall_resistivityRZ)*(1.-f) + log10(eta_rekc)*f)
+       if(isym_rekc .eq. 0) then
+          f = cos(f - mpol_rekc*(theta-theta_rekc))
+          f = exp((f-1.)/sigma_rekc**2)
+          wall_resistivityRZ = 10.**(log10(wall_resistivityRZ)*(1.-f) + log10(eta_rekc)*f)
+       else
+          f1 = cos(f - mpol_rekc*(theta-theta_rekc))
+          f1 = exp((f1-1.)/sigma_rekc**2)
+          f2 = cos(f + mpol_rekc*(theta-theta_rekc))
+          f2 = exp((f2-1.)/sigma_rekc**2)
+          wall_resistivityRZ = 10.**(log10(wall_resistivityRZ)*(1.-max(f1,f2)) + log10(eta_rekc)*max(f1,f2))
+      endif
     end if
-
   end function wall_resistivityRZ
 
 
