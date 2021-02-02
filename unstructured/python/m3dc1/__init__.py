@@ -18,6 +18,7 @@ from m3dc1.plot_line            import plot_line
 from m3dc1.plot_mesh            import plot_mesh
 from m3dc1.plot_shape           import plot_shape
 from m3dc1.plot_time_trace      import plot_time_trace
+from m3dc1.time_trace_fast      import get_timetrace
 from m3dc1.time_trace_fast      import plot_time_trace_fast
 from m3dc1.time_trace_fast      import avg_time_trace
 from m3dc1.time_trace_fast      import growth_rate

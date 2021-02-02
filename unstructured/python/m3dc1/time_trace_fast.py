@@ -5,23 +5,19 @@ Created on Wed Oct  2 14:24:12 2019
 
 @author: Andreas Kleiner
 """
-import sys
 import numpy as np
 import os
 import glob
 import re
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 from matplotlib import rc
 import matplotlib.gridspec as gridspec
-from scipy.fftpack import fft, ifft, fftshift, fftfreq
 from scipy import signal
 
 import fpy
 import m3dc1.fpylib as fpyl
 from m3dc1.unit_conv import unit_conv
 from m3dc1.plot_field  import plot_field
-from m3dc1.read_h5 import readC1File
 from m3dc1.read_h5 import readParameter
 from m3dc1.gamma_file import Gamma_file
 from m3dc1.gamma_data import Gamma_data
@@ -31,7 +27,8 @@ rc('text', usetex=True)
 plt.rcParams.update({'figure.max_open_warning': 40})
 
 
-def get_timetrace(trace,file_name='C1.h5',units='m3dc1',growth=False,renorm=False,quiet=False):
+def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
+                  growth=False,renorm=False,quiet=False,returnas='tuple'):
     """
     Read a time trace directly from an hdf5 file. This function does not use fusion-io.
     
@@ -40,7 +37,7 @@ def get_timetrace(trace,file_name='C1.h5',units='m3dc1',growth=False,renorm=Fals
     **trace**
     Name of trace (scalar)
 
-    **file_name**
+    **filename**
     Name or path to C1.h5 file to read
 
     **units**
@@ -56,45 +53,221 @@ def get_timetrace(trace,file_name='C1.h5',units='m3dc1',growth=False,renorm=Fals
     **quiet**
     If True, do not print renormalization times to screen.
     """
-    time,y_axis = readC1File(scalar=trace,fname='C1.h5',listc=False)
-    time = np.asarray(time)
-    y_axis = np.asarray(y_axis)
-    if units=='mks':
-        time = unit_conv(time, arr_dim='M3DC1', file_name=file_name, time=1)
-        if trace == 'ke':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', file_name=file_name, energy=1)
+
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+    constants = sim.get_constants()
+    itor    = constants.itor
+    version = constants.version
+    gamma   = constants.gamma
+
+    # Direct transformation of one name to another
+    transform = {'toroidal current':'toroidal_current', 'it':'toroidal_current',
+                 'plasma current':'toroidal_current_p', 'ip':'toroidal_current_p',
+                 'wall current':'toroidal_current_w', 'iw':'toroidal_current_w',
+                 'volume':'volume_p', 'plasma volume':'volume_p',
+                 'volume_d':'volume', 'domain volume':'volume',
+                 'toroidal flux': 'toroidal_flux_p',
+                 'time step': 'dt',
+                 'psibound':'psi_lcfs', 'psilim':'psi_lcfs',
+                 'loop voltage':'loop_voltage', 'vl':'loop_voltage',
+                 'poloidal magnetic energy':'E_MP', 'Wm':'E_MP',
+                 'thermal energy':'E_P', 'p':'E_P',
+                 'electron thermal energy':'E_PE', 'pe':'E_PE',
+                 'particles':'particle_number', 'n':'particle_number',
+                 'electrons':'electron_number', 'ne':'electron_number',
+                 'angular momentum': 'angular_momentum',
+                 'vorticity': 'circulation',
+                 'parallel viscous heating': 'parallel_viscous_heating',
+                 'IZ': 'M_IZ',
+                 'ave_p': 'Ave_P',
+                 'total current': 'itot',
+                 'halo current': 'ih',
+                 'kinetic energy': 'ke',
+                 'magnetic energy': 'me',
+                 'prad': 'radiation',
+                 'pline': 'line_rad',
+                 'pbrem': 'brem_rad',
+                 'pion': 'ion_loss',
+                 'preck': 'reck_rad',
+                 'precp': 'recp_rad',
+                 'POhm': 'pohm',
+                 'pelr': 'pellet_rate',
+                 'pellet ablation rate': 'pellet_ablrate',
+                 'pelablr': 'pellet_ablrate',
+                 'pellet var': 'pellet_var',
+                 'pelvar': 'pellet_var',
+                 'pellet radius': 'r_p',
+                 'pelrad': 'r_p',
+                 'pellet R position': 'pellet_r',
+                 'pelrpos': 'pellet_r',
+                 'pellet_x': 'pellet_r',
+                 'pellet phi position': 'pellet_phi',
+                 'pelphipos': 'pellet_phi',
+                 'pellet Z position': 'pellet_z',
+                 'pelzpos': 'pellet_z',
+                 'poloidal beta': 'betap',
+                 'bp': 'betap',
+                 }
+
+    # Simple linear combinations
+    combos = {'itot':([('toroidal_current_w',1.),('toroidal_current',1.)],
+                      {'current':1}),
+              'ih':([('toroidal_current',1.),('toroidal_current_p',-1.)],
+                    {'current':1}),
+              'ke':([('E_KP',1.),('E_KT',1.),('E_K3',1.)], {'energy':1}),
+              'me':([('E_MP',1.),('E_MT',1.)], {'energy':1}),
+              'energy':([('E_KP',1.),('E_KT',1.),('E_K3',1.),
+                         ('E_MP',1.),('E_MT',1.),('E_P',1.)], {'energy':1}),
+              'flux':([('psimin',2.*np.pi),('psi_lcfs',-2.*np.pi)],
+                      {'magnetic_field':1,'length':2}),
+              'radiation':([('radiation',-1.)], None),
+              'line_rad':([('line_rad',-1.)], None),
+              'brem_rad':([('brem_rad',-1.)], None),
+              'ion_loss':([('ion_loss',-1.)], None),
+              'reck_rad':([('reck_rad',-1.)], None),
+              'recp_rad':([('recp_rad',-1.)], None),
+              'rec_rad':([('reck_rad',-1.),('recp_rad',-1.)],
+                         {'energy':1,'time':-1}),
+              'pohm':([('E_MPD',-1),('E_MTD',-1)], {'energy':1,'time':-1}),
+              }
+
+    if trace in transform:
+        trace = transform[trace]
+
+    if trace == 'reconnected flux':
+        scalar = abs(sim.get_time_trace('reconnected_flux'))
+        custom = {'magnetic_field':1,'length':1+itor}
+
+    elif trace == 'r_p':
+        if (version < 26):
+            scalar = sim.get_time_trace('r_p2')
         else:
-            y_axis = fpyl.get_conv_trace('mks',trace,y_axis)
-            #fpyl.printwarn('WARNING: Unit conversion for traces other than ke not yet implemented.')
+            scalar = sim.get_time_trace('r_p')
+        custom = None
+
+    elif trace == 'pellet_r':
+        if (version < 26):
+            scalar = sim.get_time_trace('pellet_x')
+        else:
+            scalar = sim.get_time_trace('pellet_r')
+        custom = None
+
+    elif trace == 'beta':
+        if (version < 26):
+            scalar = sim.get_time_trace('E_P')
+        else:
+            scalar = sim.get_time_trace('W_P')
+        E_MP = sim.get_time_trace('E_MP')
+        E_MT = sim.get_time_trace('E_MT')
+        scalar *= (gamma-1.)/(E_MP + E_MT)
+        custom = None
+
+    elif trace == 'betap':
+        if (version < 26):
+            scalar = sim.get_time_trace('E_P')
+            it     = sim.get_time_trace('toroidal_current')
+            scalar *= 2.*(gamma-1.)/it**2
+        else:
+            scalar = sim.get_time_trace('W_P')
+            W_M    = sim.get_time_trace('W_M')
+            scalar *= (gamma-1.)/W_M
+        custom = None
+
+    elif trace in ['betan','betat']:
+        raise RuntimeError("'%s' not yet implemented; need shape information"%trace)
+
+    elif trace == 'electron_number':
+        if version <= 20:
+            zeff = readParameter('zeff', sim=sim)
+            scalar = sim.get_time_trace('particle_number')
+            scalar *= zeff
+        else:
+            scalar = sim.get_time_trace(trace)
+
+        custom = None
+
+    elif trace == 'bwb2':
+        amupar = constants.amupar
+        scalar = sim.get_time_trace('parallel_viscous_heating')
+        scalar *= 4./(3.*amupar)
+        custom = {'length':3, 'time':-2}
+
+    elif trace == 'li':
+        R0 = constants.R0
+        psi_lcfs = sim.get_time_trace('psi_lcfs')
+        psimin   = sim.get_time_trace('psimin')
+        ip       = sim.get_time_trace('toroidal_current_p')
+
+        scalar = -4.*np.pi*(psi_lcfs - psimin)/(R0*ip)
+        custom = None
+
+    elif trace == 'li3':
+        R0 = constants.R0
+        W_M = sim.get_time_trace('W_M')
+        ip = sim.get_time_trace('toroidal_current_p')
+
+        scalar = 4.*W_M/(R0*ip**2)
+        custom = None
+
+    elif trace in combos:
+        # trace is linear combination of native scalars
+        combo, custom = combos[trace]
+        for i, (name, fac) in enumerate(combo):
+            y = sim.get_time_trace(name)
+            if i==0:
+                scalar = fac*y
+            else:
+                scalar += fac*y
+
+    else:
+        # trace is a native scalar
+        scalar = sim.get_time_trace(trace)
+        custom = None
+
+    if ('pellet_' in trace) or (trace in ['cauchy_fraction','cloud_pel','r_p']):
+        # if ipellet is given, get just that pellet's data
+        if (ipellet != 'all') and (scalar.values.ndim==2):
+            scalar.values = scalar.values[:,ipellet]
+
+    if units=='mks':
+        scalar = fpyl.get_conv_trace('mks',trace,scalar,sim=sim,itor=itor,custom=custom)
         
-    if growth == True:
-        y_axis = 1.0/y_axis[1:] * np.diff(y_axis)/np.diff(time)
+    # now separate time and values arrays
+    time = scalar.time
+    values = scalar.values
+    if growth:
+        values = 1.0/values[1:] * np.diff(values)/np.diff(time)
         time = time[:-1]
     
-    if renorm == True:
+    if renorm:
         renormlist = []
-        for i in range(len(y_axis)-1):
-            if(abs(y_axis[i+1]/y_axis[i]) < 1E-9):
+        for i in range(len(values)-1):
+            if(abs(values[i+1]/values[i]) < 1E-9):
                 renormlist.append(str(time[i]))
-                #print(y_axis[i],y_axis[i-1]+y_axis[i+1])
                 # Only average value if growth rate is calculated
-                if growth == True:
-                    y_axis[i] = (y_axis[i-1] + y_axis[i+1])/2.0
-        # When growth rate is calculated, check for normalization at last time step and drop this point, since it carres no information.
-        if growth == True:
-            if(abs(y_axis[-2]/y_axis[-1]) < 1E-9):
+                if growth:
+                    values[i] = (values[i-1] + values[i+1])/2.0
+        # When growth rate is calculated, check for normalization at last time
+        #   step and drop this point, since it carres no information.
+        if growth:
+            if(abs(values[-2]/values[-1]) < 1E-9):
                 renormlist.append(str(time[-1]))
-                y_axis = y_axis[:-1]
+                values = values[:-1]
                 time = time[:-1]
         renormstr = ", ".join(renormlist)
-        if quiet==False:
+        if not quiet:
             if len(renormstr) > 0:
                 print('Renormalization found at '+renormstr)
-    return time, y_axis
+    if returnas=='tuple':
+        return time, values
+    elif returnas=='time_trace':
+        return fpy.sim_data.time_trace(values,time=time)
 
 
 
-def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',growth=False,renorm=True,start=None,time_low_lim=500):
+def avg_time_trace(trace,units='m3dc1',filename='C1.h5',sim=None,
+                   growth=False,renorm=True,start=None,time_low_lim=500):
     """
     Calculates the mean and standard deviation of a M3DC1 scalar (time trace) starting from a certain point in time
     
@@ -103,7 +276,7 @@ def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',growth=False,renorm=Tru
     **trace**
     Name of trace (scalar)
 
-    **file_name**
+    **filename**
     Name or path to C1.h5 file to read
 
     **units**
@@ -123,10 +296,13 @@ def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',growth=False,renorm=Tru
     lower limit for starting time in terms of Alfven times. If start < time_low_lim,
     start time is moved to the earliest time larger than time_low_lim
     """
-    time,y_axis = get_timetrace(trace,file_name=file_name,units=units,growth=growth,renorm=renorm,quiet=False)
-    
-    if start==None:
-        start_ind = int(np.floor(len(y_axis)/2))
+
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+    time,values = get_timetrace(trace,sim=sim,units=units,growth=growth,
+                                renorm=renorm,quiet=False)
+    if start is None:
+        start_ind = int(np.floor(len(values)/2))
         start_time = time[start_ind]
     else:
         start_time = start
@@ -135,30 +311,25 @@ def avg_time_trace(trace,units='m3dc1',file_name='C1.h5',growth=False,renorm=Tru
     
     
     if units.lower() == 'mks':
-        #start_time = unit_conv(time[start_ind],arr_dim='mks',file_name=file_name,time=1)
-        time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',file_name=file_name,time=1)
-    
-    #print(start_time,time_low_lim)
+        time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',sim=sim,time=1)
     
     if start_time < time_low_lim:
         if time_low_lim < time[-1]:
             start_ind = np.argmax(time>time_low_lim)
-            #print(start_ind)
             fpyl.printwarn('WARNING: Start of trace averaging has been moved to t='+str(time[start_ind])+'.')
         else:
             fpyl.printwarn('WARNING: time_low_lim > time[-1]. Start of trace averaging has been moved to t='+str(time[start_ind])+'. Please verify validity of results.')
     
-    y_axis_short = y_axis[start_ind:]
+    values_short = values[start_ind:]
     time_short = time[start_ind:]
     
-    avg = np.mean(y_axis_short)
-    std = np.std(y_axis_short)
-    return avg, std,time_short,y_axis_short
+    avg = np.mean(values_short)
+    std = np.std(values_short)
+    return avg, std,time_short,values_short
 
 
-
-
-def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=True,plottrace=False):
+def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
+                time_low_lim=500,slurm=True,plottrace=False):
     """
     Evaluates kinetic energy growth rate. The growth rate is the mean of the logarithmic derivative of ke.
     The mean is taken over the second half of the simulation time. Returns 
@@ -178,10 +349,16 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
     **plottrace**
     Show and save plots of growth rate in directory
     """
-    if n==None:
-        n = readParameter('ntor',fname=file_name,listc=False)
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+
+    if n is None:
+        n = readParameter('ntor',sim=sim,listc=False)
         fpyl.printnote('Set n=ntor='+"{:d}".format(n)+' as read from C1.h5 file.')
-    gamma, dgamma,time,gamma_trace = avg_time_trace('ke',units,file_name,growth=True,renorm=True,start=None,time_low_lim=time_low_lim)
+    gamma, dgamma,time,gamma_trace = avg_time_trace('ke',units,sim=sim,
+                                                    growth=True,renorm=True,
+                                                    start=None,
+                                                    time_low_lim=time_low_lim)
     print(n,gamma,dgamma)
     
     not_noisy = 1
@@ -195,42 +372,39 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
         # Identify local maxima in the growth rate and determine the frequency in which these occur
         maxima_ind = signal.argrelmax(gamma_trace)[0]
         frequency = 1.0/np.diff(maxima_ind)
-        #print(gamma_trace[maxima_ind])
-        #plt.figure()
-        #plt.plot(maxima_ind[:-1],frequency,lw=0,marker='.')
-        #plt.plot(maxima_ind,gamma_trace[maxima_ind],lw=0,marker='.')
-        #plt.xlabel('time')
-        #plt.ylabel('frequency')
-        #plt.title('n='+str(n))
         
         # When frequency is too high, mask it as noise
         noise_mask = np.greater(frequency,0.1)
         
         perform_manual_check = False
         
-        # Check whether growth rate is noisy for the whole time, partially, or not noisy. In case of noise, do not consider the growth rate.
-        if np.all(noise_mask) == True:
+        # Check whether growth rate is noisy for the whole time, partially,
+        #   or not noisy. In case of noise, do not consider the growth rate.
+        if np.all(noise_mask):
             fpyl.printwarn('WARNING: gamma is completely noisy for n='+str(n)+'!')
             not_noisy = 0
-        elif np.any(noise_mask) == True:
+        elif np.any(noise_mask):
+
             fpyl.printwarn('WARNING: gamma is partially noisy for n='+str(n)+'!')
             if (gamma < 0 and (np.all(np.sign(gamma_trace)==-1.0))):
                 perform_manual_check = True
             not_noisy = 0
         else:
-            # If there is no noise, do additional check ups to determine if the system is stable or unstable
+            # If there is no noise, do additional check ups to determine if
+            #   the system is stable or unstable
             fpyl.printnote('NOTE: no noise detected for n='+str(n)+'!')
-            # Check whether the kinetic energy is overall increasing or decreasing by looking at the evolution of the maxima.
-            ke_time,ke = get_timetrace('ke',file_name=file_name,units=units,growth=False,renorm=True)
+            # Check whether the kinetic energy is overall increasing or
+            #   decreasing by looking at the evolution of the maxima.
+            ke_time,ke = get_timetrace('ke',sim=sim,units=units,
+                                       growth=False,renorm=True)
             
             start_ind = int(np.floor(len(ke)/2))
             start_time = ke_time[start_ind]
             if units.lower() == 'mks':
-                time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',file_name=file_name,time=1)
-            #print(start_time,time_low_lim)
+                time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',
+                                         sim=sim,time=1)
             if start_time < time_low_lim:
                 start_ind = np.argmax(ke_time>time_low_lim)
-                #print(start_ind)
             ke_short = ke[start_ind:]
             ke_time_short = ke_time[start_ind:]
             
@@ -255,14 +429,7 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
                         time_linear.append(ke_time_short[renormlist[i-1]+1:t])
                 ke_linear.append(ke_short[renormlist[-1]+1:])
                 time_linear.append(ke_time_short[renormlist[-1]+1:])
-                
-                #plt.figure()
-                #for i in range(len((ke_linear))):
-                #    plt.plot(time_linear[i],ke_linear[i],lw=1)
-                #plt.grid(True)
-                #plt.xlabel('time')
-                #plt.ylabel('ke')
-                #plt.title('n='+str(n))
+
             else:
                 ke_linear = [np.asarray(ke_short)]
             
@@ -270,12 +437,15 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
             ke_maxima_ind = signal.argrelmax(ke_short)[0]
             
             # Check if ke is monotonic in between all renormalizations
-            if (all(fpyl.strict_monotonic(kel) == True for kel in ke_linear)) or (len(ke_maxima_ind)<2):
-                # If it is monotonic (which is a good sign), check the growth rate manually. This is to ensure
-                # that oscillations are not too strong, or the value for the growth rate is extracted correctly.
+            if ((all(fpyl.strict_monotonic(kel) for kel in ke_linear)) or
+                (len(ke_maxima_ind)<2)):
+                # If it is monotonic (which is a good sign), check the growth rate manually.
+                #   This is to ensure that oscillations are not too strong,
+                #   or the value for the growth rate is extracted correctly.
                 perform_manual_check = True
             else:
-                # Look for local maxima and minima among the maxima to identify a transition from decay to growth or vice versa
+                # Look for local maxima and minima among the maxima to identify
+                #   a transition from decay to growth or vice versa
                 max_ke = ke_short[ke_maxima_ind]
                 ke_time_max = ke_time_short[ke_maxima_ind]
             
@@ -291,8 +461,12 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
                 dke_dt = np.gradient(max_ke,ke_time_max)
                 
                 
-                # make different decisions depending on the sign of the growth rate and time trace of ke
-                if (np.sign(gamma) == np.sign(dke_dt[-1])) and (len(max_ke_min)==0 and len(max_ke_max)==0): # ke and growth rate have same sign, and sign of ke maxima does not change
+                # make different decisions depending on the sign of the
+                #   growth rate and time trace of ke
+                if ((np.sign(gamma) == np.sign(dke_dt[-1])) and
+                    (len(max_ke_min)==0 and len(max_ke_max)==0)):
+                    # ke and growth rate have same sign, and sign of ke maxima
+                    #   does not change
                     # Now check whether growth rate changes sign
                     if (np.all(np.sign(gamma_trace)==1.0) and gamma > 0):
                         fpyl.printnote('NOTE: No change of sign found. Plasma appears linearly UNSTABLE.')
@@ -306,30 +480,25 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
                 else:
                     fpyl.printwarn('WARNING: This case needs some attention.')
                     perform_manual_check = True
-                    #plt.figure()
-                    #plt.plot(ke_time_max,max_ke,lw=0,marker='.')
-                    #plt.plot(ke_time_max,dke_dt,lw=0,marker='.')
-                    #plt.grid(True)
-                    #plt.xlabel('time')
-                    #plt.ylabel('ke and dke_dt')
-                    #plt.title('n='+str(n))
         
-        
+
         # Prompts for manual check of growth rate
-        if perform_manual_check==True:
+        if perform_manual_check:
             # Show plots of growth rate and kinetic energy for analysis
             double_plot_time_trace_fast('ke',renorm=True,title='',rescale=True,units=units)
-            #plot_time_trace_fast('ke',units=units,file_name=file_name,growth=False,renorm=True,yscale='linear',rescale=True,save=False)
-            #plot_time_trace_fast('ke',units=units,file_name=file_name,growth=True,renorm=True,yscale='linear',save=False)
             mono_input = fpyl.prompt('Is the calculated growth rate acceptable? (y/n) : ',['y','n'])
             if mono_input == 'y':
                 gamma_set_manu = 1
             else:
                 gr_input = fpyl.prompt('Please choose:\n  [1] set a different start time for mean calculation\n  [2] directly enter a value for gamma\n  [3] discard this simulation\n : ',['1','2','3'])
                 if gr_input == '1':
-                    #ToDo: Test averaging from start_time in various units using various values for time and limits
+                    #ToDo: Test averaging from start_time in various units using
+                    #         various values for time and limits
                     start_time = fpyl.prompt('Please enter a start time for mean calculation : ',float)
-                    gamma, dgamma,_,_ = avg_time_trace('ke',units,file_name,growth=True,renorm=True,start=start_time,time_low_lim=time_low_lim)
+                    gamma, dgamma,_,_ = avg_time_trace('ke',units,sim=sim,
+                                                       growth=True,renorm=True,
+                                                       start=start_time,
+                                                       time_low_lim=time_low_lim)
                     gamma_set_manu = 1
                     print('gamma corrected to new avg. value: '+str(gamma))
                 elif gr_input == '2':
@@ -338,37 +507,15 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
                     print('gamma corrected to value: '+str(gamma))
                 elif gr_input == '3':
                     not_noisy = 0
-            
-            #plt.figure()
-            #plt.plot(ke_time_max,max_ke,lw=0,marker='.')
-            #plt.plot(ke_time_max,dke_dt,lw=0,marker='.')
-            #plt.grid(True)
-            #plt.xlabel('time')
-            #plt.ylabel('ke')
-            #plt.title('n='+str(n))
-            
-        
-        #trace = fft(gamma_trace)
-        #trace = fftshift(gamma_trace)
-        #trace = np.abs(trace)**2
-        #timestep = time[1]-time[0]
-        #time = fftshift(fftfreq(len(time), d=timestep))
-        #plt.figure()
-        #plt.plot(time,trace)
-        #plt.title('Power spectrum n='+str(n))
-        
-        #if plottrace==True:
-            #plt.ioff()
-            #plot_time_trace_fast('ke',units='M3DC1',file_name='C1.h5',growth=True,renorm=True,yscale='linear',save=True,savedir='../') #ToDo: Remove comment
-            #plt.ion()
-    
-    
+
+
     #------------------------------------------------
     #Check equilibrium convergence and extract Final GS Error from Slurm log file
     #------------------------------------------------
-    if slurm == True:
+    if slurm:
         try:
-            # Read Slurm log files. Should there be multiple log files in the directory, choose the file with largest Slurm Job ID
+            # Read Slurm log files. Should there be multiple log files in the directory,
+            #   choose the file with largest Slurm Job ID
             slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
             if len(slurmfiles) > 1:
                 fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
@@ -420,7 +567,7 @@ def growth_rate(n=None,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=Tr
 
 
 
-def scan_n(nmin=1,nmax=10,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm=True,plottrace=False):
+def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',sim=None,time_low_lim=500,slurm=True,plottrace=False):
     """
     Traverses all subdirectories named nXX in a directory (where XX is the toroidal mode number),
     and reads the growth rate.
@@ -446,6 +593,9 @@ def scan_n(nmin=1,nmax=10,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm
     **plottrace**
     Show and save plots of growth rate in directory
     """
+
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
     
     n_list = []
     gamma_list = []
@@ -468,7 +618,7 @@ def scan_n(nmin=1,nmax=10,units='m3dc1',file_name='C1.h5',time_low_lim=500,slurm
         print('----------------------------------------------')
         print('n='+str(n)+':')
 
-        gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = growth_rate(n,units,file_name,time_low_lim,slurm,plottrace=True)
+        gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = growth_rate(n,units=units,sim=sim,time_low_lim=time_low_lim,slurm=slurm,plottrace=True)
         
         gamma_list.append(gamma)
         dgamma_list.append(dgamma)
@@ -501,7 +651,7 @@ def create_plot_gamma_n(n_list, gamma_list,fignum=None,lw=1,c=None,ls=None,marke
         plt.ylabel(r'$\gamma$ $[s^{-1}]$',fontsize=18)
     plt.tick_params(axis='both', which='major', labelsize=16)
     plt.tight_layout()
-    if lbl != None:
+    if lbl is not None:
         plt.legend(loc=0)
     return
 
@@ -551,7 +701,7 @@ def write_gamma_n(nmin=1,nmax=10,results=None,units='m3dc1'):
     if (nmin >= 0 and nmax >=0 and nmax > nmin):
         #n_list, gamma_list, dgamma_list, not_noisy_list, gsconvgd, finalerrgs = scan_n(nmin,nmax,slurm=True)
         results = scan_n(nmin,nmax,units=units,slurm=True,plottrace=True)
-    elif (nmin < 0 and nmax < 0) and (results==None):
+    elif (nmin < 0 and nmax < 0) and (results is None):
         raise Exception('nmin and nmax must be >=0 with nmax > nmin.')
     
     pwd = os.getcwd()
@@ -562,7 +712,7 @@ def write_gamma_n(nmin=1,nmax=10,results=None,units='m3dc1'):
     eta = re.search('eta_x(\d*[.]?\d*)', simdir).group(1)
     
     flmodel = simdir[0:2]
-    if flmodel != '1f' and flmodel != '2f':
+    if flmodel not in ['1f', '2f']:
         fpyl.printerr('ERROR: Fluid model not recognized!')
     
     if 'eqrotnc' in simdir:
@@ -666,7 +816,7 @@ def eval_growth_n(nmin=1,nmax=10,plotef=True,units='m3dc1'):
             path = '../n'+str(n).zfill(2)
         os.chdir(path)
         
-        if plotef==True:
+        if plotef:
             print('Plotting eigenfunction for n='+str(n))
             plot_field('p',time='last',linear=True,bound=True,lcfs=True,save=True,savedir='../')
             plt.close()
@@ -679,64 +829,68 @@ def eval_growth_n(nmin=1,nmax=10,plotef=True,units='m3dc1'):
 
 
 
-def create_plot_time_trace_fast(time,y_axis,trace,units='mks',file_name='C1.h5',growth=False,yscale='linear',rescale=False,save=False,savedir=None,pub=False):
+def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
+                                sim=None,growth=False,yscale='linear',
+                                rescale=False,save=False,savedir=None,pub=False):
+
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+
     # If one array has new data but the other one doesn't 
     # plot only previous data
-    if y_axis.shape != time.shape:
-        ymax   = np.amax(y_axis.shape)
+    if scalar.shape != time.shape:
+        ymax   = np.amax(scalar.shape)
         tmax   = np.amax(time.shape)
         maxidx = np.amin([ymax,tmax])
         time   = time[0:maxidx]
-        y_axis = y_axis[0:maxidx]
-    
-    ntor = readParameter('ntor',file_name,False)
+        scalar = scalar[0:maxidx]
+
+    ntor = readParameter('ntor',sim=sim)
     
     plt.figure()
     
     # Set font sizes and plot style parameters
-    if pub==False:
-        axlblfs = None
-        titlefs = None
-        ticklblfs = None
-        linew = 1
-    elif pub==True:
+    if pub:
         axlblfs = 20
         titlefs = 18
         ticklblfs = 18
         linew = 2
+    else:
+        axlblfs = None
+        titlefs = None
+        ticklblfs = None
+        linew = 1
     
     
     if units=='mks':
-        #time = unit_conv(time,file_name=file_name,time=1)
         plt.xlabel(r'time $[s]$',fontsize=axlblfs)
     else:
         plt.xlabel(r'time $[\tau_A]$',fontsize=axlblfs)
     
     if trace == 'ke':
         if units=='mks':
-            #y_axis = unit_conv(y_axis, arr_dim='M3DC1', file_name=file_name, energy=1)
-            if growth == True:
+            if growth:
                 plt.ylabel(r'$\gamma$ $[s^{-1}]$')
             else:
                 plt.ylabel(r'Kinetic energy $[J]$')
         elif units.lower()=='m3dc1':
-            if growth == True:
+            if growth:
                 plt.ylabel(r'$\gamma/\omega_A$')
             else:
                 plt.ylabel(r'Kinetic energy (M3DC1 units)')
     else:
         plt.ylabel(trace,fontsize=axlblfs)
     
-    plt.plot(time,y_axis,lw=linew)
+    plt.plot(time,scalar,lw=linew)
     plt.grid(True)
     #Determine y-axis limits
-    if rescale==True:
-        if np.amax(y_axis[1:]) < y_axis[0]:
+    if rescale:
+        if np.amax(scalar[1:]) < scalar[0]:
             start_time=250
             if units=='mks':
-                start_time = unit_conv(start_time,arr_dim='m3dc1',file_name=file_name,time=1)
+                start_time = unit_conv(start_time,arr_dim='m3dc1',sim=sim,time=1)
             start_ind = int(fpyl.find_nearest(time,start_time))
-            top_lim=1.1*np.amax(y_axis[start_ind:])
+            top_lim=1.1*np.amax(scalar[start_ind:])
             plt.ylim([0,top_lim])
     plt.yscale(yscale)
     ax = plt.gca()
@@ -746,18 +900,20 @@ def create_plot_time_trace_fast(time,y_axis,trace,units='mks',file_name='C1.h5',
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     plt.show()
     
-    if save == True:
+    if save:
         tracestr = trace
-        if growth==True:
+        if growth:
             tracestr = tracestr + '-growth'
-        if savedir != None:
+        if savedir is not None:
             tracestr = savedir + tracestr
         plt.savefig(tracestr+'_n'+"{:d}".format(ntor)+'.pdf', format='pdf',bbox_inches='tight')
     return
 
 
 
-def double_plot_time_trace_fast(trace,file_name='C1.h5',renorm=False,rescale=False,units='m3dc1',title=None,pub=False):
+def double_plot_time_trace_fast(trace,filename='C1.h5',sim=None,
+                                renorm=False,rescale=False,units='m3dc1',
+                                title=None,pub=False):
     """
     Plots a trace and its growth rate in two subplots side by side
     
@@ -766,7 +922,7 @@ def double_plot_time_trace_fast(trace,file_name='C1.h5',renorm=False,rescale=Fal
     **trace**
     String containing the trace to be plotted
 
-    **file_name**
+    **filename**
     Contains the path to the C1.h5 file.
 
     **renorm**
@@ -788,8 +944,12 @@ def double_plot_time_trace_fast(trace,file_name='C1.h5',renorm=False,rescale=Fal
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
     """
-    time,y_axis = get_timetrace(trace,file_name=file_name,units=units,growth=False,renorm=renorm,quiet=True)
-    time_growth,y_axis_growth = get_timetrace(trace,file_name=file_name,units=units,growth=True,renorm=renorm,quiet=True)
+
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+
+    time,scalar = get_timetrace(trace,sim=sim,units=units,growth=False,renorm=renorm,quiet=True)
+    time_growth,scalar_growth = get_timetrace(trace,sim=sim,units=units,growth=True,renorm=renorm,quiet=True)
     
     if units=='mks':
         xlbl = r'time $[s]$'
@@ -801,13 +961,13 @@ def double_plot_time_trace_fast(trace,file_name='C1.h5',renorm=False,rescale=Fal
         ylbl_right = r'$\gamma/\omega_A$'
     
     #Determine y-axis limits
-    if rescale==True:
-        if np.amax(y_axis[1:]) < y_axis[0]:
+    if rescale:
+        if np.amax(scalar[1:]) < scalar[0]:
             start_time=250
             if units=='mks':
-                start_time = unit_conv(start_time,arr_dim='m3dc1',file_name=file_name,time=1)
+                start_time = unit_conv(start_time,arr_dim='m3dc1',sim=sim,time=1)
             start_ind = int(fpyl.find_nearest(time,start_time))
-            top_lim=1.1*np.amax(y_axis[start_ind:])
+            top_lim=1.1*np.amax(scalar[start_ind:])
         else:
             top_lim=None
     
@@ -816,24 +976,26 @@ def double_plot_time_trace_fast(trace,file_name='C1.h5',renorm=False,rescale=Fal
     f2_ax1 = fig.add_subplot(spec2[0, 0])
     f2_ax2 = fig.add_subplot(spec2[0, 1])
     
-    f2_ax1.plot(time,y_axis)
+    f2_ax1.plot(time,scalar)
     f2_ax1.set_xlabel(xlbl)
     f2_ax1.set_ylabel(ylbl_left)
-    if rescale==True:
+    if rescale:
         f2_ax1.set_ylim([0,top_lim])
     f2_ax1.grid()
-    f2_ax2.plot(time_growth,y_axis_growth)
+    f2_ax2.plot(time_growth,scalar_growth)
     f2_ax2.set_xlabel(xlbl)
     f2_ax2.set_ylabel(ylbl_right)
     f2_ax2.grid()
     
-    ntor = readParameter('ntor',file_name,False)
+    ntor = readParameter('ntor',sim=sim)
     fig.suptitle('n='+str(ntor), size=20)
     
     return
 
 
-def plot_time_trace_fast(trace,units='mks',file_name='C1.h5',growth=False,renorm=False,yscale='linear',rescale=False,save=False,savedir=None,pub=False):
+def plot_time_trace_fast(trace,units='mks',filename='C1.h5',sim=None,
+                         growth=False,renorm=False,yscale='linear',
+                         rescale=False,save=False,savedir=None,pub=False):
     """
     Plots the time trace of some quantity. All available
     time traces can be found in the M3DC1 documentation.
@@ -846,7 +1008,7 @@ def plot_time_trace_fast(trace,units='mks',file_name='C1.h5',growth=False,renorm
     **units**
     The units in which the trace will be plotted
 
-    **file_name**
+    **filename**
     Contains the path to the C1.h5 file.
 
     **growth**
@@ -875,6 +1037,11 @@ def plot_time_trace_fast(trace,units='mks',file_name='C1.h5',growth=False,renorm
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
     """
-    time,y_axis = get_timetrace(trace,file_name=file_name,units=units,growth=growth,renorm=renorm)
-    create_plot_time_trace_fast(time,y_axis,trace,units,file_name,growth,yscale,rescale,save,savedir,pub=pub)
+    if sim is None:
+        sim = fpy.sim_data(filename=filename)
+    time,scalar = get_timetrace(trace,sim=sim,units=units,
+                                growth=growth,renorm=renorm)
+    create_plot_time_trace_fast(time,scalar,trace,units=units,sim=sim,
+                                growth=growth,yscale=yscale,rescale=rescale,
+                                save=save,savedir=savedir,pub=pub)
     return

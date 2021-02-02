@@ -17,7 +17,7 @@ from m3dc1.unit_conv import unit_conv
 
 
 
-def eigenfunction(sim=None,time=1,phit=0.0,file_name='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,nummodes=10,cmap='jet',pub=False):
+def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,nummodes=10,cmap='jet',pub=False):
     """
     Calculates the linear eigenfunction ~(p1-p0)
 
@@ -32,7 +32,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,file_name='C1.h5',fcoords=None,points
     **phit**
     Toroidal angle where eigenfunction will be calculated
 
-    **file_name**
+    **filename**
     If sim=None, name of file to read
 
     **fcoords**
@@ -66,10 +66,10 @@ def eigenfunction(sim=None,time=1,phit=0.0,file_name='C1.h5',fcoords=None,points
         if not isinstance(sim, (tuple, list)):
             if isinstance(sim,fpy.sim_data):
                 if sim.timeslice==-1 or sim.timeslice==0:
-                    simlin = fpy.sim_data(file_name,time=time)
+                    simlin = fpy.sim_data(filename,time=time)
                     sims = [sim,simlin]
                 else:
-                    simeq = fpy.sim_data(file_name,time=-1)
+                    simeq = fpy.sim_data(filename,time=-1)
                     sims = [simeq,sim]
             else:
                 raise Exception('sim is not a fpy.sim_data object.')
@@ -90,9 +90,9 @@ def eigenfunction(sim=None,time=1,phit=0.0,file_name='C1.h5',fcoords=None,points
                 else:
                     raise Exception('sim is not a list of fpy.sim_data objects.')
     else:
-        simeq = fpy.sim_data(file_name,time=-1)
+        simeq = fpy.sim_data(filename,time=-1)
         if time > 0 or time=='last':
-            simlin = fpy.sim_data(file_name,time=time)
+            simlin = fpy.sim_data(filename,time=time)
         else:
             raise Exception('Please provide a time slice larger than 0.')
         sims = [simeq,simlin]
@@ -114,7 +114,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,file_name='C1.h5',fcoords=None,points
     
     # Evaluate fields
     print('Evaluating first field... ', end=' ', flush=True)
-    p1 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[1], file_name=file_name, time=time)
+    p1 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[1], filename=filename, time=time)
     print('[DONE]')
 
     print('Evaluating second field... ', end=' ', flush=True)

@@ -11,7 +11,7 @@ import numpy as np
 
 
 
-def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, file_name='C1.h5', time=0):
+def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=None):
     """
     Evaluates the field at the locations specified by the 
     R, Z, phi arrays. The output will be array/arrays of the same size.
@@ -25,7 +25,7 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, file_name='C1.h5
     The chosen part of a field to be plotted, options are:
     'phi', 'R', 'Z', 'scalar', 'vector'. 'vector' will return three arrays.
 
-    **file_name**
+    **filename**
     File name which will be read, i.e. "../C1.h5"
 
     **time**
@@ -38,10 +38,9 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, file_name='C1.h5
     """
     
     # First, let's get the field and mesh from the simulation output
-    if isinstance(sim,fpy.sim_data)==False:
-        field = fpy.sim_data(file_name,time=time).get_field(field_name,time)
-    else:
-        field = sim.get_field(field_name,sim.timeslice)
+    if sim is None:
+        sim = fpy.sim_data(filename)
+    field = sim.get_field(field_name,time)
     
     # We check if the field is a scalar or vector field
     check_coord = (R.flatten()[0], phi.flatten()[0], Z.flatten()[0]) 
@@ -52,13 +51,13 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, file_name='C1.h5
         raise Exception('You\'re trying to evaluate a vector field as a scalar! Please set coord to \'R\', \'phi\', \'Z\', or \'vector\'.')
         
     # Set coord to corresponding index value
-    if (coord == 'R' or coord == 'scalar'):
+    if coord in ['R', 'scalar']:
         field_idx = 0
     elif coord == 'phi':
         field_idx = 1
     elif coord == 'Z':
         field_idx = 2
-    elif coord == 'vector' or coord == 'tensor':
+    elif coord in ['vector','tensor']:
         field_idx = -1
     else:
         raise Exception('Please enter valid coordinate. Accepted: \'R\', \'phi\', \'Z\', \'scalar\', \'vector\'.')
