@@ -8,6 +8,8 @@ Created on Wed Oct  2 14:24:12 2019
 import fpy
 import numpy as np
 import math
+import glob
+import os
 from termcolor import colored
 import matplotlib.pyplot as plt
 from m3dc1.unit_conv  import unit_conv
@@ -62,10 +64,13 @@ def fmt(x, pos):
     return r'${} \cdot 10^{{{}}}$'.format(a, b)
 
 
+#-------------------------------------------
+# Read simulations via fusion-io
+#-------------------------------------------
 # sets up arrays for sim and time
 def setup_sims(sim,filename,time,linear,diff):
     # make iterable
-    if sim is None:
+    if not isinstance(sim,fpy.sim_data):
         sim = np.empty(0)
         filename = np.atleast_1d(filename)
         for f in filename:
@@ -80,7 +85,7 @@ def setup_sims(sim,filename,time,linear,diff):
     elif len(sim)==1 and len(time)>1:
         sim = np.repeat(sim,len(time))
     elif len(sim) != len(time):
-        raise RuntimeError('Length of time does not match length of sim/file_name')
+        raise RuntimeError('Length of time does not match length of sim/filename')
 
     if linear:
         if len(sim)>1:
@@ -112,6 +117,31 @@ def get_field_idx(coord):
         return None
     else:
         raise RuntimeError('Please enter valid coordinate. Accepted: \'R\', \'phi\', \'Z\', \'poloidal\', \'radial\', \'scalar\', \'vector\'')
+
+
+
+
+
+def read_floats(string,length=16):
+    """
+    Converts string containing multiple numbers in scientific notation to a list of floats
+    
+    Arguments:
+
+    **string**
+    String to convert
+    
+    **length**
+    Number of characters corresponding to one floating point number,
+    e.g. -0.12345E-01 has length=12
+    """
+    float_list = [string[start:start+length] for start in range(0, len(string), length)]
+    if float_list[-1] == '\n':
+        float_list = float_list[:-1]
+    for i in range(len(float_list)):
+        float_list[i] = float(float_list[i])
+    return float_list
+
 
 
 #-------------------------------------------
@@ -238,9 +268,25 @@ def smooth(vin, w, nan='replace'):
 
 
 
+def PolygonArea(x,y):
+    """
+    Calculates the area inside a polygon
+
+    Arguments:
+
+    **x**
+    Array of polygon point x values
+
+    **y**
+    Array of polygon point x values
+    """
+    return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+
 #-------------------------------------------
 # Unit conversion
 #-------------------------------------------
+
+
 
 def get_unitexpns():
     return {'time':0, 'length':0, 'particles':0, 'magnetic_field':0,
@@ -251,14 +297,21 @@ def get_unitexpns():
 
 
 # Returns field label depending on chosen system of units
-def get_fieldlabel(units,field):
+def get_fieldlabel(units,field,shortlbl=False):
 
     labels = {'j':'current density', 'ni':'ion density','ne':'electron density',
               'v':'velocity', 'B':'magnetic field strength', 'p':'pressure',
               'pi':'ion pressure', 'pe':'electron pressure',
               'ti':'ion temperature', 'te':'electron temperature',
               'A':'vector potential', 'gradA':'grad vector potential',
-              'E':'electric field ', 'default':field}
+              'E':'electric field', 'default':field}
+    
+    short_labels = {'j':'j', 'ni':'$n_{i}$','ne':'$n_{e}$',
+              'v':'v', 'B':'B', 'p':'p',
+              'pi':'$p_{i}$', 'pe':'$p_{e}$',
+              'ti':'$T_{i}$', 'te':'$T_{e}$',
+              'A':'A', 'gradA':'$grad A$ ',
+              'E':'E', 'default':field}
 
     if units.lower()=='m3dc1':
         units = {'default':'M3DC1 units'}
@@ -270,7 +323,7 @@ def get_fieldlabel(units,field):
                  'default':'MKS units'}
 
     if field in labels:
-        label = labels[field]
+        label = short_labels[field] if shortlbl else labels[field]
     else:
         label = labels['default']
 
@@ -299,7 +352,7 @@ def get_conv_field(units,field,field1_ave,filename='C1.h5',sim=None):
         expns.update(fields[field])
 
     if units.lower()=='m3dc1':
-        if sim is None:
+        if not isinstance(sim,fpy.sim_data):
             sim = fpy.sim_data(filename=filename)
         field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim,**expns)
     return field1_ave
@@ -395,7 +448,7 @@ def get_conv_trace(units,trace,trace_arr,filename='C1.h5',sim=None,itor=1,custom
         expns.update(traces[trace])
 
     if units.lower()=='mks':
-        if sim is None:
+        if not isinstance(sim,fpy.sim_data):
             sim = fpy.sim_data(filename=filename)
         time   = unit_conv(trace_arr.time,   arr_dim='M3DC1', sim=sim, time=1)
         values = unit_conv(trace_arr.values, arr_dim='M3DC1', sim=sim, **expns)
@@ -427,8 +480,27 @@ def isfloat(value):
   except ValueError:
     return False
 
+# Checks whether a value can be converted to an integer
+def isint(value):
+  try:
+    int(value)
+    return True
+  except ValueError:
+    return False
 
-# Find index of array element that is nearest to a specified value
+def has_flux_coordinates(sim):
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename,time=time)
+    # Calculate flux coodinates if it was not calculated yet or a different flux coordinate system than sim.fc.fcoords is desired
+    if (not isinstance(sim.fc,fpy.flux_coordinates)) or (fcoords!=None and (sim.fc.fcoords!=fcoords)) or (sim.fc.points!=points):
+        if not fcoords:
+            fcoords = ''
+        sim = flux_coordinates(sim=sim, fcoords=fcoords, points=points, phit=phit,psin_range=psin_range)
+    return sim
+
+
+
+# Find value of array element that is nearest to a specified value
 def find_nearest(arr, val):
     ind = np.abs(arr - val).argmin()
     return arr.flat[ind]
@@ -470,6 +542,11 @@ def prompt(message,options):
             if isfloat(input_str):
                 input_str = float(input_str)
         #print('    '+str(input_str))
+    elif options == int:
+        while not isinstance(input_str,int):
+            input_str = input(message)
+            if isint(input_str):
+                input_str = int(input_str)
     else:
         while not input_str in options:
             input_str = input(message)
@@ -552,3 +629,52 @@ def ReadTwoColFile2(filename,header=0):
     col1 = np.asarray(col1)
     col2 = np.asarray(col2)
     return colh, col1, col2
+
+
+
+def get_filename(a):
+    files = glob.glob(a)
+    if len(files) < 1:
+        raise Exception('No file found with name "'+a+'"!')
+    else:
+        if len(files) > 1:
+            printwarn('WARNING: More than 1 file found. Using the newest one.')
+            files.sort(key=os.path.getmtime,reverse=True)
+        return files[0]
+
+
+def get_lines(filename, linenumbers):
+    """
+    Reads and return only specific lines in a text file
+    
+    Arguments:
+
+    **filename**
+    Name of file to read
+
+    **linenumbers**
+    List of numbers of lines to read, e.g. [3,7,10], indexing starts at 0
+    """
+    lines = []
+    with open(filename) as f:
+        for i,line in enumerate(f):
+            if i in linenumbers:
+                lines.append(line)
+                if len(lines)==len(linenumbers):
+                    break
+    return lines
+
+
+def get_base_dirs(dirname):
+    subfolders0 = [f.path for f in os.scandir(dirname) if (f.is_dir() and len(f.path)<6)]
+    subfolders = []
+    for dirname in list(subfolders0):
+        subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and 'base_' in f.path)])
+    return subfolders
+
+def get_run_dirs(dirname):
+    subfolders0 = [f.path for f in os.scandir(dirname) if (f.is_dir() and len(f.path)<6)]
+    subfolders = []
+    for dirname in list(subfolders0):
+        subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and not 'base_' in f.path)])
+    return subfolders

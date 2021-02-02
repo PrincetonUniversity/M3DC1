@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import fpy
 from m3dc1.unit_conv import unit_conv
+import m3dc1.fpylib as fpyl
 rc('text', usetex=True)
 
-def plot_time_trace(trace,sim=None,units='mks',filename='C1.h5',growth=False,renorm=False,yscale='linear'):
+def plot_time_trace(trace,sim=None,units='mks',filename='C1.h5',growth=False,renorm=False,yscale='linear',write_data=False):
     """
     Plots the time trace of some quantity. All available
     time traces can be found in the M3DC1 documentation.
@@ -42,7 +43,7 @@ def plot_time_trace(trace,sim=None,units='mks',filename='C1.h5',growth=False,ren
     **yscale**
     Scale of y axis, e.g. linear, log
     """
-    if sim is None:
+    if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     constants = sim.get_constants()
 
@@ -367,15 +368,24 @@ def plot_time_trace(trace,sim=None,units='mks',filename='C1.h5',growth=False,ren
             plt.ylabel(r'Kinetic energy harmonics $[J]$')
             plt.xlabel(r'Time $[s]$')
         for n in range(0,np.shape(y_axis)[1]):
+            if growth:
+                y_axis[:,n] = 1.0/y_axis[:,n] * fpyl.deriv(y_axis[:,n],time)
             plt.plot(time,y_axis[:,n],label='n = {}'.format(n))
             plt.legend(loc='best')
+            if write_data:
+                data = np.array([time,y_axis[:,n]])
+                data = data.T
+                txtfname = 'growth_rates' if growth else 'keharmonics'
+                txtfname = txtfname+'_n'+str(n)+'.dat'
+                with open(txtfname, 'w+') as fileid:
+                    np.savetxt(fileid, data, fmt=['%.12E','%.12E'])
         plt.show()
         return
 
-    #if growth==True:
+    #if growth:
     #    y_axis = np.gradient(y_axis, time)
     if growth:
-        y_axis = 1.0/y_axis[1:] * np.diff(y_axis)/np.diff(time)
+        y_axis = 1.0/y_axis[1:] * fpyl.deriv(y_axis,time)
     
     if renorm:
         for i in range(len(y_axis)-1):

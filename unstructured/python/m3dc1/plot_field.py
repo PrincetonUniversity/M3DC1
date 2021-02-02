@@ -22,7 +22,7 @@ rc('text', usetex=True)
 def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
                diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None,
                cmap='viridis', cmap_midpt=None, quiet=False,
-               save=False, savedir=None, pub=False, showtitle=True, ntor=None):
+               save=False, savedir=None, pub=False, showtitle=True, shortlbl=False, ntor=None):
     """
     Plots the field of a file. 
     
@@ -234,7 +234,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     if units.lower()=='m3dc1':
         field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
 
-    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field)
+    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
     if units.lower()=='m3dc1':
         unitlabel = fieldlabel + ' (' + unitlabel + ')'
 
@@ -272,7 +272,11 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         titlestr = titlestr + ' linear'
     elif diff:
         titlestr = titlestr + ' - time=' + str(sim[1].timeslice)
-    species = sim[0].available_fields[field][2]
+    try:
+        species = sim[0].available_fields[field][2]
+    except:
+        species = None
+        fpyl.printwarn('WARNING: Field not found in available_fields!')
     if species is not None:
         titlestr = titlestr+' - Species: '+str(species)
     # ToDo: Main title does not show up in vector plot
@@ -304,12 +308,10 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             ax.set_title(compstr,fontsize=titlefs)
 
         #plt.suptitle(titlestr,fontsize=titlefs)
-        #plt.title('(b) M3D-C1',fontsize=titlefs) #For CLT paper
         
         # Style and formatting of colorbar
         #cbar = fig.colorbar(cont,format=ticker.FuncFormatter(fpyl.fmt),ax=ax,cax=cax,orientation=cbarorient)
         sfmt=ticker.ScalarFormatter()
-        #sfmt.set_powerlimits((-6, -6)) # For CLT paper
         sfmt.set_powerlimits((-3,4))
         if coord not in ['vector', 'tensor']:
             divider = make_axes_locatable(ax)
@@ -324,14 +326,12 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         #cbar.ax.set_xticklabels(cbar.ax.get_xticklabels(),rotation=cbarrot,fontsize=cbarticklblfs)
         cbar.ax.tick_params(labelsize=cbarticklblfs)
         cbar.ax.yaxis.offsetText.set(size=cbarticklblfs)
-        cbar.set_label(unitlabel,fontsize=cbarlblfs) #ToDo: Comment this line for CLT paper
         
         # Fix for white lines in contourf plot when exported as PDF
         for c in cont.collections:
             c.set_edgecolor("face")
 
         ax.set_aspect('equal')
-        ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
     plt.rcParams["axes.axisbelow"] = False #Allows mesh to be on top of contour plot. This option conflicts with zorder (matplotlib bug).
     
     
@@ -339,7 +339,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         psi_lcfs = sim[0].get_time_trace('psi_lcfs').values[0]
         if not quiet:
             print("Psi at LCFS: "+str(psi_lcfs))
-        Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sim[0], time=time[0])
+        Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sim[0], time=0)
         
         psifield = R_ave*Aphi
         for i,ax in enumerate(axs):

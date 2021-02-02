@@ -10,18 +10,19 @@ import numpy as np
 import matplotlib.axes as mplax
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 import fpy
 import m3dc1.fpylib as fpyl
 
-
-def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=None,fignum=None,meshcol='C0',pub=False):
+def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=None,fignum=None,meshcol='C0',zoom=False,pub=False,quiet=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
     meshes since it can take a while to calculate the mesh connectivity.
     Example:
     sim = fpy.sim_data(time=0)
-    elms = sim.get_mesh(time=0)
+    elms = sim.get_mesh(time=0,filename=filename)
     m.plot_mesh(elms=elms)
 
     Arguments:
@@ -50,10 +51,10 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=No
     **pub**
     If True, plot will be formatted for publication
     """
-    if elms is None:
-        if sim is None:
+    if not isinstance(elms,fpy.mesh):
+        if not isinstance(sim,fpy.sim_data):
             sim = fpy.sim_data(filename)
-        elms = sim.get_mesh(time=time)
+        elms = sim.get_mesh(time=time,quiet=quiet)
     
     mesh = elms.elements
     version = elms.version
@@ -63,7 +64,7 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=No
     
     nelms = meshshape[0]
     
-    threed = [0,1][meshshape[1]>8]
+    threed = 1 if meshshape[1]>8 else 0
     
     boundary = boundary and (version >= 3)
     
@@ -144,7 +145,7 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=No
         q3 = delta*p1 + delta*p2 + (1.-2.*delta)*p3
         
         # Identify lines that are part of the wall or boundary. These will be plotted in different colors.
-        pp = [7, bound][boundary]
+        pp=bound if boundary else 7
         
         if((pp & 1) == 1):
             if((bound & 1) == 1):
@@ -199,6 +200,7 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=No
     # Plot mesh lines. Plotting all lines of a certain color at once is the fasted way.
     # Calls to any plotting function are slow and should thus be minimized.
     
+    #Check if an axis object or a an array of axis objects was passed to this routine and plot in each axis.
     axarray = np.atleast_1d(ax)
     
     for ax in axarray:
@@ -220,6 +222,20 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=No
             pltbd = ax.add_collection(LineCollection(np.stack((plot4x,plot4y), axis=2),linewidths=bdlw, colors='c',zorder=5))
         else:
             pltbd = None
+    
+    if zoom:
+        axins = zoomed_inset_axes(ax, 2, loc=1) # zoom = 6
+        # sub region of the original image
+        x1, x2, y1, y2 = 1.2, 1.75, -0.4, 0.4
+        axins.set_xlim(x1, x2)
+        axins.set_ylim(y1, y2)
+
+        plt.xticks(visible=False)
+        plt.yticks(visible=False)
+
+        # draw a bbox of the region of the inset axes in the parent axes and
+        # connecting lines between the bbox and the inset axes area
+        mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
     
     if boundary:
         return pltwin, pltwout, pltbd

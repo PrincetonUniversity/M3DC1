@@ -5,7 +5,7 @@ Created on March 16 2020
 
 @author: Andreas Kleiner
 """
-import os
+#import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -144,7 +144,12 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
             raise Exception('Sorry, cannot match and smooth at the same time!')
     ynewp = fpyl.deriv(ynew,xnew)
     
-    
+    # Check if derivative of profile extension stays negative everywhere
+    #print(fpyl.deriv(y_ext,x_ext))
+    if np.all(fpyl.deriv(y_ext,x_ext)<0.0):
+        print('Derivative negative in extended region.')
+    else:
+        fpyl.printwarn('WARNING: Derivative NOT negative everywhere in extended region.')
     
     
     
@@ -178,7 +183,7 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     f2_ax3.set_xlabel(r'$\psi_N$')
     f2_ax3.set_ylabel('profile')
     f2_ax3.set_xlim([fitrange[0],psimax])
-    f2_ax3.set_ylim([np.amin(ynew)-(np.abs(0.05*np.amin(ynew))),np.amax(yf)*1.05])
+    f2_ax3.set_ylim([np.amin(ynew)-(np.abs(0.05*np.amax(ynew))),np.amax(yf)*1.05])
     f2_ax3.grid()
     
     f2_ax2.set_xlabel(r'$\psi_N$')
@@ -187,7 +192,7 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     f2_ax4.set_xlabel(r'$\psi_N$')
     f2_ax4.set_ylabel('profile derivative')
     f2_ax4.set_xlim([fitrange[0],psimax])
-    f2_ax4.set_ylim([np.amin(ynewp)-(np.abs(0.05*np.amin(ynewp))),np.amax(ynewp)*1.05])
+    f2_ax4.set_ylim([np.amin(ynewp)-(np.abs(0.05*np.amin(ynewp))),np.amax(ynewp)+0.05*np.sign(np.amax(ynewp))*np.amin(ynewp)])
     f2_ax4.grid()
     
     fig.suptitle(filename, size=12)

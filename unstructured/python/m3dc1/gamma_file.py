@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 import numpy as np
 
+# Class that reads the text files containing information about growth rates from a toroidal mode number scan.
+# Data includes some information about the physical model, equilibrium parameters and details about growth rate calculation
 
 class Gamma_file:
+    #ToDo: make function to read file and only keep attributes in class
     def __init__(self,filename):
         f = open(filename, 'r')
         data = f.readlines()
@@ -22,7 +25,7 @@ class Gamma_file:
         # Build lists from text file
         for i in range(3,len(data)):
             n_list.append(int(data[i].split()[0]))
-            gamma_list.append(float(data[i].split()[1]))
+            gamma_list.append(float(data[i].split()[1])/2.0)
             dgamma_list.append(float(data[i].split()[2]))
             flat_list.append(int(data[i].split()[3]))
             not_noisy_list.append(int(data[i].split()[4]))
@@ -32,21 +35,29 @@ class Gamma_file:
                 finalerrgs.append(float(data[i].split()[7]))
             except:
                 pass
-            pblist.append(int(data[i].split()[8]))
+            pblist.append(data[i].split()[8])
         
         self.vpnum = int(datal1[0])
         self.eta = float(datal1[1])
         self.bscale = float(datal1[2])
         self.rotation = int(datal1[3])
         self.fluidmodel = str(datal1[4])
-        self.jped = float(datal2[0])
-        self.pped = float(datal2[1])
-        self.n_list = np.asarray(n_list)
+        try:
+            self.ipres = str(datal1[5])
+        except:
+            self.ipres = 0
+            print('WARNING: ipres not found!')
+        self.pped = float(datal2[0])
+        self.jped = float(datal2[1])
+        self.jeliteped = float(datal2[2])
+        if len(datal2)==4:
+            self.omegsti_max = float(datal2[3]) #Diamagnetic frequency NOT mulitplied by n, i.e. d pi / d psi / (ei ni)
+        self.n_list = np.asarray(n_list,dtype=int)
         self.gamma_list = np.asarray(gamma_list)
         self.dgamma_list = np.asarray(dgamma_list)
-        self.flat_list = np.asarray(flat_list)
-        self.not_noisy_list = np.asarray(not_noisy_list)
-        self.gamma_manual_list = np.asarray(gamma_manual_list)
-        self.gsconvgd = np.asarray(gsconvgd)
+        self.flat_list = np.asarray(flat_list,dtype=int)
+        self.not_noisy_list = np.asarray(not_noisy_list,dtype=int)
+        self.gamma_manual_list = np.asarray(gamma_manual_list,dtype=int)
+        self.gsconvgd = np.asarray(gsconvgd,dtype=int)
         self.finalerrgs = np.asarray(finalerrgs)
-        self.pblist = np.asarray(pblist)
+        self.pblist = np.asarray(pblist,dtype=int)

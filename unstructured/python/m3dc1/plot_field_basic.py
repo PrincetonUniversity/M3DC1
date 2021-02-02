@@ -148,64 +148,12 @@ def plot_field_basic(field, coord='scalar', filename='C1.h5', sim=None, time=Non
     Z_ave          = np.average(Z, 0)
 
 
-    if units=='M3DC1':
-        if field == 'j':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],current_density=1)
-            label = 'current density (M3DC1 units)'
-        if field == 'ni':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],particles=1,length=-3)
-            label = 'number density (M3DC1 units)'
-        if field == 'ne':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],particles=1,length=-3)
-            label = 'number density (M3DC1 units)'
-        if field == 'v':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],velocity=1)
-            label = 'velocity (M3DC1 units)'
-        if field == 'B':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],magnetic_field=1)
-            label = 'magnetic field strength (M3DC1 units)'
-        if field == 'p':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],pressure=1)
-            label = 'pressure (M3DC1 units)'
-        if field == 'pi':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],pressure=1)
-            label = 'pressure (M3DC1 units)'
-        if field == 'pe':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],pressure=1)
-            label = 'pressure (M3DC1 units)'
-        if field == 'ti':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],temperature=1)
-            label = 'temperature (M3DC1 units)'
-        if field == 'te':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],temperature=1)
-            label = 'temperature (M3DC1 units)'
-        if field == 'A':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim[0],magnetic_field=1,length=1)
-            label = 'vector potential (M3DC1 units)'
-    
-    if units=='mks':
-        if field == 'j':
-            label = '$A/m^2$'
-        if field == 'ni':
-            label = 'particles/$m^3$'
-        if field == 'ne':
-            label = 'particles/$m^3$'
-        if field == 'v':
-            label = '$m/s$'
-        if field == 'B':
-            label = '$T$'
-        if field == 'p':
-            label = '$Pa$'
-        if field == 'pi':
-            label = '$Pa$'
-        if field == 'pe':
-            label = '$Pa$'
-        if field == 'ti':
-            label = '$eV$'
-        if field == 'te':
-            label = '$eV$'
-        if field == 'A':
-            label = '$Tesla \cdot m$'
+    if units.lower()=='m3dc1':
+        field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
+
+    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
+    if units.lower()=='m3dc1':
+        unitlabel = fieldlabel + ' (' + unitlabel + ')'
 
 
     # Plot routines

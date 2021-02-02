@@ -5,29 +5,41 @@ Created on Wed Oct  2 14:24:12 2019
 
 @author: Andreas Kleiner
 """
+#import sys
 import numpy as np
 import os
 import glob
+from pathlib import Path
 import re
+import math
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib.gridspec as gridspec
+import matplotlib.ticker as ticker
+#from scipy.fftpack import fft, ifft, fftshift, fftfreq
 from scipy import signal
 
 import fpy
 import m3dc1.fpylib as fpyl
 from m3dc1.unit_conv import unit_conv
 from m3dc1.plot_field  import plot_field
+from m3dc1.read_h5 import readC1File
 from m3dc1.read_h5 import readParameter
 from m3dc1.gamma_file import Gamma_file
 from m3dc1.gamma_data import Gamma_data
 from m3dc1.flux_average import flux_average
 from m3dc1.flux_coordinates import flux_coordinates
+from m3dc1.eigenfunction import eigenfunction
+from m3dc1.eigenfunction import mode_type
+from m3dc1.mode_analysis import update_remote_status
+from m3dc1.mode_analysis import update_status
+from m3dc1.mode_analysis import check_linear_runs
+
 rc('text', usetex=True)
 plt.rcParams.update({'figure.max_open_warning': 40})
 
 
-def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
+def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
                   growth=False,renorm=False,quiet=False,returnas='tuple'):
     """
     Read a time trace directly from an hdf5 file. This function does not use fusion-io.
@@ -53,8 +65,7 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
     **quiet**
     If True, do not print renormalization times to screen.
     """
-
-    if sim is None:
+    if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename)
     constants = sim.get_constants()
     itor    = constants.itor
@@ -236,8 +247,10 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
     # now separate time and values arrays
     time = scalar.time
     values = scalar.values
+    
+    
     if growth:
-        values = 1.0/values[1:] * np.diff(values)/np.diff(time)
+        values = 1.0/values[1:] * np.diff(values)/np.diff(time)#ToDo: Replace by np.diff with fpyl.deriv
         time = time[:-1]
     
     if renorm:
@@ -245,11 +258,12 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
         for i in range(len(values)-1):
             if(abs(values[i+1]/values[i]) < 1E-9):
                 renormlist.append(str(time[i]))
+                #print(values[i],values[i-1]+values[i+1])
                 # Only average value if growth rate is calculated
                 if growth:
                     values[i] = (values[i-1] + values[i+1])/2.0
         # When growth rate is calculated, check for normalization at last time
-        #   step and drop this point, since it carres no information.
+        # step and drop this point, since it carries no information.
         if growth:
             if(abs(values[-2]/values[-1]) < 1E-9):
                 renormlist.append(str(time[-1]))
@@ -266,7 +280,7 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
 
 
 
-def avg_time_trace(trace,units='m3dc1',filename='C1.h5',sim=None,
+def avg_time_trace(trace,units='m3dc1',sim=None,filename='C1.h5',
                    growth=False,renorm=True,start=None,time_low_lim=500):
     """
     Calculates the mean and standard deviation of a M3DC1 scalar (time trace) starting from a certain point in time
@@ -296,11 +310,11 @@ def avg_time_trace(trace,units='m3dc1',filename='C1.h5',sim=None,
     lower limit for starting time in terms of Alfven times. If start < time_low_lim,
     start time is moved to the earliest time larger than time_low_lim
     """
-
-    if sim is None:
+    if isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename)
     time,values = get_timetrace(trace,sim=sim,units=units,growth=growth,
                                 renorm=renorm,quiet=False)
+    
     if start is None:
         start_ind = int(np.floor(len(values)/2))
         start_time = time[start_ind]
@@ -313,9 +327,12 @@ def avg_time_trace(trace,units='m3dc1',filename='C1.h5',sim=None,
     if units.lower() == 'mks':
         time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',sim=sim,time=1)
     
+    #print(start_time,time_low_lim)
+    
     if start_time < time_low_lim:
         if time_low_lim < time[-1]:
             start_ind = np.argmax(time>time_low_lim)
+            #print(start_ind)
             fpyl.printwarn('WARNING: Start of trace averaging has been moved to t='+str(time[start_ind])+'.')
         else:
             fpyl.printwarn('WARNING: time_low_lim > time[-1]. Start of trace averaging has been moved to t='+str(time[start_ind])+'. Please verify validity of results.')
@@ -328,8 +345,10 @@ def avg_time_trace(trace,units='m3dc1',filename='C1.h5',sim=None,
     return avg, std,time_short,values_short
 
 
-def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
-                time_low_lim=500,slurm=True,plottrace=False):
+
+
+def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
+                time_low_lim=500,slurm=True,plottrace=False,pub=False):
     """
     Evaluates kinetic energy growth rate. The growth rate is the mean of the logarithmic derivative of ke.
     The mean is taken over the second half of the simulation time. Returns 
@@ -349,62 +368,83 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
     **plottrace**
     Show and save plots of growth rate in directory
     """
-    if sim is None:
+    if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename)
-
-    if n is None:
+    
+    if slurm:
+        #try:
+        # Read Slurm log files. Should there be multiple log files in the directory, choose the file with largest Slurm Job ID
+        C1inputfiles = glob.glob(os.getcwd()+"/C1input")
+        if len(C1inputfiles) > 1:
+            fpyl.printwarn('WARNING: More than 1 C1input file found. Using the latest one.')
+            slurmfiles.sort(key=os.path.getmtime,reverse=True)
+        C1inputfile = C1inputfiles[0]
+        
+        # Read n from Slurm log file
+        with open(C1inputfile, 'r') as sf:
+            for line in sf:
+                if 'ntor   ' in line:
+                    ntorline = line.split()
+                    n = int(ntorline[2])
+                    break
+        #except:
+        #    n = fpyl.prompt('Not able to detemine ntor. Please enter value for n : ',int)
+    else:
         n = readParameter('ntor',sim=sim,listc=False)
-        fpyl.printnote('Set n=ntor='+"{:d}".format(n)+' as read from C1.h5 file.')
-    gamma, dgamma,time,gamma_trace = avg_time_trace('ke',units,sim=sim,
-                                                    growth=True,renorm=True,
-                                                    start=None,
-                                                    time_low_lim=time_low_lim)
+        fpyl.printnote('Using n=ntor='+"{:d}".format(n)+' as read from C1.h5 file.')
+    
+    
+    
+    gamma, dgamma,time,gamma_trace = avg_time_trace('ke',units,sim=sim,growth=True,renorm=True,start=None,time_low_lim=time_low_lim)
     print(n,gamma,dgamma)
     
     not_noisy = 1
     gamma_set_manu = 0
     flat = 1
+    perform_manual_check = False
     
-    if abs(dgamma/gamma) > 0.1:
+    if abs(dgamma/gamma) > 0.2: #Original value was 0.1
         fpyl.printwarn('WARNING: gamma is not constant for n='+str(n)+'!')
         flat = 0
         
         # Identify local maxima in the growth rate and determine the frequency in which these occur
         maxima_ind = signal.argrelmax(gamma_trace)[0]
         frequency = 1.0/np.diff(maxima_ind)
+        #print(gamma_trace[maxima_ind])
+        #plt.figure()
+        #plt.plot(maxima_ind[:-1],frequency,lw=0,marker='.')
+        #plt.plot(time,gamma_trace,lw=1)
+        #plt.plot(time[maxima_ind],gamma_trace[maxima_ind],lw=0,marker='.')
+        #plt.xlabel('time')
+        #plt.ylabel('frequency')
+        #plt.title('n='+str(n))
         
         # When frequency is too high, mask it as noise
         noise_mask = np.greater(frequency,0.1)
         
-        perform_manual_check = False
-        
-        # Check whether growth rate is noisy for the whole time, partially,
-        #   or not noisy. In case of noise, do not consider the growth rate.
+        # Check whether growth rate is noisy for the whole time, partially, or not noisy. In case of noise, do not consider the growth rate.
         if np.all(noise_mask):
             fpyl.printwarn('WARNING: gamma is completely noisy for n='+str(n)+'!')
             not_noisy = 0
         elif np.any(noise_mask):
-
             fpyl.printwarn('WARNING: gamma is partially noisy for n='+str(n)+'!')
             if (gamma < 0 and (np.all(np.sign(gamma_trace)==-1.0))):
                 perform_manual_check = True
             not_noisy = 0
         else:
-            # If there is no noise, do additional check ups to determine if
-            #   the system is stable or unstable
+            # If there is no noise, do additional check ups to determine if the system is stable or unstable
             fpyl.printnote('NOTE: no noise detected for n='+str(n)+'!')
-            # Check whether the kinetic energy is overall increasing or
-            #   decreasing by looking at the evolution of the maxima.
-            ke_time,ke = get_timetrace('ke',sim=sim,units=units,
-                                       growth=False,renorm=True)
+            # Check whether the kinetic energy is overall increasing or decreasing by looking at the evolution of the maxima.
+            ke_time,ke = get_timetrace('ke',sim=sim,units=units,growth=False,renorm=True)
             
             start_ind = int(np.floor(len(ke)/2))
             start_time = ke_time[start_ind]
             if units.lower() == 'mks':
-                time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',
-                                         sim=sim,time=1)
+                time_low_lim = unit_conv(time_low_lim,arr_dim='m3dc1',sim=sim,time=1)
+            #print(start_time,time_low_lim)
             if start_time < time_low_lim:
                 start_ind = np.argmax(ke_time>time_low_lim)
+                #print(start_ind)
             ke_short = ke[start_ind:]
             ke_time_short = ke_time[start_ind:]
             
@@ -429,7 +469,14 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
                         time_linear.append(ke_time_short[renormlist[i-1]+1:t])
                 ke_linear.append(ke_short[renormlist[-1]+1:])
                 time_linear.append(ke_time_short[renormlist[-1]+1:])
-
+                
+                #plt.figure()
+                #for i in range(len((ke_linear))):
+                #    plt.plot(time_linear[i],ke_linear[i],lw=1)
+                #plt.grid(True)
+                #plt.xlabel('time')
+                #plt.ylabel('ke')
+                #plt.title('n='+str(n))
             else:
                 ke_linear = [np.asarray(ke_short)]
             
@@ -437,15 +484,12 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
             ke_maxima_ind = signal.argrelmax(ke_short)[0]
             
             # Check if ke is monotonic in between all renormalizations
-            if ((all(fpyl.strict_monotonic(kel) for kel in ke_linear)) or
-                (len(ke_maxima_ind)<2)):
-                # If it is monotonic (which is a good sign), check the growth rate manually.
-                #   This is to ensure that oscillations are not too strong,
-                #   or the value for the growth rate is extracted correctly.
+            if ((all(fpyl.strict_monotonic(kel) for kel in ke_linear)) or(len(ke_maxima_ind)<2)):
+                # If it is monotonic (which is a good sign), check the growth rate manually. This is to ensure
+                # that oscillations are not too strong, or the value for the growth rate is extracted correctly.
                 perform_manual_check = True
             else:
-                # Look for local maxima and minima among the maxima to identify
-                #   a transition from decay to growth or vice versa
+                # Look for local maxima and minima among the maxima to identify a transition from decay to growth or vice versa
                 max_ke = ke_short[ke_maxima_ind]
                 ke_time_max = ke_time_short[ke_maxima_ind]
             
@@ -461,12 +505,8 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
                 dke_dt = np.gradient(max_ke,ke_time_max)
                 
                 
-                # make different decisions depending on the sign of the
-                #   growth rate and time trace of ke
-                if ((np.sign(gamma) == np.sign(dke_dt[-1])) and
-                    (len(max_ke_min)==0 and len(max_ke_max)==0)):
-                    # ke and growth rate have same sign, and sign of ke maxima
-                    #   does not change
+                # make different decisions depending on the sign of the growth rate and time trace of ke
+                if ((np.sign(gamma) == np.sign(dke_dt[-1])) and (len(max_ke_min)==0 and len(max_ke_max)==0)): # ke and growth rate have same sign, and sign of ke maxima does not change
                     # Now check whether growth rate changes sign
                     if (np.all(np.sign(gamma_trace)==1.0) and gamma > 0):
                         fpyl.printnote('NOTE: No change of sign found. Plasma appears linearly UNSTABLE.')
@@ -480,25 +520,31 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
                 else:
                     fpyl.printwarn('WARNING: This case needs some attention.')
                     perform_manual_check = True
+                    #plt.figure()
+                    #plt.plot(ke_time_max,max_ke,lw=0,marker='.')
+                    #plt.plot(ke_time_max,dke_dt,lw=0,marker='.')
+                    #plt.grid(True)
+                    #plt.xlabel('time')
+                    #plt.ylabel('ke and dke_dt')
+                    #plt.title('n='+str(n))
         
-
         # Prompts for manual check of growth rate
         if perform_manual_check:
             # Show plots of growth rate and kinetic energy for analysis
-            double_plot_time_trace_fast('ke',renorm=True,title='',rescale=True,units=units)
+            double_plot_time_trace_fast('ke',renorm=True,title='',rescale=True,units=units,n=n)
+            #plot_time_trace_fast('ke',units=units,filename=filename,growth=False,renorm=True,yscale='linear',rescale=True,save=False)
+            #plot_time_trace_fast('ke',units=units,filename=filename,growth=True,renorm=True,yscale='linear',save=False)
+            stability = 'UNSTABLE' if gamma > 0 else 'STABLE'
+            print(stability + ' with gamma='+str(gamma))
             mono_input = fpyl.prompt('Is the calculated growth rate acceptable? (y/n) : ',['y','n'])
             if mono_input == 'y':
                 gamma_set_manu = 1
             else:
                 gr_input = fpyl.prompt('Please choose:\n  [1] set a different start time for mean calculation\n  [2] directly enter a value for gamma\n  [3] discard this simulation\n : ',['1','2','3'])
                 if gr_input == '1':
-                    #ToDo: Test averaging from start_time in various units using
-                    #         various values for time and limits
+                    #ToDo: Test averaging from start_time in various units using various values for time and limits
                     start_time = fpyl.prompt('Please enter a start time for mean calculation : ',float)
-                    gamma, dgamma,_,_ = avg_time_trace('ke',units,sim=sim,
-                                                       growth=True,renorm=True,
-                                                       start=start_time,
-                                                       time_low_lim=time_low_lim)
+                    gamma, dgamma,_,_ = avg_time_trace('ke',units,sim=sim,growth=True,renorm=True,start=start_time,time_low_lim=time_low_lim)
                     gamma_set_manu = 1
                     print('gamma corrected to new avg. value: '+str(gamma))
                 elif gr_input == '2':
@@ -507,21 +553,46 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
                     print('gamma corrected to value: '+str(gamma))
                 elif gr_input == '3':
                     not_noisy = 0
-
-
+            
+            #plt.figure()
+            #plt.plot(ke_time_max,max_ke,lw=0,marker='.')
+            #plt.plot(ke_time_max,dke_dt,lw=0,marker='.')
+            #plt.grid(True)
+            #plt.xlabel('time')
+            #plt.ylabel('ke')
+            #plt.title('n='+str(n))
+            
+        
+        #trace = fft(gamma_trace)
+        #trace = fftshift(gamma_trace)
+        #trace = np.abs(trace)**2
+        #timestep = time[1]-time[0]
+        #time = fftshift(fftfreq(len(time), d=timestep))
+        #plt.figure()
+        #plt.plot(time,trace)
+        #plt.title('Power spectrum n='+str(n))
+    
+    # Show plots of growth rate and kinetic energy if requested
+    if (plottrace and (not perform_manual_check)):
+        double_plot_time_trace_fast('ke',renorm=True,title='',rescale=True,units=units,n=n,pub=pub,showtitle=True)
+    
     #------------------------------------------------
     #Check equilibrium convergence and extract Final GS Error from Slurm log file
     #------------------------------------------------
     if slurm:
         try:
-            # Read Slurm log files. Should there be multiple log files in the directory,
-            #   choose the file with largest Slurm Job ID
-            slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
-            if len(slurmfiles) > 1:
-                fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
-                slurmfiles.sort()
-                #print(slurmfiles)
-            slurmfile = slurmfiles[-1]
+            # Read Slurm log files. Should there be multiple log files in the directory, choose the file with largest Slurm Job ID
+            if os.path.isfile('gs_slurm.out'):
+                slurmfile = glob.glob(os.getcwd()+"/gs_slurm.out")[0]
+                gsoutfile=True
+            else:
+                gsoutfile=False
+                slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
+                if len(slurmfiles) > 1:
+                    fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
+                    slurmfiles.sort(key=os.path.getmtime,reverse=True)
+                    #print(slurmfiles)
+                slurmfile = slurmfiles[0]
             
             # Read data from Slurm log file
             maxit = 0
@@ -535,13 +606,13 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
                         tolgs = float(tolgsline[2])
                     elif 'GS iteration' in line:
                         gsiterline = line.split()
-                        #print(gsiterline)
                         maxit = int(gsiterline[3])
                         gserr = float(gsiterline[4])
                     elif 'Final error in GS solution' in line:
                         fgserrline = line.split()
                         finalerrgs = float(fgserrline[-1])
-                        break
+                        if not gsoutfile:
+                            break
             # Check whether the GS solution converged
             if maxit > 0:
                 if maxit < igs:
@@ -557,17 +628,17 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
             else:
                 fpyl.printwarn('WARNING: Number of GS iterations could not be determined.')
                 gsconvgd = 0
+                finalerrgs = 0.0
             return gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs
         except:
             fpyl.printerr('ERROR: Could not process Slurm log file!')
-            return gamma, dgamma, n, flat, not_noisy, gamma_set_manu, None, None
+            return gamma, dgamma, n, flat, not_noisy, gamma_set_manu, 0, 0
     else:
-        return gamma, dgamma, n, flat, not_noisy, gamma_set_manu, None, None
-    
+        return gamma, dgamma, n, flat, not_noisy, gamma_set_manu, 0, 0
 
 
 
-def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',sim=None,time_low_lim=500,slurm=True,plottrace=False):
+def scan_n(nmin=1,nmax=10,nstep=1,units='m3dc1',filename='C1.h5',time_low_lim=500,slurm=True,plottrace=False):
     """
     Traverses all subdirectories named nXX in a directory (where XX is the toroidal mode number),
     and reads the growth rate.
@@ -593,9 +664,6 @@ def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',sim=None,time_low_lim=5
     **plottrace**
     Show and save plots of growth rate in directory
     """
-
-    if sim is None:
-        sim = fpy.sim_data(filename=filename)
     
     n_list = []
     gamma_list = []
@@ -606,19 +674,23 @@ def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',sim=None,time_low_lim=5
     
     gsconvgd_list = []
     finalerrgs_list = []
+    pblist = []
     print('Calculating growth rates for n='+str(nmin)+' to n='+str(nmax))
     
-    for n in range(nmin,nmax+1):
+    for n in np.arange(nmin,nmax+1,nstep):
         if n==nmin:
             path = 'n'+str(n).zfill(2)
         else:
             path = '../n'+str(n).zfill(2)
-        os.chdir(path)
+        try:
+            os.chdir(path)
+        except:
+            raise Exception('Please make sure you are in the right directory.')
         
         print('----------------------------------------------')
-        print('n='+str(n)+':')
+        print('Directory '+os.getcwd().split('/')[-1])
 
-        gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = growth_rate(n,units=units,sim=sim,time_low_lim=time_low_lim,slurm=slurm,plottrace=True)
+        gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = growth_rate(n,units=units,sim=None,filename=filename,time_low_lim=time_low_lim,slurm=slurm,plottrace=plottrace)
         
         gamma_list.append(gamma)
         dgamma_list.append(dgamma)
@@ -628,50 +700,62 @@ def scan_n(nmin=1,nmax=10,units='m3dc1',filename='C1.h5',sim=None,time_low_lim=5
         gamma_manual_list.append(gamma_set_manu)
         gsconvgd_list.append(gsconvgd)
         finalerrgs_list.append(finalerrgs)
+        pblist.append(-100)
         
         
         if n==nmax:
             print('----------------------------------------------')
             os.chdir('../')
             
-    results = Gamma_data(n_list, gamma_list, dgamma_list, flat_list, not_noisy_list, gamma_manual_list, gsconvgd_list, finalerrgs_list)
-    
+    results = Gamma_data(n_list, gamma_list, dgamma_list, flat_list, not_noisy_list, gamma_manual_list, gsconvgd_list, finalerrgs_list, pblist)
     return results
 
 
 
-def create_plot_gamma_n(n_list, gamma_list,fignum=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1'):
-    plt.figure(num=fignum)
+def create_plot_gamma_n(n_list, gamma_list,fignum=None,figsize=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1',legfs=None,leglblspace=None,leghandlen=None,title=None):
+    plt.figure(num=fignum,figsize=figsize)
+    if marker=='s':
+        ms = int(ms/2)
+    if ls==':':
+        lw = lw+1
     plt.plot(n_list,gamma_list,lw=lw,c=c,ls=ls,marker=marker,ms=ms,label=lbl)
     plt.grid(True)
-    plt.xlabel('n',fontsize=18)
+    plt.xlabel('n',fontsize=14)
     if units.lower()=='m3dc1':
-        plt.ylabel(r'$\gamma/\omega_A$',fontsize=18)
+        plt.ylabel(r'$\gamma/\omega_A$',fontsize=14)
     else:
-        plt.ylabel(r'$\gamma$ $[s^{-1}]$',fontsize=18)
-    plt.tick_params(axis='both', which='major', labelsize=16)
-    plt.tight_layout()
+        plt.ylabel(r'$\gamma$ $[s^{-1}]$',fontsize=14)
+    ax = plt.gca()
+    ax.xaxis.set_ticks(np.arange(int(5 * math.ceil(float(np.amin(n_list))/5)), np.amax(n_list)+1, 5))
+    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
+    plt.tick_params(axis='both', which='major', labelsize=12)
+    if title is not None:
+        plt.title(title,fontsize=12)
     if lbl is not None:
-        plt.legend(loc=0)
+        plt.legend(loc=0,fontsize=legfs,labelspacing=leglblspace,handlelength=leghandlen)
+    plt.tight_layout()
     return
 
 
 
-def plot_gamma_n(nmin=1,nmax=10,units='m3dc1',fignum=None,c=None,ls=None,lbl=None,slurm=True,plottrace=False):
+def plot_gamma_n(nmin=1,nmax=10,nstep=1,units='m3dc1',fignum=None,figsize=None,c=None,ls=None,mark='.',lbl=None,slurm=True,plottrace=False,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None):
+    # Plot gamma as a function of n
+    # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
+    print(os.getcwd())
     files = glob.glob("growth_rates*.dat")
     
     if len(files)>0:
-        openf_input = fpyl.prompt('Previous results found. Do you want to open the existing file? (y/n) : ',['y','n'])
-        if openf_input == 'y':
-            if len(files)>1:
-                    files.sort(key=os.path.getmtime)
-                    print('More than 1 file found. Opening newest file.')
-            f = files[0]
-            results = Gamma_file(f)
-        else:
-            results = scan_n(nmin,nmax,units=units,slurm=True,plottrace=plottrace)
+        if len(files)>1:
+            files.sort(key=os.path.getmtime,reverse=True)
+            print('More than 1 file found. Opening newest file: '+files[0])
+        f = files[0]
+        results = Gamma_file(f)
     else:
-        results = scan_n(nmin,nmax,units=units,slurm=True,plottrace=plottrace)
+        eval_input = fpyl.prompt('No results found. Do you want to determine the growth rates? (y/n) : ',['y','n'])
+        if eval_input == 'y':
+            results = scan_n(nmin,nmax,nstep,units=units,slurm=True,plottrace=plottrace)
+        else:
+            return
     
     # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
     n_okay = []
@@ -688,21 +772,91 @@ def plot_gamma_n(nmin=1,nmax=10,units='m3dc1',fignum=None,c=None,ls=None,lbl=Non
             n_okay.append(results.n_list[n_ind])
             gamma_okay.append(results.gamma_list[n_ind])
     
-    create_plot_gamma_n(results.n_list, results.gamma_list, fignum, c=c, ls=ls, marker='.', ms=8, lbl=lbl, units=units)
+    create_plot_gamma_n(results.n_list, results.gamma_list, fignum, figsize=figsize,c=c, ls=ls, marker=mark, ms=8, lbl=lbl, units=units,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,title=title)
     if len(n_bad)>0:
         cfn = plt.gcf().number #Current figure number
-        create_plot_gamma_n(n_bad, gamma_bad, fignum=cfn, lw=0, marker='.', ms=10, c='r', units=units)
-
+        create_plot_gamma_n(n_bad, gamma_bad, fignum=cfn, figsize=figsize, lw=0, marker='x', ms=10, c='r', units=units,legfs=None,leglblspace=None,title=title)
+    
+    cfig = plt.gcf()
+    ax = cfig.gca()
+    if ylimits != None:
+        ax.set_ylim(ylimits)
+    
     return
 
 
 
-def write_gamma_n(nmin=1,nmax=10,results=None,units='m3dc1'):
-    if (nmin >= 0 and nmax >=0 and nmax > nmin):
-        #n_list, gamma_list, dgamma_list, not_noisy_list, gsconvgd, finalerrgs = scan_n(nmin,nmax,slurm=True)
-        results = scan_n(nmin,nmax,units=units,slurm=True,plottrace=True)
-    elif (nmin < 0 and nmax < 0) and (results is None):
-        raise Exception('nmin and nmax must be >=0 with nmax > nmin.')
+#def plot_growth(nmin=1,nmax=10,units='m3dc1',fignum=None,c=None,ls=None,legfs=None,title=None):
+    ## Plot gamma as a function of n
+    ## Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
+    #files = glob.glob("growth_rates*.dat")
+    #print(files)
+    #if len(files)>0:
+        #for f in files:
+            #results = Gamma_file(f)
+    
+            ## Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
+            #n_okay = []
+            #gamma_okay = []
+            #n_bad = []
+            #gamma_bad = []
+            #for n in results.n_list:
+                ##n_ind = n-1
+                #n_ind = fpyl.get_ind_at_val(results.n_list,n,unique=True)
+                #if (results.flat_list[n_ind] != 1 and results.gamma_manual_list[n_ind] != 1 and results.not_noisy_list[n_ind] != 1):
+                    #n_bad.append(results.n_list[n_ind])
+                    #gamma_bad.append(results.gamma_list[n_ind])
+                #else:
+                    #n_okay.append(results.n_list[n_ind])
+                    #gamma_okay.append(results.gamma_list[n_ind])
+            
+            #create_plot_gamma_n(results.n_list, results.gamma_list, fignum, c=c, ls=ls, marker='.', ms=8, lbl=str(results.vpnum), units=units,legfs=legfs,title=title)
+            #if len(n_bad)>0:
+                #cfn = plt.gcf().number #Current figure number
+                #create_plot_gamma_n(n_bad, gamma_bad, fignum=cfn, lw=0, marker='x', ms=10, c='r', units=units,legfs=legfs,title=title)
+    #return
+
+
+def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,units='m3dc1',labels=None,col=None,lsty=None,markers=None,fignum=None,figsize=None,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None):
+    if isinstance(labels, (tuple, list)):
+        if len(dirs)!=len(labels):
+            fpyl.printerr('ERROR: Number of directories not equal to number of labels.')
+            return
+    pwd = os.getcwd()
+    for i,d in enumerate(dirs):
+        #if i==0:
+        os.chdir(d)
+        #else:
+        #    os.chdir('../'+d)
+        if isinstance(labels, (tuple, list)):
+            lbl = labels[i]
+        else:
+            lbl = d
+        if isinstance(col, (tuple, list)):
+            c = col[i]
+        else:
+            c = None
+        if isinstance(lsty, (tuple, list)):
+            ls = lsty[i]
+        else:
+            ls = None
+        if isinstance(markers, (tuple, list)):
+            mark = markers[i]
+        else:
+            mark = '.'
+        plot_gamma_n(nmin,nmax,nstep,units=units,fignum=fignum,figsize=figsize,c=c,ls=ls,mark=mark,lbl=lbl,slurm=True,plottrace=False,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,ylimits=ylimits,title=title)
+        os.chdir(pwd)
+    
+    return
+
+
+
+def write_gamma_n(results,ped_param, ipres, units='m3dc1',fix=False):
+    #if (nmin >= 0 and nmax >=0 and nmax > nmin):
+    #    #n_list, gamma_list, dgamma_list, not_noisy_list, gsconvgd, finalerrgs = scan_n(nmin,nmax,slurm=True)
+    #    results = scan_n(nmin,nmax,units=units,slurm=True,plottrace=True)
+    #elif (nmin < 0 and nmax < 0) and (results is None):
+    #    raise Exception('nmin and nmax must be >=0 with nmax > nmin.')
     
     pwd = os.getcwd()
     pathdirs = pwd.split('/')
@@ -722,53 +876,37 @@ def write_gamma_n(nmin=1,nmax=10,results=None,units='m3dc1'):
     elif 'norot' in simdir:
         rotation=0
     else:
-        fpyl.printwarn('WARNING: Equilibrium rotation unknown!')
+        fpyl.printwarn('WARNING: Equilibrium rotation model unknown!')
     
     if 'B' in simdir:
         bscale = re.search('B(.*)_', simdir).group(1)
     else:
         bscale = '1.0'
     
-    #try:
-    #    jpdata = []
-    #    with open('eq_pedestal_parameters.dat', 'r') as data:
-    #        for line in data:
-    #            jpdata.append(float(line))
-    #except:
-    #    fpyl.printerr('ERROR: Could not read current and pprime!')
-    if nmin<0:
-        ndir = 'n01'
-    else:
-        ndir = 'n' + str(nmin).zfill(2)
-    os.chdir(ndir)
-    sim0 = fpy.sim_data(time=0)
-    sim0 = flux_coordinates(sim=sim0)
     
-    alpha_max = np.amax(flux_average('alpha', coord='scalar', sim=sim0, fcoords='', units='m3dc1')[1]) #ToDo: Check if it's really a local maximum
-    j_max = np.amax(flux_average('j', coord='phi', sim=sim0, fcoords='', units='m3dc1')[1]) #ToDo: Check if it's really a local maximum
-    os.chdir('../')
-    
-    pbmode = 1
-    
+    alpha_max,j_max,jelite_N,omegsti_max=ped_param
     
     #print(results.n_list)
+    
     outfile = 'growth_rates_'+vpnum+'_'+simdir+'.dat'
+    if fix:
+        outfile = outfile + '_fix'
     with open(outfile, 'w') as f:
-        f.write(vpnum+'    '+str("{:f}".format(float(eta)))+'    '+bscale+'    '+str(rotation)+'    '+flmodel+'\n')
+        f.write(vpnum+'    '+"{:f}".format(float(eta))+'    '+bscale+'    '+str(rotation)+'    '+flmodel+'    '+str(ipres)+'\n')
         #f.write(str(jpdata[1])+'    '+str(jpdata[0])+'\n') #write j and pprime
-        f.write(str(j_max)+'    '+str(alpha_max)+'\n') #write j and pprime
+        f.write(str(alpha_max)+'    '+str(j_max)+'    '+str(jelite_N)+'    '+str(omegsti_max)+'\n') #write alpha, j_max, j_elite and omega_*
     
         f.write('    n      gamma         sig_gamma     flat     smooth   manu     conv  Fin. GS Err   PB\n')
         for i in range(len(results.gamma_list)):
-            wstr = '    ' + str("{:d}".format(results.n_list[i])).ljust(2,' ')
-            wstr = wstr + str("{0:.8f}".format(results.gamma_list[i])).rjust(15,' ')
-            wstr = wstr + str("{0:.8f}".format(results.dgamma_list[i])).rjust(14,' ')
-            wstr = wstr + '    ' + str("{:d}".format(results.flat_list[i])).ljust(5,' ')
-            wstr = wstr + '    ' + str("{:d}".format(results.not_noisy_list[i])).ljust(5,' ')
-            wstr = wstr + '    ' + str("{:d}".format(results.gamma_manual_list[i])).ljust(5,' ')
-            wstr = wstr + '    ' + str("{:d}".format(results.gsconvgd[i])).ljust(2,' ')
-            wstr = wstr + '    ' + str("{0:.8f}".format(results.finalerrgs[i]))
-            wstr = wstr + '    ' + str(pbmode)+'\n'
+            wstr = '    ' + "{:d}".format(results.n_list[i]).ljust(2,' ')
+            wstr = wstr + "{0:.8f}".format(results.gamma_list[i]).rjust(15,' ')
+            wstr = wstr + "{0:.8f}".format(results.dgamma_list[i]).rjust(14,' ')
+            wstr = wstr + '    ' + "{:d}".format(results.flat_list[i]).ljust(5,' ')
+            wstr = wstr + '    ' + "{:d}".format(results.not_noisy_list[i]).ljust(5,' ')
+            wstr = wstr + '    ' + "{:d}".format(results.gamma_manual_list[i]).ljust(5,' ')
+            wstr = wstr + '    ' + "{:d}".format(results.gsconvgd[i]).ljust(2,' ')
+            wstr = wstr + '    ' + "{0:.8f}".format(results.finalerrgs[i])
+            wstr = wstr + '    ' + "{:d}".format(results.pblist[i])+'\n'
             f.write(wstr)
             
     print("Growth rates written to file '"+str(outfile)+"'.")
@@ -776,66 +914,386 @@ def write_gamma_n(nmin=1,nmax=10,results=None,units='m3dc1'):
     return
 
 
-def eval_growth_n(nmin=1,nmax=10,plotef=True,units='m3dc1'):
-    #First check if pedestal parameter file is there
-    #eq_ped_file = glob.glob("eq_pedestal_parameters.dat")
-    #if len(eq_ped_file)!=1:
-    #    raise Exception('eq_pedestal_parameters.dat not found!')
+
+def omegastari(sim=None,filename='C1.h5',time=None,units='mks',points=400,n=1,pion=False,fcoords='pest',makeplot=False):
+    #Calculates ion diamagnetic frequency
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename=filename)
+    psin,psi = flux_average('psi',coord='scalar',sim=sim, fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, filename=filename, time=time, psin_range=None, units='mks')
+    psi = psi*2*math.pi # Because psi is the poloidal flux per radiant as in B = grad(psi) x grad(phi) + B_phi
+    ni = flux_average('ni',coord='scalar',sim=sim, fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, filename=filename, time=time, psin_range=None, units='mks')[1]
+    if pion:
+        pi = flux_average('pi',coord='scalar',sim=sim, fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, filename=filename, time=time, psin_range=None, units='mks')[1]
+    else:
+        pi = 0.5*flux_average('p',coord='scalar',sim=sim, fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, filename=filename, time=time, psin_range=None, units='mks')[1]
+    
+    #print(psi)
+    #print(ni)
+    #print(pi)
+    dpidpsi = fpyl.deriv(pi,psi)
+    
+    Zeff = readParameter('z_ion',sim=sim,listc=False)
+    ei = Zeff*1.602176634E-19
+    
+    omegasi = (n / (ei * ni))*dpidpsi
+    if units=='m3dc1':
+        omegasi = unit_conv(omegasi,arr_dim='mks',sim=sim,time=-1)
+    if makeplot:
+        plt.figure()
+        plt.plot(psin,omegasi,lw=2)
+        ax = plt.gca()
+        ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
+        plt.xlabel(r'$\psi_N$',fontsize=12)
+        plt.ylabel(r'$\omega_{*i}$',fontsize=12)
+        plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
+    
+    return psin, omegasi
+
+
+
+def get_ped_param(sim,filename='C1.h5',time=None,points=400,pion=False,fcoords='pest',psin_ped_top=0.86,device='nstx'):
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename=filename)
+    #psinedgelim = 0.86 #Min value of psin that is considered edge region
+    
+    # Determine pedestal alpha
+    psi_a,alpha = flux_average('alpha', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='m3dc1')
+    psinedge = fpyl.find_nearest(psi_a,psin_ped_top)
+    psinedge_ind = fpyl.get_ind_at_val(psi_a,psinedge)
+    alpha_max = np.amax(alpha[psinedge_ind:]) #ToDo: Check if it's really a local maximum
+    print('Pedestal alpha = '+str(alpha_max))
     
     
-    results = scan_n(nmin,nmax,units=units,slurm=True,plottrace=True)
-    #plt.close('all')
-    write_gamma_n(-1, -1, results)
+    # Determine pedestal average toroidal current density
+    psi_j,j = flux_average('j', coord='phi', sim=sim, time=time, fcoords=fcoords, points=points, units='m3dc1')
+    psinedge = fpyl.find_nearest(psi_j,psin_ped_top)
+    psinedge_ind = fpyl.get_ind_at_val(psi_j,psinedge)
+    j_max = np.amax(j[psinedge_ind:]) #ToDo: Check if it's really a local maximum
     
     
-    # Plot gamma as a function of n
-    # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
-    n_okay = []
-    gamma_okay = []
-    n_bad = []
-    gamma_bad = []
-    for n in results.n_list:
-        n_ind = fpyl.get_ind_at_val(results.n_list,n,unique=True)
-        if (results.flat_list[n_ind] != 1 and results.gamma_manual_list[n_ind] != 1 and results.not_noisy_list[n_ind] != 1):
-            n_bad.append(results.n_list[n_ind])
-            gamma_bad.append(results.gamma_list[n_ind])
+    #Calculate pedestal parallel current density as in ELITE:
+    jav = flux_average('jav', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='mks')[1]
+    psi_j,jelite = flux_average('jelite', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='mks',device=device)
+    
+    psinedge = fpyl.find_nearest(psi_j,psin_ped_top)
+    psinedge_ind = fpyl.get_ind_at_val(psi_j,psinedge)
+    jelite_max = np.amax(jelite[psinedge_ind:])
+    jelite_sep = jelite[-1]
+    
+    jelite_N = (jelite_max+jelite_sep)/(2.0*jav[-1])
+    print('Current density = '+str(jelite_N))
+    
+    
+    # Determine diamagnetic frequency
+    psi_o,omegsti = omegastari(sim=sim,time=time,units='m3dc1',n=1,points=points,pion=pion,fcoords=fcoords,makeplot=False)
+    psinedge = fpyl.find_nearest(psi_o,psin_ped_top)
+    psinedge_ind = fpyl.get_ind_at_val(psi_o,psinedge)
+    omegsti_max = np.amax(omegsti[psinedge_ind:]) #ToDo: Check if it's really a local maximum
+    print('Ion diamagnetic frequency = '+str(omegsti_max))
+    ped_param = [alpha_max,j_max,jelite_N,omegsti_max]
+    return ped_param
+
+
+
+
+
+def eval_growth_n(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype=False,psin_ped_top=0.86,points=400,units='m3dc1',fcoords='pest',pion=False,nts=2,fix=False,legfs=None,title=None,device='nstx'):
+    
+    pwd = os.getcwd()
+    for d in dirs:
+        print('Evaluating directory '+d)
+        #Check if all simulations have finished
+        n_incomplete = check_linear_runs(d,nts=nts,start=False,account='mp288',update_stat=False)
+        if n_incomplete>0:
+            fpyl.printerr('Stopped. ' + str(n_incomplete) + ' simulations have not completed (assuming '+str(nts)+' time slices).')
+            not_finished_input = fpyl.prompt('Continue anyways? (y/n) : ',['y','n'])
+            if not_finished_input=='n':
+                return
+        os.chdir(d)
+    
+        files = glob.glob("growth_rates*.dat")
+        proceed = False
+        if len(files)>0:
+            if not fix:
+                openf_input = fpyl.prompt('Previous results found. Do you want to overwrite the existing file? (y/n) : ',['y','n'])
+            else:
+                openf_input = 'y'
+            if openf_input == 'n':
+                if len(files)>1:
+                        files.sort(key=os.path.getmtime,reverse=True)
+                        print('More than 1 file found. Opening newest file: '+files[0])
+                f = files[0]
+                results = Gamma_file(f)
+            else:
+                proceed = True
         else:
-            n_okay.append(results.n_list[n_ind])
-            gamma_okay.append(results.gamma_list[n_ind])
-    
-    create_plot_gamma_n(results.n_list, results.gamma_list, fignum=None, marker='.', ms=8, lbl=None, units=units)
-    cfn = plt.gcf().number #Current figure number
-    create_plot_gamma_n(n_bad, gamma_bad, fignum=cfn, lw=0, marker='.', ms=10, lbl=None, units=units)
-    
-    
-    
-    for n in range(nmin,nmax+1):
-        if n==nmin:
-            path = 'n'+str(n).zfill(2)
-        else:
-            path = '../n'+str(n).zfill(2)
-        os.chdir(path)
+            proceed = True
         
-        if plotef:
-            print('Plotting eigenfunction for n='+str(n))
-            plot_field('p',time='last',linear=True,bound=True,lcfs=True,save=True,savedir='../')
-            plt.close()
-        if n==nmax:
+        
+        if proceed:
+            # Determine ipres based on slurm log file
+            os.chdir('n'+str(nmin).zfill(2))
+            slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
+            if len(slurmfiles) < 1:
+                fpyl.printerr('ERROR: No Slurm output file found!')
+            else:
+                if len(slurmfiles) > 1:
+                    fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
+                    slurmfiles.sort(key=os.path.getmtime,reverse=True)
+                slurmfile = slurmfiles[0]
+                
+                # Read ipres from Slurm log file
+                with open(slurmfile, 'r') as sf:
+                    for line in sf:
+                        if 'ipres   ' in line:
+                            ipresline = line.split()
+                            ipres = int(ipresline[2])
+            print('ipres='+str(ipres))
             os.chdir('../')
-    
+            
+            
+            results = scan_n(nmin,nmax,nstep,units=units,slurm=True,plottrace=False)
+        
+            if plotef or mtype:
+                for n in np.arange(nmin,nmax+1,nstep):
+                    if n==nmin:
+                        path = 'n'+str(n).zfill(2)
+                    else:
+                        path = '../n'+str(n).zfill(2)
+                    os.chdir(path)
+                    
+                    sim0 = fpy.sim_data(time=-1)
+                    sim1 = fpy.sim_data(time='last')
+                    
+                    if n==nmin:
+                        ped_param = get_ped_param(sim0,points=points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
+                    
+                    if mtype:
+                        spec = eigenfunction(sim=[sim0,sim1],fcoords=fcoords,points=800,makeplot=False)
+                        results.pblist[n-1] = mode_type(spec,sim0,psin_ped_top=psin_ped_top)
+                    
+                    if plotef:
+                        fpyl.printnote('Plotting eigenfunction for n='+str(n))
+                        plot_field('p',sim=[sim1,sim0],linear=True,bound=True,lcfs=True,save=True,savedir='../',ntor=n)
+                        plt.close()
+                    if n==nmax:
+                        os.chdir('../')
+                if mtype:
+                    print('Mode types:')
+                    print(results.pblist)
+            else:
+                os.chdir('n'+str(nmin).zfill(2))
+                sim0 = fpy.sim_data(time=-1)
+                ped_param = get_ped_param(sim0,points=points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
+                os.chdir('../')
+                
+            write_gamma_n(results,ped_param,ipres,units=units,fix=fix)
+        
+        
+        # Plot gamma as a function of n
+        # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
+        if title is None:
+            cwd = os.getcwd()
+            cdirs = cwd.split('/')
+            title=cdirs[-2]+'/'+cdirs[-1]
+            reset_title=True
+        else:
+            reset_title=False
+        plot_gamma_n(nmin=nmin,nmax=nmax,nstep=nstep,units=units,fignum=None,c=None,ls=None,mark='.',lbl=None,slurm=True,plottrace=False,legfs=legfs,title=title)
+        if reset_title:
+            title=None
+        
+        # Update status on portal. The update is done, only if the analysis above has been performed.
+        if proceed:
+            if os.environ['FIO_ARCH']=='sunfire':
+                update_status(80)
+            else:
+                if os.path.isfile('../../py_config_portal.dat'):
+                    cwd = os.getcwd()
+                    dirs = cwd.split('/')
+                    vpnum = dirs[-2]
+                    basedirs = glob.glob('../base_*'+dirs[-1]+'*')
+                    if len(basedirs)==1:
+                        basedir = glob.glob('../base_*'+dirs[-1]+'*')[0]
+                        basedir = basedir.split('/')[-1]
+                        os.chdir(pwd)
+                        update_remote_status(80,vpnum,basedir)
+                    else:
+                        os.chdir(pwd)
+                        fpyl.printwarn('WARNING: Could not determine base directory. Status not updated.')
+                else:
+                    os.chdir(pwd)
+                    fpyl.printwarn('WARNING: No file py_config_portal.dat. Status not updated.')
+        else:
+            os.chdir(pwd)
     return
 
 
 
 
+def eval_growth_n_multiple(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype=False,psin_ped_top=0.86,points=400,units='m3dc1',fcoords='pest',pion=False,nts=2,fix=False,legfs=None,title=None,device='nstx'):
+    
+    pwd = os.getcwd()
+    
+    data = {}
+    
+    # The variable 'complete' is True if all linear simulations have finished or if the user wants to calculate the growth rates for the existing simulations.
+    # If this is the case, the code checks for existing growth rate results. The variable 'proceed' is set to True if no previous results exist or
+    # if the user wants to overwrite them.
+    
+    for d in dirs:
+        print('Evaluating directory '+d)
+        #Check if all simulations have finished
+        n_incomplete = check_linear_runs(d,nts=nts,start=False,account='mp288',update_stat=False)
+        if n_incomplete>0:
+            complete = True
+            fpyl.printerr('Stopped. ' + str(n_incomplete) + ' simulations have not completed (assuming '+str(nts)+' time slices).')
+            #Repeat failed simulations?
+            rerun_input = fpyl.prompt('Do you want to rerun the failed simulations? (y/n) : ',['y','n'])
+            if rerun_input=='y':
+                n_incomplete = check_linear_runs(d,nts=nts,start=True,account='mp288',update_stat=True)
+            not_finished_input = fpyl.prompt('Calculate growth rates anyways? (y/n) : ',['y','n'])
+            complete = False if not_finished_input=='n' else True
+        else:
+            complete = True
+        
+        proceed = False
+        os.chdir(d)
+        
+        if complete:
+            files = glob.glob("growth_rates*.dat")
+            if len(files)>0:
+                if not fix:
+                    openf_input = fpyl.prompt('Previous results found. Do you want to overwrite the existing file? (y/n) : ',['y','n'])
+                else:
+                    openf_input = 'y'
+                if openf_input == 'n':
+                    if len(files)>1:
+                            files.sort(key=os.path.getmtime,reverse=True)
+                            print('More than 1 file found. Opening newest file: '+files[0])
+                    f = files[0]
+                    results = Gamma_file(f)
+                else:
+                    proceed = True
+            else:
+                proceed = True
+        
+        
+        if proceed:
+            # Determine ipres based on slurm log file
+            os.chdir('n'+str(nmin).zfill(2))
+            slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
+            if len(slurmfiles) < 1:
+                fpyl.printerr('ERROR: No Slurm output file found!')
+            else:
+                if len(slurmfiles) > 1:
+                    fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
+                    slurmfiles.sort(key=os.path.getmtime,reverse=True)
+                slurmfile = slurmfiles[0]
+                
+                # Read ipres from Slurm log file
+                with open(slurmfile, 'r') as sf:
+                    for line in sf:
+                        if 'ipres   ' in line:
+                            ipresline = line.split()
+                            ipres = int(ipresline[2])
+            print('ipres='+str(ipres))
+            os.chdir('../')
+            
+            results = scan_n(nmin,nmax,nstep,units=units,slurm=True,plottrace=False)
+            data[d] = [proceed, results, ipres]
+            os.chdir(pwd)
+        else:
+            data[d] = [proceed, None, None]
+            os.chdir(pwd)
+        
+        
+    for d in dirs:
+        if data[d][0]:#if proceed==True
+            os.chdir(d)
+            if plotef or mtype:
+                for n in np.arange(nmin,nmax+1,nstep):
+                    if n==nmin:
+                        path = 'n'+str(n).zfill(2)
+                    else:
+                        path = '../n'+str(n).zfill(2)
+                    os.chdir(path)
+                    
+                    sim0 = fpy.sim_data(time=-1)
+                    sim1 = fpy.sim_data(time='last')
+                    
+                    if n==nmin:
+                        ped_param = get_ped_param(sim0,points=points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
+                    
+                    if mtype:
+                        spec = eigenfunction(sim=[sim0,sim1],fcoords='pest',points=800,makeplot=False)
+                        data[d][1].pblist[n-1] = mode_type(spec,sim0,psin_ped_top=psin_ped_top)
+                    
+                    if plotef:
+                        fpyl.printnote('Plotting eigenfunction for n='+str(n))
+                        plot_field('p',sim=[sim1,sim0],linear=True,bound=True,lcfs=True,save=True,savedir='../',ntor=n)
+                        plt.close()
+                    if n==nmax:
+                        os.chdir('../')
+                if mtype:
+                    print('Mode types:')
+                    print(data[d][1].pblist)
+            else:
+                os.chdir('n'+str(nmin).zfill(2))
+                sim0 = fpy.sim_data(time=-1)
+                ped_param = get_ped_param(sim0,points=points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
+                os.chdir('../')
+            write_gamma_n(data[d][1],ped_param,data[d][2],units=units,fix=fix)
+        
+        
+            # Plot gamma as a function of n
+            # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
+            if title is None:
+                cwd = os.getcwd()
+                cdirs = cwd.split('/')
+                title=cdirs[-2]+'/'+cdirs[-1]
+                reset_title=True
+            else:
+                reset_title=False
+            plot_gamma_n(nmin=nmin,nmax=nmax,nstep=nstep,units=units,fignum=None,c=None,ls=None,mark='.',lbl=None,slurm=True,plottrace=False,legfs=legfs,title=title)
+            if reset_title:
+                title=None
+        
+            # Update status on portal. The update is done only if the analysis above has been performed.
+            if os.environ['FIO_ARCH']=='sunfire':
+                update_status(80)
+                os.chdir(pwd)
+            else:
+                if os.path.isfile('../../py_config_portal.dat'):
+                    cwd = os.getcwd()
+                    dirs = cwd.split('/')
+                    vpnum = dirs[-2]
+                    basedirs = glob.glob('../base_*'+dirs[-1]+'*')
+                    if len(basedirs)==1:
+                        basedir = glob.glob('../base_*'+dirs[-1]+'*')[0]
+                        basedir = basedir.split('/')[-1]
+                        os.chdir(pwd)
+                        update_remote_status(80,vpnum,basedir)
+                    else:
+                        os.chdir(pwd)
+                        fpyl.printwarn('WARNING: Could not determine base directory. Status not updated.')
+                else:
+                    os.chdir(pwd)
+                    fpyl.printwarn('WARNING: No file py_config_portal.dat. Status not updated.')
+        else:
+            os.chdir(pwd)
+    return
 
-def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
-                                sim=None,growth=False,yscale='linear',
-                                rescale=False,save=False,savedir=None,pub=False):
 
-    if sim is None:
-        sim = fpy.sim_data(filename=filename)
 
+
+def create_plot_time_trace_fast(time,scalar,trace,units='mks',sim=None,filename='C1.h5',
+                                growth=False,yscale='linear',rescale=False,save=False,
+                                savedir=None,pub=False):
+
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename)
+        
     # If one array has new data but the other one doesn't 
     # plot only previous data
     if scalar.shape != time.shape:
@@ -844,7 +1302,7 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
         maxidx = np.amin([ymax,tmax])
         time   = time[0:maxidx]
         scalar = scalar[0:maxidx]
-
+    
     ntor = readParameter('ntor',sim=sim)
     
     plt.figure()
@@ -861,14 +1319,15 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
         ticklblfs = None
         linew = 1
     
-    
     if units=='mks':
+        #time = unit_conv(time,filename=filename,time=1)
         plt.xlabel(r'time $[s]$',fontsize=axlblfs)
     else:
         plt.xlabel(r'time $[\tau_A]$',fontsize=axlblfs)
     
     if trace == 'ke':
         if units=='mks':
+            #scalar = unit_conv(scalar, arr_dim='M3DC1', filename=filename, energy=1)
             if growth:
                 plt.ylabel(r'$\gamma$ $[s^{-1}]$')
             else:
@@ -911,9 +1370,8 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',filename='C1.h5',
 
 
 
-def double_plot_time_trace_fast(trace,filename='C1.h5',sim=None,
-                                renorm=False,rescale=False,units='m3dc1',
-                                title=None,pub=False):
+def double_plot_time_trace_fast(trace,sim=None,filename='C1.h5',renorm=False,rescale=False,
+                                units='m3dc1',title=None,n=None,pub=False,showtitle=True):
     """
     Plots a trace and its growth rate in two subplots side by side
     
@@ -945,18 +1403,30 @@ def double_plot_time_trace_fast(trace,filename='C1.h5',sim=None,
     If True, format figure for publication (larger labels and thicker lines)
     """
 
-    if sim is None:
-        sim = fpy.sim_data(filename=filename)
-
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename)
+    
     time,scalar = get_timetrace(trace,sim=sim,units=units,growth=False,renorm=renorm,quiet=True)
     time_growth,scalar_growth = get_timetrace(trace,sim=sim,units=units,growth=True,renorm=renorm,quiet=True)
     
-    if units=='mks':
-        xlbl = r'time $[s]$'
-        ylbl_left = r'Kinetic energy $[J]$'
-        ylbl_right = r'$\gamma$ $[s^{-1}]$'
+    # Set font sizes and plot style parameters
+    if pub:
+        axlblfs = 20
+        titlefs = 20
+        ticklblfs = 20
+        lcfslw = 2
     else:
-        xlbl = r'time $[\tau_A]$'
+        axlblfs = None
+        titlefs = 20
+        ticklblfs = None
+        lcfslw = 1
+    
+    if units=='mks':
+        xlbl = r'time $/s$'
+        ylbl_left = r'Kinetic energy $/J$'
+        ylbl_right = r'$\gamma$ $/s^{-1}$'
+    else:
+        xlbl = r'time $/\tau_A$'
         ylbl_left = r'Kinetic energy (M3DC1 units)'
         ylbl_right = r'$\gamma/\omega_A$'
     
@@ -976,24 +1446,30 @@ def double_plot_time_trace_fast(trace,filename='C1.h5',sim=None,
     f2_ax1 = fig.add_subplot(spec2[0, 0])
     f2_ax2 = fig.add_subplot(spec2[0, 1])
     
-    f2_ax1.plot(time,scalar)
-    f2_ax1.set_xlabel(xlbl)
-    f2_ax1.set_ylabel(ylbl_left)
+    f2_ax1.plot(time,scalar,lw=lcfslw)
+    f2_ax1.set_xlabel(xlbl,fontsize=axlblfs)
+    f2_ax1.set_ylabel(ylbl_left,fontsize=axlblfs)
     if rescale:
         f2_ax1.set_ylim([0,top_lim])
     f2_ax1.grid()
-    f2_ax2.plot(time_growth,scalar_growth)
-    f2_ax2.set_xlabel(xlbl)
-    f2_ax2.set_ylabel(ylbl_right)
-    f2_ax2.grid()
+    f2_ax1.tick_params(axis='both', which='major', labelsize=ticklblfs)
     
-    ntor = readParameter('ntor',sim=sim)
-    fig.suptitle('n='+str(ntor), size=20)
+    f2_ax2.plot(time_growth,scalar_growth,lw=lcfslw)
+    f2_ax2.set_xlabel(xlbl,fontsize=axlblfs)
+    f2_ax2.set_ylabel(ylbl_right,fontsize=axlblfs)
+    f2_ax2.grid()
+    f2_ax2.tick_params(axis='both', which='major', labelsize=ticklblfs)
+    if showtitle:
+        if n is None:
+            ntor = readParameter('ntor',sim=sim)
+        else:
+            ntor=n
+        fig.suptitle('n='+str(ntor), size=titlefs)
     
     return
 
 
-def plot_time_trace_fast(trace,units='mks',filename='C1.h5',sim=None,
+def plot_time_trace_fast(trace,units='mks',sim=None,filename='C1.h5',
                          growth=False,renorm=False,yscale='linear',
                          rescale=False,save=False,savedir=None,pub=False):
     """
@@ -1037,11 +1513,158 @@ def plot_time_trace_fast(trace,units='mks',filename='C1.h5',sim=None,
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
     """
-    if sim is None:
-        sim = fpy.sim_data(filename=filename)
-    time,scalar = get_timetrace(trace,sim=sim,units=units,
-                                growth=growth,renorm=renorm)
-    create_plot_time_trace_fast(time,scalar,trace,units=units,sim=sim,
-                                growth=growth,yscale=yscale,rescale=rescale,
-                                save=save,savedir=savedir,pub=pub)
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename)
+    time,y_axis = get_timetrace(trace,sim=sim,units=units,growth=growth,renorm=renorm)
+    create_plot_time_trace_fast(time,scalar,trace,units=units,sim=sim,growth=growth,
+                                yscale=yscale,rescale=rescale,save=save,savedir=savedir,pub=pub)
+    return
+
+
+
+
+
+
+# ---------------------------------------------------------------------
+# Routines to update growth rate files
+# These are useful to get all growth rate files to contain the same
+# data, after information has been added to write_gamma_n.
+# ---------------------------------------------------------------------
+
+# Update the second line of the the growth rate file, containing pedestal-related quantities
+def update_pedestal_in_gamma_files(points=400,pion=False,psin_ped_top=0.86,fcoords='pest',device='nstx'):
+    cwd = os.getcwd()
+    
+    for path in Path('./').rglob('growth_rates_*.dat'):
+        
+        print(path)
+        if path.name[-1]!='~' and 'growth_rates' not in path.parts:
+            simdir = '/'.join(path.parts[:-1])+'/n01' #ToDo : replace 1 by nmin
+            f = open(path, 'r')
+            data = f.readlines()
+            f.close()
+            #datal1 = data[0].split()
+            datal2 = data[1].split()
+            if len(datal2)<3:
+                fpyl.printwarn('WARNING: Not all of the old pedestal parameters where calculated.')
+            if len(datal2)<4:# or len(datal2)==3:
+                os.chdir(simdir)
+                sim0 = fpy.sim_data(time=-1)
+                ped_param = get_ped_param(sim0,points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
+                alpha_max,j_max,jelite_N,omegsti_max=ped_param
+                
+                os.chdir(cwd)
+                fpyl.printerr('Replaced:\n'+data[1].replace('\n','')+'\nby:\n'+str(alpha_max)+'    '+str(j_max)+'    '+str(jelite_N)+'    '+str(omegsti_max))
+                os.system('sed -i -e "s/'+data[1].replace('\n','')+'/'+str(alpha_max)+'    '+str(j_max)+'    '+str(jelite_N)+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
+    return
+
+
+
+# Update the second line of the the growth rate file, containing pedestal-related quantities
+def update_omegastar_in_gamma_files(ped=False,points=400,pion=False,psin_ped_top=0.86,fcoords='pest',device='nstx'):
+    pwd = os.getcwd()
+    
+    for path in Path('./').rglob('growth_rates_*.dat'):
+        
+        print(path)
+        if path.name[-1]!='~' and 'growth_rates' not in path.parts:
+            simdir = '/'.join(path.parts[:-1])+'/n01' #ToDo : replace 1 by nmin
+            f = open(path, 'r')
+            data = f.readlines()
+            f.close()
+            #datal1 = data[0].split()
+            datal2 = data[1].split()
+            if len(datal2)==2 or ped:# or len(datal2)==3:
+                os.chdir(simdir)
+                sim0 = fpy.sim_data(time=-1)
+                if ped:
+                    ped_param = get_ped_param(sim0,points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
+                    alpha_max,j_max,omegsti_max=ped_param
+                else:
+                    psinedgelim = 0.86 #Min value of psin that is considered edge region
+                    psi_o,omegsti = omegastari(sim=sim0,units='m3dc1',n=1,makeplot=False)
+                    psinedge = fpyl.find_nearest(psi_o,psinedgelim)
+                    psinedge_ind = fpyl.get_ind_at_val(psi_o,psinedge)
+                    omegsti_max = np.amax(omegsti[psinedge_ind:]) #ToDo: Check if it's really a local maximum
+                
+                print(omegsti_max)
+                os.chdir(pwd)
+                #print(data[1].replace('\n','')+'    '+str(omegsti_max))
+                if ped:
+                    os.system('sed -i -e "s/'+data[1].replace('\n','')+'/'+str(j_max)+'    '+str(alpha_max)+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
+                    #print('sed -i -e "s/'+data[1].replace('\n','')+'/'+str(j_max)+'    '+str(alpha_max)+'    '+str(omegsti_max)+'\n'+'/g" '+'/'.join(path.parts))
+                else:
+                    if len(datal2)==2:
+                        #print('sed -i -e "s/'+data[1].replace('\n','')+'/'+data[1].replace('\n','')+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
+                        os.system('sed -i -e "s/'+data[1].replace('\n','')+'/'+data[1].replace('\n','')+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
+                        fpyl.printnote('File updated!')
+                    elif len(datal2)==3:
+                        #print('sed -i -e "s/'+data[1].replace('\n','')+'/'+'    '.join(data[1].replace('\n','').split()[:-1])+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
+                        os.system('sed -i -e "s/'+data[1].replace('\n','')+'/'+'    '.join(data[1].replace('\n','').split()[:-1])+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
+    return
+
+
+
+# Update the first line of the the growth rate file to add ipres and also change the filename in case of a 2-fluid run
+def update_ipres_in_gamma_files():
+    pwd = os.getcwd()
+    
+    rename_list = []
+    
+    for path in Path('./').rglob('growth_rates_*.dat'):
+        if path.name[-1]!='~' and 'growth_rates' not in path.parts:
+            simdir = '/'.join(path.parts[:-1])+'/n01' #ToDo : replace 1 by nmin
+            f = open(path, 'r')
+            data = f.readlines()
+            f.close()
+            datal1 = data[0].split()
+            if len(datal1)==5:
+                # Determine ipres based on slurm log file
+                os.chdir(simdir)
+                slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
+                if len(slurmfiles) < 1:
+                    fpyl.printerr('ERROR: No Slurm output file found!')
+                else:
+                    if len(slurmfiles) > 1:
+                        fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
+                        slurmfiles.sort(key=os.path.getmtime,reverse=True)
+                    slurmfile = slurmfiles[0]
+                    # Read ipres from Slurm log file
+                    with open(slurmfile, 'r') as sf:
+                        for line in sf:
+                            if 'ipres   ' in line:
+                                ipresline = line.split()
+                                ipres = int(ipresline[2])
+                #print('ipres='+str(ipres))
+                os.chdir(pwd)
+                # Add ipres to growth rate file
+                os.system('sed -i -e "s/'+data[0].replace('\n','')+'/'+data[0].replace('\n','')+'    '+str(ipres)+'/g" '+'/'.join(path.parts))
+                #print('sed -i -e "s/'+data[0].replace('\n','')+'/'+data[0].replace('\n','')+'    '+str(ipres)+'/g" '+'/'.join(path.parts))
+                fpyl.printnote(path.parts[-1]+' updated!')
+                #print(data[0].replace('\n',''))
+                #print(data[0].replace('\n','')+'    '+str(ipres))
+                
+                
+                # Rename growth rate file in case of 2F run and ipres=0
+                if ipres==0:
+                    if '_2f_' in path.parts[-1] and 'ipres' not in path.parts[-1]:
+                        newfilename = path.parts[-1].split('.dat')[0] + '_ipres0'+'.dat'
+                        os.system('mv ' + '/'.join(path.parts) + ' ' + '/'.join(path.parts[:-1])+'/' + newfilename)
+                        fpyl.printnote(path.parts[-1]+' renamed to ' + newfilename)
+                        #print('mv ' + '/'.join(path.parts) + ' ' + '/'.join(path.parts[:-1])+'/' + newfilename)
+                    
+                    # Create list of directories to rename. Renaming is done below, because renaming within the loop causes an error
+                    if '2f_' in path.parts[-2] and 'ipres' not in path.parts[-2]:
+                        newdirname = path.parts[-2] + '_ipres0'
+                        rename_list.append('mv ' + '/'.join(path.parts[:-1]) + ' ' + '/'.join(path.parts[:-2])+'/' + newdirname)
+                        #os.system('mv ' + '/'.join(path.parts[:-1]) + ' ' + '/'.join(path.parts[:-2])+'/' + newdirname)
+                        
+                        #print('mv ' + '/'.join(path.parts[:-1]) + ' ' + '/'.join(path.parts[:-2])+'/' + newdirname)
+    
+    # Rename run directory
+    if len(rename_list)>0:
+        for rename in rename_list:
+            os.system(rename)
+            fpyl.printnote(rename)
+    
     return

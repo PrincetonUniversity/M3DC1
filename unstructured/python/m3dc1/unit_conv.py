@@ -9,6 +9,7 @@
 import pint
 import os
 import math
+import fpy
 from m3dc1.read_h5 import readParameter
 
 def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length=0, particles=0, magnetic_field=0, current=0, current_density=0, diffusion=0, energy=0, force=0, pressure=0, resistivity=0, temperature=0, velocity=0, voltage=0, viscosity=0, thermal_conductivity=0, electric_field=0):
@@ -41,7 +42,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
     ureg.define('PerMeterPerSecond 	 = [thermal_conductivity]')
     ureg.define('VoltsPerMeter      = [electric_field]')
 
-    if sim is None:
+    if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename)
     h5file = sim._all_attrs
 
@@ -54,7 +55,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
         Zeff = readParameter('z_ion',h5file=h5file)
     else:
         Zeff = readParameter('zeff',h5file=h5file)
-
+    
     #mi=1 # Uncomment for benchmarking
     
     mu0=1.0 # Magnetic permeability in cgs units

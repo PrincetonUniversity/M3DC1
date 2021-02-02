@@ -7,7 +7,7 @@
 
 import fpy
 import numpy as np
-from scipy.fftpack import fft, ifft, fftshift, fftfreq
+from scipy.fftpack import fft, fftshift, fftfreq
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import m3dc1.fpylib as fpyl
@@ -42,6 +42,7 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
     Scale signal by the signal of a perfectly linear growth
 
     **deriv**
+    Calculate time derivative of signal
 
     **pspec**
     Calculate Fourier spectrum of signal time trace.
@@ -56,7 +57,7 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
     """
-    if sim is None:
+    if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     
     time = sim._all_trace['time']
@@ -87,13 +88,13 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
     # Set font sizes and plot style parameters
     if pub:
         axlblfs = 20
-        titlefs = 18
+        #titlefs = 18
         ticklblfs = 18
         legfs = 12
         linew = 2
     else:
         axlblfs = None
-        titlefs = None
+        #titlefs = None
         ticklblfs = None
         legfs = None
         linew = 1

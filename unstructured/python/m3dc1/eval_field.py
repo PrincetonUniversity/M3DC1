@@ -8,10 +8,53 @@
 
 import fpy
 import numpy as np
-
+import m3dc1.fpylib as fpyl
 
 
 def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=None):
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename,time=time)
+    
+    #Convert coordinates to numpy array if they are not provided as arrays
+    R = np.asarray(R,dtype=np.float64)
+    phi = np.asarray(phi,dtype=np.float64)
+    Z = np.asarray(Z,dtype=np.float64)
+    
+    if field_name in sim.typedict and sim.typedict[field_name][3]=='simple':#Fields that are directly read with fusion-io, below are composite fields
+        field_array = eval_m3dc1_field(field_name, R, phi, Z, coord, sim, filename, time)
+    elif field_name=='psi':
+        Aphi = eval_m3dc1_field('A', R=R, phi=phi, Z=Z, coord='phi', sim=sim, filename=filename, time=time)
+        field_array = np.asarray(R)*Aphi
+    elif field_name=='f':
+        Bphi = eval_m3dc1_field('B', R=R, phi=phi, Z=Z, coord='phi', sim=sim, filename=filename, time=time)
+        field_array = np.asarray(R)*Bphi
+    elif field_name=='|B|':
+        B = eval_m3dc1_field('B', R=R, phi=phi, Z=Z, coord='vector', sim=sim, filename=filename, time=time)
+        #print(B.shape)
+        #print(B)
+        #print(B[0])
+        #r = np.sqrt(R**2+Z**2)
+        normB = np.sqrt(B[0]**2+B[1]**2+B[2]**2)
+        field_array = normB
+    elif field_name=='B2':
+        B = eval_m3dc1_field('B', R=R, phi=phi, Z=Z, coord='vector', sim=sim, filename=filename, time=time)
+        #r = np.sqrt(R**2+Z**2)
+        B2 = B[0]**2+B[1]**2+B[2]**2
+        field_array = B2
+        
+    elif field_name=='1/B2':
+        B = eval_m3dc1_field('B', R=R, phi=phi, Z=Z, coord='vector', sim=sim, filename=filename, time=time)
+        #r = np.sqrt(R**2+Z**2)
+        B2 = B[0]**2+B[1]**2+B[2]**2
+        field_array = 1.0/B2
+    else:
+        fpyl.printerr('ERROR: Field not supported!')
+    
+    return field_array
+
+
+
+def eval_m3dc1_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=None):
     """
     Evaluates the field at the locations specified by the 
     R, Z, phi arrays. The output will be array/arrays of the same size.
@@ -38,9 +81,10 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
     """
     
     # First, let's get the field and mesh from the simulation output
-    if sim is None:
+    if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     field = sim.get_field(field_name,time)
+    
     
     # We check if the field is a scalar or vector field
     check_coord = (R.flatten()[0], phi.flatten()[0], Z.flatten()[0]) 
@@ -74,7 +118,7 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
             field_array_R[idx]   = field_tuple[0]
             field_array_phi[idx] = field_tuple[1]
             field_array_Z[idx]   = field_tuple[2]
-        return [field_array_R, field_array_phi, field_array_Z]
+        return np.asarray([field_array_R, field_array_phi, field_array_Z])
     elif coord == 'tensor':
         field_array_RR     = np.zeros_like(R)
         field_array_phiR   = np.zeros_like(phi)
@@ -96,7 +140,7 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
             field_array_RZ[idx]   = field_tuple[6]
             field_array_phiZ[idx] = field_tuple[7]
             field_array_ZZ[idx]   = field_tuple[8]
-        return [field_array_RR, field_array_phiR, field_array_ZR, field_array_Rphi, field_array_phiphi, field_array_Zphi, field_array_RZ, field_array_phiZ, field_array_ZZ]
+        return np.asarray([field_array_RR, field_array_phiR, field_array_ZR, field_array_Rphi, field_array_phiphi, field_array_Zphi, field_array_RZ, field_array_phiZ, field_array_ZZ])
     else:
         field_array = np.zeros_like(R)
         for (idx, r) in np.ndenumerate(R):

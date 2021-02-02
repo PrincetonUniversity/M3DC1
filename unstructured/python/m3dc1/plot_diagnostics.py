@@ -23,12 +23,11 @@ def plot_diagnostics(filename='C1.h5',sim=None,units='mks',fignum=None):
     Number of figure in which the reults are plotted
     """
     
-    if sim is None:
+    if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     t_slices = sim.get_diagnostic('slice times')
     timings  = sim.get_diagnostic('timings')
     kspits   = sim.get_diagnostic('iterations')
-
     
     
     f = plt.figure()

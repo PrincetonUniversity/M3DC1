@@ -12,7 +12,7 @@ from mayavi import mlab
 
 
 
-def plot_vector_field(field, filename='C1.h5', time=0, linear=False, diff=False, R_res=100, phi_res=8, Z_res=100):
+def plot_vector_field(field, filename='C1.h5', time=0, linear=False, diff=False, R_res=100, phi_res=8, Z_res=100,quiet=False):
     """
     Plots the field of a file
     
@@ -56,16 +56,16 @@ def plot_vector_field(field, filename='C1.h5', time=0, linear=False, diff=False,
     
 
     # Input error handling
-    if diff==True:
+    if diff:
         if (len(filename)==1 and len(time)==1):
             raise Exception('Please input two files and/or timeslices for diff')
         elif(len(filename)==2 and len(time)==1):
             raise Exception('Please choose the times at which the different files are to be evaluated. Single times are not allowed.')
     
-    if diff==True and linear==True:
+    if diff and linear:
         raise Exception('Please choose diff or linear, not both.')
 
-    if diff==False:
+    if not diff:
         if (len(filename)>1 or len(time)>1):
             raise Exception('Multiple file/time slices detected. Please set diff=True or input single slices')
     
@@ -74,7 +74,7 @@ def plot_vector_field(field, filename='C1.h5', time=0, linear=False, diff=False,
 
     
     # If linear, the difference needs to be taken with time 0
-    if linear==True:
+    if linear:
         time = [time[0],0]
 
     
@@ -90,7 +90,7 @@ def plot_vector_field(field, filename='C1.h5', time=0, linear=False, diff=False,
     
     
     # Make 3D grid based on max and min values of mesh points
-    mesh_field  = fpy.sim_data(filename[0]).get_mesh(filename=filename[0],time=0).elements
+    mesh_field  = fpy.sim_data(filename[0]).get_mesh(time=0,quiet=quiet).elements
     
 
     # Check simulation bounds
@@ -108,7 +108,7 @@ def plot_vector_field(field, filename='C1.h5', time=0, linear=False, diff=False,
     fields1 = eval_field(field, R, phi, Z, coord='vector', filename=filename[0], time=time[0])
     
     # Evaluate second field and calculate difference between two if linear or diff is True
-    if (diff == True or linear==True):
+    if (diff or linear):
         print('Evaluating second field... ')
         fields2 = eval_field(field, R, phi, Z, coord='vector', filename=filename[1], time=time[1])
         fields1 = [fields1[0]-fields2[0], fields1[1]-fields2[1], fields1[2]-fields2[2]]
