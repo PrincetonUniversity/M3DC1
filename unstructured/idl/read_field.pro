@@ -53,7 +53,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
          data = real_part(data)
 
          if(not keyword_set(linear) and time ge 0) then begin
-            data0 = read_field(name, x, y, t, slices=-1, mesh=mesh, $
+            data0 = read_field(name, x, y, t, slices=-1, $
                         filename=filename, points=pts, fac=fac, $
                         rrange=xrange, zrange=yrange, $
                         h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
@@ -242,7 +242,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(isnl eq 1) then begin
           data = data1
        endif else begin
-          data0 = read_field(name,x,y,t0, slices=-1, mesh=mesh, $
+          data0 = read_field(name,x,y,t0, slices=-1, $
                              filename=filename, points=pts, fac=fac, $
                              rrange=xrange, zrange=yrange, complex=0, $
                              h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
@@ -316,7 +316,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            h5f_close, file_id
            print, '  calculating perturbed part of eqsubtract=0 field.', ntor
 
-           data0 = read_field(name,x,y,t, slices=-1, mesh=mesh, $
+           data0 = read_field(name,x,y,t, slices=-1, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
@@ -465,7 +465,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        
        v = read_field('V',x,y,t,slices=time, mesh=mesh, filename=filename, $
                         points=pts,rrange=xrange,zrange=yrange, linear=linear)
-       psi = read_field('psi',x,y,t,slices=time, mesh=mesh, filename=filename,$
+       psi = read_field('psi',x,y,t,slices=time, filename=filename,$
                         points=pts,rrange=xrange,zrange=yrange,/equilibrium)
 
 
@@ -584,12 +584,12 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
   endif else if(strcmp('electron temperature', name, /fold_case) eq 1) or $
     (strcmp('te', name, /fold_case) eq 1) then begin
 
-      Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+      Pe0 = read_field('Pe', x, y, t, slices=time, $
                        filename=filename, points=pts, $
                        rrange=xrange, zrange=yrange, linear=linear, $
                        /equilibrium)
 
-      n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+      n0 = read_field('ne', x, y, t, slices=time, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, linear=linear, $
                       /equilibrium)
@@ -612,11 +612,11 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
       endelse
 
 ;       if(keyword_set(linear) and (isubeq eq 1) and (time ge 0)) then begin
-;           Pe0 = read_field('Pe', x, y, t, slices=time, mesh=mesh, $
+;           Pe0 = read_field('Pe', x, y, t, slices=time, $
 ;                            filename=filename, points=pts, $
 ;                            rrange=xrange, zrange=yrange, /equilibrium)
 
-;           n0 = read_field('ne', x, y, t, slices=time, mesh=mesh, $
+;           n0 = read_field('ne', x, y, t, slices=time, $
 ;                           filename=filename, points=pts,  $
 ;                           rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -631,26 +631,26 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('delta_W', name, /fold_case) eq 1) then begin
 
-      jr0 = read_field('jx',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      jr0 = read_field('jx',x,y,t,filename=filename,points=pts,$
                        slice=-1, rrange=xrange, zrange=yrange, mask=mask)
-      jphi0 = read_field('jy',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      jphi0 = read_field('jy',x,y,t,filename=filename,points=pts,$
                        slice=-1, rrange=xrange, zrange=yrange, mask=mask)
-      jz0 = read_field('jz',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      jz0 = read_field('jz',x,y,t,filename=filename,points=pts,$
                        slice=-1, rrange=xrange, zrange=yrange, mask=mask)
-      jr1 = read_field('jx',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      jr1 = read_field('jx',x,y,t,filename=filename,points=pts,$
                        slice=time, rrange=xrange, zrange=yrange, $
                        complex=complex, linear=linear, phi=phi0)
-      jphi1 = read_field('jy',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      jphi1 = read_field('jy',x,y,t,filename=filename,points=pts,$
                          slice=time, rrange=xrange, zrange=yrange, $
                          complex=complex, linear=linear, phi=phi0)
-      jz1 = read_field('jz',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      jz1 = read_field('jz',x,y,t,filename=filename,points=pts,$
                        slice=time, rrange=xrange, zrange=yrange, $
                        complex=complex, linear=linear, phi=phi0)
-      br0 = read_field('bx',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      br0 = read_field('bx',x,y,t,filename=filename,points=pts,$
                        slice=-1, rrange=xrange, zrange=yrange)
-      bphi0 = read_field('by',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      bphi0 = read_field('by',x,y,t,filename=filename,points=pts,$
                        slice=-1, rrange=xrange, zrange=yrange)
-      bz0 = read_field('bz',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      bz0 = read_field('bz',x,y,t,filename=filename,points=pts,$
                        slice=-1, rrange=xrange, zrange=yrange)
       br1 = read_field('bx',x,y,t,mesh=mesh,filename=filename,points=pts,$
                        slice=time, rrange=xrange, zrange=yrange, $
@@ -699,9 +699,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('K', name, /fold_case) eq 1) then begin
 
-      den0 = read_field('den',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      den0 = read_field('den',x,y,t,filename=filename,points=pts,$
                         slice=-1, rrange=xrange, zrange=yrange)
-      xir = read_field('xi_x',x,y,t,mesh=mesh,filename=filename,points=pts,$
+      xir = read_field('xi_x',x,y,t,filename=filename,points=pts,$
                        slice=time, rrange=xrange, zrange=yrange, $
                        complex=complex, linear=linear, phi=phi0)
       xiphi = read_field('xi_y',x,y,t,mesh=mesh,filename=filename,points=pts,$
@@ -795,19 +795,19 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        complex=complex, phi=phi0)
        
 
-       Te0_r = read_field('Te', x, y, t, mesh=mesh, op=2, $
+       Te0_r = read_field('Te', x, y, t, op=2, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
-       Te0_z = read_field('Te', x, y, t, mesh=mesh, op=3, $
+       Te0_z = read_field('Te', x, y, t, op=3, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
-       psi0 = read_field('psi', x, y, t, mesh=mesh, $
+       psi0 = read_field('psi', x, y, t, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
-       psi0_r = read_field('psi', x, y, t, mesh=mesh, op=2, $
+       psi0_r = read_field('psi', x, y, t, op=2, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
-       psi0_z = read_field('psi', x, y, t, mesh=mesh, op=3, $
+       psi0_z = read_field('psi', x, y, t, op=3, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
       
@@ -835,7 +835,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        rrange=xrange, zrange=yrange, linear=linear, $
                        complex=complex, phi=phi0)
 
-       psi0 = read_field('psi', x, y, t, mesh=mesh, $
+       psi0 = read_field('psi', x, y, t, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
 
@@ -859,10 +859,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                        filename=filename, points=pts, $
                        rrange=xrange, zrange=yrange, linear=linear, $
                        complex=complex, phi=phi0)
-       psi0 = read_field('psi', x, y, t, mesh=mesh, $
+       psi0 = read_field('psi', x, y, t, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
-       p0 = read_field('p', x, y, t, mesh=mesh, $
+       p0 = read_field('p', x, y, t, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, slice=-1)
 
@@ -1460,10 +1460,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      then begin
 
       if(keyword_set(linear)) then begin
-         by0 = read_field('by', x, y, t, slices=-1, mesh=mesh, $
+         by0 = read_field('by', x, y, t, slices=-1, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange)
-         bz0 = read_field('bz', x, y, t, slices=-1, mesh=mesh, $
+         bz0 = read_field('bz', x, y, t, slices=-1, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange)
          by1 = read_field('by', x, y, t, slices=time, mesh=mesh, $
@@ -1494,10 +1494,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      then begin
 
       if(keyword_set(linear)) then begin
-         by0 = read_field('by', x, y, t, slices=-1, mesh=mesh, $
+         by0 = read_field('by', x, y, t, slices=-1, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange)
-         bx0 = read_field('bx', x, y, t, slices=-1, mesh=mesh, $
+         bx0 = read_field('bx', x, y, t, slices=-1, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange)
          by1 = read_field('by', x, y, t, slices=time, mesh=mesh, $
@@ -1529,10 +1529,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      then begin
 
       if(keyword_set(linear)) then begin
-         by0 = read_field('by', x, y, t, slices=-1, mesh=mesh, $
+         by0 = read_field('by', x, y, t, slices=-1, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange)
-         bz0 = read_field('bz', x, y, t, slices=-1, mesh=mesh, $
+         bz0 = read_field('bz', x, y, t, slices=-1, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange)
          by1 = read_field('by', x, y, t, slices=time, mesh=mesh, $
@@ -1563,10 +1563,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
      then begin
 
       if(keyword_set(linear)) then begin
-         by0 = read_field('by', x, y, t, slices=-1, mesh=mesh, $
+         by0 = read_field('by', x, y, t, slices=-1, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange)
-         bx0 = read_field('bx', x, y, t, slices=-1, mesh=mesh, $
+         bx0 = read_field('bx', x, y, t, slices=-1, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange)
          by1 = read_field('by', x, y, t, slices=time, mesh=mesh, $
@@ -1643,10 +1643,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('jn', name, /fold_case) eq 1) then begin
 
-       psi0_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi0_r = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, /equilibrium, $
                         rrange=xrange, zrange=yrange, op=2)
-       psi0_z = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi0_z = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, /equilibrium, $
                         rrange=xrange, zrange=yrange, op=3)
        i_r = read_field('i', x, y, t, slices=time, mesh=mesh, $
@@ -1876,7 +1876,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('jp', name, /fold_case) eq 1) then begin
        
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange, /equilibrium, $
                        wall_mask=wall_mask)
@@ -2014,7 +2014,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
                           rrange=xrange, zrange=yrange, phi=phi0, $
                            linear=linear)
-         den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+         den = read_field('den', x, y, t, slices=time, $
                           filename=filename, points=pts, mask=mask, $
                           rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -2031,7 +2031,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           filename=filename, points=pts, mask=mask, $
                           rrange=xrange, zrange=yrange, phi=phi0, $
                           linear=linear)
-         den = read_field('den', x, y, t, slices=time, mesh=mesh, $
+         den = read_field('den', x, y, t, slices=time, $
                           filename=filename, points=pts, mask=mask, $
                           rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -2100,7 +2100,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        p = read_field('p', x, y, t, slices=time, mesh=mesh, complex=complex, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange, op=op, phi=phi0)
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, /equilibrium, $
+       psi = read_field('psi', x, y, t, slices=time, /equilibrium, $
                       filename=filename, points=pts, linear=linear, $
                       rrange=xrange, zrange=yrange, op=op, phi=phi0)
 
@@ -2499,10 +2499,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('xbdotgradt', name, /fold_case) eq 1) then begin
 
-       Te0 = read_field('Te', x, y, t, slices=time, mesh=mesh, $
+       Te0 = read_field('Te', x, y, t, slices=time, $
                         filename=filename, points=pts, /equilibrium, $
                         rrange=xrange, zrange=yrange)
-       psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi0 = read_field('psi', x, y, t, slices=time, $
                          filename=filename, points=pts, /equilibrium, $
                          rrange=xrange, zrange=yrange)
        if(itor eq 1) then begin
@@ -2523,7 +2523,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                i1 = read_field('i', x, y, t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, linear=linear, $
                                rrange=xrange, zrange=yrange)
-               i0 = read_field('i', x, y, t, slices=time, mesh=mesh, $
+               i0 = read_field('i', x, y, t, slices=time, $
                                filename=filename, points=pts, /equilibrium, $
                                rrange=xrange, zrange=yrange)
                f1 = read_field('f', x, y, t, slices=time, mesh=mesh, $
@@ -2551,13 +2551,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            p1 = read_field('p', x, y, t, slices=time, mesh=mesh, $
                             filename=filename, points=pts, linear=linear, $
                             rrange=xrange, zrange=yrange, complex=complex)
-           p0 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+           p0 = read_field('p', x, y, t, slices=time, $
                             filename=filename, points=pts, /equilibrium, $
                             rrange=xrange, zrange=yrange, complex=complex)
            psi1 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
                            filename=filename, points=pts, linear=linear, $
                            rrange=xrange, zrange=yrange, complex=complex)
-           psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+           psi0 = read_field('psi', x, y, t, slices=time, $
                            filename=filename, points=pts, /equilibrium, $
                            rrange=xrange, zrange=yrange, complex=complex)
            if(itor eq 1) then begin
@@ -2567,7 +2567,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            data = a_bracket(p1, psi0, x, y)/r + a_bracket(p0, psi1, x, y)/r
 
            if(ntor ne 0) then begin
-               i0 = read_field('i', x, y, t, slices=time, mesh=mesh, $
+               i0 = read_field('i', x, y, t, slices=time, $
                                filename=filename, points=pts, /equilibrium, $
                                rrange=xrange, zrange=yrange, complex=complex)
                f1 = read_field('f', x, y, t, slices=time, mesh=mesh, $
@@ -2599,10 +2599,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange)
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-       I = read_field('I', x, y, t, slices=time, mesh=mesh, $
+       I = read_field('I', x, y, t, slices=time, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, /equilibrium)
          
@@ -2633,7 +2633,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange)
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
          
@@ -2689,10 +2689,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, linear=linear, $
                         rrange=xrange, zrange=yrange)
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-       I = read_field('I', x, y, t, slices=time, mesh=mesh, $
+       I = read_field('I', x, y, t, slices=time, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, /equilibrium)
          
@@ -2724,7 +2724,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, mask=mask, $
                         rrange=xrange, zrange=yrange,complex=complex)
-       psi = read_field('psi', x, y, t, /equilibrium, slices=time, mesh=mesh, $
+       psi = read_field('psi', x, y, t, /equilibrium, slices=time, $
                         filename=filename, points=pts, mask=mask, $
                         rrange=xrange, zrange=yrange)
        
@@ -2795,10 +2795,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('bn', name, /fold_case) eq 1) then begin
 
-       psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_r = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, mask=mask, op=2)
-       psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_z = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, mask=mask, op=3)
        psi_r = read_field('psi', x, y, t, mesh=mesh, phi=phi0, $
@@ -2837,10 +2837,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('bpol', name, /fold_case) eq 1) then begin
 
-       psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_r = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, mask=mask, op=2)
-       psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_z = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange, mask=mask, op=3)
        psi_r = read_field('psi', x, y, t, mesh=mesh, $
@@ -3024,7 +3024,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        n = read_field('den', x, y, t, slices=time, mesh=mesh, $
                       filename=filename, points=pts,/mks, $
                       rrange=xrange, zrange=yrange)
-       Te = read_field('Te', x, y, t, slices=time, mesh=mesh, $
+       Te = read_field('Te', x, y, t, slices=time, $
                        filename=filename, points=pts, /equilibrium, /mks,$
                rrange=xrange, zrange=yrange)
 
@@ -3084,10 +3084,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        V   = read_field('V',   x, y, t, slices=time, mesh=mesh, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange)
-       psi = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-       i   = read_field('i',   x, y, t, slices=time, mesh=mesh, $
+       i   = read_field('i',   x, y, t, slices=time, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -3160,13 +3160,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                   or (strcmp('kn', name, /fold_case) eq 1)) $
      then begin
 
-       psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi0 = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-       I0 = read_field('I', x, y, t, slices=time, mesh=mesh, $
+       I0 = read_field('I', x, y, t, slices=time, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, /equilibrium)
-       p0 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+       p0 = read_field('p', x, y, t, slices=time, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -3238,13 +3238,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                   or (strcmp('kg', name, /fold_case) eq 1)) $
      then begin
 
-       psi0 = read_field('psi', x, y, t, slices=time, mesh=mesh, $
+       psi0 = read_field('psi', x, y, t, slices=time, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-       I0 = read_field('I', x, y, t, slices=time, mesh=mesh, $
+       I0 = read_field('I', x, y, t, slices=time, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, /equilibrium)
-       p0 = read_field('p', x, y, t, slices=time, mesh=mesh, $
+       p0 = read_field('p', x, y, t, slices=time, $
                       filename=filename, points=pts, $
                       rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -3458,13 +3458,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        endelse
 
        if(ilin eq 1) then begin
-          psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+          psi0_r = read_field('psi', x, y, t, /equilibrium, $
                               filename=filename, points=pts, slices=time, $
                               rrange=xrange, zrange=yrange,op=2)
-          psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+          psi0_z = read_field('psi', x, y, t, /equilibrium, $
                               filename=filename, points=pts, slices=time, $
                               rrange=xrange, zrange=yrange,op=3)
-          i0 = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+          i0 = read_field('i', x, y, t, /equilibrium, $
                           filename=filename, points=pts, slices=time, $
                           rrange=xrange, zrange=yrange)
           f1_r = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
@@ -3531,7 +3531,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    endif else if(strcmp('jpar_B', name, /fold_case) eq 1) then begin
 
-       psi0 = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0 = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange)
        jphi = read_field('jphi', x, y, t, linear=linear, mesh=mesh, $
@@ -3541,7 +3541,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                       filename=filename, points=pts, slices=time, $
                       rrange=xrange, zrange=yrange, $
                       linear=linear, complex=complex)
-       i0 = read_field('i', x, y, t, mesh=mesh, $
+       i0 = read_field('i', x, y, t, $
                       filename=filename, points=pts, slices=time, $
                       rrange=xrange, zrange=yrange, /equilibrium, $
                       complex=complex)
@@ -3555,22 +3555,22 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    endif else if(strcmp('jpar_lin', name, /fold_case) eq 1) then begin
 
-       psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_r = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange,op=2)
-       psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_z = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange,op=3)
-       psi0_lp = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_lp = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange,op=7)
-       i0 = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+       i0 = read_field('i', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange)
-       i0_r = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+       i0_r = read_field('i', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange,op=2)
-       i0_z = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+       i0_z = read_field('i', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange,op=3)
 
@@ -3650,13 +3650,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
    endif else if(strcmp('jb', name, /fold_case) eq 1) then begin
 
-       psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_r = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange,op=2)
-       psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+       psi0_z = read_field('psi', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange,op=3)
-       i0 = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+       i0 = read_field('i', x, y, t, /equilibrium, $
                         filename=filename, points=pts, slices=time, $
                         rrange=xrange, zrange=yrange)
 
@@ -3785,13 +3785,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0)
 
-       Bx0 = read_field('Bx', x, y, t, slices=-1, mesh=mesh,$
+       Bx0 = read_field('Bx', x, y, t, slices=-1,$
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       By0 = read_field('By', x, y, t, slices=-1, mesh=mesh,$
+       By0 = read_field('By', x, y, t, slices=-1,$
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       Bz0 = read_field('Bz', x, y, t, slices=-1, mesh=mesh, $
+       Bz0 = read_field('Bz', x, y, t, slices=-1, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
        
@@ -3824,13 +3824,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0)
 
-       Bx0 = read_field('Bx', x, y, t, slices=-1, mesh=mesh,$
+       Bx0 = read_field('Bx', x, y, t, slices=-1,$
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       By0 = read_field('By', x, y, t, slices=-1, mesh=mesh,$
+       By0 = read_field('By', x, y, t, slices=-1,$
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       Bz0 = read_field('Bz', x, y, t, slices=-1, mesh=mesh, $
+       Bz0 = read_field('Bz', x, y, t, slices=-1, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
        
@@ -3863,13 +3863,13 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, phi=phi0)
 
-       Bx0 = read_field('Bx', x, y, t, slices=-1, mesh=mesh,$
+       Bx0 = read_field('Bx', x, y, t, slices=-1,$
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       By0 = read_field('By', x, y, t, slices=-1, mesh=mesh,$
+       By0 = read_field('By', x, y, t, slices=-1,$
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
-       Bz0 = read_field('Bz', x, y, t, slices=-1, mesh=mesh, $
+       Bz0 = read_field('Bz', x, y, t, slices=-1, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, phi=phi0)
        
@@ -3900,7 +3900,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange)
 
-       psi0=read_field('psi', x, y, t, slices=time, mesh=mesh, linear=linear, $
+       psi0=read_field('psi', x, y, t, slices=time, linear=linear, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -3955,16 +3955,16 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 ;;        if(keyword_set(linear)) then begin
 ;;           print, "LINEAR IS SET"
 
-;;           p0 = read_field('p', x, y, t, slice=-1, mesh=mesh, $
+;;           p0 = read_field('p', x, y, t, slice=-1, $
 ;;                           filename=filename, points=pts, $
 ;;                           rrange=xrange, zrange=yrange, phi=phi0)
-;;           den0 = read_field('den', x, y, t, slice=-1, mesh=mesh,  $
+;;           den0 = read_field('den', x, y, t, slice=-1,  $
 ;;                             filename=filename, points=pts, $
 ;;                             rrange=xrange, zrange=yrange, phi=phi0)
-;;           psi0 = read_field('psi', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
+;;           psi0 = read_field('psi', x, y, t, slices=-1, phi=phi0, $
 ;;                             filename=filename, points=pts, $
 ;;                             rrange=xrange, zrange=yrange)
-;;           i0 = read_field('i', x, y, t, slices=-1, mesh=mesh, phi=phi0, $
+;;           i0 = read_field('i', x, y, t, slices=-1, phi=phi0, $
 ;;                           filename=filename, points=pts, $
 ;;                           rrange=xrange, zrange=yrange)
           
@@ -4060,25 +4060,25 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('dbndt', name, /fold_case) eq 1) then begin
 
-;        psi0 = read_field('psi',x,y,t,slices=time,mesh=mesh, linear=linear,  $
+;        psi0 = read_field('psi',x,y,t,slices=time,linear=linear,  $
 ;                          filename=filename, points=pts, /equilibrium, $
 ;                          rrange=xrange, zrange=yrange)
-       psi0_r = read_field('psi',x,y,t,slices=time,mesh=mesh,linear=linear,  $
+       psi0_r = read_field('psi',x,y,t,slices=time,linear=linear,  $
                            filename=filename, points=pts, /equilibrium, $
                            rrange=xrange, zrange=yrange,op=2)
-       psi0_z = read_field('psi',x,y,t,slices=time,mesh=mesh,linear=linear,  $
+       psi0_z = read_field('psi',x,y,t,slices=time,linear=linear,  $
                            filename=filename, points=pts, /equilibrium, $
                            rrange=xrange, zrange=yrange,op=3)
-       i0 = read_field('i', x, y, t, slices=time, mesh=mesh, linear=linear,  $
+       i0 = read_field('i', x, y, t, slices=time, linear=linear,  $
                        filename=filename, points=pts, /equilibrium, $
                        rrange=xrange, zrange=yrange)
-       i0_r = read_field('i',x,y,t, slices=time, mesh=mesh, linear=linear,  $
+       i0_r = read_field('i',x,y,t, slices=time, linear=linear,  $
                          filename=filename, points=pts, /equilibrium, $
                          rrange=xrange, zrange=yrange,op=2)
-       i0_z = read_field('i', x,y,t, slices=time, mesh=mesh, linear=linear,  $
+       i0_z = read_field('i', x,y,t, slices=time, linear=linear,  $
                          filename=filename, points=pts, /equilibrium, $
                          rrange=xrange, zrange=yrange,op=3)
-       w0 = read_field('omega',x,y,t,slices=time, mesh=mesh, linear=linear,  $
+       w0 = read_field('omega',x,y,t,slices=time, linear=linear,  $
                        filename=filename, points=pts, /equilibrium, $
                        rrange=xrange, zrange=yrange)
 
@@ -4152,7 +4152,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('curletaj', name, /fold_case) eq 1) then begin
 
-       eta = read_field('eta',x,y,t,slices=time, mesh=mesh, linear=linear,  $
+       eta = read_field('eta',x,y,t,slices=time, linear=linear,  $
                         filename=filename, points=pts, /equilibrium, $
                         rrange=xrange, zrange=yrange)
 
@@ -4372,16 +4372,16 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('torque_b1', name, /fold_case) eq 1) then begin
 
-        psi0_r = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+        psi0_r = read_field('psi', x, y, t, /equilibrium, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange, op=2)
-        psi0_z = read_field('psi', x, y, t, /equilibrium, mesh=mesh, $
+        psi0_z = read_field('psi', x, y, t, /equilibrium, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange, op=3)
-        i0_r = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+        i0_r = read_field('i', x, y, t, /equilibrium, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange, op=2)
-        i0_z = read_field('i', x, y, t, /equilibrium, mesh=mesh, $
+        i0_z = read_field('i', x, y, t, /equilibrium, $
                          filename=filename, points=pts, $
                          rrange=xrange, zrange=yrange, op=3)
         psi_r = read_field('psi', x, y, t, slices=time, mesh=mesh, $
@@ -4436,10 +4436,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('torque_mu', name, /fold_case) eq 1) then begin
 
-       mu = read_field('visc', x, y, t, slices=time,mesh=mesh,linear=linear, $
+       mu = read_field('visc', x, y, t, slices=time,linear=linear, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange,/equilibrium)
-       mu_c = read_field('visc_c',x,y,t, slices=time,mesh=mesh,linear=linear, $
+       mu_c = read_field('visc_c',x,y,t, slices=time,linear=linear, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange,/equilibrium)
 
@@ -4476,10 +4476,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('torque_v1', name, /fold_case) eq 1) then begin
 
-       w0 = read_field('omega', x, y, t, slices=time,mesh=mesh,linear=linear, $
+       w0 = read_field('omega', x, y, t, slices=time,linear=linear, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
-       n0 = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear, $
+       n0 = read_field('den', x, y, t, slices=time,linear=linear, $
                         filename=filename, points=pts, $
                         rrange=xrange, zrange=yrange, /equilibrium)
 
@@ -4502,10 +4502,10 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
    ;===========================================
    endif else if(strcmp('torque_vv2', name, /fold_case) eq 1) then begin
 
-       psi0 = read_field('psi', x, y, t, slices=time,mesh=mesh,linear=linear, $
+       psi0 = read_field('psi', x, y, t, slices=time,linear=linear, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange,/equilibrium)
-       n0 = read_field('den', x, y, t, slices=time,mesh=mesh,linear=linear, $
+       n0 = read_field('den', x, y, t, slices=time,linear=linear, $
                         filename=filename, points=pts, complex=complex, $
                         rrange=xrange, zrange=yrange, /equilibrium)
 
