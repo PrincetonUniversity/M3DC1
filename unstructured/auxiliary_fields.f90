@@ -869,6 +869,7 @@ subroutine calculate_auxiliary_fields(ilin)
      call vector_insert_block(ef_r%vec,itri,1,dofs,VEC_ADD)
 
      call electric_field_phi(ilin,temp79a,izone)
+     if(itor.eq.0) temp79a = temp79a/rzero
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(ef_phi%vec,itri,1,dofs,VEC_ADD)
 
