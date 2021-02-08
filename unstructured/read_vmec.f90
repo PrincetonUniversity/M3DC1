@@ -51,6 +51,7 @@ contains
 !    call half2full(mn_mode_nyq,mb_nyq,bsupumnc)
 !    call half2full(mn_mode_nyq,mb_nyq,bsupvmnc)
     if(myrank.eq.0) print *, 'n_zer = ', n_zer
+    if(myrank.eq.0) print *, 'n_quad = ', n_quad
 
     ! put VMEC data on Zernike basis
     ! radial grid
@@ -136,7 +137,7 @@ contains
 !    else 
 !      n_quad = n_zer/2
 !    end if 
-    n_quad = 2*n_zer + 1
+    n_quad = 4*n_zer + 1
     allocate(quad(2,n_quad))
   end subroutine allocate_vmec
 

@@ -376,6 +376,7 @@ contains
     type(schaffer_field), intent(in) :: sf
     integer, intent(in) :: npts
     real, intent(in), dimension(npts) :: r1, phi1, z1
+    real, dimension(npts) :: phim
     real, intent(out), dimension(npts) :: br_out, bphi_out, bz_out, p_out
 
     integer :: j, k, l, m, n, ierr, rank
@@ -386,9 +387,12 @@ contains
     logical :: out_of_bounds = .false.
     real :: obr, obz
 
+    ! Modulo on phi in case data is only one field period
+    phim = mod(phi1 - sf%phi(1),(sf%phi(sf%nphi) - sf%phi(1))) + sf%phi(1)
+
     do k=1, npts
        x(1) = (sf%nr   - 1)*(r1(k) - sf%r(1))/(sf%r(sf%nr) - sf%r(1)) + 1
-       x(2) = (sf%nphi - 1)*(phi1(k) - sf%phi(1)) &
+       x(2) = (sf%nphi - 1)*(phim(k) - sf%phi(1)) &
             /(sf%phi(sf%nphi) - sf%phi(1)) + 1
        x(3) = (sf%nz   - 1)*(z1(k) - sf%z(1))/(sf%z(sf%nz) - sf%z(1)) + 1
 
@@ -472,5 +476,87 @@ contains
             obr, obz
     endif
   end subroutine get_external_field
+
+  subroutine load_fieldlines_field(sf, filename, isamp, isamp_pol, error)
+    use hdf5
+    implicit none
+
+    type(schaffer_field), intent(inout) :: sf
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: isamp, isamp_pol
+    integer, intent(out) :: error
+    integer :: k 
+    integer(HID_T) :: file_id, dset_id, attr_id
+    integer(HSIZE_T), dimension(1) :: dim0 = 1
+    integer(HSIZE_T), dimension(1) :: dim1 
+    integer(HSIZE_T), dimension(3) :: dim3
+    real, allocatable :: br1(:,:,:), bphi1(:,:,:), bz1(:,:,:)
+
+    sf%vmec = .false.
+    error = 0
+
+    call h5open_f(error)
+    call h5fopen_f(filename, H5F_ACC_RDONLY_F, file_id, error)
+
+    ! read array sizes nr, nphi, and nz 
+    call h5dopen_f(file_id, 'nr', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_INTEGER, sf%nr, dim0, error)
+    call h5dclose_f(dset_id, error)
+    call h5dopen_f(file_id, 'nphi', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_INTEGER, sf%nphi, dim0, error)
+    call h5dclose_f(dset_id, error)
+    call h5dopen_f(file_id, 'nz', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_INTEGER, sf%nz, dim0, error)
+    call h5dclose_f(dset_id, error)
+
+    if(.not. sf%initialized) then
+       allocate(sf%r(sf%nr))
+       allocate(sf%z(sf%nz))
+       allocate(sf%phi(sf%nphi))
+       allocate(sf%br(sf%nphi,sf%nr,sf%nz))
+       allocate(sf%bphi(sf%nphi,sf%nr,sf%nz))
+       allocate(sf%bz(sf%nphi,sf%nr,sf%nz))
+       allocate(br1(sf%nr,sf%nphi,sf%nz))
+       allocate(bphi1(sf%nr,sf%nphi,sf%nz))
+       allocate(bz1(sf%nr,sf%nphi,sf%nz))
+    end if
+    ! read 1d arrays r, phi, and z
+    dim1(1) = sf%nr 
+    call h5dopen_f(file_id, 'raxis', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, sf%r, dim1, error)
+    call h5dclose_f(dset_id, error)
+    dim1(1) = sf%nz 
+    call h5dopen_f(file_id, 'zaxis', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, sf%z, dim1, error)
+    call h5dclose_f(dset_id, error)
+    dim1(1) = sf%nphi 
+    call h5dopen_f(file_id, 'phiaxis', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, sf%phi, dim1, error)
+    call h5dclose_f(dset_id, error)
+
+    ! read 3d arrays br, bphi, and bz
+    dim3(1) = sf%nr 
+    dim3(2) = sf%nphi 
+    dim3(3) = sf%nz
+    call h5dopen_f(file_id, 'B_R', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, br1, dim3, error)
+    call h5dclose_f(dset_id, error)
+    call h5dopen_f(file_id, 'B_PHI', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bphi1, dim3, error)
+    call h5dclose_f(dset_id, error)
+    call h5dopen_f(file_id, 'B_Z', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bz1, dim3, error)
+    call h5dclose_f(dset_id, error)
+
+    do k = 1, sf%nz
+       sf%br(:,:,k) = transpose(br1(:,:,k))
+       sf%bphi(:,:,k) = transpose(bphi1(:,:,k))
+       sf%bz(:,:,k) = transpose(bz1(:,:,k))
+    end do 
+    deallocate(br1,bz1,bphi1)
+
+    sf%initialized = .true.
+
+  end subroutine load_fieldlines_field
 
 end module read_schaffer_field

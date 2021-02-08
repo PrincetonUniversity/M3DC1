@@ -558,6 +558,10 @@ subroutine set_defaults
        "Factor to scale external field", eq_grp)
   call add_var_double_array("shift_ext_field", shift_ext_field, 8, 0., &
        "Toroidal shift (in deg) of external fields", eq_grp)
+  call add_var_int("type_ext_field",type_ext_field,0,&
+       "type of external field file", eq_grp)
+  call add_var_string("file_ext_field", file_ext_field, 256, "error_field", &
+       "name of external field file", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
   call add_var_double("elongation", elongation, 1., "", eq_grp)

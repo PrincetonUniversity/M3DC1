@@ -514,7 +514,7 @@ contains
     br = lout
     bphi = -phiv/twopi
     bz = chiv/twopi
-    p = p !+ pedge 
+    p = p + pedge 
   end subroutine vmec_fields
   
 #endif

@@ -3,6 +3,8 @@ module rmp
   use coils
   use read_schaffer_field
 
+  implicit none
+
   real :: tf_tilt, tf_tilt_angle
   real :: tf_shift, tf_shift_angle
   real, dimension(maxcoils) :: pf_tilt, pf_tilt_angle
@@ -33,24 +35,31 @@ subroutine rmp_per
 
   ! load external field data from schaffer file
   if(iread_ext_field.ge.1) then
-     allocate(sf(iread_ext_field))
-     do l=1, iread_ext_field
-        if(iread_ext_field.eq.1) then
-           ext_field_name = 'error_field'
-        else
-           write(ext_field_name, '("error_field",I2.2)') l
-        end if
-        call load_schaffer_field(sf(l),ext_field_name,isample_ext_field, &
-             isample_ext_field_pol,ierr)
-        if(ierr.ne.0) call safestop(6)
-
+     if(type_ext_field.eq.1) then
+        allocate(sf(1))
+        call load_fieldlines_field(sf(1), file_ext_field,isample_ext_field, &
+                isample_ext_field_pol,ierr)
+     else if(type_ext_field.eq.0) then
+        allocate(sf(iread_ext_field))
+        do l=1, iread_ext_field
+   
+           if(iread_ext_field.eq.1) then
+              ext_field_name = 'error_field'
+           else
+              write(ext_field_name, '("error_field",I2.2)') l
+           end if
+           call load_schaffer_field(sf(l),ext_field_name,isample_ext_field, &
+                isample_ext_field_pol,ierr)
+           if(ierr.ne.0) call safestop(6)
+   
 #ifdef USECOMPLEX
-        if(myrank.eq.0 .and. iprint.gt.2) then
-           print *, 'Calculating field FT'
-        end if
-        call calculate_external_field_ft(sf(l), ntor)
+           if(myrank.eq.0 .and. iprint.gt.2) then
+              print *, 'Calculating field FT'
+           end if
+           call calculate_external_field_ft(sf(l), ntor)
 #endif
-     end do
+        end do
+     end if
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
@@ -159,21 +168,22 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
         theta = -atan2(z - zzero, x - xzero)
         arg = ntor*r/rzero
-        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))!-pi/2))
+        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta-pi/2))
         do i=1, n
            brv(i)     = 0.5*(Bessel_I(mpol-1, arg(i)) + Bessel_I(mpol+1, arg(i)))
            bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
-        fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
-        !fac = (ntor/rzero)/(mpol*bzero)
+        !fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
+        fac = (ntor/rzero)/(mpol*bzero)
         !fac = eps 
         if(rmp_atten.ne.0) then
            atten = exp((r-1.)/rmp_atten)
         else
            atten = 1.
         end if
-        !if(present(p)) p = real(phase*bzv     *eps / fac * atten)
+        !if(present(p)) p = real(-phase*bzv     *eps / fac * atten)
+        !if(present(p)) p = pedge 
         brv     =        (ntor/rzero)*phase*brv     *eps / fac * atten
         bthetav = -(0,1)*mpol        *phase*bthetav *eps / fac * atten
         bzv     =  (0,1)*(ntor/rzero)*phase*bzv     *eps / fac * atten
@@ -385,6 +395,7 @@ subroutine calculate_external_fields()
 #if defined(USECOMPLEX) || defined(USE3D)
      temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
           -          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
+     !temp(:,:,1,2) = 0.
 #else
      temp(:,:,1,2) = 0.
 #endif
@@ -519,6 +530,9 @@ subroutine calculate_external_fields()
   end if
   !psi_field(1) = 0.
   !bfp_field(1) = 0. 
+  !bfp_field(1) = p_f
+  p_field(1) = 0. 
+  call add(p_field(1), pedge) 
   !bz_field(1) = bf_f
   !call mult(bz_field(1), -1.) 
   !call add(bz_field(1), p_field(1))

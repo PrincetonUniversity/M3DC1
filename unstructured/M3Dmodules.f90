@@ -3,6 +3,8 @@ module basic
   use pid_controller
   use spline
 
+  implicit none
+
   integer, parameter :: ijacobian = 1
 
   integer, parameter :: version = 35
@@ -196,6 +198,8 @@ module basic
   integer :: isample_ext_field_pol
 
   real :: scale_ext_field
+  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines output.
+  character(len=256) :: file_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
 

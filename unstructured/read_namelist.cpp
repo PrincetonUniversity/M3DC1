@@ -474,7 +474,7 @@ public:
 			MPI_CHAR, 0, MPI_COMM_WORLD);
 	    }
 	  }
-	  k++;
+          k += i->second->get_size();
 	}
 	i++;
       }
