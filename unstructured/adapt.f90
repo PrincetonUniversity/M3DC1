@@ -35,44 +35,37 @@ subroutine adapt_mesh
     use transport_coefficients
 
     integer :: izone, izonedim, i
-    integer :: numelms, numnodes, itri, inode
-    integer, dimension(nodes_per_element) :: nodeids
+    integer :: numnodes, inode
     character(len=32) :: mesh_file_name
     integer, dimension(MAX_PTS) :: mr
     vectype, dimension(dofs_per_node) :: dofs1, dofs2
     type(field_type) :: size1, size2
     real, allocatable :: unit1(:)
     real :: x, phi, z, r, w
-    real, parameter :: mins = 0.001, maxs = 0.1, aniso = 5.
-    real, parameter :: x0 = 1.7, z0 =  0.1, w0 = 0.05
+    real, parameter :: mins = 0.01, maxs = 0.2, aniso = 2.
+    real, parameter :: x0 = 0.9, z0 =  0., r0=0.3, w0 = 0.2
+    integer, parameter :: adapt_iters=10
 
-    if(myrank.eq.0) print *, "ADAPT TEST"
+    do i=1,adapt_iters
+       if(myrank.eq.0) print *, "ADAPT TEST", i
 
-    call create_field(size1)
-    call create_field(size2)
-    numelms = local_elements()
-    numnodes = owned_nodes()
-    allocate(unit1(3*numnodes))
+       call create_field(size1)
+       call create_field(size2)
+       numnodes = local_nodes()
+       allocate(unit1(3*numnodes))
 
-    size1 = 0.
-    size2 = 0.
-    dofs1 = 0.
-    dofs2 = 0.
-    unit1 = 0.
+       size1 = 0.
+       size2 = 0.
+       dofs1 = 0.
+       dofs2 = 0.
+       unit1 = 0.
 
-    do itri=1,numelms
-       call m3dc1_ent_getgeomclass(2, itri-1, izonedim, izone)
-       
-       call get_element_nodes(itri,nodeids)
+       do inode=1,numnodes
 
-       do i=1,nodes_per_element
-
-          ! BCL 1/25/21: I'm not sure about this nodes_owned
-          inode = nodes_owned(nodeids(i))
           call get_node_pos(inode, x, phi, z)
 
           r = sqrt((x - x0)**2 + (z - z0)**2)
-          w = abs(r-0.3)
+          w = abs(r-r0)
           if(w > w0) then
              dofs1(1) = maxs
              dofs2(1) = maxs
@@ -81,7 +74,7 @@ subroutine adapt_mesh
              unit1((inode-1)*3+3) = 0.0
           else
              dofs1(1) = mins + (maxs - mins)*w/w0
-             dofs2(1) = maxs
+             dofs2(1) = mins + aniso*(maxs - mins)*w/w0
              unit1((inode-1)*3+1) = (x-x0)/r
              unit1((inode-1)*3+2) = (z-z0)/r
              unit1((inode-1)*3+3) = 0.0
@@ -89,34 +82,33 @@ subroutine adapt_mesh
           
           call set_node_data(size1,inode,dofs1)
           call set_node_data(size2,inode,dofs2)
-             
+
        end do
+       call finalize(size1%vec)
+       call finalize(size2%vec)
 
+       call straighten_fields()
+       call m3dc1_mesh_adapt(size1%vec%id, size2%vec%id, unit1, iadapt_snap, &
+            iadapt_pre_zoltan, iadapt_post_zoltan, iadapt_refine_layer, &
+            iadapt_max_iter, iadapt_quality)
+       write(mesh_file_name,"(A7,A)") 'adapted', 0
+       if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
+
+       deallocate(unit1)
+       call destroy_field(size1)
+       call destroy_field(size2)
+       call space(0)
+       call update_nodes_owned()
+       call tridef
+       call unstraighten_fields()
+
+       call create_newvar_matrices
+       field_vec = 0.
+       field0_vec = 0.
+       if (myrank .eq. 0) print *, "re-calculate equlibrium after adapt .."
+       call initial_conditions
     end do
-    call finalize(size1%vec)
-    call finalize(size2%vec)
 
-    call straighten_fields()
-    print *, "BEFORE ADAPT"
-    call m3dc1_mesh_adapt(size1%vec%id, size2%vec%id, unit1, 0, 0, 0, 1, 5, 0.4)
-    print *, "AFTER ADAPT"
-    if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
-    if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
-
-    deallocate(unit1)
-    call destroy_field(size1)
-    call destroy_field(size2)
-    call space(0)
-    call update_nodes_owned()
-    call tridef
-    call unstraighten_fields()
-
-    call create_newvar_matrices
-    if(irestart .ne. 0) return
-    field_vec = 0.
-    field0_vec = 0.
-    if (myrank .eq. 0) print *, "re-calculate equlibrium after adapt .."
-    call initial_conditions
     ! combine the equilibrium and perturbed fields of linear=0
     ! unless eqsubtract = 1
     if(eqsubtract.eq.0) then
@@ -138,6 +130,7 @@ subroutine adapt_mesh
 
   end subroutine adapt_mesh
 #endif
+
   subroutine adapt_by_psi
     use basic
     use mesh_mod
