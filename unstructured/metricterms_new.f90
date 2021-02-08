@@ -5231,7 +5231,7 @@ function b1psieta2(e,f,g,h,imod)
 #endif
      else
 
-#if defined(USE3D) || defined(USECOMPLEX)
+#if defined(USECOMPLEX)
         if(.not.imod) then
            temp = - &
                 (intx4(e(:,:,OP_DZ),ri4_79,f(:,OP_DZPP),g(:,OP_1)) &
@@ -5240,6 +5240,14 @@ function b1psieta2(e,f,g,h,imod)
                 +intx4(e(:,:,OP_DR),ri4_79,f(:,OP_DRP),g(:,OP_DP)))
         end if
 #endif
+#if defined(USE3D)
+        if(.not.imod) then
+           temp =  &
+                 intx4(e(:,:,OP_DZP),ri4_79,f(:,OP_DZP),g(:,OP_1)) &
+                +intx4(e(:,:,OP_DRP),ri4_79,f(:,OP_DRP),g(:,OP_1)) 
+        end if
+#endif
+
      end if
   endif
 
@@ -5332,10 +5340,16 @@ function b1beta(e,f,g)
                 - intx5(e(:,:,OP_1),ri3_79,g(:,OP_1),norm79(:,1),f(:,OP_DZP))
         endif
      else
+#if defined(USE3D)
+        temp = - (intx4(e(:,:,OP_DRP),ri3_79,f(:,OP_DZ),g(:,OP_1 )) &
+                - intx4(e(:,:,OP_DZP),ri3_79,f(:,OP_DR),g(:,OP_1 )))
+#endif
+#if defined(USECOMPLEX)
         temp = intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZP),g(:,OP_1 )) &
              - intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DRP),g(:,OP_1 )) &
              + intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ ),g(:,OP_DP)) &
              - intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DR ),g(:,OP_DP))
+#endif
         if(hypf.gt.0 .and. imp_hyper.le.1) then
            if(ihypeta.eq.0) then
               temp = temp - hypf*intx3(e(:,:,OP_DZP),ri5_79,f(:,OP_DRPP)) &

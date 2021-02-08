@@ -15,6 +15,7 @@
 #include "m3dc1_mesh.h" // debugging purpose
 #include <parma.h>
 #include "PCU.h"
+#include "apfMDS.h"
 #include "petscksp.h"
 #include <iostream>
 #include <assert.h>
@@ -147,6 +148,7 @@ int main( int argc, char** argv)
   //int three=3;
   //m3dc1_mesh_write("geoId", &three);
 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   printStats(m3dc1_mesh::instance()->mesh);
   int ent_dim=2;
   if (num_plane>1)
@@ -156,32 +158,50 @@ int main( int argc, char** argv)
     m3dc1_mesh_build3d(&zero, &zero, &zero);
   }
  
-   int num_ent = 10;
-  int* ent_ids=new int[num_ent];
+  int num_ent = (m3dc1_mesh::instance()->mesh->count(3))? 
+               m3dc1_mesh::instance()->mesh->count(3):m3dc1_mesh::instance()->mesh->count(2);
+  num_ent/=2;
+  int* ent_id = new int[num_ent];
   int* num_adj_ent=new int[num_ent];
 
   // M3DC1 assumption - local ID is continuous 
-  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(ent_dim-1);
   apf::MeshEntity* e;
-  int i=0;
+  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(ent_dim);
+  int cnt=0;
   while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
   {
-    ent_ids[i++] =  get_ent_localid(m3dc1_mesh::instance()->mesh,e);
-    if (i==10) break;
+    ent_id[cnt] = apf::getMdsIndex(m, e);
+    cnt++;
+    if (cnt==num_ent) break;
   }
-  m3dc1_mesh::instance()->mesh->end(it);
-  m3dc1_ent_getnumglobaladj (&ent_dim, ent_ids, &num_ent, &ent_dim, num_adj_ent);
-/*
-  for (int p=0; p<PCU_Comm_Peers();++p)
-  {
-    if (p==PCU_Comm_Self())   
-      for (int i=0; i<10; ++i)
-        std::cout<<"("<<p<<") # adj element of elem "<<i<<" = "<<num_adj_ent[i]<<"\n";
-   MPI_Barrier(MPI_COMM_WORLD) ;
-  }
-    
-*/
+  m->end(it);
 
+  m3dc1_ent_getnumglobaladj (&ent_dim, ent_id, &num_ent, &ent_dim, num_adj_ent);
+
+/*
+  int adj_cnt=(m3dc1_mesh::instance()->mesh->count(3))? 5:3;
+  int count=0, down_size;  
+  apf::MeshIterator* it = m3dc1_mesh::instance()->mesh->begin(ent_dim);
+  while ((e = m3dc1_mesh::instance()->mesh->iterate(it)))
+  {
+    if (num_adj_ent[count]!=adj_cnt)
+    {
+      std::cout<<"(p"<<PCU_Comm_Self()<<") # adj element of elem "<<count<<" = "<<num_adj_ent[count]<<"\n";
+      apf::Downward downward;
+      down_size = m3dc1_mesh::instance()->mesh->getDownward(e, ent_dim-1, downward);
+
+      for (int i=0; i<down_size; ++i)
+      {
+        down_e = downward[i];
+       // if (m3dc1_mesh::instance()->mesh->isShared(down_e)) 
+       //   std::cout<<"(p"<<PCU_Comm_Self()<<") downward "<<i<<" is on part bdry\n";
+      }
+    }
+    count++;
+  } 
+  m3dc1_mesh::instance()->mesh->end(it);
+    //MPI_Barrier(MPI_COMM_WORLD) ;
+*/
   int num_layer=2;
   m3dc1_ghost_create(&num_layer);
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);

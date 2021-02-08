@@ -98,7 +98,7 @@ contains
           call safestop(1)
        end if
        ! check if fp is present
-       if(version_in.ge.35) then
+       if(version_in.ge.35 .and. numvar.gt.1) then
           irestart_fp = 1
           if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is present at restart"
        else
@@ -183,23 +183,43 @@ contains
              call read_int_attr(root_id, "npellets", npellets,  error)
              call h5gopen_f(root_id, "pellet", pel_group_id, error)
              
-             call read_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
-             call read_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
-             if(version_in.ge.33) then
-                call read_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
+             if(irestart_pellet.eq.0) then     
+                 ! Read all pellet parameters from restart .h5 file
+                 call read_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_rate",    pellet_rate,    npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_rate_D2", pellet_rate_D2, npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_mix",     pellet_mix,     npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_var_tor", pellet_var_tor, npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "cloud_pel",      cloud_pel,      npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_var",     pellet_var,     npellets, ntime, error)
+                 if(version_in.ge.33) then
+                    call read_1dextendarr(pel_group_id, "cauchy_fraction",cauchy_fraction, npellets, ntime, error)
+                 end if
+
+             else if(irestart_pellet.eq.1) then
+                 ! Control ablated cloud size and others parameters from C1input
+                 call read_1dextendarr(pel_group_id, "pellet_r",       pellet_r,       npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_phi",     pellet_phi,     npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_z",       pellet_z,       npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_velr",    pellet_velr,    npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_velphi",  pellet_velphi,  npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_velz",    pellet_velz,    npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
+                 call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
+             else
+                 if(myrank.eq.0) then
+                    print *, 'Error: irestart_pellet not available for this value: ',irestart_pellet
+                    call safestop(30)
+                end if         
              end if
              call h5gclose_f(pel_group_id, error)
           end if
@@ -268,21 +288,16 @@ contains
        call hdf5_initialize(.false., error)
 
        if(eqsubtract.eq.0) then
-         psi_field(0) = psi_field(1)
-         psi_field(1) = 0.
+         ! move data to field0 so that equilibrium data is written correctly
+         field0_vec = field_vec
+         field_vec = 0.
          nre_field(0) = nre_field(1)
          nre_field(1) = 0.
-         u_field(0) = u_field(1)
-         u_field(1) = 0.
        endif
        call init_perturbations
        if(eqsubtract.eq.0) then
-         call add_field_to_field(psi_field(1),psi_field(0))
-         psi_field(0) = 0.
          call add_field_to_field(nre_field(1),nre_field(0))
          nre_field(0) = 0.
-         call add_field_to_field(u_field(1),u_field(0))
-         u_field(0) = 0.
        endif
     end if
 

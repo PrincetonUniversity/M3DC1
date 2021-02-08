@@ -18,7 +18,7 @@ from m3dc1.eval_field import eval_field
 
 
 
-def plot_shape(sim=None, file_name='C1.h5', time=0, phi=0, Nlvl_in=10, Nlvl_out=1, mesh=False, bound=False, lcfs=False, ax=None, pub=False):
+def plot_shape(sim=None, file_name='C1.h5', time=-1, phi=0, Nlvl_in=10, Nlvl_out=1, res=250, mesh=False, bound=False, lcfs=False, ax=None, pub=False):
     """
     Plot flux surfaces in poloidal plane
     
@@ -54,36 +54,6 @@ def plot_shape(sim=None, file_name='C1.h5', time=0, phi=0, Nlvl_in=10, Nlvl_out=
     **pub**
     If True, plot will be formatted for publication
     """
-    if isinstance(sim,fpy.sim_data)==False:
-        if sim!=None:
-            print('Specified sim is not a sim_data object. Reading simulation...')
-        simplot = fpy.sim_data(file_name)
-    else:
-        simplot = sim
-    
-    psi_axis = simplot.get_time_traces('psimin').values[0]
-    print("Psi at magn. axis: "+str(psi_axis))
-    
-    psi_lcfs = simplot.get_time_traces('psi_lcfs').values[0]
-    print("Psi at LCFS: "+str(psi_lcfs))
-    
-    
-    fac = 1.0
-    elms = simplot.get_mesh(time=time)
-    mp = elms.elements
-    R = mp[:,4]*fac
-    Z = mp[:,5]*fac
-    
-    vecpotfield = simplot.get_field('A',time)
-    Aphi = np.zeros_like(R)
-    for idx in range(len(R)):
-        Aphi[idx] = vecpotfield.evaluate((R[idx],phi,Z[idx]))[1]
-    psifield = R*Aphi
-    
-    levels = (np.arange(Nlvl_in+Nlvl_out+1.)/Nlvl_in)
-    levels = levels*(psi_lcfs-psi_axis)+psi_axis
-    if psi_lcfs < psi_axis:
-        levels = np.flipud(levels)
     
     # Set font sizes and plot style parameters
     if pub==False:
@@ -103,15 +73,58 @@ def plot_shape(sim=None, file_name='C1.h5', time=0, phi=0, Nlvl_in=10, Nlvl_out=
     else:
         axs = ax
     
-    if mesh == True:
-        meshplt = plot_mesh(elms,boundary=False,ax=axs)
-    elif bound==True:
-        meshplt = plot_mesh(elms,boundary=bound,ax=axs)
+    if not isinstance(file_name,(tuple,list)):
+        file_name = [file_name]
     
-    cont = axs.tricontour(R, Z, psifield,levels,zorder=0,linewidths=linew)
+
     
-    if lcfs == True:
-        cont = axs.tricontour(R, Z, psifield,[psi_lcfs],colors='magenta',linewidths=bdlw,linestyles='--',zorder=10)
+    for fn in file_name:
+        if not isinstance(file_name,(tuple,list)) and isinstance(sim,fpy.sim_data)==True:
+            simplot = sim
+        else:
+            simplot = fpy.sim_data(fn,time=time)
+    
+        psi_axis = simplot.get_time_traces('psimin').values[0]
+        print("Psi at magn. axis: "+str(psi_axis))
+        
+        psi_lcfs = simplot.get_time_traces('psi_lcfs').values[0]
+        print("Psi at LCFS: "+str(psi_lcfs))
+        
+        
+        elms = simplot.get_mesh(time=time,file_name=fn)
+        mesh_pts = elms.elements
+        R_mesh       = mesh_pts[:,4]
+        Z_mesh       = mesh_pts[:,5]
+        R_range      = [np.amin(R_mesh),np.amax(R_mesh)]
+        Z_range      = [np.amin(Z_mesh),np.amax(Z_mesh)]
+        R_linspace   = np.linspace(R_range[0], R_range[1], res, endpoint=True)
+        phi_linspace = np.linspace(phi,         (360+phi), 1, endpoint=False)
+        Z_linspace   = np.linspace(Z_range[0], Z_range[1], res, endpoint=True)
+        R, phi_pos, Z    = np.meshgrid(R_linspace, phi_linspace,Z_linspace)
+        
+        psifield = eval_field('psi',R, phi_pos, Z, coord='scalar', sim=simplot, file_name=file_name, time=0)
+        
+        levels = (np.arange(Nlvl_in+Nlvl_out+1.)/Nlvl_in)
+        levels = levels*(psi_lcfs-psi_axis)+psi_axis
+        if psi_lcfs < psi_axis:
+            levels = np.flipud(levels)
+        
+        
+        if mesh == True:
+            meshplt = plot_mesh(elms,boundary=False,ax=axs)
+        elif bound==True:
+            meshplt = plot_mesh(elms,boundary=bound,ax=axs)
+        
+        R_ave          = np.average(R, 0)
+        Z_ave          = np.average(Z, 0)
+        psifield       = [np.average(psifield, 0)][0]
+        
+        cont = axs.contour(R_ave, Z_ave, psifield,levels,zorder=0,linewidths=linew)
+        
+        if lcfs == True:
+            cont = axs.contour(R_ave, Z_ave, psifield,[psi_lcfs],colors='magenta',linewidths=bdlw,linestyles='--',zorder=10)
+    
+    
     if ax==None:
         axs.set_xlim(fpyl.get_axlim(np.amin(R),'min'),fpyl.get_axlim(np.amax(R),'max'))
         axs.set_ylim(fpyl.get_axlim(np.amin(Z),'min'),fpyl.get_axlim(np.amax(Z),'max'))

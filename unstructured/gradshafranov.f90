@@ -1821,7 +1821,7 @@ subroutine fundef
   real :: g4big, g4bigp, g4bigpp
   real :: alphap0, alphap, alphapp, alphappp
   real :: r0m, r1, r1m, r2, r3, ealpha
-  integer :: izone, izonedim, iout
+  integer :: izone, izonedim, iout, mr
 #ifdef USEST
   real :: xp, zp ! physical coordinates 
 #endif
@@ -1850,8 +1850,8 @@ subroutine fundef
      pso =  (temp(1) - psimin)*dpsii
 
      call m3dc1_ent_getgeomclass(0,ii-1,izonedim,izone) 
-     if(magnetic_region(temp(1),temp(2),temp(3),x,z).ne.0 &
-          .or. izone.ne.1) then
+     call magnetic_region(temp(1),temp(2),temp(3),x,z,mr)
+     if(mr.ne.REGION_PLASMA .or. izone.ne.1) then
         temp = 0.
         call set_node_data(fun1_vec, ii, temp)
         call set_node_data(fun2_vec, ii, temp)
@@ -2057,6 +2057,7 @@ subroutine fundef2(error)
       
   integer :: izone, mr
   real :: pp0, a0, ap, p, ffp0, f
+  real :: psinb
 !!$  real :: w0, wp, n0, np
 
   dpsii =  1./(psibound - psimin)
@@ -2099,24 +2100,24 @@ subroutine fundef2(error)
         psm = pso
         f = 1.
         ! if we are in private flux region, make sure Psi > 1
-        mr = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
-             x_79(i),z_79(i))
+        call magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+             x_79(i),z_79(i),mr,psinb)
         
-        if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
+        if(igs_forcefree_lcfs.ge.1 .and. mr.ne.REGION_PLASMA) then
            ffp0 = 0.
            pp0 = 0.
            a0 = 0.
            ap = 0.
            p = 0.
         else
-           if(mr.eq.2) then
+           if(mr.eq.REGION_PF) then
               psm = 1.
-              pso = psin_in_pf_region(pso, f)
+              pso = psin_in_pf_region(pso, psinb, f)
            else
               f = 1.
            end if
 
-           if(mr.eq.0) then
+           if(mr.eq.REGION_PLASMA) then
               call evaluate_spline(ffprime_spline,psm,ffp0, iout=iout)
               if(iout.eq.1) ffp0 = 0.
            else
@@ -2625,9 +2626,10 @@ pure subroutine calc_toroidal_field(ps0,tf,x,z,izone)
   
   real :: g2, g3, g4
   real :: psii     ! normalized flux
+  integer :: mr
  
-  if(magnetic_region(ps0(1),ps0(2),ps0(3),x,z).ne.0 &
-       .or. izone.ne.1) then
+  call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr)
+  if(mr.ne.REGION_PLASMA .or. izone.ne.1) then
      tf = bzero*rzero
   else
      psii = (real(ps0(1)) - psimin)/(psibound - psimin)
@@ -2677,6 +2679,7 @@ subroutine calc_pressure(ps0, pres, x, z, izone)
   real :: p
   real :: alpha
   real :: psii     ! normalized flux
+  real :: psinb    ! normalized flux of private flux boundary
 !!$  real :: n0, w0
 
   integer :: mr
@@ -2688,16 +2691,16 @@ subroutine calc_pressure(ps0, pres, x, z, izone)
 
   psii = (real(ps0(1)) - psimin)/(psibound - psimin)
 
-  mr = magnetic_region(ps0(1),ps0(2),ps0(3),x,z)
+  call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr,psinb)
 
-  if(igs_forcefree_lcfs.ge.1 .and. mr.ne.0) then
+  if(igs_forcefree_lcfs.ge.1 .and. mr.ne.REGION_PLASMA) then
      call evaluate_spline(p0_spline, 1., p)
      pres = p
      return
   end if
 
   ! if we are in private flux region, make sure Psi > 1
-  if(mr.eq.2) psii = psin_in_pf_region(psii)
+  if(mr.eq.REGION_PF) psii = psin_in_pf_region(psii, psinb)
 
   call evaluate_spline(p0_spline, psii, p)
 
@@ -2734,6 +2737,7 @@ subroutine calc_density(ps0, dens, x, z, izone)
   real :: n0
   real :: alpha
   real :: psii     ! normalized flux
+  real :: psinb
 !!$  real :: p, w0
 
   integer :: mr
@@ -2743,12 +2747,12 @@ subroutine calc_density(ps0, dens, x, z, izone)
      return
   end if
 
-  mr = magnetic_region(ps0(1),ps0(2),ps0(3),x,z)
+  call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr,psinb)
 
   psii = (real(ps0(1)) - psimin)/(psibound - psimin)
 
   ! if we are in private flux region, make sure Psi > 1
-  if(mr.eq.2) psii = psin_in_pf_region(psii)
+  if(mr.eq.REGION_PF) psii = psin_in_pf_region(psii,psinb)
 
   call evaluate_spline(n0_spline, psii, n0)
 
@@ -2783,7 +2787,8 @@ subroutine calc_electron_pressure(ps0, pe, x, z, izone)
 
   vectype :: pres0, n0
   real :: psii          ! normalized flux
-  real :: te0
+  real :: te0, psinb
+  integer :: mr
 
   if(allocated(te_spline%y)) then
 !     if(izone.ne.1) then 
@@ -2791,8 +2796,8 @@ subroutine calc_electron_pressure(ps0, pe, x, z, izone)
         te0 = te_spline%y(te_spline%n)
      else
         psii = (real(ps0(1)) - psimin)/(psibound - psimin)
-        if(magnetic_region(ps0(1),ps0(2),ps0(3),x,z).eq.2) &
-             psii = psin_in_pf_region(psii)
+        call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr,psinb)
+        if(mr.eq.REGION_PF) psii = psin_in_pf_region(psii,psinb)
         call evaluate_spline(te_spline,psii,te0)
      end if
      call calc_density(ps0, n0, x, z, izone)
@@ -2821,6 +2826,7 @@ subroutine calc_rotation(ps0,omega, x, z, izone)
   integer, intent(in) :: izone
 
   real :: psii     ! normalized flux
+  real :: psinb
   real :: w0
   integer :: mr
 
@@ -2833,15 +2839,15 @@ subroutine calc_rotation(ps0,omega, x, z, izone)
      return
   end if
  
-  mr = magnetic_region(ps0(1),ps0(2),ps0(3),x,z)
+  call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr,psinb)
 
-  if(igs_forcefree_lcfs.eq.1 .and. mr.ne.0) then
+  if(igs_forcefree_lcfs.eq.1 .and. mr.ne.REGION_PLASMA) then
      omega = 0.
      return
   end if    
 
   psii = (real(ps0(1)) - psimin)/(psibound - psimin)
-  if(mr.eq.2) psii = psin_in_pf_region(psii)
+  if(mr.eq.REGION_PF) psii = psin_in_pf_region(psii,psinb)
 
   call evaluate_spline(omega_spline,psii,w0)
 
@@ -2977,10 +2983,11 @@ subroutine rho_to_psi(n, rho, psi)
   end do
 end subroutine rho_to_psi
 
-real function psin_in_pf_region(psin, dpsout)
+real function psin_in_pf_region(psin, psin0, dpsout)
   implicit none
 
   real, intent(in) :: psin                ! psi_norm
+  real, intent(in) :: psin0               ! psi_norm of reversal surface
   real, intent(out), optional :: dpsout   ! dpsin_in_pf_region / dpsin
 
   real :: t, dt
@@ -2989,11 +2996,11 @@ real function psin_in_pf_region(psin, dpsout)
      t = 0.
      dt = 0.
   else
-     t = tanh((psin - 1.)/gs_pf_psi_width)
+     t = tanh((psin - psin0)/gs_pf_psi_width)
      dt = 1. - t**2
   end if
 
-  psin_in_pf_region = 2. - psin + 2.*gs_pf_psi_width*t
+  psin_in_pf_region = 2.*psin0 - psin + 2.*gs_pf_psi_width*t
   if(present(dpsout)) then 
      dpsout = -1. + 2.*dt
   end if

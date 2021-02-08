@@ -386,7 +386,8 @@ contains
        endif
     else
        if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
-         bf_i = vecsize_phi + 1
+         ! bf_i = vecsize_phi + 1
+         bf_i = 1     ! changed 11/25/20  SCJ
          e_i = vecsize_phi
        else
          bf_i = 1

@@ -1097,6 +1097,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
        call write_field(group_id, "f3vplot", f3vplot, nelms, error)
        call write_field(group_id, "f3eplot", f3eplot, nelms, error)
        call write_field(group_id, "jdbobs", jdbobs, nelms, error)
+       call write_field(group_id, "potential2",pot2_field,nelms, error)
 
        if(jadv.eq.0) then
           call write_field(group_id, "psidot", psidot, nelms, error, .true.)

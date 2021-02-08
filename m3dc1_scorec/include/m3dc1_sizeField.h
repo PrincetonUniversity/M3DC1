@@ -17,8 +17,71 @@
 #include <vector>
 #include <assert.h>
 
+class SetIsoSizeField : public ma::AnisotropicFunction
+{
+  public:
+    SetIsoSizeField(ma::Mesh* m, double* size_h1, double* size_h2, double* dir)
+    : mesh(m), size_1 (size_h1), size_2 (size_h2), angle(dir)
+    { }
+
+    virtual void getValue(ma::Entity* v, ma::Matrix& R, ma::Vector& H)
+    {
+        double h1, h2;
+        double angle_1[3];
+
+        for (int i = 0; i<mesh->count(0); ++i)
+        {
+                h1 = size_1[i];
+                h2 = size_2[i];
+
+                angle_1[0] = angle[(i*3)];
+                angle_1[1] = angle[(i*3)+1];
+                angle_1[2] = angle[(i*3)+2];
+
+                // Calculate the second unit vector
+                double a, b;
+                double frac_1, frac_2;
+                frac_1 = (angle_1[0])*(angle_1[0]);
+                frac_2 = (angle_1[0])*(angle_1[0]) + (angle_1[1])*(angle_1[1]);
+
+
+                b = sqrt (frac_1/frac_2);
+                a = -(angle_1[1]*b)/angle_1[0];
+
+                double mag = sqrt (a*a + b*b);
+                double dir_2[3];
+                dir_2[0] = a /mag;
+                dir_2[1] = b /mag;
+                dir_2[2] = 0.0;
+
+                ma::Vector h(h1, h2,h2);
+
+                R[0][0]=angle_1[0];
+                R[0][1]=angle_1[1];
+                R[0][2]=0.0;
+
+                R[1][0]= dir_2[0];
+                R[1][1]= dir_2[1];
+		R[1][2]=0.0;
+
+                R[2][0]=0;
+                R[2][1]=0;
+                R[2][2]=1.;
+
+                H = h;
+        }
+    }
+    double* size_1;
+    double* size_2;
+    double* angle;
+
+  private:
+        ma::Mesh* mesh;
+};
+
+
 // Anistropic 2D Function for dummy field
-int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
+int get_field (double average, double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1);
 
 using namespace std;
 class SizeFieldError : public ma::IsotropicFunction
@@ -137,7 +200,7 @@ class Vortex : public ma::AnisotropicFunction
 };
 
 // Set the Size Field based on Frames and Size Vector for anisotropic Adaptation
-
+// This function gets the 3 fields (2 sizes + 1 direction) and finds the other direction and set the field in the SCOREC adaptation routines
 class SetSizeField : public ma::AnisotropicFunction
 {
   public:
@@ -161,6 +224,9 @@ class SetSizeField : public ma::AnisotropicFunction
         double aver = average;
         double size_h1;
         double size_h2;
+
+	// Option 1: The function from Brendan will come here. 
+        // int get_field (double*  pos, double &size_h1,double &size_h2, double* dir_1)
         int field_success = get_field (aver ,box, pos, size_h1,size_h2, dir_1);
 
         // Calculate the second unit vector
@@ -179,6 +245,9 @@ class SetSizeField : public ma::AnisotropicFunction
         dir_2[1] = b /mag;
         dir_2[2] = 0.0;
 
+	// End: Calculation of second direction vector
+
+	// Now set the fields 	
         ma::Vector h(size_h1, size_h2,size_h2);
 
         R[0][0]=dir_1[0];

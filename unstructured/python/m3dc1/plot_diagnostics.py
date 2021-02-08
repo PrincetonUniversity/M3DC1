@@ -58,7 +58,7 @@ def plot_diagnostics(file_name='C1.h5',units='mks',fignum=None):
     x_axis = t_slices.x_axis
     plt.xlabel('Time')
     if units=='mks':
-        x_axis = unit_conv(x_axis,time=1)
+        x_axis = unit_conv(x_axis, file_name=file_name, time=1)
         plt.xlabel('Time [s]')
     plt.scatter(x_axis,t_slices.diagnostic)
     plt.ylabel('Time slice label')

@@ -1,6 +1,10 @@
 module adapt
   use vector_mod
   implicit none
+  !adaptation control parameters
+  integer :: iadapt_snap, iadapt_pre_zoltan, iadapt_post_zoltan
+  integer :: iadapt_refine_layer, iadapt_max_iter
+  real :: iadapt_quality
   real :: adapt_ke
   integer :: iadapt_ntime
   real :: adapt_target_error
@@ -14,12 +18,126 @@ module adapt
   real :: adapt_hmin_rel, adapt_hmax_rel
   data rel_size /0.5, 2.0/
   integer :: iadapt_writevtk, iadapt_writesmb
-  !type(vector_type), private :: error_vec
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
+
+  integer, parameter :: maxqs = 32
+  real, dimension(maxqs) :: adapt_qs
   
   contains
+
+#ifdef ADAPT
+subroutine adapt_mesh
+    use basic
+    use arrays
+    use newvar_mod
+    use transport_coefficients
+
+    integer :: izone, izonedim, i
+    integer :: numelms, numnodes, itri, inode
+    integer, dimension(nodes_per_element) :: nodeids
+    character(len=32) :: mesh_file_name
+    integer, dimension(MAX_PTS) :: mr
+    vectype, dimension(dofs_per_node) :: dofs1, dofs2
+    type(field_type) :: size1, size2
+    real, allocatable :: unit1(:)
+    real :: x, phi, z, r, w
+    real, parameter :: mins = 0.001, maxs = 0.1, aniso = 5.
+    real, parameter :: x0 = 1.7, z0 =  0.1, w0 = 0.05
+
+    if(myrank.eq.0) print *, "ADAPT TEST"
+
+    call create_field(size1)
+    call create_field(size2)
+    numelms = local_elements()
+    numnodes = owned_nodes()
+    allocate(unit1(3*numnodes))
+
+    size1 = 0.
+    size2 = 0.
+    dofs1 = 0.
+    dofs2 = 0.
+    unit1 = 0.
+
+    do itri=1,numelms
+       call m3dc1_ent_getgeomclass(2, itri-1, izonedim, izone)
+       
+       call get_element_nodes(itri,nodeids)
+
+       do i=1,nodes_per_element
+
+          ! BCL 1/25/21: I'm not sure about this nodes_owned
+          inode = nodes_owned(nodeids(i))
+          call get_node_pos(inode, x, phi, z)
+
+          r = sqrt((x - x0)**2 + (z - z0)**2)
+          w = abs(r-0.3)
+          if(w > w0) then
+             dofs1(1) = maxs
+             dofs2(1) = maxs
+             unit1((inode-1)*3+1) = 1.0
+             unit1((inode-1)*3+2) = 0.0
+             unit1((inode-1)*3+3) = 0.0
+          else
+             dofs1(1) = mins + (maxs - mins)*w/w0
+             dofs2(1) = maxs
+             unit1((inode-1)*3+1) = (x-x0)/r
+             unit1((inode-1)*3+2) = (z-z0)/r
+             unit1((inode-1)*3+3) = 0.0
+          end if
+          
+          call set_node_data(size1,inode,dofs1)
+          call set_node_data(size2,inode,dofs2)
+             
+       end do
+
+    end do
+    call finalize(size1%vec)
+    call finalize(size2%vec)
+
+    call straighten_fields()
+    print *, "BEFORE ADAPT"
+    call m3dc1_mesh_adapt(size1%vec%id, size2%vec%id, unit1, 0, 0, 0, 1, 5, 0.4)
+    print *, "AFTER ADAPT"
+    if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
+    if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
+
+    deallocate(unit1)
+    call destroy_field(size1)
+    call destroy_field(size2)
+    call space(0)
+    call update_nodes_owned()
+    call tridef
+    call unstraighten_fields()
+
+    call create_newvar_matrices
+    if(irestart .ne. 0) return
+    field_vec = 0.
+    field0_vec = 0.
+    if (myrank .eq. 0) print *, "re-calculate equlibrium after adapt .."
+    call initial_conditions
+    ! combine the equilibrium and perturbed fields of linear=0
+    ! unless eqsubtract = 1
+    if(eqsubtract.eq.0) then
+       call add(field_vec, field0_vec)
+       field0_vec = 0.
+    endif
+    i_control%err_i = 0.
+    i_control%err_p_old = 0.
+    n_control%err_i = 0.
+    n_control%err_p_old = 0.
+    i_control%err_i = 0.
+    i_control%err_p_old = 0.
+    n_control%err_i = 0.
+    n_control%err_p_old = 0.
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+    call define_transport_coefficients
+    call derived_quantities(1)
+    !ke_previous = ekin
+
+  end subroutine adapt_mesh
+#endif
   subroutine adapt_by_psi
     use basic
     use mesh_mod
@@ -54,6 +172,8 @@ module adapt
     real :: p_dt, p_v
     real :: x0, y0, x, y
     integer :: ip
+
+    real :: psib
 
     call create_field(temporary_field)
     temporary_field = 0.
@@ -113,12 +233,12 @@ module adapt
        
        ! determine magnetic region of each point
        do i=1, npoints
-          mr(i) = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
-               x_79(i),z_79(i))
+          call magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+               x_79(i),z_79(i),mr(i),psib)
          
           ! if point is in private flux region, set psi_N -> 2 - psi_N
-          if(mr(i).eq.2) then 
-             temp79b(i) = 2. - temp79a(i)
+          if(mr(i).eq.REGION_PF) then 
+             temp79b(i) = 2.*psib - temp79a(i)
           end if
        end do
 
@@ -154,6 +274,33 @@ module adapt
              end do
           end do
        end if
+
+       ! do adaptation around specified safety factor values
+       if(any(adapt_qs.ne.0.)) then
+          if(.not.allocated(q_spline%y)) then
+             print *, 'Error, iadapt_pack_rationals > 0, but q profile not set'
+             call safestop(6)
+          end if
+
+          temp79c = 0.
+          do i=1, npoints
+
+             if(mr(i).ne.0) cycle
+
+             call evaluate_spline(q_spline, real(temp79a(i)), q)
+
+             do j=1, maxqs
+                if(adapt_qs(j).ne.0.) then
+                   temp79c(i) = temp79c(i) + &
+                        exp(-(q - adapt_qs(j))**2 / (2.*adapt_pack_factor**2))
+                end if
+             end do
+
+          end do
+          where(real(temp79c).gt.1.) temp79c = 1.
+          temp79b = temp79b*(1.-temp79c) + temp79c
+       end if
+
 
        ! do adaptation around coils
        if(adapt_coil_delta.gt.0) then

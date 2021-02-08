@@ -22,6 +22,10 @@ else
   endif
 endif
 
+ifeq ($(ADAPT), 1)
+  OPTS := $(OPTS) -DADAPT
+endif
+
 # determine whether 2d, 3d, or 2d-complex
 ifeq ($(3D), 1)
   OPTS := $(OPTS) -DUSE3D -Dvectype=real
