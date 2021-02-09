@@ -137,7 +137,7 @@ contains
 !    else 
 !      n_quad = n_zer/2
 !    end if 
-    n_quad = 4*n_zer + 1
+    n_quad = n_zer + 1
     allocate(quad(2,n_quad))
   end subroutine allocate_vmec
 

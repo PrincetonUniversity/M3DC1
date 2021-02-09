@@ -101,7 +101,12 @@ contains
         call physical_mesh_setup(toroidal_period)
     end if
 #endif
-    !toroidal_period = toroidal_period/nperiods 
+    if(ifull_torus.eq.0) then
+       toroidal_period = toroidal_period/nperiods 
+       if(myrank.eq.0) print *, 'one field period...'
+    else if(ifull_torus.eq.1) then
+       if(myrank.eq.0) print *, 'full torus...'
+    end if
 
 #ifdef USE3D   
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes

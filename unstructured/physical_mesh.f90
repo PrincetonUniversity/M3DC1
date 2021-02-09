@@ -7,6 +7,7 @@ module physical_mesh
   real :: xcenter, zcenter ! coords of the center of the logical mesh
   integer :: igeometry   ! 0 = identity; 1 = prescribed; 2 = solve Laplace equation  
   integer :: iread_vmec 
+  integer :: ifull_torus ! 0 = one field period; 1 = full torus
   integer :: nperiods
 #ifdef USEST
   ! 0 = physical basis;, 1 = logical basis & DoF; 2= logical basis, physical DoF. 
