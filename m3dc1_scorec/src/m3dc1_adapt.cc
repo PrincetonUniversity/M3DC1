@@ -155,15 +155,17 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     int complexType = it->second->get_value_type();
     if (complexType) group_complex_dof(field, 1);
     if (isFrozen(field)) unfreeze(field);
-    if (!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
     fields.push_back(field);
     it++;
   }
 
+  if (!PCU_Comm_Self()) 
+    std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size() <<" fields will be transfered\n";       
+
   while(mesh->countNumberings())
   {
     apf::Numbering* n = mesh->getNumbering(0);
-    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+//    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
     apf::destroyNumbering(n);
   }
 	

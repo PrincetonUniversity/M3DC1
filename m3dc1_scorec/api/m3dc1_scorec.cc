@@ -1131,16 +1131,6 @@ int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
 }
 
 //*******************************************************
-int m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id)
-//*******************************************************
-{
-  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *ent_id);
-  assert(e);
-  *global_ent_id = get_ent_globalid(m3dc1_mesh::instance()->mesh, e);
-  return M3DC1_SUCCESS;
-}
-
-//*******************************************************
 void get_gv_edges(gmi_ent* gvertex, std::vector<gmi_ent*>& gedges)
 //*******************************************************
 {

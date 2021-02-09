@@ -99,6 +99,9 @@ void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim,
                       int* /* in */ ent_ids, int* /* in */ num_ent,
                       int* /* in */ adj_dim, int* /* out */ num_adj_ent);
 
+void m3dc1_ent_getlocalid (int* /* in */ ent_dim, int* /* out */ ent_ids,
+            int* /* in */ allocated_size, int* /* out */ num_ent);
+
 // individual entity level operators
 int m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);
 int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
@@ -114,7 +117,6 @@ int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 // node-specific functions
 void m3dc1_node_setfield (int* /* in */ node_id, int* /* in */ field_id, double* /* in */ values, int* /* in */ num_values);
 void m3dc1_node_getfield (int* /* in */ node_id, int* /* in */ field_id, double* /* out */ values, int* /* out */ num_values);
-int m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);  
 int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord ); 
 int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyz);
 int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv);
