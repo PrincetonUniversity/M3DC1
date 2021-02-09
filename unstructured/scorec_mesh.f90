@@ -117,7 +117,8 @@ contains
        end if
        do i=1, nvals
           if(xvals(i).lt.0. .or. xvals(i).ge.toroidal_period) then 
-             if(myrank.eq.0) print *, 'Error: plane ', i, ' is at angle ', xvals(i), ' which is outside the range [ 0, ', toroidal_period, ').'
+             if(myrank.eq.0) print *, 'Error: plane ', i, ' is at angle ', xvals(i), &
+             ' which is outside the range [ 0, ', toroidal_period, ').'
              call safestop(8)
           end if
           call m3dc1_plane_setphi(i-1, xvals(i))

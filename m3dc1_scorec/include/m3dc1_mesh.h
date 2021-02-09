@@ -30,6 +30,10 @@ int get_ent_global2ndadj (apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&,
     std::vector<int>&, std::vector<int>&, std::vector<int>&);
 void get_ent_numglobaladj(apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&, std::vector<int>&);
 
+void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
+    int shouldSnap, int shouldRunPreZoltan ,int shouldRunPostZoltan,
+    int shouldRefineLayer, int maximumIterations, double goodQuality);
+
 class m3dc1_mesh
 {
 public:
@@ -40,8 +44,8 @@ public:
   void reset();
   void clean();
   void remove_wedges();
-  void build3d(int num_field, int* field_id, int* num_dofs_per_value); // old: setup3DMesh(pPart mesh, pGeomMdl model,int ifXYZ) in PlaneManager.h
-  void initialize(); // to be called after initial mesh loading. old: updatemeshinfo_
+  void build3d(int num_field, int* field_id, int* num_dofs_per_value, bool initial_setup=true);
+  void initialize(bool update_adj=true); // to be called after initial mesh loading. old: updatemeshinfo_
   void update_partbdry(apf::MeshEntity** remote_vertices, apf::MeshEntity** remote_edges, 
               apf::MeshEntity** remote_faces, std::vector<apf::MeshEntity*>& btw_plane_edges, 
               std::vector<apf::MeshEntity*>& btw_plane_faces, std::vector<apf::MeshEntity*>& btw_plane_regions);
