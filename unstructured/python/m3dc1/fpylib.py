@@ -263,10 +263,10 @@ def get_fieldlabel(units,field):
     if units.lower()=='m3dc1':
         units = {'default':'M3DC1 units'}
     elif units.lower()=='mks':
-        units = {'j':'$A/m^2$', 'ni':'particles/$m^3$', 'ne':'particles/$m^3$',
-                 'v':'$m/s$', 'B':'$T$', 'p':'$Pa$', 'pi':'$Pa$', 'pe':'$Pa$',
-                 'ti':'$eV$', 'te':'$eV$', 'A':'$Tesla \cdot m$',
-                 'gradA':'$(Tesla \cdot m)$ / (m or rad)', 'E':'$V/m$',
+        units = {'j':r'A/m$^2$', 'ni':r'particles/m$^3$', 'ne':r'particles/m$^3$',
+                 'v':'m/s', 'B':'T', 'p':'Pa', 'pi':'Pa', 'pe':'Pa',
+                 'ti':'eV', 'te':'eV', 'A':r'T$\cdot$m',
+                 'gradA':r'Tesla$\cdot$m / (m or rad)', 'E':'V/m',
                  'default':'MKS units'}
 
     if field in labels:
@@ -280,6 +280,137 @@ def get_fieldlabel(units,field):
         unit = units['default']
 
     return label, unit
+
+
+def get_tracelabel(units,trace,label=None,unitlabel=None):
+    """
+    Returns time trace label depending on chosen system of units
+    """
+
+    labels = {'Ave_P':('Average pressure','Pa'),
+              'E_K3':('Compressional kinetic energy','J'),
+              'E_K3D':('Compressional viscous dissipation','W'),
+              'E_K3H':('Compressional hyper-viscous dissipation','W'),
+              'E_KP':('Poloidal kinetic energy','J'),
+              'E_KPD':('Poloidal viscous dissipation','W'),
+              'E_KPH':('Poloidal hyper-viscous dissipation','W'),
+              'E_KT':('Toroidal kinetic energy','J'),
+              'E_KTD':('Toroidal viscous dissipation','W'),
+              'E_KTH':('Toroidal hyper-viscous dissipation','W'),
+              'E_MP':('Poloidal magnetic energy','J'),
+              'E_MPD':('Poloidal resistive dissipation','W'),
+              'E_MPH':('Poloidal hyper-resistive dissipation','W'),
+              'E_MT':('Toroidal magnetic energy','J'),
+              'E_MTD':('Toroidal resistive dissipation','W'),
+              'E_MTH':('Toroidal hyper-resistive dissipation','W'),
+              'E_P':('Total thermal energy','J'),
+              'E_PD':('Thermal dissipation (unused)','W'),
+              'E_PE':('Electron thermal energy','J'),
+              'E_PH':('Thermal hyper-dissipation (unused)','W'),
+              'E_grav':('Gravitational potential energy','J'),
+              'Flux_kinetic':('Kinetic-energy convection to wall' ,'W'),
+              'Flux_poynting':('Poynting flux to wall','W'),
+              'Flux_pressure':('Pressure convection to wall','W'),
+              'Flux_thermal':('Heat flux to wall','W'),
+              'IP_co':('Plasma current (cosine-component)','A'),
+              'IP_sn':('Plasma current (sine-component)','A'),
+              'M_IZ':('Plasma current centroid',r'A$\cdot$m'),
+              'M_IZ_co':('Plasma current (cosine-component) centroid',r'A$\cdot$m'),
+              'M_IZ_sn':('Plasma current (sine-component) centroid',r'A$\cdot$m'),
+              'Parallel_viscous_heating':('Parallel viscous heating','W'),
+              'Particle_Flux_convective':('Convective particle flux to wall','particles/s'),
+              'Particle_Flux_diffusive':('Diffusive particle flux to wall','particles/s'),
+              'Particle_source':('Particle source','particles/s'),
+              'Torque_com':('Compressional torque',r'N$\cdot$m'),
+              'Torque_em':('Electromagnetic torque',r'N$\cdot$m'),
+              'Torque_gyro':('Gyroviscous torque',r'N$\cdot$m'),
+              'Torque_parvisc':('Parallel viscous torque',r'N$\cdot$m'),
+              'Torque_sol':('Torque_sol',r'N$\cdot$m'),
+              'Torque_visc':('Viscous torque',r'N$\cdot$m'),
+              'W_M':('Stored magnetic energy','J'),
+              'W_P':('Stored thermal energy','J'),
+              'Wall_Force_n0_x':(r'$n=0$ wall force in $R$ direction','N'),
+              'Wall_Force_n0_x_halo':(r'$n=0$ halo force in $R$ direction','N'),
+              'Wall_Force_n0_y':(r'$n=0$ wall force in $\phi$ direction','N'),
+              'Wall_Force_n0_z':(r'$n=0$ wall force in $Z$ direction','N'),
+              'Wall_Force_n0_z_halo':(r'$n=0$ halo force in $Z$ direction','N'),
+              'Wall_Force_n1_x':(r'$n=1$ wall force in $R$ direction','N'),
+              'Wall_Force_n1_y':(r'$n=1$ wall force in $\phi$ direction','N'),
+              'angular_momentum':('Angular momentum',r'kg$\cdot$m$^2$/s'),
+              'angular_momentum_p':('Angular momentum in plasma',r'kg$\cdot$m$^2$/s'),
+              'area':('Domain area',r'm$^2$'),
+              'area_p':('Plasma area',r'm$^2$'),
+              'brem_rad':('Bremsstrahlung radiated power','W'),
+              'circulation':('Circulation',r'm$^2$/s'),
+              'dt':('Time step','s'),
+              'electron_number':('Number of electrons','particles'),
+              'helicity':('Magnetic helicity',r'Wb$^2$'),
+              'i_control%err_i':('Current control - integrated error','A'),
+              'i_control%err_p_old':('Current control - proportional error','A'),
+              'ion_loss':('Ionization power','W'),
+              'line_rad':('Line radiated power','W'),
+              'loop_voltage':('Loop voltage','V'),
+              'n_control%err_i':('Density control - integrated error','particles'),
+              'n_control%err_p_old':('Density control - proportional error','particles'),
+              'particle_number':('Number of main ions','particles'),
+              'particle_number_p':('Number of main ions in plasma','particles'),
+              'psi0':('Poloidal flux on-axis',r'T$\cdot$m$^2$'),
+              'psi_lcfs':('Poloidal flux at separatrix',r'T$\cdot$m$^2$'),
+              'psimin':('Minimum poloidal flux in plasma',r'T$\cdot$m$^2$'),
+              'radiation':('Radiated power','W'),
+              'reconnected_flux':('Reconnected flux',r'T$\cdot$m$^2$'),
+              'reck_rad':('Recombination radiated power (kinetic)','W'),
+              'recp_rad':('Recombination radiated power (thermal','W'),
+              'runaways':('Number of runaway electrons','particles'),
+              'temax':('Extremum of temperature near-axis','eV'),
+              'time':('Time','s'),
+              'toroidal_current':('Toroidal current','A'),
+              'toroidal_current_p':('Toroidal current in plasma','A'),
+              'toroidal_current_w':('Toroidal current in wall','A'),
+              'toroidal_flux':('Toroidal flux',r'T$\cdot$m$^2$'),
+              'toroidal_flux_p':('Toroidal flux in plasma',r'T$\cdot$m$^2$'),
+              'volume':('Domain volume',r'm$^3$'),
+              'volume_p':('Plasma volume',r'm$^3$'),
+              'xmag':(r'$R$ of magnetic axis','m'),
+              'xnull':('$R$ of primary X-point','m'),
+              'xnull2':('$R$ of secondary X-point','m'),
+              'zmag':('$Z$ of magnetic axis','m'),
+              'znull':('$Z$ of primary X-point','m'),
+              'znull2':('$Z$ of secondary X-point','m'),
+              'bharmonics':('Magnetic energy Fourier harmonics','J'),
+              'keharmonics':('Kinetic energy Fourier harmonics','J'),
+              'cauchy_fraction':('cauchy_fraction',''),
+              'cloud_pel':('Size of cloud over size of pellet',''),
+              'pellet_mix':('Fraction of pellet that is D2',''),
+              'pellet_phi':('Toroidal angle of pellet','radians'),
+              'pellet_r':(r'$R$ location of pellet','m'),
+              'pellet_rate':('Impurity deposition rate','particles/s'),
+              'pellet_rate_D2':('D2 deposition rate','particles/s'),
+              'pellet_ablrate':('Pellet ablation rate','particles/s'),
+              'pellet_var':('Poloidal half-width of impurity cloud','m'),
+              'pellet_var_tor':('Toroidal half-width of impurity cloud','m'),
+              'pellet_velphi':('Toroidal velocity of pellet','m/s'),
+              'pellet_velr':(r'$R$ velocity of pellet','m/s'),
+              'pellet_velz':(r'$Z$ velocity of pellet','m/s'),
+              'pellet_vx':(r'$X$ velocity of pellet','m/s'),
+              'pellet_vy':(r'$Y$ velocity of pellet','m/s'),
+              'pellet_z':(r'$Z$ location of pellet','m'),
+              'r_p':('Pellet radius','m'),
+              }
+
+    if trace in labels:
+        lbl, ulbl = labels[trace]
+    else:
+        lbl, ulbl = ('', '')
+
+    if label is None:
+        label = lbl
+    if unitlabel is None:
+        if units == 'mks':
+            unitlabel = ulbl
+        else:
+            unitlabel = 'M3D-C1 units'
+    return label, unitlabel
 
 
 def get_conv_field(units,field,field1_ave,filename='C1.h5',sim=None):
@@ -326,9 +457,9 @@ def get_conv_trace(units,trace,trace_arr,filename='C1.h5',sim=None,itor=1,custom
               'Flux_poynting':{'energy':1,'time':-1},
               'Flux_pressure':{'energy':1,'time':-1},
               'Flux_thermal':{'energy':1,'time':-1}, 'IP_co':{'current':1},
-              'IP_sn':{'current':1}, 'M_IZ':{'current':1,'length':2},
-              'M_IZ_co':{'current':1,'length':2},
-              'M_IZ_sn':{'current':1,'length':2},
+              'IP_sn':{'current':1}, 'M_IZ':{'current':1,'length':1},
+              'M_IZ_co':{'current':1,'length':1},
+              'M_IZ_sn':{'current':1,'length':1},
               'Parallel_viscous_heating':{'energy':1,'time':-1},
               'Particle_Flux_convective':{'particles':1,'time':-1},
               'Particle_Flux_diffusive':{'particles':1,'time':-1},

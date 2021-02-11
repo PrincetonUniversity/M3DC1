@@ -55,6 +55,13 @@ install_idl :
 	cp idl/*.pro $(INSTALL_DIR)/idl
 	chmod 644 $(INSTALL_DIR)/idl/*.pro
 
+.PHONY: install_python
+install_python : 
+	mkdir -m 755 -p $(INSTALL_DIR)/python
+	cp -r python/m3dc1 $(INSTALL_DIR)/python
+	chmod 755 $(INSTALL_DIR)/python/m3dc1
+	chmod 644 $(INSTALL_DIR)/python/m3dc1/*.py
+
 .PHONY: install_doc
 install_doc :
 	mkdir -m 755 -p $(INSTALL_DIR)/doc
@@ -96,7 +103,7 @@ install_device_data : # device_data
 #	-chmod 755 $(INSTALL_DIR)/bin/convert_sim_sms
 
 .PHONY: install
-install : install_idl install_doc install_device_data #install_scorec
+install : install_idl install_doc install_device_data install_python #install_scorec
 	echo $(ARCH)
 	mkdir -m 755 -p $(INSTALL_DIR)
 	mkdir -m 755 -p $(INSTALL_DIR)/batch

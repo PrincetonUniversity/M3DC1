@@ -62,20 +62,32 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
     gamma   = constants.gamma
 
     # Direct transformation of one name to another
-    transform = {'toroidal current':'toroidal_current', 'it':'toroidal_current',
-                 'plasma current':'toroidal_current_p', 'ip':'toroidal_current_p',
-                 'wall current':'toroidal_current_w', 'iw':'toroidal_current_w',
-                 'volume':'volume_p', 'plasma volume':'volume_p',
-                 'volume_d':'volume', 'domain volume':'volume',
+    transform = {'toroidal current':'toroidal_current',
+                 'it':'toroidal_current',
+                 'plasma current':'toroidal_current_p',
+                 'ip':'toroidal_current_p',
+                 'wall current':'toroidal_current_w',
+                 'iw':'toroidal_current_w',
+                 'volume':'volume_p',
+                 'plasma volume':'volume_p',
+                 'volume_d':'volume',
+                 'domain volume':'volume',
                  'toroidal flux': 'toroidal_flux_p',
                  'time step': 'dt',
-                 'psibound':'psi_lcfs', 'psilim':'psi_lcfs',
-                 'loop voltage':'loop_voltage', 'vl':'loop_voltage',
-                 'poloidal magnetic energy':'E_MP', 'Wm':'E_MP',
-                 'thermal energy':'E_P', 'p':'E_P',
-                 'electron thermal energy':'E_PE', 'pe':'E_PE',
-                 'particles':'particle_number', 'n':'particle_number',
-                 'electrons':'electron_number', 'ne':'electron_number',
+                 'psibound':'psi_lcfs',
+                 'psilim':'psi_lcfs',
+                 'loop voltage':'loop_voltage',
+                 'vl':'loop_voltage',
+                 'poloidal magnetic energy':'E_MP',
+                 'Wm':'E_MP',
+                 'thermal energy':'E_P',
+                 'p':'E_P',
+                 'electron thermal energy':'E_PE',
+                 'pe':'E_PE',
+                 'particles':'particle_number',
+                 'n':'particle_number',
+                 'electrons':'electron_number',
+                 'ne':'electron_number',
                  'angular momentum': 'angular_momentum',
                  'vorticity': 'circulation',
                  'parallel viscous heating': 'parallel_viscous_heating',
@@ -112,24 +124,28 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
 
     # Simple linear combinations
     combos = {'itot':([('toroidal_current_w',1.),('toroidal_current',1.)],
-                      {'current':1}),
+                      {'current':1}, 'Total toroidal current', 'A'),
               'ih':([('toroidal_current',1.),('toroidal_current_p',-1.)],
-                    {'current':1}),
-              'ke':([('E_KP',1.),('E_KT',1.),('E_K3',1.)], {'energy':1}),
-              'me':([('E_MP',1.),('E_MT',1.)], {'energy':1}),
+                    {'current':1}, 'Halo-region toroidal current', 'A'),
+              'ke':([('E_KP',1.),('E_KT',1.),('E_K3',1.)], {'energy':1}, 
+                    'Kinetic energy', 'J'),
+              'me':([('E_MP',1.),('E_MT',1.)], {'energy':1},
+                    'Magnetic energy', 'J'),
               'energy':([('E_KP',1.),('E_KT',1.),('E_K3',1.),
-                         ('E_MP',1.),('E_MT',1.),('E_P',1.)], {'energy':1}),
+                         ('E_MP',1.),('E_MT',1.),('E_P',1.)], {'energy':1},
+                        'Total energy', 'J'),
               'flux':([('psimin',2.*np.pi),('psi_lcfs',-2.*np.pi)],
-                      {'magnetic_field':1,'length':2}),
-              'radiation':([('radiation',-1.)], None),
-              'line_rad':([('line_rad',-1.)], None),
-              'brem_rad':([('brem_rad',-1.)], None),
-              'ion_loss':([('ion_loss',-1.)], None),
-              'reck_rad':([('reck_rad',-1.)], None),
-              'recp_rad':([('recp_rad',-1.)], None),
+                      {'magnetic_field':1,'length':2}, 'Flux', r'T$\cdot$m$^2$'),
+              'radiation':([('radiation',-1.)], None, None, None),
+              'line_rad':([('line_rad',-1.)], None, None, None),
+              'brem_rad':([('brem_rad',-1.)], None, None, None),
+              'ion_loss':([('ion_loss',-1.)], None, None, None),
+              'reck_rad':([('reck_rad',-1.)], None, None, None),
+              'recp_rad':([('recp_rad',-1.)], None, None, None),
               'rec_rad':([('reck_rad',-1.),('recp_rad',-1.)],
-                         {'energy':1,'time':-1}),
-              'pohm':([('E_MPD',-1),('E_MTD',-1)], {'energy':1,'time':-1}),
+                         {'energy':1,'time':-1}, 'Recombination radiated power', 'W'),
+              'pohm':([('E_MPD',-1),('E_MTD',-1)], {'energy':1,'time':-1},
+                      'Ohmic heating power', 'W'),
               }
 
     if trace in transform:
@@ -138,6 +154,8 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
     if trace == 'reconnected flux':
         scalar = abs(sim.get_time_trace('reconnected_flux'))
         custom = {'magnetic_field':1,'length':1+itor}
+        label = None
+        unitlabel = None
 
     elif trace == 'r_p':
         if (version < 26):
@@ -145,6 +163,8 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
         else:
             scalar = sim.get_time_trace('r_p')
         custom = None
+        label = None
+        unitlabel = None
 
     elif trace == 'pellet_r':
         if (version < 26):
@@ -152,6 +172,8 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
         else:
             scalar = sim.get_time_trace('pellet_r')
         custom = None
+        label = None
+        unitlabel = None
 
     elif trace == 'beta':
         if (version < 26):
@@ -162,6 +184,8 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
         E_MT = sim.get_time_trace('E_MT')
         scalar *= (gamma-1.)/(E_MP + E_MT)
         custom = None
+        label = r'$\beta$'
+        unitlabel = None
 
     elif trace == 'betap':
         if (version < 26):
@@ -173,6 +197,8 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
             W_M    = sim.get_time_trace('W_M')
             scalar *= (gamma-1.)/W_M
         custom = None
+        label = r'Poloidal $\beta$'
+        unitlabel = None
 
     elif trace in ['betan','betat']:
         raise RuntimeError("'%s' not yet implemented; need shape information"%trace)
@@ -186,12 +212,16 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
             scalar = sim.get_time_trace(trace)
 
         custom = None
+        label = None
+        unitlabel = None
 
     elif trace == 'bwb2':
         amupar = constants.amupar
         scalar = sim.get_time_trace('parallel_viscous_heating')
         scalar *= 4./(3.*amupar)
         custom = {'length':3, 'time':-2}
+        label = r'$(b\cdot W\cdot b)^2$'
+        unitlabel = r'm$^3$/s$^2$'
 
     elif trace == 'li':
         R0 = constants.R0
@@ -201,6 +231,8 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
 
         scalar = -4.*np.pi*(psi_lcfs - psimin)/(R0*ip)
         custom = None
+        label = r'Internal inductance: $l_i$'
+        unitlabel = None
 
     elif trace == 'li3':
         R0 = constants.R0
@@ -209,10 +241,12 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
 
         scalar = 4.*W_M/(R0*ip**2)
         custom = None
+        label = r'Internal inductance: $l_i(3)$'
+        unitlabel = None
 
     elif trace in combos:
         # trace is linear combination of native scalars
-        combo, custom = combos[trace]
+        combo, custom, label, unitlabel = combos[trace]
         for i, (name, fac) in enumerate(combo):
             y = sim.get_time_trace(name)
             if i==0:
@@ -224,12 +258,15 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
         # trace is a native scalar
         scalar = sim.get_time_trace(trace)
         custom = None
+        label = None
+        unitlabel = None
 
     if ('pellet_' in trace) or (trace in ['cauchy_fraction','cloud_pel','r_p']):
         # if ipellet is given, get just that pellet's data
         if (ipellet != 'all') and (scalar.values.ndim==2):
             scalar.values = scalar.values[:,ipellet]
 
+    label, unitlabel = fpyl.get_tracelabel(units, trace, label=label, unitlabel=unitlabel)
     if units=='mks':
         scalar = fpyl.get_conv_trace('mks',trace,scalar,sim=sim,itor=itor,custom=custom)
         
@@ -260,9 +297,9 @@ def get_timetrace(trace,filename='C1.h5',sim=None,ipellet=0,units='m3dc1',
             if len(renormstr) > 0:
                 print('Renormalization found at '+renormstr)
     if returnas=='tuple':
-        return time, values
+        return time, values, label, unitlabel
     elif returnas=='time_trace':
-        return fpy.sim_data.time_trace(values,time=time)
+        return fpy.sim_data.time_trace(values,time=time), label, unitlabel
 
 
 
@@ -299,8 +336,8 @@ def avg_time_trace(trace,units='m3dc1',filename='C1.h5',sim=None,
 
     if sim is None:
         sim = fpy.sim_data(filename=filename)
-    time,values = get_timetrace(trace,sim=sim,units=units,growth=growth,
-                                renorm=renorm,quiet=False)
+    time,values,_,_ = get_timetrace(trace,sim=sim,units=units,growth=growth,
+                                          renorm=renorm,quiet=False)
     if start is None:
         start_ind = int(np.floor(len(values)/2))
         start_time = time[start_ind]
@@ -395,8 +432,8 @@ def growth_rate(n=None,units='m3dc1',filename='C1.h5',sim=None,
             fpyl.printnote('NOTE: no noise detected for n='+str(n)+'!')
             # Check whether the kinetic energy is overall increasing or
             #   decreasing by looking at the evolution of the maxima.
-            ke_time,ke = get_timetrace('ke',sim=sim,units=units,
-                                       growth=False,renorm=True)
+            ke_time,ke,_,_ = get_timetrace('ke',sim=sim,units=units,
+                                                growth=False,renorm=True)
             
             start_ind = int(np.floor(len(ke)/2))
             start_time = ke_time[start_ind]
@@ -948,8 +985,8 @@ def double_plot_time_trace_fast(trace,filename='C1.h5',sim=None,
     if sim is None:
         sim = fpy.sim_data(filename=filename)
 
-    time,scalar = get_timetrace(trace,sim=sim,units=units,growth=False,renorm=renorm,quiet=True)
-    time_growth,scalar_growth = get_timetrace(trace,sim=sim,units=units,growth=True,renorm=renorm,quiet=True)
+    time,scalar,_,_ = get_timetrace(trace,sim=sim,units=units,growth=False,renorm=renorm,quiet=True)
+    time_growth,scalar_growth,_,_ = get_timetrace(trace,sim=sim,units=units,growth=True,renorm=renorm,quiet=True)
     
     if units=='mks':
         xlbl = r'time $[s]$'
@@ -1039,7 +1076,7 @@ def plot_time_trace_fast(trace,units='mks',filename='C1.h5',sim=None,
     """
     if sim is None:
         sim = fpy.sim_data(filename=filename)
-    time,scalar = get_timetrace(trace,sim=sim,units=units,
+    time,scalar,_,_ = get_timetrace(trace,sim=sim,units=units,
                                 growth=growth,renorm=renorm)
     create_plot_time_trace_fast(time,scalar,trace,units=units,sim=sim,
                                 growth=growth,yscale=yscale,rescale=rescale,

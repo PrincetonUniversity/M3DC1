@@ -207,7 +207,7 @@ test_region : region.o test_region.o
 	$(F90) $^ -o $@
 
 .PHONY : bin
-bin : a2cc mackenbach_profiles
+bin : a2cc
 	rm -fr bin
 	mkdir -p bin
 	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \

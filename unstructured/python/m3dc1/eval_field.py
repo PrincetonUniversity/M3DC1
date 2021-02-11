@@ -11,7 +11,7 @@ import numpy as np
 
 
 
-def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=None):
+def eval_field(field_name=None, R=None, phi=None, Z=None, field=None, coord='scalar', sim=None, filename='C1.h5', time=None):
     """
     Evaluates the field at the locations specified by the 
     R, Z, phi arrays. The output will be array/arrays of the same size.
@@ -38,9 +38,10 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
     """
     
     # First, let's get the field and mesh from the simulation output
-    if sim is None:
-        sim = fpy.sim_data(filename)
-    field = sim.get_field(field_name,time)
+    if field  is None:
+        if sim is None:
+            sim = fpy.sim_data(filename)
+        field = sim.get_field(field_name,time)
     
     # We check if the field is a scalar or vector field
     check_coord = (R.flatten()[0], phi.flatten()[0], Z.flatten()[0]) 
