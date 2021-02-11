@@ -7,13 +7,15 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
+// this file is obsolete
 #include "m3dc1_sizeField.h"
 #include "m3dc1_mesh.h"
 #include "PCU.h"
-//// Function to get Field (Dummy For now- This function will be provided by Brendan)
-int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1)
+
+//  Function to get Field (Dummy for now)
+//  int get_field (double*  pos, double &size_h1,double &size_h2, double* dir_1)	
+int get_field (double average,double* boundingbox, double*  pos, double &size_h1,double &size_h2, double* dir_1)
 {
-        double average = aver;
         double lower = boundingbox[0];
         double upper = boundingbox[1];
         double x = (pos[0] - lower)/(upper - lower);
@@ -28,7 +30,6 @@ int get_field (double aver,double* boundingbox, double*  pos, double &size_h1,do
         dir_1[1] = 0.0;
         dir_1[2] = 0.0;
 
-//      std::cout << " Size " << size_h1 << " , " << size_h2 << "\n";
         return M3DC1_SUCCESS;
 }
 

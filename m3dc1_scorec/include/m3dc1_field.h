@@ -12,6 +12,8 @@
 
 #include "apf.h"
 
+void group_complex_dof (apf::Field* field, int option);
+
 class m3dc1_field
 {
 public:

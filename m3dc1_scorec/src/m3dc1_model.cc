@@ -1,4 +1,4 @@
-/****************************************************************************** 
+	/****************************************************************************** 
 
   (c) 2005-2017 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
@@ -552,8 +552,22 @@ void set_gent_tag(gmi_model* model, gmi_ent* ge, int new_tag)
 void m3dc1_model::create3D() // construct 3D model out of 2D
 // *********************************************************
 {
+  if (newModelEnts.size()) 
+  {
+    for (std::map<gmi_ent*, std::pair<gmi_ent*,gmi_ent*> >::iterator it=newModelEnts.begin(); it!=newModelEnts.end(); it++)
+    {
+      std::cout<<"[M3D-C1 INFO]::"<<__func__<<" 3D model Info"<<std::endl;
+      std::cout<<" rank "<<PCU_Comm_Self()
+      <<" ent_org (dim  "<<gmi_dim(model, it->first)<<", id "<<gmi_tag(model, it->first)<<") "
+      <<" ent_btw (dim  "<<gmi_dim(model, it->second.first)<<", id "<<gmi_tag(model, it->second.first)<<") "
+      <<" ent_next (dim  "<<gmi_dim(model, it->second.second)<<", id "<<gmi_tag(model, it->second.second)<<")\n";
+    }
+    return;
+  } 
+
   if(model->n[0]==0)
   {
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO]::"<<__func__<<": model has 0 vertex, 1 edge, 1 face\n";
     assert(model->n[1]==1);
     assert(model->n[2]==1); 
     gmi_ent* ae_org = gmi_find(model, 1, 1);
@@ -744,16 +758,27 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
       }
     }
   }
-#ifdef DEBUG_
-  for (std::map<gmi_ent*, std::pair<gmi_ent*,gmi_ent*> >::iterator it=newModelEnts.begin(); it!=newModelEnts.end(); it++)
+
+  gmi_ent* g;
+  gmi_iter* gi;
+  for (int dim=0; dim<3; ++dim)
   {
-    std::cout<<"[M3D-C1 INFO]::"<<__func__<<" 3D model Info"<<std::endl;
-    std::cout<<" rank "<<PCU_Comm_Self()
-    <<" ent_org (id "<<gmi_tag(model, it->first)<<", type "<<gmi_dim(model, it->first)<<")"
-    <<" ent_btw (id "<<gmi_tag(model, it->second.first)<<", type "<<gmi_dim(model, it->second.first)<<")"
-    <<" ent_next (id "<<gmi_tag(model, it->second.second)<<", type "<<gmi_dim(model, it->second.second)<<")"<<std::endl;
-  } 
-#endif
+    gi = gmi_begin(model, dim);
+    while( (g = gmi_next(model, gi)) )
+    {
+      switch (dim)
+      { 
+        case 0: std::cout<< PCU_Comm_Self()<<"] geom vertex "<< gmi_tag(model, g)<<"\n";
+                break;
+        case 1: std::cout<< PCU_Comm_Self()<<"] geom edge "<< gmi_tag(model, g)<<"\n";
+                break;
+        case 2: std::cout<< PCU_Comm_Self()<<"] geom face "<< gmi_tag(model, g)<<"\n";
+                break;
+        default: break;
+      }
+    } 
+  }
+  gmi_end(model, gi); // end the iterator
 }
 
 // *********************************************************

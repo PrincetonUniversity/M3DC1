@@ -76,6 +76,7 @@ MeshEntity* get_ent_owncopy(Mesh2* mesh, MeshEntity* e)
 }
 
 // *********************************************************
+// return contiguous local entity ID if available
 int get_ent_localid (Mesh2* mesh, MeshEntity* e)
 // *********************************************************
 {
@@ -83,7 +84,9 @@ int get_ent_localid (Mesh2* mesh, MeshEntity* e)
   {
     int local_id;
     mesh->getIntTag(e, m3dc1_mesh::instance()->local_entid_tag, &local_id);
-    assert(local_id== getMdsIndex(mesh, e));
+    return local_id;
+    // this is not true after adaptation
+    // assert(local_id== getMdsIndex(mesh, e));
   }
   return getMdsIndex(mesh, e);
 }

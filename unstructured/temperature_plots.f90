@@ -69,6 +69,7 @@ subroutine advection(o)
            end if
        end if
   endif
+ o = o * (1. + (1.-pefac)/pefac)
 end subroutine advection
 subroutine advection1(o)
   use basic
@@ -88,6 +89,7 @@ subroutine advection1(o)
      endif
 
 
+ o = o * (1. + (1.-pefac)/pefac)
 end subroutine advection1
 
 subroutine advection2(o)
@@ -110,6 +112,7 @@ subroutine advection2(o)
 
 
 
+ o = o * (1. + (1.-pefac)/pefac)
 end subroutine advection2
 
 subroutine advection3(o)
@@ -131,6 +134,7 @@ subroutine advection3(o)
         o = o + ri2_79*temp79b*nt79(:,OP_1)
      end if
 
+ o = o * (1. + (1.-pefac)/pefac)
 end subroutine advection3
 
 subroutine hf_perp(dofs)
@@ -150,6 +154,7 @@ subroutine hf_perp(dofs)
   dofs = dofs + &
        (gam-1)*intx4(mu79(:,:,OP_1),ri2_79,tet79(:,OP_DPP),kap79(:,OP_1))
 #endif
+  dofs = (1.+kappai_fac*(1.-pefac)/pefac)*dofs
 
 end subroutine hf_perp
 
@@ -392,10 +397,12 @@ subroutine f2eplot_sub(term)
   implicit none
   vectype, intent(out), dimension(dofs_per_element) :: term
   vectype, dimension(dofs_per_element) :: temp
+  vectype, dimension(MAX_PTS, OP_NUM) ::  siw79
 
   if(iadiabat.eq.1) then
+    siw79 = sie79 + sii79*(1.-pefac)/pefac
     temp =  t3tndenm(mu79,tet79,net79,denm79)  &
-         +  t3ts(mu79,tet79,sie79)
+         +  t3ts(mu79,tet79,siw79)
   endif
   term = temp
 end subroutine f2eplot_sub
@@ -466,6 +473,46 @@ subroutine f3eplot_sub(term)
   endif
 end subroutine f3eplot_sub
 
+subroutine potential2(dofs)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element), intent(out) :: dofs
+
+  ! Electrical Potential due to resistive terms
+  ! ~~~~~~~~~~~~~~~~~~~~~~~
+  dofs = - ( intx4(mu79(:,:,OP_DZ),eta79(:,OP_1), ri_79,bzt79(:,OP_DR)) &
+           - intx4(mu79(:,:,OP_DR),eta79(:,OP_1), ri_79,bzt79(:,OP_DZ)) )
+#if defined(USE3D) || defined(USECOMPLEX)
+  dofs = dofs - ( intx4(mu79(:,:,OP_DZ),eta79(:,OP_1), ri_79,bfpt79(:,OP_DRP)) &
+                - intx4(mu79(:,:,OP_DR),eta79(:,OP_1), ri_79,bfpt79(:,OP_DZP)) &
+                + intx4(mu79(:,:,OP_DR),eta79(:,OP_1),ri3_79,pst79(:,OP_DRP)) &
+                + intx4(mu79(:,:,OP_DZ),eta79(:,OP_1),ri3_79,pst79(:,OP_DZP)) )
+#endif
+!  if(izone.ne.1) return
+  dofs = dofs - intx3(mu79(:,:,OP_DR),pht79(:,OP_DR),bzt79(:,OP_1)) &
+              - intx3(mu79(:,:,OP_DZ),pht79(:,OP_DZ),bzt79(:,OP_1)) &
+              + intx3(mu79(:,:,OP_DR),pst79(:,OP_DR),vzt79(:,OP_1)) &       
+              + intx3(mu79(:,:,OP_DZ),pst79(:,OP_DZ),vzt79(:,OP_1)) &
+              + intx4(mu79(:,:,OP_DZ),bzt79(:,OP_1), ri3_79,cht79(:,OP_DR)) &
+              - intx4(mu79(:,:,OP_DR),bzt79(:,OP_1), ri3_79,cht79(:,OP_DZ))
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  dofs = dofs + intx4(mu79(:,:,OP_DZ),vzt79(:,OP_1), r_79,bfpt79(:,OP_DR)) &
+       	      -	intx4(mu79(:,:,OP_DR),vzt79(:,OP_1), r_79,bfpt79(:,OP_DZ))
+
+#endif
+
+
+
+
+
+
+ 
+
+end subroutine potential2
 
 end module temperature_plots
 

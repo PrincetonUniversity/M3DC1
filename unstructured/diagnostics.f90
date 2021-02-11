@@ -83,6 +83,10 @@ module diagnostics
   vectype, dimension(MAX_PTS) :: rhop79
   vectype, dimension(MAX_PTS) :: Lorentz_pel
 
+  integer, parameter :: REGION_PLASMA = 0
+  integer, parameter :: REGION_SOL = 1
+  integer, parameter :: REGION_PF  = 2
+
 contains
 
   ! ======================================================================
@@ -627,26 +631,30 @@ end subroutine evaluate
 
 
 !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
-subroutine tpi_factors(tpifac,tpirzero)
+subroutine tpi_factors(tpifac,tpirzero,tpirzero2)
   use basic
   use math
   implicit none
-  real, intent(out) :: tpifac, tpirzero
+  real, intent(out) :: tpifac, tpirzero,tpirzero2
   if(nplanes.eq.1) then
      if(itor.eq.1) then
         tpifac = 1.
         tpirzero = 1.
+        tpirzero2 = 1
      else
         tpifac = 1./rzero
         tpirzero = 1.
+        tpirzero2 = rzero
      endif
   else
      if(itor.eq.1) then
         tpifac = twopi
         tpirzero = twopi
+        tpirzero2 = twopi
      else
         tpifac = twopi
         tpirzero = twopi*rzero
+        tpirzero2 = twopi*rzero**2
      endif
   endif
 end subroutine tpi_factors
@@ -677,15 +685,15 @@ subroutine calculate_scalars()
 
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3),tpifac,tpirzero
-  integer :: iedge, idim(3), izone, izonedim, i
+  real :: n(2,3),tpifac,tpirzero,tpirzero2
+  integer :: iedge, idim(3), izone, izonedim, i, j
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
   vectype, dimension(MAX_PTS) :: co, sn
 
   integer :: ip
 
-  call tpi_factors(tpifac,tpirzero)
+  call tpi_factors(tpifac,tpirzero,tpirzero2)
 
   ptoto = ptot
 
@@ -778,7 +786,7 @@ subroutine calculate_scalars()
 #endif
 
      if(imulti_region.eq.1 .and. izone.eq.2) then
-        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpifac
+        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero2   ! changed from tpifac on 1/23/21 scj
 
         call jxb_r(temp79a, temp79d)
         call jxb_phi(temp79b)
@@ -807,15 +815,17 @@ subroutine calculate_scalars()
 
      do i=1, npoints
         if(linear.eq.1) then
-           if(magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
-                x_79(i),z_79(i)).eq.0) then
+           call magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+                x_79(i),z_79(i),j)
+           if(j.eq.REGION_PLASMA) then
               mr(i) = 1.
            else
               mr(i) = 0.
            end if
         else
-           if(magnetic_region(pst79(i,OP_1),pst79(i,OP_DR),pst79(i,OP_DZ), &
-                x_79(i),z_79(i)).eq.0) then
+           call magnetic_region(pst79(i,OP_1),pst79(i,OP_DR),pst79(i,OP_DZ), &
+                x_79(i),z_79(i),j)
+           if(j.eq.REGION_PLASMA) then
               mr(i) = 1.
            else
               mr(i) = 0.
@@ -859,8 +869,8 @@ subroutine calculate_scalars()
      parea  = parea  + int2(ri_79,mr)/tpirzero
 
      ! toroidal current
-     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
-     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero2
+     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero2
 #ifdef USE3D
      pcur_co = pcur_co - int4(ri2_79,pst79(:,OP_GS),mr,co)/tpirzero * 2.
      pcur_sn = pcur_sn - int4(ri2_79,pst79(:,OP_GS),mr,sn)/tpirzero * 2.
@@ -1055,7 +1065,7 @@ subroutine calculate_scalars()
   call evaluate_flux_loops
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
-     print *, "Total energy = ", etot
+     print *, "Total energy = ", etot, emagp, emagt,emag3
      print *, "Total energy lost = ", ptot
  
      print *, "Scalars:"
@@ -1103,12 +1113,12 @@ subroutine calculate_Lor_vol()
 
   integer :: itri, numelms, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: tpifac,tpirzero
+  real :: tpifac,tpirzero,tpirzero2
   integer :: izone, izonedim
   real, allocatable :: temp(:)
   integer :: ip
 
-  call tpi_factors(tpifac,tpirzero)
+  call tpi_factors(tpifac,tpirzero,tpirzero2)
 
   numelms = local_elements()
 
@@ -1145,50 +1155,87 @@ end subroutine calculate_Lor_vol
 ! 1: scrape-off layer
 ! 2: private flux
 !======================================================================
-elemental integer function magnetic_region(psi, psix, psiz, x, z)
+elemental subroutine magnetic_region(psi, psix, psiz, x, z, mr, psinb)
   use basic
 
   implicit none
 
   vectype, intent(in) :: psi, psix, psiz
   real, intent(in) :: x, z 
-  real :: psii, dpsii, pl, rl, al
+  integer, intent(out) :: mr
+  real, intent(out), optional :: psinb    ! psi_norm at the "boundary" of this region
+  real :: psii, psii_null, psii_null2, dpsii, pl, rl, al
 
-  magnetic_region = 0
+  mr = REGION_PLASMA
+  if(present(psinb)) psinb = 1.
 
   dpsii = psibound - psimin
   if(dpsii.eq.0.) return
 
   psii = (real(psi) - psimin)/dpsii
-  if(psii .gt. 1.) then
-     ! if Psi > 1, we are in scrape-off layer
-     magnetic_region = 1
-  else if(psii .lt. 0.) then
-     magnetic_region = 0
-  else
-     ! if Psi < 1, but flux is increasing, we are in private flux region
-     pl = sqrt(real(psix)**2 + real(psiz)**2)
-     rl = sqrt((x-xmag)**2 + (z-zmag)**2)
-     if(pl.eq.0. .or. rl.eq.0.) return
-     
-     al = (real(psix)*(x-xmag) + real(psiz)*(z-zmag))/(pl*rl)
-     if(al*dpsii/abs(dpsii) .lt. 0.3) then
-        magnetic_region = 2
-     end if
+  if(psii .lt. 0.) then
+     mr = REGION_PLASMA
+     return
+  end if
 
-     ! if z is far above or below x-point, we're in private flux region
-     if(znull.ne.0. .and. xnull.gt.0.) then
-        if((z-zmag)/(znull-zmag).gt.1.03) then
-           magnetic_region = 2
-        endif
-     end if
-     if(znull2.ne.0. .and. xnull2.gt.0.) then
-        if((z-zmag)/(znull2-zmag).gt.1.03) then
-           magnetic_region = 2
-        endif
+  if(xnull.ne.0) psii_null = (psinull - psimin)/dpsii
+  if(xnull2.ne.0) psii_null2 = (psinull2 - psimin)/dpsii
+
+  if(psii.gt.1. .and. &
+       (xnull.eq.0. .or. psii.gt.psii_null) .and. &
+       (xnull2.eq.0. .or. psii.gt.psii_null2)) then
+     mr = REGION_SOL
+     return
+  end if
+
+  pl = sqrt(real(psix)**2 + real(psiz)**2)
+  rl = sqrt((x-xmag)**2 + (z-zmag)**2)
+  if(pl.eq.0. .or. rl.eq.0.) then
+     mr = REGION_PLASMA
+     return
+  end if
+
+  al = (real(psix)*(x-xmag) + real(psiz)*(z-zmag))/(pl*rl)
+  if(xnull.gt.0) then
+     if(psii.lt.psii_null) then
+        ! Make sure we're in the direction of this x-point
+        if((x-xmag)*(xnull-xmag) + (z-zmag)*(znull-zmag) .gt. 0.) then
+           ! Make sure either flux gradient has flipped, or we're 
+           ! farther from axis than x-point
+           if(al*dpsii/abs(dpsii) .lt. 0.3 .or. &
+                rl.gt.sqrt((xmag-xnull)**2 + (zmag-znull)**2)) then
+              if(present(psinb)) psinb = psii_null
+              mr = REGION_PF
+              return
+           end if
+        end if
      end if
   end if
-end function magnetic_region
+  if(xnull2.gt.0) then
+     if(psii.lt.psii_null2) then
+        ! Make sure we're in the direction of this x-point
+        if((x-xmag)*(xnull2-xmag) + (z-zmag)*(znull2-zmag) .gt. 0.) then
+           ! Make sure either flux gradient has flipped, or we're 
+           ! farther from axis than x-point
+           if(al*dpsii/abs(dpsii) .lt. 0.3 .or. &
+                rl.gt.sqrt((xmag-xnull2)**2 + (zmag-znull2)**2)) then
+              if(present(psinb)) psinb = psii_null2
+              mr = REGION_PF
+              return
+           end if
+        end if
+     end if
+  end if
+
+  if(psii .gt. 1.) then
+     ! if Psi > 1, and wer're not in a private flux region, 
+     ! we are in scrape-off layer
+     mr = REGION_SOL
+     return
+  end if
+
+  mr = REGION_PLASMA
+end subroutine magnetic_region
 
 !=====================================================
 ! magaxis
@@ -1390,7 +1437,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   zguess = z
   psim = sum
   ier = 0
-  if(izone.ne.1) ier = 2
+  if(izone.ne.1 .and. iwall_is_limiter.eq.1) ier = 2
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
@@ -1625,7 +1672,7 @@ subroutine lcfs(psi, test_wall, findx)
   logical, intent(in), optional :: findx
 
   type(field_type) :: temp_field
-  real :: psix, psix2, psib, psim
+  real :: psib, psim
   real :: x, z, temp1, temp2, temp_min, temp_max, phi
   integer :: ier, ier2, numnodes, inode, izone, izonedim, itri, icounter_t
   logical :: is_boundary, first_point
@@ -1719,64 +1766,61 @@ subroutine lcfs(psi, test_wall, findx)
      psib = temp_min
   endif
 
+  psibound = psib
+  is_diverted=.false.
 
-  ! Calculate psi at the x-point
-  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  psix = psib
-  psix2 = psib
+
+  ! Calculate psi at the x-point(s)
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  psinull = psib
+  psinull2 = psib
   if(fx) then 
      if(myrank.eq.0 .and. iprint.ge.1) print *, ' Finding X-point'
-     if(xnull .gt. 0.) call magaxis(xnull,znull,temp_field,psix,1,ier)
-     if(xnull2 .gt. 0.) call magaxis(xnull2,znull2,temp_field,psix2,1,ier2)
+     if(xnull .gt. 0.) call magaxis(xnull,znull,temp_field,psinull,1,ier)
+     if(xnull2 .gt. 0.) call magaxis(xnull2,znull2,temp_field,psinull2,1,ier2)
   else
      itri = 0.
      if(xnull.gt.0.) then
         call evaluate(xnull,0.,znull,dum1,temp_field,itri,ier)
-        psix = dum1(OP_1)
+        psinull = dum1(OP_1)
      end if
      if(xnull2.gt.0.) then
         call evaluate(xnull2,0.,znull2,dum1,temp_field,itri,ier2)
-        psix = dum1(OP_1)
+        psinull2 = dum1(OP_1)
      end if
-     
   end if
-  if(ier.eq.0) then
-     if(myrank.eq.0 .and. iprint.ge.1) then
-        write(*,'(A,2E12.4)') '  X-point found at ', xnull, znull
-        write(*,'(A,2E12.4)') '   Psi_x = ', psix
-     end if
-  else 
-     psix = psib
-     if(myrank.eq.0 .and. iprint.ge.1) then 
-        write(*,'(A,2E12.4)') '  no X-point found near ', xnull, znull
-     end if
-  endif
-  if(xnull2 .gt. 0) then
-     if(ier2.eq.0) then
+
+  if(xnull.gt.0) then
+     if(ier.eq.0) then
         if(myrank.eq.0 .and. iprint.ge.1) then
-           write(*,'(A,2E12.4)') '  X-point found at ', xnull2, znull2
-           write(*,'(A,2E12.4)') '   Psi_x = ', psix2
+           write(*,'(A,2E12.4)') '  X-point 1 found at ', xnull, znull
+           write(*,'(A,2E12.4)') '   Psi_x = ', psinull
         end if
-        if(abs(psix2 - psimin).lt.abs(psix - psimin)) then
-           psix = psix2
-           if(myrank.eq.0 .and. iprint.ge.1) print *, '  X-point 2 is active '
-        else
-           if(myrank.eq.0 .and. iprint.ge.1) print *, '  X-point 1 is active '
+        if(abs(psinull - psimin).lt.abs(psibound - psimin)) then
+           is_diverted = .true.
+           psibound = psinull
         end if
      else 
-        psix2 = psib
         if(myrank.eq.0 .and. iprint.ge.1) then 
-           write(*,'(A,2E12.4)') '  no X-point found near ', xnull2, znull2
+           write(*,'(A,2E12.4)') '  X-point 1 NOT found near ', xnull, znull
         end if
      endif
   end if
-
-  if(abs(psix - psimin).lt.abs(psib - psimin)) then
-     is_diverted = .true.
-     psibound = psix
-  else
-     is_diverted = .true.
-     psibound = psib
+  if(xnull2 .gt. 0) then
+     if(ier2.eq.0) then
+        if(myrank.eq.0 .and. iprint.ge.1) then
+           write(*,'(A,2E12.4)') '  X-point 2 found at ', xnull2, znull2
+           write(*,'(A,2E12.4)') '   Psi_x = ', psinull2
+        end if
+        if(abs(psinull2 - psimin).lt.abs(psibound - psimin)) then
+           is_diverted = .true.
+           psibound = psinull2
+        end if
+     else 
+        if(myrank.eq.0 .and. iprint.ge.1) then 
+           write(*,'(A,2E12.4)') '  X-point 2 NOT found near ', xnull2, znull2
+        end if
+     endif
   end if
 
 
@@ -1825,15 +1869,17 @@ subroutine lcfs(psi, test_wall, findx)
      write(*,'(1A10,6A11)') 'psi at:', &
           'axis', 'wall', 'divertor', 'lim1', 'lim2', 'lcfs'
      write(*,'(1I10,1p6e11.3)') myrank,  &
-          psimin, psib, psix, psilim, psilim2, psibound
+          psimin, psib, psinull, psilim, psilim2, psibound
   endif
 
   ! daignostic output
   if(myrank.eq.0 .and. iprint.ge.1) then
      if(psibound.eq.psib) then
-        print *, ' Plasma is limited by wall'
-     else if(psibound.eq.psix) then
-        print *, ' Plasma is diverted'
+        print *, ' Plasma is limited by wall.'
+     else if(psibound.eq.psinull) then
+        print *, ' Plasma is diverted by x-point #1.'
+     else if(psibound.eq.psinull2) then
+        print *, ' Plasma is diverted by x-point #2.'
      else if(psibound.eq.psilim) then
         print *, ' Plasma is limited by internal limiter #1.'
      else if(psibound.eq.psilim2) then

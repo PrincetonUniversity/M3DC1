@@ -22,6 +22,7 @@ module auxiliary_fields
   type(field_type) :: deldotq_perp
   type(field_type) :: deldotq_par
   type(field_type) :: eta_jsq
+  type(field_type) :: pot2_field
   type(field_type) :: mesh_zone
   type(field_type) :: z_effective
   type(field_type) :: kprad_totden
@@ -64,6 +65,7 @@ subroutine create_auxiliary_fields
      call create_field(deldotq_perp)
      call create_field(deldotq_par)
      call create_field(eta_jsq)
+  call create_field(pot2_field)
      call create_field(vpar_field)
      call create_field(f1vplot)
      call create_field(f1eplot)
@@ -111,6 +113,7 @@ subroutine destroy_auxiliary_fields
      call destroy_field(deldotq_perp)
      call destroy_field(deldotq_par)
      call destroy_field(eta_jsq)
+     call destroy_field(pot2_field)
      call destroy_field(vpar_field)
      call destroy_field(f1vplot)
      call destroy_field(f1eplot)
@@ -583,6 +586,7 @@ subroutine calculate_auxiliary_fields(ilin)
   use electric_field
   use temperature_plots
   use kprad_m3dc1
+  use arrays
 
   implicit none
 
@@ -591,6 +595,7 @@ subroutine calculate_auxiliary_fields(ilin)
   integer :: def_fields
   integer :: numelms
   integer :: i, itri, izone
+  integer, dimension(MAX_PTS) :: mr
 
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -633,6 +638,7 @@ subroutine calculate_auxiliary_fields(ilin)
      f3vplot = 0.
      f3eplot = 0.
      jdbobs  = 0.
+     pot2_field = 0.
   endif
 
   ! specify which fields are to be evalulated
@@ -851,8 +857,9 @@ subroutine calculate_auxiliary_fields(ilin)
      end if
 
      ! magnetic_region
-     temp79a = magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ),&
-          x_79,z_79)
+     call magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ),&
+          x_79,z_79,mr)
+     temp79a = mr
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(mag_reg%vec,itri,1,dofs,VEC_ADD)
 
@@ -862,6 +869,7 @@ subroutine calculate_auxiliary_fields(ilin)
      call vector_insert_block(ef_r%vec,itri,1,dofs,VEC_ADD)
 
      call electric_field_phi(ilin,temp79a,izone)
+     if(itor.eq.0) temp79a = temp79a/rzero
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(ef_phi%vec,itri,1,dofs,VEC_ADD)
 
@@ -948,6 +956,8 @@ subroutine calculate_auxiliary_fields(ilin)
 
         call f2vplot_sub(dofs)
         call vector_insert_block(f2vplot%vec,itri,1,dofs,VEC_ADD)
+        sig79 = 0
+        if(density_source) call eval_ops(itri, sigma_field, sig79)
         call calculate_sigma_e(itri)
         call f2eplot_sub(dofs)
         call vector_insert_block(f2eplot%vec,itri,1,dofs,VEC_ADD)
@@ -961,6 +971,10 @@ subroutine calculate_auxiliary_fields(ilin)
         call jdbobs_sub(temp79a)
         dofs = intx2(mu79(:,:,OP_1),temp79a)
         call vector_insert_block(jdbobs%vec,itri,1,dofs,VEC_ADD)
+
+     call potential2(dofs)
+     call vector_insert_block(pot2_field%vec, itri,1,dofs,VEC_ADD)
+
         
      end if  ! on itemp_plot.eq.1
 
@@ -999,6 +1013,7 @@ subroutine calculate_auxiliary_fields(ilin)
      call newvar_solve(vlbdgp%vec, mass_mat_lhs)
   endif
   if(itemp_plot.eq.1) then
+      if(myrank.eq.0 .and. iprint.ge.1) print *,' before vdotgradt solve'
      call newvar_solve(vdotgradt%vec, mass_mat_lhs)
      call newvar_solve(adv1%vec, mass_mat_lhs)
      call newvar_solve(adv2%vec, mass_mat_lhs)
@@ -1014,6 +1029,8 @@ subroutine calculate_auxiliary_fields(ilin)
      call newvar_solve(f3vplot%vec, mass_mat_lhs)
      call newvar_solve(f3eplot%vec, mass_mat_lhs)
      call newvar_solve(jdbobs%vec , mass_mat_lhs)
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'before pot2 solve'
+     call newvar_solve(pot2_field%vec, pot2_mat_lhs)
 
   endif
 

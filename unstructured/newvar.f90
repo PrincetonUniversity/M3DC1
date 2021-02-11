@@ -38,6 +38,7 @@ module newvar_mod
   type(newvar_matrix) :: gs_mat_rhs_dc
   type(newvar_matrix) :: gs_mat_rhs
   type(newvar_matrix) :: bf_mat_lhs
+  type(newvar_matrix) :: pot2_mat_lhs
   type(newvar_matrix) :: mass_mat_rhs_bf
   type(newvar_matrix) :: dp_mat_rhs_bfp
   type(newvar_matrix) :: s5_mat, d5_mat
@@ -73,6 +74,7 @@ contains
     call set_matrix_index(d7_mat%mat,          d7_mat_index)
     call set_matrix_index(s10_mat%mat,         s10_mat_index)
     call set_matrix_index(d10_mat%mat,         d10_mat_index)
+   call set_matrix_index(pot2_mat_lhs%mat,      pot2_mat_lhs_index)
   end subroutine set_newvar_indices
 
 
@@ -164,6 +166,7 @@ contains
        print *, "create_mat newvar d10_mat", d10_mat%mat%imatrix     
 #endif 
     endif
+        call create_newvar_matrix(pot2_mat_lhs,NV_DCBOUND, NV_DP_MATRIX,1)
 
     if(igs.ne.0) then
        call create_newvar_matrix(mass_mat_rhs,NV_NOBOUND,NV_I_MATRIX, 0)
