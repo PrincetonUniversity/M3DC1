@@ -78,7 +78,7 @@ subroutine adapt_mesh
             iadapt_pre_zoltan, iadapt_post_zoltan, iadapt_refine_layer, &
             iadapt_max_iter, iadapt_quality)
        write(mesh_file_name,"(A7,A)") 'adapted', 0
-       if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
+       if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,i)
 
        deallocate(unit1)
        deallocate(node_ids)
