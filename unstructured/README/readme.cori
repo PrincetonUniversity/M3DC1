@@ -6,7 +6,7 @@
 3. load modules
 
    for release version modules:
-       module use /global/project/projectdirs/mp288/C1/modules/cori
+       module use /global/cfs/projectdirs/mp288/C1/modules/cori
 
    for development modules:
        setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
