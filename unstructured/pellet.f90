@@ -404,7 +404,7 @@ contains
           pellet_rate(ip) = 0.
           pellet_rate_D2(ip) = 0.
           rpdot(ip) = 0.
-          continue
+          cycle
        end if
 
 
