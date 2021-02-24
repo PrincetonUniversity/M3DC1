@@ -758,7 +758,10 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
       }
     }
   }
+}
 
+void gmi_print(gmi_model* model)
+{
   gmi_ent* g;
   gmi_iter* gi;
   for (int dim=0; dim<3; ++dim)

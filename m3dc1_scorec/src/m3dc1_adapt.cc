@@ -165,7 +165,6 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   while(mesh->countNumberings())
   {
     apf::Numbering* n = mesh->getNumbering(0);
-//    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
     apf::destroyNumbering(n);
   }
 	
@@ -192,46 +191,35 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
 #endif
 
   MPI_Comm groupComm;
+  apf::MeshEntity* e;
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
     m3dc1_mesh::instance()->remove_wedges();
-    pumi_mesh_print(mesh);
-    int group_size = PCU_Comm_Peers()/m3dc1_model::instance()->num_plane;
-    int groupRank = PCU_Comm_Self()%group_size; // modulo
-
-    MPI_Comm_split(m3dc1_model::instance()->oldComm, m3dc1_model::instance()->local_planeid, groupRank, &groupComm);
-    PCU_Switch_Comm(groupComm);
+    // remove entities on non-master plane
+    if (m3dc1_model::instance()->local_planeid)
+    {
+      for (int dim=2; dim>=0; --dim)
+      {
+        MeshIterator* ent_it = mesh->begin(dim);
+        while ((e = mesh->iterate(ent_it)))
+          mesh->destroy(e);
+        mesh->end(ent_it);
+      }
+    }
   }
-
-  if (m3dc1_model::instance()->local_planeid == 0) // master plane
-    ma::adapt(in);
+  ma::adapt(in);
 
   mesh->removeField(size_field);
   mesh->removeField(frame_field);
   apf::destroyField(size_field);
   apf::destroyField(frame_field);
 
-  // remove non-master plane
-  if (m3dc1_model::instance()->local_planeid)
-  {
-    apf::MeshEntity* e;
-    for (int d=2; d>=0; --d)
-    {
-      apf::MeshIterator* ent_it = mesh->begin(d);
-      while ((e = mesh->iterate(ent_it)))
-        mesh->destroy(e);
-      mesh->end(ent_it);
-    }
-  }
+  pumi_mesh_print(mesh);
 
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
-    PCU_Switch_Comm(m3dc1_model::instance()->oldComm);
-    MPI_Comm_free(&groupComm);
 
     // re-construct wedges
-   std::cout<<"["<<PCU_Comm_Self()<<"] "<<__func__<<": "<<__LINE__<<"\n";
-
     // compute the fields to copy from master plane
     int num_field = 0;
     int* field_id = NULL;
