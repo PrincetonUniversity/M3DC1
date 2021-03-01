@@ -57,7 +57,7 @@ contains
     real, intent(out) :: rout, zout 
     real :: r, theta, ds, r2n, s1, s0
     integer :: i, js
-    real, dimension(mn_mode) :: rstc, zsts, co, sn 
+    real, dimension(mn_mode) :: rstc, rsts, zsts, zstc, co, sn 
     real :: phis
 
     phis = phi*mf+mesh_phase
@@ -75,6 +75,10 @@ contains
       if (js>0) then ! interpolate between surfaces
         call zernike_evaluate(r,mn_mode,mb,rmncz,rstc)
         call zernike_evaluate(r,mn_mode,mb,zmnsz,zsts)
+        if(lasym.eq.1) then
+          call zernike_evaluate(r,mn_mode,mb,rmnsz,rsts)
+          call zernike_evaluate(r,mn_mode,mb,zmncz,zstc)
+        endif
         !call vmec_interpl(r,mn_mode,rmnc,rstc)
         !call vmec_interpl(r,mn_mode,zmns,zsts)
 !      if (js>ns) then ! do not interpolate 
@@ -89,6 +93,10 @@ contains
           if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
             rout = rout + rstc(i)*co(i)
             zout = zout + zsts(i)*sn(i)
+            if(lasym.eq.1) then
+              rout = rout + rsts(i)*sn(i)
+              zout = zout + zstc(i)*co(i)
+            end if
           end if
         end do
       else ! near axis, use routine 
@@ -98,16 +106,28 @@ contains
         ds = r 
         rstc = rbc
         zsts = zbs
+        if(lasym.eq.1) then
+          rsts = rbs
+          zstc = zbc
+        endif
         do i = 1, mn_mode 
           if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
             rout = rout + rstc(i)*co(i)*ds**xmv(i)
             zout = zout + zsts(i)*sn(i)*ds**xmv(i)
+            if(lasym.eq.1) then
+              rout = rout + rsts(i)*sn(i)*ds**xmv(i)
+              zout = zout + zstc(i)*co(i)*ds**xmv(i)
+            end if
           end if
         end do
         do i = 1, n_tor+1 ! shift axis to magnetic axis 
             if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
 !              rout = rout + (rmnc(i,1)-rbc(i))*co(i)*(1-ds**2)
 !              zout = zout + (zmns(i,1)-zbs(i))*sn(i)*(1-ds**2)
+!              if(lasym.eq.1) then
+!              rout = rout + (rmns(i,1)-rbs(i))*sn(i)*(1-ds**2)
+!              zout = zout + (zmnc(i,1)-zbc(i))*co(i)*(1-ds**2)
+!              end if
             end if
         end do
       end if
@@ -118,6 +138,10 @@ contains
         if ((mb(i)<m_max)) then
           rout = rout + rbc(i)*co(i)*r**mb(i)
           zout = zout + zbs(i)*sn(i)*r**mb(i)
+          if(lasym.eq.1) then
+            rout = rout + rbc(i)*co(i)*r**mb(i)
+            zout = zout + zbs(i)*sn(i)*r**mb(i)
+          end if
         end if
       end do
     end if
@@ -192,13 +216,25 @@ contains
              dz = dz + zbs(i)*co(i)*xmv(i)
              ddr = ddr - rbc(i)*co(i)*xmv(i)**2
              ddz = ddz - zbs(i)*sn(i)*xmv(i)**2
+             if(lasym.eq.1) then
+               dz = dz - zbc(i)*sn(i)*xmv(i)
+               dr = dr + rbs(i)*co(i)*xmv(i)
+               ddz = ddz - zbc(i)*co(i)*xmv(i)**2
+               ddr = ddr - rbs(i)*sn(i)*xmv(i)**2
+             endif
 #ifdef USE3D
              dr1 = dr1 - rbc(i)*co(i)*xmv(i)*xnv(i)*mf
              dz1 = dz1 - zbs(i)*sn(i)*xmv(i)*xnv(i)*mf
              ddr1 = ddr1 + rbc(i)*sn(i)*xmv(i)**2*xnv(i)*mf
              ddz1 = ddz1 - zbs(i)*co(i)*xmv(i)**2*xnv(i)*mf
+             if(lasym.eq.1) then
+               dz1 = dz1 - zbc(i)*co(i)*xmv(i)*xnv(i)*mf
+               dr1 = dr1 - rbs(i)*sn(i)*xmv(i)*xnv(i)*mf
+               ddz1 = ddz1 + zbc(i)*sn(i)*xmv(i)**2*xnv(i)*mf
+               ddr1 = ddr1 - rbs(i)*co(i)*xmv(i)**2*xnv(i)*mf
+             endif
 #endif
-           end if
+           endif
          end do
        else
          co = cos(mb*theta-nb*phis*nperiods)
@@ -209,15 +245,27 @@ contains
              dz = dz + zbs(i)*co(i)*mb(i)
              ddr = ddr - rbc(i)*co(i)*mb(i)**2
              ddz = ddz - zbs(i)*sn(i)*mb(i)**2
+             if(lasym.eq.1) then
+               dz = dz - zbc(i)*sn(i)*mb(i)
+               dr = dr + rbs(i)*co(i)*mb(i)
+               ddz = ddz - zbc(i)*co(i)*mb(i)**2
+               ddr = ddr - rbs(i)*sn(i)*mb(i)**2
+             endif
 #ifdef USE3D
              dr1 = dr1 - rbc(i)*co(i)*mb(i)*(-nb(i))*nperiods*mf
              dz1 = dz1 - zbs(i)*sn(i)*mb(i)*(-nb(i))*nperiods*mf
              ddr1 = ddr1 + rbc(i)*sn(i)*mb(i)**2*(-nb(i))*nperiods*mf
              ddz1 = ddz1 - zbs(i)*co(i)*mb(i)**2*(-nb(i))*nperiods*mf
+             if(lasym.eq.1) then
+               dz1 = dz1 - zbc(i)*co(i)*mb(i)*nb(i)*nperiods*mf
+               dr1 = dr1 - rbs(i)*sn(i)*mb(i)*nb(i)*nperiods*mf
+               ddz1 = ddz1 + zbc(i)*sn(i)*mb(i)**2*nb(i)*nperiods*mf
+               ddr1 = ddr1 - rbs(i)*co(i)*mb(i)**2*nb(i)*nperiods*mf
+             endif
 #endif
-           end if 
+           endif 
          end do
-       end if 
+       endif 
     end if 
 !    dr = -rm1*sin(theta+rm2*sin(theta))*(1+rm2*cos(theta)) 
 !    ddr = -rm1*cos(theta+rm2*sin(theta))*(1+rm2*cos(theta))**2 &

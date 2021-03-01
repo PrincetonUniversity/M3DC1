@@ -685,7 +685,7 @@ subroutine initial_conditions()
   call calculate_temperatures(0, te_field(0), ti_field(0), &
        pe_field(0), p_field(0), ne_field(0), den_field(0), &
        1)
-  call calculate_temperatures(0, te_field(1), ti_field(1), &
+  call calculate_temperatures(1, te_field(1), ti_field(1), &
        pe_field(1), p_field(1), ne_field(1), den_field(1), &
        1)
 

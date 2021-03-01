@@ -5,10 +5,13 @@ module read_vmec
   character(len=256) :: vmec_filename
 
 #ifdef USEST
-  integer :: nfp
+  integer :: nfp, lasym
   real, allocatable :: rbc(:), zbs(:)
   real, allocatable :: rmnc(:,:), zmns(:,:), lmns(:,:)!, gmnc(:,:)
   real, allocatable :: rmncz(:,:), zmnsz(:,:), lmnsz(:,:)!, gmncz(:,:)
+  real, allocatable :: rbs(:), zbc(:)
+  real, allocatable :: rmns(:,:), zmnc(:,:), lmnc(:,:)
+  real, allocatable :: rmnsz(:,:), zmncz(:,:), lmncz(:,:)
 !  real, allocatable :: bsupumnc(:,:), bsupvmnc(:,:)
 !  real, allocatable :: bsupumncz(:,:), bsupvmncz(:,:)
   real, allocatable :: presf(:), phiv(:), chiv(:)
@@ -43,7 +46,10 @@ contains
     ! boundary coefficients
     rbc = rmnc(:,ns)
     zbs = zmns(:,ns)
-
+    if(lasym.eq.1) then
+      rbs = rmns(:,ns)
+      zbc = zmnc(:,ns)
+    endif
     ! Change from half to full mesh
     if(myrank.eq.0) print *, 'half mesh to full'
     call half2full(lmns)
@@ -67,6 +73,14 @@ contains
     if(myrank.eq.0) print *, 'zmns transformed'
     call zernike_transform(lmns,lmnsz)
     if(myrank.eq.0) print *, 'lmns transformed'
+    if(lasym.eq.1) then
+      call zernike_transform(rmns,rmnsz)
+      if(myrank.eq.0) print *, 'rmns transformed'
+      call zernike_transform(zmnc,zmncz)
+      if(myrank.eq.0) print *, 'zmnc transformed'
+      call zernike_transform(lmnc,lmncz)
+      if(myrank.eq.0) print *, 'lmnc transformed'
+    endif
 !    call zernike_transform(mn_mode_nyq,mb_nyq,gmnc,gmncz)
 !    if(myrank.eq.0) print *, 'gmnc transformed'
 !    call zernike_transform(mn_mode_nyq,mb_nyq,bsupumnc,bsupumncz)
@@ -122,11 +136,20 @@ contains
 !    allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
-
-    n_zer = m_pol*2
+    n_zer = m_pol*1
     allocate(rmncz(mn_mode,n_zer+1))
     allocate(zmnsz(mn_mode,n_zer+1))
     allocate(lmnsz(mn_mode,n_zer+1))
+    if(lasym.eq.1) then
+      allocate(rmns(mn_mode,ns))
+      allocate(zmnc(mn_mode,ns))
+      allocate(lmnc(mn_mode,ns))
+      allocate(rbs(mn_mode))
+      allocate(zbc(mn_mode))
+      allocate(rmnsz(mn_mode,n_zer+1))
+      allocate(zmncz(mn_mode,n_zer+1))
+      allocate(lmncz(mn_mode,n_zer+1))
+    endif
 !    allocate(gmncz(mn_mode_nyq,n_zer+1))
 !    allocate(bsupumncz(mn_mode_nyq,n_zer+1))
 !    allocate(bsupvmncz(mn_mode_nyq,n_zer+1))
@@ -137,7 +160,7 @@ contains
 !    else 
 !      n_quad = n_zer/2
 !    end if 
-    n_quad = n_zer + 1
+    n_quad = 1*n_zer + 1
     allocate(quad(2,n_quad))
   end subroutine allocate_vmec
 
@@ -185,6 +208,11 @@ contains
     ierr = ierr + nf90_get_var(ncid, id, nfp)
     if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'nfp = ', nfp 
+
+    ierr = nf90_inq_varid(ncid, "lasym__logical__", id)
+    ierr = ierr + nf90_get_var(ncid, id, lasym)
+    if(ierr.ne.0) call safestop(5) 
+    if(myrank.eq.0) print *, 'lasym = ', lasym 
 
     call allocate_vmec()
     ! Get 1D arrays xmv & xnv
@@ -235,6 +263,20 @@ contains
     ierr = ierr + nf90_get_var(ncid, id, lmns)
     if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'lmns read'
+    if(lasym.eq.1) then
+      ierr = nf90_inq_varid(ncid, "rmns", id)
+      ierr = ierr + nf90_get_var(ncid, id, rmns)
+      if(ierr.ne.0) call safestop(5) 
+      if(myrank.eq.0) print *, 'rmns read'
+      ierr = nf90_inq_varid(ncid, "zmnc", id)
+      ierr = ierr + nf90_get_var(ncid, id, zmnc)
+      if(ierr.ne.0) call safestop(5) 
+      if(myrank.eq.0) print *, 'zmnc read'
+      ierr = nf90_inq_varid(ncid, "lmnc", id)
+      ierr = ierr + nf90_get_var(ncid, id, lmnc)
+      if(ierr.ne.0) call safestop(5) 
+      if(myrank.eq.0) print *, 'lmnc read'
+    endif
 
     ! Get 2D array gmnc, bsupumnc, bsupsmnv 
 !    ierr = nf90_inq_varid(ncid, "gmnc", id)
@@ -402,6 +444,16 @@ contains
 !    deallocate(bsupvmncz)
     deallocate(rbc)
     deallocate(zbs)
+    if(lasym.eq.1) then
+      deallocate(rmns)
+      deallocate(zmnc)
+      deallocate(lmnc)
+      deallocate(rmnsz)
+      deallocate(zmncz)
+      deallocate(lmncz)
+      deallocate(rbs)
+      deallocate(zbc)
+    endif
     deallocate(s_vmec)
     deallocate(presf)
     deallocate(phiv)

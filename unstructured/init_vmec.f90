@@ -438,7 +438,7 @@ contains
     real, intent(out) :: p, br, bphi, bz, per
     real :: r, r2n, ds, rout, bu, bv, theta 
     integer :: js, i 
-    real, dimension(mn_mode) :: rstc, zsts, co, sn, ls 
+    real, dimension(mn_mode) :: rstc, zsts, co, sn, ls, lc 
     real, dimension(mn_mode_nyq) :: co_nyq, sn_nyq, buc, bvc, gc 
     real :: dr, dz, dr1, dz1, phis, chiv, phiv, dl, dl1, gout, lout
 
@@ -461,6 +461,8 @@ contains
     call evaluate_spline(phiv_spline, r**2, phiv)
     call evaluate_spline(chiv_spline, r**2, chiv)
     call zernike_evaluate(r,mn_mode,mb,lmnsz,ls)
+    if(lasym.eq.1) call zernike_evaluate(r,mn_mode,mb,lmncz,lc)
+    !call vmec_interpl(r,lmns,ls)
     !call vmec_interpl(r,mn_mode,mb,lmns,ls)
     !call zernike_evaluate(r,mn_mode,mb,rmncz,rstc)
     !call zernike_evaluate(r,mn_mode,mb,zmnsz,zsts)
@@ -490,6 +492,7 @@ contains
     do i = 1, mn_mode 
       if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
         lout = lout + ls(i)*sn(i)
+        if(lasym.eq.1) lout = lout + lc(i)*co(i)
 !        rout = rout + rstc(i)*co(i)
 !        dr = dr - rstc(i)*sn(i)*xmv(i)
 !        dz = dz + zsts(i)*co(i)*xmv(i)

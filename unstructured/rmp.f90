@@ -532,7 +532,9 @@ subroutine calculate_external_fields()
   !bfp_field(1) = 0. 
   !bfp_field(1) = p_f
   p_field(1) = 0. 
+  pe_field(1) = 0. 
   call add(p_field(1), pedge) 
+  call add(pe_field(1), pedge*pefac) 
   !bz_field(1) = bf_f
   !call mult(bz_field(1), -1.) 
   !call add(bz_field(1), p_field(1))
