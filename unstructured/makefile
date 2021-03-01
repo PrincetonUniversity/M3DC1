@@ -179,7 +179,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	time_step_split.o time_step_unsplit.o \
         hdf5_output.o particle.o   \
 	time_step.o output.o restart_hdf5.o \
-	error_estimate.o adapt.o newpar.o input.o ludef_t.o \
+	error_estimate.o scorec_adapt.o adapt.o newpar.o input.o ludef_t.o \
 	init_conds.o \
 	get_pc_skip_count.o \
 	parse_solver_options.o

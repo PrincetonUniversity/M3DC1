@@ -1,10 +1,7 @@
 module adapt
   use vector_mod
+  use scorec_adapt
   implicit none
-  !adaptation control parameters
-  integer :: iadapt_snap, iadapt_pre_zoltan, iadapt_post_zoltan
-  integer :: iadapt_refine_layer, iadapt_max_iter
-  real :: iadapt_quality
   real :: adapt_ke
   integer :: iadapt_ntime
   real :: adapt_target_error
@@ -17,7 +14,6 @@ module adapt
   real , dimension(2) :: abs_size, rel_size
   real :: adapt_hmin_rel, adapt_hmax_rel
   data rel_size /0.5, 2.0/
-  integer :: iadapt_writevtk, iadapt_writesmb
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
@@ -27,117 +23,6 @@ module adapt
   
   contains
 
-#ifdef ADAPT
-subroutine adapt_mesh
-    use basic
-    use arrays
-    use newvar_mod
-    use transport_coefficients
-
-    integer :: izone, izonedim, i
-    integer :: numelms, numnodes, itri, inode
-    integer, dimension(nodes_per_element) :: nodeids
-    character(len=32) :: mesh_file_name
-    integer, dimension(MAX_PTS) :: mr
-    vectype, dimension(dofs_per_node) :: dofs1, dofs2
-    type(field_type) :: size1, size2
-    real, allocatable :: unit1(:)
-    real :: x, phi, z, r, w
-    real, parameter :: mins = 0.001, maxs = 0.1, aniso = 5.
-    real, parameter :: x0 = 1.7, z0 =  0.1, w0 = 0.05
-
-    if(myrank.eq.0) print *, "ADAPT TEST"
-
-    call create_field(size1)
-    call create_field(size2)
-    numelms = local_elements()
-    numnodes = owned_nodes()
-    allocate(unit1(3*numnodes))
-
-    size1 = 0.
-    size2 = 0.
-    dofs1 = 0.
-    dofs2 = 0.
-    unit1 = 0.
-
-    do itri=1,numelms
-       call m3dc1_ent_getgeomclass(2, itri-1, izonedim, izone)
-       
-       call get_element_nodes(itri,nodeids)
-
-       do i=1,nodes_per_element
-
-          ! BCL 1/25/21: I'm not sure about this nodes_owned
-          inode = nodes_owned(nodeids(i))
-          call get_node_pos(inode, x, phi, z)
-
-          r = sqrt((x - x0)**2 + (z - z0)**2)
-          w = abs(r-0.3)
-          if(w > w0) then
-             dofs1(1) = maxs
-             dofs2(1) = maxs
-             unit1((inode-1)*3+1) = 1.0
-             unit1((inode-1)*3+2) = 0.0
-             unit1((inode-1)*3+3) = 0.0
-          else
-             dofs1(1) = mins + (maxs - mins)*w/w0
-             dofs2(1) = maxs
-             unit1((inode-1)*3+1) = (x-x0)/r
-             unit1((inode-1)*3+2) = (z-z0)/r
-             unit1((inode-1)*3+3) = 0.0
-          end if
-          
-          call set_node_data(size1,inode,dofs1)
-          call set_node_data(size2,inode,dofs2)
-             
-       end do
-
-    end do
-    call finalize(size1%vec)
-    call finalize(size2%vec)
-
-    call straighten_fields()
-    print *, "BEFORE ADAPT"
-    call m3dc1_mesh_adapt(size1%vec%id, size2%vec%id, unit1, 0, 0, 0, 1, 5, 0.4)
-    print *, "AFTER ADAPT"
-    if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
-    if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
-
-    deallocate(unit1)
-    call destroy_field(size1)
-    call destroy_field(size2)
-    call space(0)
-    call update_nodes_owned()
-    call tridef
-    call unstraighten_fields()
-
-    call create_newvar_matrices
-    if(irestart .ne. 0) return
-    field_vec = 0.
-    field0_vec = 0.
-    if (myrank .eq. 0) print *, "re-calculate equlibrium after adapt .."
-    call initial_conditions
-    ! combine the equilibrium and perturbed fields of linear=0
-    ! unless eqsubtract = 1
-    if(eqsubtract.eq.0) then
-       call add(field_vec, field0_vec)
-       field0_vec = 0.
-    endif
-    i_control%err_i = 0.
-    i_control%err_p_old = 0.
-    n_control%err_i = 0.
-    n_control%err_p_old = 0.
-    i_control%err_i = 0.
-    i_control%err_p_old = 0.
-    n_control%err_i = 0.
-    n_control%err_p_old = 0.
-    if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-    call define_transport_coefficients
-    call derived_quantities(1)
-    !ke_previous = ekin
-
-  end subroutine adapt_mesh
-#endif
   subroutine adapt_by_psi
     use basic
     use mesh_mod
@@ -606,70 +491,4 @@ iadapt_max_node, adapt_control);
       if (myrank .eq. 0) print *, "diagnose_adapt: run adaptation as ekin is greater than adapt_ke", adapt_ke, "(linear)"
     endif
   end subroutine diagnose_adapt
-
-  subroutine straighten_fields ()
-    use diagnostics
-    use basic
-    use error_estimate
-    use scorec_mesh_mod
-    use basic
-    use mesh_mod
-    use arrays
-    use newvar_mod
-    use sparse
-    use time_step
-    use auxiliary_fields
-    use scorec_mesh_mod
-
-    integer :: ifield
-    
-    do ifield=0,1
-       call straighten_field(u_field(ifield))
-       call straighten_field(vz_field(ifield))
-       call straighten_field(chi_field(ifield))
-
-       call straighten_field(psi_field(ifield))
-       call straighten_field(bz_field(ifield))
-       call straighten_field(pe_field(ifield))
-
-       call straighten_field(den_field(ifield))
-       call straighten_field(p_field(ifield))
-       call straighten_field(te_field(ifield))
-       call straighten_field(ti_field(ifield))
-    end do
-  end subroutine straighten_fields 
-
-  subroutine unstraighten_fields ()
-    use diagnostics
-    use basic
-    use error_estimate
-    use scorec_mesh_mod
-    use basic
-    use mesh_mod
-    use arrays
-    use newvar_mod
-    use sparse
-    use time_step
-    use auxiliary_fields
-    use scorec_mesh_mod
-
-    integer :: ifield
-
-    do ifield=0,1
-       call unstraighten_field(u_field(ifield))
-       call unstraighten_field(vz_field(ifield))
-       call unstraighten_field(chi_field(ifield))
-
-       call unstraighten_field(psi_field(ifield))
-       call unstraighten_field(bz_field(ifield))
-       call unstraighten_field(pe_field(ifield))
-
-       call unstraighten_field(den_field(ifield))
-       call unstraighten_field(p_field(ifield))
-       call unstraighten_field(te_field(ifield))
-       call unstraighten_field(ti_field(ifield))
-    end do
-  end subroutine unstraighten_fields
-
-
 end module adapt

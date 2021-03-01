@@ -78,6 +78,8 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
 int m3dc1_ghost_create (int* num_layer ); 
 int m3dc1_ghost_delete ();
 
+void m3dc1_mesh_getentid (int* /* in */ ent_dim, int* /* out */ ent_ids, 
+            int* /* in */ allocated_size, int* /* out */ num_ent);
 int m3dc1_mesh_getnument (int* /* in*/ ent_dim, int* /* out */ num_ent);
 int m3dc1_mesh_getnumownent (int* /* in*/ ent_dim, int* /* out */ num_ent); //numownedents_
 int m3dc1_mesh_getnumglobalent (int* /* in*/ ent_dim, int* /* out */ global_num_ent); //numglobalents_
@@ -85,15 +87,7 @@ int m3dc1_mesh_getnumghostent (int* /* in*/ ent_dim, int* /* out */ num_ent);
 
 int m3dc1_mesh_search(int* initial_simplex, double* final_position, int* final_simplex);
 
-/* mesh entity functions */
-int m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);
-int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id, 
-		            int* /* out */ geom_class_dim, int* /* out */ geom_class_id); 
-int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ entids, int* /* in */ adj_dim,
-                      int* /* out */ adj_ent, int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size);
-int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim, int* /* out */ num_adj_ent);
-
-// mesh-level operator with communications 
+// mesh-level operators with communications 
 // at the moment, this works only for 2 kinds 2nd order adjacency
 // which are face-edge-face or region-face-region (ent_dim and adj_dim are 2 for 2D, 3 for 3D)
 void m3dc1_ent_getglobaladj (int* /* in */ ent_dim, 
@@ -105,6 +99,17 @@ void m3dc1_ent_getnumglobaladj (int* /* in */ ent_dim,
                       int* /* in */ ent_ids, int* /* in */ num_ent,
                       int* /* in */ adj_dim, int* /* out */ num_adj_ent);
 
+void m3dc1_ent_getlocalid (int* /* in */ ent_dim, int* /* out */ ent_ids,
+            int* /* in */ allocated_size, int* /* out */ num_ent);
+
+// individual entity level operators
+int m3dc1_ent_getglobalid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);
+int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
+                            int* /* out */ geom_class_dim, int* /* out */ geom_class_id);
+int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ entids, int* /* in */ adj_dim,
+                      int* /* out */ adj_ent, int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size);
+int m3dc1_ent_getnumadj (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* in */ adj_dim, int* /* out */ num_adj_ent);
+
 int m3dc1_ent_getownpartid (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ owning_partid); //entprocowner_
 int m3dc1_ent_isowner (int* /* in */ ent_dim, int* /* in */ ent_id, int* /* out */ ismine); 
 int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost);
@@ -112,7 +117,6 @@ int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
 // node-specific functions
 void m3dc1_node_setfield (int* /* in */ node_id, int* /* in */ field_id, double* /* in */ values, int* /* in */ num_values);
 void m3dc1_node_getfield (int* /* in */ node_id, int* /* in */ field_id, double* /* out */ values, int* /* out */ num_values);
-int m3dc1_node_getglobalid (int* ent_dim, int* /* in */ ent_id, int* /* out */ global_ent_id);  
 int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord ); 
 int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyz);
 int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv);
@@ -120,8 +124,7 @@ int m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry)
 int m3dc1_node_write (const char* filename, int* start_index);
 
 // region-specific function
-// only used in 3D
-int m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac);
+int m3dc1_region_getoriginalface( int * /* in */ elm_id, int * /* out */ fac_id);
 
 /** field manangement */
 int m3dc1_field_getnewid (FieldID* /*out*/field_id);

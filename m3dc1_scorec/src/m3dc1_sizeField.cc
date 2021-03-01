@@ -7,6 +7,7 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
+// this file is obsolete
 #include "m3dc1_sizeField.h"
 #include "m3dc1_mesh.h"
 #include "PCU.h"
