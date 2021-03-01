@@ -10,12 +10,6 @@
 
 3. load modules
 
-   module load intel/2021.1.2 
-   module load openmpi/intel-2021.1/4.1.0 
-   module load fftw/intel-2021.1/openmpi-4.1.0/3.3.9 
-   module load hdf5/intel-2021.1/openmpi-4.1.0/1.10.6 
-   module load anaconda3/2020.11
-
    for release version modules:
        module use /home/nferraro/modules
 
@@ -24,12 +18,22 @@
        module use $M3DC1_CODE_DIR/unstructured/modules/stellar
        module load m3dc1/devel
 
+
+   if you want to forgo the above modules and load the modules necessary
+   for the latest code version individually:   
+       module load intel/2021.1.2 
+       module load openmpi/intel-2021.1/4.1.0 
+       module load fftw/intel-2021.1/openmpi-4.1.0/3.3.9 
+       module load hdf5/intel-2021.1/openmpi-4.1.0/1.10.6 
+       module load anaconda3/2020.11
+
 4. compile code
 	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=stellar
 	2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=stellar
             - add PAR=1 to run PIC
 	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=stellar
-        
+	after compiling, run "make bin"
+
 5. mesh utility
       /projects/M3DC1/PETSC/petsc.stellar/real-stella-openmpi-2021/bin
 
