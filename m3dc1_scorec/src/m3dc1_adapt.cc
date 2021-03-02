@@ -17,6 +17,7 @@
 #include "apfShape.h" // getLagrange
 #include "pumi.h"
 #include "ma.h"
+#include "gmi_base.h"
 
 using namespace apf;
 
@@ -190,10 +191,31 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   mesh->writeNative("mesh.smb");
 #endif
 
-  MPI_Comm groupComm;
   apf::MeshEntity* e;
+
+  gmi_model* model = m3dc1_model::instance()->model;
+  int** ge_tag = new int*[3];
+  gmi_iter* g_it;
+  gmi_ent* ge;
+  int cnt;
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
+    // save the current model tag and revert it back to the original
+    for (int i = 0; i < 3; ++i)
+      ge_tag[i] = new int[model->n[i]];
+
+    for (int dim=0; dim<=2; ++dim)
+    {
+      g_it = gmi_begin(model, dim);
+      cnt=0;
+      while ((ge = gmi_next(model, g_it)))
+      {
+        ge_tag[dim][cnt++]= gmi_tag(model,ge);
+        gmi_base_set_tag (model, ge, cnt);
+      }
+      gmi_end(model, g_it);
+    }
+
     m3dc1_mesh::instance()->remove_wedges();
     // remove entities on non-master plane
     if (m3dc1_model::instance()->local_planeid)
@@ -238,7 +260,12 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       }
     }
 
-    m3dc1_mesh::instance()->build3d(num_field, field_id, num_dofs_per_value, false);
+    m3dc1_mesh::instance()->build3d(num_field, field_id, num_dofs_per_value, ge_tag, false);
+
+    for(int i = 0; i < 3; ++i)
+      delete [] ge_tag[i];
+    delete [] ge_tag;
+
     if (num_field>0)
     {
       delete [] field_id;

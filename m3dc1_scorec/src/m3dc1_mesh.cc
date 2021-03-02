@@ -17,6 +17,7 @@
 #include "apfNumbering.h"
 #include "apfShape.h"
 #include "PCU.h"
+#include "gmi_base.h"
 #include <vector>
 #include <set>
 #include <string.h>
@@ -773,24 +774,24 @@ void update_remotes(apf::Mesh2* mesh, MeshEntity* e)
 {
   int myrank=PCU_Comm_Self();
 
-        Copies remotes;
-        Copies new_remotes;
-        Parts parts;
-        mesh->getRemotes(e,remotes);
+  Copies remotes;
+  Copies new_remotes;
+  Parts parts;
+  mesh->getRemotes(e,remotes);
 
-        APF_ITERATE(Copies,remotes,rit)
-        {
-          int p=rit->first;
-          if (get_local_planeid(p)==m3dc1_model::instance()->local_planeid) // the same local plane
-          {
-            new_remotes[p]=rit->second; 
-            parts.insert(p);
-          }
-        }
-        parts.insert(myrank);
-        mesh->clearRemotes(e);
-        mesh->setRemotes(e,new_remotes);
-        mesh->setResidence(e, parts);  // set pclassification
+  APF_ITERATE(Copies,remotes,rit)
+  {
+    int p=rit->first;
+    if (get_local_planeid(p)==m3dc1_model::instance()->local_planeid) // the same local plane
+    {
+      new_remotes[p]=rit->second; 
+      parts.insert(p);
+    }
+  }
+  parts.insert(myrank);
+  mesh->clearRemotes(e);
+  mesh->setRemotes(e,new_remotes);
+  mesh->setResidence(e, parts);  // set pclassification
 }
     
 void m3dc1_mesh::remove_wedges()
@@ -852,6 +853,7 @@ void m3dc1_mesh::remove_wedges()
   }
 
   mesh->acceptChanges(); // update partition model
+  changeMdsDimension(mesh, 2);
 
 // update global ent counter
   MPI_Allreduce(m3dc1_mesh::instance()->num_own_ent, m3dc1_mesh::instance()->num_global_ent, 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -1386,7 +1388,8 @@ void copy_master_plane_obsolete(apf::Mesh2* mesh, MeshTag* local_entid_tag,
 }
 
 // *********************************************************
-void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value, bool initial_setup)
+void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value, 
+                         int** ge_tag, bool initial_setup)
 // *********************************************************
 {
   int local_partid=PCU_Comm_Self();
@@ -1444,7 +1447,23 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value, 
   // construct 3D model
   changeMdsDimension(mesh, 3);
 
-  m3dc1_model::instance()->create3D();
+  if (initial_setup)
+    m3dc1_model::instance()->create3D();
+  else
+  {
+    gmi_model* model = m3dc1_model::instance()->model;
+    gmi_iter* g_it;
+    gmi_ent* ge;
+
+    for (int dim=0; dim<=2; ++dim)
+    {
+      g_it = gmi_begin(model, dim);
+      int cnt=0;
+      while ((ge = gmi_next(model, g_it)))
+        gmi_base_set_tag (model, ge, ge_tag[dim][cnt++]);
+      gmi_end(model, g_it);
+    }
+  }
 
   int num_local_vtx = num_local_ent[0];
   int num_local_edge = num_local_ent[1];
