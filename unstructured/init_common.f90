@@ -276,7 +276,7 @@ subroutine den_eq
            else
               rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
            end if
-           n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, 0)
+           n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
         end do
      end if
 
@@ -330,7 +330,7 @@ subroutine den_per
            else
               rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
            end if
-           n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, 0)
+           n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
         end do
      end if
 
