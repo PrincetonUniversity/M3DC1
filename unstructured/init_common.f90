@@ -324,7 +324,7 @@ subroutine den_per
      if(ipellet.lt.0) then
         n = 0.
         p = 0.
-        do ip=0,npellets
+        do ip=1,npellets
            if(pellet_mix(ip).eq.0) then
               rate = pellet_rate(ip)
            else
