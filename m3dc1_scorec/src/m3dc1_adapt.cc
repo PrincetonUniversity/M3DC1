@@ -229,6 +229,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       }
     }
   }
+  
   ma::adapt(in);
 
   mesh->removeField(size_field);
@@ -236,7 +237,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   apf::destroyField(size_field);
   apf::destroyField(frame_field);
 
-  pumi_mesh_print(mesh);
+  m3dc1_mesh::instance()->initialize(false);
 
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
