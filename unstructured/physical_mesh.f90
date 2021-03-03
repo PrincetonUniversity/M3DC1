@@ -168,12 +168,12 @@ contains
 
     ! get logical coordinates    
     call m3dc1_node_getcoord(inode-1,coords)
-    x = coords(1)
-    z = coords(2)
+    x = coords(1) - xcenter
+    z = coords(2) - zcenter
     phi = coords(3)
     phis = phi*mf + mesh_phase
     curv = 0.
-    theta = atan2(z - zcenter, x - xcenter)
+    theta = atan2(z, x)
     dr = 0
     dz = 0
     ddr = 0

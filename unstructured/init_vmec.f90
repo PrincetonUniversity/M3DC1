@@ -413,22 +413,22 @@ contains
   end subroutine boundary_vmec
 
   ! Calculate pressure given x, phi, z 
-  elemental subroutine vmec_pressure(pout, x, phi, z)
-    implicit none
-
-    real, intent(in) :: x, phi, z
-    vectype, intent(out) :: pout
-    real :: r, r2n, ds 
-    integer :: js 
-    
-    r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
-    pout = 0
-    r2n = r**2*(ns-1)
-    js = ceiling(r2n)
-    if (js>(ns-1)) js = ns-1 
-    ds = js - r2n 
-    pout = presf(js+1)*(1-ds) + presf(js)*ds
-  end subroutine vmec_pressure
+!  elemental subroutine vmec_pressure(pout, x, phi, z)
+!    implicit none
+!
+!    real, intent(in) :: x, phi, z
+!    vectype, intent(out) :: pout
+!    real :: r, r2n, ds 
+!    integer :: js 
+!    
+!    r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
+!    pout = 0
+!    r2n = r**2*(ns-1)
+!    js = ceiling(r2n)
+!    if (js>(ns-1)) js = ns-1 
+!    ds = js - r2n 
+!    pout = presf(js+1)*(1-ds) + presf(js)*ds
+!  end subroutine vmec_pressure
 
   ! Calculate VMEC fields given x, phi, z 
   elemental subroutine vmec_fields(x, phi, z, br, bphi, bz, p, per)

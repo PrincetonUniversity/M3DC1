@@ -592,12 +592,6 @@ subroutine initial_conditions()
            call basicj_init()
         case(33)
            call cyl_init()
-#ifdef USEST
-        case(40)
-           if (igeometry.eq.1 .and. iread_vmec.ge.1) then
-              call vmec_init()
-           end if
-#endif
         end select
      else
         ! toroidal equilibria
@@ -669,7 +663,7 @@ subroutine initial_conditions()
      call nre_per
   endif
 
-  if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. iread_vmec.eq.2 &
+  if(irmp.ge.1 .or. iread_ext_field.ge.1 &
        .or. tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per()
 
