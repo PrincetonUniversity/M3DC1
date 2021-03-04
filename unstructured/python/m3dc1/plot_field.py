@@ -15,12 +15,12 @@ import matplotlib.ticker as ticker
 import m3dc1.fpylib as fpyl
 from m3dc1.eval_field import eval_field
 from m3dc1.plot_mesh import plot_mesh
-rc('text', usetex=True)
+#rc('text', usetex=True)
 
 
 
 
-def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False,showtitle=True,n=None):
+def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False,showtitle=True,n=None,phys=False):
     """
     Plots the field of a file. 
     
@@ -98,6 +98,9 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
 
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
+
+    **phys**
+    Use True for plotting in physical (stellarator) geometry
     """
     # make file name iterable if it is a string and not a list of strings
     file_name = (file_name,) if not isinstance(file_name, (tuple, list)) else file_name
@@ -194,12 +197,19 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     mesh_pts     = mesh_ob.elements
     R_mesh       = mesh_pts[:,4]
     Z_mesh       = mesh_pts[:,5]
+    phi0 = phi*1
     R_range      = [np.amin(R_mesh),np.amax(R_mesh)]
     Z_range      = [np.amin(Z_mesh),np.amax(Z_mesh)]
     R_linspace   = np.linspace(R_range[0], R_range[1], res, endpoint=True)
     phi_linspace = np.linspace(phi,         (360+phi), tor_av, endpoint=False)
     Z_linspace   = np.linspace(Z_range[0], Z_range[1], res, endpoint=True)
     R, phi, Z    = np.meshgrid(R_linspace, phi_linspace,Z_linspace)
+    if phys==True:
+        rst = eval_field('rst', R, phi, Z, sim=sim, file_name=file_name, time=time)
+        zst = eval_field('zst', R, phi, Z, sim=sim, file_name=file_name, time=time)
+        R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, file_name=file_name, time=time)
+        Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, file_name=file_name, time=time)
+
     
 
     # Get the magnetic axis at time zero, which will be used for poloidal coordinates
@@ -300,9 +310,15 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         field1_ave = [field1R_ave,field1phi_ave,field1Z_ave]
     else:
         field1_ave     = [np.average(field1, 0)]
+
     R_ave          = np.average(R, 0)
     Z_ave          = np.average(Z, 0)
-    
+    if phys==True:
+        rst_ave    = np.average(rst, 0)
+        zst_ave    = np.average(zst, 0)
+        R_ave = np.where(np.isnan(rst_ave), R_ave, rst_ave)
+        Z_ave = np.where(np.isnan(zst_ave), Z_ave, zst_ave)
+
     if units.lower()=='m3dc1':
         field1_ave = fpyl.get_conv_field(units,field,field1_ave)
 
@@ -352,7 +368,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         plt.title(titlestr,fontsize=titlefs)
     
     if mesh == True or bound==True:
-        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,pub=pub)
+        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,pub=pub,phys=phys)
     
     for i,ax in enumerate(axs):
         if cmap_midpt!=None:
@@ -366,8 +382,8 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
             else:
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
         # Set and format axes limits and labels
-        ax.set_xlim([fpyl.get_axlim(np.amin(R_ave),'min',0.1),fpyl.get_axlim(np.amax(R_ave),'max',0.1)])
-        ax.set_ylim([fpyl.get_axlim(np.amin(Z_ave),'min',0.1),fpyl.get_axlim(np.amax(Z_ave),'max',0.1)])
+        ax.set_xlim([fpyl.get_axlim(np.amin(R_mesh),'min',0.1),fpyl.get_axlim(np.amax(R_mesh),'max',0.1)])
+        ax.set_ylim([fpyl.get_axlim(np.amin(Z_mesh),'min',0.1),fpyl.get_axlim(np.amax(Z_mesh),'max',0.1)])
         ax.set_xlabel(r'$R/m$',fontsize=axlblfs)
         ax.set_ylabel(r'$Z/m$',fontsize=axlblfs)
         ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
