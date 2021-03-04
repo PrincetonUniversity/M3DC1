@@ -1040,6 +1040,8 @@ subroutine set_defaults
   call add_var_double_array("flux_loop_z", flux_loop_z, iflux_loops_max, 0., &
        "Z-coordinate of flux loop", diagnostic_grp)
 
+ call add_var_int("ifixed_temax" , ifixed_temax,0, "if nonzero, evaluate temax at xmag0,zmag0",diagnostic_grp)
+
   ! 3-D options
   call add_var_int("ntor", ntor, 0, &
        "Toroidal mode number", misc_grp)

@@ -339,6 +339,8 @@ module basic
   real :: xforce         !  location of peak (0 to 1(edge))
   real :: aforce         !  magnitude
 
+  integer :: ifixed_temax   !  if nonzero, evaluate temax at xmag0,zmag0
+
   ! curent drive source
   integer :: icd_source  ! 1 = include current drive in flux equation
   real :: j_0cd          ! amplitude of Gaussian
