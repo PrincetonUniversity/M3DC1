@@ -203,6 +203,11 @@ contains
                  if(version_in.ge.33) then
                     call read_1dextendarr(pel_group_id, "cauchy_fraction",cauchy_fraction, npellets, ntime, error)
                  end if
+                 if(version_in.ge.37) then
+                    call read_1dextendarr(pel_group_id, "pellet_te", temp_pel, npellets, ntime, error)
+                    temp_pel = temp_pel*p0_norm/(n0_norm*1.6022e-12)
+                    call read_1dextendarr(pel_group_id, "pellet_ne", nsource_pel, npellets, ntime, error)
+                 end if
 
              else if(irestart_pellet.eq.1) then
                  ! Control ablated cloud size and others parameters from C1input
@@ -215,6 +220,10 @@ contains
                  call read_1dextendarr(pel_group_id, "pellet_vx",      pellet_vx,      npellets, ntime, error)
                  call read_1dextendarr(pel_group_id, "pellet_vy",      pellet_vy,      npellets, ntime, error)
                  call read_1dextendarr(pel_group_id, "r_p",            r_p,            npellets, ntime, error)
+                 if(version_in.ge.37) then
+                    call read_1dextendarr(pel_group_id, "pellet_te", temp_pel, npellets, ntime, error)
+                    call read_1dextendarr(pel_group_id, "pellet_ne", nsource_pel, npellets, ntime, error)
+                 end if
              else
                  if(myrank.eq.0) then
                     print *, 'Error: irestart_pellet not available for this value: ',irestart_pellet
