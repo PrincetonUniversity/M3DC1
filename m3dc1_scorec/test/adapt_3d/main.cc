@@ -259,7 +259,6 @@ int main( int argc, char* argv[])
                                         <<maximumIterations<<", goodQuality "<<goodQuality<<"\n";
          m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir, &shouldSnap, &shouldRunPreZoltan,
 		&shouldRunPostZoltan, &shouldRefineLayer, &maximumIterations, &goodQuality);
-         pumi_mesh_print(m);
 
   	if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";
   

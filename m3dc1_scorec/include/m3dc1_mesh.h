@@ -54,7 +54,6 @@ public:
 
   // data
   apf::Mesh2* mesh;
-  apf::MeshEntity*** ments;
 
   // local counter for fast info retrieval
   int num_local_ent[4];
