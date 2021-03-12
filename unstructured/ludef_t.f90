@@ -406,7 +406,12 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ! parabolization terms
      tempx = v1upsipsi(trialx,lin,pst79,pst79) &
           + v1upsib  (trialx,lin,pst79,bzt79) &
-          + v1ubb    (trialx,lin,bzt79,bzt79)
+#if defined(USEST) && defined(USE3D)
+          + v1upsif    (trialx,lin,pst79,bfpt79) &
+          + v1ubf    (trialx,lin,bzt79,bfpt79) &
+          + v1uff    (trialx,lin,bfpt79,bfpt79) &
+#endif
+          + v1ubb    (trialx,lin,bzt79,bzt79) 
      ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
 
@@ -421,6 +426,11 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      if(numvar.ge.2) then
         tempx = v1vpsipsi(trialx,lin,pst79,pst79) &
+#if defined(USEST) && defined(USE3D)
+          + v1vpsif    (trialx,lin,pst79,bfpt79) &
+          + v1vbf    (trialx,lin,bzt79,bfpt79) &
+          + v1vff    (trialx,lin,bfpt79,bfpt79) &
+#endif
              + v1vpsib  (trialx,lin,pst79,bzt79)
         ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
         ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
@@ -438,6 +448,11 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(numvar.ge.3) then
        tempx = v1chipsipsi(trialx,lin,pst79,pst79) &
             + v1chipsib  (trialx,lin,pst79,bzt79) &
+#if defined(USEST) && defined(USE3D)
+          + v1chipsif    (trialx,lin,pst79,bfpt79) &
+          + v1chibf    (trialx,lin,bzt79,bfpt79) &
+          + v1chiff    (trialx,lin,bfpt79,bfpt79) &
+#endif
             + v1chibb    (trialx,lin,bzt79,bzt79)
        ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
        ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx

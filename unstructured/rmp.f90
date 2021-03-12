@@ -168,14 +168,15 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
         theta = -atan2(z - zzero, x - xzero)
         arg = ntor*r/rzero
-        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta-pi/2))
+        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))
+        !phase = exp((0,1)*(ntor*phi/rzero - mpol*theta-pi/2))
         do i=1, n
            brv(i)     = 0.5*(Bessel_I(mpol-1, arg(i)) + Bessel_I(mpol+1, arg(i)))
            bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
-        !fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
-        fac = (ntor/rzero)/(mpol*bzero)
+        fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
+        !fac = (ntor/rzero)/(mpol*bzero)
         !fac = eps 
         if(rmp_atten.ne.0) then
            atten = exp((r-1.)/rmp_atten)
@@ -193,7 +194,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -brv*sin(theta) - bthetav*cos(theta)
 #else
         br =  real(brv)*cos(theta) - real(bthetav)*sin(theta)
-        bphi =  real(bzv) + bzero
+        bphi =  real(bzv) !+ bzero
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if
@@ -533,8 +534,8 @@ subroutine calculate_external_fields()
   !bfp_field(1) = p_f
   p_field(1) = 0. 
   pe_field(1) = 0. 
-  call add(p_field(1), pedge) 
-  call add(pe_field(1), pedge*pefac) 
+  !call add(p_field(1), pedge) 
+  !call add(pe_field(1), pedge*pefac) 
   !bz_field(1) = bf_f
   !call mult(bz_field(1), -1.) 
   !call add(bz_field(1), p_field(1))

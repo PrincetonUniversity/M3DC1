@@ -1221,16 +1221,18 @@ end subroutine rotation
 #endif
        if(iprecompute_metric.eq.1) then
           call local_coeff_vector(itri,ctri(:,:,itri))
-       end if
 #ifdef USEST
-       if((igeometry.eq.1.and.ilog.eq.2).or.igeometry.eq.0) then
-          ctri(:,:,itri) = matmul((newrot),ctri(:,:,itri))  
-       end if
+          if((igeometry.eq.1.and.ilog.eq.2).or.igeometry.eq.0) then
+             ctri(:,:,itri) = matmul((newrot),ctri(:,:,itri))  
+          end if
 #endif
+       end if
     end do
 #ifdef USEST
     if((igeometry.eq.1.and.ilog.eq.2).or.igeometry.eq.0) then
-       deallocate(gtri,htri)
+       if(iprecompute_metric.eq.1) then
+          deallocate(gtri,htri)
+       end if
     end if
 #endif
 
