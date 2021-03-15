@@ -942,6 +942,11 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ! parabolization terms
      tempx = v2upsipsi(trialx,lin,pst79,pst79) &
           + v2upsib  (trialx,lin,pst79,bzt79) &
+#if defined(USEST) && defined(USE3D)
+          + v2upsif    (trialx,lin,pst79,bfpt79) &
+          + v2ubf    (trialx,lin,bzt79,bfpt79) &
+          + v2uff    (trialx,lin,bfpt79,bfpt79) &
+#endif
           + v2ubb    (trialx,lin,bzt79,bzt79)
      ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
@@ -956,6 +961,11 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      endif
 
      tempx = v2vpsipsi(trialx,lin,pst79,pst79) &
+#if defined(USEST) && defined(USE3D)
+          + v2vpsif    (trialx,lin,pst79,bfpt79) &
+          + v2vbf    (trialx,lin,bzt79,bfpt79) &
+          + v2vff    (trialx,lin,bfpt79,bfpt79) &
+#endif
           + v2vpsib  (trialx,lin,pst79,bzt79)
      ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
@@ -972,6 +982,11 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(numvar.ge.3) then
         tempx = v2chipsipsi(trialx,lin,pst79,pst79) &
              + v2chipsib  (trialx,lin,pst79,bzt79) &
+#if defined(USEST) && defined(USE3D)
+             + v2chipsif    (trialx,lin,pst79,bfpt79) &
+             + v2chibf    (trialx,lin,bzt79,bfpt79) &
+             + v2chiff    (trialx,lin,bfpt79,bfpt79) &
+#endif
              + v2chibb    (trialx,lin,bzt79,bzt79)
         ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
         ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
