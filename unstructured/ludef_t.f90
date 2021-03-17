@@ -1481,6 +1481,11 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ! parabolization terms
      tempx = v3upsipsi(trialx,lin,pst79,pst79) &
           + v3upsib  (trialx,lin,pst79,bzt79) &
+#if defined(USEST) && defined(USE3D)
+          + v3upsif    (trialx,lin,pst79,bfpt79) &
+          + v3ubf    (trialx,lin,bzt79,bfpt79) &
+          + v3uff    (trialx,lin,bfpt79,bfpt79) &
+#endif
           + v3ubb    (trialx,lin,bzt79,bzt79)
      ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
@@ -1496,6 +1501,11 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      tempx = v3vpsipsi(trialx,lin,pst79,pst79) &
           + v3vpsib  (trialx,lin,pst79,bzt79) &
+#if defined(USEST) && defined(USE3D)
+          + v3vpsif    (trialx,lin,pst79,bfpt79) &
+          + v3vbf    (trialx,lin,bzt79,bfpt79) &
+          + v3vff    (trialx,lin,bfpt79,bfpt79) &
+#endif
           + v3vbb    (trialx,lin,bzt79,bzt79)
      ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
@@ -1512,6 +1522,11 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      tempx = v3chipsipsi(trialx,lin,pst79,pst79) &
           + v3chipsib  (trialx,lin,pst79,bzt79) &
+#if defined(USEST) && defined(USE3D)
+          + v3chipsif    (trialx,lin,pst79,bfpt79) &
+          + v3chibf    (trialx,lin,bzt79,bfpt79) &
+          + v3chiff    (trialx,lin,bfpt79,bfpt79) &
+#endif
           + v3chibb    (trialx,lin,bzt79,bzt79)
      ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
