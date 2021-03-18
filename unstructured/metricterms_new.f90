@@ -841,41 +841,16 @@ function v1upsif(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
-        do j=1, dofs_per_element
-           ! (nu, f')_R
-           tempa(j,:) = &
-                e(j,:,OP_DZ)*h(:,OP_DRZ) + e(j,:,OP_DR)*h(:,OP_DRR) &
-              + e(j,:,OP_DRZ)*h(:,OP_DZ) + e(j,:,OP_DRR)*h(:,OP_DR) 
-           ! (nu, f')_Z
-           tempb(j,:) = &
-                e(j,:,OP_DZ)*h(:,OP_DZZ) + e(j,:,OP_DR)*h(:,OP_DRZ) &
-              + e(j,:,OP_DZZ)*h(:,OP_DZ) + e(j,:,OP_DRZ)*h(:,OP_DR) 
-           ! [nu, psi]_R*R^2
-           tempc(j,:) = r_79*&
-                (e(j,:,OP_DZ)*g(:,OP_DRR) - e(j,:,OP_DR)*g(:,OP_DRZ) &
-              + e(j,:,OP_DRZ)*g(:,OP_DR) - e(j,:,OP_DRR)*g(:,OP_DZ))
-           if(itor.eq.1) then
-              tempc(j,:) = tempc(j,:) - &
-                   (e(j,:,OP_DZ)*g(:,OP_DR) - e(j,:,OP_DR)*g(:,OP_DZ)) 
-           end if 
-           ! [nu, psi]_Z*R^2
-           tempd(j,:) = r_79*&
-                (e(j,:,OP_DZ)*g(:,OP_DRZ) - e(j,:,OP_DR)*g(:,OP_DZZ) &
-              + e(j,:,OP_DZZ)*g(:,OP_DR) - e(j,:,OP_DRZ)*g(:,OP_DZ)) 
-        end do
-
-        ! [u, psi]_R*R^2
-        temp79a = r_79* &
-                 (f(:,OP_DRZ)*g(:,OP_DR) - f(:,OP_DRR)*g(:,OP_DZ) &           
-                + f(:,OP_DZ)*g(:,OP_DRR) - f(:,OP_DR)*g(:,OP_DRZ)) 
+        ! [u, psi]_R*R
+        temp79a = f(:,OP_DRZ)*g(:,OP_DR) - f(:,OP_DRR)*g(:,OP_DZ) &           
+                + f(:,OP_DZ)*g(:,OP_DRR) - f(:,OP_DR)*g(:,OP_DRZ)
         if(itor.eq.1) then
-           temp79a = temp79a - &
+           temp79a = temp79a - ri_79* &
                   (f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)) 
         end if 
-        ! [u, psi]_Z*R^2
-        temp79b = r_79* & 
-                 (f(:,OP_DZZ)*g(:,OP_DR) - f(:,OP_DRZ)*g(:,OP_DZ) &           
-                + f(:,OP_DZ)*g(:,OP_DRZ) - f(:,OP_DR)*g(:,OP_DZZ)) 
+        ! [u, psi]_Z*R
+        temp79b = f(:,OP_DZZ)*g(:,OP_DR) - f(:,OP_DRZ)*g(:,OP_DZ) &           
+                + f(:,OP_DZ)*g(:,OP_DRZ) - f(:,OP_DR)*g(:,OP_DZZ) 
         ! (u, f')_R
         temp79c = f(:,OP_DRR)*h(:,OP_DR) + f(:,OP_DRZ)*h(:,OP_DZ) &           
                 + f(:,OP_DR)*h(:,OP_DRR) + f(:,OP_DZ)*h(:,OP_DRZ)            
@@ -887,20 +862,39 @@ function v1upsif(e,f,g,h)
            temp79e = f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ)           
         endif
 
-        ! [nu, R^2*(U, f')]
         do j=1, dofs_per_element
-           tempe(j,:) = r_79* &
-                       (e(j,:,OP_DZ)*temp79c - e(j,:,OP_DR)*temp79d) 
+           ! (nu, f')_R
+           tempa(j,:) = &
+                e(j,:,OP_DZ)*h(:,OP_DRZ) + e(j,:,OP_DR)*h(:,OP_DRR) &
+              + e(j,:,OP_DRZ)*h(:,OP_DZ) + e(j,:,OP_DRR)*h(:,OP_DR) 
+           ! (nu, f')_Z
+           tempb(j,:) = &
+                e(j,:,OP_DZ)*h(:,OP_DZZ) + e(j,:,OP_DR)*h(:,OP_DRZ) &
+              + e(j,:,OP_DZZ)*h(:,OP_DZ) + e(j,:,OP_DRZ)*h(:,OP_DR) 
+           ! [nu, psi]_R*R
+           tempc(j,:) = &
+                e(j,:,OP_DZ)*g(:,OP_DRR) - e(j,:,OP_DR)*g(:,OP_DRZ) &
+              + e(j,:,OP_DRZ)*g(:,OP_DR) - e(j,:,OP_DRR)*g(:,OP_DZ)
            if(itor.eq.1) then
-              tempe(j,:) = tempe(j,:) + 2*e(j,:,OP_DZ)*temp79e 
+              tempc(j,:) = tempc(j,:) - ri_79* &
+                   (e(j,:,OP_DZ)*g(:,OP_DR) - e(j,:,OP_DR)*g(:,OP_DZ)) 
+           end if 
+           ! [nu, psi]_Z*R
+           tempd(j,:) = &
+                e(j,:,OP_DZ)*g(:,OP_DRZ) - e(j,:,OP_DR)*g(:,OP_DZZ) &
+              + e(j,:,OP_DZZ)*g(:,OP_DR) - e(j,:,OP_DRZ)*g(:,OP_DZ) 
+           ! [nu, R^2*(U, f')]/R
+           tempe(j,:) = e(j,:,OP_DZ)*temp79c - e(j,:,OP_DR)*temp79d
+           if(itor.eq.1) then
+              tempe(j,:) = tempe(j,:) + 2*e(j,:,OP_DZ)*temp79e*ri_79 
            endif
         end do
 
-        temp = intx2(tempa,temp79a) &
-             + intx2(tempb,temp79b) &
-             + intx2(tempc,temp79c) &
-             + intx2(tempd,temp79d) &
-             - intx2(tempe,g(:,OP_GS)) 
+        temp = intx3(tempa,temp79a,r_79) &
+             + intx3(tempb,temp79b,r_79) &
+             + intx3(tempc,temp79c,r_79) &
+             + intx3(tempd,temp79d,r_79) &
+             - intx3(tempe,g(:,OP_GS),r_79) 
      end if
 
   v1upsif = temp
@@ -935,7 +929,7 @@ function v1ubf(e,f,g,h)
            tempb(j,:) = &
                 e(j,:,OP_DZ)*h(:,OP_DRP) - e(j,:,OP_DR)*h(:,OP_DZP) 
         end do
-        ! F*u_LP + R^2(u, F/R^2)
+        ! F*u_LP + R^2*(u, F/R^2)
         temp79a = g(:,OP_1)*f(:,OP_LP)  & 
                 + g(:,OP_DR)*f(:,OP_DR) + g(:,OP_DZ)*f(:,OP_DZ)
         if(itor.eq.1) then
@@ -951,15 +945,15 @@ function v1ubf(e,f,g,h)
         ! (R^2(u, f'))_Z/R^2
         temp79c = f(:,OP_DRZ)*h(:,OP_DR) + f(:,OP_DZZ)*h(:,OP_DZ) &           
                 + f(:,OP_DR)*h(:,OP_DRZ) + f(:,OP_DZ)*h(:,OP_DZZ)            
-        ![b,u]*R
-        temp79d = g(:,OP_DZ)*f(:,OP_DR) - g(:,OP_DR)*f(:,OP_DZ) 
+        ![u,F]*R
+        temp79d = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ) 
 
         temp = intx2(tempa,temp79a) &
              + intx3(e(:,:,OP_DRP),temp79b,g(:,OP_1)) &
              + intx3(e(:,:,OP_DZP),temp79c,g(:,OP_1)) &
              + intx3(e(:,:,OP_DR),temp79b,g(:,OP_DP)) &
              + intx3(e(:,:,OP_DZ),temp79c,g(:,OP_DP)) &
-             - intx2(tempb,temp79d)
+             + intx2(tempb,temp79d)
      end if
 
   v1ubf = temp
@@ -1212,7 +1206,7 @@ function v1vpsif(e,f,g,h)
                 e(j,:,OP_DZP)*h(:,OP_DZ) + e(j,:,OP_DRP)*h(:,OP_DR) 
         end do
 
-        ! [v', f']*R + [v, f'']*R
+        ! [v, f']'*R
         temp79a = f(:,OP_DZP)*h(:,OP_DR) - f(:,OP_DRP)*h(:,OP_DZ) &           
                 + f(:,OP_DZ)*h(:,OP_DRP) - f(:,OP_DR)*h(:,OP_DZP)            
         ! [v, psi]*R
@@ -1303,7 +1297,7 @@ function v1vff(e,f,g,h)
            tempb(j,:) = &
                 e(j,:,OP_DZ)*g(:,OP_DRP) - e(j,:,OP_DR)*g(:,OP_DZP) 
         end do
-        ! [v', f']*R + [v, f'']*R
+        ! [v, f']'*R 
         temp79a = f(:,OP_DZP)*h(:,OP_DR) - f(:,OP_DRP)*h(:,OP_DZ) &           
                 + f(:,OP_DZ)*h(:,OP_DRP) - f(:,OP_DR)*h(:,OP_DZP)            
         ! (v, f')
@@ -1744,14 +1738,14 @@ function v1chiff(e,f,g,h)
               + e(j,:,OP_DZ)*h(:,OP_DZZ) + e(j,:,OP_DR)*h(:,OP_DRZ) 
         end do
 
-        ! ([chi, f']/R^2)_R*R^3 
+        ! [chi, f']_R*R
         temp79a = f(:,OP_DRZ)*g(:,OP_DR) - f(:,OP_DRR)*g(:,OP_DZ) &           
                 + f(:,OP_DZ)*g(:,OP_DRR) - f(:,OP_DR)*g(:,OP_DRZ)            
         if(itor.eq.1) then 
-           temp79a = temp79a - 3*ri_79* &        
+           temp79a = temp79a - ri_79* &        
                 (f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)) 
         end if 
-        ! ([chi, f']/R^2)_Z*R^3 
+        ! [chi, f']_Z*R
         temp79b = f(:,OP_DZZ)*g(:,OP_DR) - f(:,OP_DRZ)*g(:,OP_DZ) &           
                 + f(:,OP_DZ)*g(:,OP_DRZ) - f(:,OP_DR)*g(:,OP_DZZ)            
 
@@ -2763,14 +2757,14 @@ function v2vpsif(e,f,g,h)
                 + f(:,OP_1)*h(:,OP_LP)
         ! [psi,f']*R
         temp79c = g(:,OP_DZ)*h(:,OP_DR) - g(:,OP_DR)*h(:,OP_DZ)            
-        ! [psi',f']*R + [psi,f'']*R
+        ! [psi,f']'*R
         temp79d = g(:,OP_DZP)*h(:,OP_DR) - g(:,OP_DRP)*h(:,OP_DZ) & 
                 + g(:,OP_DZ)*h(:,OP_DRP) - g(:,OP_DR)*h(:,OP_DZP)        
 
         temp = + intx3(tempa,temp79a,r_79) &
                + intx3(tempb,temp79b,r_79) &
-               - 2*intx4(e(:,:,OP_DP),f(:,OP_DP),temp79c,r_79) &
-               - intx4(e(:,:,OP_DP),f(:,OP_1),temp79d,r_79) 
+               - 2*intx4(e(:,:,OP_DP),f(:,OP_DP),temp79c,ri_79) &
+               - intx4(e(:,:,OP_DP),f(:,OP_1),temp79d,ri_79) 
      end if
 
   v2vpsif = temp
@@ -2834,9 +2828,9 @@ function v2vff(e,f,g,h)
         temp79a = f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ) & 
                 + f(:,OP_1)*h(:,OP_LP)
         ! (f',f')
-        temp79b = g(:,OP_DZ)*h(:,OP_DZ) - g(:,OP_DR)*h(:,OP_DR)            
+        temp79b = g(:,OP_DZ)*h(:,OP_DZ) + g(:,OP_DR)*h(:,OP_DR)            
         ! (f',f'') 
-        temp79c = g(:,OP_DZP)*h(:,OP_DZ) - g(:,OP_DRP)*h(:,OP_DR) 
+        temp79c = g(:,OP_DZ)*h(:,OP_DZP) + g(:,OP_DR)*h(:,OP_DRP) 
 
         temp = - intx3(tempa,temp79a,r2_79) &
                - intx3(e(:,:,OP_DP),f(:,OP_DP),temp79b) &
@@ -3070,13 +3064,13 @@ function v2ubf(e,f,g,h)
         ! (R^2(u, f'))_Z/R^2
         temp79c = f(:,OP_DRZ)*h(:,OP_DR) + f(:,OP_DZZ)*h(:,OP_DZ) &           
                 + f(:,OP_DR)*h(:,OP_DRZ) + f(:,OP_DZ)*h(:,OP_DZZ)            
-        ![F,u]*R
-        temp79d = g(:,OP_DZ)*f(:,OP_DR) - g(:,OP_DR)*f(:,OP_DZ) 
+        ![u,F]*R
+        temp79d = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ) 
 
         temp = intx3(e(:,:,OP_DP),temp79a,r_79) &
-             - intx4(e(:,:,OP_1),temp79b,g(:,OP_DZ),r_79) &
              + intx4(e(:,:,OP_1),temp79c,g(:,OP_DR),r_79) &
-             - intx3(tempa,temp79d,r_79)
+             - intx4(e(:,:,OP_1),temp79b,g(:,OP_DZ),r_79) &
+             + intx3(tempa,temp79d,r_79)
      end if
 
   v2ubf = temp
@@ -3330,22 +3324,22 @@ function v2chipsif(e,f,g,h)
         ! [chi, f']_Z*R 
         temp79b = f(:,OP_DZZ)*h(:,OP_DR) - f(:,OP_DRZ)*h(:,OP_DZ) &           
                 + f(:,OP_DZ)*h(:,OP_DRZ) - f(:,OP_DR)*h(:,OP_DZZ)            
-        ! ([chi, psi]/R^2)_R * R^3
-        temp79c = f(:,OP_DRZ)*g(:,OP_DR) - f(:,OP_DRR)*g(:,OP_DZ) &
-                + f(:,OP_DZ)*g(:,OP_DRR) - f(:,OP_DR)*g(:,OP_DRZ) 
+        ! ((chi, psi)/R^2)_R * R^2
+        temp79c = f(:,OP_DRZ)*g(:,OP_DZ) + f(:,OP_DRR)*g(:,OP_DR) &
+                + f(:,OP_DZ)*g(:,OP_DRZ) + f(:,OP_DR)*g(:,OP_DRR) 
         if(itor.eq.1) then 
-           temp79c = temp79c - 3*ri_79*  & 
-                 (f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)) 
+           temp79c = temp79c - 2*ri_79*  & 
+                 (f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)) 
         end if 
-        ! ([chi, psi]/R^2)_Z * R^3
-        temp79d = f(:,OP_DZZ)*g(:,OP_DR) - f(:,OP_DRZ)*g(:,OP_DZ) &
-                + f(:,OP_DZ)*g(:,OP_DRZ) - f(:,OP_DR)*g(:,OP_DZZ) 
+        ! ((chi, psi)/R^2)_Z * R^2
+        temp79d = f(:,OP_DZZ)*g(:,OP_DZ) + f(:,OP_DRZ)*g(:,OP_DR) &
+                + f(:,OP_DZ)*g(:,OP_DZZ) + f(:,OP_DR)*g(:,OP_DRZ) 
 
         temp = &
              - intx4(e(:,:,OP_DP),temp79a,ri3_79,g(:,OP_DR)) &
              - intx4(e(:,:,OP_DP),temp79b,ri3_79,g(:,OP_DZ)) &
-             - intx4(e(:,:,OP_DP),temp79c,ri3_79,h(:,OP_DR)) &
-             - intx4(e(:,:,OP_DP),temp79d,ri3_79,h(:,OP_DZ)) 
+             - intx4(e(:,:,OP_DP),temp79d,ri3_79,h(:,OP_DR)) &
+             + intx4(e(:,:,OP_DP),temp79c,ri3_79,h(:,OP_DZ)) 
      end if
 
   v2chipsif = temp
@@ -4745,11 +4739,11 @@ function v3ubf(e,f,g,h)
         ! (R^2(u, f'))_Z/R^2
         temp79c = f(:,OP_DRZ)*h(:,OP_DR) + f(:,OP_DZZ)*h(:,OP_DZ) &           
                 + f(:,OP_DR)*h(:,OP_DRZ) + f(:,OP_DZ)*h(:,OP_DZZ)            
-        ![b,u]*R
-        temp79d = g(:,OP_DZ)*f(:,OP_DR) - g(:,OP_DR)*f(:,OP_DZ) 
+        ![u,F]*R
+        temp79d = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ) 
 
         temp = - intx3(tempa,temp79a,ri3_79) &
-               - intx3(tempb,temp79d,ri3_79) &
+               + intx3(tempb,temp79d,ri3_79) &
                - intx4(e(:,:,OP_DZP),temp79b,g(:,OP_1),ri3_79) &
                + intx4(e(:,:,OP_DRP),temp79c,g(:,OP_1),ri3_79) &
                - intx4(e(:,:,OP_DZ),temp79b,g(:,OP_DP),ri3_79) &
@@ -5069,7 +5063,6 @@ function v3vbf(e,f,g,h)
                 + f(:,OP_1)*h(:,OP_LP)
 
         temp = - intx4(tempa,g(:,OP_1),f(:,OP_DPP),ri4_79) &
-               + intx4(tempb,g(:,OP_DP),f(:,OP_1),ri4_79) &
                - intx4(tempb,g(:,OP_1),f(:,OP_DP),ri4_79) &
                + intx4(tempc,g(:,OP_1),f(:,OP_1),ri4_79) &
                + intx4(e(:,:,OP_GS),g(:,OP_1),temp79a,ri2_79)
@@ -5113,9 +5106,9 @@ function v3vff(e,f,g,h)
         ! [v, f']'*R
         temp79a = f(:,OP_DZP)*h(:,OP_DR) - f(:,OP_DRP)*h(:,OP_DZ) &           
                 + f(:,OP_DZ)*h(:,OP_DRP) - f(:,OP_DR)*h(:,OP_DZP)            
-        ! (v, f') + v*f'_LP
-        temp79b = f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ) & 
-                + f(:,OP_1)*h(:,OP_LP)
+        ! (v, f') 
+        temp79b = f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ)  
+
         temp = - intx3(tempa,temp79b,ri2_79) &
                - intx3(tempb,temp79a,ri2_79) 
      end if
