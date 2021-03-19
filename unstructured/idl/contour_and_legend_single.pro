@@ -125,6 +125,16 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         lev = (maxval-minval)*findgen(nlevels+1)/(float(nlevels)) + minval
     endelse
 
+    tmp = make_array(n_elements(lev)+2,/double)
+    tmp[0] = lev[0]
+    tmp[-1] = lev[-1]
+    tmp[2:-3] = lev[1:-2]
+    tmp[1] = 0.999*double(lev[0])+0.001*double(lev[1])
+    tmp[-2] = 0.999*double(lev[-1])+0.001*double(lev[-2])
+    lev = tmp
+    nlevels = nlevels + 2
+
+
     if(n_elements(ct) eq 0) then begin
         if(not keyword_set(noautoct)) then begin
             if(minval*maxval lt 0.) then loadct, 39 $
@@ -132,6 +142,8 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         endif
     endif else if(ct eq -1) then begin
         ct2
+    endif else if(ct ge 100) then begin
+        set_python_ct, ct 
     endif else loadct, ct
 
     if(keyword_set(reverse_ct)) then begin
