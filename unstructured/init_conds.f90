@@ -663,7 +663,7 @@ subroutine initial_conditions()
      call nre_per
   endif
 
-  if(irmp.ge.1 .or. iread_ext_field.ge.1 &
+  if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. iread_vmec.eq.2 &
        .or. tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per()
 

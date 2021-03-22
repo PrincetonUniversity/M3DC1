@@ -12,13 +12,16 @@ module read_vmec
   real, allocatable :: rbs(:), zbc(:)
   real, allocatable :: rmns(:,:), zmnc(:,:), lmnc(:,:)
   real, allocatable :: rmnsz(:,:), zmncz(:,:), lmncz(:,:)
-!  real, allocatable :: bsupumnc(:,:), bsupvmnc(:,:)
-!  real, allocatable :: bsupumncz(:,:), bsupvmncz(:,:)
+  real, allocatable :: bsupumnc(:,:), bsupvmnc(:,:)
+  real, allocatable :: bsupumncz(:,:), bsupvmncz(:,:)
+  real, allocatable :: bsupumns(:,:), bsupvmns(:,:)
+  real, allocatable :: bsupumnsz(:,:), bsupvmnsz(:,:)
   real, allocatable :: presf(:), phiv(:), chiv(:)
 !  real, allocatable :: raxiscc(:), zaxiscs(:)
-  integer, allocatable :: mb(:), nb(:)!, mb_nyq(:), nb_nyq(:)
-  real, allocatable :: xmv(:), xnv(:)!, xnv_nyq(:), xmv_nyq(:)
-  integer :: mn_mode, mn_mode_nyq, ns, n_tor, n_zer, m_pol, n_quad 
+  integer, allocatable :: mb(:), nb(:), mb_nyq(:), nb_nyq(:)
+  real, allocatable :: xmv(:), xnv(:), xnv_nyq(:), xmv_nyq(:)
+  integer :: mn_mode, mn_mode_nyq, ns, n_tor, n_zer, m_pol, n_quad
+  integer :: m_nyq, n_nyq, n_zer_nyq  
   real, allocatable :: s_vmec(:), quad(:,:) 
   type(spline1d) :: presf_spline      ! total pressure
   type(spline1d) :: phiv_spline       ! toroidal flux
@@ -39,8 +42,8 @@ contains
     ! real to integer
     mb = nint(xmv)
     nb = nint(xnv)
-!    mb_nyq = nint(xmv_nyq)
-!    nb_nyq = nint(xnv_nyq)
+    mb_nyq = nint(xmv_nyq)
+    nb_nyq = nint(xnv_nyq)
     ! normalize pressure
     presf = presf*pi*4e-7
     ! boundary coefficients
@@ -52,12 +55,11 @@ contains
     endif
     ! Change from half to full mesh
     if(myrank.eq.0) print *, 'half mesh to full'
-    call half2full(lmns)
+    call half2full(mn_mode,mb,lmns)
 !    call half2full(mn_mode_nyq,mb_nyq,gmnc)
-!    call half2full(mn_mode_nyq,mb_nyq,bsupumnc)
-!    call half2full(mn_mode_nyq,mb_nyq,bsupvmnc)
-    if(myrank.eq.0) print *, 'n_zer = ', n_zer
-    if(myrank.eq.0) print *, 'n_quad = ', n_quad
+    call half2full(mn_mode_nyq,mb_nyq,bsupumnc)
+    call half2full(mn_mode_nyq,mb_nyq,bsupvmnc)
+    if(myrank.eq.0) print *, bsupvmnc 
 
     ! put VMEC data on Zernike basis
     ! radial grid
@@ -67,26 +69,30 @@ contains
     ! calculate Gauss quadradure
     call gaussquad(n_quad,quad) 
     ! perform Zernike transform
-    call zernike_transform(rmnc,rmncz)
+    call zernike_transform(mn_mode,mb,rmnc,rmncz)
     if(myrank.eq.0) print *, 'rmnc transformed'
-    call zernike_transform(zmns,zmnsz)
+    call zernike_transform(mn_mode,mb,zmns,zmnsz)
     if(myrank.eq.0) print *, 'zmns transformed'
-    call zernike_transform(lmns,lmnsz)
+    call zernike_transform(mn_mode,mb,lmns,lmnsz)
     if(myrank.eq.0) print *, 'lmns transformed'
-    if(lasym.eq.1) then
-      call zernike_transform(rmns,rmnsz)
-      if(myrank.eq.0) print *, 'rmns transformed'
-      call zernike_transform(zmnc,zmncz)
-      if(myrank.eq.0) print *, 'zmnc transformed'
-      call zernike_transform(lmnc,lmncz)
-      if(myrank.eq.0) print *, 'lmnc transformed'
-    endif
 !    call zernike_transform(mn_mode_nyq,mb_nyq,gmnc,gmncz)
 !    if(myrank.eq.0) print *, 'gmnc transformed'
-!    call zernike_transform(mn_mode_nyq,mb_nyq,bsupumnc,bsupumncz)
-!    if(myrank.eq.0) print *, 'bsupumnc transformed'
-!    call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmnc,bsupvmncz)
-!    if(myrank.eq.0) print *, 'bsupvmnc transformed'
+    call zernike_transform(mn_mode_nyq,mb_nyq,bsupumnc,bsupumncz)
+    if(myrank.eq.0) print *, 'bsupumnc transformed'
+    call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmnc,bsupvmncz)
+    if(myrank.eq.0) print *, 'bsupvmnc transformed'
+    if(lasym.eq.1) then
+      call zernike_transform(mn_mode,mb,rmns,rmnsz)
+      if(myrank.eq.0) print *, 'rmns transformed'
+      call zernike_transform(mn_mode,mb,zmnc,zmncz)
+      if(myrank.eq.0) print *, 'zmnc transformed'
+      call zernike_transform(mn_mode,mb,lmnc,lmncz)
+      if(myrank.eq.0) print *, 'lmnc transformed'
+      call zernike_transform(mn_mode_nyq,mb_nyq,bsupumns,bsupumnsz)
+      if(myrank.eq.0) print *, 'bsupumns transformed'
+      call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmns,bsupvmnsz)
+      if(myrank.eq.0) print *, 'bsupvmns transformed'
+    endif
     ! Make sure pressure is positive
     if (presf(ns).lt.0) presf = presf - presf(ns)
     ! 1D spline for pressure
@@ -121,10 +127,10 @@ contains
     allocate(xnv(mn_mode))
     allocate(mb(mn_mode))
     allocate(nb(mn_mode))
-!    allocate(xmv_nyq(mn_mode_nyq))
-!    allocate(xnv_nyq(mn_mode_nyq))
-!    allocate(mb_nyq(mn_mode_nyq))
-!    allocate(nb_nyq(mn_mode_nyq))
+    allocate(xmv_nyq(mn_mode_nyq))
+    allocate(xnv_nyq(mn_mode_nyq))
+    allocate(mb_nyq(mn_mode_nyq))
+    allocate(nb_nyq(mn_mode_nyq))
     allocate(presf(ns))
     allocate(phiv(ns))
     allocate(chiv(ns))
@@ -132,14 +138,17 @@ contains
     allocate(zmns(mn_mode,ns))
     allocate(lmns(mn_mode,ns))
 !    allocate(gmnc(mn_mode_nyq,ns))
-!    allocate(bsupumnc(mn_mode_nyq,ns))
-!    allocate(bsupvmnc(mn_mode_nyq,ns))
+    allocate(bsupumnc(mn_mode_nyq,ns))
+    allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
-    n_zer = m_pol*2
+    n_zer = m_pol*1
     allocate(rmncz(mn_mode,n_zer+1))
     allocate(zmnsz(mn_mode,n_zer+1))
     allocate(lmnsz(mn_mode,n_zer+1))
+!    allocate(gmncz(mn_mode_nyq,n_zer+1))
+    allocate(bsupumncz(mn_mode_nyq,n_zer+1))
+    allocate(bsupvmncz(mn_mode_nyq,n_zer+1))
     if(lasym.eq.1) then
       allocate(rmns(mn_mode,ns))
       allocate(zmnc(mn_mode,ns))
@@ -149,10 +158,11 @@ contains
       allocate(rmnsz(mn_mode,n_zer+1))
       allocate(zmncz(mn_mode,n_zer+1))
       allocate(lmncz(mn_mode,n_zer+1))
+      allocate(bsupumns(mn_mode_nyq,ns))
+      allocate(bsupvmns(mn_mode_nyq,ns))
+      allocate(bsupumnsz(mn_mode_nyq,n_zer+1))
+      allocate(bsupvmnsz(mn_mode_nyq,n_zer+1))
     endif
-!    allocate(gmncz(mn_mode_nyq,n_zer+1))
-!    allocate(bsupumncz(mn_mode_nyq,n_zer+1))
-!    allocate(bsupvmncz(mn_mode_nyq,n_zer+1))
     allocate(s_vmec(ns))
 
 !    if(mod(n_zer,2).eq.1) then
@@ -183,10 +193,10 @@ contains
     if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'mn_mode = ', mn_mode
      
-!    ierr = nf90_inq_dimid(ncid, "mn_mode_nyq", id)
-!    ierr = ierr + nf90_inquire_dimension(ncid, id, len=mn_mode_nyq)
-!    if(ierr.ne.0) call safestop(5) 
-!    if(myrank.eq.0) print *, 'mn_mode_nyq = ', mn_mode_nyq
+    ierr = nf90_inq_dimid(ncid, "mn_mode_nyq", id)
+    ierr = ierr + nf90_inquire_dimension(ncid, id, len=mn_mode_nyq)
+    if(ierr.ne.0) call safestop(5) 
+    if(myrank.eq.0) print *, 'mn_mode_nyq = ', mn_mode_nyq
 
     ! Get constants
     ierr = nf90_inq_varid(ncid, "ns", id)
@@ -215,6 +225,8 @@ contains
     if(myrank.eq.0) print *, 'lasym = ', lasym 
 
     call allocate_vmec()
+    if(myrank.eq.0) print *, 'n_zer = ', n_zer
+    if(myrank.eq.0) print *, 'n_quad = ', n_quad
     ! Get 1D arrays xmv & xnv
     ierr = nf90_inq_varid(ncid, "xm", id)
     ierr = ierr + nf90_get_var(ncid, id, xmv)
@@ -225,15 +237,15 @@ contains
     if(ierr.ne.0) call safestop(5) 
     xnv = -xnv ! change sign for consistency
     if(myrank.eq.0) print *, 'xnv read'
-!    ierr = nf90_inq_varid(ncid, "xm_nyq", id)
-!    ierr = ierr + nf90_get_var(ncid, id, xmv_nyq)
-!    if(ierr.ne.0) call safestop(5) 
-!    if(myrank.eq.0) print *, 'xmv_nyq read'
-!    ierr = nf90_inq_varid(ncid, "xn_nyq", id)
-!    ierr = ierr + nf90_get_var(ncid, id, xnv_nyq)
-!    if(ierr.ne.0) call safestop(5) 
-!    xnv_nyq = -xnv_nyq ! change sign for consistency
-!    if(myrank.eq.0) print *, 'xnv_nyq read'
+    ierr = nf90_inq_varid(ncid, "xm_nyq", id)
+    ierr = ierr + nf90_get_var(ncid, id, xmv_nyq)
+    if(ierr.ne.0) call safestop(5) 
+    if(myrank.eq.0) print *, 'xmv_nyq read'
+    ierr = nf90_inq_varid(ncid, "xn_nyq", id)
+    ierr = ierr + nf90_get_var(ncid, id, xnv_nyq)
+    if(ierr.ne.0) call safestop(5) 
+    xnv_nyq = -xnv_nyq ! change sign for consistency
+    if(myrank.eq.0) print *, 'xnv_nyq read'
 
 
     ! Get 1D array presf, phiv, chiv
@@ -283,15 +295,24 @@ contains
 !    ierr = ierr + nf90_get_var(ncid, id, gmnc)
 !    if(ierr.ne.0) call safestop(5) 
 !    if(myrank.eq.0) print *, 'gmnc read'
-!    ierr = nf90_inq_varid(ncid, "bsupumnc", id)
-!    ierr = ierr + nf90_get_var(ncid, id, bsupumnc)
-!    if(ierr.ne.0) call safestop(5) 
-!    if(myrank.eq.0) print *, 'bsupumnc read'
-!    ierr = nf90_inq_varid(ncid, "bsupvmnc", id)
-!    ierr = ierr + nf90_get_var(ncid, id, bsupvmnc)
-!    if(ierr.ne.0) call safestop(5) 
-!    if(myrank.eq.0) print *, 'bsupvmnc read'
-
+    ierr = nf90_inq_varid(ncid, "bsupumnc", id)
+    ierr = ierr + nf90_get_var(ncid, id, bsupumnc)
+    if(ierr.ne.0) call safestop(5) 
+    if(myrank.eq.0) print *, 'bsupumnc read'
+    ierr = nf90_inq_varid(ncid, "bsupvmnc", id)
+    ierr = ierr + nf90_get_var(ncid, id, bsupvmnc)
+    if(ierr.ne.0) call safestop(5) 
+    if(myrank.eq.0) print *, 'bsupvmnc read'
+    if(lasym.eq.1) then
+      ierr = nf90_inq_varid(ncid, "bsupumns", id)
+      ierr = ierr + nf90_get_var(ncid, id, bsupumns)
+      if(ierr.ne.0) call safestop(5) 
+      if(myrank.eq.0) print *, 'bsupumns read'
+      ierr = nf90_inq_varid(ncid, "bsupvmns", id)
+      ierr = ierr + nf90_get_var(ncid, id, bsupvmns)
+      if(ierr.ne.0) call safestop(5) 
+      if(myrank.eq.0) print *, 'bsupvmns read'
+    endif
   end subroutine read_vmec_nc
 
 !! Depracated 
@@ -486,15 +507,15 @@ contains
 
 
   ! radial zernike transform on VMEC data
-  !pure subroutine zernike_transform(mn,m,fmn,fout)
-  pure subroutine zernike_transform(fmn,fout)
+  pure subroutine zernike_transform(mn,m,fmn,fout)
+  !pure subroutine zernike_transform(fmn,fout)
     implicit none
 
-    !integer, intent(in) :: mn 
-    !integer, dimension(mn), intent(in) :: m 
-    real, dimension(mn_mode,ns), intent(in) :: fmn
-    real, dimension(mn_mode) :: ftemp
-    real, dimension(mn_mode,n_zer+1), intent(out) :: fout
+    integer, intent(in) :: mn 
+    integer, dimension(mn), intent(in) :: m 
+    real, dimension(mn,ns), intent(in) :: fmn
+    real, dimension(mn) :: ftemp
+    real, dimension(mn,n_zer+1), intent(out) :: fout
     integer :: i, j, k, nt
     real :: rho, zmn 
 
@@ -502,10 +523,10 @@ contains
 
     do k = 1, n_quad
        rho = .5*(1.+quad(1,k))
-       call vmec_interpl(rho,fmn,ftemp)
-       do i = 1, mn_mode
-          do j = mb(i), n_zer-2, 2
-             call zernike_polynomial(rho,j,mb(i),zmn) 
+       call vmec_interpl(rho,mn,m,fmn,ftemp)
+       do i = 1, mn
+          do j = m(i), n_zer-2, 2
+             call zernike_polynomial(rho,j,m(i),zmn) 
              fout(i,j+1) = fout(i,j+1) + ftemp(i)*zmn*(j+1)*rho*quad(2,k)
           end do
        end do
@@ -532,9 +553,9 @@ contains
 !    end do
 
     ! make sure the coefficients sum up to the boundary value 
-    do i = 1, mn_mode
+    do i = 1, mn
        zmn = fmn(i,ns) 
-       do j = mb(i), n_zer, 2
+       do j = m(i), n_zer, 2
           if (j.lt.(n_zer-1)) then
              zmn = zmn - fout(i,j+1)
           else
@@ -579,29 +600,29 @@ contains
 
   end subroutine zernike_polynomial
 
-  pure subroutine vmec_interpl(r,fmn,fout)
+  pure subroutine vmec_interpl(r,mn,m,fmn,fout)
     implicit none
 
     real, intent(in) :: r
-    !integer, intent(in) :: mn 
-    !integer, dimension(mn), intent(in) :: m 
+    integer, intent(in) :: mn 
+    integer, dimension(mn), intent(in) :: m 
     real :: r2n, ds 
     integer :: i, js
-    real, dimension(mn_mode,ns), intent(in) :: fmn
-    real, dimension(mn_mode,ns) :: f
-    real, dimension(mn_mode), intent(out) :: fout
-    real, dimension(mn_mode) :: df, df0, df1 
-    real, dimension(mn_mode,4) :: a 
+    real, dimension(mn,ns), intent(in) :: fmn
+    real, dimension(mn,ns) :: f
+    real, dimension(mn), intent(out) :: fout
+    real, dimension(mn) :: df, df0, df1 
+    real, dimension(mn,4) :: a 
 
     if (r.eq.0) then
        fout = fmn(:,1)
     else
        do i = 0, ns-1
-          f(:,i+1) = fmn(:,i+1)*(1.*i/(ns-1))**(-.5*mb+1) 
+          f(:,i+1) = fmn(:,i+1)*(1.*i/(ns-1))**(-.5*m+1) 
        end do
        !f(:,1)=fmn(:,1)
-       do i = 1, mn_mode
-          if(mb(i).ne.0.) f(i,1) = 0.
+       do i = 1, mn
+          if(m(i).ne.0.) f(i,1) = 0.
        end do
        r2n = r**2*(ns-1)
        js = ceiling(r2n)
@@ -622,18 +643,18 @@ contains
        a(:,3) = (3.*df - (2.*df0+df1))
        a(:,4) = (-2.*df + (df0+df1))
        fout = a(:,1) + a(:,2)*ds + a(:,3)*ds**2 + a(:,4)*ds**3
-       fout = fout*r**(mb-2)
+       fout = fout*r**(m-2)
     end if 
   end subroutine vmec_interpl
 
   ! half mesh VMEC data to full mesh
-  subroutine half2full(fmn)
+  subroutine half2full(mn,m,fmn)
     implicit none
 
-    !integer, intent(in) :: mn 
-    !integer, dimension(mn), intent(in) :: m 
-    real, dimension(mn_mode,ns), intent(inout) :: fmn
-    real, dimension(mn_mode,ns) :: ftemp
+    integer, intent(in) :: mn 
+    integer, dimension(mn), intent(in) :: m 
+    real, dimension(mn,ns), intent(inout) :: fmn
+    real, dimension(mn,ns) :: ftemp
     integer :: i 
 
 !    fmn(:,1) = fmn(:,2)*1.5 - fmn(:,3)*.5
@@ -648,8 +669,8 @@ contains
        ftemp(:,i) = .5*(fmn(:,i+1) + fmn(:,i)) 
     end do
     fmn = ftemp
-    do i = 1, mn_mode
-       if(mb(i).ne.0) fmn(i,1) = 0
+    do i = 1, mn
+       if(m(i).ne.0) fmn(i,1) = 0
     end do 
   end subroutine half2full
 

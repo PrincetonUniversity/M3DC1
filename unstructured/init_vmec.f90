@@ -447,16 +447,16 @@ contains
     r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
     theta = atan2(z - zcenter, x - xcenter)
 !    p = 0
-!    r2n = r**2*(ns-1)
-!    js = ceiling(r2n)
-!    if (js>(ns-1)) js = ns-1 
-!    ds = js - r2n 
+    r2n = r**2*(ns-1)
+    js = ceiling(r2n)
+    if (js>(ns-1)) js = ns-1 
+    ds = js - r2n 
     co = cos(xmv*theta+xnv*phis)
     sn = sin(xmv*theta+xnv*phis)
+    co_nyq = cos(xmv_nyq*theta+xnv_nyq*phis)
+    sn_nyq = sin(xmv_nyq*theta+xnv_nyq*phis)
     ! m, n perturbation
     per = eps*exp(-r**2/ln**2)*cos(mpol*theta-ntor*phis)*r 
-    !co_nyq = cos(xmv_nyq*theta+xnv_nyq*phis)
-    !sn_nyq = sin(xmv_nyq*theta+xnv_nyq*phis)
     call evaluate_spline(presf_spline, r**2, p)
     call evaluate_spline(phiv_spline, r**2, phiv)
     call evaluate_spline(chiv_spline, r**2, chiv)
@@ -464,60 +464,62 @@ contains
     if(lasym.eq.1) call zernike_evaluate(r,mn_mode,mb,lmncz,lc)
     !call vmec_interpl(r,lmns,ls)
     !call vmec_interpl(r,mn_mode,mb,lmns,ls)
-    !call zernike_evaluate(r,mn_mode,mb,rmncz,rstc)
-    !call zernike_evaluate(r,mn_mode,mb,zmnsz,zsts)
+    call zernike_evaluate(r,mn_mode,mb,rmncz,rstc)
+    call zernike_evaluate(r,mn_mode,mb,zmnsz,zsts)
     !call zernike_evaluate(r,mn_mode_nyq,mb_nyq,gmncz,gc)
     !call zernike_evaluate(r,mn_mode_nyq,mb_nyq,bsupumncz,buc)
     !call zernike_evaluate(r,mn_mode_nyq,mb_nyq,bsupvmncz,bvc)
     !call vmec_interpl(r,mn_mode,rmnc,rstc)
     !call vmec_interpl(r,mn_mode,zmns,zsts)
-    !call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupumnc,buc)
-    !call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupvmnc,bvc)
+!    call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupumnc,buc)
+!    call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupvmnc,bvc)
 !    p = presf(js+1)*(1-ds) + presf(js)*ds
 !    rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
 !    zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
-!    buc = bsupumnc(:,js+1)*(1-ds) + bsupumnc(:,js)*ds
-!    bvc = bsupvmnc(:,js+1)*(1-ds) + bsupvmnc(:,js)*ds
-!    rout = 0.
-!    gout = 0.
-!    dr = 0.
-!    dz = 0.
-!    dl = 0.
-!    dr1 = 0.
-!    dz1 = 0.
-!    dl1 = 0.
-!    bu = 0.
-!    bv = 0.
+    buc = bsupumnc(:,js+1)*(1-ds) + bsupumnc(:,js)*ds
+    bvc = bsupvmnc(:,js+1)*(1-ds) + bsupvmnc(:,js)*ds
+    rout = 0.
+    gout = 0.
+    dr = 0.
+    dz = 0.
+    dl = 0.
+    dr1 = 0.
+    dz1 = 0.
+    dl1 = 0.
+    bu = 0.
+    bv = 0.
     lout = 0.
     do i = 1, mn_mode 
       if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
         lout = lout + ls(i)*sn(i)
         if(lasym.eq.1) lout = lout + lc(i)*co(i)
-!        rout = rout + rstc(i)*co(i)
-!        dr = dr - rstc(i)*sn(i)*xmv(i)
-!        dz = dz + zsts(i)*co(i)*xmv(i)
 !        dl = dl + ls(i)*co(i)*xmv(i)
-!        dr1 = dr1 - rstc(i)*sn(i)*xnv(i)*mf
-!        dz1 = dz1 + zsts(i)*co(i)*xnv(i)*mf
 !        dl1 = dl1 + ls(i)*co(i)*xnv(i)*mf
+        rout = rout + rstc(i)*co(i)
+        dr = dr - rstc(i)*sn(i)*xmv(i)
+        dz = dz + zsts(i)*co(i)*xmv(i)
+        dr1 = dr1 - rstc(i)*sn(i)*xnv(i)*mf
+        dz1 = dz1 + zsts(i)*co(i)*xnv(i)*mf
+        bu = bu + buc(i)*co(i) 
+        bv = bv + bvc(i)*co(i) 
       end if 
     end do
-!    do i = 1, mn_mode_nyq 
-!      if (xmv_nyq(i)<m_max .and. abs(xnv_nyq(i))<n_max) then
+    do i = 1, mn_mode_nyq 
+      if (xmv_nyq(i)<m_max .and. abs(xnv_nyq(i))<n_max) then
 !        gout = gout + gc(i)*co_nyq(i)
-!        bu = bu + buc(i)*co_nyq(i) 
-!        bv = bv + bvc(i)*co_nyq(i) 
-!      end if 
-!    end do
+        !bu = bu + buc(i)*co_nyq(i) 
+        !bv = bv + bvc(i)*co_nyq(i) 
+      end if 
+    end do
 !    bu = -(chiv - phiv*dl1)/(gout*twopi)
 !    bv = -phiv*(1 + dl)/(gout*twopi)
-!    br = bu*dr + bv*dr1    
-!    bphi = rout*bv
-!    bz = bu*dz + bv*dz1
-    br = lout
-    bphi = -phiv/twopi
-    bz = chiv/twopi
-    p = p + pedge 
+    br = bu*dr + bv*dr1    
+    bphi = 0 
+    bz = bu*dz + bv*dz1
+!    br = lout
+!    bphi = -phiv/twopi
+!    bz = chiv/twopi
+    p = bv 
   end subroutine vmec_fields
   
 #endif

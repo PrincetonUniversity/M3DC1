@@ -168,15 +168,15 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         r = sqrt((x - xzero)**2 + (z - zzero)**2 + regular**2)
         theta = -atan2(z - zzero, x - xzero)
         arg = ntor*r/rzero
-        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))
-        !phase = exp((0,1)*(ntor*phi/rzero - mpol*theta-pi/2))
+        !phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))
+        phase = exp((0,1)*(ntor*phi/rzero - mpol*theta-pi/2))
         do i=1, n
            brv(i)     = 0.5*(Bessel_I(mpol-1, arg(i)) + Bessel_I(mpol+1, arg(i)))
            bthetav(i) = Bessel_I(mpol, arg(i)) / r(i)
            bzv(i)     = Bessel_I(mpol, arg(i))
         end do
-        fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
-        !fac = (ntor/rzero)/(mpol*bzero)
+        !fac = (ntor/rzero)*0.5*(Bessel_I(mpol-1, ntor/rzero) + Bessel_I(mpol+1, ntor/rzero))
+        fac = (ntor/rzero)/(mpol*bzero)
         !fac = eps 
         if(rmp_atten.ne.0) then
            atten = exp((r-1.)/rmp_atten)
@@ -358,7 +358,6 @@ subroutine calculate_external_fields()
 #endif
 
   read_p = .false.
-  !read_p = .true.
   if(iread_ext_field.ne.0) then
      do i=1, iread_ext_field 
         if(sf(i)%vmec) read_p = .true.
@@ -387,6 +386,13 @@ subroutine calculate_external_fields()
           x_79, phi_79, z_79, &
           temp79a, temp79b, temp79c, temp79d)
 
+#ifdef USEST
+     if(iread_vmec.eq.2) then
+        call vmec_fields(xl_79, phi_79, zl_79, &
+             temp79a, temp79b, temp79c, temp79d, temp79e)
+        read_p = .true.
+     end if
+#endif
      ! psi_equation
      ! ~~~~~~~~~~~~
      ! Mininize BR, BZ
@@ -532,7 +538,7 @@ subroutine calculate_external_fields()
   !psi_field(1) = 0.
   !bfp_field(1) = 0. 
   !bfp_field(1) = p_f
-  p_field(1) = 0. 
+  p_field(1) = bz_f 
   pe_field(1) = 0. 
   !call add(p_field(1), pedge) 
   !call add(pe_field(1), pedge*pefac) 
