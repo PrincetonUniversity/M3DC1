@@ -15,6 +15,7 @@
 #include "petscksp.h"
 #include "apfNumbering.h"
 #include "m3dc1_scorec.h"
+#include "apfMesh2.h"
 #include <vector>
 
 int copyField2PetscVec(FieldID field, Vec& petscVec, int scalar_type);
@@ -46,6 +47,7 @@ public:
   // PETSc data structures
   Mat* A;
   int fieldOrdering; // the field that provide numbering
+  apf::Mesh2* mesh;
 protected:
   int setupSeqMat();
   int setupParaMat();

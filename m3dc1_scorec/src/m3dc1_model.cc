@@ -29,6 +29,38 @@ std::map<int, std::pair<int, int> > edgeContainer;
 std::map<int, int> edgeType;
 std::map<int, std::vector<double> > vtxContainer;
 std::vector<void*> data2Clean;
+
+void print_model(gmi_model* model)
+{
+  gmi_ent* g;
+  gmi_iter* gi;
+  for (int pid=0; pid<PCU_Comm_Peers(); ++pid)
+  {
+    if (pid==PCU_Comm_Self())
+    {
+      for (int dim=0; dim<3; ++dim)
+      {
+        switch (dim)
+        {
+          case 0: std::cout<< PCU_Comm_Self()<<"] geom vertex : ";
+                  break;
+          case 1: std::cout<< PCU_Comm_Self()<<"] geom edge ";
+                  break;
+          case 2: std::cout<< PCU_Comm_Self()<<"] geom face ";
+                  break;
+          default: break;
+        }
+        gi = gmi_begin(model, dim);
+        while( (g = gmi_next(model, gi)) )
+          std::cout<<gmi_tag(model, g)<<" ";
+        std::cout<<"\n";
+        gmi_end(model, gi); // end the iterator
+      }
+    } // if
+    MPI_Barrier(PCU_Get_Comm());
+  } // for pid
+}
+
 void interpolateCubicBSpline( vector<double>& points,vector<double>& knots, vector<double> &ctrlPoints, int bc);
 void faceFunction(double const p[2], double x[3], void * data) {}
 void vertexFunction(double const p[2], double x[3], void * data) {}
@@ -554,6 +586,7 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
 {
   if (newModelEnts.size()) 
   {
+/*
     for (std::map<gmi_ent*, std::pair<gmi_ent*,gmi_ent*> >::iterator it=newModelEnts.begin(); it!=newModelEnts.end(); it++)
     {
       std::cout<<"[M3D-C1 INFO]::"<<__func__<<" 3D model Info"<<std::endl;
@@ -562,10 +595,11 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
       <<" ent_btw (dim  "<<gmi_dim(model, it->second.first)<<", id "<<gmi_tag(model, it->second.first)<<") "
       <<" ent_next (dim  "<<gmi_dim(model, it->second.second)<<", id "<<gmi_tag(model, it->second.second)<<")\n";
     }
+*/
     return;
   } 
 
-  if(model->n[0]==0)
+  if (model->n[0]==0)
   {
     if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO]::"<<__func__<<": model has 0 vertex, 1 edge, 1 face\n";
     assert(model->n[1]==1);
@@ -609,7 +643,7 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
       gmi_ent* ar = gmi_find(model, 3, ar_tag); 
       assert(ar);
 
-      if (i==0)
+     // if (i==0)
       {
         newModelEnts[ae_org]=std::make_pair(af_btw, ae_next);
         newModelEnts[af_org]=std::make_pair(ar, af_next);
@@ -632,15 +666,16 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
     assert(numL==numF);
     assert(numV==numE);
     vector<gmi_ent*> af_org_vec, ae_org_vec, av_org_vec;
+
     // first update the tag of the original plane
-    for(int iloop=1; iloop<=numL; iloop++)
+    for (int iloop=1; iloop<=numL; iloop++)
     {
       int af_org_tag= iloop+local_planeid*(numF+numE);
       gmi_ent* af_org=gmi_find(model, 2,iloop);
       af_org_vec.push_back(af_org);
       set_gent_tag(model, af_org, af_org_tag);
 
-      for(int iedge=0; iedge<loopContainer[iloop].size(); iedge++)
+      for (int iedge=0; iedge<loopContainer[iloop].size(); iedge++)
       {
         int edgeTag=loopContainer[iloop].at(iedge);
         gmi_ent* ae_org = gmi_find (model, 1,edgeTag); 
@@ -656,7 +691,8 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
         set_gent_tag(model, av_org, av_org_tag);
       }
     }
-    for(int i=0; i<num_plane; i++)
+
+    for (int i=0; i<num_plane; i++)
     {
       int planeId= (local_planeid+i)%num_plane;
       int next_plane_id= (planeId+1)%num_plane;
@@ -666,18 +702,19 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
         int ar_tag=iloop+planeId*numF;
         // first create vertex
         int numVLoop=loopContainer[iloop].size();
-        for(int ivtx=0; ivtx<numVLoop; ivtx++)
+        for (int ivtx=0; ivtx<numVLoop; ivtx++)
         {
           int edgeTag=loopContainer[iloop].at(ivtx);
           int av_next_tag=edgeTag + next_plane_id*numV;
-          if(i<num_plane-1)
+          if (i<num_plane-1)
           { 
             assert(!gmi_find(model,0, av_next_tag));
             gmi_add_analytic(model, 0, av_next_tag, vertexFunction, NULL, NULL, NULL);
           }
           gmi_ent* av_next=gmi_find(model,0, av_next_tag);
           assert(av_next);
-          if(i==0)
+
+          // if (i==0)
           {
             gmi_ent* gv_org = av_org_vec.at(edgeTag-1);
             newModelEnts[gv_org].second=av_next;
@@ -689,7 +726,7 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
           int edgeTag=loopContainer[iloop].at(iedge);
           int ae_next_tag = edgeTag+ next_plane_id*(numV+numE);
           gmi_ent* ae_next = NULL;
-          if(i<num_plane-1) 
+          if (i<num_plane-1) 
           {
             gmi_ent* ae_org = ae_org_vec.at(edgeTag-1);
             void* data = gmi_analytic_data(model, ae_org);
@@ -713,7 +750,7 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
           make_edge_topo(m3dc1_model::instance()->model,gedge, vtx.first+ planeId*numV, vtx.first+ next_plane_id*numV);
           if (!PCU_Comm_Self()) std::cout<<"[p"<<PCU_Comm_Self()<<"] new btw edge "<<ae_next_tag<<" vtx("<<vtx.first+ planeId*numV<<", "<<vtx.first+ next_plane_id*numV<<")\n";
 
-          if(i==0)
+          // if (i==0)
           {
             gmi_ent* gv_org = av_org_vec.at(edgeTag-1);
             newModelEnts[gv_org].first=gmi_find(model,1,ae_btw_tag);
@@ -731,7 +768,7 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
           gmi_add_analytic(model, 2, af_btw_tag, faceFunction, facePeriodic, faceRanges, NULL);
           gmi_ent* af_btw =gmi_find(model, 2, af_btw_tag);
           assert(af_btw);
-          if(i==0)
+          // if (i==0)
           {
             gmi_ent* ae_org = ae_org_vec.at(edgeTag-1);
             newModelEnts[ae_org]=std::make_pair(af_btw,ae_next);
@@ -739,7 +776,7 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
         }
         // create face on next plane
         gmi_ent *af_next = NULL;
-        if(i<num_plane-1)
+        if (i<num_plane-1)
         {
           assert(!gmi_find(model,2, af_next_tag));
           gmi_add_analytic(model, 2, af_next_tag, faceFunction, facePeriodic, faceRanges, NULL);
@@ -750,7 +787,7 @@ void m3dc1_model::create3D() // construct 3D model out of 2D
         assert(!gmi_find(model,3, ar_tag));
         gmi_add_analytic_region (model, ar_tag);
         gmi_ent* ar = gmi_find(model,3, ar_tag);
-        if(i==0)
+        // if (i==0)
         {
           gmi_ent* af_org=af_org_vec.at(iloop-1);
           newModelEnts[af_org]=std::make_pair(ar, af_next);

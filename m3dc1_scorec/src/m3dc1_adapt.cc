@@ -17,13 +17,17 @@
 #include "apfShape.h" // getLagrange
 #include "pumi.h"
 #include "ma.h"
+#include "gmi_base.h"
 
 using namespace apf;
 
 void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2, 
      double* angle, apf::Field* sizefield, apf::Field* framefield)
 {
-  for (int i = 0; i<m->count(0); ++i)
+  MeshEntity* e;
+  MeshIterator* ent_it = m->begin(0);
+  int i=0;
+  while ((e = m->iterate(ent_it)))
   {
     double h1 = size_1[i];
     double h2 = size_2[i];
@@ -69,11 +73,12 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
     r[2][1]=0;
     r[2][2]=1.;
 
-    apf::MeshEntity* vert = getMdsEntity(m, 0, i);
-    apf::setVector(sizefield, vert, 0, h);
-    apf::setMatrix(framefield, vert, 0, r);
-//  apf::setMatrix(framefield, vert, 0, apf::transpose(r));	// For Shock Test Case
+    apf::setVector(sizefield, e, 0, h);
+    apf::setMatrix(framefield, e, 0, r);
+//  apf::setMatrix(framefield, e, 0, apf::transpose(r));	// For Shock Test Case
   }
+  m->end(ent_it);
+
   // sync the fields to make sure verts on part boundaries end up with the same size and frame
   apf::synchronize(sizefield);
   apf::synchronize(framefield);
@@ -190,10 +195,31 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   mesh->writeNative("mesh.smb");
 #endif
 
-  MPI_Comm groupComm;
   apf::MeshEntity* e;
+
+  gmi_model* model = m3dc1_model::instance()->model;
+  int** ge_tag = new int*[3];
+  gmi_iter* g_it;
+  gmi_ent* ge;
+  int cnt;
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
+    // save the current model tag and revert it back to the original
+    for (int i = 0; i < 3; ++i)
+      ge_tag[i] = new int[model->n[i]];
+
+    for (int dim=0; dim<=2; ++dim)
+    {
+      g_it = gmi_begin(model, dim);
+      cnt=0;
+      while ((ge = gmi_next(model, g_it)))
+      {
+        ge_tag[dim][cnt++]= gmi_tag(model,ge);
+        gmi_base_set_tag (model, ge, cnt);
+      }
+      gmi_end(model, g_it);
+    }
+
     m3dc1_mesh::instance()->remove_wedges();
     // remove entities on non-master plane
     if (m3dc1_model::instance()->local_planeid)
@@ -207,6 +233,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       }
     }
   }
+  
   ma::adapt(in);
 
   mesh->removeField(size_field);
@@ -214,7 +241,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   apf::destroyField(size_field);
   apf::destroyField(frame_field);
 
-  pumi_mesh_print(mesh);
+  m3dc1_mesh::instance()->initialize(false);
 
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
@@ -238,7 +265,12 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       }
     }
 
-    m3dc1_mesh::instance()->build3d(num_field, field_id, num_dofs_per_value, false);
+    m3dc1_mesh::instance()->build3d(num_field, field_id, num_dofs_per_value, ge_tag, false);
+
+    for(int i = 0; i < 3; ++i)
+      delete [] ge_tag[i];
+    delete [] ge_tag;
+
     if (num_field>0)
     {
       delete [] field_id;
@@ -248,13 +280,19 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
 
   reorderMdsMesh(mesh);
 
+   // FIXME: crash in 3D 
+   if (m3dc1_model::instance()->num_plane==1)
+     apf::writeVtkFiles("after-adapt", mesh);
+ 
+  m3dc1_mesh::instance()->initialize(false);
+  m3dc1_mesh::instance()->print(-1);
+
+  compute_globalid(mesh, 0);
+  compute_globalid(mesh, mesh->getDimension());
+
   // FIXME: crash in 3D 
   if (m3dc1_model::instance()->num_plane==1)
     apf::writeVtkFiles("after-adapt", mesh);
-
-  m3dc1_mesh::instance()->initialize();
-  compute_globalid(mesh, 0);
-  compute_globalid(mesh, mesh->getDimension());
 
   it=m3dc1_mesh::instance()->field_container->begin();
   while(it!=m3dc1_mesh::instance()->field_container->end())

@@ -7,7 +7,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 36
+  integer, parameter :: version = 37
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -344,6 +344,8 @@ module basic
   real :: dforce         !  half width
   real :: xforce         !  location of peak (0 to 1(edge))
   real :: aforce         !  magnitude
+
+  integer :: ifixed_temax   !  if nonzero, evaluate temax at xmag0,zmag0
 
   ! curent drive source
   integer :: icd_source  ! 1 = include current drive in flux equation

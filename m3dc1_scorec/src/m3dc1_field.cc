@@ -16,11 +16,11 @@ void group_complex_dof (apf::Field* field, int option)
   int num_dof = num_dof_double/2;
   std::vector<double> dofs(num_dof_double);
   std::vector<double> newdofs(num_dof_double);
-  int numVert=m3dc1_mesh::instance()->mesh->count(0);
 
-  for (int i=0; i<numVert; i++)
+  apf::MeshIterator* ent_it=m3dc1_mesh::instance()->mesh->begin(0);
+  apf::MeshEntity* e;
+  while ((e = m3dc1_mesh::instance()->mesh->iterate(ent_it)))
   {
-    apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i);
     getComponents(field, e, 0, &(dofs[0]));
     for (int j=0; j<num_dof/6; j++)
     {
@@ -43,6 +43,7 @@ void group_complex_dof (apf::Field* field, int option)
     }
     setComponents(field, e, 0, &(newdofs[0]));
   }
+  m3dc1_mesh::instance()->mesh->end(ent_it);
 }
 
 //*******************************************************

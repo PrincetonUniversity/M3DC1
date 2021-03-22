@@ -1659,6 +1659,55 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
   
 end subroutine te_max
 
+subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
+  use basic
+  use mesh_mod
+  use m3dc1_nint
+  use field
+
+  implicit none
+
+  include 'mpif.h'
+
+  real, intent(inout) :: xguess, zguess
+  type(field_type), intent(in) :: te
+  integer, intent(in) :: imethod
+  real, intent(out) :: tem
+  type(element_data) :: d
+  integer :: i, ier
+  real :: x1, z1, x, z, si, zi, eta
+  real :: sum
+  vectype, dimension(coeffs_per_element) :: avector
+  real, dimension(5) :: temp1, temp2
+  integer, save :: itri = 0
+
+     x = xguess
+     z = zguess
+     call whattri(x,0.,z,itri,x1,z1)
+
+     ! calculate te at x,0,z
+     if(itri.gt.0) then
+        call calcavector(itri, te, avector)
+        call get_element_data(itri, d)
+        ! calculate local coordinates
+        call global_to_local(d, x, 0., z, si, zi, eta)
+        ! evaluate the polynomial
+        sum = 0.
+        do i=1, coeffs_per_tri
+           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
+        enddo
+     endif  ! on itri.gt.0
+     ! communicate new maximum to all processors
+     if(maxrank.gt.1) then
+        temp1(1) = sum
+        call mpi_allreduce(temp1, temp2, 1, &
+             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+        sum   = temp2(1)
+     endif
+     tem = sum
+     ier = 0
+end subroutine te_max2
+
 
 
 !=====================================================
