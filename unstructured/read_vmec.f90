@@ -59,7 +59,11 @@ contains
 !    call half2full(mn_mode_nyq,mb_nyq,gmnc)
     call half2full(mn_mode_nyq,mb_nyq,bsupumnc)
     call half2full(mn_mode_nyq,mb_nyq,bsupvmnc)
-    if(myrank.eq.0) print *, bsupvmnc 
+    if(lasym.eq.1) then
+      call half2full(mn_mode,mb,lmnc)
+      call half2full(mn_mode_nyq,mb_nyq,bsupumns)
+      call half2full(mn_mode_nyq,mb_nyq,bsupvmns)
+    end if
 
     ! put VMEC data on Zernike basis
     ! radial grid
@@ -73,25 +77,25 @@ contains
     if(myrank.eq.0) print *, 'rmnc transformed'
     call zernike_transform(mn_mode,mb,zmns,zmnsz)
     if(myrank.eq.0) print *, 'zmns transformed'
-    call zernike_transform(mn_mode,mb,lmns,lmnsz)
-    if(myrank.eq.0) print *, 'lmns transformed'
+!    call zernike_transform(mn_mode,mb,lmns,lmnsz)
+!    if(myrank.eq.0) print *, 'lmns transformed'
 !    call zernike_transform(mn_mode_nyq,mb_nyq,gmnc,gmncz)
 !    if(myrank.eq.0) print *, 'gmnc transformed'
-    call zernike_transform(mn_mode_nyq,mb_nyq,bsupumnc,bsupumncz)
-    if(myrank.eq.0) print *, 'bsupumnc transformed'
-    call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmnc,bsupvmncz)
-    if(myrank.eq.0) print *, 'bsupvmnc transformed'
+!    call zernike_transform(mn_mode_nyq,mb_nyq,bsupumnc,bsupumncz)
+!    if(myrank.eq.0) print *, 'bsupumnc transformed'
+!    call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmnc,bsupvmncz)
+!    if(myrank.eq.0) print *, 'bsupvmnc transformed'
     if(lasym.eq.1) then
       call zernike_transform(mn_mode,mb,rmns,rmnsz)
       if(myrank.eq.0) print *, 'rmns transformed'
       call zernike_transform(mn_mode,mb,zmnc,zmncz)
       if(myrank.eq.0) print *, 'zmnc transformed'
-      call zernike_transform(mn_mode,mb,lmnc,lmncz)
-      if(myrank.eq.0) print *, 'lmnc transformed'
-      call zernike_transform(mn_mode_nyq,mb_nyq,bsupumns,bsupumnsz)
-      if(myrank.eq.0) print *, 'bsupumns transformed'
-      call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmns,bsupvmnsz)
-      if(myrank.eq.0) print *, 'bsupvmns transformed'
+!      call zernike_transform(mn_mode,mb,lmnc,lmncz)
+!      if(myrank.eq.0) print *, 'lmnc transformed'
+!      call zernike_transform(mn_mode_nyq,mb_nyq,bsupumns,bsupumnsz)
+!      if(myrank.eq.0) print *, 'bsupumns transformed'
+!      call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmns,bsupvmnsz)
+!      if(myrank.eq.0) print *, 'bsupvmns transformed'
     endif
     ! Make sure pressure is positive
     if (presf(ns).lt.0) presf = presf - presf(ns)
@@ -142,7 +146,7 @@ contains
     allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
-    n_zer = m_pol*1
+    n_zer = m_pol*2
     allocate(rmncz(mn_mode,n_zer+1))
     allocate(zmnsz(mn_mode,n_zer+1))
     allocate(lmnsz(mn_mode,n_zer+1))

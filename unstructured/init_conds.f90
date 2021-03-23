@@ -639,7 +639,10 @@ subroutine initial_conditions()
 #ifdef USEST
         case(40)
            if (igeometry.eq.1 .and. iread_vmec.ge.1) then
-              call vmec_init()
+              !call vmec_init()
+           else
+              print *, 'VMEC equilibrium needs igeometry=1 and iread_vmec>1!'
+              call safestop(1)
            end if
 #endif
         end select

@@ -26,7 +26,7 @@ contains
     type(matrix_type) :: br_mat
     type(vector_type) :: fppsi_vec
     type(field_type) :: psi_f, bf_f, bfp_f, bz_f
-    type(field_type) :: p_vec, phiv_vec, chiv_vec, l_vec, x_vec, y_vec, per_vec 
+    type(field_type) :: p_f, phiv_vec, chiv_vec, l_vec, x_vec, y_vec, per_f 
     integer :: itri, numelms, ifpbound, ier, ipsibound, ipsifpbound, i, k, k1
     integer :: inode(nodes_per_element)
     vectype, dimension(dofs_per_element) :: dofs
@@ -42,15 +42,15 @@ contains
     end if
 
     ! Create fields 
-    call create_field(p_vec)
-    call create_field(per_vec)
+    call create_field(p_f)
+    call create_field(per_f)
     call create_field(l_vec)
     call create_field(chiv_vec)
     call create_field(phiv_vec)
     call create_field(x_vec)
     call create_field(y_vec)
-    p_vec = 0.
-    per_vec = 0.
+    p_f = 0.
+    per_f = 0.
     l_vec = 0.
     x_vec = 0.
     y_vec = 0.
@@ -60,10 +60,6 @@ contains
     numelms = local_elements()
 
     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining VMEC Equilibrium'
-
-    select case(igeometry)
-
-    case(1) 
 
     do itri=1,numelms
 
@@ -87,12 +83,12 @@ contains
 
       ! pressure p 
       dofs = intx2(mu79(:,:,OP_1),temp79d)
-      call vector_insert_block(p_vec%vec, itri, 1, dofs, VEC_ADD)
+      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
 
       ! perturbation 
       dofs = intx2(mu79(:,:,OP_1),temp79e)
       !dofs = intx2(mu79(:,:,OP_1),sin(x_79)*sin(z_79)*sin(phi_79))
-      call vector_insert_block(per_vec%vec, itri, 1, dofs, VEC_ADD)
+      call vector_insert_block(per_f%vec, itri, 1, dofs, VEC_ADD)
 
       ! logical x 
       dofs = intx2(mu79(:,:,OP_1),xl_79)
@@ -110,12 +106,12 @@ contains
     call newvar_solve(y_vec%vec,mass_mat_lhs)
     call newvar_solve(phiv_vec%vec,mass_mat_lhs)
     call newvar_solve(chiv_vec%vec,mass_mat_lhs)
-    call newvar_solve(p_vec%vec,mass_mat_lhs)
-    call newvar_solve(per_vec%vec,mass_mat_lhs)
+    call newvar_solve(p_f%vec,mass_mat_lhs)
+    call newvar_solve(per_f%vec,mass_mat_lhs)
 
-    u_field(1) = per_vec 
+    u_field(1) = per_f 
 
-    p_field(0) = p_vec 
+    p_field(0) = p_f 
     pe_field(0) = p_field(0)
     call mult(pe_field(0),pefac)
 
@@ -143,7 +139,7 @@ contains
       call eval_ops(itri, l_vec, lam79, rfac)
       call eval_ops(itri, phiv_vec, pv79, rfac)
       call eval_ops(itri, chiv_vec, cv79, rfac)
-      !call eval_ops(itri, per_vec, p079, rfac)
+      !call eval_ops(itri, per_f, p079, rfac)
       temp79a = -zl_79/(xl_79**2 + zl_79**2) ! theta_x
       temp79b =  xl_79/(xl_79**2 + zl_79**2) ! theta_y
       temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
@@ -195,7 +191,7 @@ contains
       temp2(:,1) = intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79d,ri_79) &
                   -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79c,ri_79) &
 #else
-      temp2(:,2) = 0. &
+      temp2(:,1) = 0. &
 #endif 
                   -intx4(mu79(:,:,OP_DR),pv79(:,OP_DZ),temp79e,ri_79) & 
                   +intx3(mu79(:,:,OP_DR),cv79(:,OP_DZ),ri_79) & 
@@ -268,7 +264,7 @@ contains
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving fp & psi..."
     call sum_shared(fppsi_vec)
-    call boundary_vmec(fppsi_vec,br_mat,per_vec)
+    call boundary_vmec(fppsi_vec,br_mat,per_f)
     call finalize(br_mat)
     call newsolve(br_mat,fppsi_vec,ier)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
@@ -324,7 +320,7 @@ contains
 !      dofs = -intx4(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79e,ri_79) &
 !               +intx3(mu79(:,:,OP_1),cv79(:,OP_DZ),ri_79) &
 !               +intx4(mu79(:,:,OP_1),pv79(:,OP_DP),temp79d,ri_79) 
-!      call vector_insert_block(p_vec%vec, itri, 1, dofs, VEC_ADD)
+!      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
 !
       ! Bz =  Phi_R*(theta_phi + lambda_phi)/R 
       !      -Phi_phi*(theta_R + lambda_R)/R - chi_R/R
@@ -335,7 +331,7 @@ contains
 !#else
 !              +0.
 !#endif
-!      call vector_insert_block(p_vec%vec, itri, 1, dofs, VEC_ADD)
+!      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
 
       ! Bphi = -Phi_R*(theta_Z + lambda_Z) 
       !        +Phi_Z*(theta_R + lambda_R)
@@ -352,7 +348,7 @@ contains
     bz_field(0) = bz_f
     bf_field(0) = bf_f
 
-    call destroy_field(p_vec)
+    call destroy_field(p_f)
     call destroy_field(l_vec)
     call destroy_field(x_vec)
     call destroy_field(y_vec)
@@ -363,11 +359,6 @@ contains
 
     call destroy_vector(fppsi_vec)
     call destroy_mat(br_mat)
-
-    case default 
-      print *, 'VMEC equilibrium only supports igeometry=1!'
-      call safestop(5)
-    end select
 
     !call init_perturbations
 
@@ -438,8 +429,8 @@ contains
     real, intent(out) :: p, br, bphi, bz, per
     real :: r, r2n, ds, rout, bu, bv, theta 
     integer :: js, i 
-    real, dimension(mn_mode) :: rstc, zsts, co, sn, ls, lc 
-    real, dimension(mn_mode_nyq) :: co_nyq, sn_nyq, buc, bvc, gc 
+    real, dimension(mn_mode) :: rstc, zsts, co, sn, ls, lc, rsts, zstc 
+    real, dimension(mn_mode_nyq) :: co_nyq, sn_nyq, buc, bvc, gc, bus, bvs 
     real :: dr, dz, dr1, dz1, phis, chiv, phiv, dl, dl1, gout, lout
 
     phis = phi*mf+mesh_phase
@@ -447,10 +438,10 @@ contains
     r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
     theta = atan2(z - zcenter, x - xcenter)
 !    p = 0
-    r2n = r**2*(ns-1)
-    js = ceiling(r2n)
-    if (js>(ns-1)) js = ns-1 
-    ds = js - r2n 
+!    r2n = r**2*(ns-1)
+!    js = ceiling(r2n)
+!    if (js>(ns-1)) js = ns-1 
+!    ds = js - r2n 
     co = cos(xmv*theta+xnv*phis)
     sn = sin(xmv*theta+xnv*phis)
     co_nyq = cos(xmv_nyq*theta+xnv_nyq*phis)
@@ -458,10 +449,10 @@ contains
     ! m, n perturbation
     per = eps*exp(-r**2/ln**2)*cos(mpol*theta-ntor*phis)*r 
     call evaluate_spline(presf_spline, r**2, p)
-    call evaluate_spline(phiv_spline, r**2, phiv)
-    call evaluate_spline(chiv_spline, r**2, chiv)
-    call zernike_evaluate(r,mn_mode,mb,lmnsz,ls)
-    if(lasym.eq.1) call zernike_evaluate(r,mn_mode,mb,lmncz,lc)
+!    call evaluate_spline(phiv_spline, r**2, phiv)
+!    call evaluate_spline(chiv_spline, r**2, chiv)
+!    call zernike_evaluate(r,mn_mode,mb,lmnsz,ls)
+!    if(lasym.eq.1) call zernike_evaluate(r,mn_mode,mb,lmncz,lc)
     !call vmec_interpl(r,lmns,ls)
     !call vmec_interpl(r,mn_mode,mb,lmns,ls)
     call zernike_evaluate(r,mn_mode,mb,rmncz,rstc)
@@ -471,28 +462,33 @@ contains
     !call zernike_evaluate(r,mn_mode_nyq,mb_nyq,bsupvmncz,bvc)
     !call vmec_interpl(r,mn_mode,rmnc,rstc)
     !call vmec_interpl(r,mn_mode,zmns,zsts)
-!    call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupumnc,buc)
-!    call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupvmnc,bvc)
+    call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupumnc,buc)
+    call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupvmnc,bvc)
+    if(lasym.eq.1) then 
+      call zernike_evaluate(r,mn_mode,mb,rmnsz,rsts)
+      call zernike_evaluate(r,mn_mode,mb,zmncz,zstc)
+      call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupumns,bus)
+      call vmec_interpl(r,mn_mode_nyq,mb_nyq,bsupvmns,bvs)
+    end if
 !    p = presf(js+1)*(1-ds) + presf(js)*ds
 !    rstc = rmnc(:,js+1)*(1-ds) + rmnc(:,js)*ds
 !    zsts = zmns(:,js+1)*(1-ds) + zmns(:,js)*ds
-    buc = bsupumnc(:,js+1)*(1-ds) + bsupumnc(:,js)*ds
-    bvc = bsupvmnc(:,js+1)*(1-ds) + bsupvmnc(:,js)*ds
+!    buc = bsupumnc(:,js+1)*(1-ds) + bsupumnc(:,js)*ds
+!    bvc = bsupvmnc(:,js+1)*(1-ds) + bsupvmnc(:,js)*ds
     rout = 0.
-    gout = 0.
     dr = 0.
     dz = 0.
-    dl = 0.
     dr1 = 0.
     dz1 = 0.
-    dl1 = 0.
     bu = 0.
     bv = 0.
-    lout = 0.
+!    lout = 0.
+!    gout = 0.
+!    dl = 0.
+!    dl1 = 0.
     do i = 1, mn_mode 
       if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
-        lout = lout + ls(i)*sn(i)
-        if(lasym.eq.1) lout = lout + lc(i)*co(i)
+!        lout = lout + ls(i)*sn(i)
 !        dl = dl + ls(i)*co(i)*xmv(i)
 !        dl1 = dl1 + ls(i)*co(i)*xnv(i)*mf
         rout = rout + rstc(i)*co(i)
@@ -500,26 +496,36 @@ contains
         dz = dz + zsts(i)*co(i)*xmv(i)
         dr1 = dr1 - rstc(i)*sn(i)*xnv(i)*mf
         dz1 = dz1 + zsts(i)*co(i)*xnv(i)*mf
-        bu = bu + buc(i)*co(i) 
-        bv = bv + bvc(i)*co(i) 
+        if(lasym.eq.1) then 
+          !lout = lout + lc(i)*co(i)
+          rout = rout + rsts(i)*sn(i)
+          dr = dr + rsts(i)*co(i)*xmv(i)
+          dz = dz - zstc(i)*sn(i)*xmv(i)
+          dr1 = dr1 + rsts(i)*co(i)*xnv(i)*mf
+          dz1 = dz1 - zstc(i)*sn(i)*xnv(i)*mf
+        end if 
       end if 
     end do
     do i = 1, mn_mode_nyq 
       if (xmv_nyq(i)<m_max .and. abs(xnv_nyq(i))<n_max) then
 !        gout = gout + gc(i)*co_nyq(i)
-        !bu = bu + buc(i)*co_nyq(i) 
-        !bv = bv + bvc(i)*co_nyq(i) 
+        bu = bu + buc(i)*co_nyq(i) 
+        bv = bv + bvc(i)*co_nyq(i) 
+        if(lasym.eq.1) then 
+          bu = bu + bus(i)*sn_nyq(i) 
+          bv = bv + bvs(i)*sn_nyq(i) 
+        end if 
       end if 
     end do
 !    bu = -(chiv - phiv*dl1)/(gout*twopi)
 !    bv = -phiv*(1 + dl)/(gout*twopi)
     br = bu*dr + bv*dr1    
-    bphi = 0 
+    bphi = rout*bv 
     bz = bu*dz + bv*dz1
 !    br = lout
 !    bphi = -phiv/twopi
 !    bz = chiv/twopi
-    p = bv 
+    p = p + pedge  
   end subroutine vmec_fields
   
 #endif

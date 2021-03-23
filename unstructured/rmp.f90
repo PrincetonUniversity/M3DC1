@@ -501,6 +501,8 @@ subroutine calculate_external_fields()
 
      call newsolve(mass_mat_lhs%mat,p_vec,ier)
      p_field(1) = p_f
+     pe_field(1) = p_f
+     call mult(pe_field(1), pefac) 
   end if
 
   call boundary_dc(bf_vec,mat=bf_mat)
@@ -538,10 +540,10 @@ subroutine calculate_external_fields()
   !psi_field(1) = 0.
   !bfp_field(1) = 0. 
   !bfp_field(1) = p_f
-  p_field(1) = bz_f 
+  p_field(1) = 0. 
   pe_field(1) = 0. 
-  !call add(p_field(1), pedge) 
-  !call add(pe_field(1), pedge*pefac) 
+  call add(p_field(1), pedge) 
+  call add(pe_field(1), pedge*pefac) 
   !bz_field(1) = bf_f
   !call mult(bz_field(1), -1.) 
   !call add(bz_field(1), p_field(1))
