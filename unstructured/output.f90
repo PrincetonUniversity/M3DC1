@@ -964,7 +964,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   endif
     
     ! BFP
-  if(i3d.eq.1 .and. numvar.ge.2) then
+  if(ifout.eq.1) then
      do i=1, nelms
         call calcavector(i, bfp_field(ilin), dum(:,i))
      end do
