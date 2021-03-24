@@ -98,7 +98,7 @@ contains
           call safestop(1)
        end if
        ! check if fp is present
-       if(version_in.ge.35 .and. numvar.gt.1) then
+       if(version_in.ge.38 .or. (version_in.ge.35 .and. numvar.gt.1)) then
           irestart_fp = 1
           if(myrank.eq.0 .and. iprint.ge.2) print *, " fp is present at restart"
        else
