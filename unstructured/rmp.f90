@@ -386,13 +386,13 @@ subroutine calculate_external_fields()
           x_79, phi_79, z_79, &
           temp79a, temp79b, temp79c, temp79d)
 
-#ifdef USEST
-     if(iread_vmec.eq.2) then
-        call vmec_fields(xl_79, phi_79, zl_79, &
-             temp79a, temp79b, temp79c, temp79d, temp79e)
-        read_p = .true.
-     end if
-#endif
+!#ifdef USEST
+!     if(iread_vmec.eq.2) then
+!        call vmec_fields(xl_79, phi_79, zl_79, &
+!             temp79a, temp79b, temp79c, temp79d, temp79e)
+!        read_p = .true.
+!     end if
+!#endif
      ! psi_equation
      ! ~~~~~~~~~~~~
      ! Mininize BR, BZ
@@ -540,8 +540,8 @@ subroutine calculate_external_fields()
   !psi_field(1) = 0.
   !bfp_field(1) = 0. 
   !bfp_field(1) = p_f
-  p_field(1) = 0. 
-  pe_field(1) = 0. 
+  !p_field(1) = 0. 
+  !pe_field(1) = 0. 
   call add(p_field(1), pedge) 
   call add(pe_field(1), pedge*pefac) 
   !bz_field(1) = bf_f

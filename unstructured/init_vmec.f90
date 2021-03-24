@@ -44,76 +44,12 @@ contains
     ! Create fields 
     call create_field(p_f)
     call create_field(per_f)
-    call create_field(l_vec)
-    call create_field(chiv_vec)
-    call create_field(phiv_vec)
-    call create_field(x_vec)
-    call create_field(y_vec)
+    call create_field(bz_f)
+    call create_field(bf_f)
     p_f = 0.
     per_f = 0.
-    l_vec = 0.
-    x_vec = 0.
-    y_vec = 0.
-    chiv_vec = 0.
-    phiv_vec = 0.
-
-    numelms = local_elements()
-
-    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining VMEC Equilibrium'
-
-    do itri=1,numelms
-
-      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-      call define_fields(itri,0,1,0)
-
-      call vmec_fields(xl_79, phi_79, zl_79, temp79a, temp79b, temp79c, &
-                      temp79d, temp79e)
-
-      ! VMEC lambda
-      dofs = intx2(mu79(:,:,OP_1),temp79a)
-      call vector_insert_block(l_vec%vec, itri, 1, dofs, VEC_ADD)
-
-      ! VMEC toroidal flux Phi
-      dofs = intx2(mu79(:,:,OP_1),temp79b)
-      call vector_insert_block(phiv_vec%vec, itri, 1, dofs, VEC_ADD)
-
-      ! VMEC poloidal flux chi
-      dofs = intx2(mu79(:,:,OP_1),temp79c)
-      call vector_insert_block(chiv_vec%vec, itri, 1, dofs, VEC_ADD)
-
-      ! pressure p 
-      dofs = intx2(mu79(:,:,OP_1),temp79d)
-      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
-
-      ! perturbation 
-      dofs = intx2(mu79(:,:,OP_1),temp79e)
-      !dofs = intx2(mu79(:,:,OP_1),sin(x_79)*sin(z_79)*sin(phi_79))
-      call vector_insert_block(per_f%vec, itri, 1, dofs, VEC_ADD)
-
-      ! logical x 
-      dofs = intx2(mu79(:,:,OP_1),xl_79)
-      call vector_insert_block(x_vec%vec, itri, 1, dofs, VEC_ADD)
-
-      ! logical y 
-      dofs = intx2(mu79(:,:,OP_1),zl_79)
-      call vector_insert_block(y_vec%vec, itri, 1, dofs, VEC_ADD)
-
-    enddo
-
-
-    call newvar_solve(l_vec%vec,mass_mat_lhs)
-    call newvar_solve(x_vec%vec,mass_mat_lhs)
-    call newvar_solve(y_vec%vec,mass_mat_lhs)
-    call newvar_solve(phiv_vec%vec,mass_mat_lhs)
-    call newvar_solve(chiv_vec%vec,mass_mat_lhs)
-    call newvar_solve(p_f%vec,mass_mat_lhs)
-    call newvar_solve(per_f%vec,mass_mat_lhs)
-
-    u_field(1) = per_f 
-
-    p_field(0) = p_f 
-    pe_field(0) = p_field(0)
-    call mult(pe_field(0),pefac)
+    bz_f = 0.
+    bf_f = 0.
 
     call create_vector(fppsi_vec,2)
     call associate_field(bfp_f,fppsi_vec,1)
@@ -123,35 +59,96 @@ contains
     call create_mat(br_mat, 2, 2, icomplex, 1)
 
     ! boundary condition on psi, g, and f
-    ipsifpbound = BOUNDARY_NONE
+    !ipsifpbound = BOUNDARY_NONE
     !ipsibound = BOUNDARY_DIRICHLET
     ipsibound = BOUNDARY_NONE
     !ifpbound = BOUNDARY_NONE
     ifpbound = BOUNDARY_DIRICHLET
     !ifpbound = BOUNDARY_NEUMANN
 
+    numelms = local_elements()
+
+!    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Defining VMEC Equilibrium'
+!
+!    call create_field(l_vec)
+!    call create_field(chiv_vec)
+!    call create_field(phiv_vec)
+!    call create_field(x_vec)
+!    call create_field(y_vec)
+!    l_vec = 0.
+!    x_vec = 0.
+!    y_vec = 0.
+!    chiv_vec = 0.
+!    phiv_vec = 0.
+!
+!    do itri=1,numelms
+!
+!      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+!      call define_fields(itri,0,1,0)
+!
+!      ! VMEC lambda
+!      dofs = intx2(mu79(:,:,OP_1),temp79a)
+!      call vector_insert_block(l_vec%vec, itri, 1, dofs, VEC_ADD)
+!
+!      ! VMEC toroidal flux Phi
+!      dofs = intx2(mu79(:,:,OP_1),temp79b)
+!      call vector_insert_block(phiv_vec%vec, itri, 1, dofs, VEC_ADD)
+!
+!      ! VMEC poloidal flux chi
+!      dofs = intx2(mu79(:,:,OP_1),temp79c)
+!      call vector_insert_block(chiv_vec%vec, itri, 1, dofs, VEC_ADD)
+!
+!      ! pressure p 
+!      dofs = intx2(mu79(:,:,OP_1),temp79d)
+!      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
+!
+!      ! perturbation 
+!      dofs = intx2(mu79(:,:,OP_1),temp79e)
+!      !dofs = intx2(mu79(:,:,OP_1),sin(x_79)*sin(z_79)*sin(phi_79))
+!      call vector_insert_block(per_f%vec, itri, 1, dofs, VEC_ADD)
+!
+!      ! logical x 
+!      dofs = intx2(mu79(:,:,OP_1),xl_79)
+!      call vector_insert_block(x_vec%vec, itri, 1, dofs, VEC_ADD)
+!
+!      ! logical y 
+!      dofs = intx2(mu79(:,:,OP_1),zl_79)
+!      call vector_insert_block(y_vec%vec, itri, 1, dofs, VEC_ADD)
+!
+!    enddo
+!
+!
+!    call newvar_solve(l_vec%vec,mass_mat_lhs)
+!    call newvar_solve(x_vec%vec,mass_mat_lhs)
+!    call newvar_solve(y_vec%vec,mass_mat_lhs)
+!    call newvar_solve(phiv_vec%vec,mass_mat_lhs)
+!    call newvar_solve(chiv_vec%vec,mass_mat_lhs)
+
     do itri=1,numelms
 
       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
       call define_fields(itri,0,1,0)
-      call eval_ops(itri, x_vec, x79, rfac)
-      call eval_ops(itri, y_vec, y79, rfac)
-      call eval_ops(itri, l_vec, lam79, rfac)
-      call eval_ops(itri, phiv_vec, pv79, rfac)
-      call eval_ops(itri, chiv_vec, cv79, rfac)
-      !call eval_ops(itri, per_f, p079, rfac)
-      temp79a = -zl_79/(xl_79**2 + zl_79**2) ! theta_x
-      temp79b =  xl_79/(xl_79**2 + zl_79**2) ! theta_y
-      temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
-               + lam79(:,OP_DR) ! theta^*_R
-      temp79d =  x79(:,OP_DZ)*temp79a + y79(:,OP_DZ)*temp79b &
-               + lam79(:,OP_DZ) ! theta^*_Z
-#ifdef USE3D
-      temp79e =  x79(:,OP_DP)*temp79a + y79(:,OP_DP)*temp79b &
-               + lam79(:,OP_DP) ! theta^*_phi
-#else
-      temp79e = 0.
-#endif
+      call vmec_fields(xl_79, phi_79, zl_79, temp79a, temp79b, temp79c, &
+                      temp79d, temp79e)
+
+!      call eval_ops(itri, x_vec, x79, rfac)
+!      call eval_ops(itri, y_vec, y79, rfac)
+!      call eval_ops(itri, l_vec, lam79, rfac)
+!      call eval_ops(itri, phiv_vec, pv79, rfac)
+!      call eval_ops(itri, chiv_vec, cv79, rfac)
+!      !call eval_ops(itri, per_f, p079, rfac)
+!      temp79a = -zl_79/(xl_79**2 + zl_79**2) ! theta_x
+!      temp79b =  xl_79/(xl_79**2 + zl_79**2) ! theta_y
+!      temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
+!               + lam79(:,OP_DR) ! theta^*_R
+!      temp79d =  x79(:,OP_DZ)*temp79a + y79(:,OP_DZ)*temp79b &
+!               + lam79(:,OP_DZ) ! theta^*_Z
+!#ifdef USE3D
+!      temp79e =  x79(:,OP_DP)*temp79a + y79(:,OP_DP)*temp79b &
+!               + lam79(:,OP_DP) ! theta^*_phi
+!#else
+!      temp79e = 0.
+!#endif
 
       ! R*f_Z - g_R = Phi*(theta_R + lambda_R)
       ! - R*f_R - g_Z = Phi*(theta_Z + lambda_Z)
@@ -180,27 +177,33 @@ contains
       !temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DP),r_79) & 
       !                +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
 
-
+      ! fp equation
       temp(:,:,1,1) = &
           -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) &
           -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) 
           !+ regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
       temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
                     - intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
-#ifdef USE3D
-      temp2(:,1) = intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79d,ri_79) &
-                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79c,ri_79) &
-#else
-      temp2(:,1) = 0. &
-#endif 
-                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_DZ),temp79e,ri_79) & 
-                  +intx3(mu79(:,:,OP_DR),cv79(:,OP_DZ),ri_79) & 
-                  +intx4(mu79(:,:,OP_DZ),pv79(:,OP_DR),temp79e,ri_79) & 
-                  -intx3(mu79(:,:,OP_DZ),cv79(:,OP_DR),ri_79) 
+      temp2(:,1) = intx2(mu79(:,:,OP_DR),temp79a) &
+                 + intx2(mu79(:,:,OP_DZ),temp79c) 
+!#ifdef USE3D
+!      temp2(:,1) = intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79d,ri_79) &
+!                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79c,ri_79) &
+!#else
+!      temp2(:,1) = 0. &
+!#endif 
+!                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_DZ),temp79e,ri_79) & 
+!                  +intx3(mu79(:,:,OP_DR),cv79(:,OP_DZ),ri_79) & 
+!                  +intx4(mu79(:,:,OP_DZ),pv79(:,OP_DR),temp79e,ri_79) & 
+!                  -intx3(mu79(:,:,OP_DZ),cv79(:,OP_DR),ri_79) 
 
 !      temp(:,:,1,1) =  intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r_79) & 
 !                      +regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri_79) 
 !      temp(:,:,1,2) = 0.
+!#ifdef USE3D
+!      temp2(:,1) = -intx2(mu79(:,:,OP_DP),temp79b) 
+!#endif
+
 !      !temp2(:,1) = -intx3(mu79(:,:,OP_1),1*p079(:,OP_1),r_79) 
 !      temp2(:,1) = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
 !                  -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) &
@@ -213,21 +216,24 @@ contains
 !      temp2(:,1) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_1),temp79c,ri_79) &
 !                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_1),temp79d,ri_79) 
 
+      ! psi equation
       temp(:,:,2,1) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
                       +intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79) 
       temp(:,:,2,2) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
                       -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79) &
                       -regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79) 
-#ifdef USE3D
-      temp2(:,2) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79d,ri2_79) &
-                  +intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79c,ri2_79) &
-#else
-      temp2(:,2) = 0. &
-#endif 
-                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DZ),temp79e,ri2_79) & 
-                  +intx3(mu79(:,:,OP_DZ),cv79(:,OP_DZ),ri2_79) & 
-                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_DR),temp79e,ri2_79) & 
-                  +intx3(mu79(:,:,OP_DR),cv79(:,OP_DR),ri2_79) 
+      temp2(:,2) = intx3(mu79(:,:,OP_DZ),temp79a,ri_79) &
+                 - intx3(mu79(:,:,OP_DR),temp79c,ri_79) 
+!#ifdef USE3D
+!      temp2(:,2) = intx4(mu79(:,:,OP_DZ),pv79(:,OP_DP),temp79d,ri2_79) &
+!                  +intx4(mu79(:,:,OP_DR),pv79(:,OP_DP),temp79c,ri2_79) &
+!#else
+!      temp2(:,2) = 0. &
+!#endif 
+!                  -intx4(mu79(:,:,OP_DZ),pv79(:,OP_DZ),temp79e,ri2_79) & 
+!                  +intx3(mu79(:,:,OP_DZ),cv79(:,OP_DZ),ri2_79) & 
+!                  -intx4(mu79(:,:,OP_DR),pv79(:,OP_DR),temp79e,ri2_79) & 
+!                  +intx3(mu79(:,:,OP_DR),cv79(:,OP_DR),ri2_79) 
 
 
 !      temp(:,:,2,1) = -intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
@@ -260,7 +266,83 @@ contains
       call vector_insert_block(fppsi_vec, itri, 1, temp2(:,1), MAT_ADD)
       call vector_insert_block(fppsi_vec, itri, 2, temp2(:,2), MAT_ADD)
 
+      ! pressure p 
+      dofs = intx2(mu79(:,:,OP_1),temp79d)
+      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
+
+      ! perturbation 
+      dofs = intx2(mu79(:,:,OP_1),temp79e)
+      call vector_insert_block(per_f%vec, itri, 1, dofs, VEC_ADD)
+
+      ! F = R*B_phi 
+      dofs = intx3(mu79(:,:,OP_1),temp79b,r_79) 
+      call vector_insert_block(bz_f%vec, itri, 1, dofs, VEC_ADD)
+      call vector_insert_block(bf_f%vec, itri, 1, dofs, VEC_ADD)
     end do
+
+!    do itri=1,numelms
+!
+!      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+!      call define_fields(itri,0,1,0)
+!      call eval_ops(itri, x_vec, x79, rfac)
+!      call eval_ops(itri, y_vec, y79, rfac)
+!      call eval_ops(itri, l_vec, lam79, rfac)
+!      call eval_ops(itri, phiv_vec, pv79, rfac)
+!      call eval_ops(itri, chiv_vec, cv79, rfac)
+!      temp79a = -zl_79/(xl_79**2 + zl_79**2)
+!      temp79b =  xl_79/(xl_79**2 + zl_79**2)
+!      temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
+!               + lam79(:,OP_DR) ! theta^*_R
+!      temp79d =  x79(:,OP_DZ)*temp79a + y79(:,OP_DZ)*temp79b &
+!               + lam79(:,OP_DZ) ! theta^*_Z
+!#ifdef USE3D
+!      temp79e =  x79(:,OP_DP)*temp79a + y79(:,OP_DP)*temp79b &
+!               + lam79(:,OP_DP) ! theta^*_phi
+!#else
+!      temp79e = 0.
+!#endif
+!      ! F = R*(Phi_Z*theta^*_R - Phi_R*theta^*_Z)  
+!      dofs = intx4(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c,r_79) &
+!              -intx4(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d,r_79) 
+!!      dofs = intx3(mu79(:,:,OP_1),bf079(:,OP_LP),r2_79) 
+!      call vector_insert_block(bz_f%vec, itri, 1, dofs, VEC_ADD)
+!      call vector_insert_block(bf_f%vec, itri, 1, dofs, VEC_ADD)
+!
+!!      ! psi = g_phi + Phi*(theta_phi + lambda_phi) - chi
+!!      dofs = intx3(mu79(:,:,OP_1),pv79(:,OP_1),temp79e) &
+!!              -intx2(mu79(:,:,OP_1),cv79(:,OP_1)) &
+!!#ifdef USE3D
+!!              +intx2(mu79(:,:,OP_1),g79(:,OP_DP))
+!!#else
+!!              +0.
+!!#endif
+!!      call vector_insert_block(psi_f%vec, itri, 1, dofs, VEC_ADD)
+!
+!!      ! Br = -Phi_Z*(theta_phi + lambda_phi)/R 
+!!      !      +Phi_phi*(theta_Z + lambda_Z)/R + chi_Z/R
+!!      dofs = -intx4(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79e,ri_79) &
+!!               +intx3(mu79(:,:,OP_1),cv79(:,OP_DZ),ri_79) &
+!!               +intx4(mu79(:,:,OP_1),pv79(:,OP_DP),temp79d,ri_79) 
+!!      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
+!!
+!      ! Bz =  Phi_R*(theta_phi + lambda_phi)/R 
+!      !      -Phi_phi*(theta_R + lambda_R)/R - chi_R/R
+!!      dofs = +intx4(mu79(:,:,OP_1),pv79(:,OP_DR),temp79e,ri_79) &
+!!               -intx3(mu79(:,:,OP_1),cv79(:,OP_DR),ri_79) &
+!!#ifdef USE3D
+!!               -intx4(mu79(:,:,OP_1),pv79(:,OP_DP),temp79c,ri_79) 
+!!#else
+!!              +0.
+!!#endif
+!!      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
+!
+!      ! Bphi = -Phi_R*(theta_Z + lambda_Z) 
+!      !        +Phi_Z*(theta_R + lambda_R)
+!!      dofs = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
+!!              -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) 
+!!      call vector_insert_block(bz_f%vec, itri, 1, dofs, VEC_ADD)
+!
+!    end do
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving fp & psi..."
     call sum_shared(fppsi_vec)
@@ -272,74 +354,14 @@ contains
     bfp_field(0) = bfp_f 
     psi_field(0) = psi_f
 
-    call create_field(bz_f)
-    call create_field(bf_f)
-    bz_f = 0.
-    bf_f = 0.
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p & per..."
+    call newvar_solve(p_f%vec,mass_mat_lhs)
+    call newvar_solve(per_f%vec,mass_mat_lhs)
 
-    do itri=1,numelms
-
-      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-      call define_fields(itri,0,1,0)
-      call eval_ops(itri, x_vec, x79, rfac)
-      call eval_ops(itri, y_vec, y79, rfac)
-      call eval_ops(itri, l_vec, lam79, rfac)
-      call eval_ops(itri, phiv_vec, pv79, rfac)
-      call eval_ops(itri, chiv_vec, cv79, rfac)
-      temp79a = -zl_79/(xl_79**2 + zl_79**2)
-      temp79b =  xl_79/(xl_79**2 + zl_79**2)
-      temp79c =  x79(:,OP_DR)*temp79a + y79(:,OP_DR)*temp79b &
-               + lam79(:,OP_DR) ! theta^*_R
-      temp79d =  x79(:,OP_DZ)*temp79a + y79(:,OP_DZ)*temp79b &
-               + lam79(:,OP_DZ) ! theta^*_Z
-#ifdef USE3D
-      temp79e =  x79(:,OP_DP)*temp79a + y79(:,OP_DP)*temp79b &
-               + lam79(:,OP_DP) ! theta^*_phi
-#else
-      temp79e = 0.
-#endif
-      ! F = R*(Phi_Z*theta^*_R - Phi_R*theta^*_Z)  
-      dofs = intx4(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c,r_79) &
-              -intx4(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d,r_79) 
-!      dofs = intx3(mu79(:,:,OP_1),bf079(:,OP_LP),r2_79) 
-      call vector_insert_block(bz_f%vec, itri, 1, dofs, VEC_ADD)
-      call vector_insert_block(bf_f%vec, itri, 1, dofs, VEC_ADD)
-
-!      ! psi = g_phi + Phi*(theta_phi + lambda_phi) - chi
-!      dofs = intx3(mu79(:,:,OP_1),pv79(:,OP_1),temp79e) &
-!              -intx2(mu79(:,:,OP_1),cv79(:,OP_1)) &
-!#ifdef USE3D
-!              +intx2(mu79(:,:,OP_1),g79(:,OP_DP))
-!#else
-!              +0.
-!#endif
-!      call vector_insert_block(psi_f%vec, itri, 1, dofs, VEC_ADD)
-
-!      ! Br = -Phi_Z*(theta_phi + lambda_phi)/R 
-!      !      +Phi_phi*(theta_Z + lambda_Z)/R + chi_Z/R
-!      dofs = -intx4(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79e,ri_79) &
-!               +intx3(mu79(:,:,OP_1),cv79(:,OP_DZ),ri_79) &
-!               +intx4(mu79(:,:,OP_1),pv79(:,OP_DP),temp79d,ri_79) 
-!      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
-!
-      ! Bz =  Phi_R*(theta_phi + lambda_phi)/R 
-      !      -Phi_phi*(theta_R + lambda_R)/R - chi_R/R
-!      dofs = +intx4(mu79(:,:,OP_1),pv79(:,OP_DR),temp79e,ri_79) &
-!               -intx3(mu79(:,:,OP_1),cv79(:,OP_DR),ri_79) &
-!#ifdef USE3D
-!               -intx4(mu79(:,:,OP_1),pv79(:,OP_DP),temp79c,ri_79) 
-!#else
-!              +0.
-!#endif
-!      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
-
-      ! Bphi = -Phi_R*(theta_Z + lambda_Z) 
-      !        +Phi_Z*(theta_R + lambda_R)
-!      dofs = intx3(mu79(:,:,OP_1),pv79(:,OP_DZ),temp79c) &
-!              -intx3(mu79(:,:,OP_1),pv79(:,OP_DR),temp79d) 
-!      call vector_insert_block(bz_f%vec, itri, 1, dofs, VEC_ADD)
-
-    end do
+    u_field(1) = per_f 
+    p_field(0) = p_f 
+    pe_field(0) = p_field(0)
+    call mult(pe_field(0),pefac)
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz & bf..."
     call newvar_solve(bz_f%vec,mass_mat_lhs)
@@ -348,12 +370,13 @@ contains
     bz_field(0) = bz_f
     bf_field(0) = bf_f
 
+!    call destroy_field(l_vec)
+!    call destroy_field(x_vec)
+!    call destroy_field(y_vec)
+!    call destroy_field(chiv_vec)
+!    call destroy_field(phiv_vec)
     call destroy_field(p_f)
-    call destroy_field(l_vec)
-    call destroy_field(x_vec)
-    call destroy_field(y_vec)
-    call destroy_field(chiv_vec)
-    call destroy_field(phiv_vec)
+    call destroy_field(per_f)
     call destroy_field(bf_f)
     call destroy_field(bz_f)
 
