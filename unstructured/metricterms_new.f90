@@ -3067,7 +3067,7 @@ function v2ubf(e,f,g,h)
         ![u,F]*R
         temp79d = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ) 
 
-        temp = intx3(e(:,:,OP_DP),temp79a,r_79) &
+        temp = intx3(e(:,:,OP_DP),temp79a,ri_79) &
              + intx4(e(:,:,OP_1),temp79c,g(:,OP_DR),r_79) &
              - intx4(e(:,:,OP_1),temp79b,g(:,OP_DZ),r_79) &
              + intx3(tempa,temp79d,r_79)
