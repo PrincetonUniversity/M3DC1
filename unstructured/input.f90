@@ -344,7 +344,13 @@ subroutine set_defaults
 
   call add_var_int("idenmfunc", idenmfunc, 0, "", transp_grp)
   call add_var_double("denm", denm, 0., &
-       "Density hyperdiffusion coefficient", transp_grp)
+       "Density diffusion coefficient", transp_grp)
+  call add_var_double("denmt", denmt, 0., &
+       "Temperature dependent density diffusion coefficient", transp_grp)
+  call add_var_double("denmmin", denmmin, 0., &
+       "Minimum density diffusion coefficient", transp_grp)
+  call add_var_double("denmmax", denmmax, 1.e6, &
+       "Maximum density diffusion coefficient", transp_grp)
   
   call add_var_double("gam", gam, 5./3., &
        "Ratio of specific heats", misc_grp)
