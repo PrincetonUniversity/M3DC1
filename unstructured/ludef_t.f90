@@ -406,7 +406,8 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ! parabolization terms
      tempx = v1upsipsi(trialx,lin,pst79,pst79) &
           + v1upsib  (trialx,lin,pst79,bzt79) &
-#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
+!#if defined(USEST) && defined(USE3D)
           + v1upsif  (trialx,lin,pst79,bfpt79) &
           + v1ubf    (trialx,lin,bzt79,bfpt79) &
           + v1uff    (trialx,lin,bfpt79,bfpt79) &
@@ -426,7 +427,8 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      if(numvar.ge.2) then
         tempx = v1vpsipsi(trialx,lin,pst79,pst79) &
-#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
+!#if defined(USEST) && defined(USE3D)
              + v1vpsif  (trialx,lin,pst79,bfpt79) &
              + v1vbf    (trialx,lin,bzt79,bfpt79) &
              + v1vff    (trialx,lin,bfpt79,bfpt79) &
@@ -448,7 +450,8 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(numvar.ge.3) then
        tempx = v1chipsipsi(trialx,lin,pst79,pst79) &
             + v1chipsib  (trialx,lin,pst79,bzt79) &
-#if defined(USEST) && defined(USE3D)
+!#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
             + v1chipsif  (trialx,lin,pst79,bfpt79) &
             + v1chibf    (trialx,lin,bzt79,bfpt79) &
             + v1chiff    (trialx,lin,bfpt79,bfpt79) &
@@ -942,7 +945,8 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ! parabolization terms
      tempx = v2upsipsi(trialx,lin,pst79,pst79) &
           + v2upsib  (trialx,lin,pst79,bzt79) &
-#if defined(USEST) && defined(USE3D)
+!#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
           + v2upsif  (trialx,lin,pst79,bfpt79) &
           + v2ubf    (trialx,lin,bzt79,bfpt79) &
           + v2uff    (trialx,lin,bfpt79,bfpt79) &
@@ -961,7 +965,8 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      endif
 
      tempx = v2vpsipsi(trialx,lin,pst79,pst79) &
-#if defined(USEST) && defined(USE3D)
+!#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
           + v2vpsif  (trialx,lin,pst79,bfpt79) &
           + v2vbf    (trialx,lin,bzt79,bfpt79) &
           + v2vff    (trialx,lin,bfpt79,bfpt79) &
@@ -982,7 +987,8 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(numvar.ge.3) then
         tempx = v2chipsipsi(trialx,lin,pst79,pst79) &
              + v2chipsib  (trialx,lin,pst79,bzt79) &
-#if defined(USEST) && defined(USE3D)
+!#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
              + v2chipsif  (trialx,lin,pst79,bfpt79) &
              + v2chibf    (trialx,lin,bzt79,bfpt79) &
              + v2chiff    (trialx,lin,bfpt79,bfpt79) &
@@ -1481,7 +1487,8 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ! parabolization terms
      tempx = v3upsipsi(trialx,lin,pst79,pst79) &
           + v3upsib  (trialx,lin,pst79,bzt79) &
-#if defined(USEST) && defined(USE3D)
+!#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
           + v3upsif  (trialx,lin,pst79,bfpt79) &
           + v3ubf    (trialx,lin,bzt79,bfpt79) &
           + v3uff    (trialx,lin,bfpt79,bfpt79) &
@@ -1501,7 +1508,8 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      tempx = v3vpsipsi(trialx,lin,pst79,pst79) &
           + v3vpsib  (trialx,lin,pst79,bzt79) &
-#if defined(USEST) && defined(USE3D)
+!#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
           + v3vpsif  (trialx,lin,pst79,bfpt79) &
           + v3vbf    (trialx,lin,bzt79,bfpt79) &
           + v3vff    (trialx,lin,bfpt79,bfpt79) &
@@ -1522,7 +1530,8 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
      tempx = v3chipsipsi(trialx,lin,pst79,pst79) &
           + v3chipsib  (trialx,lin,pst79,bzt79) &
-#if defined(USEST) && defined(USE3D)
+!#if defined(USEST) && defined(USE3D)
+#ifdef USE3D
           + v3chipsif  (trialx,lin,pst79,bfpt79) &
           + v3chibf    (trialx,lin,bzt79,bfpt79) &
           + v3chiff    (trialx,lin,bfpt79,bfpt79) &
