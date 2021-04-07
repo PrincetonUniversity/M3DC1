@@ -10,6 +10,9 @@
 #include "m3dc1_mesh.h"
 #include "m3dc1_matrix.h"
 #include "m3dc1_model.h"
+#include <string>
+#include <stdio.h>
+#include <stdlib.h>
 #include <PCU.h>
 #include "apfMDS.h"
 #include "ReducedQuinticImplicit.h"
@@ -84,6 +87,85 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
   apf::synchronize(framefield);
 }
 
+// *********************************************************
+void copy_field (apf::Mesh2* mesh, apf::Field* f, double* master_data_array)
+// *********************************************************
+{
+  int num_2d_vtx=mesh->count(0);
+
+  // copy the existing dof data
+  int total_ndof = apf::countComponents(f);
+
+  double* dof_val = new double[total_ndof*num_2d_vtx];
+
+  freeze(f); // switch dof data from tag to array
+
+  PCU_Comm_Begin();
+
+  int proc=PCU_Comm_Self()%m3dc1_model::instance()->group_size;
+  if (m3dc1_model::instance()->local_planeid)
+  {
+    memcpy(&(dof_val[0]), apf::getArrayData(f), total_ndof*num_2d_vtx*sizeof(double));
+    PCU_Comm_Pack(proc, &num_2d_vtx, sizeof(int));
+    PCU_Comm_Pack(proc, &(dof_val[0]), total_ndof*num_2d_vtx*sizeof(double));
+  }
+  PCU_Comm_Send();
+  int recv_num_ent;
+  double* recv_dof_val;
+
+  while (PCU_Comm_Listen())
+  {
+    int from = PCU_Comm_Sender();
+    while (!PCU_Comm_Unpacked())
+    {
+      PCU_Comm_Unpack(&recv_num_ent, sizeof(int));
+      int index=total_ndof*recv_num_ent*from;
+      PCU_Comm_Unpack(&(master_data_array[index]), total_ndof*recv_num_ent*sizeof(double));
+    }
+  }
+  delete [] dof_val;
+}
+
+
+// *********************************************************
+void copy_field (apf::Mesh2* mesh, apf::Field* f, 
+                 map<int, apf::Field*>& new_fields, int field_id)
+// *********************************************************
+{
+  int num_2d_vtx=mesh->count(0);
+  int num_rank = pumi_size();
+  // copy the existing dof data
+  int total_ndof = apf::countComponents(f);
+
+  double* dof_data = new double[total_ndof*num_2d_vtx];
+
+  freeze(f); // switch dof data from tag to array
+
+  PCU_Comm_Begin();
+
+  int proc=PCU_Comm_Self()%m3dc1_model::instance()->group_size;
+  if (m3dc1_model::instance()->local_planeid)
+  {
+    memcpy(&(dof_data[0]), apf::getArrayData(f), total_ndof*num_2d_vtx*sizeof(double));
+    PCU_Comm_Pack(proc, &num_2d_vtx, sizeof(int));
+    PCU_Comm_Pack(proc, &(dof_data[0]), total_ndof*num_2d_vtx*sizeof(double));
+  }
+  PCU_Comm_Send();
+  int recv_num_ent;
+  double* recv_dof_data = new double[total_ndof*num_2d_vtx];
+
+  while (PCU_Comm_Listen())
+  {
+    int from = PCU_Comm_Sender();
+    while (!PCU_Comm_Unpacked())
+    {
+      PCU_Comm_Unpack(&recv_num_ent, sizeof(int));
+      dof_data = apf::getArrayData(new_fields[field_id*num_rank+from]);
+      PCU_Comm_Unpack(&(dof_data[0]), total_ndof*recv_num_ent*sizeof(double));
+      std::cout<<"get dof from p "<<from<<" into new_fields["<<field_id*num_rank+from<<"] \n";
+    }
+  }
+}
 
 void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     int shouldSnap, int shouldRunPreZoltan ,int shouldRunPostZoltan,
@@ -144,16 +226,8 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     delete [] data_h2;
   }
 
-  // delete all the matrix
-  while (m3dc1_solver::instance()-> matrix_container->size())
-  {
-    std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
-    delete mat_it->second;
-    m3dc1_solver::instance()->matrix_container->erase(mat_it);
-  }
-
   vector<apf::Field*> fields;
-  std::map<FieldID, m3dc1_field*> :: iterator it=m3dc1_mesh::instance()->field_container->begin();
+  std::map<FieldID, m3dc1_field*>::iterator it=m3dc1_mesh::instance()->field_container->begin();
   while(it!=m3dc1_mesh::instance()->field_container->end())
   {
     apf::Field* field = it->second->get_field();
@@ -164,8 +238,15 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     it++;
   }
 
-  if (!PCU_Comm_Self()) 
-    std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size() <<" fields will be transfered\n";       
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size() <<" fields will be transfered\n";
+  // delete all the matrix
+  while (m3dc1_solver::instance()-> matrix_container->size())
+  {
+    std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
+    delete mat_it->second;
+    m3dc1_solver::instance()->matrix_container->erase(mat_it);
+  }
 
   while(mesh->countNumberings())
   {
@@ -202,6 +283,9 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   gmi_iter* g_it;
   gmi_ent* ge;
   int cnt;
+
+  map<int, apf::Field*> new_fields; 
+
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
     // save the current model tag and revert it back to the original
@@ -220,7 +304,46 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       gmi_end(model, g_it);
     }
 
+    // remove 3D entities
     m3dc1_mesh::instance()->remove_wedges();
+
+    int mypid = pumi_rank(), field_id=0, num_rank=pumi_size(), ndof_per_plane;
+    int num_field=m3dc1_mesh::instance()->field_container->size();
+
+    it=m3dc1_mesh::instance()->field_container->begin();
+    while(it!=m3dc1_mesh::instance()->field_container->end())
+    {
+      apf::Field* field = it->second->get_field();
+
+      // master plane
+      apf::Field* new_field=NULL;
+      double* data_array = NULL;
+      int num_dof=countComponents(field);
+      if (!m3dc1_model::instance()->local_planeid)
+      {
+        std::string f_name(getName(field));
+        f_name += "_p";
+        for (int i=1; i<m3dc1_model::instance()->num_plane; ++i)
+        { 
+          int pid=field_id*num_rank+mypid+i*m3dc1_model::instance()->group_size;
+          stringstream ss;
+          ss << pid;
+          std::string f_name_2=f_name + ss.str();
+          new_fields[pid] = createPackedField(m3dc1_mesh::instance()->mesh, f_name_2.c_str(), num_dof);
+          freeze(new_fields[pid]);
+          std::cout<<"field "<<field_id<<": creating new field ["
+                   <<pid<<"] ID "<<f_name_2.c_str()<<"\n";
+        }  
+      }
+
+      copy_field(mesh, field, new_fields, field_id);
+
+      // let's keep the old one for now
+      if (isFrozen(field)) unfreeze(field);
+      it++;
+      ++field_id;
+    }
+
     // remove entities on non-master plane
     if (m3dc1_model::instance()->local_planeid)
     {
@@ -245,7 +368,6 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
 
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
-
     // re-construct wedges
     // compute the fields to copy from master plane
     int num_field = 0;
@@ -257,15 +379,18 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       num_field = m3dc1_mesh::instance()->field_container->size();
       field_id = new int [num_field];
       num_dofs_per_value = new int [num_field];
-      for (int i=0; i<num_field; ++i)
+      int i=0;
+      it=m3dc1_mesh::instance()->field_container->begin();
+      while(it!=m3dc1_mesh::instance()->field_container->end())
       {
-        m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-        field_id[i] = i;
-        num_dofs_per_value[i] = mf->get_dof_per_value();
+        field_id[i] = it->second->get_id();
+        num_dofs_per_value[i] = it->second->get_dof_per_value();
+        ++i;
       }
     }
 
-    m3dc1_mesh::instance()->build3d(num_field, field_id, num_dofs_per_value, ge_tag, false);
+    m3dc1_mesh::instance()->build3d(num_field, field_id, num_dofs_per_value, 
+                                    ge_tag, false, &new_fields);
 
     for(int i = 0; i < 3; ++i)
       delete [] ge_tag[i];
