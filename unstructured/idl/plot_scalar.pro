@@ -108,12 +108,24 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   if(keyword_set(sm)) then data = smooth(data, sm)
 
   if(n_elements(x) eq 0) then begin
-      if(not keyword_set(overplot)) then begin
-          plot, tdata*xscale, data, xtitle=xtitle, ytitle=ytitle, $
+      if ipellet eq -1 then begin
+        N = size(data)
+        N = N[1]
+        c = get_colors(N+3)
+        if(not keyword_set(overplot)) then begin
+          plot, tdata*xscale, data[0,*], xtitle=xtitle, ytitle=ytitle, $
             title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
             /nodata
-      end     
-      oplot, tdata*xscale, data, color=co, linestyle=ls, _EXTRA=extra
+        end
+        for n=0,N-1 do oplot, tdata*xscale, data[n,*], color=c[n+1], linestyle=ls, _EXTRA=extra
+      endif else begin
+        if(not keyword_set(overplot)) then begin
+            plot, tdata*xscale, data, xtitle=xtitle, ytitle=ytitle, $
+              title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
+              /nodata
+        end
+        oplot, tdata*xscale, data, color=co, linestyle=ls, _EXTRA=extra
+      endelse
   endif else begin
       xi = x
       x = fltarr(1)
