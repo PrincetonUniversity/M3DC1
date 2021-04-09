@@ -180,8 +180,8 @@ contains
       ! fp equation
       temp(:,:,1,1) = &
           -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) &
-          -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) 
-          !+ regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
+          -intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) &
+          + regular*intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri2_79)
       temp(:,:,1,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79) &
                     - intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
       temp2(:,1) = intx2(mu79(:,:,OP_DR),temp79a) &
@@ -399,7 +399,7 @@ contains
     type(vector_type) :: rhs
     type(matrix_type), optional :: mat
     
-    integer :: i, izone, izonedim, i_f, i_g, numnodes, icounter_t
+    integer :: i, izone, izonedim, i_fp, i_psi, numnodes, icounter_t
     real :: normal(2), curv(3)
     real :: x, z, phi
     logical :: is_boundary
@@ -416,13 +416,13 @@ contains
        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
        if(.not.is_boundary) cycle
   
-       i_f = node_index(rhs, i, 1)
-       i_g = node_index(rhs, i, 2)
+       i_fp = node_index(rhs, i, 1)
+       i_psi = node_index(rhs, i, 2)
   
        !call get_node_data(vec, i, temp)
-       !call set_normal_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
-       call set_dirichlet_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
-       !call set_dirichlet_bc(i_g, rhs,temp, normal,curv,izonedim,mat)
+       !call set_normal_bc(i_fp, rhs,temp, normal,curv,izonedim,mat)
+       call set_dirichlet_bc(i_fp, rhs,temp, normal,curv,izonedim,mat)
+       !call set_dirichlet_bc(i_psi, rhs,temp, normal,curv,izonedim,mat)
     end do
   end subroutine boundary_vmec
 

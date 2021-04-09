@@ -189,13 +189,12 @@ Program Reducedquintic
 
   call calc_wall_dist
 
-
   ! Set initial conditions either from restart file
   ! or from initialization routine
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ! initialize output for HDF5 and C1ke
   call initialize_output ()
-
+  
   select case (irestart)
   case(0)
      ! Initialize from routine

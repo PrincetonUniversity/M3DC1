@@ -569,7 +569,11 @@ fn_eval(1:npoint_int)
     integer :: i, p, op
 
     emu79 = 0.
-    call local_coeff_vector(itri, cl)
+    if(iprecompute_metric.eq.1) then
+       cl = ctri(:,:,itri)
+    else
+       call local_coeff_vector(itri, cl)
+    endif 
     do op=1, EOP_NUM
        do i=1, dofs_per_element
           do p=1, coeffs_per_element

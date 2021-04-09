@@ -1725,7 +1725,11 @@ subroutine deltafun(x,z,val,jout)
      call global_to_local(d, x, 0., z, si, zi, eta)
 
      ! calculate temp_i = -val*mu_i(si,eta)
-     call local_coeff_vector(itri, c)
+     if(iprecompute_metric.eq.1) then
+        c = ctri(:,:,itri)
+     else
+        call local_coeff_vector(itri, c)
+     endif 
      do i=1,dofs_per_element
         do k=1, coeffs_per_tri
            temp(i) = temp(i) - val2*c(i,k)*si**mi(k)*eta**ni(k)

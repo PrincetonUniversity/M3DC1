@@ -537,6 +537,11 @@ subroutine calculate_external_fields()
      psi_field(1) = psi_f
      bfp_field(1) = bfp_f
   end if
+  if(iflip_b.eq.1) call mult(bz_field(1), -1.)
+  if(iflip_j.eq.1) then
+     call mult(psi_field(1), -1.)
+     call mult(bfp_field(1), -1.)
+  end if
   !psi_field(1) = 0.
   !bfp_field(1) = 0. 
   !bfp_field(1) = p_f
