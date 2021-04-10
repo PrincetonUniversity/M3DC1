@@ -458,7 +458,7 @@ contains
 
     phis = phi*mf+mesh_phase
     
-    r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + 0e-6)
+    r = sqrt((x - xcenter)**2 + (z - zcenter)**2 + regular**2)
     theta = atan2(z - zcenter, x - xcenter)
 !    p = 0
 !    r2n = r**2*(ns-1)
