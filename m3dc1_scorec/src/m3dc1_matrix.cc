@@ -58,11 +58,14 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   assert(sizeof(dof_data)>=dofPerEnt*2*sizeof(double));
   int nodeCounter=0;
 
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
   apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; ++inode)
+  int inode;
+  apf::MeshIterator* ent_it = mesh->begin(0);
+  while ((ent = mesh->iterate(ent_it)))
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh,vertex_type,inode);
-    if (!is_ent_original(m3dc1_mesh::instance()->mesh,ent)) continue;
+    inode = getMdsIndex(mesh, ent);
+    if (!is_ent_original(mesh,ent)) continue;
     nodeCounter+=1;
     int num_dof;
     m3dc1_ent_getdofdata (&vertex_type, &inode, &field_id, &num_dof, dof_data);
@@ -89,6 +92,8 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
       CHKERRQ(ierr);
     }
   }
+  mesh->end(ent_it);
+
   assert(nodeCounter==num_own_ent);
   ierr=VecAssemblyEnd(petscVec);
   CHKERRQ(ierr);
@@ -107,13 +112,15 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
   std::vector<double> dof_data(dofPerEnt*(1+scalar_type));
   int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
 
-  int ierr;
+  int ierr, inode;
 
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
   apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; ++inode)
+  apf::MeshIterator* ent_it = mesh->begin(0);
+  while ((ent = mesh->iterate(ent_it)))
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh,vertex_type,inode);
-    if (!is_ent_original(m3dc1_mesh::instance()->mesh, ent)) continue;
+    inode = getMdsIndex(mesh, ent);
+    if (!is_ent_original(mesh, ent)) continue;
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
@@ -147,6 +154,8 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
     }
     m3dc1_ent_setdofdata (&vertex_type, &inode, &field_id, &dofPerEnt, &dof_data[0]);
   }
+  mesh->end(ent_it);
+
   synchronize_field((*m3dc1_mesh::instance()->field_container)[field_id]->get_field());
   return 0;
 }
@@ -189,7 +198,8 @@ m3dc1_matrix* m3dc1_solver::get_matrix(int matrix_id)
 // 		M3DC1_MATRIX
 // ***********************************
 
-m3dc1_matrix::m3dc1_matrix(int i, int s, FieldID f): id(i), scalar_type(s), fieldOrdering(f)
+m3dc1_matrix::m3dc1_matrix(int i, int s, FieldID f)
+: mesh(m3dc1_mesh::instance()->mesh), id(i), scalar_type(s), fieldOrdering(f)
 {
   mat_status = M3DC1_NOT_FIXED;
   A=new Mat;
@@ -354,26 +364,28 @@ int  m3dc1_matrix::preAllocateParaMat()
   int startDof, endDofPlusOne;
   m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
 
-  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
+  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0], inode;
 
   int nnzStash=0;
-  int brgType = m3dc1_mesh::instance()->mesh->getDimension();
+  int brgType = mesh->getDimension();
 
   apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; ++inode)
+  apf::MeshIterator* ent_it = mesh->begin(0);
+  while ((ent = mesh->iterate(ent_it)))
+  // for (int inode=0; inode<num_vtx; ++inode)
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type, inode);
+    inode=getMdsIndex(mesh, ent); //  ent = getMdsEntity(mesh, vertex_type, inode);
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &fieldOrdering, &start_global_dof_id, &end_global_dof_id_plus_one);
     int startIdx = start_global_dof_id;
     if (start_global_dof_id<startDof || start_global_dof_id>=endDofPlusOne)
     {
       apf::Adjacent elements;
-      getBridgeAdjacent(m3dc1_mesh::instance()->mesh, ent, brgType, 0, elements);
+      getBridgeAdjacent(mesh, ent, brgType, 0, elements);
       int num_elem=0;
       for (int i=0; i<elements.getSize(); ++i)
       {
-        if (!m3dc1_mesh::instance()->mesh->isGhost(elements[i]))
+        if (!mesh->isGhost(elements[i]))
           ++num_elem;
       }
 
@@ -384,8 +396,8 @@ int  m3dc1_matrix::preAllocateParaMat()
     startIdx /=bs; 
 
     int adjNodeOwned, adjNodeGlb;
-    m3dc1_mesh::instance()->mesh->getIntTag(ent, m3dc1_mesh::instance()->num_global_adj_node_tag, &adjNodeGlb);
-    m3dc1_mesh::instance()->mesh->getIntTag(ent, m3dc1_mesh::instance()->num_own_adj_node_tag, &adjNodeOwned);
+    mesh->getIntTag(ent, m3dc1_mesh::instance()->num_global_adj_node_tag, &adjNodeGlb);
+    mesh->getIntTag(ent, m3dc1_mesh::instance()->num_own_adj_node_tag, &adjNodeOwned);
     assert(adjNodeGlb>=adjNodeOwned);
 
     for (int i=0; i<numBlockNode; ++i)
@@ -394,6 +406,8 @@ int  m3dc1_matrix::preAllocateParaMat()
       onnz.at(startIdx+i)=(adjNodeGlb-adjNodeOwned)*numBlockNode;
     }
   }
+  mesh->end(ent_it);
+
   if (bs==1) 
     MatMPIAIJSetPreallocation(*A, 0, &dnnz[0], 0, &onnz[0]);
   else  
@@ -417,21 +431,23 @@ int matrix_solve::setUpRemoteAStruct()
   int num_vtx = m3dc1_mesh::instance()->num_local_ent[0];
 
   std::vector<int> nnz_remote(num_values*num_vtx);
-  int brgType = m3dc1_mesh::instance()->mesh->getDimension();
+  int brgType = mesh->getDimension();
   
   apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; ++inode)
+  apf::MeshIterator* ent_it = mesh->begin(0);
+  int inode;
+  while ((ent = mesh->iterate(ent_it)))
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type, inode);
-    int owner=get_ent_ownpartid(m3dc1_mesh::instance()->mesh, ent);
+    inode = getMdsIndex(mesh, ent);
+    int owner=get_ent_ownpartid(mesh, ent);
     if (owner!=PCU_Comm_Self())
     {
       apf::Adjacent elements;
-      getBridgeAdjacent(m3dc1_mesh::instance()->mesh, ent, brgType, 0, elements);
+      getBridgeAdjacent(mesh, ent, brgType, 0, elements);
       int num_elem=0;
       for (int i=0; i<elements.getSize(); ++i)
       {
-        if (!m3dc1_mesh::instance()->mesh->isGhost(elements[i]))
+        if (!mesh->isGhost(elements[i]))
           ++num_elem;
       }
 
@@ -443,11 +459,13 @@ int matrix_solve::setUpRemoteAStruct()
     else 
     {
       apf::Copies remotes;
-      m3dc1_mesh::instance()->mesh->getRemotes(ent,remotes);
+      mesh->getRemotes(ent,remotes);
       APF_ITERATE(apf::Copies, remotes, it)
         remotePidOwned->insert(it->first);
     }
   }
+  mesh->end(ent_it);
+
   PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF,&remoteA);
   CHKERRQ(ierr);
   ierr = MatSetType(remoteA, MATSEQBAIJ); CHKERRQ(ierr);
@@ -479,23 +497,25 @@ int  m3dc1_matrix::preAllocateSeqMat()
   int numBlockNode = dofPerEnt / bs;
   std::vector<PetscInt> nnz(numBlocks);
   int brgType = 2;
-  if (m3dc1_mesh::instance()->mesh->getDimension()==3) brgType = 3;
+  if (mesh->getDimension()==3) brgType = 3;
 
   apf::MeshEntity* ent;
-  for (int inode=0; inode<num_vtx; ++inode)
+  apf::MeshIterator* ent_it = mesh->begin(0);
+  int inode;
+  while ((ent = mesh->iterate(ent_it)))
   {
-    ent = getMdsEntity(m3dc1_mesh::instance()->mesh, vertex_type, inode);
     int start_dof, end_dof_plus_one;
+    inode = getMdsIndex(mesh, ent);
     m3dc1_ent_getlocaldofid (&vertex_type, &inode, &fieldOrdering, &start_dof, &end_dof_plus_one);
     int startIdx = start_dof;
     assert(startIdx<num_dof);
 
     apf::Adjacent elements;
-    getBridgeAdjacent(m3dc1_mesh::instance()->mesh, ent, brgType, 0, elements);
+    getBridgeAdjacent(mesh, ent, brgType, 0, elements);
     int numAdj=0;
     for (int i=0; i<elements.getSize(); ++i)
     {
-      if (!m3dc1_mesh::instance()->mesh->isGhost(elements[i]))
+      if (!mesh->isGhost(elements[i]))
         ++numAdj;
     }
 
@@ -505,6 +525,8 @@ int  m3dc1_matrix::preAllocateSeqMat()
       nnz.at(startIdx+i)=(1+numAdj)*numBlockNode;
     }
   }
+  mesh->end(ent_it);
+
   if (bs==1) 
     MatSeqAIJSetPreallocation(*A, 0, &nnz[0]);
   else  
@@ -818,7 +840,7 @@ int matrix_solve::assemble()
     CHKERRQ(ierr);
     ierr = MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY);
     //pass remoteA to ownnering process
-    int brgType = m3dc1_mesh::instance()->mesh->getDimension();
+    int brgType = mesh->getDimension();
 
     int dofPerVar = 6;
     char field_name[256];
@@ -848,14 +870,14 @@ int matrix_solve::assemble()
       for (std::map<int, int>::iterator it2 =it->second.begin(); it2!=it->second.end(); ++it2)
       {
         (*idxSendBuff)[it->first].at(idxOffset++)=it2->second;
-        apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, it2->first);
+        apf::MeshEntity* ent = getMdsEntity(mesh, 0, it2->first);
 
         std::vector<apf::MeshEntity*> vecAdj;
         apf::Adjacent elements;
-        getBridgeAdjacent(m3dc1_mesh::instance()->mesh, ent, brgType, 0, elements);
+        getBridgeAdjacent(mesh, ent, brgType, 0, elements);
         for (int i=0; i<elements.getSize(); ++i)
         {
-          if (!m3dc1_mesh::instance()->mesh->isGhost(elements[i]))
+          if (!mesh->isGhost(elements[i]))
             vecAdj.push_back(elements[i]);
         }
         vecAdj.push_back(ent);
@@ -865,7 +887,7 @@ int matrix_solve::assemble()
         std::vector<int> columns(total_num_dof*numAdj);
         for (int i=0; i<numAdj; ++i)
         {
-          local_id = get_ent_localid(m3dc1_mesh::instance()->mesh, vecAdj.at(i));
+          local_id = get_ent_localid(mesh, vecAdj.at(i));
           localNodeId.at(i)=local_id;
           
           m3dc1_ent_getglobaldofid (&vertex_type, &local_id, &fieldOrdering, &start_global_dof_id, 
@@ -1079,10 +1101,10 @@ int matrix_solve:: setKspType()
   int num_values, value_type, total_num_dof;
   char field_name[FIXSIZEBUFF];
   m3dc1_field_getinfo(&fieldOrdering, field_name, &num_values, &value_type, &total_num_dof);
-  assert(total_num_dof/num_values==C1TRIDOFNODE*(m3dc1_mesh::instance()->mesh->getDimension()-1));
+  assert(total_num_dof/num_values==C1TRIDOFNODE*(mesh->getDimension()-1));
 
   // if 2D problem use superlu
-  if (m3dc1_mesh::instance()->mesh->getDimension()==2)
+  if (mesh->getDimension()==2)
   {
     ierr=KSPSetType(*ksp, KSPPREONLY); CHKERRQ(ierr);
     PC pc;

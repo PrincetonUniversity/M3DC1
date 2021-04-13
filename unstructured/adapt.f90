@@ -1,10 +1,7 @@
 module adapt
   use vector_mod
+  use scorec_adapt
   implicit none
-  !adaptation control parameters
-  integer :: iadapt_snap, iadapt_pre_zoltan, iadapt_post_zoltan
-  integer :: iadapt_refine_layer, iadapt_max_iter
-  real :: iadapt_quality
   real :: adapt_ke
   integer :: iadapt_ntime
   real :: adapt_target_error
@@ -17,7 +14,6 @@ module adapt
   real , dimension(2) :: abs_size, rel_size
   real :: adapt_hmin_rel, adapt_hmax_rel
   data rel_size /0.5, 2.0/
-  integer :: iadapt_writevtk, iadapt_writesmb
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
@@ -26,6 +22,7 @@ module adapt
   real, dimension(maxqs) :: adapt_qs
   
   contains
+
   subroutine adapt_by_psi
     use basic
     use mesh_mod
@@ -60,6 +57,8 @@ module adapt
     real :: p_dt, p_v
     real :: x0, y0, x, y
     integer :: ip
+
+    real :: psib
 
     call create_field(temporary_field)
     temporary_field = 0.
@@ -119,12 +118,12 @@ module adapt
        
        ! determine magnetic region of each point
        do i=1, npoints
-          mr(i) = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
-               x_79(i),z_79(i))
+          call magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+               x_79(i),z_79(i),mr(i),psib)
          
           ! if point is in private flux region, set psi_N -> 2 - psi_N
-          if(mr(i).eq.2) then 
-             temp79b(i) = 2. - temp79a(i)
+          if(mr(i).eq.REGION_PF) then 
+             temp79b(i) = 2.*psib - temp79a(i)
           end if
        end do
 
@@ -492,70 +491,4 @@ iadapt_max_node, adapt_control);
       if (myrank .eq. 0) print *, "diagnose_adapt: run adaptation as ekin is greater than adapt_ke", adapt_ke, "(linear)"
     endif
   end subroutine diagnose_adapt
-
-  subroutine straighten_fields ()
-    use diagnostics
-    use basic
-    use error_estimate
-    use scorec_mesh_mod
-    use basic
-    use mesh_mod
-    use arrays
-    use newvar_mod
-    use sparse
-    use time_step
-    use auxiliary_fields
-    use scorec_mesh_mod
-
-    integer :: ifield
-    
-    do ifield=0,1
-       call straighten_field(u_field(ifield))
-       call straighten_field(vz_field(ifield))
-       call straighten_field(chi_field(ifield))
-
-       call straighten_field(psi_field(ifield))
-       call straighten_field(bz_field(ifield))
-       call straighten_field(pe_field(ifield))
-
-       call straighten_field(den_field(ifield))
-       call straighten_field(p_field(ifield))
-       call straighten_field(te_field(ifield))
-       call straighten_field(ti_field(ifield))
-    end do
-  end subroutine straighten_fields 
-
-  subroutine unstraighten_fields ()
-    use diagnostics
-    use basic
-    use error_estimate
-    use scorec_mesh_mod
-    use basic
-    use mesh_mod
-    use arrays
-    use newvar_mod
-    use sparse
-    use time_step
-    use auxiliary_fields
-    use scorec_mesh_mod
-
-    integer :: ifield
-
-    do ifield=0,1
-       call unstraighten_field(u_field(ifield))
-       call unstraighten_field(vz_field(ifield))
-       call unstraighten_field(chi_field(ifield))
-
-       call unstraighten_field(psi_field(ifield))
-       call unstraighten_field(bz_field(ifield))
-       call unstraighten_field(pe_field(ifield))
-
-       call unstraighten_field(den_field(ifield))
-       call unstraighten_field(p_field(ifield))
-       call unstraighten_field(te_field(ifield))
-       call unstraighten_field(ti_field(ifield))
-    end do
-  end subroutine unstraighten_fields
-
-
 end module adapt

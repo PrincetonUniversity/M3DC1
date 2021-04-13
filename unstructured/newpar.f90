@@ -279,6 +279,9 @@ Program Reducedquintic
   call define_transport_coefficients
   call derived_quantities(1)
 
+#ifdef ADAPT
+  call adapt_mesh
+#endif
 
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
@@ -687,6 +690,7 @@ subroutine derived_quantities(ilin)
   use sparse
   use transport_coefficients
   use auxiliary_fields
+ use gradshafranov
 
   implicit none
 
@@ -720,16 +724,30 @@ subroutine derived_quantities(ilin)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  finding temax"
   if(eqsubtract.eq.1) then
      if(linear.eq.1) then 
-        if(ntime.eq.ntime0) call te_max(xmag,zmag,te_field(0),temax,0,ier)
+        if(ntime.eq.ntime0) then
+          if(ifixed_temax .eq. 0) then
+            call te_max(xmag,zmag,te_field(0),temax,0,ier)
+          else
+            call te_max2(xmag0,zmag0,te_field(0),temax,0,ier)
+          endif
+        endif
      else
         call create_field(te_temp)
         te_temp = te_field(0)
         call add_field_to_field(te_temp, te_field(1))
-        call te_max(xmag,zmag,te_temp,temax,0,ier)
+        if(ifixed_temax .eq. 0) then
+           call te_max(xmag,zmag,te_temp,temax,0,ier)
+        else
+           call te_max2(xmag0,zmag0,te_temp,temax,0,ier)
+        endif
         call destroy_field(te_temp)
      endif
   else
-     call te_max(xmag,zmag,te_field(1),temax,0,ier)
+     if(ifixed_temax .eq. 0) then
+       call te_max(xmag,zmag,te_field(1),temax,0,ier)
+     else
+       call te_max2(xmag0,zmag0,te_field(1),temax,0,ier)
+     endif
   endif
   if(ier.eq.0) then
     if(myrank.eq.0 .and. iprint.ge.1) then

@@ -4,6 +4,15 @@ output (e.g. due to a bugfix); a change to the input (e.g. due to
 renaming or obsoleting an input variable); or a change to both
 (e.g. due to a substantive change to the mesh or other input files).
 
+1/26/2021
+Changed: RMP_nonlin
+Reason: Commit 0f769906f corrected the toroidal current diagnostic for
+	itor=0.  This change broke RMP_nonlin, which was using vloop
+	feedback with values of vloop and tcur based on the previous
+	(incorrect) toroidal current diagnostic.  This change updates the
+	vloop and tcur values for the controller, and yields a slight
+	difference in the C1ke file.
+
 8/26/2020
 Changed: KPRAD_2D, KPRAD_restart, pellet
 Reason: Bugs were corrected in the velocity and temperature/pressure equations

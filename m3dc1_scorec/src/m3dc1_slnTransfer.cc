@@ -22,13 +22,21 @@ int ReducedQuinticTransfer::dofNode = C1TRIDOFNODE;
 void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector const& xi, ma::Entity* vert)
 {
   apf::MeshEntity* oldEdge= apf::getMeshEntity(parent);
+
+#ifdef DEBUG
   assert(apf::getDimension(m3dc1_mesh::instance()->mesh,oldEdge)==1);
+#endif
+
   apf::MeshEntity* vertices[3];
   int num_face=-1;
   apf:: Up facEdg;
   mesh->getUp(oldEdge,facEdg);
   num_face=facEdg.n;
+
+#ifdef DEBUG
   assert(num_face<=2);
+#endif
+
   for(int i=0; i<fields.size(); i++)
   {
     apf::Field* field = fields.at(i);

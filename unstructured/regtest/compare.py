@@ -14,14 +14,14 @@ while True:
     v1 = f1.readline().split()
     v2 = f2.readline().split()
 
-    if len(v1) is 0:
-        if len(v2) is not 0:
+    if len(v1) == 0:
+        if len(v2) != 0:
             print("Error: files are different lengths")
             exitval = 1
             break
         break
     
-    if len(v1) is not len(v2):
+    if len(v1) != len(v2):
         print("Error: lines are different lengths")
         exitval = 1
         break
@@ -45,7 +45,7 @@ while True:
             exitval = 1
             break
         
-    if exitval is 1:
+    if exitval == 1:
         break
 
 sys.exit(exitval)

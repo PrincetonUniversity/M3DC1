@@ -183,8 +183,8 @@ contains
     ne = net79(:,OP_1)*n0_norm*1e6
     nre = nre179(:,OP_1)*j0_norm/(c*1e-3)!n0_norm*1e6
     eta = eta79(:,OP_1)*e0_norm/j0_norm*c**2*1e-7
-    mr = magnetic_region(pst79(:,OP_1),&
-         pst79(:,OP_DR),pst79(:,OP_DZ),x_79,Z_79)
+    call magnetic_region(pst79(:,OP_1),&
+         pst79(:,OP_DR),pst79(:,OP_DZ),x_79,Z_79,mr)
     bz = bzt79(:,OP_1)
     bi = bi79(:,OP_1)
     

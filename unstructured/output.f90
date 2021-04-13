@@ -364,6 +364,12 @@ subroutine hdf5_write_scalars(error)
         if((irestart.eq.0).or.(version_in.ge.33)) then
            call output_1dextendarr(pel_group_id, "cauchy_fraction", cauchy_fraction, npellets, ntime, error)
         end if
+        if((irestart.eq.0).or.(version_in.ge.37)) then
+           ! pellet_ne is normalized, but pellet_te is in eV
+           call output_1dextendarr(pel_group_id, "pellet_te", temp_pel*(n0_norm*1.6022e-12/p0_norm), npellets, ntime, error)
+           call output_1dextendarr(pel_group_id, "pellet_ne", nsource_pel, npellets, ntime, error)
+        end if
+
      else
         call output_scalar(scalar_group_id, "pellet_r",   pellet_r(1),   ntime, error)
         call output_scalar(scalar_group_id, "pellet_phi", pellet_phi(1), ntime, error)
@@ -956,7 +962,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   endif
     
     ! BFP
-  if(i3d.eq.1 .and. numvar.ge.2) then
+  if(ifout.eq.1) then
      do i=1, nelms
         call calcavector(i, bfp_field(ilin), dum(:,i))
      end do
@@ -1088,6 +1094,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
        call write_field(group_id, "f3vplot", f3vplot, nelms, error)
        call write_field(group_id, "f3eplot", f3eplot, nelms, error)
        call write_field(group_id, "jdbobs", jdbobs, nelms, error)
+       call write_field(group_id, "potential2",pot2_field,nelms, error)
 
        if(jadv.eq.0) then
           call write_field(group_id, "psidot", psidot, nelms, error, .true.)
