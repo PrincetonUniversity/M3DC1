@@ -147,7 +147,7 @@ contains
           p = pt79(:,OP_1)
           do ip=1,npellets
              temp79a = temp79a + &
-                  pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+                  pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, 0)
           end do
        end if
 
@@ -464,7 +464,7 @@ contains
           p = pt79(:,OP_1)
           source = 0.
           do ip=1,npellets
-             source(:,0) = source(:,0) + pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+             source(:,0) = source(:,0) + pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, 0)
           end do
        end if
 
@@ -477,7 +477,7 @@ contains
           p = pt79(:,OP_1)
           do i=0, kprad_z
              ! Deposit over distribution of pellet #1
-             source(:,i) = source(:,i) + lp_source_rate(i)*pellet_distribution(1, x_79, phi_79, z_79, p, 1)
+             source(:,i) = source(:,i) + lp_source_rate(i)*pellet_distribution(1, x_79, phi_79, z_79, p, 1, 0)
           end do
        end if
 

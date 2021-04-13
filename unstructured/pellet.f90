@@ -28,6 +28,7 @@ module pellet
   integer, allocatable :: pellet_state(:) ! 0: never been in plasma, 1: in plasma, 2: left plasma
 
   integer :: ipellet_abl
+  real :: abl_offset
   real, allocatable :: r_p(:)
   real, allocatable :: cloud_pel(:)
   real, allocatable :: pellet_mix(:)   ! (moles D2)/(moles D2 + moles impurity)
@@ -35,7 +36,7 @@ module pellet
   real, allocatable :: pellet_rate_D2(:)  ! rate of deuterium deposition from mixed pellets
   real, allocatable :: cauchy_fraction(:)
 
-  real, allocatable :: nsource_pel(:), temp_pel(:), Lor_vol(:)
+  real, allocatable :: nsource_pel(:), temp_pel(:), Lor_vol(:), Lor_off(:)
   real, allocatable :: rpdot(:)
 
   real :: pellet_r_scl, pellet_phi_scl, pellet_z_scl
@@ -110,8 +111,12 @@ contains
     allocate(pellet_rate_D2(npellets))
     allocate(nsource_pel(npellets))
     allocate(temp_pel(npellets))
-    allocate(Lor_vol(npellets))
     allocate(rpdot(npellets))
+    allocate(Lor_vol(npellets))
+    if(abl_offset.ne.0.) then
+       allocate(Lor_off(npellets))
+       Lor_off = 0.
+    end if
     pellet_rate_D2 = 0.
     nsource_pel = 0.
     temp_pel = 0.
@@ -161,7 +166,7 @@ contains
 
   end subroutine pellet_init
 
-  vectype elemental function pellet_distribution(ip, r, phi, z, pres, inorm)
+  vectype elemental function pellet_distribution(ip, r, phi, z, pres, inorm, ioff)
     use math
     use basic
 !    use diagnostics
@@ -169,12 +174,26 @@ contains
     integer, intent(in) :: ip
     real, intent(in) :: r, phi, z, pres
     integer, intent(in) :: inorm
+    integer, intent(in) :: ioff
 
     real :: x, y, px, py, gamma
+
+    real :: pr, pz, vr, toff
 
     if(pellet_state(ip).ne.1) then
        pellet_distribution = 0.
        return
+    end if
+
+    ! Offset distribution abl_offset poloidal half-widths backward poloidally
+    if((ioff .eq. 1).and.(abl_offset .ne. 0.)) then
+       vr = pellet_vx(ip)*cos(pellet_phi(ip)) + pellet_vy(ip)*sin(pellet_phi(ip))
+       toff = abl_offset*pellet_var(ip)/sqrt(vr**2 + pellet_velz(ip)**2)
+       pr = pellet_r(ip) - toff*vr
+       pz = pellet_z(ip) - toff*pellet_velz(ip)
+    else
+       pr = pellet_r(ip)
+       pz = pellet_z(ip)
     end if
 
     select case(abs(ipellet))
@@ -184,9 +203,8 @@ contains
     case(1, 4, 11)
        pellet_distribution = 1./ &
             (sqrt(twopi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
-            *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
-                  /(2.*pellet_var(ip)**2) &
-                 -2.*r*pellet_r(ip)*(1.-cos(phi-pellet_phi(ip))) &
+            *exp(-((r-pr)**2 + (z-pz)**2)/(2.*pellet_var(ip)**2) &
+                 -2.*r*pr*(1.-cos(phi-pellet_phi(ip))) &
                   /(2.*pellet_var_tor(ip)**2))
 
     !......distributed source added 11/23/2011   (scj)
@@ -196,44 +214,42 @@ contains
     ! gaussian pellet source
     case(3)
        pellet_distribution = pres/(sqrt(twopi)*pellet_var(ip))**3 &
-            *exp(-(r**2 + pellet_r(ip)**2 &
-            - 2.*r*pellet_r(ip)*cos(phi-pellet_phi(ip)) &
-            + (z - pellet_z(ip))**2) / (2.*pellet_var(ip)**2))
+            *exp(-(r**2 + pr**2 - 2.*r*pr*cos(phi-pellet_phi(ip)) &
+                   + (z - pz)**2) / (2.*pellet_var(ip)**2))
 
 
     ! spherical, cartesian gaussian
     case(12)
        x  = r*cos(phi)
        y  = r*sin(phi)
-       px = pellet_r(ip)*cos(pellet_phi(ip))
-       py = pellet_r(ip)*sin(pellet_phi(ip))
+       px = pr*cos(pellet_phi(ip))
+       py = pr*sin(pellet_phi(ip))
 
        pellet_distribution = 1./ &
             (sqrt(twopi*pellet_var(ip))**3) &
-            *exp(-((x-px)**2 + (y-py)**2 + (z-pellet_z(ip))**2) &
+            *exp(-((x-px)**2 + (y-py)**2 + (z-pz)**2) &
                   /(2.*pellet_var(ip)**2))
 
     ! toroidal, axisymmetric gaussian
     case(13)
        pellet_distribution = 1./(twopi*pellet_var(ip)**2) &
-            *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
-            /(2.*pellet_var(ip)**2))
+            *exp(-((r - pr)**2 + (z - pz)**2)/(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
     ! poloidal gaussian, toroidal blend of von Mises and Cauchy
     case(14)
        pellet_distribution = 1./ &
             (sqrt(twopi)**3*pellet_var(ip)**2*pellet_var_tor(ip)) &
-            *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
+            *exp(-((r-pr)**2 + (z-pz)**2) &
                   /(2.*pellet_var(ip)**2))
-       gamma = pellet_var_tor(ip)/sqrt(r*pellet_r(ip))
+       gamma = pellet_var_tor(ip)/sqrt(r*pr)
        pellet_distribution = pellet_distribution * &
             ((1.-cauchy_fraction(ip))*exp(-(1.-cos(phi-pellet_phi(ip)))/gamma**2) + &
             cauchy_fraction(ip)*(cosh(gamma) - cos(pellet_phi(ip)))/(cosh(gamma) - cos(phi-pellet_phi(ip))))
 
     ! Poloidal gaussian with toroidal von Mises (pellet_var_tor in radians)
     case(15)
-       pellet_distribution = exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2)/(2.*pellet_var(ip)**2) &
+       pellet_distribution = exp(-((r-pr)**2 + (z-pz)**2)/(2.*pellet_var(ip)**2) &
                                  + cos(phi-pellet_phi(ip))/(pellet_var_tor(ip)**2))
 
 #else
@@ -241,8 +257,7 @@ contains
     ! axisymmetric gaussian pellet source
     case(1, 11, 13, 14, 15)
        pellet_distribution = 1./(twopi*pellet_var(ip)**2) &
-            *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
-            /(2.*pellet_var(ip)**2))
+            *exp(-((r - pr)**2 + (z - pz)**2)/(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
     !......distributed source added 11/23/2011   (scj)
@@ -252,22 +267,19 @@ contains
     ! pressure-weighted gaussian pellet source
     case(3)
        pellet_distribution = pres/(twopi*pellet_var(ip)**2) &
-            *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
-            /(2.*pellet_var(ip)**2))
+            *exp(-((r - pr)**2 + (z - pz)**2)/(2.*pellet_var(ip)**2))
        if(itor.eq.1) pellet_distribution = pellet_distribution / r
 
     ! different normalization of axisymmetric gaussian
     case(4)
        pellet_distribution = 1./sqrt(twopi*(pellet_var(ip))**2) &
-            *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
-            /(2.*(pellet_var(ip))**2))
+            *exp(-((r - pr)**2 + (z - pz)**2)/(2.*(pellet_var(ip))**2))
 
     ! circular, cartesian gaussian
     case(12)
        pellet_distribution = 1./ &
             (twopi*pellet_var(ip)**2) &
-            *exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2) &
-                  /(2.*pellet_var(ip)**2))
+            *exp(-((r-pr)**2 + (z-pz)**2)/(2.*pellet_var(ip)**2))
 
 #endif
 
@@ -276,8 +288,14 @@ contains
     end select
 
     ! normalize distribution to Lor_vol (for distributions with ipellet double digits)
-    if(inorm.ne.0 .and. ipellet.ge.10) pellet_distribution = pellet_distribution/Lor_vol(ip)
-
+    if(inorm.ne.0 .and. ipellet.ge.10) then
+       if((ioff.eq.1).and.(abl_offset.ne.0.))then
+          pellet_distribution = pellet_distribution/Lor_off(ip)
+       else
+          pellet_distribution = pellet_distribution/Lor_vol(ip)
+       end if
+    end if
+    
   end function pellet_distribution
 
   ! Keep track if a pellet has left the plasma domain and should no longer

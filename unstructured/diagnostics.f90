@@ -769,7 +769,7 @@ subroutine calculate_scalars()
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,Lor_off,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -931,7 +931,7 @@ subroutine calculate_scalars()
            do ip=1,npellets
               if(r_p(ip).ge.1e-8) then
                  ! weight density/temp by pellet distribution (normalized)
-                 temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+                 temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1, 1)
                  nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
                  temp79b = pet79(:,OP_1)/net79(:,OP_1)
                  if(ikprad_te_offset .gt. 0) temp79b = temp79b - eta_te_offset
@@ -1115,7 +1115,7 @@ subroutine calculate_Lor_vol()
   integer :: is_edge(3)  ! is inode on boundary
   real :: tpifac,tpirzero,tpirzero2
   integer :: izone, izonedim
-  real, allocatable :: temp(:)
+  real, allocatable :: temp(:), temp2(:)
   integer :: ip
 
   call tpi_factors(tpifac,tpirzero,tpirzero2)
@@ -1124,6 +1124,10 @@ subroutine calculate_Lor_vol()
 
   allocate(temp(npellets))
   temp = 0.
+  if(abl_offset .ne. 0.) then
+     allocate(temp2(npellets))
+     temp2 = 0.
+  end if
 
   do itri=1,numelms
 
@@ -1134,14 +1138,20 @@ subroutine calculate_Lor_vol()
 
      ! perform volume integral of pellet cloud (without normalization)
      do ip=1,npellets
-        temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
+        temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0, 0)
         temp(ip) = temp(ip) + twopi*int1(temp79a)/tpifac
+        if(abl_offset .ne. 0.) then
+           temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0, 1)
+           temp2(ip) = temp2(ip) + twopi*int1(temp79a)/tpifac
+        end if
      end do
 
   end do
 
   call mpi_allreduce(temp, Lor_vol, npellets, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
-
+  if(abl_offset .ne. 0.) then
+     call mpi_allreduce(temp, Lor_off, npellets, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier )
+  end if
   deallocate(temp)
 
 end subroutine calculate_Lor_vol

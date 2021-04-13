@@ -875,6 +875,7 @@ subroutine set_defaults
        "Initial vertical velocity of the pellet", source_grp)
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
+  call add_var_double("abl_offset", abl_offset, 0., "", source_grp)
   call add_var_double("r_p", r_p_scl, 1.e-3, "", source_grp)
   call add_var_double("cloud_pel", cloud_pel_scl, 1., "", source_grp)
   call add_var_double("pellet_mix", pellet_mix_scl, 0.,&
