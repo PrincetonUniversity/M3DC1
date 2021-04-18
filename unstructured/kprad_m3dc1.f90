@@ -35,10 +35,6 @@ module kprad_m3dc1
   real, allocatable :: lp_source_rate(:)
   type(field_type), allocatable :: kprad_particle_source(:)
 
-  ! minimum values for KPRAD evolution
-  real :: kprad_nemin
-  real :: kprad_temin
-
 contains
 
   !==================================
@@ -488,8 +484,12 @@ contains
        ! determine where KPRAD advance will be used
        ! and impurity densities if charge states don't advance
        !  old nz (with source added)
-       advance_kprad = .not.(te.lt.kprad_temin .or. te.ne.te .or. &
-                             ne.lt.kprad_nemin .or. ne.ne.ne)
+       if (ikprad_min_option.eq.1) then
+          advance_kprad = .not.(te.lt.kprad_temin .or. te.ne.te .or. &
+                                ne.lt.kprad_nemin .or. ne.ne.ne)
+       else
+          advance_kprad = .not.(te.ne.te .or. ne.ne.ne)
+       end if
        nz_nokprad = nz
        nz_nokprad = nz_nokprad + dti*source
 
