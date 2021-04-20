@@ -1631,11 +1631,6 @@ subroutine validate_input
           ' dimensionless'
   end if
 
-  if(ikprad_min_option.eq.2) then
-     kprad_nemin = kprad_nemin*n0_norm
-     kprad_temin = kprad_temin*p0_norm/n0_norm / 1.6022e-12
-  end if
-
   if(db.lt.0.) then
      db = c_light / &
           sqrt(4.*pi*n0_norm*(z_ion*e_c)**2/m0_norm) / &
