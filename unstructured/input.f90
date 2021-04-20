@@ -886,7 +886,9 @@ subroutine set_defaults
   call add_var_double("cauchy_fraction", cauchy_fraction_scl, 0., &
        "For ipellet=14, fraction of distribution that is Cauchy, vs von Mises", &
        source_grp)
-
+  call add_var_double("abl_fac", abl_fac, 1., &
+       "Factor multiplying calculated ablation rate", source_grp)
+  
 
   ! beam source
   call add_var_int("ibeam", ibeam, 0, &

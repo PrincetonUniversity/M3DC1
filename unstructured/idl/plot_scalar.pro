@@ -142,12 +142,25 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endelse
       if(n_elements(outfile) eq 1) then begin
          openw,ifile,outfile,/get_lun
-        if(keyword_set(growth_rate)) then begin
-         n = min([n_elements(tdata), n_elements(data)])
-         printf,ifile,format='(2E16.6)',transpose([[tdata(1:n-1)],[data(1:n-1)]])
-        endif else begin
-         printf,ifile,format='(2E16.6)',transpose([[tdata],[data]])
-        endelse
+
+         d = size(data,/n_dimensions)
+         if(d eq 1) then begin
+            if(keyword_set(growth_rate)) then begin
+               n = min([n_elements(tdata), n_elements(data)])
+               printf,ifile,format='(2E16.6)',transpose([[tdata(1:n-1)],[data(1:n-1)]])
+            endif else begin
+               printf,ifile,format='(2E16.6)',transpose([[tdata],[data]])
+            endelse
+         endif else begin
+            n = min([n_elements(tdata),n_elements(data[0,*])])
+            m = n_elements(data[*,0])
+            istart = keyword_set(growth_rate)
+            form = string(format='("(",I0,"E16.6)")',m+1)
+            for i=istart,n-1 do begin
+               printf, ifile, format=form, tdata[i], data[*,i]
+            end
+         end
+
          free_lun, ifile
       endif
 end
