@@ -272,7 +272,7 @@ contains
     do i=0,Z-1 
        call DPOLY_VAL(M2,N,sion_coeff(:,i+1),log10(TE),siont) 
        sion(:,i) = ne*10**siont
-       if(ikprad_min_option.eq.2) then
+       if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
           where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) sion(:,i) = 0.
        end if
     enddo
@@ -311,6 +311,9 @@ contains
        SREC(:,i) = ne_int(:)*5.2E-14*ZED(i+1)*sqrt(Z_EI(i)/     &
             te_int(:))*(0.43+0.5*log(Z_EI(i)/te_int(:)) +           &
             0.469*(Z_EI(i)/te_int(:))**(-0.33))
+       if(ikprad_min_option.eq.3) then
+          where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) srec(:,i) = 0.
+       end if
     end do
 
     deallocate(ne_int)
@@ -346,7 +349,7 @@ contains
        call DPOLY_VAL(M1,N,C(:,L),LOG10(TE*1.0e-3),impradt)
        
        IMP_RAD(:,L) = (10.0**impradt)*(NE/1.0E13)*NZ(:,L-1)
-       if(ikprad_min_option.eq.2) then
+       if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
           where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) IMP_RAD(:,L) = 0.
        end if
        
@@ -387,7 +390,7 @@ contains
        !CALCULATE radiative losses to bremsstrahlung
     ! This appears to be in units of W / cm^3, with ne in cm^-3 (-NF)
     PBREM = 1.69E-32*NE**2.0*SQRT(TE)*nZeff(:,2)
-    if(ikprad_min_option.eq.2) then
+    if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
        where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) PBREM = 0.
     end if
 

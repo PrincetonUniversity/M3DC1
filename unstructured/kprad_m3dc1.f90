@@ -73,7 +73,7 @@ contains
     call create_field(kprad_sigma_e)
     call create_field(kprad_sigma_i)
 
-    if(ikprad_min_option.eq.2) then
+    if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
        kprad_nemin = kprad_nemin*n0_norm
        kprad_temin = kprad_temin*p0_norm/n0_norm / 1.6022e-12
     end if
