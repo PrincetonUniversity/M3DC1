@@ -27,11 +27,6 @@
 
 using namespace apf;
 
-#ifdef _OPENMP
-#include "omp.h"
-#endif
-
-
 //*******************************************************
 void compute_globalid(apf::Mesh2* m, int d)
 //*******************************************************
