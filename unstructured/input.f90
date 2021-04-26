@@ -271,6 +271,8 @@ subroutine set_defaults
   call add_var_int("iread_lp_source", iread_lp_source, 0, &
        "Read source from Lagrangian Particle code", &
        kprad_grp)
+  call add_var_int("ikprad_min_option", ikprad_min_option, 1, &
+       "Control behavior for KPRAD minimum density & temperature", kprad_grp)
   call add_var_double("kprad_nemin", kprad_nemin, 1e-12, &
        "Minimum elec. density for KPRAD evolution", kprad_grp)
   call add_var_double("kprad_temin", kprad_temin, 2e-7, &
@@ -1630,7 +1632,6 @@ subroutine validate_input
      print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.), &
           ' dimensionless'
   end if
-  
 
   if(db.lt.0.) then
      db = c_light / &
