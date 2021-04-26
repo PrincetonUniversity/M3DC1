@@ -27,6 +27,7 @@ module kprad
   integer :: ikprad_min_option
   real :: kprad_nemin
   real :: kprad_temin
+  real, allocatable, private, dimension(:) :: ne_int, te_int
 
 contains
 
@@ -52,6 +53,8 @@ contains
     if(allocated(zed)) deallocate(zed)
     if(allocated(c)) deallocate(c)
     if(allocated(sion_coeff)) deallocate(sion_coeff)
+    if(allocated(ne_int)) deallocate(ne_int)
+    if(allocated(te_int)) deallocate(te_int)
 
   end subroutine kprad_deallocate
 
@@ -292,10 +295,9 @@ contains
     integer, intent(in) :: N,Z
     real, intent(out) :: SREC(N,0:Z)
     real, intent(in) :: NE(N),TE(N)
-    real, allocatable :: ne_int(:), te_int(:)
 
-    allocate(ne_int(N))
-    allocate(te_int(N))
+    if(.not. allocated(ne_int)) allocate(ne_int(N))
+    if(.not. allocated(te_int)) allocate(te_int(N))
 
     if (ikprad_min_option.eq.2) then
        ne_int = merge(ne, kprad_nemin, ne.ge.kprad_nemin)
@@ -315,9 +317,6 @@ contains
           where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) srec(:,i) = 0.
        end if
     end do
-
-    deallocate(ne_int)
-    deallocate(te_int)
 
   end subroutine KPRAD_RECOMBINATION_RATE
                                                                         
