@@ -18,6 +18,8 @@ module adapt
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
 
+  real :: adapt_zlow, adapt_zup
+
   integer, parameter :: maxqs = 32
   real, dimension(maxqs) :: adapt_qs
   
@@ -124,6 +126,20 @@ module adapt
           ! if point is in private flux region, set psi_N -> 2 - psi_N
           if(mr(i).eq.REGION_PF) then 
              temp79b(i) = 2.*psib - temp79a(i)
+             temp79b(i) = 1. + (temp79b(i) - 1.)**0.5
+          !end if
+          !if(mr(i).eq.REGION_PF) then 
+          !   temp79b(i) = 1. + 3.*(1. - temp79a(i))
+          else if(mr(i).eq.REGION_SOL) then
+             if (((adapt_zup.ne.0.).and.(z_79(i).gt.adapt_zup)).or. &
+                 ((adapt_zlow.ne.0.).and.(z_79(i).lt.adapt_zlow)) ) then
+                temp79b(i) = 1. + (temp79a(i) - 1.)**0.75
+             end if
+          else
+             if (((adapt_zup.ne.0.).and.(z_79(i).gt.adapt_zup)).or. &
+                 ((adapt_zlow.ne.0.).and.(z_79(i).lt.adapt_zlow)) ) then
+                temp79b(i) = 1. - (1. - temp79a(i))**0.5
+             end if
           end if
        end do
 
