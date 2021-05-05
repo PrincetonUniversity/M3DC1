@@ -34,7 +34,8 @@ module pellet
   real :: temin_abl
   real, allocatable :: pellet_rate_D2(:)  ! rate of deuterium deposition from mixed pellets
   real, allocatable :: cauchy_fraction(:)
-
+  real :: abl_fac
+  
   real, allocatable :: nsource_pel(:), temp_pel(:), Lor_vol(:)
   real, allocatable :: rpdot(:)
 
@@ -547,9 +548,11 @@ contains
         pellet_rate(ip) = pellet_rate(ip)*t0_norm/(n0_norm*l0_norm**3)
         rpdot(ip) = rpdot(ip) * (t0_norm/l0_norm)
 
-      end select
+       end select
 
-
+       pellet_rate(ip) = pellet_rate(ip)*abl_fac
+       pellet_rate_D2(ip) = pellet_rate_D2(ip)*abl_fac
+       rpdot(ip) = rpdot(ip)*abl_fac
 
        dr_p = dt*rpdot(ip)  ! change in pellet radius
 

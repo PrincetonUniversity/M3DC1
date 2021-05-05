@@ -316,6 +316,46 @@ void clearTags(apf::Mesh* m, apf::MeshTag* t) {
   apf::removeTagFromDimension(m, t, m->getDimension());
 }
 
+void m3dc1_mesh_load_3d(char* mesh_file, int* num_plane)
+{
+  // switch COMM to GLOBAL COMM
+  MPI_Comm groupComm = PCU_Get_Comm();
+  PCU_Switch_Comm(m3dc1_model::instance()->oldComm);
+  MPI_Comm_free(&groupComm);
+
+  m3dc1_model::instance()->create3D();
+
+  m3dc1_mesh::instance()->mesh = apf::loadMdsMesh(m3dc1_model::instance()->model,
+            mesh_file);
+
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
+  // delete numbering and tags loaded from file
+  while(mesh->countNumberings())
+  {
+    apf::Numbering* n = mesh->getNumbering(0);
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+    destroyNumbering(n);
+  }
+
+  apf::DynamicArray<apf::MeshTag*> tags;
+  mesh->getTags(tags);
+  for (int i=0; i<tags.getSize(); i++)
+  {
+    if (mesh->findTag("norm_curv")==tags[i]) continue;
+    for (int idim=0; idim<4; idim++)
+      apf::removeTagFromDimension(mesh, tags[i], idim);
+    mesh->destroyTag(tags[i]);
+  }
+  m3dc1_mesh::instance()->initialize();
+  if (m3dc1_model::instance()->num_plane==1) // 2D problem
+  {
+    compute_globalid(m3dc1_mesh::instance()->mesh, 0);
+    compute_globalid(m3dc1_mesh::instance()->mesh, 2);
+  }
+  m3dc1_mesh::instance()->set_node_adj_tag();
+}
+
 #include <sstream>
 //*******************************************************
 int m3dc1_mesh_load(char* mesh_file)

@@ -732,3 +732,11 @@ module m3dc1_omp
   integer :: ithread, nthreads
 #endif
 end module m3dc1_omp
+
+!cj velocity equation profiling
+module m3dc1_vel_prof
+#include <petsc/finclude/petscksp.h>
+      use petscksp
+      implicit none
+      PetscLogStage  stageA,stageS
+end module m3dc1_vel_prof

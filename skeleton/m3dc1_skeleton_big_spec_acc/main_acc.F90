@@ -26,6 +26,10 @@ Program m3dc1_skeleton
   iDevice=mod(myrank,nDevices)
  call acc_set_device_num(iDevice, acc_get_device_type())
  call acc_init(acc_get_device_type())
+     write(*,1005) myrank,iDevice,nDevices
+1005 format("rank",1x,i4,1x,'is assigned to',1x,i4,1x,'th gpu of',1x,i4,1x,'gpus on this node.'/)
+     flush(5)
+     flush(6)
 
   !2019.april.11
   !the initial size is 64(mesh_size) on 8 cpu, 

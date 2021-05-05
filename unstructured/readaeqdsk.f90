@@ -3,6 +3,8 @@ module eqdsk_a
   implicit none
 
   character(len=1) :: dum
+  character(len=66) :: lineaftertime
+  logical :: mastformat=.false.
   integer, parameter, private :: magpri67=29, magpri322=31, magprirdp=8
 !  integer, parameter, private :: magpri=magpri67+magpri322+magprirdp
   integer, parameter, private :: magpri=76
@@ -98,14 +100,23 @@ subroutine load_eqdsk_a(filename)
 
      read(neqdsk,1055) uday,(mfvers(j),j=1,2)
      read(neqdsk,1053) ishot,ktime1
-     read(neqdsk,1040) (time(j),j=1,1)
+!    MAST a-files do not contain the following line in which the times are listed.
+!    Use content of first line to identify MAST a-files.
+     if(index(mfvers(1),'EFIT+')==0)then
+        read(neqdsk,1040) (time(j),j=1,1)
+     else
+        mastformat=.true.
+     end if
 
      write(0,*) uday, mfvers(1), mfvers(2)
      write(0,*) ' SHOT, time = ', ishot, ktime1
 
      do jj=1, ktime1
-        read (neqdsk,1060) dum,time(jj),jflag(jj),lflag,limloc(jj), &
-             mco2v,mco2r,qmflag,nlold,nlnew
+!       MAST a-files do not contain nlold,nlnew and thus format 1060 cannot be used
+         read (neqdsk,'(A)') lineaftertime
+         lineaftertime=trim(lineaftertime)//'     0    0'
+         read (lineaftertime,1060) dum,time(jj),jflag(jj),lflag,limloc(jj), &
+              mco2v,mco2r,qmflag,nlold,nlnew
         if(mco2v.gt.nco2v) then 
            write(0,*) 'Warning: mco2v > nco2v', mco2v
            mco2v = nco2v
@@ -121,10 +132,14 @@ subroutine load_eqdsk_a(filename)
         read (neqdsk,1040) rcurrt(jj),zcurrt(jj),qsta(jj),betat(jj)
         read (neqdsk,1040) betap(jj),ali(jj),oleft(jj),oright(jj)
         read (neqdsk,1040) otop(jj),obott(jj),qpsib(jj),vertn(jj)
-        read (neqdsk,1040) (rco2v(k,jj),k=1,mco2v)
-        read (neqdsk,1040) (dco2v(jj,k),k=1,mco2v)
-        read (neqdsk,1040) (rco2r(k,jj),k=1,mco2r)
-        read (neqdsk,1040) (dco2r(jj,k),k=1,mco2r)
+        if(mco2v.gt.0) then
+            read (neqdsk,1040) (rco2v(k,jj),k=1,mco2v)
+            read (neqdsk,1040) (dco2v(jj,k),k=1,mco2v)
+        end if
+        if(mco2r.gt.0) then
+            read (neqdsk,1040) (rco2r(k,jj),k=1,mco2r)
+            read (neqdsk,1040) (dco2r(jj,k),k=1,mco2r)
+        end if
         read (neqdsk,1040) shearb(jj),bpolav(jj),s1(jj),s2(jj)
         read (neqdsk,1040) s3(jj),qout(jj),olefs(jj),orighs(jj)
         read (neqdsk,1040) otops(jj),sibdry(jj),areao(jj),wplasm(jj)
@@ -138,7 +153,12 @@ subroutine load_eqdsk_a(filename)
 !        fluxx=diamag(jj)*1.0e-03
         read (neqdsk,1040) betapd(jj),betatd(jj),wplasmd(jj),fluxx
         read (neqdsk,1040) vloopt(jj),taudia(jj),qmerci(jj),tavem
-        read (neqdsk,1041) nsilop0,magpri0,nfcoil0,nesum0
+!       In MAST a-files the following line uses e16.9 float formatting instead of i5
+        if(mastformat)then
+            read (neqdsk,*) nsilop0,magpri0,nfcoil0,nesum0
+        else
+            read (neqdsk,1041) nsilop0,magpri0,nfcoil0,nesum0
+        end if
         
         write(0,*) 'nfcoil0 = ', nfcoil0
 
@@ -165,22 +185,25 @@ subroutine load_eqdsk_a(filename)
 
         read (neqdsk,1040,end=98) (csilop(k,jj),k=1,nsilop0), (cmpr2(k,jj),k=1,magpri0)
         read (neqdsk,1040,end=98) (ccbrsp(k,jj),k=1,nfcoil0)
-        read (neqdsk,1040,end=99) (eccurt(jj,k),k=1,nesum0)
-        read (neqdsk,1040,end=99) pbinj(jj),rvsin(jj),zvsin(jj),rvsout(jj)
-        read (neqdsk,1040,end=99) zvsout(jj),vsurfa(jj),wpdot(jj),wbdot(jj)
-        read (neqdsk,1040,end=99) slantu(jj),slantl(jj),zuperts(jj),chipre
-        read (neqdsk,1040,end=99) cjor95(jj),pp95(jj),ssep(jj),yyy2(jj)
-        read (neqdsk,1040,end=99) xnnc(jj),cprof,oring(jj),cjor0(jj)
-        read (neqdsk,1040,end=99) fexpan,qqmin,chigamt,ssi01
-        read (neqdsk,1040,end=99) fexpvs,sepnose,ssi95(jj),rqqmin
-        read (neqdsk,1040,end=99) cjor99(jj),cj1ave(jj),rmidin(jj),rmidout(jj)
-        read (neqdsk,1040,end=99) psurfa(jj), peak(jj),dminux(jj),dminlx(jj)
-        
-        read (neqdsk,1040,end=99) dolubaf(jj),dolubafm(jj),diludom(jj),diludomm(jj)
-        read (neqdsk,1040,end=99) ratsol(jj),rvsiu(jj),zvsiu(jj),rvsid(jj)
-        read (neqdsk,1040,end=99) zvsid(jj),rvsou(jj),zvsou(jj),rvsod(jj)
-        read (neqdsk,1040,end=99) zvsod(jj),condno(jj),psin32(jj),psin21(jj)
-        read (neqdsk,1040,end=99) rq32in(jj),rq21top(jj),chilibt(jj),xdum
+!       Do not read the following in case of MAST
+        if(.not. mastformat)then
+            read (neqdsk,1040,end=99) (eccurt(jj,k),k=1,nesum0)
+            read (neqdsk,1040,end=99) pbinj(jj),rvsin(jj),zvsin(jj),rvsout(jj)
+            read (neqdsk,1040,end=99) zvsout(jj),vsurfa(jj),wpdot(jj),wbdot(jj)
+            read (neqdsk,1040,end=99) slantu(jj),slantl(jj),zuperts(jj),chipre
+            read (neqdsk,1040,end=99) cjor95(jj),pp95(jj),ssep(jj),yyy2(jj)
+            read (neqdsk,1040,end=99) xnnc(jj),cprof,oring(jj),cjor0(jj)
+            read (neqdsk,1040,end=99) fexpan,qqmin,chigamt,ssi01
+            read (neqdsk,1040,end=99) fexpvs,sepnose,ssi95(jj),rqqmin
+            read (neqdsk,1040,end=99) cjor99(jj),cj1ave(jj),rmidin(jj),rmidout(jj)
+            read (neqdsk,1040,end=99) psurfa(jj), peak(jj),dminux(jj),dminlx(jj)
+            
+            read (neqdsk,1040,end=99) dolubaf(jj),dolubafm(jj),diludom(jj),diludomm(jj)
+            read (neqdsk,1040,end=99) ratsol(jj),rvsiu(jj),zvsiu(jj),rvsid(jj)
+            read (neqdsk,1040,end=99) zvsid(jj),rvsou(jj),zvsou(jj),rvsod(jj)
+            read (neqdsk,1040,end=99) zvsod(jj),condno(jj),psin32(jj),psin21(jj)
+            read (neqdsk,1040,end=99) rq32in(jj),rq21top(jj),chilibt(jj),xdum
+        end if
      end do
 
      close(neqdsk)
@@ -637,6 +660,161 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp(11,1)/1000.  ! VICS3L
      write(*,1100) ccbrsp(12,1)/1000.  ! VICS2L
      write(*,1100) ccbrsp(12,1)/1000.  ! VICS1L
+  else if(nfcoil0.eq.101) then
+     write(0,*) 'Assuming MAST'
+     write(*,1100) ccbrsp( 1,1)/1000.*656/2.  ! Each turn in OH receives only 0.5*solenoid_feed_current
+     write(*,1100) ccbrsp( 2,1)/1000.*12.00000   ! p2iu
+     write(*,1100) ccbrsp( 3,1)/1000.*8.00000    ! p2ou
+     write(*,1100) ccbrsp( 4,1)/1000.*12.00000   ! p2il
+     write(*,1100) ccbrsp( 5,1)/1000.*8.00000    ! p2ol
+     write(*,1100) ccbrsp( 6,1)/1000.*2.00000    ! p3u two left windings
+     write(*,1100) ccbrsp( 6,1)/1000.*4.00000    ! p3u four center windings
+     write(*,1100) ccbrsp( 6,1)/1000.*2.00000    ! p3u two right windings
+     write(*,1100) ccbrsp( 7,1)/1000.*2.00000    ! p3l two left windings
+     write(*,1100) ccbrsp( 7,1)/1000.*4.00000    ! p3l four center windings
+     write(*,1100) ccbrsp( 7,1)/1000.*2.00000    ! p3l two right windings
+     write(*,1100) ccbrsp( 8,1)/1000.*4.00000    ! p4u four slightly shifted windings
+     write(*,1100) ccbrsp( 8,1)/1000.*1.00000    ! p4u one winding next to shifted ones
+     write(*,1100) ccbrsp( 8,1)/1000.*18.00000   ! p4u 6x3 windings in rectangular arrangement
+     write(*,1100) ccbrsp( 9,1)/1000.*4.00000    ! p4l four slightly shifted windings
+     write(*,1100) ccbrsp( 9,1)/1000.*1.00000    ! p4l one winding next to shifted ones
+     write(*,1100) ccbrsp( 9,1)/1000.*18.00000   ! p4l 6x3 windings in rectangular arrangement
+     write(*,1100) ccbrsp(10,1)/1000.*4.00000    ! p5u four slightly shifted windings
+     write(*,1100) ccbrsp(10,1)/1000.*1.00000    ! p5u one winding next to shifted ones
+     write(*,1100) ccbrsp(10,1)/1000.*18.00000   ! p5u 6x3 windings in rectangular arrangement
+     write(*,1100) ccbrsp(11,1)/1000.*4.00000    ! p5l four slightly shifted windings
+     write(*,1100) ccbrsp(11,1)/1000.*1.00000    ! p5l one winding next to shifted ones
+     write(*,1100) ccbrsp(11,1)/1000.*18.00000   ! p5l 6x3 windings in rectangular arrangement
+     write(*,1100) ccbrsp(12,1)/1000.*2.00000    ! p6u two upper windings
+     write(*,1100) ccbrsp(12,1)/1000.*2.00000    ! p6u two lower windings
+     write(*,1100) ccbrsp(13,1)/1000.*2.00000    ! p6l two upper windings
+     write(*,1100) ccbrsp(13,1)/1000.*2.00000    ! p6l two lower windings
+     write(*,1100) ccbrsp(14,1)/1000.*1.00000*0.3475024  ! p2u case part 1
+     write(*,1100) ccbrsp(14,1)/1000.*1.00000*0.1524976  ! p2u case part 2
+     write(*,1100) ccbrsp(14,1)/1000.*1.00000*0.3475024  ! p2u case part 3
+     write(*,1100) ccbrsp(14,1)/1000.*1.00000*0.1524976  ! p2u case part 4
+     write(*,1100) ccbrsp(15,1)/1000.*1.00000*0.3475024  ! p2l case part 1
+     write(*,1100) ccbrsp(15,1)/1000.*1.00000*0.1524976  ! p2l case part 2
+     write(*,1100) ccbrsp(15,1)/1000.*1.00000*0.3475024  ! p2l case part 3
+     write(*,1100) ccbrsp(15,1)/1000.*1.00000*0.1524976  ! p2l case part 4
+     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.1893084  ! p3u case part 1
+     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.0833274  ! p3u case part 2
+     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.1510167  ! p3u case part 3
+     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.0833288  ! p3u case part 4
+     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.1893084  ! p3u case part 5
+     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.0783799  ! p3u case part 6
+     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.1510168  ! p3u case part 7
+     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.0743137  ! p3u case part 8
+     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.1893084  ! p3l case part 1
+     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.0833274  ! p3l case part 2
+     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.1510167  ! p3l case part 3
+     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.0833288  ! p3l case part 4
+     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.1893084  ! p3l case part 5
+     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.0783799  ! p3l case part 6
+     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.1510168  ! p3l case part 7
+     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.0743137  ! p3l case part 8
+     write(*,1100) ccbrsp(18,1)/1000.*1.00000*0.2499999  ! p4u case part 1
+     write(*,1100) ccbrsp(18,1)/1000.*1.00000*0.2500001  ! p4u case part 2
+     write(*,1100) ccbrsp(18,1)/1000.*1.00000*0.2499999  ! p4u case part 3
+     write(*,1100) ccbrsp(18,1)/1000.*1.00000*0.2500001  ! p4u case part 4
+     write(*,1100) ccbrsp(19,1)/1000.*1.00000*0.2499999  ! p4l case part 1
+     write(*,1100) ccbrsp(19,1)/1000.*1.00000*0.2500001  ! p4l case part 2
+     write(*,1100) ccbrsp(19,1)/1000.*1.00000*0.2499999  ! p4l case part 3
+     write(*,1100) ccbrsp(19,1)/1000.*1.00000*0.2500001  ! p4l case part 4
+     write(*,1100) ccbrsp(20,1)/1000.*1.00000*0.2494422  ! p5l case part 1
+     write(*,1100) ccbrsp(20,1)/1000.*1.00000*0.2505578  ! p5l case part 2
+     write(*,1100) ccbrsp(20,1)/1000.*1.00000*0.2494422  ! p5l case part 3
+     write(*,1100) ccbrsp(20,1)/1000.*1.00000*0.2505578  ! p5l case part 4
+     write(*,1100) ccbrsp(21,1)/1000.*1.00000*0.3502306  ! p6u case part 1
+     write(*,1100) ccbrsp(21,1)/1000.*1.00000*0.1497694  ! p6u case part 2
+     write(*,1100) ccbrsp(21,1)/1000.*1.00000*0.3502306  ! p6u case part 3
+     write(*,1100) ccbrsp(21,1)/1000.*1.00000*0.1497694  ! p6u case part 4
+     write(*,1100) ccbrsp(22,1)/1000.*1.00000*0.3502306  ! p6l case part 1
+     write(*,1100) ccbrsp(22,1)/1000.*1.00000*0.1497694  ! p6l case part 2
+     write(*,1100) ccbrsp(22,1)/1000.*1.00000*0.3502306  ! p6l case part 3
+     write(*,1100) ccbrsp(22,1)/1000.*1.00000*0.1497694  ! p6l case part 4
+     write(*,1100) ccbrsp(23,1)/1000.*1.00000    ! vertw1
+     write(*,1100) ccbrsp(24,1)/1000.*1.00000    ! vertw2
+     write(*,1100) ccbrsp(25,1)/1000.*1.00000    ! vertw3
+     write(*,1100) ccbrsp(26,1)/1000.*1.00000    ! vertw4
+     write(*,1100) ccbrsp(27,1)/1000.*1.00000    ! vertw5
+     write(*,1100) ccbrsp(28,1)/1000.*1.00000    ! vertw6
+     write(*,1100) ccbrsp(29,1)/1000.*1.00000    ! vertw7
+     write(*,1100) ccbrsp(30,1)/1000.*1.00000    ! vertw8
+     write(*,1100) ccbrsp(31,1)/1000.*1.00000    ! uhorw1
+     write(*,1100) ccbrsp(32,1)/1000.*1.00000    ! uhorw2
+     write(*,1100) ccbrsp(33,1)/1000.*1.00000    ! uhorw3
+     write(*,1100) ccbrsp(34,1)/1000.*1.00000    ! uhorw4
+     write(*,1100) ccbrsp(35,1)/1000.*1.00000    ! uhorw5
+     write(*,1100) ccbrsp(36,1)/1000.*1.00000    ! uhorw6
+     write(*,1100) ccbrsp(37,1)/1000.*1.00000    ! lhorw1
+     write(*,1100) ccbrsp(38,1)/1000.*1.00000    ! lhorw2
+     write(*,1100) ccbrsp(39,1)/1000.*1.00000    ! lhorw3
+     write(*,1100) ccbrsp(40,1)/1000.*1.00000    ! lhorw4
+     write(*,1100) ccbrsp(41,1)/1000.*1.00000    ! lhorw5
+     write(*,1100) ccbrsp(42,1)/1000.*1.00000    ! lhorw6
+     write(*,1100) ccbrsp(43,1)/1000.*1.00000    ! p2udivpl1
+     write(*,1100) ccbrsp(44,1)/1000.*1.00000    ! p2udivpl2
+     write(*,1100) ccbrsp(45,1)/1000.*1.00000    ! p2ldivpl1
+     write(*,1100) ccbrsp(46,1)/1000.*1.00000    ! p2ldivpl2
+     write(*,1100) ccbrsp(47,1)/1000.*1.00000    ! p2uarm1
+     write(*,1100) ccbrsp(48,1)/1000.*1.00000    ! p2uarm2
+     write(*,1100) ccbrsp(49,1)/1000.*1.00000    ! p2uarm3
+     write(*,1100) ccbrsp(50,1)/1000.*1.00000    ! p2larm1
+     write(*,1100) ccbrsp(51,1)/1000.*1.00000    ! p2larm2
+     write(*,1100) ccbrsp(52,1)/1000.*1.00000    ! p2larm3
+     write(*,1100) ccbrsp(53,1)/1000.*1.00000    ! topcol
+     write(*,1100) ccbrsp(54,1)/1000.*1.00000    ! incon1
+     write(*,1100) ccbrsp(55,1)/1000.*1.00000    ! incon2
+     write(*,1100) ccbrsp(56,1)/1000.*1.00000    ! incon3
+     write(*,1100) ccbrsp(57,1)/1000.*1.00000    ! incon4
+     write(*,1100) ccbrsp(58,1)/1000.*1.00000    ! incon5
+     write(*,1100) ccbrsp(59,1)/1000.*1.00000    ! incon6
+     write(*,1100) ccbrsp(60,1)/1000.*1.00000    ! incon7
+     write(*,1100) ccbrsp(61,1)/1000.*1.00000    ! incon8
+     write(*,1100) ccbrsp(62,1)/1000.*1.00000    ! incon9
+     write(*,1100) ccbrsp(63,1)/1000.*1.00000    ! incon10
+     write(*,1100) ccbrsp(64,1)/1000.*1.00000    ! botcol
+!     write(*,1100) ccbrsp(65,1)/1000.*1.00000    ! endcrown_u
+!     write(*,1100) ccbrsp(66,1)/1000.*1.00000    ! endcrown_l
+!     write(*,1100) ccbrsp(67,1)/1000.*1.00000    ! ring1
+     write(*,1100) ccbrsp(68,1)/1000.*1.00000    ! ring2
+     write(*,1100) ccbrsp(69,1)/1000.*1.00000    ! ring3
+     write(*,1100) ccbrsp(70,1)/1000.*1.00000    ! ring4
+     write(*,1100) ccbrsp(71,1)/1000.*1.00000    ! ring5
+     write(*,1100) ccbrsp(72,1)/1000.*1.00000    ! ring6
+     write(*,1100) ccbrsp(73,1)/1000.*1.00000    ! ring7
+     write(*,1100) ccbrsp(74,1)/1000.*1.00000    ! ring8
+     write(*,1100) ccbrsp(75,1)/1000.*1.00000    ! ring9
+!     write(*,1100) ccbrsp(76,1)/1000.*1.00000    ! ring10
+     write(*,1100) ccbrsp(77,1)/1000.*1.00000    ! rodgr1
+     write(*,1100) ccbrsp(78,1)/1000.*1.00000    ! rodgr2
+     write(*,1100) ccbrsp(79,1)/1000.*1.00000    ! rodgr3
+     write(*,1100) ccbrsp(80,1)/1000.*1.00000    ! rodgr4
+     write(*,1100) ccbrsp(81,1)/1000.*1.00000    ! rodgr5
+     write(*,1100) ccbrsp(82,1)/1000.*1.00000    ! rodgr6
+     write(*,1100) ccbrsp(83,1)/1000.*1.00000    ! rodgr7
+     write(*,1100) ccbrsp(84,1)/1000.*1.00000    ! rodgr8
+     write(*,1100) ccbrsp(85,1)/1000.*1.00000    ! rodgr9
+     write(*,1100) ccbrsp(86,1)/1000.*1.00000    ! rodgr10
+     write(*,1100) ccbrsp(87,1)/1000.*1.00000    ! rodgr11
+     write(*,1100) ccbrsp(88,1)/1000.*1.00000    ! rodgr12
+     write(*,1100) ccbrsp(89,1)/1000.*1.00000    ! mid1
+     write(*,1100) ccbrsp(90,1)/1000.*1.00000    ! mid2
+     write(*,1100) ccbrsp(91,1)/1000.*1.00000    ! mid3
+     write(*,1100) ccbrsp(92,1)/1000.*1.00000    ! mid4
+     write(*,1100) ccbrsp(93,1)/1000.*1.00000    ! mid5
+     write(*,1100) ccbrsp(94,1)/1000.*1.00000    ! mid6
+     write(*,1100) ccbrsp(95,1)/1000.*1.00000    ! mid7
+     write(*,1100) ccbrsp(96,1)/1000.*1.00000    ! mid8
+     write(*,1100) ccbrsp(97,1)/1000.*1.00000    ! mid9
+     write(*,1100) ccbrsp(98,1)/1000.*1.00000    ! mid10
+     write(*,1100) ccbrsp(99,1)/1000.*1.00000    ! mid11
+     write(*,1100) ccbrsp(100,1)/1000.*1.00000    ! mid12
+     write(*,1100) ccbrsp(101,1)/1000.*1.00000*0.2494422  ! p5u_case_current part 1
+     write(*,1100) ccbrsp(101,1)/1000.*1.00000*0.2505578  ! p5u_case_current part 2
+     write(*,1100) ccbrsp(101,1)/1000.*1.00000*0.2494422  ! p5u_case_current part 3
+     write(*,1100) ccbrsp(101,1)/1000.*1.00000*0.2505578  ! p5u_case_current part 4
 
   end if
 

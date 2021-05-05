@@ -271,6 +271,8 @@ subroutine set_defaults
   call add_var_int("iread_lp_source", iread_lp_source, 0, &
        "Read source from Lagrangian Particle code", &
        kprad_grp)
+  call add_var_int("ikprad_min_option", ikprad_min_option, 1, &
+       "Control behavior for KPRAD minimum density & temperature", kprad_grp)
   call add_var_double("kprad_nemin", kprad_nemin, 1e-12, &
        "Minimum elec. density for KPRAD evolution", kprad_grp)
   call add_var_double("kprad_temin", kprad_temin, 2e-7, &
@@ -884,7 +886,9 @@ subroutine set_defaults
   call add_var_double("cauchy_fraction", cauchy_fraction_scl, 0., &
        "For ipellet=14, fraction of distribution that is Cauchy, vs von Mises", &
        source_grp)
-
+  call add_var_double("abl_fac", abl_fac, 1., &
+       "Factor multiplying calculated ablation rate", source_grp)
+  
 
   ! beam source
   call add_var_int("ibeam", ibeam, 0, &
@@ -1059,7 +1063,7 @@ subroutine set_defaults
 
   !Mesh adapataion contol parameters
   call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp)
-  call add_var_int("iadapt_pre_zoltan", iadapt_pre_zoltan, 1, "", adapt_grp)
+  call add_var_int("iadapt_pre_zoltan", iadapt_pre_zoltan, 0, "", adapt_grp)
   call add_var_int("iadapt_post_zoltan", iadapt_post_zoltan, 1, "", adapt_grp)
   call add_var_int("iadapt_refine_layer", iadapt_refine_layer, 1, "", adapt_grp)
   call add_var_int("iadapt_max_iter", iadapt_max_iter, 5, "", adapt_grp)
@@ -1632,7 +1636,6 @@ subroutine validate_input
      print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.), &
           ' dimensionless'
   end if
-  
 
   if(db.lt.0.) then
      db = c_light / &

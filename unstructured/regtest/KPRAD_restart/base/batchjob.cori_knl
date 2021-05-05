@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -p debug
 #SBATCH -C knl,quad,cache
-#SBATCH -N 3
+#SBATCH -N 1
 #SBATCH -J M3DC1_regtest_KPRAD_2D
 #SBATCH -t 00:30:00
 #SBATCH -o C1stdout
@@ -11,13 +11,13 @@ touch started
 #create_fixed_mesh.sh AnalyticModel 0.06
 #echo $? > mesh_created
 
-part_mesh.sh analytic-2K.smb 192
+part_mesh.sh analytic-2K.smb 48
 echo $? > mesh_partitioned
 
 cp C1input.1 C1input
-$M3DC1_MPIRUN -n 192 -c 4 m3dc1_2d -pc_factor_mat_solver_type mumps
+$M3DC1_MPIRUN -n 48 -c 4 m3dc1_2d -pc_factor_mat_solver_type mumps
 
 cp C1input.2 C1input
-$M3DC1_MPIRUN -n 192 -c 4 m3dc1_2d -pc_factor_mat_solver_type mumps
+$M3DC1_MPIRUN -n 48 -c 4 m3dc1_2d -pc_factor_mat_solver_type mumps
 
 touch finished

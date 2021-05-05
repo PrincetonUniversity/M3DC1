@@ -14,6 +14,7 @@
 #define m3dc1_model_getmaxcoord m3dc1_model_getmaxcoord_
 #define m3dc1_model_getplaneid m3dc1_model_getplaneid_
 #define m3dc1_mesh_load m3dc1_mesh_load_
+#define m3dc1_mesh_load_3d m3dc1_mesh_load_3d_
 #define m3dc1_mesh_build3d m3dc1_mesh_build3d_
 #define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
