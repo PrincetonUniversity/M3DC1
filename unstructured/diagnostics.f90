@@ -2060,6 +2060,10 @@ subroutine calculate_ke()
 !  type(vector_type) :: transform_field
   type(field_type) :: u_transformc, vz_transformc, chi_transformc
   type(field_type) :: u_transforms, vz_transforms, chi_transforms
+#ifdef USEST
+  type(field_type) :: vx_field, vy_field, vp_field
+  vectype, dimension(dofs_per_element) :: dofs
+#endif
 
   NMAX = ike_harmonics
   numnodes = owned_nodes()
@@ -2090,6 +2094,40 @@ subroutine calculate_ke()
   call create_field(chi_transformc)
   call create_field(chi_transforms)
 
+#ifdef USEST
+  call create_field(vx_field)
+  call create_field(vy_field)
+  call create_field(vp_field)
+  def_fields = FIELD_PHI 
+  if(numvar.ge.2) def_fields = def_fields + FIELD_V
+  if(numvar.ge.3) def_fields = def_fields + FIELD_CHI
+  ! calculate R, phi, Z components of velocity
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+
+     ! R component: -phi_Z*R + chi_R/R^2
+     dofs = - intx3(mu79(:,:,OP_1),pht79(:,OP_DZ),r_79) &
+            + intx3(mu79(:,:,OP_1),cht79(:,OP_DR),ri2_79)
+     call vector_insert_block(vx_field%vec, itri, 1, dofs, VEC_ADD)
+
+     ! Z component: phi_R*R + chi_Z/R^2
+     dofs =   intx3(mu79(:,:,OP_1),pht79(:,OP_DR),r_79) &
+            + intx3(mu79(:,:,OP_1),cht79(:,OP_DZ),ri2_79)
+     call vector_insert_block(vy_field%vec, itri, 1, dofs, VEC_ADD)
+
+     ! Phi component: omega*R 
+     dofs =   intx3(mu79(:,:,OP_1),vzt79(:,OP_1),r_79) 
+     call vector_insert_block(vp_field%vec, itri, 1, dofs, VEC_ADD)
+  end do
+
+  call newvar_solve(vx_field%vec,mass_mat_lhs)
+  call newvar_solve(vy_field%vec,mass_mat_lhs)
+  call newvar_solve(vp_field%vec,mass_mat_lhs)
+#endif
+
+
   if(myrank.eq.0 .and. iprint.eq.1) then
      write(*,901) ntime
 901  format("calculate_ke called-2,   ntime=",i6)
@@ -2103,11 +2141,15 @@ subroutine calculate_ke()
      !eq 12: U cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(vx_field, l , u1_l )! u1_l is R component of velocity 
+#else
         call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(u_field(0), l , u0_l )
            u1_l = u1_l + u0_l
         end if
+#endif
 
         vec_l(1)= u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N)
         vec_l(2)= u1_l(2) * i1ck(k,N) + u1_l( 8)*i2ck(k,N)
@@ -2126,11 +2168,15 @@ subroutine calculate_ke()
      !eq 12: U sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(vx_field, l , u1_l )! u1_l is R component of velocity 
+#else
         call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(u_field(0), l , u0_l )
            u1_l = u1_l + u0_l
         end if
+#endif
 
         vec_l(1)= u1_l(1) * i1sk(k,N) + u1_l( 7)*i2sk(k,N)
         vec_l(2)= u1_l(2) * i1sk(k,N) + u1_l( 8)*i2sk(k,N)
@@ -2148,11 +2194,15 @@ subroutine calculate_ke()
      !eq 12: omega cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(vp_field, l , vz1_l )! vz1_l is phi component of velocity 
+#else
         call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(vz_field(0), l , vz0_l)
            vz1_l = vz1_l + vz0_l
         end if
+#endif
 
         vec_l(1)= vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N)
         vec_l(2)= vz1_l(2) * i1ck(k,N) + vz1_l( 8)*i2ck(k,N)
@@ -2170,11 +2220,15 @@ subroutine calculate_ke()
      !eq 12: omega sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(vp_field, l , vz1_l )! vz1_l is phi component of velocity 
+#else
         call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(vz_field(0), l , vz0_l)
            vz1_l = vz1_l + vz0_l
         end if
+#endif
 
         vec_l(1)= vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N)
         vec_l(2)= vz1_l(2) * i1sk(k,N) + vz1_l( 8)*i2sk(k,N)
@@ -2192,11 +2246,15 @@ subroutine calculate_ke()
      !eq 12: chi cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(vy_field, l , chi1_l )! chi1_l is Z component of velocity 
+#else
         call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(chi_field(0), l , chi0_l )
            chi1_l = chi1_l + chi0_l
         end if
+#endif
 
         vec_l(1)= chi1_l(1) * i1ck(k,N) + chi1_l( 7)*i2ck(k,N)
         vec_l(2)= chi1_l(2) * i1ck(k,N) + chi1_l( 8)*i2ck(k,N)
@@ -2214,11 +2272,15 @@ subroutine calculate_ke()
      ! eq 12: chi sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(vy_field, l , chi1_l )! chi1_l is Z component of velocity 
+#else
         call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(chi_field(0), l , chi0_l )
            chi1_l = chi1_l + chi0_l
         end if
+#endif
 
         vec_l(1)= chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N)
         vec_l(2)= chi1_l(2) * i1sk(k,N) + chi1_l( 8)*i2sk(k,N)
@@ -2253,6 +2315,11 @@ subroutine calculate_ke()
         call eval_ops(itri, vz_transformc,vzt79)
         call eval_ops(itri,chi_transformc,cht79)
 
+#ifdef USEST
+        ke_N = ke_N + int3(rho79(:,OP_1), pht79(:,OP_1), pht79(:,OP_1))
+        ke_N = ke_N + int3(rho79(:,OP_1), cht79(:,OP_1), cht79(:,OP_1))
+        ke_N = ke_N + int3(rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
+#else
         ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
         ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
 
@@ -2263,6 +2330,7 @@ subroutine calculate_ke()
 
         ke_N = ke_N + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
         ke_N = ke_N - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
+#endif
 
 !
 !       sine harmonics
@@ -2270,6 +2338,11 @@ subroutine calculate_ke()
         call eval_ops(itri, vz_transforms,vzt79)
         call eval_ops(itri,chi_transforms,cht79)
 
+#ifdef USEST
+        ke_N = ke_N + int3(rho79(:,OP_1), pht79(:,OP_1), pht79(:,OP_1))
+        ke_N = ke_N + int3(rho79(:,OP_1), cht79(:,OP_1), cht79(:,OP_1))
+        ke_N = ke_N + int3(rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
+#else
         ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
         ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
 
@@ -2280,6 +2353,7 @@ subroutine calculate_ke()
 
         ke_N = ke_N + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
         ke_N = ke_N - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
+#endif
 
      end do
 !$OMP END PARALLEL DO
@@ -2311,6 +2385,11 @@ subroutine calculate_ke()
   call destroy_field( vz_transforms)
   call destroy_field(chi_transformc)
   call destroy_field(chi_transforms)
+#ifdef USEST
+  call destroy_field(vx_field)
+  call destroy_field(vy_field)
+  call destroy_field(vp_field)
+#endif
 #endif
 end subroutine calculate_ke
 
@@ -2345,6 +2424,10 @@ subroutine calculate_bh()
 
   type(field_type) :: psi_transformc, F_transformc, fp_transformc
   type(field_type) :: psi_transforms, F_transforms, fp_transforms
+#ifdef USEST
+  type(field_type) :: bx_field, by_field, bp_field
+  vectype, dimension(dofs_per_element) :: dofs
+#endif
 
   BNMAX = ibh_harmonics
   numnodes = owned_nodes()
@@ -2373,7 +2456,39 @@ subroutine calculate_bh()
   call create_field(F_transforms)
   call create_field(fp_transformc)
   call create_field(fp_transforms)
-  
+
+#ifdef USEST
+  call create_field(bx_field)
+  call create_field(by_field)
+  call create_field(bp_field)
+  def_fields = FIELD_PSI 
+  if(numvar.ge.2) def_fields = def_fields + FIELD_I 
+  ! calculate R, phi, Z components of magnetic field 
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_diag,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+
+     ! R component: -psi_Z/R - f'_R
+     dofs = - intx3(mu79(:,:,OP_1),pst79(:,OP_DZ),ri_79) &
+            - intx2(mu79(:,:,OP_1),bfpt79(:,OP_DR))
+     call vector_insert_block(bx_field%vec, itri, 1, dofs, VEC_ADD)
+
+     ! Z component: psi_R/R - f'_Z
+     dofs =   intx3(mu79(:,:,OP_1),pst79(:,OP_DR),ri_79) &
+            - intx2(mu79(:,:,OP_1),bfpt79(:,OP_DZ))
+     call vector_insert_block(by_field%vec, itri, 1, dofs, VEC_ADD)
+
+     ! Phi component: F/R 
+     dofs =   intx3(mu79(:,:,OP_1),bzt79(:,OP_1),ri_79) 
+     call vector_insert_block(bp_field%vec, itri, 1, dofs, VEC_ADD)
+  end do
+
+  call newvar_solve(bx_field%vec,mass_mat_lhs)
+  call newvar_solve(by_field%vec,mass_mat_lhs)
+  call newvar_solve(bp_field%vec,mass_mat_lhs)
+#endif
+ 
   if(myrank.eq.0 .and. iprint.eq.1) then
      write(*,901) ntime
 901  format("calculate_bh called-2,   ntime=",i6)
@@ -2388,6 +2503,9 @@ subroutine calculate_bh()
      !eq 12: psi cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(bx_field, l , psi1_l )! psi1_l is R component of field 
+#else
         call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(psi_field(0), l, psi0_l)
@@ -2397,6 +2515,7 @@ subroutine calculate_bh()
            call get_node_data(psi_coil_field, l, psi0_l)
            psi1_l = psi1_l + psi0_l
         end if
+#endif
 
         vec_l(1)= psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N)
         vec_l(2)= psi1_l(2) * i1ck(k,N) + psi1_l( 8)*i2ck(k,N)
@@ -2414,6 +2533,9 @@ subroutine calculate_bh()
      !eq 12: psi sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(bx_field, l , psi1_l )! psi1_l is R component of field 
+#else
         call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(psi_field(0), l, psi0_l)
@@ -2423,6 +2545,7 @@ subroutine calculate_bh()
            call get_node_data(psi_coil_field, l, psi0_l)
            psi1_l = psi1_l + psi0_l
         end if
+#endif
 
         vec_l(1)= psi1_l(1) * i1sk(k,N) + psi1_l( 7)*i2sk(k,N)
         vec_l(2)= psi1_l(2) * i1sk(k,N) + psi1_l( 8)*i2sk(k,N)
@@ -2439,11 +2562,15 @@ subroutine calculate_bh()
      !eq 12: F cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(bp_field, l , bz1_l )! bz1_l is phi component of field 
+#else
         call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
         if(eqsubtract.eq.1) then
           call get_node_data(bz_field(0), l, bz0_l)
           bz1_l = bz1_l + bz0_l
        end if
+#endif
 
         vec_l(1)= bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N)
         vec_l(2)= bz1_l(2) * i1ck(k,N) + bz1_l( 8)*i2ck(k,N)
@@ -2461,11 +2588,15 @@ subroutine calculate_bh()
      !eq 12: F sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(bp_field, l , bz1_l )! bz1_l is phi component of field 
+#else
         call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(bz_field(0), l, bz0_l)
            bz1_l = bz1_l + bz0_l
         end if
+#endif
 
         vec_l(1)= bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N)
         vec_l(2)= bz1_l(2) * i1sk(k,N) + bz1_l( 8)*i2sk(k,N)
@@ -2482,11 +2613,15 @@ subroutine calculate_bh()
      !eq 12: f' cos
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(by_field, l , bfp1_l )! bfp1_l is Z component of field 
+#else
         call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(bfp_field(0), l, bfp0_l)
            bfp1_l = bfp1_l + bfp0_l
         end if
+#endif
 
         vec_l(1)= bfp1_l(1) * i1ck(k,N) + bfp1_l( 7)*i2ck(k,N)
         vec_l(2)= bfp1_l(2) * i1ck(k,N) + bfp1_l( 8)*i2ck(k,N)
@@ -2503,11 +2638,15 @@ subroutine calculate_bh()
      ! eq 12: f' sin
      do icounter_t=1,numnodes
         l = nodes_owned(icounter_t)
+#ifdef USEST
+        call get_node_data(by_field, l , bfp1_l )! bfp1_l is Z component of field 
+#else
         call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
         if(eqsubtract.eq.1) then
            call get_node_data(bfp_field(0), l, bfp0_l)
            bfp1_l = bfp1_l + bfp0_l
         end if
+#endif
 
         vec_l(1)= bfp1_l(1) * i1sk(k,N) + bfp1_l( 7)*i2sk(k,N)
         vec_l(2)= bfp1_l(2) * i1sk(k,N) + bfp1_l( 8)*i2sk(k,N)
@@ -2541,33 +2680,43 @@ subroutine calculate_bh()
         call eval_ops(itri,F_transformc,bzt79)
         call eval_ops(itri,fp_transformc,bfpt79)
 
+#ifdef USEST
+        bh_N = bh_N + int2(pst79(:,OP_1), pst79(:,OP_1))   
+        bh_N = bh_N + int2(bfpt79(:,OP_1), bfpt79(:,OP_1))
+        bh_N = bh_N + int2(bzt79(:,OP_1), bzt79(:,OP_1))
+#else
         bh_N = bh_N + int3(ri2_79, pst79(:,OP_DR), pst79(:,OP_DR))   &
                     + int3(ri2_79, pst79(:,OP_DZ), pst79(:,OP_DZ))
 
         bh_N = bh_N + int3(ri2_79, bzt79(:,OP_1), bzt79(:,OP_1))
 
-#if defined(USE3D) || defined(USECOMPLEX)
         bh_N = bh_N + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
                     + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
         bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
                     + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
 #endif
+
 !       sine harmonics
         call eval_ops(itri,psi_transforms,pst79)
         call eval_ops(itri,F_transforms,bzt79)
         call eval_ops(itri,fp_transforms,bfpt79)
 
+#ifdef USEST
+        bh_N = bh_N + int2(pst79(:,OP_1), pst79(:,OP_1))   
+        bh_N = bh_N + int2(bfpt79(:,OP_1), bfpt79(:,OP_1))
+        bh_N = bh_N + int2(bzt79(:,OP_1), bzt79(:,OP_1))
+#else
         bh_N = bh_N + int3(ri2_79,  pst79(:,OP_DR), pst79(:,OP_DR))   &
                     + int3(ri2_79,  pst79(:,OP_DZ), pst79(:,OP_DZ))
 
         bh_N = bh_N + int3(ri2_79,  bzt79(:,OP_1), bzt79(:,OP_1))
 
-#if defined(USE3D) || defined(USECOMPLEX)
         bh_N = bh_N + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
                     + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
         bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
                     + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
 #endif
+
      end do
 !$OMP END PARALLEL DO
 
@@ -2605,6 +2754,11 @@ subroutine calculate_bh()
   call destroy_field(F_transforms)
   call destroy_field(fp_transformc)
   call destroy_field(fp_transforms)
+#ifdef USEST
+  call destroy_field(bx_field)
+  call destroy_field(by_field)
+  call destroy_field(bp_field)
+#endif
 #endif
 end subroutine calculate_bh
 
