@@ -46,30 +46,35 @@ pro mod_dtanhfit, x, a, f, pder
 end
 
 pro fit_modtanh, x, y, xout, yout, parameters=a, weights=w, minval=minval, $
-                 plot=plot, deriv=d, sigma=sig, chisq=chi
+                 plot=plot, deriv=d, sigma=sig, chisq=chi, itmax=itmax
 
   n = n_elements(x)
 
   if(keyword_set(d)) then begin
-     if(n_elements(w) eq 0) then w = replicate(1., n)
+     if(n_elements(w) eq 0) then w = x * (x lt 1)
+;     if(n_elements(w) eq 0) then w = replicate(1., n) * (x lt 1)
      if(n_elements(a) eq 0) then $
-        a = [0.98, 1./0.01, max(y), 0., 0., 0.]
-     yfit = curvefit(x, y, w, a, sig, chisq=chi, $
-                     function_name='mod_dtanhfit')
+        a = [0.99, 50., max(y), 0., 0., 0., 0.]
+     a5 = a[0:5]
+     yfit = curvefit(x, y, w, a5, sig, chisq=chi, $
+                     function_name='mod_dtanhfit', itmax=itmax)
+     a[0:5] = a5
      mod_dtanhfit, xout, a, yout
   endif else begin
-     if(n_elements(w) eq 0) then w = 1. / y * x
+     if(n_elements(w) eq 0) then w = 1/y
      if(n_elements(minval) eq 0) then begin
         if(n_elements(a) eq 0) then $
-           a = [0.98, 1./0.01, max(y), 0., 0., 0., min(y)]
+           a = [0.98, 50., y[n*0.96], 0., 0., 0., min(y)]
         yfit = curvefit(x, y, w, a, sig, chisq=chi, $
-                        function_name='mod_tanhfit2')
+                        function_name='mod_tanhfit2', itmax=itmax)
         mod_tanhfit2, xout, a, yout
      endif else begin
         if(n_elements(a) eq 0) then $
-           a = [0.98, 1./0.01, max(y), 0., 0., 0.]
-        yfit = curvefit(x, y-minval, w, a, sig, chisq=chi, $
-                        function_name='mod_tanhfit')
+           a = [0.99, 50., y[n*0.96], 0., 0., 0., 0.]
+        a5 = a[0:5]
+        yfit = curvefit(x, y-minval, w, a5, sig, chisq=chi, $
+                        function_name='mod_tanhfit', itmax=itmax)
+        a[0:5] = a5
         mod_tanhfit, xout, a, yout
         yout = yout + minval
      endelse
