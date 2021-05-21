@@ -1,4 +1,4 @@
-    For OpenACC mode, each mpi task will offloading an OpemACC kernel onto corresponding GPU.
+    For OpenACC mode, each mpi task will offloading an OpenACC kernel onto corresponding GPU.
 
     cuda/10.1.105   
     pgi/18.10   

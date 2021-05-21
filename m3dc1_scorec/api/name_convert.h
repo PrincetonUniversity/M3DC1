@@ -14,6 +14,7 @@
 #define m3dc1_model_getmaxcoord m3dc1_model_getmaxcoord_
 #define m3dc1_model_getplaneid m3dc1_model_getplaneid_
 #define m3dc1_mesh_load m3dc1_mesh_load_
+#define m3dc1_mesh_load_3d m3dc1_mesh_load_3d_
 #define m3dc1_mesh_build3d m3dc1_mesh_build3d_
 #define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
@@ -31,6 +32,7 @@
 #define set_adapt_smooth_factor set_adapt_smooth_factor_
 #define output_face_data output_face_data_
 #define sum_edge_data sum_edge_data_
+#define m3dc1_ent_getlocalid m3dc1_ent_getlocalid_
 #define m3dc1_ent_getglobalid m3dc1_ent_getglobalid_
 #define m3dc1_ent_getgeomclass m3dc1_ent_getgeomclass_
 #define m3dc1_ent_getadj m3dc1_ent_getadj_
@@ -47,7 +49,6 @@
 #define m3dc1_ent_getdofdata m3dc1_ent_getdofdata_
 #define m3dc1_node_setfield m3dc1_node_setfield_
 #define m3dc1_node_getfield m3dc1_node_getfield_
-#define m3dc1_node_getglobalid m3dc1_node_getglobalid_
 #define m3dc1_node_getcurv m3dc1_node_getcurv_
 #define m3dc1_node_getcoord m3dc1_node_getcoord_
 #define m3dc1_node_getnormvec m3dc1_node_getnormvec_

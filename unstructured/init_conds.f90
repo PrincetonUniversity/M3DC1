@@ -351,9 +351,9 @@ subroutine set_neo_vel
      temp79e = sqrt((ps079(:,OP_DR)**2 + ps079(:,OP_DZ)**2)*ri2_79)
 
      do i=1, int_pts_main
-        imag = magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
-             x_79(i), z_79(i))
-        if(imag.ne.0) then
+        call magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
+             x_79(i), z_79(i), imag)
+        if(imag.ne.REGION_PLASMA) then
            vz(i) = 0.
            vp(i) = 0.
            iout(i) = 1
@@ -590,6 +590,12 @@ subroutine initial_conditions()
      else
         ! toroidal equilibria
         select case(itaylor)
+        case(-1)
+           bz_field(0) = bzero*rzero
+           vz_field(0) = vzero
+           den_field(0) = den0
+           p_field(0) = p0
+           pe_field(0) = p0*pefac
         case(0)
            call tilting_cylinder_init()
            call cartesian_to_cylindrical_all()

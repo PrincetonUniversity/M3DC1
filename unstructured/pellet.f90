@@ -34,7 +34,8 @@ module pellet
   real :: temin_abl
   real, allocatable :: pellet_rate_D2(:)  ! rate of deuterium deposition from mixed pellets
   real, allocatable :: cauchy_fraction(:)
-
+  real :: abl_fac
+  
   real, allocatable :: nsource_pel(:), temp_pel(:), Lor_vol(:)
   real, allocatable :: rpdot(:)
 
@@ -393,18 +394,18 @@ contains
        temin_eV = temin_abl*p0_norm/(1.6022e-12*n0_norm)
        if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV .or. pellet_state(ip).ne.1) then
           if((r_p(ip)*l0_norm).lt.1e-8) then
-             if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate"
+             if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate: ", ip
              r_p(ip) = 0.
              pellet_state(ip) = -1
           else if(temp_pel(ip).lt.temin_eV) then
-             if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation"
+             if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation: ", ip
           else
-             if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet not in plasmas domain"
+             if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet not in plasmas domain: ", ip
           end if
           pellet_rate(ip) = 0.
           pellet_rate_D2(ip) = 0.
           rpdot(ip) = 0.
-          return
+          cycle
        end if
 
 
@@ -547,9 +548,11 @@ contains
         pellet_rate(ip) = pellet_rate(ip)*t0_norm/(n0_norm*l0_norm**3)
         rpdot(ip) = rpdot(ip) * (t0_norm/l0_norm)
 
-      end select
+       end select
 
-
+       pellet_rate(ip) = pellet_rate(ip)*abl_fac
+       pellet_rate_D2(ip) = pellet_rate_D2(ip)*abl_fac
+       rpdot(ip) = rpdot(ip)*abl_fac
 
        dr_p = dt*rpdot(ip)  ! change in pellet radius
 

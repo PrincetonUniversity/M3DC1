@@ -31,7 +31,7 @@ PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DI
 
 FFTW_LIB=-L$(FFTW_DIR) -lfftw3_mpi -lfftw3 
 
-#SCOREC_DIR=/global/project/projectdirs/mp288/cori/scorec/mvapich2.3.2/cuda10.2-pgi19.10-petsc3.12.4
+#SCOREC_DIR=/global/cfs/projectdirs/mp288/cori/scorec/mvapich2.3.2/cuda10.2-pgi19.10-petsc3.12.4
 SCOREC_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
 SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 

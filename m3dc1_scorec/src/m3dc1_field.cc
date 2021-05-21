@@ -4,6 +4,47 @@
 #include "apf.h"
 #include "apfField.h"
 #include "apfMesh2.h"
+#include "apfMDS.h"
+#include <assert.h>
+#include <vector>
+
+void group_complex_dof (apf::Field* field, int option)
+{
+  //if (!PCU_Comm_Self()) cout<<" regroup complex number field with option "<<option<<endl;
+  int num_dof_double = countComponents(field);
+  assert(num_dof_double/6%2==0);
+  int num_dof = num_dof_double/2;
+  std::vector<double> dofs(num_dof_double);
+  std::vector<double> newdofs(num_dof_double);
+
+  apf::MeshIterator* ent_it=m3dc1_mesh::instance()->mesh->begin(0);
+  apf::MeshEntity* e;
+  while ((e = m3dc1_mesh::instance()->mesh->iterate(ent_it)))
+  {
+    getComponents(field, e, 0, &(dofs[0]));
+    for (int j=0; j<num_dof/6; j++)
+    {
+      if (option)
+      {
+        for (int k=0; k<6; k++)
+        {
+          newdofs.at(2*j*6+k)=dofs.at(2*j*6+2*k);
+          newdofs.at(2*j*6+6+k)=dofs.at(2*j*6+2*k+1);
+        }
+      }
+      else
+      {
+        for (int k=0; k<6; k++)
+        {
+          newdofs.at(2*j*6+2*k)=dofs.at(2*j*6+k);
+          newdofs.at(2*j*6+2*k+1)=dofs.at(2*j*6+6+k);
+        }
+      }
+    }
+    setComponents(field, e, 0, &(newdofs[0]));
+  }
+  m3dc1_mesh::instance()->mesh->end(ent_it);
+}
 
 //*******************************************************
 void synchronize_field(apf::Field* f)

@@ -34,7 +34,7 @@ PETSC_LIB = -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
      -lparmetis -lmetis -lpthread -ldl -lstdc++  \
      -Wl,--end-group
 
-SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/mpich7.7.10/knl-petsc3.12.4/
+SCOREC_BASE_DIR=/global/cfs/projectdirs/mp288/cori/scorec/mpich7.7.10/knl-petsc3.12.4/
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
@@ -115,7 +115,7 @@ ifeq ($(OPT), 1)
   CCOPTS := $(CCOPTS) -qopt-report=5 -qopt-report-phase=vec,loop
 else
   LDOPTS := $(LDOPTS) -static
-  FOPTS := $(FOPTS) -g -Mbounds -check all -fpe0 -warn -traceback -debug extended
+  FOPTS := $(FOPTS) -g -Mbounds -check noarg_temp_created -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
 endif
 

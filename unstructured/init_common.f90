@@ -174,9 +174,9 @@ subroutine init_perturbations
      ! apply mask
      if(p0 .gt. 0.) then 
         do i=1, npoints
-           imr = magnetic_region(pst79(i,OP_1),pst79(i,OP_DR),pst79(i,OP_DZ), &
-                x_79(i), z_79(i))
-           if(imr.eq.0) then
+           call magnetic_region(pst79(i,OP_1),pst79(i,OP_DR),pst79(i,OP_DZ), &
+                x_79(i), z_79(i), imr)
+           if(imr.eq.REGION_PLASMA) then
               if(real(pt79(i,OP_1)).gt.pedge) then
                  temp79a(i) = (pt79(i,OP_1) - pedge)/p0
               else
@@ -324,7 +324,7 @@ subroutine den_per
      if(ipellet.lt.0) then
         n = 0.
         p = 0.
-        do ip=0,npellets
+        do ip=1,npellets
            if(pellet_mix(ip).eq.0) then
               rate = pellet_rate(ip)
            else

@@ -60,8 +60,8 @@
 	ion_mass = 1.
 	z_ion = 1.
 
-	tcur = 0.3773
-	vloop = -0.00005697688
+	tcur = 0.03773
+	vloop = -0.000005697688
 	control_type = 1
 	control_p = -0.01
 	control_d =  0.

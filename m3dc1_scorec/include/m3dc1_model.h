@@ -16,6 +16,8 @@
 #include <map>
 #include <vector>
 
+void print_model(gmi_model* model);
+
 int get_prev_plane_partid(int plane_id);
 int get_next_plane_partid(int plane_id);
 const double tol=1e-4;

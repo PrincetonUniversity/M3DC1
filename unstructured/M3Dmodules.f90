@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 35
+  integer, parameter :: version = 38
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -75,7 +75,10 @@ module basic
   real :: kappaf
   real :: kappai_fac
   real :: kappa_max
-  real :: denm        ! artificial density diffusion
+  real :: denm        ! artificial density diffusion used in idenmfunc = 0,1
+  real :: denmt       ! temperature dependent density diffusion used in idenmfunc = 1
+  real :: denmmin     ! Minimum value of density diffusion
+  real :: denmmax     ! Maximum value of density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
   real :: gradp_crit
@@ -339,6 +342,8 @@ module basic
   real :: xforce         !  location of peak (0 to 1(edge))
   real :: aforce         !  magnitude
 
+  integer :: ifixed_temax   !  if nonzero, evaluate temax at xmag0,zmag0
+
   ! curent drive source
   integer :: icd_source  ! 1 = include current drive in flux equation
   real :: j_0cd          ! amplitude of Gaussian
@@ -438,6 +443,7 @@ module basic
   logical :: is_diverted    ! whether plasma is diverted or not
   real :: xnull, znull      ! coordinates of the limiting x-point
   real :: xnull2, znull2    ! coordinates of the limiting x-point
+  real :: psinull, psinull2
   integer :: mod_null_rs, mod_null_rs2  ! if 1, modify xnull,znull or xnull2,znull2 at restart
   real :: temax            ! maximum temperature
 
@@ -688,7 +694,8 @@ module sparse
   integer, parameter :: k15_mat_index = 71
   integer, parameter :: q43_mat_index = 72
   integer, parameter :: r43_mat_index = 73
-  integer, parameter :: num_matrices = 73
+  integer, parameter :: pot2_mat_lhs_index = 74
+  integer, parameter :: num_matrices = 74
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat
@@ -725,3 +732,11 @@ module m3dc1_omp
   integer :: ithread, nthreads
 #endif
 end module m3dc1_omp
+
+!cj velocity equation profiling
+module m3dc1_vel_prof
+#include <petsc/finclude/petscksp.h>
+      use petscksp
+      implicit none
+      PetscLogStage  stageA,stageS
+end module m3dc1_vel_prof
