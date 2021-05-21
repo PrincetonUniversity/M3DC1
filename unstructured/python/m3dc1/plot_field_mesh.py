@@ -108,48 +108,36 @@ def plot_field_mesh(field, coord='scalar', filename='C1.h5', sim=None, time=None
     # Evaluate usual vector components
     if coord not in ['poloidal', 'radial']:
         # Evaluate field
-        if not quiet:
-            print('Evaluating field... ')
-        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sim[0], time=time[0])
+        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sim[0], time=time[0],quiet=quiet)
     
         # Evaluate second field and calculate difference between two if linear or diff is True
         if diff or linear:
-            if not quiet:
-                print('Evaluating second field... ')
-            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sim[1], time=time[1])
+            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sim[1], time=time[1],quiet=quiet)
             field1 = field1 - field2
 
 
    # Evaluate poloidal component
     if coord == 'poloidal':
-        if not quiet:
-            print('Evaluating poloidal field... ')
-        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[0], time=time[0])
+        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[0], time=time[0],quiet=quiet)
         theta  = np.arctan2(Z-Z_mag,R-R_mag)
         field1 = -np.sin(theta)*field1R + np.cos(theta)*field1Z
         
         # Evaluate second field and calculate difference between two if linear or diff is True
         if diff or linear:
-            if not quiet:
-                print('Evaluating second poloidal field... ')
-            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[1], time=time[1])
+            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[1], time=time[1],quiet=quiet)
             field2 = -np.sin(theta)*field2R + np.cos(theta)*field2Z
             field1 = field1 - field2
 
 
     # Evaluate radial component
     if coord == 'radial':
-        if not quiet:
-            print('Evaluating radial field... ')
-        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[0], time=time[0])
+        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[0], time=time[0],quiet=quiet)
         theta  = np.arctan2(Z-Z_mag,R-R_mag)
         field1 = np.cos(theta)*field1R + np.sin(theta)*field1Z
         
         # Evaluate second field and calculate difference between two if linear or diff is True
         if diff or linear:
-            if not quiet:
-                print('Evaluating second poloidal field... ')
-            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[1], time=time[1])
+            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[1], time=time[1],quiet=quiet)
             field2 = np.cos(theta)*field2R + np.sin(theta)*field2Z
             field1 = field1 - field2
 

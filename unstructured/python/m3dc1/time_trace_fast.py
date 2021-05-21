@@ -5,7 +5,7 @@ Created on Wed Oct  2 14:24:12 2019
 
 @author: Andreas Kleiner
 """
-#import sys
+
 import numpy as np
 import os
 import glob
@@ -18,6 +18,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 #from scipy.fftpack import fft, ifft, fftshift, fftfreq
 from scipy import signal
+from termcolor import colored
 
 import fpy
 import m3dc1.fpylib as fpyl
@@ -73,20 +74,32 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
     gamma   = constants.gamma
 
     # Direct transformation of one name to another
-    transform = {'toroidal current':'toroidal_current', 'it':'toroidal_current',
-                 'plasma current':'toroidal_current_p', 'ip':'toroidal_current_p',
-                 'wall current':'toroidal_current_w', 'iw':'toroidal_current_w',
-                 'volume':'volume_p', 'plasma volume':'volume_p',
-                 'volume_d':'volume', 'domain volume':'volume',
+    transform = {'toroidal current':'toroidal_current',
+                 'it':'toroidal_current',
+                 'plasma current':'toroidal_current_p',
+                 'ip':'toroidal_current_p',
+                 'wall current':'toroidal_current_w',
+                 'iw':'toroidal_current_w',
+                 'volume':'volume_p',
+                 'plasma volume':'volume_p',
+                 'volume_d':'volume',
+                 'domain volume':'volume',
                  'toroidal flux': 'toroidal_flux_p',
                  'time step': 'dt',
-                 'psibound':'psi_lcfs', 'psilim':'psi_lcfs',
-                 'loop voltage':'loop_voltage', 'vl':'loop_voltage',
-                 'poloidal magnetic energy':'E_MP', 'Wm':'E_MP',
-                 'thermal energy':'E_P', 'p':'E_P',
-                 'electron thermal energy':'E_PE', 'pe':'E_PE',
-                 'particles':'particle_number', 'n':'particle_number',
-                 'electrons':'electron_number', 'ne':'electron_number',
+                 'psibound':'psi_lcfs',
+                 'psilim':'psi_lcfs',
+                 'loop voltage':'loop_voltage',
+                 'vl':'loop_voltage',
+                 'poloidal magnetic energy':'E_MP',
+                 'Wm':'E_MP',
+                 'thermal energy':'E_P',
+                 'p':'E_P',
+                 'electron thermal energy':'E_PE',
+                 'pe':'E_PE',
+                 'particles':'particle_number',
+                 'n':'particle_number',
+                 'electrons':'electron_number',
+                 'ne':'electron_number',
                  'angular momentum': 'angular_momentum',
                  'vorticity': 'circulation',
                  'parallel viscous heating': 'parallel_viscous_heating',
@@ -123,24 +136,28 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
 
     # Simple linear combinations
     combos = {'itot':([('toroidal_current_w',1.),('toroidal_current',1.)],
-                      {'current':1}),
+                      {'current':1}, 'Total toroidal current', 'A'),
               'ih':([('toroidal_current',1.),('toroidal_current_p',-1.)],
-                    {'current':1}),
-              'ke':([('E_KP',1.),('E_KT',1.),('E_K3',1.)], {'energy':1}),
-              'me':([('E_MP',1.),('E_MT',1.)], {'energy':1}),
+                    {'current':1}, 'Halo-region toroidal current', 'A'),
+              'ke':([('E_KP',1.),('E_KT',1.),('E_K3',1.)], {'energy':1}, 
+                    'Kinetic energy', 'J'),
+              'me':([('E_MP',1.),('E_MT',1.)], {'energy':1},
+                    'Magnetic energy', 'J'),
               'energy':([('E_KP',1.),('E_KT',1.),('E_K3',1.),
-                         ('E_MP',1.),('E_MT',1.),('E_P',1.)], {'energy':1}),
+                         ('E_MP',1.),('E_MT',1.),('E_P',1.)], {'energy':1},
+                        'Total energy', 'J'),
               'flux':([('psimin',2.*np.pi),('psi_lcfs',-2.*np.pi)],
-                      {'magnetic_field':1,'length':2}),
-              'radiation':([('radiation',-1.)], None),
-              'line_rad':([('line_rad',-1.)], None),
-              'brem_rad':([('brem_rad',-1.)], None),
-              'ion_loss':([('ion_loss',-1.)], None),
-              'reck_rad':([('reck_rad',-1.)], None),
-              'recp_rad':([('recp_rad',-1.)], None),
+                      {'magnetic_field':1,'length':2}, 'Flux', r'T$\cdot$m$^2$'),
+              'radiation':([('radiation',-1.)], None, None, None),
+              'line_rad':([('line_rad',-1.)], None, None, None),
+              'brem_rad':([('brem_rad',-1.)], None, None, None),
+              'ion_loss':([('ion_loss',-1.)], None, None, None),
+              'reck_rad':([('reck_rad',-1.)], None, None, None),
+              'recp_rad':([('recp_rad',-1.)], None, None, None),
               'rec_rad':([('reck_rad',-1.),('recp_rad',-1.)],
-                         {'energy':1,'time':-1}),
-              'pohm':([('E_MPD',-1),('E_MTD',-1)], {'energy':1,'time':-1}),
+                         {'energy':1,'time':-1}, 'Recombination radiated power', 'W'),
+              'pohm':([('E_MPD',-1),('E_MTD',-1)], {'energy':1,'time':-1},
+                      'Ohmic heating power', 'W'),
               }
 
     if trace in transform:
@@ -149,6 +166,8 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
     if trace == 'reconnected flux':
         scalar = abs(sim.get_time_trace('reconnected_flux'))
         custom = {'magnetic_field':1,'length':1+itor}
+        label = None
+        unitlabel = None
 
     elif trace == 'r_p':
         if (version < 26):
@@ -156,6 +175,8 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
         else:
             scalar = sim.get_time_trace('r_p')
         custom = None
+        label = None
+        unitlabel = None
 
     elif trace == 'pellet_r':
         if (version < 26):
@@ -163,6 +184,8 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
         else:
             scalar = sim.get_time_trace('pellet_r')
         custom = None
+        label = None
+        unitlabel = None
 
     elif trace == 'beta':
         if (version < 26):
@@ -173,6 +196,8 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
         E_MT = sim.get_time_trace('E_MT')
         scalar *= (gamma-1.)/(E_MP + E_MT)
         custom = None
+        label = r'$\beta$'
+        unitlabel = None
 
     elif trace == 'betap':
         if (version < 26):
@@ -184,6 +209,8 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
             W_M    = sim.get_time_trace('W_M')
             scalar *= (gamma-1.)/W_M
         custom = None
+        label = r'Poloidal $\beta$'
+        unitlabel = None
 
     elif trace in ['betan','betat']:
         raise RuntimeError("'%s' not yet implemented; need shape information"%trace)
@@ -197,12 +224,16 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
             scalar = sim.get_time_trace(trace)
 
         custom = None
+        label = None
+        unitlabel = None
 
     elif trace == 'bwb2':
         amupar = constants.amupar
         scalar = sim.get_time_trace('parallel_viscous_heating')
         scalar *= 4./(3.*amupar)
         custom = {'length':3, 'time':-2}
+        label = r'$(b\cdot W\cdot b)^2$'
+        unitlabel = r'm$^3$/s$^2$'
 
     elif trace == 'li':
         R0 = constants.R0
@@ -212,6 +243,8 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
 
         scalar = -4.*np.pi*(psi_lcfs - psimin)/(R0*ip)
         custom = None
+        label = r'Internal inductance: $l_i$'
+        unitlabel = None
 
     elif trace == 'li3':
         R0 = constants.R0
@@ -220,10 +253,12 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
 
         scalar = 4.*W_M/(R0*ip**2)
         custom = None
+        label = r'Internal inductance: $l_i(3)$'
+        unitlabel = None
 
     elif trace in combos:
         # trace is linear combination of native scalars
-        combo, custom = combos[trace]
+        combo, custom, label, unitlabel = combos[trace]
         for i, (name, fac) in enumerate(combo):
             y = sim.get_time_trace(name)
             if i==0:
@@ -235,12 +270,15 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
         # trace is a native scalar
         scalar = sim.get_time_trace(trace)
         custom = None
+        label = None
+        unitlabel = None
 
     if ('pellet_' in trace) or (trace in ['cauchy_fraction','cloud_pel','r_p']):
         # if ipellet is given, get just that pellet's data
         if (ipellet != 'all') and (scalar.values.ndim==2):
             scalar.values = scalar.values[:,ipellet]
 
+    label, unitlabel = fpyl.get_tracelabel(units, trace, label=label, unitlabel=unitlabel)
     if units=='mks':
         scalar = fpyl.get_conv_trace('mks',trace,scalar,sim=sim,itor=itor,custom=custom)
         
@@ -250,7 +288,8 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
     
     
     if growth:
-        values = 1.0/values[1:] * np.diff(values)/np.diff(time)#ToDo: Replace by np.diff with fpyl.deriv
+        values = 1.0/values[1:] * np.diff(values)/np.diff(time) #Used until 2021-05-12
+        #values = 1.0/values[1:] * fpyl.deriv(values,time)
         time = time[:-1]
     
     if renorm:
@@ -274,9 +313,9 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
             if len(renormstr) > 0:
                 print('Renormalization found at '+renormstr)
     if returnas=='tuple':
-        return time, values
+        return time, values, label, unitlabel
     elif returnas=='time_trace':
-        return fpy.sim_data.time_trace(values,time=time)
+        return fpy.sim_data.time_trace(values,time=time), label, unitlabel
 
 
 
@@ -312,7 +351,7 @@ def avg_time_trace(trace,units='m3dc1',sim=None,filename='C1.h5',
     """
     if isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename)
-    time,values = get_timetrace(trace,sim=sim,units=units,growth=growth,
+    time,values,_,_ = get_timetrace(trace,sim=sim,units=units,growth=growth,
                                 renorm=renorm,quiet=False)
     
     if start is None:
@@ -435,7 +474,7 @@ def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
             # If there is no noise, do additional check ups to determine if the system is stable or unstable
             fpyl.printnote('NOTE: no noise detected for n='+str(n)+'!')
             # Check whether the kinetic energy is overall increasing or decreasing by looking at the evolution of the maxima.
-            ke_time,ke = get_timetrace('ke',sim=sim,units=units,growth=False,renorm=True)
+            ke_time,ke,_,_ = get_timetrace('ke',sim=sim,units=units,growth=False,renorm=True)
             
             start_ind = int(np.floor(len(ke)/2))
             start_time = ke_time[start_ind]
@@ -534,7 +573,7 @@ def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
             double_plot_time_trace_fast('ke',renorm=True,title='',rescale=True,units=units,n=n)
             #plot_time_trace_fast('ke',units=units,filename=filename,growth=False,renorm=True,yscale='linear',rescale=True,save=False)
             #plot_time_trace_fast('ke',units=units,filename=filename,growth=True,renorm=True,yscale='linear',save=False)
-            stability = 'UNSTABLE' if gamma > 0 else 'STABLE'
+            stability = colored('UNSTABLE','yellow') if gamma > 0 else colored('STABLE','green')
             print(stability + ' with gamma='+str(gamma))
             mono_input = fpyl.prompt('Is the calculated growth rate acceptable? (y/n) : ',['y','n'])
             if mono_input == 'y':
@@ -626,12 +665,12 @@ def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
                 else:
                     gsconvgd = 0
             else:
-                fpyl.printwarn('WARNING: Number of GS iterations could not be determined.')
+                fpyl.printwarn('WARNING: Cannot determine number of GS iterations.')
                 gsconvgd = 0
                 finalerrgs = 0.0
             return gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs
         except:
-            fpyl.printerr('ERROR: Could not process Slurm log file!')
+            fpyl.printerr('ERROR: Cannot process Slurm log file!')
             return gamma, dgamma, n, flat, not_noisy, gamma_set_manu, 0, 0
     else:
         return gamma, dgamma, n, flat, not_noisy, gamma_set_manu, 0, 0
@@ -955,7 +994,7 @@ def get_ped_param(sim,filename='C1.h5',time=None,points=400,pion=False,fcoords='
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename)
     #psinedgelim = 0.86 #Min value of psin that is considered edge region
-    
+    print('get_ped_param time:'+str(time))
     # Determine pedestal alpha
     psi_a,alpha = flux_average('alpha', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='m3dc1')
     psinedge = fpyl.find_nearest(psi_a,psin_ped_top)
@@ -970,16 +1009,13 @@ def get_ped_param(sim,filename='C1.h5',time=None,points=400,pion=False,fcoords='
     psinedge_ind = fpyl.get_ind_at_val(psi_j,psinedge)
     j_max = np.amax(j[psinedge_ind:]) #ToDo: Check if it's really a local maximum
     
-    
     #Calculate pedestal parallel current density as in ELITE:
     jav = flux_average('jav', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='mks')[1]
     psi_j,jelite = flux_average('jelite', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='mks',device=device)
-    
     psinedge = fpyl.find_nearest(psi_j,psin_ped_top)
     psinedge_ind = fpyl.get_ind_at_val(psi_j,psinedge)
     jelite_max = np.amax(jelite[psinedge_ind:])
     jelite_sep = jelite[-1]
-    
     jelite_N = (jelite_max+jelite_sep)/(2.0*jav[-1])
     print('Current density = '+str(jelite_N))
     
@@ -997,149 +1033,19 @@ def get_ped_param(sim,filename='C1.h5',time=None,points=400,pion=False,fcoords='
 
 
 
-def eval_growth_n(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype=False,psin_ped_top=0.86,points=400,units='m3dc1',fcoords='pest',pion=False,nts=2,fix=False,legfs=None,title=None,device='nstx'):
-    
+def eval_growth_n(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype=False,psin_ped_top=0.86,points=800,units='m3dc1',fcoords='pest',pion=False,nts=2,fix=False,legfs=None,title=None,device='nstx'):
     pwd = os.getcwd()
-    for d in dirs:
-        print('Evaluating directory '+d)
-        #Check if all simulations have finished
-        n_incomplete = check_linear_runs(d,nts=nts,start=False,account='mp288',update_stat=False)
-        if n_incomplete>0:
-            fpyl.printerr('Stopped. ' + str(n_incomplete) + ' simulations have not completed (assuming '+str(nts)+' time slices).')
-            not_finished_input = fpyl.prompt('Continue anyways? (y/n) : ',['y','n'])
-            if not_finished_input=='n':
-                return
-        os.chdir(d)
-    
-        files = glob.glob("growth_rates*.dat")
-        proceed = False
-        if len(files)>0:
-            if not fix:
-                openf_input = fpyl.prompt('Previous results found. Do you want to overwrite the existing file? (y/n) : ',['y','n'])
-            else:
-                openf_input = 'y'
-            if openf_input == 'n':
-                if len(files)>1:
-                        files.sort(key=os.path.getmtime,reverse=True)
-                        print('More than 1 file found. Opening newest file: '+files[0])
-                f = files[0]
-                results = Gamma_file(f)
-            else:
-                proceed = True
-        else:
-            proceed = True
-        
-        
-        if proceed:
-            # Determine ipres based on slurm log file
-            os.chdir('n'+str(nmin).zfill(2))
-            slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
-            if len(slurmfiles) < 1:
-                fpyl.printerr('ERROR: No Slurm output file found!')
-            else:
-                if len(slurmfiles) > 1:
-                    fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
-                    slurmfiles.sort(key=os.path.getmtime,reverse=True)
-                slurmfile = slurmfiles[0]
-                
-                # Read ipres from Slurm log file
-                with open(slurmfile, 'r') as sf:
-                    for line in sf:
-                        if 'ipres   ' in line:
-                            ipresline = line.split()
-                            ipres = int(ipresline[2])
-            print('ipres='+str(ipres))
-            os.chdir('../')
-            
-            
-            results = scan_n(nmin,nmax,nstep,units=units,slurm=True,plottrace=False)
-        
-            if plotef or mtype:
-                for n in np.arange(nmin,nmax+1,nstep):
-                    if n==nmin:
-                        path = 'n'+str(n).zfill(2)
-                    else:
-                        path = '../n'+str(n).zfill(2)
-                    os.chdir(path)
-                    
-                    sim0 = fpy.sim_data(time=-1)
-                    sim1 = fpy.sim_data(time='last')
-                    
-                    if n==nmin:
-                        ped_param = get_ped_param(sim0,points=points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
-                    
-                    if mtype:
-                        spec = eigenfunction(sim=[sim0,sim1],fcoords=fcoords,points=800,makeplot=False)
-                        results.pblist[n-1] = mode_type(spec,sim0,psin_ped_top=psin_ped_top)
-                    
-                    if plotef:
-                        fpyl.printnote('Plotting eigenfunction for n='+str(n))
-                        plot_field('p',sim=[sim1,sim0],linear=True,bound=True,lcfs=True,save=True,savedir='../',ntor=n)
-                        plt.close()
-                    if n==nmax:
-                        os.chdir('../')
-                if mtype:
-                    print('Mode types:')
-                    print(results.pblist)
-            else:
-                os.chdir('n'+str(nmin).zfill(2))
-                sim0 = fpy.sim_data(time=-1)
-                ped_param = get_ped_param(sim0,points=points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
-                os.chdir('../')
-                
-            write_gamma_n(results,ped_param,ipres,units=units,fix=fix)
-        
-        
-        # Plot gamma as a function of n
-        # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
-        if title is None:
-            cwd = os.getcwd()
-            cdirs = cwd.split('/')
-            title=cdirs[-2]+'/'+cdirs[-1]
-            reset_title=True
-        else:
-            reset_title=False
-        plot_gamma_n(nmin=nmin,nmax=nmax,nstep=nstep,units=units,fignum=None,c=None,ls=None,mark='.',lbl=None,slurm=True,plottrace=False,legfs=legfs,title=title)
-        if reset_title:
-            title=None
-        
-        # Update status on portal. The update is done, only if the analysis above has been performed.
-        if proceed:
-            if os.environ['FIO_ARCH']=='sunfire':
-                update_status(80)
-            else:
-                if os.path.isfile('../../py_config_portal.dat'):
-                    cwd = os.getcwd()
-                    dirs = cwd.split('/')
-                    vpnum = dirs[-2]
-                    basedirs = glob.glob('../base_*'+dirs[-1]+'*')
-                    if len(basedirs)==1:
-                        basedir = glob.glob('../base_*'+dirs[-1]+'*')[0]
-                        basedir = basedir.split('/')[-1]
-                        os.chdir(pwd)
-                        update_remote_status(80,vpnum,basedir)
-                    else:
-                        os.chdir(pwd)
-                        fpyl.printwarn('WARNING: Could not determine base directory. Status not updated.')
-                else:
-                    os.chdir(pwd)
-                    fpyl.printwarn('WARNING: No file py_config_portal.dat. Status not updated.')
-        else:
-            os.chdir(pwd)
-    return
-
-
-
-
-def eval_growth_n_multiple(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype=False,psin_ped_top=0.86,points=400,units='m3dc1',fcoords='pest',pion=False,nts=2,fix=False,legfs=None,title=None,device='nstx'):
-    
-    pwd = os.getcwd()
-    
+    n_dirs = len(dirs)
     data = {}
     
     # The variable 'complete' is True if all linear simulations have finished or if the user wants to calculate the growth rates for the existing simulations.
     # If this is the case, the code checks for existing growth rate results. The variable 'proceed' is set to True if no previous results exist or
     # if the user wants to overwrite them.
+    
+    # Check if all directories in dirs exist
+    for d in dirs:
+        if not os.path.isdir(d):
+            fpyl.printerr('ERROR: Directory ' + d + ' does not exist!')
     
     for d in dirs:
         print('Evaluating directory '+d)
@@ -1181,24 +1087,26 @@ def eval_growth_n_multiple(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype
         
         if proceed:
             # Determine ipres based on slurm log file
-            os.chdir('n'+str(nmin).zfill(2))
             slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
             if len(slurmfiles) < 1:
-                fpyl.printerr('ERROR: No Slurm output file found!')
-            else:
-                if len(slurmfiles) > 1:
-                    fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
-                    slurmfiles.sort(key=os.path.getmtime,reverse=True)
-                slurmfile = slurmfiles[0]
-                
-                # Read ipres from Slurm log file
-                with open(slurmfile, 'r') as sf:
-                    for line in sf:
-                        if 'ipres   ' in line:
-                            ipresline = line.split()
-                            ipres = int(ipresline[2])
+                slurmfiles = glob.glob(os.getcwd()+'/n'+str(nmin).zfill(2)+"/slurm*.out")
+                if len(slurmfiles) < 1:
+                    fpyl.printerr('ERROR: No Slurm output file found!')
+                    os.chdir(pwd)
+                    return
+            
+            if len(slurmfiles) > 1:
+                fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
+                slurmfiles.sort(key=os.path.getmtime,reverse=True)
+            slurmfile = slurmfiles[0]
+            
+            # Read ipres from Slurm log file
+            with open(slurmfile, 'r') as sf:
+                for line in sf:
+                    if 'ipres   ' in line:
+                        ipresline = line.split()
+                        ipres = int(ipresline[2])
             print('ipres='+str(ipres))
-            os.chdir('../')
             
             results = scan_n(nmin,nmax,nstep,units=units,slurm=True,plottrace=False)
             data[d] = [proceed, results, ipres]
@@ -1206,31 +1114,34 @@ def eval_growth_n_multiple(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype
         else:
             data[d] = [proceed, None, None]
             os.chdir(pwd)
-        
-        
-    for d in dirs:
+    
+    # Close all previously opened figures used in the interactive analysis
+    plt.close('all')
+    
+    for i,d in enumerate(dirs):
         if data[d][0]:#if proceed==True
             os.chdir(d)
             if plotef or mtype:
                 for n in np.arange(nmin,nmax+1,nstep):
+                    fpyl.printnote('Directory '+str(i+1)+'/'+str(n_dirs)+'. Analyzing n='+str(n)+' ...')
                     if n==nmin:
                         path = 'n'+str(n).zfill(2)
                     else:
                         path = '../n'+str(n).zfill(2)
                     os.chdir(path)
                     
-                    sim0 = fpy.sim_data(time=-1)
-                    sim1 = fpy.sim_data(time='last')
+                    sim0 = fpy.sim_data(filename='C1.h5',time=-1,fast=True)
+                    sim1 = fpy.sim_data(filename='C1.h5',time='last',fast=True)
                     
                     if n==nmin:
                         ped_param = get_ped_param(sim0,points=points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
                     
                     if mtype:
-                        spec = eigenfunction(sim=[sim0,sim1],fcoords='pest',points=800,makeplot=False)
+                        spec = eigenfunction(sim=[sim0,sim1],fcoords=fcoords,points=points,makeplot=False)
                         data[d][1].pblist[n-1] = mode_type(spec,sim0,psin_ped_top=psin_ped_top)
                     
                     if plotef:
-                        fpyl.printnote('Plotting eigenfunction for n='+str(n))
+                        #fpyl.printnote('Plotting eigenfunction for n='+str(n))
                         plot_field('p',sim=[sim1,sim0],linear=True,bound=True,lcfs=True,save=True,savedir='../',ntor=n)
                         plt.close()
                     if n==nmax:
@@ -1276,7 +1187,7 @@ def eval_growth_n_multiple(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype
                         update_remote_status(80,vpnum,basedir)
                     else:
                         os.chdir(pwd)
-                        fpyl.printwarn('WARNING: Could not determine base directory. Status not updated.')
+                        fpyl.printwarn('WARNING: Cannot determine base directory. Status not updated.')
                 else:
                     os.chdir(pwd)
                     fpyl.printwarn('WARNING: No file py_config_portal.dat. Status not updated.')
@@ -1406,8 +1317,8 @@ def double_plot_time_trace_fast(trace,sim=None,filename='C1.h5',renorm=False,res
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     
-    time,scalar = get_timetrace(trace,sim=sim,units=units,growth=False,renorm=renorm,quiet=True)
-    time_growth,scalar_growth = get_timetrace(trace,sim=sim,units=units,growth=True,renorm=renorm,quiet=True)
+    time,scalar,_,_ = get_timetrace(trace,sim=sim,units=units,growth=False,renorm=renorm,quiet=True)
+    time_growth,scalar_growth,_,_ = get_timetrace(trace,sim=sim,units=units,growth=True,renorm=renorm,quiet=True)
     
     # Set font sizes and plot style parameters
     if pub:
@@ -1515,7 +1426,7 @@ def plot_time_trace_fast(trace,units='mks',sim=None,filename='C1.h5',
     """
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
-    time,y_axis = get_timetrace(trace,sim=sim,units=units,growth=growth,renorm=renorm)
+    time,y_axis,_,_ = get_timetrace(trace,sim=sim,units=units,growth=growth,renorm=renorm)
     create_plot_time_trace_fast(time,scalar,trace,units=units,sim=sim,growth=growth,
                                 yscale=yscale,rescale=rescale,save=save,savedir=savedir,pub=pub)
     return
@@ -1532,7 +1443,7 @@ def plot_time_trace_fast(trace,units='mks',sim=None,filename='C1.h5',
 # ---------------------------------------------------------------------
 
 # Update the second line of the the growth rate file, containing pedestal-related quantities
-def update_pedestal_in_gamma_files(points=400,pion=False,psin_ped_top=0.86,fcoords='pest',device='nstx'):
+def update_pedestal_in_gamma_files(points=400,pion=False,psin_ped_top=0.86,fcoords='pest',device='nstx',doall=False):
     cwd = os.getcwd()
     
     for path in Path('./').rglob('growth_rates_*.dat'):
@@ -1547,7 +1458,7 @@ def update_pedestal_in_gamma_files(points=400,pion=False,psin_ped_top=0.86,fcoor
             datal2 = data[1].split()
             if len(datal2)<3:
                 fpyl.printwarn('WARNING: Not all of the old pedestal parameters where calculated.')
-            if len(datal2)<4:# or len(datal2)==3:
+            if len(datal2)<4 or doall:# or len(datal2)==3:
                 os.chdir(simdir)
                 sim0 = fpy.sim_data(time=-1)
                 ped_param = get_ped_param(sim0,points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
@@ -1581,9 +1492,8 @@ def update_omegastar_in_gamma_files(ped=False,points=400,pion=False,psin_ped_top
                     ped_param = get_ped_param(sim0,points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
                     alpha_max,j_max,omegsti_max=ped_param
                 else:
-                    psinedgelim = 0.86 #Min value of psin that is considered edge region
                     psi_o,omegsti = omegastari(sim=sim0,units='m3dc1',n=1,makeplot=False)
-                    psinedge = fpyl.find_nearest(psi_o,psinedgelim)
+                    psinedge = fpyl.find_nearest(psi_o,psin_ped_top)
                     psinedge_ind = fpyl.get_ind_at_val(psi_o,psinedge)
                     omegsti_max = np.amax(omegsti[psinedge_ind:]) #ToDo: Check if it's really a local maximum
                 

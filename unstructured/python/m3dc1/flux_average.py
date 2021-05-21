@@ -5,7 +5,6 @@ Created on February 27 2020
 
 @author: Andreas Kleiner
 """
-import math
 import numpy as np
 import matplotlib.pyplot as plt
 import fpy
@@ -89,7 +88,7 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
     elif field =='jav':
         fa = flux_average('current', coord='scalar', sim=sim, fcoords=fcoords, points=points, units=units)[1]/flux_average('polarea', coord='scalar', sim=sim, fcoords=fcoords, points=points, units=units)[1]
     elif field=='jelite':
-        mu0 = 4.0E-7*math.pi
+        mu0 = 4.0E-7*np.pi
         #R0 = sim.fc.r0
         #R0 is taken as the center of the vacuum vessel, as described in Tom Osborne's notes
         deviceR0 = {'nstx': 0.85, 'diiid': 1.6955}
@@ -157,7 +156,7 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
         
         pp = fpyl.deriv(pavg,fc.psi)
         dV = fc.dV_dchi / fc.dpsi_dchi
-        alpha = -dV/(2.0*(math.pi)**2) * np.sqrt(fc.V/(2.0*(math.pi)**2*fc.r0)) * pp
+        alpha = -dV/(2.0*(np.pi)**2) * np.sqrt(fc.V/(2.0*(np.pi)**2*fc.r0)) * pp
         fa = alpha
         #fig = plt.figure()
         #plt.plot(nflux,alpha)

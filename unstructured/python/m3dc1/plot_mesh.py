@@ -51,7 +51,7 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=No
     **pub**
     If True, plot will be formatted for publication
     """
-    if not isinstance(elms,fpy.mesh):
+    if not isinstance(elms,fpy.sim_data.mesh):
         if not isinstance(sim,fpy.sim_data):
             sim = fpy.sim_data(filename)
         elms = sim.get_mesh(time=time,quiet=quiet)

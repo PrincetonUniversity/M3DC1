@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# plot_shape: plots shapes of flux surfaces.
+# plot_flux_average: plots a flux averaged quantity
 #
 # Coded on 08/27/2019 by:
 # Andreas Kleiner:    akleiner@pppl.gov

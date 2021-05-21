@@ -64,7 +64,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
     """
     
     # make simulation object iterable if it is a single object and not if it is list of objects
-    if sim != None:
+    if sim is not None:
         if not isinstance(sim, (tuple, list)):
             if isinstance(sim,fpy.sim_data):
                 if sim.timeslice==-1 or sim.timeslice==0:
@@ -99,10 +99,8 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
             raise Exception('Please provide a time slice larger than 0.')
         sims = [simeq,simlin]
     
-    time = sims[1].timeslice
-    
-    
     # Calculate flux coodinates if it was not calculated yet or a different flux coordinate system than sim.fc.fcoords is desired
+    
     if isinstance(sims[0].fc,fpy.flux_coordinates)==False or (fcoords!=None and (sims[0].fc.fcoords!=fcoords)):
             sims[0] = flux_coordinates(sim=sims[0], fcoords=fcoords, phit=phit, points=points)
     else:
@@ -115,17 +113,13 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         torphi.fill(phit)
     
     # Evaluate fields
-    print('Evaluating first field... ', end=' ', flush=True)
-    p1 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[1], filename=filename, time=time)
-    print('[DONE]')
+    p1 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[1], filename=filename, time=sims[1].timeslice)
 
-    print('Evaluating second field... ', end=' ', flush=True)
-    p0 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[0])
-    print('[DONE]')
+    p0 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[0],time=sims[0].timeslice)
     
     ef = p1 - p0
     if units.lower()=='m3dc1':
-        ef = fpyl.get_conv_field(units,'p',ef,sim=sim[0])
+        ef = fpyl.get_conv_field(units,'p',ef,sim=sims[0])
     pathshape = ef.shape
     
     # Plot eigenfunction in R-Z plane
@@ -162,7 +156,8 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         plt.xlabel(r'R (m)',fontsize=axlblfs)
         plt.ylabel(r'Z (m)',fontsize=axlblfs)
         ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
-        plt.title('n='+str(int(n)),fontsize=titlefs)
+        if n is not None:
+            plt.title('n='+str(int(n)),fontsize=titlefs)
         
         sfmt=ticker.ScalarFormatter()
         sfmt.set_powerlimits((-3,4))
@@ -211,7 +206,8 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
             ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
             
             #if pub!=True:
-            plt.title('n='+str(int(n)),fontsize=titlefs)
+            if n is not None:
+                plt.title('n='+str(int(n)),fontsize=titlefs)
             if nummodes>0:
                 plt.legend(ncol=2,fontsize=legfs)
             plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
@@ -278,8 +274,8 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     efmax = np.amax(efsum)
     efmax_ind = np.argmax(efsum)
     psinatmax = fc.psi_norm[efmax_ind]
-    print(efmax)
-    print(psinatmax)
+    #print(efmax)
+    #print(psinatmax)
     
     
     #psin_ped_top = 0.86 #Min value of psin that is considered edge region
@@ -287,12 +283,12 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     # Determine maximum value in edge region
     psinedge = fpyl.find_nearest(fc.psi_norm,psin_ped_top)
     psinedge_ind = fpyl.get_ind_at_val(fc.psi_norm,psinedge)
-    print(psinedge_ind)
+    #print(psinedge_ind)
     efmax_edge = np.amax(efsum[psinedge_ind:])
     efmax_core = np.amax(efsum[:psinedge_ind])
     rel_mode_ampl = efmax_edge/efmax_core
     
-    print(efmax_edge)
+    #print(efmax_edge)
     print('Relative amplitude of edge mode: '+str(rel_mode_ampl))
     
     if rel_mode_ampl>8:

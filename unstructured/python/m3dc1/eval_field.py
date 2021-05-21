@@ -11,10 +11,11 @@ import numpy as np
 import m3dc1.fpylib as fpyl
 
 
-def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=None):
+def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=None,quiet=False):
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename,time=time)
-    
+    if not quiet:
+        print("Evaluating field '"+ field_name +"'... ", end=' ', flush=True)
     #Convert coordinates to numpy array if they are not provided as arrays
     R = np.asarray(R,dtype=np.float64)
     phi = np.asarray(phi,dtype=np.float64)
@@ -49,7 +50,8 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
         field_array = 1.0/B2
     else:
         fpyl.printerr('ERROR: Field not supported!')
-    
+    if not quiet:
+        print('[DONE]')
     return field_array
 
 

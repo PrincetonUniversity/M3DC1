@@ -16,13 +16,12 @@ import matplotlib.lines as mlines
 import m3dc1.fpylib as fpyl
 from m3dc1.plot_mesh import plot_mesh
 from m3dc1.eval_field import eval_field
+from m3dc1.gfile import read_gfile
 #rc('text', usetex=True)
 
 
 
-def plot_shape(sim=None, filename='C1.h5', time=None, phi=0, res=250,
-               Nlvl_in=10, Nlvl_out=1, mesh=False, bound=False, lcfs=False,
-               ax=None, pub=False, quiet=False):
+def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, Nlvl_in=10, Nlvl_out=1, mesh=False, bound=False, lcfs=False, ax=None, pub=False, quiet=False):
     """
     Plot flux surfaces in poloidal plane
     
@@ -131,7 +130,7 @@ def plot_shape(sim=None, filename='C1.h5', time=None, phi=0, res=250,
         R, phi_pos, Z    = np.meshgrid(R_linspace, phi_linspace,Z_linspace)
         
         psifield = eval_field('psi',R, phi_pos, Z, coord='scalar', sim=si, filename=si.filename, time=times[i])
-        print(si.timeslice)
+        #print(si.timeslice)
         levels = (np.arange(Nlvl_in+Nlvl_out+1.)/Nlvl_in)
         levels = levels*(psi_lcfs-psi_axis)+psi_axis
         if psi_lcfs < psi_axis:
@@ -151,11 +150,24 @@ def plot_shape(sim=None, filename='C1.h5', time=None, phi=0, res=250,
         cont = axs.contour(R_ave, Z_ave, psifield,levels,zorder=0,linewidths=linew,colors=pltcol)
         
         if lcfs:
-            cont = axs.contour(R_ave, Z_ave, psifield,[psi_lcfs],colors='magenta',linewidths=bdlw,linestyles='--',zorder=10)
+            cont = axs.contour(R_ave, Z_ave, psifield,[psi_lcfs],colors=pltcol,linewidths=bdlw,linestyles='--',zorder=10)
+        
+        #Plot magnetic axis
+        R_magax = si.get_time_trace('xmag').values[times[i]]
+        Z_magax = si.get_time_trace('zmag').values[times[i]]
+        axs.plot(R_magax,Z_magax,lw=0,marker='+',markersize=10,color=pltcol)
         
         # Create legend entries
         leglbl = si.filename.replace(os.getcwd()+'/', '')
         legproxy.append(mlines.Line2D([], [], color=pltcol, linewidth=bdlw, label=leglbl))
+    
+    
+    if gfile is not None:
+        gfdat = read_gfile(gfile)
+        cont = axs.contour(gfdat.rg,gfdat.zg,gfdat.psirzn,np.linspace(1/Nlvl_in,(Nlvl_in-1)/Nlvl_in,Nlvl_in),linewidths=0.7,colors='k',zorder=10)
+        legproxy.append(mlines.Line2D([], [], color='k', linewidth=bdlw, label=gfile))
+        axs.plot(gfdat.rmaxis,gfdat.zmaxis,lw=0,marker='+',markersize=10,color='k')
+        axs.plot(gfdat.rbbbs,gfdat.zbbbs,color='k',zorder=10)
     
     if ax is None:
         axs.set_xlim(fpyl.get_axlim(np.amin(R),'min'),fpyl.get_axlim(np.amax(R),'max'))
@@ -172,4 +184,4 @@ def plot_shape(sim=None, filename='C1.h5', time=None, phi=0, res=250,
         plt.rcParams["axes.axisbelow"] = False #Allows mesh to be on top of contour plot. This option conflicts with zorder (matplotlib
         plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
         plt.show()
-    return axs
+    return

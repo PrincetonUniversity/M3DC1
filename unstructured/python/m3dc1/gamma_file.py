@@ -5,7 +5,6 @@ import numpy as np
 # Data includes some information about the physical model, equilibrium parameters and details about growth rate calculation
 
 class Gamma_file:
-    #ToDo: make function to read file and only keep attributes in class
     def __init__(self,filename):
         f = open(filename, 'r')
         data = f.readlines()

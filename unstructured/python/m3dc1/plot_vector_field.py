@@ -104,13 +104,11 @@ def plot_vector_field(field, filename='C1.h5', time=0, linear=False, diff=False,
     R, phi, Z    = np.meshgrid(R_linspace, phi_linspace, Z_linspace)
     
     # Evaluate field
-    print('Evaluating field... ')
-    fields1 = eval_field(field, R, phi, Z, coord='vector', filename=filename[0], time=time[0])
+    fields1 = eval_field(field, R, phi, Z, coord='vector', filename=filename[0], time=time[0],quiet=quiet)
     
     # Evaluate second field and calculate difference between two if linear or diff is True
     if (diff or linear):
-        print('Evaluating second field... ')
-        fields2 = eval_field(field, R, phi, Z, coord='vector', filename=filename[1], time=time[1])
+        fields2 = eval_field(field, R, phi, Z, coord='vector', filename=filename[1], time=time[1],quiet=quiet)
         fields1 = [fields1[0]-fields2[0], fields1[1]-fields2[1], fields1[2]-fields2[2]]
 
 

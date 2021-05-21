@@ -120,7 +120,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
     ureg.define('M3DC1velocity = ('+str(V0)+') * MeterPerSecond')
     ureg.define('M3DC1length  = '+str(len0)+' * meter')
     ureg.define('M3DC1particles = (1.00*10.0**20) * particles')
-    ureg.define('M3DC1magneticfield = (1.00*10.0**4) * Gauss') #ToDo What about this
+    ureg.define('M3DC1magneticfield = (1.00*10.0**4) * Gauss')
     ureg.define('M3DC1current = ('+str(I0)+') * Ampere')
     ureg.define('M3DC1currentdensity = ('+str(J0)+') * AmperePerSquareMeter')
     ureg.define('M3DC1diffusion = ('+str(diffus0)+') * SquareMeterPerSecond')

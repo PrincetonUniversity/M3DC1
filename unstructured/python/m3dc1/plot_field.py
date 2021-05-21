@@ -101,7 +101,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
     """
-
+    
     sim, time = fpyl.setup_sims(sim,filename,time,linear,diff)
     field_idx = fpyl.get_field_idx(coord)
 
@@ -127,16 +127,10 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     # Evaluate usual vector components
     if coord not in ['poloidal', 'radial', 'vector', 'tensor']:
         # Evaluate field
-        if not quiet:
-            print('Evaluating field... ', end=' ', flush=True)
-        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sim[0], time=time[0])
-        if not quiet:
-            print('[DONE]')
+        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sim[0], time=time[0],quiet=quiet)
         # Evaluate second field and calculate difference between two if linear or diff is True
         if diff or linear:
-            if not quiet:
-                print('Evaluating second field... ', end=' ', flush=True)
-            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sim[1], time=time[1])
+            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sim[1], time=time[1],quiet=quiet)
             field1 = field1 - field2
             if not quiet:
                 print('[DONE]')
@@ -144,20 +138,14 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
 
     # Evaluate poloidal/radial field components or all field components (coord='vector')
     if coord in ['poloidal', 'radial', 'vector']:
-        if not quiet:
-            print('Evaluating ' + str(coord) + ' field... ')
-        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[0], time=time[0])
+        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[0], time=time[0],quiet=quiet)
         if diff or linear:
-            if not quiet:
-                print('Evaluating second field... ', end=' ', flush=True)
-            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[1], time=time[1])
+            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[1], time=time[1],quiet=quiet)
             if not quiet:
                 print('[DONE]')
     elif coord =='tensor':
-        if not quiet:
-            print('Evaluating ' + str(coord) + ' field... ')
         field1RR, field1phiR, field1ZR, field1Rphi, field1phiphi, field1Zphi, field1RZ, field1phiZ, field1ZZ  = \
-            eval_field(field, R, phi, Z, coord='tensor', sim=sim[0], time=time[0])
+            eval_field(field, R, phi, Z, coord='tensor', sim=sim[0], time=time[0],quiet=quiet)
         if row == 1:
             field1R = field1RR
             field1phi = field1phiR
@@ -171,10 +159,8 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             field1phi = field1phiZ
             field1Z = field1ZZ
         if diff or linear:
-            if not quiet:
-                print('Evaluating second field... ', end=' ', flush=True)
             field2RR, field2phiR, field2ZR, field2Rphi, field2phiphi, field2Zphi, field2RZ, field2phiZ, field2ZZ  = \
-                eval_field(field, R, phi, Z, coord='tensor', sim=sim[1], time=time[1])
+                eval_field(field, R, phi, Z, coord='tensor', sim=sim[1], time=time[1],quiet=quiet)
             if row == 1:
                 field2R = field2RR
                 field2phi = field2phiR
@@ -187,8 +173,6 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
                 field2R = field2RZ
                 field2phi = field2phiZ
                 field2Z = field2ZZ
-            if not quiet:
-                print('[DONE]')
 
     # Evaluate poloidal component
     if coord == 'poloidal':
@@ -235,8 +219,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
-    if units.lower()=='m3dc1':
-        unitlabel = fieldlabel + ' (' + unitlabel + ')'
+    cbarlbl = fieldlabel + ' (' + unitlabel + ')'
 
 
     ### Plot the field ###
@@ -284,7 +267,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         plt.title(titlestr,fontsize=titlefs)
     
     if mesh or bound:
-        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,pub=pub)
+        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub)
     
     for i,ax in enumerate(axs):
         if cmap_midpt is not None:
@@ -326,6 +309,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         #cbar.ax.set_xticklabels(cbar.ax.get_xticklabels(),rotation=cbarrot,fontsize=cbarticklblfs)
         cbar.ax.tick_params(labelsize=cbarticklblfs)
         cbar.ax.yaxis.offsetText.set(size=cbarticklblfs)
+        cbar.set_label(cbarlbl,fontsize=cbarlblfs)
         
         # Fix for white lines in contourf plot when exported as PDF
         for c in cont.collections:
@@ -336,12 +320,22 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     
     
     if lcfs:
-        psi_lcfs = sim[0].get_time_trace('psi_lcfs').values[0]
+        if linear or diff:
+            try:
+                lcfs_ts_ind = np.argwhere(np.asarray([sim[0].timeslice, sim[1].timeslice]) < 1).flatten()[0]
+            except:
+                lcfs_ts_ind = 0
+                #fpy.printwarn('WARNING: LCFS plotted at timeslice 0')
+        else:
+            lcfs_ts_ind = 0
+        print('LCFS time: ' + str(time[lcfs_ts_ind]))
+        psi_lcfs = sim[lcfs_ts_ind].get_time_trace('psi_lcfs').values[0]
         if not quiet:
             print("Psi at LCFS: "+str(psi_lcfs))
-        Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sim[0], time=0)
         
-        psifield = R_ave*Aphi
+        #Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sim[lcfs_ts_ind], time=time[lcfs_ts_ind])
+        #psifield = R_ave*Aphi
+        psifield = eval_field('psi', R, phi, Z, coord='scalar', sim=sim[lcfs_ts_ind], filename=sim[lcfs_ts_ind].filename, time=time[lcfs_ts_ind])
         for i,ax in enumerate(axs):
             cont = ax.contour(R_ave, Z_ave, np.average(psifield,0),[psi_lcfs],colors='magenta',linewidths=lcfslw,zorder=10)
     
@@ -363,10 +357,10 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             fieldstr = str(field)
         if savedir is not None:
             fieldstr = savedir + fieldstr
-        if n is None:
+        if ntor is None:
             nout=sim[0].ntor
         else:
-            nout=n
+            nout=ntor
         
         plt.savefig(fieldstr + '_' + timestr + '_n'+"{:d}".format(nout)+'.png', format='png',dpi=900,bbox_inches='tight')
     
