@@ -405,40 +405,29 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
 
   reorderMdsMesh(mesh);
 
-   // FIXME: crash in 3D 
-   if (m3dc1_model::instance()->num_plane==1)
-     apf::writeVtkFiles("after-adapt", mesh);
+  // FIXME: crash in 3D 
+  if (m3dc1_model::instance()->num_plane==1)
+    apf::writeVtkFiles("after-adapt", mesh);
  
   m3dc1_mesh::instance()->initialize(false);
-  m3dc1_mesh::instance()->print(-1);
 
   compute_globalid(mesh, 0);
   compute_globalid(mesh, mesh->getDimension());
 
-  // FIXME: crash in 3D 
-  if (m3dc1_model::instance()->num_plane==1)
-    apf::writeVtkFiles("after-adapt", mesh);
-
-  it=m3dc1_mesh::instance()->field_container->begin();
-  while(it!=m3dc1_mesh::instance()->field_container->end())
+  if (m3dc1_mesh::instance()->field_container && 
+      m3dc1_mesh::instance()->field_container->size())
   {
-    apf::Field* field = it->second->get_field();
-    int complexType = it->second->get_value_type();
-    if (complexType) group_complex_dof(field, 0);
-    if (!isFrozen(field)) freeze(field);
+    it=m3dc1_mesh::instance()->field_container->begin();
+    while(it!=m3dc1_mesh::instance()->field_container->end())
+    {
+      apf::Field* field = it->second->get_field();
+      int complexType = it->second->get_value_type();
+      if (complexType) group_complex_dof(field, 0);
+      if (!isFrozen(field)) freeze(field);
 
-#ifdef DEBUG
-    int isnan;
-    int fieldId= it->first;
-    m3dc1_field_isnan(&fieldId, &isnan);
-    assert(isnan==0);
-#endif
-    synchronize_field(field);
+      synchronize_field(field);
 
-#ifdef DEBUG
-    m3dc1_field_isnan(&fieldId, &isnan);
-    assert(isnan==0);
-#endif
-    it++;
+      it++;
+    }
   }
 }
