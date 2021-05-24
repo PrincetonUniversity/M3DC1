@@ -1421,11 +1421,9 @@ int* /*in*/ scalar_type, int* /*in*/ num_dofs_per_value)
   m3dc1_mesh::instance()->field_container->insert(std::map<FieldID, m3dc1_field*>::value_type(*field_id, new m3dc1_field(*field_id, f, *num_values, *scalar_type, *num_dofs_per_value)));
   apf::freeze(f); // switch dof data from tag to array
 
-#ifdef DEBUG
   if (!PCU_Comm_Self()) 
     std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<*field_id<<", #values "
              <<*num_values<<", #dofs "<<countComponents(f)<<", name "<<field_name<<"\n";
-#endif
 
   if (*field_id>fieldIdMax) fieldIdMax=*field_id;
   double val[2]={0,0};
@@ -2128,12 +2126,12 @@ void m3dc1_field_import()
       if (!PCU_Comm_Self()) std::cout<<"field file "<<fname<<" doesn't exist\n";
       break;
     }
-    else
-      if (!PCU_Comm_Self()) std::cout<<"importing "<<fname;
 
     char field_name[50];
     fscanf(fp, "%s\n", field_name);
     fscanf(fp, "%d %d %d %d\n", &fid, &num_val, &num_dof_per_val, &val_type);
+
+    if (!PCU_Comm_Self()) std::cout<<"importing "<<fname<<" of ID "<<fid<<"\n";
 
     f = m->findField(field_name);
     if (!f)
@@ -2165,7 +2163,6 @@ void m3dc1_field_import()
     m->end(it);
     delete [] dof_data;
     fclose(fp);
-    if (!PCU_Comm_Self()) std::cout<<" (ID "<<fid<<") completed\n";
     ++file_id;
   }
 }

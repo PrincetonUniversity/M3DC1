@@ -160,9 +160,14 @@ void copy_field (apf::Mesh2* mesh, apf::Field* f,
     while (!PCU_Comm_Unpacked())
     {
       PCU_Comm_Unpack(&recv_num_ent, sizeof(int));
+      if (!new_fields[field_id*num_rank+from])
+        std::cout<<"p"<<PCU_Comm_Self()<<"] cannot find new_fields["<<field_id*num_rank+from<<"\n";
       dof_data = apf::getArrayData(new_fields[field_id*num_rank+from]);
       PCU_Comm_Unpack(&(dof_data[0]), total_ndof*recv_num_ent*sizeof(double));
-      std::cout<<"get dof from p "<<from<<" into new_fields["<<field_id*num_rank+from<<"] \n";
+#ifdef DEBUG
+      std::cout<<"[p"<<PCU_Comm_Self()<<"] saving field "
+               <<field_id<<"@p"<<from<<" into new_fields["<<field_id*num_rank+from<<"] \n";
+#endif
     }
   }
 }
@@ -192,6 +197,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   apf::Field* f_h2 = (*m3dc1_mesh::instance()->field_container)[field_id_h2]->get_field();
   synchronize_field(f_h2);
   if (!isFrozen(f_h2)) freeze(f_h2);
+
   double* data_h2;
   if (num_dof==1)
     data_h2 = apf::getArrayData(f_h2);
@@ -207,18 +213,10 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   apf::Field* frame_field = apf::createField(mesh, "frame_field", apf::MATRIX, apf::getLagrange(1));
 
   compute_size_and_frame_fields(mesh, data_h1, data_h2, dir, size_field, frame_field);
+//  if (!PCU_Comm_Self()) std::cout<<__func__<<": "<<__LINE__<<"\n";
   	 
-  // m3dc1_field_delete (&field_id_h1);
-  // m3dc1_field_delete (&field_id_h2);
-  destroyField(f_h1);
-  destroyField(f_h2);
-
-  // remove f from field container
-  delete (*m3dc1_mesh::instance()->field_container)[field_id_h1];
-  delete (*m3dc1_mesh::instance()->field_container)[field_id_h2];
-  m3dc1_mesh::instance()->field_container->erase(field_id_h1);
-  m3dc1_mesh::instance()->field_container->erase(field_id_h2);
-
+   m3dc1_field_delete (&field_id_h1);
+   m3dc1_field_delete (&field_id_h2);
 
   if (num_dof>1)
   {
@@ -233,13 +231,15 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     apf::Field* field = it->second->get_field();
     int complexType = it->second->get_value_type();
     if (complexType) group_complex_dof(field, 1);
-    if (isFrozen(field)) unfreeze(field);
     fields.push_back(field);
     it++;
   }
 
+  apf::unfreezeFields(mesh); // turning field data from array to tag
+
   if (!PCU_Comm_Self())
     std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size() <<" fields will be transfered\n";
+
   // delete all the matrix
   while (m3dc1_solver::instance()-> matrix_container->size())
   {
@@ -304,6 +304,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       gmi_end(model, g_it);
     }
 
+
     // remove 3D entities
     m3dc1_mesh::instance()->remove_wedges();
 
@@ -311,37 +312,33 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     int num_field=m3dc1_mesh::instance()->field_container->size();
 
     it=m3dc1_mesh::instance()->field_container->begin();
-    while(it!=m3dc1_mesh::instance()->field_container->end())
+    for (; it!=m3dc1_mesh::instance()->field_container->end(); ++it)
     {
       apf::Field* field = it->second->get_field();
+      field_id = it->second->get_id();
 
       // master plane
       apf::Field* new_field=NULL;
       double* data_array = NULL;
       int num_dof=countComponents(field);
-      if (!m3dc1_model::instance()->local_planeid)
+      if (!m3dc1_model::instance()->local_planeid) // master plane
       {
-        std::string f_name(getName(field));
-        f_name += "_p";
         for (int i=1; i<m3dc1_model::instance()->num_plane; ++i)
-        { 
-          int pid=field_id*num_rank+mypid+i*m3dc1_model::instance()->group_size;
-          stringstream ss;
-          ss << pid;
-          std::string f_name_2=f_name + ss.str();
-          new_fields[pid] = createPackedField(m3dc1_mesh::instance()->mesh, f_name_2.c_str(), num_dof);
-          freeze(new_fields[pid]);
-          std::cout<<"field "<<field_id<<": creating new field ["
-                   <<pid<<"] ID "<<f_name_2.c_str()<<"\n";
+        {
+          int local_pid = mypid+i*m3dc1_model::instance()->group_size;
+          int pid=field_id*num_rank+ mypid+i*m3dc1_model::instance()->group_size;
+          char f_name[64];
+          sprintf(f_name, "%s-p%d", getName(field), pid);
+  
+          new_fields[pid] = createPackedField(m3dc1_mesh::instance()->mesh, f_name, num_dof);
+          freeze(new_fields[pid]); // switching field data from tag to array
+#ifdef DEBUG
+          std::cout<<"[p"<<PCU_Comm_Self()<<"] field "<<field_id<<": creating new field "
+                   <<f_name<<", field_id "<<field_id<<" local_pid "<<local_pid<<"\n";
+#endif
         }  
       }
-
       copy_field(mesh, field, new_fields, field_id);
-
-      // let's keep the old one for now
-      if (isFrozen(field)) unfreeze(field);
-      it++;
-      ++field_id;
     }
 
     // remove entities on non-master plane
@@ -356,6 +353,8 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       }
     }
   }
+
+  apf::unfreezeFields(mesh); // turning field data from array to tag
   
   ma::adapt(in);
 
@@ -381,11 +380,10 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       num_dofs_per_value = new int [num_field];
       int i=0;
       it=m3dc1_mesh::instance()->field_container->begin();
-      while(it!=m3dc1_mesh::instance()->field_container->end())
+      for(;it!=m3dc1_mesh::instance()->field_container->end();++it)
       {
         field_id[i] = it->second->get_id();
         num_dofs_per_value[i] = it->second->get_dof_per_value();
-        ++i;
       }
     }
 
@@ -408,7 +406,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   // FIXME: crash in 3D 
   if (m3dc1_model::instance()->num_plane==1)
     apf::writeVtkFiles("after-adapt", mesh);
- 
+
   m3dc1_mesh::instance()->initialize(false);
 
   compute_globalid(mesh, 0);
@@ -423,11 +421,9 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       apf::Field* field = it->second->get_field();
       int complexType = it->second->get_value_type();
       if (complexType) group_complex_dof(field, 0);
-      if (!isFrozen(field)) freeze(field);
-
       synchronize_field(field);
-
       it++;
     }
   }
+  apf::freezeFields(mesh); // turn fields from tag to array
 }

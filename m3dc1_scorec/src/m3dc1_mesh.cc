@@ -799,7 +799,6 @@ void m3dc1_mesh::remove_wedges()
     mesh->destroy(e);
   mesh->end(ent_it);
   m3dc1_mesh::instance()->num_own_ent[3]=m3dc1_mesh::instance()->num_local_ent[3]=0;
-
   // delete faces
   int cnt=0;
   ent_it = mesh->begin(2);
@@ -843,7 +842,7 @@ void m3dc1_mesh::remove_wedges()
 
 
 void update_field (int field_id, int ndof_per_value, int num_2d_vtx, MeshEntity** remote_vertices);
-void update_field_3d (int field_id, int index, std::map<int, apf::Field*>* new_fields,
+void update_field_3d (int field_id, std::map<int, apf::Field*>* new_fields,
                       int num_2d_vtx, 
                       std::vector<MeshEntity*>* vertices, MeshEntity** remote_vertices);
 
@@ -1743,7 +1742,7 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value,
   // re-create the field and copy field data on master process group to non-master
   for (int i=0; i<num_field; ++i)
     if (!initial_setup && m3dc1_model::instance()->num_plane)
-      update_field_3d(field_id[i], i, new_fields, num_local_vtx, vertices, remote_vertices);
+      update_field_3d(field_id[i], new_fields, num_local_vtx, vertices, remote_vertices);
     else
       update_field(field_id[i], num_dofs_per_value[i], num_local_vtx, remote_vertices);
 
@@ -1820,13 +1819,13 @@ void m3dc1_mesh::update_partbdry(MeshEntity** remote_vertices, MeshEntity** remo
   num_own_ent[2] += btw_plane_faces.size();
   num_own_ent[3] = btw_plane_regions.size();
 
-  MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, PCU_Get_Comm());
+
 }
 
 // upon  mesh modification, update field wrt memory for dof data and numbering 
 // and rebuild the existing dof data in updated field.
 // *********************************************************
-void update_field_3d (int field_id, int index,
+void update_field_3d (int field_id,
                       std::map<int, apf::Field*>* new_fields, 
                       int num_2d_vtx, 
                       std::vector<MeshEntity*>* vertices, MeshEntity** remote_vertices)
@@ -1851,21 +1850,29 @@ void update_field_3d (int field_id, int index,
   int to_pid, num_dof = countComponents(f); 
   double* dof_data = new double[num_dof*num_2d_vtx]; 
 
-  // master plane
+
   PCU_Comm_Begin();
   if (!m3dc1_model::instance()->local_planeid)
   {
+    apf::freezeFields(mesh); // turning field data from tag to array
     to_pid = local_rank+num_rank_plane;
     while (to_pid<num_rank)
     {
       PCU_Comm_Pack(to_pid, &num_2d_vtx, sizeof(int));
-      field = (*new_fields)[num_rank*index+to_pid]; 
+      field = (*new_fields)[num_rank*field_id+to_pid]; 
+      if (!field)
+        std::cout<<"[p"<<PCU_Comm_Self()<<"] cannot find new_field "<<num_rank*field_id+to_pid<<"\n";
+      else
+        std::cout<<"[p"<<PCU_Comm_Self()<<"] sending field "
+                 <<field_id<<"(new_fields["<<num_rank*field_id+to_pid<<"]) to p"<<to_pid<<"\n";
+      assert(field);
       memcpy(&(dof_data[0]), apf::getArrayData(field), num_dof*num_2d_vtx*sizeof(double));
       PCU_Comm_Pack(to_pid, &(dof_data[0]), num_dof*num_2d_vtx*sizeof(double));
       to_pid += num_rank_plane;
     }
-    PCU_Comm_Send();
   }
+
+  PCU_Comm_Send();
   int recv_num_ent;
   double* recv_dof_data;
 
@@ -1880,12 +1887,14 @@ void update_field_3d (int field_id, int index,
     }
   }
 
+  apf::unfreezeFields(mesh); // turning field data from array to tag
+
   // delete the field
   m3dc1_field_delete(&field_id);
 
   // create the field with same attributes
   m3dc1_field_create (&field_id, f_name, &num_values, &scalar_type, &m3dc1_ndof);
-  
+
   // re-construct the dof data
   f = (*(m3dc1_mesh::instance()->field_container))[field_id]->get_field();
   int new_total_ndof = apf::countComponents(f);
