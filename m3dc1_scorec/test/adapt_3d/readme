@@ -53,6 +53,11 @@ For instance,
 /usr/local/openmpi/latest/bin/mpirun -np 4 ./adapt torus.dmg torus.smb 0
 /usr/local/openmpi/latest/bin/mpirun -np 4  ./adapt tilt.txt tilt.smb 2
 /usr/local/openmpi/latest/bin/mpirun -np 8 ./adapt tilt.txt tilt.smb 4 
+/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt /lore/seol/tests/adapt/3d-adapt-64p/diiid-0.02-2.5-4.0.txt /lore/seol/tests/adapt/3d-adapt-64p/part_64p.smb 4
+
+/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt /lore/seol/tests/adapt/3d-adapt-64p/diiid-0.02-2.5-4.0.txt /lore/seol/tests/adapt/3d-adapt-64p/part_64p.smb 4 -1
+
+
 /usr/local/openmpi/latest/bin/mpirun -np 64 ./adaptd ../nate-32part/diiid0.05.txt ../nate-32part/mesh.smb 2 
 
 

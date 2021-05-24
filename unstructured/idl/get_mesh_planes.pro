@@ -8,25 +8,31 @@ function get_mesh_planes, mesh, filename=filename, slice=slice
      return, 0.
   endif
 
-  nelms = mesh.nelms._data 
-  phi_data = elm_data[8,*]
-  phi = float(phi_data[0])
-  nplanes = 1
+  version = read_parameter('version', filename=filename)
 
-  for i=long(1), nelms-1 do begin
-     phi0 = phi_data[i]
-     newplane = 1
-     for j=0, nplanes-1 do begin
-        if(phi0 eq phi[j]) then begin
-           newplane = 0
-           break
+  if (version lt 34) then begin
+     nelms = mesh.nelms._data 
+     phi_data = elm_data[8,*]
+     phi = float(phi_data[0])
+     nplanes = 1
+
+     for i=long(1), nelms-1 do begin
+        phi0 = phi_data[i]
+        newplane = 1
+        for j=0, nplanes-1 do begin
+           if(phi0 eq phi[j]) then begin
+              newplane = 0
+              break
+           end
+        end
+        if(newplane eq 1) then begin
+           phi = [phi, phi0]
+           nplanes = nplanes+1
         end
      end
-     if(newplane eq 1) then begin
-        phi = [phi, phi0]
-        nplanes = nplanes+1
-     end
-  end
-  
-  return, phi[sort(phi)]
+     phi = phi[sort(phi)]
+
+  endif else phi = mesh.phi._data
+
+  return, phi
 end

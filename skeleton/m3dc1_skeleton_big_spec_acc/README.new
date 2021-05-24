@@ -1,14 +1,22 @@
-1. login CORIGPU
+1. CORIGPU
+-1.1 login CORIGPU
 module purge; module load esslurm;
 module load cuda/10.2.89  pgi/19.10        mvapich2/2.3.2
 module load python cmake git 
 module load gsl fftw/3.3.8 hdf5-parallel/1.10.5-pgi
 salloc -C gpu -N 1 -n 20 -G  8 -A m1759 -t 03:59:59 --exclusive -q special
 
-2. compile
+-1.2 compile
 make USEOPENACC=1
 
-3.
+-1.3
 batchscript.corigpu
 to compare the results, please refer to file "README" created by Nate.
 
+
+2. PU TRAVERSE
+-1.2 compile
+make -f makefile.traverse USEOPENACC=1
+
+-1.3
+batchscript.traverse

@@ -173,7 +173,7 @@ int main( int argc, char* argv[])
     return M3DC1_FAILURE;
   }
   
-  int num_plane=pumi_size();
+  int zero=0, num_plane;
   gmi_model* g;
   apf::Mesh2* m;
   
@@ -198,49 +198,56 @@ int main( int argc, char* argv[])
       return 0;
     }
 
-    if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
+   // loading m3dc1 model and mesh directly -- no 3d mesh buildup 
+    if (argc>4 && atoi(argv[4])==-1)
     {
-      PetscFinalize();
-      m3dc1_scorec_finalize();
-      MPI_Finalize();
-      return 0;
+      m3dc1_mesh_load_3d(argv[2], &num_plane);
+      m3dc1_field_import();
     }
-    int zero=0;
+    else
+    {
+      if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
+      {
+        PetscFinalize();
+        m3dc1_scorec_finalize();
+        MPI_Finalize();
+        return 0;
+      }
 
-    if (num_plane>1)
-      m3dc1_mesh_build3d(&zero, &zero, &zero);
+      if (num_plane>1)
+        m3dc1_mesh_build3d(&zero, &zero, &zero);
+    }
   }
 
   m = m3dc1_mesh::instance()->mesh; 
   int num_adapt_iter = 1; 
-  if (argc>5) 
+  if (argc>5 && atoi(argv[4])>0) 
  	num_adapt_iter=atoi(argv[4]);
   if (!PCU_Comm_Self()) std::cout << "size of adapt loops = " << num_adapt_iter << "\n";
   int shouldSnap=0;
   if (argc>6) 
     shouldSnap=atoi(argv[5]);
   else
-    if (!PCU_Comm_Self()) std::cout <<"Missing input args: argv[5] shouldSnap, argv[6] shouldRunPreZoltan, "
-         <<"argv[7] shouldRunPostZoltan, argv[8] shouldefineLayer\n";
+    if (!PCU_Comm_Self()) std::cout <<"Missing input args: argv[5] shouldSnap, "
+         <<"argv[6] shouldRunPostZoltan, argv[7] shouldefineLayer\n";
 
-  int shouldRunPreZoltan=0;
   int shouldRunPostZoltan=0;
   int shouldRefineLayer=1;
   int maximumIterations=5;
   double goodQuality =0.4;
 
-  if (argc>7) shouldRunPreZoltan=atoi(argv[6]);
-  if (argc>8) shouldRunPostZoltan=atoi(argv[7]);
-  if (argc>9) shouldRefineLayer=atoi(argv[8]);
-  if (argc>10) maximumIterations=atoi(argv[9]);
-  if (argc>11) goodQuality =atof(argv[10]);
+  if (argc>7) shouldRunPostZoltan=atoi(argv[6]);
+  if (argc>8) shouldRefineLayer=atoi(argv[7]);
+  if (argc>9) maximumIterations=atoi(argv[8]);
+  if (argc>10) goodQuality =atof(argv[9]);
     
- // apf::writeVtkFiles("before-adapt",m3dc1_mesh::instance()->mesh);
+ // apf::writeVtkFiles("before-adapt", m);
+  int fid_size1, fid_size2;
 
     for (int n = 0; n<num_adapt_iter; ++n)
     {
-  	int fid_size1=1;
-  	int fid_size2=2;
+      m3dc1_field_getnewid (&fid_size1);
+      m3dc1_field_getnewid (&fid_size2);
   	int scalar_type=0;
   	int num_value=1;
 
@@ -257,7 +264,7 @@ int main( int argc, char* argv[])
 
   	if (!PCU_Comm_Self()) std::cout << "start adaptation with # max iterations "
                                         <<maximumIterations<<", goodQuality "<<goodQuality<<"\n";
-         m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir, &shouldSnap, &shouldRunPreZoltan,
+         m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir, &shouldSnap, &zero, 
 		&shouldRunPostZoltan, &shouldRefineLayer, &maximumIterations, &goodQuality);
 
   	if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";

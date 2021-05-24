@@ -14,6 +14,7 @@
 #define m3dc1_model_getmaxcoord m3dc1_model_getmaxcoord_
 #define m3dc1_model_getplaneid m3dc1_model_getplaneid_
 #define m3dc1_mesh_load m3dc1_mesh_load_
+#define m3dc1_mesh_load_3d m3dc1_mesh_load_3d_
 #define m3dc1_mesh_build3d m3dc1_mesh_build3d_
 #define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
@@ -86,6 +87,8 @@
 #define m3dc1_field_verify m3dc1_field_verify_
 #define m3dc1_field_print m3dc1_field_print_
 #define m3dc1_field_write m3dc1_field_write_
+#define m3dc1_field_import m3dc1_field_import_
+#define m3dc1_field_export m3dc1_field_export_
 #define m3dc1_matrix_create m3dc1_matrix_create_
 #define m3dc1_matrix_assemble m3dc1_matrix_freeze_
 #define m3dc1_matrix_delete m3dc1_matrix_delete_

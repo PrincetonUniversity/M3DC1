@@ -22,7 +22,13 @@ module kprad
   real, private, parameter :: kprad_min_dt_default = 1e10
   real, private :: kprad_min_dt = kprad_min_dt_default     ! minimum final timestep from previous calculation
   real, private :: kprad_dt = 1e-10      ! kprad integration time step (in seconds)
-  
+
+  ! minimum values for KPRAD evolution
+  integer :: ikprad_min_option
+  real :: kprad_nemin
+  real :: kprad_temin
+  real, allocatable, private, dimension(:) :: ne_int, te_int
+
 contains
 
   subroutine kprad_rebase_dt()
@@ -47,6 +53,8 @@ contains
     if(allocated(zed)) deallocate(zed)
     if(allocated(c)) deallocate(c)
     if(allocated(sion_coeff)) deallocate(sion_coeff)
+    if(allocated(ne_int)) deallocate(ne_int)
+    if(allocated(te_int)) deallocate(te_int)
 
   end subroutine kprad_deallocate
 
@@ -266,7 +274,10 @@ contains
     
     do i=0,Z-1 
        call DPOLY_VAL(M2,N,sion_coeff(:,i+1),log10(TE),siont) 
-       sion(:,i) = ne*10**siont 
+       sion(:,i) = ne*10**siont
+       if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
+          where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) sion(:,i) = 0.
+       end if
     enddo
   
   end subroutine KPRAD_IONIZATION_RATE
@@ -285,13 +296,28 @@ contains
     real, intent(out) :: SREC(N,0:Z)
     real, intent(in) :: NE(N),TE(N)
 
+    if(.not. allocated(ne_int)) allocate(ne_int(N))
+    if(.not. allocated(te_int)) allocate(te_int(N))
+
+    if (ikprad_min_option.eq.2) then
+       ne_int = merge(ne, kprad_nemin, ne.ge.kprad_nemin)
+       te_int = merge(te, kprad_temin, te.ge.kprad_temin)
+    else
+       ne_int = ne
+       te_int = te
+    end if
+
     SREC(:,0) = 0.0
     
     do i=1,Z
-       SREC(:,i) = NE(:)*5.2E-14*ZED(i+1)*sqrt(Z_EI(i)/     &
-            TE(:))*(0.43+0.5*log(Z_EI(i)/TE(:)) +           &
-            0.469*(Z_EI(i)/TE(:))**(-0.33))
+       SREC(:,i) = ne_int(:)*5.2E-14*ZED(i+1)*sqrt(Z_EI(i)/     &
+            te_int(:))*(0.43+0.5*log(Z_EI(i)/te_int(:)) +           &
+            0.469*(Z_EI(i)/te_int(:))**(-0.33))
+       if(ikprad_min_option.eq.3) then
+          where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) srec(:,i) = 0.
+       end if
     end do
+
   end subroutine KPRAD_RECOMBINATION_RATE
                                                                         
   !*****************************************************      
@@ -322,24 +348,28 @@ contains
        call DPOLY_VAL(M1,N,C(:,L),LOG10(TE*1.0e-3),impradt)
        
        IMP_RAD(:,L) = (10.0**impradt)*(NE/1.0E13)*NZ(:,L-1)
+       if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
+          where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) IMP_RAD(:,L) = 0.
+       end if
        
        PION(:,L)= SION(:,L-1)*NZ(:,L-1)*Z_EI(L)*1.6E-19 
        nZeff(:,1)=nZeff(:,1)+real(L)*NZ(:,L-1)/SNZ
        nZeff(:,2)=nZeff(:,2)+real((L**2-L))*NZ(:,L-1)/NE
        
        PRECK(:,L) = SREC(:,L)*NZ(:,L)*TE*1.6E-19 
-       PRECP(:,L) = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19 
+       PRECP(:,L) = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19
     end do
     
     PION(:,Z+1)  = sum(PION(:,1:Z),2) 
     !Total recombination losses                                      
-    
+
     !totals -- recombination                                         
     PRECK(:,Z+1)=sum(PRECK(:,1:Z),2) 
     PRECP(:,Z+1)=sum(PRECP(:,1:Z),2) 
-                                                                        
-                                                 !sum of all charge stat
-    IMP_RAD(:,Z+1)=sum(IMP_RAD(:,1:Z),DIM=2) 
+
+    !sum of all charge states
+    IMP_RAD(:,Z+1)=sum(IMP_RAD(:,1:Z),DIM=2)
+
 !       for radiation                                                   
     !CALCULATE instaneous power loss/gain due to ionization/recombinatio
     ! assume radiative recombination is dominant...so we lose electron  
@@ -359,6 +389,10 @@ contains
        !CALCULATE radiative losses to bremsstrahlung
     ! This appears to be in units of W / cm^3, with ne in cm^-3 (-NF)
     PBREM = 1.69E-32*NE**2.0*SQRT(TE)*nZeff(:,2)
+    if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
+       where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) PBREM = 0.
+    end if
+
   end subroutine KPRAD_ENERGY_LOSSES
                                                                         
   subroutine kprad_atomic_data_sub(Z, ierr)
