@@ -489,7 +489,6 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
               *shouldRefineLayer, *maximumIterations, *goodQuality);
 }
 
-
 /* ghosting functions */
 //*******************************************************
 int m3dc1_ghost_create (int* num_layer )

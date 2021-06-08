@@ -1459,8 +1459,7 @@ void exchange_copies(apf::Mesh2* mesh,
 
 // *********************************************************
 void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value, 
-                         int** ge_tag, bool initial_setup,
-                         std::map<int, apf::Field*>* new_fields)
+                         int** ge_tag, bool initial_setup)
 // *********************************************************
 {
   int local_partid=PCU_Comm_Self();
@@ -1741,10 +1740,7 @@ void m3dc1_mesh::build3d(int num_field, int* field_id, int* num_dofs_per_value,
   
   // re-create the field and copy field data on master process group to non-master
   for (int i=0; i<num_field; ++i)
-    if (!initial_setup && m3dc1_model::instance()->num_plane)
-      update_field_3d(field_id[i], new_fields, num_local_vtx, vertices, remote_vertices);
-    else
-      update_field(field_id[i], num_dofs_per_value[i], num_local_vtx, remote_vertices);
+    update_field(field_id[i], num_dofs_per_value[i], num_local_vtx, remote_vertices);
 
   // remove vectors
   vertices->clear();

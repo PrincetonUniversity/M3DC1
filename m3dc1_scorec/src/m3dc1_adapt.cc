@@ -172,7 +172,7 @@ void copy_field (apf::Mesh2* mesh, apf::Field* f,
   }
 }
 
-void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
+void adapt_mesh_obsolete (int field_id_h1, int field_id_h2, double* dir,
     int shouldSnap, int shouldRunPreZoltan ,int shouldRunPostZoltan,
     int shouldRefineLayer, int maximumIterations, double goodQuality)
 {
@@ -213,10 +213,9 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   apf::Field* frame_field = apf::createField(mesh, "frame_field", apf::MATRIX, apf::getLagrange(1));
 
   compute_size_and_frame_fields(mesh, data_h1, data_h2, dir, size_field, frame_field);
-//  if (!PCU_Comm_Self()) std::cout<<__func__<<": "<<__LINE__<<"\n";
   	 
-   m3dc1_field_delete (&field_id_h1);
-   m3dc1_field_delete (&field_id_h2);
+  m3dc1_field_delete (&field_id_h1);
+  m3dc1_field_delete (&field_id_h2);
 
   if (num_dof>1)
   {
@@ -388,7 +387,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     }
 
     m3dc1_mesh::instance()->build3d(num_field, field_id, num_dofs_per_value, 
-                                    ge_tag, false, &new_fields);
+                                    ge_tag, false);
 
     for(int i = 0; i < 3; ++i)
       delete [] ge_tag[i];
@@ -429,4 +428,213 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   }
   //  apf::freezeFields(mesh); // turn fields from tag to array
 */
+}
+
+// new version of mesh adaptation
+// run mesh adaptation in multiple planes in 3D
+void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
+    int shouldSnap, int shouldRunPreZoltan ,int shouldRunPostZoltan,
+    int shouldRefineLayer, int maximumIterations, double goodQuality)
+{
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
+  apf::Field* f_h1 = (*m3dc1_mesh::instance()->field_container)[field_id_h1]->get_field();
+  synchronize_field(f_h1);
+  int num_dof = countComponents(f_h1);
+  if (!isFrozen(f_h1)) freeze(f_h1);
+  double* data_h1;
+
+  if (num_dof==1)
+    data_h1 = apf::getArrayData(f_h1);
+  else 
+  {
+    data_h1 = new double[mesh->count(0)];
+    double* temp_data = apf::getArrayData(f_h1);
+    for (int i=0; i<mesh->count(0); ++i)
+      data_h1[i] = temp_data[i*num_dof];
+  }
+
+  apf::Field* f_h2 = (*m3dc1_mesh::instance()->field_container)[field_id_h2]->get_field();
+  synchronize_field(f_h2);
+  if (!isFrozen(f_h2)) freeze(f_h2);
+
+  double* data_h2;
+  if (num_dof==1)
+    data_h2 = apf::getArrayData(f_h2);
+  else
+  {
+    data_h2= new double[mesh->count(0)];
+    double* temp_data = apf::getArrayData(f_h2);
+    for (int i=0; i<mesh->count(0); ++i)
+      data_h2[i] = temp_data[i*num_dof];
+  }
+
+  apf::Field* size_field = apf::createField(mesh, "size_field", apf::VECTOR, apf::getLagrange(1));
+  apf::Field* frame_field = apf::createField(mesh, "frame_field", apf::MATRIX, apf::getLagrange(1));
+
+  compute_size_and_frame_fields(mesh, data_h1, data_h2, dir, size_field, frame_field);
+  	 
+   m3dc1_field_delete (&field_id_h1);
+   m3dc1_field_delete (&field_id_h2);
+
+  if (num_dof>1)
+  {
+    delete [] data_h1;
+    delete [] data_h2;
+  }
+
+  vector<apf::Field*> fields;
+  std::map<FieldID, m3dc1_field*>::iterator it=m3dc1_mesh::instance()->field_container->begin();
+
+  while(it!=m3dc1_mesh::instance()->field_container->end())
+  {
+    apf::Field* field = it->second->get_field();
+    int complexType = it->second->get_value_type();
+    if (complexType) group_complex_dof(field, 1);
+    fields.push_back(field);
+    it++;
+  }
+  
+  apf::unfreezeFields(mesh); // turning field data from array to tag
+
+  int num_field = fields.size();
+  int* field_id = NULL;
+  int* num_dofs_per_value = NULL;
+
+  if (fields.size()>0)
+  {
+    num_field = m3dc1_mesh::instance()->field_container->size();
+    field_id = new int [num_field];
+    num_dofs_per_value = new int [num_field];
+    int i=0;
+    it=m3dc1_mesh::instance()->field_container->begin();
+    for(;it!=m3dc1_mesh::instance()->field_container->end();++it)
+    {
+      field_id[i] = it->second->get_id();
+      num_dofs_per_value[i] = it->second->get_dof_per_value();
+    }
+  }
+
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size() <<" fields will be transfered\n";
+
+  // delete all the matrix
+  while (m3dc1_solver::instance()-> matrix_container->size())
+  {
+    std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
+    delete mat_it->second;
+    m3dc1_solver::instance()->matrix_container->erase(mat_it);
+  }
+
+  while(mesh->countNumberings())
+  {
+    apf::Numbering* n = mesh->getNumbering(0);
+    apf::destroyNumbering(n);
+  }
+	
+  ReducedQuinticImplicit shape;
+  ReducedQuinticTransfer slnTransfer(mesh,fields, &shape);
+  ma::Input* in = ma::configure(mesh, size_field, frame_field, &slnTransfer);
+	
+  in->shouldSnap = 0; // FIXME: crash if *shouldSnap==1;
+  in->shouldTransferParametric = 0;
+  in->shouldRunPreZoltan = shouldRunPreZoltan;
+  in->shouldRunPostZoltan = shouldRunPostZoltan;
+  in->shouldRunMidParma = 0;
+  in->shouldRunPostParma = 0;
+  in->shouldRefineLayer = shouldRefineLayer;
+  in->maximumIterations=maximumIterations;
+  in->goodQuality = goodQuality;
+
+  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": snap "<<shouldSnap
+  	  <<", runPreZoltan "<<shouldRunPreZoltan<<", runPostZoltan "<<shouldRunPostZoltan<<"\n";
+
+#ifdef DEBUG
+  apf::writeVtkFiles("before-adapt", mesh);
+  mesh->writeNative("mesh.smb");
+#endif
+
+  apf::MeshEntity* e;
+
+  gmi_model* model = m3dc1_model::instance()->model;
+  int** ge_tag = new int*[3];
+  gmi_iter* g_it;
+  gmi_ent* ge;
+  int cnt;
+
+  if (m3dc1_model::instance()->num_plane>1) // 3d
+  {
+    // save the current model tag and revert it back to the original
+    for (int i = 0; i < 3; ++i)
+      ge_tag[i] = new int[model->n[i]];
+
+    for (int dim=0; dim<=2; ++dim)
+    {
+      g_it = gmi_begin(model, dim);
+      cnt=0;
+      while ((ge = gmi_next(model, g_it)))
+      {
+        ge_tag[dim][cnt++]= gmi_tag(model,ge);
+        gmi_base_set_tag (model, ge, cnt);
+      }
+      gmi_end(model, g_it);
+    }
+
+    // remove 3D entities
+    m3dc1_mesh::instance()->remove_wedges();
+    apf::printStats(mesh);
+
+    apf::writeVtkFiles("after-wedge-removal", mesh);
+    mesh->writeNative("after-wedge-removal.smb");
+  }
+
+  ma::adapt(in);
+
+  mesh->removeField(size_field);
+  mesh->removeField(frame_field);
+  apf::destroyField(size_field);
+  apf::destroyField(frame_field);
+
+  m3dc1_mesh::instance()->initialize(false);
+
+  std::cout<<"After adaptation: ";
+  m3dc1_mesh::instance()->print(__LINE__);
+
+  if (m3dc1_model::instance()->num_plane>1) // 3d
+  {
+    // re-construct wedges
+    m3dc1_mesh::instance()->build3d(num_field, field_id, num_dofs_per_value, 
+                                    ge_tag, false);
+
+    for(int i = 0; i < 3; ++i)
+      delete [] ge_tag[i];
+    delete [] ge_tag;
+  } // 3d 
+
+  if (num_field>0)
+  {
+    delete [] field_id;
+    delete [] num_dofs_per_value;
+  }
+
+  reorderMdsMesh(mesh);
+
+  // FIXME: crash in 3D 
+  if (m3dc1_model::instance()->num_plane==1)
+    apf::writeVtkFiles("after-adapt", mesh);
+
+  m3dc1_mesh::instance()->initialize(false);
+  compute_globalid(mesh, 0);
+  compute_globalid(mesh, mesh->getDimension());
+
+  it=m3dc1_mesh::instance()->field_container->begin();
+  while(it!=m3dc1_mesh::instance()->field_container->end())
+  {
+    apf::Field* field = it->second->get_field();
+    int complexType = it->second->get_value_type();
+    if (complexType) group_complex_dof(field, 0);
+    if (!isFrozen(field)) freeze(field);
+    synchronize_field(field);
+    it++;
+  }
 }

@@ -44,20 +44,23 @@ For instance,
 /usr/local/openmpi/latest/bin/mpicxx -g main.cc -o adapt -DM3DC1_PETSC -DPETSC_USE_COMPLEX -I/usr/include -I/usr/local/openmpi/latest/include -I$PREFIX/include -I$PUMI_DIR/include -I$PETSC_DIR/include -I$PETSC_DIR/$PETSC_ARCH/include -L$PREFIX/lib -lm3dc1_scorec_complex -Wl,--start-group,-rpath,$PUMI_DIR/lib -L$PUMI_DIR/lib -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group -L$ZOLTAN_HOME/lib -lzoltan -L$PETSC_DIR/$PETSC_ARCH/lib -Wl,-rpath,$PETSC_DIR/$PETSC_ARCH/lib -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lHYPRE -lmpi_cxx -lstdc++ -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
 
 [Usage]
-/usr/local/openmpi/latest/bin/mpirun -np P ./adapt model mesh #planes 
-
-[Usage for Mesh Adaptation Case- Set #planes to zero and also select the number of time you want to run Mesh Adapt]
-/usr/local/openmpi/latest/bin/mpirun -np P ./adapt model mesh 0 #of mesh adapt run
+/usr/local/openmpi/latest/bin/mpirun -np P ./adapt model mesh #planes model/mesh_load_option
+  option 0 (default) : load .txt model and 2D mesh file
+  option 1: load .txt model and 3D mesh file
+  option 2: load .dmg model and 2D mesh file 
 
 [Examples]
-/usr/local/openmpi/latest/bin/mpirun -np 4 ./adapt torus.dmg torus.smb 0
+// load .dmg model and 2D mesh
+/usr/local/openmpi/latest/bin/mpirun -np 1 ./adapt /lore/seol/meshes/xgc/g096333.03337_pumiModel.dmg /lore/seol/meshes/xgc/g096333.03337_pumiMesh.smb 1 2
+
+// load .txt model and 2D mesh
 /usr/local/openmpi/latest/bin/mpirun -np 4  ./adapt tilt.txt tilt.smb 2
 /usr/local/openmpi/latest/bin/mpirun -np 8 ./adapt tilt.txt tilt.smb 4 
-/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt /lore/seol/tests/adapt/3d-adapt-64p/diiid-0.02-2.5-4.0.txt /lore/seol/tests/adapt/3d-adapt-64p/part_64p.smb 4
 
-/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt /lore/seol/tests/adapt/3d-adapt-64p/diiid-0.02-2.5-4.0.txt /lore/seol/tests/adapt/3d-adapt-64p/part_64p.smb 4 -1
+// load .txt model and distributed 3D mesh (no 3D mesh extrusion)
+/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt /lore/seol/tests/adapt/3d-adapt-64p/diiid-0.02-2.5-4.0.txt /lore/seol/tests/adapt/3d-adapt-64p/part_64p.smb 4 1 
 
-
-/usr/local/openmpi/latest/bin/mpirun -np 64 ./adaptd ../nate-32part/diiid0.05.txt ../nate-32part/mesh.smb 2 
+// FIXME: crash
+/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt ../nate-32part/diiid0.05.txt ../nate-32part/mesh.smb 2 
 
 

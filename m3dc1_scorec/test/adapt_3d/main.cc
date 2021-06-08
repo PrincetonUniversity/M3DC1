@@ -169,7 +169,10 @@ int main( int argc, char* argv[])
 
   if (argc<3 & !pumi_rank())
   {
-    cout<<"Usage: ./main  model mesh #planes"<<endl;
+    cout<<"Usage: ./main  model mesh #planes model/mesh_options (0-2) \n"
+        <<"\tOption 0 (default): load .txt model and 2D mesh (3D mesh is constructed if #planes>1)\n"
+        <<"\tOption 1: load .txt model and distributed 3D mesh (no 3D construction needed)\n"
+        <<"\tOption 2: load .dmg model and 2D mesh\n";
     return M3DC1_FAILURE;
   }
   
@@ -177,7 +180,11 @@ int main( int argc, char* argv[])
   gmi_model* g;
   apf::Mesh2* m;
   
-  if (!atoi(argv[3]))
+  num_plane = atoi(argv[3]);
+  if (num_plane>1 && pumi_size()%num_plane==0)
+      m3dc1_model_setnumplane (&num_plane);
+
+  if (argc>4 && atoi(argv[4])==2)
   {
     gmi_register_mesh();
     g = gmi_load(argv[1]);
@@ -186,10 +193,6 @@ int main( int argc, char* argv[])
   }
   else
   {
-    num_plane = atoi(argv[3]);
-    if (num_plane>1 && pumi_size()%num_plane==0)
-      m3dc1_model_setnumplane (&num_plane);
-
     if (m3dc1_model_load(argv[1])) // model loading failed
     {
       PetscFinalize();
@@ -199,7 +202,7 @@ int main( int argc, char* argv[])
     }
 
    // loading m3dc1 model and mesh directly -- no 3d mesh buildup 
-    if (argc>4 && atoi(argv[4])==-1)
+    if (argc>4 && atoi(argv[4])==1)
     {
       m3dc1_mesh_load_3d(argv[2], &num_plane);
       m3dc1_field_import();
@@ -273,8 +276,8 @@ int main( int argc, char* argv[])
     } // adaptive loop
 
   apf::printStats(m3dc1_mesh::instance()->mesh); 
-  // PetscFinalize();
-  //m3dc1_scorec_finalize();
+  PetscFinalize();
+  m3dc1_scorec_finalize();
   MPI_Finalize();
 
   return 0;
