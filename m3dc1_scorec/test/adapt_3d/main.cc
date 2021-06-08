@@ -272,8 +272,9 @@ int main( int argc, char* argv[])
   	delete [] dir;
     } // adaptive loop
 
-  PetscFinalize();
-  m3dc1_scorec_finalize();
+  apf::printStats(m3dc1_mesh::instance()->mesh); 
+  // PetscFinalize();
+  //m3dc1_scorec_finalize();
   MPI_Finalize();
 
   return 0;

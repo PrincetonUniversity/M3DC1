@@ -408,9 +408,10 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     apf::writeVtkFiles("after-adapt", mesh);
 
   m3dc1_mesh::instance()->initialize(false);
-
   compute_globalid(mesh, 0);
   compute_globalid(mesh, mesh->getDimension());
+
+/* FIXME: crash in 3D
 
   if (m3dc1_mesh::instance()->field_container && 
       m3dc1_mesh::instance()->field_container->size())
@@ -422,8 +423,10 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
       int complexType = it->second->get_value_type();
       if (complexType) group_complex_dof(field, 0);
       synchronize_field(field);
+      freeze(field);
       it++;
     }
   }
-  apf::freezeFields(mesh); // turn fields from tag to array
+  //  apf::freezeFields(mesh); // turn fields from tag to array
+*/
 }
