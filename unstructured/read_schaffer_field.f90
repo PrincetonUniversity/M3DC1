@@ -485,18 +485,26 @@ contains
     character(len=*), intent(in) :: filename
     integer, intent(in) :: isamp, isamp_pol
     integer, intent(out) :: error
-    integer :: k 
+    integer :: k, lpres 
     integer(HID_T) :: file_id, dset_id, attr_id
     integer(HSIZE_T), dimension(1) :: dim0 = 1
     integer(HSIZE_T), dimension(1) :: dim1 
     integer(HSIZE_T), dimension(3) :: dim3
-    real, allocatable :: br1(:,:,:), bphi1(:,:,:), bz1(:,:,:)
+    real, allocatable :: br1(:,:,:), bphi1(:,:,:), bz1(:,:,:), p1(:,:,:)
 
-    sf%vmec = .false.
     error = 0
 
     call h5open_f(error)
     call h5fopen_f(filename, H5F_ACC_RDONLY_F, file_id, error)
+
+    call h5dopen_f(file_id, 'lpres', dset_id, error)
+    call h5dread_f(dset_id, H5T_NATIVE_INTEGER, lpres, dim0, error)
+
+    if(lpres.eq.0) then
+       sf%vmec = .false.
+    else 
+       sf%vmec = .true.
+    end if
 
     ! read array sizes nr, nphi, and nz 
     call h5dopen_f(file_id, 'nr', dset_id, error)
@@ -519,6 +527,10 @@ contains
        allocate(br1(sf%nr,sf%nphi,sf%nz))
        allocate(bphi1(sf%nr,sf%nphi,sf%nz))
        allocate(bz1(sf%nr,sf%nphi,sf%nz))
+       if(lpres.eq.1) then
+          allocate(sf%p(sf%nphi,sf%nr,sf%nz))
+          allocate(p1(sf%nr,sf%nphi,sf%nz))
+       end if
     end if
     ! read 1d arrays r, phi, and z
     dim1(1) = sf%nr 
@@ -547,13 +559,20 @@ contains
     call h5dopen_f(file_id, 'B_Z', dset_id, error)
     call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bz1, dim3, error)
     call h5dclose_f(dset_id, error)
+    if(lpres.eq.1) then
+       call h5dopen_f(file_id, 'PRES', dset_id, error)
+       call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, p1, dim3, error)
+       call h5dclose_f(dset_id, error)
+    end if
 
     do k = 1, sf%nz
        sf%br(:,:,k) = transpose(br1(:,:,k))
        sf%bphi(:,:,k) = transpose(bphi1(:,:,k))
        sf%bz(:,:,k) = transpose(bz1(:,:,k))
+       if(lpres.eq.1) sf%p(:,:,k) = transpose(p1(:,:,k))
     end do 
     deallocate(br1,bz1,bphi1)
+    if(lpres.eq.1) deallocate(p1)
 
     sf%initialized = .true.
 

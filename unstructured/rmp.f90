@@ -286,7 +286,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bphi = bphi + (1e4/b0_norm)*gphi*scale_ext_field
         bz = bz + (1e4/b0_norm)*gz  *scale_ext_field
         if(sf(i)%vmec .and. present(p)) then
-           p = p + q/p0_norm + pedge
+           p = p + q*10/p0_norm + pedge
         end if
 #endif
      end do
