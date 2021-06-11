@@ -45,22 +45,30 @@ For instance,
 
 [Usage]
 /usr/local/openmpi/latest/bin/mpirun -np P ./adapt model mesh #planes model/mesh_load_option
-  option 0 (default) : load .txt model and 2D mesh file
-  option 1: load .txt model and 3D mesh file
-  option 2: load .dmg model and 2D mesh file 
+#planes: if not provided, the default is -1
+         -1 for PUMI model and mesh (.dmg and .smb)
+         1 for 2D with M3DC1 model and mesh (.txt and .smb)
+         n>1 for 3D with M3DC1 model and mesh (.txt and .smb)
+ 
+load_option: if not provided, the default is 0 
+             0 for loading M3DC1 model (.txt) and 2D mesh file for both 2D and 3D run
+             1 for loading M3DC1 model (.txt) and 3D mesh file for 3D run (no 3D mesh construction)
 
 [Examples]
-// load .dmg model and 2D mesh
-/usr/local/openmpi/latest/bin/mpirun -np 1 ./adapt /lore/seol/meshes/xgc/g096333.03337_pumiModel.dmg /lore/seol/meshes/xgc/g096333.03337_pumiMesh.smb 1 2
+(1) load .dmg model and 2D mesh
+/usr/local/openmpi/latest/bin/mpirun -np 1 ./adapt /lore/seol/meshes/xgc/g096333.03337_pumiModel.dmg /lore/seol/meshes/xgc/g096333.03337_pumiMesh.smb 
 
-// load .txt model and 2D mesh
+(2) load .dmg model and 3D mesh
+/usr/local/openmpi/latest/bin/mpirun -np 4 ./adapt /lore/seol/meshes/torus/torus.dmg /lore/seol/meshes/torus/4imb/torus.smb
+
+(3) load .txt model and 2D mesh then construct 3D mesh
 /usr/local/openmpi/latest/bin/mpirun -np 4  ./adapt tilt.txt tilt.smb 2
-/usr/local/openmpi/latest/bin/mpirun -np 8 ./adapt tilt.txt tilt.smb 4 
-
-// load .txt model and distributed 3D mesh (no 3D mesh extrusion)
-/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt /lore/seol/tests/adapt/3d-adapt-64p/diiid-0.02-2.5-4.0.txt /lore/seol/tests/adapt/3d-adapt-64p/part_64p.smb 4 1 
-
-// FIXME: crash
+/usr/local/openmpi/latest/bin/mpirun -np 8 ./adapt tilt.txt tilt.smb 4
+// FIXME: crash in apf::reorderMdsMesh after adaptation
 /usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt ../nate-32part/diiid0.05.txt ../nate-32part/mesh.smb 2 
+
+(4) load .txt model and distributed 3D mesh (no 3D mesh extrusion)
+// FIXME: crash in the beginning of adaptation
+/usr/local/openmpi/latest/bin/mpirun -np 64 ./adapt /lore/seol/tests/adapt/3d-adapt-64p/diiid-0.02-2.5-4.0.txt /lore/seol/tests/adapt/3d-adapt-64p/part_64p.smb 4 1
 
 

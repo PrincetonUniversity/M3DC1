@@ -180,11 +180,7 @@ int main( int argc, char* argv[])
   gmi_model* g;
   apf::Mesh2* m;
   
-  num_plane = atoi(argv[3]);
-  if (num_plane>1 && pumi_size()%num_plane==0)
-      m3dc1_model_setnumplane (&num_plane);
-
-  if (argc>4 && atoi(argv[4])==2)
+  if (argc==3 || atoi(argv[3])==-1 || (argc>4 && atoi(argv[4])==2))
   {
     gmi_register_mesh();
     g = gmi_load(argv[1]);
@@ -200,8 +196,11 @@ int main( int argc, char* argv[])
       MPI_Finalize();
       return 0;
     }
-
-   // loading m3dc1 model and mesh directly -- no 3d mesh buildup 
+    num_plane = atoi(argv[3]);
+    if (num_plane>1 && pumi_size()%num_plane==0)
+      m3dc1_model_setnumplane (&num_plane);
+  
+    // loading m3dc1 model and mesh directly -- no 3d mesh buildup 
     if (argc>4 && atoi(argv[4])==1)
     {
       m3dc1_mesh_load_3d(argv[2], &num_plane);
