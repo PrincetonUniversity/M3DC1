@@ -55,7 +55,7 @@ contains
 
     real, intent(in) :: x, phi, z
     real, intent(out) :: rout, zout 
-    real :: r, theta, ds, r2n, s1, s0
+    real :: r, theta, ds, r2n, s1, s0, rax, zax
     integer :: i, js
     real, dimension(mn_mode) :: rstc, rsts, zsts, zstc, co, sn 
     real :: phis
@@ -66,6 +66,8 @@ contains
     theta = atan2(z - zcenter, x - xcenter)
     rout = 0
     zout = 0
+    rax = 0
+    zax = 0
     if (iread_vmec.ge.1) then ! use VMEC surfaces to calculate geometry
       co = cos(xmv*theta+xnv*phis)
       sn = sin(xmv*theta+xnv*phis)
@@ -73,6 +75,8 @@ contains
       js = ceiling(r2n)
       if (js>(ns-1)) js = ns-1
       if (js>0) then ! interpolate between surfaces
+      !if (bloat_factor.eq.0.) then ! use VMEC output for geometry 
+        !r = r*bloat_factor
         call zernike_evaluate(r,mn_mode,mb,rmncz,rstc)
         call zernike_evaluate(r,mn_mode,mb,zmnsz,zsts)
         if(lasym.eq.1) then
@@ -89,7 +93,7 @@ contains
 !              + rmnc(:,js)*ds*s0**(-xmv/2+1))*r**(xmv-2) 
 !        zsts = (zmns(:,js+1)*(1-ds)*s1**(-xmv/2+1)&
 !              + zmns(:,js)*ds*s0**(-xmv/2+1))*r**(xmv-2)
-        do i = 1, mn_mode 
+        do i = 1, mn_mode  
           if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
             rout = rout + rstc(i)*co(i)
             zout = zout + zsts(i)*sn(i)
@@ -99,18 +103,30 @@ contains
             end if
           end if
         end do
-      else ! near axis, use routine 
+        !do i = 1, n_tor+1
+        !  if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
+        !    rax = rax + rmnc(i,1)*co(i)
+        !    zax = zax + zmns(i,1)*sn(i)
+        !    if(lasym.eq.1) then
+        !      rax = rax + rmns(i,1)*sn(i)
+        !      zax = zax + zmnc(i,1)*co(i)
+        !    end if
+        !  end if
+        !end do
+        !rout = (rout-rax)*bloat_factor + rax 
+        !zout = (zout-zax)*bloat_factor + zax 
+      else ! use routine 
 !        ds = sqrt(r2n) 
 !        rstc = rmnc(:,js+1)
 !        zsts = zmns(:,js+1)
-        ds = r 
+        ds = r
         rstc = rbc
         zsts = zbs
         if(lasym.eq.1) then
           rsts = rbs
           zstc = zbc
         endif
-        do i = 1, mn_mode 
+        do i = n_tor+2, mn_mode 
           if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
             rout = rout + rstc(i)*co(i)*ds**xmv(i)
             zout = zout + zsts(i)*sn(i)*ds**xmv(i)
@@ -121,15 +137,23 @@ contains
           end if
         end do
         do i = 1, n_tor+1 ! shift axis to magnetic axis 
-            if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
-!              rout = rout + (rmnc(i,1)-rbc(i))*co(i)*(1-ds**2)
-!              zout = zout + (zmns(i,1)-zbs(i))*sn(i)*(1-ds**2)
-!              if(lasym.eq.1) then
-!              rout = rout + (rmns(i,1)-rbs(i))*sn(i)*(1-ds**2)
-!              zout = zout + (zmnc(i,1)-zbc(i))*co(i)*(1-ds**2)
-!              end if
+          if (xmv(i)<m_max .and. abs(xnv(i))<n_max) then
+            rout = rout + (rmnc(i,1)*(-ds**2)+rbc(i)*ds**2)*co(i)
+            zout = zout + (zmns(i,1)*(-ds**2)+zbs(i)*ds**2)*sn(i)
+            rax = rax + rmnc(i,1)*co(i)
+            zax = zax + zmns(i,1)*sn(i)
+            if(lasym.eq.1) then
+              rout = rout + (rmns(i,1)*(-ds**2)+rbs(i)*ds**2)*sn(i)
+              zout = zout + (zmnc(i,1)*(-ds**2)+zbc(i)*ds**2)*co(i)
+              rax = rax + rmns(i,1)*sn(i)
+              zax = zax + zmnc(i,1)*co(i)
             end if
+          end if
         end do
+        !rout = rout*bloat_factor + rax 
+        !zout = zout*bloat_factor + zax
+        rout = rout + rax 
+        zout = zout + zax
       end if
     else ! use routine to generate from boundary geometry
       co = cos(mb*theta-nb*phis*nperiods)

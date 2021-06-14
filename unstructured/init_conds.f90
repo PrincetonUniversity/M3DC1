@@ -638,10 +638,17 @@ subroutine initial_conditions()
            call basicj_init()
 #ifdef USEST
         case(40)
-           if (igeometry.eq.1 .and. iread_vmec.ge.1) then
+           if (igeometry.eq.1 .and. iread_vmec.ge.1 .and. bloat_factor.eq.0) then
               call vmec_init()
            else
-              print *, 'VMEC equilibrium needs igeometry=1 and iread_vmec>1!'
+              if(myrank.eq.0) print *, &
+                'VMEC equilibrium needs igeometry=1, iread_vmec>1, and bloat_factor=0!'
+              call safestop(1)
+           end if
+        case(41)
+           if (iread_ext_field.eq.0 .or. type_ext_field.ne.1) then
+              if(myrank.eq.0) print *, &
+                'Free-boundary simulation requires reading FIELDLINES output!'
               call safestop(1)
            end if
 #endif

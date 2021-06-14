@@ -3,6 +3,7 @@ module read_vmec
   use spline
   implicit none
   character(len=256) :: vmec_filename
+  real :: bloat_factor   ! factor to expand VMEC domain 
 
 #ifdef USEST
   integer :: nfp, lasym
@@ -70,6 +71,13 @@ contains
     do i = 1, ns
       s_vmec(i) = 1.*(i-1)/(ns-1)
     end do
+
+    ! bloat VMEC domain
+    if(bloat_factor.ne.0) then
+      if(myrank.eq.0) print *, 'expanding domain'
+      call bloat_domain(myrank)
+    end if
+
     ! calculate Gauss quadradure
     call gaussquad(n_quad,quad) 
     ! perform Zernike transform
@@ -146,7 +154,11 @@ contains
     allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
-    n_zer = m_pol*2
+    if(bloat_factor.ne.0) then
+      n_zer = m_pol*1 ! for free-boundary
+    else 
+      n_zer = m_pol*2 ! for fixed-boundary
+    end if
     allocate(rmncz(mn_mode,n_zer+1))
     allocate(zmnsz(mn_mode,n_zer+1))
     allocate(lmnsz(mn_mode,n_zer+1))
@@ -480,6 +492,7 @@ contains
       deallocate(zbc)
     endif
     deallocate(s_vmec)
+    deallocate(quad)
     deallocate(presf)
     deallocate(phiv)
     deallocate(chiv)
@@ -540,7 +553,7 @@ contains
 !
 !    do k = 1, nt
 !       rho = sqrt((k-1.)/(nt-1))
-!       call vmec_interpl(rho,fmn,ftemp)
+!       call vmec_interpl(rho,mn,m,fmn,ftemp)
 !       do i = 1, mn_mode
 !          do j = mb(i), n_zer-2, 2
 !             call zernike_polynomial(rho,j,mb(i),zmn) 
@@ -630,12 +643,13 @@ contains
        end do
        r2n = r**2*(ns-1)
        js = ceiling(r2n)
+       if(js.gt.ns-1) js = ns-1
        ds = r2n - (js-1)
        df = (f(:,js+1) - f(:,js))
        if(js.eq.1) then
           df0 = df
           df1 = (f(:,js+2) - f(:,js  ))/2
-       else if(js.ge.ns-1) then
+       else if(js.eq.ns-1) then
           df0 = (f(:,js+1) - f(:,js-1))/2
           df1 = df
        else
@@ -681,6 +695,7 @@ contains
   ! Adapted from https://rosettacode.org/wiki/Numerical_integration/Gauss-Legendre_Quadrature#Fortran
   subroutine gaussquad(n,quad)
     use math
+    implicit none
     integer, parameter :: p = 16 ! quadruple precision
     integer, intent(in) :: n
     real, intent(inout) :: quad(2, n)
@@ -717,7 +732,118 @@ contains
       r(2,i) = 2/((1-x**2)*df**2)
     end do
     quad = dble(r)
-  end subroutine 
+  end subroutine gaussquad 
+
+  subroutine bloat_domain(myrank)
+    use math
+    implicit none
+
+    real, allocatable :: rreal(:,:,:), zreal(:,:,:)
+    real, dimension(mn_mode) :: co, sn 
+    real, dimension(ns) :: s_bloat 
+    real, allocatable :: theta(:), zeta(:)
+    real, allocatable :: rmnc_temp(:,:), zmns_temp(:,:)
+    real, allocatable :: rmns_temp(:,:), zmnc_temp(:,:)
+    integer :: i, j, k, l, nt, nz 
+    integer, intent(in) :: myrank
+    type(spline1d) :: rreal_spline, zreal_spline 
+
+    ! grid in theta and zeta
+    nt = 2*m_pol-1
+    nz = 2*n_tor+1
+    allocate(theta(nt))
+    allocate(zeta(nz))
+    do i = 1, nt 
+      theta(i) = twopi*(i-1)/nt
+    end do
+    do i = 1, nz 
+      zeta(i) = twopi*(i-1)/(nfp*nz)
+    end do
+
+    ! calculate R and Z in real space
+    allocate(rreal(ns,nt,nz))
+    allocate(zreal(ns,nt,nz))
+    rreal = 0.
+    zreal = 0.
+    do i = 1, ns 
+      do j = 1, nt 
+        do k = 1, nz 
+          co = cos(xmv*theta(j)+xnv*zeta(k))
+          sn = sin(xmv*theta(j)+xnv*zeta(k))
+          do l = 1, mn_mode  
+            rreal(i,j,k) = rreal(i,j,k) + rmnc(l,i)*co(l)
+            zreal(i,j,k) = zreal(i,j,k) + zmns(l,i)*sn(l)
+            if(lasym.eq.1) then
+              rreal(i,j,k) = rreal(i,j,k) + rmns(l,i)*sn(l)
+              zreal(i,j,k) = zreal(i,j,k) + zmnc(l,i)*co(l)
+            end if
+          end do
+        end do
+      end do
+    end do
+
+    ! extrapolate R and Z in real space
+    s_bloat = s_vmec*bloat_factor**2
+    do j = 1, nt 
+      do k = 1, nz 
+        call create_spline(rreal_spline, ns, s_vmec, rreal(:,j,k))
+        call create_spline(zreal_spline, ns, s_vmec, zreal(:,j,k))
+        do i = 2, ns 
+          call evaluate_spline(rreal_spline, s_bloat(i), rreal(i,j,k),extrapolate=1)
+          call evaluate_spline(zreal_spline, s_bloat(i), zreal(i,j,k),extrapolate=1)
+        end do
+        call destroy_spline(rreal_spline)
+        call destroy_spline(zreal_spline)
+      end do
+    end do
+
+    ! transform back into Fourier space
+    allocate(rmnc_temp(mn_mode,ns))
+    allocate(zmns_temp(mn_mode,ns)) 
+    rmnc_temp = 0.
+    zmns_temp = 0.
+    if(lasym.eq.1) then
+      allocate(rmns_temp(mn_mode,ns))
+      allocate(zmnc_temp(mn_mode,ns)) 
+      rmns_temp = 0.
+      zmnc_temp = 0.
+    end if
+    do j = 1, nt 
+      do k = 1, nz
+        co = cos(xmv*theta(j)+xnv*zeta(k))
+        sn = sin(xmv*theta(j)+xnv*zeta(k))
+        do i = 2, ns 
+          do l = 1, mn_mode  
+            rmnc_temp(l,i) = rmnc_temp(l,i) + rreal(i,j,k)*co(l)
+            zmns_temp(l,i) = zmns_temp(l,i) + zreal(i,j,k)*sn(l)
+            if(lasym.eq.1) then
+              rmns_temp(l,i) = rmns_temp(l,i) + rreal(i,j,k)*sn(l)
+              zmnc_temp(l,i) = zmnc_temp(l,i) + zreal(i,j,k)*co(l)
+            end if
+          end do
+        end do
+      end do
+    end do
+    rmnc_temp = rmnc_temp*2./(nt*nz)
+    zmns_temp = zmns_temp*2./(nt*nz)
+    rmnc_temp(1,:) = rmnc_temp(1,:)*.5
+    zmns_temp(1,:) = zmns_temp(1,:)*.5
+    rmnc(:,2:) = rmnc_temp(:,2:)
+    zmns(:,2:) = zmns_temp(:,2:)
+    deallocate(rmnc_temp,zmns_temp)
+    if(lasym.eq.1) then
+      rmns_temp = rmns_temp*2./(nt*nz)
+      zmnc_temp = zmnc_temp*2./(nt*nz)
+      rmns_temp(1,:) = rmns_temp(1,:)*.5
+      zmnc_temp(1,:) = zmnc_temp(1,:)*.5
+      rmns(:,2:) = rmns_temp(:,2:)
+      zmnc(:,2:) = zmnc_temp(:,2:)
+      deallocate(rmns_temp,zmnc_temp)
+    end if
+    deallocate(theta,zeta)
+    deallocate(rreal,zreal)
+
+  end subroutine bloat_domain
 
 #endif
 end module read_vmec 
