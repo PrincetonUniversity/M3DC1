@@ -26,6 +26,7 @@ Program Reducedquintic
   use neutral_beam
   use kprad_m3dc1
   use transport_coefficients
+  use m3dc1_vel_prof
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -136,6 +137,10 @@ Program Reducedquintic
      call safestop(1)
   endif
 #endif
+
+!profiling velocity solve
+  call PetscLogStageRegister("Mat A",stageA,ier)
+  call PetscLogStageRegister("KSP S",stageS,ier)
 
   ! read input file
   if(myrank.eq.0) print *, ' Reading input'

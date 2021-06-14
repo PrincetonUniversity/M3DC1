@@ -1414,7 +1414,9 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
         if(in_domain .gt. 1) then
            if(myrank.eq.0 .and. iprint.ge.1) &
-                print *, "In multiple domains.", in_domain
+                print *, "In multiple domains.", in_domain, inews
+           if(myrank.le.2 .and. iprint.ge.2) &
+                print *,"myrank,x,z", myrank,xnew,znew
 
            xnew = xnew / in_domain
            znew = znew / in_domain

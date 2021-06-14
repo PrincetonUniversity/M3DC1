@@ -143,9 +143,31 @@ function read_scalar, scalarname, filename=filename, title=title, $
           print, 'Error: pellet data not present in this file'
           return, 0
        endif else begin
-          data = p.pellet_rate._data[ipellet,*]
+          if ipellet eq -1 then begin
+            data = p.pellet_rate._data
+          endif else begin
+            data = p.pellet_rate._data[ipellet,*]
+          endelse
        endelse
        title = 'Pellet Rate'
+       symbol = '!8V!DL!N!X'
+       d = dimensions(/n0, l0=3, t0=-1, _EXTRA=extra)
+     endif else $
+       if (strcmp("pellet rate D2", scalarname, /fold_case) eq 1) or $
+       (strcmp("pelrD2", scalarname, /fold_case) eq 1) then begin
+       if(version lt 31) then begin
+         data = s.pellet_rate_D2._data
+       endif else if(p eq !NULL) then begin
+         print, 'Error: pellet data not present in this file'
+         return, 0
+       endif else begin
+         if ipellet eq -1 then begin
+           data = p.pellet_rate_D2._data
+         endif else begin
+           data = p.pellet_rate_D2._data[ipellet,*]
+         endelse
+       endelse
+       title = 'Pellet Rate D2'
        symbol = '!8V!DL!N!X'
        d = dimensions(/n0, l0=3, t0=-1, _EXTRA=extra)
    endif else $
@@ -169,7 +191,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
           print, 'Error: pellet data not present in this file'
           return, 0
         endif else begin
-          data = p.pellet_var._data[ipellet,*]
+          if ipellet eq -1 then begin
+            data = p.pellet_var._data
+          endif else begin
+            data = p.pellet_var._data[ipellet,*]
+          endelse
        endelse
        title = 'Pellet Var'
        symbol = '!8V!DL!N!X'
@@ -186,7 +212,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
           print, 'Error: pellet data not present in this file'
           return, 0
         endif else begin
-          data = p.r_p._data[ipellet,*]
+          if ipellet eq -1 then begin
+            data = p.r_p._data
+          endif else begin
+            data = p.r_p._data[ipellet,*]
+          endelse
         endelse
       end
        title = 'Pellet Radius'
@@ -204,7 +234,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
            print, 'Error: pellet data not present in this file'
            return, 0
          endif else begin
-           data = p.pellet_r._data[ipellet,*]
+           if ipellet eq -1 then begin
+             data = p.pellet_r._data
+           endif else begin
+             data = p.pellet_r._data[ipellet,*]
+           endelse
          endelse
        end
        title = 'Pellet R position'
@@ -219,7 +253,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
           print, 'Error: pellet data not present in this file'
           return, 0
        endif else begin
-          data = p.pellet_phi._data[ipellet,*]
+          if ipellet eq -1 then begin
+            data = p.pellet_phi._data
+          endif else begin
+            data = p.pellet_phi._data[ipellet,*]
+          endelse
        endelse
        title = 'Pellet !9P!X position'
        symbol = '!8V!DL!N!X'
@@ -233,7 +271,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
           print, 'Error: pellet data not present in this file'
           return, 0
        endif else begin
-          data = p.pellet_z._data[ipellet,*]
+          if ipellet eq -1 then begin
+            data = p.pellet_z._data
+          endif else begin
+            data = p.pellet_z._data[ipellet,*]
+          endelse
        endelse
        title = 'Pellet Z position'
        symbol = '!8V!DL!N!X'
@@ -505,7 +547,11 @@ function read_scalar, scalarname, filename=filename, title=title, $
        if(scount ne 0) then begin
            data = s.(smatch[0])._data
        endif else if(pcount ne 0) then begin
-           data = p.(pmatch[0])._data[ipellet,*]
+           if ipellet eq -1 then begin
+              data = p.(pmatch[0])._data
+           endif else begin
+              data = p.(pmatch[0])._data[ipellet,*]
+           endelse
        endif else begin
            print, 'Scalar ', scalarname, ' not recognized.'
            return, 0
@@ -528,12 +574,20 @@ function read_scalar, scalarname, filename=filename, title=title, $
    endelse
    
    if(keyword_set(final)) then begin
+     if ipellet eq -1 then begin
+       data = data[*,n_elements(data)-1]
+     endif else begin
        data = data[n_elements(data)-1]
+     endelse
    endif
 
    if(keyword_set(integrate)) then begin
        d = d + dimensions(/t0)
-       data = cumtrapz(time,data)
+       if ipellet eq -1 then begin
+         for ip=0,n_elements(data[*,0])-1 do data[ip,*] = cumtrapz(time,data[ip,*])
+       endif else begin
+         data = cumtrapz(time,data)
+       endelse
        title = 'Integrated '+title
        symbol = '!Mi '+symbol+'!6 dt!6'
    endif
@@ -544,10 +598,18 @@ function read_scalar, scalarname, filename=filename, title=title, $
    convert_units, time, dimensions(/t0), b0, n0, l0, mi, _EXTRA=extra
    units = parse_units(d, _EXTRA=extra)
 
-   if(n_elements(data) gt n_elements(time)) then $
-      data = data[0:n_elements(time)-1]
-   if(n_elements(time) gt n_elements(data)) then $
-      time = time[0:n_elements(data)-1]
-
-   return, data
+   if ipellet ne -1 then begin
+     if(n_elements(data) gt n_elements(time)) then $
+        data = data[0:n_elements(time)-1]
+     if(n_elements(time) gt n_elements(data)) then $
+        time = time[0:n_elements(data)-1]
+   endif else begin
+     N = size(data)
+     N = N[2]
+     if(N gt n_elements(time)) then $
+       data = data[*,0:n_elements(time)-1]
+     if(n_elements(time) gt N) then $
+       time = time[0:N-1]
+   endelse
+   return, reform(data)
 end

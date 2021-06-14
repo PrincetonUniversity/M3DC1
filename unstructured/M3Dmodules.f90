@@ -77,7 +77,10 @@ module basic
   real :: kappaf
   real :: kappai_fac
   real :: kappa_max
-  real :: denm        ! artificial density diffusion
+  real :: denm        ! artificial density diffusion used in idenmfunc = 0,1
+  real :: denmt       ! temperature dependent density diffusion used in idenmfunc = 1
+  real :: denmmin     ! Minimum value of density diffusion
+  real :: denmmax     ! Maximum value of density diffusion
   real :: deex        ! scale length of hyperviscosity term
   real :: hyper,hyperi,hyperv,hyperc,hyperp
   real :: gradp_crit
@@ -739,3 +742,11 @@ module m3dc1_omp
   integer :: ithread, nthreads
 #endif
 end module m3dc1_omp
+
+!cj velocity equation profiling
+module m3dc1_vel_prof
+#include <petsc/finclude/petscksp.h>
+      use petscksp
+      implicit none
+      PetscLogStage  stageA,stageS
+end module m3dc1_vel_prof

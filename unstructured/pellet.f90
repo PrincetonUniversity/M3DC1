@@ -34,7 +34,8 @@ module pellet
   real :: temin_abl
   real, allocatable :: pellet_rate_D2(:)  ! rate of deuterium deposition from mixed pellets
   real, allocatable :: cauchy_fraction(:)
-
+  real :: abl_fac
+  
   real, allocatable :: nsource_pel(:), temp_pel(:), Lor_vol(:)
   real, allocatable :: rpdot(:)
 
@@ -547,9 +548,11 @@ contains
         pellet_rate(ip) = pellet_rate(ip)*t0_norm/(n0_norm*l0_norm**3)
         rpdot(ip) = rpdot(ip) * (t0_norm/l0_norm)
 
-      end select
+       end select
 
-
+       pellet_rate(ip) = pellet_rate(ip)*abl_fac
+       pellet_rate_D2(ip) = pellet_rate_D2(ip)*abl_fac
+       rpdot(ip) = rpdot(ip)*abl_fac
 
        dr_p = dt*rpdot(ip)  ! change in pellet radius
 
@@ -560,12 +563,30 @@ contains
                                (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
           pellet_rate_D2(ip) = (N_Avo/(n0_norm*l0_norm**3*dt))*(4.*inv3*pi*(r_p(ip)*l0_norm)**3)*rho0*pellet_mix(ip)/&
                                (M_z*(1.-pellet_mix(ip))+M_D2*pellet_mix(ip))
+       else
+       end if
+    end do
+
+  end subroutine calculate_ablation
+
+  subroutine pellet_shrink
+
+   use basic
+    implicit none
+    integer ip
+    real :: dr_p
+    do ip=1, npellets
+       dr_p = dt*rpdot(ip)  ! change in pellet radius
+
+       if(dr_p.gt.r_p(ip)) then
+          ! we've ablated the whole pellet
+          if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p(ip)
           r_p(ip) = 0.0
        else
           r_p(ip) = r_p(ip) - dr_p
        end if
     end do
 
-  end subroutine calculate_ablation
+  end subroutine pellet_shrink
 
 end module pellet

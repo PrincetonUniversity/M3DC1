@@ -4866,6 +4866,7 @@ subroutine ludefvel_n(itri)
   use time_step
   use model
   use boundary_conditions
+  use m3dc1_vel_prof
 
   implicit none
 
@@ -4883,9 +4884,10 @@ subroutine ludefvel_n(itri)
   integer :: advfield
   integer :: pp_i
   integer, dimension(3) :: ieq
-  integer :: k, izone
+  integer :: k, izone, ier
   integer, dimension(dofs_per_element) :: imask
 
+call PetscLogStagePush(stageA,ier)
   call get_zone(itri, izone)
 
   if(isplitstep.ge.1) then
@@ -5042,6 +5044,7 @@ subroutine ludefvel_n(itri)
 !$OMP END CRITICAL
   end do
 
+call PetscLogStagePop(ier)
 end subroutine ludefvel_n
 
 

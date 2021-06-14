@@ -40,7 +40,9 @@ contains
   subroutine initialize_timestep_split
     use sparse
     use basic
+    use m3dc1_vel_prof
     implicit none
+    integer :: jer
 
     vecsize_phi = numvar
     vecsize_vel = numvar
@@ -119,6 +121,7 @@ contains
 
     call create_vector(pret_vec,    vecsize_t)
 
+call PetscLogStagePush(stageA,jer)
     ! Matrices associated with velocity advance
     call set_matrix_index(s1_mat, s1_mat_index)
     call set_matrix_index(d1_mat, d1_mat_index)
@@ -151,6 +154,7 @@ contains
        call set_matrix_index(p1_mat, p1_mat_index)
        call create_mat(p1_mat, vecsize_vel, vecsize_p, icomplex, 0)
     end if
+call PetscLogStagePop(jer)
 
     ! Matrices associated with magnetic field advance
     call set_matrix_index(s2_mat, s2_mat_index)
@@ -298,15 +302,19 @@ contains
 
   subroutine finalize_timestep_split
     use basic
+    use m3dc1_vel_prof
     implicit none
+    integer :: jer
 
     if(.not.initialized) return
       
+call PetscLogStagePush(stageA,jer)
     call destroy_mat(s1_mat)
     call destroy_mat(d1_mat)
     call destroy_mat(q1_mat)
     call destroy_mat(r14_mat)
     if(i3d.eq.1) call destroy_mat(o1_mat)
+call PetscLogStagePop(jer)
 
     call destroy_mat(s2_mat)
     call destroy_mat(d2_mat)
@@ -455,8 +463,11 @@ contains
 
   subroutine clear_matrices_split
     use basic
+    use m3dc1_vel_prof
     implicit none
+    integer :: jer
 
+call PetscLogStagePush(stageA,jer)
     if(mod(ntime,pskip)==0) then
         if(myrank.eq.0) print *, " clear_mat s1_mat",ntime, s1_mat%imatrix
     call clear_mat(s1_mat)
@@ -471,8 +482,8 @@ contains
     if((ipres.eq.1 .and. numvar.lt.3) .or. ipressplit.eq.1) then 
        call clear_mat(p1_mat)
     end if
-
     r4_vec = 0.
+call PetscLogStagePop(jer)
 
     
     call clear_mat(s2_mat)
@@ -525,8 +536,11 @@ contains
 
   subroutine finalize_matrices_split
     use basic
+    use m3dc1_vel_prof
     implicit none
+    integer :: jer
 
+call PetscLogStagePush(stageA,jer)
     call finalize(d1_mat)
     call finalize(q1_mat)
     call finalize(r14_mat)
@@ -537,6 +551,7 @@ contains
        call finalize(p1_mat)
     end if
     call sum_shared(r4_vec)
+call PetscLogStagePop(jer)
 
     if(myrank.eq.0 .and. iprint.ge.1) &
          print *, " before field finalize..."
@@ -746,6 +761,7 @@ subroutine step_split(calc_matrices)
   use model
   use transport_coefficients
   use auxiliary_fields
+  use m3dc1_vel_prof
 
   implicit none
 
@@ -775,6 +791,7 @@ subroutine step_split(calc_matrices)
      ! ================
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Advancing velocity"
   
+call PetscLogStagePush(stageA,jer)
      ! d1matrix_sm * vel(n)
      call matvecmult(d1_mat,vel_vec,b1_vel)
   
@@ -820,6 +837,7 @@ subroutine step_split(calc_matrices)
      else
         call boundary_vel(b1_vel, u_v, vz_v, chi_v)
      endif
+call PetscLogStagePop(jer)
 
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
@@ -838,7 +856,9 @@ subroutine step_split(calc_matrices)
      endif
 #endif
 
+call PetscLogStagePush(stageS,jer)
      call newsolve(s1_mat, b1_vel, jer)
+call PetscLogStagePop(jer)
      !if(linear.eq.0) call clear_mat(s1_mat)
 
      if(idifv .gt.0) then

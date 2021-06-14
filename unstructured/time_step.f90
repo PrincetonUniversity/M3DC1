@@ -192,6 +192,7 @@ subroutine onestep
 
   ! Calculate all quantities derived from basic fields
   call derived_quantities(1)
+  if(ipellet_abl.gt.0) call pellet_shrink
 
   ! Advect impurity charge states
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)

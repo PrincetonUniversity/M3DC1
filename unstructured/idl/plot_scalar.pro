@@ -108,12 +108,24 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   if(keyword_set(sm)) then data = smooth(data, sm)
 
   if(n_elements(x) eq 0) then begin
-      if(not keyword_set(overplot)) then begin
-          plot, tdata*xscale, data, xtitle=xtitle, ytitle=ytitle, $
+      if ipellet eq -1 then begin
+        N = size(data)
+        N = N[1]
+        c = get_colors(N+3)
+        if(not keyword_set(overplot)) then begin
+          plot, tdata*xscale, data[0,*], xtitle=xtitle, ytitle=ytitle, $
             title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
             /nodata
-      end     
-      oplot, tdata*xscale, data, color=co, linestyle=ls, _EXTRA=extra
+        end
+        for n=0,N-1 do oplot, tdata*xscale, data[n,*], color=c[n+1], linestyle=ls, _EXTRA=extra
+      endif else begin
+        if(not keyword_set(overplot)) then begin
+            plot, tdata*xscale, data, xtitle=xtitle, ytitle=ytitle, $
+              title=title, _EXTRA=extra, ylog=ylog, xlog=xlog, $
+              /nodata
+        end
+        oplot, tdata*xscale, data, color=co, linestyle=ls, _EXTRA=extra
+      endelse
   endif else begin
       xi = x
       x = fltarr(1)
@@ -130,12 +142,25 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endelse
       if(n_elements(outfile) eq 1) then begin
          openw,ifile,outfile,/get_lun
-        if(keyword_set(growth_rate)) then begin
-         n = min([n_elements(tdata), n_elements(data)])
-         printf,ifile,format='(2E16.6)',transpose([[tdata(1:n-1)],[data(1:n-1)]])
-        endif else begin
-         printf,ifile,format='(2E16.6)',transpose([[tdata],[data]])
-        endelse
+
+         d = size(data,/n_dimensions)
+         if(d eq 1) then begin
+            if(keyword_set(growth_rate)) then begin
+               n = min([n_elements(tdata), n_elements(data)])
+               printf,ifile,format='(2E16.6)',transpose([[tdata(1:n-1)],[data(1:n-1)]])
+            endif else begin
+               printf,ifile,format='(2E16.6)',transpose([[tdata],[data]])
+            endelse
+         endif else begin
+            n = min([n_elements(tdata),n_elements(data[0,*])])
+            m = n_elements(data[*,0])
+            istart = keyword_set(growth_rate)
+            form = string(format='("(",I0,"E16.6)")',m+1)
+            for i=istart,n-1 do begin
+               printf, ifile, format=form, tdata[i], data[*,i]
+            end
+         end
+
          free_lun, ifile
       endif
 end

@@ -67,6 +67,8 @@ int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); /
 /** mesh functions */
 
 int m3dc1_mesh_load(char* mesh_file);
+void m3dc1_mesh_load_3d(char* mesh_file, int* num_plane);
+
 int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk file with field; 1:smb file
 
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
@@ -164,6 +166,8 @@ int m3dc1_field_insert(FieldID* /* in */ field, int /* in */ * local_dof, int * 
 int m3dc1_field_isnan(FieldID* /* in */ field, int * isnan);
 int m3dc1_field_compare(FieldID* field_id_1, FieldID* field_id_2);
 int m3dc1_field_write(FieldID* field, const char* filename, int* start_index);
+void m3dc1_field_import();
+void m3dc1_field_export();
 int m3dc1_field_print(FieldID* field);
 int m3dc1_field_sum_plane (FieldID* /* in */ field_id);
 int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info);

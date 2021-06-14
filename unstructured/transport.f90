@@ -1075,6 +1075,12 @@ function denm_func()
   case(0)
        temp79a = denm
 
+  case(1)
+       temp79a = denm + denmt / real(tet79(:,OP_1))
+
+       temp79a = min(real(temp79a),denmmax)
+       temp79a = max(real(temp79a),denmmin)
+
   case(10,11)
      if(.not.allocated(denm_spline%x)) then
         ! Read in m^2/s (10) or normalized units (11)
