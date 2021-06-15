@@ -169,7 +169,10 @@ int main( int argc, char* argv[])
 
   if (argc<3 & !pumi_rank())
   {
-    cout<<"Usage: ./main  model mesh #planes"<<endl;
+    cout<<"Usage: ./main  model mesh #planes model/mesh_options (0-2) \n"
+        <<"\tOption 0 (default): load .txt model and 2D mesh (3D mesh is constructed if #planes>1)\n"
+        <<"\tOption 1: load .txt model and distributed 3D mesh (no 3D construction needed)\n"
+        <<"\tOption 2: load .dmg model and 2D mesh\n";
     return M3DC1_FAILURE;
   }
   
@@ -177,7 +180,7 @@ int main( int argc, char* argv[])
   gmi_model* g;
   apf::Mesh2* m;
   
-  if (!atoi(argv[3]))
+  if (argc==3 || atoi(argv[3])==-1 || (argc>4 && atoi(argv[4])==2))
   {
     gmi_register_mesh();
     g = gmi_load(argv[1]);
@@ -186,10 +189,6 @@ int main( int argc, char* argv[])
   }
   else
   {
-    num_plane = atoi(argv[3]);
-    if (num_plane>1 && pumi_size()%num_plane==0)
-      m3dc1_model_setnumplane (&num_plane);
-
     if (m3dc1_model_load(argv[1])) // model loading failed
     {
       PetscFinalize();
@@ -197,10 +196,16 @@ int main( int argc, char* argv[])
       MPI_Finalize();
       return 0;
     }
-
-   // loading m3dc1 model and mesh directly -- no 3d mesh buildup 
-    if (argc==5 && atoi(argv[4])==-1)
+    num_plane = atoi(argv[3]);
+    if (num_plane>1 && pumi_size()%num_plane==0)
+      m3dc1_model_setnumplane (&num_plane);
+  
+    // loading m3dc1 model and mesh directly -- no 3d mesh buildup 
+    if (argc>4 && atoi(argv[4])==1)
+    {
       m3dc1_mesh_load_3d(argv[2], &num_plane);
+      m3dc1_field_import();
+    }
     else
     {
       if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
@@ -218,7 +223,7 @@ int main( int argc, char* argv[])
 
   m = m3dc1_mesh::instance()->mesh; 
   int num_adapt_iter = 1; 
-  if (argc>5) 
+  if (argc>5 && atoi(argv[4])>0) 
  	num_adapt_iter=atoi(argv[4]);
   if (!PCU_Comm_Self()) std::cout << "size of adapt loops = " << num_adapt_iter << "\n";
   int shouldSnap=0;
@@ -238,12 +243,13 @@ int main( int argc, char* argv[])
   if (argc>9) maximumIterations=atoi(argv[8]);
   if (argc>10) goodQuality =atof(argv[9]);
     
- // apf::writeVtkFiles("before-adapt",m3dc1_mesh::instance()->mesh);
+ // apf::writeVtkFiles("before-adapt", m);
+  int fid_size1, fid_size2;
 
     for (int n = 0; n<num_adapt_iter; ++n)
     {
-  	int fid_size1=1;
-  	int fid_size2=2;
+      m3dc1_field_getnewid (&fid_size1);
+      m3dc1_field_getnewid (&fid_size2);
   	int scalar_type=0;
   	int num_value=1;
 
@@ -268,6 +274,7 @@ int main( int argc, char* argv[])
   	delete [] dir;
     } // adaptive loop
 
+  apf::printStats(m3dc1_mesh::instance()->mesh); 
   PetscFinalize();
   m3dc1_scorec_finalize();
   MPI_Finalize();
