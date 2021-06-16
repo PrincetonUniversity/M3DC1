@@ -3,7 +3,8 @@ module read_vmec
   use spline
   implicit none
   character(len=256) :: vmec_filename
-  real :: bloat_factor   ! factor to expand VMEC domain 
+  real :: bloat_factor     ! factor to expand VMEC domain 
+  real :: bloat_distance   ! distance to expand VMEC domain 
 
 #ifdef USEST
   integer :: nfp, lasym
@@ -73,8 +74,7 @@ contains
     end do
 
     ! bloat VMEC domain
-    if(bloat_factor.ne.0) then
-      if(myrank.eq.0) print *, 'expanding domain'
+    if(bloat_factor.ne.0 .or. bloat_distance.ne.0) then
       call bloat_domain(myrank)
     end if
 
@@ -154,7 +154,7 @@ contains
     allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
-    if(bloat_factor.ne.0) then
+    if(bloat_factor.ne.0 .or. bloat_distance.ne.0) then
       n_zer = m_pol*1 ! for free-boundary
     else 
       n_zer = m_pol*2 ! for fixed-boundary
@@ -747,6 +747,7 @@ contains
     integer :: i, j, k, l, nt, nz 
     integer, intent(in) :: myrank
     type(spline1d) :: rreal_spline, zreal_spline 
+    real :: dr, dz
 
     ! grid in theta and zeta
     nt = 2*m_pol-1
@@ -770,32 +771,50 @@ contains
         do k = 1, nz 
           co = cos(xmv*theta(j)+xnv*zeta(k))
           sn = sin(xmv*theta(j)+xnv*zeta(k))
+          dr = 0.
+          dz = 0.
           do l = 1, mn_mode  
             rreal(i,j,k) = rreal(i,j,k) + rmnc(l,i)*co(l)
             zreal(i,j,k) = zreal(i,j,k) + zmns(l,i)*sn(l)
+            dr = dr - rmnc(l,i)*sn(l)*xmv(l)
+            dz = dz + zmns(l,i)*co(l)*xmv(l)
             if(lasym.eq.1) then
               rreal(i,j,k) = rreal(i,j,k) + rmns(l,i)*sn(l)
               zreal(i,j,k) = zreal(i,j,k) + zmnc(l,i)*co(l)
+              dr = dr + rmns(l,i)*co(l)*xmv(l)
+              dz = dz - zmnc(l,i)*sn(l)*xmv(l)
             end if
           end do
+          if(bloat_distance.ne.0) then
+            rreal(i,j,k) = rreal(i,j,k) &
+              + bloat_distance*sqrt(s_vmec(i))*dz/sqrt(dz**2+dr**2)
+            zreal(i,j,k) = zreal(i,j,k) &
+              - bloat_distance*sqrt(s_vmec(i))*dr/sqrt(dz**2+dr**2)
+          end if 
         end do
       end do
     end do
 
-    ! extrapolate R and Z in real space
-    s_bloat = s_vmec*bloat_factor**2
-    do j = 1, nt 
-      do k = 1, nz 
-        call create_spline(rreal_spline, ns, s_vmec, rreal(:,j,k))
-        call create_spline(zreal_spline, ns, s_vmec, zreal(:,j,k))
-        do i = 2, ns 
-          call evaluate_spline(rreal_spline, s_bloat(i), rreal(i,j,k),extrapolate=1)
-          call evaluate_spline(zreal_spline, s_bloat(i), zreal(i,j,k),extrapolate=1)
+    if(bloat_distance.ne.0) then
+      bloat_factor = 0  ! bloat_distance overrides bloat_factor
+      if(myrank.eq.0) print *, 'expanding domain by distance'
+    else if(bloat_factor.ne.0) then
+      if(myrank.eq.0) print *, 'expanding domain by ratio'
+      ! extrapolate R and Z in real space
+      s_bloat = s_vmec*bloat_factor**2
+      do j = 1, nt 
+        do k = 1, nz 
+          call create_spline(rreal_spline, ns, s_vmec, rreal(:,j,k))
+          call create_spline(zreal_spline, ns, s_vmec, zreal(:,j,k))
+          do i = 2, ns 
+            call evaluate_spline(rreal_spline, s_bloat(i), rreal(i,j,k),extrapolate=1)
+            call evaluate_spline(zreal_spline, s_bloat(i), zreal(i,j,k),extrapolate=1)
+          end do
+          call destroy_spline(rreal_spline)
+          call destroy_spline(zreal_spline)
         end do
-        call destroy_spline(rreal_spline)
-        call destroy_spline(zreal_spline)
       end do
-    end do
+    end if
 
     ! transform back into Fourier space
     allocate(rmnc_temp(mn_mode,ns))

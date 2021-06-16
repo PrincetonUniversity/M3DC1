@@ -1125,6 +1125,7 @@ subroutine set_defaults
   call add_var_double("xcenter", xcenter, 0., "center of logical mesh (x)", mesh_grp)
   call add_var_double("zcenter", zcenter, 0., "center of logical mesh (z)", mesh_grp)
   call add_var_double("bloat_factor", bloat_factor, 0., "factor to expand VMEC domain", mesh_grp)
+  call add_var_double("bloat_distance", bloat_distance, 0., "factor to expand VMEC domain", mesh_grp)
   call add_var_int("iread_planes", iread_planes, 0, &
        "Read positions of toroidal planes from plane_positions", mesh_grp)
   call add_var_double("xzero", xzero, 0., "", mesh_grp)
