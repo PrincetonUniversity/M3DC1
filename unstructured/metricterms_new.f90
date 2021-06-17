@@ -819,7 +819,6 @@ function v1ubb(e,f,g,h)
   v1ubb = temp
 end function v1ubb
 
-!#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
 ! V1upsif
 ! =====
@@ -1163,7 +1162,6 @@ function v1vpsib(e,f,g,h)
   v1vpsib = temp
 end function v1vpsib
 
-!#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
 ! V1vpsif
 ! =====
@@ -1560,7 +1558,6 @@ function v1chibb(e,f,g,h)
   v1chibb = temp
 end function v1chibb
 
-!#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
 ! V1chipsif
 ! =====
@@ -2722,7 +2719,6 @@ function v2vpsib(e,f,g,h)
 #endif
 end function v2vpsib
 
-!#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
 ! V2vpsif
 ! =====
@@ -2978,7 +2974,6 @@ function v2ubb(e,f,g,h)
 #endif
 end function v2ubb
 
-!#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
 ! V2upsif
 ! =====
@@ -3300,7 +3295,6 @@ function v2chibb(e,f,g,h)
 #endif
 end function v2chibb
 
-!#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
 ! V2chipsif
 ! =====
@@ -4621,7 +4615,6 @@ function v3ubb(e,f,g,h)
   v3ubb = temp
 end function v3ubb
 
-!#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
 ! V3upsif
 ! =====
@@ -4967,7 +4960,6 @@ function v3vbb(e,f,g,h)
 
 end function v3vbb
 
-!#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
 ! V3vpsif
 ! =====
