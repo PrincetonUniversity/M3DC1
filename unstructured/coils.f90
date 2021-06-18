@@ -181,6 +181,9 @@ contains
    vectype, dimension(dofs_per_element) :: dofs
    real, allocatable :: g(:,:)
 
+   integer :: inode, numnodes, icounter_t
+   vectype, dimension(dofs_per_node) :: datain, dataout
+
    if(nc.le.0) return
 
    numelms = local_elements()
@@ -190,11 +193,24 @@ contains
    psi_vec = 0.
    if(present(fs)) then
       if(myrank.eq.0) print *, "SUMMING COIL FIELDS"
-      do k=1, nc
-         psi_vec = fs(k)
-!         call mult(psi_vec, real(ic(k)))
-         call add(f, psi_vec, real(ic(k)))
-      end do
+      numnodes = owned_nodes()
+      do icounter_t=1,numnodes
+         inode = nodes_owned(icounter_t)
+         call get_node_data(f, inode, dataout)
+         do k=1, nc
+            call get_node_data(fs(k), inode, datain)
+            datain = datain*ic(k)
+            dataout = dataout + datain
+         end do
+         call set_node_data(f, inode, dataout)
+      enddo
+      call finalize(f%vec)
+
+      !do k=1, nc
+      !   psi_vec = fs(k)
+      !   call mult(psi_vec%vec, real(ic(k)))
+      !   call add(f%vec, psi_vec%vec)
+      !end do
       call destroy_field(psi_vec)
       return
    end if
