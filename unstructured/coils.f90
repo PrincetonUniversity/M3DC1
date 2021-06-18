@@ -185,46 +185,46 @@ contains
 
    numelms = local_elements()
 
-   if(.not.present(fs)) allocate(g(MAX_PTS,nc))
-
    ierr = 0
-
    call create_field(psi_vec)
    psi_vec = 0.
+   if(present(fs)) then
+      if(myrank.eq.0) print *, "SUMMING COIL FIELDS"
+      do k=1, nc
+         psi_vec = fs(k)
+         call mult(psi_vec, real(ic(k)))
+         call add(f, psi_vec)
+      end do
+      call destroy_field(psi_vec)
+      return
+   end if
+
+   allocate(g(MAX_PTS,nc))
    
    do itri=1,numelms
       temp79a = 0.
-      
-      if(present(fs)) then
-         if(myrank.eq.0) print *, "SUMMING COILS IN FIELD_FROM_COILS"
-         ! sum stored fields due to coil curents
-         do k=1, nc
-            call eval_ops(itri, fs(k), tm79, rfac)
-            temp79a = temp79a + ic(k)*tm79(:,OP_1)
-         end do
-      else
-         if(myrank.eq.0) print *, "RECALCULATING COILS IN FIELD_FROM_COILS"
-         ! calculate field due to coil currents
-         call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-         call define_fields(itri,0,1,0)
-         call gvect0(x_79,z_79,npoints,xc,zc,nc,g(1:npoints,:),ipole,ierr)
-         do k=1, nc
-            temp79a = temp79a - g(:,k)*ic(k)
-         end do
-      end if
+
+      if(myrank.eq.0 .and. itri.eq.1) print *, "RECALCULATING COILS IN FIELD_FROM_COILS"
+      ! calculate field due to coil currents
+      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+      call define_fields(itri,0,1,0)
+      call gvect0(x_79,z_79,npoints,xc,zc,nc,g(1:npoints,:),ipole,ierr)
+      do k=1, nc
+         temp79a = temp79a - g(:,k)*ic(k)
+      end do
 
       dofs = intx2(mu79(:,:,OP_1),temp79a)
 
       call vector_insert_block(psi_vec%vec, itri, 1, dofs, MAT_ADD)
-    enddo
+   enddo
 
-    if(allocated(g)) deallocate(g)
+   if(allocated(g)) deallocate(g)
 
-    call sum_shared(psi_vec%vec)
-    call newsolve(mass_mat_lhs%mat,psi_vec%vec,ierr)
-    call add(f, psi_vec)
+   call sum_shared(psi_vec%vec)
+   call newsolve(mass_mat_lhs%mat,psi_vec%vec,ierr)
+   call add(f, psi_vec)
+   call destroy_field(psi_vec)
 
-    call destroy_field(psi_vec)
  end subroutine field_from_coils
 
  subroutine store_field_from_coils(xc, zc, nc, fs, ipole, ierr)
