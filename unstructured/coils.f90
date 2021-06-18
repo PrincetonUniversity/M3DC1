@@ -192,8 +192,8 @@ contains
       if(myrank.eq.0) print *, "SUMMING COIL FIELDS"
       do k=1, nc
          psi_vec = fs(k)
-         call mult(psi_vec, real(ic(k)))
-         call add(f, psi_vec)
+!         call mult(psi_vec, real(ic(k)))
+         call add(f, psi_vec, real(ic(k)))
       end do
       call destroy_field(psi_vec)
       return
