@@ -157,7 +157,77 @@ contains
 
  end subroutine load_coils
 
- subroutine field_from_coils(xc, zc, ic, nc, f, ipole, ierr)
+ subroutine field_from_coils(xc, zc, ic, nc, f, ipole, ierr, fs)
+   use basic
+   use field
+   use mesh_mod
+   use m3dc1_nint
+   use newvar_mod
+
+   implicit none
+
+   include 'mpif.h'
+
+   real, intent(in), dimension(nc) :: xc, zc     ! array of coil positions
+   complex, intent(in), dimension(nc) :: ic      ! array of coil currents
+   integer, intent(in) :: nc                     ! number of coils
+   type(field_type), intent(inout) :: f          ! poloidal flux field
+   type(field_type), intent(in), optional :: fs(:)  ! poloidal flux field for each coil
+   integer, intent(in) :: ipole                  ! type of field to add
+   integer, intent(out) :: ierr
+
+   integer :: numelms, k, itri
+   type(field_type) :: psi_vec
+   vectype, dimension(dofs_per_element) :: dofs
+   real, allocatable :: g(:,:)
+
+   if(nc.le.0) return
+
+   numelms = local_elements()
+
+   if(.not.present(fs)) allocate(g(MAX_PTS,nc))
+
+   ierr = 0
+
+   call create_field(psi_vec)
+   psi_vec = 0.
+   
+   do itri=1,numelms
+      temp79a = 0.
+      
+      if(present(fs)) then
+         if(myrank.eq.0) print *, "SUMMING COILS IN FIELD_FROM_COILS"
+         ! sum stored fields due to coil curents
+         do k=1, nc
+            call eval_ops(itri, fs(k), tm79, rfac)
+            temp79a = temp79a + ic(k)*tm79(:,OP_1)
+         end do
+      else
+         if(myrank.eq.0) print *, "RECALCULATING COILS IN FIELD_FROM_COILS"
+         ! calculate field due to coil currents
+         call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+         call define_fields(itri,0,1,0)
+         call gvect0(x_79,z_79,npoints,xc,zc,nc,g(1:npoints,:),ipole,ierr)
+         do k=1, nc
+            temp79a = temp79a - g(:,k)*ic(k)
+         end do
+      end if
+
+      dofs = intx2(mu79(:,:,OP_1),temp79a)
+
+      call vector_insert_block(psi_vec%vec, itri, 1, dofs, MAT_ADD)
+    enddo
+
+    if(allocated(g)) deallocate(g)
+
+    call sum_shared(psi_vec%vec)
+    call newsolve(mass_mat_lhs%mat,psi_vec%vec,ierr)
+    call add(f, psi_vec)
+
+    call destroy_field(psi_vec)
+ end subroutine field_from_coils
+
+ subroutine store_field_from_coils(xc, zc, nc, fs, ipole, ierr)
    use basic
    use field
    use mesh_mod
@@ -169,25 +239,31 @@ contains
    include 'mpif.h'
 
    real, intent(in), dimension(nc) :: xc, zc   ! array of coil positions
-   complex, intent(in), dimension(nc) :: ic    ! array of coil currents
    integer, intent(in) :: nc                   ! number of coils
-   type(field_type), intent(inout) :: f        ! poloidal flux field
+   type(field_type), allocatable, intent(inout) :: fs(:)       ! poloidal flux field for each coil
    integer, intent(in) :: ipole                ! type of field to add
    integer, intent(out) :: ierr
 
    integer :: numelms, k, itri
-   type(field_type) :: psi_vec
    vectype, dimension(dofs_per_element) :: dofs
    real, allocatable :: g(:,:)
 
-   if(nc.le.0) return
+   if (myrank.eq.0) print *, "STORING FIELD FROM COILS"
+   if(allocated(fs)) then
+      if (myrank.eq.0) print *,"CALLED TWICE... WHY?"
+      call safestop(1)
+   end if
 
-   allocate(g(MAX_PTS,nc))
+   if(nc.le.0) return
 
    ierr = 0
 
-   call create_field(psi_vec)
-   psi_vec = 0.
+   allocate(fs(nc))
+   allocate(g(MAX_PTS,nc))
+
+   do k=1,nc
+      call create_field(fs(k))
+   enddo
    
    numelms = local_elements()
    do itri=1,numelms
@@ -199,22 +275,20 @@ contains
        temp79a = 0.
        call gvect0(x_79,z_79,npoints,xc,zc,nc,g(1:npoints,:),ipole,ierr)
        do k=1, nc
-          temp79a = temp79a - g(:,k)*ic(k)
-       end do
-
-       dofs = intx2(mu79(:,:,OP_1),temp79a)
-
-       call vector_insert_block(psi_vec%vec, itri, 1, dofs, MAT_ADD)
+          temp79a = -g(:,k)
+          dofs = intx2(mu79(:,:,OP_1), temp79a)
+          call vector_insert_block(fs(k)%vec, itri, 1, dofs, MAT_ADD)
+       enddo
     enddo
 
     deallocate(g)
 
-    call sum_shared(psi_vec%vec)
-    call newsolve(mass_mat_lhs%mat,psi_vec%vec,ierr)
-    call add(f, psi_vec)
+    do k=1,nc
+       call sum_shared(fs(k)%vec)
+       call newsolve(mass_mat_lhs%mat,fs(k)%vec,ierr)
+    enddo
 
-    call destroy_field(psi_vec)
- end subroutine field_from_coils
+  end subroutine store_field_from_coils
 
 !============================================================
 subroutine gvect(r,z,npt,xi,zi,n,g,nmult,ierr)

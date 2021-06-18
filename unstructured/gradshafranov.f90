@@ -42,6 +42,7 @@ module gradshafranov
   integer, dimension(maxfilaments) :: coil_mask
   integer, dimension(maxfilaments) :: filaments
 
+  integer :: igs_store_coils
   real, dimension(maxcoils) :: gs_vertical_feedback
   real, dimension(maxcoils) :: gs_radial_feedback
   real, dimension(maxcoils) :: gs_vertical_feedback_i
@@ -184,8 +185,19 @@ subroutine coil_feedback(itnum)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to coils in feedback loop"
   psi_coil_field = 0.
-  call field_from_coils(xc_vac,zc_vac,ic_out,numcoils_vac, &
-       psi_coil_field,0,ierr)
+  
+  if(igs_store_coils.eq.0) then
+     if(myrank.eq.0) print *, "RECALCULATE ALL COILS IN FEEDBACK"
+     call field_from_coils(xc_vac,zc_vac,ic_out,numcoils_vac,psi_coil_field,0,ierr)
+  elseif(igs_store_coils.eq.1) then
+     if(.not.allocated(psi_coil_fields)) then
+        if(myrank.eq.0) print *, "CALCULATE ALL COILS IN FEEDBACK"
+        call store_field_from_coils(xc_vac,zc_vac,numcoils_vac,psi_coil_fields,0,ierr)
+     end if
+     if(myrank.eq.0) print *, "SUM ALL COILS IN FEEDBACK"
+     call field_from_coils(xc_vac,zc_vac,ic_out,numcoils_vac,psi_coil_field,0,ierr,psi_coil_fields)
+  end if
+
   if(myrank.eq.0 .and. iprint.ge.2) &
        print *, "Done calculating fields due to coils"
   if(ierr.ne.0) call safestop(5)
@@ -284,7 +296,14 @@ subroutine pf_coil_field(ierr)
   ! Field due to coil currents
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to coils"
-  call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr)
+  if(igs_store_coils.eq.0) then
+     call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr)
+  elseif(igs_store_coils.eq.1) then
+     if(.not.allocated(psi_coil_fields)) then
+        call store_field_from_coils(xc,zc,numcoils,psi_coil_fields,ipole,ierr)
+     end if
+     call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr,psi_coil_fields)
+  end if
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done calculating fields due to coils"
   if(ierr.ne.0) call safestop(5)
