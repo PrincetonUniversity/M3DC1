@@ -527,7 +527,7 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
              <<", field_id_h2 "<<*field_id_h2<<"\n";
   m3dc1_field_export (field_id_h1, &ts);
   m3dc1_field_export (field_id_h2, &ts);
-  m3dc1_dir_export(dir, ts, m3dc1_mesh::instance()->mesh->count(0));
+  m3dc1_dir_export(dir, ts, m3dc1_mesh::instance()->mesh->count(0)*3);
   ts++;
   // export fields and dirs
 #endif
