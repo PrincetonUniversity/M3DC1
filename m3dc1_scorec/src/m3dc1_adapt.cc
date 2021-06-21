@@ -21,6 +21,7 @@
 #include "pumi.h"
 #include "ma.h"
 #include "gmi_base.h"
+#include "apfMesh.h"
 
 using namespace apf;
 
@@ -755,24 +756,6 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   
   apf::unfreezeFields(mesh); // turning field data from array to tag
 
-  int num_field = fields.size();
-  int* field_id = NULL;
-  int* num_dofs_per_value = NULL;
-
-  if (fields.size()>0)
-  {
-    num_field = m3dc1_mesh::instance()->field_container->size();
-    field_id = new int [num_field];
-    num_dofs_per_value = new int [num_field];
-    int i=0;
-    it=m3dc1_mesh::instance()->field_container->begin();
-    for(;it!=m3dc1_mesh::instance()->field_container->end();++it)
-    {
-      field_id[i] = it->second->get_id();
-      num_dofs_per_value[i] = it->second->get_dof_per_value();
-    }
-  }
-
   if (!PCU_Comm_Self())
     std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size() <<" fields will be transfered\n";
 
@@ -853,13 +836,12 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   apf::destroyField(size_field);
   apf::destroyField(frame_field);
 
-  m3dc1_mesh::instance()->set_mcount();
-
-  std::cout<<"After adaptation: ";
+  if (!PCU_Comm_Self()) std::cout<<"After adaptation: ";
   m3dc1_mesh::instance()->print(__LINE__);
 
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
+    m3dc1_mesh::instance()->set_mcount();
     // re-construct wedges
     m3dc1_mesh::instance()->create_wedges();
 
@@ -868,18 +850,14 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     delete [] ge_tag;
   } // 3d 
 
-  if (num_field>0)
-  {
-    delete [] field_id;
-    delete [] num_dofs_per_value;
-  }
-
+  // FIXME: crash in 2D if no pre/post zoltan 
   reorderMdsMesh(mesh);
 
   // FIXME: crash in 3D 
   apf::writeVtkFiles("after-adapt", mesh);
 
-  m3dc1_mesh::instance()->set_mcount();
+  m3dc1_mesh::instance()->initialize();
+
   compute_globalid(mesh, 0);
   compute_globalid(mesh, mesh->getDimension());
 
@@ -889,8 +867,9 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     apf::Field* field = it->second->get_field();
     int complexType = it->second->get_value_type();
     if (complexType) group_complex_dof(field, 0);
-    if (!isFrozen(field)) freeze(field);
     synchronize_field(field);
     it++;
   }
+
+  apf::freezeFields(mesh); // turning field data from tag to array
 }

@@ -424,6 +424,9 @@ int m3dc1_mesh_load(char* mesh_file)
     compute_globalid(m3dc1_mesh::instance()->mesh, 2);
   }
 
+#ifdef DEBUG
+  pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
+#endif
   return M3DC1_SUCCESS;
 }
 
@@ -464,7 +467,24 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, 3);
 
+#ifdef DEBUG
+  pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
+#endif
+
   return M3DC1_SUCCESS; 
+}
+
+void export_dir(double* dir, int ts, int dir_size)
+{
+  char fname[64];
+  sprintf(fname, "dirs-ts%d-%d", ts, PCU_Comm_Self());
+
+  FILE * fp =fopen(fname, "w");
+
+  fprintf(fp, "%d ", dir_size);
+  for (int i=0; i<dir_size; ++i)
+    fprintf(fp, "%lf\n", dir[i]);
+  fclose(fp);
 }
 
 /* new mesh adaptation */
@@ -484,6 +504,17 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
     int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
     int* shouldRefineLayer, int* maximumIterations, double* goodQuality)
 {
+#ifdef DEBUG
+  static int ts=1;
+  if (!PCU_Comm_Self()) 
+    std::cout<<"field_id_h1 "<<*field_id_h1
+             <<", field_id_h2 "<<*field_id_h2<<"\n";
+  m3dc1_field_export (field_id_h1, &ts);
+  m3dc1_field_export (field_id_h2, &ts);
+  export_dir(dir, ts, m3dc1_mesh::instance()->mesh->count(0));
+  ts++;
+  // export fields and dirs
+#endif
   adapt_mesh (*field_id_h1, *field_id_h2, dir, 
               *shouldSnap, *shouldRunPreZoltan, *shouldRunPostZoltan,
               *shouldRefineLayer, *maximumIterations, *goodQuality);
@@ -2037,7 +2068,59 @@ int m3dc1_field_write (FieldID* field_id, const char* filename, int* start_index
   return M3DC1_SUCCESS;
 }
 
-void m3dc1_field_export()
+void m3dc1_field_export(int* field_id, int* ts)
+{ 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
+  assert(mf);
+
+  apf::Field* f;
+  apf::MeshEntity* e;
+  apf::MeshIterator* it;
+  int num_dof;
+  
+  int file_id=*field_id;
+    char fname[64];
+    sprintf(fname, "fld-%d-ts%d-%d",file_id, *ts, PCU_Comm_Self());
+    
+    FILE * fp =fopen(fname, "w");
+    
+    f = mf->get_field();
+    
+    fprintf(fp, "%s\n", getName(f));
+    fprintf(fp, "%d %d %d %d\n", // m3dc1_mesh::instance()->field_container->size(),
+            mf->get_id(), mf->get_num_value(), mf->get_dof_per_value(), mf->get_value_type());
+    
+    if (!PCU_Comm_Self()) std::cout<<__func__<<" file "<<fname<<": field "<<mf->get_id()<<"\n";
+    
+    num_dof=countComponents(f);
+    double* dof_data = new double[num_dof];
+    
+    it = m->begin(0);
+    while ((e = m->iterate(it)))
+    { 
+      getComponents(f, e, 0, dof_data);
+      int ndof=0;
+      for (int i=0; i<num_dof; ++i)
+      { 
+        if (!m3dc1_double_isequal(dof_data[i], 0.0))
+        ++ndof;
+      }
+      fprintf(fp, "%d ", ndof);
+      for (int i=0; i<num_dof; ++i)
+      { 
+        if (!m3dc1_double_isequal(dof_data[i], 0.0))
+          fprintf(fp, "%d %lf ", i, dof_data[i]);
+      }
+      fprintf(fp, "\n");
+    } // while
+    m->end(it);
+    delete [] dof_data;
+    fclose(fp);
+}
+
+
+void m3dc1_field_exportall()
 {
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   m3dc1_field* mf;
@@ -2091,7 +2174,79 @@ void m3dc1_field_export()
   }
 }
 
-void m3dc1_field_import()
+void m3dc1_field_import(int *field_id, int* ts)
+{
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  m3dc1_field* mf;
+  apf::Field* f;
+
+  if (m3dc1_mesh::instance()->field_container)
+  {
+    std::map<FieldID, m3dc1_field*>::iterator fit=m3dc1_mesh::instance()->field_container->begin();
+    for (; fit!=m3dc1_mesh::instance()->field_container->end(); ++fit)
+    {
+      f = mf->get_field();
+      if (!PCU_Comm_Self()) std::cout<<__func__<<" existing field "<<getName(f)<<"\n";
+    }
+  }
+
+  int file_id=*field_id;
+  apf::MeshEntity* e;
+  apf::MeshIterator* it;
+  int num_dof, non_zero_dof, k;
+  int fid, num_val, num_dof_per_val, val_type;
+
+  double zero_val[2]={0,0};
+
+    char fname[64];
+    sprintf(fname, "fld-%d-ts%d-%d", file_id, *ts, PCU_Comm_Self());
+    FILE * fp =fopen(fname, "r");
+    if (!fp)
+    {
+      if (!PCU_Comm_Self()) std::cout<<"field file "<<fname<<" doesn't exist\n";
+      return;
+    }
+
+    char field_name[50];
+    fscanf(fp, "%s\n", field_name);
+    fscanf(fp, "%d %d %d %d\n", &fid, &num_val, &num_dof_per_val, &val_type);
+
+    assert(fid==*field_id);
+
+    if (!PCU_Comm_Self()) std::cout<<"importing "<<fname<<" of ID "<<fid<<"\n";
+
+    f = m->findField(field_name);
+    if (!f)
+    {
+      m3dc1_field_create (&fid, field_name, &num_val, &val_type, &num_dof_per_val);
+      f = (*m3dc1_mesh::instance()->field_container)[fid]->get_field();
+    }
+    else
+      if (!PCU_Comm_Self()) std::cout<<"field "<<field_name<<" exists\n";
+
+    num_dof=countComponents(f);
+    assert(num_dof==num_val*num_dof_per_val*(val_type+1));
+    double* dof_data = new double[num_dof];
+
+    m3dc1_field_assign(&fid, zero_val, &val_type);
+
+    it = m->begin(0);
+    while ((e = m->iterate(it)))
+    {
+      fscanf(fp, "%d\n", &non_zero_dof);
+      for (int i=0; i<non_zero_dof; ++i)
+      {
+        fprintf(fp, "%d", &k);
+        fprintf(fp, "%lf", dof_data[k]);
+      }
+      setComponents(f, e, 0, dof_data);
+    } // while
+    m->end(it);
+    delete [] dof_data;
+    fclose(fp);
+}
+
+void m3dc1_field_importall()
 {
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   m3dc1_field* mf;

@@ -166,8 +166,10 @@ int m3dc1_field_insert(FieldID* /* in */ field, int /* in */ * local_dof, int * 
 int m3dc1_field_isnan(FieldID* /* in */ field, int * isnan);
 int m3dc1_field_compare(FieldID* field_id_1, FieldID* field_id_2);
 int m3dc1_field_write(FieldID* field, const char* filename, int* start_index);
-void m3dc1_field_import();
-void m3dc1_field_export();
+void m3dc1_field_import(int*, int*);
+void m3dc1_field_export(int*, int*);
+void m3dc1_field_importall();
+void m3dc1_field_exportall();
 int m3dc1_field_print(FieldID* field);
 int m3dc1_field_sum_plane (FieldID* /* in */ field_id);
 int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info);
