@@ -317,6 +317,7 @@ contains
   subroutine read_fields(time_group_id, equilibrium, error)
     use basic
     use hdf5
+    use h5lt
     use mesh_mod
     use field
     use arrays

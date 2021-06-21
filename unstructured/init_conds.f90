@@ -673,12 +673,12 @@ subroutine initial_conditions()
      call nre_per
   endif
 
-  if(irmp.ge.1 .or. iread_ext_field.ge.1 &
-       .or. tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
+  if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
+       tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per()
 
 #ifdef USEST
-  if(igeometry.eq.1) then
+  if(igeometry.eq.1.and.iread_vmec.ge.1) then
      call destroy_vmec
   end if   
 #endif

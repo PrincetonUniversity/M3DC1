@@ -1660,8 +1660,7 @@ subroutine calculate_gamma(g2, g3, g4)
   if(gsint4.eq.0.) then
      g4 = 0.
   else
-!     g4 = -(-tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
-     g4 = -(-tcuro + g2*gsint2 + g3*gsint3 + gsint1)/gsint4
+     g4 = -(-tcuro + gamma2*gsint2 + gamma3*gsint3 + gsint1)/gsint4
   end if
 
   if(myrank.eq.0 .and. iprint.ge.2) write(79,1079) dpsii,curr,gsint1,gsint2,gsint3,gsint4
@@ -2872,7 +2871,6 @@ subroutine boundary_gs(rhs, feedfac, mat)
   use vector_mod
   use matrix_mod
   use boundary_conditions
-  !use geometry 
 
   implicit none
   
@@ -2904,9 +2902,6 @@ subroutine boundary_gs(rhs, feedfac, mat)
      call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
           domain_boundary)
      if(is_boundary) then
-#ifdef USEST ! recalculate curvature using physical coordinates
-        !call get_boundary_curv(normal,curv,x,phi,z)
-#endif
 
         ! add feedback field
         if(idevice .eq. 0 .and. ifixedb .eq. 0 .and. feedfac.ne.0.) then

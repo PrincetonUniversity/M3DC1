@@ -79,7 +79,6 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   use basic
   use coils
   use gradshafranov
-  use init_vmec
 
   implicit none
 
@@ -305,7 +304,6 @@ subroutine calculate_external_fields()
   use newvar_mod
   use boundary_conditions
   use gradshafranov
-  use init_vmec 
 
   implicit none
 
@@ -395,7 +393,7 @@ subroutine calculate_external_fields()
 !#endif
      ! psi_equation
      ! ~~~~~~~~~~~~
-     ! Mininize BR, BZ
+     ! Minimize BR, BZ
      temp(:,:,1,1) = intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79) &
                    + intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
                    + regular* intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),ri4_79)

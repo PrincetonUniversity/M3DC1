@@ -629,12 +629,7 @@ contains
                       ip = n + (l-1)*pol_dofs_per_node
                       it = m + (k-1)*tor_dofs_per_node
                       c(idof,icoeff) = c(idof,icoeff) &
-#ifdef USEST
-                           !+ htri(i,it,itri)*gtri(j,idof,itri)
                            + htri(i,it,itri)*gtri(j,ip,itri)
-#else
-                           + htri(i,it,itri)*gtri(j,ip,itri)
-#endif
                    end do
                 end do
              end do

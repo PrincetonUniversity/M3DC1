@@ -428,7 +428,6 @@ contains
     d%c = z3p
     if(d%c .le. 0.) then
        print *, 'ERROR: clockwise node ordering for element',itri
-       print *, d%R, d%Z, d%phi, x2, z2, x3, z3 
        call abort()
     endif
 

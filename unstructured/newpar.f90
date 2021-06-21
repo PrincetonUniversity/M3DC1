@@ -199,7 +199,7 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ! initialize output for HDF5 and C1ke
   call initialize_output ()
-  
+ 
   select case (irestart)
   case(0)
      ! Initialize from routine
@@ -1438,7 +1438,6 @@ subroutine space(ifirstcall)
   
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating tri...'
 #ifdef USEST
-  !allocate(gtri(coeffs_per_tri,dofs_per_element,numelms))
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
 #else
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))

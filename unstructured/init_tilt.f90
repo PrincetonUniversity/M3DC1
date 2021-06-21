@@ -23,8 +23,8 @@ subroutine tilting_cylinder_init()
 #endif
 
   call get_bounding_box_size(alx, alz)
-  alx = 5.
-  alz = 4.
+!  alx = 5.
+!  alz = 4.
 
   numnodes = owned_nodes()
   do icounter_tt=1,numnodes
