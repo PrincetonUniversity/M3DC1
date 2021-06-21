@@ -474,7 +474,7 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   return M3DC1_SUCCESS; 
 }
 
-void export_dir(double* dir, int ts, int dir_size)
+void m3dc1_dir_export(double* dir, int ts, int dir_size)
 {
   char fname[64];
   sprintf(fname, "dirs-ts%d-%d", ts, PCU_Comm_Self());
@@ -484,6 +484,22 @@ void export_dir(double* dir, int ts, int dir_size)
   fprintf(fp, "%d ", dir_size);
   for (int i=0; i<dir_size; ++i)
     fprintf(fp, "%lf\n", dir[i]);
+  fclose(fp);
+}
+
+void m3dc1_dir_import(double* dir, int ts)
+{
+  char fname[64];
+  sprintf(fname, "dirs-ts%d-%d", ts, PCU_Comm_Self());
+
+  FILE * fp =fopen(fname, "r");
+  assert(fp);
+  int dir_size;
+  fscanf(fp, "%d ", &dir_size);
+  assert(dir_size==m3dc1_mesh::instance()->mesh->count(0)*3);
+
+  for (int i=0; i<dir_size; ++i)
+    fscanf(fp, "%lf", &(dir[i]));
   fclose(fp);
 }
 
@@ -511,7 +527,7 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
              <<", field_id_h2 "<<*field_id_h2<<"\n";
   m3dc1_field_export (field_id_h1, &ts);
   m3dc1_field_export (field_id_h2, &ts);
-  export_dir(dir, ts, m3dc1_mesh::instance()->mesh->count(0));
+  m3dc1_dir_export(dir, ts, m3dc1_mesh::instance()->mesh->count(0));
   ts++;
   // export fields and dirs
 #endif
@@ -1448,7 +1464,8 @@ int* /*in*/ scalar_type, int* /*in*/ num_dofs_per_value)
   // only need to tell APF all dofs are attached to mesh vertex
   int components = (*num_values)*(*scalar_type+1)*(*num_dofs_per_value);
   apf::Field* f = createPackedField(m3dc1_mesh::instance()->mesh, field_name, components);
-  m3dc1_mesh::instance()->field_container->insert(std::map<FieldID, m3dc1_field*>::value_type(*field_id, new m3dc1_field(*field_id, f, *num_values, *scalar_type, *num_dofs_per_value)));
+  m3dc1_mesh::instance()->field_container->insert(std::map<FieldID, m3dc1_field*>::value_type(*field_id, 
+      new m3dc1_field(*field_id, f, *num_values, *scalar_type, *num_dofs_per_value)));
   apf::freeze(f); // switch dof data from tag to array
 
   if (!PCU_Comm_Self()) 
@@ -2180,16 +2197,6 @@ void m3dc1_field_import(int *field_id, int* ts)
   m3dc1_field* mf;
   apf::Field* f;
 
-  if (m3dc1_mesh::instance()->field_container)
-  {
-    std::map<FieldID, m3dc1_field*>::iterator fit=m3dc1_mesh::instance()->field_container->begin();
-    for (; fit!=m3dc1_mesh::instance()->field_container->end(); ++fit)
-    {
-      f = mf->get_field();
-      if (!PCU_Comm_Self()) std::cout<<__func__<<" existing field "<<getName(f)<<"\n";
-    }
-  }
-
   int file_id=*field_id;
   apf::MeshEntity* e;
   apf::MeshIterator* it;
@@ -2198,31 +2205,27 @@ void m3dc1_field_import(int *field_id, int* ts)
 
   double zero_val[2]={0,0};
 
-    char fname[64];
-    sprintf(fname, "fld-%d-ts%d-%d", file_id, *ts, PCU_Comm_Self());
-    FILE * fp =fopen(fname, "r");
-    if (!fp)
-    {
-      if (!PCU_Comm_Self()) std::cout<<"field file "<<fname<<" doesn't exist\n";
-      return;
-    }
+  char fname[64];
+  sprintf(fname, "fld-%d-ts%d-%d", file_id, *ts, PCU_Comm_Self());
+  FILE * fp =fopen(fname, "r");
+  if (!fp)
+  {
+    if (!PCU_Comm_Self()) std::cout<<"field file "<<fname<<" doesn't exist\n";
+    return;
+  }
 
-    char field_name[50];
-    fscanf(fp, "%s\n", field_name);
-    fscanf(fp, "%d %d %d %d\n", &fid, &num_val, &num_dof_per_val, &val_type);
+  char field_name[50];
+  fscanf(fp, "%s\n", field_name);
+  fscanf(fp, "%d %d %d %d\n", &fid, &num_val, &num_dof_per_val, &val_type);
 
-    assert(fid==*field_id);
+  assert(fid==*field_id);
 
-    if (!PCU_Comm_Self()) std::cout<<"importing "<<fname<<" of ID "<<fid<<"\n";
-
-    f = m->findField(field_name);
-    if (!f)
-    {
-      m3dc1_field_create (&fid, field_name, &num_val, &val_type, &num_dof_per_val);
-      f = (*m3dc1_mesh::instance()->field_container)[fid]->get_field();
-    }
-    else
-      if (!PCU_Comm_Self()) std::cout<<"field "<<field_name<<" exists\n";
+  f = m->findField(field_name);
+  if (!f)
+  {
+    m3dc1_field_create (&fid, field_name, &num_val, &val_type, &num_dof_per_val);
+    f = (*m3dc1_mesh::instance()->field_container)[fid]->get_field();
+  }
 
     num_dof=countComponents(f);
     assert(num_dof==num_val*num_dof_per_val*(val_type+1));
@@ -2233,11 +2236,13 @@ void m3dc1_field_import(int *field_id, int* ts)
     it = m->begin(0);
     while ((e = m->iterate(it)))
     {
+      for (int i=0; i<num_dof; ++i)
+        dof_data[i]=0.0;
       fscanf(fp, "%d\n", &non_zero_dof);
       for (int i=0; i<non_zero_dof; ++i)
       {
-        fprintf(fp, "%d", &k);
-        fprintf(fp, "%lf", dof_data[k]);
+        fscanf(fp, "%d", &k);
+        fscanf(fp, "%lf", &(dof_data[k]));
       }
       setComponents(f, e, 0, dof_data);
     } // while
@@ -2261,6 +2266,8 @@ void m3dc1_field_importall()
       if (!PCU_Comm_Self()) std::cout<<__func__<<" existing field "<<getName(f)<<"\n";
     }
   }
+  else
+     if (!PCU_Comm_Self()) std::cout<<__func__<<" no field container\n";
 
   apf::MeshEntity* e;
   apf::MeshIterator* it;
@@ -2306,11 +2313,13 @@ void m3dc1_field_importall()
     it = m->begin(0);
     while ((e = m->iterate(it)))
     {
+      for (int i=0; i<num_dof; ++i) dof_data[i]=0.0;
+
       fscanf(fp, "%d\n", &non_zero_dof);
       for (int i=0; i<non_zero_dof; ++i)
       {
-        fprintf(fp, "%d", &k);
-        fprintf(fp, "%lf", dof_data[k]);
+        fscanf(fp, "%d", &k);
+        fscanf(fp, "%lf", &(dof_data[k]));
       }
       setComponents(f, e, 0, dof_data);
     } // while
