@@ -779,6 +779,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
 	
   in->shouldSnap = 0; // FIXME: crash if *shouldSnap==1;
   in->shouldTransferParametric = 0;
+  in->shouldRunMidZoltan = 1;
   in->shouldRunPreZoltan = shouldRunPreZoltan;
   in->shouldRunPostZoltan = shouldRunPostZoltan;
   in->shouldRunMidParma = 0;
