@@ -791,8 +791,10 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   	  <<", runPreZoltan "<<shouldRunPreZoltan<<", runPostZoltan "<<shouldRunPostZoltan<<"\n";
 
 #ifdef DEBUG
-  apf::writeVtkFiles("before-adapt", mesh);
-  mesh->writeNative("mesh.smb");
+  static int ts=1;
+  char fname[64];
+  sprintf(fname, "before-adapt-ts%d", ts);
+  apf::writeVtkFiles(fname, mesh);
 #endif
 
   apf::MeshEntity* e;
@@ -825,8 +827,12 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
     m3dc1_mesh::instance()->remove_wedges();
     apf::printStats(mesh);
 
-    apf::writeVtkFiles("after-wedge-removal", mesh);
-    mesh->writeNative("after-wedge-removal.smb");
+#ifdef DEBUG
+    sprintf(fname, "after-wedge-removal-ts%d", ts);
+    apf::writeVtkFiles(fname, mesh);
+    sprintf(fname, "after-wedge-removal-ts%d.smb", ts);
+    mesh->writeNative(fname);
+#endif
   }
 
   ma::adapt(in);
@@ -835,9 +841,6 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   mesh->removeField(frame_field);
   apf::destroyField(size_field);
   apf::destroyField(frame_field);
-
-  if (!PCU_Comm_Self()) std::cout<<"After adaptation: ";
-  m3dc1_mesh::instance()->print(__LINE__);
 
   if (m3dc1_model::instance()->num_plane>1) // 3d
   {
@@ -852,9 +855,6 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
 
   // FIXME: crash in 2D if no pre/post zoltan 
   reorderMdsMesh(mesh);
-
-  // FIXME: crash in 3D 
-  apf::writeVtkFiles("after-adapt", mesh);
 
   m3dc1_mesh::instance()->initialize();
 
@@ -872,4 +872,20 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   }
 
   apf::freezeFields(mesh); // turning field data from tag to array
+#ifdef DEBUG
+  if (!PCU_Comm_Self()) std::cout<<"After adaptation: ";
+  m3dc1_mesh::instance()->print(__LINE__);
+
+  // FIXME: crash in 3D 
+  sprintf(fname, "after-adapt-ts%d", ts++);
+  apf::writeVtkFiles(fname, mesh);
+/*
+  MeshIterator* ent_it = mesh->begin(2);
+  while ((e = mesh->iterate(ent_it)))
+  {
+    std::cout<<"Face "<<cnt++<<" ID "<<getMdsIndex(mesh, e)<<", local ID "<<get_ent_localid(mesh, e)<<"\n";
+  }
+  mesh->end(ent_it); 
+*/
+#endif
 }

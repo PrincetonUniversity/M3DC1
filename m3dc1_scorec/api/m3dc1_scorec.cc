@@ -36,6 +36,12 @@ double begin_mem, begin_time;
 // helper routines
 void group_complex_dof (apf::Field* field, int option);
 
+void print_ent_error(const char* func, int dim, int id)
+{
+  std::cout<<"[M3D-C1 ERROR] p"<<PCU_Comm_Self()<<": "
+          <<func<<" entity dim "<<dim<<" id "<<id<<" doesn't exist\n";
+}
+
 bool m3dc1_double_isequal(double A, double B)
 {
   double maxDiff = 1e-5;
@@ -534,6 +540,10 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   adapt_mesh (*field_id_h1, *field_id_h2, dir, 
               *shouldSnap, *shouldRunPreZoltan, *shouldRunPostZoltan,
               *shouldRefineLayer, *maximumIterations, *goodQuality);
+#ifdef DEBUG
+  printStats(m3dc1_mesh::instance()->mesh);
+  pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
+#endif
 }
 
 /* ghosting functions */
@@ -957,6 +967,10 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
   apf::MeshEntity* e = getMdsEntity(mesh, *ent_dim, *ent_id);
+#ifdef DEBUG
+  if (!e)
+    print_ent_error(__func__, *ent_dim, *ent_id);
+#endif
   assert(e);
 
   if (*adj_dim>*ent_dim) // upward

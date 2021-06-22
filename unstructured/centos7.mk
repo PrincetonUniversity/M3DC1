@@ -1,5 +1,5 @@
 FOPTS = $(OPTS) -DPETSC_VERSION=313 -c -r8 -implicitnone -fpp -warn all -DUSEBLAS
-CCOPTS  = -c -DPETSC_VERSION=313
+CCOPTS  = -c -DDEBUG -DPETSC_VERSION=313
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec
