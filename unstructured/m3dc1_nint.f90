@@ -509,6 +509,12 @@ contains
           if(itemp.eq.1) fields = ior(fields,FIELD_TE)
        end if
     end if
+    if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
+       if(idenmfunc.eq.1) then
+          fields = ior(ior(ior(fields,FIELD_N),FIELD_P),FIELD_PSI)
+          if(itemp.eq.1) fields = ior(fields,FIELD_TE)
+       end if
+    end if
     if(iand(fields, FIELD_MU).eq.FIELD_MU) then
        if(ivisfunc.eq.3) fields = ior(fields,FIELD_PSI)
     end if
@@ -1125,7 +1131,66 @@ contains
 
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   denm..."
      
-     call eval_ops(itri, denm_field, denm79)
+     if(idenmfunc.eq.1) then
+        denm79 = 0.
+        if(izone.eq.1. .and. denmt.gt.0) then
+           ! Te
+           if(itemp.eq.1) then
+              temp79b = tet79(:,OP_1)
+           else
+              temp79b = pet79(:,OP_1)/net79(:,OP_1)
+           end if
+
+           where(real(temp79b).gt.(denmt/(denmmax-denm)))
+              denm79(:,OP_1) = net79(:,OP_1)/pet79(:,OP_1)
+              denm79(:,OP_DR) = net79(:,OP_DR)/pet79(:,OP_1) &
+                   - net79(:,OP_1)*pet79(:,OP_DR)/pet79(:,OP_1)**2
+              denm79(:,OP_DZ) = net79(:,OP_DZ)/pet79(:,OP_1) &
+                   - net79(:,OP_1)*pet79(:,OP_DZ)/pet79(:,OP_1)**2
+              denm79(:,OP_DRR) = net79(:,OP_DRR)/pet79(:,OP_1) &
+                   - 2.*net79(:,OP_DR)*pet79(:,OP_DR)/pet79(:,OP_1)**2 &
+                   + 2.*net79(:,OP_1)*pet79(:,OP_DR)**2/pet79(:,OP_1)**3 &
+                   - net79(:,OP_1)*pet79(:,OP_DRR)/pet79(:,OP_1)**2
+              denm79(:,OP_DRZ) = net79(:,OP_DRZ)/pet79(:,OP_1) &
+                   - (net79(:,OP_DR)*pet79(:,OP_DZ) + &
+                      net79(:,OP_DZ)*pet79(:,OP_DR))/pet79(:,OP_1)**2 &
+                   + 2.*net79(:,OP_1)*pet79(:,OP_DR)*pet79(:,OP_DZ)/pet79(:,OP_1)**3 &
+                   - net79(:,OP_1)*pet79(:,OP_DRZ)/pet79(:,OP_1)**2
+              denm79(:,OP_DZZ) = net79(:,OP_DZZ)/pet79(:,OP_1) &
+                   - 2.*net79(:,OP_DZ)*pet79(:,OP_DZ)/pet79(:,OP_1)**2 &
+                   + 2.*net79(:,OP_1)*pet79(:,OP_DZ)**2/pet79(:,OP_1)**3 &
+                   - net79(:,OP_1)*pet79(:,OP_DZZ)/pet79(:,OP_1)**2
+#ifdef USE3D
+              denm79(:,OP_DP) = net79(:,OP_DP)/pet79(:,OP_1) &
+                   - net79(:,OP_1)*pet79(:,OP_DP)/pet79(:,OP_1)**2
+#endif
+           end where
+
+           denm79 = denm79*denmt
+           denm79(:,OP_1) = denm79(:,OP_1) + denm
+
+           where((denmmax-denm)*real(temp79b).le.denmt)
+              denm79(:,OP_1) = denmmax
+           end where
+           where((denmmin-denm)*real(temp79b).ge.denmt)
+              denm79(:,OP_1) = denmmin
+           end where
+
+           where(denm79.ne.denm79) denm79 = 0.
+           temp79a = denm79(:,OP_1)
+           do i=1, OP_NUM
+              where(real(temp79a).lt.0.) denm79(:,i) = 0.
+              where(real(temp79a).gt.denmmax) denm79(:,i) = 0.
+              where(real(temp79a).lt.denmmin) denm79(:,i) = 0.
+           end do
+           where(real(temp79a).gt.denmmax) denm79(:,OP_1) = denmmax
+           where(real(temp79a).lt.denmmin) denm79(:,OP_1) = denmmin
+
+        end if
+     else
+        call eval_ops(itri, denm_field, denm79)
+     end if
+
   end if
 
 
