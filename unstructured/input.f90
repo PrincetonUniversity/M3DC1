@@ -1061,13 +1061,6 @@ subroutine set_defaults
   ! Mesh adaptation
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
 
-  !Mesh adapataion contol parameters
-  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp)
-  call add_var_int("iadapt_pre_zoltan", iadapt_pre_zoltan, 0, "", adapt_grp)
-  call add_var_int("iadapt_post_zoltan", iadapt_post_zoltan, 1, "", adapt_grp)
-  call add_var_int("iadapt_refine_layer", iadapt_refine_layer, 1, "", adapt_grp)
-  call add_var_int("iadapt_max_iter", iadapt_max_iter, 5, "", adapt_grp)
-  call add_var_double("iadapt_quality", iadapt_quality, 0.2, "", adapt_grp)
 
   !Micellaneous parameters or mesh adaptation
   call add_var_int("iadapt_writevtk", iadapt_writevtk, 0, "", adapt_grp)

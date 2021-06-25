@@ -513,18 +513,8 @@ void m3dc1_dir_import(double* dir, int ts)
 /* Input Parameters
  * field_id_h1, field_id_h2: removed before adaptation so it won't be available after adaptation
  * dir: direction per node. The length of dir should be #nodes * 3 
- * logInterpolation(0,1): If true uses logarithmic interpolation for evaluation of fields on new vertices
- * shouldSnap(0,1) : Snaps new vertices to the model surface (Set it to 0 for the being. Need to work on Model format to make this parameter work) 
- * shouldTransferParametric(0,1): Transfer parametric coordinates (Set it to 0 for the being. Need to work on Model format to make this parameter work)
- * shouldRunPreZoltan(0,1): Whether to run zoltan predictive load balancing
- * shouldRefineLayer(0,1): Whether to allow layer refinement
- * maximumIterations: Number of refine/coarsen iterations to run
- * goodQuality): Minimum desired mean ratio cubed for simplex elements
- * NOTE: Make sure to set shouldSnap and  shouldTransferParametric to 0. These are true in default SCOREC adaptation tools that will lead to failure of adaptation
 */
-void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
-    int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
-    int* shouldRefineLayer, int* maximumIterations, double* goodQuality)
+void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir)
 {
 #ifdef DEBUG
   static int ts=1;
@@ -537,9 +527,7 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
   ts++;
   // export fields and dirs
 #endif
-  adapt_mesh (*field_id_h1, *field_id_h2, dir, 
-              *shouldSnap, *shouldRunPreZoltan, *shouldRunPostZoltan,
-              *shouldRefineLayer, *maximumIterations, *goodQuality);
+  adapt_mesh (*field_id_h1, *field_id_h2, dir);
 #ifdef DEBUG
   printStats(m3dc1_mesh::instance()->mesh);
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);

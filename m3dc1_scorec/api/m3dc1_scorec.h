@@ -73,9 +73,7 @@ int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk
 
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
-void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir,
-    int* shouldSnap, int* shouldRunPreZoltan ,int* shouldRunPostZoltan,
-    int* shouldRefineLayer, int* maximumIterations, double* goodQuality);
+void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir);
 
 int m3dc1_ghost_create (int* num_layer ); 
 int m3dc1_ghost_delete ();

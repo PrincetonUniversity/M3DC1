@@ -30,9 +30,7 @@ int get_ent_global2ndadj (apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&,
     std::vector<int>&, std::vector<int>&, std::vector<int>&);
 void get_ent_numglobaladj(apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&, std::vector<int>&);
 
-void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
-    int shouldSnap, int shouldRunPreZoltan ,int shouldRunPostZoltan,
-    int shouldRefineLayer, int maximumIterations, double goodQuality);
+void adapt_mesh (int field_id_h1, int field_id_h2, double* dir);
 
 // helper routine for build3d
 void push_new_entities (apf::Mesh2* mesh, std::map<apf::MeshEntity*, apf::MeshEntity*>& new_entities);

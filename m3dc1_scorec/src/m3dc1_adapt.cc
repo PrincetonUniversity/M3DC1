@@ -691,9 +691,7 @@ void copy_field (apf::Mesh2* mesh, apf::Field* f,
 }
 
 // run mesh adaptation in multiple planes in 3D
-void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
-    int shouldSnap, int shouldRunPreZoltan ,int shouldRunPostZoltan,
-    int shouldRefineLayer, int maximumIterations, double goodQuality)
+void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
 {
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 
@@ -777,19 +775,18 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
   ReducedQuinticTransfer slnTransfer(mesh,fields, &shape);
   ma::Input* in = ma::configure(mesh, size_field, frame_field, &slnTransfer);
 	
-  in->shouldSnap = 0; // FIXME: crash if *shouldSnap==1;
+  in->shouldSnap = 0;
   in->shouldTransferParametric = 0;
   in->shouldRunMidZoltan = 1;
-  in->shouldRunPreZoltan = shouldRunPreZoltan;
-  in->shouldRunPostZoltan = shouldRunPostZoltan;
-  in->shouldRunMidParma = 0;
-  in->shouldRunPostParma = 0;
-  in->shouldRefineLayer = shouldRefineLayer;
-  in->maximumIterations=maximumIterations;
-  in->goodQuality = goodQuality;
+  in->shouldRunPreZoltan = 1;
+  in->shouldRunPostZoltan = 1;
+  in->maximumIterations = 5;
 
-  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": snap "<<shouldSnap
-  	  <<", runPreZoltan "<<shouldRunPreZoltan<<", runPostZoltan "<<shouldRunPostZoltan<<"\n";
+  std::cout << "should snap:  " << in->shouldSnap << "\n";
+  std::cout << "shouldTransferParametric: " << in->shouldTransferParametric << "\n";
+
+  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": runMidZoltan "<< in->shouldRunMidZoltan
+  	  <<", runPreZoltan "<<in->shouldRunPreZoltan<<", runPostZoltan "<<in->shouldRunPostZoltan<<"\n";
 
 #ifdef DEBUG
   static int ts=1;
@@ -836,7 +833,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
 #endif
   }
 
-  ma::adapt(in);
+  ma::adaptVerbose(in);
 
   mesh->removeField(size_field);
   mesh->removeField(frame_field);
