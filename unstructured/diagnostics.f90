@@ -11,6 +11,10 @@ module diagnostics
 
   real :: tflux0
 
+  integer :: itri_magaxis = 0
+  integer :: itri_te_max  = 0
+  integer :: itri_te_max2 = 0
+
   ! scalars integrated over entire computational domain
   real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne
   real :: totrad, linerad, bremrad, ionrad, reckrad, recprad
@@ -1242,6 +1246,17 @@ elemental subroutine magnetic_region(psi, psix, psiz, x, z, mr, psinb)
   mr = REGION_PLASMA
 end subroutine magnetic_region
 
+subroutine reset_itris()
+
+  implicit none
+
+  itri_magaxis = 0
+  itri_te_max  = 0
+  itri_te_max2 = 0
+  return
+
+end subroutine reset_itris
+
 !=====================================================
 ! magaxis
 ! ~~~~~~~
@@ -1279,7 +1294,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   real :: xtry, ztry, rdiff
   vectype, dimension(coeffs_per_element) :: avector
   real, dimension(6) :: temp1, temp2
-  integer, save :: itri = 0
+  integer :: itri
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,2E12.4)') '  magaxis: guess = ', xguess, zguess
@@ -1289,6 +1304,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
   x = xguess
   z = zguess
+  itri = itri_magaxis
   
   newton :  do inews=1, iterations
 
@@ -1448,7 +1464,9 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
-  
+
+  itri_magaxis = itri
+
 end subroutine magaxis
 
 ! te_max
@@ -1487,7 +1505,7 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
   real :: xtry, ztry, rdiff
   vectype, dimension(coeffs_per_element) :: avector
   real, dimension(5) :: temp1, temp2
-  integer, save :: itri = 0
+  integer :: itri
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,2E12.4)') '  te_max: guess = ', xguess, zguess
@@ -1496,7 +1514,8 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
 
   x = xguess
   z = zguess
-  
+  itri = itri_te_max
+
   newton :  do inews=1, iterations
 
      call whattri(x,0.,z,itri,x1,z1)
@@ -1652,7 +1671,9 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  te_max: iterations, x, z = ', inews, x, z
-  
+
+  itri_te_max = itri
+
 end subroutine te_max
 
 subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
@@ -1675,33 +1696,36 @@ subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
   real :: sum
   vectype, dimension(coeffs_per_element) :: avector
   real, dimension(5) :: temp1, temp2
-  integer, save :: itri = 0
+  integer :: itri
 
-     x = xguess
-     z = zguess
-     call whattri(x,0.,z,itri,x1,z1)
+  x = xguess
+  z = zguess
+  itri = itri_te_max2
 
-     ! calculate te at x,0,z
-     if(itri.gt.0) then
-        call calcavector(itri, te, avector)
-        call get_element_data(itri, d)
-        ! calculate local coordinates
-        call global_to_local(d, x, 0., z, si, zi, eta)
-        ! evaluate the polynomial
-        sum = 0.
-        do i=1, coeffs_per_tri
-           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
-        enddo
-     endif  ! on itri.gt.0
-     ! communicate new maximum to all processors
-     if(maxrank.gt.1) then
-        temp1(1) = sum
-        call mpi_allreduce(temp1, temp2, 1, &
-             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
-        sum   = temp2(1)
-     endif
-     tem = sum
-     ier = 0
+  call whattri(x,0.,z,itri,x1,z1)
+
+  ! calculate te at x,0,z
+  if(itri.gt.0) then
+     call calcavector(itri, te, avector)
+     call get_element_data(itri, d)
+     ! calculate local coordinates
+     call global_to_local(d, x, 0., z, si, zi, eta)
+     ! evaluate the polynomial
+     sum = 0.
+     do i=1, coeffs_per_tri
+        sum = sum + avector(i)*si**mi(i)*eta**ni(i)
+     enddo
+  endif  ! on itri.gt.0
+  ! communicate new maximum to all processors
+  if(maxrank.gt.1) then
+     temp1(1) = sum
+     call mpi_allreduce(temp1, temp2, 1, &
+          MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+     sum   = temp2(1)
+  endif
+  tem = sum
+  ier = 0
+  itri_te_max2 = itri
 end subroutine te_max2
 
 
