@@ -1080,19 +1080,24 @@ subroutine calculate_scalars()
      print *, "  Ionization loss = ", ionrad
      print *, "  Recombination radiation (kinetic) = ", reckrad
      print *, "  Recombination radiation (potential) = ", recprad
-     if(ipellet_abl.gt.0 .and. iprint.ge.2) then
-        do ip=1,npellets
-           print *, "  Pellet #", ip
-           print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
-           print *, "    radius (in cm) = ", r_p(ip)*l0_norm
-           print *, "    local electron temperature (in eV) = ", temp_pel(ip)
-           print *, "    local electron density (in ne14) = ", nsource_pel(ip)
-           print *, "    rpdot (in cm/s) = ", rpdot(ip)*l0_norm/t0_norm
-           print *, "    Lor_vol = ", Lor_vol(ip)
-           print *, "    R position: ", pellet_r(ip)*l0_norm
-           print *, "    phi position: ", pellet_phi(ip)
-           print *, "    Z position: ", pellet_z(ip)*l0_norm
-        end do
+     if(ipellet_abl.gt.0) then
+        if(iprint.ge.3 .or. npellets.eq.1) then
+           do ip=1,npellets
+              print *, "  Pellet #", ip
+              print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
+              print *, "    radius (in cm) = ", r_p(ip)*l0_norm
+              print *, "    local electron temperature (in eV) = ", temp_pel(ip)
+              print *, "    local electron density (in ne14) = ", nsource_pel(ip)
+              print *, "    rpdot (in cm/s) = ", rpdot(ip)*l0_norm/t0_norm
+              print *, "    Lor_vol = ", Lor_vol(ip)
+              print *, "    R position: ", pellet_r(ip)*l0_norm
+              print *, "    phi position: ", pellet_phi(ip)
+              print *, "    Z position: ", pellet_z(ip)*l0_norm
+           end do
+        elseif(iprint.ge.2) then
+           print *, "  Pellet diagnostic output suppressed for multi-pellet"
+           print *, "    Set iprint >= 3 to output multi-pellet diagnostics"
+        endif
      endif
   endif
 

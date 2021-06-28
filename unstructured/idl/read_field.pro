@@ -1195,7 +1195,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(itor eq 1) then begin
           r = radius_matrix(x,y,t)
        endif else begin
-          r = 2.*!pi*rzero
+          r = rzero
        end
        
        data = rho*bt / (r*bp)

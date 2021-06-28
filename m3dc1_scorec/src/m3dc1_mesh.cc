@@ -1252,12 +1252,22 @@ void m3dc1_mesh::set_mcount()
 
   reset();
   MeshEntity* e;
+  if (PCU_Comm_Peers()==1)
+  {
+    for (int d=0; d<4; ++d)
+    {
+      num_local_ent[d] = mesh->count(d);
+      num_own_ent[d] = mesh->count(d);
+      num_global_ent[d] = mesh->count(d);
+    }
+    return;
+  }
 
   int counter = 0, own_partid, local_partid=PCU_Comm_Self();
 
   for (int d=0; d<4; ++d)
   {
-    num_local_ent[d] = countEntitiesOfType(mesh, d);
+    num_local_ent[d] = mesh->count(d);
     counter=0;
     MeshIterator* it = mesh->begin(d);
     while ((e = mesh->iterate(it)))
@@ -1271,8 +1281,8 @@ void m3dc1_mesh::set_mcount()
     }
     mesh->end(it);
   }
-
-  MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, PCU_Get_Comm());
+  if (PCU_Comm_Peers()>0)
+    MPI_Allreduce(num_own_ent, num_global_ent, 4, MPI_INT, MPI_SUM, PCU_Get_Comm());
 }
 
 
