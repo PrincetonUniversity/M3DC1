@@ -12,6 +12,7 @@ subroutine adapt_mesh
     use arrays
     use newvar_mod
     use transport_coefficients
+    use diagnostics
 
     integer :: i, idx, node_dim=0
     integer :: numnodes, inode
