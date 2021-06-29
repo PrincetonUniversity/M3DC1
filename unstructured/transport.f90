@@ -1048,10 +1048,11 @@ function denm_func()
        temp79a = denm
 
   case(1)
-       temp79a = denm + denmt / real(tet79(:,OP_1))
+     ! denm ~ 1/Te (with minimum & maximum)
 
-       temp79a = min(real(temp79a),denmmax)
-       temp79a = max(real(temp79a),denmmin)
+     temp79a = denm79(:,OP_1)
+     temp79a = min(real(temp79a),denmmax)
+     temp79a = max(real(temp79a),denmmin)
 
   case(10,11)
      if(.not.allocated(denm_spline%x)) then
@@ -1264,6 +1265,7 @@ subroutine define_transport_coefficients()
   if(itemp.ge.1) def_fields = def_fields + FIELD_TE
   if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
        def_fields = def_fields + FIELD_ETA
+  if(idenmfunc.eq.1) def_fields = def_fields + FIELD_DENM
   if(ikappafunc.eq.5) def_fields = def_fields + FIELD_KAP
   if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V

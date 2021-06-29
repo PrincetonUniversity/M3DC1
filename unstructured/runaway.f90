@@ -70,7 +70,7 @@ contains
   elemental subroutine runaway_current(nre,epar,Temp,Dens,&
                                        Zeff,eta,Ecrit,re_79,&
                                        re_j79,re_epar,dndt,&
-                                       mr,bz,ri,bi)
+                                       mr,bz,bi,ri,z)
     use math
     use basic
 
@@ -82,70 +82,79 @@ contains
     real, intent(in) :: Dens ! [1/m^3]
     real, intent(in) :: Zeff ! [1]
     real, intent(in) :: bz
-    real, intent(in) :: ri
+    real, intent(in) :: ri,z
     real, intent(in) :: bi
     real, intent(out) :: re_79,dndt,re_j79,re_epar,Ecrit
-    real :: Clog,x,nu,vth,esign,teval,jpar,nrel, &
-            f,dt_si,tmp,nretmp
+    real :: Clog,x,nu,vth,esign,teval,jpar,nrel,a,r,Ed, &
+            f,dt_si,tmp,nretmp,Dens1,sd,sa,nra,gamma,tau
     integer, intent(in) :: mr
     integer :: l, nl
     
     dndt = 0.
+    sd = 0.
+    sa = 0.
     dt_si = dt * t0_norm
     nrel = nre
     nl = 10
     tmp = 0.
     nretmp = 0.
+    Dens1 = Dens 
+    !if (Dens1 .lt. 2.D19) Dens1 = 2.D19
     
-!    if(mr.ne.0) then 
-!      re_79 = 0.D0
-!      re_j79 = 0.D0 
-!      return
-!    endif
+    if(mr.ne.0) then 
+      re_79 = 0.D0
+      re_j79 = 0.D0 
+      return
+    endif
              
 !   based on formula in Stahl, et al, PRL 114 115002 (2015)
     teval = max(1.,Temp)   ! note: this sets a minimum temperature of 1 eV for runaway production
     !jsign = sign(1.,epar)
     esign = sign(1., epar)
-       jpar = nre!*ec*cre*va 
-       re_epar = abs(epar)! - 1.0*abs(eta*jpar/b1/bz/ri)
+       jpar = nre!*ec*cre*va
+       nra = nre/ec/cre/va 
+       re_epar = epar! - 1.0*abs(eta*jpar/b1/bz/ri)
        if (Temp.ge.teval .and. mr.eq.0) then
-          Clog = 14.78D0-0.5*log(Dens/1.d20)+log(Temp/1.d3)
-          Ecrit = ec**3*Dens*Clog/(4*pi*eps0**2*me*c**2) 
+          Clog = 14.78D0-0.5*log(Dens1/1.d20)+log(Temp/1.d3)
+          Ecrit = ec**3*Dens1*Clog/(4*pi*eps0**2*me*c**2) 
           vth = sqrt(2*ec*Temp/me)
-          nu = dens*ec**4*Clog/(4*pi*eps0**2*me**2*vth**3) 
-          x = (abs(re_epar)*ec*Temp)/(Ecrit*me*c**2)
+          nu = Dens1*ec**4*Clog/(4*pi*eps0**2*me**2*vth**3)
+          !tau = me*(cre*va)**3/(4*pi*Dens1*ec**4*Clog)
+          tau = me*c/ec/Ecrit
+          a = sqrt((1/ri-xmag)**2+(z-zmag)**2)
+          r = sqrt(1/ri**2+z**2)
+          gamma = 1/(1+1.46*sqrt(a/r)+1.72*a/r) 
+          x = (abs(re_epar)*2*ec*Temp)/(Ecrit*me*c**2)
+          Ed = abs(re_epar)/Ecrit
+          if(Ed < 1) Ed = 1
           if(abs(re_epar).gt.Ecrit) then
-              dndt = Dens*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
-                     *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x))
-              if (re_epar .ge. 0) then
-                 nrel = nre + esign*dndt*dt_si*cre*ec*va
-              else
-                 nrel = nre !- esign*dndt*dt_si*cre*ec*va
-              endif 
+              sd = Dens1*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
+                 *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x))
+              sa = nra/tau/Clog*sqrt(pi*gamma/3/(Zeff+5))*(Ed-1)* &
+                 1/sqrt(1-1/Ed+4*pi*(Zeff+1)**2/3/gamma/(Zeff+5)/(Ed**2+4/gamma**2-1)) 
+              dndt = (sd*esign + sa)*cre*ec*va
+              !if (re_epar .ge. 0) then
+                 nrel = nre + dndt*dt_si
+              !else
+              !   nrel = nre !- esign*dndt*dt_si*cre*ec*va
+              !endif 
           else
               nrel = nre 
+              dndt = 0.
           end if
 
        else
            re_epar = 0.
            nrel = nre
+           dndt = 0.
        endif
     
        re_79 = nrel
-!       if (re_79 .lt. 0) then
-!          re_79 = 0.
-!       endif
+       re_j79 = nre
   
-       re_j79 = re_79! * ec * cre * va 
-!       if (abs(re_j79) .gt. abs(epar/eta)) then
-!           re_j79 = esign*abs(epar/eta)
-!           re_epar = 0.
-!           re_79 = re_j79
-!       endif
-       re_epar = re_epar * esign
-!      re_j79 = re_79*abs(ri*bz*bi)
-!      re_79 = -abs(re_79)
+       if (abs(re_j79) .ge. abs(ri*bz)) then
+            dndt = 0.
+       endif
       
   end subroutine runaway_current
 
@@ -185,18 +194,21 @@ contains
     eta = eta79(:,OP_1)*e0_norm/j0_norm*c**2*1e-7
     call magnetic_region(pst79(:,OP_1),&
          pst79(:,OP_DR),pst79(:,OP_DZ),x_79,Z_79,mr)
-    bz = bzt79(:,OP_1)
+    bz = pst79(:,OP_GS)/((c*1e-3)/j0_norm)
     bi = bi79(:,OP_1)
     
     call runaway_current(nre,epar,te,ne,z_ion,eta,ecrit,&
-                         re_79,re_j79,re_epar,dndt,mr,bz,bi,ri_79)
+                         re_79,re_j79,re_epar,dndt,mr,bz,bi,ri_79,z_79)
 
     ! convert back to normalized units
     dndt = dndt*t0_norm/(j0_norm/c/1e-3)
+    if(myrank.eq.0) print*, 'dndt=',dndt
 
     re_79 = re_79*(c*1e-3)/j0_norm!/(n0_norm*1e6)
 
     re_j79 = re_j79*(c*1e-3)/j0_norm
+   
+    re_j79 = re_j79+dndt*dt
 
     re_epar = re_epar/(e0_norm*c*1e-4)
 
@@ -207,12 +219,6 @@ contains
 
     dofs = intx2(mu79(:,:,OP_1),re_79)
     call vector_insert_block(dnre_field1%vec,itri,1,dofs,VEC_ADD)
-
-
-    dofs = -intx2(mu79(:,:,OP_1),re_79) + &
-           intx2(mu79(:,:,OP_1),net79(:,OP_1))
-
-    call vector_insert_block(dnre_field2%vec,itri,1,dofs,VEC_ADD)
 
     dofs = intx2(mu79(:,:,OP_1),re_epar)
     call vector_insert_block(depar_field%vec,itri,1,dofs,VEC_ADD)
@@ -242,16 +248,15 @@ contains
     if(iprint.ge.1) print *, 'Solving RE advance'
     !call sum_shared(dnre_field1%vec)
     !call newsolve(mass_mat_lhs%mat,dnre_field1%vec,ier)
-    call newvar_solve(dnre_field1%vec, mass_mat_lhs)
+    call newvar_solve(jre_field%vec, mass_mat_lhs)
 
     !call sum_shared(dnre_field2%vec)
     !call newsolve(mass_mat_lhs%mat,dnre_field2%vec,ier)
-    call newvar_solve(dnre_field2%vec, mass_mat_lhs)
 
-    nre_field(1) = dnre_field1
-    ne_field(1) =  dnre_field2
+    nre_field(1) = jre_field
     dnre_field2 = 0.
     dnre_field1 = 0.
+    jre_field = 0.
 
   end subroutine runaway_advance
 
