@@ -82,6 +82,7 @@ subroutine adapt_mesh
        call destroy_field(size2)
        call space(0)
        call update_nodes_owned()
+       call reset_itris()
        call tridef
        call unstraighten_fields()
 
