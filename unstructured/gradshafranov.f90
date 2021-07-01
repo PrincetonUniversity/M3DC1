@@ -28,7 +28,7 @@ module gradshafranov
   real, private :: gamma2, gamma3, gamma4  
 
   logical, private :: constraint = .false.
-  logical, private :: do_feedback, do_feedback_x
+  logical, private :: do_feedback, do_feedback_x, do_feedback_x2
 
   real, private :: gnorm, libetapeff, fac2
 
@@ -50,8 +50,13 @@ module gradshafranov
   real, dimension(maxcoils) :: gs_radial_feedback_x
   real, dimension(maxcoils) :: gs_vertical_feedback_x_i
   real, dimension(maxcoils) :: gs_radial_feedback_x_i
+  real, dimension(maxcoils) :: gs_vertical_feedback_x2
+  real, dimension(maxcoils) :: gs_radial_feedback_x2
+  real, dimension(maxcoils) :: gs_vertical_feedback_x2_i
+  real, dimension(maxcoils) :: gs_radial_feedback_x2_i
   real :: xmag0, zmag0, xmagi, zmagi
   real :: xnull0, znull0, xnulli, znulli
+  real :: xnull20, znull20, xnull2i, znull2i
 
   integer :: igs_start_xpoint_search
   integer :: igs_forcefree_lcfs
@@ -132,8 +137,10 @@ subroutine coil_feedback(itnum)
 
   integer :: i, ierr
   
-  if(myrank.eq.0 .and. iprint.ge.2) then 
-     print *, 'Doing feedback', xmag-xmag0, zmag-zmag0,xnull-xnull0,znull-znull0
+  if(myrank.eq.0 .and. iprint.ge.2) then
+     if(do_feedback)    print *, 'Doing axis feedback:', xmag0, zmag0, xmag-xmag0, zmag-zmag0
+     if(do_feedback_x)  print *, 'Doing null feedback:', xnull0, znull0, xnull-xnull0,znull-znull0
+     if(do_feedback_x2) print *, 'Doing null2 feedback:', xnull20, znull20, xnull2-xnull20,znull2-znull20
   end if
 
   if(do_feedback) then
@@ -150,6 +157,14 @@ subroutine coil_feedback(itnum)
   else
      xnulli = 0.
      znulli = 0.
+  end if
+
+  if((itnum.gt.10).and.(do_feedback_x2)) then
+     xnull2i = xnull2i + (xnull2-xnull20)
+     znull2i = znull2i + (znull2-znull20)
+  else
+     xnull2i = 0.
+     znull2i = 0.
   end if
 
   if(myrank.eq.0) then
@@ -174,6 +189,14 @@ subroutine coil_feedback(itnum)
                 +gs_radial_feedback_x(coil_mask(i))*(xnull-xnull0) &
                 +gs_vertical_feedback_x_i(coil_mask(i))*znulli &
                 +gs_radial_feedback_x_i(coil_mask(i))*xnulli)
+        end if
+        if((xnull20.gt.0. .and. itnum.gt.10).and.(do_feedback_x2)) then
+           ic_out(i) = ic_out(i) &
+                + (amu0 * 1000. / twopi) / filaments(i) * &
+                (gs_vertical_feedback_x2(coil_mask(i))*(znull2-znull20) &
+                +gs_radial_feedback_x2(coil_mask(i))*(xnull2-xnull20) &
+                +gs_vertical_feedback_x2_i(coil_mask(i))*znull2i &
+                +gs_radial_feedback_x2_i(coil_mask(i))*xnull2i)
         end if
      end do
   end if
@@ -1122,6 +1145,7 @@ subroutine gradshafranov_solve
   ! determine if feedback will be used
   do_feedback = .false.
   do_feedback_x = .false.
+  do_feedback_x2 = .false.
   if(idevice .eq. -1) then
      do i=1, maxcoils
         if((gs_vertical_feedback(i) .ne. 0) .or. &
@@ -1131,6 +1155,10 @@ subroutine gradshafranov_solve
         if((gs_vertical_feedback_x(i) .ne. 0) .or. &
              (gs_radial_feedback_x(i) .ne. 0)) then
            do_feedback_x = .true.
+        end if
+        if((gs_vertical_feedback_x2(i) .ne. 0) .or. &
+             (gs_radial_feedback_x2(i) .ne. 0)) then
+           do_feedback_x2 = .true.
         end if
      end do
   end if
@@ -1149,6 +1177,14 @@ subroutine gradshafranov_solve
      end if
      xnulli = 0.
      znulli = 0.
+  end if
+  if(do_feedback_x2) then
+     if(xnull20.eq.0) then
+        xnull20 = xnull2
+        znull20 = znull2
+     end if
+     xnull2i = 0.
+     znull2i = 0.
   end if
 
   if(igs.ne.0) call lcfs(psi_vec, iwall_is_limiter.eq.1, &
@@ -1265,7 +1301,7 @@ subroutine gradshafranov_solve
      call calculate_gamma(gamma2,gamma3,gamma4)
      if(myrank.eq.0 .and. iprint.ge.2) print *, "gamma2,gamma3,gamma4", gamma2,gamma3,gamma4
      ! do feedback
-     if(do_feedback .or. do_feedback_x) call coil_feedback(itnum)
+     if(do_feedback .or. do_feedback_x .or. do_feedback_x2) call coil_feedback(itnum)
 
      ! Define RHS vector
      b2vecini_vec = fun1_vec
