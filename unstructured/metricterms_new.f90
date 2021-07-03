@@ -4668,19 +4668,9 @@ function b1jrebeta(e,f,g,h,i)
      temp = -intx5(e(:,:,OP_1),f(:,OP_1),g(:,OP_1),h(:,OP_1),i(:,OP_1))
   else
      if(surface_int) then
-        temp = (intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,2),ri2_79, & 
-                f(:,OP_DZ),g(:,OP_1),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_DR),g(:,OP_1),h(:,OP_1),i(:,OP_1)))
+        temp = 0.
      else
-        temp = (intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               +intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ),g(:,OP_1),h(:,OP_1),i(:,OP_1)) &
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_1),h(:,OP_1),i(:,OP_1)))
+        temp = -intx6(e(:,:,OP_GS),ri2_79,f(:,OP_1),g(:,OP_1),h(:,OP_1),i(:,OP_1))
      end if
   endif
   temp = temp*1.000
