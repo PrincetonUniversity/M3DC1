@@ -1084,7 +1084,8 @@ subroutine calculate_scalars()
         if(iprint.ge.3 .or. npellets.eq.1) then
            do ip=1,npellets
               print *, "  Pellet #", ip
-              print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
+              print *, "    state = ", pellet_state(ip)
+              print *, "    particles injected = ", pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
               print *, "    radius (in cm) = ", r_p(ip)*l0_norm
               print *, "    local electron temperature (in eV) = ", temp_pel(ip)
               print *, "    local electron density (in ne14) = ", nsource_pel(ip)
