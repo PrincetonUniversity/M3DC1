@@ -820,7 +820,7 @@ subroutine ef_vlbdgp(ilin,o)
   vectype, dimension(MAX_PTS), intent(out) :: o
 
 
- o =  -vloop*ri2_79*bzt79(:,OP_1)/twopi
+ o =  -vloop*ri2_79*bzt79(:,OP_1)/toroidal_period
 
 
 end subroutine ef_vlbdgp

@@ -11156,7 +11156,7 @@ real function flux_poynting()
   implicit none
   vectype :: temp
 
-  temp = -vloop/twopi * &
+  temp = -vloop/toroidal_period * &
        (int3(ri2_79,norm79(:,1),pst79(:,OP_DR)) &
        +int3(ri2_79,norm79(:,2),pst79(:,OP_DZ)))
 

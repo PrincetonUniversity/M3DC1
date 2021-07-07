@@ -425,6 +425,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(t0=-2,l0=3, _EXTRA=extra)
    endif else if (strcmp("flux", scalarname, /fold_case) eq 1) then begin
        data = -2.*!pi*(s.psi_lcfs._data - s.psimin._data)
+       if(itor eq 1) then data = data*rzero
        title = 'Flux'
        symbol = '!7W!X'
        d = dimensions(/b0,l0=2, _EXTRA=extra)

@@ -443,7 +443,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
         call get_node_data(psi_field(1), i, temp)
         ! add loop voltage
         if(idiff .gt. 0) temp = 0.
-        if(igauge.eq.0) temp(1) = temp(1) + dt*vloop/twopi
+        if(igauge.eq.0) temp(1) = temp(1) + dt*vloop/toroidal_period
         call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
      end if
 

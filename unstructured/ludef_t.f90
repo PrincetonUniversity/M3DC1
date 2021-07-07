@@ -2462,7 +2462,7 @@ subroutine flux_nolin(trialx, r4term)
 
   if(igauge.eq.1) then
      r4term = r4term - dt* &
-          vloop*intx1(trialx(:,:,OP_1))/twopi
+          vloop*intx1(trialx(:,:,OP_1))/toroidal_period
   endif
 
   if(icd_source.gt.0) then
