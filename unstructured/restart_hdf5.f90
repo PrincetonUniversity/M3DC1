@@ -237,7 +237,13 @@ contains
 
     ! Only read vloop if Ip is under current control
     if(control_type.ne.-1) then
-       call read_scalar(scalar_group_id, "loop_voltage",                  vloop,     ntime, error)
+       call read_scalar(scalar_group_id, "loop_voltage", vloop, ntime, error)
+       if(version_in.ge.17 .and. version_in.lt.39 .and. itor.eq.0) then
+          if(myrank.eq.0) then
+             print *, "Multiplying VLOOP by RZERO to account for new definition."
+          end if
+          vloop = vloop*rzero
+       end if
     end if
     call read_scalar(scalar_group_id, "i_control%err_i",     i_control%err_i,     ntime, error)
     call read_scalar(scalar_group_id, "i_control%err_p_old", i_control%err_p_old, ntime, error)
