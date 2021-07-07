@@ -5,7 +5,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 38
+  integer, parameter :: version = 39
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
