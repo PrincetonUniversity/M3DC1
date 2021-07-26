@@ -929,7 +929,7 @@ subroutine calculate_scalars()
         ! Pellet radius and density/temperature at the pellet surface
         if(ipellet_abl.gt.0) then
            do ip=1,npellets
-              if(r_p(ip).ge.1e-8) then
+              if((pellet_state(ip).eq.1).and.(r_p(ip).ge.1e-8)) then
                  ! weight density/temp by pellet distribution (normalized)
                  temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
                  nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
