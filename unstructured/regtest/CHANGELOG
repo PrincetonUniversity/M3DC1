@@ -4,6 +4,15 @@ output (e.g. due to a bugfix); a change to the input (e.g. due to
 renaming or obsoleting an input variable); or a change to both
 (e.g. due to a substantive change to the mesh or other input files).
 
+7/7/2021
+Changed: RMP_nonlin
+Reason: The definition of the toroidal current has been reverted to the
+	original definition of Jy = - Del^2(psi) (without a factor of
+	rzero) in the itor=0 case to make it consistent with the rest of
+	the code.  This effectively undoes the change from 1/26/2021.
+	The definition of the loop voltage has also been changed in the
+	code so that it has dimensions of voltage for itor=0.
+
 1/26/2021
 Changed: RMP_nonlin
 Reason: Commit 0f769906f corrected the toroidal current diagnostic for

@@ -11,6 +11,7 @@ module pellet
   integer :: irestart_pellet ! 0 = read restart from hdf5
                              ! 1 = read some restart parameters from C1input
 
+  integer :: ipellet_fixed_dep ! 0: Use cloud_pel*r_p; 1: use pellet_var
   integer :: npellets
 
   real, allocatable :: pellet_r(:)    ! x coordinate of pellet
@@ -121,7 +122,9 @@ contains
     pellet_state = 0
     
     ! if we're ablating, pellet_var set by pellet & cloud size
-    if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
+    if((ipellet_abl.gt.0).and.(ipellet_fixed_dep.eq.0)) then
+       pellet_var = cloud_pel*r_p
+    end if
 
     if (ipellet .eq. 15) then
        ! default: angle of pellet_var arc length at initial pellet position
@@ -361,7 +364,7 @@ contains
     call pellet_domain
 
     ! Pellet cloud radius which contains the same number of particles as the realistic pellet
-    if(ipellet_abl.gt.0) then
+    if((ipellet_abl.gt.0).and.(ipellet_fixed_dep.eq.0)) then
        pellet_var = cloud_pel*r_p
        where(pellet_var.lt.1e-8) pellet_var = 1e-8
     endif

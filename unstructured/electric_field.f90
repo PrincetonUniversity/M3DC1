@@ -428,7 +428,7 @@ subroutine electric_field_par(ilin,o, izone)
   ! eta J_RA
   ! ~~~~~~~~
   if(irunaway .gt. 0) then
-      ere = abs(eta79(:,OP_1)*nre179(:,OP_1)*sqrt(b2)/bztx79(:,OP_1))
+      ere = abs(eta79(:,OP_1)*nre179(:,OP_1) )
       osign = sign(1.0,o)
       o = osign*(abs(o) - ere)
       where (sign(1.,o) .ne. osign) 
@@ -820,7 +820,7 @@ subroutine ef_vlbdgp(ilin,o)
   vectype, dimension(MAX_PTS), intent(out) :: o
 
 
- o =  -vloop*ri2_79*bzt79(:,OP_1)/twopi
+ o =  -vloop*ri2_79*bzt79(:,OP_1)/toroidal_period
 
 
 end subroutine ef_vlbdgp
