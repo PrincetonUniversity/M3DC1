@@ -362,6 +362,9 @@ contains
     p_field(0) = p_f 
     pe_field(0) = p_field(0)
     call mult(pe_field(0),pefac)
+    call evaluate_spline(presf_spline, 0., p0)
+    p0 = p0 + pedge 
+    pi0 = p0*(1-pefac)
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bz & bf..."
     call newvar_solve(bz_f%vec,mass_mat_lhs)

@@ -661,6 +661,13 @@ function cd_func()
         if(iregion.ne.REGION_PLASMA) temp79a(j) = 0.
      enddo
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+#ifdef USEST
+  else if(icd_source.eq.2) then
+     temp79b = sqrt((xl_79-xcenter)**2 +(zl_79-zcenter)**2)
+     temp79a = J_0cd/sqrt(2.*pi*w_cd**2) & 
+          *exp(-(temp79b - delta_cd)**2/(2.*w_cd**2))
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+#endif
   endif
 
   cd_func = temp
