@@ -18,6 +18,10 @@
 	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=centos7
 	2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=centos7
 	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=centos7
+   
+        2D with a new mesh adaptation capability:
+           make OPT=1 MAX_PTS=25 ARCH=centos7 SCORECVER=adapt ADAPT=1
+           (examples available in /p/tsc/m3dc1/lib/SCORECLib/adapt-examples/pellet-*p)
         
 5. mesh utility
       See $SCOREC_UTIL_DIR in centos7.mk

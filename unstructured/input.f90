@@ -402,6 +402,9 @@ subroutine set_defaults
   call add_var_int("ibootstrap", ibootstrap, 0, "", model_grp)
   call add_var_int("irunaway", irunaway, 0, "", model_grp)
   call add_var_int("cre", cre, 0, "", model_grp)
+  call add_var_int("ra_cyc", ra_cyc, 1, "", model_grp)
+  call add_var_double("radiff", radiff, 0., "", model_grp)
+  call add_var_double("rjra", rjra, 0., "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &
@@ -881,6 +884,8 @@ subroutine set_defaults
        "Initial vertical velocity of the pellet", source_grp)
   call add_var_int("ipellet_abl", ipellet_abl, 0, &
        "1 = include an ablation model", source_grp)
+  call add_var_int("ipellet_fixed_dep", ipellet_fixed_dep, 0, &
+       "1 = use fixed input pellet_var when ipellet_abl=1", source_grp)
   call add_var_double("r_p", r_p_scl, 1.e-3, "", source_grp)
   call add_var_double("cloud_pel", cloud_pel_scl, 1., "", source_grp)
   call add_var_double("pellet_mix", pellet_mix_scl, 0.,&
@@ -1065,13 +1070,6 @@ subroutine set_defaults
   ! Mesh adaptation
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
 
-  !Mesh adapataion contol parameters
-  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp)
-  call add_var_int("iadapt_pre_zoltan", iadapt_pre_zoltan, 0, "", adapt_grp)
-  call add_var_int("iadapt_post_zoltan", iadapt_post_zoltan, 1, "", adapt_grp)
-  call add_var_int("iadapt_refine_layer", iadapt_refine_layer, 1, "", adapt_grp)
-  call add_var_int("iadapt_max_iter", iadapt_max_iter, 5, "", adapt_grp)
-  call add_var_double("iadapt_quality", iadapt_quality, 0.2, "", adapt_grp)
 
   !Micellaneous parameters or mesh adaptation
   call add_var_int("iadapt_writevtk", iadapt_writevtk, 0, "", adapt_grp)

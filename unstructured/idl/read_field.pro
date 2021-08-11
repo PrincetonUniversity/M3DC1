@@ -1121,7 +1121,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
            r = radius_matrix(x,y,t)
            data = -(lp - psir/r)/r
-       endif else data = -lp/rzero
+       endif else data = -lp
 
        symbol = '!8J!D!9P!N!X'
        d = dimensions(/j0,_EXTRA=extra)
@@ -1144,7 +1144,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
            data = -(lp - psir/r)/r
-       endif else data = -lp/rzero
+       endif else data = -lp
 
        symbol = '!8J!D!9P!N!X'
        d = dimensions(/j0,_EXTRA=extra)
@@ -1195,7 +1195,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        if(itor eq 1) then begin
           r = radius_matrix(x,y,t)
        endif else begin
-          r = 2.*!pi*rzero
+          r = rzero
        end
        
        data = rho*bt / (r*bp)

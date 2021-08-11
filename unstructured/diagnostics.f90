@@ -11,6 +11,10 @@ module diagnostics
 
   real :: tflux0
 
+  integer :: itri_magaxis = 0
+  integer :: itri_te_max  = 0
+  integer :: itri_te_max2 = 0
+
   ! scalars integrated over entire computational domain
   real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne
   real :: totrad, linerad, bremrad, ionrad, reckrad, recprad
@@ -631,30 +635,26 @@ end subroutine evaluate
 
 
 !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
-subroutine tpi_factors(tpifac,tpirzero,tpirzero2)
+subroutine tpi_factors(tpifac,tpirzero)
   use basic
   use math
   implicit none
-  real, intent(out) :: tpifac, tpirzero,tpirzero2
+  real, intent(out) :: tpifac, tpirzero
   if(nplanes.eq.1) then
      if(itor.eq.1) then
         tpifac = 1.
         tpirzero = 1.
-        tpirzero2 = 1
      else
         tpifac = 1./rzero
         tpirzero = 1.
-        tpirzero2 = rzero
      endif
   else
      if(itor.eq.1) then
         tpifac = twopi
         tpirzero = twopi
-        tpirzero2 = twopi
      else
         tpifac = twopi
         tpirzero = twopi*rzero
-        tpirzero2 = twopi*rzero**2
      endif
   endif
 end subroutine tpi_factors
@@ -685,7 +685,7 @@ subroutine calculate_scalars()
 
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3),tpifac,tpirzero,tpirzero2
+  real :: n(2,3),tpifac,tpirzero
   integer :: iedge, idim(3), izone, izonedim, i, j
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
@@ -693,7 +693,7 @@ subroutine calculate_scalars()
 
   integer :: ip
 
-  call tpi_factors(tpifac,tpirzero,tpirzero2)
+  call tpi_factors(tpifac,tpirzero)
 
   ptoto = ptot
 
@@ -786,7 +786,7 @@ subroutine calculate_scalars()
 #endif
 
      if(imulti_region.eq.1 .and. izone.eq.2) then
-        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero2   ! changed from tpifac on 1/23/21 scj
+        wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
 
         call jxb_r(temp79a, temp79d)
         call jxb_phi(temp79b)
@@ -869,8 +869,8 @@ subroutine calculate_scalars()
      parea  = parea  + int2(ri_79,mr)/tpirzero
 
      ! toroidal current
-     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero2
-     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero2
+     totcur = totcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
+     pcur   = pcur   - int3(ri2_79,pst79(:,OP_GS),mr)/tpirzero
 #ifdef USE3D
      pcur_co = pcur_co - int4(ri2_79,pst79(:,OP_GS),mr,co)/tpirzero * 2.
      pcur_sn = pcur_sn - int4(ri2_79,pst79(:,OP_GS),mr,sn)/tpirzero * 2.
@@ -911,8 +911,8 @@ subroutine calculate_scalars()
      recprad = recprad + twopi*int1(recprad79(:,OP_1))/tpifac
      
      if(irunaway.gt.0) then
-        totre = totre + twopi*int1(nre179(:,OP_1))/tpifac
-        totre = totre + twopi*int1(nre079(:,OP_1))/tpifac
+        totre = totre + int2(ri_79,nre179(:,OP_1))/tpirzero
+        totre = totre + int2(ri_79,nre079(:,OP_1))/tpirzero
      end if
 
      helicity = helicity &
@@ -929,7 +929,7 @@ subroutine calculate_scalars()
         ! Pellet radius and density/temperature at the pellet surface
         if(ipellet_abl.gt.0) then
            do ip=1,npellets
-              if(r_p(ip).ge.1e-8) then
+              if((pellet_state(ip).eq.1).and.(r_p(ip).ge.1e-8)) then
                  ! weight density/temp by pellet distribution (normalized)
                  temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
                  nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
@@ -1080,19 +1080,25 @@ subroutine calculate_scalars()
      print *, "  Ionization loss = ", ionrad
      print *, "  Recombination radiation (kinetic) = ", reckrad
      print *, "  Recombination radiation (potential) = ", recprad
-     if(ipellet_abl.gt.0 .and. iprint.ge.2) then
-        do ip=1,npellets
-           print *, "  Pellet #", ip
-           print *, "    particles injected = ",pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
-           print *, "    radius (in cm) = ", r_p(ip)*l0_norm
-           print *, "    local electron temperature (in eV) = ", temp_pel(ip)
-           print *, "    local electron density (in ne14) = ", nsource_pel(ip)
-           print *, "    rpdot (in cm/s) = ", rpdot(ip)*l0_norm/t0_norm
-           print *, "    Lor_vol = ", Lor_vol(ip)
-           print *, "    R position: ", pellet_r(ip)*l0_norm
-           print *, "    phi position: ", pellet_phi(ip)
-           print *, "    Z position: ", pellet_z(ip)*l0_norm
-        end do
+     if(ipellet_abl.gt.0) then
+        if(iprint.ge.3 .or. npellets.eq.1) then
+           do ip=1,npellets
+              print *, "  Pellet #", ip
+              print *, "    state = ", pellet_state(ip)
+              print *, "    particles injected = ", pellet_rate(ip)*dt*(n0_norm*l0_norm**3)
+              print *, "    radius (in cm) = ", r_p(ip)*l0_norm
+              print *, "    local electron temperature (in eV) = ", temp_pel(ip)
+              print *, "    local electron density (in ne14) = ", nsource_pel(ip)
+              print *, "    rpdot (in cm/s) = ", rpdot(ip)*l0_norm/t0_norm
+              print *, "    Lor_vol = ", Lor_vol(ip)
+              print *, "    R position: ", pellet_r(ip)*l0_norm
+              print *, "    phi position: ", pellet_phi(ip)
+              print *, "    Z position: ", pellet_z(ip)*l0_norm
+           end do
+        elseif(iprint.ge.2) then
+           print *, "  Pellet diagnostic output suppressed for multi-pellet"
+           print *, "    Set iprint >= 3 to output multi-pellet diagnostics"
+        endif
      endif
   endif
 
@@ -1113,12 +1119,12 @@ subroutine calculate_Lor_vol()
 
   integer :: itri, numelms, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: tpifac,tpirzero,tpirzero2
+  real :: tpifac,tpirzero
   integer :: izone, izonedim
   real, allocatable :: temp(:)
   integer :: ip
 
-  call tpi_factors(tpifac,tpirzero,tpirzero2)
+  call tpi_factors(tpifac,tpirzero)
 
   numelms = local_elements()
 
@@ -1241,6 +1247,17 @@ elemental subroutine magnetic_region(psi, psix, psiz, x, z, mr, psinb)
   mr = REGION_PLASMA
 end subroutine magnetic_region
 
+subroutine reset_itris()
+
+  implicit none
+
+  itri_magaxis = 0
+  itri_te_max  = 0
+  itri_te_max2 = 0
+  return
+
+end subroutine reset_itris
+
 !=====================================================
 ! magaxis
 ! ~~~~~~~
@@ -1278,7 +1295,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   real :: xtry, ztry, rdiff
   vectype, dimension(coeffs_per_element) :: avector
   real, dimension(6) :: temp1, temp2
-  integer, save :: itri = 0
+  integer :: itri
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,2E12.4)') '  magaxis: guess = ', xguess, zguess
@@ -1288,6 +1305,7 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
   x = xguess
   z = zguess
+  itri = itri_magaxis
   
   newton :  do inews=1, iterations
 
@@ -1447,14 +1465,9 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  magaxis: iterations, x, z = ', inews, x, z
-#ifdef USEST
-!  if (igeometry.eq.1) then
-!     call physical_geometry(xmagp,zmagp,x,0.,z)
-!     if(myrank.eq.0 .and. iprint.ge.2) &
-!        print *, ' physical magaxis: x, z = ', xmagp, zmagp
-!  end if
-#endif
-  
+
+  itri_magaxis = itri
+
 end subroutine magaxis
 
 ! te_max
@@ -1493,7 +1506,7 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
   real :: xtry, ztry, rdiff
   vectype, dimension(coeffs_per_element) :: avector
   real, dimension(5) :: temp1, temp2
-  integer, save :: itri = 0
+  integer :: itri
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,2E12.4)') '  te_max: guess = ', xguess, zguess
@@ -1502,7 +1515,8 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
 
   x = xguess
   z = zguess
-  
+  itri = itri_te_max
+
   newton :  do inews=1, iterations
 
      call whattri(x,0.,z,itri,x1,z1)
@@ -1658,7 +1672,9 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        write(*,'(A,I12,2E12.4)') '  te_max: iterations, x, z = ', inews, x, z
-  
+
+  itri_te_max = itri
+
 end subroutine te_max
 
 subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
@@ -1681,33 +1697,36 @@ subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
   real :: sum
   vectype, dimension(coeffs_per_element) :: avector
   real, dimension(5) :: temp1, temp2
-  integer, save :: itri = 0
+  integer :: itri
 
-     x = xguess
-     z = zguess
-     call whattri(x,0.,z,itri,x1,z1)
+  x = xguess
+  z = zguess
+  itri = itri_te_max2
 
-     ! calculate te at x,0,z
-     if(itri.gt.0) then
-        call calcavector(itri, te, avector)
-        call get_element_data(itri, d)
-        ! calculate local coordinates
-        call global_to_local(d, x, 0., z, si, zi, eta)
-        ! evaluate the polynomial
-        sum = 0.
-        do i=1, coeffs_per_tri
-           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
-        enddo
-     endif  ! on itri.gt.0
-     ! communicate new maximum to all processors
-     if(maxrank.gt.1) then
-        temp1(1) = sum
-        call mpi_allreduce(temp1, temp2, 1, &
-             MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
-        sum   = temp2(1)
-     endif
-     tem = sum
-     ier = 0
+  call whattri(x,0.,z,itri,x1,z1)
+
+  ! calculate te at x,0,z
+  if(itri.gt.0) then
+     call calcavector(itri, te, avector)
+     call get_element_data(itri, d)
+     ! calculate local coordinates
+     call global_to_local(d, x, 0., z, si, zi, eta)
+     ! evaluate the polynomial
+     sum = 0.
+     do i=1, coeffs_per_tri
+        sum = sum + avector(i)*si**mi(i)*eta**ni(i)
+     enddo
+  endif  ! on itri.gt.0
+  ! communicate new maximum to all processors
+  if(maxrank.gt.1) then
+     temp1(1) = sum
+     call mpi_allreduce(temp1, temp2, 1, &
+          MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ier)
+     sum   = temp2(1)
+  endif
+  tem = sum
+  ier = 0
+  itri_te_max2 = itri
 end subroutine te_max2
 
 

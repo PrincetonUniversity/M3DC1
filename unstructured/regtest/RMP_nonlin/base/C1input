@@ -60,12 +60,12 @@
 	ion_mass = 1.
 	z_ion = 1.
 
-	tcur = 0.03773
+	tcur = 0.3773
 	vloop = -0.000005697688
 	control_type = 1
-	control_p = -0.01
+	control_p = -0.1
 	control_d =  0.
-	control_i = -1e-4
+	control_i = -1e-3
 
 	ibeam = 5
 	beam_rate = 8.695652e+19

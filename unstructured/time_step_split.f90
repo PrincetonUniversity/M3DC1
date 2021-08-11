@@ -986,7 +986,7 @@ call PetscLogStagePop(jer)
      call create_vector(temp2, vecsize_n)
 
      nreold_vec = nre_vec
-     do i=1,4
+     do i=1,ra_cyc
         call matvecmult(q15_mat,phi_vec,temp)
         call matvecmult(k15_mat,veln_vec,temp2)
         call add(temp, temp2)

@@ -11,6 +11,7 @@ module pellet
   integer :: irestart_pellet ! 0 = read restart from hdf5
                              ! 1 = read some restart parameters from C1input
 
+  integer :: ipellet_fixed_dep ! 0: Use cloud_pel*r_p; 1: use pellet_var
   integer :: npellets
 
   real, allocatable :: pellet_r(:)    ! x coordinate of pellet
@@ -121,7 +122,9 @@ contains
     pellet_state = 0
     
     ! if we're ablating, pellet_var set by pellet & cloud size
-    if(ipellet_abl.gt.0) pellet_var = cloud_pel*r_p
+    if((ipellet_abl.gt.0).and.(ipellet_fixed_dep.eq.0)) then
+       pellet_var = cloud_pel*r_p
+    end if
 
     if (ipellet .eq. 15) then
        ! default: angle of pellet_var arc length at initial pellet position
@@ -173,7 +176,8 @@ contains
 
     real :: x, y, px, py, gamma
 
-    if(pellet_state(ip).ne.1) then
+    ! Zero if pellet inactive or we're normalizing and Lor_vol<=0
+    if((pellet_state(ip).ne.1).or.((inorm.ne.0).and.(ipellet.ge.10).and.(Lor_vol(ip).le.0.))) then
        pellet_distribution = 0.
        return
     end if
@@ -300,6 +304,13 @@ contains
        ier = 0
        iz = 0
        izone = 0
+       if(pellet_state(j).eq.-1) then
+          ! pellet has been turned off
+          pellet_vx(j) = 0.
+          pellet_vy(j) = 0.
+          pellet_velz(j) = 0.
+          cycle
+       end if
        call whattri(pellet_r(j), pellet_phi(j), pellet_z(j), itri, xr, zr)
        if(itri.gt.0) then
           call get_zone(itri, iz)
@@ -353,7 +364,7 @@ contains
     call pellet_domain
 
     ! Pellet cloud radius which contains the same number of particles as the realistic pellet
-    if(ipellet_abl.gt.0) then
+    if((ipellet_abl.gt.0).and.(ipellet_fixed_dep.eq.0)) then
        pellet_var = cloud_pel*r_p
        where(pellet_var.lt.1e-8) pellet_var = 1e-8
     endif
@@ -386,26 +397,36 @@ contains
     real :: Int_E1 !exponential integral E_1(x)
     real, parameter :: inv3 = 1./3.
 
+    logical :: print_pel
+
     integer :: ip
+
+    print_pel = iprint.ge.3 .or. (iprint.ge.1 .and. npellets.eq.1)
 
     do ip=1, npellets
        pellet_rate_D2(ip) = 0. ! no mixture by default
 
        temin_eV = temin_abl*p0_norm/(1.6022e-12*n0_norm)
-       if((r_p(ip)*l0_norm).lt.1e-8 .or. temp_pel(ip).lt.temin_eV .or. pellet_state(ip).ne.1) then
+       if((r_p(ip)*l0_norm).lt.1e-8 .or. &
+          temp_pel(ip).lt.temin_eV .or. temp_pel(ip).ne.temp_pel(ip) .or. &
+          pellet_state(ip).ne.1) then
+
           if((r_p(ip)*l0_norm).lt.1e-8) then
-             if(myrank.eq.0 .and. iprint.ge.1) print *, "No pellet left to ablate: ", ip
+             if(myrank.eq.0 .and. print_pel) print *, "No pellet left to ablate: ", ip
              r_p(ip) = 0.
              pellet_state(ip) = -1
           else if(temp_pel(ip).lt.temin_eV) then
-             if(myrank.eq.0 .and. iprint.ge.1) print *, "Temperature too low for pellet ablation: ", ip
+             if(myrank.eq.0 .and. print_pel) print *, "Temperature too low for pellet ablation: ", ip
+          else if(temp_pel(ip).lt.temp_pel(ip)) then
+             if(myrank.eq.0 .and. print_pel) print *, "Ablation temperature NaN... ignore: ", ip
           else
-             if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet not in plasmas domain: ", ip
+             if(myrank.eq.0 .and. print_pel) print *, "Pellet not in plasmas domain: ", ip
           end if
           pellet_rate(ip) = 0.
           pellet_rate_D2(ip) = 0.
           rpdot(ip) = 0.
           cycle
+
        end if
 
 
@@ -580,7 +601,9 @@ contains
 
        if(dr_p.gt.r_p(ip)) then
           ! we've ablated the whole pellet
-          if(myrank.eq.0 .and. iprint.ge.1) print *, "Pellet fully ablated at radius ", r_p(ip)
+          if(myrank.eq.0 .and. (iprint.ge.3 .or. (iprint.ge.1 .and. npellets.eq.1))) then
+             print *, "Pellet fully ablated at radius ", r_p(ip)
+          end if
           r_p(ip) = 0.0
        else
           r_p(ip) = r_p(ip) - dr_p

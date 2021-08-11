@@ -30,9 +30,16 @@ int get_ent_global2ndadj (apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&,
     std::vector<int>&, std::vector<int>&, std::vector<int>&);
 void get_ent_numglobaladj(apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&, std::vector<int>&);
 
-void adapt_mesh (int field_id_h1, int field_id_h2, double* dir,
-    int shouldSnap, int shouldRunPreZoltan ,int shouldRunPostZoltan,
-    int shouldRefineLayer, int maximumIterations, double goodQuality);
+void adapt_mesh (int field_id_h1, int field_id_h2, double* dir);
+
+// helper routine for build3d
+void push_new_entities (apf::Mesh2* mesh, std::map<apf::MeshEntity*, apf::MeshEntity*>& new_entities);
+void bounce_orig_entities (apf::Mesh2* mesh, std::vector<apf::MeshEntity*>& mesh_ents, int rank_to,
+    apf::MeshEntity** remote_vertices, 
+    apf::MeshEntity** remote_edges, 
+    apf::MeshEntity** remote_faces);
+void update_field (int field_id, int ndof_per_value, int num_2d_vtx, 
+    apf::MeshEntity** remote_vertices);
 
 class m3dc1_mesh
 {

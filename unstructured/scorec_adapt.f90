@@ -2,9 +2,6 @@ module scorec_adapt
   use vector_mod
   implicit none
   !adaptation control parameters
-  integer :: iadapt_snap, iadapt_pre_zoltan, iadapt_post_zoltan
-  integer :: iadapt_refine_layer, iadapt_max_iter
-  real :: iadapt_quality
   integer :: iadapt_writevtk, iadapt_writesmb
 
   contains
@@ -15,6 +12,7 @@ subroutine adapt_mesh
     use arrays
     use newvar_mod
     use transport_coefficients
+    use diagnostics
 
     integer :: i, idx, node_dim=0
     integer :: numnodes, inode
@@ -74,9 +72,7 @@ subroutine adapt_mesh
        call finalize(size2%vec)
 
        call straighten_fields()
-       call m3dc1_mesh_adapt(size1%vec%id, size2%vec%id, unit1, iadapt_snap, &
-            iadapt_pre_zoltan, iadapt_post_zoltan, iadapt_refine_layer, &
-            iadapt_max_iter, iadapt_quality)
+       call m3dc1_mesh_adapt(size1%vec%id, size2%vec%id, unit1)
        write(mesh_file_name,"(A7,A)") 'adapted', 0
        if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,i)
 
@@ -87,6 +83,7 @@ subroutine adapt_mesh
        call destroy_field(size2)
        call space(0)
        call update_nodes_owned()
+       call reset_itris()
        call tridef
        call unstraighten_fields()
 

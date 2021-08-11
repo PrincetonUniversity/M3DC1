@@ -2516,7 +2516,7 @@ subroutine flux_nolin(trialx, r4term)
 
   if(igauge.eq.1) then
      r4term = r4term - dt* &
-          vloop*intx1(trialx(:,:,OP_1))/twopi
+          vloop*intx1(trialx(:,:,OP_1))/toroidal_period
   endif
 
   if(icd_source.gt.0) then
@@ -5849,8 +5849,8 @@ subroutine ludefnre_n(itri)
   if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
 
   thimp2=1.0
-  ncycles=4.
-  rdiff = 0.01
+  ncycles=1.0*ra_cyc
+  rdiff = radiff
 
   do j=1,dofs_per_element
 

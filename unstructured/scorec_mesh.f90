@@ -287,10 +287,16 @@ contains
     implicit none
     integer, intent(in) :: ielm
     integer, intent(out), dimension(nodes_per_element) :: n
-    integer :: elem_dim, nodes_per_element_get
+    integer :: elem_dim, numelm, nodes_per_element_get
     elem_dim = 2
 #ifdef USE3D
     elem_dim = 3
+#endif
+#ifdef DEBUG
+    call m3dc1_mesh_getnument(elem_dim, numelm)
+    if (ielm-1 .ge. numelm) then
+       print *, "ielm ", ielm, " should be equal to or less than ", numelm
+    endif
 #endif
     call m3dc1_ent_getadj (elem_dim, ielm-1, 0, n, nodes_per_element, nodes_per_element_get)
     if (nodes_per_element_get .ne. nodes_per_element) then
@@ -799,7 +805,7 @@ contains
     logical :: is_bound(3), found_edge
 
     integer :: iedge(3), izonedim, itri, ifaczone,ifaczonedim
-    integer :: num_adj_ent
+    integer :: num_adj_ent, numelm
     type(tag_list), intent(in), optional :: tags
 
 #ifdef USE3D
@@ -809,7 +815,12 @@ contains
 #else
     itri = itrin
 #endif
-
+#ifdef ADAPT
+    call m3dc1_mesh_getnument(2, numelm)
+    if (itri-1 .ge. numelm) then
+       print *, "itri ", itri, " should be equal to or less than ", numelm
+    endif
+#endif
     !call nodfac(itri,inode)
     !call edgfac(itri,iedge)
     !call zonfac(itri,ifaczone,ifaczonedim)

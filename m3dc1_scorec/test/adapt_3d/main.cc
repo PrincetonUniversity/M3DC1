@@ -204,7 +204,7 @@ int main( int argc, char* argv[])
     if (argc>4 && atoi(argv[4])==1)
     {
       m3dc1_mesh_load_3d(argv[2], &num_plane);
-      m3dc1_field_import();
+      //m3dc1_field_import();
     }
     else
     {
@@ -225,23 +225,7 @@ int main( int argc, char* argv[])
   int num_adapt_iter = 1; 
   if (argc>5 && atoi(argv[4])>0) 
  	num_adapt_iter=atoi(argv[4]);
-  if (!PCU_Comm_Self()) std::cout << "size of adapt loops = " << num_adapt_iter << "\n";
-  int shouldSnap=0;
-  if (argc>6) 
-    shouldSnap=atoi(argv[5]);
-  else
-    if (!PCU_Comm_Self()) std::cout <<"Missing input args: argv[5] shouldSnap, "
-         <<"argv[6] shouldRunPostZoltan, argv[7] shouldefineLayer\n";
 
-  int shouldRunPostZoltan=0;
-  int shouldRefineLayer=1;
-  int maximumIterations=5;
-  double goodQuality =0.4;
-
-  if (argc>7) shouldRunPostZoltan=atoi(argv[6]);
-  if (argc>8) shouldRefineLayer=atoi(argv[7]);
-  if (argc>9) maximumIterations=atoi(argv[8]);
-  if (argc>10) goodQuality =atof(argv[9]);
     
  // apf::writeVtkFiles("before-adapt", m);
   int fid_size1, fid_size2;
@@ -264,10 +248,7 @@ int main( int argc, char* argv[])
   //	find_anisofield (m, &fid_size1, &fid_size2, dir);   
    	find_anisofield_shock (m, &fid_size1, &fid_size2, dir);
 
-  	if (!PCU_Comm_Self()) std::cout << "start adaptation with # max iterations "
-                                        <<maximumIterations<<", goodQuality "<<goodQuality<<"\n";
-         m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir, &shouldSnap, &zero, 
-		&shouldRunPostZoltan, &shouldRefineLayer, &maximumIterations, &goodQuality);
+         m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);
 
   	if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";
   
