@@ -35,15 +35,23 @@ module-whatis                   "$description"
 if { ! [ is-loaded intel/2021.1.2 ] } {
    module load intel/2021.1.2
 }
-if { ! [ is-loaded openmpi/intel-2021.1/4.1.0 ] } {
-   module load openmpi/intel-2021.1/4.1.0
+
+if { ! [ is-loaded intel-mpi/intel/2021.1.1 ] } {
+   module load intel-mpi/intel/2021.1.1
 }
-if { ! [ is-loaded fftw/intel-2021.1/openmpi-4.1.0/3.3.9 ] } {
-   module load fftw/intel-2021.1/openmpi-4.1.0/3.3.9
+
+if { ! [ is-loaded fftw/intel-19.1/intel-mpi/3.3.9 ] } {
+   module load fftw/intel-19.1/intel-mpi/3.3.9
 }
-if { ! [ is-loaded hdf5/intel-2021.1/openmpi-4.1.0/1.10.6 ] } {
-   module load hdf5/intel-2021.1/openmpi-4.1.0/1.10.6
+
+if { ! [ is-loaded hdf5/intel-2021.1/intel-mpi/1.10.6 ] } {
+   module load hdf5/intel-2021.1/intel-mpi/1.10.6
 }
+
+if { ! [ is-loaded gsl/2.6 ] } {
+   module load gsl/2.6
+}
+
 if { ! [ is-loaded anaconda3/2020.11 ] } {
    module load anaconda3/2020.11
 }
