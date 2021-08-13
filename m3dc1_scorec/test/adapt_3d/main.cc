@@ -202,10 +202,7 @@ int main( int argc, char* argv[])
   
     // loading m3dc1 model and mesh directly -- no 3d mesh buildup 
     if (argc>4 && atoi(argv[4])==1)
-    {
       m3dc1_mesh_load_3d(argv[2], &num_plane);
-      //m3dc1_field_import();
-    }
     else
     {
       if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
@@ -219,28 +216,29 @@ int main( int argc, char* argv[])
       if (num_plane>1)
         m3dc1_mesh_build3d(&zero, &zero, &zero);
     }
+    m3dc1_field_importall();
   }
 
   m = m3dc1_mesh::instance()->mesh; 
   int num_adapt_iter = 1; 
   if (argc>5 && atoi(argv[4])>0) 
- 	num_adapt_iter=atoi(argv[4]);
+    num_adapt_iter=atoi(argv[4]);
 
     
  // apf::writeVtkFiles("before-adapt", m);
   int fid_size1, fid_size2;
 
-    for (int n = 0; n<num_adapt_iter; ++n)
-    {
-      m3dc1_field_getnewid (&fid_size1);
-      m3dc1_field_getnewid (&fid_size2);
-  	int scalar_type=0;
-  	int num_value=1;
+  for (int n = 0; n<num_adapt_iter; ++n)
+  {
+    m3dc1_field_getnewid (&fid_size1);
+    fid_size2 = fid_size1+1;
+    int scalar_type=0;
+    int num_value=1;
 
-  	m3dc1_field_create (&fid_size1, "size 1", &num_value, &scalar_type, &num_value);
-  	m3dc1_field_create (&fid_size2, "size 2", &num_value, &scalar_type, &num_value);
+    m3dc1_field_create (&fid_size1, "size 1", &num_value, &scalar_type, &num_value);
+    m3dc1_field_create (&fid_size2, "size 2", &num_value, &scalar_type, &num_value);
    
-   	double* dir = new double[m->count(0)*3];
+    double* dir = new double[m->count(0)*3];
 
   //    Select one size field from the below provided three options
 	
@@ -248,12 +246,12 @@ int main( int argc, char* argv[])
   //	find_anisofield (m, &fid_size1, &fid_size2, dir);   
    	find_anisofield_shock (m, &fid_size1, &fid_size2, dir);
 
-         m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);
+    m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);
 
-  	if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";
+    if (!PCU_Comm_Self()) std::cout << "adaptation completed\n";
   
-  	delete [] dir;
-    } // adaptive loop
+    delete [] dir;
+  } // adaptive loop
 
   apf::printStats(m3dc1_mesh::instance()->mesh); 
   PetscFinalize();

@@ -2259,18 +2259,6 @@ void m3dc1_field_importall()
   m3dc1_field* mf;
   apf::Field* f;
 
-  if (m3dc1_mesh::instance()->field_container)
-  {
-    std::map<FieldID, m3dc1_field*>::iterator fit=m3dc1_mesh::instance()->field_container->begin();
-    for (; fit!=m3dc1_mesh::instance()->field_container->end(); ++fit)
-    {
-      f = mf->get_field();
-      if (!PCU_Comm_Self()) std::cout<<__func__<<" existing field "<<getName(f)<<"\n";
-    }
-  }
-  else
-     if (!PCU_Comm_Self()) std::cout<<__func__<<" no field container\n";
-
   apf::MeshEntity* e;
   apf::MeshIterator* it;
   int num_dof, non_zero_dof, k;
@@ -2285,16 +2273,13 @@ void m3dc1_field_importall()
     sprintf(fname, "fld-%d-%d",file_id, PCU_Comm_Self());
     FILE * fp =fopen(fname, "r");
     if (!fp) 
-    {
-      if (!PCU_Comm_Self()) std::cout<<"field file "<<fname<<" doesn't exist\n";
       break;
-    }
 
     char field_name[50];
     fscanf(fp, "%s\n", field_name);
     fscanf(fp, "%d %d %d %d\n", &fid, &num_val, &num_dof_per_val, &val_type);
 
-    if (!PCU_Comm_Self()) std::cout<<"importing "<<fname<<" of ID "<<fid<<"\n";
+    if (!PCU_Comm_Self()) std::cout<<__func__<<": importing field "<<fname<<" (ID "<<fid<<")\n";
 
     f = m->findField(field_name);
     if (!f)
@@ -2303,8 +2288,6 @@ void m3dc1_field_importall()
       m3dc1_field_create (&fid, field_name, &num_val, &val_type, &num_dof_per_val);
       f = (*m3dc1_mesh::instance()->field_container)[fid]->get_field();
     }
-    else
-      if (!PCU_Comm_Self()) std::cout<<"field "<<field_name<<" exists\n";
  
     num_dof=countComponents(f);
     assert(num_dof==num_val*num_dof_per_val*(val_type+1));

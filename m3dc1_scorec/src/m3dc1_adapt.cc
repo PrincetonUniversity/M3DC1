@@ -782,13 +782,12 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
   in->shouldRunPostZoltan = 1;
   in->maximumIterations = 5;
 
-  std::cout << "should snap:  " << in->shouldSnap << "\n";
-  std::cout << "shouldTransferParametric: " << in->shouldTransferParametric << "\n";
-
-  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": runMidZoltan "<< in->shouldRunMidZoltan
-  	  <<", runPreZoltan "<<in->shouldRunPreZoltan<<", runPostZoltan "<<in->shouldRunPostZoltan<<"\n";
-
 #ifdef DEBUG
+  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": runMidZoltan "<< in->shouldRunMidZoltan
+  	  <<", runPreZoltan "<<in->shouldRunPreZoltan<<", runPostZoltan "<<in->shouldRunPostZoltan<<"\n"
+          <<"should snap: " << in->shouldSnap
+          <<", shouldTransferParametric: " << in->shouldTransferParametric << "\n";;
+
   static int ts=1;
   char fname[64];
   sprintf(fname, "before-adapt-ts%d", ts);
