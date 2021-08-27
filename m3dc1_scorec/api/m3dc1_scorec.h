@@ -45,6 +45,7 @@ enum m3dc1_matrix_status { /*0*/ M3DC1_NOT_FIXED=0,
 bool m3dc1_double_isequal(double A, double B);
 
 int m3dc1_scorec_init();
+int m3dc1_scorec_verbosity(int l);
 int m3dc1_scorec_finalize();
 
 /** plane functions */

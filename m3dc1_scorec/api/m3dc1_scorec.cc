@@ -14,6 +14,7 @@
 #include "m3dc1_field.h"
 #include <mpi.h>
 #include <PCU.h>
+#include <lionPrint.h>
 #include "gmi_null.h" // FIXME: should be deleted later on since it's added temporarily for null model
 #include <gmi_analytic.h>
 #include <map>
@@ -68,6 +69,14 @@ int m3dc1_scorec_init()
 { 
   pumi_start();
   begin_time=MPI_Wtime();
+  return M3DC1_SUCCESS; 
+}
+
+//*******************************************************
+int m3dc1_scorec_verbosity(int l)
+//*******************************************************
+{ 
+  lion_set_verbosity(l);
   return M3DC1_SUCCESS; 
 }
 
