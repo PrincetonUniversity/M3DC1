@@ -4,6 +4,18 @@ output (e.g. due to a bugfix); a change to the input (e.g. due to
 renaming or obsoleting an input variable); or a change to both
 (e.g. due to a substantive change to the mesh or other input files).
 
+8/24/2021
+Changed: RMP_nonlin
+Reason:  kappar now gets multiplied by 1 + (1-pefac)/pefac
+         for ipres=0 and numvar .ge. 3.  This was needed for
+         energy conservation and for compatibility with 
+         ipres=1
+
+8/12/2021
+Changed: adapt
+Reason: New version of SCOREC libraries compiled with intel-mkl yields
+	slightly different adapted mesh
+
 7/7/2021
 Changed: RMP_nonlin
 Reason: The definition of the toroidal current has been reverted to the
