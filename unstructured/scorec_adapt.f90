@@ -75,6 +75,7 @@ subroutine adapt_mesh
        call m3dc1_mesh_adapt(size1%vec%id, size2%vec%id, unit1)
        write(mesh_file_name,"(A7,A)") 'adapted', 0
        if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,i)
+       if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,i)
 
        deallocate(unit1)
        deallocate(node_ids)
