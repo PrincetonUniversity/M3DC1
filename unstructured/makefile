@@ -24,6 +24,7 @@ endif
 
 ifeq ($(ADAPT), 1)
   OPTS := $(OPTS) -DADAPT
+  BIN_POSTFIX := $(BIN_POSTFIX)-adapt
 endif
 
 # determine whether 2d, 3d, or 2d-complex
