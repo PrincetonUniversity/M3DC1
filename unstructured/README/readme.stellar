@@ -7,7 +7,6 @@
  -sub_mat_mumps_icntl_14 100 (when using mumps for 3D run)
 ******************************************************************************
 
-
 1. login 
 	ssh your_id@stellar.princeton.edu
 
@@ -16,7 +15,7 @@
 	network is 100Gb Infiniband, HDR100.
 
 2. code
-   git clone https://github.com/PrincetonUniversity/M3DC1.git
+   git clone https://your_id:password@github.com/PrincetonUniversity/M3DC1.git
 
 3. load modules
 

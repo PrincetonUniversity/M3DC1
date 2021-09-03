@@ -59,16 +59,24 @@ void switchToAll()
 
 void getConfig(int argc, char** argv)
 {
-  if ( argc != 5 ) {
+  if ( argc != 4 ) {
     if ( !PCU_Comm_Self() )
-      printf("Usage: %s <model> <mesh> <outMesh> <factor>\n", argv[0]);
+      printf("Usage: %s <mesh> <outMesh> <factor>\n", argv[0]);
     MPI_Finalize();
     exit(EXIT_FAILURE);
   }
-  modelFile = argv[1];
-  meshFile = argv[2];
-  outFile = argv[3];
-  partitionFactor = atoi(argv[4]);
+  if (argc == 5)
+  {
+    meshFile = argv[2];
+    outFile = argv[3];
+    partitionFactor = atoi(argv[4]);
+  }
+  if (argc == 4)
+  {
+    meshFile = argv[1];
+    outFile = argv[2];
+    partitionFactor = atoi(argv[3]);
+  }
   assert(partitionFactor <= PCU_Comm_Peers());
 }
 
