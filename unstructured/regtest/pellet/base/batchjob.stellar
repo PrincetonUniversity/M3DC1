@@ -8,10 +8,11 @@
 touch started
 
 # partition mesh
-part_mesh.sh analytic-2K.smb 16
+part=$(which part_mesh.sh)
+source $part analytic-2K.smb 16
 echo $? > mesh_partitioned
 
 # Run M3D-C1
-${M3DC1_MPIRUN} -n 64 m3dc1_3d -ipetsc -options_file options_bjacobi.type_superludist
+$M3DC1_MPIRUN -n 64 m3dc1_3d -ipetsc -options_file options_bjacobi.type_superludist
 
 touch finished
