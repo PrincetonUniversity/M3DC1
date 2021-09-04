@@ -199,10 +199,13 @@ contains
     integer :: ierr , ncid, id 
 
     ! Open NetCDF file
-    ierr = nf90_open(trim(vmec_filename), nf90_nowrite, ncid)
-    if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'Opening VMEC file'
-    
+    ierr = nf90_open(trim(vmec_filename), nf90_nowrite, ncid)
+    if(ierr.ne.0) then 
+      if(myrank.eq.0) print *, 'Failed to open VMEC file'
+      call safestop(5)  
+    end if
+
     ! Get dimension data
     ierr = nf90_inq_dimid(ncid, "mn_mode", id)
     ierr = ierr + nf90_inquire_dimension(ncid, id, len=mn_mode)

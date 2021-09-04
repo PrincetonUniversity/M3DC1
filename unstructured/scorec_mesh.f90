@@ -90,7 +90,7 @@ contains
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
 
 #ifdef USEST
-    ilog = 1       ! use logical basis funtions first
+    ilog = -1  ! before reading in geometry
     if (igeometry.gt.0) then ! do nothing when igeometry==0 
         if (iread_vmec.ge.1) then ! read geometry from VMEC file
             call process_vmec(myrank)
@@ -98,6 +98,7 @@ contains
         else ! read boudary geometry
             call read_boundary_geometry(myrank)
         end if
+        ilog = 1       ! use logical basis funtions first
         call physical_mesh_setup(toroidal_period)
     end if
 #endif

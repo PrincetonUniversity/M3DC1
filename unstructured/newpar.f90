@@ -549,7 +549,7 @@ subroutine safestop(iarg)
   character*10 :: datec, timec
 
 #ifdef USEST
-  if (igeometry.eq.1 .and. ilog.ge.1) then
+  if (igeometry.eq.1 .and. ilog.ne.-1) then
      if(myrank.eq.0 .and. iprint.ge.2) print *,"  destroying geometry..."
      call destroy_geometry
   end if
