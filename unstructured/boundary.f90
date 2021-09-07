@@ -551,7 +551,9 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
 
   call rotate_dofs(bv, bv_rotated, normal, curv, 1)
 
-  numvals = 0
+  val = 0.0
+  v = 0.0
+  col = 0
 
   do i=1, n
      j = (i-1)*dofs_per_node
@@ -593,7 +595,7 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
         ! d(BC)/dt
         if(i.eq.1) row_bcdpdt = 12
         val(row_bcdpdt,j+12) =  coeff(i)*radius**xp(i)
-        val(row_bcdpdt,j+9)  = -coeff(i)*normal(2)*xp(i)*radius**(xp(i)-1)  
+        val(row_bcdpdt,j+9)  = -coeff(i)*normal(2)*xp(i)*radius**(xp(i)-1)
 
      end if
 
@@ -609,7 +611,7 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
         val(row_bcdpdt,j+8)  = -coeff(i)*normal(2)*xp(i)*radius**(xp(i)-1)
 
      end if
-#endif   
+#endif
   end do
 
   ! Loop over rows
@@ -623,11 +625,11 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
            if(val(r,c) .ne. 0) then
               numvals = numvals + 1
               v(numvals) = val(r,c)
-              col(numvals) = j + ibegin(i) - ibegin(1)
+              col(numvals) = ibegin(i) + j - 1
            end if
         end do
      end do
-     
+
      if(numvals.eq.0) cycle
 
      irow = ibegin(1) + r - 1
@@ -635,7 +637,7 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
           call set_row_vals(mat, irow, numvals, col, v)
      call insert(rhs, irow, bv_rotated(i), VEC_SET)
   end do
- 
+
 end subroutine set_multi_bc
 
 !=======================================================
