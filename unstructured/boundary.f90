@@ -8,13 +8,19 @@ module boundary_conditions
   integer, parameter :: BOUNDARY_AXISYMMETRIC   = 16
   integer, parameter :: BOUNDARY_NEUMANNP       = 32
   integer, parameter :: BOUNDARY_NP             = 64
+  integer, parameter :: BOUNDARY_MULTI_DT       = 128
+  integer, parameter :: BOUNDARY_MULTI_DN       = 256
+  integer, parameter :: BOUNDARY_MULTI_DTP      = 512
+  integer, parameter :: BOUNDARY_MULTI_DNP      = 1024
 
-!!$  integer, parameter :: BOUND_DN  = 0
-!!$  integer, parameter :: BOUND_DT  = 1
-!!$#if defined(USE3D) || defined(USECOMPLEX)
-!!$  integer, parameter :: BOUND_DNP = 2
-!!$  integer, parameter :: BOUND_DTP = 3
-!!$#endif
+  integer, parameter :: BOUND_DN  = 0
+  integer, parameter :: BOUND_DT  = 1
+#if defined(USE3D) || defined(USECOMPLEX)
+  integer, parameter :: BOUND_DNP = 2
+  integer, parameter :: BOUND_DTP = 3
+#endif
+
+  integer :: imultibc  ! 1: Use new multi_bc conditions
 contains
 
 !======================================================================
@@ -115,6 +121,34 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
         imask(k+7) = 0
 #endif
      endif
+     if(iand(ibound, BOUNDARY_MULTI_DT).eq.BOUNDARY_MULTI_DT) then
+        imask(k+2) = 0
+        imask(k+5) = 0
+#ifdef USE3D
+        imask(k+8 ) = 0
+        imask(k+11) = 0
+#endif
+     end if
+     if(iand(ibound, BOUNDARY_MULTI_DN).eq.BOUNDARY_MULTI_DN) then
+        imask(k+1) = 0
+        imask(k+4) = 0
+#ifdef USE3D
+        imask(k+7 ) = 0
+        imask(k+10) = 0
+#endif
+     end if
+     if(iand(ibound, BOUNDARY_MULTI_DTP).eq.BOUNDARY_MULTI_DTP) then
+#ifdef USE3D
+        imask(k+8 ) = 0
+        imask(k+11) = 0
+#endif
+     end if
+     if(iand(ibound, BOUNDARY_MULTI_DNP).eq.BOUNDARY_MULTI_DNP) then
+#ifdef USE3D
+        imask(k+7 ) = 0
+        imask(k+10) = 0
+#endif
+     end if
   end do
 end subroutine get_boundary_mask
 
@@ -482,100 +516,127 @@ subroutine set_laplacian_bc(ibegin,rhs,bv,normal,curv,izonedim,radius,mat)
 end subroutine set_laplacian_bc
 
 
-!!$subroutine set_multi_bc(n,ibegin,ibc,fac,rhs,bv, &
-!!$     normal,curv,izonedim,radius,mat)
-!!$  implicit none
-!!$
-!!$  use basic
-!!$  use vector_mod
-!!$  use matrix_mod
-!!$
-!!$  implicit none
-!!$  
-!!$  integer, intent(in) :: n               ! number of fields
-!!$  integer, intent(in) :: ibegin(n)       ! first dof of each field
-!!$  integer, intent(in) :: ibc(n)          ! type of bc for each field
-!!$  vectype, intent(in) :: fac             ! factor for each field
-!!$  real, intent(in) :: normal(2), curv
-!!$  type(vector_type), intent(inout) :: rhs ! right-hand-side of equation
-!!$  vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
-!!$  integer, intent(in) :: izonedim             ! dimension of boundary
-!!$  type(matrix_type), optional :: mat
-!!$
-!!$  vectype, dimension(dofs_per_node) :: bv_rotated
-!!$
-!!$  integer :: i, j, numvals
-!!$  vectype, dimension(dofs_per_node, dofs_per_node*n) :: val
-!!$  vectype, dimension(dofs_per_node*n) :: v
-!!$  integer, dimension(dofs_per_node*n) :: col
-!!$
-!!$  call rotate_dofs(bv, bv_rotated, normal, curv, 1)
-!!$
-!!$  numvals = 0
-!!$
-!!$  do i=1, n
-!!$     j = (n-1)*dofs_per_node
-!!$
-!!$     select case(ibc(n))
-!!$     case(BOUND_DT)
-!!$        val(3,j+3) = fac(i)
-!!$        val(6,j+6) = fac(i)
-!!$        if(izonedim.eq.0) then
-!!$           val(2,j+2) = fac(i)
-!!$           val(4,j+4) = fac(i)
-!!$        endif
-!!$#if defined(USE3D) || defined(USECOMPLEX)
-!!$        val(9,j+9) = fac(i)
-!!$        val(12,j+12) = fac(i)
-!!$        if(izonedim.eq.0) then
-!!$           val(8,j+8) = fac(i)
-!!$           val(10,j+10) = fac(i)
-!!$        endif
-!!$
-!!$     case(BOUND_DTP)
-!!$        val(9,j+9) = fac(i)
-!!$        val(12,j+12) = fac(i)
-!!$        if(izonedim.eq.0) then
-!!$           val(8,j+8) = fac(i)
-!!$           val(10,j+10) = fac(i)
-!!$        endif
-!!$#endif
-!!$
-!!$     case(BOUND_DN)
-!!$        val(2,j+2) = fac(i)
-!!$        val(5,j+5) = fac(i)
-!!$        if(izonedim.eq.0) val(3,j+3) = fac(i)
-!!$#if defined(USE3D) || defined(USECOMPLEX)
-!!$        val(8,j+8) = fac(i)
-!!$        val(11,j+11) = fac(i)
-!!$        if(izonedim.eq.0) val(9,j+9) = fac(i)
-!!$
-!!$     case(BOUND_DNP)
-!!$        val(8,j+8) = fac(i)
-!!$        val(11,j+11) = fac(i)
-!!$        if(izonedim.eq.0) val(9,j+9) = fac(i)
-!!$#endif
-!!$     end select
-!!$  end do
-!!$
-!!$  do i=1, dofs_per_node
-!!$     numvals = 0
-!!$     do j=1, dofs_per_node*n
-!!$        if(val(i,j) .ne. 0) then
-!!$           numvals = numvals + 1
-!!$           v(numvals) = val(i,j)
-!!$           col(numvals) = j
-!!$        end if
-!!$     end do
-!!$     if(numvals.eq.0) cycle
-!!$
-!!$     irow = ibegin(1) + i - 1
-!!$     if(present(mat)) &
-!!$          call set_row_vals(mat, irow, numvals, col, v)
-!!$     call insert(rhs, irow, bv_rotated(i), VEC_SET)
-!!$  end do
-!!$ 
-!!$end subroutine set_multi_bc
+subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
+     normal,curv,izonedim,radius,mat)
+
+  use basic
+  use vector_mod
+  use matrix_mod
+
+  implicit none
+
+  integer, intent(in) :: n         ! number of fields
+  integer, intent(in) :: ibegin(n) ! first dof of each field
+  integer, intent(in) :: ibc(n)    ! type of bc for each field
+  vectype, intent(in) :: coeff(n)  ! factor for each field without radius
+  vectype, intent(in) :: xp(n)     ! radius exponent for each field
+  real, intent(in) :: normal(2), curv
+  type(vector_type), intent(inout) :: rhs ! right-hand-side of equation
+  vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
+  integer, intent(in) :: izonedim             ! dimension of boundary
+  real, intent(in) :: radius         ! radial coordinate of node
+  type(matrix_type), optional :: mat
+
+  vectype, dimension(dofs_per_node) :: bv_rotated
+
+  integer :: i, j, irow, numvals, r, c
+  vectype, dimension(dofs_per_node, dofs_per_node*n) :: val
+  vectype, dimension(dofs_per_node*n) :: v
+  integer, dimension(dofs_per_node*n) :: col
+
+  integer :: row_bc, row_bcdt
+#if defined(USE3D) || defined(USECOMPLEX)
+  integer :: row_bcdp, row_bcdpdt
+#endif
+
+  call rotate_dofs(bv, bv_rotated, normal, curv, 1)
+
+  numvals = 0
+
+  do i=1, n
+     j = (i-1)*dofs_per_node
+
+     if(ibc(i).eq.BOUND_DT) then
+
+        ! tangent BC
+        if(i.eq.1) row_bc = 3
+        val(row_bc,j+3) = coeff(i)*radius**xp(i)
+
+        ! d(BC)/dt
+        if(i.eq.1) row_bcdt = 6
+        val(row_bcdt,j+6) =  coeff(i)*radius**xp(i)
+        val(row_bcdt,j+3) = -coeff(i)*normal(2)*xp(i)*radius**(xp(i)-1)
+
+     end if
+
+     if(ibc(i).eq.BOUND_DN) then
+
+        ! normal BC
+        if(i.eq.1) row_bc = 2
+        val(row_bc,j+2) = coeff(i)*radius**xp(i)
+
+        ! d(BC)/dt
+        if(i.eq.1) row_bcdt = 5
+        val(row_bcdt,j+5) =  coeff(i)*radius**xp(i)
+        val(row_bcdt,j+2) = -coeff(i)*normal(2)*xp(i)*radius**(xp(i)-1)
+
+     end if
+
+#if defined(USE3D) || defined(USECOMPLEX)
+     ! toroidal derivatives of:
+     if((ibc(i).eq.BOUND_DTP).or.(ibc(i).eq.BOUND_DT)) then
+
+        ! tangent BC
+        if(i.eq.1) row_bcdp = 9
+        val(row_bcdp,j+9) = coeff(i)*radius**xp(i)
+
+        ! d(BC)/dt
+        if(i.eq.1) row_bcdpdt = 12
+        val(row_bcdpdt,j+12) =  coeff(i)*radius**xp(i)
+        val(row_bcdpdt,j+9)  = -coeff(i)*normal(2)*xp(i)*radius**(xp(i)-1)  
+
+     end if
+
+     if((ibc(i).eq.BOUND_DNP).or.(ibc(i).eq.BOUND_DN)) then
+
+        ! tangent BC
+        if(i.eq.1) row_bcdp = 8
+        val(row_bcdp,j+8) = coeff(i)*radius**xp(i)
+
+        ! d(BC)/dt
+        if(i.eq.1) row_bcdpdt = 11
+        val(row_bcdpdt,j+11) =  coeff(i)*radius**xp(i)
+        val(row_bcdpdt,j+8)  = -coeff(i)*normal(2)*xp(i)*radius**(xp(i)-1)
+
+     end if
+#endif   
+  end do
+
+  ! Loop over rows
+  do r=1, dofs_per_node
+     numvals = 0
+     ! Loop over fields
+     do i=1, n
+        ! Loop over columns
+        do j=1, dofs_per_node
+           c = (i-1)*dofs_per_node + j
+           if(val(r,c) .ne. 0) then
+              numvals = numvals + 1
+              v(numvals) = val(r,c)
+              col(numvals) = j + ibegin(i) - ibegin(1)
+           end if
+        end do
+     end do
+     
+     if(numvals.eq.0) cycle
+
+     irow = ibegin(1) + r - 1
+     if(present(mat)) &
+          call set_row_vals(mat, irow, numvals, col, v)
+     call insert(rhs, irow, bv_rotated(i), VEC_SET)
+  end do
+ 
+end subroutine set_multi_bc
 
 !=======================================================
 ! boundary_dc

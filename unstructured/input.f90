@@ -149,6 +149,7 @@ subroutine set_defaults
   use radiation
   use kprad_m3dc1
   use kprad
+  use boundary_conditions
 #ifdef REORDERED
   use matrix_mod
 #endif
@@ -746,6 +747,7 @@ subroutine set_defaults
 
 
   ! Boundary conditions
+  call add_var_int("imultibc", imultibc, 0, "", bc_grp)
   call add_var_int("isurface", isurface, 1, "", bc_grp)
   call add_var_int("icurv", icurv, 2, "", bc_grp)
   call add_var_int("nonrect", nonrect, 0, "", bc_grp)
