@@ -310,7 +310,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
               coeff(1) = -1.0
               xp(1) = 0
            elseif(itor.eq.1) then
-              coeff(1) = -l0_norm**3
+              coeff(1) = -1.0
               xp(1) = 1
            end if
 
@@ -321,7 +321,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
               coeff(2) = 1.0
               xp(2) = 0
            elseif(itor.eq.1) then
-              coeff(2) = 1./l0_norm
+              coeff(2) = 1.0
               xp(2) = -2
            end if
 
@@ -348,7 +348,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
               coeff(1) = 1.0
               xp(1) = 0
            elseif(itor.eq.1) then
-              coeff(1) = l0_norm**3
+              coeff(1) = 1.0
               xp(1) = 1
            end if
 
@@ -359,7 +359,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
               coeff(2) = 1.0
               xp(2) = 0
            elseif(itor.eq.1) then
-              coeff(2) = 1./l0_norm
+              coeff(2) = 1.0
               xp(2) = -2
            end if
 
