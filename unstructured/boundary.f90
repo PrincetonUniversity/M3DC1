@@ -54,6 +54,7 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
   if(ibound.eq.BOUNDARY_NONE) return
   
   call get_element_nodes(itri, inode)
+
   do i=1, nodes_per_element
      k = (i-1)*dofs_per_node + 1
 
@@ -549,6 +550,10 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
   integer :: row_bcdp, row_bcdpdt
 #endif
 
+  if(myrank.eq.0) then
+     print *, "MULTIBC:  ", ibegin(1), ibc(1)
+     print *, normal, radius
+  end if
   call rotate_dofs(bv, bv_rotated, normal, curv, 1)
 
   val = 0.0
@@ -614,8 +619,16 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
 #endif
   end do
 
+  if(myrank.eq.0) then
+     do i=1,dofs_per_node
+        write(*,"(12g12.2)") (val(i,j), j=1,dofs_per_node*n)
+     end do
+  end if
+
   ! Loop over rows
   do r=1, dofs_per_node
+     irow = ibegin(1) + r - 1
+     if(myrank.eq.0) print *, r, irow
      numvals = 0
      ! Loop over fields
      do i=1, n
@@ -626,13 +639,13 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
               numvals = numvals + 1
               v(numvals) = val(r,c)
               col(numvals) = ibegin(i) + j - 1
+              if(myrank.eq.0) print *, "    ", col(numvals), v(numvals)
            end if
         end do
      end do
 
      if(numvals.eq.0) cycle
 
-     irow = ibegin(1) + r - 1
      if(present(mat)) &
           call set_row_vals(mat, irow, numvals, col, v)
      call insert(rhs, irow, bv_rotated(i), VEC_SET)
