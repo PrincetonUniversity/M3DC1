@@ -647,7 +647,7 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
 
      if(present(mat)) &
           call set_row_vals(mat, irow, numvals, col, v)
-     call insert(rhs, irow, bv_rotated(i), VEC_SET)
+     call insert(rhs, irow, bv_rotated(r), VEC_SET)
   end do
 
 end subroutine set_multi_bc
