@@ -325,7 +325,7 @@ end subroutine apply_bc
            temp(:,:,2,1) = dt*hyp*thimpsm* &
                 intxx2(mu79(:,:,OP_GS),nu79(:,:,OP_GS))
            temp(:,:,2,2) = -temp(:,:,1,2)
-           if((inoslip_pol.eq.0).or.((inoslip_pol.eq.1).and.(imultibc.eq.1))) &
+           if((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) &
                 temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
         else
            temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1)) &
@@ -340,7 +340,7 @@ end subroutine apply_bc
            temp(:,:,2,1) = dt*hyp*thimpsm* &
                 intxx2(mu79(:,:,OP_LP),nu79(:,:,OP_LP))
            temp(:,:,2,2) = -temp(:,:,1,2)
-           if((inoslip_pol.eq.0).or.((inoslip_pol.eq.1).and.(imultibc.eq.1))) &
+           if((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) &
                 temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
         else
            temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1)) &

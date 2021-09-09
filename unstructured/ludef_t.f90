@@ -9,7 +9,6 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   use m3dc1_nint
   use metricterms_new
   use two_fluid
-  use boundary_conditions
 
   implicit none
 
@@ -84,7 +83,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      end if
      ssterm(:,u_g) = ssterm(:,u_g) + tempx
      if(numvar.ge.3) then
-        if((inoslip_pol.eq.0).or.((inoslip_pol.eq.1).and.(imultibc.eq.1))) then
+        if((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) then
            tempx = v1chin(trialx,lin,rho79)*chiiner
            ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
         end if
@@ -94,7 +93,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
-  if(inonormalflow.eq.0 .and. (.not.surface_int)) then
+  if(((inonormalflow.eq.0).or.(inonormalflow.eq.2)) .and. .not.surface_int) then
      tempx = -regular*intx2(trialx(:,:,OP_1),lin(:,OP_1))
      ssterm(:,u_g) = ssterm(:,u_g) + tempx
      ddterm(:,u_g) = ddterm(:,u_g) + tempx*bdf
@@ -1117,7 +1116,6 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   use m3dc1_nint
   use metricterms_new
   use two_fluid
-  use boundary_conditions
 
   implicit none
 
@@ -1191,20 +1189,19 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
-  if(((inoslip_pol.eq.0).or.((inoslip_pol.eq.1).and.(imultibc.eq.1))) .and. &
-       (.not.surface_int)) then
+  if(((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) .and. .not.surface_int) then
      tempx = -regular*intx2(trialx(:,:,OP_1),lin(:,OP_1))
      ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) + tempx*bdf
   end if
 
   if(izone.ne.1) then 
-     if(inonormalflow.eq.0) then
+     if((inonormalflow.eq.0).or.(inonormalflow.eq.2)) then
         tempx = v3un(trialx,lin,rho79)
         ssterm(:,u_g) = ssterm(:,u_g) + tempx
      end if
      
-     if(((inoslip_pol.eq.1).and.(imultibc.eq.0)) .and. .not.surface_int) then
+     if((inoslip_pol.eq.1) .and. .not.surface_int) then
         tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
      else
         tempx = v3chin(trialx,lin,rho79)

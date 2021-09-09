@@ -199,17 +199,22 @@ subroutine get_vor_mask(itri, imask)
 
   ibound = 0
 
-  ! BCL: temporarily keep inonormalflow same
-  if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
-  if((imultibc.eq.0).or.(numvar.lt.3)) then
-     !if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
-     if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_NEUMANN)
-  elseif(imultibc.eq.1) then
-     !if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_MULTI_DT)
-     if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_MULTI_DN)
+  if(inonormalflow.eq.1) then
+     ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  elseif(inonormalflow.eq.2) then
+     ibound = ior(ibound, BOUNDARY_MULTI_DT)
   end if
+
+  if(inoslip_pol.eq.1) then
+     ibound = ior(ibound, BOUNDARY_NEUMANN)
+  elseif(inoslip_pol.eq.2) then
+     ibound = ior(ibound, BOUNDARY_MULTI_DN)
+  end if
+
   if(vor_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
+
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
+
 end subroutine get_vor_mask
 
 subroutine get_vz_mask(itri, imask)
@@ -238,12 +243,11 @@ subroutine get_chi_mask(itri, imask)
 
   ibound = 0
 
-  ! BCL: temporarily keep inonormalflow same
   if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(imultibc.eq.0) then
-     !if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-     if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
-  end if
+  if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
+
+  ! inonormalflow=2 and inoslip_pol=2 conditions are included in U equation
+
   if(com_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_chi_mask
@@ -295,77 +299,55 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
      ! no normal flow
      if(inonormalflow.eq.1) then
         temp = 0.
-        ! BCL: temporarily keep inonormalflow the same
-        if(.true.) then !(imultibc.eq.0).or.(numvar.lt.3)) then
-           call set_dirichlet_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
-           if(numvar.ge.3) then
-              call set_normal_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
-           endif
-        elseif(.false.) then !imultibc.eq.1) then
+        call set_dirichlet_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
+        if(numvar.ge.3) then
+           call set_normal_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
+        endif
+     elseif(inonormalflow.eq.2) then
 
-           ! U
-           ibegin(1) = i_u
-           ibc(1) = BOUND_DT
-           if(itor.eq.0) then
-              coeff(1) = -1.0
-              xp(1) = 0
-           elseif(itor.eq.1) then
-              coeff(1) = -1.0
-              xp(1) = 1
-           end if
+        temp = 0.
 
-           ! chi
-           ibegin(2) = i_chi
-           ibc(2) = BOUND_DN
-           if(itor.eq.0) then
-              coeff(2) = 1.0
-              xp(2) = 0
-           elseif(itor.eq.1) then
-              coeff(2) = 1.0
-              xp(2) = -2
-           end if
+        ! U
+        ibegin(1) = i_u
+        ibc(1) = BOUND_DT
+        coeff(1) = -1.0
+        xp(1) = itor
 
-           call set_multi_bc(2,ibegin,ibc,coeff,xp,rhs,temp,normal,curv,izonedim,x,mat)
+        ! chi
+        ibegin(2) = i_chi
+        ibc(2) = BOUND_DN
+        coeff(2) = 1.0
+        xp(2) = -2*itor
 
-        end if
+        call set_multi_bc(2,ibegin,ibc,coeff,xp,rhs,temp,normal,curv,izonedim,x,mat)
 
      end if
      
      ! no poloidal slip
      if(inoslip_pol.eq.1) then
         temp = 0.
+        call set_normal_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
+        if(numvar.ge.3) then
+           call set_dirichlet_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
+        endif
+     elseif(inoslip_pol.eq.2) then
 
-        if((imultibc.eq.0).or.(numvar.lt.3)) then
-           call set_normal_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
-           if(numvar.ge.3) then
-              call set_dirichlet_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
-           endif
-        elseif(imultibc.eq.1) then
-           ! U
-           ibegin(1) = i_u
-           ibc(1) = BOUND_DN
-           if(itor.eq.0) then
-              coeff(1) = 1.0
-              xp(1) = 0
-           elseif(itor.eq.1) then
-              coeff(1) = 1.0
-              xp(1) = 1
-           end if
+        temp = 0.
 
-           ! chi
-           ibegin(2) = i_chi
-           ibc(2) = BOUND_DT
-           if(itor.eq.0) then
-              coeff(2) = 1.0
-              xp(2) = 0
-           elseif(itor.eq.1) then
-              coeff(2) = 1.0
-              xp(2) = -2
-           end if
+        ! U
+        ibegin(1) = i_u
+        ibc(1) = BOUND_DN
+        coeff(1) = 1.0
+        xp(1) = itor
 
-           call set_multi_bc(2,ibegin,ibc,coeff,xp,rhs,temp,normal,curv,izonedim,x,mat)
+        ! chi
+        ibegin(2) = i_chi
+        ibc(2) = BOUND_DT
+        coeff(2) = 1.0
+        xp(2) = -2*itor
 
-        end if
+        call set_multi_bc(2,ibegin,ibc,coeff,xp,rhs,temp,normal,curv,izonedim,x,mat)
+
      end if
 
      ! toroidal velocity

@@ -20,7 +20,6 @@ module boundary_conditions
   integer, parameter :: BOUND_DTP = 3
 #endif
 
-  integer :: imultibc  ! 1: Use new multi_bc conditions
 contains
 
 !======================================================================
