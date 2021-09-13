@@ -3281,7 +3281,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     apf::destroyNumbering(n);
   }
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+  ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
   in->maximumIterations = 9;
 
   in->shouldSnap=false;
@@ -3520,7 +3520,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   //apf::writeVtkFiles(filename,mesh);
 
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+  ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
   in->maximumIterations = 5;
   in->shouldSnap=false;
   in->shouldTransferParametric=false;

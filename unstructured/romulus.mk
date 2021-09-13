@@ -1,5 +1,5 @@
-FOPTS = -c -fdefault-real-8 -Wall -cpp -DADAPT -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
-CCOPTS  = -c -O -DPETSC_VERSION=313 -DADAPT -DDEBUG
+FOPTS = -c -fdefault-real-8 -Wall -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
+CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 
