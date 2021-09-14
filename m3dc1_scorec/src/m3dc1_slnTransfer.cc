@@ -50,9 +50,12 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
     for( int i=0; i<2; i++)
     {
       dofsVertex.at(i).resize(numComp);
+      // TODO most likely this can be done by directly inquiring the field at vertex
+      // and there is no need for create element
       apf::Element* vertex = apf::createElement(field,vertices[i]);
       apf::getComponents(vertex,xi,&(dofsVertex[i][0]));
       m3dc1_mesh::instance()->mesh->getPoint(vertices[i], 0, xyz2[i]);
+      apf::destroyElement(vertex);
     }
     double len1= sqrt((xyz2[0][0]-xyz2[1][0])*(xyz2[0][0]-xyz2[1][0])+(xyz2[0][1]-xyz2[1][1])*(xyz2[0][1]-xyz2[1][1]));
     double len2= sqrt((xyz2[0][0]-xyz[0])*(xyz2[0][0]-xyz[0])+(xyz2[0][1]-xyz[1])*(xyz2[0][1]-xyz[1]));
@@ -93,8 +96,11 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
           miss_flag=1;
           break;
         }
+	// TODO most likely this can be done by directly inquiring the field at vertex
+	// and there is no need for create element
         apf::Element* vertex = apf::createElement(field,vertices[i]);
         apf::getComponents(vertex,xi,&(value[numComp*i]));
+	apf::destroyElement(vertex);
       }
       assert(!miss_flag);
       if(miss_flag)
