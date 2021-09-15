@@ -26,9 +26,12 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
     elif field_name=='psi':
         Aphi = eval_m3dc1_field('A', R=R, phi=phi, Z=Z, coord='phi', sim=sim, filename=filename, time=time)
         field_array = np.asarray(R)*Aphi
-    elif field_name=='f':
+    elif field_name in ['f','I']:
         Bphi = eval_m3dc1_field('B', R=R, phi=phi, Z=Z, coord='phi', sim=sim, filename=filename, time=time)
         field_array = np.asarray(R)*Bphi
+    elif field_name=='fp':
+        dBphidphi = eval_m3dc1_field_deriv('B', R=R, phi=phi, Z=Z, sim=sim, filename=filename, time=time)[4]
+        field_array = np.asarray(R)*dBphidphi
     elif field_name=='|B|':
         B = eval_m3dc1_field('B', R=R, phi=phi, Z=Z, coord='vector', sim=sim, filename=filename, time=time)
         #print(B.shape)
@@ -148,3 +151,77 @@ def eval_m3dc1_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='
         for (idx, r) in np.ndenumerate(R):
             field_array[idx] = field.evaluate((R[idx],phi[idx],Z[idx]))[field_idx]
         return field_array
+
+
+
+def eval_m3dc1_field_deriv(field_name, R, phi, Z, sim=None, filename='C1.h5', time=None):
+    """
+    Evaluates the field at the locations specified by the 
+    R, Z, phi arrays. The output will be array/arrays of the same size.
+    
+    Arguments:
+
+    **field_name**
+    The field that is to be evaluated, i.e. 'B' or 'j', etc..
+
+    **coord**
+    The chosen part of a field to be plotted, options are:
+    'phi', 'R', 'Z', 'scalar', 'vector'. 'vector' will return three arrays.
+
+    **filename**
+    File name which will be read, i.e. "../C1.h5"
+
+    **time**
+    The time-slice which will be used for the field plot
+
+    **elements**
+    Input this if you want to accelarate evaluation by
+    supplying the elements. The code will check if it is inside
+    the convex hull.
+    """
+    
+    # First, let's get the field and mesh from the simulation output
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename)
+    field = sim.get_field(field_name,time)
+    
+    
+    # We check if the field is a scalar or vector field
+    check_coord = (R.flatten()[0], phi.flatten()[0], Z.flatten()[0]) 
+    length = len(field.evaluate(check_coord))
+    
+    # We create the output array, and evaluate the field
+    if length == 1:#scalar field
+        field_array_R   = np.zeros_like(R)
+        field_array_phi = np.zeros_like(phi)
+        field_array_Z   = np.zeros_like(Z)
+        for (idx, r) in np.ndenumerate(R):
+            field_tuple = field.evaluate_deriv((R[idx],phi[idx],Z[idx]))
+            #print(len(field_tuple))
+            field_array_R[idx]   = field_tuple[0]
+            field_array_phi[idx] = field_tuple[1]
+            field_array_Z[idx]   = field_tuple[2]
+        return np.asarray([field_array_R, field_array_phi, field_array_Z])
+    elif length == 3:#vector field
+        field_array_RR     = np.zeros_like(R)
+        field_array_phiR   = np.zeros_like(phi)
+        field_array_ZR     = np.zeros_like(Z)
+        field_array_Rphi   = np.zeros_like(R)
+        field_array_phiphi = np.zeros_like(phi)
+        field_array_Zphi   = np.zeros_like(Z)
+        field_array_RZ     = np.zeros_like(R)
+        field_array_phiZ   = np.zeros_like(phi)
+        field_array_ZZ     = np.zeros_like(Z)
+        for (idx, r) in np.ndenumerate(R):
+            field_tuple = field.evaluate_deriv((R[idx],phi[idx],Z[idx]))
+            field_array_RR[idx]   = field_tuple[0]
+            field_array_phiR[idx] = field_tuple[1]
+            field_array_ZR[idx]   = field_tuple[2]
+            field_array_Rphi[idx]   = field_tuple[3]
+            field_array_phiphi[idx] = field_tuple[4]
+            field_array_Zphi[idx]   = field_tuple[5]
+            field_array_RZ[idx]   = field_tuple[6]
+            field_array_phiZ[idx] = field_tuple[7]
+            field_array_ZZ[idx]   = field_tuple[8]
+        return np.asarray([field_array_RR, field_array_phiR, field_array_ZR, field_array_Rphi, field_array_phiphi, field_array_Zphi, field_array_RZ, field_array_phiZ, field_array_ZZ])
+
