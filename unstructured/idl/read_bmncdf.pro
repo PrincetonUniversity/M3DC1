@@ -32,6 +32,8 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
         ncdf_attget, id, "units", bytes, /global
         units = string(bytes)
      end
+     if(version ge 5) then n_id = ncdf_varid(id, "n")
+
      m_id = ncdf_varid(id, "m")
      q_id = ncdf_varid(id, "q")
      flux_pol_id = ncdf_varid(id, "flux_pol")
@@ -43,10 +45,14 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      r_id = ncdf_varid(id, "rpath")
      z_id = ncdf_varid(id, "zpath")
        
-     ncdf_attget, id, "ntor", ntor, /global
      ncdf_varget, id, bmnr_id, bmnr
      ncdf_varget, id, bmni_id, bmni
      ncdf_varget, id, psi_id, psi
+     if(version ge 5) then begin
+        ncdf_varget, id, n_id, ntor
+     endif else begin
+        ncdf_attget, id, "ntor", ntor, /global
+     endelse
      ncdf_varget, id, m_id, m
      ncdf_varget, id, q_id, q
      if(area_id ne -1) then  ncdf_varget, id, area_id, area
@@ -69,7 +75,12 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
 
      ncdf_close, id
 
-     bmn = complex(bmnr, bmni)*cur
+     bmn = complexarr(n_elements(ntor),n_elements(m),n_elements(psi))
+     if(n_elements(n) eq 1) then begin
+        bmn[0,*,*] = complex(bmnr, bmni)*cur
+     endif else begin
+        bmn = complex(bmnr, bmni)*cur
+     endelse
 
      ; calculate rho
      dflux_pol = deriv(flux_pol)
@@ -106,8 +117,10 @@ pro read_bmncdf, filename=filename, bmn=bmn, psi=psi, m=m, q=q, ntor=ntor, $
      end
      grhorho = gpsipsi*drhodpsi^2
      for i=0, n_elements(m)-1 do begin
-        jmn[i,*] = grhorho*deriv(rho,bmn[i,*]*1e-4) $
-                   /(complex(0.,1.)*m[i]*mu0)
+        for k=0, n_elements(n)-1 do begin
+           jmn[k,i,*] = grhorho*deriv(rho,bmn[k,i,*]*1e-4) $
+                      /(complex(0.,1.)*m[i]*mu0)
+        end
      end     
 
 ;     print, 'max(bmn, jmn, bpol, rpath, rho, flux_pol) = ', max(abs(bmn)), max(abs(jmn)), $

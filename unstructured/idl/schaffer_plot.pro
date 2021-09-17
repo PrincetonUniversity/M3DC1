@@ -49,8 +49,8 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    endif
 
    d = field_spectrum(field,x,z,psi0=psi0,i0=i0,fc=fc,tbins=bins,fbins=bins, $
-                      m=m,pest=pest,boozer=boozer,hamada=hamada,_EXTRA=extra)
-
+                      m=m,n=n,pest=pest,boozer=boozer,hamada=hamada, $
+                      _EXTRA=extra)
    nflux=fc.psi_norm
    q=fc.q
       
@@ -107,14 +107,18 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       bpval = field_at_point(bp, x, z, fc.r, fc.z)
        
       id = ncdf_create(bmncdf, /clobber)
-      ncdf_attput, id, 'ntor', fix(ntor), /short, /global
-      ncdf_attput, id, 'version', 4, /short, /global
+      if(n_elements(n) eq 1) then begin
+         ncdf_attput, id, 'ntor', fix(ntor), /short, /global
+      endif else begin
+         ncdf_attput, id, 'ntor', 0, /short, /global
+      endelse
+      ncdf_attput, id, 'version', 5, /short, /global
       ; v. 4: changed definition of alpha from ~(2pi)^-4 to ~(2pi)^-2
       print, 'outputting symbol = ', symbol
       print, 'outputting units = ', units
       ncdf_attput, id, 'symbol', string(symbol), /global
       ncdf_attput, id, 'units', string(units), /global
-      print, 'done!'
+      l_id = ncdf_dimdef(id, 'ns', n_elements(n))
       n_id = ncdf_dimdef(id, 'npsi', n_elements(nflux))
       m_id = ncdf_dimdef(id, 'mpol', n_elements(m))
       psi_norm_var = ncdf_vardef(id, 'psi_norm', [n_id], /float)
@@ -132,13 +136,25 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
          omega_e_var = ncdf_vardef(id, 'omega_e', [n_id], /float)
          omega_e_var = ncdf_vardef(id, 'omega_ExB', [n_id], /float)
          if(keyword_set(boozer)) then begin
-            alpha_real_var = ncdf_vardef(id, 'alpha_real', [m_id,n_id], /float)
-            alpha_imag_var = ncdf_vardef(id, 'alpha_imag', [m_id,n_id], /float)
+            if(n_elements(n) eq 1) then begin
+               alpha_real_var = ncdf_vardef(id, 'alpha_real', [m_id,n_id], /float)
+               alpha_imag_var = ncdf_vardef(id, 'alpha_imag', [m_id,n_id], /float)
+            endif else begin
+               alpha_real_var = ncdf_vardef(id, 'alpha_real', [l_id,m_id,n_id], /float)
+               alpha_imag_var = ncdf_vardef(id, 'alpha_imag', [l_id,m_id,n_id], /float)
+
+            endelse
          end
       end
       m_var = ncdf_vardef(id, 'm', [m_id], /short)
-      bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
-      bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
+      n_var = ncdf_vardef(id, 'n', [l_id], /short)
+      if(n_elements(n) eq 1) then begin
+         bmn_real_var = ncdf_vardef(id, 'bmn_real', [m_id,n_id], /float)
+         bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [m_id,n_id], /float)
+      endif else begin
+         bmn_real_var = ncdf_vardef(id, 'bmn_real', [l_id,m_id,n_id], /float)
+         bmn_imag_var = ncdf_vardef(id, 'bmn_imag', [l_id,m_id,n_id], /float)
+      endelse
       jac_var = ncdf_vardef(id, 'jacobian', [m_id,n_id], /float)
       rpath_var = ncdf_vardef(id, 'rpath', [m_id,n_id], /float)
       zpath_var = ncdf_vardef(id, 'zpath', [m_id,n_id], /float)
@@ -148,6 +164,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       ncdf_varput, id, 'psi', fc.psi
       ncdf_varput, id, 'flux_pol', fc.flux_pol
       ncdf_varput, id, 'm', m
+      ncdf_varput, id, 'n', n
       ncdf_varput, id, 'q', q
       ncdf_varput, id, 'area', fc.area
       ncdf_varput, id, 'current', fc.current/mu0
@@ -161,20 +178,32 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
          ncdf_varput, id, 'omega_ExB', reform(omega_ExB)
 
          if(keyword_set(boozer)) then begin
-            alpha = reform(d[0,*,*])
+            alpha = d[0,*,*]
             for i=0, n_elements(nflux)-1 do begin
                for j=0, n_elements(m)-1 do begin
-                  alpha[j,i] = complex(0,1)*fc.area[i]*alpha[j,i] $
-                               / (m[j]*F[i] + ntor*fc.current[i]/(2.*!pi)) $
-                               / (2.*!pi)^2
+                  for k=0, n_elements(n)-1 do begin
+                     alpha[k,j,i] = complex(0,1)*fc.area[i]*alpha[k,j,i] $
+                                    / (m[j]*F[i] + n[k]*fc.current[i]/(2.*!pi)) $
+                                    / (2.*!pi)^2
+                  end
                end
             end
-            ncdf_varput, id, 'alpha_real', real_part(alpha)
-            ncdf_varput, id, 'alpha_imag', imaginary(alpha)
+            if(n_elements(n) eq 1) then begin
+               ncdf_varput, id, 'alpha_real', real_part(reform(alpha[0,*,*]))
+               ncdf_varput, id, 'alpha_imag', imaginary(reform(alpha[0,*,*]))
+            endif else begin
+               ncdf_varput, id, 'alpha_real', real_part(alpha)
+               ncdf_varput, id, 'alpha_imag', imaginary(alpha)
+            endelse
          end
       end
-      ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
-      ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
+      if(n_elements(n) eq 1) then begin
+         ncdf_varput, id, 'bmn_real', real_part(reform(d[0,*,*]))
+         ncdf_varput, id, 'bmn_imag', imaginary(reform(d[0,*,*]))
+      endif else begin
+         ncdf_varput, id, 'bmn_real', real_part(d)
+         ncdf_varput, id, 'bmn_imag', imaginary(d)
+      endelse         
       ncdf_varput, id, 'jacobian', reform(fc.j)
       ncdf_varput, id, 'rpath', fc.r
       ncdf_varput, id, 'zpath', fc.z
@@ -301,11 +330,23 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
       ytitle='!7W!X'
    end
 
-   contour_and_legend, abs(d), m, y,  $
-     table=39, xtitle=xtitle, ytitle=ytitle, $
-     xrange=[-20,20], yrange=[0,1], /lines, c_thick=1, $
-     ccolor=!d.table_size-1, label=label, $
-     _EXTRA=extra, xsize=xsize
-
+   if(n_elements(n) gt 1) then begin
+      k = where(n eq ntor, ct)
+      if(ct ne 1) then begin
+         print, 'schaffer_plot: error: ntor = ', ntor, ' not found.'
+         return
+      end
+      print, 'plotting ntor = ', ntor
+   endif else begin
+      k = 0
+   endelse
+   
+   contour_and_legend, abs(d[k,*,*]), m, y,  $
+                       table=39, xtitle=xtitle, ytitle=ytitle, $
+                       xrange=[-20,20], yrange=[0,1], /lines, c_thick=1, $
+                       ccolor=!d.table_size-1, label=label, $
+                       _EXTRA=extra, xsize=xsize
+   
    oplot, ntor*q, y, linestyle=2, color=!d.table_size-1
+
 end

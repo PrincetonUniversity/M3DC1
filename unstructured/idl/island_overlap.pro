@@ -1,9 +1,11 @@
 function island_overlap, filename, psin=psin, current=cur, $,
                          netcdf=netcdf, sum_files=sum_files, $
-                         plot=pl, _EXTRA=extra
+                         plot=pl, ntor=ntor, _EXTRA=extra
 
    width = island_widths(filename, psin=psin,current=cur,sum_files=sum_files,$
-                        q=q, netcdf=netcdf, plot=pl, _EXTRA=extra)
+                         q=q, netcdf=netcdf, plot=pl, ntor=ntor, _EXTRA=extra)
+
+   if(width eq 0) then return, 0
 
    n = n_elements(psin[*,0])
    overlap = fltarr(n)
