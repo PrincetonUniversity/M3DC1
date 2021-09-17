@@ -1,6 +1,6 @@
 function eval_on_boundary, name, time, r, z, operation=op, filename=filename, phi=phi0, _EXTRA=ex
 
-   if(n_elements(phi0) eq 0) then phi0 = 0.
+   if(n_elements(phi0) eq 0) then phi0 = 0.D
    if(n_elements(filename) eq 0) then filename='C1.h5'
    file_id = h5f_open(filename)
    time_group_id = h5g_open(file_id, time_name(time))
@@ -19,9 +19,8 @@ function eval_on_boundary, name, time, r, z, operation=op, filename=filename, ph
 
    if(n_elements(op) eq 0) then op = 1
    
-   pos = fltarr(2)
-   localpos = fltarr(2)
-   index = intarr(2)
+   pos = dblarr(2)
+   localpos = dblarr(2)
 
    version = read_parameter('version', filename=filename)
    print, 'Version = ', version
@@ -40,19 +39,19 @@ function eval_on_boundary, name, time, r, z, operation=op, filename=filename, ph
        zzero = read_parameter("zzero", filename=filename)
 
        nonrect = read_parameter('nonrect', filename=filename)
-       if(nonrect eq 0.) then begin
+       if(nonrect eq 0.D) then begin
            xmin = min(elm_data[4,*])
            ymin = min(elm_data[5,*])
        endif else begin
-           xmin = 0.
-           ymin = 0.
+           xmin = 0.D
+           ymin = 0.D
        endelse
 
    endif else begin
-       xzero = 0.
-       zzero = 0.
-       xmin = 0.
-       ymin = 0.
+       xzero = 0.D
+       zzero = 0.D
+       xmin = 0.D
+       ymin = 0.D
     endelse
 
    ; clamp phi0 to period
@@ -61,10 +60,10 @@ function eval_on_boundary, name, time, r, z, operation=op, filename=filename, ph
    endif else begin
       itor = read_parameter('itor', filename=filename)
       if(itor eq 1) then begin
-         period = 2.*!pi
+         period = 2.D*!dpi
       endif else begin
          rzero = read_parameter('rzero', filename=filename)
-         period = 2.*!pi*rzero
+         period = 2.D*!dpi*rzero
       end
    end
    phi0 = phi0 - floor(phi0/period)*period
@@ -76,10 +75,10 @@ function eval_on_boundary, name, time, r, z, operation=op, filename=filename, ph
      threed = 0
    endelse
 
-   result = fltarr(N)
+   result = dblarr(N)
    
-   eps = 1e-6
-   localphi = 0.
+   eps = 1d-6
+   localphi = 0.D
 
    if(version lt 15) then begin
       ib = 6

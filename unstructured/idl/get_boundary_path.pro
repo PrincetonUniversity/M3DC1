@@ -1,6 +1,6 @@
 function find_next_boundary_point, list, xy, mesh=mesh, index=index, $
                                    imultiregion=imulti
-   tol = 1.e-6
+   tol = 1.d-6
    n = n_elements(list)
 
    if(n_elements(index) eq 0) then index=long(-1)
@@ -79,7 +79,7 @@ end
 function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
                             normal=norm, center=center, angle=angle, $
                             length=length
-  tol = 1e-6
+  tol = 1d-6
   if(n_elements(imulti) eq 0) then $
      imulti=read_parameter('imulti_region', _EXTRA=ex)
   
@@ -163,7 +163,7 @@ function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
        end
     end
 
-   xy = fltarr(2,nbound)
+   xy = dblarr(2,nbound)
 
    xy[*,0] = find_next_boundary_point(list,mesh=mesh,index=index, $
                                       imultiregion=imulti)
@@ -194,15 +194,14 @@ function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
    end
    nbound = j
    print, 'found ', nbound, ' points'
-   
    xy = xy[*,0:nbound-1]
 
    if(closed eq 0) then begin
       print, 'WARNING: boundary path is not closed'
    end
 
-   center = [(max(xy[0,*]) + min(xy[0,*]))/2., $
-             (max(xy[1,*]) + min(xy[1,*]))/2.]
+   center = [(max(xy[0,*]) + min(xy[0,*]))/2.D, $
+             (max(xy[1,*]) + min(xy[1,*]))/2.D]
 
    angle = reform(atan(xy[1,*] - center[1], xy[0,*] - center[0]))
 
@@ -215,7 +214,7 @@ function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
 
    ; clamp angles to [0, 2pi)
    i = where(angle lt 0., count)
-   if(count gt 0) then angle[i] = angle[i] + 2.*!pi
+   if(count gt 0) then angle[i] = angle[i] + 2.D*!dpi
 
    ; shift values to start at minimum angle
    a0 = min(angle, i)
@@ -224,7 +223,7 @@ function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
    xy[1,*] = shift(xy[1,*], -(i+1))
 
    ; calculate normals
-   norm = fltarr(2,nbound)
+   norm = dblarr(2,nbound)
    for i=0, nbound-1 do begin
       if(i eq nbound-1) then ip = 0 else ip = i+1
       if(i eq 0) then im = nbound-1 else im = i-1
@@ -234,11 +233,11 @@ function get_boundary_path, mesh=mesh, imultiregion=imulti, _EXTRA=ex, $
       nm = nm / sqrt(nm[0]^2 + nm[1]^2)
       np = np / sqrt(np[0]^2 + np[1]^2)
 
-      norm[*,i] = (nm + np)/2.
+      norm[*,i] = (nm + np)/2.D
       norm[*,i] = norm[*,i] / sqrt(norm[0,i]^2 + norm[1,i]^2)
    end
 
-   length = fltarr(nbound)
+   length = dblarr(nbound)
    for i=1, nbound-1 do begin
       length[i] = length[i-1] + $
                   sqrt((xy[0,i]-xy[0,i-1])^2 + (xy[1,i]-xy[1,i-1])^2)
