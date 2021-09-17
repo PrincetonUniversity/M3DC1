@@ -3,6 +3,8 @@ module basic
   use pid_controller
   use spline
 
+  implicit none
+
   integer, parameter :: ijacobian = 1
 
   integer, parameter :: version = 39
@@ -199,9 +201,10 @@ module basic
   integer :: isample_ext_field_pol
 
   real :: scale_ext_field
+  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines output.
+  character(len=256) :: file_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
-
 
   ! grad-shafranov options
   integer :: divertors! number of divertors
@@ -212,6 +215,9 @@ module basic
   integer :: igs_extend_diamag ! extend diamagnetic rotation past psi=1
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
   real :: xmag, zmag  ! position of magnetic axis
+#ifdef USEST
+  real :: xmagp, zmagp  ! physical position of magnetic axis
+#endif
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
   real :: tcuro       ! initial toroidal current
@@ -518,6 +524,9 @@ module arrays
   type(field_type) :: u_field_pre, psi_field_pre
   type(field_type) :: nre_field(0:1)  ! runaway electron density
   type(field_type) :: wall_dist
+#ifdef USEST
+  type(field_type) :: rst, zst ! Stellarator geometry field
+#endif
 #ifdef USEPARTICLES
    type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
    type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
@@ -698,7 +707,8 @@ module sparse
   integer, parameter :: q43_mat_index = 72
   integer, parameter :: r43_mat_index = 73
   integer, parameter :: pot2_mat_lhs_index = 74
-  integer, parameter :: num_matrices = 74
+  integer, parameter :: st_mat_index = 75
+  integer, parameter :: num_matrices = 75
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

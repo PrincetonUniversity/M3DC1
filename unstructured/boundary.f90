@@ -36,7 +36,7 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
   type(tag_list), optional, intent(in) :: tags
 
   integer :: inode(nodes_per_element)
-  real :: norm(2), curv, x, phi, z
+  real :: norm(2), curv(3), x, phi, z
   integer :: izone, izonedim
   logical :: is_boundary
   integer :: i, k
@@ -121,6 +121,9 @@ end subroutine get_boundary_mask
 
 subroutine apply_boundary_mask(itri, ibound, vals, imaskin, tags)
   use element
+  use basic 
+  implicit none
+
   integer, intent(in) :: itri, ibound
   vectype, intent(inout), dimension(dofs_per_element,dofs_per_element) :: vals
   integer, dimension(dofs_per_element), optional :: imaskin
@@ -170,7 +173,7 @@ subroutine set_total_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   integer, intent(in) :: ibegin               ! first dof of field
   type(vector_type) :: rhs                    ! right-hand-side of equation
   vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
-  real, intent(in) :: normal(2), curv
+  real, intent(in) :: normal(2), curv(3)
   integer, intent(in) :: izonedim             ! dimension of boundary
   
   ! clamp value
@@ -203,7 +206,7 @@ subroutine set_clamp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   integer, intent(in) :: ibegin               ! first dof of field
   type(vector_type) :: rhs                    ! right-hand-side of equation
   vectype, intent(in), dimension(dofs_per_node) :: bv  ! boundary values
-  real, intent(in) :: normal(2), curv
+  real, intent(in) :: normal(2), curv(3)
   integer, intent(in) :: izonedim             ! dimension of boundary
   type(matrix_type), optional :: mat
   
@@ -226,7 +229,7 @@ subroutine set_dirichlet_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   integer, intent(in) :: ibegin               ! first dof of field
   type(vector_type) :: rhs                    ! right-hand-side of equation
   vectype, intent(in), dimension(dofs_per_node) :: bv  ! boundary values
-  real, intent(in) :: normal(2), curv
+  real, intent(in) :: normal(2), curv(3)
   integer, intent(in) :: izonedim             ! dimension of boundary
   type(matrix_type), optional :: mat
   
@@ -255,7 +258,7 @@ subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   implicit none
   
   integer, intent(in) :: ibegin               ! first dof of field
-  real, intent(in) :: normal(2), curv
+  real, intent(in) :: normal(2), curv(3)
   type(vector_type), intent(inout) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
@@ -314,7 +317,7 @@ subroutine set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   implicit none
   
   integer, intent(in) :: ibegin               ! first dof of field
-  real, intent(in) :: normal(2), curv
+  real, intent(in) :: normal(2), curv(3)
   type(vector_type), intent(inout) :: rhs     ! right-hand-side of equation
   vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
@@ -398,7 +401,7 @@ subroutine set_normalp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   implicit none
   
   integer, intent(in) :: ibegin               ! first dof of field
-  real, intent(in) :: normal(2), curv
+  real, intent(in) :: normal(2), curv(3)
   type(vector_type), intent(inout) :: rhs     ! right-hand-side of equation
   vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
@@ -440,7 +443,7 @@ subroutine set_laplacian_bc(ibegin,rhs,bv,normal,curv,izonedim,radius,mat)
   implicit none
 
   integer, intent(in) :: ibegin      ! first dof of field
-  real, intent(in) :: normal(2), curv
+  real, intent(in) :: normal(2), curv(3)
   type(vector_type), intent(inout) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(dofs_per_node) :: bv
   integer, intent(in) :: izonedim    ! dimension of boundary
@@ -587,6 +590,7 @@ subroutine boundary_dc(rhs, bvec, mat)
   use basic
   use vector_mod
   use matrix_mod
+  !use geometry
 
   implicit none
   
@@ -596,7 +600,7 @@ subroutine boundary_dc(rhs, bvec, mat)
   
   integer :: i, izone, izonedim, icounter_t
   integer :: ibegin, numnodes
-  real :: normal(2), curv
+  real :: normal(2), curv(3)
   real :: x, z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -612,7 +616,6 @@ subroutine boundary_dc(rhs, bvec, mat)
 
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
      if(.not.is_boundary) cycle
-
      ibegin = node_index(rhs, i, 1)
 
      if(present(bvec)) call get_node_data(bvec, 1, i, temp)
@@ -643,7 +646,7 @@ subroutine boundary_nm(rhs, bvec, mat)
   
   integer :: i, izone, izonedim, icounter_t
   integer :: ibegin, numnodes
-  real :: normal(2), curv
+  real :: normal(2), curv(3)
   real :: x, z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -683,7 +686,7 @@ subroutine boundary_cy(rhs, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, ind, numnodes, icounter_t
-  real :: normal(2), curv, x, z, phi
+  real :: normal(2), curv(3), x, z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -727,7 +730,7 @@ subroutine boundary_vor(rhs, mat)
   
   integer, parameter :: numvarsm = 2
   integer :: i, izone, izonedim, i_u, i_vor, numnodes, icounter_t
-  real :: normal(2), curv
+  real :: normal(2), curv(3)
   real :: x, z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -786,7 +789,7 @@ subroutine boundary_jphi(rhs, mat)
   
   integer, parameter :: numvarsm = 2
   integer :: i, izone, izonedim, i_psi, i_jphi, numnodes, icounter_t
-  real :: normal(2), curv
+  real :: normal(2), curv(3)
   real :: x, z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
@@ -832,7 +835,7 @@ subroutine boundary_com(rhs, mat)
   
   integer, parameter :: numvarsm = 2
   integer :: i, izone, izonedim, i_com, i_chi, numnodes, icounter_t
-  real :: normal(2), curv
+  real :: normal(2), curv(3)
   real :: x, z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp

@@ -73,7 +73,7 @@ contains
     real :: n(2,3), sum, sum2, x, z, phi
     integer :: idim(3), izone, izonedim
     logical :: is_boundary
-    real :: normal(2), curv
+    real :: normal(2), curv(3)
 
     type(field_type) :: rhs, bcs
     real :: soln(MAX_PTS)
@@ -319,7 +319,7 @@ contains
     
     integer :: i, inode_t, izone, izonedim, index
     integer :: numnodes
-    real :: normal(2), curv
+    real :: normal(2), curv(3)
     real :: x, phi, z
     logical :: is_boundary
     vectype, dimension(dofs_per_node) :: temp

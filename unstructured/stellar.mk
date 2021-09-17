@@ -65,6 +65,12 @@ INCLUDE = -I$(PETSC_DIR)/include \
         -I$(HDF5DIR)/include \
         -I$(GSL_ROOT_DIR)/include
 
+ifeq ($(ST), 1)
+  LIBS += -L$(NETCDFDIR)/lib64 -lnetcdf -lnetcdff
+
+  INCLUDE += -I$(NETCDFDIR)/include 
+endif
+
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
 

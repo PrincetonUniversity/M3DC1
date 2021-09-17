@@ -52,6 +52,15 @@ else
   endif
 endif
 
+# determine whether to use stellarator extension
+ifeq ($(ST), 1)
+  OPTS := $(OPTS) -DUSEST 
+  BIN_POSTFIX := $(BIN_POSTFIX)-st
+  USEST = 1
+else 
+  USEST = 0 
+endif
+
 ifeq ($(REORDERED), 1)
   OPTS := $(OPTS) -DREORDERED
 endif
@@ -138,6 +147,9 @@ endif
 ifeq ($(OMP), 1)
   BIN := $(BIN)_omp
 endif
+ifeq ($(ST), 1)
+  BIN := $(BIN)_st
+endif
 
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
@@ -146,7 +158,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	random.o spline.o region.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
-	element.o $(V_OBJ) field.o nintegrate_mod.o \
+	element.o read_vmec.o physical_mesh.o $(V_OBJ) field.o nintegrate_mod.o \
 	M3Dmodules.o resistive_wall.o kprad.o \
 	 m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
@@ -156,7 +168,8 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	read_schaffer_field.o  neutral_beam.o \
 	coils.o coil_sets.o model.o \
 	fit_magnetics.o wall.o \
-	init_common.o \
+	geometry.o\
+	init_common.o init_vmec.o\
 	gradshafranov.o rmp.o  \
 	readgeqdsk.o read_jsolver.o read_dskbal.o \
 	init_rwm.o init_solovev.o init_circle.o init_basicj.o \
@@ -240,6 +253,8 @@ bin : a2cc mackenbach_profiles
 	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25-omp/m3dc1_2d_complex_omp bin
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60/m3dc1_3d bin
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60-omp/m3dc1_3d_omp bin
+	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-60/m3dc1_3d_st bin
+	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-60-omp/m3dc1_3d_omp_st bin
 	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin
 	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
 	ln -s $(SRCDIR)/sbin/create_mesh.sh bin

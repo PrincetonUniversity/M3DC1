@@ -181,7 +181,7 @@ contains
     type(matrix_type), optional :: mat
     
     integer :: i, izone, izonedim, numnodes, icounter_t
-    real :: normal(2), curv, x,z, phi
+    real :: normal(2), curv(3), x,z, phi
     logical :: is_boundary
     vectype, dimension(dofs_per_node) :: temp
     
@@ -816,7 +816,11 @@ subroutine deltafuns(n,x,phi,z,m,val,jout, ier)
      call global_to_local(d, x(j), phi(j), z(j), si, zi, eta)
         
      ! calculate temp_i = val*mu_i(si,zi,eta)
-     call local_coeff_vector(itri(j), c)
+     if(iprecompute_metric.eq.1) then
+        c = ctri(:,:,itri(j))
+     else
+        call local_coeff_vector(itri(j), c)
+     endif 
      temp = 0.
      do k=1, coeffs_per_tri
 #ifdef USE3D

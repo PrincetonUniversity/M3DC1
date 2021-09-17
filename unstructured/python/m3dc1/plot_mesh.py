@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import fpy
 import m3dc1.fpylib as fpyl
+from m3dc1.eval_field import eval_field
 
-
-def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=None,meshcol='C0',pub=False):
+def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=None,meshcol='C0',pub=False,phys=False,phi=0.,save=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
@@ -73,12 +73,19 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     else:
         boundary = False
     
-    
-    minr = np.amin(mesh[:,4])
-    maxr = np.amax(mesh[:,4])
-    minz = np.amin(mesh[:,5])
-    maxz = np.amax(mesh[:,5])
-    
+    if phys==False:
+        minr = np.amin(mesh[:,4])
+        maxr = np.amax(mesh[:,4])
+        minz = np.amin(mesh[:,5])
+        maxz = np.amax(mesh[:,5])
+    else:
+        rst = eval_field('rst', mesh[:,4], phi*np.ones_like(mesh[:,4]), mesh[:,5], sim=simplot, file_name=file_name, time=time)
+        zst = eval_field('zst', mesh[:,4], phi*np.ones_like(mesh[:,4]), mesh[:,5], sim=simplot, file_name=file_name, time=time)
+        minr = np.amin(rst)
+        maxr = np.amax(rst)
+        minz = np.amin(zst)
+        maxz = np.amax(zst)
+
     # Create figure and plot mesh points only. If you want them to be visible,
     # increase marker size.
     
@@ -97,7 +104,10 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     if type(ax)!=np.ndarray and isinstance(ax,matplotlib.axes._axes.Axes)==False:
         fig, ax = plt.subplots(num=1)
         fig.set_figheight(8)
-        plt.plot(mesh[:,4],mesh[:,5],lw=0,marker='.',ms=0)
+        if phys==False:
+            plt.plot(mesh[:,4],mesh[:,5],lw=0,marker='.',ms=0)
+        else:
+            plt.plot(rst,zst,lw=0,marker='.',ms=0)
         plt.grid(True)
         ax.set_aspect('equal',adjustable='box')
         plt.xlabel(r'$R$',fontsize=axlblfs)
@@ -146,6 +156,13 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
         p2 = p1 + np.asarray([(b+a) * math.cos(t), (b+a) * math.sin(t)])
         p3 = p1 + np.asarray([b * math.cos(t) - c * math.sin(t), b * math.sin(t) + c * math.cos(t)])
         delta = 0.0
+        if phys==True: # calculate physical coordinates
+            p1 = np.asarray([eval_field('rst', p1[0], phi*np.ones_like(p1[0]), p1[1], sim=simplot, file_name=file_name, time=time),\
+                             eval_field('zst', p1[0], phi*np.ones_like(p1[0]), p1[1], sim=simplot, file_name=file_name, time=time)])
+            p2 = np.asarray([eval_field('rst', p2[0], phi*np.ones_like(p2[0]), p2[1], sim=simplot, file_name=file_name, time=time),\
+                             eval_field('zst', p2[0], phi*np.ones_like(p2[0]), p2[1], sim=simplot, file_name=file_name, time=time)])
+            p3 = np.asarray([eval_field('rst', p3[0], phi*np.ones_like(p3[0]), p3[1], sim=simplot, file_name=file_name, time=time),\
+                             eval_field('zst', p3[0], phi*np.ones_like(p3[0]), p3[1], sim=simplot, file_name=file_name, time=time)])
         q1 = (1.-2.*delta)*p1 + delta*p2 + delta*p3
         q2 = delta*p1 + (1.-2.*delta)*p2 + delta*p3
         q3 = delta*p1 + delta*p2 + (1.-2.*delta)*p3
@@ -234,7 +251,15 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
             pltbd = ax.add_collection(LineCollection(np.stack((plot4x,plot4y), axis=2),linewidths=bdlw, colors='c',zorder=5))
         else:
             pltbd = None
-    
+
+    plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
+    if save==True:
+        plt.savefig('mesh.png',bbox_inches='tight',dpi=250)
+    else:
+        plt.show()
+    plt.close()
+
+
     if boundary!=True:
         return pltreg, pltwin, pltwout, pltbd
     else:

@@ -74,9 +74,10 @@ contains
     type(matrix_type), optional :: mat
     
     integer :: i, izone, izonedim, numnodes, icounter_t
-    real :: normal(2), curv, x, z, phi
+    real :: normal(2), curv(3), x, z, phi
+
     logical :: is_boundary
-    vectype, dimension(dofs_per_node) :: temp
+    vectype, dimension(dofs_per_node) :: temp, temp1
     
     integer :: index
     
@@ -92,8 +93,12 @@ contains
        if(.not.is_boundary) cycle
        
        temp = 0.
-       temp(2) = -normal(1)
-       temp(3) = -normal(2)
+!       temp(2) = -normal(1)
+!       temp(3) = -normal(2)
+       temp(2) = -1.
+       call rotate_dofs(temp, temp1, normal, curv, -1)
+       temp = temp1
+
        call set_dirichlet_bc(index,rhs,temp,normal,curv,izonedim,mat)
        call set_normal_bc(index,rhs,temp,normal,curv,izonedim,mat)
     end do

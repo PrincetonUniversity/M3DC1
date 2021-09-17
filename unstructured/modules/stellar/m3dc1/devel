@@ -51,7 +51,9 @@ if { ! [ is-loaded hdf5/intel-2021.1/intel-mpi/1.10.6 ] } {
 if { ! [ is-loaded gsl/2.6 ] } {
    module load gsl/2.6
 }
-
+if { ! [ is-loaded netcdf/intel-2021.1/hdf5-1.10.6/intelmpi/4.7.4 ] } {
+   module load netcdf/intel-2021.1/hdf5-1.10.6/intel-mpi/4.7.4
+}
 if { ! [ is-loaded anaconda3/2020.11 ] } {
    module load anaconda3/2020.11
 }

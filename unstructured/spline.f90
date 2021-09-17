@@ -148,7 +148,7 @@ contains
        if(ex.lt.2) a(3) = 0.
        if(ex.lt.3) a(4) = 0.
     else if(ii.ge.s%n) then
-       a(1) = s%y(s%n)
+       if(ex.eq.0) a(1) = s%y(s%n)
        if(ex.lt.0) a(1) = 0.
        if(ex.lt.1) a(2) = 0.
        if(ex.lt.2) a(3) = 0.

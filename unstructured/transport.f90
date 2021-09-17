@@ -319,9 +319,15 @@ function q_func(izone)
 
   ! Gaussian heat source model
   if(igaussian_heat_source.eq.1) then
+#ifdef USEST
+     temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
+          *exp(-((xl_79 - ghs_x)**2 + (zl_79 - ghs_z)**2) &
+          /(2.*ghs_var**2))
+#else
      temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
           *exp(-((x_79 - ghs_x)**2 + (z_79 - ghs_z)**2) &
           /(2.*ghs_var**2))
+#endif
 #ifdef USE3D
      if(ghs_var_tor .gt. 0) then
         if(itor.eq.1) then 
@@ -655,6 +661,13 @@ function cd_func()
         if(iregion.ne.REGION_PLASMA) temp79a(j) = 0.
      enddo
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+#ifdef USEST
+  else if(icd_source.eq.2) then
+     temp79b = sqrt((xl_79-xcenter)**2 +(zl_79-zcenter)**2)
+     temp79a = J_0cd/sqrt(2.*pi*w_cd**2) & 
+          *exp(-(temp79b - delta_cd)**2/(2.*w_cd**2))
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+#endif
   endif
 
   cd_func = temp
@@ -760,6 +773,17 @@ function resistivity_func(izone)
            if(myrank.eq.0) print *, pso, val
         end do
 
+#ifdef USEST
+     case(21)
+        if(igeometry.eq.1) then
+           temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+           temp79a = eta0* &
+                (1. + tanh((temp79b-(1.+etaoff))/etadelt))
+        else
+           if(myrank.eq.0) print *, 'iresfunc = 21 requires igeometry = 1'
+        end if
+#endif     
+
      case default
         if(myrank.eq.0) print *, 'Error: invalid value for iresfunc: ', iresfunc
         call safestop(73)
@@ -858,6 +882,17 @@ function viscosity_func()
         end if
         temp79a(j) = val
      end do
+
+#ifdef USEST
+  case(21)
+     if(igeometry.eq.1) then
+        temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+        temp79a = amu_edge* &
+             (1. + tanh((temp79b-(1.+amuoff))/amudelt))
+     else
+        if(myrank.eq.0) print *, 'ivisfunc = 21 requires igeometry = 1'
+     end if
+#endif     
 
   case default
      if(myrank.eq.0) print *, 'Error: invalid value for ivisfunc: ', ivisfunc

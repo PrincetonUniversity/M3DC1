@@ -1,5 +1,6 @@
 module scorec_mesh_mod
   use element
+  use physical_mesh 
 
   implicit none
 
@@ -87,6 +88,27 @@ contains
     ! load mesh
     call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
+
+#ifdef USEST
+    ilog = -1  ! before reading in geometry
+    if (igeometry.gt.0) then ! do nothing when igeometry==0 
+        if (iread_vmec.ge.1) then ! read geometry from VMEC file
+            call process_vmec(myrank)
+            nperiods = nfp ! nfp may be read from VMEC geometry
+        else ! read boudary geometry
+            call read_boundary_geometry(myrank)
+        end if
+        ilog = 1       ! use logical basis funtions first
+        call physical_mesh_setup(toroidal_period)
+    end if
+#endif
+    if(ifull_torus.eq.0) then
+       toroidal_period = toroidal_period/nperiods 
+       if(myrank.eq.0) print *, 'one field period...'
+    else if(ifull_torus.eq.1) then
+       if(myrank.eq.0) print *, 'full torus...'
+    end if
+
 #ifdef USE3D   
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes
     call m3dc1_model_setnumplane(nplanes)
@@ -198,7 +220,7 @@ contains
     integer :: i,numnodes
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
 
     numnodes = local_nodes()
 
@@ -346,14 +368,23 @@ contains
     real :: x1, z1
     
     call m3dc1_node_getcoord(inode-1,coords)
+#ifdef USEST
+    if (igeometry.gt.1) then ! Use original mesh when igeometry==0 or 1 
+       call physical_geometry(x, z, coords(1), coords(3), coords(2))
+    else
+#endif
     x = coords(1)
     z = coords(2)
+#ifdef USEST
+    endif
+#endif
 
     if(is_rectilinear) then
        call m3dc1_model_getmincoord(x1, z1)
        x = x + xzero - x1
        z = z + zzero - z1
     endif
+
 #ifdef USE3D
     phi = coords(3)
 #else
@@ -633,7 +664,7 @@ contains
     type(tag_list), intent(in), optional :: tags
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
 
     call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,&
          x,phi,z,tags)
@@ -655,7 +686,7 @@ contains
     
     integer, intent(in) :: inode              ! node index
     integer, intent(out) :: izone,izonedim    ! zone type/dimension
-    real, intent(out) :: normal(2), curv
+    real, intent(out) :: normal(2), curv(3)
     real, intent(out) :: x,phi,z              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
     type(tag_list), intent(in), optional :: tags
@@ -736,14 +767,21 @@ contains
        call m3dc1_node_isongeombdry(inode-1,ib)
        is_boundary = ib.eq.1
        if(.not.is_boundary) return
-       call m3dc1_node_getnormvec(inode-1, norm)
-       normal = norm(1:2)
-       if(icurv.eq.0) then
-          curv = 0.
+#ifdef USEST  
+       if (igeometry.gt.0 .and. ilog.ne.1) then ! do nothing when igeometry==0 
+          call get_boundary_curv(normal,curv,inode)
        else
-          call m3dc1_node_getcurv(inode-1, curv)
+#endif
+          call m3dc1_node_getnormvec(inode-1, norm)
+          normal = norm(1:2)
+          if(icurv.eq.0) then
+             curv = 0.
+          else
+             call m3dc1_node_getcurv(inode-1, curv(1))
+          end if
+#ifdef USEST  
        end if
-
+#endif 
        if(imulti_region.eq.1) then
           if(present(tags)) then
              is_boundary = in_tag_list(tags, izone)         
@@ -751,7 +789,6 @@ contains
              is_boundary = in_tag_list(domain_boundary, izone)
           end if
        end if
-
     end if
   end subroutine boundary_node
 
@@ -911,8 +948,18 @@ contains
 
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
     integer :: i, j, k
-    real :: norm(2)
+    real :: norm(2), curv(3)
     vectype, dimension(dofs_per_element) :: temp
+
+#ifdef USEST
+    integer :: inode(nodes_per_element)
+    real, dimension(dofs_per_element, dofs_per_element) :: l2p_mat 
+    real, dimension(dofs_per_node, dofs_per_node) :: p2l_mat 
+
+    integer :: info1, info2
+    real :: wkspce(9400)
+    integer :: ipiv(dofs_per_node)
+#endif
 
     call local_dof_vector(itri, cl)
 
@@ -925,14 +972,35 @@ contains
     call get_element_data(itri,d)
     norm(1) = d%co
     norm(2) = d%sn
+    curv = 0.
 
+#ifdef USEST
+    if(igeometry.eq.1.and.ilog.eq.0) then
+       call get_element_nodes(itri, inode)
+    end if
+#endif
     do i=1, nodes_per_element
        j = (i-1)*dofs_per_node+1
        k = j + dofs_per_node - 1
-       call rotate_dofs(temp(j:k), dof(j:k), norm, 0., -1)
+       call rotate_dofs(temp(j:k), dof(j:k), norm, curv, -1)
+#ifdef USEST
+       if(igeometry.eq.1.and.ilog.eq.0) then
+          info1 = 0
+          info2 = 0
+          call p2l_matrix(p2l_mat, inode(i)) 
+          call dgetrf(dofs_per_node,dofs_per_node,p2l_mat,dofs_per_node,ipiv,info1)
+          call dgetri(dofs_per_node,p2l_mat,dofs_per_node,ipiv,wkspce,400,info2)
+          if(info1.ne.0.or.info2.ne.0) write(*,'(3I5)') info1,info2
+          l2p_mat(j:k,j:k) = p2l_mat
+          !call l2p_matrix(l2p_mat(j:k,j:k),inode(i))
+       end if
+#endif
     end do
-
+#ifdef USEST
+    if(igeometry.eq.1.and.ilog.eq.0) then
+       dof = matmul(l2p_mat,dof)
+    end if
+#endif
   end subroutine local_dofs
-
 
 end module scorec_mesh_mod
