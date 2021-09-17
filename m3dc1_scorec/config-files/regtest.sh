@@ -1,8 +1,16 @@
+# romulus
+# module load gcc/4.8.5-v5m6xwi mpich/3.2.1-geowaxe cmake gsl/2.5-px4dg7h
+# module unload zlib/1.2.11-vhzh5cf
+#export ARCH=_romulus
+#export BINDIR=/lore/seol/develop/M3DC1/unstructured
+#export TESTDIR=$BINDIR/regtest
+#export MPIRUN=mpirun
+
 #stellar
 # module load intel/2021.1 intel-mpi/intel/2021.1.1
 # module load fftw/intel-19.1/intel-mpi/3.3.9
 # module load hdf5/intel-2021.1/intel-mpi/1.10.6 gsl/2.6
-#export ARCH=_stellar-seol
+#export ARCH=_stellar
 #export BINDIR=/projects/M3DC1/scorec/src/M3DC1-trunk/unstructured
 #export TESTDIR=/projects/M3DC1/scorec/src/M3DC1-trunk/unstructured/regtest
 #export MPIRUN=srun
