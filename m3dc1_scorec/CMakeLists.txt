@@ -12,6 +12,9 @@ if (NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif (NOT CMAKE_BUILD_TYPE)
 
+if (CMAKE_BUILD_TYPE MATCHES DEBUG)
+  add_definitions(-DDEBUG)
+endif()
 # default installation
 #get_filename_component (default_prefix ".." ABSOLUTE)
 #set (CMAKE_INSTALL_PREFIX ${default_prefix} CACHE STRING
