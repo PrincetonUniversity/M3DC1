@@ -133,7 +133,8 @@ int m3dc1_field_getnewid (FieldID* /*out*/field_id);
 // is num_dofs input or output?
 // *value_type is either M3DC1_REAL or M3DC1_COMPLEX
 int m3dc1_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_name, int* num_values, int* value_type, int* num_dofs_per_value);
-int m3dc1_field_delete (FieldID* /*in*/ field_id); 
+int m3dc1_mark_for_solutiontransfer (FieldID* /*in*/ field_id);
+int m3dc1_field_delete (FieldID* /*in*/ field_id);
 
 int m3dc1_field_getinfo(FieldID* /*in*/ field_id, char* /* out*/ field_name, int* num_values, int* value_type, int* total_num_dof);
 

@@ -1586,6 +1586,26 @@ int* /*in*/ scalar_type, int* /*in*/ num_dofs_per_value)
 }
 
 //*******************************************************
+int m3dc1_mark_for_solutiontransfer (FieldID* /*in*/ field_id)
+//*******************************************************
+{
+  if (!m3dc1_mesh::instance()->field_container)
+    return M3DC1_FAILURE;
+  if (!m3dc1_mesh::instance()->field_container->count(*field_id))
+    return M3DC1_FAILURE;
+
+  apf::Field* f = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+#ifdef DEBUG
+  if (!PCU_Comm_Self()) 
+    std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<*field_id<<", name "<<getName(f)<<" is being marked for solution transfer\n";
+#endif
+
+  m3dc1_field* mf = (*m3dc1_mesh::instance()->field_container)[*field_id];
+  mf->mark_for_solutiontransfer();
+  return M3DC1_SUCCESS;
+}
+
+//*******************************************************
 int m3dc1_field_delete (FieldID* /*in*/ field_id)
 //*******************************************************
 {
@@ -2790,7 +2810,7 @@ int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, Fiel
 
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-    std::cout<<"[M3D-C1 INFO] "<<__func__<<": matrix "<<*matrix_id<<", field "<<*field_id<<"\n";
+    std::cout<<"[M3D-C1 INFO] "<<__func__<<": matrix "<<*matrix_id<<", field id "<<*field_id<<" , name "<<get_field_name_from_id(*field_id)<<"\n";
 #endif 
 
   if (*matrix_type==M3DC1_MULTIPLY) // matrix for multiplication
@@ -3026,7 +3046,7 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", field "<<*rhs_sol<<"\n";
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", field "<<*rhs_sol<<", name "<<get_field_name_from_id(*rhs_sol)<<"\n";
   if (!mat) 
   {  
     if (!PCU_Comm_Self())
@@ -3055,7 +3075,7 @@ int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid,
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", in-field "<<*inputvecid<<", out-field "<<*outputvecid<<"\n";
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", in-field "<<*inputvecid<<", in_name "<<get_field_name_from_id(*inputvecid)<<", out-field "<<*outputvecid<<", out_name "<<get_field_name_from_id(*outputvecid)<<"\n";
   if (!mat)
   {
     if (!PCU_Comm_Self())
