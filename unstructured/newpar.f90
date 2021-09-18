@@ -285,26 +285,26 @@ Program Reducedquintic
   call define_transport_coefficients
   call derived_quantities(1)
 
-#ifdef ADAPT
-  call adapt_mesh
-#endif
+! #ifdef ADAPT
+!   call adapt_mesh
+! #endif
 
-  ! Adapt the mesh
-  ! ~~~~~~~~~~~~~~
-#ifdef USESCOREC
-  ! iadapt_writevtk=1, write the initial mesh before adaptation
-  if (iadapt.gt.0 .and. iadapt_writevtk .eq. 1) then
-    write(mesh_file_name,"(A7,A)") 'initial', 0
-    call m3dc1_mesh_write (mesh_file_name,0,0)
-  endif
+!   ! Adapt the mesh
+!   ! ~~~~~~~~~~~~~~
+! #ifdef USESCOREC
+!   ! iadapt_writevtk=1, write the initial mesh before adaptation
+!   if (iadapt.gt.0 .and. iadapt_writevtk .eq. 1) then
+!     write(mesh_file_name,"(A7,A)") 'initial', 0
+!     call m3dc1_mesh_write (mesh_file_name,0,0)
+!   endif
 
-  !if (iadapt .eq. 1) then
-  if (mod (iadapt, 2) .eq. 1) then
-    if (iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
-    call adapt_by_psi
-  endif
-  if (iadapt .eq. 4) call adapt_by_error
-#endif
+!   !if (iadapt .eq. 1) then
+!   if (mod (iadapt, 2) .eq. 1) then
+!     if (iprint.ge.1 .and. myrank.eq.0) write(*,*) "before adapt_by_psi:  psibound, psimin", psibound, psimin
+!     call adapt_by_psi
+!   endif
+!   if (iadapt .eq. 4) call adapt_by_error
+! #endif
 
   if(irestart.eq.0  .or. iadapt.gt.0) then
      tflux0 = tflux
