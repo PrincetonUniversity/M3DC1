@@ -3521,7 +3521,11 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     assert(valueType==complexType);
     if (complexType) group_complex_dof(field, 1);
     if (isFrozen(field)) unfreeze(field);
-    fields.push_back(field);
+    if (it->second->should_transfer())
+    {
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<<" with #comps "<< countComponents(field)  << " is added to solution transfer\n";
+      fields.push_back(field);
+    }
     it++;
   }
   while(mesh->countNumberings())
@@ -3755,8 +3759,11 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     int complexType = it->second->get_value_type();
     if (complexType) group_complex_dof(field, 1);
     if (isFrozen(field)) unfreeze(field);
-    //if (!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
-    fields.push_back(field);
+    if (it->second->should_transfer())
+    {
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<<" with #comps "<< countComponents(field)  << " is added to solution transfer\n";
+      fields.push_back(field);
+    }
     it++;
   }
   while(mesh->countNumberings())
