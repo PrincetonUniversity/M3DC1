@@ -614,6 +614,131 @@ void m3dc1_dir_import(double* dir, int ts)
   fclose(fp);
 }
 
+int m3dc1_spr_then_adapt (FieldID* field_id, double* ar, int* ts)
+{
+
+  char filename[256];
+#ifdef DEBUG
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3D-C1 INFO] "<<__func__<<" field id "<<*field_id<<" , name "<<get_field_name_from_id(*field_id)<<"\n";
+#endif
+
+
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+  apf::Field* in_field = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+
+  /* apf::Field* in_field_comp5 = get_component_of_field(mesh, in_field, 5-1); */
+  /* apf::Field* ip_field = spr::getGradIPField(in_field_comp5, "ipfield", 2); */
+  apf::Field* ip = get_ip_field(mesh, in_field);
+  apf::Field* size_field = spr::getSPRSizeField(ip, *ar);
+
+  sprintf(filename,"before%d",*ts);
+  apf::writeVtkFiles(filename,mesh);
+
+
+  /* destroyField(in_field_comp5); */
+  destroyField(ip);
+
+  /* int numVert=m3dc1_mesh::instance()->mesh->count(0); */
+  /* for (int i=0; i<numVert; i++) */
+  /* { */
+  /*   double sz = 1.; */
+  /*   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i); */
+  /*   setComponents(size_field, e, 0, &sz); */
+  /* } */
+  // delete all the matrix
+#ifdef M3DC1_TRILINOS
+  while (m3dc1_ls::instance()-> matrix_container->size())
+  {
+    std::map<int, m3dc1_epetra*>::iterator mat_it = m3dc1_ls::instance()->matrix_container->begin();
+    mat_it->second->destroy();
+    delete mat_it->second;
+    m3dc1_ls::instance()->matrix_container->erase(mat_it);
+  }
+#endif
+#ifdef M3DC1_PETSC
+  while (m3dc1_solver::instance()-> matrix_container->size())
+  {
+    std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
+    delete mat_it->second;
+    m3dc1_solver::instance()->matrix_container->erase(mat_it);
+  }
+#endif
+
+
+  int valueType = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_value_type();
+  ReducedQuinticImplicit shape;
+  vector<apf::Field*> fields;
+  fields.push_back(size_field);
+  std::map<FieldID, m3dc1_field*> :: iterator it=m3dc1_mesh::instance()->field_container->begin();
+  while(it!=m3dc1_mesh::instance()->field_container->end())
+  {
+    apf::Field* field = it->second->get_field();
+    int complexType = it->second->get_value_type();
+    assert(valueType==complexType);
+    if (complexType) group_complex_dof(field, 1);
+    if (isFrozen(field)) unfreeze(field);
+    if (it->second->should_transfer())
+    {
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<<" with #comps "<< countComponents(field)  << " is added to solution transfer\n";
+      fields.push_back(field);
+    }
+    it++;
+  }
+  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size()<<" have been added to solution transfer\n";
+  while(mesh->countNumberings())
+  {
+    apf::Numbering* n = mesh->getNumbering(0);
+    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
+    apf::destroyNumbering(n);
+  }
+  ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
+
+  ma::Input* in = ma::configure(mesh, size_field, &slnTrans);
+  /* ma::Input* in = ma::configureUniformRefine(mesh, 1, &slnTrans); */
+
+  in->shouldSnap=false;
+  in->shouldCoarsen=true;
+  in->shouldTransferParametric=false;
+  in->shouldRunPostZoltan = true;
+  in->maximumIterations = 2;
+
+  ma::adapt(in);
+  reorderMdsMesh(mesh);
+
+  sprintf(filename,"after%d",*ts);
+  apf::writeVtkFiles(filename,mesh);
+
+  m3dc1_mesh::instance()->initialize();
+  compute_globalid(m3dc1_mesh::instance()->mesh, 0);
+  compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
+
+  it=m3dc1_mesh::instance()->field_container->begin();
+  while(it!=m3dc1_mesh::instance()->field_container->end())
+  {
+    apf::Field* field = it->second->get_field();
+    int complexType = it->second->get_value_type();
+    if (complexType) group_complex_dof(field, 0);
+    if (!isFrozen(field)) freeze(field);
+/* #ifdef DEBUG */
+/*     int isnan; */
+/*     int fieldId= it->first; */
+/*     m3dc1_field_isnan(&fieldId, &isnan); */
+/*     assert(isnan==0); */
+/* #endif */
+    synchronize_field(field);
+
+/* #ifdef DEBUG */
+/*     m3dc1_field_isnan(&fieldId, &isnan); */
+/*     assert(isnan==0); */
+/* #endif */
+    it++;
+  }
+  destroyField(size_field);
+
+  return M3DC1_SUCCESS;
+}
+
 /* new mesh adaptation */
 /* Input Parameters
  * field_id_h1, field_id_h2: removed before adaptation so it won't be available after adaptation
