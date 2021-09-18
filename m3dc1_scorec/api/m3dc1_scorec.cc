@@ -13,7 +13,9 @@
 #include "m3dc1_mesh.h"
 #include "m3dc1_field.h"
 #include <mpi.h>
+#include <spr.h>
 #include <PCU.h>
+#include <pcu_util.h>
 #include <lionPrint.h>
 #include "gmi_null.h" // FIXME: should be deleted later on since it's added temporarily for null model
 #include <gmi_analytic.h>
@@ -32,6 +34,100 @@
 #include "m3dc1_ls.h"
 #endif
 #include <alloca.h>
+
+const int dofNode = C1TRIDOFNODE;
+
+#ifdef DEBUG
+static const char* get_field_name_from_id(const FieldID id)
+{
+   m3dc1_field* mf = (*m3dc1_mesh::instance()->field_container)[id];
+   return getName(mf->get_field());
+}
+#endif
+
+static apf::Field* get_component_of_field(apf::Mesh2* m, apf::Field* in, int comp)
+{
+  int comps = countComponents(in);
+  PCU_ALWAYS_ASSERT(comp < comps);
+
+  apf::Field* out = apf::createFieldOn(m, "in_field_comp", apf::SCALAR);
+
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(0);
+
+  double dofs[FIXSIZEBUFF];
+  while ( (e = m->iterate(it)) )
+  {
+    getComponents(in, e, 0, &dofs[0]);
+    double dof_comp = dofs[comp];
+    setComponents(out, e, 0, &dof_comp);
+  }
+  m->end(it);
+  return out;
+}
+
+static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
+{
+  ReducedQuinticImplicit shape;
+  int numComps = apf::countComponents(in);
+  assert(numComps == 6);
+  int dim = m->getDimension();
+  assert(dim == 2);
+  int order = 2;
+  apf::Field* ip = apf::createIPField(m, "ip_field", apf::SCALAR, order);
+
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(dim);
+
+  while ( (e = m->iterate(it)) )
+  {
+    // setup the ReducedQuintic Related Info
+    apf::MeshEntity* dvs[3];
+    int nd = m->getDownward(e, 0, dvs);
+    double coords[3][2];
+    for (int i = 0; i < 3; i++) {
+      apf::Vector3 p;
+      m->getPoint(dvs[i], 0, p);
+      coords[i][0] = p[0];
+      coords[i][1] = p[1];
+    }
+    shape.setCoord(coords);
+
+    apf::NewArray<double> values(6*numComps);
+    for (int i = 0; i < 3; i++)
+      apf::getComponents(in, dvs[i], 0, &(values[numComps*i]));
+
+    vector<double> allDofs(3*dofNode);
+    int ifield = 0; // TODO update for cases where numComps>6
+    for (int i = 0; i < dofNode; i++) {
+      allDofs[i] = values[ifield*dofNode+i];
+      allDofs[dofNode+i] = values[numComps+ifield*dofNode+i];
+      allDofs[2*dofNode+i] = values[2*numComps+ifield*dofNode+i];
+    }
+    shape.setDofs(&(allDofs[0]));
+
+
+
+
+
+    apf::MeshElement* me = apf::createMeshElement(m, e);
+    vector<double> dofAtXi(dofNode);
+    int etype = m->getType(e);
+    for (int i = 0; i < apf::countIntPoints(me, order); i++) {
+      apf::Vector3 xi; // parametric coords of the point in e at which we are evaluating the field
+      apf::getIntPoint(me, order, i, xi);
+      apf::Vector3 p; // physical coords of the point in e at which we are evaluating the field
+      apf::mapLocalToGlobal(me, xi, p);
+      double pArray[3];
+      p.toArray(pArray);
+      shape.eval_g(pArray, &(dofAtXi[0]));
+      apf::setScalar(ip, e, i, dofAtXi[0]);
+    }
+    apf::destroyMeshElement(me);
+  }
+  m->end(it);
+  return ip;
+}
 
 double begin_mem, begin_time;
 // helper routines
