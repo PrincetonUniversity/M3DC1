@@ -162,11 +162,11 @@ contains
     end if     
 
 
-    call create_field(jphi_vec)
-    call create_field(p_vec)
-    call create_field(f_vec)
-    call create_field(vz_vec)
-    call create_field(den_vec)
+    call create_field(jphi_vec, "jphi_vec")
+    call create_field(p_vec, "p_vec")
+    call create_field(f_vec, "f_vec")
+    call create_field(vz_vec, "vz_vec")
+    call create_field(den_vec, "den_vec")
     jphi_vec = 0.
     p_vec = 0.
     f_vec = 0.
