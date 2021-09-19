@@ -690,6 +690,7 @@ contains
           fields = ior(ior(ior(fields,FIELD_N),FIELD_P),FIELD_PSI)
           if(itemp.eq.1) fields = ior(fields,FIELD_TE)
        end if
+       if(ikapparfunc.eq.1) fields = ior(fields,FIELD_TE)
     end if
     if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
        if(idenmfunc.eq.1) then
@@ -1474,11 +1475,10 @@ contains
         call eval_ops(itri, kappa_field, kap79)
      end if
 
+     call eval_ops(itri, kappar_field, kar79)
+
      if(ikapscale.eq.1) then
         kar79 = kappar*kap79
-     else
-        kar79 = 0.
-        kar79(:,OP_1) = kappar
      endif
      kax79 = 0.
      kax79(:,OP_1) = kappax

@@ -53,7 +53,8 @@ module basic
   real :: amupar      ! parallel viscosity coefficient
   integer :: iresfunc   ! if 1, use new resistivity function
   integer :: ivisfunc   ! if 1, use new resistivity function
-  integer :: ikappafunc ! if 1, use new resistivity function
+  integer :: ikappafunc ! select electron thermal conductivity function
+  integer :: ikapparfunc ! select electron parallel thermal conductivity function
   integer :: idenmfunc
   integer :: ikappar_ni
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
@@ -71,6 +72,7 @@ module basic
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappah      ! phenomenological model for H-mode
   real :: kappar      ! coefficient of field-aligned temperature diffusion
+  real :: tcrit ! for ikapparfunc=1, parallel TC is kappar/( (tcrit/te)**2.5 + 1)
   real :: k_fac   ! factor by which the toroidal field is multiplied in 1/B^2 that appears in kappa_parallel
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: kappag
@@ -490,7 +492,7 @@ module arrays
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
-  type(field_type) :: resistivity_field, kappa_field, denm_field
+  type(field_type) :: resistivity_field, kappa_field, kappar_field, denm_field
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field

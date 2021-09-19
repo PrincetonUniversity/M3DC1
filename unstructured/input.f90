@@ -317,6 +317,7 @@ subroutine set_defaults
        "Minimum value of resistivity in the plasma region", transp_grp)
 
   call add_var_int("ikappafunc", ikappafunc, 0, "", transp_grp)
+  call add_var_int("ikapparfunc", ikapparfunc, 0, "", transp_grp)
   call add_var_int("ikapscale", ikapscale, 0, "", transp_grp)
   call add_var_int("ikappar_ni", ikappar_ni, 1, &
        "Include 1/n terms in parallel heat flux", transp_grp)
@@ -327,6 +328,7 @@ subroutine set_defaults
   call add_var_double("kappa0", kappa0, 0., "", transp_grp)
   call add_var_double("kappar", kappar, 0., &
        "Parallel thermal conductivity", transp_grp)
+  call add_var_double("tcrit", tcrit, 0., "", transp_grp)
   call add_var_double("k_fac", k_fac, 1., &
        "multiplies toroidal field in denominator of PTC", transp_grp)
   call add_var_double("kappax", kappax, 0., "", transp_grp)

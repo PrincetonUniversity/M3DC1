@@ -1057,6 +1057,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call write_field(group_id, "visc", visc_field, nelms, error, .true.)
      call write_field(group_id, "visc_c", visc_c_field, nelms, error, .true.)
      call write_field(group_id, "kappa", kappa_field, nelms, error, .true.)
+     call write_field(group_id, "kappar", kappar_field, nelms, error, .true.)
      call write_field(group_id, "denm", denm_field, nelms, error, .true.)
      
      ! poloidal force and mach number

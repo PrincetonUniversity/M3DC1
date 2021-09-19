@@ -1,5 +1,7 @@
 module boundary_conditions
 
+
+
   integer, parameter :: BOUNDARY_NONE           =  0
   integer, parameter :: BOUNDARY_DIRICHLET      =  1
   integer, parameter :: BOUNDARY_NEUMANN        =  2
