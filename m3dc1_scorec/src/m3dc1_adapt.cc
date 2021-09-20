@@ -773,7 +773,11 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
 	
   ReducedQuinticImplicit shape;
   ReducedQuinticTransfer slnTransfer(mesh,fields, &shape);
+#ifdef OLDMA
+  ma::Input* in = ma::configure(mesh, size_field, frame_field, &slnTransfer);
+#else
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, frame_field, &slnTransfer));
+#endif
 	
   in->shouldSnap = 0;
   in->shouldTransferParametric = 0;
@@ -852,7 +856,6 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
 
   // FIXME: crash in 2D if no pre/post zoltan 
   reorderMdsMesh(mesh);
-
   m3dc1_mesh::instance()->initialize();
 
   compute_globalid(mesh, 0);
@@ -869,9 +872,9 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
   }
 
   apf::freezeFields(mesh); // turning field data from tag to array
+ 
 #ifdef DEBUG
   if (!PCU_Comm_Self()) std::cout<<"After adaptation: ";
-  m3dc1_mesh::instance()->print(__LINE__);
 
   // FIXME: crash in 3D 
   sprintf(fname, "after-adapt-ts%d", ts++);
@@ -885,4 +888,10 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
   mesh->end(ent_it); 
 */
 #endif
+
+  if (!PCU_Comm_Self())
+    cout<<"#global_ent: V "<<m3dc1_mesh::instance()->num_global_ent[0]
+        <<", E "<<m3dc1_mesh::instance()->num_global_ent[1]
+        <<", F "<<m3dc1_mesh::instance()->num_global_ent[2]
+        <<", R "<<m3dc1_mesh::instance()->num_global_ent[3]<<"\n";
 }
