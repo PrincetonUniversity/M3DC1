@@ -3281,7 +3281,11 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     apf::destroyNumbering(n);
   }
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
+#ifdef OLDMA
+  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+#else
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
+#endif
   in->maximumIterations = 9;
 
   in->shouldSnap=false;
@@ -3315,6 +3319,13 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
 #endif
     it++;
   }
+
+  if (!PCU_Comm_Self())
+    cout<<"#global_ent: V "<<m3dc1_mesh::instance()->num_global_ent[0]
+        <<", E "<<m3dc1_mesh::instance()->num_global_ent[1]
+        <<", F "<<m3dc1_mesh::instance()->num_global_ent[2]
+        <<", R "<<m3dc1_mesh::instance()->num_global_ent[3]<<"\n";
+
   return M3DC1_SUCCESS;
 }
 
@@ -3520,7 +3531,11 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   //apf::writeVtkFiles(filename,mesh);
 
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
+#ifdef OLDMA
+  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+#else
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
+#endif
   in->maximumIterations = 5;
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
@@ -3528,7 +3543,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
-  
+
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
@@ -3555,6 +3570,13 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     it++;
   }
   destroyField(sizeField);
+
+  if (!PCU_Comm_Self())
+    cout<<"#global_ent: V "<<m3dc1_mesh::instance()->num_global_ent[0]
+        <<", E "<<m3dc1_mesh::instance()->num_global_ent[1]
+        <<", F "<<m3dc1_mesh::instance()->num_global_ent[2]
+        <<", R "<<m3dc1_mesh::instance()->num_global_ent[3]<<"\n";
+
   return M3DC1_SUCCESS;
 }
 
