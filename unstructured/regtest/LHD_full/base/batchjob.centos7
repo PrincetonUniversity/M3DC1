@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH -p general
+#SBATCH -n 320
+#SBATCH --mem-per-cpu=2000M
+#SBATCH -J regtest_LHD_full
+#SBATCH -t 00:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+# partition mesh
+part=$(which part_mesh.sh)
+source $part circle-858.smb 8
+echo $? > mesh_partitioned
+
+# Run M3D-C1
+$M3DC1_MPIRUN -n 320 m3dc1_3d_st -ipetsc -options_file options_bjacobi1
+
+touch finished
+
+
+
