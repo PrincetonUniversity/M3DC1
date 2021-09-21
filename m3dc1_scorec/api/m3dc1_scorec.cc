@@ -3214,6 +3214,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
 
 
+  int shouldCoarsen = -1;
   set<int> field_keep;
   field_keep.insert(*fieldId);
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
@@ -3246,11 +3247,26 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   {
     if (!PCU_Comm_Self())
       std::cout<<"[M3D-C1 INFO] read 13 parameters from \"sizefieldParam\": coarsening will stay on\n";
+    // turn on coarsening for this case
+    shouldCoarsen = 1;
   }
   else if (count==14)
   {
     if (!PCU_Comm_Self())
-      std::cout<<"[M3D-C1 INFO] read 14 parameters from \"sizefieldParam\": coarsening will be turned off\n";
+      std::cout<<"[M3D-C1 INFO] read 14 parameters from \"sizefieldParam\"\n";
+    shouldCoarsen = (int)param[13];
+    if (!PCU_Comm_Self())
+    {
+      if (shouldCoarsen == 0)
+	std::cout<<"[M3D-C1 INFO] the last parameter in \"sizefieldParam\ is 0 causing coarsening to be turned off\n";
+      else if (shouldCoarsen == 1)
+	std::cout<<"[M3D-C1 INFO] the last parameter in \"sizefieldParam\ is 1 causing coarsening to be turned on\n";
+      else
+      {
+        std::cout<<"[M3D-C1 ERROR] the 14th value in \"sizefieldParam\" (it present) must be 0. or 1.\n";
+        return M3DC1_FAILURE;
+      }
+    }
   }
   else
   {
@@ -3324,8 +3340,14 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
-  if (count == 14)
+
+  // set the coarsening options
+  if (shouldCoarsen == 1)
+    in->shouldCoarsen = true;
+  else if (shouldCoarsen == 0)
     in->shouldCoarsen = false;
+  else
+    return M3DC1_FAILURE;
 
 
   ma::adapt(in);
