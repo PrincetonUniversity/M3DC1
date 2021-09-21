@@ -3228,7 +3228,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   }
 
   // Note:
-  // count with hold the total number of parameters read from "sizefieldParam" and it must be either 13 or 14. The expected
+  // count will hold the total number of parameters read from "sizefieldParam" and it must be either 13 or 14. The expected
   // behaviour for each case is summarized below
   // a) if count == 13, coarsening will stay on
   // b) if count == 14, coarsening will be turned off (the actual value of the last (14th) parameter does not have an effect.
