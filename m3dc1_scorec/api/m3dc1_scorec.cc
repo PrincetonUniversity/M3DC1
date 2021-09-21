@@ -19,6 +19,7 @@
 #include <map>
 #include <cstring>
 #include <iomanip> // setprecision
+#include <fstream> // file input
 #include "apfMDS.h"
 #include "Expression.h"
 #include "m3dc1_slnTransfer.h"
@@ -3209,29 +3210,61 @@ int m3dc1_field_sum_plane (FieldID* /* in */ field_id)
 int adapt_time=0;
 int adapt_by_field (int * fieldId, double* psi0, double * psil)
 {
-  if (!PCU_Comm_Self()) 
-  std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
 
-  FILE *fp = fopen("sizefieldParam", "r");
-  if (!fp)
-  {
-    std::cout<<"[M3D-C1 ERROR] file \"sizefieldParam\" not found\n";
-    return M3DC1_FAILURE;
-  }
-  double param[13];
+
   set<int> field_keep;
   field_keep.insert(*fieldId);
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 
-  if (!PCU_Comm_Self()) 
-    std::cout<<"[M3D-C1 INFO] size field parameters: ";
-
-  for (int i=0; i<13; ++i)
+  std::ifstream ifs;
+  ifs.open("sizefieldParam", std::ifstream::in);
+  if (!ifs.is_open())
   {
-    fscanf(fp, "%lf ", &param[i]);
-     if (!PCU_Comm_Self()) std::cout<<std::setprecision(5)<<param[i]<<" ";
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 ERROR] file \"sizefieldParam\" not found\n";
+    return M3DC1_FAILURE;
   }
-  fclose(fp);
+
+  // Note:
+  // count with hold the total number of parameters read from "sizefieldParam" and it must be either 13 or 14. The expected
+  // behaviour for each case is summarized below
+  // a) if count == 13, coarsening will stay on
+  // b) if count == 14, coarsening will be turned off (the actual value of the last (14th) parameter does not have an effect.
+  double param[14];
+  int count = 0;
+  double p;
+  while (ifs >> p && count<14)
+  {
+    param[count] = p;
+    count++;
+  }
+  ifs.close();
+
+  if (count==13)
+  {
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 INFO] read 13 parameters from \"sizefieldParam\": coarsening will stay on\n";
+  }
+  else if (count==14)
+  {
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 INFO] read 14 parameters from \"sizefieldParam\": coarsening will be turned off\n";
+  }
+  else
+  {
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 ERROR] number of parameters in \"sizefieldParam\" must be 13 or 14\n";
+    return M3DC1_FAILURE;
+  }
+
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3D-C1 INFO] size field parameters: ";
+  for (int i=0; i<count; ++i)
+  {
+    if (!PCU_Comm_Self()) std::cout<<std::setprecision(5)<<param[i]<<" ";
+  }
   if (!PCU_Comm_Self()) std::cout<<"\n";
 
   apf::Field* psiField = (*(m3dc1_mesh::instance()->field_container))[*fieldId]->get_field();
@@ -3291,6 +3324,9 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
+  if (count == 14)
+    in->shouldCoarsen = false;
+
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
