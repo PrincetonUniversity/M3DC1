@@ -23,10 +23,13 @@
 #include <cstring>
 #include <iomanip> // setprecision
 #include "apfMDS.h"
+#include "apf.h"
+#include "apfShape.h"
 #include "Expression.h"
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_sizeField.h"
 #include "ReducedQuinticImplicit.h"
+#include "ReducedQuinticExplicit.h"
 #include "pumi.h"
 // #include <stdio.h>
 // #include <stdlib.h>
@@ -127,6 +130,73 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
   }
   m->end(it);
   return ip;
+}
+
+static void get_dofs_on_ent(m3dc1_mesh* m, m3dc1_field* f, apf::MeshEntity* e, const apf::Vector3& xi)//, apf::NewArray<double>& dofs)
+{
+  apf::Mesh2* mesh = m->mesh;
+  apf::Field* field = f->get_field();
+  int numDofs = apf::countComponents(field);
+  apf::Vector3 xii;
+
+  apf::Adjacent adj;
+  mesh->getAdjacent(e, 2, adj);
+  if (mesh->getType(e) == apf::Mesh::VERTEX)
+    xii = apf::Vector3(0., 0., 0.);
+  else
+    xii = apf::Vector3(xi[0],0.,0.);
+
+
+  for (int i = 0; i < adj.getSize(); i++) {
+    apf::MeshEntity* currentFace = adj[i];
+    PCU_ALWAYS_ASSERT(mesh->getType(currentFace) == apf::Mesh::TRIANGLE);
+
+    apf::MeshEntity* dvs[3];
+    mesh->getDownward(currentFace, 0, dvs);
+    double coords[3][2];
+    apf::NewArray<double> all_dofs(3*numDofs);
+    apf::NewArray<double> eval_dofs(numDofs);
+    for (int j = 0; j < 3; j++) {
+      apf::Vector3 p;
+      mesh->getPoint(dvs[j], 0, p);
+      coords[j][0] = p[0];
+      coords[j][1] = p[1];
+      apf::getComponents(field, dvs[j], 0, &(all_dofs[j*numDofs]));
+    }
+    ReducedQuinticExplicit rq;
+    rq.setCoord(coords);
+    rq.setDofs(&(all_dofs[0]));
+
+    apf::MeshElement* me = apf::createMeshElement(mesh, currentFace);
+    apf::Vector3 xiip;
+    apf::Vector3 xyz;
+    xiip = apf::boundaryToElementXi(mesh, e, currentFace, xii);
+    apf::mapLocalToGlobal(me, xiip, xyz);
+    apf::destroyMeshElement(me);
+
+    double xyzArray[3];
+    xyz.toArray(xyzArray);
+
+    rq.eval_g(xyzArray, &(eval_dofs[0]));
+    printf("at face %d, (%f/%f/%f) the dofs are %e %e %e %e %e %e\n",
+    	                                                   i, xyz[0], xyz[1], xyz[2],
+    	                                                      eval_dofs[0],
+                                                              eval_dofs[1],
+                                                              eval_dofs[2],
+                                                              eval_dofs[3],
+                                                              eval_dofs[4],
+                                                              eval_dofs[5]);
+  }
+  printf("===========================\n");
+/*   if (faces.n == 1) */
+/*   { */
+/*     apf::MeshEntity* face = faces.e[0]; */
+/*   } */
+/*   else if (faces.n == 2) */
+/*   { */
+/*   } */
+/*   else */
+/*     PCU_ALWAYS_ASSERT_VERBOSE(0, "something is not right!"); */
 }
 
 double begin_mem, begin_time;
