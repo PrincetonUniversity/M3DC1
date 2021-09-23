@@ -125,7 +125,9 @@ Program Reducedquintic
 
 #ifdef USESCOREC
   call m3dc1_domain_init()
-  call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
+  if (iprint.ge.1) then
+    call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
+  end if
 #endif
 
 #ifndef M3DC1_TRILINOS
