@@ -773,7 +773,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
 	
   ReducedQuinticImplicit shape;
   ReducedQuinticTransfer slnTransfer(mesh,fields, &shape);
-  ma::Input* in = ma::configure(mesh, size_field, frame_field, &slnTransfer);
+  ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, frame_field, &slnTransfer));
 	
   in->shouldSnap = 0;
   in->shouldTransferParametric = 0;

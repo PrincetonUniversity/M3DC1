@@ -764,11 +764,11 @@ int m3dc1_spr_then_adapt (FieldID* field_id, double* ar, int* ts)
   }
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
 
-  ma::Input* in = ma::configure(mesh, size_field, &slnTrans);
-  /* ma::Input* in = ma::configureUniformRefine(mesh, 1, &slnTrans); */
+  ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
+  /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(mesh, 1, &slnTrans)); */
 
   in->shouldSnap=false;
-  in->shouldCoarsen=true;
+  in->shouldCoarsen=false;
   in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
   in->maximumIterations = 2;
@@ -3605,7 +3605,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     apf::destroyNumbering(n);
   }
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+  ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
   in->maximumIterations = 9;
 
   in->shouldSnap=false;
@@ -3847,7 +3847,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   //apf::writeVtkFiles(filename,mesh);
 
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+  ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
   in->maximumIterations = 5;
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
