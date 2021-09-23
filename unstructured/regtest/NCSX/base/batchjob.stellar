@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -A pppl
-#SBATCH -n 320
-#SBATCH -J regtest_LHD_full
+#SBATCH -n 64
+#SBATCH -J regtest_NCSX
 #SBATCH -t 00:30:00
 #SBATCH -o C1stdout
 
@@ -13,7 +13,7 @@ $M3DC1_MPIRUN -n $PARTS split_smb circle-858.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
 # Run M3D-C1
-$M3DC1_MPIRUN -n 320 m3dc1_3d_st -ipetsc -options_file options_bjacobi1
+$M3DC1_MPIRUN -n 64 m3dc1_3d_st -ipetsc -options_file options_bjacobi1
 
 touch finished
 

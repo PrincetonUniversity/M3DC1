@@ -10,8 +10,8 @@ touch started
 #create_fixed_mesh.sh AnalyticModel 0.06
 #echo $? > mesh_created
 
-part=$(which part_mesh.sh)
-source $part analytic-2K.smb 48
+PARTS=48
+$M3DC1_MPIRUN -n $PARTS split_smb analytic-2K.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
 cp C1input.1 C1input

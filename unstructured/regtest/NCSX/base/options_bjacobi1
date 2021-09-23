@@ -1,5 +1,5 @@
 -pc_type bjacobi
--pc_bjacobi_blocks 40
+-pc_bjacobi_blocks 8
 -ksp_type fgmres 
 -ksp_rtol 1.e-9
 -ksp_atol 1.e-20

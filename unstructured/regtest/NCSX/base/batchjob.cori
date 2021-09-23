@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -p debug
-#SBATCH -C knl,quad,cache
-#SBATCH -N 5
-#SBATCH -J regtest_LHD_full
+#SBATCH -C haswell
+#SBATCH -n 64
+#SBATCH -J regtest_NCSX
 #SBATCH -t 00:30:00
 #SBATCH -o C1stdout
 
@@ -13,7 +13,7 @@ part_mesh.sh circle-858.smb 8
 echo $? > mesh_partitioned
 
 # Run M3D-C1
-$M3DC1_MPIRUN -n 320 -c 4 m3dc1_3d_st -ipetsc -options_file options_bjacobi1
+$M3DC1_MPIRUN -n 64 m3dc1_3d_st -ipetsc -options_file options_bjacobi1
 
 touch finished
 

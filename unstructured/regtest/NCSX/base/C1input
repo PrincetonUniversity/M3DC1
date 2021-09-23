@@ -2,8 +2,8 @@
 
 ! I/O Options
 ! ===========
-	ntimemax = 3	! number of time steps
-	ntimepr = 3	! number of time steps per output
+	ntimemax = 5	! number of time steps
+	ntimepr = 5	! number of time steps per output
 	iprint = 0	! 1 = print detailed debug info
 	itimer = 1	! 1 = print timing info
 
@@ -159,10 +159,10 @@
 	mesh_model = 'circle.txt'
         xzero = 1.4
         zzero = 0.
-	nplanes = 40
-	nperiods = 10
+	nplanes = 8
+	nperiods = 3
         iread_vmec = 1 
-	ifull_torus = 1
+	ifull_torus = 0
         vmec_filename = 'vmec_out.nc'
 
 ! Grad-Shafranov Options

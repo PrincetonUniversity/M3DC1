@@ -9,7 +9,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                      time=realtime, abs=abs, phase=phase, dimensions=d, $
                      flux_average=flux_av, rvector=rvector, zvector=zvector, $
                      yvector=yvector, taverage=taverage, sum=sum, $
-                     tpoints=nphi, $
+                     tpoints=nphi, logical=logical, map_r=map_r, map_z=map_z, $
                      is_nonlinear=is_nonlinear, outval=mask_val, wall_mask=wall_mask
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -354,8 +354,23 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
              eval_field(field._data, mesh, points=pts, $
                         r=x, z=y, op=op, filename=filename, $
                         xrange=xrange, yrange=yrange, mask=mask, $
-                        phi=phi0_rad, wall_mask=wall_mask)
+                        phi=phi0_rad, wall_mask=wall_mask, edge_val=edge_val)
            symbol = field_data(name, units=d, itor=itor, filename=filename)
+
+           igeometry = read_parameter("igeometry", filename=filename)
+
+           if(igeometry gt 0 and not keyword_set(logical)) then begin
+              if(n_elements(map_r) ne n_elements(data) or $
+                 n_elements(map_z) ne n_elements(data)) then begin
+                 rst = read_field('rst',x,z,t,points=pts, filename=filename, $
+                                  phi=phi0_rad, /logical)
+                 zst = read_field('zst',x,z,t,points=pts, filename=filename, $
+                                  phi=phi0_rad, /logical)
+                 create_map, rst, zst, r=x, z=y, ix=map_r, iy=map_z
+              end
+              data[0,*,*] = map_field(data, map_r, map_z, $
+                                      mask=mask, outval=edge_val)
+           end
 
            if(version lt 5 and isubeq eq 1 and time ge 0 and $
               ((strcmp('te', name, /fold_case) eq 1) or $
