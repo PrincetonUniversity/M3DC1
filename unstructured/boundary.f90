@@ -549,10 +549,6 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
   integer :: row_bcdp, row_bcdpdt
 #endif
 
-  if(myrank.eq.0) then
-     print *, "MULTIBC:  ", ibegin(1), ibc(1)
-     print *, normal, radius
-  end if
   call rotate_dofs(bv, bv_rotated, normal, curv, 1)
 
   val = 0.0

@@ -283,7 +283,11 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   vectype :: coeff(2), xp(2)
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vel called"
+  if(myrank.eq.0 .and. iprint.ge.2) then
+     print *, "boundary_vel called"
+     if(inonormalflow.eq.2) print *, "  Using multibc for normal flow"
+     if(inoslip_pol.eq.2)   print *, "  Using multibc for poloidal flow"
+  end if
 
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
