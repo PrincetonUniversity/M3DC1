@@ -276,7 +276,7 @@ module adapt
 
 
 ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  subroutine adapt_by_spr(f,ar,t)
+  subroutine adapt_by_spr(fid,idx,ar,t)
 ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     use diagnostics
     use basic
@@ -293,14 +293,15 @@ module adapt
     use transport_coefficients
 
     character(len=32) :: mesh_file_name
-    type(field_type), intent(inout) :: f
+    integer, intent(in) :: fid
+    integer, intent(in) :: idx
     real, intent(in) :: ar
     integer, intent(in) :: t
 
 
   !  if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
     call straighten_fields()
-    call m3dc1_spr_then_adapt(f%vec%id,ar,t)
+    call m3dc1_spr_then_adapt(fid,idx,ar,t)
     call space(0)
     call update_nodes_owned()
     call tridef
