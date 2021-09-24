@@ -125,9 +125,6 @@ Program Reducedquintic
 
 #ifdef USESCOREC
   call m3dc1_domain_init()
-  if (iprint.ge.1) then
-    call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
-  end if
 #endif
 
 #ifndef M3DC1_TRILINOS
@@ -147,6 +144,14 @@ Program Reducedquintic
   ! read input file
   if(myrank.eq.0) print *, ' Reading input'
   call input
+
+!if using SCOREC set adapt verbosity output if iprint.ge.1
+#ifdef USESCOREC
+  if (iprint.ge.1) then
+    call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
+  end if
+#endif
+
 
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
