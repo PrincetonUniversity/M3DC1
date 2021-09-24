@@ -69,15 +69,35 @@ static apf::Field* get_component_of_field(apf::Mesh2* m, apf::Field* in, int com
   return out;
 }
 
+static apf::Field* get_field_at_index(apf::Mesh2* m, apf::Field* inField, int index, int numDofs)
+{
+  int numComps = apf::countComponents(inField);
+  int numFields = numFields/numDofs;
+  PCU_ALWAYS_ASSERT(index <= numFields);
+
+  apf::Field* targetField = apf::createPackedField(m, "target_field", numDofs);
+
+  apf::NewArray<double> allDofs(numComps);
+  apf::MeshEntity* v;
+  apf::MeshIterator* it = m->begin(0);
+  while ( (v = m->iterate(it)) )
+  {
+    apf::getComponents(inField, v, 0, &(allDofs[0]));
+    apf::setComponents(targetField, v, 0, &(allDofs[(index-1)*numDofs]));
+  }
+  m->end(it);
+  return targetField;
+}
+
 static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
 {
   ReducedQuinticImplicit shape;
   int numComps = apf::countComponents(in);
-  assert(numComps == 6);
+  assert(numComps == dofNode);
   int dim = m->getDimension();
   assert(dim == 2);
   int order = 2;
-  apf::Field* ip = apf::createIPField(m, "ip_field", apf::SCALAR, order);
+  apf::Field* ip = apf::createIPField(m, "ip_field", apf::VECTOR, order);
 
   apf::MeshEntity* e;
   apf::MeshIterator* it = m->begin(dim);
@@ -96,26 +116,24 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
     }
     shape.setCoord(coords);
 
-    apf::NewArray<double> values(6*numComps);
+    apf::NewArray<double> values(3*dofNode);
+    apf::NewArray<double> dofAtXi(dofNode);
     for (int i = 0; i < 3; i++)
-      apf::getComponents(in, dvs[i], 0, &(values[numComps*i]));
+      apf::getComponents(in, dvs[i], 0, &(values[dofNode*i]));
 
-    vector<double> allDofs(3*dofNode);
-    int ifield = 0; // TODO update for cases where numComps>6
-    for (int i = 0; i < dofNode; i++) {
-      allDofs[i] = values[ifield*dofNode+i];
-      allDofs[dofNode+i] = values[numComps+ifield*dofNode+i];
-      allDofs[2*dofNode+i] = values[2*numComps+ifield*dofNode+i];
-    }
-    shape.setDofs(&(allDofs[0]));
+    /* vector<double> allDofs(3*dofNode); */
+    /* for (int i = 0; i < dofNode; i++) { */
+    /*   allDofs[i] = values[ifield*dofNode+i]; */
+    /*   allDofs[dofNode+i] = values[numComps+ifield*dofNode+i]; */
+    /*   allDofs[2*dofNode+i] = values[2*numComps+ifield*dofNode+i]; */
+    /* } */
+    shape.setDofs(&(values[0]));
 
 
 
 
 
     apf::MeshElement* me = apf::createMeshElement(m, e);
-    vector<double> dofAtXi(dofNode);
-    int etype = m->getType(e);
     for (int i = 0; i < apf::countIntPoints(me, order); i++) {
       apf::Vector3 xi; // parametric coords of the point in e at which we are evaluating the field
       apf::getIntPoint(me, order, i, xi);
@@ -124,7 +142,8 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
       double pArray[3];
       p.toArray(pArray);
       shape.eval_g(pArray, &(dofAtXi[0]));
-      apf::setScalar(ip, e, i, dofAtXi[0]);
+      apf::Vector3 grad(dofAtXi[1], dofAtXi[2], 0.0);
+      apf::setVector(ip, e, i, grad);
     }
     apf::destroyMeshElement(me);
   }
@@ -163,7 +182,7 @@ static void get_dofs_on_ent(m3dc1_mesh* m, m3dc1_field* f, apf::MeshEntity* e, c
       coords[j][1] = p[1];
       apf::getComponents(field, dvs[j], 0, &(all_dofs[j*numDofs]));
     }
-    ReducedQuinticExplicit rq;
+    ReducedQuinticImplicit rq;
     rq.setCoord(coords);
     rq.setDofs(&(all_dofs[0]));
 
@@ -684,7 +703,7 @@ void m3dc1_dir_import(double* dir, int ts)
   fclose(fp);
 }
 
-int m3dc1_spr_then_adapt (FieldID* field_id, double* ar, int* ts)
+int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
 {
 
   char filename[256];
@@ -695,11 +714,35 @@ int m3dc1_spr_then_adapt (FieldID* field_id, double* ar, int* ts)
 
 
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
-  apf::Field* in_field = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+  // in_filed will hold all the dofs of all the fields (num being the total number of fields)
+  // at each vertex. e.g.
+  // f1_1, f1_2, f1_3, f1_4, f1_5, f1_6, ! dofs of 1st field
+  // f2_1, f2_2, f2_3, f2_4, f2_5, f2_6, ! dofs of 2nd field
+  // ...
+  //
+  // findex_1, findex_2, findex_3, findex_4, findex_5, findex_6, ! dofs of index'th field
+  // ...
+  // fnum_1, fnum_2, fnum_3, fnum_4, fnum_5, fnum_6 ! dofs of num'th (last) field
+  apf::Field* inField = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+  // the following call will extract the ones at index
+  apf::Field* targetField = get_field_at_index(mesh, inField, *index, dofNode);
 
-  /* apf::Field* in_field_comp5 = get_component_of_field(mesh, in_field, 5-1); */
-  /* apf::Field* ip_field = spr::getGradIPField(in_field_comp5, "ipfield", 2); */
-  apf::Field* ip = get_ip_field(mesh, in_field);
+
+  /* apf::MeshEntity* e; */
+  /* apf::MeshIterator* mit = mesh->begin(1); */
+
+  /* while ( (e = mesh->iterate(mit)) ) */
+  /* { */
+  /*   get_dofs_on_ent(m3dc1_mesh::instance(), (*m3dc1_mesh::instance()->field_container)[*field_id], e, apf::Vector3(0.,0.,0.)); */
+  /* } */
+  /* mesh->end(mit); */
+
+  /* return 0; */
+
+
+  apf::Field* targetField0 = get_component_of_field(mesh, targetField, 0);
+  apf::Field* ip = spr::getGradIPField(targetField0, "ip", 2);
+  /* apf::Field* ip = get_ip_field(mesh, targetField); */
   apf::Field* size_field = spr::getSPRSizeField(ip, *ar);
 
   sprintf(filename,"before%d",*ts);
@@ -708,6 +751,8 @@ int m3dc1_spr_then_adapt (FieldID* field_id, double* ar, int* ts)
 
   /* destroyField(in_field_comp5); */
   destroyField(ip);
+  destroyField(targetField);
+  destroyField(targetField0);
 
   /* int numVert=m3dc1_mesh::instance()->mesh->count(0); */
   /* for (int i=0; i<numVert; i++) */
