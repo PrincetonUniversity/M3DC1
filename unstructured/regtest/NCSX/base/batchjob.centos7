@@ -9,8 +9,10 @@
 touch started
 
 # partition mesh
-part=$(which part_mesh.sh)
-source $part circle-858.smb 8
+#part=$(which part_mesh.sh)
+#source $part circle-858.smb 8
+PARTS=8
+$M3DC1_MPIRUN -n $PARTS split_smb circle-858.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
 # Run M3D-C1
