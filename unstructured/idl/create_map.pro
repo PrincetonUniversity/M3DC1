@@ -2,7 +2,7 @@
 ; rfield[i0,j0] = r[i,j]
 ; zfield[i0,jz] = z[i,j]
 ; on a regular i,j grid
-pro create_map, rfield, zfield, r=r, z=z, ix=i0, iy=j0
+pro create_map, rfield, zfield, r=r, z=z, ix=i0, iy=j0, mask=mask
   i0 = rfield
   j0 = zfield
 
@@ -40,6 +40,7 @@ pro create_map, rfield, zfield, r=r, z=z, ix=i0, iy=j0
         for k=0, its-1 do begin
            rval = interpolate(rf, iguess, jguess)
            zval = interpolate(zf, iguess, jguess)
+
            d2 = (rval - r[i])^2 + (zval - z[j])^2
            if(d2 le tol^2) then begin
               i0[0,i,j] = iguess
@@ -77,12 +78,23 @@ pro create_map, rfield, zfield, r=r, z=z, ix=i0, iy=j0
               dj = (n-1-jguess)*0.99
            endif
 
+           ; chcek to make sure we're still in the computational domain
+           for l=0, 10 do begin
+              m = interpolate(mask, iguess + di, jguess + dj)
+              if(abs(m) lt 0.02) then break
+              di = di/2.
+              dj = dj/2.
+           end
+
            iguess = iguess + di
            jguess = jguess + dj
         end
+
 ;        print, 'diverged at', r[i], z[j]
-        iguess = iguess_old
-        jguess = jguess_old
+;        iguess = iguess_old
+;        jguess = jguess_old
+        iguess = n/2.
+        jguess = n/2.
         i0[0,i,j] = -1
         j0[0,i,j] = -1
 next:
@@ -99,14 +111,14 @@ next:
               interp = 1
            end
            if(i0[0,i,j-1] ne -1 and i0[0,i,j+1] ne -1) then begin
-              if(interp eq 1) then begin
+              if(interp eq 0) then begin
                  i0[0,i,j] = (i0[0,i,j-1]+i0[0,i,j+1])/2.
                  j0[0,i,j] = (j0[0,i,j-1]+j0[0,i,j+1])/2.
               endif else begin
                  i0[0,i,j] = (i0[0,i,j-1]+i0[0,i,j+1] $
-                              +  i0[0,i-1,j]+i0[0,i+1,j])/4.
+                             +i0[0,i-1,j]+i0[0,i+1,j])/4.
                  j0[0,i,j] = (j0[0,i,j-1]+j0[0,i,j+1] $
-                              +  j0[0,i-1,j]+j0[0,i+1,j])/4.
+                             +j0[0,i-1,j]+j0[0,i+1,j])/4.
               endelse
            end
         end

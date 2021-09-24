@@ -366,7 +366,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                   phi=phi0, /logical)
                  zst = read_field('zst',x,z,t,points=pts, filename=filename, $
                                   phi=phi0, /logical)
-                 create_map, rst, zst, r=x, z=y, ix=map_r, iy=map_z
+                 create_map, rst, zst, r=x, z=y, ix=map_r, iy=map_z, mask=mask
               end
               data[0,*,*] = map_field(data, map_r, map_z, $
                                       mask=mask, outval=edge_val)
