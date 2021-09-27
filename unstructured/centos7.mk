@@ -78,12 +78,14 @@ PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DI
 
 LIBS = 	$(SCOREC_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
+	-L$(NETCDF_FORTRAN_HOME)/lib -lnetcdff \
 	-lgsl \
 	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-        -I$(HDF5_HOME)/include 
+        -I$(HDF5_HOME)/include \
+	-I$(NETCDF_FORTRAN_HOME)/include
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
