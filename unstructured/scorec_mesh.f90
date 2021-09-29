@@ -228,7 +228,7 @@ contains
        call boundary_node(i, is_boundary, izone, izonedim, normal, curv, &
             x, phi, z)
        if(.not.is_boundary) cycle
-       write(*,'(5f12.4)') x, z, normal(1), normal(2), curv
+       write(*,'(7f12.4)') x, z, normal(1), normal(2), curv
     end do
   end subroutine print_node_data
 
