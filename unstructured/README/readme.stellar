@@ -31,8 +31,8 @@
    if you want to forgo the above modules and load the modules necessary
    for the latest code version individually:   
 
-   module load intel/2021.1 intel-mpi/intel/2021.1.1
-   module load fftw/intel-19.1/intel-mpi/3.3.9
+   module load intel/2021.1.2 intel-mpi/intel/2021.3.1
+   module load fftw/intel-2021.1/intel-mpi/3.3.9
    module load hdf5/intel-2021.1/intel-mpi/1.10.6 gsl/2.6
 
 4. compile code
