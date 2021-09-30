@@ -1108,7 +1108,10 @@ subroutine set_defaults
   call add_var_double_array("adapt_qs", adapt_qs, &
        maxqs, 0., &
        "Safety factor values to pack around", gs_grp)
-
+  call add_var_double("adapt_zlow", adapt_zlow, 0., &
+       "Z-coordinate below which SOL adaptation is coarse", gs_grp)
+  call add_var_double("adapt_zup", adapt_zup, 0., &
+       "Z-coordinate above which SOL adaptation is coarse", gs_grp)
 
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &
