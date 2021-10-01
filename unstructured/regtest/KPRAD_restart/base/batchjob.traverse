@@ -2,7 +2,7 @@
 #SBATCH -A pppl
 #SBATCH -n 48
 #SBATCH -J M3DC1_regtest_KPRAD_2D
-#SBATCH -t 00:30:00
+#SBATCH -t 01:00:00
 #SBATCH -o C1stdout
 
 touch started

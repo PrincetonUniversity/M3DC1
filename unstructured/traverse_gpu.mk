@@ -36,6 +36,7 @@ SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
 HDF5_DIR=/projects/M3DC1/hdf5/traverse-nvidia
+NETCDFDIR=/projects/M3DC1/netcdf/traverse-nvidia
 GSL_DIR=/projects/M3DC1/gsl/traverse
 FFTW_DIR=/projects/M3DC1/fftw/traverse-nvidia
 
@@ -47,14 +48,16 @@ PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lsuperlu_dis
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
        -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-       -I$(HDF5_DIR)/include -I$(HDF5_DIR)/include/static \
+       -I$(NETCDFDIR)/include \
+       -I$(HDF5_DIR)/include \
        -I$(FFTW_DIR)/include \
        -I$(GSL_DIR)/include
 
 LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
-        -L$(HDF5_DIR)/lib -lhdf5_hl_fortran -lhdf5_hl_f90cstub -lhdf5_hl -lhdf5_fortran -lhdf5_f90cstub -lhdf5 -lz \
+        -L$(NETCDFDIR)/lib -lnetcdff -lnetcdf -lzip -lcurl\
+        -L$(HDF5_DIR)/lib -lhdf5_hl_fortran -lhdf5_hl -lhdf5_fortran -lhdf5 -lz\
         -L$(FFTW_DIR)/lib -lfftw3_mpi -lfftw3 \
         -L$(GSL_DIR)/lib -lgsl -lgslcblas \
         $(PETSC_WITH_EXTERNAL_LIB)

@@ -2,7 +2,7 @@
 #SBATCH -A pppl
 #SBATCH -n 16
 #SBATCH -J M3DC1_regtest_RMP
-#SBATCH -t 0:10:00
+#SBATCH -t 0:30:00
 #SBATCH -o C1stdout
 
 touch started
