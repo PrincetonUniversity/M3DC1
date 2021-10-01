@@ -72,7 +72,7 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS)  -fast
   CCOPTS := $(CCOPTS) -fast
 else
-  FOPTS := $(FOPTS) -Mbounds -Minfo=all -Mchkfpstk -Mchkstk -Mdalign -Mdclchk -Mdepchk -Miomutex -Mrecursive -Msave -Ktrap=fp -O0 -g -byteswapio
+  FOPTS := $(FOPTS) -g
   CCOPTS := $(CCOPTS) -g
   LDOPTS := $(LDOPTS) -g
 endif
