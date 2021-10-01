@@ -61,9 +61,17 @@ subroutine init_random(x,phi,z,outarr)
   zz = z - zzero
   theta = atan2(zz,xx)
 #ifdef USECOMPLEX
-  phase = exp((0,1)*(ntor*phi - mpol*theta))
+  if(itor.eq.1) then
+    phase = exp((0,1)*(ntor*phi - mpol*theta))
+  else  
+    phase = exp((0,1)*(ntor*phi/rzero - mpol*theta))
+  end if  
 #else
-  phase = cos(ntor*phi - mpol*theta)
+  if(itor.eq.1) then
+    phase = cos(ntor*phi - mpol*theta)
+  else  
+    phase = cos(ntor*phi/rzero - mpol*theta)
+  end if
 #endif
 
   select case (icsym)
@@ -265,6 +273,17 @@ subroutine den_eq
            n079(:,OP_1) = n079(:,OP_1) &
                 + .5*(den_edge-den0)*(1. + tanh(real(temp79a)))
         end if
+
+#ifdef USEST
+     case(21)
+        if(igeometry.eq.1) then
+           temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+           n079(:,OP_1) = den0 + (den_edge-den0)*&
+                (1. + tanh((temp79b-(1.+denoff))/dendelt))
+        else
+           if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
+        end if
+#endif     
      end select
 
      if(ipellet.gt.0 .and. linear.eq.1) then

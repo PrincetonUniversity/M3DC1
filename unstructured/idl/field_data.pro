@@ -78,6 +78,9 @@ function field_data, name, units=units, itor=itor, filename=filename
    endif else if(strcmp(name, 'kappa', /fold_case) eq 1) then begin
        units = dimensions(/n0, l0=2, t0=-1)
        return, "!7j!X"
+   endif else if(strcmp(name, 'kappar', /fold_case) eq 1) then begin
+       units = dimensions(/n0, l0=2, t0=-1)
+       return, "!7j!D!9#!N!X"
    endif else if(strcmp(name, 'denm', /fold_case) eq 1) then begin
        units = dimensions(l0=2, t0=-1)
        return, "!8D!Dn!N!X"

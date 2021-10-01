@@ -1,13 +1,35 @@
 pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
                  srnorm=srnorm, rhonorm=rhonorm, _EXTRA=extra, phase=phase, $
                  jmn=jmn, out=outfile, overplot=over, nolegend=nolegend, $
-                 linestyle=linestyle, current=cur
+                 linestyle=linestyle, current=cur, ntor=ntor0, title=title
 
   if(n_elements(factor) eq 0) then factor = 1.
 
-  read_bmncdf, file=filename, _EXTRA=extra, bmn=bmn, psi=psi, m=m, q=q, $
+  read_bmncdf, file=filename, _EXTRA=extra, bmn=bmn0, psi=psi, m=m, q=q, $
                rho=rho, ntor=ntor, symbol=symbol, units=units, jmn=j, $
                current=cur
+
+  if(n_elements(ntor) gt 1) then begin
+     if(n_elements(ntor0) eq 1) then begin
+        i = where(ntor eq ntor0, ct)
+        if(ct ne 1) then begin
+           print, 'Error in plot_m_vs_r: ntor = ', ntor0, ' not found'
+           return
+        end
+     endif else begin
+        print, 'Error in plot_m_vs_r: must select ntor'
+        return
+     endelse
+  endif else begin
+     ntor0 = ntor
+     i = 0
+  end
+
+  if(n_elements(title) eq 0) then begin
+     title = '!8n!6 = ' + string(format='(I0)',ntor0) + '!X'
+  end
+
+  bmn = reform(bmn0[i,*,*])
 
   if(keyword_set(jmn)) then begin
      bmn = j
@@ -44,12 +66,12 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
   endelse
   if(not keyword_set(over)) then begin
      plot, [0,1], yran, /nodata, _EXTRA=extra, $
-           xtitle=xtitle, ylog=ylog, ytitle=ytitle
+           xtitle=xtitle, ylog=ylog, ytitle=ytitle, title=title
   end
 
   n = mrange[1]-mrange[0]+1
   mm = indgen(n) + mrange[0]
-  qq = float(mm)/float(ntor)
+  qq = float(mm)/float(ntor0)
 
   psin = flux_at_q(abs(qq),abs(q),flux=psi,q=qout)
 

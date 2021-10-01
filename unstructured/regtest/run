@@ -16,7 +16,7 @@ fi
 
 # Test cases to run
 if [ -z "$2" ]; then
-    dir=( "KPRAD_2D" "RMP" "RMP_nonlin" "adapt" "pellet" "KPRAD_restart" )
+    dir=( "KPRAD_2D" "RMP" "RMP_nonlin" "adapt" "pellet" "KPRAD_restart" "NCSX" )
 else
     dir="$2"
 fi
@@ -33,6 +33,10 @@ if ! [ -x "$(command -v m3dc1_2d_complex)" ]; then
 fi
 if ! [ -x "$(command -v m3dc1_3d)" ]; then
   echo 'Error: m3dc1_3d not found in PATH'
+  BADPATH='T'
+fi
+if ! [ -x "$(command -v m3dc1_3d_st)" ]; then
+  echo 'Error: m3dc1_3d_st not found in PATH'
   BADPATH='T'
 fi
 if ! [ -x "$(command -v part_mesh.sh)" ]; then

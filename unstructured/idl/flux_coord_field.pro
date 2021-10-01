@@ -32,6 +32,8 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
      result = fltarr(sz[1], fc.n, fc.m)
   endelse
 
-  result[0,*,*] = transpose(field_at_point(field, x, z, fc.r, fc.z))
+  for i=0, sz[1]-1 do begin
+     result[i,*,*] = transpose(field_at_point(field[i,*,*], x, z, fc.r, fc.z))
+  end
   return, result
 end

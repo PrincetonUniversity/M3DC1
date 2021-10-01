@@ -319,9 +319,15 @@ function q_func(izone)
 
   ! Gaussian heat source model
   if(igaussian_heat_source.eq.1) then
+#ifdef USEST
+     temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
+          *exp(-((xl_79 - ghs_x)**2 + (zl_79 - ghs_z)**2) &
+          /(2.*ghs_var**2))
+#else
      temp79a = ri_79*ghs_rate/(2.*pi*ghs_var**2) & 
           *exp(-((x_79 - ghs_x)**2 + (z_79 - ghs_z)**2) &
           /(2.*ghs_var**2))
+#endif
 #ifdef USE3D
      if(ghs_var_tor .gt. 0) then
         if(itor.eq.1) then 
@@ -655,6 +661,13 @@ function cd_func()
         if(iregion.ne.REGION_PLASMA) temp79a(j) = 0.
      enddo
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+#ifdef USEST
+  else if(icd_source.eq.2) then
+     temp79b = sqrt((xl_79-xcenter)**2 +(zl_79-zcenter)**2)
+     temp79a = J_0cd/sqrt(2.*pi*w_cd**2) & 
+          *exp(-(temp79b - delta_cd)**2/(2.*w_cd**2))
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+#endif
   endif
 
   cd_func = temp
@@ -760,6 +773,17 @@ function resistivity_func(izone)
            if(myrank.eq.0) print *, pso, val
         end do
 
+#ifdef USEST
+     case(21)
+        if(igeometry.eq.1) then
+           temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+           temp79a = eta0* &
+                (1. + tanh((temp79b-(1.+etaoff))/etadelt))
+        else
+           if(myrank.eq.0) print *, 'iresfunc = 21 requires igeometry = 1'
+        end if
+#endif     
+
      case default
         if(myrank.eq.0) print *, 'Error: invalid value for iresfunc: ', iresfunc
         call safestop(73)
@@ -858,6 +882,17 @@ function viscosity_func()
         end if
         temp79a(j) = val
      end do
+
+#ifdef USEST
+  case(21)
+     if(igeometry.eq.1) then
+        temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+        temp79a = amu_edge* &
+             (1. + tanh((temp79b-(1.+amuoff))/amudelt))
+     else
+        if(myrank.eq.0) print *, 'ivisfunc = 21 requires igeometry = 1'
+     end if
+#endif     
 
   case default
      if(myrank.eq.0) print *, 'Error: invalid value for ivisfunc: ', ivisfunc
@@ -1024,6 +1059,38 @@ function kappa_func()
 
   kappa_func = temp
 end function kappa_func
+function kappar_func()
+  use math
+  use read_ascii
+  use basic
+  use m3dc1_nint
+  use diagnostics
+  use basicq
+  use basicj
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: kappar_func
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+
+  select case (ikapparfunc)
+  case(0)
+     temp79a = kappar
+        
+  case(1)
+     temp79a = kappar/( (tcrit/tet79(:,OP_1))**2.5 + 1.)
+
+  case default
+     if(myrank.eq.0) print *, 'Error: invalid value for ikapparfunc: ', ikapparfunc
+     call safestop(73)
+  end select
+
+  temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+
+  kappar_func = temp
+end function kappar_func
 
 ! denm
 ! ~~~~
@@ -1201,12 +1268,12 @@ subroutine define_transport_coefficients()
   integer :: numelms, def_fields,ier
 
   logical, save :: first_time = .true.
-  logical :: solve_sigma, solve_kappa, solve_visc, solve_resistivity, &
+  logical :: solve_sigma, solve_kappa, solve_kappar, solve_visc, solve_resistivity, &
        solve_visc_e, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
        solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
        solve_fp, solve_denm
 
-  integer, parameter :: num_scalars = 16
+  integer, parameter :: num_scalars = 17
   integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -1221,6 +1288,7 @@ subroutine define_transport_coefficients()
   solve_resistivity = .false.
   solve_visc = .false.
   solve_kappa = .false.
+  solve_kappar = .false.
   solve_denm = .false.
   solve_sigma = .false.
   solve_visc_e = .false.
@@ -1238,6 +1306,7 @@ subroutine define_transport_coefficients()
   ! clear variables
   resistivity_field = 0.
   kappa_field = 0.
+  kappar_field = 0.
   denm_field = 0.
 
   visc_field = 0.
@@ -1305,6 +1374,13 @@ subroutine define_transport_coefficients()
 !$OMP CRITICAL
      if(solve_kappa) &
           call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+
+     dofs = kappar_func()
+     if(.not.solve_kappar) solve_kappar = any(dofs.ne.0.)
+!$OMP CRITICAL
+     if(solve_kappar) &
+          call vector_insert_block(kappar_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL
 
      dofs = denm_func()
@@ -1450,6 +1526,7 @@ subroutine define_transport_coefficients()
      if(solve_reckrad)     temp(14) = 1
      if(solve_recprad)     temp(15) = 1
      if(solve_denm)        temp(16) = 1
+     if(solve_kappar)      temp(17) = 1
 
      call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
           MPI_MAX, MPI_COMM_WORLD, ier)
@@ -1470,6 +1547,7 @@ subroutine define_transport_coefficients()
      solve_reckrad     = temp2(14).eq.1
      solve_recprad     = temp2(15).eq.1
      solve_denm        = temp2(16).eq.1
+     solve_kappar      = temp2(17).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -1482,6 +1560,11 @@ subroutine define_transport_coefficients()
   if(solve_kappa) then
      if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappa'
      call newvar_solve(kappa_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_kappar) then
+     if(myrank.eq.0 .and. iprint.ge.1) print *, '  kappar'
+     call newvar_solve(kappar_field%vec, mass_mat_lhs)
   endif
 
   if(solve_denm) then

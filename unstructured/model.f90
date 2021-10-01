@@ -275,7 +275,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   type(matrix_type), optional :: mat
 
   vectype, dimension(dofs_per_node) :: temp 
-  real :: normal(2), curv, x, z, phi
+  real :: normal(2), curv(3), x, z, phi
   integer :: i, izone, izonedim, numnodes, icounter_t
   integer :: i_u, i_vz, i_chi
   logical :: is_boundary
@@ -358,7 +358,11 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
      if(numvar.ge.2) then
         ! no slip
         if(inoslip_tor.eq. 1) then
+#ifdef USEST
+           temp = 0.
+#else
            call get_node_data(vz_field(1), i, temp)
+#endif
            call set_dirichlet_bc(i_vz,rhs,temp,normal,curv,izonedim,mat)
         end if
         
@@ -403,7 +407,7 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
   type(matrix_type), optional :: mat
 
   vectype, dimension(dofs_per_node) :: temp 
-  real :: normal(2), curv, x, z, phi
+  real :: normal(2), curv(3), x, z, phi
   integer :: i, izone, izonedim, numnodes, icounter_t
   integer :: i_u, i_chi
   logical :: is_boundary
@@ -477,7 +481,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
   type(matrix_type), optional :: mat
 
   vectype, dimension(dofs_per_node) :: temp !, temp2, temp3
-  real :: normal(2), curv, x, z, phi
+  real :: normal(2), curv(3), x, z, phi
   integer :: i, izone, izonedim,  numnodes, icounter_t
   integer :: i_psi, i_bz, i_e, i_bf !, i_pe
   logical :: is_boundary
@@ -551,7 +555,11 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
      endif
 
      if(imp_bf.eq.1) then
+#ifdef USEST
+        call get_node_data(bfp_field(1), i, temp)
+#else
         temp = 0.
+#endif
         if(ifbound.eq.1) then 
            call set_dirichlet_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
         else if(ifbound.eq.2) then 
@@ -582,7 +590,7 @@ subroutine boundary_den(rhs, den_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x,z, phi
+  real :: normal(2), curv(3), x,z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -633,7 +641,7 @@ subroutine boundary_nre(rhs, nre_v, mat)
   type(matrix_type), optional :: mat
 
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x,z, phi
+  real :: normal(2), curv(3), x,z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -685,7 +693,7 @@ subroutine boundary_te(rhs, te_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x,z, phi
+  real :: normal(2), curv(3), x,z, phi
   logical :: is_boundary, is_inner
   vectype, dimension(dofs_per_node) :: temp, temp2, temp3
 
@@ -760,7 +768,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x,z, phi
+  real :: normal(2), curv(3), x,z, phi
   logical :: is_boundary, is_inner
   vectype, dimension(dofs_per_node) :: temp, temp2, temp3
 
@@ -849,7 +857,7 @@ subroutine boundary_p(rhs, p_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x, z, phi
+  real :: normal(2), curv(3), x, z, phi
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 
@@ -901,7 +909,7 @@ subroutine boundary_pe(rhs, pe_v, mat)
   type(matrix_type), optional :: mat
   
   integer :: i, izone, izonedim, numnodes, icounter_t
-  real :: normal(2), curv, x, phi, z
+  real :: normal(2), curv(3), x, phi, z
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: temp
 

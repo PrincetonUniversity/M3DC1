@@ -4,6 +4,10 @@ output (e.g. due to a bugfix); a change to the input (e.g. due to
 renaming or obsoleting an input variable); or a change to both
 (e.g. due to a substantive change to the mesh or other input files).
 
+9/20/2021
+Changed: RMP_nonlin
+Reason: New parabolization terms implemented for stellarator version
+
 8/24/2021
 Changed: RMP_nonlin
 Reason:  kappar now gets multiplied by 1 + (1-pefac)/pefac

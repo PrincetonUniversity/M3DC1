@@ -81,6 +81,14 @@ module m3dc1_nint
 
   vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: mu79, nu79
 !$OMP THREADPRIVATE(mu79,nu79)
+#ifdef USEST ! logical basis functions must and nust
+  vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: must79, nust79
+!$OMP THREADPRIVATE(must79,nust79)
+  vectype, dimension(MAX_PTS,OP_NUM) :: rst79, zst79 
+!$OMP THREADPRIVATE(rst79,zst79)
+  vectype, dimension(MAX_PTS) :: xl_79, zl_79 ! logical coords of quadratures
+!$OMP THREADPRIVATE(xl_79,zl_79)
+#endif
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &
      ri_79, ri2_79, ri3_79, ri4_79, ri5_79, ri6_79, ri7_79, ri8_79
 !$OMP THREADPRIVATE(r_79,r2_79,r3_79)
@@ -320,7 +328,11 @@ contains
     real, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: real_mu
 #endif
 
-    call local_coeff_vector(itri, cl)
+    if(iprecompute_metric.eq.1) then
+       cl = ctri(:,:,itri)
+    else
+       call local_coeff_vector(itri, cl)
+    endif 
 
 #ifdef USEBLAS
 
@@ -350,7 +362,6 @@ contains
     mu79(:,:,OP_DP :OP_GSP ) = mu79(:,:,OP_1:OP_GS)*rfac
     mu79(:,:,OP_DPP:OP_GSPP) = mu79(:,:,OP_1:OP_GS)*rfac**2
 #endif
-
     nu79 = mu79
 
     if(equilibrate.ne.0) then
@@ -361,6 +372,163 @@ contains
 
   end subroutine define_basis
 
+#ifdef USEST 
+  ! calculate physical basis functions from logical basis functions
+  subroutine define_physical_basis(itri)
+    use basic
+    use arrays
+    implicit none
+
+    integer, intent(in) :: itri
+    integer :: i
+    vectype, dimension(MAX_PTS) :: di_79, di2_79
+    real  :: value_nan ! NaN to be assigned to forbidden operations 
+    
+    ! calculate logical derivatives of geometry
+    call eval_ops(itri, rst, rst79)
+    call eval_ops(itri, zst, zst79)
+
+    ! save logical coordinates
+    xl_79 = x_79
+    zl_79 = z_79
+    ! update physical element data
+    x_79 = rst79(:,OP_1)
+    z_79 = zst79(:,OP_1)
+    if(itor.eq.1) then 
+       r_79 = x_79 
+    else 
+       r_79 = 1.
+    endif
+    ri_79 = 1./r_79
+    ri2_79 = ri_79*ri_79
+    ri3_79 = ri2_79*ri_79
+    ri4_79 = ri2_79*ri2_79
+    ri5_79 = ri3_79*ri2_79
+    ri6_79 = ri3_79*ri3_79
+    ri7_79 = ri4_79*ri3_79
+    ri8_79 = ri4_79*ri4_79
+    r2_79 = r_79*r_79
+    r3_79 = r2_79*r_79
+
+    ! calculate expressions needed
+    ! inverse of D = Rx*Zy - Ry*Zx
+    di_79 = 1./(rst79(:,OP_DR)*zst79(:,OP_DZ) - zst79(:,OP_DR)*rst79(:,OP_DZ))
+    di2_79 = di_79*di_79
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, di_79(1) 
+    ! Dx = Rx*Zxy + Rxx*Zy - Ry*Zxx - Rxy*Zx  
+    temp79a = rst79(:,OP_DR)*zst79(:,OP_DRZ) + rst79(:,OP_DRR)*zst79(:,OP_DZ)&
+            - rst79(:,OP_DZ)*zst79(:,OP_DRR) - rst79(:,OP_DRZ)*zst79(:,OP_DR)
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79a(1) 
+    ! Dy = Rx*Zyy + Rxy*Zy - Ry*Zxy - Ryy*Zx 
+    temp79b = rst79(:,OP_DR)*zst79(:,OP_DZZ) + rst79(:,OP_DRZ)*zst79(:,OP_DZ)&
+            - rst79(:,OP_DZ)*zst79(:,OP_DRZ) - rst79(:,OP_DZZ)*zst79(:,OP_DR)
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79b(1) 
+    ! F = Rx*Dy - Ry*Dx
+    temp79c = rst79(:,OP_DR)*temp79b - rst79(:,OP_DZ)*temp79a
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79c(1) 
+    ! G = Zy*Dx - Zx*Dy
+    temp79d = zst79(:,OP_DZ)*temp79a - zst79(:,OP_DR)*temp79b
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, temp79d(1) 
+#ifdef USE3D
+    ! Dz = Rx*Zyz + Rxz*Zy - Ry*Zxz - Ryz*Zx  
+    temp79e = rst79(:,OP_DR)*zst79(:,OP_DZP) + rst79(:,OP_DRP)*zst79(:,OP_DZ)&
+            - rst79(:,OP_DZ)*zst79(:,OP_DRP) - rst79(:,OP_DZP)*zst79(:,OP_DR)
+#endif    
+    do i=1, dofs_per_element
+      ! fR = (Zy/D)*fx - (Zx/D)*fy
+      mu79(i,:,OP_DR) = di_79*zst79(:,OP_DZ)*must79(i,:,OP_DR)&
+                      - di_79*zst79(:,OP_DR)*must79(i,:,OP_DZ) 
+      ! fZ = (Rx/D)*fy - (Ry/D)*fx
+      mu79(i,:,OP_DZ) = di_79*rst79(:,OP_DR)*must79(i,:,OP_DZ)&
+                      - di_79*rst79(:,OP_DZ)*must79(i,:,OP_DR) 
+      ! fRR = (Zy/D)^2*fxx + (Zx/D)^2*fyy - 2(Zx*Zy/D^2)*fxy
+      !     + [(Zy*Zxy - Zx*Zyy)/D^2 ]*fx      
+      !     + [(Zx*Zxy - Zy*Zxx)/D^2 ]*fy - (G/D^2)*fR      
+      mu79(i,:,OP_DRR) = (zst79(:,OP_DZ)**2*must79(i,:,OP_DRR)& 
+                       + zst79(:,OP_DR)**2*must79(i,:,OP_DZZ)& 
+                       - 2*zst79(:,OP_DR)*zst79(:,OP_DZ)*must79(i,:,OP_DRZ)& 
+                       + (zst79(:,OP_DZ)*zst79(:,OP_DRZ) - zst79(:,OP_DR)*zst79(:,OP_DZZ))&
+                       * must79(i,:,OP_DR) + must79(i,:,OP_DZ) &  
+                       * (zst79(:,OP_DR)*zst79(:,OP_DRZ) - zst79(:,OP_DZ)*zst79(:,OP_DRR))&
+                       - temp79d*mu79(i,:,OP_DR))*di2_79
+      ! fZZ = (Ry/D)^2*fxx + (Rx/D)^2*fyy - 2(Rx*Ry/D^2)*fxy
+      !     + [(Ry*Rxy - Rx*Ryy)/D^2 ]*fx      
+      !     + [(Rx*Rxy - Ry*Rxx)/D^2 ]*fy -(F/D^2)*fZ 
+      mu79(i,:,OP_DZZ) = (rst79(:,OP_DZ)**2*must79(i,:,OP_DRR)& 
+                       + rst79(:,OP_DR)**2*must79(i,:,OP_DZZ)& 
+                       - 2*rst79(:,OP_DR)*rst79(:,OP_DZ)*must79(i,:,OP_DRZ)& 
+                       + (rst79(:,OP_DZ)*rst79(:,OP_DRZ) - rst79(:,OP_DR)*rst79(:,OP_DZZ))&
+                       * must79(i,:,OP_DR) + must79(i,:,OP_DZ) &
+                       * (rst79(:,OP_DR)*rst79(:,OP_DRZ) - rst79(:,OP_DZ)*rst79(:,OP_DRR))&
+                       - temp79c*mu79(i,:,OP_DZ))*di2_79
+      ! fRZ = [(Rx*Zy + Ry*Zx)/D^2]*fxy - (Ry*Zy/D^2)*fxx - (Rx*Zx/D^2)*fyy 
+      !     - [(Zy*Rxy - Zx*Ryy)/D^2 ]*fx      
+      !     - [(Zx*Rxy - Zy*Rxx)/D^2 ]*fy - (G/D^2)*fZ     
+      mu79(i,:,OP_DRZ) = ((rst79(:,OP_DR)*zst79(:,OP_DZ)&
+                       + zst79(:,OP_DR)*rst79(:,OP_DZ))*must79(i,:,OP_DRZ)& 
+                       - rst79(:,OP_DR)*zst79(:,OP_DR)*must79(i,:,OP_DZZ)& 
+                       - rst79(:,OP_DZ)*zst79(:,OP_DZ)*must79(i,:,OP_DRR)& 
+                       - (zst79(:,OP_DZ)*rst79(:,OP_DRZ) - zst79(:,OP_DR)*rst79(:,OP_DZZ))&
+                       * must79(i,:,OP_DR) - must79(i,:,OP_DZ) &
+                       * (zst79(:,OP_DR)*rst79(:,OP_DRZ) - zst79(:,OP_DZ)*rst79(:,OP_DRR))&
+                       - temp79d*mu79(i,:,OP_DZ))*di2_79
+      mu79(i,:,OP_LP) = mu79(i,:,OP_DRR) + mu79(i,:,OP_DZZ) 
+      mu79(i,:,OP_GS) = mu79(i,:,OP_LP) 
+      if(itor.eq.1) then ! toroidal corrections
+        mu79(i,:,OP_LP) = mu79(i,:,OP_LP) + mu79(i,:,OP_DR)*ri_79 
+        mu79(i,:,OP_GS) = mu79(i,:,OP_GS) - mu79(i,:,OP_DR)*ri_79 
+      end if
+#ifdef USE3D
+      ! fP = - Rz*fR - Zz*fZ + fz
+      mu79(i,:,OP_DP) = - rst79(:,OP_DP)*mu79(i,:,OP_DR)&
+                        - zst79(:,OP_DP)*mu79(i,:,OP_DZ)& 
+                        + must79(i,:,OP_DP)
+      ! fRz = (Zy/D)*fxz - (Zx/D)*fyz - (Dz/D)*fR + (Zyz/D)*fx - (Zxz/D)*fy
+      mu79(i,:,OP_DRP) = (zst79(:,OP_DZ)*must79(i,:,OP_DRP)&
+                       - zst79(:,OP_DR)*must79(i,:,OP_DZP)& 
+                       + zst79(:,OP_DZP)*must79(i,:,OP_DR)&
+                       - zst79(:,OP_DRP)*must79(i,:,OP_DZ)& 
+                       - temp79e*mu79(i,:,OP_DR))*di_79 
+      ! fZz = (Rx/D)*fyz - (Ry/D)*fxz - (Dz/D)*fZ + (Rxz/D)*fy - (Ryz/D)*fx
+      mu79(i,:,OP_DZP) = (rst79(:,OP_DR)*must79(i,:,OP_DZP)&
+                       - rst79(:,OP_DZ)*must79(i,:,OP_DRP)& 
+                       + rst79(:,OP_DRP)*must79(i,:,OP_DZ)& 
+                       - rst79(:,OP_DZP)*must79(i,:,OP_DR)&
+                       - temp79e*mu79(i,:,OP_DZ))*di_79 
+      ! fPz = - Rz*fRz - Zz*fZz + fzz - Rzz*fR -Zzz*fZ
+      mu79(i,:,OP_DPP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRP)&
+                         - zst79(:,OP_DP)*mu79(i,:,OP_DZP)& 
+                         - rst79(:,OP_DPP)*mu79(i,:,OP_DR)&
+                         - zst79(:,OP_DPP)*mu79(i,:,OP_DZ)& 
+                         + must79(i,:,OP_DPP)
+      ! fRP = - Rz*fRR - Zz*fZR + fRz
+      mu79(i,:,OP_DRP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRR)&
+                         - zst79(:,OP_DP)*mu79(i,:,OP_DRZ)& 
+                         + mu79(i,:,OP_DRP)
+      ! fZP = - Rz*fRZ - Zz*fZZ + fZz
+      mu79(i,:,OP_DZP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRZ)&
+                         - zst79(:,OP_DP)*mu79(i,:,OP_DZZ)& 
+                         + mu79(i,:,OP_DZP)
+      ! fPP = - Rz*fRP - Zz*fZP + fPz
+      mu79(i,:,OP_DPP) = - rst79(:,OP_DP)*mu79(i,:,OP_DRP)&
+                         - zst79(:,OP_DP)*mu79(i,:,OP_DZP)& 
+                         + mu79(i,:,OP_DPP)
+#endif
+    end do
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, mu79(1,1,:) 
+    !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, must79(1,1,:) 
+#ifdef USE3D
+    ! set forbidden operations to NaN
+    value_nan = sqrt(-1.)
+    mu79(:,:,OP_DRRP:OP_GSP) = value_nan
+    mu79(:,:,OP_DRPP:OP_GSPP) = value_nan 
+    !mu79(:,:,OP_GSP) = value_nan 
+#endif
+    nu79 = mu79
+    ! modify Jabobian
+    if(ijacobian.eq.1) weight_79 = weight_79/di_79 
+  end subroutine define_physical_basis
+#endif
 
   !===============================================
   ! eval_ops
@@ -487,10 +655,24 @@ contains
     r2_79 = r_79*r_79
     r3_79 = r2_79*r_79
     
-    if(ijacobian.eq.1) weight_79 = weight_79 * r_79
-
     call precalculate_terms(xi_79,zi_79,eta_79,d%co,d%sn,ri_79,npoints)
     call define_basis(itri)
+
+#ifdef USEST 
+    if (igeometry.eq.1) then
+       ! copy logical basis functions
+       must79 = mu79
+       nust79 = mu79
+       if(ilog.eq.0) then  ! use physical basis when ilog==0 
+          call define_physical_basis(itri)
+       else
+          if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, &
+          "Use logical basis..."
+       end if
+    end if
+#endif
+
+    if(ijacobian.eq.1) weight_79 = weight_79 * r_79
 
     ! some field calculations require other field calculation first
     if(iand(fields, FIELD_N).eq.FIELD_N) then
@@ -508,6 +690,7 @@ contains
           fields = ior(ior(ior(fields,FIELD_N),FIELD_P),FIELD_PSI)
           if(itemp.eq.1) fields = ior(fields,FIELD_TE)
        end if
+       if(ikapparfunc.eq.1) fields = ior(fields,FIELD_TE)
     end if
     if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
        if(idenmfunc.eq.1) then
@@ -1292,11 +1475,10 @@ contains
         call eval_ops(itri, kappa_field, kap79)
      end if
 
+     call eval_ops(itri, kappar_field, kar79)
+
      if(ikapscale.eq.1) then
         kar79 = kappar*kap79
-     else
-        kar79 = 0.
-        kar79(:,OP_1) = kappar
      endif
      kax79 = 0.
      kax79(:,OP_1) = kappax

@@ -317,6 +317,7 @@ subroutine set_defaults
        "Minimum value of resistivity in the plasma region", transp_grp)
 
   call add_var_int("ikappafunc", ikappafunc, 0, "", transp_grp)
+  call add_var_int("ikapparfunc", ikapparfunc, 0, "", transp_grp)
   call add_var_int("ikapscale", ikapscale, 0, "", transp_grp)
   call add_var_int("ikappar_ni", ikappar_ni, 1, &
        "Include 1/n terms in parallel heat flux", transp_grp)
@@ -327,6 +328,7 @@ subroutine set_defaults
   call add_var_double("kappa0", kappa0, 0., "", transp_grp)
   call add_var_double("kappar", kappar, 0., &
        "Parallel thermal conductivity", transp_grp)
+  call add_var_double("tcrit", tcrit, 0., "", transp_grp)
   call add_var_double("k_fac", k_fac, 1., &
        "multiplies toroidal field in denominator of PTC", transp_grp)
   call add_var_double("kappax", kappax, 0., "", transp_grp)
@@ -569,6 +571,10 @@ subroutine set_defaults
        "Factor to scale external field", eq_grp)
   call add_var_double_array("shift_ext_field", shift_ext_field, 8, 0., &
        "Toroidal shift (in deg) of external fields", eq_grp)
+  call add_var_int("type_ext_field",type_ext_field,0,&
+       "type of external field file", eq_grp)
+  call add_var_string("file_ext_field", file_ext_field, 256, "error_field", &
+       "name of external field file", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
   call add_var_double("elongation", elongation, 1., "", eq_grp)
@@ -1102,11 +1108,27 @@ subroutine set_defaults
   call add_var_double_array("adapt_qs", adapt_qs, &
        maxqs, 0., &
        "Safety factor values to pack around", gs_grp)
-
+  call add_var_double("adapt_zlow", adapt_zlow, 0., &
+       "Z-coordinate below which SOL adaptation is coarse", gs_grp)
+  call add_var_double("adapt_zup", adapt_zup, 0., &
+       "Z-coordinate above which SOL adaptation is coarse", gs_grp)
 
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &
        "Number of toroidal planes", mesh_grp)
+  call add_var_int("nperiods", nperiods, 1, &
+       "Number of field periods", mesh_grp)
+  call add_var_int("ifull_torus", ifull_torus, 0, &
+       "0 = one field period; 1 = full torus", mesh_grp)
+  call add_var_int("iread_vmec",iread_vmec,0,&
+       "1 = read geometry from VMEC file, 2 = read both geometry and fields", mesh_grp)
+  call add_var_string("vmec_filename",vmec_filename,256,"geometry.nc",&
+       "name of vmec data file", mesh_grp)
+  call add_var_int("igeometry", igeometry, 0, "0: default, identity", mesh_grp)
+  call add_var_double("xcenter", xcenter, 0., "center of logical mesh (x)", mesh_grp)
+  call add_var_double("zcenter", zcenter, 0., "center of logical mesh (z)", mesh_grp)
+  call add_var_double("bloat_factor", bloat_factor, 0., "factor to expand VMEC domain", mesh_grp)
+  call add_var_double("bloat_distance", bloat_distance, 0., "factor to expand VMEC domain", mesh_grp)
   call add_var_int("iread_planes", iread_planes, 0, &
        "Read positions of toroidal planes from plane_positions", mesh_grp)
   call add_var_double("xzero", xzero, 0., "", mesh_grp)
@@ -1240,6 +1262,10 @@ subroutine validate_input
       endif
     endif
 
+#ifdef USEST
+  ! Always precompute ctri when USEST
+  iprecompute_metric = 1
+#endif
 
   if(amuc.eq.0.) amuc = amu
 

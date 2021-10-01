@@ -44,8 +44,11 @@ if { ! [ is-loaded intel/19.1.0.166 ] } {
 if { ! [ is-loaded cray-mpich/7.7.10 ] } {
   module load cray-mpich/7.7.10
 }
-if { ! [ is-loaded cray-hdf5-parallel/1.10.2.0 ] } {
-  module load cray-hdf5-parallel/1.10.2.0
+if { ! [ is-loaded cray-hdf5-parallel/1.10.5.2 ] } {
+  module load cray-hdf5-parallel/1.10.5.2
+}
+if { ! [ is-loaded cray-netcdf-hdf5parallel/4.6.3.2 ] } {
+  module load cray-netcdf-hdf5parallel/4.6.3.2
 }
 if { ! [ is-loaded cray-fftw/3.3.8.2 ] } {
   module load cray-fftw/3.3.8.2

@@ -1,5 +1,5 @@
 FOPTS = $(OPTS) -DPETSC_VERSION=313 -c -r8 -implicitnone -fpp -warn all -DUSEBLAS
-CCOPTS  = -c -DDEBUG -DPETSC_VERSION=313
+CCOPTS  = -c -DPETSC_VERSION=313
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec
@@ -49,17 +49,16 @@ PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/$(PETSC_VER)
 ifeq ($(COM), 1)
 PETSC_ARCH=cplx-rhel7-$(MPIVER)
 else
-PETSC_ARCH=real-rhel7-$(MPIVER)-slmaster
+PETSC_ARCH=real-rhel7-$(MPIVER)
 endif
 
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
 ifdef SCORECVER
-  PUMI_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
@@ -79,12 +78,14 @@ PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DI
 
 LIBS = 	$(SCOREC_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
+	-L$(NETCDF_FORTRAN_HOME)/lib -lnetcdff \
 	-lgsl \
 	-lX11
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-        -I$(HDF5_HOME)/include 
+        -I$(HDF5_HOME)/include \
+	-I$(NETCDF_FORTRAN_HOME)/include
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@

@@ -137,8 +137,13 @@ subroutine random_per(x,phi,z,fac)
   ri = 1./sqrt(rsq + roundoff)
   ri3 = ri/rsq
   rexp = exp(-rsq/ln)
-  co = cos(phi)
-  sn = sin(phi)
+  if(itor.eq.1) then
+     co = cos(phi)
+     sn = sin(phi)
+  else  
+     co = cos(phi/rzero)
+     sn = sin(phi/rzero)
+  end if
 
   do i=1,maxn
      kx = pi*i/alx
@@ -512,6 +517,7 @@ subroutine initial_conditions()
   use basicj
   use rmp
   use init_common
+  use init_vmec
   use kprad_m3dc1
   use pellet
   use diagnostics
@@ -630,8 +636,24 @@ subroutine initial_conditions()
            call rwm_init()
         case(29,31)
            call basicj_init()
+#ifdef USEST
+        case(40)
+           if (igeometry.eq.1 .and. iread_vmec.ge.1 .and. bloat_factor.eq.0) then
+              call vmec_init()
+           else
+              if(myrank.eq.0) print *, &
+                'VMEC equilibrium needs igeometry=1, iread_vmec>1, and bloat_factor=0!'
+              call safestop(1)
+           end if
+        case(41)
+           if (iread_ext_field.eq.0 .or. type_ext_field.ne.1) then
+              if(myrank.eq.0) print *, &
+                'Free-boundary simulation requires reading FIELDLINES output!'
+              call safestop(1)
+           end if
+#endif
         end select
-     endif
+     end if
   end if
 
   if(iread_neo.eq.1) then
@@ -655,13 +677,19 @@ subroutine initial_conditions()
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per()
 
+#ifdef USEST
+  if(igeometry.eq.1.and.iread_vmec.ge.1) then
+     call destroy_vmec
+  end if   
+#endif
+
   ! calculate equilibrium and perturbed ne and temperature profiles
   call calculate_ne(0, den_field(0), ne_field(0), 1)
   call calculate_ne(1, den_field(1), ne_field(1), 1)
   call calculate_temperatures(0, te_field(0), ti_field(0), &
        pe_field(0), p_field(0), ne_field(0), den_field(0), &
        1)
-  call calculate_temperatures(0, te_field(1), ti_field(1), &
+  call calculate_temperatures(1, te_field(1), ti_field(1), &
        pe_field(1), p_field(1), ne_field(1), den_field(1), &
        1)
 

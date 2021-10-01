@@ -1,6 +1,7 @@
 function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
                      filename=filename, xrange=xrange, yrange=yrange, $
-                     mask=mask, phi=phi0, wall_mask=wall_mask
+                     mask=mask, phi=phi0, wall_mask=wall_mask, $
+                     map_r=map_r, map_z=map_z, edge_val=edge_val
 
    if(n_elements(phi0) eq 0) then phi0 = 0.
    if(n_elements(filename) eq 0) then filename='C1.h5'
@@ -237,6 +238,11 @@ function eval_field, field, mesh, r=xi, z=yi, points=p, operation=op, $
 
    xi = findgen(p)*(xrange[1]-xrange[0])/(p-1.) + xrange[0]
    yi = findgen(p)*(yrange[1]-yrange[0])/(p-1.) + yrange[0]
+
+
+   if((n_elements(map_r) eq n_elements(result)) and $
+      n_elements(map_z) eq n_elements(result)) then begin
+   end
 
    return, result
 end

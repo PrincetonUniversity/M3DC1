@@ -219,6 +219,8 @@ contains
     use basic
     use coils
     use math
+
+    implicit none
     
     integer, intent(in) :: np
     real, intent(in), dimension(np) :: r, z
