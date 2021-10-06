@@ -844,7 +844,7 @@ function viscosity_func()
         temp79a = temp79a / 2.
      endif
      
-  case(3)
+  case(3,4)
      temp79a = vis79(:,OP_1) - amu
      
   case(10,11)
@@ -1336,7 +1336,7 @@ subroutine define_transport_coefficients()
        def_fields = def_fields + FIELD_ETA
   if(idenmfunc.eq.1) def_fields = def_fields + FIELD_DENM
   if(ikappafunc.eq.5) def_fields = def_fields + FIELD_KAP
-  if(ivisfunc.eq.3) def_fields = def_fields + FIELD_MU
+  if(ivisfunc.eq.3 .or. ivisfunc.eq.4) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
 
