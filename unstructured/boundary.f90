@@ -535,7 +535,7 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
   integer, intent(in) :: ibc(n)    ! type of bc for each field
   vectype, intent(in) :: coeff(n)  ! factor for each field without radius
   vectype, intent(in) :: xp(n)     ! radius exponent for each field
-  real, intent(in) :: normal(2), curv
+  real, intent(in) :: normal(2), curv(3)
   type(vector_type), intent(inout) :: rhs ! right-hand-side of equation
   vectype, intent(in), dimension(dofs_per_node) :: bv     ! boundary values
   integer, intent(in) :: izonedim             ! dimension of boundary
