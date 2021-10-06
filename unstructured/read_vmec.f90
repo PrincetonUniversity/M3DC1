@@ -699,30 +699,27 @@ contains
   subroutine gaussquad(n,quad)
     use math
     implicit none
-    integer, parameter :: p = 16 ! quadruple precision
     integer, intent(in) :: n
     real, intent(inout) :: quad(2, n)
-    real(kind = p) :: r(2, n)
-    real(kind = p) :: x, f, df, dx
     integer :: i, k, iter
-    !real(kind = p), allocatable :: p0(:), p1(:), tmp(:)
-    real(kind = p) :: p0(n+1), p1(n+1), tmp(n+1)
+    real :: x, f, df, dx
+    real :: p0(n+1), p1(n+1), tmp(n+1)
   
-    p0 = 0._p
-    p1 = 0._p
-    tmp = 0._p
+    p0 = 0.
+    p1 = 0.
+    tmp = 0.
    
-    p0(1) = 1._p
-    p1(1:2) = [1._p, 0._p]
+    p0(1) = 1.
+    p1(1:2) = [1., 0.]
    
     do k = 2, n
-      tmp(1:k+1) = ((2*k-1)*p1(1:k+1)-(k-1)*[0._p, 0._p,p0(1:k-1)])/k
+      tmp(1:k+1) = ((2*k-1)*p1(1:k+1)-(k-1)*[0., 0.,p0(1:k-1)])/k
       p0 = p1; p1 = tmp
     end do
     do i = 1, n
-      x = cos(pi*(i-0.25_p)/(n+0.5_p))
+      x = cos(pi*(i-0.25)/(n+0.5))
       do iter = 1, 10
-        f = p1(1); df = 0._p
+        f = p1(1); df = 0.
         do k = 2, size(p1)
           df = f + x*df
           f  = p1(k) + x * f
@@ -731,10 +728,42 @@ contains
         x = x - dx
         if (abs(dx)<10*epsilon(dx)) exit
       end do
-      r(1,i) = x
-      r(2,i) = 2/((1-x**2)*df**2)
+      quad(1,i) = x
+      quad(2,i) = 2/((1-x**2)*df**2)
     end do
-    quad = dble(r)
+
+    !integer, parameter :: p = 8 ! quadruple precision
+    !real(kind = p) :: r(2, n)
+    !real(kind = p) :: x, f, df, dx
+    !real(kind = p) :: p0(n+1), p1(n+1), tmp(n+1)
+  
+    !p0 = 0._p
+    !p1 = 0._p
+    !tmp = 0._p
+   
+    !p0(1) = 1._p
+    !p1(1:2) = [1._p, 0._p]
+   
+    !do k = 2, n
+    !  tmp(1:k+1) = ((2*k-1)*p1(1:k+1)-(k-1)*[0._p, 0._p,p0(1:k-1)])/k
+    !  p0 = p1; p1 = tmp
+    !end do
+    !do i = 1, n
+    !  x = cos(pi*(i-0.25_p)/(n+0.5_p))
+    !  do iter = 1, 10
+    !    f = p1(1); df = 0._p
+    !    do k = 2, size(p1)
+    !      df = f + x*df
+    !      f  = p1(k) + x * f
+    !    end do
+    !    dx =  f / df
+    !    x = x - dx
+    !    if (abs(dx)<10*epsilon(dx)) exit
+    !  end do
+    !  r(1,i) = x
+    !  r(2,i) = 2/((1-x**2)*df**2)
+    !end do
+    !quad = dble(r)
   end subroutine gaussquad 
 
   subroutine bloat_domain(myrank)

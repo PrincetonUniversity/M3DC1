@@ -81,12 +81,14 @@ module m3dc1_nint
 
   vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: mu79, nu79
 !$OMP THREADPRIVATE(mu79,nu79)
-#ifdef USEST ! logical basis functions must and nust
+#ifdef USEST 
+! logical basis functions must and nust
   vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: must79, nust79
 !$OMP THREADPRIVATE(must79,nust79)
   vectype, dimension(MAX_PTS,OP_NUM) :: rst79, zst79 
 !$OMP THREADPRIVATE(rst79,zst79)
-  vectype, dimension(MAX_PTS) :: xl_79, zl_79 ! logical coords of quadratures
+! logical coords of quadrature points
+  vectype, dimension(MAX_PTS) :: xl_79, zl_79 
 !$OMP THREADPRIVATE(xl_79,zl_79)
 #endif
   vectype, dimension(MAX_PTS) :: r_79, r2_79, r3_79, &

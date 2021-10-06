@@ -9,7 +9,7 @@
 touch started
 
 # partition mesh
-part_mesh.sh circle-0.02-0.0-0.0-2K.smb $SLURM_NTASKS
+$M3DC1_MPIRUN -n $SLURM_NTASKS split_smb circle-0.02-0.0-0.0-2K.smb part.smb $SLURM_NTASKS
 echo $? > mesh_partitioned
 
 # Run M3D-C1

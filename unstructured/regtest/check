@@ -67,7 +67,7 @@ for d in */ ; do
 	echo -e "\t${red}FAILED${nc}: Job finished, but C1ke file not found."
 	continue
     fi
-    python compare.py "${d}base/C1ke" "$d$test/C1ke"
+    python3 compare.py "${d}base/C1ke" "$d$test/C1ke"
     retval=$?
     if [ $retval -eq 0 ]; then
 	echo -e "\t${green}PASSED${nc}"
