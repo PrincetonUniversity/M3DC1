@@ -241,10 +241,16 @@ contains
        pellet_distribution = exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2)/(2.*pellet_var(ip)**2) &
                                  + cos(phi-pellet_phi(ip))/(pellet_var_tor(ip)**2))
 
+    ! Poloidal gaussian with toroidal von Mises, 1/R weighting  (pellet_var_tor in radians)
+    case(16)
+       pellet_distribution = exp(-((r-pellet_r(ip))**2 + (z-pellet_z(ip))**2)/(2.*pellet_var(ip)**2) &
+                                 + cos(phi-pellet_phi(ip))/(pellet_var_tor(ip)**2))
+       if(itor.eq.1) pellet_distribution = pellet_distribution / r
+
 #else
 
     ! axisymmetric gaussian pellet source
-    case(1, 11, 13, 14, 15)
+    case(1, 11, 13, 14, 15, 16)
        pellet_distribution = 1./(twopi*pellet_var(ip)**2) &
             *exp(-((r - pellet_r(ip))**2 + (z - pellet_z(ip))**2) &
             /(2.*pellet_var(ip)**2))

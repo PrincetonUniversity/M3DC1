@@ -702,6 +702,7 @@ contains
     end if
     if(iand(fields, FIELD_MU).eq.FIELD_MU) then
        if(ivisfunc.eq.3) fields = ior(fields,FIELD_PSI)
+       if(ivisfunc.eq.4) fields = ior(fields,FIELD_WALL)
     end if
 
     ! PHI
@@ -1552,6 +1553,13 @@ contains
      cd79 = 0.
   end if
 
+  ! Wall dist field
+  ! ~~~~~~~~~~~~~~~
+  if((iand(fields, FIELD_WALL).eq.FIELD_WALL)) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Wall dist..."
+
+     call eval_ops(itri, wall_dist, wall79)
+  endif
 
   ! MU
   ! ~~
@@ -1571,6 +1579,14 @@ contains
            vis79(:,OP_1) = amu_edge
            vic79(:,OP_1) = amu_edge
         end where
+     else if(ivisfunc.eq.4) then
+        where(real(wall79(:,OP_1)).gt.amuoff)
+           vis79(:,OP_1) = amu
+           vic79(:,OP_1) = amuc
+        elsewhere
+           vis79(:,OP_1) = amu_edge
+           vic79(:,OP_1) = amu_edge
+        end where
      else
         call eval_ops(itri, visc_field, vis79)
 
@@ -1584,74 +1600,66 @@ contains
   end if
 
 
-    ! Poloidal Momentum Force
-    ! ~~~
-    if((iand(fields, FIELD_PF).eq.FIELD_PF)   &
-        .and. ipforce .gt. 0) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   PFORCE..."
-       
-        call eval_ops(itri, pforce_field, for79)
-    endif
+  ! Poloidal Momentum Force
+  ! ~~~
+  if((iand(fields, FIELD_PF).eq.FIELD_PF)   &
+      .and. ipforce .gt. 0) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   PFORCE..."
+
+      call eval_ops(itri, pforce_field, for79)
+  endif
 
 
-    ! Electrostatic Potential
-    ! ~~~
-    if((iand(fields, FIELD_ES).eq.FIELD_ES)   &
-        .and. jadv.eq.0) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   potential..."
-       
-        call eval_ops(itri, e_field(1), es179)
-    endif
+  ! Electrostatic Potential
+  ! ~~~
+  if((iand(fields, FIELD_ES).eq.FIELD_ES)   &
+      .and. jadv.eq.0) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   potential..."
+
+      call eval_ops(itri, e_field(1), es179)
+  endif
 
 #ifdef USEPARTICLES
-    ! Kinetic Pressure Terms
-    ! ~~~
-    if((iand(fields, FIELD_KIN).eq.FIELD_KIN)   &
-        .and. kinetic .eq. 1) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kinetic..."
-       
-        call eval_ops(itri, p_i_par, ppar79)
-        call eval_ops(itri, p_i_perp, pper79)
-    endif
+  ! Kinetic Pressure Terms
+  ! ~~~
+  if((iand(fields, FIELD_KIN).eq.FIELD_KIN)   &
+      .and. kinetic .eq. 1) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kinetic..."
+
+      call eval_ops(itri, p_i_par, ppar79)
+      call eval_ops(itri, p_i_perp, pper79)
+  endif
 #endif
 
-    ! Runaway Electron Density
-    ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-    if((iand(fields, FIELD_RE).eq.FIELD_RE) .and. irunaway.gt.0) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   RE density..."
-       
-       if(ilin.eq.0) then 
-         call eval_ops(itri, nre_field(1), nre179, rfac)
-       else
-         nre179 = 0.
-       endif
-       if(ieqsub.eq.1) then
-          if(idenfunc.eq.3) then
-             if(izone.gt.1) then
-                nre079(:,OP_1) = 0. 
-             else
-                temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
-                temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
-                     +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
-                where(real(temp79a).ge.denoff .and. real(temp79b).le.0.)
-                   nre079(:,OP_1) = 0.
-                end where
-             end if
-          else
-             call eval_ops(itri, nre_field(0), nre079)
-          end if
-       else
-          nre079 = 0.
-       endif
-    endif
+  ! Runaway Electron Density
+  ! ~~~~~~~~~~~~~~~~~~~~~~~~~
+  if((iand(fields, FIELD_RE).eq.FIELD_RE) .and. irunaway.gt.0) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   RE density..."
 
-    ! Wall dist field
-    ! ~~~~~~~~~~~~~~~
-    if((iand(fields, FIELD_WALL).eq.FIELD_WALL)) then
-       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Wall dist..."
-       
-       call eval_ops(itri, wall_dist, wall79)
-    endif
+     if(ilin.eq.0) then
+       call eval_ops(itri, nre_field(1), nre179, rfac)
+     else
+       nre179 = 0.
+     endif
+     if(ieqsub.eq.1) then
+        if(idenfunc.eq.3) then
+           if(izone.gt.1) then
+              nre079(:,OP_1) = 0.
+           else
+              temp79a = (pst79(:,OP_1) - psimin)/(psibound - psimin)
+              temp79b = (pst79(:,OP_DR)*(x_79 - xmag) &
+                   +     pst79(:,OP_DZ)*(z_79 - zmag))*(psibound-psimin)
+              where(real(temp79a).ge.denoff .and. real(temp79b).le.0.)
+                 nre079(:,OP_1) = 0.
+              end where
+           end if
+        else
+           call eval_ops(itri, nre_field(0), nre079)
+        end if
+     else
+        nre079 = 0.
+     endif
+  endif
 
 end subroutine define_fields
 
