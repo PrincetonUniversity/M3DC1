@@ -32,8 +32,6 @@ set(PETSC_LIB_NAMES
   petsc
   metis
   parmetis
-  superlu
-  superlu_dist
 )
 
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
