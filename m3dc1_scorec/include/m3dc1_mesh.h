@@ -49,7 +49,7 @@ public:
   static m3dc1_mesh* instance();
   // functions
   void reset();
-  void clean();
+  void clean(int);
   void remove_wedges();
   void create_wedges();
   void build3d(int num_field, int* field_id, int* num_dofs_per_value);

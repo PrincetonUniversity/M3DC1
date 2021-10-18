@@ -33,6 +33,7 @@
 #endif
 #include <alloca.h>
 
+int begin_numVert;
 double begin_mem, begin_time;
 // helper routines
 void group_complex_dof (apf::Field* field, int option);
@@ -77,7 +78,7 @@ int m3dc1_scorec_finalize()
 //*******************************************************
 { 
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
-  m3dc1_mesh::instance()->clean(); // delete tag, field and internal data 
+  m3dc1_mesh::instance()->clean(begin_numVert); // delete tag, field and internal data 
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
 
   if (!pumi_rank()) std::cout<<"\n* [M3D-C1 INFO] run time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
@@ -434,6 +435,8 @@ int m3dc1_mesh_load(char* mesh_file)
 #ifdef DEBUG
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
 #endif
+  begin_numVert=m3dc1_mesh::instance()->mesh->count(0);
+
   return M3DC1_SUCCESS;
 }
 
@@ -478,6 +481,7 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
 #endif
 
+  begin_numVert=m3dc1_mesh::instance()->mesh->count(0);
   return M3DC1_SUCCESS; 
 }
 
@@ -3339,7 +3343,11 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
 
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
+#ifdef DISABLE_ZOLTAN
+  in->shouldRunPostZoltan = false;
+#else
   in->shouldRunPostZoltan = true;
+#endif
 
   // set the coarsening options
   if (shouldCoarsen == 1)
@@ -3597,7 +3605,11 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   in->maximumIterations = 5;
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
+#ifdef DISABLE_ZOLTAN
+  in->shouldRunPostZoltan = false;
+#else
   in->shouldRunPostZoltan = true;
+#endif
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
