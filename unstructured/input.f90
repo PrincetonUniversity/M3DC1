@@ -1075,7 +1075,7 @@ subroutine set_defaults
 
   !Micellaneous parameters or mesh adaptation
   call add_var_int("iadapt_writevtk", iadapt_writevtk, 0, "", adapt_grp)
-  call add_var_int("iadapt_writesmb", iadapt_writesmb, 1, "", adapt_grp)
+  call add_var_int("iadapt_writesmb", iadapt_writesmb, 0, "", adapt_grp)
   call add_var_int("iadapt_useH1", iadapt_useH1, 0, "",adapt_grp)
   call add_var_int("iadapt_removeEquiv",iadapt_removeEquiv, 0, "",adapt_grp)
   call add_var_double("adapt_target_error", adapt_target_error, 0.0001,"", adapt_grp)
