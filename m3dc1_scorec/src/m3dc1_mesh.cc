@@ -122,7 +122,7 @@ m3dc1_mesh::~m3dc1_mesh()
 // *********************************************************
 {}
 
-void m3dc1_mesh::clean(int initial_nv)
+void m3dc1_mesh::clean()
 {
  // destroy field AND numbering
   if (field_container)
@@ -138,9 +138,6 @@ void m3dc1_mesh::clean(int initial_nv)
     //field_container->clear();
   }
   delete field_container; field_container=0;
-
-  if (initial_nv != mesh->count(0))
-    mesh->writeNative("adapted.smb");
 
   // destroy tag data
   for (int d=0; d<4; ++d)
