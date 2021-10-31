@@ -119,10 +119,10 @@ pro fit_profiles, _EXTRA=extra, error=error
   
   openw, ifile, "fit_profiles.log", /get_lun
   printf, ifile, error
-  printf, ifile, format='(7E12.4)', chi_p, a_p
-  printf, ifile, format='(7E12.4)', chi_te, a_te
+  printf, ifile, format='(8E12.4)', chi_p, a_p
+  printf, ifile, format='(8E12.4)', chi_te, a_te
   printf, ifile, format='(8E12.4)', chi_ne, a_ne
-  printf, ifile, format='(7E12.4)', chi_w, a_w
+  printf, ifile, format='(8E12.4)', chi_w, a_w
   free_lun, ifile
 
   openw, ifile, "profile_p.fit", /get_lun

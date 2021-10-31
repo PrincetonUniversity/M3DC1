@@ -139,6 +139,7 @@ real function bessel_I(n, x)
   integer, intent(in) :: n
   real, intent(in) :: x
   real :: tmp
+  external :: gsl_bessel_i
 
   call gsl_bessel_i(n,x,tmp)
   bessel_I = tmp
@@ -149,6 +150,7 @@ real function bessel_J(n, x)
   integer, intent(in) :: n
   real, intent(in) :: x
   real :: tmp
+  external :: gsl_bessel_j
 
   call gsl_bessel_j(n,x,tmp)
   bessel_J = tmp
@@ -159,6 +161,7 @@ real function bessel_Y(n, x)
   integer, intent(in) :: n
   real, intent(in) :: x
   real :: tmp
+  external :: gsl_bessel_y
 
   call gsl_bessel_y(n,x,tmp)
   bessel_Y = tmp
@@ -168,6 +171,7 @@ real function elliptic_e(x)
   implicit none
   real, intent(in) :: x
   real :: tmp
+  external :: gsl_elliptic_e
 
   call gsl_elliptic_e(x,tmp)
   elliptic_e = tmp
@@ -177,6 +181,7 @@ real function elliptic_k(x)
   implicit none
   real, intent(in) :: x
   real :: tmp
+  external :: gsl_elliptic_k
 
   call gsl_elliptic_k(x,tmp)
   elliptic_k = tmp
@@ -186,7 +191,8 @@ real function erf(x)
   implicit none
   real, intent(in) :: x
   real :: tmp
-
+  external :: gsl_erf
+  
   call gsl_erf(x,tmp)
   erf = tmp
 end function erf

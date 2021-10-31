@@ -458,6 +458,8 @@ subroutine define_profiles
         ! use analytic p' and ff' profiles
         call default_profiles
      end if
+  else
+     constraint = .true.
   end if
 
   if(iread_te.eq.20 .or. iread_ne.eq.20 .or. iread_omega.eq.20) then
@@ -1493,7 +1495,7 @@ subroutine calculate_error(error, error2, psinew)
   type(field_type), intent(in) :: psinew
 
   integer :: i,inode, numnodes, izone, izonedim, ier
-  real :: sum, sum2, norm, norm2, normal(2), curv, x, phi, z, lhs, rhs
+  real :: sum, sum2, norm, norm2, normal(2), curv(3), x, phi, z, lhs, rhs
   logical :: is_boundary
   vectype, dimension(dofs_per_node) :: psi0, psi1, f1, f2, f3, f4
   real, dimension(5) :: temp1, temp2
@@ -1643,9 +1645,18 @@ subroutine calculate_gamma(g2, g3, g4)
 
   ! choose gamma2 to fix q0/qstar.  Note that there is an additional
   ! degree of freedom in gamma3.  Could be used to fix qprime(0)
-  
+
+#ifdef USEST
+  if (igeometry.eq.1) then ! use physical coordinates of magnetic axis
+     g2 =  -xmagp**2*p0*p1 - 2.*abs(g0)/(xmagp*q0*abs(dpsii))
+     g3 = -4.*(abs(g0)/xmagp)*djdpsi/dpsii - xmagp**2*p0*p2
+  else
+#endif  
   g2 =  -xmag**2*p0*p1 - 2.*abs(g0)/(xmag*q0*abs(dpsii))
   g3 = -4.*(abs(g0)/xmag)*djdpsi/dpsii - xmag**2*p0*p2
+#ifdef USEST
+  end if
+#endif
   if(gsint4.eq.0.) then
      g4 = 0.
   else
@@ -1713,7 +1724,11 @@ subroutine deltafun(x,z,val,jout)
      call global_to_local(d, x, 0., z, si, zi, eta)
 
      ! calculate temp_i = -val*mu_i(si,eta)
-     call local_coeff_vector(itri, c)
+     if(iprecompute_metric.eq.1) then
+        c = ctri(:,:,itri)
+     else
+        call local_coeff_vector(itri, c)
+     endif 
      do i=1,dofs_per_element
         do k=1, coeffs_per_tri
            temp(i) = temp(i) - val2*c(i,k)*si**mi(k)*eta**ni(k)
@@ -1752,6 +1767,12 @@ subroutine gaussianfun(x,z,val,denom,jout)
   real :: befo
   vectype, dimension(MAX_PTS) :: temp
   vectype, dimension(dofs_per_element) :: dofs
+#ifdef USEST
+  if (igeometry.eq.1) then ! use physical coordinates of magnetic axis
+      call physical_geometry(xmagp,zmagp,x,0.,z)
+      if(myrank.eq.0 .and. iprint.ge.2) print *, 'Physical magnetic axis:', xmagp, zmagp 
+  end if
+#endif
 
   befo =-val/(pi*denom**2)
   
@@ -1761,10 +1782,16 @@ subroutine gaussianfun(x,z,val,denom,jout)
   do itri=1,nelms
       call define_element_quadrature(itri,int_pts_diag, int_pts_tor)
       call define_fields(itri,0,1,0)  !  defines x_79,z_79,mu,nu
-
+#ifdef USEST
+      if (igeometry.eq.1) then ! use physical coordinates of magnetic axis
+          temp = befo*exp(-((x_79-xmagp)**2 + (z_79-zmagp)**2)/denom**2)
+      else
+#endif 
 !     assemble matrix
       temp = befo*exp(-((x_79-x)**2 + (z_79-z)**2)/denom**2)
-
+#ifdef USEST
+      end if
+#endif 
       dofs = intx2(mu79(:,:,OP_1),temp)
       ! call vector_insert_block(jout%vec, itri, jout%index, dofs, VEC_ADD)
       call vector_insert_block(jout%vec, itri, 1, dofs, VEC_ADD)
@@ -1798,6 +1825,9 @@ subroutine fundef
   real :: alphap0, alphap, alphapp, alphappp
   real :: r0m, r1, r1m, r2, r3, ealpha
   integer :: izone, izonedim, iout, mr
+#ifdef USEST
+  real :: xp, zp ! physical coordinates 
+#endif
 
   vectype, dimension(dofs_per_node) :: temp, temp2
 
@@ -1807,7 +1837,14 @@ subroutine fundef
   do inode=1,numnodes
      ii=nodes_owned(inode) 
      call get_node_pos(ii, x, phi, z)
-     
+#ifdef USEST
+     if (igeometry.eq.1) then ! use physical coordinates 
+        call physical_geometry(xp,zp,x,phi,z)
+        x = xp
+        z = zp
+     end if
+#endif
+    
      call get_node_data(psi_vec, ii, temp)
      if(icsubtract.eq.1) then
         call get_node_data(psi_coil_field, ii, temp2)
@@ -2843,7 +2880,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
     
   integer :: i, inode, izone, izonedim, index
   integer :: numnodes, ineg
-  real :: normal(2), curv
+  real :: normal(2), curv(3)
   real :: x, z, phi
   real, dimension(1,1,6) :: g
   real, dimension(1) :: xp, zp, xc, zc

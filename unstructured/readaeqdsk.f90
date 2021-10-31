@@ -662,159 +662,159 @@ subroutine load_eqdsk_a(filename)
      write(*,1100) ccbrsp(12,1)/1000.  ! VICS1L
   else if(nfcoil0.eq.101) then
      write(0,*) 'Assuming MAST'
-     write(*,1100) ccbrsp( 1,1)/1000.*656/2.  ! Each turn in OH receives only 0.5*solenoid_feed_current
-     write(*,1100) ccbrsp( 2,1)/1000.*12.00000   ! p2iu
-     write(*,1100) ccbrsp( 3,1)/1000.*8.00000    ! p2ou
-     write(*,1100) ccbrsp( 4,1)/1000.*12.00000   ! p2il
-     write(*,1100) ccbrsp( 5,1)/1000.*8.00000    ! p2ol
-     write(*,1100) ccbrsp( 6,1)/1000.*2.00000    ! p3u two left windings
-     write(*,1100) ccbrsp( 6,1)/1000.*4.00000    ! p3u four center windings
-     write(*,1100) ccbrsp( 6,1)/1000.*2.00000    ! p3u two right windings
-     write(*,1100) ccbrsp( 7,1)/1000.*2.00000    ! p3l two left windings
-     write(*,1100) ccbrsp( 7,1)/1000.*4.00000    ! p3l four center windings
-     write(*,1100) ccbrsp( 7,1)/1000.*2.00000    ! p3l two right windings
-     write(*,1100) ccbrsp( 8,1)/1000.*4.00000    ! p4u four slightly shifted windings
-     write(*,1100) ccbrsp( 8,1)/1000.*1.00000    ! p4u one winding next to shifted ones
-     write(*,1100) ccbrsp( 8,1)/1000.*18.00000   ! p4u 6x3 windings in rectangular arrangement
-     write(*,1100) ccbrsp( 9,1)/1000.*4.00000    ! p4l four slightly shifted windings
-     write(*,1100) ccbrsp( 9,1)/1000.*1.00000    ! p4l one winding next to shifted ones
-     write(*,1100) ccbrsp( 9,1)/1000.*18.00000   ! p4l 6x3 windings in rectangular arrangement
-     write(*,1100) ccbrsp(10,1)/1000.*4.00000    ! p5u four slightly shifted windings
-     write(*,1100) ccbrsp(10,1)/1000.*1.00000    ! p5u one winding next to shifted ones
-     write(*,1100) ccbrsp(10,1)/1000.*18.00000   ! p5u 6x3 windings in rectangular arrangement
-     write(*,1100) ccbrsp(11,1)/1000.*4.00000    ! p5l four slightly shifted windings
-     write(*,1100) ccbrsp(11,1)/1000.*1.00000    ! p5l one winding next to shifted ones
-     write(*,1100) ccbrsp(11,1)/1000.*18.00000   ! p5l 6x3 windings in rectangular arrangement
-     write(*,1100) ccbrsp(12,1)/1000.*2.00000    ! p6u two upper windings
-     write(*,1100) ccbrsp(12,1)/1000.*2.00000    ! p6u two lower windings
-     write(*,1100) ccbrsp(13,1)/1000.*2.00000    ! p6l two upper windings
-     write(*,1100) ccbrsp(13,1)/1000.*2.00000    ! p6l two lower windings
-     write(*,1100) ccbrsp(14,1)/1000.*1.00000*0.3475024  ! p2u case part 1
-     write(*,1100) ccbrsp(14,1)/1000.*1.00000*0.1524976  ! p2u case part 2
-     write(*,1100) ccbrsp(14,1)/1000.*1.00000*0.3475024  ! p2u case part 3
-     write(*,1100) ccbrsp(14,1)/1000.*1.00000*0.1524976  ! p2u case part 4
-     write(*,1100) ccbrsp(15,1)/1000.*1.00000*0.3475024  ! p2l case part 1
-     write(*,1100) ccbrsp(15,1)/1000.*1.00000*0.1524976  ! p2l case part 2
-     write(*,1100) ccbrsp(15,1)/1000.*1.00000*0.3475024  ! p2l case part 3
-     write(*,1100) ccbrsp(15,1)/1000.*1.00000*0.1524976  ! p2l case part 4
-     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.1893084  ! p3u case part 1
-     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.0833274  ! p3u case part 2
-     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.1510167  ! p3u case part 3
-     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.0833288  ! p3u case part 4
-     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.1893084  ! p3u case part 5
-     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.0783799  ! p3u case part 6
-     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.1510168  ! p3u case part 7
-     write(*,1100) ccbrsp(16,1)/1000.*1.00000*0.0743137  ! p3u case part 8
-     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.1893084  ! p3l case part 1
-     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.0833274  ! p3l case part 2
-     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.1510167  ! p3l case part 3
-     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.0833288  ! p3l case part 4
-     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.1893084  ! p3l case part 5
-     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.0783799  ! p3l case part 6
-     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.1510168  ! p3l case part 7
-     write(*,1100) ccbrsp(17,1)/1000.*1.00000*0.0743137  ! p3l case part 8
-     write(*,1100) ccbrsp(18,1)/1000.*1.00000*0.2499999  ! p4u case part 1
-     write(*,1100) ccbrsp(18,1)/1000.*1.00000*0.2500001  ! p4u case part 2
-     write(*,1100) ccbrsp(18,1)/1000.*1.00000*0.2499999  ! p4u case part 3
-     write(*,1100) ccbrsp(18,1)/1000.*1.00000*0.2500001  ! p4u case part 4
-     write(*,1100) ccbrsp(19,1)/1000.*1.00000*0.2499999  ! p4l case part 1
-     write(*,1100) ccbrsp(19,1)/1000.*1.00000*0.2500001  ! p4l case part 2
-     write(*,1100) ccbrsp(19,1)/1000.*1.00000*0.2499999  ! p4l case part 3
-     write(*,1100) ccbrsp(19,1)/1000.*1.00000*0.2500001  ! p4l case part 4
-     write(*,1100) ccbrsp(20,1)/1000.*1.00000*0.2494422  ! p5l case part 1
-     write(*,1100) ccbrsp(20,1)/1000.*1.00000*0.2505578  ! p5l case part 2
-     write(*,1100) ccbrsp(20,1)/1000.*1.00000*0.2494422  ! p5l case part 3
-     write(*,1100) ccbrsp(20,1)/1000.*1.00000*0.2505578  ! p5l case part 4
-     write(*,1100) ccbrsp(21,1)/1000.*1.00000*0.3502306  ! p6u case part 1
-     write(*,1100) ccbrsp(21,1)/1000.*1.00000*0.1497694  ! p6u case part 2
-     write(*,1100) ccbrsp(21,1)/1000.*1.00000*0.3502306  ! p6u case part 3
-     write(*,1100) ccbrsp(21,1)/1000.*1.00000*0.1497694  ! p6u case part 4
-     write(*,1100) ccbrsp(22,1)/1000.*1.00000*0.3502306  ! p6l case part 1
-     write(*,1100) ccbrsp(22,1)/1000.*1.00000*0.1497694  ! p6l case part 2
-     write(*,1100) ccbrsp(22,1)/1000.*1.00000*0.3502306  ! p6l case part 3
-     write(*,1100) ccbrsp(22,1)/1000.*1.00000*0.1497694  ! p6l case part 4
-     write(*,1100) ccbrsp(23,1)/1000.*1.00000    ! vertw1
-     write(*,1100) ccbrsp(24,1)/1000.*1.00000    ! vertw2
-     write(*,1100) ccbrsp(25,1)/1000.*1.00000    ! vertw3
-     write(*,1100) ccbrsp(26,1)/1000.*1.00000    ! vertw4
-     write(*,1100) ccbrsp(27,1)/1000.*1.00000    ! vertw5
-     write(*,1100) ccbrsp(28,1)/1000.*1.00000    ! vertw6
-     write(*,1100) ccbrsp(29,1)/1000.*1.00000    ! vertw7
-     write(*,1100) ccbrsp(30,1)/1000.*1.00000    ! vertw8
-     write(*,1100) ccbrsp(31,1)/1000.*1.00000    ! uhorw1
-     write(*,1100) ccbrsp(32,1)/1000.*1.00000    ! uhorw2
-     write(*,1100) ccbrsp(33,1)/1000.*1.00000    ! uhorw3
-     write(*,1100) ccbrsp(34,1)/1000.*1.00000    ! uhorw4
-     write(*,1100) ccbrsp(35,1)/1000.*1.00000    ! uhorw5
-     write(*,1100) ccbrsp(36,1)/1000.*1.00000    ! uhorw6
-     write(*,1100) ccbrsp(37,1)/1000.*1.00000    ! lhorw1
-     write(*,1100) ccbrsp(38,1)/1000.*1.00000    ! lhorw2
-     write(*,1100) ccbrsp(39,1)/1000.*1.00000    ! lhorw3
-     write(*,1100) ccbrsp(40,1)/1000.*1.00000    ! lhorw4
-     write(*,1100) ccbrsp(41,1)/1000.*1.00000    ! lhorw5
-     write(*,1100) ccbrsp(42,1)/1000.*1.00000    ! lhorw6
-     write(*,1100) ccbrsp(43,1)/1000.*1.00000    ! p2udivpl1
-     write(*,1100) ccbrsp(44,1)/1000.*1.00000    ! p2udivpl2
-     write(*,1100) ccbrsp(45,1)/1000.*1.00000    ! p2ldivpl1
-     write(*,1100) ccbrsp(46,1)/1000.*1.00000    ! p2ldivpl2
-     write(*,1100) ccbrsp(47,1)/1000.*1.00000    ! p2uarm1
-     write(*,1100) ccbrsp(48,1)/1000.*1.00000    ! p2uarm2
-     write(*,1100) ccbrsp(49,1)/1000.*1.00000    ! p2uarm3
-     write(*,1100) ccbrsp(50,1)/1000.*1.00000    ! p2larm1
-     write(*,1100) ccbrsp(51,1)/1000.*1.00000    ! p2larm2
-     write(*,1100) ccbrsp(52,1)/1000.*1.00000    ! p2larm3
-     write(*,1100) ccbrsp(53,1)/1000.*1.00000    ! topcol
-     write(*,1100) ccbrsp(54,1)/1000.*1.00000    ! incon1
-     write(*,1100) ccbrsp(55,1)/1000.*1.00000    ! incon2
-     write(*,1100) ccbrsp(56,1)/1000.*1.00000    ! incon3
-     write(*,1100) ccbrsp(57,1)/1000.*1.00000    ! incon4
-     write(*,1100) ccbrsp(58,1)/1000.*1.00000    ! incon5
-     write(*,1100) ccbrsp(59,1)/1000.*1.00000    ! incon6
-     write(*,1100) ccbrsp(60,1)/1000.*1.00000    ! incon7
-     write(*,1100) ccbrsp(61,1)/1000.*1.00000    ! incon8
-     write(*,1100) ccbrsp(62,1)/1000.*1.00000    ! incon9
-     write(*,1100) ccbrsp(63,1)/1000.*1.00000    ! incon10
-     write(*,1100) ccbrsp(64,1)/1000.*1.00000    ! botcol
-!     write(*,1100) ccbrsp(65,1)/1000.*1.00000    ! endcrown_u
-!     write(*,1100) ccbrsp(66,1)/1000.*1.00000    ! endcrown_l
-!     write(*,1100) ccbrsp(67,1)/1000.*1.00000    ! ring1
-     write(*,1100) ccbrsp(68,1)/1000.*1.00000    ! ring2
-     write(*,1100) ccbrsp(69,1)/1000.*1.00000    ! ring3
-     write(*,1100) ccbrsp(70,1)/1000.*1.00000    ! ring4
-     write(*,1100) ccbrsp(71,1)/1000.*1.00000    ! ring5
-     write(*,1100) ccbrsp(72,1)/1000.*1.00000    ! ring6
-     write(*,1100) ccbrsp(73,1)/1000.*1.00000    ! ring7
-     write(*,1100) ccbrsp(74,1)/1000.*1.00000    ! ring8
-     write(*,1100) ccbrsp(75,1)/1000.*1.00000    ! ring9
-!     write(*,1100) ccbrsp(76,1)/1000.*1.00000    ! ring10
-     write(*,1100) ccbrsp(77,1)/1000.*1.00000    ! rodgr1
-     write(*,1100) ccbrsp(78,1)/1000.*1.00000    ! rodgr2
-     write(*,1100) ccbrsp(79,1)/1000.*1.00000    ! rodgr3
-     write(*,1100) ccbrsp(80,1)/1000.*1.00000    ! rodgr4
-     write(*,1100) ccbrsp(81,1)/1000.*1.00000    ! rodgr5
-     write(*,1100) ccbrsp(82,1)/1000.*1.00000    ! rodgr6
-     write(*,1100) ccbrsp(83,1)/1000.*1.00000    ! rodgr7
-     write(*,1100) ccbrsp(84,1)/1000.*1.00000    ! rodgr8
-     write(*,1100) ccbrsp(85,1)/1000.*1.00000    ! rodgr9
-     write(*,1100) ccbrsp(86,1)/1000.*1.00000    ! rodgr10
-     write(*,1100) ccbrsp(87,1)/1000.*1.00000    ! rodgr11
-     write(*,1100) ccbrsp(88,1)/1000.*1.00000    ! rodgr12
-     write(*,1100) ccbrsp(89,1)/1000.*1.00000    ! mid1
-     write(*,1100) ccbrsp(90,1)/1000.*1.00000    ! mid2
-     write(*,1100) ccbrsp(91,1)/1000.*1.00000    ! mid3
-     write(*,1100) ccbrsp(92,1)/1000.*1.00000    ! mid4
-     write(*,1100) ccbrsp(93,1)/1000.*1.00000    ! mid5
-     write(*,1100) ccbrsp(94,1)/1000.*1.00000    ! mid6
-     write(*,1100) ccbrsp(95,1)/1000.*1.00000    ! mid7
-     write(*,1100) ccbrsp(96,1)/1000.*1.00000    ! mid8
-     write(*,1100) ccbrsp(97,1)/1000.*1.00000    ! mid9
-     write(*,1100) ccbrsp(98,1)/1000.*1.00000    ! mid10
-     write(*,1100) ccbrsp(99,1)/1000.*1.00000    ! mid11
-     write(*,1100) ccbrsp(100,1)/1000.*1.00000    ! mid12
-     write(*,1100) ccbrsp(101,1)/1000.*1.00000*0.2494422  ! p5u_case_current part 1
-     write(*,1100) ccbrsp(101,1)/1000.*1.00000*0.2505578  ! p5u_case_current part 2
-     write(*,1100) ccbrsp(101,1)/1000.*1.00000*0.2494422  ! p5u_case_current part 3
-     write(*,1100) ccbrsp(101,1)/1000.*1.00000*0.2505578  ! p5u_case_current part 4
+     write(*,1100) ccbrsp( 1,1)/1000.  ! Each turn in OH receives only 
+     write(*,1100) ccbrsp( 2,1)/1000.   ! p2iu
+     write(*,1100) ccbrsp( 3,1)/1000.    ! p2ou
+     write(*,1100) ccbrsp( 4,1)/1000.   ! p2il
+     write(*,1100) ccbrsp( 5,1)/1000.    ! p2ol
+     write(*,1100) ccbrsp( 6,1)/1000./3.    ! p3u two left windings
+     write(*,1100) ccbrsp( 6,1)/1000./3.    ! p3u four center windings
+     write(*,1100) ccbrsp( 6,1)/1000./3.    ! p3u two right windings
+     write(*,1100) ccbrsp( 7,1)/1000./3.    ! p3l two left windings
+     write(*,1100) ccbrsp( 7,1)/1000./3.    ! p3l four center windings
+     write(*,1100) ccbrsp( 7,1)/1000./3.    ! p3l two right windings
+     write(*,1100) ccbrsp( 8,1)/1000./3.    ! p4u four slightly shifted windings
+     write(*,1100) ccbrsp( 8,1)/1000./3.    ! p4u one winding next to shifted ones
+     write(*,1100) ccbrsp( 8,1)/1000./3.   ! p4u 6x3 windings in rectangular arrangement
+     write(*,1100) ccbrsp( 9,1)/1000./3.    ! p4l four slightly shifted windings
+     write(*,1100) ccbrsp( 9,1)/1000./3.    ! p4l one winding next to shifted ones
+     write(*,1100) ccbrsp( 9,1)/1000./3.   ! p4l 6x3 windings in rectangular arrangement
+     write(*,1100) ccbrsp(10,1)/1000./3.    ! p5u four slightly shifted windings
+     write(*,1100) ccbrsp(10,1)/1000./3.    ! p5u one winding next to shifted ones
+     write(*,1100) ccbrsp(10,1)/1000./3.   ! p5u 6x3 windings in rectangular arrangement
+     write(*,1100) ccbrsp(11,1)/1000./3.    ! p5l four slightly shifted windings
+     write(*,1100) ccbrsp(11,1)/1000./3.    ! p5l one winding next to shifted ones
+     write(*,1100) ccbrsp(11,1)/1000./3.   ! p5l 6x3 windings in rectangular arrangement
+     write(*,1100) ccbrsp(12,1)/1000./2.    ! p6u two upper windings
+     write(*,1100) ccbrsp(12,1)/1000./2.    ! p6u two lower windings
+     write(*,1100) ccbrsp(13,1)/1000./2.    ! p6l two upper windings
+     write(*,1100) ccbrsp(13,1)/1000./2.    ! p6l two lower windings
+     write(*,1100) ccbrsp(14,1)/1000.  ! p2u case part 1
+     write(*,1100) ccbrsp(14,1)/1000.  ! p2u case part 2
+     write(*,1100) ccbrsp(14,1)/1000.  ! p2u case part 3
+     write(*,1100) ccbrsp(14,1)/1000.  ! p2u case part 4
+     write(*,1100) ccbrsp(15,1)/1000.  ! p2l case part 1
+     write(*,1100) ccbrsp(15,1)/1000.  ! p2l case part 2
+     write(*,1100) ccbrsp(15,1)/1000.  ! p2l case part 3
+     write(*,1100) ccbrsp(15,1)/1000.  ! p2l case part 4
+     write(*,1100) ccbrsp(16,1)/1000.  ! p3u case part 1
+     write(*,1100) ccbrsp(16,1)/1000.  ! p3u case part 2
+     write(*,1100) ccbrsp(16,1)/1000.  ! p3u case part 3
+     write(*,1100) ccbrsp(16,1)/1000.  ! p3u case part 4
+     write(*,1100) ccbrsp(16,1)/1000.  ! p3u case part 5
+     write(*,1100) ccbrsp(16,1)/1000.  ! p3u case part 6
+     write(*,1100) ccbrsp(16,1)/1000.  ! p3u case part 7
+     write(*,1100) ccbrsp(16,1)/1000.  ! p3u case part 8
+     write(*,1100) ccbrsp(17,1)/1000.  ! p3l case part 1
+     write(*,1100) ccbrsp(17,1)/1000.  ! p3l case part 2
+     write(*,1100) ccbrsp(17,1)/1000.  ! p3l case part 3
+     write(*,1100) ccbrsp(17,1)/1000.  ! p3l case part 4
+     write(*,1100) ccbrsp(17,1)/1000.  ! p3l case part 5
+     write(*,1100) ccbrsp(17,1)/1000.  ! p3l case part 6
+     write(*,1100) ccbrsp(17,1)/1000.  ! p3l case part 7
+     write(*,1100) ccbrsp(17,1)/1000.  ! p3l case part 8
+     write(*,1100) ccbrsp(18,1)/1000.  ! p4u case part 1
+     write(*,1100) ccbrsp(18,1)/1000.  ! p4u case part 2
+     write(*,1100) ccbrsp(18,1)/1000.  ! p4u case part 3
+     write(*,1100) ccbrsp(18,1)/1000.  ! p4u case part 4
+     write(*,1100) ccbrsp(19,1)/1000.  ! p4l case part 1
+     write(*,1100) ccbrsp(19,1)/1000.  ! p4l case part 2
+     write(*,1100) ccbrsp(19,1)/1000.  ! p4l case part 3
+     write(*,1100) ccbrsp(19,1)/1000.  ! p4l case part 4
+     write(*,1100) ccbrsp(20,1)/1000.  ! p5l case part 1
+     write(*,1100) ccbrsp(20,1)/1000.  ! p5l case part 2
+     write(*,1100) ccbrsp(20,1)/1000.  ! p5l case part 3
+     write(*,1100) ccbrsp(20,1)/1000.  ! p5l case part 4
+     write(*,1100) ccbrsp(21,1)/1000.  ! p6u case part 1
+     write(*,1100) ccbrsp(21,1)/1000.  ! p6u case part 2
+     write(*,1100) ccbrsp(21,1)/1000.  ! p6u case part 3
+     write(*,1100) ccbrsp(21,1)/1000.  ! p6u case part 4
+     write(*,1100) ccbrsp(22,1)/1000.  ! p6l case part 1
+     write(*,1100) ccbrsp(22,1)/1000.  ! p6l case part 2
+     write(*,1100) ccbrsp(22,1)/1000.  ! p6l case part 3
+     write(*,1100) ccbrsp(22,1)/1000.  ! p6l case part 4
+     write(*,1100) ccbrsp(23,1)/1000.    ! vertw1
+     write(*,1100) ccbrsp(24,1)/1000.    ! vertw2
+     write(*,1100) ccbrsp(25,1)/1000.    ! vertw3
+     write(*,1100) ccbrsp(26,1)/1000.    ! vertw4
+     write(*,1100) ccbrsp(27,1)/1000.    ! vertw5
+     write(*,1100) ccbrsp(28,1)/1000.    ! vertw6
+     write(*,1100) ccbrsp(29,1)/1000.    ! vertw7
+     write(*,1100) ccbrsp(30,1)/1000.    ! vertw8
+     write(*,1100) ccbrsp(31,1)/1000.    ! uhorw1
+     write(*,1100) ccbrsp(32,1)/1000.    ! uhorw2
+     write(*,1100) ccbrsp(33,1)/1000.    ! uhorw3
+     write(*,1100) ccbrsp(34,1)/1000.    ! uhorw4
+     write(*,1100) ccbrsp(35,1)/1000.    ! uhorw5
+     write(*,1100) ccbrsp(36,1)/1000.    ! uhorw6
+     write(*,1100) ccbrsp(37,1)/1000.    ! lhorw1
+     write(*,1100) ccbrsp(38,1)/1000.    ! lhorw2
+     write(*,1100) ccbrsp(39,1)/1000.    ! lhorw3
+     write(*,1100) ccbrsp(40,1)/1000.    ! lhorw4
+     write(*,1100) ccbrsp(41,1)/1000.    ! lhorw5
+     write(*,1100) ccbrsp(42,1)/1000.    ! lhorw6
+     write(*,1100) ccbrsp(43,1)/1000.    ! p2udivpl1
+     write(*,1100) ccbrsp(44,1)/1000.    ! p2udivpl2
+     write(*,1100) ccbrsp(45,1)/1000.    ! p2ldivpl1
+     write(*,1100) ccbrsp(46,1)/1000.    ! p2ldivpl2
+     write(*,1100) ccbrsp(47,1)/1000.    ! p2uarm1
+     write(*,1100) ccbrsp(48,1)/1000.    ! p2uarm2
+     write(*,1100) ccbrsp(49,1)/1000.    ! p2uarm3
+     write(*,1100) ccbrsp(50,1)/1000.    ! p2larm1
+     write(*,1100) ccbrsp(51,1)/1000.    ! p2larm2
+     write(*,1100) ccbrsp(52,1)/1000.    ! p2larm3
+     write(*,1100) ccbrsp(53,1)/1000.    ! topcol
+     write(*,1100) ccbrsp(54,1)/1000.    ! incon1
+     write(*,1100) ccbrsp(55,1)/1000.    ! incon2
+     write(*,1100) ccbrsp(56,1)/1000.    ! incon3
+     write(*,1100) ccbrsp(57,1)/1000.    ! incon4
+     write(*,1100) ccbrsp(58,1)/1000.    ! incon5
+     write(*,1100) ccbrsp(59,1)/1000.    ! incon6
+     write(*,1100) ccbrsp(60,1)/1000.    ! incon7
+     write(*,1100) ccbrsp(61,1)/1000.    ! incon8
+     write(*,1100) ccbrsp(62,1)/1000.    ! incon9
+     write(*,1100) ccbrsp(63,1)/1000.    ! incon10
+     write(*,1100) ccbrsp(64,1)/1000.    ! botcol
+!     write(*,1100) ccbrsp(65,1)/1000.    ! endcrown_u
+!     write(*,1100) ccbrsp(66,1)/1000.    ! endcrown_l
+!     write(*,1100) ccbrsp(67,1)/1000.    ! ring1
+     write(*,1100) ccbrsp(68,1)/1000.    ! ring2
+     write(*,1100) ccbrsp(69,1)/1000.    ! ring3
+     write(*,1100) ccbrsp(70,1)/1000.    ! ring4
+     write(*,1100) ccbrsp(71,1)/1000.    ! ring5
+     write(*,1100) ccbrsp(72,1)/1000.    ! ring6
+     write(*,1100) ccbrsp(73,1)/1000.    ! ring7
+     write(*,1100) ccbrsp(74,1)/1000.    ! ring8
+     write(*,1100) ccbrsp(75,1)/1000.    ! ring9
+!     write(*,1100) ccbrsp(76,1)/1000.    ! ring10
+     write(*,1100) ccbrsp(77,1)/1000.    ! rodgr1
+     write(*,1100) ccbrsp(78,1)/1000.    ! rodgr2
+     write(*,1100) ccbrsp(79,1)/1000.    ! rodgr3
+     write(*,1100) ccbrsp(80,1)/1000.    ! rodgr4
+     write(*,1100) ccbrsp(81,1)/1000.    ! rodgr5
+     write(*,1100) ccbrsp(82,1)/1000.    ! rodgr6
+     write(*,1100) ccbrsp(83,1)/1000.    ! rodgr7
+     write(*,1100) ccbrsp(84,1)/1000.    ! rodgr8
+     write(*,1100) ccbrsp(85,1)/1000.    ! rodgr9
+     write(*,1100) ccbrsp(86,1)/1000.    ! rodgr10
+     write(*,1100) ccbrsp(87,1)/1000.    ! rodgr11
+     write(*,1100) ccbrsp(88,1)/1000.    ! rodgr12
+     write(*,1100) ccbrsp(89,1)/1000.    ! mid1
+     write(*,1100) ccbrsp(90,1)/1000.    ! mid2
+     write(*,1100) ccbrsp(91,1)/1000.    ! mid3
+     write(*,1100) ccbrsp(92,1)/1000.    ! mid4
+     write(*,1100) ccbrsp(93,1)/1000.    ! mid5
+     write(*,1100) ccbrsp(94,1)/1000.    ! mid6
+     write(*,1100) ccbrsp(95,1)/1000.    ! mid7
+     write(*,1100) ccbrsp(96,1)/1000.    ! mid8
+     write(*,1100) ccbrsp(97,1)/1000.    ! mid9
+     write(*,1100) ccbrsp(98,1)/1000.    ! mid10
+     write(*,1100) ccbrsp(99,1)/1000.    ! mid11
+     write(*,1100) ccbrsp(100,1)/1000.    ! mid12
+     write(*,1100) ccbrsp(101,1)/1000.  ! p5u_case_current part 1
+     write(*,1100) ccbrsp(101,1)/1000.  ! p5u_case_current part 2
+     write(*,1100) ccbrsp(101,1)/1000.  ! p5u_case_current part 3
+     write(*,1100) ccbrsp(101,1)/1000.  ! p5u_case_current part 4
 
   end if
 

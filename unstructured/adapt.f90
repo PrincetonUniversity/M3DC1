@@ -18,6 +18,9 @@ module adapt
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
 
+  real :: adapt_zlow, adapt_zup
+  logical :: do_z_coarsen
+
   integer, parameter :: maxqs = 32
   real, dimension(maxqs) :: adapt_qs
   
@@ -120,11 +123,20 @@ module adapt
        do i=1, npoints
           call magnetic_region(ps079(i,OP_1),ps079(i,OP_DR),ps079(i,OP_DZ), &
                x_79(i),z_79(i),mr(i),psib)
+
+          do_z_coarsen = ((adapt_zup.ne.0.).and.(z_79(i).gt.adapt_zup)).or. &
+                         ((adapt_zlow.ne.0.).and.(z_79(i).lt.adapt_zlow))
          
           ! if point is in private flux region, set psi_N -> 2 - psi_N
-          if(mr(i).eq.REGION_PF) then 
+          if(mr(i).eq.REGION_PF) then
              temp79b(i) = 2.*psib - temp79a(i)
+             if(do_z_coarsen) temp79b(i) = 1. + (temp79b(i) - 1.)**0.5
+          else if((mr(i).eq.REGION_SOL).and.(do_z_coarsen)) then
+             temp79b(i) = 1. + (temp79a(i) - 1.)**0.75
+          else if(do_z_coarsen) then
+             temp79b(i) = 1. - (1. - temp79a(i))**0.5
           end if
+
        end do
 
        ! if adapt_psin_wall or adapt_psin_vacuum is set in multi-region mesh,

@@ -3,6 +3,8 @@ module basic
   use pid_controller
   use spline
 
+  implicit none
+
   integer, parameter :: ijacobian = 1
 
   integer, parameter :: version = 39
@@ -51,7 +53,8 @@ module basic
   real :: amupar      ! parallel viscosity coefficient
   integer :: iresfunc   ! if 1, use new resistivity function
   integer :: ivisfunc   ! if 1, use new resistivity function
-  integer :: ikappafunc ! if 1, use new resistivity function
+  integer :: ikappafunc ! select electron thermal conductivity function
+  integer :: ikapparfunc ! select electron parallel thermal conductivity function
   integer :: idenmfunc
   integer :: ikappar_ni
   real :: etar, eta0  ! iresfunc=0:  resistivity = etar + eta0/T^(3/2)
@@ -69,6 +72,7 @@ module basic
   real :: kappa0      ! kappa = kappat + kappa0*n/T^(1/2)
   real :: kappah      ! phenomenological model for H-mode
   real :: kappar      ! coefficient of field-aligned temperature diffusion
+  real :: tcrit ! for ikapparfunc=1, parallel TC is kappar/( (tcrit/te)**2.5 + 1)
   real :: k_fac   ! factor by which the toroidal field is multiplied in 1/B^2 that appears in kappa_parallel
   real :: kappax      ! coefficient of B x Grad[T] temperature diffusion
   real :: kappag
@@ -199,9 +203,10 @@ module basic
   integer :: isample_ext_field_pol
 
   real :: scale_ext_field
+  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines output.
+  character(len=256) :: file_ext_field
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
-
 
   ! grad-shafranov options
   integer :: divertors! number of divertors
@@ -212,6 +217,9 @@ module basic
   integer :: igs_extend_diamag ! extend diamagnetic rotation past psi=1
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
   real :: xmag, zmag  ! position of magnetic axis
+#ifdef USEST
+  real :: xmagp, zmagp  ! physical position of magnetic axis
+#endif
   real :: xlim, zlim  ! position of limiter
   real :: xdiv, zdiv  ! position of divertor
   real :: tcuro       ! initial toroidal current
@@ -484,7 +492,7 @@ module arrays
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field, vor_field, com_field
-  type(field_type) :: resistivity_field, kappa_field, denm_field
+  type(field_type) :: resistivity_field, kappa_field, kappar_field, denm_field
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
@@ -518,6 +526,9 @@ module arrays
   type(field_type) :: u_field_pre, psi_field_pre
   type(field_type) :: nre_field(0:1)  ! runaway electron density
   type(field_type) :: wall_dist
+#ifdef USEST
+  type(field_type) :: rst, zst ! Stellarator geometry field
+#endif
 #ifdef USEPARTICLES
    type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
    type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
@@ -698,7 +709,8 @@ module sparse
   integer, parameter :: q43_mat_index = 72
   integer, parameter :: r43_mat_index = 73
   integer, parameter :: pot2_mat_lhs_index = 74
-  integer, parameter :: num_matrices = 74
+  integer, parameter :: st_mat_index = 75
+  integer, parameter :: num_matrices = 75
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat
@@ -738,8 +750,12 @@ end module m3dc1_omp
 
 !cj velocity equation profiling
 module m3dc1_vel_prof
+#if PETSC_VERSION >= 39
 #include <petsc/finclude/petscksp.h>
       use petscksp
+#else
+#include <petsc/finclude/petscsysdef.h>
+#endif
       implicit none
       PetscLogStage  stageA,stageS
 end module m3dc1_vel_prof

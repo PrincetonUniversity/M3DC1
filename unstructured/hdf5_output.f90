@@ -569,7 +569,7 @@ contains
     integer, intent(in) :: t
     integer, intent(out) :: error
 
-    integer(HSIZE_T) :: chunk_size(1) = (/ 100 /)
+    integer(HSIZE_T) :: chunk_size(1) = (/ 101 /)
     integer(HSIZE_T) :: dims(1)
     integer(HSIZE_T) :: maxdims(1)
     integer(HSIZE_T) :: local_dims(1)

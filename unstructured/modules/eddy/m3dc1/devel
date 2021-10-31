@@ -44,6 +44,9 @@ if { ! [ is-loaded fftw/intel-16.0/intel-mpi/3.3.4 ] } {
 if { ! [ is-loaded hdf5/intel-16.0/intel-mpi/1.8.16 ] } {
    module load hdf5/intel-16.0/intel-mpi/1.8.16
 }
+if { ! [ is-loaded netcdf/intel-16.0/hdf5-1.8.16/intel-mpi/4.4.0 ] } {
+   module load netcdf/intel-16.0/hdf5-1.8.16/intel-mpi/4.4.0 
+}
 if { ! [ is-loaded gsl/2.4 ] } {
    module load gsl/2.4
 }

@@ -1,9 +1,9 @@
-pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
+pro plot_br, bins=bins, q_val=q_val, $
              subtract_vacuum=subtract_vacuum, ntor=ntor, $
              slice=slice, extsubtract=extsubtract, $
              overplot=overplot, filename=filename, scale=scale, $
              linfac=linfac, sum=sum, vacfield=vacfield, velocity=velocity, $
-             jpar=jpar
+             jpar=jpar, tpoints=tpts,_EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
    if(n_elements(ntor) eq 0) then begin
@@ -26,8 +26,8 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
       n_elements(scale) gt 0) then linfac=scale
 
    if(threed eq 1) then begin
-      psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra, $
-                           filename=filename[0])
+      psi0 = read_field('psi',x,z,t,slice=-1, $
+                        filename=filename[0],_EXTRA=extra)
       psi0_r = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=2, $
                              filename=filename[0])
       psi0_z = read_field('psi',x,z,t,slice=-1,_EXTRA=extra,op=3, $
@@ -35,12 +35,12 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
       i0   = read_field('i'  ,x,z,t,slice=-1,_EXTRA=extra, $
                            filename=filename[0])
 
-      bx = read_field_3d('bx',phi,x,z,t,last=last,slice=slice, $
-                         /linear,_EXTRA=extra, ntor=ntor, $
-                         filename=filename,sum=sum)
-      bz = read_field_3d('bz',phi,x,z,t,last=last,slice=slice, $
-                         /linear,_EXTRA=extra, ntor=ntor, $
-                         filename=filename,sum=sum)
+      bx = read_field('bx',x,z,t,last=last,slice=slice, $
+                      /linear,_EXTRA=extra, $
+                      filename=filename,sum=sum,tpoints=tpts)
+      bz = read_field('bz',x,z,t,last=last,slice=slice, $
+                      /linear,_EXTRA=extra, $
+                      filename=filename,sum=sum,tpoints=tpts)
    endif else begin
       psi0 = read_field('psi',x,z,t,slice=-1,_EXTRA=extra, $
                         filename=filename[0])
@@ -78,10 +78,10 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
        if(extsubtract eq 0) then begin
            bx0 = read_field('bx',x,z,t,slice=0,/linear,$
                             linfac=linfac,sum=sum,_EXTRA=extra, $
-                            filename=filename)
+                            filename=filename,tpoints=tpts)
            bz0 = read_field('bz',x,z,t,slice=0,/linear,$
                             linfac=linfac,sum=sum,_EXTRA=extra, $
-                            filename=filename)
+                            filename=filename,tpoints=tpts)
            bx = bx - bx0
            bz = bz - bz0
        end
@@ -92,7 +92,11 @@ pro plot_br, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    ; calculate B.grad(psi)
    if(not keyword_set(jpar)) then begin
-      br = (bx*psi0_r + bz*psi0_z)
+      br = bx
+      sz = size(br)
+      for k=0, sz[1]-1 do begin
+         br[k,*,*] = (bx[k,*,*]*psi0_r + bz[k,*,*]*psi0_z)
+      end
    end
 
    if(keyword_set(vacfield)) then begin

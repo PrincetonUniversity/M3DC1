@@ -1,7 +1,7 @@
 function read_bmn, filename, m, bmn, phase, $
                    psin=psin, qval=q, qprime=qprime, area=area, $
                    psiprime=psiprime, sum_files=sum_files, factor=factor, $
-                   netcdf=netcdf
+                   netcdf=netcdf, ntor=ntor0
 
    n = n_elements(filename)
 
@@ -36,6 +36,22 @@ function read_bmn, filename, m, bmn, phase, $
          read_bmncdf, file=filename[i], bmn=bmn0, psi=psi0, q=q0, $
                       ntor=ntor, m=m0, flux_pol=flux0, area=area0, bp=bp0
 
+         if(n_elements(ntor0) eq 1) then begin
+            k = where(ntor eq ntor0, ct)
+            if(ct ne 1) then begin
+               print, 'Error: ntor = ', ntor0, 'not found'
+               return, 1
+            end
+            bmn0 = reform(bmn0[k,*,*])
+            ntor = ntor0
+            
+         endif else begin
+            if(n_elements(ntor) gt 1) then begin
+               print, 'Error in read_bmn: must select ntor'
+               return, 1
+            end
+         end
+         
          if(i eq 0) then begin
                                 ; calculate resonant fields
             if(q0[0] gt 0) then begin

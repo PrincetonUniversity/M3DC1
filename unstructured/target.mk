@@ -35,6 +35,14 @@ makefile : ;
 
 % :: $(OBJDIR) ; :
 
+.PHONY: all
+all :
+	make OPT=1
+	make OPT=1 COM=1
+	make OPT=1 3D=1 MAX_PTS=60
+	make OPT=1 3D=1 MAX_PTS=60 ST=1
+	make a2cc
+	make bin
 
 .PHONY: cleanall
 cleanall : 
@@ -43,7 +51,7 @@ cleanall :
 
 .PHONY: clean
 clean : 
-	rm -fr _$(BIN_POSTFIX)
+	rm -fr _$(ARCH)*
 
 .PHONY: templates
 templates :

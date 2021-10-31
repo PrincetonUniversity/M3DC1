@@ -8,10 +8,11 @@
 touch started
 
 # partition mesh
-part_mesh.sh circle-0.10-0.0-0.0-1K.smb 16
+PARTS=16
+$M3DC1_MPIRUN -n $PARTS split_smb circle-0.10-0.0-0.0-1K.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
 # Run M3D-C1
-${M3DC1_MPIRUN} -n 64 m3dc1_3d -ipetsc -options_file options_bjacobi.type_superludist
+$M3DC1_MPIRUN -n 64 m3dc1_3d -ipetsc -options_file options_bjacobi.type_superludist
 
 touch finished

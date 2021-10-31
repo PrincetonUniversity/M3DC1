@@ -1,0 +1,19 @@
+#!/bin/bash
+#SBATCH -p debug
+#SBATCH -C knl,quad,cache
+#SBATCH -N 1
+#SBATCH -J regtest_NCSX
+#SBATCH -t 00:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+# partition mesh
+part_mesh.sh circle-858.smb 8
+echo $? > mesh_partitioned
+
+# Run M3D-C1
+$M3DC1_MPIRUN -n 64 -c 4 m3dc1_3d_st -ipetsc -options_file options_bjacobi1
+
+touch finished
+

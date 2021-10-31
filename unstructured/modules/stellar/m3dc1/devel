@@ -36,12 +36,12 @@ if { ! [ is-loaded intel/2021.1.2 ] } {
    module load intel/2021.1.2
 }
 
-if { ! [ is-loaded intel-mpi/intel/2021.1.1 ] } {
-   module load intel-mpi/intel/2021.1.1
+if { ! [ is-loaded intel-mpi/intel/2021.3.1 ] } {
+   module load intel-mpi/intel/2021.3.1
 }
 
-if { ! [ is-loaded fftw/intel-19.1/intel-mpi/3.3.9 ] } {
-   module load fftw/intel-19.1/intel-mpi/3.3.9
+if { ! [ is-loaded fftw/intel-2021.1/intel-mpi/3.3.9 ] } {
+   module load fftw/intel-2021.1/intel-mpi/3.3.9
 }
 
 if { ! [ is-loaded hdf5/intel-2021.1/intel-mpi/1.10.6 ] } {
@@ -51,7 +51,9 @@ if { ! [ is-loaded hdf5/intel-2021.1/intel-mpi/1.10.6 ] } {
 if { ! [ is-loaded gsl/2.6 ] } {
    module load gsl/2.6
 }
-
+if { ! [ is-loaded netcdf/intel-2021.1/hdf5-1.10.6/intel-mpi/4.7.4 ] } {
+   module load netcdf/intel-2021.1/hdf5-1.10.6/intel-mpi/4.7.4
+}
 if { ! [ is-loaded anaconda3/2020.11 ] } {
    module load anaconda3/2020.11
 }

@@ -1,8 +1,8 @@
 function island_widths, filename, psin=psin, current=cur, q=q, $
                         sum_files=sum_files, netcdf=netcdf, plot=pl, $
-                        _EXTRA=extra
+                        ntor=ntor, _EXTRA=extra
 
-    result = read_bmn(filename, m, bmn, phase, psin=psin, qval=q, $
+    result = read_bmn(filename, m, bmn, phase, psin=psin, qval=q, ntor=ntor, $
                       qprime=qprime, area=area, psiprime=psiprime, $
                       sum_files=sum_files, factor=cur, netcdf=netcdf)
 

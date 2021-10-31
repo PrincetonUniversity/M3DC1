@@ -500,7 +500,7 @@ contains
     integer :: ind(dofs_per_node), i, ierr
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
     vectype, dimension(dofs_per_node) :: temp1, temp2
     Vec :: vl
     logical :: r
@@ -556,7 +556,7 @@ contains
     integer :: ind(dofs_per_node), i, ierr
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, phi, z
+    real :: normal(2), curv(3), x, phi, z
     vectype, dimension(dofs_per_node) :: temp
     Vec :: vl
     logical :: r
@@ -608,7 +608,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z, phi
+    real :: normal(2), curv(3), x, z, phi
     integer :: ind(dofs_per_node), i, ierr
     PetscScalar, dimension(dofs_per_node) :: vals
 
@@ -657,7 +657,7 @@ contains
 
     logical :: is_boundary
     integer :: izone, izonedim
-    real :: normal(2), curv, x, z, phi
+    real :: normal(2), curv(3), x, z, phi
     integer :: ind(dofs_per_node), i, ierr
     PetscScalar, dimension(dofs_per_node) :: vals
 

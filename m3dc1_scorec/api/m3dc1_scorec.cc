@@ -22,6 +22,7 @@
 #include <map>
 #include <cstring>
 #include <iomanip> // setprecision
+#include <fstream> // file input
 #include "apfMDS.h"
 #include "apf.h"
 #include "apfShape.h"
@@ -38,6 +39,7 @@
 #endif
 #include <alloca.h>
 
+<<<<<<< HEAD
 const int dofNode = C1TRIDOFNODE;
 
 #ifdef DEBUG
@@ -218,6 +220,9 @@ static void get_dofs_on_ent(m3dc1_mesh* m, m3dc1_field* f, apf::MeshEntity* e, c
 /*     PCU_ALWAYS_ASSERT_VERBOSE(0, "something is not right!"); */
 }
 
+=======
+int begin_numVert;
+>>>>>>> master
 double begin_mem, begin_time;
 // helper routines
 void group_complex_dof (apf::Field* field, int option);
@@ -271,6 +276,13 @@ int m3dc1_scorec_finalize()
 { 
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
   m3dc1_mesh::instance()->clean(); // delete tag, field and internal data 
+  int local_numVert=m3dc1_mesh::instance()->mesh->count(0);
+  int global_numVert=0;
+  MPI_Allreduce(&local_numVert, &global_numVert, 
+                4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  if (begin_numVert != global_numVert)
+    m3dc1_mesh::instance()->mesh->writeNative("mesh.smb");
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
 
   if (!pumi_rank()) std::cout<<"\n* [M3D-C1 INFO] run time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
@@ -627,6 +639,8 @@ int m3dc1_mesh_load(char* mesh_file)
 #ifdef DEBUG
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
 #endif
+  begin_numVert=m3dc1_mesh::instance()->mesh->count(0);
+
   return M3DC1_SUCCESS;
 }
 
@@ -670,6 +684,9 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
 #ifdef DEBUG
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
 #endif
+  int local_numVert=m3dc1_mesh::instance()->mesh->count(0);
+  MPI_Allreduce(&local_numVert, &begin_numVert, 
+                4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   return M3DC1_SUCCESS; 
 }
@@ -3574,29 +3591,77 @@ int m3dc1_field_sum_plane (FieldID* /* in */ field_id)
 int adapt_time=0;
 int adapt_by_field (int * fieldId, double* psi0, double * psil)
 {
-  if (!PCU_Comm_Self()) 
-  std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
 
-  FILE *fp = fopen("sizefieldParam", "r");
-  if (!fp)
-  {
-    std::cout<<"[M3D-C1 ERROR] file \"sizefieldParam\" not found\n";
-    return M3DC1_FAILURE;
-  }
-  double param[13];
+
+  int shouldCoarsen = -1;
   set<int> field_keep;
   field_keep.insert(*fieldId);
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
 
-  if (!PCU_Comm_Self()) 
-    std::cout<<"[M3D-C1 INFO] size field parameters: ";
-
-  for (int i=0; i<13; ++i)
+  std::ifstream ifs;
+  ifs.open("sizefieldParam", std::ifstream::in);
+  if (!ifs.is_open())
   {
-    fscanf(fp, "%lf ", &param[i]);
-     if (!PCU_Comm_Self()) std::cout<<std::setprecision(5)<<param[i]<<" ";
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 ERROR] file \"sizefieldParam\" not found\n";
+    return M3DC1_FAILURE;
   }
-  fclose(fp);
+
+  // Note:
+  // count will hold the total number of parameters read from "sizefieldParam" and it must be either 13 or 14. The expected
+  // behaviour for each case is summarized below
+  // a) if count == 13, coarsening will stay on
+  // b) if count == 14, coarsening will be turned off (the actual value of the last (14th) parameter does not have an effect.
+  double param[14];
+  int count = 0;
+  double p;
+  while (ifs >> p && count<14)
+  {
+    param[count] = p;
+    count++;
+  }
+  ifs.close();
+
+  if (count==13)
+  {
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 INFO] read 13 parameters from \"sizefieldParam\": coarsening will stay on\n";
+    // turn on coarsening for this case
+    shouldCoarsen = 1;
+  }
+  else if (count==14)
+  {
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 INFO] read 14 parameters from \"sizefieldParam\"\n";
+    shouldCoarsen = (int)param[13];
+    if (!PCU_Comm_Self())
+    {
+      if (shouldCoarsen == 0)
+	std::cout<<"[M3D-C1 INFO] the last parameter in \"sizefieldParam\" is 0 causing coarsening to be turned off\n";
+      else if (shouldCoarsen == 1)
+	std::cout<<"[M3D-C1 INFO] the last parameter in \"sizefieldParam\" is 1 causing coarsening to be turned on\n";
+      else
+      {
+        std::cout<<"[M3D-C1 ERROR] the 14th value in \"sizefieldParam\" (it present) must be 0. or 1.\n";
+        return M3DC1_FAILURE;
+      }
+    }
+  }
+  else
+  {
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 ERROR] number of parameters in \"sizefieldParam\" must be 13 or 14\n";
+    return M3DC1_FAILURE;
+  }
+
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3D-C1 INFO] size field parameters: ";
+  for (int i=0; i<count; ++i)
+  {
+    if (!PCU_Comm_Self()) std::cout<<std::setprecision(5)<<param[i]<<" ";
+  }
   if (!PCU_Comm_Self()) std::cout<<"\n";
 
   apf::Field* psiField = (*(m3dc1_mesh::instance()->field_container))[*fieldId]->get_field();
@@ -3655,7 +3720,20 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
 
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
+#ifdef DISABLE_ZOLTAN
+  in->shouldRunPostZoltan = false;
+#else
   in->shouldRunPostZoltan = true;
+#endif
+
+  // set the coarsening options
+  if (shouldCoarsen == 1)
+    in->shouldCoarsen = true;
+  else if (shouldCoarsen == 0)
+    in->shouldCoarsen = false;
+  else
+    return M3DC1_FAILURE;
+
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
@@ -3684,6 +3762,13 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
 #endif
     it++;
   }
+
+  if (!PCU_Comm_Self())
+    cout<<"#global_ent: V "<<m3dc1_mesh::instance()->num_global_ent[0]
+        <<", E "<<m3dc1_mesh::instance()->num_global_ent[1]
+        <<", F "<<m3dc1_mesh::instance()->num_global_ent[2]
+        <<", R "<<m3dc1_mesh::instance()->num_global_ent[3]<<"\n";
+
   return M3DC1_SUCCESS;
 }
 
@@ -3896,11 +3981,15 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   in->maximumIterations = 5;
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
+#ifdef DISABLE_ZOLTAN
+  in->shouldRunPostZoltan = false;
+#else
   in->shouldRunPostZoltan = true;
+#endif
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
-  
+
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
   compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
@@ -3927,6 +4016,13 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     it++;
   }
   destroyField(sizeField);
+
+  if (!PCU_Comm_Self())
+    cout<<"#global_ent: V "<<m3dc1_mesh::instance()->num_global_ent[0]
+        <<", E "<<m3dc1_mesh::instance()->num_global_ent[1]
+        <<", F "<<m3dc1_mesh::instance()->num_global_ent[2]
+        <<", R "<<m3dc1_mesh::instance()->num_global_ent[3]<<"\n";
+
   return M3DC1_SUCCESS;
 }
 

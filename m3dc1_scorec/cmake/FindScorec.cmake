@@ -28,18 +28,9 @@ macro(scorecLibCheck libs isRequired)
 endmacro(scorecLibCheck)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "PGI")
-else()
-find_library(ZOLTAN_LIBRARY zoltan)
-if (NOT EXISTS "${ZOLTAN_LIBRARY}")
-  message(FATAL ERROR "ZOLTAN library not found")
+  set(ENABLE_ZOLTAN OFF)
 endif()
-endif()
-
-find_library(PARMETIS_LIBRARY parmetis)
-if (NOT EXISTS "${PARMETIS_LIBRARY}")
-  message(FATAL ERROR "PARMETIS library not found")
-endif()
-
+ 
 find_library(METIS_LIBRARY metis)
 if (NOT EXISTS "${METIS_LIBRARY}")
   message(FATAL ERROR "METIS library not found")
