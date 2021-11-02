@@ -39,7 +39,6 @@
 #endif
 #include <alloca.h>
 
-<<<<<<< HEAD
 const int dofNode = C1TRIDOFNODE;
 
 #ifdef DEBUG
@@ -74,7 +73,7 @@ static apf::Field* get_component_of_field(apf::Mesh2* m, apf::Field* in, int com
 static apf::Field* get_field_at_index(apf::Mesh2* m, apf::Field* inField, int index, int numDofs)
 {
   int numComps = apf::countComponents(inField);
-  int numFields = numFields/numDofs;
+  int numFields = numComps/numDofs;
   PCU_ALWAYS_ASSERT(index <= numFields);
 
   apf::Field* targetField = apf::createPackedField(m, "target_field", numDofs);
@@ -100,6 +99,7 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
   assert(dim == 2);
   int order = 2;
   apf::Field* ip = apf::createIPField(m, "ip_field", apf::VECTOR, order);
+  /* apf::Field* ip = apf::createIPField(m, "ip_field", apf::MATRIX, order); */
 
   apf::MeshEntity* e;
   apf::MeshIterator* it = m->begin(dim);
@@ -146,6 +146,10 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
       shape.eval_g(pArray, &(dofAtXi[0]));
       apf::Vector3 grad(dofAtXi[1], dofAtXi[2], 0.0);
       apf::setVector(ip, e, i, grad);
+      /* apf::Matrix3x3 gradgrad(dofAtXi[3], dofAtXi[4], 0.0, */
+      /* 	                      dofAtXi[4], dofAtXi[5], 0.0, */
+      /* 	                      0.0,        0.0,        1.0); */
+      /* apf::setMatrix(ip, e, i, gradgrad); */
     }
     apf::destroyMeshElement(me);
   }
@@ -220,9 +224,7 @@ static void get_dofs_on_ent(m3dc1_mesh* m, m3dc1_field* f, apf::MeshEntity* e, c
 /*     PCU_ALWAYS_ASSERT_VERBOSE(0, "something is not right!"); */
 }
 
-=======
 int begin_numVert;
->>>>>>> master
 double begin_mem, begin_time;
 // helper routines
 void group_complex_dof (apf::Field* field, int option);
@@ -739,7 +741,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
   //
   // findex_1, findex_2, findex_3, findex_4, findex_5, findex_6, ! dofs of index'th field
   // ...
-  // fnum_1, fnum_2, fnum_3, fnum_4, fnum_5, fnum_6 ! dofs of num'th (last) field
+  // fnum_1, fnum_2, fnum_3, fnum_5, fnum_5, fnum_6 ! dofs of num'th (last) field
   apf::Field* inField = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
   // the following call will extract the ones at index
   apf::Field* targetField = get_field_at_index(mesh, inField, *index, dofNode);
@@ -757,9 +759,9 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
   /* return 0; */
 
 
-  apf::Field* targetField0 = get_component_of_field(mesh, targetField, 0);
-  apf::Field* ip = spr::getGradIPField(targetField0, "ip", 2);
-  /* apf::Field* ip = get_ip_field(mesh, targetField); */
+  /* apf::Field* targetField0 = get_component_of_field(mesh, targetField, 0); */
+  /* apf::Field* ip = spr::getGradIPField(targetField0, "ip", 2); */
+  apf::Field* ip = get_ip_field(mesh, targetField);
   apf::Field* size_field = spr::getSPRSizeField(ip, *ar);
 
   sprintf(filename,"before%d",*ts);
@@ -769,7 +771,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
   /* destroyField(in_field_comp5); */
   destroyField(ip);
   destroyField(targetField);
-  destroyField(targetField0);
+  /* destroyField(targetField0); */
 
   /* int numVert=m3dc1_mesh::instance()->mesh->count(0); */
   /* for (int i=0; i<numVert; i++) */
@@ -833,7 +835,8 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
   in->shouldCoarsen=false;
   in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
-  in->maximumIterations = 2;
+  in->goodQuality = 0.5;
+  /* in->maximumIterations = 2; */
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
