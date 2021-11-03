@@ -243,6 +243,7 @@ subroutine den_eq
   real, dimension(MAX_PTS) :: n, p
   integer :: ip
   
+  if(iread_ne.ne.0) return
   if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
   if(ipellet.ne.0) then
      if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
@@ -278,7 +279,7 @@ subroutine den_eq
      case(21)
         if(igeometry.eq.1) then
            temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
-           n079(:,OP_1) = den0 + (den_edge-den0)*&
+           n079(:,OP_1) = den0 + (den_edge-den0)*.5*&
                 (1. + tanh((temp79b-(1.+denoff))/dendelt))
         else
            if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
