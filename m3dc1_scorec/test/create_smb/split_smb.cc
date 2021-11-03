@@ -59,7 +59,7 @@ void switchToAll()
 
 void getConfig(int argc, char** argv)
 {
-  if ( argc != 4 ) {
+  if ( argc < 4 ) {
     if ( !PCU_Comm_Self() )
       printf("Usage: %s <mesh> <outMesh> <factor>\n", argv[0]);
     MPI_Finalize();
