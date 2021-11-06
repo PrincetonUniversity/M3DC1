@@ -4680,7 +4680,7 @@ function v3upsif(e,f,g,h)
                 + f(:,OP_DR)*h(:,OP_DRR) + f(:,OP_DZ)*h(:,OP_DRZ)            
         if(itor.eq.1) then
            temp79c = temp79c + 2*ri_79* &           
-                   + f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ)            
+                  (f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ))
         endif
         ! (R^2*(u, f'))_Z/R^2
         temp79d = f(:,OP_DRZ)*h(:,OP_DR) + f(:,OP_DZZ)*h(:,OP_DZ) &           
@@ -4791,8 +4791,8 @@ function v3uff(e,f,g,h)
         temp79a = f(:,OP_DRR)*h(:,OP_DR) + f(:,OP_DRZ)*h(:,OP_DZ) &           
                 + f(:,OP_DR)*h(:,OP_DRR) + f(:,OP_DZ)*h(:,OP_DRZ)            
         if(itor.eq.1) then
-           temp79a = temp79c + 2*ri_79* &           
-                   + f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ)            
+           temp79a = temp79a + 2*ri_79* &
+                  (f(:,OP_DR)*h(:,OP_DR) + f(:,OP_DZ)*h(:,OP_DZ))
         endif
         ! (R^2*(u, f'))_Z/R^2
         temp79b = f(:,OP_DRZ)*h(:,OP_DR) + f(:,OP_DZZ)*h(:,OP_DZ) &           

@@ -85,7 +85,7 @@ int m3dc1_scorec_finalize()
                 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   if (begin_numVert != global_numVert)
-    m3dc1_mesh::instance()->mesh->writeNative("mesh.smb");
+    m3dc1_mesh::instance()->mesh->writeNative("adapted.smb");
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
 
   if (!pumi_rank()) std::cout<<"\n* [M3D-C1 INFO] run time: "<<MPI_Wtime()-begin_time<<" (sec)\n";

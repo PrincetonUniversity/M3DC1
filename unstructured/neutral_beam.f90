@@ -45,7 +45,9 @@ contains
           *exp(-((r-nb_r)**2 + (z-nb_z)**2)/(2.*nb_dr**2))
 
     neutral_beam_deposition = neutral_beam_deposition / toroidal_period
+#ifndef USEST
     if(itor.eq.1) neutral_beam_deposition = neutral_beam_deposition/r
+#endif
   end function neutral_beam_deposition
 
 end module neutral_beam
