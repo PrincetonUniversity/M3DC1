@@ -28,7 +28,6 @@ module read_vmec
   type(spline1d) :: presf_spline      ! total pressure
   type(spline1d) :: phiv_spline       ! toroidal flux
   type(spline1d) :: chiv_spline       ! poloidal flux
-   
 
 contains
   ! read VMEC data and put on Zernike or spline basis
