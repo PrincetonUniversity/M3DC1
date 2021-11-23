@@ -157,6 +157,132 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
   return ip;
 }
 
+static void process_size_field(apf::Mesh2* m, apf::Field* in_size, double max_size, int ts)
+{
+  /* char filename[256]; */
+  /* sprintf(filename,"size_mod_before_%d",ts); */
+  /* apf::writeVtkFiles(filename,m); */
+  //compute both average and min current size at each vertex
+  apf::Field* sum_field = apf::createFieldOn(m, "sum_field", apf::SCALAR);
+  apf::Field* min_field = apf::createFieldOn(m, "min_field", apf::SCALAR);
+  apf::Field* cnt_field = apf::createFieldOn(m, "cnt_field", apf::SCALAR);
+
+  apf::MeshEntity* v;
+  apf::MeshIterator* it = m->begin(0);
+  while ( (v = m->iterate(it)) )
+  {
+    double current_min = 1.e32;
+    double current_sum = 0.;
+    double current_cnt = 0.;
+    for (int i = 0; i < m->countUpward(v); i++) {
+      double edge_length = apf::measure(m, m->getUpward(v, i));
+      if (edge_length < current_min)
+      	current_min = edge_length;
+      current_sum += edge_length;
+      current_cnt += 1.;
+    }
+    apf::setScalar(sum_field, v, 0, current_sum);
+    apf::setScalar(min_field, v, 0, current_min);
+    apf::setScalar(cnt_field, v, 0, current_cnt);
+  }
+  m->end(it);
+  // accumulate sum and cnt fields and compute the averages
+  apf::accumulate(sum_field);
+  apf::accumulate(cnt_field);
+  it = m->begin(0);
+  while ( (v = m->iterate(it)) )
+  {
+    double total_sum = apf::getScalar(sum_field, v, 0);
+    double total_cnt = apf::getScalar(cnt_field, v, 0);
+    apf::setScalar(sum_field, v, 0, total_sum/total_cnt);
+  }
+  m->end(it);
+
+  // update the min field using share reduction with min op
+  apf::sharedReduction(min_field, 0, false, apf::ReductionMin<double>());
+
+
+  // compute min/max of avg_size over the whole mesh
+  double mesh_min = 1.e16;
+  double mesh_max = -1.e16;
+  it = m->begin(0);
+  while ( (v = m->iterate(it)) )
+  {
+    double s = apf::getScalar(sum_field, v, 0);
+    if (s > mesh_max)
+      mesh_max = s;
+    if (s < mesh_min)
+      mesh_min = s;
+  }
+  m->end(it);
+
+  PCU_Min_Doubles(&mesh_min, 1);
+  PCU_Max_Doubles(&mesh_max, 1);
+
+  if (!PCU_Comm_Self()) {
+    printf("min/max of current avg size at time step %d: %f/%f\n", ts, mesh_min, mesh_max);
+    printf("user requested max_size at time step %d: %f\n", ts, max_size);
+  }
+
+  int bdim = m->getDimension() - 1;
+
+  it = m->begin(0);
+  while ( (v = m->iterate(it)) )
+  {
+    double asked_size = apf::getScalar(in_size, v, 0);
+    double avg_size = apf::getScalar(sum_field, v, 0);
+    double min_size = apf::getScalar(min_field, v, 0);
+    int mtype = m->getModelType(m->toModel(v));
+    if (mtype == bdim) {
+      asked_size = min_size;
+    }
+    else {
+      if (asked_size < min_size / 4.) // cap refinement level to maximum 2 levels
+      	asked_size = min_size / 4.;
+      if (asked_size > min_size * 4.) // cap coarsening level to maximum 2 levels
+      	asked_size = min_size * 4.;
+    }
+    // cap the biggest size to user specified max_size,
+    // thus never allowing the mesh to get coarser that max_size
+    if (asked_size > max_size)
+      asked_size = max_size;
+    apf::setScalar(in_size, v, 0, asked_size);
+  }
+  m->end(it);
+  apf::synchronize(in_size);
+
+  // compute min/max of avg_size over the whole mesh
+  double asked_min = 1.e16;
+  double asked_max = -1.e16;
+  it = m->begin(0);
+  while ( (v = m->iterate(it)) )
+  {
+    double s = apf::getScalar(in_size, v, 0);
+    if (s > asked_max)
+      asked_max = s;
+    if (s < asked_min)
+      asked_min = s;
+  }
+  m->end(it);
+
+  PCU_Min_Doubles(&asked_min, 1);
+  PCU_Max_Doubles(&asked_max, 1);
+
+
+  if (!PCU_Comm_Self())
+    printf("min/max of asked size at time step %d: %f/%f\n", ts, asked_min, asked_max);
+
+  /* sprintf(filename,"size_mod_after_%d",ts); */
+  /* apf::writeVtkFiles(filename,m); */
+  m->removeField(sum_field);
+  m->removeField(min_field);
+  m->removeField(cnt_field);
+  apf::destroyField(sum_field);
+  apf::destroyField(min_field);
+  apf::destroyField(cnt_field);
+}
+
+
 static void get_dofs_on_ent(m3dc1_mesh* m, m3dc1_field* f, apf::MeshEntity* e, const apf::Vector3& xi)//, apf::NewArray<double>& dofs)
 {
   apf::Mesh2* mesh = m->mesh;
@@ -265,10 +391,10 @@ int m3dc1_scorec_init()
 }
 
 //*******************************************************
-int m3dc1_scorec_verbosity(int l)
+int m3dc1_scorec_verbosity(int* l)
 //*******************************************************
 { 
-  lion_set_verbosity(l);
+  lion_set_verbosity(*l);
   return M3DC1_SUCCESS; 
 }
 
@@ -722,7 +848,7 @@ void m3dc1_dir_import(double* dir, int ts)
   fclose(fp);
 }
 
-int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
+int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max_size, int* ts)
 {
 
   char filename[256];
@@ -731,7 +857,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
     std::cout<<"[M3D-C1 INFO] "<<__func__<<" field id "<<*field_id<<" , name "<<get_field_name_from_id(*field_id)<<"\n";
 #endif
 
-
+  /////////////////////
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
   // in_filed will hold all the dofs of all the fields (num being the total number of fields)
   // at each vertex. e.g.
@@ -763,10 +889,14 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
   /* apf::Field* ip = spr::getGradIPField(targetField0, "ip", 2); */
   apf::Field* ip = get_ip_field(mesh, targetField);
   apf::Field* size_field = spr::getSPRSizeField(ip, *ar);
+  process_size_field(mesh, size_field, *max_size, *ts);
 
-  sprintf(filename,"before%d",*ts);
-  apf::writeVtkFiles(filename,mesh);
+  /* sprintf(filename,"before_%d",*ts); */
+  /* apf::writeVtkFiles(filename,mesh); */
+  /* m3dc1_mesh_write("before_", &option, ts); */
 
+  mesh->removeField(ip);
+  mesh->removeField(targetField);
 
   /* destroyField(in_field_comp5); */
   destroyField(ip);
@@ -780,6 +910,8 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
   /*   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i); */
   /*   setComponents(size_field, e, 0, &sz); */
   /* } */
+  ////////////////////////////
+
   // delete all the matrix
 #ifdef M3DC1_TRILINOS
   while (m3dc1_ls::instance()-> matrix_container->size())
@@ -829,20 +961,23 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
 
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
+  /* ma::Input* in = ma::makeAdvanced(ma::configureIdentity(mesh, 0, &slnTrans)); */
   /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(mesh, 1, &slnTrans)); */
 
   in->shouldSnap=false;
-  in->shouldCoarsen=false;
   in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
-  in->goodQuality = 0.5;
-  /* in->maximumIterations = 2; */
+  /* in->goodQuality = 0.5; */
+  /* in->shouldForceAdaptation = true; */
+  /* in->shouldCoarsen=false; */
+  in->maximumIterations = 1;
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
 
-  sprintf(filename,"after%d",*ts);
-  apf::writeVtkFiles(filename,mesh);
+  /* sprintf(filename,"after_%d",*ts); */
+  /* apf::writeVtkFiles(filename,mesh); */
+  /* m3dc1_mesh_write("after_", &option, ts); */
 
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
@@ -862,6 +997,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, int* ts)
 /*     assert(isnan==0); */
 /* #endif */
     synchronize_field(field);
+    /* apf::synchronize(field); */
 
 /* #ifdef DEBUG */
 /*     m3dc1_field_isnan(&fieldId, &isnan); */
