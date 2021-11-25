@@ -90,6 +90,7 @@ static apf::Field* get_field_at_index(apf::Mesh2* m, apf::Field* inField, int in
   return targetField;
 }
 
+
 static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
 {
   ReducedQuinticImplicit shape;
@@ -349,6 +350,61 @@ static void get_dofs_on_ent(m3dc1_mesh* m, m3dc1_field* f, apf::MeshEntity* e, c
 /*   else */
 /*     PCU_ALWAYS_ASSERT_VERBOSE(0, "something is not right!"); */
 }
+
+static void m3dc1_check_field_correctness(const char* name, const char* message, int* ts)
+{
+  if (!PCU_Comm_Self())
+    printf("_______ checking field correctness at time step %d at %s\n", *ts, message);
+
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
+  /* if (!PCU_Comm_Self()) */
+  /*   printf("_______ listing all tags \n", *ts, message); */
+
+  /* apf::DynamicArray<apf::MeshTag*> tags; */
+  /* mesh->getTags(tags); */
+  /* for (int i = 0; i < tags.getSize(); i++) { */
+  /*   if(!PCU_Comm_Self()) */
+  /*     printf("_______ tag %d's name is %s\n", i, mesh->getTagName(tags[i])); */
+  /* } */
+
+
+  apf::Field* f = mesh->findField(name);
+  if (!f)
+  {
+    if (PCU_Comm_Self())
+      printf("_______ field with name %s was not found in the mesh\n", name);
+    return;
+  }
+  char tagname[256];
+  sprintf(tagname, "%s_ver", name);
+  if (!PCU_Comm_Self())
+    printf("_______ attempting to find tag with name %s\n", tagname);
+  apf::MeshTag* t = mesh->findTag(tagname);
+  if (!t)
+  {
+    if (!PCU_Comm_Self())
+      printf("_______ tag with name %s was not found in the mesh\n", tagname);
+    return;
+  }
+
+  apf::MeshEntity* v;
+  apf::MeshIterator* it = mesh->begin(0);
+
+  int cnt = 0;
+  while ( (v = mesh->iterate(it)) )
+  {
+    if (!mesh->hasTag(v,t))
+    {
+      printf("_______ message (%s) vert %d on part %d misses tag %s\n", message, cnt, PCU_Comm_Self(), tagname);
+    }
+    cnt++;
+  }
+
+  if (!PCU_Comm_Self())
+    printf("_______ eof checking field correctness at time step %d at %s\n", *ts, message);
+}
+
 
 int begin_numVert;
 double begin_mem, begin_time;
@@ -848,17 +904,19 @@ void m3dc1_dir_import(double* dir, int ts)
   fclose(fp);
 }
 
+
 int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max_size, int* ts)
 {
 
+  m3dc1_check_field_correctness("field_vec", "beginning_spr", ts);
   char filename[256];
 #ifdef DEBUG
   if (!PCU_Comm_Self())
     std::cout<<"[M3D-C1 INFO] "<<__func__<<" field id "<<*field_id<<" , name "<<get_field_name_from_id(*field_id)<<"\n";
 #endif
 
-  /////////////////////
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
   // in_filed will hold all the dofs of all the fields (num being the total number of fields)
   // at each vertex. e.g.
   // f1_1, f1_2, f1_3, f1_4, f1_5, f1_6, ! dofs of 1st field
@@ -869,8 +927,14 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
   // ...
   // fnum_1, fnum_2, fnum_3, fnum_5, fnum_5, fnum_6 ! dofs of num'th (last) field
   apf::Field* inField = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
+
   // the following call will extract the ones at index
   apf::Field* targetField = get_field_at_index(mesh, inField, *index, dofNode);
+  // get the ip field but leave the size_field calculation for later
+  // NOTE: spr involves migration and has to be called after fields are unfrozen
+  // otherwise tags become corrupt!
+  apf::Field* ip = get_ip_field(mesh, targetField);
+
 
 
   /* apf::MeshEntity* e; */
@@ -887,21 +951,35 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
 
   /* apf::Field* targetField0 = get_component_of_field(mesh, targetField, 0); */
   /* apf::Field* ip = spr::getGradIPField(targetField0, "ip", 2); */
-  apf::Field* ip = get_ip_field(mesh, targetField);
-  apf::Field* size_field = spr::getSPRSizeField(ip, *ar);
-  process_size_field(mesh, size_field, *max_size, *ts);
+  /* apf::Field* size_field = spr::getSPRSizeField(ip, *ar); */
+  /* process_size_field(mesh, size_field, *max_size, *ts); */
 
+  /* check = check_field_correctness(mesh, inField, *index); */
+  /* if (!PCU_Comm_Self()) */
+  /*   if (check) */
+  /*     printf("time step %d at after process_size_field of spr field is correct\n", *ts); */
   /* sprintf(filename,"before_%d",*ts); */
   /* apf::writeVtkFiles(filename,mesh); */
   /* m3dc1_mesh_write("before_", &option, ts); */
 
-  mesh->removeField(ip);
-  mesh->removeField(targetField);
+  /* mesh->removeField(ip); */
+  /* mesh->removeField(targetField); */
+
+  /* check = check_field_correctness(mesh, inField, *index); */
+  /* if (!PCU_Comm_Self()) */
+  /*   if (check) */
+  /*     printf("time step %d at after remove of spr field is correct\n", *ts); */
+
 
   /* destroyField(in_field_comp5); */
-  destroyField(ip);
-  destroyField(targetField);
+  /* destroyField(ip); */
+  /* destroyField(targetField); */
   /* destroyField(targetField0); */
+
+  /* check = check_field_correctness(mesh, inField, *index); */
+  /* if (!PCU_Comm_Self()) */
+  /*   if (check) */
+  /*     printf("time step %d at after destroyField of spr field is correct\n", *ts); */
 
   /* int numVert=m3dc1_mesh::instance()->mesh->count(0); */
   /* for (int i=0; i<numVert; i++) */
@@ -931,11 +1009,9 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
   }
 #endif
 
-
   int valueType = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_value_type();
   ReducedQuinticImplicit shape;
   vector<apf::Field*> fields;
-  fields.push_back(size_field);
   std::map<FieldID, m3dc1_field*> :: iterator it=m3dc1_mesh::instance()->field_container->begin();
   while(it!=m3dc1_mesh::instance()->field_container->end())
   {
@@ -958,8 +1034,18 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
     if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
     apf::destroyNumbering(n);
   }
-  ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
 
+  // compute the size field here and remove the ip and target fields afterwards
+  apf::Field* size_field = spr::getSPRSizeField(ip, *ar);
+  process_size_field(mesh, size_field, *max_size, *ts);
+  fields.push_back(size_field);
+
+  mesh->removeField(ip);
+  mesh->removeField(targetField);
+  destroyField(ip);
+  destroyField(targetField);
+
+  ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
   /* ma::Input* in = ma::makeAdvanced(ma::configureIdentity(mesh, 0, &slnTrans)); */
   /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(mesh, 1, &slnTrans)); */
@@ -974,6 +1060,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
 
   ma::adapt(in);
   reorderMdsMesh(mesh);
+
 
   /* sprintf(filename,"after_%d",*ts); */
   /* apf::writeVtkFiles(filename,mesh); */
@@ -990,23 +1077,21 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
     int complexType = it->second->get_value_type();
     if (complexType) group_complex_dof(field, 0);
     if (!isFrozen(field)) freeze(field);
-/* #ifdef DEBUG */
-/*     int isnan; */
-/*     int fieldId= it->first; */
-/*     m3dc1_field_isnan(&fieldId, &isnan); */
-/*     assert(isnan==0); */
-/* #endif */
+#ifdef DEBUG
+    int isnan;
+    int fieldId= it->first;
+    m3dc1_field_isnan(&fieldId, &isnan);
+    assert(isnan==0);
+#endif
     synchronize_field(field);
-    /* apf::synchronize(field); */
 
-/* #ifdef DEBUG */
-/*     m3dc1_field_isnan(&fieldId, &isnan); */
-/*     assert(isnan==0); */
-/* #endif */
+#ifdef DEBUG
+    m3dc1_field_isnan(&fieldId, &isnan);
+    assert(isnan==0);
+#endif
     it++;
   }
   destroyField(size_field);
-
   return M3DC1_SUCCESS;
 }
 
@@ -2558,6 +2643,7 @@ int m3dc1_field_isnan(FieldID* /* in */ field_id, int * isnan)
   }
   return M3DC1_SUCCESS;
 }
+
 
 //=========================================================================
 void write_vector(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start_index)
