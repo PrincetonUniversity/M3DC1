@@ -235,7 +235,7 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, double max_si
     double min_size = apf::getScalar(min_field, v, 0);
     int mtype = m->getModelType(m->toModel(v));
     if (mtype == bdim) {
-      asked_size = min_size;
+      asked_size = avg_size;
     }
     else {
       if (asked_size < min_size / 4.) // cap refinement level to maximum 2 levels
@@ -935,61 +935,6 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
   // otherwise tags become corrupt!
   apf::Field* ip = get_ip_field(mesh, targetField);
 
-
-
-  /* apf::MeshEntity* e; */
-  /* apf::MeshIterator* mit = mesh->begin(1); */
-
-  /* while ( (e = mesh->iterate(mit)) ) */
-  /* { */
-  /*   get_dofs_on_ent(m3dc1_mesh::instance(), (*m3dc1_mesh::instance()->field_container)[*field_id], e, apf::Vector3(0.,0.,0.)); */
-  /* } */
-  /* mesh->end(mit); */
-
-  /* return 0; */
-
-
-  /* apf::Field* targetField0 = get_component_of_field(mesh, targetField, 0); */
-  /* apf::Field* ip = spr::getGradIPField(targetField0, "ip", 2); */
-  /* apf::Field* size_field = spr::getSPRSizeField(ip, *ar); */
-  /* process_size_field(mesh, size_field, *max_size, *ts); */
-
-  /* check = check_field_correctness(mesh, inField, *index); */
-  /* if (!PCU_Comm_Self()) */
-  /*   if (check) */
-  /*     printf("time step %d at after process_size_field of spr field is correct\n", *ts); */
-  /* sprintf(filename,"before_%d",*ts); */
-  /* apf::writeVtkFiles(filename,mesh); */
-  /* m3dc1_mesh_write("before_", &option, ts); */
-
-  /* mesh->removeField(ip); */
-  /* mesh->removeField(targetField); */
-
-  /* check = check_field_correctness(mesh, inField, *index); */
-  /* if (!PCU_Comm_Self()) */
-  /*   if (check) */
-  /*     printf("time step %d at after remove of spr field is correct\n", *ts); */
-
-
-  /* destroyField(in_field_comp5); */
-  /* destroyField(ip); */
-  /* destroyField(targetField); */
-  /* destroyField(targetField0); */
-
-  /* check = check_field_correctness(mesh, inField, *index); */
-  /* if (!PCU_Comm_Self()) */
-  /*   if (check) */
-  /*     printf("time step %d at after destroyField of spr field is correct\n", *ts); */
-
-  /* int numVert=m3dc1_mesh::instance()->mesh->count(0); */
-  /* for (int i=0; i<numVert; i++) */
-  /* { */
-  /*   double sz = 1.; */
-  /*   apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, i); */
-  /*   setComponents(size_field, e, 0, &sz); */
-  /* } */
-  ////////////////////////////
-
   // delete all the matrix
 #ifdef M3DC1_TRILINOS
   while (m3dc1_ls::instance()-> matrix_container->size())
@@ -1053,12 +998,12 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
-  /* in->goodQuality = 0.5; */
-  /* in->shouldForceAdaptation = true; */
+  in->goodQuality = 0.5;
+  in->shouldForceAdaptation = true;
   /* in->shouldCoarsen=false; */
-  in->maximumIterations = 1;
+  in->maximumIterations = 3;
 
-  ma::adapt(in);
+  ma::adaptVerbose(in,false);
   reorderMdsMesh(mesh);
 
 
