@@ -426,9 +426,9 @@ Program Reducedquintic
 
 
     ! for now call spr adapt every 10 time steps
-    if (mod(ntime, 1) .eq. 0) then
-      ! write(mesh_file_name,"(A9,A)") 'solvestep', 0
-      ! call m3dc1_mesh_write (mesh_file_name,0,ntime)
+    if (mod(ntime, 10) .eq. 0) then
+      write(mesh_file_name,"(A11,A)") 'beforeadapt', 0
+      call m3dc1_mesh_write (mesh_file_name,0,ntime)
       call adapt_by_spr(field_vec%id, psi_g, 0.003, 0.05,ntime)
     endif
 
