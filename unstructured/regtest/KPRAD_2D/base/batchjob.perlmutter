@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH -A m3984_g
+#SBATCH -p debug
+#SBATCH -C gpu
+#SBATCH -n 48
+#SBATCH -J M3DC1_regtest_KPRAD_2D
+#SBATCH -t 0:30:00
+#SBATCH -o C1stdout
+
+export SLURM_CPU_BIND="cores"
+
+touch started
+
+# partition mesh
+#part_mesh.sh analytic-2K.smb 32
+#echo $? > mesh_partitioned
+
+
+cp -p ../mesh/* .
+
+
+# Run M3D-C1
+srun -n 48 ../../../_perlmutter-opt-25/m3dc1_2d -pc_factor_mat_solver_type mumps -malloc_debug
+
+touch finished
