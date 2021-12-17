@@ -7,6 +7,8 @@ Mon Jul  8 09:39:44 PDT 2019
 2. code
    git clone git@github.com:PrincetonUniversity/M3DC1.git 
    git clone -b [branch] git@github.com:PrincetonUniversity/M3DC1.git 
+   git commit -m "perlmutter code porting"
+   git push origin master
 
 3. load modules and set environment
    module load cmake

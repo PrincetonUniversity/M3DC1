@@ -1,7 +1,5 @@
-#FOPTS = -c -default64 -e zF -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
 FOPTS = -c -r8 -i4 -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
 CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
-#EBROOTGSL=/global/common/software/nersc/easybuild/perlmutter/21.10/software/GSL/2.6-GCC-10.2.0
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 
@@ -14,17 +12,11 @@ ifeq ($(PAR), 1)
   FOPTS := $(FOPTS) -DUSEPARTICLES
 endif
 
-#CC = /global/cfs/cdirs/m3984/openmpi/bin/mpicc 
-#CPP = /global/cfs/cdirs/m3984/openmpi/bin/mpicxx
-#F90 = /global/cfs/cdirs/m3984/openmpi/bin/mpif90
-#F77 = /global/cfs/cdirs/m3984/openmpi/bin/mpif90
-#LOADER =  /global/cfs/cdirs/m3984/openmpi/bin/mpif90
 CC = cc
 CPP = CC
 F90 = ftn
 F77 = ftn
 LOADER =  ftn
-#-static
 FOPTS := $(FOPTS)
 
 F90OPTS = $(F90FLAGS) $(FOPTS) 
@@ -33,14 +25,14 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927
 ifeq ($(COM), 1)
   PETSC_ARCH=nvidia-hpc-sdk-6-cplx
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927/nvidia-hpc-sdk-6-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927/nvidia-hpc-sdk-6-cplx/lib -L/opt/cray/pe/mpich/8.1.11/ofi/nvidia/20.7/lib -L/opt/cray/pe/libsci/21.08.1.2/NVIDIA/20.7/x86_64/lib -L/global/common/software/nersc/pm-2021q4/sw/darshan/3.3.1/lib -L/opt/cray/pe/dsmml/0.2.2/dsmml/lib -L/opt/cray/xpmem/2.2.40-2.1_3.9__g3cf3325.shasta/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/21.9/compilers/lib -L/usr/lib64/gcc/x86_64-suse-linux/7 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/21.9/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lgsl -lgslcblas -lstdc++ -ldl -ldarshan -lz -lsci_nvidia_mpi -lsci_nvidia -lmpifort_nvidia -lmpi_nvidia -ldsmml -lxpmem -lnvf -lnvomp -lnvhpcatm -latomic -lpthread -lnvcpumath-avx2 -lnsnvc -lnvc -lrt -lm -lgcc_s -lquadmath -lstdc++ -ldl
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927/nvidia-hpc-sdk-6-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927/nvidia-hpc-sdk-6-cplx/lib -L/opt/cray/pe/mpich/8.1.11/ofi/nvidia/20.7/lib -L/opt/cray/pe/libsci/21.08.1.2/NVIDIA/20.7/x86_64/lib -L/global/common/software/nersc/pm-2021q4/sw/darshan/3.3.1/lib -L/opt/cray/pe/dsmml/0.2.2/dsmml/lib -L/opt/cray/xpmem/2.2.40-2.1_3.9__g3cf3325.shasta/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/21.9/compilers/lib -L/usr/lib64/gcc/x86_64-suse-linux/7 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/21.9/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lgsl -lgslcblas -lstdc++ -ldl -ldarshan -lz -lsci_nvidia_mpi -lsci_nvidia -lmpifort_nvidia -lmpi_nvidia -ldsmml -lxpmem -lnvf -lnvomp -lnvhpcatm -latomic -lpthread -lnvcpumath-avx2 -lnsnvc -lnvc -lrt -lm -lgcc_s -lquadmath -lstdc++ -ldl
 else
-# PETSC_ARCH=cray-cpu
   PETSC_ARCH=nvidia-hpc-sdk-6
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927/nvidia-hpc-sdk-6/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927/nvidia-hpc-sdk-6/lib -L/opt/cray/pe/mpich/8.1.11/ofi/nvidia/20.7/lib -L/opt/cray/pe/libsci/21.08.1.2/NVIDIA/20.7/x86_64/lib -L/global/common/software/nersc/pm-2021q4/sw/darshan/3.3.1/lib -L/opt/cray/pe/dsmml/0.2.2/dsmml/lib -L/opt/cray/xpmem/2.2.40-2.1_3.9__g3cf3325.shasta/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/21.9/compilers/lib -L/usr/lib64/gcc/x86_64-suse-linux/7 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/21.9/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lgsl -lgslcblas -lstdc++ -ldl -ldarshan -lz -lsci_nvidia_mpi -lsci_nvidia -lmpifort_nvidia -lmpi_nvidia -ldsmml -lxpmem -lnvf -lnvomp -lnvhpcatm -latomic -lpthread -lnvcpumath-avx2 -lnsnvc -lnvc -lrt -lm -lgcc_s -lquadmath -lstdc++ -ldl
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927/nvidia-hpc-sdk-6/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20210927/nvidia-hpc-sdk-6/lib -L/opt/cray/pe/mpich/8.1.11/ofi/nvidia/20.7/lib -L/opt/cray/pe/libsci/21.08.1.2/NVIDIA/20.7/x86_64/lib -L/global/common/software/nersc/pm-2021q4/sw/darshan/3.3.1/lib -L/opt/cray/pe/dsmml/0.2.2/dsmml/lib -L/opt/cray/xpmem/2.2.40-2.1_3.9__g3cf3325.shasta/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/21.9/compilers/lib -L/usr/lib64/gcc/x86_64-suse-linux/7 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/21.9/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lgsl -lgslcblas -lstdc++ -ldl -ldarshan -lz -lsci_nvidia_mpi -lsci_nvidia -lmpifort_nvidia -lmpi_nvidia -ldsmml -lxpmem -lnvf -lnvomp -lnvhpcatm -latomic -lpthread -lnvcpumath-avx2 -lnsnvc -lnvc -lrt -lm -lgcc_s -lquadmath -lstdc++ -ldl
 endif
 
 SCOREC_BASE_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
+SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
@@ -72,18 +64,12 @@ endif
 LIBS = 	\
 	$(SCOREC_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
-
 #-L$(HDF5_ROOT)/lib -lhdf5hl_fortran_parallel -lhdf5_fortran_parallel -lhdf5_hl -lhdf5 \
 #-L$(FFTW_DIR) -lfftw3f_threads -lfftw3_threads -lfftw3_mpi -lfftw3f_mpi -lfftw3f -lfftw3
 
-#$(EBROOTGSL)/lib/libgsl.a $(EBROOTGSL)/lib/libgslcblas.a $(EBROOTZLIB)/lib/libz.a
-
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-
 #-I$(FFTW_INC) -I$(HDF5_ROOT)/include \
-
-#       -I$(EBROOTGSL)/include
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
