@@ -75,7 +75,7 @@ Mon Jul  8 09:39:44 PDT 2019
 8. regression tests
    cd unstructured
    export M3DC1_MPIRUN=srun M3DC1_VERSION=local M3DC1_ARCH=perlmutter
-   make bin
+   make bin ARCH=$M3DC1_ARCH
    cd _perlmutter/bin/; export PATH=`pwd`:$PATH
    cd ../../regtest/
    ./run $M3DC1_ARCH
