@@ -11,7 +11,7 @@ Mon Jul  8 09:39:44 PDT 2019
    git push origin master
 
 3. load modules and set environment
-   module load cmake
+   module load cmake python/3.9-anaconda-2021.11
 
 4. compile code
    perlmutter.mk
