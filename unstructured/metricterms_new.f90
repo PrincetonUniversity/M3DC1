@@ -7033,12 +7033,17 @@ function b1psipsid(e,f,g,h)
      else
         temp = intx5(e(:,:,OP_GS),ri4_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
              + intx5(e(:,:,OP_GS),ri4_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
+#ifdef USEST
+             - intx5(e(:,:,OP_DZP),ri4_79,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_1)) &
+             - intx5(e(:,:,OP_DRP),ri4_79,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_1))
+#else
              + intx5(e(:,:,OP_DZ),ri4_79,f(:,OP_DZP),g(:,OP_GS ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),ri4_79,f(:,OP_DRP),g(:,OP_GS ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),ri4_79,f(:,OP_DZ ),g(:,OP_GSP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),ri4_79,f(:,OP_DR ),g(:,OP_GSP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),ri4_79,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_DP)) &
              + intx5(e(:,:,OP_DR),ri4_79,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_DP))
+#endif
      end if
   endif
   b1psipsid = temp
@@ -7139,12 +7144,17 @@ function b1psibd2(e,f,g,h)
              - intx5(e(:,:,OP_1),temp79c,norm79(:,1),f(:,OP_DZP ),g(:,OP_1 ))
      else
         temp = &
+#ifdef USEST
+             - intx5(e(:,:,OP_DRP),ri5_79,f(:,OP_DZP ),g(:,OP_1 ),h(:,OP_1)) &
+             + intx5(e(:,:,OP_DZP),ri5_79,f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_1))
+#else
              + intx5(e(:,:,OP_DR),ri5_79,f(:,OP_DZPP),g(:,OP_1 ),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),ri5_79,f(:,OP_DRPP),g(:,OP_1 ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),ri5_79,f(:,OP_DZP ),g(:,OP_DP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),ri5_79,f(:,OP_DRP ),g(:,OP_DP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),ri5_79,f(:,OP_DZP ),g(:,OP_1 ),h(:,OP_DP)) &
              - intx5(e(:,:,OP_DZ),ri5_79,f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_DP))
+#endif
      end if
   endif
 #else
@@ -7197,12 +7207,17 @@ function b1psifd1(e,f,g,h)
      else
         temp = intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DZP),g(:,OP_DR ),h(:,OP_1)) &
              - intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DRP),g(:,OP_DZ ),h(:,OP_1)) &
+#ifdef USEST
+             - intx5(e(:,:,OP_DZP),ri3_79,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_1)) &
+             + intx5(e(:,:,OP_DRP),ri3_79,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_1))
+#else
              + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GSP),g(:,OP_DR ),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GSP),g(:,OP_DZ ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS ),g(:,OP_DRP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS ),g(:,OP_DZP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_DP)) &
              - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_DP))
+#endif
      endif
   endif
   b1psifd1 = temp
@@ -7550,12 +7565,19 @@ function b1psipsin(e,f,g,h)
         temp79a = ri4_79*ni79(:,OP_1)**2
         temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
              + intx5(e(:,:,OP_GS),temp79a,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
+#ifdef USEST
+             - intx5(e(:,:,OP_DZP),temp79a,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_1)) &
+             - intx5(e(:,:,OP_DRP),temp79a,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_1)) &
+             - 2*intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_DP)) &
+             - 2*intx5(e(:,:,OP_DR),temp79a,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_DP))
+#else
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZP),g(:,OP_GS ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_DRP),g(:,OP_GS ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZ ),g(:,OP_GSP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_DR ),g(:,OP_GSP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_DP)) &
              - intx5(e(:,:,OP_DR),temp79a,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_DP))
+#endif
      end if
   endif
   b1psipsin = temp
@@ -7660,12 +7682,19 @@ function b1psibn2(e,f,g,h)
      else
         temp79a = ri5_79*ni79(:,OP_1)**2
         temp = &
+#ifdef USEST
+             - intx5(e(:,:,OP_DRP),temp79a,f(:,OP_DZP ),g(:,OP_1),h(:,OP_1 )) &
+             + intx5(e(:,:,OP_DZP),temp79a,f(:,OP_DRP ),g(:,OP_1),h(:,OP_1 )) &
+             - 2*intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZP ),g(:,OP_1 ),h(:,OP_DP)) &
+             + 2*intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_DP))
+#else
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZPP),g(:,OP_1 ),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DRPP),g(:,OP_1 ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZP ),g(:,OP_DP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DRP ),g(:,OP_DP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZP ),g(:,OP_1 ),h(:,OP_DP)) &
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_DP))
+#endif
      end if
   endif
   b1psibn2 = temp
@@ -7719,12 +7748,19 @@ function b1psifn1(e,f,g,h)
         temp79a = ri3_79*ni79(:,OP_1)**2
         temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZP),g(:,OP_DR ),h(:,OP_1)) &
              - intx5(e(:,:,OP_GS),temp79a,f(:,OP_DRP),g(:,OP_DZ ),h(:,OP_1)) &
+#ifdef USEST
+             - intx5(e(:,:,OP_DZP),temp79a,f(:,OP_GS ),g(:,OP_DR),h(:,OP_1 ))&
+             + intx5(e(:,:,OP_DRP),temp79a,f(:,OP_GS ),g(:,OP_DZ),h(:,OP_1 ))&
+             - 2*intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_DP))&
+             + 2*intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_DP))
+#else
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GSP),g(:,OP_DR ),h(:,OP_1 ))&
              - intx5(e(:,:,OP_DR),temp79a,f(:,OP_GSP),g(:,OP_DZ ),h(:,OP_1 ))&
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DRP),h(:,OP_1 ))&
              - intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZP),h(:,OP_1 ))&
              - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_DP))&
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_DP))
+#endif
      endif
   endif
   b1psifn1 = temp
