@@ -7,7 +7,7 @@
 
 import fpy
 import numpy as np
-from scipy.fftpack import fft, ifft, fftshift, fftfreq
+from scipy.fftpack import fft, fftshift, fftfreq
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import m3dc1.fpylib as fpyl
@@ -20,7 +20,9 @@ rc('text', usetex=False)
 
 
 
-def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=False, deriv=False, pspec=False, units='mks', time_low_lim=500, pub=False):
+def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
+                scale=False, deriv=False, pspec=False, units='mks',
+                time_low_lim=500, pub=False):
     """
     Plots diagnostics signal
     
@@ -29,7 +31,7 @@ def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=Fals
     **signal**
     Type of diagnostics to plot the signal of, e.g. 'mag_probes' or 'flux_loops'
 
-    **file_name**
+    **filename**
     File name which will be read, i.e. "../C1.h5".
 
     **renorm**
@@ -40,6 +42,7 @@ def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=Fals
     Scale signal by the signal of a perfectly linear growth
 
     **deriv**
+    Calculate time derivative of signal
 
     **pspec**
     Calculate Fourier spectrum of signal time trace.
@@ -54,50 +57,51 @@ def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=Fals
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
     """
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename)
     
-    time,trace = readC1File(signal='mag_probes',listc=False)
+    time = sim._all_trace['time']
+    trace = sim.get_signal('mag_probes').sigvalues
     nprobes = trace.shape[0]
-    #print(nprobes)
     
     if units.lower()=='mks':
-        time = unit_conv(time, file_name=file_name, time=1)
-        #y_axis = unit_conv(y_axis, arr_dim='M3DC1', energy=1)
+        time = unit_conv(time, filename=filename, time=1)
     
-    if renorm == True:
+    if renorm:
         for i in range(nprobes):
             trace[i,:] = compensate_renorm(trace[i,:])
     
     # ToDo: Add this calculation
-    if scale==True:
-        gamma = 0.5*growth_rate(n=None,units=units,file_name=file_name,time_low_lim=time_low_lim,slurm=False,plottrace=False)[0]
+    if scale:
+        gamma = 0.5*growth_rate(n=None,units=units,sim=sim,time_low_lim=time_low_lim,slurm=False,plottrace=False)[0]
         print(gamma)
         for i in range(nprobes):
             tg = time*gamma
             tg = tg.astype(np.float64)
             trace[i,:] = trace[i,:]/np.exp(tg)/trace[i,-1]
     
-    if deriv == True:
+    if deriv:
         for i in range(nprobes):
             trace[i,:] = fpyl.deriv(trace[i,:],time)
     
     
     # Set font sizes and plot style parameters
-    if pub==False:
-        axlblfs = None
-        titlefs = None
-        ticklblfs = None
-        legfs = None
-        linew = 1
-    elif pub==True:
+    if pub:
         axlblfs = 20
-        titlefs = 18
+        #titlefs = 18
         ticklblfs = 18
         legfs = 12
         linew = 2
+    else:
+        axlblfs = None
+        #titlefs = None
+        ticklblfs = None
+        legfs = None
+        linew = 1
     
     plt.figure()
     tracefft = np.zeros_like(trace)
-    if pspec == True:
+    if pspec:
         timestep = time[1]-time[0]
         time = fftshift(fftfreq(len(time), d=timestep))
         for i in range(nprobes):
@@ -127,7 +131,6 @@ def plot_signal(signal='mag_probes', file_name='C1.h5', renorm=False, scale=Fals
     else:
         plt.xlabel(r'time',fontsize=axlblfs)
         plt.ylabel(signal+' signal',fontsize=axlblfs)
-    #print(tracefft)
     
 
     for i in range(nprobes):
