@@ -57,7 +57,7 @@ function sigma_func(izone)
            else
               rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
            end if
-           temp79a = rate*pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+           temp79a = rate*pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1, izone)
         endif
      
         temp = temp + intx2(mu79(:,:,OP_1),temp79a)

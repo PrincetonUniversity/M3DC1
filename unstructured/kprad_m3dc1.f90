@@ -128,7 +128,7 @@ contains
     integer :: itri, nelms, def_fields
     vectype, dimension(dofs_per_element) :: dofs
     real, dimension(MAX_PTS) :: p
-    integer :: ip
+    integer :: ip, izone
 
     if(ikprad.eq.0) return
 
@@ -142,6 +142,7 @@ contains
     do itri=1, nelms
        call define_element_quadrature(itri,int_pts_main,5)
        call define_fields(itri,def_fields,1,1,1)
+       call get_zone(itri, izone)
 
        temp79a = kprad_nz +  kprad_fz*nt79(:,OP_1)
 
@@ -149,7 +150,7 @@ contains
           p = pt79(:,OP_1)
           do ip=1,npellets
              temp79a = temp79a + &
-                  pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+                  pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, izone)
           end do
        end if
 
@@ -466,7 +467,7 @@ contains
           p = pt79(:,OP_1)
           source = 0.
           do ip=1,npellets
-             source(:,0) = source(:,0) + pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+             source(:,0) = source(:,0) + pellet_rate(ip)*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, izone)
           end do
        end if
 
@@ -479,7 +480,7 @@ contains
           p = pt79(:,OP_1)
           do i=0, kprad_z
              ! Deposit over distribution of pellet #1
-             source(:,i) = source(:,i) + lp_source_rate(i)*pellet_distribution(1, x_79, phi_79, z_79, p, 1)
+             source(:,i) = source(:,i) + lp_source_rate(i)*pellet_distribution(1, x_79, phi_79, z_79, p, 1, izone)
           end do
        end if
 
