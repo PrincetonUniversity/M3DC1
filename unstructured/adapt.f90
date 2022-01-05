@@ -2,6 +2,12 @@ module adapt
   use vector_mod
   use scorec_adapt
   implicit none
+  integer :: ispradapt
+  integer :: isprmaxrefinelevel
+  integer :: isprmaxcoarsenlevel
+  integer :: isprntime
+  real :: isprmaxsize
+  real :: isprweight
   real :: adapt_ke
   integer :: iadapt_ntime
   real :: adapt_target_error
