@@ -104,15 +104,18 @@ function sigma_func(izone)
      end if
 
      do j=1, npoints
+#ifdef USEST
+        pso = xl_79(j)**2+zl_79(j)**2 
+#else
         call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
              x_79(j),z_79(j),mr,psib)
         if(mr.eq.REGION_PF) then
            pso = 2.*psib - pso
         end if
         pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
-
+#endif
         call evaluate_spline(particlesource_spline,pso,val,valp,valpp)
-        temp79a(j) = val * pellet_rate(1)
+        temp79a(j) = val * pellet_rate_scl
      end do
 
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
@@ -375,13 +378,16 @@ function q_func(izone)
      end if
 
      do j=1, npoints
+#ifdef USEST
+        pso = (xl_79(j)**2+zl_79(j)**2) 
+#else
         call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
              x_79(j),z_79(j), mr, psib)
         if(mr.eq.REGION_PF) then
            pso = 2.*psib - pso
         end if
         pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
-
+#endif
         call evaluate_spline(heatsource_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do

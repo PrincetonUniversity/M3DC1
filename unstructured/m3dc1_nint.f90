@@ -1441,7 +1441,7 @@ contains
            if(kappah.ne.0.) then
               tm79 = (pst79 - psimin)/(psibound - psimin)
               temp79a = tanh((real(tm79(:,OP_1))-1.)/.2)
-              temp79b = cosh((real(tm79(:,OP_1))-1.)/.2)**-1
+              temp79b = cosh((real(tm79(:,OP_1))-1.)/.2)**(-1)
               kap79(:,OP_1) = kap79(:,OP_1) + kappah*temp79a**2
               kap79(:,OP_DR) = kap79(:,OP_DR) &
                    + kappah*temp79a*temp79b**2*tm79(:,OP_DR)
