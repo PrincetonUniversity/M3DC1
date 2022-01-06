@@ -294,7 +294,7 @@ module adapt
 
 
 ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-  subroutine adapt_by_spr(fid,idx,ar,maxsize,t)
+  subroutine adapt_by_spr(fid,idx,t,ar,maxsize,refinelevel,coarsenlevel)
 ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     use diagnostics
     use basic
@@ -316,11 +316,13 @@ module adapt
     real, intent(in) :: ar
     real, intent(in) :: maxsize
     integer, intent(in) :: t
+    integer, intent(in) :: refinelevel
+    integer, intent(in) :: coarsenlevel
 
 
   !  if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
     call straighten_fields()
-    call m3dc1_spr_then_adapt(fid,idx,ar,maxsize,t)
+    call m3dc1_spr_then_adapt(fid,idx,t,ar,maxsize,refinelevel,coarsenlevel)
     call space(0)
     call update_nodes_owned()
     call reset_itris()
