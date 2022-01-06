@@ -158,7 +158,8 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
   return ip;
 }
 
-static void process_size_field(apf::Mesh2* m, apf::Field* in_size, double max_size, int ts)
+static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
+    double max_size, int refine_level, int coarsen_level)
 {
   /* char filename[256]; */
   /* sprintf(filename,"size_mod_before_%d",ts); */
@@ -227,6 +228,15 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, double max_si
 
   int bdim = m->getDimension() - 1;
 
+  double refine_factor = 1.;
+  for (int i = 0; i < refine_level; i++)
+    refine_factor *= 2.;
+
+  double coarsen_factor = 1.;
+  for (int i = 0; i < coarsen_level; i++)
+    coarsen_factor *= 2.;
+
+
   it = m->begin(0);
   while ( (v = m->iterate(it)) )
   {
@@ -238,10 +248,10 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, double max_si
       asked_size = avg_size;
     }
     else {
-      if (asked_size < min_size / 4.) // cap refinement level to maximum 2 levels
-      	asked_size = min_size / 4.;
-      if (asked_size > min_size * 4.) // cap coarsening level to maximum 2 levels
-      	asked_size = min_size * 4.;
+      if (asked_size < min_size / refine_factor) // cap refinement by refine_factor (:=2^refine_level)
+      	asked_size = min_size / refine_factor;
+      if (asked_size > min_size * coarsen_factor) // cap coarsening by coarsen_factor (:=2^coarsen_level)
+      	asked_size = min_size * coarsen_factor;
     }
     // cap the biggest size to user specified max_size,
     // thus never allowing the mesh to get coarser that max_size
@@ -905,7 +915,8 @@ void m3dc1_dir_import(double* dir, int ts)
 }
 
 
-int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max_size, int* ts)
+int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
+    double* ar, double* max_size, int* refine_level, int* coarsen_level)
 {
 
   m3dc1_check_field_correctness("field_vec", "beginning_spr", ts);
@@ -982,7 +993,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
 
   // compute the size field here and remove the ip and target fields afterwards
   apf::Field* size_field = spr::getSPRSizeField(ip, *ar);
-  process_size_field(mesh, size_field, *max_size, *ts);
+  process_size_field(mesh, size_field, *ts, *max_size, *refine_level, *coarsen_level);
   fields.push_back(size_field);
 
   mesh->removeField(ip);
@@ -999,9 +1010,11 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, double* ar, double* max
   in->shouldTransferParametric=false;
   in->shouldRunPostZoltan = true;
   in->goodQuality = 0.5;
-  in->shouldForceAdaptation = true;
-  /* in->shouldCoarsen=false; */
   in->maximumIterations = 3;
+
+  // turn off coarsening if coarsen_level is negative
+  if (coarsen_level < 0)
+    in->shouldCoarsen=false;
 
   ma::adaptVerbose(in,false);
   reorderMdsMesh(mesh);

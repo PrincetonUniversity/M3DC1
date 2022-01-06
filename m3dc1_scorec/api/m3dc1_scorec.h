@@ -216,7 +216,8 @@ int m3dc1_matrix_print(int* matrix_id);
 #endif // #ifdef M3DC1_PETSC
 
 // adaptation
-int m3dc1_spr_then_adapt (int * fieldId, int * index, double * ar, double * max_size, int * ts);
+int m3dc1_spr_then_adapt (int * fieldId, int * index, int * ts,
+    double * ar, double * max_size, int * refine_level, int * coarsen_level);
 int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
