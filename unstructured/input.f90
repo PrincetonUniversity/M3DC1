@@ -1074,11 +1074,11 @@ subroutine set_defaults
 
   ! SPR based adapt parameters
   call add_var_int("ispradapt", ispradapt, 0, "", adapt_grp);
-  call add_var_int("isprmaxrefinelevel", isprmaxrefinelevel, 1, "", adapt_grp);
-  call add_var_int("isprmaxcoarsenlevel", isprmaxcoarsenlevel, -1, "", adapt_grp);
   call add_var_int("isprntime", isprntime, 10, "", adapt_grp);
   call add_var_double("isprweight", isprweight, 0.1,"", adapt_grp)
   call add_var_double("isprmaxsize", isprmaxsize, 0.05,"", adapt_grp)
+  call add_var_int("isprrefinelevel", isprrefinelevel, 1, "", adapt_grp);
+  call add_var_int("isprcoarsenlevel", isprcoarsenlevel, -1, "", adapt_grp);
 
 
   !Micellaneous parameters or mesh adaptation
