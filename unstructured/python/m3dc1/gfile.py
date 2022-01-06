@@ -5,14 +5,20 @@
 
 import math
 import re
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.gridspec as gridspec
-from scipy.io import loadmat
+from matplotlib import path
+#from scipy.io import loadmat
+from scipy.interpolate import griddata
 from scipy.interpolate import interp1d
-import efit.efitlib as elib
-from efit.flux_average import flux_average
+from scipy.integrate import trapz
+from scipy.integrate import cumtrapz
+import m3dc1.fpylib as fpyl
+#import efit.efitlib as elib
+#from efit.flux_average import flux_average
 
 
 #-------------------------------------------
@@ -115,10 +121,10 @@ def read_gfile(fname):
                 gfile_data.nw = int(temp[-2])
                 gfile_data.nh = int(temp[-1])
             except:
-                elib.printerr('Error reading g-file in line 1!')
+                fpyl.printerr('Error reading g-file in line 1!')
     
     #temp = data[1].split()
-    temp = elib.read_floats(data[1])
+    temp = fpyl.read_floats(data[1])
     gfile_data.rdim = float(temp[0])
     gfile_data.zdim =  float(temp[1])
     gfile_data.rcentr =  float(temp[2])
@@ -130,7 +136,7 @@ def read_gfile(fname):
     print('rmin: '+str(gfile_data.rleft)+' , rmax: '+str(gfile_data.rleft+gfile_data.rdim))
     print('zmin: '+str(-gfile_data.zdim/2.0 - gfile_data.zmid)+' , zmax: '+str(gfile_data.zdim/2.0 + gfile_data.zmid))
     
-    temp=elib.read_floats(data[2])
+    temp=fpyl.read_floats(data[2])
     
     gfile_data.rmaxis = float(temp[0])
     gfile_data.zmaxis = float(temp[1])
@@ -138,7 +144,7 @@ def read_gfile(fname):
     gfile_data.sibry = float(temp[3])
     gfile_data.bcentr = float(temp[4])
 
-    gfile_data.current = elib.read_floats(data[3])[0]
+    gfile_data.current = fpyl.read_floats(data[3])[0]
     
     
     flatten = lambda l: [item for sublist in l for item in sublist]
@@ -146,7 +152,7 @@ def read_gfile(fname):
     def read_list(start,nlins):
         l = []
         for i in range(nlins):
-            l.append(elib.read_floats(data[start+i]))
+            l.append(fpyl.read_floats(data[start+i]))
         l = np.asarray(flatten(l))
         return l
     
@@ -193,7 +199,7 @@ def read_gfile(fname):
         gfile_data.rvtor = float(temp[1])
         gfile_data.nmass = int(temp[2])
     except:
-        elib.printwarn('WARNING: Did not read kvtor, rvtor and nmass. This data may be missing in the g-file.')
+        fpyl.printwarn('WARNING: Did not read kvtor, rvtor and nmass. This data may be missing in the g-file.')
     
     #ToDo: Implement rotation stuff
     
@@ -211,7 +217,7 @@ def read_gfile(fname):
 def plot_gfile(fname,fignum=None):
     gfdat = read_gfile(fname)
     
-    fa = flux_average(gfdat)
+    fa = flux_average_gfile(gfdat)
     
     #x = loadmat('/u/akleiner/codes/matlab/efit/nstx_obj_12nov_6565.mat')
     
@@ -309,3 +315,304 @@ def write_p(fname,length=256):
     for ln in temp: 
         print(" {:8.6f}   {:8.6f}".format(*ln))
     return
+
+
+
+
+
+class Fluxavg():
+    def __init__(self):
+        self.values = None
+        self.Bdl = None
+        self.Bp = None
+        self.Ba = None
+        self.Vprime = None
+        self.B = None
+        self.B_1 = None
+        self.B2 = None
+        self.Bp2 = None
+        self.R02_R2 = None
+        self.R2_1 = None
+        self.R0_R = None
+        self.A = None
+        self.qpsi = None
+        self.jpar = None
+        self.jpar2 = None
+        self.jtor = None
+        self.jps = None
+        self.jefit = None
+        self.jpol = None
+        self.jelite = None
+        self.Vp = None
+        self.V = None
+        self.alpha = None
+        self.qprime = None
+        self.s = None
+        self.wp = None
+        self.betap = None
+        self.betat = None
+        self.beta = None
+        self.betan = None
+        
+        self.Rmin = None
+        self.Rmax = None
+        self.q95 = None
+
+
+#@numba.jit
+def PolyArea(x,y):
+    return 0.5*np.abs(np.dot(np.ascontiguousarray(x),np.roll(y,1))-np.dot(np.ascontiguousarray(y),np.roll(x,1)))
+
+
+def flux_average_gfile(gf):
+    """
+    Calculates the flux average of a quantity
+    
+    Arguments:
+
+    **field**
+    Name of the field to flux average
+    """
+    muo = math.pi*4e-7
+    
+    dr = np.mean(np.diff(gf.rg))
+    dz = np.mean(np.diff(gf.zg))
+    R,Z = np.meshgrid(gf.rg,gf.zg)
+    Rflat = R.ravel()
+    Zflat = Z.ravel()
+    RZpoints = np.vstack((Rflat,Zflat)).T
+    
+    bbbs = np.vstack((gf.rbbbs,gf.zbbbs)).T
+    
+    p = path.Path(bbbs)
+    ind = np.reshape(p.contains_points(RZpoints),(gf.nh,gf.nh))
+    #print(ind)
+    dpsidr,dpsidz = np.gradient(gf.psirz,dr,dz)
+    
+    nans = np.empty((gf.nh,gf.nh))
+    nans[:,:] = np.nan
+    zeros = np.zeros((gf.nh,gf.nh))
+    
+    pprime = np.reshape(griddata(gf.psin,gf.pprim,gf.psirzn),(gf.nh,gf.nh))
+    pprime = np.where(ind==True,pprime,nans)
+    
+    ffprime = np.reshape(griddata(gf.psin,gf.ffprim,gf.psirzn),(gf.nh,gf.nh))
+    ffprime = np.where(ind==True,ffprime,nans)
+    
+    fpol = np.reshape(griddata(gf.psin,gf.fpol,gf.psirzn),(gf.nh,gf.nh))
+    fpol = np.where(ind==True,fpol,nans)
+    
+    #plt.figure()
+    #plt.contourf(gf.rg,gf.zg,pprime)
+    
+    dfpoldr,dfpoldz = np.gradient(fpol,dr,dz)
+    
+    
+    jr = -1.0/muo/R*dfpoldz
+    jr = np.where(ind==True,jr,zeros)
+    jz =  1.0/muo/R*dfpoldr
+    jz = np.where(ind==True,jz,zeros)
+    jphi = -np.sign(gf.current)*(R*pprime + 1.0/muo/R*ffprime)
+    jphi = np.where(ind==True,jphi,zeros)
+    
+    BR =  np.sign(gf.current)/R*dpsidz
+    BZ = -np.sign(gf.current)/R*dpsidr
+    Bpol = np.sqrt(BR**2 + BZ**2)
+    
+    
+    
+    fig = plt.figure()
+    values = gf.psin[1:] #np.linspace(0.0,1.0)
+    #values[0] = values[1]/2
+    cs = plt.contour(gf.rg,gf.zg,gf.psirzn,levels=values)
+    n_points = len(cs.collections)
+    
+    if n_points != len(values):
+        print('ERROR: not enough contour lines')
+        return
+    
+    points=[]
+    #Create a nested list of points of each contour line
+    # cs.collections[i] is the i-th contour line
+    # cs.collections[i].get_paths()[j] is the j-th connected path of the i-th contour line
+    for i in range(n_points-1):
+        paths = cs.collections[i].get_paths()
+        pp = cs.collections[i].get_paths()[0]
+        v = pp.vertices
+        # Merge disconnected path to one list of points
+        if len(paths)>1:
+            for j in range(1,len(paths)):
+                pp = cs.collections[i].get_paths()[j]
+                v = np.concatenate((v,pp.vertices))
+        ind = p.contains_points(v)
+        temp = []
+        # Append points as list, so indexing is more straightforward
+        for k in range(len(ind)):
+            if ind[k]==True:
+                temp.append(list(v[k,:]))
+        points.append(np.asarray(temp))
+    points.append(bbbs)
+    #plt.figure()
+    #for i in range(n_points):
+    #    plt.plot(points[i][:,0],points[i][:,1])
+    plt.close(fig)
+    
+    jpar = np.zeros(n_points)
+    jpar2 = np.zeros(n_points)
+    jtor = np.zeros(n_points)
+    jpol = np.zeros(n_points)
+    jps = np.zeros(n_points)
+    jefit = np.zeros(n_points)
+    jelite = np.zeros(n_points)
+    
+    Rgeo = np.zeros(n_points)
+    Bdl = np.zeros(n_points)
+    Bp = np.zeros(n_points)
+    Ba = np.zeros(n_points)
+    Vprime = np.zeros(n_points)
+    B = np.zeros(n_points)
+    B_1 = np.zeros(n_points)
+    B_2 = np.zeros(n_points)
+    B2 = np.zeros(n_points)
+    Bp2 = np.zeros(n_points)
+    R02_R2 = np.zeros(n_points)
+    R2_1 = np.zeros(n_points)
+    R0_R = np.zeros(n_points)
+    A = np.zeros(n_points)
+    qpsi = np.zeros(n_points)
+    
+    for ii in range(n_points):
+        Rgeo[ii] = (np.amin(points[ii][:,0]) + np.amax(points[ii][:,0]))/2
+        dl = [np.sqrt((points[ii][i+1,0]-points[ii][i,0])**2 + (points[ii][i+1,1]-points[ii][i,1])**2) for i in range(len(points[ii])-1)]
+        dl.insert(0, 0.0)
+        
+        #print(dl)
+        l = np.cumsum(dl)
+        
+        # Averages
+        #ToDo: griddata takes about 0.47s to execute, and thus slows down the code. Think about alternative
+        bpol = griddata(RZpoints,Bpol.flatten(),points[ii])
+        #bphi = griddata(gf.psin,gf.fpol,values[ii])/points[ii][:,0]
+        #pprime_fs = griddata(gf.psin,gf.pprim,values[ii])
+        #ffprime = griddata(gf.psin,gf.ffprim,values[ii])
+        #fpol = griddata(gf.psin,gf.fpol,values[ii])
+        bphi = gf.fpol[ii+1]/points[ii][:,0]
+        pprime_fs = gf.pprim[ii+1]
+        ffprime = gf.ffprim[ii+1]
+        fpol = gf.fpol[ii+1]
+    
+        Norm = trapz(1.0/bpol,l)
+        #print(ii,Norm)
+        Bdl[ii] = trapz(bpol,l)
+        Bp[ii] = trapz(bpol/bpol,l)/Norm
+        Ba[ii] = 4e-7*math.pi*gf.current/trapz(bpol/bpol,l)
+        Vprime[ii] = 2.0*math.pi*Norm
+        B[ii] = trapz(np.sqrt(bpol**2 + bphi**2)/bpol,l)/Norm
+        B_1[ii] = trapz(1./np.sqrt(bpol**2 + bphi**2)/bpol,l)/Norm
+        B2[ii] = trapz((bpol**2 + bphi**2)/bpol,l)/Norm
+        B_2[ii] = trapz(1./(bpol**2 + bphi**2)/bpol,l)/Norm
+        Bp2[ii] = trapz(bpol**2/bpol,l)/Norm
+        R02_R2[ii] = trapz(((gf.rcentr/points[ii][:,0])**2)/bpol,l)/Norm
+        R2_1[ii] = trapz(((1./points[ii][:,0])**2)/bpol,l)/Norm
+        R0_R[ii] = trapz((gf.rcentr/points[ii][:,0])/bpol,l)/Norm
+        A[ii] = PolyArea(points[ii][:,0],points[ii][:,1])
+        qpsi[ii] = np.sign(gf.bcentr)*fpol*Vprime[ii]/(2*math.pi)**2*R2_1[ii]
+        
+        # Current densities
+        jpar[ii]   = abs(fpol*pprime_fs*B_1[ii] + ffprime/fpol/4e-7/math.pi*B[ii])
+        jpar2[ii]  = abs(gf.rcentr*pprime_fs + ffprime/gf.rcentr/4e-7/math.pi/((fpol/gf.rcentr)**2)*B2[ii])
+        jtor[ii]   = abs(gf.rcentr*pprime_fs + ffprime/gf.rcentr/4e-7/math.pi*R02_R2[ii])
+        jps[ii]    = abs(fpol*pprime_fs*(B_1[ii] - B[ii]/B2[ii]))
+        jefit[ii]  = abs(jtor[ii]/R0_R[ii])
+        jpol[ii]   = abs(jpar2[ii] - jtor[ii])
+        
+    
+    
+    Vp = Vprime/2/math.pi
+    
+    V = cumtrapz(Vprime,values,initial=0)*(gf.sibry - gf.simag)
+    
+    alpha  = 2e-7/math.pi*Vprime*abs(gf.pprim[1:])*np.sqrt(V/2/math.pi/math.pi/gf.rcentr)
+    #print('pprim')
+    #print(gf.pprim[1:])
+    #print('Vprime')
+    #plt.figure()
+    #plt.plot(values,Vprime)
+    #print(Vprime)
+    #print('V')
+    #plt.figure()
+    #plt.plot(values,V)
+    #print(V)
+    #qprime = elib.deriv(qpsi/(gf.sibry - gf.simag),values)
+    startTime = time.time()
+    qprime = fpyl.deriv(gf.qpsi[1:],gf.psin[1:])
+    executionTime = (time.time() - startTime)
+    print('Execution time in seconds: ' + str(executionTime))
+    
+    #s = 2.0*V/Vprime*qprime/qpsi
+    s = qprime*gf.psin[1:]/gf.qpsi[1:]
+    wp = 3/2*trapz(gf.pres[1:],V)
+    betap = trapz(gf.pres[1:],V)/V[-1]*2*4e-7*math.pi/Ba[-1]**2
+    betat = 100*trapz(gf.pres[1:],V)/V[-1]*2*4e-7*math.pi/gf.bcentr**2
+    beta  = betap*betat/(betap + betat/100)
+    betan = abs(beta*gf.amin*gf.bcentr/(gf.current/1e6))
+    
+    jelite = -np.sign(gf.current)*(gf.rcentr*gf.pprim[1:]*(fpol/gf.rcentr)**2.*B_2 + ffprime/muo/gf.rcentr)
+    jeliten = (np.amax(jelite[np.where(gf.psin>0.8)[0][0]:]) + jelite[-1])/2/(gf.current/A[-1])
+    #print(jelite[np.where(gf.psin>0.8)[0][0]:],jelite[-1],gf.current,A[-1])
+    #print(jeliten)
+    #plt.figure(10)
+    #plt.plot(values,jelite)
+    
+    #plt.figure(11)
+    #plt.plot(values,s)
+    
+    #plt.figure(12)
+    #plt.plot(values,qpsi)
+
+    #plt.figure(13)
+    #plt.plot(values,jpar)
+    
+    #plt.figure(14)
+    #plt.plot(values,jtor)
+    
+    fa = Fluxavg()
+    fa.values = values
+    fa.Bdl = Bdl
+    fa.Bp = Bp
+    fa.Ba = Ba
+    fa.Vprime = Vprime
+    fa.B = B
+    fa.B_1 = B_1
+    fa.B2 = B2
+    fa.Bp2 = Bp2
+    fa.R02_R2 = R02_R2
+    fa.R2_1 = R2_1
+    fa.R0_R = R0_R
+    fa.A = A
+    fa.qpsi = qpsi
+    fa.jpar = jpar
+    fa.jpar2 = jpar2
+    fa.jtor = jtor
+    fa.jps = jps
+    fa.jefit = jefit
+    fa.jpol = jpol
+    fa.jelite = jelite
+    fa.Vp = Vp
+    fa.V = V
+    fa.alpha = alpha
+    fa.qprime = qprime
+    fa.s = s
+    fa.wp = wp
+    fa.betap = betap
+    fa.betat = betat
+    fa.beta = beta
+    fa.betan = betan
+    
+    fa.Rmin = np.amin(gf.rbbbs)
+    fa.Rmax = np.amax(gf.rbbbs)
+    q_interp = interp1d(values, qpsi,kind='cubic',fill_value="extrapolate")
+    fa.q95 = q_interp(0.95)
+    
+    return fa
+
