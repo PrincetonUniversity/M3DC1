@@ -49,27 +49,6 @@ static const char* get_field_name_from_id(const FieldID id)
 }
 #endif
 
-static apf::Field* get_component_of_field(apf::Mesh2* m, apf::Field* in, int comp)
-{
-  int comps = countComponents(in);
-  PCU_ALWAYS_ASSERT(comp < comps);
-
-  apf::Field* out = apf::createFieldOn(m, "in_field_comp", apf::SCALAR);
-
-  apf::MeshEntity* e;
-  apf::MeshIterator* it = m->begin(0);
-
-  double dofs[FIXSIZEBUFF];
-  while ( (e = m->iterate(it)) )
-  {
-    getComponents(in, e, 0, &dofs[0]);
-    double dof_comp = dofs[comp];
-    setComponents(out, e, 0, &dof_comp);
-  }
-  m->end(it);
-  return out;
-}
-
 static apf::Field* get_field_at_index(apf::Mesh2* m, apf::Field* inField, int index, int numDofs)
 {
   int numComps = apf::countComponents(inField);
@@ -292,129 +271,6 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
   apf::destroyField(min_field);
   apf::destroyField(cnt_field);
 }
-
-
-static void get_dofs_on_ent(m3dc1_mesh* m, m3dc1_field* f, apf::MeshEntity* e, const apf::Vector3& xi)//, apf::NewArray<double>& dofs)
-{
-  apf::Mesh2* mesh = m->mesh;
-  apf::Field* field = f->get_field();
-  int numDofs = apf::countComponents(field);
-  apf::Vector3 xii;
-
-  apf::Adjacent adj;
-  mesh->getAdjacent(e, 2, adj);
-  if (mesh->getType(e) == apf::Mesh::VERTEX)
-    xii = apf::Vector3(0., 0., 0.);
-  else
-    xii = apf::Vector3(xi[0],0.,0.);
-
-
-  for (int i = 0; i < adj.getSize(); i++) {
-    apf::MeshEntity* currentFace = adj[i];
-    PCU_ALWAYS_ASSERT(mesh->getType(currentFace) == apf::Mesh::TRIANGLE);
-
-    apf::MeshEntity* dvs[3];
-    mesh->getDownward(currentFace, 0, dvs);
-    double coords[3][2];
-    apf::NewArray<double> all_dofs(3*numDofs);
-    apf::NewArray<double> eval_dofs(numDofs);
-    for (int j = 0; j < 3; j++) {
-      apf::Vector3 p;
-      mesh->getPoint(dvs[j], 0, p);
-      coords[j][0] = p[0];
-      coords[j][1] = p[1];
-      apf::getComponents(field, dvs[j], 0, &(all_dofs[j*numDofs]));
-    }
-    ReducedQuinticImplicit rq;
-    rq.setCoord(coords);
-    rq.setDofs(&(all_dofs[0]));
-
-    apf::MeshElement* me = apf::createMeshElement(mesh, currentFace);
-    apf::Vector3 xiip;
-    apf::Vector3 xyz;
-    xiip = apf::boundaryToElementXi(mesh, e, currentFace, xii);
-    apf::mapLocalToGlobal(me, xiip, xyz);
-    apf::destroyMeshElement(me);
-
-    double xyzArray[3];
-    xyz.toArray(xyzArray);
-
-    rq.eval_g(xyzArray, &(eval_dofs[0]));
-    printf("at face %d, (%f/%f/%f) the dofs are %e %e %e %e %e %e\n",
-    	                                                   i, xyz[0], xyz[1], xyz[2],
-    	                                                      eval_dofs[0],
-                                                              eval_dofs[1],
-                                                              eval_dofs[2],
-                                                              eval_dofs[3],
-                                                              eval_dofs[4],
-                                                              eval_dofs[5]);
-  }
-  printf("===========================\n");
-/*   if (faces.n == 1) */
-/*   { */
-/*     apf::MeshEntity* face = faces.e[0]; */
-/*   } */
-/*   else if (faces.n == 2) */
-/*   { */
-/*   } */
-/*   else */
-/*     PCU_ALWAYS_ASSERT_VERBOSE(0, "something is not right!"); */
-}
-
-static void m3dc1_check_field_correctness(const char* name, const char* message, int* ts)
-{
-  if (!PCU_Comm_Self())
-    printf("_______ checking field correctness at time step %d at %s\n", *ts, message);
-
-  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
-
-  /* if (!PCU_Comm_Self()) */
-  /*   printf("_______ listing all tags \n", *ts, message); */
-
-  /* apf::DynamicArray<apf::MeshTag*> tags; */
-  /* mesh->getTags(tags); */
-  /* for (int i = 0; i < tags.getSize(); i++) { */
-  /*   if(!PCU_Comm_Self()) */
-  /*     printf("_______ tag %d's name is %s\n", i, mesh->getTagName(tags[i])); */
-  /* } */
-
-
-  apf::Field* f = mesh->findField(name);
-  if (!f)
-  {
-    if (PCU_Comm_Self())
-      printf("_______ field with name %s was not found in the mesh\n", name);
-    return;
-  }
-  char tagname[256];
-  sprintf(tagname, "%s_ver", name);
-  if (!PCU_Comm_Self())
-    printf("_______ attempting to find tag with name %s\n", tagname);
-  apf::MeshTag* t = mesh->findTag(tagname);
-  if (!t)
-  {
-    if (!PCU_Comm_Self())
-      printf("_______ tag with name %s was not found in the mesh\n", tagname);
-    return;
-  }
-
-  apf::MeshEntity* v;
-  apf::MeshIterator* it = mesh->begin(0);
-
-  int cnt = 0;
-  while ( (v = mesh->iterate(it)) )
-  {
-    if (!mesh->hasTag(v,t))
-    {
-      printf("_______ message (%s) vert %d on part %d misses tag %s\n", message, cnt, PCU_Comm_Self(), tagname);
-    }
-    cnt++;
-  }
-
-  if (!PCU_Comm_Self())
-    printf("_______ eof checking field correctness at time step %d at %s\n", *ts, message);
-}
-
 
 int begin_numVert;
 double begin_mem, begin_time;
@@ -919,7 +775,6 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
     double* ar, double* max_size, int* refine_level, int* coarsen_level)
 {
 
-  m3dc1_check_field_correctness("field_vec", "beginning_spr", ts);
   char filename[256];
 #ifdef DEBUG
   if (!PCU_Comm_Self())
