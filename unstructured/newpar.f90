@@ -426,22 +426,23 @@ Program Reducedquintic
 
 
     ! for now call spr adapt every 10 time steps
-    if (mod(ntime, 10) .eq. 0) then
-      write(mesh_file_name,"(A11,A)") 'beforeadapt', 0
-      call m3dc1_mesh_write (mesh_file_name,0,ntime)
-      call adapt_by_spr(field_vec%id, psi_g, 0.003, 0.05,ntime)
+    if (ispradapt .eq. 1) then
+      if (mod(ntime, isprntime) .eq. 0) then
+        write(mesh_file_name,"(A11,A)") 'beforeadapt', 0
+        call m3dc1_mesh_write (mesh_file_name,0,ntime)
+        call adapt_by_spr(field_vec%id, psi_g, ntime, &
+          isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel)
+      endif
     endif
 
-
-      if (iadapt .gt. 1) then
+    if (iadapt .gt. 1 .and. ispradapt .eq.0) then
       ! adapt_flag=1 if
       !(1) iadapt_ntime(N)>0 -- run adapt_by_error at the end of every N time steps
       !(2) non-linear & iadapt_ntime=0 -- run adapt_by_error at the end of every time step
       !(3) linear, adapt_ke>0 & ekin>adapt_ke -- run adapt_by_error in this time step  
-        ! call diagnose_adapt(adapt_flag)
-        ! if(adapt_flag .eq. 1) call adapt_by_spr(field_vec%id, psi_g, 0.6, ntime)
-       ! if(adapt_flag .eq. 1) call adapt_by_error
-      endif
+        call diagnose_adapt(adapt_flag)
+       if(adapt_flag .eq. 1) call adapt_by_error
+    endif
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
