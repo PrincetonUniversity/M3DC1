@@ -820,12 +820,12 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
     if (isFrozen(field)) unfreeze(field);
     if (it->second->should_transfer())
     {
-      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<<" with #comps "<< countComponents(field)  << " is added to solution transfer\n";
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<< " is added to solution transfer\n";
       fields.push_back(field);
     }
     it++;
   }
-  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size()<<" have been added to solution transfer\n";
+  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size()<<" fields have been added to solution transfer\n";
   while(mesh->countNumberings())
   {
     apf::Numbering* n = mesh->getNumbering(0);
@@ -845,8 +845,6 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
 
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
-  /* ma::Input* in = ma::makeAdvanced(ma::configureIdentity(mesh, 0, &slnTrans)); */
-  /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(mesh, 1, &slnTrans)); */
 
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
@@ -858,13 +856,10 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
   if (coarsen_level < 0)
     in->shouldCoarsen=false;
 
-  ma::adaptVerbose(in,false);
+  ma::adapt(in);
   reorderMdsMesh(mesh);
 
 
-  /* sprintf(filename,"after_%d",*ts); */
-  /* apf::writeVtkFiles(filename,mesh); */
-  /* m3dc1_mesh_write("after_", &option, ts); */
 
   m3dc1_mesh::instance()->initialize();
   compute_globalid(m3dc1_mesh::instance()->mesh, 0);
@@ -2444,7 +2439,6 @@ int m3dc1_field_isnan(FieldID* /* in */ field_id, int * isnan)
   return M3DC1_SUCCESS;
 }
 
-
 //=========================================================================
 void write_vector(apf::Mesh2* m, m3dc1_field* mf, const char* filename, int start_index)
 {
@@ -3728,7 +3722,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     if (isFrozen(field)) unfreeze(field);
     if (it->second->should_transfer())
     {
-      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<<" with #comps "<< countComponents(field)  << " is added to solution transfer\n";
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<< " is added to solution transfer\n";
       fields.push_back(field);
     }
     it++;
@@ -3986,7 +3980,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     if (isFrozen(field)) unfreeze(field);
     if (it->second->should_transfer())
     {
-      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<<" with #comps "<< countComponents(field)  << " is added to solution transfer\n";
+      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<< " is added to solution transfer\n";
       fields.push_back(field);
     }
     it++;
