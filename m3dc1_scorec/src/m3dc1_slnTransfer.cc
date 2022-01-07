@@ -7,19 +7,23 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
+#include <assert.h>
+
+// headers from SCOREC/Core
+#include <PCU.h>
+#include <pcu_util.h>
+#include <apfMesh.h>
+#include <apfMesh2.h>
+#include <apf.h>
+#include <apfMDS.h>
+#include <apfNumbering.h>
+
+// local headers
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_scorec.h"
 #include "m3dc1_mesh.h"
 #include "m3dc1_field.h"
-#include "apfMesh.h"
-#include "apfMesh2.h"
-#include "apf.h"
-#include "apfMDS.h"
-#include "apfNumbering.h"
-#include <assert.h>
 
-#include <pcu_util.h>
-#include <PCU.h>
 
 int ReducedQuinticTransfer::dofNode = C1TRIDOFNODE;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,13 +61,7 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
     for( int i=0; i<2; i++)
     {
       dofsVertex.at(i).resize(numComp);
-      // TODO most likely this can be done by directly inquiring the field at vertex
-      // and there is no need for create element
       apf::getComponents(field, vertices[i], 0, &(dofsVertex[i][0]));
-      /* apf::Element* vertex = apf::createElement(field,vertices[i]); */
-      /* apf::getComponents(vertex,xi,&(dofsVertex[i][0])); */
-      /* m3dc1_mesh::instance()->mesh->getPoint(vertices[i], 0, xyz2[i]); */
-      /* apf::destroyElement(vertex); */
     }
     double len1= sqrt((xyz2[0][0]-xyz2[1][0])*(xyz2[0][0]-xyz2[1][0])+(xyz2[0][1]-xyz2[1][1])*(xyz2[0][1]-xyz2[1][1]));
     double len2= sqrt((xyz2[0][0]-xyz[0])*(xyz2[0][0]-xyz[0])+(xyz2[0][1]-xyz[1])*(xyz2[0][1]-xyz[1]));
@@ -104,12 +102,7 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
           miss_flag=1;
           break;
         }
-	// TODO most likely this can be done by directly inquiring the field at vertex
-	// and there is no need for create element
         apf::getComponents(field, vertices[i], 0, &(value[numComp*i]));
-        /* apf::Element* vertex = apf::createElement(field,vertices[i]); */
-        /* apf::getComponents(vertex,xi,&(value[numComp*i])); */
-	/* apf::destroyElement(vertex); */
       }
       assert(!miss_flag);
       if(miss_flag)
@@ -185,86 +178,4 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
     apf::setComponents(field,vert,0,&(newdofs[0]));
   }
 }
-
-
-/* void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector const& xi, ma::Entity* vert) */
-/* { */
-/*   apf::MeshEntity* oldEdge= apf::getMeshEntity(parent); */
-
-/*   apf::MeshEntity* vertices[3]; */
-/*   int num_face=-1; */
-/*   apf:: Up faces; */
-/*   mesh->getUp(oldEdge,faces); */
-/*   num_face=faces.n; */
-/*   PCU_ALWAYS_ASSERT_VERBOSE((num_face>0 && num_face<=2), "expecting 0 < num_face <= 2\n"); */
-
-
-/*   // from the six dofs (phi, phi_x, phi_y, phi_xx, phi_xy, phi_yy) */
-/*   // the first 3 are continuous at element boundaries. Therefore, we can */
-/*   // simply use one one of the upward adjacent faces to oldEdge to interpolate */
-/*   apf::MeshEntity* face = faces.e[0]; */
-/*   apf::MeshEntity* dvs[3]; */
-/*   mesh->getDownward(face, 0, dvs); */
-/*   double coords[3][2]; */
-/*   for (int i = 0; i < 3; i++) { */
-/*     apf::Vector3 p; */
-/*     mesh->getPoint(dvs[i], 0, p); */
-/*     coords[i][0] = p[0]; */
-/*     coords[i][1] = p[1]; */
-/*   } */
-
-/*   // coordinate of the new vertex */
-/*   double newCoord[2]; */
-/*   apf::Vector3 p; */
-/*   mesh->getPoint(vert, 0, p); */
-/*   newCoord[0] = p[0]; */
-/*   newCoord[1] = p[1]; */
-
-
-/*   for(int fi=0; fi<fields.size(); fi++) */
-/*   { */
-/*     apf::Field* field = fields.at(fi); */
-/*     int numComp = apf::countComponents(field); */
-/*     if (numComp == 1) // if size_field is added to the list take care of it now */
-/*     { */
-/*       apf::Element* el = apf::createElement(field, parent); */
-/*       apf::setScalar(field, vert, 0, apf::getScalar(el, xi)); */
-/*       apf::destroyElement(el); */
-/*     } */
-/*     else */
-/*     { */
-
-/*       // get all the dofs associated with "face"'s downward verts in "dvs" */
-
-/*       // for setting the case, set the coordinates first */
-/*       thecase->setCoord(coords); */
-
-/*       // then set the dofs */
-/*       apf::NewArray<double> dofs_all_fields(3*numComp); */
-/*       for (int i = 0; i < 3; i++) { */
-/* 	apf::getComponents(field, dvs[i], 0, &(dofs_all_fields[i*numComp])); */
-/*       } */
-
-/*       int numField=numComp/dofNode; */
-/*       vector<double> newdofs(numComp); */
-/*       for( int ifield=0; ifield<numField; ifield++) */
-/*       { */
-/* 	vector<double> dofs_one_field(3*dofNode); */
-/* 	vector<double> dofs_cacu(dofNode); */
-/* 	for( int i=0; i<dofNode; i++) */
-/* 	{ */
-/* 	  dofs_one_field.at(i)=dofs_all_fields[ifield*dofNode+i]; */
-/* 	  dofs_one_field.at(dofNode+i)=dofs_all_fields[numComp+ifield*dofNode+i]; */
-/* 	  dofs_one_field.at(2*dofNode+i)=dofs_all_fields[numComp*2+ifield*dofNode+i]; */
-/* 	} */
-/* 	thecase->setDofs(&(dofs_one_field[0])); */
-/* 	thecase->eval_g(newCoord,&(dofs_cacu[0])); */
-/* 	for(int i=0; i<dofNode; i++) */
-/* 	  newdofs.at(ifield*dofNode+i)=dofs_cacu[i]; */
-/*       } */
-/*       apf::setComponents(field,vert,0,&(newdofs[0])); */
-/*     } */
-/*   } */
-/* } */
-
 
