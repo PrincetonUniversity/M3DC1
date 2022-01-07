@@ -53,6 +53,8 @@ static const char* get_field_name_from_id(const FieldID id)
 }
 #endif
 
+
+// static functions used for spr-adapt
 static apf::Field* get_field_at_index(apf::Mesh2* m, apf::Field* inField, int index, int numDofs)
 {
   int numComps = apf::countComponents(inField);
@@ -83,7 +85,6 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
   assert(dim == 2);
   int order = 2;
   apf::Field* ip = apf::createIPField(m, "ip_field", apf::VECTOR, order);
-  /* apf::Field* ip = apf::createIPField(m, "ip_field", apf::MATRIX, order); */
 
   apf::MeshEntity* e;
   apf::MeshIterator* it = m->begin(dim);
@@ -107,16 +108,7 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
     for (int i = 0; i < 3; i++)
       apf::getComponents(in, dvs[i], 0, &(values[dofNode*i]));
 
-    /* vector<double> allDofs(3*dofNode); */
-    /* for (int i = 0; i < dofNode; i++) { */
-    /*   allDofs[i] = values[ifield*dofNode+i]; */
-    /*   allDofs[dofNode+i] = values[numComps+ifield*dofNode+i]; */
-    /*   allDofs[2*dofNode+i] = values[2*numComps+ifield*dofNode+i]; */
-    /* } */
     shape.setDofs(&(values[0]));
-
-
-
 
 
     apf::MeshElement* me = apf::createMeshElement(m, e);
@@ -130,10 +122,6 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
       shape.eval_g(pArray, &(dofAtXi[0]));
       apf::Vector3 grad(dofAtXi[1], dofAtXi[2], 0.0);
       apf::setVector(ip, e, i, grad);
-      /* apf::Matrix3x3 gradgrad(dofAtXi[3], dofAtXi[4], 0.0, */
-      /* 	                      dofAtXi[4], dofAtXi[5], 0.0, */
-      /* 	                      0.0,        0.0,        1.0); */
-      /* apf::setMatrix(ip, e, i, gradgrad); */
     }
     apf::destroyMeshElement(me);
   }
@@ -144,9 +132,6 @@ static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
 static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
     double max_size, int refine_level, int coarsen_level)
 {
-  /* char filename[256]; */
-  /* sprintf(filename,"size_mod_before_%d",ts); */
-  /* apf::writeVtkFiles(filename,m); */
   //compute both average and min current size at each vertex
   apf::Field* sum_field = apf::createFieldOn(m, "sum_field", apf::SCALAR);
   apf::Field* min_field = apf::createFieldOn(m, "min_field", apf::SCALAR);
@@ -186,7 +171,6 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
   // update the min field using share reduction with min op
   apf::sharedReduction(min_field, 0, false, apf::ReductionMin<double>());
 
-
   // compute min/max of avg_size over the whole mesh
   double mesh_min = 1.e16;
   double mesh_max = -1.e16;
@@ -218,7 +202,6 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
   double coarsen_factor = 1.;
   for (int i = 0; i < coarsen_level; i++)
     coarsen_factor *= 2.;
-
 
   it = m->begin(0);
   while ( (v = m->iterate(it)) )
@@ -266,8 +249,7 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
   if (!PCU_Comm_Self())
     printf("min/max of asked size at time step %d: %f/%f\n", ts, asked_min, asked_max);
 
-  /* sprintf(filename,"size_mod_after_%d",ts); */
-  /* apf::writeVtkFiles(filename,m); */
+  // clean up
   m->removeField(sum_field);
   m->removeField(min_field);
   m->removeField(cnt_field);
@@ -275,6 +257,7 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
   apf::destroyField(min_field);
   apf::destroyField(cnt_field);
 }
+// end of static functions used for spr-adapt
 
 int begin_numVert;
 double begin_mem, begin_time;
