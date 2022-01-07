@@ -7,33 +7,37 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
+#include <mpi.h>
+#include <map>
+#include <cstring>
+#include <iomanip> // setprecision
+#include <fstream> // file input
+// #include <stdio.h>
+// #include <stdlib.h>
+
+// headers from SCOREC/Core
+#include <PCU.h>
+#include <pcu_util.h>
+#include <lionPrint.h>
+#include <gmi_null.h> // FIXME: should be deleted later on since it's added temporarily for null model
+#include <gmi_analytic.h>
+#include <apfMDS.h>
+#include <apf.h>
+#include <apfShape.h>
+#include <pumi.h>
+#include <spr.h>
+
+// local headers
 #include "m3dc1_scorec.h"
 #include "m3dc1_matrix.h"
 #include "m3dc1_model.h"
 #include "m3dc1_mesh.h"
 #include "m3dc1_field.h"
-#include <mpi.h>
-#include <spr.h>
-#include <PCU.h>
-#include <pcu_util.h>
-#include <lionPrint.h>
-#include "gmi_null.h" // FIXME: should be deleted later on since it's added temporarily for null model
-#include <gmi_analytic.h>
-#include <map>
-#include <cstring>
-#include <iomanip> // setprecision
-#include <fstream> // file input
-#include "apfMDS.h"
-#include "apf.h"
-#include "apfShape.h"
 #include "Expression.h"
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_sizeField.h"
 #include "ReducedQuinticImplicit.h"
-#include "ReducedQuinticExplicit.h"
-#include "pumi.h"
-// #include <stdio.h>
-// #include <stdlib.h>
+
 #ifdef M3DC1_TRILINOS
 #include "m3dc1_ls.h"
 #endif
