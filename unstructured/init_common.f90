@@ -258,33 +258,35 @@ subroutine den_eq
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,def_fields,1,0)
 
-     select case(idenfunc)
-     case(1)
-        n079(:,OP_1) = den0*.5* &
-             (1. + &
-             tanh((real(ps079(:,OP_1))-(psibound+denoff*(psibound-psimin)))&
-             /(dendelt*(psibound-psimin))))
-        
-     case(2)        
-        n079(:,OP_1) = den0
-        if(den0.ne.den_edge) then
-           temp79a = ((real(ps079(:,OP_1))-psimin)/(psibound-psimin) - denoff)&
-                /dendelt
-           n079(:,OP_1) = n079(:,OP_1) &
-                + .5*(den_edge-den0)*(1. + tanh(real(temp79a)))
-        end if
-
+     if(iread_ne.eq.0) then 
+        select case(idenfunc)
+        case(1)
+           n079(:,OP_1) = den0*.5* &
+                (1. + &
+                tanh((real(ps079(:,OP_1))-(psibound+denoff*(psibound-psimin)))&
+                /(dendelt*(psibound-psimin))))
+           
+        case(2)        
+           n079(:,OP_1) = den0
+           if(den0.ne.den_edge) then
+              temp79a = ((real(ps079(:,OP_1))-psimin)/(psibound-psimin) - denoff)&
+                   /dendelt
+              n079(:,OP_1) = n079(:,OP_1) &
+                   + .5*(den_edge-den0)*(1. + tanh(real(temp79a)))
+           end if
+   
 #ifdef USEST
-     case(21)
-        if(igeometry.eq.1) then
-           temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
-           n079(:,OP_1) = den0 + (den_edge-den0)*&
-                (1. + tanh((temp79b-(1.+denoff))/dendelt))
-        else
-           if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
-        end if
+        case(21)
+           if(igeometry.eq.1) then
+              temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+              n079(:,OP_1) = den0 + (den_edge-den0)*.5*&
+                   (1. + tanh((temp79b-(1.+denoff))/dendelt))
+           else
+              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
+           end if
 #endif     
-     end select
+        end select
+     end if
 
      if(ipellet.gt.0 .and. linear.eq.1) then
         n = 0.

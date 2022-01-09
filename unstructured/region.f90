@@ -96,7 +96,7 @@ module region
 
       if(rank.eq.0) then
          do i=1, n
-            read(ifile, *), x, y
+            read(ifile, *)  x, y
             r%plane(1)%x(i) = x
             r%plane(1)%y(i) = y
          end do
