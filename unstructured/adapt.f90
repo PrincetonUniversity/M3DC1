@@ -423,8 +423,7 @@ module adapt
 
     call m3dc1_mesh_getnumglobalent (0, num_node_total)
 
-    if (myrank .eq. 0) print*, "time", ntime, "current max", max_val(1), min_val(1), "mesh size before adapt", num_node_total
-    if (myrank .eq. 0) print*, ">>>> >>>> field_vec%id", field_vec%id, 0
+    !if (myrank .eq. 0) print*, "time", ntime, "current max", max_val(1), min_val(1), "mesh size before adapt", num_node_total
 
     call m3dc1_field_max(field_vec%id, max_val, min_val)
     maxPhi = max(abs(max_val(1+(u_g-1)*dofs_per_node)),abs(min_val(1+(u_g-1)*dofs_per_node)))
