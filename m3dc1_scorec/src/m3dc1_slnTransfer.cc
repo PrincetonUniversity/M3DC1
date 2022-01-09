@@ -26,7 +26,6 @@
 
 
 int ReducedQuinticTransfer::dofNode = C1TRIDOFNODE;
-///////////////////////////////////////////////////////////////////////////////////////////////////////
 void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector const& xi, ma::Entity* vert)
 {
   apf::MeshEntity* oldEdge= apf::getMeshEntity(parent);
