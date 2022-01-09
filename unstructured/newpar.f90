@@ -305,9 +305,9 @@ Program Reducedquintic
   call define_transport_coefficients
   call derived_quantities(1)
 
-! #ifdef ADAPT
-!   call adapt_mesh
-! #endif
+#ifdef ADAPT
+  call adapt_mesh
+#endif
 
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
