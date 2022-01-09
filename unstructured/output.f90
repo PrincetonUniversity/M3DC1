@@ -59,7 +59,6 @@ contains
     include 'mpif.h'
 
     integer :: ier,i
-    if(myrank.eq.0 .and. itimer.eq.1) print *, "//////// marker is called"
     call mark_fields(0);
   end subroutine marker
 
