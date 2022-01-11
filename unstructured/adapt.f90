@@ -70,6 +70,7 @@ module adapt
     real :: psib
 
     call create_field(temporary_field)
+    call mark_field_for_solutiontransfer(temporary_field)
     temporary_field = 0.
 
     if(adapt_pellet_delta.gt.0) then
