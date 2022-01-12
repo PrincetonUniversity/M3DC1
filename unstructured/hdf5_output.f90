@@ -705,14 +705,14 @@ contains
 
   ! output_1dvector
   ! ============
-  subroutine output_1darr(parent_id, name, values, ndim, t, error)
+  subroutine output_1darr(parent_id, name, values, ndim, error)
     use hdf5
 
     implicit none
     
     integer(HID_T), intent(in) :: parent_id
     character(LEN=*), intent(in) :: name
-    integer, intent(in) :: ndim, t
+    integer, intent(in) :: ndim
     real, dimension(ndim), intent(in) :: values
     integer, intent(out) :: error
     

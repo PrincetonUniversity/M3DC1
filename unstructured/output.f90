@@ -58,7 +58,7 @@ contains
 
     include 'mpif.h'
 
-    integer :: ier,i
+    integer :: ier
     real :: tstart, tend, diff
 
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -657,6 +657,10 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing fields '
   call output_fields(time_root_id, equilibrium, error)
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
+
+  ! output wall regions
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Writing wall regions'
+  call output_regions(time_root_id, error)
   
   ! Close the file
   call h5gclose_f(time_root_id, error)
@@ -784,6 +788,46 @@ subroutine output_mesh(time_group_id, nelms, error)
   call h5gclose_f(mesh_group_id, error)
 end subroutine output_mesh
 
+subroutine output_regions(group_id, error)
+  use hdf5_output
+  use resistive_wall
+  implicit none
+  
+  integer(HID_T), intent(in) :: group_id
+  integer, intent(out) :: error
+
+  integer(HID_T) :: plane_group_id, region_group_id
+  character(LEN=15) :: wall_region_name
+  character(LEN=9) :: plane_name
+  integer :: i, j
+
+  call write_int_attr(group_id, "iwall_regions", iwall_regions, error)
+
+  do i=1, iwall_regions
+
+     write(wall_region_name, '("wall_region_",I3.3)') i
+     call h5gcreate_f(group_id, wall_region_name, region_group_id, error)
+     call write_int_attr(region_group_id, "nplanes", &
+          wall_region(i)%nplanes, error)
+     call write_real_attr(region_group_id, "eta", wall_region_eta(i), error)
+     call write_real_attr(region_group_id, "etaRZ", wall_region_etaRZ(i),error)
+
+     do j=1, wall_region(i)%nplanes
+        write(plane_name, '("plane_",I3.3)') j
+        call h5gcreate_f(region_group_id, plane_name, plane_group_id, error)
+        call output_1darr(plane_group_id, "x", wall_region(i)%plane(j)%x, &
+             wall_region(i)%plane(j)%n, error)
+        call output_1darr(plane_group_id, "y", wall_region(i)%plane(j)%y, &
+             wall_region(i)%plane(j)%n, error)
+        call output_1darr(plane_group_id, "norm", &
+             wall_region(i)%plane(j)%norm, 3, error)
+        call h5gclose_f(plane_group_id, error)
+     end do
+
+     call h5gclose_f(region_group_id, error)
+  end do
+
+end subroutine output_regions
 
 subroutine write_field(group_id, name, f, nelms, error, isreal)
   use hdf5
