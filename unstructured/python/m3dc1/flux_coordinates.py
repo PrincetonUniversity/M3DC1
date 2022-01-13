@@ -6,7 +6,6 @@
 # Andreas Kleiner:    akleiner@pppl.gov
 
 import fpy
-import math
 import numpy as np
 from scipy.interpolate import interp1d
 import h5py
@@ -16,7 +15,7 @@ import m3dc1.fpylib as fpyl
 from m3dc1.read_h5 import readParameter
 
 #ToDo: Allow psin_range to start at a value > 0
-def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, points=200, fbins=None, tbins=None, itor=None, r0=None, psin_range=None, njac=False, makeplot=False,fignum=501):
+def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, points=200, fbins=None, tbins=None, itor=None, r0=None, psin_range=None, njac=False, makeplot=False,fignum=501,quiet=False):
     """
     Calculates flux coordinates and returns a fpy.sim_data object containing a flux
     coordinate object as property sim.fc. Possibilities are PEST, Boozer, Hamada coordinates
@@ -25,9 +24,9 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     Arguments:
 
     **sim**
-    simulation data object. If none is provided, file_name and time must be specified.
+    simulation data object. If none is provided, filename and time must be specified.
 
-    **file_name**
+    **filename**
     Name of file that will be read, i.e. "../C1.h5". Used when no sim object is given.
 
     **time**
@@ -69,50 +68,36 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     **fignum**
     Figure number for flux coordinate plot
     """
-    if isinstance(sim,fpy.sim_data)==False:
-        sim = fpy.sim_data(file_name,time=time)
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename,time=time)
+    constants = sim.get_constants()
 
     # Read parameters from attributes in HDF5 file
-    if itor==None or r0==None:
-        f = h5py.File(file_name,'r')
-        if itor == None:
-            itor = f.attrs["itor"]
-        if r0 == None:
-            r0 = f.attrs["rzero"]
+    if itor is None:
+        itor = constants.itor
+    if r0 is None:
+        r0 = constants.R0
     
-    if(r0 == 0):
+    if r0==0:
         print('Error: r0 = 0. Using r0 = 1')
         r0 = 1.
     
     
-    if(itor == 0):
-        period = 2.*math.pi*r0
-    else:
-        period = 2.*math.pi
+    period = 2.*np.pi*r0 if itor==0 else 2.*np.pi
 
-    if points==None:
-        if(x==None or z==None): #ToDo: x and y are currently not input parameters, either remove or add as input parameters
+    if points is None:
+        if(x is None or z is None): #ToDo: x and y are currently not input parameters, either remove or add as input parameters
             points=200
         else:
             points=sqrt(len(x)*len(z))
-    if fbins==None or fbins==0:
+    if fbins is None or fbins==0:
         fbins=points
-    if tbins==None or tbins==0:
+    if tbins is None or tbins==0:
         tbins=points
 
-    geo = False
-    
-    if fcoords.lower()=='pest':
-        fpyl.printnote('Creating flux coordinates using PEST angle')
-        fast = False
-    elif fcoords.lower()=='boozer':
-        fpyl.printnote('Creating flux coordinates using BOOZER angle')
-        fast = False
-    elif fcoords.lower()=='hamada':
-        fpyl.printnote('Creating flux coordinates using HAMADA angle')
-        fast = False
-    elif fcoords.lower()=='canonical':
-        fpyl.printnote('Creating flux coordinates using CANONICAL (equal arc length) angle')
+    if fcoords.lower() in ['pest', 'boozer', 'hamada', 'canonical']:
+        fpyl.printnote('Creating flux coordinates using %s angle'%fcoords.upper().replace('CANONICAL', 'CANONICAL (equal arc length)'))
+        geo  = False
         fast = False
     else:
         fpyl.printnote('Creating flux coordinates using GEOMETRIC angle')
@@ -122,28 +107,35 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     print('Fast mode: '+str(fast))
     print('Using FC resolution '+str(tbins)+' , '+str(fbins))
 
-    #ToDo: Reconsider mesh
-    elms = sim.get_mesh(time=sim.timeslice)
-    mp = elms.elements
+    mp = sim.get_mesh(quiet=quiet).elements
     R_linspace_grid = mp[:,4]
     R_linspace = R_linspace_grid
 
 
     # Read fields
-    print('Reading fields...', end=' ', flush=True)
+    if not quiet:
+        print('Reading fields...', end=' ', flush=True)
     A = sim.get_field('A',sim.timeslice)
-    gradA = sim.get_field('A',sim.timeslice)
     B = sim.get_field('B',sim.timeslice)
 
     # Get flux on axis and lcfs and magnetic axis position at the given time slice
     timeslice = sim.timeslice
-    ntimestep = readParameter('ntimestep',fname='time_'+str(timeslice).zfill(3)+'.h5')
-    R_magax = sim.get_time_traces('xmag').values[ntimestep]
-    Z_magax = sim.get_time_traces('zmag').values[ntimestep]
+    tsfilename = '/'.join(filename.split('/')[:-1])
+    if len(tsfilename)>0:
+        tsfilename=tsfilename+'/'
+    if timeslice<0:
+        tsfilename = tsfilename+'equilibrium.h5'
+    else:
+        tsfilename = tsfilename+'time_'+str(timeslice).zfill(3)+'.h5'
+    
+    ntimestep = readParameter('ntimestep',fname=tsfilename)
+    R_magax = sim.get_time_trace('xmag').values[ntimestep]
+    Z_magax = sim.get_time_trace('zmag').values[ntimestep]
     axis = [R_magax, Z_magax]
     psi_0 = R_magax*A.evaluate((R_magax,phit,Z_magax))[1]
-    psi_s = sim.get_time_traces('psi_lcfs').values[ntimestep]
-    print('[Done]')
+    psi_s = sim.get_time_trace('psi_lcfs').values[ntimestep]
+    if not quiet:
+        print('[Done]')
     print('Magnetic axis = '+str(axis))
     print('psi_0, psi_s = '+str(psi_0)+' , '+str(psi_s))
 
@@ -159,10 +151,10 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
             val = R*Aphi
         elif field == 'psi0_r':
             Aphi = A.evaluate((R,phi,Z))[1]
-            dAphidR = gradA.evaluate_deriv((R,phi,Z))[1]
+            dAphidR = A.evaluate_deriv((R,phi,Z))[1]
             val = Aphi+R*dAphidR
         elif field == 'psi0_z':
-            dAphidZ = gradA.evaluate_deriv((R,phi,Z))[7]
+            dAphidZ = A.evaluate_deriv((R,phi,Z))[7]
             val = R*dAphidZ
         elif field == 'psin0':
             psi0 = field_at_point('psi0',R,phi,Z)
@@ -188,7 +180,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
         return val
     
     
-    if psin_range==None:
+    if psin_range is None:
         psi = (dpsi)*(np.arange(float(n))+0.5)/n + psi_0
     else:
         p0 = psi_0 + (dpsi)*psin_range[0]
@@ -199,7 +191,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     dpsi_dpsin = dpsi
     print('dpsi_dpsin = '+str(dpsi_dpsin))
 
-    theta = 2.*math.pi*np.arange(float(m))/m
+    theta = 2.*np.pi*np.arange(float(m))/m
     rpath = np.zeros((m,n))
     zpath = np.zeros((m,n))
     jac = np.zeros((m,n))
@@ -209,6 +201,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     V = np.zeros(n)
     phi = np.zeros(n)
     area = np.zeros(n)
+    polarea = np.zeros(n)
     current = np.zeros(n)
 
     tol_psin = 6e-5
@@ -219,7 +212,8 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
 
     tot = int(0) #long datatype is deprecated in Python3, but closely resembled by int
     
-    print('Finding points on magnetic surfaces...', end=' ', flush=True)
+    if not quiet:
+        print('Finding points on magnetic surfaces...', end=' ', flush=True)
     # find points on magnetic surfaces
     for i in range(m):
         # minus sign is because theta increases clockwise about axis
@@ -246,7 +240,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
                     #print('converged in iteration'+str(i)+','+str(j)+','+str(k))
                     break
 
-                if fast==True:
+                if fast:
                     if((k == 0 and j == 0) or abs(psin_x - psin_old) < tol_psin or abs(rho - rho_old) < tol_r):
                         psin_r = field_at_point('psin0_r',rpath[i,j],phit,zpath[i,j])
                         psin_z = field_at_point('psin0_z',rpath[i,j],phit,zpath[i,j])
@@ -269,22 +263,17 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
                     rho = rho + drho
                 #print('rho = '+str(rho))
             tot = tot + kk
-            if converged == False:
+            if not converged:
                 print('Error at (psi_n, theta) = '+str(psin[j])+' , '+str(theta[i]))
                 print('Did not converge after '+str(maxits)+' iterations. , '+str(rho)+' , '+str(rpath[i,j])+' , '+str(zpath[i,j]))
                 rho = 0.01
                 return
-    print('[Done]')
-    print('Total Newton iterations '+str(tot))
-    print('Average Newton iterations '+str(float(tot)/float(int(m)*int(n))))
+    if not quiet:
+        print('[Done]')
+        print('Total Newton iterations '+str(tot))
+        print('Average Newton iterations '+str(float(tot)/float(int(m)*int(n))))
 
-    #ToDo: Remove Plot
-    #plt.figure()
-    #pathshape = rpath.shape
-    #for i in range(pathshape[1]):
-    #    plt.plot(rpath[:,i],zpath[:,i])
-    #plt.axis('equal')
-    
+
 #  find pest angle
     if(psi_s < psi_0):
         print('Ip > 0')
@@ -336,7 +325,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
             if not fcoords.lower()=='canonical':
                 bp[i] = field_at_point('gradpsi',rpath[i,j],phit,zpath[i,j])/rp[i,j]
 
-            if fast == False:
+            if not fast:
                 if not fcoords.lower()=='canonical':
                     ix = field_at_point('i0',rpath[i,j],phit,zpath[i,j])
                     fjr2[i] = -fac*ix/(rp[i,j]**2*bp[i])
@@ -357,6 +346,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
         
         current[j] = np.sum(br*dr + bz*dz)
         area[j] = period*np.sum(dl*rp[:,j])
+        polarea[j] = fpyl.PolygonArea(rp[:,j],zpath[:,j])
         dV[j] = period*np.sum(fac*dpsi_dpsin*dl/bp)
         if(j == 0):
             V[j] = dV[j]*psin[j]/2.
@@ -364,10 +354,10 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
             V[j] = V[j-1] + (dV[j]+dV[j-1])*(psin[j]-psin[j-1])/2.
 
         # calculate q
-        if fast == False:
+        if not fast:
             # normalize theta to 2 pi
-            if(geo == False):
-                f[j] = np.sum(dthetadl*dl)/(2.*math.pi)
+            if(not geo):
+                f[j] = np.sum(dthetadl*dl)/(2.*np.pi)
                 theta_sfl[:,j] = theta_sfl[:,j]/f[j]
             q[j] = np.sum(fjr2*dl)/period
             
@@ -382,7 +372,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
             print('ERROR, volume is negative')
             print(j, V[j], dV[j], psi[j]-psi_0, bp[j])
             return 0
-        if fast == False:
+        if not fast:
             if(theta_sfl[0,j] > theta_sfl[m-1,j]):
                 print('ERROR, theta_sfl is clockwise')
                 return 0
@@ -393,7 +383,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
                 print('ERROR, phi has wrong sign')
                 return 0
     
-    if(geo == False):
+    if(not geo):
         for j in range(n):
             # interpolate fields to be evenly spaced in PEST angle
             #newm = interpol(findgen(m),theta_sfl[*,j],theta) #IDL
@@ -425,7 +415,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
                     jac[i,j] = -dpsi_dpsin*f[j]/field_at_point('gradpsi',rpath[i,j],phit,zpath[i,j])
 
     #  Calculate Jacobian if requested (or if analytic expression isn't available)
-    if (geo == True or njac==True):
+    if (geo or njac):
         print('Calculating Jacobian numerically')
         # calculate jacobian
         dr_dpsi = np.copy(rpath)
@@ -455,7 +445,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
 
 
     # calculate deviation of toroidal angle from geometric toroidal angle: omega := zeta - phi
-    if (geo == False and fast==False):
+    if ((not geo) and (not fast)):
         for j in range(n):
             for i in range(m):
                 jac_pest = -dpsi_dpsin*rp[i,j]**2*q[j] / field_at_point('i0',rpath[i,j],phit,zpath[i,j])
@@ -470,10 +460,10 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
     # Create flux coordinates object
     # psi = poloidal flux
     # phi = toroidal flux
-    fc = fpy.flux_coordinates(m,n,rpath,zpath,axis,omega,psi,psin,period,theta,jac,q,area,dV,fcoords,V,phi,itor,r0,current,dpsi_dpsin,points)
+    fc = fpy.flux_coordinates(m,n,rpath,zpath,axis,omega,psi,psin,period,theta,jac,q,area,polarea,dV,fcoords,V,phi,itor,r0,current,dpsi_dpsin,points)
     sim.fc = fc
 
-    if makeplot==True:
+    if makeplot:
         fig = plt.figure(constrained_layout=True,figsize=(15,7),num=fignum)
         spec2 = gridspec.GridSpec(ncols=4, nrows=3, figure=fig)
         f_ax1 = fig.add_subplot(spec2[:, 0])
@@ -507,7 +497,7 @@ def flux_coordinates(sim=None, file_name='C1.h5', time=0, fcoords='', phit=0.0, 
         cont = f_ax2.contourf(theta,psin,jac.transpose(),200,cmap='jet')
         cbar = fig.colorbar(cont,ax=f_ax2,orientation="horizontal", pad=0.02)
         cbar.ax.set_xticklabels(cbar.ax.get_xticklabels(),rotation=270)
-        f_ax2.set_aspect(2*math.pi)
+        f_ax2.set_aspect(2*np.pi)
         f_ax2.set_xlabel(r'$\theta$')
         f_ax2.set_ylabel(r'$\psi_N$')
         f_ax2.set_title('Jacobian')
