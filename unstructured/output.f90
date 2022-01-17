@@ -126,7 +126,7 @@ contains
 
     ! Write C1ke data
     if(myrank.eq.0) then
-       if((ekin+ekino)*dtold.eq.0. .or. ekin.eq.0.) then
+       if((ekin+ekino)*dtold.eq.0. .or. ekin.eq.0..or. ntime.eq.0) then
           gamma_gr = 0.
        else
           gamma_gr = (ekin - ekino)/((ekin+ekino)*dtold)
