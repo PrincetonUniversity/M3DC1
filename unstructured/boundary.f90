@@ -628,7 +628,6 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
   ! Loop over rows
   do r=1, dofs_per_node
      irow = ibegin(1) + r - 1
-     if(myrank.eq.0) print *, r, irow
      numvals = 0
      ! Loop over fields
      do i=1, n
@@ -639,7 +638,6 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
               numvals = numvals + 1
               v(numvals) = val(r,c)
               col(numvals) = ibegin(i) + j - 1
-              if(myrank.eq.0) print *, "    ", col(numvals), v(numvals)
            end if
         end do
      end do
