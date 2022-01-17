@@ -198,10 +198,23 @@ subroutine get_vor_mask(itri, imask)
   integer :: ibound
 
   ibound = 0
-  if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
-  if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_NEUMANN)
+
+  if(inonormalflow.eq.1) then
+     ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  elseif(inonormalflow.eq.2) then
+     ibound = ior(ibound, BOUNDARY_MULTI_DT)
+  end if
+
+  if(inoslip_pol.eq.1) then
+     ibound = ior(ibound, BOUNDARY_NEUMANN)
+  elseif(inoslip_pol.eq.2) then
+     ibound = ior(ibound, BOUNDARY_MULTI_DN)
+  end if
+
   if(vor_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
+
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
+
 end subroutine get_vor_mask
 
 subroutine get_vz_mask(itri, imask)
@@ -229,8 +242,12 @@ subroutine get_chi_mask(itri, imask)
   integer :: ibound
 
   ibound = 0
+
   if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
+
+  ! inonormalflow=2 and inoslip_pol=2 conditions are included in U equation
+
   if(com_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_chi_mask
@@ -262,9 +279,15 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   integer :: i, izone, izonedim, numnodes, icounter_t
   integer :: i_u, i_vz, i_chi
   logical :: is_boundary
+  integer :: ibegin(2), ibc(2)
+  vectype :: coeff(2), xp(2)
 
   if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vel called"
+  if(myrank.eq.0 .and. iprint.ge.2) then
+     print *, "boundary_vel called"
+     if(inonormalflow.eq.2) print *, "  Using multibc for normal flow"
+     if(inoslip_pol.eq.2)   print *, "  Using multibc for poloidal flow"
+  end if
 
   numnodes = owned_nodes()
   do icounter_t=1,numnodes
@@ -284,6 +307,24 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
         if(numvar.ge.3) then
            call set_normal_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
         endif
+     elseif(inonormalflow.eq.2) then
+
+        temp = 0.
+
+        ! U
+        ibegin(1) = i_u
+        ibc(1) = BOUND_DT
+        coeff(1) = -1.0
+        xp(1) = itor
+
+        ! chi
+        ibegin(2) = i_chi
+        ibc(2) = BOUND_DN
+        coeff(2) = 1.0
+        xp(2) = -2*itor
+
+        call set_multi_bc(2,ibegin,ibc,coeff,xp,rhs,temp,normal,curv,izonedim,x,mat)
+
      end if
      
      ! no poloidal slip
@@ -293,6 +334,24 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
         if(numvar.ge.3) then
            call set_dirichlet_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
         endif
+     elseif(inoslip_pol.eq.2) then
+
+        temp = 0.
+
+        ! U
+        ibegin(1) = i_u
+        ibc(1) = BOUND_DN
+        coeff(1) = 1.0
+        xp(1) = itor
+
+        ! chi
+        ibegin(2) = i_chi
+        ibc(2) = BOUND_DT
+        coeff(2) = 1.0
+        xp(2) = -2*itor
+
+        call set_multi_bc(2,ibegin,ibc,coeff,xp,rhs,temp,normal,curv,izonedim,x,mat)
+
      end if
 
      ! toroidal velocity
