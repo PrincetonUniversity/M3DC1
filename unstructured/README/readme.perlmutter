@@ -19,7 +19,11 @@ Mon Jul  8 09:39:44 PDT 2019
    make OPT=1 RL=1 MAX_PTS=25 ARCH=perlmutter
    make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter
    make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter
-   make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter ST=1
+
+   module load cmake python
+   module load cray-fftw/3.3.8.12 cray-hdf5-parallel/1.12.0.7 cray-netcdf-hdf5parallel/4.7.4.7
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_ST ST=1
+
 
 5. mesh utility
 
