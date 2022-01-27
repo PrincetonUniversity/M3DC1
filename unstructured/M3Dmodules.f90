@@ -468,6 +468,9 @@ module basic
 
   ! MPI variable(s)
   integer myrank, maxrank
+#ifdef _OPENACC
+  integer igpu
+#endif
 
   type(spline1d) :: q_spline
 
