@@ -201,7 +201,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
              (v1uun    (trialx,ph079,ph079,lin) &
              +v1uvn    (trialx,ph079,vz079,lin) &
              +v1vvn    (trialx,vz079,vz079,lin) &
-             +v1uchin  (trialx,vz079,ch079,lin) &
+             +v1uchin  (trialx,ph079,ch079,lin) &
              +v1vchin  (trialx,vz079,ch079,lin) &
              +v1chichin(trialx,ch079,ch079,lin))
      end if
