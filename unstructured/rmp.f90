@@ -138,13 +138,13 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         sn(1:np) = &
              sin(ntor*phi((i-1)*np+1:i*np))
         br((i-1)*np+1:i*np) = &
-             real(fr(1:np))*co(1:np) + &
+             real(fr(1:np))*co(1:np) - &
              aimag(fr(1:np))*sn(1:np)
         bphi((i-1)*np+1:i*np) = &
-             real(fphi(1:np))*co(1:np) + &
+             real(fphi(1:np))*co(1:np) - &
              aimag(fphi(1:np))*sn(1:np)
         bz((i-1)*np+1:i*np) = &
-             real(fz(1:np))*co(1:np) + &
+             real(fz(1:np))*co(1:np) - &
              aimag(fz(1:np))*sn(1:np)
      end do
 #endif
