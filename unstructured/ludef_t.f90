@@ -4206,6 +4206,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   if(kappar.ne.0.) then
     fac = 1.
     if((numvar.ge.3 .and. ipres.eq.0) .or. (numvar.lt.3 .and. ipres.eq.1)) fac=1. + (1.- pefac)/pefac
+    if(numvar.ge.3 .and. ipres.eq.1 .and. (.not. electron_temperature)) fac = kappari_fac
         
     if(linear.eq.0) then
 !
