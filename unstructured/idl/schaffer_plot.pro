@@ -53,9 +53,11 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
                       _EXTRA=extra)
    nflux=fc.psi_norm
    q=fc.q
-      
+
    for i=0, fc.m-1 do begin
-      d[0,i,*] = d[0,i,*]/fc.area/fc.dpsi_dchi
+      for j=0, n_elements(n)-1 do begin
+         d[j,i,*] = d[j,i,*]/fc.area/fc.dpsi_dchi
+      end
    end 
 
    if(n_elements(bmnfile) ne 0) then begin
@@ -340,7 +342,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
    endif else begin
       k = 0
    endelse
-   
+
    contour_and_legend, abs(d[k,*,*]), m, y,  $
                        table=39, xtitle=xtitle, ytitle=ytitle, $
                        xrange=[-20,20], yrange=[0,1], /lines, c_thick=1, $
