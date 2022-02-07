@@ -141,6 +141,7 @@ pro plot_br, bins=bins, q_val=q_val, $
 
    schaffer_plot, br, x, z, t, psi0=psi0,i0=i0, q_val=q_val, $
                   symbol=symbol, points=points, bins=bins, ntor=ntor, $
-                  overplot=overplot, filename=filename[0], _EXTRA=extra, $
-                  ignore_jacobian=vacfield, units=units
+                  overplot=overplot, filename=filename[0], $
+                  ignore_jacobian=vacfield, units=units, $
+                  dpsi0_dx=psi0_r, dpsi0_dz=psi0_z, _EXTRA=extra
 end

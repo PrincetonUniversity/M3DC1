@@ -1,11 +1,13 @@
-pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
+pro schaffer_plot, field, x,z,t, q=q, bins=bins, q_val=q_val, $
                    psi_val=psi_val, ntor=ntor, psi0=psi0, i0=i0, $
                    m_val=m_val, phase=phase, overplot=overplot, $
                    linestyle=linestyle, outfile=outfile, bmnfile=bmnfile, $
                    bmncdf=bmncdf, rhs=rhs, reverse_q=reverse_q, $
                    sqrtpsin=sqrtpsin, profdata=profdata, $
                    boozer=boozer, pest=pest, hamada=hamada, geo=geo, $
-                   symbol=symbol, units=units
+                   symbol=symbol, units=units, $
+                   dpsi0_dx=psi0_r, dpsi0_dz=psi0_z, $
+                   _EXTRA=extra
 
    print, 'Drawing schaffer plot'
 
@@ -50,7 +52,7 @@ pro schaffer_plot, field, x,z,t, q=q, _EXTRA=extra, bins=bins, q_val=q_val, $
 
    d = field_spectrum(field,x,z,psi0=psi0,i0=i0,fc=fc,tbins=bins,fbins=bins, $
                       m=m,n=n,pest=pest,boozer=boozer,hamada=hamada, $
-                      _EXTRA=extra)
+                      dpsi0_dx=psi0_r, dpsi0_dz=psi0_z, _EXTRA=extra)
    nflux=fc.psi_norm
    q=fc.q
 

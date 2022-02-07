@@ -15,11 +15,13 @@
 ;  n:   toroidal mode numbers
 ;===========================================================================
 function field_spectrum, field, x, z, psi0=psi0, i0=i0, fc=fc, m=m, n=n, $
-                         ignore_jacobian=nojac, _EXTRA=extra
+                         ignore_jacobian=nojac, $
+                         dpsi0_dx=psi0_r, dpsi0_dz=psi0_z,_EXTRA=extra
 
 ;  b = flux_coord_field_new(field, x, z, fc=fc, /pest, _EXTRA=extra)
 
-  a = flux_coord_field(field, psi0, x, z, i0=i0, fc=fc, _EXTRA=extra)
+  a = flux_coord_field(field, psi0, x, z, i0=i0, fc=fc, $
+                       dpsi0_dx=psi0_r, dpsi0_dz=psi0_z, _EXTRA=extra)
   b = transpose(a,[0,2,1])
 
   sz = size(field)
