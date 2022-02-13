@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2020 Scientific Computation Research Center, 
+  (c) 2005-2021 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -9,119 +9,217 @@
 *******************************************************************************/
 #include "m3dc1_scorec.h"
 #include "m3dc1_mesh.h"
+#include "m3dc1_model.h"
 #include "apf.h"
 #include "apfMesh.h"
 #include <iostream>
 #include "ma.h"
 #include "pumi.h"
 #include <mpi.h>
+#include <gmi_mesh.h>
+#include <apfMDS.h>
+#include <lionPrint.h>
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_sizeField.h"
-#include "ReducedQuinticImplicit.h"
 #include "petscksp.h"
-#include <math.h>
-#include <stdlib.h>
+#include "PCU.h"
+
+static void print_local_and_owned_ents(int dim)
+{
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(dim);
+  int cnt = 0;
+  int cnt_owned = 0;
+
+  while ( (e = m->iterate(it)) )
+  {
+    if (m->isOwned(e)) cnt_owned++;
+    cnt++;
+  }
+  m->end(it);
+
+  if (dim == 0)
+    printf("self %d: vert cnt  all/owned %d/%d\n", PCU_Comm_Self(), cnt, cnt_owned);
+  else if (dim == 1)
+    printf("self %d: edge cnt  all/owned %d/%d\n", PCU_Comm_Self(), cnt, cnt_owned);
+  else if (dim == 2)
+    printf("self %d: face cnt  all/owned %d/%d\n", PCU_Comm_Self(), cnt, cnt_owned);
+  else
+    printf("self %d: regi cnt  all/owned %d/%d\n", PCU_Comm_Self(), cnt, cnt_owned);
+
+  if(!PCU_Comm_Self())
+    printf("\n\n");
+
+  PCU_Barrier();
+}
+
+
+static void remove_all_planes()
+{
+  double curr_plane = m3dc1_model::instance()->get_phi(PCU_Comm_Self());
+  int np = m3dc1_model::instance()->num_plane;
+
+  int groupSize = PCU_Comm_Peers()/np;
+  int current_plane_id = PCU_Comm_Self() / groupSize;
+
+
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+
+  apf::MeshEntity* e;
+  apf::MeshIterator* it;
+
+  for (int d = 2; d >= 0; d--) {
+    it = m->begin(d);
+    while ( (e = m->iterate(it)) )
+    {
+      if (current_plane_id == 0) continue;
+      m->destroy(e);
+    }
+  }
+  m->acceptChanges();
+  m3dc1_mesh::instance()->set_mcount();
+}
+
+static MPI_Comm change_comm(int numplane)
+{
+  MPI_Comm newComm;
+  int self = PCU_Comm_Self();
+  int peers = PCU_Comm_Peers();
+  int groupsize = peers/numplane;
+  int localpid = self/groupsize;
+  int grouprank = self%groupsize;
+
+  MPI_Comm_split(m3dc1_model::instance()->oldComm, localpid, grouprank, &newComm);
+  return newComm;
+}
+
 
 int main( int argc, char* argv[])
 {
   MPI_Init(&argc,&argv);
-  m3dc1_scorec_init();
+  m3dc1_scorec_init(); // this calls PCU_Comm_Init()
   PetscInitialize(&argc,&argv,PETSC_NULL,PETSC_NULL);
+  lion_set_verbosity(1);
 
-  if (argc<3 & !pumi_rank())
-  {
-    cout<<"Usage: ./main  model mesh #planes"<<endl;
-    return M3DC1_FAILURE;
-  }
- 
-  int num_plane=1;
-  if (argc>3)
-  {
-    num_plane = atoi(argv[3]);
-    if (num_plane>1 && pumi_size()%num_plane==0)  
-    	m3dc1_model_setnumplane (&num_plane);
-
-  }
-  if (m3dc1_model_load(argv[1])) // model loading failed
-  {
-    PetscFinalize();
-    m3dc1_scorec_finalize();
-    MPI_Finalize();
-    return 0;
-  }
-
-  // m3dc1_model_print();
-
-  if (m3dc1_mesh_load(argv[2]))  // mesh loading failed
-  {
-    PetscFinalize();
-    m3dc1_scorec_finalize();
-    MPI_Finalize();
-    return 0;
-  }
-  
-  if (num_plane==1)
-  {
-    apf::writeVtkFiles("2d",m3dc1_mesh::instance()->mesh);
-    PetscFinalize();
-    m3dc1_scorec_finalize();
-    MPI_Finalize();
-    return 0;
-  }  
-
-  // Set input for m3dc1_mesh_build3d()
-  int num_field = 0;
-  int field_id = 0;
-  int dof_per_value = 0;
- 
-  if (num_plane>1)
-    m3dc1_mesh_build3d(&num_field, &field_id, &dof_per_value);    // Build 3d
-  apf::writeVtkFiles("3d",m3dc1_mesh::instance()->mesh);
-
-  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
-
-
-  m3dc1_mesh::instance()->remove_wedges();
-  pumi_mesh_print(m3dc1_mesh::instance()->mesh);
- 
-  double center[3]={1.75, 0, 0.};  
-  apf::MeshTag* psiTag[6];
-  apf::Mesh2*  mesh =m3dc1_mesh::instance()->mesh;
-  int tagFound=1;
-
-  for(int i=0; i<6; i++)
-  {
-  	char buff[256];
-    	sprintf(buff, "psi%d", i);
-    	psiTag[i]=mesh->findTag(buff);
-    	if(!psiTag[i]) tagFound=0;
-  }
-  if(tagFound)
-  {
-    apf::Field* psiField=createPackedField(mesh, "psi", 6);
-    apf::MeshIterator* it = mesh->begin(0);
-    it = mesh->begin(0);
-    while (apf::MeshEntity * e = mesh->iterate(it))
+  if (argc != 4)
+    if ( !PCU_Comm_Self() )
     {
-      double psiValue[6];
-      for(int i=0; i<6; i++)
-      {
-        mesh->getDoubleTag(e, psiTag[i], psiValue+i);
-      }
-      apf::setComponents(psiField, e,0,psiValue);
+      printf("Usage: %s <model> <mesh> <#planes>\n", argv[0]);
+      PetscFinalize();
+      m3dc1_scorec_finalize();
+      MPI_Finalize();
     }
-    mesh->end(it);
-    ReducedQuinticImplicit shape;
-    vector<apf::Field*> fields;
-    fields.push_back(psiField);
-    //ReducedQuinticTransfer slnTrans(mesh, fields, &shape);
-    double psi0 = 0.48095979306833486;
-    double psil = 0.20875939867733129;
-    double param[13]={0.98, 2, 1, .05, .5, .05, .5, .05, .01, 100., 100., .07, .16};
-    SizeFieldPsi sf (psiField, psi0, psil, param, 2);
-    std::cout << psi0 << "\n";
+
+  int zero=0, num_plane;
+  num_plane = atoi(argv[3]);
+
+  m3dc1_model_load(argv[1]);
+
+
+  if (num_plane>1 && PCU_Comm_Peers()%num_plane==0)
+    m3dc1_model_setnumplane (&num_plane); // this switches the Comm
+
+
+  // -- load the 2D mesh
+  // -- build the 3D mesh
+  // -- write to vtk for debugging
+  m3dc1_mesh_load(argv[2]); // load the 2d mesh
+  m3dc1_mesh_build3d(&zero, &zero, &zero); // make the 3d mesh
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field", m);
+
+
+  // remove 3D and non-master plane and write to vtk for debugging
+  m3dc1_mesh::instance()->remove3D();
+  apf::printStats(m);
+  apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field_wedges_removed", m);
+
+  // remove all the planes and write to vtk for debugging
+  // Note this one will have 8 .vtk files
+  //apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field_all_planes_removed", m);
+
+  PCU_Barrier();
+
+  // change the communications so that there are two groups (corresponding to the original 2 parts in the 2D mesh)
+  // Note this is exactly similar to what happens inside m3dc1_model_setnumplane ()
+  MPI_Comm groupComm = change_comm(m3dc1_model::instance()->num_plane);
+  PCU_Switch_Comm(groupComm);
+
+  // do an adapt on the master plane
+  if (m3dc1_model::instance()->local_planeid == 0)
+  {
+    // write the mesh before adapt
+    // for this one will only have 2 .vtk files
+    apf::writeVtkFiles("adapt3dl_2dmesh_with_test_field", m);
+    ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(m, 1));
+    in->shouldSnap = false;
+    in->shouldTransferParametric = false;
+    ma::adapt(in);
+    // write the mesh after adapt
+    // for this one will only have 2 .vtk files
+    apf::writeVtkFiles("adapt3dl_2dmesh_with_test_field_after_uniform_adapt", m);
+
+    // clean up fields, numberings, and tags
+    int numFields = m->countFields();
+    int numNumberings = m->countNumberings();
+    int numTags;
+    apf::DynamicArray<apf::MeshTag*> tags;
+    m->getTags(tags);
+    numTags = tags.getSize();
+    if (!PCU_Comm_Self()) {
+      printf("there are %d/%d/%d fields/numberings/tags on the mesh\n", numFields, numNumberings, numTags);
+
+      if (numFields > 0)
+	for (int i = 0; i < numFields; i++) {
+	  printf("field %d's name is %s\n", i, apf::getName(m->getField(i)));
+	}
+      if (numNumberings > 0)
+	for (int i = 0; i < numNumberings; i++) {
+	  printf("numbering %d's name is %s\n", i, apf::getName(m->getNumbering(i)));
+	}
+      if (numTags > 0)
+      {
+	for (int i = 0; i < numTags; i++) {
+	  printf("tag %d's name is %s and will be removed\n", i, m->getTagName(tags[i]));
+	  for (int d = 0; d < 4; d++) {
+	    apf::removeTagFromDimension(m, tags[i], d);
+	  }
+	  m->destroyTag(tags[i]);
+	}
+	m->getTags(tags);
+	numTags = tags.getSize();
+	for (int i = 0; i < numTags; i++) {
+	  printf("tag %d's name is %s\n", i, m->getTagName(tags[i]));
+	}
+	// Note this is note done in m3dc1_scorec/test/adapt_3d/main.cc but seems to be necessary
+	// otherwise failure happens earlier
+	m3dc1_mesh::instance()->local_entid_tag = NULL;
+	m3dc1_mesh::instance()->own_partid_tag = NULL;
+	m3dc1_mesh::instance()->num_global_adj_node_tag = NULL;
+	m3dc1_mesh::instance()->num_own_adj_node_tag = NULL;
+      }
+    }
+
+    apf::reorderMdsMesh(m);
   }
-  
+
+  PCU_Barrier();
+
+  // switch to global comm
+  PCU_Switch_Comm(m3dc1_model::instance()->oldComm);
+  MPI_Comm_free(&groupComm);
+
+  // some stats
+  print_local_and_owned_ents(0);
+  print_local_and_owned_ents(1);
+  print_local_and_owned_ents(2);
+  print_local_and_owned_ents(3);
+
+  m3dc1_mesh::instance()->restore3D();
+  // m3dc1_mesh::instance()->print(__LINE__);
+  apf::printStats(m);
+
   PetscFinalize();
   m3dc1_scorec_finalize();
   MPI_Finalize();
