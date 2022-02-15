@@ -4,6 +4,11 @@ Mon Jul  8 09:39:44 PDT 2019
    ssh -P cori.nersc.gov -l [username]
    ssh perlmutter
 
+   direct login
+   ssh -P perlmutter-p1.nersc.gov -l [username]
+   or
+   ssh -P saul-p1.nersc.gov -l [username]
+
 2. code
    git clone git@github.com:PrincetonUniversity/M3DC1.git 
    git clone -b [branch] git@github.com:PrincetonUniversity/M3DC1.git 
