@@ -65,7 +65,7 @@ void m3dc1_mesh::remove3D()
 
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
   MeshEntity* e;
-  int cnt;
+  int cnt = 0;
   int myrank = PCU_Comm_Self();
   int num_2d_face=mesh->count(3);
  
