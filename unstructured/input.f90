@@ -328,6 +328,8 @@ subroutine set_defaults
   call add_var_double("kappa0", kappa0, 0., "", transp_grp)
   call add_var_double("kappar", kappar, 0., &
        "Parallel thermal conductivity", transp_grp)
+  call add_var_double("kappari_fac", kappari_fac, 1., &
+       "Ion parallel thermal conductivity factor", transp_grp)
   call add_var_double("tcrit", tcrit, 0., "", transp_grp)
   call add_var_double("k_fac", k_fac, 1., &
        "multiplies toroidal field in denominator of PTC", transp_grp)

@@ -931,7 +931,7 @@ subroutine calculate_scalars()
            do ip=1,npellets
               if((pellet_state(ip).eq.1).and.(r_p(ip).ge.1e-8)) then
                  ! weight density/temp by pellet distribution (normalized)
-                 temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+                 temp79a = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1, izone)
                  nsource_pel(ip) = nsource_pel(ip) + twopi*int2(net79(:,OP_1),temp79a)/tpifac
                  temp79b = pet79(:,OP_1)/net79(:,OP_1)
                  if(ikprad_te_offset .gt. 0) temp79b = temp79b - eta_te_offset
@@ -1140,7 +1140,7 @@ subroutine calculate_Lor_vol()
 
      ! perform volume integral of pellet cloud (without normalization)
      do ip=1,npellets
-        temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0)
+        temp79a  = pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 0, izone)
         temp(ip) = temp(ip) + twopi*int1(temp79a)/tpifac
      end do
 

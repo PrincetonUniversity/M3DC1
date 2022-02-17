@@ -165,7 +165,7 @@ contains
 
   end subroutine pellet_init
 
-  vectype elemental function pellet_distribution(ip, r, phi, z, pres, inorm)
+  vectype elemental function pellet_distribution(ip, r, phi, z, pres, inorm, izone)
     use math
     use basic
 !    use diagnostics
@@ -173,11 +173,18 @@ contains
     integer, intent(in) :: ip
     real, intent(in) :: r, phi, z, pres
     integer, intent(in) :: inorm
+    integer, intent(in) :: izone
 
     real :: x, y, px, py, gamma
 
     ! Zero if pellet inactive or we're normalizing and Lor_vol<=0
     if((pellet_state(ip).ne.1).or.((inorm.ne.0).and.(ipellet.ge.10).and.(Lor_vol(ip).le.0.))) then
+       pellet_distribution = 0.
+       return
+    end if
+
+    ! zero if outsize plasma region
+    if(izone.ne.1) then
        pellet_distribution = 0.
        return
     end if

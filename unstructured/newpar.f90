@@ -27,6 +27,9 @@ Program Reducedquintic
   use kprad_m3dc1
   use transport_coefficients
   use m3dc1_vel_prof
+#ifdef _OPENACC
+  use openacc
+#endif
 
 #if PETSC_VERSION >= 38
   use petsc
@@ -45,6 +48,9 @@ Program Reducedquintic
   character*256 :: arg, solveroption_filename
   integer :: ip
   character(len=32) :: mesh_file_name
+#ifdef _OPENACC
+  integer :: num_devices
+#endif
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -76,6 +82,13 @@ Program Reducedquintic
      print *,'Error in MPI_Comm_size:',ier
      call safestop(1)
   endif
+
+#ifdef _OPENACC
+  num_devices = acc_get_num_devices(acc_device_nvidia)
+  if (num_devices == 0) num_devices = 1
+  igpu=mod(myrank,num_devices)
+  !$acc set device_num(igpu)
+#endif
 
   print_help = .false.
   do i=1, command_argument_count()

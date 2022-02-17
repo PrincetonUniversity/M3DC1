@@ -59,9 +59,11 @@ pro plot_surfmn, file, srnorm=srnorm, reverse_q=reverse_q, fac=fac, $
       k = where(ntor eq nt, ct)
       if(ct ne 1) then $
          print, 'Error: ntor = ', nt, ' not found.'
+      data = reform(bmn[k,*,*])
    endif else begin
       k = 0
       nt = ntor
+      data = bmn
    endelse
 
    if(n_elements(title) eq 0) then begin
@@ -74,10 +76,10 @@ pro plot_surfmn, file, srnorm=srnorm, reverse_q=reverse_q, fac=fac, $
 
       mu = m/(nt*qmax)
       for i=0, n_elements(q)-1 do begin
-         bmn[*,*,i] = interpolate(reform(bmn[*,*,i]), mu*nt*q[i]-m[0]) 
+         data[*,i] = interpolate(reform(data[*,i]), mu*nt*q[i]-m[0]) 
       end
       
-      contour_and_legend, abs(reform(bmn[k,*,*])), mu, y,  $
+      contour_and_legend, abs(data), mu, y,  $
                           table=39, xtitle=xtitle, ytitle=ytitle, $
                           xrange=[-4,4], yrange=[0,1], /lines, c_thick=1, $
                           ccolor=!d.table_size-1, label=label, $
@@ -85,7 +87,7 @@ pro plot_surfmn, file, srnorm=srnorm, reverse_q=reverse_q, fac=fac, $
       oplot, [1,1], !y.crange, linestyle=2, color=!d.table_size-1
    endif else begin
       xtitle='!8m!X'
-      contour_and_legend, abs(reform(bmn[k,*,*])), m, y,  $
+      contour_and_legend, abs(data), m, y,  $
                           table=39, xtitle=xtitle, ytitle=ytitle, $
                           xrange=[-4,4]*abs(qmax), yrange=[0,1], $
                           /lines, c_thick=1, $

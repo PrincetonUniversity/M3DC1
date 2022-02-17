@@ -24,7 +24,8 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
                            i0=i0, x=x, z=z, fbins=fbins, $
                            tbins=tbins, boozer=boozer, hamada=hamada, $
                            njac=njac, itor=itor, psin_range=psin_range, $
-                           r0=r0, filename=filename
+                           r0=r0, filename=filename, $
+                           dpsi0_dx=psi0_r, dpsi0_dz=psi0_z
   if(n_elements(filename) eq 0) then begin
      fn = 'C1.h5'
   endif else begin
@@ -82,17 +83,21 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   end
 
   if(keyword_set(fast)) then begin
-     psi0_r = dx(psi0, x)
-     psi0_z = dz(psi0, z)
-  endif else begin
-     psi0_r = read_field('psi',x,z,t,points=pts,/equilibrium,$
-                         filename=fn,_EXTRA=extra,op=2)
-     psi0_z = read_field('psi',x,z,t,points=pts,/equilibrium,$
-                         filename=fn,_EXTRA=extra,op=3)
-     if(n_elements(i0) eq 0) then begin
-        i0 = read_field('I',x,z,t,points=pts,/equilibrium,$
-                        filename=fn,_EXTRA=extra)
+     if(n_elements(psi0_r) eq 0 or n_elements(psi0_z) eq 0) then begin
+        psi0_r = dx(psi0, x)
+        psi0_z = dz(psi0, z)
      end
+  endif else begin
+     if(n_elements(psi0_r) eq 0 or n_elements(psi0_z) eq 0) then begin
+        psi0_r = read_field('psi',x,z,t,points=pts,/equilibrium,$
+                            filename=fn,_EXTRA=extra,op=2)
+        psi0_z = read_field('psi',x,z,t,points=pts,/equilibrium,$
+                            filename=fn,_EXTRA=extra,op=3)
+     end
+        if(n_elements(i0) eq 0) then begin
+           i0 = read_field('I',x,z,t,points=pts,/equilibrium,$
+                           filename=fn,_EXTRA=extra)
+        end
   endelse
 
   psi_s = lcfs(psi0, x, z, axis=axis, xpoint=xpoint, flux0=flux0, $

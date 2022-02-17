@@ -1,4 +1,4 @@
-	/****************************************************************************** 
+/****************************************************************************** 
 
   (c) 2005-2017 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
@@ -120,6 +120,7 @@ m3dc1_model::m3dc1_model()
   num_plane=1;
   group_size = PCU_Comm_Peers();
   oldComm = PCU_Get_Comm();
+  ge_tag=NULL;
 }
 
 m3dc1_model::~m3dc1_model()
@@ -131,6 +132,13 @@ m3dc1_model::~m3dc1_model()
     delete ptr[0];
     delete ptr[1];
     delete []ptr;
+  }
+  
+  if (ge_tag)
+  {
+    for(int i = 0; i < 3; ++i)
+      delete [] ge_tag[i];
+    delete [] ge_tag;
   }
 //  PUMI_Geom_Del(model);
 }
@@ -1231,3 +1239,41 @@ gmi_ent* create_b_spline_curve( int id, int order, int numPts, double* ctrlPts, 
   //if (!PCU_Comm_Self()) std::cout<<"[p"<<PCU_Comm_Self()<<"] "<<__func__<<": new edge "<<id<<" vtx("<<vtx.first<<", "<<vtx.second<<")\n";
   return gedge;
 }
+
+void m3dc1_model::save_gtag()
+{
+  ge_tag = new int*[3];
+  gmi_iter* g_it;
+  gmi_ent* ge;
+  int cnt;
+
+  for (int i = 0; i < 3; ++i)
+    ge_tag[i] = new int[model->n[i]];
+
+  for (int dim=0; dim<=2; ++dim)
+  {
+    g_it = gmi_begin(model, dim);
+    cnt=0;
+    while ((ge = gmi_next(model, g_it)))
+    {
+      ge_tag[dim][cnt++]= gmi_tag(model,ge);
+      gmi_base_set_tag (model, ge, cnt);
+    }
+    gmi_end(model, g_it);
+  }
+}
+
+void m3dc1_model::restore_gtag()
+{
+    gmi_iter* g_it;
+    gmi_ent* ge;
+
+    for (int dim=0; dim<=2; ++dim)
+    {
+      g_it = gmi_begin(model, dim);
+      int cnt=0;
+      while ((ge = gmi_next(model, g_it)))
+        gmi_base_set_tag (model, ge, ge_tag[dim][cnt++]);
+      gmi_end(model, g_it);
+    }
+} 

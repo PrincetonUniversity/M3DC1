@@ -177,7 +177,7 @@ endif else if(strcmp(name, 'rad_source', /fold_case) eq 1) then begin
       return, "!8" + zstr[z] + " " + nzstr[nz] + "!X"
    endif else if(strcmp(name, 'kprad_particle_source', 21, /fold_case) eq 1) then begin
       z = fix(read_parameter('kprad_z', filename=filename))
-      nz = fix(strmid(name, 8, 2))
+      nz = fix(strmid(name, 22, 2))
       zstr = ['0', 'H', 'He', $
               'Li', 'Be', 'B',  'C',  'N', 'O', 'F',  'Ne', $
               'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar']
