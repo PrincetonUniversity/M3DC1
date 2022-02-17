@@ -1473,7 +1473,7 @@ void m3dc1_mesh::restore3D()
                        remote_vertices,remote_edges,remote_faces);
 
   // update partition classification
-  int index=0;
+  index=0;
   ent_it = mesh->begin(0);
   while ((e = mesh->iterate(ent_it)))
   //for (int index=0; index<num_local_vtx; ++index)
