@@ -54,33 +54,6 @@ static void print_local_and_owned_ents(int dim)
   PCU_Barrier();
 }
 
-
-static void remove_all_planes()
-{
-  double curr_plane = m3dc1_model::instance()->get_phi(PCU_Comm_Self());
-  int np = m3dc1_model::instance()->num_plane;
-
-  int groupSize = PCU_Comm_Peers()/np;
-  int current_plane_id = PCU_Comm_Self() / groupSize;
-
-
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-
-  apf::MeshEntity* e;
-  apf::MeshIterator* it;
-
-  for (int d = 2; d >= 0; d--) {
-    it = m->begin(d);
-    while ( (e = m->iterate(it)) )
-    {
-      if (current_plane_id == 0) continue;
-      m->destroy(e);
-    }
-  }
-  m->acceptChanges();
-  m3dc1_mesh::instance()->set_mcount();
-}
-
 static MPI_Comm change_comm(int numplane)
 {
   MPI_Comm newComm;
@@ -127,17 +100,12 @@ int main( int argc, char* argv[])
   m3dc1_mesh_load(argv[2]); // load the 2d mesh
   m3dc1_mesh_build3d(&zero, &zero, &zero); // make the 3d mesh
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field", m);
+  apf::writeVtkFiles("01_mesh_initial", m);
 
 
   // remove 3D and non-master plane and write to vtk for debugging
   m3dc1_mesh::instance()->remove3D();
   apf::printStats(m);
-  apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field_wedges_removed", m);
-
-  // remove all the planes and write to vtk for debugging
-  // Note this one will have 8 .vtk files
-  //apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field_all_planes_removed", m);
 
   PCU_Barrier();
 
@@ -151,14 +119,14 @@ int main( int argc, char* argv[])
   {
     // write the mesh before adapt
     // for this one will only have 2 .vtk files
-    apf::writeVtkFiles("adapt3dl_2dmesh_with_test_field", m);
+    apf::writeVtkFiles("02_mesh_2d_before_adapt", m);
     ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(m, 1));
     in->shouldSnap = false;
     in->shouldTransferParametric = false;
     ma::adapt(in);
     // write the mesh after adapt
     // for this one will only have 2 .vtk files
-    apf::writeVtkFiles("adapt3dl_2dmesh_with_test_field_after_uniform_adapt", m);
+    apf::writeVtkFiles("03_mesh_2d_after_adapt", m);
 
     // clean up fields, numberings, and tags
     int numFields = m->countFields();
@@ -217,9 +185,9 @@ int main( int argc, char* argv[])
   print_local_and_owned_ents(3);
 
   m3dc1_mesh::instance()->restore3D();
-  // m3dc1_mesh::instance()->print(__LINE__);
   apf::printStats(m);
 
+  apf::writeVtkFiles("04_mesh_3d_after_adapt", m);
   PetscFinalize();
   m3dc1_scorec_finalize();
   MPI_Finalize();
