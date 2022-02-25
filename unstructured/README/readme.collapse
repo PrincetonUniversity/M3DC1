@@ -1,0 +1,41 @@
+There are two programs available to change the # parts for a mesh. 
+
+On CORI (2/15/2022)
+haswell: /global/project/projectdirs/mp288/cori/scorec/intel6.0.5-mpich7.7.10/hsw-petsc3.12.4/
+knl: /global/project/projectdirs/mp288/cori/scorec/intel19.1.0-mpich7.7.10/knl-petsc3.13.4/
+
+=======
+[1] To increase #parts, use split_smb
+Usage: mpirun -n P ./split_smb <inMesh> <outMesh> <factor>
+This increases # parts from [# input mesh parts] to [P]. [# input mesh parts] is the same as [P/<factor>]
+
+Example 1: mpirun -n 16 ./split_smb in.smb out.smb 4
+# input mesh parts is 16/8 = 4
+This will split 4-part input mesh to 16 parts.
+
+Example 2: mpirun -n 8 ./split_smb in.smb out.smb 2
+# input mesh parts is 8/2 = 4
+This will split 4-part input mesh to 8 parts.
+
+Example 3: mpirun -n 8 ./split_smb in.smb out.smb 8 
+# input mesh parts is 8/8 = 1
+This will split 1-part serial input mesh to 8 parts.
+
+=======
+[2] To decrease # parts, use collapse
+Usage: mpirun -n P ./collapse <model> <inMesh> <outMesh> <factor>
+
+This decreases # parts from P to [P/<factor>]. [# input mesh parts] is the same as [P]
+
+Example 1: mpirun -n 16 ./collapse model.dmg in.smb out.smb 4
+# output mesh parts is 16/4 = 4
+This will change a 16-part input mesh into a 4-part mesh.
+
+Example 2: mpirun -n 8 ./collapse model.dmg in.smb out.smb 2
+# output mesh parts is 8/2 = 4
+This will split 8-part input mesh to 4 parts.
+
+Example 3: mpirun -n 8 ./collapse model.dmg in.smb out.smb 8
+# output mesh parts is 8/8 = 1
+This will change 8-part input mesh into 1-part serial mesh.
+=======

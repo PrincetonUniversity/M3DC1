@@ -54,33 +54,6 @@ static void print_local_and_owned_ents(int dim)
   PCU_Barrier();
 }
 
-
-static void remove_all_planes()
-{
-  double curr_plane = m3dc1_model::instance()->get_phi(PCU_Comm_Self());
-  int np = m3dc1_model::instance()->num_plane;
-
-  int groupSize = PCU_Comm_Peers()/np;
-  int current_plane_id = PCU_Comm_Self() / groupSize;
-
-
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-
-  apf::MeshEntity* e;
-  apf::MeshIterator* it;
-
-  for (int d = 2; d >= 0; d--) {
-    it = m->begin(d);
-    while ( (e = m->iterate(it)) )
-    {
-      if (current_plane_id == 0) continue;
-      m->destroy(e);
-    }
-  }
-  m->acceptChanges();
-  m3dc1_mesh::instance()->set_mcount();
-}
-
 static MPI_Comm change_comm(int numplane)
 {
   MPI_Comm newComm;
@@ -127,17 +100,25 @@ int main( int argc, char* argv[])
   m3dc1_mesh_load(argv[2]); // load the 2d mesh
   m3dc1_mesh_build3d(&zero, &zero, &zero); // make the 3d mesh
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field", m);
+  apf::writeVtkFiles("01_mesh_initial", m);
 
+  // add a made up size field
+  apf::Field* sfld = apf::createFieldOn(m, "size", apf::SCALAR);
+  apf::MeshEntity* ent;
+  apf::MeshIterator* it = m->begin(0);
+  while ( (ent = m->iterate(it)) )
+  {
+    apf::Vector3 p;
+    m->getPoint(ent, 0, p);
+    double x = p[0];
+    double s = x>2. ? 0.24 : 0.55;
+    apf::setScalar(sfld, ent, 0, s);
+  }
+  m->end(it);
 
   // remove 3D and non-master plane and write to vtk for debugging
   m3dc1_mesh::instance()->remove3D();
   apf::printStats(m);
-  apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field_wedges_removed", m);
-
-  // remove all the planes and write to vtk for debugging
-  // Note this one will have 8 .vtk files
-  //apf::writeVtkFiles("adapt3dl_3dmesh_with_test_field_all_planes_removed", m);
 
   PCU_Barrier();
 
@@ -151,14 +132,15 @@ int main( int argc, char* argv[])
   {
     // write the mesh before adapt
     // for this one will only have 2 .vtk files
-    apf::writeVtkFiles("adapt3dl_2dmesh_with_test_field", m);
-    ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(m, 1));
+    apf::writeVtkFiles("02_mesh_2d_before_adapt", m);
+    ma::Input* in = ma::makeAdvanced(ma::configure(m, sfld));
+    /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(m, 1)); */
     in->shouldSnap = false;
     in->shouldTransferParametric = false;
     ma::adapt(in);
     // write the mesh after adapt
     // for this one will only have 2 .vtk files
-    apf::writeVtkFiles("adapt3dl_2dmesh_with_test_field_after_uniform_adapt", m);
+    apf::writeVtkFiles("03_mesh_2d_after_adapt", m);
 
     // clean up fields, numberings, and tags
     int numFields = m->countFields();
@@ -167,38 +149,45 @@ int main( int argc, char* argv[])
     apf::DynamicArray<apf::MeshTag*> tags;
     m->getTags(tags);
     numTags = tags.getSize();
-    if (!PCU_Comm_Self()) {
+    if (!PCU_Comm_Self())
       printf("there are %d/%d/%d fields/numberings/tags on the mesh\n", numFields, numNumberings, numTags);
 
-      if (numFields > 0)
-	for (int i = 0; i < numFields; i++) {
-	  printf("field %d's name is %s\n", i, apf::getName(m->getField(i)));
-	}
-      if (numNumberings > 0)
-	for (int i = 0; i < numNumberings; i++) {
-	  printf("numbering %d's name is %s\n", i, apf::getName(m->getNumbering(i)));
-	}
-      if (numTags > 0)
-      {
-	for (int i = 0; i < numTags; i++) {
+    while (m->countFields()) {
+      apf::Field* f = m->getField(0);
+      if (!PCU_Comm_Self())
+      	printf("removing field with name %s\n", apf::getName(f));
+      m->removeField(f);
+      apf::destroyField(f);
+    }
+    while (m->countNumberings()) {
+      apf::Numbering* n = m->getNumbering(0);
+      if (!PCU_Comm_Self())
+      	printf("removing Numbering with name %s\n", apf::getName(n));
+      m->removeNumbering(n);
+      apf::destroyNumbering(n);
+    }
+    numFields = m->countFields();
+    numNumberings = m->countNumberings();
+    m->getTags(tags);
+    numTags = tags.getSize();
+    if (!PCU_Comm_Self())
+      printf("after removing fields and numberings, there are %d/%d/%d fields/numberings/tags on the mesh\n", numFields, numNumberings, numTags);
+    if (numTags > 0)
+    {
+      for (int i = 0; i < numTags; i++) {
+	if (!PCU_Comm_Self())
 	  printf("tag %d's name is %s and will be removed\n", i, m->getTagName(tags[i]));
-	  for (int d = 0; d < 4; d++) {
-	    apf::removeTagFromDimension(m, tags[i], d);
-	  }
-	  m->destroyTag(tags[i]);
+	for (int d = 0; d < 4; d++) {
+	  apf::removeTagFromDimension(m, tags[i], d);
 	}
-	m->getTags(tags);
-	numTags = tags.getSize();
-	for (int i = 0; i < numTags; i++) {
-	  printf("tag %d's name is %s\n", i, m->getTagName(tags[i]));
-	}
-	// Note this is note done in m3dc1_scorec/test/adapt_3d/main.cc but seems to be necessary
-	// otherwise failure happens earlier
-	m3dc1_mesh::instance()->local_entid_tag = NULL;
-	m3dc1_mesh::instance()->own_partid_tag = NULL;
-	m3dc1_mesh::instance()->num_global_adj_node_tag = NULL;
-	m3dc1_mesh::instance()->num_own_adj_node_tag = NULL;
+	m->destroyTag(tags[i]);
       }
+      // Note this is note done in m3dc1_scorec/test/adapt_3d/main.cc but seems to be necessary
+      // otherwise failure happens earlier
+      m3dc1_mesh::instance()->local_entid_tag = NULL;
+      m3dc1_mesh::instance()->own_partid_tag = NULL;
+      m3dc1_mesh::instance()->num_global_adj_node_tag = NULL;
+      m3dc1_mesh::instance()->num_own_adj_node_tag = NULL;
     }
 
     apf::reorderMdsMesh(m);
@@ -217,9 +206,9 @@ int main( int argc, char* argv[])
   print_local_and_owned_ents(3);
 
   m3dc1_mesh::instance()->restore3D();
-  // m3dc1_mesh::instance()->print(__LINE__);
   apf::printStats(m);
 
+  apf::writeVtkFiles("04_mesh_3d_after_adapt", m);
   PetscFinalize();
   m3dc1_scorec_finalize();
   MPI_Finalize();
