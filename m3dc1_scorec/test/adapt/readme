@@ -13,6 +13,9 @@ ZOLTAN_DIR=$PUMI_DIR
 #real
 /usr/local/openmpi/latest/bin/mpicxx -g main.cc -o adapt -DM3DC1_PETSC -I/usr/include -I/usr/local/openmpi/latest/include -I$PREFIX/include -I$PUMI_DIR/include -I$PETSC_DIR/include -I$PETSC_DIR/$PETSC_ARCH/include -L$PREFIX/lib -lm3dc1_scorec -Wl,--start-group,-rpath,$PUMI_DIR/lib -L$PUMI_DIR/lib -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group -L$ZOLTAN_HOME/lib -lzoltan -L$PETSC_DIR/$PETSC_ARCH/lib -Wl,-rpath,$PETSC_DIR/$PETSC_ARCH/lib -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lHYPRE -lmpi_cxx -lstdc++ -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
 
+/usr/local/openmpi/latest/bin/mpirun -np 4 ./adapt ../adapt_3d/tilt.txt ../adapt_3d/tilt.smb 2
+
+
 #complex
 Add -DPETSC_USE_COMPLEX and replace -lm3dc1_scorec with -lm3dc1_scorec_complex
 
