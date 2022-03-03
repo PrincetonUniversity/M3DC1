@@ -576,6 +576,7 @@ contains
 
   end subroutine load_fieldlines_field
 
+#ifdef USEST
 !!!
   subroutine check(istatus)
   use netcdf
@@ -751,5 +752,5 @@ contains
        call safestop(52)
     end if
   end subroutine load_mgrid_field
-
+#endif
 end module read_schaffer_field

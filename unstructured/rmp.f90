@@ -40,11 +40,13 @@ subroutine rmp_per
         if(file_ext_field(1:10).eq.'fieldlines') then
            call load_fieldlines_field(sf(iread_ext_field), file_ext_field,isample_ext_field, &
                    isample_ext_field_pol,ierr)
+#ifdef USEST
         else if(file_ext_field(1:5).eq.'mgrid') then
            call load_mgrid_field(sf(iread_ext_field), file_ext_field, vmec_filename, ierr)
         else
            print *, 'ERROR: Invalid ext_field'
            call safestop(51)
+#endif
         end if
      else if(type_ext_field.eq.0) then
         allocate(sf(iread_ext_field))
