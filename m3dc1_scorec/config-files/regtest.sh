@@ -36,6 +36,8 @@ module load intel/2019.u3 openmpi/4.0.3 hdf5-parallel/1.10.5 fftw cmake git
 # salloc -n 64 -t 00:30:00 -p m3dc1 --mem-per-cpu=1000M
 #mpirun -n 16 /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/petsc3.13.5/bin/split_smb 
 
+#traverse
+salloc -n 16 -t 00:30:00 -p pppl
 
 cd  $TESTDIR/adapt/base
 cp ../mesh/part* .

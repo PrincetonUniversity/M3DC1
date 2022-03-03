@@ -5,7 +5,7 @@ Created on March 16 2020
 
 @author: Andreas Kleiner
 """
-import os
+#import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -15,7 +15,7 @@ import m3dc1.fpylib as fpyl
 
 
 
-def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,smooth=0,weighted=True,suffix='.extended'):
+def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smooth=0,weighted=True,suffix='.extended'):
     """
     Extends profile beyond the last closed flux surface (psi_n=1) based on a tanh fit. If desired,
     the fit parameters are adjusted such that the profile and its first derivative are continuous
@@ -23,7 +23,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
 
     Arguments:
 
-    **file_name**
+    **filename**
     File containing the profile information, e.g. 'profile_ne'
 
     **psimax**
@@ -49,7 +49,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     **suffix**
     File extension for output file
     """
-    x,y = fpyl.ReadTwoColFile(file_name)
+    x,y = fpyl.ReadTwoColFile(filename)
     
     if isinstance(fitrange, float) or isinstance(fitrange, int):
             fitrange = [fitrange,max(x)]
@@ -74,15 +74,15 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     
     # Fit profile
     w = yf
-    if minval==None:
+    if minval is None:
         a = [0.98, 1./0.01, max(yf), 0., min(yf)]
-        if weighted==True:
+        if weighted:
             yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a, sigma=w, absolute_sigma=True)
         else:
             yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a)
     else:
         a = [0.98, 1./0.01, max(yf), 0.]
-        if weighted==True:
+        if weighted:
             yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a, sigma=w, absolute_sigma=True)
         else:
             yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a)
@@ -90,7 +90,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     print('Fit center: '+str(yfit[0]))
     print('Fit width: '+str(1.0/yfit[1]))
     print('Fit height: '+str(yfit[2]))
-    if minval==None:
+    if minval is None:
         print('Fit floor: '+str(yfit[4]))
         if yfit[4]<=0:
             fpyl.printerr('ERROR: fit asymptotes to negative values')
@@ -99,14 +99,14 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     print('---------------------------------------------------------')
     #print(yfit)
     
-    if minval==None:
+    if minval is None:
         minval = yfit[4]
     
     x_bd = x[-1]
     yp = fpyl.deriv(y,x)
     yp_bd = yp[-1]
     
-    if match==True:
+    if match:
         print('\nMatching profile and its derivative with fit at boundary value...')
         
         b_new,c_new = fsolve(equations,(yfit[1],yfit[2]),args=(x_bd,yfit[0],yfit[3],y[-1],yp_bd,minval),xtol=1.0e-10)
@@ -130,7 +130,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     x_ext = x[-1] + (np.arange(m)+1)*dx
     
     
-    if minval==None:
+    if minval is None:
         y_ext = tanhfit(x_ext, yfit[0],yfit[1],yfit[2],yfit[3],yfit[4])+minval
     else:
         y_ext = tanhfit(x_ext, yfit[0],yfit[1],yfit[2],yfit[3])+minval
@@ -138,13 +138,18 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     xnew = np.concatenate((x,x_ext))
     ynew = np.concatenate((y,y_ext))
     if smooth > 0:
-        if match==False:
+        if not match:
             ynew = fpyl.smooth(ynew,w=smooth,nan='replace')
         else:
             raise Exception('Sorry, cannot match and smooth at the same time!')
     ynewp = fpyl.deriv(ynew,xnew)
     
-    
+    # Check if derivative of profile extension stays negative everywhere
+    #print(fpyl.deriv(y_ext,x_ext))
+    if np.all(fpyl.deriv(y_ext,x_ext)<0.0):
+        print('Derivative negative in extended region.')
+    else:
+        fpyl.printwarn('WARNING: Derivative NOT negative everywhere in extended region.')
     
     
     
@@ -178,7 +183,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     f2_ax3.set_xlabel(r'$\psi_N$')
     f2_ax3.set_ylabel('profile')
     f2_ax3.set_xlim([fitrange[0],psimax])
-    f2_ax3.set_ylim([np.amin(ynew)-(np.abs(0.05*np.amin(ynew))),np.amax(yf)*1.05])
+    f2_ax3.set_ylim([np.amin(ynew)-(np.abs(0.05*np.amax(ynew))),np.amax(yf)*1.05])
     f2_ax3.grid()
     
     f2_ax2.set_xlabel(r'$\psi_N$')
@@ -187,10 +192,10 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     f2_ax4.set_xlabel(r'$\psi_N$')
     f2_ax4.set_ylabel('profile derivative')
     f2_ax4.set_xlim([fitrange[0],psimax])
-    f2_ax4.set_ylim([np.amin(ynewp)-(np.abs(0.05*np.amin(ynewp))),np.amax(ynewp)*1.05])
+    f2_ax4.set_ylim([np.amin(ynewp)-(np.abs(0.05*np.amin(ynewp))),np.amax(ynewp)+0.05*np.sign(np.amax(ynewp))*np.amin(ynewp)])
     f2_ax4.grid()
     
-    fig.suptitle(file_name, size=12)
+    fig.suptitle(filename, size=12)
     
     #psi_n_smooth,prof_smooth = fpyl.ReadTwoColFile('profile_te.extended_smooth')
     #deriv_smooth = fpyl.deriv(prof_smooth,psi_n_smooth)
@@ -207,7 +212,7 @@ def extend_profile(file_name,psimax=1.05,fitrange=None,minval=None,match=True,sm
     
     
     # Write new profile to file
-    outfile = file_name+suffix
+    outfile = filename+suffix
     with open(outfile, 'w') as f:
         for i in range(len(xnew)):
             f.write('{:12.6f}{:12.6f}'.format(xnew[i],ynew[i]) +'\n')

@@ -5,8 +5,11 @@ Created on Wed Oct  2 14:24:12 2019
 
 @author: akleiner
 """
+import fpy
 import numpy as np
 import math
+import glob
+import os
 from termcolor import colored
 import matplotlib.pyplot as plt
 from m3dc1.unit_conv  import unit_conv
@@ -34,7 +37,7 @@ def plot2d(xdata,ydata,equal=False):
     plt.plot(xdata,ydata)
     plt.grid(True)
     plt.show()
-    if equal==True:
+    if equal:
         plt.axis('equal')
     
     return
@@ -61,6 +64,86 @@ def fmt(x, pos):
     return r'${} \cdot 10^{{{}}}$'.format(a, b)
 
 
+#-------------------------------------------
+# Read simulations via fusion-io
+#-------------------------------------------
+# sets up arrays for sim and time
+def setup_sims(sim,filename,time,linear,diff):
+    # make iterable
+    if isinstance(sim,(tuple, list)):
+        time = [sim[0].timeslice, sim[1].timeslice]
+    else:
+        if not isinstance(sim,fpy.sim_data):
+            sim = np.empty(0)
+            filename = np.atleast_1d(filename)
+            for f in filename:
+                sim = np.append(sim,fpy.sim_data(f,time=time))
+        else:
+            sim = np.atleast_1d(sim)
+        time = np.atleast_1d(time)
+
+    if len(time)==1 and len(sim)>1:
+        time = np.repeat(time,len(sim))
+    elif len(sim)==1 and len(time)>1:
+        sim = np.repeat(sim,len(time))
+    elif len(sim) != len(time):
+        raise RuntimeError('Length of time does not match length of sim/filename')
+
+    if linear:
+        #if len(sim)>1:
+        #    raise RuntimeError('Provide a single simulation for linear=True')
+        if (time[0]==-1) or ((time[0] is None) and (sim[0].timeslice==-1)):
+            raise RuntimeError('time or sim.timeslice must be greater than -1 for linear=True')
+        sim = np.append(sim,fpy.sim_data(filename,time=-1))
+        time = np.append(time,-1)
+
+    ### Input error handling ###
+    if diff and (len(time) != 2):
+        raise RuntimeError('Please input two times for differences or specify two sim_data objects.')
+
+    if diff and linear:
+        raise RuntimeError('Please choose diff or linear, not both.')
+
+    if (not diff) and (not linear) and (len(sim)>1):
+        raise RuntimeError('Multiple simulations detected. Please set diff=True or input single slices')
+
+    return sim, time
+
+# identify index for given coordinate
+def get_field_idx(coord):
+
+    field_idx = {'R':0, 'scalar':0, 'phi':1, 'Z':2}
+    if coord in field_idx:
+        return field_idx[coord]
+    elif coord in ['poloidal', 'radial', 'vector', 'tensor']:
+        return None
+    else:
+        raise RuntimeError('Please enter valid coordinate. Accepted: \'R\', \'phi\', \'Z\', \'poloidal\', \'radial\', \'scalar\', \'vector\'')
+
+
+
+
+
+def read_floats(string,length=16):
+    """
+    Converts string containing multiple numbers in scientific notation to a list of floats
+    
+    Arguments:
+
+    **string**
+    String to convert
+    
+    **length**
+    Number of characters corresponding to one floating point number,
+    e.g. -0.12345E-01 has length=12
+    """
+    float_list = [string[start:start+length] for start in range(0, len(string), length)]
+    if float_list[-1] == '\n':
+        float_list = float_list[:-1]
+    for i in range(len(float_list)):
+        float_list[i] = float(float_list[i])
+    return float_list
+
 
 
 #-------------------------------------------
@@ -84,7 +167,7 @@ def deriv(y,x=None):
     """
     yp = np.zeros_like(y)
     
-    if (type(x) is np.ndarray or type(x) is list):
+    if isinstance(x, (np.ndarray,list)):
         if len(x)!=len(y):
             raise Exception('x and y do not have the same length.')
         for i in range(len(y)):
@@ -187,148 +270,323 @@ def smooth(vin, w, nan='replace'):
 
 
 
+def PolygonArea(x,y):
+    """
+    Calculates the area inside a polygon
+
+    Arguments:
+
+    **x**
+    Array of polygon point x values
+
+    **y**
+    Array of polygon point x values
+    """
+    return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+
 #-------------------------------------------
 # Unit conversion
 #-------------------------------------------
 
 
+
+def get_unitexpns():
+    return {'time':0, 'length':0, 'particles':0, 'magnetic_field':0,
+            'current':0, 'current_density':0, 'diffusion':0, 'energy':0,
+            'force':0, 'pressure':0, 'resistivity':0, 'temperature':0,
+            'velocity':0, 'voltage':0, 'viscosity':0,
+            'thermal_conductivity':0, 'electric_field':0}
+
+
 # Returns field label depending on chosen system of units
-def get_fieldlabel(units,field):
-    if units.lower()=='m3dc1':
-        if field == 'j':
-            label = 'current density'
-        elif field == 'ni':
-            label = 'ion density'
-        elif field == 'ne':
-            label = 'electron density'
-        elif field == 'v':
-            label = 'velocity'
-        elif field == 'B':
-            label = 'magnetic field strength'
-        elif field == 'p':
-            label = 'pressure'
-        elif field == 'pi':
-            label = 'ion pressure'
-        elif field == 'pe':
-            label = 'electron pressure'
-        elif field == 'ti':
-            label = 'ion temperature'
-        elif field == 'te':
-            label = 'electron temperature'
-        elif field == 'A':
-            label = 'vector potential'
-        elif field == 'gradA':
-            label = 'grad vector potential'
-        elif field == 'E':
-            label = 'electric field '
-        else:
-            label = field
-        unit_label = 'M3DC1 units'
+def get_fieldlabel(units,field,shortlbl=False):
+
+    labels = {'j':'current density', 'ni':'ion density','ne':'electron density',
+              'v':'velocity', 'B':'magnetic field strength', 'p':'pressure',
+              'pi':'ion pressure', 'pe':'electron pressure',
+              'ti':'ion temperature', 'te':'electron temperature',
+              'A':'vector potential', 'gradA':'grad vector potential',
+              'E':'electric field', 'default':field}
     
-    if units.lower()=='mks':
-        if field == 'j':
-            label = 'current density'
-            unit_label = '$A/m^2$'
-        elif field == 'ni':
-            label = 'ion density'
-            unit_label = 'particles/$m^3$'
-        elif field == 'ne':
-            label = 'electron density'
-            unit_label = 'particles/$m^3$'
-        elif field == 'v':
-            label = 'velocity'
-            unit_label = '$m/s$'
-        elif field == 'B':
-            label = 'magnetic field strength'
-            unit_label = '$T$'
-        elif field == 'p':
-            label = 'pressure'
-            unit_label = '$Pa$'
-        elif field == 'pi':
-            label = 'ion pressure'
-            unit_label = '$Pa$'
-        elif field == 'pe':
-            label = 'electron pressure'
-            unit_label = '$Pa$'
-        elif field == 'ti':
-            label = 'ion temperature'
-            unit_label = '$eV$'
-        elif field == 'te':
-            label = 'electron temperature'
-            unit_label = '$eV$'
-        elif field == 'A':
-            label = 'vector potential'
-            unit_label = '$Tesla \cdot m$'
-        elif field == 'gradA':
-            label = 'grad vector potential'
-            unit_label = '$(Tesla \cdot m)$ / (m or rad)'
-        elif field == 'E':
-            label = 'electric field'
-            unit_label = '$V/m$'
+    short_labels = {'j':'j', 'ni':'$n_{i}$','ne':'$n_{e}$',
+              'v':'v', 'B':'B', 'p':'p',
+              'pi':'$p_{i}$', 'pe':'$p_{e}$',
+              'ti':'$T_{i}$', 'te':'$T_{e}$',
+              'A':'A', 'gradA':'$grad A$ ',
+              'E':'E', 'default':field}
+
+    if units.lower()=='m3dc1':
+        units = {'default':'M3DC1 units'}
+    elif units.lower()=='mks':
+        units = {'j':r'A/m$^2$', 'ni':r'particles/m$^3$', 'ne':r'particles/m$^3$',
+                 'v':'m/s', 'B':'T', 'p':'Pa', 'pi':'Pa', 'pe':'Pa',
+                 'ti':'eV', 'te':'eV', 'A':r'T$\cdot$m',
+                 'gradA':r'Tesla$\cdot$m / (m or rad)', 'E':'V/m',
+                 'default':'MKS units'}
+
+    if field in labels:
+        label = short_labels[field] if shortlbl else labels[field]
+    else:
+        label = labels['default']
+
+    if field in units:
+        unit = units[field]
+    else:
+        unit = units['default']
+
+    return label, unit
+
+
+def get_tracelabel(units,trace,label=None,unitlabel=None):
+    """
+    Returns time trace label depending on chosen system of units
+    """
+
+    labels = {'Ave_P':('Average pressure','Pa'),
+              'E_K3':('Compressional kinetic energy','J'),
+              'E_K3D':('Compressional viscous dissipation','W'),
+              'E_K3H':('Compressional hyper-viscous dissipation','W'),
+              'E_KP':('Poloidal kinetic energy','J'),
+              'E_KPD':('Poloidal viscous dissipation','W'),
+              'E_KPH':('Poloidal hyper-viscous dissipation','W'),
+              'E_KT':('Toroidal kinetic energy','J'),
+              'E_KTD':('Toroidal viscous dissipation','W'),
+              'E_KTH':('Toroidal hyper-viscous dissipation','W'),
+              'E_MP':('Poloidal magnetic energy','J'),
+              'E_MPD':('Poloidal resistive dissipation','W'),
+              'E_MPH':('Poloidal hyper-resistive dissipation','W'),
+              'E_MT':('Toroidal magnetic energy','J'),
+              'E_MTD':('Toroidal resistive dissipation','W'),
+              'E_MTH':('Toroidal hyper-resistive dissipation','W'),
+              'E_P':('Total thermal energy','J'),
+              'E_PD':('Thermal dissipation (unused)','W'),
+              'E_PE':('Electron thermal energy','J'),
+              'E_PH':('Thermal hyper-dissipation (unused)','W'),
+              'E_grav':('Gravitational potential energy','J'),
+              'Flux_kinetic':('Kinetic-energy convection to wall' ,'W'),
+              'Flux_poynting':('Poynting flux to wall','W'),
+              'Flux_pressure':('Pressure convection to wall','W'),
+              'Flux_thermal':('Heat flux to wall','W'),
+              'IP_co':('Plasma current (cosine-component)','A'),
+              'IP_sn':('Plasma current (sine-component)','A'),
+              'M_IZ':('Plasma current centroid',r'A$\cdot$m'),
+              'M_IZ_co':('Plasma current (cosine-component) centroid',r'A$\cdot$m'),
+              'M_IZ_sn':('Plasma current (sine-component) centroid',r'A$\cdot$m'),
+              'Parallel_viscous_heating':('Parallel viscous heating','W'),
+              'Particle_Flux_convective':('Convective particle flux to wall','particles/s'),
+              'Particle_Flux_diffusive':('Diffusive particle flux to wall','particles/s'),
+              'Particle_source':('Particle source','particles/s'),
+              'Torque_com':('Compressional torque',r'N$\cdot$m'),
+              'Torque_em':('Electromagnetic torque',r'N$\cdot$m'),
+              'Torque_gyro':('Gyroviscous torque',r'N$\cdot$m'),
+              'Torque_parvisc':('Parallel viscous torque',r'N$\cdot$m'),
+              'Torque_sol':('Torque_sol',r'N$\cdot$m'),
+              'Torque_visc':('Viscous torque',r'N$\cdot$m'),
+              'W_M':('Stored magnetic energy','J'),
+              'W_P':('Stored thermal energy','J'),
+              'Wall_Force_n0_x':(r'$n=0$ wall force in $R$ direction','N'),
+              'Wall_Force_n0_x_halo':(r'$n=0$ halo force in $R$ direction','N'),
+              'Wall_Force_n0_y':(r'$n=0$ wall force in $\phi$ direction','N'),
+              'Wall_Force_n0_z':(r'$n=0$ wall force in $Z$ direction','N'),
+              'Wall_Force_n0_z_halo':(r'$n=0$ halo force in $Z$ direction','N'),
+              'Wall_Force_n1_x':(r'$n=1$ wall force in $R$ direction','N'),
+              'Wall_Force_n1_y':(r'$n=1$ wall force in $\phi$ direction','N'),
+              'angular_momentum':('Angular momentum',r'kg$\cdot$m$^2$/s'),
+              'angular_momentum_p':('Angular momentum in plasma',r'kg$\cdot$m$^2$/s'),
+              'area':('Domain area',r'm$^2$'),
+              'area_p':('Plasma area',r'm$^2$'),
+              'brem_rad':('Bremsstrahlung radiated power','W'),
+              'circulation':('Circulation',r'm$^2$/s'),
+              'dt':('Time step','s'),
+              'electron_number':('Number of electrons','particles'),
+              'helicity':('Magnetic helicity',r'Wb$^2$'),
+              'i_control%err_i':('Current control - integrated error','A'),
+              'i_control%err_p_old':('Current control - proportional error','A'),
+              'ion_loss':('Ionization power','W'),
+              'line_rad':('Line radiated power','W'),
+              'loop_voltage':('Loop voltage','V'),
+              'n_control%err_i':('Density control - integrated error','particles'),
+              'n_control%err_p_old':('Density control - proportional error','particles'),
+              'particle_number':('Number of main ions','particles'),
+              'particle_number_p':('Number of main ions in plasma','particles'),
+              'psi0':('Poloidal flux on-axis',r'T$\cdot$m$^2$'),
+              'psi_lcfs':('Poloidal flux at separatrix',r'T$\cdot$m$^2$'),
+              'psimin':('Minimum poloidal flux in plasma',r'T$\cdot$m$^2$'),
+              'radiation':('Radiated power','W'),
+              'reconnected_flux':('Reconnected flux',r'T$\cdot$m$^2$'),
+              'reck_rad':('Recombination radiated power (kinetic)','W'),
+              'recp_rad':('Recombination radiated power (thermal','W'),
+              'runaways':('Number of runaway electrons','particles'),
+              'temax':('Extremum of temperature near-axis','eV'),
+              'time':('Time','s'),
+              'toroidal_current':('Toroidal current','A'),
+              'toroidal_current_p':('Toroidal current in plasma','A'),
+              'toroidal_current_w':('Toroidal current in wall','A'),
+              'toroidal_flux':('Toroidal flux',r'T$\cdot$m$^2$'),
+              'toroidal_flux_p':('Toroidal flux in plasma',r'T$\cdot$m$^2$'),
+              'volume':('Domain volume',r'm$^3$'),
+              'volume_p':('Plasma volume',r'm$^3$'),
+              'xmag':(r'$R$ of magnetic axis','m'),
+              'xnull':('$R$ of primary X-point','m'),
+              'xnull2':('$R$ of secondary X-point','m'),
+              'zmag':('$Z$ of magnetic axis','m'),
+              'znull':('$Z$ of primary X-point','m'),
+              'znull2':('$Z$ of secondary X-point','m'),
+              'bharmonics':('Magnetic energy Fourier harmonics','J'),
+              'keharmonics':('Kinetic energy Fourier harmonics','J'),
+              'cauchy_fraction':('cauchy_fraction',''),
+              'cloud_pel':('Size of cloud over size of pellet',''),
+              'pellet_mix':('Fraction of pellet that is D2',''),
+              'pellet_phi':('Toroidal angle of pellet','radians'),
+              'pellet_r':(r'$R$ location of pellet','m'),
+              'pellet_rate':('Impurity deposition rate','particles/s'),
+              'pellet_rate_D2':('D2 deposition rate','particles/s'),
+              'pellet_ablrate':('Pellet ablation rate','particles/s'),
+              'pellet_var':('Poloidal half-width of impurity cloud','m'),
+              'pellet_var_tor':('Toroidal half-width of impurity cloud','m'),
+              'pellet_velphi':('Toroidal velocity of pellet','m/s'),
+              'pellet_velr':(r'$R$ velocity of pellet','m/s'),
+              'pellet_velz':(r'$Z$ velocity of pellet','m/s'),
+              'pellet_vx':(r'$X$ velocity of pellet','m/s'),
+              'pellet_vy':(r'$Y$ velocity of pellet','m/s'),
+              'pellet_z':(r'$Z$ location of pellet','m'),
+              'r_p':('Pellet radius','m'),
+              }
+
+    if trace in labels:
+        lbl, ulbl = labels[trace]
+    else:
+        lbl, ulbl = ('', '')
+
+    if label is None:
+        label = lbl
+    if unitlabel is None:
+        if units == 'mks':
+            unitlabel = ulbl
         else:
-            label = field
-            unit_label = 'MKS units'
-        #label = field + ' (' + label + ')'
-    return label, unit_label
+            unitlabel = 'M3D-C1 units'
+    return label, unitlabel
 
 
-def get_conv_field(units,field,field1_ave,file_name='C1.h5'):
+
+def get_conv_field(units,field,field1_ave,filename='C1.h5',sim=None):
     """
     Returns converted field depending on chosen system of units
     """
+
+    expns = get_unitexpns()
+    fields = {'j':{'current_density':1}, 'ni':{'particles':1,'length':-3},
+              'ne':{'particles':1,'length':-3}, 'v':{'velocity':1},
+              'B':{'magnetic_field':1}, 'p':{'pressure':1}, 'pi':{'pressure':1},
+              'pe':{'pressure':1}, 'ti':{'temperature':1},
+              'te':{'temperature':1}, 'A':{'magnetic_field':1,'length':1},
+              'E':{'electric_field':1},
+              }
+    if field in fields:
+        expns.update(fields[field])
+
     if units.lower()=='m3dc1':
-        if field == 'j':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,current_density=1)
-        elif field == 'ni':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,particles=1,length=-3)
-        elif field == 'ne':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,particles=1,length=-3)
-        elif field == 'v':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,velocity=1)
-        elif field == 'B':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,magnetic_field=1)
-        elif field == 'p':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
-        elif field == 'pi':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
-        elif field == 'pe':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,pressure=1)
-        elif field == 'ti':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,temperature=1)
-        elif field == 'te':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,temperature=1)
-        elif field == 'A':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,magnetic_field=1,length=1)
-#        elif field == 'grad A':
-#            field1_ave = unit_conv(field1_ave,arr_dim='mks',magnetic_field=1)#ToDo: Normalization for derivative wrt phi
-        elif field == 'E':
-            field1_ave = unit_conv(field1_ave,arr_dim='mks',file_name=file_name,electric_field=1)
+        if not isinstance(sim,fpy.sim_data):
+            sim = fpy.sim_data(filename=filename)
+        field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim,**expns)
     return field1_ave
 
 
-def get_conv_trace(units,trace,trace_arr,file_name='C1.h5'):
+def get_conv_trace(units,trace,trace_arr,filename='C1.h5',sim=None,itor=1,custom=None):
     """
     Returns converted time trace depending on chosen system of units
     """
-    #ToDo: Add missing traces
+
+    expns = get_unitexpns()
+
+    traces = {'Ave_P':{'pressure':1}, 'E_K3':{'energy':1},
+              'E_K3D':{'energy':1,'time':-1}, 'E_K3H':{'energy':1,'time':-1},
+              'E_KP':{'energy':1}, 'E_KPD':{'energy':1,'time':-1},
+              'E_KPH':{'energy':1,'time':-1}, 'E_KT':{'energy':1},
+              'E_KTD':{'energy':1,'time':-1}, 'E_KTH':{'energy':1,'time':-1},
+              'E_MP':{'energy':1}, 'E_MPD':{'energy':1,'time':-1},
+              'E_MPH':{'energy':1,'time':-1}, 'E_MT':{'energy':1},
+              'E_MTD':{'energy':1,'time':-1}, 'E_MTH':{'energy':1,'time':-1},
+              'E_P':{'energy':1}, 'E_PD':{'energy':1,'time':-1},
+              'E_PE':{'energy':1}, 'E_PH':{'energy':1,'time':-1},
+              'E_grav':{'energy':1}, 'Flux_kinetic':{'energy':1,'time':-1},
+              'Flux_poynting':{'energy':1,'time':-1},
+              'Flux_pressure':{'energy':1,'time':-1},
+              'Flux_thermal':{'energy':1,'time':-1}, 'IP_co':{'current':1},
+              'IP_sn':{'current':1}, 'M_IZ':{'current':1,'length':1},
+              'M_IZ_co':{'current':1,'length':1},
+              'M_IZ_sn':{'current':1,'length':1},
+              'Parallel_viscous_heating':{'energy':1,'time':-1},
+              'Particle_Flux_convective':{'particles':1,'time':-1},
+              'Particle_Flux_diffusive':{'particles':1,'time':-1},
+              'Particle_source':{'particles':1,'time':-1},
+              'Torque_com':{'force':1,'length':1},
+              'Torque_em':{'force':1,'length':1},
+              'Torque_gyro':{'force':1,'length':1},
+              'Torque_parvisc':{'force':1,'length':1},
+              'Torque_sol':{'force':1,'length':1},
+              'Torque_visc':{'force':1,'length':1},
+              'W_M':{'energy':1}, 'W_P':{'energy':1},
+              'Wall_Force_n0_x':{'force':1}, 'Wall_Force_n0_x_halo':{'force':1},
+              'Wall_Force_n0_y':{'force':1}, 'Wall_Force_n0_z':{'force':1},
+              'Wall_Force_n0_z_halo':{'force':1}, 'Wall_Force_n1_x':{'force':1},
+              'Wall_Force_n1_y':{'force':1},
+              'angular_momentum':{'force':1,'length':1,'time':1},
+              'angular_momentum_p':{'force':1,'length':1,'time':1},
+              'area':{'length':2}, 'area_p':{'length':2},
+              'brem_rad':{'energy':1,'time':-1},
+              'circulation':{'velocity':1,'length':1}, 'dt':{'time':1},
+              'electron_number':{'particles':1},
+              'helicity':{'magnetic_field':2,'length':4},
+              'i_control%err_i':{'current':1,'time':1},
+              'i_control%err_p_old':{'current':1},
+              'ion_loss':{'energy':1,'time':-1},
+              'line_rad':{'energy':1,'time':-1},
+              'loop_voltage':{'voltage':1},
+              'n_control%err_i':{'particles':1,'time':1},
+              'n_control%err_p_old':{'particles':1},
+              'particle_number':{'particles':1},
+              'particle_number_p':{'particles':1},
+              'psi0':{'magnetic_field':1,'length':2},
+              'psi_lcfs':{'magnetic_field':1,'length':2},
+              'psimin':{'magnetic_field':1,'length':2},
+              'radiation':{'energy':1,'time':-1},
+              'reconnected_flux':{'magnetic_field':1,'length':1+itor},
+              'reck_rad':{'energy':1,'time':-1},
+              'recp_rad':{'energy':1,'time':-1}, 'runaways':{'particles':1},
+              'temax':{'temperature':1}, 'time':{'time':1},
+              'toroidal_current':{'current':1},
+              'toroidal_current_p':{'current':1},
+              'toroidal_current_w':{'current':1},
+              'toroidal_flux':{'magnetic_field':1,'length':2},
+              'toroidal_flux_p':{'magnetic_field':1,'length':2},
+              'volume':{'length':3}, 'volume_p':{'length':3}, 'xmag':{'length':1},
+              'xnull':{'length':1}, 'xnull2':{'length':1}, 'zmag':{'length':1},
+              'znull':{'length':1}, 'znull2':{'length':1},
+              'bharmonics':{'energy':1}, 'keharmonics':{'energy':1},
+              'cauchy_fraction':{}, 'cloud_pel':{}, 'pellet_mix':{},
+              'pellet_phi':{}, 'pellet_r':{'length':1},
+              'pellet_rate':{'particles':1,'time':-1},
+              'pellet_rate_D2':{'particles':1,'time':-1},
+              'pellet_ablrate':{'particles':1,'time':-1},
+              'pellet_var':{'length':1}, 'pellet_var_tor':{'length':1},
+              'pellet_velphi':{'velocity':1}, 'pellet_velr':{'velocity':1},
+              'pellet_velz':{'velocity':1}, 'pellet_vx':{'velocity':1},
+              'pellet_vy':{'velocity':1}, 'pellet_z':{'length':1},
+              'r_p':{'length':1},
+              }
+
+    if custom is not None:
+        expns.update(custom)
+    elif trace in traces:
+        expns.update(traces[trace])
+
     if units.lower()=='mks':
-        if trace == 'time':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,time=1)
-        elif trace == 'ke':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
-        elif trace == 'me':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
-        elif trace == 'p':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,energy=1)
-        elif trace == 'ip':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
-        elif trace == 'it':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
-        elif trace == 'iw':
-            trace_arr = unit_conv(trace_arr,arr_dim='M3DC1',file_name=file_name,current=1)
-        else:
-            printwarn('WARNING: Unit conversion not yet implemented for ' + trace + '. Feel free to add it.')
-    return trace_arr
+        if not isinstance(sim,fpy.sim_data):
+            sim = fpy.sim_data(filename=filename)
+        time   = unit_conv(trace_arr.time,   arr_dim='M3DC1', sim=sim, time=1)
+        values = unit_conv(trace_arr.values, arr_dim='M3DC1', sim=sim, **expns)
+    return fpy.sim_data.time_trace(values,time=time)
 
 
 
@@ -340,7 +598,7 @@ def get_conv_trace(units,trace,trace_arr,file_name='C1.h5'):
 def get_ind_at_val(arr, val, unique=True):
     #ToDo: Check type and length of val. In principle this can be a list
     ind = np.argwhere(arr==val)
-    if unique==True:
+    if unique:
         if len(ind[0])>1:
             raise Exception('Multiple occurences of '+str(val)+' found in '+str(arr)+'!')
         else:
@@ -356,8 +614,27 @@ def isfloat(value):
   except ValueError:
     return False
 
+# Checks whether a value can be converted to an integer
+def isint(value):
+  try:
+    int(value)
+    return True
+  except ValueError:
+    return False
 
-# Find index of array element that is nearest to a specified value
+def has_flux_coordinates(sim):
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename,time=time)
+    # Calculate flux coodinates if it was not calculated yet or a different flux coordinate system than sim.fc.fcoords is desired
+    if (not isinstance(sim.fc,fpy.flux_coordinates)) or (fcoords!=None and (sim.fc.fcoords!=fcoords)) or (sim.fc.points!=points):
+        if not fcoords:
+            fcoords = ''
+        sim = flux_coordinates(sim=sim, fcoords=fcoords, points=points, phit=phit,psin_range=psin_range)
+    return sim
+
+
+
+# Find value of array element that is nearest to a specified value
 def find_nearest(arr, val):
     ind = np.abs(arr - val).argmin()
     return arr.flat[ind]
@@ -394,11 +671,16 @@ def prompt(message,options):
     """
     input_str = ''
     if options == float:
-        while type(input_str) is not float:
+        while not isinstance(input_str,float):
             input_str = input(message)
-            if isfloat(input_str)==True:
+            if isfloat(input_str):
                 input_str = float(input_str)
         #print('    '+str(input_str))
+    elif options == int:
+        while not isinstance(input_str,int):
+            input_str = input(message)
+            if isint(input_str):
+                input_str = int(input_str)
     else:
         while not input_str in options:
             input_str = input(message)
@@ -426,16 +708,16 @@ def printnote(string):
 # File input / output. For reading hdf5 files please see read_h5.py.
 #-------------------------------------------
 
-def ReadTwoColFile(file_name):
+def ReadTwoColFile(filename):
     """
     Reads a text file by column
     
     Arguments:
 
-    **file_name**
+    **filename**
     Name of file to be read
     """
-    with open(file_name, 'r') as data:
+    with open(filename, 'r') as data:
         col1 = []
         col2 = []
         for line in data:
@@ -448,19 +730,19 @@ def ReadTwoColFile(file_name):
 
 
 
-def ReadTwoColFile2(file_name,header=0):
+def ReadTwoColFile2(filename,header=0):
     """
     Reads a text file by column
     
     Arguments:
 
-    **file_name**
+    **filename**
     Name of file to be read
 
     **header**
     Number of lines on top of file that are not part of the data columns
     """
-    with open(file_name, 'r') as data:
+    with open(filename, 'r') as data:
         col1 = []
         col2 = []
         if header > 0:
@@ -481,3 +763,52 @@ def ReadTwoColFile2(file_name,header=0):
     col1 = np.asarray(col1)
     col2 = np.asarray(col2)
     return colh, col1, col2
+
+
+
+def get_filename(a):
+    files = glob.glob(a)
+    if len(files) < 1:
+        raise Exception('No file found with name "'+a+'"!')
+    else:
+        if len(files) > 1:
+            printwarn('WARNING: More than 1 file found. Using the newest one.')
+            files.sort(key=os.path.getmtime,reverse=True)
+        return files[0]
+
+
+def get_lines(filename, linenumbers):
+    """
+    Reads and return only specific lines in a text file
+    
+    Arguments:
+
+    **filename**
+    Name of file to read
+
+    **linenumbers**
+    List of numbers of lines to read, e.g. [3,7,10], indexing starts at 0
+    """
+    lines = []
+    with open(filename) as f:
+        for i,line in enumerate(f):
+            if i in linenumbers:
+                lines.append(line)
+                if len(lines)==len(linenumbers):
+                    break
+    return lines
+
+
+def get_base_dirs(dirname):
+    subfolders0 = [f.path for f in os.scandir(dirname) if (f.is_dir() and len(f.path)<6)]
+    subfolders = []
+    for dirname in list(subfolders0):
+        subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and 'base_' in f.path)])
+    return subfolders
+
+def get_run_dirs(dirname):
+    subfolders0 = [f.path for f in os.scandir(dirname) if (f.is_dir() and len(f.path)<6)]
+    subfolders = []
+    for dirname in list(subfolders0):
+        subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and not 'base_' in f.path)])
+    return subfolders

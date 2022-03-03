@@ -122,7 +122,7 @@ m3dc1_mesh::~m3dc1_mesh()
 // *********************************************************
 {}
 
-void m3dc1_mesh::clean(int initial_nv)
+void m3dc1_mesh::clean()
 {
  // destroy field AND numbering
   if (field_container)
@@ -138,9 +138,6 @@ void m3dc1_mesh::clean(int initial_nv)
     //field_container->clear();
   }
   delete field_container; field_container=0;
-
-  if (initial_nv != mesh->count(0))
-    mesh->writeNative("adapted.smb");
 
   // destroy tag data
   for (int d=0; d<4; ++d)
@@ -1474,11 +1471,9 @@ void m3dc1_mesh::set_node_adj_tag()
   while ((e = mesh->iterate(it)))
   {
     // pass entities to ownner
-
     std::vector<entMsg> msgs;
     Adjacent elements;
     getBridgeAdjacent(mesh, e, brgType, 0, elements);
-
     MeshEntity* ownerEnt=get_ent_owncopy(mesh, e);
     int own_partid = get_ent_ownpartid(mesh, e);
     for (int i=0; i<elements.getSize(); i++)
@@ -1492,7 +1487,7 @@ void m3dc1_mesh::set_node_adj_tag()
       }
     }
 
-    if (own_partid!=PCU_Comm_Self())
+    if (own_partid!=PCU_Comm_Self() && msgs.size())
     {
       PCU_COMM_PACK(own_partid, ownerEnt);
       PCU_Comm_Pack(own_partid, &msgs.at(0),sizeof(entMsg)*msgs.size());
@@ -1500,6 +1495,7 @@ void m3dc1_mesh::set_node_adj_tag()
   }
   mesh->end(it);
   PCU_Comm_Send();
+
   while (PCU_Comm_Listen())
   {
     while ( ! PCU_Comm_Unpacked())
@@ -1509,13 +1505,13 @@ void m3dc1_mesh::set_node_adj_tag()
       std::vector<entMsg> data(sizeData);
       PCU_Comm_Unpack(&data.at(0),sizeof(entMsg)*sizeData);
       for (int i=0; i<data.size(); i++)
-      {
         count_map2[e].insert(data.at(i));
-      }
     }
   }
 
-  for (std::map<apf::MeshEntity*, std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); mit!=count_map2.end(); ++mit)
+  for (std::map<apf::MeshEntity*, 
+       std::set<entMsg,classcomp> >::iterator mit=count_map2.begin(); 
+       mit!=count_map2.end(); ++mit)
   {
     e = mit->first;
     int num_global_adj =count_map2[e].size();

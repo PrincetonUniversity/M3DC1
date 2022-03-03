@@ -118,6 +118,10 @@ public:
   void setupCommGroupsPlane();
   MPI_Comm & getMPICommPlane();
   std::map<int,MPI_Comm> PlaneGroups;
+// storage of 3D model tags 
+  int** ge_tag;
+  void save_gtag();
+  void restore_gtag();
 private:
   static m3dc1_model* _instance;
   std::map<gmi_ent*, std::pair<gmi_ent*,gmi_ent*> > newModelEnts;

@@ -6,7 +6,8 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
                 overplot=overplot, phi=phi0, time=realtime, levels=levels, $
                 phase=phase, abs=abs, operation=op, magcoord=magcoord, $
                 outfile=outfile, fac=fac, filename=filename, $
-                psin=psin, coils=coils, axis=axis, _EXTRA=ex
+                psin=psin, coils=coils, axis=axis, wall_regions=plotwall, $
+                _EXTRA=ex
 
    if(n_elements(time) eq 0) then time = 0
    if(n_elements(p) eq 0) then p = 200
@@ -125,7 +126,10 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
            plot_mesh, mesh=mesh, /oplot, $
              boundary=boundary, filename=filename[0], _EXTRA=ex
        endif
-
+       if(keyword_set(plotwall)) then begin
+          plot_wall_regions, /over, color=color(3), filename=filename[0]
+       end
+       
        if(n_elements(q_contours) ne 0) then begin
            fval = flux_at_q(q_contours,points=p,_EXTRA=ex,$
                            filename=filename[0])

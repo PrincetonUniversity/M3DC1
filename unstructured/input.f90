@@ -328,6 +328,8 @@ subroutine set_defaults
   call add_var_double("kappa0", kappa0, 0., "", transp_grp)
   call add_var_double("kappar", kappar, 0., &
        "Parallel thermal conductivity", transp_grp)
+  call add_var_double("kappari_fac", kappari_fac, 1., &
+       "Ion parallel thermal conductivity factor", transp_grp)
   call add_var_double("tcrit", tcrit, 0., "", transp_grp)
   call add_var_double("k_fac", k_fac, 1., &
        "multiplies toroidal field in denominator of PTC", transp_grp)
@@ -1075,7 +1077,9 @@ subroutine set_defaults
 
   !Micellaneous parameters or mesh adaptation
   call add_var_int("iadapt_writevtk", iadapt_writevtk, 0, "", adapt_grp)
-  call add_var_int("iadapt_writesmb", iadapt_writesmb, 0, "", adapt_grp)
+  !turned back on iadapt_writesmb to pass the regression tests with old libraries
+  !once libraries are updated in all machines, this will be turned off -- seols 11/2021
+  call add_var_int("iadapt_writesmb", iadapt_writesmb, 1, "", adapt_grp)
   call add_var_int("iadapt_useH1", iadapt_useH1, 0, "",adapt_grp)
   call add_var_int("iadapt_removeEquiv",iadapt_removeEquiv, 0, "",adapt_grp)
   call add_var_double("adapt_target_error", adapt_target_error, 0.0001,"", adapt_grp)

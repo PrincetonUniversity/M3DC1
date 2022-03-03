@@ -8,6 +8,7 @@ module transport_coefficients
   type(spline1d), private :: heatsource_spline
   type(spline1d), private :: particlesource_spline
   type(spline1d), private :: prad_nz_spline
+  type(spline1d), private :: cd_spline         ! current drive 
 
 contains
 
@@ -56,7 +57,7 @@ function sigma_func(izone)
            else
               rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
            end if
-           temp79a = rate*pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1)
+           temp79a = rate*pellet_distribution(ip, x_79, phi_79, z_79, real(pt79(:,OP_1)), 1, izone)
         endif
      
         temp = temp + intx2(mu79(:,:,OP_1),temp79a)
@@ -83,7 +84,11 @@ function sigma_func(izone)
   endif
 
   if(ibeam.eq.1 .or. ibeam.eq.2) then
+#ifdef USEST
+     temp79a = neutral_beam_deposition(xl_79,zl_79)
+#else
      temp79a = neutral_beam_deposition(x_79,z_79)
+#endif
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
   end if
 
@@ -99,15 +104,18 @@ function sigma_func(izone)
      end if
 
      do j=1, npoints
+#ifdef USEST
+        pso = xl_79(j)**2+zl_79(j)**2 
+#else
         call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
              x_79(j),z_79(j),mr,psib)
         if(mr.eq.REGION_PF) then
            pso = 2.*psib - pso
         end if
         pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
-
+#endif
         call evaluate_spline(particlesource_spline,pso,val,valp,valpp)
-        temp79a(j) = val * pellet_rate(1)
+        temp79a(j) = val * pellet_rate_scl
      end do
 
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
@@ -370,13 +378,16 @@ function q_func(izone)
      end if
 
      do j=1, npoints
+#ifdef USEST
+        pso = (xl_79(j)**2+zl_79(j)**2) 
+#else
         call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
              x_79(j),z_79(j), mr, psib)
         if(mr.eq.REGION_PF) then
            pso = 2.*psib - pso
         end if
         pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
-
+#endif
         call evaluate_spline(heatsource_spline,pso,val,valp,valpp)
         temp79a(j) = val
      end do
@@ -642,12 +653,14 @@ function cd_func()
   use m3dc1_nint
   use diagnostics
   use neutral_beam
+  use read_ascii
 
   implicit none
 
   vectype, dimension(dofs_per_element) :: cd_func
-  integer :: iregion, j
+  integer :: iregion, j, nvals
   vectype, dimension(dofs_per_element) :: temp
+  real, allocatable :: xvals(:), yvals(:)
 
   temp = 0.
 
@@ -666,6 +679,23 @@ function cd_func()
      temp79b = sqrt((xl_79-xcenter)**2 +(zl_79-zcenter)**2)
      temp79a = J_0cd/sqrt(2.*pi*w_cd**2) & 
           *exp(-(temp79b - delta_cd)**2/(2.*w_cd**2))
+     temp = temp + intx2(mu79(:,:,OP_1),temp79a)
+  else if(icd_source.eq.3) then
+     if(.not.allocated(cd_spline%x)) then
+        nvals = 0
+        call read_ascii_column('profile_cd', xvals, nvals, icol=1)
+        call read_ascii_column('profile_cd', yvals, nvals, icol=2)
+        if(nvals.eq.0) call safestop(6)
+        yvals = yvals / 7.96e5 
+        call create_spline(cd_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     endif
+
+     temp79b = sqrt((xl_79-xcenter)**2 +(zl_79-zcenter)**2)
+     do j=1,npoints
+        call evaluate_spline(cd_spline, temp79b(j)**2, temp79a(j))
+     end do
+     temp79a = temp79a*r_79
      temp = temp + intx2(mu79(:,:,OP_1),temp79a)
 #endif
   endif

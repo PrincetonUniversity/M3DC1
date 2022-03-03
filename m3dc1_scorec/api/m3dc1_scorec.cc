@@ -78,7 +78,14 @@ int m3dc1_scorec_finalize()
 //*******************************************************
 { 
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
-  m3dc1_mesh::instance()->clean(begin_numVert); // delete tag, field and internal data 
+  m3dc1_mesh::instance()->clean(); // delete tag, field and internal data 
+  int local_numVert=m3dc1_mesh::instance()->mesh->count(0);
+  int global_numVert=0;
+  MPI_Allreduce(&local_numVert, &global_numVert, 
+                4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  if (begin_numVert != global_numVert)
+    m3dc1_mesh::instance()->mesh->writeNative("adapted.smb");
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
 
   if (!pumi_rank()) std::cout<<"\n* [M3D-C1 INFO] run time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
@@ -480,8 +487,10 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
 #ifdef DEBUG
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
 #endif
+  int local_numVert=m3dc1_mesh::instance()->mesh->count(0);
+  MPI_Allreduce(&local_numVert, &begin_numVert, 
+                4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-  begin_numVert=m3dc1_mesh::instance()->mesh->count(0);
   return M3DC1_SUCCESS; 
 }
 
@@ -3262,9 +3271,9 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     if (!PCU_Comm_Self())
     {
       if (shouldCoarsen == 0)
-	std::cout<<"[M3D-C1 INFO] the last parameter in \"sizefieldParam\ is 0 causing coarsening to be turned off\n";
+	std::cout<<"[M3D-C1 INFO] the last parameter in \"sizefieldParam\" is 0 causing coarsening to be turned off\n";
       else if (shouldCoarsen == 1)
-	std::cout<<"[M3D-C1 INFO] the last parameter in \"sizefieldParam\ is 1 causing coarsening to be turned on\n";
+	std::cout<<"[M3D-C1 INFO] the last parameter in \"sizefieldParam\" is 1 causing coarsening to be turned on\n";
       else
       {
         std::cout<<"[M3D-C1 ERROR] the 14th value in \"sizefieldParam\" (it present) must be 0. or 1.\n";

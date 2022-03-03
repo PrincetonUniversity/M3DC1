@@ -12,7 +12,7 @@ from mayavi import mlab
 
 
 
-def plot_vector_field(field, file_name='C1.h5', time=0, linear=False, diff=False, R_res=100, phi_res=8, Z_res=100):
+def plot_vector_field(field, filename='C1.h5', time=0, linear=False, diff=False, R_res=100, phi_res=8, Z_res=100,quiet=False):
     """
     Plots the field of a file
     
@@ -21,7 +21,7 @@ def plot_vector_field(field, file_name='C1.h5', time=0, linear=False, diff=False
     **field**
     The field that is to be plotted, i.e. 'magnetic field'
 
-    **file_name**
+    **filename**
     File name which will be read, i.e. "../C1.h5"
     Can also be a list of two filepaths when used for diff
 
@@ -34,9 +34,9 @@ def plot_vector_field(field, file_name='C1.h5', time=0, linear=False, diff=False
     
     **diff**
     Plot the difference of two fields. 
-    This could be the difference of two files (file_name=['a/C1.h5','b/C1.h5']),
+    This could be the difference of two files (filename=['a/C1.h5','b/C1.h5']),
     or the difference between two time-slices (time=[t1,t2])
-    If list for both time and file_name are given file1 will be evaluated at time1,
+    If list for both time and filename are given file1 will be evaluated at time1,
     and file2 at time2
 
     **R_res**
@@ -49,24 +49,24 @@ def plot_vector_field(field, file_name='C1.h5', time=0, linear=False, diff=False
     Number of points sampled in Z direction
     """
     # make file name iterable if it is a string and not a list of strings
-    file_name = (file_name,) if not isinstance(file_name, (tuple, list)) else file_name
+    filename = (filename,) if not isinstance(filename, (tuple, list)) else filename
     
     # make time iterable if it is a single int and not if it is list of ints
     time = (time,) if not isinstance(time, (tuple, list)) else time
     
 
     # Input error handling
-    if diff==True:
-        if (len(file_name)==1 and len(time)==1):
+    if diff:
+        if (len(filename)==1 and len(time)==1):
             raise Exception('Please input two files and/or timeslices for diff')
-        elif(len(file_name)==2 and len(time)==1):
+        elif(len(filename)==2 and len(time)==1):
             raise Exception('Please choose the times at which the different files are to be evaluated. Single times are not allowed.')
     
-    if diff==True and linear==True:
+    if diff and linear:
         raise Exception('Please choose diff or linear, not both.')
 
-    if diff==False:
-        if (len(file_name)>1 or len(time)>1):
+    if not diff:
+        if (len(filename)>1 or len(time)>1):
             raise Exception('Multiple file/time slices detected. Please set diff=True or input single slices')
     
     
@@ -74,23 +74,23 @@ def plot_vector_field(field, file_name='C1.h5', time=0, linear=False, diff=False
 
     
     # If linear, the difference needs to be taken with time 0
-    if linear==True:
+    if linear:
         time = [time[0],0]
 
     
     
-    # If either file_name or time is a list, we will convert both of them to lists of length two.
-    if (len(file_name)==2 and len(time)==1):
+    # If either filename or time is a list, we will convert both of them to lists of length two.
+    if (len(filename)==2 and len(time)==1):
         time = [time, time]
-    if (len(file_name)==1 and len(time)==2):
-        file_name = [file_name[0],file_name[0]]
+    if (len(filename)==1 and len(time)==2):
+        filename = [filename[0],filename[0]]
     
 
     
     
     
     # Make 3D grid based on max and min values of mesh points
-    mesh_field  = fpy.sim_data(file_name[0]).get_mesh(time=0).elements
+    mesh_field  = fpy.sim_data(filename[0]).get_mesh(time=0,quiet=quiet).elements
     
 
     # Check simulation bounds
@@ -104,13 +104,11 @@ def plot_vector_field(field, file_name='C1.h5', time=0, linear=False, diff=False
     R, phi, Z    = np.meshgrid(R_linspace, phi_linspace, Z_linspace)
     
     # Evaluate field
-    print('Evaluating field... ')
-    fields1 = eval_field(field, R, phi, Z, coord='vector', file_name=file_name[0], time=time[0])
+    fields1 = eval_field(field, R, phi, Z, coord='vector', filename=filename[0], time=time[0],quiet=quiet)
     
     # Evaluate second field and calculate difference between two if linear or diff is True
-    if (diff == True or linear==True):
-        print('Evaluating second field... ')
-        fields2 = eval_field(field, R, phi, Z, coord='vector', file_name=file_name[1], time=time[1])
+    if (diff or linear):
+        fields2 = eval_field(field, R, phi, Z, coord='vector', filename=filename[1], time=time[1],quiet=quiet)
         fields1 = [fields1[0]-fields2[0], fields1[1]-fields2[1], fields1[2]-fields2[2]]
 
 
