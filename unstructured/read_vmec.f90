@@ -5,6 +5,8 @@ module read_vmec
   character(len=256) :: vmec_filename
   real :: bloat_factor     ! factor to expand VMEC domain 
   real :: bloat_distance   ! distance to expand VMEC domain 
+  integer :: nzer_factor      ! Zernike resolution parameter
+  integer :: nzer_manual      ! Zernike resolution parameter
 
 #ifdef USEST
   integer :: nfp, lasym
@@ -153,10 +155,20 @@ contains
     allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
     allocate(zbs(mn_mode))
+! Set Zernike polynomial resolution
+! Set default
     if(bloat_factor.ne.0 .or. bloat_distance.ne.0) then
       n_zer = m_pol*1 ! for free-boundary
     else 
       n_zer = m_pol*2 ! for fixed-boundary
+    end if
+! Manual resolution
+    if(nzer_manual.ge.0 .and. nzer_manual.ge.n_zer) then
+      n_zer = nzer_manual
+    end if
+! Use scale factor only if manual resolution not set
+    if(nzer_factor.ge.0 .and. nzer_manual.lt.0) then
+      n_zer = m_pol*nzer_factor
     end if
     allocate(rmncz(mn_mode,n_zer+1))
     allocate(zmnsz(mn_mode,n_zer+1))
@@ -179,7 +191,6 @@ contains
       allocate(bsupvmnsz(mn_mode_nyq,n_zer+1))
     endif
     allocate(s_vmec(ns))
-
 !    if(mod(n_zer,2).eq.1) then
 !      n_quad = (n_zer+1)/2
 !    else 

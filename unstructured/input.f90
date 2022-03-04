@@ -595,8 +595,8 @@ subroutine set_defaults
   call add_var_double("basicj_dexp",basicj_dexp,1.,"", eq_grp)
   call add_var_double("basicj_dvac",basicj_dvac,1.,"", eq_grp)
   call add_var_int("ibasicj_solvep",ibasicj_solvep,0, &
-       "0: Uniform pressure, solve for F.  1: Uniform F, solve for pressure", eq_grp)
-  
+       "0: Uniform pressure, solve for F.  1: Uniform F, solve for pressure", eq_grp) 
+
   ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
   call add_var_int("igs", igs, 80, "", gs_grp)
@@ -1133,6 +1133,10 @@ subroutine set_defaults
   call add_var_double("zcenter", zcenter, 0., "center of logical mesh (z)", mesh_grp)
   call add_var_double("bloat_factor", bloat_factor, 0., "factor to expand VMEC domain", mesh_grp)
   call add_var_double("bloat_distance", bloat_distance, 0., "factor to expand VMEC domain", mesh_grp)
+  call add_var_int("nzer_factor", nzer_factor, -1, &
+       "scale factor for order of VMEC interpolation", mesh_grp)
+  call add_var_int("nzer_manual", nzer_manual, -1, &
+       "order of VMEC interpolation", mesh_grp)
   call add_var_int("iread_planes", iread_planes, 0, &
        "Read positions of toroidal planes from plane_positions", mesh_grp)
   call add_var_double("xzero", xzero, 0., "", mesh_grp)
