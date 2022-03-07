@@ -656,6 +656,9 @@ subroutine tpi_factors(tpifac,tpirzero)
         tpifac = twopi
         tpirzero = twopi*rzero
      endif
+     if(ifull_torus.eq.0) then
+        tpirzero = tpirzero/nperiods
+     endif
   endif
 end subroutine tpi_factors
 
@@ -781,8 +784,13 @@ subroutine calculate_scalars()
      if(gyro.eq.1) call gyro_common
 
 #ifdef USE3D
-     co = cos(phi_79*twopi/toroidal_period)
-     sn = sin(phi_79*twopi/toroidal_period)
+     if(ifull_torus.eq.1) then
+        co = cos(phi_79*twopi/toroidal_period)
+        sn = sin(phi_79*twopi/toroidal_period)
+     else
+        co = cos(phi_79*twopi/(toroidal_period*nperiods))
+        sn = sin(phi_79*twopi/(toroidal_period*nperiods))
+     end if
 #endif
 
      if(imulti_region.eq.1 .and. izone.eq.2) then
@@ -3275,7 +3283,11 @@ subroutine phi_int(x,z,ans,fin,itri,ierr)
   real, dimension(OP_NUM) :: temp
   call evaluate(x,0.,z,temp,fin,itri,ierr)
 
-  ans = temp(OP_1)*toroidal_period
+  if(ifull_torus.eq.1) then
+     ans = temp(OP_1)*toroidal_period
+  else
+     ans = temp(OP_1)*toroidal_period*nperiods
+  endif
 #endif
 
 end subroutine phi_int
