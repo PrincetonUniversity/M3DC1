@@ -1368,6 +1368,7 @@ subroutine mark_fields(equilibrium)
         ! kprad_n(i)
         ! kprad_particle_source(i)
         call mark_field_for_solutiontransfer(kprad_n(i))
+        ! call mark_field_for_solutiontransfer(kprad_temp(i))
         call mark_field_for_solutiontransfer(kprad_particle_source(i))
      end do
      ! kprad_sigma_e,

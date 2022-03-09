@@ -1062,6 +1062,22 @@ int matrix_solve::solve(FieldID field_id)
            std::cout <<"\t-- Update A, Reuse Preconditioner" << std::endl;
   }
 
+
+  if (!PCU_Comm_Self())
+    std::cout << "~~~~~ checking number of jocobi blocks in Petsc ~~~~~" << std::endl;
+  PC pc;
+  PetscErrorCode pe;
+  pe = KSPGetPC(*ksp, &pc); CHKERRQ(pe);
+  PetscInt numBlocks;
+  PCBJacobiGetTotalBlocks(pc, &numBlocks, 0);
+
+  if (!PCU_Comm_Self())
+  {
+    std::cout << PCU_Comm_Self() << " total number of blocks is " << numBlocks << std::endl;
+    std::cout << "~~~~~ eof checking number of jocobi blocks in Petsc ~~~~~" << std::endl;
+  }
+
+
   //KSPSetUp(*ksp);
  // KSPSetUpOnBlocks(*ksp); CHKERRQ(ierr);
 
