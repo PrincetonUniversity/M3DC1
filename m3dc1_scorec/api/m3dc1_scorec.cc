@@ -1518,18 +1518,6 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir)
 #endif
 }
 
-/* new mesh adaptation */
-/* Input Parameters
- * level: 1 uniformly adapts the mesh onece, 2 uniformly adapts the mesh twice and so on
-*/
-void m3dc1_mesh_uniformadapt(int* level)
-{
-  adapt_mesh_uniform (*level);
-#ifdef DEBUG
-  printStats(m3dc1_mesh::instance()->mesh);
-  pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
-#endif
-}
 
 /* ghosting functions */
 //*******************************************************
