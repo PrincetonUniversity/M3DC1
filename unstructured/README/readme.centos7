@@ -12,12 +12,13 @@
 
   or
 
-  module load intel/2019.u3 openmpi/4.0.3 hdf5-parallel/1.10.5 fftw
+  module load intel/2019.u3 openmpi/4.0.3 hdf5-parallel/1.10.5 fftw netcdf-c/4.7.3 netcdf-fortran/4.5.2  
 
 4. compile code
 	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=centos7
 	2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=centos7
 	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=centos7
+	3D ST: make 3D=1 OPT=1 MAX_PTS=60 ARCH=greene ST=1
    
         2D with a new mesh adaptation capability:
            make OPT=1 MAX_PTS=25 ARCH=centos7 SCORECVER=adapt ADAPT=1
