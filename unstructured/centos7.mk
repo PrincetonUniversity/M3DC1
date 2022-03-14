@@ -52,7 +52,8 @@ else
 PETSC_ARCH=real-rhel7-$(MPIVER)
 endif
 
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
+#SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
+SCOREC_BASE_DIR=/p/swim/jchen/PETSC/core/centos7-update20220313
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 PUMI_DIR=$(SCOREC_BASE_DIR)
