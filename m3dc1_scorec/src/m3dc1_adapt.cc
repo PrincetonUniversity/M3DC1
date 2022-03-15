@@ -1222,24 +1222,24 @@ void create_localid(apf::Mesh2* mesh, int dim)
 void m3dc1_mesh::restore3D()
 // *********************************************************
 {
-    // compute the fields to copy from master plane
+    /* // compute the fields to copy from master plane */
     int num_field = 0;
     int* field_id = NULL;
     int* num_dofs_per_value = NULL;
 
-    if (!m3dc1_model::instance()->local_planeid && m3dc1_mesh::instance()->field_container)
-    {
-      num_field = m3dc1_mesh::instance()->field_container->size();
-      cout<<__func__<<": #fields to copy from master to non-master plane "<<num_field<<"\n";
-      field_id = new int [num_field];
-      num_dofs_per_value = new int [num_field];
-      for (int i=0; i<num_field; ++i)
-      {
-        m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id];
-        field_id[i] = i;
-        num_dofs_per_value[i] = mf->get_dof_per_value();
-      }
-    }
+    /* if (!m3dc1_model::instance()->local_planeid && m3dc1_mesh::instance()->field_container) */
+    /* { */
+    /*   num_field = m3dc1_mesh::instance()->field_container->size(); */
+    /*   cout<<__func__<<": #fields to copy from master to non-master plane "<<num_field<<"\n"; */
+    /*   field_id = new int [num_field]; */
+    /*   num_dofs_per_value = new int [num_field]; */
+    /*   for (int i=0; i<num_field; ++i) */
+    /*   { */
+    /*     m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[*field_id]; */
+    /*     field_id[i] = i; */
+    /*     num_dofs_per_value[i] = mf->get_dof_per_value(); */
+    /*   } */
+    /* } */
 
   int local_partid=PCU_Comm_Self();
 
@@ -1487,9 +1487,9 @@ void m3dc1_mesh::restore3D()
   apf::Numbering* local_n = mesh->findNumbering(mesh->getShape()->getName());
   if (local_n) destroyNumbering(local_n);
   
-  // FIXME: re-create the field and copy field data on master process group to non-master
-  for (int i=0; i<num_field; ++i)
-    update_field(field_id[i], num_dofs_per_value[i], num_local_vtx, remote_vertices);
+  /* // FIXME: re-create the field and copy field data on master process group to non-master */
+  /* for (int i=0; i<num_field; ++i) */
+  /*   update_field(field_id[i], num_dofs_per_value[i], num_local_vtx, remote_vertices); */
 
   // clear temp memory
   delete [] remote_vertices;
