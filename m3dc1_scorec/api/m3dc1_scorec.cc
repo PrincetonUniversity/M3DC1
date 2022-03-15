@@ -295,25 +295,6 @@ static void get_original_field_name(const char* plane_name, char* original_name)
   std::strcpy(original_name, plane_name_str.c_str());
 }
 
-static void inspectModel(apf::Mesh2* m, const char* name)
-{
-  apf::MeshEntity* e;
-  apf::MeshIterator* it;
-
-  apf::Field* mtagField = m->findField("mtag_field");
-  if (!mtagField)
-    mtagField = apf::createFieldOn(m, "mtag_field", apf::SCALAR);
-
-  it = m->begin(0);
-  while( (e = m->iterate(it)) )
-  {
-    double mt = 1. * m->getModelTag(m->toModel(e));
-    apf::setScalar(mtagField, e, 0, mt);
-  }
-  m->end(it);
-  apf::writeVtkFiles(name, m);
-}
-
 // helper functions
 static bool is_in_plane(apf::MeshEntity* e)
 {
@@ -642,6 +623,31 @@ static void zero_fields_on_non_master(const MultiField& pfields)
   m->end(it);
   for (int j = 0; j < np; j++)
     apf::synchronize(pfields[j]);
+}
+
+// the following should be called only on master plane 0
+static void zero_fields_on_master(apf::Field* f)
+{
+  int np = m3dc1_model::instance()->num_plane;
+  int nc = apf::countComponents(f);
+  int local_planeid = m3dc1_model::instance()->local_planeid;
+  PCU_ALWAYS_ASSERT_VERBOSE(local_planeid==0, "function can only be called on master palne!");
+
+  double tol = 2. * M3DC1_PI / np / 1.e6;
+
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+
+  apf::NewArray<double> zeros(nc);
+  for (int i = 0; i < nc; i++)
+    zeros[i] = 0.;
+
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(0);
+  while ( (e = m->iterate(it)) )
+    apf::setComponents(f, e, 0, &zeros[0]);
+  m->end(it);
+  for (int j = 0; j < np; j++)
+    apf::synchronize(f);
 }
 // end of static functions used for spr-adapt
 
@@ -1153,7 +1159,6 @@ void m3dc1_dir_import(double* dir, int ts)
 int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
     double* ar, double* max_size, int* refine_level, int* coarsen_level)
 {
-
   char filename[256];
 #ifdef DEBUG
   if (!PCU_Comm_Self())
@@ -1250,6 +1255,10 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
       	zFields.push_back(field);
       it++;
     }
+    // also add the targetMultiField fields to be zero-ed out after adapt
+    for (int i = 0; i < (int)targetMultiField.size() ; i++)
+      zFields.push_back(targetMultiField[i]);
+
     apf::writeVtkFiles("00c_mesh_3d", mesh);
 
     m3dc1_mesh::instance()->remove3D();
@@ -1339,6 +1348,12 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
     mesh->removeField(size_field);
     apf::destroyField(size_field);
     apf::reorderMdsMesh(mesh);
+
+    m3dc1_mesh::instance()->initialize();
+    // Note: These are only needed for 2D. For 3D these are called
+    // at the end of restore3D
+    compute_globalid(m3dc1_mesh::instance()->mesh, 0);
+    compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
   }
   else // 3D
   {
@@ -1352,6 +1367,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
     // size filed computation and adapt applied only on the master plane
     if (m3dc1_model::instance()->local_planeid == 0)
     {
+      // NOTE: pFields[0] holds the target fields we need to run spr on
       size_field = compute_multiplane_size_field(pFields[0], *ar);
       /* return 0; */
       process_size_field(mesh, size_field, *ts, *max_size, *refine_level, *coarsen_level);
@@ -1376,6 +1392,10 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
       apf::writeVtkFiles("03_mesh_2d_before_adapt", mesh);
       /* mesh->writeNative("2d_before_adapt.smb"); */
       ma::adapt(in);
+
+      for (int i = 0; i < (int)zFields.size(); i++)
+	zero_fields_on_master(zFields[i]);
+
       apf::writeVtkFiles("04_mesh_2d_after_adapt", mesh);
       /* mesh->writeNative("2d_after_adapt.smb"); */
       mesh->removeField(size_field);
@@ -1389,10 +1409,13 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
 	apf::destroyNumbering(n);
       }
 
+
       for (int i = 1; i < (int)pFields.size(); i++)
 	for (int j = 0; j < np; j++)
 	  synchronize_field(pFields[i][j]);
       apf::reorderMdsMesh(mesh);
+
+      apf::writeVtkFiles("04a_mesh_2d_after_reorder", mesh);
     }
     // switch comm back to original
     PCU_Switch_Comm(m3dc1_model::instance()->oldComm);
@@ -1400,6 +1423,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
 
     m3dc1_mesh::instance()->restore3D();
     apf::writeVtkFiles("05_mesh_3d_after_adapt", mesh);
+
 
     for (int i = 1; i < (int)pFields.size(); i++)
       zero_fields_on_non_master(pFields[i]);
@@ -1410,23 +1434,33 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
       transfer_field_from_main(pFields[i]);
 
     // clean up multi-plane fields
-    for (int i = 0; i < (int)pFields.size(); i++)
+    for (int i = 1; i < (int)pFields.size(); i++)
       for (int j = 0; j < (int)pFields[i].size(); j++) {
-      	/* if (!PCU_Comm_Self()) */
-      	/*   printf("removing field %s\n", apf::getName(pFields[i][j])); */
       	mesh->removeField(pFields[i][j]);
 	apf::destroyField(pFields[i][j]);
       }
-    /* remove_all_wedges(); */
-    /* apf::writeVtkFiles("mesh_after_adapt", mesh); */
 
     // zero out all the fields that are not transfered during adapt
     for (int i = 0; i < (int)zFields.size(); i++)
       apf::zeroField(zFields[i]);
 
+    // delete pFields[0] fields here
+    for (int i = 0; i < (int)pFields[0].size(); i++) {
+      mesh->removeField(pFields[0][i]);
+      apf::destroyField(pFields[0][i]);
+    }
+
     apf::writeVtkFiles("07_mesh_3d_after_adapt", mesh);
-    /* reorderMdsMesh(mesh); */
-    /* apf::writeVtkFiles("08_mesh_3d_after_adapt_reordered", mesh); */
+
+    /* int dim = 0; */
+    /* char buff[512]; */
+    /* sprintf(buff, "C++ printing num owned and local nodes at line %d", __LINE__); */
+    /* if (!PCU_Comm_Self()) */
+    /*   std::cout << buff << std::endl; */
+    /* sprintf(buff, "id %d, local/owned %d,%d", PCU_Comm_Self(), */
+	/* m3dc1_mesh::instance()->num_own_ent[dim], */
+	/* m3dc1_mesh::instance()->mesh->count(dim)); */
+    /* std::cout << buff << std::endl; */
   }
 
 
@@ -1459,10 +1493,6 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
 
 
 
-  m3dc1_mesh::instance()->initialize();
-  compute_globalid(m3dc1_mesh::instance()->mesh, 0);
-  compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
-
   it=m3dc1_mesh::instance()->field_container->begin();
   while(it!=m3dc1_mesh::instance()->field_container->end())
   {
@@ -1484,12 +1514,17 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
 #endif
     it++;
   }
-  if (!PCU_Comm_Self())
-    printf("before inspecting model\n");
-  inspectModel(m3dc1_mesh::instance()->mesh, "modeltag");
-  if (!PCU_Comm_Self())
-    printf("after  inspecting model\n");
-  /* destroyField(size_field); */
+
+  /* int dim = 0; */
+  /* char buff[512]; */
+  /* sprintf(buff, "C++ printing num owned and local nodes at line %d", __LINE__); */
+  /* if (!PCU_Comm_Self()) */
+  /*   std::cout << buff << std::endl; */
+  /* sprintf(buff, "id %d, local/owned %d,%d", PCU_Comm_Self(), */
+  /*     m3dc1_mesh::instance()->num_own_ent[dim], */
+  /*     m3dc1_mesh::instance()->mesh->count(dim)); */
+  /* std::cout << buff << std::endl; */
+
   return M3DC1_SUCCESS;
 }
 
