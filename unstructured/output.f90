@@ -411,6 +411,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
   call output_scalar(scalar_group_id, "helicity"        ,helicity,ntime, error)
+  call output_scalar(scalar_group_id, "power_injected"  , pinj,   ntime, error)
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)

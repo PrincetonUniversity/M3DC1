@@ -528,6 +528,12 @@ function read_scalar, scalarname, filename=filename, title=title, $
        title = '!6Magnetic Helicity!6'
        symbol = '!8H!X'
        d = dimensions(b0=2,l0=4,_EXTRA=extra)
+   endif else if (strcmp("pinj", scalarname, /fold_case) eq 1) then begin
+       data = s.power_injected._data
+       title = '!6Power Injected!6'
+       symbol = '!8P!Dinj!N!X'
+       d = dimensions(p0=1,t0=-1,l0=3,_EXTRA=extra)
+
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)

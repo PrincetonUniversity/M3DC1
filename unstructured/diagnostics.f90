@@ -16,7 +16,7 @@ module diagnostics
   integer :: itri_te_max2 = 0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne, pinj
   real :: totrad, linerad, bremrad, ionrad, reckrad, recprad
   real :: w_pe   ! electron thermal energy
   real :: w_m    ! totoidal poloidal magnetic energy inside plasma
@@ -232,6 +232,7 @@ contains
     pden = 0.
     pmom = 0.
     pvol = 0.
+    pinj = 0.
 
     tau_em = 0.
     tau_sol = 0.
@@ -286,7 +287,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 73
+    integer, parameter :: num_scalars = 74
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, allocatable  :: ptemp(:)
@@ -366,6 +367,7 @@ contains
        temp(71) = wall_force_n0_x_halo
        temp(72) = wall_force_n0_z_halo
        temp(73) = helicity
+       temp(74) = pinj
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -444,6 +446,7 @@ contains
        wall_force_n0_x_halo = temp2(71)
        wall_force_n0_z_halo = temp2(72)
        helicity        = temp2(73)
+       pinj            = temp2(74)
 
        if(ipellet_abl.gt.0) then
           allocate(ptemp(npellets))
@@ -744,7 +747,7 @@ subroutine calculate_scalars()
      endif
 
      if(numvar.ge.3 .or. ipres.eq.1) then
-        def_fields = def_fields + FIELD_P + FIELD_KAP + FIELD_TE + FIELD_TI
+        def_fields = def_fields + FIELD_P + FIELD_KAP + FIELD_TE + FIELD_TI + FIELD_Q
         if(hyper.eq.0.) def_fields = def_fields + FIELD_J
         if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
         if(rad_source) def_fields = def_fields + FIELD_RAD
@@ -769,7 +772,7 @@ subroutine calculate_scalars()
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -954,6 +957,9 @@ subroutine calculate_scalars()
         pmom = pmom &
              + twopi*int4(r2_79,vzt79(:,OP_1),rho79(:,OP_1),mr)/tpifac
      endif
+
+     ! injected power
+     pinj = pinj + twopi*int1(q79)/tpifac
 
      if(amupar.ne.0.) then
         call PVS1(pht79,temp79a)
