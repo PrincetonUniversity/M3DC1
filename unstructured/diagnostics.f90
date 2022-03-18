@@ -16,7 +16,7 @@ module diagnostics
   integer :: itri_te_max2 = 0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne, pinj
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne, pinj, totkprad, totkprad0
   real :: totrad, linerad, bremrad, ionrad, reckrad, recprad
   real :: w_pe   ! electron thermal energy
   real :: w_m    ! totoidal poloidal magnetic energy inside plasma
@@ -233,6 +233,8 @@ contains
     pmom = 0.
     pvol = 0.
     pinj = 0.
+    totkprad = 0.
+    totkprad0 = 0.
 
     tau_em = 0.
     tau_sol = 0.
@@ -287,7 +289,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 74
+    integer, parameter :: num_scalars = 76
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, allocatable  :: ptemp(:)
@@ -368,6 +370,8 @@ contains
        temp(72) = wall_force_n0_z_halo
        temp(73) = helicity
        temp(74) = pinj
+       temp(75) = totkprad
+       temp(76) = totkprad0
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -447,6 +451,8 @@ contains
        wall_force_n0_z_halo = temp2(72)
        helicity        = temp2(73)
        pinj            = temp2(74)
+       totkprad        = temp2(75)
+       totkprad0       = temp2(76)
 
        if(ipellet_abl.gt.0) then
           allocate(ptemp(npellets))
@@ -681,6 +687,7 @@ subroutine calculate_scalars()
   use math
   use gyroviscosity
   use pellet
+  use kprad_m3dc1
 
   implicit none
  
@@ -772,7 +779,7 @@ subroutine calculate_scalars()
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -912,6 +919,16 @@ subroutine calculate_scalars()
      ionrad = ionrad + twopi*int1(ionrad79(:,OP_1))/tpifac
      reckrad = reckrad + twopi*int1(reckrad79(:,OP_1))/tpifac
      recprad = recprad + twopi*int1(recprad79(:,OP_1))/tpifac
+
+     if(ikprad.ne.0) then
+        call eval_ops(itri, kprad_n(0), tm79, rfac)
+        totkprad0 = totkprad0 + twopi*int1(tm79(:,OP_1))/tpifac
+        do i=1, kprad_z
+           call eval_ops(itri, kprad_n(i), tm79, rfac)
+           totkprad = totkprad + twopi*int1(tm79(:,OP_1))/tpifac
+        end do
+        totkprad = totkprad + totkprad0
+     end if
      
      if(irunaway.gt.0) then
         totre = totre + int2(ri_79,nre179(:,OP_1))/tpirzero
