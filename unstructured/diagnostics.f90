@@ -695,7 +695,7 @@ subroutine calculate_scalars()
 
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3),tpifac,tpirzero
+  real :: n(2,3),tpifac,tpirzero, t0
   integer :: iedge, idim(3), izone, izonedim, i, j
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
@@ -922,12 +922,13 @@ subroutine calculate_scalars()
 
      if(ikprad.ne.0) then
         call eval_ops(itri, kprad_n(0), tm79, rfac)
-        totkprad0 = totkprad0 + twopi*int1(tm79(:,OP_1))/tpifac
+        t0 = twopi*int1(tm79(:,OP_1))/tpifac
+        totkprad0 = totkprad0 + t0
+        totkprad = totkprad + t0
         do i=1, kprad_z
            call eval_ops(itri, kprad_n(i), tm79, rfac)
            totkprad = totkprad + twopi*int1(tm79(:,OP_1))/tpifac
         end do
-        totkprad = totkprad + totkprad0
      end if
      
      if(irunaway.gt.0) then
