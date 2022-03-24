@@ -28,7 +28,7 @@ else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
-ZOLTAN_LIB=-L/home/liuchang/zoltan/pgi/lib -lzoltan
+ZOLTAN_LIB=-L/projects/M3DC1/zoltan/traverse-nvidia/lib -lzoltan
 
 SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
              -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \

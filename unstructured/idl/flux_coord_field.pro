@@ -1,8 +1,9 @@
 function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
                            fbins=fbins,  tbins=tbins, flux=flux, angle=angle, $
                            psirange=frange, nflux=nflux, qval=q, pest=pest, $
-                           volume=volume, _EXTRA=extra, qflux=qflux, $
-                           fc=fc
+                           volume=volume, qflux=qflux, $
+                           fc=fc, dpsi0_dx=psi0_r, dpsi0_dz=psi0_z, $
+                           _EXTRA=extra
 
   if(n_elements(field) le 1) then begin
      field = read_field(field,x,z,t,slice=slice,_EXTRA=extra)
@@ -12,9 +13,11 @@ function flux_coord_field, field, psi, x, z, t, slice=slice, area=area, i0=i0,$
      print, 'FLUX_COORD_FIELD reusing flux coordinate info'
   endif else begin
      print, 'FLUX_COORD_FIELD NOT reusing flux coordinate info'
-     fc = flux_coordinates(slice=slice,_EXTRA=extra, $
+     fc = flux_coordinates(slice=slice, $
                            tbins=tbins, fbins=fbins, $
-                           psi0=psi,i0=i0,/fast,x=x,z=z,pest=pest)
+                           dpsi0_dx=psi0_r, dpsi0_dz=psi0_z, $
+                           psi0=psi,i0=i0,/fast,x=x,z=z,pest=pest, $
+                           _EXTRA=extra)
   end
 
   volume = fc.v

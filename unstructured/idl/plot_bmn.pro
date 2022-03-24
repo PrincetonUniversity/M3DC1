@@ -2,7 +2,7 @@ pro plot_bmn, filename, file=fn, vac=vac, names=names, nolegend=nolegend, $
               ytitle=ytitle, width=width, current=cur, $
               netcdf=netcdf, chirikov=chi, sum_files=sum_files, $
               color=c, overplot=overplot, monochrome=bw, $
-              linestyle=linestyle, out=out, phase=ph, $
+              linestyle=linestyle, out=out, phase=ph, ntor=ntor, $
               _EXTRA=extra
 
    if(n_elements(filename) eq 0 and n_elements(fn) gt 0) then filename=fn
@@ -27,7 +27,7 @@ pro plot_bmn, filename, file=fn, vac=vac, names=names, nolegend=nolegend, $
    endif else begin
       result = read_bmn(filename,m,bmn,phase,psin=psin,$
                         sum_files=sum_files,factor=cur, $
-                        netcdf=netcdf, qval=q)
+                        netcdf=netcdf, qval=q, ntor=ntor)
 
       if(keyword_set(ph)) then begin
          data = phase*180/!pi
@@ -96,7 +96,8 @@ pro plot_bmn, filename, file=fn, vac=vac, names=names, nolegend=nolegend, $
            data_vac = chirikov(vac,cur=cur,psimid=psin_vac, netcdf=netcdf)
        endif else begin
           result = read_bmn(vac, m_vac, bmn_vac, phase_vac, psin=psin_vac, $
-                            sum_files=sum_files, factor=cur, netcdf=netcdf)
+                            sum_files=sum_files, factor=cur, netcdf=netcdf, $
+                           ntor=ntor)
           if(keyword_set(ph)) then begin
              data_vac = phase_vac*180./!pi
           endif else begin

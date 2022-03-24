@@ -510,24 +510,45 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(/p0,l0=3,t0=-1,_EXTRA=extra)
    endif else if (strcmp("temax", scalarname, /fold_case) eq 1) then begin
        data = s.temax._data
-       title = '!6Maximum Te!6'
+       title = '!6Maximum Te!X'
        symbol = '!6max[!8T!De!N!6]!X'
        d = dimensions(/temp,_EXTRA=extra)
    endif else if (strcmp("POhm", scalarname, /fold_case) eq 1) then begin
        data = -(s.e_mpd._data + s.e_mtd._data)
-       title = '!6Ohmic Heating!6'
+       title = '!6Ohmic Heating!X'
        symbol = '!8P!D!6ohm!N!X'
        d = dimensions(/p0,t0=-1,l0=3,_EXTRA=extra)
    endif else if (strcmp("ave_p", scalarname, /fold_case) eq 1) then begin
        data = s.Ave_p._data
-       title = '!6Average Pressure!6'
+       title = '!6Average Pressure!X'
        symbol = '!3<!8p!3>!X'
        d = dimensions(/p0,_EXTRA=extra)
    endif else if (strcmp("helicity", scalarname, /fold_case) eq 1) then begin
        data = s.helicity._data
-       title = '!6Magnetic Helicity!6'
+       title = '!6Magnetic Helicity!X'
        symbol = '!8H!X'
        d = dimensions(b0=2,l0=4,_EXTRA=extra)
+   endif else if (strcmp("pinj", scalarname, /fold_case) eq 1) then begin
+       data = s.power_injected._data
+       title = '!6Power Injected!X'
+       symbol = '!8P!Dinj!N!X'
+       d = dimensions(p0=1,t0=-1,l0=3,_EXTRA=extra)
+   endif else if (strcmp("kprad_n0", scalarname, /fold_case) eq 1) then begin
+       data = s.kprad_n0._data
+       title = '!6Neutral Impurities!X'
+       symbol = '!8n!DI!60!N!X'
+       d = dimensions(/n0,_EXTRA=extra)
+   endif else if (strcmp("kprad_n", scalarname, /fold_case) eq 1) then begin
+       data = s.kprad_n._data
+       title = '!6Total Impurities!6'
+       symbol = '!8n!DI!N!X'
+       d = dimensions(/n0,_EXTRA=extra)
+   endif else if (strcmp("kprad_ion_frac", scalarname, /fold_case) eq 1) then begin
+       data = 1. - s.kprad_n0._data / s.kprad_n._data
+       title = '!6Impurity Ionization Fraction!X'
+       symbol = title
+       d = dimensions(_EXTRA=extra)
+
    endif else begin
        s = read_scalars(filename=filename)
        n = tag_names(s)

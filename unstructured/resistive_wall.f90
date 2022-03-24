@@ -18,7 +18,7 @@ module resistive_wall
   integer :: iwall_regions
   character(len=256), dimension(imax_wall_regions) :: wall_region_filename
   real, dimension(imax_wall_regions) :: wall_region_eta, wall_region_etaRZ
-  type(region_type), dimension(imax_wall_regions), private :: wall_region
+  type(region_type), dimension(imax_wall_regions) :: wall_region
 
   real :: eta_rekc
   integer :: ntor_rekc, mpol_rekc, isym_rekc

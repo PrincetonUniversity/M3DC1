@@ -32,7 +32,7 @@ void get_ent_numglobaladj(apf::Mesh2*, int, int, std::vector<apf::MeshEntity*>&,
 
 void adapt_mesh (int field_id_h1, int field_id_h2, double* dir);
 
-// helper routine for build3d
+// helper routine for build3d and restore3D
 void push_new_entities (apf::Mesh2* mesh, std::map<apf::MeshEntity*, apf::MeshEntity*>& new_entities);
 void bounce_orig_entities (apf::Mesh2* mesh, std::vector<apf::MeshEntity*>& mesh_ents, int rank_to,
     apf::MeshEntity** remote_vertices, 
@@ -40,6 +40,10 @@ void bounce_orig_entities (apf::Mesh2* mesh, std::vector<apf::MeshEntity*>& mesh
     apf::MeshEntity** remote_faces);
 void update_field (int field_id, int ndof_per_value, int num_2d_vtx, 
     apf::MeshEntity** remote_vertices);
+void set_remote(apf::Mesh2* m, apf::MeshEntity* e, int p, apf::MeshEntity* r);
+void  assign_uniq_partbdry_id(apf::Mesh2* mesh, int dim, apf::MeshTag* partbdry_id_tag);
+void m3dc1_stitchLink(apf::Mesh2* mesh, apf::MeshTag* partbdry_id_tag,
+                      std::map<int, apf::MeshEntity*>* partbdry_entities);
 
 class m3dc1_mesh
 {
@@ -50,8 +54,9 @@ public:
   // functions
   void reset();
   void clean();
-  void remove_wedges();
-  void create_wedges();
+  void remove3D();
+  void restore3D();
+
   void build3d(int num_field, int* field_id, int* num_dofs_per_value);
   void initialize(); 
   void set_mcount(); // fill in # local, own, global mesh entity count

@@ -103,8 +103,12 @@ endif
 ifeq ($(OMP), 1)
   BIN_POSTFIX := $(BIN_POSTFIX)-omp
 endif
-OPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
+ifeq ($(ACC), 1)
+  BIN_POSTFIX := $(BIN_POSTFIX)-acc
+endif
+
+OOPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 # add date stamp
 OPTS := $(OPTS) -DDATE_BUILT='"$(shell date)"' -DRELEASE_VERSION='"$(shell cat release_version)"' #-DBUILD_INFO="'$(shell svn info)'"
@@ -187,6 +191,11 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	init_conds.o \
 	get_pc_skip_count.o \
 	parse_solver_options.o
+
+ifneq (,$(findstring gpu,$(ARCH)))
+	OBJS := $(OBJS:metricterms_new.o=metricterms_new_gpu.o)
+	OBJS := $(OBJS:ludef_t.o=ludef_t_gpu.o)
+endif
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o

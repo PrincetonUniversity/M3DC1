@@ -83,7 +83,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      end if
      ssterm(:,u_g) = ssterm(:,u_g) + tempx
      if(numvar.ge.3) then
-        if(inoslip_pol.eq.0) then
+        if((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) then
            tempx = v1chin(trialx,lin,rho79)*chiiner
            ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
         end if
@@ -93,7 +93,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
-  if(inonormalflow.eq.0 .and. (.not.surface_int)) then
+  if(((inonormalflow.eq.0).or.(inonormalflow.eq.2)) .and. .not.surface_int) then
      tempx = -regular*intx2(trialx(:,:,OP_1),lin(:,OP_1))
      ssterm(:,u_g) = ssterm(:,u_g) + tempx
      ddterm(:,u_g) = ddterm(:,u_g) + tempx*bdf
@@ -201,7 +201,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
              (v1uun    (trialx,ph079,ph079,lin) &
              +v1uvn    (trialx,ph079,vz079,lin) &
              +v1vvn    (trialx,vz079,vz079,lin) &
-             +v1uchin  (trialx,vz079,ch079,lin) &
+             +v1uchin  (trialx,ph079,ch079,lin) &
              +v1vchin  (trialx,vz079,ch079,lin) &
              +v1chichin(trialx,ch079,ch079,lin))
      end if
@@ -1225,19 +1225,19 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   ! Regularization term
   ! ~~~~~~~~~~~~~~~~~~~
-  if(inoslip_pol.eq.0 .and. (.not.surface_int)) then
+  if(((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) .and. .not.surface_int) then
      tempx = -regular*intx2(trialx(:,:,OP_1),lin(:,OP_1))
      ssterm(:,chi_g) = ssterm(:,chi_g) + tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) + tempx*bdf
   end if
 
   if(izone.ne.1) then 
-     if(inonormalflow.eq.0) then
+     if((inonormalflow.eq.0).or.(inonormalflow.eq.2)) then
         tempx = v3un(trialx,lin,rho79)
         ssterm(:,u_g) = ssterm(:,u_g) + tempx
      end if
      
-     if(inoslip_pol.eq.1 .and. .not.surface_int) then
+     if((inoslip_pol.eq.1) .and. .not.surface_int) then
         tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
      else
         tempx = v3chin(trialx,lin,rho79)
@@ -4206,6 +4206,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   if(kappar.ne.0.) then
     fac = 1.
     if((numvar.ge.3 .and. ipres.eq.0) .or. (numvar.lt.3 .and. ipres.eq.1)) fac=1. + (1.- pefac)/pefac
+    if(numvar.ge.3 .and. ipres.eq.1 .and. (.not. electron_temperature)) fac = kappari_fac
         
     if(linear.eq.0) then
 !

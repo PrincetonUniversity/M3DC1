@@ -7,21 +7,23 @@
 
 import math
 import numpy as np
-import matplotlib
+import matplotlib.axes as mplax
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
+from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 import fpy
 import m3dc1.fpylib as fpyl
-from m3dc1.eval_field import eval_field
 
-def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=None,meshcol='C0',pub=False,phys=False,phi=0.,save=False):
+
+def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=None,fignum=None,meshcol='C0',zoom=False,pub=False,quiet=False,phys=False,phi=0.,save=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
     meshes since it can take a while to calculate the mesh connectivity.
     Example:
     sim = fpy.sim_data(time=0)
-    elms = sim.get_mesh(time=0)
+    elms = sim.get_mesh(time=0,filename=filename)
     m.plot_mesh(elms=elms)
 
     Arguments:
@@ -32,7 +34,7 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     **time**
     If no mesh object is provided, read mesh at this time slice
 
-    **file_name**
+    **filename**
     If no mesh object is provided, read file with this name
 
     **boundary**
@@ -50,9 +52,10 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     **pub**
     If True, plot will be formatted for publication
     """
-    if elms==None:
-        simplot = fpy.sim_data(file_name)
-        elms = simplot.get_mesh(time=time)
+    if not isinstance(elms,fpy.sim_data.mesh):
+        if not isinstance(sim,fpy.sim_data):
+            sim = fpy.sim_data(filename)
+        elms = sim.get_mesh(time=time,quiet=quiet)
     
     mesh = elms.elements
     version = elms.version
@@ -62,52 +65,46 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     
     nelms = meshshape[0]
     
-    sz = meshshape[1]
-    if(sz > 8):
-        threed = 1
-    else:
-        threed = 0
+    threed = 1 if meshshape[1]>8 else 0
     
-    if(boundary==True and version >= 3):
-        boundary = True
-    else:
-        boundary = False
+    boundary = boundary and (version >= 3)
     
-    if phys==False:
-        minr = np.amin(mesh[:,4])
-        maxr = np.amax(mesh[:,4])
-        minz = np.amin(mesh[:,5])
-        maxz = np.amax(mesh[:,5])
-    else:
+    if phys:
         rst = eval_field('rst', mesh[:,4], phi*np.ones_like(mesh[:,4]), mesh[:,5], sim=simplot, file_name=file_name, time=time)
         zst = eval_field('zst', mesh[:,4], phi*np.ones_like(mesh[:,4]), mesh[:,5], sim=simplot, file_name=file_name, time=time)
         minr = np.amin(rst)
         maxr = np.amax(rst)
         minz = np.amin(zst)
         maxz = np.amax(zst)
+    else:
+        minr = np.amin(mesh[:,4])
+        maxr = np.amax(mesh[:,4])
+        minz = np.amin(mesh[:,5])
+        maxz = np.amax(mesh[:,5])
+
 
     # Create figure and plot mesh points only. If you want them to be visible,
     # increase marker size.
     
     # Set font sizes and plot style parameters
-    if pub==False:
-        axlblfs = 12
-        ticklblfs = 12
-        linew = 1
-        bdlw = 1
-    elif pub==True:
+    if pub:
         axlblfs = 20
         ticklblfs = 18
         linew = 1
         bdlw = 1
+    else:
+        axlblfs = 12
+        ticklblfs = 12
+        linew = 1
+        bdlw = 1
     
-    if type(ax)!=np.ndarray and isinstance(ax,matplotlib.axes._axes.Axes)==False:
+    if not isinstance(ax, (np.ndarray, mplax._axes.Axes)):
         fig, ax = plt.subplots(num=1)
         fig.set_figheight(8)
-        if phys==False:
-            plt.plot(mesh[:,4],mesh[:,5],lw=0,marker='.',ms=0)
-        else:
+        if phys:
             plt.plot(rst,zst,lw=0,marker='.',ms=0)
+        else:
+            plt.plot(mesh[:,4],mesh[:,5],lw=0,marker='.',ms=0)
         plt.grid(True)
         ax.set_aspect('equal',adjustable='box')
         plt.xlabel(r'$R$',fontsize=axlblfs)
@@ -139,7 +136,7 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     
     #The following loop 
     for i in range(nelms):
-        if(threed == 1 & i >= (nelms/nplanes)):
+        if (threed == 1) and (i >= (nelms/nplanes)):
             break
         
         # Mesh information
@@ -156,7 +153,7 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
         p2 = p1 + np.asarray([(b+a) * math.cos(t), (b+a) * math.sin(t)])
         p3 = p1 + np.asarray([b * math.cos(t) - c * math.sin(t), b * math.sin(t) + c * math.cos(t)])
         delta = 0.0
-        if phys==True: # calculate physical coordinates
+        if phys: # calculate physical coordinates
             p1 = np.asarray([eval_field('rst', p1[0], phi*np.ones_like(p1[0]), p1[1], sim=simplot, file_name=file_name, time=time),\
                              eval_field('zst', p1[0], phi*np.ones_like(p1[0]), p1[1], sim=simplot, file_name=file_name, time=time)])
             p2 = np.asarray([eval_field('rst', p2[0], phi*np.ones_like(p2[0]), p2[1], sim=simplot, file_name=file_name, time=time),\
@@ -168,10 +165,7 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
         q3 = delta*p1 + delta*p2 + (1.-2.*delta)*p3
         
         # Identify lines that are part of the wall or boundary. These will be plotted in different colors.
-        if boundary==True:
-            pp=bound
-        else:
-            pp=7
+        pp=bound if boundary else 7
         
         if((pp & 1) == 1):
             if((bound & 1) == 1):
@@ -227,13 +221,10 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
     # Calls to any plotting function are slow and should thus be minimized.
     
     #Check if an axis object or a an array of axis objects was passed to this routine and plot in each axis.
-    if type(ax)==np.ndarray:
-        axarray = ax
-    else:
-        axarray = np.asarray([ax])
+    axarray = np.atleast_1d(ax)
     
     for ax in axarray:
-        if boundary!=True:
+        if not boundary:
             if len(plot1x) > 0:
                 pltreg = ax.add_collection(LineCollection(np.stack((plot1x,plot1y), axis=2),linewidths=0.25, colors=meshcol,zorder=4))
             else:
@@ -251,16 +242,30 @@ def plot_mesh(elms=None,time=0,file_name='C1.h5',boundary=False,ax=None,fignum=N
             pltbd = ax.add_collection(LineCollection(np.stack((plot4x,plot4y), axis=2),linewidths=bdlw, colors='c',zorder=5))
         else:
             pltbd = None
+    
+    if zoom:
+        axins = zoomed_inset_axes(ax, 2, loc=1) # zoom = 6
+        # sub region of the original image
+        x1, x2, y1, y2 = 1.2, 1.75, -0.4, 0.4
+        axins.set_xlim(x1, x2)
+        axins.set_ylim(y1, y2)
 
-    plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
-    if save==True:
+        plt.xticks(visible=False)
+        plt.yticks(visible=False)
+
+        # draw a bbox of the region of the inset axes in the parent axes and
+        # connecting lines between the bbox and the inset axes area
+        mark_inset(ax, axins, loc1=2, loc2=4, fc="none", ec="0.5")
+    
+    if save:
+        plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
         plt.savefig('mesh.png',bbox_inches='tight',dpi=250)
+        plt.close()
     else:
-        plt.show()
-    plt.close()
-
-
-    if boundary!=True:
-        return pltreg, pltwin, pltwout, pltbd
-    else:
+        if not isinstance(ax, (np.ndarray, mplax._axes.Axes)):
+            plt.show()
+    
+    if boundary:
         return pltwin, pltwout, pltbd
+    else:
+        return pltreg, pltwin, pltwout, pltbd

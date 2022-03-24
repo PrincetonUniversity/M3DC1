@@ -5,7 +5,6 @@
 # Ralf Mackenbach:    rmackenb@pppl.gov
 # Chris Smiet    :    csmiet@pppl.gov
 
-import fpy
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc
@@ -20,7 +19,10 @@ from m3dc1.plot_mesh import plot_mesh
 
 
 
-def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0, phi=0, linear=False, diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None, cmap='viridis', cmap_midpt=None, save=False, savedir=None,pub=False,showtitle=True,n=None,phys=False):
+def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
+               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None,
+               cmap='viridis', cmap_midpt=None, quiet=False,
+               save=False, savedir=None, pub=False, showtitle=True, shortlbl=False, ntor=None,phys=False):
     """
     Plots the field of a file. 
     
@@ -43,7 +45,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     **sim**
     simulation sim_data object or list of sim_data objects. If none is provided, the object will be created.
 
-    **file_name**
+    **filename**
     File name which will be read, i.e. "../../C1.h5"
     Can also be a list of two filepaths when used for diff
 
@@ -59,9 +61,9 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
 
     **diff**
     Plot the difference of two fields. 
-    This could be the difference of two files (file_name=['a/C1.h5','b/C1.h5']),
+    This could be the difference of two files (filename=['a/C1.h5','b/C1.h5']),
     or the difference between two time-slices (time=[t1,t2])
-    If list for both time and file_name are given file1 will be evaluated at time1,
+    If list for both time and filename are given file1 will be evaluated at time1,
     and file2 at time2
 
     **tor_av**
@@ -102,98 +104,13 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     **phys**
     Use True for plotting in physical (stellarator) geometry
     """
-    # make file name iterable if it is a string and not a list of strings
-    file_name = (file_name,) if not isinstance(file_name, (tuple, list)) else file_name
     
-    # make time iterable if it is a single int and not if it is list of ints
-    time = [time,] if not isinstance(time, (tuple, list)) else time
-    
-    
-    ### Input error handling ###
-    #if linear == True and (time[0] == 0 and not isinstance(sim,fpy.sim_data)):
-    #    raise Exception('linear=True. Please enter a time slice > 0.')
-    
-    # make simulation object iterable if it is a single object and not if it is list of objects
-    if sim != None:
-        if not isinstance(sim, (tuple, list)):
-            if isinstance(sim,fpy.sim_data):
-                sims = [sim,None]
-                time[0] = sims[0].timeslice
-            else:
-                raise Exception('sim is not a fpy.sim_data object.')
-        else:
-            if isinstance(sim[0],fpy.sim_data) and isinstance(sim[1],fpy.sim_data):
-                time = np.zeros(2)
-                # If linear=True, make sure that the equilibrium time slice is the second element in sims
-                if linear == True:
-                    if sim[0].timeslice==-1 or sim[0].timeslice==0:
-                        sims = []
-                        sims.append(sim[1])
-                        sims.append(sim[0])
-                        sims = np.asarray(sims)
-                    elif sim[1].timeslice==-1 or sim[1].timeslice==0:
-                        sims=sim
-                    else:
-                        raise Exception('Please provide 1 simulation at time=-1!')
-                else:
-                    sims=sim
-                time[0] = int(sims[0].timeslice)
-                time[1] = int(sims[1].timeslice)
-            else:
-                raise Exception('sim is not a list of fpy.sim_data objects.')
-    else:
-        sim = fpy.sim_data(file_name[0],time=time[0])
-        sims = [sim,None]
-        time[0] = int(sims[0].timeslice)
-    
-    ### More input error handling ###
-    if linear == True and time[0] == -1:
-        raise Exception('linear=True. Please enter a time slice > 0.')
-    if diff==True:
-        if len(time)!=2 and (isinstance(sims[0],fpy.sim_data)==False and isinstance(sims[1],fpy.sim_data)==False) :
-            raise Exception('Please input two times for differences or specify two sim_data objects.')
-    
-    if diff==True and linear==True:
-        raise Exception('Please choose diff or linear, not both.')
+    sim, time = fpyl.setup_sims(sim,filename,time,linear,diff)
+    field_idx = fpyl.get_field_idx(coord)
 
-    if diff==False:
-        if (len(file_name)>1 or len(time)>1 and (isinstance(sims[0],fpy.sim_data)==False and isinstance(sims[1],fpy.sim_data)==False)):
-            raise Exception('Multiple file/time slices detected. Please set diff=True or input single slices')
-    
-    
 
-    if (coord == 'R' or coord == 'scalar'):
-        field_idx = 0
-    elif coord == 'phi':
-        field_idx = 1
-    elif coord == 'Z':
-        field_idx = 2
-    elif coord=='poloidal':
-        field_idx = None
-    elif coord=='radial':
-        field_idx = None
-    elif coord == 'vector':
-        field_idx = None
-    elif coord == 'tensor':
-        field_idx = None
-    else:
-        raise Exception('Please enter valid coordinate. Accepted: \'R\', \'phi\', \'Z\', \'poloidal\', \'radial\', \'scalar\', \'vector\'')
-    ### End input error handling ###
-    
-    
-    # If linear, the difference needs to be taken with time -1
-    if linear==True:
-        time = [int(time[0]),int(-1)]
-    
-    
-    # If either file_name or time is a list, we will convert both of them to lists of length two.
-    if (len(file_name)==2 and len(time)==1):
-        time = [time, time]
-    if (len(file_name)==1 and len(time)==2):
-        file_name = [file_name[0],file_name[0]]
-    
     # Make 3D grid based on the mesh points
-    mesh_ob      = sims[0].get_mesh(int(time[0]))
+    mesh_ob      = sim[0].get_mesh(quiet=quiet)
     mesh_pts     = mesh_ob.elements
     R_mesh       = mesh_pts[:,4]
     Z_mesh       = mesh_pts[:,5]
@@ -204,7 +121,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     phi_linspace = np.linspace(phi,         (360+phi), tor_av, endpoint=False)
     Z_linspace   = np.linspace(Z_range[0], Z_range[1], res, endpoint=True)
     R, phi, Z    = np.meshgrid(R_linspace, phi_linspace,Z_linspace)
-    if phys==True:
+    if phys:
         rst = eval_field('rst', R, phi, Z, sim=sim, file_name=file_name, time=time)
         zst = eval_field('zst', R, phi, Z, sim=sim, file_name=file_name, time=time)
         R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, file_name=file_name, time=time)
@@ -213,36 +130,33 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     
 
     # Get the magnetic axis at time zero, which will be used for poloidal coordinates
-    if coord == 'poloidal' or coord == 'radial':
-        R_mag =  sims[0].get_time_traces('xmag').values[0]
-        Z_mag =  sims[0].get_time_traces('zmag').values[0]
+    if coord in ['poloidal', 'radial']:
+        R_mag =  sim[0].get_time_trace('xmag').values[0]
+        Z_mag =  sim[0].get_time_trace('zmag').values[0]
 
 
     # Evaluate usual vector components
-    if coord != 'poloidal' and coord !='radial' and coord !='vector' and coord !='tensor':
+    if coord not in ['poloidal', 'radial', 'vector', 'tensor']:
         # Evaluate field
-        print('Evaluating field... ', end=' ', flush=True)
-        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sims[0], file_name=file_name[0], time=time[0])
-        print('[DONE]')
+        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sim[0], time=time[0],quiet=quiet)
         # Evaluate second field and calculate difference between two if linear or diff is True
-        if (diff == True or linear==True):
-            print('Evaluating second field... ', end=' ', flush=True)
-            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sims[1], file_name=file_name[1], time=time[1])
+        if diff or linear:
+            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sim[1], time=time[1],quiet=quiet)
             field1 = field1 - field2
-            print('[DONE]')
+            if not quiet:
+                print('[DONE]')
 
 
     # Evaluate poloidal/radial field components or all field components (coord='vector')
-    if coord == 'poloidal' or coord == 'radial' or coord == 'vector':
-        print('Evaluating ' + str(coord) + ' field... ')
-        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sims[0], file_name=file_name[0], time=time[0])
-        if (diff == True or linear==True):
-            print('Evaluating second field... ', end=' ', flush=True)
-            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sims[1], file_name=file_name[1], time=time[1])
-            print('[DONE]')
+    if coord in ['poloidal', 'radial', 'vector']:
+        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[0], time=time[0],quiet=quiet)
+        if diff or linear:
+            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[1], time=time[1],quiet=quiet)
+            if not quiet:
+                print('[DONE]')
     elif coord =='tensor':
-        print('Evaluating ' + str(coord) + ' field... ')
-        field1RR, field1phiR, field1ZR, field1Rphi, field1phiphi, field1Zphi, field1RZ, field1phiZ, field1ZZ  = eval_field(field, R, phi, Z, coord='tensor', sim=sims[0], file_name=file_name[0], time=time[0])
+        field1RR, field1phiR, field1ZR, field1Rphi, field1phiphi, field1Zphi, field1RZ, field1phiZ, field1ZZ  = \
+            eval_field(field, R, phi, Z, coord='tensor', sim=sim[0], time=time[0],quiet=quiet)
         if row == 1:
             field1R = field1RR
             field1phi = field1phiR
@@ -255,9 +169,9 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
             field1R = field1RZ
             field1phi = field1phiZ
             field1Z = field1ZZ
-        if (diff == True or linear==True):
-            print('Evaluating second field... ', end=' ', flush=True)
-            field2RR, field2phiR, field2ZR, field2Rphi, field2phiphi, field2Zphi, field2RZ, field2phiZ, field2ZZ  = eval_field(field, R, phi, Z, coord='tensor', sim=sims[1], file_name=file_name[1], time=time[1])
+        if diff or linear:
+            field2RR, field2phiR, field2ZR, field2Rphi, field2phiphi, field2Zphi, field2RZ, field2phiZ, field2ZZ  = \
+                eval_field(field, R, phi, Z, coord='tensor', sim=sim[1], time=time[1],quiet=quiet)
             if row == 1:
                 field2R = field2RR
                 field2phi = field2phiR
@@ -270,81 +184,78 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
                 field2R = field2RZ
                 field2phi = field2phiZ
                 field2Z = field2ZZ
-            print('[DONE]')
 
     # Evaluate poloidal component
     if coord == 'poloidal':
-        theta                        = np.arctan2(Z-Z_mag,R-R_mag)
-        field1                       = -np.sin(theta)*field1R + np.cos(theta)*field1Z
+        theta  = np.arctan2(Z-Z_mag,R-R_mag)
+        field1 = -np.sin(theta)*field1R + np.cos(theta)*field1Z
         
         # Evaluate second field and calculate difference between two if linear or diff is True
-        if (diff == True or linear==True):
-            field2                       = -np.sin(theta)*field2R + np.cos(theta)*field2Z
+        if diff or linear:
+            field2 = -np.sin(theta)*field2R + np.cos(theta)*field2Z
 
 
     # Evaluate radial component
     if coord == 'radial':
-        theta                        = np.arctan2(Z-Z_mag,R-R_mag)
-        field1                       = np.cos(theta)*field1R + np.sin(theta)*field1Z
+        theta  = np.arctan2(Z-Z_mag,R-R_mag)
+        field1 = np.cos(theta)*field1R + np.sin(theta)*field1Z
         
         # Evaluate second field and calculate difference between two if linear or diff is True
-        if (diff == True or linear==True):
-            field2                       = np.cos(theta)*field2R + np.sin(theta)*field2Z
+        if diff or linear:
+            field2 = np.cos(theta)*field2R + np.sin(theta)*field2Z
 
 
     # Calculate difference between two if linear or diff is True
-    if (diff == True or linear==True):
-        if coord == 'poloidal' or coord == 'radial':
-            field1                       = field1 - field2
-        elif coord == 'vector' or coord =='tensor':
-            field1R                       = field1R - field2R
-            field1phi                     = field1phi - field2phi
-            field1Z                       = field1Z - field2Z
+    if diff or linear:
+        if coord in ['poloidal', 'radial']:
+            field1 = field1 - field2
+        elif coord in ['vector', 'tensor']:
+            field1R   = field1R - field2R
+            field1phi = field1phi - field2phi
+            field1Z   = field1Z - field2Z
 
     
     # Calculate average over phi of the field. For a single slice the average is equal to itself
-    if coord == 'vector' or coord =='tensor':
-        field1R_ave = np.average(field1R, 0)
+    if coord in ['vector', 'tensor']:
+        field1R_ave   = np.average(field1R, 0)
         field1phi_ave = np.average(field1phi, 0)
-        field1Z_ave = np.average(field1Z, 0)
-        field1_ave = [field1R_ave,field1phi_ave,field1Z_ave]
+        field1Z_ave   = np.average(field1Z, 0)
+        field1_ave    = [field1R_ave,field1phi_ave,field1Z_ave]
     else:
-        field1_ave     = [np.average(field1, 0)]
-
-    R_ave          = np.average(R, 0)
-    Z_ave          = np.average(Z, 0)
-    if phys==True:
+        field1_ave    = [np.average(field1, 0)]
+    R_ave = np.average(R, 0)
+    Z_ave = np.average(Z, 0)
+    if phys:
         rst_ave    = np.average(rst, 0)
         zst_ave    = np.average(zst, 0)
         R_ave = np.where(np.isnan(rst_ave), R_ave, rst_ave)
         Z_ave = np.where(np.isnan(zst_ave), Z_ave, zst_ave)
 
     if units.lower()=='m3dc1':
-        field1_ave = fpyl.get_conv_field(units,field,field1_ave)
+        field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
 
-    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field)
-    if units.lower()=='m3dc1':
-        unitlabel = fieldlabel + ' (' + unitlabel + ')'
+    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
+    cbarlbl = fieldlabel + ' (' + unitlabel + ')'
 
 
     ### Plot the field ###
     # Set font sizes and plot style parameters
-    if pub==False:
-        axlblfs = None
-        titlefs = None
-        cbarlblfs = None
-        cbarticklblfs = None
-        ticklblfs = None
-        lcfslw = 1
-    elif pub==True:
+    if pub:
         axlblfs = 20
         titlefs = 18
         cbarlblfs = 14
         cbarticklblfs = 14
         ticklblfs = 18
         lcfslw = 2
+    else:
+        axlblfs = None
+        titlefs = None
+        cbarlblfs = None
+        cbarticklblfs = None
+        ticklblfs = None
+        lcfslw = 1
     
-    if coord != 'vector' and coord != 'tensor':
+    if coord not in ['vector', 'tensor']:
         fig, axs = plt.subplots(1, 1)
         fig.set_figheight(7)
         axs = np.asarray([axs])
@@ -352,26 +263,30 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         fig, axs = plt.subplots(1, 3, sharey=True,figsize=(14,7))
         comp = ['R','\phi','Z']
     
-    if coord == 'vector' or coord == 'tensor':
-        titlestr = field + ' at time=' + str(time[0])
+    if coord in ['vector', 'tensor']:
+        titlestr = field + ' at time=' + str(sim[0].timeslice)
     else:
-        titlestr = field + ' at time=' + str(time[0])
-    if linear==True:
+        titlestr = field + ' at time=' + str(sim[0].timeslice)
+    if linear:
         titlestr = titlestr + ' linear'
-    elif diff==True:
-        titlestr = titlestr + ' - time=' + str(time[1])
-    species = sims[0].available_fields[field][2]
-    if species != None:
+    elif diff:
+        titlestr = titlestr + ' - time=' + str(sim[1].timeslice)
+    try:
+        species = sim[0].available_fields[field][2]
+    except:
+        species = None
+        fpyl.printwarn('WARNING: Field not found in available_fields!')
+    if species is not None:
         titlestr = titlestr+' - Species: '+str(species)
     # ToDo: Main title does not show up in vector plot
-    if showtitle==True:
+    if showtitle:
         plt.title(titlestr,fontsize=titlefs)
     
-    if mesh == True or bound==True:
-        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,pub=pub,phys=phys)
+    if mesh or bound:
+        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys)
     
     for i,ax in enumerate(axs):
-        if cmap_midpt!=None:
+        if cmap_midpt is not None:
             field1_ave_clean = field1_ave[i][np.logical_not(np.isnan(field1_ave[i]))]
             norm = colors.DivergingNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
             cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
@@ -382,24 +297,26 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
             else:
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
         # Set and format axes limits and labels
-        ax.set_xlim([fpyl.get_axlim(np.amin(R_mesh),'min',0.1),fpyl.get_axlim(np.amax(R_mesh),'max',0.1)])
-        ax.set_ylim([fpyl.get_axlim(np.amin(Z_mesh),'min',0.1),fpyl.get_axlim(np.amax(Z_mesh),'max',0.1)])
+        if phys:
+            ax.set_xlim([fpyl.get_axlim(np.amin(R_mesh),'min',0.1),fpyl.get_axlim(np.amax(R_mesh),'max',0.1)])
+            ax.set_ylim([fpyl.get_axlim(np.amin(Z_mesh),'min',0.1),fpyl.get_axlim(np.amax(Z_mesh),'max',0.1)])
+        else:
+            ax.set_xlim([fpyl.get_axlim(np.amin(R_ave),'min',0.1),fpyl.get_axlim(np.amax(R_ave),'max',0.1)])
+            ax.set_ylim([fpyl.get_axlim(np.amin(Z_ave),'min',0.1),fpyl.get_axlim(np.amax(Z_ave),'max',0.1)])
         ax.set_xlabel(r'$R/m$',fontsize=axlblfs)
         ax.set_ylabel(r'$Z/m$',fontsize=axlblfs)
         ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
-        if coord == 'vector' or coord == 'tensor':
+        if coord in ['vector', 'tensor']:
             compstr = r'$'+field+'_{'+comp[i]+'}$'
             ax.set_title(compstr,fontsize=titlefs)
 
         #plt.suptitle(titlestr,fontsize=titlefs)
-        #plt.title('(b) M3D-C1',fontsize=titlefs) #For CLT paper
         
         # Style and formatting of colorbar
         #cbar = fig.colorbar(cont,format=ticker.FuncFormatter(fpyl.fmt),ax=ax,cax=cax,orientation=cbarorient)
         sfmt=ticker.ScalarFormatter()
-        #sfmt.set_powerlimits((-6, -6)) # For CLT paper
         sfmt.set_powerlimits((-3,4))
-        if coord != 'vector' and coord != 'tensor':
+        if coord not in ['vector', 'tensor']:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.1)
             cbarorient = "vertical"
@@ -412,23 +329,33 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
         #cbar.ax.set_xticklabels(cbar.ax.get_xticklabels(),rotation=cbarrot,fontsize=cbarticklblfs)
         cbar.ax.tick_params(labelsize=cbarticklblfs)
         cbar.ax.yaxis.offsetText.set(size=cbarticklblfs)
-        cbar.set_label(unitlabel,fontsize=cbarlblfs) #ToDo: Comment this line for CLT paper
+        cbar.set_label(cbarlbl,fontsize=cbarlblfs)
         
         # Fix for white lines in contourf plot when exported as PDF
         for c in cont.collections:
             c.set_edgecolor("face")
 
         ax.set_aspect('equal')
-        ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
     plt.rcParams["axes.axisbelow"] = False #Allows mesh to be on top of contour plot. This option conflicts with zorder (matplotlib bug).
     
     
-    if lcfs == True:
-        psi_lcfs = sims[0].get_time_traces('psi_lcfs').values[0]
-        print("Psi at LCFS: "+str(psi_lcfs))
-        Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sims[0], file_name=file_name[0], time=sims[0].timeslice)
+    if lcfs:
+        if linear or diff:
+            try:
+                lcfs_ts_ind = np.argwhere(np.asarray([sim[0].timeslice, sim[1].timeslice]) < 1).flatten()[0]
+            except:
+                lcfs_ts_ind = 0
+                #fpyl.printwarn('WARNING: LCFS plotted at timeslice 0')
+        else:
+            lcfs_ts_ind = 0
+        print('LCFS time: ' + str(time[lcfs_ts_ind]))
+        psi_lcfs = sim[lcfs_ts_ind].get_time_trace('psi_lcfs').values[0]
+        if not quiet:
+            print("Psi at LCFS: "+str(psi_lcfs))
         
-        psifield = R_ave*Aphi
+        #Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sim[lcfs_ts_ind], time=time[lcfs_ts_ind])
+        #psifield = R_ave*Aphi
+        psifield = eval_field('psi', R, phi, Z, coord='scalar', sim=sim[lcfs_ts_ind], filename=sim[lcfs_ts_ind].filename, time=time[lcfs_ts_ind])
         for i,ax in enumerate(axs):
             cont = ax.contour(R_ave, Z_ave, np.average(psifield,0),[psi_lcfs],colors='magenta',linewidths=lcfslw,zorder=10)
     
@@ -438,22 +365,22 @@ def plot_field(field, coord='scalar', row=1, sim=None, file_name='C1.h5', time=0
     #    fig.subplots_adjust(top=0.2)
     plt.show()
     
-    if save == True:
+    if save:
         timestr = 't'
-        if diff == True:
+        if diff:
             timestr = timestr + str(time[0]) + '-' + str(time[1])
         else:
             timestr = timestr + str(time[0])
-        if linear == True:
+        if linear:
             fieldstr = 'delta_' + str(field)
         else:
             fieldstr = str(field)
-        if savedir != None:
+        if savedir is not None:
             fieldstr = savedir + fieldstr
-        if n==None:
-            nout=sims[0].ntor
+        if ntor is None:
+            nout=sim[0].ntor
         else:
-            nout=n
+            nout=ntor
         
         plt.savefig(fieldstr + '_' + timestr + '_n'+"{:d}".format(nout)+'.png', format='png',dpi=900,bbox_inches='tight')
     

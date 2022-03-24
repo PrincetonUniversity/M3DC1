@@ -241,7 +241,7 @@ subroutine den_eq
   real :: rate
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
-  integer :: ip
+  integer :: ip, izone
   
   if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
   if(ipellet.ne.0) then
@@ -257,6 +257,7 @@ subroutine den_eq
   do itri=1,numelms
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,def_fields,1,0)
+     call get_zone(itri, izone)
 
      if(iread_ne.eq.0) then 
         select case(idenfunc)
@@ -297,7 +298,7 @@ subroutine den_eq
            else
               rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
            end if
-           n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+           n079(:,OP_1) = n079(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, izone)
         end do
      end if
 
@@ -327,7 +328,7 @@ subroutine den_per
   real :: rate
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
-  integer :: ip
+  integer :: ip, izone
 
   if(ipellet.ge.0) return
   if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
@@ -339,6 +340,7 @@ subroutine den_per
   do itri=1,numelms
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,0,1,0)
+     call get_zone(itri, izone)
 
      n179(:,OP_1) = 0.
      ! negative ipellet in initial perturbation
@@ -351,7 +353,7 @@ subroutine den_per
            else
               rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
            end if
-           n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1)
+           n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, izone)
         end do
      end if
 
