@@ -8563,8 +8563,13 @@ function b2beta(e,f,g,h)
 
 #if defined(USE3D) || defined(USECOMPLEX)
               temp = temp &
+#ifdef USEST
+                   - hypi*intx3(e(:,:,OP_DZP),ri4_79,f(:,OP_DZP)) &
+                   - hypi*intx3(e(:,:,OP_DRP),ri4_79,f(:,OP_DRP))
+#else
                    + hypi*intx3(e(:,:,OP_DZ),ri4_79,f(:,OP_DZPP)) &
                    + hypi*intx3(e(:,:,OP_DR),ri4_79,f(:,OP_DRPP))
+#endif
 #endif
 
            end if
