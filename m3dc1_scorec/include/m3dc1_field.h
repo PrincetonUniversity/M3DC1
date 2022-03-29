@@ -20,6 +20,7 @@ public:
   m3dc1_field (int i, apf::Field* f, int n, int t, int ndof): id(i), field(f), num_value(n), value_type(t),dof_per_value(ndof) {transfer = false;}
   ~m3dc1_field() {}
   apf::Field* get_field() { return field; }
+  void set_field(apf::Field* f) { field = f; }
   int get_id() { return id; }
   int get_num_value() { return num_value; }
   int get_value_type() { return value_type; }
