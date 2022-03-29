@@ -1262,6 +1262,11 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
     apf::writeVtkFiles("00c_mesh_3d", mesh);
 
     m3dc1_mesh::instance()->remove3D();
+    m3dc1_mesh::instance()->rebuildPointersOnNonMasterPlane(pFields, zFields);
+    // Important: remvoe3D+rebuildPointersOnNonMasterPlane modifie the mesh pointer
+    // in m3dc1_mesh::instance(). Therefore the local variable pointing to mesh pointer
+    // has to be updated to reflect that.
+    mesh = m3dc1_mesh::instance()->mesh;
   }
 
   apf::writeVtkFiles("01_mesh_2d", mesh);
@@ -1375,7 +1380,9 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
 
       ReducedQuinticImplicit shape;
       ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
+      // the commented lines are for debugging
       /* ma::Input* in = ma::makeAdvanced(ma::configureIdentity(mesh, 0, &slnTrans)); */
+      /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(mesh, 1, &slnTrans)); */
       ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
 
       in->shouldSnap=false;
