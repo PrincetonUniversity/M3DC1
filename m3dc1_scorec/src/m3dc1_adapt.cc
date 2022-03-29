@@ -14,7 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <PCU.h>
+#include <pcu_util.h>
 #include "apfMDS.h"
+#include "apfField.h"
 #include "ReducedQuinticImplicit.h"
 #include "m3dc1_slnTransfer.h"
 #include "apfShape.h" // getLagrange
@@ -115,7 +117,7 @@ void m3dc1_mesh::remove3D()
         mesh->destroy(e);
       mesh->end(ent_it);
     }
-  
+
   mesh->acceptChanges();
   changeMdsDimension(mesh, 2);
 
@@ -123,6 +125,187 @@ void m3dc1_mesh::remove3D()
 
   if (!PCU_Comm_Self())
     std::cout<<"\n*** Wedges and non-master 2D planes removed ***\n";
+}
+
+// this static function only used in m3dc1_mesh::rebuildPointersOnNonMasterPlane
+static int get_id_in_container(
+    std::map<FieldID, m3dc1_field*>& fcontainer,
+    apf::Field* f)
+{
+  typedef std::map<FieldID, m3dc1_field*> fct;
+
+  int id = -1;
+  for (fct::iterator it = fcontainer.begin(); it != fcontainer.end(); ++it)
+  {
+    m3dc1_field* mf = it->second;
+    if (f == mf->get_field())
+    {
+      id = it->first;
+      break;
+    }
+  }
+  return id;
+}
+// this will rebuild the mesh data-structure on non-master plane after remove3D
+//
+// Notes
+// (A) this is done to ensure "restore3D" behaves the same as "build3d".
+// More specifically, the order of entity creation and iteration remains the same
+// on all non-master planes.
+//
+// (B) the field pointers passed in the arrays will be updated for non-master planes
+void m3dc1_mesh::rebuildPointersOnNonMasterPlane(
+    std::vector<std::vector<apf::Field*>>& pFields, // multi-plane fields
+    std::vector<apf::Field*>& zFields)             // fields that need to be zero-d
+{
+  if (!(m3dc1_model::instance()->num_plane)) // if 2D do nothing
+    return;
+
+  // store the names so they can be updated later on
+  std::vector<std::vector<std::string>> pFieldNames; pFieldNames.clear();
+  std::vector<std::string>              zFieldNames; zFieldNames.clear();
+  std::vector<std::string>              tempNames;
+
+  for (int i = 0; i < (int)pFields.size(); i++)
+  {
+    tempNames.clear();
+    for (int j = 0; j < pFields[i].size(); j++)
+    {
+      tempNames.push_back(std::string(apf::getName(pFields[i][j])));
+    }
+    PCU_ALWAYS_ASSERT(pFields[i].size() == tempNames.size());
+    pFieldNames.push_back(tempNames);
+  }
+  PCU_ALWAYS_ASSERT(pFieldNames.size() == pFields.size());
+
+  for (int i = 0; i < (int)zFields.size(); i++)
+    zFieldNames.push_back(std::string(apf::getName(zFields[i])));
+  PCU_ALWAYS_ASSERT(zFieldNames.size() == zFields.size());
+
+
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+  std::vector<int> fncs; fncs.clear();
+  std::vector<int> ids; ids.clear();  // if the field is in the m3dc1_mesh::instance()->field_container hold the id here
+  std::vector<std::string> fnames; fnames.clear();
+  std::vector<apf::FieldShape*> fshapes; fshapes.clear();
+
+  for (int i = 0; i < mesh->countFields(); i++) {
+    apf::Field* f = mesh->getField(i);
+    fncs.push_back(f->countComponents());
+    fnames.push_back(std::string(apf::getName(f)));
+    fshapes.push_back(apf::getShape(f));
+    int id = get_id_in_container(*m3dc1_mesh::instance()->field_container, f);
+    ids.push_back(id);
+  }
+
+  PCU_Barrier();
+
+  // now remove everything on non-master planes, and recreate them
+  // Removal Phase
+  // =============
+  // a-fields
+  // b-numberings
+  // c-tags
+  // d-internal mesh data-structure by calling destroyNative
+  // =============
+  // Recreate Phase
+  // a-create empty mds meshes on non-master planes
+  // b-set local_entid_tag, own_partid_tag, num_global_adj_node_tag, num_own_adj_node_tag to NULL
+  if (m3dc1_model::instance()->local_planeid != 0)
+  {
+    // manually delete all the fields/numberings and associated tags
+    while ( mesh->countFields() )
+    {
+      apf::Field* f = mesh->getField(0);
+      mesh->removeField(f);
+      apf::destroyField(f);
+    }
+
+    while ( mesh->countNumberings() )
+    {
+      apf::Numbering* n = mesh->getNumbering(0);
+      mesh->removeNumbering(n);
+      apf::destroyNumbering(n);
+    }
+
+    apf::DynamicArray<apf::MeshTag*> tags;
+    mesh->getTags(tags);
+    for (int i=0; i<tags.getSize(); i++)
+    {
+      if (mesh->findTag("norm_curv")==tags[i]) continue;
+      for (int idim=0; idim<4; idim++)
+        apf::removeTagFromDimension(mesh, tags[i], idim);
+      mesh->destroyTag(tags[i]);
+    }
+
+    // destroy the native mesh
+    apf::disownMdsModel(mesh);
+    mesh->destroyNative();
+    apf::destroyMesh(mesh);
+    m3dc1_mesh::instance()->mesh = pumi_mesh_create(pumi::instance()->model, 2, false);
+    mesh = m3dc1_mesh::instance()->mesh;
+
+    local_entid_tag = NULL;
+    own_partid_tag = NULL;
+    num_global_adj_node_tag = NULL;
+    num_own_adj_node_tag = NULL;
+  }
+
+  PCU_Barrier();
+
+
+  // update the field pointers in m3dc1_mesh::field_container
+  if (m3dc1_model::instance()->local_planeid != 0)
+  {
+    for (int i = 0; i < (int)fncs.size(); i++)
+      {
+	apf::Field* newf = apf::createPackedField(mesh, fnames[i].c_str(), fncs[i], fshapes[i]);
+	apf::zeroField(newf);
+	if (ids[i] > -1)
+	{
+	  m3dc1_field* mf = (*m3dc1_mesh::instance()->field_container)[ids[i]];
+	  mf->set_field(newf);
+	}
+      }
+  }
+
+  // update the field pointers in pFields
+  if (m3dc1_model::instance()->local_planeid != 0)
+  {
+    for (int i = 0; i < (int)pFieldNames.size(); i++)
+    {
+      for (int j = 0; j < pFieldNames[i].size(); j++)
+      {
+	apf::Field* f = mesh->findField(pFieldNames[i][j].c_str());
+	PCU_ALWAYS_ASSERT(f);
+	pFields[i][j] = f;
+      }
+    }
+  }
+
+
+  // update the field pointers in zFields
+  if (m3dc1_model::instance()->local_planeid != 0)
+  {
+    for (int i = 0; i < (int)zFieldNames.size(); i++)
+    {
+      apf::Field* f = mesh->findField(zFieldNames[i].c_str());
+      PCU_ALWAYS_ASSERT(f);
+      zFields[i] = f;
+    }
+  }
+
+
+  // since we have removed the Linear numbering for non-master planes, we add it beck here
+  apf::Numbering* linnumbering = mesh->findNumbering("Linear");
+  if (!linnumbering)
+    apf::createNumbering(mesh, "Linear", mesh->getShape(), 1);
+
+  mesh->acceptChanges();
+  set_mcount();
+
+  if (!PCU_Comm_Self())
+    std::cout<<"\n*** Data structures have been re-initialized on non-master planes ***\n";
 }
 
 void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2, 
