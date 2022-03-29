@@ -6,23 +6,27 @@
 # Chris Smiet    :    csmiet@pppl.gov
 
 import numpy as np
+import sys
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from matplotlib import colors
+#from matplotlib import path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
+from distutils.version import StrictVersion
 import m3dc1.fpylib as fpyl
 from m3dc1.eval_field import eval_field
 from m3dc1.plot_mesh import plot_mesh
+from m3dc1.plot_coils import plot_coils
 #rc('text', usetex=True)
 
 
 
 
 def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
-               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, units='mks',res=250, prange=None,
-               cmap='viridis', cmap_midpt=None, quiet=False,
-               save=False, savedir=None, pub=False, showtitle=True, shortlbl=False, ntor=None,phys=False):
+               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',res=250,
+               prange=None, cmap='viridis', cmap_midpt=None, quiet=False,
+               save=False, savedir=None, pub=False, showtitle=True, shortlbl=False, ntor=None, phys=False):
     """
     Plots the field of a file. 
     
@@ -81,6 +85,10 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     True/False
     Overlay last closed flux surface on top of the plot.
 
+    **coils**
+    True/False
+    Overlay coils from coil.dat file on top of the plot.
+
     **res**
     Resolution in R and Z direction.
 
@@ -108,7 +116,6 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     sim, time = fpyl.setup_sims(sim,filename,time,linear,diff)
     field_idx = fpyl.get_field_idx(coord)
 
-
     # Make 3D grid based on the mesh points
     mesh_ob      = sim[0].get_mesh(quiet=quiet)
     mesh_pts     = mesh_ob.elements
@@ -127,7 +134,6 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, file_name=file_name, time=time)
         Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, file_name=file_name, time=time)
 
-    
 
     # Get the magnetic axis at time zero, which will be used for poloidal coordinates
     if coord in ['poloidal', 'radial']:
@@ -230,7 +236,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         zst_ave    = np.average(zst, 0)
         R_ave = np.where(np.isnan(rst_ave), R_ave, rst_ave)
         Z_ave = np.where(np.isnan(zst_ave), Z_ave, zst_ave)
-
+    
     if units.lower()=='m3dc1':
         field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
 
@@ -282,17 +288,27 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     if showtitle:
         plt.title(titlestr,fontsize=titlefs)
     
+    if coils:
+        plot_coils(ax=axs)
     if mesh or bound:
+        if mesh and bound:#Make sure that whole mesh is plotted. If both are true, plot_mesh only plots boundary.
+            bound = False
         meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys)
     
     for i,ax in enumerate(axs):
         if cmap_midpt is not None:
             field1_ave_clean = field1_ave[i][np.logical_not(np.isnan(field1_ave[i]))]
-            norm = colors.DivergingNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
+            if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
+                norm = colors.DivergingNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
+            else:
+                norm = colors.TwoSlopeNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
             cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
         else:
             if isinstance(prange,(tuple,list)):
-                norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
+                if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
+                    norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
+                else:
+                    norm = colors.TwoSlopeNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
             else:
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
@@ -358,7 +374,6 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         psifield = eval_field('psi', R, phi, Z, coord='scalar', sim=sim[lcfs_ts_ind], filename=sim[lcfs_ts_ind].filename, time=time[lcfs_ts_ind])
         for i,ax in enumerate(axs):
             cont = ax.contour(R_ave, Z_ave, np.average(psifield,0),[psi_lcfs],colors='magenta',linewidths=lcfslw,zorder=10)
-    
     
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     #if coord=='vector':

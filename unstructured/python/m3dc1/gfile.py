@@ -72,7 +72,7 @@ class Gfile():
 # Read one or multiple g-files
 #-------------------------------------------
 
-def read_gfile(fname):
+def read_gfile(fname,quiet=False):
     """
     Reads information from EFIT g-file
     
@@ -112,8 +112,8 @@ def read_gfile(fname):
             gfile_data.idum = int(temp[2])
             gfile_data.nw = int(temp[3])
             gfile_data.nh = int(temp[4])
-            
-            print(timestr.group(1), shotnum.group(1), gfile_data.date)
+            if not quiet:
+                print(timestr.group(1), shotnum.group(1), gfile_data.date)
             
         else:
             try:
@@ -201,6 +201,24 @@ def read_gfile(fname):
     except:
         fpyl.printwarn('WARNING: Did not read kvtor, rvtor and nmass. This data may be missing in the g-file.')
     
+    if not quiet:
+        rmin_lcfs = np.amin(gfile_data.rbbbs)
+        rmax_lcfs = np.amax(gfile_data.rbbbs)
+        R_geo=(rmax_lcfs+rmin_lcfs)/2
+        a = (rmax_lcfs-rmin_lcfs)/2
+        Z_max = np.amax(gfile_data.zbbbs)
+        Z_max_ind = fpyl.get_ind_at_val(gfile_data.zbbbs, Z_max, unique=True)
+        Z_min = np.amin(gfile_data.zbbbs)
+        Z_min_ind = fpyl.get_ind_at_val(gfile_data.zbbbs, Z_min, unique=True)
+        R_upper = gfile_data.rbbbs[Z_max_ind]
+        R_lower = gfile_data.rbbbs[Z_min_ind]
+        print('a         =  '+str(a))
+        print('R0        =  '+str(R_geo))
+        print('A = R0/a  =  '+str((R_geo)/(a)))
+        print('delta_u   =  '+str((R_geo-R_upper)/a))
+        print('delta_l   =  '+str((R_geo-R_lower)/a))
+        print('delta     =  '+str( ( (R_geo-R_upper)/a + (R_geo-R_lower)/a ) / 2))
+        print('kappa     =  '+str((Z_max-Z_min)/(2*a)))
     #ToDo: Implement rotation stuff
     
     gfile_data.psin = np.linspace(0,1,gfile_data.nw)

@@ -17,11 +17,13 @@ import m3dc1.fpylib as fpyl
 from m3dc1.plot_mesh import plot_mesh
 from m3dc1.eval_field import eval_field
 from m3dc1.gfile import read_gfile
+from m3dc1.plot_coils import plot_coils
 #rc('text', usetex=True)
 
 
 
-def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, Nlvl_in=10, Nlvl_out=1, mesh=False, bound=False, lcfs=False, ax=None, pub=False, quiet=False):
+def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, Nlvl_in=10, Nlvl_out=1,
+               mesh=False, bound=False, lcfs=False, coils=False, phys=False, ax=None, pub=False, quiet=False):
     """
     Plot flux surfaces in poloidal plane
     
@@ -51,6 +53,10 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
 
     **lcfs**
     Overlay last closed flux surface on top of the plot.
+
+    **coils**
+    True/False
+    Overlay coils from coil.dat file on top of the plot.
 
     **ax**
     matplotlib axes object to plot into. If None, new figure and axes are created.
@@ -132,15 +138,20 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         psifield = eval_field('psi',R, phi_pos, Z, coord='scalar', sim=si, filename=si.filename, time=times[i])
         #print(si.timeslice)
         levels = (np.arange(Nlvl_in+Nlvl_out+1.)/Nlvl_in)
+        levels_in = np.arange(Nlvl_in+1.)/Nlvl_in
+        levels_out = 1.01+np.arange(Nlvl_out+1.)/Nlvl_out
+        levels = np.concatenate((levels_in,levels_out))
+        #print(levels)
         levels = levels*(psi_lcfs-psi_axis)+psi_axis
         if psi_lcfs < psi_axis:
             levels = np.flipud(levels)
         
-        
-        if mesh:
-            meshplt = plot_mesh(elms,boundary=False,ax=axs)
-        elif bound:
-            meshplt = plot_mesh(elms,boundary=bound,ax=axs)
+        if coils:
+            plot_coils(ax=axs)
+        if mesh or bound:
+            if mesh and bound:#Make sure that whole mesh is plotted. If both are true, plot_mesh only plots boundary.
+                bound = False
+            meshplt = plot_mesh(elms,boundary=bound,ax=axs,pub=pub,phys=phys)
         
         R_ave          = np.average(R, 0)
         Z_ave          = np.average(Z, 0)
@@ -153,9 +164,12 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
             cont = axs.contour(R_ave, Z_ave, psifield,[psi_lcfs],colors=pltcol,linewidths=bdlw,linestyles='--',zorder=10)
         
         #Plot magnetic axis
+        #try:
         R_magax = si.get_time_trace('xmag').values[times[i]]
         Z_magax = si.get_time_trace('zmag').values[times[i]]
         axs.plot(R_magax,Z_magax,lw=0,marker='+',markersize=10,color=pltcol)
+        #except:
+        #    fpyl.printerr('ERROR: not able to read magnetic axis location.')
         
         # Create legend entries
         leglbl = si.filename.replace(os.getcwd()+'/', '')
@@ -167,7 +181,8 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         cont = axs.contour(gfdat.rg,gfdat.zg,gfdat.psirzn,np.linspace(1/Nlvl_in,(Nlvl_in-1)/Nlvl_in,Nlvl_in),linewidths=0.7,colors='k',zorder=10)
         legproxy.append(mlines.Line2D([], [], color='k', linewidth=bdlw, label=gfile))
         axs.plot(gfdat.rmaxis,gfdat.zmaxis,lw=0,marker='+',markersize=10,color='k')
-        axs.plot(gfdat.rbbbs,gfdat.zbbbs,color='k',zorder=10)
+        if lcfs:
+            axs.plot(gfdat.rbbbs,gfdat.zbbbs,color='k',zorder=10)
     
     if ax is None:
         axs.set_xlim(fpyl.get_axlim(np.amin(R),'min'),fpyl.get_axlim(np.amax(R),'max'))
