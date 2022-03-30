@@ -47,6 +47,9 @@ from m3dc1.extract_profiles     import convert_p
 from m3dc1.gfile                import read_gfile
 from m3dc1.gfile                import plot_gfile
 
+from m3dc1.plot_coils           import plot_coils
+
+
 #Modules in development
 try:
     from m3dc1.plot_vector_field    import plot_vector_field

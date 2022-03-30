@@ -5,20 +5,22 @@ Created on February 29 2020
 
 @author: Andreas Kleiner
 """
-import math
+#import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 #from scipy.signal import find_peaks
 #from scipy.signal import find_peaks_cwt
+from scipy.interpolate import interp1d
+from scipy.integrate import trapezoid
 import fpy
 import m3dc1.fpylib as fpyl
 from m3dc1.eval_field import eval_field
 from m3dc1.flux_coordinates import flux_coordinates
+from m3dc1.flux_average import flux_average
 
 
-
-def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,norm_to_unity=False,nummodes=10,cmap='jet',pub=False,n=None):
+def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,show_res=False,device='nstx',norm_to_unity=False,nummodes=10,cmap='jet',pub=False,n=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither'):
     """
     Calculates the linear eigenfunction ~(p1-p0)
 
@@ -112,6 +114,24 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
     if phit != 0.0:
         torphi.fill(phit)
     
+    
+    if show_res:
+        psin,q = flux_average('q',sim=sims[0], fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, time=sim[1].timeslice, psin_range=None, device=device, units=units)
+        q_res_min = np.ceil(np.amin(q))
+        q_res_max = np.floor(np.amax(q))
+        q_res = np.arange(q_res_min,q_res_max+1)
+        q_interp = interp1d(q,psin,kind='cubic',fill_value="extrapolate")
+        psin_res = q_interp(q_res)
+        print(q_res)
+        print(psin_res)
+        # Color cycler:
+        def col_cycler(cols):
+            count = 0
+            while True:
+                yield cols[count]
+                count = (count + 1)%len(cols)
+        cols = col_cycler(['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'])
+    
     # Evaluate fields
     p1 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[1], filename=filename, time=sims[1].timeslice)
 
@@ -127,7 +147,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         # Set font sizes and plot style parameters
         if pub:
             axlblfs = 20
-            titlefs = 16
+            titlefs = 20
             cbarlblfs = 14
             cbarticklblfs = 14
             ticklblfs = 18
@@ -144,11 +164,21 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         fig = plt.figure()
         
         ef_field = np.concatenate((ef,np.reshape(ef[0,:],(1,len(ef[0,:])))))
+        
         if norm_to_unity:
-            fac = 1.0*10**(-int(math.log10(np.amax(ef_field))))
+            #fac = 1.0*10**(-int(math.log10(np.amax(ef_field))))
+            efmax = np.amax(ef_field)
+            efmin = np.amin(ef_field)
+            
+            fac = 1.0/np.amax([efmax,np.abs(efmin)])
+            plot_field = fac*ef_field
         else:
-            fac = 1.0
-        cont = plt.contourf(np.concatenate((fc.rpath,np.reshape(fc.rpath[0,:],(1,len(fc.rpath[0,:]))))),np.concatenate((fc.zpath,np.reshape(fc.zpath[0,:],(1,len(fc.zpath[0,:]))))),fac*ef_field,100,cmap=cmap)
+            plot_field = ef_field
+        
+        if colorbounds is None:
+            cont = plt.contourf(np.concatenate((fc.rpath,np.reshape(fc.rpath[0,:],(1,len(fc.rpath[0,:]))))),np.concatenate((fc.zpath,np.reshape(fc.zpath[0,:],(1,len(fc.zpath[0,:]))))),plot_field,100,cmap=cmap)
+        else:
+            cont = plt.contourf(np.concatenate((fc.rpath,np.reshape(fc.rpath[0,:],(1,len(fc.rpath[0,:]))))),np.concatenate((fc.zpath,np.reshape(fc.zpath[0,:],(1,len(fc.zpath[0,:]))))),plot_field,100,cmap=cmap,vmin=colorbounds[0],vmax=colorbounds[1], extend=extend_cbar)
         ax = plt.gca()
         ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
         ax.set_xlim([fpyl.get_axlim(np.amin(fc.rpath),'min',0.1),fpyl.get_axlim(np.amax(fc.rpath),'max',0.1)])
@@ -161,13 +191,21 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         
         sfmt=ticker.ScalarFormatter()
         sfmt.set_powerlimits((-3,4))
-        cbar = fig.colorbar(cont,ax=ax,format=sfmt)
+        if norm_to_unity:
+            ticks = np.linspace(-1, 1, 11, endpoint=True)
+        else:
+            ticks = None
+        cbar = fig.colorbar(cont,ax=ax,format=sfmt,ticks=ticks)
         cbar.ax.tick_params(labelsize=cbarticklblfs)
         cbar.ax.yaxis.offsetText.set(size=cbarticklblfs)
         fieldlabel,unitlabel = fpyl.get_fieldlabel(units,'eigenfunction')
+        if norm_to_unity:
+            unitlabel = 'a.u.'
         unitlabel = fieldlabel + ' (' + unitlabel + ')'
         cbar.set_label(unitlabel,fontsize=cbarlblfs)
         ax.set_aspect('equal')
+        print(cbar.mappable.get_clim())
+        
         plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
     # Calculate and plot poloidal Fourier spectrum
@@ -182,25 +220,41 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         for i in fs:
             spec[:,i] = np.abs(np.fft.rfft(ef[:,i]))/pathshape[1] #Applying normalization by number of elements on forward transformation
         
+        spec_abs = np.abs(spec)
+        
         #Identify largest modes
-        mmax = np.asarray([np.amax(spec[j,:]) for j in range(nspec)])
+        mmax = np.asarray([np.amax(spec_abs[j,:]) for j in range(nspec)])
         mmax_ind = mmax.argsort()
         
         # Plot Fourier spectrum
         if makeplot:
+            if norm_to_unity:
+                specmax = np.amax(spec_abs)
+                fac = 1.0/specmax
+            else:
+                fac = 1.0
             plt.figure()
             #print(mmax_ind[-nummodes:])
             for j in range(nspec):
                 if nummodes>0:
                     if j in mmax_ind[-nummodes:]:
-                        plt.plot(fc.psi_norm,fac*spec[j,:],lw=linew,label='m='+str(j))
+                        plt.plot(fc.psi_norm,fac*spec_abs[j,:],lw=linew,label='m='+str(j))
                     else:
-                        plt.plot(fc.psi_norm,fac*spec[j,:],lw=linew)
+                        plt.plot(fc.psi_norm,fac*spec_abs[j,:],lw=linew)
                 else:
-                    plt.plot(fc.psi_norm,fac*spec[j,:],lw=linew)
+                    plt.plot(fc.psi_norm,fac*spec_abs[j,:],lw=linew)
+            
+            ax = plt.gca()
+            if show_res:
+                for i,pr in enumerate(psin_res):
+                    pltcol = next(cols)
+                    plt.axvline(x=pr,linestyle='--',color=pltcol)
+                    ypos = 0.98*ax.get_ylim()[-1]
+                    ax.annotate('q='+str(q_res[i])+', m='+str(q_res[i]*n), xy=(pr, ypos), rotation=90, va='top', ha='left')
+            
             plt.xlabel(r'$\psi_N$',fontsize=axlblfs)
             plt.ylabel('eigenfunction (a. u.)',fontsize=axlblfs)
-            ax = plt.gca()
+            ax.set_xlim(left=xlimits[0],right=xlimits[1])
             ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
             ax.yaxis.set_major_formatter(sfmt)
             ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
@@ -211,6 +265,14 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
             if nummodes>0:
                 plt.legend(ncol=2,fontsize=legfs)
             plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
+            
+            if save:
+                timestr = 't'
+                timestr = timestr + str(sim[1].timeslice)
+                imgname = 'spectrum'
+                if savedir is not None:
+                    imgname = savedir + imgname
+                plt.savefig(imgname + '_' + timestr + '_n'+"{:d}".format(n)+'.png', format='png',dpi=300,bbox_inches='tight')
     
     
     
@@ -246,26 +308,29 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     **psin_ped_top**
     Value of normalized psi where pedestal top is assumed.
     """
-    pathshape = spec.shape
+    
+    spec_abs = np.abs(spec)
+    
+    pathshape = spec_abs.shape
     fc = sim.fc
     nspec = pathshape[0]
     
     # Sum up all Fourier components without considering the phase in order to locate the perturbation.
     efsum = np.zeros(pathshape[1])
     for i in range(pathshape[1]):
-        efsum[i] = np.sum(spec[:,i])
+        efsum[i] = np.sum(spec_abs[:,i])
     # Plot sum of Fourier components:
-    #plt.figure()
-    #plt.plot(fc.psi_norm,efsum,lw=2,c='C2')
-    #plt.xlabel(r'$\psi_N$',fontsize=20)
-    #plt.ylabel(r'$\sum_{m} |\xi_{m}|(r)$ (a.u.)',fontsize=20)
-    #ax = plt.gca()
-    #ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
-    #ax.tick_params(axis='both', which='major', labelsize=18)
-    #plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
+    plt.figure()
+    plt.plot(fc.psi_norm,efsum,lw=2,c='C2')
+    plt.xlabel(r'$\psi_N$',fontsize=20)
+    plt.ylabel(r'$\sum_{m} |\xi_{m}|(r)$ (a.u.)',fontsize=20)
+    ax = plt.gca()
+    ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
+    ax.tick_params(axis='both', which='major', labelsize=18)
+    plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
     # Calculate derivative of sum of modes
-    efsumprime = fpyl.deriv(efsum,fc.psi_norm)
+    #efsumprime = fpyl.deriv(efsum,fc.psi_norm)
     #plt.figure()
     #plt.plot(fc.psi_norm,efsumprime)
     
@@ -291,16 +356,39 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     #print(efmax_edge)
     print('Relative amplitude of edge mode: '+str(rel_mode_ampl))
     
+    
+    
+    #Determine how much of the mode lies inside and outside the pedestal
+    #by integrating the perturbation from 0 to psin_ped_top and
+    #from psin_ped_top to 1
+    pert = np.zeros(pathshape[1])
+    for i in range(pathshape[1]):
+        pert[i] = np.sum(spec[:,i])
+    
+    ped_top_ind = fpyl.get_ind_at_val(fc.psi_norm,fpyl.find_nearest(fc.psi_norm,psin_ped_top))
+    print(ped_top_ind,fc.psi_norm[ped_top_ind])
+    
+    temp1 = trapezoid(pert[:ped_top_ind+1],fc.psi_norm[:ped_top_ind+1])
+    temp2 = trapezoid(pert[ped_top_ind+1:],fc.psi_norm[ped_top_ind+1:])
+    ped_loc = temp2/(temp1+temp2)
+    print(temp1,temp2)
+    #fc.psi_norm,pert
+    
+    
+    
     if rel_mode_ampl>8:
-        pbmode = 1
+        mtype = 1
     elif rel_mode_ampl<8 and rel_mode_ampl>1:
-        pbmode = -1
+        if ped_loc > 0.5:
+            mtype = -1
+        else:
+            mtype = -2
         fpyl.printwarn('Dominant PB mode. Weak core mode detected.')
     elif rel_mode_ampl<=1 and rel_mode_ampl>0.1:
-        pbmode = -2
+        mtype = -2
         fpyl.printwarn('Dominant core mode. PB mode is weak.')
     else:
-        pbmode = 0
+        mtype = 0
         fpyl.printwarn('Mode is not a PB mode.')
     
     
@@ -359,4 +447,4 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     
     #Subtract all modes with peak at edge from total.
 
-    return pbmode
+    return mtype,ped_loc
