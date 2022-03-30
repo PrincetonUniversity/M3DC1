@@ -1322,7 +1322,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
     in->shouldTransferParametric=false;
     in->shouldRunPostZoltan = true;
     in->goodQuality = 0.5;
-    in->maximumIterations = 3;
+    in->maximumIterations = (*refine_level) + 1;
 
     // turn off coarsening if coarsen_level is negative
     if (coarsen_level < 0)
@@ -1369,7 +1369,7 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
       in->shouldTransferParametric=false;
       in->shouldRunPostZoltan = true;
       in->goodQuality = 0.5;
-      in->maximumIterations = 1;
+      in->maximumIterations = (*refine_level);
 
       // turn off coarsening if coarsen_level is negative
       if (coarsen_level < 0)
