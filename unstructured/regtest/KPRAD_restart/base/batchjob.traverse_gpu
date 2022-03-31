@@ -2,6 +2,8 @@
 #SBATCH -A pppl
 #SBATCH -n 48
 #SBATCH --cpus-per-task=2
+#SBATCH --gpus-per-node=4
+#SBATCH --gpu-mps
 #SBATCH -J M3DC1_regtest_KPRAD_2D
 #SBATCH -t 01:00:00
 #SBATCH -o C1stdout
