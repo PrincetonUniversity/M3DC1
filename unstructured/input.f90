@@ -1118,8 +1118,8 @@ subroutine set_defaults
        "Z-coordinate below which SOL adaptation is coarse", gs_grp)
   call add_var_double("adapt_zup", adapt_zup, 0., &
        "Z-coordinate above which SOL adaptation is coarse", gs_grp)
-  call add_var_int("iadapt_by_eta", iadapt_by_eta, 0, &
-       "In wall region, adapt by wall resistivities", gs_grp)
+!  call add_var_int("iadapt_by_eta", iadapt_by_eta, 0, &
+!       "In wall region, adapt by wall resistivities", gs_grp)
 
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &
