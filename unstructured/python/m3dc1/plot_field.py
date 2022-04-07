@@ -8,13 +8,13 @@
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-from matplotlib import rc
 from matplotlib import colors
 #from matplotlib import path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 from distutils.version import StrictVersion
 import m3dc1.fpylib as fpyl
+from m3dc1.get_field import get_field
 from m3dc1.eval_field import eval_field
 from m3dc1.plot_mesh import plot_mesh
 from m3dc1.plot_coils import plot_coils
@@ -28,7 +28,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
                prange=None, cmap='viridis', cmap_midpt=None, quiet=False,
                save=False, savedir=None, pub=False, showtitle=True, shortlbl=False, ntor=None, phys=False):
     """
-    Plots the field of a file. 
+    Plots a field in the R,Z plane.
     
     Arguments:
 
@@ -73,6 +73,9 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     **tor_av**
     Calculates the average field over tor_av number of toroidal planes
 
+    **units**
+    Units in which the field will be plotted.
+
     **mesh**
     True/False
     Overlay mesh on top of plot.
@@ -111,134 +114,14 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
 
     **phys**
     Use True for plotting in physical (stellarator) geometry
+
+    **quiet**
+    If True, suppress output to terminal.
     """
     
-    sim, time = fpyl.setup_sims(sim,filename,time,linear,diff)
-    field_idx = fpyl.get_field_idx(coord)
-
-    # Make 3D grid based on the mesh points
-    mesh_ob      = sim[0].get_mesh(quiet=quiet)
-    mesh_pts     = mesh_ob.elements
-    R_mesh       = mesh_pts[:,4]
-    Z_mesh       = mesh_pts[:,5]
-    phi0 = phi*1
-    R_range      = [np.amin(R_mesh),np.amax(R_mesh)]
-    Z_range      = [np.amin(Z_mesh),np.amax(Z_mesh)]
-    R_linspace   = np.linspace(R_range[0], R_range[1], res, endpoint=True)
-    phi_linspace = np.linspace(phi,         (360+phi), tor_av, endpoint=False)
-    Z_linspace   = np.linspace(Z_range[0], Z_range[1], res, endpoint=True)
-    R, phi, Z    = np.meshgrid(R_linspace, phi_linspace,Z_linspace)
-    if phys:
-        rst = eval_field('rst', R, phi, Z, sim=sim, file_name=file_name, time=time)
-        zst = eval_field('zst', R, phi, Z, sim=sim, file_name=file_name, time=time)
-        R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, file_name=file_name, time=time)
-        Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, file_name=file_name, time=time)
-
-
-    # Get the magnetic axis at time zero, which will be used for poloidal coordinates
-    if coord in ['poloidal', 'radial']:
-        R_mag =  sim[0].get_time_trace('xmag').values[0]
-        Z_mag =  sim[0].get_time_trace('zmag').values[0]
-
-
-    # Evaluate usual vector components
-    if coord not in ['poloidal', 'radial', 'vector', 'tensor']:
-        # Evaluate field
-        field1 = eval_field(field, R, phi, Z, coord=coord, sim=sim[0], time=time[0],quiet=quiet)
-        # Evaluate second field and calculate difference between two if linear or diff is True
-        if diff or linear:
-            field2 = eval_field(field, R, phi, Z, coord=coord, sim=sim[1], time=time[1],quiet=quiet)
-            field1 = field1 - field2
-            if not quiet:
-                print('[DONE]')
-
-
-    # Evaluate poloidal/radial field components or all field components (coord='vector')
-    if coord in ['poloidal', 'radial', 'vector']:
-        field1R, field1phi, field1Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[0], time=time[0],quiet=quiet)
-        if diff or linear:
-            field2R, field2phi, field2Z  = eval_field(field, R, phi, Z, coord='vector', sim=sim[1], time=time[1],quiet=quiet)
-            if not quiet:
-                print('[DONE]')
-    elif coord =='tensor':
-        field1RR, field1phiR, field1ZR, field1Rphi, field1phiphi, field1Zphi, field1RZ, field1phiZ, field1ZZ  = \
-            eval_field(field, R, phi, Z, coord='tensor', sim=sim[0], time=time[0],quiet=quiet)
-        if row == 1:
-            field1R = field1RR
-            field1phi = field1phiR
-            field1Z = field1ZR
-        elif row == 2:
-            field1R = field1Rphi
-            field1phi = field1phiphi
-            field1Z = field1Zphi
-        elif row == 3:
-            field1R = field1RZ
-            field1phi = field1phiZ
-            field1Z = field1ZZ
-        if diff or linear:
-            field2RR, field2phiR, field2ZR, field2Rphi, field2phiphi, field2Zphi, field2RZ, field2phiZ, field2ZZ  = \
-                eval_field(field, R, phi, Z, coord='tensor', sim=sim[1], time=time[1],quiet=quiet)
-            if row == 1:
-                field2R = field2RR
-                field2phi = field2phiR
-                field2Z = field2ZR
-            elif row == 2:
-                field2R = field2Rphi
-                field2phi = field2phiphi
-                field2Z = field2Zphi
-            elif row == 3:
-                field2R = field2RZ
-                field2phi = field2phiZ
-                field2Z = field2ZZ
-
-    # Evaluate poloidal component
-    if coord == 'poloidal':
-        theta  = np.arctan2(Z-Z_mag,R-R_mag)
-        field1 = -np.sin(theta)*field1R + np.cos(theta)*field1Z
-        
-        # Evaluate second field and calculate difference between two if linear or diff is True
-        if diff or linear:
-            field2 = -np.sin(theta)*field2R + np.cos(theta)*field2Z
-
-
-    # Evaluate radial component
-    if coord == 'radial':
-        theta  = np.arctan2(Z-Z_mag,R-R_mag)
-        field1 = np.cos(theta)*field1R + np.sin(theta)*field1Z
-        
-        # Evaluate second field and calculate difference between two if linear or diff is True
-        if diff or linear:
-            field2 = np.cos(theta)*field2R + np.sin(theta)*field2Z
-
-
-    # Calculate difference between two if linear or diff is True
-    if diff or linear:
-        if coord in ['poloidal', 'radial']:
-            field1 = field1 - field2
-        elif coord in ['vector', 'tensor']:
-            field1R   = field1R - field2R
-            field1phi = field1phi - field2phi
-            field1Z   = field1Z - field2Z
-
+    sim, time, mesh_ob, R, phi_list, Z, R_mesh, Z_mesh, R_ave, Z_ave, field1_ave = get_field(field=field, coord=coord, row=row, sim=sim, filename=filename, time=time, phi=phi, linear=linear,
+               diff=diff, tor_av=tor_av, units=units, res=res, quiet=quiet, phys=phys)
     
-    # Calculate average over phi of the field. For a single slice the average is equal to itself
-    if coord in ['vector', 'tensor']:
-        field1R_ave   = np.average(field1R, 0)
-        field1phi_ave = np.average(field1phi, 0)
-        field1Z_ave   = np.average(field1Z, 0)
-        field1_ave    = [field1R_ave,field1phi_ave,field1Z_ave]
-    else:
-        field1_ave    = [np.average(field1, 0)]
-    R_ave = np.average(R, 0)
-    Z_ave = np.average(Z, 0)
-    if phys:
-        rst_ave    = np.average(rst, 0)
-        zst_ave    = np.average(zst, 0)
-        R_ave = np.where(np.isnan(rst_ave), R_ave, rst_ave)
-        Z_ave = np.where(np.isnan(zst_ave), Z_ave, zst_ave)
-    
-    if units.lower()=='m3dc1':
-        field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
     cbarlbl = fieldlabel + ' (' + unitlabel + ')'
@@ -371,7 +254,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         
         #Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sim[lcfs_ts_ind], time=time[lcfs_ts_ind])
         #psifield = R_ave*Aphi
-        psifield = eval_field('psi', R, phi, Z, coord='scalar', sim=sim[lcfs_ts_ind], filename=sim[lcfs_ts_ind].filename, time=time[lcfs_ts_ind])
+        psifield = eval_field('psi', R, phi_list, Z, coord='scalar', sim=sim[lcfs_ts_ind], filename=sim[lcfs_ts_ind].filename, time=time[lcfs_ts_ind])
         for i,ax in enumerate(axs):
             cont = ax.contour(R_ave, Z_ave, np.average(psifield,0),[psi_lcfs],colors='magenta',linewidths=lcfslw,zorder=10)
     
