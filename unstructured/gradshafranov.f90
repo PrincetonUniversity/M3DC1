@@ -1045,13 +1045,13 @@ subroutine gradshafranov_solve
   numelms = local_elements()
 
   ! allocate memory for arrays
-  call create_field(b1vecini_vec)
-  call create_field(b2vecini_vec)
-  call create_field(psi_vec)
-  call create_field(fun1_vec)
-  call create_field(fun2_vec)
-  call create_field(fun3_vec)
-  call create_field(fun4_vec)
+  call create_field(b1vecini_vec, "b1vecini_vec")
+  call create_field(b2vecini_vec, "b2vecini_vec")
+  call create_field(psi_vec, "psi_vec")
+  call create_field(fun1_vec, "fun1_vec")
+  call create_field(fun2_vec, "fun2_vec")
+  call create_field(fun3_vec, "fun3_vec")
+  call create_field(fun4_vec, "fun4_vec")
 
   psi_vec = psi_field(0)
   b1vecini_vec = jphi_field
@@ -1321,8 +1321,8 @@ subroutine gradshafranov_solve
   b1vecini_vec = 0.
   b2vecini_vec = 0.
 
-  call create_field(b3vecini_vec)
-  if(irot.ne.0) call create_field(b4vecini_vec)
+  call create_field(b3vecini_vec, "b3vecini_vec")
+  if(irot.ne.0) call create_field(b4vecini_vec, "b4vecini_vec")
 
   !recalculate omega
 !  if(irot.eq.-1) call calc_omega_profile

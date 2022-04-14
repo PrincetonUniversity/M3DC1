@@ -7,16 +7,23 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
+#include <assert.h>
+
+// headers from SCOREC/Core
+#include <PCU.h>
+#include <pcu_util.h>
+#include <apfMesh.h>
+#include <apfMesh2.h>
+#include <apf.h>
+#include <apfMDS.h>
+#include <apfNumbering.h>
+
+// local headers
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_scorec.h"
 #include "m3dc1_mesh.h"
 #include "m3dc1_field.h"
-#include "apfMesh.h"
-#include "apfMesh2.h"
-#include "apf.h"
-#include "apfMDS.h"
-#include "apfNumbering.h"
-#include <assert.h>
+
 
 int ReducedQuinticTransfer::dofNode = C1TRIDOFNODE;
 void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector const& xi, ma::Entity* vert)
@@ -37,9 +44,9 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
   assert(num_face<=2);
 #endif
 
-  for(int i=0; i<fields.size(); i++)
+  for(int fi=0; fi<fields.size(); fi++)
   {
-    apf::Field* field = fields.at(i);
+    apf::Field* field = fields.at(fi);
     int numComp = apf::countComponents(field);
     vector<vector<double> > dofsVertex(2);
     apf::MeshEntity*  vertices[2];
@@ -47,12 +54,13 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
     apf::Vector3 xyz;
     m3dc1_mesh::instance()->mesh->getPoint(vert, 0, xyz);
     apf::Vector3 xyz2[2];
+    for (int i = 0; i < 2; i++) {
+      m3dc1_mesh::instance()->mesh->getPoint(vertices[i], 0, xyz2[i]);
+    }
     for( int i=0; i<2; i++)
     {
       dofsVertex.at(i).resize(numComp);
-      apf::Element* vertex = apf::createElement(field,vertices[i]);
-      apf::getComponents(vertex,xi,&(dofsVertex[i][0]));
-      m3dc1_mesh::instance()->mesh->getPoint(vertices[i], 0, xyz2[i]);
+      apf::getComponents(field, vertices[i], 0, &(dofsVertex[i][0]));
     }
     double len1= sqrt((xyz2[0][0]-xyz2[1][0])*(xyz2[0][0]-xyz2[1][0])+(xyz2[0][1]-xyz2[1][1])*(xyz2[0][1]-xyz2[1][1]));
     double len2= sqrt((xyz2[0][0]-xyz[0])*(xyz2[0][0]-xyz[0])+(xyz2[0][1]-xyz[1])*(xyz2[0][1]-xyz[1]));
@@ -93,8 +101,7 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
           miss_flag=1;
           break;
         }
-        apf::Element* vertex = apf::createElement(field,vertices[i]);
-        apf::getComponents(vertex,xi,&(value[numComp*i]));
+        apf::getComponents(field, vertices[i], 0, &(value[numComp*i]));
       }
       assert(!miss_flag);
       if(miss_flag)
@@ -148,8 +155,8 @@ void  ReducedQuinticTransfer::onVertex(apf::MeshElement* parent, ma::Vector cons
         if(hasEntity(field,vertices[i]))
         {
           getComponents(field, vertices[i], 0, &dofsBuff[0]);
-          for(int i=0; i<numComp; i++)
-            newdofs[i]+=dofsBuff[i];
+          for(int j=0; j<numComp; j++)
+            newdofs[j]+=dofsBuff[j];
           numVtx++;
         }
       }
