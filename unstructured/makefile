@@ -229,7 +229,7 @@ test_region : region.o test_region.o
 
 .PHONY: scorec
 scorec :
-	mkdir -p $(SRCDIR)/../m3dc1_scorec/build_$(PETSC_ARCH)
+	mkdir -p $(M3DC1_SCOREC)/build_$(PETSC_ARCH)
 	cd $(M3DC1_SCOREC)/build_$(PETSC_ARCH) ;\
 	PETSC_DIR=$(PETSC_DIR) \
 	PETSC_ARCH=$(PETSC_ARCH) \
