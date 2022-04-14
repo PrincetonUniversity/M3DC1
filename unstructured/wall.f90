@@ -26,7 +26,7 @@ contains
     call set_matrix_index(wall_matrix, wall_mat_index)
     call create_mat(wall_matrix, 1, 1, icomplex, 1)
 
-    call create_field(wall_dist, "wall_dist")
+    call create_field(wall_dist)
     wall_dist = 0.
 
     ibound = ior(BOUNDARY_DIRICHLET,BOUNDARY_NEUMANN)

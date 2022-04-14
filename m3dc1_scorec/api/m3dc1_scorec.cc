@@ -7,649 +7,31 @@
   BSD license as described in the LICENSE file in the top-level directory.
  
 *******************************************************************************/
-#include <mpi.h>
-#include <map>
-#include <cstring>
-#include <iomanip> // setprecision
-#include <fstream> // file input
-// #include <stdio.h>
-// #include <stdlib.h>
-
-// headers from SCOREC/Core
-#include <PCU.h>
-#include <pcu_util.h>
-#include <lionPrint.h>
-#include <gmi_null.h> // FIXME: should be deleted later on since it's added temporarily for null model
-#include <gmi_analytic.h>
-#include <apfMDS.h>
-#include <apf.h>
-#include <apfShape.h>
-#include <pumi.h>
-#include <spr.h>
-
-// local headers
 #include "m3dc1_scorec.h"
 #include "m3dc1_matrix.h"
 #include "m3dc1_model.h"
 #include "m3dc1_mesh.h"
 #include "m3dc1_field.h"
+#include <mpi.h>
+#include <PCU.h>
+#include "gmi_null.h" // FIXME: should be deleted later on since it's added temporarily for null model
+#include <gmi_analytic.h>
+#include <map>
+#include <cstring>
+#include <iomanip> // setprecision
+#include <fstream> // file input
+#include "apfMDS.h"
 #include "Expression.h"
 #include "m3dc1_slnTransfer.h"
 #include "m3dc1_sizeField.h"
 #include "ReducedQuinticImplicit.h"
-
+#include "pumi.h"
+// #include <stdio.h>
+// #include <stdlib.h>
 #ifdef M3DC1_TRILINOS
 #include "m3dc1_ls.h"
 #endif
 #include <alloca.h>
-
-const int dofNode = C1TRIDOFNODE;
-
-#ifdef DEBUG
-static const char* get_field_name_from_id(const FieldID id)
-{
-   m3dc1_field* mf = (*m3dc1_mesh::instance()->field_container)[id];
-   return getName(mf->get_field());
-}
-#endif
-
-
-// static functions used for spr-adapt
-static apf::Field* get_field_at_index(apf::Mesh2* m, apf::Field* inField, int index, int numDofs)
-{
-  int numComps = apf::countComponents(inField);
-  int numFields = numComps/numDofs;
-  PCU_ALWAYS_ASSERT(index <= numFields);
-  PCU_ALWAYS_ASSERT(index > 0);
-
-  apf::Field* targetField = apf::createPackedField(m, "target_field", numDofs);
-
-  apf::NewArray<double> allDofs(numComps);
-  apf::MeshEntity* v;
-  apf::MeshIterator* it = m->begin(0);
-  while ( (v = m->iterate(it)) )
-  {
-    apf::getComponents(inField, v, 0, &(allDofs[0]));
-    apf::setComponents(targetField, v, 0, &(allDofs[(index-1)*numDofs]));
-  }
-  m->end(it);
-  return targetField;
-}
-
-
-static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
-{
-  ReducedQuinticImplicit shape;
-  int numComps = apf::countComponents(in);
-  assert(numComps == dofNode);
-  int dim = m->getDimension();
-  assert(dim == 2);
-  int order = 2;
-  apf::Field* ip = apf::createIPField(m, "ip_field", apf::VECTOR, order);
-
-  apf::MeshEntity* e;
-  apf::MeshIterator* it = m->begin(dim);
-
-  while ( (e = m->iterate(it)) )
-  {
-    // setup the ReducedQuintic Related Info
-    apf::MeshEntity* dvs[3];
-    int nd = m->getDownward(e, 0, dvs);
-    double coords[3][2];
-    for (int i = 0; i < 3; i++) {
-      apf::Vector3 p;
-      m->getPoint(dvs[i], 0, p);
-      coords[i][0] = p[0];
-      coords[i][1] = p[1];
-    }
-    shape.setCoord(coords);
-
-    apf::NewArray<double> values(3*dofNode);
-    apf::NewArray<double> dofAtXi(dofNode);
-    for (int i = 0; i < 3; i++)
-      apf::getComponents(in, dvs[i], 0, &(values[dofNode*i]));
-
-    shape.setDofs(&(values[0]));
-
-
-    apf::MeshElement* me = apf::createMeshElement(m, e);
-    for (int i = 0; i < apf::countIntPoints(me, order); i++) {
-      apf::Vector3 xi; // parametric coords of the point in e at which we are evaluating the field
-      apf::getIntPoint(me, order, i, xi);
-      apf::Vector3 p; // physical coords of the point in e at which we are evaluating the field
-      apf::mapLocalToGlobal(me, xi, p);
-      double pArray[3];
-      p.toArray(pArray);
-      shape.eval_g(pArray, &(dofAtXi[0]));
-      apf::Vector3 grad(dofAtXi[1], dofAtXi[2], 0.0);
-      apf::setVector(ip, e, i, grad);
-    }
-    apf::destroyMeshElement(me);
-  }
-  m->end(it);
-  return ip;
-}
-
-static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
-    double max_size, int refine_level, int coarsen_level)
-{
-  //compute both average and min current size at each vertex
-  apf::Field* sum_field = apf::createFieldOn(m, "sum_field", apf::SCALAR);
-  apf::Field* min_field = apf::createFieldOn(m, "min_field", apf::SCALAR);
-  apf::Field* cnt_field = apf::createFieldOn(m, "cnt_field", apf::SCALAR);
-
-  apf::MeshEntity* v;
-  apf::MeshIterator* it = m->begin(0);
-  while ( (v = m->iterate(it)) )
-  {
-    double current_min = 1.e32;
-    double current_sum = 0.;
-    double current_cnt = 0.;
-    for (int i = 0; i < m->countUpward(v); i++) {
-      double edge_length = apf::measure(m, m->getUpward(v, i));
-      if (edge_length < current_min)
-      	current_min = edge_length;
-      current_sum += edge_length;
-      current_cnt += 1.;
-    }
-    apf::setScalar(sum_field, v, 0, current_sum);
-    apf::setScalar(min_field, v, 0, current_min);
-    apf::setScalar(cnt_field, v, 0, current_cnt);
-  }
-  m->end(it);
-  // accumulate sum and cnt fields and compute the averages
-  apf::accumulate(sum_field);
-  apf::accumulate(cnt_field);
-  it = m->begin(0);
-  while ( (v = m->iterate(it)) )
-  {
-    double total_sum = apf::getScalar(sum_field, v, 0);
-    double total_cnt = apf::getScalar(cnt_field, v, 0);
-    apf::setScalar(sum_field, v, 0, total_sum/total_cnt);
-  }
-  m->end(it);
-
-  // update the min field using share reduction with min op
-  apf::sharedReduction(min_field, 0, false, apf::ReductionMin<double>());
-
-  // compute min/max of avg_size over the whole mesh
-  double mesh_min = 1.e16;
-  double mesh_max = -1.e16;
-  it = m->begin(0);
-  while ( (v = m->iterate(it)) )
-  {
-    double s = apf::getScalar(sum_field, v, 0);
-    if (s > mesh_max)
-      mesh_max = s;
-    if (s < mesh_min)
-      mesh_min = s;
-  }
-  m->end(it);
-
-  PCU_Min_Doubles(&mesh_min, 1);
-  PCU_Max_Doubles(&mesh_max, 1);
-
-  if (!PCU_Comm_Self()) {
-    printf("min/max of current avg size at time step %d: %f/%f\n", ts, mesh_min, mesh_max);
-    printf("user requested max_size at time step %d: %f\n", ts, max_size);
-  }
-
-  int bdim = m->getDimension() - 1;
-
-  double refine_factor = 1.;
-  for (int i = 0; i < refine_level; i++)
-    refine_factor *= 2.;
-
-  double coarsen_factor = 1.;
-  for (int i = 0; i < coarsen_level; i++)
-    coarsen_factor *= 2.;
-
-  it = m->begin(0);
-  while ( (v = m->iterate(it)) )
-  {
-    double asked_size = apf::getScalar(in_size, v, 0);
-    double avg_size = apf::getScalar(sum_field, v, 0);
-    double min_size = apf::getScalar(min_field, v, 0);
-    int mtype = m->getModelType(m->toModel(v));
-    if (mtype == bdim) {
-      asked_size = avg_size;
-    }
-    else {
-      if (asked_size < min_size / refine_factor) // cap refinement by refine_factor (:=2^refine_level)
-      	asked_size = min_size / refine_factor;
-      if (asked_size > min_size * coarsen_factor) // cap coarsening by coarsen_factor (:=2^coarsen_level)
-      	asked_size = min_size * coarsen_factor;
-    }
-    // cap the biggest size to user specified max_size,
-    // thus never allowing the mesh to get coarser that max_size
-    if (asked_size > max_size)
-      asked_size = max_size;
-    apf::setScalar(in_size, v, 0, asked_size);
-  }
-  m->end(it);
-  apf::synchronize(in_size);
-
-  // compute min/max of avg_size over the whole mesh
-  double asked_min = 1.e16;
-  double asked_max = -1.e16;
-  it = m->begin(0);
-  while ( (v = m->iterate(it)) )
-  {
-    double s = apf::getScalar(in_size, v, 0);
-    if (s > asked_max)
-      asked_max = s;
-    if (s < asked_min)
-      asked_min = s;
-  }
-  m->end(it);
-
-  PCU_Min_Doubles(&asked_min, 1);
-  PCU_Max_Doubles(&asked_max, 1);
-
-
-  if (!PCU_Comm_Self())
-    printf("min/max of asked size at time step %d: %f/%f\n", ts, asked_min, asked_max);
-
-  // clean up
-  m->removeField(sum_field);
-  m->removeField(min_field);
-  m->removeField(cnt_field);
-  apf::destroyField(sum_field);
-  apf::destroyField(min_field);
-  apf::destroyField(cnt_field);
-}
-
-// for 3D
-// typedefs
-typedef std::vector<apf::Field*> MultiField; // fields on different planes
-
-// the naming convention of multi-plane fields is "name_pnnn" where
-//   "name" is the original name of the field
-//   "nnn" is the plane number, zero-padded to have length equal to zero_pad_length
-const int zero_pad_length = 3; // this would allow number of planes to be between 0 and 999
-const int max_num_plane = 999; // this should be equal (10^zero_pad_length - 1)
-
-static const char* get_plane_name_format(int pad = zero_pad_length)
-{
-  PCU_ALWAYS_ASSERT(pad >= 3 && pad < 7);
-  static const char* format[7] =
-  {
-    "", // 0
-    "", // 1
-    "", // 2
-    "%s_p%03d", // 3
-    "%s_p%04d", // 3
-    "%s_p%05d", // 3
-    "%s_p%06d", // 3
-  };
-  return format[pad];
-}
-
-static void get_original_field_name(const char* plane_name, char* original_name)
-{
-  std::string plane_name_str(plane_name);
-  std::size_t s = plane_name_str.size();
-  s -= (zero_pad_length+2);
-  plane_name_str.resize(s);
-
-  std::strcpy(original_name, plane_name_str.c_str());
-}
-
-// helper functions
-static bool is_in_plane(apf::MeshEntity* e)
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  PCU_ALWAYS_ASSERT(m->getType(e) == apf::Mesh::EDGE);
-
-  double tol = 2. * M3DC1_PI / m3dc1_model::instance()->num_plane / 1.e6;
-  apf::Vector3 p[2];
-  apf::MeshEntity* v[2];
-  m->getDownward(e, 0, v);
-  for (int i = 0; i < 2; i++) {
-    m->getPoint(v[i], 0, p[i]);
-  }
-  return std::fabs(p[0][2] - p[1][2]) < tol;
-}
-
-static void destroyElement(apf::Mesh2* m, apf::MeshEntity* e)
-{
-  int dim = apf::getDimension(m,e);
-  if (dim < m->getDimension())
-  { //destruction is a no-op if this entity still supports
-    //higher-order ones
-    if (m->hasUp(e))
-      return;
-  }
-  if (dim < m->getDimension())
-  {
-    int etype = m->getType(e);
-    if (etype == apf::Mesh::TRIANGLE) return;
-    if (etype == apf::Mesh::EDGE)
-    {
-      if (is_in_plane(e)) return;
-    }
-    /* if (etype == apf::Mesh::VERTEX) */
-  }
-  apf::Downward down;
-  int nd = 0;
-  if (dim > 0)
-    nd = m->getDownward(e,dim-1,down);
-  m->destroy(e);
-  /* destruction applies recursively to the closure of the entity */
-  if (dim > 0)
-    for (int i=0; i < nd; ++i)
-      destroyElement(m,down[i]);
-}
-
-static void remove_all_wedges()
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-
-  apf::MeshEntity* e;
-  apf::MeshIterator* it;
-
-  it = m->begin(3);
-  while ( (e = m->iterate(it)) )
-  {
-    destroyElement(m, e);
-  }
-  m->acceptChanges();
-  changeMdsDimension(m, 2);
-}
-
-
-
-static void transfer_field_data_on_plane(apf::Field* in, apf::Field* out, int p)
-{
-  int np = m3dc1_model::instance()->num_plane;
-  int local_planeid = m3dc1_model::instance()->local_planeid;
-  PCU_ALWAYS_ASSERT_VERBOSE(p >= 0, "p must be strictly positive!");
-  PCU_ALWAYS_ASSERT_VERBOSE(p < np, "p must be strictly less than number of planes!");
-  int nc = apf::countComponents(in);
-  apf::NewArray<double> dofs(nc);
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::MeshEntity* e;
-  apf::MeshIterator* it = m->begin(0);
-  while ( (e = m->iterate(it)) )
-  {
-    // if not on the plane continue
-    if (p != local_planeid) continue;
-    // if not owned continue
-    /* if (!m->isOwned(e)) continue; */
-    apf::getComponents(in, e, 0, &dofs[0]);
-    apf::setComponents(out, e, 0, &dofs[0]);
-  }
-  m->end(it);
-  synchronize_field(out);
-}
-
-static void move_field_data_down(apf::Field* f, int startp)
-{
-  int np = m3dc1_model::instance()->num_plane;
-  int local_planeid = m3dc1_model::instance()->local_planeid;
-  PCU_ALWAYS_ASSERT_VERBOSE(startp > 0, "startp must be strictly positive!");
-  PCU_ALWAYS_ASSERT_VERBOSE(startp < np, "startp must be strictly less than number of planes!");
-  int nc = apf::countComponents(f);
-  apf::NewArray<double> zeros(nc);
-  for (int i = 0; i < nc; i++)
-    zeros[i] = 0.;
-
-
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  apf::MeshEntity* e;
-  apf::MeshIterator* it = m->begin(1);
-  while ( (e = m->iterate(it)) )
-  {
-    // continue if the edge is in any of the poloidal planes
-    if (is_in_plane(e)) continue;
-    // continue if the edge is not on local plane
-    if (startp-1 != local_planeid) continue;
-    apf::MeshEntity* vs[2];
-    m->getDownward(e, 0, vs);
-    apf::Vector3 ps[2];
-    for (int i = 0; i < 2; i++)
-      m->getPoint(vs[i], 0, ps[i]);
-    // make sure the second vert in vs is on lower plane (i.e. has lower z component)
-    if (ps[1][2] > ps[0][2])
-    {
-      std::swap(ps[0], ps[1]);
-      std::swap(vs[0], vs[1]);
-    }
-    apf::NewArray<double> dofs(nc);
-    apf::getComponents(f, vs[0], 0, &dofs[0]);
-    apf::setComponents(f, vs[1], 0, &dofs[0]);
-    apf::setComponents(f, vs[0], 0, &zeros[0]);
-  }
-  m->end(it);
-  synchronize_field(f);
-  /* PCU_Barrier(); */
-}
-
-static void transfer_field_to_main(apf::Field* f, MultiField& pfields)
-{
-  apf::MeshEntity* e;
-  apf::MeshIterator* it;
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int np = m3dc1_model::instance()->num_plane;
-  int nc = apf::countComponents(f);
-
-  PCU_ALWAYS_ASSERT(np <= max_num_plane);
-
-  for (int i = 0; i < np; i++) {
-    char pfieldname[128];
-    sprintf(pfieldname, get_plane_name_format(), apf::getName(f), i);
-    apf::Field* tmp = createPackedField(m, pfieldname, nc, apf::getShape(f));
-    apf::zeroField(tmp);
-    pfields.push_back(tmp);
-  }
-
-
-  for (int i = 0; i < (int)pfields.size(); i++)
-    transfer_field_data_on_plane(f, pfields[i], i);
-
-
-  for (int i = 1; i < (int)pfields.size(); i++)
-    for (int j = 0; j < i; j++)
-      move_field_data_down(pfields[i], i-j);
-}
-
-void transfer_field_from_main(MultiField& pfields)
-{
-  apf::MeshEntity* e;
-  apf::MeshIterator* it;
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int np = m3dc1_model::instance()->num_plane;
-  PCU_ALWAYS_ASSERT(np == (int)pfields.size());
-  int lpid = m3dc1_model::instance()->local_planeid;
-  int nc = apf::countComponents(pfields[0]);
-
-  // get the original field corresponding to multiplane pfields
-  char original_name[128];
-  get_original_field_name(apf::getName(pfields[0]), original_name);
-  apf::Field* f = m->findField(original_name);
-  PCU_ALWAYS_ASSERT_VERBOSE(f, "was not able to find the original field!");
-
-
-  /* // first transfer everything to the last plane */
-  it = m->begin(1);
-  while ( (e = m->iterate(it)) )
-  {
-    if (lpid != np-1) continue;
-    if (is_in_plane(e)) continue;
-    apf::MeshEntity* v[2];
-    apf::Vector3 p[2];
-    m->getDownward(e, 0, v);
-    for (int i = 0; i < 2; i++)
-      m->getPoint(v[i], 0, p[i]);
-    if (p[0][2] > p[1][2])
-    {
-      std::swap(v[0], v[1]);
-      std::swap(p[0], p[1]);
-    }
-    apf::NewArray<double> dofs(nc);
-    for (int j = 0; j < (int)pfields.size(); j++) {
-      apf::getComponents(pfields[j], v[0], 0, &dofs[0]);
-      apf::setComponents(pfields[j], v[1], 0, &dofs[0]);
-    }
-  }
-  m->end(it);
-
-  for (int i = 0; i < (int)pfields.size(); i++)
-    synchronize_field(pfields[i]);
-
-  for (int i = 1; i < np-1 ; i++)
-    for (int j = np-1; j > i; j--)
-      move_field_data_down(pfields[i], j);
-
-  for (int i = 0; i < (int)pfields.size(); i++)
-    transfer_field_data_on_plane(pfields[i], f, i);
-}
-
-static apf::Field* compute_multiplane_size_field(const MultiField& pfields, double ar)
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int np = m3dc1_model::instance()->num_plane;
-  PCU_ALWAYS_ASSERT(np == (int)pfields.size());
-
-  int nc = apf::countComponents(pfields[0]);
-
-  apf::MeshEntity* e;
-  apf::MeshIterator* it;
-
-  MultiField sizefields; // size fields computed for each plane
-
-  for (int i = 0; i < np; i++) {
-    apf::Field* ip = get_ip_field(m, pfields[i]);
-    apf::Field* size = spr::getSPRSizeField(ip, ar);
-    char szname[128];
-    sprintf(szname, "sz_%s", apf::getName(pfields[i]));
-    apf::Field* sz = apf::createField(m, szname, apf::SCALAR, apf::getShape(size));
-    apf::copyData(sz, size);
-    sizefields.push_back(sz);
-    m->removeField(size);
-    apf::destroyField(size);
-    m->removeField(ip);
-    apf::destroyField(ip);
-    /* if (i != np-1) { */
-    /*   m->removeField(ip); */
-    /*   apf::destroyField(ip); */
-    /* } */
-  }
-
-  apf::Field* mastersize = apf::createField(m, "size", apf::SCALAR, apf::getShape(sizefields[0]));
-
-  it = m->begin(0);
-  while ( (e = m->iterate(it)) )
-  {
-    double minsize = 1.e16;
-    for (int i = 0; i < np; i++) {
-      double s = apf::getScalar(sizefields[i], e, 0);
-      if (s < minsize)
-	minsize = s;
-    }
-    apf::setScalar(mastersize, e, 0, minsize);
-  }
-  m->end(it);
-  /* apf::writeVtkFiles("03_mesh_with_all_sizes", m); */
-  for (int i = 0; i < np; i++) {
-    m->removeField(sizefields[i]);
-    apf::destroyField(sizefields[i]);
-  }
-  synchronize_field(mastersize);
-  /* apf::writeVtkFiles("04_mesh_with_master_size", m); */
-  return mastersize;
-}
-
-static void zero_fields_on_non_master(const MultiField& pfields)
-{
-  int np = m3dc1_model::instance()->num_plane;
-  PCU_ALWAYS_ASSERT(np == (int)pfields.size());
-
-  int nc = apf::countComponents(pfields[0]);
-  int local_planeid = m3dc1_model::instance()->local_planeid;
-
-  double tol = 2. * M3DC1_PI / np / 1.e6;
-
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-
-  // get the original field corresponding to multiplane pfields
-  char original_name[128];
-  get_original_field_name(apf::getName(pfields[0]), original_name);
-  apf::Field* f = m->findField(original_name);
-  PCU_ALWAYS_ASSERT_VERBOSE(f, "was not able to find the original field!");
-
-
-  apf::NewArray<double> zeros(nc);
-  for (int i = 0; i < nc; i++)
-    zeros[i] = 0.;
-
-  apf::MeshEntity* e;
-  apf::MeshIterator* it = m->begin(0);
-  while ( (e = m->iterate(it)) )
-  {
-    apf::setComponents(f, e, 0, &zeros[0]);
-
-    if (local_planeid == 0) continue;
-
-    for (int j = 0; j < (int)pfields.size(); j++)
-      apf::setComponents(pfields[j], e, 0, &zeros[0]);
-  }
-  m->end(it);
-
-  it = m->begin(1);
-  while ( (e = m->iterate(it)) )
-  {
-    if (local_planeid != 0) continue;
-    if (is_in_plane(e)) continue;
-    apf::MeshEntity* v[2];
-    apf::Vector3 p[2];
-    m->getDownward(e, 0, v);
-    for (int i = 0; i < 2; i++) {
-      m->getPoint(v[i], 0, p[i]);
-    }
-
-    if (std::fabs(p[0][2]) > tol)
-    {
-      for (int j = 0; j < (int)pfields.size(); j++)
-	apf::setComponents(pfields[j], v[0], 0, &zeros[0]);
-    }
-    else
-    {
-      PCU_ALWAYS_ASSERT(std::fabs(p[1][2]) > tol);
-      for (int j = 0; j < (int)pfields.size(); j++)
-	apf::setComponents(pfields[j], v[1], 0, &zeros[0]);
-    }
-  }
-  m->end(it);
-  for (int j = 0; j < np; j++)
-    apf::synchronize(pfields[j]);
-}
-
-// the following should be called only on master plane 0
-static void zero_fields_on_master(apf::Field* f)
-{
-  int np = m3dc1_model::instance()->num_plane;
-  int nc = apf::countComponents(f);
-  int local_planeid = m3dc1_model::instance()->local_planeid;
-  PCU_ALWAYS_ASSERT_VERBOSE(local_planeid==0, "function can only be called on master palne!");
-
-  double tol = 2. * M3DC1_PI / np / 1.e6;
-
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-
-  apf::NewArray<double> zeros(nc);
-  for (int i = 0; i < nc; i++)
-    zeros[i] = 0.;
-
-  apf::MeshEntity* e;
-  apf::MeshIterator* it = m->begin(0);
-  while ( (e = m->iterate(it)) )
-    apf::setComponents(f, e, 0, &zeros[0]);
-  m->end(it);
-  for (int j = 0; j < np; j++)
-    apf::synchronize(f);
-}
-// end of static functions used for spr-adapt
 
 int begin_numVert;
 double begin_mem, begin_time;
@@ -688,14 +70,6 @@ int m3dc1_scorec_init()
 { 
   pumi_start();
   begin_time=MPI_Wtime();
-  return M3DC1_SUCCESS; 
-}
-
-//*******************************************************
-int m3dc1_scorec_verbosity(int* l)
-//*******************************************************
-{ 
-  lion_set_verbosity(*l);
   return M3DC1_SUCCESS; 
 }
 
@@ -1149,309 +523,6 @@ void m3dc1_dir_import(double* dir, int ts)
   fclose(fp);
 }
 
-
-int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
-    double* ar, double* max_size, int* refine_level, int* coarsen_level)
-{
-  char filename[256];
-#ifdef DEBUG
-  if (!PCU_Comm_Self())
-    std::cout<<"[M3D-C1 INFO] "<<__func__<<" field id "<<*field_id<<" , name "<<get_field_name_from_id(*field_id)<<"\n";
-#endif
-
-  // delete all the matrix
-#ifdef M3DC1_TRILINOS
-  while (m3dc1_ls::instance()-> matrix_container->size())
-  {
-    std::map<int, m3dc1_epetra*>::iterator mat_it = m3dc1_ls::instance()->matrix_container->begin();
-    mat_it->second->destroy();
-    delete mat_it->second;
-    m3dc1_ls::instance()->matrix_container->erase(mat_it);
-  }
-#endif
-#ifdef M3DC1_PETSC
-  while (m3dc1_solver::instance()-> matrix_container->size())
-  {
-    std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
-    delete mat_it->second;
-    m3dc1_solver::instance()->matrix_container->erase(mat_it);
-  }
-#endif
-
-
-  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
-  int np = m3dc1_model::instance()->num_plane;
-
-  // in_filed will hold all the dofs of all the fields (num being the total number of fields)
-  // at each vertex. e.g.
-  // f1_1, f1_2, f1_3, f1_4, f1_5, f1_6, ! dofs of 1st field
-  // f2_1, f2_2, f2_3, f2_4, f2_5, f2_6, ! dofs of 2nd field
-  // ...
-  //
-  // findex_1, findex_2, findex_3, findex_4, findex_5, findex_6, ! dofs of index'th field
-  // ...
-  // fnum_1, fnum_2, fnum_3, fnum_5, fnum_5, fnum_6 ! dofs of num'th (last) field
-  apf::Field* inField = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
-  PCU_ALWAYS_ASSERT_VERBOSE(inField, "pointer is empty!");
-  if (!PCU_Comm_Self())
-    std::cout << "received field with name " << apf::getName(inField) << "to run spr on" << std::endl;
-
-  // the following call will extract the ones at index
-  apf::Field* targetField = get_field_at_index(mesh, inField, *index, dofNode);
-
-  // transfer targetField (for spr_computations) and all the fields
-  // that need to be transfered for the next solve step  onto the master-plane
-  // the vector pFields is only used in 3D
-  // Preprocessing 3D mesh. This involves the following steps
-  // 1- copy the fields that are needed for solution transfer onto the master plane
-  // 2- convert the mesh to 2D
-
-
-  // the vector pFields and zFields are only used for 3D
-  // pFields holds the multi-plane fields that need to be transfered during adapt
-  // zFields holds the other fields so they can be zero-ed out after adapt+3D mesh reconstruction
-  std::vector<MultiField> pFields;
-  pFields.clear();
-
-  std::vector<apf::Field*> zFields;
-  zFields.clear();
-
-  if (np > 1) // 3D
-  {
-    MultiField targetMultiField;
-    transfer_field_to_main(targetField, targetMultiField);
-    pFields.push_back(targetMultiField);
-    mesh->removeField(targetField);
-    apf::destroyField(targetField);
-
-    std::map<FieldID, m3dc1_field*>::iterator it = m3dc1_mesh::instance()->field_container->begin();
-    while(it!=m3dc1_mesh::instance()->field_container->end())
-    {
-      apf::Field* field = it->second->get_field();
-      int complexType = it->second->get_value_type();
-      /* assert(valueType==complexType); */
-      if (complexType) group_complex_dof(field, 1);
-      if (isFrozen(field)) unfreeze(field);
-      if (it->second->should_transfer())
-      {
-      	MultiField mf;
-      	transfer_field_to_main(field, mf);
-	pFields.push_back(mf);
-      }
-      else
-      	zFields.push_back(field);
-      it++;
-    }
-    // also add the targetMultiField fields to be zero-ed out after adapt
-    for (int i = 0; i < (int)targetMultiField.size() ; i++)
-      zFields.push_back(targetMultiField[i]);
-
-    m3dc1_mesh::instance()->remove3D();
-    m3dc1_mesh::instance()->rebuildPointersOnNonMasterPlane(pFields, zFields);
-    // Important: remvoe3D+rebuildPointersOnNonMasterPlane modifie the mesh pointer
-    // in m3dc1_mesh::instance(). Therefore the local variable pointing to mesh pointer
-    // has to be updated to reflect that.
-    mesh = m3dc1_mesh::instance()->mesh;
-  }
-
-  int valueType = (*(m3dc1_mesh::instance()->field_container))[*field_id]->get_value_type();
-  vector<apf::Field*> fields;
-  std::map<FieldID, m3dc1_field*> :: iterator it=m3dc1_mesh::instance()->field_container->begin();
-
-  if (m3dc1_model::instance()->num_plane == 1) // 2D
-  {
-    while(it!=m3dc1_mesh::instance()->field_container->end())
-    {
-      apf::Field* field = it->second->get_field();
-      int complexType = it->second->get_value_type();
-      assert(valueType==complexType);
-      if (complexType) group_complex_dof(field, 1);
-      if (isFrozen(field)) unfreeze(field);
-      if (it->second->should_transfer())
-      {
-	if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<< " is added to solution transfer\n";
-	fields.push_back(field);
-      }
-      it++;
-    }
-  }
-  else // 3D
-  {
-    // ignoring the first one since that is only used for size calculations
-    // hence the reason for the following loop start from 1
-    for (int i = 1; i < (int)pFields.size(); i++) {
-      PCU_ALWAYS_ASSERT((int)pFields[i].size() == np);
-      for (int j = 0; j < np; j++)
-      	fields.push_back(pFields[i][j]);
-    }
-  }
-
-  if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": "<<fields.size()<<" fields have been added to solution transfer\n";
-  for (int i = 0; i < (int)fields.size(); i++) {
-    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<< " field with name " << apf::getName(fields[i]) <<  "fields have been added to solution transfer\n";
-  }
-
-  while(mesh->countNumberings())
-  {
-    apf::Numbering* n = mesh->getNumbering(0);
-    if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": numbering "<<getName(n)<<" deleted\n";
-    apf::destroyNumbering(n);
-  }
-
-  // compute the size field here and remove the ip and target fields afterwards
-  apf::Field* size_field = 0;
-  ma::Input* in;
-
-  if (np == 1) // 2D
-  {
-    apf::Field* ip = get_ip_field(mesh, targetField);
-    size_field = spr::getSPRSizeField(ip, *ar);
-    process_size_field(mesh, size_field, *ts, *max_size, *refine_level, *coarsen_level);
-    fields.push_back(size_field);
-
-    mesh->removeField(ip);
-    mesh->removeField(targetField);
-    destroyField(ip);
-    destroyField(targetField);
-
-    ReducedQuinticImplicit shape;
-    ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-    in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
-
-    in->shouldSnap=false;
-    in->shouldTransferParametric=false;
-    in->shouldRunPostZoltan = true;
-    in->goodQuality = 0.5;
-    in->maximumIterations = (*refine_level) + 1;
-
-    // turn off coarsening if coarsen_level is negative
-    if (coarsen_level < 0)
-      in->shouldCoarsen=false;
-
-    ma::adapt(in);
-    mesh->removeField(size_field);
-    apf::destroyField(size_field);
-    apf::reorderMdsMesh(mesh);
-
-    m3dc1_mesh::instance()->initialize();
-    // Note: These are only needed for 2D. For 3D these are called
-    // at the end of restore3D
-    compute_globalid(m3dc1_mesh::instance()->mesh, 0);
-    compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
-  }
-  else // 3D
-  {
-    // change the comm
-    MPI_Comm groupComm;
-    int groupSize = PCU_Comm_Peers()/np;
-    int lpid = PCU_Comm_Self()/groupSize;
-    int grnk = PCU_Comm_Self()%groupSize;
-    MPI_Comm_split(m3dc1_model::instance()->oldComm, lpid, grnk, &groupComm);
-    PCU_Switch_Comm(groupComm);
-    // size filed computation and adapt applied only on the master plane
-    if (m3dc1_model::instance()->local_planeid == 0)
-    {
-      // NOTE: pFields[0] holds the target fields we need to run spr on
-      size_field = compute_multiplane_size_field(pFields[0], *ar);
-      /* return 0; */
-      process_size_field(mesh, size_field, *ts, *max_size, *refine_level, *coarsen_level);
-      fields.push_back(size_field);
-
-      ReducedQuinticImplicit shape;
-      ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-      // the commented lines are for debugging
-      /* ma::Input* in = ma::makeAdvanced(ma::configureIdentity(mesh, 0, &slnTrans)); */
-      /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(mesh, 1, &slnTrans)); */
-      ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
-
-      in->shouldSnap=false;
-      in->shouldFixShape = true;
-      in->shouldTransferParametric=false;
-      in->shouldRunPostZoltan = true;
-      in->goodQuality = 0.5;
-      in->maximumIterations = (*refine_level);
-
-      // turn off coarsening if coarsen_level is negative
-      if (coarsen_level < 0)
-	in->shouldCoarsen=false;
-
-      ma::adapt(in);
-
-      for (int i = 0; i < (int)zFields.size(); i++)
-	zero_fields_on_master(zFields[i]);
-
-      mesh->removeField(size_field);
-      apf::destroyField(size_field);
-
-      // remove numberings
-      while (mesh->countNumberings())
-      {
-	apf::Numbering* n = mesh->getNumbering(0);
-	mesh->removeNumbering(n);
-	apf::destroyNumbering(n);
-      }
-
-      for (int i = 1; i < (int)pFields.size(); i++)
-	for (int j = 0; j < np; j++)
-	  synchronize_field(pFields[i][j]);
-      apf::reorderMdsMesh(mesh);
-
-    }
-
-    // switch comm back to original
-    PCU_Switch_Comm(m3dc1_model::instance()->oldComm);
-    MPI_Comm_free(&groupComm);
-
-    m3dc1_mesh::instance()->restore3D();
-
-    for (int i = 1; i < (int)pFields.size(); i++)
-      zero_fields_on_non_master(pFields[i]);
-
-    for (int i = 1; i < (int)pFields.size(); i++)
-      transfer_field_from_main(pFields[i]);
-
-    // clean up multi-plane fields
-    for (int i = 1; i < (int)pFields.size(); i++)
-      for (int j = 0; j < (int)pFields[i].size(); j++) {
-      	mesh->removeField(pFields[i][j]);
-	apf::destroyField(pFields[i][j]);
-      }
-
-    // zero out all the fields that are not transfered during adapt
-    for (int i = 0; i < (int)zFields.size(); i++)
-      apf::zeroField(zFields[i]);
-
-    // delete pFields[0] fields here
-    for (int i = 0; i < (int)pFields[0].size(); i++) {
-      mesh->removeField(pFields[0][i]);
-      apf::destroyField(pFields[0][i]);
-    }
-  }
-
-  it=m3dc1_mesh::instance()->field_container->begin();
-  while(it!=m3dc1_mesh::instance()->field_container->end())
-  {
-    apf::Field* field = it->second->get_field();
-    int complexType = it->second->get_value_type();
-    if (complexType) group_complex_dof(field, 0);
-    if (!isFrozen(field)) freeze(field);
-#ifdef DEBUG
-    int isnan;
-    int fieldId= it->first;
-    m3dc1_field_isnan(&fieldId, &isnan);
-    assert(isnan==0);
-#endif
-    synchronize_field(field);
-
-#ifdef DEBUG
-    m3dc1_field_isnan(&fieldId, &isnan);
-    assert(isnan==0);
-#endif
-    it++;
-  }
-  return M3DC1_SUCCESS;
-}
-
 /* new mesh adaptation */
 /* Input Parameters
  * field_id_h1, field_id_h2: removed before adaptation so it won't be available after adaptation
@@ -1476,7 +547,6 @@ void m3dc1_mesh_adapt(int* field_id_h1, int* field_id_h2, double* dir)
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
 #endif
 }
-
 
 /* ghosting functions */
 //*******************************************************
@@ -1869,22 +939,9 @@ int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
 { 
   apf::MeshEntity* ent = getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
   assert(ent);
-  /* apf::Vector3 p; */
-  /* apf::Mesh2* m = m3dc1_mesh::instance()->mesh; */
-  /* if (m->getType(ent) == apf::Mesh::VERTEX) */
-  /* { */
-  /*   m->getPoint(ent, 0, p); */
-  /*   printf("~~~~~ id%d vid%d is owned_%d, coords (%f,%f,%f) mtag ", */
-	/* PCU_Comm_Self(), *ent_id, m->isOwned(ent), p[0], p[1], p[2]); */
-  /*   printf("%d\n", m->getModelTag(m->toModel(ent))); */
-  /* } */
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(ent));
   *geom_class_dim = gmi_dim(m3dc1_model::instance()->model,gent);
   *geom_class_id = gmi_tag(m3dc1_model::instance()->model,gent);
-
-  /* if (!PCU_Comm_Self()) */
-  /*   std::cout << "~~~~~ in before 3d " << __func__ << " " */
-  /*             << "geomclassdim/id " << *geom_class_dim << "/" << *geom_class_id << std::endl; */
   // if 3D mesh, need to return the classification on the original plane
   if ( m3dc1_mesh::instance()->mesh->getDimension() ==3 )
   {
@@ -1901,9 +958,6 @@ int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
     }
     *geom_class_id+=1;
   }
-  /* if (!PCU_Comm_Self()) */
-  /*   std::cout << "~~~~~ in after 3d " << __func__ << " " */
-  /*             << "geomclassdim/id " << *geom_class_dim << "/" << *geom_class_id << std::endl; */
   return M3DC1_SUCCESS;
 }
 
@@ -2437,26 +1491,6 @@ int* /*in*/ scalar_type, int* /*in*/ num_dofs_per_value)
   if (*field_id>fieldIdMax) fieldIdMax=*field_id;
   double val[2]={0,0};
   m3dc1_field_assign(field_id, val, scalar_type);
-  return M3DC1_SUCCESS;
-}
-
-//*******************************************************
-int m3dc1_mark_for_solutiontransfer (FieldID* /*in*/ field_id)
-//*******************************************************
-{
-  if (!m3dc1_mesh::instance()->field_container)
-    return M3DC1_FAILURE;
-  if (!m3dc1_mesh::instance()->field_container->count(*field_id))
-    return M3DC1_FAILURE;
-
-  apf::Field* f = (*m3dc1_mesh::instance()->field_container)[*field_id]->get_field();
-#ifdef DEBUG
-  if (!PCU_Comm_Self()) 
-    std::cout<<"[M3D-C1 INFO] "<<__func__<<": field "<<*field_id<<", name "<<getName(f)<<" is being marked for solution transfer\n";
-#endif
-
-  m3dc1_field* mf = (*m3dc1_mesh::instance()->field_container)[*field_id];
-  mf->mark_for_solutiontransfer();
   return M3DC1_SUCCESS;
 }
 
@@ -3665,7 +2699,7 @@ int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, Fiel
 
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-    std::cout<<"[M3D-C1 INFO] "<<__func__<<": matrix "<<*matrix_id<<", field id "<<*field_id<<" , name "<<get_field_name_from_id(*field_id)<<"\n";
+    std::cout<<"[M3D-C1 INFO] "<<__func__<<": matrix "<<*matrix_id<<", field "<<*field_id<<"\n";
 #endif 
 
   if (*matrix_type==M3DC1_MULTIPLY) // matrix for multiplication
@@ -3899,10 +2933,9 @@ int m3dc1_matrix_setlaplacebc(int * matrix_id, int *row,
 int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
 {  
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
-/* #ifdef DEBUG */
-  const char* name = apf::getName((*m3dc1_mesh::instance()->field_container)[*rhs_sol]->get_field());
+#ifdef DEBUG
   if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", field "<<*rhs_sol<<", name "<<name<<"\n";
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", field "<<*rhs_sol<<"\n";
   if (!mat) 
   {  
     if (!PCU_Comm_Self())
@@ -3916,7 +2949,7 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
       std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for multiplication (id"<<*matrix_id<<")\n";
     return M3DC1_FAILURE;
   }
-/* #endif */
+#endif
 
   (dynamic_cast<matrix_solve*>(mat))->solve(*rhs_sol);
   addMatHit(*matrix_id);
@@ -3931,7 +2964,7 @@ int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid,
   m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
 #ifdef DEBUG
   if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", in-field "<<*inputvecid<<", in_name "<<get_field_name_from_id(*inputvecid)<<", out-field "<<*outputvecid<<", out_name "<<get_field_name_from_id(*outputvecid)<<"\n";
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", in-field "<<*inputvecid<<", out-field "<<*outputvecid<<"\n";
   if (!mat)
   {
     if (!PCU_Comm_Self())
@@ -4300,11 +3333,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     assert(valueType==complexType);
     if (complexType) group_complex_dof(field, 1);
     if (isFrozen(field)) unfreeze(field);
-    if (it->second->should_transfer())
-    {
-      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<< " is added to solution transfer\n";
-      fields.push_back(field);
-    }
+    fields.push_back(field);
     it++;
   }
   while(mesh->countNumberings())
@@ -4314,7 +3343,11 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
     apf::destroyNumbering(n);
   }
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
+#ifdef OLDMA
+  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+#else
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
+#endif
   in->maximumIterations = 9;
 
   in->shouldSnap=false;
@@ -4558,11 +3591,8 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
     int complexType = it->second->get_value_type();
     if (complexType) group_complex_dof(field, 1);
     if (isFrozen(field)) unfreeze(field);
-    if (it->second->should_transfer())
-    {
-      if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<< " is added to solution transfer\n";
-      fields.push_back(field);
-    }
+    //if (!PCU_Comm_Self()) std::cout<<"Solution transfer: add field "<<apf::getName(field)<<std::endl;
+    fields.push_back(field);
     it++;
   }
   while(mesh->countNumberings())
@@ -4576,7 +3606,11 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   //apf::writeVtkFiles(filename,mesh);
 
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
+#ifdef OLDMA
+  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+#else
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
+#endif
   in->maximumIterations = 5;
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
@@ -4665,7 +3699,7 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
   // vtk
   if (*option==0 ||*option==3)
   {
-    sprintf(filename_buff, "ts%04d-%s",*timestep,filename);
+    sprintf(filename_buff, "ts%d-%s",*timestep,filename);
 
     apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
     apf::MeshEntity* e;

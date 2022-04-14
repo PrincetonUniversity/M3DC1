@@ -9,8 +9,7 @@ module kprad_m3dc1
   implicit none
 
   type(field_type), allocatable :: kprad_n(:)
-  ! type(field_type), allocatable, private :: kprad_temp(:)
-  type(field_type), allocatable :: kprad_temp(:)
+  type(field_type), allocatable, private :: kprad_temp(:)
   type(field_type) :: kprad_rad      ! power lost to line radiation
   type(field_type) :: kprad_brem     ! power lost to bremsstrahlung
   type(field_type) :: kprad_ion      ! power lost to ionization
@@ -52,7 +51,6 @@ contains
     integer, intent(out) :: ierr
 
     integer :: i
-    character(len=32) :: fname
 
     ierr = 0
     if(ikprad.eq.0) return
@@ -65,21 +63,18 @@ contains
     allocate(kprad_particle_source(0:kprad_z))
     allocate(lp_source_rate(0:kprad_z))
     do i=0, kprad_z
-       write(fname,"(A5,I2.2,A)")  "kprn", i, 0
-       call create_field(kprad_n(i), trim(fname))
-       write(fname,"(A5,I2.2,A)")  "kprt", i, 0
-       call create_field(kprad_temp(i), trim(fname))
-       write(fname,"(A5,I2.2,A)")  "kprp", i, 0
-       call create_field(kprad_particle_source(i), trim(fname))
+       call create_field(kprad_n(i))
+       call create_field(kprad_temp(i))
+       call create_field(kprad_particle_source(i))
        kprad_particle_source(i) = 0.
     end do
-    call create_field(kprad_rad, "kprad_rad")
-    call create_field(kprad_brem, "kprad_brem")
-    call create_field(kprad_ion, "kprad_ion")
-    call create_field(kprad_reck, "kprad_reck")
-    call create_field(kprad_recp, "kprad_recp")
-    call create_field(kprad_sigma_e,"kprad_sigma_e")
-    call create_field(kprad_sigma_i, "kprad_sigma_i")
+    call create_field(kprad_rad)
+    call create_field(kprad_brem)
+    call create_field(kprad_ion)
+    call create_field(kprad_reck)
+    call create_field(kprad_recp)
+    call create_field(kprad_sigma_e)
+    call create_field(kprad_sigma_i)
 
     if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
        kprad_nemin = kprad_nemin*n0_norm

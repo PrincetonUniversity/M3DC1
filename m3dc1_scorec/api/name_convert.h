@@ -1,5 +1,4 @@
 #define m3dc1_scorec_init m3dc1_domain_init_
-#define m3dc1_scorec_verbosity m3dc1_domain_verbosity_
 #define m3dc1_scorec_finalize m3dc1_domain_finalize_
 #define m3dc1_plane_setnum m3dc1_plane_setnum_
 #define m3dc1_plane_getnum m3dc1_plane_getnum_
@@ -17,7 +16,6 @@
 #define m3dc1_mesh_load m3dc1_mesh_load_
 #define m3dc1_mesh_load_3d m3dc1_mesh_load_3d_
 #define m3dc1_mesh_build3d m3dc1_mesh_build3d_
-#define m3dc1_spr_then_adapt m3dc1_spr_then_adapt_
 #define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
 #define m3dc1_mesh_getnument m3dc1_mesh_getnument_
@@ -60,7 +58,6 @@
 #define m3dc1_region_getoriginalface m3dc1_region_getoriginalface_
 #define m3dc1_field_getnewid m3dc1_field_genid_
 #define m3dc1_field_create m3dc1_field_create_
-#define m3dc1_mark_for_solutiontransfer m3dc1_mark_for_solutiontransfer_
 #define m3dc1_field_delete m3dc1_field_delete_
 #define m3dc1_field_exist m3dc1_field_exist_
 #define m3dc1_field_sync m3dc1_field_sync_
