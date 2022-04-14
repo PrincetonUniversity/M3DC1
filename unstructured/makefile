@@ -200,7 +200,7 @@ endif
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o
 
-$(BIN): $(OBJS)
+$(BIN): $(OBJS) scorec
 	$(LOADER) $(LDOPTS) $(OBJS) $(LIBS) -o $@
 
 m3dc1 : $(BIN)
@@ -226,6 +226,19 @@ kprad : kprad.f90 kprad_test.f90
 
 test_region : region.o test_region.o
 	$(F90) $^ -o $@
+
+.PHONY: scorec
+scorec :
+	mkdir -p $(SRCDIR)/../m3dc1_scorec/build_$(PETSC_ARCH)
+	cd $(M3DC1_SCOREC)/build_$(PETSC_ARCH) ;\
+	PETSC_DIR=$(PETSC_DIR) \
+	PETSC_ARCH=$(PETSC_ARCH) \
+	SCOREC_DIR=$(SCOREC_DIR) \
+	SCOREC_BASE_DIR=$(SCOREC_BASE_DIR) \
+	SCOREC_COMPLEX=$(SCOREC_COMPLEX) \
+	../config-files/$(SCOREC_CONFIG)
+	make -C $(M3DC1_SCOREC)/build_$(PETSC_ARCH) -j
+	make -C $(M3DC1_SCOREC)/build_$(PETSC_ARCH) install
 
 .PHONY : bin
 bin : a2cc mackenbach_profiles

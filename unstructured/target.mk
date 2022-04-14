@@ -46,12 +46,14 @@ all :
 
 .PHONY: cleanall
 cleanall : 
-	rm -fr _$(ARCH)*
+	make clean
 	cd templates ; make clean
 
 .PHONY: clean
 clean : 
 	rm -fr _$(ARCH)*
+	rm -fr $(M3DC1_SCOREC)/build_*
+	rm -fr $(SCOREC_DIR)
 
 .PHONY: templates
 templates :

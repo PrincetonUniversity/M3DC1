@@ -29,10 +29,14 @@ PETSCVER=petsc3.13.5
 PETSC_DIR=/projects/M3DC1/PETSC/$(PETSC_VER)
 ifeq ($(COM), 1)
   PETSC_ARCH=cplx-$(MPIVER)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex 
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+  M3DC1_SCOREC_LIBA=libm3dc1_scorec_complex.a
+  SCOREC_COMPLEX=ON
 else
   PETSC_ARCH=real-$(MPIVER)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  M3DC1_SCOREC_LIBA=libm3dc1_scorec.a
+  SCOREC_COMPLEX=OFF
 endif
 
 PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
@@ -49,16 +53,19 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
 
 SCOREC_BASE_DIR=/projects/M3DC1/scorec/$(MPIVER)/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
-else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)
-endif
+#ifdef SCORECVER
+#  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
+#else
+#  SCOREC_DIR=$(SCOREC_BASE_DIR)
+#endif
+SCOREC_CONFIG=stellar-intelmpi-real-config.sh
+M3DC1_SCOREC=${M3DC1_DIR}/m3dc1_scorec
+SCOREC_DIR=$(M3DC1_SCOREC)/$(MPIVER)/$(PETSCVER)
 
 ZOLTAN_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
 
 SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
-             -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+             -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
