@@ -2212,6 +2212,7 @@ subroutine readpgfiles
   ! Read p and p' profiles
   open(unit=76,file="profiles-p",status="old")
   read(76,803) n
+      if(myrank.eq.0 .and. iprint.ge.1) print *, 'number of pressure points',n    ! DEBUG
   allocate(psinorm(n), pres0(n), ppn(n))
   do j=1,n
      read(76,802) psinorm(j), pres0(j), ppn(j), dum, dum
