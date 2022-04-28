@@ -200,7 +200,7 @@ endif
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o
 
-$(BIN): $(OBJS) scorec
+$(BIN): $(OBJS)
 	$(LOADER) $(LDOPTS) $(OBJS) $(LIBS) -o $@
 
 m3dc1 : $(BIN)

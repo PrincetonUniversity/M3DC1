@@ -37,6 +37,8 @@ makefile : ;
 
 .PHONY: all
 all :
+	make scorec
+	make scorec COM=1
 	make OPT=1
 	make OPT=1 COM=1
 	make OPT=1 3D=1 MAX_PTS=60
