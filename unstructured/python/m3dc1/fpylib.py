@@ -94,8 +94,11 @@ def setup_sims(sim,filename,time,linear,diff):
         #    raise RuntimeError('Provide a single simulation for linear=True')
         if (time[0]==-1) or ((time[0] is None) and (sim[0].timeslice==-1)):
             raise RuntimeError('time or sim.timeslice must be greater than -1 for linear=True')
-        sim = np.append(sim,fpy.sim_data(filename,time=-1))
-        time = np.append(time,-1)
+        if isinstance(filename,list) and len(filename)>1:
+            raise RuntimeError('Only 1 C1.h5 file is permitted with linear=True! Please check your filename argument!')
+        if len(sim)<2:
+            sim = np.append(sim,fpy.sim_data(filename[0],time=-1))
+            time = np.append(time,-1)
 
     ### Input error handling ###
     if diff and (len(time) != 2):
@@ -199,6 +202,32 @@ def deriv(y,x=None):
 
 
 
+def grad(f,R,Z):
+    """
+    Calculates gradient of a scalar field in 2D simulations. The gradient in
+    direction of Phi is currently not calculated and equal to zero.
+
+    Arguments:
+
+    **f**
+    Array containing the values of the scalar field with shape (1,res,res)
+
+    **R**
+    Array with R grid points
+
+    **Z**
+    Array with Z grid points
+    """
+    points = f.shape[2]
+    gradf = np.zeros((3,points,points))
+    for z in range(points):
+        gradf[0,:,z] = deriv(f[0,:,z],R[0,:,z])
+    for r in range(points):
+        gradf[2,r,:] = deriv(f[0,r,:],Z[0,r,:])
+    return gradf
+
+
+
 def smooth(vin, w, nan='replace'): 
     """
     Calculates the boxcar average of an array. Closely resembles the IDL smooth function.
@@ -299,21 +328,23 @@ def get_unitexpns():
 
 
 # Returns field label depending on chosen system of units
-def get_fieldlabel(units,field,shortlbl=False):
+def get_fieldlabel(units,field,fac=1,shortlbl=False):
 
     labels = {'j':'current density', 'ni':'ion density','ne':'electron density',
               'v':'velocity', 'B':'magnetic field strength', 'p':'pressure',
               'pi':'ion pressure', 'pe':'electron pressure',
               'ti':'ion temperature', 'te':'electron temperature',
               'A':'vector potential', 'gradA':'grad vector potential',
-              'E':'electric field', 'default':field}
+              'E':'electric field', 'alpha':r'ballooning parameter $\alpha$',
+              'default':field}
     
     short_labels = {'j':'j', 'ni':'$n_{i}$','ne':'$n_{e}$',
               'v':'v', 'B':'B', 'p':'p',
               'pi':'$p_{i}$', 'pe':'$p_{e}$',
               'ti':'$T_{i}$', 'te':'$T_{e}$',
               'A':'A', 'gradA':'$grad A$ ',
-              'E':'E', 'default':field}
+              'E':'E', 'alpha':r'$\alpha$',
+              'default':field}
 
     if units.lower()=='m3dc1':
         units = {'default':'M3DC1 units'}
@@ -333,7 +364,12 @@ def get_fieldlabel(units,field,shortlbl=False):
         unit = units[field]
     else:
         unit = units['default']
-
+    
+    if fac == 1.0E-3:
+        unit = 'k'+unit
+    elif fac == 1.0E-6:
+        unit = 'M'+unit
+        
     return label, unit
 
 
@@ -800,10 +836,10 @@ def get_lines(filename, linenumbers):
 
 
 def get_base_dirs(dirname):
-    subfolders0 = [f.path for f in os.scandir(dirname) if (f.is_dir() and len(f.path)<6)]
+    subfolders0 = [f.path for f in os.scandir(dirname) if (f.is_dir() and len(f.path.split('/')[-1])<6)]
     subfolders = []
     for dirname in list(subfolders0):
-        subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and 'base_' in f.path)])
+        subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and '/base_' in f.path)])
     return subfolders
 
 def get_run_dirs(dirname):

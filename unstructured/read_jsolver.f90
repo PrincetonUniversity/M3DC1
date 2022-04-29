@@ -138,7 +138,7 @@ Program readjsolver
   open(unit=75,file="profiles",status="unknown")
   write(75,801) npsi_jsv
   do j=1,npsi_jsv
-     write(75,802) j,psival_jsv(j),gxx_jsv(j),ffpnorm(j),p_jsv(j),ppxx_jsv(j)
+     write(75,812) j,psival_jsv(j),gxx_jsv(j),ffpnorm(j),p_jsv(j),ppxx_jsv(j)
   enddo
   close(75)
 !
@@ -151,7 +151,7 @@ Program readjsolver
   delpsi = psival_jsv(npsi_jsv) - psival_jsv(1)
   do j=1,npsi_jsv
      psinormt(j) = (psival_jsv(j)-psival_jsv(1))/(delpsi)
-     g4big0t(j) = 0.5*(gxx_jsv(j)**2 - (xzero*bzero)**2)
+     g4big0t(j) = 0.5*(gxx_jsv(j)**2 - (gxx_jsv(npsi_jsv))**2)
      g4bigt(j)= ffpnorm(j)
      fbig0t(j) = p_jsv(j)     !NOTE:  now fbig0t is total pressure
      fbigt(j) = ppxx_jsv(j)
@@ -174,9 +174,9 @@ Program readjsolver
      call r8evspline(psinormt(j),psinormt,npsi_jsv,ilinx,fspl,ict,fval,ier)
      if(ier.ne.0) write(*,5002) ier
 5002 format("ier=",i3,"  after call to r8evspline")
-     g4big(j) = fval(1)
-     g4bigp(j) = fval(2)
-     g4bigpp(j) = fval(3)
+     g4big(j) = gxx_jsv(j)*gpx_jsv(j)
+     g4bigp(j) = fval(1)
+     g4bigpp(j) = fval(2)
   enddo
   !
   !.....smooth derivatives near origin
@@ -186,15 +186,15 @@ Program readjsolver
   gzero = (g4bigp(i40)*psinormt(i50)-g4bigp(i50)*psinormt(i40))/denom
   g1 = (g4bigp(i50)-g4bigp(i40))/denom
   do i=1,i40
-     g4bigp(i) = gzero + g1*psinormt(i)
-     g4bigpp(i) = psinormt(i)*g4bigpp(i40)/psinormt(i40)
+     ! g4bigp(i) = gzero + g1*psinormt(i)
+     ! g4bigpp(i) = psinormt(i)*g4bigpp(i40)/psinormt(i40)
   enddo
   !
   !.....additional smoothing for second derivative
   g4bigim1 = g4bigpp(1)
   do i=2,npsi_jsv-1
      g4save = g4bigpp(i)
-     g4bigpp(i) = .5*g4bigpp(i) + .25*(g4bigpp(i+1)+g4bigim1)
+    ! g4bigpp(i) = .5*g4bigpp(i) + .25*(g4bigpp(i+1)+g4bigim1)
      g4bigim1 = g4save
   enddo
   !
@@ -238,16 +238,17 @@ Program readjsolver
   open(unit=76,file="profiles-p",status="unknown")
   write(76,803) npsi_jsv
   do j=1,npsi_jsv
-     write(76,802) j,psinormt(j),fbig0t(j),fbig(j),fbigp(j),fbigpp(j)
+     write(76,802)  psinormt(j),fbig0t(j),fbigt(j),fbigp(j),fbigpp(j)
   enddo
   close(76)
   !
   open(unit=77,file="profiles-g",status="unknown")
   write(77,804) npsi_jsv
   do j=1,npsi_jsv
-     write(77,802) j,psinormt(j),g4big0t(j),g4big(j),g4bigp(j),g4bigpp(j)
+     write(77,802)  psinormt(j),g4big0t(j),g4big(j),gxx_jsv(j), gpx_jsv(j)
   enddo
-802 format(i5,1p6e18.10)
+802 format(5x,6e18.9)
+812 format(i5,1p6e18.10)
   close(77)
   !
   
@@ -262,8 +263,9 @@ Program readjsolver
          "                p                 p'")
 803 format(i5,"      psinorm            fbig0             fbig",   &
          "            fbigp             fbigpp")
-804 format(i5,"      psinorm           g4big0            g4big",   &
-         "           g4bigp            g4bigpp")
+804 format(i5,"      psinorm           g4big0            g4big")
+
+
   
 end Program readjsolver
 

@@ -16,7 +16,7 @@ module diagnostics
   integer :: itri_te_max2 = 0
 
   ! scalars integrated over entire computational domain
-  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne
+  real :: tflux, area, volume, totcur, wallcur, totden, tmom, tvor, bwb2, totne, pinj, totkprad, totkprad0
   real :: totrad, linerad, bremrad, ionrad, reckrad, recprad
   real :: w_pe   ! electron thermal energy
   real :: w_m    ! totoidal poloidal magnetic energy inside plasma
@@ -232,6 +232,9 @@ contains
     pden = 0.
     pmom = 0.
     pvol = 0.
+    pinj = 0.
+    totkprad = 0.
+    totkprad0 = 0.
 
     tau_em = 0.
     tau_sol = 0.
@@ -286,7 +289,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 73
+    integer, parameter :: num_scalars = 76
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, allocatable  :: ptemp(:)
@@ -366,6 +369,9 @@ contains
        temp(71) = wall_force_n0_x_halo
        temp(72) = wall_force_n0_z_halo
        temp(73) = helicity
+       temp(74) = pinj
+       temp(75) = totkprad
+       temp(76) = totkprad0
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -444,6 +450,9 @@ contains
        wall_force_n0_x_halo = temp2(71)
        wall_force_n0_z_halo = temp2(72)
        helicity        = temp2(73)
+       pinj            = temp2(74)
+       totkprad        = temp2(75)
+       totkprad0       = temp2(76)
 
        if(ipellet_abl.gt.0) then
           allocate(ptemp(npellets))
@@ -656,6 +665,9 @@ subroutine tpi_factors(tpifac,tpirzero)
         tpifac = twopi
         tpirzero = twopi*rzero
      endif
+     if(ifull_torus.eq.0) then
+        tpirzero = tpirzero/nperiods
+     endif
   endif
 end subroutine tpi_factors
 
@@ -678,6 +690,7 @@ subroutine calculate_scalars()
   use math
   use gyroviscosity
   use pellet
+  use kprad_m3dc1
 
   implicit none
  
@@ -685,7 +698,7 @@ subroutine calculate_scalars()
 
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3),tpifac,tpirzero
+  real :: n(2,3),tpifac,tpirzero, t0
   integer :: iedge, idim(3), izone, izonedim, i, j
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
@@ -744,7 +757,7 @@ subroutine calculate_scalars()
      endif
 
      if(numvar.ge.3 .or. ipres.eq.1) then
-        def_fields = def_fields + FIELD_P + FIELD_KAP + FIELD_TE + FIELD_TI
+        def_fields = def_fields + FIELD_P + FIELD_KAP + FIELD_TE + FIELD_TI + FIELD_Q
         if(hyper.eq.0.) def_fields = def_fields + FIELD_J
         if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
         if(rad_source) def_fields = def_fields + FIELD_RAD
@@ -769,7 +782,7 @@ subroutine calculate_scalars()
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -781,8 +794,13 @@ subroutine calculate_scalars()
      if(gyro.eq.1) call gyro_common
 
 #ifdef USE3D
-     co = cos(phi_79*twopi/toroidal_period)
-     sn = sin(phi_79*twopi/toroidal_period)
+     if(ifull_torus.eq.1) then
+        co = cos(phi_79*twopi/toroidal_period)
+        sn = sin(phi_79*twopi/toroidal_period)
+     else
+        co = cos(phi_79*twopi/(toroidal_period*nperiods))
+        sn = sin(phi_79*twopi/(toroidal_period*nperiods))
+     end if
 #endif
 
      if(imulti_region.eq.1 .and. izone.eq.2) then
@@ -909,6 +927,17 @@ subroutine calculate_scalars()
      ionrad = ionrad + twopi*int1(ionrad79(:,OP_1))/tpifac
      reckrad = reckrad + twopi*int1(reckrad79(:,OP_1))/tpifac
      recprad = recprad + twopi*int1(recprad79(:,OP_1))/tpifac
+
+     if(ikprad.ne.0) then
+        call eval_ops(itri, kprad_n(0), tm79, rfac)
+        t0 = twopi*int1(tm79(:,OP_1))/tpifac
+        totkprad0 = totkprad0 + t0
+        totkprad = totkprad + t0
+        do i=1, kprad_z
+           call eval_ops(itri, kprad_n(i), tm79, rfac)
+           totkprad = totkprad + twopi*int1(tm79(:,OP_1))/tpifac
+        end do
+     end if
      
      if(irunaway.gt.0) then
         totre = totre + int2(ri_79,nre179(:,OP_1))/tpirzero
@@ -954,6 +983,9 @@ subroutine calculate_scalars()
         pmom = pmom &
              + twopi*int4(r2_79,vzt79(:,OP_1),rho79(:,OP_1),mr)/tpifac
      endif
+
+     ! injected power
+     pinj = pinj + twopi*int1(q79)/tpifac
 
      if(amupar.ne.0.) then
         call PVS1(pht79,temp79a)
@@ -3275,7 +3307,11 @@ subroutine phi_int(x,z,ans,fin,itri,ierr)
   real, dimension(OP_NUM) :: temp
   call evaluate(x,0.,z,temp,fin,itri,ierr)
 
-  ans = temp(OP_1)*toroidal_period
+  if(ifull_torus.eq.1) then
+     ans = temp(OP_1)*toroidal_period
+  else
+     ans = temp(OP_1)*toroidal_period*nperiods
+  endif
 #endif
 
 end subroutine phi_int

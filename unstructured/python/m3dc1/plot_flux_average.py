@@ -15,7 +15,7 @@ from m3dc1.flux_average import flux_average
 #rc('text', usetex=True)
 
 #ToDo: Add rms
-def plot_flux_average(field, sim=None, coord='scalar', fcoords='', deriv=0, points=200, filename='C1.h5', time=0, units='m3dc1', phit=0, rms=False,pub=False,xlimit=0.0,ylimit=0.0, shortlbl=False,fignum=None):
+def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, units='m3dc1', fac=1, phit=0, rms=False,pub=False,ls='-',xlimits=[None,None],ylimits=[None,None],show_legend=False,leglbl=None, shortlbl=False,fignum=None,figsize=None):
     """
     Plots flux surfaces
     
@@ -53,14 +53,26 @@ def plot_flux_average(field, sim=None, coord='scalar', fcoords='', deriv=0, poin
     **units**
     Units in which the result will be calculated
 
+    **fac**
+    Factor to apply to field when using mks units. fac=1.0E-3 converts to kilo..., fac=1.0E-6 to Mega...
+
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
+
+    **xlimits**
+    x-axis limits, array of length 2, e.g. [0,1]
+
+    **ylimits**
+    y-axis limits, array of length 2, e.g. [0,100.0]
 
     **shortlbl**
     If True, use short y-axis label, e.g. 'T_e' instead of 'electron temperature'
 
     **fignum**
     Number of figure to plot into
+
+    **figsize**
+    Array with length 2, width and height of figure window, e.g. [4.8,2.4]
     """
     
     flux, fa = flux_average(field,coord=coord,sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
@@ -70,26 +82,41 @@ def plot_flux_average(field, sim=None, coord='scalar', fcoords='', deriv=0, poin
         axlblfs = 20
         #titlefs = 18
         ticklblfs = 18
-        linew = 2
+        if ls!=':':
+            linew = 3
+        else:
+            linew = 4
+        legfs = 14
+        leghandlen = 3.0
     else:
         axlblfs = 12
         #titlefs = 12
         ticklblfs = 12
         linew = 1
+        legfs = None
+        leghandlen = 2.0
     
-    plt.figure(num=fignum)
-    plt.plot(flux, fa, lw=linew)
+    plt.figure(num=fignum,figsize=figsize)
+    plt.plot(flux, fa*fac, lw=linew,ls=ls,label=leglbl)
     ax = plt.gca()
     plt.grid(True)
     plt.xlabel(r'$\psi_N$',fontsize=axlblfs)
-    if xlimit>0:
-        plt.xlim(left=xlimit,right=1.0)
-    if ylimit>0:
-        plt.ylim(top=ylimit)
-    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
-    ylbl = fieldlabel + ' (' + unitlabel+')'
+    
+    ax.set_xlim(left=xlimits[0],right=xlimits[1])
+    ax.set_ylim(bottom=ylimits[0],top=ylimits[1])
+    
+    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,fac=fac,shortlbl=shortlbl)
+    ylbl = fieldlabel
+    if field not in ['q','safety factor']:
+            if not (field == 'alpha' and units=='m3dc1'):
+                ylbl = ylbl + ' (' + unitlabel+')'
+        
     plt.ylabel(ylbl,fontsize=axlblfs)
     ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
+    
+    if show_legend:
+        if leglbl is not None:
+            plt.legend(loc=0,fontsize=legfs,handlelength=leghandlen)
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
     

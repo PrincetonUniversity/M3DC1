@@ -411,6 +411,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
   call output_scalar(scalar_group_id, "helicity"        ,helicity,ntime, error)
+  call output_scalar(scalar_group_id, "power_injected"  , pinj,   ntime, error)
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
@@ -463,6 +464,9 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "ion_loss"        , ionrad, ntime, error)
   call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, error)
   call output_scalar(scalar_group_id, "recp_rad"        , recprad, ntime, error)
+
+  call output_scalar(scalar_group_id, "kprad_n",  totkprad,  ntime, error)
+  call output_scalar(scalar_group_id, "kprad_n0", totkprad0, ntime, error)
 
 
   if(xray_detector_enabled.eq.1) then

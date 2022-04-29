@@ -281,6 +281,8 @@ subroutine set_defaults
        "Use maximum value of dt for KPRAD ionization", kprad_grp)
   call add_var_int("ikprad_evolve_internal", ikprad_evolve_internal, 0, &
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
+  call add_var_double("kprad_n0_denm_fac", kprad_n0_denm_fac, 1., &
+       "Scaling factor for neutral impurity diffusion", kprad_grp)
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -595,8 +597,8 @@ subroutine set_defaults
   call add_var_double("basicj_dexp",basicj_dexp,1.,"", eq_grp)
   call add_var_double("basicj_dvac",basicj_dvac,1.,"", eq_grp)
   call add_var_int("ibasicj_solvep",ibasicj_solvep,0, &
-       "0: Uniform pressure, solve for F.  1: Uniform F, solve for pressure", eq_grp)
-  
+       "0: Uniform pressure, solve for F.  1: Uniform F, solve for pressure", eq_grp) 
+
   ! Grad-Shafranov
   call add_var_int("inumgs", inumgs, 0, "", gs_grp)
   call add_var_int("igs", igs, 80, "", gs_grp)
@@ -1116,6 +1118,8 @@ subroutine set_defaults
        "Z-coordinate below which SOL adaptation is coarse", gs_grp)
   call add_var_double("adapt_zup", adapt_zup, 0., &
        "Z-coordinate above which SOL adaptation is coarse", gs_grp)
+!  call add_var_int("iadapt_by_eta", iadapt_by_eta, 0, &
+!       "In wall region, adapt by wall resistivities", gs_grp)
 
   ! Mesh
   call add_var_int("nplanes", nplanes, 1, &
@@ -1133,6 +1137,10 @@ subroutine set_defaults
   call add_var_double("zcenter", zcenter, 0., "center of logical mesh (z)", mesh_grp)
   call add_var_double("bloat_factor", bloat_factor, 0., "factor to expand VMEC domain", mesh_grp)
   call add_var_double("bloat_distance", bloat_distance, 0., "factor to expand VMEC domain", mesh_grp)
+  call add_var_int("nzer_factor", nzer_factor, -1, &
+       "scale factor for order of VMEC interpolation", mesh_grp)
+  call add_var_int("nzer_manual", nzer_manual, -1, &
+       "order of VMEC interpolation", mesh_grp)
   call add_var_int("iread_planes", iread_planes, 0, &
        "Read positions of toroidal planes from plane_positions", mesh_grp)
   call add_var_double("xzero", xzero, 0., "", mesh_grp)

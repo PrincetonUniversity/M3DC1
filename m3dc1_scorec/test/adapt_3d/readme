@@ -22,8 +22,17 @@ mpirun -np 8 $M3DC1_DIR/unstructured/_avatar-3d-opt-60/m3dc1_3d -ipetsc -options
 ++++++++++++++++++++++++++++++++++++++++++
   stand-alone test for 3D mesh adaptation
 ++++++++++++++++++++++++++++++++++++++++++
+[Compilation on Avatar]
+PETSC_DIR=/lore/seol/petsc-3.7.6
+PETSC_ARCH=real-openmpi1.6.5
+PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
+PUMI_DIR=/lore/seol/openmpi1.6.5-petsc3.7.6-install
+ZOLTAN_DIR=$PUMI_DIR
 
-[Compilation]
+#real
+/usr/local/openmpi/latest/bin/mpicxx -g main.cc -o adapt -DM3DC1_PETSC -I/usr/include -I/usr/local/openmpi/latest/include -I$PREFIX/include -I$PUMI_DIR/include -I$PETSC_DIR/include -I$PETSC_DIR/$PETSC_ARCH/include -L$PREFIX/lib -lm3dc1_scorec -Wl,--start-group,-rpath,$PUMI_DIR/lib -L$PUMI_DIR/lib -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group -L$ZOLTAN_HOME/lib -lzoltan -L$PETSC_DIR/$PETSC_ARCH/lib -Wl,-rpath,$PETSC_DIR/$PETSC_ARCH/lib -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lpetsc -lsuperlu_dist -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -lsuperlu -lHYPRE -lmpi_cxx -lstdc++ -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -lgfortran -lmpi_f90 -lmpi_f77 -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -lmpi_cxx -lstdc++ -L/usr/local/openmpi/1.6.5-ib/lib -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/gcc/x86_64-linux-gnu/4.4.5 -L/usr/lib/x86_64-linux-gnu -ldl -lmpi -lm -lnuma -lrt -lnsl -lutil -lgcc_s -lpthread -ldl
+
+[Compilation on Non-Avatar]
 PETSC_DIR=/lore/seol/petsc-3.13.5
 PETSC_ARCH=real-gcc4.8.5-v5m6xwi-mpich3.2.1-geowaxe
 ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
@@ -60,6 +69,7 @@ mpirun -np 4  ./adapt tilt.txt tilt.smb 2
 mpirun -np 8 ./adapt tilt.txt tilt.smb 4
 // FIXME: crash in apf::reorderMdsMesh after adaptation
 mpirun -np 64 ./adapt ../nate-32part/diiid0.05.txt ../nate-32part/mesh.smb 2 
+mpirun -np 16  ./adapt /lore/seol/tests/pellet_example/analytic.txt /lore/seol/tests/pellet_example/part.smb 1
 
 (4) load .txt model and distributed 3D mesh (no 3D mesh extrusion)
 // FIXME: crash in the beginning of adaptation
