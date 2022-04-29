@@ -1189,6 +1189,16 @@ int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
   return M3DC1_SUCCESS;
 }
 
+//*******************************************************
+// return volume, area or length of the entity
+void m3dc1_ent_measure(int* /* in */ ent_dim, int* /* in */ ent_id,
+                          double* /* out */ value)
+//*******************************************************
+{
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  assert(e);
+  *value = apf::measure(m3dc1_mesh::instance()->mesh, e);
+}
 
 // node-specific functions
 //*******************************************************
@@ -1443,8 +1453,7 @@ int m3dc1_node_write (const char* filename, int* start_index)
   return M3DC1_SUCCESS;
 }
 
-
-// region-specific function
+// mesh region functions
 //*******************************************************
 int m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac)
 //*******************************************************
