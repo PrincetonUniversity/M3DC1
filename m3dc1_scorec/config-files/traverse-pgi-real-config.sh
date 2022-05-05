@@ -1,20 +1,23 @@
-MPIVER=nvhpc20.7-cuda11.0-openmpi4.0.4
+HOST=traverse
+#/projects/M3DC1/scorec/traverse/pgi20.4-openmpi4.0.4/petsc3.16.2
+MPIVER=pgi20.4-openmpi4.0.4
 CMAKETYPE=Release
-PETSC_VER=petsc-3.13.5
-PETSCVER=petsc3.13.5
-PETSC_DIR=/projects/M3DC1/PETSC/$PETSC_VER
-PETSC_ARCH=real-$MPIVER
+PETSC_VER=petsc-3.13.4
+PETSCVER=petsc3.13.4
+PETSC_DIR=/home/jinchen/project/PETSC/petsc
+PETSC_ARCH=traverse-pgi-openmpi-199-gpu-cuda-master
+#PETSC_ARCH=traverse-pgi-openmpi-199-gpu-cuda-cplx-master
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
 SCOREC_DIR=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
-PREFIX=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
-# module load nvhpc/20.7 openmpi/cuda-11.0/nvhpc-20.7/4.0.4/64 cudatoolkit/11.0 
+PREFIX=$SCOREC_DIR
+# module load pgi/20.4/64 openmpi/pgi-20.4/4.0.4/64
 #add -DPETSCMASTER for petsc 3.8.3 or higher
 cmake3 .. \
   -DCMAKE_C_COMPILER=mpicc \
   -DCMAKE_CXX_COMPILER=mpicxx \
   -DCMAKE_Fortran_COMPILER=mpif90 \
-  -DCMAKE_C_FLAGS=" -g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
+    -DCMAKE_C_FLAGS=" -g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_CXX_FLAGS=" -g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DSCOREC_INCLUDE_DIR="$SCOREC_DIR/include" \
