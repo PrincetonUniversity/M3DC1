@@ -18,7 +18,7 @@ rc('text', usetex=True)
 
 
 def plot_line(field, coord='scalar', angle=0, filename='C1.h5', sim=None, time=None,
-              phi=0, linear=False, diff=False, tor_av=1, units='mks', quiet=False):
+              phi=0, linear=False, diff=False, tor_av=1, units='mks', quiet=False, shortlbl=False):
     """
     Plots the values of a field on a line.
     
@@ -140,6 +140,6 @@ def plot_line(field, coord='scalar', angle=0, filename='C1.h5', sim=None, time=N
     # Plot routines
     plt.plot(L_signed, field1_ave)
     plt.xlabel('Signed distance from magnetic axis [m]')
-    plt.ylabel(label)
+    plt.ylabel(fieldlabel + ' [' + unitlabel + ']')
     
     plt.show()

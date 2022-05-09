@@ -742,6 +742,7 @@ subroutine output_mesh(time_group_id, nelms, error)
 #endif
   call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
   call write_int_attr(mesh_group_id, "nperiods", nperiods, error)
+  call write_int_attr(mesh_group_id, "ifull_torus", ifull_torus, error)
   call write_real_attr(mesh_group_id, "period", toroidal_period, error)
 
   ! Output the mesh data
