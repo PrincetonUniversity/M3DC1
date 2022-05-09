@@ -5,7 +5,7 @@ Created on March 16 2020
 
 @author: Andreas Kleiner
 """
-#import os
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -74,6 +74,7 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     
     # Fit profile
     w = yf
+
     if minval is None:
         a = [0.98, 1./0.01, max(yf), 0., min(yf)]
         if weighted:
@@ -86,6 +87,10 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
             yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a, sigma=w, absolute_sigma=True)
         else:
             yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a)
+
+        
+    #print(yfit)
+    
     print('---------------------------------------------------------')
     print('Fit center: '+str(yfit[0]))
     print('Fit width: '+str(1.0/yfit[1]))
@@ -97,7 +102,6 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
             fpyl.printerr('Please enter a larger minval')
             return
     print('---------------------------------------------------------')
-    #print(yfit)
     
     if minval is None:
         minval = yfit[4]

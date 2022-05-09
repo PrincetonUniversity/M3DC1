@@ -14,9 +14,10 @@ from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 import fpy
 import m3dc1.fpylib as fpyl
+from m3dc1.plot_coils import plot_coils
 
 
-def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=None,fignum=None,meshcol='C0',zoom=False,pub=False,quiet=False,phys=False,phi=0.,save=False):
+def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils=False,ax=None,fignum=None,meshcol='C0',zoom=False,pub=False,quiet=False,phys=False,phi=0.,save=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
@@ -99,12 +100,14 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,ax=No
         bdlw = 1
     
     if not isinstance(ax, (np.ndarray, mplax._axes.Axes)):
-        fig, ax = plt.subplots(num=1)
+        fig, ax = plt.subplots(num=fignum)
         fig.set_figheight(8)
         if phys:
             plt.plot(rst,zst,lw=0,marker='.',ms=0)
         else:
             plt.plot(mesh[:,4],mesh[:,5],lw=0,marker='.',ms=0)
+        if coils:
+            plot_coils(ax=ax)
         plt.grid(True)
         ax.set_aspect('equal',adjustable='box')
         plt.xlabel(r'$R$',fontsize=axlblfs)

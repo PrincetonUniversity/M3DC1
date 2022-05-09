@@ -663,8 +663,10 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
 
   ! output wall regions
+#ifndef USE3D
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Writing wall regions'
   call output_regions(time_root_id, error)
+#endif
   
   ! Close the file
   call h5gclose_f(time_root_id, error)

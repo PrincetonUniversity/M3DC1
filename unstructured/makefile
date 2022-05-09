@@ -104,9 +104,9 @@ ifeq ($(OMP), 1)
   BIN_POSTFIX := $(BIN_POSTFIX)-omp
 endif
 
-ifeq ($(ACC), 1)
-  BIN_POSTFIX := $(BIN_POSTFIX)-acc
-endif
+# ifeq ($(ACC), 1)
+#   BIN_POSTFIX := $(BIN_POSTFIX)-acc
+# endif
 
 OOPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 

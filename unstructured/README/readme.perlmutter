@@ -1,5 +1,3 @@
-Mon Jul  8 09:39:44 PDT 2019
-
 1. login: login from cori 
    ssh -P cori.nersc.gov -l [username]
    ssh perlmutter
@@ -19,12 +17,11 @@ Mon Jul  8 09:39:44 PDT 2019
    module load cmake python/3.9-anaconda-2021.11
 
    for development modules:
-       setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+       export M3DC1_CODE_DIR=$HOME/src/M3DC1  [for example]
        module use $M3DC1_CODE_DIR/unstructured/modules/perlmutter
        module load m3dc1/devel
 
 4. compile code
-   perlmutter.mk
 
    make ARCH=perlmutter all
     (make OPT=1 RL=1 MAX_PTS=25 ARCH=perlmutter
@@ -36,10 +33,9 @@ Mon Jul  8 09:39:44 PDT 2019
     )
 
 5. mesh utility
+   see $SCOREC_UTIL_DIR in perlmutter.mk
 
-6. run jobscript:
-
-   6.1 options_bjacobi *****
+6. options_bjacobi for 3D
 
         -pc_type bjacobi
         -pc_bjacobi_blocks 4
@@ -70,7 +66,16 @@ Mon Jul  8 09:39:44 PDT 2019
    We have another set of options with 'hard_" as the prefix for PETSC VERSION 3.8 or newer
    to isolate the hard solves (#5, #17) from easier ones for optimization purpose.
 
-7. submit job: sample slurm script "batchjob.perlmutter"
+7. run job
+
+7.1 interactive mode
+  salloc -A m3984_g -C gpu -n 48 -t 00:30:00
+  export SLURM_CPU_BIND="cores"
+  srun ... (see 7.2)
+
+7.2 batch mode
+   sample slurm script "batchjob.perlmutter"
+
    #!/bin/bash
    #SBATCH -A m3984_g
    #SBATCH -p debug
