@@ -663,8 +663,10 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
 
   ! output wall regions
+#ifndef USE3D
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Writing wall regions'
   call output_regions(time_root_id, error)
+#endif
   
   ! Close the file
   call h5gclose_f(time_root_id, error)
@@ -742,6 +744,7 @@ subroutine output_mesh(time_group_id, nelms, error)
 #endif
   call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
   call write_int_attr(mesh_group_id, "nperiods", nperiods, error)
+  call write_int_attr(mesh_group_id, "ifull_torus", ifull_torus, error)
   call write_real_attr(mesh_group_id, "period", toroidal_period, error)
 
   ! Output the mesh data
