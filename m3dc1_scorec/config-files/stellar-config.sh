@@ -1,15 +1,25 @@
-HOST=stellar
+# These should be consistent with unstructued/stellar.mk,
+# but values there will overwrite these when compiled from M3D-C1 "make scorec"
+MPIVER=${MPIVER:-intel2021.1.2-intelmpi2021.3.1}
+PETSC_VER=${PETSC_VER:-petsc-3.15.5}
+PETSCVER=${PETSCVER:-petsc3.15.5}
+PETSC_DIR=${PETSC_DIR:-/projects/M3DC1/PETSC/$PETSC_VER}
+if [ $SCOREC_COMPLEX == ON ]
+then
+  PETSC_ARCH=${PETSC_ARCH:-cplx-$MPIVER}
+else
+  PETSC_ARCH=${PETSC_ARCH:-real-$MPIVER}
+fi
+
+# This is different from when compiling with M3D-C1 "make scorec"
+SCOREC_DIR=${SCOREC_DIR:-/projects/M3DC1/scorec/$MPIVER/$PETSCVER}
+
+# Always defined here
 CMAKETYPE=Release
-MPIVER=intel2021.1.2-intelmpi2021.3.1
-PETSC_VER=petsc-3.15.5
-PETSCVER=petsc3.15.5
-PETSC_DIR=/projects/M3DC1/PETSC/$PETSC_VER
-PETSC_ARCH=real-$MPIVER
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
 PREFIX=$SCOREC_DIR
-#add -DPETSCMASTER for petsc 3.8.3 or higher
-# module load cmake/3.19.7 intel/2021.1.2 intel-mpi/intel/2021.3.1
+
 cmake3 .. \
   -DCMAKE_C_COMPILER="mpiicc" \
   -DCMAKE_CXX_COMPILER="mpiicpc" \
