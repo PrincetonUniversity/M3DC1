@@ -134,6 +134,9 @@ else
 
 VPATH=$(SRCDIR)
 
+SCOREC_DIR=${M3DC1_DIR}/m3dc1_scorec/$(M3DC1_ARCH)/$(MPIVER)/$(PETSCVER)
+SCOREC_BUILD=${M3DC1_DIR}/m3dc1_scorec/build_$(M3DC1_ARCH)_$(PETSC_ARCH)
+
 include $(SRCDIR)/$(ARCH).mk
 BIN = m3dc1
 
@@ -229,16 +232,16 @@ test_region : region.o test_region.o
 
 .PHONY: scorec
 scorec :
-	mkdir -p $(M3DC1_SCOREC)/build_$(PETSC_ARCH)
-	cd $(M3DC1_SCOREC)/build_$(PETSC_ARCH) ;\
+	mkdir -p $(SCOREC_BUILD)
+	cd $(SCOREC_BUILD) ;\
 	PETSC_DIR=$(PETSC_DIR) \
 	PETSC_ARCH=$(PETSC_ARCH) \
 	SCOREC_DIR=$(SCOREC_DIR) \
 	SCOREC_BASE_DIR=$(SCOREC_BASE_DIR) \
 	SCOREC_COMPLEX=$(SCOREC_COMPLEX) \
-	../config-files/$(SCOREC_CONFIG)
-	make -C $(M3DC1_SCOREC)/build_$(PETSC_ARCH) -j
-	make -C $(M3DC1_SCOREC)/build_$(PETSC_ARCH) install
+	../config-files/$(M3DC1_ARCH)-config.sh
+	make -C $(SCOREC_BUILD) -j
+	make -C $(SCOREC_BUILD) install
 
 .PHONY : bin
 bin : a2cc mackenbach_profiles
