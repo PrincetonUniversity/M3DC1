@@ -47,9 +47,15 @@ PETSCVER=petsc3.13.5
 
 PETSC_DIR=/p/tsc/m3dc1/lib/SCORECLib/PETSC/$(PETSC_VER)
 ifeq ($(COM), 1)
-PETSC_ARCH=cplx-rhel7-$(MPIVER)
+  PETSC_ARCH=cplx-rhel7-$(MPIVER)
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+  M3DC1_SCOREC_LIBA=libm3dc1_scorec_complex.a
+  SCOREC_COMPLEX=ON
 else
-PETSC_ARCH=real-rhel7-$(MPIVER)
+  PETSC_ARCH=real-rhel7-$(MPIVER)
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  M3DC1_SCOREC_LIBA=libm3dc1_scorec.a
+  SCOREC_COMPLEX=OFF
 endif
 
 SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
@@ -57,18 +63,6 @@ SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
-
-ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
-else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)
-endif
-
-ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
-else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec
-endif
 
 SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
