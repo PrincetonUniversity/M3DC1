@@ -175,7 +175,11 @@ subroutine init_perturbations
      ph179 = 0.
 
      ! calculate perturbed fields
+#ifdef USEST
+     call init_random(xl_79, phi_79, zl_79, ph179(:,OP_1))
+#else
      call init_random(x_79-xmag, phi_79, z_79, ph179(:,OP_1))
+#endif
 
      ph179(:,OP_1) = ph179(:,OP_1) + r_79*verzero
 
