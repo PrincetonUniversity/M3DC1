@@ -16,8 +16,6 @@ else
  OBJDIR := _$(ARCH)
 endif
 
-SCOREC_DIR=${M3DC1_DIR}/m3dc1_scorec/$(M3DC1_ARCH)/$(MPIVER)/$(PETSCVER)
-
 VERSION = $(shell cat release_version)
 INSTALL_DIR = $(M3DC1_INSTALL_DIR)/m3dc1-$(ARCH)-$(VERSION)
 
@@ -56,8 +54,8 @@ cleanall :
 .PHONY: clean
 clean : 
 	rm -fr _$(ARCH)*
-	rm -fr ${M3DC1_DIR}/m3dc1_scorec/build_*
 	rm -fr $(SCOREC_DIR)
+	rm -fr $(SCOREC_BUILD)
 
 .PHONY: templates
 templates :

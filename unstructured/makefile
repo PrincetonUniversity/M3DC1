@@ -113,6 +113,9 @@ OOPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 # add date stamp
 OPTS := $(OPTS) -DDATE_BUILT='"$(shell date)"' -DRELEASE_VERSION='"$(shell cat release_version)"' #-DBUILD_INFO="'$(shell svn info)'"
 
+SCOREC_DIR=${M3DC1_DIR}/m3dc1_scorec/_$(M3DC1_ARCH)
+SCOREC_BUILD=${M3DC1_DIR}/m3dc1_scorec/_$(M3DC1_ARCH)_build
+
 export OPT
 export OPTS
 export SCORECOPT
@@ -123,6 +126,8 @@ export USE3D
 export USERW
 export TAU
 export HPCTK
+export SCOREC_DIR
+export SCOREC_BUILD
 
 include target.mk
 
@@ -134,8 +139,6 @@ else
 
 VPATH=$(SRCDIR)
 
-SCOREC_DIR=${M3DC1_DIR}/m3dc1_scorec/$(M3DC1_ARCH)/$(MPIVER)/$(PETSCVER)
-SCOREC_BUILD=${M3DC1_DIR}/m3dc1_scorec/build_$(M3DC1_ARCH)_$(PETSC_ARCH)
 
 include $(SRCDIR)/$(ARCH).mk
 BIN = m3dc1
@@ -239,9 +242,15 @@ scorec :
 	SCOREC_DIR=$(SCOREC_DIR) \
 	SCOREC_BASE_DIR=$(SCOREC_BASE_DIR) \
 	SCOREC_COMPLEX=$(SCOREC_COMPLEX) \
-	../config-files/$(M3DC1_ARCH)-config.sh
+	${M3DC1_DIR}/m3dc1_scorec/config-files/$(M3DC1_ARCH)-config.sh
 	make -C $(SCOREC_BUILD) -j
 	make -C $(SCOREC_BUILD) install
+	# Uncomment this and change library names in $(M3DC1_ARCH).mk for testing
+	#if [ $(SCOREC_COMPLEX) == ON ]; then \
+	#  /bin/mv $(SCOREC_DIR)/lib/libm3dc1_scorec_complex.a $(SCOREC_DIR)/lib/libm3dc1_scored_complex.a ; \
+	#else \
+	#  /bin/mv $(SCOREC_DIR)/lib/libm3dc1_scorec.a $(SCOREC_DIR)/lib/libm3dc1_scored.a ; \
+	#fi
 
 .PHONY : bin
 bin : a2cc mackenbach_profiles
