@@ -17,10 +17,29 @@ ifeq ($(HPCTK), 1)
   OPTS := $(OPTS) -gopt
   LOADER := hpclink $(LOADER)
 endif
- 
+
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS
 
-#SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/intel6.0.5-mpich7.7.10/hsw-petsc3.12.4/
+PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107
+ifeq ($(COM), 1)
+  PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-cplx
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+  M3DC1_SCOREC_LIBA=libm3dc1_scorec_complex.a
+  SCOREC_COMPLEX=ON
+else
+  ifeq ($(ST), 1)
+    PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-real-st
+    PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+  else
+    PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-real
+    PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+  endif
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  M3DC1_SCOREC_LIBA=libm3dc1_scorec.a
+  SCOREC_COMPLEX=OFF
+endif
+
 SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-hsw
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
@@ -28,36 +47,9 @@ ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
-ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
-else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)
-endif
-
-ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
-else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec
-endif
-
 SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
-
-#PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
-PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107
-ifeq ($(COM), 1)
-  PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-cplx
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
-else
-  ifeq ($(ST), 1)
-  PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-real-st
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
-  else
-  PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-real
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
-  endif
-endif
 
 MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 
@@ -68,10 +60,8 @@ ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_BASE_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-	   -I$(GSL_DIR)/include # \
-#        -I$(HYBRID_HOME)/include
-#           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
-#
+	   -I$(GSL_DIR)/include
+
 LIBS := $(LIBS) \
         -L$(PETSC_DIR)/$(PETSC_ARCH)/lib \
         $(SCOREC_LIB) \
@@ -81,7 +71,6 @@ LIBS := $(LIBS) \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB) \
 	$(MKL_LIB)
-#        $(HYBRID_LIBS) \
 
 ifeq ($(ST), 1)
   LIBS += -Wl,--start-group -L/global/homes/j/jinchen/project/NETCDF/buildhsw/lib -Wl,-rpath,/global/homes/j/jinchen/project/NETCDF/buildhsw/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lnetcdf -lnetcdff -lz -Wl,--end-group
