@@ -78,7 +78,6 @@ LIBS := $(LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
 	-L$(FFTW_DIR)/lib -lfftw3_mpi -lfftw3 \
-        -L$(HDF5_DIR)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB) \
 	$(MKL_LIB)
