@@ -66,13 +66,14 @@ endif
 LIBS += $(SCOREC_LIB) \
         $(ZOLTAN_LIB)\
         $(PETSC_WITH_EXTERNAL_LIB) \
-        -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(MKL_LIB)
 
 ifeq ($(ST), 1)
-  LIBS += -Wl,--start-group -L/global/cfs/cdirs/mp288/jinchen/NETCDF/buildknl/lib -Wl,-rpath,/global/homes/j/jinchen/project/NETCDF/buildknl/lib -lnetcdf -lnetcdff -lz -Wl,--end-group
-  INCLUDE += -I/global/cfs/cdirs/mp288/jinchen/NETCDF/buildknl/include
+  LIBS += -Wl,--start-group -L/global/homes/j/jinchen/project/NETCDF/buildhsw/lib -Wl,-rpath,/global/homes/j/jinchen/project/NETCDF/buildhsw/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lnetcdf -lnetcdff -lz -Wl,--end-group
+  INCLUDE += -I/global/cfs/cdirs/mp288/jinchen/NETCDF/buildhsw/include
+else
+  LIBS += -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz
 endif
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)

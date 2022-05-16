@@ -12,6 +12,12 @@ ifeq ($(PAR), 1)
   FOPTS := $(FOPTS) -DUSEPARTICLES
 endif
 
+ifeq ($(OMP), 1)
+  LDOPTS := $(LDOPTS) -mp
+  FOPTS  := $(FOPTS)  -mp
+  CCOPTS := $(CCOPTS) -mp
+endif
+
 CC = cc
 CPP = CC
 F90 = ftn
