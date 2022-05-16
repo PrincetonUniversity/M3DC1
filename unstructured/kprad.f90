@@ -278,6 +278,7 @@ contains
        if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
           where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) sion(:,i) = 0.
        end if
+       where(sion.ne.sion) sion = 0.
     enddo
   
   end subroutine KPRAD_IONIZATION_RATE
@@ -317,6 +318,7 @@ contains
           where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) srec(:,i) = 0.
        end if
     end do
+    where(srec.ne.srec) srec = 0.
 
   end subroutine KPRAD_RECOMBINATION_RATE
                                                                         
