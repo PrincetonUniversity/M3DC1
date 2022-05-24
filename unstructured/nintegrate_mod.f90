@@ -250,6 +250,7 @@ subroutine edge_to_local(ngauss, delta, line_weight, &
   eta = 0.5*((eta2-eta1)*delta + eta2 + eta1)
   local_weight = 0.5*line_weight*l
 
+  norm79 = 0.
   norm79(1:ngauss,1) = 0.5*(n2(1)*(1.+delta) + n1(1)*(1.-delta))
   norm79(1:ngauss,2) = 0.5*(n2(2)*(1.+delta) + n1(2)*(1.-delta))
 
@@ -444,6 +445,7 @@ subroutine define_boundary_quadrature(ielm, iedge, npol, ntor, normal, idim)
   npoints_pol = npol
   npoints_tor = 1
   npoints = npol
+  zi_79 = 0.
 #endif
 end subroutine define_boundary_quadrature
 
@@ -484,6 +486,7 @@ subroutine define_element_quadrature(ielm, pol_gauss, tor_gauss)
   npoints_pol = pol_gauss
   npoints_tor = 1
   npoints = pol_gauss
+  zi_79 = 0.0
 #endif
 end subroutine define_element_quadrature
 

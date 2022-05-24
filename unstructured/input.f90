@@ -1663,10 +1663,12 @@ subroutine validate_input
           * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
      print *, 'Te associated with eta_max = ', (efac*z_ion**2/eta_max)**(2./3.), &
           ' dimensionless'
-     print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.) &
-          * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
-     print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.), &
-          ' dimensionless'
+     if (eta_min.gt.0) then
+        print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.) &
+             * (b0_norm**2 / (4.*pi*n0_norm)) * 6.242e11, ' eV'
+        print *, 'Te associated with eta_min = ', (efac*z_ion**2/eta_min)**(2./3.), &
+             ' dimensionless'
+     end if
   end if
 
   if(db.lt.0.) then
