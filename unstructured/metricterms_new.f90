@@ -6665,18 +6665,9 @@ function b1psieta2(e,f,g,h,imod)
   vectype, dimension(dofs_per_element) :: temp
   logical, intent(in) :: imod
 
-  if(jadv.eq.0) then
-
+  temp = 0.
+  if(jadv.ne.0) then
      if(surface_int) then
-        temp = 0.
-     else
-        temp = 0.
-     endif
-
-  else
-     if(surface_int) then
-        temp = 0
-
 #if defined(USE3D) || defined(USECOMPLEX)
         if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
            temp = temp
@@ -6709,7 +6700,6 @@ function b1psieta2(e,f,g,h,imod)
 
      end if
   endif
-
   b1psieta2 = temp
 end function b1psieta2
 
@@ -12734,10 +12724,13 @@ real function energy_kph()
 
   vectype :: temp
 
-  temp = - hypc* &
-       (int4(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),vis79(:,OP_1)) &
-       +int4(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),vis79(:,OP_1)))
-
+  if(hypc.ne.0.) then
+     temp = - hypc* &
+          (int4(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),vis79(:,OP_1)) &
+          +int4(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),vis79(:,OP_1)))
+  else
+     temp = 0.
+  end if
   energy_kph = temp
   return
 end function energy_kph
@@ -12771,10 +12764,13 @@ real function energy_k3h()
 
   vectype :: temp
 
-  temp = -2.*hypc* &
-       (int3(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),vic79(:,OP_1)) &
-       +int3(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),vic79(:,OP_1)))
-
+  if(hypc.ne.0.) then
+     temp = -2.*hypc* &
+          (int3(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),vic79(:,OP_1)) &
+          +int3(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),vic79(:,OP_1)))
+  else
+     temp = 0.
+  end if
   energy_k3h = temp
   return
 end function energy_k3h
@@ -12878,7 +12874,7 @@ real function flux_heat()
   implicit none
 
   vectype :: temp
-
+  
   if(numvar.lt.3 .and. ipres.eq.0) then
      flux_heat = 0.
      return

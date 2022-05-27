@@ -1734,6 +1734,7 @@ subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
   x = xguess
   z = zguess
   itri = itri_te_max2
+  sum = 0.
 
   call whattri(x,0.,z,itri,x1,z1)
 
