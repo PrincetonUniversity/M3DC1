@@ -887,7 +887,7 @@ subroutine boundary_p(rhs, p_v, mat)
         call set_dirichlet_bc(i_p,rhs,temp,normal,curv,izonedim,mat)
      else if(iconst_p.eq.2) then
         temp = 0.
-        if(eqsubtract.eq.0 .and. idiff.eq.0) then temp(1) = pedge
+        if(eqsubtract.eq.0 .and. idiff.eq.0) temp(1) = pedge
 
         call set_dirichlet_bc(i_p,rhs,temp,normal,curv,izonedim,mat)
      end if
@@ -944,7 +944,7 @@ subroutine boundary_pe(rhs, pe_v, mat)
         call set_dirichlet_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
      else if(iconst_p.eq.2) then
         temp = 0.
-        if(eqsubtract.eq.0 .and. idiff.eq.0) then temp(1) = pedge*pefac
+        if(eqsubtract.eq.0 .and. idiff.eq.0) temp(1) = pedge*pefac
      end if
   end do
 
