@@ -151,8 +151,8 @@ contains
     M_table(4) = 9.012182
 
     ! Boron
-    rho_table(4) = 2.35 ! beta-rhombohedral, the most common and stable from wikipedia
-    M_table(4) = 10.81
+    rho_table(5) = 2.35 ! beta-rhombohedral, the most common and stable from wikipedia
+    M_table(5) = 10.81
 
     ! Carbon (graphite)
     !rho_table(6) = 2.267 ! graphite
