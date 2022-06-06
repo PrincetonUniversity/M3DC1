@@ -481,9 +481,7 @@ contains
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
 
-    def_fields = FIELD_N + FIELD_TE + FIELD_TI + FIELD_DENM
-    if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
-         def_fields = def_fields + FIELD_P
+    def_fields = FIELD_N + FIELD_P + FIELD_TE + FIELD_TI + FIELD_DENM
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix'
 
