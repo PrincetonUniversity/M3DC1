@@ -385,7 +385,8 @@ contains
     integer, intent(in) :: itri
     integer :: i
     vectype, dimension(MAX_PTS) :: di_79, di2_79
-    real  :: value_nan ! NaN to be assigned to forbidden operations 
+    real :: negone
+    real :: value_nan ! NaN to be assigned to forbidden operations
     
     ! calculate logical derivatives of geometry
     call eval_ops(itri, rst, rst79)
@@ -522,7 +523,8 @@ contains
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, must79(1,1,:) 
 #ifdef USE3D
     ! set forbidden operations to NaN
-    value_nan = sqrt(-1.)
+    negone = -1.
+    value_nan = sqrt(negone)
     mu79(:,:,OP_DRRP:OP_GSP) = value_nan
     mu79(:,:,OP_DRPP:OP_GSPP) = value_nan 
     !mu79(:,:,OP_GSP) = value_nan 

@@ -279,6 +279,7 @@ contains
           where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) sion(:,i) = 0.
        end if
     enddo
+    where(sion.ne.sion) sion = 0.
   
   end subroutine KPRAD_IONIZATION_RATE
 
@@ -317,6 +318,7 @@ contains
           where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) srec(:,i) = 0.
        end if
     end do
+    where(srec.ne.srec) srec = 0.
 
   end subroutine KPRAD_RECOMBINATION_RATE
                                                                         

@@ -5,14 +5,14 @@ ifeq (,$(filter _%,$(notdir $(CURDIR))))
 #--------------------------------------------------------------
 
 ifeq ($(USEPETSC), 1)
-  OPTS := $(OPTS) -DUSEPETSC -Dmesh_mod=basic_mesh_mod \
+  OPTS := -DUSEPETSC -Dmesh_mod=basic_mesh_mod \
 	-Dvector_mod=petsc_vector_mod -Dmatrix_mod=petsc_matrix_mod \
 	-Dmatrix_type=petsc_matrix -Dvector_type=petsc_vector
   V_OBJ := basic_mesh.o petsc_vector.o petsc_matrix.o
   BIN_POSTFIX := $(BIN_POSTFIX)-petsc
 else
   USESCOREC = 1
-  OPTS := $(OPTS) -DUSESCOREC -Dmesh_mod=scorec_mesh_mod \
+  OPTS := -DUSESCOREC -Dmesh_mod=scorec_mesh_mod \
 	-Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod \
 	-Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector
   ifeq ($(TRILINOS), 1)

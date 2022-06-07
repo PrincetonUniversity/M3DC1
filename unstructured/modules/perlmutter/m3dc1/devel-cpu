@@ -65,8 +65,8 @@ if { ! [ is-loaded fast-mkl-amd ] } {
 
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
-setenv		M3DC1_ARCH	perlmutter
+setenv		M3DC1_ARCH	perlmutter_cpu
 setenv		M3DC1_MPIRUN	srun
 
-prepend-path    PATH             $root/unstructured/_perlmutter/bin
+prepend-path    PATH             $root/unstructured/_perlmutter_cpu/bin
 prepend-path    IDL_PATH         $root/unstructured/idl
