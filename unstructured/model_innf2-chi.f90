@@ -199,11 +199,8 @@ subroutine get_vor_mask(itri, imask)
 
   ibound = 0
 
-  if(inonormalflow.eq.1) then
-     ibound = ior(ibound, BOUNDARY_DIRICHLET)
-  elseif(inonormalflow.eq.2) then
-     ibound = ior(ibound, BOUNDARY_MULTI_DT)
-  end if
+  if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  ! inonormalflow=2 conditions are included in chi equation
 
   if(inoslip_pol.eq.1) then
      ibound = ior(ibound, BOUNDARY_NEUMANN)
@@ -243,10 +240,14 @@ subroutine get_chi_mask(itri, imask)
 
   ibound = 0
 
-  if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  if(inonormalflow.eq.1) then
+     ibound = ior(ibound, BOUNDARY_NEUMANN)
+  elseif(inonormalflow.eq.2) then
+     ibound = ior(ibound, BOUNDARY_MULTI_DN)
+  end if
 
-  ! inonormalflow=2 and inoslip_pol=2 conditions are included in U equation
+  if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  ! inoslip_pol=2 conditions are included in U equation
 
   if(com_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
@@ -311,17 +312,17 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
 
         temp = 0.
 
-        ! U
-        ibegin(1) = i_u
-        ibc(1) = BOUND_DT
-        coeff(1) = -1.0
-        xp(1) = itor
-
         ! chi
-        ibegin(2) = i_chi
-        ibc(2) = BOUND_DN
-        coeff(2) = 1.0
-        xp(2) = -2*itor
+        ibegin(1) = i_chi
+        ibc(1) = BOUND_DN
+        coeff(1) = 1.0
+        xp(1) = -2*itor
+
+        ! U
+        ibegin(2) = i_u
+        ibc(2) = BOUND_DT
+        coeff(2) = -1.0
+        xp(2) = itor
 
         call set_multi_bc(2,ibegin,ibc,coeff,xp,rhs,temp,normal,curv,izonedim,x,mat)
 
@@ -813,7 +814,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
 !!$           call get_node_data(den_field(0), i, temp3)
 !!$           temp2 = temp2 + temp3
 !!$        end if
-!!$        if(ikprad.ge.1) then
+!!$        if(ikprad.eq.1) then
 !!$           do i=1, kprad_z
 !!$              call get_node_data(kprad_n(i), i, temp3)
 !!$              temp2 = temp2 + temp3

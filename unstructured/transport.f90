@@ -493,7 +493,7 @@ function totrad_func(itri)
      temp = temp - intx2(mu79(:,:,OP_1),temp79a)
   end if
 
-  if(ikprad.ne.0) then
+  if(ikprad.ge.1) then
      call eval_ops(itri, kprad_rad, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
      call eval_ops(itri, kprad_brem, tm79, rfac)
@@ -527,7 +527,7 @@ function linerad_func(itri)
 
   temp = 0.
 
-  if(ikprad.ne.0) then
+  if(ikprad.ge.1) then
      call eval_ops(itri, kprad_rad, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if
@@ -555,7 +555,7 @@ function bremrad_func(itri)
 
   temp = 0.
 
-  if(ikprad.ne.0) then
+  if(ikprad.ge.1) then
      call eval_ops(itri, kprad_brem, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if
@@ -583,7 +583,7 @@ function ionrad_func(itri)
 
   temp = 0.
 
-  if(ikprad.ne.0) then
+  if(ikprad.ge.1) then
      call eval_ops(itri, kprad_ion, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if
@@ -611,7 +611,7 @@ function reckrad_func(itri)
 
   temp = 0.
 
-  if(ikprad.ne.0) then
+  if(ikprad.ge.1) then
      call eval_ops(itri, kprad_reck, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if
@@ -639,7 +639,7 @@ function recprad_func(itri)
 
   temp = 0.
 
-  if(ikprad.ne.0) then
+  if(ikprad.ge.1) then
      call eval_ops(itri, kprad_recp, tm79, rfac)
      temp = temp - intx2(mu79(:,:,OP_1),tm79(:,OP_1))
   end if

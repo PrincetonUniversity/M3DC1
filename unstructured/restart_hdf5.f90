@@ -422,7 +422,7 @@ contains
     call h5r_read_field(group_id, "te",  te_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
 
-    if(ikprad.eq.1 .and. ikprad_in.eq.1) then
+    if(ikprad.ge.1 .and. ikprad_in.ge.1) then
        do i=0, kprad_z
           write(field_name, '(A,I2.2)') "kprad_n_", i
           call h5r_read_field(group_id,trim(field_name),kprad_n(i),nelms,error)
