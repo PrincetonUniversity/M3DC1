@@ -150,6 +150,10 @@ contains
     rho_table(4) = 1.85
     M_table(4) = 9.012182
 
+    ! Boron
+    rho_table(5) = 2.35 ! beta-rhombohedral, the most common and stable from wikipedia
+    M_table(5) = 10.81
+
     ! Carbon (graphite)
     !rho_table(6) = 2.267 ! graphite
     rho_table(6) = 1.51   ! vitreous carbon: This is what is supposed to be used in NSTX-U

@@ -1,0 +1,127 @@
+\documentclass[11pt]{article}  % include bezier curves
+\renewcommand\baselinestretch{1.0}           % single space
+%\pagestyle{empty}                            % no headers and page numbers
+\author{}
+\title{}
+
+\oddsidemargin -10 true pt      % Left margin on odd-numbered pages.
+\evensidemargin 10 true pt      % Left margin on even-numbered pages.
+\marginparwidth 1.5 true in    % Width of marginal notes.
+\oddsidemargin  0 true in       % Note that \oddsidemargin=\evensidemargin
+\evensidemargin 0 true in
+\topmargin -0.5 true in        % Nominal distance from top of page to top of
+\textheight 9.0 true in         % Height of text (including footnotes and figures)
+\textwidth 6.5 true in        % Width of text line.
+\parindent=0pt                  % Do not indent paragraphs
+\parskip=0.15 true in
+%\usepackage{color}              % Need the color package
+
+\usepackage[pdftex]{color, graphicx}
+%\usepackage{graphicx} %for epsfig
+\usepackage{graphics}
+\usepackage{epsfig}
+\usepackage{latexsym}
+\usepackage{mathrsfs}
+\usepackage{eufrak}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{longtable}
+%\usepackage{mesh}
+\usepackage{url}
+%\usepackage[noline,algonl,boxed]{algorithm2e}
+%\usepackage[lined,algonl,boxed]{algorithm2e}
+%\renewcommand{\listalgorithmcfname}{LIST OF ALGORITHMS}
+
+%\usepackage[dvips]{graphicx}
+%\usepackage{epsfig} % for epsfig
+%\usepackage{amsmath}
+%\usepackage{amssymb}
+%\usepackage{graphicx}
+%\usepackage[usenames]{color}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{The M3DC1 User's Guide}
+
+\author{-- VERSION 0.1 --\\
+\\
+PPPL M3DC1 Team \\
+RPI SCOREC}
+
+\begin{document}
+
+\maketitle
+
+
+\newpage
+
+\newpage
+***************     LICENSE     ***************
+\\
+\\
+Copyright (c) 2022 PPPL
+All rights reserved.
+\newline
+\newline
+
+SS: PLEASE FILL OUT THIS PAGE\\
+\newline
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+\begin{itemize}
+\item Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+
+\item Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+\item Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+\end{itemize}
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+\newline
+\newline
+Questions to jardin@pppl.gov\\
+Derived from the OSI 3-clause BSD
+\newpage
+\newpage
+
+\tableofcontents
+\newpage
+
+\include{building}
+
+\include{equilibria}
+
+\include{mesh-gen}
+
+\include{mesh-adapt}
+\include{numerical-methods}
+
+\include{output}
+\include{petsc_option}
+\include{physics-model}
+
+\include{doc}
+
+% Bibliography
+\bibliographystyle{plain}
+\bibliography{m3dc1.bib}
+
+\appendix
+\include{idl-postproc}
+\include{scorec-api}
+\include{app-paraview}
+\end{document}
+
