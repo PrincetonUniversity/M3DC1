@@ -1,4 +1,4 @@
-pro refine_boundary, file, min_dist=min_dist, out=out
+pro refine_boundary, file, min_dist=min_dist, out=out, _EXTRA=extra
 
   if(n_elements(min_dist) eq 0.) then min_dist = 0.1
 
@@ -6,7 +6,7 @@ pro refine_boundary, file, min_dist=min_dist, out=out
   x = reform(z.field1[0,*])
   y = reform(z.field1[1,*])
 
-  plot, x, y, /iso
+  plot, x, y, /iso, _EXTRA=extra
 
   while(1) do begin
      n = n_elements(x)

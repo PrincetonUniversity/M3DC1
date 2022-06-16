@@ -72,7 +72,7 @@ subroutine get_temp_mask(itri, imask)
 
   ibound = 0
   if(inograd_t.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(iconst_t.eq.1 .or. iconst_p.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  if(iconst_t.eq.1 .or. iconst_p.ge.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_temp_mask
@@ -88,7 +88,7 @@ subroutine get_pres_mask(itri, imask)
 
   ibound = 0
   if(inograd_p.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(iconst_p.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  if(iconst_p.ge.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
   call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_pres_mask
@@ -728,7 +728,7 @@ subroutine boundary_te(rhs, te_v, mat)
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
-     else if(iconst_p.eq.1) then
+     else if(iconst_p.ge.1) then
         call get_node_data(pe_field(1), i, temp)
         call get_node_data(ne_field(1), i, temp2)
         if(eqsubtract.eq.1) then
@@ -738,8 +738,8 @@ subroutine boundary_te(rhs, te_v, mat)
 
         temp3 = 0.
         temp3(1) = temp(1) / temp2(1)
-        temp3(2) = temp(2) / temp2(1) - temp2(2) * temp(1) / temp2(1)**2 
-        temp3(3) = temp(3) / temp2(1) - temp2(3) * temp(1) / temp2(1)**2 
+        temp3(2) = temp(2) / temp2(1) - temp2(2) * temp(1) / temp2(1)**2
+        temp3(3) = temp(3) / temp2(1) - temp2(3) * temp(1) / temp2(1)**2
 
         if(eqsubtract.eq.1 .and. idiff.eq.0) then
            call get_node_data(te_field(0),i,temp2)
@@ -792,7 +792,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
         temp = 0.
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
-     if(iconst_t.eq.1 .or. iconst_p.eq.1) then
+     if(iconst_t.eq.1 .or. iconst_p.ge.1) then
         if((tibound.gt.0.) .and. is_inner) then
            temp = 0.
            temp(1) = tibound
@@ -885,7 +885,13 @@ subroutine boundary_p(rhs, p_v, mat)
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_p,rhs,temp,normal,curv,izonedim,mat)
+     else if(iconst_p.eq.2) then
+        temp = 0.
+        if(eqsubtract.eq.0 .and. idiff.eq.0) temp(1) = pedge
+
+        call set_dirichlet_bc(i_p,rhs,temp,normal,curv,izonedim,mat)
      end if
+
    end do
 
  end subroutine boundary_p
@@ -936,6 +942,9 @@ subroutine boundary_pe(rhs, pe_v, mat)
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
+     else if(iconst_p.eq.2) then
+        temp = 0.
+        if(eqsubtract.eq.0 .and. idiff.eq.0) temp(1) = pedge*pefac
      end if
   end do
 
