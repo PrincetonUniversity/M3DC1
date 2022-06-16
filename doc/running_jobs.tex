@@ -1,0 +1,148 @@
+\section{Running Jobs}
+
+\noindent
+Users can find almost all of the needed example batch scripts and input files to run a job on available computing facilities from 
+\begin{verbatim}
+unstructured/regtest/*/base/
+\end{verbatim}
+
+\noindent
+directories.
+
+\subsection{Running 2D or Linear Jobs}
+
+\noindent
+In 2D, the run can be either linear or nonlinear, depending on the C1input parameter $linear$:
+
+$linear=0$ (non-linear run: must compile with the option RL=1)
+
+$linear=1$ (linear run: must compile with the option COM=1)
+
+\noindent
+In both cases, set 
+
+$nplanes=1$
+
+For the linear case, use
+
+$ntor=nn$
+
+set the toroidal mode number.
+
+\noindent
+To run your job on a scratch directory, copy the following files over:
+\begin{verbatim}
+executable (m3dc1_2d for non-linear run or m3dc1_2d_complex for linear run)
+C1input
+AnalyticModel (or MultiEdgeAnalyticModel)
+struct-dmg.sms
+(and geqdsk if needed)
+\end{verbatim}
+
+To run non-linear job
+\begin{verbatim}
+mpirun –np 8 ./m3dc1_2d
+\end{verbatim}
+
+To run linear job
+\begin{verbatim}
+mpirun –np 24 ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps 
+\end{verbatim}
+
+\subsection{Running 3D Nonlinear Jobs}
+
+\noindent
+For the 3D nonlinear run, set $linear=0$ and set $nplanes$ equal to the number of toroidal planes in $C1input$ file. The
+number of bjacobi blocks in the PETSc options file must also be equal to $nplanes$. The
+total number of processors to request must be the product of nplanes and M (the number of processors per plane, which equals the number of mesh partitions per plane).
+
+\noindent
+Files required to be present to the local directory are:
+\begin{verbatim}
+executable (m3dc1 or m3dc1_st)
+C1input,
+partnn.smb (one for each poloidal plane partition)
+options_bjacobi
+m3dc1.xml (if using ADIOS)
+geqdsk (if needed)
+\end{verbatim}
+
+\noindent
+To run linear job
+\begin{verbatim}
+mpirun –np 16 ./ m3dc1 –ipetsc –options_file options_bjacobi (nplane=2, M=8)
+\end{verbatim}
+\noindent
+See the previou section for the format of the PETSc option file options\_bjacobi. In this example job, there are $M=8$ mesh partition files:
+\begin{verbatim}
+part0.smb part1.smb part2.smb part3.smb part4.smb part5.smb part6.smb part7.smb
+\end{verbatim}
+
+\subsection{Graphics Files}
+\noindent
+The graphics files are of two types. There is a single file called: C1.h5 that contains all the timedependent scalar information. This must be saved and be present in the directory of a job so that it can be added to.
+
+\noindent
+In addition to this file, each plot cycle will produce a file: time\_nnn.h5, where nnn is the plot cycle
+number. The equilibrium is written into a file called equilibrium.h5. These must be stored in the same
+directory as the C1.h5 file.
+
+\subsection{Restarting Jobs}
+
+\noindent
+By default  hdf5 files are written in every time step. Therefore jobs can be restarted from the hdf5 “plot file”, the same one that is used by the idl routines to make plots.
+
+\noindent
+By default, the hdf5 files are written in single precision. If idouble\_out is set to 1 in C1input file, hdf5 files are written in double precision.
+
+\subsubsection{Reading restart files for 2D real, 2D complex, or 3D real runs}
+To start a normal simulation with the hdf5 files, set the C1input parameter “irestart” to 1.
+
+However, the files C1.h5 and the final time\_nnn.h5 file must be present in the working directory. You may also
+restart from an intermediate time by setting irestart\_slice=nn where nn is the nnth plot file. If this is not
+set, it will restart from the final plot file. 
+
+\subsubsection{Reading real restart files to initialize 2D complex calculation}
+\begin{itemize}
+\item  Run 2D linear=0
+\item  Copy 2D C1.h5 and the final time\_nnnn.h5 to the working directory
+\item  Run 2D (complex) linear=1. In the initial restart, the time and cycle number will start from t=0
+and N=0 for the complex run
+\end{itemize}
+
+\subsubsection{Running 3D real simulation from 2D real restart files}
+To start a 3D simulation with 2D restart files, do the following:
+\begin{itemize}
+\item  Run 2D
+\item  Copy 2D C1.h5 and the final time\_nnn.h5 to the working directory
+\item  In 3D work folder, set the C1input parameter “irestart= 1”
+Regardless of the time step when the restart files were written, the 3D simulation starts with time step 1. 
+\end{itemize}
+
+\subsection{Monitoring Jobs}
+You can monitor the progress of your running job in several ways:
+
+A. C1ke file. Each time step, one line will be added to the ASCII C1ke file in the run directory that you can open with a text editor. The first 4 fields are:
+
+\begin{verbatim}
+cycle time kinetic_energy growth_rate
+\end{verbatim}
+
+B. C1.h5 file: You can monitor a time dependent run by using the idl utility described below.  Especially useful is the 
+
+\begin{verbatim}
+plot_scalar,‘ke’
+\end{verbatim}
+
+\noindent
+command and also 
+
+\begin{verbatim}
+plot_scalar,’ke’,/growth
+\end{verbatim}
+
+C. You can use a text editor to monitor the log file slurm-nnnn.out file (where nnnn is the job number assigned by SLURM)
+
+\subsection{Exporting Node/Vector/Matrix for Standalone Study}
+\subsection{Archiving Data at PPPL}
+

@@ -1,4 +1,7 @@
 \section{PETSc Option}
+\label{petscoption}
+
+\subsection{2D}
 
 \noindent
 The petsc option to run 2D modes is default to superlu\_dist. You can add the following line on your "srun" command line
@@ -7,6 +10,8 @@ to change to to mumps:
 \begin{verbatim}
 -pc_factor_mat_solver_type mumps
 \end{verbatim}
+
+\subsection{3D}
 
 \noindent
 When running M3D-$C^1$ in the 3D nonlinear mode, you need to include PETSc Options file.
@@ -52,6 +57,8 @@ should be changed whenever you change the number of toroidal planes in the C1inp
 -hard_ksp_max_it 10000
 \end{verbatim}
 
+\subsection{More}
+
 \noindent
 More examples are in regtest/pellet/base/ directory, such as 
 
@@ -61,7 +68,7 @@ options_bjacobi.type_mumps
 \end{verbatim}
 
 \noindent
-The following are Optional additional optional arguments:
+The following are additional optional arguments:
 
 \begin{verbatim}
 -ksp_converged_reason
