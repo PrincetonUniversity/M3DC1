@@ -13,13 +13,13 @@ There, you will find instructions for installing NX virtual Desktop.
 In PPPL machine, first get an interactive session for a single processor on the \texttt{portal} computer.    
 The M3DC1 code is located in the Github repository: \texttt{PrincetonUniversity/M3DC1}. 
 Access to this repository requires a Github account and permission from \href{mailto:nferraro@pppl.gov}{Dr. Nate Ferraro}. 
-Note that Section \ref{ch:preinstall} describes how to use pre-compiled versions of M3D-C1 so you do not need githup access.
+Note that Section \ref{ch:preinstall} describes how to use pre-compiled versions of M3D-C$^{1}$ so you do not need githup access.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Github}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Retrieve the current version of M3D-C1 from the GIT repository.  For the first time, to check out the sources do:
+Retrieve the current version of M3D-C$^{1}$ from the GIT repository.  For the first time, to check out the sources do:
 \begin{description}
 \item[ ] Initial access is with the \texttt{clone} command.   This copies the source code from the master file into a working directory on your machine.   You only do this once on each computer you work on.
 \item[ ] \texttt{module load git}
@@ -103,7 +103,7 @@ An extensive document that describes equations solved by the code and the input 
 Machine-specific instructions for portal, perseus, Edison, Cori are in:  
 \texttt{\ldots/trunk/unstructured/README}
 \newline\newline
-Additional documentation is available on the site: \href{http://w3.pppl.gov/~nferraro}{http://w3.pppl.gov/$\sim$nferraro} under the ``M3D-C1'' tab.
+Additional documentation is available on the site: \href{http://w3.pppl.gov/~nferraro}{http://w3.pppl.gov/$\sim$nferraro} under the ``M3D-C$^{1}$'' tab.
 \newline\newline
 The latest copy of his document is available at: \href{http://m3dc1.pppl.gov}{http://m3dc1.pppl.gov}
 
@@ -211,7 +211,7 @@ For help regarding traverse, send email to: \href{mailto:cses@princeton.edu}{cse
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The sources are located in the directory: \texttt{\ldots/trunk/unstructured}
 \\
-By default, M3D-C1 is linked with PETSc and release version of SCOREC libraries.
+By default, M3D-C$^{1}$ is linked with PETSc and release version of SCOREC libraries.
 \\
 \begin{itemize}
 \item 	For a 2D nonlinear version of the code: \texttt{make OPT=1 MAX\_PTS=25}
@@ -226,13 +226,13 @@ The executable files are located in a sub-directory that is named with an unders
 \item	\_xxxx-complex-opt-25/m3dc1\_2d\_complex
 \item \_xxxx-3d-opt-60/m3dc1\_3d
 \end{description}
-A Tip for \texttt{"MAX\_PTS"}:  All the M3D-C1 control parameters are described in the file \texttt{"C1input"} and the file \texttt{"C1input"} should exist in the work folder where the simulation runs. The C1input parameters \texttt{int\_pts\_main}, \texttt{int\_pts\_aux}, and \texttt{int\_pts\_diag} must be the same or less than \texttt{MAX\_PTS}.
+A Tip for \texttt{"MAX\_PTS"}:  All the M3D-C$^{1}$ control parameters are described in the file \texttt{"C1input"} and the file \texttt{"C1input"} should exist in the work folder where the simulation runs. The C1input parameters \texttt{int\_pts\_main}, \texttt{int\_pts\_aux}, and \texttt{int\_pts\_diag} must be the same or less than \texttt{MAX\_PTS}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Pre-installed release}
 \label{ch:preinstall}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-An alternative to compiling the code yourself, you can use a pre-installed release version of M3D-C1.    The following instructions for using the modules are taken from the ``Tutorial" document linked from \href{http://w3.pppl.gov/~nferraro/m3dc1.html}{http://w3.pppl.gov/\~{}nferraro/m3dc1.html}
+An alternative to compiling the code yourself, you can use a pre-installed release version of M3D-C$^{1}$.    The following instructions for using the modules are taken from the ``Tutorial" document linked from \href{http://w3.pppl.gov/~nferraro/m3dc1.html}{http://w3.pppl.gov/\~{}nferraro/m3dc1.html}
 On the PPPL cluster, load the following modules:
 \newline\newline
 \texttt{module use /p/m3dc1/modules
@@ -240,7 +240,7 @@ On the PPPL cluster, load the following modules:
 module load m3dc1/1.11
 }
 
-Release versions of m3D-C1 have also been installed on a number of other systems.   The location of the M3D-C1 modules for each of these systems is:
+Release versions of m3D-C1 have also been installed on a number of other systems.   The location of the M3D-C$^{1}$ modules for each of these systems is:
 \begin{itemize}
 \item	PPPL Cluster:	module use /p/m3dc1/modules
 \item	NERSC Cori:	module use /project/projectdirs/mp288/C1/modules/cori
