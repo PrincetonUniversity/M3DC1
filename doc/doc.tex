@@ -1163,25 +1163,55 @@ and the truncation error is
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{numvar} & 3   & MHD model. 1: 2-field;  2: 4-Field;  3: 6-Field.\\
+  \texttt{linear} & 0   & 1: linear (perturbation terms only, no matrix
+  recalculation)\\
+  \texttt{eqsubtract}& 0& 1: remove equilibrium terms from equations\\
+  \texttt{icsubtract}& 0& set to 1 if PF coils are in the domain.  These are
+  defined in the files ``coils.dat'' and ``current.dat''\\
+  \texttt{extsubtract} & 0 & 1: subtract fields from non-axisymmetric coils \\
   \texttt{idens}  & 1   & 1: include density equation\\
   \texttt{ipres}  & 0   & 1: include electron pressure equation\\
-  \texttt{gyro}   & 0   & 1: include gyroviscous term\\
-  \texttt{itor}   & 0   & 0: cartesian; 1: cylindrical\\
-  \texttt{linear} & 0   & 1: linear (perturbation terms only, no matrix
-                              recalculation)\\
-  \texttt{eqsubtract}& 0& 1: remove equilibrium terms from equations\\
-  \texttt{isource}   & 0& 1: include ``source'' terms in velocity
-    advance\\
-  \texttt{igauge} & 0   & 1: Loop voltage appears explicitly in Ohm's law.\\
-  \texttt{ntor}   & 0   & The toroidal modenumber of linear perturbations in
-                          complex simulations.\\
-  \texttt{istatic}& 0   & 1: Do not advance velocity\\
-  \texttt{iestatic}&0   & 1: Do not advance magnetic fields\\
+  \texttt{ipressplit} & 0 & 1: seperate pressure solve from the magnetic field
+  solves when isplitstep=1.  (ipressplit must be 0 for isplitstep=0) \\
+  \texttt{itemp} & 0 & 1: Advance temperatures rather than pressures (for ipressplit=1 only) \\
+  \texttt{gyro}   & 0   & 1: include Braginskii gyroviscous term.  (note:
+  needs db to be nonzero also) \\
+  \texttt{igauge} & 0   & 0: loop voltage applied to boundary psi only \\
   \texttt{inertia} & 1  & 1: Include $\u \cdot \grad{\u}$ terms\\
   \texttt{itwofluid}& 1 & 1: Include $\j\times\B$ and
-  $\grad{p_e}$ terms in Ohm's law\\ 
+  $\grad{p_e}$ terms in Ohm's law (electron form).  2: ion form (not
+  recommended)  3: parallel pressure gradient in Ohm's law only
+  (not recommended) \\
+  \texttt{ibootstrap} & 0 & 1: include bootstrap current \\
+  \texttt{ibootstrap\_model} & 0 & 1: J\_BS = alpha F <p,psi> B \\
+  \texttt{bootstrap\_alpha} & 0 & alpha parameter in bootstrap current model \\
+  \texttt{imp\_bf} & 0 & 1: include implicit equation for f (recommended for
+  3D and 2D complex) \\
+  \texttt{nosig} & 0 & 1: drop sigma terms from momentum equation \\
+  \texttt{itor}   & 0   & 0: cartesian; 1: cylindrical\\
+  \texttt{istatic}& 0   & 1: Do not advance velocity\\
+  \texttt{iestatic}&0   & 1: Do not advance magnetic fields\\
+  \texttt{chiiner} & 1. & factor to multiply the chi equation inertial terms \\
+  \texttt{ieq\_bdotgradt} & 1. & 1: include equilibrium parallel T gradient \\
+  \texttt{no\_vdg\_T} & 0 & 1: do notinclude V dot grad T in Temp equation (debug) \\
+  \texttt{iwall\_is\_limiter} & 1 & 1: wall acts as limiter \\
+  \texttt{kinetic} & 0 & 1: Use kinetic PIC for hot pressure, 
+                         2: Incompressible CGL,
+                         3. Full CGL  
 \end{tabular}
 
+\begin{tabular}{llp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{iadiabat} & 1 & 1: Corrects several problems with itemp=1 option \\
+  \texttt{irunaway} & 0 & 1:  include runaway electron model \\
+  \texttt{cre} & 0 & runaway speed \\
+  \texttt{imp\_temp} & 0 & 0: compute temperatures for isplitstep=0, itemp=0 \\
+  \texttt{iohmic\_heating} & 1 & 1: Include Ohmic heating term in heating \\
+  \texttt{irad\_heating} & 1 & 1: Include radiation heat sink \\
+  \texttt{gravr} & 0 & gravitational acceleration in R-direction \\
+  \texttt{gravz} & 0 & gravitational acceleration in Z-direction 
+\end{tabular}
 
 \subsection{Physical Parameters}
 
@@ -1189,10 +1219,7 @@ and the truncation error is
   \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
-  \texttt{db}     & $d_i$   & 0   & Ion skin depth\\
-  \texttt{gravr}, \texttt{gravz} & \vec{g} & 0 & \parbox[t]{1.8in}{Gravity.\\
-                       $\vec{g} = -(\mathtt{gravr}/R^2) \uvec{R} 
-                                  - \mathtt{gravz}\ \uvec{Z}$.}
+  \texttt{db}     & $d_i$   & 0   & Ion skin depth\\ 
 \end{tabular}
 
 
@@ -1337,7 +1364,6 @@ and the truncation error is
   \texttt{iread\_dskbal}  & 0 & 1: Read BAL file 'dskbal'\\
   \texttt{iread\_jsolver} & 0 & 1: Read Jsolver file 'fixed'
 \end{tabular}
-
 
 \subsection{Initial Conditions Options}
 
@@ -1485,7 +1511,6 @@ and the truncation error is
   \texttt{control\_d} & $c_d$ & 0              & Derivative coefficient\\
 \end{tabular}
 
-
 \subsection{Density Source Options}
 
 \begin{tabular}{llcp{2in}}
@@ -1509,7 +1534,6 @@ and the truncation error is
   \texttt{ionization\_depth}& $l_i$   & 0.01 & Temperature 
     scale-length of neutral burn-out
 \end{tabular}
-
 
 \subsection{Diagnostics Options}
 
