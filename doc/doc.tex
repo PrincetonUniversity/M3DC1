@@ -1213,6 +1213,128 @@ and the truncation error is
   \texttt{gravz} & 0 & gravitational acceleration in Z-direction 
 \end{tabular}
 
+\subsection{Initial Conditions Options}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{itaylor} & 0 & \begin{minipage}[t]{2.5in}
+    Pre-defined initial conditions.\\
+ {\bf for itor=1 (toroidal geometry)} \\ 
+    0: Tilting cylinder \\
+    1: Calls Grad-Shafranov solver \\
+    2: magneto-rotational equilibrium \\
+    3: rotational instability \\   
+    40: Fixed boundary stellarator \\
+    41: Free boundary stellarator \\
+ {\bf for itor=0 (slab geometry) } \\
+    0: Tilting cylinder\\
+    1: Taylor Reconnection\\
+    2: Force-Free equilibrium (Taylor state) \\
+    3: GEM Reconnection\\
+    4: Wave Propagation\\
+    5: Gravitational Instability\\
+    6: Strauss equilibrium \\
+    7: circular field init \\
+    8,9:  biharmonic \\
+    10,11,12,13:: analytic RWM test problem \\
+    14: 3D wave test \\
+    15: 3D diffusion test \\
+    16:  FRS cylindrical equilibrium \\
+    17:  ftz init \\
+    18:  eigen init \\
+    19:  ASDEX profiles similar to YU's \\
+    20: kstar profiles with multiple q=1 surfaces \\
+    21,22: fixed q(r) and p(r) profiles \\
+    23:  Startsev equilibrium with $ J = (1/R_0q_0)(1 - r^2)$ \\
+    27:  cylindrical test problem \\
+    29:  basicJ profiles \\
+  \end{minipage}\\
+  \texttt{iupstream} & 0 & 1: addsdiffusion term to convection-like upstream differencing \\
+  \texttt{magus}  & 5.e-2 & magnitude of the upstream diffusion term \\
+  \texttt{iflip}    &  0 & 1: Flip coordinate system handedness\\
+  \texttt{iflip\_b} &  0 & 1: Flip sign of toroidal field\\
+  \texttt{iflip\_j} &  0 & 1: Flip sign of toroidal current\\
+  \texttt{iflip\_v} &  0 & 1: Flip sign of toroidal velocity\\
+  \texttt{iflip\_z} &  0 & 1: Flip equilibrium across z=0 plane \\
+\end{tabular}
+
+\begin{tabular}{llp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{icsym}    &  0 &  
+    \begin{minipage}[t]{2.5in}
+    Symmetry of random perturbations \\
+    0: No symmetry\\
+    1: Odd up-down symmetry (in $U$)\\
+    2: Even up-down symmetry (in $U$)
+  \end{minipage}\\
+
+  \texttt{bzero} & 1      & $B_\tor$ at \texttt{rzero}\\
+  \texttt{bx0}  & 0 & Initial field in x-direction for some test problems \\
+  \texttt{vzero} & 0 & Initial toroidal velocity for some test problems \\
+  \texttt{phizero} & 0 & Initial velocity stream function for some test problems \\
+  \texttt{v0\_cyl} & 0 & Central toroidal velocity for some test problems \\
+  \texttt{v1\_cyl} & 0 & VZ=v0\_cyl + v1\_cyl*psin**beta \\
+ \texttt{idevice}    &  0 &
+    \begin{minipage}[t]{2.5in}
+    define coils for a particular device \\
+    -1: reads coil.dat file \\
+    0: generic dipole configuration \\
+    1: CDX-U \\
+    2: NSTX \\
+    3: ITER \\
+    4: DIII-D
+  \end{minipage}\\
+  \texttt{iwave} & 0 & defines what wave to initialize in wave propagation test \\ 
+  \texttt{eps}      &  0.01 & Size of random perturbation\\
+  \texttt{maxn}     &  200 & Maximum wavenumber of initial random noise\\
+  \texttt{verzero}  & 0 & magnitude of initial vertical velocity \\
+   \texttt{irmp}    &  0 &
+    \begin{minipage}[t]{2.5in}
+    1: apply nonaxisymmetric fields throughout plasma.  
+       reads rmp\_coil.dat for (R,Z) of window pane coils.  
+       reads rmp\_current.dat for (+-) currents in kA and phases in degrees.  
+       toroidal mode number of current specified by ntor  \\
+    2: apply nonaxisymmetric fields only at aoundaries. 
+  \end{minipage}\\
+
+ \texttt{rmp\_atten}  &  0  & additional exponential decay of RMP field from r=1 for irmp=2 \\
+ \texttt{iread\_ext\_field} & 0 & 1: read external field \\
+ \texttt{beta}  & 0 & parameter used in some model equilibrium initializations \\
+ \texttt{ln} & 0 & length scale parameter used in some model equilibrium \\
+ \texttt{elongation} & 1 & elongation used in Solovev equilibrium
+
+\end{tabular}
+
+\begin{tabular}{llp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+
+ \texttt{isample\_ext\_field} & 1 & factor to down sample external field data toroidally \\
+ \texttt{isample\_ext\_field\_pol} & 1 & factor do down sample external field data poloidally \\
+ \texttt{scale\_ext\_field} & 1 & factor to scale external field \\
+ \texttt{shift\_ext\_field} & 0 & toroidal shift (in deg) of external fields \\
+ \texttt{ibasicj\_solvep} & 0 & 0: uniform p, solve for F; 1: uniformF, solve for p \\
+ \texttt{basicj\_nu} &1 & exponent in basicj equilibrium \\
+ \texttt{basicj\_j0} & 1 & On-axis current density in basicj equilibrium \\
+ \texttt{basicj\_voff} & 1 & Radial extent of flat toroidal rotation in basicj equilibrium \\
+ \texttt{basicj\_vdelt} & 1 & Width of velocity drop-off, as fraction of ln, in basicj equilibrium \\
+ \texttt{basicj\_dexp} & 1 & parameter for basicj equilibrium \\
+ \texttt{basicj\_dvac} & 1 & parameter for basicj equilibrium \\
+ \texttt{basicj\_q0} & 0 &   parameter for basicj equilibrium \\
+ \texttt{basicj\_qa}  & 0 &   parameter for basicj equilibrium \\
+ \texttt{pf\_shift} & 0 & (array) horizontal shift of PF coil \\
+ \texttt{pf\_shift\_angle} & 0 & (array) direction of PF shift in degrees \\
+ \texttt{pf\_tilt} & 0 & (array) Angle of PF from vertical in degrees \\
+ \texttt{pf\_tilt\_angle} & 0 & (array) Axis of rotation for PF tilt in degrees \\
+ \texttt{tf\_shift} & 0 & horizontal shift of TF coils \\
+ \texttt{tf\_shift\_angle} & 0 & direction of TF shift in degrees \\
+ \texttt{tf\_tilt} & 0 & angle of TF from vertical in degrees \\
+ \texttt{tf\_tilt\_angle} & 0 & axis of rotation for TF tilt in degrees \\
+
+\end{tabular}
+
 \subsection{Physical Parameters}
 
 \begin{tabular}{llcl}
@@ -1365,55 +1487,6 @@ and the truncation error is
   \texttt{iread\_jsolver} & 0 & 1: Read Jsolver file 'fixed'
 \end{tabular}
 
-\subsection{Initial Conditions Options}
-
-\begin{tabular}{llcp{2.5in}}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{itaylor} & & 0 & \begin{minipage}[t]{2.5in}
-    Pre-defined initial conditions.\\
-    0: Tilting cylinder\\
-    1: Taylor Reconnection\\
-    2: Force-Free equilibrium\\
-    3: GEM Reconnection\\
-    4: Wave Propagation\\
-    5: Gravitational Instability\\
-  \end{minipage}\\
-  \texttt{irmp} & & 0 & 
-  \begin{minipage}[t]{2.5in}
-    Add nonaxisymmetric perturbation from
-    \texttt{rmp\_coil.dat} and \texttt{rmp\_current.dat} with $n =
-    \mathtt{ntor}$\\
-    1: Initial perturbation is vacuum field\\
-    2: Perturbation only at boundary
-  \end{minipage}\\
-  \texttt{maxn}     & & 200 & Maximum wavenumber of initial random noise\\
-  \texttt{eps}      & & 0.01 & Size of random perturbation\\
-  \texttt{iflip}    & & 0 & 1: Flip coordinate system handedness\\
-  \texttt{iflip\_b} & & 0 & 1: Flip sign of toroidal field\\
-  \texttt{iflip\_v} & & 0 & 1: Flip sign of toroidal velocity\\
-  \texttt{icsym}    & & 0 &
-  \begin{minipage}[t]{2.5in}
-    Impose symmetry on random perturbations
-    0: No symmetry\\
-    1: Odd up-down symmetry (in $U$)\\
-    2: Even up-down symmetry (in $U$)
-  \end{minipage}\\
-  \texttt{bscale}      & & 1.0 & Bateman scaling for toroidal field\\
-  \hline
-  \texttt{den\_edge}   & $\rho_e$      & 0.0 & \\
-  \texttt{den0}        & $\rho_0$      & 1.0 & \\
-  \texttt{denoff}      & $\Psi_c^\rho$ & 1.0 & \\
-  \texttt{dendelt}     & $\Delta^\rho$ & 0.1 & \\
-  \texttt{idenfunc}    &               & 0   &
-  \begin{minipage}[t]{2.5in}
-    0: Use problem-specific density\\
-    2: $\rho = \rho_0 + \frac{1}{2}\rho_e \{1 + \tanh[(\Psi - \Psi_c^{\rho})/\Delta^{\rho}]\}$\\
-    3: $\rho = \rho_0 + \rho_e H(\Psi - \Psi_c^{\rho})$\\
-    4: Read density profile from 'PROFDEN.txt'
-  \end{minipage}
-\end{tabular}
-
 \subsection{Grad-Shafranov Solver Options}
 \begin{tabular}{lcp{3in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
@@ -1435,7 +1508,6 @@ and the truncation error is
   \texttt{tcuro} & 1      & Plasma current in GS equilibrium\\
   \texttt{q0}    & 1      & Safety factor at magnetic axis\\
   \texttt{djdpsi}& 0      & $J_\tor'(\Psi)$ at magnetic axis\\
-  \texttt{bzero} & 1      & $B_\tor$ at \texttt{rzero}\\
   \texttt{pedge} & 0      & Pressure in vacuum region\\
   \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
   \texttt{p1}    & -1     & $p'(\Psi)$ at magnetic axis\\
@@ -1451,7 +1523,19 @@ and the truncation error is
   \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
     density gradient: $n = p^\mathtt{expn}$.}\\
   \texttt{psiscale} & 1.0 & Rescale profiles s.t. LCFS is at 
-  $\Psi=\mathtt{psiscale}$.
+  $\Psi=\mathtt{psiscale}$. \\
+  \texttt{bscale}      &  1.0 & Bateman scaling for toroidal field\\
+  \texttt{den\_edge}        & 0.0 & \\
+  \texttt{den0}             & 1.0 & \\
+  \texttt{denoff}           & 1.0 & \\
+  \texttt{dendelt}          & 0.1 & \\
+  \texttt{idenfunc}         & 0   &
+  \begin{minipage}[t]{2.5in}
+    0: Use problem-specific density\\
+    2: $\rho = \rho_0 + \frac{1}{2}\rho_e \{1 + \tanh[(\Psi - \Psi_c^{\rho})/\Delta^{\rho}]\}$\\
+    3: $\rho = \rho_0 + \rho_e H(\Psi - \Psi_c^{\rho})$\\
+    4: Read density profile from 'PROFDEN.txt'
+  \end{minipage}
 \end{tabular}
 
 
