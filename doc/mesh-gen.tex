@@ -1,11 +1,16 @@
-\section{Mesh Preparation}
+\section{Generation and Management of M3D-C$^{1}$ Meshes}
 \subsection{Introduction}
 
-The M3D-C$^{1}$ requires a geometric model and a mesh that are the representation of the analysis domain. 
+This section describes the methods used to generate M3D-C$^{1}$ meshes for Tokamak geometries. This process involves the use of specific software and interaction with several files that contain the associated geometry and mesh information.
+
+The process of generating M3D-C$^{1}$ meshes involves the use of two software libraries. They are: 
 \begin{itemize}
-\item PUMI is a parallel mesh infrastructure toolkit developed at SCOREC, RPI. For more information, visit \href{http://www.scorec.rpi.edu/pumi}{http://www.scorec.rpi.edu/pumi}.
-\item	Simmetrix provides a set of tools and libraries for engineering simulation including a state-of-art mesh generation. For more information, visit \href{http://simmetrix.com}{http://simmetrix.com}.
+\item m3dc1\_meshgen coordinates the process of generating the an initial M3D-C$^{1}$
+\item	Simmetrix provides a set of tools and libraries for engineering simulation including a state-of-art mesh generation. For more information, visit \href{http://simmetrix.com}{http://simmetrix.com}. The Simmetrix library is used to generate the M3D-C$^{1}$ meshes. The Simmetrix meshing library is used by m3dc1\_meshgen for the actual mesh generation. The Simmetrix GUI can be used after the execution of m3dc1\_meshgen to apply additional mesh controls for the generation of meshes with different mesh gradations. 
+\item PUMI is a parallel mesh infrastructure toolkit developed at SCOREC, RPI. For more information, visit \href{http://www.scorec.rpi.edu/pumi}{http://www.scorec.rpi.edu/pumi}. The PUMI library is used to manage the mesh information as it is processed and within the M3D-C$^{1}$ code.
 \end{itemize}
+
+There are a number of files involved with housing the geometry and mesh information. 
 
 The model file extensions referred in this document is the following
 \begin{itemize}
@@ -33,7 +38,7 @@ The mesh file extensions referred in this document is the following.
 \item \texttt{.vtu/pvtu}: binary format mesh file for visualization with Paraview. For more information, visit \href{http://paraview.org}{http://paraview.org}.
 \end{itemize}
 
-Model/Mesh requirements for M3D-C$^{1}$ is the following
+An overview of the Model/Mesh requirements for the M3D-C$^{1}$ mesh generation process are as follows:
 \begin{itemize}
 \item	The model and mesh shall be generated as described in Section~\ref{ch:mesh-gen}.
 \item	The mesh file must be PUMI-readable \texttt{.smb} file. Note that a mesh file name contains a number before the extension (.smb) to denote a global part ID.
@@ -59,7 +64,7 @@ The rest of this section is organized as follows: Section \ref{ch:mesh-gen} desc
 \label{ch:mesh-gen}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-The program \texttt{m3dc1\_meshgen} generates a mesh. As it requires a Simmetrix Licence, it is currently available only on PPPL Portal in the following location:
+The program \texttt{m3dc1\_meshgen} is used to define the tokamak cross section geometry and an initial mesh. Its execution requires a Simmetrix Licence, it is currently available only on PPPL Portal in the following location:
 \newline\newline
 \texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/petsc-3.13.5/bin}
 
@@ -205,7 +210,8 @@ The program \texttt{read\_jsolver} generates equilibrium and stores in the file 
 \end{itemize} 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Mesh Control with Simmodeler}
+\subsection{Mesh Control with SimModeler}
+SimModeler is a graphical user interface to the Simmetrix geometry and mesh generation software. In cases where the currently available capabilities of m3dc1\_meshgen do not provide a satisfactory mesh, SimModeler can be used to apply alternative mesh control information to the Tokamak cross section geometry to generate different meshes. The information below indicates the application of a subset of the mesh controls that can be applied. For additional information of the full range of SimModeler mesh control options see: ********** FILL IN POINTER TO SIMMETRIX DOCUMENTATION *****
 \label{ch:simmodeler}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 (Contributed by D. Pfefferle on 4/27/16) On PPPL Portal, load a module \texttt{simmodeler} and run it.
