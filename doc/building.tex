@@ -1,278 +1,186 @@
-\section{Download and Compilation}
+\section{Obtaining M3D-C1}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Accessing PPPL Machines}
+\subsection{License Agreement}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Once you obtain a PPPL Unix user account, please visit the website:   
-\newline\newline
-\href{http://researchcomputing.pppl.gov}{http://researchcomputing.pppl.gov}
-\newline\newline
-There, you will find instructions for installing NX virtual Desktop.
-\newline\newline
-In PPPL machine, first get an interactive session for a single processor on the \texttt{portal} computer.    
-The M3DC1 code is located in the Github repository: \texttt{PrincetonUniversity/M3DC1}. 
-Access to this repository requires a Github account and permission from \href{mailto:nferraro@pppl.gov}{Dr. Nate Ferraro}. 
-Note that Section \ref{ch:preinstall} describes how to use pre-compiled versions of M3D-C$^{1}$ so you do not need githup access.
+M3D-C1 is a code developed with funding from the US Department of
+Energy, and is intended for open scientific research.  If you intend
+to run M3D-C1 and publish results, we ask you to please sign the
+license agreement here:
+
+https://m3dc1.pppl.gov/M3D-C1\_License.pdf
+
+Please be aware that permission to run M3D-C1 does not carry an
+implicit agreement to provide support for compiling, running, or
+interpreting output of, M3D-C1.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Github}
+\subsection{Preinstalled M3D-C1 Executables}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Retrieve the current version of M3D-C$^{1}$ from the GIT repository.  For the first time, to check out the sources do:
+For the general user, we recommend using precompiled executables and
+associated modules for release versions, where available.
+Installations are presently available on a number of systems,
+including:
+
 \begin{description}
-\item[ ] Initial access is with the \texttt{clone} command.   This copies the source code from the master file into a working directory on your machine.   You only do this once on each computer you work on.
-\item[ ] \texttt{module load git}
-\item[ ] \texttt{git clone https://github.com/PrincetonUniversity/M3DC1}
+\item{GA Iris}:\\
+  \texttt{module use /fusion/projects/codes/m3dc1/modules}\\
+  \texttt{module load m3dc1/1.13}
+\item{NERSC Cori}:\\
+  \texttt{module use /global/cfs/projectdirs/mp288/C1/modules/cori}\\
+  \texttt{module load m3dc1/1.13-haswell}\quad
+  for Phase I (Haswell) partition\\
+  \texttt{module load m3dc1/1.13-knl}\quad
+  for Phase II (KNL) partition
+\item{PPPL Cluster}:\\
+  \texttt{module use /p/m3dc1/modules}\\
+  \texttt{module load m3dc1/1.13}
+\item{PU Stellar}:\\
+  \texttt{module use /projects/M3DC1/modules}\\
+  \texttt{module load m3dc1/1.13}
 \end{description}
 
-Subsequent GIT commands used to commit:
+These modules will modify the user's enviroment variables
+appropriately to access the M3D-C1 executables, python libraries, and
+IDL routines.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Accessing the M3D-C1 Source Code}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+If you choose to build the code yourself, either to use an unreleased
+version or to do code development yourself, you will need access to
+the M3D-C1 code repository.  The M3D-C1 source code is located in the
+Github repository: \texttt{PrincetonUniversity/M3DC1}. Access to this
+repository requires a Github account and permission from
+\href{mailto:nferraro@pppl.gov}{Dr. Nate Ferraro}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Makefiles and Dependencies}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Some of the build scripts depend on the following environment
+variables to be set, to specify the location of the M3D-C1 source code
+and the directory in which to install any compiled executables:
 \begin{description}
-\item[ ] \texttt{add/commit/push}
-you \texttt{add} files to a list of files to update, \texttt{commit} the changes to your branch, and then \texttt{push} the changes to the master branch
-\item[ ] \texttt{git commit -m ``message describing changes''} (adding -a commits all changes)
-\item[ ] \texttt{diff} lists the changes you made from the last commit, even if you haven't pushed your commits to github.    
-   To see how your files differ from what's on github, you can do:
+\item{\texttt{M3DC1\_DIR}} should be set to the directory containing
+  the M3D-C1 source code.  For example:\\
+  \texttt{setenv M3DC1\_DIR \$HOME/src/M3DC1}
+\item{\texttt{M3DC1\_INSTALL\_DIR}} should be set to the directory in
+  which M3D-C1 will be installed.  For example:\\
+  \texttt{setenv M3DC1\_INSTALL\_DIR \$HOME/M3DC1}
+\end{description}
+It is recommended to set these values in your login script.
+
+Makefiles for a number of systems are included in the repository,
+with filenames \texttt{\$M3DC1\_DIR/unstructured/*.mk}.  For most of
+these systems, environment modules are also included in the
+repository.  These modules will load the appropriate software modules
+for building on that particular system, and can be loaded using:
+
 \begin{description}
-\item[ ] \texttt{git fetch origin master}
-\item[ ] \texttt{git diff origin/master}
-\end{description}
-\item[ ] \texttt{status} compares your branch with the master branch
-\item[ ] \texttt{pull} updates your local branch to the current master branch
-\newline
-\texttt{	may need to origin master}
-\item[ ] \texttt{stash} takes uncommitted changes, saves them for later use, and reverts files in working directory
-\newline
-\texttt{stash list	stash drop	stash apply	stash pop (apply+drop)}
-\item[ ] \texttt{stash pop} removes changes from your stash and reapplies them to working copy
-\item[ ] \texttt{stash apply} keeps changes in stash, but reapplies them to working copy
-\item[ ] \texttt{reset -hard} discards any changes to local branch since last commit
-\item[ ] \texttt{branch} tells you what branch you are in
-\item[ ] \texttt{log} (--oneline) (--after 2017-12-31) lists all the commits for the checked-out branch after that date
-\newline
-log -pretty=format: ``\%h - \%an, \%ar : \%s''
-\item[ ] \texttt{checkout} b8d17c0 switches to commit branch b8d17c0
+\item{NERSC Cori}:\\
+  \texttt{module use \$M3DC1\_DIR/modules/cori}\\
+  \texttt{module load m3dc1/devel-haswell}\quad
+  for Phase I (Haswell) partition\\
+  \texttt{module load m3dc1/devel-knl}\quad
+  for Phase II (KNL) partition
+\item{NERSC Perlmutter}:\\
+  \texttt{module use \$M3DC1\_DIR/modules/perlmutter}\\
+  \texttt{module load m3dc1/devel}
+\item{PPPL Cluster}:\\
+  \texttt{module use \$M3DC1\_DIR/modules/pppl}\\
+  \texttt{module load m3dc1/devel-centos7}
+\item{PU Stellar}:\\
+  \texttt{module use \$M3DC1\_DIR/modules/stellar}\\
+  \texttt{module load m3dc1/devel}
 \end{description}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Branches in git}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+It is recommended to place the appropriate \texttt{module use}
+statement in your login script.  The makefile should have the name
+\texttt{\$\{M3DC1\_ARCH\}.mk}.  If \$M3DC1\_ARCH is not defined, it
+will default to \texttt{\$HOST}, stripped of any trailing numbers
+identifying a node index on multinode systems (\textit{e.g.} if
+\texttt{\$HOST==``sunfire06''} then \texttt{\$M3DC1\_ARCH} will
+default to ``sunfire'').
 
-To make a new branch called fp\_phase2
-\\==========================================
-\\\texttt{> git checkout master} \# switch to the master branch
-\\\texttt{> git pull}  \# make sure the master branch is up-to-date
-\\\texttt{> git checkout -b fp\_phase2} \# The ``-b'' create a new branch
-\\\#   this will be identical to master to start
-\\\texttt{> git push --set-upstream origin fp\_phase2} 
-\\\# push this new branch to the remote repo so others can access it
-\newline\newline
-Committing changes (e.g., newpar.f90)
-\\===========================================
-\\
-\texttt{> git pull}                           \# Always do this before you start committing
-\\\#   if you forget, you risk diverging your local branch from remote
-\\
-\texttt{> git add newpar.f90} \# This stages the current changes in newpar.f90 for commit
-\\\#   you could then make more changes before committing,
-\\\#   but you'd have to add again to get those into the commit
-\\
-\texttt{> git commit -m "Changed newpar.f90"} \# Commit changes to your local branch 
-\\
-\texttt{> git push}                           \# Push commits to the remote repo
-\\\#   ---set-upstream only needs to be done the first time
-\newline\newline
-Merge changes on master into fp\_phase2 (e.g., some important bug fix)
-\\===========================================
-\\\texttt{> git checkout master}    \# switch to the master branch
-\\\texttt{> git pull}               \# get the latest commits on the master branch
-\\\texttt{> git checkout fp\_phase2} \# switch back to fp\_phase2 (no need for -b now)
-\\\texttt{> git pull}               \# get latest commits on fp\_phase2 to avoid conflicts
-\\\texttt{> git merge master}       \# merge any new commits into fp\_phase2
-\\\#  - this makes a commit
-\\\#  - you may need to resolve conflicts
-\\\texttt{> git push}               \# push the merge commit to remote repo
-\newline\newline
-Inverting fp\_phase2 and master here would merge the development branch into master locally, then the push would send the merge to the remote master.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{On-line Documentation}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-An extensive document that describes equations solved by the code and the input variables in \texttt{"C1input"} is in the GIT repo. Please refer to: \texttt{\ldots/trunk/unstructured/doc/doc.pdf}
-\newline\newline
-Machine-specific instructions for portal, perseus, Edison, Cori are in:  
-\texttt{\ldots/trunk/unstructured/README}
-\newline\newline
-Additional documentation is available on the site: \href{http://w3.pppl.gov/~nferraro}{http://w3.pppl.gov/$\sim$nferraro} under the ``M3D-C$^{1}$'' tab.
-\newline\newline
-The latest copy of his document is available at: \href{http://m3dc1.pppl.gov}{http://m3dc1.pppl.gov}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Compilation}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Load Modules}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+If you are building M3D-C1 on a system for which no makefile or development
+module is provided, please refer to the existing makefiles and modules
+as examples.  In general, M3D-C1 requires the following dependencies:
 \begin{itemize}
-\item{\texttt{PPPL RHEL6 machines (portal.pppl.gov)}}
-\newline\newline
-\texttt{[openmpi-1.8.4]}
-\\Load the following modules and copy sunfire.openmpi-1.8.4.mk to sunfire.pppl.gov.mk
-\newline\newline
-\texttt{
-openmpi/1.8.4 intel/2015.u1 gsl/1.16 szip/2.1 hdf5-parallel hdf/4.2r1 
-\\
-scalapack	fftw			
-}
-\newline\newline
-See README/readme.portalr.openmp-1.8.4 for detailed instructions and an example job script
-\newline\newline
-\texttt{[openmpi-1.10.3]}
-\\
-Load the following modules and copy sunfire.openmpi-1.10.3.mk to sunfire.pppl.gov.mk
-\newline\newline
-\texttt{openmpi/1.10.3 intel/2015.u1 gsl szip hdf5-parallel/1.8.17 
-}
-\newline\newline
-See README/readme.portal.openmp-1.10.3 for detailed instructions and an example job script.
-\newline\newline
-\texttt{[openmpi-4.0.1]}
-\\
-Load the following modules and copy sunfire.openmpi-1.10.3.mk to sunfire.pppl.gov.mk
-\newline\newline
-\texttt{
-openmpi/4.0.1 intel/2019.u3 gsl	szip scalapack 
-}
-\newline\newline
-See README/readme.portal.openmp-4.0.1 for detailed instructions and an example job script.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\item{\texttt{PPPL RHEL7 machines (portalc7.pppl.gov)}}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newline\newline
-Load the following modules and copy \texttt{centos7.mk} to \texttt{sunfire.pppl.gov.mk}
-\newline\newline
-\texttt{openmpi/4.0.3 intel/2019.u3 hdf5-parallel/1.10.5 
-}
-\newline\newline
-See README/readme.centos7 for detailed instructions and an example job script.
-
-\item{\texttt{cori.nersc.gov}}
-\newline\newline
-See \texttt{README/readme.cori} and \texttt{README/readme.corigpu} for detailed instructions and an example job script.
-
-\item{\texttt{perseus.princeton.edu}}
-\newline\newline
-Follow the instructions in \ref{ch:setup-idl} in first setting up idl 
-\\
-Load the following modules:
-\newline\newline
-\texttt{intel/18.0/64/18.0.3.222 intel-mpi/intel/2018.3/64 gsl/2.4
-\\
-hdf5/intel-17.0/intel-mpi/1.10.0	fftw/intel-16.0/intel-mpi/3.3.4
-}
-\newline\newline
-See README/readme.perseus for detailed instructions and an example job script.
-\\
-For help regarding perseus, send email to: \href{mailto:cses@princeton.edu}{cses@princeton.edu}
-\item{\texttt{perseus-amd.princeton.edu}}
-\newline\newline
-Load the following modules:
-\newline\newline
-\texttt{
-intel/18.0/64/18.0.3.222 intel-mpi/intel/2018.3/64 gsl
-\\
-hdf5/intel-17.0/intel-mpi/1.10.0	fftw/intel-16.0/intel-mpi/3.3.4
-}\\
-See README/readme.perseusamd for detailed instructions and an example job script.
-\newline\newline
-For help regarding perseus, send email to: \href{mailto:cses@princeton.edu}{cses@princeton.edu}
-
-\item{\texttt{stellar.princeton.edu}}
-\newline\newline
-See README/readme.stellar for detailed instructions and an example job script.
-\\
-For help regarding stellar, send email to: \href{mailto:cses@princeton.edu}{cses@princeton.edu}
-
-\item{\texttt{traverse.princeton.edu}}
-\newline\newline
-Load the following modules:
-\newline\newline
-\texttt{pgi/19.9/64 openmpi/pgi-19.9/4.0.3rc1/64 cudatoolkit/10.1
-\\
-hdf5/pgi-19.5/openmpi-4.0.2rc1/1.10.5 fftw/gcc/ openmpi-4.0.1/3.3.8
-}\\
-See README/readme.traverse for detailed instructions and an example job script.
-\newline\newline
-For help regarding traverse, send email to: \href{mailto:cses@princeton.edu}{cses@princeton.edu}
+\item Compilers for C, C++, and Fortran;
+\item MPI
+\item HDF5 compiled with support for Fortran and MPI
+\item netcdf
+\item GSL
+\item FFTW
+\item PETSc compiled with support for Fortran, complex-valued
+  functions, MUMPS and/or SuperLU\_dist
+\item PUMI meshing libraries
 \end{itemize}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Make}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The sources are located in the directory: \texttt{\ldots/trunk/unstructured}
-\\
-By default, M3D-C$^{1}$ is linked with PETSc and release version of SCOREC libraries.
-\\
-\begin{itemize}
-\item 	For a 2D nonlinear version of the code: \texttt{make OPT=1 MAX\_PTS=25}
-\item	For a linear version of the code:  \texttt{make OPT=1 COM=1 MAX\_PTS=25}
-\item	For a 3D nonlinear version of the code: \texttt{make OPT=1 3D=1 MAX\_PTS=60}
-\end{itemize}
-To compile M3DC1 with debug version of SCOREC libraries for lots of sanity checks and informative print statements, add ``SCORECVER=debug'' to the make command. Note that debug versions are available only on PPPL and NERSC Cori.
-\newline\newline
-The executable files are located in a sub-directory that is named with an underscore followed by the host name and compile options. For a host name ``xxxx'', these commands will generate a folder and an executable file as the following, respectively.
-\begin{description}
-\item \_xxxx-opt-25/m3dc1\_2d
-\item	\_xxxx-complex-opt-25/m3dc1\_2d\_complex
-\item \_xxxx-3d-opt-60/m3dc1\_3d
-\end{description}
-A Tip for \texttt{"MAX\_PTS"}:  All the M3D-C$^{1}$ control parameters are described in the file \texttt{"C1input"} and the file \texttt{"C1input"} should exist in the work folder where the simulation runs. The C1input parameters \texttt{int\_pts\_main}, \texttt{int\_pts\_aux}, and \texttt{int\_pts\_diag} must be the same or less than \texttt{MAX\_PTS}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Pre-installed release}
-\label{ch:preinstall}
+\subsection{Building}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-An alternative to compiling the code yourself, you can use a pre-installed release version of M3D-C$^{1}$.    The following instructions for using the modules are taken from the ``Tutorial" document linked from \href{http://w3.pppl.gov/~nferraro/m3dc1.html}{http://w3.pppl.gov/\~{}nferraro/m3dc1.html}
-On the PPPL cluster, load the following modules:
-\newline\newline
-\texttt{module use /p/m3dc1/modules
-\\
-module load m3dc1/1.11
-}
 
-Release versions of m3D-C1 have also been installed on a number of other systems.   The location of the M3D-C$^{1}$ modules for each of these systems is:
-\begin{itemize}
-\item	PPPL Cluster:	module use /p/m3dc1/modules
-\item	NERSC Cori:	module use /project/projectdirs/mp288/C1/modules/cori
-\begin{itemize}
-\item		Phase 1: module load m3dc1/1.11-haswell
-\item		Phase 2: module load m3dc1/1.11-knl
-\end{itemize}
-\item	Princeton stellar:	module use /home/nferraro/modules
-\item	GA Iris:		module use /fusion/projects/codes/m3dc1/modules
-\end{itemize}
+Once the appropriate makefile has been defined, the M3D-C1 executables
+can be built by entering \texttt{\$M3DC1\_DIR/unstructured} and
+running
+
+\texttt{make all}
+
+This will run the following commands:
+
+\begin{tabular}{ll}
+\texttt{make OPT=1} & Builds the 2D version\\
+\texttt{make OPT=1 COM=1} & Builds the complex version\\
+\texttt{make OPT=1 3D=1 MAX\_PTS=60} & Builds the 3D version\\
+\texttt{make OPT=1 3D=1 MAX\_PTS=60 ST=1} & Builds the stellarator version\\
+\texttt{make a2cc} & Builds a utility for extracting coil currents
+from a-eqdsk files\\
+\texttt{make bin} & Puts executables into the \texttt{\_\$M3DC1\_ARCH} subdirectory\\
+\end{tabular}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Regression Tests}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-This section describes how to run regression tests (example for cori\_knl).
 
-\begin{enumerate}
-\item compile all versions from \texttt{\ldots/unstructured} (OPT=1, OPT=1 COM=1, OPT=1 3D=1 MAX\_PTS=60)
-\item do \texttt{"export M3DC1\_MPIRUN=srun M3DC1\_VERSION=local M3DC1\_ARCH=cori\_knl"}
-\\
-(other machines: \texttt{M3DC1\_MPIRUN=mpiexec}, \texttt{M3DC1\_ARCH=stellar, centos7, cori, \ldots})
-\item from \texttt{\ldots/unstructured}, do \texttt{"make bin"}
-\item \texttt{PATH=\$PATH\textbackslash: \ldots/unstructured/\_\$M3DC1\_ARCH/bin}
-\item 
-\begin{description}
-\item cd regtest
-\item	./clean cori\_knl
-\item	./run cori\_knl	(wait until jobs finish)
-\item	./check cori\_knl
-\end{description}
-\end{enumerate}
+The M3D-C1 source code includes a suite of regression tests that
+should be run before commiting any new code to the repository.  To run
+these tests:
 
-NOTE:  On some machines, such as cori, there is a limit as to the number of jobs that can be submitted to the debug queue.   In this case, you need to wait until one job finishes, and submit the remaining job(s) manually by the command (for KPRAD\_restart):
-\texttt{./run cori\_knl KPRAD\_restart}
+\texttt{cd \$M3DC1\_DIR/unstructured/regtest}
+\texttt{./run <arch> <test>}
+
+where \texttt{<arch>} and \texttt{<test>} are optional arguments
+specifying the specific batch script to run, and the specific
+regression test to run, respectively.  By default,
+\texttt{<arch>=\$M3DC1\_ARCH}.
+
+If \texttt{<test>} is not
+specified, then all the regression tests will be run, using the batch
+scripts\\
+\texttt{\$M3DC1\_DIR/unstructured/regtest/*/base/batchjob.<arch>}.
+
+The \texttt{run} script will create new directories in which to run
+these regression tests, named\\
+\texttt{\$M3DC1\_DIR/unstructured/regtest/*/\$\{M3DC1\_VERSION\}\_<arch>/}.
+
+If \texttt{<test>} is specified, then only
+\texttt{\$M3DC1\_ARCH/unstructured/regtest/<test>/base/batchjob.<arch>}
+will be run (again, in a new directory named as described above).  If
+\texttt{<test>} is specified, then \texttt{<arch>} must also be
+specified.
+
+To check the results of the regression tests
+
+\texttt{./check <arch>}
+
 
