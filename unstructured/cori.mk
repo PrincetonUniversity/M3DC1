@@ -21,7 +21,7 @@ endif
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS
 
 #SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/intel6.0.5-mpich7.7.10/hsw-petsc3.12.4/
-SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-hsw
+SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-hsw2
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
@@ -44,18 +44,18 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
 
-#PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
-PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107
+#PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107
+PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609
 ifeq ($(COM), 1)
   PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-cplx
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
 else
   ifeq ($(ST), 1)
   PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-real-st
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lz -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
   else
   PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-real
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lzoltan -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
   endif
 endif
 

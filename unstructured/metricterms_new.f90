@@ -2098,7 +2098,7 @@ function v1p(e,f)
 
   temp = 0.
      if(surface_int) then
-        if(inoslip_pol.eq.1 .or. iconst_p.eq.1) then
+        if(inoslip_pol.eq.1 .or. iconst_p.ge.1) then
            temp = 0.
         else
            temp = &

@@ -1,0 +1,186 @@
+\section{Obtaining M3D-C1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{License Agreement}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+M3D-C1 is a code developed with funding from the US Department of
+Energy, and is intended for open scientific research.  If you intend
+to run M3D-C1 and publish results, we ask you to please sign the
+license agreement here:
+
+https://m3dc1.pppl.gov/M3D-C1\_License.pdf
+
+Please be aware that permission to run M3D-C1 does not carry an
+implicit agreement to provide support for compiling, running, or
+interpreting output of, M3D-C1.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Preinstalled M3D-C1 Executables}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+For the general user, we recommend using precompiled executables and
+associated modules for release versions, where available.
+Installations are presently available on a number of systems,
+including:
+
+\begin{description}
+\item{GA Iris}:\\
+  \texttt{module use /fusion/projects/codes/m3dc1/modules}\\
+  \texttt{module load m3dc1/1.13}
+\item{NERSC Cori}:\\
+  \texttt{module use /global/cfs/projectdirs/mp288/C1/modules/cori}\\
+  \texttt{module load m3dc1/1.13-haswell}\quad
+  for Phase I (Haswell) partition\\
+  \texttt{module load m3dc1/1.13-knl}\quad
+  for Phase II (KNL) partition
+\item{PPPL Cluster}:\\
+  \texttt{module use /p/m3dc1/modules}\\
+  \texttt{module load m3dc1/1.13}
+\item{PU Stellar}:\\
+  \texttt{module use /projects/M3DC1/modules}\\
+  \texttt{module load m3dc1/1.13}
+\end{description}
+
+These modules will modify the user's enviroment variables
+appropriately to access the M3D-C1 executables, python libraries, and
+IDL routines.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Accessing the M3D-C1 Source Code}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+If you choose to build the code yourself, either to use an unreleased
+version or to do code development yourself, you will need access to
+the M3D-C1 code repository.  The M3D-C1 source code is located in the
+Github repository: \texttt{PrincetonUniversity/M3DC1}. Access to this
+repository requires a Github account and permission from
+\href{mailto:nferraro@pppl.gov}{Dr. Nate Ferraro}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Makefiles and Dependencies}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Some of the build scripts depend on the following environment
+variables to be set, to specify the location of the M3D-C1 source code
+and the directory in which to install any compiled executables:
+\begin{description}
+\item{\texttt{M3DC1\_DIR}} should be set to the directory containing
+  the M3D-C1 source code.  For example:\\
+  \texttt{setenv M3DC1\_DIR \$HOME/src/M3DC1}
+\item{\texttt{M3DC1\_INSTALL\_DIR}} should be set to the directory in
+  which M3D-C1 will be installed.  For example:\\
+  \texttt{setenv M3DC1\_INSTALL\_DIR \$HOME/M3DC1}
+\end{description}
+It is recommended to set these values in your login script.
+
+Makefiles for a number of systems are included in the repository,
+with filenames \texttt{\$M3DC1\_DIR/unstructured/*.mk}.  For most of
+these systems, environment modules are also included in the
+repository.  These modules will load the appropriate software modules
+for building on that particular system, and can be loaded using:
+
+\begin{description}
+\item{NERSC Cori}:\\
+  \texttt{module use \$M3DC1\_DIR/modules/cori}\\
+  \texttt{module load m3dc1/devel-haswell}\quad
+  for Phase I (Haswell) partition\\
+  \texttt{module load m3dc1/devel-knl}\quad
+  for Phase II (KNL) partition
+\item{NERSC Perlmutter}:\\
+  \texttt{module use \$M3DC1\_DIR/modules/perlmutter}\\
+  \texttt{module load m3dc1/devel}
+\item{PPPL Cluster}:\\
+  \texttt{module use \$M3DC1\_DIR/modules/pppl}\\
+  \texttt{module load m3dc1/devel-centos7}
+\item{PU Stellar}:\\
+  \texttt{module use \$M3DC1\_DIR/modules/stellar}\\
+  \texttt{module load m3dc1/devel}
+\end{description}
+
+It is recommended to place the appropriate \texttt{module use}
+statement in your login script.  The makefile should have the name
+\texttt{\$\{M3DC1\_ARCH\}.mk}.  If \$M3DC1\_ARCH is not defined, it
+will default to \texttt{\$HOST}, stripped of any trailing numbers
+identifying a node index on multinode systems (\textit{e.g.} if
+\texttt{\$HOST==``sunfire06''} then \texttt{\$M3DC1\_ARCH} will
+default to ``sunfire'').
+
+If you are building M3D-C1 on a system for which no makefile or development
+module is provided, please refer to the existing makefiles and modules
+as examples.  In general, M3D-C1 requires the following dependencies:
+\begin{itemize}
+\item Compilers for C, C++, and Fortran;
+\item MPI
+\item HDF5 compiled with support for Fortran and MPI
+\item netcdf
+\item GSL
+\item FFTW
+\item PETSc compiled with support for Fortran, complex-valued
+  functions, MUMPS and/or SuperLU\_dist
+\item PUMI meshing libraries
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Building}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Once the appropriate makefile has been defined, the M3D-C1 executables
+can be built by entering \texttt{\$M3DC1\_DIR/unstructured} and
+running
+
+\texttt{make all}
+
+This will run the following commands:
+
+\begin{tabular}{ll}
+\texttt{make OPT=1} & Builds the 2D version\\
+\texttt{make OPT=1 COM=1} & Builds the complex version\\
+\texttt{make OPT=1 3D=1 MAX\_PTS=60} & Builds the 3D version\\
+\texttt{make OPT=1 3D=1 MAX\_PTS=60 ST=1} & Builds the stellarator version\\
+\texttt{make a2cc} & Builds a utility for extracting coil currents
+from a-eqdsk files\\
+\texttt{make bin} & Puts executables into the \texttt{\_\$M3DC1\_ARCH} subdirectory\\
+\end{tabular}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Regression Tests}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The M3D-C1 source code includes a suite of regression tests that
+should be run before commiting any new code to the repository.  To run
+these tests:
+
+\texttt{cd \$M3DC1\_DIR/unstructured/regtest}
+\texttt{./run <arch> <test>}
+
+where \texttt{<arch>} and \texttt{<test>} are optional arguments
+specifying the specific batch script to run, and the specific
+regression test to run, respectively.  By default,
+\texttt{<arch>=\$M3DC1\_ARCH}.
+
+If \texttt{<test>} is not
+specified, then all the regression tests will be run, using the batch
+scripts\\
+\texttt{\$M3DC1\_DIR/unstructured/regtest/*/base/batchjob.<arch>}.
+
+The \texttt{run} script will create new directories in which to run
+these regression tests, named\\
+\texttt{\$M3DC1\_DIR/unstructured/regtest/*/\$\{M3DC1\_VERSION\}\_<arch>/}.
+
+If \texttt{<test>} is specified, then only
+\texttt{\$M3DC1\_ARCH/unstructured/regtest/<test>/base/batchjob.<arch>}
+will be run (again, in a new directory named as described above).  If
+\texttt{<test>} is specified, then \texttt{<arch>} must also be
+specified.
+
+To check the results of the regression tests
+
+\texttt{./check <arch>}
+
+

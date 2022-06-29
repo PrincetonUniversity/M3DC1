@@ -1,0 +1,317 @@
+\section{Generation and Management of M3D-C$^{1}$ Meshes}
+\subsection{Introduction}
+
+This section describes the methods used to generate M3D-C$^{1}$ meshes for Tokamak geometries. This process involves the use of specific software and interaction with several files that contain the associated geometry and mesh information.
+
+The process of generating M3D-C$^{1}$ meshes involves the use of two software libraries. They are: 
+\begin{itemize}
+\item m3dc1\_meshgen coordinates the process of generating the an initial M3D-C$^{1}$
+\item	Simmetrix provides a set of tools and libraries for engineering simulation including a state-of-art mesh generation. For more information, visit \href{http://simmetrix.com}{http://simmetrix.com}. The Simmetrix library is used to generate the M3D-C$^{1}$ meshes. The Simmetrix meshing library is used by m3dc1\_meshgen for the actual mesh generation. The Simmetrix GUI can be used after the execution of m3dc1\_meshgen to apply additional mesh controls for the generation of meshes with different mesh gradations. 
+\item PUMI is a parallel mesh infrastructure toolkit developed at SCOREC, RPI. For more information, visit \href{http://www.scorec.rpi.edu/pumi}{http://www.scorec.rpi.edu/pumi}. The PUMI library is used to manage the mesh information as it is processed and within the M3D-C$^{1}$ code.
+\end{itemize}
+
+There are a number of files involved with housing the geometry and mesh information. 
+
+The model file extensions referred in this document is the following
+\begin{itemize}
+\item \texttt{.smd}: Simmetrix-readable binary format model file  
+\newline  The model generated with Simmetrix is saved in this format.
+\item \texttt{.dmg}: PUMI-readable binary format model file
+\newline	The model generated from PUMI mesh
+\item	\texttt{.txt}: M3D-C$^{1}$-readable ascii format model file 
+\newline	The model is generated from mesh generation tool (See Section~\ref{ch:mesh-gen})
+\end{itemize}
+
+The mesh file extensions referred in this document is the following.
+\begin{itemize}
+\item	\texttt{.sms}: Simmetrix-readable binary format mesh file
+\begin{itemize}
+\item	The mesh generated with Simmetrix is saved in this format.
+\item	If a mesh is serial (1-part), the mesh file doesn't have a number before the extension
+\item	If a mesh is distributed (\texttt{P}-part, P$>$1), the mesh file has a number before the extension to represent the global part ID.
+\end{itemize}
+\item	\texttt{.smb}: PUMI-readable binary format mesh file
+\begin{itemize}
+\item	This format is used in M3D-C$^{1}$ to import/export a mesh
+\item	No matter if a mesh is serial (1-part) or distributed (\texttt{P}-part, P$>$1), the mesh file has a number before the extension to represent the global part ID.
+\end{itemize}
+\item \texttt{.vtu/pvtu}: binary format mesh file for visualization with Paraview. For more information, visit \href{http://paraview.org}{http://paraview.org}.
+\end{itemize}
+
+An overview of the Model/Mesh requirements for the M3D-C$^{1}$ mesh generation process are as follows:
+\begin{itemize}
+\item	The model and mesh shall be generated as described in Section~\ref{ch:mesh-gen}.
+\item	The mesh file must be PUMI-readable \texttt{.smb} file. Note that a mesh file name contains a number before the extension (.smb) to denote a global part ID.
+\item	The model and mesh file must be present in the work directory
+\item	The name of model and mesh file must be specified in \texttt{C1input} file in the work directory
+\begin{itemize}
+\item	mesh\_model = model\_file
+\item	mesh\_filename = mesh\_file.smb (NOTE: do not specify a number before the file extension)
+\end{itemize}
+\item In a 2D run with \texttt{P} processes, there should be \texttt{P} mesh files with part ID from \texttt{0} to \texttt{P-1}
+\item	In a 3D run with \texttt{P$\times$N} processes where 2D mesh is distributed to \texttt{P} parts, 
+\begin{itemize}
+\item	there should be \texttt{P} mesh files with part ID from \texttt{0} to \texttt{P-1}
+\item	in \texttt{C1input} file, specify \texttt{nplanes} to \texttt{N} (e.g. nplanes=8), where \texttt{nplanes} describes how many 2D mesh copies to be loaded
+\item	the M3D-C$^{1}$ code should be compiled with options \texttt{"3D=1, MAX\_PTS=60"}.
+\end{itemize}
+\end{itemize}
+
+The rest of this section is organized as follows: Section \ref{ch:mesh-gen} describes a mesh generation program \texttt{m3dc1\_meshgen}. Section \ref{ch:mesh-ptn} presents a mesh partitioning program \texttt{"split\_smb"} and \texttt{"collapse"} which changes the number of parts of the mesh. For how to visualize a mesh with \texttt{Paraview}, see Appendix~\ref{ch:app-paraview}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Mesh Generation}
+\label{ch:mesh-gen}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The program \texttt{m3dc1\_meshgen} is used to define the tokamak cross section geometry and an initial mesh. Its execution requires a Simmetrix Licence, it is currently available only on PPPL Portal in the following location:
+\newline\newline
+\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/petsc-3.13.5/bin}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{How to Run m3dc1\_meshgen}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{enumerate}
+\item Set environment variables for Simmetrix
+\texttt{
+\\module load intel/version openmpi/version
+\\module load  simmodsuite/14.0-190402dev simmodeler/7.0-190402dev
+\\module load paraview (for mesh visualization with .vtk files)
+}
+\item	Create an ascii file of arbitrary name that contains input parameters for model and mesh
+\begin{itemize}
+\item modelType: 0, 1, 2, 3, or 4
+\begin{itemize}
+\item Type 0: a parameterized vacuum region defined by five doubles for analytic expression. 
+For five doubles $X_0$   $X_1$   $X_2$   $Z_0$   $Z_1$, vacuum boundary is defined by 
+\begin{equation}
+X = X_0 + X_1 cos(\theta + X_2*sin(\theta))
+\end{equation}
+\begin{equation}
+Z =  Z_0 + Z_1 sin(\theta)
+\end{equation}
+\item	Type 1: a vacuum region defined by piece-wise linear points
+\item	Type 2: a vacuum region defined by piece-wise polynomials
+\item	Type 3: spline-fitted 3-region model (plasma, wall and vacuum)
+\item	Type 4: spline-fitted 3-region model (plasma, wall, and vacuum) with inner \& outer boundary points to set resistive wall
+\end{itemize}
+
+\item reorder: if 1, reorder PUMI mesh based on adjacency (default: 0) and generate vtk folders for mesh visualization. The mesh before and after reodering is saved in \texttt{original-mesh.vtk} and \texttt{reordered-mesh.vtk}, respectively. Note that the element order of Simmetrix mesh is not affected.
+\item inFile: (modelType 0) not required
+(modelType 1 and 2) geometry file describing the vacuum (modelType 3 and 4) geometry file describing the inner plasma wall
+\item bdryFile: (modelType 0-3) not required
+ (modelType 4) geometry file describing the outer plasma wall
+\item outFile: output file name to save model and mesh
+\item meshSize: relative mesh size for each region (default 0.05)
+\newline
+	for modelType 3, set three doubles for plasma, resistive, vacuum, respectively
+\item useVacuumParams: for modelType 0 or 3, if 1, use parameterized vacuum wall (default 0)
+\item vacuumParams: five doubles to describe parameterized vacuum wall. Required if useVacuumParams=1.
+\item adjustVacuumParams: for modelType 0 or 3, if 1, multiply coordinates and parametric values of nodes on vacuum wall by vacuumFactor. Valid only if useVacuumParams=1 (default 0)
+\item vacuumFactor: for modelType 0 or 3, an optional double value used to multiply coordinates and parametric values of nodes on vacuum wall when adjustVacuumParams=1. Valid only if adjustVacuumParams=1 (default 2$\times$PI)
+\item numVacuumPts: optional \# interpolation points on parameterized vacuum wall. Valid only if useVacuumParams=1 (default 20)
+\item meshGradationRate: for modelType 3 or 4, optional mesh gradation rate (default: 0.3). This value should be greater than or equal to 0.3. Otherwise the mesh will be fine everywhere.
+\item resistive-width: for modelType 3, the width of resistive wall. If resistive-width=0, only plasma region is created (default 0.02)
+\item plasma-offsetX: for modelType 3, the offset in x direction to the left (default 0.0)
+\item plasma-offsetY: for modelType 3, the offset in y direction to the bottom (default 0.0)
+\item vacuum-width: for modelType 3 or 4, the width of vacuum region (default 2.5)
+\item vacuum-height: for modelType 3 or 4, the height of vacuum region (default 4.0) 
+\end{itemize}
+
+\item Run \texttt{m3dc1\_meshgen}
+\begin{itemize}
+\item input file, inFile, and bdryFile (if applicable) should be in the work folder
+\item \texttt{argv[1]}: the ascii file created in Step 2
+\item The output model is saved in three formats
+  \begin{itemize}
+  \item	$M3D-C^1$-readable \texttt{.txt}
+  \item	Simmetrix-readable file \texttt{.smd} and 
+  \item	PUMI-readable \texttt{.dmg}
+    \begin{itemize}
+    \item[$\triangleright$] For modelType 0-2, the model is saved in \texttt{outFile.*}
+    \item[$\triangleright$] For modelType 3 with resistive width \texttt{R}, vacuum-width \texttt{W} and vacuum-height \texttt{H}, the model is saved in \texttt{outFile-R-W-H.*}.
+    \item[$\triangleright$] For modelType 4 with vacuum-width \texttt{W} and vacuum-height \texttt{H}, the model is saved in \texttt{outFile-W-H.*}.
+    \end{itemize}
+  \end{itemize}
+\item The output mesh is saved in three formats
+  \begin{itemize}
+  \item Simmetrix-readable\texttt{.sms}
+  \item $M3D-C^1$/PUMI readable \texttt{.smb}
+  \item Paraview 
+    \begin{itemize}
+    \item[$\triangleright$] For modelType 0-2 with \# mesh faces \texttt{F}, 
+      \begin{itemize}
+      \item[-] if \texttt{F} $>$ 1000, the mesh is saved in \texttt{outFile-(F/1000).*}
+      \item[-] if \texttt{F} $<$ 1000, the mesh is saved in \texttt{outFile-F.*}
+      \end{itemize}
+    \item[$\triangleright$] For modelType 3 with \# mesh faces \texttt{F}, resistive width \texttt{R}, vacuum-width \texttt{W}, vacuum-height \texttt{H},
+      \begin{itemize}
+      \item[-] if \texttt{F} $>$ 1000, the mesh is saved in \texttt{outFile-R-W-H-(F/1000).*}
+      \item[-] if \texttt{F} $<$ 1000, the mesh is saved in \texttt{outFile-R-W-H-F.*}
+      \end{itemize}
+    \item[$\triangleright$] For modelType 4 with \# mesh faces \texttt{F}, vacuum-width \texttt{W} and vacuum-height \texttt{H},
+      \begin{itemize}
+      \item[-] if \texttt{F} $>$ 1000, the mesh is saved in \texttt{outFile-W-H-(F/1000).*}
+      \item[-] if \texttt{F} $<$ 1000, the mesh is saved in \texttt{outFile-W-H-F.*}
+      \end{itemize}
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+
+\item If the initial mesh is not good enough, run \texttt{simmodeler} to generate a mesh with more meshing controls. See Section~\ref{ch:simmodeler} for detailed instructions.
+\item In order to load the model and mesh, locate them in your work directory and modify C1input parameters
+\end{enumerate}
+See \texttt{readme.m3dc1\_meshgen} for detailed instructions and trouble shooting tips.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Example: Type 0 (parameterized vacuum)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+See the example input file \texttt{"analytic-input"}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Example: Type 1 (piece-wise linear vacuum)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Example: Type 2 (piece-wise polynomial vacuum)} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+See the example input file \texttt{"poly-input"}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Example: Type 3 (three-regions with inner wall points)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+See the example input file \texttt{"circle-input"}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Example: Type 4: (three-regions with inner $\&$ outer wall points)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+See the example input file \texttt{"bdry-input"}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Example: Multiple-regions with inner $\&$ outer wall points}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+See the example input file \texttt{"multi-input"}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Example: Equilibrium}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The program \texttt{read\_jsolver} generates equilibrium and stores in the file \texttt{POLAR}. Given the input file \texttt{POLAR}, \texttt{m3dc1\_meshgen} generates the following files:
+\begin{itemize}
+\item	model.dmg: PUMI-readable model file
+\item	model.txt: M3DC1-readable model file
+\item	mesh0.smb: PUMI/M3DC1-readable mesh file
+\item	mesh.vtk: Paraview data files
+\item	norm\_curv: ascii file containing nodes' normal/curvature information
+\end{itemize} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Mesh Control with SimModeler}
+SimModeler is a graphical user interface to the Simmetrix geometry and mesh generation software. In cases where the currently available capabilities of m3dc1\_meshgen do not provide a satisfactory mesh, SimModeler can be used to apply alternative mesh control information to the Tokamak cross section geometry to generate different meshes. The information below indicates the application of a subset of the mesh controls that can be applied. For additional information of the full range of SimModeler mesh control options see: ********** FILL IN POINTER TO SIMMETRIX DOCUMENTATION *****
+\label{ch:simmodeler}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+(Contributed by D. Pfefferle on 4/27/16) On PPPL Portal, load a module \texttt{simmodeler} and run it.
+\begin{enumerate}
+\item From the menu \texttt{"File$\rightarrow$Open Model"}, load a model file (\texttt{.smd}) generated by \texttt{m3dc1\_meshgen}
+\item In the upper panel, in the views section, click on \texttt{Front} to view the model, then go to \texttt{Meshing} tab
+\item Select outer region, click \texttt{+} in \texttt{Mesh Attributes} and select \texttt{Mesh Size$\rightarrow$relative}. 
+Enter a value (typically 0.1)
+\item Select wall region, click \texttt{+} in \texttt{Mesh Attributes} and select \texttt{Mesh Size$\rightarrow$relative}. 
+Enter a value (typically 0.02)
+\item Select inner region, click \texttt{+} in \texttt{Mesh Attributes} and select \texttt{Mesh Size$\rightarrow$relative}. 
+Enter a value (typically 0.04). Here, one can already generate the mesh by clicking on \texttt{Generate Mesh} and verify if the mesh sizes are suitable 
+\item 	Select both inner and wall regions (holding shift key), click \texttt{+} in \texttt{Mesh Attributes} and select \texttt{Mesh Size$\rightarrow$relative}. Enter a function, e.g. \texttt{0.01$\times$abs(\$y+1.5)\^{}2+0.004} to specify an anisotropic mesh density on top of previous settings
+\\ There are many available parameters for fine-tuning the mesh density.  For example, \texttt{Mesh Curvature Refinement} with parameter packs more elements near the edges of the resistive wall. 
+\item \texttt{Generate Mesh} and \texttt{Show Mesh} to view result in new windows
+\item If the result is satisfactory, from the menu \texttt{File$\rightarrow$Save Mesh}, give it a meaningful name with the extension \texttt{.sms}. The original model file \texttt{.smd} has been automatically saved by the program with your mesh modifications.
+\item Close \texttt{simmodeler} then it will release a license. Until you quit Simmodeler, no one cannot run neither \texttt{m3dc1\_meshgen} nor \texttt{simmodeler}.
+\item Copy the \texttt{.txt, .smd} and \texttt{.sms} files to the simulation directory and run the following splitting routine to obtain PUMI-readable \texttt{.smb} mesh files.
+\newline\newline
+\texttt{/p/tsc/C1/m3dc1-sunfire.r6-1.5/bin/part\_mesh.sh model\_file.smd mesh\_file.sms X}, 
+where \texttt{X} is the number of parts you need in the \texttt{.smb} mesh.
+\item Modify the \texttt{C1input} file accordingly
+\newline\newline
+\texttt{mesh\_filename = `part.smb'
+\\
+mesh\_model = `filename.txt'
+}
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Mesh Partitioning}
+\label{ch:mesh-ptn}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Splitting}
+
+The program \texttt{split\_smb} increases the number of parts in a mesh from \texttt{P} to \texttt{N} (\texttt{P$<$N}). 
+In each machine, the program \texttt{split\_smb} is availble in \texttt{\$SCOREC\_UTIL\_DIR} provided in \texttt{hostname.mk} file.
+
+In order to split \texttt{P}-part mesh to \texttt{N} parts (\texttt{N$>$P}), run
+\texttt{"mpirun -np N ./split\_smb input-mesh(.smb) output-mesh(.smb) X"}
+\begin{itemize}
+\item	the file extension of input-mesh should be .smb 
+\item	the file extension of output-mesh should be .smb
+\item	\texttt{N} is the number of parts in the output mesh
+\item	For a \texttt{P}-part input mesh, \texttt{X} must be \texttt{N/P}
+\item	For both input and output mesh, do not specify a number before the file extension
+\item	\texttt{split\_smb} will insert a number in the output mesh file. The number represents a global part ID.
+\item	Make sure that the output mesh doesn't have any empty part. Otherwise, the program crashes with the following error message:
+\newline
+\texttt{APF warning: 1 empty parts}
+\newline
+\texttt{split\_smb: \ldots/mds/mds.c:614: check\_ent: Assertion `e $>$= 0' failed}
+\end{itemize}
+
+Examples on portal:
+\begin{enumerate}
+\item To split a serial (1-part) mesh to 6 parts, run\\
+ \texttt{"mpirun -np 6 ./split\_smb struct-curveDomain.smb part.smb 6"}
+\begin{itemize}
+\item	Input mesh: struct-curveDomain0.smb 
+\item	Output mesh: part0.smb, part1.smb, part2.smb, part3.smb, part4.smb, part5.smb
+\end{itemize}
+
+\item To split a 2-part mesh to 6 parts, run
+ \texttt{"mpirun -np 6 ./split\_smb  struct-curveDomain.smb part.smb 3"}
+\begin{itemize}
+\item	Input mesh: struct-curveDomain0.smb, struct-curveDomain1.smb
+\item	Output mesh: part0.smb, part1.smb, part2.smb, part3.smb, part4.smb, part5.smb
+\end{itemize}
+\end{enumerate}
+
+See \texttt{readme.split\_smb} for detailed instructions and trouble shooting tips.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Mesh Merging}
+\label{ch:mesh-mg}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The program \texttt{collapse} decreases the number of parts in a mesh from \texttt{N} to \texttt{P} (\texttt{P$<$N}). 
+In each machine, the program \texttt{collapse} is availble in \texttt{\$SCOREC\_UTIL\_DIR} provided in \texttt{hostname.mk} file.
+
+In order to merge \texttt{N}-part .smb mesh to \texttt{P} parts (\texttt{P$>$0}), run
+\texttt{"mpirun -np N ./collapse input-mesh(.smb) output-mesh(.smb) X"}
+\begin{itemize}
+\item	the file extension of input-mesh should be .smb 
+\item	the file extension of output-mesh should be .smb
+\item	\texttt{N} is the number of parts in the input mesh
+\item	For a \texttt{P}-part output mesh, \texttt{X} must be \texttt{N/P}
+\item	For both input and output mesh, do not specify a number before the file extension
+\item	\texttt{collapse} will insert a number in the output mesh file. The number represents a global part ID.
+\end{itemize}
+
+Example on portal:
+\newline
+In order to merge 4-part mesh into a serial (1-part) mesh, run
+\texttt{"mpirun -np 4 ./collapse part.smb serial.smb 4"}
+\begin{itemize}
+\item	Input mesh: part0.smb, part1.smb, part2.smb, part3.smb
+\item	Output mesh: serial0.smb
+\end{itemize}
+
+See \texttt{readme.collapse} for detailed instructions and trouble shooting tips.

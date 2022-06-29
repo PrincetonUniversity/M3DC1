@@ -123,7 +123,7 @@ module basic
   integer :: inocurrent_pol  ! 1 = no tangential current
   integer :: inocurrent_tor  ! 1 = no toroidal current
   integer :: inocurrent_norm ! 1 = no toroidal current
-  integer :: iconst_p        ! 1 = pressure held constant
+  integer :: iconst_p        ! 1 = pressure held constant, 2 = pressure=pedge
   integer :: iconst_t        ! 1 = temperature held constant
   integer :: iconst_n        ! 1 = density held constant
   integer :: iconst_bz       ! 1 = toroidal field held constant
