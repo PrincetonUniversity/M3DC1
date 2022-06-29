@@ -76,7 +76,6 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
   endelse
 
   if(n_elements(versus) eq 1) then begin
-     print, 'versus !!'
      tdata = read_scalar(versus, filename=filename, time=time, ipellet=ipellet, $
                      title=vtitle, symbol=vsymbol, units=vunits, cgs=cgs, mks=mks)
      xtitle = vsymbol + ' !6(' + vunits + ')!X'
