@@ -64,20 +64,27 @@ The rest of this section is organized as follows: Section \ref{ch:mesh-gen} desc
 \label{ch:mesh-gen}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-The program \texttt{m3dc1\_meshgen} is used to define the tokamak cross section geometry and an initial mesh. Its execution requires a Simmetrix Licence, it is currently available only on PPPL Portal in the following location:
+Two programs \texttt{m3dc1\_meshgen} and \texttt{polar\_meshgen} are provided for mesh generation. \texttt{m3dc1\_meshgen} is used to define the tokamak cross section geometry and an initial mesh.  \texttt{polar\_meshgen} generates a mesh based on equilibria transfered from the PPPL JSOLVER code. As the mesh generation programs require Simmetrix licence and proper enviroment settings, the user should load Simmetrix modules as the following:
 \newline\newline
-\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/petsc-3.13.5/bin}
+\texttt{
+module load simmodsuite/version simmodeler/version
+}
+\newline\newline
+As of today (July 11, 2022), the latest Simmetrix modules are \texttt{simmodsuite/16.0-220226} and \texttt{simmodeler/10.0-220226}.
+\newline\newline
+Two mesh generation programs are available only on PPPL Portal in the following location:
+\newline\newline
+\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel\_ver/intel\_ver-openmp\_ver/simmodsuite\_ver/bin}
+\newline\newline
+For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210626, the mesh generation programs are available in 
+\newline\newline
+\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{How to Run m3dc1\_meshgen}
+\subsubsection{m3dc1\_meshgen}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{enumerate}
-\item Set environment variables for Simmetrix
-\texttt{
-\\module load intel/version openmpi/version
-\\module load  simmodsuite/14.0-190402dev simmodeler/7.0-190402dev
-\\module load paraview (for mesh visualization with .vtk files)
-}
 \item	Create an ascii file of arbitrary name that contains input parameters for model and mesh
 \begin{itemize}
 \item modelType: 0, 1, 2, 3, or 4
@@ -162,6 +169,27 @@ Z =  Z_0 + Z_1 sin(\theta)
 \item In order to load the model and mesh, locate them in your work directory and modify C1input parameters
 \end{enumerate}
 See \texttt{readme.m3dc1\_meshgen} for detailed instructions and trouble shooting tips.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{polar\_meshgen}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{polar\_meshgen} requires an ascii file of arbitrary name that contains input parameters as the following:
+\begin{itemize}
+\item inFile: input file name containing equilibrium generation by jsolver
+\item outFile: output file name to save model and mesh
+\item meshSize: relative mesh size for each region (default 0.05)
+\item reorder: if 1, reorder PUMI mesh based on adjacency (default: 0) and generate vtk folders for mesh visualization. The mesh before and after reodering is saved in \texttt{original-mesh.vtk} and \texttt{reordered-mesh.vtk}, respectively. Note that the element order of Simmetrix mesh is not affected.
+\end{itemize}
+
+The following presents an example input file ``\texttt{polar\_input}''.
+\begin{verbatim}
+inFile POLAR
+outFile polar
+meshSize 0.04
+\end{verbatim}
+
+To run \texttt{polar\_meshgen}, place \texttt{polar\_input} and \texttt{POLAR} in your work folder and do ``\texttt{polar\_meshgen polar\_input}''. The program will read \texttt{POLAR} and generate various model and mesh files starting with ``polar''. For instance, \texttt{polar-2K0.smb, pol-2K.sms, pol-2K.vtk, polar.dmg, polar.smd, polar.txt}. If the resulting mesh is too fine, increase the value of \texttt{meshSize}. If the resulting mesh is too coarse, decrease the value of \texttt{meshSize}. If \texttt{meshSize} is not specified in the input file, the default value is 0.05.   
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
