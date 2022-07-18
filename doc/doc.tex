@@ -1331,9 +1331,138 @@ and the truncation error is
  \texttt{tf\_shift} & 0 & horizontal shift of TF coils \\
  \texttt{tf\_shift\_angle} & 0 & direction of TF shift in degrees \\
  \texttt{tf\_tilt} & 0 & angle of TF from vertical in degrees \\
- \texttt{tf\_tilt\_angle} & 0 & axis of rotation for TF tilt in degrees \\
+ \texttt{tf\_tilt\_angle} & 0 & axis of rotation for TF tilt in degrees 
 
 \end{tabular}
+
+\subsection{Grad-Shafranov Solver Options}
+\begin{tabular}{lcp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{inumgs}& 0      & 1: Use numerical def. of p and g from profile-p and profile-g files\\
+ \texttt{igs}   & 80     & Max number of Picard iterations\\
+  \texttt{eta\_gs} & 1000.& factor for smoothing nonaxisymmetries in psi in 3D GS solve \\
+  \texttt{igs\_pp\_ffp\_rescale} & 0 & 1: rescale p' and FF' to match p and F \\
+  \texttt{nv1equ}& 0 & 1:use numvar =1 equilibrium for numvar .GT. 1 \\
+  \texttt{tcuro} & 1	  & (scaled) plasma current in GS equilibrium\\
+  \texttt{xmag}  & 1      & $R$-coordinate of magnetic axis\\
+  \texttt{zmag}  & 0      & $Z$-coordinate of magnetic axis\\
+  \texttt{xmag0} & 0      &  if nonzero, target magnetic axis $R$ for feedback\\
+  \texttt{zmag0} & 0      &  if nonzero, target magnetic axis $Z$ for feecback\\
+  \texttt{xlim}  & 0      & $R$-coordinate of limiter\\
+  \texttt{zlim}  & 0      & $Z$-coordinate of limiter\\
+  \texttt{xlim2}  & 0      & $R$-coordinate of limiter \#2\\
+  \texttt{zlim2}  & 0	   & $Z$-coordinate of limiter \#2\\
+  \texttt{rzero}  & 1      & nominal major radius of device for itor=1 \\
+  \texttt{libetap}& 1.2    & approximate value of $l_i/2 + \beta_P$ for free-boundary equ \\
+  \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
+  \texttt{pi0}   & 0.005  & Ion pressure at magnetic axis\\
+  \texttt{p1}    & 0     & $p^{\prime}(\Psi)$ at magnetic axis\\
+  \texttt{p2}    & 0     & $p^{\prime \prime}(\Psi)$ at magnetic axis\\
+  \texttt{pedge} & 0	  & Pressure in vacuum region\\
+  \texttt{tedge} & 0     & temperature in vacuum region (if .GT. 0).  Only
+                           used in GS solve.   Boundary value of electron temp
+                           is $twall = pedge \times pefac/den\_edge $ \\
+ \texttt{tiedge} & 0     & ion temperature in vacuum region  \\
+ \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
+    density gradient: $n = p^\mathtt{expn}$.}\\
+ \texttt{q0}    & 1	  & Safety factor at magnetic axis\\
+ \texttt{djdpsi}& 0	  & $J_\tor'(\Psi)$ at magnetic axis\\
+ \texttt{th\_gs}& 0.8     & implicitness of GS Picard iterations\\
+ \texttt{tol\_gs}& $10^{-8}$  & convergence criteria for GS iteration \\
+  \texttt{pscale}  & 1.       & factor multiplying pressure profile \\
+  \texttt{bscale}      &  1.0 & Factor multipying toroidal field\\
+  \texttt{bpscale}     &  1.0 & Factor multiplying F' (keeping F0 constant) \\
+  \texttt{vscale}      &  1.0 & Factor multiplying toroidal rotation profile \\
+  \texttt{iread\_bscale}&  0   & 1: read profile\_bscale for factor to scale F \\
+  \texttt{iread\_pscale} & 0   & 1: read profile\_pscale for factor to scale $p$ and $p^{\prime} $ \\
+  \texttt{batemanscale} &  1   & Bateman scale the TF, keeping curent profile fixed \\
+
+\end{tabular}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{irot}         &  0   & 1: include toroidal rotation in equilibrium calculatin \\
+  \texttt{iscale\_rot\_by\_p} & 1 & see below \\
+  \texttt{alpha0}       &  0   & $\alpha_0$ in analytic rotation profile \\
+  \texttt{alpha1}      	&  0   & $\alpha_1$ in analytic	rotation profile \\
+  \texttt{alpha2}      	&  0   & $\alpha_2$ in analytic	rotation profile \\
+  \texttt{alpha3}      	&  0   & $\alpha_3$ in analytic	rotation profile \\
+\end{tabular}
+
+For iread\_omega=0, the function $\alpha(\psi)$ is parameterized by:
+ \[ \tilde{\alpha} = \alpha_{0} + \alpha_{1} s + \alpha_{2} s^{2} + \alpha_{3} s^{3} \]
+For iscale\_rot\_by\_p = 0:  $\alpha = \tilde{\alpha} \times n(\psi) / p(\psi)$ . \\
+For iscale\_rot\_by\_p = 1:  $\alpha = \tilde{\alpha} $. \\
+For iscale\_rot\_by\_p = 2:  $\alpha = \left[ \alpha_{0} + \alpha_{1} e^{-\left[ \left( \psi - \alpha_{2} \right) / \alpha_{3} 
+                                          \right]^{2} }       \right] \times n(\psi) /p(\psi) $ \\
+In all cases, the angular velocity is then determined by:
+\[      \omega = \left[  \frac{2 \alpha p(\psi)}{R_0^2 n(\psi)} \right]^{\frac{1}{2}} \]
+\begin{tabular}{llp{6in}}
+  \texttt{idenfunc}         & 0   &
+  \begin{minipage}[t]{4.0in}
+    0: $ n = \mbox{den0} \times (p/p0)^{\mbox{expn}} + \mbox{denedge} $ \\
+    1: $ n = \mbox{den0} \times \frac{1}{2} \times 
+       \left[1 + \tanh \left(\frac{\psi - (\psi_B + n_O (\psi_B - \psi_M))}
+                                  {\Delta \times (\psi_B - \psi_M)        } \right)    \right] $ \\
+    2: $ n = \mbox{den0} + \frac{1}{2}  \left( \mbox{den\_edge} - \mbox{den0} \right)
+                  \times  \left[1 + \tanh \left( \frac{ \tilde{\psi} - n_O}
+                                               {      \Delta            } \right)  \right] $\\
+    3: if $\tilde{\psi}$ .LT. $n_O$ and $(\psi - \psi_M) \times \left[d \psi /dx (x - x_{MA}) + d \psi /dz (z - z_{MA} )           
+                \right] $ .GT. 0, then $n$ = den0.     Else, $n$ = den\_edge.  \\
+    ( $\psi_B = \mbox{psibound}, \psi_M = \mbox{psimin}, \tilde{\psi} = (\psi - \psi_M)/(\psi_B - \psi_M) $ )
+  \end{minipage}    \\
+
+  \texttt{den\_edge}        & 0.0 & edge density.  If 0, set to den0*(pedge/p0)**expn \\
+  \texttt{den0}             & 1.0 & (scaled) central density\\
+  \texttt{denoff}           & 1.0 & $n_O$: offset for idenfunc=1,2,3 \\
+  \texttt{dendelt}          & 0.1 & $\Delta$: width of transition region for idenfunc=1,2 \\
+
+  \texttt{divertors} & 0  & Number of divertors (0--2)\\
+  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
+  \texttt{xdiv}  & 0      & $r$-coordinate of divertor current(s)\\
+  \texttt{zdiv}  & 0      & \parbox[t]{3in}{$z$-coordinate of 
+    divertor 
+    current.  If $\mathtt{divertors} = 2$, the second divertor has 
+    $z = -\mathtt{zdiv}$.}\\
+  \texttt{xnull}     & 0 & Guess for $r$-coordinate of x-point\\
+  \texttt{znull}     & 0 & Guess for $z$-coordinate of x-point\\
+  \texttt{mod\_null\_rs} & 0 & if 1: you can reset xnull and znull from C1input \\
+  \texttt{xnull0}  &  0  & Target R-Coordinate of x-point for feedback \\
+  \texttt{znull0}  &  0  & Target Z-Coordinate of x-point for feedback \\
+  \texttt{xnull2}     & 0 & Guess for $r$-coordinate of inactive x-point\\
+  \texttt{znull2}     & 0 & Guess for $z$-coordinate of inactive x-point\\
+  \texttt{mod\_null\_rs2} & 0 & if1: you can reset xnull2 and znull2 from C1input \\
+  \end{tabular}
+
+  \begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{gs\_pf\_psi\_width}            & 0 & width of psi smoothing into provate flux region \\
+ \texttt{gs\_vertical\_feedback}        & 0 & proportional feedback of each coil to (zmag-zmag0) (array) \\ 
+ \texttt{gs\_vertical\_feedback\_i}     & 0 & integral feedback of each coil to (zmag-zmag0) (array) \\
+ \texttt{gs\_vertical\_feedback\_x}     & 0 & proportional feedback of each coil to (znull-znull0) (array) \\
+ \texttt{gs\_vertical\_feedback\_x\_i} & 0 & integral feedback of each coil to (znull-znull0) (array) \\
+ \texttt{gs\_radial\_feedback}          & 0 & proportional feedback of each coil to (xmag-xmag0) (array) \\
+ \texttt{gs\_radial\_feedback\_i}       & 0 & integral feedback of each coil to (xmag-xmag0) (array) \\
+ \texttt{gs\_radial\_feedback\_x}       & 0 & proportional feedback of each coil to (xnull-xnull0) (array) \\
+ \texttt{gs\_radial\_feedback\_x\_i}    & 0 & integral feedback of each coil to (xnull-xnull0) (array) \\
+ \texttt{igs\_extend\_p}                & 0 & 1: extend p past pls=1 using ne and Te profiles  \\
+ \texttt{igs\_feedfac}                  & 1 & proportionality factor for external field feedback \\
+ \texttt{igs\_forcefree\_lcfs}          & -1 & 1: ensure that GS solution is force free at LCFS \\
+ \texttt{igs\_start\_xpoint\_search}    & 0 &  number of GS iterations before searching for x-point \\
+ \texttt{sigma0}                        & 0 &  width of Gaussian for initial current distribution for GS iteration \\
+ \texttt{igs\_extend\_diagmag}          & 1 &  1: extend diamagnetic rotation past psi=1 \\
+ 
+\texttt{adapt\_qs} & 0 & Safety factor values to pack around (array) \\
+\texttt{adapt\_zlow} & 0 & Z-coordinate below which SOL adaption is coarse \\
+\texttt{adapt\_zup}  & 0 & Z-coordinate above which SOL adaptation is coarse
+
+
+\end{tabular}
+
+
 
 \subsection{Physical Parameters}
 
@@ -1487,57 +1616,6 @@ and the truncation error is
   \texttt{iread\_jsolver} & 0 & 1: Read Jsolver file 'fixed'
 \end{tabular}
 
-\subsection{Grad-Shafranov Solver Options}
-\begin{tabular}{lcp{3in}}
-  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{igs}   & 80     & Number of Picard iterations\\
-  \texttt{xmag}  & \texttt{xzero}+1 & $R$-coordinate of magnetic axis\\
-  \texttt{zmag}  & 0      & $Z$-coordinate of magnetic axis\\
-  \texttt{xlim}  & \texttt{xzero}   & $R$-coordinate of limiter\\
-  \texttt{zlim}  & 0      & $Z$-coordinate of limiter\\
-  \hline
-  \texttt{divertors} & 0  & Number of divertors (0--2)\\
-  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
-  \texttt{xdiv}  & 0      & $r$-coordinate of divertor current(s)\\
-  \texttt{zdiv}  & 0      & \parbox[t]{3in}{$z$-coordinate of 
-    divertor 
-    current.  If $\mathtt{divertors} = 2$, the second divertor has 
-    $z = -\mathtt{zdiv}$.}\\
-  \hline
-  \texttt{tcuro} & 1      & Plasma current in GS equilibrium\\
-  \texttt{q0}    & 1      & Safety factor at magnetic axis\\
-  \texttt{djdpsi}& 0      & $J_\tor'(\Psi)$ at magnetic axis\\
-  \texttt{pedge} & 0      & Pressure in vacuum region\\
-  \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
-  \texttt{p1}    & -1     & $p'(\Psi)$ at magnetic axis\\
-  \texttt{p2}    & -2     & $p''(\Psi)$ at magnetic axis\\
-  \texttt{pedge} & 0      & Pressure in vacuum region\\
-  \texttt{divertors} & 0  & Number of divertors (0--2)\\
-  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
-  \texttt{xdiv}  & \texttt{xmag} & $R$-coordinate of divertor current(s)\\
-  \texttt{zdiv}  & \texttt{zmag} & \parbox[t]{3in}{$Z$-coordinate of 
-    divertor 
-    current.  If $\mathtt{divertors} = 2$, the second divertor has 
-    $Z = -\mathtt{zdiv}$.}\\
-  \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
-    density gradient: $n = p^\mathtt{expn}$.}\\
-  \texttt{psiscale} & 1.0 & Rescale profiles s.t. LCFS is at 
-  $\Psi=\mathtt{psiscale}$. \\
-  \texttt{bscale}      &  1.0 & Bateman scaling for toroidal field\\
-  \texttt{den\_edge}        & 0.0 & \\
-  \texttt{den0}             & 1.0 & \\
-  \texttt{denoff}           & 1.0 & \\
-  \texttt{dendelt}          & 0.1 & \\
-  \texttt{idenfunc}         & 0   &
-  \begin{minipage}[t]{2.5in}
-    0: Use problem-specific density\\
-    2: $\rho = \rho_0 + \frac{1}{2}\rho_e \{1 + \tanh[(\Psi - \Psi_c^{\rho})/\Delta^{\rho}]\}$\\
-    3: $\rho = \rho_0 + \rho_e H(\Psi - \Psi_c^{\rho})$\\
-    4: Read density profile from 'PROFDEN.txt'
-  \end{minipage}
-\end{tabular}
-
 
 
 \subsection{Boundary and Domain Options}
@@ -1624,8 +1702,6 @@ and the truncation error is
 \begin{tabular}{lcp{3in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{xnull}     & 0 & Guess for $r$-coordinate of x-point\\
-  \texttt{znull}     & 0 & Guess for $z$-coordinate of x-point\\
   \texttt{icalc\_scalars} & 1 & 1: Calculate volume-integrated scalars 
                                 (\textit{e.g.} energy)\\
   \texttt{ike\_only} & 0 & 1: Only calculate kinetic energy
