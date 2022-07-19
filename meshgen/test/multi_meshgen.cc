@@ -98,10 +98,9 @@ int one=1, two=2, three=3, four=4;
 int num_pts;
 double mid[]={0.,0.};
 double pt_pre[2], mergeTol;
-    double dir1[2], dir2[2], normal1[2],normal2[2];
-    double paras[]={0.,1.};
-    double ctr_pts_o[12];
-
+double dir1[2], dir2[2], normal1[2],normal2[2];
+double paras[]={0.,1.};
+double ctr_pts_o[12];
 
 vector<double> interpolate_points;
 
@@ -135,15 +134,11 @@ int main(int argc, char *argv[])
   while(EOF!=fscanf(infp,"%s",namebuff))
   {
     if (strcmp(namebuff,"numBdry")==0) 
-    {
       fscanf(infp,"%d",&numBdry);
-      cout<<"# bdry files = "<<numBdry<<"\n";
-    }
     if (strcmp(namebuff,"numRgn")==0) 
     {
       fscanf(infp,"%d",&numRgn); 
       rgn_bdry.resize(numRgn);
-      cout<<"# rgn = "<<rgn_bdry.size()<<"\n";
     }
     if (strcmp(namebuff,"bdryFile")==0) 
     {
@@ -154,7 +149,6 @@ int main(int argc, char *argv[])
    if (strcmp(namebuff,"rgnBdry")==0)
    {
      fscanf(infp,"%d",&numLoop);  
-     cout<<"index "<<index<<", numLoop "<<numLoop<<"\n";
      for (int i=0; i<numLoop; ++i)
      {
        fscanf(infp,"%d",&loopID);
@@ -193,19 +187,6 @@ int main(int argc, char *argv[])
     numBdry=bdry_files.size();
   else
     assert(numBdry==bdry_files.size());
-
-  for (vector<string>::iterator sit=bdry_files.begin(); sit!=bdry_files.end(); ++sit)
-    cout<<"bdry file "<<*sit<<"\n";
-
-  for (int i=0; i<rgn_bdry.size(); ++i)
-  {
-    cout<<"Loop ID's for face "<<i<<": ";
-    for (int j=0; j<rgn_bdry[i].size(); ++j)
-    {
-      cout<<rgn_bdry[i][j]<<" "; 
-    }
-    cout<<"\n";
-  }
 
   mergeTol=0.3*thickness;
 
@@ -263,7 +244,6 @@ int main(int argc, char *argv[])
     int innerWallEdges[]={ge1_id,ge2_id};
     create_loop(&loop_id,&num_ge,innerWallEdges);
     set_inner_wall_boundary (&loop_id);
-    cout<<"Loop "<<loop_id<<" created with GE "<<ge1_id<<" "<< ge2_id<<"\n";
     ++loop_id; 
 
   if (modelType==3) // &&  && thickness>0)
@@ -295,7 +275,6 @@ int main(int argc, char *argv[])
         attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctrPtsTop,knots,NULL);
         int vacuumEdges[]={ge1_id,ge2_id};
         create_loop(&loop_id,&num_ge,vacuumEdges);
-        cout<<"Loop "<<loop_id<<" created with GE "<<ge1_id<<" "<< ge2_id<<"\n";
         set_vacuum_boundary (&loop_id);
          ++loop_id;
     }
@@ -324,7 +303,6 @@ int main(int argc, char *argv[])
       int vacuumEdges[]={ge1_id};
       num_ge=1;
       create_loop(&loop_id,&num_ge,vacuumEdges);
-      cout<<"Loop "<<loop_id<<" created with GE "<<ge1_id<<"\n";
       set_vacuum_boundary (&loop_id);
       ++loop_id;
     }
@@ -337,11 +315,6 @@ int main(int argc, char *argv[])
   else
     numEdge=numBdry*2+2;
  
-  cout<<__func__<<": simLic = "<<simLic<<", #edge = numEdge\n";
-  cout<<"model #v "<<m3dc1_model::instance()->model->n[0]
-      <<" #e "<<m3dc1_model::instance()->model->n[1] 
-      <<" #f "<<m3dc1_model::instance()->model->n[2]<<"\n";
-
   double diff=0;
   FILE* fp_t=fopen("plot_geo","w");
   for( int iedge=1; iedge<=numEdge; iedge++)
@@ -436,13 +409,8 @@ int main(int argc, char *argv[])
       iface++;
     }
     else
-    {
       MS_setMeshSize(meshCase,face,1, meshSizes[iface++],NULL);
-      cout<<"set mesh size of face "<<iface-1<<" to "<<meshSizes[iface-1]<<"\n";
-    }
   }
-  cout<<"# gface "<<iface<<"\n";
-//assert(iface<=3);
   GFIter_delete(faces);
 
   pSurfaceMesher surfMesh = SurfaceMesher_new(meshCase,sim_mesh);
@@ -649,7 +617,6 @@ void inner_wall_pts(  int num_pts)
 
 void inner_outer_wall_pts()
 {
-
     for (int i=1; i<numBdry; ++i)
     {
       gv1_id=gv2_id+1;
@@ -661,7 +628,6 @@ void inner_outer_wall_pts()
       int num_out_pts;
 
       FILE* fp=fopen(bdry_files[i].c_str(),"r");
-      cout<<"Open "<<bdry_files[i].c_str()<<"\n";
       assert (fp);
       fscanf(fp,"%d\n",&num_out_pts);
       out_pts.resize(2*num_out_pts);
@@ -702,7 +668,6 @@ void inner_outer_wall_pts()
       attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctr_pts_o,knots,NULL);
       int outerWallEdges[]={ge1_id,ge2_id};
       create_loop(&loop_id,&num_ge,outerWallEdges);
-      cout<<"Loop "<<loop_id<<" created with GE "<<ge1_id<<" "<< ge2_id<<"\n";
       ++loop_id;
       set_outer_wall_boundary (&loop_id);
     }  // for (int i=0; i<nout_bdryFile; ++i)
@@ -790,15 +755,9 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
           break;
       }
       pGEdge pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
-      cout<<"Create GE ["<<edge<<"] "<<GEN_tag(pe)<<" vtx "<<GEN_tag(startVert)<<", "
-          <<GEN_tag(endVert)<<"\n";
-      // GIP_insertEdgeInRegion(part, startVert, endVert, curve, 1, outerRegion);
       edges[edge]=pe;
     }
   }
-
-  for (std::map<int, pGEdge>::iterator mit=edges.begin(); mit!=edges.end(); ++mit)
-    cout<<"edges["<<mit->first<<"] = "<<GEN_tag(mit->second)<<"\n";
 
     // Now add the faces
     double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};  // the points defining the surface of the face
@@ -816,15 +775,11 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
     faceDirs.clear();
     numLoops = (rgn_bdry[i].size()>1)?2:1;
     loopDef[1] = (numLoops==1)?0:2; //(numLoops-1)*2;
-    cout<<"#loop "<<numLoops<<" loop_id "<<rgn_bdry[i][0]<<"\n";
       // find outmost loop id
     max_loop_it = std::max_element(rgn_bdry[i].begin(), rgn_bdry[i].end());
     min_loop_it = std::min_element(rgn_bdry[i].begin(), rgn_bdry[i].end());
-    cout<<"#loop "<<rgn_bdry[i].size()<<" loop_id "<<rgn_bdry[i][0]
-        <<" min_loop_id "<<*min_loop_it<<", max_loop_id "<<*max_loop_it<<"\n";
     for (int idx=0; idx<rgn_bdry[i].size(); ++idx)
     {  
-       cout<<"loop_id "<<rgn_bdry[i][idx]<<"\n";
       if (rgn_bdry[i][idx]<*max_loop_it && rgn_bdry[i][idx]==*min_loop_it)
       {
         for (int j=0; j<=1; ++j)
@@ -832,7 +787,6 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
             ge = edges[rgn_bdry[i][idx]*2-j];
             faceEdges.push_back(ge);
             faceDirs.push_back(0);
-            cout<<"inner loop "<<rgn_bdry[i][idx]*2-j<<" faceEdges.push_back("<<GEN_tag(ge)<<" dir 0\n"; 
           }
       }
       else if (rgn_bdry[i][idx]==*max_loop_it) // outer wall
@@ -841,20 +795,14 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
           ge = edges[rgn_bdry[i][idx]*2-j];
           faceEdges.push_back(ge);
           faceDirs.push_back(1);
-          cout<<"outer loop "<<rgn_bdry[i][idx]*2-j<<" faceEdges.push_back("<<GEN_tag(ge)<<" dir 1\n";
         }
      } // for (int idx=0; idx<numLoops; ++idx)
 
     pSurface planarSurface;
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
-    for (int i=0; i<faceEdges.size(); ++i)
-      cout<<"faceEdges["<<i<<"] = "<<GEN_tag(faceEdges[i])<<", dir "<<faceDirs[i]
-          <<", #loops "<<numLoops <<", loopDef "<<loopDef[0]<<", "<<loopDef[1]<<"\n";
       
     GR_createFace(GIP_outerRegion(part), faceEdges.size(),
                   &(faceEdges[0]),&(faceDirs[0]),numLoops,loopDef,planarSurface,1);
-    cout<<"+++ create gf +++\n";
-    //GIP_insertFaceInRegion(part,faceEdges.size(),&(faceEdges[0]),&(faceDirs[0]),numloops,loopDef,planarSurface,1,outerRegion);
   }
   printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
   printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
