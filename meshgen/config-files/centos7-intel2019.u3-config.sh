@@ -1,6 +1,5 @@
 MPIVER=intel2019u3-openmpi4.0.3
-#SIM_VER=16.0-220226
-SIM_VER=15.0-210529
+SIM_VER=16.0-220226
 SIM_DIR=/usr/pppl/Simmetrix/simmodsuite/$SIM_VER
 SIM_ARCHOS=x64_rhel7_gcc48
 PETSC_VER=petsc-3.13.5

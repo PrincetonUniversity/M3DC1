@@ -151,12 +151,11 @@ set(DEP_LIBS ${DEP_LIBS} ${LAPACK_LIBRARIES} )
   #target_link_libraries(m3dc1_meshgen ${DEP_LIBS})
   #target_link_libraries(m3dc1_meshgen ${TARGET_LIB_NAME})
   #INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-
-  add_executable(m3dc1_meshgen test/m3dc1_meshgen.cc)
+  add_executable(m3dc1_meshgen test/multi_meshgen.cc)
   target_link_libraries(m3dc1_meshgen ${DEP_LIBS})
   target_link_libraries(m3dc1_meshgen ${TARGET_LIB_NAME})
   INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-
+  
   add_executable(polar_meshgen test/polar_meshgen.cc)
   target_link_libraries(polar_meshgen ${DEP_LIBS})
   target_link_libraries(polar_meshgen ${TARGET_LIB_NAME})
