@@ -4665,7 +4665,10 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
   // vtk
   if (*option==0 ||*option==3)
   {
-    sprintf(filename_buff, "ts%04d-%s",*timestep,filename);
+    if (*timestep >= 0)
+      sprintf(filename_buff, "ts%04d-%s",*timestep,filename);
+    else
+      sprintf(filename_buff, "%s",filename);
 
     apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
     apf::MeshEntity* e;
@@ -4692,7 +4695,10 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
   }
   else // smb
   {
-    sprintf(filename_buff, "ts%d-%s.smb",*timestep,filename);
+    if (*timestep >= 0)
+      sprintf(filename_buff, "ts%d-%s.smb",*timestep,filename);
+    else
+      sprintf(filename_buff, "%s.smb",filename);
 
     int fieldID=12;
     double dofBuff[1024];
