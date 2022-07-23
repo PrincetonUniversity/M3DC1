@@ -81,6 +81,7 @@ contains
 
     integer :: ier
     real :: tstart, tend, diff
+    character(LEN=14) :: mesh_time_file_name
 
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
     call hdf5_write_scalars(ier)
@@ -118,6 +119,12 @@ contains
 1004      format("OUTPUT: hdf5_write_time_slice", I5, 1p2e16.8)
        endif
     endif
+
+
+    if(mod(ntime-ntime0,ntimepr).eq.0) then
+      write(mesh_time_file_name, '("part_time_",I3.3,"_")') (times_output-1)
+      call m3dc1_mesh_write(mesh_time_file_name, 1, -1)
+    end if
 
     if(itimer.eq.1) then
        if(myrank.eq.0) call second(tstart)
