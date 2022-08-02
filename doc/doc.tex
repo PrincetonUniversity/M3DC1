@@ -1464,62 +1464,122 @@ In all cases, the angular velocity is then determined by:
 
 
 
-\subsection{Physical Parameters}
-
-\begin{tabular}{llcl}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
-  \texttt{db}     & $d_i$   & 0   & Ion skin depth\\ 
-\end{tabular}
-
 
 \subsection{Transport Coefficients}
 
-\begin{tabular}{llcp{2.25in}}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+\begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{denm}      & $D_n$   & 0   & Density diffusion coefficient\\
+  \texttt{ivisfunc} & 0 & select viscosity function \\
+                    &   & 0: $ \mbox{visc} = \mbox{amu} $ \\
+                    &   & 1: $ \mbox{visc} = \mbox{amu} + \frac{1}{2} \mbox{amu\_edge} \times
+                 \left[ 1. + \tanh \left[   \frac{\psi - \left( \psi_l+\nu_0(\psi_l - \psi_0)\right)}
+                                                 {\nu_{\Delta} (\psi_l - \psi_0)                   }\right] \right] $  \\
+                    &   & 2:  $ \mbox{visc} = \mbox{amu} + \frac{1}{2} \mbox{amu\_edge} \times
+                 \left[ 1. + \tanh \left[   \frac{\tilde{\psi} - \nu_0}
+                                                 {\nu_{\Delta}}  \right] \right] $  \\
+                    &   & or, if amuoff2 .ne. 0 and amudelt2.ne.0) \\ 
+                    &   &    $ \mbox{visc} = \mbox{amu} + \frac{1}{4} \mbox{amu\_edge} \times
+                     \left[ 2. + \tanh \left[   \frac{\tilde{\psi} - \nu_0}
+                                                 {\nu_{\Delta}}  \right]                     
+                               + \tanh \left[   \frac{\tilde{\psi} - \nu_{02} }
+                                                 {\nu_{\Delta2}}  \right]    \right] $  \\
+                    &   & 3:  visc = amu or amu\_edge depending on criteria in define\_fields \\
+
+  \texttt{amu}       & 0 & core viscosity for ivisfunc =0,..,3 \\
+  \texttt{amu\_edge} & 0 & edge viscosity for ivisfunc = 1,..,3 \\
+  \texttt{amuoff}    & 0 & $\nu_0$ in ivisfunc = 1,2 \\
+  \texttt{amuoff2}   &   & $\nu_{02}$ in ivisfunc = 1,2 \\
+  \texttt{amudelt}   & 0 & $\nu_{\Delta}$ in ivisfunc = 1,2 \\
+  \texttt{amudelt2}  & 0 & $\nu_{\Delta2}$ in ivisfunc = 1,2 \\
+  \texttt{amuc}   & 0 & Compressional viscosity coefficient\\
+  \texttt{amupar} & 0 & Parallel viscosity coefficient \\
+  \texttt{amue}  & 0 & bootstrap viscosity coefficient \\
   \hline
-  \texttt{amu}       & $\mu_r$       & 0 & \\
-  \texttt{amu\_edge} & $\mu_0$       & 0 & \\
-  \texttt{amuoff}    & $\Psi_c^\mu$ & 0 & \\
-  \texttt{amudelt}   & $\Delta^\mu$ & 0 & \\
-  \texttt{iresfunc} & & 0 &
-  \begin{minipage}[t]{2.2in}
-    0: $\mu = \mu_r$\\
-    2: $\mu = \mu_r + \frac{1}{2}\mu_0 \{1 + \tanh[(\Psi - \Psi_c^{\mu})/\Delta^{\mu}]\}$\\
-    3: $\mu = \mu_r + \eta_0 H(\Psi - \Psi_c^{\mu})$\\
-  \end{minipage}\\  
-  \texttt{amuc}   & $\mu_c$ & $\mu_r$ & Compressional viscosity coefficient\\
-  \texttt{amupar} & $\mu_\parallel$ & 0 & Parallel viscosity coefficient\\
+  \texttt{iresfunc} & 0 & select resistivity function  \\
+                    &   & 0: eta = etar + eta0/Te**(3/2) \\
+                    &   & 1: $ \mbox{eta} = \mbox{etar} + \frac{1}{2} \mbox{eta0} \times
+                 \left[ 1. + \tanh \left[   \frac{\psi - \left( \psi_l+\mbox{etaoff} \times (\psi_l - \psi_0)\right)}
+                                                 {\mbox{etadelt}\times (\psi_l - \psi_0)                   }\right] \right] $  \\
+                    &   & 2:  $ \mbox{eta} = \mbox{etar} + \frac{1}{2} \mbox{eta0} \times
+                 \left[ 1. + \tanh \left[   \frac{\tilde{\psi} - \mbox{etaoff}}
+                                                 {\mbox{etadelt}}  \right] \right] $  \\
+                    &   & The following two options are applied in a way that they \\ 
+                    &   & should not have negative values...even if the idl plots \\
+                    &   & indicate otherwise \\
+                    &   & 3: eta = etar for $\tilde{\psi} < \mbox{etaoff}$ othrwise eta0  \\
+                    &   & 4:  Spitzer resistivity with offset. \\
+                    &   &     Define $T_{wall}$ = pedge*pefac/den\_edge \\
+                    &   & $\mbox{for} T_e > T_{wall} - T_e^{off}, \eta = (T_e-T_e^{off})^{-3/2} $ \\
+                    &   & $\mbox{for} T_e < T_{wall} - T_e^{off}, \eta = (T_{wall}-T_e^{off})^{-3/2} $ \\
+                    &   & can be increased by inputing eta\_fac $>$ 1.  \\
+                    &   & 5:  Simple neoclassical model:  \\
+                    &   & $\eta = \mbox{eta0} \times (n_e/p_e)^{3/2} / (1. - 1.46 (r/R)^{1/2})   $ \\
+ \texttt{etar}    & 0 & see description of iresfunc \\
+  \texttt{eta0}   & 0 & see description of iresfunc \\
+  \texttt{etaoff} & 0 & see description of iresfunc \\
+  \texttt{etadelt} & 0 & see description of iresfunc \\
+  \texttt{eta\_te\_offset} & 0 & $T_e^{off}$  for iresfunc=4 \\
+  \texttt{ikprad\_te\_offset} & 0 & if 1, $T_e^{off}$ also used in kprad and ablation \\
+  \texttt{eta\_fac} & 0 & for iresfunc=4, resistivity multiplied by eta\_fac \\
+  \texttt{eta\_mod} & 0 & if 1: remove d/dphi terms in resistivity \\
+  \texttt{eta\_max} & 0 & maximum resistivity in plasma (defaults to etavac) \\
+  \texttt{eta\_min} & 0 & minimum resistivity in plasma  \\
+\end{tabular}
+
+\begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{etar}   & $\eta_r$   & 0 & \\
-  \texttt{eta0}   & $\eta_0$ & 0 & \\
-  \texttt{etaoff} & $\Psi_c^\eta$ & 0 & \\
-  \texttt{etadelt}& $\Delta^\eta$ & 0 & \\
-  \texttt{iresfunc} & & 0 &
-  \begin{minipage}[t]{2.2in}
-    0: $\eta = \eta_r + \eta_0/T_e^{3/2}$\\
-    2: $\eta = \eta_r + \frac{1}{2}\eta_0 \{1 + \tanh[(\Psi - \Psi_c^{\eta})/\Delta^{\eta}]\}$\\
-    3: $\eta = \eta_r + \eta_0 H(\Psi - \Psi_c^{\eta})$\\
-    4: $\eta = \eta_{Spitzer}$
-  \end{minipage}\\
+  \texttt{ikappafunc} & 0 &  select thermal conductivity function \\
+    & & 0: $\kappa = \mbox{kappat} + \mbox{kappa0} \times * (n^3/p)^{1/2}  $\\
+    & & 1: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[1 + \tanh \left[\frac{\psi -\left( \psi_l + \kappa^{0ff} \times (\psi_l - \psi_0)\right)}
+                                               {\kappa_{\Delta} \times (\psi_l - \psi_0)} \right]  \right]$ \\
+    & & 2: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[  1 + \tanh \frac{\tilde{\psi} - \kappa^{off}}
+                                           {  \kappa_{\Delta}}  \right] \mbox{for} \tilde{\psi} < 1 $  \\
+    & & 2: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[  1 + \tanh \frac{2 - \tilde{\psi} - \kappa^{off}}
+                                           {  \kappa_{\Delta}}  \right] \mbox{for} \tilde{\psi} > 1 $  \\
+    & & 3:  $\kappa = \mbox{kappat} + \mbox{kappa0} \times 1/(pn)^{1/2}$ \\
+    & & 4:  $\kappa = \mbox{kappat} + \mbox{kappa0} \times ( 1. + \mbox{kappadelt} \times |\nabla T_e|^2 ) $  \\
+    & & 5:  $\kappa = \mbox{kappat} + \mbox{kappa0}/T_e$ limited by kappa\_max  \\ 
+    & & 10: read from profile\_kappa file in $m^2/\mbox{sec}$  \\ 
+    & & 11: read from profile\_kappa file in normalized units  \\
+    & & 12: option to go with itaylor=27   \\
+ \texttt{kappa\_max}  & 0 & if .NE. 0, max $\kappa$ for ikappafunc=5 \\
+ \texttt{kappai\_fac} & 1 & ion thermal conduction is kappai\_fac* kappa \\
+ \texttt{ikapscale}   & 0 & if 1: kappar gets scaled by kappa  \\
+ \texttt{ikappar\_ni} & 0 & 1: include 1/n terms in parallel heat flux \\
+ \texttt{kappaoff}    & 0 & $\kappa^{off}$ see ikappafunc \\
+ \texttt{kappadelt}   & 0 & $\kappa_{\Delta} $ see ikappafunc \\
+ \texttt{kappat}      & 0 & isotropic thermal conductivity \\
+ \texttt{kappa0}      & 0 & see ikappafunc \\
+ \texttt{ikapparfunc} & 0 &  select parallel thermal conductivity (PTC) function \\
+                      &   & 0: PTC = kappar  \\
+                      &   & 1: PTC = $\mbox{kappar}/  \left[ (T_{crit}/T)^{5/2} + 1   \right] $ \\
+ \texttt{kappar} & 0 & Parallel thermal conductivity\\
+ \texttt{tcrit}  & 0 & $T_{crit}$ for ikapparfunc = 1  \\
+
+ \texttt{kappari\_fac}& 1 & ion parallel thermal conductivity is kappari\_fac x electron value \\
+ \texttt{kappax}      & 0 & coefficient of $B \times \nabla T$ temperature diffusion \\
+ \texttt{kappah}      & 0 & if nonzero, $\mbox{kappa} = \mbox{kappah} \times \tanh^2 \left[ (\tilde{\psi}-1.)/2  \right] $ \\
+  \texttt{kappaf} & 1 & Factor multiplying kappa when $\nabla p < \nabla p_{crit} $ \\
+  \texttt{kappag} & 0 & Thermal diffusion proportional to pressure gradient \\
+  \texttt{gradp\_crit} & 0 & $\nabla p_{crit} $ for kappaf,kappag model \\
+  \texttt{k\_fac} & 1 & Factor by which TF is multiplied in denominator of kappa\_par \\
+  \texttt{temin\_q0}  & 0 & Min temperature used in equipartition for ipres=1 \\
   \hline
-  \texttt{kappat}   & $\eta_t$    & 0 & \\
-  \texttt{kappa0}   & $\eta_0$    & 0 & \\
-  \texttt{kappaoff} & $\Psi_c^\kappa$ & 0 & \\
-  \texttt{kappadelt}& $\Delta^\kappa$ & 0 & \\
-  \texttt{iresfunc} & & 0 &
-  \begin{minipage}[t]{2.2in}
-    0: $\kappa = \kappa_t + \kappa_0*p/T^{3/2}$\\
-    2: $\kappa = \kappa_t + \frac{1}{2}\kappa_0 \{1 + \tanh[(\Psi - \Psi_c^{\kappa})/\Delta^{\kappa}]\}$
-  \end{minipage}\\
-  \texttt{kappar} & $\kappa_\parallel$ & 0 
-                  & Parallel thermal conductivity\\
-  \texttt{ikapscale}& & 0 & 1: Multiply \texttt{kappar} by $\kappa$\\
-  \texttt{kappax} & $\kappa_\times$ & 0 
-                  & Crosswise thermal conductivity\\ 
+  \texttt{idenmfunc}   & 0 & selects from of particle diffusion (PD) \\
+                      &   &  0: PD = denm \\
+                      &   &  1: PD = denm + denmt/Te \\
+                      &   &  10: read from file profile\_denm in $m^2/\mbox{sec}$  \\
+                      &   &  11: read from file profile\_denm in normalized units \\
+  \texttt{denm}   & 0 &   see idenmfunc \\
+  \texttt{denmt}  & 0 &  multiplier of 1/Te for idenmfunc=1 \\
+  \texttt{denmmin} & 0 & minimum value of denm \\
+  \texttt{denmmax} & 1.E6 & maximum value of denm \\
+ 
 \end{tabular}
 
 \subsection{Hyper-Diffusivity}
@@ -1706,3 +1766,12 @@ In all cases, the angular velocity is then determined by:
                                 (\textit{e.g.} energy)\\
   \texttt{ike\_only} & 0 & 1: Only calculate kinetic energy
 \end{tabular}
+\subsection{Physical Parameters}
+
+\begin{tabular}{llcl}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
+  \texttt{db}     & $d_i$   & 0   & Ion skin depth\\ 
+\end{tabular}
+
