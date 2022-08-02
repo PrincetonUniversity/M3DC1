@@ -68,6 +68,7 @@ char modelName[256];
 char in_bdryFile[256];
 int numBdry=0, nout_bdryFile;
 int numRgn=1;
+bool addVacuum = false;
 char bdryFile[128];
 vector<string> bdry_files;
 char out_bdryFile[256];
@@ -201,8 +202,9 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+
   fscanf(fp,"%d\n",&num_pts);
-  interpolate_points.resize(2*num_pts);
+  interpolate_points.resize(2*(num_pts+1));
   for(int i=0; i<num_pts; i++)
   {
       fscanf(fp,"%lf %lf\n",&x,&y);
@@ -214,50 +216,35 @@ int main(int argc, char *argv[])
       if (y>bdbox[3]) bdbox[3]=y;
   }
   fclose(fp);
+  interpolate_points.at(2*num_pts) = interpolate_points[0];
+  interpolate_points.at(2*num_pts+1) = interpolate_points[1];
+  num_pts++;
   mid[0]=(bdbox[0]+bdbox[2])/2.+offsetX;
   mid[1]=(bdbox[1]+bdbox[3])/2.+offsetY;
 
-//  create inner wall bdry
+
+    //create inner wall bdry
     create_vtx(&gv1_id,&(interpolate_points.at(0)));
-    create_vtx(&gv2_id,&(*(interpolate_points.rbegin()+1)));
-    create_edge(&ge1_id, &gv1_id, &gv2_id);
-    create_edge(&ge2_id, &gv2_id, &gv1_id);
+    create_edge(&ge1_id, &gv1_id, &gv1_id);
     attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
     // now set the loop closed
-    ctr_pts[0]=*(interpolate_points.rbegin()+1);
-    ctr_pts[1]=*interpolate_points.rbegin();
-    ctr_pts[10]=interpolate_points.at(0);
-    ctr_pts[11]=interpolate_points.at(1);
-    eval_normal(&ge1_id, paras+1, normal1); 
-    eval_normal(&ge1_id, paras, normal2);
-    dir1[0]=-normal1[1];
-    dir1[1]=normal1[0];
-    dir2[0]=-normal2[1];
-    dir2[1]=normal2[0];
-    double len=getDist2D(&(interpolate_points.at(0)),&(*(interpolate_points.rbegin()+1)));
-    double offset_distance[4]={0.2*len,0.4*len,-0.2*len,-0.2*len};
-    offset_point(ctr_pts, dir1, offset_distance, ctr_pts+2);
-    offset_point(ctr_pts, dir1, offset_distance+1, ctr_pts+4);
-    offset_point(ctr_pts+10, dir2, offset_distance+2, ctr_pts+6);
-    offset_point(ctr_pts+10, dir2, offset_distance+3, ctr_pts+8);
-    attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctr_pts,knots,NULL);
-    int innerWallEdges[]={ge1_id,ge2_id};
+    int innerWallEdges[]={ge1_id};
+    num_ge = 1;
     create_loop(&loop_id,&num_ge,innerWallEdges);
     set_inner_wall_boundary (&loop_id);
     ++loop_id; 
-
-  if (modelType==3) // &&  && thickness>0)
-    inner_wall_pts(num_pts);
-  else
+ 
     inner_outer_wall_pts();
   
     // increase ID's for geometric vertices and edges
-    gv1_id=gv2_id+1;
+    gv1_id=gv1_id+1;
     gv2_id=gv1_id+1;
-    ge1_id=ge2_id+1;
+    ge1_id=ge1_id+1;
     ge2_id=ge1_id+1;
 
-    if (!useVacuumParams) // #edges=6
+    bool useVacuum = false;
+
+    if (!useVacuumParams && useVacuum) // #edges=6
     {
       double left[]={mid[0]-width/2.,mid[1]}, right[]={mid[0]+width/2.,mid[1]}; 
       double offset_t=0.3*height;
@@ -274,11 +261,12 @@ int main(int argc, char *argv[])
         attach_b_spline_curve(&ge1_id,&order_p,&numCtrPts,ctrPtsBottom,knots,NULL);
         attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctrPtsTop,knots,NULL);
         int vacuumEdges[]={ge1_id,ge2_id};
+        num_ge = 2;
         create_loop(&loop_id,&num_ge,vacuumEdges);
         set_vacuum_boundary (&loop_id);
          ++loop_id;
     }
-    else // #edges=5
+    else if (useVacuumParams && useVacuum)// #edges=5
     {
       vector<double> interpolate_points_vacuum;
       bdbox[0]=a_param-b_param;
@@ -295,6 +283,7 @@ int main(int argc, char *argv[])
         aexp(para, xyz);
         interpolate_points_vacuum.at(2*i)=xyz[0];
         interpolate_points_vacuum.at(2*i+1)=xyz[1];
+	std::cout << "Point # " << i+1 << " : X = " << interpolate_points_vacuum.at(2*i) << " , Y = " << interpolate_points_vacuum.at(2*i+1) << "\n";
       }
 
       create_vtx(&gv1_id,&(interpolate_points_vacuum.at(0)));
@@ -309,11 +298,11 @@ int main(int argc, char *argv[])
 
   int numplot=5000;
 
-  int numEdge;
-  if (useVacuumParams)
-    numEdge=numBdry*2+1;
+  int numEdge = ge1_id > ge2_id ? ge1_id:ge2_id;
+/*  if (useVacuumParams)
+    numEdge=numBdry*1+1;
   else
-    numEdge=numBdry*2+2;
+    numEdge=numBdry*1+2;
  
   double diff=0;
   FILE* fp_t=fopen("plot_geo","w");
@@ -339,7 +328,7 @@ int main(int argc, char *argv[])
   }
   fclose(fp_t);
 
-  if (useVacuumParams) cout<<"[m3dc1_meshgen INFO] interpolation error "<<diff<<endl;
+  if (useVacuumParams) cout<<"[m3dc1_meshgen INFO] interpolation error "<<diff<<endl;*/
 #include <PCU.h>
 #include <MeshSim.h>
 #include <SimPartitionedMesh.h>
@@ -393,6 +382,20 @@ int main(int argc, char *argv[])
   sprintf(model_filename,"%s.smd",filename);
   GM_write(sim_model,model_filename,0,0);
 
+/*
+  pPList errors = PList_new();
+  int valid = GM_isValid(sim_model,2,errors);
+  if (!valid) 
+  {
+  	for(int i=0; i<PList_size(errors); ++i) 
+	{
+		pSimError e = static_cast<pSimError>(PList_item(errors,i));
+		std::cout<<"[ERROR] Model error " << i << ": " << SimError_toString(e)<<std::endl;
+	}
+  } 
+  else 
+	std::cout<<"[INFO] model is valid\n";
+*/
   //pParMesh sim_mesh = PM_new(0,sim_model,PMU_size());
   pMesh sim_mesh = M_new(0,sim_model);
   pACase meshCase = MS_newMeshCase(sim_model);
@@ -402,17 +405,28 @@ int main(int argc, char *argv[])
   int nGFace = GM_numFaces(sim_model);
   while( pGFace face= GFIter_next(faces))
   {
-    if (!iface&&useAnaltyicSize)
+/*    if (!iface&&useAnaltyicSize)
     {
       MS_registerSizeExprFunc(meshSizeFnName, meshSizeFn, NULL);
       MS_setMeshSize(meshCase,face,1,0,"meshSizeFn($x,$y,$z)");
       iface++;
     }
     else
-      MS_setMeshSize(meshCase,face,1, meshSizes[iface++],NULL);
+*/   
+     int faceId = -1;
+     GEN_nativeIntAttribute(face,"faceType", &faceId);
+     if (faceId == 2 || faceId == 3)
+	MS_setMeshSize(meshCase,face,1, 0.005,NULL);
+     if (faceId == 4)
+	MS_setMeshSize(meshCase,face,1, 0.01,NULL);
+     if (faceId == 1)
+	MS_setMeshSize(meshCase,face,1, 0.05,NULL);
+     if (faceId == 5 || faceId == 7)
+	MS_setMeshSize(meshCase,face,1, 0.20,NULL);
+     if (faceId == 6)
+	MS_setMeshSize(meshCase,face,1, 0.10,NULL);
   }
   GFIter_delete(faces);
-
   pSurfaceMesher surfMesh = SurfaceMesher_new(meshCase,sim_mesh);
   MS_setGlobalSizeGradationRate(meshCase, meshGradationRate);
   // for mesh matching
@@ -536,93 +550,12 @@ int main(int argc, char *argv[])
   MPI_Finalize();
 }
 
-void inner_wall_pts(  int num_pts)
-{
-/*
-    int vtxMerged=0, vtxInserted=0;
-      vector<double> interpolate_points_o;
-      double increment=1.0/double(num_pts-1);
-      double dir[2], dir_pre[2];
-      for(int i=0; i<interpolate_points.size()/2; i++)
-      { 
-        double para=i*increment; 
-        eval_normal(&one, &para, dir);
-        double pt_new[2];
-        offset_point(&(interpolate_points.at(2*i)), dir, &thickness, pt_new);
-        if (i!=0)
-        { 
-          double crossProduct=dir_pre[0]*dir[1]-dir_pre[1]*dir[0];
-          double dotProduct=dir_pre[0]*dir[0]+dir_pre[1]*dir[1];
-          if (crossProduct<0&&fabs(pt_new[0]-pt_pre[0])+fabs(pt_new[1]-pt_pre[1])<mergeTol)
-          { 
-            vtxMerged++;
-            double pt_mid[2], dir_mid[2];
-            double para_mid=(i-0.5)*increment;
-            eval_position(&one, &para_mid, pt_mid);
-            eval_normal(&one, &para_mid, dir_mid);
-            offset_point(pt_mid, dir_mid, &thickness, pt_new);
-            interpolate_points_o.pop_back();
-            interpolate_points_o.pop_back();
-          }
-          else
-          { 
-            double tol_curv=0.3;
-            if (dotProduct<tol_curv)
-            { 
-              double para_mid=(i-0.5)*increment;
-              double pt_mid[2], dir_mid[2], pt_mid_new[2];
-              eval_position(&one, &para_mid, pt_mid);
-              eval_normal(&one, &para_mid, dir_mid);
-              offset_point(pt_mid, dir_mid, &thickness, pt_mid_new);
-              interpolate_points_o.push_back(pt_mid_new[0]);
-              interpolate_points_o.push_back(pt_mid_new[1]);
-              vtxInserted++;
-            }
-          }
-        }
-        interpolate_points_o.push_back(pt_new[0]);
-        interpolate_points_o.push_back(pt_new[1]);
-        pt_pre[0]=pt_new[0];
-        pt_pre[1]=pt_new[1];
-        dir_pre[0]=dir[0];
-        dir_pre[1]=dir[1];
-      }
-      cout<<"[info] num pt merged "<<vtxMerged<<" num pt inserted "<< vtxInserted<<endl;
-
-      FILE * fp_t=fopen("offset.txt","w");
-      for(int i=0; i<interpolate_points_o.size()/2; i++)
-      {
-        fprintf(fp_t,"%lf %lf\n",interpolate_points_o.at(2*i),interpolate_points_o.at(2*i+1));
-      }
-      fclose(fp_t);
-
-      for(int i=0; i<3; i++)
-      {
-        offset_point(ctr_pts+2*i, normal1, &thickness, ctr_pts_o+2*i);
-        offset_point(ctr_pts+2*(i+3), normal2, &thickness, ctr_pts_o+2*(i+3));
-      }
-      create_vtx(&three,&(interpolate_points_o.at(0)));
-      create_vtx(&four,&(*(interpolate_points_o.rbegin()+1)));
-      create_edge(&three, &three, &four);
-      create_edge(&four, &four, &three);
-      int numpt_new=interpolate_points_o.size()/2;
-      attach_natural_cubic_curve(&three,&numpt_new,&(interpolate_points_o.at(0)));
-      attach_b_spline_curve(&four,&order_p,&numCtrPts,ctr_pts_o,knots,NULL);
-      int outerWallEdges[]={three,four};
-      create_loop(&two,&two,outerWallEdges);
-      set_outer_wall_boundary (&two);
-    }
-*/
-}
-
 void inner_outer_wall_pts()
 {
     for (int i=1; i<numBdry; ++i)
     {
-      gv1_id=gv2_id+1;
-      gv2_id=gv1_id+1;
-      ge1_id=ge2_id+1;
-      ge2_id=ge1_id+1;
+      gv1_id++;
+      ge1_id++;
 
       vector<double> out_pts;
       int num_out_pts;
@@ -631,42 +564,31 @@ void inner_outer_wall_pts()
       assert (fp);
       fscanf(fp,"%d\n",&num_out_pts);
       out_pts.resize(2*num_out_pts);
-      for (int i=0; i<num_out_pts; i++)
+      for (int j=0; j<num_out_pts; j++)
       {
         fscanf(fp,"%lf %lf\n",&x,&y);
-        out_pts.at(2*i)=x;
-        out_pts.at(2*i+1)=y;
+        out_pts.at(2*j)=x;
+        out_pts.at(2*j+1)=y;
       }
       fclose(fp);
-
+      if (fabs(out_pts.at(0)-out_pts.at(2*(num_out_pts-1))) >1e-16 || fabs(out_pts.at(1)-out_pts.at(2*(num_out_pts-1)+1)) >1e-16)
+      {
+	std::cout << "First and Last Points are not same" << "\n";
+	out_pts.resize(2*(num_out_pts+1));
+	out_pts.at(2*num_out_pts) = out_pts[0];
+	out_pts.at(2*num_out_pts+1) = out_pts[1];
+	num_out_pts++; 
+      }
       create_vtx(&gv1_id,&(out_pts.at(0)));
-      create_vtx(&gv2_id,&(*(out_pts.rbegin()+1)));
-      create_edge(&ge1_id, &gv1_id, &gv2_id);
-      create_edge(&ge2_id, &gv2_id, &gv1_id);
+      create_edge(&ge1_id, &gv1_id, &gv1_id);
+       
+      if (num_out_pts <= 10)
+      	attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+      else
+	attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
 
-      attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
-
-      ctr_pts_o[0]=*(out_pts.rbegin()+1);
-      ctr_pts_o[1]=*out_pts.rbegin();
-      ctr_pts_o[10]=out_pts.at(0);
-      ctr_pts_o[11]=out_pts.at(1);
-      double dir1[2], dir2[2], normal1[2], normal2[2];
-      double paras[]={0.,1.};
-      eval_normal(&ge1_id, paras+1, normal1);
-      eval_normal(&ge1_id, paras, normal2);
-      dir1[0]=-normal1[1];
-      dir1[1]=normal1[0];
-      dir2[0]=-normal2[1];
-      dir2[1]=normal2[0];
-      double len=getDist2D(&(out_pts.at(0)),&(*(out_pts.rbegin()+1)));
-      double offset_distance[4]={0.2*len,0.4*len,-0.2*len,-0.2*len};
-      offset_point(ctr_pts_o, dir1, offset_distance, ctr_pts_o+2);
-      offset_point(ctr_pts_o, dir1, offset_distance+1, ctr_pts_o+4);
-      offset_point(ctr_pts_o+10, dir2, offset_distance+2, ctr_pts_o+6);
-      offset_point(ctr_pts_o+10, dir2, offset_distance+3, ctr_pts_o+8);
-
-      attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctr_pts_o,knots,NULL);
-      int outerWallEdges[]={ge1_id,ge2_id};
+      int outerWallEdges[]={ge1_id};
+      num_ge = 1;
       create_loop(&loop_id,&num_ge,outerWallEdges);
       ++loop_id;
       set_outer_wall_boundary (&loop_id);
@@ -681,11 +603,13 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
   std::map<int, int> edgeType;
   std::map<int, std::vector<double> > vtxContainer;
   export_model_data(vtxContainer, edgeType, edgeContainer, loopContainer);
-
+  Sim_logOn("simLog.log");
   std::map<int, pGVertex> vertices;
   std::map<int, pGEdge> edges;
   gmi_model* model = m3dc1_model::instance()->model;  
   int numL=loopContainer.size();
+  std::cout << "Number of Loops = " << numL << "\n";
+
 #ifdef PPPL // SIMMODSUITE_MAJOR_VERSION >= 15
   pGIPart part = GM_rootPart(sim_model);
 #else
@@ -705,30 +629,28 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
       vertices[vtx.first] = GR_createVertex(GIP_outerRegion(part), &xyz[0]); 
       // GIP_insertVertexInRegion(part,&xyz[0],outerRegion);
     }
+    std::cout << "Number of Edges in Loop = " << numE << "\n";
     for( int j=0; j<numE; j++)
     {
       pGVertex startVert, endVert;
+      pGEdge pe;
       int edge = it->second[j];
+      std::cout << "Edge = " << edge << "\n";
       gmi_ent* ae = gmi_find(model, 1, edge);
-
       int curvType=edgeType.at(edge);
       std::pair<int, int> vtx=edgeContainer[edge];
       pCurve curve=NULL;
-      startVert=vertices[vtx.first];
-      endVert=vertices[vtx.second]; 
-      if ( startVert== NULL || endVert==NULL)
-      {
-        std::cout<<" invalid edge vertex not created edge tag "<<edge<<std::endl;
-        throw 1;
-      }
       switch (curvType)
       {
         case LIN: //linear
           {
+	    startVert=vertices[vtx.first];
+            endVert=vertices[vtx.second];
             double xyz1[3], xyz2[3];
             GV_point(startVert,xyz1);
             GV_point(endVert,xyz2);
             curve = SCurve_createLine(xyz1, xyz2);
+            pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
           }
           break;
         case BSPLINE: // bspline
@@ -736,17 +658,25 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
             M3DC1::BSpline** data= (M3DC1::BSpline**) gmi_analytic_data(model, ae);
             vector<double> ctrlPtsX,ctrlPtsY, knots,weight;
             int order;
+            startVert=vertices[vtx.first];
+            endVert=vertices[vtx.second];
             data[0]->getpara(order, ctrlPtsX, knots, weight);
             data[1]->getpara(order, ctrlPtsY, knots, weight);
             int numPts=ctrlPtsX.size();
-            vector<double> ctrlPts3D (3*numPts);
+            vector<double> ctrlPts3D (3*(numPts+1));
             for( int k=0; k<numPts; k++)
             {
               ctrlPts3D.at(3*k)=ctrlPtsX.at(k);
               ctrlPts3D.at(3*k+1)=ctrlPtsY.at(k);
               ctrlPts3D[3*k+2]=0.0;
+              //std::cout << "Point # " << k+1 << " = " << ctrlPts3D.at(3*k) << " , " << ctrlPts3D.at(3*k+1) << "\n";
             }
-            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+           curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+           if (numE == 1)
+           	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, 1);
+	   else if (numE == 2)
+		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
+           GM_write(sim_model,"Debug_Edges.smd",0,0);
           }
           break;
         default:
@@ -754,7 +684,6 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
           throw 1;
           break;
       }
-      pGEdge pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
       edges[edge]=pe;
     }
   }
@@ -762,48 +691,81 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
     // Now add the faces
     double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};  // the points defining the surface of the face
     vector<pGEdge> faceEdges;
-  pGEdge ge;
+    pGEdge ge;
     vector<int> faceDirs;
-    int loopDef[2] = {0,0};
+    //int loopDef[2] = {0,0};
     int numLoops;
-  vector<int>::iterator max_loop_it;
-  vector<int>::iterator min_loop_it;
+    vector<int>::iterator max_loop_it;
+    vector<int>::iterator min_loop_it;
 
   for (int i=0; i<rgn_bdry.size(); ++i)
   {
+    std::cout << " =========================== FACE STATS for Face # " << i+1 << "=======================================\n";
     faceEdges.clear();
     faceDirs.clear();
-    numLoops = (rgn_bdry[i].size()>1)?2:1;
-    loopDef[1] = (numLoops==1)?0:2; //(numLoops-1)*2;
-      // find outmost loop id
-    max_loop_it = std::max_element(rgn_bdry[i].begin(), rgn_bdry[i].end());
-    min_loop_it = std::min_element(rgn_bdry[i].begin(), rgn_bdry[i].end());
+    std::cout << "Number of Actual Loops = " << rgn_bdry[i].size() << "\n";
+    int size = rgn_bdry[i].size();
+    int loopDef[size];
+    numLoops = rgn_bdry[i].size(); 
     for (int idx=0; idx<rgn_bdry[i].size(); ++idx)
-    {  
-      if (rgn_bdry[i][idx]<*max_loop_it && rgn_bdry[i][idx]==*min_loop_it)
-      {
-        for (int j=0; j<=1; ++j)
-          {
-            ge = edges[rgn_bdry[i][idx]*2-j];
-            faceEdges.push_back(ge);
-            faceDirs.push_back(0);
-          }
-      }
-      else if (rgn_bdry[i][idx]==*max_loop_it) // outer wall
-        for (int j=1; j>=0; --j) 
-        {
-          ge = edges[rgn_bdry[i][idx]*2-j];
-          faceEdges.push_back(ge);
-          faceDirs.push_back(1);
-        }
-     } // for (int idx=0; idx<numLoops; ++idx)
+    {
+	
+	std::cout << "Loop Number = " << rgn_bdry[i][idx] << "\n";
+        loopDef[idx] = faceEdges.size();
+     	ge = edges[rgn_bdry[i][idx]];
+        faceEdges.push_back(ge);
 
+        // The block below for edges direction is hard coded for 7 region example. 
+        // Working on it for general cases. It might fail other cases (input2 and input3).
+        if (i == 3)
+	{
+		faceDirs.push_back(1);
+		faceDirs.push_back(0);
+	}
+	if (i == 4)
+	{
+		faceDirs.push_back(1);
+		faceDirs.push_back(1);
+	}
+	if (i == 5)
+	{
+		faceDirs.push_back(0);
+		faceDirs.push_back(1);
+	}
+	if (i == 6)
+	{
+		 faceDirs.push_back(0);
+		 faceDirs.push_back(0);
+		 faceDirs.push_back(0);
+		 faceDirs.push_back(0);		
+	}
+	else 
+	{
+		faceDirs.push_back(0);
+		faceDirs.push_back(1);
+	}
+    }
+    if (numLoops == 1)
+    {
+	faceDirs.clear();
+	faceDirs.push_back(1);
+    }
+    
     pSurface planarSurface;
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
-      
-    GR_createFace(GIP_outerRegion(part), faceEdges.size(),
-                  &(faceEdges[0]),&(faceDirs[0]),numLoops,loopDef,planarSurface,1);
-  }
+    GM_write(sim_model,"Debug_Faces.smd",0,0);
+    std::cout << "Number of Edges on Face  = " <<   faceEdges.size() << "\n";
+    for (int f =0; f < faceEdges.size(); ++f)
+ 	std::cout << "Edge # " << f+1 << " length = " << GE_length(faceEdges[f],0,1) << "\n";
+    std::cout << "Number of Loops = " << numLoops << "\n";
+    for (int mk = 0; mk < numLoops; ++mk)
+    	std::cout << "Dir = " << faceDirs[mk] << "\n";
+    for (int mk = 0; mk < numLoops; ++mk)
+    	std::cout << "Loop Def = " << loopDef[mk] << "\n";
+    pGFace gf = GR_createFace(GIP_outerRegion(part), faceEdges.size(),
+                  &(faceEdges[0]),&(faceDirs[0]),numLoops,&(loopDef[0]),planarSurface,1);
+    GEN_setNativeIntAttribute(gf, i+1, "faceType");
+  } 
   printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
   printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
   printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
