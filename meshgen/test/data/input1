@@ -1,15 +1,15 @@
 numBdry 1
 bdryFile sparc_v2_first_wall_interpolated.dat
-numRgn 2
+numRgn 1
 rgnBdry  1 1
-rgnBdry  2 1 2
+!rgnBdry  2 1 2
 outFile input1
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
 meshSize 0.1 0.05 0.5
 
-! for parametrized vacuum model only.
-useVacuumParams 0
+! create vacuum wall if 0 or 1 (default: 2)
+!useVacuumParams 0
 
 ! 1 to multiply coord and params of nodes on vacuum boundary by vacuumFactor
 ! If vacuumFactor is not specified, the default is 2*PI

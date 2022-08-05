@@ -2,11 +2,11 @@ numBdry 3
 bdryFile sparc_v2_first_wall_interpolated.dat
 bdryFile  points_RZ_SI_VV_10deg_Curve_1_20220124.dat 
 bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat
-numRgn 4
+numRgn 3
 rgnBdry  1 1
 rgnBdry  2 1 2
 rgnBdry  2 2 3
-rgnBdry  2 3 4
+!rgnBdry  2 3 4
 outFile input3
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
