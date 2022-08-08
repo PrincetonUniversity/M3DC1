@@ -1213,62 +1213,373 @@ and the truncation error is
   \texttt{gravz} & 0 & gravitational acceleration in Z-direction 
 \end{tabular}
 
-\subsection{Physical Parameters}
+\subsection{Initial Conditions Options}
 
-\begin{tabular}{llcl}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
-  \texttt{db}     & $d_i$   & 0   & Ion skin depth\\ 
+  \texttt{itaylor} & 0 & \begin{minipage}[t]{2.5in}
+    Pre-defined initial conditions.\\
+ {\bf for itor=1 (toroidal geometry)} \\ 
+    0: Tilting cylinder \\
+    1: Calls Grad-Shafranov solver \\
+    2: magneto-rotational equilibrium \\
+    3: rotational instability \\   
+    40: Fixed boundary stellarator \\
+    41: Free boundary stellarator \\
+ {\bf for itor=0 (slab geometry) } \\
+    0: Tilting cylinder\\
+    1: Taylor Reconnection\\
+    2: Force-Free equilibrium (Taylor state) \\
+    3: GEM Reconnection\\
+    4: Wave Propagation\\
+    5: Gravitational Instability\\
+    6: Strauss equilibrium \\
+    7: circular field init \\
+    8,9:  biharmonic \\
+    10,11,12,13:: analytic RWM test problem \\
+    14: 3D wave test \\
+    15: 3D diffusion test \\
+    16:  FRS cylindrical equilibrium \\
+    17:  ftz init \\
+    18:  eigen init \\
+    19:  ASDEX profiles similar to YU's \\
+    20: kstar profiles with multiple q=1 surfaces \\
+    21,22: fixed q(r) and p(r) profiles \\
+    23:  Startsev equilibrium with $ J = (1/R_0q_0)(1 - r^2)$ \\
+    27:  cylindrical test problem \\
+    29:  basicJ profiles \\
+  \end{minipage}\\
+  \texttt{iupstream} & 0 & 1: addsdiffusion term to convection-like upstream differencing \\
+  \texttt{magus}  & 5.e-2 & magnitude of the upstream diffusion term \\
+  \texttt{iflip}    &  0 & 1: Flip coordinate system handedness\\
+  \texttt{iflip\_b} &  0 & 1: Flip sign of toroidal field\\
+  \texttt{iflip\_j} &  0 & 1: Flip sign of toroidal current\\
+  \texttt{iflip\_v} &  0 & 1: Flip sign of toroidal velocity\\
+  \texttt{iflip\_z} &  0 & 1: Flip equilibrium across z=0 plane \\
 \end{tabular}
+
+\begin{tabular}{llp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{icsym}    &  0 &  
+    \begin{minipage}[t]{2.5in}
+    Symmetry of random perturbations \\
+    0: No symmetry\\
+    1: Odd up-down symmetry (in $U$)\\
+    2: Even up-down symmetry (in $U$)
+  \end{minipage}\\
+
+  \texttt{bzero} & 1      & $B_\tor$ at \texttt{rzero}\\
+  \texttt{bx0}  & 0 & Initial field in x-direction for some test problems \\
+  \texttt{vzero} & 0 & Initial toroidal velocity for some test problems \\
+  \texttt{phizero} & 0 & Initial velocity stream function for some test problems \\
+  \texttt{v0\_cyl} & 0 & Central toroidal velocity for some test problems \\
+  \texttt{v1\_cyl} & 0 & VZ=v0\_cyl + v1\_cyl*psin**beta \\
+ \texttt{idevice}    &  0 &
+    \begin{minipage}[t]{2.5in}
+    define coils for a particular device \\
+    -1: reads coil.dat file \\
+    0: generic dipole configuration \\
+    1: CDX-U \\
+    2: NSTX \\
+    3: ITER \\
+    4: DIII-D
+  \end{minipage}\\
+  \texttt{iwave} & 0 & defines what wave to initialize in wave propagation test \\ 
+  \texttt{eps}      &  0.01 & Size of random perturbation\\
+  \texttt{maxn}     &  200 & Maximum wavenumber of initial random noise\\
+  \texttt{verzero}  & 0 & magnitude of initial vertical velocity \\
+   \texttt{irmp}    &  0 &
+    \begin{minipage}[t]{2.5in}
+    1: apply nonaxisymmetric fields throughout plasma.  
+       reads rmp\_coil.dat for (R,Z) of window pane coils.  
+       reads rmp\_current.dat for (+-) currents in kA and phases in degrees.  
+       toroidal mode number of current specified by ntor  \\
+    2: apply nonaxisymmetric fields only at aoundaries. 
+  \end{minipage}\\
+
+ \texttt{rmp\_atten}  &  0  & additional exponential decay of RMP field from r=1 for irmp=2 \\
+ \texttt{iread\_ext\_field} & 0 & 1: read external field \\
+ \texttt{beta}  & 0 & parameter used in some model equilibrium initializations \\
+ \texttt{ln} & 0 & length scale parameter used in some model equilibrium \\
+ \texttt{elongation} & 1 & elongation used in Solovev equilibrium
+
+\end{tabular}
+
+\begin{tabular}{llp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+
+ \texttt{isample\_ext\_field} & 1 & factor to down sample external field data toroidally \\
+ \texttt{isample\_ext\_field\_pol} & 1 & factor do down sample external field data poloidally \\
+ \texttt{scale\_ext\_field} & 1 & factor to scale external field \\
+ \texttt{shift\_ext\_field} & 0 & toroidal shift (in deg) of external fields \\
+ \texttt{ibasicj\_solvep} & 0 & 0: uniform p, solve for F; 1: uniformF, solve for p \\
+ \texttt{basicj\_nu} &1 & exponent in basicj equilibrium \\
+ \texttt{basicj\_j0} & 1 & On-axis current density in basicj equilibrium \\
+ \texttt{basicj\_voff} & 1 & Radial extent of flat toroidal rotation in basicj equilibrium \\
+ \texttt{basicj\_vdelt} & 1 & Width of velocity drop-off, as fraction of ln, in basicj equilibrium \\
+ \texttt{basicj\_dexp} & 1 & parameter for basicj equilibrium \\
+ \texttt{basicj\_dvac} & 1 & parameter for basicj equilibrium \\
+ \texttt{basicj\_q0} & 0 &   parameter for basicj equilibrium \\
+ \texttt{basicj\_qa}  & 0 &   parameter for basicj equilibrium \\
+ \texttt{pf\_shift} & 0 & (array) horizontal shift of PF coil \\
+ \texttt{pf\_shift\_angle} & 0 & (array) direction of PF shift in degrees \\
+ \texttt{pf\_tilt} & 0 & (array) Angle of PF from vertical in degrees \\
+ \texttt{pf\_tilt\_angle} & 0 & (array) Axis of rotation for PF tilt in degrees \\
+ \texttt{tf\_shift} & 0 & horizontal shift of TF coils \\
+ \texttt{tf\_shift\_angle} & 0 & direction of TF shift in degrees \\
+ \texttt{tf\_tilt} & 0 & angle of TF from vertical in degrees \\
+ \texttt{tf\_tilt\_angle} & 0 & axis of rotation for TF tilt in degrees 
+
+\end{tabular}
+
+\subsection{Grad-Shafranov Solver Options}
+\begin{tabular}{lcp{3in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{inumgs}& 0      & 1: Use numerical def. of p and g from profile-p and profile-g files\\
+ \texttt{igs}   & 80     & Max number of Picard iterations\\
+  \texttt{eta\_gs} & 1000.& factor for smoothing nonaxisymmetries in psi in 3D GS solve \\
+  \texttt{igs\_pp\_ffp\_rescale} & 0 & 1: rescale p' and FF' to match p and F \\
+  \texttt{nv1equ}& 0 & 1:use numvar =1 equilibrium for numvar .GT. 1 \\
+  \texttt{tcuro} & 1	  & (scaled) plasma current in GS equilibrium\\
+  \texttt{xmag}  & 1      & $R$-coordinate of magnetic axis\\
+  \texttt{zmag}  & 0      & $Z$-coordinate of magnetic axis\\
+  \texttt{xmag0} & 0      &  if nonzero, target magnetic axis $R$ for feedback\\
+  \texttt{zmag0} & 0      &  if nonzero, target magnetic axis $Z$ for feecback\\
+  \texttt{xlim}  & 0      & $R$-coordinate of limiter\\
+  \texttt{zlim}  & 0      & $Z$-coordinate of limiter\\
+  \texttt{xlim2}  & 0      & $R$-coordinate of limiter \#2\\
+  \texttt{zlim2}  & 0	   & $Z$-coordinate of limiter \#2\\
+  \texttt{rzero}  & 1      & nominal major radius of device for itor=1 \\
+  \texttt{libetap}& 1.2    & approximate value of $l_i/2 + \beta_P$ for free-boundary equ \\
+  \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
+  \texttt{pi0}   & 0.005  & Ion pressure at magnetic axis\\
+  \texttt{p1}    & 0     & $p^{\prime}(\Psi)$ at magnetic axis\\
+  \texttt{p2}    & 0     & $p^{\prime \prime}(\Psi)$ at magnetic axis\\
+  \texttt{pedge} & 0	  & Pressure in vacuum region\\
+  \texttt{tedge} & 0     & temperature in vacuum region (if .GT. 0).  Only
+                           used in GS solve.   Boundary value of electron temp
+                           is $twall = pedge \times pefac/den\_edge $ \\
+ \texttt{tiedge} & 0     & ion temperature in vacuum region  \\
+ \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
+    density gradient: $n = p^\mathtt{expn}$.}\\
+ \texttt{q0}    & 1	  & Safety factor at magnetic axis\\
+ \texttt{djdpsi}& 0	  & $J_\tor'(\Psi)$ at magnetic axis\\
+ \texttt{th\_gs}& 0.8     & implicitness of GS Picard iterations\\
+ \texttt{tol\_gs}& $10^{-8}$  & convergence criteria for GS iteration \\
+  \texttt{pscale}  & 1.       & factor multiplying pressure profile \\
+  \texttt{bscale}      &  1.0 & Factor multipying toroidal field\\
+  \texttt{bpscale}     &  1.0 & Factor multiplying F' (keeping F0 constant) \\
+  \texttt{vscale}      &  1.0 & Factor multiplying toroidal rotation profile \\
+  \texttt{iread\_bscale}&  0   & 1: read profile\_bscale for factor to scale F \\
+  \texttt{iread\_pscale} & 0   & 1: read profile\_pscale for factor to scale $p$ and $p^{\prime} $ \\
+  \texttt{batemanscale} &  1   & Bateman scale the TF, keeping curent profile fixed \\
+
+\end{tabular}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{irot}         &  0   & 1: include toroidal rotation in equilibrium calculatin \\
+  \texttt{iscale\_rot\_by\_p} & 1 & see below \\
+  \texttt{alpha0}       &  0   & $\alpha_0$ in analytic rotation profile \\
+  \texttt{alpha1}      	&  0   & $\alpha_1$ in analytic	rotation profile \\
+  \texttt{alpha2}      	&  0   & $\alpha_2$ in analytic	rotation profile \\
+  \texttt{alpha3}      	&  0   & $\alpha_3$ in analytic	rotation profile \\
+\end{tabular}
+
+For iread\_omega=0, the function $\alpha(\psi)$ is parameterized by:
+ \[ \tilde{\alpha} = \alpha_{0} + \alpha_{1} s + \alpha_{2} s^{2} + \alpha_{3} s^{3} \]
+For iscale\_rot\_by\_p = 0:  $\alpha = \tilde{\alpha} \times n(\psi) / p(\psi)$ . \\
+For iscale\_rot\_by\_p = 1:  $\alpha = \tilde{\alpha} $. \\
+For iscale\_rot\_by\_p = 2:  $\alpha = \left[ \alpha_{0} + \alpha_{1} e^{-\left[ \left( \psi - \alpha_{2} \right) / \alpha_{3} 
+                                          \right]^{2} }       \right] \times n(\psi) /p(\psi) $ \\
+In all cases, the angular velocity is then determined by:
+\[      \omega = \left[  \frac{2 \alpha p(\psi)}{R_0^2 n(\psi)} \right]^{\frac{1}{2}} \]
+\begin{tabular}{llp{6in}}
+  \texttt{idenfunc}         & 0   &
+  \begin{minipage}[t]{4.0in}
+    0: $ n = \mbox{den0} \times (p/p0)^{\mbox{expn}} + \mbox{denedge} $ \\
+    1: $ n = \mbox{den0} \times \frac{1}{2} \times 
+       \left[1 + \tanh \left(\frac{\psi - (\psi_B + n_O (\psi_B - \psi_M))}
+                                  {\Delta \times (\psi_B - \psi_M)        } \right)    \right] $ \\
+    2: $ n = \mbox{den0} + \frac{1}{2}  \left( \mbox{den\_edge} - \mbox{den0} \right)
+                  \times  \left[1 + \tanh \left( \frac{ \tilde{\psi} - n_O}
+                                               {      \Delta            } \right)  \right] $\\
+    3: if $\tilde{\psi}$ .LT. $n_O$ and $(\psi - \psi_M) \times \left[d \psi /dx (x - x_{MA}) + d \psi /dz (z - z_{MA} )           
+                \right] $ .GT. 0, then $n$ = den0.     Else, $n$ = den\_edge.  \\
+    ( $\psi_B = \mbox{psibound}, \psi_M = \mbox{psimin}, \tilde{\psi} = (\psi - \psi_M)/(\psi_B - \psi_M) $ )
+  \end{minipage}    \\
+
+  \texttt{den\_edge}        & 0.0 & edge density.  If 0, set to den0*(pedge/p0)**expn \\
+  \texttt{den0}             & 1.0 & (scaled) central density\\
+  \texttt{denoff}           & 1.0 & $n_O$: offset for idenfunc=1,2,3 \\
+  \texttt{dendelt}          & 0.1 & $\Delta$: width of transition region for idenfunc=1,2 \\
+
+  \texttt{divertors} & 0  & Number of divertors (0--2)\\
+  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
+  \texttt{xdiv}  & 0      & $r$-coordinate of divertor current(s)\\
+  \texttt{zdiv}  & 0      & \parbox[t]{3in}{$z$-coordinate of 
+    divertor 
+    current.  If $\mathtt{divertors} = 2$, the second divertor has 
+    $z = -\mathtt{zdiv}$.}\\
+  \texttt{xnull}     & 0 & Guess for $r$-coordinate of x-point\\
+  \texttt{znull}     & 0 & Guess for $z$-coordinate of x-point\\
+  \texttt{mod\_null\_rs} & 0 & if 1: you can reset xnull and znull from C1input \\
+  \texttt{xnull0}  &  0  & Target R-Coordinate of x-point for feedback \\
+  \texttt{znull0}  &  0  & Target Z-Coordinate of x-point for feedback \\
+  \texttt{xnull2}     & 0 & Guess for $r$-coordinate of inactive x-point\\
+  \texttt{znull2}     & 0 & Guess for $z$-coordinate of inactive x-point\\
+  \texttt{mod\_null\_rs2} & 0 & if1: you can reset xnull2 and znull2 from C1input \\
+  \end{tabular}
+
+  \begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{gs\_pf\_psi\_width}            & 0 & width of psi smoothing into provate flux region \\
+ \texttt{gs\_vertical\_feedback}        & 0 & proportional feedback of each coil to (zmag-zmag0) (array) \\ 
+ \texttt{gs\_vertical\_feedback\_i}     & 0 & integral feedback of each coil to (zmag-zmag0) (array) \\
+ \texttt{gs\_vertical\_feedback\_x}     & 0 & proportional feedback of each coil to (znull-znull0) (array) \\
+ \texttt{gs\_vertical\_feedback\_x\_i} & 0 & integral feedback of each coil to (znull-znull0) (array) \\
+ \texttt{gs\_radial\_feedback}          & 0 & proportional feedback of each coil to (xmag-xmag0) (array) \\
+ \texttt{gs\_radial\_feedback\_i}       & 0 & integral feedback of each coil to (xmag-xmag0) (array) \\
+ \texttt{gs\_radial\_feedback\_x}       & 0 & proportional feedback of each coil to (xnull-xnull0) (array) \\
+ \texttt{gs\_radial\_feedback\_x\_i}    & 0 & integral feedback of each coil to (xnull-xnull0) (array) \\
+ \texttt{igs\_extend\_p}                & 0 & 1: extend p past pls=1 using ne and Te profiles  \\
+ \texttt{igs\_feedfac}                  & 1 & proportionality factor for external field feedback \\
+ \texttt{igs\_forcefree\_lcfs}          & -1 & 1: ensure that GS solution is force free at LCFS \\
+ \texttt{igs\_start\_xpoint\_search}    & 0 &  number of GS iterations before searching for x-point \\
+ \texttt{sigma0}                        & 0 &  width of Gaussian for initial current distribution for GS iteration \\
+ \texttt{igs\_extend\_diagmag}          & 1 &  1: extend diamagnetic rotation past psi=1 \\
+ 
+\texttt{adapt\_qs} & 0 & Safety factor values to pack around (array) \\
+\texttt{adapt\_zlow} & 0 & Z-coordinate below which SOL adaption is coarse \\
+\texttt{adapt\_zup}  & 0 & Z-coordinate above which SOL adaptation is coarse
+
+
+\end{tabular}
+
+
 
 
 \subsection{Transport Coefficients}
 
-\begin{tabular}{llcp{2.25in}}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+\begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{denm}      & $D_n$   & 0   & Density diffusion coefficient\\
+  \texttt{ivisfunc} & 0 & select viscosity function \\
+                    &   & 0: $ \mbox{visc} = \mbox{amu} $ \\
+                    &   & 1: $ \mbox{visc} = \mbox{amu} + \frac{1}{2} \mbox{amu\_edge} \times
+                 \left[ 1. + \tanh \left[   \frac{\psi - \left( \psi_l+\nu_0(\psi_l - \psi_0)\right)}
+                                                 {\nu_{\Delta} (\psi_l - \psi_0)                   }\right] \right] $  \\
+                    &   & 2:  $ \mbox{visc} = \mbox{amu} + \frac{1}{2} \mbox{amu\_edge} \times
+                 \left[ 1. + \tanh \left[   \frac{\tilde{\psi} - \nu_0}
+                                                 {\nu_{\Delta}}  \right] \right] $  \\
+                    &   & or, if amuoff2 .ne. 0 and amudelt2.ne.0) \\ 
+                    &   &    $ \mbox{visc} = \mbox{amu} + \frac{1}{4} \mbox{amu\_edge} \times
+                     \left[ 2. + \tanh \left[   \frac{\tilde{\psi} - \nu_0}
+                                                 {\nu_{\Delta}}  \right]                     
+                               + \tanh \left[   \frac{\tilde{\psi} - \nu_{02} }
+                                                 {\nu_{\Delta2}}  \right]    \right] $  \\
+                    &   & 3:  visc = amu or amu\_edge depending on criteria in define\_fields \\
+
+  \texttt{amu}       & 0 & core viscosity for ivisfunc =0,..,3 \\
+  \texttt{amu\_edge} & 0 & edge viscosity for ivisfunc = 1,..,3 \\
+  \texttt{amuoff}    & 0 & $\nu_0$ in ivisfunc = 1,2 \\
+  \texttt{amuoff2}   &   & $\nu_{02}$ in ivisfunc = 1,2 \\
+  \texttt{amudelt}   & 0 & $\nu_{\Delta}$ in ivisfunc = 1,2 \\
+  \texttt{amudelt2}  & 0 & $\nu_{\Delta2}$ in ivisfunc = 1,2 \\
+  \texttt{amuc}   & 0 & Compressional viscosity coefficient\\
+  \texttt{amupar} & 0 & Parallel viscosity coefficient \\
+  \texttt{amue}  & 0 & bootstrap viscosity coefficient \\
   \hline
-  \texttt{amu}       & $\mu_r$       & 0 & \\
-  \texttt{amu\_edge} & $\mu_0$       & 0 & \\
-  \texttt{amuoff}    & $\Psi_c^\mu$ & 0 & \\
-  \texttt{amudelt}   & $\Delta^\mu$ & 0 & \\
-  \texttt{iresfunc} & & 0 &
-  \begin{minipage}[t]{2.2in}
-    0: $\mu = \mu_r$\\
-    2: $\mu = \mu_r + \frac{1}{2}\mu_0 \{1 + \tanh[(\Psi - \Psi_c^{\mu})/\Delta^{\mu}]\}$\\
-    3: $\mu = \mu_r + \eta_0 H(\Psi - \Psi_c^{\mu})$\\
-  \end{minipage}\\  
-  \texttt{amuc}   & $\mu_c$ & $\mu_r$ & Compressional viscosity coefficient\\
-  \texttt{amupar} & $\mu_\parallel$ & 0 & Parallel viscosity coefficient\\
+  \texttt{iresfunc} & 0 & select resistivity function  \\
+                    &   & 0: eta = etar + eta0/Te**(3/2) \\
+                    &   & 1: $ \mbox{eta} = \mbox{etar} + \frac{1}{2} \mbox{eta0} \times
+                 \left[ 1. + \tanh \left[   \frac{\psi - \left( \psi_l+\mbox{etaoff} \times (\psi_l - \psi_0)\right)}
+                                                 {\mbox{etadelt}\times (\psi_l - \psi_0)                   }\right] \right] $  \\
+                    &   & 2:  $ \mbox{eta} = \mbox{etar} + \frac{1}{2} \mbox{eta0} \times
+                 \left[ 1. + \tanh \left[   \frac{\tilde{\psi} - \mbox{etaoff}}
+                                                 {\mbox{etadelt}}  \right] \right] $  \\
+                    &   & The following two options are applied in a way that they \\ 
+                    &   & should not have negative values...even if the idl plots \\
+                    &   & indicate otherwise \\
+                    &   & 3: eta = etar for $\tilde{\psi} < \mbox{etaoff}$ othrwise eta0  \\
+                    &   & 4:  Spitzer resistivity with offset. \\
+                    &   &     Define $T_{wall}$ = pedge*pefac/den\_edge \\
+                    &   & $\mbox{for} T_e > T_{wall} - T_e^{off}, \eta = (T_e-T_e^{off})^{-3/2} $ \\
+                    &   & $\mbox{for} T_e < T_{wall} - T_e^{off}, \eta = (T_{wall}-T_e^{off})^{-3/2} $ \\
+                    &   & can be increased by inputing eta\_fac $>$ 1.  \\
+                    &   & 5:  Simple neoclassical model:  \\
+                    &   & $\eta = \mbox{eta0} \times (n_e/p_e)^{3/2} / (1. - 1.46 (r/R)^{1/2})   $ \\
+ \texttt{etar}    & 0 & see description of iresfunc \\
+  \texttt{eta0}   & 0 & see description of iresfunc \\
+  \texttt{etaoff} & 0 & see description of iresfunc \\
+  \texttt{etadelt} & 0 & see description of iresfunc \\
+  \texttt{eta\_te\_offset} & 0 & $T_e^{off}$  for iresfunc=4 \\
+  \texttt{ikprad\_te\_offset} & 0 & if 1, $T_e^{off}$ also used in kprad and ablation \\
+  \texttt{eta\_fac} & 0 & for iresfunc=4, resistivity multiplied by eta\_fac \\
+  \texttt{eta\_mod} & 0 & if 1: remove d/dphi terms in resistivity \\
+  \texttt{eta\_max} & 0 & maximum resistivity in plasma (defaults to etavac) \\
+  \texttt{eta\_min} & 0 & minimum resistivity in plasma  \\
+\end{tabular}
+
+\begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{etar}   & $\eta_r$   & 0 & \\
-  \texttt{eta0}   & $\eta_0$ & 0 & \\
-  \texttt{etaoff} & $\Psi_c^\eta$ & 0 & \\
-  \texttt{etadelt}& $\Delta^\eta$ & 0 & \\
-  \texttt{iresfunc} & & 0 &
-  \begin{minipage}[t]{2.2in}
-    0: $\eta = \eta_r + \eta_0/T_e^{3/2}$\\
-    2: $\eta = \eta_r + \frac{1}{2}\eta_0 \{1 + \tanh[(\Psi - \Psi_c^{\eta})/\Delta^{\eta}]\}$\\
-    3: $\eta = \eta_r + \eta_0 H(\Psi - \Psi_c^{\eta})$\\
-    4: $\eta = \eta_{Spitzer}$
-  \end{minipage}\\
+  \texttt{ikappafunc} & 0 &  select thermal conductivity function \\
+    & & 0: $\kappa = \mbox{kappat} + \mbox{kappa0} \times * (n^3/p)^{1/2}  $\\
+    & & 1: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[1 + \tanh \left[\frac{\psi -\left( \psi_l + \kappa^{0ff} \times (\psi_l - \psi_0)\right)}
+                                               {\kappa_{\Delta} \times (\psi_l - \psi_0)} \right]  \right]$ \\
+    & & 2: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[  1 + \tanh \frac{\tilde{\psi} - \kappa^{off}}
+                                           {  \kappa_{\Delta}}  \right] \mbox{for} \tilde{\psi} < 1 $  \\
+    & & 2: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[  1 + \tanh \frac{2 - \tilde{\psi} - \kappa^{off}}
+                                           {  \kappa_{\Delta}}  \right] \mbox{for} \tilde{\psi} > 1 $  \\
+    & & 3:  $\kappa = \mbox{kappat} + \mbox{kappa0} \times 1/(pn)^{1/2}$ \\
+    & & 4:  $\kappa = \mbox{kappat} + \mbox{kappa0} \times ( 1. + \mbox{kappadelt} \times |\nabla T_e|^2 ) $  \\
+    & & 5:  $\kappa = \mbox{kappat} + \mbox{kappa0}/T_e$ limited by kappa\_max  \\ 
+    & & 10: read from profile\_kappa file in $m^2/\mbox{sec}$  \\ 
+    & & 11: read from profile\_kappa file in normalized units  \\
+    & & 12: option to go with itaylor=27   \\
+ \texttt{kappa\_max}  & 0 & if .NE. 0, max $\kappa$ for ikappafunc=5 \\
+ \texttt{kappai\_fac} & 1 & ion thermal conduction is kappai\_fac* kappa \\
+ \texttt{ikapscale}   & 0 & if 1: kappar gets scaled by kappa  \\
+ \texttt{ikappar\_ni} & 0 & 1: include 1/n terms in parallel heat flux \\
+ \texttt{kappaoff}    & 0 & $\kappa^{off}$ see ikappafunc \\
+ \texttt{kappadelt}   & 0 & $\kappa_{\Delta} $ see ikappafunc \\
+ \texttt{kappat}      & 0 & isotropic thermal conductivity \\
+ \texttt{kappa0}      & 0 & see ikappafunc \\
+ \texttt{ikapparfunc} & 0 &  select parallel thermal conductivity (PTC) function \\
+                      &   & 0: PTC = kappar  \\
+                      &   & 1: PTC = $\mbox{kappar}/  \left[ (T_{crit}/T)^{5/2} + 1   \right] $ \\
+ \texttt{kappar} & 0 & Parallel thermal conductivity\\
+ \texttt{tcrit}  & 0 & $T_{crit}$ for ikapparfunc = 1  \\
+
+ \texttt{kappari\_fac}& 1 & ion parallel thermal conductivity is kappari\_fac x electron value \\
+ \texttt{kappax}      & 0 & coefficient of $B \times \nabla T$ temperature diffusion \\
+ \texttt{kappah}      & 0 & if nonzero, $\mbox{kappa} = \mbox{kappah} \times \tanh^2 \left[ (\tilde{\psi}-1.)/2  \right] $ \\
+  \texttt{kappaf} & 1 & Factor multiplying kappa when $\nabla p < \nabla p_{crit} $ \\
+  \texttt{kappag} & 0 & Thermal diffusion proportional to pressure gradient \\
+  \texttt{gradp\_crit} & 0 & $\nabla p_{crit} $ for kappaf,kappag model \\
+  \texttt{k\_fac} & 1 & Factor by which TF is multiplied in denominator of kappa\_par \\
+  \texttt{temin\_q0}  & 0 & Min temperature used in equipartition for ipres=1 \\
   \hline
-  \texttt{kappat}   & $\eta_t$    & 0 & \\
-  \texttt{kappa0}   & $\eta_0$    & 0 & \\
-  \texttt{kappaoff} & $\Psi_c^\kappa$ & 0 & \\
-  \texttt{kappadelt}& $\Delta^\kappa$ & 0 & \\
-  \texttt{iresfunc} & & 0 &
-  \begin{minipage}[t]{2.2in}
-    0: $\kappa = \kappa_t + \kappa_0*p/T^{3/2}$\\
-    2: $\kappa = \kappa_t + \frac{1}{2}\kappa_0 \{1 + \tanh[(\Psi - \Psi_c^{\kappa})/\Delta^{\kappa}]\}$
-  \end{minipage}\\
-  \texttt{kappar} & $\kappa_\parallel$ & 0 
-                  & Parallel thermal conductivity\\
-  \texttt{ikapscale}& & 0 & 1: Multiply \texttt{kappar} by $\kappa$\\
-  \texttt{kappax} & $\kappa_\times$ & 0 
-                  & Crosswise thermal conductivity\\ 
+  \texttt{idenmfunc}   & 0 & selects from of particle diffusion (PD) \\
+                      &   &  0: PD = denm \\
+                      &   &  1: PD = denm + denmt/Te \\
+                      &   &  10: read from file profile\_denm in $m^2/\mbox{sec}$  \\
+                      &   &  11: read from file profile\_denm in normalized units \\
+  \texttt{denm}   & 0 &   see idenmfunc \\
+  \texttt{denmt}  & 0 &  multiplier of 1/Te for idenmfunc=1 \\
+  \texttt{denmmin} & 0 & minimum value of denm \\
+  \texttt{denmmax} & 1.E6 & maximum value of denm \\
+ 
 \end{tabular}
 
 \subsection{Hyper-Diffusivity}
@@ -1365,95 +1676,6 @@ and the truncation error is
   \texttt{iread\_jsolver} & 0 & 1: Read Jsolver file 'fixed'
 \end{tabular}
 
-\subsection{Initial Conditions Options}
-
-\begin{tabular}{llcp{2.5in}}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{itaylor} & & 0 & \begin{minipage}[t]{2.5in}
-    Pre-defined initial conditions.\\
-    0: Tilting cylinder\\
-    1: Taylor Reconnection\\
-    2: Force-Free equilibrium\\
-    3: GEM Reconnection\\
-    4: Wave Propagation\\
-    5: Gravitational Instability\\
-  \end{minipage}\\
-  \texttt{irmp} & & 0 & 
-  \begin{minipage}[t]{2.5in}
-    Add nonaxisymmetric perturbation from
-    \texttt{rmp\_coil.dat} and \texttt{rmp\_current.dat} with $n =
-    \mathtt{ntor}$\\
-    1: Initial perturbation is vacuum field\\
-    2: Perturbation only at boundary
-  \end{minipage}\\
-  \texttt{maxn}     & & 200 & Maximum wavenumber of initial random noise\\
-  \texttt{eps}      & & 0.01 & Size of random perturbation\\
-  \texttt{iflip}    & & 0 & 1: Flip coordinate system handedness\\
-  \texttt{iflip\_b} & & 0 & 1: Flip sign of toroidal field\\
-  \texttt{iflip\_v} & & 0 & 1: Flip sign of toroidal velocity\\
-  \texttt{icsym}    & & 0 &
-  \begin{minipage}[t]{2.5in}
-    Impose symmetry on random perturbations
-    0: No symmetry\\
-    1: Odd up-down symmetry (in $U$)\\
-    2: Even up-down symmetry (in $U$)
-  \end{minipage}\\
-  \texttt{bscale}      & & 1.0 & Bateman scaling for toroidal field\\
-  \hline
-  \texttt{den\_edge}   & $\rho_e$      & 0.0 & \\
-  \texttt{den0}        & $\rho_0$      & 1.0 & \\
-  \texttt{denoff}      & $\Psi_c^\rho$ & 1.0 & \\
-  \texttt{dendelt}     & $\Delta^\rho$ & 0.1 & \\
-  \texttt{idenfunc}    &               & 0   &
-  \begin{minipage}[t]{2.5in}
-    0: Use problem-specific density\\
-    2: $\rho = \rho_0 + \frac{1}{2}\rho_e \{1 + \tanh[(\Psi - \Psi_c^{\rho})/\Delta^{\rho}]\}$\\
-    3: $\rho = \rho_0 + \rho_e H(\Psi - \Psi_c^{\rho})$\\
-    4: Read density profile from 'PROFDEN.txt'
-  \end{minipage}
-\end{tabular}
-
-\subsection{Grad-Shafranov Solver Options}
-\begin{tabular}{lcp{3in}}
-  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{igs}   & 80     & Number of Picard iterations\\
-  \texttt{xmag}  & \texttt{xzero}+1 & $R$-coordinate of magnetic axis\\
-  \texttt{zmag}  & 0      & $Z$-coordinate of magnetic axis\\
-  \texttt{xlim}  & \texttt{xzero}   & $R$-coordinate of limiter\\
-  \texttt{zlim}  & 0      & $Z$-coordinate of limiter\\
-  \hline
-  \texttt{divertors} & 0  & Number of divertors (0--2)\\
-  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
-  \texttt{xdiv}  & 0      & $r$-coordinate of divertor current(s)\\
-  \texttt{zdiv}  & 0      & \parbox[t]{3in}{$z$-coordinate of 
-    divertor 
-    current.  If $\mathtt{divertors} = 2$, the second divertor has 
-    $z = -\mathtt{zdiv}$.}\\
-  \hline
-  \texttt{tcuro} & 1      & Plasma current in GS equilibrium\\
-  \texttt{q0}    & 1      & Safety factor at magnetic axis\\
-  \texttt{djdpsi}& 0      & $J_\tor'(\Psi)$ at magnetic axis\\
-  \texttt{bzero} & 1      & $B_\tor$ at \texttt{rzero}\\
-  \texttt{pedge} & 0      & Pressure in vacuum region\\
-  \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
-  \texttt{p1}    & -1     & $p'(\Psi)$ at magnetic axis\\
-  \texttt{p2}    & -2     & $p''(\Psi)$ at magnetic axis\\
-  \texttt{pedge} & 0      & Pressure in vacuum region\\
-  \texttt{divertors} & 0  & Number of divertors (0--2)\\
-  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
-  \texttt{xdiv}  & \texttt{xmag} & $R$-coordinate of divertor current(s)\\
-  \texttt{zdiv}  & \texttt{zmag} & \parbox[t]{3in}{$Z$-coordinate of 
-    divertor 
-    current.  If $\mathtt{divertors} = 2$, the second divertor has 
-    $Z = -\mathtt{zdiv}$.}\\
-  \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
-    density gradient: $n = p^\mathtt{expn}$.}\\
-  \texttt{psiscale} & 1.0 & Rescale profiles s.t. LCFS is at 
-  $\Psi=\mathtt{psiscale}$.
-\end{tabular}
-
 
 
 \subsection{Boundary and Domain Options}
@@ -1540,9 +1762,16 @@ and the truncation error is
 \begin{tabular}{lcp{3in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{xnull}     & 0 & Guess for $r$-coordinate of x-point\\
-  \texttt{znull}     & 0 & Guess for $z$-coordinate of x-point\\
   \texttt{icalc\_scalars} & 1 & 1: Calculate volume-integrated scalars 
                                 (\textit{e.g.} energy)\\
   \texttt{ike\_only} & 0 & 1: Only calculate kinetic energy
 \end{tabular}
+\subsection{Physical Parameters}
+
+\begin{tabular}{llcl}
+  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
+  \texttt{db}     & $d_i$   & 0   & Ion skin depth\\ 
+\end{tabular}
+

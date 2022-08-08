@@ -2,8 +2,8 @@
 -pc_bjacobi_blocks 4
 -sub_pc_type lu
 -sub_pc_factor_mat_solver_type mumps
--mat_mumps_icntl_14 50
--sub_mat_mumps_icntl_14 50
+-mat_mumps_icntl_14 100
+-sub_mat_mumps_icntl_14 100
 -sub_ksp_type preonly
 -ksp_type fgmres
 -ksp_gmres_restart 220
@@ -16,8 +16,8 @@
 -hard_pc_bjacobi_blocks 4
 -hard_sub_pc_type lu
 -hard_sub_pc_factor_mat_solver_type mumps
--hard_mat_mumps_icntl_14 50
--hard_sub_mat_mumps_icntl_14 50
+-hard_mat_mumps_icntl_14 100
+-hard_sub_mat_mumps_icntl_14 100
 -hard_sub_ksp_type preonly
 -hard_ksp_type lgmres
 -hard_ksp_lgmres_augment 4
