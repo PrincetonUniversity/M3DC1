@@ -60,6 +60,7 @@ char meshSizeFnName[]="meshSizeFn";
 double meshSizeFn(const double gpt[3], void* data);
 
 int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry);
+int make_sim_model_old(pGModel& sim_model, vector< vector<int> >& rgn_bdry);
 
 void messageHandler(int type, const char *msg);
 using namespace std;
@@ -75,8 +76,9 @@ vector<string> bdry_files;
 char out_bdryFile[256];
 int modelType=0;
 int reorder=0;
-int useVacuumParams=0;
 int useVacuum = 0;
+int useVacuumParams=-1;
+int useOld=0;
 int useOriginal = 1;
 int numInterPts =20;
 double meshSizes[] = {0.05, 0.05, 0.05};
@@ -118,12 +120,15 @@ int main(int argc, char *argv[])
   MPI_Init(&argc,&argv);
   m3dc1_scorec_init();
 
-  if (argc!=2) 
+  if (argc<2) 
   {    
     cout<<"[m3dc1_meshgen ERROR] usage: ./m3dc1_meshgen input_filename\n"; 
     MPI_Finalize();
     return 1;
   }
+
+  if (argc==3)
+    useOld = atoi(argv[2]);
 
   FILE* infp= fopen(argv[1],"r");
   if (!infp)
@@ -230,12 +235,15 @@ int main(int argc, char *argv[])
 
     //create inner wall bdry
     create_vtx(&gv1_id,&(interpolate_points.at(0)));
+    cout<<"create_vtx "<<gv1_id<<"\n";
     create_edge(&ge1_id, &gv1_id, &gv1_id);
+    cout<<"create_edge "<<ge1_id<<"("<<gv1_id<<", "<<gv1_id<<")\n";
     attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
     // now set the loop closed
     int innerWallEdges[]={ge1_id};
     num_ge = 1;
     create_loop(&loop_id,&num_ge,innerWallEdges);
+    cout<<"create_loop "<<loop_id<<"("<<ge1_id<<")\n";
     set_inner_wall_boundary (&loop_id);
     ++loop_id; 
  
@@ -258,14 +266,19 @@ int main(int argc, char *argv[])
                right[0],right[1]+0.6*height,left[0],left[1]+0.6*height+offset_t,
                left[0],left[1]+0.3*height+offset_t,left[0],left[1]};
         create_vtx(&gv1_id,left);
+        cout<<"create_vtx "<<gv1_id<<"\n";
         create_vtx(&gv2_id,right);
+        cout<<"create_vtx "<<gv2_id<<"\n";
         create_edge(&ge1_id, &gv1_id, &gv2_id);
+        cout<<"create_edge "<<ge1_id<<"("<<gv1_id<<", "<<gv2_id<<")\n";
         create_edge(&ge2_id, &gv2_id, &gv1_id);
+        cout<<"create_edge "<<ge2_id<<"("<<gv2_id<<", "<<gv1_id<<")\n";
         attach_b_spline_curve(&ge1_id,&order_p,&numCtrPts,ctrPtsBottom,knots,NULL);
         attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctrPtsTop,knots,NULL);
         int vacuumEdges[]={ge1_id,ge2_id};
         num_ge = 2;
         create_loop(&loop_id,&num_ge,vacuumEdges);
+        cout<<"create_loop "<<loop_id<<"("<<ge1_id<<", "<<ge2_id<<")\n";
         set_vacuum_boundary (&loop_id);
          ++loop_id;
     }
@@ -290,11 +303,14 @@ int main(int argc, char *argv[])
       }
 
       create_vtx(&gv1_id,&(interpolate_points_vacuum.at(0)));
+      cout<<"create_vtx "<<gv1_id<<"\n";
       create_edge(&ge1_id, &gv1_id, &gv1_id);
+      cout<<"create_edge "<<ge1_id<<"("<<gv1_id<<", "<<gv1_id<<")\n";
       attach_periodic_cubic_curve(&ge1_id,&num_pts,&(interpolate_points_vacuum.at(0)));
       int vacuumEdges[]={ge1_id};
       num_ge=1;
       create_loop(&loop_id,&num_ge,vacuumEdges);
+      cout<<"create_loop "<<loop_id<<"("<<ge1_id<<")\n";
       set_vacuum_boundary (&loop_id);
       ++loop_id;
     }
@@ -380,8 +396,10 @@ int main(int argc, char *argv[])
   Progress_setDefaultCallback(progress);
 
   pGModel sim_model = GM_new(1);
-
-  make_sim_model (sim_model ,rgn_bdry);
+  if (useOld)
+    make_sim_model_old (sim_model, rgn_bdry);
+  else
+    make_sim_model(sim_model, rgn_bdry);
   sprintf(model_filename,"%s.smd",filename);
   GM_write(sim_model,model_filename,0,0);
 
@@ -572,7 +590,9 @@ void inner_outer_wall_pts()
 	num_out_pts++; 
       }
       create_vtx(&gv1_id,&(out_pts.at(0)));
+      cout<<"create_vtx "<<gv1_id<<"\n";
       create_edge(&ge1_id, &gv1_id, &gv1_id);
+      cout<<"create_edge "<<ge1_id<<"("<<gv1_id<<", "<<gv1_id<<")\n";
        
       if (num_out_pts <= 10)
       	attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
@@ -582,12 +602,131 @@ void inner_outer_wall_pts()
       int outerWallEdges[]={ge1_id};
       num_ge = 1;
       create_loop(&loop_id,&num_ge,outerWallEdges);
+      cout<<"create_loop "<<loop_id<<"("<<ge1_id<<")\n";
       ++loop_id;
       set_outer_wall_boundary (&loop_id);
     }  // for (int i=0; i<nout_bdryFile; ++i)
 }
 
+int make_sim_model_old (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
+{
+  std::map< int, std::vector<int> > loopContainer;
+  std::map<int, std::pair<int, int> > edgeContainer;
+  std::map<int, int> edgeType;
+  std::map<int, std::vector<double> > vtxContainer;
+  export_model_data(vtxContainer, edgeType, edgeContainer, loopContainer);
 
+  std::map<int, pGVertex> vertices;
+  std::map<int, pGEdge> edges;
+  gmi_model* model = m3dc1_model::instance()->model;
+  int numL=loopContainer.size();
+  pGIPart part = GM_rootPart(sim_model);
+  pGRegion outerRegion = GIP_outerRegion(part);
+  vector<pGEdge> innerLoop;
+  vector<pGEdge> currentLoop;
+  for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
+  {
+    int numE=it->second.size();
+    for( int i=0; i<numE; i++)
+    {
+      int edge=it->second[i];
+      std::pair<int, int> vtx=edgeContainer[edge];
+      std::vector<double>& xyz= vtxContainer.at(vtx.first);
+      vertices[vtx.first] = GR_createVertex(GIP_outerRegion(part), &xyz[0]);
+    }
+    for( int j=0; j<numE; j++)
+    {
+      pGVertex startVert, endVert;
+      int edge = it->second[j];
+      gmi_ent* ae = gmi_find(model, 1, edge);
+
+      int curvType=edgeType.at(edge);
+      std::pair<int, int> vtx=edgeContainer[edge];
+      pCurve curve=NULL;
+      startVert=vertices[vtx.first];
+      endVert=vertices[vtx.second];
+      if ( startVert== NULL || endVert==NULL)
+      {
+        std::cout<<" invalid edge vertex not created edge tag "<<edge<<std::endl;
+        throw 1;
+      }
+      switch (curvType)
+      {
+        case LIN:
+          {
+            double xyz1[3], xyz2[3];
+            GV_point(startVert,xyz1);
+            GV_point(endVert,xyz2);
+            curve = SCurve_createLine(xyz1, xyz2);
+          }
+          break;
+        case BSPLINE:
+          {
+            M3DC1::BSpline** data= (M3DC1::BSpline**) gmi_analytic_data(model, ae);
+            vector<double> ctrlPtsX,ctrlPtsY, knots,weight;
+            int order;
+            data[0]->getpara(order, ctrlPtsX, knots, weight);
+            data[1]->getpara(order, ctrlPtsY, knots, weight);
+            int numPts=ctrlPtsX.size();
+            vector<double> ctrlPts3D (3*numPts);
+            for( int k=0; k<numPts; k++)
+            {
+              ctrlPts3D.at(3*k)=ctrlPtsX.at(k);
+              ctrlPts3D.at(3*k+1)=ctrlPtsY.at(k);
+              ctrlPts3D[3*k+2]=0.0;
+            }
+            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+          }
+          break;
+        default:
+          std::cout<<" curve type not support by simmetrix "<<std::endl;
+          throw 1;
+          break;
+      }
+      pGEdge pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
+      std::cout<<"GR_createEdge ("<<GEN_tag(startVert)<<", "<<GEN_tag(endVert)<<")\n";
+      edges[edge]=pe;
+      currentLoop.push_back( pe);
+    }
+
+    double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};
+    vector<pGEdge> faceEdges;
+    vector<int> faceDirs;
+    int loopDef[2] = {0,0};
+    int numloops=1;
+    if (GM_numFaces(sim_model)!=0)
+    {
+      numloops=2;
+      int innerEdgeNum=innerLoop.size();
+      loopDef[1]=innerEdgeNum;
+      for(int k=innerEdgeNum-1; k>=0; k--)
+      {
+        faceEdges.push_back(innerLoop.at(k));
+        faceDirs.push_back(0);
+      }
+    }
+    int currentEdgeNum=currentLoop.size();
+    for(int k=0; k<currentEdgeNum; k++)
+    {
+      faceEdges.push_back(currentLoop.at(k));
+      faceDirs.push_back(1);
+    }
+    innerLoop=currentLoop;
+    currentLoop.clear();
+    pSurface planarSurface;
+
+    planarSurface = SSurface_createPlane(corner,xPt,yPt);
+    GR_createFace(GIP_outerRegion(part), faceEdges.size(),&(faceEdges[0]),&(faceDirs[0]),numloops,loopDef,planarSurface,1);
+        std::cout<<"GR_createFace (";
+    for (int i=0; i<faceEdges.size(); ++i)
+      cout<<GEN_tag(faceEdges[i])<<" ";
+    cout<<")\n";
+  }
+  printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
+  printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
+  printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
+  printf("Number of regions in Simmetrix model: %d\n",GM_numRegions(sim_model));
+}
 int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
 {
   std::map< int, std::vector<int> > loopContainer;
@@ -618,7 +757,6 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
       std::pair<int, int> vtx=edgeContainer[edge];
       std::vector<double>& xyz= vtxContainer.at(vtx.first);
       vertices[vtx.first] = GR_createVertex(GIP_outerRegion(part), &xyz[0]); 
-      // GIP_insertVertexInRegion(part,&xyz[0],outerRegion);
     }
     for( int j=0; j<numE; j++)
     {
@@ -640,6 +778,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
             GV_point(endVert,xyz2);
             curve = SCurve_createLine(xyz1, xyz2);
             pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
+            std::cout <<"LIN: GR_createEdge "<<GEN_tag(startVert)<<", "<<GEN_tag(endVert)<<"\n";
           }
           break;
         case BSPLINE: // bspline
@@ -667,11 +806,17 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
             if (clockwise)
 		edgeDir = 0;
             curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
-            if (numE == 1)
+           if (numE == 1)
+           {
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
-	    else if (numE == 2)
+                std::cout <<"BSPLINE: GR_createEdge "<<GEN_tag(startVert)<<", "<<GEN_tag(startVert)<<"\n";
+           }
+	   else if (numE == 2)
+           {
 		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, edgeDir);
-            GM_write(sim_model,"Debug_Edges.smd",0,0);
+                std::cout <<"BSPLINE: GR_createEdge "<<GEN_tag(startVert)<<", "<<GEN_tag(endVert)<<"\n";
+           }
+           GM_write(sim_model,"Debug_Edges.smd",0,0);
           }
           break;
         default:
@@ -733,6 +878,10 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
     	std::cout << "Loop Def = " << loopDef[mk] << "\n"; 
     pGFace gf = GR_createFace(GIP_outerRegion(part), faceEdges.size(),
                   &(faceEdges[0]),&(faceDirs[0]),numLoops,&(loopDef[0]),planarSurface,1);
+    std::cout<<"GR_createFace (";
+    for (int i=0; i<faceEdges.size(); ++i)
+      cout<<GEN_tag(faceEdges[i])<<" ";
+    cout<<")\n";
     GEN_setNativeIntAttribute(gf, i+1, "faceType");
   } 
   printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
