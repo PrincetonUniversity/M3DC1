@@ -507,9 +507,9 @@ subroutine calculate_external_fields()
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."
 
      call newsolve(mass_mat_lhs%mat,p_vec,ier)
-     p_field(1) = p_f
-     pe_field(1) = p_f
-     call mult(pe_field(1), pefac) 
+     p_field(0) = p_f
+     pe_field(0) = p_f
+     call mult(pe_field(0), pefac) 
   end if
 
   call boundary_dc(bf_vec,mat=bf_mat)
