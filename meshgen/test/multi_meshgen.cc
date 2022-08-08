@@ -21,6 +21,7 @@
 #include <vector>
 #include <assert.h>
 #include <algorithm>
+#include <iomanip>
 
 #include "SimUtil.h"
 #include "SimModel.h"
@@ -75,6 +76,7 @@ char out_bdryFile[256];
 int modelType=0;
 int reorder=0;
 int useVacuumParams=0;
+int useVacuum = 0;
 int useOriginal = 1;
 int numInterPts =20;
 double meshSizes[] = {0.05, 0.05, 0.05};
@@ -109,6 +111,8 @@ void inner_wall_pts(  int num_pts);
 
 void inner_outer_wall_pts();
 
+bool curveOrientation(std::vector <double> &curvePts);
+int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edgesOnLoop);
 int main(int argc, char *argv[])
 {
   MPI_Init(&argc,&argv);
@@ -182,6 +186,7 @@ int main(int argc, char *argv[])
     if (strcmp(namebuff,"vacuumParams")==0) 
       fscanf(infp, "%lf %lf %lf %lf %lf\n", &a_param, &b_param, &c_param, &d_param, &e_param);
     if (strcmp(namebuff,"meshGradationRate")==0) fscanf(infp, "%lf",&meshGradationRate);
+    if (strcmp(namebuff,"useVacuum")==0) fscanf(infp, "%d",&useVacuum);
   }
   fclose(infp);
   if (numBdry==0)
@@ -241,8 +246,6 @@ int main(int argc, char *argv[])
     gv2_id=gv1_id+1;
     ge1_id=ge1_id+1;
     ge2_id=ge1_id+1;
-
-    bool useVacuum = false;
 
     if (!useVacuumParams && useVacuum) // #edges=6
     {
@@ -382,20 +385,7 @@ int main(int argc, char *argv[])
   sprintf(model_filename,"%s.smd",filename);
   GM_write(sim_model,model_filename,0,0);
 
-/*
-  pPList errors = PList_new();
-  int valid = GM_isValid(sim_model,2,errors);
-  if (!valid) 
-  {
-  	for(int i=0; i<PList_size(errors); ++i) 
-	{
-		pSimError e = static_cast<pSimError>(PList_item(errors,i));
-		std::cout<<"[ERROR] Model error " << i << ": " << SimError_toString(e)<<std::endl;
-	}
-  } 
-  else 
-	std::cout<<"[INFO] model is valid\n";
-*/
+
   //pParMesh sim_mesh = PM_new(0,sim_model,PMU_size());
   pMesh sim_mesh = M_new(0,sim_model);
   pACase meshCase = MS_newMeshCase(sim_model);
@@ -420,11 +410,13 @@ int main(int argc, char *argv[])
      if (faceId == 4)
 	MS_setMeshSize(meshCase,face,1, 0.01,NULL);
      if (faceId == 1)
-	MS_setMeshSize(meshCase,face,1, 0.05,NULL);
+	MS_setMeshSize(meshCase,face,1, 0.02,NULL);
      if (faceId == 5 || faceId == 7)
 	MS_setMeshSize(meshCase,face,1, 0.20,NULL);
      if (faceId == 6)
 	MS_setMeshSize(meshCase,face,1, 0.10,NULL);
+     else
+	MS_setMeshSize(meshCase,face,1, 0.20,NULL);
   }
   GFIter_delete(faces);
   pSurfaceMesher surfMesh = SurfaceMesher_new(meshCase,sim_mesh);
@@ -603,12 +595,11 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
   std::map<int, int> edgeType;
   std::map<int, std::vector<double> > vtxContainer;
   export_model_data(vtxContainer, edgeType, edgeContainer, loopContainer);
-  Sim_logOn("simLog.log");
   std::map<int, pGVertex> vertices;
   std::map<int, pGEdge> edges;
+  std::map< int, std::vector<pGEdge> > edgesOnLoop;
   gmi_model* model = m3dc1_model::instance()->model;  
   int numL=loopContainer.size();
-  std::cout << "Number of Loops = " << numL << "\n";
 
 #ifdef PPPL // SIMMODSUITE_MAJOR_VERSION >= 15
   pGIPart part = GM_rootPart(sim_model);
@@ -629,13 +620,11 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
       vertices[vtx.first] = GR_createVertex(GIP_outerRegion(part), &xyz[0]); 
       // GIP_insertVertexInRegion(part,&xyz[0],outerRegion);
     }
-    std::cout << "Number of Edges in Loop = " << numE << "\n";
     for( int j=0; j<numE; j++)
     {
       pGVertex startVert, endVert;
       pGEdge pe;
       int edge = it->second[j];
-      std::cout << "Edge = " << edge << "\n";
       gmi_ent* ae = gmi_find(model, 1, edge);
       int curvType=edgeType.at(edge);
       std::pair<int, int> vtx=edgeContainer[edge];
@@ -663,20 +652,26 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
             data[0]->getpara(order, ctrlPtsX, knots, weight);
             data[1]->getpara(order, ctrlPtsY, knots, weight);
             int numPts=ctrlPtsX.size();
-            vector<double> ctrlPts3D (3*(numPts+1));
+            vector<double> ctrlPts3D (3*(numPts));
             for( int k=0; k<numPts; k++)
             {
               ctrlPts3D.at(3*k)=ctrlPtsX.at(k);
               ctrlPts3D.at(3*k+1)=ctrlPtsY.at(k);
               ctrlPts3D[3*k+2]=0.0;
-              //std::cout << "Point # " << k+1 << " = " << ctrlPts3D.at(3*k) << " , " << ctrlPts3D.at(3*k+1) << "\n";
             }
-           curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
-           if (numE == 1)
-           	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, 1);
-	   else if (numE == 2)
-		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
-           GM_write(sim_model,"Debug_Edges.smd",0,0);
+
+	    // To make it consistent, we will define every edge in counter-clockwise direction.
+	    // If curve is clockwise, set edge dir to 0, otherwise 1 to follow the above convention.
+	    int edgeDir = 1;
+	    bool clockwise = curveOrientation(ctrlPts3D);
+            if (clockwise)
+		edgeDir = 0;
+            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+            if (numE == 1)
+           	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
+	    else if (numE == 2)
+		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, edgeDir);
+            GM_write(sim_model,"Debug_Edges.smd",0,0);
           }
           break;
         default:
@@ -685,6 +680,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
           break;
       }
       edges[edge]=pe;
+      edgesOnLoop[it->first].push_back(pe);
     }
   }
 
@@ -693,64 +689,37 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
     vector<pGEdge> faceEdges;
     pGEdge ge;
     vector<int> faceDirs;
-    //int loopDef[2] = {0,0};
     int numLoops;
-    vector<int>::iterator max_loop_it;
-    vector<int>::iterator min_loop_it;
 
   for (int i=0; i<rgn_bdry.size(); ++i)
   {
     std::cout << " =========================== FACE STATS for Face # " << i+1 << "=======================================\n";
     faceEdges.clear();
     faceDirs.clear();
-    std::cout << "Number of Actual Loops = " << rgn_bdry[i].size() << "\n";
-    int size = rgn_bdry[i].size();
-    int loopDef[size];
-    numLoops = rgn_bdry[i].size(); 
+    numLoops = rgn_bdry[i].size();
+    int loopDef[numLoops];
+    std::vector <int> loopsOnFace;
+    for (int idx = 0; idx < numLoops; ++idx)
+	loopsOnFace.push_back(rgn_bdry[i][idx]);
+    int outerMostLoop = outerLoop(loopsOnFace, edgesOnLoop);
+    loopsOnFace.clear();
+    std::cout << "OuterMost Loop on this face = " << outerMostLoop << "\n";
     for (int idx=0; idx<rgn_bdry[i].size(); ++idx)
     {
 	
-	std::cout << "Loop Number = " << rgn_bdry[i][idx] << "\n";
+        int numEdgesOnLoop = edgesOnLoop.at(rgn_bdry[i][idx]).size();
         loopDef[idx] = faceEdges.size();
-     	ge = edges[rgn_bdry[i][idx]];
-        faceEdges.push_back(ge);
-
-        // The block below for edges direction is hard coded for 7 region example. 
-        // Working on it for general cases. It might fail other cases (input2 and input3).
-        if (i == 3)
+        double dirs[numEdgesOnLoop];
+	int edgeDir = 0;
+	if (rgn_bdry[i][idx] == outerMostLoop)
+		edgeDir = 1;
+	for (int nEdge = 0; nEdge < numEdgesOnLoop; ++nEdge)
 	{
-		faceDirs.push_back(1);
-		faceDirs.push_back(0);
+     		ge = edgesOnLoop.at(rgn_bdry[i][idx])[nEdge];
+        	faceEdges.push_back(ge);
+		faceDirs.push_back(edgeDir);
 	}
-	if (i == 4)
-	{
-		faceDirs.push_back(1);
-		faceDirs.push_back(1);
-	}
-	if (i == 5)
-	{
-		faceDirs.push_back(0);
-		faceDirs.push_back(1);
-	}
-	if (i == 6)
-	{
-		 faceDirs.push_back(0);
-		 faceDirs.push_back(0);
-		 faceDirs.push_back(0);
-		 faceDirs.push_back(0);		
-	}
-	else 
-	{
-		faceDirs.push_back(0);
-		faceDirs.push_back(1);
-	}
-    }
-    if (numLoops == 1)
-    {
-	faceDirs.clear();
-	faceDirs.push_back(1);
-    }
-    
+    } 
     pSurface planarSurface;
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
     GM_write(sim_model,"Debug_Faces.smd",0,0);
@@ -761,7 +730,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
     for (int mk = 0; mk < numLoops; ++mk)
     	std::cout << "Dir = " << faceDirs[mk] << "\n";
     for (int mk = 0; mk < numLoops; ++mk)
-    	std::cout << "Loop Def = " << loopDef[mk] << "\n";
+    	std::cout << "Loop Def = " << loopDef[mk] << "\n"; 
     pGFace gf = GR_createFace(GIP_outerRegion(part), faceEdges.size(),
                   &(faceEdges[0]),&(faceDirs[0]),numLoops,&(loopDef[0]),planarSurface,1);
     GEN_setNativeIntAttribute(gf, i+1, "faceType");
@@ -814,4 +783,57 @@ double meshSizeFn(const double gpt[3], void* data)
   else meshSize=fine_size+coarse_size_wall*(val-alpha);  
   //cout<<"meshSize "<<meshSize<<endl;
   return meshSize;
+}
+
+// Check the orientation of a curve. The method is applicable 
+// to non-convex polygons too. 
+// Returns true if the curve is clockwise, false if counter-clockwise.
+bool curveOrientation(std::vector <double> &curvePts)
+{
+	int numPts = curvePts.size()/3;
+	double sumEdges = 0.0;
+	for (int i = 1; i < numPts; ++i)
+	{
+		double x1 = curvePts[(i-1)*3];
+		double y1 = curvePts[(i-1)*3+1];
+		double x2 = curvePts[i*3];
+		double y2 = curvePts[i*3+1];	
+
+		double areaUnderEdge = (x2 - x1)* (y2 + y1);
+		sumEdges = sumEdges + areaUnderEdge; 
+	}
+	
+	if (sumEdges > 0)
+		return true;
+	
+	return false;
+}
+
+int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edgesOnLoop)
+{
+	if (loops.size() == 1)
+		return loops[0];
+
+	int index = -1;
+	double minDist = 1e16;
+	double pt[3] = 	{10000000.0,0.0,0.0};
+	for (int i = 0; i < loops.size(); ++i)
+	{
+		int indexTemp = loops[i];
+		int numEdgesOnLoop = edgesOnLoop.at(indexTemp).size();
+		for (int j =0; j < numEdgesOnLoop; ++j)
+		{
+			pGEdge ge = edgesOnLoop.at(indexTemp)[j];
+			double outPt[3], outPar;
+			GE_closestPoint(ge, pt, outPt, &outPar);
+			double dist = getDist2D (pt, outPt);
+			assert (outPt[0] < pt[0]);
+			if (dist < minDist)
+			{
+				minDist = dist;
+				index = indexTemp;
+			}
+		}		
+	}	
+	return index;
 }

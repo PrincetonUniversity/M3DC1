@@ -1,8 +1,7 @@
 numBdry 1
 bdryFile sparc_v2_first_wall_interpolated.dat
-numRgn 2
+numRgn 1
 rgnBdry  1 1
-rgnBdry  2 1 2
 outFile input1
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
