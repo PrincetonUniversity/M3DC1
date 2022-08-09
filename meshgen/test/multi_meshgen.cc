@@ -59,6 +59,8 @@ char simLic[128]="/net/common/meshSim/license/license.txt";
 char meshSizeFnName[]="meshSizeFn";
 double meshSizeFn(const double gpt[3], void* data);
 
+extern pGVertex GE_insertVertex(pGEdge, double);
+
 int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry);
 int make_sim_model_old(pGModel& sim_model, vector< vector<int> >& rgn_bdry);
 
@@ -115,6 +117,7 @@ void inner_outer_wall_pts();
 
 bool curveOrientation(std::vector <double> &curvePts);
 int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edgesOnLoop);
+void setParallelVertices(int loopInner, int loopOuter, std::map< int, std::vector<pGEdge> > edgesOnLoop);
 int main(int argc, char *argv[])
 {
   MPI_Init(&argc,&argv);
@@ -317,51 +320,7 @@ int main(int argc, char *argv[])
   int numplot=5000;
 
   int numEdge = ge1_id > ge2_id ? ge1_id:ge2_id;
-/*  if (useVacuumParams)
-    numEdge=numBdry*1+1;
-  else
-    numEdge=numBdry*1+2;
- 
-  double diff=0;
-  FILE* fp_t=fopen("plot_geo","w");
-  for( int iedge=1; iedge<=numEdge; iedge++)
-  {
-    for(int j=0; j<numplot+1; j++)
-    {
-      double xyz[2];
-      double para=double(j)/double(numplot);
-      eval_position(&iedge,&para,xyz);
-      double normal[2];
-      eval_normal(&iedge,&para,normal);
-      double curv;
-      eval_curvature(&iedge,&para,&curv);
-      fprintf(fp_t,"%f %f %f %f %f\n", xyz[0],xyz[1],normal[0],normal[1],curv);
-      if (modelType==0)
-      {
-        double xyz_phy[3];
-        aexp(para*2*M3DC1_PI, xyz_phy);
-        diff=max(diff,getDist2D(xyz,xyz_phy));
-      }
-    }
-  }
-  fclose(fp_t);
 
-  if (useVacuumParams) cout<<"[m3dc1_meshgen INFO] interpolation error "<<diff<<endl;*/
-#include <PCU.h>
-#include <MeshSim.h>
-#include <SimPartitionedMesh.h>
-#include <SimUtil.h>
-#include <apfSIM.h>
-#include <apfMDS.h>
-#include <gmi.h>
-#include <gmi_sim.h>
-#include "gmi_mesh.h"
-#include <apf.h>
-#include <apfConvert.h>
-#include <apfMesh2.h>
-#include <ma.h>
-#include <cstdlib>
-#include <iostream>
   char filename[256];
   char model_filename[256];
   char mesh_filename[256];
@@ -882,7 +841,16 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
       cout<<GEN_tag(faceEdges[j])<<" ";
     cout<<")\n";
     GEN_setNativeIntAttribute(gf, i+1, "faceType");
-  } 
+  }
+  
+  // The starting point of each curves may not be perfectly aligned. To align the starting points
+  // on two consective loops can be done using the routine "setParallelVertices". This will be needed to set layered
+  // mesh on finite thickness wall face.
+
+  int innerLoop = 4;
+  int outerLoop = 5;
+  //setParallelVertices(innerLoop, outerLoop, edgesOnLoop);
+   
   printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
   printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
   printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
@@ -984,4 +952,27 @@ int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edge
 		}		
 	}	
 	return index;
+}
+
+
+// The starting point of each curves may not be perfectly aligned. To align the starting points
+// on two consective loops can be done using the given routine. This will be needed to set layered
+// mesh on finite thickness wall face.
+void setParallelVertices(int loopInner, int loopOuter, std::map< int, std::vector<pGEdge> > edgesOnLoop)
+{
+  	pGEdge ge1 = edgesOnLoop.at(loopInner)[0];
+  	pGEdge ge2 = edgesOnLoop.at(loopOuter)[0];
+  	pGVertex v1 = GE_vertex(ge1,0);
+  	double vPt1[3];
+  	GV_point(v1, vPt1);
+  	double par;
+  	GE_closestPoint(ge2, vPt1, 0, &par);
+  	pGVertex newV = GE_insertVertex(ge2, par);
+  	pPList gves = GV_edges(newV);
+  	pGEdge geNew0 = static_cast<pGEdge>(PList_item(gves, 0));
+  	pGEdge geNew1 = static_cast<pGEdge>(PList_item(gves, 1));
+  	if (GE_vertex(geNew0,1) == newV)
+        	pGEdge finalEdge = GM_combineEdges (geNew0, geNew1);
+  	else	
+        	pGEdge finalEdge = GM_combineEdges (geNew1, geNew0);
 }
