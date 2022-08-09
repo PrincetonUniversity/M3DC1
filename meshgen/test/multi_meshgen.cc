@@ -77,7 +77,7 @@ char out_bdryFile[256];
 int modelType=0;
 int reorder=0;
 int useVacuum = 0;
-int useVacuumParams=-1;
+int useVacuumParams=1;
 int useOld=0;
 int useOriginal = 1;
 int numInterPts =20;
@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
     ge1_id=ge1_id+1;
     ge2_id=ge1_id+1;
 
-    if (!useVacuumParams && useVacuum) // #edges=6
+    if (!useVacuumParams && useVacuum) 
     {
       double left[]={mid[0]-width/2.,mid[1]}, right[]={mid[0]+width/2.,mid[1]}; 
       double offset_t=0.3*height;
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
         set_vacuum_boundary (&loop_id);
          ++loop_id;
     }
-    else if (useVacuumParams && useVacuum)// #edges=5
+    else if (useVacuumParams && useVacuum)
     {
       vector<double> interpolate_points_vacuum;
       bdbox[0]=a_param-b_param;
@@ -299,7 +299,6 @@ int main(int argc, char *argv[])
         aexp(para, xyz);
         interpolate_points_vacuum.at(2*i)=xyz[0];
         interpolate_points_vacuum.at(2*i+1)=xyz[1];
-	std::cout << "Point # " << i+1 << " : X = " << interpolate_points_vacuum.at(2*i) << " , Y = " << interpolate_points_vacuum.at(2*i+1) << "\n";
       }
 
       create_vtx(&gv1_id,&(interpolate_points_vacuum.at(0)));
@@ -879,8 +878,8 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
     pGFace gf = GR_createFace(GIP_outerRegion(part), faceEdges.size(),
                   &(faceEdges[0]),&(faceDirs[0]),numLoops,&(loopDef[0]),planarSurface,1);
     std::cout<<"GR_createFace (";
-    for (int i=0; i<faceEdges.size(); ++i)
-      cout<<GEN_tag(faceEdges[i])<<" ";
+    for (int j=0; j<faceEdges.size(); ++j)
+      cout<<GEN_tag(faceEdges[j])<<" ";
     cout<<")\n";
     GEN_setNativeIntAttribute(gf, i+1, "faceType");
   } 

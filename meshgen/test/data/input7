@@ -6,7 +6,9 @@ bdryFile  points_RZ_SI_VV_10deg_Curve_1_20220124.dat
 bdryFile  points_RZ_SI_VV_10deg_Curve_2_20220124.dat 
 bdryFile  points_RZ_SI_VV_10deg_Curve_3_20220124.dat 
 bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat
-numRgn 8
+
+! Number of Regions == 8 when useVacuum is set to 1. Set numRgn to 7 and comment out line 18 if useVacuum is set to 0.
+numRgn 8	
 rgnBdry  1 1
 rgnBdry  1 2
 rgnBdry  1 3
@@ -18,6 +20,11 @@ rgnBdry 4 1 2 3 4
 outFile input7
 
 useVacuum 1
+
+! If useVacuumParams is set to 0, the other two parameters vacuumParams & numVacuumPts are not required.
+useVacuumParams 0
+vacuumParams 1.8 1.5 0.4 0.0 2.5
+numVacuumPts 20
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
 !meshSize 0.04 0.04 0.1
