@@ -42,6 +42,7 @@
 #include <apf.h>
 #include <apfConvert.h>
 #include <apfMesh2.h>
+#include "apfShape.h"
 #include <ma.h>
 #include <cassert>
 #include <cstdlib>
@@ -70,8 +71,7 @@ double thickness=0.02, width=2.5, height=4.;
 double offsetX=0, offsetY=0;
 char modelName[256];
 char in_bdryFile[256];
-int numBdry=0, nout_bdryFile;
-int numRgn=1;
+int numBdry=0, numRgn=1;
 bool addVacuum = false;
 char bdryFile[128];
 vector<string> bdry_files;
@@ -101,7 +101,6 @@ double knots[]={0,0,0,0,0,0,1,1,1,1,1,1};
 int order_p=6;
 double ctr_pts[12];
 int numCtrPts=6;
-int one=1, two=2, three=3, four=4;
 int num_pts;
 double mid[]={0.,0.};
 double pt_pre[2], mergeTol;
@@ -110,6 +109,9 @@ double paras[]={0.,1.};
 double ctr_pts_o[12];
 
 vector<double> interpolate_points;
+
+void get_vacuum_rgn();
+void get_multi_rgn();
 
 void inner_wall_pts(  int num_pts);
 
@@ -207,51 +209,11 @@ int main(int argc, char *argv[])
   // *************************
   //     interpolate points
   // *************************
-  FILE* fp=fopen(bdry_files[0].c_str(),"r");
-
-  if (!fp) 
-  {
-    cout<<" unable to find file "<<bdry_files[0]<<endl;
-    return 1;
-  }
-
-
-  fscanf(fp,"%d\n",&num_pts);
-  interpolate_points.resize(2*(num_pts+1));
-  for(int i=0; i<num_pts; i++)
-  {
-      fscanf(fp,"%lf %lf\n",&x,&y);
-      interpolate_points.at(2*i)=x;
-      interpolate_points.at(2*i+1)=y;
-      if (x<bdbox[0]) bdbox[0]=x;
-      if (x>bdbox[2]) bdbox[2]=x;
-      if (y<bdbox[1]) bdbox[1]=y;
-      if (y>bdbox[3]) bdbox[3]=y;
-  }
-  fclose(fp);
-  interpolate_points.at(2*num_pts) = interpolate_points[0];
-  interpolate_points.at(2*num_pts+1) = interpolate_points[1];
-  num_pts++;
-  mid[0]=(bdbox[0]+bdbox[2])/2.+offsetX;
-  mid[1]=(bdbox[1]+bdbox[3])/2.+offsetY;
-
-
-    //create inner wall bdry
-    create_vtx(&gv1_id,&(interpolate_points.at(0)));
-    cout<<"create_vtx "<<gv1_id<<"\n";
-    create_edge(&ge1_id, &gv1_id, &gv1_id);
-    cout<<"create_edge "<<ge1_id<<"("<<gv1_id<<", "<<gv1_id<<")\n";
-    attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
-    // now set the loop closed
-    int innerWallEdges[]={ge1_id};
-    num_ge = 1;
-    create_loop(&loop_id,&num_ge,innerWallEdges);
-    cout<<"create_loop "<<loop_id<<"("<<ge1_id<<")\n";
-    set_inner_wall_boundary (&loop_id);
-    ++loop_id; 
+  if (numBdry==0) // no boundary files available
+    get_vacuum_rgn();
+  else
+    get_multi_rgn();
  
-    inner_outer_wall_pts();
-  
     // increase ID's for geometric vertices and edges
     gv1_id=gv1_id+1;
     gv2_id=gv1_id+1;
@@ -484,10 +446,45 @@ int main(int argc, char *argv[])
 
 
   std::cout<<"\n<< Check the attribute \"elem\" in Paraview for the element order! >>\n";
-
+ // attach element id
   apf::Numbering* nr=apf::numberOwnedDimension(mesh, "elem", 2);
+
+ // attach model face ID
+  apf::Numbering* ng=apf::createNumbering(mesh,"gface",apf::getConstant(2),1);
+  pMesh part = PM_mesh(sim_pmesh,0);
+  // cout<<"#face sim: "<<M_numFaces(part)<<", pumi "<<mesh->count(2)<<"\n";
+ // apf::MeshIterator* it = mesh->begin(2);
+  apf::MeshEntity* e;
+  FIter fit = M_faceIter(part);
+  pFace face;
+  pGFace gf;
+  int idx=0, gclas_error=0;
+  bool print_error=0;
+  while( face = FIter_next(fit))
+  {
+    gf = static_cast<pGFace>(F_whatIn(face));
+    e = getMdsEntity(mesh, 2, idx++); 
+    
+    if (gmi_dim(m3dc1_model::instance()->model,(gmi_ent*)(mesh->toModel(e)))!=2)
+    {
+      if (!print_error)
+      { 
+        cout<<"FATAL: geom clas dimension of mesh face "<<idx-1<<" is "
+          <<gmi_dim(m3dc1_model::instance()->model,(gmi_ent*)(mesh->toModel(e)))<<"\n";
+        print_error=1;
+      }
+      ++gclas_error;
+    }
+    number(ng,e,0,0,GEN_tag(gf));
+  }
+  FIter_delete(fit);
+
+  if (gclas_error)
+    cout<<"FATAL: #mesh face not classified on model face: "<<gclas_error<<"\n";
+
   writeVtkFiles(mesh_filename, mesh);
   destroyNumbering(nr);
+  destroyNumbering(ng);
 
   apf::printStats(mesh);
   apf::destroyMesh(simApfMesh);
@@ -518,6 +515,82 @@ int main(int argc, char *argv[])
   MPI_Finalize();
 }
 
+void get_vacuum_rgn()
+{
+  useVacuumParams=1;
+  bdbox[0]=a_param-b_param;
+  bdbox[2]=a_param+b_param;
+  bdbox[1]=d_param-e_param;
+  bdbox[3]=d_param+e_param;
+
+  num_pts=numInterPts;
+  interpolate_points.resize(2*num_pts);
+  for(int i=0; i<num_pts; i++)
+  {
+    double para =2*M3DC1_PI/(num_pts-1)*i;
+    double xyz[3];
+    aexp(para, xyz);
+    interpolate_points.at(2*i)=xyz[0];
+    interpolate_points.at(2*i+1)=xyz[1];
+  }
+
+  create_vtx(&gv1_id,&(interpolate_points.at(0)));
+  create_edge(&ge1_id, &gv1_id, &gv1_id);
+  attach_periodic_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+  int innerWallEdges[]={ge1_id};
+  int num_ge=1;
+  create_loop(&loop_id,&num_ge,innerWallEdges);
+  set_inner_wall_boundary (&loop_id);
+  ++loop_id;
+}
+
+void get_multi_rgn()
+{
+  FILE* fp=fopen(bdry_files[0].c_str(),"r");
+
+  if (!fp)
+  {
+    cout<<" unable to find file "<<bdry_files[0]<<endl;
+    return;
+  }
+
+
+  fscanf(fp,"%d\n",&num_pts);
+  interpolate_points.resize(2*(num_pts+1));
+  for(int i=0; i<num_pts; i++)
+  {
+      fscanf(fp,"%lf %lf\n",&x,&y);
+      interpolate_points.at(2*i)=x;
+      interpolate_points.at(2*i+1)=y;
+      if (x<bdbox[0]) bdbox[0]=x;
+      if (x>bdbox[2]) bdbox[2]=x;
+      if (y<bdbox[1]) bdbox[1]=y;
+      if (y>bdbox[3]) bdbox[3]=y;
+  }
+  fclose(fp);
+  interpolate_points.at(2*num_pts) = interpolate_points[0];
+  interpolate_points.at(2*num_pts+1) = interpolate_points[1];
+  num_pts++;
+  mid[0]=(bdbox[0]+bdbox[2])/2.+offsetX;
+  mid[1]=(bdbox[1]+bdbox[3])/2.+offsetY;
+
+
+    //create inner wall bdry
+    create_vtx(&gv1_id,&(interpolate_points.at(0)));
+    cout<<"create_vtx "<<gv1_id<<"\n";
+    create_edge(&ge1_id, &gv1_id, &gv1_id);
+    cout<<"create_edge "<<ge1_id<<"("<<gv1_id<<", "<<gv1_id<<")\n";
+    attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    // now set the loop closed
+    int innerWallEdges[]={ge1_id};
+    num_ge = 1;
+    create_loop(&loop_id,&num_ge,innerWallEdges);
+    cout<<"create_loop "<<loop_id<<"("<<ge1_id<<")\n";
+    set_inner_wall_boundary (&loop_id);
+    ++loop_id;
+
+    inner_outer_wall_pts();
+}
 void inner_outer_wall_pts()
 {
     for (int i=1; i<numBdry; ++i)
@@ -578,7 +651,11 @@ int make_sim_model_old (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
   std::map<int, pGEdge> edges;
   gmi_model* model = m3dc1_model::instance()->model;
   int numL=loopContainer.size();
+#ifdef PPPL // SIMMODSUITE_MAJOR_VERSION >= 15
   pGIPart part = GM_rootPart(sim_model);
+#else
+  pGIPart part = GM_part(sim_model);
+#endif
   pGRegion outerRegion = GIP_outerRegion(part);
   vector<pGEdge> innerLoop;
   vector<pGEdge> currentLoop;
