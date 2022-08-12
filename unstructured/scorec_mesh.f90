@@ -69,18 +69,23 @@ contains
 #endif
 
     ! Define boundary types and zone types
-    boundary_type = BOUND_UNKNOWN
-    zone_type = ZONE_UNKNOWN
-
     if(imulti_region.eq.1) then
-       boundary_type(1) = BOUND_FIRSTWALL
-       boundary_type(2) = BOUND_FIRSTWALL
-       boundary_type(5) = BOUND_DOMAIN
-       boundary_type(6) = BOUND_DOMAIN
+       if(boundary_type(1).eq.BOUND_UNKNOWN) then
+          if(myrank.eq.0) &
+               print *, "Boundary types not specified.  Using defaults."
+          boundary_type(1) = BOUND_FIRSTWALL
+          boundary_type(2) = BOUND_FIRSTWALL
+          boundary_type(5) = BOUND_DOMAIN
+          boundary_type(6) = BOUND_DOMAIN
+       end if
 
-       zone_type(1) = ZONE_PLASMA
-       zone_type(2) = ZONE_CONDUCTOR
-       zone_type(3) = ZONE_VACUUM
+       if(zone_type(1).eq.ZONE_UNKNOWN) then
+          if(myrank.eq.0) &
+               print *, "Zone types not specified.  Using defaults."
+          zone_type(1) = ZONE_PLASMA
+          zone_type(2) = ZONE_CONDUCTOR
+          zone_type(3) = ZONE_VACUUM
+       end if
 
     else
        boundary_type(1) = BOUND_ANY
@@ -892,7 +897,7 @@ contains
     end do
   end subroutine boundary_edge
 
-  subroutine get_zone(itri, izone)
+  subroutine get_zone_index(itri, izone)
     integer, intent(in) :: itri
     integer, intent(out) :: izone
     integer :: izonedim
@@ -902,7 +907,18 @@ contains
     elem_dim = 3
 #endif
     call m3dc1_ent_getgeomclass(elem_dim, itri-1,izonedim,izone)
+  end subroutine get_zone_index
+
+  subroutine get_zone(itri, izone)
+    integer, intent(in) :: itri
+    integer, intent(out) :: izone
+    integer :: izone_ind
+
+    call get_zone_index(itri, izone_ind)
+    izone = zone_type(izone_ind)
   end subroutine get_zone
+
+
 
   !======================================================================
   ! local_dof_vector

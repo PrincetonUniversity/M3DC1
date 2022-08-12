@@ -1166,6 +1166,10 @@ subroutine set_defaults
        "ratio of longest to shortest toroidal element", mesh_grp)
   call add_var_double("toroidal_pack_angle", toroidal_pack_angle, 0., &
        "toroidal angle of maximum mesh packing", mesh_grp)
+  call add_var_int_array("boundary_type", boundary_type, max_bounds, &
+       BOUND_UNKNOWN, "Type of each mesh boundary.", mesh_grp)
+  call add_var_int_array("zone_type", zone_type, max_bounds, &
+       ZONE_UNKNOWN, "Type of each mesh boundary.", mesh_grp)
 
   ! Solver 
   call add_var_double("solver_tol", solver_tol,0.000000001,&
