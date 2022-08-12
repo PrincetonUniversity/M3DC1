@@ -198,7 +198,7 @@ contains
     do icounter_t=1,numnodes
        i = nodes_owned(icounter_t)
        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-            all_boundaries)
+            BOUND_ANY)
        if(.not.is_boundary) cycle
        
        i_n = node_index(den_v, i)

@@ -1845,7 +1845,7 @@ subroutine lcfs(psi, test_wall, findx)
      do icounter_t=1,numnodes
         inode = nodes_owned(icounter_t) 
         call boundary_node(inode,is_boundary,izone,izonedim,normal,curv, &
-             x,phi,z, inner_wall)
+             x,phi,z, BOUND_FIRSTWALL)
         if(.not.is_boundary) cycle
         
         call get_node_data(temp_field,inode,data)

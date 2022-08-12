@@ -35,6 +35,22 @@ module scorec_mesh_mod
   real :: toroidal_period
 
   integer, dimension (:), allocatable :: nodes_owned
+
+  integer, parameter :: ZONE_ANY = -1
+  integer, parameter :: ZONE_UNKNOWN = 0
+  integer, parameter :: ZONE_PLASMA = 1
+  integer, parameter :: ZONE_CONDUCTOR = 2
+  integer, parameter :: ZONE_VACUUM = 3
+
+  integer, parameter :: BOUND_ANY = -1
+  integer, parameter :: BOUND_UNKNOWN = 0
+  integer, parameter :: BOUND_FIRSTWALL = 1
+  integer, parameter :: BOUND_DOMAIN = 2
+
+  integer, parameter :: max_bounds = 20
+  integer, parameter :: max_zones = 20
+  integer :: boundary_type(max_bounds)
+  integer :: zone_type(max_zones)
 contains
 
   subroutine load_mesh
@@ -52,38 +68,26 @@ contains
     integer :: nvals
 #endif
 
-    ! initialize scorec solvers
+    ! Define boundary types and zone types
+    boundary_type = BOUND_UNKNOWN
+    zone_type = ZONE_UNKNOWN
 
     if(imulti_region.eq.1) then
-       call create_tag_list(inner_wall, 2)
-       inner_wall%tags(1) = 1
-       inner_wall%tags(2) = 2
-       call create_tag_list(outer_wall, 2)
-       outer_wall%tags(1) = 3
-       outer_wall%tags(2) = 4
-       call create_tag_list(domain_boundary, 2)
-       domain_boundary%tags(1) = 5
-       domain_boundary%tags(2) = 6
-!!$       call create_tag_list(all_boundaries, 2)
-!!$       all_boundaries%tags(1) = 5
-!!$       all_boundaries%tags(2) = 6
-       call create_tag_list(all_boundaries, 6)
-       all_boundaries%tags(1) = 1
-       all_boundaries%tags(2) = 2
-       all_boundaries%tags(3) = 3
-       all_boundaries%tags(4) = 4
-       all_boundaries%tags(5) = 5
-       all_boundaries%tags(6) = 6
+       boundary_type(1) = BOUND_FIRSTWALL
+       boundary_type(2) = BOUND_FIRSTWALL
+       boundary_type(5) = BOUND_DOMAIN
+       boundary_type(6) = BOUND_DOMAIN
+
+       zone_type(1) = ZONE_PLASMA
+       zone_type(2) = ZONE_CONDUCTOR
+       zone_type(3) = ZONE_VACUUM
+
     else
-       call create_tag_list(inner_wall, 1)
-       inner_wall%tags(1) = 1
-       call create_tag_list(outer_wall, 1)
-       outer_wall%tags(1) = 1
-       call create_tag_list(domain_boundary, 1)
-       domain_boundary%tags(1) = 1
-       call create_tag_list(all_boundaries, 1)
-       all_boundaries%tags(1) = 1
+       boundary_type(1) = BOUND_ANY
+
+       zone_type(1) = ZONE_PLASMA
     end if
+
 
     ! load mesh
     call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
@@ -661,7 +665,7 @@ contains
   logical function is_boundary_node(inode, tags)
     implicit none
     integer, intent(in) :: inode
-    type(tag_list), intent(in), optional :: tags
+    integer, intent(in), optional :: tags
     logical :: is_boundary
     integer :: izone, izonedim
     real :: normal(2), curv(3), x, phi, z
@@ -689,7 +693,7 @@ contains
     real, intent(out) :: normal(2), curv(3)
     real, intent(out) :: x,phi,z              ! coordinates of inode
     logical, intent(out) :: is_boundary       ! is inode on boundary
-    type(tag_list), intent(in), optional :: tags
+    integer, intent(in), optional :: tags
     
     integer :: ibottom, iright, ileft, itop, ib
     real :: angler
@@ -782,11 +786,20 @@ contains
 #ifdef USEST  
        end if
 #endif 
-       if(imulti_region.eq.1) then
-          if(present(tags)) then
-             is_boundary = in_tag_list(tags, izone)         
+       if(imulti_region.gt.0) then
+          is_boundary = .false.
+          if(boundary_type(izone).eq.BOUND_ANY) then
+             is_boundary = .true.
           else
-             is_boundary = in_tag_list(domain_boundary, izone)
+             if(present(tags)) then
+                if(tags.eq.BOUND_ANY) then
+                   is_boundary = .true.
+                else if(tags.eq.boundary_type(izone)) then
+                   is_boundary = .true.
+                end if
+             else if(boundary_type(izone).eq.BOUND_DOMAIN) then
+                is_boundary = .true.
+             end if
           end if
        end if
     end if
@@ -807,7 +820,7 @@ contains
 
     integer :: iedge(3), izonedim, itri, ifaczone,ifaczonedim
     integer :: num_adj_ent, numelm
-    type(tag_list), intent(in), optional :: tags
+    integer, intent(in), optional :: tags
 
 #ifdef USE3D
     ! the first face must be on the original plane
@@ -836,7 +849,7 @@ contains
                normal(:,i),c(i),x,phi,z,tags)
        else
           call boundary_node(inode(i),is_bound(i),izone,idim(i), &
-               normal(:,i),c(i),x,phi,z,all_boundaries)
+               normal(:,i),c(i),x,phi,z,BOUND_ANY)
        end if
     end do
 

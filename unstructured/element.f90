@@ -66,57 +66,7 @@ module element
   real, allocatable :: ctri(:,:,:)
   real, allocatable :: equil_fac(:,:)
 
-  type tag_list 
-     integer :: n_tags
-     integer, allocatable :: tags(:)
-  end type tag_list
-
-  type(tag_list) :: inner_wall
-  type(tag_list) :: outer_wall
-  type(tag_list) :: domain_boundary
-  type(tag_list) :: all_boundaries
-  interface assignment (=)
-     module procedure copy_tag_list
-  end interface
-
 contains
-
-  subroutine create_tag_list(t, n)
-    implicit none
-    integer, intent(in) :: n
-    type(tag_list), intent(inout) :: t
-
-    if(allocated(t%tags)) deallocate(t%tags)
-    t%n_tags = n
-    allocate(t%tags(t%n_tags))
-  end subroutine create_tag_list
-
-  subroutine destroy_tag_list(t)
-    implicit none
-    type(tag_list), intent(inout) :: t
-    t%n_tags = 0
-    if(allocated(t%tags)) deallocate(t%tags)
-  end subroutine destroy_tag_list
-
-  logical function in_tag_list(t, i)
-    implicit none
-    type(tag_list), intent(in) :: t
-    integer, intent(in) :: i
-    if(.not.allocated(t%tags) .or. t%n_tags.eq.0) then
-       in_tag_list = .false.
-    else
-       in_tag_list = any(t%tags.eq.i)
-    end if
-  end function in_tag_list
-  
-  subroutine copy_tag_list(tout, tin)
-    implicit none
-    type(tag_list), intent(out) :: tout
-    type(tag_list), intent(in) :: tin
-    call create_tag_list(tout, tin%n_tags)
-    tout%tags = tin%tags
-  end subroutine copy_tag_list
-
     
   !=======================================================
   ! global_to_local

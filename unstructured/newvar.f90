@@ -238,7 +238,7 @@ end subroutine apply_bc
   integer, intent(in), optional :: agg_blk_cnt
   integer, intent(in), optional :: agg_scp
 #endif
-  type(tag_list), intent(in), optional :: tags
+  integer, intent(in), optional :: tags
 
   integer :: numelms, itri, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
