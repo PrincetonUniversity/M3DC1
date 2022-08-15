@@ -84,52 +84,35 @@ For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{m3dc1\_meshgen}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{enumerate}
-\item	Create an ascii file of arbitrary name that contains input parameters for model and mesh
-\begin{itemize}
-\item modelType: 0, 1, 2, 3, or 4
-\begin{itemize}
-\item Type 0: a parameterized vacuum region defined by five doubles for analytic expression. 
-For five doubles $X_0$   $X_1$   $X_2$   $Z_0$   $Z_1$, vacuum boundary is defined by 
-\begin{equation}
-X = X_0 + X_1 cos(\theta + X_2*sin(\theta))
-\end{equation}
-\begin{equation}
-Z =  Z_0 + Z_1 sin(\theta)
-\end{equation}
-\item	Type 1: a vacuum region defined by piece-wise linear points
-\item	Type 2: a vacuum region defined by piece-wise polynomials
-\item	Type 3: spline-fitted 3-region model (plasma, wall and vacuum)
-\item	Type 4: spline-fitted 3-region model (plasma, wall, and vacuum) with inner \& outer boundary points to set resistive wall
-\end{itemize}
+\texttt{m3dc1\_meshgen} requires an ascii input file of arbitrary name that contains the following parameters.
 
-\item reorder: if 1, reorder PUMI mesh based on adjacency (default: 0) and generate vtk folders for mesh visualization. The mesh before and after reodering is saved in \texttt{original-mesh.vtk} and \texttt{reordered-mesh.vtk}, respectively. Note that the element order of Simmetrix mesh is not affected.
-\item inFile: (modelType 0) not required
-(modelType 1 and 2) geometry file describing the vacuum (modelType 3 and 4) geometry file describing the inner plasma wall
-\item bdryFile: (modelType 0-3) not required
- (modelType 4) geometry file describing the outer plasma wall
+\begin{itemize}
+\item numBdry: number of boundary file defined by peice-wise linear points (default: 0)
+\item bdryFile: boundary file name. Each boundary file corresponds to a loop in PUMI. Each loop has a unique ID starting from 1.
+\item numRgn: number of region (geometric face)
+\item rgnBdry: information to define each region. This requires the number of loops and loop id(s).
 \item outFile: output file name to save model and mesh
 \item meshSize: relative mesh size for each region (default 0.05)
-\newline
-	for modelType 3, set three doubles for plasma, resistive, vacuum, respectively
-\item useVacuumParams: for modelType 0 or 3, if 1, use parameterized vacuum wall (default 0)
+\item useVacuum: if 1, create a vacuum wall (default 0)
+\item useVacuumParams: if 1, create a parameterized vacuum wall (default 0)
+If useVacuum=0, this parameter is ignored.
 \item vacuumParams: five doubles to describe parameterized vacuum wall. Required if useVacuumParams=1.
-\item adjustVacuumParams: for modelType 0 or 3, if 1, multiply coordinates and parametric values of nodes on vacuum wall by vacuumFactor. Valid only if useVacuumParams=1 (default 0)
-\item vacuumFactor: for modelType 0 or 3, an optional double value used to multiply coordinates and parametric values of nodes on vacuum wall when adjustVacuumParams=1. Valid only if adjustVacuumParams=1 (default 2$\times$PI)
+If useVacuum=0 or useVacuumParams=0, this parameter is ignored. 
+\item adjustVacuumParams: if 1, multiply coordinates and parametric values of nodes on vacuum wall by vacuumFactor (default 0). If useVacuum=0 or useVacuumParams=0, this parameter is ignored.
+\item vacuumFactor: an optional double value used to multiply coordinates and parametric values of nodes on vacuum wall when adjustVacuumParams=1 (default 2$\times$PI). Valid only if adjustVacuumParams=1.
 \item numVacuumPts: optional \# interpolation points on parameterized vacuum wall. Valid only if useVacuumParams=1 (default 20)
-\item meshGradationRate: for modelType 3 or 4, optional mesh gradation rate (default: 0.3). This value should be greater than or equal to 0.3. Otherwise the mesh will be fine everywhere.
-\item resistive-width: for modelType 3, the width of resistive wall. If resistive-width=0, only plasma region is created (default 0.02)
-\item plasma-offsetX: for modelType 3, the offset in x direction to the left (default 0.0)
-\item plasma-offsetY: for modelType 3, the offset in y direction to the bottom (default 0.0)
-\item vacuum-width: for modelType 3 or 4, the width of vacuum region (default 2.5)
-\item vacuum-height: for modelType 3 or 4, the height of vacuum region (default 4.0) 
+\item meshGradationRate: for multiple region model, optional mesh gradation rate (default: 0.3). This value should be greater than or equal to 0.3. Otherwise the mesh will be fine everywhere.
+\item resistive-width: for multiple region model without peice-wise boundary points, set the width of resistive wall. If resistive-width=0, only plasma region is created (default 0.02)
+\item plasma-offsetX: for multiple region model without peice-wise boundary points, the offset in x direction to the left (default 0.0)
+\item plasma-offsetY: for multiple region model without peice-wise boundary points, the offset in y direction to the bottom (default 0.0)
+\item vacuum-width: for multiple region model, the width of vacuum region (default 2.5)
+\item vacuum-height: for multiple region model, the height of vacuum region (default 4.0) 
 \end{itemize}
 
-\item Run \texttt{m3dc1\_meshgen}
+Locate input parameter file and all files listed as bdryFile (if applicable) in the work folder and do \texttt{m3dc1\_meshgen input\_param\_file}, then the following output will be generated.
+
 \begin{itemize}
-\item input file, inFile, and bdryFile (if applicable) should be in the work folder
-\item \texttt{argv[1]}: the ascii file created in Step 2
-\item The output model is saved in three formats
+\item The output model in three formats
   \begin{itemize}
   \item	$M3D-C^1$-readable \texttt{.txt}
   \item	Simmetrix-readable file \texttt{.smd} and 
@@ -140,7 +123,7 @@ Z =  Z_0 + Z_1 sin(\theta)
     \item[$\triangleright$] For modelType 4 with vacuum-width \texttt{W} and vacuum-height \texttt{H}, the model is saved in \texttt{outFile-W-H.*}.
     \end{itemize}
   \end{itemize}
-\item The output mesh is saved in three formats
+\item The output mesh in three formats
   \begin{itemize}
   \item Simmetrix-readable\texttt{.sms}
   \item $M3D-C^1$/PUMI readable \texttt{.smb}
@@ -165,10 +148,93 @@ Z =  Z_0 + Z_1 sin(\theta)
   \end{itemize}
 \end{itemize}
 
-\item If the initial mesh is not good enough, run \texttt{simmodeler} to generate a mesh with more meshing controls. See Section~\ref{ch:simmodeler} for detailed instructions.
-\item In order to load the model and mesh, locate them in your work directory and modify C1input parameters
-\end{enumerate}
-See \texttt{readme.m3dc1\_meshgen} for detailed instructions and trouble shooting tips.
+If the initial mesh is not good enough, run \texttt{simmodeler} to generate a mesh with more meshing controls. See Section~\ref{ch:simmodeler} for detailed instructions.
+
+\begin{verbatim}
+numBdry 1
+bdryFile loop1.dat
+numRgn 1
+rgnBdry  1 1
+outFile input1
+useVacuum 0
+\end{verbatim}
+
+\begin{figure}
+\centering
+\includegraphics[width=3in]{./figures/meshgen-input1-novacuum.pdf}
+\caption[Mesh with one boundary file and no vacuum wall]{Mesh with one boundary file and no vacuum wall}
+\label{fig:input1}
+\end{figure}
+
+The figure~\ref{fig:input1} presents the mesh generated by the input file above.
+
+\begin{verbatim}
+numBdry 1
+bdryFile loop1.dat
+numRgn 2
+rgnBdry  1 1
+rgnBdry 2 1 2
+outFile input1
+
+! three doubles for plasma, resistive, vacuum region
+meshSize 0.1 0.05 0.5
+
+useVacuum 1
+
+useVacuumParams 1
+vacuumParams 1.8 1.5 0.4 0.0 2.5
+numVacuumPts 20
+\end{verbatim}
+
+\begin{figure}
+\centering
+\includegraphics[width=3in]{./figures/meshgen-input1.pdf}
+\caption[Mesh with one boundary file and vacuum wall]
+{Mesh with one boundary file and vacuum wall}
+\label{fig:input1-vacuum}
+\end{figure}
+
+The figure~\ref{fig:input1-vacuum} presents the mesh generated by the input file above.
+
+\begin{figure}
+\centering
+\includegraphics[width=3in]{./figures/meshgen-input7.pdf}
+\caption[Mesh with seven boundary files and parameterized vacuum wall]
+{Mesh with seven boundary files and parameterized vacuum wall}
+\label{fig:input7-vacuum}
+\end{figure}
+
+\begin{verbatim}
+numBdry 7
+bdryFile loop1.dat
+bdryFile loop2.dat
+bdryFile loop3.dat
+bdryFile loop4.dat
+bdryFile loop5.dat
+bdryFile loop6.dat
+bdryFile loop7.dat
+
+! if useVacuum=0, set numRgn to 7 and comment out [rgnBdry 4 1 2 3 4]
+numRgn 8	
+rgnBdry  1 1
+rgnBdry  1 2
+rgnBdry  1 3
+rgnBdry  2 4 5
+rgnBdry  2 5 6
+rgnBdry  2 6 7
+rgnBdry  2 7 8
+rgnBdry  4 1 2 3 4
+
+outFile input7
+
+useVacuum 1
+
+useVacuumParams 1
+vacuumParams 1.8 1.5 0.4 0.0 2.5
+numVacuumPts 20
+\end{verbatim}
+
+The figure~\ref{fig:input7-vacuum} presents the mesh generated by the input file above.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

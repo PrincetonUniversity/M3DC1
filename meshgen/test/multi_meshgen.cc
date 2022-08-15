@@ -446,41 +446,20 @@ int main(int argc, char *argv[])
 
 
   std::cout<<"\n<< Check the attribute \"elem\" in Paraview for the element order! >>\n";
+
  // attach element id
   apf::Numbering* nr=apf::numberOwnedDimension(mesh, "elem", 2);
 
  // attach model face ID
   apf::Numbering* ng=apf::createNumbering(mesh,"gface",apf::getConstant(2),1);
-  pMesh part = PM_mesh(sim_pmesh,0);
-  // cout<<"#face sim: "<<M_numFaces(part)<<", pumi "<<mesh->count(2)<<"\n";
- // apf::MeshIterator* it = mesh->begin(2);
+  apf::MeshIterator* it = mesh->begin(2);
   apf::MeshEntity* e;
-  FIter fit = M_faceIter(part);
-  pFace face;
-  pGFace gf;
-  int idx=0, gclas_error=0;
-  bool print_error=0;
-  while( face = FIter_next(fit))
+  while ((e = mesh->iterate(it)))
   {
-    gf = static_cast<pGFace>(F_whatIn(face));
-    e = getMdsEntity(mesh, 2, idx++); 
-    
-    if (gmi_dim(m3dc1_model::instance()->model,(gmi_ent*)(mesh->toModel(e)))!=2)
-    {
-      if (!print_error)
-      { 
-        cout<<"FATAL: geom clas dimension of mesh face "<<idx-1<<" is "
-          <<gmi_dim(m3dc1_model::instance()->model,(gmi_ent*)(mesh->toModel(e)))<<"\n";
-        print_error=1;
-      }
-      ++gclas_error;
-    }
-    number(ng,e,0,0,GEN_tag(gf));
+    assert(gmi_dim(mdl, (gmi_ent*)(mesh->toModel(e)))==2);
+    number(ng,e,0,0,gmi_tag(mdl, (gmi_ent*)(mesh->toModel(e))));
   }
-  FIter_delete(fit);
-
-  if (gclas_error)
-    cout<<"FATAL: #mesh face not classified on model face: "<<gclas_error<<"\n";
+  mesh->end(it);
 
   writeVtkFiles(mesh_filename, mesh);
   destroyNumbering(nr);
@@ -762,6 +741,7 @@ int make_sim_model_old (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
   printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
   printf("Number of regions in Simmetrix model: %d\n",GM_numRegions(sim_model));
 }
+
 int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
 {
   std::map< int, std::vector<int> > loopContainer;
