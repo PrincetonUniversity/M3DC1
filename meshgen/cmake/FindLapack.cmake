@@ -27,10 +27,17 @@ macro(lapackLibCheck libs isRequired)
 endmacro(lapackLibCheck)
 
 set(LAPACK_LIBS "")
+if (ENABLE_PPPL)
 set(LAPACK_LIB_NAMES
   lapack #lapack should come first since it references routines in the BLAS library
   blas
 )
+else()
+set(LAPACK_LIB_NAMES
+  flapack #lapack should come first since it references routines in the BLAS library
+  fblas
+)
+endif()
 
 lapackLibCheck("${LAPACK_LIB_NAMES}" TRUE)
 

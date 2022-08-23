@@ -467,16 +467,16 @@ subroutine calculate_external_fields()
      !      + intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DPP),ri4_79)  
 
      call apply_boundary_mask(itri, ipsibound, temp(:,:,1,1), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
      call apply_boundary_mask(itri, ipsibound, temp(:,:,1,2), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
      call apply_boundary_mask(itri, ibound, temp(:,:,2,1), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
      call apply_boundary_mask(itri, ibound, temp(:,:,2,2), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
 
      call apply_boundary_mask(itri, ibound, temp5, &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
 
 !$OMP CRITICAL
      call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)

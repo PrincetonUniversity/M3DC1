@@ -40,7 +40,7 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
 
   integer, intent(in) :: itri, ibound
   integer, intent(out), dimension(dofs_per_element) :: imask
-  type(tag_list), optional, intent(in) :: tags
+  integer, optional, intent(in) :: tags
 
   integer :: inode(nodes_per_element)
   real :: norm(2), curv(3), x, phi, z
@@ -163,7 +163,7 @@ subroutine apply_boundary_mask(itri, ibound, vals, imaskin, tags)
   integer, intent(in) :: itri, ibound
   vectype, intent(inout), dimension(dofs_per_element,dofs_per_element) :: vals
   integer, dimension(dofs_per_element), optional :: imaskin
-  type(tag_list), intent(in), optional :: tags
+  integer, intent(in), optional :: tags
 
   integer, dimension(dofs_per_element) :: imask
   integer :: i
@@ -183,7 +183,7 @@ subroutine apply_boundary_mask_vec(itri, ibound, vals, imaskin, tags)
   integer, intent(in) :: itri, ibound
   vectype, intent(inout), dimension(dofs_per_element) :: vals
   integer, dimension(dofs_per_element), optional :: imaskin
-  type(tag_list), intent(in), optional :: tags
+  integer, intent(in), optional :: tags
 
   integer, dimension(dofs_per_element) :: imask
 

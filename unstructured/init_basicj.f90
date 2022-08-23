@@ -157,7 +157,7 @@ contains
 
        call basicj_current(x_79, z_79, temp79a)
               
-       call get_boundary_mask(itri, ibound, imask, domain_boundary)
+       call get_boundary_mask(itri, ibound, imask, BOUND_DOMAIN)
 
        temp = -intxx3(mu79(:,:,OP_1),nu79(:,:,OP_GS),ri_79)
        
@@ -216,7 +216,7 @@ contains
        
        call eval_ops(itri, psi_field(0), ps079, rfac)
 
-       call get_boundary_mask(itri, ibound, imask, domain_boundary)
+       call get_boundary_mask(itri, ibound, imask, BOUND_DOMAIN)
 
        
        call basicj_current(x_79, z_79, temp79a)

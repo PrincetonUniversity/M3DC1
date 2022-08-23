@@ -1113,7 +1113,7 @@ end subroutine rotation
 #endif           
           call boundary_node(inode(i), &
                is_boundary, izone, izonedim, norm, curv, x, phi, z, &
-               all_boundaries)
+               BOUND_ANY)
           if(is_boundary) then
 #ifdef USEST
              call newrot_matrix(&

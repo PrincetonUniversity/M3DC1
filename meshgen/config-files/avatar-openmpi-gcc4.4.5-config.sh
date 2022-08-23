@@ -4,6 +4,7 @@ PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=/lore/seol/openmpi-gcc4.4.5-install
 SIM_ARCHOS=x64_rhel6_gcc44
 SIM_VER=14.0-190513dev
+#SIM_VER=15.0-191017dev
 PREFIX=/lore/seol/openmpi-gcc4.4.5-$SIM_VER-install
 cmake .. \
   -DCMAKE_C_COMPILER="/usr/local/openmpi/latest/bin/mpicc" \
