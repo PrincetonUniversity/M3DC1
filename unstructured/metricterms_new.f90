@@ -6799,8 +6799,8 @@ function b1beta(e,f,g)
              + intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ ),g(:,OP_DP)) &
              - intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DR ),g(:,OP_DP))
 #endif
-!!!#ifndef USEST
-        if(hypf.gt.0 .and. imp_hyper.le.1) then
+#ifndef USEST
+        if(hypf.gt.0. .and. imp_hyper.le.1) then
            if(ihypeta.eq.0) then
               temp = temp - hypf*intx3(e(:,:,OP_DZP),ri5_79,f(:,OP_DRPP)) &
                           + hypf*intx3(e(:,:,OP_DRP),ri5_79,f(:,OP_DZPP))
@@ -6822,7 +6822,7 @@ function b1beta(e,f,g)
 
            endif
         endif
-!!!#endif !USEST
+#endif !USEST
      endif
   endif
 #else
