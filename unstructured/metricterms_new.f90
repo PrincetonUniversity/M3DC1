@@ -6799,6 +6799,7 @@ function b1beta(e,f,g)
              + intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ ),g(:,OP_DP)) &
              - intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DR ),g(:,OP_DP))
 #endif
+!!!#ifndef USEST
         if(hypf.gt.0 .and. imp_hyper.le.1) then
            if(ihypeta.eq.0) then
               temp = temp - hypf*intx3(e(:,:,OP_DZP),ri5_79,f(:,OP_DRPP)) &
@@ -6821,6 +6822,7 @@ function b1beta(e,f,g)
 
            endif
         endif
+!!!#endif !USEST
      endif
   endif
 #else
@@ -8430,6 +8432,7 @@ function b2psieta(e,f,g)
      temp = intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DRP),g(:,OP_1)) &
           - intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZP),g(:,OP_1))
 
+#ifndef USEST
      if(hypi.ne.0 .and. imp_hyper.le.1) then
         if(ihypeta.eq.0) then          
            temp = temp + 2.*hypi* &
@@ -8451,6 +8454,7 @@ function b2psieta(e,f,g)
            endif
         endif
      end if
+#endif !USEST
   end if
   b2psieta = temp
 #else
@@ -8598,6 +8602,7 @@ function b2feta(e,f,g)
           - intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZP),g(:,OP_1)) &
           - intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DRP),g(:,OP_1))
 
+#ifndef USEST
      if(imp_hyper.le.1) then
 
 !   the following coding should be checked.  does not agree with my derivation scj 4/30/2014
@@ -8626,6 +8631,7 @@ function b2feta(e,f,g)
         endif
 
      end if
+#endif !USEST
   end if
 
   b2feta = temp
