@@ -21,7 +21,7 @@ module rmp
 contains
 
 !==============================================================================
-subroutine rmp_per
+subroutine rmp_per(init)
   use basic
   use arrays
   use coils
@@ -32,9 +32,15 @@ subroutine rmp_per
 
   integer :: l, ierr
   character(len=13) :: ext_field_name
+  logical, intent(in) :: init 
 
   ! load external field data from schaffer file
-  if(iread_ext_field.ge.1) then
+  ! for itaylor = 41  
+  if(init) then 
+     allocate(sf(iread_ext_field))
+     call load_fieldlines_field(sf(iread_ext_field), fieldlines_filename,isample_ext_field, &
+                   isample_ext_field_pol,ierr)
+  else if(iread_ext_field.ge.1) then
      if(type_ext_field.eq.1) then
         allocate(sf(iread_ext_field))
         if(file_ext_field(1:10).eq.'fieldlines') then
@@ -68,11 +74,13 @@ subroutine rmp_per
            call calculate_external_field_ft(sf(l), ntor)
 #endif
         end do
+     else 
+        return
      end if
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
-  call calculate_external_fields()
+  call calculate_external_fields(init)
 
   ! unload data
   if(iread_ext_field.ge.1) then
@@ -302,7 +310,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 end subroutine rmp_field
 
 
-subroutine calculate_external_fields()
+subroutine calculate_external_fields(init)
   use basic
   use math
   use mesh_mod
@@ -315,6 +323,7 @@ subroutine calculate_external_fields()
   use gradshafranov
 
   implicit none
+  logical, intent(in) :: init 
 
   include 'mpif.h'
 
@@ -507,9 +516,15 @@ subroutine calculate_external_fields()
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."
 
      call newsolve(mass_mat_lhs%mat,p_vec,ier)
-     p_field(0) = p_f
-     pe_field(0) = p_f
-     call mult(pe_field(0), pefac) 
+     if(itaylor.eq.41) then
+        p_field(0) = p_f
+        pe_field(0) = p_f
+        call mult(pe_field(0), pefac) 
+     else 
+        p_field(1) = p_f
+        pe_field(1) = p_f
+        call mult(pe_field(1), pefac) 
+     end if
   end if
 
   call boundary_dc(bf_vec,mat=bf_mat)
@@ -522,9 +537,21 @@ subroutine calculate_external_fields()
      ! Solve for f
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bf..."
      call newsolve(bf_mat,bf_vec,ier)
-     if(extsubtract.eq.1) then
+     if((extsubtract.eq.1).and.(.not.init)) then
         bz_ext = bz_f     
         bf_ext = bf_f     
+        if(itaylor.eq.40) then
+           call mult(bz_f, -1.)
+           call mult(bf_f, -1.)
+           call add(bz_field(0), bz_f)
+           call add(bf_field(0), bf_f)
+        end if
+        if(itaylor.eq.41) then
+           call mult(bz_f, -1.)
+           call mult(bf_f, -1.)
+           call add(bz_field(1), bz_f)
+           call add(bf_field(1), bf_f)
+        end if
      else
         bz_field(1) = bz_f
         bf_field(1) = bf_f
@@ -537,9 +564,21 @@ subroutine calculate_external_fields()
   call finalize(br_mat)
   call newsolve(br_mat,psi_vec,ier)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
-  if(extsubtract.eq.1) then
+  if((extsubtract.eq.1).and.(.not.init)) then
      psi_ext = psi_f
      bfp_ext = bfp_f
+     if(itaylor.eq.40) then
+        call mult(psi_f, -1.)
+        call mult(bfp_f, -1.)
+        call add(psi_field(0), psi_f)
+        call add(bfp_field(0), bfp_f)
+     end if
+     if(itaylor.eq.41) then
+        call mult(psi_f, -1.)
+        call mult(bfp_f, -1.)
+        call add(psi_field(1), psi_f)
+        call add(bfp_field(1), bfp_f)
+     end if
   else
      psi_field(1) = psi_f
      bfp_field(1) = bfp_f
