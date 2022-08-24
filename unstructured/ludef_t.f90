@@ -420,7 +420,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(db .gt. 0 .and. itwofluid.eq.2) then
         tempx = v1hupsi(trialx,lin,pstx79) & 
              + v1hub  (trialx,lin,bztx79)
-        if(i3d.eq.1) tempx = tempx + v1huf(trialx,lin,bfp179)
+        if(i3d.eq.1) tempx = tempx + v1huf(trialx,lin,bfptx79)
         ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
      endif
@@ -441,7 +441,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
        if(db .gt. 0 .and. itwofluid.eq.2) then
           tempx = v1hvpsi(trialx,lin,pstx79) & 
                + v1hvb  (trialx,lin,bztx79)
-          if(i3d.eq.1) tempx = tempx + v1hvf(trialx,lin,bfp179)
+          if(i3d.eq.1) tempx = tempx + v1hvf(trialx,lin,bfptx79)
           ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
           ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
        endif
@@ -464,7 +464,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
        if(db .gt. 0 .and. itwofluid.eq.2) then
           tempx = v1hchipsi(trialx,lin,pstx79) & 
                + v1hchib  (trialx,lin,bztx79)
-          if(i3d.eq.1) tempx = tempx + v1hchif(trialx,lin,bfp179)
+          if(i3d.eq.1) tempx = tempx + v1hchif(trialx,lin,bfptx79)
           ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
           ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
        endif
@@ -959,7 +959,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(db .gt. 0 .and. itwofluid.eq.2) then
         tempx = v2hupsi(trialx,lin,pstx79) & 
              + v2hub  (trialx,lin,bztx79)
-        if(i3d.eq.1) tempx = tempx + v2huf(trialx,lin,bfp179)
+        if(i3d.eq.1) tempx = tempx + v2huf(trialx,lin,bfptx79)
         ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
      endif
@@ -979,7 +979,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(db .gt. 0 .and. itwofluid.eq.2) then
         tempx = v2hvpsi(trialx,lin,pstx79) & 
              + v2hvb  (trialx,lin,bztx79)
-        if(i3d.eq.1) tempx = tempx + v2hvf(trialx,lin,bfp179)
+        if(i3d.eq.1) tempx = tempx + v2hvf(trialx,lin,bfptx79)
         ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
         ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
      endif
@@ -1001,7 +1001,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         if(db .gt. 0 .and. itwofluid.eq.2) then
            tempx = v2hchipsi(trialx,lin,pstx79) & 
                 + v2hchib  (trialx,lin,bztx79)
-           if(i3d.eq.1) tempx = tempx + v2hchif(trialx,lin,bfp179)
+           if(i3d.eq.1) tempx = tempx + v2hchif(trialx,lin,bfptx79)
            ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
            ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
         endif
@@ -1501,7 +1501,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(db .gt. 0 .and. itwofluid.gt.1) then
         tempx = v3hupsi(trialx,lin,pstx79) & 
              + v3hub  (trialx,lin,bztx79)
-        if(i3d.eq.1) tempx = tempx + v3huf(trialx,lin,bfp179)
+        if(i3d.eq.1) tempx = tempx + v3huf(trialx,lin,bfptx79)
         ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
      endif
@@ -1522,7 +1522,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(db .gt. 0 .and. itwofluid.gt.1) then
         tempx = v3hvpsi(trialx,lin,pstx79) & 
              + v3hvb  (trialx,lin,bztx79)
-        if(i3d.eq.1) tempx = tempx + v3hvf(trialx,lin,bfp179)
+        if(i3d.eq.1) tempx = tempx + v3hvf(trialx,lin,bfptx79)
         ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
         ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
      endif
@@ -1544,7 +1544,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(db .gt. 0 .and. itwofluid.gt.1) then
         tempx = v3hchipsi(trialx,lin,pstx79) & 
              + v3hchib  (trialx,lin,bztx79)
-        if(i3d.eq.1) tempx = tempx + v3hchif(trialx,lin,bfp179)
+        if(i3d.eq.1) tempx = tempx + v3hchif(trialx,lin,bfptx79)
         ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
         ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
      endif
