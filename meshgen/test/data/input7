@@ -26,9 +26,8 @@ useVacuumParams 0
 vacuumParams 1.8 1.5 0.4 0.0 2.5
 numVacuumPts 20
 
-! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
-!meshSize 0.04 0.04 0.1
-!meshSize 0.06 0.06 0.1
+! meshSize default 0.05. For N region model, set N doubles
+meshSize 0.05 0.05 0.05 0.05 0.2 0.1 0.2 0.2
 
 ! For 3-region model only.
 ! meshGradationRate default 0.3
