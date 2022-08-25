@@ -759,7 +759,6 @@ subroutine calculate_scalars()
      if(numvar.ge.3 .or. ipres.eq.1) then
         def_fields = def_fields + FIELD_P + FIELD_KAP + FIELD_TE + FIELD_TI + FIELD_Q
         if(hyper.eq.0.) def_fields = def_fields + FIELD_J
-        if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
         if(rad_source) def_fields = def_fields + FIELD_RAD
      end if
 
