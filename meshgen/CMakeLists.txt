@@ -147,11 +147,16 @@ set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_simmetrix)
 find_package(Lapack QUIET REQUIRED)
 set(DEP_LIBS ${DEP_LIBS} ${LAPACK_LIBRARIES} )
 
-  add_executable(m3dc1_meshgen test/multi_meshgen.cc)
+  add_executable(m3dc1_meshgen test/m3dc1_meshgen.cc)
   target_link_libraries(m3dc1_meshgen ${DEP_LIBS})
   target_link_libraries(m3dc1_meshgen ${TARGET_LIB_NAME})
   INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
   
+  add_executable(m3dc1_mfmgen test/multi_meshgen.cc)
+  target_link_libraries(m3dc1_mfmgen ${DEP_LIBS})
+  target_link_libraries(m3dc1_mfmgen ${TARGET_LIB_NAME})
+  INSTALL(TARGETS m3dc1_mfmgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
   add_executable(polar_meshgen test/polar_meshgen.cc)
   target_link_libraries(polar_meshgen ${DEP_LIBS})
   target_link_libraries(polar_meshgen ${TARGET_LIB_NAME})
