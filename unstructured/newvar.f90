@@ -8,8 +8,6 @@ module newvar_mod
   integer, parameter :: NV_DCBOUND = 1  ! Dirichlet boundary conditions
   integer, parameter :: NV_NMBOUND = 2  ! Neumann boundary conditions
   integer, parameter :: NV_SJBOUND = 3
-  integer, parameter :: NV_SVBOUND = 4
-  integer, parameter :: NV_SCBOUND = 5
   integer, parameter :: NV_CYBOUND = 6  ! Cauchy boundary conditions
 
   integer, parameter :: NV_I_MATRIX = 0
@@ -163,10 +161,6 @@ subroutine apply_bc(rhs, ibound, bvec, mat)
      call boundary_nm(rhs, bvec, mat)
   case(NV_SJBOUND)
      call boundary_jphi(rhs, mat)
-  case(NV_SVBOUND)
-     call boundary_vor(rhs, mat)
-  case(NV_SCBOUND)
-     call boundary_com(rhs, mat)
   case(NV_CYBOUND)
      call boundary_cy(rhs, mat)
   end select
@@ -336,9 +330,6 @@ end subroutine apply_bc
              tags=tags)
         call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2), &
              tags=tags)
-     case(NV_SVBOUND)
-
-     case(NV_SCBOUND)
 
      case(NV_CYBOUND)
         call apply_boundary_mask(itri, & 

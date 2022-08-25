@@ -781,65 +781,6 @@ subroutine boundary_cy(rhs, mat)
 end subroutine boundary_cy
 
 
-
-!=======================================================
-! boundary_vor
-! ~~~~~~~~~~~~
-!
-! sets boundary conditions on Delta*(phi) 
-! in the smoother
-!=======================================================
-subroutine boundary_vor(rhs, mat)
-  use basic
-  use vector_mod
-  use matrix_mod
-
-  implicit none
-
-  type(vector_type) :: rhs
-  type(matrix_type), optional :: mat
-  
-  integer, parameter :: numvarsm = 2
-  integer :: i, izone, izonedim, i_u, i_vor, numnodes, icounter_t
-  real :: normal(2), curv(3)
-  real :: x, z, phi
-  logical :: is_boundary
-  vectype, dimension(dofs_per_node) :: temp
-
-  if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vor called"
-
-  temp = 0.
-
-  numnodes = owned_nodes()
-  do icounter_t=1,numnodes
-     i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
-     if(.not.is_boundary) cycle
-
-     i_vor = node_index(rhs, i, 1)
-     i_u = node_index(rhs, i, 2)
-
-     if(inonormalflow.eq.1) then
-        call set_dirichlet_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
-     end if
-     
-     if(inoslip_pol.eq.1) then
-        call set_normal_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
-     end if
-
-     ! no vorticity
-     call set_dirichlet_bc(i_vor,rhs,temp,normal,curv,izonedim,mat)
-
-     if(vor_bc.eq.1) then
-        call set_laplacian_bc(i_u,rhs,temp,normal,curv,izonedim,-x,mat)
-     endif
-  end do
-
-end subroutine boundary_vor
-
-
-
 !=======================================================
 ! boundary_jphi
 ! ~~~~~~~~~~~~~
@@ -887,61 +828,5 @@ subroutine boundary_jphi(rhs, mat)
 
 end subroutine boundary_jphi
 
-
-!=======================================================
-! boundary_com
-! ~~~~~~~~~~~~
-!
-! sets boundary conditions on Del^2(chi) in the smoother
-!=======================================================
-subroutine boundary_com(rhs, mat)
-  use basic
-  use vector_mod
-  use matrix_mod
-
-  implicit none
-
-  type(vector_type) :: rhs
-  type(matrix_type), optional :: mat
-  
-  integer, parameter :: numvarsm = 2
-  integer :: i, izone, izonedim, i_com, i_chi, numnodes, icounter_t
-  real :: normal(2), curv(3)
-  real :: x, z, phi
-  logical :: is_boundary
-  vectype, dimension(dofs_per_node) :: temp
-
-  if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_com called"
-
-  temp = 0.
-
-  numnodes = owned_nodes()
-  do icounter_t=1,numnodes
-     i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
-     if(.not.is_boundary) cycle
-
-     i_com = node_index(rhs, i, 1)
-     i_chi = node_index(rhs, i, 2)
-
-     ! clamp compression
-     call set_dirichlet_bc(i_com,rhs,temp,normal,curv,izonedim,mat)
-
-     if(inonormalflow.eq.1) then
-        call set_normal_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
-     end if
-
-     if(inoslip_pol.eq.1) then
-        call set_dirichlet_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
-     end if
-
-     ! no compression
-     if(com_bc.eq.1) then
-        call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,x,mat)
-     endif
-  end do
-
-end subroutine boundary_com
 
 end module boundary_conditions
