@@ -87,26 +87,16 @@ For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210
 \texttt{m3dc1\_meshgen} requires an ascii input file of arbitrary name that contains the following parameters.
 
 \begin{itemize}
-\item numBdry: number of boundary file defined by peice-wise linear points (default: 0)
-\item bdryFile: boundary file name. Each boundary file corresponds to a loop in PUMI. Each loop has a unique ID starting from 1.
-\item numRgn: number of region (geometric face)
-\item rgnBdry: information to define each region. This requires the number of loops and loop id(s).
+\item numBdry: number of boundary files defined by peice-wise linear points given for the construction of the loops(default: 0)
+\item bdryFile: boundary file name followed by the desired loop ID and desired mesh size on the loop. Each boundary file corresponds to a loop in PUMI. Each loop has a unique ID starting from 1. The boundary files and the loop IDs can be given in any order.
+\item thickWall: A parameter to control finite thickness wall. The first number can either be 0 or 1. If it is set to 0, no finite thickness wall will be created. If it is set to 1, a finite thickness wall will be created. The second number is the loop ID of the loop(wall) that will be offset for thickness. The third number is the desired unique Loop ID for the new loop created from offsetting  for the finite thickness wall. The last number is the desired wall thickness. 
+\item useVacuum: A parameter to control the vacuum boundary. The first number sets the mode of vacuum boundary and can be 0,1 or 2. If 0, no vacuum boundary will be created. If 1, vacuum boundary will be created without user defined parameters. If 2, a parameterized vacuum boundary will be created by using the parameters defined in the parameter "vacuumParams". The second number is the desired unique loop ID for the vacuum loop. The third number defines the mesh size on the vacuum boundary.
+\item vacuumParams: five doubles to define parameterized vacuum wall. Required if useVacuum = 2.
+\item numVacuumPts: optional \# interpolation points on parameterized vacuum wall. Valid only if useVacuum = 2 (default 20)
+\item numFace: number of geometric model faces.
+\item faceBdry: A parameter to define the number of loops on a face, loop IDs, desired mesh size and mesh gradation rate. The first number gives the total number of loops bounding the face followed by the loops IDs of the bounding loops. If number of loops = $n$, there should be $n$ loop IDs. The next number after the loop IDs define the mesh size on the geometric face followed by a number to define mesh gradation rate (if gradation rate is not provided, it is set to 0.3 by default). 
+\item layeredMesh: To create an extruded layeded mesh on the finite thickness wall. The first  number defines the mode and can either be 0 or 1, If 0, no layered mesh will be created. If 1(default), an extruded mesh with desired number of mesh layers will be created. The second number defines the number of mesh layers.
 \item outFile: output file name to save model and mesh
-\item meshSize: relative mesh size for each region (default 0.05)
-\item useVacuum: if 1, create a vacuum wall (default 0)
-\item useVacuumParams: if 1, create a parameterized vacuum wall (default 0)
-If useVacuum=0, this parameter is ignored.
-\item vacuumParams: five doubles to describe parameterized vacuum wall. Required if useVacuumParams=1.
-If useVacuum=0 or useVacuumParams=0, this parameter is ignored. 
-\item adjustVacuumParams: if 1, multiply coordinates and parametric values of nodes on vacuum wall by vacuumFactor (default 0). If useVacuum=0 or useVacuumParams=0, this parameter is ignored.
-\item vacuumFactor: an optional double value used to multiply coordinates and parametric values of nodes on vacuum wall when adjustVacuumParams=1 (default 2$\times$PI). Valid only if adjustVacuumParams=1.
-\item numVacuumPts: optional \# interpolation points on parameterized vacuum wall. Valid only if useVacuumParams=1 (default 20)
-\item meshGradationRate: for multiple region model, optional mesh gradation rate (default: 0.3). This value should be greater than or equal to 0.3. Otherwise the mesh will be fine everywhere.
-\item resistive-width: for multiple region model without peice-wise boundary points, set the width of resistive wall. If resistive-width=0, only plasma region is created (default 0.02)
-\item plasma-offsetX: for multiple region model without peice-wise boundary points, the offset in x direction to the left (default 0.0)
-\item plasma-offsetY: for multiple region model without peice-wise boundary points, the offset in y direction to the bottom (default 0.0)
-\item vacuum-width: for multiple region model, the width of vacuum region (default 2.5)
-\item vacuum-height: for multiple region model, the height of vacuum region (default 4.0) 
 \end{itemize}
 
 Locate input parameter file and all files listed as bdryFile (if applicable) in the work folder and do \texttt{m3dc1\_meshgen input\_param\_file}, then the following output will be generated.
