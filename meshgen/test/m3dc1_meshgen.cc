@@ -34,6 +34,7 @@
 #include <apfSIM.h>
 #include <apfMDS.h>
 #include <apfNumbering.h>
+#include "apfShape.h"
 #include <gmi.h>
 #include <gmi_sim.h>
 #include "gmi_mesh.h"
@@ -715,8 +716,20 @@ int main(int argc, char *argv[])
   std::cout<<"\n<< Check the attribute \"elem\" in Paraview for the element order! >>\n";
 
   apf::Numbering* nr=apf::numberOwnedDimension(mesh, "elem", 2);
+// attach model face ID
+   apf::Numbering* ng=apf::createNumbering(mesh,"gface",apf::getConstant(2),1);
+   apf::MeshIterator* it = mesh->begin(2);
+   apf::MeshEntity* e;
+   while ((e = mesh->iterate(it)))
+   {
+     assert(gmi_dim(mdl, (gmi_ent*)(mesh->toModel(e)))==2);
+     number(ng,e,0,0,gmi_tag(mdl, (gmi_ent*)(mesh->toModel(e))));
+   }
+   mesh->end(it);
+
   writeVtkFiles(mesh_filename, mesh);
   destroyNumbering(nr);
+  destroyNumbering(ng);
 
   apf::printStats(mesh);
   apf::destroyMesh(simApfMesh);
