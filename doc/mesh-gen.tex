@@ -1,14 +1,26 @@
-\section{Generation and Management of M3D-C$^{1}$ Meshes}
-\subsection{Introduction}
+\section{Mesh Generation and Management}
 
-This section describes the methods used to generate M3D-C$^{1}$ meshes for Tokamak geometries. This process involves the use of specific software and interaction with several files that contain the associated geometry and mesh information.
+The process to generate M3D-C$^{1}$ meshes for Tokamak geometries involves the use of specific software and interaction with several files that contain the associated geometry and mesh information.
 
-The process of generating M3D-C$^{1}$ meshes involves the use of two software libraries. They are: 
-\begin{itemize}
-\item m3dc1\_meshgen coordinates the process of generating the an initial M3D-C$^{1}$
-\item	Simmetrix provides a set of tools and libraries for engineering simulation including a state-of-art mesh generation. For more information, visit \href{http://simmetrix.com}{http://simmetrix.com}. The Simmetrix library is used to generate the M3D-C$^{1}$ meshes. The Simmetrix meshing library is used by m3dc1\_meshgen for the actual mesh generation. The Simmetrix GUI can be used after the execution of m3dc1\_meshgen to apply additional mesh controls for the generation of meshes with different mesh gradations. 
-\item PUMI is a parallel mesh infrastructure toolkit developed at SCOREC, RPI. For more information, visit \href{http://www.scorec.rpi.edu/pumi}{http://www.scorec.rpi.edu/pumi}. The PUMI library is used to manage the mesh information as it is processed and within the M3D-C$^{1}$ code.
-\end{itemize}
+The first required software is Simmetrix which provides a set of tools and libraries for engineering simulation including a state-of-art mesh generation. For more information, visit \href{http://simmetrix.com}{http://simmetrix.com}. The Simmetrix library is used to generate the M3D-C$^{1}$ meshes. The Simmetrix meshing library is used by m3dc1\_meshgen for the actual mesh generation. The Simmetrix GUI can be used after the execution of m3dc1\_meshgen to apply additional mesh controls for the generation of meshes with different mesh gradations. 
+
+As the mesh generation programs require Simmetrix licence and proper enviroment settings, the user should load Simmetrix modules as the following:
+\newline\newline
+\texttt{
+module load simmodsuite/version simmodeler/version
+}
+\newline\newline
+As of today (July 11, 2022), the latest Simmetrix modules are \texttt{simmodsuite/16.0-220226} and \texttt{simmodeler/10.0-220226}.
+\newline\newline
+Two mesh generation programs are available only on PPPL Portal in the following location:
+\newline\newline
+\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel\_ver/intel\_ver-openmp\_ver/simmodsuite\_ver/bin}
+\newline\newline
+For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210626, the mesh generation programs are available in
+\newline\newline
+\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}
+
+The second required software is PUMI (Parallel Unstructured Mesh Infrastructure) developed at SCOREC, RPI. The PUMI is used to manage the mesh information as it is processed and within the M3D-C$^{1}$ code. For more information, visit \href{http://www.scorec.rpi.edu/pumi}{http://www.scorec.rpi.edu/pumi}. 
 
 There are a number of files involved with housing the geometry and mesh information. 
 
@@ -57,46 +69,52 @@ An overview of the Model/Mesh requirements for the M3D-C$^{1}$ mesh generation p
 \end{itemize}
 \end{itemize}
 
-The rest of this section is organized as follows: Section \ref{ch:mesh-gen} describes a mesh generation program \texttt{m3dc1\_meshgen}. Section \ref{ch:mesh-ptn} presents a mesh partitioning program \texttt{"split\_smb"} and \texttt{"collapse"} which changes the number of parts of the mesh. For how to visualize a mesh with \texttt{Paraview}, see Appendix~\ref{ch:app-paraview}.
+The rest of this section is organized as follows: Section \ref{ch:mesh-gen} describes a mesh generation program \texttt{m3dc1\_meshgen}. Section \ref{ch:mfm-gen} describes a mesh generation program \texttt{m3dc1\_mfmgen}. Section \ref{ch:polar-gen} describes a mesh generation program \texttt{polar\_meshgen}. Section \ref{ch:mesh-ptn} presents a mesh partitioning program \texttt{"split\_smb"} and \texttt{"collapse"} which changes the number of parts of the mesh. For how to visualize a mesh with \texttt{Paraview}, see Appendix~\ref{ch:app-paraview}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Mesh Generation}
+\subsection{m3dc1\_meshgen}
 \label{ch:mesh-gen}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Two programs \texttt{m3dc1\_meshgen} and \texttt{polar\_meshgen} are provided for mesh generation. \texttt{m3dc1\_meshgen} is used to define the tokamak cross section geometry and an initial mesh.  \texttt{polar\_meshgen} generates a mesh based on equilibria transfered from the PPPL JSOLVER code. As the mesh generation programs require Simmetrix licence and proper enviroment settings, the user should load Simmetrix modules as the following:
-\newline\newline
-\texttt{
-module load simmodsuite/version simmodeler/version
-}
-\newline\newline
-As of today (July 11, 2022), the latest Simmetrix modules are \texttt{simmodsuite/16.0-220226} and \texttt{simmodeler/10.0-220226}.
-\newline\newline
-Two mesh generation programs are available only on PPPL Portal in the following location:
-\newline\newline
-\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel\_ver/intel\_ver-openmp\_ver/simmodsuite\_ver/bin}
-\newline\newline
-For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210626, the mesh generation programs are available in 
-\newline\newline
-\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{m3dc1\_meshgen}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \texttt{m3dc1\_meshgen} requires an ascii input file of arbitrary name that contains the following parameters.
 
 \begin{itemize}
-\item numBdry: number of boundary files defined by peice-wise linear points given for the construction of the loops(default: 0)
-\item bdryFile: boundary file name followed by the desired loop ID and desired mesh size on the loop. Each boundary file corresponds to a loop in PUMI. Each loop has a unique ID starting from 1. The boundary files and the loop IDs can be given in any order.
-\item thickWall: A parameter to control finite thickness wall. The first number can either be 0 or 1. If it is set to 0, no finite thickness wall will be created. If it is set to 1, a finite thickness wall will be created. The second number is the loop ID of the loop(wall) that will be offset for thickness. The third number is the desired unique Loop ID for the new loop created from offsetting  for the finite thickness wall. The last number is the desired wall thickness. 
-\item useVacuum: A parameter to control the vacuum boundary. The first number sets the mode of vacuum boundary and can be 0,1 or 2. If 0, no vacuum boundary will be created. If 1, vacuum boundary will be created without user defined parameters. If 2, a parameterized vacuum boundary will be created by using the parameters defined in the parameter "vacuumParams". The second number is the desired unique loop ID for the vacuum loop. The third number defines the mesh size on the vacuum boundary.
-\item vacuumParams: five doubles to define parameterized vacuum wall. Required if useVacuum = 2.
-\item numVacuumPts: optional \# interpolation points on parameterized vacuum wall. Valid only if useVacuum = 2 (default 20)
-\item numFace: number of geometric model faces.
-\item faceBdry: A parameter to define the number of loops on a face, loop IDs, desired mesh size and mesh gradation rate. The first number gives the total number of loops bounding the face followed by the loops IDs of the bounding loops. If number of loops = $n$, there should be $n$ loop IDs. The next number after the loop IDs define the mesh size on the geometric face followed by a number to define mesh gradation rate (if gradation rate is not provided, it is set to 0.3 by default). 
-\item layeredMesh: To create an extruded layeded mesh on the finite thickness wall. The first  number defines the mode and can either be 0 or 1, If 0, no layered mesh will be created. If 1(default), an extruded mesh with desired number of mesh layers will be created. The second number defines the number of mesh layers.
+\item modelType: 0, 1, 2, 3, or 4
+\begin{itemize}
+\item Type 0: a parameterized vacuum region defined by five doubles for analytic expression. 
+For five doubles $X_0$   $X_1$   $X_2$   $Z_0$   $Z_1$, vacuum boundary is defined by 
+\begin{equation}
+X = X_0 + X_1 cos(\theta + X_2*sin(\theta))
+\end{equation}
+\begin{equation}
+Z =  Z_0 + Z_1 sin(\theta)
+\end{equation}
+\item	Type 1: a vacuum region defined by piece-wise linear points
+\item	Type 2: a vacuum region defined by piece-wise polynomials
+\item	Type 3: spline-fitted 3-region model (plasma, wall and vacuum)
+\item	Type 4: spline-fitted 3-region model (plasma, wall, and vacuum) with inner \& outer boundary points to set resistive wall
+\end{itemize}
+
+\item reorder: if 1, reorder PUMI mesh based on adjacency (default: 0) and generate vtk folders for mesh visualization. The mesh before and after reodering is saved in \texttt{original-mesh.vtk} and \texttt{reordered-mesh.vtk}, respectively. Note that the element order of Simmetrix mesh is not affected.
+\item inFile: (modelType 0) not required
+(modelType 1 and 2) geometry file describing the vacuum (modelType 3 and 4) geometry file describing the inner plasma wall
+\item bdryFile: (modelType 0-3) not required
+ (modelType 4) geometry file describing the outer plasma wall
 \item outFile: output file name to save model and mesh
+\item meshSize: relative mesh size for each region (default 0.05)
+\newline
+	for modelType 3, set three doubles for plasma, resistive, vacuum, respectively
+\item useVacuumParams: for modelType 0 or 3, if 1, use parameterized vacuum wall (default 0)
+\item vacuumParams: five doubles to describe parameterized vacuum wall. Required if useVacuumParams=1.
+\item adjustVacuumParams: for modelType 0 or 3, if 1, multiply coordinates and parametric values of nodes on vacuum wall by vacuumFactor. Valid only if useVacuumParams=1 (default 0)
+\item vacuumFactor: for modelType 0 or 3, an optional double value used to multiply coordinates and parametric values of nodes on vacuum wall when adjustVacuumParams=1. Valid only if adjustVacuumParams=1 (default 2$\times$PI)
+\item numVacuumPts: optional \# interpolation points on parameterized vacuum wall. Valid only if useVacuumParams=1 (default 20)
+\item meshGradationRate: for modelType 3 or 4, optional mesh gradation rate (default: 0.3). This value should be greater than or equal to 0.3. Otherwise the mesh will be fine everywhere.
+\item resistive-width: for modelType 3, the width of resistive wall. If resistive-width=0, only plasma region is created (default 0.02)
+\item plasma-offsetX: for modelType 3, the offset in x direction to the left (default 0.0)
+\item plasma-offsetY: for modelType 3, the offset in y direction to the bottom (default 0.0)
+\item vacuum-width: for modelType 3 or 4, the width of vacuum region (default 2.5)
+\item vacuum-height: for modelType 3 or 4, the height of vacuum region (default 4.0) 
 \end{itemize}
 
 Locate input parameter file and all files listed as bdryFile (if applicable) in the work folder and do \texttt{m3dc1\_meshgen input\_param\_file}, then the following output will be generated.
@@ -104,9 +122,9 @@ Locate input parameter file and all files listed as bdryFile (if applicable) in 
 \begin{itemize}
 \item The output model in three formats
   \begin{itemize}
-  \item	$M3D-C^1$-readable \texttt{.txt}
-  \item	Simmetrix-readable file \texttt{.smd} and 
-  \item	PUMI-readable \texttt{.dmg}
+  \item $M3D-C^1$-readable \texttt{.txt}
+  \item Simmetrix-readable file \texttt{.smd} and
+  \item PUMI-readable \texttt{.dmg}
     \begin{itemize}
     \item[$\triangleright$] For modelType 0-2, the model is saved in \texttt{outFile.*}
     \item[$\triangleright$] For modelType 3 with resistive width \texttt{R}, vacuum-width \texttt{W} and vacuum-height \texttt{H}, the model is saved in \texttt{outFile-R-W-H.*}.
@@ -117,9 +135,9 @@ Locate input parameter file and all files listed as bdryFile (if applicable) in 
   \begin{itemize}
   \item Simmetrix-readable\texttt{.sms}
   \item $M3D-C^1$/PUMI readable \texttt{.smb}
-  \item Paraview 
+  \item Paraview
     \begin{itemize}
-    \item[$\triangleright$] For modelType 0-2 with \# mesh faces \texttt{F}, 
+    \item[$\triangleright$] For modelType 0-2 with \# mesh faces \texttt{F},
       \begin{itemize}
       \item[-] if \texttt{F} $>$ 1000, the mesh is saved in \texttt{outFile-(F/1000).*}
       \item[-] if \texttt{F} $<$ 1000, the mesh is saved in \texttt{outFile-F.*}
@@ -138,7 +156,157 @@ Locate input parameter file and all files listed as bdryFile (if applicable) in 
   \end{itemize}
 \end{itemize}
 
-If the initial mesh is not good enough, run \texttt{simmodeler} to generate a mesh with more meshing controls. See Section~\ref{ch:simmodeler} for detailed instructions.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Type 0 (parameterized vacuum)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}
+\centering
+\includegraphics[width=3in]{./figures/meshgen-type0.pdf}
+\caption[Mesh with vacuum region defined by five parameters for analytic expression]
+{A mesh with vacuum region defined by five parameters for analytic expression}
+\label{fig:meshgen-type0}
+\end{figure}
+
+The figure~\ref{fig:meshgen-type0} illustrates a mesh generated by the following input file.
+
+\begin{verbatim}
+modelType 0
+outFile analytic 
+meshSize 0.04
+
+useVacuumParams 1
+vacuumParams 1.65908 0.46 0.2 -0.02504 0.8
+numVacuumPts 20
+
+adjustVacuumParams 0
+vacuumFactor  6.28319
+\end{verbatim}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Type 2 (piece-wise polynomial vacuum)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}
+\centering
+\includegraphics[width=3in]{./figures/meshgen-type2.pdf}
+\caption[Mesh with vacuum region defined by piece-wise polynomials]
+{A mesh with vacuum region defined by piece-wise polynomials}
+\label{fig:meshgen-type2}
+\end{figure}
+
+The figure~\ref{fig:meshgen-type2} illustrates a mesh generated by the following input file.
+
+\begin{verbatim}
+modelType 2
+inFile in-poly
+outFile poly
+\end{verbatim}
+
+The example files \texttt{poly-input} and \texttt{in-poly} can be found in 
+\newline\newline
+\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Type 3 (three-regions with inner wall points)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}
+\centering
+\includegraphics[width=3in]{./figures/meshgen-type3.pdf}
+\caption[Mesh with spline-fitted 3-region model]
+{A mesh with spline-fitted 3-region model}
+\label{fig:meshgen-type3}
+\end{figure}
+
+The figure~\ref{fig:meshgen-type3} illustrates a mesh generated by the following input file.
+
+\begin{verbatim}
+modelType 3
+
+inFile in-circle
+outFile circle
+
+meshSize 0.1 0.2 0.1
+
+useVacuumParams 1
+adjustVacuumParams 1
+
+vacuumParams 5.0 1.5 0.0 0.0 1.5
+numVacuumPts 20
+
+meshGradationRate 0.3
+resistive-width 0.4
+plasma-offsetX 0.0
+plasma-offsetY 0.0
+vacuum-width 0
+vacuum-height 0
+\end{verbatim}
+
+The example files \texttt{circle-input} and \texttt{in-circle} can be found in
+\newline\newline
+\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Type 4 (three-regions with inner $\&$ outer wall points)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}
+\centering
+\includegraphics[width=3in]{./figures/meshgen-type4.pdf}
+\caption[Mesh with inner $\&$ outer boundary points to set resistive wall]
+{A mesh with inner $\&$ outer boundary points to set resistive wall}
+\label{fig:meshgen-type4}
+\end{figure}
+
+The figure~\ref{fig:meshgen-type4} illustrates a mesh generated by the following input file.
+
+\begin{verbatim}
+modelType 4
+
+inFile inner_bdry.pts
+bdryFile outer_bdry.pts
+outFile iter
+
+meshSize 0.3 0.2 0.5
+
+! for parametrized vacuum model only.
+useVacuumParams 1
+
+adjustVacuumParams 1
+
+vacuumParams 8.25 8.0 0.2 0.0 12,5
+numVacuumPts 60
+
+meshGradationRate 0.3
+vacuum-width  0.0
+vacuum-height 0.0
+\end{verbatim}
+
+The example files \texttt{bdry-input}, \texttt{inner\_bdry.pts} and \texttt{outer\_bdry.pts} can be found in
+\newline\newline
+\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{m3dc1\_mfmgen}
+\label{ch:mfm-gen}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\texttt{m3dc1\_mfmgen} requires an ascii input file of arbitrary name that contains the following parameters.
+
+\begin{itemize}
+\item numBdry: number of boundary files defined by peice-wise linear points given for the construction of the loops(default: 0)
+\item bdryFile: boundary file name followed by the desired loop ID and desired mesh size on the loop. Each boundary file corresponds to a loop in PUMI. Each loop has a unique ID starting from 1. The boundary files and the loop IDs can be given in any order.
+\item thickWall: A parameter to control finite thickness wall. The first number can either be 0 or 1. If it is set to 0, no finite thickness wall will be created. If it is set to 1, a finite thickness wall will be created. The second number is the loop ID of the loop(wall) that will be offset for thickness. The third number is the desired unique Loop ID for the new loop created from offsetting  for the finite thickness wall. The last number is the desired wall thickness. 
+\item useVacuum: A parameter to control the vacuum boundary. The first number sets the mode of vacuum boundary and can be 0,1 or 2. If 0, no vacuum boundary will be created. If 1, vacuum boundary will be created without user defined parameters. If 2, a parameterized vacuum boundary will be created by using the parameters defined in the parameter "vacuumParams". The second number is the desired unique loop ID for the vacuum loop. The third number defines the mesh size on the vacuum boundary.
+\item vacuumParams: five doubles to define parameterized vacuum wall. Required if useVacuum = 2.
+\item numVacuumPts: optional \# interpolation points on parameterized vacuum wall. Valid only if useVacuum = 2 (default 20)
+\item numFace: number of geometric model faces.
+\item faceBdry: A parameter to define the number of loops on a face, loop IDs, desired mesh size and mesh gradation rate. The first number gives the total number of loops bounding the face followed by the loops IDs of the bounding loops. If number of loops = $n$, there should be $n$ loop IDs. The next number after the loop IDs define the mesh size on the geometric face followed by a number to define mesh gradation rate (if gradation rate is not provided, it is set to 0.3 by default). 
+\item layeredMesh: To create an extruded layeded mesh on the finite thickness wall. The first  number defines the mode and can either be 0 or 1, If 0, no layered mesh will be created. If 1(default), an extruded mesh with desired number of mesh layers will be created. The second number defines the number of mesh layers.
+\item outFile: output file name to save model and mesh
+\end{itemize}
+
+Locate input parameter file and all files listed as bdryFile (if applicable) in the work folder and do \texttt{m3dc1\_mfmgen input\_param\_file}. The output files are the same as those of \texttt{m3dc1\_meshgen}.
 
 \begin{verbatim}
 numBdry 0
@@ -289,7 +457,8 @@ The figure~\ref{fig:input7-vacuum} presents the mesh generated by the input file
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{polar\_meshgen}
+\subsection{polar\_meshgen}
+\label{ch:polar-gen}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \texttt{polar\_meshgen} requires an ascii file of arbitrary name that contains input parameters as the following:
 \begin{itemize}
@@ -307,43 +476,6 @@ meshSize 0.04
 \end{verbatim}
 
 To run \texttt{polar\_meshgen}, place \texttt{polar\_input} and \texttt{POLAR} in your work folder and do ``\texttt{polar\_meshgen polar\_input}''. The program will read \texttt{POLAR} and generate various model and mesh files starting with ``polar''. For instance, \texttt{polar-2K0.smb, pol-2K.sms, pol-2K.vtk, polar.dmg, polar.smd, polar.txt}. If the resulting mesh is too fine, increase the value of \texttt{meshSize}. If the resulting mesh is too coarse, decrease the value of \texttt{meshSize}. If \texttt{meshSize} is not specified in the input file, the default value is 0.05.   
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Example: Type 0 (parameterized vacuum)}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-See the example input file \texttt{"analytic-input"}.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Example: Type 1 (piece-wise linear vacuum)}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Example: Type 2 (piece-wise polynomial vacuum)} 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-See the example input file \texttt{"poly-input"}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Example: Type 3 (three-regions with inner wall points)}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-See the example input file \texttt{"circle-input"}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Example: Type 4: (three-regions with inner $\&$ outer wall points)}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-See the example input file \texttt{"bdry-input"}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Example: Multiple-regions with inner $\&$ outer wall points}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-See the example input file \texttt{"multi-input"}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Example: Equilibrium}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 The program \texttt{read\_jsolver} generates equilibrium and stores in the file \texttt{POLAR}. Given the input file \texttt{POLAR}, \texttt{m3dc1\_meshgen} generates the following files:
 \begin{itemize}
