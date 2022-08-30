@@ -267,13 +267,13 @@ contains
 !      end if
 
       call apply_boundary_mask(itri, ifpbound, temp(:,:,1,1), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
       call apply_boundary_mask(itri, ifpbound, temp(:,:,1,2), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
       call apply_boundary_mask(itri, ipsibound, temp(:,:,2,1), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
       call apply_boundary_mask(itri, ipsibound, temp(:,:,2,2), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
 
       call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
       call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)

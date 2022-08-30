@@ -762,6 +762,7 @@ subroutine step_split(calc_matrices)
   use transport_coefficients
   use auxiliary_fields
   use m3dc1_vel_prof
+  use hypervisc
 
   implicit none
 
@@ -886,7 +887,7 @@ call PetscLogStagePop(jer)
    
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-     call smooth_velocity(u_v, chi_v)
+     call apply_hyperv(u_v, vz_v, chi_v)
   end if
   
   ! Advance Density

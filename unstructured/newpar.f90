@@ -27,6 +27,7 @@ Program Reducedquintic
   use kprad_m3dc1
   use transport_coefficients
   use m3dc1_vel_prof
+  use hypervisc
 #ifdef _OPENACC
   use openacc
 #endif
@@ -207,6 +208,9 @@ Program Reducedquintic
 
   call calc_wall_dist
 
+  call init_hyperv_mat
+  
+  
   ! Set initial conditions either from restart file
   ! or from initialization routine
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -619,62 +623,6 @@ end subroutine safestop
 
 
 ! ======================================================================
-! smooth_velocity
-! ~~~~~~~~~~~~~~~
-!
-! applies smoothing operators to velocity
-! ======================================================================
-subroutine smooth_velocity(uin, chiin)
-  use basic
-  use arrays
-  use newvar_mod
-  use diagnostics
-  use sparse
-
-  implicit none
-
-  type(field_type), intent(inout) :: uin, chiin
-  real :: tstart, tend
-  type(vector_type) :: temp_vec
-  type(field_type) :: vor_new
-
-  if(hyperc.eq.0) return
-
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' smoothing velocity...'
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-
-  call create_vector(temp_vec,2)
-  call associate_field(vor_new, temp_vec, 2)
-
-  ! smooth vorticity
-  call solve_newvar1(mass_mat_lhs_dc, vor_field, gs_mat_rhs_dc, uin)
-  vor_new = vor_field
-  call solve_newvar_axby(s5_mat,temp_vec,d5_mat,temp_vec)
-  uin = vor_new
-  
-  ! smooth compression
-  if(numvar.ge.3) then
-     if(com_bc.eq.0) then
-        call solve_newvar1(mass_mat_lhs,    com_field, lp_mat_rhs,    chiin)
-     else
-        call solve_newvar1(mass_mat_lhs_dc, com_field, lp_mat_rhs_dc, chiin)
-     endif
-     temp_vec = 0.
-     vor_new = com_field
-     call solve_newvar_axby(s7_mat,temp_vec,d7_mat,temp_vec)
-     chiin = vor_new
-  endif
-
-  call destroy_vector(temp_vec)
-  
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_smoother = t_smoother + tend - tstart
-  endif
-  
-end subroutine smooth_velocity
-
-! ======================================================================
 ! smooth_fields
 ! ~~~~~~~~~~~~~
 !
@@ -828,26 +776,7 @@ subroutine derived_quantities(ilin)
           psi_field(ilin))
   endif
 
-  if(hyperc.ne.0.) then
-     !   vorticity
-     if(myrank.eq.0 .and. iprint.ge.2) print *, "  vorticity"
-     call solve_newvar1(mass_mat_lhs_dc,vor_field,gs_mat_rhs_dc,u_field(ilin))
-
-     !   compression
-     if(numvar.ge.3) then
-        if(myrank.eq.0 .and. iprint.ge.2) print *, "  compression"
-        if(com_bc.eq.1) then
-           call solve_newvar1(mass_mat_lhs_dc,com_field,lp_mat_rhs_dc,& 
-                chi_field(ilin))
-        else
-           call solve_newvar1(mass_mat_lhs,   com_field,lp_mat_rhs, &
-                chi_field(ilin))
-        endif
-     else
-        com_field = 0.
-     endif
-  endif
-
+  
   ! vector potential stream function
   !if(imp_bf.eq.0 .or. ilin.eq.0 .or. ntime.eq.0) then
      if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
@@ -1113,7 +1042,7 @@ end subroutine rotation
 #endif           
           call boundary_node(inode(i), &
                is_boundary, izone, izonedim, norm, curv, x, phi, z, &
-               all_boundaries)
+               BOUND_ANY)
           if(is_boundary) then
 #ifdef USEST
              call newrot_matrix(&
@@ -1404,8 +1333,6 @@ subroutine space(ifirstcall)
 
      ! Auxiliary Variables
      call create_field(jphi_field)
-     call create_field(vor_field)
-     call create_field(com_field)
      call create_field(resistivity_field)
      call create_field(kappa_field)
      call create_field(kappar_field)

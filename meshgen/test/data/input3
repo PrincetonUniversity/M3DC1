@@ -6,12 +6,11 @@ numRgn 3
 rgnBdry  1 1
 rgnBdry  2 1 2
 rgnBdry  2 2 3
-!rgnBdry  2 3 4
 outFile input3
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
 !meshSize 0.04 0.04 0.1
-meshSize 0.06 0.06 0.1
+!meshSize 0.06 0.06 0.1
 
 ! For 3-region model only.
 ! meshGradationRate default 0.3
