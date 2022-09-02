@@ -233,21 +233,16 @@ int main(int argc, char *argv[])
                right[0],right[1]+0.6*height,left[0],left[1]+0.6*height+offset_t,
                left[0],left[1]+0.3*height+offset_t,left[0],left[1]};
         create_vtx(&gv1_id,left);
-        cout<<"create_vtx "<<gv1_id<<"\n";
         create_vtx(&gv2_id,right);
-        cout<<"create_vtx "<<gv2_id<<"\n";
         create_edge(&ge1_id, &gv1_id, &gv2_id);
-        cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv2_id<<")\n";
         create_edge(&ge2_id, &gv2_id, &gv1_id);
-        cout<<"create_edge "<<ge2_id<<" ("<<gv2_id<<", "<<gv1_id<<")\n";
         attach_b_spline_curve(&ge1_id,&order_p,&numCtrPts,ctrPtsBottom,knots,NULL);
         attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctrPtsTop,knots,NULL);
         int vacuumEdges[]={ge1_id,ge2_id};
         num_ge = 2;
         create_loop(&loop_id,&num_ge,vacuumEdges);
-        cout<<"create_loop "<<loop_id<<" ("<<ge1_id<<", "<<ge2_id<<")\n";
         set_vacuum_boundary (&loop_id);
-         ++loop_id;
+        ++loop_id;
     }
     else if (useVacuumParams && useVacuum)
     {
@@ -269,49 +264,15 @@ int main(int argc, char *argv[])
       }
 
       create_vtx(&gv1_id,&(interpolate_points_vacuum.at(0)));
-      cout<<"create_vtx "<<gv1_id<<"\n";
       create_edge(&ge1_id, &gv1_id, &gv1_id);
-      cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv1_id<<")\n";
       attach_periodic_cubic_curve(&ge1_id,&num_pts,&(interpolate_points_vacuum.at(0)));
       int vacuumEdges[]={ge1_id};
       num_ge=1;
       create_loop(&loop_id,&num_ge,vacuumEdges);
-      cout<<"create_loop "<<loop_id<<" ("<<ge1_id<<")\n";
       set_vacuum_boundary (&loop_id);
       ++loop_id;
     }
   } // numBdry>0
-
-/*
-  int numEdge = m3dc1_model::instance()->model->n[1];
-  cout<<"numEdge = "<<numEdge<<"\n";
-  int numplot=5000;
-  double diff=0;
-  FILE* fp_t=fopen("plot_geo","w");
-  for( int iedge=1; iedge<=numEdge; iedge++)
-  {
-    for(int j=0; j<numplot+1; j++)
-    {
-      double xyz[2];
-      double para=double(j)/double(numplot);
-      eval_position(&iedge,&para,xyz);
-      double normal[2];
-      eval_normal(&iedge,&para,normal);
-      double curv;
-      eval_curvature(&iedge,&para,&curv);
-      fprintf(fp_t,"%f %f %f %f %f\n", xyz[0],xyz[1],normal[0],normal[1],curv);
-      if (modelType==0)
-      {
-        double xyz_phy[3];
-        aexp(para*2*M3DC1_PI, xyz_phy);
-        diff=max(diff,getDist2D(xyz,xyz_phy));
-      }
-    }
-  }
-  fclose(fp_t);
-
-  if (useVacuumParams) cout<<"[m3dc1_meshgen INFO] interpolation error "<<diff<<endl;
-*/
 
   char filename[256];
   char model_filename[256];
@@ -364,7 +325,7 @@ int main(int argc, char *argv[])
   while( pGFace face= GFIter_next(faces))
   {
     MS_setMeshSize(meshCase,face, 1, meshSizes[iface++], NULL);
-    cout<<"set mesh size of face "<<iface-1<<" to "<<meshSizes[iface-1]<<"\n";
+    cout<<"Model face "<<iface-1<<" mesh size: "<<meshSizes[iface-1]<<"\n";
   }
   GFIter_delete(faces);
 
@@ -526,14 +487,11 @@ void get_vacuum_rgn()
   }
 
   create_vtx(&gv1_id,&(interpolate_points.at(0)));
-  cout<<"create_vtx "<<gv1_id<<"\n";
   create_edge(&ge1_id, &gv1_id, &gv1_id);
-  cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv1_id<<")\n";
   attach_periodic_cubic_curve(&ge1_id, &num_pts, &(interpolate_points.at(0)));
   int innerWallEdges[]={ge1_id};
   int num_ge=1;
   create_loop(&loop_id,&num_ge,innerWallEdges);
-  cout<<"create_loop "<<loop_id<<" ("<<ge1_id<<")\n";
   set_inner_wall_boundary (&loop_id);
   ++loop_id;
 }
@@ -571,15 +529,12 @@ void get_multi_rgn()
 
     //create inner wall bdry
     create_vtx(&gv1_id,&(interpolate_points.at(0)));
-    cout<<"create_vtx "<<gv1_id<<"\n";
     create_edge(&ge1_id, &gv1_id, &gv1_id);
-    cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv1_id<<")\n";
     attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
     // now set the loop closed
     int innerWallEdges[]={ge1_id};
     num_ge = 1;
     create_loop(&loop_id,&num_ge,innerWallEdges);
-    cout<<"create_loop "<<loop_id<<" ("<<ge1_id<<")\n";
     set_inner_wall_boundary (&loop_id);
     ++loop_id;
 
@@ -616,9 +571,7 @@ void inner_outer_wall_pts()
 	num_out_pts++; 
       }
       create_vtx(&gv1_id,&(out_pts.at(0)));
-      cout<<"create_vtx "<<gv1_id<<"\n";
       create_edge(&ge1_id, &gv1_id, &gv1_id);
-      cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv1_id<<")\n";
        
       if (num_out_pts <= 10)
       	attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
@@ -628,9 +581,8 @@ void inner_outer_wall_pts()
       int outerWallEdges[]={ge1_id};
       num_ge = 1;
       create_loop(&loop_id,&num_ge,outerWallEdges);
-      cout<<"create_loop "<<loop_id<<" ("<<ge1_id<<")\n";
-      ++loop_id;
       set_outer_wall_boundary (&loop_id);
+      ++loop_id;
     }  // for (int i=0; i<nout_bdryFile; ++i)
 }
 
@@ -714,7 +666,6 @@ int make_sim_model_old (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
           break;
       }
       pGEdge pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
-      std::cout<<"GR_createEdge ("<<GEN_tag(startVert)<<", "<<GEN_tag(endVert)<<")\n";
       edges[edge]=pe;
       currentLoop.push_back( pe);
     }
@@ -747,11 +698,8 @@ int make_sim_model_old (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
 
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
     GR_createFace(GIP_outerRegion(part), faceEdges.size(),&(faceEdges[0]),&(faceDirs[0]),numloops,loopDef,planarSurface,1);
-        std::cout<<"GR_createFace (";
-    for (int i=0; i<faceEdges.size(); ++i)
-      cout<<GEN_tag(faceEdges[i])<<" ";
-    cout<<")\n";
   }
+
   printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
   printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
   printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
@@ -809,7 +757,6 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
             GV_point(endVert,xyz2);
             curve = SCurve_createLine(xyz1, xyz2);
             pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
-            std::cout <<"LIN: GR_createEdge "<<GEN_tag(startVert)<<", "<<GEN_tag(endVert)<<"\n";
           }
           break;
         case BSPLINE: // bspline
@@ -838,15 +785,9 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& rgn_bdry)
 		edgeDir = 0;
             curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
            if (numE == 1)
-           {
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
-                std::cout <<"BSPLINE: GR_createEdge "<<GEN_tag(startVert)<<", "<<GEN_tag(startVert)<<"\n";
-           }
 	   else if (numE == 2)
-           {
 		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, edgeDir);
-                std::cout <<"BSPLINE: GR_createEdge "<<GEN_tag(startVert)<<", "<<GEN_tag(endVert)<<"\n";
-           }
            GM_write(sim_model,"Debug_Edges.smd",0,0);
           }
           break;
