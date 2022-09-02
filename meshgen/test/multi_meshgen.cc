@@ -106,11 +106,9 @@ double ctr_pts_o[12];
 
 vector<double> interpolate_points;
 
-//========================================================================  
 std::map <int, int> loopsMap;
 std::map <int, double> loopSizeMap;
 std::map <int, double> faceSizeMap;
-std::map <int, double> gradRateMap;
 int vacuumLoopId = -1;
 double vacuumLoopMeshSize = 0.0;
 int useThickWall = -1;
@@ -133,7 +131,6 @@ bool curveOrientation(std::vector <double> &curvePts);
 int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edgesOnLoop);
 void setParallelVertices(int loopInner, int loopOuter, std::map< int, std::vector<pGEdge> > edgesOnLoop);
 
-//=========================================================================
 int main(int argc, char *argv[])
 {
   MPI_Init(&argc,&argv);
@@ -159,7 +156,7 @@ int main(int argc, char *argv[])
   char namebuff[512];
   vector< vector<int> > face_bdry;
   int index=0, numLoop, loopID; 
-  double faceMeshSize, faceGradationRate = 0;
+  double faceMeshSize = 0.03;
   int loopNumber = 0;
   double edgeMeshSize = 0.0;
 
@@ -193,9 +190,7 @@ int main(int argc, char *argv[])
        face_bdry[index].push_back(loopID);
      }
      fscanf(infp,"%lf",&faceMeshSize);
-     fscanf(infp,"%lf",&faceGradationRate);
      faceSizeMap[index] = faceMeshSize;
-     gradRateMap[index] = faceGradationRate;
      ++index;
    } 
     if (strcmp(namebuff,"modelType")==0) fscanf(infp,"%d",&modelType);
@@ -221,6 +216,7 @@ int main(int argc, char *argv[])
 	fscanf(infp, "%lf",&vacuumLoopMeshSize);
 	loopSizeMap[vacuumLoopId] = vacuumLoopMeshSize;
     }
+    if (strcmp(namebuff,"meshGradationRate")==0) fscanf(infp, "%lf",&meshGradationRate);
     if (strcmp(namebuff,"thickWall")==0)
     {
 	fscanf(infp, "%d",&useThickWall);
@@ -313,12 +309,9 @@ int main(int argc, char *argv[])
         int loopNumber = -1;
 	GEN_nativeIntAttribute(edge, "loopIdOnEdge", &loopNumber);
         double edgeSize = loopSizeMap[loopNumber];
-	std::cout << "Loop ID = " << loopNumber << " has mesh size = " << edgeSize << "\n";	
         MS_setMeshSize(meshCase,edge, 1, edgeSize, NULL);
     }
     double faceSize = faceSizeMap[iface++];
-    std::cout << "Face Mesh Size = " << faceSize << "\n";
-    std::cout << "=================================================================\n";
     MS_setMeshSize(meshCase,face, 1, faceSize, NULL);
   }
   GFIter_delete(faces);
@@ -567,7 +560,6 @@ void inner_outer_wall_pts()
       fclose(fp);
       if (fabs(out_pts.at(0)-out_pts.at(2*(num_out_pts-1))) >1e-16 || fabs(out_pts.at(1)-out_pts.at(2*(num_out_pts-1)+1)) >1e-16)
       {
-	std::cout << "First and Last Points are not same" << "\n";
 	out_pts.resize(2*(num_out_pts+1));
 	out_pts.at(2*num_out_pts) = out_pts[0];
 	out_pts.at(2*num_out_pts+1) = out_pts[1];
@@ -796,7 +788,6 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
 	   else if (numE == 2)
 		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, edgeDir);
-           GM_write(sim_model,"Debug_Edges.smd",0,0);
           }
           break;
         default:
@@ -819,7 +810,6 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 
   for (int i=0; i<face_bdry.size(); ++i)
   {
-    std::cout << " =========================== FACE STATS for Face # " << i+1 << "=======================================\n";
     faceEdges.clear();
     faceDirs.clear();
     numLoops = face_bdry[i].size();
@@ -829,7 +819,6 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 	loopsOnFace.push_back(face_bdry[i][idx]);
     int outerMostLoop = outerLoop(loopsOnFace, edgesOnLoop);
     loopsOnFace.clear();
-    std::cout << "OuterMost Loop on this face = " << outerMostLoop << "\n";
     for (int idx=0; idx<face_bdry[i].size(); ++idx)
     {
 	
@@ -848,15 +837,6 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
     } 
     pSurface planarSurface;
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
-    GM_write(sim_model,"Debug_Faces.smd",0,0);
-    std::cout << "Number of Edges on Face  = " <<   faceEdges.size() << "\n";
-    for (int f =0; f < faceEdges.size(); ++f)
- 	std::cout << "Edge # " << f+1 << " length = " << GE_length(faceEdges[f],0,1) << "\n";
-    std::cout << "Number of Loops = " << numLoops << "\n";
-    for (int mk = 0; mk < numLoops; ++mk)
-    	std::cout << "Dir = " << faceDirs[mk] << "\n";
-    for (int mk = 0; mk < numLoops; ++mk)
-    	std::cout << "Loop Def = " << loopDef[mk] << "\n"; 
     pGFace gf = GR_createFace(GIP_outerRegion(part), faceEdges.size(),
                   &(faceEdges[0]),&(faceDirs[0]),numLoops,&(loopDef[0]),planarSurface,1);
     std::cout<<"GR_createFace (";

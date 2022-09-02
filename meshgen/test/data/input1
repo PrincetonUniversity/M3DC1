@@ -9,6 +9,7 @@ numVacuumPts 20
 
 
 numFace 1
-faceBdry  1 3 0.03 0.3
+faceBdry  1 3 0.03
 outFile input1
 
+meshGradationRate 0.3

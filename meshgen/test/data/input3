@@ -10,7 +10,9 @@ vacuumParams 1.8 1.5 0.4 0.0 2.5
 numVacuumPts 20
 
 numFace 3
-faceBdry  1 3 0.03 0.3
-faceBdry  2 3 10 0.04 0.4
-faceBdry  2 10 11 0.03 0.3
+faceBdry  1 3 0.03
+faceBdry  2 3 10 0.04
+faceBdry  2 10 11 0.03 
 outFile input3
+
+meshGradationRate 0.3
