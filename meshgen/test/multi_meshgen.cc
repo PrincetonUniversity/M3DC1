@@ -118,7 +118,6 @@ int wallEdgeId = -1;
 vector<double> wallPoints;
 int numWallPoints = 0;
 
-void get_vacuum_rgn();
 void get_multi_rgn();
 void createVacuum(int vLoopId, double vMeshSize);
 void createFiniteThicknessWall(int inLoopId, int inWallEdgeId, int outLoopId);
@@ -238,8 +237,7 @@ int main(int argc, char *argv[])
     //  five doubles x0, x1, x2, z0, z1 for analytic expression should be provided
     // x = x0 + x1*cos(theta+x2*sin(theta))
     // z = z0 + z1*sin(theta)
-    assert(useVacuumParams==1); // five doubles should be provided
-    get_vacuum_rgn();
+    createVacuum(vacuumLoopId, vacuumLoopMeshSize);
   }
   else
   {
@@ -453,34 +451,6 @@ int main(int argc, char *argv[])
 
   PCU_Comm_Free();
   MPI_Finalize();
-}
-
-void get_vacuum_rgn()
-{
-  bdbox[0]=a_param-b_param;
-  bdbox[2]=a_param+b_param;
-  bdbox[1]=d_param-e_param;
-  bdbox[3]=d_param+e_param;
-
-  num_pts=numInterPts;
-  interpolate_points.resize(2*num_pts);
-  for (int i=0; i<num_pts; i++)
-  {
-    double para =2*M3DC1_PI/(num_pts-1)*i;
-    double xyz[3];
-    aexp(para, xyz);
-    interpolate_points.at(2*i)=xyz[0];
-    interpolate_points.at(2*i+1)=xyz[1];
-  }
-
-  create_vtx(&gv1_id,&(interpolate_points.at(0)));
-  create_edge(&ge1_id, &gv1_id, &gv1_id);
-  attach_periodic_cubic_curve(&ge1_id, &num_pts, &(interpolate_points.at(0)));
-  int innerWallEdges[]={ge1_id};
-  int num_ge=1;
-  create_loop(&loop_id,&num_ge,innerWallEdges);
-  set_inner_wall_boundary (&loop_id);
-  ++loop_id;
 }
 
 void get_multi_rgn()
