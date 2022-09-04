@@ -1,16 +1,14 @@
 numBdry 2
-bdryFile sparc_v2_first_wall_interpolated.dat 3 0.02
-bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat 10 0.03
+bdryFile inner_bdry.pts 1 0.5
+bdryFile outer_bdry.pts 2 0.5
+useVacuum 2 3 0.5
+vacuumParams 8.25 8.0 0.2 0.0 12.5
+numFace 3
+faceBdry 1 1 0.7
+faceBdry 2 1 2 0.5
+faceBdry 2 2 3 0.7
+outFile iter
 
-!Wall Thickness feature is not working properly. So Set it to Zero for now.
-thickWall 0 19 8 0.07
-useVacuum 0 9 0.01
-vacuumParams 1.8 1.5 0.4 0.0 2.5
-numVacuumPts 20
-
-numFace 2
-faceBdry  1 3 0.03
-faceBdry  2 3 10 0.04
-outFile input2
-
-meshGradationRate 0.3
+meshGradationRate 1
+vacuum-width 1 
+vacuum-height 1
