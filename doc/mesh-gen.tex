@@ -287,15 +287,20 @@ The example files \texttt{bdry-input}, \texttt{inner\_bdry.pts} and \texttt{oute
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \texttt{m3dc1\_mfmgen} requires an ascii input file of arbitrary name that contains the following parameters.
+The parameters can be in any order.
 
 \begin{itemize}
-\item numBdry: number of boundary files defined by peice-wise linear points given for the construction of the loops (default: 0). Each boundary file corresponds to a loop in PUMI.
+\item numBdry: the number of boundary files defined by peice-wise linear points given for the construction of the loops (default: 0)
+  \begin{itemize}
+  \item Each boundary file corresponds to a loop in PUMI
+  \item For \texttt{numBdry}=$N$, $N$ lines of \texttt{bdryFile} should be provided, $N \ge 0$
+  \end{itemize}
 \item bdryFile: For each boundary file, the user has to provide its file name followed by the unique loop ID and desired mesh size on the loop.
   \begin{itemize}
   \item Each boundary file corresponds to a loop in PUMI
   \item The unique ID can be an arbitrary integer defined by the user
   \item The unique ID is used with input parameter ``faceBdry" to specify the boundaries (loops) of model face
-  \item For more than one boundary files (numBdry$>$1), the order of the boundary files can be in any order
+  \item For more than one boundary files (numBdry$>$1), the boundary files can be in any order
   \end{itemize}
 
 \item useVacuum: A parameter to control the vacuum boundary
@@ -321,7 +326,11 @@ The example files \texttt{bdry-input}, \texttt{inner\_bdry.pts} and \texttt{oute
   \item The second integer defines the number of mesh layers
   \end{itemize}
 
-\item numFace: number of geometric model faces
+\item numFace: the number of geometric model faces in PUMI (default 1)
+    \begin{itemize}
+  \item Each geometric face corresponds to regions (e.g. plasma, resistive, vacuum) in M3DC1
+  \item For \texttt{numFace}=$N$, $N$ lines of \texttt{faceBdry} should be provided, $N > 0$
+  \end{itemize}
 \item faceBdry: For each model face, the user has to provide the number of loops, loop ID(s), and desired mesh size
   \begin{itemize}
   \item The first number gives the total number of loops bounding the face
