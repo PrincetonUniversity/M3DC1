@@ -198,7 +198,7 @@ contains
     do icounter_t=1,numnodes
        i = nodes_owned(icounter_t)
        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-            all_boundaries)
+            BOUND_ANY)
        if(.not.is_boundary) cycle
        
        i_n = node_index(den_v, i)
@@ -230,10 +230,12 @@ contains
 
     implicit none
 
+    include 'mpif.h'
+
     real, intent(in) :: dti
     type(matrix_type) :: nmat_lhs, nmat_rhs
     type(field_type) :: rhs
-    integer :: itri, j, numelms, ierr, def_fields, izone
+    integer :: itri, j, numelms, ierr, def_fields, izone, itmp, ier
 !    integer, dimension(dofs_per_element) :: imask
     vectype, dimension(dofs_per_element) :: tempx
     vectype, dimension(dofs_per_element,dofs_per_element) :: tempxx
@@ -322,12 +324,22 @@ contains
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
     do j=1, kprad_z
+       ierr = 0
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
-       ierr = 0
        call newsolve(nmat_lhs, rhs%vec, ierr)
-       kprad_n(j) = rhs
+       if(is_nan(rhs%vec)) ierr = 1
+       call mpi_allreduce(ierr, itmp, 1, MPI_INTEGER, &
+            MPI_MAX, MPI_COMM_WORLD, ier)
+       ierr = itmp
+
+       if(ierr.ne.0) then
+          if(myrank.eq.0) &
+               print *, 'Error in impurity ion solve ', j
+       else
+          kprad_n(j) = rhs
+       end if
     end do
 
 
@@ -402,7 +414,17 @@ contains
        call matvecmult(nmat_rhs, kprad_n(0)%vec, rhs%vec)
        ierr = 0
        call newsolve(nmat_lhs, rhs%vec, ierr)
-       kprad_n(0) = rhs
+       if(is_nan(rhs%vec)) ierr = 1
+       call mpi_allreduce(ierr, itmp, 1, MPI_INTEGER, &
+            MPI_MAX, MPI_COMM_WORLD, ier)
+       ierr = itmp
+
+       if(ierr.ne.0) then
+          if(myrank.eq.0) &
+               print *, 'Error in impurity neutral solve'
+       else
+          kprad_n(0) = rhs          
+       end if
     end if
 
 
@@ -459,9 +481,7 @@ contains
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
 
-    def_fields = FIELD_N + FIELD_TE + FIELD_TI + FIELD_DENM
-    if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
-         def_fields = def_fields + FIELD_P
+    def_fields = FIELD_N + FIELD_P + FIELD_TE + FIELD_TI + FIELD_DENM
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix'
 

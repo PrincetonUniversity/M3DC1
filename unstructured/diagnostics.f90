@@ -759,7 +759,6 @@ subroutine calculate_scalars()
      if(numvar.ge.3 .or. ipres.eq.1) then
         def_fields = def_fields + FIELD_P + FIELD_KAP + FIELD_TE + FIELD_TI + FIELD_Q
         if(hyper.eq.0.) def_fields = def_fields + FIELD_J
-        if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
         if(rad_source) def_fields = def_fields + FIELD_RAD
      end if
 
@@ -1734,6 +1733,7 @@ subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
   x = xguess
   z = zguess
   itri = itri_te_max2
+  sum = 0.
 
   call whattri(x,0.,z,itri,x1,z1)
 
@@ -1844,7 +1844,7 @@ subroutine lcfs(psi, test_wall, findx)
      do icounter_t=1,numnodes
         inode = nodes_owned(icounter_t) 
         call boundary_node(inode,is_boundary,izone,izonedim,normal,curv, &
-             x,phi,z, inner_wall)
+             x,phi,z, BOUND_FIRSTWALL)
         if(.not.is_boundary) cycle
         
         call get_node_data(temp_field,inode,data)

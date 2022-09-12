@@ -1,0 +1,2179 @@
+\newcommand{\dt}{\ensuremath{\delta t}}
+\newcommand{\ddt}[1]{\frac{\partial #1}{\partial t}}
+\newcommand{\thimp}{\ensuremath{\theta}}
+
+\newcommand{\order}[1]{\ensuremath{\mathcal{O}(#1)}}
+
+\renewcommand{\vec}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\tensor}[1]{\mathsf{#1}}
+\newcommand{\tor}{\varphi}              % toroidal coordinate
+\newcommand{\A}{\vec{A}}
+\newcommand{\B}{\vec{B}}
+\newcommand{\E}{\vec{E}}
+\newcommand{\R}{\vec{R}}
+\newcommand{\x}{\vec{x}}
+\renewcommand{\r}{R}
+\renewcommand{\v}{\vec{v}}
+\renewcommand{\u}{\vec{u}}
+\newcommand{\F}{\vec{F}}
+\renewcommand{\j}{\vec{J}}
+\newcommand{\q}{\vec{q}}
+\newcommand{\g}{\vec{g}}
+\newcommand{\jn}{\frac{\j}{n}}
+\renewcommand{\P}{\tensor{\Pi}}
+\renewcommand{\b}{\vec{b}}
+\newcommand{\W}{\tensor{W}}
+\newcommand{\codename}{\textsc{M3D-$C^1$}}
+
+\newcommand{\grad}[1]{\nabla #1}
+\newcommand{\gradp}[1]{\nabla_\perp #1}
+\renewcommand{\div}[1]{\nabla \cdot #1}
+\newcommand{\divp}[1]{\nabla_\perp \cdot #1}
+\newcommand{\curl}[1]{\nabla \times #1}
+
+\newcommand{\dotdot}{:}
+\newcommand{\dottimes}{\dot\times}
+\newcommand{\timestimes}{\stackrel{\times}{\times}}
+
+\newcommand{\gs}[1]{\Delta^* #1}
+\newcommand{\lp}[1]{\nabla^2 #1}
+\newcommand{\pb}[2]{\left[#1,#2\right]}
+\newcommand{\ip}[2]{\left\langle  #1,#2\right\rangle}
+\newcommand{\funcss}[2]{
+  \left\langle\left\langle #1,#2 \right\rangle\right\rangle}
+\newcommand{\funcsa}[2]{\left[\left\langle #1,#2 \right\rangle\right]}
+\newcommand{\funcaa}[2]{\left[\left[ #1,#2 \right]\right]}
+
+\newcommand{\cola}[1]{\textcolor{red}{#1}}
+\newcommand{\colb}[1]{\textcolor{blue}{#1}}
+
+\newcommand{\uvec}[1]{\ensuremath{\vec{\hat{#1}}}}
+\newcommand{\n}{\ensuremath{\uvec{n}}}
+
+
+\newcommand{\repositoryloc}{portal.pppl.gov/p/tsc/C1/svn}
+\newcommand{\svnurl}{http://subversion.tigris.org/}
+
+
+\section{Boundary Conditions}
+
+In all cases, $f = 0$ on the boundary, and therefore also $\uvec{t}
+\cdot \grad{f} = 0$.  Some other boundary conditions that may be
+specified are as follows:
+
+\begin{description}
+\item[No normal flow (\texttt{inonormalflow=1})] Holds $\uvec{n} \cdot
+  \u$ constant.
+\item[No poloidal flow (\texttt{inoslip\_pol=1})] Holds $\uvec{t} \cdot
+  \u$ constant.
+\item[No toroidal flow (\texttt{inoslip\_tor=1})] Holds $\uvec{\tor}
+  \cdot \u$ constant.
+\item[No normal current (\texttt{Winocurrent\_pol
+inocurrent\_norm=1})] Holds $\uvec{n} \cdot
+  \j$ constant.
+\item[No poloidal current (\texttt{inocurrent\_pol=1})] Holds $\uvec{t} \cdot
+  \j$ constant.
+\item[No toroidal current (\texttt{inocurrent\_tor=1})] Holds $\uvec{\tor}
+  \cdot \j$ constant.
+\end{description}
+
+\begin{eqnarray}
+  \uvec{n} \cdot \u & = & 
+  -R \uvec{t}\cdot\grad{U}+ \frac{1}{R^2} \uvec{n} \cdot \grad{\chi}
+  \\
+  \uvec{t} \cdot \u & = & 
+  R \uvec{n}\cdot\grad{U} + \frac{1}{R^2} \uvec{t} \cdot \grad{\chi}
+  \\
+  \uvec{\tor} \cdot \u & = & R \omega
+\end{eqnarray}
+
+\begin{eqnarray}
+  \uvec{n} \cdot \B & = & 
+  -\frac{1}{R} \uvec{t}\cdot\grad{\psi}
+  - \frac{1}{R^2} \uvec{n} \cdot \grad{f_\tor}
+  \\
+  \uvec{t} \cdot \B & = & 
+  \frac{1}{R} \uvec{n}\cdot\grad{\psi} 
+  \\
+  \uvec{\tor} \cdot \B & = & \frac{F}{R}
+\end{eqnarray}
+
+\begin{eqnarray}
+  \uvec{n} \cdot \j & = & 
+  -\frac{1}{R} \uvec{t} \cdot \grad{F}
+  + \frac{1}{R^2} \uvec{n} \cdot \grad{\psi_\tor}
+  \\
+  \uvec{t} \cdot \j & = & 
+  \frac{1}{R} \uvec{n}\cdot\grad{(F + f_{\tor \tor})} 
+  + \frac{1}{R^2} \uvec{t} \cdot \grad{\psi_\tor}
+  \\
+  \uvec{\tor} \cdot \j & = & -\frac{1}{R}\gs{\psi}
+\end{eqnarray}
+In the above definitions, $\uvec{n}$ is the unit vector normal to the
+boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
+
+
+\section{Discretization}
+
+\subsection{Finite Elements}
+
+Each field is represented as a linear combination of $N$ basis
+functions $\nu_i$ on the computational domain
+\[ U = \sum_{i=1}^N \nu_i U_i. \]
+The finite element used in \codename is the reduced quintic element
+\cite{Jardin04}, in which the basis functions are fifth order
+polynomials.  At each time step, the projection of the equations onto
+the basis functions are computed and solved.  For example, the
+equation
+\[ \ddt{U} = F(U) \]
+becomes the system of projection equations
+\[ \int dV\, \nu_i \ddt{U} = \int dV\, \nu_i F(U). \]
+These projections equations are known collectively as the \emph{weak
+form} of the equation.  Solving the equation in this manner is known
+as the \emph{Galerkin method}.  Hereafter the index $i$ will be
+dropped from $\nu_i$.
+
+Once the equations are cast in the weak form, integrations by parts
+may be carried out in order to reduce the order of the differential
+operators acting on the physical fields.  For example, 
+\begin{eqnarray*}
+  \int dV\, \nu \nabla^2 U 
+  & = & \int dV\, \div{(\nu \grad{U})} - \grad{\nu} \cdot \grad{U}\\
+  & = & \oint d\vec{A} \cdot \grad{U} \nu - \int dV\, \ip{\nu}{\nabla U}\\
+  & = & - \int dV\, \ip{\nu}{U}.
+\end{eqnarray*}
+It is found that using integrations by parts to re-cast the equations
+into a form in which a roughly equal number of derivatives acts on the
+trial function as on the physical fields improves the numerical
+stability of methods for solving the equations.  Thus, in the above
+example, the form $-\ip{\nu}{U}$ is preferable to $\nu \nabla^2
+U$.
+
+\subsubsection{Weak form of Physical Equations}
+
+\texttt{Integration Identities}
+\\
+Rather than performing integrations by parts directly on each term in
+equations~(\ref{eq:scalar_equations}), it is simpler to begin directly
+from the vector form, equations~(\ref{eq:xmhd}) and use the following
+identities when applying the operations to extract the scalar
+equations:
+\begin{eqnarray*}
+  -\int dV\, R^2 \nu \grad{\tor} \cdot \curl{\vec{A}} & = & 
+  -\int dV\, \vec{A} \cdot \left[\grad{(R^2 \nu)} \times \grad{\tor}
+    \right]
+  \\
+  \int dV\, \nu \div{\vec{A}} & = & 
+  -\int dV\, \grad{\nu} \cdot \vec{A}.
+\end{eqnarray*}
+(Note that the torodal operator, $R^2 \nu \grad{\tor} \cdot$, is not a
+differential operator and therefore the integration by parts cannot be
+performed \emph{a priori}.)  
+
+Similary, useful identities for the operators that will act on the
+stress tensor $\P$ are:
+\begin{subequations}
+\label{eq:tensor_identities}
+\begin{eqnarray}
+  R^2 \nu \grad{\tor} \cdot \curl{(\div{\P})} & = & 
+  R^2 \partial_Z \nu \grad{\tor} \cdot \P \cdot \grad{\tor}
+  - \grad{\nu} \cdot \P \cdot \grad{Z}
+  \\ && \mbox{}
+  + r \grad{\tor} \cdot \left[\grad{\grad{(\nu r)}} \dottimes \P\right]
+  + \div{ \vec{A}_1 }\nonumber
+  \\
+  -R^2 \nu \grad{\tor} \cdot (\div{\P}) & = &
+  R^2 \grad{\nu} \cdot \P \cdot \grad{\tor}
+  + \div{\vec{A}_2}
+  \\
+  -\nu \div{(\div{\P})} & = & -\grad{\grad{\nu}} \dotdot \P + \div{\vec{A}_3}
+\end{eqnarray}
+\end{subequations}
+where
+\begin{eqnarray*} 
+  \vec{A}_1 & = & 
+  - R^2 \nu \grad{\tor} \times (\div{\P})
+  - r \P \cdot \left[ \grad{\tor} \times \grad{(r \nu)} \right]
+  + \nu \P \cdot \grad{Z}
+  \\
+  \vec{A}_2 & = & -R^2 \nu \P \cdot \grad{\tor}
+  \\
+  \vec{A}_3 & = & \grad{\nu} \cdot \P - \nu \div{\P}.
+\end{eqnarray*}
+(These identities hold for any symmetric tensor $\P$.)  The total
+divergences vanish upon integration.
+
+\subsubsection{Physical Equations after Integrations by Parts}
+
+\begin{subequations}
+  \label{eq:equations_ibp}
+\begin{eqnarray}
+  \int dV\, N_n & = & \int dV\, \left[
+    N_{n U} + N_{n \chi} + N_{n D} \right]
+  \\
+  \int dV\, \left[U_{U n} + U_{\chi n}\right] & = & \int dV\, 
+  \left[ 
+    U_{U U n} + U_{V V n} + U_{U \chi n} + U_{\chi \chi n} 
+    \right. \\ && \nonumber \left. \mbox{} 
+    + U_{\psi \psi} + U_{F F} + U_{U \mu} + U_{\chi \mu} + U_g
+    \right. \\ && \nonumber \left. \mbox{} 
+    + U_{U D} + U_{\chi D} + U_{\P_\parallel} + U_{\P_\times}
+    \right]
+  \\
+  \int dV\, V_{V n} & = & \int dV\, \left[
+    V_{V U n} + V_{V \chi n} + V_{\psi F} + V_{V \mu} 
+    \right. \\ && \nonumber \left. \mbox{} + V_{V D}  
+    + V_{\P_\parallel} + V_{\P_\times} \right]
+  \\
+  \int dV\, \left[X_{U n} + X_{\chi n}\right] & = & \int dV\, \left[
+    X_{U U n}+ X_{V V n}+ X_{U \chi n}+ X_{\chi \chi n} 
+    \right.\\  && \nonumber \left. \mbox{} 
+    + X_p + X_{\psi \psi} + X_{F F} + X_{U \mu} + X_{\chi \mu} + X_g 
+    \right. \\ && \nonumber \left. \mbox{} 
+    + X_{U D} + X_{\chi D} + X_{\P_\parallel} + X_{\P_\times}
+    \right]
+  \\
+  \int dV\, \Psi_\psi & = & \int dV\, \left[
+    \Psi_{\psi U} + \Psi_{\psi \chi} + \Psi_{\psi F n}
+    + \Psi_{\psi \eta} \right]
+  \\
+  \int dV\, F_F & = & \int dV\, \left[
+    F_{F U} + F_{\psi V} + F_{F \chi} + F_{\psi n} + F_{F n} 
+    \right. \\ && \nonumber \left. \mbox{} + F_{p_e n} + F_{F \eta} \right]
+  \\
+  \int dV\, P_p & = & \int dV\, \left[
+    P_{p U} + P_{p \chi} + P_{p_e F n} + P_{\eta \psi} + P_{\eta F} 
+    \right. \\ && \nonumber \left. \mbox{} 
+    + P_\kappa + P_{\kappa_\parallel} + P_{\kappa_\times} \right]
+\end{eqnarray}
+\end{subequations}
+
+The terms in the above equations are categorized and defined in the
+following sections.  Each term has been integrated by parts to arrive
+at the simplest expression having for which the order of
+differentiation on the trial function is roughly equal to that on the
+physical fields.
+
+\texttt{Basic Terms}
+\\
+The terms in this section are the basic terms in the two-fluid
+equations, which do not depend on any specific choice of closure.
+
+\begin{equation}
+  \begin{array}{ll}
+  N_n(\nu, \dot{n}) & = \nu \dot{n}\\
+  N_{n U}(\nu, n, U) & = \nu \pb{U}{n}\\
+  N_{n \chi}(\nu, n, \chi) & = n \ip{\nu}{\chi}\\
+  N_{n D}(\nu, n, D) & = - D \ip{\nu}{n}
+  \end{array}
+\end{equation}
+
+\begin{equation}
+  \begin{array}{lcl}
+    U_{U n}(\nu, \dot U, n) & = & -\frac{1}{R^2} n \ip{R^2 \nu}{\dot{U}}
+    \\
+    U_{\chi n}(\nu, \dot \chi, n) & = & -R^2 \nu \pb{n}{\dot{\chi}}
+    \\
+    U_{U U n}(\nu, U, U, n) & = & \frac{1}{R^2} n \gs{U} \pb{R^2\nu}{U}
+      + \frac{1}{2 R^2} \ip{U}{U}\pb{R^2\nu}{n}
+    \\
+    U_{V V n}(\nu, V,  V, n) & = &  \frac{1}{2 R^2} \pb{\nu}{R^2} V V n
+    \\
+    U_{U \chi n}(\nu, U, \chi, n) & = & 
+      \frac{1}{R^2}n \gs{U}\ip{R^2\nu}{\chi} 
+      - \pb{U}{\chi} \pb{R^2\nu}{n}
+    \\
+    U_{\chi \chi n}(\nu, \chi, \chi, n) & = &
+      \frac{1}{2} \ip{\chi}{\chi} \pb{R^2 \nu}{n}
+    \\
+    U_{\psi \psi}(\nu, \psi, \psi) & = &
+      -\frac{1}{R^2} \pb{R^2 \nu}{\psi} \gs{\psi}
+    \\
+    U_{F F}(\nu, F, F) & = & -R^2 \nu F \pb{F}{\frac{1}{R^2}}
+    \\
+    U_{U D}(\nu, U, D) & = & \frac{1}{R^2} \ip{R^2 \nu}{U} D
+    \\
+    U_{\chi D}(\nu, \chi, D) & = & -\pb{R^2 \nu}{\chi} D
+  \end{array}
+\end{equation}
+
+\begin{equation}
+  \begin{array}{lcl}
+    V_{V n}(\nu, V, n) & = & \nu n \dot{V}\\
+    V_{V U n}(\nu, V, U, n) & = & \nu n \pb{U}{V}\\
+    V_{V \chi n}(\nu, V, \chi, n) & = & -\nu n \ip{\chi}{V}\\
+    V_{\psi F}(\nu, \psi, F) & = & \nu \pb{F}{\psi}\\
+    V_{V D}(\nu, V, D) & = & -\nu V D
+  \end{array}
+\end{equation}    
+
+\begin{equation}
+  \begin{array}{lcl}
+    X_{U n}(\nu, \dot U, n) & = & \nu \pb{n}{\dot{U}}
+    \\
+    X_{\chi n}(\nu, \dot \chi, n) & = & -n \ip{\nu}{\dot{\chi}}
+    \\
+    X_p(\nu, p) & = & \ip{\nu}{p}
+    \\
+    X_{U U n}(\nu, U, U, n) & = & -\frac{1}{R^2} n \gs{U} \ip{\nu}{U}
+      + \frac{1}{2} n \ip{\nu}{\frac{\ip{U}{U}}{R^2}}
+    \\
+    X_{V V n}(\nu, V,  V, n) & = & 
+      \frac{1}{2} n V V \ip{\frac{1}{R^2}}{\nu}
+    \\
+    X_{U \chi n}(\nu, U, \chi, n) & = & 
+      \left( n \lp{\nu} + \ip{n}{\nu} \right) \pb{U}{\chi}
+      + n \gs{U} \pb{\nu}{\chi}
+    \\
+    X_{\chi \chi n}(\nu, \chi, \chi, n) & = & \frac{1}{2} n 
+      \ip{\nu}{\ip{\chi}{\chi}}
+    \\
+    X_{\psi \psi}(\nu, \psi, \psi) & = & 
+      \frac{1}{R^2} \gs{\psi} \ip{\nu}{\psi}
+    \\
+    X_{F F}(\nu, F, F) & = & \frac{1}{R^2} F \ip{\nu}{F}
+    \\
+    X_{U D}(\nu, U, D) & = & \pb{\nu}{U} D
+    \\
+    X_{\chi D}(\nu, \chi, D) & = & \ip{\nu}{\chi} D
+  \end{array}
+\end{equation}
+
+
+\begin{equation}
+  \begin{array}{lcl}
+    \Psi_{\psi}(\nu, \dot{\psi}) & = & \nu \dot{\psi}\\
+    \Psi_{\psi U}(\nu, \psi, U) & = & \nu \pb{U}{\psi}\\
+    \Psi_{\psi \chi}(\nu, \psi, \chi) & = & -\nu \ip{\chi}{\psi}\\
+    \Psi_{\psi F n}(\nu, \psi, F, n) & = & d_i \nu \frac{1}{n} \pb{\psi}{F}\\
+    \Psi_{\psi \eta}(\nu, \psi, \eta) & = & 
+        -\frac{1}{R^2} \ip{\psi}{R^2 \nu \eta} 
+  \end{array}
+\end{equation}
+
+\begin{equation}
+  \begin{array}{lcl}
+    F_F (\nu, \dot{F}) & = & \nu \dot{F}\\
+    F_{F U}(\nu, F, U) & = & R^2 \nu \pb{U}{\frac{F}{R^2}}\\
+    F_{\psi V}(\nu, \psi, V) & = & R^2 \nu \pb{\frac{V}{R^2}}{\psi}\\
+    F_{F \chi}(\nu, F, \chi) & = & \frac{F}{R^2} \ip{R^2 \nu}{\chi}\\
+    F_{\psi n}(\nu, \psi, \psi, n) & = &
+       d_i \frac{\gs{\psi}}{R^2 n}\pb{\psi}{R^2\nu}\\
+    F_{F n}(\nu, F, F, n) & = &
+       d_i R^2 \nu F \pb{\frac{1}{R^2 n}}{F}\\
+    F_{p_e n}(\nu, p_e, n) & = & d_i R^2 \nu \pb{\frac{1}{n}}{p_e}\\
+    F_{F \eta}(\nu, F, \eta) & = & -\frac{1}{R^2} \eta \ip{R^2 \nu}{F}
+  \end{array}
+\end{equation}
+
+\begin{equation}
+  \begin{array}{lcl}
+  P_p(\nu, \dot{p}) & = & \nu \dot{p}
+  \\
+  P_{p U}(\nu, p, U) & = & \nu \pb{U}{p}
+  \\
+  P_{p \chi}(\nu, p, \chi) & = & \Gamma p \ip{\nu}{\chi} 
+    + (\Gamma - 1) \nu \ip{p}{\chi}
+  \\
+  P_{p_e, F, n}(\nu, p_e, F, n) & = & d_i \left( 
+      \frac{1}{n} \nu \pb{p_e}{F} 
+    + \Gamma \nu p_e \pb{\frac{1}{n}}{F} \right)
+  \\
+  P_{\eta, \psi}(\nu, \eta, \psi, \psi) & = & (\Gamma - 1) \nu
+  \frac{(\gs{\psi})^2}{R^2}
+  \\
+  P_{\eta, F}(\nu, \eta, F, F) & = & (\Gamma - 1) \nu \frac{F^2}{R^2}
+  \end{array}
+\end{equation}
+
+\texttt{Gravity}
+\\
+These terms are obtained assuming a gravitational force of the form given by
+equation~(\ref{eq:gravity}).
+
+\begin{equation}
+  \begin{array}{lcl}
+    U_g(\nu, n) & = & g_r \nu \pb{n}{R} - g_Z r \nu \ip{n}{R}
+    \\
+    X_g(\nu, n) & = & \frac{n}{R^2} \left( 
+    g_r \ip{\nu}{R} + g_Z r \pb{\nu}{R} \right)
+  \end{array}
+\end{equation}
+
+
+
+\texttt{Heat Flux Terms}
+\\
+These terms are obtained assuming a heat flux density of the form
+described in section~\ref{sec:heat_flux}.
+
+\begin{equation}
+  \begin{array}{lcl}
+    P_\kappa(\nu, \kappa, T) & = &
+    -(\Gamma - 1) \kappa \ip{\nu}{T}
+    \\
+    P_{\kappa_\parallel}(\nu, \kappa_\parallel, T, \psi, \psi, B^{-2}) & = &
+    -(\Gamma - 1) \kappa_\parallel \frac{1}{B^2} \pb{\psi}{\nu} \pb{\psi}{T}
+    \\
+    P_{\kappa_\times}(\nu, \kappa_\times, T, F, B^{-2}) & = & 
+    (\Gamma - 1) \kappa_\times \frac{F}{B} \pb{\nu}{T}
+  \end{array}
+\end{equation}
+
+\begin{eqnarray*}
+  T & = & p/n \\
+  B^2 & = & \frac{1}{R^2} \left[ \ip{\psi}{\psi} + F^2 \right]
+\end{eqnarray*}
+
+
+\texttt{Isotropic Viscosity}
+\\
+These terms result from isotropic viscosity of the form given by
+equation~(\ref{eq:general_viscosity}).
+
+\begin{equation}
+  \begin{array}{lcl}
+    U_{U \mu}(\nu, U, \mu) & = & \frac{1}{R^2} \left [ \left(
+      \ip{\mu}{R^2 \nu} + \mu \gs{(R^2 \nu)} \right) \gs{U} \right. \\
+      & & \left. \mbox{} + \lp{\mu} \ip{R^2 \nu}{U} 
+      + \gs{(R^2 \nu)} \ip{\mu}{U} \right]
+    \\
+    U_{\chi \mu}(\nu, \chi, \mu) & = & -\lp{(R^2 \nu)} \pb{\mu}{\chi}
+      - \gs{\mu}\pb{R^2\nu}{\chi} \\ & & \mbox{}
+      - \frac{1}{R^2}\gs{(R^2 \chi)} \pb{R^2 \nu}{\mu}
+    \\
+    V_{V \mu}(\nu, V, \mu) & = & \left[\ip{\nu}{\mu} 
+      + \frac{1}{R^2}\mu \gs{(R^2 \nu)} \right] V
+    \\
+    X_{U \mu}(\nu, U, \mu) & = & \lp{\nu} \pb{\mu}{U} 
+      + \lp{\mu} \pb{\nu}{U} + \gs{U} \pb{\nu}{\mu}
+    \\
+    X_{\chi \mu}(\nu, \chi, \mu, \mu_c) & = & 
+      \lp{\nu} \ip{\mu}{\chi} + \lp{\mu} \ip{\nu}{\chi}
+      + 2 \mu_c \lp{\nu} \lp{\chi}
+  \end{array}
+\end{equation}
+
+\texttt{Parallel Viscosity}
+\\
+These terms are obtained assuming a parallel viscosity of the form
+given in equation~(\ref{eq:parallel_viscosity}).  These equations were
+obtained using equations~(\ref{eq:tensor_identities}).  For
+compactness, derivatives are written as subscripts in the following
+expressions (\textit{i.e.} $\nu_Z = \partial_Z \nu$).
+
+\begin{equation}
+  \begin{array}{lcl}
+    U_{\P_\parallel U}(\nu, U) & = & {\mu_\parallel}_U D_U
+    \\
+    U_{\P_\parallel V}(\nu, V) & = & {\mu_\parallel}_V D_U
+    \\
+    U_{\P_\parallel \chi}(\nu, \chi) & = & {\mu_\parallel}_\chi D_U
+  \end{array}
+\end{equation}
+
+\begin{equation}
+  \begin{array}{lcl}
+    V_{\P_\parallel U}(\nu, U) & = & {\mu_\parallel}_U D_V
+    \\
+    V_{\P_\parallel V}(\nu, V) & = & {\mu_\parallel}_V D_V
+    \\
+    V_{\P_\parallel \chi}(\nu, \chi) & = & {\mu_\parallel}_\chi D_V
+  \end{array}
+\end{equation}
+
+\begin{equation}
+  \begin{array}{lcl}
+    X_{\P_\parallel U}(\nu, U) & = & {\mu_\parallel}_U D_X
+    \\
+    X_{\P_\parallel V}(\nu, V) & = & {\mu_\parallel}_V D_X
+    \\
+    X_{\P_\parallel \chi}(\nu, \chi) & = & {\mu_\parallel}_\chi D_X
+  \end{array}
+\end{equation}
+
+\begin{eqnarray*}
+  D_U & = & \frac{3}{B^2} \left\{ 
+  - \frac{1}{2}R^2\pb{\nu}{\frac{\ip{\psi}{\psi}}{R^2}}
+  + \ip{\psi}{\pb{\nu}{\psi}} 
+  - \frac{1}{R^2} F^2 \nu_Z 
+  \right.\\ && \left. \mbox{}
+  - \frac{2}{R^2}\left[ \nu_Z (\psi_Z^2 - \psi_R^2) + 2\nu_r \psi_r \psi_Z
+    \right]
+  \right\}
+  \\
+  D_V & = & - 3 \frac{F}{B^2} \pb{\nu}{\psi}
+  \\
+  D_X & = & - \lp{\nu} 
+  \left(1 - \frac{3}{R^2}\frac{\ip{\psi}{\psi}}{B^2} \right)
+  \\ &&  \mbox{}
+  + \frac{3}{R^2 B^2} \left(
+    \frac{1}{2}R^2\ip{\nu}{\frac{\ip{\psi}{\psi}}{R^2}}
+    - \ip{\psi}{\ip{\nu}{\psi}} 
+    + \frac{1}{R} F^2 \nu_r \right)
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  {\mu_\parallel}_U & = & \eta_0 \frac{p_i \tau_i}{R^2 B^2} \left( 
+  - \frac{1}{2} R^2 \pb{U}{\frac{\ip{\psi}{\psi}}{R^2}}
+  + \ip{\psi}{\pb{U}{\psi}}
+  - \frac{1}{R^2} F^2 U_Z \right)
+  \\
+  {\mu_\parallel}_V & = & -\eta_0 p_i \tau_i \frac{F}{B^2} 
+  \pb{\psi}{\frac{V}{R^2}}
+  \\
+  {\mu_\parallel}_\chi & = & \eta_0 \frac{p_i \tau_i}{R^2 B^2} \left(
+    \frac{1}{2} R^2 \ip{\chi}{\frac{\ip{\psi}{\psi}}{R^2}}
+  - \ip{\psi}{\ip{\chi}{\psi}}
+  + \frac{1}{R} F^2 \chi_r 
+  \right.\\ && \left. \mbox{}
+  + \lp{\chi} \ip{\psi}{\psi}
+  \right)
+\end{eqnarray*}
+
+
+\texttt{Gyroviscosity}
+\\
+These terms are obtained using equations~(\ref{eq:tensor_identities})
+assuming a gyroviscosity of the form given by
+equation~(\ref{eq:gyroviscosity}).
+
+\begin{eqnarray*}
+  & \lefteqn{U_{\P_\times U}(\nu, U) = -\frac{p_i F}{2 R^3 B^2}} & 
+  \\ & & \mbox{} \times
+    \left\{ \begin{array}{l} 
+      \left(1+\frac{3}{2 R^2}\frac{\ip{\psi}{\psi}}{B^2}\right)
+      \left[ \begin{array}{r@{}l}
+	     & \left( [R^3 \nu_Z]_Z - [R^3 \nu_r]_r \right)
+	       \left( \left[\frac{U_R}{R}\right]_Z 
+	            + \left[\frac{U_Z}{R}\right]_r \right) 
+             \\ \mbox{}
+	   - & \left( [R^3 \nu_r]_Z + [R^3 \nu_Z]_r \right)
+	       \left( \left[\frac{U_Z}{R}\right]_Z 
+	            - \left[\frac{U_R}{R}\right]_r \right) 
+	     \end{array} \right]
+       \\ \mbox{}
+      + \frac{9}{2 r B^2} 
+      \\ \mbox{} \times \left[ 
+	\begin{array}{r@{}l}
+	  \left( \psi_Z^2 - \psi_R^2 \right) &
+	  \left( r \nu_Z \left[ 
+	    \left( \frac{U_Z}{R} \right)_Z -
+	    \left( \frac{U_R}{R} \right)_r \right]
+          -\frac{1}{R^3} U_Z \left[ 
+	    (R^3 \nu_Z)_Z - (R^3 \nu_r)_r \right] \right)
+	  \\ 
+	  \mbox{} + 2 \psi_r \psi_Z &
+          \left( r \nu_Z \left[ 
+	    \left( \frac{U_R}{R} \right)_Z +
+	    \left( \frac{U_Z}{R} \right)_r \right]
+          -\frac{1}{R^3} U_Z \left[ 
+	    (R^3 \nu_r)_Z + (R^3 \nu_Z)_r \right] \right)
+	  \end{array} \right] 
+    \end{array} \right\}
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  & \lefteqn{U_{\P_\times V}(\nu, V) = -\frac{p_i}{B^2}} &
+  \\ && \mbox{} \times
+  \left\{ \begin{array}{l}
+      \frac{1}{4 R^2} \left(1 - \frac{3 F^2}{B^2 R^2} \right) 
+      \\ \mbox{} \times
+      \left( \ip{\frac{V}{R^2}}{R^4 \pb{\psi}{\nu}}
+            -\ip{\psi}{R^4\pb{\nu}{\frac{V}{R^2}}}
+	    +\frac{1}{R^2}\pb{\nu}{R^6\ip{\frac{V}{R^2}}{\psi}} \right)
+      \\ \mbox{}
+      -\frac{3}{4 B^2} \pb{\psi}{\frac{V}{R^2}}
+      \\ \mbox{} \times
+      \left( 2 \ip{\psi}{\ip{\psi}{\nu}}
+           - R^2 \ip{\nu}{\frac{\ip{\psi}{\psi}}{R^2}}
+	   - \gs{\nu} \ip{\psi}{\psi}
+	   + 6 \psi_Z \pb{\nu}{\psi} \right)
+      \\ \mbox{}
+      +\frac{9 F^2}{2 B^2 R^2} \nu_Z \ip{\psi}{\frac{V}{R^2}}
+    \end{array} \right\}
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  & \lefteqn{U_{\P_\times \chi}(\nu, \chi) = -\frac{p_i F}{2 R^3 B^2}} &
+  \\ && \mbox{} \times 
+  \left\{ \begin{array}{l}
+    \left[ \left( \chi_{R R} - \chi_{Z Z} \right)
+           \left( [R^3 \nu_r]_r - [R^3 \nu_Z]_Z \right)
+       +   2 \chi_{R Z} 
+           \left( [R^3 \nu_r]_Z + [R^3 \nu_Z]_r \right)
+           \right]
+    \\ \mbox{}
+    + \frac{3}{R^2 B^2} \left[ \begin{array}{l} 
+	\left( \gs{\chi}[\psi_Z^2 - \psi_R^2] 
+        - \chi_{Z Z} \psi_Z^2 + \chi_{R R} \psi_R^2 \right)
+	\left( [R^3 \nu_r]_r - [R^3 \nu_Z]_Z \right)
+	\\ \mbox{} + 2 \chi_{R Z} 
+	\left( \psi_Z^2 [R^3 \nu_r]_Z
+	      +\psi_R^2 [R^3 \nu_Z]_r \right)
+	\\ \mbox{} - 2 \psi_r \psi_Z 
+	\left( \left[\chi_{Z Z} - \frac{1}{R}\chi_r \right] [R^3 \nu_r]_Z
+	      +\left[\chi_{R R} - \frac{1}{R}\chi_r \right][R^3 \nu_Z]_r 
+	      \right)
+      \end{array} \right]
+  \end{array} \right\}
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  & \lefteqn{V_{\P_\times U}(\nu, U) = \frac{p_i}{4 r B^2}} &
+  \\ && \mbox{} \times 
+  \left\{ \begin{array}{l}
+    \left(1 - \frac{3}{R^2} \frac{F^2}{B^2} \right)
+    \left( \ip{\psi}{R \pb{U}{\nu}}+\ip{\nu}{R \pb{U}{\psi}}
+          -\frac{1}{R^3} \pb{U}{R^4 \ip{\nu}{\psi}}
+	  +U_r \pb{\nu}{\psi} + \frac{2}{R} \psi_Z \ip{\nu}{U} \right)
+    \\ \mbox{} + 
+    \frac{3}{R B^2} \pb{\psi}{\nu}
+    \left( 2\ip{\psi}{\ip{U}{\psi}} - \gs{U}\ip{\psi}{\psi} 
+          - \frac{1}{R^2}\ip{U}{R^2\ip{\psi}{\psi}} 
+	  +\pb{\psi}{R^2}\pb{\psi}{U} \right)
+    \\ \mbox{} - 
+    \frac{18}{R^2} \frac{F^2}{B^2} \pb{U}{R} \ip{\nu}{\psi}
+  \end{array} \right\}
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  V_{\P_\times V}(\nu, V) & = & \frac{p_i F R^2}{4 B^2}
+  \left(1 - \frac{3}{R^2} \frac{\ip{\psi}{\psi} - F^2}{B^2} \right)
+    \pb{\nu}{\frac{V}{R^2}}
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  & \lefteqn{V_{\P_\times \chi}(\nu, \chi) = \frac{p_i}{B^2}} &
+  \\ && \mbox{} \times 
+  \left\{ \begin{array}{l}
+    \left( \frac{1}{R^2}\ip{\chi}{R^2 \ip{\nu}{\psi}}
+          -\ip{\nu}{\ip{\chi}{\psi}} - \ip{\psi}{\ip{\nu}{\chi}} \right)
+    \\ \mbox{} + \frac{3}{2 r B^2} \pb{\psi}{\nu}
+    \left( \ip{\psi}{R \pb{\chi}{\psi}} 
+         - \frac{1}{2} r \pb{\chi}{\ip{\psi}{\psi}} \right)
+    \\ \mbox{} + \frac{3}{4 R^2} \frac{F^2}{B^2}
+    \left( \ip{\psi}{\ip{\chi}{\nu}} + \ip{\nu}{\ip{\chi}{\psi}}
+          -\ip{\chi}{\ip{\nu}{\psi}} - 2 \gs{\chi}\ip{\nu}{\psi} \right)
+  \end{array} \right\}
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  & \lefteqn{X_{\P_\times U}(\nu, U) = \frac{p_i F}{2 R^2 B^2}} &
+  \\ && \mbox{} \times  
+  \left\{ \begin{array}{l}
+  \funcss{\nu}{U} - R^2 \funcaa{\nu}{U} 
+  + \frac{1}{R} \left[ U_r (\nu_{Z Z} - \nu_{R R})
+                     -2 U_Z \nu_{R Z} - \frac{1}{R} U_r \nu_r \right]
+  \\ \mbox{}
+  + \frac{3}{R B^2} \left[ \begin{array}{l}
+    \left( \left[\frac{U_Z}{R} \right]_Z 
+         - \left[\frac{U_R}{R} \right]_r \right)
+    \left(\nu_{Z Z} \psi_R^2 - \nu_{R R} \psi_Z^2
+         +\frac{1}{R} \nu_r [\psi_Z^2 - \psi_R^2] \right)
+    \\ \mbox{}
+    + 2\nu_{R Z} \left( 
+        \left[ \frac{U_R}{R} \right]_Z \psi_R^2
+      + \left[ \frac{U_Z}{R} \right]_r \psi_Z^2
+      - \frac{1}{R^2} U_Z [\psi_Z^2 - \psi_R^2] \right)
+    \\ \mbox{}
+    - 2 \psi_r \psi_Z \left( \begin{array}{l}
+        \left[ \frac{U_R}{R} \right]_Z \nu_{R R}
+      + \left[ \frac{U_Z}{R} \right]_r \nu_{Z Z}
+      - \frac{1}{R^2} U_Z [\nu_{Z Z} - \nu_{R R}] 
+      \\ \mbox{}
+      - \frac{1}{R} \nu_r \left[ 
+	  \left( \frac{U_R}{R} \right)_Z
+	+ \left( \frac{U_Z}{R} \right)_r \right] 
+      \end{array} \right)
+    \end{array} \right]
+  \end{array} \right\}
+\end{eqnarray*}
+
+\begin{eqnarray*}
+  & \lefteqn{X_{\P_\times V}(\nu, V) = \frac{p_i}{4 B^2}} &
+  \\ && \mbox{} \times 
+  \left\{ \begin{array}{l}
+    \left(1 - \frac{3}{R^2} \frac{F^2}{B^2} \right) \left(
+    \frac{1}{R^2} \ip{\nu}{R^2\ip{\frac{V}{R^2}}{\psi}}
+    - \ip{\psi}{\ip{\frac{V}{R^2}}{\nu}}
+    - \ip{\frac{V}{R^2}}{\ip{\psi}{\nu}} \right)
+    \\ \mbox{} + \frac{6}{B^2} \pb{\psi}{\frac{V}{R^2}}
+    \left(\frac{1}{R} \ip{\psi}{R \pb{\nu}{\psi}}
+    - \frac{1}{2} \pb{\nu}{\ip{\psi}{\psi}} \right)
+    \\ \mbox{} - 6 \frac{F^2}{B^2} \ip{\psi}{\frac{V}{R^2}}
+    \left[ \left(\frac{\nu_Z}{R^2} \right)_Z
+         + \left(\frac{\nu_R}{R^2} \right)_r \right]
+  \end{array} \right\}
+\end{eqnarray*}
+
+
+\begin{eqnarray*}
+  & \lefteqn{X_{\P_\times \chi}(\nu, \chi) = -\frac{p_i F}{B^2}} &
+  \\ && \mbox{} \times 
+  \left\{ \begin{array}{l}
+    \left(1 + \frac{3}{2 R^2} \frac{\ip{\psi}{\psi}}{B^2} \right)
+    \funcsa{\nu}{\chi}
+    \\ \mbox{} + \frac{3}{2 B^2} \left[ \begin{array}{r@{}l}
+      & \left(- \frac{1}{2} \pb{\chi}{\ip{\psi}{\psi}}
+	      + \frac{1}{R} \ip{\psi}{R\pb{\chi}{\psi}} 
+             \right)
+	\left( \left[ \frac{\nu_R}{R^2} \right]_r
+	     + \left[ \frac{\nu_Z}{R^2} \right]_Z \right)
+    \\ \mbox{}
+     - & \left(- \frac{1}{2} \pb{\nu}{\ip{\psi}{\psi}}
+               + \frac{1}{R} \ip{\psi}{R\pb{\nu}{\psi}} 
+              \right)
+         \left( \left[ \frac{\chi_R}{R^2} \right]_r
+	      + \left[ \frac{\chi_Z}{R^2} \right]_Z \right)
+      \end{array} \right]
+  \end{array} \right\}
+\end{eqnarray*}
+
+\subsubsection{Spatial Integration}
+
+The integrals required to calculate the weak-form equations of the
+Galerkin method are computed numerically using a 79-point Gaussian
+quadrature.  That is, the value of each field is calculated at 79
+points for each triangular element, and a weighted sum of these values
+is computed to approximate the integral.
+\[
+  \int dA\ f(x) \simeq \sum_{i=1}^{79} w_i f(x_i),
+\]
+where the integrand $f(x)$ is restricted to a single element.  The
+sampling points and weights appropriate for a equilateral triangle are
+taken from ref.~\cite{Dunavant85}.
+
+The coordinates of the sampling points are given in the ``natural
+coordinates'' $(\alpha, \beta, \gamma)$ in ref.~\cite{Dunavant85}.
+These coordinates may be converted to cartesian coordinates $(r, Z)$
+for an equilateral triangle $e$ having vertices
+\[
+\left\{\left(-\frac{\sqrt{3}}{2},-\frac{1}{2}\right),
+\left(\frac{\sqrt{3}}{2},-\frac{1}{2}\right), (0,1)\right\} 
+\]
+using the linear transformation
+\[ 
+\phi_{n \to e}(\alpha, \beta, \gamma) = 
+\left(\frac{\sqrt{3}}{2}(\beta-\gamma), \frac{1}{2}(3 \alpha - 1)
+\right).
+\]
+The weights must be multiplied by the Jacobian of this transformation,
+\[
+\mathcal{J}_{\phi_{n \to e}} = \frac{3 \sqrt{3}}{4}.
+\]
+To find the coordinates of the sampling points for a general triangle
+$g$ having vertices $\{(-b,0), (a,0), (0,c)\}$, as in
+ref.~\cite{Jardin04}, one may use the linear transformation
+\begin{eqnarray*}
+  \phi_{e \to g}(r,Z) & = & 
+    \left(\frac{a+b}{\sqrt{3}} x + \frac{a-b}{3} (1-y), 
+    \frac{c}{3}(2y+1) \right) \\
+  \mathcal{J}_{\phi_{e \to g}} & = &  \frac{2 c}{3 \sqrt{3}} (a+b).
+\end{eqnarray*}
+The transformation from natural coordinates to cartesian coordinates
+for a triangle having vertices $\{(-b,0), (a,0), (0,c)\}$ is therefore
+\begin{eqnarray*}
+  \phi_{n \to g}(r,Z) & = & 
+  \left(\frac{1}{2} (a+b) (\beta-\gamma) +
+  \frac{1}{2} (a-b)(1-\alpha), c \alpha \right) \\
+  \mathcal{J}_{\phi_{n \to g}} & = & \frac{1}{2} (a+b) c.
+\end{eqnarray*}
+
+The 79-point quadrature gives the exact results for integrands which
+are polynomials of degree 20 (or less).  In the case of quintic finite
+elements, this means the integration is exact for terms involving
+products of three fields or fewer, not including the degree-five
+trial function $\nu$.  In cylindrical geometry, the presence factors
+of $1/R$ will cause the quadrature not to be exact, as $1/R$ is not in
+the form of a polynomial.  The weights $w_i$ must also be multiplied
+by $R_i$ in cylindrical coordinates to account for the Jacobian of the
+transformation from cartesian to cylindrical coordinates.
+
+
+\subsection{Time Step}
+
+\subsubsection{Implicit Time Advance}
+
+For the implicit time advance, equations~(\ref{eq:equations_ibp}) are
+evaulated at the $\theta$-advanced time (\emph{e.g.} $F(\psi) \to
+F(\psi + \theta \dt \dot{\psi} + \cdots)$), linearized (\emph{i.e.}
+$\order{\dt^2}$ and higher are dropped), and then discretized
+temporally according to the chosen time integration method
+(\emph{i.e.} $\dot{\psi} \to (\psi^{(n+1)} - \psi^{(n)})/\dt$).
+
+
+\begin{eqnarray}
+  \begin{pmatrix}
+    \cola{S^v_{1 1}} & \cola{R^v_{1 1}} &
+    \colb{S^v_{1 2}} & \colb{R^v_{1 2}} & 
+          S^v_{1 3}  &        0         &
+          R^v_{1 4}  &       R^v_{1 3}
+    \\
+    \cola{R^B_{1 1}} & \cola{S^B_{1 1}} &
+    \colb{R^B_{1 2}} & \colb{S^B_{1 2}} & 
+          R^B_{1 3}  &       S^B_{1 3}  &
+              0      &        0
+    \\
+    \colb{S^v_{2 1}} & \colb{R^v_{2 1}} & 
+    \colb{S^v_{2 2}} & \colb{R^v_{2 2}} & 
+          S^v_{2 3}  &        0         &
+	  R^v_{2 4}  &       R^v_{2 3}
+    \\
+    \colb{R^B_{2 1}} & \colb{S^B_{2 1}} &
+    \colb{R^B_{2 2}} & \colb{S^B_{2 2}} & 
+          R^B_{2 3}  &       S^B_{2 3}  &
+              0      &        0
+    \\
+          S^v_{3 1}  &       R^v_{3 1}  &
+          S^v_{3 2}  &       R^v_{3 2}  &
+          S^v_{3 3}  &        0         &
+	  R^v_{3 4}  &       R^v_{3 3}  
+    \\
+          R^B_{3 1}  &       S^v_{3 1}  &
+          R^B_{3 2}  &       S^v_{3 2}  &
+          R^B_{3 3}  &       S^v_{3 3}  &
+              0      &        0
+    \\
+          R^n_{3 1}  &        0         &
+          R^n_{3 2}  &        0         &
+          R^n_{3 3}  &        0         &
+          S^n        &        0
+    \\
+          R^p_{3 1}  &        0         &
+          R^p_{3 2}  &        0         &
+          R^p_{3 3}  &        0         &
+              0      &       S^p        &
+  \end{pmatrix}
+  \begin{pmatrix}
+    \cola{U}\\ \cola{\psi}\\ 
+    \colb{V}\\ \colb{F}   \\
+    \chi \\ p_e \\ 
+    n \\ p
+  \end{pmatrix}^{(n+1)} = \nonumber \\
+  \begin{pmatrix}
+    \cola{D^v_{1 1}} & \cola{Q^v_{1 1}} &
+    \colb{D^v_{1 2}} & \colb{Q^v_{1 2}} & 
+          D^v_{1 3}  &        0         &
+          Q^v_{1 4}  &       Q^v_{1 3}
+    \\
+    \cola{Q^B_{1 1}} & \cola{D^B_{1 1}} &
+    \colb{Q^B_{1 2}} & \colb{D^B_{1 2}} & 
+          Q^B_{1 3}  &       D^B_{1 3}  &
+              0      &        0
+    \\
+    \colb{D^v_{2 1}} & \colb{Q^v_{2 1}} & 
+    \colb{D^v_{2 2}} & \colb{Q^v_{2 2}} & 
+          D^v_{2 3}  &        0         &
+	  Q^v_{2 4}  &       Q^v_{2 3}
+    \\
+    \colb{Q^B_{2 1}} & \colb{D^B_{2 1}} &
+    \colb{Q^B_{2 2}} & \colb{D^B_{2 2}} & 
+          Q^B_{2 3}  &       D^B_{2 3}  &
+              0      &        0
+    \\
+          D^v_{3 1}  &       Q^v_{3 1}  &
+          D^v_{3 2}  &       Q^v_{3 2}  &
+          D^v_{3 3}  &        0         &
+	  Q^v_{3 4}  &       Q^v_{3 3}  
+    \\
+          Q^B_{3 1}  &       D^v_{3 1}  &
+          Q^B_{3 2}  &       D^v_{3 2}  &
+          Q^B_{3 3}  &       D^v_{3 3}  &
+              0      &        0
+    \\
+          Q^n_{3 1}  &        0         &
+          Q^n_{3 2}  &        0         &
+          Q^n_{3 3}  &        0         &
+          D^n        &        0
+    \\
+          Q^p_{3 1}  &        0         &
+          Q^p_{3 2}  &        0         &
+          Q^p_{3 3}  &        0         &
+              0      &       D^p        &
+  \end{pmatrix}
+  \begin{pmatrix}
+    \cola{U}\\ \cola{\psi}\\ 
+    \colb{V}\\ \colb{F}   \\
+    \chi \\ p_e \\ 
+    n \\ p
+  \end{pmatrix}^{(n)} +   
+  \begin{pmatrix}
+    Q_1 \\ Q_2 \\ 
+    Q_3 \\ Q_4 \\
+    Q_5 \\ Q_6 \\ 
+    Q_7 \\ Q_8
+  \end{pmatrix}
+\end{eqnarray}
+
+\subsubsection{Split Time Step Method}
+
+
+
+Time is advanced using a split time-step method in which the velocity
+field is advanced first, then the density and total pressure fields
+are advanced separately, and finally the magnetic field and electron
+pressure are advanced together.  Though the velocity and magnetic
+field are advanced separately, the Alfv\'en and magnetosonic waves are
+treated implicitly by using
+equations~(\ref{eq:scalar_p}--\ref{eq:scalar_F}) to calculate
+analytically the advanced-time values of the pressure and magnetic
+field for use in the velocity time step.
+
+
+
+\begin{eqnarray}
+  \label{eq:velocity_advance}
+  \lefteqn{
+  \begin{pmatrix}
+    \cola{S^v_{1 1}} & \colb{S^v_{1 2}} & S^v_{1 3}\\
+    \colb{S^v_{2 1}} & \colb{S^v_{2 2}} & S^v_{2 3}\\
+          S^v_{3 1}  &       S^v_{3 2}  & S^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n+1)}}\\
+  & = & 
+  \begin{pmatrix}
+    \cola{D^v_{1 1}} & \colb{D^v_{1 2}} & D^v_{1 3}\\
+    \colb{D^v_{2 1}} & \colb{D^v_{2 2}} & D^v_{2 3}\\
+          D^v_{3 1}  &       D^v_{3 2}  & D^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n)}
+  + 
+  \begin{pmatrix}
+    \cola{Q^v_{1 1}} & \colb{Q^v_{1 2}} & Q^v_{1 3}\\
+    \colb{Q^v_{2 1}} & \colb{Q^v_{2 2}} & Q^v_{2 3}\\
+          Q^v_{3 1}  &       Q^v_{3 2}  & Q^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{F}\\ p
+  \end{pmatrix}^{(n)} \nonumber
+  \\ & & \mbox{} + 
+  \begin{pmatrix}
+    \cola{O^v_{1}}\\
+    \colb{O^v_{2}}\\
+          O^v_{3} \\
+  \end{pmatrix} \nonumber
+\end{eqnarray}
+
+\begin{eqnarray}
+  \label{eq:density_advance}
+  S^n n^{(n+1)} & = & D^n n^{(n)} + 
+  \begin{pmatrix} R^n_1 & R^n_2 & R^n_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi\end{pmatrix}^{(n+1)}
+  \\ & & \mbox{} + 
+  \begin{pmatrix}Q^n_1    &   Q^n_2   & Q^n_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi\end{pmatrix}^{(n)} \nonumber
+\end{eqnarray}
+
+
+\begin{eqnarray}
+  \label{eq:pressure_advance}
+  S^p p^{(n+1)} & = & D^p p^{(n)} + 
+  \begin{pmatrix}R^p_1 & R^p_2 & R^p_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi \end{pmatrix}^{(n+1)}
+  \\ & & \mbox{} + 
+  \begin{pmatrix}Q^p_1 & Q^p_2 & Q^p_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi \end{pmatrix}^{(n)} \nonumber
+\end{eqnarray}
+
+
+\begin{eqnarray}
+  \label{eq:field_advance}
+  \lefteqn{
+  \begin{pmatrix}
+    \cola{S^B_{1 1}} & \colb{S^B_{1 2}} & S^B_{1 3}\\
+    \colb{S^B_{2 1}} & \colb{S^B_{2 2}} & S^B_{2 3}\\
+          S^B_{3 1}  &       S^B_{3 2}  & S^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{F}\\ p_e
+  \end{pmatrix}^{(n+1)}}\\
+  & = & 
+  \begin{pmatrix}
+    \cola{D^B_{1 1}} & \colb{D^B_{1 2}} & D^B_{1 3}\\
+    \colb{D^B_{2 1}} & \colb{D^B_{2 2}} & D^B_{2 3}\\
+          D^B_{3 1}  &       D^B_{3 2}  & D^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{F}\\ p_e
+  \end{pmatrix}^{(n)} +
+  \begin{pmatrix}
+    \cola{R^B_{1 1}} & \colb{R^B_{1 2}} & R^B_{1 3}\\
+    \colb{R^B_{2 1}} & \colb{R^B_{2 2}} & R^B_{2 3}\\
+          R^B_{3 1}  &       R^B_{3 2}  & R^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n+1)} \nonumber
+  \\ & & \mbox{} +
+  \begin{pmatrix}
+    \cola{Q^B_{1 1}} & \colb{Q^B_{1 2}} & Q^B_{1 3}\\
+    \colb{Q^B_{2 1}} & \colb{Q^B_{2 2}} & Q^B_{2 3}\\
+          Q^B_{3 1}  &       Q^B_{3 2}  & Q^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n)} +
+  \begin{pmatrix}
+    \cola{O^B_{1}}\\
+    \colb{O^B_{2}}\\
+          O^B_{3} \\
+  \end{pmatrix} \nonumber
+\end{eqnarray}
+
+\texttt{Linear Calculations}
+\\
+Linear calculations may be performed by calculating each matrix once,
+and recalculating the matrix-vector products each time step with the
+updated vectors.  This method is very efficient because the $S$
+matrices need only be inverted once, and in all subsequent time steps
+the only matrix operations carried out are addition and matrix-vector
+multiplication.  Non-linear simulations require all the matrices to be
+recalculated each time step, and the $S$ matrices must be inverted
+each time step.
+
+\texttt{Implementation of Electron Pressure Equation}
+\\
+Because it is the electron pressure which appears in the generalized
+Ohm's law, equation~(\ref{eq:ohm}), if the electron pressure equation
+is retained, it is solved with the magnetic field as the third row in
+equation~(\ref{eq:field_advance}) so as to keep the fast magnetosonic
+wave implicit.  In this case, the full pressure is evolved
+independently in equation~(\ref{eq:pressure_advance}).  If the
+electron pressure equation is not included, the third row in
+equation~(\ref{eq:field_advance}) is the total pressure equation, and
+the electron pressure is assumed to remain always at a specific
+fraction of the total pressure, which is determined by the initial
+conditions.
+
+
+\subsubsection{Crank-Nicholson}
+
+The Crank-Nicholson time step is defined by the following discretization:
+\begin{eqnarray*}
+  \frac{\partial U}{\partial t} & \to & 
+  \frac{U^{(n+1)} - U^{(n)}}{\dt}\\
+  U & \to & \thimp U^{(n+1)} + (1-\thimp) U^{(n)}.
+\end{eqnarray*}
+By Taylor expanding about $U$,
+\begin{eqnarray*}
+  U^{(n+1)} & = & U + \thimp\,\dt\,\dot{U} + \frac{1}{2} \thimp^2 \dt^2
+  \ddot{U} + \frac{1}{6} \thimp^3 \dt^3 \dddot{U}+ \cdots
+  \\
+  U^{(n)} & = & U + (\thimp-1) \dt\, \dot{U} + \frac{1}{2} (\thimp-1)^2 \dt^2
+  \ddot{U} + \frac{1}{6} (\thimp-1)^3 \dt^3 \dddot{U} + \cdots
+\end{eqnarray*}
+the trunctation error of the time-derivative operator can be
+calculated directly:
+\begin{eqnarray*}
+  \Delta_{CN}(\dt, \thimp) & = & \frac{U^{(n+1)} - U^{(n)}}{\dt} -
+ \dot{U}
+ \\ 
+ & = & 
+  \left( \thimp-\frac{1}{2} \right) \dt\,\ddot{U}
+  + \frac{1}{2} \left(\thimp^2 - \thimp + \frac{1}{3} \right) \dt^2 \dddot{U}
+  + \cdots.
+\end{eqnarray*}
+When $\thimp=1/2$, the time differencing is ``time-centered'' because
+the two points involved in the time differencing are equidistant in
+the logical time coordinate from the point at which the field itself
+is evaluated.  In this case, the leading-order truncation error is
+$\order{\dt^2}$:
+\begin{equation}
+  \Delta_{CN}(\dt, \thimp=1/2) = \frac{1}{24} \dt^2 \dddot{U} + \cdots.
+\end{equation}
+
+\subsubsection{BDF2}
+
+The BDF2 time step is defined by the following discretization:
+\begin{eqnarray*}
+  \frac{\partial U}{\partial t} & \to & 
+  \frac{3 U^{(n+1)} - 4 U^{(n)} + U^{(n-1)}}{2\,\dt}\\
+  U & \to & U^{(n+1)}.
+\end{eqnarray*}
+Taylor expanding about $U$:
+\begin{eqnarray*}
+  U^{(n+1)} & = & U
+  \\
+  U^{(n)} & = & U - \dt\, \dot{U} + \frac{1}{2} \dt^2 \ddot{U} 
+  - \frac{1}{6} \dt^3 \dddot{U} + \cdots
+  \\
+  U^{(n-1)} & = & U - 2\,\dt\, \dot{U} + 2\,\dt^2 \ddot{U} 
+  - \frac{4}{3} \dt^3 \dddot{U} + \cdots
+\end{eqnarray*}
+and the truncation error is
+\begin{equation}
+  \Delta_{BDF2}(\dt) = 
+  \frac{3 U^{(n+1)} - 4 U^{(n)} + U^{(n-1)}}{2\,\dt} - \dot{U} = 
+  - \frac{1}{3} \dt^2 \dddot{U}
+  + \cdots.
+\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Input Parameters}
+\label{sec:input_parameters}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Model Options}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{numvar} & 3   & MHD model. 1: 2-field;  2: 4-Field;  3: 6-Field.\\
+  \texttt{linear} & 0   & 1: linear (perturbation terms only, no matrix
+  recalculation)\\
+  \texttt{eqsubtract}& 0& 1: remove equilibrium terms from equations\\
+  \texttt{icsubtract}& 0& set to 1 if PF coils are in the domain.  These are
+  defined in the files ``coils.dat'' and ``current.dat''\\
+  \texttt{extsubtract} & 0 & 1: subtract fields from non-axisymmetric coils \\
+  \texttt{idens}  & 1   & 1: include density equation\\
+  \texttt{ipres}  & 0   & 1: include electron pressure equation\\
+  \texttt{ipressplit} & 0 & 1: seperate pressure solve from the magnetic field
+  solves when isplitstep=1.  (ipressplit must be 0 for isplitstep=0) \\
+  \texttt{itemp} & 0 & 1: Advance temperatures rather than pressures (for ipressplit=1 only) \\
+  \texttt{gyro}   & 0   & 1: include Braginskii gyroviscous term.  (note:
+  needs db to be nonzero also) \\
+  \texttt{igauge} & 0   & 0: loop voltage applied to boundary psi only \\
+  \texttt{inertia} & 1  & 1: Include $\u \cdot \grad{\u}$ terms\\
+  \texttt{itwofluid}& 1 & 1: Include $\j\times\B$ and
+  $\grad{p_e}$ terms in Ohm's law (electron form).  2: ion form (not
+  recommended)  3: parallel pressure gradient in Ohm's law only
+  (not recommended) \\
+  \texttt{ibootstrap} & 0 & 1: include bootstrap current \\
+  \texttt{ibootstrap\_model} & 0 & 1: J\_BS = alpha F <p,psi> B \\
+  \texttt{bootstrap\_alpha} & 0 & alpha parameter in bootstrap current model \\
+  \texttt{imp\_bf} & 0 & 1: include implicit equation for f (recommended for
+  3D and 2D complex) \\
+  \texttt{nosig} & 0 & 1: drop sigma terms from momentum equation \\
+  \texttt{itor}   & 0   & 0: cartesian; 1: cylindrical\\
+  \texttt{istatic}& 0   & 1: Do not advance velocity\\
+  \texttt{iestatic}&0   & 1: Do not advance magnetic fields\\
+  \texttt{chiiner} & 1. & factor to multiply the chi equation inertial terms \\
+  \texttt{ieq\_bdotgradt} & 1. & 1: include equilibrium parallel T gradient \\
+  \texttt{no\_vdg\_T} & 0 & 1: do notinclude V dot grad T in Temp equation (debug) \\
+  \texttt{iwall\_is\_limiter} & 1 & 1: wall acts as limiter \\
+  \texttt{kinetic} & 0 & 1: Use kinetic PIC for hot pressure, 
+                         2: Incompressible CGL,
+                         3. Full CGL  
+\end{tabular}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{iadiabat} & 1 & 1: Corrects several problems with itemp=1 option \\
+  \texttt{irunaway} & 0 & 1:  include runaway electron model \\
+  \texttt{cre} & 0 & runaway speed \\
+  \texttt{imp\_temp} & 0 & 0: compute temperatures for isplitstep=0, itemp=0 \\
+  \texttt{iohmic\_heating} & 1 & 1: Include Ohmic heating term in heating \\
+  \texttt{irad\_heating} & 1 & 1: Include radiation heat sink \\
+  \texttt{gravr} & 0 & gravitational acceleration in R-direction \\
+  \texttt{gravz} & 0 & gravitational acceleration in Z-direction 
+\end{tabular}
+
+\subsection{Initial Conditions Options}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{itaylor} & 0 & \begin{minipage}[t]{2.5in}
+    Pre-defined initial conditions.\\
+ {\bf for itor=1 (toroidal geometry)} \\ 
+    0: Tilting cylinder \\
+    1: Calls Grad-Shafranov solver \\
+    2: magneto-rotational equilibrium \\
+    3: rotational instability \\   
+    40: Fixed boundary stellarator \\
+    41: Free boundary stellarator \\
+ {\bf for itor=0 (slab geometry) } \\
+    0: Tilting cylinder\\
+    1: Taylor Reconnection\\
+    2: Force-Free equilibrium (Taylor state) \\
+    3: GEM Reconnection\\
+    4: Wave Propagation\\
+    5: Gravitational Instability\\
+    6: Strauss equilibrium \\
+    7: circular field init \\
+    8,9:  biharmonic \\
+    10,11,12,13:: analytic RWM test problem \\
+    14: 3D wave test \\
+    15: 3D diffusion test \\
+    16:  FRS cylindrical equilibrium \\
+    17:  ftz init \\
+    18:  eigen init \\
+    19:  ASDEX profiles similar to YU's \\
+    20: kstar profiles with multiple q=1 surfaces \\
+    21,22: fixed q(r) and p(r) profiles \\
+    23:  Startsev equilibrium with $ J = (1/R_0q_0)(1 - r^2)$ \\
+    27:  cylindrical test problem \\
+    29:  basicJ profiles \\
+  \end{minipage}\\
+  \texttt{iupstream} & 0 & 1: addsdiffusion term to convection-like upstream differencing \\
+  \texttt{magus}  & 5.e-2 & magnitude of the upstream diffusion term \\
+  \texttt{iflip}    &  0 & 1: Flip coordinate system handedness\\
+  \texttt{iflip\_b} &  0 & 1: Flip sign of toroidal field\\
+  \texttt{iflip\_j} &  0 & 1: Flip sign of toroidal current\\
+  \texttt{iflip\_v} &  0 & 1: Flip sign of toroidal velocity\\
+  \texttt{iflip\_z} &  0 & 1: Flip equilibrium across z=0 plane \\
+\end{tabular}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{icsym}    &  0 &  
+    \begin{minipage}[t]{2.5in}
+    Symmetry of random perturbations \\
+    0: No symmetry\\
+    1: Odd up-down symmetry (in $U$)\\
+    2: Even up-down symmetry (in $U$)
+  \end{minipage}\\
+
+  \texttt{bzero} & 1      & $B_\tor$ at \texttt{rzero}\\
+  \texttt{bx0}  & 0 & Initial field in x-direction for some test problems \\
+  \texttt{vzero} & 0 & Initial toroidal velocity for some test problems \\
+  \texttt{phizero} & 0 & Initial velocity stream function for some test problems \\
+  \texttt{v0\_cyl} & 0 & Central toroidal velocity for some test problems \\
+  \texttt{v1\_cyl} & 0 & VZ=v0\_cyl + v1\_cyl*psin**beta \\
+ \texttt{idevice}    &  0 &
+    \begin{minipage}[t]{2.5in}
+    define coils for a particular device \\
+    -1: reads coil.dat file \\
+    0: generic dipole configuration \\
+    1: CDX-U \\
+    2: NSTX \\
+    3: ITER \\
+    4: DIII-D
+  \end{minipage}\\
+  \texttt{iwave} & 0 & defines what wave to initialize in wave propagation test \\ 
+  \texttt{eps}      &  0.01 & Size of random perturbation\\
+  \texttt{maxn}     &  200 & Maximum wavenumber of initial random noise\\
+  \texttt{verzero}  & 0 & magnitude of initial vertical velocity \\
+   \texttt{irmp}    &  0 &
+    \begin{minipage}[t]{2.5in}
+    1: apply nonaxisymmetric fields throughout plasma.  
+       reads rmp\_coil.dat for (R,Z) of window pane coils.  
+       reads rmp\_current.dat for (+-) currents in kA and phases in degrees.  
+       toroidal mode number of current specified by ntor  \\
+    2: apply nonaxisymmetric fields only at aoundaries. 
+  \end{minipage}\\
+
+ \texttt{rmp\_atten}  &  0  & additional exponential decay of RMP field from r=1 for irmp=2 \\
+ \texttt{iread\_ext\_field} & 0 & 1: read external field \\
+ \texttt{beta}  & 0 & parameter used in some model equilibrium initializations \\
+ \texttt{ln} & 0 & length scale parameter used in some model equilibrium \\
+ \texttt{elongation} & 1 & elongation used in Solovev equilibrium
+
+\end{tabular}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+
+ \texttt{isample\_ext\_field} & 1 & factor to down sample external field data toroidally \\
+ \texttt{isample\_ext\_field\_pol} & 1 & factor do down sample external field data poloidally \\
+ \texttt{scale\_ext\_field} & 1 & factor to scale external field \\
+ \texttt{shift\_ext\_field} & 0 & toroidal shift (in deg) of external fields \\
+ \texttt{ibasicj\_solvep} & 0 & 0: uniform p, solve for F; 1: uniformF, solve for p \\
+ \texttt{basicj\_nu} &1 & exponent in basicj equilibrium \\
+ \texttt{basicj\_j0} & 1 & On-axis current density in basicj equilibrium \\
+ \texttt{basicj\_voff} & 1 & Radial extent of flat toroidal rotation in basicj equilibrium \\
+ \texttt{basicj\_vdelt} & 1 & Width of velocity drop-off, as fraction of ln, in basicj equilibrium \\
+ \texttt{basicj\_dexp} & 1 & parameter for basicj equilibrium \\
+ \texttt{basicj\_dvac} & 1 & parameter for basicj equilibrium \\
+ \texttt{basicj\_q0} & 0 &   parameter for basicj equilibrium \\
+ \texttt{basicj\_qa}  & 0 &   parameter for basicj equilibrium \\
+ \texttt{pf\_shift} & 0 & (array) horizontal shift of PF coil \\
+ \texttt{pf\_shift\_angle} & 0 & (array) direction of PF shift in degrees \\
+ \texttt{pf\_tilt} & 0 & (array) Angle of PF from vertical in degrees \\
+ \texttt{pf\_tilt\_angle} & 0 & (array) Axis of rotation for PF tilt in degrees \\
+ \texttt{tf\_shift} & 0 & horizontal shift of TF coils \\
+ \texttt{tf\_shift\_angle} & 0 & direction of TF shift in degrees \\
+ \texttt{tf\_tilt} & 0 & angle of TF from vertical in degrees \\
+ \texttt{tf\_tilt\_angle} & 0 & axis of rotation for TF tilt in degrees 
+
+\end{tabular}
+
+\subsection{Grad-Shafranov Solver Options}
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{inumgs}& 0      & 1: Use numerical def. of p and g from profile-p and profile-g files\\
+ \texttt{igs}   & 80     & Max number of Picard iterations\\
+  \texttt{eta\_gs} & 1000.& factor for smoothing nonaxisymmetries in psi in 3D GS solve \\
+  \texttt{igs\_pp\_ffp\_rescale} & 0 & 1: rescale p' and FF' to match p and F \\
+  \texttt{nv1equ}& 0 & 1:use numvar =1 equilibrium for numvar .GT. 1 \\
+  \texttt{tcuro} & 1	  & (scaled) plasma current in GS equilibrium\\
+  \texttt{xmag}  & 1      & $R$-coordinate of magnetic axis\\
+  \texttt{zmag}  & 0      & $Z$-coordinate of magnetic axis\\
+  \texttt{xmag0} & 0      &  if nonzero, target magnetic axis $R$ for feedback\\
+  \texttt{zmag0} & 0      &  if nonzero, target magnetic axis $Z$ for feecback\\
+  \texttt{xlim}  & 0      & $R$-coordinate of limiter\\
+  \texttt{zlim}  & 0      & $Z$-coordinate of limiter\\
+  \texttt{xlim2}  & 0      & $R$-coordinate of limiter \#2\\
+  \texttt{zlim2}  & 0	   & $Z$-coordinate of limiter \#2\\
+  \texttt{rzero}  & 1      & nominal major radius of device for itor=1 \\
+  \texttt{libetap}& 1.2    & approximate value of $l_i/2 + \beta_P$ for free-boundary equ \\
+  \texttt{p0}    & 0.01   & Pressure at magnetic axis\\
+  \texttt{pi0}   & 0.005  & Ion pressure at magnetic axis\\
+  \texttt{p1}    & 0     & $p^{\prime}(\Psi)$ at magnetic axis\\
+  \texttt{p2}    & 0     & $p^{\prime \prime}(\Psi)$ at magnetic axis\\
+  \texttt{pedge} & 0	  & Pressure in vacuum region\\
+  \texttt{tedge} & 0     & temperature in vacuum region (if .GT. 0).  Only
+                           used in GS solve.   Boundary value of electron temp
+                           is $twall = pedge \times pefac/den\_edge $ \\
+ \texttt{tiedge} & 0     & ion temperature in vacuum region  \\
+ \texttt{expn}  & 0 & \parbox[t]{4in}{Fraction of pressure gradient due to
+    density gradient: $n = p^\mathtt{expn}$.}\\
+ \texttt{q0}    & 1	  & Safety factor at magnetic axis\\
+ \texttt{djdpsi}& 0	  & $J_\tor'(\Psi)$ at magnetic axis\\
+ \texttt{th\_gs}& 0.8     & implicitness of GS Picard iterations\\
+ \texttt{tol\_gs}& $10^{-8}$  & convergence criteria for GS iteration \\
+  \texttt{pscale}  & 1.       & factor multiplying pressure profile \\
+  \texttt{bscale}      &  1.0 & Factor multipying toroidal field\\
+  \texttt{bpscale}     &  1.0 & Factor multiplying F' (keeping F0 constant) \\
+  \texttt{vscale}      &  1.0 & Factor multiplying toroidal rotation profile \\
+  \texttt{iread\_bscale}&  0   & 1: read profile\_bscale for factor to scale F \\
+  \texttt{iread\_pscale} & 0   & 1: read profile\_pscale for factor to scale $p$ and $p^{\prime} $ \\
+
+\end{tabular}
+
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{batemanscale} &  1   & Bateman scale the TF, keeping curent profile fixed \\
+  \texttt{irot}         &  0   & 1: include toroidal rotation in equilibrium calculatin \\
+  \texttt{iscale\_rot\_by\_p} & 1 & see below \\
+  \texttt{alpha0}       &  0   & $\alpha_0$ in analytic rotation profile \\
+  \texttt{alpha1}      	&  0   & $\alpha_1$ in analytic	rotation profile \\
+  \texttt{alpha2}      	&  0   & $\alpha_2$ in analytic	rotation profile \\
+  \texttt{alpha3}      	&  0   & $\alpha_3$ in analytic	rotation profile \\
+\end{tabular}
+
+For iread\_omega=0, the function $\alpha(\psi)$ is parameterized by:
+ \[ \tilde{\alpha} = \alpha_{0} + \alpha_{1} s + \alpha_{2} s^{2} + \alpha_{3} s^{3} \]
+For iscale\_rot\_by\_p = 0:  $\alpha = \tilde{\alpha} \times n(\psi) / p(\psi)$ . \\
+For iscale\_rot\_by\_p = 1:  $\alpha = \tilde{\alpha} $. \\
+For iscale\_rot\_by\_p = 2:  $\alpha = \left[ \alpha_{0} + \alpha_{1} e^{-\left[ \left( \psi - \alpha_{2} \right) / \alpha_{3} 
+                                          \right]^{2} }       \right] \times n(\psi) /p(\psi) $ \\
+In all cases, the angular velocity is then determined by:
+\[      \omega = \left[  \frac{2 \alpha p(\psi)}{R_0^2 n(\psi)} \right]^{\frac{1}{2}} \]
+\begin{tabular}{llp{4in}}
+  \texttt{idenfunc}         & 0   &
+  \begin{minipage}[t]{4.0in}
+    0: $ n = \mbox{den0} \times (p/p0)^{\mbox{expn}} + \mbox{denedge} $ \\
+    1: $ n = \mbox{den0} \times \frac{1}{2} \times 
+       \left[1 + \tanh \left(\frac{\psi - (\psi_B + n_O (\psi_B - \psi_M))}
+                                  {\Delta \times (\psi_B - \psi_M)        } \right)    \right] $ \\
+    2: $ n = \mbox{den0} + \frac{1}{2}  \left( \mbox{den\_edge} - \mbox{den0} \right)
+                  \times  \left[1 + \tanh \left( \frac{ \tilde{\psi} - n_O}
+                                               {      \Delta            } \right)  \right] $\\
+    3: if $\tilde{\psi}$ .LT. $n_O$ and $(\psi - \psi_M) \times \left[d \psi /dx (x - x_{MA}) + d \psi /dz (z - z_{MA} )           
+                \right] $ .GT. 0, then $n$ = den0.     Else, $n$ = den\_edge.  \\
+    ( $\psi_B = \mbox{psibound}, \psi_M = \mbox{psimin}, \tilde{\psi} = (\psi - \psi_M)/(\psi_B - \psi_M) $ )
+  \end{minipage}    \\
+
+  \texttt{den\_edge}        & 0.0 & edge density.  If 0, set to den0*(pedge/p0)**expn \\
+  \texttt{den0}             & 1.0 & (scaled) central density\\
+  \texttt{denoff}           & 1.0 & $n_O$: offset for idenfunc=1,2,3 \\
+  \texttt{dendelt}          & 0.1 & $\Delta$: width of transition region for idenfunc=1,2 \\
+
+  \texttt{divertors} & 0  & Number of divertors (0--2)\\
+  \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
+  \texttt{xdiv}  & 0      & $r$-coordinate of divertor current(s)\\
+  \texttt{zdiv}  & 0      & \parbox[t]{4in}{$z$-coordinate of
+    divertor 
+    current.  If $\mathtt{divertors} = 2$, the second divertor has 
+    $z = -\mathtt{zdiv}$.}\\
+  \texttt{xnull}     & 0 & Guess for $r$-coordinate of x-point\\
+  \texttt{znull}     & 0 & Guess for $z$-coordinate of x-point\\
+  \texttt{mod\_null\_rs} & 0 & if 1: you can reset xnull and znull from C1input \\
+  \texttt{xnull0}  &  0  & Target R-Coordinate of x-point for feedback \\
+  \texttt{znull0}  &  0  & Target Z-Coordinate of x-point for feedback \\
+  \texttt{xnull2}     & 0 & Guess for $r$-coordinate of inactive x-point\\
+  \texttt{znull2}     & 0 & Guess for $z$-coordinate of inactive x-point\\
+  \texttt{mod\_null\_rs2} & 0 & if1: you can reset xnull2 and znull2 from C1input \\
+  \end{tabular}
+
+  \begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{gs\_pf\_psi\_width}            & 0 & width of psi smoothing into provate flux region \\
+ \texttt{gs\_vertical\_feedback}        & 0 & proportional feedback of each coil to (zmag-zmag0) (array) \\ 
+ \texttt{gs\_vertical\_feedback\_i}     & 0 & integral feedback of each coil to (zmag-zmag0) (array) \\
+ \texttt{gs\_vertical\_feedback\_x}     & 0 & proportional feedback of each coil to (znull-znull0) (array) \\
+ \texttt{gs\_vertical\_feedback\_x\_i} & 0 & integral feedback of each coil to (znull-znull0) (array) \\
+ \texttt{gs\_radial\_feedback}          & 0 & proportional feedback of each coil to (xmag-xmag0) (array) \\
+ \texttt{gs\_radial\_feedback\_i}       & 0 & integral feedback of each coil to (xmag-xmag0) (array) \\
+ \texttt{gs\_radial\_feedback\_x}       & 0 & proportional feedback of each coil to (xnull-xnull0) (array) \\
+ \texttt{gs\_radial\_feedback\_x\_i}    & 0 & integral feedback of each coil to (xnull-xnull0) (array) \\
+ \texttt{igs\_extend\_p}                & 0 & 1: extend p past pls=1 using ne and Te profiles  \\
+ \texttt{igs\_feedfac}                  & 1 & proportionality factor for external field feedback \\
+ \texttt{igs\_forcefree\_lcfs}          & -1 & 1: ensure that GS solution is force free at LCFS \\
+ \texttt{igs\_start\_xpoint\_search}    & 0 &  number of GS iterations before searching for x-point \\
+ \texttt{sigma0}                        & 0 &  width of Gaussian for initial current distribution for GS iteration \\
+ \texttt{igs\_extend\_diagmag}          & 1 &  1: extend diamagnetic rotation past psi=1 \\
+ 
+\texttt{adapt\_qs} & 0 & Safety factor values to pack around (array) \\
+\texttt{adapt\_zlow} & 0 & Z-coordinate below which SOL adaption is coarse \\
+\texttt{adapt\_zup}  & 0 & Z-coordinate above which SOL adaptation is coarse
+
+
+\end{tabular}
+
+
+
+
+\subsection{Transport Coefficients}
+
+\begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{ivisfunc} & 0 & select viscosity function \\
+                    &   & 0: $ \mbox{visc} = \mbox{amu} $ \\
+                    &   & 1: $ \mbox{visc} = \mbox{amu} + \frac{1}{2} \mbox{amu\_edge} \times
+                 \left[ 1. + \tanh \left[   \frac{\psi - \left( \psi_l+\nu_0(\psi_l - \psi_0)\right)}
+                                                 {\nu_{\Delta} (\psi_l - \psi_0)                   }\right] \right] $  \\
+                    &   & 2:  $ \mbox{visc} = \mbox{amu} + \frac{1}{2} \mbox{amu\_edge} \times
+                 \left[ 1. + \tanh \left[   \frac{\tilde{\psi} - \nu_0}
+                                                 {\nu_{\Delta}}  \right] \right] $  \\
+                    &   & or, if amuoff2 .ne. 0 and amudelt2.ne.0) \\ 
+                    &   &    $ \mbox{visc} = \mbox{amu} + \frac{1}{4} \mbox{amu\_edge} \times
+                     \left[ 2. + \tanh \left[   \frac{\tilde{\psi} - \nu_0}
+                                                 {\nu_{\Delta}}  \right]                     
+                               + \tanh \left[   \frac{\tilde{\psi} - \nu_{02} }
+                                                 {\nu_{\Delta2}}  \right]    \right] $  \\
+                    &   & 3:  visc = amu or amu\_edge depending on criteria in define\_fields \\
+
+  \texttt{amu}       & 0 & core viscosity for ivisfunc =0,..,3 \\
+  \texttt{amu\_edge} & 0 & edge viscosity for ivisfunc = 1,..,3 \\
+  \texttt{amuoff}    & 0 & $\nu_0$ in ivisfunc = 1,2 \\
+  \texttt{amuoff2}   &   & $\nu_{02}$ in ivisfunc = 1,2 \\
+  \texttt{amudelt}   & 0 & $\nu_{\Delta}$ in ivisfunc = 1,2 \\
+  \texttt{amudelt2}  & 0 & $\nu_{\Delta2}$ in ivisfunc = 1,2 \\
+  \texttt{amuc}   & 0 & Compressional viscosity coefficient\\
+  \texttt{amupar} & 0 & Parallel viscosity coefficient \\
+  \texttt{amue}  & 0 & bootstrap viscosity coefficient \\
+  \hline
+  \texttt{iresfunc} & 0 & select resistivity function  \\
+                    &   & 0: eta = etar + eta0/Te**(3/2) \\
+                    &   & 1: $ \mbox{eta} = \mbox{etar} + \frac{1}{2} \mbox{eta0} \times
+                 \left[ 1. + \tanh \left[   \frac{\psi - \left( \psi_l+\mbox{etaoff} \times (\psi_l - \psi_0)\right)}
+                                                 {\mbox{etadelt}\times (\psi_l - \psi_0)                   }\right] \right] $  \\
+                    &   & 2:  $ \mbox{eta} = \mbox{etar} + \frac{1}{2} \mbox{eta0} \times
+                 \left[ 1. + \tanh \left[   \frac{\tilde{\psi} - \mbox{etaoff}}
+                                                 {\mbox{etadelt}}  \right] \right] $  \\
+                    &   & The following two options are applied in a way that they \\ 
+                    &   & should not have negative values...even if the idl plots \\
+                    &   & indicate otherwise \\
+                    &   & 3: eta = etar for $\tilde{\psi} < \mbox{etaoff}$ othrwise eta0  \\
+                    &   & 4:  Spitzer resistivity with offset. \\
+                    &   &     Define $T_{wall}$ = pedge*pefac/den\_edge \\
+                    &   & $\mbox{for} T_e > T_{wall} - T_e^{off}, \eta = (T_e-T_e^{off})^{-3/2} $ \\
+                    &   & $\mbox{for} T_e < T_{wall} - T_e^{off}, \eta = (T_{wall}-T_e^{off})^{-3/2} $ \\
+                    &   & can be increased by inputing eta\_fac $>$ 1.  \\
+                    &   & 5:  Simple neoclassical model:  \\
+                    &   & $\eta = \mbox{eta0} \times (n_e/p_e)^{3/2} / (1. - 1.46 (r/R)^{1/2})   $ \\
+ \texttt{etar}    & 0 & see description of iresfunc \\
+  \texttt{eta0}   & 0 & see description of iresfunc \\
+  \texttt{etaoff} & 0 & see description of iresfunc \\
+  \texttt{etadelt} & 0 & see description of iresfunc \\
+  \texttt{eta\_te\_offset} & 0 & $T_e^{off}$  for iresfunc=4 \\
+  \texttt{ikprad\_te\_offset} & 0 & if 1, $T_e^{off}$ also used in kprad and ablation \\
+  \texttt{eta\_fac} & 0 & for iresfunc=4, resistivity multiplied by eta\_fac \\
+  \texttt{eta\_mod} & 0 & if 1: remove d/dphi terms in resistivity \\
+\end{tabular}
+
+\begin{tabular}{llp{4.0in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{eta\_max} & 0 & maximum resistivity in plasma (defaults to etavac) \\
+  \texttt{eta\_min} & 0 & minimum resistivity in plasma  \\
+  \hline
+  \texttt{ikappafunc} & 0 &  select thermal conductivity function \\
+    & & 0: $\kappa = \mbox{kappat} + \mbox{kappa0} \times * (n^3/p)^{1/2}  $\\
+    & & 1: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[1 + \tanh \left[\frac{\psi -\left( \psi_l + \kappa^{0ff} \times (\psi_l - \psi_0)\right)}
+                                               {\kappa_{\Delta} \times (\psi_l - \psi_0)} \right]  \right]$ \\
+    & & 2: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[  1 + \tanh \frac{\tilde{\psi} - \kappa^{off}}
+                                           {  \kappa_{\Delta}}  \right] \mbox{for} \tilde{\psi} < 1 $  \\
+    & & 2: $\kappa = \mbox{kappa0} \times \frac{1}{2}
+                    \left[  1 + \tanh \frac{2 - \tilde{\psi} - \kappa^{off}}
+                                           {  \kappa_{\Delta}}  \right] \mbox{for} \tilde{\psi} > 1 $  \\
+    & & 3:  $\kappa = \mbox{kappat} + \mbox{kappa0} \times 1/(pn)^{1/2}$ \\
+    & & 4:  $\kappa = \mbox{kappat} + \mbox{kappa0} \times ( 1. + \mbox{kappadelt} \times |\nabla T_e|^2 ) $  \\
+    & & 5:  $\kappa = \mbox{kappat} + \mbox{kappa0}/T_e$ limited by kappa\_max  \\ 
+    & & 10: read from profile\_kappa file in $m^2/\mbox{sec}$  \\ 
+    & & 11: read from profile\_kappa file in normalized units  \\
+    & & 12: option to go with itaylor=27   \\
+ \texttt{kappa\_max}  & 0 & if .NE. 0, max $\kappa$ for ikappafunc=5 \\
+ \texttt{kappai\_fac} & 1 & ion thermal conduction is kappai\_fac* kappa \\
+ \texttt{ikapscale}   & 0 & if 1: kappar gets scaled by kappa  \\
+ \texttt{ikappar\_ni} & 0 & 1: include 1/n terms in parallel heat flux \\
+ \texttt{kappaoff}    & 0 & $\kappa^{off}$ see ikappafunc \\
+ \texttt{kappadelt}   & 0 & $\kappa_{\Delta} $ see ikappafunc \\
+ \texttt{kappat}      & 0 & isotropic thermal conductivity \\
+ \texttt{kappa0}      & 0 & see ikappafunc \\
+ \texttt{ikapparfunc} & 0 &  select parallel thermal conductivity (PTC) function \\
+                      &   & 0: PTC = kappar  \\
+                      &   & 1: PTC = $\mbox{kappar}/  \left[ (T_{crit}/T)^{5/2} + 1   \right] $ \\
+ \texttt{kappar} & 0 & Parallel thermal conductivity\\
+ \texttt{tcrit}  & 0 & $T_{crit}$ for ikapparfunc = 1  \\
+
+ \texttt{kappari\_fac}& 1 & ion parallel thermal conductivity is kappari\_fac x electron value \\
+ \texttt{kappax}      & 0 & coefficient of $B \times \nabla T$ temperature diffusion \\
+ \texttt{kappah}      & 0 & if nonzero, $\mbox{kappa} = \mbox{kappah} \times \tanh^2 \left[ (\tilde{\psi}-1.)/2  \right] $ \\
+  \texttt{kappaf} & 1 & Factor multiplying kappa when $\nabla p < \nabla p_{crit} $ \\
+  \texttt{kappag} & 0 & Thermal diffusion proportional to pressure gradient \\
+  \texttt{gradp\_crit} & 0 & $\nabla p_{crit} $ for kappaf,kappag model \\
+  \texttt{k\_fac} & 1 & Factor by which TF is multiplied in denominator of kappa\_par \\
+  \texttt{temin\_q0}  & 0 & Min temperature used in equipartition for ipres=1 \\
+  \hline
+  \texttt{idenmfunc}   & 0 & selects from of particle diffusion (PD) \\
+                      &   &  0: PD = denm \\
+                      &   &  1: PD = denm + denmt/Te \\
+                      &   &  10: read from file profile\_denm in $m^2/\mbox{sec}$  \\
+                      &   &  11: read from file profile\_denm in normalized units \\
+  \texttt{denm}   & 0 &   see idenmfunc \\
+  \texttt{denmt}  & 0 &  multiplier of 1/Te for idenmfunc=1 \\
+  \texttt{denmmin} & 0 & minimum value of denm \\
+  \texttt{denmmax} & 1.E6 & maximum value of denm \\
+ 
+\end{tabular}
+
+\subsection{Hyper-Diffusivity}
+
+\begin{tabular}{lcp{4.0in}}
+  \textbf{Option} & \textbf{Default} & \textbf{Description}\\
+  \hline
+  \texttt{imp\_hyper}  & 0 & switch for evaluating hyper resistivity \\
+                       &   & 0: $\lambda_H \nabla^2 {\bf J} $ explicit for $\psi$ implicit for F  \\                 \\
+                       &   & 1: $\lambda_H \nabla^2 {\bf J} $ implicit for $\psi$ implicit for F  \\                
+                       &   & 2: $ ({\bf B}/B^2)\nabla \bullet \lambda_H \nabla \sigma $ implicit for $\psi$ and F    
+                                   ($\sigma= {\bf J \bullet B}/B^2 $)  \\                \\
+ \texttt{deex}         & 1 & scale length used in hyper \\
+ \texttt{hyper}        & 0 & hyper coefficient for $\psi$ equation \\
+ \texttt{hyperc}       & 0 & hyper coefficient for poloidal velocity   \\
+ \texttt{hyperi}       & 0 & hyper coefficient for toroidal field   \\
+ \texttt{hyperp}       & 0 & hyper coefficient for pressure   \\
+ \texttt{hyperv}       & 0 & hyper coefficient for toroidal flow   \\
+ \texttt{ihypdx}       & 2 & hyper terms multiplied by deex**ihypdx \\
+ \texttt{ihypeta}      & 1 & swithc for multipliers of hyper terms   \\
+                       & 1 & magnetic field hyper multiplied by eta  \\
+                       & 2 & magnetic field hyper multiplied by p\\
+ \texttt{ihypamu}            & 1 & 1: velocity hyper coefficient multiplied by amu \\
+ \texttt{ihypkappa}          & 1 & 1: pressure hyper coefficient multiplied by kappa \\
+\end{tabular}
+
+\subsection{Unit Normalizations}
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{n0\_norm} & $10^{14}$ & Density normalization (in cgs)\\
+  \texttt{b0\_norm} & $10^4$    & Magnetic field normalization (in cgs)\\
+  \texttt{l0\_norm} & $100$     & Length normalization (in cgs)
+\end{tabular}
+
+\subsection{Boundary Conditions}
+
+\begin{tabular}{lcp{4.0in}}
+  \textbf{Option} & \textbf{Default} & \textbf{Description}\\
+  \hline
+ 
+  \texttt{isurface} & 1 & include surface terms in Galerkin method \\
+  \texttt{icurv}    & 2 & if $>$ 0, include curvature from mesh \\
+  \texttt{nonrect}  & 0 & 1: non-rectangular boundary \\
+  \texttt{ifixedb} & 0 & Set $\psi=0$ on boundary\\
+  \texttt{inonormalflow}& 1 & 1: No-normal-flow boundary\\
+  \texttt{inoslip\_pol} & 0 & 1: No-slip boundaries for poloidal velocity\\
+  \texttt{inoslip\_tor} & 1 & 1: No-slip boundaries for toroidal velocity\\
+  \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
+                                 velocity\\
+  \texttt{iconst\_bz} & 1 & 1: Toroidal field held constant on boundary\\
+  \texttt{iconst\_bn} & 1 & 1: Hold normal field constant on boundary \\
+  \texttt{iconst\_n}  & 0 & 1: Density held constant on boundary\\
+  \texttt{iconst\_p}  & 1 & 1: Pressure held constant on boundary\\
+  \texttt{iconst\_t}  & 0 & 1: Temperature held constant on boundary\\
+  \texttt{inograd\_p} & 0 & 1: No normal pressure gradient\\
+  \texttt{inograd\_t} & 0 & 1: No normal temperature gradient\\
+  \texttt{inograd\_n} & 0 & 1: No normal density gradient \\
+  \texttt{com\_bc}& 0 & 1: $\nabla^2 \chi = 0$\\
+  \texttt{vor\_bc}& 0 & 1: $\Delta^* U = 0$\\
+  \texttt{inocurrent\_pol} & 0 & 1: no poloidal current on boundary \\
+  \texttt{inocurrent\_tor} & 0 & 1: no toroidal current on boundary \\
+  \texttt{inocurrent\_norm}& 0 & 1: no normal current on boundary \\
+  \texttt{ifbound}  & -1 & boundary condition on $f\prime$  \\
+                    &    & 1: Dirichlet  \\
+                    &    & 2: Neumann    \\
+  \texttt{iconstflux}  & 0 & 1: conserves toroidal flux in nonlinear calculation \\
+  \texttt{tebound}     & -1 & boundary condition for electron temperature \\
+  \texttt{tibound}     & -1 & boundary condition for ion temperature \\
+  \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
+  \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
+
+\end{tabular}
+
+
+
+\subsection{Time Step}
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{dt}         & 0.1 & Initial size of ime step\\
+  \texttt{ntimemax}   & 20  & Total number of time steps\\
+  \texttt{integrator} & 0   & 0: Crank-Nicholson (CN); 1: BDF2\\
+  \texttt{imp\_mod}   & 0   & 
+  \begin{minipage}[t]{4in}
+    0: $\theta$-implicit\\
+    1: Implicit leapfrof (\texttt{isplitstep} = 1 only)\\
+  \end{minipage}\\
+  \texttt{thimp}      & 0.5 & Implicitness parameter\\
+  \texttt{thimpsm}    & 1   & Implicitness of the smoother functions\\
+  \texttt{isplitstep} & 1   & 0: Fully implicit time step; 
+                              1: split time step.\\
+  \texttt{iteratephi} & 0   & 1: Calculate transport coefficients after
+    field advance, then recalculate field advance. \\
+  \texttt{idiff} & 0 & 1: solve for difference between n and n+1 in B,p \\
+  \texttt{idifv} & 0 & 1: solve for difference between n and n+1 for V \\
+  \texttt{irecalc\_eta} & 0 & 1:recalculate transport coefficients after density solve \\
+  \texttt{iconst\_eta}  & 0 & 1" don't evolve resistivity \\
+  \texttt{itime\_independent} & 0 & 1:exclude d/dt terms \\
+  \texttt{harned\_mikic}  & 0 & coefficient of Harned-Mikic 2F stabilization term \\
+  \texttt{isources}       & 0 & 1:include source terms in velocity advance \\
+  \texttt{nskip}   & 1 & number of time steps per matrix recalculation \\
+  \texttt{pskip}   & 1 & number of timesteps the preconditioner is reused \\
+  \texttt{iskippc} & 1 & number of times preconditioner is reused \\
+  \texttt{ddt}     & 0 & change in timestep per timestep \\
+  \texttt{frequency} & 0 & frequency in time-independent calculation \\
+  \texttt{dtmin}     & 4.0 & minimum timestep for variable timestep calculation \\
+  \texttt{dtmax}     & 40. & maximum timestep for variable timestep calculation \\
+  \texttt{dtkecrit}  & 0 &  lower timestep if ekin es above this (0.01 typical) \\
+  \texttt{ dtfrac}   & .10 & max fractional change of timestep in 1 cycle \\
+  \texttt{max\_repeat}  & 3 & max number time step is repeated for ksp\_max iterations exceeded \\
+  \texttt{ksp\_max}     & 10000 & max number of ksp iterations before repeating time step \\
+  \texttt{ksp\_min}     & 1200  & increase dt if ksp < ksp\_min  \\
+  \texttt{ksp\_warn}    & 1600  & decrease dt if ksp > ksp\_warn \\
+\end{tabular}
+
+\subsection{Mesh}
+
+\begin{tabular}{lcp{4.0in}}
+  \textbf{Option} & \textbf{Default} & \textbf{Description}\\
+  \hline
+  \texttt{nplanes}& 1 & number of toroidal planes for 3D nonlinear \\
+  \texttt{xzero}  & 0 & $R$-coordinate of bottom left corner of domain\\
+  \texttt{zzero}  & 0 & $z$-coordinate of bottom left corder of domain\\
+  \texttt{tiltangled} & 0 & angle a rectangular mesh is tilted \\
+  \texttt{mesh\_model}&   & model file name from which the mesh is generated \\
+  \texttt{mesh\_filename} & & mesh name of .smb files (without number) \\
+  \texttt{imatassemble}  & 0 & 1: use petsc matrix parallel assembly instead of scorec \\
+  \texttt{imulti\_region} & 0 & 1: Mesh has multiple regions that include resistive wall and
+                               vacuum.   Wall resistivity is "eta\_wall", vacuum
+                               resistivity is "eta\_vac"  \\
+  \texttt{toroidal\_pack\_angle} & 0 & toroidal angle of maximum mesh packing \\
+  \texttt{toroidal\_pack\_factor} & 1 & ratio of longest to shortest toroidal element \\
+
+  \texttt{iread\_vmec}    & 0 & 1: read geometry from VMEC file \\
+  \texttt{vmec\_filename} & geometry.nc& name of vmec data file \\
+  \texttt{nperiods} & 1 & number of field periods \\
+  \texttt{iread\_planes} & 0 & Read positions of toroidal planes from plane\_positions \\
+  \texttt{bloat\_distance} & 0 & factor to expand VMEC domain \\
+  \texttt{bloat\_factor}   & 0 & factor to expand VMEC domain \\
+  \texttt{ifull\_torus}    & 0 & 0: one field period, 1: full torus \\
+  \texttt{igeometry}       & 0 & 0: default, identity \\
+  \texttt{xcenter}         & 0 & center of logical mesh (x) \\
+  \texttt{zcenter}         & 0 & center of logical mesh (z) \\
+  \texttt{bound\_type(i)}   & 0 & Boundary conditions to apply on mesh loop \texttt{i}.  0 = None, 1 = First wall, 2 = Domain boundary\\
+  \texttt{zone\_type(i)}    & 0 & Physics model of mesh zone \texttt{i}.  1 = plasma, 2 = conductor, 3 = vacuum.\\
+\end{tabular}
+
+\subsection{Solver}
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{solver\_type} & 0 &  for PETSc only,  0: direct solve, 1: iterative solver.   
+                               for Trilinios, iterative solver is used \\
+  \texttt{solver\_tol}  & 1.e-9 & solver tolerance \\
+  \texttt{num\_iter}    & 100 &   maximum number of iterations 
+\end{tabular}
+
+\subsection{Mesh Adaptation (will be depricated soon)}
+\begin{tabular}{llcp{4in}}
+\textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{iadapt} & 0 & 0: no adaptation \\
+                 &   & 1:adapt mesh from the flux field in equilibrium
+\end{tabular}
+
+
+\subsection{Numerical Options}
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{int\_pts\_main}  & 25 & Sampling points for integrations in
+                                main time step matrices\\
+  \texttt{int\_pts\_aux}   & 25 & Sampling points for integrations in
+                                calculations of auxiliary variables\\
+  \texttt{int\_pts\_diag}  & 25 & Sampling points for integrations in
+                                diagnostic calculations\\
+  \texttt{int\_pts\_tor}   & 5 & Max number of toroidal integration points \\
+  \texttt{ivform} & 0   & 0: $\u = \grad{U}\times\grad{\tor} + V
+   \grad{\tor} + \grad{\chi}$\\
+   & & 1: $\u = \r^2 \grad{U}\times\grad{\tor} + \r^2 \omega
+   \grad{\tor} + \r^{-2} \grad{\chi}$\\
+   & & Now depricated to ivform=1 only \\
+  \texttt{jadv}   & 0   & 1: Use toroidal current density equation
+                          instead of poloidal flux equation.\\
+  \texttt{max\_ke}& 1.0  & Maximum value of kinetic energy before solution is
+                          rescaled in linear simulations. (0 = don't rescale)\\
+  \texttt{equilibrate} & 0 & 1: scale trial function so L2 norm = 1 \\
+  \texttt{regular}     & 0 & regularization constant in chi equation \\
+  \texttt{iset\_pe\_floor} & 0 & 1: do not let pe drop below pe\_floor \\
+  \texttt{pe\_floor}       & 0 & minimum value for pe when iset\_pe\_floor=1 \\
+
+ \texttt{iset\_pi\_floor} & 0 & 1: do not let pi drop below pe\_floor \\
+  \texttt{pi\_floor}	   & 0 & minimum value for pi when iset\_pi\_floor=1 \\
+
+ \texttt{iset\_te\_floor} & 0 & 1: do not let te drop below te\_floor \\
+  \texttt{te\_floor}	   & 0 & minimum value for te when iset\_te\_floor=1 \\
+
+ \texttt{iset\_ti\_floor} & 0 & 1: do not let ti drop below ti\_floor \\
+  \texttt{ti\_floor}	   & 0 & minimum value for ti when iset\_ti\_floor=1 \\
+
+
+
+
+
+
+  \texttt{iprecompute\_metric} & 0 & 1: precompute metric temsor
+\end{tabular}
+
+\subsection{Input Options}
+
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{iread\_eqdsk}   & 0 & 1: Read EFIT g-file 'geqdsk'\\
+                          &   & 2: Read psi from geqdsk, but use analytic profiles for p and F \\
+                          &   & 3: read profiles from geqdsk, but not the psi \\
+  \texttt{iread\_dskbal}  & 0 & 1: Read BAL file 'dskbal'\\
+  \texttt{iread\_jsolver} & 0 & 1: Read Jsolver file 'fixed' \\
+
+ \texttt{iread\_omega}       & 0 & 1: reads in rotation profile \\
+ \texttt{iread\_omega\_ExB}  & 0 & 1: read ExB rotation \\
+ \texttt{iread\_omega\_e}    & 0 & 1: read electron rotation \\
+ \texttt{iread\_ne}          & 0 & 1: read in electron  density profile \\
+ \texttt{iread\_te}          & 0 & 1: read in temperature profile \\
+ \texttt{iread\_p}           & 0 & 1: read pressure profile from profile\_p \\
+ \texttt{iread\_neo}         & 0 & 1: read velocity profiles from NEO output \\
+ \texttt{ineo\_subtract\_diamag} & 0 & 1: subtract diamagnetic term from input vel when reading neo velocity \\
+ \texttt{iread\_heatsource}      & 0 & 1: read heat source profile (psi normalized) scaled by ghs\_rate \\
+ \texttt{iread\_partilesource}   & 0 & 1: read particle source profile (psi normalized) scaled with pellet\_rate \\
+ \texttt{iread\_f}               & 0 & 1: read R x BT from file \\
+ \texttt{iread\_j}               & 0 & 1: read current density from a file
+
+
+
+
+
+\end{tabular}
+
+\subsection{Output Options}
+
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{ntimepr}   & 5 & Number of timesteps per full field output\\
+  \texttt{iprint}    & 0 & 1: Print detailed info to stdout\\
+ \texttt{ifout}      & -1 & 1: ourput f field \\
+ \texttt{idouble\_out} & 0 & 1: use double precision floating in putput hdf5 files \\
+ \texttt{itemp\_plot}  & 0 & 1: output vdotgradt, deldotq\_perp, deldotq\_par, eta\_jsq \\
+ \texttt{ibdgp}        & 0 & optons for plotting partial terms for bdgp plot \\
+                       &   & (1) $[ \psi, \Phi] $, (2) $(f\prime,\Phi) $, (3) $-R^{-2} F \Phi \prime$ \\
+ \texttt{iveldif}      & 0 & option for plotting partial terms for veldif plot \\
+                       &   & (1) $|/psi,U|$, (2) $R^{-3}(\psi,chi) + R^{-2}|\chi,f\prime|$ \\
+                       &   & (3)$ R^{-1} \Phi \prime$   (4) $R^{-1} \Phi \prime + R^{-1} F U\prime $ \\
+                       &   & (5) $|\psi,U| + R(U,f\prime) - R^{-1}F U\prime $ (6) $R^{-2} |/chi,f\prime| $ \\
+ \texttt{icalc\_scalars} & 1 & 1 : calculate scalar diagnostics \\
+ \texttt{ike\_only}      & 0 & 1 " only calculate ke scalar diagnostic \\
+ \texttt{ike\_harmonics} & 0 & number of toroidal harmonics of kinetic energy to be calculated for diagnostics \\
+ \texttt{ibh\_harmonics} & 0 & number of toroidal harmonics of magnetic energy to be calculated for diagnostics \\
+ \texttt{irestart}       & 0 & 0: start from timestep 0 \\
+                         &   & 1: normal restart (can restart 3D from 2D) \\
+                         &   & 3: start a 2D complex run from a 2D real restart \\
+ \texttt{irestart\_slice}  & -1 & if set to an integer, restart from that time slice \\
+ \texttt{itimer}           & 0 & 1: output internal timeing data \\
+ \texttt{iwrite\_transport\_coefs}  & 1 & 1: output transport coefficients fields \\
+ \texttt{iwrite\_aux\_vars}         & 1 & 1:output auxiliary variable fields \\
+
+\end{tabular}
+
+
+\subsection{Diagnostics}
+
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{xray\_detector\_enabled} & 0 &  1:  enable xray detector \\
+ \texttt{xray\_r0}     & 0 &  R coordinate of xray detector \\
+ \texttt{xray\_phi0}   & 0 &  phi coordinate of xray detector \\
+ \texttt{xray\_z0}     & 0 &  Z coordinate of xray detector \\
+ \texttt{xray\_theta}  & 0 & angle of xray detector chord (degrees) \\
+ \texttt{xray\_sigma} & 1 &  spread of xray detector chord (degrees) \\
+ \texttt{imag\_probes}& 0 &  number of magnetic probes \\
+ \texttt{mag\_probe\_x(i)} & 0 &    R coordinate of magnetic probe i \\
+ \texttt{mag\_probe\_phi(i)} & 0 & phi coordinate of magnetic probe i \\
+ \texttt{mag\_probe\_z(i)}   & 0 & Z coordinate of magnetic probe i \\
+ \texttt{mag\_probe\_nx(i)}  & 0 & R component of normal vector of mag probe i \\
+ \texttt{mag\_probe\_nphi(i)}& 0 & phi component of normal vector of mag probe i \\
+ \texttt{mag\_probe\_nz(i)}  & 0 & Z component of normal vector of mag probe i \\
+ \texttt{iflux\_loops}       & 0 & number of flux loops \\
+ \texttt{flux\_loop\_x(i)}   & 0 & R coordinate of flux loop i \\
+ \texttt{flux\_loop\_z(i)}   & 0 & Z coordinate of flux loop i \\
+ \texttt{ifixed\_temax}      & 0 & 1: temax evaluated at (xmag0,0,zmag0)
+
+\end{tabular}
+\subsection{Sources/Sinks}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{ibeam}    & 0 &  neutral beam source \\
+                    &   &  1:include neutral beam particle, energy, and momentum source: \\
+                    &   &  $S = \frac {nb_n  }{4 r \pi^2 n b_{dr}  }
+                            \exp - \left[ (r - nb_r)^2 + (z - nb_z)^2 \right]/ 2 nb_{dr}^2$  \\
+                    &   &  2:include only particle and energy source  \\
+                    &   &  3:include only energy source  \\
+                    &   &  4:include only momentum and energy source  \\
+                    &   &  5:include only momentum source  \\
+  \texttt{beam\_x}  & 0 & R coordinate of beam center (in m) \\
+  \texttt{beam\_z}  & 0 & Z coordinate of beam center (in m) \\
+  \texttt{beam\_v}  & 1.e4 & beam voltage (in volts) \\
+  \texttt{beam\_rate}  & 0 & ions/second deposited by beam \\
+  \texttt{beam\_dr}    & .1 & dispersion of beam deposition \\
+  \texttt{beam\_dv}    & 100. & dispersion of beam voltage (in volts) \\                        
+  \texttt{beam\_fracpar}  & 1 & cosine of beam angle relative to parallel (for momentum source)   \\
+\hline                  
+  \texttt{vloop}          & 0 & initial loop voltage,   NOTE: to change vloop at restart time, must have control\_type = -1 \\
+  \texttt{tcur}           & 0 & target (scaled) plasma current for current control: $\mu_0 I_P$ \\
+  \texttt{tcuri}          & 0 & if tcuri .ne. tcurf, the target current is a function of time \\
+  \texttt{tcurf}          & 0 & tcur = tcuri + (tcurf-tcuri) x .5 x (1. + tanh((t-tcur\_t0)/tcur\_tw)) \\
+  \texttt{tcur\_t0}       & 0 & see tcurf \\
+  \texttt{tcur\_tw}       & 0 & see tcurf \\                                       
+  \texttt{control\_type}  & -1. &  0 old current control algorithm (not recommended) \\
+                          &     &  1: standard PID  control with the following control parameters \\                                                        
+  \texttt{control\_p}     & 0 & proportional control coefficient \\
+  \texttt{control\_i}     & 0 & integral control coefficient \\                 
+  \texttt{control\_d}     & 0 & derivative control coefficient  \\
+
+  \hline
+  \texttt{ipellet}      & 0    & density source if non-zero (3D part equals 1 for 2D runs).  
+                                 Double-digit values have volume integrals normalized to 1.  
+                                 Make netative for initial perturbation only. \\
+                        &   & Define:  $G_{2D} = \frac{1}{2 \pi R  V_P^2}\exp \left[ - \frac{ (R - R_P)^2 + (Z - Z_P)^2}{2 V_P^2}
+                                                                                \right]$  \\
+                        &   & 1: $ S = G_{2D} \times \frac{R}{\sqrt{2 \pi}V_t} 
+                                  \exp \left[- \frac{RR_P\left(1 - \cos(\phi - \phi_P)\right)}{V_t^2} \right] $  \\
+                        &   & 2: $ S = \mbox{den0} \times \left( \mbox{max} (p , p_{edge} )/p_0 \right)^{expn} $ 2D and 3D \\
+                        &   & 3: Gaussian sourrce proportional to pressure \\
+                        &   & $ S = p \times G_{2D} \times \frac{R}{\sqrt{2 \pi}V_p}
+                                  \exp \left[- \frac{RR_P\left(1 - \cos(\phi - \phi_P)\right)}{V_p^2} \right] $  \\
+                        &   & 4: Same distribution as ipellet=1 in 3D \\
+                        &   & $ S = \sqrt{2 \pi} R V_p \times G_{2D} \times \frac{1}{2 \pi V_p V_t}
+                                  \exp \left[- \frac{RR_P\left(1 - \cos(\phi - \phi_P)\right)}{V_t^2} \right] $ 
+\end{tabular}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+        &  & 11: Same as \#1 but numerically normalized \\
+        &  & 12: Spherical, Cartesian Gaussian numerically normalized \\
+        &  & 2D: $ S = R G_{2D} $ \\
+        &  & 3D: $ S = \exp \left[ - \frac{(R\cos\phi - R_p\cos\phi_p)^2 
+                                          +(R\sin\phi - R_p\sin\phi_p)^2
+                                          +(Z - Z_p)^2}{2 V_P^2} \right] $ \\
+        &  & 13: Axisymmetric, toroidal Gaussian, numerically normalized 2D and 3D:
+                 $S = G_{2D} $ \\
+        &  & 14: Toroidal distribution is a blend of a von Mises and Cauchy distribution \\
+        &  &     \begin{equation}
+                 \begin{aligned}  
+              &  S = G_{2D}\times \frac{R}{\sqrt{2 \pi} V_p} \times \nonumber \\
+              &  \left[ (1 - f_c) \exp \left[  - \frac {R R_p \left( 1 - \cos(\phi-\phi_p) \right)}{V_t^2} \right] 
+                       + f_c \times \frac{\cosh(\frac{V_t}{\sqrt{RR_p}}) - cos(\phi_p)}
+                                             {\cosh(\frac{V_t}{\sqrt{RR_p}}) - cos(\phi - \phi_p)} \right]
+                   \nonumber \end{aligned} 
+                   \end{equation} \\
+
+
+        &  & 15: Toroidal von-Mises distribution with angular half-width \\
+        &  & $ S = G_{2D} \times \exp \left[ \cos(\phi - \phi_p) / V_p^2                   
+                                      \right] $ \\
+        &  & Pellet\_var\_tor radians for ipellet=15, distance otherwise \\
+
+  \texttt{ipellet\_z}  & 0  & Atomic number of pellet (0 for main-ion species) \\
+  \texttt{ipellet\_abl} & 0 & Turn on pellet ablation.  (Recommend double-digit ipellet for particle conservation) \\
+                        &   & 1: Include ablation model [Parks NF94] calibrated on DIII-D (Li) \\
+                        &   & 2: Include new ablation model [Parks, 2015] for small pellets (Li) \\
+                        &   & 3: Parks model developed 6/20/2017 (for Neon) \\
+  \texttt{temin\_abl}   & 0 & Minimum temperature at which ablation turns on \\
+  \texttt{iread\_pellet}& 0 & 0: Single pellet defined by scalar parameters below \\
+                        &   & 1: Read pellet.dat, with one row per pellet.   The 13
+                                 space-delimited columns are: \\
+                        &   & pellet\_r, pellet\_phi, pellet\_z, pellet\_rate, pellet\_var,
+                              pellet\_var\_tor, pellet\_velr, pellet\_vel\_phi,
+                              pellet\_vel\_z, r\_p, cloud\_pel, pellet\_mix, cauchy\_fraction \\    
+  \texttt{pellet\_rate} & 0 & Particle number injection rate\\
+  \texttt{pellet\_var}  & 1    & Variance of injection profile\\
+  \texttt{pellet\_var\_tor} & 0 & toroidal spatial dispersion of pellet source $(V_t)$.  
+                                  If zero, pellet\_var\_tor = pellet\_var. \\
+  \texttt{pellet\_R}    & 0 & $R$-coordinate of injection profile\\
+  \texttt{pellet\_z}    & 0 & $Z$-coordinate of injection profile\\
+  \texttt{pellet\_velr} & 0 & initial radial velocity of the pellet \\
+  \texttt{pellet\_velphi} & 0 & initial toroidal velocity of pellet \\
+  \texttt{pellet\_velz}   & 0 & initial vertical velocity of pellet \\
+  \texttt{r\_p}           & 1.e-3 & initial pellet radius \\
+  \texttt{cloud\_pel}     & 1     & Parameter used to change the width of the density source if
+                                    ablating.   In this case, pellet\_var = cloud\_pel * r\_p \\
+  \texttt{pellet\_mix}   & 0 & Molar fraction of diatomic main ion molecures in pellet (e.g., $D_2$ )
+
+\end{tabular}
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+
+  \texttt{irestart\_pellet} & 0 & 1: will read the following from C1input at restart (the rest from *.h5)
+                                     pellet\_rate, pellet\_rate\_D2, pellet\_var\_tor, 
+                                     pellet\_var, cloud\_pel, pellet\_mix, cauchy\_fraction \\
+  \texttt{abl\_fac} & 1.0 &  factor to multiply ablation rate from predefined formula \\ 
+
+  \hline
+  \texttt{n\_control\_type} & -1 & -1:  no density control \\
+                            &    &  0:  old density control algorithm (not recommended) \\
+                            &    &  1:  Standard PID control with the following parameters: \\
+  \texttt{n\_control\_p}    & 0  &  proportional feedback constant \\
+  \texttt{n\_control\_i}    & 0 &  integral feedback constant \\
+  \texttt{n\_control\_d}    & 0 &  derivative feedback constant \\
+  \hline
+  \texttt{igaussian\_heat\_source} & 0 & 1: include Gaussian heat fource \\
+  \texttt{ghs\_x}   & 0 & R coordinate of Gaussian heat source \\
+  \texttt{ghs\_z}   & 0 & Z coordinate of Gaussian heat source \\
+  \texttt{ghs\_rate}& 0 & amplitude of Gaussian heat source \\
+  \texttt{ghs\_var} & 0 & variance of Gaussian heat source \\
+  \texttt{ghs\_phi} & 0 & phi coordinate of Gaussian heat source \\
+  \texttt{ghs\_var\_tor} & 0 & toroidal variance of GAussian heat source \\
+  \hline
+
+  \texttt{ionization}   & 0  & 1: include neutral ionization source \\
+  \texttt{ionization\_rate} & 0 & Ionization rate coefficient\\
+  \texttt{ionization\_temp} & 0.01 & Ionization energy\\
+  \texttt{ionization\_depth}& 0.01 & Temperature scale-length of neutral burn-out
+\end{tabular}
+
+
+\begin{tabular}{llp{4.5in}}
+  \hline
+current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
+                     & & $J_{CD} = J_0 \exp- \left[ (R-R_{0cd})^2 + (Z-Z_{0cd})^2   
+                                             \right]/W_{cd} - \Delta_{cd}  $ \\
+ \texttt{icd\_source} & 0 & 1: include current drive \\
+ \texttt{J\_0cd}      & 0 & $J_0$: Magnitude of Gaussian \\
+ \texttt{R\_0cd}      & 0 & $R_{0cd}$: R coordinate of maximum \\
+ \texttt{Z\_0cd}      & 0 & $Z_{0cd}$: Z coordinate of maximum \\
+ \texttt{W\_cd}       & 0 & $W_{cd}$: Width of maximum \\
+ \texttt{delta\_cd}   & 0 & $\Delta_{cd}$: shift of Gaussian \\
+\hline
+ \texttt{isink}          & 0 & number of density sinks: 0,1,or 2 \\
+ \texttt{sink1\_x}       & 0 & R coordinate of first density sink \\
+ \texttt{sink1\_z}       & 0 & Z coordinate of first density sink \\
+ \texttt{sink1\_rate}    & 0 & rate of first density sink \\
+ \texttt{sink1\_var}     & 1 & variance of first density sink \\
+ \texttt{sink2\_x}       & 0 & R coordinate of second density sink \\
+ \texttt{sink2\_z}       & 0 & Z coordinate of second density sink \\
+ \texttt{sink2\_rate}    & 0 & rate of second density sink \\
+ \texttt{sink2\_var}     & 1 & variance of second density sink \\
+\hline
+ \texttt{idenfloor}      & 0 & 1: density in vacuum pegged to den\_edge \\
+ \texttt{alphadenfloor}  & 0 & multiplier of (den\_edge - den).  Must be .lt. 1/DT \\ 
+%\end{tabular}
+%\begin{tabular}{llp{4.5in}}
+\hline
+ \texttt{ipforce} & 0 & 1: include poloidal momentum source \\
+                  &   & $F = f(\tilde{\psi}) \nabla \psi \times \nabla \phi$  \\
+                  &   & $f(\tilde{\psi}) = \alpha(1 - \tilde{\psi})^N \frac{ \delta^2    }
+                                                                           { (\tilde{\psi} - \psi_0)^2    + \delta^2} $  \\
+                  &   & 2:  Include Luca Guzzatto form of momentum source  
+
+
+\end{tabular}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{dforce}  & 0 &  $\delta$ \\
+  \texttt{xforce}  & 0 &  $\psi_0$ \\
+  \texttt{nforce}  & 0 &  $N$ \\
+  \texttt{aforce}   & 0 &  $ \alpha $ \\
+  \texttt{iheat\_sink}         & 0 & 1:  special heat sink for itaylor=27  \\
+  \texttt{coolrate}            & 0 & S = coolrate*(pedge-p) for iheat\_sink = 1 \\
+  \texttt{iarc\_source}        & 0 & 1: density source due to halo current \\
+  \texttt{arc\_source\_alpha}  & 0 &   parameter for arc\_source \\
+  \texttt{arc\_source\_eta}    & .01 & parameter for arc\_source
+
+\end{tabular}
+\subsection{Resistive Wall}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{eta\_vac}    & 1 &  resistivity of vacuum region \\
+  \texttt{eta\_wall}   & .001 & resistivity of conducting wall regions \\
+  \texttt{eta\_wallRZ} & .001 & poloidal resistivity of wall region (if different from eta\_wall) \\
+  \texttt{iwall\_break}& 0 & number of wall breaks \\
+  \texttt{eta\_break} & 1 & resistivity of wall break (array) \\
+  \texttt{wall\_break\_phimax} & 0 & max phi coordinate for break (array) \\
+  \texttt{wall\_break\_phimin} & 0 & min phi coordinate for break (array) \\
+  \texttt{wall\_break\_xmax}   & 0 & max R coordinate for break (array) \\
+  \texttt{wall\_break\_xmin}   & 0 & min R coordinate for break (array) \\
+  \texttt{wall\_break\_zmax}   & 0 & max Z coordinate for break (array) \\
+  \texttt{wall\_break\_zmin}   & 0 & min Z coordinate for break	(array)	\\ 
+  \texttt{iwall\_regions}      & 0 & number of resistive wall regions \\
+  \texttt{wall\_region\_eta()}  & 1.e-3 & resistivity of each wall region \\
+  \texttt{wall\_region\_etaRZ()}& 1.e-3 & poloidal restivity (if different from wall\_region\_eta) \\
+  \texttt{wall\_region\_filename()} & &   file name will wall contour points \\
+  \texttt{eta\_zone(i)} & eta\_wall & Resistivity of mesh region \texttt{i}.  Only applies if \texttt{zone\_type(i)} = 2 (conductor).\\
+  \texttt{etaRZ\_zone(i)} & eta\_zone(i) & Poloidal resistivity of mesh region \texttt{i}.  Only applies if \texttt{zone\_type(i)} = 2 (conductor).\\ 
+  \texttt{eta\_rekc}  & 0 & resistivity of runaway electron killer coil (REKC) \\
+  \texttt{ntor\_rekc} & 0 & toroidal mode number of REKC  \\
+  \texttt{mpol\_rekc} & 0 & poloidal mode number of REKC \\
+  \texttt{phi\_rekc}  & 0 & toroidal angle of fixed point of REKC \\
+  \texttt{theta\_rekc}& 0 & poloidal angle of fixed point of REKC \\
+  \texttt{rzero\_rekc}& 0 & R0 for computing theta of REKC \\
+  \texttt{zzero\_rekc}& 0 & Z0 for computing theta of REKC \\
+  \texttt{isym\_rekc} & 0 & if non-zero, coil is double helix with (+,-) mpol\_rekc
+\end{tabular}
+
+\subsection{Miscellaneous}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt(
+ \texttt{gam}                    & 5/3 & ratio of sepcific heatx \\
+ \texttt{db}                     & 0 & ion skin depth (overrides db\_fac \\
+ \texttt{db\_fac}                & 0 & factor multiplying physical value of ion skin depth \\
+ \texttt{mass\_ratio}            & 0 & ratio of ion to electron mass \\
+ \texttt{lambdae}                & 0 & lambdae \\
+ \texttt{z\_ion}                 & 1 & Z-effective \\
+ \texttt{ion\_mass}              & 1 & ion mass in units of m\_p \\
+ \texttt{lambda\_coulomb}         & 17 & Couloumb logarithm \\
+ \texttt{thermal\_force\_coeff}  & 0 &  coefficient of thermal force \\
+ \texttt{ntor}                   & 0 &  toroidal mode number for 3D linear (complex) \\
+ \texttt{mpol}                   & 0 &  poloidal mode number for certain test problem initializations 
+
+\end{tabular}
+
+\subsection{Deprecated}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{ipartitioned}   & 0 &     \\
+ \texttt{igs\_method}    & -1&     \\
+ \texttt{ibform}         & -1&     \\
+ \texttt{delta\_wall}    & 1.&
+\end{tabular}
+
+\subsection{Trilinos Options}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{drop\_tolerance}    & 0 &   ILU drop tolerance \\
+ \texttt{graph\_fill}        & 0 & graph fill level \\
+ \texttt{ilu\_fill\_level}   & 1 & ILU fill level \\
+ \texttt{ilu\_omega}         & 1 & relaxation parameter for rILU \\
+ \texttt{krylov\_solver}     & gmres & Krylov solver \\
+ \texttt{poly\_ord}          & 1     & polynomial order for certain perconditioners \\
+ \texttt{preconditioner}     &dom\_decomp & preconditioner \\
+ \texttt{sub\_dom\_solver}   & ilu & subdomain solver in preconditioner \\
+ \texttt{subdomain\_overlap} & 1   & subdomain overlap 
+
+\end{tabular}
+
+\subsection{Simple Radiation Model}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{iprad}    & 0 & 1: call Prad radiation module with one impurity species \\
+                   &   & $P_{rad} = n_e n_D L_D (T_e) + n_e n_Z L_Z(T_e)   $  \\
+                   &   & Cooling rate of deuterium is $L_D = 5.35 \times 10^{-37}T_e^{1/2}[keV] W-m $ \\
+                   &   & $L_Z(T_e)$ taken from Post, et al, Atomic data and nuclear data tables,
+                                      {\bf 20} pp. 397-439 (1977)  \\
+ \texttt{prad\_fz}  & 1 & density of impurity species as fraction of $n_e$ \\
+ \texttt{prad\_z}      & 1 & Z of impurity species: Z=6(C), 18(Argon), 26(Fe) are available \\
+ \texttt{iread\_prad}  & 0 & 1: Read impurity density from profile\_nz (units of $10^{20}/m^3$ ) 
+\end{tabular}
+
+\subsection{KPRAD Radiation Model}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{ikprad}        & 0 & 1: KPRAD module with one impurity species \\
+ \texttt{ikprad\_z}     & 1 & Z of impurity species in KPRAD module.   Presently available:
+                                  2(He), 4(Be), 6 (C),10(Ne), 18 (Ar) \\
+ \texttt{kprad\_fz}      & 0 & density of neutrals as fraction of ne \\
+ \texttt{kprad\_nz}      & 0 & Density of neutral impurities \\
+ \texttt{kprad\_nemin}   & $10^{-12}$& Minimum normalized electron density for KPRAD evolution \\
+ \texttt{kprad\_temin}   & $ 2 \times 10^{-7} $ & Minimum normalized electron temperature for KPRAD evolution \\
+ \texttt{ikprad\_max\_dt}&  0 & Set max time step for KPRAD ionization \\
+                         &    & 0: MHD time step dt \\
+                         &    & 1: {\bf RECOMMENDED:} dt/( kprad\_z + 1 ) : ensures evolution through all charge states. \\
+ \texttt{ikprad\_evolve\_internal}  & 0 & Update local temperature during KPRAD subcycling: \\
+                                    &   & 0: Te fixed before subcycling \\
+                                    &   & 1: {\bf RECOMMENDED} Local ne and Te used for KPRAD 
+                                                  ionization/radiation updated during subcycling each 
+                                                  KPRAD time step due to density and energy changes \\
+\texttt{ikprad\_evolve\_neutrals}   & 0 & Determines how KPRAD  neutrals evolve spatially: \\
+                                    &   & 0: Neither advect nor diffuse \\
+                                    &   & 1: {\bf RECOMMENDED} Advect and diffuse like other charge states \\
+                                    &   & 2: Diffuse but do not advect \\
+ 
+
+\texttt{ikprad\_min\_option}        & 1 & Determine how KPRAD behaves below minimum density/temperature
+                                          (kprad\_nemin, kprad\_temin) \\ 
+                                    &   & 1: No radiation/ionization/recombination (based on ne/te before subcycling) \\
+                                    &   & 2: {\bf RECOMMENDED} Recombination but no radiation/ionization (based on ne/Te during subcycling) \\
+                                    &   & 3: No radiation/ionization/recombination (based on ne/Te during subcycling).  
+                                             NOTE: 1 and 3 behave the same if ikprad\_evolve\_internal = 0) \\
+
+\texttt{iread\_lp\_source} & 0 & Read impurity source from Lagrangian Particle code cloud.txt (UNDER DEVELOPMENT)
+\end{tabular}
+
+\subsection{Stellarator Geometry}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{type\_ext\_field}        & 0 & 1: read either  VMEC or MGRID file \\ 
+ \texttt{file\_ext\_field}        &   & (string) FIELDLINE/MGRID file.  Must start with 'fieldlines' or 'mgrid' \\
+ \texttt{iread\_vmec}             & 0 & 1: read VMEC file to determine geometry. Must be 1 for stellarator. \\
+ \texttt{vmec\_filename}          &   & (string) VMEC output .nc file \\
+ \texttt{bloat\_factor}           & 0 & Free boundary only:  Scale factor to bloat computational boundary using input geometry. \\
+ \texttt{bloat\_distance}         & 0 & Free boundary only:  Distance to expand computational boundary from input geometry. \\
+ \texttt{igeometry}               & 0 & 1: must be set to use stellarator version \\
+ \texttt{nperiods}                & 1 & Number of field periods (stellarator geometry).    Note nplanes
+                                        should be equal to at least 2 x (number of toroidal modes 
+                                        per field period) x nperiods \\
+ \texttt{ifull\_torus}            & 0 & 0:  Solve on one field period \\
+                                  &   & 1:  Solve on full torus \\
+ \texttt{nzer\_factor}            &-1&  (integer) Scale factor for resolution of Zernike polynomial
+                                                  (used for interpolation of VMEC) \\
+                                  &  &  -1: n\_zeri= 2 x mpol (fixed boundary) and 1 x mpol (free boundary). \\
+                                  &  &  Otherwise: n\_zer = nzer\_factor x mpol where mpol is poloidal resolution in VMEC \\
+ \texttt{nzer\_manual}             &-1& (int) Resolution of Zernike polynomial (mainly for testing)
+
+\end{tabular}

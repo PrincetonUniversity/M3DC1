@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH -p preemptable
+#SBATCH -n 64
+#SBATCH -J M3DC1_regtest_NCSX
+#SBATCH -t 0:45:00
+#SBATCH -o C1stdout
+
+touch started
+
+#create_mesh.sh
+#echo $? > mesh_created
+
+part_mesh.sh circle-858.smb 8
+echo $? > mesh_partitioned
+
+$M3DC1_MPIRUN -np $SLURM_NTASKS m3dc1_3d_st -ipetsc -options_file options_bjacobi1
+
+touch finished

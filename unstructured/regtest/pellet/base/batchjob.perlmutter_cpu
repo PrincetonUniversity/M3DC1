@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH -A mp288
+#SBATCH -q debug
+#SBATCH -C cpu
+#SBATCH -n 128
+#SBATCH -J M3DC1_regtest_pellet
+#SBATCH -t 0:30:00
+#SBATCH -o C1stdout
+
+export SLURM_CPU_BIND="cores"
+echo $SLURM_CPUS_ON_NODE
+
+touch started
+
+# partition mesh
+#part_mesh.sh analytic-2K.smb 32
+#echo $? > mesh_partitioned
+PARTS=32
+$M3DC1_MPIRUN -n $PARTS split_smb analytic-2K.smb part.smb $PARTS
+echo $? > mesh_partitioned
+
+
+# Run M3D-C1
+${M3DC1_MPIRUN} -n $SLURM_NTASKS -c 2 m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps
+
+touch finished
+

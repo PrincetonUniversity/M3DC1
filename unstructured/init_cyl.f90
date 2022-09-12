@@ -186,7 +186,7 @@ contains
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
        call define_fields(itri,0,1,0)
 
-       call get_boundary_mask(itri, ibound, imask, domain_boundary)
+       call get_boundary_mask(itri, ibound, imask, BOUND_DOMAIN)
        
        r = sqrt((x_79 - xmag)**2 + (z_79 - zmag)**2)
 

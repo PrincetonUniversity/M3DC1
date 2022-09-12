@@ -51,5 +51,5 @@ pro plot_pol_velocity, time,  maxval=maxval, points=points, $
     ytitle=make_label('!8Z!X', /l0, _EXTRA=extra), $
     title=title, subtitle=maxstr
 
-  if(keyword_set(lcfs)) then plot_lcfs, points=200, slice=time, _EXTRA=extra
+  if(keyword_set(lcfs)) then plot_lcfs, /over, points=200, slice=time, _EXTRA=extra
 end

@@ -29,14 +29,16 @@ pro create_map, rfield, zfield, r=r, z=z, ix=i0, iy=j0, mask=mask
   tol = 1e-4
   its = 100
   converged = 0
-  iguess = n/2.
   for i=0, n-1 do begin
-     jguess = n/2.
      for j=0, n-1 do begin
 
-        iguess_old = iguess
-        jguess_old = jguess
+        ; first find discrete index of point closest to r[i], z[j]
+        df2 = (rf - r[i])^2 + (zf - z[j])^2
+        m = min(df2, imin)
+        jguess = fix(imin / n)
+        iguess = imin mod n
 
+        ; then refine with newton iterations
         for k=0, its-1 do begin
            rval = interpolate(rf, iguess, jguess)
            zval = interpolate(zf, iguess, jguess)
@@ -54,31 +56,37 @@ pro create_map, rfield, zfield, r=r, z=z, ix=i0, iy=j0, mask=mask
            dzdi = interpolate(zf_x, iguess, jguess)
            dzdj = interpolate(zf_z, iguess, jguess)
            
-           dd2di = (rval - r[i])*drdi + (zval - z[j])*dzdi
-           dd2dj = (rval - r[i])*drdj + (zval - z[j])*dzdj
-           
-           ; d2 + vec(dl) . grad(d2) = 0
+           dd2di = 2.*((rval - r[i])*drdi + (zval - z[j])*dzdi)
+           dd2dj = 2.*((rval - r[i])*drdj + (zval - z[j])*dzdj)
+
+           ; d2 is the (squared) distance in real
+           ; space from the desired point.  Move in direction of
+           ; gradient using Newton method
+
+           ; d + vec(dl) . grad(d) = 0
+           ; => d2 + vec(dl) . grad(d2)/2. = 0
            ; vec(dl) = dl * grad(d2)/|grad(d2)|
-           ; dl = -d2 grad(d2)/ | grad(d2) |^2
-           dl = -d2 / (dd2di^2 + dd2dj^2)
+           ; dl = -d2 / |grad(d2)|
+           ; di = dl*dd2di/|grad(d2)|
+           dl = -2. * d2 / (dd2di^2 + dd2dj^2)
            di = dl*dd2di
            dj = dl*dd2dj
            
                                 ; check to make sure we're
                                 ; staying in bounds.  If not, move
-                                ; 90% of the way to the boundary
+                                ; 50% of the way to the boundary
            if(iguess+di lt 0.) then begin
-              di = -iguess*0.99
+              di = -iguess*0.50
            endif else if(iguess+di gt n-1) then begin
-              di = (n-1-iguess)*0.99
+              di = (n-1-iguess)*0.50
            endif
            if(jguess+dj lt 0.) then begin
-              dj = -jguess*0.99
+              dj = -jguess*0.50
            endif else if(jguess+dj gt n-1) then begin
-              dj = (n-1-jguess)*0.99
+              dj = (n-1-jguess)*0.50
            endif
 
-           ; chcek to make sure we're still in the computational domain
+           ; check to make sure we're still in the computational domain
            for l=0, 10 do begin
               m = interpolate(mask, iguess + di, jguess + dj)
               if(abs(m) lt 0.02) then break

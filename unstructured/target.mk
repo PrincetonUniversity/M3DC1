@@ -52,8 +52,9 @@ cleanall :
 	cd templates ; make clean
 
 .PHONY: clean
-clean : 
-	rm -fr _$(ARCH)*
+clean :
+	rm -fr _$(ARCH)
+	rm -fr _$(ARCH)-*
 	rm -fr $(SCOREC_DIR)
 	rm -fr $(SCOREC_BUILD)
 

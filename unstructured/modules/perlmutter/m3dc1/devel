@@ -31,9 +31,9 @@ module-whatis                   "$description"
 
 ## Software-specific settings exported to user environment
 
-#if { [ is-loaded craype-mic-knl ] } {
-#  module unload craype-mic-knl
-#}
+if { ! [ is-loaded PrgEnv-nvidia/8.3.3 ] } {
+  module load PrgEnv-nvidia/8.3.3
+}
 #if { ! [ is-loaded craype-haswell ] } {
 #  module load craype-haswell
 #}
@@ -59,6 +59,9 @@ module-whatis                   "$description"
 #if { ! [ is-loaded idl ] } {
 #  module load idl
 #}
+if { ! [ is-loaded fast-mkl-amd ] } {
+  module load fast-mkl-amd
+}
 
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root

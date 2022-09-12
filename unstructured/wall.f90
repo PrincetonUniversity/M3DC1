@@ -39,7 +39,7 @@ contains
 
        mat_dofs = intxx3(mu79(:,:,OP_GS),nu79(:,:,OP_GS),ri_79)
 
-       call apply_boundary_mask(itri, ibound, mat_dofs, tags=inner_wall)
+       call apply_boundary_mask(itri, ibound, mat_dofs, tags=BOUND_FIRSTWALL)
 
        call insert_block(wall_matrix, itri, 1, 1, mat_dofs, MAT_ADD)
     end do
@@ -89,7 +89,7 @@ contains
        index = node_index(rhs, i, 1)
        
        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-            inner_wall)
+            BOUND_FIRSTWALL)
        if(.not.is_boundary) cycle
        
        temp = 0.

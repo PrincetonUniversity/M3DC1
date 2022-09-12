@@ -1,0 +1,14 @@
+numBdry 2
+bdryFile inner_bdry.pts 1 0.5
+bdryFile outer_bdry.pts 2 0.5
+useVacuum 2 3 0.5
+vacuumParams 8.25 8.0 0.2 0.0 12.5
+numFace 3
+faceBdry 1 1 0.7
+faceBdry 2 1 2 0.5
+faceBdry 2 2 3 0.7
+outFile iter
+
+meshGradationRate 1
+vacuum-width 1 
+vacuum-height 1

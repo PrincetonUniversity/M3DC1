@@ -67,11 +67,7 @@ void attach_b_spline_curve ( int* edge, int * order, int* numPts, double* ctrlPt
 void eval_position ( int* edge, double* para, double* position );
 void eval_normal ( int* edge, double* para, double* normal );
 void eval_curvature ( int* edge, double* para, double* curvature );
-void set_inner_wall_boundary ( int * loopId );
-void set_outer_wall_boundary ( int * loopId );
-void set_vacuum_boundary ( int * loopId );
-void set_separatrix ( int * loopId );
-void finalize_model();
+
 void save_model(const char* filename);
 void load_model(const char* filename);
 void offset_point (double * src, double * normal, double * thickness, double * des);

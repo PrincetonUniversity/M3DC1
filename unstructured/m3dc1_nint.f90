@@ -56,8 +56,8 @@ module m3dc1_nint
   integer, parameter :: FIELD_P   =    64
   integer, parameter :: FIELD_N   =   128
   integer, parameter :: FIELD_J   =   256
-  integer, parameter :: FIELD_VOR =   512
-  integer, parameter :: FIELD_COM =  1024
+  integer, parameter :: FIELD_XX1 =   512  ! UNUSED
+  integer, parameter :: FIELD_XX2 =  1024  ! UNUSED
   integer, parameter :: FIELD_NI  =  2048
   integer, parameter :: FIELD_B2I =  4096
   integer, parameter :: FIELD_ETA =  8192
@@ -111,9 +111,9 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(rho79, nw79)
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
-  vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
+  vectype, dimension(MAX_PTS, OP_NUM) :: jt79, pit79, &
        eta79, etaRZ79,sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79, sir79
-!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,etaRZ79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79,sir79)
+!$OMP THREADPRIVATE(jt79,pit79,eta79,etaRZ79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79,sir79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bfp079, bfp179, bfpt79
 !$OMP THREADPRIVATE(bfp079,bfp179,bfpt79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
@@ -385,7 +385,8 @@ contains
     integer, intent(in) :: itri
     integer :: i
     vectype, dimension(MAX_PTS) :: di_79, di2_79
-    real  :: value_nan ! NaN to be assigned to forbidden operations 
+    real :: negone
+    real :: value_nan ! NaN to be assigned to forbidden operations
     
     ! calculate logical derivatives of geometry
     call eval_ops(itri, rst, rst79)
@@ -522,7 +523,8 @@ contains
     !if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, must79(1,1,:) 
 #ifdef USE3D
     ! set forbidden operations to NaN
-    value_nan = sqrt(-1.)
+    negone = -1.
+    value_nan = sqrt(negone)
     mu79(:,:,OP_DRRP:OP_GSP) = value_nan
     mu79(:,:,OP_DRPP:OP_GSPP) = value_nan 
     !mu79(:,:,OP_GSP) = value_nan 
@@ -613,7 +615,8 @@ contains
 
     real :: fac
     real :: p_floor
-    integer :: izone, ieqsub, fields, i
+    integer :: izone, ieqsub, fields, i, iz
+    integer, dimension(MAX_PTS) :: izarr
     type(element_data) :: d
 
     fields = fieldi
@@ -1106,30 +1109,6 @@ contains
      end if
   endif
 
-  ! VOR
-  ! ~~~
-  if(iand(fields, FIELD_VOR).eq.FIELD_VOR) then
-     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   vor..."
-
-     if(ilin.eq.0) then
-        call eval_ops(itri, vor_field, vot79)
-     else
-        vot79 = 0.
-     end if
-  endif
-
-  ! COM
-  ! ~~~
-  if(iand(fields, FIELD_COM).eq.FIELD_COM) then
-     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   com..."
-
-     if(ilin.eq.0) then
-        call eval_ops(itri, com_field, cot79)
-     else
-        cot79 = 0.
-     end if
-  endif
-
 
   ! B2I
   ! ~~~
@@ -1198,10 +1177,12 @@ contains
         eta79 = 0.
         eta79(:,OP_1) = eta_vac
      else if(izone.eq.2) then
+        call get_zone_index(itri,iz)
+        izarr = iz
         eta79 = 0.
-        eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79)
+        eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79,izarr)
         etaRZ79 = 0
-        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79)
+        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79,izarr)
      else 
         if(iresfunc.eq.2) then
            if(linear.eq.1) then

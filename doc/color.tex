@@ -1,0 +1,337 @@
+\documentclass[11pt]{article}  % include bezier curves
+\renewcommand\baselinestretch{1.0}           % single space
+%\pagestyle{empty}                            % no headers and page numbers
+\author{}
+\title{}
+
+\oddsidemargin -10 true pt      % Left margin on odd-numbered pages.
+\evensidemargin 10 true pt      % Left margin on even-numbered pages.
+\marginparwidth 1.5 true in    % Width of marginal notes.
+\oddsidemargin  0 true in       % Note that \oddsidemargin=\evensidemargin
+\evensidemargin 0 true in
+\topmargin -0.5 true in        % Nominal distance from top of page to top of
+\textheight 9.0 true in         % Height of text (including footnotes and figures)
+\textwidth 6.5 true in        % Width of text line.
+\parindent=0pt                  % Do not indent paragraphs
+\parskip=0.15 true in
+%\usepackage{color}              % Need the color package
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{arrows}
+
+\begin{document}
+
+\begin{figure}
+\begin{center}
+\begin{scriptsize}
+\begin{tikzpicture}[decoration={bent,aspect=.3}]
+%yellow
+\node[yellow!25] at (0,0) {yellow!25};
+\node[yellow!25!yellow] at (0,0.5) {yellow!25!yellow};
+\node[yellow!25!orange] at (0,1) {yellow!25!orange};
+\node[yellow!25!red] at (0,1.5) {yellow!25!red};
+\node[yellow!25!green] at (0,2) {yellow!25!green};
+\node[yellow!25!blue] at (0,2.5) {yellow!25!blue};
+\node[yellow!25!gray] at (0,3) {yellow!25!gray};
+\node[yellow!25!black] at (0,3.5) {yellow!25!black};
+
+\node[yellow!50] at (3,0) {yellow!50};
+\node[yellow!50!yellow] at (3,0.5) {yellow!50!yellow};
+\node[yellow!50!orange] at (3,1) {yellow!50!orange};
+\node[yellow!50!red] at (3,1.5) {yellow!50!red};
+\node[yellow!50!green] at (3,2) {yellow!50!green};
+\node[yellow!50!blue] at (3,2.5) {yellow!50!blue};
+\node[yellow!50!gray] at (3,3) {yellow!50!gray};
+\node[yellow!50!black] at (3,3.5) {yellow!50!black};
+
+\node[yellow!75] at (6,0) {yellow!70};
+\node[yellow!75!yellow] at (6,0.5) {yellow!75!yellow};
+\node[yellow!75!orange] at (6,1) {yellow!75!orange};
+\node[yellow!75!red] at (6,1.5) {yellow!75!red};
+\node[yellow!75!green] at (6,2) {yellow!75!green};
+\node[yellow!75!blue] at (6,2.5) {yellow!75!blue};
+\node[yellow!75!gray] at (6,3) {yellow!75!gray};
+\node[yellow!75!black] at (6,3.5) {yellow!75!black};
+
+\node[yellow!10] at (9,0) {yellow!10};
+\node[yellow!20] at (9,0.5) {yellow!20};
+\node[yellow!30] at (9,1) {yellow!30};
+\node[yellow!40] at (9,1.5) {yellow!40};
+\node[yellow!60] at (9,2) {yellow!60};
+\node[yellow!70] at (9,2.5) {yellow!70};
+\node[yellow!80] at (9,3) {yellow!80};
+\node[yellow] at (9,3.5) {yellow};
+
+%orange
+\node[orange!25] at (0,4) {orange!25};
+\node[orange!25!yellow] at (0,4.5) {orange!25!yellow};
+\node[orange!25!orange] at (0,5) {orange!25!orange};
+\node[orange!25!red] at (0,5.5) {orange!25!red};
+\node[orange!25!green] at (0,6) {orange!25!green};
+\node[orange!25!blue] at (0,6.5) {orange!25!blue};
+\node[orange!25!gray] at (0,7) {orange!25!gray};
+\node[orange!25!black] at (0,7.5) {orange!25!black};
+
+\node[orange!50] at (3,4) {orange!50};
+\node[orange!50!yellow] at (3,4.5) {orange!50!yellow};
+\node[orange!50!orange] at (3,5) {orange!50!orange};
+\node[orange!50!red] at (3,5.5) {orange!50!red};
+\node[orange!50!green] at (3,6) {orange!50!green};
+\node[orange!50!blue] at (3,6.5) {orange!50!blue};
+\node[orange!50!gray] at (3,7) {orange!50!gray};
+\node[orange!50!black] at (3,7.5) {orange!50!black};
+
+\node[orange!75] at (6,4) {orange!75};
+\node[orange!75!yellow] at (6,4.5) {orange!75!yellow};
+\node[orange!75!orange] at (6,5) {orange!75!orange};
+\node[orange!75!red] at (6,5.5) {orange!75!red};
+\node[orange!75!green] at (6,6) {orange!75!green};
+\node[orange!75!blue] at (6,6.5) {orange!75!blue};
+\node[orange!75!gray] at (6,7) {orange!75!gray};
+\node[orange!75!black] at (6,7.5) {orange!75!black};
+
+\node[orange!10] at (9,4) {orange!10};
+\node[orange!20] at (9,4.5) {orange!20};
+\node[orange!30] at (9,5) {orange!30};
+\node[orange!40] at (9,5.5) {orange!40};
+\node[orange!60] at (9,6) {orange!60};
+\node[orange!70] at (9,6.5) {orange!70};
+\node[orange!80] at (9,7) {orange!80};
+\node[orange] at (9,7.5) {orange};
+
+%red
+\node[red!25] at (0,8) {red!25};
+\node[red!25!yellow] at (0,8.5) {red!25!yellow};
+\node[red!25!orange] at (0,9) {red!25!orange};
+\node[red!25!red] at (0,9.5) {red!25!red};
+\node[red!25!green] at (0,10) {red!25!green};
+\node[red!25!blue] at (0,10.5) {red!25!blue};
+\node[red!25!gray] at (0,11) {red!25!gray};
+\node[red!25!black] at (0,11.5) {red!25!black};
+
+\node[red!50] at (3,8) {red!50};
+\node[red!50!yellow] at (3,8.5) {red!50!yellow};
+\node[red!50!orange] at (3,9) {red!50!orange};
+\node[red!50!red] at (3,9.5) {red!50!red};
+\node[red!50!green] at (3,10) {red!50!green};
+\node[red!50!blue] at (3,10.5) {red!50!blue};
+\node[red!50!gray] at (3,11) {red!50!gray};
+\node[red!50!black] at (3,11.5) {red!50!black};
+
+\node[red!75] at (6,8) {red!75};
+\node[red!75!yellow] at (6,8.5) {red!75!yellow};
+\node[red!75!orange] at (6,9) {red!75!orange};
+\node[red!75!red] at (6,9.5) {red!75!red};
+\node[red!75!green] at (6,10) {red!75!green};
+\node[red!75!blue] at (6,10.5) {red!75!blue};
+\node[red!75!gray] at (6,11) {red!75!gray};
+\node[red!75!black] at (6,11.5) {red!75!black};
+
+\node[red!10] at (9,8) {red!10};
+\node[red!20] at (9,8.5) {red!20};
+\node[red!30] at (9,9) {red!30};
+\node[red!40] at (9,9.5) {red!40};
+\node[red!60] at (9,10) {red!60};
+\node[red!70] at (9,10.5) {red!70};
+\node[red!80] at (9,11) {red!80};
+\node[red] at (9,11.5) {red};
+%green
+\node[green!25] at (0,12) {green!25};
+\node[green!25!yellow] at (0,12.5) {green!25!yellow};
+\node[green!25!orange] at (0,13) {green!25!orange};
+\node[green!25!red] at (0,13.5) {green!25!red};
+\node[green!25!green] at (0,14) {green!25!green};
+\node[green!25!blue] at (0,14.5) {green!25!blue};
+\node[green!25!gray] at (0,15) {green!25!gray};
+\node[green!25!black] at (0,15.5) {green!25!black};
+
+\node[green!50] at (3,12) {green!50};
+\node[green!50!yellow] at (3,12.5) {green!50!yellow};
+\node[green!50!orange] at (3,13) {green!50!orange};
+\node[green!50!red] at (3,13.5) {green!50!red};
+\node[green!50!green] at (3,14) {green!50!green};
+\node[green!50!blue] at (3,14.5) {green!50!blue};
+\node[green!50!gray] at (3,15) {green!50!gray};
+\node[green!50!black] at (3,15.5) {green!50!black};
+
+\node[green!75] at (6,12) {green!75};
+\node[green!75!yellow] at (6,12.5) {green!75!yellow};
+\node[green!75!orange] at (6,13) {green!75!orange};
+\node[green!75!red] at (6,13.5) {green!75!red};
+\node[green!75!green] at (6,14) {green!75!green};
+\node[green!75!blue] at (6,14.5) {green!75!blue};
+\node[green!75!gray] at (6,15) {green!75!gray};
+\node[green!75!black] at (6,15.5) {green!75!black};
+
+\node[green!10] at (9,12) {green!10};
+\node[green!20] at (9,12.5) {green!20};
+\node[green!30] at (9,13) {green!30};
+\node[green!40] at (9,13.5) {green!40};
+\node[green!60] at (9,14) {green!60};
+\node[green!70] at (9,14.5) {green!70};
+\node[green!80] at (9,15) {green!80};
+\node[green] at (9,15.5) {green};
+\end{tikzpicture}
+\end{scriptsize}
+\end{center}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\begin{scriptsize}
+\begin{tikzpicture}[decoration={bent,aspect=.3}]
+%blue
+\node[blue!25] at (0,0) {blue!25};
+\node[blue!25!yellow] at (0,0.5) {blue!25!yellow};
+\node[blue!25!orange] at (0,1) {blue!25!orange};
+\node[blue!25!red] at (0,1.5) {blue!25!red};
+\node[blue!25!green] at (0,2) {blue!25!green};
+\node[blue!25!blue] at (0,2.5) {blue!25!blue};
+\node[blue!25!gray] at (0,3) {blue!25!gray};
+\node[blue!25!black] at (0,3.5) {blue!25!black};
+
+\node[blue!50] at (3,0) {blue!50};
+\node[blue!50!yellow] at (3,0.5) {blue!50!yellow};
+\node[blue!50!orange] at (3,1) {blue!50!orange};
+\node[blue!50!red] at (3,1.5) {blue!50!red};
+\node[blue!50!green] at (3,2) {blue!50!green};
+\node[blue!50!blue] at (3,2.5) {blue!50!blue};
+\node[blue!50!gray] at (3,3) {blue!50!gray};
+\node[blue!50!black] at (3,3.5) {blue!50!black};
+
+\node[blue!75] at (6,0) {blue!70};
+\node[blue!75!yellow] at (6,0.5) {blue!75!yellow};
+\node[blue!75!orange] at (6,1) {blue!75!orange};
+\node[blue!75!red] at (6,1.5) {blue!75!red};
+\node[blue!75!green] at (6,2) {blue!75!green};
+\node[blue!75!blue] at (6,2.5) {blue!75!blue};
+\node[blue!75!gray] at (6,3) {blue!75!gray};
+\node[blue!75!black] at (6,3.5) {blue!75!black};
+
+\node[blue!10] at (9,0) {blue!10};
+\node[blue!20] at (9,0.5) {blue!20};
+\node[blue!30] at (9,1) {blue!30};
+\node[blue!40] at (9,1.5) {blue!40};
+\node[blue!60] at (9,2) {blue!60};
+\node[blue!70] at (9,2.5) {blue!70};
+\node[blue!80] at (9,3) {blue!80};
+\node[blue] at (9,3.5) {blue};
+
+%white
+\node[white!25] at (0,4) {white!25};
+\node[white!25!yellow] at (0,4.5) {white!25!yellow};
+\node[white!25!orange] at (0,5) {white!25!orange};
+\node[white!25!red] at (0,5.5) {white!25!red};
+\node[white!25!green] at (0,6) {white!25!green};
+\node[white!25!blue] at (0,6.5) {white!25!blue};
+\node[white!25!gray] at (0,7) {white!25!gray};
+\node[white!25!black] at (0,7.5) {white!25!black};
+
+\node[white!50] at (3,4) {white!50};
+\node[white!50!yellow] at (3,4.5) {white!50!yellow};
+\node[white!50!orange] at (3,5) {white!50!orange};
+\node[white!50!red] at (3,5.5) {white!50!red};
+\node[white!50!green] at (3,6) {white!50!green};
+\node[white!50!blue] at (3,6.5) {white!50!blue};
+\node[white!50!gray] at (3,7) {white!50!gray};
+\node[white!50!black] at (3,7.5) {white!50!black};
+
+\node[white!75] at (6,4) {white!75};
+\node[white!75!yellow] at (6,4.5) {white!75!yellow};
+\node[white!75!orange] at (6,5) {white!75!orange};
+\node[white!75!red] at (6,5.5) {white!75!red};
+\node[white!75!green] at (6,6) {white!75!green};
+\node[white!75!blue] at (6,6.5) {white!75!blue};
+\node[white!75!gray] at (6,7) {white!75!gray};
+\node[white!75!black] at (6,7.5) {white!75!black};
+
+\node[white!10] at (9,4) {white!10};
+\node[white!20] at (9,4.5) {white!20};
+\node[white!30] at (9,5) {white!30};
+\node[white!40] at (9,5.5) {white!40};
+\node[white!60] at (9,6) {white!60};
+\node[white!70] at (9,6.5) {white!70};
+\node[white!80] at (9,7) {white!80};
+\node[white] at (9,7.5) {white};
+
+%gray
+\node[gray!25] at (0,8) {gray!25};
+\node[gray!25!yellow] at (0,8.5) {gray!25!yellow};
+\node[gray!25!orange] at (0,9) {gray!25!orange};
+\node[gray!25!red] at (0,9.5) {gray!25!red};
+\node[gray!25!green] at (0,10) {gray!25!green};
+\node[gray!25!blue] at (0,10.5) {gray!25!blue};
+\node[gray!25!gray] at (0,11) {gray!25!gray};
+\node[gray!25!black] at (0,11.5) {gray!25!black};
+
+\node[gray!50] at (3,8) {gray!50};
+\node[gray!50!yellow] at (3,8.5) {gray!50!yellow};
+\node[gray!50!orange] at (3,9) {gray!50!orange};
+\node[gray!50!red] at (3,9.5) {gray!50!red};
+\node[gray!50!green] at (3,10) {gray!50!green};
+\node[gray!50!blue] at (3,10.5) {gray!50!blue};
+\node[gray!50!gray] at (3,11) {gray!50!gray};
+\node[gray!50!black] at (3,11.5) {gray!50!black};
+
+\node[gray!75] at (6,8) {gray!75};
+\node[gray!75!yellow] at (6,8.5) {gray!75!yellow};
+\node[gray!75!orange] at (6,9) {gray!75!orange};
+\node[gray!75!red] at (6,9.5) {gray!75!red};
+\node[gray!75!green] at (6,10) {gray!75!green};
+\node[gray!75!blue] at (6,10.5) {gray!75!blue};
+\node[gray!75!gray] at (6,11) {gray!75!gray};
+\node[gray!75!black] at (6,11.5) {gray!75!black};
+
+\node[gray!10] at (9,8) {gray!10};
+\node[gray!20] at (9,8.5) {gray!20};
+\node[gray!30] at (9,9) {gray!30};
+\node[gray!40] at (9,9.5) {gray!40};
+\node[gray!60] at (9,10) {gray!60};
+\node[gray!70] at (9,10.5) {gray!70};
+\node[gray!80] at (9,11) {gray!80};
+\node[gray] at (9,11.5) {gray};
+%black
+\node[black!25] at (0,12) {black!25};
+\node[black!25!yellow] at (0,12.5) {black!25!yellow};
+\node[black!25!orange] at (0,13) {black!25!orange};
+\node[black!25!red] at (0,13.5) {black!25!red};
+\node[black!25!green] at (0,14) {black!25!green};
+\node[black!25!blue] at (0,14.5) {black!25!blue};
+\node[black!25!gray] at (0,15) {black!25!gray};
+\node[black!25!black] at (0,15.5) {black!25!black};
+
+\node[black!50] at (3,12) {black!50};
+\node[black!50!yellow] at (3,12.5) {black!50!yellow};
+\node[black!50!orange] at (3,13) {black!50!orange};
+\node[black!50!red] at (3,13.5) {black!50!red};
+\node[black!50!green] at (3,14) {black!50!green};
+\node[black!50!blue] at (3,14.5) {black!50!blue};
+\node[black!50!gray] at (3,15) {black!50!gray};
+\node[black!50!black] at (3,15.5) {black!50!black};
+
+\node[black!75] at (6,12) {black!75};
+\node[black!75!yellow] at (6,12.5) {black!75!yellow};
+\node[black!75!orange] at (6,13) {black!75!orange};
+\node[black!75!red] at (6,13.5) {black!75!red};
+\node[black!75!green] at (6,14) {black!75!green};
+\node[black!75!blue] at (6,14.5) {black!75!blue};
+\node[black!75!gray] at (6,15) {black!75!gray};
+\node[black!75!black] at (6,15.5) {black!75!black};
+
+\node[black!10] at (9,12) {black!10};
+\node[black!20] at (9,12.5) {black!20};
+\node[black!30] at (9,13) {black!30};
+\node[black!40] at (9,13.5) {black!40};
+\node[black!60] at (9,14) {black!60};
+\node[black!70] at (9,14.5) {black!70};
+\node[black!80] at (9,15) {black!80};
+\node[black] at (9,15.5) {black};
+\end{tikzpicture}
+\end{scriptsize}
+\end{center}
+\end{figure}
+
+
+
+\end{document}
+
