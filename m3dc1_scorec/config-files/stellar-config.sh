@@ -11,9 +11,10 @@ then
 else
   PETSC_ARCH=${PETSC_ARCH:-real-$MPIVER}
 fi
+SCOREC_BASE_DIR=${SCOREC_BASE_DIR:-/projects/M3DC1/scorec/$MPIVER/$PETSCVER/202209}
 
 # This is different from when compiling with M3D-C1 "make scorec"
-SCOREC_DIR=${SCOREC_DIR:-/projects/M3DC1/scorec/$MPIVER/$PETSCVER}
+SCOREC_DIR=${SCOREC_DIR:-$SCORE_BASE_DIR}
 
 # Always defined here
 CMAKETYPE=Release
@@ -25,8 +26,8 @@ cmake3 .. \
   -DCMAKE_C_COMPILER="mpiicc" \
   -DCMAKE_CXX_COMPILER="mpiicpc" \
   -DCMAKE_Fortran_COMPILER="mpiifort" \
-  -DCMAKE_C_FLAGS="-g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS="-g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS="-g -O0 -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS="-g -O0 -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic" \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \
