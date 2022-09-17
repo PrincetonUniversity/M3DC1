@@ -32,7 +32,7 @@ contains
 !              will be overwritten by boundary condition ibound
 ! imask(i) = 1 otherwise
 !======================================================================
-subroutine get_boundary_mask(itri, ibound, imask, tags)
+subroutine get_boundary_mask(itri, ibound, imask, tags, reg)
   use basic
   use element
   use mesh_mod
@@ -40,7 +40,7 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
 
   integer, intent(in) :: itri, ibound
   integer, intent(out), dimension(dofs_per_element) :: imask
-  integer, optional, intent(in) :: tags
+  integer, optional, intent(in) :: tags, reg
 
   integer :: inode(nodes_per_element)
   real :: norm(2), curv(3), x, phi, z
@@ -68,6 +68,23 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
      call boundary_node(inode(i),is_boundary,izone,izonedim,norm,curv, &
           x,phi,z,tags)
      if(.not.is_boundary) cycle
+
+     ! if reg = 1, mask value on a single node
+     ! if reg = 2, mask values on one node per plane
+     if (present(reg).and.inode(i).eq.reg_node) then
+        if (reg.eq.1.and.myrank.eq.0) then
+           imask(k)=0
+#ifdef USE3D
+        else if (reg.eq.2.and.mod(myrank,procs_per_plane).eq.0) then
+           if (myrank.eq.0) print *, 'masking for regularizing at rank ', myrank 
+           if (myrank.eq.0) print *, 'element nodes are ', inode
+           imask(k)=0
+           imask(k+6)=0
+           imask(k+36)=0
+           imask(k+42)=0
+#endif
+        endif
+     endif
 
      if(iand(ibound, BOUNDARY_CLAMP).eq.BOUNDARY_CLAMP) then
         imask(k) = 0
@@ -252,6 +269,31 @@ subroutine set_clamp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
 
 end subroutine set_clamp_bc
 
+!======================================================================
+! set_clamp3_bc
+!======================================================================
+subroutine set_clamp3_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
+  use basic
+  use vector_mod
+  use matrix_mod
+  implicit none
+
+  integer, intent(in) :: ibegin               ! first dof of field
+  type(vector_type) :: rhs                    ! right-hand-side of equation
+  vectype, intent(in), dimension(dofs_per_node) :: bv  ! boundary values
+  real, intent(in) :: normal(2), curv(3)
+  integer, intent(in) :: izonedim             ! dimension of boundary
+  type(matrix_type), optional :: mat
+  
+  ! clamp value
+  if(present(mat)) call identity_row(mat, ibegin)
+  call insert(rhs, ibegin, bv(1), VEC_SET)
+  ! clamp toroidal derivative 
+#ifdef USE3D
+  if(present(mat)) call identity_row(mat, ibegin+6)
+  call insert(rhs, ibegin+6, bv(7), VEC_SET)
+#endif
+end subroutine set_clamp3_bc
 
 !======================================================================
 ! set_dirichlet_bc

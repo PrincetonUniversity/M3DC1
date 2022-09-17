@@ -150,16 +150,18 @@ subroutine get_bf_mask(itri, imask)
   implicit none
   integer, intent(in) :: itri
   integer, intent(out), dimension(dofs_per_element) :: imask
-  integer :: ibound
+  integer :: ibound, reg
 
+  reg = 0
   if(ifbound.eq.1) then
      ibound = BOUNDARY_DIRICHLET
   else if(ifbound.eq.2) then 
      ibound = BOUNDARY_NEUMANN
+     reg = 2
   else
      ibound = 0
   end if
-  call get_boundary_mask(itri, ibound, imask)
+  call get_boundary_mask(itri, ibound, imask, reg=reg)
 end subroutine get_bf_mask
 
 subroutine get_esp_mask(itri, imask)
@@ -564,6 +566,13 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
            call set_dirichlet_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
         else if(ifbound.eq.2) then 
            call set_normal_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
+           ! clamp values on one node per plane when ifbound = 2
+           if (i.eq.reg_node.and.mod(myrank,procs_per_plane).eq.0) then
+           !if (i.eq.reg_node.and.myrank.eq.0) then
+              print *, 'regularizing BC for f at rank ', myrank
+              temp = 0
+              call set_clamp3_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
+           endif 
         end if
      end if
   end do

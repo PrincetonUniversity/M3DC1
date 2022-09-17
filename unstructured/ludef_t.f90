@@ -4553,7 +4553,7 @@ subroutine bf_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
 #if defined(USECOMPLEX) || defined(USE3D)
   r_bf = - intx3(trial(:,:,OP_1),r2_79,lin(:,OP_LP))
   if(ifbound.eq.2) then 
-     r_bf = r_bf - regular*intx3(trial(:,:,OP_1),r2_79,lin(:,OP_1))
+     !r_bf = r_bf - regular*intx3(trial(:,:,OP_1),r2_79,lin(:,OP_1))
   end if
   ssterm(:,bz_g) = intx2(trial(:,:,OP_1),lin(:,OP_DP))
 #endif

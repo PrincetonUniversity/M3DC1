@@ -469,7 +469,7 @@ module basic
   real :: zeff_xxx       ! Effective Z of ion fluid
 
   ! MPI variable(s)
-  integer myrank, maxrank
+  integer myrank, maxrank, procs_per_plane
 #ifdef _OPENACC
   integer igpu
 #endif

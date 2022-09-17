@@ -163,6 +163,11 @@ Program Reducedquintic
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
   if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
+#ifdef USE3D
+  procs_per_plane = maxrank/nplanes 
+#else
+  procs_per_plane = maxrank
+#endif
 
 
 #ifndef M3DC1_TRILINOS

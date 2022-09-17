@@ -12,6 +12,7 @@ module scorec_mesh_mod
   integer :: icurv
   integer :: nplanes
   integer :: iread_planes
+  integer :: reg_node 
 
   integer, parameter :: maxi = 20
 
@@ -60,9 +61,11 @@ contains
 
     integer :: myrank, maxrank, ier
     include 'mpif.h'
+    integer :: i, icounter_t, numnodes
+    logical :: is_boundary
 #ifdef USE3D
     real :: angle, beta
-    integer :: i,procs_per_plane, full_group, plane_group
+    integer :: procs_per_plane, full_group, plane_group
     integer, allocatable :: ranks(:)
     real, allocatable :: xvals(:)
     integer :: nvals
@@ -198,6 +201,24 @@ contains
     call m3dc1_mesh_load (name_buff)
 #endif
     call update_nodes_owned
+    ! find node index for regularization
+    reg_node = -1
+#ifdef USE3D
+    if (mod(myrank,procs_per_plane).eq.0) then
+#else 
+    if (myrank.eq.0) then
+#endif
+       numnodes = owned_nodes()
+       do icounter_t=12,numnodes
+           i = nodes_owned(icounter_t)
+           is_boundary = is_boundary_node(i)
+           if (is_boundary) then
+              reg_node = i
+              exit
+           endif
+       end do
+       print *, "reg_node = ", reg_node, " for rank ", myrank 
+    endif
     initialized = .true.
   end subroutine load_mesh
 
