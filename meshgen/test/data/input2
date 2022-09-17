@@ -4,7 +4,6 @@ bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat
 numRgn 2
 rgnBdry  1 1
 rgnBdry  2 1 2
-!rgnBdry  2 2 3
 outFile input2
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
@@ -22,7 +21,7 @@ vacuumParams 1.8 1.5 0.4 0.0 2.5
 numVacuumPts 20
 
 ! meshGradationRate default 0.3
-meshGradationRate 0.3
+meshGradationRate 0.02
 plasma-offsetX 0.0
 plasma-offsetY 0.0
 vacuum-width  8.0

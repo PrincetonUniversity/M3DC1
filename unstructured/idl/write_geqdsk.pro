@@ -52,7 +52,7 @@ pro write_geqdsk, eqfile=eqfile, psilim=psilim, _EXTRA=extra
       print, 'lcfs_psi = ', lcfs_psi
       print, 'psilim = ', psilim
       
-      lcfs_xy = path_at_flux(psi,x,z,t,psilim,/contiguous)
+      lcfs_xy = path_at_flux(psi,x,z,t,psilim,axis=axis,/contiguous)
 
       ; count only points on separatrix above the xpoint
       if(n_elements(xpoint) gt 1) then begin

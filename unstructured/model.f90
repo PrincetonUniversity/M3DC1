@@ -42,7 +42,7 @@ subroutine get_den_mask(itri, imask)
   if(inograd_n.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(iconst_n.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask, all_boundaries)
+  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
 end subroutine get_den_mask
 
 subroutine get_nre_mask(itri, imask)
@@ -58,7 +58,7 @@ subroutine get_nre_mask(itri, imask)
   if(0.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(1.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
 
-  call get_boundary_mask(itri, ibound, imask, all_boundaries)
+  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
 end subroutine get_nre_mask
 
 subroutine get_temp_mask(itri, imask)
@@ -74,7 +74,7 @@ subroutine get_temp_mask(itri, imask)
   if(inograd_t.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(iconst_t.eq.1 .or. iconst_p.ge.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask, all_boundaries)
+  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
 end subroutine get_temp_mask
 
 subroutine get_pres_mask(itri, imask)
@@ -90,7 +90,7 @@ subroutine get_pres_mask(itri, imask)
   if(inograd_p.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(iconst_p.ge.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask, all_boundaries)
+  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
 end subroutine get_pres_mask
 
 
@@ -150,16 +150,18 @@ subroutine get_bf_mask(itri, imask)
   implicit none
   integer, intent(in) :: itri
   integer, intent(out), dimension(dofs_per_element) :: imask
-  integer :: ibound
+  integer :: ibound, reg
 
+  reg = 0
   if(ifbound.eq.1) then
      ibound = BOUNDARY_DIRICHLET
   else if(ifbound.eq.2) then 
      ibound = BOUNDARY_NEUMANN
+     reg = 2
   else
      ibound = 0
   end if
-  call get_boundary_mask(itri, ibound, imask)
+  call get_boundary_mask(itri, ibound, imask, reg=reg)
 end subroutine get_bf_mask
 
 subroutine get_esp_mask(itri, imask)
@@ -213,7 +215,7 @@ subroutine get_vor_mask(itri, imask)
 
   if(vor_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
 
-  call get_boundary_mask(itri, ibound, imask, all_boundaries)
+  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
 
 end subroutine get_vor_mask
 
@@ -229,7 +231,7 @@ subroutine get_vz_mask(itri, imask)
   ibound = 0
   if(inoslip_tor.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
   if(inostress_tor.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  call get_boundary_mask(itri, ibound, imask, all_boundaries)
+  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
 end subroutine get_vz_mask
 
 subroutine get_chi_mask(itri, imask)
@@ -249,7 +251,7 @@ subroutine get_chi_mask(itri, imask)
   ! inonormalflow=2 and inoslip_pol=2 conditions are included in U equation
 
   if(com_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
-  call get_boundary_mask(itri, ibound, imask, all_boundaries)
+  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
 end subroutine get_chi_mask
 
 
@@ -293,7 +295,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          all_boundaries)
+          BOUND_ANY)
      if(.not.is_boundary) cycle
 
      i_u = node_index(u_v, i)
@@ -420,7 +422,7 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
      i = nodes_owned(icounter_t)
 
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          all_boundaries)
+          BOUND_ANY)
      if(.not.is_boundary) cycle
 
      i_u = node_index(u_v, i)
@@ -564,6 +566,13 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
            call set_dirichlet_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
         else if(ifbound.eq.2) then 
            call set_normal_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
+           ! clamp values on one node per plane when ifbound = 2
+           if (i.eq.reg_node.and.mod(myrank,procs_per_plane).eq.0) then
+           !if (i.eq.reg_node.and.myrank.eq.0) then
+              print *, 'regularizing BC for f at rank ', myrank
+              temp = 0
+              call set_clamp3_bc(i_bf,rhs,temp,normal,curv,izonedim,mat)
+           endif 
         end if
      end if
   end do
@@ -603,7 +612,7 @@ subroutine boundary_den(rhs, den_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          all_boundaries)
+          BOUND_ANY)
      if(.not.is_boundary) cycle
 
      i_n = node_index(den_v, i)
@@ -654,7 +663,7 @@ subroutine boundary_nre(rhs, nre_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          all_boundaries)
+          BOUND_ANY)
      if(.not.is_boundary) cycle
 
      i_n = node_index(nre_v, i)
@@ -706,10 +715,10 @@ subroutine boundary_te(rhs, te_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          all_boundaries)
+          BOUND_ANY)
      if(.not.is_boundary) cycle
      call boundary_node(i,is_inner,izone,izonedim,normal,curv,x,phi,z, &
-          inner_wall)
+          BOUND_FIRSTWALL)
      
      i_n = node_index(te_v, i)
 
@@ -781,10 +790,10 @@ subroutine boundary_ti(rhs, ti_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          all_boundaries)
+          BOUND_ANY)
      if(.not.is_boundary) cycle
      call boundary_node(i,is_inner,izone,izonedim,normal,curv,x,phi,z, &
-          inner_wall)
+          BOUND_FIRSTWALL)
      
      i_n = node_index(ti_v, i)
 
@@ -870,7 +879,7 @@ subroutine boundary_p(rhs, p_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          all_boundaries)
+          BOUND_ANY)
      if(.not.is_boundary) cycle
 
      i_p = node_index(p_v, i)
@@ -928,7 +937,7 @@ subroutine boundary_pe(rhs, pe_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          all_boundaries)
+          BOUND_ANY)
      if(.not.is_boundary) cycle
 
      i_pe = node_index(pe_v, i)

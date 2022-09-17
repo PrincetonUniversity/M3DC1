@@ -469,7 +469,7 @@ module basic
   real :: zeff_xxx       ! Effective Z of ion fluid
 
   ! MPI variable(s)
-  integer myrank, maxrank
+  integer myrank, maxrank, procs_per_plane
 #ifdef _OPENACC
   integer igpu
 #endif
@@ -496,7 +496,7 @@ module arrays
   type(field_type) :: psi_ext, bz_ext, bf_ext, bfp_ext
 
   ! Arrays containing auxiliary variables
-  type(field_type) :: jphi_field, vor_field, com_field
+  type(field_type) :: jphi_field
   type(field_type) :: resistivity_field, kappa_field, kappar_field, denm_field
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
@@ -715,7 +715,9 @@ module sparse
   integer, parameter :: r43_mat_index = 73
   integer, parameter :: pot2_mat_lhs_index = 74
   integer, parameter :: st_mat_index = 75
-  integer, parameter :: num_matrices = 75
+  integer, parameter :: hypv_lhs_index = 76
+  integer, parameter :: hypv_rhs_index = 77
+  integer, parameter :: num_matrices = 77
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

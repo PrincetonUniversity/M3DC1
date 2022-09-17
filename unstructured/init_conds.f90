@@ -787,7 +787,7 @@ subroutine kstar_profiles()
           ((1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0* &
           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))
       
-     call get_boundary_mask(itri, BOUNDARY_DIRICHLET, imask, domain_boundary)
+     call get_boundary_mask(itri, BOUNDARY_DIRICHLET, imask, BOUND_DOMAIN)
 
      !  assemble matrix    
      do i=1,dofs_per_element

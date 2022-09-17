@@ -147,15 +147,16 @@ set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_simmetrix)
 find_package(Lapack QUIET REQUIRED)
 set(DEP_LIBS ${DEP_LIBS} ${LAPACK_LIBRARIES} )
 
-  #add_executable(m3dc1_meshgen test/meshgen/m3dc1_meshgen.cc)
-  #target_link_libraries(m3dc1_meshgen ${DEP_LIBS})
-  #target_link_libraries(m3dc1_meshgen ${TARGET_LIB_NAME})
-  #INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-  add_executable(m3dc1_meshgen test/multi_meshgen.cc)
+  add_executable(m3dc1_meshgen test/m3dc1_meshgen.cc)
   target_link_libraries(m3dc1_meshgen ${DEP_LIBS})
   target_link_libraries(m3dc1_meshgen ${TARGET_LIB_NAME})
   INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
   
+  add_executable(m3dc1_mfmgen test/multi_meshgen.cc)
+  target_link_libraries(m3dc1_mfmgen ${DEP_LIBS})
+  target_link_libraries(m3dc1_mfmgen ${TARGET_LIB_NAME})
+  INSTALL(TARGETS m3dc1_mfmgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
   add_executable(polar_meshgen test/polar_meshgen.cc)
   target_link_libraries(polar_meshgen ${DEP_LIBS})
   target_link_libraries(polar_meshgen ${TARGET_LIB_NAME})
@@ -197,22 +198,6 @@ INSTALL(TARGETS ${TARGET_LIB_NAME}
       LIBRARY DESTINATION lib
       ARCHIVE DESTINATION lib)
 
-if (ENABLE_TESTING)
-if (ENABLE_PETSC)
-  add_executable(solver test/solver/main.cc)
-  target_link_libraries(solver ${DEP_LIBS})
-  target_link_libraries(solver ${TARGET_LIB_NAME})
-  INSTALL(TARGETS solver RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
-endif()
-
-if (ENABLE_TRILINOS)
-    add_executable(epetra test/epetra/main.cc)
-    target_link_libraries(epetra ${DEP_LIBS})
-    target_link_libraries(epetra ${TARGET_LIB_NAME})
-    INSTALL(TARGETS epetra RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
-
 #binary distribution package
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_PACKAGE_VERSION "1.0.1")
@@ -227,5 +212,3 @@ ${CMAKE_Fortran_COMPILER_FULLPATH}")
 message("CMAKE_Fortran_COMPILER = ${CMAKE_Fortran_COMPILER}")
 message("CMAKE_Fortran_FLAGS = ${CMAKE_Fortran_FLAGS}")
 message("CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
-
-

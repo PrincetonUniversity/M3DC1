@@ -32,7 +32,7 @@ contains
 !              will be overwritten by boundary condition ibound
 ! imask(i) = 1 otherwise
 !======================================================================
-subroutine get_boundary_mask(itri, ibound, imask, tags)
+subroutine get_boundary_mask(itri, ibound, imask, tags, reg)
   use basic
   use element
   use mesh_mod
@@ -40,7 +40,7 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
 
   integer, intent(in) :: itri, ibound
   integer, intent(out), dimension(dofs_per_element) :: imask
-  type(tag_list), optional, intent(in) :: tags
+  integer, optional, intent(in) :: tags, reg
 
   integer :: inode(nodes_per_element)
   real :: norm(2), curv(3), x, phi, z
@@ -68,6 +68,23 @@ subroutine get_boundary_mask(itri, ibound, imask, tags)
      call boundary_node(inode(i),is_boundary,izone,izonedim,norm,curv, &
           x,phi,z,tags)
      if(.not.is_boundary) cycle
+
+     ! if reg = 1, mask value on a single node
+     ! if reg = 2, mask values on one node per plane
+     if (present(reg).and.inode(i).eq.reg_node) then
+        if (reg.eq.1.and.myrank.eq.0) then
+           imask(k)=0
+#ifdef USE3D
+        else if (reg.eq.2.and.mod(myrank,procs_per_plane).eq.0) then
+           if (myrank.eq.0) print *, 'masking for regularizing at rank ', myrank 
+           if (myrank.eq.0) print *, 'element nodes are ', inode
+           imask(k)=0
+           imask(k+6)=0
+           imask(k+36)=0
+           imask(k+42)=0
+#endif
+        endif
+     endif
 
      if(iand(ibound, BOUNDARY_CLAMP).eq.BOUNDARY_CLAMP) then
         imask(k) = 0
@@ -163,7 +180,7 @@ subroutine apply_boundary_mask(itri, ibound, vals, imaskin, tags)
   integer, intent(in) :: itri, ibound
   vectype, intent(inout), dimension(dofs_per_element,dofs_per_element) :: vals
   integer, dimension(dofs_per_element), optional :: imaskin
-  type(tag_list), intent(in), optional :: tags
+  integer, intent(in), optional :: tags
 
   integer, dimension(dofs_per_element) :: imask
   integer :: i
@@ -183,7 +200,7 @@ subroutine apply_boundary_mask_vec(itri, ibound, vals, imaskin, tags)
   integer, intent(in) :: itri, ibound
   vectype, intent(inout), dimension(dofs_per_element) :: vals
   integer, dimension(dofs_per_element), optional :: imaskin
-  type(tag_list), intent(in), optional :: tags
+  integer, intent(in), optional :: tags
 
   integer, dimension(dofs_per_element) :: imask
 
@@ -252,6 +269,31 @@ subroutine set_clamp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
 
 end subroutine set_clamp_bc
 
+!======================================================================
+! set_clamp3_bc
+!======================================================================
+subroutine set_clamp3_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
+  use basic
+  use vector_mod
+  use matrix_mod
+  implicit none
+
+  integer, intent(in) :: ibegin               ! first dof of field
+  type(vector_type) :: rhs                    ! right-hand-side of equation
+  vectype, intent(in), dimension(dofs_per_node) :: bv  ! boundary values
+  real, intent(in) :: normal(2), curv(3)
+  integer, intent(in) :: izonedim             ! dimension of boundary
+  type(matrix_type), optional :: mat
+  
+  ! clamp value
+  if(present(mat)) call identity_row(mat, ibegin)
+  call insert(rhs, ibegin, bv(1), VEC_SET)
+  ! clamp toroidal derivative 
+#ifdef USE3D
+  if(present(mat)) call identity_row(mat, ibegin+6)
+  call insert(rhs, ibegin+6, bv(7), VEC_SET)
+#endif
+end subroutine set_clamp3_bc
 
 !======================================================================
 ! set_dirichlet_bc
@@ -781,65 +823,6 @@ subroutine boundary_cy(rhs, mat)
 end subroutine boundary_cy
 
 
-
-!=======================================================
-! boundary_vor
-! ~~~~~~~~~~~~
-!
-! sets boundary conditions on Delta*(phi) 
-! in the smoother
-!=======================================================
-subroutine boundary_vor(rhs, mat)
-  use basic
-  use vector_mod
-  use matrix_mod
-
-  implicit none
-
-  type(vector_type) :: rhs
-  type(matrix_type), optional :: mat
-  
-  integer, parameter :: numvarsm = 2
-  integer :: i, izone, izonedim, i_u, i_vor, numnodes, icounter_t
-  real :: normal(2), curv(3)
-  real :: x, z, phi
-  logical :: is_boundary
-  vectype, dimension(dofs_per_node) :: temp
-
-  if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_vor called"
-
-  temp = 0.
-
-  numnodes = owned_nodes()
-  do icounter_t=1,numnodes
-     i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
-     if(.not.is_boundary) cycle
-
-     i_vor = node_index(rhs, i, 1)
-     i_u = node_index(rhs, i, 2)
-
-     if(inonormalflow.eq.1) then
-        call set_dirichlet_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
-     end if
-     
-     if(inoslip_pol.eq.1) then
-        call set_normal_bc(i_u,rhs,temp,normal,curv,izonedim,mat)
-     end if
-
-     ! no vorticity
-     call set_dirichlet_bc(i_vor,rhs,temp,normal,curv,izonedim,mat)
-
-     if(vor_bc.eq.1) then
-        call set_laplacian_bc(i_u,rhs,temp,normal,curv,izonedim,-x,mat)
-     endif
-  end do
-
-end subroutine boundary_vor
-
-
-
 !=======================================================
 ! boundary_jphi
 ! ~~~~~~~~~~~~~
@@ -887,61 +870,5 @@ subroutine boundary_jphi(rhs, mat)
 
 end subroutine boundary_jphi
 
-
-!=======================================================
-! boundary_com
-! ~~~~~~~~~~~~
-!
-! sets boundary conditions on Del^2(chi) in the smoother
-!=======================================================
-subroutine boundary_com(rhs, mat)
-  use basic
-  use vector_mod
-  use matrix_mod
-
-  implicit none
-
-  type(vector_type) :: rhs
-  type(matrix_type), optional :: mat
-  
-  integer, parameter :: numvarsm = 2
-  integer :: i, izone, izonedim, i_com, i_chi, numnodes, icounter_t
-  real :: normal(2), curv(3)
-  real :: x, z, phi
-  logical :: is_boundary
-  vectype, dimension(dofs_per_node) :: temp
-
-  if(iper.eq.1 .and. jper.eq.1) return
-  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_com called"
-
-  temp = 0.
-
-  numnodes = owned_nodes()
-  do icounter_t=1,numnodes
-     i = nodes_owned(icounter_t)
-     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
-     if(.not.is_boundary) cycle
-
-     i_com = node_index(rhs, i, 1)
-     i_chi = node_index(rhs, i, 2)
-
-     ! clamp compression
-     call set_dirichlet_bc(i_com,rhs,temp,normal,curv,izonedim,mat)
-
-     if(inonormalflow.eq.1) then
-        call set_normal_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
-     end if
-
-     if(inoslip_pol.eq.1) then
-        call set_dirichlet_bc(i_chi,rhs,temp,normal,curv,izonedim,mat)
-     end if
-
-     ! no compression
-     if(com_bc.eq.1) then
-        call set_laplacian_bc(i_chi,rhs,temp,normal,curv,izonedim,x,mat)
-     endif
-  end do
-
-end subroutine boundary_com
 
 end module boundary_conditions

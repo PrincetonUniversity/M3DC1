@@ -4553,7 +4553,7 @@ subroutine bf_equation_lin(trial, lin, ssterm, ddterm, r_bf, q_bf)
 #if defined(USECOMPLEX) || defined(USE3D)
   r_bf = - intx3(trial(:,:,OP_1),r2_79,lin(:,OP_LP))
   if(ifbound.eq.2) then 
-     r_bf = r_bf - regular*intx3(trial(:,:,OP_1),r2_79,lin(:,OP_1))
+     !r_bf = r_bf - regular*intx3(trial(:,:,OP_1),r2_79,lin(:,OP_1))
   end if
   ssterm(:,bz_g) = intx2(trial(:,:,OP_1),lin(:,OP_DP))
 #endif
@@ -4740,7 +4740,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 
   if(numvar.ge.3 .or. ipres.eq.1) then
      if(hyper.eq.0.) def_fields = def_fields + FIELD_J
-     if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
   end if
 
   if(kinetic.gt.0) then
