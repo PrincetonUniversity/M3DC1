@@ -48,6 +48,7 @@ Program Reducedquintic
   character*256 :: arg, solveroption_filename
   integer :: ip
   character(len=32) :: mesh_file_name
+  logical :: update_mesh
 #ifdef _OPENACC
   integer :: num_devices
 #endif
@@ -442,8 +443,15 @@ Program Reducedquintic
       if (mod(ntime, isprntime) .eq. 0) then
         write(mesh_file_name,"(A11,A)") 'beforeadapt', 0
         call m3dc1_mesh_write (mesh_file_name,0,ntime)
+        ! if update_mesh is true
+        ! the (2D) part.smb will be updated (overwritten) inside adapt_by_spr
+        ! the frequency of update is the same as frequency of output time slices
+        update_mesh = .false.
+        if(mod(ntime-ntime0,ntimepr).eq.0) then
+          update_mesh = .true.
+        end if
         call adapt_by_spr(field_vec%id, psi_g, ntime, &
-          isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel)
+          isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel, update_mesh)
       endif
     endif
 
