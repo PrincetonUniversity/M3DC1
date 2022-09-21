@@ -8,7 +8,7 @@ PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
 SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel6/$MPIVER/$PETSCVER
 PREFIX=$SCOREC_DIR
-#module load intel/2019.u3 openmpi/4.0.1 gsl szip scalapack
+#module load intel/2019.u3 openmpi/4.0.3 gsl szip scalapack
 cmake .. \
   -DCMAKE_C_COMPILER=mpicc \
   -DCMAKE_CXX_COMPILER=mpicxx \

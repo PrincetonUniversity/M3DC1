@@ -4,6 +4,7 @@ module restart_hdf5
   integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
   integer, private :: ikprad_in, kprad_z_in, ipellet_in
   real, private, allocatable :: phi_in(:)
+  real, private :: toroidal_period_in
 
 contains
   
@@ -76,6 +77,7 @@ contains
 
     call h5gopen_f(time_id, "mesh", mesh_id, error)
     call read_int_attr(mesh_id, "nplanes", nplanes_in, error)
+    call read_real_attr(mesh_id, "period", toroidal_period_in, error)
 
     if(version_in.ge.34 .and. i3d_in.eq.1) then
        allocate(phi_in(nplanes_in))
@@ -97,6 +99,15 @@ contains
           call h5gclose_f(root_id, error)
           call safestop(1)
        end if
+       if(i3d_in.eq.1 .and. icomplex.eq.1) then
+          if(myrank.eq.0) then
+             print *, 'Error: cannot start a complex calculation'
+             print *, '       from a non-axisymmetric equilibrium'
+          end if
+          call h5gclose_f(root_id, error)
+          call safestop(1)
+       end if
+
        ! check if fp is present
        if(version_in.ge.38 .or. (version_in.ge.35 .and. numvar.gt.1)) then
           irestart_fp = 1
@@ -291,6 +302,13 @@ contains
     if(nplanes_in.eq.1 .and. nplanes.gt.1) then
        if(myrank.eq.0) then
           print *, 'Starting 3D calculation from 2D calculation.'
+          print *, 'Previous data will be overwritten.'
+       end if
+       istartnew = 1
+    end if
+    if(toroidal_period_in.ne.toroidal_period) then
+       if(myrank.eq.0) then
+          print *, 'Starting full torus calculation from one field period.'
           print *, 'Previous data will be overwritten.'
        end if
        istartnew = 1
@@ -503,6 +521,9 @@ contains
           shift = k*dphi / plane_fac
        else
           call m3dc1_plane_getphi(new_plane, phi_new)
+          if(toroidal_period_in.ne.toroidal_period) then
+             phi_new = modulo(phi_new, toroidal_period_in)
+          end if
           call find_plane_and_shift(nplanes_in, phi_in, phi_new, old_plane, shift)
           old_plane = old_plane - 1    ! switch to 0-based indexing
        end if

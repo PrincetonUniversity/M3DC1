@@ -7,6 +7,7 @@ Created on Apr  13 2020
 """
 import numpy as np
 import matplotlib.pyplot as plt
+import itertools as it
 import m3dc1.fpylib as fpyl
 
 def mesh_size(filename='sizefieldParam',params=[],fignum=None):
@@ -25,7 +26,7 @@ def mesh_size(filename='sizefieldParam',params=[],fignum=None):
     else:
         if type(params)==str:
             data = np.asarray(params.split(),dtype=float)
-        elif isinstance(l,(list,tuple,np.ndarray)):
+        elif isinstance(params,(list,tuple,np.ndarray)):
             if len(params)==13:
                 data = params
             else:
@@ -57,11 +58,25 @@ def mesh_size(filename='sizefieldParam',params=[],fignum=None):
     h2p = 1./(1./(a5p*(1 - np.exp(-np.abs(psip/a1 - 1)**a2)) + a6) + 1/lc2*(1./(1 + ((psip - psic)/Wc)**2)))
     h2v = 1./(1./(a5v*(1 - np.exp(-np.abs(psiv/a1 - 1)**a3)) + a6) + 1/lc2*(1./(1 + ((psiv - psic)/Wc)**2)))
     
+    #if grey:
+    #    col_norm = 
+    #    col_tang = 
+    #else:
+    #    col_norm = 'C0'
+    #    col_tang = 'C3'
+
     plt.figure(fignum)
-    plt.plot(psip,h1p*1e2,c='C0',lw=2,label='normal plasma')
-    plt.plot(psiv,h1v*1e2,c='C0',lw=1,label='normal plasma')
-    plt.plot(psip,h2p*1e2,c='C3',lw=2,label='tangential plasma')
-    plt.plot(psiv,h2v*1e2,c='C3',lw=1,label='tangential vacuum')
+    ax = plt.gca()
+    #print(ax.lines)
+    #print(len(ax.lines))
+    start = len(ax.lines)
+    colors = it.cycle(['C0','C0','C3','C3',(0.5, 0.5, 0.5),(0.5, 0.5, 0.5),(0.5, 0.5, 0.5),(0.5, 0.5, 0.5), (0.4, 0.4, 0.4),(0.4, 0.4, 0.4),(0.4, 0.4, 0.4),(0.4, 0.4, 0.4), (0.3, 0.3, 0.3),(0.3, 0.3, 0.3),(0.3, 0.3, 0.3),(0.3, 0.3, 0.3), (0.2, 0.2, 0.2),(0.2, 0.2, 0.2),(0.2, 0.2, 0.2),(0.2, 0.2, 0.2), (0.1, 0.1, 0.1),(0.1, 0.1, 0.1),(0.1, 0.1, 0.1),(0.1, 0.1, 0.1)])
+    colors = it.islice(colors, start, None)
+    
+    plt.plot(psip,h1p*1e2,c=next(colors),lw=2,label='normal plasma')
+    plt.plot(psiv,h1v*1e2,c=next(colors),lw=1,label='normal plasma')
+    plt.plot(psip,h2p*1e2,c=next(colors),lw=2,label='tangential plasma')
+    plt.plot(psiv,h2v*1e2,c=next(colors),lw=1,label='tangential vacuum')
     plt.grid(True)
     plt.xlabel(r'$\psi_N$')
     plt.ylabel(r'Mesh Size (cm)')

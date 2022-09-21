@@ -127,7 +127,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
              boundary=boundary, filename=filename[0], _EXTRA=ex
        endif
        if(keyword_set(plotwall)) then begin
-          plot_wall_regions, /over, color=color(3)
+          plot_wall_regions, /over, color=color(3), filename=filename[0]
        end
        
        if(n_elements(q_contours) ne 0) then begin
@@ -152,7 +152,7 @@ pro plot_field, name, time, x, y, points=p, mesh=plotmesh, $
 
        if(keyword_set(lcfs)) then begin
            print, 'passing slice = ', time[0]
-           plot_lcfs, points=p, slice=time[0], $
+           plot_lcfs, points=p, slice=time[0], /over, $
              last=last, filename=filename[0], _EXTRA=ex
        endif
 

@@ -51,7 +51,8 @@ cleanall :
 
 .PHONY: clean
 clean : 
-	rm -fr _$(ARCH)*
+	rm -fr _$(ARCH)
+	rm -fr _$(ARCH)-*
 
 .PHONY: templates
 templates :

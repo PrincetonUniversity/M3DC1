@@ -36,9 +36,18 @@ subroutine rmp_per
   ! load external field data from schaffer file
   if(iread_ext_field.ge.1) then
      if(type_ext_field.eq.1) then
-        allocate(sf(1))
-        call load_fieldlines_field(sf(1), file_ext_field,isample_ext_field, &
-                isample_ext_field_pol,ierr)
+        allocate(sf(iread_ext_field))
+        if(file_ext_field(1:10).eq.'fieldlines') then
+           call load_fieldlines_field(sf(iread_ext_field), file_ext_field,isample_ext_field, &
+                   isample_ext_field_pol,ierr)
+#ifdef USEST
+        else if(file_ext_field(1:5).eq.'mgrid') then
+           call load_mgrid_field(sf(iread_ext_field), file_ext_field, vmec_filename, ierr)
+        else
+           print *, 'ERROR: Invalid ext_field'
+           call safestop(51)
+#endif
+        end if
      else if(type_ext_field.eq.0) then
         allocate(sf(iread_ext_field))
         do l=1, iread_ext_field
@@ -458,16 +467,16 @@ subroutine calculate_external_fields()
      !      + intxx3(mu79(:,:,OP_1),nu79(:,:,OP_DPP),ri4_79)  
 
      call apply_boundary_mask(itri, ipsibound, temp(:,:,1,1), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
      call apply_boundary_mask(itri, ipsibound, temp(:,:,1,2), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
      call apply_boundary_mask(itri, ibound, temp(:,:,2,1), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
      call apply_boundary_mask(itri, ibound, temp(:,:,2,2), &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
 
      call apply_boundary_mask(itri, ibound, temp5, &
-          tags=domain_boundary)
+          tags=BOUND_DOMAIN)
 
 !$OMP CRITICAL
      call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)

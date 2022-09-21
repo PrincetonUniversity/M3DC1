@@ -433,6 +433,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "circulation"     , tvor  , ntime, error)
   call output_scalar(scalar_group_id, "volume"          , volume, ntime, error)
   call output_scalar(scalar_group_id, "helicity"        ,helicity,ntime, error)
+  call output_scalar(scalar_group_id, "power_injected"  , pinj,   ntime, error)
 
   call output_scalar(scalar_group_id, "area_p"            , parea,ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux_p"   , pflux,ntime, error)
@@ -485,6 +486,9 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "ion_loss"        , ionrad, ntime, error)
   call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, error)
   call output_scalar(scalar_group_id, "recp_rad"        , recprad, ntime, error)
+
+  call output_scalar(scalar_group_id, "kprad_n",  totkprad,  ntime, error)
+  call output_scalar(scalar_group_id, "kprad_n0", totkprad0, ntime, error)
 
 
   if(xray_detector_enabled.eq.1) then
@@ -681,8 +685,10 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Done writing fields ', error
 
   ! output wall regions
+#ifndef USE3D
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Writing wall regions'
   call output_regions(time_root_id, error)
+#endif
   
   ! Close the file
   call h5gclose_f(time_root_id, error)
@@ -760,6 +766,7 @@ subroutine output_mesh(time_group_id, nelms, error)
 #endif
   call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
   call write_int_attr(mesh_group_id, "nperiods", nperiods, error)
+  call write_int_attr(mesh_group_id, "ifull_torus", ifull_torus, error)
   call write_real_attr(mesh_group_id, "period", toroidal_period, error)
 
   ! Output the mesh data
@@ -1144,8 +1151,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   if(iwrite_aux_vars.eq.1) then 
     call write_field(group_id, "wall_dist", wall_dist, nelms, error, .true.)
     call write_field(group_id, "jphi", jphi_field, nelms, error)
-    call write_field(group_id, "vor", vor_field, nelms, error)
-    call write_field(group_id, "com", com_field, nelms, error)
     call write_field(group_id, "torque_em", torque_density_em, nelms, error)
     call write_field(group_id,"torque_ntv", torque_density_ntv, nelms, error)
     call write_field(group_id, "bdotgradp", bdotgradp, nelms, error)

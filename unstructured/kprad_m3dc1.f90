@@ -26,6 +26,9 @@ module kprad_m3dc1
   ! 0 = no adv/diff, 1 = advect & diff, 2 = diffuse only
   integer :: ikprad_evolve_neutrals
 
+  ! scaling factor for neutral particle diffusion
+  real :: kprad_n0_denm_fac
+
   ! variables for setting initial conditions
   real :: kprad_fz
   real :: kprad_nz
@@ -200,7 +203,7 @@ contains
     do icounter_t=1,numnodes
        i = nodes_owned(icounter_t)
        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-            all_boundaries)
+            BOUND_ANY)
        if(.not.is_boundary) cycle
        
        i_n = node_index(den_v, i)
@@ -232,10 +235,12 @@ contains
 
     implicit none
 
+    include 'mpif.h'
+
     real, intent(in) :: dti
     type(matrix_type) :: nmat_lhs, nmat_rhs
     type(field_type) :: rhs
-    integer :: itri, j, numelms, ierr, def_fields, izone, minz
+    integer :: itri, j, numelms, ierr, def_fields, izone, itmp, ier
 !    integer, dimension(dofs_per_element) :: imask
     vectype, dimension(dofs_per_element) :: tempx
     vectype, dimension(dofs_per_element,dofs_per_element) :: tempxx
@@ -257,6 +262,8 @@ contains
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating matrix'
 
+    ! Evolve charged impurities
+    ! =========================
     numelms = local_elements()
     do itri=1, numelms
 
@@ -321,34 +328,38 @@ contains
     
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
-    if(ikprad_evolve_neutrals.eq.1) then
-       ! advect and diffuse neutrals
-       minz = 0
-    else
-       minz = 1
-    end if
-
-    do j=minz, kprad_z
+    do j=1, kprad_z
+       ierr = 0
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
-       ierr = 0
        call newsolve(nmat_lhs, rhs%vec, ierr)
-       kprad_n(j) = rhs
+       if(is_nan(rhs%vec)) ierr = 1
+       call mpi_allreduce(ierr, itmp, 1, MPI_INTEGER, &
+            MPI_MAX, MPI_COMM_WORLD, ier)
+       ierr = itmp
+
+       if(ierr.ne.0) then
+          if(myrank.eq.0) &
+               print *, 'Error in impurity ion solve ', j
+       else
+          kprad_n(j) = rhs
+       end if
     end do
 
 
-    if(ikprad_evolve_neutrals.eq.2) then
-       ! Neutrals diffuse only
+    ! Evolve neutrals
+    ! ===============
+    if(ikprad_evolve_neutrals.ge.1) then
        call clear_mat(nmat_lhs)
        call clear_mat(nmat_rhs)
     
        if(myrank.eq.0 .and. iprint.ge.2) print *, '  populating neutral matrix'
     
        do itri=1, numelms
-          
+       
           call get_zone(itri, izone)
-          
+       
           call define_element_quadrature(itri, int_pts_main, 5)
           call define_fields(itri, def_fields, 1, linear)
           
@@ -359,32 +370,68 @@ contains
           if(izone.ne.1) goto 200
     
           do j=1, dofs_per_element
-             tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79)
+             tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79) &
+                  * kprad_n0_denm_fac
              ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
              ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
           end do
 
+          if(ikprad_evolve_neutrals.eq.2) goto 200
+
+          do j=1, dofs_per_element
+             tempx = n1nu(mu79,nu79(j,:,:),pht79)
+             ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+             ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
+
+#if defined(USECOMPLEX) || defined(USE3D)
+             ! NUMVAR = 2
+             ! ~~~~~~~~~~
+             if(numvar.ge.2) then
+                tempx = n1nv(mu79,nu79(j,:,:),vzt79)
+                ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+                ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
+             endif
+#endif
+          
+             ! NUMVAR = 3
+             ! ~~~~~~~~~~
+             if(numvar.ge.3) then
+                tempx = n1nchi(mu79,nu79(j,:,:),cht79)
+                ssterm(:,j) = ssterm(:,j) -     thimp *dti*tempx
+                ddterm(:,j) = ddterm(:,j) + (1.-thimp)*dti*tempx
+             endif
+          end do
+          
 200       continue
 
           call insert_block(nmat_lhs,itri,1,1,ssterm,MAT_ADD)
           call insert_block(nmat_rhs,itri,1,1,ddterm,MAT_ADD)
-
-        end do
+       end do
     
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  finalizing neutral'
+       if(myrank.eq.0 .and. iprint.ge.2) print *, '  finalizing neutral'
+       
+       call finalize(nmat_rhs)
+       call finalize(nmat_lhs)
+       
+       if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving neutral'
+       
+       rhs = 0.
+       call matvecmult(nmat_rhs, kprad_n(0)%vec, rhs%vec)
+       ierr = 0
+       call newsolve(nmat_lhs, rhs%vec, ierr)
+       if(is_nan(rhs%vec)) ierr = 1
+       call mpi_allreduce(ierr, itmp, 1, MPI_INTEGER, &
+            MPI_MAX, MPI_COMM_WORLD, ier)
+       ierr = itmp
 
-        call finalize(nmat_rhs)
-        call finalize(nmat_lhs)
-        
-        if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving neutral'
-        
-        rhs = 0.
-        call matvecmult(nmat_rhs, kprad_n(0)%vec, rhs%vec)
-        ierr = 0
-        call newsolve(nmat_lhs, rhs%vec, ierr)
-        kprad_n(0) = rhs
-
+       if(ierr.ne.0) then
+          if(myrank.eq.0) &
+               print *, 'Error in impurity neutral solve'
+       else
+          kprad_n(0) = rhs          
+       end if
     end if
+
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, '  destroying'
 
@@ -439,9 +486,7 @@ contains
     kprad_sigma_e = 0.
     kprad_sigma_i = 0.
 
-    def_fields = FIELD_N + FIELD_TE + FIELD_TI + FIELD_DENM
-    if(ipellet.ge.1 .and. ipellet_z.eq.kprad_z) &
-         def_fields = def_fields + FIELD_P
+    def_fields = FIELD_N + FIELD_P + FIELD_TE + FIELD_TI + FIELD_DENM
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, ' populating matrix'
 

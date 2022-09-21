@@ -20,21 +20,17 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-PETSC_DIR=/global/homes/j/jinchen/project/PETSC/master
+PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609
 ifeq ($(COM), 1)
-  PETSC_ARCH = coriknl-PrgEnvintel605-craympich7710-master-cplx
+  PETSC_ARCH = coriknl-PrgEnvintel6010-craympich7719-master-cplx
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-cplx/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
 else
-  PETSC_ARCH = coriknl-PrgEnvintel605-craympich7710-master-real
+  PETSC_ARCH = coriknl-PrgEnvintel6010-craympich7719-master-real
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-real/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
 endif
 
-PETSC_LIB = -Wl,--start-group,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib \
-     -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc \
-     -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common \
-     -lpord -lsuperlu -lsuperlu_dist \
-     -lparmetis -lmetis -lpthread -ldl -lstdc++  \
-     -Wl,--end-group
-
-SCOREC_BASE_DIR=/global/cfs/projectdirs/mp288/cori/scorec/mpich7.7.10/knl-petsc3.12.4/
+#SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/intel19.1.0-mpich7.7.10/knl-petsc3.13.4/
+SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-knl2
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
@@ -57,45 +53,30 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
 
-# Include option to use ADIOS
-OPTS := $(OPTS) -DUSEADIOS
-#
-##only define them if adios-1.3 is used; otherwise use hopper default
-##ADIOS_DIR=/global/homes/p/pnorbert/adios/hopper
-##ADIOS_DIR=/global/homes/p/pnorbert/adios/1.3.1/hopper/pgi/
-##ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf -L/global/homes/p/pnorbert/mxml/mxml.hopper/lib -lm -lmxml -llustreapi -pgcpplibs
-ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
-ADIOS_FLIB_V1 = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
-             -L$(ADIOS_DIR)/src/mxml -lm -lmxml \
-#             -L/usr/lib64/ -llustreapi
-
 MKL_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 
-#MKL_LIB = $(MKLROOT)/lib/intel64/libmkl_blas95_lp64.a -L$(MKLROOT)/lib/intel64 -lmkl_scalapack_lp64 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_blacs_intelmpi_lp64 -lpthread -lm -ldl
-
-INCLUDE := $(INCLUDE) -I$(SCOREC_BASE_DIR)/include \
+INCLUDE += -I$(SCOREC_BASE_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
 	   -I$(GSL_DIR)/include # \
 
 ifdef SCORECVER
-  INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include
+  INCLUDE += -I$(SCOREC_DIR)/include
 endif
-#        -I$(HYBRID_HOME)/include
-#           -I$(CRAY_TPSL_DIR)/INTEL/150/haswell/include \
-#
-LIBS := \
-        $(LIBS) \
-        $(SCOREC_LIB) \
+
+LIBS += $(SCOREC_LIB) \
         $(ZOLTAN_LIB)\
-        $(PETSC_LIB) \
-        -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz \
+        $(PETSC_WITH_EXTERNAL_LIB) \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
-	$(ADIOS_FLIB_V1) \
 	$(MKL_LIB)
-#        $(HYBRID_LIBS) \
+
+ifeq ($(ST), 1)
+  LIBS += -Wl,--start-group -L/global/homes/j/jinchen/project/NETCDF/buildhsw/lib -Wl,-rpath,/global/homes/j/jinchen/project/NETCDF/buildhsw/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lnetcdf -lnetcdff -lz -Wl,--end-group
+  INCLUDE += -I/global/cfs/cdirs/mp288/jinchen/NETCDF/buildhsw/include
+else
+  LIBS += -L$(HDF5_DIR)/lib -lhdf5_fortran -lhdf5hl_fortran -lhdf5_hl -lhdf5 -lz
+endif
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)
-
 CCOPTS  = -c $(OPTS)
 
 # Optimization flags

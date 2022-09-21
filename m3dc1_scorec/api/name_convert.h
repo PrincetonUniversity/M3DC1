@@ -44,6 +44,7 @@
 #define m3dc1_ent_getownpartid m3dc1_ent_getownpartid_
 #define m3dc1_ent_isowner m3dc1_ent_ismine_
 #define m3dc1_ent_isghost m3dc1_ent_isghost_
+#define m3dc1_ent_measure m3dc1_ent_measure_
 #define m3dc1_ent_getlocaldofid m3dc1_ent_getlocaldofid_
 #define m3dc1_ent_getglobaldofid m3dc1_ent_getglobaldofid_
 #define m3dc1_ent_getnumdof m3dc1_ent_getnumdof_

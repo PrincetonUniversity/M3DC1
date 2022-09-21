@@ -273,6 +273,7 @@ subroutine step_unsplit(calc_matrices)
   use matrix_mod
   use model
   use auxiliary_fields
+  use hypervisc
 
   implicit none
 
@@ -350,7 +351,7 @@ subroutine step_unsplit(calc_matrices)
   phi_vec = b1_phi
 
   ! apply smoothing operators
-  call smooth_velocity(u_v, chi_v)
+  call apply_hyperv(u_v, vz_v, chi_v)
   call smooth_fields(psi_v)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done solving matrix equation."

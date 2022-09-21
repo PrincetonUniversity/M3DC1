@@ -20,7 +20,8 @@ endif
  
 OPTS := $(OPTS) -DUSEADIOS -DPETSC_VERSION=39 -DUSEBLAS
 
-SCOREC_BASE_DIR=/global/cfs/projectdirs/mp288/cori/scorec/mpich7.7.10/hsw-petsc3.12.4
+#SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/intel6.0.5-mpich7.7.10/hsw-petsc3.12.4/
+SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-hsw2
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
@@ -43,15 +44,22 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
 
-PETSC_DIR=/global/homes/j/jinchen/project/PETSC/petsc
+#PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107
+PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609
 ifeq ($(COM), 1)
-  PETSC_ARCH=corihsw-PrgEnvintel605-craympich7710-master-cplx
+  PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-cplx
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-cplx/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
 else
-  PETSC_ARCH=corihsw-PrgEnvintel605-craympich7710-master-real
+  ifeq ($(ST), 1)
+  PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-real-st
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-real-st/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lz -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
+  else
+  PETSC_ARCH=corihsw-PrgEnvintel6010-craympich7719-master-real
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/corihsw-PrgEnvintel6010-craympich7719-master-real/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
+  endif
 endif
 
 MKL_LIB = -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
-PETSC_WITH_EXTERNAL_LIB = -Wl,--start-group -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist  -lparmetis -lmetis -lptesmumps -lptscotch -lptscotcherr -lptscotchparmetis -lesmumps -lscotch -lscotcherr -lscotchmetis -Wl,--end-group -lrt -lm -lpthread -lz -ldl -lstdc++
 
 ADIOS_DIR=/global/homes/j/jinchen/project/LIB/adios-1.13.0/build-mpi
 ADIOS_FLIB = -L${ADIOS_DIR}/lib -ladiosf_v1 -ladiosreadf_v1 \
@@ -70,16 +78,14 @@ LIBS := $(LIBS) \
         $(ZOLTAN_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
 	-L$(FFTW_DIR)/lib -lfftw3_mpi -lfftw3 \
-        -L$(HDF5_DIR)/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz \
 	-L$(GSL_DIR)/lib -lgsl -lhugetlbfs \
 	$(ADIOS_FLIB) \
 	$(MKL_LIB)
 #        $(HYBRID_LIBS) \
 
 ifeq ($(ST), 1)
-  LIBS += -L$(NETCDFDIR)/lib64 -lnetcdf -lnetcdff
-
-  INCLUDE += -I$(NETCDFDIR)/include 
+  LIBS += -Wl,--start-group -L/global/homes/j/jinchen/project/NETCDF/buildhsw/lib -Wl,-rpath,/global/homes/j/jinchen/project/NETCDF/buildhsw/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lnetcdf -lnetcdff -lz -Wl,--end-group
+  INCLUDE += -I/global/cfs/cdirs/mp288/jinchen/NETCDF/buildhsw/include
 endif
 
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS)

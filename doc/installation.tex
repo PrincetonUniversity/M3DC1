@@ -1,0 +1,58 @@
+\section{Installation}
+
+PUMI is a free open source software available in \url{https://github.com/SCOREC/core}. 
+This section discuss the S/W requirements and compilation briefly. 
+The detailed discussion on how to build PUMI can be found in \emph{https://github.com/SCOREC/core/wiki/General-Build-instructions}.
+
+\subsection{S/W Requirements}
+
+At a minumum, the following softwares are required to install PUMI.
+\begin{itemize}
+\item \texttt{cmake} - v3.0 or higher
+\item \texttt{MPI}
+\item \texttt{METIS/ParMETIS} ~\cite{ParmetisOverviewArticle2002}
+\item \texttt{Zoltan}~\cite{ZoltanOverviewArticle2002}
+\end{itemize}
+
+\subsection{Compilation}
+
+To build PUMI libraries, run a cmake configuration file and do \emph{``make install"}. Three example cmake configuration files are available in the top source folder; \emph{`example$\_$config.sh"},  \emph{`mpich3-gcc4.4.5-config.sh"},  \emph{`mpich3-gcc4.9.2-config.sh"}.
+
+The essential configuration options include: 
+
+\begin{itemize}
+\item \texttt{ZOLTAN$\_$LIBRARY}: path and file name of Zoltan library
+\item \texttt{PARMETIS$\_$LIBRARY}: path and file name of ParMETIS library
+\item \texttt{METIS$\_$LIBRARY}: path and file name of METIS library
+\item \texttt{SCOREC$\_$INCLUDE$\_$DIR}: path to PUMI header files
+\item \texttt{SCOREC$\_$LIB$\_$DIR}: path and file name of PUMI libraries
+\item \texttt{ENABLE$\_$PETSC}: set \texttt{ON} to link MSI with PETSc solver
+\item \texttt{PETSC$\_$INCLUDE$\_$DIR}: path to PETSc header files
+\item \texttt{PETSC$\_$LIB$\_$DIR}: path to PETSc libraries
+\item \texttt{ENABLE$\_$TRILINOS}: set \texttt{ON} to link MSI with Trilinos solver
+\item \texttt{TRILINOS$\_$INCLUDE$\_$DIR}: path to Trilinos header files
+\item \texttt{TRILINOS$\_$LIB$\_$DIR}: path to Trilinos libraries
+\item \texttt{DENABLE$\_$COMPLEX}: set \texttt{ON} to build MSI complex value
+\item \texttt{CMAKE$\_$INSTALL$\_$PREFIX}: path to install MSI header file and library
+\end{itemize}
+
+In the current version, build with Trilinos is not supported.
+
+For a complete list of configuration options, see \emph{``CMakeLists.txt"} in the top source folder. 
+
+\subsection{Test Program}
+
+A test program with PETSc is available in test/petsc/main.cc in the top source folder.
+
+To compile \emph{``MSI API"} test program, do \emph{``make test$\_$pumi"} in your build directory. The input arguments of the executable \emph{``test$\_$pumi"} are the following:
+\begin{itemize}
+\item   \texttt{argv[1]} - input model file (.dmg)
+\item   \texttt{argv[2]} - input mesh file (.smb)
+\item   \texttt{argv[3]} - output mesh file (.smb)
+\item   \texttt{argv[4]} - the number of parts in input mesh
+\end{itemize}
+
+How to generate PUMI-readable model and mesh files is beyond the scope of this document. 
+
+Many other test programs are available in \emph{``test"} folder. See \emph{``test/CMakeLists.txt"} for a complete list of available test programs. The test programs are good start to learn how to use PUMI. 
+

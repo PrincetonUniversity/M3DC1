@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH -p preemptable
+#SBATCH -n 64
+#SBATCH -J M3DC1_regtest_pellet
+#SBATCH -t 0:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+# partition mesh
+part_mesh.sh analytic-2K.smb 16
+echo $? > mesh_partitioned
+
+# Run M3D-C1
+${M3DC1_MPIRUN} -n 64 m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps
+
+touch finished

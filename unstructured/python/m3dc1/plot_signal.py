@@ -60,16 +60,16 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     
-    time = sim._all_trace['time']
+    time = np.asarray(sim._all_traces['time'])
     trace = sim.get_signal('mag_probes').sigvalues
-    nprobes = trace.shape[0]
-    
+    nprobes = trace.shape[1]
+
     if units.lower()=='mks':
         time = unit_conv(time, filename=filename, time=1)
     
     if renorm:
         for i in range(nprobes):
-            trace[i,:] = compensate_renorm(trace[i,:])
+            trace[:,i] = compensate_renorm(trace[:,i])
     
     # ToDo: Add this calculation
     if scale:
@@ -78,11 +78,11 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
         for i in range(nprobes):
             tg = time*gamma
             tg = tg.astype(np.float64)
-            trace[i,:] = trace[i,:]/np.exp(tg)/trace[i,-1]
+            trace[:,i] = trace[:,i]/np.exp(tg)/trace[-1,i]
     
     if deriv:
         for i in range(nprobes):
-            trace[i,:] = fpyl.deriv(trace[i,:],time)
+            trace[:,i] = fpyl.deriv(trace[:,i],time)
     
     
     # Set font sizes and plot style parameters
@@ -105,20 +105,20 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
         timestep = time[1]-time[0]
         time = fftshift(fftfreq(len(time), d=timestep))
         for i in range(nprobes):
-            trace[i,:] = trace[i,:]/np.amax(trace[i,:])
-            temp = 1.0/len(trace[i,:])*fft(trace[i,:])
-            tracefft[i,:] = np.abs(fftshift(temp*np.amax(trace[i,:])))**2
+            trace[:,i] = trace[:,i]/np.amax(trace[:,i])
+            temp = 1.0/len(trace[:,i])*fft(trace[:,i])
+            tracefft[:,i] = np.abs(fftshift(temp*np.amax(trace[:,i])))**2
             
-            peak_ind = np.argmax(tracefft[i,:])
+            peak_ind = np.argmax(tracefft[:,i])
             if units.lower()=='mks':
                 print('Probe {i}: Signal peaks at a frequency of {freq:.2f} Hz'.format(i = i, freq = time[peak_ind]))
             elif units.lower()=='m3dc1':
                 print('Probe {i}: Signal peaks at a frequency of {freq:.6f} / Alfven time'.format(i = i, freq = time[peak_ind]))
             
-            #print(np.any(np.iscomplex(fft(trace[i,:]))),np.iscomplex(np.amax(trace[i,:])))
-            #tracefft[i,:] = tracefft[i,:]*np.amax(trace[i,:])
-            #tracefft[i,:] = fftshift(tracefft[i,:])
-            #tracefft[i,:] = np.abs(tracefft[i,:])**2
+            #print(np.any(np.iscomplex(fft(trace[:,i]))),np.iscomplex(np.amax(trace[:,i])))
+            #tracefft[:,i] = tracefft[:,i]*np.amax(trace[:,i])
+            #tracefft[:,i] = fftshift(tracefft[:,i])
+            #tracefft[:,i] = np.abs(tracefft[:,i])**2
         trace = tracefft
         
         
@@ -134,7 +134,7 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
     
 
     for i in range(nprobes):
-        plt.plot(time,trace[i,:],lw=linew,label='probe: '+str(i))
+        plt.plot(time,trace[:,i],lw=linew,label='probe: '+str(i))
     #plt.plot(time,np.imag(tracefft))
     plt.grid(True)
     ax = plt.gca()

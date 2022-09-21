@@ -10,7 +10,7 @@ ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
 BUILD_ROOT=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
 PREFIX=$BUILD_ROOT
 #add -DPETSCMASTER for petsc 3.8.3 or higher
-#module load intel/18.0/64/18.0.3.222  intel-mpi/intel/2018.3/64
+# module load intel/2021.1.2 openmpi/intel-2021.1/4.1.0
 cmake .. \
   -DCMAKE_C_COMPILER=/usr/local/openmpi/4.1.0/intel20211/bin/mpicc \
   -DCMAKE_CXX_COMPILER=/usr/local/openmpi/4.1.0/intel20211/bin/mpicxx \

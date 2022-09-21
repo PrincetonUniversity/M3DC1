@@ -545,7 +545,6 @@ contains
     call h5dopen_f(file_id, 'phiaxis', dset_id, error)
     call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, sf%phi, dim1, error)
     call h5dclose_f(dset_id, error)
-
     ! read 3d arrays br, bphi, and bz
     dim3(1) = sf%nr 
     dim3(2) = sf%nphi 
@@ -564,7 +563,6 @@ contains
        call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, p1, dim3, error)
        call h5dclose_f(dset_id, error)
     end if
-
     do k = 1, sf%nz
        sf%br(:,:,k) = transpose(br1(:,:,k))
        sf%bphi(:,:,k) = transpose(bphi1(:,:,k))
@@ -578,4 +576,181 @@ contains
 
   end subroutine load_fieldlines_field
 
+#ifdef USEST
+!!!
+  subroutine check(istatus)
+  use netcdf
+  implicit none
+
+  integer, intent (in) :: istatus
+  if (istatus.ne.nf90_noerr) then
+     call safestop(53)
+  end if
+  end subroutine check
+!!!
+
+  subroutine load_mgrid_field(sf, mgrid_filename, vmec_filename, error)
+    use netcdf
+    implicit none
+
+    type(schaffer_field), intent(inout) :: sf
+    character(len=*), intent(in) :: mgrid_filename, vmec_filename
+    integer, intent(out) :: error
+
+    integer :: ll, ii, kk
+    integer :: ncid, ncid_vmec
+    real :: curfac, dr, dz, dphi
+    real :: twopi, per
+
+! Dimension IDs
+    integer :: radDimID, phiDimID, zeeDimID
+! Variable IDs
+    integer :: rminID, rmaxID, zminID, zmaxID, nfpID, nextcurID, modeID, extcurID
+! Variable values
+    real :: rmin, rmax, zmin, zmax
+    real, allocatable :: extcur(:)
+    integer :: nfp, nextcur
+    character :: mgrid_mode 
+! Magnetic field
+    integer :: varID
+    character(len=30) :: var
+    real, allocatable :: brtemp(:,:,:), bphitemp(:,:,:), bztemp(:,:,:), temp(:,:,:)
+
+    error = 0
+
+! Check extension
+    ll = len_trim(mgrid_filename)
+    if (mgrid_filename(ll-2:ll).eq.'.nc') then
+       call check(nf90_open(trim(mgrid_filename), nf90_nowrite, ncid))
+
+! Get dimensions
+       call check(nf90_inq_dimid(ncid, "rad", radDimID))
+       call check(nf90_inq_dimid(ncid, "phi", phiDimID))
+       call check(nf90_inq_dimid(ncid, "zee", zeeDimID))
+       call check(nf90_inquire_dimension(ncid, radDimID, len=sf%nr))
+       call check(nf90_inquire_dimension(ncid, phiDimID, len=sf%nphi))
+       call check(nf90_inquire_dimension(ncid, zeeDimID, len=sf%nz))
+
+! Get variable values
+       call check(nf90_inq_varid(ncid, "rmin", rminID))
+       call check(nf90_inq_varid(ncid, "rmax", rmaxID))
+       call check(nf90_inq_varid(ncid, "zmin", zminID))
+       call check(nf90_inq_varid(ncid, "zmax", zmaxID))
+       call check(nf90_inq_varid(ncid, "nfp", nfpID))
+       call check(nf90_inq_varid(ncid, "nextcur", nextcurID))
+       call check(nf90_inq_varid(ncid, "mgrid_mode", modeID))
+
+       call check(nf90_get_var(ncid,rminID,rmin))
+       call check(nf90_get_var(ncid,rmaxID,rmax))
+       call check(nf90_get_var(ncid,zminID,zmin))
+       call check(nf90_get_var(ncid,zmaxID,zmax))
+       call check(nf90_get_var(ncid,nfpID,nfp))
+       call check(nf90_get_var(ncid,nextcurID,nextcur))
+       call check(nf90_get_var(ncid,modeID,mgrid_mode))
+
+! Check mgrid_mode
+       allocate(extcur(nextcur))
+       if (mgrid_mode.eq.'S') then
+!          print *, 'Coil currents are SCALED...'
+          call check(nf90_open(trim(vmec_filename), nf90_nowrite, ncid_vmec))
+          call check(nf90_inq_varid(ncid_vmec, "extcur", extcurID))
+          call check(nf90_get_var(ncid_vmec,extcurID,extcur))
+       else if (mgrid_mode.eq.'R') then
+!          print *, 'Actual currents supplied'
+          extcur = 1.0
+       else
+          print *, 'ERROR: Invalid coil currents'
+          call safestop(54)
+       end if
+
+! Allocate temporary arrays
+       allocate(brtemp(sf%nr,sf%nz,sf%nphi)) ! According to libstell (r,z,phi)
+       allocate(bphitemp(sf%nr,sf%nz,sf%nphi))
+       allocate(bztemp(sf%nr,sf%nz,sf%nphi))
+       brtemp = 0.0
+       bphitemp = 0.0
+       bztemp = 0.0
+
+! Get fields
+       allocate(temp(sf%nr,sf%nz,sf%nphi))
+8001   format(a,'_',i3.3)
+       do ii = 1, nextcur, 1
+          write(var,8001) 'br', ii
+          call check(nf90_inq_varid(ncid, var, varID))
+          call check(nf90_get_var(ncid,varID,temp))
+          brtemp = brtemp + extcur(ii)*temp
+
+          write(var,8001) 'bp', ii
+          call check(nf90_inq_varid(ncid, var, varID))
+          call check(nf90_get_var(ncid,varID,temp))
+          bphitemp = bphitemp + extcur(ii)*temp
+
+          write(var,8001) 'bz', ii
+          call check(nf90_inq_varid(ncid, var, varID))
+          call check(nf90_get_var(ncid,varID,temp))
+          bztemp = bztemp + extcur(ii)*temp
+       end do
+       deallocate(temp)
+
+! Transpose (r,z,phi) -> (phi,r,z)      
+       allocate(sf%br(sf%nphi,sf%nr,sf%nz))
+       allocate(sf%bphi(sf%nphi,sf%nr,sf%nz))
+       allocate(sf%bz(sf%nphi,sf%nr,sf%nz))
+
+       allocate(temp(sf%nr,sf%nphi,sf%nz))
+       ! (r,z,phi) -> (r,phi,z)
+       do kk = 1, sf%nr, 1
+          temp(kk,:,:) = transpose(brtemp(kk,:,:))
+       end do 
+       ! (r,phi,z) -> (phi,r,z)
+       do kk = 1, sf%nz, 1
+          sf%br(:,:,kk) = transpose(temp(:,:,kk))
+       end do 
+
+       do kk = 1, sf%nr, 1
+          temp(kk,:,:) = transpose(bphitemp(kk,:,:))
+       end do 
+       do kk = 1, sf%nz, 1
+          sf%bphi(:,:,kk) = transpose(temp(:,:,kk))
+       end do 
+
+       do kk = 1, sf%nr, 1
+          temp(kk,:,:) = transpose(bztemp(kk,:,:))
+       end do 
+       do kk = 1, sf%nz, 1
+          sf%bz(:,:,kk) = transpose(temp(:,:,kk))
+       end do 
+       deallocate(temp)
+       deallocate(brtemp,bphitemp,bztemp)
+
+! Make grid
+       dr = (rmax-rmin)/(sf%nr-1)
+       dz = (zmax-zmin)/(sf%nz-1)
+       twopi = 6.283185307 ! Change to atan definition
+       per = twopi/nfp
+       dphi = per/(sf%nphi-1)
+
+       allocate(sf%r(sf%nr))
+       allocate(sf%z(sf%nz))
+       allocate(sf%phi(sf%nphi))
+
+       do kk = 1, sf%nr, 1
+          sf%r(kk) = rmin + (kk-1)*dr
+       end do
+       do kk = 1, sf%nphi, 1
+          sf%phi(kk) = 0.0 + (kk-1)*dphi
+       end do
+       do kk = 1, sf%nz, 1
+          sf%z(kk) = zmin + (kk-1)*dz
+       end do
+! Pressure
+       allocate(sf%p(sf%nphi,sf%nr,sf%nz))
+       sf%p = 0.0
+       sf%initialized = .true.
+    else
+       print *, 'ERROR: Invalid extension. MGRID must be .nc'
+       call safestop(52)
+    end if
+  end subroutine load_mgrid_field
+#endif
 end module read_schaffer_field

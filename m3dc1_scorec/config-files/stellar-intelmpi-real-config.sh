@@ -4,19 +4,13 @@ MPIVER=intel2021.1.2-intelmpi2021.3.1
 PETSC_VER=petsc-3.15.5
 PETSCVER=petsc3.15.5
 PETSC_DIR=/projects/M3DC1/PETSC/$PETSC_VER
-PETSC_ARCH=cplx-$MPIVER
+PETSC_ARCH=real-$MPIVER
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 BUILD_ROOT=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
 ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
 PREFIX=$BUILD_ROOT
 #add -DPETSCMASTER for petsc 3.8.3 or higher
 # module load cmake/3.19.7 intel/2021.1.2 intel-mpi/intel/2021.3.1
-#  module load fftw/intel-2021.1/intel-mpi/3.3.9
-#  module load hdf5/intel-2021.1/intel-mpi/1.10.6 gsl/2.6
-#unset I_MPI_HYDRA_BOOTSTRAP
-#unset I_MPI_PMI_LIBRARY
-#OPTFLAGS=""
-
 cmake3 .. \
   -DCMAKE_C_COMPILER="mpiicc" \
   -DCMAKE_CXX_COMPILER="mpiicpc" \
@@ -32,6 +26,6 @@ cmake3 .. \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
   -DENABLE_TESTING=OFF \
-  -DENABLE_COMPLEX=ON \
+  -DENABLE_COMPLEX=OFF \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_BUILD_TYPE=$CMAKETYPE

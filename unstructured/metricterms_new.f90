@@ -2098,7 +2098,7 @@ function v1p(e,f)
 
   temp = 0.
      if(surface_int) then
-        if(inoslip_pol.eq.1 .or. iconst_p.eq.1) then
+        if(inoslip_pol.eq.1 .or. iconst_p.ge.1) then
            temp = 0.
         else
            temp = &
@@ -2310,44 +2310,17 @@ function v2vmu(e,f,g,h)
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
   vectype, dimension(dofs_per_element) :: temp
 
-     if(surface_int) then
-        temp = intx5(e(:,:,OP_1),r2_79,norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
-             + intx5(e(:,:,OP_1),r2_79,norm79(:,2),f(:,OP_DZ),g(:,OP_1))
-     else
-        temp = -intx4(e(:,:,OP_DZ),r2_79,f(:,OP_DZ),g(:,OP_1)) &
-             -  intx4(e(:,:,OP_DR),r2_79,f(:,OP_DR),g(:,OP_1))
+  if(surface_int) then
+     temp = intx5(e(:,:,OP_1),r2_79,norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+          + intx5(e(:,:,OP_1),r2_79,norm79(:,2),f(:,OP_DZ),g(:,OP_1))
+  else
+     temp = -intx4(e(:,:,OP_DZ),r2_79,f(:,OP_DZ),g(:,OP_1)) &
+          -  intx4(e(:,:,OP_DR),r2_79,f(:,OP_DR),g(:,OP_1))
      
 #if defined(USE3D) || defined(USECOMPLEX)
-        temp = temp + 2.*intx3(e(:,:,OP_1),f(:,OP_DPP),h(:,OP_1))
+     temp = temp + 2.*intx3(e(:,:,OP_1),f(:,OP_DPP),h(:,OP_1))
 #endif
-
-        ! hyperviscous
-        if(hypv.ne.0.) then
-           if(ihypamu.eq.1) then
-              temp = temp - hypv* &
-                   (intx4(e(:,:,OP_GS),r2_79,f(:,OP_GS),g(:,OP_1)) &
-                   +intx4(e(:,:,OP_DZ),r2_79,f(:,OP_GS),g(:,OP_DZ)) &
-                   +intx4(e(:,:,OP_DR),r2_79,f(:,OP_GS),g(:,OP_DR)))
-              if(itor.eq.1) then 
-                 temp = temp - 4.*hypv* &
-                      (intx4(e(:,:,OP_DR),r_79,f(:,OP_GS),g(:,OP_1)) &
-                      +intx4(e(:,:,OP_GS),r_79,f(:,OP_DR),g(:,OP_1)) &
-                      +intx4(e(:,:,OP_DZ),r_79,f(:,OP_DR),g(:,OP_DZ)) &
-                      +intx4(e(:,:,OP_DR),r_79,f(:,OP_DR),g(:,OP_DR)) &
-                      +4.*intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_1)))
-              end if
-           else
-              temp = temp - hypv* &
-                   intx3(e(:,:,OP_GS),r2_79,f(:,OP_GS))
-              if(itor.eq.1) then 
-                 temp = temp - 4.*hypv* &
-                      (intx3(e(:,:,OP_DR),r_79,f(:,OP_GS)) &
-                      +intx3(e(:,:,OP_GS),r_79,f(:,OP_DR)) &
-                      +4.*intx2(e(:,:,OP_DR),f(:,OP_DR)))
-              end if
-           endif
-        end if
-     end if
+  end if
 
   v2vmu = temp
 end function v2vmu
@@ -6665,18 +6638,9 @@ function b1psieta2(e,f,g,h,imod)
   vectype, dimension(dofs_per_element) :: temp
   logical, intent(in) :: imod
 
-  if(jadv.eq.0) then
-
+  temp = 0.
+  if(jadv.ne.0) then
      if(surface_int) then
-        temp = 0.
-     else
-        temp = 0.
-     endif
-
-  else
-     if(surface_int) then
-        temp = 0
-
 #if defined(USE3D) || defined(USECOMPLEX)
         if(inocurrent_norm.eq.1 .and. imulti_region.eq.0) then
            temp = temp
@@ -6709,7 +6673,6 @@ function b1psieta2(e,f,g,h,imod)
 
      end if
   endif
-
   b1psieta2 = temp
 end function b1psieta2
 
@@ -6809,7 +6772,8 @@ function b1beta(e,f,g)
              + intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ ),g(:,OP_DP)) &
              - intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DR ),g(:,OP_DP))
 #endif
-        if(hypf.gt.0 .and. imp_hyper.le.1) then
+#ifndef USEST
+        if(hypf.gt.0. .and. imp_hyper.le.1) then
            if(ihypeta.eq.0) then
               temp = temp - hypf*intx3(e(:,:,OP_DZP),ri5_79,f(:,OP_DRPP)) &
                           + hypf*intx3(e(:,:,OP_DRP),ri5_79,f(:,OP_DZPP))
@@ -6831,6 +6795,7 @@ function b1beta(e,f,g)
 
            endif
         endif
+#endif !USEST
      endif
   endif
 #else
@@ -8440,6 +8405,7 @@ function b2psieta(e,f,g)
      temp = intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DRP),g(:,OP_1)) &
           - intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZP),g(:,OP_1))
 
+#ifndef USEST
      if(hypi.ne.0 .and. imp_hyper.le.1) then
         if(ihypeta.eq.0) then          
            temp = temp + 2.*hypi* &
@@ -8461,6 +8427,7 @@ function b2psieta(e,f,g)
            endif
         endif
      end if
+#endif !USEST
   end if
   b2psieta = temp
 #else
@@ -8563,8 +8530,13 @@ function b2beta(e,f,g,h)
 
 #if defined(USE3D) || defined(USECOMPLEX)
               temp = temp &
+#ifdef USEST
+                   - hypi*intx3(e(:,:,OP_DZP),ri4_79,f(:,OP_DZP)) &
+                   - hypi*intx3(e(:,:,OP_DRP),ri4_79,f(:,OP_DRP))
+#else
                    + hypi*intx3(e(:,:,OP_DZ),ri4_79,f(:,OP_DZPP)) &
                    + hypi*intx3(e(:,:,OP_DR),ri4_79,f(:,OP_DRPP))
+#endif
 #endif
 
            end if
@@ -8603,6 +8575,7 @@ function b2feta(e,f,g)
           - intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZP),g(:,OP_1)) &
           - intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DRP),g(:,OP_1))
 
+#ifndef USEST
      if(imp_hyper.le.1) then
 
 !   the following coding should be checked.  does not agree with my derivation scj 4/30/2014
@@ -8631,6 +8604,7 @@ function b2feta(e,f,g)
         endif
 
      end if
+#endif !USEST
   end if
 
   b2feta = temp
@@ -12729,10 +12703,13 @@ real function energy_kph()
 
   vectype :: temp
 
-  temp = - hypc* &
-       (int4(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),vis79(:,OP_1)) &
-       +int4(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),vis79(:,OP_1)))
-
+!!$  if(hypc.ne.0.) then
+!!$     temp = - hypc* &
+!!$          (int4(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),vis79(:,OP_1)) &
+!!$          +int4(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),vis79(:,OP_1)))
+!!$  else
+     temp = 0.
+!!$  end if
   energy_kph = temp
   return
 end function energy_kph
@@ -12766,10 +12743,13 @@ real function energy_k3h()
 
   vectype :: temp
 
-  temp = -2.*hypc* &
-       (int3(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),vic79(:,OP_1)) &
-       +int3(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),vic79(:,OP_1)))
-
+!!$  if(hypc.ne.0.) then
+!!$     temp = -2.*hypc* &
+!!$          (int3(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),vic79(:,OP_1)) &
+!!$          +int3(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),vic79(:,OP_1)))
+!!$  else
+     temp = 0.
+!!$  end if
   energy_k3h = temp
   return
 end function energy_k3h
@@ -12873,7 +12853,7 @@ real function flux_heat()
   implicit none
 
   vectype :: temp
-
+  
   if(numvar.lt.3 .and. ipres.eq.0) then
      flux_heat = 0.
      return

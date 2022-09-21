@@ -652,6 +652,8 @@ static void zero_fields_on_master(apf::Field* f)
 // end of static functions used for spr-adapt
 
 int begin_numVert;
+#endif
+
 double begin_mem, begin_time;
 // helper routines
 void group_complex_dof (apf::Field* field, int option);
@@ -705,16 +707,21 @@ int m3dc1_scorec_finalize()
 { 
   pumi_mesh_deleteGlobalID(m3dc1_mesh::instance()->mesh);  // delete global id
   m3dc1_mesh::instance()->clean(); // delete tag, field and internal data 
+
+#ifdef DEBUG
   int local_numVert=m3dc1_mesh::instance()->mesh->count(0);
   int global_numVert=0;
   MPI_Allreduce(&local_numVert, &global_numVert, 
                 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   if (begin_numVert != global_numVert)
-    m3dc1_mesh::instance()->mesh->writeNative("adapted.smb");
+    m3dc1_mesh::instance()->mesh->writeNative("adapted-mesh.smb");
+#endif
+
   pumi_mesh_delete(m3dc1_mesh::instance()->mesh);
 
-  if (!pumi_rank()) std::cout<<"\n* [M3D-C1 INFO] run time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
+  if (!pumi_rank()) 
+    std::cout<<"\n* [M3D-C1 INFO] run time: "<<MPI_Wtime()-begin_time<<" (sec)\n";
   pumi_finalize();
   return M3DC1_SUCCESS; 
 }
@@ -1069,8 +1076,10 @@ int m3dc1_mesh_load(char* mesh_file)
 
 #ifdef DEBUG
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
-#endif
   begin_numVert=m3dc1_mesh::instance()->mesh->count(0);
+  MPI_Allreduce(&local_numVert, &begin_numVert,
+                4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
 
   return M3DC1_SUCCESS;
 }
@@ -1114,11 +1123,10 @@ int m3dc1_mesh_build3d (int* num_field, int* field_id,
 
 #ifdef DEBUG
   pumi_mesh_verify(m3dc1_mesh::instance()->mesh, false);
-#endif
   int local_numVert=m3dc1_mesh::instance()->mesh->count(0);
   MPI_Allreduce(&local_numVert, &begin_numVert, 
                 4, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
+#endif
   return M3DC1_SUCCESS; 
 }
 
@@ -2135,6 +2143,16 @@ int m3dc1_ent_isghost(int* /* in */ ent_dim, int* /* in */ ent_id, int* isghost)
   return M3DC1_SUCCESS;
 }
 
+//*******************************************************
+// return volume, area or length of the entity
+void m3dc1_ent_measure(int* /* in */ ent_dim, int* /* in */ ent_id,
+                          double* /* out */ value)
+//*******************************************************
+{
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, *ent_dim, *ent_id);
+  assert(e);
+  *value = apf::measure(m3dc1_mesh::instance()->mesh, e);
+}
 
 // node-specific functions
 //*******************************************************
@@ -2389,8 +2407,7 @@ int m3dc1_node_write (const char* filename, int* start_index)
   return M3DC1_SUCCESS;
 }
 
-
-// region-specific function
+// mesh region functions
 //*******************************************************
 int m3dc1_region_getoriginalface( int * /* in */ elm, int * /* out */ fac)
 //*******************************************************

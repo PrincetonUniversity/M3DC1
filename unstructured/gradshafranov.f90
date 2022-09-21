@@ -1106,7 +1106,7 @@ subroutine gradshafranov_solve
 !!$             +intxx4(mu79(:,:,OP_1),nu79(:,:,OP_DZ),norm79(:,2),ri_79)
 !!$     end do
 
-     call apply_boundary_mask(itri, ibound, temp, tags=domain_boundary)
+     call apply_boundary_mask(itri, ibound, temp, tags=BOUND_DOMAIN)
 
      call insert_block(gs_matrix, itri, 1, 1, temp, MAT_ADD)
   enddo
@@ -1510,7 +1510,7 @@ subroutine calculate_error(error, error2, psinew)
   do i=1,numnodes
      inode = nodes_owned(i)
      call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,phi,z,&
-          domain_boundary)
+          BOUND_DOMAIN)
      if(is_boundary) cycle
 
      call get_node_data(psi_vec, inode, psi0)
@@ -2212,6 +2212,7 @@ subroutine readpgfiles
   ! Read p and p' profiles
   open(unit=76,file="profiles-p",status="old")
   read(76,803) n
+      if(myrank.eq.0 .and. iprint.ge.1) print *, 'number of pressure points',n    ! DEBUG
   allocate(psinorm(n), pres0(n), ppn(n))
   do j=1,n
      read(76,802) psinorm(j), pres0(j), ppn(j), dum, dum
@@ -2900,7 +2901,7 @@ subroutine boundary_gs(rhs, feedfac, mat)
      index = node_index(rhs, inode, 1)
 
      call boundary_node(inode,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          domain_boundary)
+          BOUND_DOMAIN)
      if(is_boundary) then
 
         ! add feedback field

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A m3984_g
+#SBATCH -A mp288
 #SBATCH -p debug
 #SBATCH -C gpu
 #SBATCH -n 16
