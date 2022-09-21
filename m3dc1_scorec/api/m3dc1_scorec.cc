@@ -1053,6 +1053,8 @@ int m3dc1_mesh_load(char* mesh_file)
         apf::removeTagFromDimension(mesh, tags[i], idim);
       mesh->destroyTag(tags[i]);
     }
+
+    // TODO check and make sure all fields/tags are gone
   } 
   else // non-master plane
     m3dc1_mesh::instance()->mesh = pumi_mesh_create(pumi::instance()->model, 2, false);
@@ -1151,7 +1153,7 @@ void m3dc1_dir_import(double* dir, int ts)
 
 
 int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
-    double* ar, double* max_size, int* refine_level, int* coarsen_level)
+    double* ar, double* max_size, int* refine_level, int* coarsen_level, bool* update)
 {
   char filename[256];
 #ifdef DEBUG
@@ -1351,6 +1353,13 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
     // size filed computation and adapt applied only on the master plane
     if (m3dc1_model::instance()->local_planeid == 0)
     {
+      // update the 2D part.smb if "update" is true
+      if (*update)
+      {
+      	int s = 1;
+      	int ns = -1;
+      	m3dc1_mesh_write("part", &s, &ns);
+      }
       // NOTE: pFields[0] holds the target fields we need to run spr on
       size_field = compute_multiplane_size_field(pFields[0], *ar);
       /* return 0; */
@@ -4716,7 +4725,22 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
       mesh->setDoubleTag(e,tag, dofBuff);
     }
     mesh->end(it);
+
+    std::vector<apf::Field*> allFields;
+    allFields.clear();
+    while (mesh->countFields())
+    {
+      apf::Field* f = mesh->getField(0);
+      apf::freeze(f);
+      allFields.push_back(f);
+      mesh->removeField(f);
+    }
     m3dc1_mesh::instance()->mesh->writeNative(filename_buff);
+    for (std::size_t i = 0; i < allFields.size(); i++) {
+      apf::unfreeze(allFields[i]);
+      mesh->addField(allFields[i]);
+    }
+
     apf::removeTagFromDimension(mesh, tag, dim);
     mesh->destroyTag(tag);
     if (!PCU_Comm_Self()) 
