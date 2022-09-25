@@ -1,4 +1,4 @@
-ifeq ($(TAU), 1)
+addifeq ($(TAU), 1)
   TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=select.tau
   CPP    = tau_cxx.sh $(TAU_OPTIONS)
   CC     = tau_cc.sh  $(TAU_OPTIONS)
@@ -24,30 +24,23 @@ PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609
 ifeq ($(COM), 1)
   PETSC_ARCH = coriknl-PrgEnvintel6010-craympich7719-master-cplx
   PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-cplx/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+  M3DC1_SCOREC_LIBA=libm3dc1_scorec_complex.a
+  SCOREC_COMPLEX=ON
 else
   PETSC_ARCH = coriknl-PrgEnvintel6010-craympich7719-master-real
   PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-real/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  M3DC1_SCOREC_LIBA=libm3dc1_scorec.a
+  SCOREC_COMPLEX=OFF
 endif
 
-#SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/intel19.1.0-mpich7.7.10/knl-petsc3.13.4/
 SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-knl2
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
-
-ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
-else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)
-endif
-
-ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
-else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec
-endif
 
 SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
@@ -57,11 +50,7 @@ MKL_LIB =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROO
 
 INCLUDE += -I$(SCOREC_BASE_DIR)/include \
 	   -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
-	   -I$(GSL_DIR)/include # \
-
-ifdef SCORECVER
-  INCLUDE += -I$(SCOREC_DIR)/include
-endif
+	   -I$(GSL_DIR)/include
 
 LIBS += $(SCOREC_LIB) \
         $(ZOLTAN_LIB)\
@@ -88,9 +77,6 @@ else
 
 # Optimization flags
 ifeq ($(OPT), 1)
-#  LDOPTS := $(LDOPTS) -dynamic -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
-#  FOPTS  := $(FOPTS)  -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
-#  CCOPTS := $(CCOPTS) -O3 -ipo -qopt-report  -qopt-report-phase=vec #-h profile_generate 
   LDOPTS := $(LDOPTS) -static -qopt-report=5 -qopt-report-phase=vec,loop
   FOPTS  := $(FOPTS)  -qopt-report=5 -qopt-report-phase=vec,loop
   CCOPTS := $(CCOPTS) -qopt-report=5 -qopt-report-phase=vec,loop

@@ -21,7 +21,7 @@ INSTALL_DIR = $(M3DC1_INSTALL_DIR)/m3dc1-$(ARCH)-$(VERSION)
 
 MAKETARGET = $(MAKE) --no-print-directory -C $@ -f $(CURDIR)/makefile \
 	SRCDIR=$(CURDIR) ARCH=$(ARCH) BIN_POSTFIX=$(BIN_POSTFIX) \
-	$(MAKECMDGOALS) 
+	$(MAKECMDGOALS)
 
 include $(ARCH).mk
 
@@ -37,6 +37,8 @@ makefile : ;
 
 .PHONY: all
 all :
+	make scorec
+	make scorec COM=1
 	make OPT=1
 	make OPT=1 COM=1
 	make OPT=1 3D=1 MAX_PTS=60
@@ -46,13 +48,15 @@ all :
 
 .PHONY: cleanall
 cleanall : 
-	rm -fr _$(ARCH)*
+	make clean
 	cd templates ; make clean
 
 .PHONY: clean
-clean : 
+clean :
 	rm -fr _$(ARCH)
 	rm -fr _$(ARCH)-*
+	rm -fr $(SCOREC_DIR)
+	rm -fr $(SCOREC_BUILD)
 
 .PHONY: templates
 templates :
