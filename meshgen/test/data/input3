@@ -1,23 +1,16 @@
 numBdry 3
-bdryFile sparc_v2_first_wall_interpolated.dat
-bdryFile  points_RZ_SI_VV_10deg_Curve_1_20220124.dat 
-bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat
-numRgn 3
-rgnBdry  1 1
-rgnBdry  2 1 2
-rgnBdry  2 2 3
+bdryFile sparc_v2_first_wall_interpolated.dat 3 0.2
+bdryFile  points_RZ_SI_VV_10deg_Curve_1_20220124.dat 10 0.3 
+bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat 11 0.4
+
+!Wall Thickness feature is not working properly. So Set it to Zero for now.
+useVacuum 2 9 0.1
+vacuumParams 1.8 1.5 0.4 0.0 2.5
+
+numFace 4
+faceBdry  1 3 0.2
+faceBdry  2 3 10 0.1
+faceBdry  2 10 11 0.09
+faceBdry  2 11 9 0.1
+
 outFile input3
-
-! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
-!meshSize 0.04 0.04 0.1
-!meshSize 0.06 0.06 0.1
-
-! For 3-region model only.
-! meshGradationRate default 0.3
-meshGradationRate 0.3
-resistive-width 0.02
-plasma-offsetX 0.0
-plasma-offsetY 0.0
-vacuum-width  2.5
-vacuum-height 4.0
-

@@ -709,7 +709,7 @@ end function cd_func
 
 ! Resistivity
 ! ~~~~~~~~~~~
-function resistivity_func(izone)
+function resistivity_func(izone_index)
   use basic
   use m3dc1_nint
   use diagnostics
@@ -720,13 +720,17 @@ function resistivity_func(izone)
   implicit none
 
   vectype, dimension(dofs_per_element) :: resistivity_func
-  integer, intent(in) :: izone
+  integer, intent(in) :: izone_index
   real :: tmin
-  integer :: nvals, j, mr
+  integer :: nvals, j, mr, iz
   real, allocatable :: xvals(:), yvals(:)
   real :: val, valp, valpp, pso, psib
+  integer :: izone
+  integer, dimension(MAX_PTS) :: izarr
 
-  if(izone.eq.1) then
+  izone = zone_type(izone_index)
+
+  if(izone.eq.ZONE_PLASMA) then
      select case (iresfunc)
      case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
         if(eta0.ne.0.) then
@@ -824,7 +828,8 @@ function resistivity_func(izone)
 
      end select
   else if(izone.eq.2) then
-     temp79a = wall_resistivity(x_79,phi_79,z_79) - etar*eta_fac
+     izarr = iz
+     temp79a = wall_resistivity(x_79,phi_79,z_79,izarr) - etar*eta_fac
   else if(izone.eq.3) then
      temp79a = eta_vac - etar*eta_fac
   end if
@@ -1298,7 +1303,7 @@ subroutine define_transport_coefficients()
 
   include 'mpif.h'
 
-  integer :: itri, izone
+  integer :: itri, izone, izone_index
   integer :: numelms, def_fields,ier
 
   logical, save :: first_time = .true.
@@ -1392,10 +1397,10 @@ subroutine define_transport_coefficients()
      call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, def_fields, 1, linear)
 
-     call get_zone(itri, izone)
+     call get_zone_index(itri, izone_index)
+     izone = zone_type(izone_index)
 
-
-     dofs = resistivity_func(izone)
+     dofs = resistivity_func(izone_index)
      if(.not.solve_resistivity) solve_resistivity = any(dofs.ne.0.)
 
 !$OMP CRITICAL

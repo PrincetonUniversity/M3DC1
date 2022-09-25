@@ -615,7 +615,8 @@ contains
 
     real :: fac
     real :: p_floor
-    integer :: izone, ieqsub, fields, i
+    integer :: izone, ieqsub, fields, i, iz
+    integer, dimension(MAX_PTS) :: izarr
     type(element_data) :: d
 
     fields = fieldi
@@ -1176,10 +1177,12 @@ contains
         eta79 = 0.
         eta79(:,OP_1) = eta_vac
      else if(izone.eq.2) then
+        call get_zone_index(itri,iz)
+        izarr = iz
         eta79 = 0.
-        eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79)
+        eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79,izarr)
         etaRZ79 = 0
-        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79)
+        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79,izarr)
      else 
         if(iresfunc.eq.2) then
            if(linear.eq.1) then

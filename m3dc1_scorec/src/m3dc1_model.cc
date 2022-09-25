@@ -241,6 +241,7 @@ void load_model(const char* filename)
   FILE* fp= fopen(filename, "r");
   int numL,separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop;
   fscanf(fp,"%d %d %d %d %d\n", &numL, &separatrixLoop, &innerWallLoop, &outerWallLoop, &vacuumLoop);
+
   for( int i=0; i< numL; i++)
   {
     int numE;
@@ -292,30 +293,21 @@ void load_model(const char* filename)
                  throw 1; 
       }
     }
-    create_loop( &loop, &numE, edges);
-    delete []edges;
-  }
-  if(separatrixLoop>0) set_separatrix(&separatrixLoop);
-  if(innerWallLoop>0) set_inner_wall_boundary ( &innerWallLoop );
-  if(outerWallLoop>0) set_outer_wall_boundary ( &outerWallLoop );
-  if(vacuumLoop>0) set_vacuum_boundary ( &vacuumLoop );
-  finalize_model();
-  fclose(fp);
-}
+    // loop doesn't exist
+    assert (loopContainer.find(loop)==loopContainer.end());
+    
+    for( int i=0; i<numE; i++)
+      loopContainer[loop].push_back(edges[i]);
 
-// **********************************************
-void create_loop( int* loopId, int * numEdges, int* EdgeList)
-// **********************************************
-{
-  if(loopContainer.find(*loopId)!=loopContainer.end())
-  {
-    std::cout<<"[M3DC1 ERROR] "<<__func__<<": loop "<<*loopId<<" has been created previously "<<std::endl;
-    throw 1;
+    delete [] edges;
   }
-  for( int i=0; i<*numEdges; i++)
-  {
-    loopContainer[*loopId].push_back(EdgeList[i]);
-  }
+  fclose(fp);
+
+  int facePeriodic[2] = {0, 0};
+  double faceRanges[2][2] = {{0,0},{0,0}};
+  for (int i=1; i<=numL; ++i)
+    gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
+                     faceFunction, facePeriodic, faceRanges, NULL);
 }
 
 // **********************************************
@@ -526,59 +518,6 @@ void attach_b_spline_curve( int* edge, int * order, int* numPts, double* ctrlPts
   gmi_ent* gedge = gmi_add_analytic(m3dc1_model::instance()->model, 1, *edge, edgeFunction, &edgePeriodic, &edgeRange, data);
   make_edge_topo(m3dc1_model::instance()->model,gedge, vtx.first, vtx.second);
   //if (!PCU_Comm_Self()) std::cout<<"[p"<<PCU_Comm_Self()<<"] "<<__func__<<": new edge "<<*edge<<" vtx("<<vtx.first<<", "<<vtx.second<<")\n";
-}
-
-// **********************************************
-void set_inner_wall_boundary ( int * loopId )
-// **********************************************
-{
-  innerWallLoop=*loopId;
-}
-
-// **********************************************
-void set_outer_wall_boundary ( int * loopId )
-// **********************************************
-{
-  outerWallLoop=*loopId;
-}
-
-// **********************************************
-void set_vacuum_boundary ( int * loopId )
-// **********************************************
-{
-  vacuumLoop=*loopId;
-}
-
-// **********************************************
-void set_separatrix ( int * loopId )
-// **********************************************
-{
-  separatrixLoop=*loopId;
-}
-
-// **********************************************
-void finalize_model()
-// **********************************************
-{
-  gmi_model * model=m3dc1_model::instance()->model;
-  int facePeriodic[2] = {0, 0};
-  double faceRanges[2][2] = {{0,0},{0,0}};
-  if(separatrixLoop!=-1)
-  {
-    gmi_add_analytic(model, 2, separatrixLoop, faceFunction, facePeriodic, faceRanges, NULL);
-  }
-  if(innerWallLoop!=-1)
-  {
-    gmi_add_analytic(model, 2, innerWallLoop, faceFunction, facePeriodic, faceRanges, NULL);
-  }
-  if(outerWallLoop!=-1)
-  {
-    gmi_add_analytic(model, 2, outerWallLoop, faceFunction, facePeriodic, faceRanges, NULL);
-  }
-  if(vacuumLoop!=-1)
-  {
-    gmi_add_analytic(model, 2, vacuumLoop, faceFunction, facePeriodic, faceRanges, NULL);
-  }
 }
 
 // **********************************************
