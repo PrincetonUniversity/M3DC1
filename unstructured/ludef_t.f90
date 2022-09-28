@@ -5850,7 +5850,7 @@ subroutine ludefnre_n(itri)
   ssterm = ssterm + tempxx
   if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
 
-  thimp2=1.0
+  thimp2=thimp
   ncycles=1.0*ra_cyc
   rdiff = radiff
 

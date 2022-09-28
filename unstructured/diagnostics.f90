@@ -939,8 +939,8 @@ subroutine calculate_scalars()
      end if
      
      if(irunaway.gt.0) then
-        totre = totre + int2(ri_79,nre179(:,OP_1))/tpirzero
-        totre = totre + int2(ri_79,nre079(:,OP_1))/tpirzero
+        totre = totre - int2(ri_79,nre179(:,OP_1))/tpirzero
+        totre = totre - int2(ri_79,nre079(:,OP_1))/tpirzero
      end if
 
      helicity = helicity &

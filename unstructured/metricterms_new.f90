@@ -9518,7 +9518,7 @@ function b3psipsieta(e,f,g,h,i)
      temp = temp + (gam-1)*   &
            (intx5(e(:,:,OP_1),ri4_79,f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1))   &
          +  intx5(e(:,:,OP_1),ri4_79,f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1)))
-     if(irunaway .gt. 0) then
+     if(irunaway .gt. 2) then
         temp = temp + 1.*(gam-1.) * &
               (-intx6(e(:,:,OP_1),ri3_79,f(:,OP_DZ),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
               + intx6(e(:,:,OP_1),ri3_79,f(:,OP_DR),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
@@ -9555,7 +9555,7 @@ function b3psibeta(e,f,g,h,i)
 #endif
   end if
 
-  if(irunaway .gt. 0) then
+  if(irunaway .gt. 2) then
      temp = temp + 1.*(gam-1.) * &
                    (-intx6(e(:,:,OP_1),ri2_79,f(:,OP_GS),g(:,OP_1),h(:,OP_1),i(:,OP_1)) &
                   + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
@@ -9588,7 +9588,7 @@ function b3psifeta(e,f,g,h,i)
      temp = 2.*(gam-1.)* &
           (intx5(e(:,:,OP_1),ri3_79,f(:,OP_DZP),g(:,OP_DRP),h(:,OP_1))  &
           -intx5(e(:,:,OP_1),ri3_79,f(:,OP_DRP),g(:,OP_DZP),h(:,OP_1)))
-      if(irunaway .gt. 0) then
+      if(irunaway .gt. 2) then
          temp = temp + 1.*(gam-1.) * &
                        (intx6(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
                       + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
@@ -9651,7 +9651,7 @@ function b3bfeta(e,f,g,h,i)
           (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
           +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)))
 #endif
-     if(irunaway .gt. 0) then
+     if(irunaway .gt. 2) then
         temp = temp + 1.*(gam-1.)* &
                       (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
                      - intx6(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
