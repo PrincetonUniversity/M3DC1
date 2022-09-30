@@ -204,8 +204,9 @@ module basic
   integer :: isample_ext_field_pol
 
   real :: scale_ext_field
-  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines output.
+  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines or mgrid file.
   character(len=256) :: file_ext_field
+  character(len=256) :: fieldlines_filename 
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
 
