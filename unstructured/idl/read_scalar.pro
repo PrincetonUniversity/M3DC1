@@ -463,9 +463,9 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(/l0,_EXTRA=extra)
    endif else if (strcmp("runaways", scalarname, /fold_case) eq 1) then begin
        data = s.runaways._data
-       title = '!6Runaway Electrons!6'
+       title = '!6Runaway Current!6'
        symbol = '!8N!D!6RE!N!X'
-       d = dimensions(/n0,l0=3,_EXTRA=extra)
+       d = dimensions(/j0,_EXTRA=extra)
    endif else if (strcmp("IZ", scalarname, /fold_case) eq 1 $
                  or strcmp("M_IZ", scalarname, /fold_case) eq 1) then begin
        data = s.M_IZ._data / s.toroidal_current_p._data
