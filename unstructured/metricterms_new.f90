@@ -12446,7 +12446,8 @@ real function energy_p(mask)
         temp = int2(p179,temp79a) / (gam - 1.)
      else
 !.......nonlinear: subtract off equilibrium piece
-        temp = (int2(pt79,temp79a) - int2(p079,temp79a))/ (gam - 1.)
+        !temp = (int2(pt79,temp79a) - int2(p079,temp79a))/ (gam - 1.)
+        temp = int2(pt79,temp79a) / (gam - 1.)
      endif
   endif
 
@@ -12473,7 +12474,7 @@ real function energy_pe()
         temp = int1(pe179) / (gam - 1.)
      else
 !.......nonlinear: subtract off equilibrium piece
-        temp = (int1(pet79) - int1(pe079))/ (gam - 1.)
+        temp = int1(pet79) / (gam - 1.)
      endif
   endif
 
