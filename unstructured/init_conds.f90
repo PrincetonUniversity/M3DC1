@@ -646,11 +646,7 @@ subroutine initial_conditions()
               call safestop(1)
            end if
         case(41)
-           if (iread_ext_field.eq.0 .or. type_ext_field.ne.1) then
-              if(myrank.eq.0) print *, &
-                'Free-boundary simulation requires reading FIELDLINES output!'
-              call safestop(1)
-           end if
+           call rmp_per(init=.true.)
 #endif
         end select
      end if
@@ -675,7 +671,7 @@ subroutine initial_conditions()
 
   if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
-       any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per()
+       any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per(init=.false.)
 
 #ifdef USEST
   if(igeometry.eq.1.and.iread_vmec.ge.1) then

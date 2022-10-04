@@ -281,17 +281,22 @@ contains
 
     call h5gclose_f(root_id, error)
 
-    ! If eqsubtract = 1 but eqsubtract_in = 0, then
-    ! old fields become new equilibrium fields
-    if(eqsubtract_in.eq.0 .and. eqsubtract.eq.1) then
-       field0_vec = field_vec
-       field_vec = 0.
-    end if
-
 
     ! If type of calculation has changed (i.e. real to complex)
     ! then overwrite output
     istartnew = 0
+
+    ! If eqsubtract = 1 but eqsubtract_in = 0, then
+    ! old fields become new equilibrium fields
+    if(eqsubtract_in.eq.0 .and. eqsubtract.eq.1) then
+       if(myrank.eq.0) then
+          print *, 'Restarting while changing eqsubtract from 0 to 1'
+          print *, 'Previous data will be overwritten.'
+       end if
+       field0_vec = field_vec
+       field_vec = 0.
+       istartnew = 1
+    end if
     if(icomplex.eq.1 .and. icomplex_in.eq.0) then
        if(myrank.eq.0) then
           print *, 'Starting complex calculation from 2D real calculation.'
@@ -316,6 +321,7 @@ contains
 
     if (istartnew.eq.1) then
        ntime = 0
+       time = 0
        irestart = 0
        call hdf5_finalize(error)
        call hdf5_initialize(.false., error)
