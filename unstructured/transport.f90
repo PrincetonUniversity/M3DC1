@@ -36,7 +36,7 @@ function sigma_func(izone)
   integer :: ip, mr
 
   ! Don't allow particle source in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      sigma_func = 0.
      return
   end if
@@ -193,7 +193,7 @@ function force_func(izone)
   vectype, dimension(dofs_per_element) :: temp
 
   ! Don't allow momentum source in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      force_func = 0.
      return
   end if
@@ -322,7 +322,7 @@ function q_func(izone)
   real, dimension(MAX_PTS) :: r
 
   ! Don't allow heating in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      q_func = 0.
      return
   end if
@@ -827,10 +827,10 @@ function resistivity_func(izone_index)
         call safestop(73)
 
      end select
-  else if(izone.eq.2) then
+  else if(izone.eq.ZONE_CONDUCTOR) then
      izarr = iz
      temp79a = wall_resistivity(x_79,phi_79,z_79,izarr) - etar*eta_fac
-  else if(izone.eq.3) then
+  else if(izone.eq.ZONE_VACUUM) then
      temp79a = eta_vac - etar*eta_fac
   end if
 
