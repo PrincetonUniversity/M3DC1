@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A m3984
+#SBATCH -A mp288
 #SBATCH -q debug
 #SBATCH -C cpu
 #SBATCH -n 128

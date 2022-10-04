@@ -5585,7 +5585,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 
   if(numvar.ge.3 .or. ipres.eq.1) then
      if(hyper.eq.0.) def_fields = def_fields + FIELD_J
-     if(hyperc.ne.0.) def_fields = def_fields + FIELD_VOR + FIELD_COM
   end if
 
   if(kinetic.gt.0) then

@@ -1129,8 +1129,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
   if(iwrite_aux_vars.eq.1) then 
     call write_field(group_id, "wall_dist", wall_dist, nelms, error, .true.)
     call write_field(group_id, "jphi", jphi_field, nelms, error)
-    call write_field(group_id, "vor", vor_field, nelms, error)
-    call write_field(group_id, "com", com_field, nelms, error)
     call write_field(group_id, "torque_em", torque_density_em, nelms, error)
     call write_field(group_id,"torque_ntv", torque_density_ntv, nelms, error)
     call write_field(group_id, "bdotgradp", bdotgradp, nelms, error)

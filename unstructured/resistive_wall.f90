@@ -2,6 +2,7 @@ module resistive_wall
 
   use basic
   use region
+  use mesh_mod
 
   implicit none
 
@@ -19,6 +20,8 @@ module resistive_wall
   character(len=256), dimension(imax_wall_regions) :: wall_region_filename
   real, dimension(imax_wall_regions) :: wall_region_eta, wall_region_etaRZ
   type(region_type), dimension(imax_wall_regions) :: wall_region
+
+  real, dimension(max_zones) :: eta_zone, etaRZ_zone
 
   real :: eta_rekc
   integer :: ntor_rekc, mpol_rekc, isym_rekc
@@ -53,17 +56,22 @@ contains
     iwall_regions = 0
   end subroutine destroy_resistive_wall
 
-  elemental real function wall_resistivity(x, phi, z)
+  elemental real function wall_resistivity(x, phi, z, izone)
 
     use math
 
     implicit none
 
     real, intent(in) :: x, phi, z
+    integer, intent(in) :: izone
     real :: theta, f, f1, f2
     integer :: i
 
-    wall_resistivity = eta_wall
+    if(eta_zone(izone).gt.0.) then
+       wall_resistivity = eta_zone(izone)
+    else
+       wall_resistivity = eta_wall
+    end if
 
     do i=iwall_regions, 1, -1
        if(point_in_region(wall_region(i), x, phi, z)) then
@@ -110,17 +118,22 @@ contains
 
   end function wall_resistivity
 
-  elemental real function wall_resistivityRZ(x, phi, z)
+  elemental real function wall_resistivityRZ(x, phi, z, izone)
 
     use math
 
     implicit none
 
     real, intent(in) :: x, phi, z
+    integer, intent(in) :: izone
     real :: theta, f, f1, f2
     integer :: i
 
-    wall_resistivityRZ = eta_wallRZ
+    if(etaRZ_zone(izone).gt.0.) then
+       wall_resistivityRZ = etaRZ_zone(izone)
+    else
+       wall_resistivityRZ = eta_wallRZ
+    end if
 
     do i=iwall_regions, 1, -1
        if(point_in_region(wall_region(i), x, phi, z)) then

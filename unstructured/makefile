@@ -170,7 +170,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	temperature_plots.o electrostatic_potential.o \
 	newvar.o kprad_m3dc1.o diagnostics.o runaway.o \
 	read_schaffer_field.o  neutral_beam.o \
-	coils.o coil_sets.o model.o \
+	coils.o coil_sets.o model.o hypervisc.o \
 	fit_magnetics.o wall.o \
 	geometry.o\
 	init_common.o init_vmec.o\

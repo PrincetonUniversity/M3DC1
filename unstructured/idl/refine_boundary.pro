@@ -1,4 +1,4 @@
-pro refine_boundary, file, min_dist=min_dist, out=out
+pro refine_boundary, file, min_dist=min_dist, out=out, smooth=sm, _EXTRA=extra
 
   if(n_elements(min_dist) eq 0.) then min_dist = 0.1
 
@@ -6,7 +6,7 @@ pro refine_boundary, file, min_dist=min_dist, out=out
   x = reform(z.field1[0,*])
   y = reform(z.field1[1,*])
 
-  plot, x, y, /iso
+  plot, x, y, /iso, _EXTRA=extra
 
   while(1) do begin
      n = n_elements(x)
@@ -34,6 +34,11 @@ pro refine_boundary, file, min_dist=min_dist, out=out
         x = [x[0:i], (x[i+1]+x[i]) / 2., x[i+1:n-1]]
         y = [y[0:i], (y[i+1]+y[i]) / 2., y[i+1:n-1]]
      endelse
+  end
+
+  if(n_elements(sm) eq 1) then begin
+     x = smooth(x, sm, /edge_wrap)
+     y = smooth(y, sm, /edge_wrap)
   end
 
   oplot, x, y, psym=4

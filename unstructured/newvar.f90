@@ -8,8 +8,6 @@ module newvar_mod
   integer, parameter :: NV_DCBOUND = 1  ! Dirichlet boundary conditions
   integer, parameter :: NV_NMBOUND = 2  ! Neumann boundary conditions
   integer, parameter :: NV_SJBOUND = 3
-  integer, parameter :: NV_SVBOUND = 4
-  integer, parameter :: NV_SCBOUND = 5
   integer, parameter :: NV_CYBOUND = 6  ! Cauchy boundary conditions
 
   integer, parameter :: NV_I_MATRIX = 0
@@ -33,16 +31,14 @@ module newvar_mod
   type(newvar_matrix) :: mass_mat_lhs
   type(newvar_matrix) :: mass_mat_lhs_dc
   type(newvar_matrix) :: mass_mat_rhs
-  type(newvar_matrix) :: lp_mat_rhs
-  type(newvar_matrix) :: lp_mat_rhs_dc
+!  type(newvar_matrix) :: lp_mat_rhs
+!  type(newvar_matrix) :: lp_mat_rhs_dc
   type(newvar_matrix) :: gs_mat_rhs_dc
   type(newvar_matrix) :: gs_mat_rhs
   type(newvar_matrix) :: bf_mat_lhs
   type(newvar_matrix) :: pot2_mat_lhs
   type(newvar_matrix) :: mass_mat_rhs_bf
   type(newvar_matrix) :: dp_mat_rhs_bfp
-  type(newvar_matrix) :: s5_mat, d5_mat
-  type(newvar_matrix) :: s7_mat, d7_mat
   type(newvar_matrix) :: s10_mat, d10_mat
 
 contains
@@ -61,17 +57,13 @@ contains
     call set_matrix_index(mass_mat_lhs%mat,    mass_mat_lhs_index)
     call set_matrix_index(mass_mat_rhs%mat,    mass_mat_rhs_index)
     call set_matrix_index(mass_mat_lhs_dc%mat, mass_mat_lhs_dc_index)
-    call set_matrix_index(lp_mat_rhs%mat,      lp_mat_rhs_index)
-    call set_matrix_index(lp_mat_rhs_dc%mat,   lp_mat_rhs_dc_index)
+!!$    call set_matrix_index(lp_mat_rhs%mat,      lp_mat_rhs_index)
+!!$    call set_matrix_index(lp_mat_rhs_dc%mat,   lp_mat_rhs_dc_index)
     call set_matrix_index(gs_mat_rhs_dc%mat,   gs_mat_rhs_dc_index)
     call set_matrix_index(gs_mat_rhs%mat,      gs_mat_rhs_index)
     call set_matrix_index(bf_mat_lhs%mat,      bf_mat_lhs_dc_index)
     call set_matrix_index(mass_mat_rhs_bf%mat, mass_mat_rhs_dc_index)
     call set_matrix_index(dp_mat_rhs_bfp%mat,  bfp_mat_rhs_index)
-    call set_matrix_index(s5_mat%mat,          s5_mat_index)
-    call set_matrix_index(d5_mat%mat,          d5_mat_index)
-    call set_matrix_index(s7_mat%mat,          s7_mat_index)
-    call set_matrix_index(d7_mat%mat,          d7_mat_index)
     call set_matrix_index(s10_mat%mat,         s10_mat_index)
     call set_matrix_index(d10_mat%mat,         d10_mat_index)
    call set_matrix_index(pot2_mat_lhs%mat,      pot2_mat_lhs_index)
@@ -103,34 +95,6 @@ contains
        call create_newvar_matrix(gs_mat_rhs,  NV_NOBOUND,NV_GS_MATRIX, 0)
     endif
 
-    if(hyperc.ne.0) then
-       call create_newvar_matrix(s5_mat, NV_SVBOUND, NV_SV_MATRIX, 1)
-       call create_newvar_matrix(d5_mat, NV_SVBOUND, NV_SV_MATRIX, 0)
-#ifdef CJ_MATRIX_DUMP
-       print *, "create_mat newvar s5_mat", s5_mat%mat%imatrix     
-       print *, "create_mat newvar d5_mat", d5_mat%mat%imatrix     
-#endif 
-       if(numvar.ge.3) then
-          call create_newvar_matrix(s7_mat, NV_SCBOUND, NV_SC_MATRIX, 1)
-          call create_newvar_matrix(d7_mat, NV_SCBOUND, NV_SC_MATRIX, 0)
-#ifdef CJ_MATRIX_DUMP
-          print *, "create_mat newvar s7_mat", s7_mat%mat%imatrix     
-          print *, "create_mat newvar d7_mat", d7_mat%mat%imatrix     
-#endif 
-       endif
-
-       if(numvar.ge.3 .and. com_bc.eq.0) then
-          call create_newvar_matrix(lp_mat_rhs,NV_NOBOUND,NV_LP_MATRIX, 0)
-#ifdef CJ_MATRIX_DUMP
-          print *, "create_mat newvar lp_mat_rhs", lp_mat_rhs%mat%imatrix     
-#endif 
-       else
-          call create_newvar_matrix(lp_mat_rhs_dc,NV_DCBOUND,NV_LP_MATRIX,0)
-#ifdef CJ_MATRIX_DUMP
-          print *, "create_mat newvar lp_mat_rhs_dc", lp_mat_rhs_dc%mat%imatrix     
-#endif 
-       endif
-    endif
 
     if((i3d.eq.1 .or. ifout.eq.1) .and. numvar.ge.2) then
        if(ifbound.eq.1) then 
@@ -197,10 +161,6 @@ subroutine apply_bc(rhs, ibound, bvec, mat)
      call boundary_nm(rhs, bvec, mat)
   case(NV_SJBOUND)
      call boundary_jphi(rhs, mat)
-  case(NV_SVBOUND)
-     call boundary_vor(rhs, mat)
-  case(NV_SCBOUND)
-     call boundary_com(rhs, mat)
   case(NV_CYBOUND)
      call boundary_cy(rhs, mat)
   end select
@@ -238,7 +198,7 @@ end subroutine apply_bc
   integer, intent(in), optional :: agg_blk_cnt
   integer, intent(in), optional :: agg_scp
 #endif
-  type(tag_list), intent(in), optional :: tags
+  integer, intent(in), optional :: tags
 
   integer :: numelms, itri, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
@@ -370,9 +330,6 @@ end subroutine apply_bc
              tags=tags)
         call apply_boundary_mask(itri, BOUNDARY_DIRICHLET, temp(:,:,2,2), &
              tags=tags)
-     case(NV_SVBOUND)
-
-     case(NV_SCBOUND)
 
      case(NV_CYBOUND)
         call apply_boundary_mask(itri, & 

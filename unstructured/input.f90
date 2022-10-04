@@ -825,6 +825,10 @@ subroutine set_defaults
        imax_wall_regions, 1e-3, "Resistivity of each wall region", rw_grp)
   call add_var_double_array("wall_region_etaRZ", wall_region_etaRZ,&
        imax_wall_regions, -1. , "Poloidal Resistivity of each wall region", rw_grp)
+  call add_var_double_array("eta_zone", eta_zone, max_zones, &
+       0., "Resistivity of mesh zone", rw_grp)
+  call add_var_double_array("etaRZ_zone", etaRZ_zone, max_zones, &
+       0., "Poloidal resistivity of mesh zone", rw_grp)
 
   call add_var_string_array("wall_region_filename", wall_region_filename, 256,&
        imax_wall_regions, "", "Resistivity of each wall region", rw_grp)
@@ -1166,6 +1170,10 @@ subroutine set_defaults
        "ratio of longest to shortest toroidal element", mesh_grp)
   call add_var_double("toroidal_pack_angle", toroidal_pack_angle, 0., &
        "toroidal angle of maximum mesh packing", mesh_grp)
+  call add_var_int_array("boundary_type", boundary_type, max_bounds, &
+       BOUND_UNKNOWN, "Type of each mesh boundary.", mesh_grp)
+  call add_var_int_array("zone_type", zone_type, max_zones, &
+       ZONE_UNKNOWN, "Type of each mesh boundary.", mesh_grp)
 
   ! Solver 
   call add_var_double("solver_tol", solver_tol,0.000000001,&

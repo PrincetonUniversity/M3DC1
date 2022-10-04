@@ -75,7 +75,7 @@ contains
 !      mat_dofs = -intxx3(must79(:,:,OP_1),nust79(:,:,OP_LP),ri_79) 
 !                !+intxx3(must79(:,:,OP_1),nust79(:,:,OP_DPP),ri3_79)
        
-!      call apply_boundary_mask(itri, ibound, mat_dofs, tags=inner_wall)
+!      call apply_boundary_mask(itri, ibound, mat_dofs, tags=BOUND_FIRSTWALL)
 
 !      call insert_block(st_matrix, itri, 1, 1, mat_dofs, MAT_ADD)
 !    enddo
@@ -175,7 +175,7 @@ contains
        i = nodes_owned(icounter_t)
        
        call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-            inner_wall)
+            BOUND_FIRSTWALL)
        if(.not.is_boundary) cycle
        
        ibegin = node_index(rst, i, 1)

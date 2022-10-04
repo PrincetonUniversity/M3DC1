@@ -16,11 +16,10 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O3
   CCOPTS := $(CCOPTS) -O3
 else 
-  FOPTS := $(FOPTS) -g -O0 
-  CCOPTS := $(CCOPTS) -O0 
+  FOPTS := $(FOPTS) -g -O0
+  CCOPTS := $(CCOPTS) -O0
 endif
 
- 
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
@@ -51,7 +50,7 @@ else
   PETSC_ARCH=real-$(MPIVER)
 endif
 
-PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,${PETSC_DIR}/${PETSC_ARCH}/lib -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2/lib -L/fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2/lib -Wl,-rpath,/fusion/usc/opt/hdf5/hdf5-1.8.16-mpich-gcc-4.7.2/lib -L/fusion/usc/opt/hdf5/hdf5-1.8.16-mpich-gcc-4.7.2/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lnetcdf -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,${PETSC_DIR}/${PETSC_ARCH}/lib -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2/lib -L/fusion/usc/opt/fftw/fftw-3.3.4-mpich-gcc-4.7.2/lib -Wl,-rpath,/fusion/usc/opt/hdf5/hdf5-1.8.16-mpich-gcc-4.7.2/lib -L/fusion/usc/opt/hdf5/hdf5-1.8.16-mpich-gcc-4.7.2/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
 	-I$(FFTW_DIR)/include \
@@ -66,6 +65,13 @@ LIBS := $(LIBS) \
         $(PETSC_WITH_EXTERNAL_LIB) \
         -lgsl -lgslcblas -lhugetlbfs \
         -lstdc++
+
+ifeq ($(ST), 1)
+  LIBS += -L$(NETCDF_DIR)/lib -lnetcdf -lnetcdff
+
+  INCLUDE += -I$(NETCDF_INCLUDE)
+endif
+
 
 %.o : %.cpp
 	$(CPP)  $(CCOPTS) $(INCLUDE) $< -o $@

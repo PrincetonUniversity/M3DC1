@@ -20,17 +20,17 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107
+PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609
 ifeq ($(COM), 1)
   PETSC_ARCH = coriknl-PrgEnvintel6010-craympich7719-master-cplx
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/coriknl-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/coriknl-PrgEnvintel6010-craympich7719-master-cplx/lib -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.2.254/linux/mkl/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.2.254/linux/mkl/lib/intel64 -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lzoltan -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-cplx/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
 else
   PETSC_ARCH = coriknl-PrgEnvintel6010-craympich7719-master-real
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/coriknl-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220107/coriknl-PrgEnvintel6010-craympich7719-master-real/lib -Wl,-rpath,/opt/intel/compilers_and_libraries_2020.2.254/linux/mkl/lib/intel64 -L/opt/intel/compilers_and_libraries_2020.2.254/linux/mkl/lib/intel64 -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lzoltan -lparmetis -lmetis -lz -lquadmath -ldl -lstdc++
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-real/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/coriknl-PrgEnvintel6010-craympich7719-master-real/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lquadmath -lstdc++ -ldl
 endif
 
 #SCOREC_BASE_DIR=/global/project/projectdirs/mp288/cori/scorec/intel19.1.0-mpich7.7.10/knl-petsc3.13.4/
-SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-knl
+SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-knl2
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 ZOLTAN_LIB=-L$(SCOREC_BASE_DIR)/lib -lzoltan

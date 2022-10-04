@@ -99,6 +99,15 @@ contains
           call h5gclose_f(root_id, error)
           call safestop(1)
        end if
+       if(i3d_in.eq.1 .and. icomplex.eq.1) then
+          if(myrank.eq.0) then
+             print *, 'Error: cannot start a complex calculation'
+             print *, '       from a non-axisymmetric equilibrium'
+          end if
+          call h5gclose_f(root_id, error)
+          call safestop(1)
+       end if
+
        ! check if fp is present
        if(version_in.ge.38 .or. (version_in.ge.35 .and. numvar.gt.1)) then
           irestart_fp = 1
