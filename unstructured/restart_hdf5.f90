@@ -295,7 +295,10 @@ contains
        end if
        field0_vec = field_vec
        field_vec = 0.
+       bfp_field(0) = bfp_field(1)
+       bfp_field(1) = 0. 
        istartnew = 1
+       time = 0
     end if
     if(icomplex.eq.1 .and. icomplex_in.eq.0) then
        if(myrank.eq.0) then
@@ -317,11 +320,11 @@ contains
           print *, 'Previous data will be overwritten.'
        end if
        istartnew = 1
+       time = 0
     end if
 
     if (istartnew.eq.1) then
        ntime = 0
-       time = 0
        irestart = 0
        call hdf5_finalize(error)
        call hdf5_initialize(.false., error)
