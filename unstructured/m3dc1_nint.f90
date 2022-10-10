@@ -618,6 +618,7 @@ contains
     integer :: izone, ieqsub, fields, i, iz
     integer, dimension(MAX_PTS) :: izarr
     type(element_data) :: d
+    real :: kr_tmin, kr_tmax
 
     fields = fieldi
 
@@ -697,6 +698,13 @@ contains
           if(itemp.eq.1) fields = ior(fields,FIELD_TE)
        end if
        if(ikapparfunc.eq.1) fields = ior(fields,FIELD_TE)
+       if(ikapparfunc.eq.2) then
+          fields = ior(ior(fields,FIELD_N),FIELD_P)
+          if(itemp.eq.1) then
+             fields =ior(fields,FIELD_TE)
+             if(ipres.eq.1) fields = ior(fields,FIELD_TI)
+          end if
+       end if
     end if
     if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
        if(idenmfunc.eq.1) then
@@ -1460,11 +1468,83 @@ contains
         call eval_ops(itri, kappa_field, kap79)
      end if
 
-     call eval_ops(itri, kappar_field, kar79)
-
      if(ikapscale.eq.1) then
         kar79 = kappar*kap79
-     endif
+     else if(ikapparfunc.eq.2) then
+
+        ! Here eta79 = 1/T^1.5 .  Factor of efac is included later
+        kar79 = 0.
+        if(izone.eq.1) then
+
+           kar79(:,OP_1) = kappar_max / krfac
+
+           ! Te
+           if(itemp.eq.1) then
+              temp79b = tet79(:,OP_1)
+           else
+              temp79b = pet79(:,OP_1)/net79(:,OP_1)
+           end if
+           
+#ifdef USE3D
+           ! dTe/dphi
+           temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
+                pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
+#endif
+           kr_tmin = (kappar_min/krfac)**0.4
+           kr_tmax = (kappar_max/krfac)**0.4
+           if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "kr_tlims", kr_tmin, kr_tmax
+           where(real(temp79b).lt.(kappar_max/krfac)**0.4 .and. &
+                 real(temp79b).gt.(kappar_min/krfac)**0.4)
+              temp79a = sqrt(temp79b)
+              kar79(:,OP_1 ) = temp79a**5
+              kar79(:,OP_DR) = (5./2.) * temp79a**3 * &
+                   (pet79(:,OP_DR)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)
+              kar79(:,OP_DZ) = (5./2.) * temp79a**3 * &
+                   (pet79(:,OP_DZ)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)
+              kar79(:,OP_DRR) = (15./4.) * temp79a * &
+                   (pet79(:,OP_DR)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)**2 &
+                   + (5./2.) * temp79a**3 * &
+                   (pet79(:,OP_DRR)/net79(:,OP_1) &
+                   -2.*pet79(:,OP_DR)*net79(:,OP_DR)/net79(:,OP_1)**2 &
+                   -pet79(:,OP_1)*net79(:,OP_DRR)/net79(:,OP_1)**2 &
+                   +2.*pet79(:,OP_1)*net79(:,OP_DR)**2/net79(:,OP_1)**3)
+              kar79(:,OP_DRZ) = (15./4.) * temp79a * &
+                   (pet79(:,OP_DR)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2) &
+                   *(pet79(:,OP_DZ)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2) &
+                   + (5./2.) * temp79a**3 * &
+                   (pet79(:,OP_DRZ)/net79(:,OP_1) &
+                   -pet79(:,OP_DR)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
+                   -pet79(:,OP_DZ)*net79(:,OP_DR)/net79(:,OP_1)**2 &
+                   -pet79(:,OP_1)*net79(:,OP_DRZ)/net79(:,OP_1)**2 &
+                   +2.*pet79(:,OP_1)*net79(:,OP_DR)*net79(:,OP_DZ) &
+                   /net79(:,OP_1)**3)
+              kar79(:,OP_DZZ) = (15./4.) * temp79a * &
+                   (pet79(:,OP_DZ)/net79(:,OP_1) &
+                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)**2 &
+                   + (5./2.) * temp79a**3 * &
+                   (pet79(:,OP_DZZ)/net79(:,OP_1) &
+                   -2.*pet79(:,OP_DZ)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
+                   -pet79(:,OP_1)*net79(:,OP_DZZ)/net79(:,OP_1)**2 &
+                   +2.*pet79(:,OP_1)*net79(:,OP_DZ)**2/net79(:,OP_1)**3)
+#ifdef USE3D
+              kar79(:,OP_DP) = (5./2.) * temp79c * temp79a**3
+#endif
+           end where
+
+           kar79 = kar79 * krfac
+           where(kar79.ne.kar79) kar79 = 0.
+           where(real(kar79(:,OP_1)).lt.kappar_min) kar79(:,OP_1) = kappar_min
+           where(real(kar79(:,OP_1)).gt.kappar_max) kar79(:,OP_1) = kappar_max
+        end if
+     else
+        call eval_ops(itri, kappar_field, kar79)
+     end if
+
      kax79 = 0.
      kax79(:,OP_1) = kappax
   end if
