@@ -699,11 +699,12 @@ contains
        end if
        if(ikapparfunc.eq.1) fields = ior(fields,FIELD_TE)
        if(ikapparfunc.eq.2) then
-          fields = ior(ior(fields,FIELD_N),FIELD_P)
-          if(itemp.eq.1) then
-             fields =ior(fields,FIELD_TE)
-             if(ipres.eq.1) fields = ior(fields,FIELD_TI)
-          end if
+          fields =ior(fields,FIELD_TE)
+          !fields = ior(ior(fields,FIELD_N),FIELD_P)
+          !if(itemp.eq.1) then
+          !   fields =ior(fields,FIELD_TE)
+          !   if(ipres.eq.1) fields = ior(fields,FIELD_TI)
+          !end if
        end if
     end if
     if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
@@ -1479,17 +1480,8 @@ contains
            kar79(:,OP_1) = kappar_max / krfac
 
            ! Te
-           if(itemp.eq.1) then
-              temp79b = tet79(:,OP_1)
-           else
-              temp79b = pet79(:,OP_1)/net79(:,OP_1)
-           end if
+           temp79b = tet79(:,OP_1)
            
-#ifdef USE3D
-           ! dTe/dphi
-           temp79c = pet79(:,OP_DP)/net79(:,OP_1) - &
-                pet79(:,OP_1)*net79(:,OP_DP)/net79(:,OP_1)**2
-#endif
            kr_tmin = (kappar_min/krfac)**0.4
            kr_tmax = (kappar_max/krfac)**0.4
            if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "kr_tlims", kr_tmin, kr_tmax
@@ -1497,42 +1489,17 @@ contains
                  real(temp79b).gt.(kappar_min/krfac)**0.4)
               temp79a = sqrt(temp79b)
               kar79(:,OP_1 ) = temp79a**5
-              kar79(:,OP_DR) = (5./2.) * temp79a**3 * &
-                   (pet79(:,OP_DR)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)
-              kar79(:,OP_DZ) = (5./2.) * temp79a**3 * &
-                   (pet79(:,OP_DZ)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)
-              kar79(:,OP_DRR) = (15./4.) * temp79a * &
-                   (pet79(:,OP_DR)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2)**2 &
-                   + (5./2.) * temp79a**3 * &
-                   (pet79(:,OP_DRR)/net79(:,OP_1) &
-                   -2.*pet79(:,OP_DR)*net79(:,OP_DR)/net79(:,OP_1)**2 &
-                   -pet79(:,OP_1)*net79(:,OP_DRR)/net79(:,OP_1)**2 &
-                   +2.*pet79(:,OP_1)*net79(:,OP_DR)**2/net79(:,OP_1)**3)
-              kar79(:,OP_DRZ) = (15./4.) * temp79a * &
-                   (pet79(:,OP_DR)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DR)/net79(:,OP_1)**2) &
-                   *(pet79(:,OP_DZ)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2) &
-                   + (5./2.) * temp79a**3 * &
-                   (pet79(:,OP_DRZ)/net79(:,OP_1) &
-                   -pet79(:,OP_DR)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
-                   -pet79(:,OP_DZ)*net79(:,OP_DR)/net79(:,OP_1)**2 &
-                   -pet79(:,OP_1)*net79(:,OP_DRZ)/net79(:,OP_1)**2 &
-                   +2.*pet79(:,OP_1)*net79(:,OP_DR)*net79(:,OP_DZ) &
-                   /net79(:,OP_1)**3)
-              kar79(:,OP_DZZ) = (15./4.) * temp79a * &
-                   (pet79(:,OP_DZ)/net79(:,OP_1) &
-                   -pet79(:,OP_1)*net79(:,OP_DZ)/net79(:,OP_1)**2)**2 &
-                   + (5./2.) * temp79a**3 * &
-                   (pet79(:,OP_DZZ)/net79(:,OP_1) &
-                   -2.*pet79(:,OP_DZ)*net79(:,OP_DZ)/net79(:,OP_1)**2 &
-                   -pet79(:,OP_1)*net79(:,OP_DZZ)/net79(:,OP_1)**2 &
-                   +2.*pet79(:,OP_1)*net79(:,OP_DZ)**2/net79(:,OP_1)**3)
+              kar79(:,OP_DR) = (5./2.) * temp79a**3 * tet79(:,OP_DR)
+              kar79(:,OP_DZ) = (5./2.) * temp79a**3 * tet79(:,OP_DZ)
+              kar79(:,OP_DRR) = (15./4.) * temp79a * tet79(:,OP_DR)**2 &
+                   + (5./2.) * temp79a**3 * tet79(:,OP_DRR)
+              kar79(:,OP_DRZ) = (15./4.) * temp79a * tet79(:,OP_DR) * tet79(:,OP_DZ)  &
+                   + (5./2.) * temp79a**3 * tet79(:,OP_DRZ)
+              kar79(:,OP_DZZ) = (15./4.) * temp79a *  tet79(:,OP_DZ)**2 &
+                   + (5./2.) * temp79a**3 * tet79(:,OP_DZZ)
+              
 #ifdef USE3D
-              kar79(:,OP_DP) = (5./2.) * temp79c * temp79a**3
+              kar79(:,OP_DP) = (5./2.) * tet79(:,OP_DP) * temp79a**3
 #endif
            end where
 
