@@ -422,7 +422,7 @@ Program Reducedquintic
              if(iprint.ge.3 .or. npellets.eq.1) then
                 do ip=1,npellets
                    print *, "   ", pellet_rate(ip), totden, n_control%p, &
-                        n_control%target_val, n_control%err_p_old, n_control%err_i
+                        n_control%target_val, n_control%err_p_old, n_control%err_i,pellet_state
                 end do
              end if
           end if
