@@ -80,6 +80,7 @@ module basic
   real :: kappaf
   real :: kappai_fac
   real :: kappa_max
+  real :: kappar_max, kappar_min
   real :: denm        ! artificial density diffusion used in idenmfunc = 0,1
   real :: denmt       ! temperature dependent density diffusion used in idenmfunc = 1
   real :: denmmin     ! Minimum value of density diffusion
@@ -90,6 +91,7 @@ module basic
   real :: temin_qd    ! minimum temperature used in equipartition term for ipres=1
   real :: efac        ! eta = efac / T^(3/2)
   real :: nufac       ! nu = nufac * n / T^(3/2)
+  real :: krfac       ! kappar = krfac * T^5/2
 
 
   ! physical parameters
