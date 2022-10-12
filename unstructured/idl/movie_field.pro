@@ -1,4 +1,4 @@
-pro movie_field, name, maxtime, outfile=outfile,rate=rate, width=width, height=height, $
+pro movie_field, name, maxtime,dt=dt, outfile=outfile,rate=rate, width=width, height=height, $
                  lcfs=lcfs, ext=ext, Nphi=Nphi, plot_pellet=plot_pellet, fac=fac, $
                  maxvel=maxvel, thick=thick, charsize=charsize, points=points, phi=phi, _EXTRA=ex
 
@@ -33,7 +33,7 @@ pro movie_field, name, maxtime, outfile=outfile,rate=rate, width=width, height=h
   endelse
   
   
-  for i = 0,Nf-1 do begin
+  for i = 0,Nf-1,dt do begin
     phi = phis[i]
     slice = slices[i]
     plot_field, name, slice, time=time, fac=fac, thick=thick, charsize=charsize, $

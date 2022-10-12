@@ -1120,6 +1120,10 @@ function kappar_func()
         
   case(1)
      temp79a = kappar/( (tcrit/tet79(:,OP_1))**2.5 + 1.)
+     where(temp79a.ne.temp79a) temp79a = 0.
+
+  case(2)
+     temp79a = kar79(:,OP_1)
 
   case default
      if(myrank.eq.0) print *, 'Error: invalid value for ikapparfunc: ', ikapparfunc
@@ -1374,7 +1378,8 @@ subroutine define_transport_coefficients()
   if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
        def_fields = def_fields + FIELD_ETA
   if(idenmfunc.eq.1) def_fields = def_fields + FIELD_DENM
-  if(ikappafunc.eq.5) def_fields = def_fields + FIELD_KAP
+  if(ikappafunc.eq.5 .or. ikapparfunc.eq.1 .or. ikapparfunc.eq.2) &
+       def_fields = def_fields + FIELD_KAP
   if(ivisfunc.eq.3 .or. ivisfunc.eq.4) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI

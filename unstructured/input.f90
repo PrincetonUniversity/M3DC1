@@ -345,6 +345,10 @@ subroutine set_defaults
        "Critical pressure gradient in kappag/kappaf models", transp_grp)
   call add_var_double("kappa_max", kappa_max, 0., &
        "Maximum value of kappa in the plasma region", transp_grp)
+  call add_var_double("kappar_max", kappar_max, 0., &
+       "Maximum value of kappa in the plasma region", transp_grp)
+  call add_var_double("kappar_min", kappar_min, 0., &
+       "Maximum value of kappa in the plasma region", transp_grp)
   call add_var_double("temin_qd", temin_qd, 0., &
        "Min. Temp. used in Equipartition term for ipres=1", transp_grp)
   call add_var_double("kappai_fac", kappai_fac, 1., &
@@ -575,10 +579,12 @@ subroutine set_defaults
        "Factor to scale external field", eq_grp)
   call add_var_double_array("shift_ext_field", shift_ext_field, 8, 0., &
        "Toroidal shift (in deg) of external fields", eq_grp)
-  call add_var_int("type_ext_field",type_ext_field,0,&
+  call add_var_int("type_ext_field",type_ext_field,-1,&
        "type of external field file", eq_grp)
   call add_var_string("file_ext_field", file_ext_field, 256, "error_field", &
        "name of external field file", eq_grp)
+  call add_var_string("fieldlines_filename", fieldlines_filename, 256, "fieldlines.h5", &
+       "name of fieldlines file", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
   call add_var_double("elongation", elongation, 1., "", eq_grp)
@@ -1662,7 +1668,12 @@ subroutine validate_input
   efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
   if(eta_max.le.0.) eta_max = eta_vac
   if(eta_min.le.0.) eta_min = 0.
+
+  krfac = (9.6 / (4. * sqrt(2.*pi) * sqrt(m_e) * lambda_coulomb * e_c**4)) &
+       * t0_norm * p0_norm**2.5 / (l0_norm**2 * n0_norm**3.5)
   if(kappa_max.le.0.) kappa_max = kappar
+  if(kappar_max.le.0.) kappar_max = kappar
+  if(kappar_min.le.0.) kappar_min = kappar
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, 'nufac = ', nufac

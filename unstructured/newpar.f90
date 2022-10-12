@@ -799,7 +799,7 @@ subroutine derived_quantities(ilin)
 
   ! toroidal derivative of vector potential stream function
   if(imp_bf.eq.0 .or. ntime.eq.ntime0) then
-     if(i3d.eq.1 .and. numvar.ge.2 .and. ilin.eq.1) then
+     if(i3d.eq.1 .and. ilin.eq.1 .and. numvar.ge.2) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  fp", ilin
         ! solve fp = df/dphi when restarting absent fp 
         if(irestart_fp.eq.0 .and. ntime.eq.ntime0) then 
