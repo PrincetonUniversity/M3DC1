@@ -47,7 +47,7 @@ else
   endif
 endif
 
-SCOREC_BASE_DIR=/global/homes/j/jinchen/project/PETSC/core-dev/perlmuttercpu-nvidia3
+SCOREC_BASE_DIR=/global/homes/j/jinchen/project/PETSC/core-dev/perlmuttercpu-nvidia
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
