@@ -1337,6 +1337,10 @@ subroutine validate_input
      call safestop(1)
   endif
 
+  if(itemp.eq.0 .and. ikapparfunc.eq.2) then
+     if(myrank.eq.0) print *, "ikapparfunc=2 not allowed with itemp=0"
+     call safestop(1)
+  endif
   
   ! calculate pfac (pe*pfac = electron pressure)
   if(kinetic.eq.0) then
