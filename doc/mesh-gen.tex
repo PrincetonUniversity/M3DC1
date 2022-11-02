@@ -10,15 +10,25 @@ As the mesh generation programs require Simmetrix licence and proper enviroment 
 module load simmodsuite/version simmodeler/version
 }
 \newline\newline
-As of today (July 11, 2022), the latest Simmetrix modules are \texttt{simmodsuite/16.0-220226} and \texttt{simmodeler/10.0-220226}.
-\newline\newline
-Two mesh generation programs are available only on PPPL Portal in the following location:
-\newline\newline
-\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel\_ver/intel\_ver-openmp\_ver/simmodsuite\_ver/bin}
-\newline\newline
-For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210626, the mesh generation programs are available in
-\newline\newline
-\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}
+The Simmetrix libraries and mesh generation programs are available on two machines \texttt{PPPL Portal} and \texttt{Princeton Stellar}. For those machines, the modules to load and the location of programs are as the following:
+
+\begin{itemize}
+\item {Princeton Stellar}
+  \begin{itemize}
+  \item modules: rlm/pppl simmodsuite/pppl/17.0-220903 simmodeler/pppl/11.0-220903
+  \item location: /projects/M3DC1/scorec/intel2021.1.2-intelmpi2021.3.1/17.0-220903/bin
+  \end{itemize}
+\item {PPPL Portal}
+  \begin{itemize}
+  \item modules: simmodsuite/16.0-220226 simmodeler/10.0-220226
+  \item location: {/p/tsc/m3dc1/lib/SCORECLib/rhel\_version/intel\_version-openmp\_version \\
+	    /simmodsuite\_version/bin} \\
+  \newline\newline
+  For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210626, the programs are available in
+  \newline\newline
+  \texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}
+  \end{itemize}
+\end{itemize}
 
 The second required software is PUMI (Parallel Unstructured Mesh Infrastructure) developed at SCOREC, RPI. The PUMI is used to manage the mesh information as it is processed and within the M3D-C$^{1}$ code. For more information, visit \href{http://www.scorec.rpi.edu/pumi}{http://www.scorec.rpi.edu/pumi}. 
 

@@ -11,6 +11,8 @@
 
 export SLURM_CPU_BIND="cores"
 
+export MPICH_GPU_SUPPORT_ENABLED=0
+
 touch started
 
 # partition mesh
