@@ -1139,7 +1139,7 @@ subroutine set_defaults
   call add_var_int("ifull_torus", ifull_torus, 0, &
        "0 = one field period; 1 = full torus", mesh_grp)
   call add_var_int("iread_vmec",iread_vmec,0,&
-       "1 = read geometry from VMEC file, 2 = read both geometry and fields", mesh_grp)
+       "1 = read geometry from VMEC file", mesh_grp)
   call add_var_string("vmec_filename",vmec_filename,256,"geometry.nc",&
        "name of vmec data file", mesh_grp)
   call add_var_int("igeometry", igeometry, 0, "0: default, identity", mesh_grp)

@@ -21,7 +21,7 @@ module rmp
 contains
 
 !==============================================================================
-subroutine rmp_per(init)
+subroutine rmp_per
   use basic
   use arrays
   use coils
@@ -32,51 +32,44 @@ subroutine rmp_per(init)
 
   integer :: l, ierr
   character(len=13) :: ext_field_name
-  logical, intent(in) :: init 
+  logical :: init 
 
   ! load external field data from schaffer file
-  ! for itaylor = 41  
-  if(init) then 
-     allocate(sf(iread_ext_field))
-     call load_fieldlines_field(sf(iread_ext_field), fieldlines_filename,isample_ext_field, &
-                   isample_ext_field_pol,ierr)
-  else if(iread_ext_field.ge.1) then
-     if(type_ext_field.eq.1) then
-        allocate(sf(iread_ext_field))
+
+  allocate(sf(iread_ext_field))
+  if(type_ext_field.ge.1) then ! Free boundary stellarator
+        init = .true.
+#ifdef USEST
         if(file_ext_field(1:10).eq.'fieldlines') then
            call load_fieldlines_field(sf(iread_ext_field), file_ext_field,isample_ext_field, &
                    isample_ext_field_pol,ierr)
-#ifdef USEST
         else if(file_ext_field(1:5).eq.'mgrid') then
            call load_mgrid_field(sf(iread_ext_field), file_ext_field, vmec_filename, ierr)
         else
-           print *, 'ERROR: Invalid ext_field'
+           print *, 'ERROR: Invalid ext_field. Currently only FIELDLINES and MGRID supported'
            call safestop(51)
-#endif
         end if
-     else if(type_ext_field.eq.0) then
-        allocate(sf(iread_ext_field))
-        do l=1, iread_ext_field
-   
-           if(iread_ext_field.eq.1) then
-              ext_field_name = 'error_field'
-           else
-              write(ext_field_name, '("error_field",I2.2)') l
-           end if
-           call load_schaffer_field(sf(l),ext_field_name,isample_ext_field, &
-                isample_ext_field_pol,ierr)
-           if(ierr.ne.0) call safestop(6)
-   
-#ifdef USECOMPLEX
-           if(myrank.eq.0 .and. iprint.gt.2) then
-              print *, 'Calculating field FT'
-           end if
-           call calculate_external_field_ft(sf(l), ntor)
 #endif
-        end do
-     else 
-        return
-     end if
+  else if(type_ext_field.eq.0) then ! RMP field
+     init = .false.
+     do l=1, iread_ext_field
+        if(iread_ext_field.eq.1) then
+           ext_field_name = 'error_field'
+        else
+           write(ext_field_name, '("error_field",I2.2)') l
+        end if
+        call load_schaffer_field(sf(l),ext_field_name,isample_ext_field, &
+                isample_ext_field_pol,ierr)
+        if(ierr.ne.0) call safestop(6)
+#ifdef USECOMPLEX
+        if(myrank.eq.0 .and. iprint.gt.2) then
+           print *, 'Calculating field FT'
+        end if
+        call calculate_external_field_ft(sf(l), ntor)
+#endif
+     end do
+  else
+    return
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
@@ -402,13 +395,6 @@ subroutine calculate_external_fields(init)
           x_79, phi_79, z_79, &
           temp79a, temp79b, temp79c, temp79d)
 
-!#ifdef USEST
-!     if(iread_vmec.eq.2) then
-!        call vmec_fields(xl_79, phi_79, zl_79, &
-!             temp79a, temp79b, temp79c, temp79d, temp79e)
-!        read_p = .true.
-!     end if
-!#endif
      ! psi_equation
      ! ~~~~~~~~~~~~
      ! Minimize BR, BZ
