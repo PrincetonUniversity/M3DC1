@@ -1255,8 +1255,9 @@ and the truncation error is
     1: apply nonaxisymmetric fields throughout plasma.  
        reads rmp\_coil.dat for (R,Z) of window pane coils.  
        reads rmp\_current.dat for (+-) currents in kA and phases in degrees.  
-       toroidal mode number of current specified by ntor  \\
-    2: apply nonaxisymmetric fields only at aoundaries. 
+       toroidal mode number of current specified by ntor.
+       requires \texttt{type\_ext\_field} = 0.  \\
+    2: apply nonaxisymmetric fields only at boundaries. 
   \end{minipage}\\
 
  \texttt{rmp\_atten}  &  0  & additional exponential decay of RMP field from r=1 for irmp=2 \\
@@ -2158,8 +2159,8 @@ current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
 \begin{tabular}{llp{4.5in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
- \texttt{type\_ext\_field}        & 0 & 1: read either  VMEC or MGRID file \\ 
- \texttt{file\_ext\_field}        &   & (string) FIELDLINE/MGRID file.  Must start with 'fieldlines' or 'mgrid' \\
+ \texttt{type\_ext\_field}        & 0 & 1: read either VMEC or MGRID file \\ 
+ \texttt{file\_ext\_field}        &   & (string) FIELDLINE/MGRID file.  Must start with `fieldlines' or `mgrid' \\
  \texttt{iread\_vmec}             & 0 & 1: read VMEC file to determine geometry. Must be 1 for stellarator. \\
  \texttt{vmec\_filename}          &   & (string) VMEC output .nc file \\
  \texttt{bloat\_factor}           & 0 & Free boundary only:  Scale factor to bloat computational boundary using input geometry. \\
