@@ -678,13 +678,13 @@ subroutine initial_conditions()
      call nre_per
   endif
 
-  if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
+  if(irmp.ge.1 .or. &
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) then
-     if(type_ext_field.eq.0) then
+     if(type_ext_field.eq.0 .and. iread_ext_field.ge.1) then
        call rmp_per !(init=.false.)
      else
-       if(myrank.eq.0) print *, "Invalid external file type."
+       if(myrank.eq.0) print *, "Error: External error field not specified."
      call safestop(1)
      end if
   end if
