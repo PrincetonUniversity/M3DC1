@@ -637,7 +637,6 @@ subroutine initial_conditions()
         case(29,31)
            call basicj_init()
 #ifdef USEST
-!!!
         case(40) ! Fixed boundary stellarator
            if (igeometry.eq.1 .and. iread_vmec.eq.1 .and. bloat_factor.eq.0) then
               call vmec_init()
@@ -655,7 +654,6 @@ subroutine initial_conditions()
                 "Invalid input: Free boundary stellarator needs external field."
               call safestop(1)
            end if
-!!!
 #endif
         end select
      end if
@@ -678,15 +676,17 @@ subroutine initial_conditions()
      call nre_per
   endif
 
+  ! For RMP and error fields
   if(irmp.ge.1 .or. &
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) then
-     if(type_ext_field.eq.0 .and. iread_ext_field.ge.1) then
-       call rmp_per !(init=.false.)
-     else
-       if(myrank.eq.0) print *, "Error: External error field not specified."
-     call safestop(1)
+     if(iread_ext_field.ge.1) then
+       if(type_ext_field.ge.1) then
+           if(myrank.eq.0) print *, "Error: Invalid external error field specification."
+         call safestop(1)
+       end if
      end if
+     call rmp_per
   end if
 #ifdef USEST
   if(igeometry.eq.1.and.iread_vmec.ge.1) then

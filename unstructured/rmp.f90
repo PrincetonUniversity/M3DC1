@@ -32,14 +32,11 @@ subroutine rmp_per
 
   integer :: l, ierr
   character(len=13) :: ext_field_name
-  logical :: init 
-
   ! load external field data from schaffer file
 
-  allocate(sf(iread_ext_field))
   if(type_ext_field.ge.1) then ! Free boundary stellarator
-        init = .true.
 #ifdef USEST
+        allocate(sf(iread_ext_field))
         if(file_ext_field(1:10).eq.'fieldlines') then
            call load_fieldlines_field(sf(iread_ext_field), file_ext_field,isample_ext_field, &
                    isample_ext_field_pol,ierr)
@@ -50,8 +47,8 @@ subroutine rmp_per
            call safestop(51)
         end if
 #endif
-  else if(type_ext_field.eq.0) then ! RMP field
-     init = .false.
+  else if(type_ext_field.le.0) then ! RMP field
+     allocate(sf(iread_ext_field)) ! Handles case when iread_ext_field = 0 or 1
      do l=1, iread_ext_field
         if(iread_ext_field.eq.1) then
            ext_field_name = 'error_field'
@@ -73,7 +70,7 @@ subroutine rmp_per
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
-  call calculate_external_fields(init)
+  call calculate_external_fields
 
   ! unload data
   if(iread_ext_field.ge.1) then
@@ -303,7 +300,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 end subroutine rmp_field
 
 
-subroutine calculate_external_fields(init)
+subroutine calculate_external_fields
   use basic
   use math
   use mesh_mod
@@ -316,7 +313,6 @@ subroutine calculate_external_fields(init)
   use gradshafranov
 
   implicit none
-  logical, intent(in) :: init 
 
   include 'mpif.h'
 
@@ -523,20 +519,16 @@ subroutine calculate_external_fields(init)
      ! Solve for f
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bf..."
      call newsolve(bf_mat,bf_vec,ier)
-     if((extsubtract.eq.1).and.(.not.init)) then
-        bz_ext = bz_f     
-        bf_ext = bf_f     
-        if(itaylor.eq.40) then
-           call mult(bz_f, -1.)
-           call mult(bf_f, -1.)
-           call add(bz_field(0), bz_f)
-           call add(bf_field(0), bf_f)
-        end if
-        if(itaylor.eq.41) then
-           call mult(bz_f, -1.)
-           call mult(bf_f, -1.)
-           call add(bz_field(1), bz_f)
-           call add(bf_field(1), bf_f)
+     if(extsubtract.eq.1) then
+        if(type_ext_field.le.0) then ! Only for RMP and error fields
+          bz_ext = bz_f     
+          bf_ext = bf_f     
+        else if (type_ext_field.ge.1) then ! For stellarator
+          if(myrank.eq.0) print *, 'Error: extsubtract not implemented for ST.'
+          call safestop(56)
+        else
+          if(myrank.eq.0) print *, 'Error: invalid ext field subtract option.'
+          call safestop(56)
         end if
      else
         bz_field(1) = bz_f
@@ -550,46 +542,27 @@ subroutine calculate_external_fields(init)
   call finalize(br_mat)
   call newsolve(br_mat,psi_vec,ier)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
-  if((extsubtract.eq.1).and.(.not.init)) then
-     psi_ext = psi_f
-     bfp_ext = bfp_f
-     if(itaylor.eq.40) then
-        call mult(psi_f, -1.)
-        call mult(bfp_f, -1.)
-        call add(psi_field(0), psi_f)
-        call add(bfp_field(0), bfp_f)
-     end if
-     if(itaylor.eq.41) then
-        call mult(psi_f, -1.)
-        call mult(bfp_f, -1.)
-        call add(psi_field(1), psi_f)
-        call add(bfp_field(1), bfp_f)
+  if(extsubtract.eq.1) then
+     if(type_ext_field.le.0) then ! Only for RMP and error fields
+       psi_ext = psi_f
+       bfp_ext = bfp_f
+     else if (type_ext_field.ge.1) then ! For stellarator
+       if(myrank.eq.0) print *, 'Error: extsubtract not implemented for ST.'
+       call safestop(56)
+     else
+       if(myrank.eq.0) print *, 'Error: invalid ext field subtract option.'
+       call safestop(56)
      end if
   else
      psi_field(1) = psi_f
      bfp_field(1) = bfp_f
   end if
+
   if(iflip_b.eq.1) call mult(bz_field(1), -1.)
   if(iflip_j.eq.1) then
      call mult(psi_field(1), -1.)
      call mult(bfp_field(1), -1.)
   end if
-  !psi_field(1) = 0.
-  !bfp_field(1) = 0. 
-  !bfp_field(1) = p_f
-  !p_field(1) = 0. 
-  !pe_field(1) = 0. 
-  !call add(p_field(1), pedge) 
-  !call add(pe_field(1), pedge*pefac) 
-  !bz_field(1) = bf_f
-  !call mult(bz_field(1), -1.) 
-  !call add(bz_field(1), p_field(1))
-  !p_field(1) = bfp_field(1)
-  !call pow(p_field(1), 2.) 
-
-  !call add(bfp_field(1), p_field(1))
-  !call add(bfp_field(1), p_field(1))
-  !bfp_field(1) = 0.
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)
