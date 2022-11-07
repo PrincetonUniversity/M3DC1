@@ -36,17 +36,21 @@ subroutine rmp_per
 
   if(type_ext_field.ge.1) then ! Free boundary stellarator
 #ifdef USEST
-        allocate(sf(iread_ext_field))
-        if(file_ext_field(1:10).eq.'fieldlines') then
-           call load_fieldlines_field(sf(iread_ext_field), file_ext_field,isample_ext_field, &
+     allocate(sf(iread_ext_field))
+     if(file_ext_field(1:10).eq.'fieldlines') then
+        call load_fieldlines_field(sf(iread_ext_field), file_ext_field,isample_ext_field, &
                    isample_ext_field_pol,ierr)
-        else if(file_ext_field(1:5).eq.'mgrid') then
-           call load_mgrid_field(sf(iread_ext_field), file_ext_field, vmec_filename, ierr)
-        else
-           print *, 'ERROR: Invalid ext_field. Currently only FIELDLINES and MGRID supported'
-           call safestop(51)
-        end if
+     else if(file_ext_field(1:5).eq.'mgrid') then
+        call load_mgrid_field(sf(iread_ext_field), file_ext_field, vmec_filename, ierr)
+     else
+        if(myrank.eq.0) print *, 'ERROR: Invalid ext_field. Currently only FIELDLINES and MGRID supported'
+        call safestop(51)
+     end if
+#else
+     if(myrank.eq.0) print *, 'ERROR: type_ext_field > 0 only valid for stellarator'
+     call safestop(6)
 #endif
+
   else if(type_ext_field.le.0) then ! RMP field
      allocate(sf(iread_ext_field)) ! Handles case when iread_ext_field = 0 or 1
      do l=1, iread_ext_field
