@@ -556,9 +556,6 @@ subroutine calculate_external_fields
        call mult(bfp_f, -1.)
        call add(psi_field(1), psi_f)
        call add(bfp_field(1), bfp_f)
-
-!       if(myrank.eq.0) print *, 'Error: extsubtract not implemented for ST.'
-!       call safestop(56)
      else
        if(myrank.eq.0) print *, 'Error: invalid ext field subtract option.'
        call safestop(56)
