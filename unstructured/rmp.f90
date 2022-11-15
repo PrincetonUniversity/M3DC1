@@ -526,9 +526,11 @@ subroutine calculate_external_fields
         if(type_ext_field.le.0) then ! Only for RMP and error fields
           bz_ext = bz_f     
           bf_ext = bf_f     
-        else if (type_ext_field.ge.1) then ! For stellarator
-          if(myrank.eq.0) print *, 'Error: extsubtract not implemented for ST.'
-          call safestop(56)
+        else if (type_ext_field.ge.1) then ! For free boundary stellarator
+          call mult(bz_f, -1.)
+          call mult(bf_f, -1.)
+          call add(bz_field(1), bz_f)
+          call add(bf_field(1), bf_f) 
         else
           if(myrank.eq.0) print *, 'Error: invalid ext field subtract option.'
           call safestop(56)
@@ -549,9 +551,14 @@ subroutine calculate_external_fields
      if(type_ext_field.le.0) then ! Only for RMP and error fields
        psi_ext = psi_f
        bfp_ext = bfp_f
-     else if (type_ext_field.ge.1) then ! For stellarator
-       if(myrank.eq.0) print *, 'Error: extsubtract not implemented for ST.'
-       call safestop(56)
+     else if (type_ext_field.ge.1) then ! For free boundary stellarator
+       call mult(psi_f, -1.)
+       call mult(bfp_f, -1.)
+       call add(psi_field(1), psi_f)
+       call add(bfp_field(1), bfp_f)
+
+!       if(myrank.eq.0) print *, 'Error: extsubtract not implemented for ST.'
+!       call safestop(56)
      else
        if(myrank.eq.0) print *, 'Error: invalid ext field subtract option.'
        call safestop(56)

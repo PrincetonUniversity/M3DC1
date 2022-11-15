@@ -648,7 +648,7 @@ subroutine initial_conditions()
         case(41) ! Free boundary stellarator
            if (igeometry.eq.1 .and. iread_vmec.eq.1 .and. bloat_factor.gt.0 &
                .and. iread_ext_field.ge.1 .and. type_ext_field.ge.1) then
-              call rmp_per !(init=.true.)
+              call rmp_per
            else 
               if(myrank.eq.0) print *, &
                 "Invalid input: Free boundary stellarator needs external field."
@@ -677,16 +677,17 @@ subroutine initial_conditions()
   endif
 
   ! For RMP and error fields
-  if(irmp.ge.1 .or. &
+  if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) then
-     if(iread_ext_field.ge.1) then
-       if(type_ext_field.ge.1) then
-           if(myrank.eq.0) print *, "Error: Invalid external error field specification."
-         call safestop(1)
-       end if
+
+     ! Only for itaylor = 41. rmp_per not called for itaylor = 40
+     if(itaylor.eq.41) then
+        if(myrank.eq.0) print *, &
+           "Skipping: RMP specification not currently implemented for ST."
+     else
+        call rmp_per
      end if
-     call rmp_per
   end if
 #ifdef USEST
   if(igeometry.eq.1.and.iread_vmec.ge.1) then
