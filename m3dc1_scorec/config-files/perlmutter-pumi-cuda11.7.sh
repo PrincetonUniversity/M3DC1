@@ -6,9 +6,8 @@ PETSC_DIR=/global/cfs/cdirs/mp288/scorec-pmt/petsc/$PETSC_VER
 PETSC_ARCH=real-cuda11.7-mpich8.1.17
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 METIS_DIR=$PETSC_DIR/$PETSC_ARCH
-SCOREC_DIR=/global/cfs/cdirs/mp288/scorec-pmt/$MPIVER
-ZOLTAN_DIR=$SCOREC_DIR
-PREFIX=$SCOREC_DIR #enter your M3DC1_SCOREC install dir
+ZOLTAN_DIR=/global/cfs/cdirs/mp288/scorec-pmt/$MPIVER/$PETSCVER
+PREFIX=$ZOLTAN_DIR #enter your M3DC1_SCOREC install dir
 #module load PrgEnv-gnu
 #module load cudatoolkit/11.7 craype-accel-nvidia80 cmake/3.22.0
 #module unload darshan
