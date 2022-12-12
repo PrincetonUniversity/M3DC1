@@ -583,8 +583,6 @@ subroutine set_defaults
        "type of external field file", eq_grp)
   call add_var_string("file_ext_field", file_ext_field, 256, "error_field", &
        "name of external field file", eq_grp)
-  call add_var_string("fieldlines_filename", fieldlines_filename, 256, "fieldlines.h5", &
-       "name of fieldlines file", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
   call add_var_double("elongation", elongation, 1., "", eq_grp)
