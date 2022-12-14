@@ -54,6 +54,7 @@ subroutine rmp_per
   else
     if(myrank.eq.1) print *, &
       'ERROR: RMP fields require type_ext_field < 0.'  
+    call safestop(58)
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
@@ -69,8 +70,6 @@ end subroutine rmp_per
 
 #IFDEF USEST
 subroutine load_stellarator_field
-!  use basic
-!  use read_schaffer_field
   use basic
   use arrays
   use coils
@@ -87,16 +86,17 @@ subroutine load_stellarator_field
     call read_stellarator_field(file_total_field)
 
   else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! With field substraction. ST only.
-    ! First load field to be subtracted off (e.g. vacuum)
+
+    ! First load the total field
     extsubtract = 0
-    call read_stellarator_field(file_ext_field)
+    call read_stellarator_field(file_total_field)
     call calculate_external_fields
     call deallocate_sf
 
-    ! Then load the total field
+    ! Then load field to be subtracted off (e.g. vacuum)
     allocate(sf(iread_ext_field))
     extsubtract = 1
-    call read_stellarator_field(file_total_field) 
+    call read_stellarator_field(file_ext_field) 
 
   else if(type_ext_field.eq.2 .and. extsubtract.eq.0) then
     if(myrank.eq.0) print *, &
@@ -600,7 +600,6 @@ subroutine calculate_external_fields
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bf..."
      call newsolve(bf_mat,bf_vec,ier)
      if(extsubtract.eq.1) then
- 
         if(type_ext_field.le.0) then
           bz_ext = bz_f  ! For RMP and error fields
           bf_ext = bf_f
