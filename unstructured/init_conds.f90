@@ -647,6 +647,8 @@ subroutine initial_conditions()
            end if
         case(41)
            call rmp_per(init=.true.)
+        case(42)
+           if(myrank.eq.0) print *, 'Placeholder for vacuum field initialization...'
 #endif
         end select
      end if

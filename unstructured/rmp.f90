@@ -40,12 +40,25 @@ subroutine rmp_per(init)
      allocate(sf(iread_ext_field))
      call load_fieldlines_field(sf(iread_ext_field), fieldlines_filename,isample_ext_field, &
                    isample_ext_field_pol,ierr)
+     if(ierr.lt.0) then 
+        if(myrank.eq.0) then 
+           print *, "Error: could not open file: fieldlines_filename=", fieldlines_filename
+        end if
+        call safestop(50)
+     end if
+  ! for vacuum field
   else if(iread_ext_field.ge.1) then
      if(type_ext_field.eq.1) then
         allocate(sf(iread_ext_field))
         if(file_ext_field(1:10).eq.'fieldlines') then
            call load_fieldlines_field(sf(iread_ext_field), file_ext_field,isample_ext_field, &
                    isample_ext_field_pol,ierr)
+        if(ierr.lt.0) then 
+           if(myrank.eq.0) then 
+              print *, "Error: could not open file: file_ext_field=", file_ext_field
+           end if
+           call safestop(50)
+        end if
 #ifdef USEST
         else if(file_ext_field(1:5).eq.'mgrid') then
            call load_mgrid_field(sf(iread_ext_field), file_ext_field, vmec_filename, ierr)
