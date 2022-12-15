@@ -600,17 +600,13 @@ subroutine calculate_external_fields
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bf..."
      call newsolve(bf_mat,bf_vec,ier)
      if(extsubtract.eq.1) then
-        if(type_ext_field.le.0) then
-          bz_ext = bz_f  ! For RMP and error fields
-          bf_ext = bf_f
-        else if (type_ext_field.ge.1) then ! For free boundary stellarator
+        bz_ext = bz_f  ! For all cases: RMP, error fields, ST
+        bf_ext = bf_f
+        if (type_ext_field.ge.1) then ! For free boundary stellarator
           call mult(bz_f, -1.)
           call mult(bf_f, -1.)
           call add(bz_field(1), bz_f)
           call add(bf_field(1), bf_f) 
-        else
-          if(myrank.eq.0) print *, 'Error: invalid ext field subtract option.'
-          call safestop(56)
         end if
      else
         bz_field(1) = bz_f
@@ -625,17 +621,13 @@ subroutine calculate_external_fields
   call newsolve(br_mat,psi_vec,ier)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
   if(extsubtract.eq.1) then
-     if(type_ext_field.le.0) then
-       psi_ext = psi_f ! For RMP and error fields
-       bfp_ext = bfp_f
-     else if (type_ext_field.ge.1) then ! For free boundary stellarator
+     psi_ext = psi_f ! For all cases: RMP, error fields, ST
+     bfp_ext = bfp_f
+     if (type_ext_field.ge.1) then ! For free boundary stellarator
        call mult(psi_f, -1.)
        call mult(bfp_f, -1.)
        call add(psi_field(1), psi_f)
        call add(bfp_field(1), bfp_f)
-     else
-       if(myrank.eq.0) print *, 'Error: invalid ext field subtract option.'
-       call safestop(56)
      end if
   else
      psi_field(1) = psi_f
