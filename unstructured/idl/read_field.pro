@@ -1925,7 +1925,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        data = eta*jy^2
        symbol = field_data('!7g!8J!6!U2!N', units=d, itor=itor)
-       d = dimensions(/p0,/t0,_EXTRA=extra)
+       d = dimensions(/p0,t0=-1,_EXTRA=extra)
        
    ;===========================================
    ; del*(psi)
