@@ -49,6 +49,7 @@ Program Reducedquintic
   character*256 :: arg, solveroption_filename
   integer :: ip
   character(len=32) :: mesh_file_name
+  logical :: update_mesh
 #ifdef _OPENACC
   integer :: num_devices
 #endif
@@ -160,6 +161,14 @@ Program Reducedquintic
   if(myrank.eq.0) print *, ' Reading input'
   call input
 
+!if using SCOREC set adapt verbosity output if iprint.ge.1
+#ifdef USESCOREC
+  if (iprint.ge.1) then
+    call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
+  end if
+#endif
+
+
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
   if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
@@ -170,7 +179,6 @@ Program Reducedquintic
 #endif
 
   call load_mesh
-  
 !  call print_node_data
 !  call safestop(1)
 
@@ -341,6 +349,7 @@ Program Reducedquintic
   endif
 
   ! output initial conditions
+  call marker ! mark the fields necessary for solution transfer
   call output
 
   ! if there are no timesteps to calculate, then skip time loop
@@ -432,14 +441,32 @@ Program Reducedquintic
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Writing output."
      call output
 
-      if (iadapt .gt. 1) then
+
+    ! for now call spr adapt every 10 time steps
+    if (ispradapt .eq. 1) then
+      if (mod(ntime, isprntime) .eq. 0) then
+        write(mesh_file_name,"(A11,A)") 'beforeadapt', 0
+        call m3dc1_mesh_write (mesh_file_name,0,ntime)
+        ! if update_mesh is true
+        ! the (2D) part.smb will be updated (overwritten) inside adapt_by_spr
+        ! the frequency of update is the same as frequency of output time slices
+        update_mesh = .false.
+        if(mod(ntime-ntime0,ntimepr).eq.0) then
+          update_mesh = .true.
+        end if
+        call adapt_by_spr(field_vec%id, psi_g, ntime, &
+          isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel, update_mesh)
+      endif
+    endif
+
+    if (iadapt .gt. 1 .and. ispradapt .eq.0) then
       ! adapt_flag=1 if
       !(1) iadapt_ntime(N)>0 -- run adapt_by_error at the end of every N time steps
       !(2) non-linear & iadapt_ntime=0 -- run adapt_by_error at the end of every time step
       !(3) linear, adapt_ke>0 & ekin>adapt_ke -- run adapt_by_error in this time step  
         call diagnose_adapt(adapt_flag)
        if(adapt_flag .eq. 1) call adapt_by_error
-     endif
+    endif
   enddo ! ntime
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, "Done time loop."
@@ -700,7 +727,7 @@ subroutine derived_quantities(ilin)
      if(linear.eq.1) then 
         if(ntime.eq.ntime0) call lcfs(psi_field(0))
      else
-        call create_field(psi_temp)
+        call create_field(psi_temp, "psi_temp")
         psi_temp = psi_field(0)
         call add_field_to_field(psi_temp, psi_field(1))
         call lcfs(psi_temp)
@@ -724,7 +751,7 @@ subroutine derived_quantities(ilin)
           endif
         endif
      else
-        call create_field(te_temp)
+        call create_field(te_temp, "te_temp")
         te_temp = te_field(0)
         call add_field_to_field(te_temp, te_field(1))
         if(ifixed_temax .eq. 0) then
@@ -1307,7 +1334,7 @@ subroutine space(ifirstcall)
 #ifdef USESCOREC
   if(ifirstcall .eq. 1) then
      do i=1, num_fields
-       write(field_name,"(I2,A)")  i,0
+       write(field_name,"(A3,I0,A)")  "mat", i, 0
 #ifdef USECOMPLEX
        call m3dc1_field_create (i, trim(field_name), i, 1, dofs_per_node)
 #else
@@ -1316,7 +1343,6 @@ subroutine space(ifirstcall)
      end do
   endif ! on firstcall
 #endif
-  
   numelms = local_elements()
 
 ! arrays defined at all vertices
@@ -1325,48 +1351,54 @@ subroutine space(ifirstcall)
      if(myrank.eq.0 .and. iprint.ge.1) print *, 'Allocating...'
 
      ! Physical Variables
-     call create_vector(field_vec , num_fields)
-     call create_vector(field0_vec, num_fields)
+     call create_vector(field_vec , num_fields, "field_vec")
+     call create_vector(field0_vec, num_fields, "field_vec0")
      !if(iadapt .ne. 0) then
-        call create_vector(field_vec_pre, 2)
+        call create_vector(field_vec_pre, 2, "field_vec_pre")
      !end if
 
-     ! Auxiliary Variables
-     call create_field(jphi_field)
-     call create_field(resistivity_field)
-     call create_field(kappa_field)
-     call create_field(kappar_field)
-     call create_field(denm_field)
-     call create_field(visc_field)
-     call create_field(visc_c_field)
-     if(ipforce.gt.0) call create_field(pforce_field)
-     if(ipforce.gt.0) call create_field(pmach_field)
-     if(density_source) call create_field(sigma_field)
-     if(momentum_source) call create_field(Fphi_field)
-     if(heat_source) call create_field(Q_field)
-     if(icd_source.gt.0) call create_field(cd_field)
-     if(rad_source) then
-        call create_field(Totrad_field)
-        call create_field(Linerad_field)
-        call create_field(Bremrad_field)
-        call create_field(Ionrad_field)
-        call create_field(Reckrad_field)
-        call create_field(Recprad_field)
-     end if
-     call create_field(bf_field(0))
-     call create_field(bf_field(1))
-     call create_field(bfp_field(0))
-     call create_field(bfp_field(1))
-     if(ibootstrap.gt.0) call create_field(visc_e_field)
+     call mark_vector_for_solutiontransfer(field_vec)
+     call mark_vector_for_solutiontransfer(field0_vec)
+     call mark_vector_for_solutiontransfer(field_vec_pre)
 
-     call create_field(psi_coil_field)
+     ! Auxiliary Variables
+     call create_field(jphi_field, "jphi")
+     call create_field(vor_field, 'vor')
+     call create_field(com_field, 'com')
+     call create_field(resistivity_field, "resistivity")
+     call create_field(kappa_field, "kappa")
+     call create_field(kappar_field, "kappar")
+     call create_field(denm_field, "denm")
+     call create_field(visc_field, "visc")
+     call create_field(visc_c_field, "visc_c")
+     if(ipforce.gt.0) call create_field(pforce_field, "pforce")
+     if(ipforce.gt.0) call create_field(pmach_field, "pmach")
+     if(density_source) call create_field(sigma_field, "sigma")
+     if(momentum_source) call create_field(Fphi_field, "Fphi")
+     if(heat_source) call create_field(Q_field, "Q")
+     if(icd_source.gt.0) call create_field(cd_field, "cd")
+     if(rad_source) then
+        call create_field(Totrad_field, "Torad")
+        call create_field(Linerad_field, "Linerad")
+        call create_field(Bremrad_field, "Bremrad")
+        call create_field(Ionrad_field, "Ionrad")
+        call create_field(Reckrad_field, "Reckrad")
+        call create_field(Recprad_field, "Recprad")
+     end if
+     call create_field(bf_field(0), "bf0")
+     call create_field(bf_field(1), "bf1")
+     call create_field(bfp_field(0), "bfp0")
+     call create_field(bfp_field(1), "bfp1")
+     if(ibootstrap.gt.0) call create_field(visc_e_field, "visc_e")
+
+     call create_field(psi_coil_field, "psi_coil")
 
      ! create external fields
      if(extsubtract.eq.1) then
-        call create_field(psi_ext)
-        call create_field(bz_ext)
-        call create_field(bf_ext)
-        call create_field(bfp_ext)
+        call create_field(psi_ext, "pis_ext")
+        call create_field(bz_ext, "bz_ext")
+        call create_field(bf_ext, "bf_ext")
+        call create_field(bfp_ext, "bfp_ext")
         use_external_fields = .true.
      end if
 

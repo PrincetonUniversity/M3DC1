@@ -45,6 +45,7 @@ enum m3dc1_matrix_status { /*0*/ M3DC1_NOT_FIXED=0,
 bool m3dc1_double_isequal(double A, double B);
 
 int m3dc1_scorec_init();
+int m3dc1_scorec_verbosity(int*);
 int m3dc1_scorec_finalize();
 
 /** plane functions */
@@ -133,7 +134,8 @@ int m3dc1_field_getnewid (FieldID* /*out*/field_id);
 // is num_dofs input or output?
 // *value_type is either M3DC1_REAL or M3DC1_COMPLEX
 int m3dc1_field_create (FieldID* /*in*/ field_id, const char* /* in */ field_name, int* num_values, int* value_type, int* num_dofs_per_value);
-int m3dc1_field_delete (FieldID* /*in*/ field_id); 
+int m3dc1_mark_for_solutiontransfer (FieldID* /*in*/ field_id);
+int m3dc1_field_delete (FieldID* /*in*/ field_id);
 
 int m3dc1_field_getinfo(FieldID* /*in*/ field_id, char* /* out*/ field_name, int* num_values, int* value_type, int* total_num_dof);
 
@@ -215,6 +217,8 @@ int m3dc1_matrix_print(int* matrix_id);
 #endif // #ifdef M3DC1_PETSC
 
 // adaptation
+int m3dc1_spr_then_adapt (int * fieldId, int * index, int * ts,
+    double * ar, double * max_size, int * refine_level, int * coarsen_level, bool* update);
 int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
