@@ -4781,56 +4781,29 @@ end function v2umu
 ! =====
 !function v2vmu(e,f,g,h)
 
-  !use basic
-  !use m3dc1_nint
+!  use basic
+!  use m3dc1_nint
 
-  !implicit none
+!  implicit none
 
-  !vectype, dimension(dofs_per_element) :: v2vmu
-  !vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  !vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-  !vectype, dimension(dofs_per_element) :: temp
+!  vectype, dimension(dofs_per_element) :: v2vmu
+!  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+!  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+!  vectype, dimension(dofs_per_element) :: temp
 
-     !if(surface_int) then
-        !temp = intx5(e(:,:,OP_1),r2_79,norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
-             !+ intx5(e(:,:,OP_1),r2_79,norm79(:,2),f(:,OP_DZ),g(:,OP_1))
-     !else
-        !temp = -intx4(e(:,:,OP_DZ),r2_79,f(:,OP_DZ),g(:,OP_1)) &
-             !-  intx4(e(:,:,OP_DR),r2_79,f(:,OP_DR),g(:,OP_1))
+!  if(surface_int) then
+!     temp = intx5(e(:,:,OP_1),r2_79,norm79(:,1),f(:,OP_DR),g(:,OP_1)) &
+!          + intx5(e(:,:,OP_1),r2_79,norm79(:,2),f(:,OP_DZ),g(:,OP_1))
+!  else
+!     temp = -intx4(e(:,:,OP_DZ),r2_79,f(:,OP_DZ),g(:,OP_1)) &
+!          -  intx4(e(:,:,OP_DR),r2_79,f(:,OP_DR),g(:,OP_1))
      
 !#if defined(USE3D) || defined(USECOMPLEX)
-        !temp = temp + 2.*intx3(e(:,:,OP_1),f(:,OP_DPP),h(:,OP_1))
+!     temp = temp + 2.*intx3(e(:,:,OP_1),f(:,OP_DPP),h(:,OP_1))
 !#endif
+!  end if
 
-        !! hyperviscous
-        !if(hypv.ne.0.) then
-           !if(ihypamu.eq.1) then
-              !temp = temp - hypv* &
-                   !(intx4(e(:,:,OP_GS),r2_79,f(:,OP_GS),g(:,OP_1)) &
-                   !+intx4(e(:,:,OP_DZ),r2_79,f(:,OP_GS),g(:,OP_DZ)) &
-                   !+intx4(e(:,:,OP_DR),r2_79,f(:,OP_GS),g(:,OP_DR)))
-              !if(itor.eq.1) then 
-                 !temp = temp - 4.*hypv* &
-                      !(intx4(e(:,:,OP_DR),r_79,f(:,OP_GS),g(:,OP_1)) &
-                      !+intx4(e(:,:,OP_GS),r_79,f(:,OP_DR),g(:,OP_1)) &
-                      !+intx4(e(:,:,OP_DZ),r_79,f(:,OP_DR),g(:,OP_DZ)) &
-                      !+intx4(e(:,:,OP_DR),r_79,f(:,OP_DR),g(:,OP_DR)) &
-                      !+4.*intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_1)))
-              !end if
-           !else
-              !temp = temp - hypv* &
-                   !intx3(e(:,:,OP_GS),r2_79,f(:,OP_GS))
-              !if(itor.eq.1) then 
-                 !temp = temp - 4.*hypv* &
-                      !(intx3(e(:,:,OP_DR),r_79,f(:,OP_GS)) &
-                      !+intx3(e(:,:,OP_GS),r_79,f(:,OP_DR)) &
-                      !+4.*intx2(e(:,:,OP_DR),f(:,OP_DR)))
-              !end if
-           !endif
-        !end if
-     !end if
-
-  !v2vmu = temp
+!  v2vmu = temp
 !end function v2vmu
 
 function v2vmu(g,h)
@@ -4854,35 +4827,7 @@ function v2vmu(g,h)
 #if defined(USE3D) || defined(USECOMPLEX)
         temp = temp + prod(2.*h(:,OP_1),OP_1,OP_DPP)
 #endif
-
-        ! hyperviscous
-        if(hypv.ne.0.) then
-           if(ihypamu.eq.1) then
-              !temp = temp - hypv* &
-                   !(intx4(e(:,:,OP_GS),r2_79,f(:,OP_GS),g(:,OP_1)) &
-                   !+intx4(e(:,:,OP_DZ),r2_79,f(:,OP_GS),g(:,OP_DZ)) &
-                   !+intx4(e(:,:,OP_DR),r2_79,f(:,OP_GS),g(:,OP_DR)))
-              !if(itor.eq.1) then 
-                 !temp = temp - 4.*hypv* &
-                      !(intx4(e(:,:,OP_DR),r_79,f(:,OP_GS),g(:,OP_1)) &
-                      !+intx4(e(:,:,OP_GS),r_79,f(:,OP_DR),g(:,OP_1)) &
-                      !+intx4(e(:,:,OP_DZ),r_79,f(:,OP_DR),g(:,OP_DZ)) &
-                      !+intx4(e(:,:,OP_DR),r_79,f(:,OP_DR),g(:,OP_DR)) &
-                      !+4.*intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_1)))
-              !end if
-           else
-              temp = temp + &
-                   prod(-hypv*r2_79,OP_GS,OP_GS)
-              if(itor.eq.1) then 
-                 temp79a = 1.
-                 temp = temp +  &
-                      (prod(-4.*hypv*r_79,OP_DR,OP_GS) &
-                      +prod(-4.*hypv*r_79,OP_GS,OP_DR) &
-                      +prod(-4.*hypv*4.*temp79a,OP_DR,OP_DR))
-              end if
-           endif
-        end if
-     end if
+    end if
 
   v2vmu = temp
 end function v2vmu
@@ -13145,7 +13090,8 @@ function b1beta(e,f,g)
              + intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZ ),g(:,OP_DP)) &
              - intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DR ),g(:,OP_DP))
 #endif
-        if(hypf.gt.0 .and. imp_hyper.le.1) then
+#ifndef USEST
+        if(hypf.gt.0. .and. imp_hyper.le.1) then
            if(ihypeta.eq.0) then
               temp = temp - hypf*intx3(e(:,:,OP_DZP),ri5_79,f(:,OP_DRPP)) &
                           + hypf*intx3(e(:,:,OP_DRP),ri5_79,f(:,OP_DZPP))
@@ -13167,6 +13113,7 @@ function b1beta(e,f,g)
 
            endif
         endif
+#endif !USEST
      endif
   endif
 #else
@@ -13208,6 +13155,7 @@ function b1beta1(g)
              + prod( ri3_79*g(:,OP_DP),OP_DR,OP_DZ) &
              + prod(-ri3_79*g(:,OP_DP),OP_DZ,OP_DR)
 #endif
+#ifndef USEST
         if(hypf.gt.0 .and. imp_hyper.le.1) then
            if(ihypeta.eq.0) then
               temp = temp + prod(-hypf*ri5_79,OP_DZP,OP_DRPP) &
@@ -13219,6 +13167,7 @@ function b1beta1(g)
 
            endif
         endif
+#endif !USEST
      endif
   endif
 #else
@@ -13421,12 +13370,17 @@ function b1psipsid(e,f,g,h)
      else
         temp = intx5(e(:,:,OP_GS),ri4_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
              + intx5(e(:,:,OP_GS),ri4_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
+#ifdef USEST
+             - intx5(e(:,:,OP_DZP),ri4_79,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_1)) &
+             - intx5(e(:,:,OP_DRP),ri4_79,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_1))
+#else
              + intx5(e(:,:,OP_DZ),ri4_79,f(:,OP_DZP),g(:,OP_GS ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),ri4_79,f(:,OP_DRP),g(:,OP_GS ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),ri4_79,f(:,OP_DZ ),g(:,OP_GSP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),ri4_79,f(:,OP_DR ),g(:,OP_GSP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),ri4_79,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_DP)) &
              + intx5(e(:,:,OP_DR),ri4_79,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_DP))
+#endif
      end if
   endif
   b1psipsid = temp
@@ -13527,12 +13481,17 @@ function b1psibd2(e,f,g,h)
              - intx5(e(:,:,OP_1),temp79c,norm79(:,1),f(:,OP_DZP ),g(:,OP_1 ))
      else
         temp = &
+#ifdef USEST
+             - intx5(e(:,:,OP_DRP),ri5_79,f(:,OP_DZP ),g(:,OP_1 ),h(:,OP_1)) &
+             + intx5(e(:,:,OP_DZP),ri5_79,f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_1))
+#else
              + intx5(e(:,:,OP_DR),ri5_79,f(:,OP_DZPP),g(:,OP_1 ),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),ri5_79,f(:,OP_DRPP),g(:,OP_1 ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),ri5_79,f(:,OP_DZP ),g(:,OP_DP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),ri5_79,f(:,OP_DRP ),g(:,OP_DP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),ri5_79,f(:,OP_DZP ),g(:,OP_1 ),h(:,OP_DP)) &
              - intx5(e(:,:,OP_DZ),ri5_79,f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_DP))
+#endif
      end if
   endif
 #else
@@ -13585,12 +13544,17 @@ function b1psifd1(e,f,g,h)
      else
         temp = intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DZP),g(:,OP_DR ),h(:,OP_1)) &
              - intx5(e(:,:,OP_GS),ri3_79,f(:,OP_DRP),g(:,OP_DZ ),h(:,OP_1)) &
+#ifdef USEST
+             - intx5(e(:,:,OP_DZP),ri3_79,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_1)) &
+             + intx5(e(:,:,OP_DRP),ri3_79,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_1))
+#else
              + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GSP),g(:,OP_DR ),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GSP),g(:,OP_DZ ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS ),g(:,OP_DRP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS ),g(:,OP_DZP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_DP)) &
              - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_DP))
+#endif
      endif
   endif
   b1psifd1 = temp
@@ -13598,6 +13562,7 @@ function b1psifd1(e,f,g,h)
   b1psifd1 = 0.
 #endif
 end function b1psifd1
+
 
 ! B1psifd2
 ! ========
@@ -13938,12 +13903,19 @@ function b1psipsin(e,f,g,h)
         temp79a = ri4_79*ni79(:,OP_1)**2
         temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
              + intx5(e(:,:,OP_GS),temp79a,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)) &
+#ifdef USEST
+             - intx5(e(:,:,OP_DZP),temp79a,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_1)) &
+             - intx5(e(:,:,OP_DRP),temp79a,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_1)) &
+             - 2*intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_DP)) &
+             - 2*intx5(e(:,:,OP_DR),temp79a,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_DP))
+#else
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZP),g(:,OP_GS ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_DRP),g(:,OP_GS ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZ ),g(:,OP_GSP),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_DR ),g(:,OP_GSP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DZ ),g(:,OP_GS ),h(:,OP_DP)) &
              - intx5(e(:,:,OP_DR),temp79a,f(:,OP_DR ),g(:,OP_GS ),h(:,OP_DP))
+#endif
      end if
   endif
   b1psipsin = temp
@@ -13951,6 +13923,7 @@ function b1psipsin(e,f,g,h)
   b1psipsin = 0.
 #endif
 end function b1psipsin
+
 
 
 ! B1psibn1
@@ -14048,12 +14021,19 @@ function b1psibn2(e,f,g,h)
      else
         temp79a = ri5_79*ni79(:,OP_1)**2
         temp = &
+#ifdef USEST
+             - intx5(e(:,:,OP_DRP),temp79a,f(:,OP_DZP ),g(:,OP_1),h(:,OP_1 )) &
+             + intx5(e(:,:,OP_DZP),temp79a,f(:,OP_DRP ),g(:,OP_1),h(:,OP_1 )) &
+             - 2*intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZP ),g(:,OP_1 ),h(:,OP_DP)) &
+             + 2*intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_DP))
+#else
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZPP),g(:,OP_1 ),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DRPP),g(:,OP_1 ),h(:,OP_1 )) &
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZP ),g(:,OP_DP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DRP ),g(:,OP_DP),h(:,OP_1 )) &
              - intx5(e(:,:,OP_DR),temp79a,f(:,OP_DZP ),g(:,OP_1 ),h(:,OP_DP)) &
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_DRP ),g(:,OP_1 ),h(:,OP_DP))
+#endif
      end if
   endif
   b1psibn2 = temp
@@ -14061,7 +14041,6 @@ function b1psibn2(e,f,g,h)
   b1psibn2 = 0.
 #endif
 end function b1psibn2
-
 
 
 ! B1psifn1
@@ -14107,12 +14086,19 @@ function b1psifn1(e,f,g,h)
         temp79a = ri3_79*ni79(:,OP_1)**2
         temp = intx5(e(:,:,OP_GS),temp79a,f(:,OP_DZP),g(:,OP_DR ),h(:,OP_1)) &
              - intx5(e(:,:,OP_GS),temp79a,f(:,OP_DRP),g(:,OP_DZ ),h(:,OP_1)) &
+#ifdef USEST
+             - intx5(e(:,:,OP_DZP),temp79a,f(:,OP_GS ),g(:,OP_DR),h(:,OP_1 ))&
+             + intx5(e(:,:,OP_DRP),temp79a,f(:,OP_GS ),g(:,OP_DZ),h(:,OP_1 ))&
+             - 2*intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_DP))&
+             + 2*intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_DP))
+#else
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GSP),g(:,OP_DR ),h(:,OP_1 ))&
              - intx5(e(:,:,OP_DR),temp79a,f(:,OP_GSP),g(:,OP_DZ ),h(:,OP_1 ))&
              + intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DRP),h(:,OP_1 ))&
              - intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZP),h(:,OP_1 ))&
              - intx5(e(:,:,OP_DZ),temp79a,f(:,OP_GS ),g(:,OP_DR ),h(:,OP_DP))&
              + intx5(e(:,:,OP_DR),temp79a,f(:,OP_GS ),g(:,OP_DZ ),h(:,OP_DP))
+#endif
      endif
   endif
   b1psifn1 = temp
@@ -14120,6 +14106,7 @@ function b1psifn1(e,f,g,h)
   b1psifn1 = 0.
 #endif
 end function b1psifn1
+
 
 ! B1psifn2
 ! ========
@@ -15129,6 +15116,7 @@ function b2psieta(e,f,g)
      temp = intx4(e(:,:,OP_DZ),ri3_79,f(:,OP_DRP),g(:,OP_1)) &
           - intx4(e(:,:,OP_DR),ri3_79,f(:,OP_DZP),g(:,OP_1))
 
+#ifndef USEST
      if(hypi.ne.0 .and. imp_hyper.le.1) then
         if(ihypeta.eq.0) then          
            temp = temp + 2.*hypi* &
@@ -15150,6 +15138,7 @@ function b2psieta(e,f,g)
            endif
         endif
      end if
+#endif !USEST
   end if
   b2psieta = temp
 #else
@@ -15180,6 +15169,7 @@ function b2psieta1(g)
      temp = prod( ri3_79*g(:,OP_1),OP_DZ,OP_DRP) &
           + prod(-ri3_79*g(:,OP_1),OP_DR,OP_DZP)
 
+#ifndef USEST
      if(hypi.ne.0 .and. imp_hyper.le.1) then
         if(ihypeta.eq.0) then          
            temp = temp + &
@@ -15201,6 +15191,7 @@ function b2psieta1(g)
             endif
         endif
      end if
+#endif !USEST
   end if
   b2psieta1 = temp
 #else
@@ -15303,10 +15294,14 @@ function b2beta(e,f,g,h)
 
 #if defined(USE3D) || defined(USECOMPLEX)
               temp = temp &
+#ifdef USEST
+                   - hypi*intx3(e(:,:,OP_DZP),ri4_79,f(:,OP_DZP)) &
+                   - hypi*intx3(e(:,:,OP_DRP),ri4_79,f(:,OP_DRP))
+#else
                    + hypi*intx3(e(:,:,OP_DZ),ri4_79,f(:,OP_DZPP)) &
                    + hypi*intx3(e(:,:,OP_DR),ri4_79,f(:,OP_DRPP))
 #endif
-
+#endif
            end if
         endif
      endif
@@ -15368,14 +15363,13 @@ function b2beta1(g,h)
 
 #if defined(USE3D) || defined(USECOMPLEX)
               temp = temp &
+#ifdef USEST
+                   + prod(-hypi*ri4_79,OP_DZP,OP_DZP) &
+                   + prod(-hypi*ri4_79,OP_DRP,OP_DRP)
+#else
                    + prod(hypi*ri4_79,OP_DZ,OP_DZPP) &
                    + prod(hypi*ri4_79,OP_DR,OP_DRPP)
-              !temp = temp + &
-                   !( prod( hypi*ri4_79,OP_DZZ,OP_DZZPP) &
-                   !+ prod( hypi*ri4_79,OP_DRR,OP_DZZPP) &
-                   !+ prod( hypi*ri4_79,OP_DZZ,OP_DRRPP) &
-              !     + prod( hypi*ri4_79,OP_DRR,OP_DRRPP))
-
+#endif
 #endif
 
            end if
@@ -15414,6 +15408,7 @@ function b2feta(e,f,g)
           - intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZP),g(:,OP_1)) &
           - intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DRP),g(:,OP_1))
 
+#ifndef USEST
      if(imp_hyper.le.1) then
 
 !   the following coding should be checked.  does not agree with my derivation scj 4/30/2014
@@ -15442,6 +15437,7 @@ function b2feta(e,f,g)
         endif
 
      end if
+#endif !USEST
   end if
 
   b2feta = temp
@@ -15474,6 +15470,7 @@ function b2feta1(g)
             prod(-ri2_79*g(:,OP_1),OP_DZ,OP_DZP) &
           + prod(-ri2_79*g(:,OP_1),OP_DR,OP_DRP)
 
+#ifndef USEST
      if(imp_hyper.le.1) then
 
 !   the following coding should be checked.  does not agree with my derivation scj 4/30/2014
@@ -15502,6 +15499,7 @@ function b2feta1(g)
         endif
 
      end if
+#endif !USEST
   end if
 
   b2feta1 = temp
@@ -16812,7 +16810,7 @@ function b3psipsieta(e,f,g,h,i)
      temp = temp + (gam-1)*   &
            (intx5(e(:,:,OP_1),ri4_79,f(:,OP_DRP),g(:,OP_DRP),h(:,OP_1))   &
          +  intx5(e(:,:,OP_1),ri4_79,f(:,OP_DZP),g(:,OP_DZP),h(:,OP_1)))
-     if(irunaway .gt. 0) then
+     if(irunaway .gt. 2) then
         temp = temp + 1.*(gam-1.) * &
               (-intx6(e(:,:,OP_1),ri3_79,f(:,OP_DZ),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
               + intx6(e(:,:,OP_1),ri3_79,f(:,OP_DR),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
@@ -16841,7 +16839,7 @@ function b3psipsieta1(g,h,i)
      temp = temp + &
            (prod((gam-1.)*ri4_79*g(:,OP_DRP)*h(:,OP_1),OP_1,OP_DRP)   &
          +  prod((gam-1.)*ri4_79*g(:,OP_DZP)*h(:,OP_1),OP_1,OP_DZP))
-     if(irunaway .gt. 0) then
+     if(irunaway .gt. 2) then
         !temp = temp + 1.*(gam-1.) * &
               !(-prod(e(:,:,OP_1),ri3_79,f(:,OP_DZ),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
         !      + prod(e(:,:,OP_1),ri3_79,f(:,OP_DR),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)))
@@ -16877,7 +16875,7 @@ function b3psibeta(e,f,g,h,i)
 #endif
   end if
 
-  if(irunaway .gt. 0) then
+  if(irunaway .gt. 2) then
      temp = temp + 1.*(gam-1.) * &
                    (-intx6(e(:,:,OP_1),ri2_79,f(:,OP_GS),g(:,OP_1),h(:,OP_1),i(:,OP_1)) &
                   + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
@@ -16909,7 +16907,7 @@ function b3psibeta1(g,h,i)
 #endif
   end if
 
-  if(irunaway .gt. 0) then
+  if(irunaway .gt. 2) then
      !temp = temp + 1.*(gam-1.) * &
                    !(-prod(e(:,:,OP_1),ri2_79,f(:,OP_GS),g(:,OP_1),h(:,OP_1),i(:,OP_1)) &
                   !+ prod(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
@@ -16973,7 +16971,7 @@ function b3psifeta(e,f,g,h,i)
      temp = 2.*(gam-1.)* &
           (intx5(e(:,:,OP_1),ri3_79,f(:,OP_DZP),g(:,OP_DRP),h(:,OP_1))  &
           -intx5(e(:,:,OP_1),ri3_79,f(:,OP_DRP),g(:,OP_DZP),h(:,OP_1)))
-      if(irunaway .gt. 0) then
+      if(irunaway .gt. 2) then
          temp = temp + 1.*(gam-1.) * &
                        (intx6(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
                       + intx6(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
@@ -17119,7 +17117,7 @@ function b3bfeta(e,f,g,h,i)
      temp = (gam-1.)* &
           (intx5(e(:,:,OP_1),ri2_79,f(:,OP_DZ),g(:,OP_DZP),h(:,OP_1)) &
           +intx5(e(:,:,OP_1),ri2_79,f(:,OP_DR),g(:,OP_DRP),h(:,OP_1)))
-     if(irunaway .gt. 0) then
+     if(irunaway .gt. 2) then
         temp = temp + 1.*(gam-1.)* &
                       (intx6(e(:,:,OP_1),ri_79,f(:,OP_DZ),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
                      - intx6(e(:,:,OP_1),ri_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
@@ -21064,14 +21062,14 @@ real function energy_p(mask)
         temp = int2(p179,temp79a) / (gam - 1.)
      else
 !.......nonlinear: subtract off equilibrium piece
-        temp = (int2(pt79,temp79a) - int2(p079,temp79a))/ (gam - 1.)
+        !temp = (int2(pt79,temp79a) - int2(p079,temp79a))/ (gam - 1.)
+        temp = int2(pt79,temp79a) / (gam - 1.)
      endif
   endif
 
   energy_p = temp
   return
 end function energy_p
-
 
 ! Electron Pressure
 ! -----------------
@@ -21091,14 +21089,13 @@ real function energy_pe()
         temp = int1(pe179) / (gam - 1.)
      else
 !.......nonlinear: subtract off equilibrium piece
-        temp = (int1(pet79) - int1(pe079))/ (gam - 1.)
+        temp = int1(pet79) / (gam - 1.)
      endif
   endif
 
   energy_pe = temp
   return
 end function energy_pe
-
 
 
 ! Poloidal kinetic
@@ -21321,10 +21318,13 @@ real function energy_kph()
 
   vectype :: temp
 
-  temp = - hypc* &
-       (int4(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),vis79(:,OP_1)) &
-       +int4(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),vis79(:,OP_1)))
-
+!!$  if(hypc.ne.0.) then
+!!$     temp = - hypc* &
+!!$          (int4(ri2_79,vot79(:,OP_DZ),CONJUGATE(vot79(:,OP_DZ)),vis79(:,OP_1)) &
+!!$          +int4(ri2_79,vot79(:,OP_DR),CONJUGATE(vot79(:,OP_DR)),vis79(:,OP_1)))
+!!$  else
+     temp = 0.
+!!$  end if
   energy_kph = temp
   return
 end function energy_kph
@@ -21358,10 +21358,13 @@ real function energy_k3h()
 
   vectype :: temp
 
-  temp = -2.*hypc* &
-       (int3(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),vic79(:,OP_1)) &
-       +int3(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),vic79(:,OP_1)))
-
+!!$  if(hypc.ne.0.) then
+!!$     temp = -2.*hypc* &
+!!$          (int3(cot79(:,OP_DZ),CONJUGATE(cot79(:,OP_DZ)),vic79(:,OP_1)) &
+!!$          +int3(cot79(:,OP_DR),CONJUGATE(cot79(:,OP_DR)),vic79(:,OP_1)))
+!!$  else
+     temp = 0.
+!!$  end if
   energy_k3h = temp
   return
 end function energy_k3h
