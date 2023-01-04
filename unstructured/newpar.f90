@@ -454,8 +454,9 @@ Program Reducedquintic
         if(mod(ntime-ntime0,ntimepr).eq.0) then
           update_mesh = .true.
         end if
-        call adapt_by_spr(field_vec%id, psi_g, ntime, &
-          isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel, update_mesh)
+        call adapt_by_spr(field_vec%id, psi_g, ntime, isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel, update_mesh)
+        write(mesh_file_name,"(A11,A)") 'afteradapt', 0
+        call m3dc1_mesh_write (mesh_file_name,0,ntime)
       endif
     endif
 
@@ -1363,8 +1364,8 @@ subroutine space(ifirstcall)
 
      ! Auxiliary Variables
      call create_field(jphi_field, "jphi")
-     call create_field(vor_field, 'vor')
-     call create_field(com_field, 'com')
+     !call create_field(vor_field, "vor")
+     !call create_field(com_field, "com")
      call create_field(resistivity_field, "resistivity")
      call create_field(kappa_field, "kappa")
      call create_field(kappar_field, "kappar")

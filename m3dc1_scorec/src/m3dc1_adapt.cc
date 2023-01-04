@@ -539,12 +539,14 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
 	
   ReducedQuinticImplicit shape;
   ReducedQuinticTransfer slnTransfer(mesh,fields, &shape);
+  ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, frame_field, &slnTransfer));
+/*
 #ifdef OLDMA
   ma::Input* in = ma::configure(mesh, size_field, frame_field, &slnTransfer);
 #else
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, frame_field, &slnTransfer));
 #endif
-	
+*/	
   in->shouldSnap = 0;
   in->shouldTransferParametric = 0;
   in->shouldRunMidZoltan = 1;

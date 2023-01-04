@@ -198,7 +198,7 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
 
   double refine_factor = 1.;
   for (int i = 0; i < refine_level; i++)
-    refine_factor *= 2.;
+    refine_factor *= 2.;	
 
   double coarsen_factor = 1.;
   for (int i = 0; i < coarsen_level; i++)
@@ -245,7 +245,6 @@ static void process_size_field(apf::Mesh2* m, apf::Field* in_size, int ts,
 
   PCU_Min_Doubles(&asked_min, 1);
   PCU_Max_Doubles(&asked_max, 1);
-
 
   if (!PCU_Comm_Self())
     printf("min/max of asked size at time step %d: %f/%f\n", ts, asked_min, asked_max);
@@ -652,7 +651,7 @@ static void zero_fields_on_master(apf::Field* f)
 // end of static functions used for spr-adapt
 
 int begin_numVert;
-#endif
+//#endif
 
 double begin_mem, begin_time;
 // helper routines

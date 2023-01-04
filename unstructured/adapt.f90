@@ -337,8 +337,8 @@ module adapt
     field_vec = 0.
     field0_vec = 0.
     jphi_field = 0.
-    vor_field = 0.
-    com_field = 0.
+    !vor_field = 0.
+    !com_field = 0.
     !resistivity_field = 0.
     !kappa_field = 0.
     !visc_field = 0.
