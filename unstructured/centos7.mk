@@ -59,9 +59,9 @@ PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
 ifdef SCORECVER
-  SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)/$(SCORECVER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
 else
-  SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
+  SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
 ifeq ($(COM), 1)
