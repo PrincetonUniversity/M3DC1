@@ -10,6 +10,7 @@
 #include <apf.h>
 #include <apfConvert.h>
 #include <apfMesh2.h>
+#include <iostream>
 
 #ifdef PPPL
 #include <SimLicense.h>
@@ -25,7 +26,7 @@ int main(int argc, char** argv)
   PCU_Comm_Init();
   if (argc < 3) {
     if (0==PCU_Comm_Self())
-      std::cerr << "usage: " << argv[0] << " <simmetrix mesh (.sms)> <pumi mesh (.smb)>\n";
+      std::cout<< "usage: " << argv[0] << " <simmetrix mesh (.sms)> <pumi mesh (.smb)>\n";
     PCU_Comm_Free();
     MPI_Finalize();
     return 1;
