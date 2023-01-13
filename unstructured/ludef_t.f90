@@ -4686,9 +4686,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   integer :: def_fields
 
   real :: tstart, tend, tfield, telm, tsizefield, tfinalize
-  integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3)
-  integer :: iedge, idim(3)
 
   tfield = 0.
   telm = 0.
@@ -4794,29 +4791,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
         telm = telm + tend - tstart
      endif
 
-     if(isurface.eq.0) cycle
-     if(nonrect.eq.0) cycle
-
-     ! add surface terms
-     call boundary_edge(itri, is_edge, n, idim)
-     
-     do iedge=1,3
-        if(is_edge(iedge).eq.0) cycle
-
-        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
-        call define_fields(itri, def_fields, 1, linear)
-
-!        write(*,'(A,8F10.4)') 'EDGE: ', x_79(1), z_79(1), x_79(5), z_79(5), &
-!           norm79(3,1), norm79(3,2)
-
-        if(gyro.eq.1) call gyro_common
-
-        if(ivel_def.eq.1) call ludefvel_n(itri)
-        if(ifield_def.eq.1) call ludefphi_n(itri)
-        if(idens_def.eq.1) call ludefden_n(itri)
-        if(irunaway.gt.0) call ludefnre_n(itri)
-        if(ipres_def.eq.1 .or. ipressplit_def.eq.1) call ludefpres_n(itri)
-     end do
   end do
 !$OMP END PARALLEL DO
 
