@@ -477,13 +477,12 @@ contains
     endif
   end subroutine get_external_field
 
-  subroutine load_fieldlines_field(sf, filename, isamp, isamp_pol, error)
+  subroutine load_fieldlines_field(sf, filename, error)
     use hdf5
     implicit none
 
     type(schaffer_field), intent(inout) :: sf
     character(len=*), intent(in) :: filename
-    integer, intent(in) :: isamp, isamp_pol
     integer, intent(out) :: error
     integer :: k, lpres 
     integer(HID_T) :: file_id, dset_id, attr_id
@@ -577,7 +576,6 @@ contains
   end subroutine load_fieldlines_field
 
 #ifdef USEST
-!!!
   subroutine check(istatus)
   use netcdf
   implicit none
@@ -587,7 +585,6 @@ contains
      call safestop(53)
   end if
   end subroutine check
-!!!
 
   subroutine load_mgrid_field(sf, mgrid_filename, vmec_filename, error)
     use netcdf

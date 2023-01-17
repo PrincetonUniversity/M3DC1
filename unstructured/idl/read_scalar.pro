@@ -537,12 +537,12 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.kprad_n0._data
        title = '!6Neutral Impurities!X'
        symbol = '!8n!DI!60!N!X'
-       d = dimensions(/n0,_EXTRA=extra)
+       d = dimensions(/n0,l0=3,_EXTRA=extra)
    endif else if (strcmp("kprad_n", scalarname, /fold_case) eq 1) then begin
        data = s.kprad_n._data
        title = '!6Total Impurities!6'
        symbol = '!8n!DI!N!X'
-       d = dimensions(/n0,_EXTRA=extra)
+       d = dimensions(/n0,l0=3,_EXTRA=extra)
    endif else if (strcmp("kprad_ion_frac", scalarname, /fold_case) eq 1) then begin
        data = 1. - s.kprad_n0._data / s.kprad_n._data
        title = '!6Impurity Ionization Fraction!X'

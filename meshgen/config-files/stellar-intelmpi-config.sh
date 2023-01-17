@@ -13,19 +13,13 @@ PUMI_DIR=/projects/M3DC1/scorec/$MPIVER/$SIM_VER
 PREFIX=/projects/M3DC1/scorec/$MPIVER/$SIM_VER
 #module purge
 #module load intel/2021.1.2 intel-mpi/intel/2021.3.1 cmake/3.19.7
-#module load fftw/intel-2021.1/intel-mpi/3.3.9
-#module load hdf5/intel-2021.1/intel-mpi/1.10.6
 #module load rlm/pppl simmodsuite/pppl/17.0-220903
-#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib64:/home/PPPL/simmetrix/simmodsuite/17.0-220903/lib/x64_rhel7_gcc48
-#unset I_MPI_HYDRA_BOOTSTRAP
-#unset I_MPI_PMI_LIBRARY
-#OPTFLAGS=""
 cmake3 .. \
   -DCMAKE_C_COMPILER="mpiicc" \
   -DCMAKE_CXX_COMPILER="mpiicpc" \
   -DCMAKE_Fortran_COMPILER="mpiifort" \
-  -DCMAKE_C_FLAGS="-O2 -g -DOLDMA -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS="-O2 -g -DOLDMA -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS="-O2 -g -DOLDMA -DSTELLAR -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS="-O2 -g -DOLDMA -DSTELLAR -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \

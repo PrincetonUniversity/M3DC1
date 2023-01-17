@@ -13,9 +13,8 @@ ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
 PREFIX=/projects/M3DC1/scorec/$MPIVER/$SIM_VER
 #add -DPETSCMASTER for petsc 3.8.3 or higher
 #module purge
+#cd /projects/M3DC1/scorec/src/core-m3dc1
 #module load intel/2021.1.2 intel-mpi/intel/2021.3.1 cmake/3.19.7
-#module load fftw/intel-2021.1/intel-mpi/3.3.9
-#module load hdf5/intel-2021.1/intel-mpi/1.10.6
 #module load rlm/pppl simmodsuite/pppl/17.0-220903
 cmake3 .. \
   -DCMAKE_C_COMPILER="mpiicc" \
@@ -31,7 +30,7 @@ cmake3 .. \
   -DSCOREC_CXX_OPTIMIZE=OFF \
   -DUSE_XSDK_DEFAULTS=OFF \
   -DSCOREC_ENABLE_CXX11=ON \
-    -DENABLE_SIMMETRIX=ON \
+  -DENABLE_SIMMETRIX=ON \
   -DSIM_DISCRETE=OFF \
   -DSIMMETRIX_INCLUDE_DIR=$SIM_DIR/include \
   -DSIMMETRIX_LIB_DIR=$SIM_DIR/lib/$SIM_ARCHOS \

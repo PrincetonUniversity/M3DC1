@@ -1854,7 +1854,7 @@ subroutine fundef
 
      call m3dc1_ent_getgeomclass(0,ii-1,izonedim,izone) 
      call magnetic_region(temp(1),temp(2),temp(3),x,z,mr)
-     if(mr.ne.REGION_PLASMA .or. izone.ne.1) then
+     if(mr.ne.REGION_PLASMA .or. izone.ne.ZONE_PLASMA) then
         temp = 0.
         call set_node_data(fun1_vec, ii, temp)
         call set_node_data(fun2_vec, ii, temp)
@@ -2080,7 +2080,7 @@ subroutine fundef2(error)
      call get_zone(itri, izone)
 
 !     if(izone.ne.1) then
-     if(izone.gt.2) then
+     if(izone.eq.ZONE_VACUUM) then
         temp3 = 0.
         temp4 = 0.
         call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
@@ -2577,7 +2577,7 @@ end subroutine readpgfiles
       
       call get_zone(itri, izone)
 
-      if(izone.ne.1) cycle
+      if(izone.ne.ZONE_PLASMA) cycle
 
       ! Del*[psi]<psi,psi> = -F<F,psi> - R^2<p,psi> + R^3 rho w^2 <R,psi>
 
@@ -2633,7 +2633,7 @@ pure subroutine calc_toroidal_field(ps0,tf,x,z,izone)
   integer :: mr
  
   call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr)
-  if(mr.ne.REGION_PLASMA .or. izone.ne.1) then
+  if(mr.ne.REGION_PLASMA .or. izone.ne.ZONE_PLASMA) then
      tf = bzero*rzero
   else
      psii = (real(ps0(1)) - psimin)/(psibound - psimin)
@@ -2688,7 +2688,7 @@ subroutine calc_pressure(ps0, pres, x, z, izone)
 
   integer :: mr
 
-  if(izone.gt.2) then 
+  if(izone.eq.ZONE_VACUUM) then 
      pres = p0_spline%y(p0_spline%n)
      return
   end if
@@ -2746,7 +2746,7 @@ subroutine calc_density(ps0, dens, x, z, izone)
 
   integer :: mr
 
-  if(izone.gt.2) then
+  if(izone.eq.ZONE_VACUUM) then
      dens = n0_spline%y(n0_spline%n)
      return
   end if
@@ -2796,7 +2796,7 @@ subroutine calc_electron_pressure(ps0, pe, x, z, izone)
 
   if(allocated(te_spline%y)) then
 !     if(izone.ne.1) then 
-     if(izone.gt.2) then 
+     if(izone.eq.ZONE_VACUUM) then 
         te0 = te_spline%y(te_spline%n)
      else
         psii = (real(ps0(1)) - psimin)/(psibound - psimin)
@@ -2838,7 +2838,7 @@ subroutine calc_rotation(ps0,omega, x, z, izone)
      omega = 0.
      return
   endif
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      omega = omega_spline%y(omega_spline%n)
      return
   end if
