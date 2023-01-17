@@ -206,9 +206,9 @@ module basic
   integer :: isample_ext_field_pol
 
   real :: scale_ext_field
-  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines or mgrid file.
-  character(len=256) :: file_ext_field
-  character(len=256) :: fieldlines_filename 
+  integer :: type_ext_field ! 0 = text schaffer field; 1,2 = fieldlines or mgrid file.
+  character(len=256) :: file_ext_field ! External field (to be subtracted for ST)
+  character(len=256) :: file_total_field ! Stellarator field (plasma+coils) to be read for itaylor=41
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
 
