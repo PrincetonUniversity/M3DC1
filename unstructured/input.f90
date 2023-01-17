@@ -583,8 +583,8 @@ subroutine set_defaults
        "type of external field file", eq_grp)
   call add_var_string("file_ext_field", file_ext_field, 256, "error_field", &
        "name of external field file", eq_grp)
-  call add_var_string("fieldlines_filename", fieldlines_filename, 256, "fieldlines.h5", &
-       "name of fieldlines file", eq_grp)
+  call add_var_string("file_total_field", file_total_field, 256, "total_field", &
+       "name of total field file for ST", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
   call add_var_double("elongation", elongation, 1., "", eq_grp)
@@ -1139,7 +1139,7 @@ subroutine set_defaults
   call add_var_int("ifull_torus", ifull_torus, 0, &
        "0 = one field period; 1 = full torus", mesh_grp)
   call add_var_int("iread_vmec",iread_vmec,0,&
-       "1 = read geometry from VMEC file, 2 = read both geometry and fields", mesh_grp)
+       "1 = read geometry from VMEC file", mesh_grp)
   call add_var_string("vmec_filename",vmec_filename,256,"geometry.nc",&
        "name of vmec data file", mesh_grp)
   call add_var_int("igeometry", igeometry, 0, "0: default, identity", mesh_grp)
