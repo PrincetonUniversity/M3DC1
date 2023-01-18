@@ -36,7 +36,8 @@ To run 2D or complex mode, please use the instruction given in readme.stellar.
 	#SBATCH -J JOB
 	#SBATCH --time=00:30:00
         #3D real with petsc
-            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mymatrixid 5
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mymatrixid 7
 
 5. solver option file "options_bjacobi.type_mg"
 
