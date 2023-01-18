@@ -19,3 +19,12 @@ unstructured/regtest/*/1.*
 unstructured/regtest/*/devel-*
 slurm*
 
+#Documentation
+ #Ignore all
+doc/*
+ #BUT
+!doc/*.tex
+!doc/m3dc1.bib
+!readme
+!figures/*
+
