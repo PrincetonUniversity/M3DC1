@@ -15,7 +15,7 @@ from m3dc1.flux_average import flux_average
 #rc('text', usetex=True)
 
 #ToDo: Add rms
-def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, units='m3dc1', fac=1, phit=0, rms=False,pub=False,ls='-',xlimits=[None,None],ylimits=[None,None],show_legend=False,leglbl=None, shortlbl=False,fignum=None,figsize=None):
+def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, units='m3dc1', fac=1, phit=0, rms=False,pub=False,c=None,ls='-',xlimits=[None,None],ylimits=[None,None],show_legend=False,leglbl=None, shortlbl=False,fignum=None,figsize=None):
     """
     Plots flux surfaces
     
@@ -59,6 +59,12 @@ def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, 
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
 
+    **c**
+    Line color
+
+    **ls**
+    line style
+
     **xlimits**
     x-axis limits, array of length 2, e.g. [0,1]
 
@@ -97,7 +103,7 @@ def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, 
         leghandlen = 2.0
     
     plt.figure(num=fignum,figsize=figsize)
-    plt.plot(flux, fa*fac, lw=linew,ls=ls,label=leglbl)
+    plt.plot(flux, fa*fac, c=c, lw=linew,ls=ls,label=leglbl)
     ax = plt.gca()
     plt.grid(True)
     plt.xlabel(r'$\psi_N$',fontsize=axlblfs)
@@ -108,7 +114,7 @@ def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,fac=fac,shortlbl=shortlbl)
     ylbl = fieldlabel
     if field not in ['q','safety factor']:
-            if not (field == 'alpha' and units=='m3dc1'):
+            if not (field in ['alpha','shear'] and units=='m3dc1'):
                 ylbl = ylbl + ' (' + unitlabel+')'
         
     plt.ylabel(ylbl,fontsize=axlblfs)

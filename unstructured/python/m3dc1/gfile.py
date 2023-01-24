@@ -17,8 +17,6 @@ from scipy.interpolate import interp1d
 from scipy.integrate import trapz
 from scipy.integrate import cumtrapz
 import m3dc1.fpylib as fpyl
-#import efit.efitlib as elib
-#from efit.flux_average import flux_average
 
 
 #-------------------------------------------
@@ -92,12 +90,25 @@ def read_gfile(fname,quiet=False):
     gfile_data.fittype = temp[0]
     if len(temp)>5:
         gfile_data.date = temp[1]
-        gfile_data.shot = int(temp[2][1:])
-        gfile_data.time = float(temp[3][:-2]) #in ms
-    
-        gfile_data.idum = int(temp[4])
-        gfile_data.nw = int(temp[5])
-        gfile_data.nh = int(temp[6])
+        if gfile_data.fittype == 'FREEGS':
+            gfile_data.shot = int(temp[3])
+            gfile_data.time = float(temp[4][:-2]) #in ms
+            gfile_data.idum = int(temp[-3])
+            gfile_data.nw = int(temp[-2])
+            gfile_data.nh = int(temp[-1])
+        else:
+            if len(temp)>=7:
+                gfile_data.shot = 'n/a'
+                gfile_data.time = 'n/a'
+                gfile_data.idum = int(temp[-3])
+                gfile_data.nw = int(temp[-2])
+                gfile_data.nh = int(temp[-1])
+            else:
+                gfile_data.shot = int(temp[2][1:])
+                gfile_data.time = float(temp[3][:-2]) #in ms
+                gfile_data.idum = int(temp[4])
+                gfile_data.nw = int(temp[5])
+                gfile_data.nh = int(temp[6])
     else:
         if gfile_data.fittype == 'EFIT++':
             date_shot_time = temp[1]
@@ -121,7 +132,8 @@ def read_gfile(fname,quiet=False):
                 gfile_data.nw = int(temp[-2])
                 gfile_data.nh = int(temp[-1])
             except:
-                fpyl.printerr('Error reading g-file in line 1!')
+                elib.printerr('Error reading g-file in line 1!')
+                return
     
     #temp = data[1].split()
     temp = fpyl.read_floats(data[1])
@@ -288,6 +300,85 @@ def plot_gfile(fname,fignum=None):
     fig.suptitle('#'+str(gfdat.shot)+', t='+str(gfdat.time)+'ms')
     
     return
+
+
+
+def plot_flux(fname,vrange=[],fignum=None,cmap='jet'):
+    gfdat = read_gfile(fname)
+    
+    #x = loadmat('/u/akleiner/codes/matlab/efit/nstx_obj_12nov_6565.mat')
+    
+    fig = plt.figure(num=fignum)
+    ax = plt.gca()
+    
+    if len(vrange)>0:
+        cont = ax.contourf(gfdat.rg,gfdat.zg,gfdat.psirz,np.linspace(vrange[0],vrange[1],200),cmap=cmap)
+    else:
+        cont = ax.contourf(gfdat.rg,gfdat.zg,gfdat.psirz,200,cmap=cmap)
+    
+    ax.contour(gfdat.rg,gfdat.zg,gfdat.psirzn,np.linspace(1.1,np.amax(gfdat.psirzn),25),linewidths=0.7,colors='C0')
+    ax.plot(gfdat.rmaxis,gfdat.zmaxis,lw=0,marker='+',markersize=10,color='C0')
+    ax.plot(gfdat.rbbbs,gfdat.zbbbs,color='m')
+    ax.plot(gfdat.rlim,gfdat.zlim,color='C1')
+    cbar = fig.colorbar(cont,ax=ax)
+    #cbar = fig.colorbar(cont,ax=ax)
+    ax.set_aspect('equal')
+    ax.set_xlabel('R/m')
+    ax.set_ylabel('Z/m')
+    ax.grid(True,zorder=10,alpha=0.5)
+    
+    plt.title('#'+str(gfdat.shot)+', t='+str(gfdat.time)+'ms')
+    
+    return
+
+
+
+def plot_jphi(fname,vrange=[],fignum=None,cmap='jet'):
+    gfdat = read_gfile(fname)
+    
+    dpsidr = np.zeros_like(gfdat.psirz)
+    dpsi2dr2 = np.zeros_like(gfdat.psirz)
+    dpsidz = np.zeros_like(gfdat.psirz)
+    dpsi2dz2 = np.zeros_like(gfdat.psirz)
+    
+    for i in range(gfdat.psirz.shape[0]):
+        dpsidr[i,:] = fpyl.deriv(gfdat.psirz[i,:],gfdat.rg)
+        dpsi2dr2[i,:] = fpyl.deriv(dpsidr[i,:],gfdat.rg)
+    
+    for i in range(gfdat.psirz.shape[1]):
+        dpsidz[:,i] = fpyl.deriv(gfdat.psirz[:,i],gfdat.zg)
+        dpsi2dz2[:,i] = fpyl.deriv(dpsidz[:,i],gfdat.zg)
+    
+    R, Z    = np.meshgrid(gfdat.rg, gfdat.zg)
+    
+    
+    left = 1.0/R**2 * dpsidr + 1.0/R * dpsi2dr2
+    
+    jphi = left + 1.0/R * dpsi2dz2
+    
+    fig = plt.figure(num=fignum)
+    ax = plt.gca()
+    
+    if len(vrange)>0:
+        cont = ax.contourf(gfdat.rg,gfdat.zg,jphi,np.linspace(vrange[0],vrange[1],200),cmap=cmap)
+    else:
+        cont = ax.contourf(gfdat.rg,gfdat.zg,jphi,200,cmap=cmap)
+    
+    ax.contour(gfdat.rg,gfdat.zg,gfdat.psirzn,np.linspace(1.1,np.amax(gfdat.psirzn),25),linewidths=0.7,colors='C0')
+    ax.plot(gfdat.rmaxis,gfdat.zmaxis,lw=0,marker='+',markersize=10,color='C0')
+    ax.plot(gfdat.rbbbs,gfdat.zbbbs,color='m')
+    ax.plot(gfdat.rlim,gfdat.zlim,color='C1')
+    cbar = fig.colorbar(cont,ax=ax)
+    #cbar = fig.colorbar(cont,ax=ax)
+    ax.set_aspect('equal')
+    ax.set_xlabel('R/m')
+    ax.set_ylabel('Z/m')
+    ax.grid(True,zorder=10,alpha=0.5)
+    
+    plt.title('#'+str(gfdat.shot)+', t='+str(gfdat.time)+'ms')
+    
+    return
+
 
 
 def plot_gfile_p(fname,fignum=None,show_legend=True):
