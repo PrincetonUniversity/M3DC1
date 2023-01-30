@@ -1,5 +1,5 @@
 HOST=traverse
-MPIVER=nvhpc22.5-cuda11.7-openmpi4.1.4
+MPIVER=nvhpc22.5-openmpi4.1.4-cuda11.7
 CMAKETYPE=Release
 PETSC_VER=petsc-3.18.2
 PETSCVER=petsc3.18.2
@@ -9,7 +9,8 @@ PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=/projects/M3DC1/scorec/$HOST/$MPIVER/$PETSCVER
 SCOREC_DIR=/projects/M3DC1/scorec/$HOST/$MPIVER/$PETSCVER
 PREFIX=$SCOREC_DIR
-#module load nvhpc/22.5 openmpi/cuda-11.7/nvhpc-22.5/4.1.4/64 cudatoolkit/11.7 hdf5/nvhpc-22.5/openmpi-4.1.3/1.10.6 gsl/1.15
+#module load nvhpc/22.5  openmpi/cuda-11.7/nvhpc-22.5/4.1.4/64   
+#module load hdf5/nvhpc-22.5/openmpi-4.1.3/1.10.6 gsl/1.15
 #add -DPETSCMASTER for petsc 3.8.3 or higher
 cmake .. \
   -DCMAKE_C_COMPILER=mpicc \
@@ -22,8 +23,8 @@ cmake .. \
   -DSCOREC_LIB_DIR="$SCOREC_DIR/lib" \
   -DENABLE_ZOLTAN=ON \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
-  -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.so" \
-  -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.so" \
+  -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \
+  -DMETIS_LIBRARY="$PARMETIS_DIR/lib/libmetis.a" \
   -DPETSC_INCLUDE_DIR="$PETSC_DIR/$PETSC_ARCH/include" \
   -DPETSC_LIB_DIR="$PETSC_DIR/$PETSC_ARCH/lib" \
   -DENABLE_PETSC=ON \
