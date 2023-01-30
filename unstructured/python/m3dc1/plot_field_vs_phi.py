@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-#
-# Coded on 11/26/2019 by:
-# Andreas Kleiner:    akleiner@pppl.gov
-# Ralf Mackenbach:    rmackenb@pppl.gov
-# Chris Smiet    :    csmiet@pppl.gov
+# -*- coding: utf-8 -*-
+"""
+Created on 11/23/2022
+
+@author: Andreas Kleiner
+"""
 
 import numpy as np
 import sys
@@ -14,17 +15,15 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 from distutils.version import StrictVersion
 import m3dc1.fpylib as fpyl
-from m3dc1.get_field import get_field
-from m3dc1.eval_field import eval_field
+from m3dc1.get_field import get_field_vs_phi
 from m3dc1.plot_mesh import plot_mesh
-from m3dc1.plot_coils import plot_coils
 #rc('text', usetex=True)
 
 
 
 
-def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
-               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',res=250,
+def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, linear=False,
+               diff=False, phi_res=100, res=250, mesh=False, bound=False, units='mks',cont_levels=100,
                prange=None, cmap='viridis', cmap_midpt=None, quiet=False,
                save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False):
     """
@@ -34,6 +33,14 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
 
     **field**
     The field that is to be plotted, i.e. 'B', 'j', etc.
+
+    **cutr**
+    Value of R, where field is being plotted as a function of Z and phi.
+    cutz has to be None.
+
+    **cutz**
+    Value of Z, where field is being plotted as a function of R and phi.
+    cutr has to be None.
 
     **coord**
     The chosen part of a vector field to be plotted, options are:
@@ -56,8 +63,11 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     **time**
     The time-slice which will be used for the field plot. If time='last', the last time slice will be used.
 
-    **phi**
-    The toroidal cross-section coordinate.
+    **phi_res**
+    Number of points in direction of phi.
+
+    **res**
+    Resolution in direction of R or Z.
 
     **linear**
     Plot the linear part of the field (so the equilibrium is subtracted).
@@ -70,9 +80,6 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     If list for both time and filename are given file1 will be evaluated at time1,
     and file2 at time2
 
-    **tor_av**
-    Calculates the average field over tor_av number of toroidal planes
-
     **units**
     Units in which the field will be plotted.
 
@@ -82,18 +89,10 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
 
     **bound**
     True/False
-    Plot boundary (wall and domain boundary) without the mesh itself.
+    Only plot boundary. Only works when mesh is true
 
-    **lcfs**
-    True/False
-    Overlay last closed flux surface on top of the plot.
-
-    **coils**
-    True/False
-    Overlay coils from coil.dat file on top of the plot.
-
-    **res**
-    Resolution in R and Z direction.
+    **cont_levels**
+    Number of contour levels.
 
     **cmap**
     Color map to use for the contour plot, e.g. viridis, seismic, jet, nipy_spectral
@@ -122,15 +121,15 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     If True, format figure for publication (larger labels and thicker lines)
 
     **phys**
-    Use True for plotting in physical (stellarator) geometry.
+    Use True for plotting in physical (stellarator) geometry
 
     **quiet**
     If True, suppress output to terminal.
     """
     
-    sim, time, mesh_ob, R, phi_list, Z, R_mesh, Z_mesh, R_ave, Z_ave, field1_ave = get_field(field=field, coord=coord, row=row, sim=sim, filename=filename, time=time, phi=phi, linear=linear,
-               diff=diff, tor_av=tor_av, units=units, res=res, quiet=quiet, phys=phys)
-    
+    sim, time, mesh_ob, R, phi_list, Z, R_mesh, Z_mesh, R_ave, Z_ave, phi_ave, field1_ave = get_field_vs_phi(field=field, coord=coord, row=row, sim=sim, filename=filename, time=time,
+                                                                                                    cutr=cutr, cutz=cutz, linear=linear,  diff=diff, phi_res=phi_res,
+                                                                                                    units=units, res=res, quiet=quiet, phys=phys)
 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
     cbarlbl = fieldlabel + ' (' + unitlabel + ')'
@@ -144,14 +143,12 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         cbarlblfs = 14
         cbarticklblfs = 14
         ticklblfs = 18
-        lcfslw = 2
     else:
         axlblfs = None
         titlefs = None
         cbarlblfs = None
         cbarticklblfs = None
         ticklblfs = None
-        lcfslw = 1
     
     if coord not in ['vector', 'tensor']:
         fig, axs = plt.subplots(1, 1)
@@ -181,8 +178,6 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     if showtitle:
         plt.title(titlestr,fontsize=titlefs)
     
-    if coils:
-        plot_coils(ax=axs)
     if mesh or bound:
         if mesh and bound:#Make sure that whole mesh is plotted. If both are true, plot_mesh only plots boundary.
             bound = False
@@ -195,25 +190,45 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
                 norm = colors.DivergingNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
             else:
                 norm = colors.TwoSlopeNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
-            cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
+            if cutr is not None and cutz is None:
+                cont = ax.contourf(phi_ave, Z_ave, field1_ave[i],cont_levels, cmap=cmap,norm=norm)
+            elif cutz is not None and cutr is None:
+                cont = ax.contourf(R_ave, phi_ave, field1_ave[i],cont_levels, cmap=cmap,norm=norm)
         else:
             if isinstance(prange,(tuple,list)):
-                if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
-                    norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
-                else:
-                    norm = colors.TwoSlopeNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
-                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
+                #if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
+                #    norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
+                #else:
+                #    norm = colors.TwoSlopeNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
+                if cutr is not None and cutz is None:
+                    cont = ax.contourf(phi_ave, Z_ave, field1_ave[i],600, cmap=cmap,vmin=prange[0], vmax=prange[1])
+                elif cutz is not None and cutr is None:
+                    cont = ax.contourf(R_ave, phi_ave, field1_ave[i],600, cmap=cmap,vmin=prange[0], vmax=prange[1])
             else:
-                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
+                if cutr is not None and cutz is None:
+                    cont = ax.contourf(phi_ave, Z_ave, field1_ave[i],cont_levels, cmap=cmap)
+                elif cutz is not None and cutr is None:
+                    print(R_ave.shape,phi_ave.shape,field1_ave[i].shape)
+                    cont = ax.contourf(R_ave, phi_ave, field1_ave[i],cont_levels, cmap=cmap)
         # Set and format axes limits and labels
         if phys:
             ax.set_xlim([fpyl.get_axlim(np.amin(R_mesh),'min',0.1),fpyl.get_axlim(np.amax(R_mesh),'max',0.1)])
             ax.set_ylim([fpyl.get_axlim(np.amin(Z_mesh),'min',0.1),fpyl.get_axlim(np.amax(Z_mesh),'max',0.1)])
-        else:
-            ax.set_xlim([fpyl.get_axlim(np.amin(R_ave),'min',0.1),fpyl.get_axlim(np.amax(R_ave),'max',0.1)])
-            ax.set_ylim([fpyl.get_axlim(np.amin(Z_ave),'min',0.1),fpyl.get_axlim(np.amax(Z_ave),'max',0.1)])
-        ax.set_xlabel(r'$R/m$',fontsize=axlblfs)
-        ax.set_ylabel(r'$Z/m$',fontsize=axlblfs)
+        #else:
+        #    if cutr is not None and cutz is None:
+        #        ax.set_xlim([fpyl.get_axlim(np.amin(R_ave),'min',0.1),fpyl.get_axlim(np.amax(R_ave),'max',0.1)])
+        #        ax.set_ylim([fpyl.get_axlim(np.amin(Z_ave),'min',0.1),fpyl.get_axlim(np.amax(Z_ave),'max',0.1)])
+        #    elif cutz is not None and cutr is None:
+        #        ax.set_xlim([fpyl.get_axlim(np.amin(R_ave),'min',0.1),fpyl.get_axlim(np.amax(R_ave),'max',0.1)])
+        #        ax.set_ylim([fpyl.get_axlim(np.amin(Z_ave),'min',0.1),fpyl.get_axlim(np.amax(Z_ave),'max',0.1)])
+        if cutr is not None and cutz is None:
+            xlbl = r'Toroidal angle $\phi$ in rad'
+            ylbl = r'$Z/m$'
+        elif cutz is not None and cutr is None:
+            xlbl = r'$R/m$'
+            ylbl = r'Toroidal angle $\phi$ in rad'
+        ax.set_xlabel(xlbl,fontsize=axlblfs)
+        ax.set_ylabel(ylbl,fontsize=axlblfs)
         ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
         if coord in ['vector', 'tensor']:
             compstr = r'$'+field+'_{'+comp[i]+'}$'
@@ -244,29 +259,9 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         for c in cont.collections:
             c.set_edgecolor("face")
 
-        ax.set_aspect('equal')
     plt.rcParams["axes.axisbelow"] = False #Allows mesh to be on top of contour plot. This option conflicts with zorder (matplotlib bug).
     
     
-    if lcfs:
-        if linear or diff:
-            try:
-                lcfs_ts_ind = np.argwhere(np.asarray([sim[0].timeslice, sim[1].timeslice]) < 1).flatten()[0]
-            except:
-                lcfs_ts_ind = 0
-                #fpyl.printwarn('WARNING: LCFS plotted at timeslice 0')
-        else:
-            lcfs_ts_ind = 0
-        print('LCFS time: ' + str(time[lcfs_ts_ind]))
-        psi_lcfs = sim[lcfs_ts_ind].get_time_trace('psi_lcfs').values[0]
-        if not quiet:
-            print("Psi at LCFS: "+str(psi_lcfs))
-        
-        #Aphi = eval_field('A', R, phi, Z, coord='phi', sim=sim[lcfs_ts_ind], time=time[lcfs_ts_ind])
-        #psifield = R_ave*Aphi
-        psifield = eval_field('psi', R, phi_list, Z, coord='scalar', sim=sim[lcfs_ts_ind], filename=sim[lcfs_ts_ind].filename, time=time[lcfs_ts_ind])
-        for i,ax in enumerate(axs):
-            cont = ax.contour(R_ave, Z_ave, np.average(psifield,0),[psi_lcfs],colors='magenta',linewidths=lcfslw,zorder=10)
     
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     #if coord=='vector':

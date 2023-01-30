@@ -9,6 +9,8 @@ Created on February 29 2020
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from scipy.fft import rfft
+from scipy.fft import irfft
 #from scipy.signal import find_peaks
 #from scipy.signal import find_peaks_cwt
 from scipy.interpolate import interp1d
@@ -18,9 +20,11 @@ import m3dc1.fpylib as fpyl
 from m3dc1.eval_field import eval_field
 from m3dc1.flux_coordinates import flux_coordinates
 from m3dc1.flux_average import flux_average
+from m3dc1.plot_mesh import plot_mesh
+from m3dc1.plot_coils import plot_coils
 
-
-def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,show_res=False,device='nstx',norm_to_unity=False,nummodes=10,cmap='jet',pub=False,n=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither'):
+def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,show_res=False,
+                  device='nstx',norm_to_unity=False,drop_low_m=-1,nummodes=10,cmap='jet',coils=False,mesh=False,bound=False, phys=False,pub=False,n=None,titlestr=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither'):
     """
     Calculates the linear eigenfunction ~(p1-p0)
 
@@ -52,8 +56,38 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
     **units**
     units in which the result will be calculated
 
+    **phys**
+    Use True for plotting in physical (stellarator) geometry.
+
+    **device**
+    Device (e.g. 'nstx', 'diiid') for which flux coordinates are being calculated.
+    This determines the major radius, which is taken as machine specific quantity.
+    Default is 'nstx'.
+
+    **norm_to_unity**
+    Normalize eigenfunction such that the maximum is in the order of unity.
+
+    **drop_low_m**
+    Removes poloidal modes from m = 0 to value of drop_low_m from poloidal spectrum and plots
+    the eigenfunction with these modes subtracted (by dropping from the inverse Fourier transform).
+    Can be useful, when n=0 modes are so strong that higher n/m perturbations are not visible in plot.
+
     **makeplot**
     If True, show plot of eigenfunction in R-Z plane and if specified also the Fourier spectrum
+
+    **show_res**
+    If True, show radial locations of resonant surfaces.
+
+    **mesh**
+    True/False
+    Overlay mesh on top of plot.
+
+    **bound**
+    True/False
+    Plot boundary (wall and domain boundary) without the mesh itself.
+
+    **coils**
+    True/False. Show contour of magnetic field coils in plot (imported from coil.dat).
 
     **nummodes**
     Number of Fourier mode to show in the plot legend
@@ -63,6 +97,26 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
 
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
+
+    **titlestr**
+    Plot title. If None, a default title will be generated.
+
+    **xlimits**
+    x-axis limits, array of length 2, e.g. [0,1].
+
+    **colorbounds**
+    List of two values that define the lower and upper values of the colormap.
+
+    **extend_cbar**
+    Extend colorbar, either: 'neither', 'both', 'min', 'max'
+    Make colorbar ends for out of range values.
+
+    **save**
+    True/False. Save plot as png file.
+
+    **savedir**
+    Relative path to directory where plot is saved. If None, use current working
+    directory.
     """
     
     # make simulation object iterable if it is a single object and not if it is list of objects
@@ -142,6 +196,30 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         ef = fpyl.get_conv_field(units,'p',ef,sim=sims[0])
     pathshape = ef.shape
     
+    
+    # Calculate and plot poloidal Fourier spectrum
+    if fourier or drop_low_m>-1:
+        if points % 2 == 0:
+            nspec = int(points/2)+1
+        else:
+            nspec = int((points+1)/2)
+        spec = np.zeros((nspec,pathshape[1]))
+        #spec_abs = np.zeros((nspec,pathshape[1]))
+        
+        fs = list(range(0,pathshape[1]))
+        for i in fs:
+            spec[:,i] = rfft(ef[:,i],norm='forward')#/pathshape[1] #Applying normalization by number of elements on forward transformation
+        
+    
+    if drop_low_m>-1:
+        for i in fs:
+            print(spec[:drop_low_m+1,i])
+            spec[:drop_low_m+1,i] = 0.0
+            ef[:,i] = irfft(spec[:,i],norm='forward')
+    
+    if fourier:
+        spec_abs = np.abs(spec)
+    
     # Plot eigenfunction in R-Z plane
     if makeplot:
         # Set font sizes and plot style parameters
@@ -206,21 +284,18 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         ax.set_aspect('equal')
         print(cbar.mappable.get_clim())
         
+        
+        if coils:
+            plot_coils(ax=ax)
+        if mesh or bound:
+            if mesh and bound:#Make sure that whole mesh is plotted. If both are true, plot_mesh only plots boundary.
+                bound = False
+            meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys)
+        
         plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
-    # Calculate and plot poloidal Fourier spectrum
+    
     if fourier:
-        if points % 2 == 0:
-            nspec = int(points/2)+1
-        else:
-            nspec = int((points+1)/2)
-        spec = np.zeros((nspec,pathshape[1]))
-        
-        fs = list(range(0,pathshape[1]))
-        for i in fs:
-            spec[:,i] = np.abs(np.fft.rfft(ef[:,i]))/pathshape[1] #Applying normalization by number of elements on forward transformation
-        
-        spec_abs = np.abs(spec)
         
         #Identify largest modes
         mmax = np.asarray([np.amax(spec_abs[j,:]) for j in range(nspec)])
@@ -260,8 +335,10 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
             ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
             
             #if pub!=True:
-            if n is not None:
-                plt.title('n='+str(int(n)),fontsize=titlefs)
+            if n is not None and titlestr is None:
+                titlestr = 'n='+str(int(n))
+            plt.title(titlestr,fontsize=titlefs)
+            
             if nummodes>0:
                 plt.legend(ncol=2,fontsize=legfs)
             plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
@@ -287,7 +364,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
     #plt.plot(fc.rpath,fc.zpath,marker='.')
     #plt.axis('equal')
     if fourier:
-        return spec
+        return spec_abs
     else:
         return ef
 
@@ -346,9 +423,12 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     #psin_ped_top = 0.86 #Min value of psin that is considered edge region
     
     # Determine maximum value in edge region
+    
     psinedge = fpyl.find_nearest(fc.psi_norm,psin_ped_top)
     psinedge_ind = fpyl.get_ind_at_val(fc.psi_norm,psinedge)
-    #print(psinedge_ind)
+    print('--------------------------')
+    print(psin_ped_top,psinedge_ind)
+    print('--------------------------')
     efmax_edge = np.amax(efsum[psinedge_ind:])
     efmax_core = np.amax(efsum[:psinedge_ind])
     rel_mode_ampl = efmax_edge/efmax_core
