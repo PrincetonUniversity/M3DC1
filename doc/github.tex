@@ -1,0 +1,126 @@
+\section{GITHUB}
+Retrieve the current version of M3D-C1 from the GIT repository.
+For the first time, to check out the sources, do:
+
+Initial access is with the {\it clone} command.   This copies the source
+code from the master file into a working directory on your machine.
+You only do this once on each computer you work on.
+
+{\it module load git}
+
+{\it git clone https://github.com/PrincetonUniversity/M3DC1}
+
+Subsequent GIT commands used to commit:
+\begin{itemize}
+
+\item {\it add/commit/push}:  You {\it add} files to a list of
+files to update,
+{\it commit} the chanes to your branch, and then {\it push}
+the changes to the master branch.
+
+\item {\it git commit -m ``message describing changes'' }
+    (adding {\it -a} commits all changes)
+
+\item {\it diff} lists the changes you made from the last commit,
+    even if you haven'tpushed your commits to github.
+    To see how your files differ from what's on github,
+    you can do:
+
+    \hspace{3 cm} {\it git fetch origin master}
+
+    \hspace{3 cm} {\it git diff origin/master}
+
+\item {\it status} compares your branch with the master branch
+
+\item {\it pull origin master} updates your local branch to the
+  current master branch
+
+\item {\it stash} takes uncommitted changes, saves them for later use, and
+  reverts files in working directory
+
+  \hspace{2 cm} {\it stash list} \hspace{0.5 cm} {\it stash drop} \hspace{0.5 cm}
+         {\it stash apply} \hspace{0.5 cm} {\it stash pop} (apply and drop)
+
+\item {\it stash pop} removes changes from your stash and reapplies
+  them to working copy
+
+\item {\it stash apply} keeps changes in stash, but reapplies them to working copy
+
+\item {\it reset -hard} discards any changes to local branch since last commit
+
+\item {\it branch} tells you what branch you are in
+
+\item {\it log} (--oneline) (-after 2023-01-31) lists all the commits
+  for the checked-out branch after that date
+
+\item {\it checkout hashtag} replaces your version with the version
+  that has hastag ``hashtag''  (need only first 7 characters)
+  
+\end{itemize}
+
+\subsection{Branches in GIT}
+
+To make a new branch called fp-phase2:
+
+\begin{itemize}
+
+\item {\it git checkout master} switch to the master branch
+
+\item {\it git pull}  make sure the master branch is up to date
+
+
+\item {\it git checkout -b fp\_phase 2} The =b creates a new branch.
+  This will be identical tomaster to start.
+
+\item {\it git push --set-upstream origin fp\_phase2} push this new branch
+to the remote so others can access it 
+
+\end{itemize}
+
+
+\subsection{Committing changes}
+
+For example, to commit changes to newpar.f90
+
+\begin{itemize}
+
+\item {\it git pull} Always do thi before you start committing
+
+\item {\it git add newpar.f90} This stages the current changes in newpar.f90
+  for  commit.  You could then make more change before committing,
+  but you would have to add again to get those into the commit.
+  Or, you could add -a to the following to commit all changes.
+
+\item {\it git commit -m ``Changed newpar.f90''}  Commit changes to
+  your local branch.
+
+\item {\it git push} Push commits to the remote repo.
+  --set-upstream only needs to be done the first time.
+
+\end{itemize}
+
+\subsection{Merging branches}
+
+To merge changes on master into fp\_phase2
+
+\begin{itemize}
+
+\item {\it git checkout master}  switch to the master branch
+
+\item {\it git pull} get the latest commits on the master branch
+
+\item {\it git checkout fp\_phase2}  switch back to fp\_phase2 
+  
+
+\item {\it git pull} to get the latest commits to fp\_phase2
+
+\item {\it git merge master} merge any new commits into fp\_phase2.
+  This makes a commit.  You may need to resolve conflicts.
+  
+\item {git push} Push the merged commit to remote repo
+
+  
+\end{itemize}
+
+Inverting fb\_phase2 and master here would merge the development branch
+into master locally, then the push wouuld send the merge tothe remote master
