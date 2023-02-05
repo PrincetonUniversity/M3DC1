@@ -4036,7 +4036,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
     ReducedQuinticImplicit shape;
     ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
 #ifdef OLDMA
-  ma::Input* in = ma::configure(mesh,size_field,&slnTrans);
+    in = ma::configure(mesh,size_field,&slnTrans);
 #else
     in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
 #endif
