@@ -64,7 +64,7 @@
 
 7.1 interactive mode
 
-  salloc -q interactive -C gpu -N1 --gpus-per-node=4 -t 10 -n 16 -A m3984_g 
+  salloc -q interactive -C gpu -N1 --gpus-per-node=4 -t 10 -n 16 -A mp288 
   export SLURM_CPU_BIND="cores"
   export MPICH_GPU_SUPPORT_ENABLED=1
   export CRAY_ACCEL_TARGET=nvidia80
@@ -75,7 +75,7 @@
    sample slurm script "batchjob.perlmutter-gnu"
 
    #!/bin/bash
-   #SBATCH -A m3984_g
+   #SBATCH -A mp288 
    #SBATCH -p debug
    #SBATCH -C gpu
    #SBATCH -n 16 

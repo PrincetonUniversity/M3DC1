@@ -32,7 +32,7 @@ module-whatis                   "$description"
 ## Software-specific settings exported to user environment
 
 if { ! [ is-loaded PrgEnv-nvidia/8.3.3 ] } {
-  module load PrgEnv-nvidia/8.3.3
+  module load PrgEnv-nvidia/8.3.3 darshan
 }
 #if { ! [ is-loaded craype-haswell ] } {
 #  module load craype-haswell
