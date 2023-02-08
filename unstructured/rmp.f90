@@ -68,7 +68,7 @@ end subroutine rmp_per
 !==============================================================================
 ! For free boundary stellarator only
 
-#IFDEF USEST
+#ifdef USEST
 subroutine load_stellarator_field
   use basic
   use arrays
@@ -140,7 +140,7 @@ subroutine read_stellarator_field(field_name)
 
 end subroutine read_stellarator_field
 
-#ENDIF
+#endif
 
 !==============================================================================
 ! Deallocate sf field

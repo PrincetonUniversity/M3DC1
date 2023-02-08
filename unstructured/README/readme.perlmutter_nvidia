@@ -14,17 +14,17 @@
    git push origin master
 
 3. load modules and set environment
-   module load PrgEnv-gnu 
-   module load cudatoolkit/11.7 craype-accel-nvidia80 cmake/3.22.0 
-   module unload darshan 
-   export MPICH_GPU_SUPPORT_ENABLED=1 
-   export CRAY_ACCEL_TARGET=nvidia80 
+   module load PrgEnv-nvidia cudatoolkit craype-accel-nvidia80 gsl
+   module unload darshan
+
+   export PATH=$CRAY_CUDATOOLKIT_DIR/bin:$PATH
+   export LD_LIBRARY_PATH=$CRAY_CUDATOOLKIT_DIR/lib64:$LD_LIBRARY_PATH
 
 4. compile code
 
-   make OPT=1 RL=1 MAX_PTS=25 ARCH=perlmutter-gnu
-   make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter-gnu
-   make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter-gnu
+   real 2D: make OPT=1 ARCH=perlmutter-nvidia
+   complex: make OPT=1 COM=1 ARCH=perlmutter-nvidia
+   real 3D: make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter-nvidia
 
 5. mesh utility
    see $SCOREC_UTIL_DIR in perlmutter-gnu.mk
@@ -64,15 +64,13 @@
 
 7.1 interactive mode
 
-  salloc -q interactive -C gpu -N1 --gpus-per-node=4 -t 10 -n 16 -A mp288 
+  salloc -A mp288 -C gpu -n N -t hh:mm:ss
   export SLURM_CPU_BIND="cores"
-  export MPICH_GPU_SUPPORT_ENABLED=1
-  export CRAY_ACCEL_TARGET=nvidia80
 
   srun ... (see 7.2)
 
 7.2 batch mode
-   sample slurm script "batchjob.perlmutter-gnu"
+   sample slurm script "batchjob.perlmutter_gpu"
 
    #!/bin/bash
    #SBATCH -A mp288 
