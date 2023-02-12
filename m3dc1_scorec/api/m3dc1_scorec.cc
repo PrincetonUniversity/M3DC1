@@ -4035,15 +4035,18 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
 
     ReducedQuinticImplicit shape;
     ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
+#ifdef OLDMA
+    in = ma::configure(mesh,size_field,&slnTrans);
+#else
     in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
-
+#endif
     in->shouldSnap=false;
     in->shouldTransferParametric=false;
     in->shouldRunPostZoltan = true;
     in->goodQuality = 0.5;
     in->maximumIterations = (*refine_level) + 1;
     // turn off coarsening if coarsen_level is negative
-    if (coarsen_level < 0)
+    if (*coarsen_level < 0)
       in->shouldCoarsen=false;
 
     ma::adapt(in);
@@ -4087,8 +4090,11 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
       // the commented lines are for debugging
       /* ma::Input* in = ma::makeAdvanced(ma::configureIdentity(mesh, 0, &slnTrans)); */
       /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(mesh, 1, &slnTrans)); */
+#ifdef OLDMA
+      ma::Input* in = ma::configure(mesh,size_field,&slnTrans);
+#else
       ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
-
+#endif
       in->shouldSnap=false;
       in->shouldFixShape = true;
       in->shouldTransferParametric=false;
@@ -4097,7 +4103,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
       in->maximumIterations = (*refine_level);
 
       // turn off coarsening if coarsen_level is negative
-      if (coarsen_level < 0)
+      if (*coarsen_level < 0)
         in->shouldCoarsen=false;
 
       ma::adapt(in);

@@ -34,7 +34,7 @@ subroutine rmp_per
   character(len=13) :: ext_field_name
 
   if(type_ext_field.le.0) then ! RMP field
-     allocate(sf(iread_ext_field)) ! Handles case when iread_ext_field = 0 or 1
+     if(iread_ext_field.ge.1) allocate(sf(iread_ext_field))
      do l=1, iread_ext_field
         if(iread_ext_field.eq.1) then
            ext_field_name = 'error_field'
@@ -68,7 +68,7 @@ end subroutine rmp_per
 !==============================================================================
 ! For free boundary stellarator only
 
-#IFDEF USEST
+#ifdef USEST
 subroutine load_stellarator_field
   use basic
   use arrays
@@ -140,7 +140,7 @@ subroutine read_stellarator_field(field_name)
 
 end subroutine read_stellarator_field
 
-#ENDIF
+#endif
 
 !==============================================================================
 ! Deallocate sf field
