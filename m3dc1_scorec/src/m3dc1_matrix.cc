@@ -1118,7 +1118,7 @@ int matrix_solve:: setKspType()
   ierr = PetscOptionsGetInt(NULL,NULL,"-mymatrixid",&whichsolve,NULL); CHKERRQ(ierr);
   if(mymatrix_id==whichsolve) {
           //debug if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<whichsolve<<" is going to use BMG BmgSet="<<BmgSet<<"\n";
-	  PetscCall(KSPAppendOptionsPrefix(*ksp,"hard_"));
+	  ierr=KSPAppendOptionsPrefix(*ksp,"hard_"); CHKERRQ(ierr);
           if(!BmgSet) setBmgType();
 //   exit(0);
   }
@@ -1174,25 +1174,25 @@ int matrix_solve:: setBmgType()
   PetscErrorCode ierr;
   //debug if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": nplane="<<nplane<<"  matrix_id="<<mymatrix_id<<"\n";
 
-  mg_nlevels=2;
-  mg_nlevels = PetscInt(log(PetscReal(nplane))/log(2.));
-  mg_nlevels++;
-
-  mg_nlevels=2;
-     //debug if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": b total_mg_nlevels="<<mg_nlevels<<"\n";
-  ierr = PetscOptionsGetInt(NULL,NULL,"-mg_nlevels",&mg_nlevels,NULL);
-     //debug if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": f total_mg_nlevels="<<mg_nlevels<<"\n";
+  //set default bgmg levels to 2
+         mg_nlevels=2;
+  //or to many levels defined by the size of nplanes
+         //mg_nlevels = PetscInt(log(PetscReal(nplane))/log(2.));
+         //mg_nlevels++;
+  //or to levels given as the srun command line option, for example "-mg_nlevels 3"
+         ierr = PetscOptionsGetInt(NULL,NULL,"-mg_nlevels",&mg_nlevels,NULL);
+  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": f total_mg_nlevels="<<mg_nlevels<<"\n";
 
   int *mg_nplanes; //number of planes per mg level
       // number of planes for each level
       ierr = PetscMalloc1(mg_nlevels,&mg_nplanes);
       // finest level
       mg_nplanes[mg_nlevels-1] = nplane;
-         //debug if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": fine level has "<<mg_nplanes[mg_nlevels-1]<<" planes"<<"\n";
+         if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": fine level "<<mg_nlevels-1<<" has "<<mg_nplanes[mg_nlevels-1]<<" planes"<<"\n";
       // rest of the levels
       for (int level=mg_nlevels-2; level>=0; --level) {
-        mg_nplanes[level] = mg_nplanes[level+1]/2;
-           //debug if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": level "<<level<<" has "<<mg_nplanes[level]<<" planes"<<"\n";
+      mg_nplanes[level] = mg_nplanes[level+1]/2;
+         if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": level "<<level<<" has "<<mg_nplanes[level]<<" planes"<<"\n";
       }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1274,7 +1274,7 @@ int matrix_solve:: setBmgType()
 	ierr= MatCreate(PETSC_COMM_WORLD,&mg_interp_mat[level]); CHKERRQ(ierr);
 //	ierr = MatSetSizes(mg_interp_mat[level], mat_dim, mat_col,PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 //set to global size ==>> row number not match
-	ierr = MatSetSizes(mg_interp_mat[level], mat_dim, PETSC_DECIDE, global_dim, global_dim/2); CHKERRQ(ierr);
+	ierr = MatSetSizes(mg_interp_mat[level], mat_dim, PETSC_DECIDE, plane_dim*mg_nplanes[level+1], plane_dim*mg_nplanes[level]); CHKERRQ(ierr);
   ierr = MatSetType(mg_interp_mat[level], MATMPIAIJ); CHKERRQ(ierr);
   ierr = MatSetFromOptions(mg_interp_mat[level]); CHKERRQ(ierr);
         ierr = MatMPIBAIJSetPreallocation(mg_interp_mat[level], mat_dim, mat_dim, NULL, mat_dim, NULL); CHKERRQ(ierr);
