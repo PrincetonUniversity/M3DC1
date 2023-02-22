@@ -441,6 +441,11 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "E_MTH", emagth, ntime, error)
   call output_scalar(scalar_group_id, "E_KTH", ekinth, ntime, error)
 
+  call output_scalar(scalar_group_id, "E_MPC", emagpc, ntime, error)
+  call output_scalar(scalar_group_id, "E_MTC", emagtc, ntime, error)
+  call output_scalar(scalar_group_id, "E_MPV", emagpv, ntime, error)
+  call output_scalar(scalar_group_id, "E_MTV", emagtv, ntime, error)
+
   call output_scalar(scalar_group_id, "E_P" , emag3, ntime, error)
   call output_scalar(scalar_group_id, "Ave_P" , avep, ntime, error)
   call output_scalar(scalar_group_id, "E_K3", ekin3, ntime, error)
