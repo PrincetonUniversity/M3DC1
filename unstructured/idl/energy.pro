@@ -11,7 +11,7 @@
 ;  components: an array of time series of each energy component
 ;==============================================================
 function energy, filename=filename, components=comp, names=names, t=t, $
-                 no_ke=no_ke
+                 no_ke=no_ke, xtitle=xtitle, ytitle=ytitle, _EXTRA=extra
 
    if(n_elements(filename) eq 0) then filename='C1.h5'
 
@@ -51,6 +51,17 @@ function energy, filename=filename, components=comp, names=names, t=t, $
       comp[8,*] = s.E_MTC._data
       comp[9,*] = s.E_MTV._data
    end
+
+   ; convert units
+   get_normalizations, b0=b0,n0=n0,l0=l0, ion_mass=mi, $
+     filename=filename, _EXTRA=extra
+   de = dimensions(/p0, l0=3, _EXTRA=extra)
+   dt = dimensions(/t0, _EXTRA=extra)
+   convert_units, comp, de, b0, n0, l0, mi, _EXTRA=extra
+   convert_units, t, dt, b0, n0, l0, mi, _EXTRA=extra
+   units = parse_units(de, _EXTRA=extra)
+   xtitle='!8t!6 ('+parse_units(dt, _EXTRA=extra)+')!X'
+   ytitle='!8E!6 ('+parse_units(de, _EXTRA=extra)+')!X'
 
    toten = total(comp, 1)
 

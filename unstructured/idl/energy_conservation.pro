@@ -2,10 +2,11 @@
 ; Plots the change in various energies over time
 ; fluxes can be a list of strings corresponding to flux fields that will be integrated and added to lost energy
 ; For energy conservation, the dashed line should be zero
-pro energy_conservation,  filename=filename, poloidal=poloidal, xrange=xrange, yrange=yrange, fluxes=fluxes, comp=comp, overplot=overplot, no_ke=no_ke, _EXTRA=ex
+pro energy_conservation,  filename=filename, poloidal=poloidal, xrange=xrange, yrange=yrange, fluxes=fluxes, comp=comp, overplot=overplot, _EXTRA=ex
 
   E = energy(filename=filename, components=comp, names=names, t=t, $
-             no_ke=no_ke)
+             xtitle=xtitle, ytitle=ytitle, _EXTRA=ex)
+
   Nflux = n_elements(fluxes)
   if (Nflux eq 0) then fluxes = []
   if keyword_set(poloidal) then begin
@@ -24,7 +25,7 @@ pro energy_conservation,  filename=filename, poloidal=poloidal, xrange=xrange, y
     comp2[0:Norig-1,*] = comp
     for i=0,Nflux-1 do begin
        comp2[Norig+i,*] = $
-          read_scalar(fluxes[i],filename=filename,/int)
+          read_scalar(fluxes[i],filename=filename,/int,_EXTRA=ex)
       names = [names, '!Mi '+fluxes[i]+'!X']
     endfor
     names = [names, 'Total + flux']
@@ -52,7 +53,9 @@ pro energy_conservation,  filename=filename, poloidal=poloidal, xrange=xrange, y
   endelse
 
   if(not keyword_set(overplot)) then begin
-     plot, [t[0],t[-1]], [0,0], thick=1, color=cols[0], xrange=xrange, yrange=yrange, linestyle=1, charsize=2,_EXTRA=ex
+     plot, [t[0],t[-1]], [0,0], thick=1, color=cols[0], $
+           xrange=xrange, yrange=yrange, linestyle=1, charsize=2, $
+           xtitle=xtitle, ytitle=ytitle, _EXTRA=ex
   end
   if(not keyword_set(poloidal)) then begin
     
