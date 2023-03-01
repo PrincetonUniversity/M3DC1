@@ -48,7 +48,6 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
 	-lstdc++ -ldl
 
 ifdef ADAPT
-  FOPTS := $(FOPTS) -DADAPT
   SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(PETSCVER)
 else
   SCOREC_BASE_DIR=/projects/M3DC1/scorec/$(MPIVER)/$(PETSCVER)/202209
