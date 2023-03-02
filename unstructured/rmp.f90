@@ -51,6 +51,10 @@ subroutine rmp_per
         call calculate_external_field_ft(sf(l), ntor)
 #endif
      end do
+  else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! Stellarator/3D field to be substracted
+    ! load vacuum field to be subtracted
+    allocate(sf(iread_ext_field))
+    call read_stellarator_field(file_ext_field)
   else
     if(myrank.eq.1) print *, &
       'ERROR: RMP fields require type_ext_field < 0.'  
@@ -83,19 +87,18 @@ subroutine load_stellarator_field
   if(type_ext_field.eq.1) then ! Free boundary stellarator (no field subtraction)
 
     call read_stellarator_field(file_total_field)
+    call calculate_external_fields
+    call deallocate_sf
 
-  else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! With field substraction. ST only.
+  else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! With field substraction 
 
-    ! First load the total field
+    ! First load the total field while temporarily setting extsubtract=0
     extsubtract = 0
     call read_stellarator_field(file_total_field)
     call calculate_external_fields
     call deallocate_sf
-
-    ! Then load field to be subtracted off (e.g. vacuum)
-    allocate(sf(iread_ext_field))
+    ! Then reset extsubtract=1
     extsubtract = 1
-    call read_stellarator_field(file_ext_field) 
 
   else if(type_ext_field.eq.2 .and. extsubtract.eq.0) then
     if(myrank.eq.0) print *, &
@@ -108,9 +111,6 @@ subroutine load_stellarator_field
 
   end if
 
-  call calculate_external_fields
-  call deallocate_sf
-
 end subroutine load_stellarator_field
 
 ! Select stellarator data to read
@@ -120,7 +120,6 @@ subroutine read_stellarator_field(field_name)
   use coils
   use boundary_conditions
   use read_schaffer_field
-
 
   implicit none
 
