@@ -24,7 +24,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                                nolegend=nolegend, color=color, levels=levels, $
                                clevels=clevels, ccolor=ccolor, $
                                reverse_ct=reverse_ct, overplot=overplot, $
-                               _EXTRA = ex
+                               cbar_charsize=cbar_charsize, _EXTRA = ex
 
     zed = reform(z)
    
@@ -42,6 +42,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
       then nlevels=n_elements(levels)-1
 
     if n_elements(nlevels) eq 0 then nlevels=100
+    if n_elements(cbar_charsize) eq 0 then cbar_charsize=!p.charsize
 
     if n_elements(x) eq 0 then x = findgen(n_elements(zed[*,0]))
     if n_elements(y) eq 0 then y = findgen(n_elements(zed[0,*]))
@@ -72,7 +73,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
     width = region[2]-region[0] - width1 - lgap - cgap - rgap
     top = region[3]-region[1] - bgap - tgap
     region_aspect = top/width
-    charsize = !p.charsize*sqrt((region[2]-region[0])*(region[3]-region[1]))
+    charsize = cbar_charsize*sqrt((region[2]-region[0])*(region[3]-region[1]))
 
     if keyword_set(iso) then begin
         aspect_ratio = (max(y)-min(y))/(max(x)-min(x))

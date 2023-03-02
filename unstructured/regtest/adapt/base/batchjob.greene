@@ -5,6 +5,7 @@
 #SBATCH -J m3dc1_regtest_adapt
 #SBATCH -t 0:10:00
 #SBATCH -o C1stdout
+#SBATCH -x greene033
 
 touch started
 

@@ -5,8 +5,8 @@ ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec
   CCOPTS := $(CCOPTS) -O
 else
-  FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv
-  CCOPTS := $(CCOPTS) -g -check-uninit -debug all
+  FOPTS := $(FOPTS) -g -check all -check noarg_temp_created -debug all -ftrapuv -traceback -fpe=all
+  CCOPTS := $(CCOPTS) -g -check=uninit -debug all
 endif
 
 ifeq ($(PAR), 1)
@@ -47,7 +47,12 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
 	-lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lgcc_s -lirc_s -lquadmath \
 	-lstdc++ -ldl
 
-SCOREC_BASE_DIR=/projects/M3DC1/scorec/$(MPIVER)/$(PETSCVER)
+ifdef ADAPT
+  SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(PETSCVER)
+else
+  SCOREC_BASE_DIR=/projects/M3DC1/scorec/$(MPIVER)/$(PETSCVER)/202209
+endif
+
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)

@@ -4,6 +4,10 @@ _*
 # Ignore autosave files
 *~
 
+# Ignore build output
+*.mod
+*.o
+
 # Ignore mesh files
 *.smb
 *.dmg
@@ -15,7 +19,26 @@ plot_geo
 unstructured/templates/*/*/*.txt
 
 # Ignore regtest output
-unstructured/regtest/*/1.*
-unstructured/regtest/*/devel-*
+unstructured/regtest/*/*
+unstructured/regtest/*/*
+!unstructured/*/base/*
 slurm*
+
+#Documentation
+unstructured/doc/*.aux
+unstructured/doc/*.dvi
+unstructured/doc/*.bbl
+unstructured/doc/*.blg
+unstructured/doc/*.log
+unstructured/doc/*.toc
+unstructured/doc/doc.pdf
+ #Ignore all
+doc/*
+ #BUT
+!doc/*.tex
+!doc/m3dc1.bib
+!unstructured/doc/*.tex
+!unstructured/doc/*.tex
+!readme
+!figures/*
 

@@ -44,7 +44,15 @@
    after compiling, run "make bin"
 
 5. mesh utility
-   /projects/M3DC1/scorec/intel2021.1.2-intelmpi2021.3.1/petsc3.15.5/bin
+5.1 mesh generation
+
+  /projects/M3DC1/scorec/intel2021.1.2-intelmpi2021.3.1/17.0-220903/bin/
+
+  See readme files or User's Guide (.pdf) for the details
+ 
+5.2 mesh partition and collapse
+  
+  /projects/M3DC1/scorec/intel2021.1.2-intelmpi2021.3.1/petsc3.15.5/bin
 
 6. run a job 
 

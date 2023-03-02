@@ -637,18 +637,23 @@ subroutine initial_conditions()
         case(29,31)
            call basicj_init()
 #ifdef USEST
-        case(40)
-           if (igeometry.eq.1 .and. iread_vmec.ge.1 .and. bloat_factor.eq.0) then
+        case(40) ! Fixed boundary stellarator
+           if (igeometry.eq.1 .and. iread_vmec.eq.1 .and. bloat_factor.eq.0) then
               call vmec_init()
            else
               if(myrank.eq.0) print *, &
-                'VMEC equilibrium needs igeometry=1, iread_vmec>1, and bloat_factor=0!'
+                'VMEC equilibrium needs igeometry=1, iread_vmec=1, and bloat_factor=0!'
               call safestop(1)
            end if
-        case(41)
-           call rmp_per(init=.true.)
-        case(42)
-           if(myrank.eq.0) print *, 'Placeholder for vacuum field initialization...'
+        case(41) ! Free boundary stellarator
+           if (igeometry.eq.1 .and. iread_vmec.eq.1 .and. bloat_factor.gt.0 &
+               .and. iread_ext_field.ge.1 .and. type_ext_field.ge.1) then
+              call load_stellarator_field
+           else 
+              if(myrank.eq.0) print *, &
+                "Invalid input: Free boundary stellarator needs external field."
+              call safestop(1)
+           end if
 #endif
         end select
      end if
@@ -671,12 +676,20 @@ subroutine initial_conditions()
      call nre_per
   endif
 
+  ! For RMP and error fields
   if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
-       any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per(init=.false.)
-
+       any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) then
+     ! External fields already loaded for itaylor = 41
+     if(itaylor.eq.41) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, &
+           "Skipping: RMP specification not currently implemented for ST."
+     else
+        call rmp_per
+     end if
+  end if
 #ifdef USEST
-  if(igeometry.eq.1.and.iread_vmec.ge.1) then
+  if(igeometry.eq.1 .and. iread_vmec.ge.1) then
      call destroy_vmec
   end if   
 #endif
@@ -789,7 +802,7 @@ subroutine kstar_profiles()
           ((1+fA/E**((-r1+r/a)**2/r2**2))*q0*R0* &
           (1+((r*Abs(-1+(m/(n*q0))**u)**(1/(2.*u)))/(a*rA))**(2*u))**(1/u))
       
-     call get_boundary_mask(itri, BOUNDARY_DIRICHLET, imask, domain_boundary)
+     call get_boundary_mask(itri, BOUNDARY_DIRICHLET, imask, BOUND_DOMAIN)
 
      !  assemble matrix    
      do i=1,dofs_per_element

@@ -15,6 +15,7 @@
 
 3. load modules and set environment
    module load cmake python/3.9-anaconda-2021.11
+   module load PrgEnv-nvidia/8.3.3 fast-mkl-amd
 
    for development modules:
        export M3DC1_CODE_DIR=$HOME/src/M3DC1  [for example]
@@ -77,7 +78,7 @@
    sample slurm script "batchjob.perlmutter_cpu"
 
    #!/bin/bash
-   #SBATCH -A m3984
+   #SBATCH -A mp288 
    #SBATCH -q debug
    #SBATCH -C cpu
    #SBATCH -n 48

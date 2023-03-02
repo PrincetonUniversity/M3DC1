@@ -5,6 +5,7 @@
 #SBATCH -J M3DC1_regtest_RMP_nonlin
 #SBATCH -t 0:30:00
 #SBATCH -o C1stdout
+#SBATCH -x greene033
 
 touch started
 

@@ -44,6 +44,7 @@ public:
   virtual int setupMat() =0;
   virtual int preAllocate() =0;
   int printInfo();
+  PetscInt mymatrix_id;
   // PETSc data structures
   Mat* A;
   int fieldOrdering; // the field that provide numbering
@@ -101,6 +102,16 @@ private:
   int kspSet;
   KSP* ksp; 
   Mat remoteA;
+
+  //block mg in toroidal direction
+  int BmgSet; //only for mymatrix_id=5 or 17, the hard ones
+  int mg_nlevels;  //default = 2
+  //PC *pc;
+  Mat *mg_interp_mat;
+  KSP *mg_level_ksp;
+  PC *mg_level_pc;
+  int setBmgType(); 
+
   // remoteA related data
   std::set<int>* remotePidOwned;
   std::map<int, std::map<int, int> >* remoteNodeRow; // <pid, <locnode>, numAdj >

@@ -11,6 +11,7 @@ export SLURM_CPU_BIND="cores"
 export SLURM_CPU_BIND="cores"
 echo $SLURM_CPUS_ON_NODE
 
+export MPICH_GPU_SUPPORT_ENABLED=0
 
 touch started
 

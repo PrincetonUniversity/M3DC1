@@ -68,7 +68,8 @@ specified are as follows:
   \u$ constant.
 \item[No toroidal flow (\texttt{inoslip\_tor=1})] Holds $\uvec{\tor}
   \cdot \u$ constant.
-\item[No normal current (\texttt{inocurrent\_norm=1})] Holds $\uvec{n} \cdot
+\item[No normal current (\texttt{Winocurrent\_pol
+inocurrent\_norm=1})] Holds $\uvec{n} \cdot
   \j$ constant.
 \item[No poloidal current (\texttt{inocurrent\_pol=1})] Holds $\uvec{t} \cdot
   \j$ constant.
@@ -110,47 +111,6 @@ specified are as follows:
 \end{eqnarray}
 In the above definitions, $\uvec{n}$ is the unit vector normal to the
 boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
-
-\subsection{Resistive Wall Boundary Condition}
-
-For a thin resistive wall of resistivity $\eta_W$ and width
-$\delta_W$, the following equations are obtained at the
-boundary~\cite{Jardin10}:
-\begin{eqnarray}
-  \ddt{\psi} & = & -\frac{\eta_W}{\delta_W} \left(\uvec{n} \cdot
-  \grad{\psi} - R \uvec{t} \cdot \B_v \right)
-    \\
-  \ddt{F} & = & -\frac{\eta_W}{\delta_W} \left(F - R \uvec{\tor} \cdot
-  \B_v \right)
-\end{eqnarray}
-Here, $\B_v$ is the magnetic field on the outside of the wall.  $B_v$
-may be obtained from the magnetic field on the inside of the wall
-using a vacuum response matrix calculated by the $\textsc{vacuum}$
-code,~\cite{Chance10} for example.
-
-\subsubsection{Using a resistive wall in \codename\ with \textsc{vacuum}}
-
-The following assumes that the \textsc{vacuum} code is located in the
-directory \texttt{\$VACUUM\_DIR}.  On \texttt{sunfire},
-\texttt{\$VACUUM\_DIR = /u/chance/Vacuum\_SVN\_Work}
-
-\begin{enumerate}
-\item Build \textsc{struct2vac} with\\
-  \texttt{make OPT=1 struct2vac}
-\item Generate \texttt{ordered.points} by running \textsc{struct2vac}
-  in the working directory.
-\item \texttt{tac ordered.points > vacin\_c1}
-\item Edit \texttt{vacin\_c1}, and move the last line to be the first
-  line.
-\item \texttt{cp vacin\_c1 ordered.points}
-\item \texttt{cp \$VACUUM\_DIR/Runs/C1Vac/modiv\_m3dc1 .}
-\item \texttt{\$VACUUM\_DIR/Bin/vacuum.x86\_64.linux vacin\_c1 modiv\_m3dc1}
-\item In \texttt{C1input}, set \texttt{eta\_wall} and
-  \texttt{delta\_wall} to the appropriate values.
-\end{enumerate}
-
-Presently, the resistive wall only works on single-process runs.
-
 
 
 \section{Discretization}
@@ -1159,7 +1119,7 @@ and the truncation error is
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Model Options}
 
-\begin{tabular}{llp{3in}}
+\begin{tabular}{llp{4in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{numvar} & 3   & MHD model. 1: 2-field;  2: 4-Field;  3: 6-Field.\\
@@ -1200,7 +1160,7 @@ and the truncation error is
                          3. Full CGL  
 \end{tabular}
 
-\begin{tabular}{llp{3in}}
+\begin{tabular}{llp{4in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{iadiabat} & 1 & 1: Corrects several problems with itemp=1 option \\
@@ -1259,7 +1219,7 @@ and the truncation error is
   \texttt{iflip\_z} &  0 & 1: Flip equilibrium across z=0 plane \\
 \end{tabular}
 
-\begin{tabular}{llp{3in}}
+\begin{tabular}{llp{4in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{icsym}    &  0 &  
@@ -1295,9 +1255,15 @@ and the truncation error is
     1: apply nonaxisymmetric fields throughout plasma.  
        reads rmp\_coil.dat for (R,Z) of window pane coils.  
        reads rmp\_current.dat for (+-) currents in kA and phases in degrees.  
-       toroidal mode number of current specified by ntor  \\
-    2: apply nonaxisymmetric fields only at aoundaries. 
-  \end{minipage}\\
+       toroidal mode number of current specified by ntor.
+       requires \texttt{type\_ext\_field} = 0.  \\
+    2: apply nonaxisymmetric fields only at boundaries. 
+   \end{minipage}\\
+   \texttt{type\_ext\_field}    &  -1 & External field type
+    \begin{minipage}[t]{2.5in}
+    0: RMP or error field for tokamak geometry.
+    1: For free boundary stellarator only: FIELDLINES or MGRID.
+   \end{minipage}\\
 
  \texttt{rmp\_atten}  &  0  & additional exponential decay of RMP field from r=1 for irmp=2 \\
  \texttt{iread\_ext\_field} & 0 & 1: read external field \\
@@ -1307,7 +1273,7 @@ and the truncation error is
 
 \end{tabular}
 
-\begin{tabular}{llp{3in}}
+\begin{tabular}{llp{4in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
 
@@ -1336,7 +1302,7 @@ and the truncation error is
 \end{tabular}
 
 \subsection{Grad-Shafranov Solver Options}
-\begin{tabular}{lcp{3in}}
+\begin{tabular}{lcp{4in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{inumgs}& 0      & 1: Use numerical def. of p and g from profile-p and profile-g files\\
@@ -1364,7 +1330,7 @@ and the truncation error is
                            used in GS solve.   Boundary value of electron temp
                            is $twall = pedge \times pefac/den\_edge $ \\
  \texttt{tiedge} & 0     & ion temperature in vacuum region  \\
- \texttt{expn}  & 0 & \parbox[t]{3in}{Fraction of pressure gradient due to
+ \texttt{expn}  & 0 & \parbox[t]{4in}{Fraction of pressure gradient due to
     density gradient: $n = p^\mathtt{expn}$.}\\
  \texttt{q0}    & 1	  & Safety factor at magnetic axis\\
  \texttt{djdpsi}& 0	  & $J_\tor'(\Psi)$ at magnetic axis\\
@@ -1376,13 +1342,13 @@ and the truncation error is
   \texttt{vscale}      &  1.0 & Factor multiplying toroidal rotation profile \\
   \texttt{iread\_bscale}&  0   & 1: read profile\_bscale for factor to scale F \\
   \texttt{iread\_pscale} & 0   & 1: read profile\_pscale for factor to scale $p$ and $p^{\prime} $ \\
-  \texttt{batemanscale} &  1   & Bateman scale the TF, keeping curent profile fixed \\
 
 \end{tabular}
 
 \begin{tabular}{llp{4in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
+  \texttt{batemanscale} &  1   & Bateman scale the TF, keeping curent profile fixed \\
   \texttt{irot}         &  0   & 1: include toroidal rotation in equilibrium calculatin \\
   \texttt{iscale\_rot\_by\_p} & 1 & see below \\
   \texttt{alpha0}       &  0   & $\alpha_0$ in analytic rotation profile \\
@@ -1399,7 +1365,7 @@ For iscale\_rot\_by\_p = 2:  $\alpha = \left[ \alpha_{0} + \alpha_{1} e^{-\left[
                                           \right]^{2} }       \right] \times n(\psi) /p(\psi) $ \\
 In all cases, the angular velocity is then determined by:
 \[      \omega = \left[  \frac{2 \alpha p(\psi)}{R_0^2 n(\psi)} \right]^{\frac{1}{2}} \]
-\begin{tabular}{llp{6in}}
+\begin{tabular}{llp{4in}}
   \texttt{idenfunc}         & 0   &
   \begin{minipage}[t]{4.0in}
     0: $ n = \mbox{den0} \times (p/p0)^{\mbox{expn}} + \mbox{denedge} $ \\
@@ -1422,7 +1388,7 @@ In all cases, the angular velocity is then determined by:
   \texttt{divertors} & 0  & Number of divertors (0--2)\\
   \texttt{divcur}& 0.1    & Divertor current(s), as fraction of tcuro\\
   \texttt{xdiv}  & 0      & $r$-coordinate of divertor current(s)\\
-  \texttt{zdiv}  & 0      & \parbox[t]{3in}{$z$-coordinate of 
+  \texttt{zdiv}  & 0      & \parbox[t]{4in}{$z$-coordinate of
     divertor 
     current.  If $\mathtt{divertors} = 2$, the second divertor has 
     $z = -\mathtt{zdiv}$.}\\
@@ -1523,12 +1489,13 @@ In all cases, the angular velocity is then determined by:
   \texttt{ikprad\_te\_offset} & 0 & if 1, $T_e^{off}$ also used in kprad and ablation \\
   \texttt{eta\_fac} & 0 & for iresfunc=4, resistivity multiplied by eta\_fac \\
   \texttt{eta\_mod} & 0 & if 1: remove d/dphi terms in resistivity \\
-  \texttt{eta\_max} & 0 & maximum resistivity in plasma (defaults to etavac) \\
-  \texttt{eta\_min} & 0 & minimum resistivity in plasma  \\
 \end{tabular}
 
 \begin{tabular}{llp{4.0in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{eta\_max} & 0 & maximum resistivity in plasma (defaults to etavac) \\
+  \texttt{eta\_min} & 0 & minimum resistivity in plasma  \\
   \hline
   \texttt{ikappafunc} & 0 &  select thermal conductivity function \\
     & & 0: $\kappa = \mbox{kappat} + \mbox{kappa0} \times * (n^3/p)^{1/2}  $\\
@@ -1584,135 +1551,30 @@ In all cases, the angular velocity is then determined by:
 
 \subsection{Hyper-Diffusivity}
 
-\begin{tabular}{lcp{2.2in}}
+\begin{tabular}{lcp{4.0in}}
   \textbf{Option} & \textbf{Default} & \textbf{Description}\\
   \hline
-  \texttt{xzero}  & 0 & $R$-coordinate of bottom left corner of domain\\
-  \texttt{zzero}  & 0 & $Z$-coordinate of bottom left corder of domain\\
-  \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
-  \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
-  \texttt{inonormalflow}& 1 & 1: No-normal-flow boundary\\
-  \texttt{inoslip\_pol} & 0 & 1: No-slip boundaries for poloidal velocity\\
-  \texttt{inoslip\_tor} & 1 & 1: No-slip boundaries for toroidal velocity\\
-  \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
-                                 velocity\\
-  \texttt{com\_bc}& 1 & 1: $\nabla^2 \chi = 0$\\
-  \texttt{iconst\_t}  & 0 & 0: $\partial_t T = 0$\\
-  \texttt{inograd\_t} & 0 & 0: No normal temperature gradient\\
-  \texttt{vloop}  & 0 & Loop voltage.  $\partial_t \psi = \mathtt{vloop}$\\
-  \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
-    boundaries\\
-  \texttt{amu\_edge} & 0 &    Factor by which to increase viscosity near 
-                              boundaries
+  \texttt{imp\_hyper}  & 0 & switch for evaluating hyper resistivity \\
+                       &   & 0: $\lambda_H \nabla^2 {\bf J} $ explicit for $\psi$ implicit for F  \\                 \\
+                       &   & 1: $\lambda_H \nabla^2 {\bf J} $ implicit for $\psi$ implicit for F  \\                
+                       &   & 2: $ ({\bf B}/B^2)\nabla \bullet \lambda_H \nabla \sigma $ implicit for $\psi$ and F    
+                                   ($\sigma= {\bf J \bullet B}/B^2 $)  \\                \\
+ \texttt{deex}         & 1 & scale length used in hyper \\
+ \texttt{hyper}        & 0 & hyper coefficient for $\psi$ equation \\
+ \texttt{hyperc}       & 0 & hyper coefficient for poloidal velocity   \\
+ \texttt{hyperi}       & 0 & hyper coefficient for toroidal field   \\
+ \texttt{hyperp}       & 0 & hyper coefficient for pressure   \\
+ \texttt{hyperv}       & 0 & hyper coefficient for toroidal flow   \\
+ \texttt{ihypdx}       & 2 & hyper terms multiplied by deex**ihypdx \\
+ \texttt{ihypeta}      & 1 & swithc for multipliers of hyper terms   \\
+                       & 1 & magnetic field hyper multiplied by eta  \\
+                       & 2 & magnetic field hyper multiplied by p\\
+ \texttt{ihypamu}            & 1 & 1: velocity hyper coefficient multiplied by amu \\
+ \texttt{ihypkappa}          & 1 & 1: pressure hyper coefficient multiplied by kappa \\
 \end{tabular}
-
-
-\subsection{Time Integration Options}
-\begin{tabular}{lcp{3in}}
-  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{dt}         & 0.1 & Time step\\
-  \texttt{ntimemax}   & 20  & Total number of time steps\\
-  \texttt{integrator} & 0   & 0: Crank-Nicholson (CN); 1: BDF2\\
-  \texttt{imp\_mod}   & 0   & 
-  \begin{minipage}[t]{3in}
-    0: $\theta$-implicit\\
-    1: Implicit leapfrof (\texttt{isplitstep} = 1 only)\\
-  \end{minipage}\\
-  \texttt{thimp}      & 0.5 & Implicitness parameter\\
-  \texttt{thimp\_ohm} & \texttt{thimp} & 
-                              Implicitness of ohmic heating terms\\
-  \texttt{thimpsm}    & 1   & Implicitness of the smoother functions\\
-  \texttt{isplitstep} & 1   & 0: Fully implicit time step; 
-                              1: split time step.\\
-  \texttt{iresolve}   & 0   & 1: Re-solve velocity after 
-                              field advance of split time step.\\
-  \texttt{iteratephi} & 0   & 1: Calculate transport coefficients after
-    field advance, then recalculate field advance.
-\end{tabular}
-
-
-\subsection{Spatial Integration Options}
-\begin{tabular}{lcp{3in}}
-  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{int\_pts\_main}  & 79 & Sampling points for integrations in
-                                main time step matrices\\
-  \texttt{int\_pts\_aux}   & 79 & Sampling points for integrations in
-                                calculations of auxiliary variables\\
-  \texttt{int\_pts\_diag}  & 79 & Sampling points for integrations in
-                                diagnostic calculations\\
-\end{tabular}
-
-
-\subsection{Numerical Options}
-\begin{tabular}{llp{3in}}
-  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{ivform} & 0   & 0: $\u = \grad{U}\times\grad{\tor} + V
-   \grad{\tor} + \grad{\chi}$\\
-   & & 1: $\u = \r^2 \grad{U}\times\grad{\tor} + \r^2 \omega
-   \grad{\tor} + \r^{-2} \grad{\chi}$\\
-  \texttt{jadv}   & 0   & 1: Use toroidal current density equation
-                          instead of poloidal flux equation.\\
-  \texttt{max\_ke}& 1.0  & Maximum value of kinetic energy before solution is
-                          rescaled in linear simulations. (0 = don't rescale)\\
-  \texttt{harned\_mikic} & 0.0 & Coefficient of Harned-Mikic two-fluid
-                          stabilization term.\\
-\end{tabular}
-
-\subsection{Input/Output Options}
-
-\begin{tabular}{lcp{2.7in}}
-  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{ntimepr}   & 5 & Number of timesteps per full field output\\
-  \texttt{iprint}    & 0 & 1: Print detailed info to stdout\\
-  \texttt{iglobalout}& 0 & 1: Write process-independent output file\\
-  \texttt{iglobalin} & 0 & 1: Read process-independent output file on restart\\
-  \texttt{irestart}  & 0 & 1: Read restart file\\
-  \texttt{iread\_eqdsk}   & 0 & 1: Read EFIT g-file 'geqdsk'\\
-  \texttt{iread\_dskbal}  & 0 & 1: Read BAL file 'dskbal'\\
-  \texttt{iread\_jsolver} & 0 & 1: Read Jsolver file 'fixed'
-\end{tabular}
-
-
-
-\subsection{Boundary and Domain Options}
-
-\begin{tabular}{lcp{2.5in}}
-  \textbf{Option} & \textbf{Default} & \textbf{Description}\\
-  \hline
-  \texttt{xzero}  & 0 & $r$-coordinate of bottom left corner of domain\\
-  \texttt{zzero}  & 0 & $z$-coordinate of bottom left corder of domain\\
-  \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
-  \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
-  \hline
-  \texttt{ifixedb} & 0 & Set $\psi=0$ on boundary\\
-  \texttt{inonormalflow}& 1 & 1: No-normal-flow boundary\\
-  \texttt{inoslip\_pol} & 0 & 1: No-slip boundaries for poloidal velocity\\
-  \texttt{inoslip\_tor} & 1 & 1: No-slip boundaries for toroidal velocity\\
-  \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
-                                 velocity\\
-  \texttt{iconst\_bz} & 1 & 1: Toroidal field held constant on boundary\\
-  \texttt{iconst\_n}  & 0 & 1: Density held constant on boundary\\
-  \texttt{iconst\_p}  & 1 & 1: Pressure held constant on boundary\\
-  \texttt{iconst\_t}  & 0 & 1: Temperature held constant on boundary\\
-  \texttt{inograd\_p} & 0 & 1: No normal pressure gradient\\
-  \texttt{inograd\_t} & 0 & 1: No normal temperature gradient\\
-  \texttt{com\_bc}& 0 & 1: $\nabla^2 \chi = 0$\\
-  \texttt{vor\_bc}& 0 & 1: $\Delta^* U = 0$\\
-  \texttt{imask}  & 0 & 1: Smoothly bring $d_i$ to zero near
-    boundaries\\
-  \hline
-  \texttt{eta\_wall}   & 0 & Resistivity of the wall\\
-  \texttt{delta\_wall} & 1 & Thickness of the resistive wall
-\end{tabular}
-
-
 
 \subsection{Unit Normalizations}
-\begin{tabular}{lcp{3in}}
+\begin{tabular}{lcp{4in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
   \texttt{n0\_norm} & $10^{14}$ & Density normalization (in cgs)\\
@@ -1720,58 +1582,614 @@ In all cases, the angular velocity is then determined by:
   \texttt{l0\_norm} & $100$     & Length normalization (in cgs)
 \end{tabular}
 
+\subsection{Boundary Conditions}
 
-\subsection{Current Controller Options}
-
-\begin{tabular}{llcl}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+\begin{tabular}{lcp{4.0in}}
+  \textbf{Option} & \textbf{Default} & \textbf{Description}\\
   \hline
-  \texttt{vloop}      & $V_L$ & 0              & (Initial) loop voltage.\\
-  \texttt{tcur}       & $I_0$ & \texttt{tcuro} & Target toroidal current\\
-  \texttt{control\_p} & $c_p$ & 0              & Proportional coefficient\\
-  \texttt{control\_i} & $c_i$ & 0              & Integral coefficient\\
-  \texttt{control\_d} & $c_d$ & 0              & Derivative coefficient\\
+ 
+  \texttt{isurface} & 1 & include surface terms in Galerkin method \\
+  \texttt{icurv}    & 2 & if $>$ 0, include curvature from mesh \\
+  \texttt{nonrect}  & 0 & 1: non-rectangular boundary \\
+  \texttt{ifixedb} & 0 & Set $\psi=0$ on boundary\\
+  \texttt{inonormalflow}& 1 & 1: No-normal-flow boundary\\
+  \texttt{inoslip\_pol} & 0 & 1: No-slip boundaries for poloidal velocity\\
+  \texttt{inoslip\_tor} & 1 & 1: No-slip boundaries for toroidal velocity\\
+  \texttt{inostress\_tor}&0 & 1: No-normal-stress boundary for toroidal 
+                                 velocity\\
+  \texttt{iconst\_bz} & 1 & 1: Toroidal field held constant on boundary\\
+  \texttt{iconst\_bn} & 1 & 1: Hold normal field constant on boundary \\
+  \texttt{iconst\_n}  & 0 & 1: Density held constant on boundary\\
+  \texttt{iconst\_p}  & 1 & 1: Pressure held constant on boundary\\
+  \texttt{iconst\_t}  & 0 & 1: Temperature held constant on boundary\\
+  \texttt{inograd\_p} & 0 & 1: No normal pressure gradient\\
+  \texttt{inograd\_t} & 0 & 1: No normal temperature gradient\\
+  \texttt{inograd\_n} & 0 & 1: No normal density gradient \\
+  \texttt{com\_bc}& 0 & 1: $\nabla^2 \chi = 0$\\
+  \texttt{vor\_bc}& 0 & 1: $\Delta^* U = 0$\\
+  \texttt{inocurrent\_pol} & 0 & 1: no poloidal current on boundary \\
+  \texttt{inocurrent\_tor} & 0 & 1: no toroidal current on boundary \\
+  \texttt{inocurrent\_norm}& 0 & 1: no normal current on boundary \\
+  \texttt{ifbound}  & -1 & boundary condition on $f\prime$  \\
+                    &    & 1: Dirichlet  \\
+                    &    & 2: Neumann    \\
+  \texttt{iconstflux}  & 0 & 1: conserves toroidal flux in nonlinear calculation \\
+  \texttt{tebound}     & -1 & boundary condition for electron temperature \\
+  \texttt{tibound}     & -1 & boundary condition for ion temperature \\
+  \texttt{iper}   & 0 & 1: Left/right boundaries periodic\\
+  \texttt{jper}   & 0 & 2: Top/bottom boundaries periodic\\
+
 \end{tabular}
 
-\subsection{Density Source Options}
 
-\begin{tabular}{llcp{2in}}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
-  \hline
-  \texttt{ipellet}      & & 0    & 1: include pellet density
-    source (\textit{c.f.} section~\ref{sec:pellet_injection})\\
-  \texttt{pellet\_rate} & $\alpha_p$ & 0 
-                                     & Particle number injection rate\\
-  \texttt{pellet\_var}  & $l_p$      & 1    & Variance of  
-                                              injection profile\\
-  \texttt{pellet\_x}    & $R_p$      & \texttt{xmag} 
-                                     & $R$-coordinate of injection profile\\
-  \texttt{pellet\_z}    & $Z_p$      & \texttt{zmag} 
-                                     & $Z$-coordinate of injection profile\\
-  \texttt{ionization}   & & 0  & 1: include neutral ionization
-    source (\textit{c.f.} section~\ref{sec:ionization})\\
-  \texttt{ionization\_rate} & $\alpha_i$ & 0 
-                                     & Ionization rate coefficient\\
-  \texttt{ionization\_temp} & $E_i$   & 0.01 & Ionization energy\\
-  \texttt{ionization\_depth}& $l_i$   & 0.01 & Temperature 
-    scale-length of neutral burn-out
-\end{tabular}
 
-\subsection{Diagnostics Options}
-
-\begin{tabular}{lcp{3in}}
+\subsection{Time Step}
+\begin{tabular}{lcp{4in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
-  \texttt{icalc\_scalars} & 1 & 1: Calculate volume-integrated scalars 
-                                (\textit{e.g.} energy)\\
-  \texttt{ike\_only} & 0 & 1: Only calculate kinetic energy
+  \texttt{dt}         & 0.1 & Initial size of ime step\\
+  \texttt{ntimemax}   & 20  & Total number of time steps\\
+  \texttt{integrator} & 0   & 0: Crank-Nicholson (CN); 1: BDF2\\
+  \texttt{imp\_mod}   & 0   & 
+  \begin{minipage}[t]{4in}
+    0: $\theta$-implicit\\
+    1: Implicit leapfrof (\texttt{isplitstep} = 1 only)\\
+  \end{minipage}\\
+  \texttt{thimp}      & 0.5 & Implicitness parameter\\
+  \texttt{thimpsm}    & 1   & Implicitness of the smoother functions\\
+  \texttt{isplitstep} & 1   & 0: Fully implicit time step; 
+                              1: split time step.\\
+  \texttt{iteratephi} & 0   & 1: Calculate transport coefficients after
+    field advance, then recalculate field advance. \\
+  \texttt{idiff} & 0 & 1: solve for difference between n and n+1 in B,p \\
+  \texttt{idifv} & 0 & 1: solve for difference between n and n+1 for V \\
+  \texttt{irecalc\_eta} & 0 & 1:recalculate transport coefficients after density solve \\
+  \texttt{iconst\_eta}  & 0 & 1" don't evolve resistivity \\
+  \texttt{itime\_independent} & 0 & 1:exclude d/dt terms \\
+  \texttt{harned\_mikic}  & 0 & coefficient of Harned-Mikic 2F stabilization term \\
+  \texttt{isources}       & 0 & 1:include source terms in velocity advance \\
+  \texttt{nskip}   & 1 & number of time steps per matrix recalculation \\
+  \texttt{pskip}   & 1 & number of timesteps the preconditioner is reused \\
+  \texttt{iskippc} & 1 & number of times preconditioner is reused \\
+  \texttt{ddt}     & 0 & change in timestep per timestep \\
+  \texttt{frequency} & 0 & frequency in time-independent calculation \\
+  \texttt{dtmin}     & 4.0 & minimum timestep for variable timestep calculation \\
+  \texttt{dtmax}     & 40. & maximum timestep for variable timestep calculation \\
+  \texttt{dtkecrit}  & 0 &  lower timestep if ekin es above this (0.01 typical) \\
+  \texttt{ dtfrac}   & .10 & max fractional change of timestep in 1 cycle \\
+  \texttt{max\_repeat}  & 3 & max number time step is repeated for ksp\_max iterations exceeded \\
+  \texttt{ksp\_max}     & 10000 & max number of ksp iterations before repeating time step \\
+  \texttt{ksp\_min}     & 1200  & increase dt if ksp < ksp\_min  \\
+  \texttt{ksp\_warn}    & 1600  & decrease dt if ksp > ksp\_warn \\
 \end{tabular}
-\subsection{Physical Parameters}
 
-\begin{tabular}{llcl}
-  \textbf{Option}&\textbf{Var.}&\textbf{Default}&\textbf{Description}\\
+\subsection{Mesh}
+
+\begin{tabular}{lcp{4.0in}}
+  \textbf{Option} & \textbf{Default} & \textbf{Description}\\
   \hline
-  \texttt{gam}    & $\Gamma$& 5/3 & Adiabatic constant\\
-  \texttt{db}     & $d_i$   & 0   & Ion skin depth\\ 
+  \texttt{nplanes}& 1 & number of toroidal planes for 3D nonlinear \\
+  \texttt{xzero}  & 0 & $R$-coordinate of bottom left corner of domain\\
+  \texttt{zzero}  & 0 & $z$-coordinate of bottom left corder of domain\\
+  \texttt{tiltangled} & 0 & angle a rectangular mesh is tilted \\
+  \texttt{mesh\_model}&   & model file name from which the mesh is generated \\
+  \texttt{mesh\_filename} & & mesh name of .smb files (without number) \\
+  \texttt{imatassemble}  & 0 & 1: use petsc matrix parallel assembly instead of scorec \\
+  \texttt{imulti\_region} & 0 & 1: Mesh has multiple regions that include resistive wall and
+                               vacuum.   Wall resistivity is "eta\_wall", vacuum
+                               resistivity is "eta\_vac"  \\
+  \texttt{toroidal\_pack\_angle} & 0 & toroidal angle of maximum mesh packing \\
+  \texttt{toroidal\_pack\_factor} & 1 & ratio of longest to shortest toroidal element \\
+
+  \texttt{iread\_vmec}    & 0 & 1: read geometry from VMEC file \\
+  \texttt{vmec\_filename} & geometry.nc& name of vmec data file \\
+  \texttt{nperiods} & 1 & number of field periods \\
+  \texttt{iread\_planes} & 0 & Read positions of toroidal planes from plane\_positions \\
+  \texttt{bloat\_distance} & 0 & factor to expand VMEC domain \\
+  \texttt{bloat\_factor}   & 0 & factor to expand VMEC domain \\
+  \texttt{ifull\_torus}    & 0 & 0: one field period, 1: full torus \\
+  \texttt{igeometry}       & 0 & 0: default, identity \\
+  \texttt{xcenter}         & 0 & center of logical mesh (x) \\
+  \texttt{zcenter}         & 0 & center of logical mesh (z) \\
+  \texttt{bound\_type(i)}   & 0 & Boundary conditions to apply on mesh loop \texttt{i}.  0 = None, 1 = First wall, 2 = Domain boundary\\
+  \texttt{zone\_type(i)}    & 0 & Physics model of mesh zone \texttt{i}.  1 = plasma, 2 = conductor, 3 = vacuum.\\
 \end{tabular}
 
+\subsection{Solver}
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{solver\_type} & 0 &  for PETSc only,  0: direct solve, 1: iterative solver.   
+                               for Trilinios, iterative solver is used \\
+  \texttt{solver\_tol}  & 1.e-9 & solver tolerance \\
+  \texttt{num\_iter}    & 100 &   maximum number of iterations 
+\end{tabular}
+
+\subsection{Mesh Adaptation (will be depricated soon)}
+\begin{tabular}{llcp{4in}}
+\textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{iadapt} & 0 & 0: no adaptation \\
+                 &   & 1:adapt mesh from the flux field in equilibrium
+\end{tabular}
+
+
+\subsection{Numerical Options}
+\begin{tabular}{llp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{int\_pts\_main}  & 25 & Sampling points for integrations in
+                                main time step matrices\\
+  \texttt{int\_pts\_aux}   & 25 & Sampling points for integrations in
+                                calculations of auxiliary variables\\
+  \texttt{int\_pts\_diag}  & 25 & Sampling points for integrations in
+                                diagnostic calculations\\
+  \texttt{int\_pts\_tor}   & 5 & Max number of toroidal integration points \\
+  \texttt{ivform} & 0   & 0: $\u = \grad{U}\times\grad{\tor} + V
+   \grad{\tor} + \grad{\chi}$\\
+   & & 1: $\u = \r^2 \grad{U}\times\grad{\tor} + \r^2 \omega
+   \grad{\tor} + \r^{-2} \grad{\chi}$\\
+   & & Now depricated to ivform=1 only \\
+  \texttt{jadv}   & 0   & 1: Use toroidal current density equation
+                          instead of poloidal flux equation.\\
+  \texttt{max\_ke}& 1.0  & Maximum value of kinetic energy before solution is
+                          rescaled in linear simulations. (0 = don't rescale)\\
+  \texttt{equilibrate} & 0 & 1: scale trial function so L2 norm = 1 \\
+  \texttt{regular}     & 0 & regularization constant in chi equation \\
+  \texttt{iset\_pe\_floor} & 0 & 1: do not let pe drop below pe\_floor \\
+  \texttt{pe\_floor}       & 0 & minimum value for pe when iset\_pe\_floor=1 \\
+
+ \texttt{iset\_pi\_floor} & 0 & 1: do not let pi drop below pe\_floor \\
+  \texttt{pi\_floor}	   & 0 & minimum value for pi when iset\_pi\_floor=1 \\
+
+ \texttt{iset\_te\_floor} & 0 & 1: do not let te drop below te\_floor \\
+  \texttt{te\_floor}	   & 0 & minimum value for te when iset\_te\_floor=1 \\
+
+ \texttt{iset\_ti\_floor} & 0 & 1: do not let ti drop below ti\_floor \\
+  \texttt{ti\_floor}	   & 0 & minimum value for ti when iset\_ti\_floor=1 \\
+
+
+
+
+
+
+  \texttt{iprecompute\_metric} & 0 & 1: precompute metric temsor
+\end{tabular}
+
+\subsection{Input Options}
+
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{iread\_eqdsk}   & 0 & 1: Read EFIT g-file 'geqdsk'\\
+                          &   & 2: Read psi from geqdsk, but use analytic profiles for p and F \\
+                          &   & 3: read profiles from geqdsk, but not the psi \\
+  \texttt{iread\_dskbal}  & 0 & 1: Read BAL file 'dskbal'\\
+  \texttt{iread\_jsolver} & 0 & 1: Read Jsolver file 'fixed' \\
+
+ \texttt{iread\_omega}       & 0 & 1: reads in rotation profile \\
+ \texttt{iread\_omega\_ExB}  & 0 & 1: read ExB rotation \\
+ \texttt{iread\_omega\_e}    & 0 & 1: read electron rotation \\
+ \texttt{iread\_ne}          & 0 & 1: read in electron  density profile \\
+ \texttt{iread\_te}          & 0 & 1: read in temperature profile \\
+ \texttt{iread\_p}           & 0 & 1: read pressure profile from profile\_p \\
+ \texttt{iread\_neo}         & 0 & 1: read velocity profiles from NEO output \\
+ \texttt{ineo\_subtract\_diamag} & 0 & 1: subtract diamagnetic term from input vel when reading neo velocity \\
+ \texttt{iread\_heatsource}      & 0 & 1: read heat source profile (psi normalized) scaled by ghs\_rate \\
+ \texttt{iread\_partilesource}   & 0 & 1: read particle source profile (psi normalized) scaled with pellet\_rate \\
+ \texttt{iread\_f}               & 0 & 1: read R x BT from file \\
+ \texttt{iread\_j}               & 0 & 1: read current density from a file
+
+
+
+
+
+\end{tabular}
+
+\subsection{Output Options}
+
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{ntimepr}   & 5 & Number of timesteps per full field output\\
+  \texttt{iprint}    & 0 & 1: Print detailed info to stdout\\
+ \texttt{ifout}      & -1 & 1: ourput f field \\
+ \texttt{idouble\_out} & 0 & 1: use double precision floating in putput hdf5 files \\
+ \texttt{itemp\_plot}  & 0 & 1: output vdotgradt, deldotq\_perp, deldotq\_par, eta\_jsq \\
+ \texttt{ibdgp}        & 0 & optons for plotting partial terms for bdgp plot \\
+                       &   & (1) $[ \psi, \Phi] $, (2) $(f\prime,\Phi) $, (3) $-R^{-2} F \Phi \prime$ \\
+ \texttt{iveldif}      & 0 & option for plotting partial terms for veldif plot \\
+                       &   & (1) $|/psi,U|$, (2) $R^{-3}(\psi,chi) + R^{-2}|\chi,f\prime|$ \\
+                       &   & (3)$ R^{-1} \Phi \prime$   (4) $R^{-1} \Phi \prime + R^{-1} F U\prime $ \\
+                       &   & (5) $|\psi,U| + R(U,f\prime) - R^{-1}F U\prime $ (6) $R^{-2} |/chi,f\prime| $ \\
+ \texttt{icalc\_scalars} & 1 & 1 : calculate scalar diagnostics \\
+ \texttt{ike\_only}      & 0 & 1 " only calculate ke scalar diagnostic \\
+ \texttt{ike\_harmonics} & 0 & number of toroidal harmonics of kinetic energy to be calculated for diagnostics \\
+ \texttt{ibh\_harmonics} & 0 & number of toroidal harmonics of magnetic energy to be calculated for diagnostics \\
+ \texttt{irestart}       & 0 & 0: start from timestep 0 \\
+                         &   & 1: normal restart (can restart 3D from 2D) \\
+                         &   & 3: start a 2D complex run from a 2D real restart \\
+ \texttt{irestart\_slice}  & -1 & if set to an integer, restart from that time slice \\
+ \texttt{itimer}           & 0 & 1: output internal timeing data \\
+ \texttt{iwrite\_transport\_coefs}  & 1 & 1: output transport coefficients fields \\
+ \texttt{iwrite\_aux\_vars}         & 1 & 1:output auxiliary variable fields \\
+
+\end{tabular}
+
+
+\subsection{Diagnostics}
+
+\begin{tabular}{lcp{4in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{xray\_detector\_enabled} & 0 &  1:  enable xray detector \\
+ \texttt{xray\_r0}     & 0 &  R coordinate of xray detector \\
+ \texttt{xray\_phi0}   & 0 &  phi coordinate of xray detector \\
+ \texttt{xray\_z0}     & 0 &  Z coordinate of xray detector \\
+ \texttt{xray\_theta}  & 0 & angle of xray detector chord (degrees) \\
+ \texttt{xray\_sigma} & 1 &  spread of xray detector chord (degrees) \\
+ \texttt{imag\_probes}& 0 &  number of magnetic probes \\
+ \texttt{mag\_probe\_x(i)} & 0 &    R coordinate of magnetic probe i \\
+ \texttt{mag\_probe\_phi(i)} & 0 & phi coordinate of magnetic probe i \\
+ \texttt{mag\_probe\_z(i)}   & 0 & Z coordinate of magnetic probe i \\
+ \texttt{mag\_probe\_nx(i)}  & 0 & R component of normal vector of mag probe i \\
+ \texttt{mag\_probe\_nphi(i)}& 0 & phi component of normal vector of mag probe i \\
+ \texttt{mag\_probe\_nz(i)}  & 0 & Z component of normal vector of mag probe i \\
+ \texttt{iflux\_loops}       & 0 & number of flux loops \\
+ \texttt{flux\_loop\_x(i)}   & 0 & R coordinate of flux loop i \\
+ \texttt{flux\_loop\_z(i)}   & 0 & Z coordinate of flux loop i \\
+ \texttt{ifixed\_temax}      & 0 & 1: temax evaluated at (xmag0,0,zmag0)
+
+\end{tabular}
+\subsection{Sources/Sinks}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{ibeam}    & 0 &  neutral beam source \\
+                    &   &  1:include neutral beam particle, energy, and momentum source: \\
+                    &   &  $S = \frac {nb_n  }{4 r \pi^2 n b_{dr}  }
+                            \exp - \left[ (r - nb_r)^2 + (z - nb_z)^2 \right]/ 2 nb_{dr}^2$  \\
+                    &   &  2:include only particle and energy source  \\
+                    &   &  3:include only energy source  \\
+                    &   &  4:include only momentum and energy source  \\
+                    &   &  5:include only momentum source  \\
+  \texttt{beam\_x}  & 0 & R coordinate of beam center (in m) \\
+  \texttt{beam\_z}  & 0 & Z coordinate of beam center (in m) \\
+  \texttt{beam\_v}  & 1.e4 & beam voltage (in volts) \\
+  \texttt{beam\_rate}  & 0 & ions/second deposited by beam \\
+  \texttt{beam\_dr}    & .1 & dispersion of beam deposition \\
+  \texttt{beam\_dv}    & 100. & dispersion of beam voltage (in volts) \\                        
+  \texttt{beam\_fracpar}  & 1 & cosine of beam angle relative to parallel (for momentum source)   \\
+\hline                  
+  \texttt{vloop}          & 0 & initial loop voltage,   NOTE: to change vloop at restart time, must have control\_type = -1 \\
+  \texttt{tcur}           & 0 & target (scaled) plasma current for current control: $\mu_0 I_P$ \\
+  \texttt{tcuri}          & 0 & if tcuri .ne. tcurf, the target current is a function of time \\
+  \texttt{tcurf}          & 0 & tcur = tcuri + (tcurf-tcuri) x .5 x (1. + tanh((t-tcur\_t0)/tcur\_tw)) \\
+  \texttt{tcur\_t0}       & 0 & see tcurf \\
+  \texttt{tcur\_tw}       & 0 & see tcurf \\                                       
+  \texttt{control\_type}  & -1. &  0 old current control algorithm (not recommended) \\
+                          &     &  1: standard PID  control with the following control parameters \\                                                        
+  \texttt{control\_p}     & 0 & proportional control coefficient \\
+  \texttt{control\_i}     & 0 & integral control coefficient \\                 
+  \texttt{control\_d}     & 0 & derivative control coefficient  \\
+
+  \hline
+  \texttt{ipellet}      & 0    & density source if non-zero (3D part equals 1 for 2D runs).  
+                                 Double-digit values have volume integrals normalized to 1.  
+                                 Make netative for initial perturbation only. \\
+                        &   & Define:  $G_{2D} = \frac{1}{2 \pi R  V_P^2}\exp \left[ - \frac{ (R - R_P)^2 + (Z - Z_P)^2}{2 V_P^2}
+                                                                                \right]$  \\
+                        &   & 1: $ S = G_{2D} \times \frac{R}{\sqrt{2 \pi}V_t} 
+                                  \exp \left[- \frac{RR_P\left(1 - \cos(\phi - \phi_P)\right)}{V_t^2} \right] $  \\
+                        &   & 2: $ S = \mbox{den0} \times \left( \mbox{max} (p , p_{edge} )/p_0 \right)^{expn} $ 2D and 3D \\
+                        &   & 3: Gaussian sourrce proportional to pressure \\
+                        &   & $ S = p \times G_{2D} \times \frac{R}{\sqrt{2 \pi}V_p}
+                                  \exp \left[- \frac{RR_P\left(1 - \cos(\phi - \phi_P)\right)}{V_p^2} \right] $  \\
+                        &   & 4: Same distribution as ipellet=1 in 3D \\
+                        &   & $ S = \sqrt{2 \pi} R V_p \times G_{2D} \times \frac{1}{2 \pi V_p V_t}
+                                  \exp \left[- \frac{RR_P\left(1 - \cos(\phi - \phi_P)\right)}{V_t^2} \right] $ 
+\end{tabular}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+        &  & 11: Same as \#1 but numerically normalized \\
+        &  & 12: Spherical, Cartesian Gaussian numerically normalized \\
+        &  & 2D: $ S = R G_{2D} $ \\
+        &  & 3D: $ S = \exp \left[ - \frac{(R\cos\phi - R_p\cos\phi_p)^2 
+                                          +(R\sin\phi - R_p\sin\phi_p)^2
+                                          +(Z - Z_p)^2}{2 V_P^2} \right] $ \\
+        &  & 13: Axisymmetric, toroidal Gaussian, numerically normalized 2D and 3D:
+                 $S = G_{2D} $ \\
+        &  & 14: Toroidal distribution is a blend of a von Mises and Cauchy distribution \\
+        &  &     \begin{equation}
+                 \begin{aligned}  
+              &  S = G_{2D}\times \frac{R}{\sqrt{2 \pi} V_p} \times \nonumber \\
+              &  \left[ (1 - f_c) \exp \left[  - \frac {R R_p \left( 1 - \cos(\phi-\phi_p) \right)}{V_t^2} \right] 
+                       + f_c \times \frac{\cosh(\frac{V_t}{\sqrt{RR_p}}) - cos(\phi_p)}
+                                             {\cosh(\frac{V_t}{\sqrt{RR_p}}) - cos(\phi - \phi_p)} \right]
+                   \nonumber \end{aligned} 
+                   \end{equation} \\
+
+
+        &  & 15: Toroidal von-Mises distribution with angular half-width \\
+        &  & $ S = G_{2D} \times \exp \left[ \cos(\phi - \phi_p) / V_p^2                   
+                                      \right] $ \\
+        &  & Pellet\_var\_tor radians for ipellet=15, distance otherwise \\
+
+  \texttt{ipellet\_z}  & 0  & Atomic number of pellet (0 for main-ion species) \\
+  \texttt{ipellet\_abl} & 0 & Turn on pellet ablation.  (Recommend double-digit ipellet for particle conservation) \\
+                        &   & 1: Include ablation model [Parks NF94] calibrated on DIII-D (Li) \\
+                        &   & 2: Include new ablation model [Parks, 2015] for small pellets (Li) \\
+                        &   & 3: Parks model developed 6/20/2017 (for Neon) \\
+  \texttt{temin\_abl}   & 0 & Minimum temperature at which ablation turns on \\
+  \texttt{iread\_pellet}& 0 & 0: Single pellet defined by scalar parameters below \\
+                        &   & 1: Read pellet.dat, with one row per pellet.   The 13
+                                 space-delimited columns are: \\
+                        &   & pellet\_r, pellet\_phi, pellet\_z, pellet\_rate, pellet\_var,
+                              pellet\_var\_tor, pellet\_velr, pellet\_vel\_phi,
+                              pellet\_vel\_z, r\_p, cloud\_pel, pellet\_mix, cauchy\_fraction \\    
+  \texttt{pellet\_rate} & 0 & Particle number injection rate\\
+  \texttt{pellet\_var}  & 1    & Variance of injection profile\\
+  \texttt{pellet\_var\_tor} & 0 & toroidal spatial dispersion of pellet source $(V_t)$.  
+                                  If zero, pellet\_var\_tor = pellet\_var. \\
+  \texttt{pellet\_R}    & 0 & $R$-coordinate of injection profile\\
+  \texttt{pellet\_z}    & 0 & $Z$-coordinate of injection profile\\
+  \texttt{pellet\_velr} & 0 & initial radial velocity of the pellet \\
+  \texttt{pellet\_velphi} & 0 & initial toroidal velocity of pellet \\
+  \texttt{pellet\_velz}   & 0 & initial vertical velocity of pellet \\
+  \texttt{r\_p}           & 1.e-3 & initial pellet radius \\
+  \texttt{cloud\_pel}     & 1     & Parameter used to change the width of the density source if
+                                    ablating.   In this case, pellet\_var = cloud\_pel * r\_p \\
+  \texttt{pellet\_mix}   & 0 & Molar fraction of diatomic main ion molecures in pellet (e.g., $D_2$ )
+
+\end{tabular}
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+
+  \texttt{irestart\_pellet} & 0 & 1: will read the following from C1input at restart (the rest from *.h5)
+                                     pellet\_rate, pellet\_rate\_D2, pellet\_var\_tor, 
+                                     pellet\_var, cloud\_pel, pellet\_mix, cauchy\_fraction \\
+  \texttt{abl\_fac} & 1.0 &  factor to multiply ablation rate from predefined formula \\ 
+
+  \hline
+  \texttt{n\_control\_type} & -1 & -1:  no density control \\
+                            &    &  0:  old density control algorithm (not recommended) \\
+                            &    &  1:  Standard PID control with the following parameters: \\
+  \texttt{n\_control\_p}    & 0  &  proportional feedback constant \\
+  \texttt{n\_control\_i}    & 0 &  integral feedback constant \\
+  \texttt{n\_control\_d}    & 0 &  derivative feedback constant \\
+  \hline
+  \texttt{igaussian\_heat\_source} & 0 & 1: include Gaussian heat fource \\
+  \texttt{ghs\_x}   & 0 & R coordinate of Gaussian heat source \\
+  \texttt{ghs\_z}   & 0 & Z coordinate of Gaussian heat source \\
+  \texttt{ghs\_rate}& 0 & amplitude of Gaussian heat source \\
+  \texttt{ghs\_var} & 0 & variance of Gaussian heat source \\
+  \texttt{ghs\_phi} & 0 & phi coordinate of Gaussian heat source \\
+  \texttt{ghs\_var\_tor} & 0 & toroidal variance of GAussian heat source \\
+  \hline
+
+  \texttt{ionization}   & 0  & 1: include neutral ionization source \\
+  \texttt{ionization\_rate} & 0 & Ionization rate coefficient\\
+  \texttt{ionization\_temp} & 0.01 & Ionization energy\\
+  \texttt{ionization\_depth}& 0.01 & Temperature scale-length of neutral burn-out
+\end{tabular}
+
+
+\begin{tabular}{llp{4.5in}}
+  \hline
+current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
+                     & & $J_{CD} = J_0 \exp- \left[ (R-R_{0cd})^2 + (Z-Z_{0cd})^2   
+                                             \right]/W_{cd} - \Delta_{cd}  $ \\
+ \texttt{icd\_source} & 0 & 1: include current drive \\
+ \texttt{J\_0cd}      & 0 & $J_0$: Magnitude of Gaussian \\
+ \texttt{R\_0cd}      & 0 & $R_{0cd}$: R coordinate of maximum \\
+ \texttt{Z\_0cd}      & 0 & $Z_{0cd}$: Z coordinate of maximum \\
+ \texttt{W\_cd}       & 0 & $W_{cd}$: Width of maximum \\
+ \texttt{delta\_cd}   & 0 & $\Delta_{cd}$: shift of Gaussian \\
+\hline
+ \texttt{isink}          & 0 & number of density sinks: 0,1,or 2 \\
+ \texttt{sink1\_x}       & 0 & R coordinate of first density sink \\
+ \texttt{sink1\_z}       & 0 & Z coordinate of first density sink \\
+ \texttt{sink1\_rate}    & 0 & rate of first density sink \\
+ \texttt{sink1\_var}     & 1 & variance of first density sink \\
+ \texttt{sink2\_x}       & 0 & R coordinate of second density sink \\
+ \texttt{sink2\_z}       & 0 & Z coordinate of second density sink \\
+ \texttt{sink2\_rate}    & 0 & rate of second density sink \\
+ \texttt{sink2\_var}     & 1 & variance of second density sink \\
+\hline
+ \texttt{idenfloor}      & 0 & 1: density in vacuum pegged to den\_edge \\
+ \texttt{alphadenfloor}  & 0 & multiplier of (den\_edge - den).  Must be .lt. 1/DT \\ 
+%\end{tabular}
+%\begin{tabular}{llp{4.5in}}
+\hline
+ \texttt{ipforce} & 0 & 1: include poloidal momentum source \\
+                  &   & $F = f(\tilde{\psi}) \nabla \psi \times \nabla \phi$  \\
+                  &   & $f(\tilde{\psi}) = \alpha(1 - \tilde{\psi})^N \frac{ \delta^2    }
+                                                                           { (\tilde{\psi} - \psi_0)^2    + \delta^2} $  \\
+                  &   & 2:  Include Luca Guzzatto form of momentum source  
+
+
+\end{tabular}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{dforce}  & 0 &  $\delta$ \\
+  \texttt{xforce}  & 0 &  $\psi_0$ \\
+  \texttt{nforce}  & 0 &  $N$ \\
+  \texttt{aforce}   & 0 &  $ \alpha $ \\
+  \texttt{iheat\_sink}         & 0 & 1:  special heat sink for itaylor=27  \\
+  \texttt{coolrate}            & 0 & S = coolrate*(pedge-p) for iheat\_sink = 1 \\
+  \texttt{iarc\_source}        & 0 & 1: density source due to halo current \\
+  \texttt{arc\_source\_alpha}  & 0 &   parameter for arc\_source \\
+  \texttt{arc\_source\_eta}    & .01 & parameter for arc\_source
+
+\end{tabular}
+\subsection{Resistive Wall}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+  \texttt{eta\_vac}    & 1 &  resistivity of vacuum region \\
+  \texttt{eta\_wall}   & .001 & resistivity of conducting wall regions \\
+  \texttt{eta\_wallRZ} & .001 & poloidal resistivity of wall region (if different from eta\_wall) \\
+  \texttt{iwall\_break}& 0 & number of wall breaks \\
+  \texttt{eta\_break} & 1 & resistivity of wall break (array) \\
+  \texttt{wall\_break\_phimax} & 0 & max phi coordinate for break (array) \\
+  \texttt{wall\_break\_phimin} & 0 & min phi coordinate for break (array) \\
+  \texttt{wall\_break\_xmax}   & 0 & max R coordinate for break (array) \\
+  \texttt{wall\_break\_xmin}   & 0 & min R coordinate for break (array) \\
+  \texttt{wall\_break\_zmax}   & 0 & max Z coordinate for break (array) \\
+  \texttt{wall\_break\_zmin}   & 0 & min Z coordinate for break	(array)	\\ 
+  \texttt{iwall\_regions}      & 0 & number of resistive wall regions \\
+  \texttt{wall\_region\_eta()}  & 1.e-3 & resistivity of each wall region \\
+  \texttt{wall\_region\_etaRZ()}& 1.e-3 & poloidal restivity (if different from wall\_region\_eta) \\
+  \texttt{wall\_region\_filename()} & &   file name will wall contour points \\
+  \texttt{eta\_zone(i)} & eta\_wall & Resistivity of mesh region \texttt{i}.  Only applies if \texttt{zone\_type(i)} = 2 (conductor).\\
+  \texttt{etaRZ\_zone(i)} & eta\_zone(i) & Poloidal resistivity of mesh region \texttt{i}.  Only applies if \texttt{zone\_type(i)} = 2 (conductor).\\ 
+  \texttt{eta\_rekc}  & 0 & resistivity of runaway electron killer coil (REKC) \\
+  \texttt{ntor\_rekc} & 0 & toroidal mode number of REKC  \\
+  \texttt{mpol\_rekc} & 0 & poloidal mode number of REKC \\
+  \texttt{phi\_rekc}  & 0 & toroidal angle of fixed point of REKC \\
+  \texttt{theta\_rekc}& 0 & poloidal angle of fixed point of REKC \\
+  \texttt{rzero\_rekc}& 0 & R0 for computing theta of REKC \\
+  \texttt{zzero\_rekc}& 0 & Z0 for computing theta of REKC \\
+  \texttt{isym\_rekc} & 0 & if non-zero, coil is double helix with (+,-) mpol\_rekc
+\end{tabular}
+
+\subsection{Miscellaneous}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt(
+ \texttt{gam}                    & 5/3 & ratio of sepcific heatx \\
+ \texttt{db}                     & 0 & ion skin depth (overrides db\_fac \\
+ \texttt{db\_fac}                & 0 & factor multiplying physical value of ion skin depth \\
+ \texttt{mass\_ratio}            & 0 & ratio of ion to electron mass \\
+ \texttt{lambdae}                & 0 & lambdae \\
+ \texttt{z\_ion}                 & 1 & Z-effective \\
+ \texttt{ion\_mass}              & 1 & ion mass in units of m\_p \\
+ \texttt{lambda\_coulomb}         & 17 & Couloumb logarithm \\
+ \texttt{thermal\_force\_coeff}  & 0 &  coefficient of thermal force \\
+ \texttt{ntor}                   & 0 &  toroidal mode number for 3D linear (complex) \\
+ \texttt{mpol}                   & 0 &  poloidal mode number for certain test problem initializations 
+
+\end{tabular}
+
+\subsection{Deprecated}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{ipartitioned}   & 0 &     \\
+ \texttt{igs\_method}    & -1&     \\
+ \texttt{ibform}         & -1&     \\
+ \texttt{delta\_wall}    & 1.&
+\end{tabular}
+
+\subsection{Trilinos Options}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{drop\_tolerance}    & 0 &   ILU drop tolerance \\
+ \texttt{graph\_fill}        & 0 & graph fill level \\
+ \texttt{ilu\_fill\_level}   & 1 & ILU fill level \\
+ \texttt{ilu\_omega}         & 1 & relaxation parameter for rILU \\
+ \texttt{krylov\_solver}     & gmres & Krylov solver \\
+ \texttt{poly\_ord}          & 1     & polynomial order for certain perconditioners \\
+ \texttt{preconditioner}     &dom\_decomp & preconditioner \\
+ \texttt{sub\_dom\_solver}   & ilu & subdomain solver in preconditioner \\
+ \texttt{subdomain\_overlap} & 1   & subdomain overlap 
+
+\end{tabular}
+
+\subsection{Simple Radiation Model}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{iprad}    & 0 & 1: call Prad radiation module with one impurity species \\
+                   &   & $P_{rad} = n_e n_D L_D (T_e) + n_e n_Z L_Z(T_e)   $  \\
+                   &   & Cooling rate of deuterium is $L_D = 5.35 \times 10^{-37}T_e^{1/2}[keV] W-m $ \\
+                   &   & $L_Z(T_e)$ taken from Post, et al, Atomic data and nuclear data tables,
+                                      {\bf 20} pp. 397-439 (1977)  \\
+ \texttt{prad\_fz}  & 1 & density of impurity species as fraction of $n_e$ \\
+ \texttt{prad\_z}      & 1 & Z of impurity species: Z=6(C), 18(Argon), 26(Fe) are available \\
+ \texttt{iread\_prad}  & 0 & 1: Read impurity density from profile\_nz (units of $10^{20}/m^3$ ) 
+\end{tabular}
+
+\subsection{KPRAD Radiation Model}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{ikprad}        & 0 & 1: KPRAD module with one impurity species \\
+ \texttt{ikprad\_z}     & 1 & Z of impurity species in KPRAD module.   Presently available:
+                                  2(He), 4(Be), 6 (C),10(Ne), 18 (Ar) \\
+ \texttt{kprad\_fz}      & 0 & density of neutrals as fraction of ne \\
+ \texttt{kprad\_nz}      & 0 & Density of neutral impurities \\
+ \texttt{kprad\_nemin}   & $10^{-12}$& Minimum normalized electron density for KPRAD evolution \\
+ \texttt{kprad\_temin}   & $ 2 \times 10^{-7} $ & Minimum normalized electron temperature for KPRAD evolution \\
+ \texttt{ikprad\_max\_dt}&  0 & Set max time step for KPRAD ionization \\
+                         &    & 0: MHD time step dt \\
+                         &    & 1: {\bf RECOMMENDED:} dt/( kprad\_z + 1 ) : ensures evolution through all charge states. \\
+ \texttt{ikprad\_evolve\_internal}  & 0 & Update local temperature during KPRAD subcycling: \\
+                                    &   & 0: Te fixed before subcycling \\
+                                    &   & 1: {\bf RECOMMENDED} Local ne and Te used for KPRAD 
+                                                  ionization/radiation updated during subcycling each 
+                                                  KPRAD time step due to density and energy changes \\
+\texttt{ikprad\_evolve\_neutrals}   & 0 & Determines how KPRAD  neutrals evolve spatially: \\
+                                    &   & 0: Neither advect nor diffuse \\
+                                    &   & 1: {\bf RECOMMENDED} Advect and diffuse like other charge states \\
+                                    &   & 2: Diffuse but do not advect \\
+ 
+
+\texttt{ikprad\_min\_option}        & 1 & Determine how KPRAD behaves below minimum density/temperature
+                                          (kprad\_nemin, kprad\_temin) \\ 
+                                    &   & 1: No radiation/ionization/recombination (based on ne/te before subcycling) \\
+                                    &   & 2: {\bf RECOMMENDED} Recombination but no radiation/ionization (based on ne/Te during subcycling) \\
+                                    &   & 3: No radiation/ionization/recombination (based on ne/Te during subcycling).  
+                                             NOTE: 1 and 3 behave the same if ikprad\_evolve\_internal = 0) \\
+
+\texttt{iread\_lp\_source} & 0 & Read impurity source from Lagrangian Particle code cloud.txt (UNDER DEVELOPMENT)
+\end{tabular}
+
+\subsection{Stellarator Geometry}
+
+\begin{tabular}{llp{4.5in}}
+  \textbf{Option}&\textbf{Default}&\textbf{Description}\\
+  \hline
+ \texttt{type\_ext\_field}        & -1& External fields to be read in.. \\
+				  &   &	0: Axisymmetric only. For RMP and error fields. \\
+				  &   &	1: Free-boundary stellarator (\texttt{itaylor=41}) data. \\
+				  &   &	2: Free-boundary stellarator (\texttt{itaylor=41}) data with \texttt{extsubtract=1}. \\
+ \texttt{file\_ext\_field}        &   & (string) Vacuum/external field to be subtracted for \texttt{itaylor=41}.\\
+				  &   & Currently supported: FIELDLINES, MGRID. \\
+				  &   & Must start with `fieldlines' or `mgrid'. \\
+                                  &   & Must have \texttt{type\_ext\_field=2}.\\
+ \texttt{file\_total\_field}      &   & (string) Total field for free-boundary stellarator (\texttt{itaylor=41}).\\
+				  &   & Currently supported: FIELDLINES, MGRID. \\
+				  &   & Must start with `fieldlines' or `mgrid'. \\
+                                  &   & Must have \texttt{type\_ext\_field=1,2}.\\
+ \texttt{iread\_vmec}             & 0 & 1: read VMEC file to determine geometry. Must be 1 for stellarator. \\
+ \texttt{vmec\_filename}          &   & (string) VMEC output .nc file \\
+ \texttt{bloat\_factor}           & 0 & Free boundary only:  Scale factor to bloat computational boundary using input geometry. \\
+ \texttt{bloat\_distance}         & 0 & Free boundary only:  Distance to expand computational boundary from input geometry. \\
+ \texttt{igeometry}               & 0 & 1: must be set to use stellarator version \\
+ \texttt{nperiods}                & 1 & Number of field periods (stellarator geometry).    Note nplanes
+                                        should be equal to at least 2 x (number of toroidal modes 
+                                        per field period) x nperiods \\
+ \texttt{ifull\_torus}            & 0 & 0:  Solve on one field period \\
+                                  &   & 1:  Solve on full torus \\
+ \texttt{nzer\_factor}            & -1& (integer) Scale factor for resolution of Zernike polynomial
+                                                  (used for interpolation of VMEC) \\
+                                  &   &-1: n\_zeri= 2 x mpol (fixed boundary) and 1 x mpol (free boundary). \\
+                                  &   &Otherwise: n\_zer = nzer\_factor x mpol where mpol is poloidal resolution in VMEC \\
+ \texttt{nzer\_manual}            & -1&(int) Resolution of Zernike polynomial (mainly for testing)
+
+\end{tabular}

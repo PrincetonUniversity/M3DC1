@@ -36,7 +36,7 @@ function sigma_func(izone)
   integer :: ip, mr
 
   ! Don't allow particle source in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      sigma_func = 0.
      return
   end if
@@ -193,7 +193,7 @@ function force_func(izone)
   vectype, dimension(dofs_per_element) :: temp
 
   ! Don't allow momentum source in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      force_func = 0.
      return
   end if
@@ -322,7 +322,7 @@ function q_func(izone)
   real, dimension(MAX_PTS) :: r
 
   ! Don't allow heating in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      q_func = 0.
      return
   end if
@@ -709,7 +709,7 @@ end function cd_func
 
 ! Resistivity
 ! ~~~~~~~~~~~
-function resistivity_func(izone)
+function resistivity_func(izone_index)
   use basic
   use m3dc1_nint
   use diagnostics
@@ -720,13 +720,17 @@ function resistivity_func(izone)
   implicit none
 
   vectype, dimension(dofs_per_element) :: resistivity_func
-  integer, intent(in) :: izone
+  integer, intent(in) :: izone_index
   real :: tmin
-  integer :: nvals, j, mr
+  integer :: nvals, j, mr, iz
   real, allocatable :: xvals(:), yvals(:)
   real :: val, valp, valpp, pso, psib
+  integer :: izone
+  integer, dimension(MAX_PTS) :: izarr
 
-  if(izone.eq.1) then
+  izone = zone_type(izone_index)
+
+  if(izone.eq.ZONE_PLASMA) then
      select case (iresfunc)
      case(0)  ! resistivity = 1/Te**(3/2) = sqrt((n/pe)**3)
         if(eta0.ne.0.) then
@@ -815,6 +819,7 @@ function resistivity_func(izone)
                 (1. + tanh((temp79b-(1.+etaoff))/etadelt))
         else
            if(myrank.eq.0) print *, 'iresfunc = 21 requires igeometry = 1'
+           call safestop(73)
         end if
 #endif     
 
@@ -823,9 +828,10 @@ function resistivity_func(izone)
         call safestop(73)
 
      end select
-  else if(izone.eq.2) then
-     temp79a = wall_resistivity(x_79,phi_79,z_79) - etar*eta_fac
-  else if(izone.eq.3) then
+  else if(izone.eq.ZONE_CONDUCTOR) then
+     izarr = iz
+     temp79a = wall_resistivity(x_79,phi_79,z_79,izarr) - etar*eta_fac
+  else if(izone.eq.ZONE_VACUUM) then
      temp79a = eta_vac - etar*eta_fac
   end if
 
@@ -925,6 +931,7 @@ function viscosity_func()
              (1. + tanh((temp79b-(1.+amuoff))/amudelt))
      else
         if(myrank.eq.0) print *, 'ivisfunc = 21 requires igeometry = 1'
+        call safestop(73)
      end if
 #endif     
 
@@ -1064,6 +1071,18 @@ function kappa_func()
         temp79a(j) = val
      end do
 
+#ifdef USEST
+  case(21)
+     if(igeometry.eq.1) then
+        temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+        temp79a = kappa0 * &
+             (1. + tanh((temp79b-(1.+kappaoff))/kappadelt))
+     else
+        if(myrank.eq.0) print *, 'ikappafunc = 21 requires igeometry = 1'
+        call safestop(73)
+     end if
+#endif
+
   case default
      if(myrank.eq.0) print *, 'Error: invalid value for ikappafunc: ', ikappafunc
      call safestop(73)
@@ -1115,6 +1134,10 @@ function kappar_func()
         
   case(1)
      temp79a = kappar/( (tcrit/tet79(:,OP_1))**2.5 + 1.)
+     where(temp79a.ne.temp79a) temp79a = 0.
+
+  case(2)
+     temp79a = kar79(:,OP_1)
 
   case default
      if(myrank.eq.0) print *, 'Error: invalid value for ikapparfunc: ', ikapparfunc
@@ -1298,7 +1321,7 @@ subroutine define_transport_coefficients()
 
   include 'mpif.h'
 
-  integer :: itri, izone
+  integer :: itri, izone, izone_index
   integer :: numelms, def_fields,ier
 
   logical, save :: first_time = .true.
@@ -1369,7 +1392,8 @@ subroutine define_transport_coefficients()
   if(iresfunc.eq.2 .or. iresfunc.eq.3 .or. iresfunc.eq.4) &
        def_fields = def_fields + FIELD_ETA
   if(idenmfunc.eq.1) def_fields = def_fields + FIELD_DENM
-  if(ikappafunc.eq.5) def_fields = def_fields + FIELD_KAP
+  if(ikappafunc.eq.5 .or. ikapparfunc.eq.1 .or. ikapparfunc.eq.2) &
+       def_fields = def_fields + FIELD_KAP
   if(ivisfunc.eq.3 .or. ivisfunc.eq.4) def_fields = def_fields + FIELD_MU
   if(ibeam.ge.1) def_fields = def_fields + FIELD_V
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
@@ -1392,10 +1416,10 @@ subroutine define_transport_coefficients()
      call define_element_quadrature(itri, int_pts_aux, 5)
      call define_fields(itri, def_fields, 1, linear)
 
-     call get_zone(itri, izone)
+     call get_zone_index(itri, izone_index)
+     izone = zone_type(izone_index)
 
-
-     dofs = resistivity_func(izone)
+     dofs = resistivity_func(izone_index)
      if(.not.solve_resistivity) solve_resistivity = any(dofs.ne.0.)
 
 !$OMP CRITICAL

@@ -7,7 +7,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 42
+  integer, parameter :: version = 43
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -80,6 +80,7 @@ module basic
   real :: kappaf
   real :: kappai_fac
   real :: kappa_max
+  real :: kappar_max, kappar_min
   real :: denm        ! artificial density diffusion used in idenmfunc = 0,1
   real :: denmt       ! temperature dependent density diffusion used in idenmfunc = 1
   real :: denmmin     ! Minimum value of density diffusion
@@ -90,6 +91,7 @@ module basic
   real :: temin_qd    ! minimum temperature used in equipartition term for ipres=1
   real :: efac        ! eta = efac / T^(3/2)
   real :: nufac       ! nu = nufac * n / T^(3/2)
+  real :: krfac       ! kappar = krfac * T^5/2
 
 
   ! physical parameters
@@ -204,9 +206,9 @@ module basic
   integer :: isample_ext_field_pol
 
   real :: scale_ext_field
-  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines or mgrid file.
-  character(len=256) :: file_ext_field
-  character(len=256) :: fieldlines_filename 
+  integer :: type_ext_field ! 0 = text schaffer field; 1,2 = fieldlines or mgrid file.
+  character(len=256) :: file_ext_field ! External field (to be subtracted for ST)
+  character(len=256) :: file_total_field ! Stellarator field (plasma+coils) to be read for itaylor=41
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
 
@@ -496,7 +498,7 @@ module arrays
   type(field_type) :: psi_ext, bz_ext, bf_ext, bfp_ext
 
   ! Arrays containing auxiliary variables
-  type(field_type) :: jphi_field, vor_field, com_field
+  type(field_type) :: jphi_field
   type(field_type) :: resistivity_field, kappa_field, kappar_field, denm_field
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
@@ -715,7 +717,9 @@ module sparse
   integer, parameter :: r43_mat_index = 73
   integer, parameter :: pot2_mat_lhs_index = 74
   integer, parameter :: st_mat_index = 75
-  integer, parameter :: num_matrices = 75
+  integer, parameter :: hypv_lhs_index = 76
+  integer, parameter :: hypv_rhs_index = 77
+  integer, parameter :: num_matrices = 77
 
   type(matrix_type) :: rwpsi_mat, rwbf_mat, ecpsi_mat, ecbf_mat
   type(matrix_type), save :: rw_rhs_mat, rw_lhs_mat

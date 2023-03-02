@@ -27,9 +27,19 @@ macro(simmetrixLibCheck libs isRequired)
   endforeach()
 endmacro(simmetrixLibCheck)
 
-set(SIMMETRIX_LIBS "")
+if (ENABLE_PPPL)
 set(SIMMETRIX_LIB_NAMES
-#  SimLicense -- valid for PPPL
+  SimLicense  #-- valid for PPPL
+  SimPartitionedMesh #-mpi
+  SimMeshing
+  SimMeshTools
+  SimModel
+  SimPartitionWrapper #-${SIM_MPI}
+  SimAdvMeshing
+  #SimField -- not valid for PPPL
+)
+else()
+set(SIMMETRIX_LIB_NAMES
   SimDiscrete
   SimPartitionedMesh-mpi
   SimMeshing
@@ -39,6 +49,7 @@ set(SIMMETRIX_LIB_NAMES
   SimAdvMeshing
   SimField
 )
+endif()
 
 simmetrixLibCheck("${SIMMETRIX_LIB_NAMES}" TRUE)
 

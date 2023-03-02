@@ -56,8 +56,8 @@ module m3dc1_nint
   integer, parameter :: FIELD_P   =    64
   integer, parameter :: FIELD_N   =   128
   integer, parameter :: FIELD_J   =   256
-  integer, parameter :: FIELD_VOR =   512
-  integer, parameter :: FIELD_COM =  1024
+  integer, parameter :: FIELD_XX1 =   512  ! UNUSED
+  integer, parameter :: FIELD_XX2 =  1024  ! UNUSED
   integer, parameter :: FIELD_NI  =  2048
   integer, parameter :: FIELD_B2I =  4096
   integer, parameter :: FIELD_ETA =  8192
@@ -111,9 +111,9 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(rho79, nw79)
   vectype, dimension(MAX_PTS, OP_NUM) :: vis79, vic79, vip79, for79, es179
 !$OMP THREADPRIVATE(vis79,vic79,vip79,for79,es179)
-  vectype, dimension(MAX_PTS, OP_NUM) :: jt79, cot79, vot79, pit79, &
+  vectype, dimension(MAX_PTS, OP_NUM) :: jt79, pit79, &
        eta79, etaRZ79,sig79, fy79, q79, cd79, totrad79, linerad79, bremrad79, ionrad79, reckrad79, recprad79, sie79, sii79, sir79
-!$OMP THREADPRIVATE(jt79,cot79,vot79,pit79,eta79,etaRZ79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79,sir79)
+!$OMP THREADPRIVATE(jt79,pit79,eta79,etaRZ79,sig79,fy79,cd79,totrad79,linerad79,bremrad79,ionrad79,reckrad79,recprad79,sie79,sii79,sir79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bfp079, bfp179, bfpt79
 !$OMP THREADPRIVATE(bfp079,bfp179,bfpt79)
   vectype, dimension(MAX_PTS, OP_NUM) :: bf079, bf179, bft79
@@ -615,8 +615,10 @@ contains
 
     real :: fac
     real :: p_floor
-    integer :: izone, ieqsub, fields, i
+    integer :: izone, ieqsub, fields, i, iz
+    integer, dimension(MAX_PTS) :: izarr
     type(element_data) :: d
+    real :: kr_tmin, kr_tmax
 
     fields = fieldi
 
@@ -696,6 +698,14 @@ contains
           if(itemp.eq.1) fields = ior(fields,FIELD_TE)
        end if
        if(ikapparfunc.eq.1) fields = ior(fields,FIELD_TE)
+       if(ikapparfunc.eq.2) then
+          fields =ior(fields,FIELD_TE)
+          !fields = ior(ior(fields,FIELD_N),FIELD_P)
+          !if(itemp.eq.1) then
+          !   fields =ior(fields,FIELD_TE)
+          !   if(ipres.eq.1) fields = ior(fields,FIELD_TI)
+          !end if
+       end if
     end if
     if(iand(fields, FIELD_DENM).eq.FIELD_DENM) then
        if(idenmfunc.eq.1) then
@@ -1108,30 +1118,6 @@ contains
      end if
   endif
 
-  ! VOR
-  ! ~~~
-  if(iand(fields, FIELD_VOR).eq.FIELD_VOR) then
-     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   vor..."
-
-     if(ilin.eq.0) then
-        call eval_ops(itri, vor_field, vot79)
-     else
-        vot79 = 0.
-     end if
-  endif
-
-  ! COM
-  ! ~~~
-  if(iand(fields, FIELD_COM).eq.FIELD_COM) then
-     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   com..."
-
-     if(ilin.eq.0) then
-        call eval_ops(itri, com_field, cot79)
-     else
-        cot79 = 0.
-     end if
-  endif
-
 
   ! B2I
   ! ~~~
@@ -1200,10 +1186,12 @@ contains
         eta79 = 0.
         eta79(:,OP_1) = eta_vac
      else if(izone.eq.2) then
+        call get_zone_index(itri,iz)
+        izarr = iz
         eta79 = 0.
-        eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79)
+        eta79(:,OP_1) = wall_resistivity(x_79,phi_79,z_79,izarr)
         etaRZ79 = 0
-        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79)
+        etaRZ79(:,OP_1) = wall_resistivityRZ(x_79,phi_79,z_79,izarr)
      else 
         if(iresfunc.eq.2) then
            if(linear.eq.1) then
@@ -1481,11 +1469,49 @@ contains
         call eval_ops(itri, kappa_field, kap79)
      end if
 
-     call eval_ops(itri, kappar_field, kar79)
-
      if(ikapscale.eq.1) then
         kar79 = kappar*kap79
-     endif
+     else if(ikapparfunc.eq.2) then
+
+        ! Here eta79 = 1/T^1.5 .  Factor of efac is included later
+        kar79 = 0.
+        if(izone.eq.1) then
+
+           kar79(:,OP_1) = kappar_max / krfac
+
+           ! Te
+           temp79b = tet79(:,OP_1)
+           
+           kr_tmin = (kappar_min/krfac)**0.4
+           kr_tmax = (kappar_max/krfac)**0.4
+           if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "kr_tlims", kr_tmin, kr_tmax
+           where(real(temp79b).lt.(kappar_max/krfac)**0.4 .and. &
+                 real(temp79b).gt.(kappar_min/krfac)**0.4)
+              temp79a = sqrt(temp79b)
+              kar79(:,OP_1 ) = temp79a**5
+              kar79(:,OP_DR) = (5./2.) * temp79a**3 * tet79(:,OP_DR)
+              kar79(:,OP_DZ) = (5./2.) * temp79a**3 * tet79(:,OP_DZ)
+              kar79(:,OP_DRR) = (15./4.) * temp79a * tet79(:,OP_DR)**2 &
+                   + (5./2.) * temp79a**3 * tet79(:,OP_DRR)
+              kar79(:,OP_DRZ) = (15./4.) * temp79a * tet79(:,OP_DR) * tet79(:,OP_DZ)  &
+                   + (5./2.) * temp79a**3 * tet79(:,OP_DRZ)
+              kar79(:,OP_DZZ) = (15./4.) * temp79a *  tet79(:,OP_DZ)**2 &
+                   + (5./2.) * temp79a**3 * tet79(:,OP_DZZ)
+              
+#ifdef USE3D
+              kar79(:,OP_DP) = (5./2.) * tet79(:,OP_DP) * temp79a**3
+#endif
+           end where
+
+           kar79 = kar79 * krfac
+           where(kar79.ne.kar79) kar79 = 0.
+           where(real(kar79(:,OP_1)).lt.kappar_min) kar79(:,OP_1) = kappar_min
+           where(real(kar79(:,OP_1)).gt.kappar_max) kar79(:,OP_1) = kappar_max
+        end if
+     else
+        call eval_ops(itri, kappar_field, kar79)
+     end if
+
      kax79 = 0.
      kax79(:,OP_1) = kappax
   end if

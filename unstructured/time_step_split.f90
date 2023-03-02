@@ -619,6 +619,7 @@ end subroutine finalize_matrices_split
 subroutine import_time_advance_vectors_split
   use basic
   use arrays
+  use runaway_mod
 
   implicit none
 
@@ -658,6 +659,7 @@ subroutine import_time_advance_vectors_split
 
   den_v = den_field(1)
   ne_v = ne_field(1)
+  if(irunaway .eq. 2) call runaway_advance
   if(irunaway .gt. 0) nre_v = nre_field(1)
   if(imp_bf.eq.1) bfp_v = bfp_field(1)
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)
@@ -762,6 +764,7 @@ subroutine step_split(calc_matrices)
   use transport_coefficients
   use auxiliary_fields
   use m3dc1_vel_prof
+  use hypervisc
 
   implicit none
 
@@ -886,7 +889,7 @@ call PetscLogStagePop(jer)
    
      ! apply smoothing operators
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-     call smooth_velocity(u_v, chi_v)
+     call apply_hyperv(u_v, vz_v, chi_v)
   end if
   
   ! Advance Density

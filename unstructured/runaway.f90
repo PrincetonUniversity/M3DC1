@@ -99,7 +99,6 @@ contains
     tmp = 0.
     nretmp = 0.
     Dens1 = Dens 
-    !if (Dens1 .lt. 2.D19) Dens1 = 2.D19
     
     if(mr.ne.0) then 
       re_79 = 0.D0
@@ -109,7 +108,6 @@ contains
              
 !   based on formula in Stahl, et al, PRL 114 115002 (2015)
     teval = max(1.,Temp)   ! note: this sets a minimum temperature of 1 eV for runaway production
-    !jsign = sign(1.,epar)
     esign = sign(1., epar)
        jpar = nre!*ec*cre*va
        nra = nre/ec/cre/va 
@@ -119,12 +117,11 @@ contains
           Ecrit = ec**3*Dens1*Clog/(4*pi*eps0**2*me*c**2) 
           vth = sqrt(2*ec*Temp/me)
           nu = Dens1*ec**4*Clog/(4*pi*eps0**2*me**2*vth**3)
-          !tau = me*(cre*va)**3/(4*pi*Dens1*ec**4*Clog)
           tau = me*c/ec/Ecrit
           a = sqrt((1/ri-xmag)**2+(z-zmag)**2)
           r = sqrt(1/ri**2+z**2)
           gamma = 1/(1+1.46*sqrt(a/r)+1.72*a/r) 
-          x = (abs(re_epar)*2*ec*Temp)/(Ecrit*me*c**2)
+          x = (abs(re_epar)*ec*Temp)/(Ecrit*me*c**2)
           Ed = abs(re_epar)/Ecrit
           if(Ed < 1) Ed = 1
           if(abs(re_epar).gt.Ecrit) then
@@ -133,20 +130,14 @@ contains
               sa = nra/tau/Clog*sqrt(pi*gamma/3/(Zeff+5))*(Ed-1)* &
                  1/sqrt(1-1/Ed+4*pi*(Zeff+1)**2/3/gamma/(Zeff+5)/(Ed**2+4/gamma**2-1)) 
               dndt = (sd*esign + sa)*cre*ec*va
-              !if (re_epar .ge. 0) then
                  nrel = nre + dndt*dt_si
-              !else
-              !   nrel = nre !- esign*dndt*dt_si*cre*ec*va
-              !endif 
           else
               nrel = nre 
               dndt = 0.
           end if
 
        else
-           re_epar = 0.
            nrel = nre
-           dndt = 0.
        endif
     
        re_79 = nrel
@@ -170,7 +161,6 @@ contains
     vectype, dimension(MAX_PTS) :: epar, te, ne, nre, eta
     vectype, dimension(MAX_PTS) :: dndt, re_79, re_j79, &
                                    re_epar, ecrit, bz, bi  
-    !vectype, dimension(MAX_PTS, OP_NUM) :: epar79
     vectype, dimension(dofs_per_element) :: dofs
     integer, dimension(MAX_PTS) :: mr, tmp
 
@@ -202,7 +192,6 @@ contains
 
     ! convert back to normalized units
     dndt = dndt*t0_norm/(j0_norm/c/1e-3)
-    if(myrank.eq.0) print*, 'dndt=',dndt
 
     re_79 = re_79*(c*1e-3)/j0_norm!/(n0_norm*1e6)
 
@@ -245,13 +234,7 @@ contains
 
     if(irunaway.eq.0) return
 
-    if(iprint.ge.1) print *, 'Solving RE advance'
-    !call sum_shared(dnre_field1%vec)
-    !call newsolve(mass_mat_lhs%mat,dnre_field1%vec,ier)
     call newvar_solve(jre_field%vec, mass_mat_lhs)
-
-    !call sum_shared(dnre_field2%vec)
-    !call newsolve(mass_mat_lhs%mat,dnre_field2%vec,ier)
 
     nre_field(1) = jre_field
     dnre_field2 = 0.
@@ -259,6 +242,45 @@ contains
     jre_field = 0.
 
   end subroutine runaway_advance
+
+  subroutine smooth_runaway
+    use basic
+    use m3dc1_nint
+    use newvar_mod
+    use diagnostics
+    use math
+    implicit none
+
+    vectype, dimension(MAX_PTS) :: jre
+    vectype, dimension(MAX_PTS, OP_NUM) :: jre79
+    vectype, dimension(dofs_per_element) :: dofs
+    integer :: numelms, itri
+    numelms = local_elements()    
+    jre_field = 0.     
+    do itri=1, numelms
+       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+       call define_fields(itri,0,1,0)
+       call eval_ops(itri, nre_field(1), jre79,rfac)
+
+       where(real(jre79(:,OP_1)) .ge. 0.0)
+               jre79(:,OP_1) = 0.0
+       endwhere
+
+       jre = jre79(:,OP_1)
+       dofs = intx2(mu79(:,:,OP_1),jre)
+       call vector_insert_block(jre_field%vec,itri,1,dofs,VEC_ADD)
+    enddo
+
+    call newvar_solve(jre_field%vec, mass_mat_lhs)
+    nre_field(1) = jre_field
+    jre_field= 0.
+
+
+
+
+  end subroutine
+
+
 
      
 end module runaway_mod

@@ -48,8 +48,11 @@ class Gamma_file:
             print('WARNING: ipres not found!')
         self.pped = float(datal2[0])
         self.jped = float(datal2[1])
-        self.jeliteped = float(datal2[2])
-        if len(datal2)==4:
+        if len(datal2)>=3:
+            self.jeliteped = float(datal2[2])
+        else:
+            print('WARNING: jelite not found!')
+        if len(datal2)>=4:
             self.omegsti_max = float(datal2[3]) #Diamagnetic frequency NOT mulitplied by n, i.e. d pi / d psi / (ei ni)
         self.n_list = np.asarray(n_list,dtype=int)
         self.gamma_list = np.asarray(gamma_list)

@@ -1,8 +1,8 @@
 HOST=stellar
 CMAKETYPE=Release
 MPIVER=intel2021.1.2-openmpi4.1.0
-PETSC_VER=petsc-3.13.5
-PETSCVER=petsc3.13.5
+PETSC_VER=petsc-3.15.5
+PETSCVER=petsc3.15.5
 PETSC_DIR=/projects/M3DC1/PETSC/$PETSC_VER
 PETSC_ARCH=real-$MPIVER
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
@@ -15,8 +15,8 @@ cmake .. \
   -DCMAKE_C_COMPILER=/usr/local/openmpi/4.1.0/intel20211/bin/mpicc \
   -DCMAKE_CXX_COMPILER=/usr/local/openmpi/4.1.0/intel20211/bin/mpicxx \
   -DCMAKE_Fortran_COMPILER=/usr/local/openmpi/4.1.0/intel20211/bin/mpif90 \
-  -DCMAKE_C_FLAGS="-g -O0 -DPETSCMASTER -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS="-g -O0 -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS="-g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS="-g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic" \
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \

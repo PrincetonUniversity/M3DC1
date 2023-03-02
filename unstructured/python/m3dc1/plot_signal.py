@@ -21,7 +21,7 @@ rc('text', usetex=False)
 
 
 def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
-                scale=False, deriv=False, pspec=False, units='mks',
+                scale=False, deriv=False, pspec=False, units='mks', pts_per_probe=1,
                 time_low_lim=500, pub=False):
     """
     Plots diagnostics signal
@@ -62,14 +62,35 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
     
     time = np.asarray(sim._all_traces['time'])
     trace = sim.get_signal('mag_probes').sigvalues
-    nprobes = trace.shape[1]
+    #print(trace.shape)
+    trace = np.transpose(trace)
+    #print(trace.shape)
+    nsamples = trace.shape[0]
+    #print(nsamples)
+    if float.is_integer(nsamples/pts_per_probe):
+        nprobes = int(nsamples/pts_per_probe)
+    else:
+        fpyl.printerr('ERROR: Number of magnetic probes is not an integer. Check value of pts_per_probe!')
+        return
+
+    #print(trace.shape)
+    
+    #print(trace2.shape)
+
 
     if units.lower()=='mks':
         time = unit_conv(time, filename=filename, time=1)
     
+    
+    if pts_per_probe > 1:
+        print(trace.shape)
+        trace = np.mean(np.asarray(np.split(trace,nprobes,axis=0)),axis=1)
+        print(trace.shape)
+    
+    
     if renorm:
         for i in range(nprobes):
-            trace[:,i] = compensate_renorm(trace[:,i])
+            trace[i,:] = compensate_renorm(trace[i,:])
     
     # ToDo: Add this calculation
     if scale:
@@ -78,11 +99,12 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
         for i in range(nprobes):
             tg = time*gamma
             tg = tg.astype(np.float64)
-            trace[:,i] = trace[:,i]/np.exp(tg)/trace[-1,i]
+            trace[i,:] = trace[i,:]/np.exp(tg)/trace[-1,i]
     
     if deriv:
         for i in range(nprobes):
-            trace[:,i] = fpyl.deriv(trace[:,i],time)
+            trace[i,:] = fpyl.deriv(trace[i,:],time)
+    
     
     
     # Set font sizes and plot style parameters
@@ -105,20 +127,23 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
         timestep = time[1]-time[0]
         time = fftshift(fftfreq(len(time), d=timestep))
         for i in range(nprobes):
-            trace[:,i] = trace[:,i]/np.amax(trace[:,i])
-            temp = 1.0/len(trace[:,i])*fft(trace[:,i])
-            tracefft[:,i] = np.abs(fftshift(temp*np.amax(trace[:,i])))**2
-            
-            peak_ind = np.argmax(tracefft[:,i])
+            trace[i,:] = trace[i,:]/np.amax(np.abs(trace[i,:]))#use max of absolute value, because freq can be negative and thus max would be 0
+            temp = 1.0/len(trace[i,:])*fft(trace[i,:])
+            if i==1:
+                print(trace[i,:])
+            tracefft[i,:] = np.abs(fftshift(temp*np.amax(trace[i,:])))**2
+            if i==1:
+                print(tracefft[i,:])
+            peak_ind = np.argmax(tracefft[i,:])
             if units.lower()=='mks':
                 print('Probe {i}: Signal peaks at a frequency of {freq:.2f} Hz'.format(i = i, freq = time[peak_ind]))
             elif units.lower()=='m3dc1':
                 print('Probe {i}: Signal peaks at a frequency of {freq:.6f} / Alfven time'.format(i = i, freq = time[peak_ind]))
             
-            #print(np.any(np.iscomplex(fft(trace[:,i]))),np.iscomplex(np.amax(trace[:,i])))
-            #tracefft[:,i] = tracefft[:,i]*np.amax(trace[:,i])
-            #tracefft[:,i] = fftshift(tracefft[:,i])
-            #tracefft[:,i] = np.abs(tracefft[:,i])**2
+            #print(np.any(np.iscomplex(fft(trace[i,:]))),np.iscomplex(np.amax(trace[i,:])))
+            #tracefft[i,:] = tracefft[i,:]*np.amax(trace[i,:])
+            #tracefft[i,:] = fftshift(tracefft[i,:])
+            #tracefft[i,:] = np.abs(tracefft[i,:])**2
         trace = tracefft
         
         
@@ -134,13 +159,16 @@ def plot_signal(signal='mag_probes', filename='C1.h5', sim=None, renorm=False,
     
 
     for i in range(nprobes):
-        plt.plot(time,trace[:,i],lw=linew,label='probe: '+str(i))
+        plt.plot(time,trace[i,:],lw=linew,label='probe: '+str(i))
     #plt.plot(time,np.imag(tracefft))
     plt.grid(True)
     ax = plt.gca()
     ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
     plt.ticklabel_format(axis='y', style='sci',useOffset=False)
-    plt.legend(fontsize=legfs)
+    if nprobes < 24:
+        plt.legend(fontsize=legfs,ncol=nprobes%6)
+    else:
+        fpyl.printnote('Not showing legend because of too many probes!')
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     plt.show()
     
