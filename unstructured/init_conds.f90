@@ -645,16 +645,15 @@ subroutine initial_conditions()
                 'VMEC equilibrium needs igeometry=1, iread_vmec=1, and bloat_factor=0!'
               call safestop(1)
            end if
-        case(41) ! Free boundary stellarator
-           if (igeometry.eq.1 .and. iread_vmec.eq.1 .and. bloat_factor.gt.0 &
-               .and. iread_ext_field.ge.1 .and. type_ext_field.ge.1) then
+#endif
+        case(41) ! Free boundary stellarator or 3D fields
+           if (iread_ext_field.ge.1 .and. type_ext_field.ge.1) then
               call load_stellarator_field
            else 
               if(myrank.eq.0) print *, &
                 "Invalid input: Free boundary stellarator needs external field."
               call safestop(1)
            end if
-#endif
         end select
      end if
   end if

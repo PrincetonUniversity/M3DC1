@@ -66,9 +66,8 @@ subroutine rmp_per
 end subroutine rmp_per
 
 !==============================================================================
-! For free boundary stellarator only
+! For free boundary stellarator and 3D fields 
 
-#ifdef USEST
 subroutine load_stellarator_field
   use basic
   use arrays
@@ -130,17 +129,24 @@ subroutine read_stellarator_field(field_name)
 
   if(field_name(1:10).eq.'fieldlines') then
     call load_fieldlines_field(sf(iread_ext_field), field_name,ierr)
+#ifdef USEST
   else if(field_name(1:5).eq.'mgrid') then
     call load_mgrid_field(sf(iread_ext_field), field_name, vmec_filename, ierr)
+#endif
   else
     if(myrank.eq.0) print *, &
       'ERROR: Invalid ext_field. Currently only FIELDLINES and MGRID supported'
     call safestop(51)
   end if
+  if(ierr.lt.0) then 
+     if(myrank.eq.0) then 
+        print *, "Error: could not open file: ", field_name
+     end if
+     call safestop(50)
+  end if
 
 end subroutine read_stellarator_field
 
-#endif
 
 !==============================================================================
 ! Deallocate sf field
