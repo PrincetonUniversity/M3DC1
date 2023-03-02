@@ -51,13 +51,12 @@ subroutine rmp_per
         call calculate_external_field_ft(sf(l), ntor)
 #endif
      end do
-  else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! Stellarator/3D field to be substracted
-    ! load vacuum field to be subtracted
+  else if(type_ext_field.eq.2) then ! Stellarator/3D vacuum field 
     allocate(sf(iread_ext_field))
     call read_stellarator_field(file_ext_field)
   else
     if(myrank.eq.1) print *, &
-      'ERROR: RMP fields require type_ext_field < 0.'  
+      'ERROR: RMP fields require type_ext_field < 0 or =2.'
     call safestop(58)
   end if
 
@@ -102,7 +101,7 @@ subroutine load_stellarator_field
 
   else if(type_ext_field.eq.2 .and. extsubtract.eq.0) then
     if(myrank.eq.0) print *, &
-      'ERROR: type_ext_field=2 requires extsubtract=1'
+      'ERROR: type_ext_field=2 requires extsubtract=1 when itaylor=41'
     call safestop(57)
   else
     if(myrank.eq.0) print *, &
@@ -607,12 +606,16 @@ subroutine calculate_external_fields
      if(extsubtract.eq.1) then
         bz_ext = bz_f  ! For all cases: RMP, error fields, ST
         bf_ext = bf_f
-        if (type_ext_field.ge.1) then ! For free boundary stellarator
+        if (type_ext_field.ge.1 .and. (itaylor.eq.40 .or. itaylor.eq.41)) then 
+        ! subtract vacuum from total field
           call mult(bz_f, -1.)
           call mult(bf_f, -1.)
-          call add(bz_field(1), bz_f)
-          call add(bf_field(1), bf_f) 
+          call add(bz_field(0), bz_f)
+          call add(bf_field(0), bf_f) 
         end if
+     else if(itaylor.eq.41) then
+        bz_field(0) = bz_f
+        bf_field(0) = bf_f
      else
         bz_field(1) = bz_f
         bf_field(1) = bf_f
@@ -628,21 +631,36 @@ subroutine calculate_external_fields
   if(extsubtract.eq.1) then
      psi_ext = psi_f ! For all cases: RMP, error fields, ST
      bfp_ext = bfp_f
-     if (type_ext_field.ge.1) then ! For free boundary stellarator
+     if (type_ext_field.ge.1 .and. (itaylor.eq.40 .or. itaylor.eq.41)) then 
+     ! subtract vacuum from total field
        call mult(psi_f, -1.)
        call mult(bfp_f, -1.)
-       call add(psi_field(1), psi_f)
-       call add(bfp_field(1), bfp_f)
+       call add(psi_field(0), psi_f)
+       call add(bfp_field(0), bfp_f) 
      end if
+  else if(itaylor.eq.41) then
+     psi_field(0) = psi_f
+     bfp_field(0) = bfp_f
   else
      psi_field(1) = psi_f
      bfp_field(1) = bfp_f
   end if
 
-  if(iflip_b.eq.1) call mult(bz_field(1), -1.)
+  if(iflip_b.eq.1) then 
+     if(itaylor.eq.41) then
+        call mult(bz_field(0), -1.)
+     else
+        call mult(bz_field(1), -1.)
+     end if
+  end if
   if(iflip_j.eq.1) then
-     call mult(psi_field(1), -1.)
-     call mult(bfp_field(1), -1.)
+     if(itaylor.eq.41) then
+        call mult(psi_field(0), -1.)
+        call mult(bfp_field(0), -1.)
+     else 
+        call mult(psi_field(1), -1.)
+        call mult(bfp_field(1), -1.)
+     end if
   end if
 
   call destroy_vector(psi_vec)
@@ -727,6 +745,8 @@ subroutine tf_shift_tilt
   call newvar_solve(ff%vec, mass_mat_lhs)
   if(extsubtract.eq.1) then 
      call add(bf_ext, ff)
+  else if(itaylor.eq.41) then
+     call add(bf_field(0), ff)
   else
      call add(bf_field(1), ff)
   end if
@@ -735,6 +755,8 @@ subroutine tf_shift_tilt
   call newsolve(mass_mat_lhs%mat, fpf%vec, ier)
   if(extsubtract.eq.1) then
      call add(bfp_ext, fpf)
+  else if(itaylor.eq.41) then
+     call add(bfp_field(0), fpf)
   else
      call add(bfp_field(1), fpf)
   end if
@@ -743,6 +765,8 @@ subroutine tf_shift_tilt
   call newsolve(mass_mat_lhs%mat, bzf%vec, ier)
   if(extsubtract.eq.1) then
      call add(bz_ext, bzf)
+  else if(itaylor.eq.41) then
+     call add(bz_field(0), bzf)
   else 
      call add(bz_field(1), bzf)
   end if
