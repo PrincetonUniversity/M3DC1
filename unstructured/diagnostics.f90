@@ -1026,7 +1026,7 @@ subroutine calculate_scalars()
      end if
 
      ! add surface terms
-     call boundary_edge(itri, is_edge, n, idim)
+     call boundary_edge(itri, is_edge, n, idim, BOUND_FIRSTWALL)
 
      do iedge=1,3
         if(is_edge(iedge).eq.0) cycle
