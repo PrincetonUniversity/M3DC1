@@ -33,7 +33,7 @@ def reduce_ts(fields, time=0, write_mesh=True):
     List of fields to keep in the new time slice file.
 
     **time**
-    The time-slice which will be used for the field plot. If time='last', the last time slice will be used.
+    The integer number identifying the time slice for which the fields will be written.
 
     **write_mesh**
     If True, retain mesh information in new file. If False, only the fields will be written.
