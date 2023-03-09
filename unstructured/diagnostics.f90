@@ -46,7 +46,7 @@ module diagnostics
        ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
-       emag3h,emag3d,emag3ho,emag3do, avep
+       emag3h,emag3d,emag3ho,emag3do, avep,emagpv,emagtv,emagpc,emagtc
   real :: efluxp,efluxk,efluxs,efluxt,epotg,etot,ptot,eerr,ptoto
 
   ! in subroutine calculate_ke()
@@ -203,6 +203,10 @@ contains
     efluxs = 0.
     efluxt = 0.
     epotg = 0.
+    emagpc = 0.
+    emagtc = 0.
+    emagpv = 0.
+    emagtv = 0.
 
     ptot = 0.
 
@@ -289,7 +293,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 76
+    integer, parameter :: num_scalars = 80
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, allocatable  :: ptemp(:)
@@ -372,6 +376,10 @@ contains
        temp(74) = pinj
        temp(75) = totkprad
        temp(76) = totkprad0
+       temp(77) = emagpc
+       temp(78) = emagtc
+       temp(79) = emagpv
+       temp(80) = emagtv
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -453,6 +461,10 @@ contains
        pinj            = temp2(74)
        totkprad        = temp2(75)
        totkprad0       = temp2(76)
+       emagpc          = temp2(77)
+       emagtc          = temp2(78)
+       emagpv          = temp2(79)
+       emagtv          = temp2(80)
 
        if(ipellet_abl.gt.0) then
           allocate(ptemp(npellets))
@@ -781,7 +793,7 @@ subroutine calculate_scalars()
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -802,7 +814,7 @@ subroutine calculate_scalars()
      end if
 #endif
 
-     if(imulti_region.eq.1 .and. izone.eq.2) then
+     if(imulti_region.eq.1 .and. izone.eq.ZONE_CONDUCTOR) then
         wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
 
         call jxb_r(temp79a, temp79d)
@@ -828,7 +840,17 @@ subroutine calculate_scalars()
 #endif
      end if
 
-     if(izone.ne.1) cycle
+     if(izone.eq.ZONE_CONDUCTOR) then
+        emagpc  = emagpc + twopi*energy_mp()/tpifac
+        emagtc  = emagtc + twopi*energy_mt()/tpifac
+     end if
+
+     if(izone.eq.ZONE_VACUUM) then
+        emagpv  = emagpv + twopi*energy_mp()/tpifac
+        emagtv  = emagtv + twopi*energy_mt()/tpifac
+     end if
+
+     if(izone.ne.ZONE_PLASMA) cycle
 
      do i=1, npoints
         if(linear.eq.1) then
@@ -867,7 +889,6 @@ subroutine calculate_scalars()
      if(ike_only.eq.1) cycle
 
      emagp  = emagp  + twopi*energy_mp ()/tpifac
-     w_m    = w_m    + twopi*energy_mp (mr)/tpifac
      emagpd = emagpd + twopi*energy_mpd()/tpifac
 !     emagph = emagph - twopi*qpsipsieta(tm79)/tpifac
 
@@ -878,6 +899,7 @@ subroutine calculate_scalars()
      emag3 = emag3 + twopi*energy_p()/tpifac
      w_pe = w_pe + twopi*energy_pe()/tpifac
      w_p  = w_p +  twopi*energy_p(mr)/tpifac
+     w_m  = w_m + twopi*energy_mp(mr)/tpifac
 
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~

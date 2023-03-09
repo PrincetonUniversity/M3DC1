@@ -819,6 +819,7 @@ function resistivity_func(izone_index)
                 (1. + tanh((temp79b-(1.+etaoff))/etadelt))
         else
            if(myrank.eq.0) print *, 'iresfunc = 21 requires igeometry = 1'
+           call safestop(73)
         end if
 #endif     
 
@@ -930,6 +931,7 @@ function viscosity_func()
              (1. + tanh((temp79b-(1.+amuoff))/amudelt))
      else
         if(myrank.eq.0) print *, 'ivisfunc = 21 requires igeometry = 1'
+        call safestop(73)
      end if
 #endif     
 
@@ -1068,6 +1070,18 @@ function kappa_func()
         end if
         temp79a(j) = val
      end do
+
+#ifdef USEST
+  case(21)
+     if(igeometry.eq.1) then
+        temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+        temp79a = kappa0 * &
+             (1. + tanh((temp79b-(1.+kappaoff))/kappadelt))
+     else
+        if(myrank.eq.0) print *, 'ikappafunc = 21 requires igeometry = 1'
+        call safestop(73)
+     end if
+#endif
 
   case default
      if(myrank.eq.0) print *, 'Error: invalid value for ikappafunc: ', ikappafunc

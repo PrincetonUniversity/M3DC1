@@ -23,11 +23,11 @@ from m3dc1.plot_mesh import plot_mesh
 
 
 def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, linear=False,
-               diff=False, phi_res=100, res=250, mesh=False, bound=False, units='mks',cont_levels=100,
+               diff=False, phi_res=100, res=250, mesh=False, bound=False, planes=True, units='mks',cont_levels=100,
                prange=None, cmap='viridis', cmap_midpt=None, quiet=False,
                save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False):
     """
-    Plots a field in the R,Z plane.
+    Plots a field as a function of either R or Z and toroidal angle phi.
     
     Arguments:
 
@@ -91,6 +91,10 @@ def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=No
     True/False
     Only plot boundary. Only works when mesh is true
 
+    **planes**
+    True/False
+    Overlay location of toroidal planes on top of plot.
+
     **cont_levels**
     Number of contour levels.
 
@@ -151,8 +155,8 @@ def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=No
         ticklblfs = None
     
     if coord not in ['vector', 'tensor']:
-        fig, axs = plt.subplots(1, 1)
-        fig.set_figheight(7)
+        fig, axs = plt.subplots(1, 1,figsize=(6.4,4.8))
+        #fig.set_figheight(7)
         axs = np.asarray([axs])
     else:
         fig, axs = plt.subplots(1, 3, sharey=True,figsize=(14,7))
@@ -183,6 +187,18 @@ def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=No
             bound = False
         meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys)
     
+    if planes:
+        tp_file = open("plane_positions", "r")
+        data = tp_file.readlines()
+        tp_file.close()
+        temp = [d.replace('\n', '') for d in data]
+        tor_planes = np.asarray(temp).astype(float)
+        for tp in tor_planes:
+            if cutr is not None and cutz is None:
+                plt.axvline(x=tp,c='C1')
+            elif cutz is not None and cutr is None:
+                plt.axhline(y=tp,c='C1')
+    
     for i,ax in enumerate(axs):
         if cmap_midpt is not None:
             field1_ave_clean = field1_ave[i][np.logical_not(np.isnan(field1_ave[i]))]
@@ -208,7 +224,7 @@ def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=No
                 if cutr is not None and cutz is None:
                     cont = ax.contourf(phi_ave, Z_ave, field1_ave[i],cont_levels, cmap=cmap)
                 elif cutz is not None and cutr is None:
-                    print(R_ave.shape,phi_ave.shape,field1_ave[i].shape)
+                    #print(R_ave.shape,phi_ave.shape,field1_ave[i].shape)
                     cont = ax.contourf(R_ave, phi_ave, field1_ave[i],cont_levels, cmap=cmap)
         # Set and format axes limits and labels
         if phys:

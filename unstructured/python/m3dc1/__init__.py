@@ -42,6 +42,8 @@ from m3dc1.eigenfunction        import eigenfunction
 from m3dc1.eigenfunction        import mode_type
 from m3dc1.extend_profile       import extend_profile
 from m3dc1.mesh_size            import mesh_size
+from m3dc1.tpf                  import tpf
+from m3dc1.tpf                  import tpf_vs_t
 from m3dc1                      import read_h5
 from m3dc1.compare_kinetic_profiles         import compare_kinetic_profiles
 
@@ -55,7 +57,9 @@ from m3dc1.gfile                import plot_jphi
 
 from m3dc1.plot_coils           import plot_coils
 
+from m3dc1.get_time_of_slice    import get_time_of_slice
 from m3dc1.reduce_ts            import reduce_ts
+from m3dc1.input_vs_t       import input_vs_t
 
 #Modules in development
 try:

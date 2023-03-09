@@ -2,29 +2,33 @@
 ; Plots the change in various energies over time
 ; fluxes can be a list of strings corresponding to flux fields that will be integrated and added to lost energy
 ; For energy conservation, the dashed line should be zero
-pro energy_conservation,  filename=filename, poloidal=poloidal, xrange=xrange, yrange=yrange, fluxes=fluxes, comp=comp, _EXTRA=ex
+pro energy_conservation,  filename=filename, poloidal=poloidal, xrange=xrange, yrange=yrange, fluxes=fluxes, comp=comp, overplot=overplot, _EXTRA=ex
 
-  E = energy(filename=filename, components=comp, names=names, t=t)
+  E = energy(filename=filename, components=comp, names=names, t=t, $
+             xtitle=xtitle, ytitle=ytitle, _EXTRA=ex)
+
   Nflux = n_elements(fluxes)
   if (Nflux eq 0) then fluxes = []
   if keyword_set(poloidal) then begin
     fluxes = [fluxes, 'pohm']
     Nflux = Nflux + 1
   endif
-  
+
   names = [['Total'],names] 
-    
-  Ncomp = 6 + Nflux
+
+  Norig = n_elements(comp[*,0])
+  Ncomp = Norig + Nflux
   Scomp = strarr(Ncomp)
   
   if (Nflux gt 0) then begin
     comp2 = fltarr(Ncomp,n_elements(E))
-    comp2[0:5,*] = comp
+    comp2[0:Norig-1,*] = comp
     for i=0,Nflux-1 do begin
-      comp2[6+i,*] = read_scalar(fluxes[i],filename=filename,/int)
-      names = [names, '!Mi '+fluxes[i]]
-      names = [names, 'Total + flux']
+       comp2[Norig+i,*] = $
+          read_scalar(fluxes[i],filename=filename,/int,_EXTRA=ex)
+      names = [names, '!Mi '+fluxes[i]+'!X']
     endfor
+    names = [names, 'Total + flux']
     comp = comp2
   endif
     
@@ -47,8 +51,12 @@ pro energy_conservation,  filename=filename, poloidal=poloidal, xrange=xrange, y
   endif else begin
     ylim = max(abs(yrange))    
   endelse
-  
-  plot, [t[0],t[-1]], [0,0], thick=1, color=cols[0], xrange=xrange, yrange=yrange, linestyle=1, charsize=2,_EXTRA=ex
+
+  if(not keyword_set(overplot)) then begin
+     plot, [t[0],t[-1]], [0,0], thick=1, color=cols[0], $
+           xrange=xrange, yrange=yrange, linestyle=1, charsize=2, $
+           xtitle=xtitle, ytitle=ytitle, _EXTRA=ex
+  end
   if(not keyword_set(poloidal)) then begin
     
     oplot, t, E-E[0], thick=3, color=cols[0]
@@ -58,7 +66,7 @@ pro energy_conservation,  filename=filename, poloidal=poloidal, xrange=xrange, y
     if (n_elements(fluxes) ne 0) then begin
       cons = E
       for i=0,Nflux-1 do begin
-        cons = cons + comp[6+i,*]
+        cons = cons + comp[Norig+i,*]
       endfor
       oplot, t, cons-cons[0], thick=3, color=cols[0], linestyle=2
     endif
