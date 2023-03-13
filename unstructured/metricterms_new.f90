@@ -7906,13 +7906,27 @@ function b3pedkappa(e,f,g,h,i)
      temp79a = f(:,OP_LP)*g(:,OP_1) + f(:,OP_1)*g(:,OP_LP) &
           + 2.*(f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR))
 
+#ifdef USE3D
+     temp79a = temp79a + ri2_79* &
+          (f(:,OP_DPP)*g(:,OP_1) + f(:,OP_1)*g(:,OP_DPP) &
+          + 2.*f(:,OP_DP)*g(:,OP_DP))
+#endif
+
      if(ihypkappa.eq.1) then        
         temp = temp - hypp* &
              (intx3(e(:,:,OP_LP),temp79a,h(:,OP_1 )) &
              +intx3(e(:,:,OP_DZ),temp79a,h(:,OP_DZ)) &
              +intx3(e(:,:,OP_DR),temp79a,h(:,OP_DR)))
+#ifdef USE3D
+        temp = temp - hypp* &
+             (intx4(e(:,:,OP_DPP),ri2_79,temp79a,h(:,OP_1 )) &
+             +intx4(e(:,:,OP_DP ),ri2_79,temp79a,h(:,OP_DP)))
+#endif
      else
         temp = temp - hypp*intx2(e(:,:,OP_LP),temp79a)
+#ifdef USE3D
+        temp = temp - hypp*intx3(e(:,:,OP_DPP),ri2_79,temp79a)
+#endif
      endif
   endif
 
@@ -7962,8 +7976,25 @@ function b3tekappa(e,f,g,h)
              (intx3(e(:,:,OP_LP),f(:,OP_LP),g(:,OP_1 )) &
              +intx3(e(:,:,OP_DZ),f(:,OP_LP),g(:,OP_DZ)) &
              +intx3(e(:,:,OP_DR),f(:,OP_LP),g(:,OP_DR)))
+#ifdef USE3D
+        temp = temp - hypp* &
+             (intx4(e(:,:,OP_LP ),ri2_79,f(:,OP_DPP),g(:,OP_1 )) &
+             +intx4(e(:,:,OP_DPP),ri2_79,f(:,OP_LP ),g(:,OP_1 )) &
+             +intx4(e(:,:,OP_DPP),ri4_79,f(:,OP_DPP),g(:,OP_1 )) &
+             +intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DPP),g(:,OP_DZ)) &
+             +intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DPP),g(:,OP_DR)) &
+             +intx4(e(:,:,OP_DP),ri2_79,f(:,OP_LP ),g(:,OP_DP)) &
+             +intx4(e(:,:,OP_DP),ri4_79,f(:,OP_DPP),g(:,OP_DP)))
+
+#endif
      else
         temp = temp - hypp*intx2(e(:,:,OP_LP),f(:,OP_LP))
+#ifdef USE3D
+        temp = temp - hypp* &
+             (intx3(e(:,:,OP_LP ),ri2_79,f(:,OP_DPP)) &
+             +intx3(e(:,:,OP_DPP),ri2_79,f(:,OP_LP )) &
+             +intx3(e(:,:,OP_DPP),ri4_79,f(:,OP_DPP)))
+#endif
      endif
   endif
 
@@ -8096,8 +8127,20 @@ function n1ndenm(e,f,g,h)
   if(hypp.ne.0.) then
      if(ihypkappa.eq.1) then
         temp = temp - hypp*intx3(e(:,:,OP_LP),f(:,OP_LP),g(:,OP_1))
+#ifdef USE3D
+        temp = temp - hypp* &
+             (intx4(e(:,:,OP_LP ),ri2_79,f(:,OP_DPP),g(:,OP_1)) &
+             +intx4(e(:,:,OP_DPP),ri2_79,f(:,OP_LP ),g(:,OP_1)) &
+             +intx4(e(:,:,OP_DPP),ri4_79,f(:,OP_DPP),g(:,OP_1)))
+#endif
      else
         temp = temp - hypp*intx2(e(:,:,OP_LP),f(:,OP_LP))
+#ifdef USE3D
+        temp = temp - hypp* &
+             (intx3(e(:,:,OP_LP ),ri2_79,f(:,OP_DPP)) &
+             +intx3(e(:,:,OP_DPP),ri2_79,f(:,OP_LP )) &
+             +intx3(e(:,:,OP_DPP),ri4_79,f(:,OP_DPP)))
+#endif
      endif
   endif
 
@@ -8217,12 +8260,39 @@ function t3tndenm(e,f,g,h)
              + intx4(e(:,:,OP_1),f(:,OP_LP),g(:,OP_LP),h(:,OP_1))   &
              + 2.*intx4(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_LP),h(:,OP_1))&
              + 2.*intx4(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_LP),h(:,OP_1)))
+#ifdef USE3D
+        temp = temp + hypp* &
+             ( intx5(e(:,:,OP_DPP),ri2_79,f(:,OP_1),g(:,OP_LP ),h(:,OP_1))    &
+             + intx5(e(:,:,OP_LP ),ri2_79,f(:,OP_1),g(:,OP_DPP),h(:,OP_1))    &
+             + intx5(e(:,:,OP_DPP),ri4_79,f(:,OP_1),g(:,OP_DPP),h(:,OP_1))    &
+             + intx5(e(:,:,OP_1),ri2_79,f(:,OP_DPP),g(:,OP_LP ),h(:,OP_1))    &
+             + intx5(e(:,:,OP_1),ri2_79,f(:,OP_LP ),g(:,OP_DPP),h(:,OP_1))    &
+             + intx5(e(:,:,OP_1),ri4_79,f(:,OP_DPP),g(:,OP_DPP),h(:,OP_1))    &
+             + 2.*intx5(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_DPP),h(:,OP_1)) &
+             + 2.*intx5(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ),g(:,OP_DPP),h(:,OP_1)) &
+             + 2.*intx5(e(:,:,OP_DP),ri2_79,f(:,OP_DP),g(:,OP_LP ),h(:,OP_1)) &
+             + 2.*intx5(e(:,:,OP_DP),ri4_79,f(:,OP_DP),g(:,OP_DPP),h(:,OP_1)))
+#endif
+
      else
         temp = temp + hypp* &
-             (intx3(e(:,:,OP_LP),f(:,OP_1),g(:,OP_LP))   &
+             ( intx3(e(:,:,OP_LP),f(:,OP_1),g(:,OP_LP))   &
              + intx3(e(:,:,OP_1),f(:,OP_LP),g(:,OP_LP))   &
              + 2.*intx3(e(:,:,OP_DR),f(:,OP_DR),g(:,OP_LP)) &
              + 2.*intx3(e(:,:,OP_DZ),f(:,OP_DZ),g(:,OP_LP)))
+#ifdef USE3D
+        temp = temp + hypp* &
+             ( intx4(e(:,:,OP_DPP),ri2_79,f(:,OP_1),g(:,OP_LP ))    &
+             + intx4(e(:,:,OP_LP ),ri2_79,f(:,OP_1),g(:,OP_DPP))    &
+             + intx4(e(:,:,OP_DPP),ri4_79,f(:,OP_1),g(:,OP_DPP))    &
+             + intx4(e(:,:,OP_1),ri2_79,f(:,OP_DPP),g(:,OP_LP))     &
+             + intx4(e(:,:,OP_1),ri2_79,f(:,OP_LP ),g(:,OP_DPP))    &
+             + intx4(e(:,:,OP_1),ri4_79,f(:,OP_DPP),g(:,OP_DPP))    &
+             + 2.*intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_DPP)) &
+             + 2.*intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ),g(:,OP_DPP)) &
+             + 2.*intx4(e(:,:,OP_DP),ri2_79,f(:,OP_DP),g(:,OP_LP )) &
+             + 2.*intx4(e(:,:,OP_DP),ri4_79,f(:,OP_DP),g(:,OP_DPP)))
+#endif
      endif
   endif
 
