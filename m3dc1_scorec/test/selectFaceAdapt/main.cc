@@ -265,6 +265,35 @@ int main( int argc, char* argv[])
     m3dc1_field_importall();
   }
 
+  // print model face adjacency;
+  if (!PCU_Comm_Self())
+  {
+    gmi_iter* it = gmi_begin(m3dc1_model::instance()->model, 2);
+    gmi_ent* gent;
+    int gTag, gDim;
+    vector<int> adj_ids;
+
+    while ((gent = gmi_next(m3dc1_model::instance()->model, it))) 
+    {
+      std::cout<<"Model face "<<gTag<<" adjacency info\n";
+      gTag = gmi_tag(m3dc1_model::instance()->model, gent);
+      gDim = gmi_dim(m3dc1_model::instance()->model, gent);
+      adj_ids.clear();
+      get_gent_adj(2, gTag, 1, adj_ids); 
+      std::cout<<"\t adj edge: ";
+      for (vector<int>::iterator vit=adj_ids.begin(); vit!=adj_ids.end(); ++vit)
+        std::cout<<*vit<<" ";
+      std::cout<<"\n";
+      adj_ids.clear();
+      std::cout<<"\t adj vertex: ";
+       get_gent_adj(2, gTag, 0, adj_ids);  
+      for (vector<int>::iterator vit=adj_ids.begin(); vit!=adj_ids.end(); ++vit)
+        std::cout<<*vit<<" ";
+      std::cout<<"\n";
+    }
+    gmi_end(m3dc1_model::instance()->model, it);
+  }
+
   m = m3dc1_mesh::instance()->mesh; 
   int num_adapt_iter = 1; 
   if (argc>5 && atoi(argv[4])>0) 
