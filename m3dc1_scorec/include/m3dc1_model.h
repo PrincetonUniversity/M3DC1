@@ -16,18 +16,13 @@
 #include <map>
 #include <vector>
 
-void print_model(gmi_model* model);
+void get_gent_adj(int gent_dim, int gent_id, int adj_dim, std::vector<int>& adj_ids);
 
 int get_prev_plane_partid(int plane_id);
 int get_next_plane_partid(int plane_id);
 const double tol=1e-4;
 void faceFunction(double const p[2], double x[3], void * data);
 void vertexFunction(double const p[2], double x[3], void * data);
-
-void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer, 
-                       std::map<int, int>& out_edgeType, 
-                       std::map<int, std::pair<int, int> >& out_edgeContainer, 
-                       std::map< int, std::vector<int> >& out_loopContainer);
 
 inline int checkSamePoint (double a[3],double b[3])
 {
@@ -68,7 +63,6 @@ void eval_position ( int* edge, double* para, double* position );
 void eval_normal ( int* edge, double* para, double* normal );
 void eval_curvature ( int* edge, double* para, double* curvature );
 
-void save_model(const char* filename);
 void load_model(const char* filename);
 void offset_point (double * src, double * normal, double * thickness, double * des);
 

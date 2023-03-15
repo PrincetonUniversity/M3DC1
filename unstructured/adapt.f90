@@ -71,7 +71,7 @@ module adapt
 
     call create_field(temporary_field)
 #ifdef ADAPT
-    call m3dc1_field_mark4tx(temporary_field)
+    call m3dc1_field_mark4tx(temporary_field%vec%id)
 #endif
     temporary_field = 0.
 
