@@ -24,11 +24,6 @@ const double tol=1e-4;
 void faceFunction(double const p[2], double x[3], void * data);
 void vertexFunction(double const p[2], double x[3], void * data);
 
-void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer, 
-                       std::map<int, int>& out_edgeType, 
-                       std::map<int, std::pair<int, int> >& out_edgeContainer, 
-                       std::map< int, std::vector<int> >& out_loopContainer);
-
 inline int checkSamePoint (double a[3],double b[3])
 {
   double res=fabs(a[0]-b[0])+fabs(a[1]-b[1])+fabs(a[2]-b[2]);

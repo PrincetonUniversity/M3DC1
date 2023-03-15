@@ -74,32 +74,6 @@ void faceFunction(double const p[2], double x[3], void * data) {}
 void vertexFunction(double const p[2], double x[3], void * data) {}
 
 // **********************************************
-void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer, 
-                       std::map<int, int>& out_edgeType, 
-                       std::map<int, std::pair<int, int> >& out_edgeContainer, 
-                       std::map< int, std::vector<int> >& out_loopContainer)
-// **********************************************
-{
-  // copying vtxContainer
-  for(std::map<int, vector<double> >:: iterator it=vtxContainer.begin(); it!=vtxContainer.end(); ++it)
-    for (int i=0; i<it->second.size(); ++i)
-      out_vtxContainer[it->first].push_back(it->second[i]);
-
-  // copying edgeType
-  for( std::map<int, int>::iterator it=edgeType.begin(); it!=edgeType.end(); it++)
-    out_edgeType[it->first] = it->second;
-
-  // copying edgeContainer
-  for( std::map<int, std::pair<int, int> >:: iterator it=edgeContainer.begin(); it!=edgeContainer.end(); ++it)
-    out_edgeContainer[it->first]=it->second; 
-
-  // copying loopContainer
-  for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); ++it)
-    for (int i=0; i<it->second.size(); ++i)
-      out_loopContainer[it->first].push_back(it->second[i]);
-}
-
-// **********************************************
 int get_prev_plane_partid(int partid)
 // **********************************************
 {
@@ -305,24 +279,16 @@ void load_model(const char* filename)
     assert (loopContainer.find(loop)==loopContainer.end());
     
     for( int i=0; i<numE; i++)
-    {
       loopContainer[loop].push_back(edges[i]);
-      std::cout<<__func__<<"loopContainer["<<loop<<"].push_back("<<edges[i]<<")\n";
-    }
     delete [] edges;
   }
   fclose(fp);
 
   int facePeriodic[2] = {0, 0};
   double faceRanges[2][2] = {{0,0},{0,0}};
-  std::map< int, std::vector<int> >::iterator it=loopContainer.begin();
   for (int i=1; i<=numL; ++i)
-  {
     gmi_ent* ge=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
                      faceFunction, facePeriodic, faceRanges, NULL);
-    std::cout<<__func__<<" loop "<<it->first<<": model face "<<gmi_tag(m3dc1_model::instance()->model, ge)<<"\n";
-    ++it;
-  }
 }
 
 // **********************************************
