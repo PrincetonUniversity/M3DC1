@@ -5169,8 +5169,6 @@ void setSizeFieldOnVertex(ma::Entity* mV, double& xSize, double& ySize,SizeField
   sf.getValue(mV,M,H);
   xSize = H[0];
   ySize = H[1];
-  xSize = 0.05;
-  ySize = 0.05;
   dirVector[indx*3+0] = M[0][0];
   dirVector[indx*3+1] = M[0][1];
   dirVector[indx*3+2] = 0.0;
