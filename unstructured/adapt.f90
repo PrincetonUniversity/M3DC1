@@ -256,13 +256,17 @@ module adapt
     call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
     call straighten_fields()
-    !write(mesh_file_name,"(A7,I0,A)") 'initial', ntime,0
-    !call m3dc1_mesh_write (mesh_file_name, 0)
+
+#ifdef ADAPT
     if (iadaptFaceNumber.gt.0) then
         call adapt_only_model_face(temporary_field%vec%id,psimin,psibound,iadaptFaceNumber)
     else     
         call adapt_by_field(temporary_field%vec%id,psimin,psibound)
     endif
+#else
+    call adapt_by_field(temporary_field%vec%id,psimin,psibound)
+#endif
+
     write(mesh_file_name,"(A7,A)") 'adapted', 0
     if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
     if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
