@@ -93,7 +93,7 @@ class Size : public ma:: IsotropicFunction
 {
   public:
     Size(ma::Mesh* m){}
-    virtual double getValue(ma::Entity* vert) {return meshSize;} ;
+    virtual double getValue(ma::Entity* vert) {return meshSize;};
 };
 
 static void testIndexing(apf::Mesh2* m)
@@ -117,7 +117,11 @@ static void fusionAdapt(apf::Mesh2* m)
   for(int i=0; i<10; i++)
   {
     std::cout<<" iter "<<i<<std::endl;
-    ma::Input* in = ma::configure(m, &sf);
+    #ifdef OLDMA
+  	ma::Input* in = ma::configure(m, &sf);
+    #else
+	ma::Input* in = ma::makeAdvanced(ma::configure(m,&sf));
+    #endif
     in->maximumIterations = 1;
     in->shouldRunPreZoltan = true;
     in->shouldRunMidParma = true;
@@ -162,7 +166,7 @@ int main( int argc, char* argv[])
   char meshfile[256];
   sprintf(meshfile,"%s.smb",modelfile); 
   mesh->writeNative(meshfile);
-  apf::writeVtkFiles(modelfile, mesh);
+  apf::writeVtkFiles("Vtk-Mesh-File", mesh);
   std::cout<<"\n";
   mesh->verify();
   std::cout<<"\n";
