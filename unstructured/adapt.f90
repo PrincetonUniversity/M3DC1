@@ -23,13 +23,14 @@ module adapt
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
-
+  
   real :: adapt_zlow, adapt_zup
   logical :: do_z_coarsen
 
+  integer :: iadaptFaceNumber
   integer, parameter :: maxqs = 32
   real, dimension(maxqs) :: adapt_qs
-  
+ 
   contains
 
   subroutine adapt_by_psi
@@ -68,10 +69,9 @@ module adapt
     integer :: ip
 
     real :: psib
-
     call create_field(temporary_field)
 #ifdef ADAPT
-    call m3dc1_field_mark4tx(temporary_field)
+    call m3dc1_field_mark4tx(temporary_field%vec%id)
 #endif
     temporary_field = 0.
 
@@ -256,9 +256,17 @@ module adapt
     call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
     call straighten_fields()
-    !write(mesh_file_name,"(A7,I0,A)") 'initial', ntime,0
-    !call m3dc1_mesh_write (mesh_file_name, 0)
+
+#ifdef ADAPT
+    if (iadaptFaceNumber.gt.0) then
+        call adapt_only_model_face(temporary_field%vec%id,psimin,psibound,iadaptFaceNumber)
+    else     
+        call adapt_by_field(temporary_field%vec%id,psimin,psibound)
+    endif
+#else
     call adapt_by_field(temporary_field%vec%id,psimin,psibound)
+#endif
+
     write(mesh_file_name,"(A7,A)") 'adapted', 0
     if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
     if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)

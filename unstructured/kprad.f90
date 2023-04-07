@@ -12,6 +12,7 @@ module kprad
   real :: kprad_mz
 
   integer :: ikprad_max_dt ! use max dt in KPRAD evolution
+  real :: kprad_max_dt
   integer :: ikprad_evolve_internal
 
 
@@ -21,7 +22,7 @@ module kprad
 
   real, private, parameter :: kprad_min_dt_default = 1e10
   real, private :: kprad_min_dt = kprad_min_dt_default     ! minimum final timestep from previous calculation
-  real, private :: kprad_dt = 1e-10      ! kprad integration time step (in seconds)
+  real :: kprad_dt = 1e-10      ! kprad integration time step (in seconds)
 
   ! minimum values for KPRAD evolution
   integer :: ikprad_min_option
@@ -122,7 +123,15 @@ contains
     real :: dts_min, dts_max
 
     dts_min = dt/1e6
-    if(ikprad_max_dt.eq.1) dts_max = dt/(z+1.0)  ! use one step per charge state
+    dts_max = 0.
+    if(ikprad_max_dt.eq.1) then
+       dts_max = dt/(z+1.0)  ! use one step per charge state
+       if(kprad_max_dt.gt.0 .and. kprad_max_dt.lt.dts_max) &
+            dts_max = kprad_max_dt
+    else
+       if(kprad_max_dt.gt.0) dts_max = kprad_max_dt
+    end if
+
     dts = kprad_dt
     t = 0.
     dw_ion = 0.
@@ -245,7 +254,7 @@ contains
 
           ! If ne change is < 2%, increase time step
           if(max_change .lt. 0.02) dts = dts * 1.5
-          if((ikprad_max_dt.eq.1).and.(dts.gt.dts_max)) dts = dts_max
+          if((dts_max.gt.0.).and.(dts.gt.dts_max)) dts = dts_max
 
        end if
 

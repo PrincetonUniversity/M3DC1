@@ -15,8 +15,6 @@ module newvar_mod
   integer, parameter :: NV_GS_MATRIX = 2
   integer, parameter :: NV_BF_MATRIX = 3
   integer, parameter :: NV_SJ_MATRIX = 4  ! Current density smoother
-  integer, parameter :: NV_SV_MATRIX = 5  ! Vorticity smoother
-  integer, parameter :: NV_SC_MATRIX = 6  ! Compression smoother
   integer, parameter :: NV_DP_MATRIX = 7
   integer, parameter :: NV_IP_MATRIX = 8
 
@@ -203,19 +201,14 @@ end subroutine apply_bc
   integer :: numelms, itri, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
   type(vector_type) :: rhs2
-  real :: hyp
 
   ! determine the size of the matrix
   select case(itype)
-  case(NV_SJ_MATRIX,NV_SV_MATRIX,NV_SC_MATRIX)
+  case(NV_SJ_MATRIX)
      isize = 2
   case default
      isize = 1
   end select
-
-  hyp = hypc
-  if(itype.eq.NV_SV_MATRIX .and. ihypamu.eq.1) hyp = hypc*amu
-  if(itype.eq.NV_SC_MATRIX .and. ihypamu.eq.1) hyp = hypc*amuc
 
 #ifdef REORDERED
   call create_mat(mat%mat, isize, isize, icomplex, is_lhs, agg_blk_cnt, agg_scp)
@@ -276,36 +269,6 @@ end subroutine apply_bc
            temp(:,:,1,2) = (1.-thimpsm)*&
                 intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
            temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-        end if
-
-     case(NV_SV_MATRIX)
-        if(is_lhs .eq. 1) then
-           temp(:,:,1,1) =  intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-           temp(:,:,1,2) = -intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
-           temp(:,:,2,1) = dt*hyp*thimpsm* &
-                intxx2(mu79(:,:,OP_GS),nu79(:,:,OP_GS))
-           temp(:,:,2,2) = -temp(:,:,1,2)
-           if((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) &
-                temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
-        else
-           temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1)) &
-                -dt*hypf*(1.-thimpsm)* &
-                intxx2(mu79(:,:,OP_GS),nu79(:,:,OP_GS))
-        end if
-        
-     case(NV_SC_MATRIX)
-        if(is_lhs .eq. 1) then
-           temp(:,:,1,1) =  intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-           temp(:,:,1,2) = -intxx2(mu79(:,:,OP_1),nu79(:,:,OP_LP))
-           temp(:,:,2,1) = dt*hyp*thimpsm* &
-                intxx2(mu79(:,:,OP_LP),nu79(:,:,OP_LP))
-           temp(:,:,2,2) = -temp(:,:,1,2)
-           if((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) &
-                temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
-        else
-           temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1)) &
-                -dt*hypf*(1.-thimpsm)* &
-                intxx2(mu79(:,:,OP_LP),nu79(:,:,OP_LP))
         end if
         
      case(NV_DP_MATRIX)              

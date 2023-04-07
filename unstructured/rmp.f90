@@ -51,9 +51,12 @@ subroutine rmp_per
         call calculate_external_field_ft(sf(l), ntor)
 #endif
      end do
+  else if(type_ext_field.eq.2) then ! Stellarator/3D vacuum field 
+    allocate(sf(iread_ext_field))
+    call read_stellarator_field(file_ext_field)
   else
     if(myrank.eq.1) print *, &
-      'ERROR: RMP fields require type_ext_field < 0.'  
+      'ERROR: RMP fields require type_ext_field < 0 or =2.'
     call safestop(58)
   end if
 
@@ -66,9 +69,8 @@ subroutine rmp_per
 end subroutine rmp_per
 
 !==============================================================================
-! For free boundary stellarator only
+! For free boundary stellarator and 3D fields 
 
-#ifdef USEST
 subroutine load_stellarator_field
   use basic
   use arrays
@@ -84,23 +86,22 @@ subroutine load_stellarator_field
   if(type_ext_field.eq.1) then ! Free boundary stellarator (no field subtraction)
 
     call read_stellarator_field(file_total_field)
+    call calculate_external_fields
+    call deallocate_sf
 
-  else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! With field substraction. ST only.
+  else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! With field substraction 
 
-    ! First load the total field
+    ! First load the total field while temporarily setting extsubtract=0
     extsubtract = 0
     call read_stellarator_field(file_total_field)
     call calculate_external_fields
     call deallocate_sf
-
-    ! Then load field to be subtracted off (e.g. vacuum)
-    allocate(sf(iread_ext_field))
+    ! Then reset extsubtract=1
     extsubtract = 1
-    call read_stellarator_field(file_ext_field) 
 
   else if(type_ext_field.eq.2 .and. extsubtract.eq.0) then
     if(myrank.eq.0) print *, &
-      'ERROR: type_ext_field=2 requires extsubtract=1'
+      'ERROR: type_ext_field=2 requires extsubtract=1 when itaylor=41'
     call safestop(57)
   else
     if(myrank.eq.0) print *, &
@@ -108,9 +109,6 @@ subroutine load_stellarator_field
     call safestop(57)
 
   end if
-
-  call calculate_external_fields
-  call deallocate_sf
 
 end subroutine load_stellarator_field
 
@@ -122,7 +120,6 @@ subroutine read_stellarator_field(field_name)
   use boundary_conditions
   use read_schaffer_field
 
-
   implicit none
 
   character(len=256), intent(in) :: field_name
@@ -130,17 +127,24 @@ subroutine read_stellarator_field(field_name)
 
   if(field_name(1:10).eq.'fieldlines') then
     call load_fieldlines_field(sf(iread_ext_field), field_name,ierr)
+#ifdef USEST
   else if(field_name(1:5).eq.'mgrid') then
     call load_mgrid_field(sf(iread_ext_field), field_name, vmec_filename, ierr)
+#endif
   else
     if(myrank.eq.0) print *, &
       'ERROR: Invalid ext_field. Currently only FIELDLINES and MGRID supported'
     call safestop(51)
   end if
+  if(ierr.lt.0) then 
+     if(myrank.eq.0) then 
+        print *, "Error: could not open file: ", field_name
+     end if
+     call safestop(50)
+  end if
 
 end subroutine read_stellarator_field
 
-#endif
 
 !==============================================================================
 ! Deallocate sf field
@@ -602,12 +606,16 @@ subroutine calculate_external_fields
      if(extsubtract.eq.1) then
         bz_ext = bz_f  ! For all cases: RMP, error fields, ST
         bf_ext = bf_f
-        if (type_ext_field.ge.1) then ! For free boundary stellarator
+        if (type_ext_field.ge.1 .and. (itaylor.eq.40 .or. itaylor.eq.41)) then 
+        ! subtract vacuum from total field
           call mult(bz_f, -1.)
           call mult(bf_f, -1.)
-          call add(bz_field(1), bz_f)
-          call add(bf_field(1), bf_f) 
+          call add(bz_field(0), bz_f)
+          call add(bf_field(0), bf_f) 
         end if
+     else if(itaylor.eq.41) then
+        bz_field(0) = bz_f
+        bf_field(0) = bf_f
      else
         bz_field(1) = bz_f
         bf_field(1) = bf_f
@@ -623,21 +631,36 @@ subroutine calculate_external_fields
   if(extsubtract.eq.1) then
      psi_ext = psi_f ! For all cases: RMP, error fields, ST
      bfp_ext = bfp_f
-     if (type_ext_field.ge.1) then ! For free boundary stellarator
+     if (type_ext_field.ge.1 .and. (itaylor.eq.40 .or. itaylor.eq.41)) then 
+     ! subtract vacuum from total field
        call mult(psi_f, -1.)
        call mult(bfp_f, -1.)
-       call add(psi_field(1), psi_f)
-       call add(bfp_field(1), bfp_f)
+       call add(psi_field(0), psi_f)
+       call add(bfp_field(0), bfp_f) 
      end if
+  else if(itaylor.eq.41) then
+     psi_field(0) = psi_f
+     bfp_field(0) = bfp_f
   else
      psi_field(1) = psi_f
      bfp_field(1) = bfp_f
   end if
 
-  if(iflip_b.eq.1) call mult(bz_field(1), -1.)
+  if(iflip_b.eq.1) then 
+     if(itaylor.eq.41) then
+        call mult(bz_field(0), -1.)
+     else
+        call mult(bz_field(1), -1.)
+     end if
+  end if
   if(iflip_j.eq.1) then
-     call mult(psi_field(1), -1.)
-     call mult(bfp_field(1), -1.)
+     if(itaylor.eq.41) then
+        call mult(psi_field(0), -1.)
+        call mult(bfp_field(0), -1.)
+     else 
+        call mult(psi_field(1), -1.)
+        call mult(bfp_field(1), -1.)
+     end if
   end if
 
   call destroy_vector(psi_vec)
@@ -722,6 +745,8 @@ subroutine tf_shift_tilt
   call newvar_solve(ff%vec, mass_mat_lhs)
   if(extsubtract.eq.1) then 
      call add(bf_ext, ff)
+  else if(itaylor.eq.41) then
+     call add(bf_field(0), ff)
   else
      call add(bf_field(1), ff)
   end if
@@ -730,6 +755,8 @@ subroutine tf_shift_tilt
   call newsolve(mass_mat_lhs%mat, fpf%vec, ier)
   if(extsubtract.eq.1) then
      call add(bfp_ext, fpf)
+  else if(itaylor.eq.41) then
+     call add(bfp_field(0), fpf)
   else
      call add(bfp_field(1), fpf)
   end if
@@ -738,6 +765,8 @@ subroutine tf_shift_tilt
   call newsolve(mass_mat_lhs%mat, bzf%vec, ier)
   if(extsubtract.eq.1) then
      call add(bz_ext, bzf)
+  else if(itaylor.eq.41) then
+     call add(bz_field(0), bzf)
   else 
      call add(bz_field(1), bzf)
   end if

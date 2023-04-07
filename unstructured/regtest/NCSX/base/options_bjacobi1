@@ -21,3 +21,4 @@
 -xhelp
 -xlog_summary
 -on_error_abort
+-sub_mat_superlu_dist_statprint 1

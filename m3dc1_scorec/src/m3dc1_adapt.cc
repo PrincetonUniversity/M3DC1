@@ -318,7 +318,6 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
   {
     double h1 = size_1[i];
     double h2 = size_2[i];
-
     double angle_1[3];
     angle_1[0] = angle[(i*3)];
     angle_1[1] = angle[(i*3)+1];
@@ -339,14 +338,8 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
     dir_2[0] = a /mag;
     dir_2[1] = b /mag;
     dir_2[2] = 0.0;
-/*
-    double dir_2[3];
-    dir_2[0] = -angle_1[1];
-    dir_2[1] =  angle_1[0];
-    dir_2[2] =  0.0;
-*/
-    ma::Vector h(h1, h2, h2);
 
+    ma::Vector h(h1, h2, h2);
     ma::Matrix r;
     r[0][0]=angle_1[0];
     r[0][1]=angle_1[1];
@@ -552,7 +545,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
   in->shouldRunPreZoltan = 1;
   in->shouldRunPostZoltan = 1;
   in->maximumIterations = 5;
-  in->userDefinedLayerTagName = "doNotAdapt";
+  in->userDefinedLayerTagName = "doNotAdapt";		// Works only when a tag "doNotAdapt" on elements is set
 #ifdef _DEBUG
   if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": runMidZoltan "<< in->shouldRunMidZoltan
   	  <<", runPreZoltan "<<in->shouldRunPreZoltan<<", runPostZoltan "<<in->shouldRunPostZoltan<<"\n"
@@ -606,7 +599,7 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
   mesh->acceptChanges();
 
   // do adaptation here
-  // ma::adaptVerbose(in);
+  ma::adaptVerbose(in);
 
   mesh->removeField(size_field);
   mesh->removeField(frame_field);

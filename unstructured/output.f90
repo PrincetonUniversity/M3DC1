@@ -321,6 +321,7 @@ subroutine hdf5_write_scalars(error)
   use diagnostics
   use hdf5_output
   use pellet
+  use kprad
 
   implicit none
 
@@ -493,6 +494,7 @@ subroutine hdf5_write_scalars(error)
 
   call output_scalar(scalar_group_id, "kprad_n",  totkprad,  ntime, error)
   call output_scalar(scalar_group_id, "kprad_n0", totkprad0, ntime, error)
+  call output_scalar(scalar_group_id, "kprad_dt", kprad_dt, ntime, error)
 
 
   if(xray_detector_enabled.eq.1) then

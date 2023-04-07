@@ -279,6 +279,8 @@ subroutine set_defaults
        "Minimum elec. temperature for KPRAD evolution", kprad_grp)
   call add_var_int("ikprad_max_dt", ikprad_max_dt, 0, &
        "Use maximum value of dt for KPRAD ionization", kprad_grp)
+  call add_var_double("kprad_max_dt", kprad_max_dt, -1., &
+       "Specify maximum value of dt for KPRAD ionization", kprad_grp)
   call add_var_int("ikprad_evolve_internal", ikprad_evolve_internal, 0, &
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
   call add_var_double("kprad_n0_denm_fac", kprad_n0_denm_fac, 1., &
@@ -755,7 +757,6 @@ subroutine set_defaults
   call add_var_double("hyperv", hyperv, 0., "", hyper_grp)
   call add_var_int("ihypdx", ihypdx, 0, "", hyper_grp)
   call add_var_int("ihypeta", ihypeta, 1, "", hyper_grp)
-  call add_var_int("ihypamu", ihypamu, 1, "", hyper_grp)
   call add_var_int("ihypkappa", ihypkappa, 1, "", hyper_grp)
   call add_var_int("imp_hyper", imp_hyper, 0,     &
         "1: implicit hyper-resistivity in psi equation", hyper_grp)
@@ -1107,6 +1108,7 @@ subroutine set_defaults
   call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
   call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
 
+  call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! Adapt (iadapt = 1 only) elements in specific model face. 
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
   call add_var_double("adapt_hmax", adapt_hmax, 0.1, "", adapt_grp)

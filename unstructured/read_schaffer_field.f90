@@ -495,6 +495,9 @@ contains
 
     call h5open_f(error)
     call h5fopen_f(filename, H5F_ACC_RDONLY_F, file_id, error)
+    if(error.lt.0) then
+       return
+    end if
 
     call h5dopen_f(file_id, 'lpres', dset_id, error)
     call h5dread_f(dset_id, H5T_NATIVE_INTEGER, lpres, dim0, error)
