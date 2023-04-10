@@ -216,7 +216,7 @@ Program Reducedquintic
 
   call calc_wall_dist
 
-  call init_hyperv_mat
+  !call init_hyperv_mat                ! Dont call this here in MeshAdapt 
   
   
   ! Set initial conditions either from restart file
@@ -370,7 +370,7 @@ Program Reducedquintic
   do ntime=ntime+1,ntimemax
 
      if(myrank.eq.0) print *, 'TIME STEP: ', ntime
-
+     call init_hyperv_mat
      ! check for error
      if(ekin.ne.ekin .or. emag.ne.emag) then
         print *, "Error: energy is NaN"
