@@ -30,21 +30,22 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 
 PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220915
 ifeq ($(COM), 1)
-  PETSC_ARCH=perlmuttercpu-nvidia-cplx
+  PETSC_ARCH=perlmuttercpu-nvidia-cplx-64bit
   PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220915/perlmuttercpu-nvidia-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220915/perlmuttercpu-nvidia-cplx/lib -L/opt/cray/pe/mpich/8.1.17/ofi/nvidia/20.7/lib -L/opt/cray/pe/libsci/21.08.1.2/NVIDIA/20.7/x86_64/lib -L/opt/cray/pe/dsmml/0.2.2/dsmml/lib -L/opt/cray/xpmem/2.4.4-2.3_13.8__gff0e1d9.shasta/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/22.5/compilers/lib -L/usr/lib64/gcc/x86_64-suse-linux/7 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/22.5/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lgsl -lgslcblas -lstdc++ -ldl -lsci_nvidia_mpi -lsci_nvidia -lmpifort_nvidia -lmpi_nvidia -ldsmml -lxpmem -lnvf -lnvomp -lnvhpcatm -latomic -lpthread -lnvcpumath -lnsnvc -lnvc -lrt -lgcc_s -lm -lquadmath -lstdc++ -ldl
 else
   ifeq ($(ST), 1)
-  PETSC_ARCH=perlmuttercpu-nvidia-st
+  PETSC_ARCH=perlmuttercpu-nvidia-st-64bit
   PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220915/perlmuttercpu-nvidia-st/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220915/perlmuttercpu-nvidia-st/lib -L/opt/cray/pe/mpich/8.1.17/ofi/nvidia/20.7/lib -L/opt/cray/pe/libsci/21.08.1.2/NVIDIA/20.7/x86_64/lib -L/opt/cray/pe/dsmml/0.2.2/dsmml/lib -L/opt/cray/xpmem/2.4.4-2.3_13.8__gff0e1d9.shasta/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/22.5/compilers/lib -L/usr/lib64/gcc/x86_64-suse-linux/7 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/22.5/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lstdc++ -ldl -lsci_nvidia_mpi -lsci_nvidia -lmpifort_nvidia -lmpi_nvidia -ldsmml -lxpmem -lnvf -lnvomp -lnvhpcatm -latomic -lpthread -lnvcpumath -lnsnvc -lnvc -lrt -lgcc_s -lm -lquadmath -lstdc++ -ldl
   else
-  PETSC_ARCH=perlmuttercpu-nvidia
+  PETSC_ARCH=perlmuttercpu-nvidia-64bit
   PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220915/perlmuttercpu-nvidia/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220915/perlmuttercpu-nvidia/lib -L/opt/cray/pe/mpich/8.1.17/ofi/nvidia/20.7/lib -L/opt/cray/pe/libsci/21.08.1.2/NVIDIA/20.7/x86_64/lib -L/opt/cray/pe/dsmml/0.2.2/dsmml/lib -L/opt/cray/xpmem/2.4.4-2.3_13.8__gff0e1d9.shasta/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/22.5/compilers/lib -L/usr/lib64/gcc/x86_64-suse-linux/7 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/22.5/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lgsl -lgslcblas -lstdc++ -ldl -lsci_nvidia_mpi -lsci_nvidia -lmpifort_nvidia -lmpi_nvidia -ldsmml -lxpmem -lnvf -lnvomp -lnvhpcatm -latomic -lpthread -lnvcpumath -lnsnvc -lnvc -lrt -lgcc_s -lm -lquadmath -lstdc++ -ldl
   endif
 endif
 
 #SCOREC_BASE_DIR=/global/homes/j/jinchen/project/PETSC/core-dev/perlmuttercpu-nvidia
 #SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/core.20230131/build
-SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-pcpu
+#SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-intel6610-craympich7719-pcpu
+SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/scorec-pmt/nvidia8.3.3-mpich8.1.24/petsc3.17.4
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
