@@ -66,6 +66,8 @@ if { ! [ is-loaded cpu ] } {
   module load cpu
 }
 
+module swap cray-mpich/8.1.25 cray-mpich/8.1.24
+
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
 setenv		M3DC1_ARCH	perlmutter_cpu
