@@ -355,7 +355,6 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
 
 #ifdef CJ_MATRIX_DUMP
   character*30 filename
-  integer :: counter
 #endif
 
   if(present(bvec)) then
@@ -369,10 +368,8 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   call apply_bc(temp,mata%ibound,bptr)
 
 #ifdef CJ_MATRIX_DUMP
-     call get_counter( mata%mat%imatrix, counter)
-     if(counter.le.0) then 
-        write ( filename, * ) mata%mat%imatrix, '_rhs.out' 
-        write ( *, * ) "print matrix", mata%mat%imatrix, counter
+     if(ntime.eq.ntimemax) then 
+        write ( *, * ) "print matrix", mata%mat%imatrix, ntime
         call write_matrix(mata%mat,filename)
         call write_vector(temp, trim(filename))
      endif
@@ -381,8 +378,7 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   call newsolve(mata%mat,temp,ier)
 
 #ifdef CJ_MATRIX_DUMP
-     if(counter.le.0) then 
-        write ( filename, * ) mata%mat%imatrix, '_sol.out' 
+     if(ntime.eq.ntimemax) then 
         call write_vector(temp, trim(filename))
      endif
 #endif 
@@ -480,7 +476,6 @@ end subroutine solve_newvar1
 
 #ifdef CJ_MATRIX_DUMP
     character*30 filename
-    integer :: counter
 #endif
 
     if(.not.present(bvec)) then
@@ -493,10 +488,8 @@ end subroutine solve_newvar1
     call apply_bc(rhs,mat%ibound,bptr)
 
 #ifdef CJ_MATRIX_DUMP
-     call get_counter( mat%mat%imatrix, counter)
-     if(counter.le.0) then 
-        write ( filename, * ) mat%mat%imatrix, '_rhs.out' 
-        write ( *, * ) "print matrix", mat%mat%imatrix, counter
+     if(ntime.eq.ntimemax) then 
+        write ( *, * ) "print matrix", mat%mat%imatrix, ntime
         call write_matrix(mat%mat,filename)
         call write_vector(rhs, trim(filename))
      endif
@@ -505,8 +498,7 @@ end subroutine solve_newvar1
     call newsolve(mat%mat,rhs,ier)
 
 #ifdef CJ_MATRIX_DUMP
-     if(counter.le.0) then 
-        write ( filename, * ) mat%mat%imatrix, '_sol.out' 
+     if(ntime.eq.ntimemax) then 
         call write_vector(rhs, trim(filename))
      endif
 #endif 

@@ -195,18 +195,18 @@ contains
     call finalize(biharmonic_mat)
 
 #ifdef CJ_MATRIX_DUMP
-!!$  if(ntime.eq.2) then 
+     if(ntime.eq.ntimemax) then 
      call write_matrix(biharmonic_mat,'biharmonic_mat')
      call write_vector(rhs%vec, 'biharmonic_mat_rhs.out')
-!!$  endif
+     endif
 #endif 
 
     call newsolve(biharmonic_mat, rhs%vec, ier)
    
 #ifdef CJ_MATRIX_DUMP
-!!$  if(ntime.eq.2) then
+     if(ntime.eq.ntimemax) then
      call write_vector(rhs%vec, 'biharmonic_mat_sol.out')
-!!$  endif
+     endif
 #endif 
 
     ! calculate error

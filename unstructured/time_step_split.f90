@@ -768,10 +768,6 @@ subroutine step_split(calc_matrices)
 
   implicit none
 
-#ifdef CJ_MATRIX_DUMP
-  integer :: counter
-#endif
-
 
   integer, intent(in) :: calc_matrices
   real :: tstart, tend, t_bound
@@ -852,8 +848,8 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-     call get_counter( s1_mat%imatrix, counter) 
-     if(counter.le.0) then 
+     if(ntime.eq.ntimemax) then 
+        write ( *, * ) "print matrix s1_mat", s1_mat%imatrix, ntime
         call write_matrix(s1_mat,'s1_mat')
         call write_vector(b1_vel, 's1_mat_rhs.out')
      endif
@@ -869,7 +865,7 @@ call PetscLogStagePop(jer)
      endif
 
 #ifdef CJ_MATRIX_DUMP
-     if(counter.le.0) then 
+     if(ntime.eq.ntimemax) then 
         call write_vector(b1_vel, 's1_mat_sol.out')
      endif
 #endif 
@@ -932,7 +928,8 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s8_mat", s8_mat%imatrix, ntime
      call write_matrix(s8_mat,'s8_mat')
      call write_vector(temp, 's8_mat_rhs.out')
   endif
@@ -947,7 +944,7 @@ call PetscLogStagePop(jer)
      !if(linear.eq.0) call clear_mat(s8_mat)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(temp, 's8_mat_sol.out')
   endif
 #endif 
@@ -1110,7 +1107,8 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s9_mat", s9_mat%imatrix, ntime
      call write_matrix(s9_mat,'s9_mat')
      call write_vector(temp, 's9_mat_rhs.out')
   endif
@@ -1124,9 +1122,8 @@ call PetscLogStagePop(jer)
          call add(temp,pres_vec)
      endif
 
-
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(temp, 's9_mat_sol.out')
   endif
 #endif 
@@ -1206,7 +1203,8 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s9_mat", s9_mat%imatrix, ntime
      call write_matrix(s9_mat,'s9_mat')
      call write_vector(temp, 's9_mat_rhs.out')
   endif
@@ -1216,7 +1214,7 @@ call PetscLogStagePop(jer)
      !if(linear.eq.0) call clear_mat(s9_mat)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(temp, 's9_mat_sol.out')
   endif
 #endif 
@@ -1331,7 +1329,8 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s2_mat", s2_mat%imatrix, ntime
      call write_matrix(s2_mat,'s2_mat')
      call write_vector(b1_phi, 's2_mat_rhs.out')
   endif
@@ -1346,7 +1345,7 @@ call PetscLogStagePop(jer)
    endif
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(b1_phi, 's2_mat_sol.out')
   endif
 #endif 
@@ -1457,7 +1456,8 @@ call PetscLogStagePop(jer)
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s2_mat", s2_mat%imatrix, ntime
      call write_matrix(s2_mat,'s2_mat')
      call write_vector(b1_phi, 's2_mat_rhs.out')
   endif
@@ -1467,7 +1467,7 @@ call PetscLogStagePop(jer)
         !if(linear.eq.0) call clear_mat(s2_mat)
         
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(b1_phi, 's2_mat_sol.out')
   endif
 #endif 
