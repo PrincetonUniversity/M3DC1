@@ -711,7 +711,7 @@ subroutine calculate_scalars()
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac,tpirzero, t0
-  integer :: iedge, idim(3), izone, izonedim, i, j
+  integer :: iedge, idim(3), izone, izonedim, izone_ind, i, j
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
   vectype, dimension(MAX_PTS) :: co, sn
@@ -792,12 +792,13 @@ subroutine calculate_scalars()
 
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
-!$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
+!$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,izone_ind,i) &
 !$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
-     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+     izone = zone_type(izone_ind)
 
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)
@@ -1173,7 +1174,7 @@ subroutine calculate_Lor_vol()
   integer :: itri, numelms, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: tpifac,tpirzero
-  integer :: izone, izonedim
+  integer :: izone, izonedim, izone_ind
   real, allocatable :: temp(:)
   integer :: ip
 
@@ -1186,7 +1187,9 @@ subroutine calculate_Lor_vol()
 
   do itri=1,numelms
 
-     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+     izone = zone_type(izone_ind)
+         
      if(izone.ne.1) cycle
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, FIELD_P, 0, 0)
@@ -2126,7 +2129,7 @@ subroutine calculate_ke()
   integer :: itri, numelms, def_fields
   real :: ke_N, ketotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
-  integer :: izone, izonedim
+  integer :: izone, izonedim, izone_ind
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -2378,7 +2381,9 @@ subroutine calculate_ke()
      
 !$OMP PARALLEL DO REDUCTION(+:ke_N)
      do itri=1,numelms
-        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+        izone = zone_type(izone_ind)
+
         if(izone.ne.1) cycle
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
@@ -2491,7 +2496,7 @@ subroutine calculate_bh()
   integer :: itri, numelms, def_fields
   real:: bh_N, bhtotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
-  integer :: izone, izonedim
+  integer :: izone, izonedim, izone_ind
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -2744,7 +2749,9 @@ subroutine calculate_bh()
      
 !$OMP PARALLEL DO REDUCTION(+:bh_N)
      do itri=1,numelms
-        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+        izone = zone_type(izone_ind)
+
         if(izone.ne.1) cycle
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
