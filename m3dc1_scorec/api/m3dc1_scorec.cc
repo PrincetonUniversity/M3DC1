@@ -76,6 +76,48 @@ static apf::Field* get_field_at_index(apf::Mesh2* m, apf::Field* inField, int in
   return targetField;
 }
 
+// Get a scaler field (single or scaler combination of any of six DOFs)
+static apf::Field* get_scalerComponent_of_field(apf::Mesh2* m, apf::Field* in, int comp)
+{
+  int comps = countComponents(in);
+  PCU_ALWAYS_ASSERT(comp < comps);
+  apf::Field* out = apf::createFieldOn(m, "in_field_comp", apf::SCALAR);
+
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(0);
+
+  double dofs[FIXSIZEBUFF];
+  while ( (e = m->iterate(it)) )
+  {
+    getComponents(in, e, 0, &dofs[0]);
+    double dof_comp = dofs[comp];
+    setComponents(out, e, 0, &dof_comp);
+  }
+  m->end(it);
+  return out;
+}
+
+// Get a vector of desired field 
+static apf::Field* get_vectorComponent_of_field(apf::Mesh2* m, apf::Field* in)
+{
+  apf::Field* out = apf::createFieldOn(m, "in_field_comp", apf::VECTOR);
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(0);
+
+  double dofs[FIXSIZEBUFF];
+  while ( (e = m->iterate(it)) )
+  {
+    getComponents(in, e, 0, &dofs[0]);
+    double comp_dR = dofs[1];
+    double comp_dZ = dofs[2];
+    double comp_dR2 = dofs[3];
+    double comp_dZ2 = dofs[5];
+    double vField[3] = {comp_dR, comp_dZ, 0.0};
+    setComponents(out, e, 0, &vField[0]);
+  }
+  m->end(it);
+  return out;
+}
 
 static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
 {
@@ -1313,15 +1355,20 @@ int m3dc1_spr_then_adapt (FieldID* field_id, int* index, int* ts,
 
   if (np == 1) // 2D
   {
-    apf::Field* ip = get_ip_field(mesh, targetField);
+    //apf::Field* ip = get_ip_field(mesh, targetField);
+    apf::Field* targetField0 = get_vectorComponent_of_field(mesh, targetField);
+    apf::Field* ip = spr::getGradIPField(targetField0, "ip", 2);
+
     size_field = spr::getSPRSizeField(ip, *ar);
     process_size_field(mesh, size_field, *ts, *max_size, *refine_level, *coarsen_level);
     fields.push_back(size_field);
 
     mesh->removeField(ip);
     mesh->removeField(targetField);
+    mesh->removeField(targetField0);
     destroyField(ip);
     destroyField(targetField);
+    destroyField(targetField0);
 
     ReducedQuinticImplicit shape;
     ReducedQuinticTransfer slnTrans(mesh,fields, &shape);

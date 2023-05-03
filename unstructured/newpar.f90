@@ -455,8 +455,6 @@ Program Reducedquintic
           update_mesh = .true.
         end if
         call adapt_by_spr(field_vec%id, psi_g, ntime, isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel, update_mesh)
-        write(mesh_file_name,"(A11,A)") 'afteradapt', 0
-        call m3dc1_mesh_write (mesh_file_name,0,ntime)
       endif
     endif
 
