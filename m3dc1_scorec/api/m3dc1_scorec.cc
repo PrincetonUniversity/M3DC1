@@ -3697,7 +3697,7 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
   int numDofs = total_num_dof;
   int numVar = numDofs/dofPerVar;
   assert(*rowIdx<numVar && *columnIdx<numVar);
-  int rows[1024], columns[1024];
+  PetscInt rows[1024], columns[1024];
   assert(sizeof(rows)/sizeof(int)>=dofPerVar*nodes_per_element);
   if (mat->get_type()==0)
   {
@@ -3718,7 +3718,7 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
   {
     matrix_solve* smat = dynamic_cast<matrix_solve*> (mat);
     int nodeOwner[6];
-    int columns_bloc[6], rows_bloc[6];
+    PetscInt columns_bloc[6], rows_bloc[6];
     for (int inode=0; inode<nodes_per_element; inode++)
     {
       m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
@@ -3770,9 +3770,9 @@ int m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
 
   int row, csize, sum_csize=0, index=0;
 
-  vector<int> rows;
+  vector<PetscInt> rows;
   vector<int> n_cols;
-  vector<int> cols;
+  vector<PetscInt> cols;
   vector<double> vals;
 
   mat->get_values(rows, n_cols, cols, vals);
@@ -3814,9 +3814,9 @@ int m3dc1_matrix_print(int* matrix_id)
 
   int row, csize, sum_csize=0, index=0;
 
-  vector<int> rows;
+  vector<PetscInt> rows;
   vector<int> n_cols;
-  vector<int> cols;
+  vector<PetscInt> cols;
   vector<double> vals;
 
   mat->get_values(rows, n_cols, cols, vals);

@@ -31,8 +31,9 @@ public:
   int destroy(); // delete a matrix and solver object
   int set_value(int row, int col, int operation, double real_val, double imag_val); //insertion/addition with global numbering
   // values use column-wise, size * size block
-  int add_values(int rsize, int * rows, int csize, int * columns, double* values);
-  int get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values);
+  int add_values(int rsize, PetscInt* rows, int csize, PetscInt* columns, double* values);
+  int get_values(std::vector<PetscInt>& rows, std::vector<int>& n_columns,
+		 std::vector<PetscInt>& columns, std::vector<double>& values);
 
   int get_status() {return mat_status;}
   int get_scalar_type() { return scalar_type; }
@@ -89,7 +90,7 @@ public:
   int solve(FieldID field_id);
   int set_bc( int row);
   int set_row( int row, int numVals, int* colums, double * vals);
-  int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
+  int add_blockvalues( int rbsize, PetscInt* rows, int cbsize, PetscInt* columns, double* values);
   int reset_values();
   virtual int get_type() const {return 1; }
   virtual int assemble(); 
@@ -105,7 +106,7 @@ private:
 
   //block mg in toroidal direction
   int BmgSet; //only for mymatrix_id=5 or 17, the hard ones
-  int mg_nlevels;  //default = 2
+  PetscInt mg_nlevels;  //default = 2
   //PC *pc;
   Mat *mg_interp_mat;
   KSP *mg_level_ksp;
