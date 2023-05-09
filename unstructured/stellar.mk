@@ -47,18 +47,23 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
 	-lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lgcc_s -lirc_s -lquadmath \
 	-lstdc++ -ldl
 
-SCOREC_BASE_DIR=/projects/M3DC1/scorec/$(MPIVER)/$(PETSCVER)/202209
+SCOREC_BASE_DIR=/scratch/gpfs/ur8212/install/core/core_230210
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
+  SCOREC_DIR=/scratch/gpfs/ur8212/install/M3DC1/M3DC1_230509/m3dc1_scorec
 else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)
+  SCOREC_DIR=/scratch/gpfs/ur8212/install/M3DC1/M3DC1_230509/m3dc1_scorec
 endif
 
 ZOLTAN_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
 
-SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
+#SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
              -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+             -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
+             -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
+
+SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
+             -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
              -lpumi -lapf -lapf_zoltan -lgmi -llion -lma -lmds -lmth -lparma \
              -lpcu -lph -lsam -lspr -lcrv -Wl,--end-group
 
