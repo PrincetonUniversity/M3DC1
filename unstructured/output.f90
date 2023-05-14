@@ -620,6 +620,10 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   integer(HID_T) :: time_file_id, time_root_id, plist_id
   integer :: info
   logical :: link_exists
+  logical :: flag_call=.true.
+
+  ! In the case of serial run, non-root processors do not call some functions 
+  if(islice_serial==1 .and. myrank/=0) flag_call=.false.
 
   call hdf5_get_local_elms(nelms, error)
 
@@ -643,43 +647,46 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   ! Create new file for timeslice
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  ! Set up the file access property list with parallel I/O
-  call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
-  info = MPI_INFO_NULL
-  call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
-     
-  ! Open the new file
-  call h5fcreate_f(time_file_name, H5F_ACC_TRUNC_F, time_file_id, error, &
-       access_prp = plist_id)
+  if(islice_serial==0) then
+    ! Set up the file access property list with parallel I/O
+    call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
+    info = MPI_INFO_NULL
+    call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
+    ! Open the new file
+    call h5fcreate_f(time_file_name, H5F_ACC_TRUNC_F, time_file_id, error, &
+        access_prp = plist_id)
+  else
+    if(myrank==0) call h5fcreate_f(time_file_name, H5F_ACC_TRUNC_F, time_file_id, error)
+  endif
   if(error.lt.0) then
      print *, "Error: could not open ", time_file_name, &
           " for HDF5 output.  error = ", error
      return
   endif
-     
+
   ! open the root group
-  call h5gopen_f(time_file_id, "/", time_root_id, error)
+  if(flag_call) call h5gopen_f(time_file_id, "/", time_root_id, error)
   
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, ' Writing time slice file ', time_file_name
   
   ! Write attributes
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing attr '
-  call write_real_attr(time_root_id, "time", time, error)
+  if(flag_call) call write_real_attr(time_root_id, "time", time, error)
 #ifdef USE3D
-  call write_int_attr(time_root_id, "nspace", 3, error)
+  if(flag_call) call write_int_attr(time_root_id, "nspace", 3, error)
 #else
-  call write_int_attr(time_root_id, "nspace", 2, error)
+  if(flag_call) call write_int_attr(time_root_id, "nspace", 2, error)
 #endif
   ! Time step associated with this time slice
   if(equilibrium.eq.1) then
-     call write_int_attr(time_root_id, "ntimestep", 0, error)
+     if(flag_call) call write_int_attr(time_root_id, "ntimestep", 0, error)
   else
-     call write_int_attr(time_root_id, "ntimestep", ntime, error)
+     if(flag_call) call write_int_attr(time_root_id, "ntimestep", ntime, error)
   end if
   
   ! Write version number
-  call write_int_attr(time_root_id, "version", version, error)
+  if(flag_call) call write_int_attr(time_root_id, "version", version, error)
   
   ! Output the mesh data
   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Writing mesh '
@@ -693,13 +700,13 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   ! output wall regions
 #ifndef USE3D
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Writing wall regions'
-  call output_regions(time_root_id, error)
+  if(flag_call) call output_regions(time_root_id, error)
 #endif
   
   ! Close the file
-  call h5gclose_f(time_root_id, error)
-  call h5fclose_f(time_file_id, error)  
-  call h5pclose_f(plist_id, error)
+  if(flag_call) call h5gclose_f(time_root_id, error)
+  if(flag_call) call h5fclose_f(time_file_id, error)  
+  if(islice_serial==0) call h5pclose_f(plist_id, error)
 
 
   ! Add timeslice link in main file
@@ -731,6 +738,7 @@ subroutine output_mesh(time_group_id, nelms, error)
   use mesh_mod
   use basic
   use boundary_conditions
+  use mpi
 
   implicit none
 
@@ -756,24 +764,30 @@ subroutine output_mesh(time_group_id, nelms, error)
   integer :: idim(3)
   real :: bound
   integer :: izone
+  logical :: flag_call=.true.
 
-  ! Create the group
-  call h5gcreate_f(time_group_id, "mesh", mesh_group_id, error) 
+  ! In the case of serial run, non-root processors do not call some functions 
+  if(islice_serial==1 .and. myrank/=0) flag_call=.false.
 
-  ! Write attributes
-  call write_int_attr(mesh_group_id, "nelms", global_elms, error)
-  call get_bounding_box_size(alx, alz)
-  call write_real_attr(mesh_group_id, "width", alx, error)
-  call write_real_attr(mesh_group_id, "height", alz, error)
+  if(flag_call) then
+    ! Create the group
+    call h5gcreate_f(time_group_id, "mesh", mesh_group_id, error) 
+
+    ! Write attributes
+    call write_int_attr(mesh_group_id, "nelms", global_elms, error)
+    call get_bounding_box_size(alx, alz)
+    call write_real_attr(mesh_group_id, "width", alx, error)
+    call write_real_attr(mesh_group_id, "height", alz, error)
 #ifdef USE3D
-  call write_int_attr(mesh_group_id, "3D", 1, error)
+    call write_int_attr(mesh_group_id, "3D", 1, error)
 #else
-  call write_int_attr(mesh_group_id, "3D", 0, error)
+    call write_int_attr(mesh_group_id, "3D", 0, error)
 #endif
-  call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
-  call write_int_attr(mesh_group_id, "nperiods", nperiods, error)
-  call write_int_attr(mesh_group_id, "ifull_torus", ifull_torus, error)
-  call write_real_attr(mesh_group_id, "period", toroidal_period, error)
+    call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
+    call write_int_attr(mesh_group_id, "nperiods", nperiods, error)
+    call write_int_attr(mesh_group_id, "ifull_torus", ifull_torus, error)
+    call write_real_attr(mesh_group_id, "period", toroidal_period, error)
+  endif
 
   ! Output the mesh data
   do i=1, nelms
@@ -809,18 +823,20 @@ subroutine output_mesh(time_group_id, nelms, error)
   call output_field(mesh_group_id, "elements", elm_data, vals_per_elm, &
        nelms, error)
 
+  if(flag_call) then
 
 #ifdef USE3D
-  allocate(phi(nplanes))
-  do i=1, nplanes
-     call m3dc1_plane_getphi(i-1, phi(i))
-  end do
-  call write_vec_attr(mesh_group_id, "phi", phi, nplanes, error)
-  deallocate(phi)
+    allocate(phi(nplanes))
+    do i=1, nplanes
+      call m3dc1_plane_getphi(i-1, phi(i))
+    end do
+    call write_vec_attr(mesh_group_id, "phi", phi, nplanes, error)
+    deallocate(phi)
 #endif
+    ! Close the group
+    call h5gclose_f(mesh_group_id, error)
+  endif
 
-  ! Close the group
-  call h5gclose_f(mesh_group_id, error)
 end subroutine output_mesh
 
 subroutine output_regions(group_id, error)
@@ -929,6 +945,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
   integer :: i, nelms, ilin
   vectype, allocatable :: dum(:,:), dum2(:,:)
   character(len=64) :: field_name
+  logical :: flag_call = .true.
+
+  ! In the case of serial run, non-root processors do not call some functions 
+  if(islice_serial==1 .and. myrank/=0) flag_call=.false.
 
   ilin = 1 - equilibrium
 
@@ -940,7 +960,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
   allocate(dum(coeffs_per_element,nelms))
 
   ! Create the fields group
-  call h5gcreate_f(time_group_id, "fields", group_id, error)
+  if(flag_call) call h5gcreate_f(time_group_id, "fields", group_id, error)
 
   ! Output the fields
   ! ~~~~~~~~~~~~~~~~~
@@ -1257,7 +1277,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
 !!$  end if
      
   ! Close the mesh group
-  call h5gclose_f(group_id, error)
+  if(flag_call) call h5gclose_f(group_id, error)
 
   deallocate(dum)
 

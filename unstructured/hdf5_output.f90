@@ -360,6 +360,9 @@ contains
   ! =================
   subroutine output_field(parent_id, name, values, ndofs, nelms, error)
     use hdf5
+    use h5lt
+    use mpi
+    use basic
     
     implicit none
     
@@ -374,100 +377,140 @@ contains
     integer(HSIZE_T), dimension(rank) :: local_dims, global_dims
     integer(HSSIZE_T), dimension(rank) :: off
 
+    integer, parameter :: sp = selected_real_kind(6,37)
+    real, dimension(ndofs,global_elms) :: recv_Gvalues
+    real(sp), dimension(:,:), allocatable :: Gvalues_sp ! single precision data    
+    integer(HSIZE_T) dtype_id
+    integer recv_counts_Lsize(maxrank), recv_displs_Lsize(maxrank)
+    integer i
+
 #ifdef USETAU
     integer :: dummy     ! this is necessary to prevent TAU from
     dummy = 0            ! breaking formatting requirements
 #endif
-    
-    local_dims(1) = ndofs
-    local_dims(2) = nelms
-    global_dims(1) = ndofs
-    global_dims(2) = global_elms
-    off(1) = 0
-    off(2) = offset
+   
+    if(islice_serial==0) then
+      local_dims(1) = ndofs
+      local_dims(2) = nelms
+      global_dims(1) = ndofs
+      global_dims(2) = global_elms
+      off(1) = 0
+      off(2) = offset
 
-    ! Create global dataset
-    call h5screate_simple_f(rank, global_dims, filespace, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," after h5screate_simple_f"
-       call safestop(101)
+      ! Create global dataset
+      call h5screate_simple_f(rank, global_dims, filespace, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," after h5screate_simple_f"
+        call safestop(101)
+      endif
+      if(idouble_out.eq.1) then
+        call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, filespace, &
+              dset_id, error)
+      else
+        call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, &
+              dset_id, error)
+      end if
+      if(error.ne.0) then
+        write(*,*) error,rank," after h5dcreate_f"
+        call safestop(101)
+      endif
+      call h5sclose_f(filespace, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," after hsclose_f"
+        call safestop(101)
+      endif
+      
+      ! Select local hyperslab within dataset
+      call h5screate_simple_f(rank, local_dims, memspace, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," after h5screate_simple_f"
+        call safestop(102)
+      endif
+      call h5dget_space_f(dset_id, filespace, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," after h5dget_space_f"
+        call safestop(102)
+      endif
+      call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off, local_dims, &
+          error)
+      if(error.ne.0) then
+        write(*,*) error,rank," after h5sselect_hyperslab_f"
+        call safestop(102)
+      endif
+      call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," after h5pcreate_f"
+        call safestop(102)
+      endif
+      call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," after h5pset_dxpl_mpio_f"
+        call safestop(102)
+      endif
+      
+      ! Write the dataset
+      call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, error, &
+          file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
+      if(error.ne.0) then
+        write(*,*) error,rank," h5dwrite_f"
+        call safestop(103)
+      endif
+      
+      ! Close HDF5 handles
+      call h5sclose_f(filespace, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," h5sclose_f"
+        call safestop(104)
+      endif
+      call h5sclose_f(memspace, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," h5sclose_f"
+        call safestop(105)
+      endif
+      
+      call h5dclose_f(dset_id, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," h5dclose_f"
+        call safestop(104)
+      endif
+      call h5pclose_f(plist_id, error)
+      if(error.ne.0) then
+        write(*,*) error,rank," h5pclose_f"
+        call safestop(105)
+      endif
+    else ! islice_serial==1
+      global_dims(1) = ndofs
+      global_dims(2) = global_elms
+
+      ! Get counts and displacements of Lsize in MPI_COMM_WORLD
+      call MPI_ALLGATHER(ndofs*nelms,1,MPI_INTEGER,recv_counts_Lsize,1,MPI_INTEGER,MPI_COMM_WORLD,error)
+      recv_displs_Lsize(1)=0
+      do i=1,maxrank-1
+        recv_displs_Lsize(i+1)=recv_displs_Lsize(i)+recv_counts_Lsize(i)
+      enddo
+   
+      call MPI_Gatherv(values, ndofs*nelms, MPI_DOUBLE_PRECISION, recv_Gvalues, recv_counts_Lsize, recv_displs_Lsize, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, error)
+   
+      if(myrank==0) then
+        if(idouble_out.eq.1) then
+          call h5ltmake_dataset_f(parent_id,name,rank,global_dims,H5T_NATIVE_DOUBLE, recv_Gvalues, error)
+        else
+          allocate(Gvalues_sp(ndofs,global_elms)) 
+          Gvalues_sp = real(recv_Gvalues, kind=sp)
+          dtype_id = h5kind_to_type(sp,H5_REAL_KIND)
+          call h5screate_simple_f(rank, global_dims, filespace, error)
+          call h5dcreate_f(parent_id, name, dtype_id,  filespace, dset_id, error)
+          call h5dwrite_f(dset_id, dtype_id, Gvalues_sp, global_dims, error)
+          call h5dclose_f(dset_id,error)
+          call h5sclose_f(filespace,error)
+          deallocate(Gvalues_sp)
+        end if
+        if(error.ne.0) then
+          write(*,*) error,rank," Error. h5ltmake_dataset_f"
+          call safestop(106)
+        endif
+      endif      
     endif
-    if(idouble_out.eq.1) then
-       call h5dcreate_f(parent_id, name, H5T_NATIVE_DOUBLE, filespace, &
-            dset_id, error)
-    else
-       call h5dcreate_f(parent_id, name, H5T_NATIVE_REAL, filespace, &
-            dset_id, error)
-    end if
-    if(error.ne.0) then
-       write(*,*) error,rank," after h5dcreate_f"
-       call safestop(101)
-    endif
-    call h5sclose_f(filespace, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," after hsclose_f"
-       call safestop(101)
-    endif
-    
-    ! Select local hyperslab within dataset
-    call h5screate_simple_f(rank, local_dims, memspace, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," after h5screate_simple_f"
-       call safestop(102)
-    endif
-    call h5dget_space_f(dset_id, filespace, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," after h5dget_space_f"
-       call safestop(102)
-    endif
-    call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off, local_dims, &
-         error)
-    if(error.ne.0) then
-       write(*,*) error,rank," after h5sselect_hyperslab_f"
-       call safestop(102)
-    endif
-    call h5pcreate_f(H5P_DATASET_XFER_F, plist_id, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," after h5pcreate_f"
-       call safestop(102)
-    endif
-    call h5pset_dxpl_mpio_f(plist_id, H5FD_MPIO_COLLECTIVE_F, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," after h5pset_dxpl_mpio_f"
-       call safestop(102)
-    endif
-    
-    ! Write the dataset
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, error, &
-         file_space_id=filespace, mem_space_id=memspace, xfer_prp=plist_id)
-    if(error.ne.0) then
-       write(*,*) error,rank," h5dwrite_f"
-       call safestop(103)
-    endif
-    
-    ! Close HDF5 handles
-    call h5sclose_f(filespace, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," h5sclose_f"
-       call safestop(104)
-    endif
-    call h5sclose_f(memspace, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," h5sclose_f"
-       call safestop(105)
-    endif
-    
-    call h5dclose_f(dset_id, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," h5dclose_f"
-       call safestop(104)
-    endif
-    call h5pclose_f(plist_id, error)
-    if(error.ne.0) then
-       write(*,*) error,rank," h5pclose_f"
-       call safestop(105)
-    endif
-    
   end subroutine output_field
 
 
