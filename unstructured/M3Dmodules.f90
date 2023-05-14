@@ -424,6 +424,8 @@ module basic
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
 
+  integer :: islice_serial=0 ! (=0; slice output using parallel hdf5), (=1; using serial hdf5)
+
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
   real :: adapt_factor
