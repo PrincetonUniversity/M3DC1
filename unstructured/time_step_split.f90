@@ -470,7 +470,7 @@ call PetscLogStagePop(jer)
 call PetscLogStagePush(stageA,jer)
     if(mod(ntime,pskip)==0) then
         if(myrank.eq.0) print *, " clear_mat s1_mat",ntime, s1_mat%imatrix
-    call clear_mat(s1_mat)
+        call clear_mat(s1_mat)
     else
         if(myrank.eq.0) print *, " zero_mat  s1_mat",ntime, s1_mat%imatrix
         call zero_mat(s1_mat)
@@ -485,8 +485,13 @@ call PetscLogStagePush(stageA,jer)
     r4_vec = 0.
 call PetscLogStagePop(jer)
 
-    
-    call clear_mat(s2_mat)
+    if(mod(ntime,pskip)==0) then
+        if(myrank.eq.0) print *, " clear_mat s2_mat",ntime, s2_mat%imatrix
+        call clear_mat(s2_mat)
+    else
+        if(myrank.eq.0) print *, " zero_mat  s2_mat",ntime, s2_mat%imatrix
+        call zero_mat(s2_mat)
+    endif
     call clear_mat(d2_mat)
     call clear_mat(r2_mat)
     call clear_mat(q2_mat)
