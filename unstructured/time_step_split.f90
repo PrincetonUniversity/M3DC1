@@ -532,7 +532,13 @@ call PetscLogStagePop(jer)
     end if    
 
     if(ipres.eq.1 .or. ipressplit.eq.1) then
-       call clear_mat(s9_mat)
+       if(mod(ntime,pskip)==0) then
+           if(myrank.eq.0) print *, " clear_mat s9_mat",ntime, s9_mat%imatrix
+           call clear_mat(s9_mat)
+       else
+           if(myrank.eq.0) print *, " zero_mat  s9_mat",ntime, s9_mat%imatrix
+           call zero_mat(s9_mat)
+       endif
        call clear_mat(d9_mat)
        call clear_mat(r9_mat)
        call clear_mat(q9_mat)
