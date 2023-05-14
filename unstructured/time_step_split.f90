@@ -510,7 +510,13 @@ call PetscLogStagePop(jer)
     q4_vec = 0.
     
     if(idens.eq.1) then
-       call clear_mat(s8_mat)
+       if(mod(ntime,pskip)==0) then
+           if(myrank.eq.0) print *, " clear_mat s8_mat",ntime, s8_mat%imatrix
+           call clear_mat(s8_mat)
+       else
+           if(myrank.eq.0) print *, " zero_mat  s8_mat",ntime, s8_mat%imatrix
+           call zero_mat(s8_mat)
+       endif
        call clear_mat(d8_mat)
        call clear_mat(r8_mat)
        call clear_mat(q8_mat)
