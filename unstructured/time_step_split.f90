@@ -773,6 +773,7 @@ subroutine step_split(calc_matrices)
   real :: tstart, tend, t_bound
   integer :: jer, i 
   type(vector_type) :: temp, temp2
+  type(vector_type) :: xVec_guess
 
   type(field_type) :: phip_1, phip_2, phip_3
   call associate_field(phip_1, phip_vec, 1)
@@ -856,7 +857,14 @@ call PetscLogStagePop(jer)
 #endif
 
 call PetscLogStagePush(stageS,jer)
-     call newsolve(s1_mat, b1_vel, jer)
+     if(isolve_with_guess==1) then
+        call create_vector(xVec_guess, vecsize_vel)
+        xVec_guess = vel_vec ! Set the value from the previous step as the initial guess.
+        call newsolve_with_guess(s1_mat, b1_vel, xVec_guess, jer)
+        call destroy_vector(xVec_guess)
+     else
+        call newsolve(s1_mat, b1_vel, jer)
+     endif 
 call PetscLogStagePop(jer)
      !if(linear.eq.0) call clear_mat(s1_mat)
 
@@ -934,8 +942,14 @@ call PetscLogStagePop(jer)
      call write_vector(temp, 's8_mat_rhs.out')
   endif
 #endif 
-
-     call newsolve(s8_mat, temp, jer)
+     if(isolve_with_guess==1) then
+        call create_vector(xVec_guess, vecsize_n)
+        xVec_guess = den_vec ! Set the value from the previous step as the initial guess.
+        call newsolve_with_guess(s8_mat, temp, xVec_guess, jer)
+        call destroy_vector(xVec_guess)
+     else
+        call newsolve(s8_mat, temp, jer)
+     endif
 
      if(idiff .gt. 0) then
          call add(temp,den_vec)  ! add time n density to increment to get time n+1 value
@@ -1014,7 +1028,14 @@ call PetscLogStagePop(jer)
         ! solve linear system...LU decomposition done first time
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-        call newsolve(s15_mat, temp, jer)
+        if(isolve_with_guess==1) then
+           call create_vector(xVec_guess, vecsize_n)
+           xVec_guess = nreold_vec ! Set the value from the previous step as the initial guess.
+           call newsolve_with_guess(s15_mat, temp, xVec_guess, jer)
+           call destroy_vector(xVec_guess)
+        else
+           call newsolve(s15_mat, temp, jer)
+        endif    
 
         if(myrank.eq.0 .and. itimer.eq.1) then
            call second(tend)
@@ -1115,7 +1136,15 @@ call PetscLogStagePop(jer)
 #endif 
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before newsolve"
-     call newsolve(s9_mat, temp, jer)
+     if(isolve_with_guess==1) then
+        call create_vector(xVec_guess, vecsize_p)
+        xVec_guess = pres_vec ! Set the value from the previous step as the initial guess.
+        call newsolve_with_guess(s9_mat, temp, xVec_guess, jer)
+        call destroy_vector(xVec_guess)
+     else
+        call newsolve(s9_mat, temp, jer)
+     endif    
+
      !if(linear.eq.0) call clear_mat(s9_mat)
 
     if(idiff .gt. 0) then
@@ -1209,8 +1238,14 @@ call PetscLogStagePop(jer)
      call write_vector(temp, 's9_mat_rhs.out')
   endif
 #endif 
-
-     call newsolve(s9_mat, temp, jer)
+     if(isolve_with_guess==1) then
+       call create_vector(xVec_guess, vecsize_p)
+       xVec_guess = pret_vec ! Set the value from the previous step as the initial guess.
+       call newsolve_with_guess(s9_mat, temp, xVec_guess, jer)
+       call destroy_vector(xVec_guess)
+     else
+       call newsolve(s9_mat, temp, jer)
+     endif   
      !if(linear.eq.0) call clear_mat(s9_mat)
 
 #ifdef CJ_MATRIX_DUMP
@@ -1335,8 +1370,14 @@ call PetscLogStagePop(jer)
      call write_vector(b1_phi, 's2_mat_rhs.out')
   endif
 #endif 
-
-     call newsolve(s2_mat, b1_phi, jer)
+     if(isolve_with_guess==1) then
+        call create_vector(xVec_guess, vecsize_phi)
+        xVec_guess = phi_vec ! Set the value from the previous step as the initial guess.
+        call newsolve_with_guess(s2_mat, b1_phi, xVec_guess, jer)
+        call destroy_vector(xVec_guess)
+     else
+        call newsolve(s2_mat, b1_phi, jer)
+     endif    
      !if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s2_mat)
 
 
@@ -1463,8 +1504,15 @@ call PetscLogStagePop(jer)
   endif
 #endif 
 
-        call newsolve(s2_mat, b1_phi, jer)
         !if(linear.eq.0) call clear_mat(s2_mat)
+        if(isolve_with_guess==1) then
+            call create_vector(xVec_guess, vecsize_phi)
+            xVec_guess = phi_vec ! Set the value from the previous step as the initial guess.
+            call newsolve_with_guess(s2_mat, b1_phi, xVec_guess, jer)
+            call destroy_vector(xVec_guess)
+        else
+            call newsolve(s2_mat, b1_phi, jer)
+        endif    
         
 #ifdef CJ_MATRIX_DUMP
   if(ntime.eq.ntimemax) then
