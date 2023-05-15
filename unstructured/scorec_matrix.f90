@@ -83,6 +83,10 @@ module scorec_matrix_mod
      module procedure scorec_matrix_solve
   end interface
 
+  interface newsolve_with_guess
+     module procedure scorec_matrix_solve_with_guess
+  end interface
+
   interface set_matrix_index
      module procedure scorec_matrix_set_index
   end interface
@@ -374,7 +378,7 @@ contains
   !====================================================================
   subroutine scorec_matrix_solve(mat, v, ierr)
     use vector_mod
-    
+
 #if PETSC_VERSION >= 38
     use petsc
     implicit none
@@ -389,7 +393,11 @@ contains
     type(scorec_matrix), intent(in) :: mat
     type(vector_type), intent(inout) :: v
     integer, intent(out) :: ierr
+    real :: t1,t2
+    integer :: myrank
 
+    call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
+    t1=MPI_WTIME() 
 #ifdef M3DC1_TRILINOS
     call m3dc1_solver_aztec(mat%imatrix,v%id,v%id,num_iter,&
          solver_tol,krylov_solver,preconditioner,sub_dom_solver,&
@@ -402,7 +410,8 @@ contains
     call m3dc1_matrix_solve(mat%imatrix,v%id,solver_type,solver_tol)
 #endif
     ierr = 0
-
+    t2=MPI_WTIME()
+    if(myrank==0) write(*,'(A,I0,A,ES10.2,A)') "For mat%imatrix=",mat%imatrix,", newsolve takes ", t2-t1, " secs"
 #ifdef M3DC1_TRILINOS
     call m3dc1_solver_getnumiter(mat%imatrix,num_iter)
 #else
@@ -419,6 +428,56 @@ contains
    if(mat%imatrix==17) kspits(3)=num_iter
    if(mat%imatrix== 6) kspits(4)=num_iter
   end subroutine scorec_matrix_solve
+
+  subroutine scorec_matrix_solve_with_guess(mat, v, x_guess, ierr)
+   use vector_mod
+#if PETSC_VERSION >= 38
+   use petsc
+   implicit none
+#elif PETSC_VERSION >= 36
+   implicit none
+#include "petsc/finclude/petsc.h"
+#else
+   implicit none
+#include "finclude/petsc.h"
+#endif
+   
+   type(scorec_matrix), intent(in) :: mat
+   type(vector_type), intent(inout) :: v, x_guess
+   integer, intent(out) :: ierr
+   real :: t1,t2
+   integer :: myrank
+
+   call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
+   t1=MPI_WTIME()
+#ifdef M3DC1_TRILINOS
+   call m3dc1_solver_aztec(mat%imatrix,v%id,v%id,num_iter,&
+        solver_tol,krylov_solver,preconditioner,sub_dom_solver,&
+        subdomain_overlap,graph_fill,ilu_drop_tol,ilu_fill,&
+        ilu_omega,poly_ord)    
+  
+#else
+   call m3dc1_matrix_solve_with_guess(mat%imatrix,v%id, x_guess%id, solver_type,solver_tol)
+#endif
+   ierr = 0
+   t2=MPI_WTIME()
+   if(myrank==0) write(*,'(A,I0,A,ES10.2,A)') "For mat%imatrix=",mat%imatrix,", newsolve_with_guess takes ", t2-t1, " secs"
+
+#ifdef M3DC1_TRILINOS
+   call m3dc1_solver_getnumiter(mat%imatrix,num_iter)
+#else
+   call m3dc1_matrix_getiternum(mat%imatrix,num_iter)
+#endif
+  if (num_iter.ge.10000) then
+     print*, 'Error: solver', mat%imatrix, 'diverged. JOB stopped'
+     call safestop(10000)
+  endif
+  if(mat%imatrix== 5) kspits(1)=num_iter
+  if(mat%imatrix== 1) kspits(2)=num_iter
+  if(mat%imatrix==17) kspits(3)=num_iter
+  if(mat%imatrix== 6) kspits(4)=num_iter
+ end subroutine scorec_matrix_solve_with_guess
+
 
   !====================================================================
   ! finalize

@@ -506,4 +506,48 @@ end subroutine solve_newvar1
     call finalize(rhs)
   end subroutine newvar_solve
 
+  subroutine newvar_solve_with_guess(rhs, xVec_guess, mat, bvec)
+    use vector_mod
+
+    implicit none
+
+    type(vector_type), intent(inout), target :: rhs, xVec_guess
+    type(newvar_matrix), intent(in) :: mat
+    type(vector_type), intent(inout), target, optional :: bvec
+
+    integer :: ier
+    type(vector_type), pointer :: bptr
+
+#ifdef CJ_MATRIX_DUMP
+    character*30 filename
+#endif
+
+    if(.not.present(bvec)) then
+       bptr => rhs
+    else
+       bptr => bvec
+    end if
+    call sum_shared(rhs)
+
+    call apply_bc(rhs,mat%ibound,bptr)
+
+#ifdef CJ_MATRIX_DUMP
+     if(ntime.eq.ntimemax) then 
+        write ( *, * ) "print matrix", mat%mat%imatrix, ntime
+        call write_matrix(mat%mat,filename)
+        call write_vector(rhs, trim(filename))
+     endif
+#endif 
+
+    call newsolve_with_guess(mat%mat,rhs,xVec_guess,ier)
+
+#ifdef CJ_MATRIX_DUMP
+     if(ntime.eq.ntimemax) then 
+        call write_vector(rhs, trim(filename))
+     endif
+#endif 
+
+    call finalize(rhs)
+  end subroutine newvar_solve_with_guess
+
 end module newvar_mod
