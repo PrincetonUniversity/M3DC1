@@ -3611,6 +3611,34 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   return M3DC1_SUCCESS;
 }
 
+int m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess) //solveSysEqu_
+{  
+  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+#ifdef DEBUG
+  if (!PCU_Comm_Self())
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", field "<<*rhs_sol<<"\n";
+  if (!mat) 
+  {  
+    if (!PCU_Comm_Self())
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
+    return M3DC1_FAILURE;
+  }
+
+  if (mat->get_type()!=M3DC1_SOLVE)
+  { 
+    if (!PCU_Comm_Self())
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for multiplication (id"<<*matrix_id<<")\n";
+    return M3DC1_FAILURE;
+  }
+#endif
+
+  mat->mymatrix_id = *matrix_id;
+
+  (dynamic_cast<matrix_solve*>(mat))->solve_with_guess(*rhs_sol, *xVec_guess);
+  addMatHit(*matrix_id);
+  return M3DC1_SUCCESS;
+}
+
 //*******************************************************
 int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, 
          FieldID* outputvecid) 
