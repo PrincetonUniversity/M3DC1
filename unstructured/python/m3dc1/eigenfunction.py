@@ -5,7 +5,7 @@ Created on February 29 2020
 
 @author: Andreas Kleiner
 """
-#import math
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -24,7 +24,8 @@ from m3dc1.plot_mesh import plot_mesh
 from m3dc1.plot_coils import plot_coils
 
 def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,show_res=False,
-                  device='nstx',norm_to_unity=False,drop_low_m=-1,nummodes=10,cmap='jet',coils=False,mesh=False,bound=False, phys=False,pub=False,n=None,titlestr=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither'):
+                  device='nstx',norm_to_unity=False,drop_low_m=-1,nummodes=10,cmap='jet',coils=False,mesh=False,bound=False,quiet=False, phys=False,pub=False,n=None,titlestr=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither',
+                  export=False):
     """
     Calculates the linear eigenfunction ~(p1-p0)
 
@@ -117,6 +118,9 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
     **savedir**
     Relative path to directory where plot is saved. If None, use current working
     directory.
+
+    **export**
+    Export plot data to text file.
     """
     
     # make simulation object iterable if it is a single object and not if it is list of objects
@@ -208,7 +212,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         
         fs = list(range(0,pathshape[1]))
         for i in fs:
-            spec[:,i] = rfft(ef[:,i],norm='forward')#/pathshape[1] #Applying normalization by number of elements on forward transformation
+            spec[:,i] = np.abs(rfft(ef[:,i],norm='forward'))#/pathshape[1] #Applying normalization by number of elements on forward transformation
         
     
     if drop_low_m>-1:
@@ -218,6 +222,8 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
             ef[:,i] = irfft(spec[:,i],norm='forward')
     
     if fourier:
+        for i in fs:
+            spec[:,i] = np.abs(spec[:,i])
         spec_abs = np.abs(spec)
     
     # Plot eigenfunction in R-Z plane
@@ -244,7 +250,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         ef_field = np.concatenate((ef,np.reshape(ef[0,:],(1,len(ef[0,:])))))
         
         if norm_to_unity:
-            #fac = 1.0*10**(-int(math.log10(np.amax(ef_field))))
+            #fac = 1.0*10**(-int(math.log10(np.amax(ef_field)))) # This normalization was used in early presentations, and is such that the maximum of the perturbation is of order 1e-1
             efmax = np.amax(ef_field)
             efmin = np.amin(ef_field)
             
@@ -253,10 +259,16 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         else:
             plot_field = ef_field
         
+        R_data = np.concatenate((fc.rpath,np.reshape(fc.rpath[0,:],(1,len(fc.rpath[0,:])))))
+        Z_data = np.concatenate((fc.zpath,np.reshape(fc.zpath[0,:],(1,len(fc.zpath[0,:])))))
+        
+        if export:
+            np.savetxt('ef_contours.txt', np.transpose([np.ravel(R_data),np.ravel(Z_data),np.ravel(plot_field)]))
+        
         if colorbounds is None:
-            cont = plt.contourf(np.concatenate((fc.rpath,np.reshape(fc.rpath[0,:],(1,len(fc.rpath[0,:]))))),np.concatenate((fc.zpath,np.reshape(fc.zpath[0,:],(1,len(fc.zpath[0,:]))))),plot_field,100,cmap=cmap)
+            cont = plt.contourf(R_data,Z_data,plot_field,100,cmap=cmap)
         else:
-            cont = plt.contourf(np.concatenate((fc.rpath,np.reshape(fc.rpath[0,:],(1,len(fc.rpath[0,:]))))),np.concatenate((fc.zpath,np.reshape(fc.zpath[0,:],(1,len(fc.zpath[0,:]))))),plot_field,100,cmap=cmap,vmin=colorbounds[0],vmax=colorbounds[1], extend=extend_cbar)
+            cont = plt.contourf(R_data,Z_data,plot_field,100,cmap=cmap,vmin=colorbounds[0],vmax=colorbounds[1], extend=extend_cbar)
         ax = plt.gca()
         ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
         ax.set_xlim([fpyl.get_axlim(np.amin(fc.rpath),'min',0.1),fpyl.get_axlim(np.amax(fc.rpath),'max',0.1)])
@@ -290,19 +302,21 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         if mesh or bound:
             if mesh and bound:#Make sure that whole mesh is plotted. If both are true, plot_mesh only plots boundary.
                 bound = False
-            meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys)
+            mesh_ob      = sims[0].get_mesh(quiet=quiet)
+            #mesh_pts     = mesh_ob.elements
+            meshplt = plot_mesh(mesh_ob,boundary=bound,ax=ax,meshcol='C1',pub=pub,phys=phys)
         
         plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
     
     if fourier:
-        
         #Identify largest modes
         mmax = np.asarray([np.amax(spec_abs[j,:]) for j in range(nspec)])
         mmax_ind = mmax.argsort()
         
         # Plot Fourier spectrum
         if makeplot:
+            #Plots for early presentations do not use this normalization for the Fourier harmonics
             if norm_to_unity:
                 specmax = np.amax(spec_abs)
                 fac = 1.0/specmax
@@ -310,6 +324,9 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
                 fac = 1.0
             plt.figure()
             #print(mmax_ind[-nummodes:])
+            if export:
+                np.savetxt('ef_spectrum.txt', np.insert(fac*spec_abs,0,fc.psi_norm,0))
+            
             for j in range(nspec):
                 if nummodes>0:
                     if j in mmax_ind[-nummodes:]:
