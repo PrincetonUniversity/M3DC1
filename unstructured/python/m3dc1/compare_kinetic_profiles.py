@@ -18,7 +18,7 @@ from m3dc1.flux_coordinates import flux_coordinates
 
 def compare_kinetic_profiles(sim=None, coord='scalar', fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, units='mks', fac=1, phit=0, rms=False,pub=False,ls='-',xlimits=[None,None],ylimits=[None,None],show_legend=False,leglbl=None, fignum=None,figsize=None):
     """
-    Plots total pressure, electron pressure and ion pressure
+    Plots flux average of total pressure, electron pressure and ion pressure
     
     Arguments:
 

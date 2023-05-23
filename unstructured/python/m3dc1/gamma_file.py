@@ -11,6 +11,16 @@ class Gamma_file:
         datal1 = data[0].split()
         datal2 = data[1].split()
         
+        for l,line in enumerate(data):
+            print(l,line)
+            if 'gamma' in line:
+                ind = l
+                break
+        
+        width_height = False
+        if ind == 3:
+            width_height = True
+        
         n_list = []
         gamma_list = []
         dgamma_list = []
@@ -22,7 +32,7 @@ class Gamma_file:
         pblist = []
         
         # Build lists from text file
-        for i in range(3,len(data)):
+        for i in range(ind+1,len(data)):
             n_list.append(int(data[i].split()[0]))
             gamma_list.append(float(data[i].split()[1])/2.0)
             dgamma_list.append(float(data[i].split()[2]))
@@ -46,6 +56,7 @@ class Gamma_file:
         except:
             self.ipres = 0
             print('WARNING: ipres not found!')
+        
         self.pped = float(datal2[0])
         self.jped = float(datal2[1])
         if len(datal2)>=3:

@@ -76,11 +76,20 @@ def setup_sims(sim,filename,time,linear,diff):
         if not isinstance(sim,fpy.sim_data):
             sim = np.empty(0)
             filename = np.atleast_1d(filename)
-            for f in filename:
-                sim = np.append(sim,fpy.sim_data(f,time=time))
+            
+            if len(filename)>1 or (len(time)<2):
+                for f in filename:
+                    sim = np.append(sim,fpy.sim_data(f,time=time))
+            elif isinstance(time,(tuple, list)) and len(filename)<2 and len(time)>1:
+                for t in time:
+                    #print(filename)
+                    #print(t)
+                    sim = np.append(sim,fpy.sim_data(filename=filename[0],time=t))
+                    #print(time)
+                    #print(sim)
         else:
             sim = np.atleast_1d(sim)
-        time = np.atleast_1d(time)
+            time = np.atleast_1d(time)
 
     if len(time)==1 and len(sim)>1:
         time = np.repeat(time,len(sim))
@@ -498,7 +507,7 @@ def get_tracelabel(units,trace,label=None,unitlabel=None,fac=1):
         lbl, ulbl = labels[trace]
     else:
         lbl, ulbl = ('', '')
-
+    #print(unitlabel)
     if label is None:
         label = lbl
     if unitlabel is None:

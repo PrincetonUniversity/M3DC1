@@ -7,11 +7,12 @@ Created on Feb  7 15:17:00 2023
 """
 import os
 import glob
+import traceback
 import matplotlib.pyplot as plt
 from matplotlib.ticker import LinearLocator, MultipleLocator, FormatStrFormatter
 from m3dc1.get_time_of_slice import get_time_of_slice
 
-def input_vs_t(param,wd=None,units='m3dc1',makeplot=True,fignum=None):
+def input_vs_t(param,wd=None,units='m3dc1',millisec=False,makeplot=True,fignum=None):
     """
     Reads M3D-C1 input parameters from all Slurm log files within simulation directory
     and plots it vs. time.
@@ -26,6 +27,9 @@ def input_vs_t(param,wd=None,units='m3dc1',makeplot=True,fignum=None):
 
     **units**
     Units in which the result will be calculated
+
+    **millisec**
+    True/False. If True and units='mks' plot will be in terms of milliseconds, instead of seconds.
 
     **makeplot**
     If True, show plot, otherwise results will be printed to screen and returned.
@@ -46,23 +50,29 @@ def input_vs_t(param,wd=None,units='m3dc1',makeplot=True,fignum=None):
         with open(slurmfile, 'r') as sf:
             found_restart = False
             found_param = False
-            for line in sf:
-                if 'irestart_slice' in line:
-                    restart_line = line.replace("\n", "")
-                    found_restart = True
-                if param+' ' in line:
-                    line_split = line.split()
-                    if param == line_split[0]:
-                        param_line = line.replace("\n", "")
-                        value = line_split[-1]
-                    
-                        found_param = True
-                if found_restart and found_param:
-                    break
+            try:
+                for line in sf:
+                    if 'irestart_slice' in line:
+                        restart_line = line.replace("\n", "")
+                        found_restart = True
+                    if param+' ' in line:
+                        line_split = line.split()
+                        if param == line_split[0]:
+                            param_line = line.replace("\n", "")
+                            value = line_split[-1]
+                        
+                            found_param = True
+                    if found_restart and found_param:
+                        break
+            except Exception as err:
+                print(slurmfile)
+                traceback.print_exc()
+                print(err)
+                
         
         values.append(float(value))
         ts = int(restart_line.split()[-1])
-        time = get_time_of_slice(ts,units=units)
+        time = get_time_of_slice(ts,units=units,millisec=millisec)
         times.append(time)
         print(restart_line)
         print(param_line)

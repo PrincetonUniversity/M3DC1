@@ -218,7 +218,8 @@ m3dc1_matrix::~m3dc1_matrix()
   delete A;
 } 
 
-int m3dc1_matrix::get_values(vector<int>& rows, vector<int>& n_columns, vector<int>& columns, vector<double>& values)
+int m3dc1_matrix::get_values(vector<PetscInt>& rows, vector<int>& n_columns,
+	           	     vector<PetscInt>& columns, vector<double>& values)
 {
   if (!mat_status)  // matrix is not fixed
   {
@@ -293,7 +294,7 @@ int m3dc1_matrix::set_value(int row, int col, int operation, double real_val, do
   CHKERRQ(ierr);
 }
 
-int m3dc1_matrix::add_values(int rsize, int * rows, int csize, int * columns, double* values)
+int m3dc1_matrix::add_values(int rsize, PetscInt* rows, int csize, PetscInt* columns, double* values)
 {
   if (mat_status) // matrix is fixed
   {
@@ -433,7 +434,7 @@ int matrix_solve::setUpRemoteAStruct()
 
   int num_vtx = m3dc1_mesh::instance()->num_local_ent[0];
 
-  std::vector<int> nnz_remote(num_values*num_vtx);
+  std::vector<PetscInt> nnz_remote(num_values*num_vtx);
   int brgType = mesh->getDimension();
   
   apf::MeshEntity* ent;
@@ -662,7 +663,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     int num_dof2 = (m3dc1_mesh::instance()->num_local_ent[0])*mf->get_num_value()*mf->get_dof_per_value();
     assert(num_dof==num_dof2);
 #endif
-    int bs;
+    PetscInt bs;
     int ierr;
     MatGetBlockSize(*A, &bs);
     PetscScalar * array[2];
@@ -827,10 +828,10 @@ int matrix_solve::reset_values()
 };
 
 
-int matrix_solve::add_blockvalues(int rbsize, int * rows, int cbsize, int * columns, double* values)
+int matrix_solve::add_blockvalues(int rbsize, PetscInt* rows, int cbsize, PetscInt* columns, double* values)
 {
 #if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
-  int bs;
+  PetscInt bs;
   MatGetBlockSize(remoteA, &bs);
   vector<PetscScalar> petscValues(rbsize*cbsize*bs*bs);
 
@@ -910,7 +911,7 @@ int matrix_solve::assemble()
         numAdj = vecAdj.size();
         assert(numAdj==it2->second);
         std::vector<int> localNodeId(numAdj);
-        std::vector<int> columns(total_num_dof*numAdj);
+        std::vector<PetscInt> columns(total_num_dof*numAdj);
         for (int i=0; i<numAdj; ++i)
         {
           local_id = get_ent_localid(mesh, vecAdj.at(i));
@@ -1015,7 +1016,7 @@ int matrix_solve::assemble()
       while (valueOffset<numValues)
       {
         int numAdj = idx.at(idxOffset++); 
-        std::vector<int> columns(total_num_dof*numAdj);
+        std::vector<PetscInt> columns(total_num_dof*numAdj);
         int offset=0;
         for (int i=0; i<numAdj; ++i, ++idxOffset)
           for (int j=0; j<total_num_dof; ++j)
@@ -1229,7 +1230,7 @@ int matrix_solve:: setBmgType()
 	MPI_Allreduce(&mat_dim, &global_dim, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD );
 	plane_dim=global_dim/nplane;
 
-   PetscInt myrank,maxrank,npart,planeid,partitionid;
+   int myrank,maxrank,npart,planeid,partitionid;
    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
    MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
    npart=maxrank/nplane;
