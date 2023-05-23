@@ -142,7 +142,8 @@ subroutine init_perturbations
   implicit none
 
   type(field_type) :: psi_vec, phi_vec
-  integer :: itri, numelms, i, izone, imr
+  integer :: itri, numelms, i, izone, ifield
+  integer, dimension(MAX_PTS) :: imr
   vectype, dimension(dofs_per_element) :: dofs
 
   call create_field(psi_vec)
@@ -150,6 +151,8 @@ subroutine init_perturbations
 
   psi_vec = 0.
   phi_vec = 0.
+
+  ifield = FIELD_PSI + FIELD_P
 
   numelms = local_elements()
 
@@ -161,15 +164,7 @@ subroutine init_perturbations
      if(izone.ne.1) cycle
 
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-     call define_fields(itri,0,1,0)
-
-     call eval_ops(itri, p_field(0), p079)
-     call eval_ops(itri, psi_field(0), ps079)
-     call eval_ops(itri, p_field(1), p179)
-     call eval_ops(itri, psi_field(1), ps179)
-     pt79  = p079  + p179
-     pst79 = ps079 + ps179
- 
+     call define_fields(itri,ifield,1,0)
 
      ps179 = 0.
      ph179 = 0.
@@ -184,20 +179,15 @@ subroutine init_perturbations
      ph179(:,OP_1) = ph179(:,OP_1) + r_79*verzero
 
      ! apply mask
-     if(p0 .gt. 0.) then 
-        do i=1, npoints
-           call magnetic_region(pst79(i,OP_1),pst79(i,OP_DR),pst79(i,OP_DZ), &
-                x_79(i), z_79(i), imr)
-           if(imr.eq.REGION_PLASMA) then
-              if(real(pt79(i,OP_1)).gt.pedge) then
-                 temp79a(i) = (pt79(i,OP_1) - pedge)/p0
-              else
-                 temp79a(i) = 0.
-              end if
-           else
-              temp79a(i) = 0.
-           end if
-        end do
+     if(p0 .gt. 0.) then
+        call magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ), &
+             x_79(:), z_79(:), imr)
+
+        where(imr.eq.REGION_PLASMA)
+           temp79a(:) = (pt79(:,OP_1) - pedge)/p0
+        elsewhere
+           temp79a(:) = 0.
+        end where
         ph179(:,OP_1) = ph179(:,OP_1)*temp79a
      end if
 
