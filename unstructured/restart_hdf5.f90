@@ -1,7 +1,7 @@
 module restart_hdf5
   implicit none
 
-  integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
+  integer, private :: icomplex_in, eqsubtract_in, extsubtract_in, ifin, nplanes_in
   integer, private :: ikprad_in, kprad_z_in, ipellet_in
   real, private, allocatable :: phi_in(:)
   real, private :: toroidal_period_in
@@ -16,6 +16,7 @@ contains
     use arrays
     use kprad_m3dc1
     use init_common
+    use rmp
 
     implicit none
 
@@ -72,6 +73,7 @@ contains
     end if
     
     call read_int_attr(root_id, "eqsubtract", eqsubtract_in, error)
+    call read_int_attr(root_id, "extsubtract", extsubtract_in, error)
     call read_int_attr(root_id, "icomplex", icomplex_in, error)
     call read_int_attr(root_id, "3d", i3d_in, error)
 
@@ -281,17 +283,25 @@ contains
 
     call h5gclose_f(root_id, error)
 
-    ! If eqsubtract = 1 but eqsubtract_in = 0, then
-    ! old fields become new equilibrium fields
-    if(eqsubtract_in.eq.0 .and. eqsubtract.eq.1) then
-       field0_vec = field_vec
-       field_vec = 0.
-    end if
-
 
     ! If type of calculation has changed (i.e. real to complex)
     ! then overwrite output
     istartnew = 0
+
+    ! If eqsubtract = 1 but eqsubtract_in = 0, then
+    ! old fields become new equilibrium fields
+    if(eqsubtract_in.eq.0 .and. eqsubtract.eq.1) then
+       if(myrank.eq.0) then
+          print *, 'Restarting while changing eqsubtract from 0 to 1'
+          print *, 'Previous data will be overwritten.'
+       end if
+       field0_vec = field_vec
+       field_vec = 0.
+       bfp_field(0) = bfp_field(1)
+       bfp_field(1) = 0. 
+       istartnew = 1
+       time = 0
+    end if
     if(icomplex.eq.1 .and. icomplex_in.eq.0) then
        if(myrank.eq.0) then
           print *, 'Starting complex calculation from 2D real calculation.'
@@ -312,6 +322,7 @@ contains
           print *, 'Previous data will be overwritten.'
        end if
        istartnew = 1
+       time = 0
     end if
 
     if (istartnew.eq.1) then
@@ -331,7 +342,21 @@ contains
        if(eqsubtract.eq.0) then
          call add_field_to_field(nre_field(1),nre_field(0))
          nre_field(0) = 0.
-       endif
+      endif
+
+      ! For RMP and error fields
+      if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
+           tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
+           any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) then
+         ! External fields already loaded for itaylor = 41
+         if(itaylor.eq.41) then
+            if(myrank.eq.0 .and. iprint.ge.2) print *, &
+                 "Skipping: RMP specification not currently implemented for ST."
+         else
+            call rmp_per
+         end if
+      end if
+
     end if
 
     if(allocated(phi_in)) deallocate(phi_in)
@@ -387,13 +412,13 @@ contains
     end if
     
     if(icsubtract.eq.1 .or. &
-         (extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0))) then
+         (extsubtract_in.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0))) then
        call h5r_read_field(group_id, "psi_plasma", psi_field(ilin), nelms, error)
     else
        call h5r_read_field(group_id, "psi", psi_field(ilin), nelms, error)
     end if
 
-    if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0)) then
+    if(extsubtract_in.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0)) then
        call h5r_read_field(group_id, "I_plasma", bz_field(ilin), nelms, error)
        if(ifin.eq.1) then
           call h5r_read_field(group_id, "f_plasma", bf_field(ilin), nelms, error)
@@ -411,7 +436,7 @@ contains
        end if
     end if
 
-    if (use_external_fields) then
+    if (extsubtract_in.eq.1) then
        call h5r_read_field(group_id, "psi_ext", psi_ext, nelms, error)
        call h5r_read_field(group_id,   "I_ext",  bz_ext, nelms, error)
        call h5r_read_field(group_id,   "f_ext",  bf_ext, nelms, error)       

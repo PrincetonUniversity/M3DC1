@@ -6,8 +6,8 @@
 
 OPTS := $(OPTS) -DPETSC_VERSION=990 -DUSEBLAS
 
-PETSCVER=petsc3.12.4
-PETSC_VER=petsc-3.12.4
+PETSCVER=petsc3.14.4
+PETSC_VER=petsc-3.14.4
 
 PETSC_DIR=/home/jinchen/project/PETSC/petsc
 #PETSC_DIR=/home/jinchen/project/PETSC/petsc.rh7
@@ -26,7 +26,7 @@ else
 endif
 
 #SCOREC_BASE_DIR=/projects/M3DC1/scorec/pgi19.9-openmpi4.0.2/$(PETSCVER)
-SCOREC_BASE_DIR=/projects/M3DC1/scorec/pgi20.4-openmpi4.0.4/petsc3.13.4/
+SCOREC_BASE_DIR=/projects/M3DC1/scorec/pgi20.4-openmpi4.0.4/petsc3.13.4/202209
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)

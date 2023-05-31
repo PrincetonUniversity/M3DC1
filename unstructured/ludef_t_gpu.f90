@@ -536,97 +536,97 @@ subroutine vorticity_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
   ! Split time-step
   if(advfield.eq.1) then
      ! parabolization terms
-     !tempx = v1upsipsi(trialx,lin,pst79,pst79) &
-          !+ v1upsib  (trialx,lin,pst79,bzt79) &
+     !tempx = v1upsipsi(trialx,lin,pstx79,pstx79) &
+          !+ v1upsib  (trialx,lin,pstx79,bztx79) &
 !#ifdef USE3D
 !!#if defined(USEST) && defined(USE3D)
-!          + v1upsif  (trialx,lin,pst79,bfpt79) &
-!          + v1ubf    (trialx,lin,bzt79,bfpt79) &
-!          + v1uff    (trialx,lin,bfpt79,bfpt79) &
+!          + v1upsif  (trialx,lin,pstx79,bfptx79) &
+!          + v1ubf    (trialx,lin,bztx79,bfptx79) &
+!          + v1uff    (trialx,lin,bfptx79,bfptx79) &
 !#endif
-         !+ v1ubb    (trialx,lin,bzt79,bzt79)
+         !+ v1ubb    (trialx,lin,bztx79,bztx79)
      !ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
      !ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
-     temp = v1upsipsi(pst79,pst79) &
-          + v1upsib(pst79,bzt79) &
+     temp = v1upsipsi(pstx79,pstx79) &
+          + v1upsib(pstx79,bztx79) &
 #ifdef USE3D
 !#if defined(USEST) && defined(USE3D)
-          + v1upsif  (pst79,bfpt79) &
-          + v1ubf    (bzt79,bfpt79) &
-          + v1uff    (bfpt79,bfpt79) &
+          + v1upsif  (pstx79,bfptx79) &
+          + v1ubf    (bztx79,bfptx79) &
+          + v1uff    (bfptx79,bfptx79) &
 #endif
-          + v1ubb(bzt79,bzt79)
+          + v1ubb(bztx79,bztx79)
      ADDTERM(u_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
      !! two-fluid contribution
      !if(db .gt. 0 .and. itwofluid.eq.2) then
-        !tempx = v1hupsi(trialx,lin,pst79) & 
-             !+ v1hub  (trialx,lin,bzt79)
-        !if(i3d.eq.1) tempx = tempx + v1huf(trialx,lin,bfp179)
+        !tempx = v1hupsi(trialx,lin,pstx79) & 
+             !+ v1hub  (trialx,lin,bztx79)
+        !if(i3d.eq.1) tempx = tempx + v1huf(trialx,lin,bfptx79)
         !ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
         !ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
      !endif
 
      if(numvar.ge.2) then
-        ! tempx = v1vpsipsi(trialx,lin,pst79,pst79) &
+        ! tempx = v1vpsipsi(trialx,lin,pstx79,pstx79) &
 !#ifdef USE3D
 !!#if defined(USEST) && defined(USE3D)
-!             ! + v1vpsif  (trialx,lin,pst79,bfpt79) &
-!             ! + v1vbf    (trialx,lin,bzt79,bfpt79) &
-!             ! + v1vff    (trialx,lin,bfpt79,bfpt79) &
+!             ! + v1vpsif  (trialx,lin,pstx79,bfptx79) &
+!             ! + v1vbf    (trialx,lin,bztx79,bfptx79) &
+!             ! + v1vff    (trialx,lin,bfptx79,bfptx79) &
 !#endif
-             ! + v1vpsib  (trialx,lin,pst79,bzt79)
+             ! + v1vpsib  (trialx,lin,pstx79,bztx79)
         ! ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
         ! ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
 
-        temp = v1vpsipsi(pst79,pst79) &
+        temp = v1vpsipsi(pstx79,pstx79) &
 #ifdef USE3D
 !#if defined(USEST) && defined(USE3D)
-             + v1vpsif  (pst79,bfpt79) &
-             + v1vbf    (bzt79,bfpt79) &
-             + v1vff    (bfpt79,bfpt79) &
+             + v1vpsif  (pstx79,bfptx79) &
+             + v1vbf    (bztx79,bfptx79) &
+             + v1vff    (bfptx79,bfptx79) &
 #endif
-             + v1vpsib  (pst79,bzt79)
+             + v1vpsib  (pstx79,bztx79)
         ADDTERM(vz_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
        !! two-fluid contribution
        !if(db .gt. 0 .and. itwofluid.eq.2) then
-          !tempx = v1hvpsi(trialx,lin,pst79) & 
-               !+ v1hvb  (trialx,lin,bzt79)
-          !if(i3d.eq.1) tempx = tempx + v1hvf(trialx,lin,bfp179)
+          !tempx = v1hvpsi(trialx,lin,pstx79) & 
+               !+ v1hvb  (trialx,lin,bztx79)
+          !if(i3d.eq.1) tempx = tempx + v1hvf(trialx,lin,bfptx79)
           !ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
           !ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
        !endif
      endif
 
      if(numvar.ge.3) then
-       !tempx = v1chipsipsi(trialx,lin,pst79,pst79) &
-       !     + v1chipsib  (trialx,lin,pst79,bzt79) &
+       !tempx = v1chipsipsi(trialx,lin,pstx79,pstx79) &
+       !     + v1chipsib  (trialx,lin,pstx79,bztx79) &
 !#ifdef USE3D
 !!#if defined(USEST) && defined(USE3D)
-       !     + v1chipsif  (trialx,lin,pst79,bfpt79) &
-       !     + v1chibf    (trialx,lin,bzt79,bfpt79) &
-       !     + v1chiff    (trialx,lin,bfpt79,bfpt79) &
+       !     + v1chipsif  (trialx,lin,pstx79,bfptx79) &
+       !     + v1chibf    (trialx,lin,bztx79,bfptx79) &
+       !     + v1chiff    (trialx,lin,bfptx79,bfptx79) &
 !#endif
-       !     + v1chibb    (trialx,lin,bzt79,bzt79)
+       !     + v1chibb    (trialx,lin,bztx79,bztx79)
        !ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
        !ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
-       temp = v1chipsipsi(pst79,pst79) &
-            + v1chipsib(pst79,bzt79) &
+       temp = v1chipsipsi(pstx79,pstx79) &
+            + v1chipsib(pstx79,bztx79) &
 #ifdef USE3D
 !#if defined(USEST) && defined(USE3D)
-            + v1chipsif(pst79,bfpt79) &
-            + v1chibf  (bzt79,bfpt79) &
-            + v1chiff  (bfpt79,bfpt79) &
+            + v1chipsif(pstx79,bfptx79) &
+            + v1chibf  (bztx79,bfptx79) &
+            + v1chiff  (bfptx79,bfptx79) &
 #endif
-            + v1chibb(bzt79,bzt79)
+            + v1chibb(bztx79,bztx79)
        ADDTERM(chi_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
        !! two-fluid contribution
        !if(db .gt. 0 .and. itwofluid.eq.2) then
-          !tempx = v1hchipsi(trialx,lin,pst79) & 
-               !+ v1hchib  (trialx,lin,bzt79)
-          !if(i3d.eq.1) tempx = tempx + v1hchif(trialx,lin,bfp179)
+          !tempx = v1hchipsi(trialx,lin,pstx79) & 
+               !+ v1hchib  (trialx,lin,bztx79)
+          !if(i3d.eq.1) tempx = tempx + v1hchif(trialx,lin,bfptx79)
           !ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
           !ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
        !endif
@@ -1213,94 +1213,94 @@ subroutine axial_vel_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
   if(advfield.eq.1) then 
 
      ! parabolization terms
-     ! tempx = v2upsipsi(trialx,lin,pst79,pst79) &
-          ! + v2upsib  (trialx,lin,pst79,bzt79) &
+     ! tempx = v2upsipsi(trialx,lin,pstx79,pstx79) &
+          ! + v2upsib  (trialx,lin,pstx79,bztx79) &
 !#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
-          ! + v2upsif  (trialx,lin,pst79,bfpt79) &
-          ! + v2ubf    (trialx,lin,bzt79,bfpt79) &
-          ! + v2uff    (trialx,lin,bfpt79,bfpt79) &
+          ! + v2upsif  (trialx,lin,pstx79,bfptx79) &
+          ! + v2ubf    (trialx,lin,bztx79,bfptx79) &
+          ! + v2uff    (trialx,lin,bfptx79,bfptx79) &
 #endif
-          ! + v2ubb    (trialx,lin,bzt79,bzt79)
+          ! + v2ubb    (trialx,lin,bztx79,bztx79)
      ! ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
      ! ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
-     temp = v2upsipsi(pst79,pst79) &
-          + v2upsib(pst79,bzt79) &
+     temp = v2upsipsi(pstx79,pstx79) &
+          + v2upsib(pstx79,bztx79) &
 !#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
-          + v2upsif(pst79,bfpt79) &
-          + v2ubf(bzt79,bfpt79) &
-          + v2uff(bfpt79,bfpt79) &
+          + v2upsif(pstx79,bfptx79) &
+          + v2ubf(bztx79,bfptx79) &
+          + v2uff(bfptx79,bfptx79) &
 #endif
-          + v2ubb(bzt79,bzt79)
+          + v2ubb(bztx79,bztx79)
      ADDTERM(u_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
      !! two-fluid contribution
      !if(db .gt. 0 .and. itwofluid.eq.2) then
-        !tempx = v2hupsi(trialx,lin,pst79) & 
-             !+ v2hub  (trialx,lin,bzt79)
-        !if(i3d.eq.1) tempx = tempx + v2huf(trialx,lin,bfp179)
+        !tempx = v2hupsi(trialx,lin,pstx79) & 
+             !+ v2hub  (trialx,lin,bztx79)
+        !if(i3d.eq.1) tempx = tempx + v2huf(trialx,lin,bfptx79)
         !ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
         !ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
      !endif
 
-     !tempx = v2vpsipsi(trialx,lin,pst79,pst79) &
+     !tempx = v2vpsipsi(trialx,lin,pstx79,pstx79) &
 !!#if defined(USEST) && defined(USE3D)
 !#ifdef USE3D
-         ! + v2vpsif  (trialx,lin,pst79,bfpt79) &
-         ! + v2vbf    (trialx,lin,bzt79,bfpt79) &
-         ! + v2vff    (trialx,lin,bfpt79,bfpt79) &
+         ! + v2vpsif  (trialx,lin,pstx79,bfptx79) &
+         ! + v2vbf    (trialx,lin,bztx79,bfptx79) &
+         ! + v2vff    (trialx,lin,bfptx79,bfptx79) &
 !#endif
-     !     + v2vpsib  (trialx,lin,pst79,bzt79)
+     !     + v2vpsib  (trialx,lin,pstx79,bztx79)
      !ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
      !ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
-     temp = v2vpsipsi(pst79,pst79) &
+     temp = v2vpsipsi(pstx79,pstx79) &
 !#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
-          + v2vpsif(pst79,bfpt79) &
-          + v2vbf(bzt79,bfpt79) &
-          + v2vff(bfpt79,bfpt79) &
+          + v2vpsif(pstx79,bfptx79) &
+          + v2vbf(bztx79,bfptx79) &
+          + v2vff(bfptx79,bfptx79) &
 #endif
-          + v2vpsib(pst79,bzt79)
+          + v2vpsib(pstx79,bztx79)
      ADDTERM(vz_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
      !! two-fluid contribution
      !if(db .gt. 0 .and. itwofluid.eq.2) then
-        !tempx = v2hvpsi(trialx,lin,pst79) & 
-             !+ v2hvb  (trialx,lin,bzt79)
-        !if(i3d.eq.1) tempx = tempx + v2hvf(trialx,lin,bfp179)
+        !tempx = v2hvpsi(trialx,lin,pstx79) & 
+             !+ v2hvb  (trialx,lin,bztx79)
+        !if(i3d.eq.1) tempx = tempx + v2hvf(trialx,lin,bfptx79)
         !ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
         !ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
      !endif
 
      if(numvar.ge.3) then
-        !tempx = v2chipsipsi(trialx,lin,pst79,pst79) &
-        !     + v2chipsib  (trialx,lin,pst79,bzt79) &
+        !tempx = v2chipsipsi(trialx,lin,pstx79,pstx79) &
+        !     + v2chipsib  (trialx,lin,pstx79,bztx79) &
 !!#if defined(USEST) && defined(USE3D)
 !#ifdef USE3D
-        !     + v2chipsif  (trialx,lin,pst79,bfpt79) &
-        !     + v2chibf    (trialx,lin,bzt79,bfpt79) &
-        !     + v2chiff    (trialx,lin,bfpt79,bfpt79) &
+        !     + v2chipsif  (trialx,lin,pstx79,bfptx79) &
+        !     + v2chibf    (trialx,lin,bztx79,bfptx79) &
+        !     + v2chiff    (trialx,lin,bfptx79,bfptx79) &
 !#endif
-        !     + v2chibb    (trialx,lin,bzt79,bzt79)
+        !     + v2chibb    (trialx,lin,bztx79,bztx79)
         !ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
         !ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
-        temp = v2chipsipsi(pst79,pst79) &
-             + v2chipsib(pst79,bzt79) &
+        temp = v2chipsipsi(pstx79,pstx79) &
+             + v2chipsib(pstx79,bztx79) &
 !#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
-             + v2chipsif(pst79,bfpt79) &
-             + v2chibf(bzt79,bfpt79) &
-             + v2chiff(bfpt79,bfpt79) &
+             + v2chipsif(pstx79,bfptx79) &
+             + v2chibf(bztx79,bfptx79) &
+             + v2chiff(bfptx79,bfptx79) &
 #endif
-             + v2chibb(bzt79,bzt79)
+             + v2chibb(bztx79,bztx79)
         ADDTERM(chi_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
         !! two-fluid contribution
         !if(db .gt. 0 .and. itwofluid.eq.2) then
-           !tempx = v2hchipsi(trialx,lin,pst79) & 
-                !+ v2hchib  (trialx,lin,bzt79)
-           !if(i3d.eq.1) tempx = tempx + v2hchif(trialx,lin,bfp179)
+           !tempx = v2hchipsi(trialx,lin,pstx79) & 
+                !+ v2hchib  (trialx,lin,bztx79)
+           !if(i3d.eq.1) tempx = tempx + v2hchif(trialx,lin,bfptx79)
            !ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
            !ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
         !endif
@@ -1915,95 +1915,95 @@ subroutine compression_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
   if(advfield.eq.1) then
 
      ! parabolization terms
-     !tempx = v3upsipsi(trialx,lin,pst79,pst79) &
-     !     + v3upsib  (trialx,lin,pst79,bzt79) &
+     !tempx = v3upsipsi(trialx,lin,pstx79,pstx79) &
+     !     + v3upsib  (trialx,lin,pstx79,bztx79) &
 !!#if defined(USEST) && defined(USE3D)
 !#ifdef USE3D
-     !     + v3upsif  (trialx,lin,pst79,bfpt79) &
-     !     + v3ubf    (trialx,lin,bzt79,bfpt79) &
-     !     + v3uff    (trialx,lin,bfpt79,bfpt79) &
+     !     + v3upsif  (trialx,lin,pstx79,bfptx79) &
+     !     + v3ubf    (trialx,lin,bztx79,bfptx79) &
+     !     + v3uff    (trialx,lin,bfptx79,bfptx79) &
 !#endif
-     !     + v3ubb    (trialx,lin,bzt79,bzt79)
+     !     + v3ubb    (trialx,lin,bztx79,bztx79)
      !ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
      !ddterm(:,u_g) = ddterm(:,u_g) +       ththm*dt*dt*tempx
-     temp = v3upsipsi(pst79,pst79) &
-          + v3upsib(pst79,bzt79) &
+     temp = v3upsipsi(pstx79,pstx79) &
+          + v3upsib(pstx79,bztx79) &
 !#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
-          + v3upsif(pst79,bfpt79) &
-          + v3ubf(bzt79,bfpt79) &
-          + v3uff(bfpt79,bfpt79) &
+          + v3upsif(pstx79,bfptx79) &
+          + v3ubf(bztx79,bfptx79) &
+          + v3uff(bfptx79,bfptx79) &
 #endif
-          + v3ubb(bzt79,bzt79)
+          + v3ubb(bztx79,bztx79)
      ADDTERM(u_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
      !! two-fluid contribution
      !if(db .gt. 0 .and. itwofluid.gt.1) then
-        !tempx = v3hupsi(trialx,lin,pst79) & 
-             !+ v3hub  (trialx,lin,bzt79)
-        !if(i3d.eq.1) tempx = tempx + v3huf(trialx,lin,bfp179)
+        !tempx = v3hupsi(trialx,lin,pstx79) & 
+             !+ v3hub  (trialx,lin,bztx79)
+        !if(i3d.eq.1) tempx = tempx + v3huf(trialx,lin,bfptx79)
         !ssterm(:,u_g) = ssterm(:,u_g) + db*thimp*dt*tempx
         !ddterm(:,u_g) = ddterm(:,u_g) + db*thimp*dt*tempx
      !endif
 
-     !tempx = v3vpsipsi(trialx,lin,pst79,pst79) &
-     !     + v3vpsib  (trialx,lin,pst79,bzt79) &
+     !tempx = v3vpsipsi(trialx,lin,pstx79,pstx79) &
+     !     + v3vpsib  (trialx,lin,pstx79,bztx79) &
 !!#if defined(USEST) && defined(USE3D)
 !#ifdef USE3D
-     !     + v3vpsif  (trialx,lin,pst79,bfpt79) &
-     !     + v3vbf    (trialx,lin,bzt79,bfpt79) &
-     !     + v3vff    (trialx,lin,bfpt79,bfpt79) &
+     !     + v3vpsif  (trialx,lin,pstx79,bfptx79) &
+     !     + v3vbf    (trialx,lin,bztx79,bfptx79) &
+     !     + v3vff    (trialx,lin,bfptx79,bfptx79) &
 !#endif
-     !     + v3vbb    (trialx,lin,bzt79,bzt79)
+     !     + v3vbb    (trialx,lin,bztx79,bztx79)
      !ssterm(:,vz_g) = ssterm(:,vz_g) - thimp*thimp*dt*dt*tempx
      !ddterm(:,vz_g) = ddterm(:,vz_g) +       ththm*dt*dt*tempx
-     temp = v3vpsipsi(pst79,pst79) &
+     temp = v3vpsipsi(pstx79,pstx79) &
 !#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
-          + v3vpsif(pst79,bfpt79) &
-          + v3vbf(bzt79,bfpt79) &
-          + v3vff(bfpt79,bfpt79) &
+          + v3vpsif(pstx79,bfptx79) &
+          + v3vbf(bztx79,bfptx79) &
+          + v3vff(bfptx79,bfptx79) &
 #endif
-          + v3vpsib(pst79,bzt79)
+          + v3vpsib(pstx79,bztx79)
      ADDTERM(vz_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
      !! two-fluid contribution
      !if(db .gt. 0 .and. itwofluid.gt.1) then
-        !tempx = v3hvpsi(trialx,lin,pst79) & 
-             !+ v3hvb  (trialx,lin,bzt79)
-        !if(i3d.eq.1) tempx = tempx + v3hvf(trialx,lin,bfp179)
+        !tempx = v3hvpsi(trialx,lin,pstx79) & 
+             !+ v3hvb  (trialx,lin,bztx79)
+        !if(i3d.eq.1) tempx = tempx + v3hvf(trialx,lin,bfptx79)
         !ssterm(:,vz_g) = ssterm(:,vz_g) + db*thimp*dt*tempx
         !ddterm(:,vz_g) = ddterm(:,vz_g) + db*thimp*dt*tempx
      !endif
 
 
-     !tempx = v3chipsipsi(trialx,lin,pst79,pst79) &
-     !     + v3chipsib  (trialx,lin,pst79,bzt79) &
+     !tempx = v3chipsipsi(trialx,lin,pstx79,pstx79) &
+     !     + v3chipsib  (trialx,lin,pstx79,bztx79) &
 !!#if defined(USEST) && defined(USE3D)
 !#ifdef USE3D
-     !     + v3chipsif  (trialx,lin,pst79,bfpt79) &
-     !     + v3chibf    (trialx,lin,bzt79,bfpt79) &
-     !     + v3chiff    (trialx,lin,bfpt79,bfpt79) &
+     !     + v3chipsif  (trialx,lin,pstx79,bfptx79) &
+     !     + v3chibf    (trialx,lin,bztx79,bfptx79) &
+     !     + v3chiff    (trialx,lin,bfptx79,bfptx79) &
 !#endif
-     !     + v3chibb    (trialx,lin,bzt79,bzt79)
+     !     + v3chibb    (trialx,lin,bztx79,bztx79)
      !ssterm(:,chi_g) = ssterm(:,chi_g) - thimp*thimp*dt*dt*tempx
      !ddterm(:,chi_g) = ddterm(:,chi_g) +       ththm*dt*dt*tempx
-     temp = v3chipsipsi(pst79,pst79) &
-          + v3chipsib(pst79,bzt79) &
+     temp = v3chipsipsi(pstx79,pstx79) &
+          + v3chipsib(pstx79,bztx79) &
 !#if defined(USEST) && defined(USE3D)
 #ifdef USE3D
-          + v3chipsif(pst79,bfpt79) &
-          + v3chibf(bzt79,bfpt79) &
-          + v3chiff(bfpt79,bfpt79) &
+          + v3chipsif(pstx79,bfptx79) &
+          + v3chibf(bztx79,bfptx79) &
+          + v3chiff(bfptx79,bfptx79) &
 #endif
-          + v3chibb(bzt79,bzt79)
+          + v3chibb(bztx79,bztx79)
      ADDTERM(chi_g,temp,-thimp*thimp*dt*dt,ththm*dt*dt)
 
      !! two-fluid contribution
      !if(db .gt. 0 .and. itwofluid.gt.1) then
-        !tempx = v3hchipsi(trialx,lin,pst79) & 
-             !+ v3hchib  (trialx,lin,bzt79)
-        !if(i3d.eq.1) tempx = tempx + v3hchif(trialx,lin,bfp179)
+        !tempx = v3hchipsi(trialx,lin,pstx79) & 
+             !+ v3hchib  (trialx,lin,bztx79)
+        !if(i3d.eq.1) tempx = tempx + v3hchif(trialx,lin,bfptx79)
         !ssterm(:,chi_g) = ssterm(:,chi_g) + db*thimp*dt*tempx
         !ddterm(:,chi_g) = ddterm(:,chi_g) + db*thimp*dt*tempx
      !endif
@@ -4973,7 +4973,7 @@ subroutine temperature_lin(nterm, term, op1, op2, ssarray, ddarray, &
 
   ! Parallel Heat Flux
   ! ~~~~~~~~~~~~~~~~~~
-  if(kappar.ne.0.) then
+  if(kappar.ne.0. .or. ikapparfunc.eq.2) then
     fac = 1.
     if((numvar.ge.3 .and. ipres.eq.0) .or. (numvar.lt.3 .and. ipres.eq.1)) fac=1. + (1.- pefac)/pefac
     if(numvar.ge.3 .and. ipres.eq.1 .and. (.not. electron_temperature)) fac = kappari_fac
@@ -5579,7 +5579,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(icd_source.gt.0) def_fields = def_fields + FIELD_CD
   if(rad_source) def_fields = def_fields + FIELD_RAD
 
-  if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0 .or. kinetic.ne.0) then
+  if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0 .or. ikapparfunc.eq.2 .or. kinetic.ne.0) then
      def_fields = def_fields + FIELD_B2I
   endif
 
@@ -6849,7 +6849,7 @@ subroutine ludefnre_n(itri)
   ssterm = ssterm + tempxx
   if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
 
-  thimp2=1.0
+  thimp2=thimp
   ncycles=1.0*ra_cyc
   rdiff = radiff
 

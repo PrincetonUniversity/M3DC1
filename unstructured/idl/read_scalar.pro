@@ -463,9 +463,9 @@ function read_scalar, scalarname, filename=filename, title=title, $
        d = dimensions(/l0,_EXTRA=extra)
    endif else if (strcmp("runaways", scalarname, /fold_case) eq 1) then begin
        data = s.runaways._data
-       title = '!6Runaway Electrons!6'
+       title = '!6Runaway Current!6'
        symbol = '!8N!D!6RE!N!X'
-       d = dimensions(/n0,l0=3,_EXTRA=extra)
+       d = dimensions(/j0,_EXTRA=extra)
    endif else if (strcmp("IZ", scalarname, /fold_case) eq 1 $
                  or strcmp("M_IZ", scalarname, /fold_case) eq 1) then begin
        data = s.M_IZ._data / s.toroidal_current_p._data
@@ -537,12 +537,12 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.kprad_n0._data
        title = '!6Neutral Impurities!X'
        symbol = '!8n!DI!60!N!X'
-       d = dimensions(/n0,_EXTRA=extra)
+       d = dimensions(/n0,l0=3,_EXTRA=extra)
    endif else if (strcmp("kprad_n", scalarname, /fold_case) eq 1) then begin
        data = s.kprad_n._data
        title = '!6Total Impurities!6'
        symbol = '!8n!DI!N!X'
-       d = dimensions(/n0,_EXTRA=extra)
+       d = dimensions(/n0,l0=3,_EXTRA=extra)
    endif else if (strcmp("kprad_ion_frac", scalarname, /fold_case) eq 1) then begin
        data = 1. - s.kprad_n0._data / s.kprad_n._data
        title = '!6Impurity Ionization Fraction!X'

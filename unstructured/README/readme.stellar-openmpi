@@ -17,8 +17,7 @@
 
 3. load modules
  
-   module load intel/2021.1.2
-   module load openmpi/intel-2021.1/4.1.0
+   module load intel/2021.1.2 openmpi/intel-2021.1/4.1.0
    module load fftw/intel-2021.1/openmpi-4.1.0/3.3.9
    module load hdf5/intel-2021.1/openmpi-4.1.0/1.10.6
 
@@ -31,6 +30,12 @@
    after compiling, run "make bin"
 
 5. mesh utility
+
+5.1 mesh generation and conversion with Simmetrix
+    module load rlm/pppl simmodsuite/pppl/17.0-220903
+    /projects/M3DC1/scorec/intel2021.1.2-openmpi4.1.0/17.0-220903/bin
+
+5.2 partition and merge
    /projects/M3DC1/scorec/intel2021.1.2-openmpi4.1.0/petsc3.13.5/bin/
 
 6. run a job 

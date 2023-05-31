@@ -43,7 +43,11 @@ void save_sim_model ();
 
 #ifdef PPPL
 #include <SimLicense.h>
+#ifdef STELLAR
+char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
+#else
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
+#endif
 #else
 // for SCOREC
 char simLic[128]="/net/common/meshSim/license/license.txt";

@@ -74,20 +74,25 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     
     # Fit profile
     w = yf
-
-    if minval is None:
-        a = [0.98, 1./0.01, max(yf), 0., min(yf)]
-        if weighted:
-            yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a, sigma=w, absolute_sigma=True)
+    try:
+        if minval is None:
+            a = [0.98, 1./0.01, max(yf), 0., min(yf)]
+            if weighted:
+                yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a, sigma=w, absolute_sigma=True)
+            else:
+                yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a)
         else:
-            yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a)
-    else:
-        a = [0.98, 1./0.01, max(yf), 0.]
-        if weighted:
-            yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a, sigma=w, absolute_sigma=True)
-        else:
-            yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a)
-
+            a = [0.98, 1./0.01, max(yf), 0.]
+            if weighted:
+                yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a, sigma=w, absolute_sigma=True)
+            else:
+                yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a)
+    except Exception as e:
+        dirs = os.getcwd().split('/')
+        os.chdir('../../')
+        os.system('rm -rf '+'/'.join(dirs[-2:]))
+        raise Exception(e)
+        return
         
     #print(yfit)
     

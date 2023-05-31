@@ -12,6 +12,31 @@ import m3dc1.fpylib as fpyl
 
 
 def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=None,quiet=False):
+    """
+    Evaluates the field at the locations specified by the 
+    R, Z, phi arrays. The output will be array/arrays of the same size.
+    
+    Arguments:
+
+    **field_name**
+    The field that is to be evaluated, i.e. 'B' or 'j', etc..
+
+    **R, phi, Z**
+    Scalars or arrays representing points where the field will be evaluated;
+    e.g. R=1.2, phi=0.0, Z=0.0
+    or
+    R, phi, Z = np.meshgrid(R_linspace, phi_linspace, Z_linspace)
+
+    **coord**
+    The chosen part of a field to be plotted, options are:
+    'phi', 'R', 'Z', 'scalar', 'vector'. 'vector' will return three arrays.
+
+    **filename**
+    File name which will be read, i.e. "../C1.h5"
+
+    **time**
+    The time-slice which will be used for the field plot
+    """
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename,time=time)
     if not quiet:

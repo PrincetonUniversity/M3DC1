@@ -279,6 +279,8 @@ subroutine set_defaults
        "Minimum elec. temperature for KPRAD evolution", kprad_grp)
   call add_var_int("ikprad_max_dt", ikprad_max_dt, 0, &
        "Use maximum value of dt for KPRAD ionization", kprad_grp)
+  call add_var_double("kprad_max_dt", kprad_max_dt, -1., &
+       "Specify maximum value of dt for KPRAD ionization", kprad_grp)
   call add_var_int("ikprad_evolve_internal", ikprad_evolve_internal, 0, &
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
   call add_var_double("kprad_n0_denm_fac", kprad_n0_denm_fac, 1., &
@@ -344,6 +346,10 @@ subroutine set_defaults
   call add_var_double("gradp_crit", gradp_crit, 0., &
        "Critical pressure gradient in kappag/kappaf models", transp_grp)
   call add_var_double("kappa_max", kappa_max, 0., &
+       "Maximum value of kappa in the plasma region", transp_grp)
+  call add_var_double("kappar_max", kappar_max, 0., &
+       "Maximum value of kappa in the plasma region", transp_grp)
+  call add_var_double("kappar_min", kappar_min, 0., &
        "Maximum value of kappa in the plasma region", transp_grp)
   call add_var_double("temin_qd", temin_qd, 0., &
        "Min. Temp. used in Equipartition term for ipres=1", transp_grp)
@@ -579,8 +585,8 @@ subroutine set_defaults
        "type of external field file", eq_grp)
   call add_var_string("file_ext_field", file_ext_field, 256, "error_field", &
        "name of external field file", eq_grp)
-  call add_var_string("fieldlines_filename", fieldlines_filename, 256, "fieldlines.h5", &
-       "name of fieldlines file", eq_grp)
+  call add_var_string("file_total_field", file_total_field, 256, "total_field", &
+       "name of total field file for ST", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
   call add_var_double("elongation", elongation, 1., "", eq_grp)
@@ -751,7 +757,6 @@ subroutine set_defaults
   call add_var_double("hyperv", hyperv, 0., "", hyper_grp)
   call add_var_int("ihypdx", ihypdx, 0, "", hyper_grp)
   call add_var_int("ihypeta", ihypeta, 1, "", hyper_grp)
-  call add_var_int("ihypamu", ihypamu, 1, "", hyper_grp)
   call add_var_int("ihypkappa", ihypkappa, 1, "", hyper_grp)
   call add_var_int("imp_hyper", imp_hyper, 0,     &
         "1: implicit hyper-resistivity in psi equation", hyper_grp)
@@ -827,6 +832,10 @@ subroutine set_defaults
        imax_wall_regions, 1e-3, "Resistivity of each wall region", rw_grp)
   call add_var_double_array("wall_region_etaRZ", wall_region_etaRZ,&
        imax_wall_regions, -1. , "Poloidal Resistivity of each wall region", rw_grp)
+  call add_var_double_array("eta_zone", eta_zone, max_zones, &
+       0., "Resistivity of mesh zone", rw_grp)
+  call add_var_double_array("etaRZ_zone", etaRZ_zone, max_zones, &
+       0., "Poloidal resistivity of mesh zone", rw_grp)
 
   call add_var_string_array("wall_region_filename", wall_region_filename, 256,&
        imax_wall_regions, "", "Resistivity of each wall region", rw_grp)
@@ -1077,7 +1086,13 @@ subroutine set_defaults
 
   ! Mesh adaptation
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
-
+  ! SPR based adapt parameters
+  call add_var_int("ispradapt", ispradapt, 0, "", adapt_grp);
+  call add_var_int("isprntime", isprntime, 10, "", adapt_grp);
+  call add_var_double("isprweight", isprweight, 0.1,"", adapt_grp)
+  call add_var_double("isprmaxsize", isprmaxsize, 0.05,"", adapt_grp)
+  call add_var_int("isprrefinelevel", isprrefinelevel, 1, "", adapt_grp);
+  call add_var_int("isprcoarsenlevel", isprcoarsenlevel, -1, "", adapt_grp);
 
   !Micellaneous parameters or mesh adaptation
   call add_var_int("iadapt_writevtk", iadapt_writevtk, 0, "", adapt_grp)
@@ -1093,6 +1108,7 @@ subroutine set_defaults
   call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
   call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
 
+  call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! Adapt (iadapt = 1 only) elements in specific model face. 
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
   call add_var_double("adapt_hmax", adapt_hmax, 0.1, "", adapt_grp)
@@ -1131,7 +1147,7 @@ subroutine set_defaults
   call add_var_int("ifull_torus", ifull_torus, 0, &
        "0 = one field period; 1 = full torus", mesh_grp)
   call add_var_int("iread_vmec",iread_vmec,0,&
-       "1 = read geometry from VMEC file, 2 = read both geometry and fields", mesh_grp)
+       "1 = read geometry from VMEC file", mesh_grp)
   call add_var_string("vmec_filename",vmec_filename,256,"geometry.nc",&
        "name of vmec data file", mesh_grp)
   call add_var_int("igeometry", igeometry, 0, "0: default, identity", mesh_grp)
@@ -1170,7 +1186,7 @@ subroutine set_defaults
        "toroidal angle of maximum mesh packing", mesh_grp)
   call add_var_int_array("boundary_type", boundary_type, max_bounds, &
        BOUND_UNKNOWN, "Type of each mesh boundary.", mesh_grp)
-  call add_var_int_array("zone_type", zone_type, max_bounds, &
+  call add_var_int_array("zone_type", zone_type, max_zones, &
        ZONE_UNKNOWN, "Type of each mesh boundary.", mesh_grp)
 
   ! Solver 
@@ -1329,6 +1345,10 @@ subroutine validate_input
      call safestop(1)
   endif
 
+  if(itemp.eq.0 .and. ikapparfunc.eq.2) then
+     if(myrank.eq.0) print *, "ikapparfunc=2 not allowed with itemp=0"
+     call safestop(1)
+  endif
   
   ! calculate pfac (pe*pfac = electron pressure)
   if(kinetic.eq.0) then
@@ -1660,7 +1680,12 @@ subroutine validate_input
   efac = nufac * m_e * c_light**2 / (4.*pi*e_c**2) / (n0_norm * l0_norm**2)
   if(eta_max.le.0.) eta_max = eta_vac
   if(eta_min.le.0.) eta_min = 0.
+
+  krfac = (9.6 / (4. * sqrt(2.*pi) * sqrt(m_e) * lambda_coulomb * e_c**4)) &
+       * t0_norm * p0_norm**2.5 / (l0_norm**2 * n0_norm**3.5)
   if(kappa_max.le.0.) kappa_max = kappar
+  if(kappar_max.le.0.) kappar_max = kappar
+  if(kappar_min.le.0.) kappar_min = kappar
 
   if(myrank.eq.0 .and. iprint.ge.1) then
      print *, 'nufac = ', nufac

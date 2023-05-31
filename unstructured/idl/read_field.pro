@@ -363,9 +363,9 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
               if(n_elements(map_r) ne n_elements(data) or $
                  n_elements(map_z) ne n_elements(data)) then begin
                  rst = read_field('rst',x,z,t,points=pts, filename=filename, $
-                                  phi=phi0, /logical)
+                                  phi=phi0, /logical, slice=-1)
                  zst = read_field('zst',x,z,t,points=pts, filename=filename, $
-                                  phi=phi0, /logical)
+                                  phi=phi0, /logical, slice=-1)
                  create_map, rst, zst, r=x, z=y, ix=map_r, iy=map_z, mask=mask
               end
               data[0,*,*] = map_field(data, map_r, map_z, $
@@ -1925,7 +1925,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        data = eta*jy^2
        symbol = field_data('!7g!8J!6!U2!N', units=d, itor=itor)
-       d = dimensions(/p0,/t0,_EXTRA=extra)
+       d = dimensions(/p0,t0=-1,_EXTRA=extra)
        
    ;===========================================
    ; del*(psi)

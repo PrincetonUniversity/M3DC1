@@ -1,28 +1,14 @@
 numBdry 2
-bdryFile sparc_v2_first_wall_interpolated.dat
-bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat
-numRgn 2
-rgnBdry  1 1
-rgnBdry  2 1 2
-outFile input2
+bdryFile inner_bdry.pts 1 0.5
+bdryFile outer_bdry.pts 2 0.5
+useVacuum 2 3 0.5
+vacuumParams 8.25 8.0 0.2 0.0 12.5
+numFace 3
+faceBdry 1 1 0.7
+faceBdry 2 1 2 0.5
+faceBdry 2 2 3 0.7
+outFile iter
 
-! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
-meshSize 0.1 0.05 0.5
-
-! create vacuum wall if 0 or 1 (default: 2)
-!useVacuumParams 0
-
-! 1 to multiply coord and params of nodes on vacuum boundary by vacuumFactor
-! If vacuumFactor is not specified, the default is 2*PI
-! If adjustVacuumParams=1, using SimModeler for further meshing is not supported and simmmetrix mesh file is not generated
-adjustVacuumParams 0
-
-vacuumParams 1.8 1.5 0.4 0.0 2.5
-numVacuumPts 20
-
-! meshGradationRate default 0.3
-meshGradationRate 0.02
-plasma-offsetX 0.0
-plasma-offsetY 0.0
-vacuum-width  8.0
-vacuum-height 10.0
+meshGradationRate 1
+vacuum-width 1 
+vacuum-height 1

@@ -277,10 +277,6 @@ subroutine step_unsplit(calc_matrices)
 
   implicit none
 
-#ifdef CJ_MATRIX_DUMP
-  integer :: counter
-#endif 
-
 
   integer, intent(in) :: calc_matrices
   integer :: jer
@@ -324,8 +320,8 @@ subroutine step_unsplit(calc_matrices)
   if(myrank.eq.0 .and. iprint.ge.1) print *, "solving.."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 #ifdef CJ_MATRIX_DUMP
-  call get_counter( s1_mat%imatrix, counter) 
-  if(counter.le.0) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s1_mat", s1_mat%imatrix, ntime
      call write_matrix(s1_mat,'s1_mat')
      call write_vector(b1_phi, 's1_mat_rhs.out')
   endif
@@ -333,7 +329,7 @@ subroutine step_unsplit(calc_matrices)
   call newsolve(s1_mat, b1_phi, jer)
   if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s1_mat)
 #ifdef CJ_MATRIX_DUMP
-  if(counter.le.0) then 
+  if(ntime.eq.ntimemax) then 
      call write_vector(b1_phi, 's1_mat_sol.out')
   endif
 #endif 

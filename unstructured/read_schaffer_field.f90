@@ -477,13 +477,12 @@ contains
     endif
   end subroutine get_external_field
 
-  subroutine load_fieldlines_field(sf, filename, isamp, isamp_pol, error)
+  subroutine load_fieldlines_field(sf, filename, error)
     use hdf5
     implicit none
 
     type(schaffer_field), intent(inout) :: sf
     character(len=*), intent(in) :: filename
-    integer, intent(in) :: isamp, isamp_pol
     integer, intent(out) :: error
     integer :: k, lpres 
     integer(HID_T) :: file_id, dset_id, attr_id
@@ -496,6 +495,9 @@ contains
 
     call h5open_f(error)
     call h5fopen_f(filename, H5F_ACC_RDONLY_F, file_id, error)
+    if(error.lt.0) then
+       return
+    end if
 
     call h5dopen_f(file_id, 'lpres', dset_id, error)
     call h5dread_f(dset_id, H5T_NATIVE_INTEGER, lpres, dim0, error)
@@ -577,7 +579,6 @@ contains
   end subroutine load_fieldlines_field
 
 #ifdef USEST
-!!!
   subroutine check(istatus)
   use netcdf
   implicit none
@@ -587,7 +588,6 @@ contains
      call safestop(53)
   end if
   end subroutine check
-!!!
 
   subroutine load_mgrid_field(sf, mgrid_filename, vmec_filename, error)
     use netcdf

@@ -10,14 +10,14 @@ PETSC_ARCH=traverse-pgi-openmpi-199-gpu-cuda-master
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
 SCOREC_DIR=/projects/M3DC1/scorec/$MPIVER/$PETSCVER
-PREFIX=$SCOREC_DIR
+PREFIX=$SCOREC_DIR/202209
 # module load pgi/20.4/64 openmpi/pgi-20.4/4.0.4/64
 #add -DPETSCMASTER for petsc 3.8.3 or higher
 cmake3 .. \
   -DCMAKE_C_COMPILER=mpicc \
   -DCMAKE_CXX_COMPILER=mpicxx \
   -DCMAKE_Fortran_COMPILER=mpif90 \
-    -DCMAKE_C_FLAGS=" -g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS=" -g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_CXX_FLAGS=" -g -O0 -DOLDMA -DPETSCMASTER -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DSCOREC_INCLUDE_DIR="$SCOREC_DIR/include" \

@@ -44,14 +44,14 @@
    after compiling, run "make bin"
 
 5. mesh utility
-   /projects/M3DC1/scorec/intel2021.1.2-intelmpi/petsc3.13.5/bin
+   /projects/M3DC1/scorec/intel2021.1.2-intelmpi2021.3.1/petsc3.13.5/bin
 
 6. run a job 
 
 6.1 interactive mode
   
   $salloc -n N -t HH:MM:SS 
-  $module load module load intel/2021.1 intel-mpi/intel/2021.1.1
+  $module load module load intel/2021.1 intel-mpi/intel/2021.3.1
   (complex) $srun -n N ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps
   (2D real) $srun -n N  ./m3dc1_2d
   (3D real) $srun -n N ./m3dc1_3d -ipetsc -options_file options_bjacobi
@@ -88,9 +88,9 @@
 
 	setenv M3DC1_MPIRUN srun
 	setenv M3DC1_VERSION local
-	setenv M3DC1_ARCH stellar (openmpi) OR  setenv M3DC1_ARCH stellar-intelmpi-sg (intelmpi)
+	setenv M3DC1_ARCH stellar (intelmpi)
 	make bin ARCH=$M3DC1_ARCH
-	cd _traverse/bin/
+	cd _stellar/bin/
 	setenv PATH `pwd`:$PATH
 	cd ../../regtest/
 	./run $M3DC1_ARCH

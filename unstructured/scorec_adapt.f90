@@ -6,7 +6,8 @@ module scorec_adapt
 
   contains
 
-#ifdef ADAPT
+!obsolete
+#ifdef ADAPT_
 subroutine adapt_mesh
     use basic
     use arrays

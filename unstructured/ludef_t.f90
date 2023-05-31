@@ -75,7 +75,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      return
   endif
 
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      if(inonormalflow.eq.1 .and. .not.surface_int) then
         tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
      else
@@ -679,7 +679,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
   if(numvar.lt.2) return
 
-  if(istatic.eq.1 .or. izone.ne.1) then
+  if(istatic.eq.1 .or. izone.ne.ZONE_PLASMA) then
      if(.not.surface_int) then
         tempx = intx2(trialx(:,:,OP_1),lin(:,OP_1))
         ssterm(:,vz_g) = tempx
@@ -1231,7 +1231,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ddterm(:,chi_g) = ddterm(:,chi_g) + tempx*bdf
   end if
 
-  if(izone.ne.1) then 
+  if(izone.ne.ZONE_PLASMA) then 
      if((inonormalflow.eq.0).or.(inonormalflow.eq.2)) then
         tempx = v3un(trialx,lin,rho79)
         ssterm(:,u_g) = ssterm(:,u_g) + tempx
@@ -1798,7 +1798,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   ! Resistive  Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(izone.ne.2) then
+  if(izone.ne.ZONE_CONDUCTOR) then
      tempx = b1psieta1(trialx,lin,eta79,vzt79,eta_mod.eq.1) &
            + b1psieta2(trialx,lin,eta79,vzt79,eta_mod.eq.1)
   else
@@ -1809,7 +1809,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
 
   if(numvar.ge.2) then
-     if(izone.ne.2) then
+     if(izone.ne.ZONE_CONDUCTOR) then
         tempx = b1beta(trialx,lin,eta79)
      else
         tempx = b1beta(trialx,lin,etaRZ79)
@@ -1818,7 +1818,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
 
      if(i3d.eq.1) then
-        if(izone.ne.2) then
+        if(izone.ne.ZONE_CONDUCTOR) then
            tempx = b1feta(trialx,lin,eta79)
         else
            tempx = b1feta(trialx,lin,etaRZ79)
@@ -1830,7 +1830,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
 
   ! Zone 3: eta J = 0.
-  if(izone.eq.3) return
+  if(izone.eq.ZONE_VACUUM) return
 
 
   ! Time Derivatives
@@ -1842,7 +1842,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   if(itime_independent.eq.0) ddterm(:,psi_g) = ddterm(:,psi_g) + tempx*bdf
 
   ! Zone 2: E = eta J
-  if(izone.ne.1) return
+  if(izone.ne.ZONE_PLASMA) return
 
   ! implicit hyperresistivity
   if(jadv.eq.1 .and. imp_hyper.eq.1) then
@@ -2649,14 +2649,14 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
   ! Resistive and Hyper Terms
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  if(izone.ne.2) then
+  if(izone.ne.ZONE_CONDUCTOR) then
     tempx = b2psieta(trialx,lin,eta79)
   else
     tempx = b2psieta(trialx,lin,etaRZ79)
   endif
   ssterm(:,psi_g) = ssterm(:,psi_g) -     thimp     *dt*tempx
   ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimp*bdf)*dt*tempx
-  if(izone.ne.2) then
+  if(izone.ne.ZONE_CONDUCTOR) then
     tempx = b2beta(trialx,lin,eta79,vzt79)
   else
     tempx = b2beta(trialx,lin,etaRZ79,vzt79)
@@ -2665,7 +2665,7 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimp*bdf)*dt*tempx
 
   if(i3d.eq.1) then
-     if(izone.ne.2) then
+     if(izone.ne.ZONE_CONDUCTOR) then
        tempx = b2feta(trialx,lin,eta79)
      else
        tempx = b2feta(trialx,lin,etaRZ79)
@@ -2684,7 +2684,7 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      ssterm(:,e_g) = ssterm(:,e_g) - dt*tempx
   endif
 
-  if(izone.eq.3) return
+  if(izone.eq.ZONE_VACUUM) return
 
 
   ! Time Derivative
@@ -2695,7 +2695,7 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   ssterm(:,bz_g) = ssterm(:,bz_g) + tempx
   if(itime_independent.eq.0) ddterm(:,bz_g) = ddterm(:,bz_g) + tempx*bdf
 
-  if(izone.ne.1) return
+  if(izone.ne.ZONE_PLASMA) return
 
 
   ! VxB
@@ -3314,7 +3314,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   r_bf = 0.
   q_bf = 0.
 
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      tempx = b3pe(trialx,lin)
      ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
@@ -3932,7 +3932,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   r_bf = 0.
   q_bf = 0.
 
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      tempx = t3t(trialx,lin)
      ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
@@ -4203,7 +4203,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   ! Parallel Heat Flux
   ! ~~~~~~~~~~~~~~~~~~
-  if(kappar.ne.0.) then
+  if(kappar.ne.0. .or. ikapparfunc.eq.2) then
     fac = 1.
     if((numvar.ge.3 .and. ipres.eq.0) .or. (numvar.lt.3 .and. ipres.eq.1)) fac=1. + (1.- pefac)/pefac
     if(numvar.ge.3 .and. ipres.eq.1 .and. (.not. electron_temperature)) fac = kappari_fac
@@ -4686,9 +4686,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   integer :: def_fields
 
   real :: tstart, tend, tfield, telm, tsizefield, tfinalize
-  integer :: is_edge(3)  ! is inode on boundary
-  real :: n(2,3)
-  integer :: iedge, idim(3)
 
   tfield = 0.
   telm = 0.
@@ -4734,7 +4731,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(icd_source.gt.0) def_fields = def_fields + FIELD_CD
   if(rad_source) def_fields = def_fields + FIELD_RAD
 
-  if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0 .or. kinetic.ne.0) then
+  if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0 .or. ikapparfunc.eq.2 .or. kinetic.ne.0) then
      def_fields = def_fields + FIELD_B2I
   endif
 
@@ -4794,29 +4791,6 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
         telm = telm + tend - tstart
      endif
 
-     if(isurface.eq.0) cycle
-     if(nonrect.eq.0) cycle
-
-     ! add surface terms
-     call boundary_edge(itri, is_edge, n, idim)
-     
-     do iedge=1,3
-        if(is_edge(iedge).eq.0) cycle
-
-        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
-        call define_fields(itri, def_fields, 1, linear)
-
-!        write(*,'(A,8F10.4)') 'EDGE: ', x_79(1), z_79(1), x_79(5), z_79(5), &
-!           norm79(3,1), norm79(3,2)
-
-        if(gyro.eq.1) call gyro_common
-
-        if(ivel_def.eq.1) call ludefvel_n(itri)
-        if(ifield_def.eq.1) call ludefphi_n(itri)
-        if(idens_def.eq.1) call ludefden_n(itri)
-        if(irunaway.gt.0) call ludefnre_n(itri)
-        if(ipres_def.eq.1 .or. ipressplit_def.eq.1) call ludefpres_n(itri)
-     end do
   end do
 !$OMP END PARALLEL DO
 
@@ -4968,7 +4942,7 @@ call PetscLogStagePush(stageA,ier)
         end do
      end select
 
-     if(izone.eq.1) then 
+     if(izone.eq.ZONE_PLASMA) then 
         select case(k)
         case(1)
            call vorticity_nolin(mu79,r4)
@@ -5209,11 +5183,11 @@ subroutine ludefphi_n(itri)
      end do
 
      if(ieq(k).eq.psi_i) then
-        if(izone.eq.1) call flux_nolin(mu79,q4)
+        if(izone.eq.ZONE_PLASMA) call flux_nolin(mu79,q4)
      else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
-        if(izone.eq.1) call axial_field_nolin(mu79,q4)
+        if(izone.eq.ZONE_PLASMA) call axial_field_nolin(mu79,q4)
      else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
-        if(izone.eq.1) call pressure_nolin(mu79,q4,ipres.eq.0)
+        if(izone.eq.ZONE_PLASMA) call pressure_nolin(mu79,q4,ipres.eq.0)
      else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
         call bf_equation_nolin(mu79,q4)
      end if
@@ -5454,7 +5428,7 @@ subroutine ludefpres_n(itri)
         endif ! on ipressplit
      end do  ! on j
 
-     if(izone.eq.1) then
+     if(izone.eq.ZONE_PLASMA) then
         if(ipressplit.eq.0) then
            call pressure_nolin(mu79,q4,.true.)
         endif
@@ -5646,7 +5620,7 @@ subroutine ludefden_n(itri)
   qqterm = 0.
   oterm = 0.
 
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      tempxx = n1n(mu79,nu79)
      ssterm = ssterm + tempxx
      ddterm = ddterm + tempxx*bdf
@@ -5837,7 +5811,7 @@ subroutine ludefnre_n(itri)
   kkterm = 0.
   oterm = 0.
 
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      tempxx = n1n(mu79,nu79)
      ssterm = ssterm + tempxx
      ddterm = ddterm + tempxx*bdf
@@ -5850,7 +5824,7 @@ subroutine ludefnre_n(itri)
   ssterm = ssterm + tempxx
   if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
 
-  thimp2=1.0
+  thimp2=thimp
   ncycles=1.0*ra_cyc
   rdiff = radiff
 

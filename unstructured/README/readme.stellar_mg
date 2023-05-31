@@ -1,0 +1,250 @@
+******************************************************************************
+ NOTE: please add the following runtime options at your srun line:
+
+ -sub_mat_superlu_dist_rowperm norowperm (when using superlu_dist for 3D run)
+ -sub_mat_mumps_icntl_14 100 (when using mumps for 3D run)
+******************************************************************************
+
+This is for 3D real runs only. Block Geometry MultiGrid will be used.
+To run 2D or complex mode, please use the instruction given in readme.stellar.
+
+1. load modules
+
+       setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+       module use $M3DC1_CODE_DIR/unstructured/modules/stellar
+       module load m3dc1/devel_mg
+
+2. compile code
+
+   2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=stellar_mg
+   2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=stellar_mg
+           - add PAR=1 to run PIC
+   3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=stellar_mg
+   after compiling, run "make bin ARCH=stellar_mg"
+
+3. mesh utility
+   /projects/M3DC1/jinchen/SRC/M3DC1/m3dc1_scorec/build/bin
+
+4. batch job script
+
+  sample job_script
+
+	#!/bin/bash
+	#SBATCH -A pppl
+	#SBATCH --nodes=16
+	#SBATCH --ntasks-per-node=16
+	#SBATCH -J JOB
+	#SBATCH --time=00:30:00
+        #3D real with petsc
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mymatrixid 5
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mymatrixid 17
+
+5. solver option file "options_bjacobi.type_mg"
+
+5.1 the 1st part is the block jacobi preconditioner, the same as what has been using
+
+-pc_type bjacobi
+-pc_bjacobi_blocks 16
+-sub_pc_type lu
+-sub_pc_factor_mat_solver_type mumps
+-sub_mat_mumps_icntl_14 100
+-sub_ksp_type preonly
+-ksp_type fgmres
+-ksp_gmres_restart 220
+-ksp_max_it 40000
+-ksp_rtol 1.e-9
+-ksp_atol 1.e-20
+
+5.2 the 2nd part is the block geometry multigrid  preconditioner, new
+
+-mg_nlevels 2
+-hard_ksp_type fgmres
+-hard_ksp_norm_type unpreconditioned
+-hard_pc_type mg
+
+-hard_mg_levels_1_ksp_type fgmres
+-hard_mg_levels_1_pc_type bjacobi
+-hard_mg_levels_1_pc_bjacobi_blocks 16 [this number should be the same as the number in "-pc_bjacobi_blocks 16"]
+-hard_mg_levels_1_sub_pc_type lu
+-hard_mg_levels_1_sub_pc_factor_mat_solver_type mumps
+-hard_mg_levels_1_sub_mat_mumps_icntl_14 100
+-hard_mg_levels_1_sub_ksp_type preonly
+
+-hard_mg_coarse_ksp_type fgmres
+-hard_mg_coarse_pc_type bjacobi
+-hard_mg_coarse_pc_bjacobi_blocks 8 [this number should be the half of the number in "-pc_bjacobi_blocks 16"]
+-hard_mg_coarse_sub_pc_type lu
+-hard_mg_coarse_sub_pc_factor_mat_solver_type mumps
+-hard_mg_coarse_sub_mat_mumps_icntl_14 100
+-hard_mg_coarse_sub_ksp_type preonly
+-hard_mg_coarse_ksp_max_it 3
+
+
+6. regression test
+
+	cd regtest
+	./run
+	./check
+
+
+````````
+Mon Fri 20 10:00:47 EST 2023
+changes made for more than 2 levels
+
+Tue Jan 17 17:25:36 EST 2023
+/projects/M3DC1/jinchen/SRC/M3DC1/m3dc1_scorec/build
+
+[jinchen@stellar-intel build]$ ls -tlr 
+drwxr-xr-x.  2 jinchen m3dc1     4096 Sep  9 23:31 bin
+drwxr-sr-x.  2 jinchen m3dc1     4096 Jan 17 21:09 include
+drwxr-sr-x.  3 jinchen m3dc1     4096 Jan 17 21:10 lib.n
+drwxr-xr-x.  4 jinchen m3dc1     4096 Jan 17 21:10 lib
+
+[jinchen@stellar-intel build]$ ls -tlr lib
+-rw-r--r--. 1 jinchen m3dc1   194014 Sep  9 23:28 liblion.a
+-rw-r--r--. 1 jinchen m3dc1   295716 Sep  9 23:28 libpcu.a
+-rw-r--r--. 1 jinchen m3dc1   206328 Sep  9 23:28 libgmi.a
+-rw-r--r--. 1 jinchen m3dc1   250210 Sep  9 23:28 libmth.a
+-rw-r--r--. 1 jinchen m3dc1 21425000 Sep  9 23:29 libapf.a
+-rw-r--r--. 1 jinchen m3dc1  3765112 Sep  9 23:29 libmds.a
+-rw-r--r--. 1 jinchen m3dc1 17107826 Sep  9 23:30 libparma.a
+-rw-r--r--. 1 jinchen m3dc1   459702 Sep  9 23:30 libapf_zoltan.a
+-rw-r--r--. 1 jinchen m3dc1  4836664 Sep  9 23:30 libpumi.a
+-rw-r--r--. 1 jinchen m3dc1 11200040 Sep  9 23:30 libma.a
+-rw-r--r--. 1 jinchen m3dc1  4649026 Sep  9 23:30 libcrv.a
+-rw-r--r--. 1 jinchen m3dc1   827428 Sep  9 23:30 libspr.a
+-rw-r--r--. 1 jinchen m3dc1  1020752 Sep  9 23:30 libree.a
+-rw-r--r--. 1 jinchen m3dc1   190914 Sep  9 23:30 libsam.a
+-rw-r--r--. 1 jinchen m3dc1  9989558 Sep  9 23:31 libph.a
+drwxr-xr-x. 3 jinchen m3dc1     4096 Sep  9 23:31 cmake
+-rw-r--r--. 1 jinchen m3dc1  9785626 Sep 14 15:04 libm3dc1_scorec_complex.a
+drwxr-xr-x. 2 jinchen m3dc1     4096 Sep 14 15:04 pkgconfig
+-rw-r--r--. 1 jinchen m3dc1 10902392 Jan 17 20:52 libm3dc1_scorec.a (moved from lib.n)
+
+[jinchen@stellar-intel build]$ ls -ltr ../api/
+-rw-r--r--. 1 jinchen m3dc1 196497 Jan 17 20:18 m3dc1_scorec.cc
+
+[jinchen@stellar-intel build]$ ls -ltr ../include/
+-rw-r-----. 1 jinchen m3dc1 4374 Jan 17 18:24 m3dc1_matrix.h
+
+[jinchen@stellar-intel build]$ ls -ltr ../src/
+-rw-r-----. 1 jinchen m3dc1 47052 Jan 17 18:13 m3dc1_matrix.cc
+
+[jinchen@stellar-intel build]$ cd ../../unstructured
+
+[jinchen@stellar-intel unstructured]$ ls -tlr
+drwxr-sr-x.  2 jinchen m3dc1  16384 Jan 17 17:34 _stellar-opt-25
+drwxr-sr-x.  2 jinchen m3dc1  16384 Jan 17 17:35 _stellar-complex-opt-25
+drwxr-sr-x.  2 jinchen m3dc1  16384 Jan 17 17:36 _stellar-3d-opt-60
+drwxr-sr-x.  2 jinchen m3dc1  16384 Jan 17 17:37 _stellar-3d-st-opt-60
+drwxr-sr-x.  3 jinchen m3dc1   4096 Jan 17 17:37 _stellar
+
+drwxr-sr-x.  2 jinchen m3dc1  16384 Jan 17 18:30 _stellar_mg-opt-25
+drwxr-sr-x.  2 jinchen m3dc1  16384 Jan 17 18:32 _stellar_mg-complex-opt-25
+drwxr-sr-x.  2 jinchen m3dc1  16384 Jan 17 18:33 _stellar_mg-3d-opt-60
+drwxr-sr-x.  2 jinchen m3dc1  16384 Jan 17 18:35 _stellar_mg-3d-st-opt-60
+drwxr-sr-x.  3 jinchen m3dc1   4096 Jan 17 18:35 _stellar_mg
+
+drwxr-sr-x.  2 jinchen m3dc1   4096 Jan 17 20:42 README/readme.stellar_mg
+-rw-r--r--.  1 jinchen m3dc1   4264 Jan 17 21:22 stellar_mg.mk
+
+[jinchen@stellar-intel unstructured]$ mv _stellar_mg-opt-25 _stellar_mg-opt-25.o
+[jinchen@stellar-intel unstructured]$ mv _stellar_mg-3d-opt-60 _stellar_mg-3d-opt-60.o
+[jinchen@stellar-intel unstructured]$ mv _stellar_mg-3d-st-opt-60 _stellar_mg-3d-st-opt-60.o
+
+make all ARCH=stellar_mg
+
+
+/projects/M3DC1/jinchen/SRC/M3DC1/unstructured/regtest/pellet/local_stellar_mg.o/nplane16
+kprad divergedat ntime=32
+
+1. bgmg for solve #5
+-rw-r--r--. 1 jinchen m3dc1 1096558 Jan 17 20:38 slurm-286747.out
+
+2. bgmg for solve #17
+-rw-r--r--. 1 jinchen m3dc1 1154558 Jan 18 02:26 slurm-286970.out
+
+3. bj for all
+-rw-r--r--. 1 jinchen m3dc1  684392 Jan 18 12:52 slurm-287647.out
+
+
+
+````````
+Mon Jan 23 08:48:17 EST 2023
+
+pellet
+
+drwxr-sr-x.  2 jinchen m3dc1 8192 Jan 23 08:12 local_stellar
+drwxr-sr-x.  2 jinchen m3dc1 4096 Jan 23 08:33 local_stellar_mg
+
+-- bj --
+3957   Advancing velocity
+3964 Linear solve converged due to CONVERGED_RTOL iterations 98
+4164  LOOP TIME    1   Tot  3.8617E+01   compute  3.2852E+01   solve  5.7648E+00
+
+4431   Advancing velocity
+4438 Linear solve converged due to CONVERGED_RTOL iterations 109
+4648  LOOP TIME    2   Tot  3.8117E+01   compute  3.1698E+01   solve  6.4182E+00
+
+4915   Advancing velocity
+4922 Linear solve converged due to CONVERGED_RTOL iterations 101
+5131  LOOP TIME    3   Tot  3.7040E+01   compute  3.1361E+01   solve  5.6784E+00
+
+
+-- mg --
+3957   Advancing velocity
+3964 Linear hard_ solve converged due to CONVERGED_RTOL iterations 1
+4164  LOOP TIME    1   Tot  3.4329E+01   compute  2.9095E+01   solve  5.2335E+00
+
+4431   Advancing velocity
+4438 Linear hard_ solve converged due to CONVERGED_RTOL iterations 10
+4648  LOOP TIME    2   Tot  3.6194E+01   compute  2.7687E+01   solve  8.5065E+00
+
+4915   Advancing velocity
+4922 Linear hard_ solve converged due to CONVERGED_RTOL iterations 9
+5131  LOOP TIME    3   Tot  3.5523E+01   compute  2.7664E+01   solve  7.8586E+00
+
+
+-- mg less powerful --
+3957   Advancing velocity
+3964 Linear hard_ solve converged due to CONVERGED_RTOL iterations 8
+4164  LOOP TIME    1   Tot  3.5020E+01   compute  2.9614E+01   solve  5.4066E+00
+
+4431   Advancing velocity
+4438 Linear hard_ solve converged due to CONVERGED_RTOL iterations 13
+4648  LOOP TIME    2   Tot  3.3404E+01   compute  2.7511E+01   solve  5.8935E+00
+
+4915   Advancing velocity
+4922 Linear hard_ solve converged due to CONVERGED_RTOL iterations 11
+5131  LOOP TIME    3   Tot  3.3195E+01   compute  2.7537E+01   solve  5.6587E+00
+
+
+Hi 
+
+If you want your bgmg option to be less powerful, please add the following line 
+
+-hard_mg_coarse_ksp_max_it 3
+
+in your "options_bjacobi.type_mg".
+
+I have tested it with pellet case solve #5. Here are the iteration and solve time changes
+
+ BJ  BGMG(powerful)  BGMG(less powerful)
+ 98   1               8
+109  10              13
+101   9              11
+
+Obvisouly the less powerful one took more iterations to converge, but it take less time (in second) to finish
+
+ BJ      BGMG(powerful)  BGMG(less powerful)
+5.7648   5.2335          5.4066E+00
+6.4182   8.5065          5.8935E+00
+5.6784   7.8586          5.6587E+00
+
+So it's not because of the number of layers that confused you, it's a choice of lower layer solve accuracy that changes the whole picture.
+
+Actually you can do your own experiment by changing the number "3" to "1", "2", "4", or whatever number you prefer and see the changes.
+
+Hope this is helpful.
+
+

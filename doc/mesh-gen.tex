@@ -10,15 +10,33 @@ As the mesh generation programs require Simmetrix licence and proper enviroment 
 module load simmodsuite/version simmodeler/version
 }
 \newline\newline
-As of today (July 11, 2022), the latest Simmetrix modules are \texttt{simmodsuite/16.0-220226} and \texttt{simmodeler/10.0-220226}.
-\newline\newline
-Two mesh generation programs are available only on PPPL Portal in the following location:
-\newline\newline
-\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel\_ver/intel\_ver-openmp\_ver/simmodsuite\_ver/bin}
-\newline\newline
-For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210626, the mesh generation programs are available in
-\newline\newline
-\texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}
+The Simmetrix libraries and mesh generation programs are available on two machines \texttt{PPPL Portal} and \texttt{Princeton Stellar}. For those machines, the modules to load and the location of programs are as the following:
+
+\begin{itemize}
+\item {Princeton Stellar}
+  \begin{itemize}
+  \item modules: rlm/pppl simmodsuite/pppl/17.0-220903 simmodeler/pppl/11.0-220903
+  \item location: {/projects/M3DC1/scorec/intel\_ver.-mpi\_ver./simmodsuite\_ver./bin} \\
+  \newline
+  For instance, for intel/2021.1.2, intelmpi/2021.3.1 and simmodsuite/17.0-220903, the programs are available in 
+  \newline
+  \texttt{/projects/M3DC1/scorec/intel2021.1.2-intelmpi2021.3.1/17.0-220903/bin}
+  \newline\newline
+  For intel/2021.1.2, openmpi/4.1.0 and simmodsuite/17.0-220903, the programs are available in
+  \newline
+  \texttt{/projects/M3DC1/scorec/intel2021.1.2-openmpi4.1.0/17.0-220903/bin} 
+  \end{itemize}
+\item {PPPL Portal}
+  \begin{itemize}
+  \item modules: simmodsuite/16.0-220226 simmodeler/10.0-220226
+  \item location: {/p/tsc/m3dc1/lib/SCORECLib/rhel\_ver./intel\_vers.-mpi\_ver. \\
+	    /simmodsuite\_ver./bin} \\
+  \newline
+  For instance, for Centos7, intel/2019.u3 openmpi/4.0.3, and simmodsuite/16.0-210626, the programs are available in
+  \newline
+  \texttt{/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin}
+  \end{itemize}
+\end{itemize}
 
 The second required software is PUMI (Parallel Unstructured Mesh Infrastructure) developed at SCOREC, RPI. The PUMI is used to manage the mesh information as it is processed and within the M3D-C$^{1}$ code. For more information, visit \href{http://www.scorec.rpi.edu/pumi}{http://www.scorec.rpi.edu/pumi}. 
 
@@ -270,12 +288,11 @@ modelType 4
 inFile inner_bdry.pts
 bdryFile outer_bdry.pts
 outFile iter
-meshSize 0.5 0.5 0.5
+meshSize 0.7 0.5 0.7
 useVacuumParams 1
 adjustVacuumParams 1
 vacuumParams 8.25 8.0 0.2 0.0 12.5
-numVacuumPts 60
-meshGradationRate 0.7
+meshGradationRate 1
 \end{verbatim}
 
 The example files \texttt{bdry-input}, \texttt{inner\_bdry.pts} and \texttt{outer\_bdry.pts} can be found in
@@ -288,169 +305,278 @@ The example files \texttt{bdry-input}, \texttt{inner\_bdry.pts} and \texttt{oute
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \texttt{m3dc1\_mfmgen} requires an ascii input file of arbitrary name that contains the following parameters.
+The parameters can be in any order.
 
 \begin{itemize}
-\item numBdry: number of boundary files defined by peice-wise linear points given for the construction of the loops(default: 0)
-\item bdryFile: boundary file name followed by the desired loop ID and desired mesh size on the loop. Each boundary file corresponds to a loop in PUMI. Each loop has a unique ID starting from 1. The boundary files and the loop IDs can be given in any order.
-\item thickWall: A parameter to control finite thickness wall. The first number can either be 0 or 1. If it is set to 0, no finite thickness wall will be created. If it is set to 1, a finite thickness wall will be created. The second number is the loop ID of the loop(wall) that will be offset for thickness. The third number is the desired unique Loop ID for the new loop created from offsetting  for the finite thickness wall. The last number is the desired wall thickness. 
-\item useVacuum: A parameter to control the vacuum boundary. The first number sets the mode of vacuum boundary and can be 0,1 or 2. If 0, no vacuum boundary will be created. If 1, vacuum boundary will be created without user defined parameters. If 2, a parameterized vacuum boundary will be created by using the parameters defined in the parameter "vacuumParams". The second number is the desired unique loop ID for the vacuum loop. The third number defines the mesh size on the vacuum boundary.
-\item vacuumParams: five doubles to define parameterized vacuum wall. Required if useVacuum = 2.
-\item numVacuumPts: optional \# interpolation points on parameterized vacuum wall. Valid only if useVacuum = 2 (default 20)
-\item numFace: number of geometric model faces.
-\item faceBdry: A parameter to define the number of loops on a face, loop IDs, desired mesh size and mesh gradation rate. The first number gives the total number of loops bounding the face followed by the loops IDs of the bounding loops. If number of loops = $n$, there should be $n$ loop IDs. The next number after the loop IDs define the mesh size on the geometric face followed by a number to define mesh gradation rate (if gradation rate is not provided, it is set to 0.3 by default). 
-\item layeredMesh: To create an extruded layeded mesh on the finite thickness wall. The first  number defines the mode and can either be 0 or 1, If 0, no layered mesh will be created. If 1(default), an extruded mesh with desired number of mesh layers will be created. The second number defines the number of mesh layers.
+\item numBdry: the number of boundary files defined by peice-wise linear points given for the construction of the loops (default: 0)
+  \begin{itemize}
+  \item Each boundary file corresponds to a loop in PUMI
+  \item For \texttt{numBdry}=$N$, $N$ lines of \texttt{bdryFile} should be provided, $N \ge 0$
+  \end{itemize}
+\item bdryFile: For each boundary file, the user has to provide its file name followed by the unique loop ID and desired mesh size on the loop.
+  \begin{itemize}
+  \item Each boundary file corresponds to a loop in PUMI
+  \item The unique ID can be an arbitrary integer defined by the user
+  \item The unique ID is used with input parameter ``faceBdry" to specify the boundaries (loops) of model face
+  \item For more than one boundary files (numBdry$>$1), the boundary files can be in any order
+  \end{itemize}
+
+\item useVacuum: A parameter to control the vacuum boundary
+  \begin{itemize}
+  \item The first number sets the mode of vacuum boundary and can be 0, 1 or 2. If 0, no vacuum boundary will be created. If 1, vacuum boundary will be created without user defined parameters. If 2, a parameterized vacuum boundary will be created by using the parameters defined in the parameter "vacuumParams".
+  \item The second number is the desired unique loop ID for the vacuum loop
+  \item  The third number defines the mesh size on the vacuum boundary
+  \end{itemize}
+\item vacuumParams: if ``useVacuum = 2", the user has to provide five doubles to define parameterized vacuum wall
+\item numVacuumPts: if ``useVacuum = 2", \# interpolation points on parameterized vacuum wall (default=20)
+
+\item thickWall: three integers and one double to control finite thickness wall
+  \begin{itemize}
+  \item The first number can either be 0 or 1. If it is set to 0, no finite thickness wall will be created. If it is set to 1, a finite thickness wall will be created
+  \item The second number is the loop ID that will be offset for given thickness
+  \item The third number is the desired unique loop ID for the new loop created from offsetting for the finite thickness wall
+  \item The last number is the desired wall thickness
+  \end{itemize} 
+
+\item layeredMesh: two integers to create an extruded layeded mesh on the finite thickness wall
+  \begin{itemize}
+  \item The first integer is 0, no layered mesh will be created. If 1 (default), an extruded mesh with desired number of mesh layers will be created
+  \item The second integer defines the number of mesh layers
+  \end{itemize}
+
+\item numFace: the number of geometric model faces in PUMI (default 1)
+    \begin{itemize}
+  \item Each geometric face corresponds to regions (e.g. plasma, resistive, vacuum) in M3DC1
+  \item For \texttt{numFace}=$N$, $N$ lines of \texttt{faceBdry} should be provided, $N > 0$
+  \end{itemize}
+\item faceBdry: For each model face, the user has to provide the number of loops, loop ID(s), and desired mesh size
+  \begin{itemize}
+  \item The first number gives the total number of loops bounding the face
+  \item the first number is followed by the loops IDs of the bounding loops. If number of loops = $n$, there should be $n$ loop ID
+  \item The last number is the desired mesh size on the geometric face
+    \end{itemize}
+
+\item meshGradationRate: Global mesh gradation rate for the meshing. This parameter is optional and if not specified a default mesh gradation rate = 0.3 is used. This value should be greater than or equal to 0.3. Otherwise the mesh will be fine everywhere.
 \item outFile: output file name to save model and mesh
 \end{itemize}
 
 Locate input parameter file and all files listed as bdryFile (if applicable) in the work folder and do \texttt{m3dc1\_mfmgen input\_param\_file}. The output files are the same as those of \texttt{m3dc1\_meshgen}.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Mesh with parameterized vacuum wall}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This section presents a mesh created with a parameterized vacuum wall. This is equivalent to \texttt{Type 0} mesh of \texttt{m3dc1\_meshgen}.
+
 \begin{verbatim}
 numBdry 0
-numRgn 1
-rgnBdry 1 1
+useVacuum 1 1 0.1
+numFace 1
+faceBdry 1 1 0.09
 outFile analytic-0.09
-meshSize 0.09
-useVacuumParams 1
-vacuumParams 1.65908 0.46 0.2 -0.02504 0.8
-numVacuumPts 20
 \end{verbatim}
 
 \begin{figure}
 \centering
+\includegraphics[width=3in]{./figures/meshgen-analytic-20pts-05.pdf}
 \includegraphics[width=3in]{./figures/meshgen-analytic-20pts-09.pdf}
-\caption[Mesh with parameterized vacuum region I]
-{A mesh with parameterized vacuum region of 20 interpolation points and mesh size 0.09}
-\label{fig:analytic-mesh-1}
+\caption{Mesh with a parameterized vacuum region and different mesh size for model face (left) 0.2 (right) 0.09}
+\label{fig:analytic-mesh}
 \end{figure}
 
-The figure~\ref{fig:analytic-mesh-1} presents the mesh generated by the input file above.
+The figure~\ref{fig:analytic-mesh} presents the mesh generated by the input file above with two different mesh sizes.
 
-\begin{verbatim}
-numBdry 0
-numRgn 1
-rgnBdry 1 1
-outFile analytic-0.05
-meshSize 0.05
-useVacuumParams 1
-vacuumParams 1.65908 0.46 0.2 -0.02504 0.8
-numVacuumPts 50
-\end{verbatim}
+%\begin{verbatim}
+%numBdry 0
+%numFace 1
+%faceBdry 1 1
+%outFile analytic-0.05
+%meshSize 0.05
+%useVacuumParams 1
+%vacuumParams 1.65908 0.46 0.2 -0.02504 0.8
+%numVacuumPts 50
+%\end{verbatim}
 
-\begin{figure}
-\centering
-\includegraphics[width=3in]{./figures/meshgen-analytic-50pts-05.pdf}
-\caption[Mesh with parameterized vacuum region II]
-{A mesh with parameterized vacuum region of 50 interpolation points and mesh size 0.05}
-\label{fig:analytic-mesh-2}
-\end{figure}
+%\begin{figure}
+%\centering
+%\includegraphics[width=3in]{./figures/meshgen-analytic-50pts-05.pdf}
+%\caption[Mesh with parameterized vacuum region II]
+%{A mesh with parameterized vacuum region of 50 interpolation points and mesh size 0.05}
+%\label{fig:analytic-mesh-2}
+%\end{figure}
+%
+%The figure~\ref{fig:analytic-mesh-2} presents the mesh generated by the input file above.
 
-The figure~\ref{fig:analytic-mesh-2} presents the mesh generated by the input file above.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Mesh with single boundary file}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{verbatim}
 numBdry 1
-bdryFile loop1.dat
-numRgn 1
-rgnBdry  1 1
+bdryFile loop1.dat 3 0.1
+numFace 1
+faceBdry 1 3 0.2
 outFile input1
-useVacuum 0
 \end{verbatim}
 
 \begin{figure}
 \centering
 \includegraphics[width=3in]{./figures/meshgen-input1-novacuum.pdf}
-\caption[Mesh with one boundary file and no vacuum wall]{Mesh with one boundary file and no vacuum wall}
+\caption{Mesh with single boundary file and no vacuum wall}
 \label{fig:input1}
 \end{figure}
 
 The figure~\ref{fig:input1} presents the mesh generated by the input file above.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsubsection{Mesh with single boundary file and a vacuum wall} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{verbatim}
+%numBdry 1
+%bdryFile loop1.dat 3 0.1
+%
+%thickWall 0 19 8 0.07
+%useVacuum 2 9 0.01
+%vacuumParams 1.8 1.5 0.4 0.0 2.5
+%numVacuumPts 20
+%
+%numFace 1
+%faceBdry  1 3 0.2
+%outFile input1
+%
+%meshGradationRate 0.3
+%\end{verbatim}
+%
+%\begin{figure}
+%\centering
+%\includegraphics[width=3in]{./figures/meshgen-input1.pdf}
+%\caption[Mesh with one boundary file and vacuum wall]
+%{Mesh with one boundary file and vacuum wall}
+%\label{fig:input1-vacuum}
+%\end{figure}
+
+%The figure~\ref{fig:input1-vacuum} presents the mesh generated by the input file above.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Mesh with two boundary files and a parameterized vacuum wall}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+This section presents a mesh created with two boundary files and a parameterized vacuum wall. This is equivalent to \texttt{Type 4} mesh of \texttt{m3dc1\_meshgen}.
+
 \begin{verbatim}
-numBdry 1
-bdryFile loop1.dat
-numRgn 2
-rgnBdry  1 1
-rgnBdry 2 1 2
-outFile input1
-meshSize 0.1 0.05
-useVacuum 1
-useVacuumParams 1
-vacuumParams 1.8 1.5 0.4 0.0 2.5
-numVacuumPts 20
+numBdry 2
+bddyFile loop1.pts 1 0.5
+bdryFile loop2.pts 2 0.5
+useVacuum 2 3 0.5
+vacuumParams 8.25 8.0 0.2 0.0 12.5
+numFace 3
+faceBdry 1 1 0.7
+faceBdry 2 1 2 0.5
+faceBdry 2 2 3 0.7
+meshGradationRate 1
+outFile iter
 \end{verbatim}
 
 \begin{figure}
 \centering
-\includegraphics[width=3in]{./figures/meshgen-input1.pdf}
-\caption[Mesh with one boundary file and vacuum wall]
-{Mesh with one boundary file and vacuum wall}
-\label{fig:input1-vacuum}
+\includegraphics[width=3in]{./figures/meshgen-input2.pdf}
+\caption{Mesh with two boundary files and a parameterized vacuum region}
+\label{fig:input2}
 \end{figure}
 
-The figure~\ref{fig:input1-vacuum} presents the mesh generated by the input file above.
+The figure~\ref{fig:input2} presents the mesh generated by the input file above. As you can see, the mesh in Figure ~\ref{fig:input2} and ~\ref{fig:meshgen-type4} are almost identical.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Mesh with three boundary files}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure}
 \centering
 \includegraphics[width=3in]{./figures/meshgen-input3-novacuum.pdf}
-\caption[Mesh with three boundary files and no vacuum wall]
-{Mesh with three boundary files and no vacuum wall}
+\includegraphics[width=3in]{./figures/meshgen-input3-novacuum2.pdf}
+\caption
+{Mesh with three boundary files and different meshGradationRate (left) 0.3 (right) 0.9}
 \label{fig:input3-novacuum}
 \end{figure}
 
 \begin{verbatim}
 numBdry 3
-bdryFile loop1.dat
-bdryFile loop2.dat
-bdryFile loop3.dat
-numRgn 3
-rgnBdry  1 1
-rgnBdry  2 1 2
-rgnBdry  2 2 3
+bdryFile loop1.dat 3 0.1
+bdryFile loop2.dat 10 0.05
+bdryFile loop3.dat 11 0.09
+
+numFace 3
+faceBdry  1 3 0.2
+faceBdry  2 3 10 0.1
+faceBdry  2 10 11 0.09
+
 outFile input3
-meshSize 0.1 0.05 0.5
-meshGradationRate 0.3
 \end{verbatim}
 
 The figure~\ref{fig:input3-novacuum} presents the mesh generated by the input file above.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Mesh with seven boundary files and a vacuum wall}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{figure}
 \centering
-\includegraphics[width=3in]{./figures/meshgen-input7.pdf}
-\caption[Mesh with seven boundary files and parameterized vacuum wall]
-{Mesh with seven boundary files and parameterized vacuum wall}
+\includegraphics[width=4in]{./figures/meshgen-input7.pdf}
+\caption{Mesh with seven boundary files and a parameterized vacuum wall}
 \label{fig:input7-vacuum}
 \end{figure}
 
 \begin{verbatim}
 numBdry 7
-bdryFile loop1.dat
-bdryFile loop2.dat
-bdryFile loop3.dat
-bdryFile loop4.dat
-bdryFile loop5.dat
-bdryFile loop6.dat
-bdryFile loop7.dat
-! if useVacuum=0, set numRgn to 7 and comment out [rgnBdry 4 1 2 3 4]
-numRgn 8	
-rgnBdry  1 1
-rgnBdry  1 2
-rgnBdry  1 3
-rgnBdry  2 4 5
-rgnBdry  2 5 6
-rgnBdry  2 6 7
-rgnBdry  2 7 8
-rgnBdry  4 1 2 3 4
-outFile input7
-useVacuum 1
-useVacuumParams 1
+bdryFile loop1.dat 3 0.2
+bdryFile loop2.dat 10 0.3
+bdryFile loop3.dat 11 0.4
+bdryFile loop4.dat 21 0.4
+bdryFile loop5.dat 25 0.4
+bdryFile loop6.dat 17 0.2
+bdryFile loop7.dat 19 0.1
+
+useVacuum 1 9 0.1
 vacuumParams 1.8 1.5 0.4 0.0 2.5
-numVacuumPts 20
-! set meshSize for each region (default 0.05)
-! e.g. for 3 region model, set three doubles for plasma, resistive, vacuum
-meshSize 0.02 0.005 0.005 0.01 0.2 0.1 0.2 0.2 
+
+numFace 8
+faceBdry  1 3 0.2
+faceBdry  1 10 0.3
+faceBdry  1 11 0.1
+faceBdry  2 21 25 0.2
+faceBdry  2 25 17 0.09
+faceBdry  2 17 19 0.1
+faceBdry  2 19 9 0.1
+faceBdry  4 3 10 11 21 0.11
+
+outFile input7
 \end{verbatim}
 
 The figure~\ref{fig:input7-vacuum} presents the mesh generated by the input file above.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Mesh with finite thickness wall and layers}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}
+\centering
+\includegraphics[width=3.5in]{./figures/FiniteThicknessWall-full.pdf}
+\caption
+{Add Caption Here}
+\label{fig:thickness-full}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=2.5in]{./figures/FiniteThicknessWall-zoom1.pdf}
+\includegraphics[width=2.5in]{./figures/FiniteThicknessWall-zoom2.pdf}
+\caption
+{Add Caption Here}
+\label{fig:thickness-zoom}
+\end{figure}
+
+Add text here
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{polar\_meshgen}

@@ -30,66 +30,48 @@ std::map<int, int> edgeType;
 std::map<int, std::vector<double> > vtxContainer;
 std::vector<void*> data2Clean;
 
-void print_model(gmi_model* model)
-{
-  gmi_ent* g;
-  gmi_iter* gi;
-  for (int pid=0; pid<PCU_Comm_Peers(); ++pid)
-  {
-    if (pid==PCU_Comm_Self())
-    {
-      for (int dim=0; dim<3; ++dim)
-      {
-        switch (dim)
-        {
-          case 0: std::cout<< PCU_Comm_Self()<<"] geom vertex : ";
-                  break;
-          case 1: std::cout<< PCU_Comm_Self()<<"] geom edge ";
-                  break;
-          case 2: std::cout<< PCU_Comm_Self()<<"] geom face ";
-                  break;
-          default: break;
-        }
-        gi = gmi_begin(model, dim);
-        while( (g = gmi_next(model, gi)) )
-          std::cout<<gmi_tag(model, g)<<" ";
-        std::cout<<"\n";
-        gmi_end(model, gi); // end the iterator
-      }
-    } // if
-    MPI_Barrier(PCU_Get_Comm());
-  } // for pid
+void get_gent_adj(int gent_dim, int gent_id, int adj_dim, vector<int>& adj_ids)
+{ 
+  switch (gent_dim)
+  { 
+    case 1: // model edge
+          adj_ids.push_back(edgeContainer[gent_id].first);
+          adj_ids.push_back(edgeContainer[gent_id].second);
+          break;
+    case 2: // model face
+           {
+             std::map< int, std::vector<int> >::iterator it=loopContainer.begin();
+             for (int i=1; i<gent_id; ++i)
+               ++it;
+             if (adj_dim==1)
+             { 
+               for (unsigned int j=0; j<it->second.size(); ++j)
+                 adj_ids.push_back((it->second)[j]);
+             }
+             else // adj_dim==0
+             { 
+               int edge;
+               std::set<int> vids;
+               for (unsigned int j=0; j<it->second.size(); ++j)
+               { 
+                 edge=(it->second)[j];
+                 vids.insert(edgeContainer[edge].first);
+                 vids.insert(edgeContainer[edge].second);
+               }
+               for (std::set<int>::iterator sit=vids.begin(); sit!=vids.end(); ++sit)
+                 adj_ids.push_back(*sit);
+             }
+             break;
+           } 
+    default: // model vtx or region
+            std::cout<<__func__<<" FATAL ERROR: model adjacency not supported\n";
+            break;
+  }
 }
 
 void interpolateCubicBSpline( vector<double>& points,vector<double>& knots, vector<double> &ctrlPoints, int bc);
 void faceFunction(double const p[2], double x[3], void * data) {}
 void vertexFunction(double const p[2], double x[3], void * data) {}
-
-// **********************************************
-void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer, 
-                       std::map<int, int>& out_edgeType, 
-                       std::map<int, std::pair<int, int> >& out_edgeContainer, 
-                       std::map< int, std::vector<int> >& out_loopContainer)
-// **********************************************
-{
-  // copying vtxContainer
-  for(std::map<int, vector<double> >:: iterator it=vtxContainer.begin(); it!=vtxContainer.end(); ++it)
-    for (int i=0; i<it->second.size(); ++i)
-      out_vtxContainer[it->first].push_back(it->second[i]);
-
-  // copying edgeType
-  for( std::map<int, int>::iterator it=edgeType.begin(); it!=edgeType.end(); it++)
-    out_edgeType[it->first] = it->second;
-
-  // copying edgeContainer
-  for( std::map<int, std::pair<int, int> >:: iterator it=edgeContainer.begin(); it!=edgeContainer.end(); ++it)
-    out_edgeContainer[it->first]=it->second; 
-
-  // copying loopContainer
-  for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); ++it)
-    for (int i=0; i<it->second.size(); ++i)
-      out_loopContainer[it->first].push_back(it->second[i]);
-}
 
 // **********************************************
 int get_prev_plane_partid(int partid)
@@ -241,6 +223,7 @@ void load_model(const char* filename)
   FILE* fp= fopen(filename, "r");
   int numL,separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop;
   fscanf(fp,"%d %d %d %d %d\n", &numL, &separatrixLoop, &innerWallLoop, &outerWallLoop, &vacuumLoop);
+
   for( int i=0; i< numL; i++)
   {
     int numE;
@@ -292,30 +275,20 @@ void load_model(const char* filename)
                  throw 1; 
       }
     }
-    create_loop( &loop, &numE, edges);
-    delete []edges;
+    // loop doesn't exist
+    assert (loopContainer.find(loop)==loopContainer.end());
+    
+    for( int i=0; i<numE; i++)
+      loopContainer[loop].push_back(edges[i]);
+    delete [] edges;
   }
-  if(separatrixLoop>0) set_separatrix(&separatrixLoop);
-  if(innerWallLoop>0) set_inner_wall_boundary ( &innerWallLoop );
-  if(outerWallLoop>0) set_outer_wall_boundary ( &outerWallLoop );
-  if(vacuumLoop>0) set_vacuum_boundary ( &vacuumLoop );
-  finalize_model();
   fclose(fp);
-}
 
-// **********************************************
-void create_loop( int* loopId, int * numEdges, int* EdgeList)
-// **********************************************
-{
-  if(loopContainer.find(*loopId)!=loopContainer.end())
-  {
-    std::cout<<"[M3DC1 ERROR] "<<__func__<<": loop "<<*loopId<<" has been created previously "<<std::endl;
-    throw 1;
-  }
-  for( int i=0; i<*numEdges; i++)
-  {
-    loopContainer[*loopId].push_back(EdgeList[i]);
-  }
+  int facePeriodic[2] = {0, 0};
+  double faceRanges[2][2] = {{0,0},{0,0}};
+  for (int i=1; i<=numL; ++i)
+    gmi_ent* ge=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
+                     faceFunction, facePeriodic, faceRanges, NULL);
 }
 
 // **********************************************
@@ -526,59 +499,6 @@ void attach_b_spline_curve( int* edge, int * order, int* numPts, double* ctrlPts
   gmi_ent* gedge = gmi_add_analytic(m3dc1_model::instance()->model, 1, *edge, edgeFunction, &edgePeriodic, &edgeRange, data);
   make_edge_topo(m3dc1_model::instance()->model,gedge, vtx.first, vtx.second);
   //if (!PCU_Comm_Self()) std::cout<<"[p"<<PCU_Comm_Self()<<"] "<<__func__<<": new edge "<<*edge<<" vtx("<<vtx.first<<", "<<vtx.second<<")\n";
-}
-
-// **********************************************
-void set_inner_wall_boundary ( int * loopId )
-// **********************************************
-{
-  innerWallLoop=*loopId;
-}
-
-// **********************************************
-void set_outer_wall_boundary ( int * loopId )
-// **********************************************
-{
-  outerWallLoop=*loopId;
-}
-
-// **********************************************
-void set_vacuum_boundary ( int * loopId )
-// **********************************************
-{
-  vacuumLoop=*loopId;
-}
-
-// **********************************************
-void set_separatrix ( int * loopId )
-// **********************************************
-{
-  separatrixLoop=*loopId;
-}
-
-// **********************************************
-void finalize_model()
-// **********************************************
-{
-  gmi_model * model=m3dc1_model::instance()->model;
-  int facePeriodic[2] = {0, 0};
-  double faceRanges[2][2] = {{0,0},{0,0}};
-  if(separatrixLoop!=-1)
-  {
-    gmi_add_analytic(model, 2, separatrixLoop, faceFunction, facePeriodic, faceRanges, NULL);
-  }
-  if(innerWallLoop!=-1)
-  {
-    gmi_add_analytic(model, 2, innerWallLoop, faceFunction, facePeriodic, faceRanges, NULL);
-  }
-  if(outerWallLoop!=-1)
-  {
-    gmi_add_analytic(model, 2, outerWallLoop, faceFunction, facePeriodic, faceRanges, NULL);
-  }
-  if(vacuumLoop!=-1)
-  {
-    gmi_add_analytic(model, 2, vacuumLoop, faceFunction, facePeriodic, faceRanges, NULL);
-  }
 }
 
 // **********************************************
@@ -1072,89 +992,6 @@ void attach_periodic_cubic_curve ( int* edge, int * numPts, double * points)
   int edgePeriodic = 1;
   double edgeRange[2] = {0.0, 1.0};
   gmi_add_analytic(m3dc1_model::instance()->model, 1, *edge, edgeFunction, &edgePeriodic, &edgeRange, data);
-}
-// only linear line and bspline are used; other types are vonverted to bspline
-// **********************************************
-void save_model(const char* filename)
-// **********************************************
-{
-  gmi_model* model = m3dc1_model::instance()->model;  
-  int numL=loopContainer.size();
-  FILE* fp= fopen(filename, "w");
-  fprintf(fp,"%d %d %d %d %d\n", numL,separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop);
-  for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
-  {
-    int numE=it->second.size();
-    fprintf(fp,"%d %d\n", it->first, numE);
-    // first write all vtx on the loop
-    for( int i=0; i<numE; i++)
-    {
-      int edge=it->second[i];
-      std::pair<int, int> vtx=edgeContainer[edge];
-      std::vector<double>& xyz= vtxContainer[vtx.first];
-      fprintf(fp,"%d %lf %lf %lf\n", vtx.first, xyz[0], xyz[1], xyz[2]);
-    }
-    for(int i=0; i<numE; i++)
-    {
-      int edge=it->second[i];
-      gmi_ent* ae = gmi_find(model, 1, edge);
-      std::pair<int, int> vtx=edgeContainer[edge];
-      int curveType=edgeType[edge];
-      // POLY will be saved as BSPLINE
-      if(curveType==POLY) curveType=BSPLINE;
-      fprintf(fp,"%d %d %d %d\n", edge, vtx.first, vtx.second, curveType);
-      switch( edgeType[edge] )
-      {
-        case LIN: break;
-        case BSPLINE:
-        {
-          M3DC1::BSpline** data= (M3DC1::BSpline**) gmi_analytic_data(model, ae);
-          vector<double> ctrlPtsX,ctrlPtsY, knots,weight;
-          int order;
-          data[0]->getpara(order, ctrlPtsX, knots, weight);
-          data[1]->getpara(order, ctrlPtsY, knots, weight);
-          int numPts=ctrlPtsX.size();  
-          fprintf(fp,"%d %d ", order, numPts);
-          for( int i=0; i<order+numPts; i++)
-          {
-            fprintf(fp,"%lf ",knots.at(i));
-          }
-          for( int i=0; i<numPts; i++)
-          {
-            fprintf(fp,"%lf %lf ",ctrlPtsX.at(i),ctrlPtsY.at(i));
-          }
-          fprintf(fp, "\n");
-          break;
-        }
-        case POLY:
-        {
-          M3DC1::PolyNomial** data= (M3DC1::PolyNomial**) gmi_analytic_data(model, ae);
-          vector<double> ctrlPtsX,ctrlPtsY, knots,weight;
-          int order;
-          M3DC1::BSpline sp;
-          sp=*(data[0]);
-          sp.getpara(order, ctrlPtsX, knots, weight);
-          sp=*(data[1]);
-          sp.getpara(order, ctrlPtsY, knots, weight);
-          int numPts=ctrlPtsX.size();
-          fprintf(fp,"%d %d ", order, numPts);
-          for( int i=0; i<order+numPts; i++)
-          {
-            fprintf(fp,"%lf ",knots.at(i));
-          }
-          for( int i=0; i<numPts; i++)
-          {
-            fprintf(fp,"%lf %lf ",ctrlPtsX.at(i),ctrlPtsY.at(i));
-          }
-          fprintf(fp, "\n");
-          break;
-        }
-        default: std::cout<<"[M3DC1 ERROR] "<<__func__<<": unsupported curve type "<<std::endl; 
-                 throw 1; 
-      }
-    }
-  } 
-  fclose(fp);
 }
 
 // **********************************************

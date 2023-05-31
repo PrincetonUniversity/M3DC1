@@ -25,6 +25,7 @@
 -hard_ksp_atol 1.e-20
 -hard_ksp_converged_reason
 
+-sub_mat_superlu_dist_statprint 1
 -options_left
 -on_error_abort
 -log_view

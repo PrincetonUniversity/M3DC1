@@ -112,47 +112,6 @@ inocurrent\_norm=1})] Holds $\uvec{n} \cdot
 In the above definitions, $\uvec{n}$ is the unit vector normal to the
 boundary surface, and $\uvec{t} = \uvec{\tor} \times \uvec{n}$.
 
-\subsection{Resistive Wall Boundary Condition}
-
-For a thin resistive wall of resistivity $\eta_W$ and width
-$\delta_W$, the following equations are obtained at the
-boundary~\cite{Jardin10}:
-\begin{eqnarray}
-  \ddt{\psi} & = & -\frac{\eta_W}{\delta_W} \left(\uvec{n} \cdot
-  \grad{\psi} - R \uvec{t} \cdot \B_v \right)
-    \\
-  \ddt{F} & = & -\frac{\eta_W}{\delta_W} \left(F - R \uvec{\tor} \cdot
-  \B_v \right)
-\end{eqnarray}
-Here, $\B_v$ is the magnetic field on the outside of the wall.  $B_v$
-may be obtained from the magnetic field on the inside of the wall
-using a vacuum response matrix calculated by the $\textsc{vacuum}$
-code,~\cite{Chance10} for example.
-
-\subsubsection{Using a resistive wall in \codename\ with \textsc{vacuum}}
-
-The following assumes that the \textsc{vacuum} code is located in the
-directory \texttt{\$VACUUM\_DIR}.  On \texttt{sunfire},
-\texttt{\$VACUUM\_DIR = /u/chance/Vacuum\_SVN\_Work}
-
-\begin{enumerate}
-\item Build \textsc{struct2vac} with\\
-  \texttt{make OPT=1 struct2vac}
-\item Generate \texttt{ordered.points} by running \textsc{struct2vac}
-  in the working directory.
-\item \texttt{tac ordered.points > vacin\_c1}
-\item Edit \texttt{vacin\_c1}, and move the last line to be the first
-  line.
-\item \texttt{cp vacin\_c1 ordered.points}
-\item \texttt{cp \$VACUUM\_DIR/Runs/C1Vac/modiv\_m3dc1 .}
-\item \texttt{\$VACUUM\_DIR/Bin/vacuum.x86\_64.linux vacin\_c1 modiv\_m3dc1}
-\item In \texttt{C1input}, set \texttt{eta\_wall} and
-  \texttt{delta\_wall} to the appropriate values.
-\end{enumerate}
-
-Presently, the resistive wall only works on single-process runs.
-
-
 
 \section{Discretization}
 
@@ -1296,9 +1255,15 @@ and the truncation error is
     1: apply nonaxisymmetric fields throughout plasma.  
        reads rmp\_coil.dat for (R,Z) of window pane coils.  
        reads rmp\_current.dat for (+-) currents in kA and phases in degrees.  
-       toroidal mode number of current specified by ntor  \\
-    2: apply nonaxisymmetric fields only at aoundaries. 
-  \end{minipage}\\
+       toroidal mode number of current specified by ntor.
+       requires \texttt{type\_ext\_field} = 0.  \\
+    2: apply nonaxisymmetric fields only at boundaries. 
+   \end{minipage}\\
+   \texttt{type\_ext\_field}    &  -1 & External field type
+    \begin{minipage}[t]{2.5in}
+    0: RMP or error field for tokamak geometry.
+    1: For free boundary stellarator only: FIELDLINES or MGRID.
+   \end{minipage}\\
 
  \texttt{rmp\_atten}  &  0  & additional exponential decay of RMP field from r=1 for irmp=2 \\
  \texttt{iread\_ext\_field} & 0 & 1: read external field \\
@@ -1725,8 +1690,9 @@ In all cases, the angular velocity is then determined by:
   \texttt{ifull\_torus}    & 0 & 0: one field period, 1: full torus \\
   \texttt{igeometry}       & 0 & 0: default, identity \\
   \texttt{xcenter}         & 0 & center of logical mesh (x) \\
-  \texttt{zcenter}         & 0 & center of logical mesh (z)
-  
+  \texttt{zcenter}         & 0 & center of logical mesh (z) \\
+  \texttt{bound\_type(i)}   & 0 & Boundary conditions to apply on mesh loop \texttt{i}.  0 = None, 1 = First wall, 2 = Domain boundary\\
+  \texttt{zone\_type(i)}    & 0 & Physics model of mesh zone \texttt{i}.  1 = plasma, 2 = conductor, 3 = vacuum.\\
 \end{tabular}
 
 \subsection{Solver}
@@ -2082,8 +2048,10 @@ current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
   \texttt{wall\_region\_eta()}  & 1.e-3 & resistivity of each wall region \\
   \texttt{wall\_region\_etaRZ()}& 1.e-3 & poloidal restivity (if different from wall\_region\_eta) \\
   \texttt{wall\_region\_filename()} & &   file name will wall contour points \\
+  \texttt{eta\_zone(i)} & eta\_wall & Resistivity of mesh region \texttt{i}.  Only applies if \texttt{zone\_type(i)} = 2 (conductor).\\
+  \texttt{etaRZ\_zone(i)} & eta\_zone(i) & Poloidal resistivity of mesh region \texttt{i}.  Only applies if \texttt{zone\_type(i)} = 2 (conductor).\\ 
   \texttt{eta\_rekc}  & 0 & resistivity of runaway electron killer coil (REKC) \\
-  \texttt{ntor\_rekc} & 0 & toroida mode number of REKC  \\
+  \texttt{ntor\_rekc} & 0 & toroidal mode number of REKC  \\
   \texttt{mpol\_rekc} & 0 & poloidal mode number of REKC \\
   \texttt{phi\_rekc}  & 0 & toroidal angle of fixed point of REKC \\
   \texttt{theta\_rekc}& 0 & poloidal angle of fixed point of REKC \\
@@ -2196,8 +2164,18 @@ current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
 \begin{tabular}{llp{4.5in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
- \texttt{type\_ext\_field}        & 0 & 1: read either  VMEC or MGRID file \\ 
- \texttt{file\_ext\_field}        &   & (string) FIELDLINE/MGRID file.  Must start with 'fieldlines' or 'mgrid' \\
+ \texttt{type\_ext\_field}        & -1& External fields to be read in.. \\
+				  &   &	0: Axisymmetric only. For RMP and error fields. \\
+				  &   &	1: Free-boundary stellarator (\texttt{itaylor=41}) data. \\
+				  &   &	2: Free-boundary stellarator (\texttt{itaylor=41}) data with \texttt{extsubtract=1}. \\
+ \texttt{file\_ext\_field}        &   & (string) Vacuum/external field to be subtracted for \texttt{itaylor=41}.\\
+				  &   & Currently supported: FIELDLINES, MGRID. \\
+				  &   & Must start with `fieldlines' or `mgrid'. \\
+                                  &   & Must have \texttt{type\_ext\_field=2}.\\
+ \texttt{file\_total\_field}      &   & (string) Total field for free-boundary stellarator (\texttt{itaylor=41}).\\
+				  &   & Currently supported: FIELDLINES, MGRID. \\
+				  &   & Must start with `fieldlines' or `mgrid'. \\
+                                  &   & Must have \texttt{type\_ext\_field=1,2}.\\
  \texttt{iread\_vmec}             & 0 & 1: read VMEC file to determine geometry. Must be 1 for stellarator. \\
  \texttt{vmec\_filename}          &   & (string) VMEC output .nc file \\
  \texttt{bloat\_factor}           & 0 & Free boundary only:  Scale factor to bloat computational boundary using input geometry. \\
@@ -2208,10 +2186,10 @@ current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
                                         per field period) x nperiods \\
  \texttt{ifull\_torus}            & 0 & 0:  Solve on one field period \\
                                   &   & 1:  Solve on full torus \\
- \texttt{nzer\_factor}            &-1&  (integer) Scale factor for resolution of Zernike polynomial
+ \texttt{nzer\_factor}            & -1& (integer) Scale factor for resolution of Zernike polynomial
                                                   (used for interpolation of VMEC) \\
-                                  &  &  -1: n\_zeri= 2 x mpol (fixed boundary) and 1 x mpol (free boundary). \\
-                                  &  &  Otherwise: n\_zer = nzer\_factor x mpol where mpol is poloidal resolution in VMEC \\
- \texttt{nzer\_manual}             &-1& (int) Resolution of Zernike polynomial (mainly for testing)
+                                  &   &-1: n\_zeri= 2 x mpol (fixed boundary) and 1 x mpol (free boundary). \\
+                                  &   &Otherwise: n\_zer = nzer\_factor x mpol where mpol is poloidal resolution in VMEC \\
+ \texttt{nzer\_manual}            & -1&(int) Resolution of Zernike polynomial (mainly for testing)
 
 \end{tabular}

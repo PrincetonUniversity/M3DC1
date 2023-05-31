@@ -4,11 +4,10 @@
 2. code
 
 3. load modules
-      module load pgi/19.9/64
-      module load openmpi/pgi-19.9/4.0.3rc1/64
-      module load hdf5/pgi-19.5/openmpi-4.0.2rc1/1.10.5
-      module load fftw/gcc/openmpi-4.0.1/3.3.8
-      module load cudatoolkit/10.1
+      module load pgi/20.4/64 openmpi/pgi-20.4/4.0.4/64
+      module load hdf5/pgi-20.4/openmpi-4.0.4/1.10.6
+      module load fftw/gcc/openmpi-4.0.4/3.3.8
+      module load cudatoolkit/10.2
 
 4. compile code
 	2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=traverse
@@ -23,6 +22,9 @@
 
 6.1 interactive mode
   
+   salloc -n N -t 00:30:00 -p pppl
+   srun -n N m3dc1_2d
+   exit
 
 6.2 batch mode
 

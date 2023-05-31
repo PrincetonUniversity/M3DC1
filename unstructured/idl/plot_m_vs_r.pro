@@ -29,7 +29,10 @@ pro plot_m_vs_r, filename, mrange=mrange, ylog=ylog, factor=factor, $
      title = '!8n!6 = ' + string(format='(I0)',ntor0) + '!X'
   end
 
-  bmn = reform(bmn0[i,*,*])
+  sz = size(bmn0)
+  if(sz[0] eq 3) then begin
+     bmn = reform(bmn0[i,*,*])
+  endif else bmn = bmn0
 
   if(keyword_set(jmn)) then begin
      bmn = j

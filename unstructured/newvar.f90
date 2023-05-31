@@ -15,8 +15,6 @@ module newvar_mod
   integer, parameter :: NV_GS_MATRIX = 2
   integer, parameter :: NV_BF_MATRIX = 3
   integer, parameter :: NV_SJ_MATRIX = 4  ! Current density smoother
-  integer, parameter :: NV_SV_MATRIX = 5  ! Vorticity smoother
-  integer, parameter :: NV_SC_MATRIX = 6  ! Compression smoother
   integer, parameter :: NV_DP_MATRIX = 7
   integer, parameter :: NV_IP_MATRIX = 8
 
@@ -203,19 +201,14 @@ end subroutine apply_bc
   integer :: numelms, itri, m, n, isize
   vectype, allocatable :: temp(:,:,:,:)
   type(vector_type) :: rhs2
-  real :: hyp
 
   ! determine the size of the matrix
   select case(itype)
-  case(NV_SJ_MATRIX,NV_SV_MATRIX,NV_SC_MATRIX)
+  case(NV_SJ_MATRIX)
      isize = 2
   case default
      isize = 1
   end select
-
-  hyp = hypc
-  if(itype.eq.NV_SV_MATRIX .and. ihypamu.eq.1) hyp = hypc*amu
-  if(itype.eq.NV_SC_MATRIX .and. ihypamu.eq.1) hyp = hypc*amuc
 
 #ifdef REORDERED
   call create_mat(mat%mat, isize, isize, icomplex, is_lhs, agg_blk_cnt, agg_scp)
@@ -276,36 +269,6 @@ end subroutine apply_bc
            temp(:,:,1,2) = (1.-thimpsm)*&
                 intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
            temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-        end if
-
-     case(NV_SV_MATRIX)
-        if(is_lhs .eq. 1) then
-           temp(:,:,1,1) =  intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-           temp(:,:,1,2) = -intxx2(mu79(:,:,OP_1),nu79(:,:,OP_GS))
-           temp(:,:,2,1) = dt*hyp*thimpsm* &
-                intxx2(mu79(:,:,OP_GS),nu79(:,:,OP_GS))
-           temp(:,:,2,2) = -temp(:,:,1,2)
-           if((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) &
-                temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
-        else
-           temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1)) &
-                -dt*hypf*(1.-thimpsm)* &
-                intxx2(mu79(:,:,OP_GS),nu79(:,:,OP_GS))
-        end if
-        
-     case(NV_SC_MATRIX)
-        if(is_lhs .eq. 1) then
-           temp(:,:,1,1) =  intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-           temp(:,:,1,2) = -intxx2(mu79(:,:,OP_1),nu79(:,:,OP_LP))
-           temp(:,:,2,1) = dt*hyp*thimpsm* &
-                intxx2(mu79(:,:,OP_LP),nu79(:,:,OP_LP))
-           temp(:,:,2,2) = -temp(:,:,1,2)
-           if((inoslip_pol.eq.0).or.(inoslip_pol.eq.2)) &
-                temp(:,:,2,2) = temp(:,:,2,2) - regular*temp(:,:,1,1)
-        else
-           temp(:,:,2,2) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1)) &
-                -dt*hypf*(1.-thimpsm)* &
-                intxx2(mu79(:,:,OP_LP),nu79(:,:,OP_LP))
         end if
         
      case(NV_DP_MATRIX)              
@@ -392,7 +355,6 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
 
 #ifdef CJ_MATRIX_DUMP
   character*30 filename
-  integer :: counter
 #endif
 
   if(present(bvec)) then
@@ -406,10 +368,8 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   call apply_bc(temp,mata%ibound,bptr)
 
 #ifdef CJ_MATRIX_DUMP
-     call get_counter( mata%mat%imatrix, counter)
-     if(counter.le.0) then 
-        write ( filename, * ) mata%mat%imatrix, '_rhs.out' 
-        write ( *, * ) "print matrix", mata%mat%imatrix, counter
+     if(ntime.eq.ntimemax) then 
+        write ( *, * ) "print matrix", mata%mat%imatrix, ntime
         call write_matrix(mata%mat,filename)
         call write_vector(temp, trim(filename))
      endif
@@ -418,8 +378,7 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   call newsolve(mata%mat,temp,ier)
 
 #ifdef CJ_MATRIX_DUMP
-     if(counter.le.0) then 
-        write ( filename, * ) mata%mat%imatrix, '_sol.out' 
+     if(ntime.eq.ntimemax) then 
         call write_vector(temp, trim(filename))
      endif
 #endif 
@@ -517,7 +476,6 @@ end subroutine solve_newvar1
 
 #ifdef CJ_MATRIX_DUMP
     character*30 filename
-    integer :: counter
 #endif
 
     if(.not.present(bvec)) then
@@ -530,10 +488,8 @@ end subroutine solve_newvar1
     call apply_bc(rhs,mat%ibound,bptr)
 
 #ifdef CJ_MATRIX_DUMP
-     call get_counter( mat%mat%imatrix, counter)
-     if(counter.le.0) then 
-        write ( filename, * ) mat%mat%imatrix, '_rhs.out' 
-        write ( *, * ) "print matrix", mat%mat%imatrix, counter
+     if(ntime.eq.ntimemax) then 
+        write ( *, * ) "print matrix", mat%mat%imatrix, ntime
         call write_matrix(mat%mat,filename)
         call write_vector(rhs, trim(filename))
      endif
@@ -542,8 +498,7 @@ end subroutine solve_newvar1
     call newsolve(mat%mat,rhs,ier)
 
 #ifdef CJ_MATRIX_DUMP
-     if(counter.le.0) then 
-        write ( filename, * ) mat%mat%imatrix, '_sol.out' 
+     if(ntime.eq.ntimemax) then 
         call write_vector(rhs, trim(filename))
      endif
 #endif 

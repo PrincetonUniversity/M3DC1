@@ -8,9 +8,9 @@ PETSC_ARCH=real-rhel7-$MPIVER
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
 LAPACK_DIR=$LAPACK_HOME
-PUMI_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$MPIVER/$SIM_VER
+PUMI_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/
 PREFIX=$PUMI_DIR
-#cd ~/develop/core-meshgen/
+#cd ~/develop/core-m3dc1/
 #ssh sunfire10
 #module load simmodeler/10.0-220226
 #module load simmodsuite/16.0-220226
@@ -20,8 +20,8 @@ cmake .. \
   -DCMAKE_C_COMPILER=mpicc \
   -DCMAKE_CXX_COMPILER=mpicxx \
   -DCMAKE_Fortran_COMPILER=mpif90 \
-  -DCMAKE_C_FLAGS="-O2 -g -I$PETSC_DIR/include" \
-  -DCMAKE_CXX_FLAGS="-O2 -g -I$PETSC_DIR/include" \
+  -DCMAKE_C_FLAGS="-O2 -g -DOLDMA -I$PETSC_DIR/include" \
+  -DCMAKE_CXX_FLAGS="-O2 -g -DOLDMA -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
   -DZOLTAN_LIBRARY="$ZOLTAN_DIR/lib/libzoltan.a" \
   -DPARMETIS_LIBRARY="$PARMETIS_DIR/lib/libparmetis.a" \

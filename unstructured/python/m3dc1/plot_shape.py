@@ -60,9 +60,15 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
 
     **ax**
     matplotlib axes object to plot into. If None, new figure and axes are created.
-    
+
     **pub**
-    If True, plot will be formatted for publication
+    If True, plot will be formatted for publication.
+
+    **phys**
+    Use True for plotting in physical (stellarator) geometry.
+
+    **quiet**
+    If True, suppress output to terminal.
     """
     
     # Set font sizes and plot style parameters

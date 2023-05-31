@@ -43,6 +43,27 @@ contains
   end subroutine finalize_output
 
   ! ======================================================================
+  ! marker
+  ! ~~~~~~
+  !
+  !
+  ! ======================================================================
+  subroutine marker
+    use basic
+    use hdf5_output
+    use diagnostics
+    use auxiliary_fields
+
+    implicit none
+
+    include 'mpif.h'
+
+    integer :: ier,i
+    call mark_fields(0);
+  end subroutine marker
+
+
+  ! ======================================================================
   ! output
   ! ~~~~~~
   !
@@ -300,6 +321,7 @@ subroutine hdf5_write_scalars(error)
   use diagnostics
   use hdf5_output
   use pellet
+  use kprad
 
   implicit none
 
@@ -441,6 +463,11 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "E_MTH", emagth, ntime, error)
   call output_scalar(scalar_group_id, "E_KTH", ekinth, ntime, error)
 
+  call output_scalar(scalar_group_id, "E_MPC", emagpc, ntime, error)
+  call output_scalar(scalar_group_id, "E_MTC", emagtc, ntime, error)
+  call output_scalar(scalar_group_id, "E_MPV", emagpv, ntime, error)
+  call output_scalar(scalar_group_id, "E_MTV", emagtv, ntime, error)
+
   call output_scalar(scalar_group_id, "E_P" , emag3, ntime, error)
   call output_scalar(scalar_group_id, "Ave_P" , avep, ntime, error)
   call output_scalar(scalar_group_id, "E_K3", ekin3, ntime, error)
@@ -467,6 +494,7 @@ subroutine hdf5_write_scalars(error)
 
   call output_scalar(scalar_group_id, "kprad_n",  totkprad,  ntime, error)
   call output_scalar(scalar_group_id, "kprad_n0", totkprad0, ntime, error)
+  call output_scalar(scalar_group_id, "kprad_dt", kprad_dt, ntime, error)
 
 
   if(xray_detector_enabled.eq.1) then
@@ -1235,6 +1263,280 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
 end subroutine output_fields
 
+! mark_fields (for solution transfer during adapt)
+! =============
+subroutine mark_fields(equilibrium)
+  use hdf5
+  use hdf5_output
+  use basic
+  use arrays
+  use time_step
+  use auxiliary_fields
+  use transport_coefficients
+  use kprad_m3dc1
+
+  implicit none
+
+  integer :: i, nelms, ilin
+  integer, intent(in) :: equilibrium
+  ilin = 1 - equilibrium
+
+  ! psi_plasma
+  if(icsubtract.eq.1 .or. &
+       (extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0))) then
+     !psi_field(ilin)
+  end if
+
+  ! psi
+  if(icsubtract.eq.1 .and. (ilin.eq.0 .or. eqsubtract.eq.0)) then
+     !psi_coil_field
+     call mark_field_for_solutiontransfer(psi_coil_field)
+  endif
+  if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then
+     !psi_ext
+     call mark_field_for_solutiontransfer(psi_ext)
+  end if
+
+  ! u
+  ! u_field(ilin)
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  ! electrostatic potential
+  if(jadv.eq.0) then
+     ! e_field(ilin)
+  endif
+#endif
+
+  ! I
+  ! bz_field(ilin)
+  if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then
+     ! bz_ext
+     call mark_field_for_solutiontransfer(bz_ext)
+  end if
+
+  ! BF
+  if(ifout.eq.1) then
+     ! bf_field(ilin)
+     if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then
+        ! bf_ext
+        call mark_field_for_solutiontransfer(bf_ext)
+     end if
+  endif
+
+  ! BFP
+  if(ifout.eq.1) then
+     ! bfp_field(ilin)
+     call mark_field_for_solutiontransfer(bfp_field(ilin))
+     if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract.eq.0)) then
+        ! bfp_ext
+        call mark_field_for_solutiontransfer(bfp_ext)
+     end if
+  endif
+
+  !  vz_field(ilin)
+  !  pe_field(ilin)
+  !   p_field(ilin)
+  ! chi_field(ilin)
+  ! den_field(ilin)
+  !  te_field(ilin)
+  !  ti_field(ilin)
+  !  ne_field(ilin)
+
+  if(icsubtract.eq.1) then
+     ! psi_coil_field
+     call mark_field_for_solutiontransfer(psi_coil_field)
+  end if
+
+#ifdef USEPARTICLES
+  if (kinetic.eq.1) then
+     if (associated(p_i_perp%vec)) then
+        !Perpendicular component of hot ion pressure tensor
+        ! p_i_perp
+        call mark_vector_for_solutiontransfer(p_i_perp%vec)
+     endif
+
+     if (associated(p_i_par%vec)) then
+        !Parallel component of hot ion pressure tensor
+        ! p_i_par
+        call mark_vector_for_solutiontransfer(p_i_par%vec)
+     endif
+  endif
+#endif
+
+  if(use_external_fields) then
+     ! psi_ext
+     ! bz_ext
+     ! bf_ext
+     ! bfp_ext
+     call mark_field_for_solutiontransfer(psi_ext)
+     call mark_field_for_solutiontransfer(bz_ext)
+     call mark_field_for_solutiontransfer(bf_ext)
+     call mark_field_for_solutiontransfer(bfp_ext)
+  endif
+
+  if(ikprad.eq.1) then
+     do i=0, kprad_z
+        ! kprad_n(i)
+        ! kprad_particle_source(i)
+        call mark_field_for_solutiontransfer(kprad_n(i))
+        ! call mark_field_for_solutiontransfer(kprad_temp(i))
+        call mark_field_for_solutiontransfer(kprad_particle_source(i))
+     end do
+
+     call mark_field_for_solutiontransfer(kprad_sigma_e)
+     call mark_field_for_solutiontransfer(kprad_sigma_i)
+     call mark_field_for_solutiontransfer(kprad_rad)
+     call mark_field_for_solutiontransfer(kprad_brem)
+     call mark_field_for_solutiontransfer(kprad_ion)
+     call mark_field_for_solutiontransfer(kprad_reck)
+     call mark_field_for_solutiontransfer(kprad_recp)
+  end if
+
+  ! transport coefficients do not change with time in linear calculations
+  ! so don't output linear perturbations
+  if(iwrite_transport_coeffs.eq.1 .and. &
+     (linear.eq.0 .or. equilibrium.eq.1)) then
+     !  resistivity_field
+     !  visc_field
+     !  visc_c_field
+     !  kappa_field
+     !  denm_field
+     call mark_field_for_solutiontransfer(resistivity_field)
+     call mark_field_for_solutiontransfer(visc_field)
+     call mark_field_for_solutiontransfer(visc_c_field)
+     call mark_field_for_solutiontransfer(kappa_field)
+     call mark_field_for_solutiontransfer(denm_field)
+
+     ! poloidal force and mach number
+     if(ipforce.gt.0) then
+        ! pforce_field
+        ! pmach_field
+        call mark_field_for_solutiontransfer(pforce_field)
+        call mark_field_for_solutiontransfer(pmach_field)
+     endif
+
+     if(ibootstrap.gt.0) then
+        ! visc_e_field
+        call mark_field_for_solutiontransfer(visc_e_field)
+     endif
+  end if !(iwrite_transport_coeffs.eq.1)
+
+  if(irunaway.ne.0) then
+     ! nre_field
+     call mark_field_for_solutiontransfer(nre_field(ilin))
+  end if
+
+  if(iwrite_aux_vars.eq.1) then
+    ! wall_dist
+    ! jphi_field
+    ! vor_field
+    ! com_field
+    ! torque_density_em
+    ! torque_density_ntv
+    ! bdotgradp, nelms
+    ! bdotgradt, nelms
+    ! z_effective
+    call mark_field_for_solutiontransfer(wall_dist)
+    call mark_field_for_solutiontransfer(jphi_field)
+    !call mark_field_for_solutiontransfer(vor_field)
+    !call mark_field_for_solutiontransfer(com_field)
+    call mark_field_for_solutiontransfer(torque_density_ntv)
+    call mark_field_for_solutiontransfer(bdotgradp)
+    call mark_field_for_solutiontransfer(bdotgradt)
+    call mark_field_for_solutiontransfer(z_effective)
+    if(ikprad.eq.1) then
+       ! kprad_totden
+       call mark_field_for_solutiontransfer(kprad_totden)
+    end if
+    if(itemp_plot .eq. 1) then
+       call mark_field_for_solutiontransfer(vdotgradt)
+       call mark_field_for_solutiontransfer(adv1)
+       call mark_field_for_solutiontransfer(adv2)
+       call mark_field_for_solutiontransfer(adv3)
+       call mark_field_for_solutiontransfer(deldotq_perp)
+       call mark_field_for_solutiontransfer(deldotq_par)
+       call mark_field_for_solutiontransfer(eta_jsq)
+       call mark_field_for_solutiontransfer(vpar_field)
+       call mark_field_for_solutiontransfer(f1vplot)
+       call mark_field_for_solutiontransfer(f1eplot)
+       call mark_field_for_solutiontransfer(f2eplot)
+       call mark_field_for_solutiontransfer(f2vplot)
+       call mark_field_for_solutiontransfer(f3eplot)
+       call mark_field_for_solutiontransfer(f3vplot)
+       call mark_field_for_solutiontransfer(jdbobs)
+       call mark_field_for_solutiontransfer(pot2_field)
+
+       if(jadv.eq.0) then
+          ! psidot
+          ! veldif
+          ! eta_jdb
+          ! bdgp
+          ! vlbdgp
+          call mark_field_for_solutiontransfer(psidot)
+          call mark_field_for_solutiontransfer(veldif)
+          call mark_field_for_solutiontransfer(eta_jdb)
+          call mark_field_for_solutiontransfer(bdgp)
+          call mark_field_for_solutiontransfer(vlbdgp)
+       endif
+
+    endif
+
+    ! sigma
+    if(density_source) then
+       ! sigma_field
+       call mark_field_for_solutiontransfer(sigma_field)
+    endif
+
+    ! momentum source
+    if(momentum_source) then
+       ! Fphi_field
+       call mark_field_for_solutiontransfer(Fphi_field)
+    endif
+
+    ! heat source
+    if(heat_source) then
+       ! Q_field
+       call mark_field_for_solutiontransfer(Q_field)
+    endif
+
+    ! radiation source
+    if(rad_source) then
+       call mark_field_for_solutiontransfer(Totrad_field)
+       call mark_field_for_solutiontransfer(Linerad_field)
+       call mark_field_for_solutiontransfer(Bremrad_field)
+       call mark_field_for_solutiontransfer(Ionrad_field)
+       call mark_field_for_solutiontransfer(Reckrad_field)
+       call mark_field_for_solutiontransfer(Recprad_field)
+    endif
+
+    ! current drive source
+    if(icd_source.gt.0) then
+       ! cd_field
+       call mark_field_for_solutiontransfer(cd_field)
+    endif
+
+    if(xray_detector_enabled.eq.1) then
+       ! chord_mask
+       call mark_field_for_solutiontransfer(chord_mask)
+    end if
+
+    ! magnetic region
+    ! mag_reg
+    call mark_field_for_solutiontransfer(mag_reg)
+
+    ! mesh zone
+    ! mesh_zone
+    call mark_field_for_solutiontransfer(mesh_zone)
+
+    ! electric_field
+    call mark_field_for_solutiontransfer(ef_r)
+    call mark_field_for_solutiontransfer(ef_phi)
+    call mark_field_for_solutiontransfer(ef_z)
+    call mark_field_for_solutiontransfer(ef_par)
+    call mark_field_for_solutiontransfer(eta_j)
+
+ endif !(iwrite_aux_vars.eq.1)
+end subroutine mark_fields
 
 ! hdf5_write_keharmonics
 ! ==================

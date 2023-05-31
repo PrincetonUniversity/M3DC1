@@ -3076,8 +3076,11 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
   apf::writeVtkFiles(filename,mesh);
 
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-  //ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+#ifdef OLDMA
+  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+#else
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
+#endif
   in->maximumIterations = 9;
   in->shouldRunPostZoltan = true;
   if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] running MeshAdapt...\n";
@@ -3297,8 +3300,11 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   apf::writeVtkFiles(filename,mesh);
 
   ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-  //ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+#ifdef OLDMA
+  ma::Input* in = ma::configure(mesh,&sf,&slnTrans);
+#else
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
+#endif
   in->maximumIterations = 5;
   in->shouldRunPostZoltan = true;
   if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] running MeshAdapt...\n";

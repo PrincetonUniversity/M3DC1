@@ -458,7 +458,7 @@ subroutine f3eplot_sub(term)
 
   ! Parallel Heat Flux
   ! ~~~~~~~~~~~~~~~~~~
-  if(kappar.ne.0.) then
+  if(kappar.ne.0. .or. ikapparfunc.eq.2) then
 
      tempx = tepsipsikappar(mu79,pstx79,pstx79,tet79,b2i79,kar79) &
           + tepsibkappar  (mu79,pstx79,bztx79,tet79,b2i79,kar79) &

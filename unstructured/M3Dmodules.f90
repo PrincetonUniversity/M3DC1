@@ -7,7 +7,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 42
+  integer, parameter :: version = 44
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -80,6 +80,7 @@ module basic
   real :: kappaf
   real :: kappai_fac
   real :: kappa_max
+  real :: kappar_max, kappar_min
   real :: denm        ! artificial density diffusion used in idenmfunc = 0,1
   real :: denmt       ! temperature dependent density diffusion used in idenmfunc = 1
   real :: denmmin     ! Minimum value of density diffusion
@@ -90,6 +91,7 @@ module basic
   real :: temin_qd    ! minimum temperature used in equipartition term for ipres=1
   real :: efac        ! eta = efac / T^(3/2)
   real :: nufac       ! nu = nufac * n / T^(3/2)
+  real :: krfac       ! kappar = krfac * T^5/2
 
 
   ! physical parameters
@@ -204,9 +206,9 @@ module basic
   integer :: isample_ext_field_pol
 
   real :: scale_ext_field
-  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines or mgrid file.
-  character(len=256) :: file_ext_field
-  character(len=256) :: fieldlines_filename 
+  integer :: type_ext_field ! 0 = text schaffer field; 1,2 = fieldlines or mgrid file.
+  character(len=256) :: file_ext_field ! External field (to be subtracted for ST)
+  character(len=256) :: file_total_field ! Stellarator field (plasma+coils) to be read for itaylor=41
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
 
@@ -275,7 +277,6 @@ module basic
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
                          ! >2 hyper-resistivity also scaled by keharmonic(ihypeta)
   real :: bharhypeta    ! bharmonic(ihypeta)
-  integer :: ihypamu     ! 1 = scale hyper-viscosity with visc
   integer :: ihypkappa   ! 1 = scale hyper-diffusivity with kappa
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: imp_hyper   ! 1 = include hyper-resistivity implicitly in psi equation

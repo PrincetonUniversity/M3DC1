@@ -76,11 +76,20 @@ def setup_sims(sim,filename,time,linear,diff):
         if not isinstance(sim,fpy.sim_data):
             sim = np.empty(0)
             filename = np.atleast_1d(filename)
-            for f in filename:
-                sim = np.append(sim,fpy.sim_data(f,time=time))
+            
+            if len(filename)>1 or (len(time)<2):
+                for f in filename:
+                    sim = np.append(sim,fpy.sim_data(f,time=time))
+            elif isinstance(time,(tuple, list)) and len(filename)<2 and len(time)>1:
+                for t in time:
+                    #print(filename)
+                    #print(t)
+                    sim = np.append(sim,fpy.sim_data(filename=filename[0],time=t))
+                    #print(time)
+                    #print(sim)
         else:
             sim = np.atleast_1d(sim)
-        time = np.atleast_1d(time)
+            time = np.atleast_1d(time)
 
     if len(time)==1 and len(sim)>1:
         time = np.repeat(time,len(sim))
@@ -336,6 +345,7 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
               'ti':'ion temperature', 'te':'electron temperature',
               'A':'vector potential', 'gradA':'grad vector potential',
               'E':'electric field', 'alpha':r'ballooning parameter $\alpha$',
+              'eta_spitzer':'resistivity', 'shear':'magnetic shear',
               'default':field}
     
     short_labels = {'j':'j', 'ni':'$n_{i}$','ne':'$n_{e}$',
@@ -347,7 +357,7 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
               'default':field}
 
     if units.lower()=='m3dc1':
-        units = {'default':'M3DC1 units'}
+        units = {'eta_spitzer':'a. u.', 'default':'M3DC1 units'}
     elif units.lower()=='mks':
         units = {'j':r'A/m$^2$', 'ni':r'particles/m$^3$', 'ne':r'particles/m$^3$',
                  'v':'m/s', 'B':'T', 'p':'Pa', 'pi':'Pa', 'pe':'Pa',
@@ -369,11 +379,13 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
         unit = 'k'+unit
     elif fac == 1.0E-6:
         unit = 'M'+unit
-        
+    elif fac == 1.0E-9:
+        unit = 'G'+unit
+    
     return label, unit
 
 
-def get_tracelabel(units,trace,label=None,unitlabel=None):
+def get_tracelabel(units,trace,label=None,unitlabel=None,fac=1):
     """
     Returns time trace label depending on chosen system of units
     """
@@ -468,8 +480,8 @@ def get_tracelabel(units,trace,label=None,unitlabel=None):
               'zmag':('$Z$ of magnetic axis','m'),
               'znull':('$Z$ of primary X-point','m'),
               'znull2':('$Z$ of secondary X-point','m'),
-              'bharmonics':('Magnetic energy Fourier harmonics','J'),
-              'keharmonics':('Kinetic energy Fourier harmonics','J'),
+              'bharmonics':('Magnetic energy','J'),
+              'keharmonics':('Kinetic energy','J'),
               'cauchy_fraction':('cauchy_fraction',''),
               'cloud_pel':('Size of cloud over size of pellet',''),
               'pellet_mix':('Fraction of pellet that is D2',''),
@@ -487,18 +499,26 @@ def get_tracelabel(units,trace,label=None,unitlabel=None):
               'pellet_vy':(r'$Y$ velocity of pellet','m/s'),
               'pellet_z':(r'$Z$ location of pellet','m'),
               'r_p':('Pellet radius','m'),
+              'kprad_n0':('Neutral impurities',''),
+              'kprad_n':('Total impurities',''),
               }
 
     if trace in labels:
         lbl, ulbl = labels[trace]
     else:
         lbl, ulbl = ('', '')
-
+    #print(unitlabel)
     if label is None:
         label = lbl
     if unitlabel is None:
         if units == 'mks':
             unitlabel = ulbl
+            if fac == 1.0E-3:
+                unitlabel = 'k'+unitlabel
+            elif fac == 1.0E-6:
+                unitlabel = 'M'+unitlabel
+            elif fac == 1.0E-9:
+                unitlabel = 'G'+unitlabel
         else:
             unitlabel = 'M3D-C1 units'
     return label, unitlabel
@@ -676,6 +696,12 @@ def find_nearest(arr, val):
     return arr.flat[ind]
 
 
+def get_ind_near_val(arr, val,unique=True):
+    nearest = find_nearest(arr, val)
+    ind = get_ind_at_val(arr, nearest, unique=unique)
+    return ind
+
+
 # Routines to check if a list is monotonic or strictly monotonic
 def strict_inc(l):
     return all(x<y for x, y in zip(l, l[1:]))
@@ -836,7 +862,7 @@ def get_lines(filename, linenumbers):
 
 
 def get_base_dirs(dirname):
-    subfolders0 = [f.path for f in os.scandir(dirname) if (f.is_dir() and len(f.path.split('/')[-1])<6)]
+    subfolders0 = [f.path for f in os.scandir(dirname) if (f.is_dir() and ((len(f.path.split('/')[-1])<6) or '_w' in f.path.split('/')[-1]))]
     subfolders = []
     for dirname in list(subfolders0):
         subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and '/base_' in f.path)])

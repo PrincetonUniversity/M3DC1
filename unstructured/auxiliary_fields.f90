@@ -35,7 +35,48 @@ subroutine create_auxiliary_fields
   use basic
   use kprad_m3dc1
   implicit none
+#ifdef ADAPT
+  call create_field(bdotgradp, "bdotgradp")
+  call create_field(bdotgradt, "bdotgradt")
+  call create_field(torque_density_em, "torque_density_em")
+  call create_field(torque_density_ntv, "torque_density_ntv")
+  call create_field(chord_mask, "chord_mask")
+  call create_field(mag_reg, "mag_reg")
+  call create_field(ef_r, "ef_r")
+  call create_field(ef_phi, "ef_phi")
+  call create_field(ef_z, "ef_z")
+  call create_field(ef_par, "ef_par")
+  call create_field(eta_j, "eta_j")
+  call create_field(mesh_zone, "mesh_zone")
+  call create_field(z_effective, "z_effective")
 
+  if(ikprad.eq.1) call create_field(kprad_totden, "kprad_totden")
+  if(jadv.eq.0) then
+     call create_field(psidot, "psidot")
+     call create_field(veldif, "veldif")
+     call create_field(eta_jdb, "eta_jdb")
+     call create_field(bdgp, "bdgp")
+     call create_field(vlbdgp, "vlbdgp")
+  endif
+  if(itemp_plot.eq.1) then
+     call create_field(vdotgradt, "vdotgradt")
+     call create_field(adv1, "adv1")
+     call create_field(adv2, "adv2")
+     call create_field(adv3, "adv3")
+     call create_field(deldotq_perp, "deldotq_perp")
+     call create_field(deldotq_par, "deldotq_par")
+     call create_field(eta_jsq, "eta_jsq")
+     call create_field(pot2_field, "pot2_field")
+     call create_field(vpar_field, "vpar_field")
+     call create_field(f1vplot, "f1vplot")
+     call create_field(f1eplot, "f1eplot")
+     call create_field(f2vplot, "f2vplot")
+     call create_field(f2eplot, "f2eplot")
+     call create_field(f3vplot, "f3vplot")
+     call create_field(f3eplot, "f3eplot")
+     call create_field(jdbobs, "jdbobs")
+   endif
+#else
   call create_field(bdotgradp)
   call create_field(bdotgradt)
   call create_field(torque_density_em)
@@ -75,6 +116,7 @@ subroutine create_auxiliary_fields
      call create_field(f3eplot)
      call create_field(jdbobs)
   endif
+#endif
   initialized = .true.
 end subroutine create_auxiliary_fields
 
@@ -150,8 +192,13 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating pressures'
 
+#ifdef ADAPT
+  call create_field(pe_f, " pe_f")
+  call create_field(p_f, "p_f")
+#else
   call create_field(pe_f)
   call create_field(p_f)
+#endif
 
   pe_f = 0.
   p_f = 0.
@@ -268,9 +315,13 @@ subroutine calculate_temperatures(ilin, te, ti, pe, p, ne, nion, ieqsub)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating Temperatures'
 
+#ifdef ADAPT
+  call create_field(te_f, "te_f")
+  call create_field(ti_f, "ti_f")
+#else
   call create_field(te_f)
   call create_field(ti_f)
-
+#endif
   te_f = 0.
   ti_f = 0.
 
@@ -410,8 +461,12 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
      call mult(ne, z_ion)
      return
   end if
-  
+ 
+#ifdef ADAPT 
+  call create_field(ne_f, "ne_f")
+#else
   call create_field(ne_f)
+#endif
   ne_f = 0.
 
   numelms = local_elements()

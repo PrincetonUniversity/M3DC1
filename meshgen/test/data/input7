@@ -1,40 +1,26 @@
 numBdry 7
-bdryFile sparc_v2_first_wall_interpolated.dat
-bdryFile sparc_ppu.dat
-bdryFile  sparc_ppl.dat
-bdryFile  points_RZ_SI_VV_10deg_Curve_1_20220124.dat 
-bdryFile  points_RZ_SI_VV_10deg_Curve_2_20220124.dat 
-bdryFile  points_RZ_SI_VV_10deg_Curve_3_20220124.dat 
-bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat
+bdryFile sparc_v2_first_wall_interpolated.dat 3 0.2
+bdryFile sparc_ppu.dat 10 0.3
+bdryFile  sparc_ppl.dat 11 0.4
+bdryFile  points_RZ_SI_VV_10deg_Curve_1_20220124.dat 21 0.4
+bdryFile  points_RZ_SI_VV_10deg_Curve_2_20220124.dat 25 0.4
+bdryFile  points_RZ_SI_VV_10deg_Curve_3_20220124.dat 17 0.2
+bdryFile  points_RZ_SI_VV_10deg_Curve_4_20220124_smooth_new.dat 19 0.1
 
-! Number of Regions == 8 when useVacuum is set to 1. Set numRgn to 7 and comment out line 18 if useVacuum is set to 0.
-numRgn 8	
-rgnBdry  1 1
-rgnBdry  1 2
-rgnBdry  1 3
-rgnBdry  2 4 5
-rgnBdry  2 5 6
-rgnBdry  2 6 7
-rgnBdry  2 7 8
-rgnBdry 4 1 2 3 4
-outFile input7
-
-useVacuum 1
-
-! If useVacuumParams is set to 0, the other two parameters vacuumParams & numVacuumPts are not required.
-useVacuumParams 0
+useVacuum 1 9 0.1
 vacuumParams 1.8 1.5 0.4 0.0 2.5
 numVacuumPts 20
 
-! meshSize default 0.05. For N region model, set N doubles
-meshSize 0.05 0.05 0.05 0.05 0.2 0.1 0.2 0.2
+numFace 8	
+faceBdry  1 3 0.2
+faceBdry  1 10 0.3
+faceBdry  1 11 0.1
+faceBdry  2 21 25 0.2
+faceBdry  2 25 17 0.09
+faceBdry  2 17 19 0.1
+!faceBdry  2 19 8 0.1   !Wall Thickness Face. Dont Use it
+faceBdry  2 19 9 0.1
+faceBdry  4 3 10 11 21 0.11
 
-! For 3-region model only.
-! meshGradationRate default 0.3
 meshGradationRate 0.3
-resistive-width 0.02
-plasma-offsetX 0.0
-plasma-offsetY 0.0
-vacuum-width  2.5
-vacuum-height 4.0
-
+outFile input7

@@ -18,7 +18,8 @@
 
 #include "name_convert.h"
 #include "mpi.h"
-
+#include <apf.h>
+#include "m3dc1_sizeField.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +47,7 @@ bool m3dc1_double_isequal(double A, double B);
 
 int m3dc1_scorec_init();
 int m3dc1_scorec_finalize();
+void m3dc1_scorec_verbosity(int*);
 
 /** plane functions */
 int m3dc1_plane_setnum(int*);
@@ -172,11 +174,12 @@ void m3dc1_field_export(int*, int*);
 void m3dc1_field_importall();
 void m3dc1_field_exportall();
 int m3dc1_field_print(FieldID* field);
-int m3dc1_field_sum_plane (FieldID* /* in */ field_id);
+int m3dc1_field_sum_plane(FieldID* /* in */ field_id);
 int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info);
-int m3dc1_field_max (FieldID* field_id, double * max_val, double * min_val);
+int m3dc1_field_max(FieldID* field_id, double * max_val, double * min_val);
 
 void m3dc1_field_verify();
+void m3dc1_field_mark4tx(FieldID* /*in*/ field_id); //mark for solution transfer
 
 int m3dc1_model_getplaneid(int * /* out */ plane_id);
 
@@ -220,6 +223,8 @@ int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
 
 // 3D Adaptation
+void m3dc1_spr_adapt (int * fieldId, int * index, int * ts,
+    double * ar, double * max_size, int * refine_level, int * coarsen_level, bool* update);
 int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);
 int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node, int * option);
 // for adaptation
@@ -229,6 +234,11 @@ int output_face_data (int * size, double * data, char * vtkfile);
 int sum_edge_data (double * data, int * size);
 int get_node_error_from_elm (double * elm_data, int * size, double* nod_data);
 
+// for adaptation in specific model face
+int adapt_only_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber);
+int setSizeFieldOnVertices(int* field_id1, int* field_id2, SizeFieldPsi sf, double* dir,int adaptFaceNumber);
+void setSizeFieldOnVertex(ma::Entity* mV, double& xSize, double& ySize,SizeFieldPsi sf, double* dirVector);
+void sizeFieldTransition( int refIndx, int indx, double& xSize, double& ySize, double* dirVector, int* field_id1, int* field_id2,SizeFieldPsi sf, int mode);
 #ifdef M3DC1_TRILINOS
 //=========================================================================
 /** matrix and solver functions with TRILINOS */
