@@ -4265,7 +4265,7 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
              q_bf = q_bf + (1. -    thimp_bf*bdf)*dt*tempx*.5*fac
 
              tempx = tepsifkappar(trialx,lin,bfp079,pp079,b2i79,kar79)
-             ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx**fac
+             ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx*fac
              ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx*fac
              
              tempx = tebfkappar(trialx,lin,bfp079,pp079,b2i79,kar79)
