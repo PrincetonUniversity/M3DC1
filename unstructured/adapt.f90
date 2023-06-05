@@ -27,7 +27,6 @@ module adapt
   real :: adapt_zlow, adapt_zup
   logical :: do_z_coarsen
 
-  integer :: iadaptFaceNumber
   integer, parameter :: maxqs = 32
   real, dimension(maxqs) :: adapt_qs
  
@@ -257,15 +256,7 @@ module adapt
 
     call straighten_fields()
 
-#ifdef ADAPT
-    if (iadaptFaceNumber.gt.0) then
-        call adapt_only_model_face(temporary_field%vec%id,psimin,psibound,iadaptFaceNumber)
-    else     
-        call adapt_by_field(temporary_field%vec%id,psimin,psibound)
-    endif
-#else
     call adapt_by_field(temporary_field%vec%id,psimin,psibound)
-#endif
 
     write(mesh_file_name,"(A7,A)") 'adapted', 0
     if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)

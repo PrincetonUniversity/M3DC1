@@ -161,6 +161,12 @@ Program Reducedquintic
   if(myrank.eq.0) print *, ' Reading input'
   call input
 
+#ifdef USESCOREC
+  if (iprint.ge.1) then
+    call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
+  end if
+#endif
+
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
   if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
@@ -172,9 +178,6 @@ Program Reducedquintic
 
   call load_mesh
   
-!  call print_node_data
-!  call safestop(1)
-
   ! allocate arrays
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating arrays'
   call space(1)
@@ -209,9 +212,6 @@ Program Reducedquintic
 
   call calc_wall_dist
 
-  call init_hyperv_mat
-  
-  
   ! Set initial conditions either from restart file
   ! or from initialization routine
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -316,9 +316,9 @@ Program Reducedquintic
   call define_transport_coefficients
   call derived_quantities(1)
 
-!#ifdef ADAPT
-!  call adapt_mesh
-!#endif
+#ifdef ADAPT
+  call adapt_mesh
+#endif
 
   ! Adapt the mesh
   ! ~~~~~~~~~~~~~~
@@ -341,6 +341,7 @@ Program Reducedquintic
      tflux0 = tflux
   endif
 
+  call marker ! mark the fields necessary for solution transfer
   ! output initial conditions
   call output
 
@@ -362,6 +363,7 @@ Program Reducedquintic
   do ntime=ntime+1,ntimemax
 
      if(myrank.eq.0) print *, 'TIME STEP: ', ntime
+     call init_hyperv_mat
 
      ! check for error
      if(ekin.ne.ekin .or. emag.ne.emag) then
@@ -371,7 +373,6 @@ Program Reducedquintic
 
      ! re-scale solution if energy is too large
      if(linear.eq.1) call scaleback
-
 
      ! take time step
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Calling onestep"
@@ -446,9 +447,8 @@ Program Reducedquintic
         if(mod(ntime-ntime0,ntimepr).eq.0) then
           update_mesh = .true.
         end if
-        call adapt_by_spr(field_vec%id, psi_g, ntime, isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel, update_mesh)
-        write(mesh_file_name,"(A11,A)") 'afteradapt', 0
-        call m3dc1_mesh_write (mesh_file_name,0,ntime)
+        call adapt_by_spr(field_vec%id, psi_g, ntime, &
+             isprweight, isprmaxsize, isprrefinelevel, isprcoarsenlevel, update_mesh)
       endif
     endif
 #endif
@@ -1371,8 +1371,6 @@ subroutine space(ifirstcall)
 
   ! Auxiliary Variables
      call create_field(jphi_field, "jphi")
-     !call create_field(vor_field, "vor")
-     !call create_field(com_field, "com")
      call create_field(resistivity_field, "resistivity")
      call create_field(kappa_field, "kappa")
      call create_field(kappar_field, "kappar")

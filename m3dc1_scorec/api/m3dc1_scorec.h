@@ -234,11 +234,6 @@ int output_face_data (int * size, double * data, char * vtkfile);
 int sum_edge_data (double * data, int * size);
 int get_node_error_from_elm (double * elm_data, int * size, double* nod_data);
 
-// for adaptation in specific model face
-int adapt_only_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber);
-int setSizeFieldOnVertices(int* field_id1, int* field_id2, SizeFieldPsi sf, double* dir,int adaptFaceNumber);
-void setSizeFieldOnVertex(ma::Entity* mV, double& xSize, double& ySize,SizeFieldPsi sf, double* dirVector);
-void sizeFieldTransition( int refIndx, int indx, double& xSize, double& ySize, double* dirVector, int* field_id1, int* field_id2,SizeFieldPsi sf, int mode);
 #ifdef M3DC1_TRILINOS
 //=========================================================================
 /** matrix and solver functions with TRILINOS */

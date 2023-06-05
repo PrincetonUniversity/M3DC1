@@ -138,6 +138,3 @@
 // 3d Adaptation
 #define node_error_3d_mesh node_error_3d_mesh_
 #define find_sizefield find_sizefield_
-
-// Mesh adapt by psi Field in one specific model face
-#define adapt_only_model_face adapt_only_model_face_
