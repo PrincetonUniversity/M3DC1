@@ -161,7 +161,7 @@ Program Reducedquintic
   if(myrank.eq.0) print *, ' Reading input'
   call input
 
-#ifdef USESCOREC
+#ifdef ADAPT
   if (iprint.ge.1) then
     call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
   end if
