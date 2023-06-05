@@ -52,7 +52,7 @@ contains
     character(len=32) :: fname
 
     ierr = 0
-    if(ikprad.eq.0) return
+    if (ikprad.eq.0) return
     
     call kprad_atomic_data_sub(kprad_z, ierr)
     if(ierr.ne.0) return
@@ -61,7 +61,9 @@ contains
     allocate(kprad_temp(0:kprad_z))
     allocate(kprad_particle_source(0:kprad_z))
     allocate(lp_source_rate(0:kprad_z))
-#ifdef ADAPT
+
+    if (ispradapt .eq. 1) then
+!#ifdef ADAPT
     do i=0, kprad_z
        write(fname,"(A5,I2.2,A)")  "kprn", i, 0
        call create_field(kprad_n(i), trim(fname))
@@ -78,7 +80,7 @@ contains
     call create_field(kprad_recp, "kprad_recp")
     call create_field(kprad_sigma_e,"kprad_sigma_e")
     call create_field(kprad_sigma_i, "kprad_sigma_i")
-#else
+else
     do i=0, kprad_z
        call create_field(kprad_n(i))
        call create_field(kprad_temp(i))
@@ -92,7 +94,7 @@ contains
     call create_field(kprad_recp)
     call create_field(kprad_sigma_e)
     call create_field(kprad_sigma_i)
-#endif
+endif
     if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
        kprad_nemin = kprad_nemin*n0_norm
        kprad_temin = kprad_temin*p0_norm/n0_norm / 1.6022e-12

@@ -2,12 +2,6 @@ module adapt
   use vector_mod
   use scorec_adapt
   implicit none
-  integer :: ispradapt
-  integer :: isprrefinelevel
-  integer :: isprcoarsenlevel
-  integer :: isprntime
-  real :: isprmaxsize
-  real :: isprweight
   real :: adapt_ke
   integer :: iadapt_ntime
   real :: adapt_target_error
@@ -69,9 +63,13 @@ module adapt
 
     real :: psib
     call create_field(temporary_field)
+
 #ifdef ADAPT
-    call m3dc1_field_mark4tx(temporary_field%vec%id)
+    if (ispradapt .eq. 1) then
+     call m3dc1_field_mark4tx(temporary_field)
+    endif
 #endif
+
     temporary_field = 0.
 
     if(adapt_pellet_delta.gt.0) then

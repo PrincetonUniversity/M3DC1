@@ -26,11 +26,12 @@ contains
     call set_matrix_index(wall_matrix, wall_mat_index)
     call create_mat(wall_matrix, 1, 1, icomplex, 1)
 
-#ifdef ADAPT
+if (ispradapt .eq. 1) then
+!#ifdef ADAPT
     call create_field(wall_dist, "wall_dist")
-#else
+else
     call create_field(wall_dist)
-#endif
+endif
     wall_dist = 0.
 
     ibound = ior(BOUNDARY_DIRICHLET,BOUNDARY_NEUMANN)
