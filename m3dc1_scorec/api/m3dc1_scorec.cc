@@ -4938,6 +4938,292 @@ int m3dc1_field_max (FieldID* field_id, double * max_val, double * min_val)
   return M3DC1_SUCCESS;
 }
 
+void setSizeFieldOnVertex(ma::Entity* mV, double& xSize, double& ySize,SizeFieldPsi sf, double* dirVector)
+{ 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  int indx= getMdsIndex(m, mV);
+  ma::Matrix M;
+  ma::Vector H;
+  sf.getValue(mV,M,H);
+  xSize = H[0];
+  ySize = H[1];
+  dirVector[indx*3+0] = M[0][0];
+  dirVector[indx*3+1] = M[0][1];
+  dirVector[indx*3+2] = 0.0;
+}
+
+void sizeFieldTransition( int refIndx, int indx, double& xSize, double& ySize, double* dirVector,
+     int* field_id1, int* field_id2, SizeFieldPsi sf, int mode)
+{ 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  double data1, data2;
+  int size_data=1;
+  m3dc1_node_getfield(&refIndx, field_id1, &data1, &size_data);
+  m3dc1_node_getfield(&refIndx, field_id2, &data2, &size_data);
+        
+  if (mode == 0)
+  {     
+        xSize = data1*2.0;
+        ySize = data2*2.0;
+  }
+  else if (mode == 1)
+  {     
+        xSize = data1*0.5;
+        ySize = data2*0.5;
+  }
+  
+  ma::Entity* mV = getMdsEntity(m, 0, indx);
+  ma::Matrix M;
+  ma::Vector H;
+  sf.getValue(mV,M,H);
+  dirVector[indx*3+0] = M[0][0];
+  dirVector[indx*3+1] = M[0][1];
+  dirVector[indx*3+2] = 0.0;
+}
+
+int setSizeFieldOnVertices(int* field_id1, int* field_id2, SizeFieldPsi sf, double* dir,int adaptFaceNumber)
+{
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  gmi_model* model = m3dc1_model::instance()->model;
+  double data_1, data_2;
+  int size_data=1;
+
+  apf::MeshTag* sizeFieldSet = m->createIntTag("sfDefined", 1);
+  std::vector <int> adaptModelFaces;
+  adaptModelFaces.push_back(adaptFaceNumber);
+  for (int nFace = 0; nFace < adaptModelFaces.size(); ++nFace)
+  {
+    int modelFaceIndx = adaptModelFaces[nFace];
+    for (int i=0; i<m->count(0); ++i)
+    {
+      ma::Entity* mV = getMdsEntity(m, 0, i);
+      gmi_ent* gent= (gmi_ent*)(m->toModel(mV));
+      int gTag = gmi_tag(model, gent);
+      int gType = gmi_dim(model,gent);
+      int vTag = 0;
+      if (gType == 2 && gTag == modelFaceIndx)
+      {
+        setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);
+        m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
+        m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
+        vTag = 1;
+        m->setIntTag(mV, sizeFieldSet, &vTag);
+      }
+      else
+        m->setIntTag(mV, sizeFieldSet, &vTag);
+    }
+    std::vector <int> adaptModelEdges;
+    get_gent_adj(2, modelFaceIndx, 1, adaptModelEdges);
+    adaptModelEdges.push_back(1);
+    for (int nEdge = 0; nEdge < adaptModelEdges.size(); ++nEdge)
+    {
+      int modelEdgeIndx =  adaptModelEdges[nEdge];
+      gmi_ent* ge = gmi_find(model, 1, modelEdgeIndx);
+      gmi_set* gvOnEdge;
+      gvOnEdge = gmi_adjacent(model, ge, 0);
+      int modelNodeIndx = gmi_tag(model,gvOnEdge->e[0]);
+      std::vector <apf::MeshEntity*> meshV, meshVTemp;
+      for (int i=0; i<m->count(0); ++i)
+      {
+        ma::Entity* mV = getMdsEntity(m, 0, i);
+        gmi_ent* gent= (gmi_ent*)(m->toModel(mV));
+        int gTag = gmi_tag(model, gent);
+        int gType = gmi_dim(model,gent);
+        if ((gType == 1 && gTag == modelEdgeIndx) || (gType == 0 && gTag == modelNodeIndx))
+        {
+          setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);
+          m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
+          m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
+          m->removeTag(mV, sizeFieldSet);
+          int vTag = 1;
+           m->setIntTag(mV, sizeFieldSet, &vTag);
+           meshV.push_back(mV);
+        }
+      }
+      int iterCount = 0;
+      while (meshV.size() > 0)
+      {
+        apf::MeshEntity* mV = meshV[0];
+        double d_1, d_2;
+        int vId= getMdsIndex(m, mV);
+        m3dc1_node_getfield(&vId, field_id1, &d_1, &size_data);
+        m3dc1_node_getfield(&vId, field_id2, &d_2, &size_data);
+        double desiredLength = sqrt((d_1*d_1)+(d_2*d_2));
+        apf::Adjacent edges;
+        m->getAdjacent(mV,1, edges);
+        for (int i = 0; i < edges.getSize(); ++i)
+        {
+          apf::MeshEntity* edge = edges[i];
+          gmi_ent* gent= (gmi_ent*)(m->toModel(edge));
+          int gTag = gmi_tag(model, gent);
+          int gType = gmi_dim(model,gent);
+          if ((gType == 2 && gTag == modelFaceIndx) || (gType == 1 && gTag == modelEdgeIndx))
+            continue;
+          else
+          {
+            ma::Entity* otherV = getEdgeVertOppositeVert(m, edge, mV);
+            int vIndx = getMdsIndex(m, otherV);
+            int vTagSet = -1;
+            m->getIntTag(otherV, sizeFieldSet, &vTagSet);
+            if (vTagSet == 1)
+              continue;
+
+            if (apf::measure(m,edge) > 1.5*desiredLength)
+              sizeFieldTransition(vId, vIndx, data_1, data_2, dir, field_id1, field_id2,sf,0);
+            else
+              setSizeFieldOnVertex(otherV,data_1, data_2, sf, dir);
+            m3dc1_node_setfield(&vIndx, field_id1, &data_1, &size_data);
+            m3dc1_node_setfield(&vIndx, field_id2, &data_2, &size_data);
+            m->removeTag(otherV, sizeFieldSet);
+            int vTag = 1;
+            m->setIntTag(otherV, sizeFieldSet, &vTag);
+            meshVTemp.push_back(otherV);
+          }
+        }
+        meshV.erase(meshV.begin());
+        if (meshV.size() == 0 && iterCount < 2)
+        {
+                for (int i = 0; i < meshVTemp.size(); ++i)
+                   meshV.push_back(meshVTemp[i]);
+                meshVTemp.clear();
+                iterCount++;
+        }
+      }
+    }
+  }
+  for (int i=0; i<m->count(0); ++i)
+  {
+    ma::Entity* mV = getMdsEntity(m, 0, i);
+    int vTagSet = -1;
+    m->getIntTag(mV, sizeFieldSet, &vTagSet);
+
+    if (vTagSet == 1)
+      continue;
+
+    setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);
+    m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
+    m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
+  }
+
+  m3dc1_field_sync(field_id1);
+  m3dc1_field_sync(field_id2);
+
+  return M3DC1_SUCCESS;
+}
+
+int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber)
+{
+  if (!PCU_Comm_Self())
+  std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
+
+  FILE *fp = fopen("sizefieldParam", "r");
+  if (!fp)
+  {
+    std::cout<<"[M3D-C1 ERROR] file \"sizefieldParam\" not found\n";
+    return M3DC1_FAILURE;
+  }
+  double param[13];
+  set<int> field_keep;
+  field_keep.insert(*fieldId);
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+  gmi_model* model = m3dc1_model::instance()->model;
+
+  gmi_ent* gf;
+  gmi_iter* gfIter = gmi_begin(model, 2);
+  bool faceFound = false;
+  std::set <int> faceIds;
+  while((gf = gmi_next(m3dc1_model::instance()->model, gfIter)) )
+  {
+    if (gmi_tag(model, gf) == *iadaptFaceNumber)
+      faceFound = true;
+    faceIds.insert(gmi_tag(model, gf));
+  }
+  if (!faceFound)
+  {
+    if (!PCU_Comm_Self())
+    {
+        std::cout << "*************************************** WARNING **********************************************\n";
+        std::cout << "The model face to adapt (ID = " << *iadaptFaceNumber << ") given in C1Input doesn't exist in model.\n";
+        std::cout << "Choose a face ID from the following range: "
+                  << *next(faceIds.begin(),0) << " - " << *next(faceIds.begin(),faceIds.size()-1) << "\n";
+        std::cout << "**********************************************************************************************\n";
+    }
+    exit(0);
+  }
+  else
+  {
+    if (!PCU_Comm_Self())
+      std::cout << "The model face to adapt with ID " << *iadaptFaceNumber << " found in the model" << "\n";
+  }
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3D-C1 INFO] size field parameters: ";
+
+  for (int i=0; i<13; ++i)
+  {
+    fscanf(fp, "%lf ", &param[i]);
+    if (!PCU_Comm_Self()) std::cout<<std::setprecision(5)<<param[i]<<" ";
+  }
+  fclose(fp);
+  if (!PCU_Comm_Self()) std::cout<<"\n";
+
+  apf::Field* psiField = (*(m3dc1_mesh::instance()->field_container))[*fieldId]->get_field();
+
+  while (m3dc1_solver::instance()-> matrix_container->size())
+  {
+    std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
+    delete mat_it->second;
+    m3dc1_solver::instance()->matrix_container->erase(mat_it);
+  }
+
+  int valueType = (*(m3dc1_mesh::instance()->field_container))[*fieldId]->get_value_type();
+  SizeFieldPsi sf (psiField, *psi0, *psil, param, valueType);
+
+  int fid_size1, fid_size2;
+  m3dc1_field_getnewid (&fid_size1);
+
+  fid_size2 = fid_size1+1;
+  int scalar_type=0;
+  int num_value=1;
+
+  m3dc1_field_create (&fid_size1, "size 1", &num_value, &scalar_type, &num_value);
+  m3dc1_field_create (&fid_size2, "size 2", &num_value, &scalar_type, &num_value);
+
+  double* dir = new double[mesh->count(0)*3];
+  int adaptFaceNumber = *iadaptFaceNumber;
+
+  setSizeFieldOnVertices(&fid_size1, &fid_size2, sf, dir,adaptFaceNumber);
+
+  apf::MeshTag* doNotAdaptFace = mesh->createIntTag("doNotAdapt", 1);
+  for (int i=0; i<mesh->count(2); ++i)
+  {
+     apf::MeshEntity* ele = getMdsEntity(mesh, 2, i);
+     gmi_ent* gent= (gmi_ent*)(mesh->toModel(ele));
+     int gTag = gmi_tag(model, gent);
+     int gType = gmi_dim(model,gent);
+     int elemTag = -1;
+     apf::MeshEntity*  vertices[3];
+     mesh->getDownward(ele, 0, vertices);
+     int count = 0;
+     apf::MeshTag* vTag = mesh->findTag("sfDefined");
+     for (int j =0; j < 3; ++j)
+     {
+       int tagNode = -1;
+       mesh->getIntTag(vertices[j], vTag, &tagNode);
+       if (tagNode == 1)
+         count++;
+     }
+     if (count == 3)
+       elemTag = 0;
+     else
+       elemTag = 1;
+
+     mesh->setIntTag(ele, doNotAdaptFace, &elemTag);
+  }
+
+  m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);
+
+  return M3DC1_SUCCESS;
+}
 
 #ifdef M3DC1_TRILINOS
 #include <Epetra_MultiVector.h>

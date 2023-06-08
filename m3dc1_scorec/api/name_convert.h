@@ -32,6 +32,7 @@
 #define adapt_by_error_field adapt_by_error_field_
 #define set_mesh_size_bound set_mesh_size_bound_
 #define set_adapt_smooth_factor set_adapt_smooth_factor_
+#define adapt_model_face adapt_model_face_
 #define output_face_data output_face_data_
 #define sum_edge_data sum_edge_data_
 #define m3dc1_ent_getlocalid m3dc1_ent_getlocalid_

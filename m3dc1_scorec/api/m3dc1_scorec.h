@@ -221,6 +221,8 @@ int m3dc1_matrix_print(int* matrix_id);
 int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
+// adapt the mesh on specific model faces based on psi field
+int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber);
 
 // 3D Adaptation
 void m3dc1_spr_adapt (int * fieldId, int * index, int * ts,
