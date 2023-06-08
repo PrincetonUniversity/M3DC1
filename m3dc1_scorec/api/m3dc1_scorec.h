@@ -230,7 +230,7 @@ int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node
 // for adaptation
 int set_mesh_size_bound (double* abs_size, double * rel_size);
 int set_adapt_smooth_factor (double* fac);
-int output_face_data (int * size, double * data, char * vtkfile);
+void output_face_data (int * size, double * data, char * vtkfile);
 int sum_edge_data (double * data, int * size);
 int get_node_error_from_elm (double * elm_data, int * size, double* nod_data);
 
