@@ -1302,9 +1302,7 @@ int m3dc1_mesh_search(int* initial_simplex,
   apf::MeshEntity* simplex = NULL;
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   apf::Adjacent adjacent;
-  // seol - edge_prev_index is intialized to 0 temporarily to avoid compilation error. 
-  //        This should be fixed.
-  int edge_curr_index, edge_prev_index=0;  
+  int edge_curr_index, edge_prev_index= -1;  
   int simplex_dim = m->getDimension();
   int vertex_dim = 0, edge_dim = 1;
   int bridge_dim = simplex_dim - 1;

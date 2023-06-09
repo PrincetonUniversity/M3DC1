@@ -363,7 +363,7 @@ Program Reducedquintic
 
      if(myrank.eq.0) print *, 'TIME STEP: ', ntime
 
-     if (ispradapt .eq. 1) call init_hyperv_mat
+     call init_hyperv_mat
 
      ! check for error
      if(ekin.ne.ekin .or. emag.ne.emag) then
