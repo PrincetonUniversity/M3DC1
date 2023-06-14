@@ -293,6 +293,7 @@ Program Reducedquintic
 
      if(eqsubtract.eq.1) then
         if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+        call find_lcfs()
         call define_transport_coefficients
         call derived_quantities(0)
         if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
@@ -313,6 +314,7 @@ Program Reducedquintic
   ! Calculate all quantities derived from basic fields
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+  call find_lcfs()
   call define_transport_coefficients
   call derived_quantities(1)
 
@@ -688,30 +690,17 @@ subroutine smooth_fields(psiin)
 end subroutine smooth_fields
 
 
-! ======================================================================
-! derived_quantities
-! ~~~~~~~~~~~~~~~~~~
-! calculates all derived quantities, including auxiliary fields
-! and scalars
-! ======================================================================
-subroutine derived_quantities(ilin)
+!============================================
+! find_lcfs
+! ~~~~~~~~~
+!============================================
+subroutine find_lcfs()
   use basic
   use arrays
-  use newvar_mod
   use diagnostics
-  use sparse
-  use transport_coefficients
-  use auxiliary_fields
- use gradshafranov
-
   implicit none
 
   type(field_type) :: psi_temp, te_temp
-  integer, intent(in) :: ilin    ! 0 for equilibrium fields, 1 for perturbed
-  integer :: ier
-  real :: tstart, tend
-
-  vectype :: temp
 
   ! Find lcfs
   ! ~~~~~~~~~
@@ -733,6 +722,32 @@ subroutine derived_quantities(ilin)
   else
      call lcfs(psi_field(1))
   endif
+end subroutine find_lcfs
+
+! ======================================================================
+! derived_quantities
+! ~~~~~~~~~~~~~~~~~~
+! calculates all derived quantities, including auxiliary fields
+! and scalars
+! ======================================================================
+subroutine derived_quantities(ilin)
+  use basic
+  use arrays
+  use newvar_mod
+  use diagnostics
+  use sparse
+  use transport_coefficients
+  use auxiliary_fields
+  use gradshafranov
+
+  implicit none
+
+  type(field_type) :: psi_temp, te_temp
+  integer, intent(in) :: ilin    ! 0 for equilibrium fields, 1 for perturbed
+  integer :: ier
+  real :: tstart, tend
+
+  vectype :: temp
 
   ! Find maximum temperature:  te_max
   ! ~~~~~~~~~

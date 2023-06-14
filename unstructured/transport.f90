@@ -872,8 +872,8 @@ function viscosity_func()
      
      do j=1, npoints
         call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j), z_79(j), iregion, psib)
-        if(iregion.eq.REGION_PF) temp79b(j) = 2.*psib - temp79b(j)
+             x_79(j), z_79(j), iregion)
+        if(iregion.eq.REGION_PF) temp79b(j) = 2. - temp79b(j)
      end do
      
      temp79a = amu_edge*.5* &
@@ -883,7 +883,7 @@ function viscosity_func()
              (1. + tanh((real(temp79b) - amuoff2)/amudelt2))
         temp79a = temp79a / 2.
      endif
-     
+
   case(3,4)
      temp79a = vis79(:,OP_1) - amu
      

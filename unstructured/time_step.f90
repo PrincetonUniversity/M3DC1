@@ -191,6 +191,7 @@ subroutine onestep
   endif
 
   ! Calculate all quantities derived from basic fields
+  call find_lcfs()
   call derived_quantities(1)
   if(ipellet_abl.gt.0) call pellet_shrink
 
