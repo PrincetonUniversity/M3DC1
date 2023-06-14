@@ -4084,7 +4084,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
     in->goodQuality = 0.5;
     in->maximumIterations = (*refine_level) + 1;
 
-    if (coarsen_level < 0)
+    if (*coarsen_level < 0)
       in->shouldCoarsen=false;
 
     ma::adapt(in);
@@ -4132,7 +4132,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
       in->goodQuality = 0.5;
       in->maximumIterations = (*refine_level);
       
-      if (coarsen_level < 0)
+      if (*coarsen_level < 0)
         in->shouldCoarsen=false;
       
       ma::adapt(in);
