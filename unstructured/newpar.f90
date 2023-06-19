@@ -165,13 +165,13 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
   if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
 
-
 #ifndef M3DC1_TRILINOS
   call m3dc1_matrix_setassembleoption(imatassemble)
 #endif
 
   call load_mesh
-  
+
+  call print_normal_curv()
 !  call print_node_data
 !  call safestop(1)
 
@@ -1589,3 +1589,46 @@ subroutine calculate_qdfac(itri, z)
      z = 0.
   end where
 end subroutine calculate_qdfac
+
+  subroutine print_normal_curv()
+    use basic
+    use mesh_mod
+
+    implicit none
+
+    include "mpif.h"
+
+    integer :: i, izone, izonedim, numnodes, icounter_t
+    real :: norm(2), curv(3), x, z, phi
+
+    logical :: is_boundary
+
+    character(len=255) :: buf
+    integer :: ifile, ier
+    integer, dimension(MPI_STATUS_SIZE) :: istat
+
+    call mpi_file_open(MPI_COMM_WORLD, "normcurv", &
+         ior(MPI_MODE_WRONLY, MPI_MODE_CREATE), &
+         MPI_INFO_NULL, ifile, ier)
+
+    numnodes = owned_nodes()
+    do icounter_t=1,numnodes
+       i = nodes_owned(icounter_t)
+
+       call boundary_node(i,is_boundary,izone,izonedim,norm,curv,x,phi,z, &
+            BOUND_FIRSTWALL)
+       if(.not.is_boundary) cycle
+
+       print *, 'BOUNDARY NODE'
+
+       buf=''
+       write(buf,'(7F10.5,A)') x, z, norm(1), norm(2), curv(1), curv(2), curv(3),&
+            new_line('a')
+
+       call mpi_file_write_shared(ifile, buf, 71, MPI_CHAR, &
+            istat, ier)
+    end do
+
+    call mpi_file_close(ifile, ier)
+
+  end subroutine print_normal_curv
