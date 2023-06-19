@@ -941,6 +941,11 @@ function viscosity_func()
      
   end select
 
+  if(amu_wall.ne.0) then
+     temp79a = temp79a + amu_wall* &
+          2.*(1. - tanh((wall79(:,OP_1) - amu_wall_off)/amu_wall_delt))
+  end if
+
   viscosity_func = intx2(mu79(:,:,OP_1),temp79a)
 end function viscosity_func
 

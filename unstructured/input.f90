@@ -300,6 +300,9 @@ subroutine set_defaults
   call add_var_double("amupar", amupar, 0., &
        "Parallel viscosity", transp_grp)
   call add_var_double("amu_edge", amu_edge, 0., "", transp_grp)
+  call add_var_double("amu_wall", amu_wall, 0., "", transp_grp)
+  call add_var_double("amu_wall_off", amu_wall_off, 0., "", transp_grp)
+  call add_var_double("amu_wall_delt", amu_wall_delt, 0.1, "", transp_grp)
 
   call add_var_int("iresfunc", iresfunc, 0, "", transp_grp)
   call add_var_double("etaoff", etaoff, 0., "", transp_grp)

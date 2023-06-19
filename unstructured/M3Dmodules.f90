@@ -51,6 +51,9 @@ module basic
   real :: amuc        ! compressible viscosity
   real :: amue        ! bootstrap viscosity coefficient
   real :: amupar      ! parallel viscosity coefficient
+  real :: amu_wall
+  real :: amu_wall_off
+  real :: amu_wall_delt
   integer :: iresfunc   ! if 1, use new resistivity function
   integer :: ivisfunc   ! if 1, use new resistivity function
   integer :: ikappafunc ! select electron thermal conductivity function
