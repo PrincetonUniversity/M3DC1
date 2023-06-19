@@ -86,6 +86,62 @@ contains
     if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) &
                     vecsize_phi = vecsize_phi + 1
   
+if (ispradapt .eq. 1) then
+!#ifdef ADAPT
+    call create_vector(phi_vec,      vecsize_phi, "phi_vec")
+    call create_vector(phip_vec,     vecsize_phi, "phip_vec")
+    call create_vector(q4_vec,       vecsize_phi, "q4_vec")
+    call mark_vector_for_solutiontransfer(phi_vec)
+    call mark_vector_for_solutiontransfer(phip_vec)
+    call mark_vector_for_solutiontransfer(q4_vec)
+
+    call create_vector(b1_phi, vecsize_phi, "b1_phi")
+    call create_vector(b2_phi, vecsize_phi, "b2_phi")
+    call mark_vector_for_solutiontransfer(b1_phi)
+    call mark_vector_for_solutiontransfer(b2_phi)
+
+    call create_vector(vel_vec,      vecsize_vel, "vel_vec")
+    call create_vector(veln_vec,     vecsize_vel, "veln_vec")
+    call create_vector(r4_vec,       vecsize_vel, "r4_vec")
+    call mark_vector_for_solutiontransfer(vel_vec)
+    call mark_vector_for_solutiontransfer(veln_vec)
+    call mark_vector_for_solutiontransfer(r4_vec)
+
+    if(ipres.eq.1 .or. ipressplit.eq.1) then
+       call create_vector(pres_vec,    vecsize_p, "pres_vec")
+       call create_vector(qp4_vec,     vecsize_p, "qp4_vec")
+       call mark_vector_for_solutiontransfer(pres_vec)
+       call mark_vector_for_solutiontransfer(qp4_vec)
+    endif
+
+    call create_vector(den_vec,    vecsize_n, "den_vec")
+    call create_vector(denold_vec, vecsize_n, "denold_vec")
+    call create_vector(ne_vec,     1, "ne_vec")
+    call create_vector(neold_vec,  1, "neold_vec")
+    call create_vector(qn4_vec,    vecsize_n, "qn4_vec")
+    call mark_vector_for_solutiontransfer(den_vec)
+    call mark_vector_for_solutiontransfer(denold_vec)
+    call mark_vector_for_solutiontransfer(ne_vec)
+    call mark_vector_for_solutiontransfer(neold_vec)
+    call mark_vector_for_solutiontransfer(qn4_vec)
+
+    if(irunaway .gt. 0) then
+      call create_vector(nre_vec,    vecsize_n, "nre_vec")
+      call create_vector(nreold_vec, vecsize_n, "nreold_vec")
+      call create_vector(qn5_vec,    vecsize_n, "qn5_vec")
+      call mark_vector_for_solutiontransfer(nre_vec)
+      call mark_vector_for_solutiontransfer(nreold_vec)
+      call mark_vector_for_solutiontransfer(qn5_vec)
+    endif
+
+    call create_vector(b1_vel, vecsize_vel, "b1_vel")
+    call create_vector(b2_vel, vecsize_vel, "b2_vel")
+    call mark_vector_for_solutiontransfer(b1_vel)
+    call mark_vector_for_solutiontransfer(b2_vel)
+
+    call create_vector(pret_vec,    vecsize_t, "pret_vec")
+    call mark_vector_for_solutiontransfer(pret_vec)
+else
 
     ! Vectors
     call create_vector(phi_vec,      vecsize_phi)
@@ -120,6 +176,7 @@ contains
     call create_vector(b2_vel, vecsize_vel)
 
     call create_vector(pret_vec,    vecsize_t)
+endif
 
 call PetscLogStagePush(stageA,jer)
     ! Matrices associated with velocity advance

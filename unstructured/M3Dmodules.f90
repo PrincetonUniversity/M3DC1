@@ -438,6 +438,13 @@ module basic
   integer :: iadapt_pack_rationals
   real :: adapt_pack_factor
 
+  integer :: ispradapt
+  integer :: isprrefinelevel
+  integer :: isprcoarsenlevel
+  integer :: isprntime
+  real :: isprmaxsize
+  real :: isprweight
+
   real :: beta
   real :: pefac
 

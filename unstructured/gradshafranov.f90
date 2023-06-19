@@ -1045,7 +1045,8 @@ subroutine gradshafranov_solve
   numelms = local_elements()
 
   ! allocate memory for arrays
-#ifdef ADAPT
+if (ispradapt .eq. 1) then
+!#ifdef ADAPT
   call create_field(b1vecini_vec, "b1vecini_vec")
   call create_field(b2vecini_vec, "b2vecini_vec")
   call create_field(psi_vec, "psi_vec")
@@ -1053,7 +1054,7 @@ subroutine gradshafranov_solve
   call create_field(fun2_vec, "fun2_vec")
   call create_field(fun3_vec, "fun3_vec")
   call create_field(fun4_vec, "fun4_vec")
-#else
+else
   call create_field(b1vecini_vec)
   call create_field(b2vecini_vec)
   call create_field(psi_vec)
@@ -1061,7 +1062,7 @@ subroutine gradshafranov_solve
   call create_field(fun2_vec)
   call create_field(fun3_vec)
   call create_field(fun4_vec)
-#endif
+endif
   psi_vec = psi_field(0)
   b1vecini_vec = jphi_field
   if(iread_eqdsk .eq. 1) psilim = psibound
@@ -1330,13 +1331,14 @@ subroutine gradshafranov_solve
   b1vecini_vec = 0.
   b2vecini_vec = 0.
 
-#ifdef ADAPT
+if (ispradapt .eq. 1) then
+!#ifdef ADAPT
   call create_field(b3vecini_vec, "b3vecini_vec")
   if(irot.ne.0) call create_field(b4vecini_vec, "b4vecini_vec")
-#else
+else
   call create_field(b3vecini_vec)
   if(irot.ne.0) call create_field(b4vecini_vec)
-#endif
+endif
 
   !recalculate omega
 !  if(irot.eq.-1) call calc_omega_profile

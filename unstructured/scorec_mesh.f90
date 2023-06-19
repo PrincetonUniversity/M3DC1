@@ -833,12 +833,6 @@ contains
 #else
     itri = itrin
 #endif
-#ifdef ADAPT
-    call m3dc1_mesh_getnument(2, numelm)
-    if (itri-1 .ge. numelm) then
-       print *, "itri ", itri, " should be equal to or less than ", numelm
-    endif
-#endif
     !call nodfac(itri,inode)
     !call edgfac(itri,iedge)
     !call zonfac(itri,ifaczone,ifaczonedim)

@@ -70,6 +70,46 @@ static apf::Field* get_field_at_index(apf::Mesh2* m, apf::Field* inField, int in
   return targetField;
 }
 
+static apf::Field* get_scalerComponent_of_field(apf::Mesh2* m, apf::Field* in, int comp)
+{
+  int comps = countComponents(in);
+  PCU_ALWAYS_ASSERT(comp < comps);
+  apf::Field* out = apf::createFieldOn(m, "in_field_comp", apf::SCALAR);
+
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(0);
+
+  double dofs[FIXSIZEBUFF];
+  while ( (e = m->iterate(it)) )
+  {
+    getComponents(in, e, 0, &dofs[0]);
+    double dof_comp = dofs[comp];
+    setComponents(out, e, 0, &dof_comp);
+  }
+  m->end(it);
+  return out;
+}
+
+static apf::Field* get_vectorComponent_of_field(apf::Mesh2* m, apf::Field* in)
+{
+  apf::Field* out = apf::createFieldOn(m, "in_field_comp", apf::VECTOR);
+  apf::MeshEntity* e;
+  apf::MeshIterator* it = m->begin(0);
+
+  double dofs[FIXSIZEBUFF];
+  while ( (e = m->iterate(it)) )
+  {
+    getComponents(in, e, 0, &dofs[0]);
+    double comp_dR = dofs[1];
+    double comp_dZ = dofs[2];
+    double comp_dR2 = dofs[3];
+    double comp_dZ2 = dofs[5];
+    double vField[3] = {comp_dR, comp_dZ, 0.0};
+    setComponents(out, e, 0, &vField[0]);
+  }
+  m->end(it);
+  return out;
+}
 
 static apf::Field* get_ip_field(apf::Mesh2* m, apf::Field* in)
 {
@@ -510,7 +550,7 @@ static apf::Field* compute_multiplane_size_field(const MultiField& pfields, doub
   apf::MeshEntity* e;
   apf::MeshIterator* it;
 
-  MultiField sizefields; /* size fields computed for each plane */
+  MultiField sizefields; // size fields computed for each plane
 
   for (int i = 0; i < np; i++) {
     apf::Field* ip = get_ip_field(m, pfields[i]);
@@ -539,7 +579,7 @@ static apf::Field* compute_multiplane_size_field(const MultiField& pfields, doub
     for (int i = 0; i < np; i++) {
       double s = apf::getScalar(sizefields[i], e, 0);
       if (s < minsize)
-	minsize = s;
+        minsize = s;
     }
     apf::setScalar(mastersize, e, 0, minsize);
   }
@@ -648,8 +688,8 @@ static void zero_fields_on_master(apf::Field* f)
 #ifdef DEBUG
 int begin_numVert;
 #endif
-
 double begin_mem, begin_time;
+
 // helper routines
 void group_complex_dof (apf::Field* field, int option);
 
@@ -1262,7 +1302,7 @@ int m3dc1_mesh_search(int* initial_simplex,
   apf::MeshEntity* simplex = NULL;
   apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   apf::Adjacent adjacent;
-  int edge_curr_index, edge_prev_index;  
+  int edge_curr_index, edge_prev_index= -1;  
   int simplex_dim = m->getDimension();
   int vertex_dim = 0, edge_dim = 1;
   int bridge_dim = simplex_dim - 1;
@@ -3780,7 +3820,7 @@ int m3dc1_matrix_write(int* matrix_id, const char* filename, int* start_index)
     sum_csize += n_cols[i];
   assert(vals.size()==sum_csize);
 
-  fprintf(fp, "%d\t%d\t%d\n", rows.size(), n_cols.size(), vals.size());
+  fprintf(fp, "%lu\t%lu\t%lu\n", rows.size(), n_cols.size(), vals.size());
 
   for (int i=0; i<rows.size(); ++i)
   {
@@ -3955,15 +3995,11 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
         zFields.push_back(field);
       it++;
     }
-    // also add the targetMultiField fields to be zero-ed out after adapt
     for (int i = 0; i < (int)targetMultiField.size() ; i++)
       zFields.push_back(targetMultiField[i]);
 
     m3dc1_mesh::instance()->remove3D();
     m3dc1_mesh::instance()->rebuildPointersOnNonMasterPlane(pFields, zFields);
-// Important: remvoe3D+rebuildPointersOnNonMasterPlane modifie the mesh pointer
-// in m3dc1_mesh::instance(). Therefore the local variable pointing to mesh pointer
-// has to be updated to reflect that
     mesh = m3dc1_mesh::instance()->mesh;
   }
 
@@ -3982,9 +4018,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
       if (isFrozen(field)) unfreeze(field);
       if (it->second->should_transfer())
       {
-        if (!PCU_Comm_Self()) 
-          std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)
-                   << " is added to solution transfer\n";
+        if (!PCU_Comm_Self()) std::cout<<"[M3D-C1 INFO] "<<__func__<<": field with name "<<getName(field)<< " is added to solution transfer\n";
         fields.push_back(field);
       }
       it++;
@@ -4022,15 +4056,19 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
 
   if (np == 1) // 2D
   {
-    apf::Field* ip = get_ip_field(mesh, targetField);
+    apf::Field* targetField0 = get_vectorComponent_of_field(mesh, targetField);
+    apf::Field* ip = spr::getGradIPField(targetField0, "ip", 2);
+
     size_field = spr::getSPRSizeField(ip, *ar);
     process_size_field(mesh, size_field, *ts, *max_size, *refine_level, *coarsen_level);
     fields.push_back(size_field);
 
     mesh->removeField(ip);
     mesh->removeField(targetField);
+    mesh->removeField(targetField0);
     destroyField(ip);
     destroyField(targetField);
+    destroyField(targetField0);
 
     ReducedQuinticImplicit shape;
     ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
@@ -4039,12 +4077,13 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
 #else
     in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
 #endif
+
     in->shouldSnap=false;
     in->shouldTransferParametric=false;
     in->shouldRunPostZoltan = true;
     in->goodQuality = 0.5;
     in->maximumIterations = (*refine_level) + 1;
-    // turn off coarsening if coarsen_level is negative
+
     if (*coarsen_level < 0)
       in->shouldCoarsen=false;
 
@@ -4054,81 +4093,69 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
     apf::reorderMdsMesh(mesh);
 
     m3dc1_mesh::instance()->initialize();
-    // Note: These are only needed for 2D. For 3D these are called
-    // at the end of restore3D
     compute_globalid(m3dc1_mesh::instance()->mesh, 0);
     compute_globalid(m3dc1_mesh::instance()->mesh, m3dc1_mesh::instance()->mesh->getDimension());
-  }
+  } 
   else // 3D
   {
-    // change the comm
     MPI_Comm groupComm;
     int groupSize = PCU_Comm_Peers()/np;
     int lpid = PCU_Comm_Self()/groupSize;
     int grnk = PCU_Comm_Self()%groupSize;
     MPI_Comm_split(m3dc1_model::instance()->oldComm, lpid, grnk, &groupComm);
     PCU_Switch_Comm(groupComm);
-    // size filed computation and adapt applied only on the master plane
     if (m3dc1_model::instance()->local_planeid == 0)
-    {
-      // update the 2D part.smb if "update" is true
+    { 
       if (*update)
-      {
+      { 
         int s = 1;
         int ns = -1;
         m3dc1_mesh_write("part", &s, &ns);
       }
-      // NOTE: pFields[0] holds the target fields we need to run spr on
       size_field = compute_multiplane_size_field(pFields[0], *ar);
-      /* return 0; */
       process_size_field(mesh, size_field, *ts, *max_size, *refine_level, *coarsen_level);
       fields.push_back(size_field);
-
+      
       ReducedQuinticImplicit shape;
       ReducedQuinticTransfer slnTrans(mesh,fields, &shape);
-      // the commented lines are for debugging
-      /* ma::Input* in = ma::makeAdvanced(ma::configureIdentity(mesh, 0, &slnTrans)); */
-      /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(mesh, 1, &slnTrans)); */
+
 #ifdef OLDMA
       ma::Input* in = ma::configure(mesh,size_field,&slnTrans);
 #else
       ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
 #endif
+      
       in->shouldSnap=false;
       in->shouldFixShape = true;
       in->shouldTransferParametric=false;
       in->shouldRunPostZoltan = true;
       in->goodQuality = 0.5;
       in->maximumIterations = (*refine_level);
-
-      // turn off coarsening if coarsen_level is negative
+      
       if (*coarsen_level < 0)
         in->shouldCoarsen=false;
-
+      
       ma::adapt(in);
-
+      
       for (int i = 0; i < (int)zFields.size(); i++)
         zero_fields_on_master(zFields[i]);
-
+      
       mesh->removeField(size_field);
       apf::destroyField(size_field);
-
-      // remove numberings
+      
       while (mesh->countNumberings())
-      {
+      { 
         apf::Numbering* n = mesh->getNumbering(0);
         mesh->removeNumbering(n);
         apf::destroyNumbering(n);
       }
-
+      
       for (int i = 1; i < (int)pFields.size(); i++)
         for (int j = 0; j < np; j++)
           synchronize_field(pFields[i][j]);
       apf::reorderMdsMesh(mesh);
-
     }
 
-    // switch comm back to original
     PCU_Switch_Comm(m3dc1_model::instance()->oldComm);
     MPI_Comm_free(&groupComm);
 
@@ -4140,18 +4167,15 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
     for (int i = 1; i < (int)pFields.size(); i++)
       transfer_field_from_main(pFields[i]);
 
-    // clean up multi-plane fields
     for (int i = 1; i < (int)pFields.size(); i++)
       for (int j = 0; j < (int)pFields[i].size(); j++) {
         mesh->removeField(pFields[i][j]);
         apf::destroyField(pFields[i][j]);
       }
 
-    // zero out all the fields that are not transfered during adapt
     for (int i = 0; i < (int)zFields.size(); i++)
       apf::zeroField(zFields[i]);
 
-    // delete pFields[0] fields here
     for (int i = 0; i < (int)pFields[0].size(); i++) {
       mesh->removeField(pFields[0][i]);
       apf::destroyField(pFields[0][i]);
@@ -4660,7 +4684,10 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
   // vtk
   if (*option==0 ||*option==3)
   {
-    sprintf(filename_buff, "ts%d-%s",*timestep,filename);
+    if (*timestep >= 0)
+      sprintf(filename_buff, "ts%04d-%s",*timestep,filename);
+    else
+      sprintf(filename_buff, "%s",filename);
 
     apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
     apf::MeshEntity* e;
@@ -4681,13 +4708,15 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
     int one=1;
     if (*option==3) output_face_data (&one, &geoId[0], "geoId");
 
-    if (!PCU_Comm_Self()) 
+    if (!PCU_Comm_Self())
       std::cout<<"[M3D-C1 INFO] "<<__func__<<": vtk folder \""<<filename_buff<<"\"\n";
-
   }
-  else // smb
+  else
   {
-    sprintf(filename_buff, "ts%d-%s.smb",*timestep,filename);
+    if (*timestep >= 0)
+      sprintf(filename_buff, "ts%d-%s.smb",*timestep,filename);
+    else
+      sprintf(filename_buff, "%s.smb",filename);
 
     int fieldID=12;
     double dofBuff[1024];
@@ -4705,10 +4734,25 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
       mesh->setDoubleTag(e,tag, dofBuff);
     }
     mesh->end(it);
+
+    std::vector<apf::Field*> allFields;
+    allFields.clear();
+    while (mesh->countFields())
+    {
+      apf::Field* f = mesh->getField(0);
+      apf::freeze(f);
+      allFields.push_back(f);
+      mesh->removeField(f);
+    }
     m3dc1_mesh::instance()->mesh->writeNative(filename_buff);
+    for (std::size_t i = 0; i < allFields.size(); i++) {
+      apf::unfreeze(allFields[i]);
+      mesh->addField(allFields[i]);
+    }
+
     apf::removeTagFromDimension(mesh, tag, dim);
     mesh->destroyTag(tag);
-    if (!PCU_Comm_Self()) 
+    if (!PCU_Comm_Self())
       std::cout<<"[M3D-C1 INFO] "<<__func__<<": file \""<<filename_buff<<"\"\n";
   }
   return M3DC1_SUCCESS;
@@ -4892,10 +4936,182 @@ int m3dc1_field_max (FieldID* field_id, double * max_val, double * min_val)
   return M3DC1_SUCCESS;
 }
 
-// To adapt the mesh on specific model faces based on psi field
-int adapt_only_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber)
+void setSizeFieldOnVertex(ma::Entity* mV, double& xSize, double& ySize,SizeFieldPsi sf, double* dirVector)
+{ 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  int indx= getMdsIndex(m, mV);
+  ma::Matrix M;
+  ma::Vector H;
+  sf.getValue(mV,M,H);
+  xSize = H[0];
+  ySize = H[1];
+  dirVector[indx*3+0] = M[0][0];
+  dirVector[indx*3+1] = M[0][1];
+  dirVector[indx*3+2] = 0.0;
+}
+
+void sizeFieldTransition( int refIndx, int indx, double& xSize, double& ySize, double* dirVector,
+     int* field_id1, int* field_id2, SizeFieldPsi sf, int mode)
+{ 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  double data1, data2;
+  int size_data=1;
+  m3dc1_node_getfield(&refIndx, field_id1, &data1, &size_data);
+  m3dc1_node_getfield(&refIndx, field_id2, &data2, &size_data);
+        
+  if (mode == 0)
+  {     
+        xSize = data1*2.0;
+        ySize = data2*2.0;
+  }
+  else if (mode == 1)
+  {     
+        xSize = data1*0.5;
+        ySize = data2*0.5;
+  }
+  
+  ma::Entity* mV = getMdsEntity(m, 0, indx);
+  ma::Matrix M;
+  ma::Vector H;
+  sf.getValue(mV,M,H);
+  dirVector[indx*3+0] = M[0][0];
+  dirVector[indx*3+1] = M[0][1];
+  dirVector[indx*3+2] = 0.0;
+}
+
+int setSizeFieldOnVertices(int* field_id1, int* field_id2, SizeFieldPsi sf, double* dir,int adaptFaceNumber)
 {
-  if (!PCU_Comm_Self()) 
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  gmi_model* model = m3dc1_model::instance()->model;
+  double data_1, data_2;
+  int size_data=1;
+
+  apf::MeshTag* sizeFieldSet = m->createIntTag("sfDefined", 1);
+  std::vector <int> adaptModelFaces;
+  adaptModelFaces.push_back(adaptFaceNumber);
+  for (int nFace = 0; nFace < adaptModelFaces.size(); ++nFace)
+  {
+    int modelFaceIndx = adaptModelFaces[nFace];
+    for (int i=0; i<m->count(0); ++i)
+    {
+      ma::Entity* mV = getMdsEntity(m, 0, i);
+      gmi_ent* gent= (gmi_ent*)(m->toModel(mV));
+      int gTag = gmi_tag(model, gent);
+      int gType = gmi_dim(model,gent);
+      int vTag = 0;
+      if (gType == 2 && gTag == modelFaceIndx)
+      {
+        setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);
+        m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
+        m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
+        vTag = 1;
+        m->setIntTag(mV, sizeFieldSet, &vTag);
+      }
+      else
+        m->setIntTag(mV, sizeFieldSet, &vTag);
+    }
+    std::vector <int> adaptModelEdges;
+    get_gent_adj(2, modelFaceIndx, 1, adaptModelEdges);
+    adaptModelEdges.push_back(1);
+    for (int nEdge = 0; nEdge < adaptModelEdges.size(); ++nEdge)
+    {
+      int modelEdgeIndx =  adaptModelEdges[nEdge];
+      gmi_ent* ge = gmi_find(model, 1, modelEdgeIndx);
+      gmi_set* gvOnEdge;
+      gvOnEdge = gmi_adjacent(model, ge, 0);
+      int modelNodeIndx = gmi_tag(model,gvOnEdge->e[0]);
+      std::vector <apf::MeshEntity*> meshV, meshVTemp;
+      for (int i=0; i<m->count(0); ++i)
+      {
+        ma::Entity* mV = getMdsEntity(m, 0, i);
+        gmi_ent* gent= (gmi_ent*)(m->toModel(mV));
+        int gTag = gmi_tag(model, gent);
+        int gType = gmi_dim(model,gent);
+        if ((gType == 1 && gTag == modelEdgeIndx) || (gType == 0 && gTag == modelNodeIndx))
+        {
+          setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);
+          m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
+          m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
+          m->removeTag(mV, sizeFieldSet);
+          int vTag = 1;
+           m->setIntTag(mV, sizeFieldSet, &vTag);
+           meshV.push_back(mV);
+        }
+      }
+      int iterCount = 0;
+      while (meshV.size() > 0)
+      {
+        apf::MeshEntity* mV = meshV[0];
+        double d_1, d_2;
+        int vId= getMdsIndex(m, mV);
+        m3dc1_node_getfield(&vId, field_id1, &d_1, &size_data);
+        m3dc1_node_getfield(&vId, field_id2, &d_2, &size_data);
+        double desiredLength = sqrt((d_1*d_1)+(d_2*d_2));
+        apf::Adjacent edges;
+        m->getAdjacent(mV,1, edges);
+        for (int i = 0; i < edges.getSize(); ++i)
+        {
+          apf::MeshEntity* edge = edges[i];
+          gmi_ent* gent= (gmi_ent*)(m->toModel(edge));
+          int gTag = gmi_tag(model, gent);
+          int gType = gmi_dim(model,gent);
+          if ((gType == 2 && gTag == modelFaceIndx) || (gType == 1 && gTag == modelEdgeIndx))
+            continue;
+          else
+          {
+            ma::Entity* otherV = getEdgeVertOppositeVert(m, edge, mV);
+            int vIndx = getMdsIndex(m, otherV);
+            int vTagSet = -1;
+            m->getIntTag(otherV, sizeFieldSet, &vTagSet);
+            if (vTagSet == 1)
+              continue;
+
+            if (apf::measure(m,edge) > 1.5*desiredLength)
+              sizeFieldTransition(vId, vIndx, data_1, data_2, dir, field_id1, field_id2,sf,0);
+            else
+              setSizeFieldOnVertex(otherV,data_1, data_2, sf, dir);
+            m3dc1_node_setfield(&vIndx, field_id1, &data_1, &size_data);
+            m3dc1_node_setfield(&vIndx, field_id2, &data_2, &size_data);
+            m->removeTag(otherV, sizeFieldSet);
+            int vTag = 1;
+            m->setIntTag(otherV, sizeFieldSet, &vTag);
+            meshVTemp.push_back(otherV);
+          }
+        }
+        meshV.erase(meshV.begin());
+        if (meshV.size() == 0 && iterCount < 2)
+        {
+                for (int i = 0; i < meshVTemp.size(); ++i)
+                   meshV.push_back(meshVTemp[i]);
+                meshVTemp.clear();
+                iterCount++;
+        }
+      }
+    }
+  }
+  for (int i=0; i<m->count(0); ++i)
+  {
+    ma::Entity* mV = getMdsEntity(m, 0, i);
+    int vTagSet = -1;
+    m->getIntTag(mV, sizeFieldSet, &vTagSet);
+
+    if (vTagSet == 1)
+      continue;
+
+    setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);
+    m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
+    m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
+  }
+
+  m3dc1_field_sync(field_id1);
+  m3dc1_field_sync(field_id2);
+
+  return M3DC1_SUCCESS;
+}
+
+int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber)
+{
+  if (!PCU_Comm_Self())
   std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
 
   FILE *fp = fopen("sizefieldParam", "r");
@@ -4918,62 +5134,51 @@ int adapt_only_model_face(int * fieldId, double* psi0, double * psil, int* iadap
   {
     if (gmi_tag(model, gf) == *iadaptFaceNumber)
       faceFound = true;
-    faceIds.insert(gmi_tag(model, gf));	 
+    faceIds.insert(gmi_tag(model, gf));
   }
   if (!faceFound)
   {
     if (!PCU_Comm_Self())
     {
-	std::cout << "*************************************** WARNING **********************************************\n";
-    	std::cout << "The model face to adapt (ID = " << *iadaptFaceNumber << ") given in C1Input doesn't exist in model.\n";
-    	std::cout << "Choose a face ID from the following range: " << *next(faceIds.begin(),0) << " - " << *next(faceIds.begin(),faceIds.size()-1) << "\n";
-	std::cout << "**********************************************************************************************\n";
+        std::cout << "*************************************** WARNING **********************************************\n";
+        std::cout << "The model face to adapt (ID = " << *iadaptFaceNumber << ") given in C1Input doesn't exist in model.\n";
+        std::cout << "Choose a face ID from the following range: "
+                  << *next(faceIds.begin(),0) << " - " << *next(faceIds.begin(),faceIds.size()-1) << "\n";
+        std::cout << "**********************************************************************************************\n";
     }
     exit(0);
   }
   else
   {
-    if (!PCU_Comm_Self()) 
+    if (!PCU_Comm_Self())
       std::cout << "The model face to adapt with ID " << *iadaptFaceNumber << " found in the model" << "\n";
   }
-  if (!PCU_Comm_Self()) 
+  if (!PCU_Comm_Self())
     std::cout<<"[M3D-C1 INFO] size field parameters: ";
-
 
   for (int i=0; i<13; ++i)
   {
     fscanf(fp, "%lf ", &param[i]);
-     if (!PCU_Comm_Self()) std::cout<<std::setprecision(5)<<param[i]<<" ";
+    if (!PCU_Comm_Self()) std::cout<<std::setprecision(5)<<param[i]<<" ";
   }
   fclose(fp);
   if (!PCU_Comm_Self()) std::cout<<"\n";
 
   apf::Field* psiField = (*(m3dc1_mesh::instance()->field_container))[*fieldId]->get_field();
 
-  // delete all the matrix
-#ifdef M3DC1_TRILINOS
-  while (m3dc1_ls::instance()-> matrix_container->size())
-  {
-    std::map<int, m3dc1_epetra*>::iterator mat_it = m3dc1_ls::instance()->matrix_container->begin();
-    mat_it->second->destroy();
-    delete mat_it->second;
-    m3dc1_ls::instance()->matrix_container->erase(mat_it);
-  }
-#endif
-#ifdef M3DC1_PETSC
   while (m3dc1_solver::instance()-> matrix_container->size())
   {
     std::map<int, m3dc1_matrix*> :: iterator mat_it = m3dc1_solver::instance()-> matrix_container->begin();
     delete mat_it->second;
     m3dc1_solver::instance()->matrix_container->erase(mat_it);
   }
-#endif
 
   int valueType = (*(m3dc1_mesh::instance()->field_container))[*fieldId]->get_value_type();
   SizeFieldPsi sf (psiField, *psi0, *psil, param, valueType);
 
   int fid_size1, fid_size2;
   m3dc1_field_getnewid (&fid_size1);
+
   fid_size2 = fid_size1+1;
   int scalar_type=0;
   int num_value=1;
@@ -4984,13 +5189,11 @@ int adapt_only_model_face(int * fieldId, double* psi0, double * psil, int* iadap
   double* dir = new double[mesh->count(0)*3];
   int adaptFaceNumber = *iadaptFaceNumber;
 
-  //Set the SizeField on the vertices and mark the elements that shouldn't be adapted
-  setSizeFieldOnVertices(&fid_size1, &fid_size2, sf, dir,adaptFaceNumber); 
+  setSizeFieldOnVertices(&fid_size1, &fid_size2, sf, dir,adaptFaceNumber);
 
-  //Identify the elements where no adapt is required & set Tag "doNotAdapt"
-   apf::MeshTag* doNotAdaptFace = mesh->createIntTag("doNotAdapt", 1);
-   for (int i=0; i<mesh->count(2); ++i)
-   {
+  apf::MeshTag* doNotAdaptFace = mesh->createIntTag("doNotAdapt", 1);
+  for (int i=0; i<mesh->count(2); ++i)
+  {
      apf::MeshEntity* ele = getMdsEntity(mesh, 2, i);
      gmi_ent* gent= (gmi_ent*)(mesh->toModel(ele));
      int gTag = gmi_tag(model, gent);
@@ -5013,196 +5216,11 @@ int adapt_only_model_face(int * fieldId, double* psi0, double * psil, int* iadap
        elemTag = 1;
 
      mesh->setIntTag(ele, doNotAdaptFace, &elemTag);
-   }
- 
-   // Given the size Field and director vector, adapt the mesh
-   m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);  
+  }
+
+  m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);
 
   return M3DC1_SUCCESS;
-}
-
-// To set the size field on the vertoces of selected Model face
-// And a smoothly varying field on the boundaries of that face
-int setSizeFieldOnVertices(int* field_id1, int* field_id2, SizeFieldPsi sf, double* dir,int adaptFaceNumber)
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  gmi_model* model = m3dc1_model::instance()->model;
-  double data_1, data_2;
-  int size_data=1;
-
-  apf::MeshTag* sizeFieldSet = m->createIntTag("sfDefined", 1);		// A tag on vertices with sizeField set
-  std::vector <int> adaptModelFaces;	// Model Faces for adapt   
-  adaptModelFaces.push_back(adaptFaceNumber);		// Insert the IDs of model faces to adapt(Support one face at the moment)
-  for (int nFace = 0; nFace < adaptModelFaces.size(); ++nFace)
-  {
-    int modelFaceIndx = adaptModelFaces[nFace];	
-    for (int i=0; i<m->count(0); ++i)		// SizeField on all mesh vertices on desired face is set
-    {
-      ma::Entity* mV = getMdsEntity(m, 0, i);
-      gmi_ent* gent= (gmi_ent*)(m->toModel(mV));
-      int gTag = gmi_tag(model, gent);
-      int gType = gmi_dim(model,gent);
-      int vTag = 0;
-      if (gType == 2 && gTag == modelFaceIndx)
-      {
-        setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);
-	m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
-	m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
-	vTag = 1;
-	m->setIntTag(mV, sizeFieldSet, &vTag);				
-      }
-      else
-        m->setIntTag(mV, sizeFieldSet, &vTag);
-    }
-    // In Second Step look at the boundaries (model edges bounding the face).
-    std::vector <int> adaptModelEdges;
-    get_gent_adj(2, modelFaceIndx, 1, adaptModelEdges);
-    adaptModelEdges.push_back(1);		// Model Adjacencies will provide this information.
-    for (int nEdge = 0; nEdge < adaptModelEdges.size(); ++nEdge)
-    {
-      int modelEdgeIndx =  adaptModelEdges[nEdge];
-      gmi_ent* ge = gmi_find(model, 1, modelEdgeIndx);
-      gmi_set* gvOnEdge;
-      gvOnEdge = gmi_adjacent(model, ge, 0);
-      int modelNodeIndx = gmi_tag(model,gvOnEdge->e[0]);
-      std::vector <apf::MeshEntity*> meshV, meshVTemp;
-      for (int i=0; i<m->count(0); ++i)
-      {
-        ma::Entity* mV = getMdsEntity(m, 0, i);
-	gmi_ent* gent= (gmi_ent*)(m->toModel(mV));
-	int gTag = gmi_tag(model, gent);
-	int gType = gmi_dim(model,gent);
-	if ((gType == 1 && gTag == modelEdgeIndx) || (gType == 0 && gTag == modelNodeIndx))
-	{
-	  setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);
-	  m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
-	  m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);
-	  m->removeTag(mV, sizeFieldSet);
-	  int vTag = 1;
-	   m->setIntTag(mV, sizeFieldSet, &vTag);
-	   meshV.push_back(mV);
-        }
-      }
-      int iterCount = 0;
-      while (meshV.size() > 0)
-      {
-        apf::MeshEntity* mV = meshV[0];
-        double d_1, d_2;
-        int vId= getMdsIndex(m, mV);
-        m3dc1_node_getfield(&vId, field_id1, &d_1, &size_data);
-        m3dc1_node_getfield(&vId, field_id2, &d_2, &size_data);
-        double desiredLength = sqrt((d_1*d_1)+(d_2*d_2));
-        apf::Adjacent edges;
-        m->getAdjacent(mV,1, edges);
-        for (int i = 0; i < edges.getSize(); ++i)
-        {
-          apf::MeshEntity* edge = edges[i];
-          gmi_ent* gent= (gmi_ent*)(m->toModel(edge));
-          int gTag = gmi_tag(model, gent);
-          int gType = gmi_dim(model,gent);
-          if ((gType == 2 && gTag == modelFaceIndx) || (gType == 1 && gTag == modelEdgeIndx))
-            continue;
-          else 
-          {
-            ma::Entity* otherV = getEdgeVertOppositeVert(m, edge, mV);
-            int vIndx = getMdsIndex(m, otherV);
-            int vTagSet = -1;
-            m->getIntTag(otherV, sizeFieldSet, &vTagSet);
-            if (vTagSet == 1)
-              continue;
-              
-            if (apf::measure(m,edge) > 1.5*desiredLength)
-              sizeFieldTransition(vId, vIndx, data_1, data_2, dir, field_id1, field_id2,sf,0);
-            else
-	      setSizeFieldOnVertex(otherV,data_1, data_2, sf, dir);
-            //else if (apf::measure(m,edge) < 0.66*desiredLength)
-            //  sizeFieldTransition(vId, vIndx, data_1, data_2, dir, field_id1, field_id2,sf,1);
-            m3dc1_node_setfield(&vIndx, field_id1, &data_1, &size_data);
-            m3dc1_node_setfield(&vIndx, field_id2, &data_2, &size_data);
-            m->removeTag(otherV, sizeFieldSet);     
-            int vTag = 1;
-            m->setIntTag(otherV, sizeFieldSet, &vTag);
-            meshVTemp.push_back(otherV);
-          }
-        }
-        meshV.erase(meshV.begin());
-        if (meshV.size() == 0 && iterCount < 2)
-	{
-		for (int i = 0; i < meshVTemp.size(); ++i)
-		   meshV.push_back(meshVTemp[i]);
-		meshVTemp.clear();
-		iterCount++;
-	}
-      }	
-		
-    }  // Edges Loop End
-
-  }  // Face Loop End
-  
-  for (int i=0; i<m->count(0); ++i)
-  {
-    ma::Entity* mV = getMdsEntity(m, 0, i);
-    int vTagSet = -1;
-    m->getIntTag(mV, sizeFieldSet, &vTagSet);
-
-    if (vTagSet == 1)
-      continue;
-
-    setSizeFieldOnVertex(mV,data_1, data_2, sf, dir);				
-    m3dc1_node_setfield(&i, field_id1, &data_1, &size_data);
-    m3dc1_node_setfield(&i, field_id2, &data_2, &size_data);		
- }
-
- m3dc1_field_sync(field_id1);
- m3dc1_field_sync(field_id2);
-
-  return M3DC1_SUCCESS;
-}
-
-// To set size field on individual mesh vertices
-void setSizeFieldOnVertex(ma::Entity* mV, double& xSize, double& ySize,SizeFieldPsi sf, double* dirVector)
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  int indx= getMdsIndex(m, mV);
-  ma::Matrix M;
-  ma::Vector H;
-  sf.getValue(mV,M,H);
-  xSize = H[0];
-  ySize = H[1];
-  dirVector[indx*3+0] = M[0][0];
-  dirVector[indx*3+1] = M[0][1];
-  dirVector[indx*3+2] = 0.0;
-}
-
-// To set the size field on the nodes neighboring to boundary of the  face
-void sizeFieldTransition( int refIndx, int indx, double& xSize, double& ySize, double* dirVector, int* field_id1, int* field_id2, SizeFieldPsi sf, int mode)
-{
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
-  double data1, data2;
-  int size_data=1;
-  m3dc1_node_getfield(&refIndx, field_id1, &data1, &size_data);
-  m3dc1_node_getfield(&refIndx, field_id2, &data2, &size_data);
-	
-  if (mode == 0)
-  {
-  	xSize = data1*2.0;
-  	ySize = data2*2.0;
-  }
-  else if (mode == 1)
-  {
-	xSize = data1*0.5;
-	ySize = data2*0.5;
-  }
-  
-  
-  ma::Entity* mV = getMdsEntity(m, 0, indx);
-  ma::Matrix M;
-  ma::Vector H;
-  sf.getValue(mV,M,H);
-  dirVector[indx*3+0] = M[0][0];
-  dirVector[indx*3+1] = M[0][1];
-  dirVector[indx*3+2] = 0.0;
-	
 }
 
 #ifdef M3DC1_TRILINOS

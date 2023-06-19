@@ -1429,8 +1429,6 @@ subroutine mark_fields(equilibrium)
   if(iwrite_aux_vars.eq.1) then
     ! wall_dist
     ! jphi_field
-    ! vor_field
-    ! com_field
     ! torque_density_em
     ! torque_density_ntv
     ! bdotgradp, nelms
@@ -1438,8 +1436,6 @@ subroutine mark_fields(equilibrium)
     ! z_effective
     call mark_field_for_solutiontransfer(wall_dist)
     call mark_field_for_solutiontransfer(jphi_field)
-    !call mark_field_for_solutiontransfer(vor_field)
-    !call mark_field_for_solutiontransfer(com_field)
     call mark_field_for_solutiontransfer(torque_density_ntv)
     call mark_field_for_solutiontransfer(bdotgradp)
     call mark_field_for_solutiontransfer(bdotgradt)

@@ -37,7 +37,6 @@ module scorec_vector_mod
      module procedure scorec_vector_mark_for_solutiontransfer
   end interface
 
-
   interface destroy_vector
      module procedure scorec_vector_destroy
   end interface
@@ -521,7 +520,6 @@ contains
     call m3dc1_field_mark4tx(f%id)
 #endif
   end subroutine scorec_vector_mark_for_solutiontransfer
-
 
   !======================================================================
   ! destroy
