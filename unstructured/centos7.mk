@@ -53,7 +53,9 @@ PETSC_ARCH=real-rhel7-$(MPIVER)
 endif
 
 ifdef ADAPT
-  SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)/adapt
+  SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
+  FOPTS  := $(FOPTS) -DADAPT
+  CCOPTS := $(CCOPTS) -DADAPT
 else
   SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
 endif
