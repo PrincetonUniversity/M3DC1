@@ -34,13 +34,6 @@ module-whatis                   "$description"
 if { ! [ is-loaded PrgEnv-nvidia/8.3.3 ] } {
   module load PrgEnv-nvidia/8.3.3
 }
-#if { ! [ is-loaded craype-haswell ] } {
-#  module load craype-haswell
-#}
-#if { ! [ is-loaded intel/19.1.0.166 ] } {
-#  module unload intel
-#  module load intel/19.1.0.166
-#}
 #if { ! [ is-loaded cray-mpich/8.1.11 ] } {
 #  module load cray-mpich/8.1.11
 #}
@@ -66,7 +59,7 @@ if { ! [ is-loaded cpu ] } {
   module load cpu
 }
 
-module swap cray-mpich/8.1.25 cray-mpich/8.1.24
+#module swap cray-mpich/8.1.25 cray-mpich/8.1.24
 
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
