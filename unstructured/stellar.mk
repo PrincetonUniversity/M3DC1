@@ -47,11 +47,12 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
 	-lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lgcc_s -lirc_s -lquadmath \
 	-lstdc++ -ldl
 
-ifdef ADAPT
-  SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(PETSCVER)
-else
-  SCOREC_BASE_DIR=/projects/M3DC1/scorec/$(MPIVER)/$(PETSCVER)/202209
-endif
+#ifdef ADAPT
+# SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(PETSCVER)
+  SCOREC_BASE_DIR=/projects/M3DC1/scorec/202306
+#else
+#  SCOREC_BASE_DIR=/projects/M3DC1/scorec/$(MPIVER)/$(PETSCVER)/202209
+#endif
 
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
