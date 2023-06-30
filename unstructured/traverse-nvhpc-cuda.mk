@@ -13,9 +13,11 @@ PETSCVER=petsc3.18.3
 PETSC_DIR=/projects/M3DC1/scorec/petsc/$(PETSC_VER)
 
 ifeq ($(COM), 1)
-   PETSC_ARCH=cplx-$(MPIVER)
+   PETSC_ARCH=cplx-nvhpc21.5-openmpi4.0.3
+PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/usr/local/openmpi/cuda-11.7/4.1.4/nvhpc225/ppc64le/lib64 -L/usr/local/nvhpc/lib64 -L/usr/local/nvhpc/lib64/openmpi -L/usr/local/hdf5/nvhpc-22.5/openmpi-4.1.3/1.10.6/lib64 -L/opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/lib -L/usr/lib/gcc/ppc64le-redhat-linux/8 -Wl,-rpath,/usr/local/openmpi/cuda-11.7/4.1.4/nvhpc225/ppc64le/lib64 -Wl,-rpath,/usr/local/nvhpc/lib64 -Wl,-rpath,/usr/local/nvhpc/lib64/openmpi -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lparmetis -lmetis -lz -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lnvf -lnvomp -latomic -lnvhpcatm -lpthread -lnvcpumath -lnvc -lrt -lgcc_s -lm -lstdc++ -ldl
 else
    PETSC_ARCH=real-$(MPIVER)
+PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/usr/local/openmpi/cuda-11.7/4.1.4/nvhpc225/ppc64le/lib64 -L/usr/local/nvhpc/lib64 -L/usr/local/nvhpc/lib64/openmpi -L/usr/local/hdf5/nvhpc-22.5/openmpi-4.1.3/1.10.6/lib64 -L/opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/lib -L/usr/lib/gcc/ppc64le-redhat-linux/8 -Wl,-rpath,/usr/local/openmpi/cuda-11.7/4.1.4/nvhpc225/ppc64le/lib64 -Wl,-rpath,/usr/local/nvhpc/lib64 -Wl,-rpath,/usr/local/nvhpc/lib64/openmpi -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lnvf -lnvomp -latomic -lnvhpcatm -lpthread -lnvcpumath -lnvc -lrt -lgcc_s -lm -lstdc++ -ldl
 endif
 
 ifeq ($(COM), 1)
@@ -24,7 +26,7 @@ else
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-SCOREC_BASE_DIR==/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)
+SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
@@ -44,19 +46,26 @@ ifeq ($(PAR), 1)
 endif
 
 GSL_DIR=$(GSL_ROOT_DIR)
-HDF5_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
-PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/usr/local/openmpi/cuda-11.7/4.1.4/nvhpc225/ppc64le/lib64 -L/usr/local/nvhpc/lib64 -L/usr/local/nvhpc/lib64/openmpi -L/usr/local/hdf5/nvhpc-22.5/openmpi-4.1.3/1.10.6/lib64 -L/opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/lib -L/usr/lib/gcc/ppc64le-redhat-linux/8 -Wl,-rpath,/usr/local/openmpi/cuda-11.7/4.1.4/nvhpc225/ppc64le/lib64 -Wl,-rpath,/usr/local/nvhpc/lib64 -Wl,-rpath,/usr/local/nvhpc/lib64/openmpi -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lnvf -lnvomp -latomic -lnvhpcatm -lpthread -lnvcpumath -lnvc -lrt -lgcc_s -lm -lstdc++ -ldl
+#HDF5_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
+HDF5_DIR=/projects/M3DC1/hdf5/traverse-nvidia
+NETCDFDIR=/projects/M3DC1/netcdf/traverse-nvidia
+FFTW_DIR=/projects/M3DC1/fftw/traverse-nvidia
+
 
 INCLUDE := $(INCLUDE) -I$(SCOREC_DIR)/include \
        -I$(PETSC_DIR)/$(PETSC_ARCH)/include -I$(PETSC_DIR)/include \
+       -I$(NETCDFDIR)/include \
        -I$(HDF5_DIR)/include \
+       -I$(FFTW_DIR)/include \
        -I$(GSL_DIR)/include
 
 LIBS := $(LIBS) \
         $(SCOREC_LIBS) \
         $(ZOLTAN_LIB) \
+	-L$(NETCDFDIR)/lib -lnetcdff -lnetcdf -lzip -lcurl\
+	-L$(HDF5_DIR)/lib -lhdf5_hl_fortran -lhdf5_hl -lhdf5_fortran -lhdf5 -lz\
+        -L$(FFTW_DIR)/lib -lfftw3_mpi -lfftw3 \
         -L$(GSL_DIR)/lib64 -lgsl -lgslcblas \
-	-L$(HDF5_DIR)/lib64 -lhdf5_hl_fortran -lhdf5_hl -lhdf5_fortran -lhdf5 -lz \
         $(PETSC_WITH_EXTERNAL_LIB)
 
 FOPTS = -c -r8 -Mpreprocess $(OPTS)
@@ -80,12 +89,12 @@ ifeq ($(OMP), 1)
   CCOPTS := $(CCOPTS) -mp
 endif
 
-#ACC?=1
-#ifeq ($(ACC), 1)
-#  LDOPTS := $(LDOPTS) -acc -gpu=cuda11.3 -Minfo=accel
-#  FOPTS  := $(FOPTS)  -acc -gpu=cuda11.3 -Minfo=accel
-#  CCOPTS  := $(CCOPTS) -acc -gpu=cuda11.3 -Minfo=accel
-#endif
+ACC?=0
+ifeq ($(ACC), 1)
+  LDOPTS := $(LDOPTS) -acc -gpu=cuda11.3 -Minfo=accel
+  FOPTS  := $(FOPTS)  -acc -gpu=cuda11.3 -Minfo=accel
+  CCOPTS  := $(CCOPTS) -acc -gpu=cuda11.3 -Minfo=accel
+endif
 
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
