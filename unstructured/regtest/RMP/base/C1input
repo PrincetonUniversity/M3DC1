@@ -5,7 +5,7 @@
 	ntimemax = 1	! number of time steps
 	ntimepr = 1	! number of time steps per output
 	iprint = 2	! 1 = print detailed debug info
-	itimer = 0	! 1 = print timing info
+	itimer = 1	! 1 = print timing info
 
 	irestart = 0	! 1 = read restart
 

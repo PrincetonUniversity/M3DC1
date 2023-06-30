@@ -2001,10 +2001,13 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
     }
     else
     {
-      apf::Vector3 param(0,0,0);
+      //apf::Vector3 param(0,0,0);
       m3dc1_mesh::instance()->mesh->getParam(vt,param);
       M3DC1::Expression** pn=(M3DC1::Expression**) gmi_analytic_data(m3dc1_model::instance()->model,gent);
-      evalNormalVector(pn[0],pn[1], param[0], xyzt);
+      if (param[0] == 0)
+	m3dc1_node_getNormVecOnNewVert(vt, xyzt);
+      else
+        evalNormalVector(pn[0],pn[1], param[0], xyzt);
     }
   }
   return M3DC1_SUCCESS;
@@ -5219,9 +5222,80 @@ int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFace
   }
 
   m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);
-
   return M3DC1_SUCCESS;
 }
+
+// Snapping Operation during mesh adapt is not supported with current analytical model
+// The new vertices after adapt are not reparameterized on the model edge since snapping 
+// is disabled. Without parametric coordinates, the current methods return wrong normal 
+// vectors. This function evaluates the normal vector on the new vertices at the boundary 
+// after the mesh adapt.
+// Will be obselete when snapping will be supported (in plans for near future)
+void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec)
+{
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  int entType = m->getType(v);
+  assert(entType == 0);	
+  
+  bool v0_found = false;
+  bool v1_found = false;
+  apf::Vector3 param(0,0,0);
+  m->getParam(v,param);
+  apf::Adjacent edges;
+  m->getAdjacent(v, 1, edges);
+  std::vector <apf::MeshEntity*> adjVert;
+  for (int i = 0; i < edges.getSize(); ++i)
+  { 
+    apf::MeshEntity* edge = edges[i];
+    apf::MeshEntity* otherV = getEdgeVertOppositeVert(m, edge, v);
+    gmi_ent* gent= (gmi_ent*)(m->toModel(otherV));
+    int gType = gmi_dim(m3dc1_model::instance()->model,gent);
+    if (gType != 1)
+      continue;
+    adjVert.push_back(otherV);
+  }
+  apf::Vector3 pt0(0.0,0.0,0.0);
+  apf::Vector3 pt1(0.0,0.0,0.0);
+  apf::MeshEntity* v1 = adjVert[0]; 
+  m->getPoint(v, 0, pt0);
+  m->getPoint(v1,0,pt1);
+  double dx = pt0[0] - pt1[0];
+  double dy = pt0[1] - pt1[1];
+  double len = sqrt(dx*dx + dy*dy);
+
+  // Calculate the center of domain to evalaute direction of normal vector
+  double xMin = m3dc1_model::instance()->boundingBox[0];
+  double yMin = m3dc1_model::instance()->boundingBox[1];
+  double xMax = m3dc1_model::instance()->boundingBox[2];
+  double yMax = m3dc1_model::instance()->boundingBox[3];
+  double center[2] = {(xMin+xMax)/2, (yMin+yMax)/2};
+  
+  
+  // Find the vector from the vertex v to center point
+  double vec[2] = {center[0] - pt0[0], center[1] - pt0[1]}; 
+  
+  // Find the normal vector (temporaray since direction needs to be adjusted)
+  double normTemp[2];
+  normTemp[0] = dy/len;
+  normTemp[1] = -1.0*dx/len;
+
+  // Find the direction of normal vector (inward or outward)
+  double dir = normTemp[0]*vec[0] + normTemp[1]*vec[1];
+
+  // Find the final normal vector
+  if (dir > 0) 
+  {
+    normalVec[0] = -normTemp[0];
+    normalVec[1] = -normTemp[1];
+  }
+  else
+  {
+    normalVec[0] = normTemp[0];
+    normalVec[1] = normTemp[1];	
+  }
+}
+
+
 
 #ifdef M3DC1_TRILINOS
 #include <Epetra_MultiVector.h>

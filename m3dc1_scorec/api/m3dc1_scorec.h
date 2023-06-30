@@ -125,6 +125,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyz);
 int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv);
 int m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry); 
 int m3dc1_node_write (const char* filename, int* start_index);
+void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec);
 
 // region-specific function
 int m3dc1_region_getoriginalface( int * /* in */ elm_id, int * /* out */ fac_id);
