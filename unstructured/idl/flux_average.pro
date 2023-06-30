@@ -423,16 +423,17 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
                                  bins=bins, filename=filename, $
                                  _EXTRA=extra)
 
-           Vp = fc.dV_dchi / fc.dpsi_dchi
-           Vpp = deriv(fc.psi, Vp)
+           Vp_2pi2 = fc.dV_dchi / fc.dpsi_dchi / (2.*!pi)^2
+           Vpp_2pi2 = deriv(fc.psi, Vp_2pi2)
            q = fc.q
            qp = deriv(fc.psi,q)
 
-           e = pp*Vp/(qp^2) * b2_psi2_av *$
-               (qp*g / b2_av - Vpp)
-           f = (pp*vp/qp)^2 * (g*(b2_psi2_av*inv_b2psi2_av - inv_psi2_av) $
-                               + b2_psi2_av*inv_b2_av)
-           h = g*pp*vp/qp * (inv_psi2_av - b2_psi2_av / b2_av)
+           e = pp*Vp_2pi2/(qp^2) * b2_psi2_av *$
+               (qp*g / b2_av - Vpp_2pi2)
+           f = (pp*Vp_2pi2/qp)^2 * $
+               (g^2*(b2_psi2_av*inv_b2psi2_av - inv_psi2_av^2) $
+                + b2_psi2_av*inv_b2_av)
+           h = g*pp*Vp_2pi2/qp * (inv_psi2_av - b2_psi2_av / b2_av)
 
            d = dimensions()
            units = parse_units(d, _EXTRA=extra)
