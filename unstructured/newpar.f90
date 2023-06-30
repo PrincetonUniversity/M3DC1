@@ -1620,7 +1620,7 @@ end subroutine calculate_qdfac
        i = nodes_owned(icounter_t)
 
        call boundary_node(i,is_boundary,izone,izonedim,norm,curv,x,phi,z, &
-            BOUND_FIRSTWALL)
+            BOUND_ANY)
        if(.not.is_boundary) cycle
 
        print *, 'BOUNDARY NODE'
