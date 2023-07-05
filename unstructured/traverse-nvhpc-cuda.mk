@@ -69,6 +69,7 @@ LIBS := $(LIBS) \
         $(PETSC_WITH_EXTERNAL_LIB)
 
 FOPTS = -c -r8 -Mpreprocess $(OPTS)
+R8OPTS = -r8
 
 CCOPTS  = -c $(OPTS)
 

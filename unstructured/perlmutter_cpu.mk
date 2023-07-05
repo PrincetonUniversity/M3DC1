@@ -1,5 +1,6 @@
 FOPTS = -c -r8 -i4 -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
 CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
+R8OPTS = -r8
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 

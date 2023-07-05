@@ -1,11 +1,12 @@
 FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
 CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
+R8OPTS = -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -w -fallow-argument-mismatch -O2 
   CCOPTS := $(CCOPTS) -O
 else
-  FOPTS := $(FOPTS) -g noarg_temp_created 
+  FOPTS := $(FOPTS) -g 
 endif
 
 ifeq ($(PAR), 1)
