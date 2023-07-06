@@ -374,7 +374,11 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            p_z = read_field('p',x,z,t,points=points, $
                             last=last,filename=filename,op=3,_EXTRA=extra)
 
-           r = radius_matrix(x,z,t)
+           if(itor eq 1) then begin
+              r = radius_matrix(x,z,t)
+           endif else begin
+              r = 1.
+           end
 
            psi2 = psi_r^2 + psi_z^2
            b2 = psi2/r^2 + i^2/r^2
@@ -428,12 +432,17 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
            q = fc.q
            qp = deriv(fc.psi,q)
 
-           e = pp*Vp_2pi2/(qp^2) * b2_psi2_av *$
-               (qp*g / b2_av - Vpp_2pi2)
+           ; here the first term of E and all of H have the opposite
+           ; sign of the standard derivation because M3D-C1 defines
+           ; B = grad(psi) x grad(phi) rather than grad(phi)xgrad(psi)
+           ; but q is still defined as positive when IP and BT are in
+           ; the same direction
+           e = -pp*Vp_2pi2/(qp^2) * b2_psi2_av *$
+               (qp*g / b2_av + Vpp_2pi2)
            f = (pp*Vp_2pi2/qp)^2 * $
                (g^2*(b2_psi2_av*inv_b2psi2_av - inv_psi2_av^2) $
                 + b2_psi2_av*inv_b2_av)
-           h = g*pp*Vp_2pi2/qp * (inv_psi2_av - b2_psi2_av / b2_av)
+           h = -g*pp*Vp_2pi2/qp * (inv_psi2_av - b2_psi2_av / b2_av)
 
            d = dimensions()
            units = parse_units(d, _EXTRA=extra)
