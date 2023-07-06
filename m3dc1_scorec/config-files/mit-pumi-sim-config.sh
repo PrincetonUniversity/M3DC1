@@ -1,0 +1,34 @@
+MPIVER=gcc12.2.0-openmpi4.1.4
+PETSC_DIR=/orcd/nese/psfc/001/jinchen/petsc/petsc20230612
+PETSC_ARCH=mit-gcc-openmpi
+PARMETIS_INSTALL_DIR=$PETSC_DIR/$PETSC_ARCH
+ZOLTAN_INSTALL_DIR=$PETSC_DIR/$PETSC_ARCH
+PETSCVER=3.19.2
+SIM_VER=18.0-230521
+SIM_DIR=/orcd/nese/psfc/001/software/simmetrix/SimModSuite$SIM_VER
+SIM_ARCHOS=x64_rhel8_gcc83
+PREFIX=/orcd/nese/psfc/001/software/scorec/$MPIVER/sim$SIM_VER
+#module load cmake gcc/12.2.0-x86_64
+#module use /orcd/nese/psfc/001/software/modulefiles/spack-modules
+#module load openmpi-4.1.4-gcc-12.2.0-3r4zaih
+cmake .. \
+  -DCMAKE_C_COMPILER=mpicc \
+  -DCMAKE_CXX_COMPILER=mpic++ \
+  -DENABLE_ZOLTAN=ON \
+  -DZOLTAN_INCLUDE_DIR="$ZOLTAN_INSTALL_DIR/include" \
+  -DZOLTAN_LIBRARY="$ZOLTAN_INSTALL_DIR/lib/libzoltan.a" \
+  -DMETIS_INCLUDE_DIR="$PARMETIS_INSTALL_DIR/include" \
+  -DMETIS_LIBRARY="$PARMETIS_INSTALL_DIR/lib/libmetis.a" \
+  -DPARMETIS_INCLUDE_DIR="$PARMETIS_INSTALL_DIR/include" \
+  -DPARMETIS_LIBRARY="$PARMETIS_INSTALL_DIR/lib/libparmetis.a" \
+  -DENABLE_SIMMETRIX=ON \
+  -DSIMMETRIX_INCLUDE_DIR=$SIM_DIR/include \
+  -DSIMMETRIX_LIB_DIR=$SIM_DIR/lib/$SIM_ARCHOS \
+  -DCMAKE_INSTALL_PREFIX=$PREFIX \
+  -DSCOREC_CXX_WARNINGS=OFF \
+  -DSCOREC_CXX_OPTIMIZE=OFF \
+  -DUSE_XSDK_DEFAULTS=OFF \
+  -DSCOREC_ENABLE_CXX11=ON \
+  -DBUILD_EXES=OFF \
+  -DIS_TESTING=OFF \
+  -DCMAKE_BUILD_TYPE=Debug

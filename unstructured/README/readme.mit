@@ -16,6 +16,11 @@
        module use $M3DC1_CODE_DIR/unstructured/modules/mit
        module load m3dc1/devel-gcc
 
+   or
+   module load cmake gcc/12.2.0-x86_64
+   module use /orcd/nese/psfc/001/software/modulefiles/spack-modules
+   module load openmpi-4.1.4-gcc-12.2.0-3r4zaih
+
 4. compile code
 
    make ARCH=mit_gcc all
@@ -64,7 +69,7 @@
 7. run job
 
 7.1 interactive mode
-  salloc -A m3984_g -C gpu -n 48 -t 00:30:00
+  salloc -n 48 -t 00:30:00 -p sched_mit_psfc_r8
   export SLURM_CPU_BIND="cores"
   srun ... (see 7.2)
 
@@ -72,12 +77,10 @@
    sample slurm script "batchjob.mit_gcc"
 
    #!/bin/bash
-   #SBATCH -A mp288 
-   #SBATCH -q debug
-   #SBATCH -C cpu
+   #SBATCH -p sched_mit_psfc_r8
    #SBATCH -n 48
    #SBATCH -J m3dc1_regtest_adapt
-   #SBATCH -t 0:30:00
+   #SBATCH --time 0:30:00
    #SBATCH -o C1stdout
 
    export SLURM_CPU_BIND="cores"
