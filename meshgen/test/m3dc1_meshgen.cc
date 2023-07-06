@@ -21,9 +21,8 @@
 #include <vector>
 #include <assert.h>
 
-#include "SimUtil.h"
+#include "/orcd/nese/psfc/001/software/simmetrix/SimModSuite18.0-230521/include/SimUtil.h"
 #include "SimModel.h"
-#include "SimError.h"
 #include "SimAdvModel.h"
 #include "SimDisplay.h"
 #include "MeshSim.h"
@@ -46,17 +45,19 @@
 #include <cstdlib>
 #include <iostream>
 
-#ifdef PPPL
-// for PPPL
+#ifdef LICENSE
 #include <SimLicense.h>
 #ifdef STELLAR
 char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
-#else
+#endif
+#ifdef MIT
+char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
+#endif
+#ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 #endif
-#else
-// for SCOREC
-char simLic[128]="/net/common/meshSim//license/license.txt";
+#else // scorec
+char simLic[128]="/net/common/meshSim/license/license.txt";
 #endif
 
 char meshSizeFnName[]="meshSizeFn";
@@ -588,9 +589,8 @@ int main(int argc, char *argv[])
   sprintf(model_filename,"%s.txt", filename);
   save_model(model_filename);
 
-#ifdef PPPL
-  // for PPPL
-  SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adapt,meshsim_adv",simLic);
+#ifdef LICENSE
+  SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adv",simLic);
 #else
   // for SCOREC
   Sim_readLicenseFile(simLic);
@@ -761,8 +761,7 @@ int main(int argc, char *argv[])
   Sim_logOff();
   Sim_unregisterAllKeys();
 
-#ifdef PPPL
-  // for PPPL
+#ifdef LICENSE
   SimLicense_stop();
 #endif
 
@@ -782,7 +781,7 @@ int make_sim_model (pGModel& sim_model)
   std::map<int, pGEdge> edges;
   gmi_model* model = m3dc1_model::instance()->model;  
   int numL=loopContainer.size();
-#ifdef PPPL // SIMMODSUITE_MAJOR_VERSION >= 15
+#ifdef LICENSE
   pGIPart part = GM_rootPart(sim_model);
 #else
   pGIPart part = GM_part(sim_model);

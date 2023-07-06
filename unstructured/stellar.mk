@@ -1,5 +1,6 @@
 FOPTS = -c -r8 -implicitnone -fpp -warn all $(OPTS) -DUSEBLAS -DPETSC_VERSION=313
 CCOPTS  = -c -DPETSC_VERSION=313
+R8OPTS = -r8
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec

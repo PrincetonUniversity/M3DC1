@@ -12,11 +12,15 @@
 #include <apfMesh2.h>
 #include <iostream>
 
-#ifdef PPPL
+#ifdef LICENSE
 #include <SimLicense.h>
 #ifdef STELLAR
 char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
-#else
+#endif
+#ifdef MIT
+char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
+#endif
+#ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 #endif
 #else
@@ -36,7 +40,7 @@ int main(int argc, char** argv)
     return 1;
   }
 
-#ifdef PPPL
+#ifdef LICENSE
   SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adapt,meshsim_adv",simLic);
 #else
   Sim_readLicenseFile(simLic);
@@ -82,7 +86,7 @@ int main(int argc, char** argv)
   gmi_sim_stop();
   SimPartitionedMesh_stop();
 
-#ifdef PPPL
+#ifdef LICENSE 
   SimLicense_stop();
 #endif
 
