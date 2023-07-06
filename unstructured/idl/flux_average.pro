@@ -359,7 +359,8 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
           ;;  return, b2_fa
         endif else $
            if((strcmp(field, 'd_i', /fold_case) eq 1) or $
-              (strcmp(field, 'd_r', /fold_case) eq 1)) then begin
+              (strcmp(field, 'd_r', /fold_case) eq 1) or $
+              (strcmp(field, 'd_h', /fold_case) eq 1)) then begin
 
            i = read_field('i',x,z,t,points=points, $
                           last=last,filename=filename,_EXTRA=extra)
@@ -451,10 +452,14 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
               symbol = '!8D!DI!N!X'
               name = '!6Ideal Interchange Criterion!X'
               return, e + f + h - 1./4.
-           endif else begin
+           endif else if(strcmp(field, 'd_r', /fold_case) eq 1) then begin
               symbol = '!8D!DR!N!X'
               name = '!6Resistive Interchange Criterion!X'
               return, e + f + h^2
+           endif else begin
+              symbol = '!8D!DH!N!X'
+              name = '!6H-Term of Interchange Criterion!X'
+              return, h
            endelse
 
        endif else begin
