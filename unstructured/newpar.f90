@@ -1623,7 +1623,7 @@ end subroutine calculate_qdfac
             BOUND_ANY)
        if(.not.is_boundary) cycle
 
-       print *, 'BOUNDARY NODE'
+       if(myrank.eq.0) print *, 'BOUNDARY NODE'
 
        buf=''
        write(buf,'(7F10.5,A)') x, z, norm(1), norm(2), curv(1), curv(2), curv(3),&
