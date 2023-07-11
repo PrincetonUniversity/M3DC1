@@ -1,4 +1,4 @@
-MPIVER=intel2021.1.2-intelmpi2021.3.1
+MPIVER=intel2021.1.2-openmpi4.1.0
 SIM_VER=17.0-220903
 SIM_DIR=/home/PPPL/simmetrix/simmodsuite/$SIM_VER
 SIM_ARCHOS=x64_rhel7_gcc48
@@ -11,14 +11,18 @@ ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
 LAPACK_DIR=$PETSC_DIR/$PETSC_ARCH
 PUMI_DIR=/projects/M3DC1/scorec/$MPIVER/$SIM_VER
 PREFIX=YOUR_DIR
-#module purge
-#module load intel/2021.1.2 intel-mpi/intel/2021.3.1 cmake/3.19.7
+#module load intel/2021.1.2 openmpi/intel-2021.1/4.1.0
+#module load gsl/2.6 fftw/intel-2021.1/openmpi-4.1.0/3.3.9 hdf5/intel-2021.1/openmpi-4.1.0/1.10.6
+#
 #module load rlm/pppl simmodsuite/pppl/17.0-220903
+#export SimModSuite_licenseFile="5053@license2.pppl.gov"
+#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/gsl/2.6/x86_64/lib64:/home/PPPL/simmetrix/simmodsuite/17.0-220903/lib/x64_rhel7_gcc48
+#cp module load rlm/pppl simmodsuite/pppl/17.0-220903
 #cp meshgen/config-files/stellar-FindSimModSuite.cmake meshgen/cmake/FindSimModSuite.cmake
-cmake3 .. \
-  -DCMAKE_C_COMPILER="mpiicc" \
-  -DCMAKE_CXX_COMPILER="mpiicpc" \
-  -DCMAKE_Fortran_COMPILER="mpiifort" \
+cmake .. \
+  -DCMAKE_C_COMPILER=/usr/local/openmpi/4.1.0/intel20211/bin/mpicc \
+  -DCMAKE_CXX_COMPILER=/usr/local/openmpi/4.1.0/intel20211/bin/mpicxx \
+  -DCMAKE_Fortran_COMPILER=/usr/local/openmpi/4.1.0/intel20211/bin/mpif90 \
   -DCMAKE_C_FLAGS="-O2 -g -DOLDMA -I$PETSC_DIR/include" \
   -DCMAKE_CXX_FLAGS="-O2 -g -DOLDMA -I$PETSC_DIR/include" \
   -DCMAKE_Fortran_FLAGS="-fpic "\
