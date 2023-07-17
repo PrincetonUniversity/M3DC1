@@ -58,7 +58,7 @@ contains
     if(ierr.ne.0) return
     
     allocate(kprad_n(0:kprad_z))
-    allocate(kprad_n_prev(0:kprad_z))
+    if(isolve_with_guess==1) allocate(kprad_n_prev(0:kprad_z))
     allocate(kprad_temp(0:kprad_z))
     allocate(kprad_particle_source(0:kprad_z))
     allocate(lp_source_rate(0:kprad_z))
@@ -82,11 +82,17 @@ contains
 #else
     do i=0, kprad_z
        call create_field(kprad_n(i))
-       call create_field(kprad_n_prev(i))
        call create_field(kprad_temp(i))
        call create_field(kprad_particle_source(i))
        kprad_particle_source(i) = 0.
     end do
+
+    if(isolve_with_guess==1) then
+      do i=0, kprad_z
+         call create_field(kprad_n_prev(i))
+      enddo
+    endif
+
     call create_field(kprad_rad)
     call create_field(kprad_brem)
     call create_field(kprad_ion)
@@ -107,6 +113,7 @@ contains
   ! ~~~~~~~~~~~~~
   !==================================
   subroutine kprad_destroy
+    use basic, only:isolve_with_guess
     implicit none
 
     integer :: i
@@ -116,12 +123,16 @@ contains
     if(allocated(kprad_n)) then
        do i=0, kprad_z
           call destroy_field(kprad_n(i))
-          call destroy_field(kprad_n_prev(i))
           call destroy_field(kprad_temp(i))
           call destroy_field(kprad_particle_source(i))
        end do
        deallocate(kprad_n, kprad_temp)
-       deallocate(kprad_n_prev)
+       if(isolve_with_guess==1) then
+          do i=0, kprad_z
+             call destroy_field(kprad_n_prev(i))
+          enddo
+          deallocate(kprad_n_prev)
+       endif       
        call destroy_field(kprad_rad)
        call destroy_field(kprad_brem)
        call destroy_field(kprad_ion)
@@ -365,7 +376,7 @@ contains
        else
           kprad_n(j) = rhs
        end if
-       kprad_n_prev(j) = kprad_n(j)
+       if(isolve_with_guess==1) kprad_n_prev(j) = kprad_n(j)
     end do
 
 
@@ -455,7 +466,7 @@ contains
        else
           kprad_n(0) = rhs          
        end if
-       kprad_n_prev(0) = kprad_n(0)
+       if(isolve_with_guess==1) kprad_n_prev(0) = kprad_n(0)
     end if
 
 
