@@ -126,6 +126,14 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
   psin0_r = psi0_r / dpsi_dpsin
   psin0_z = psi0_z / dpsi_dpsin
 
+  ; Remove too large target psin that cannot be found along some poloidal angles
+  ; Ensure target psin values form closed flux surfaces within a given rectangular boundary
+  min_psin0_at_boundary= min([min([psin0[0,-1,*],psin0[0,0,*]]),min([psin0[0,*,0],psin0[0,*,-1]])])
+  if(psin[-1] gt min_psin0_at_boundary) then begin
+    psin = psin[0] + (0.999*min_psin0_at_boundary - psin[0]) *FINDGEN(n)/(n-1)
+    psi = psin*(psi_s -flux0) +flux0
+  endif
+
   theta = 2.*!pi*findgen(m)/m
   rpath = fltarr(m,n)
   zpath = fltarr(m,n)
@@ -158,9 +166,13 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
         ; do newton iterations to find (R,Z) at (psin, theta)
         converged = 0
         if(j eq 0 or dpsin_drho eq 0.) then begin
+           old_psin_x=0.0
            rho = 0.01
+           drho = rho
         endif else begin
            rho = rho + (psin[j]-psin[j-1])/dpsin_drho
+           drho = (psin[j]-psin[j-1])/dpsin_drho
+           old_psin_x = psin[j-1]
         endelse
         for k=0, maxits-1 do begin
            rpath[i,j] = rho*co + axis[0]
@@ -193,7 +205,17 @@ function flux_coordinates, _EXTRA=extra, pest=pest, points=pts, $
                    
               dpsin_drho = psin_r*co + psin_z*sn
            end
-           drho = (psin[j] - psin_x)/dpsin_drho
+           if(psin[j] lt 0.95) then begin
+             ; Do usual Newton's method
+             drho = (psin[j] - psin_x)/dpsin_drho
+           endif else begin
+             ; Do the Bisection method for a more reliable root finding
+             if( (old_psin_x-psin[j])*(psin_x-psin[j])<0 ) then begin
+                 drho=-0.5*drho
+             endif
+           endelse
+           old_psin_x = psin_x
+
            if(rho + drho lt 0.) then begin
               rho = rho / 2.
            endif else if(drho gt max_drho) then begin
