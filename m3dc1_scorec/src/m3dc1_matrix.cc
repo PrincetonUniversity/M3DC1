@@ -1117,6 +1117,7 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess)
   copyField2PetscVec(field_id, b, get_scalar_type());
   copyField2PetscVec(xVec_guess,x, get_scalar_type());
   int ierr;
+  KSPType ksptype;
 
   if(!kspSet) setKspType();
   if(kspSet==2) {
@@ -1126,7 +1127,15 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess)
 
   }
 
-  ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_TRUE);
+  ierr = KSPGetType(*ksp, &ksptype); CHKERRQ(ierr);
+  if( strcmp(ksptype,"preonly")==0 ){
+    ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_FALSE); CHKERRQ(ierr);
+    if (PCU_Comm_Self() == 0)
+      std::cout <<"\t Due to ksptype=\"preonly\", the initial guess is set to be Zero."<< std::endl; 
+  }
+  else{
+    ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_TRUE); CHKERRQ(ierr);
+  }
   ierr = KSPSolve(*ksp, b, x); 
   CHKERRQ(ierr);
   ierr = KSPGetIterationNumber(*ksp, &its);
