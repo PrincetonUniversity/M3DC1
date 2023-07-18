@@ -359,9 +359,6 @@ contains
        call DPOLY_VAL(M1,N,C(:,L),LOG10(TE*1.0e-3),impradt)
        
        IMP_RAD(:,L) = (10.0**impradt)*(NE/1.0E13)*NZ(:,L-1)
-       if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
-          where(ne.lt.kprad_nemin .or. te.lt.kprad_temin) IMP_RAD(:,L) = 0.
-       end if
        
        PION(:,L)= SION(:,L-1)*NZ(:,L-1)*Z_EI(L)*1.6E-19 
        nZeff(:,1)=nZeff(:,1)+real(L)*NZ(:,L-1)/SNZ
@@ -369,6 +366,20 @@ contains
        
        PRECK(:,L) = SREC(:,L)*NZ(:,L)*TE*1.6E-19 
        PRECP(:,L) = SREC(:,L)*NZ(:,L)*Z_EI(L)*1.6E-19
+
+       if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
+          where(ne.lt.kprad_nemin .or. te.lt.kprad_temin)
+             IMP_RAD(:,L) = 0.
+             PION(:,L)    = 0.
+             PRECK(:,L)   = 0.
+          endwhere
+       end if
+       if (ikprad_min_option.eq.3) then
+          where(ne.lt.kprad_nemin .or. te.lt.kprad_temin)
+             PRECP(:,L) = 0.
+          end where
+       end if
+
     end do
     
     PION(:,Z+1)  = sum(PION(:,1:Z),2) 
