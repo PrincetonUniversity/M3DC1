@@ -62,6 +62,8 @@ else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
+SCOREC_DIR=/home/myoo/M3D_BUILD
+
 ZOLTAN_LIB=-L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lzoltan
 
 SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \

@@ -210,6 +210,7 @@ int m3dc1_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
 
 int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol); //solveSysEqu_
 int m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num);
+int m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess); //solveSysEqu_
 int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputvecid); //matrixvectormult_
 
 // for performance test
