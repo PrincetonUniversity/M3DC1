@@ -419,7 +419,8 @@ contains
     call m3dc1_matrix_getiternum(mat%imatrix,num_iter)
 !    if(mat%imatrix==5) call m3dc1_matrix_getinfo(mat%imatrix,v%id)
 #endif
-   if(myrank==0) write(*,'(A,I4,A,I5,A,ES11.3,A)') "For mat%imatrix=",mat%imatrix,", newsolve takes num_iter=",num_iter,", time=", t2-t1, " secs"
+   if(myrank==0) write(*,'(A,I4,A,I5,A,ES11.3,A)') &
+           "For mat%imatrix=",mat%imatrix,", newsolve takes num_iter=",num_iter,", time=", t2-t1, " secs"
    if (num_iter.ge.10000) then
       print*, 'Error: solver', mat%imatrix, 'diverged. JOB stopped'
       call safestop(10000)
@@ -469,7 +470,8 @@ contains
    call m3dc1_matrix_getiternum(mat%imatrix,num_iter)
 #endif
 
-  if(myrank==0) write(*,'(A,I4,A,I5,A,ES11.3,A)') "For mat%imatrix=",mat%imatrix,", newsolve_with_guess takes num_iter=",num_iter,", time=", t2-t1, " secs"
+  if(myrank==0) write(*,'(A,I4,A,I5,A,ES11.3,A)') &
+          "For mat%imatrix=",mat%imatrix,", newsolve_with_guess takes num_iter=",num_iter,", time=", t2-t1, " secs"
   if (num_iter.ge.10000) then
      print*, 'Error: solver', mat%imatrix, 'diverged. JOB stopped'
      call safestop(10000)
