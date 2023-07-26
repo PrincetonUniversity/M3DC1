@@ -1197,6 +1197,7 @@ subroutine set_defaults
        "solver tolerance", solver_grp) 
   call add_var_int("solver_type", solver_type, 0, "Solver type", solver_grp)
   call add_var_int("num_iter", num_iter, 100, "Maximum number of iterations", solver_grp)
+  call add_var_int("isolve_with_guess",isolve_with_guess,0, "newsolve with nonzero initial guess", solver_grp)
 
   ! Trilinos options
   call add_var_string("krylov_solver", krylov_solver, 50,&

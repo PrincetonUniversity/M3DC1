@@ -21,7 +21,7 @@
 #include <vector>
 #include <assert.h>
 
-#include "/orcd/nese/psfc/001/software/simmetrix/SimModSuite18.0-230521/include/SimUtil.h"
+//#include "/orcd/nese/psfc/001/software/simmetrix/SimModSuite18.0-230521/include/SimUtil.h"
 #include "SimModel.h"
 #include "SimAdvModel.h"
 #include "SimDisplay.h"
