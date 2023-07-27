@@ -31,8 +31,8 @@ module-whatis                   "$description"
 
 ## Software-specific settings exported to user environment
 
-if { ! [ is-loaded nvhpc/22.5 ] } {
-      module load nvhpc/22.5
+if { ! [ is-loaded nvhpc/21.5 ] } {
+      module load nvhpc/21.5
 }
 
 setenv          M3DC1_VERSION   $version
@@ -41,6 +41,6 @@ setenv		M3DC1_ARCH	traverse-nvhpc
 setenv		M3DC1_MPIRUN	mpirun
 setenv		OMP_NUM_THREADS	2
 
-prepend-path    PATH             /projects/M3DC1/openmpi/traverse-nvhpc/bin
+prepend-path    PATH             /projects/M3DC1/openmpi/traverse-nvidia/bin
 prepend-path    PATH             $root/unstructured/_traverse-nvhpc/bin
 
