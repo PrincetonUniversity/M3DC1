@@ -1,5 +1,6 @@
 FOPTS = $(OPTS) -DPETSC_VERSION=313 -c -r8 -implicitnone -fpp -warn all -DUSEBLAS
 CCOPTS  = -c -DPETSC_VERSION=313
+R8OPTS = -r8
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 -qopt-report=0 -qopt-report-phase=vec
@@ -52,10 +53,10 @@ else
 PETSC_ARCH=real-rhel7-$(MPIVER)
 endif
 
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
 ifdef ADAPT
-  SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)/adapt
-else
-  SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
+  FOPTS  := $(FOPTS) -DADAPT
+  CCOPTS := $(CCOPTS) -DADAPT
 endif
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 

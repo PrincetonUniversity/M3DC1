@@ -23,7 +23,8 @@ else
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)
+#SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)
+SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSC_VER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
@@ -31,7 +32,8 @@ else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
-ZOLTAN_LIB=-L/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)/lib -lzoltan
+#ZOLTAN_LIB=-L/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)/lib -lzoltan
+ZOLTAN_LIB=-L/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSC_VER)/lib -lzoltan
 
 SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
              -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
@@ -68,6 +70,7 @@ LIBS := $(LIBS) \
         $(PETSC_WITH_EXTERNAL_LIB)
 
 FOPTS = -c -r8 -Mpreprocess $(OPTS)
+R8OPTS = -r8
 
 CCOPTS  = -c $(OPTS)
 

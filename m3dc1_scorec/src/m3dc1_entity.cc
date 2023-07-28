@@ -137,7 +137,7 @@ void send_upadj(Mesh2* m, MeshEntity* e, int up_dim, MeshTag* tag)
   }
 }
 
-int receive_adj(Mesh2* m, MeshTag* adj_pid_tag, MeshTag* adj_gid_tag)
+void receive_adj(Mesh2* m, MeshTag* adj_pid_tag, MeshTag* adj_gid_tag)
 {
   void *msg_recv;
   int pid_from;

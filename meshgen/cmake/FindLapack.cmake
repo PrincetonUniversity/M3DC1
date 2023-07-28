@@ -32,6 +32,11 @@ set(LAPACK_LIB_NAMES
   lapack #lapack should come first since it references routines in the BLAS library
   blas
 )
+elseif (ENABLE_MIT)
+set(LAPACK_LIB_NAMES
+  lapack #lapack should come first since it references routines in the BLAS library
+  cblas
+)	
 else()
 set(LAPACK_LIB_NAMES
   flapack #lapack should come first since it references routines in the BLAS library

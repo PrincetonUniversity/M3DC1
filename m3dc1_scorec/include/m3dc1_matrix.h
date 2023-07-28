@@ -44,7 +44,7 @@ public:
   virtual int assemble() = 0;
   virtual int setupMat() =0;
   virtual int preAllocate() =0;
-  int printInfo();
+  void printInfo();
   PetscInt mymatrix_id;
   // PETSc data structures
   Mat* A;
@@ -72,7 +72,7 @@ public:
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
   int multiply(FieldID in_field, FieldID out_field);
-  int reset_values() { MatZeroEntries(*A);   mat_status=M3DC1_NOT_FIXED; };
+  int reset_values() { MatZeroEntries(*A); mat_status=M3DC1_NOT_FIXED; return M3DC1_SUCCESS; };
   virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
@@ -88,6 +88,7 @@ public:
   virtual int initialize();
   virtual ~matrix_solve();
   int solve(FieldID field_id);
+  int solve_with_guess(FieldID field_id, FieldID xVec_guess);
   int set_bc( int row);
   int set_row( int row, int numVals, int* colums, double * vals);
   int add_blockvalues( int rbsize, PetscInt* rows, int cbsize, PetscInt* columns, double* values);

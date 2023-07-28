@@ -1,6 +1,4 @@
-1. login: login from cori 
-   ssh -P cori.nersc.gov -l [username]
-   ssh perlmutter
+1. login: 
 
    direct login
    ssh -P perlmutter-p1.nersc.gov -l [username]
@@ -44,6 +42,7 @@
         -pc_bjacobi_blocks 4
         -sub_pc_type lu
         -sub_pc_factor_mat_solver_type mumps
+        -sub_mat_mumps_icntl_14 100
         -sub_ksp_type preonly
         -ksp_type fgmres
         -ksp_gmres_restart 220
@@ -55,6 +54,7 @@
         -hard_pc_bjacobi_blocks 4
         -hard_sub_pc_type lu
         -hard_sub_pc_factor_mat_solver_type mumps
+        -hard_sub_mat_mumps_icntl_14 100
         -hard_sub_ksp_type preonly
         -hard_ksp_type fgmres
         -hard_ksp_gmres_restart 220

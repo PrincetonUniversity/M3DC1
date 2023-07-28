@@ -51,6 +51,9 @@ module basic
   real :: amuc        ! compressible viscosity
   real :: amue        ! bootstrap viscosity coefficient
   real :: amupar      ! parallel viscosity coefficient
+  real :: amu_wall
+  real :: amu_wall_off
+  real :: amu_wall_delt
   integer :: iresfunc   ! if 1, use new resistivity function
   integer :: ivisfunc   ! if 1, use new resistivity function
   integer :: ikappafunc ! select electron thermal conductivity function
@@ -435,6 +438,13 @@ module basic
   integer :: iadapt_pack_rationals
   real :: adapt_pack_factor
 
+  integer :: ispradapt
+  integer :: isprrefinelevel
+  integer :: isprcoarsenlevel
+  integer :: isprntime
+  real :: isprmaxsize
+  real :: isprweight
+
   real :: beta
   real :: pefac
 
@@ -460,6 +470,8 @@ module basic
   real :: psinull, psinull2
   integer :: mod_null_rs, mod_null_rs2  ! if 1, modify xnull,znull or xnull2,znull2 at restart
   real :: temax            ! maximum temperature
+
+  integer :: isolve_with_guess=0 ! (=0; use zero initial guess); (=1; use previous step value as non-zero initial guess)
 
   ! PID controllers
   type(pid_control), save :: i_control, n_control

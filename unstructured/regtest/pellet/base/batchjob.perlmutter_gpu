@@ -4,7 +4,7 @@
 #SBATCH -C gpu
 #SBATCH -N 2
 #SBATCH --ntasks-per-node=64
-#SBATCH --cpus-per-task=2
+##SBATCH --cpus-per-task=2
 #SBATCH --gpus-per-node=4
 #SBATCH -J M3DC1_regtest_pellet
 #SBATCH -t 0:30:00

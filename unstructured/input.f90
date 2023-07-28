@@ -300,6 +300,9 @@ subroutine set_defaults
   call add_var_double("amupar", amupar, 0., &
        "Parallel viscosity", transp_grp)
   call add_var_double("amu_edge", amu_edge, 0., "", transp_grp)
+  call add_var_double("amu_wall", amu_wall, 0., "", transp_grp)
+  call add_var_double("amu_wall_off", amu_wall_off, 0., "", transp_grp)
+  call add_var_double("amu_wall_delt", amu_wall_delt, 0.1, "", transp_grp)
 
   call add_var_int("iresfunc", iresfunc, 0, "", transp_grp)
   call add_var_double("etaoff", etaoff, 0., "", transp_grp)
@@ -1107,8 +1110,8 @@ subroutine set_defaults
   call add_var_int("iadapt_max_node", iadapt_max_node, 10000,"",adapt_grp)
   call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
   call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
+  call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! (prereq: iadapt = 1) adapt elements classified on model face  
 
-  call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! Adapt (iadapt = 1 only) elements in specific model face. 
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
   call add_var_double("adapt_hmax", adapt_hmax, 0.1, "", adapt_grp)
@@ -1194,6 +1197,7 @@ subroutine set_defaults
        "solver tolerance", solver_grp) 
   call add_var_int("solver_type", solver_type, 0, "Solver type", solver_grp)
   call add_var_int("num_iter", num_iter, 100, "Maximum number of iterations", solver_grp)
+  call add_var_int("isolve_with_guess",isolve_with_guess,0, "newsolve with nonzero initial guess", solver_grp)
 
   ! Trilinos options
   call add_var_string("krylov_solver", krylov_solver, 50,&

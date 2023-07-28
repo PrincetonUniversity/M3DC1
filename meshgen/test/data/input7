@@ -1,5 +1,5 @@
 numBdry 7
-bdryFile sparc_v2_first_wall_interpolated.dat 3 0.2
+bdryFile sparc_v2_first_wall_interpolated.dat 3 0.05
 bdryFile sparc_ppu.dat 10 0.3
 bdryFile  sparc_ppl.dat 11 0.4
 bdryFile  points_RZ_SI_VV_10deg_Curve_1_20220124.dat 21 0.4

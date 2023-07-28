@@ -219,7 +219,7 @@ a2cc : $(A2CC_OBJS)
 	$(LOADER) $(LDOPTS) $(A2CC_OBJS) -o $@
 
 mackenbach_profiles : mackenbach_profiles.f90
-	$(F90) -r8 $< -o $@
+	$(F90) $(R8OPTS) $< -o $@
 
 kprad : kprad.f90 kprad_test.f90
 	$(F90) $(F90OPTS) $< -o $@
@@ -260,8 +260,8 @@ bin : a2cc mackenbach_profiles
 	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25-omp/m3dc1_2d_complex_omp bin
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60/m3dc1_3d bin
 	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60-omp/m3dc1_3d_omp bin
-	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-60/m3dc1_3d_st bin
-	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-60-omp/m3dc1_3d_omp_st bin
+	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-125/m3dc1_3d_st bin
+	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-125-omp/m3dc1_3d_omp_st bin
 	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin
 	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
 	ln -s $(SRCDIR)/sbin/create_mesh.sh bin

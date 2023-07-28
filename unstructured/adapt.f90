@@ -2,12 +2,6 @@ module adapt
   use vector_mod
   use scorec_adapt
   implicit none
-  integer :: ispradapt
-  integer :: isprrefinelevel
-  integer :: isprcoarsenlevel
-  integer :: isprntime
-  real :: isprmaxsize
-  real :: isprweight
   real :: adapt_ke
   integer :: iadapt_ntime
   real :: adapt_target_error
@@ -26,7 +20,6 @@ module adapt
   
   real :: adapt_zlow, adapt_zup
   logical :: do_z_coarsen
-
   integer :: iadaptFaceNumber
   integer, parameter :: maxqs = 32
   real, dimension(maxqs) :: adapt_qs
@@ -70,9 +63,13 @@ module adapt
 
     real :: psib
     call create_field(temporary_field)
+
 #ifdef ADAPT
-    call m3dc1_field_mark4tx(temporary_field%vec%id)
+    if (ispradapt .eq. 1) then
+     call m3dc1_field_mark4tx(temporary_field)
+    endif
 #endif
+
     temporary_field = 0.
 
     if(adapt_pellet_delta.gt.0) then
@@ -259,12 +256,12 @@ module adapt
 
 #ifdef ADAPT
     if (iadaptFaceNumber.gt.0) then
-        call adapt_only_model_face(temporary_field%vec%id,psimin,psibound,iadaptFaceNumber)
-    else     
+        call adapt_model_face(temporary_field%vec%id,psimin,psibound,iadaptFaceNumber)
+    else
+#endif
         call adapt_by_field(temporary_field%vec%id,psimin,psibound)
+#ifdef ADAPT
     endif
-#else
-    call adapt_by_field(temporary_field%vec%id,psimin,psibound)
 #endif
 
     write(mesh_file_name,"(A7,A)") 'adapted', 0

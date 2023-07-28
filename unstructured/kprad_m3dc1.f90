@@ -8,7 +8,7 @@ module kprad_m3dc1
 
   implicit none
 
-  type(field_type), allocatable :: kprad_n(:)
+  type(field_type), allocatable :: kprad_n(:), kprad_n_prev(:)
   type(field_type), allocatable, private :: kprad_temp(:)
   type(field_type) :: kprad_rad      ! power lost to line radiation
   type(field_type) :: kprad_brem     ! power lost to bremsstrahlung
@@ -52,16 +52,19 @@ contains
     character(len=32) :: fname
 
     ierr = 0
-    if(ikprad.eq.0) return
+    if (ikprad.eq.0) return
     
     call kprad_atomic_data_sub(kprad_z, ierr)
     if(ierr.ne.0) return
     
     allocate(kprad_n(0:kprad_z))
+    if(isolve_with_guess==1) allocate(kprad_n_prev(0:kprad_z))
     allocate(kprad_temp(0:kprad_z))
     allocate(kprad_particle_source(0:kprad_z))
     allocate(lp_source_rate(0:kprad_z))
-#ifdef ADAPT
+
+    if (ispradapt .eq. 1) then
+!#ifdef ADAPT
     do i=0, kprad_z
        write(fname,"(A5,I2.2,A)")  "kprn", i, 0
        call create_field(kprad_n(i), trim(fname))
@@ -78,13 +81,20 @@ contains
     call create_field(kprad_recp, "kprad_recp")
     call create_field(kprad_sigma_e,"kprad_sigma_e")
     call create_field(kprad_sigma_i, "kprad_sigma_i")
-#else
+else
     do i=0, kprad_z
        call create_field(kprad_n(i))
        call create_field(kprad_temp(i))
        call create_field(kprad_particle_source(i))
        kprad_particle_source(i) = 0.
     end do
+
+    if(isolve_with_guess==1) then
+      do i=0, kprad_z
+         call create_field(kprad_n_prev(i))
+      enddo
+    endif
+
     call create_field(kprad_rad)
     call create_field(kprad_brem)
     call create_field(kprad_ion)
@@ -92,7 +102,7 @@ contains
     call create_field(kprad_recp)
     call create_field(kprad_sigma_e)
     call create_field(kprad_sigma_i)
-#endif
+endif
     if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
        kprad_nemin = kprad_nemin*n0_norm
        kprad_temin = kprad_temin*p0_norm/n0_norm / 1.6022e-12
@@ -105,6 +115,7 @@ contains
   ! ~~~~~~~~~~~~~
   !==================================
   subroutine kprad_destroy
+    use basic, only:isolve_with_guess
     implicit none
 
     integer :: i
@@ -118,6 +129,12 @@ contains
           call destroy_field(kprad_particle_source(i))
        end do
        deallocate(kprad_n, kprad_temp)
+       if(isolve_with_guess==1) then
+          do i=0, kprad_z
+             call destroy_field(kprad_n_prev(i))
+          enddo
+          deallocate(kprad_n_prev)
+       endif       
        call destroy_field(kprad_rad)
        call destroy_field(kprad_brem)
        call destroy_field(kprad_ion)
@@ -345,7 +362,11 @@ contains
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
-       call newsolve(nmat_lhs, rhs%vec, ierr)
+       if(isolve_with_guess==1) then
+         call newsolve_with_guess(nmat_lhs, rhs%vec, kprad_n_prev(j)%vec, ierr)
+       else
+         call newsolve(nmat_lhs, rhs%vec, ierr)
+       endif 
        if(is_nan(rhs%vec)) ierr = 1
        call mpi_allreduce(ierr, itmp, 1, MPI_INTEGER, &
             MPI_MAX, MPI_COMM_WORLD, ier)
@@ -357,6 +378,7 @@ contains
        else
           kprad_n(j) = rhs
        end if
+       if(isolve_with_guess==1) kprad_n_prev(j) = kprad_n(j)
     end do
 
 
@@ -430,7 +452,11 @@ contains
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(0)%vec, rhs%vec)
        ierr = 0
-       call newsolve(nmat_lhs, rhs%vec, ierr)
+       if(isolve_with_guess==1) then
+         call newsolve_with_guess(nmat_lhs, rhs%vec, kprad_n_prev(0)%vec, ierr)
+       else
+         call newsolve(nmat_lhs, rhs%vec, ierr)
+       endif 
        if(is_nan(rhs%vec)) ierr = 1
        call mpi_allreduce(ierr, itmp, 1, MPI_INTEGER, &
             MPI_MAX, MPI_COMM_WORLD, ier)
@@ -442,6 +468,7 @@ contains
        else
           kprad_n(0) = rhs          
        end if
+       if(isolve_with_guess==1) kprad_n_prev(0) = kprad_n(0)
     end if
 
 

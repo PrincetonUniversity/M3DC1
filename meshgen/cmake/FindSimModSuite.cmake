@@ -36,7 +36,7 @@ set(SIMMETRIX_LIB_NAMES
   SimModel
   SimPartitionWrapper #-${SIM_MPI}
   SimAdvMeshing
-  tirpc #for Stellar
+  #tirpc #for Stellar or MIT Rhel7
   #SimField -- not valid for PPPL
 )
 

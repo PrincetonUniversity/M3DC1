@@ -35,7 +35,9 @@ subroutine create_auxiliary_fields
   use basic
   use kprad_m3dc1
   implicit none
-#ifdef ADAPT
+
+!#ifdef ADAPT
+if (ispradapt .eq. 1) then
   call create_field(bdotgradp, "bdotgradp")
   call create_field(bdotgradt, "bdotgradt")
   call create_field(torque_density_em, "torque_density_em")
@@ -76,7 +78,7 @@ subroutine create_auxiliary_fields
      call create_field(f3eplot, "f3eplot")
      call create_field(jdbobs, "jdbobs")
    endif
-#else
+else
   call create_field(bdotgradp)
   call create_field(bdotgradt)
   call create_field(torque_density_em)
@@ -116,7 +118,7 @@ subroutine create_auxiliary_fields
      call create_field(f3eplot)
      call create_field(jdbobs)
   endif
-#endif
+endif
   initialized = .true.
 end subroutine create_auxiliary_fields
 
@@ -192,13 +194,14 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating pressures'
 
-#ifdef ADAPT
+if (ispradapt .eq. 1) then 
+!#ifdef ADAPT
   call create_field(pe_f, " pe_f")
   call create_field(p_f, "p_f")
-#else
+else
   call create_field(pe_f)
   call create_field(p_f)
-#endif
+endif
 
   pe_f = 0.
   p_f = 0.
@@ -315,13 +318,14 @@ subroutine calculate_temperatures(ilin, te, ti, pe, p, ne, nion, ieqsub)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating Temperatures'
 
-#ifdef ADAPT
+if (ispradapt .eq. 1) then
+!#ifdef ADAPT
   call create_field(te_f, "te_f")
   call create_field(ti_f, "ti_f")
-#else
+else
   call create_field(te_f)
   call create_field(ti_f)
-#endif
+endif
   te_f = 0.
   ti_f = 0.
 
@@ -462,11 +466,12 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
      return
   end if
  
-#ifdef ADAPT 
+if (ispradapt .eq. 1) then
+!#ifdef ADAPT 
   call create_field(ne_f, "ne_f")
-#else
+else
   call create_field(ne_f)
-#endif
+endif
   ne_f = 0.
 
   numelms = local_elements()

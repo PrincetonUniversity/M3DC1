@@ -125,6 +125,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyz);
 int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv);
 int m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry); 
 int m3dc1_node_write (const char* filename, int* start_index);
+void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec);
 
 // region-specific function
 int m3dc1_region_getoriginalface( int * /* in */ elm_id, int * /* out */ fac_id);
@@ -209,6 +210,7 @@ int m3dc1_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *co
 
 int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol); //solveSysEqu_
 int m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num);
+int m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess); //solveSysEqu_
 int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputvecid); //matrixvectormult_
 
 // for performance test
@@ -221,6 +223,8 @@ int m3dc1_matrix_print(int* matrix_id);
 int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
 int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
+// adapt the mesh on specific model faces based on psi field
+int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber);
 
 // 3D Adaptation
 void m3dc1_spr_adapt (int * fieldId, int * index, int * ts,
@@ -230,15 +234,10 @@ int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node
 // for adaptation
 int set_mesh_size_bound (double* abs_size, double * rel_size);
 int set_adapt_smooth_factor (double* fac);
-int output_face_data (int * size, double * data, char * vtkfile);
+void output_face_data (int * size, double * data, char * vtkfile);
 int sum_edge_data (double * data, int * size);
 int get_node_error_from_elm (double * elm_data, int * size, double* nod_data);
 
-// for adaptation in specific model face
-int adapt_only_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber);
-int setSizeFieldOnVertices(int* field_id1, int* field_id2, SizeFieldPsi sf, double* dir,int adaptFaceNumber);
-void setSizeFieldOnVertex(ma::Entity* mV, double& xSize, double& ySize,SizeFieldPsi sf, double* dirVector);
-void sizeFieldTransition( int refIndx, int indx, double& xSize, double& ySize, double* dirVector, int* field_id1, int* field_id2,SizeFieldPsi sf, int mode);
 #ifdef M3DC1_TRILINOS
 //=========================================================================
 /** matrix and solver functions with TRILINOS */
