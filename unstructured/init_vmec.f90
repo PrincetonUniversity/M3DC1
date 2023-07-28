@@ -294,6 +294,11 @@ contains
       end if
 
       ! perturbation 
+      select case (icsym)
+        case(0) 
+          call random_number(temp79e)
+          temp79e = eps*(temp79e-0.5)
+      end select 
       dofs = intx2(mu79(:,:,OP_1),temp79e)
       call vector_insert_block(per_f%vec, itri, 1, dofs, VEC_ADD)
 

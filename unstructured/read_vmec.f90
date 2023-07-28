@@ -286,10 +286,10 @@ contains
     ierr = ierr + nf90_get_var(ncid, id, phiv)
     if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'phiv read'
-    ierr = nf90_inq_varid(ncid, "chi", id)
-    ierr = ierr + nf90_get_var(ncid, id, chiv)
-    if(ierr.ne.0) call safestop(5) 
-    if(myrank.eq.0) print *, 'chiv read'
+    !ierr = nf90_inq_varid(ncid, "chi", id)
+    !ierr = ierr + nf90_get_var(ncid, id, chiv)
+    !if(ierr.ne.0) call safestop(5) 
+    !if(myrank.eq.0) print *, 'chiv read'
 
     ! Get 2D array rmnc, zmns, lmns 
     ierr = nf90_inq_varid(ncid, "rmnc", id)
