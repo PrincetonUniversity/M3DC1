@@ -516,7 +516,7 @@ subroutine init
 
   call init_qp
 
-  if(irunaway .eq. 2) call runaway_init
+  call runaway_init
 
   call kprad_init(ierr)
   if(ierr.ne.0) call safestop(601)
@@ -604,7 +604,7 @@ subroutine safestop(iarg)
 #endif
 
   call destroy_auxiliary_fields
-  if(irunaway .eq. 2) call runaway_deallocate
+  call runaway_deallocate
   call kprad_destroy
   call destroy_resistive_wall
 

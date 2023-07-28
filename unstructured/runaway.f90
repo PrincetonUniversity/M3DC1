@@ -26,7 +26,7 @@ contains
 
   subroutine runaway_deallocate()
     implicit none
-    if(irunaway.eq.0) return
+    !if(irunaway.eq.0) return
 
     call destroy_field(dnre_field1)
     call destroy_field(dnre_field2)
@@ -43,10 +43,12 @@ contains
     use math
     
     implicit none
-    if(irunaway.eq.0) return
+    !if(irunaway.eq.0) return
 
-    print *, 'Estimated Ecrit for runaways = ', &
-         ec**3*(n0_norm*1e6)*17./(4.*pi*eps0**2*me*c**2), ' V/m'
+    if(myrank .eq. 0 .and. iprint .ge. 1) then
+        print *, 'Estimated Ecrit for runaways = ', &
+             ec**3*(n0_norm*1e6)*17./(4.*pi*eps0**2*me*c**2), ' V/m'
+    endif
 
     call create_field(dnre_field1)
     call create_field(dnre_field2)

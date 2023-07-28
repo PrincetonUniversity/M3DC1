@@ -774,9 +774,9 @@ subroutine calculate_scalars()
         if(rad_source) def_fields = def_fields + FIELD_RAD
      end if
 
-     if(irunaway.gt.0) then 
+     !if(irunaway.gt.0) then 
         def_fields = def_fields + FIELD_RE
-     end if
+     !end if
   endif
 
 !  tm79 = 0.
@@ -961,10 +961,10 @@ subroutine calculate_scalars()
         end do
      end if
      
-     if(irunaway.gt.0) then
+     !if(irunaway.gt.0) then
         totre = totre - int2(ri_79,nre179(:,OP_1))/tpirzero
         totre = totre - int2(ri_79,nre079(:,OP_1))/tpirzero
-     end if
+     !end if
 
      helicity = helicity &
           + twopi*int3(ri2_79,pstx79(:,OP_1),bztx79(:,OP_1))/tpifac

@@ -403,9 +403,9 @@ contains
 
     call h5r_read_field(group_id, "V",    vz_field(ilin), nelms, error)
     call h5r_read_field(group_id, "chi", chi_field(ilin), nelms, error)
-    if(irunaway.gt.0) then
+    !if(irunaway.gt.0) then
       call h5r_read_field(group_id, "nre", nre_field(ilin), nelms, error)
-    endif
+    !endif
 
     if(icsubtract.eq.1) then
        call h5r_read_field(group_id, "psi_coil", psi_coil_field, nelms, error, .true.)

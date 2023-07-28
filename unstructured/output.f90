@@ -1150,9 +1150,9 @@ subroutine output_fields(time_group_id, equilibrium, error)
      endif
   end if !(iwrite_transport_coeffs.eq.1)
 
-  if(irunaway.ne.0) then
+  !if(irunaway.ne.0) then
      call write_field(group_id, "nre", nre_field(ilin), nelms, error)
-  end if
+  !end if
 
   if(iwrite_aux_vars.eq.1) then 
     call write_field(group_id, "wall_dist", wall_dist, nelms, error, .true.)
@@ -1421,10 +1421,10 @@ subroutine mark_fields(equilibrium)
      endif
   end if !(iwrite_transport_coeffs.eq.1)
 
-  if(irunaway.ne.0) then
+  !if(irunaway.ne.0) then
      ! nre_field
      call mark_field_for_solutiontransfer(nre_field(ilin))
-  end if
+  !end if
 
   if(iwrite_aux_vars.eq.1) then
     ! wall_dist

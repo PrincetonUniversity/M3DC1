@@ -1688,6 +1688,10 @@ contains
      else
         nre079 = 0.
      endif
+  else
+     !irunaway .eq. 0
+     nre079 = 0.
+     nre179 = 0.
   endif
 
 end subroutine define_fields
