@@ -14,7 +14,7 @@ function(test_exe_func exename srcname)
   target_link_libraries(${exename} core)
 endfunction(test_exe_func)
 
-util_exe_func(make_model make_model.cc)
+util_exe_func(check_smb check_smb.cc)
 util_exe_func(collapse collapse.cc)
 util_exe_func(split_smb split_smb.cc)
 

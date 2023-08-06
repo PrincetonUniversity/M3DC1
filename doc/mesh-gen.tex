@@ -714,3 +714,14 @@ In order to merge 4-part mesh into a serial (1-part) mesh, run
 \end{itemize}
 
 See \texttt{readme.collapse} for detailed instructions and trouble shooting tips.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Miscellaneous}
+\label{ch:mesh-misc}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection{Verification}
+
+The program \texttt{check\_smb} investigates an input mesh and prints any invalid aspects of the mesh. At the end, the mesh size (the number of global, local, and owned entities per dimension) is printed. 
+
+In order to run, do \texttt{"mpirun -np N ./check\_smb input-mesh(.smb)"}.
