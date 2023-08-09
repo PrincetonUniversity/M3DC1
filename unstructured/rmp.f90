@@ -75,6 +75,7 @@ subroutine load_stellarator_field
   use basic
   use arrays
   use coils
+  use init_common 
   use boundary_conditions
   use read_schaffer_field
 
@@ -109,6 +110,7 @@ subroutine load_stellarator_field
     call safestop(57)
 
   end if
+  call init_perturbations
 
 end subroutine load_stellarator_field
 
@@ -127,6 +129,8 @@ subroutine read_stellarator_field(field_name)
 
   if(field_name(1:10).eq.'fieldlines') then
     call load_fieldlines_field(sf(iread_ext_field), field_name,ierr)
+  else if(field_name(1:4).eq.'mips') then
+    call load_mips_field(sf(iread_ext_field), field_name, ierr)
 #ifdef USEST
   else if(field_name(1:5).eq.'mgrid') then
     call load_mgrid_field(sf(iread_ext_field), field_name, vmec_filename, ierr)

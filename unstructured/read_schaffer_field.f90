@@ -578,6 +578,85 @@ contains
 
   end subroutine load_fieldlines_field
 
+  subroutine load_mips_field(sf, filename, error)
+    use math
+    implicit none
+
+    type(schaffer_field), intent(inout) :: sf
+    character(len=*), intent(in) :: filename
+    integer, intent(out) :: error
+    real, allocatable :: br1(:,:,:), bphi1(:,:,:), bz1(:,:,:), p1(:,:,:)
+    integer::lrnet, lznet, lphinet
+    integer::lphinet4
+    integer::i, j, k
+    real(8)::rmin, rmax, zmin, zmax, phimin, phimax
+    real(8)::dr, dz, dphi
+    real(8), allocatable::br(:,:,:), bz(:,:,:), bphi(:,:,:), prs(:,:,:)
+
+    open(60,file=filename, form='unformatted',convert='BIG_ENDIAN')
+
+    read(60) lrnet, lznet, lphinet4 
+    close(60)
+    lphinet = lphinet4 - 4 
+
+    allocate(br(lrnet,lznet,lphinet4))
+    allocate(bz(lrnet,lznet,lphinet4))
+    allocate(bphi(lrnet,lznet,lphinet4))
+    allocate(prs(lrnet,lznet,lphinet4))
+
+    open(60,file=filename, form='unformatted',convert='BIG_ENDIAN')
+    read(60) lrnet, lznet, lphinet4, &
+         rmin, rmax, zmin, zmax, phimin, phimax, &
+         dr, dz, dphi, &
+         br, bz, bphi, prs
+    close(60)
+    prs = prs/(pi*4e-7)
+
+    sf%nr = lrnet
+    sf%nz = lrnet
+    sf%nphi = lphinet+1
+    if(.not. sf%initialized) then
+       allocate(sf%r(sf%nr))
+       allocate(sf%z(sf%nz))
+       allocate(sf%phi(sf%nphi))
+       allocate(sf%br(sf%nphi,sf%nr,sf%nz))
+       allocate(sf%bphi(sf%nphi,sf%nr,sf%nz))
+       allocate(sf%bz(sf%nphi,sf%nr,sf%nz))
+       allocate(br1(sf%nr,sf%nphi,sf%nz))
+       allocate(bphi1(sf%nr,sf%nphi,sf%nz))
+       allocate(bz1(sf%nr,sf%nphi,sf%nz))
+       allocate(sf%p(sf%nphi,sf%nr,sf%nz))
+       allocate(p1(sf%nr,sf%nphi,sf%nz))
+    end if
+
+    do i = 1, sf%nr
+       sf%r(i) = rmin + dr*(i-1)
+    end do
+
+    do j = 1, sf%nphi
+       sf%phi(j) = phimin + dphi*(j-1) - .5*(phimax-phimin)
+       br1(:,j,:) = br(:,:,j+2)
+       bphi1(:,j,:) = bphi(:,:,j+2)
+       bz1(:,j,:) = bz(:,:,j+2)
+       p1(:,j,:) = prs(:,:,j+2)
+    end do
+
+    do k = 1, sf%nz
+       sf%z(k) = zmin + dz*(k-1)
+       sf%br(:,:,k) = transpose(br1(:,:,k))
+       sf%bphi(:,:,k) = transpose(bphi1(:,:,k))
+       sf%bz(:,:,k) = transpose(bz1(:,:,k))
+       sf%p(:,:,k) = transpose(p1(:,:,k))
+    end do 
+    deallocate(br1,bz1,bphi1,p1)
+    deallocate(br,bphi,bz,prs)
+
+    sf%vmec = .true.
+
+    sf%initialized = .true.
+
+  end subroutine load_mips_field
+
 #ifdef USEST
   subroutine check(istatus)
   use netcdf
