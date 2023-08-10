@@ -88,7 +88,6 @@ public:
   virtual int initialize();
   virtual ~matrix_solve();
   int solve(FieldID field_id);
-  int solve_with_guess(FieldID field_id, FieldID xVec_guess);
   int set_bc( int row);
   int set_row( int row, int numVals, int* colums, double * vals);
   int add_blockvalues( int rbsize, PetscInt* rows, int cbsize, PetscInt* columns, double* values);

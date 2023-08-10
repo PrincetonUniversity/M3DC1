@@ -2001,13 +2001,10 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
     }
     else
     {
-      //apf::Vector3 param(0,0,0);
+      apf::Vector3 param(0,0,0);
       m3dc1_mesh::instance()->mesh->getParam(vt,param);
       M3DC1::Expression** pn=(M3DC1::Expression**) gmi_analytic_data(m3dc1_model::instance()->model,gent);
-      if (param[0] == 0)
-	m3dc1_node_getNormVecOnNewVert(vt, xyzt);
-      else
-        evalNormalVector(pn[0],pn[1], param[0], xyzt);
+      evalNormalVector(pn[0],pn[1], param[0], xyzt);
     }
   }
   return M3DC1_SUCCESS;
@@ -3654,33 +3651,15 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   return M3DC1_SUCCESS;
 }
 
-int m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess) //solveSysEqu_
-{  
-  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
-#ifdef DEBUG
+//*******************************************************
+void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess)
+//*******************************************************
+{
   if (!PCU_Comm_Self())
-     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", field "<<*rhs_sol<<"\n";
-  if (!mat) 
-  {  
-    if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
-    return M3DC1_FAILURE;
-  }
-
-  if (mat->get_type()!=M3DC1_SOLVE)
-  { 
-    if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for multiplication (id"<<*matrix_id<<")\n";
-    return M3DC1_FAILURE;
-  }
-#endif
-
-  mat->mymatrix_id = *matrix_id;
-
-  (dynamic_cast<matrix_solve*>(mat))->solve_with_guess(*rhs_sol, *xVec_guess);
-  addMatHit(*matrix_id);
-  return M3DC1_SUCCESS;
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported yet\n."
+	        <<"\tTo facilitate this function, please check out vers. 885c798 commited on July 18, 2023\n";
 }
+
 
 //*******************************************************
 int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, 
@@ -4712,6 +4691,8 @@ int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info)
 int m3dc1_mesh_write(char* filename, int *option, int* timestep)
 {
   char filename_buff[256];
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+
   // vtk
   if (*option==0 ||*option==3)
   {
@@ -4720,15 +4701,14 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
     else
       sprintf(filename_buff, "%s",filename);
 
-    apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
     apf::MeshEntity* e;
-    int dim=2, num_ent=m3dc1_mesh::instance()->mesh->count(2);
+    int dim=2, num_ent=mesh->count(2);
 
     vector<double> geoId (num_ent);
     apf:: MeshIterator* it = mesh->begin(dim);
     while ((e = mesh->iterate(it)))
     {
-      int ent_id = getMdsIndex(m3dc1_mesh::instance()->mesh, e);
+      int ent_id = getMdsIndex(mesh, e);
       int geom_class_dim,geom_class_id;
       m3dc1_ent_getgeomclass (&dim, &ent_id, &geom_class_dim, &geom_class_id);
       geoId.at(ent_id)=geom_class_id;
@@ -4752,7 +4732,6 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
     int fieldID=12;
     double dofBuff[1024];
     m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[fieldID];
-    apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
     apf::Field* f = mf ->get_field();
     int numDof = countComponents(f);
     apf::MeshTag* tag = mesh->createDoubleTag("field12", numDof);
@@ -4775,7 +4754,7 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
       allFields.push_back(f);
       mesh->removeField(f);
     }
-    m3dc1_mesh::instance()->mesh->writeNative(filename_buff);
+    mesh->writeNative(filename_buff);
     for (std::size_t i = 0; i < allFields.size(); i++) {
       apf::unfreeze(allFields[i]);
       mesh->addField(allFields[i]);
@@ -4787,6 +4766,83 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
       std::cout<<"[M3D-C1 INFO] "<<__func__<<": file \""<<filename_buff<<"\"\n";
   }
   return M3DC1_SUCCESS;
+}
+
+void print_mesh_info (apf::Mesh2* m)
+{
+  if (!PCU_Comm_Self()) std::cout<<"\n===== mesh size =====\n";
+  
+  int* local_entity_count = new int[4*PCU_Comm_Peers()];
+  int* own_entity_count = new int[4*PCU_Comm_Peers()];
+
+  for (int i=0; i<4*PCU_Comm_Peers();++i)
+    local_entity_count[i]=own_entity_count[i]=0;
+  
+  apf::MeshEntity* e;
+  int self = PCU_Comm_Self();
+  
+  for (int d=0; d<4;++d)
+  { 
+    local_entity_count[4*self+d] = m->count(d);
+    apf::MeshIterator* it = m->begin(d);
+    while ((e = m->iterate(it)))
+    {
+      if (m->getOwner(e)==self)
+        ++own_entity_count[4*PCU_Comm_Self()+d];
+    }
+    m->end(it);
+  }
+  
+  int* global_local_entity_count = new int[4*PCU_Comm_Peers()];
+  int* global_own_entity_count = new int[4*PCU_Comm_Peers()];
+      
+  MPI_Allreduce(local_entity_count, global_local_entity_count, 4*PCU_Comm_Peers(),
+                MPI_INT, MPI_SUM, PCU_Get_Comm());
+      
+  MPI_Allreduce(own_entity_count, global_own_entity_count, 4*PCU_Comm_Peers(),
+                MPI_INT, MPI_SUM, PCU_Get_Comm());
+
+  if (!PCU_Comm_Self())
+  {
+    int* global_entity_count = new int[4];
+    global_entity_count[0]=global_entity_count[1]=global_entity_count[2]=global_entity_count[3]=0;
+    for (int d=0; d<4;++d)
+    {
+      for (int p=0; p<PCU_Comm_Peers();++p)
+        global_entity_count[d] += global_own_entity_count[p*4+d];
+    }
+
+    for (int p=0; p<PCU_Comm_Peers(); ++p)
+      std::cout<<"(p"<<p<<") # local ent: v "<<global_local_entity_count[p*4]
+        <<", e "<<global_local_entity_count[p*4+1]
+        <<", f "<<global_local_entity_count[p*4+2]
+        <<", r "<<global_local_entity_count[p*4+3]<<"\n";
+    std::cout<<"\n";
+    for (int p=0; p<PCU_Comm_Peers(); ++p)
+      if (global_own_entity_count[p*4])
+        std::cout<<"(p"<<p<<") # own ent: v "<<global_own_entity_count[p*4]
+          <<", e "<<global_own_entity_count[p*4+1]
+          <<", f "<<global_own_entity_count[p*4+2]
+          <<", r "<<global_own_entity_count[p*4+3]<<"\n";
+    std::cout<<"\n";
+
+    std::cout<<"# global ent: v "<<global_entity_count[0]<<", e "<<global_entity_count[1]
+              <<", f "<<global_entity_count[2]<<", r "<<global_entity_count[3]<<"\n\n";
+
+    delete [] global_entity_count;
+                                    
+    }
+
+  delete [] local_entity_count;
+  delete [] global_local_entity_count;
+  delete [] own_entity_count;
+  delete [] global_own_entity_count;
+}
+
+void m3dc1_mesh_verify()
+{
+  apf::verify(m3dc1_mesh::instance()->mesh, false);
+  print_mesh_info(m3dc1_mesh::instance()->mesh);
 }
 
 int sum_edge_data (double * data, int* size)
@@ -5250,18 +5306,19 @@ int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFace
   }
 
   m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);
+
   return M3DC1_SUCCESS;
 }
 
 // Snapping Operation during mesh adapt is not supported with current analytical model
-// The new vertices after adapt are not reparameterized on the model edge since snapping 
-// is disabled. Without parametric coordinates, the current methods return wrong normal 
-// vectors. This function evaluates the normal vector on the new vertices at the boundary 
+// The new vertices after adapt are not reparameterized on the model edge since snapping
+// is disabled. Without parametric coordinates, the current methods return wrong normal
+// vectors. This function evaluates the normal vector on the new vertices at the boundary
 // after the mesh adapt.
 // Will be obselete when snapping will be supported (in plans for near future)
 void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec)
 {
-  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   int entType = m->getType(v);
   assert(entType == 0);	
   
@@ -5297,11 +5354,10 @@ void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec)
   double xMax = m3dc1_model::instance()->boundingBox[2];
   double yMax = m3dc1_model::instance()->boundingBox[3];
   double center[2] = {(xMin+xMax)/2, (yMin+yMax)/2};
-  
-  
+
   // Find the vector from the vertex v to center point
-  double vec[2] = {center[0] - pt0[0], center[1] - pt0[1]}; 
-  
+  double vec[2] = {center[0] - pt0[0], center[1] - pt0[1]};
+
   // Find the normal vector (temporaray since direction needs to be adjusted)
   double normTemp[2];
   normTemp[0] = dy/len;
@@ -5311,7 +5367,7 @@ void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec)
   double dir = normTemp[0]*vec[0] + normTemp[1]*vec[1];
 
   // Find the final normal vector
-  if (dir > 0) 
+  if (dir > 0)
   {
     normalVec[0] = -normTemp[0];
     normalVec[1] = -normTemp[1];
@@ -5319,11 +5375,9 @@ void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec)
   else
   {
     normalVec[0] = normTemp[0];
-    normalVec[1] = normTemp[1];	
+    normalVec[1] = normTemp[1];
   }
 }
-
-
 
 #ifdef M3DC1_TRILINOS
 #include <Epetra_MultiVector.h>

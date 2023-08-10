@@ -1131,48 +1131,6 @@ int matrix_solve::solve(FieldID field_id)
   return M3DC1_SUCCESS;
 }
 
-
-// solve with non-zero initial guess
-int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess)
-{
-  Vec x, b;
-  copyField2PetscVec(field_id, b, get_scalar_type());
-  copyField2PetscVec(xVec_guess,x, get_scalar_type());
-  int ierr;
-  KSPType ksptype;
-
-  if(!kspSet) setKspType();
-  if(kspSet==2) {
-         ierr= KSPSetOperators(*ksp,*A,*A); CHKERRQ(ierr);
-         if (!PCU_Comm_Self())
-           std::cout <<"\t-- Update A, Reuse Preconditioner" << std::endl;
-
-  }
-
-  ierr = KSPGetType(*ksp, &ksptype); CHKERRQ(ierr);
-  if( strcmp(ksptype,"preonly")==0 ){
-    ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_FALSE); CHKERRQ(ierr);
-    if (PCU_Comm_Self() == 0)
-      std::cout <<"\t Due to ksptype=\"preonly\", the initial guess is set to be Zero."<< std::endl; 
-  }
-  else{
-    ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_TRUE); CHKERRQ(ierr);
-  }
-  ierr = KSPSolve(*ksp, b, x); 
-  CHKERRQ(ierr);
-  ierr = KSPGetIterationNumber(*ksp, &its);
-  CHKERRQ(ierr);
-
-  if (PCU_Comm_Self() == 0)
-    std::cout <<"\t-- # solver iterations " << its << std::endl;
- 
-  copyPetscVec2Field(x, field_id, get_scalar_type());
-
-  ierr = VecDestroy(&b); CHKERRQ(ierr);
-  ierr = VecDestroy(&x); CHKERRQ(ierr);
-  mat_status = M3DC1_SOLVED;
-}
-
 int matrix_solve:: setKspType()
 {
   PetscErrorCode ierr;

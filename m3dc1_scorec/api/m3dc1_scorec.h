@@ -1,6 +1,7 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+
+  (c) 2005-2023 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -71,7 +72,9 @@ int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); /
 int m3dc1_mesh_load(char* mesh_file);
 void m3dc1_mesh_load_3d(char* mesh_file, int* num_plane);
 
-int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk file with field; 1:smb file
+// option 0: vtk file with field; 1:smb file
+int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/);
+void m3dc1_mesh_verify();
 
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
@@ -209,8 +212,9 @@ int m3dc1_matrix_setbc(int* matrix_id, int* row);
 int m3dc1_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *columns, double * values);
 
 int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol); //solveSysEqu_
+void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess);
+
 int m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num);
-int m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess); //solveSysEqu_
 int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputvecid); //matrixvectormult_
 
 // for performance test

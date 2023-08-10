@@ -20,6 +20,7 @@
 #define m3dc1_spr_adapt m3dc1_spr_adapt_
 #define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
+#define m3dc1_mesh_verify m3dc1_mesh_verify
 #define m3dc1_mesh_getnument m3dc1_mesh_getnument_
 #define m3dc1_mesh_getnumghostent m3dc1_mesh_getnumghostent_
 #define m3dc1_mesh_getnumownent m3dc1_mesh_getnumownent_

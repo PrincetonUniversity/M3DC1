@@ -12,8 +12,6 @@
    git push origin master
 
 3. load modules and set environment
-   module load cmake python/3.9-anaconda-2021.11
-
    for development modules:
        export M3DC1_CODE_DIR=$HOME/src/M3DC1  [for example]
        module use $M3DC1_CODE_DIR/unstructured/modules/perlmutter
