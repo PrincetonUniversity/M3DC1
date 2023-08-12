@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH -J RMP_nonlin
+#SBATCH -n 64
+#SBATCH --time=00:30:00
+#SBATCH -p sched_mit_psfc_r8
+#SBATCH -o C1stdout
+
+export SLURM_CPU_BIND="cores"
+echo $SLURM_CPUS_ON_NODE
+
+touch started
+
+
+# partition mesh
+PARTS=16
+cp -p ../mesh/part* .
+#$M3DC1_MPIRUN -n $PARTS /orcd/nese/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2/bin/split_smb circle-0.10-0.0-0.0-1K.smb part.smb $PARTS
+echo $? > mesh_partitioned
+
+
+# Run M3D-C1
+mpirun -n $SLURM_NTASKS m3dc1_3d -options_file options_bjacobi.type_mumps
+
+
+touch finished
