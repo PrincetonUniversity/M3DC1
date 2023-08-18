@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH -A pppl
+#SBATCH --reservation=test
 #SBATCH -n 16
 #SBATCH -J m3dc1_regtest_adapt
 #SBATCH -t 0:30:00
