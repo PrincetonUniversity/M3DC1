@@ -224,15 +224,17 @@ int m3dc1_matrix_print(int* matrix_id);
 #endif // #ifdef M3DC1_PETSC
 
 // adaptation
-int adapt_by_field (int * fieldId, double* psi0, double * psil);
+int adapt_by_field (int * fieldId, double* psi0, double * psil, bool* do_snap);
 int set_adapt_p (double * pp);
-int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
+int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, 
+		int* option, bool* do_snap); // option 0: local error control; 1 global
 // adapt the mesh on specific model faces based on psi field
 int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber);
 
 // 3D Adaptation
 void m3dc1_spr_adapt (int * fieldId, int * index, int * ts,
-    double * ar, double * max_size, int * refine_level, int * coarsen_level, bool* update);
+    double * ar, double * max_size, int * refine_level, int * coarsen_level, 
+    bool* update, bool* do_snap);
 int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);
 int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node, int * option);
 // for adaptation
