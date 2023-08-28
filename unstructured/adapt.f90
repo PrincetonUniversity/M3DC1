@@ -101,6 +101,11 @@ module adapt
        end do
     end if
 
+    if(adapt_coil_delta.gt.0) then
+       call load_coils(xc_adapt,zc_adapt,ic_adapt,numcoils_adapt, &
+            'adapt_coil.dat','adapt_current.dat')
+    end if
+
     numelms = local_elements()
     do itri=1,numelms
 !       call zonfac(itri,izone,izonedim)
@@ -207,15 +212,15 @@ module adapt
 
        ! do adaptation around coils
        if(adapt_coil_delta.gt.0) then
-          call load_coils(xc_adapt,zc_adapt,ic_adapt,numcoils_adapt, &
-               'adapt_coil.dat','adapt_current.dat')
           temp79c = 0.
           do j=1, numcoils_adapt
              temp79c = temp79c + &
                   exp(-((x_79 - xc_adapt(j))**2 + (z_79 - zc_adapt(j))**2) / &
                        (2.*adapt_coil_delta**2))
           end do
+          where(temp79c.ne.temp79c) temp79c = 0.
           where(real(temp79c).gt.1.) temp79c = 1.
+          where(real(temp79c).lt.0.) temp79c = 0.
           temp79b = temp79b*(1.-temp79c) + temp79c
        end if
 
