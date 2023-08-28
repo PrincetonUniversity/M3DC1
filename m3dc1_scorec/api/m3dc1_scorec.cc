@@ -3928,7 +3928,7 @@ int m3dc1_field_sum_plane (FieldID* /* in */ field_id)
 //*******************************************************
 void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
     double* ar, double* max_size, int* refine_level, 
-    int* coarsen_level, bool* update)
+    int* coarsen_level, bool* update, bool* do_snap)
 //*******************************************************
 {
   char filename[256];
@@ -4090,6 +4090,15 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
 
     in->shouldSnap=false;
     in->shouldTransferParametric=false;
+
+    if (*do_snap)
+    {
+      in->shouldSnap=true;
+      in->shouldTransferParametric=true;
+      if (!PCU_Comm_Self())
+        std::cout<<"[M3D-C1 INFO] "<<__func__<<" snapping turned on\n";
+    }
+
     in->shouldRunPostZoltan = true;
     in->goodQuality = 0.5;
     in->maximumIterations = (*refine_level) + 1;
@@ -4134,10 +4143,17 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
 #else
       ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
 #endif
-      
       in->shouldSnap=false;
-      in->shouldFixShape = true;
       in->shouldTransferParametric=false;
+
+      if (*do_snap)
+      {
+        in->shouldSnap=true;
+        in->shouldTransferParametric=true;
+        if (!PCU_Comm_Self())
+          std::cout<<"[M3D-C1 INFO] "<<__func__<<" snapping turned on\n";
+      }
+      in->shouldFixShape = true; 
       in->shouldRunPostZoltan = true;
       in->goodQuality = 0.5;
       in->maximumIterations = (*refine_level);
@@ -4216,7 +4232,8 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
 }
 
 int adapt_time=0;
-int adapt_by_field (int * fieldId, double* psi0, double * psil)
+int adapt_by_field (int * fieldId, double* psi0, double * psil,
+		   bool* do_snap)
 {
   if (!PCU_Comm_Self())
     std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
@@ -4347,6 +4364,15 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil)
 
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
+
+  if (*do_snap)
+  {
+    in->shouldSnap=true;
+    in->shouldTransferParametric=true;
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 INFO] "<<__func__<<" snapping turned on\n";
+  }
+
 #ifdef DISABLE_ZOLTAN
   in->shouldRunPostZoltan = false;
 #else
@@ -4463,7 +4489,8 @@ int set_adapt_p (double * pp)
 // int* option: Parameter "adapt_control" from the user input parameter file and is either 0 or 1
 //    0: adapt_target_error is global (integral over the domain)
 //    1: adapt_target_error is local (integral over the element)
-int adapt_by_error_field (double * errorData, double * errorAimed, int * max_adapt_node, int * option)
+int adapt_by_error_field (double * errorData, double * errorAimed, 
+		int* max_adapt_node, int* option, bool* do_snap)
 {
   if (!PCU_Comm_Self()) 
   std::cout<<"[M3D-C1 INFO] running adaptation by error estimator\n";
@@ -4607,8 +4634,17 @@ int adapt_by_error_field (double * errorData, double * errorAimed, int * max_ada
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
 #endif
   in->maximumIterations = 5;
+
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
+
+  if (*do_snap)
+  {
+    in->shouldSnap=true;
+    in->shouldTransferParametric=true;
+    if (!PCU_Comm_Self())
+      std::cout<<"[M3D-C1 INFO] "<<__func__<<" snapping turned on\n";
+  }
 #ifdef DISABLE_ZOLTAN
   in->shouldRunPostZoltan = false;
 #else

@@ -6,7 +6,7 @@ module adapt
   integer :: iadapt_ntime
   real :: adapt_target_error
   integer :: iadapt_max_node
-  integer :: adapt_control
+  integer :: adapt_control, iadapt_snap, iadaptFaceNumber
   real :: iadapt_order_p
   data iadapt_order_p /3/
   data iadapt_max_node /100/
@@ -20,7 +20,6 @@ module adapt
   
   real :: adapt_zlow, adapt_zup
   logical :: do_z_coarsen
-  integer :: iadaptFaceNumber
   integer, parameter :: maxqs = 32
   real, dimension(maxqs) :: adapt_qs
  
@@ -264,7 +263,7 @@ module adapt
         call adapt_model_face(temporary_field%vec%id,psimin,psibound,iadaptFaceNumber)
     else
 #endif
-        call adapt_by_field(temporary_field%vec%id,psimin,psibound)
+        call adapt_by_field(temporary_field%vec%id,psimin,psibound, iadapt_snap)
 #ifdef ADAPT
     endif
 #endif
@@ -336,7 +335,7 @@ module adapt
   !  if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
     call straighten_fields()
 #ifdef ADAPT
-    call m3dc1_spr_adapt(fid,idx,t,ar,maxsize,refinelevel,coarsenlevel,update)
+    call m3dc1_spr_adapt(fid,idx,t,ar,maxsize,refinelevel,coarsenlevel,update, iadapt_snap)
 #endif
     call space(0)
     call update_nodes_owned()
@@ -525,7 +524,7 @@ module adapt
        call set_mesh_size_bound (abs_size, rel_size)
        call set_adapt_p(iadapt_order_p)
        call adapt_by_error_field(sqrt(node_error(1,:)**2+node_error(2,:)**2), adapt_target_error, &
-iadapt_max_node, adapt_control);
+            iadapt_max_node, adapt_control, iadapt_snap);
        if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
        if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
        call space(0)
