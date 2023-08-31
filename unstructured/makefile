@@ -243,6 +243,7 @@ bin : a2cc mackenbach_profiles
 		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/collapse bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/m3dc1_mfmgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/convert_sim_sms bin ; \
 	fi
 	if [ -f $(SCOREC_UTIL_DIR)/split_smb/make_model ]; then \
