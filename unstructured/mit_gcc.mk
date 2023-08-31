@@ -3,7 +3,7 @@ CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -w -fallow-argument-mismatch -O2 
+  FOPTS  := $(FOPTS) -w -fallow-argument-mismatch -O2
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g 
@@ -43,16 +43,17 @@ else
   endif
 endif
 
-SCOREC_BASE_DIR=/net/eofe-netapp-nfs/home/jinch731/core/mit-gcc-openmpi
 #SCOREC_BASE_DIR=/orcd/nese/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2
+SCOREC_BASE_DIR=/orcd/nese/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc-3.19.2
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
+M3DC1_SCOREC_DIR=$(SCOREC_BASE_DIR)
 
 ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
+  SCOREC_DIR=$(M3DC1_SCOREC_DIR)/$(SCORECVER)
 else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)
+  SCOREC_DIR=$(M3DC1_SCOREC_DIR)
 endif
 
 ifeq ($(COM), 1)
@@ -64,15 +65,6 @@ endif
 SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
-
-ifeq ($(ENABLE_ZOLTAN), 0)
-  ZOLTAN_LIB=
-  BIN_POSTFIX := $(BIN_POSTFIX)-nozoltan
-  CCOPTS := $(CCOPTS) -DDISABLE_ZOLTAN
-else
-  ZOLTAN_LIB=-lzoltan
-endif 
-
 
 LIBS = 	\
 	$(SCOREC_LIB) \

@@ -8,7 +8,7 @@ module kprad_m3dc1
 
   implicit none
 
-  type(field_type), allocatable :: kprad_n(:)
+  type(field_type), allocatable :: kprad_n(:), kprad_n_prev(:)
   type(field_type), allocatable, private :: kprad_temp(:)
   type(field_type) :: kprad_rad      ! power lost to line radiation
   type(field_type) :: kprad_brem     ! power lost to bremsstrahlung
@@ -58,6 +58,7 @@ contains
     if(ierr.ne.0) return
     
     allocate(kprad_n(0:kprad_z))
+    if(isolve_with_guess==1) allocate(kprad_n_prev(0:kprad_z))
     allocate(kprad_temp(0:kprad_z))
     allocate(kprad_particle_source(0:kprad_z))
     allocate(lp_source_rate(0:kprad_z))
@@ -87,6 +88,13 @@ else
        call create_field(kprad_particle_source(i))
        kprad_particle_source(i) = 0.
     end do
+
+    if(isolve_with_guess==1) then
+      do i=0, kprad_z
+         call create_field(kprad_n_prev(i))
+      enddo
+    endif
+
     call create_field(kprad_rad)
     call create_field(kprad_brem)
     call create_field(kprad_ion)
@@ -107,6 +115,7 @@ endif
   ! ~~~~~~~~~~~~~
   !==================================
   subroutine kprad_destroy
+    use basic, only:isolve_with_guess
     implicit none
 
     integer :: i
@@ -120,6 +129,12 @@ endif
           call destroy_field(kprad_particle_source(i))
        end do
        deallocate(kprad_n, kprad_temp)
+       if(isolve_with_guess==1) then
+          do i=0, kprad_z
+             call destroy_field(kprad_n_prev(i))
+          enddo
+          deallocate(kprad_n_prev)
+       endif       
        call destroy_field(kprad_rad)
        call destroy_field(kprad_brem)
        call destroy_field(kprad_ion)
@@ -347,7 +362,11 @@ endif
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(j)%vec, rhs%vec)
 !       call boundary_kprad(rhs%vec, kprad_n(j))
-       call newsolve(nmat_lhs, rhs%vec, ierr)
+       if(isolve_with_guess==1) then
+         call newsolve_with_guess(nmat_lhs, rhs%vec, kprad_n_prev(j)%vec, ierr)
+       else
+         call newsolve(nmat_lhs, rhs%vec, ierr)
+       endif 
        if(is_nan(rhs%vec)) ierr = 1
        call mpi_allreduce(ierr, itmp, 1, MPI_INTEGER, &
             MPI_MAX, MPI_COMM_WORLD, ier)
@@ -359,6 +378,7 @@ endif
        else
           kprad_n(j) = rhs
        end if
+       if(isolve_with_guess==1) kprad_n_prev(j) = kprad_n(j)
     end do
 
 
@@ -432,7 +452,11 @@ endif
        rhs = 0.
        call matvecmult(nmat_rhs, kprad_n(0)%vec, rhs%vec)
        ierr = 0
-       call newsolve(nmat_lhs, rhs%vec, ierr)
+       if(isolve_with_guess==1) then
+         call newsolve_with_guess(nmat_lhs, rhs%vec, kprad_n_prev(0)%vec, ierr)
+       else
+         call newsolve(nmat_lhs, rhs%vec, ierr)
+       endif 
        if(is_nan(rhs%vec)) ierr = 1
        call mpi_allreduce(ierr, itmp, 1, MPI_INTEGER, &
             MPI_MAX, MPI_COMM_WORLD, ier)
@@ -444,6 +468,7 @@ endif
        else
           kprad_n(0) = rhs          
        end if
+       if(isolve_with_guess==1) kprad_n_prev(0) = kprad_n(0)
     end if
 
 

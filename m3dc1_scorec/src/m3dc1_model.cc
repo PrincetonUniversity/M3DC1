@@ -184,6 +184,18 @@ void make_edge_topo(gmi_model* m, gmi_ent* e, int v0tag, int v1tag)
 }
 
 // **********************************************
+void make_face_topo (gmi_ent* face, std::vector <int> tagsOfEdgesOnFace)
+// **********************************************
+{
+  agm_bdry b = add_bdry(m3dc1_model::instance()->model, face);
+  for (int i = 0; i < tagsOfEdgesOnFace.size(); ++i)
+  {
+    agm_use u1 = add_adj(m3dc1_model::instance()->model, b, tagsOfEdgesOnFace[i]);
+    gmi_add_analytic_reparam(m3dc1_model::instance()->model, u1, faceFunction, 0);
+  }
+}
+
+// **********************************************
 void m3dc1_model::load_analytic_model(const char *name)
 // **********************************************
 {
@@ -224,11 +236,15 @@ void load_model(const char* filename)
   int numL,separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop;
   fscanf(fp,"%d %d %d %d %d\n", &numL, &separatrixLoop, &innerWallLoop, &outerWallLoop, &vacuumLoop);
 
+  std::vector<int> loop_ids;
+  loop_ids.resize(numL);
+
   for( int i=0; i< numL; i++)
   {
     int numE;
-    int loop;
+    int loop; // loop ID
     fscanf(fp,"%d %d\n", &loop, &numE);
+    loop_ids[i] = loop;
     // first read all vtx on the loop
     for( int j=0; j<numE; j++)
     {
@@ -287,8 +303,12 @@ void load_model(const char* filename)
   int facePeriodic[2] = {0, 0};
   double faceRanges[2][2] = {{0,0},{0,0}};
   for (int i=1; i<=numL; ++i)
-    gmi_ent* ge=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
+  {
+    gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
                      faceFunction, facePeriodic, faceRanges, NULL);
+
+    make_face_topo(gf, loopContainer[loop_ids[i-1]]);
+  }
 }
 
 // **********************************************

@@ -1,3 +1,12 @@
+/******************************************************************************
+
+  (c) 2005-2023 Scientific Computation Research Center,
+      Rensselaer Polytechnic Institute. All rights reserved.
+
+  This work is open source software, licensed under the terms of the
+  BSD license as described in the LICENSE file in the top-level directory.
+
+*******************************************************************************/
 #include <PCU.h>
 #include <MeshSim.h>
 #include <SimPartitionedMesh.h>
@@ -41,7 +50,7 @@ int main(int argc, char** argv)
   }
 
 #ifdef LICENSE
-  SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adapt,meshsim_adv",simLic);
+  SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adv",simLic);
 #else
   Sim_readLicenseFile(simLic);
 #endif

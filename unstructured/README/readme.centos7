@@ -24,11 +24,11 @@
            (examples available in /p/tsc/m3dc1/lib/SCORECLib/adapt-examples/pellet-*p)
         
 5. mesh utility
-   - m3dc1_meshgen and convert_polar: 
+   - mesh generation (m3dc1_meshgen, m3dc1_mfmgen) and convert_polar: 
      module load simmodsuite/16.0-210626
      /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/16.0-220226/bin
-   - the rest:
-     /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/petsc3.13.5/bin
+   - the rest: see $SCOREC_UTIL_DIR in ARCH.mk file.
+     /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/petsc-3.13.5/bin
 
 6. run a job 
    use superlu_dist for real 2D and 3D runs

@@ -186,9 +186,9 @@ subroutine onestep
 
 ! if(eqsubtract.eq.0) call subtract_axi    !DEBUG
   call export_time_advance_vectors
-  if (irunaway .eq. 2) then
-     call runaway_advance
-  endif
+  !if (irunaway .eq. 2) then
+  !   call smooth_runaway
+  !endif
 
   ! Calculate all quantities derived from basic fields
   call find_lcfs()

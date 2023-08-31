@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2014 Scientific Computation Research Center, 
+  (c) 2005-2023 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -21,7 +21,7 @@
 #include <vector>
 #include <assert.h>
 
-#include "/orcd/nese/psfc/001/software/simmetrix/SimModSuite18.0-230521/include/SimUtil.h"
+//#include "/orcd/nese/psfc/001/software/simmetrix/SimModSuite18.0-230521/include/SimUtil.h"
 #include "SimModel.h"
 #include "SimAdvModel.h"
 #include "SimDisplay.h"

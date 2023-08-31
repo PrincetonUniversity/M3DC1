@@ -19,11 +19,11 @@ ifeq ($(OMP), 1)
   CCOPTS := $(CCOPTS) -mp
 endif
 
-CC = mpicc
-CPP = mpic++
-F90 = mpifort
-F77 = mpifort
-LOADER =  mpifort
+CC = /opt/cray/pe/mpich/8.1.25/ofi/nvidia/20.7/bin/mpicc
+CPP = /opt/cray/pe/mpich/8.1.25/ofi/nvidia/20.7/bin/mpic++
+F90 = /opt/cray/pe/mpich/8.1.25/ofi/nvidia/20.7/bin/mpifort
+F77 = /opt/cray/pe/mpich/8.1.25/ofi/nvidia/20.7/bin/mpifort
+LOADER = /opt/cray/pe/mpich/8.1.25/ofi/nvidia/20.7/bin/mpifort
 FOPTS := $(FOPTS)
 
 F90OPTS = $(F90FLAGS) $(FOPTS) 
@@ -50,8 +50,8 @@ else
   endif
 endif
 
-#SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/scorec-pmt/nvidia8.3.3-openmpi3.1.5/petsc3.19.1/
 SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core/upgrade-nvhpc833-pgpu
+#SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/scorec-pmt/gpu-nvidia8.3.3-mpich8.1.25/petsc3.19.1
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
@@ -72,23 +72,12 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
 
-ifeq ($(ENABLE_ZOLTAN), 0)
-  ZOLTAN_LIB=
-  BIN_POSTFIX := $(BIN_POSTFIX)-nozoltan
-  CCOPTS := $(CCOPTS) -DDISABLE_ZOLTAN
-else
-  ZOLTAN_LIB=-lzoltan
-endif 
-
-
 LIBS = 	\
 	$(SCOREC_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
 	/opt/cray/pe/lib64/libmpi_gtl_cuda.so.0
-#-L$(HDF5_ROOT)/lib -lhdf5hl_fortran_parallel -lhdf5_fortran_parallel -lhdf5_hl -lhdf5 \
-#-L$(FFTW_DIR) -lfftw3f_threads -lfftw3_threads -lfftw3_mpi -lfftw3f_mpi -lfftw3f -lfftw3
 
-INCLUDE = $(PETSC_FC_INCLUDES) #-I$(FFTW_INC) -I$(HDF5_ROOT)/include \
+INCLUDE = $(PETSC_FC_INCLUDES) -I$(SCOREC_BASE_DIR)/include -I$(SCOREC_DIR)/include
 
 ifeq ($(ST), 1)
   LIBS += -Wl,--start-group -L/global/homes/j/jinchen/project/NETCDF/buildnvhpc2/lib -Wl,-rpath,/global/homes/j/jinchen/project/NETCDF/buildnvhpc2/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lnetcdf -lnetcdff -lz -Wl,--end-group

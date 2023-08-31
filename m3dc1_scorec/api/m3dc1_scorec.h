@@ -1,6 +1,7 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+
+  (c) 2005-2023 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -71,7 +72,9 @@ int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); /
 int m3dc1_mesh_load(char* mesh_file);
 void m3dc1_mesh_load_3d(char* mesh_file, int* num_plane);
 
-int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk file with field; 1:smb file
+// option 0: vtk file with field; 1:smb file
+int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/);
+void m3dc1_mesh_verify();
 
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
@@ -209,6 +212,8 @@ int m3dc1_matrix_setbc(int* matrix_id, int* row);
 int m3dc1_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *columns, double * values);
 
 int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol); //solveSysEqu_
+void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess);
+
 int m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num);
 int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputvecid); //matrixvectormult_
 
@@ -219,15 +224,17 @@ int m3dc1_matrix_print(int* matrix_id);
 #endif // #ifdef M3DC1_PETSC
 
 // adaptation
-int adapt_by_field (int * fieldId, double* psi0, double * psil);
+int adapt_by_field (int * fieldId, double* psi0, double * psil, bool* do_snap);
 int set_adapt_p (double * pp);
-int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
+int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, 
+		int* option, bool* do_snap); // option 0: local error control; 1 global
 // adapt the mesh on specific model faces based on psi field
 int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber);
 
 // 3D Adaptation
 void m3dc1_spr_adapt (int * fieldId, int * index, int * ts,
-    double * ar, double * max_size, int * refine_level, int * coarsen_level, bool* update);
+    double * ar, double * max_size, int * refine_level, int * coarsen_level, 
+    bool* update, bool* do_snap);
 int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);
 int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node, int * option);
 // for adaptation

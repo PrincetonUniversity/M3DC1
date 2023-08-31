@@ -471,6 +471,8 @@ module basic
   integer :: mod_null_rs, mod_null_rs2  ! if 1, modify xnull,znull or xnull2,znull2 at restart
   real :: temax            ! maximum temperature
 
+  integer :: isolve_with_guess=0 ! (=0; use zero initial guess); (=1; use previous step value as non-zero initial guess)
+
   ! PID controllers
   type(pid_control), save :: i_control, n_control
 
