@@ -162,11 +162,9 @@ Program Reducedquintic
   call input
 
 !if using SCOREC set adapt verbosity output if iprint.ge.1
-#ifdef ADAPT
   if (iprint.ge.1) then
     call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
   end if
-#endif
 
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
