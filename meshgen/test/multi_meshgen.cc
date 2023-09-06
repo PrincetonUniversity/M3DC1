@@ -65,7 +65,6 @@ char simLic[128]="/net/common/meshSim/license/license.txt";
 extern pGVertex GE_insertVertex(pGEdge, double);
 
 int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry);
-int make_sim_model_old(pGModel& sim_model, vector< vector<int> >& face_bdry);
 
 void messageHandler(int type, const char *msg);
 using namespace std;
@@ -82,7 +81,6 @@ int modelType=0;
 int reorder=0;
 int useVacuum = 0;
 int useVacuumParams=1;
-int useOld=0;
 int useOriginal = 1;
 int numInterPts =20;
 double* meshSizes;
@@ -114,6 +112,9 @@ vector<double> interpolate_points;
 std::map <int, int> loopsMap;
 std::map <int, double> loopSizeMap;
 std::map <int, double> faceSizeMap;
+std::map<int, std::vector<pGEdge> > edgesOnLoop;
+std::map<pGEdge, int> ge_edgeid;
+
 int vacuumLoopId = -1;
 double vacuumLoopMeshSize = 0.0;
 int useThickWall = -1;
@@ -132,8 +133,7 @@ void inner_wall_pts(int num_pts);
 void inner_outer_wall_pts();
 
 bool curveOrientation(std::vector <double> &curvePts);
-int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edgesOnLoop);
-void setParallelVertices(int loopInner, int loopOuter, std::map< int, std::vector<pGEdge> > edgesOnLoop);
+int outerLoop(std::vector <int> loops);
 
 int main(int argc, char *argv[])
 {
@@ -146,9 +146,6 @@ int main(int argc, char *argv[])
     MPI_Finalize();
     return 1;
   }
-
-  if (argc==3)
-    useOld = atoi(argv[2]);
 
   FILE* infp= fopen(argv[1],"r");
   if (!infp)
@@ -247,12 +244,10 @@ int main(int argc, char *argv[])
   else
   {
     get_multi_rgn();
-    std::cout << "Use Thick Wall = " << useThickWall << "\n";
     if (useThickWall > 0)
 	createFiniteThicknessWall(wallInLoopId, wallEdgeId,  wallOutLoopId);
     if (useVacuum > 0)
 	createVacuum(vacuumLoopId, vacuumLoopMeshSize);
- 
   } // numBdry>0
 
   char filename[256];
@@ -265,9 +260,6 @@ int main(int argc, char *argv[])
     sprintf(filename,"%s-%0.1f-%0.1f", modelName, width, height);
   else
     sprintf(filename,"%s", modelName);
-
-  sprintf(model_filename,"%s.txt", filename);
-  save_model(model_filename);
 
 #ifdef LICENSE
   SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adv",simLic);
@@ -287,13 +279,15 @@ int main(int argc, char *argv[])
   Progress_setDefaultCallback(progress);
 
   pGModel sim_model = GM_new(1);
-  if (useOld)
-    make_sim_model_old (sim_model, face_bdry);
-  else
-    make_sim_model(sim_model, face_bdry);
+  make_sim_model(sim_model, face_bdry);
+
+  // write simmetrix model file
   sprintf(model_filename,"%s.smd",filename);
   GM_write(sim_model,model_filename,0,0);
 
+  // write M3DC1-readable model file
+  sprintf(model_filename,"%s.txt", filename);
+  save_multi_rgn_model(model_filename, face_bdry, edgesOnLoop, ge_edgeid);
 
   //pParMesh sim_mesh = PM_new(0,sim_model,PMU_size());
   pMesh sim_mesh = M_new(0,sim_model);
@@ -404,7 +398,6 @@ int main(int argc, char *argv[])
   else
     sprintf(mesh_filename,"%s-%d.vtk",filename, num_mfaces);
   std::cout <<"m3dc1_meshgen: mesh is saved in \""<<mesh_filename<<"\" for Paraview\n";
-
 
   std::cout<<"\n<< Check the attribute \"elem\" in Paraview for the element order! >>\n";
 
@@ -550,6 +543,7 @@ void inner_outer_wall_pts()
       num_ge = 1;
       loop_id = loopsMap[i];
       create_loop(&loop_id,&num_ge,outerWallEdges);
+
       set_outer_wall_boundary (&loop_id);
       if (wallInLoopId == loopsMap[i])
       {
@@ -560,127 +554,6 @@ void inner_outer_wall_pts()
     }  // for (int i=0; i<nout_bdryFile; ++i)
 }
 
-int make_sim_model_old (pGModel& sim_model, vector< vector<int> >& face_bdry)
-{
-  std::map< int, std::vector<int> > loopContainer;
-  std::map<int, std::pair<int, int> > edgeContainer;
-  std::map<int, int> edgeType;
-  std::map<int, std::vector<double> > vtxContainer;
-  export_model_data(vtxContainer, edgeType, edgeContainer, loopContainer);
-
-  std::map<int, pGVertex> vertices;
-  std::map<int, pGEdge> edges;
-  gmi_model* model = m3dc1_model::instance()->model;
-  int numL=loopContainer.size();
-
-#ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
-  pGIPart part = GM_rootPart(sim_model);
-#else
-  pGIPart part = GM_part(sim_model);
-#endif
-
-  pGRegion outerRegion = GIP_outerRegion(part);
-  vector<pGEdge> innerLoop;
-  vector<pGEdge> currentLoop;
-  for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
-  {
-    int numE=it->second.size();
-    for( int i=0; i<numE; i++)
-    {
-      int edge=it->second[i];
-      std::pair<int, int> vtx=edgeContainer[edge];
-      std::vector<double>& xyz= vtxContainer.at(vtx.first);
-      vertices[vtx.first] = GR_createVertex(GIP_outerRegion(part), &xyz[0]);
-    }
-    for( int j=0; j<numE; j++)
-    {
-      pGVertex startVert, endVert;
-      int edge = it->second[j];
-      gmi_ent* ae = gmi_find(model, 1, edge);
-
-      int curvType=edgeType.at(edge);
-      std::pair<int, int> vtx=edgeContainer[edge];
-      pCurve curve=NULL;
-      startVert=vertices[vtx.first];
-      endVert=vertices[vtx.second];
-      if ( startVert== NULL || endVert==NULL)
-      {
-        std::cout<<" invalid edge vertex not created edge tag "<<edge<<std::endl;
-        throw 1;
-      }
-      switch (curvType)
-      {
-        case LIN:
-          {
-            double xyz1[3], xyz2[3];
-            GV_point(startVert,xyz1);
-            GV_point(endVert,xyz2);
-            curve = SCurve_createLine(xyz1, xyz2);
-          }
-          break;
-        case BSPLINE:
-          {
-            M3DC1::BSpline** data= (M3DC1::BSpline**) gmi_analytic_data(model, ae);
-            vector<double> ctrlPtsX,ctrlPtsY, knots,weight;
-            int order;
-            data[0]->getpara(order, ctrlPtsX, knots, weight);
-            data[1]->getpara(order, ctrlPtsY, knots, weight);
-            int numPts=ctrlPtsX.size();
-            vector<double> ctrlPts3D (3*numPts);
-            for( int k=0; k<numPts; k++)
-            {
-              ctrlPts3D.at(3*k)=ctrlPtsX.at(k);
-              ctrlPts3D.at(3*k+1)=ctrlPtsY.at(k);
-              ctrlPts3D[3*k+2]=0.0;
-            }
-            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
-          }
-          break;
-        default:
-          std::cout<<" curve type not support by simmetrix "<<std::endl;
-          throw 1;
-          break;
-      }
-      pGEdge pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
-      edges[edge]=pe;
-      currentLoop.push_back( pe);
-    }
-
-    double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};
-    vector<pGEdge> faceEdges;
-    vector<int> faceDirs;
-    int loopDef[2] = {0,0};
-    int numloops=1;
-    if (GM_numFaces(sim_model)!=0)
-    {
-      numloops=2;
-      int innerEdgeNum=innerLoop.size();
-      loopDef[1]=innerEdgeNum;
-      for(int k=innerEdgeNum-1; k>=0; k--)
-      {
-        faceEdges.push_back(innerLoop.at(k));
-        faceDirs.push_back(0);
-      }
-    }
-    int currentEdgeNum=currentLoop.size();
-    for(int k=0; k<currentEdgeNum; k++)
-    {
-      faceEdges.push_back(currentLoop.at(k));
-      faceDirs.push_back(1);
-    }
-    innerLoop=currentLoop;
-    currentLoop.clear();
-    pSurface planarSurface;
-
-    planarSurface = SSurface_createPlane(corner,xPt,yPt);
-    GR_createFace(GIP_outerRegion(part), faceEdges.size(),&(faceEdges[0]),&(faceDirs[0]),numloops,loopDef,planarSurface,1);
-  }
-  printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
-  printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
-  printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
-  printf("Number of regions in Simmetrix model: %d\n",GM_numRegions(sim_model));
-}
-
 int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 {
   std::map< int, std::vector<int> > loopContainer;
@@ -689,10 +562,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
   std::map<int, std::vector<double> > vtxContainer;
   export_model_data(vtxContainer, edgeType, edgeContainer, loopContainer);
   std::map<int, pGVertex> vertices;
-  std::map<int, pGEdge> edges;
-  std::map< int, std::vector<pGEdge> > edgesOnLoop;
   gmi_model* model = m3dc1_model::instance()->model;  
-  int numL=loopContainer.size();
 
 #ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
   pGIPart part = GM_rootPart(sim_model);
@@ -702,7 +572,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 
   pGRegion outerRegion = GIP_outerRegion(part);
   // Now we'll add loops
-  for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
+  for (std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
   {
     int numE=it->second.size();
     // First we'll add the vertices on the loop
@@ -733,6 +603,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
             GV_point(endVert,xyz2);
             curve = SCurve_createLine(xyz1, xyz2);
             pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
+	    ge_edgeid[pe] = edge;
           }
           break;
         case BSPLINE: // bspline
@@ -764,6 +635,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
 	   else if (numE == 2)
 		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, edgeDir);
+	   ge_edgeid[pe] = edge;
           }
           break;
         default:
@@ -771,18 +643,17 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
           throw 1;
           break;
       }
-      edges[edge]=pe;
       GEN_setNativeIntAttribute(pe, it->first, "loopIdOnEdge");
       edgesOnLoop[it->first].push_back(pe);
-    }
-  }
+    } // for numE
+  } // for loopContainer
 
-    // Now add the faces
-    double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};  // the points defining the surface of the face
-    vector<pGEdge> faceEdges;
-    pGEdge ge;
-    vector<int> faceDirs;
-    int numLoops;
+  // Now add the faces
+  int numLoops;
+  double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};  // the points defining the surface of the face
+  vector<pGEdge> faceEdges;
+  pGEdge ge;
+  vector<int> faceDirs;
 
   for (int i=0; i<face_bdry.size(); ++i)
   {
@@ -793,43 +664,30 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
     std::vector <int> loopsOnFace;
     for (int idx = 0; idx < numLoops; ++idx)
 	loopsOnFace.push_back(face_bdry[i][idx]);
-    int outerMostLoop = outerLoop(loopsOnFace, edgesOnLoop);
+    int outerMostLoop = outerLoop(loopsOnFace);
     loopsOnFace.clear();
     for (int idx=0; idx<face_bdry[i].size(); ++idx)
     {
-	
-        int numEdgesOnLoop = edgesOnLoop.at(face_bdry[i][idx]).size();
-        loopDef[idx] = faceEdges.size();
-        double dirs[numEdgesOnLoop];
-	int edgeDir = 0;
-	if (face_bdry[i][idx] == outerMostLoop)
-		edgeDir = 1;
-	for (int nEdge = 0; nEdge < numEdgesOnLoop; ++nEdge)
-	{
-     		ge = edgesOnLoop.at(face_bdry[i][idx])[nEdge];
-        	faceEdges.push_back(ge);
-		faceDirs.push_back(edgeDir);
-	}
+      int numEdgesOnLoop = edgesOnLoop.at(face_bdry[i][idx]).size();
+      loopDef[idx] = faceEdges.size();
+      double dirs[numEdgesOnLoop];
+      int edgeDir = 0;
+      if (face_bdry[i][idx] == outerMostLoop)
+	edgeDir = 1;
+      for (int nEdge = 0; nEdge < numEdgesOnLoop; ++nEdge)
+      {
+	ge = edgesOnLoop.at(face_bdry[i][idx])[nEdge];
+       	faceEdges.push_back(ge);
+	faceDirs.push_back(edgeDir);
+      }
     } 
     pSurface planarSurface;
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
     pGFace gf = GR_createFace(GIP_outerRegion(part), faceEdges.size(),
                   &(faceEdges[0]),&(faceDirs[0]),numLoops,&(loopDef[0]),planarSurface,1);
-    std::cout<<"GR_createFace (";
-    for (int j=0; j<faceEdges.size(); ++j)
-      cout<<GEN_tag(faceEdges[j])<<" ";
-    cout<<")\n";
     GEN_setNativeIntAttribute(gf, i+1, "faceType");
   }
   
-  // The starting point of each curves may not be perfectly aligned. To align the starting points
-  // on two consective loops can be done using the routine "setParallelVertices". This will be needed to set layered
-  // mesh on finite thickness wall face.
-
-  int innerLoop = 4;
-  int outerLoop = 5;
-  //setParallelVertices(innerLoop, outerLoop, edgesOnLoop);
-   
   printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
   printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
   printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
@@ -879,7 +737,7 @@ bool curveOrientation(std::vector <double> &curvePts)
 	return false;
 }
 
-int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edgesOnLoop)
+int outerLoop(std::vector <int> loops)
 {
 	if (loops.size() == 1)
 		return loops[0];
@@ -908,29 +766,6 @@ int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edge
 	return index;
 }
 
-
-// The starting point of each curves may not be perfectly aligned. To align the starting points
-// on two consective loops can be done using the given routine. This will be needed to set layered
-// mesh on finite thickness wall face.
-void setParallelVertices(int loopInner, int loopOuter, std::map< int, std::vector<pGEdge> > edgesOnLoop)
-{
-  	pGEdge ge1 = edgesOnLoop.at(loopInner)[0];
-  	pGEdge ge2 = edgesOnLoop.at(loopOuter)[0];
-  	pGVertex v1 = GE_vertex(ge1,0);
-  	double vPt1[3];
-  	GV_point(v1, vPt1);
-  	double par;
-  	GE_closestPoint(ge2, vPt1, 0, &par);
-  	pGVertex newV = GE_insertVertex(ge2, par);
-  	pPList gves = GV_edges(newV);
-  	pGEdge geNew0 = static_cast<pGEdge>(PList_item(gves, 0));
-  	pGEdge geNew1 = static_cast<pGEdge>(PList_item(gves, 1));
-  	if (GE_vertex(geNew0,1) == newV)
-        	pGEdge finalEdge = GM_combineEdges (geNew0, geNew1);
-  	else	
-        	pGEdge finalEdge = GM_combineEdges (geNew1, geNew0);
-}
-
 // To create Vacuum Region
 // useVacuum = 0 is for no Vacuum, =1 if no vacuum parameters are gives,
 // =2 if vacuum parameters are provided.
@@ -952,19 +787,14 @@ void createVacuum(int vLoopId, double vMeshSize)
                right[0],right[1]+0.6*height,left[0],left[1]+0.6*height+offset_t,
                left[0],left[1]+0.3*height+offset_t,left[0],left[1]};
         create_vtx(&gv1_id,left);
-        cout<<"create_vtx "<<gv1_id<<"\n";
         create_vtx(&gv2_id,right);
-        cout<<"create_vtx "<<gv2_id<<"\n";
         create_edge(&ge1_id, &gv1_id, &gv2_id);
-        cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv2_id<<")\n";
         create_edge(&ge2_id, &gv2_id, &gv1_id);
-        cout<<"create_edge "<<ge2_id<<" ("<<gv2_id<<", "<<gv1_id<<")\n";
         attach_b_spline_curve(&ge1_id,&order_p,&numCtrPts,ctrPtsBottom,knots,NULL);
         attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctrPtsTop,knots,NULL);
         int vacuumEdges[]={ge1_id,ge2_id};
         num_ge = 2;
         create_loop(&vLoopId,&num_ge,vacuumEdges);
-        cout<<"create_loop "<<vLoopId<<" ("<<ge1_id<<", "<<ge2_id<<")\n";
         set_vacuum_boundary (&vLoopId);
     }
     else if (useVacuum == 2)	// Need Parameters
@@ -987,14 +817,11 @@ void createVacuum(int vLoopId, double vMeshSize)
       }
 
       create_vtx(&gv1_id,&(interpolate_points_vacuum.at(0)));
-      cout<<"create_vtx "<<gv1_id<<"\n";
       create_edge(&ge1_id, &gv1_id, &gv1_id);
-      cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv1_id<<")\n";
       attach_periodic_cubic_curve(&ge1_id,&num_pts,&(interpolate_points_vacuum.at(0)));
       int vacuumEdges[]={ge1_id};
       num_ge=1;
       create_loop(&vLoopId,&num_ge,vacuumEdges);
-      cout<<"create_loop "<<vLoopId<<" ("<<ge1_id<<")\n";
       set_vacuum_boundary (&vLoopId);
     }
     loopSizeMap[vLoopId] = vMeshSize;
