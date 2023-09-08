@@ -258,6 +258,27 @@ void load_model(const char* filename)
     {
       int edge, beginvtx, endvtx,edgeType;
       fscanf(fp,"%d %d %d %d\n", &edge, &beginvtx, &endvtx, &edgeType);
+            if (edgeContainer.find(edge)!=edgeContainer.end()) // edge already created
+      {
+        edges[i]=edge;
+        switch (edgeType)
+        {
+          case BSPLINE:
+               {
+                 int order, numPts;
+                 double dummy1, dummy2;
+                 fscanf(fp,"%d %d ", &order, &numPts);
+                 for (int k=0; k < order+numPts; k++)
+                   fscanf(fp,"%lf ", &dummy1);
+                 for (int k=0; k<numPts; k++)
+                   fscanf(fp,"%lf %lf ", &dummy1, &dummy2);
+                 fscanf(fp, "\n");
+               }
+          default: break;
+        }
+        continue;
+      }
+
       create_edge(&edge,&beginvtx, &endvtx);
       edges[i]=edge;
       switch( edgeType )
