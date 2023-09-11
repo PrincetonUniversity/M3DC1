@@ -100,6 +100,7 @@ m3dc1_model::m3dc1_model()
   xperiodic=yperiodic=0;
   local_planeid=0;
   num_plane=1;
+  snapping=false;
   group_size = PCU_Comm_Peers();
   oldComm = PCU_Get_Comm();
   ge_tag=NULL;
@@ -239,7 +240,7 @@ void load_model(const char* filename)
   std::vector<int> loop_ids;
   loop_ids.resize(numL);
 
-  for( int i=0; i< numL; i++)
+  for (int i=0; i< numL; i++)
   {
     int numE;
     int loop; // loop ID
@@ -328,7 +329,8 @@ void load_model(const char* filename)
     gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
                      faceFunction, facePeriodic, faceRanges, NULL);
 
-    make_face_topo(gf, loopContainer[loop_ids[i-1]]);
+    if (m3dc1_model::instance()->snapping) 
+      make_face_topo(gf, loopContainer[loop_ids[i-1]]);
   }
 }
 

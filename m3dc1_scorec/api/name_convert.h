@@ -11,6 +11,7 @@
 #define m3dc1_model_print m3dc1_model_print_
 #define m3dc1_model_setnumplane m3dc1_model_setnumplane_
 #define m3dc1_model_getnumplane m3dc1_model_getnumplane_
+#define m3dc1_model_settopo m3dc1_model_settopo_
 #define m3dc1_model_getmincoord m3dc1_model_getmincoord_
 #define m3dc1_model_getmaxcoord m3dc1_model_getmaxcoord_
 #define m3dc1_model_getplaneid m3dc1_model_getplaneid_

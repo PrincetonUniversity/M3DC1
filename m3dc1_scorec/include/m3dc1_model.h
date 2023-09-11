@@ -98,6 +98,7 @@ public:
   int local_planeid; // the local plane id
   int prev_plane_partid; // id of corresponding part in the prev. plane
   int next_plane_partid; // id of corresponding part in the next plane
+  bool snapping; // support for snapping
 
   double* phi;
   int numEntOrig[3];

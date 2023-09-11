@@ -882,7 +882,7 @@ int m3dc1_model_load(char* /* in */ model_file)
 
   pGeom g = pumi_geom_load(model_file, "analytic");
   m3dc1_model::instance()->model = g->getGmi();
-  m3dc1_model::instance()->load_analytic_model(model_file); 
+  m3dc1_model::instance()->load_analytic_model(model_file);
   pumi_geom_freeze(g);
 
   m3dc1_model::instance()->caculateBoundingBox();
@@ -973,6 +973,12 @@ int m3dc1_model_getnumplane(int* num_plane)
   return M3DC1_SUCCESS;
 }
 
+//*******************************************************
+void m3dc1_model_settopo()
+//*******************************************************
+{
+  m3dc1_model::instance()->snapping = true;
+}
 
 /** mesh functions */
 #include <parma.h>
@@ -3928,7 +3934,7 @@ int m3dc1_field_sum_plane (FieldID* /* in */ field_id)
 //*******************************************************
 void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
     double* ar, double* max_size, int* refine_level, 
-    int* coarsen_level, bool* update, bool* do_snap)
+    int* coarsen_level, bool* update)
 //*******************************************************
 {
   char filename[256];
@@ -4091,7 +4097,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
     in->shouldSnap=false;
     in->shouldTransferParametric=false;
 
-    if (*do_snap)
+    if (m3dc1_model::instance()->snapping)
     {
       in->shouldSnap=true;
       in->shouldTransferParametric=true;
@@ -4146,7 +4152,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
       in->shouldSnap=false;
       in->shouldTransferParametric=false;
 
-      if (*do_snap)
+      if (m3dc1_model::instance()->snapping)
       {
         in->shouldSnap=true;
         in->shouldTransferParametric=true;
@@ -4232,8 +4238,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
 }
 
 int adapt_time=0;
-int adapt_by_field (int * fieldId, double* psi0, double * psil,
-		   bool* do_snap)
+int adapt_by_field (int * fieldId, double* psi0, double * psil)
 {
   if (!PCU_Comm_Self())
     std::cout<<"[M3D-C1 INFO] running adaptation by post processed magnetic flux field\n";
@@ -4365,7 +4370,7 @@ int adapt_by_field (int * fieldId, double* psi0, double * psil,
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
 
-  if (*do_snap)
+  if (m3dc1_model::instance()->snapping)
   {
     in->shouldSnap=true;
     in->shouldTransferParametric=true;
@@ -4490,7 +4495,7 @@ int set_adapt_p (double * pp)
 //    0: adapt_target_error is global (integral over the domain)
 //    1: adapt_target_error is local (integral over the element)
 int adapt_by_error_field (double * errorData, double * errorAimed, 
-		int* max_adapt_node, int* option, bool* do_snap)
+		int* max_adapt_node, int* option)
 {
   if (!PCU_Comm_Self()) 
   std::cout<<"[M3D-C1 INFO] running adaptation by error estimator\n";
@@ -4638,7 +4643,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed,
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
 
-  if (*do_snap)
+  if (m3dc1_model::instance()->snapping)
   {
     in->shouldSnap=true;
     in->shouldTransferParametric=true;
