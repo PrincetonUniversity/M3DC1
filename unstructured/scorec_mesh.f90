@@ -118,7 +118,7 @@ contains
        if(myrank.eq.0) print *, 'full torus...'
     end if
 
-#ifdef ADAPT
+#ifdef SNAP 
     if (iadapt_snap.eq.1) call m3dc1_model_settopo()
 #endif
 

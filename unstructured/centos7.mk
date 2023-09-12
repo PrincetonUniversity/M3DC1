@@ -67,6 +67,7 @@ endif
 
 ifeq ($(ADAPT), 1)
   SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
+  OPTS := $(OPTS) -DSNAP 
 endif
 
 ifeq ($(COM), 1)

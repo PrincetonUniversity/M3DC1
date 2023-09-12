@@ -107,6 +107,7 @@
 #define m3dc1_matrix_solve_with_guess m3dc1_matrix_solve_with_guess_
 #define m3dc1_matrix_multiply m3dc1_matrix_multiply_
 #define m3dc1_matrix_getnumiter m3dc1_matrix_getiternum_
+#define m3dc1_matrix_solve_with_guess m3dc1_matrix_solve_with_guess_
 #define m3dc1_matrix_getlocalnumdof m3dc1_matrix_getlocalnumdof_
 #define m3dc1_matrix_getglobalnumdof m3dc1_matrix_getglobalnumdof_
 #define m3dc1_matrix_insertblock m3dc1_matrix_insertblock_

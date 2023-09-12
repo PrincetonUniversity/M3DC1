@@ -47,11 +47,6 @@ else
   endif
 endif
 
-ifeq ($(ADAPT), 1)
-  OPTS := $(OPTS) -DADAPT
-  BIN_POSTFIX := $(BIN_POSTFIX)-adapt
-endif
-
 ifeq ($(ST), 1)
   OPTS := $(OPTS) -DUSEST 
   BIN_POSTFIX := $(BIN_POSTFIX)-st

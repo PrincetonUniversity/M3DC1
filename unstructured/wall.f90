@@ -27,7 +27,6 @@ contains
     call create_mat(wall_matrix, 1, 1, icomplex, 1)
 
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
     call create_field(wall_dist, "wall_dist")
 else
     call create_field(wall_dist)

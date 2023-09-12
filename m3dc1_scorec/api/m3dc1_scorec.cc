@@ -882,7 +882,7 @@ int m3dc1_model_load(char* /* in */ model_file)
 
   pGeom g = pumi_geom_load(model_file, "analytic");
   m3dc1_model::instance()->model = g->getGmi();
-  m3dc1_model::instance()->load_analytic_model(model_file);
+  m3dc1_model::instance()->load_analytic_model(model_file); 
   pumi_geom_freeze(g);
 
   m3dc1_model::instance()->caculateBoundingBox();
@@ -2007,10 +2007,13 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
     }
     else
     {
-      apf::Vector3 param(0,0,0);
+      //apf::Vector3 param(0,0,0);
       m3dc1_mesh::instance()->mesh->getParam(vt,param);
       M3DC1::Expression** pn=(M3DC1::Expression**) gmi_analytic_data(m3dc1_model::instance()->model,gent);
-      evalNormalVector(pn[0],pn[1], param[0], xyzt);
+      if (param[0] == 0)
+	m3dc1_node_getNormVecOnNewVert(vt, xyzt);
+      else
+        evalNormalVector(pn[0],pn[1], param[0], xyzt);
     }
   }
   return M3DC1_SUCCESS;
@@ -3660,12 +3663,31 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
 //*******************************************************
 void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess)
 //*******************************************************
-{
+{  
+  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+#ifdef DEBUG
   if (!PCU_Comm_Self())
-      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported yet\n."
-	        <<"\tTo facilitate this function, please check out vers. 885c798 commited on July 18, 2023\n";
-}
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<", field "<<*rhs_sol<<"\n";
+  if (!mat) 
+  {  
+    if (!PCU_Comm_Self())
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
+    return;
+  }
 
+  if (mat->get_type()!=M3DC1_SOLVE)
+  { 
+    if (!PCU_Comm_Self())
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for multiplication (id"<<*matrix_id<<")\n";
+    return;
+  }
+#endif
+
+  mat->mymatrix_id = *matrix_id;
+
+  (dynamic_cast<matrix_solve*>(mat))->solve_with_guess(*rhs_sol, *xVec_guess);
+  addMatHit(*matrix_id);
+}
 
 //*******************************************************
 int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, 
@@ -4104,7 +4126,6 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
       if (!PCU_Comm_Self())
         std::cout<<"[M3D-C1 INFO] "<<__func__<<" snapping turned on\n";
     }
-
     in->shouldRunPostZoltan = true;
     in->goodQuality = 0.5;
     in->maximumIterations = (*refine_level) + 1;
@@ -4149,6 +4170,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
 #else
       ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, &slnTrans));
 #endif
+      
       in->shouldSnap=false;
       in->shouldTransferParametric=false;
 
@@ -4159,7 +4181,7 @@ void m3dc1_spr_adapt (FieldID* field_id, int* index, int* ts,
         if (!PCU_Comm_Self())
           std::cout<<"[M3D-C1 INFO] "<<__func__<<" snapping turned on\n";
       }
-      in->shouldFixShape = true; 
+      in->shouldFixShape = true;
       in->shouldRunPostZoltan = true;
       in->goodQuality = 0.5;
       in->maximumIterations = (*refine_level);
@@ -4494,8 +4516,7 @@ int set_adapt_p (double * pp)
 // int* option: Parameter "adapt_control" from the user input parameter file and is either 0 or 1
 //    0: adapt_target_error is global (integral over the domain)
 //    1: adapt_target_error is local (integral over the element)
-int adapt_by_error_field (double * errorData, double * errorAimed, 
-		int* max_adapt_node, int* option)
+int adapt_by_error_field (double * errorData, double * errorAimed, int * max_adapt_node, int * option)
 {
   if (!PCU_Comm_Self()) 
   std::cout<<"[M3D-C1 INFO] running adaptation by error estimator\n";
@@ -4639,7 +4660,6 @@ int adapt_by_error_field (double * errorData, double * errorAimed,
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh,&sf,&slnTrans));
 #endif
   in->maximumIterations = 5;
-
   in->shouldSnap=false;
   in->shouldTransferParametric=false;
 
@@ -4650,6 +4670,7 @@ int adapt_by_error_field (double * errorData, double * errorAimed,
     if (!PCU_Comm_Self())
       std::cout<<"[M3D-C1 INFO] "<<__func__<<" snapping turned on\n";
   }
+
 #ifdef DISABLE_ZOLTAN
   in->shouldRunPostZoltan = false;
 #else
@@ -4731,14 +4752,13 @@ int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info)
 
 int m3dc1_mesh_write(char* filename, int *option, int* timestep)
 {
-  char filename_buff[256];
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
-
+  char filename_buff[256];
   // vtk
   if (*option==0 ||*option==3)
   {
     if (*timestep >= 0)
-      sprintf(filename_buff, "ts%04d-%s",*timestep,filename);
+      sprintf(filename_buff, "ts%04d-%s", *timestep, filename);
     else
       sprintf(filename_buff, "%s",filename);
 
@@ -4756,7 +4776,7 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
     }
     mesh->end(it);
 
-    apf::writeVtkFiles(filename_buff,m3dc1_mesh::instance()->mesh);
+    apf::writeVtkFiles(filename_buff, mesh);
     int one=1;
     if (*option==3) output_face_data (&one, &geoId[0], "geoId");
 
@@ -4812,18 +4832,18 @@ int m3dc1_mesh_write(char* filename, int *option, int* timestep)
 void print_mesh_info (apf::Mesh2* m)
 {
   if (!PCU_Comm_Self()) std::cout<<"\n===== mesh size =====\n";
-  
+
   int* local_entity_count = new int[4*PCU_Comm_Peers()];
   int* own_entity_count = new int[4*PCU_Comm_Peers()];
 
   for (int i=0; i<4*PCU_Comm_Peers();++i)
     local_entity_count[i]=own_entity_count[i]=0;
-  
+
   apf::MeshEntity* e;
   int self = PCU_Comm_Self();
-  
+
   for (int d=0; d<4;++d)
-  { 
+  {
     local_entity_count[4*self+d] = m->count(d);
     apf::MeshIterator* it = m->begin(d);
     while ((e = m->iterate(it)))
@@ -4833,13 +4853,13 @@ void print_mesh_info (apf::Mesh2* m)
     }
     m->end(it);
   }
-  
+
   int* global_local_entity_count = new int[4*PCU_Comm_Peers()];
   int* global_own_entity_count = new int[4*PCU_Comm_Peers()];
-      
+
   MPI_Allreduce(local_entity_count, global_local_entity_count, 4*PCU_Comm_Peers(),
                 MPI_INT, MPI_SUM, PCU_Get_Comm());
-      
+
   MPI_Allreduce(own_entity_count, global_own_entity_count, 4*PCU_Comm_Peers(),
                 MPI_INT, MPI_SUM, PCU_Get_Comm());
 
@@ -4871,7 +4891,7 @@ void print_mesh_info (apf::Mesh2* m)
               <<", f "<<global_entity_count[2]<<", r "<<global_entity_count[3]<<"\n\n";
 
     delete [] global_entity_count;
-                                    
+
     }
 
   delete [] local_entity_count;
@@ -5347,19 +5367,18 @@ int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFace
   }
 
   m3dc1_mesh_adapt(&fid_size1, &fid_size2, dir);
-
   return M3DC1_SUCCESS;
 }
 
 // Snapping Operation during mesh adapt is not supported with current analytical model
-// The new vertices after adapt are not reparameterized on the model edge since snapping
-// is disabled. Without parametric coordinates, the current methods return wrong normal
-// vectors. This function evaluates the normal vector on the new vertices at the boundary
+// The new vertices after adapt are not reparameterized on the model edge since snapping 
+// is disabled. Without parametric coordinates, the current methods return wrong normal 
+// vectors. This function evaluates the normal vector on the new vertices at the boundary 
 // after the mesh adapt.
 // Will be obselete when snapping will be supported (in plans for near future)
 void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec)
 {
-apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   int entType = m->getType(v);
   assert(entType == 0);	
   
@@ -5395,10 +5414,11 @@ apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   double xMax = m3dc1_model::instance()->boundingBox[2];
   double yMax = m3dc1_model::instance()->boundingBox[3];
   double center[2] = {(xMin+xMax)/2, (yMin+yMax)/2};
-
+  
+  
   // Find the vector from the vertex v to center point
-  double vec[2] = {center[0] - pt0[0], center[1] - pt0[1]};
-
+  double vec[2] = {center[0] - pt0[0], center[1] - pt0[1]}; 
+  
   // Find the normal vector (temporaray since direction needs to be adjusted)
   double normTemp[2];
   normTemp[0] = dy/len;
@@ -5408,7 +5428,7 @@ apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   double dir = normTemp[0]*vec[0] + normTemp[1]*vec[1];
 
   // Find the final normal vector
-  if (dir > 0)
+  if (dir > 0) 
   {
     normalVec[0] = -normTemp[0];
     normalVec[1] = -normTemp[1];
@@ -5416,9 +5436,11 @@ apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
   else
   {
     normalVec[0] = normTemp[0];
-    normalVec[1] = normTemp[1];
+    normalVec[1] = normTemp[1];	
   }
 }
+
+
 
 #ifdef M3DC1_TRILINOS
 #include <Epetra_MultiVector.h>

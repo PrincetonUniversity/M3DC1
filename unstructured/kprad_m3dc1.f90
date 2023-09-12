@@ -64,7 +64,6 @@ contains
     allocate(lp_source_rate(0:kprad_z))
 
     if (ispradapt .eq. 1) then
-!#ifdef ADAPT
     do i=0, kprad_z
        write(fname,"(A5,I2.2,A)")  "kprn", i, 0
        call create_field(kprad_n(i), trim(fname))
