@@ -43,10 +43,6 @@ if ! [ -x "$(command -v part_mesh.sh)" ]; then
   echo 'Error: part_mesh.sh not found in PATH'
   BADPATH='T'
 fi
-if ! [ -x "$(command -v make_model)" ]; then
-  echo 'Error: make_model not found in PATH'
-  BADPATH='T'
-fi
 if ! [ -x "$(command -v split_smb)" ]; then
   echo 'Error: split_smb not found in PATH'
   BADPATH='T'
