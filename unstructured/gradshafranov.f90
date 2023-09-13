@@ -1046,7 +1046,6 @@ subroutine gradshafranov_solve
 
   ! allocate memory for arrays
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
   call create_field(b1vecini_vec, "b1vecini_vec")
   call create_field(b2vecini_vec, "b2vecini_vec")
   call create_field(psi_vec, "psi_vec")
@@ -1332,7 +1331,6 @@ endif
   b2vecini_vec = 0.
 
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
   call create_field(b3vecini_vec, "b3vecini_vec")
   if(irot.ne.0) call create_field(b4vecini_vec, "b4vecini_vec")
 else

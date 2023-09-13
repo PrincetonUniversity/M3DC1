@@ -36,7 +36,6 @@ subroutine create_auxiliary_fields
   use kprad_m3dc1
   implicit none
 
-!#ifdef ADAPT
 if (ispradapt .eq. 1) then
   call create_field(bdotgradp, "bdotgradp")
   call create_field(bdotgradt, "bdotgradt")
@@ -195,7 +194,6 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating pressures'
 
 if (ispradapt .eq. 1) then 
-!#ifdef ADAPT
   call create_field(pe_f, " pe_f")
   call create_field(p_f, "p_f")
 else
@@ -319,7 +317,6 @@ subroutine calculate_temperatures(ilin, te, ti, pe, p, ne, nion, ieqsub)
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating Temperatures'
 
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
   call create_field(te_f, "te_f")
   call create_field(ti_f, "ti_f")
 else
@@ -467,7 +464,6 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
   end if
  
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT 
   call create_field(ne_f, "ne_f")
 else
   call create_field(ne_f)

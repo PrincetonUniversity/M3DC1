@@ -2,9 +2,7 @@
 #SBATCH -A mp288
 #SBATCH -q debug
 #SBATCH -C gpu
-#SBATCH -N 1
-#SBATCH --ntasks-per-node=64
-#SBATCH --cpus-per-task=1
+#SBATCH -n 64
 #SBATCH --gpus-per-node=4
 #SBATCH -J regtest_NCSX
 #SBATCH -t 0:30:00

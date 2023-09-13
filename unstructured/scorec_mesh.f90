@@ -29,6 +29,7 @@ module scorec_mesh_mod
   integer :: ipartitioned
   integer :: imatassemble  
   integer :: imulti_region
+  integer :: iadapt_snap
 
   real :: toroidal_pack_factor
   real :: toroidal_pack_angle
@@ -116,6 +117,10 @@ contains
     else if(ifull_torus.eq.1) then
        if(myrank.eq.0) print *, 'full torus...'
     end if
+
+#ifdef SNAP 
+    if (iadapt_snap.eq.1) call m3dc1_model_settopo()
+#endif
 
 #ifdef USE3D   
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes

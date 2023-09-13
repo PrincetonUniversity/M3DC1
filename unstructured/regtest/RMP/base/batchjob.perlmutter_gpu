@@ -2,9 +2,7 @@
 #SBATCH -A mp288
 #SBATCH -q debug
 #SBATCH -C gpu
-#SBATCH -N 1
-#SBATCH --ntasks-per-node=32
-##SBATCH --cpus-per-task=1
+#SBATCH -n 32
 #SBATCH --gpus-per-node=4
 #SBATCH -J M3DC1_regtest_RMP
 #SBATCH -t 0:30:00

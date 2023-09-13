@@ -87,7 +87,6 @@ contains
                     vecsize_phi = vecsize_phi + 1
   
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
     call create_vector(phi_vec,      vecsize_phi, "phi_vec")
     call create_vector(phip_vec,     vecsize_phi, "phip_vec")
     call create_vector(q4_vec,       vecsize_phi, "q4_vec")
