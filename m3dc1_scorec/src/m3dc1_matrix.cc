@@ -1295,7 +1295,7 @@ int matrix_solve:: setBmgType()
 	MPI_Allreduce(&mat_dim, &global_dim, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD );
 	plane_dim=global_dim/nplane;
 
-   int myrank,maxrank,npart,planeid,partitionid;
+   PetscInt myrank,maxrank,npart,planeid,partitionid;
    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
    MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
    npart=maxrank/nplane;
@@ -1366,6 +1366,8 @@ int matrix_solve:: setBmgType()
 	//debug <<" plane_dim="<<plane_dim
 	//debug <<" myrank="<<myrank<<"\n";
 
+	//hermite cubic extra term 1/8 delta (the span of elements on the coarse mesh)
+	PetscReal hc=M_PI/nplane/2.;
 	for(irow=Istart;irow<Iend;irow++) {
            icol=irow - plane_dim * offset;
        icol2=( (irow - plane_dim * offset)+plane_dim )%( global_dim/2 );
@@ -1375,6 +1377,12 @@ int matrix_solve:: setBmgType()
 	   } else {
               ierr =  MatSetValue(mg_interp_mat[level],irow, icol,.5, ADD_VALUES); CHKERRQ(ierr);
               ierr =  MatSetValue(mg_interp_mat[level],irow, icol2,.5, ADD_VALUES); CHKERRQ(ierr);
+	      if(irow%36>=0  && irow%36<=5 ||
+	         irow%36>=12 && irow%36<=17 ||
+	         irow%36>=24 && irow%36<=29)  {
+                 ierr = MatSetValue(mg_interp_mat[level],irow, 6+icol,hc, ADD_VALUES); CHKERRQ(ierr);
+                 ierr = MatSetValue(mg_interp_mat[level],irow, 6+icol2,-hc, ADD_VALUES); CHKERRQ(ierr);
+	      }
 	   }
 	}
 
