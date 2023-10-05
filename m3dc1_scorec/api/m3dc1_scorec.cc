@@ -1971,8 +1971,10 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
       double normalvec[3]={0.,0.,0.};
       xyzt[0]=xyzt[1]=xyzt[2]=0;
       if (gEdges.size()<2) 
-        std::cout<<"["<<PCU_Comm_Self()<<"] "<<__func__<<" ERROR: #adjEdge of gVertex="<<gEdges.size()<<" (it should be minimum 2) \n";
+        std::cout<<"["<<PCU_Comm_Self()<<"] "<<__func__<<" ERROR: #adjEdge of gVertex="
+		 <<gEdges.size()<<" (it should be minimum 2) \n";
       assert(gEdges.size()>=2);
+
       for (int i=0;i<gEdges.size();i++)
       {
         gmi_ent* pe = gEdges.at(i);
@@ -1984,13 +1986,9 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
         numEdgePlane++;
         M3DC1::evalCoord(paraRange[0],cd, pn);
         if (checkSamePoint2D(vcd,cd))
-        {
           M3DC1::evalNormalVector(pn[0],pn[1], paraRange[0], normalvec);
-        }
         else
-        {
           evalNormalVector(pn[0],pn[1], paraRange[1], normalvec);
-        }
         xyzt[0]+=normalvec[0];
         xyzt[1]+=normalvec[1];
         xyzt[2]+=normalvec[2];
@@ -1999,6 +1997,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
         std::cout<<"["<<PCU_Comm_Self()<<"] "<<__func__<<" ERROR: numEdgePlane="
                  <<numEdgePlane<<" (it should be 2) \n";
       assert(numEdgePlane==2);
+
       double arclen=sqrt(xyzt[0]*xyzt[0]+xyzt[1]*xyzt[1]+xyzt[2]*xyzt[2]);
       assert(arclen>0);
       xyzt[0]=xyzt[0]/arclen;
@@ -2007,10 +2006,10 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
     }
     else
     {
-      //apf::Vector3 param(0,0,0);
+      apf::Vector3 param(0,0,0);
       m3dc1_mesh::instance()->mesh->getParam(vt,param);
       M3DC1::Expression** pn=(M3DC1::Expression**) gmi_analytic_data(m3dc1_model::instance()->model,gent);
-      if (param[0] == 0)
+      if (m3dc1_model::instance()->snapping && param[0] == 0)
 	m3dc1_node_getNormVecOnNewVert(vt, xyzt);
       else
         evalNormalVector(pn[0],pn[1], param[0], xyzt);
