@@ -228,6 +228,8 @@ subroutine gvect(r,z,npt,xi,zi,n,g,nmult,ierr)
   real, dimension(npt), intent(in) :: r, z
   real, dimension(n), intent(in) :: xi, zi
   real, dimension(npt,n,6), intent(out) :: g
+
+  real, parameter :: eps = 1e-6
   
   real :: a0,a1,a2,a3,a4
   real :: b0,b1,b2,b3,b4
@@ -257,7 +259,7 @@ subroutine gvect(r,z,npt,xi,zi,n,g,nmult,ierr)
         rksq=4.*rxi/(rpxi**2+zmzi**2)
         rk=sqrt(rksq)
         sqrxi=sqrt(rxi)
-        x=1.-rksq
+        x=1.-rksq + eps
 
         ce=1.+x*(c1+x*(c2+x*(c3+x*c4)))+                               &
              x*(d1+x*(d2+x*(d3+x*d4)))*(-alog(x))
