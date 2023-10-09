@@ -1,5 +1,5 @@
 FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
-CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
+CCOPTS  = -c -O -DPETSC_VERSION=313
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(OPT), 1)

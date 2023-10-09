@@ -1,5 +1,5 @@
-FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
-CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
+FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=319 -DUSEBLAS $(OPTS) 
+CCOPTS  = -c -O -DPETSC_VERSION=319
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(OPT), 1)
@@ -20,10 +20,10 @@ ifeq ($(OMP), 1)
 endif
 
 CC = mpicc
-CPP = mpic++
-F90 = mpifort
-F77 = mpifort
-LOADER =  mpifort
+CPP = mpicxx
+F90 = mpif90
+F77 = mpif90
+LOADER =  mpif90
 FOPTS := $(FOPTS)
 
 F90OPTS = $(F90FLAGS) $(FOPTS) 
@@ -43,8 +43,8 @@ else
   endif
 endif
 
-#SCOREC_BASE_DIR=/orcd/nese/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2
-SCOREC_BASE_DIR=/orcd/nese/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc-3.19.2
+SCOREC_BASE_DIR=/orcd/nese/psfc/001/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2
+#SCOREC_BASE_DIR=/orcd/nese/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc-3.19.2
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
