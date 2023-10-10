@@ -91,7 +91,7 @@ ifeq ($(OMP), 1)
   CCOPTS := $(CCOPTS) -mp
 endif
 
-ACC?=0
+ACC?=1
 ifeq ($(ACC), 1)
   LDOPTS := $(LDOPTS) -acc -gpu=cuda11.3 -Minfo=accel
   FOPTS  := $(FOPTS)  -acc -gpu=cuda11.3 -Minfo=accel
