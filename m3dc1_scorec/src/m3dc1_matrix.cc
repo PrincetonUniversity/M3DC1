@@ -1377,12 +1377,14 @@ int matrix_solve:: setBmgType()
 	   } else {
               ierr =  MatSetValue(mg_interp_mat[level],irow, icol,.5, ADD_VALUES); CHKERRQ(ierr);
               ierr =  MatSetValue(mg_interp_mat[level],irow, icol2,.5, ADD_VALUES); CHKERRQ(ierr);
+	      /*
 	      if(irow%36>=0  && irow%36<=5 ||
 	         irow%36>=12 && irow%36<=17 ||
 	         irow%36>=24 && irow%36<=29)  {
                  ierr = MatSetValue(mg_interp_mat[level],irow, 6+icol,hc, ADD_VALUES); CHKERRQ(ierr);
                  ierr = MatSetValue(mg_interp_mat[level],irow, 6+icol2,-hc, ADD_VALUES); CHKERRQ(ierr);
 	      }
+	      */
 	   }
 	}
 
