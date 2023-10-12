@@ -3499,7 +3499,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   endif
 
   if(eqsubtract.eq.1) then
-     if(kinetic.eq.0) then
+     if(kinetic.le.1) then
         tempx = p1pu(trialx,pp079,lin)
         ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
@@ -3522,7 +3522,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
 
-     else   ! on kinetic.eq.0
+     else   ! on kinetic.le.1
         if(total_pressure) then
            tempx = pperpu(trialx,ppt79,lin)  &
                 + pperpupsipsib2(trialx,ppt79,lin,pstx79,pstx79,b2i79)  &

@@ -81,7 +81,7 @@ module m3dc1_nint
 
   vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: mu79, nu79
 !$OMP THREADPRIVATE(mu79,nu79)
-!!$acc declare create(mu79,nu79)
+!$acc declare create(mu79,nu79)
 #ifdef USEST 
 ! logical basis functions must and nust
   vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: must79, nust79

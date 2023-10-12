@@ -751,11 +751,11 @@ subroutine vorticity_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 !v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 !v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v1jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1420,11 +1420,11 @@ subroutine axial_vel_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 !v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 !v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -2165,11 +2165,11 @@ subroutine compression_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 !v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,pfper79) -v3pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 !v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -4171,7 +4171,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
   endif
 
   if(eqsubtract.eq.1) then
-     if(kinetic.eq.0) then
+     if(kinetic.le.1) then
         !tempx = p1pu(trialx,pp079,lin)
         !ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         !ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
@@ -4204,7 +4204,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
              + p1pchi1(ch079)
         ADDTERM(pp_g,temp,-thimpb*dt,(1-thimpb*bdf)*dt)
         
-     else   ! on kinetic.eq.0
+     else   ! on kinetic.le.1
         !if(total_pressure) then
            !tempx = pperpu(trialx,ppt79,lin)  &
                 !+ pperpupsipsib2(trialx,ppt79,lin,pstx79,pstx79,b2i79)  &

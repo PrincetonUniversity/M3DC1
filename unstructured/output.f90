@@ -595,7 +595,9 @@ subroutine hdf5_write_timings(error)
   call output_scalar(timing_group_id, "t_mvm"         , t_mvm         , ntime, error)
   call output_scalar(timing_group_id, "t_onestep"     , t_onestep     , ntime, error)
   call output_scalar(timing_group_id, "t_kprad"       , t_kprad       , ntime, error)
+#ifdef USEPARTICLES
   call output_scalar(timing_group_id, "t_particle"    , t_particle    , ntime, error)
+#endif
 
   call h5gclose_f(timing_group_id, error)
   call h5gclose_f(root_id, error)
