@@ -70,6 +70,9 @@ module diagnostics
   real :: t_solve_v, t_solve_n, t_solve_p, t_solve_b, t_mvm
   real :: t_output_cgm, t_output_hdf5, t_output_reset
   real :: t_gs, t_kprad
+#ifdef USEPARTICLES
+  real :: t_particle
+#endif
 
   integer, parameter :: imag_probes_max = 100
   integer :: imag_probes

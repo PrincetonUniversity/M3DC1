@@ -1094,5 +1094,70 @@ subroutine calculate_auxiliary_fields(ilin)
   
   end subroutine calculate_auxiliary_fields
 
+#ifdef USEPARTICLES
+  subroutine calculate_electric_fields(ilin)
+  use math
+  use basic
+  use m3dc1_nint
+  use newvar_mod
+  use diagnostics
+  use metricterms_new
+  use electric_field
+  use temperature_plots
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: ilin
+
+  integer :: def_fields
+  integer :: numelms
+  integer :: i, itri, izone
+  vectype, dimension(dofs_per_element) :: dofs
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating electric fields'
+  
+  ef_r = 0.
+  ef_phi = 0.
+  ef_z = 0.
+  !if (ilin==0) b0f = 0.
+  !b1f = 0.
+
+  ! specify which fields are to be evalulated
+  def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
+  def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
+  def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
+  def_fields = def_fields + FIELD_MU + FIELD_B2I
+
+  numelms = local_elements()
+
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, def_fields, 1, 0)
+
+     ! electric_field
+     call electric_field_r(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(ef_r%vec,itri,1,dofs,VEC_ADD)
+
+     call electric_field_phi(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(ef_phi%vec,itri,1,dofs,VEC_ADD)
+
+     call electric_field_z(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(ef_z%vec,itri,1,dofs,VEC_ADD)
+    
+  end do
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' before ef solve'
+  call newvar_solve(ef_r%vec, mass_mat_lhs)
+  call newvar_solve(ef_phi%vec, mass_mat_lhs)
+  call newvar_solve(ef_z%vec, mass_mat_lhs)
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating electric fields'
+  
+  end subroutine calculate_electric_fields
+#endif
 
 end module auxiliary_fields

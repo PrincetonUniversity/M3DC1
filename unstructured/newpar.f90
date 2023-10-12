@@ -50,9 +50,6 @@ Program Reducedquintic
   integer :: ip
   character(len=32) :: mesh_file_name
   logical :: update_mesh
-#ifdef _OPENACC
-  integer :: num_devices
-#endif
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -1469,6 +1466,28 @@ else
         use_external_fields = .true.
      end if
 endif
+
+#ifdef USEPARTICLES
+     if(kinetic.eq.1) then
+        call create_field(p_f_par)
+        call create_field(p_f_perp)
+        call create_field(den_f_0)
+        call create_field(den_f_1)
+        call create_field(v_f_par)
+        call create_field(p_i_par)
+        call create_field(p_i_perp)
+        call create_field(den_i_0)
+        call create_field(den_i_1)
+        call create_field(rho_field)
+        call create_field(nf_field)
+        call create_field(tf_field)
+        call create_field(pf_field)
+        call create_field(nfi_field)
+        call create_field(tfi_field)
+        call create_field(pfi_field)
+     endif
+#endif
+
      call create_auxiliary_fields
   endif
 

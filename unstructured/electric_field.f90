@@ -61,7 +61,16 @@ subroutine electric_field_R(ilin,o,izone)
 #if defined(USE3D) || defined(USECOMPLEX)
         o = o + vzt79(:,OP_1)*r_79*bfptx79(:,OP_DZ)
 #endif
-     end if
+#ifdef USEPARTICLES
+        o = o &
+             - bz079(:,OP_1)*ph079(:,OP_DR) &
+             + vz079(:,OP_1)*ps079(:,OP_DR) &
+             - ri3_79*bz079(:,OP_1)*ch079(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o - vz079(:,OP_1)*r_79*bfp079(:,OP_DZ)
+#endif
+#endif
+      end if
 
   ! JxB
   ! ~~~
@@ -174,6 +183,15 @@ subroutine electric_field_Z(ilin,o,izone)
              - ri3_79*bztx79(:,OP_1)*cht79(:,OP_DR)
 #if defined(USE3D) || defined(USECOMPLEX)
         o = o - vzt79(:,OP_1)*r_79*bfptx79(:,OP_DR)
+#endif
+#ifdef USEPARTICLES
+        o = o &
+             - bz079(:,OP_1)*ph079(:,OP_DZ) &
+             + vz079(:,OP_1)*ps079(:,OP_DZ) &
+             + ri3_79*bz079(:,OP_1)*ch079(:,OP_DR)
+#if defined(USE3D) || defined(USECOMPLEX)
+        o = o + vz079(:,OP_1)*r_79*bfp079(:,OP_DR)
+#endif
 #endif
      end if
 
@@ -291,6 +309,20 @@ subroutine electric_field_phi(ilin,o, izone)
              + ri2_79* &
              (cht79(:,OP_DZ)*bfptx79(:,OP_DR) &
              -cht79(:,OP_DR)*bfptx79(:,OP_DZ))
+#endif
+#ifdef USEPARTICLES
+        o = o &
+             -ps079(:,OP_DZ)*ph079(:,OP_DR)+ps079(:,OP_DR)*ph079(:,OP_DZ) &
+             - ri3_79* &
+             (ps079(:,OP_DZ)*ch079(:,OP_DZ)+ps079(:,OP_DR)*ch079(:,OP_DR))
+#if defined(USE3D) || defined(USECOMPLEX) 
+        o = o - r_79* &
+             (ph079(:,OP_DZ)*bfp079(:,OP_DZ) &
+             +ph079(:,OP_DR)*bfp079(:,OP_DR)) &
+             - ri2_79* &
+             (ch079(:,OP_DZ)*bfp079(:,OP_DR) &
+             -ch079(:,OP_DR)*bfp079(:,OP_DZ))
+#endif
 #endif
      end if
 

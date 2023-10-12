@@ -74,6 +74,7 @@ contains
     use hdf5_output
     use diagnostics
     use auxiliary_fields
+    use particles
 
     implicit none
 
@@ -110,6 +111,9 @@ contains
        if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
        call hdf5_write_time_slice(0,ier)
+#ifdef USEPARTICLES
+       if ((kinetic==1).and.(ntime-ntime0>0)) call hdf5_write_particles(ier)
+#endif
        if(myrank.eq.0 .and. itimer.eq.1) then
           call second(tend)
           diff = tend - tstart
@@ -591,6 +595,7 @@ subroutine hdf5_write_timings(error)
   call output_scalar(timing_group_id, "t_mvm"         , t_mvm         , ntime, error)
   call output_scalar(timing_group_id, "t_onestep"     , t_onestep     , ntime, error)
   call output_scalar(timing_group_id, "t_kprad"       , t_kprad       , ntime, error)
+  call output_scalar(timing_group_id, "t_particle"    , t_particle    , ntime, error)
 
   call h5gclose_f(timing_group_id, error)
   call h5gclose_f(root_id, error)
@@ -1085,15 +1090,37 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
 #ifdef USEPARTICLES
   if (kinetic.eq.1) then
-     if (associated(p_i_perp%vec)) then
+     call write_field(group_id, "rhof", rho_field, nelms, error)
+     call write_field(group_id, "nf",   nf_field, nelms, error)
+     call write_field(group_id, "tf",   tf_field, nelms, error)
+     call write_field(group_id, "pf",   pf_field, nelms, error)
+     call write_field(group_id, "nfi",  nfi_field, nelms, error)
+     call write_field(group_id, "tfi",  tfi_field, nelms, error)
+     call write_field(group_id, "pfi",  pfi_field, nelms, error)
+ 
         !Perpendicular component of hot ion pressure tensor
-        call write_field(group_id, "p_i_perp", p_i_perp, nelms, error)
-     endif
+        call write_field(group_id, "p_f_perp", p_f_perp, nelms, error)
 
-     if (associated(p_i_par%vec)) then
         !Parallel component of hot ion pressure tensor
-        call write_field(group_id, "p_i_par", p_i_par, nelms, error)
-     endif
+        call write_field(group_id, "p_f_par", p_f_par, nelms, error)
+
+        !!Perpendicular component of hot ion pressure tensor
+        !call write_field(group_id, "p_i_perp", p_i_perp, nelms, error)
+
+        !!Parallel component of hot ion pressure tensor
+        !call write_field(group_id, "p_i_par", p_i_par, nelms, error)
+
+        !!Parallel component of hot ion pressure tensor
+        !call write_field(group_id, "den_i_0", den_i_0, nelms, error)
+
+        !!Parallel component of hot ion pressure tensor
+        !call write_field(group_id, "den_i_1", den_i_1, nelms, error)
+
+        !Parallel component of hot ion pressure tensor
+        call write_field(group_id, "den_f_0", den_f_0, nelms, error)
+
+        !Parallel component of hot ion pressure tensor
+        call write_field(group_id, "den_f_1", den_f_1, nelms, error)
   endif
 #endif
 

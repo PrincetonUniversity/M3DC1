@@ -1797,6 +1797,127 @@ function v1parb2ipsib(e,f,g,h,i)
   v1parb2ipsib = temp
 end function v1parb2ipsib
 
+#ifdef USEPARTICLES
+function v1p_2(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v1p_2
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, intent(in), dimension(MAX_PTS) :: g
+
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+     if(surface_int) then
+        if(inoslip_pol.eq.1 .or. iconst_p.eq.1) then
+           temp = 0.
+        else
+           temp = &
+                + intx5(e(:,:,OP_1),r_79,norm79(:,1),f(:,OP_DZ),g) &
+                - intx5(e(:,:,OP_1),r_79,norm79(:,2),f(:,OP_DR),g)
+        endif
+     else
+        temp = intx4(e(:,:,OP_DZ),r_79,f(:,OP_DR),g) &
+             - intx4(e(:,:,OP_DR),r_79,f(:,OP_DZ),g)
+     end if
+
+  v1p_2 = temp
+end function v1p_2
+
+function v1pbb(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v1pbb
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, intent(in), dimension(MAX_PTS) :: g
+
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79b = -g*ri_79
+        temp =  intx5(e(:,:,OP_DR),temp79b,f(:,OP_DZ),pst79(:,OP_DR),pst79(:,OP_DR)) &
+              + intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DZ),pst79(:,OP_DR),pst79(:,OP_DZ)) &
+              - intx5(e(:,:,OP_DR),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DR)) &
+              - intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DZ))
+  #if defined(USE3D) || defined(USECOMPLEX)
+        temp79a = - f(:,OP_DP)*bzt79(:,OP_1)*g*ri2_79
+        temp = temp +intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DR)) &
+              +  intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZ))
+        temp79a = g
+        temp = temp +intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DR),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              +intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
+              +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZ),f(:,OP_DZ),bfpt79(:,OP_DZ)) 
+        temp79a = -g
+        temp = temp +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DR)) &
+              -intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
+              +intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DZ)) 
+        temp79a = -f(:,OP_DP)*g*bzt79(:,OP_1)*ri_79
+        temp = temp +intx3(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DR)) &
+              -intx3(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DZ)) 
+        temp79a = g*r_79
+        temp = temp +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DR),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
+              -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZP),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZP),f(:,OP_DZ),bfpt79(:,OP_DZ)) 
+        #endif
+    end if
+
+  v1pbb = temp
+end function v1pbb
+
+function v1jxb(e,f)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v1jxb
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS) :: f
+
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a = -f*pst79(:,OP_GS)*ri_79
+        temp = temp                                   &
+             +  intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR))   &
+             -  intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DZ))   
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp79a = - f*bzt79(:,OP_1)*ri_79
+     temp = temp + intx3(e(:,:,OP_DZ),temp79a,(bzt79(:,OP_DR)+bfpt79(:,OP_DRP))) &
+          - intx3(e(:,:,OP_DR),temp79a,bzt79(:,OP_DZ)+bfpt79(:,OP_DZP))
+     temp79a = -f*bzt79(:,OP_1)*ri2_79
+     temp = temp+intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DRP)) &
+          +  intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZP))
+     temp79a = f*pst79(:,OP_GS)
+     temp = temp+intx3(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DR)) &
+          +  intx3(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ))
+     #endif
+    end if
+
+  v1jxb = temp
+end function v1jxb
+
+#endif
 !============================================================================
 ! V2 TERMS
 !============================================================================
@@ -3097,7 +3218,105 @@ function v2parpb2ipsib(e,f,g,h,i)
        -          intx3(e(:,:,OP_DR),temp79a,h(:,OP_DZ)) 
 end function v2parpb2ipsib
 
+#ifdef USEPARTICLES
+function v2p_2(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
 
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v2p_2
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, intent(in), dimension(MAX_PTS) :: g
+
+  if(surface_int) then
+     v2p_2 = 0.
+     return
+  end if
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  ! same for both ivforms
+  v2p_2 = -intx3(e(:,:,OP_1),f(:,OP_DP),g)
+#else
+  v2p_2 = 0.
+#endif
+
+end function v2p_2
+
+function v2pbb(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v2pbb
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, intent(in), dimension(MAX_PTS) :: g
+
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = -f(:,OP_DP)*g*bzt79(:,OP_1)*bzt79(:,OP_1)*ri2_79
+  temp = temp + intx2(e(:,:,OP_1),temp79a)  
+  temp79a = g*bzt79(:,OP_1)
+  temp = temp + intx4(e(:,:,OP_1),temp79a,f(:,OP_DR),bfpt79(:,OP_DR))    &
+       +  intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ),bfpt79(:,OP_DZ)) 
+   #endif
+  temp79a = -g*bzt79(:,OP_1)*ri_79
+  temp = temp + intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ),pst79(:,OP_DR))    &
+       -          intx4(e(:,:,OP_1),temp79a,f(:,OP_DR),pst79(:,OP_DZ)) 
+    end if
+
+  v2pbb = temp
+end function v2pbb
+
+function v2jxb(e,f)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v2jxb
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS) :: f
+
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+  if(surface_int) then
+        temp = 0.
+     else
+#if defined(USE3D) || defined(USECOMPLEX)
+        temp79a = f*ri_79
+        temp = temp                                   &
+             +  intx4(e(:,:,OP_1),temp79a,pst79(:,OP_DZ),bzt79(:,OP_DR)+bfpt79(:,OP_DRP))   &
+             -  intx4(e(:,:,OP_1),temp79a,pst79(:,OP_DR),bzt79(:,OP_DZ)+bfpt79(:,OP_DZP))   
+  temp79a = f*ri2_79
+  temp = temp + intx4(e(:,:,OP_1),temp79a,pst79(:,OP_DR),pst79(:,OP_DRP))    &
+       + intx4(e(:,:,OP_1),temp79a,pst79(:,OP_DZ),pst79(:,OP_DZP)) 
+  temp79a = f
+  temp = temp + intx4(e(:,:,OP_1),temp79a,bfpt79(:,OP_DR),(bzt79(:,OP_DR)+bfpt79(:,OP_DRP)))    &
+       + intx4(e(:,:,OP_1),temp79a,bfpt79(:,OP_DZ),(bzt79(:,OP_DZ)+bfpt79(:,OP_DZP))) 
+  temp79a = f*ri_79
+  temp = temp + intx4(e(:,:,OP_1),temp79a,pst79(:,OP_DZP),bfpt79(:,OP_DR))    &
+       - intx4(e(:,:,OP_1),temp79a,pst79(:,OP_DRP),bfpt79(:,OP_DZ)) 
+#endif
+
+    end if
+
+  v2jxb = temp
+end function v2jxb
+
+#endif
 !==============================================================================
 ! V3 TERMS
 !==============================================================================
@@ -4990,6 +5209,124 @@ function v3parb2ipsib(e,f,g,h,i)
   v3parb2ipsib = temp
 end function v3parb2ipsib
 
+#ifdef USEPARTICLES
+function v3p_2(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v3p_2
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, intent(in), dimension(MAX_PTS) :: g
+  vectype, dimension(dofs_per_element) :: temp
+
+     if(surface_int) then
+        temp = 0.
+!!$        temp = &
+!!$             - intx4(e(:,:,OP_1),ri2_79,norm79(:,1),f(:,OP_DR)) &
+!!$             - intx4(e(:,:,OP_1),ri2_79,norm79(:,2),f(:,OP_DZ))
+     else
+        temp = intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ),g) &
+             + intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g)
+     end if
+
+  v3p_2 = temp
+end function v3p_2
+
+function v3pbb(e,f,g)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v3pbb
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, intent(in), dimension(MAX_PTS) :: g
+
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79b = g*ri4_79
+        temp = temp                                                         &
+             +  intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DZ),pst79(:,OP_DR),pst79(:,OP_DR)) &
+             -  intx5(e(:,:,OP_DR),temp79b,f(:,OP_DZ),pst79(:,OP_DR),pst79(:,OP_DZ)) &
+             -  intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DR)) &
+             +  intx5(e(:,:,OP_DR),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DZ))
+
+  #if defined(USE3D) || defined(USECOMPLEX)
+     temp79a = f(:,OP_DP)*g*bzt79(:,OP_1)*ri5_79
+     temp = temp + intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR)) &
+          - intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DZ))
+     temp79a = -g*ri3_79
+        temp = temp +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
+              -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZ),f(:,OP_DZ),bfpt79(:,OP_DZ)) 
+        temp79a = -g*ri3_79
+        temp = temp +intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DR)) &
+              -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
+              -intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DZ)) 
+        temp79a = -f(:,OP_DP)*g*bzt79(:,OP_1)*ri4_79
+        temp = temp +intx3(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DR)) &
+              +intx3(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ)) 
+        temp79a = g*ri2_79
+        temp = temp +intx5(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DR),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DR)) &
+              +intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DRP),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
+              +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZP),f(:,OP_DZ),bfpt79(:,OP_DZ)) 
+      #endif
+    end if
+
+  v3pbb = temp
+end function v3pbb
+
+function v3jxb(e,f)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v3jxb
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS) :: f
+
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = 0.
+     if(surface_int) then
+        temp = 0.
+     else
+        temp79a = -f*pst79(:,OP_GS)*ri4_79
+        temp = temp                                   &
+             +  intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DR)) &
+             +  intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZ))   
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp79a = - f*bzt79(:,OP_1)*ri4_79
+     temp = temp + intx3(e(:,:,OP_DR),temp79a,bzt79(:,OP_DR)+bfpt79(:,OP_DRP)) &
+          - intx3(e(:,:,OP_DZ),temp79a,bzt79(:,OP_DZ)+bfpt79(:,OP_DZP))
+     temp79a = -f*bzt79(:,OP_1)*ri5_79
+     temp = temp+intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DZP)) &
+          -  intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DRP))
+     temp79a = -f*pst79(:,OP_GS)*ri3_79
+     temp = temp+intx3(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DR)) &
+          -  intx3(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DZ))
+     #endif
+    end if
+
+  v3jxb = temp
+end function v3jxb
+
+#endif
 !==============================================================================
 ! B1 TERMS
 !==============================================================================

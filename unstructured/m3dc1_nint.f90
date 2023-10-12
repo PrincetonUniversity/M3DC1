@@ -81,7 +81,7 @@ module m3dc1_nint
 
   vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: mu79, nu79
 !$OMP THREADPRIVATE(mu79,nu79)
-!$acc declare create(mu79,nu79)
+!!$acc declare create(mu79,nu79)
 #ifdef USEST 
 ! logical basis functions must and nust
   vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: must79, nust79
@@ -137,8 +137,10 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(ti179,ti079,tit79)
   vectype, dimension(MAX_PTS, OP_NUM) :: q179, q079, qt79, qe179, qe079, qet79
 !$OMP THREADPRIVATE(q179,q079,qt79,qe079,qet79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: ppar79, pper79
-!$OMP THREADPRIVATE(ppar79,pper79)
+#ifdef USEPARTICLES
+  vectype, dimension(MAX_PTS, OP_NUM) :: pfpar79, pfper79, pf079
+!$OMP THREADPRIVATE(pfpar79,pfper79,pf079)
+#endif
   vectype, dimension(MAX_PTS, OP_NUM) :: nre079, nre179
 !$OMP THREADPRIVATE(nre079,nre179)
   vectype, dimension(MAX_PTS, OP_NUM) :: wall79
@@ -1649,15 +1651,15 @@ contains
   endif
 
 #ifdef USEPARTICLES
-  ! Kinetic Pressure Terms
-  ! ~~~
-  if((iand(fields, FIELD_KIN).eq.FIELD_KIN)   &
-      .and. kinetic .eq. 1) then
-     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kinetic..."
-
-      call eval_ops(itri, p_i_par, ppar79)
-      call eval_ops(itri, p_i_perp, pper79)
-  endif
+    ! Kinetic Pressure Terms
+    ! ~~~
+    if((iand(fields, FIELD_KIN).eq.FIELD_KIN)   &
+        .and. kinetic .eq. 1) then
+       if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kinetic..."
+        call eval_ops(itri, p_f_par, pfpar79, rfac)
+        call eval_ops(itri, p_f_perp, pfper79, rfac)
+        call eval_ops(itri, pf_field, pf079, rfac)
+    endif
 #endif
 
   ! Runaway Electron Density
