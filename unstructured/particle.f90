@@ -3036,7 +3036,7 @@ subroutine hdf5_write_particles(ierr)
    poffset = np*myrank
    if (poffset + np > nparticles) np = nparticles - poffset
 
-   write (part_file_name, '("ions_",I4.4,".h5")') times_output
+   write (part_file_name, '("ions_",I4.4,".h5")') times_output-1
 
    !Allocate buffer for element particle data
    allocate (values(pdims, np))
@@ -3342,7 +3342,7 @@ subroutine hdf5_read_particles(filename, ierr)
                      dpar%wt = valbuf(5, ipart)
                      !dpar%wt = 0.
                      dpar%sps = valbuf(6, ipart)
-                     if (dpar%sps == 1) kinetic_thermal = 1
+                     !if (dpar%sps == 1) kinetic_thermal = 1
                      dpar%v(1) = valbuf(7, ipart)
                      !dpar%v(1) = dpar%v(1)*10.
                      !if (mod(dpar%gid,2)==1) dpar%v(1) = -valbuf(7,ipart)

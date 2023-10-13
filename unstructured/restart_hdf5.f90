@@ -456,6 +456,30 @@ contains
     call h5r_read_field(group_id, "te",  te_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
 
+#ifdef USEPARTICLES
+    if ((kinetic.eq.1).and.(ilin.eq.1)) then
+       call h5r_read_field(group_id, "p_f_par",   p_f_par, nelms, error)
+       call h5r_read_field(group_id, "p_f_perp",  p_f_perp, nelms, error)
+       call h5r_read_field(group_id, "den_f_0",   den_f_0, nelms, error)
+       call h5r_read_field(group_id, "den_f_1",   den_f_1, nelms, error)
+       !call h5r_read_field(group_id, "p_i_par",   p_i_par, nelms, error)
+       !call h5r_read_field(group_id, "p_i_perp",  p_i_perp, nelms, error)
+       !call h5r_read_field(group_id, "den_i_0",   den_i_0, nelms, error)
+       !call h5r_read_field(group_id, "den_i_1",   den_i_1, nelms, error)
+       call h5r_read_field(group_id, "rhof", rho_field, nelms, error)
+       call h5r_read_field(group_id, "nf",   nf_field, nelms, error)
+       call h5r_read_field(group_id, "tf",   tf_field, nelms, error)
+       call h5r_read_field(group_id, "pf",   pf_field, nelms, error)
+       ! call mult(pf_field,-0.75)
+       ! call add(p_field(0),pf_field)
+       ! call mult(pf_field,-4.0/3.0)
+       ! den_field(1)=0.
+       call h5r_read_field(group_id, "nfi",  nfi_field, nelms, error)
+       call h5r_read_field(group_id, "tfi",  tfi_field, nelms, error)
+       call h5r_read_field(group_id, "pfi",  pfi_field, nelms, error)
+    endif
+#endif
+
     if(ikprad.eq.1 .and. ikprad_in.eq.1) then
        do i=0, kprad_z
           write(field_name, '(A,I2.2)') "kprad_n_", i

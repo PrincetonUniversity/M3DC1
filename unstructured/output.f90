@@ -112,7 +112,7 @@ contains
 
        call hdf5_write_time_slice(0,ier)
 #ifdef USEPARTICLES
-       if ((kinetic==1).and.(ntime-ntime0>0)) call hdf5_write_particles(ier)
+       if (kinetic==1) call hdf5_write_particles(ier)
 #endif
        if(myrank.eq.0 .and. itimer.eq.1) then
           call second(tend)
