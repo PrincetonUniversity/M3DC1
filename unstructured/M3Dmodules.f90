@@ -770,12 +770,8 @@ end module m3dc1_omp
 
 !cj velocity equation profiling
 module m3dc1_vel_prof
-#if PETSC_VERSION >= 39
 #include <petsc/finclude/petscksp.h>
       use petscksp
-#else
-#include <petsc/finclude/petscsysdef.h>
-#endif
       implicit none
       PetscLogStage  stageA,stageS
 end module m3dc1_vel_prof

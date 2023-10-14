@@ -32,16 +32,8 @@ Program Reducedquintic
   use openacc
 #endif
 
-#if PETSC_VERSION >= 38
   use petsc
   implicit none
-#elif PETSC_VERSION >= 36
-  implicit none
-#include "petsc/finclude/petsc.h"
-#else
-  implicit none
-#include "finclude/petsc.h"
-#endif
 
   integer :: ier, i, adapt_flag
   real :: tstart, tend, dtsave, t_solve, t_compute
