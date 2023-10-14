@@ -657,7 +657,7 @@ subroutine init_particles(lrestart, ierr)
             if (vspdims .eq. 2) then
                call getBcyl(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, gradB0, gradB1, dB1)
             else
-               call getBcylprime(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, dBdR, dBdphi, dBdz)
+               !call getBcylprime(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, dBdR, dBdphi, dBdz, .false.)
             end if
             !write(0,*) Bcyl
             B0 = sqrt(dot_product(Bcyl, Bcyl))
@@ -1049,15 +1049,17 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    real, dimension(3) :: lr, lr2
    integer :: itri2
    type(xgeomterms)   :: geomterms, geomterms2
-   real, dimension(3) :: x2, B_cyl, B_cyl2, Jcyl, BxgrdB, deltaB, deltaB2, E_cyl, E_cyl2, bhat, svec, Bstar
+   real, dimension(3) :: x2, B_cyl, B0_cyl, B_cyl2, Jcyl, BxgrdB, deltaB, deltaB2, E_cyl, E_cyl2, bhat, bhat0, svec, Bstar, Bstar0
    real, dimension(vspdims)                                  :: v2, vs, vu
-   real, dimension(3) :: dBdR, dBdphi, dBdz, gradB0, gradB02, gradB1, gradB12, dEdR, dEdphi, dEdz, dBdt
+   real, dimension(3) :: dBdR, dBdphi, dBdz, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz
+   real, dimension(3) :: gradB0, gradB, gradB02, gradB1, gradB12, dEdR, dEdphi, dEdz
    real, dimension(3) :: weqv0, weqv1, weqvD, weqvD1, gradpsi, gradf, gradpe
    vectype, dimension(3) :: temp
-   real f0, T0, tmp1, tmp2, tmp3, tmp4, tmp5, df0de, df0dxi, spd, gradcoef, dB1, dB12, j0xb, ne0, te0, dB0dt
-   real :: Rinv, B0inv, Bss
+   real f0, T0, tmp1, tmp2, tmp3, tmp4, tmp5, df0de, df0dxi, spd, gradcoef, dB1, dB12, j0xb, ne0, te0, dBdt, dEdt, dxidt
+   real :: Rinv, B0inv, Binv, Bss, Bss0
    real :: dRdphi, dZdphi, di, dxdR, dxdZ, dydR, dydZ
-   real, dimension(3)                            :: dxdt2
+   real, dimension(3)                            :: dxdt2, dxdt0
+   real, dimension(vspdims)                      :: dvdt0, weqa1
 !!$OMP THREADPRIVATE(Rinv)
    integer :: tridex
    integer :: ipoint
@@ -1089,11 +1091,17 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
 
    !Calculate time derivatives
    !call getBcyl(x, fhptr, geomterms, B_cyl, deltaB, gradB0)
-   call getBcylprime(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, dBdR, dBdphi, dBdz)
-   call getBcyl(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
+   call getBcylprime(x, elfieldcoefs(itri), geomterms, B0_cyl, deltaB, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz)
+   B_cyl = B0_cyl + deltaB
+   dBdR = dB0dR + dB1dR
+   dBdphi = dB0dphi + dB1dphi
+   dBdz = dB0dz + dB1dz
+   !call getBcyl(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
    !write(0,*) B_cyl(1), B_cyl(1), B_cyl(2)
-   B0inv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
-   bhat = B_cyl*B0inv                         !Unit vector in b direction
+   B0inv = 1.0/sqrt(dot_product(B0_cyl, B0_cyl))  !1/magnitude of B
+   bhat0 = B0_cyl*B0inv                         !Unit vector in b direction
+   Binv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
+   bhat = B_cyl*Binv                         !Unit vector in b direction
 
    if (gyroaverage_particle) then
       x2 = x
@@ -1180,14 +1188,76 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    end if
 
    ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
-   gradB0(1) = dot_product(bhat, dBdR)
-   gradB0(2) = Rinv*dot_product(bhat, dBdphi)
-   gradB0(3) = dot_product(bhat, dBdz)
+   gradB0(1) = dot_product(bhat0, dB0dR)
+   gradB0(2) = Rinv*dot_product(bhat0, dB0dphi)
+   gradB0(3) = dot_product(bhat0, dB0dz)
 
    ! Curl of bhat = curl(B/B0) = curl(B)/B0 - (grad B0 x B)/(B0**2)
-   BxgrdB(1) = B_cyl(2)*gradB0(3) - B_cyl(3)*gradB0(2)
-   BxgrdB(2) = B_cyl(3)*gradB0(1) - B_cyl(1)*gradB0(3)
-   BxgrdB(3) = B_cyl(1)*gradB0(2) - B_cyl(2)*gradB0(1)
+   BxgrdB(1) = B0_cyl(2)*gradB0(3) - B0_cyl(3)*gradB0(2)
+   BxgrdB(2) = B0_cyl(3)*gradB0(1) - B0_cyl(1)*gradB0(3)
+   BxgrdB(3) = B0_cyl(1)*gradB0(2) - B0_cyl(2)*gradB0(1)
+
+   Jcyl(1) = Rinv*dB0dphi(3) - dB0dz(2)
+   Jcyl(2) = dB0dz(1) - dB0dR(3)
+   Jcyl(3) = dB0dR(2) - Rinv*dB0dphi(1)
+   !if (itor.eq.1) Jcyl(3) = Jcyl(3) + Rinv*B_cyl(2)
+   Jcyl(3) = Jcyl(3) + Rinv*B0_cyl(2)
+
+   !tmp1 = (v(1)*v(1)) * (B0inv*B0inv)/qm_ion
+   !tmp2 = tmp1*B0inv + v(2)*(B0inv*B0inv)
+   !weqvD = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
+   svec = (Jcyl + BxgrdB*B0inv)*B0inv
+
+   Bstar0 = B0_cyl + (v(1)/qm_ion)*svec
+   !Bstar = B_cyl
+   Bss0 = dot_product(Bstar0, bhat0)
+
+   svec = v(2)*gradB0 ! - g_mks/qm_ion
+   !svec = svec - E_cyl  ! - g_mks/qm_ion
+   !svec = v(2)*gradB0  ! - g_mks/qm_ion
+
+   dxdt0(1) = (v(1)*Bstar0(1) + bhat0(2)*svec(3) - bhat0(3)*svec(2))/Bss0
+   dxdt0(2) = (v(1)*Bstar0(2) + bhat0(3)*svec(1) - bhat0(1)*svec(3))/Bss0
+   dxdt0(3) = (v(1)*Bstar0(3) + bhat0(1)*svec(2) - bhat0(2)*svec(1))/Bss0
+
+   dvdt0(1) = -qm_ion*dot_product(Bstar0, svec)/Bss0
+   !dvdt0(1) = -qm_ion*dot_product(bhat0, svec)
+   !dvdt(1) = 0
+   dvdt0(2) = 0. !magnetic moment is conserved.
+
+   dxdt0(2) = Rinv*dxdt0(2)  !phi-dot = (v_phi / R) for cylindrical case
+
+   !dxdt(1) = dxdt(1)-dRdphi*dxdt(2)
+   !dxdt(3) = dxdt(3)-dZdphi*dxdt(2)
+   !dxdt2(1) = dxdR*dxdt(1)+dxdZ*dxdt(3)
+   !dxdt2(3) = dydR*dxdt(1)+dydZ*dxdt(3)
+   !dxdt2(2) = dxdt(2)
+   !dxdt=dxdt2
+
+   !call getBcylprime(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, dBdR, dBdphi, dBdz, .false.)
+   !call getBcyl(x, fhptr, geomterms, B_cyl, deltaB, gradB0, gradB1,1)
+
+   ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
+   if (linear_particle .eq. 1) then
+      gradB(1) = dot_product(bhat0, dBdR)
+      gradB(2) = Rinv*dot_product(bhat0, dBdphi)
+      gradB(3) = dot_product(bhat0, dBdz)
+   else
+      gradB(1) = dot_product(bhat, dBdR)
+      gradB(2) = Rinv*dot_product(bhat, dBdphi)
+      gradB(3) = dot_product(bhat, dBdz)
+   end if
+
+   ! Curl of bhat = curl(B/B0) = curl(B)/B0 - (grad B0 x B)/(B0**2)
+   if (linear_particle .eq. 1) then
+      BxgrdB(1) = B0_cyl(2)*gradB(3) - B0_cyl(3)*gradB(2)
+      BxgrdB(2) = B0_cyl(3)*gradB(1) - B0_cyl(1)*gradB(3)
+      BxgrdB(3) = B0_cyl(1)*gradB(2) - B0_cyl(2)*gradB(1)
+   else
+      BxgrdB(1) = B_cyl(2)*gradB(3) - B_cyl(3)*gradB(2)
+      BxgrdB(2) = B_cyl(3)*gradB(1) - B_cyl(1)*gradB(3)
+      BxgrdB(3) = B_cyl(1)*gradB(2) - B_cyl(2)*gradB(1)
+   end if
 
    Jcyl(1) = Rinv*dBdphi(3) - dBdz(2)
    Jcyl(2) = dBdz(1) - dBdR(3)
@@ -1198,44 +1268,53 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    !tmp1 = (v(1)*v(1)) * (B0inv*B0inv)/qm_ion
    !tmp2 = tmp1*B0inv + v(2)*(B0inv*B0inv)
    !weqvD = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
-   svec = (Jcyl + BxgrdB*B0inv)*B0inv
+   if (linear_particle .eq. 1) then
+      svec = (Jcyl + BxgrdB*B0inv)*B0inv
+   else
+      svec = (Jcyl + BxgrdB*Binv)*Binv
+   end if
 
    Bstar = B_cyl + (v(1)/qm_ion)*svec
    !Bstar = B_cyl
    Bss = dot_product(Bstar, bhat)
 
-   svec = v(2)*gradB0 ! - g_mks/qm_ion
-   if (.not. (linear_particle == 1)) svec = svec - E_cyl  ! - g_mks/qm_ion
+   svec = v(2)*gradB ! - g_mks/qm_ion
+   svec = svec - E_cyl  ! - g_mks/qm_ion
    !svec = v(2)*gradB0  ! - g_mks/qm_ion
 
-   dxdt(1) = (v(1)*Bstar(1) + bhat(2)*svec(3) - bhat(3)*svec(2))/Bss
-   dxdt(2) = (v(1)*Bstar(2) + bhat(3)*svec(1) - bhat(1)*svec(3))/Bss
-   dxdt(3) = (v(1)*Bstar(3) + bhat(1)*svec(2) - bhat(2)*svec(1))/Bss
-   !dxdt(1) = 0
-   !dxdt(2) = 0
-   !dxdt(3) = 0
-   !dxdt(1) = (v(1)*Bstar(1))/Bss
-   !dxdt(2) = (v(1)*Bstar(2))/Bss
-   !dxdt(3) = (v(1)*Bstar(3))/Bss
+   if (linear_particle .eq. 1) then
+      dxdt(1) = (v(1)*Bstar(1) + bhat0(2)*svec(3) - bhat0(3)*svec(2))/Bss0
+      dxdt(2) = (v(1)*Bstar(2) + bhat0(3)*svec(1) - bhat0(1)*svec(3))/Bss0
+      dxdt(3) = (v(1)*Bstar(3) + bhat0(1)*svec(2) - bhat0(2)*svec(1))/Bss0
 
-   dvdt(1) = -qm_ion*dot_product(Bstar, svec)/Bss
-   !dvdt(1) = -qm_ion*dot_product(bhat, svec)
-   !dvdt(1) = 0
-   dvdt(2) = 0. !magnetic moment is conserved.
+      dvdt(1) = -qm_ion*dot_product(Bstar0, svec)/Bss0
+      !dvdt(1) = -qm_ion*dot_product(bhat0, svec)
+      !dvdt(1) = 0
+      dvdt(2) = 0. !magnetic moment is conserved.
+   else
+      dxdt(1) = (v(1)*Bstar(1) + bhat(2)*svec(3) - bhat(3)*svec(2))/Bss
+      dxdt(2) = (v(1)*Bstar(2) + bhat(3)*svec(1) - bhat(1)*svec(3))/Bss
+      dxdt(3) = (v(1)*Bstar(3) + bhat(1)*svec(2) - bhat(2)*svec(1))/Bss
+
+      dvdt(1) = -qm_ion*dot_product(Bstar, svec)/Bss
+      !dvdt(1) = -qm_ion*dot_product(bhat0, svec)
+      !dvdt(1) = 0
+      dvdt(2) = 0. !magnetic moment is conserved.
+   end if
 
    dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
-   !dxdt(1) = dxdt(1)-dRdphi*dxdt(2)
-   !dxdt(3) = dxdt(3)-dZdphi*dxdt(2)
-   !dxdt2(1) = dxdR*dxdt(1)+dxdZ*dxdt(3)
-   !dxdt2(3) = dydR*dxdt(1)+dydZ*dxdt(3)
-   !dxdt2(2) = dxdt(2)
-   !dxdt=dxdt2
 
    !Weights evolve in delta-f method only.
    ! V1 = (ExB)/(B**2) + U deltaB/B
-   weqv1(1) = ((E_cyl(2)*B_cyl(3) - E_cyl(3)*B_cyl(2))*B0inv + v(1)*deltaB(1))*B0inv
-   weqv1(2) = ((E_cyl(3)*B_cyl(1) - E_cyl(1)*B_cyl(3))*B0inv + v(1)*deltaB(2))*B0inv
-   weqv1(3) = ((E_cyl(1)*B_cyl(2) - E_cyl(2)*B_cyl(1))*B0inv + v(1)*deltaB(3))*B0inv
+   !weqv1(1) = ((E_cyl(2)*B_cyl(3) - E_cyl(3)*B_cyl(2))*B0inv + v(1)*deltaB(1))*B0inv
+   !weqv1(2) = ((E_cyl(3)*B_cyl(1) - E_cyl(1)*B_cyl(3))*B0inv + v(1)*deltaB(2))*B0inv
+   !weqv1(3) = ((E_cyl(1)*B_cyl(2) - E_cyl(2)*B_cyl(1))*B0inv + v(1)*deltaB(3))*B0inv
+   spd = sqrt(v(1)*v(1) + 2.0*qm_ion*v(2)/B0inv)
+   weqv1 = dxdt - dxdt0
+   weqa1 = dvdt - dvdt0
+   dBdt = dot_product(weqv1, gradB0)
+   dEdt = m_ion*v(1)*weqa1(1) + q_ion*v(2)*dBdt
+   dxidt = weqa1(1)/spd-v(1)/spd**2*(dEdt/m_ion/spd)
 
    ! vD = (1/(e B**3))(M_i U**2 + mu B)(B x grad B) + ((M_i U**2)/(eB**2))*J_perp
    tmp1 = (v(1)*v(1))*(B0inv*B0inv)/qm_ion
@@ -1260,7 +1339,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    ! temp(2) = 0.
    ! j0xb=-dot_product(temp*te0,deltaB)*B0inv
 
-   ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
+   !ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
    ! write(0,*) tmp1,(dot_product(-gradpe,bhat)+j0xb)
    if (sps == 1) then
       !call evalf0i(x, v, 1.0/B0inv, B_cyl(2), fhptr, geomterms, sps, f0, gradpsi, gradcoef, df0de)
@@ -1290,7 +1369,6 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    !dB0dt=dot_product(bhat, -dBdt)
    !dwdt = (w - 1.0)*(dot_product(weqv1, gradf0) - &
    !     q_ion*dot_product(weqv0, E_cyl)*df0de)/f0
-   spd = sqrt(v(1)*v(1) + 2.0*qm_ion*v(2)/B0inv)
    if (sps == 1) then
       !dwdt = (-1.0)*(1.*dot_product(weqv1, gradpsi*gradcoef) + &
       !    !0*dot_product(real(fhptr%Bzv0), geomterms%g)*B0inv*dot_product(bhat,E_cyl-v(2)*gradB1)*gradcoef+&
@@ -1314,8 +1392,9 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
                      !1.*q_ion*(dot_product(weqvD, E_cyl)+1*v(5)*dB0dt)*df0de + 0.*tmp5)
                      !1.*q_ion*(dot_product(weqv0, E_cyl)+0*v(5)*dB0dt)*df0de + 0.*tmp5)
                      !1.*q_ion*(1*dot_product(weqvD, E_cyl)+1*dot_product(weqv0, -gradpe)+0*v(5)*dB0dt)*df0de + 0.*tmp5)
-       1.*q_ion*(1*dot_product(weqvD, E_cyl) + 1.*v(1)*dot_product(E_cyl, bhat))*(df0de - v(1)/spd**3/m_ion*df0dxi) + 0.*tmp5 + &
-      1.*qm_ion*(1*dot_product(weqvD1,E_cyl)/v(1)+1.*dot_product(E_cyl,bhat)-v(2)*(dot_product(gradB0,deltaB)*B0inv+dot_product(gradB1,bhat)))*df0dxi/spd)
+                     !1.*q_ion*(1*dot_product(weqvD, E_cyl) + 1.*v(1)*dot_product(E_cyl, bhat))*(df0de - v(1)/spd**3/m_ion*df0dxi) + 0.*tmp5 + &
+                     !1.*qm_ion*(1*dot_product(weqvD1,E_cyl)/v(1)+1.*dot_product(E_cyl,bhat)-v(2)*(dot_product(gradB0,deltaB)*B0inv+dot_product(gradB1,bhat)))*df0dxi/spd)
+                     +dEdt*df0de + dxidt*df0dxi)
       !1.*q_ion*(dot_product(weqv0, bhat)*dot_product(E_cyl,bhat)+0*v(5)*dB0dt)*df0de + 0.*tmp5)
    end if
    !if (deltaB_last(2).ne.0.) write(0,*) deltaB(2),deltaB_last(2)
@@ -1337,6 +1416,9 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
       dwdt = dwdt*(1 - w)
       !dEpdt = dEpdt *(w+(1-w)*dot_product(deltaB,bhat)*B0inv)
       !dvdt(1) = dvdt(1)+qm_ion*(dot_product(-gradpe,bhat)+j0xb)/ne0
+   else
+      dxdt = dxdt0
+      dvdt = dvdt0
    end if
    !dwdt = (1.-w)/(dt_particle*t0_norm_particle)
    !B0=1./B0inv
@@ -2182,7 +2264,7 @@ subroutine getBcyl(x, fh, gh, Bcyl, deltaB, gradB0, gradB1, dB1)
    dB1 = dB1*b0_norm_particle/1.e4
 end subroutine getBcyl
 !---------------------------------------------------------------------------
-subroutine getBcylprime(x, fh, gh, Bcyl, deltaB, dBdR, dBdphi, dBdz)
+subroutine getBcylprime(x, fh, gh, Bcyl, deltaB, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz)
 !$acc routine seq
    use basic
    implicit none
@@ -2190,7 +2272,7 @@ subroutine getBcylprime(x, fh, gh, Bcyl, deltaB, dBdR, dBdphi, dBdz)
    real, dimension(3), intent(in)  :: x
    type(elfield), intent(in)       :: fh
    type(xgeomterms), intent(in)    :: gh
-   real, dimension(3), intent(out) :: Bcyl, deltaB, dBdR, dBdphi, dBdz
+   real, dimension(3), intent(out) :: Bcyl, deltaB, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz
 
    vectype, dimension(3) :: temp, tempR, tempphi, tempz
    real :: Rinv
@@ -2204,39 +2286,39 @@ subroutine getBcylprime(x, fh, gh, Bcyl, deltaB, dBdR, dBdphi, dBdz)
    !Total/Equilibrium part
    !B_poloidal_axisym = grad psi x grad phi
    Bcyl(1) = -Rinv*dot_product(fh%psiv0, gh%dz)
-   dBdR(1) = -Rinv*dot_product(fh%psiv0, gh%drz)
-   dBdz(1) = -Rinv*dot_product(fh%psiv0, gh%dzz)
+   dB0dR(1) = -Rinv*dot_product(fh%psiv0, gh%drz)
+   dB0dz(1) = -Rinv*dot_product(fh%psiv0, gh%dzz)
 
    Bcyl(3) = Rinv*dot_product(fh%psiv0, gh%dr)
-   dBdR(3) = Rinv*dot_product(fh%psiv0, gh%drr)
-   dBdz(3) = Rinv*dot_product(fh%psiv0, gh%drz)
+   dB0dR(3) = Rinv*dot_product(fh%psiv0, gh%drr)
+   dB0dz(3) = Rinv*dot_product(fh%psiv0, gh%drz)
    !B_toroidal = B_Z / R
    Bcyl(2) = Rinv*dot_product(fh%Bzv0, gh%g)
-   dBdR(2) = Rinv*dot_product(fh%Bzv0, gh%dr)
-   dBdz(2) = Rinv*dot_product(fh%Bzv0, gh%dz)
+   dB0dR(2) = Rinv*dot_product(fh%Bzv0, gh%dr)
+   dB0dz(2) = Rinv*dot_product(fh%Bzv0, gh%dz)
 
    !if (itor.eq.1) dBdR = dBdR - Rinv*Bcyl
-   dBdR = dBdR - Rinv*Bcyl
+   dB0dR = dB0dR - Rinv*Bcyl
 
 #ifdef USE3D
    !Non-axisymmetric B_poloidal term: - grad f'
-   dBdphi(1) = -Rinv*dot_product(fh%psiv0, gh%dzphi)
-   dBdphi(3) = Rinv*dot_product(fh%psiv0, gh%drphi)
-   dBdphi(2) = Rinv*dot_product(fh%Bzv0, gh%dphi)
+   dB0dphi(1) = -Rinv*dot_product(fh%psiv0, gh%dzphi)
+   dB0dphi(3) = Rinv*dot_product(fh%psiv0, gh%drphi)
+   dB0dphi(2) = Rinv*dot_product(fh%Bzv0, gh%dphi)
 
    Bcyl(1) = Bcyl(1) - dot_product(fh%Bfpv0, gh%dr)
-   dBdR(1) = dBdR(1) - dot_product(fh%Bfpv0, gh%drr)
-   dBdphi(1) = dBdphi(1) - dot_product(fh%Bfpv0, gh%drphi)
-   dBdz(1) = dBdz(1) - dot_product(fh%Bfpv0, gh%drz)
+   dB0dR(1) = dB0dR(1) - dot_product(fh%Bfpv0, gh%drr)
+   dB0dphi(1) = dB0dphi(1) - dot_product(fh%Bfpv0, gh%drphi)
+   dB0dz(1) = dB0dz(1) - dot_product(fh%Bfpv0, gh%drz)
 
    Bcyl(3) = Bcyl(3) - dot_product(fh%Bfpv0, gh%dz)
-   dBdR(3) = dBdR(3) - dot_product(fh%Bfpv0, gh%drz)
-   dBdphi(3) = dBdphi(3) - dot_product(fh%Bfpv0, gh%dzphi)
-   dBdz(3) = dBdz(3) - dot_product(fh%Bfpv0, gh%dzz)
+   dB0dR(3) = dB0dR(3) - dot_product(fh%Bfpv0, gh%drz)
+   dB0dphi(3) = dB0dphi(3) - dot_product(fh%Bfpv0, gh%dzphi)
+   dB0dz(3) = dB0dz(3) - dot_product(fh%Bfpv0, gh%dzz)
 
    !dBdphi = 0.
 #else
-   dBdphi = 0.
+   dB0dphi = 0.
 #endif
 
    !Perturbed part
@@ -2272,16 +2354,16 @@ subroutine getBcylprime(x, fh, gh, Bcyl, deltaB, dBdR, dBdphi, dBdz)
 
    tempR(1) = tempR(1) - dot_product(gh%drr, fh%Bfpv1)
    tempR(3) = tempR(3) - dot_product(gh%drz, fh%Bfpv1)
-   tempR = real(tempR*exp(rfac_particle*x(2)))
+   dB1dR = real(tempR*exp(rfac_particle*x(2)))
    !dBdR = dBdR + real(tempR * exp(rfac*x(2)))
 
    tempphi(1) = tempphi(1) - dot_product(gh%dr, fh%Bfpv1)*rfac_particle
    tempphi(3) = tempphi(3) - dot_product(gh%dz, fh%Bfpv1)*rfac_particle
-   tempphi = real(tempphi*exp(rfac_particle*x(2)))
+   dB1dphi = real(tempphi*exp(rfac_particle*x(2)))
 
    tempz(1) = tempz(1) - dot_product(gh%drz, fh%Bfpv1)
    tempz(3) = tempz(3) - dot_product(gh%dzz, fh%Bfpv1)
-   tempz = real(tempz*exp(rfac_particle*x(2)))
+   dB1dz = real(tempz*exp(rfac_particle*x(2)))
    !dBdz = dBdz + real(tempz * exp(rfac*x(2)))
 
    !dBdphi = real(temp * rfac * exp(rfac*x(2)))
@@ -2293,26 +2375,32 @@ subroutine getBcylprime(x, fh, gh, Bcyl, deltaB, dBdR, dBdphi, dBdz)
 
    tempR(1) = tempR(1) - dot_product(gh%drr, fh%Bfpv1)
    tempR(3) = tempR(3) - dot_product(gh%drz, fh%Bfpv1)
+   dB1dR = tempR
    !dBdR = dBdR + tempR
 
    tempphi(1) = tempphi(1) - dot_product(fh%Bfpv1, gh%drphi)
    tempphi(3) = tempphi(3) - dot_product(fh%Bfpv1, gh%dzphi)
+   dB1dphi = tempphi
 
    tempz(1) = tempz(1) - dot_product(gh%drz, fh%Bfpv1)
    tempz(3) = tempz(3) - dot_product(gh%dzz, fh%Bfpv1)
+   dB1dz = tempz
    !dBdz = dBdz + tempz
 #endif
-   if (.not. (linear_particle == 1)) then
-      Bcyl = Bcyl + deltaB
-      dBdR = dBdR + tempR
-      dBdz = dBdz + tempz
-      dBdphi = dBdphi + tempphi
-   end if
+   !if (.not. (linear_particle == 1)) then
+   !   Bcyl = Bcyl + deltaB
+   !   dBdR = dBdR + tempR
+   !   dBdz = dBdz + tempz
+   !   dBdphi = dBdphi + tempphi
+   !end if
    Bcyl = Bcyl*b0_norm_particle/1.e4
    deltaB = deltaB*b0_norm_particle/1.e4
-   dBdR = dBdR*b0_norm_particle/1.e4
-   dBdz = dBdz*b0_norm_particle/1.e4
-   dBdphi = dBdphi*b0_norm_particle/1.e4
+   dB0dR = dB0dR*b0_norm_particle/1.e4
+   dB0dz = dB0dz*b0_norm_particle/1.e4
+   dB0dphi = dB0dphi*b0_norm_particle/1.e4
+   dB1dR = dB1dR*b0_norm_particle/1.e4
+   dB1dz = dB1dz*b0_norm_particle/1.e4
+   dB1dphi = dB1dphi*b0_norm_particle/1.e4
 end subroutine getBcylprime
 !---------------------------------------------------------------------------
 subroutine getEcyl(x, fh, gh, Ecyl)
