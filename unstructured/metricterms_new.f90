@@ -1852,7 +1852,7 @@ function v1pbb(e,f,g)
               + intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DZ),pst79(:,OP_DR),pst79(:,OP_DZ)) &
               - intx5(e(:,:,OP_DR),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DR)) &
               - intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DZ))
-  #if defined(USE3D) || defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79a = - f(:,OP_DP)*bzt79(:,OP_1)*g*ri2_79
         temp = temp +intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DR)) &
               +  intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZ))
@@ -1874,7 +1874,7 @@ function v1pbb(e,f,g)
               +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
               -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZP),f(:,OP_DR),bfpt79(:,OP_DR)) &
               -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZP),f(:,OP_DZ),bfpt79(:,OP_DZ)) 
-        #endif
+#endif
     end if
 
   v1pbb = temp
@@ -1911,7 +1911,7 @@ function v1jxb(e,f)
      temp79a = f*pst79(:,OP_GS)
      temp = temp+intx3(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DR)) &
           +  intx3(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ))
-     #endif
+#endif
     end if
 
   v1jxb = temp
@@ -3269,7 +3269,7 @@ function v2pbb(e,f,g)
   temp79a = g*bzt79(:,OP_1)
   temp = temp + intx4(e(:,:,OP_1),temp79a,f(:,OP_DR),bfpt79(:,OP_DR))    &
        +  intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ),bfpt79(:,OP_DZ)) 
-   #endif
+#endif
   temp79a = -g*bzt79(:,OP_1)*ri_79
   temp = temp + intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ),pst79(:,OP_DR))    &
        -          intx4(e(:,:,OP_1),temp79a,f(:,OP_DR),pst79(:,OP_DZ)) 
@@ -5261,7 +5261,7 @@ function v3pbb(e,f,g)
              -  intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DR)) &
              +  intx5(e(:,:,OP_DR),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DZ))
 
-  #if defined(USE3D) || defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = f(:,OP_DP)*g*bzt79(:,OP_1)*ri5_79
      temp = temp + intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR)) &
           - intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DZ))
@@ -5283,7 +5283,7 @@ function v3pbb(e,f,g)
               +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DR)) &
               +intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DRP),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
               +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZP),f(:,OP_DZ),bfpt79(:,OP_DZ)) 
-      #endif
+#endif
     end if
 
   v3pbb = temp
@@ -5320,7 +5320,7 @@ function v3jxb(e,f)
      temp79a = -f*pst79(:,OP_GS)*ri3_79
      temp = temp+intx3(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DR)) &
           -  intx3(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DZ))
-     #endif
+#endif
     end if
 
   v3jxb = temp
