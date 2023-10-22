@@ -386,7 +386,11 @@ contains
     call newvar_solve(p_f%vec,mass_mat_lhs)
     call newvar_solve(per_f%vec,mass_mat_lhs)
 
+#ifndef USEPARTICLES
     u_field(1) = per_f 
+#else
+    call mult(p_f,1.276)
+#endif
     p_field(0) = p_f 
     pe_field(0) = p_field(0)
     call mult(pe_field(0),pefac)
@@ -417,7 +421,9 @@ contains
     call destroy_vector(fppsi_vec)
     call destroy_mat(br_mat)
 
-    !call init_perturbations
+#ifdef USEPARTICLES
+    call init_perturbations
+#endif
 
   end subroutine vmec_init
 
