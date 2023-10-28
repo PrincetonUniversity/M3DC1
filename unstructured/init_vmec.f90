@@ -388,9 +388,6 @@ contains
 
 #ifndef USEPARTICLES
     u_field(1) = per_f 
-#else
-    call mult(p_f,1.276)
-#endif
     p_field(0) = p_f 
     pe_field(0) = p_field(0)
     call mult(pe_field(0),pefac)

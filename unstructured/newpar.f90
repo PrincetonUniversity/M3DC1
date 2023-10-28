@@ -342,7 +342,7 @@ Program Reducedquintic
   if (ispradapt .eq. 1) call marker
   
 #ifdef USEPARTICLES
-  !linear=1
+  linear=1
   if (kinetic.eq.1) then
      call particle_test
      !call safestop(0)

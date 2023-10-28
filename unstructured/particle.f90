@@ -513,7 +513,7 @@ subroutine init_particles(lrestart, ierr)
    !Normalize integrals
    nrmfac(1) = 3207919.*4.*0.0876/twopi/npar*4.e6*143 !nstx
 #ifdef USEST
-   nrmfac(2) = 3207919.*4.*0.1349267*36.36*0.0023/npar*4.e6
+   nrmfac(2) = 3207919.*4.*0.1349267*36.36*0.00025/npar*4.e6
 #else
    nrmfac(2) = 3207919.*4.*0.1349267*36.36*0.0297/npar*4.e6
 #endif
@@ -532,8 +532,8 @@ subroutine init_particles(lrestart, ierr)
    linear_particle = linear
    toroidal_period_particle = toroidal_period
    kinetic_thermal = 0
-   psubsteps = 10*dt
-   !linear_particle=1
+   psubsteps = 40
+   linear_particle=0
    dpar%x(1) = xmag
    dpar%x(3) = zmag
    dpar%x(2) = 0.
@@ -582,11 +582,11 @@ subroutine init_particles(lrestart, ierr)
       locparts = 0
       !allocate(ran(npar*5))
       !call random_number(ran)
-      call random_seed(size=ran_size)
-      allocate (seed(ran_size))
-      call random_seed(get=seed)
-      seed = seed + myrank
-      call random_seed(put=seed)
+      !call random_seed(size=ran_size)
+      !allocate (seed(ran_size))
+      !call random_seed(get=seed)
+      !seed = seed + myrank
+      !call random_seed(put=seed)
 
       do ielm = 1, nelms
 #ifdef USE3D
@@ -615,7 +615,7 @@ subroutine init_particles(lrestart, ierr)
 #endif
          call evalf0(dpar%x, elfieldcoefs(itri), geomterms, f_mesh, T00, rho, gradcoef)
 #ifdef USEST
-         npar_local=int(npar*(x_max-x_min)*(z_max-z_min)*f_mesh*2/nplanes*3.9)!fullf
+         npar_local=int(npar*(x_max-x_min)*(z_max-z_min)*f_mesh*2/nplanes*38)!fullf
 #else
          npar_local = int(npar*(x_max - x_min)*(x_max + x_min)/2.*(z_max - z_min)*f_mesh*2/nplanes*6.5)!fullf
 #endif
@@ -797,7 +797,7 @@ subroutine init_particles(lrestart, ierr)
 
    end if !!lrestart
 #ifdef USEST
-   energy_array=energy_array+0.1*(energy_array(2)-energy_array(1))
+   if (energy_array(1).eq.0) energy_array=energy_array+0.1*(energy_array(2)-energy_array(1))
    do energy_i=1,num_energy
       f_array(energy_i,:,:)=f_array(energy_i,:,:)/sqrt(energy_array(energy_i)/energy_array(num_energy))
    enddo
