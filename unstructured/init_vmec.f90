@@ -386,7 +386,6 @@ contains
     call newvar_solve(p_f%vec,mass_mat_lhs)
     call newvar_solve(per_f%vec,mass_mat_lhs)
 
-#ifndef USEPARTICLES
     u_field(1) = per_f 
     p_field(0) = p_f 
     pe_field(0) = p_field(0)
