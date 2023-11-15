@@ -1278,8 +1278,8 @@ subroutine validate_input
   
 !...check if correct code version is being used
 #if defined(USE3D)
-    if(linear.eq.1 .or. nplanes.le.1) then
-      if(myrank.eq.0) print *, "must have linear=0 and nplanes>1 for 3D version"
+    if(nplanes.le.1) then
+      if(myrank.eq.0) print *, "must have nplanes>1 for 3D version"
       call safestop(1)
     endif
 #endif
