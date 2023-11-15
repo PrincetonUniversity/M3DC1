@@ -409,16 +409,21 @@ subroutine electric_field_par(ilin,o, izone)
   vectype, dimension(MAX_PTS) :: b2, osign,ere
 
   o = 0.
-  if(izone.eq.3) return
+  if(izone.eq.ZONE_VACUUM) return
 
+  if(izone.eq.ZONE_CONDUCTOR) then
+     temp79a = etaRZ79(:,OP_1)
+  else
+     temp79a = eta79(:,OP_1)
+  end if
+  
   ! eta J
   ! ~~~~~
-  o = o + ri2_79*eta79(:,OP_1)* &
-       (-bztx79(:,OP_1)*pst79(:,OP_GS) &
-       +(bzt79(:,OP_DR)*pstx79(:,OP_DR) + bzt79(:,OP_DZ)*pstx79(:,OP_DZ)))
+  o = o - ri2_79*eta79(:,OP_1)*bztx79(:,OP_1)*pst79(:,OP_GS)
+  o = o + ri2_79*temp79a*(bzt79(:,OP_DR)*pstx79(:,OP_DR) + bzt79(:,OP_DZ)*pstx79(:,OP_DZ))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  o = o + eta79(:,OP_1)* &
+  o = o + temp79a* &
        (ri2_79* &
        (bfpt79(:,OP_DRP)*pstx79(:,OP_DR) + bfpt79(:,OP_DZP)*pstx79(:,OP_DZ) &
        -(bfptx79(:,OP_DR)*pst79(:,OP_DRP) + bfptx79(:,OP_DZ)*pst79(:,OP_DZP))) &
@@ -429,7 +434,7 @@ subroutine electric_field_par(ilin,o, izone)
        -(bzt79(:,OP_DR)+bfpt79(:,OP_DRP))*bfptx79(:,OP_DZ)))
 #endif
 
-  if(izone.ne.1) return
+  if(izone.ne.ZONE_PLASMA) return
 
   ! grad(Pe)
   ! ~~~~~~~~
