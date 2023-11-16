@@ -1184,10 +1184,10 @@ contains
   if(iand(fields, FIELD_ETA).eq.FIELD_ETA) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   eta..."
 
-     if(izone.eq.3) then 
+     if(izone.eq.ZONE_VACUUM) then
         eta79 = 0.
         eta79(:,OP_1) = eta_vac
-     else if(izone.eq.2) then
+     else if(izone.eq.ZONE_CONDUCTOR) then
         call get_zone_index(itri,iz)
         izarr = iz
         eta79 = 0.
