@@ -12,24 +12,30 @@ subroutine electric_field_R(ilin,o,izone)
   vectype, dimension(MAX_PTS), intent(out) :: o
 
   o = 0.
-  if(izone.eq.3) return
+  if(izone.eq.ZONE_VACUUM) return
 
+  if(izone.eq.ZONE_CONDUCTOR) then
+     temp79a = etaRZ79(:,OP_1)
+  else
+     temp79a = eta79(:,OP_1)
+  end if
+  
   ! eta J
   ! ~~~~~
   if(ilin.eq.1) then
-     o = o - eta79(:,OP_1)*bz179(:,OP_DZ)
+     o = o - temp79a*bz179(:,OP_DZ)
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + eta79(:,OP_1)* &
+     o = o + temp79a* &
           (ri2_79*ps179(:,OP_DRP) - ri_79*bfp179(:,OP_DZP))
 #endif
   else
-     o = o - eta79(:,OP_1)*bzt79(:,OP_DZ)
+     o = o - temp79a*bzt79(:,OP_DZ)
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + eta79(:,OP_1)* &
+     o = o + temp79a* &
           (ri2_79*pst79(:,OP_DRP) - ri_79*bfpt79(:,OP_DZP))
 #endif
   end if
-  if(izone.eq.2) return
+  if(izone.eq.ZONE_CONDUCTOR) return
 
   ! -VxB
   ! ~~~~
@@ -134,24 +140,30 @@ subroutine electric_field_Z(ilin,o,izone)
   vectype, dimension(MAX_PTS), intent(out) :: o
 
   o = 0.
-  if(izone.eq.3) return
+  if(izone.eq.ZONE_VACUUM) return
 
+  if(izone.eq.ZONE_CONDUCTOR) then
+     temp79a = etaRZ79(:,OP_1)
+  else
+     temp79a = eta79(:,OP_1)
+  end if
+  
   ! eta J
   ! ~~~~~
   if(ilin.eq.1) then 
-     o = o + eta79(:,OP_1)*bz179(:,OP_DR)
+     o = o + temp79a*bz179(:,OP_DR)
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + eta79(:,OP_1)* &
+     o = o + temp79a* &
           (ri2_79*ps179(:,OP_DZP) + ri_79*bfp179(:,OP_DRP))
 #endif
   else
-     o = o + eta79(:,OP_1)*bzt79(:,OP_DR)
+     o = o + temp79a*bzt79(:,OP_DR)
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + eta79(:,OP_1)* &
+     o = o + temp79a* &
           (ri2_79*pst79(:,OP_DZP) + ri_79*bfpt79(:,OP_DRP))
 #endif
   end if
-  if(izone.eq.2) return
+  if(izone.eq.ZONE_CONDUCTOR) return
 
   ! -VxB
   ! ~~~~
@@ -257,7 +269,7 @@ subroutine electric_field_phi(ilin,o, izone)
   vectype, dimension(MAX_PTS), intent(out) :: o
 
   o = 0.
-  if(izone.eq.3) return
+  if(izone.eq.ZONE_VACUUM) return
 
   ! eta J
   ! ~~~~~
@@ -266,7 +278,7 @@ subroutine electric_field_phi(ilin,o, izone)
   else
      o = o - ri_79*eta79(:,OP_1)*pst79(:,OP_GS)
   end if
-  if(izone.eq.2) return
+  if(izone.eq.ZONE_CONDUCTOR) return
 
   ! VxB
   ! ~~~
