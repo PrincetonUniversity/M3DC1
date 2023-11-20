@@ -446,19 +446,21 @@ subroutine electric_field_par(ilin,o, izone)
        -(bzt79(:,OP_DR)+bfpt79(:,OP_DRP))*bfptx79(:,OP_DZ)))
 #endif
 
-  if(izone.ne.ZONE_PLASMA) return
+  if(izone.eq.ZONE_PLASMA) then
 
-  ! grad(Pe)
-  ! ~~~~~~~~
-  if(db .ne. 0.) then
-     o = o - db*ni79(:,OP_1)*ri_79* &
-          (pet79(:,OP_DZ)*pstx79(:,OP_DR) - pet79(:,OP_DR)*pstx79(:,OP_DZ))
+     ! grad(Pe)
+     ! ~~~~~~~~
+     if(db .ne. 0.) then
+        o = o - db*ni79(:,OP_1)*ri_79* &
+             (pet79(:,OP_DZ)*pstx79(:,OP_DR) - pet79(:,OP_DR)*pstx79(:,OP_DZ))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o - db*ni79(:,OP_1)* &
-          (ri2_79*pet79(:,OP_DP)*bztx79(:,OP_1) &
-          -(pet79(:,OP_DZ)*bfptx79(:,OP_DZ) + pet79(:,OP_DR)*bfptx79(:,OP_DR)))
+        o = o - db*ni79(:,OP_1)* &
+             (ri2_79*pet79(:,OP_DP)*bztx79(:,OP_1) &
+             -(pet79(:,OP_DZ)*bfptx79(:,OP_DZ) + pet79(:,OP_DR)*bfptx79(:,OP_DR)))
 #endif
+     end if
+
   end if
 
   b2 = (bztx79(:,OP_1)**2 + pstx79(:,OP_DR)**2 + pstx79(:,OP_DZ)**2)*ri2_79
@@ -469,7 +471,7 @@ subroutine electric_field_par(ilin,o, izone)
        + bfptx79(:,OP_DZ)**2 + bfptx79(:,OP_DR)**2
 #endif
 
-    
+
   o = o / sqrt(b2)
 #if defined(USECOMPLEX)
   return
