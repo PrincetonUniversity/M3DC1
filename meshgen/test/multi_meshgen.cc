@@ -589,12 +589,12 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
   export_model_data(vtxContainer, edgeType, edgeContainer, loopContainer);
   std::map<int, pGVertex> vertices;
   gmi_model* model = m3dc1_model::instance()->model;  
-
-//#ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
-  pGIPart part = GM_rootPart(sim_model);
-//#else
-//  pGIPart part = GM_part(sim_model);
-//#endif
+ 
+  #ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
+    pGIPart part = GM_rootPart(sim_model);
+  #else
+    pGIPart part = GM_part(sim_model);
+  #endif
 
   pGRegion outerRegion = GIP_outerRegion(part);
   // Now we'll add loops
