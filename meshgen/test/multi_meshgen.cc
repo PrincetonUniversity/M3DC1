@@ -157,6 +157,7 @@ int findIntersection(edge e1, edge e2, point& returnPoint);
 bool checkLineIntersection(edge e1, edge e2);
 int findLineIntersection(edge e1, edge e2, point& returnPoint);
 double shortestDistance(point p1, point p2, point checkPoint);
+double checkAngle(double *ptPre, double *ptNow, double *ptNext);
 
 int main(int argc, char *argv[])
 {
@@ -866,53 +867,56 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 	if (thickness < 0)
 		offsetInside = true;
 
-	for(int i=0; i<nPts-1; i++)
+	// Remove the Points that are on straight Wall
+	vector <double> updatedWall;
+	for(int i=1; i<nPts-1; i++)
+	{
+		if (i == 0)
+                {
+                        ptPre[0] = wallPoints[(nPts-2)*2];
+                        ptPre[1] = wallPoints[(nPts-2)*2+1];
+                }
+                else
+                {
+                        ptPre[0] = wallPoints[(i-1)*2];
+                        ptPre[1] = wallPoints[(i-1)*2+1];
+                }
+                ptNow[0] = wallPoints[i*2];
+                ptNow[1] = wallPoints[i*2+1];
+                ptNext[0] = wallPoints[(i+1)*2];
+                ptNext[1] = wallPoints[(i+1)*2+1];
+
+		double angle = checkAngle(ptPre, ptNow, ptNext);
+		if (angle == 180 || angle == 0)
+			continue;
+
+		updatedWall.push_back(ptNow[0]);
+		updatedWall.push_back(ptNow[1]);
+	}	
+
+	
+	int n_Pts = updatedWall.size()/2;
+	for(int i=0; i<n_Pts-1; i++)
 	{
 		if (i == 0)
 		{
-			ptPre[0] = wallPoints[(nPts-2)*2];
-			ptPre[1] = wallPoints[(nPts-2)*2+1];
+			ptPre[0] = updatedWall[(n_Pts-2)*2];
+			ptPre[1] = updatedWall[(n_Pts-2)*2+1];
 		}
 		else
 		{
-			ptPre[0] = wallPoints[(i-1)*2];
-			ptPre[1] = wallPoints[(i-1)*2+1];
+			ptPre[0] = updatedWall[(i-1)*2];
+			ptPre[1] = updatedWall[(i-1)*2+1];
 		}
-		ptNow[0] = wallPoints[i*2];
-		ptNow[1] = wallPoints[i*2+1];
-		ptNext[0] = wallPoints[(i+1)*2];
-		ptNext[1] = wallPoints[(i+1)*2+1];
+		ptNow[0] = updatedWall[i*2];
+		ptNow[1] = updatedWall[i*2+1];
+		ptNext[0] = updatedWall[(i+1)*2];
+		ptNext[1] = updatedWall[(i+1)*2+1];
 
-
-		// Define the vector between two points [x2-x1, y2-y1]
-		double vec1[] = {ptNow[0] - ptPre[0], ptNow[1] - ptPre[1]};
-		double vec2[] = {ptNext[0] - ptNow[0], ptNext[1] - ptNow[1]};
-
-		double cross = (vec1[0]*vec2[1] - vec1[1]*vec2[0]);		
-	
-		double len1 = sqrt(vec1[0]*vec1[0]+vec1[1]*vec1[1]);  // Length of Edge 1
-		double len2 = sqrt(vec2[0]*vec2[0]+vec2[1]*vec2[1]);  // Length of Edge 2
-
-		// Once the absolute lengths are calculated, the next step is to use the dot product to find the cos of angles between two edges.
-
-                double cosAngle = (vec1[0]*vec2[0]+vec1[1]*vec2[1])/(len1*len2); 
-		double pi = 3.14159265;
-		double angle;	
-		if (cosAngle < -1)
-			angle = 180;
-		else if (cosAngle > 1)
-			angle = 0;
-		else 
- 			angle = acos (cosAngle) * 180.0/pi;
-
-	
-		if (cross > 0)
-			angle = 180 + angle;
-		if (cross < 0)
-			angle = 180 - angle;
-
+		double angle = checkAngle(ptPre, ptNow, ptNext);
 		double angleDeg, angleRad;		// Angle in degrees and radians
 		double dir[2], unitVec1[2], unitVec2[2];
+		double pi = 3.14159265;
 
 		unitVector(ptPre, ptNow, unitVec1);
 		unitVector(ptNow, ptNext, unitVec2);
@@ -926,7 +930,7 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 			for (int k =0; k < 2; ++k)	
 				ptOff[k] = ptNow[k]+(dir[k]*(fabs(thickness)/sin(angleRad)));
 		}
-		if (angle == 180 || angle == 0)
+		if (angle == 180 || angle == 0)	// Already such points are filtered, but just in case the code still finds one
 		{
 			double para=i*increment;
 			double normVec[2];
@@ -945,12 +949,13 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 			
 		}
 		interpolate_points_o.push_back(ptOff[0]);
-		interpolate_points_o.push_back(ptOff[1]);		
+		interpolate_points_o.push_back(ptOff[1]);
+				
 	}
 	interpolate_points_o.push_back(interpolate_points_o[0]);
 	interpolate_points_o.push_back(interpolate_points_o[1]);
 
-        std::vector <double> newOffset = curveOffsetComputation (wallPoints, interpolate_points_o);
+        std::vector <double> newOffset = curveOffsetComputation (updatedWall, interpolate_points_o);
 
 	// Follow the old procedure
 	gv1_id++;
@@ -1155,6 +1160,37 @@ std::vector <double> curveOffsetComputation (std::vector <double> parentLoop, st
 	finalOffsetVector.push_back(finalOffsetVector[1]);
 
 	return finalOffsetVector;
+}
+
+// Check Angle between two line segments
+double checkAngle(double *ptPre, double *ptNow, double *ptNext)
+{
+	// Define the vector between two points [x2-x1, y2-y1]
+	double vec1[] = {ptNow[0] - ptPre[0], ptNow[1] - ptPre[1]};
+        double vec2[] = {ptNext[0] - ptNow[0], ptNext[1] - ptNow[1]};
+
+       	double cross = (vec1[0]*vec2[1] - vec1[1]*vec2[0]);
+
+	double len1 = sqrt(vec1[0]*vec1[0]+vec1[1]*vec1[1]);  // Length of Edge 1
+        double len2 = sqrt(vec2[0]*vec2[0]+vec2[1]*vec2[1]);  // Length of Edge 2
+
+	// Once the absolute lengths are calculated, the next step is to use the dot product to find the cos of angles between two edges.
+        double cosAngle = (vec1[0]*vec2[0]+vec1[1]*vec2[1])/(len1*len2);
+        double pi = 3.14159265;
+        double angle;
+        if (cosAngle < -1)
+        	angle = 180;
+        else if (cosAngle > 1)
+           	angle = 0;
+        else
+                angle = acos (cosAngle) * 180.0/pi;
+
+        if (cross > 0)
+                angle = 180 + angle;
+        if (cross < 0)
+                angle = 180 - angle;
+
+	return angle;
 }
 
 // Compare the direction of Offset edge to parent edge        
