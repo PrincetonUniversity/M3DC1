@@ -12669,6 +12669,87 @@ function b1jrepsieta(e,f,g,h,i)
   b1jrepsieta = temp
 end function b1jrepsieta
 
+! B1jrepsieta
+! ====
+!function b1jrepsieta(e,f,g,h,i)
+!  use basic
+!  use m3dc1_nint
+
+!  implicit none
+
+!  vectype, dimension(dofs_per_element) :: b1jrepsieta
+!  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+!  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+!  vectype, dimension(dofs_per_element) :: temp
+
+!#if defined(USE3D) || defined(USECOMPLEX)
+!  if(jadv.eq.0) then
+!     temp = 0.
+!  else
+!     temp = -(intx6(e(:,:,OP_DZ),ri3_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)) &
+!          -intx6(e(:,:,OP_DR),ri3_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
+!          +intx6(e(:,:,OP_DZ),ri3_79,f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
+!          -intx6(e(:,:,OP_DR),ri3_79,f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
+!  endif
+
+!#else
+!  temp  = 0.
+!#endif
+!  b1jrepsieta = temp
+!end function b1jrepsieta
+
+function b1jrepsieta1(g,h,i)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  type(prodarray) :: b1jrepsieta1
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: g,h,i
+  type(prodarray) :: temp
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(jadv.eq.0) then
+     temp%len = 0
+  else
+     temp = prod(-ri3_79*g(:,OP_DRP)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_1) &
+          +prod(ri3_79*g(:,OP_DZP)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_1) &
+          +prod(-ri3_79*g(:,OP_DR)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_DP) &
+          +prod(ri3_79*g(:,OP_DZ)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_DP)
+  endif
+
+#else
+  temp %len = 0
+#endif
+  b1jrepsieta1 = temp
+end function b1jrepsieta1
+
+function b1jrepsieta2(f,h,i)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  type(prodarray) :: b1jrepsieta2
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,h,i
+  type(prodarray) :: temp
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(jadv.eq.0) then
+     temp%len = 0
+  else
+     temp = prod(-ri3_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_DRP) &
+          +prod(ri3_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_DZP) &
+          +prod(-ri3_79*f(:,OP_DP)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_DR) &
+          +prod(ri3_79*f(:,OP_DP)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_DZ)
+  endif
+
+#else
+  temp %len = 0
+#endif
+  b1jrepsieta2 = temp
+end function b1jrepsieta2
+
 ! B1jrebeta
 ! ====
 function b1jrebeta(e,f,g,h,i)
@@ -12691,116 +12772,291 @@ function b1jrebeta(e,f,g,h,i)
         temp = -intx6(e(:,:,OP_GS),ri2_79,f(:,OP_1),g(:,OP_1),h(:,OP_1),i(:,OP_1))
      end if
   endif
-  temp = temp*1.000
   b1jrebeta = temp
 end function b1jrebeta
 
-! B1jrefeta
-! ====
-function b1jrefeta(e,f,g,h,i)
+function b1jrebeta1(g,h,i)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, dimension(dofs_per_element) :: b1jrefeta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-  vectype, dimension(dofs_per_element) :: temp
+  type(prodarray) :: b1jrebeta1
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: g,h,i
+  type(prodarray) :: temp
+
+  if (jadv .eq. 0) then
+     temp = prod(-g(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_1,OP_1)
+  else
+     temp = prod(-ri2_79*g(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_GS,OP_1)
+  endif
+  b1jrebeta1 = temp
+end function b1jrebeta1
+
+function b1jrebeta2(f,h,i)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  type(prodarray) :: b1jrebeta2
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,h,i
+  type(prodarray) :: temp
+
+  if (jadv .eq. 0) then
+     temp = prod(-f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_1,OP_1)
+  else
+     temp = prod(-ri2_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_GS,OP_1)
+  endif
+  b1jrebeta2 = temp
+end function b1jrebeta2
+
+! B1jrefeta
+! ====
+!function b1jrefeta(e,f,g,h,i)
+!  use basic
+!  use m3dc1_nint
+
+!  implicit none
+
+!  vectype, dimension(dofs_per_element) :: b1jrefeta
+!  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+!  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+!  vectype, dimension(dofs_per_element) :: temp
+
+!#if defined(USE3D) || defined(USECOMPLEX)
+!  if(jadv.eq.0) then
+!     temp = 0.
+!  else
+!     if(surface_int) then
+!        temp = (intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
+!                f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
+!               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
+!                f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
+!               +intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
+!                f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
+!               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
+!                f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)))
+!     else
+!        temp = (intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1))&
+!               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1))&
+!               +intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1))&
+!               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)))
+!     end if
+!     temp = temp*1.000
+!  endif
+
+!#else
+!  temp  = 0.
+!#endif
+!  b1jrefeta = temp
+!end function b1jrefeta
+
+function b1jrefeta1(g,h,i)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  type(prodarray) :: b1jrefeta1
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: g,h,i
+  type(prodarray) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
-     temp = 0.
+     temp%len = 0
   else
-     if(surface_int) then
-        temp = (intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)))
-     else
-        temp = (intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_DP),g(:,OP_DZ),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_DP),g(:,OP_DR),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZP),h(:,OP_1),i(:,OP_1))&
-               +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DRP),h(:,OP_1),i(:,OP_1)))
-     end if
-     temp = temp*1.000
-  endif
+     temp = (prod(ri2_79*g(:,OP_DZ)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_DP)&
+          +prod(ri2_79*g(:,OP_DR)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_DP)&
+          +prod(ri2_79*g(:,OP_DZP)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_1)&
+          +prod(ri2_79*g(:,OP_DRP)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_1))
+  end if
 
 #else
-  temp  = 0.
+  temp%len = 0
 #endif
-  b1jrefeta = temp
-end function b1jrefeta
+  b1jrefeta1 = temp
+end function b1jrefeta1
+
+function b1jrefeta2(f,h,i)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  type(prodarray) :: b1jrefeta2
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,h,i
+  type(prodarray) :: temp
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(jadv.eq.0) then
+     temp%len = 0
+  else
+     temp = (prod(ri2_79*f(:,OP_DP)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_DZ)&
+          +prod(ri2_79*f(:,OP_DP)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_DR)&
+          +prod(ri2_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_DZP)&
+          +prod(ri2_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_DRP))
+  end if
+
+#else
+  temp%len = 0
+#endif
+  b1jrefeta2 = temp
+end function b1jrefeta2
 
 ! B2jrepsieta
 ! ====
-function b2jrepsieta(e,f,g,h,i)
+!function b2jrepsieta(e,f,g,h,i)
+!  use basic
+!  use m3dc1_nint
+
+!  implicit none
+
+!  vectype, dimension(dofs_per_element) :: b2jrepsieta
+!  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+!  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+!  vectype, dimension(dofs_per_element) :: temp
+
+!  if(jadv.eq.0) then
+!     temp = 0.
+!  else
+!     if(surface_int) then
+!        temp = -(intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
+!                f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
+!               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
+!                f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)))
+!     else
+!        temp = -(intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
+!                +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)))
+!     end if
+!     temp = temp*1.000
+!  endif
+
+!  b2jrepsieta = temp
+!end function b2jrepsieta
+
+function b2jrepsieta1(g,h,i)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, dimension(dofs_per_element) :: b2jrepsieta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-  vectype, dimension(dofs_per_element) :: temp
+  type(prodarray) :: b2jrepsieta1
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: g,h,i
+  type(prodarray) :: temp
 
   if(jadv.eq.0) then
-     temp = 0.
+     temp%len = 0
   else
-     if(surface_int) then
-        temp = -(intx7(e(:,:,OP_1),norm79(:,2),ri2_79, &
-                f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-               +intx7(e(:,:,OP_1),norm79(:,1),ri2_79, &
-                f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)))
-     else
-        temp = -(intx6(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)) &
-                +intx6(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)))
-     end if
-     temp = temp*1.000
+     temp = (prod(-ri2_79*g(:,OP_DZ)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_1) &
+          +prod(-ri2_79*g(:,OP_DR)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_1))
   endif
 
-  b2jrepsieta = temp
-end function b2jrepsieta
+  b2jrepsieta1 = temp
+end function b2jrepsieta1
+
+function b2jrepsieta2(f,h,i)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  type(prodarray) :: b2jrepsieta2
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,h,i
+  type(prodarray) :: temp
+
+  if(jadv.eq.0) then
+     temp%len = 0
+  else
+     temp = (prod(-ri2_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_DZ) &
+          +prod(-ri2_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_DR))
+  endif
+
+  b2jrepsieta2 = temp
+end function b2jrepsieta2
 
 ! B2jrefeta
 ! ====
-function b2jrefeta(e,f,g,h,i)
+!function b2jrefeta(e,f,g,h,i)
+!  use basic
+!  use m3dc1_nint
+
+!  implicit none
+
+!  vectype, dimension(dofs_per_element) :: b2jrefeta
+!  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+!  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+!  vectype, dimension(dofs_per_element) :: temp
+
+!#if defined(USE3D) || defined(USECOMPLEX)
+!  if(jadv.eq.0) then
+!     temp = 0.
+!  else
+!     if(surface_int) then
+!        temp = -(intx7(e(:,:,OP_1),norm79(:,2),ri_79, &
+!                f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
+!               -intx7(e(:,:,OP_1),norm79(:,1),ri_79, &
+!                f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
+!     else
+!        temp = -(intx6(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
+!               -intx6(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
+!     end if
+!     temp = temp*1.000
+!  endif
+
+!#else
+!  temp  = 0.
+!#endif
+!  b2jrefeta = temp
+!end function b2jrefeta
+
+function b2jrefeta1(g,h,i)
   use basic
   use m3dc1_nint
 
   implicit none
 
-  vectype, dimension(dofs_per_element) :: b2jrefeta
-  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-  vectype, dimension(dofs_per_element) :: temp
+  type(prodarray) :: b2jrefeta1
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: g,h,i
+  type(prodarray) :: temp
 
 #if defined(USE3D) || defined(USECOMPLEX)
   if(jadv.eq.0) then
-     temp = 0.
+     temp%len = 0
   else
-     if(surface_int) then
-        temp = -(intx7(e(:,:,OP_1),norm79(:,2),ri_79, &
-                f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               -intx7(e(:,:,OP_1),norm79(:,1),ri_79, &
-                f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
-     else
-        temp = -(intx6(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_DR),h(:,OP_1),i(:,OP_1)) &
-               -intx6(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_DZ),h(:,OP_1),i(:,OP_1)))
-     end if
-     temp = temp*1.000
+     temp = (prod(-ri_79*g(:,OP_DR)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_1) &
+          +  prod(-ri_79*g(:,OP_DZ)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_1))
   endif
 
 #else
-  temp  = 0.
+  temp%len = 0
 #endif
-  b2jrefeta = temp
-end function b2jrefeta
+  b2jrefeta1 = temp
+end function b2jrefeta1
+
+function b2jrefeta2(f,h,i)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  type(prodarray) :: b2jrefeta2
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,h,i
+  type(prodarray) :: temp
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  if(jadv.eq.0) then
+     temp%len = 0
+  else
+     temp = (prod(-ri_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_DZ,OP_DR) &
+          +  prod(-ri_79*f(:,OP_1)*h(:,OP_1)*i(:,OP_1),OP_DR,OP_DZ))
+  endif
+
+#else
+  temp%len = 0
+#endif
+  b2jrefeta2 = temp
+end function b2jrefeta2
 
 ! B1bv
 ! ====
