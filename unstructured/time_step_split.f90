@@ -1373,6 +1373,7 @@ call PetscLogStagePop(jer)
      ! Include RE density terms
      if(irunaway .gt. 0) then
         call matvecmult(r43_mat,nre_vec,b2_phi)
+        call mult(b2_phi,-1.)
         call add(b1_phi, b2_phi)
         call matvecmult(q43_mat,nreold_vec,b2_phi)
         call add(b1_phi, b2_phi)
@@ -1513,6 +1514,7 @@ call PetscLogStagePop(jer)
         ! Include RE density terms
         if(irunaway .gt. 0) then
            call matvecmult(r43_mat,nre_vec,b2_phi)
+           call mult(b2_phi,-1.)
            call add(b1_phi, b2_phi)
            call matvecmult(q43_mat,nreold_vec,b2_phi)
            call add(b1_phi, b2_phi)

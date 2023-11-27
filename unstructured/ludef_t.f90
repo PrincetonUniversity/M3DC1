@@ -2735,18 +2735,18 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      if (irunaway .gt. 0) then
        tempx = b2jrepsieta  (trialx,nre179,lin,eta79,bi79)
        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpb     *dt*tempx
-       ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpb*bdf)*dt*tempx
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpb*bdf)*dt*tempx
        tempx = b2jrepsieta  (trialx,lin,ps179,eta79,bi79)
        ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
-       ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+       ddterm(:,nre_g) = ddterm(:,nre_g) + (.5-thimpb*bdf)*dt*tempx
 
         if (i3d == 1) then
           tempx = b2jrefeta       (trialx,lin,bfp179,eta79,bi79)
           ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
-          ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+          ddterm(:,nre_g) = ddterm(:,nre_g) + (.5-thimpb*bdf)*dt*tempx
           tempx = b2jrefeta       (trialx,nre179,lin,eta79,bi79)
           r_bf = r_bf -     thimpb     *dt*tempx
-          q_bf = q_bf + (1.-thimpb*bdf)*dt*tempx
+          q_bf = q_bf + (.5-thimpb*bdf)*dt*tempx
         endif
      endif
 
@@ -2777,18 +2777,18 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
      !NRE term
      if (irunaway .gt. 0) then
-       tempx = b2jrepsieta  (trialx,nre179,lin,eta79,bi79)
+       tempx = b2jrepsieta  (trialx,nre079,lin,eta79,bi79)
        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpb     *dt*tempx
        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpb*bdf)*dt*tempx
-       tempx = b2jrepsieta  (trialx,lin,ps179,eta79,bi79)
+       tempx = b2jrepsieta  (trialx,lin,ps079,eta79,bi79)
        ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
        ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
 
         if (i3d == 1) then
-          tempx = b2jrefeta       (trialx,lin,bfp179,eta79,bi79)
+          tempx = b2jrefeta       (trialx,lin,bfp079,eta79,bi79)
           ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
           ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
-          tempx = b2jrefeta       (trialx,nre179,lin,eta79,bi79)
+          tempx = b2jrefeta       (trialx,nre079,lin,eta79,bi79)
           r_bf = r_bf -     thimpb     *dt*tempx
           q_bf = q_bf + (1.-thimpb*bdf)*dt*tempx
         endif
