@@ -1111,7 +1111,7 @@ subroutine set_defaults
   call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
   call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
   call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! (prereq: iadapt = 1) adapt elements classified on model face  
-  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp) !support snapping
+  call add_var_int("iadapt_snap", iadapt_snap, 1, "", adapt_grp) !support snapping
 
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
