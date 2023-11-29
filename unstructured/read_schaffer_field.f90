@@ -907,6 +907,8 @@ contains
        call check(nf90_get_var(ncid, bz_varid, bztemp, count=count4, start=start4))
        call check(nf90_get_var(ncid, p_varid, ptemp, count=count4, start=start4))
        call check(nf90_close(ncid))
+! Pressure normalization
+       ptemp = ptemp/(pi*4e-7)  
 
        if(.not. sf%initialized) then
           allocate(sf%r(sf%nr))
