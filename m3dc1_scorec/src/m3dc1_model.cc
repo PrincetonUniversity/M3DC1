@@ -100,6 +100,7 @@ m3dc1_model::m3dc1_model()
   xperiodic=yperiodic=0;
   local_planeid=0;
   num_plane=1;
+  snapping=false;
   group_size = PCU_Comm_Peers();
   oldComm = PCU_Get_Comm();
   ge_tag=NULL;
@@ -184,6 +185,18 @@ void make_edge_topo(gmi_model* m, gmi_ent* e, int v0tag, int v1tag)
 }
 
 // **********************************************
+void make_face_topo (gmi_ent* face, std::vector <int> tagsOfEdgesOnFace)
+// **********************************************
+{
+  agm_bdry b = add_bdry(m3dc1_model::instance()->model, face);
+  for (int i = 0; i < tagsOfEdgesOnFace.size(); ++i)
+  {
+    agm_use u1 = add_adj(m3dc1_model::instance()->model, b, tagsOfEdgesOnFace[i]);
+    gmi_add_analytic_reparam(m3dc1_model::instance()->model, u1, faceFunction, 0);
+  }
+}
+
+// **********************************************
 void m3dc1_model::load_analytic_model(const char *name)
 // **********************************************
 {
@@ -224,11 +237,15 @@ void load_model(const char* filename)
   int numL,separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop;
   fscanf(fp,"%d %d %d %d %d\n", &numL, &separatrixLoop, &innerWallLoop, &outerWallLoop, &vacuumLoop);
 
-  for( int i=0; i< numL; i++)
+  std::vector<int> loop_ids;
+  loop_ids.resize(numL);
+
+  for (int i=0; i< numL; i++)
   {
     int numE;
-    int loop;
+    int loop; // loop ID
     fscanf(fp,"%d %d\n", &loop, &numE);
+    loop_ids[i] = loop;
     // first read all vtx on the loop
     for( int j=0; j<numE; j++)
     {
@@ -242,6 +259,27 @@ void load_model(const char* filename)
     {
       int edge, beginvtx, endvtx,edgeType;
       fscanf(fp,"%d %d %d %d\n", &edge, &beginvtx, &endvtx, &edgeType);
+            if (edgeContainer.find(edge)!=edgeContainer.end()) // edge already created
+      {
+        edges[i]=edge;
+        switch (edgeType)
+        {
+          case BSPLINE:
+               {
+                 int order, numPts;
+                 double dummy1, dummy2;
+                 fscanf(fp,"%d %d ", &order, &numPts);
+                 for (int k=0; k < order+numPts; k++)
+                   fscanf(fp,"%lf ", &dummy1);
+                 for (int k=0; k<numPts; k++)
+                   fscanf(fp,"%lf %lf ", &dummy1, &dummy2);
+                 fscanf(fp, "\n");
+               }
+          default: break;
+        }
+        continue;
+      }
+
       create_edge(&edge,&beginvtx, &endvtx);
       edges[i]=edge;
       switch( edgeType )
@@ -287,8 +325,13 @@ void load_model(const char* filename)
   int facePeriodic[2] = {0, 0};
   double faceRanges[2][2] = {{0,0},{0,0}};
   for (int i=1; i<=numL; ++i)
-    gmi_ent* ge=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
+  {
+    gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
                      faceFunction, facePeriodic, faceRanges, NULL);
+
+    if (m3dc1_model::instance()->snapping) 
+      make_face_topo(gf, loopContainer[loop_ids[i-1]]);
+  }
 }
 
 // **********************************************

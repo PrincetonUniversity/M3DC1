@@ -70,6 +70,9 @@ module diagnostics
   real :: t_solve_v, t_solve_n, t_solve_p, t_solve_b, t_mvm
   real :: t_output_cgm, t_output_hdf5, t_output_reset
   real :: t_gs, t_kprad
+#ifdef USEPARTICLES
+  real :: t_particle
+#endif
 
   integer, parameter :: imag_probes_max = 100
   integer :: imag_probes
@@ -3189,15 +3192,25 @@ end subroutine te_max_dev
        
        ! Read toroidal field
        if(mag_probe_nphi(i).ne.0.) then
+#ifdef USEPARTICLES
+          ! phi
+          call evaluate(mag_probe_x(i),mag_probe_phi(i),mag_probe_z(i), &
+               val,u_field(1),mag_probe_itri(i),ierr)
+#else
           ! bz
           call evaluate(mag_probe_x(i),mag_probe_phi(i),mag_probe_z(i), &
                val,bz_field(1),mag_probe_itri(i),ierr)
+#endif
           if(ierr.ne.0) then
              if(myrank.eq.0) print *, 'Error evaluating flux loop ', i
              cycle
           end if
 
+#ifdef USEPARTICLES
+          mag_probe_val(i) = mag_probe_val(i) + mag_probe_nphi(i)*val(OP_1)
+#else
           mag_probe_val(i) = mag_probe_val(i) + mag_probe_nphi(i)*val(OP_1)*r
+#endif
        end if
     end do
   end subroutine evaluate_mag_probes

@@ -32,6 +32,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
       phi0 = findgen(nphi)/nphi * period
       if(itor eq 1) then phi0 = phi0*180./!pi
    end
+   print, 'phi0 = ', phi0
 
    if(nphi gt 1) then begin
       if(icomplex eq 1) then begin
@@ -45,7 +46,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         last=last,symbol=symbol,units=units, $
                         cgs=cgs, mks=mks, time=realtime, $
                         rvector=rvector, zvector=zvector, yvector=yvector,$
-                        phi=phi0[0], wall_mask=wall_mask, /linear, /complex)
+                        phi=phi0[0], wall_mask=wall_mask, /linear, /complex, $
+                        logical=logical)
          for i=1, nphi-1 do begin
             phi_rad = (phi0[i]-phi0[0])*!pi/180.
             data[i,*,*] = data[0,*,*]*exp(complex(0.,ntor)*phi_rad)
@@ -61,7 +63,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         symbol=symbol,units=units, $
                         cgs=cgs, mks=mks, time=realtime, $
                         rvector=rvector, zvector=zvector, yvector=yvector,$
-                        phi=0., wall_mask=wall_mask)
+                        phi=0., wall_mask=wall_mask, logical=logical)
             for i=0, nphi-1 do begin
                data[i,*,*] = data[i,*,*] + data0
             end
@@ -80,7 +82,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           linear=linear, last=last,symbol=symbol,units=units, $
                           cgs=cgs, mks=mks, time=realtime, $
                           rvector=rvector, zvector=zvector, yvector=yvector,$
-                          phi=phi0[i], wall_mask=wall_mask)         
+                          phi=phi0[i], wall_mask=wall_mask, logical=logical)
          end
          return, data
       end
@@ -101,7 +103,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         linear=linear, last=last,symbol=symbol,units=units, $
                         cgs=cgs, mks=mks, time=realtime, $
                         rvector=rvector, zvector=zvector, yvector=yvector,$
-                        phi=phi[i], wall_mask=wall_mask)
+                        phi=phi[i], wall_mask=wall_mask,logical=logical)
        end
        data = data/taverage
        return, data
@@ -132,7 +134,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         linear=linear, last=last,symbol=symbol,units=units, $
                         cgs=cgs, mks=mks, phi=phi0, time=realtime, $
                         rvector=rvector, zvector=zvector, yvector=yvector, $
-                       wall_mask=wall_mask)
+                       wall_mask=wall_mask,logical=logical)
        end
        if(keyword_set(average)) then data = data/n
        return, data
@@ -158,7 +160,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                         linear=linear, last=last,symbol=symbol,units=units, $
                        cgs=cgs, mks=mks, phi=phi0, time=realtime, $
                        rvector=rvector, zvector=zvector, yvector=yvector, $
-                       wall_mask=wall_mask) $
+                       wall_mask=wall_mask,logical=logical) $
              *((-1)^i)
        end
 
@@ -233,7 +235,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                           units=units, dimensions=d, phi=phi0, $
                           rvector=rvector, zvector=zvector, $
                           yvector=yvector, is_nonlinear=isnl, $
-                         wall_mask=wall_mask)
+                         wall_mask=wall_mask,logical=logical)
 
        if(n_elements(data1) le 1) then begin
           print, 'Perturbed field not found.'
@@ -250,7 +252,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                              symbol=symbol, mks=mks, cgs=cgs, $
                              units=units, dimensions=d, $
                              rvector=rvector, zvector=zvector, $
-                             yvector=yvector, wall_mask=wall_mask)
+                             yvector=yvector, wall_mask=wall_mask, $
+                             logical=logical)
           if(n_elements(data1) le 1) then begin
              data = data0
           endif else begin
@@ -322,7 +325,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                h_symmetry=h_symmetry, v_symmetry=v_symmetry, $
                                diff=diff, operation=op, mask=mask, $
                                symbol=symbol, phi=phi0, $
-                               units=units, dimensions=d, wall_mask=wall_mask)
+                               units=units, dimensions=d, wall_mask=wall_mask, $
+                               logical=logical)
            data1 = read_field(name,x,y,t, slices=time, mesh=mesh, $
                                filename=filename, points=pts, $
                                rrange=xrange, zrange=yrange, $
@@ -330,7 +334,8 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                diff=diff, operation=op, $
                                last=last,symbol=symbol, phi=phi0, $
                                units=units, dimensions=d, $
-                               equilibrium=equilibrium, wall_mask=wall_mask)
+                               equilibrium=equilibrium, wall_mask=wall_mask, $
+                               logical=logical)
            data = data1 - data0
        endif else begin
            print, '  reading real field'
@@ -742,12 +747,14 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
       if(g eq 0.) then begin
          data = read_field('vn', x, y, t, mesh=mesh, phi=phi0, slice=time, $
                            filename=filename, points=pts, complex=complex, $
-                           rrange=xrange, zrange=yrange, linear=linear)
+                           rrange=xrange, zrange=yrange, linear=linear, $
+                          phi=phi0)
       endif else begin
          print, 'xi_n = normal displacement using xi = int(v dt) method'
          vn = read_field('vn', x, y, t, mesh=mesh, phi=phi0, slice=time, $
                          filename=filename, points=pts, complex=complex, $
-                         rrange=xrange, zrange=yrange, linear=linear)
+                         rrange=xrange, zrange=yrange, linear=linear, $
+                        phi=phi0)
          data = vn / g[0]
       end
 
@@ -2037,6 +2044,20 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
          d = dimensions(l0=2, t0=-1, _EXTRA=extra)
          symbol = '!7v!X'
 
+     ;===========================================
+     ; chi_parallel
+     ;===========================================
+     endif else if(strcmp('chi_par', name, /fold_case) eq 1) then begin
+
+         kappar = read_parameter('kappar', filename=filename)
+         den = read_field('den', x, y, t, slices=time, $
+                          filename=filename, points=pts, mask=mask, $
+                          rrange=xrange, zrange=yrange, /equilibrium)
+
+         data = kappar/den
+         d = dimensions(l0=2, t0=-1, _EXTRA=extra)
+         symbol = '!7v!D!3||!N!X'
+
    ;===========================================
    ; mu_perp
    ;===========================================
@@ -2735,13 +2756,16 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
        phi = read_field('phi', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, mask=mask, $
-                        rrange=xrange, zrange=yrange, complex=complex)
+                        rrange=xrange, zrange=yrange, complex=complex, $
+                        phi=phi0)
        chi = read_field('chi', x, y, t, slices=time, mesh=mesh, linear=linear,$
                         filename=filename, points=pts, mask=mask, $
-                        rrange=xrange, zrange=yrange,complex=complex)
+                        rrange=xrange, zrange=yrange,complex=complex, $
+                        phi=phi0)
        psi = read_field('psi', x, y, t, /equilibrium, slices=time, $
                         filename=filename, points=pts, mask=mask, $
-                        rrange=xrange, zrange=yrange)
+                        rrange=xrange, zrange=yrange, $
+                        phi=phi0)
        
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -2908,6 +2932,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                      wall_mask=wall_mask,outval=mask_val)
        end
 
+       if(version lt 35) then begin
        if(i3d eq 1) then begin
            f_rp = read_field('f', x, y, t, mesh=mesh, operation=12, $
                             filename=filename, points=pts, slices=time, $
@@ -2934,6 +2959,32 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
 
            f_rp = complex(0.,ntor)*f_r
        endif else f_rp = 0.
+       endif else begin
+       if(i3d eq 1) then begin
+          f_rp = read_field('fp', x, y, t, mesh=mesh, operation=2, $
+                            filename=filename, points=pts, slices=time, $
+                            rrange=xrange, zrange=yrange, complex=complex, $
+                            linear=linear, phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
+          if(extsubtract eq 1 and version lt 8) then begin
+             f_rp = f_rp + read_field('fp_ext', x, y, t, mesh=mesh, operation=2, $
+                                      filename=filename, points=pts, slices=time, $
+                                      rrange=xrange, zrange=yrange, complex=complex, $
+                                      linear=linear, phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
+          end
+
+       endif else if(icomplex eq 1 and time ge 0) then begin
+           f_rp = read_field('fp', x, y, t, mesh=mesh, operation=2, $
+                            filename=filename, points=pts, slices=time, $
+                            rrange=xrange, zrange=yrange, complex=complex, $
+                            linear=linear, phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
+           if(extsubtract eq 1 and version lt 8) then begin
+               f_rp = f_rp + read_field('fp_ext', x, y, t, mesh=mesh, operation=2, $
+                                      filename=filename, points=pts, slices=time, $
+                                      rrange=xrange, zrange=yrange, complex=complex, $
+                                      linear=linear, phi=phi0, wall_mask=wall_mask,outval=mask_val,mask=mask)
+           end
+       endif else f_rp = 0.
+       endelse
        
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
@@ -2961,6 +3012,7 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
                                      wall_mask=wall_mask,outval=mask_val)
        end
 
+       if(version lt 35) then begin
        if(i3d eq 1) then begin
            f_zp = read_field('f', x, y, t, mesh=mesh, operation=13, $
                             filename=filename, points=pts, slices=time, $
@@ -2990,7 +3042,36 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
            end
            f_zp = complex(0.,ntor)*f_z
        endif else f_zp = 0.
-       
+       endif else begin
+          if(i3d eq 1) then begin
+           f_zp = read_field('fp', x, y, t, mesh=mesh, operation=3, $
+                            filename=filename, points=pts, slices=time, $
+                            rrange=xrange, zrange=yrange, complex=complex, $
+                            linear=linear, phi=phi0, $
+                            wall_mask=wall_mask,outval=mask_val,mask=mask)
+           if(extsubtract eq 1 and version lt 8) then begin
+               f_zp = f_zp + read_field('fp_ext', x, y, t, mesh=mesh, operation=3, $
+                                 filename=filename, points=pts, slices=time, $
+                                 rrange=xrange, zrange=yrange, complex=complex, $
+                                 linear=linear, phi=phi0, $
+                                        wall_mask=wall_mask,outval=mask_val,mask=mask)
+           end
+
+       endif else if(icomplex eq 1 and time ge 0) then begin
+           f_zp = read_field('fp', x, y, t, mesh=mesh, operation=3, $
+                            filename=filename, points=pts, slices=time, $
+                            rrange=xrange, zrange=yrange, complex=complex, $
+                            linear=linear, phi=phi0, $
+                           wall_mask=wall_mask,outval=mask_val,mask=mask)
+           if(extsubtract eq 1 and version lt 8) then begin
+               f_zp = f_zp + read_field('fp_ext', x, y, t, mesh=mesh, operation=3, $
+                                 filename=filename, points=pts, slices=time, $
+                                 rrange=xrange, zrange=yrange, complex=complex, $
+                                 linear=linear, phi=phi0, $
+                                     wall_mask=wall_mask,outval=mask_val,mask=mask)
+           end
+       endif else f_zp = 0.
+       endelse
        if(itor eq 1) then begin
            r = radius_matrix(x,y,t)
        endif else r = 1.

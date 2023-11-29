@@ -22,11 +22,6 @@ else
   endif
 endif
 
-ifeq ($(ADAPT), 1)
-  OPTS := $(OPTS) -DADAPT
-  BIN_POSTFIX := $(BIN_POSTFIX)-adapt
-endif
-
 # determine whether 2d, 3d, or 2d-complex
 ifeq ($(3D), 1)
   OPTS := $(OPTS) -DUSE3D -Dvectype=real
@@ -52,7 +47,6 @@ else
   endif
 endif
 
-# determine whether to use stellarator extension
 ifeq ($(ST), 1)
   OPTS := $(OPTS) -DUSEST 
   BIN_POSTFIX := $(BIN_POSTFIX)-st
@@ -243,6 +237,7 @@ bin : a2cc mackenbach_profiles
 		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/collapse bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/m3dc1_mfmgen bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/convert_sim_sms bin ; \
 	fi
 	if [ -f $(SCOREC_UTIL_DIR)/split_smb/make_model ]; then \

@@ -183,7 +183,11 @@ subroutine init_perturbations
         call magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ), &
              x_79(:), z_79(:), imr)
 
+#ifdef USEPARTICLES
+        where((imr.eq.REGION_PLASMA).and.(pt79(:,OP_1)>10*pedge))
+#else
         where(imr.eq.REGION_PLASMA)
+#endif
            temp79a(:) = (pt79(:,OP_1) - pedge)/p0
         elsewhere
            temp79a(:) = 0.
@@ -302,6 +306,50 @@ subroutine den_eq
 
   call newvar_solve(den_vec%vec,mass_mat_lhs)
   den_field(0) = den_vec
+
+#ifdef USEPARTICLES
+  den_vec=0.
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+     call get_zone(itri, izone)
+#ifdef USEST
+           if(igeometry.eq.1) then
+              temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+              n079(:,OP_1) = exp(-(temp79b/0.4**2))
+           else
+              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
+           end if
+#endif     
+     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  nf_field = den_vec
+
+  den_vec=0.
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+     call get_zone(itri, izone)
+#ifdef USEST
+           if(igeometry.eq.1) then
+              temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2+1e-8)
+              n079(:,OP_1) = 1-temp79b
+           else
+              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
+           end if
+#endif     
+     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  rho_field = den_vec
+   
+  tf_field=0.
+#endif
 
   call destroy_field(den_vec)
 

@@ -10,6 +10,8 @@ Example: ./m3dc1_meshgen M3DC1/meshgen/test/data/analytic-input
 Example: ./m3dc1_mfmgen M3DC1/meshgen/test/data/input1 <== 1 region mesh
          ./m3dc1_mfmgen M3DC1/meshgen/test/data/input3 <== 3 region mesh
 
+centos7: /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/17.0-220903/bin/m3dc1_mfmgen input8
+
 
 See M3DC1 User's Guide (http://m3dc1.pppl.gov/M3DC1.pdf) for details.  
 

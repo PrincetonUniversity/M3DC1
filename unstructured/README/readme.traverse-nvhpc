@@ -1,13 +1,23 @@
+0. documentation
+   https://researchcomputing.princeton.edu/systems/traverse
+
 1. login 
 	ssh your_id@traverse.princeton.edu
 
 2. code
 
 3. load modules
-   For nvhpc/21.5 and openmpi/4.0.3, you don't need to load any module
 
-   For nvhpc/22.5, cuda/11.7 and openmpi/4.1.4,
-      module load nvhpc/22.5 openmpi/cuda-11.7/nvhpc-22.5/4.1.4/64
+   setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
+   module use $M3DC1_CODE_DIR/unstructured/modules/traverse
+   module load m3dc1/devel-nvhpc
+
+   OR
+
+   3.1 For nvhpc/21.5 and openmpi/4.0.3, you don't need to load any module
+
+   3.2 For nvhpc/22.5, cuda/11.7 and openmpi/4.1.4,
+       module load nvhpc/22.5 openmpi/cuda-11.7/nvhpc-22.5/4.1.4/64
  
 4. compile code
    For nvhpc/21.5 and openmpi/4.0.3
@@ -23,6 +33,8 @@
         3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=traverse-nvhpc-cuda
     
 5. mesh utility
+   See $SCOREC_UTIL_DIR in ARCH.mk file. 
+
    For nvhpc/21.5 and openmpi/4.0.3
         /projects/M3DC1/scorec/traverse/nvhpc21.5-openmpi4.0.3/petsc3.18.3/bin
 

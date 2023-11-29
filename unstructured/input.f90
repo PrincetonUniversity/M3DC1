@@ -1111,6 +1111,7 @@ subroutine set_defaults
   call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
   call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
   call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! (prereq: iadapt = 1) adapt elements classified on model face  
+  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp) !support snapping
 
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
@@ -1277,8 +1278,8 @@ subroutine validate_input
   
 !...check if correct code version is being used
 #if defined(USE3D)
-    if(linear.eq.1 .or. nplanes.le.1) then
-      if(myrank.eq.0) print *, "must have linear=0 and nplanes>1 for 3D version"
+    if(nplanes.le.1) then
+      if(myrank.eq.0) print *, "must have nplanes>1 for 3D version"
       call safestop(1)
     endif
 #endif

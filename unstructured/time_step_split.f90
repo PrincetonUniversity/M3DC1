@@ -87,7 +87,6 @@ contains
                     vecsize_phi = vecsize_phi + 1
   
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
     call create_vector(phi_vec,      vecsize_phi, "phi_vec")
     call create_vector(phip_vec,     vecsize_phi, "phip_vec")
     call create_vector(q4_vec,       vecsize_phi, "q4_vec")
@@ -1374,6 +1373,7 @@ call PetscLogStagePop(jer)
      ! Include RE density terms
      if(irunaway .gt. 0) then
         call matvecmult(r43_mat,nre_vec,b2_phi)
+        call mult(b2_phi,-1.)
         call add(b1_phi, b2_phi)
         call matvecmult(q43_mat,nreold_vec,b2_phi)
         call add(b1_phi, b2_phi)
@@ -1514,6 +1514,7 @@ call PetscLogStagePop(jer)
         ! Include RE density terms
         if(irunaway .gt. 0) then
            call matvecmult(r43_mat,nre_vec,b2_phi)
+           call mult(b2_phi,-1.)
            call add(b1_phi, b2_phi)
            call matvecmult(q43_mat,nreold_vec,b2_phi)
            call add(b1_phi, b2_phi)

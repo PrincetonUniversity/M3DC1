@@ -64,11 +64,9 @@ module adapt
     real :: psib
     call create_field(temporary_field)
 
-#ifdef ADAPT
     if (ispradapt .eq. 1) then
      call m3dc1_field_mark4tx(temporary_field)
     endif
-#endif
 
     temporary_field = 0.
 
@@ -99,6 +97,11 @@ module adapt
              zp_adapt(j,ip) = pellet_z(ip) + pellet_velz(ip)*(j-1)*p_dt
           end do
        end do
+    end if
+
+    if(adapt_coil_delta.gt.0) then
+       call load_coils(xc_adapt,zc_adapt,ic_adapt,numcoils_adapt, &
+            'adapt_coil.dat','adapt_current.dat')
     end if
 
     numelms = local_elements()
@@ -207,15 +210,15 @@ module adapt
 
        ! do adaptation around coils
        if(adapt_coil_delta.gt.0) then
-          call load_coils(xc_adapt,zc_adapt,ic_adapt,numcoils_adapt, &
-               'adapt_coil.dat','adapt_current.dat')
           temp79c = 0.
           do j=1, numcoils_adapt
              temp79c = temp79c + &
                   exp(-((x_79 - xc_adapt(j))**2 + (z_79 - zc_adapt(j))**2) / &
                        (2.*adapt_coil_delta**2))
           end do
+          where(temp79c.ne.temp79c) temp79c = 0.
           where(real(temp79c).gt.1.) temp79c = 1.
+          where(real(temp79c).lt.0.) temp79c = 0.
           temp79b = temp79b*(1.-temp79c) + temp79c
        end if
 
@@ -254,15 +257,11 @@ module adapt
 
     call straighten_fields()
 
-#ifdef ADAPT
     if (iadaptFaceNumber.gt.0) then
         call adapt_model_face(temporary_field%vec%id,psimin,psibound,iadaptFaceNumber)
     else
-#endif
         call adapt_by_field(temporary_field%vec%id,psimin,psibound)
-#ifdef ADAPT
     endif
-#endif
 
     write(mesh_file_name,"(A7,A)") 'adapted', 0
     if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
@@ -330,9 +329,7 @@ module adapt
 
   !  if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
     call straighten_fields()
-#ifdef ADAPT
     call m3dc1_spr_adapt(fid,idx,t,ar,maxsize,refinelevel,coarsenlevel,update)
-#endif
     call space(0)
     call update_nodes_owned()
     call reset_itris()

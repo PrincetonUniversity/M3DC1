@@ -50,9 +50,6 @@ Program Reducedquintic
   integer :: ip
   character(len=32) :: mesh_file_name
   logical :: update_mesh
-#ifdef _OPENACC
-  integer :: num_devices
-#endif
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -162,15 +159,13 @@ Program Reducedquintic
   call input
 
 !if using SCOREC set adapt verbosity output if iprint.ge.1
-#ifdef ADAPT
   if (iprint.ge.1) then
     call m3dc1_domain_verbosity(1) ! 0 for non-verbose outputs
   end if
-#endif
 
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
-  if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
+  !if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
 
 #ifndef M3DC1_TRILINOS
   call m3dc1_matrix_setassembleoption(imatassemble)
@@ -345,6 +340,14 @@ Program Reducedquintic
 
   ! mark the fields necessary for solution transfer
   if (ispradapt .eq. 1) call marker
+  
+#ifdef USEPARTICLES
+  linear=1
+  if (kinetic.eq.1) then
+     call particle_test
+     !call safestop(0)
+  endif
+#endif
 
   ! output initial conditions
   call output
@@ -354,13 +357,6 @@ Program Reducedquintic
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
   call initialize_timestep
-
-#ifdef USEPARTICLES
-  if (kinetic.eq.1) then
-     call particle_test
-     !call safestop(0)
-  endif
-#endif
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
@@ -712,7 +708,6 @@ subroutine find_lcfs()
         if(ntime.eq.ntime0) call lcfs(psi_field(0))
      else
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
         call create_field(psi_temp, "psi_temp")
 else
         call create_field(psi_temp)
@@ -767,7 +762,6 @@ subroutine derived_quantities(ilin)
         endif
      else
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
         call create_field(te_temp, "te_temp")
 else
         call create_field(te_temp)
@@ -1355,7 +1349,6 @@ subroutine space(ifirstcall)
   if(ifirstcall .eq. 1) then
      do i=1, num_fields
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
        write(field_name,"(A3,I0,A)")  "mat", i, 0
 else
        write(field_name,"(I2,A)")  i,0
@@ -1378,7 +1371,6 @@ endif
      if(myrank.eq.0 .and. iprint.ge.1) print *, 'Allocating...'
 
 if (ispradapt .eq. 1) then
-!#ifdef ADAPT
      ! Physical Variables
      call create_vector(field_vec , num_fields, "field_vec")
      call create_vector(field0_vec, num_fields, "field_vec0")
@@ -1475,6 +1467,26 @@ else
         use_external_fields = .true.
      end if
 endif
+
+#ifdef USEPARTICLES
+     call create_field(p_f_par)
+     call create_field(p_f_perp)
+     call create_field(den_f_0)
+     call create_field(den_f_1)
+     call create_field(v_f_par)
+     call create_field(p_i_par)
+     call create_field(p_i_perp)
+     call create_field(den_i_0)
+     call create_field(den_i_1)
+     call create_field(rho_field)
+     call create_field(nf_field)
+     call create_field(tf_field)
+     call create_field(pf_field)
+     call create_field(nfi_field)
+     call create_field(tfi_field)
+     call create_field(pfi_field)
+#endif
+
      call create_auxiliary_fields
   endif
 

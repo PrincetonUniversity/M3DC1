@@ -306,6 +306,11 @@ module basic
   integer :: kinetic     ! 1 = use kinetic PIC hot ion pressure tensor
                          ! 2 = CGL form for the pressure tensor (incompressible)
                          ! 3 = CGL form for pressure tensor (full)
+#ifdef USEPARTICLES
+  integer :: kinetic_thermal
+  logical :: gyroaverage
+#endif
+
   integer :: iohmic_heating  ! 1 = include ohmic heating
   integer :: irad_heating  ! 1 = include radiation heat source
 
@@ -483,8 +488,8 @@ module basic
 
   ! MPI variable(s)
   integer myrank, maxrank
-#ifdef _OPENACC
-  integer igpu
+#if defined(_OPENACC) || defined(_OPENMP)
+  integer :: num_devices, igpu
 #endif
 
   type(spline1d) :: q_spline
@@ -548,8 +553,15 @@ module arrays
   type(field_type) :: rst, zst ! Stellarator geometry field
 #endif
 #ifdef USEPARTICLES
-   type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
-   type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
+  type(field_type) :: rho_field, nf_field, tf_field, pf_field, vfpar0_field
+  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field, bzsmooth_field, psismooth_field, bz1_field, psi1_field, u0_field, chi0_field,vz0_field
+  type(field_type) :: epar_field, den2_field
+
+  type(field_type) :: p_f_par, p_f_perp  !Kinetic pressure tensor components
+  type(field_type) :: p_i_par, p_i_perp  !Kinetic pressure tensor components
+  type(field_type) :: den_i_0, den_i_1, den_f_0, den_f_1
+  type(field_type) :: v_i_par
+  type(field_type) :: v_f_par
 #endif
 
   ! the following pointers point to the locations of the named field within

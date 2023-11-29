@@ -65,7 +65,6 @@ char simLic[128]="/net/common/meshSim/license/license.txt";
 extern pGVertex GE_insertVertex(pGEdge, double);
 
 int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry);
-int make_sim_model_old(pGModel& sim_model, vector< vector<int> >& face_bdry);
 
 void messageHandler(int type, const char *msg);
 using namespace std;
@@ -82,7 +81,6 @@ int modelType=0;
 int reorder=0;
 int useVacuum = 0;
 int useVacuumParams=1;
-int useOld=0;
 int useOriginal = 1;
 int numInterPts =20;
 double* meshSizes;
@@ -114,6 +112,9 @@ vector<double> interpolate_points;
 std::map <int, int> loopsMap;
 std::map <int, double> loopSizeMap;
 std::map <int, double> faceSizeMap;
+std::map<int, std::vector<pGEdge> > edgesOnLoop;
+std::map<pGEdge, int> ge_edgeid;
+
 int vacuumLoopId = -1;
 double vacuumLoopMeshSize = 0.0;
 int useThickWall = -1;
@@ -125,15 +126,38 @@ int numWallPoints = 0;
 
 void get_multi_rgn();
 void createVacuum(int vLoopId, double vMeshSize);
-void createFiniteThicknessWall(int inLoopId, int inWallEdgeId, int outLoopId);
 
 void inner_wall_pts(int num_pts);
 
 void inner_outer_wall_pts();
 
 bool curveOrientation(std::vector <double> &curvePts);
-int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edgesOnLoop);
+int outerLoop(std::vector <int> loops);
+
+// Functions for new Curve Offset Algorithm
 void setParallelVertices(int loopInner, int loopOuter, std::map< int, std::vector<pGEdge> > edgesOnLoop);
+struct point
+{
+        double x;
+        double y;
+};
+struct edge
+{
+        point p1;
+        point p2;
+        double eDir;
+        double ePos;
+};
+void createOffsetCurve (int inEdgeId, int outLoopId);
+void unitVector(double* pt1, double* pt2, double* unitVec);
+int checkDir(edge actual, edge offSet);
+int checkPos(std::vector <point> parentLoop, edge offSet);
+std::vector <double> curveOffsetComputation (std::vector <double> parentLoop, std::vector <double> offsetLoop);
+int findIntersection(edge e1, edge e2, point& returnPoint);
+bool checkLineIntersection(edge e1, edge e2);
+int findLineIntersection(edge e1, edge e2, point& returnPoint);
+double shortestDistance(point p1, point p2, point checkPoint);
+double checkAngle(double *ptPre, double *ptNow, double *ptNext);
 
 int main(int argc, char *argv[])
 {
@@ -146,9 +170,6 @@ int main(int argc, char *argv[])
     MPI_Finalize();
     return 1;
   }
-
-  if (argc==3)
-    useOld = atoi(argv[2]);
 
   FILE* infp= fopen(argv[1],"r");
   if (!infp)
@@ -227,6 +248,7 @@ int main(int argc, char *argv[])
 	fscanf(infp, "%d",&wallInLoopId);
 	fscanf(infp, "%d",&wallOutLoopId);	
 	fscanf(infp, "%lf",&thickness);	
+	loopSizeMap[wallOutLoopId] = loopSizeMap[wallInLoopId];
     }
   }
   fclose(infp);
@@ -249,7 +271,7 @@ int main(int argc, char *argv[])
     get_multi_rgn();
     std::cout << "Use Thick Wall = " << useThickWall << "\n";
     if (useThickWall > 0)
-	createFiniteThicknessWall(wallInLoopId, wallEdgeId,  wallOutLoopId);
+	createOffsetCurve(wallEdgeId,  wallOutLoopId);
     if (useVacuum > 0)
 	createVacuum(vacuumLoopId, vacuumLoopMeshSize);
  
@@ -265,9 +287,6 @@ int main(int argc, char *argv[])
     sprintf(filename,"%s-%0.1f-%0.1f", modelName, width, height);
   else
     sprintf(filename,"%s", modelName);
-
-  sprintf(model_filename,"%s.txt", filename);
-  save_model(model_filename);
 
 #ifdef LICENSE
   SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adv",simLic);
@@ -287,13 +306,15 @@ int main(int argc, char *argv[])
   Progress_setDefaultCallback(progress);
 
   pGModel sim_model = GM_new(1);
-  if (useOld)
-    make_sim_model_old (sim_model, face_bdry);
-  else
-    make_sim_model(sim_model, face_bdry);
+  make_sim_model(sim_model, face_bdry);
+
+  // write simmetrix model file
   sprintf(model_filename,"%s.smd",filename);
   GM_write(sim_model,model_filename,0,0);
 
+  // write M3DC1-readable model file
+  sprintf(model_filename,"%s.txt", filename);
+  save_multi_rgn_model(model_filename, face_bdry, edgesOnLoop, ge_edgeid);
 
   //pParMesh sim_mesh = PM_new(0,sim_model,PMU_size());
   pMesh sim_mesh = M_new(0,sim_model);
@@ -404,7 +425,6 @@ int main(int argc, char *argv[])
   else
     sprintf(mesh_filename,"%s-%d.vtk",filename, num_mfaces);
   std::cout <<"m3dc1_meshgen: mesh is saved in \""<<mesh_filename<<"\" for Paraview\n";
-
 
   std::cout<<"\n<< Check the attribute \"elem\" in Paraview for the element order! >>\n";
 
@@ -550,6 +570,7 @@ void inner_outer_wall_pts()
       num_ge = 1;
       loop_id = loopsMap[i];
       create_loop(&loop_id,&num_ge,outerWallEdges);
+
       set_outer_wall_boundary (&loop_id);
       if (wallInLoopId == loopsMap[i])
       {
@@ -560,127 +581,6 @@ void inner_outer_wall_pts()
     }  // for (int i=0; i<nout_bdryFile; ++i)
 }
 
-int make_sim_model_old (pGModel& sim_model, vector< vector<int> >& face_bdry)
-{
-  std::map< int, std::vector<int> > loopContainer;
-  std::map<int, std::pair<int, int> > edgeContainer;
-  std::map<int, int> edgeType;
-  std::map<int, std::vector<double> > vtxContainer;
-  export_model_data(vtxContainer, edgeType, edgeContainer, loopContainer);
-
-  std::map<int, pGVertex> vertices;
-  std::map<int, pGEdge> edges;
-  gmi_model* model = m3dc1_model::instance()->model;
-  int numL=loopContainer.size();
-
-#ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
-  pGIPart part = GM_rootPart(sim_model);
-#else
-  pGIPart part = GM_part(sim_model);
-#endif
-
-  pGRegion outerRegion = GIP_outerRegion(part);
-  vector<pGEdge> innerLoop;
-  vector<pGEdge> currentLoop;
-  for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
-  {
-    int numE=it->second.size();
-    for( int i=0; i<numE; i++)
-    {
-      int edge=it->second[i];
-      std::pair<int, int> vtx=edgeContainer[edge];
-      std::vector<double>& xyz= vtxContainer.at(vtx.first);
-      vertices[vtx.first] = GR_createVertex(GIP_outerRegion(part), &xyz[0]);
-    }
-    for( int j=0; j<numE; j++)
-    {
-      pGVertex startVert, endVert;
-      int edge = it->second[j];
-      gmi_ent* ae = gmi_find(model, 1, edge);
-
-      int curvType=edgeType.at(edge);
-      std::pair<int, int> vtx=edgeContainer[edge];
-      pCurve curve=NULL;
-      startVert=vertices[vtx.first];
-      endVert=vertices[vtx.second];
-      if ( startVert== NULL || endVert==NULL)
-      {
-        std::cout<<" invalid edge vertex not created edge tag "<<edge<<std::endl;
-        throw 1;
-      }
-      switch (curvType)
-      {
-        case LIN:
-          {
-            double xyz1[3], xyz2[3];
-            GV_point(startVert,xyz1);
-            GV_point(endVert,xyz2);
-            curve = SCurve_createLine(xyz1, xyz2);
-          }
-          break;
-        case BSPLINE:
-          {
-            M3DC1::BSpline** data= (M3DC1::BSpline**) gmi_analytic_data(model, ae);
-            vector<double> ctrlPtsX,ctrlPtsY, knots,weight;
-            int order;
-            data[0]->getpara(order, ctrlPtsX, knots, weight);
-            data[1]->getpara(order, ctrlPtsY, knots, weight);
-            int numPts=ctrlPtsX.size();
-            vector<double> ctrlPts3D (3*numPts);
-            for( int k=0; k<numPts; k++)
-            {
-              ctrlPts3D.at(3*k)=ctrlPtsX.at(k);
-              ctrlPts3D.at(3*k+1)=ctrlPtsY.at(k);
-              ctrlPts3D[3*k+2]=0.0;
-            }
-            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
-          }
-          break;
-        default:
-          std::cout<<" curve type not support by simmetrix "<<std::endl;
-          throw 1;
-          break;
-      }
-      pGEdge pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
-      edges[edge]=pe;
-      currentLoop.push_back( pe);
-    }
-
-    double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};
-    vector<pGEdge> faceEdges;
-    vector<int> faceDirs;
-    int loopDef[2] = {0,0};
-    int numloops=1;
-    if (GM_numFaces(sim_model)!=0)
-    {
-      numloops=2;
-      int innerEdgeNum=innerLoop.size();
-      loopDef[1]=innerEdgeNum;
-      for(int k=innerEdgeNum-1; k>=0; k--)
-      {
-        faceEdges.push_back(innerLoop.at(k));
-        faceDirs.push_back(0);
-      }
-    }
-    int currentEdgeNum=currentLoop.size();
-    for(int k=0; k<currentEdgeNum; k++)
-    {
-      faceEdges.push_back(currentLoop.at(k));
-      faceDirs.push_back(1);
-    }
-    innerLoop=currentLoop;
-    currentLoop.clear();
-    pSurface planarSurface;
-
-    planarSurface = SSurface_createPlane(corner,xPt,yPt);
-    GR_createFace(GIP_outerRegion(part), faceEdges.size(),&(faceEdges[0]),&(faceDirs[0]),numloops,loopDef,planarSurface,1);
-  }
-  printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
-  printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
-  printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
-  printf("Number of regions in Simmetrix model: %d\n",GM_numRegions(sim_model));
-}
-
 int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 {
   std::map< int, std::vector<int> > loopContainer;
@@ -689,20 +589,17 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
   std::map<int, std::vector<double> > vtxContainer;
   export_model_data(vtxContainer, edgeType, edgeContainer, loopContainer);
   std::map<int, pGVertex> vertices;
-  std::map<int, pGEdge> edges;
-  std::map< int, std::vector<pGEdge> > edgesOnLoop;
   gmi_model* model = m3dc1_model::instance()->model;  
-  int numL=loopContainer.size();
-
-#ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
-  pGIPart part = GM_rootPart(sim_model);
-#else
-  pGIPart part = GM_part(sim_model);
-#endif
+ 
+  #ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
+    pGIPart part = GM_rootPart(sim_model);
+  #else
+    pGIPart part = GM_part(sim_model);
+  #endif
 
   pGRegion outerRegion = GIP_outerRegion(part);
   // Now we'll add loops
-  for( std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
+  for (std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
   {
     int numE=it->second.size();
     // First we'll add the vertices on the loop
@@ -733,6 +630,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
             GV_point(endVert,xyz2);
             curve = SCurve_createLine(xyz1, xyz2);
             pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
+	    ge_edgeid[pe] = edge;
           }
           break;
         case BSPLINE: // bspline
@@ -764,6 +662,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
 	   else if (numE == 2)
 		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, edgeDir);
+	   ge_edgeid[pe] = edge;
           }
           break;
         default:
@@ -771,18 +670,17 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
           throw 1;
           break;
       }
-      edges[edge]=pe;
       GEN_setNativeIntAttribute(pe, it->first, "loopIdOnEdge");
       edgesOnLoop[it->first].push_back(pe);
-    }
-  }
+    } // for numE
+  } // for loopContainer
 
-    // Now add the faces
-    double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};  // the points defining the surface of the face
-    vector<pGEdge> faceEdges;
-    pGEdge ge;
-    vector<int> faceDirs;
-    int numLoops;
+  // Now add the faces
+  int numLoops;
+  double corner[3]={0,0,0}, xPt[3]={1,0,0}, yPt[3]={0,1,0};  // the points defining the surface of the face
+  vector<pGEdge> faceEdges;
+  pGEdge ge;
+  vector<int> faceDirs;
 
   for (int i=0; i<face_bdry.size(); ++i)
   {
@@ -793,43 +691,30 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
     std::vector <int> loopsOnFace;
     for (int idx = 0; idx < numLoops; ++idx)
 	loopsOnFace.push_back(face_bdry[i][idx]);
-    int outerMostLoop = outerLoop(loopsOnFace, edgesOnLoop);
+    int outerMostLoop = outerLoop(loopsOnFace);
     loopsOnFace.clear();
     for (int idx=0; idx<face_bdry[i].size(); ++idx)
     {
-	
-        int numEdgesOnLoop = edgesOnLoop.at(face_bdry[i][idx]).size();
-        loopDef[idx] = faceEdges.size();
-        double dirs[numEdgesOnLoop];
-	int edgeDir = 0;
-	if (face_bdry[i][idx] == outerMostLoop)
-		edgeDir = 1;
-	for (int nEdge = 0; nEdge < numEdgesOnLoop; ++nEdge)
-	{
-     		ge = edgesOnLoop.at(face_bdry[i][idx])[nEdge];
-        	faceEdges.push_back(ge);
-		faceDirs.push_back(edgeDir);
-	}
+      int numEdgesOnLoop = edgesOnLoop.at(face_bdry[i][idx]).size();
+      loopDef[idx] = faceEdges.size();
+      double dirs[numEdgesOnLoop];
+      int edgeDir = 0;
+      if (face_bdry[i][idx] == outerMostLoop)
+	edgeDir = 1;
+      for (int nEdge = 0; nEdge < numEdgesOnLoop; ++nEdge)
+      {
+	ge = edgesOnLoop.at(face_bdry[i][idx])[nEdge];
+       	faceEdges.push_back(ge);
+	faceDirs.push_back(edgeDir);
+      }
     } 
     pSurface planarSurface;
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
     pGFace gf = GR_createFace(GIP_outerRegion(part), faceEdges.size(),
                   &(faceEdges[0]),&(faceDirs[0]),numLoops,&(loopDef[0]),planarSurface,1);
-    std::cout<<"GR_createFace (";
-    for (int j=0; j<faceEdges.size(); ++j)
-      cout<<GEN_tag(faceEdges[j])<<" ";
-    cout<<")\n";
     GEN_setNativeIntAttribute(gf, i+1, "faceType");
   }
   
-  // The starting point of each curves may not be perfectly aligned. To align the starting points
-  // on two consective loops can be done using the routine "setParallelVertices". This will be needed to set layered
-  // mesh on finite thickness wall face.
-
-  int innerLoop = 4;
-  int outerLoop = 5;
-  //setParallelVertices(innerLoop, outerLoop, edgesOnLoop);
-   
   printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
   printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));
   printf("Number of faces in Simmetrix model: %d\n",GM_numFaces(sim_model));
@@ -879,7 +764,7 @@ bool curveOrientation(std::vector <double> &curvePts)
 	return false;
 }
 
-int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edgesOnLoop)
+int outerLoop(std::vector <int> loops)
 {
 	if (loops.size() == 1)
 		return loops[0];
@@ -908,29 +793,6 @@ int outerLoop(std::vector <int> loops, std::map< int, std::vector<pGEdge> > edge
 	return index;
 }
 
-
-// The starting point of each curves may not be perfectly aligned. To align the starting points
-// on two consective loops can be done using the given routine. This will be needed to set layered
-// mesh on finite thickness wall face.
-void setParallelVertices(int loopInner, int loopOuter, std::map< int, std::vector<pGEdge> > edgesOnLoop)
-{
-  	pGEdge ge1 = edgesOnLoop.at(loopInner)[0];
-  	pGEdge ge2 = edgesOnLoop.at(loopOuter)[0];
-  	pGVertex v1 = GE_vertex(ge1,0);
-  	double vPt1[3];
-  	GV_point(v1, vPt1);
-  	double par;
-  	GE_closestPoint(ge2, vPt1, 0, &par);
-  	pGVertex newV = GE_insertVertex(ge2, par);
-  	pPList gves = GV_edges(newV);
-  	pGEdge geNew0 = static_cast<pGEdge>(PList_item(gves, 0));
-  	pGEdge geNew1 = static_cast<pGEdge>(PList_item(gves, 1));
-  	if (GE_vertex(geNew0,1) == newV)
-        	pGEdge finalEdge = GM_combineEdges (geNew0, geNew1);
-  	else	
-        	pGEdge finalEdge = GM_combineEdges (geNew1, geNew0);
-}
-
 // To create Vacuum Region
 // useVacuum = 0 is for no Vacuum, =1 if no vacuum parameters are gives,
 // =2 if vacuum parameters are provided.
@@ -952,19 +814,14 @@ void createVacuum(int vLoopId, double vMeshSize)
                right[0],right[1]+0.6*height,left[0],left[1]+0.6*height+offset_t,
                left[0],left[1]+0.3*height+offset_t,left[0],left[1]};
         create_vtx(&gv1_id,left);
-        cout<<"create_vtx "<<gv1_id<<"\n";
         create_vtx(&gv2_id,right);
-        cout<<"create_vtx "<<gv2_id<<"\n";
         create_edge(&ge1_id, &gv1_id, &gv2_id);
-        cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv2_id<<")\n";
         create_edge(&ge2_id, &gv2_id, &gv1_id);
-        cout<<"create_edge "<<ge2_id<<" ("<<gv2_id<<", "<<gv1_id<<")\n";
         attach_b_spline_curve(&ge1_id,&order_p,&numCtrPts,ctrPtsBottom,knots,NULL);
         attach_b_spline_curve(&ge2_id,&order_p,&numCtrPts,ctrPtsTop,knots,NULL);
         int vacuumEdges[]={ge1_id,ge2_id};
         num_ge = 2;
         create_loop(&vLoopId,&num_ge,vacuumEdges);
-        cout<<"create_loop "<<vLoopId<<" ("<<ge1_id<<", "<<ge2_id<<")\n";
         set_vacuum_boundary (&vLoopId);
     }
     else if (useVacuum == 2)	// Need Parameters
@@ -987,101 +844,545 @@ void createVacuum(int vLoopId, double vMeshSize)
       }
 
       create_vtx(&gv1_id,&(interpolate_points_vacuum.at(0)));
-      cout<<"create_vtx "<<gv1_id<<"\n";
       create_edge(&ge1_id, &gv1_id, &gv1_id);
-      cout<<"create_edge "<<ge1_id<<" ("<<gv1_id<<", "<<gv1_id<<")\n";
       attach_periodic_cubic_curve(&ge1_id,&num_pts,&(interpolate_points_vacuum.at(0)));
       int vacuumEdges[]={ge1_id};
       num_ge=1;
       create_loop(&vLoopId,&num_ge,vacuumEdges);
-      cout<<"create_loop "<<vLoopId<<" ("<<ge1_id<<")\n";
       set_vacuum_boundary (&vLoopId);
     }
     loopSizeMap[vLoopId] = vMeshSize;
 }
-   
-void createFiniteThicknessWall(int inLoopId, int inWallEdgeId, int outLoopId)
-{
- 	std::cout << "Input = " << inLoopId << "\n";
-     	std::cout << "Output = " << outLoopId << "\n";	
-        int edgeNum = inWallEdgeId;
-        std::cout << "Thickness = " << thickness << "\n";
-        int nPts = wallPoints.size()/2;
-     	int vtxMerged=0, vtxInserted=0;
-     	vector<double> interpolate_points_o;
-     	double increment=1.0/double(nPts-1);
-     	double dir[2], dir_pre[2];
 
-        std::cout << "NPts = " << wallPoints.size()/2 << "\n";
-     	for(int i=0; i<wallPoints.size()/2; i++)
-     	{ 
-       		double para=i*increment; 
-       		eval_normal(&edgeNum, &para, dir);
-        	double pt_new[2];
-        	offset_point(&(wallPoints.at(2*i)), dir, &thickness, pt_new);
-		if (i < 5)
+
+// Given an input edge (inEdgeId), an offset loop is created with an Id = outLoopId
+void createOffsetCurve (int inEdgeId, int outLoopId)
+{
+	int edgeNum = inEdgeId;				
+	int nPts = wallPoints.size()/2;
+	vector<double> interpolate_points_o;		// Offset Curve Points
+	double ptPre[2], ptNow[2], ptNext[2], ptOff[2];
+        bool offsetInside = false;
+	double increment=1.0/double(nPts-1);
+	if (thickness < 0)
+		offsetInside = true;
+
+	// Remove the Points that are on straight Wall
+	vector <double> updatedWall;
+	for(int i=1; i<nPts-1; i++)
+	{
+		if (i == 0)
+                {
+                        ptPre[0] = wallPoints[(nPts-2)*2];
+                        ptPre[1] = wallPoints[(nPts-2)*2+1];
+                }
+                else
+                {
+                        ptPre[0] = wallPoints[(i-1)*2];
+                        ptPre[1] = wallPoints[(i-1)*2+1];
+                }
+                ptNow[0] = wallPoints[i*2];
+                ptNow[1] = wallPoints[i*2+1];
+                ptNext[0] = wallPoints[(i+1)*2];
+                ptNext[1] = wallPoints[(i+1)*2+1];
+
+		double angle = checkAngle(ptPre, ptNow, ptNext);
+		if (angle == 180 || angle == 0)
+			continue;
+
+		updatedWall.push_back(ptNow[0]);
+		updatedWall.push_back(ptNow[1]);
+	}	
+
+	
+	int n_Pts = updatedWall.size()/2;
+	for(int i=0; i<n_Pts-1; i++)
+	{
+		if (i == 0)
 		{
-                	std::cout << "========================== Point # " << i+1 << " ===================================\n";
-			std::cout << "WallPoints: " << wallPoints[i*2] << ", " << wallPoints[i*2 +1] << "\n";
-			std::cout << "Dir: " << dir[0] << " , " << dir[1] << "\n";
-			std::cout << "OffSet Pt: " << pt_new[0] << " , " << pt_new[1] << "\n";
-                        std::cout << "Dir_Pre: " << dir_pre[0] << " , " << dir_pre[1] << "\n";
-			std::cout << "pt_pre: " << pt_pre[0] << " , " << pt_pre[1] << "\n";
+			ptPre[0] = updatedWall[(n_Pts-2)*2];
+			ptPre[1] = updatedWall[(n_Pts-2)*2+1];
 		}
-        	if (i!=0)
-        	{ 
-        		double crossProduct=dir_pre[0]*dir[1]-dir_pre[1]*dir[0];
-          		double dotProduct=dir_pre[0]*dir[0]+dir_pre[1]*dir[1];
-			if (i < 5)
-				std::cout << "CROSS PRODUCT = " << crossProduct << " , " << " ,DOR PRODUCT = " << dotProduct << "\n";
-          		if (crossProduct<0&&fabs(pt_new[0]-pt_pre[0])+fabs(pt_new[1]-pt_pre[1])<mergeTol)
-          		{ 
-            			vtxMerged++;
-            			double pt_mid[2], dir_mid[2];
-            			double para_mid=(i-0.5)*increment;
-            			eval_position(&edgeNum, &para_mid, pt_mid);
-            			eval_normal(&edgeNum, &para_mid, dir_mid);
-            			offset_point(pt_mid, dir_mid, &thickness, pt_new);
-            			interpolate_points_o.pop_back();
-            			interpolate_points_o.pop_back();
-          		}
-          		else
-          		{ 
-            			double tol_curv=0.3;
-            			if (dotProduct<tol_curv)
-            			{ 
-              				double para_mid=(i-0.5)*increment;
-              				double pt_mid[2], dir_mid[2], pt_mid_new[2];
-              				eval_position(&edgeNum, &para_mid, pt_mid);
-              				eval_normal(&edgeNum, &para_mid, dir_mid);
-              				offset_point(pt_mid, dir_mid, &thickness, pt_mid_new);
-             			 	interpolate_points_o.push_back(pt_mid_new[0]);
-              				interpolate_points_o.push_back(pt_mid_new[1]);
-              				vtxInserted++;
-            			}
-          		}
-        	}
-        	interpolate_points_o.push_back(pt_new[0]);
-        	interpolate_points_o.push_back(pt_new[1]);
-        	pt_pre[0]=pt_new[0];
-        	pt_pre[1]=pt_new[1];
-        	dir_pre[0]=dir[0];
-        	dir_pre[1]=dir[1];
-      	}
-      	for(int i=0; i<3; i++)
-      	{
-        	offset_point(ctr_pts+2*i, normal1, &thickness, ctr_pts_o+2*i);
-        	offset_point(ctr_pts+2*(i+3), normal2, &thickness, ctr_pts_o+2*(i+3));
-      	}	
-        gv1_id++;
+		else
+		{
+			ptPre[0] = updatedWall[(i-1)*2];
+			ptPre[1] = updatedWall[(i-1)*2+1];
+		}
+		ptNow[0] = updatedWall[i*2];
+		ptNow[1] = updatedWall[i*2+1];
+		ptNext[0] = updatedWall[(i+1)*2];
+		ptNext[1] = updatedWall[(i+1)*2+1];
+
+		double angle = checkAngle(ptPre, ptNow, ptNext);
+		double angleDeg, angleRad;		// Angle in degrees and radians
+		double dir[2], unitVec1[2], unitVec2[2];
+		double pi = 3.14159265;
+
+		unitVector(ptPre, ptNow, unitVec1);
+		unitVector(ptNow, ptNext, unitVec2);
+
+		// We have three situations here (angle < 180, angle == 180, angle > 180)
+		if (angle < 180 && angle > 0)
+		{
+			angleDeg = angle/2.0;
+			angleRad = angleDeg * (pi/180);
+			unitVector(unitVec1,unitVec2,dir);
+			for (int k =0; k < 2; ++k)	
+				ptOff[k] = ptNow[k]+(dir[k]*(fabs(thickness)/sin(angleRad)));
+		}
+		if (angle == 180 || angle == 0)	// Already such points are filtered, but just in case the code still finds one
+		{
+			double para=i*increment;
+			double normVec[2];
+			eval_normal(&edgeNum, &para, normVec);
+			offset_point(&(wallPoints.at(2*i)), normVec, &thickness, ptOff);
+		}
+
+		if (angle > 180)
+		{
+			angleDeg = (180 - angle)/2.0;
+			angleRad = angleDeg * (pi/180);
+
+			unitVector(unitVec2,unitVec1,dir);
+			for (int k = 0; k < 2; ++k)
+				ptOff[k] = ptNow[k]+(dir[k]*(fabs(thickness)/cos(angleRad)));
+			
+		}
+		interpolate_points_o.push_back(ptOff[0]);
+		interpolate_points_o.push_back(ptOff[1]);
+				
+	}
+	interpolate_points_o.push_back(interpolate_points_o[0]);
+	interpolate_points_o.push_back(interpolate_points_o[1]);
+
+        std::vector <double> newOffset = curveOffsetComputation (updatedWall, interpolate_points_o);
+
+	// Follow the old procedure
+	gv1_id++;
         ge1_id++;
-      	create_vtx(&gv1_id,&(interpolate_points_o.at(0)));
-      	create_edge(&ge1_id, &gv1_id, &gv1_id);
-      	int numpt_new=interpolate_points_o.size()/2;
-        attach_piecewise_linear_curve(&ge1_id,&numpt_new,&(interpolate_points_o.at(0)));
-      	//attach_natural_cubic_curve(&ge1_id,&numpt_new,&(interpolate_points_o.at(0)));
-      	int outerWallEdges[]={ge1_id};
+        create_vtx(&gv1_id,&(newOffset.at(0)));
+        create_edge(&ge1_id, &gv1_id, &gv1_id);
+        int numpt_new=newOffset.size()/2;
+        attach_piecewise_linear_curve(&ge1_id,&numpt_new,&(newOffset.at(0)));	
+	int outerWallEdges[]={ge1_id};
         int numGe = 1;
-      	create_loop(&outLoopId,&numGe,outerWallEdges);
+        create_loop(&outLoopId,&numGe,outerWallEdges);
         set_outer_wall_boundary (&outLoopId);
 }
+
+
+
+void unitVector(double* pt1, double* pt2, double* unitVec)
+{
+	double vec[] = {pt2[0] - pt1[0], pt2[1]-pt1[1]};
+	double length = sqrt(vec[0]*vec[0]+vec[1]*vec[1]);
+	unitVec[0] = vec[0]/length;
+	unitVec[1] = vec[1]/length;
+
+}
+
+// Once the offset points are acheived, check them for local and global invalidities
+std::vector <double> curveOffsetComputation (std::vector <double> parentLoop, std::vector <double> offsetLoop)
+{
+	std::vector <point> ptOnParentLoop;
+	std::vector <point> ptOnOffsetLoop;
+	std::vector <edge> edgeParentLoop;
+	std::vector <edge> edgeOffsetLoop;
+
+	for (int i = 0; i < parentLoop.size()/2; ++i)
+	{
+		point pt1;
+		pt1.x = parentLoop[i*2];
+		pt1.y = parentLoop[i*2+1];
+		ptOnParentLoop.push_back(pt1);
+
+		point pt2;
+		pt2.x = offsetLoop[i*2];
+		pt2.y = offsetLoop[i*2+1];
+		ptOnOffsetLoop.push_back(pt2);
+	}
+	for (int i = 0; i < ptOnParentLoop.size()-1; ++i)
+	{
+		edge e1;
+		e1.p1 = ptOnParentLoop[i];
+		if (i == ptOnParentLoop.size()-1)
+			e1.p2 = ptOnParentLoop[0];	// Not Needed
+		else
+			e1.p2 = ptOnParentLoop[i+1];
+
+		edgeParentLoop.push_back(e1);
+
+		edge e2;
+		e2.p1 = ptOnOffsetLoop[i];
+		if (i == ptOnParentLoop.size()-1)
+			e2.p2 = ptOnOffsetLoop[0];	// Not Needed
+		else
+			e2.p2 = ptOnOffsetLoop[i+1];
+		
+		edgeOffsetLoop.push_back(e2);	
+	}
+	for (int i = 0; i < edgeOffsetLoop.size(); ++i)
+	{
+		int dir = checkDir(edgeParentLoop[i], edgeOffsetLoop[i]);
+		edgeOffsetLoop[i].eDir = dir;
+		int pos = checkPos(ptOnParentLoop, edgeOffsetLoop[i]);
+		edgeOffsetLoop[i].ePos = pos;
+	}
+	
+	// We now have Offset Edges along with eDir and ePos. From this point, we dont need the 
+	// information of the parent Loop. We will only work with OffsetLoop.
+	// STEP 1: Find the backward edge
+	edge backward, forward;
+	std::vector <point> bufferList, rawList;
+	std::vector <edge> bufferEdgeList;
+	bool backwardEdgeFound = false;
+
+	while (!backwardEdgeFound)
+	{
+		edge checkEdge = edgeOffsetLoop[0];
+		if (checkEdge.eDir == 1 && checkEdge.ePos == 1)
+		{
+			backward = checkEdge;
+			backwardEdgeFound = true;
+		}
+		else if((checkEdge.eDir == 0 && checkEdge.ePos == 0) || (checkEdge.eDir == 1 && checkEdge.ePos == 0)) 
+		{
+			edgeOffsetLoop.push_back(edgeOffsetLoop[0]);	// Move the Edge to the end of list
+			edgeOffsetLoop.erase(edgeOffsetLoop.begin());	// Remove the Edge from the start
+		}
+	}
+
+	int nDir = 0;
+	int nPos = 0;
+
+	// STEP 2: Find the forward Edge
+	for (int i = 1; i < edgeOffsetLoop.size()+1; ++i)
+	{
+		edge checkEdge;
+		if (i == edgeOffsetLoop.size())
+			checkEdge = edgeOffsetLoop[0];
+		else
+			checkEdge = edgeOffsetLoop[i];
+	
+		if (checkEdge.eDir == 1 && checkEdge.ePos == 1)
+		{
+
+			forward = checkEdge;
+			
+			if (nDir == 0 && nPos == 0) // Case 1
+				rawList.push_back(backward.p2);
+			if (nDir == 0 && nPos >= 1) // Case 2
+			{
+				for (int j = 0; j < bufferList.size(); ++j)
+					rawList.push_back(bufferList[j]);
+			}
+			if (nDir == 1)  // Case 3
+			{
+				point intersectionPt;
+				int intersectionFound = findLineIntersection(backward, forward,intersectionPt);
+				rawList.push_back(intersectionPt);
+			}
+			if (nDir >= 2)
+			{
+				point intersectionPt;
+				int intersectionFound = findLineIntersection(backward, forward,intersectionPt);
+				if (intersectionFound) 	// Case 4
+					rawList.push_back(intersectionPt);
+				else if (!intersectionFound)  // Case 5
+				{
+					// Matching Algorithm Implementation
+					point matchingPt1, matchingPt2;
+					for (int j = 0; j < bufferEdgeList.size(); ++j)
+					{						
+						edge matchingEdge = bufferEdgeList[i];
+						if (matchingEdge.eDir != 0)
+							continue;
+						bool check1 = checkLineIntersection(matchingEdge, backward);
+						bool check2 = checkLineIntersection(matchingEdge, forward);
+						if (!check1 || !check2)
+							continue;
+						else
+						{
+							int backwardEdgeCheck = findLineIntersection(backward, matchingEdge, matchingPt1);
+							int forwardEdgeCheck = findLineIntersection(forward, matchingEdge, matchingPt2);							
+						}
+					} 
+					rawList.push_back(matchingPt1);
+					rawList.push_back(matchingPt2);	
+				} 
+			}			
+			
+			// Update the backward edge, re-initiate values of variables
+			backward = forward;
+			bufferList.clear();
+			bufferEdgeList.clear();
+			nDir = 0;
+			nPos = 0; 
+		}
+		else
+		{
+			if (checkEdge.eDir == 0)
+				nDir++;
+			if (checkEdge.ePos == 0)
+				nPos++;
+			
+			if (checkEdge.eDir == 1 && checkEdge.ePos == 0)
+			{
+				bufferList.push_back(checkEdge.p1);
+				bufferList.push_back(checkEdge.p2);
+			}
+			bufferEdgeList.push_back(checkEdge);			
+		}	
+	}
+
+	// Make Sure that there is no duplicate points in rawList
+	for (int i = 0; i < rawList.size()-1; ++i)
+	{
+		double xPt0 = rawList[i].x;
+		double yPt0 = rawList[i].y;
+		double xPt1 = rawList[i+1].x;
+		double yPt1 = rawList[i+1].y;
+	
+		if (fabs(xPt0 - xPt1) < 1e-16 && fabs(yPt0 - yPt1) < 1e-16)
+		{
+			rawList.erase(rawList.begin() + (i+1));
+			i = i-1;
+		} 	
+	}	
+
+	std::vector <double> finalOffsetVector;
+	for (int i = 0; i < rawList.size(); ++i)
+	{
+		finalOffsetVector.push_back(rawList[i].x);
+		finalOffsetVector.push_back(rawList[i].y);
+	}
+	finalOffsetVector.push_back(finalOffsetVector[0]);
+	finalOffsetVector.push_back(finalOffsetVector[1]);
+
+	return finalOffsetVector;
+}
+
+// Check Angle between two line segments
+double checkAngle(double *ptPre, double *ptNow, double *ptNext)
+{
+	// Define the vector between two points [x2-x1, y2-y1]
+	double vec1[] = {ptNow[0] - ptPre[0], ptNow[1] - ptPre[1]};
+        double vec2[] = {ptNext[0] - ptNow[0], ptNext[1] - ptNow[1]};
+
+       	double cross = (vec1[0]*vec2[1] - vec1[1]*vec2[0]);
+
+	double len1 = sqrt(vec1[0]*vec1[0]+vec1[1]*vec1[1]);  // Length of Edge 1
+        double len2 = sqrt(vec2[0]*vec2[0]+vec2[1]*vec2[1]);  // Length of Edge 2
+
+	// Once the absolute lengths are calculated, the next step is to use the dot product to find the cos of angles between two edges.
+        double cosAngle = (vec1[0]*vec2[0]+vec1[1]*vec2[1])/(len1*len2);
+        double pi = 3.14159265;
+        double angle;
+        if (cosAngle < -1)
+        	angle = 180;
+        else if (cosAngle > 1)
+           	angle = 0;
+        else
+                angle = acos (cosAngle) * 180.0/pi;
+
+        if (cross > 0)
+                angle = 180 + angle;
+        if (cross < 0)
+                angle = 180 - angle;
+
+	return angle;
+}
+
+// Compare the direction of Offset edge to parent edge        
+int checkDir(edge actual, edge offSet)
+{
+	double vec1[] = {actual.p2.x - actual.p1.x, actual.p2.y - actual.p1.y};
+	double vec2[] = {offSet.p2.x - offSet.p1.x, offSet.p2.y - offSet.p1.y};
+	double dotProduct = (vec1[0]*vec2[0] + vec1[1]*vec2[1]);
+	if (dotProduct < 0)
+		return 0;
+	else 
+		return 1;
+}
+
+// Check the position of Offset edge wrt parent loop
+int checkPos(std::vector <point> parentLoop, edge offSet)
+{
+	point pt1 = offSet.p1;
+	point pt2 = offSet.p2;
+	if (offSet.eDir == 0)
+		return 0;
+	else
+	{
+		for (int i = 0; i < parentLoop.size()-1; ++i)
+		{
+			point linePt1 = parentLoop[i];
+			point linePt2 = parentLoop[i+1];
+			double minDistPt1 = shortestDistance(linePt1, linePt2, pt1);
+			double minDistPt2 = shortestDistance(linePt1, linePt2, pt2);
+			if (minDistPt1 < thickness && minDistPt2 < thickness)
+				return 0;
+		}
+		return 1;
+	}
+}
+
+// Intersection Point between Edges (Intersection between line segments)
+int findIntersection(edge e1, edge e2, point& returnPoint)
+{
+	// End Points of Line 1
+	point pt1 = e1.p1;
+	point pt2 = e1.p2;
+
+	// End Points of Line 2
+	point pt3 = e2.p1;
+	point pt4 = e2.p2;
+
+
+	double aX = pt2.x - pt1.x;
+        double aY = pt2.y - pt1.y;
+
+        double bX = pt4.x - pt3.x;
+        double bY = pt4.y - pt3.y;
+
+        double determinant = aX*bY - bX*aY;
+
+        double alpha, beta;
+
+        alpha = (-aY * (pt1.x - pt3.x) + aX *(pt1.y - pt3.y))/ determinant;
+        beta = (bX * (pt1.y - pt3.y) - bY * (pt1.x - pt3.x))/ determinant;
+
+        double xInt, yInt;
+        if (alpha >= 0 && alpha <= 1 && beta >= 0 && beta <= 1)
+        {
+                xInt = pt1.x + (beta * aX);
+                yInt = pt1.y + (beta * aY);
+        }
+        else
+        {
+                std::cout << "WARNING: No Instersection between backward and forward edge found\n";
+		return 0;
+        }
+
+	returnPoint.x = xInt;
+	returnPoint.y = yInt;
+
+	return 1;
+}
+
+// Check If a line e1 intersects with a line segment e2
+bool checkLineIntersection(edge e1, edge e2)
+{
+	// End Points of Line Segment 1
+	point pt1 = e1.p1;
+        point pt2 = e1.p2;
+
+	// End Points of Line Segment 2
+	point pt3 = e2.p1;
+        point pt4 = e2.p2;
+
+	// Line 1 Equation (y = mx+c)
+	double m = (pt2.y - pt1.y)/(pt2.x - pt1.x);
+
+	double c = pt1.y - m*pt1.x; 	// y-intercept
+	
+	// Put Point 1 and Point 2 of Line segment in Line Equation
+	double check1 = pt3.y - m*pt3.x - c;
+	double check2 = pt4.y - m*pt4.x - c;
+
+	if (check1*check2 <= 0)
+		return true;
+
+	else 
+		return false;
+
+	return false;
+}
+
+// Return the intersection of two lines (not line segments)
+int findLineIntersection(edge e1, edge e2, point& returnPoint)
+{
+
+	// End Points of Line Segment 1
+	point pt1 = e1.p1;
+	point pt2 = e1.p2;
+
+	// End Points of Line Segment 2
+	point pt3 = e2.p1;
+	point pt4 = e2.p2;
+
+	// y = mx+c = (a1/b1)x + c
+	double a1 = pt2.y - pt1.y;
+	double b1 = pt1.x - pt2.x;
+	double c1 = a1*pt1.x + b1*pt1.y;
+	
+        double a2 = pt4.y - pt3.y;
+        double b2 = pt3.x - pt4.x;
+        double c2 = a2*pt3.x + b2*pt3.y;
+
+	double determinant = a1*b2 - a2*b1;
+
+	double xInt, yInt;
+	if (determinant == 0)
+	{
+		std::cout << "NO intersection between the two lines\n";
+		return 0;
+	}
+	else
+	{
+		xInt = (b2*c1 - b1*c2)/determinant;
+		yInt = (a1*c2 - a2*c1)/determinant;		
+        }
+
+	returnPoint.x = xInt;
+        returnPoint.y = yInt;
+
+        return 1;
+}
+
+// Find the shortest distance from line segment (p1-p2) to the checkPoint
+double shortestDistance(point p1, point p2, point checkPoint)
+{
+	double x1 = p1.x;
+	double y1 = p1.y;
+	double x2 = p2.x;
+	double y2 = p2.y;
+
+	double x = checkPoint.x;
+	double y = checkPoint.y;
+
+        double distPtLineX = x - x1;
+        double distPtLineY = y - y1;
+        double lineVecX = x2 - x1;
+        double lineVecY = y2 - y1;
+
+        double dotProduct = (distPtLineX*lineVecX)+ (distPtLineY*lineVecY);
+        double vecLengthSq = (lineVecX*lineVecX) + (lineVecY*lineVecY);
+        double parameter = -1;
+
+        if (vecLengthSq != 0)
+                parameter = dotProduct/vecLengthSq;
+
+        double dX, dY;
+
+        if (parameter < 0)
+        {
+                dX = x - x1;
+                dY = y - y1;
+        }
+        else if (parameter > 1)
+        {
+                dX = x - x2;
+                dY = y - y2;
+        }
+        else
+        {
+                dX = x - (x1 + parameter * lineVecX);
+                dY = y - (y1 + parameter * lineVecY);
+        }
+
+        double dist = sqrt(dX*dX + dY*dY);
+
+	return dist;
+}
+

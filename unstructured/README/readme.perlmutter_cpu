@@ -1,6 +1,5 @@
 1. login: 
 
-   direct login
    ssh -P perlmutter-p1.nersc.gov -l [username]
    or
    ssh -P saul-p1.nersc.gov -l [username]
@@ -24,11 +23,11 @@
 
    make ARCH=perlmutter_cpu all
     (make OPT=1 RL=1 MAX_PTS=25 ARCH=perlmutter_cpu
-     make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter_cpu
-     make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu
-     make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu ST=1
-     (These modules crashes at restart: cray-hdf5-parallel/1.12.0.7 cray-netcdf-hdf5parallel/4.7.4.7
-      So rebuilt hdf5, netcdf-c, netcdf-fortran on 2/15/2022.)
+   make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter_cpu
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu ST=1
+    (These modules crashes at restart: cray-hdf5-parallel/1.12.0.7 cray-netcdf-hdf5parallel/4.7.4.7
+     So rebuilt hdf5, netcdf-c, netcdf-fortran on 2/15/2022.)
     )
 
 5. mesh utility
@@ -70,7 +69,7 @@
 7. run job
 
 7.1 interactive mode
-  salloc -A m3984_g -C gpu -n 48 -t 00:30:00
+  salloc -A mp288 -C cpu -n 48 -t 00:30:00
   export SLURM_CPU_BIND="cores"
   srun ... (see 7.2)
 

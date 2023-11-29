@@ -516,9 +516,7 @@ contains
     implicit none
 
     type(scorec_vector), intent(inout) :: f
-#ifdef ADAPT
     call m3dc1_field_mark4tx(f%id)
-#endif
   end subroutine scorec_vector_mark_for_solutiontransfer
 
   !======================================================================

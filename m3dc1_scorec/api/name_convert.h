@@ -11,6 +11,7 @@
 #define m3dc1_model_print m3dc1_model_print_
 #define m3dc1_model_setnumplane m3dc1_model_setnumplane_
 #define m3dc1_model_getnumplane m3dc1_model_getnumplane_
+#define m3dc1_model_settopo m3dc1_model_settopo_
 #define m3dc1_model_getmincoord m3dc1_model_getmincoord_
 #define m3dc1_model_getmaxcoord m3dc1_model_getmaxcoord_
 #define m3dc1_model_getplaneid m3dc1_model_getplaneid_
@@ -20,6 +21,7 @@
 #define m3dc1_spr_adapt m3dc1_spr_adapt_
 #define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
+#define m3dc1_mesh_verify m3dc1_mesh_verify
 #define m3dc1_mesh_getnument m3dc1_mesh_getnument_
 #define m3dc1_mesh_getnumghostent m3dc1_mesh_getnumghostent_
 #define m3dc1_mesh_getnumownent m3dc1_mesh_getnumownent_
@@ -105,6 +107,7 @@
 #define m3dc1_matrix_solve_with_guess m3dc1_matrix_solve_with_guess_
 #define m3dc1_matrix_multiply m3dc1_matrix_multiply_
 #define m3dc1_matrix_getnumiter m3dc1_matrix_getiternum_
+#define m3dc1_matrix_solve_with_guess m3dc1_matrix_solve_with_guess_
 #define m3dc1_matrix_getlocalnumdof m3dc1_matrix_getlocalnumdof_
 #define m3dc1_matrix_getglobalnumdof m3dc1_matrix_getglobalnumdof_
 #define m3dc1_matrix_insertblock m3dc1_matrix_insertblock_

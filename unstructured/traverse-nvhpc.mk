@@ -23,8 +23,7 @@ else
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-#SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)
-SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSC_VER)
+SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)-202310
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
@@ -49,7 +48,7 @@ ifeq ($(PAR), 1)
   OPTS := $(OPTS) -DUSEPARTICLES
 endif
 
-PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/projects/M3DC1/openmpi/traverse-nvidia/lib -L/opt/nvidia/hpc_sdk/Linux_ppc64le/21.5/compilers/lib -L/usr/lib/gcc/ppc64le-redhat-linux/8 -Wl,-rpath,/projects/M3DC1/openmpi/traverse-nvidia/lib -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_ppc64le/21.5/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lparmetis -lmetis -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lnvf -lnvomp -latomic -lnvhpcatm -lpthread -lnvcpumath -lnvc -lrt -lm -lgcc_s -lstdc++ -ldl
+PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/projects/M3DC1/openmpi/traverse-nvidia/lib -L/opt/nvidia/hpc_sdk/Linux_ppc64le/21.5/compilers/lib -L/usr/lib/gcc/ppc64le-redhat-linux/8 -Wl,-rpath,/projects/M3DC1/openmpi/traverse-nvidia/lib -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_ppc64le/21.5/compilers/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu -lsuperlu_dist -lflapack -lfblas -lparmetis -lmetis -lstdc++ -ldl -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lnvf -lnvomp -latomic -lnvhpcatm -lpthread -lnvcpumath -lrt -lm -lgcc_s -lstdc++ -ldl
 
 #PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -lpetsc -lsuperlu_dist -lsuperlu -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lparmetis -lmetis -lscalapack -llapack -lblas -lstdc++
 

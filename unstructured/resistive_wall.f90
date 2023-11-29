@@ -131,6 +131,8 @@ contains
 
     if(etaRZ_zone(izone).gt.0.) then
        wall_resistivityRZ = etaRZ_zone(izone)
+    else if(eta_zone(izone).gt.0.) then
+       wall_resistivityRZ = eta_zone(izone)
     else
        wall_resistivityRZ = eta_wallRZ
     end if

@@ -1,6 +1,5 @@
-FOPTS = -c -r8 -i4 -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
-CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
-R8OPTS = -r8
+FOPTS = -c -r8 -i4 -cpp -DPETSC_VERSION=319 -DUSEBLAS $(OPTS) 
+CCOPTS  = -c -O -DPETSC_VERSION=319
 
 ifeq ($(OPT), 1)
   FOPTS  := $(FOPTS) -O2 
@@ -43,8 +42,7 @@ else
   endif
 endif
 
-SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core-trunk/upgrade-nvhpc833-pcpu
-#SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/scorec-pmt/nvidia8.3.3-mpich8.1.24/petsc-3.17.4
+SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/scorec-pmt/cpu-nvidia8.3.3-mpich8.1.25/petsc3.19.3
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
@@ -65,25 +63,12 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
            $(PUMI_LIB) -Wl,--end-group
 
-ifeq ($(ENABLE_ZOLTAN), 0)
-  ZOLTAN_LIB=
-  BIN_POSTFIX := $(BIN_POSTFIX)-nozoltan
-  CCOPTS := $(CCOPTS) -DDISABLE_ZOLTAN
-else
-  ZOLTAN_LIB=-lzoltan
-endif 
-
-
-LIBS = 	\
-	$(SCOREC_LIB) \
-        $(PETSC_WITH_EXTERNAL_LIB) \
-#-L$(HDF5_ROOT)/lib -lhdf5hl_fortran_parallel -lhdf5_fortran_parallel -lhdf5_hl -lhdf5 \
-#-L$(FFTW_DIR) -lfftw3f_threads -lfftw3_threads -lfftw3_mpi -lfftw3f_mpi -lfftw3f -lfftw3
+LIBS = 	$(SCOREC_LIB) \
+        $(PETSC_WITH_EXTERNAL_LIB) 
 
 INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
-#-I$(FFTW_INC) -I$(HDF5_ROOT)/include \
-
+	-I$(SCOREC_BASE_DIR)/include -I$(SCOREC_DIR)/include
 
 ifeq ($(ST), 1)
   LIBS += -Wl,--start-group -L/global/homes/j/jinchen/project/NETCDF/buildnvhpc2/lib -Wl,-rpath,/global/homes/j/jinchen/project/NETCDF/buildnvhpc2/lib -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lnetcdf -lnetcdff -lz -Wl,--end-group
