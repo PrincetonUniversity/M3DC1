@@ -16,6 +16,7 @@
 	ibh_harmonics = 4
 
 	iadapt = 1
+	iadapt_snap = 0
 	adapt_smooth = 0.02
 
 ! Numerical Method Options
