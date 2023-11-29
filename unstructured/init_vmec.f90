@@ -293,12 +293,6 @@ contains
         call vector_insert_block(den_f%vec, itri, 1, dofs, VEC_ADD)
       end if
 
-      ! perturbation 
-      select case (icsym)
-        case(0) 
-          call random_number(temp79e)
-          temp79e = eps*(temp79e-0.5)
-      end select 
       dofs = intx2(mu79(:,:,OP_1),temp79e)
       call vector_insert_block(per_f%vec, itri, 1, dofs, VEC_ADD)
 
@@ -422,7 +416,7 @@ contains
     call destroy_vector(fppsi_vec)
     call destroy_mat(br_mat)
 
-    !call init_perturbations
+    call init_perturbations
 
   end subroutine vmec_init
 
@@ -509,7 +503,7 @@ contains
     co_nyq = cos(xmv_nyq*theta+xnv_nyq*phis)
     sn_nyq = sin(xmv_nyq*theta+xnv_nyq*phis)
     ! m, n perturbation
-    per = eps*exp(-r**2/ln**2)*cos(mpol*theta-ntor*phis)*r 
+!    per = eps*exp(-r**2/ln**2)*cos(mpol*theta-ntor*phis)*r 
     call evaluate_spline(presf_spline, r**2, p)
     if(iread_ne.eq.21) call evaluate_spline(den_spline, r**2, den)
 !    call evaluate_spline(phiv_spline, r**2, phiv)
