@@ -831,5 +831,125 @@ contains
        call safestop(52)
     end if
   end subroutine load_mgrid_field
+
+  subroutine load_hint_field(sf, hint_filename, error)
+    use netcdf
+    use math 
+    implicit none
+
+    type(schaffer_field), intent(inout) :: sf
+    character(len=*), intent(in) :: hint_filename
+    integer, intent(out) :: error
+
+    integer :: ll, ii, kk
+    integer :: ncid 
+    real :: dr, dz, dphi
+    real :: per
+
+! Dimension IDs
+    integer :: radDimID, phiDimID, zeeDimID, timeDimID
+! Variable IDs
+    integer :: rminID, rmaxID, zminID, zmaxID, nfpID 
+! Variable values
+    real :: rmin, rmax, zmin, zmax
+    integer :: nfp, kstep
+! Magnetic field
+    integer :: br_varid, bp_varid, bz_varid, p_varid, start4(4), count4(4)
+    real, allocatable :: brtemp(:,:,:), bphitemp(:,:,:), bztemp(:,:,:), ptemp(:,:,:)
+
+    error = 0
+
+! Check extension
+    ll = len_trim(hint_filename)
+    if (hint_filename(ll-2:ll).eq.'.nc') then
+       call check(nf90_open(trim(hint_filename), nf90_nowrite, ncid))
+
+! Get dimensions
+       call check(nf90_inq_dimid(ncid, "R", radDimID))
+       call check(nf90_inq_dimid(ncid, "phi", phiDimID))
+       call check(nf90_inq_dimid(ncid, "Z", zeeDimID))
+       call check(nf90_inq_dimid(ncid, "time", timeDimID))
+       call check(nf90_inquire_dimension(ncid, radDimID, len=sf%nr))
+       call check(nf90_inquire_dimension(ncid, phiDimID, len=sf%nphi))
+       call check(nf90_inquire_dimension(ncid, zeeDimID, len=sf%nz))
+       call check(nf90_inquire_dimension(ncid, timeDimID, len=kstep))
+
+! Get variable values
+       call check(nf90_inq_varid(ncid, "rminb", rminID))
+       call check(nf90_inq_varid(ncid, "rmaxb", rmaxID))
+       call check(nf90_inq_varid(ncid, "zminb", zminID))
+       call check(nf90_inq_varid(ncid, "zmaxb", zmaxID))
+       call check(nf90_inq_varid(ncid, "mtor", nfpID))
+
+       call check(nf90_get_var(ncid,rminID,rmin))
+       call check(nf90_get_var(ncid,rmaxID,rmax))
+       call check(nf90_get_var(ncid,zminID,zmin))
+       call check(nf90_get_var(ncid,zmaxID,zmax))
+       call check(nf90_get_var(ncid,nfpID,nfp))
+
+! Allocate temporary arrays
+       allocate(brtemp(sf%nr,sf%nz,sf%nphi)) 
+       allocate(bphitemp(sf%nr,sf%nz,sf%nphi))
+       allocate(bztemp(sf%nr,sf%nz,sf%nphi))
+       allocate(ptemp(sf%nr,sf%nz,sf%nphi))
+
+! Get fields (adapted from HINT source code)
+       call check(nf90_inq_varid(ncid, "B_R",   br_varid))
+       call check(nf90_inq_varid(ncid, "B_phi", bp_varid))
+       call check(nf90_inq_varid(ncid, "B_Z",   bz_varid))
+       call check(nf90_inq_varid(ncid, "P",     p_varid))
+ 
+       count4 = (/sf%nr, sf%nz, sf%nphi, 1/)
+       start4 = (/1, 1, 1, kstep/)
+ 
+       call check(nf90_get_var(ncid, br_varid, brtemp, count=count4, start=start4))
+       call check(nf90_get_var(ncid, bp_varid, bphitemp, count=count4, start=start4))
+       call check(nf90_get_var(ncid, bz_varid, bztemp, count=count4, start=start4))
+       call check(nf90_get_var(ncid, p_varid, ptemp, count=count4, start=start4))
+       call check(nf90_close(ncid))
+
+       if(.not. sf%initialized) then
+          allocate(sf%r(sf%nr))
+          allocate(sf%z(sf%nz))
+          allocate(sf%phi(sf%nphi))
+          allocate(sf%br(sf%nphi,sf%nr,sf%nz))
+          allocate(sf%bphi(sf%nphi,sf%nr,sf%nz))
+          allocate(sf%bz(sf%nphi,sf%nr,sf%nz))
+          allocate(sf%p(sf%nphi,sf%nr,sf%nz))
+       end if
+
+! Transpose (r,z,phi) -> (phi,r,z)      
+       do kk = 1, sf%nphi
+          sf%br(kk,:,:) = brtemp(:,:,kk)
+          sf%bphi(kk,:,:) = bphitemp(:,:,kk)
+          sf%bz(kk,:,:) = bztemp(:,:,kk)
+          sf%p(kk,:,:) = ptemp(:,:,kk)
+       end do 
+       deallocate(brtemp,bztemp,bphitemp,ptemp)
+
+! Make grid
+       dr = (rmax-rmin)/(sf%nr-1)
+       dz = (zmax-zmin)/(sf%nz-1)
+       per = twopi/nfp
+       dphi = per/(sf%nphi-1)
+
+       do kk = 1, sf%nr, 1
+          sf%r(kk) = rmin + (kk-1)*dr
+       end do
+       do kk = 1, sf%nphi, 1
+          sf%phi(kk) = 0.0 + (kk-1)*dphi
+       end do
+       do kk = 1, sf%nz, 1
+          sf%z(kk) = zmin + (kk-1)*dz
+       end do
+! Finalize 
+       sf%initialized = .true.
+       sf%vmec = .true.
+    else
+       print *, 'ERROR: Invalid extension. Only support .nc format'
+       call safestop(52)
+    end if
+  end subroutine load_hint_field
+
 #endif
 end module read_schaffer_field

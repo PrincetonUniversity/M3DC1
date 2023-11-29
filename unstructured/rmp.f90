@@ -132,6 +132,8 @@ subroutine read_stellarator_field(field_name)
   else if(field_name(1:4).eq.'mips') then
     call load_mips_field(sf(iread_ext_field), field_name, ierr)
 #ifdef USEST
+  else if(field_name(1:4).eq.'hint') then
+    call load_hint_field(sf(iread_ext_field), field_name, ierr)
   else if(field_name(1:5).eq.'mgrid') then
     call load_mgrid_field(sf(iread_ext_field), field_name, vmec_filename, ierr)
 #endif
