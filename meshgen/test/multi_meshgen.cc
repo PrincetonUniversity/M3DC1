@@ -935,7 +935,7 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 			double para=i*increment;
 			double normVec[2];
 			eval_normal(&edgeNum, &para, normVec);
-			offset_point(&(wallPoints.at(2*i)), normVec, &thickness, ptOff);
+			offset_point(&(updatedWall.at(2*i)), normVec, &thickness, ptOff);
 		}
 
 		if (angle > 180)
