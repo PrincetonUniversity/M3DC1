@@ -249,7 +249,7 @@ subroutine den_eq
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
   
-  def_fields = FIELD_PSI + FIELD_N
+  def_fields = FIELD_PSI + FIELD_N + FIELD_P
 
   numelms = local_elements()
   do itri=1,numelms
@@ -273,7 +273,14 @@ subroutine den_eq
               n079(:,OP_1) = n079(:,OP_1) &
                    + .5*(den_edge-den0)*(1. + tanh(real(temp79a)))
            end if
-   
+
+        ! idenfunc = 20 in lieu of 0 (unclear why 0 is disabled here). YZ
+        case(20) 
+           if(expn.eq.0.) then
+              n079(:,OP_1) = den0 + den_edge
+           else
+              n079(:,OP_1) = den0*(p079(:,OP_1)/p0)**expn + den_edge
+           end if
 #ifdef USEST
         case(21)
            if(igeometry.eq.1) then

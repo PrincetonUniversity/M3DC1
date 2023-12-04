@@ -909,6 +909,8 @@ contains
        call check(nf90_close(ncid))
 ! Pressure normalization
        ptemp = ptemp/(pi*4e-7)  
+! Schaffer field needs 1 more toroidal grid point than HINT!
+       sf%nphi = sf%nphi + 1
 
        if(.not. sf%initialized) then
           allocate(sf%r(sf%nr))
@@ -921,12 +923,17 @@ contains
        end if
 
 ! Transpose (r,z,phi) -> (phi,r,z)      
-       do kk = 1, sf%nphi
+       do kk = 1, sf%nphi-1
           sf%br(kk,:,:) = brtemp(:,:,kk)
           sf%bphi(kk,:,:) = bphitemp(:,:,kk)
           sf%bz(kk,:,:) = bztemp(:,:,kk)
           sf%p(kk,:,:) = ptemp(:,:,kk)
        end do 
+! Data on extra toroidal grid point
+       sf%br(sf%nphi,:,:) = brtemp(:,:,1)
+       sf%bphi(sf%nphi,:,:) = bphitemp(:,:,1)
+       sf%bz(sf%nphi,:,:) = bztemp(:,:,1)
+       sf%p(sf%nphi,:,:) = ptemp(:,:,1)
        deallocate(brtemp,bztemp,bphitemp,ptemp)
 
 ! Make grid
