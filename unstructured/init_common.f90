@@ -254,7 +254,7 @@ subroutine den_eq
   numelms = local_elements()
   do itri=1,numelms
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-     call define_fields(itri,def_fields,1,0)
+     call define_fields(itri,def_fields,1,0,1)
      call get_zone(itri, izone)
 
      if(iread_ne.eq.0) then 
@@ -279,7 +279,12 @@ subroutine den_eq
            if(expn.eq.0.) then
               n079(:,OP_1) = den0 + den_edge
            else
-              n079(:,OP_1) = den0*(p079(:,OP_1)/p0)**expn + den_edge
+#ifndef USECOMPLEX
+              do ip = 1, MAX_PTS
+                 temp79a(ip) = max(p079(ip,OP_1), 0.)
+              end do
+#endif     
+              n079(:,OP_1) = den0*(temp79a/p0)**expn + den_edge
            end if
 #ifdef USEST
         case(21)

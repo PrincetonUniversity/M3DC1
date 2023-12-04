@@ -463,7 +463,7 @@ contains
        bphi_out(k) = f(2,1)
        bz_out(k)   = f(3,1)
        if(sf%vmec) then
-          p_out(k) = f(4,1)
+          p_out(k) = max(f(4,1),0.)
        else
           p_out(k) = 0
        end if
