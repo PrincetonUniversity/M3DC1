@@ -1841,6 +1841,13 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      end if
   endif
 
+  if(jadv.eq.0) then
+     ! electrostatic potential
+     ! ~~~~~~~~~~~~~~~~~~~~~~~
+     tempx = b1e(trialx,lin)
+     ssterm(:,e_g) = ssterm(:,e_g)       - thimpe     *dt*tempx
+     ddterm(:,e_g) = ddterm(:,e_g) + (1. - thimpe*bdf)*dt*tempx
+  endif
 
   ! Zone 3: eta J = 0.
   if(izone.eq.ZONE_VACUUM) return
@@ -2092,14 +2099,6 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      end if
   end if
 
-
-  if(jadv.eq.0) then
-     ! electrostatic potential
-     ! ~~~~~~~~~~~~~~~~~~~~~~~
-     tempx = b1e(trialx,lin)
-     ssterm(:,e_g) = ssterm(:,e_g)       - thimpe     *dt*tempx
-     ddterm(:,e_g) = ddterm(:,e_g) + (1. - thimpe*bdf)*dt*tempx
-  endif
 
 
   select case (itwofluid)
@@ -5251,7 +5250,7 @@ subroutine ludefphi_n(itri)
            if(jadv.eq.0) then
               do i=1,dofs_per_element
                  call potential_lin(mu79(i,:,:),nu79(j,:,:), &
-                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j))
+                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j),izone)
               end do
            else   !jadv.eq.1
               do i=1,dofs_per_element

@@ -577,7 +577,7 @@ end function b4ped
 !======================================================================
 ! Electrostatic Potential Equation
 !======================================================================
-subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
+subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   use basic
   use arrays
@@ -591,6 +591,8 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
   vectype, intent(out) :: q_ni, q_bf, r_bf
   vectype :: temp
   real :: thimp_e, thimpb_e, thimpf_e
+  integer, intent(in) :: izone
+
 
   thimp_e = thimp
 
@@ -610,10 +612,41 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
   ssterm(e_g) = b4e(trial,lin)
 
-  temp = b4psieta   (trial,lin,eta79) &
-       + b4psietahyp(trial,lin,eta79)
+  if(izone.ne.ZONE_CONDUCTOR) then
+     temp = b4psieta   (trial,lin,eta79) &
+          + b4psietahyp(trial,lin,eta79)
+  else
+     temp = b4psieta   (trial,lin,etaRZ79) &
+          + b4psietahyp(trial,lin,etaRZ79)
+  endif
   ssterm(psi_g) = ssterm(psi_g)      -thimp_e     *temp
   ddterm(psi_g) = ddterm(psi_g) + (1.-thimp_e*bdf)*temp
+
+  if(numvar.ge.2) then 
+     if(izone.ne.ZONE_CONDUCTOR) then
+        temp = b4beta   (trial,lin,eta79)    &
+             + b4betahyp(trial,lin,eta79)
+     else
+        temp = b4beta   (trial,lin,etaRZ79)    &
+             + b4betahyp(trial,lin,etaRZ79)
+     endif
+     ssterm(bz_g) = ssterm(bz_g)      -thimp_e     *temp
+     ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_e*bdf)*temp
+  endif
+
+  if(i3d.eq.1 .and. numvar.ge.2) then 
+     if(izone.ne.ZONE_CONDUCTOR) then
+        q_bf = q_bf + &
+             (b4feta   (trial,lin,eta79) &
+             +b4fetahyp(trial,lin,eta79))
+     else
+        q_bf = q_bf + &
+             (b4feta   (trial,lin,etaRZ79) &
+             +b4fetahyp(trial,lin,etaRZ79))
+     endif
+  endif
+
+  if(izone.ne.ZONE_PLASMA) return
 
   temp = b4psiv(trial,lin,vzt79)
   ssterm(psi_g) = ssterm(psi_g) -     thimp_e     *temp
@@ -651,11 +684,6 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
 
 
   if(numvar.ge.2) then 
-     temp = b4beta   (trial,lin,eta79)    &
-          + b4betahyp(trial,lin,eta79)
-     ssterm(bz_g) = ssterm(bz_g)      -thimp_e     *temp
-     ddterm(bz_g) = ddterm(bz_g) + (1.-thimp_e*bdf)*temp
-
      temp = b4bu(trial,lin,pht79)
      ssterm(bz_g) = ssterm(bz_g) -     thimpb_e     *temp
      ddterm(bz_g) = ddterm(bz_g) + (1.-thimpb_e*bdf)*temp
@@ -737,10 +765,6 @@ subroutine potential_lin(trial, lin, ssterm, ddterm, q_ni, r_bf, q_bf)
              +b4psifd(trial,ps079,lin,ni79)*db &
              +b4bfd  (trial,bz079,lin,ni79)*db)
      endif
-
-     q_bf = q_bf + &
-          (b4feta   (trial,lin,eta79) &
-          +b4fetahyp(trial,lin,eta79))
   endif
 
 end subroutine potential_lin
