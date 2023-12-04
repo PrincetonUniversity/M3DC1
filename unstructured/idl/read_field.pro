@@ -3586,31 +3586,40 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
           i1 = read_field('i', x, y, t, mesh=mesh, phi=phi0, $
                             filename=filename, points=pts, slices=time, $
                             rrange=xrange, zrange=yrange, $
-                            linear=linear, complex=complex) 
-          psi1_rp = read_field('psi', x, y, t, mesh=mesh, phi=phi0, $
-                             filename=filename, points=pts, slices=time, $
-                             rrange=xrange, zrange=yrange, $
-                             linear=linear, complex=complex, op=12)       
-          psi1_zp = read_field('psi', x, y, t, mesh=mesh, phi=phi0, $
-                             filename=filename, points=pts, slices=time, $
-                             rrange=xrange, zrange=yrange, $
-                             linear=linear, complex=complex, op=13)
-          f1_rp = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
-                             filename=filename, points=pts, slices=time, $
-                             rrange=xrange, zrange=yrange, $
-                             linear=linear, complex=complex, op=12)       
-          f1_zp = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
-                             filename=filename, points=pts, slices=time, $
-                             rrange=xrange, zrange=yrange, $
-                             linear=linear, complex=complex, op=13)
-          f1_rpp = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
-                              filename=filename, points=pts, slices=time, $
-                              rrange=xrange, zrange=yrange, $
-                              linear=linear, complex=complex, op=22)       
-          f1_zpp = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
-                              filename=filename, points=pts, slices=time, $
-                              rrange=xrange, zrange=yrange, $
-                              linear=linear, complex=complex, op=23)
+                          linear=linear, complex=complex)
+          if(i3d eq 1) then begin
+             psi1_rp = read_field('psi', x, y, t, mesh=mesh, phi=phi0, $
+                                  filename=filename, points=pts, slices=time, $
+                                  rrange=xrange, zrange=yrange, $
+                                  linear=linear, complex=complex, op=12)
+             psi1_zp = read_field('psi', x, y, t, mesh=mesh, phi=phi0, $
+                                  filename=filename, points=pts, slices=time, $
+                                  rrange=xrange, zrange=yrange, $
+                                  linear=linear, complex=complex, op=13)
+             f1_rp = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
+                                filename=filename, points=pts, slices=time, $
+                                rrange=xrange, zrange=yrange, $
+                                linear=linear, complex=complex, op=12)
+             f1_zp = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
+                                filename=filename, points=pts, slices=time, $
+                                rrange=xrange, zrange=yrange, $
+                                linear=linear, complex=complex, op=13)
+             f1_rpp = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
+                                 filename=filename, points=pts, slices=time, $
+                                 rrange=xrange, zrange=yrange, $
+                                 linear=linear, complex=complex, op=22)
+             f1_zpp = read_field('f', x, y, t, mesh=mesh, phi=phi0, $
+                                 filename=filename, points=pts, slices=time, $
+                                 rrange=xrange, zrange=yrange, $
+                                 linear=linear, complex=complex, op=23)
+          endif else begin
+             psi1_rp = 0.
+             psi1_zp = 0.
+             f1_rp = 0.
+             f1_zp = 0.
+             f1_rpp = 0.
+             f1_zpp = 0.
+          end
           
           b0 = sqrt((psi1_r^2 + psi1_z^2 + i1^2)/r^2 $
                     + f1_rp^2 + f1_zp^2 + 2*(psi1_z*f1_rp - psi1_r*f1_zp)/r)
