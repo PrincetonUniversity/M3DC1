@@ -15,23 +15,23 @@ subroutine electric_field_R(ilin,o,izone)
   if(izone.eq.ZONE_VACUUM) return
 
   if(izone.eq.ZONE_CONDUCTOR) then
-     temp79a = etaRZ79(:,OP_1)
+     temp79b = etaRZ79(:,OP_1)
   else
-     temp79a = eta79(:,OP_1)
+     temp79b = eta79(:,OP_1)
   end if
   
   ! eta J
   ! ~~~~~
   if(ilin.eq.1) then
-     o = o - temp79a*bz179(:,OP_DZ)
+     o = o - temp79b*bz179(:,OP_DZ)*ri_79
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + temp79a* &
+     o = o + temp79b* &
           (ri2_79*ps179(:,OP_DRP) - ri_79*bfp179(:,OP_DZP))
 #endif
   else
-     o = o - temp79a*bzt79(:,OP_DZ)
+     o = o - temp79b*bzt79(:,OP_DZ)*ri_79
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + temp79a* &
+     o = o + temp79b* &
           (ri2_79*pst79(:,OP_DRP) - ri_79*bfpt79(:,OP_DZP))
 #endif
   end if
@@ -39,44 +39,44 @@ subroutine electric_field_R(ilin,o,izone)
 
   ! -VxB
   ! ~~~~
-     if(ilin.eq.1) then
-        o = o &
-             + bz079(:,OP_1)*ph179(:,OP_DR) &
-             + bz179(:,OP_1)*ph079(:,OP_DR) &
-             - vz079(:,OP_1)*ps179(:,OP_DR) &
-             - vz179(:,OP_1)*ps079(:,OP_DR) &
-             + ri3_79*bz079(:,OP_1)*ch179(:,OP_DZ) &
-             + ri3_79*bz179(:,OP_1)*ch079(:,OP_DZ)
-        if(use_external_fields) then
-           o = o + bzx79(:,OP_1)*ph079(:,OP_DR) &
-                - vz079(:,OP_1)*psx79(:,OP_DR) &
-                + ri3_79*bzx79(:,OP_1)*ch079(:,OP_DZ)
-        end if
+  if(ilin.eq.1) then
+     o = o &
+          + bz079(:,OP_1)*ph179(:,OP_DR) &
+          + bz179(:,OP_1)*ph079(:,OP_DR) &
+          - vz079(:,OP_1)*ps179(:,OP_DR) &
+          - vz179(:,OP_1)*ps079(:,OP_DR) &
+          + ri3_79*bz079(:,OP_1)*ch179(:,OP_DZ) &
+          + ri3_79*bz179(:,OP_1)*ch079(:,OP_DZ)
+     if(use_external_fields) then
+        o = o + bzx79(:,OP_1)*ph079(:,OP_DR) &
+             - vz079(:,OP_1)*psx79(:,OP_DR) &
+             + ri3_79*bzx79(:,OP_1)*ch079(:,OP_DZ)
+     end if
 #if defined(USE3D) || defined(USECOMPLEX)
-        o = o + vz079(:,OP_1)*r_79*bfp179(:,OP_DZ) &
-             + vz179(:,OP_1)*r_79*bfp079(:,OP_DZ)
-        if(use_external_fields) then
-           o = o + vz079(:,OP_1)*r_79*bfpx79(:,OP_DZ)
-        end if
+     o = o + vz079(:,OP_1)*r_79*bfp179(:,OP_DZ) &
+          + vz179(:,OP_1)*r_79*bfp079(:,OP_DZ)
+     if(use_external_fields) then
+        o = o + vz079(:,OP_1)*r_79*bfpx79(:,OP_DZ)
+     end if
 #endif
-     else
-        o = o &
-             + bztx79(:,OP_1)*pht79(:,OP_DR) &
-             - vzt79(:,OP_1)*pstx79(:,OP_DR) &
-             + ri3_79*bztx79(:,OP_1)*cht79(:,OP_DZ)
+  else
+     o = o &
+          + bztx79(:,OP_1)*pht79(:,OP_DR) &
+          - vzt79(:,OP_1)*pstx79(:,OP_DR) &
+          + ri3_79*bztx79(:,OP_1)*cht79(:,OP_DZ)
 #if defined(USE3D) || defined(USECOMPLEX)
-        o = o + vzt79(:,OP_1)*r_79*bfptx79(:,OP_DZ)
+     o = o + vzt79(:,OP_1)*r_79*bfptx79(:,OP_DZ)
 #endif
 #ifdef USEPARTICLES
-        o = o &
-             - bz079(:,OP_1)*ph079(:,OP_DR) &
-             + vz079(:,OP_1)*ps079(:,OP_DR) &
-             - ri3_79*bz079(:,OP_1)*ch079(:,OP_DZ)
+     o = o &
+          - bz079(:,OP_1)*ph079(:,OP_DR) &
+          + vz079(:,OP_1)*ps079(:,OP_DR) &
+          - ri3_79*bz079(:,OP_1)*ch079(:,OP_DZ)
 #if defined(USE3D) || defined(USECOMPLEX)
-        o = o - vz079(:,OP_1)*r_79*bfp079(:,OP_DZ)
+     o = o - vz079(:,OP_1)*r_79*bfp079(:,OP_DZ)
 #endif
 #endif
-      end if
+  end if
 
   ! JxB
   ! ~~~
@@ -143,23 +143,23 @@ subroutine electric_field_Z(ilin,o,izone)
   if(izone.eq.ZONE_VACUUM) return
 
   if(izone.eq.ZONE_CONDUCTOR) then
-     temp79a = etaRZ79(:,OP_1)
+     temp79b = etaRZ79(:,OP_1)
   else
-     temp79a = eta79(:,OP_1)
+     temp79b = eta79(:,OP_1)
   end if
   
   ! eta J
   ! ~~~~~
   if(ilin.eq.1) then 
-     o = o + temp79a*bz179(:,OP_DR)
+     o = o + temp79b*bz179(:,OP_DR)*ri_79
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + temp79a* &
+     o = o + temp79b* &
           (ri2_79*ps179(:,OP_DZP) + ri_79*bfp179(:,OP_DRP))
 #endif
   else
-     o = o + temp79a*bzt79(:,OP_DR)
+     o = o + temp79b*bzt79(:,OP_DR)*ri_79
 #if defined(USE3D) || defined(USECOMPLEX)
-     o = o + temp79a* &
+     o = o + temp79b* &
           (ri2_79*pst79(:,OP_DZP) + ri_79*bfpt79(:,OP_DRP))
 #endif
   end if
@@ -167,45 +167,45 @@ subroutine electric_field_Z(ilin,o,izone)
 
   ! -VxB
   ! ~~~~
-     if(ilin.eq.1) then 
-        o = o &
-             + bz079(:,OP_1)*ph179(:,OP_DZ) &
-             + bz179(:,OP_1)*ph079(:,OP_DZ) &
-             - vz079(:,OP_1)*ps179(:,OP_DZ) &
-             - vz179(:,OP_1)*ps079(:,OP_DZ) &
-             - ri3_79*bz079(:,OP_1)*ch179(:,OP_DR) &
-             - ri3_79*bz179(:,OP_1)*ch079(:,OP_DR)
-        if(use_external_fields) then
-           o = o + bzx79(:,OP_1)*ph079(:,OP_DZ) &
-                - vz079(:,OP_1)*psx79(:,OP_DZ) &
-                - ri3_79*bzx79(:,OP_1)*ch079(:,OP_DR)
-        end if
+  if(ilin.eq.1) then 
+     o = o &
+          + bz079(:,OP_1)*ph179(:,OP_DZ) &
+          + bz179(:,OP_1)*ph079(:,OP_DZ) &
+          - vz079(:,OP_1)*ps179(:,OP_DZ) &
+          - vz179(:,OP_1)*ps079(:,OP_DZ) &
+          - ri3_79*bz079(:,OP_1)*ch179(:,OP_DR) &
+          - ri3_79*bz179(:,OP_1)*ch079(:,OP_DR)
+     if(use_external_fields) then
+        o = o + bzx79(:,OP_1)*ph079(:,OP_DZ) &
+             - vz079(:,OP_1)*psx79(:,OP_DZ) &
+             - ri3_79*bzx79(:,OP_1)*ch079(:,OP_DR)
+     end if
 #if defined(USE3D) || defined(USECOMPLEX)
-        o = o &
-             - vz079(:,OP_1)*r_79*bfp179(:,OP_DR) &
-             - vz179(:,OP_1)*r_79*bfp079(:,OP_DR)
-        if(use_external_fields) then
-           o = o - vz079(:,OP_1)*r_79*bfpx79(:,OP_DR)
-        end if
+     o = o &
+          - vz079(:,OP_1)*r_79*bfp179(:,OP_DR) &
+          - vz179(:,OP_1)*r_79*bfp079(:,OP_DR)
+     if(use_external_fields) then
+        o = o - vz079(:,OP_1)*r_79*bfpx79(:,OP_DR)
+     end if
 #endif
-     else
-        o = o &
-             + bztx79(:,OP_1)*pht79(:,OP_DZ) &
-             - vzt79(:,OP_1)*pstx79(:,OP_DZ) &
-             - ri3_79*bztx79(:,OP_1)*cht79(:,OP_DR)
+  else
+     o = o &
+          + bztx79(:,OP_1)*pht79(:,OP_DZ) &
+          - vzt79(:,OP_1)*pstx79(:,OP_DZ) &
+          - ri3_79*bztx79(:,OP_1)*cht79(:,OP_DR)
 #if defined(USE3D) || defined(USECOMPLEX)
-        o = o - vzt79(:,OP_1)*r_79*bfptx79(:,OP_DR)
+     o = o - vzt79(:,OP_1)*r_79*bfptx79(:,OP_DR)
 #endif
 #ifdef USEPARTICLES
-        o = o &
-             - bz079(:,OP_1)*ph079(:,OP_DZ) &
-             + vz079(:,OP_1)*ps079(:,OP_DZ) &
-             + ri3_79*bz079(:,OP_1)*ch079(:,OP_DR)
+     o = o &
+          - bz079(:,OP_1)*ph079(:,OP_DZ) &
+          + vz079(:,OP_1)*ps079(:,OP_DZ) &
+          + ri3_79*bz079(:,OP_1)*ch079(:,OP_DR)
 #if defined(USE3D) || defined(USECOMPLEX)
-        o = o + vz079(:,OP_1)*r_79*bfp079(:,OP_DR)
+     o = o + vz079(:,OP_1)*r_79*bfp079(:,OP_DR)
 #endif
 #endif
-     end if
+  end if
 
 
   ! JxB
@@ -424,18 +424,18 @@ subroutine electric_field_par(ilin,o, izone)
   if(izone.eq.ZONE_VACUUM) return
 
   if(izone.eq.ZONE_CONDUCTOR) then
-     temp79a = etaRZ79(:,OP_1)
+     temp79b = etaRZ79(:,OP_1)
   else
-     temp79a = eta79(:,OP_1)
+     temp79b = eta79(:,OP_1)
   end if
   
   ! eta J
   ! ~~~~~
   o = o - ri2_79*eta79(:,OP_1)*bztx79(:,OP_1)*pst79(:,OP_GS)
-  o = o + ri2_79*temp79a*(bzt79(:,OP_DR)*pstx79(:,OP_DR) + bzt79(:,OP_DZ)*pstx79(:,OP_DZ))
+  o = o + ri2_79*temp79b*(bzt79(:,OP_DR)*pstx79(:,OP_DR) + bzt79(:,OP_DZ)*pstx79(:,OP_DZ))
 
 #if defined(USE3D) || defined(USECOMPLEX)
-  o = o + temp79a* &
+  o = o + temp79b* &
        (ri2_79* &
        (bfpt79(:,OP_DRP)*pstx79(:,OP_DR) + bfpt79(:,OP_DZP)*pstx79(:,OP_DZ) &
        -(bfptx79(:,OP_DR)*pst79(:,OP_DRP) + bfptx79(:,OP_DZ)*pst79(:,OP_DZP))) &
