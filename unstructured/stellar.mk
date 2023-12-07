@@ -48,9 +48,6 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
 	-lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lgcc_s -lirc_s -lquadmath \
 	-lstdc++ -ldl
 
-ifeq ($(ADAPT), 1)
-  OPTS := $(OPTS) -DSNAP
-endif
 SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(PETSC_VER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 

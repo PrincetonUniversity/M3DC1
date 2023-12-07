@@ -65,11 +65,6 @@ else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
-ifeq ($(ADAPT), 1)
-  SCOREC_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
-  OPTS := $(OPTS) -DSNAP 
-endif
-
 ifeq ($(COM), 1)
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
 else
