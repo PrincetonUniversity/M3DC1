@@ -113,6 +113,7 @@ private:
   KSP *mg_level_ksp;
   PC *mg_level_pc;
   int setBmgType(); 
+  int mapping(int, int, int, int, int, int, int, int, int *, int *, int *);
 
   // remoteA related data
   std::set<int>* remotePidOwned;
