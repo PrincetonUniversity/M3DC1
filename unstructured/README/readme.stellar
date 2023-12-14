@@ -44,8 +44,11 @@
    3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=stellar
    after compiling, run "make bin"
 
-5. mesh utility
-   /projects/M3DC1/scorec/intel2021.1.2-intelmpi2021.3.1/petsc3.13.5/bin
+5. mesh generator
+   /projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/17.0-220903/bin
+
+   mesh utility (partioning, merging, etc.)
+   /projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/petsc3.13.5/bin
 
 6. run a job 
 
