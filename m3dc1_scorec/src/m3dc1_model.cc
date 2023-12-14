@@ -337,7 +337,7 @@ void load_model(const char* filename)
   {
     std::vector <int> edgeIdsOnFace;
     int numFaces;
-    fscanf(fp,"%di\n", &numFaces);
+    fscanf(fp,"%d\n", &numFaces);
     std::cout << "Number of Faces = " << numFaces << "\n";
     for (int i = 1; i <= numFaces; ++i)
     {
@@ -357,6 +357,7 @@ void load_model(const char* filename)
 
       make_face_topo(gf, edgeIdsOnFace);
       edgeIdsOnFace.clear();
+    }
   }
   fclose(fp);
 
