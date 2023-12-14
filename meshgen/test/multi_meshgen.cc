@@ -488,7 +488,7 @@ void get_multi_rgn()
 
 
   fscanf(fp,"%d\n",&num_pts);
-  interpolate_points.resize(2*(num_pts+1));
+  interpolate_points.resize(2*(num_pts));
   for(int i=0; i<num_pts; i++)
   {
       fscanf(fp,"%lf %lf\n",&x,&y);
@@ -500,9 +500,15 @@ void get_multi_rgn()
       if (y>bdbox[3]) bdbox[3]=y;
   }
   fclose(fp);
-  interpolate_points.at(2*num_pts) = interpolate_points[0];
-  interpolate_points.at(2*num_pts+1) = interpolate_points[1];
-  num_pts++;
+
+  if (fabs(interpolate_points.at(0)-interpolate_points.at(2*(num_pts-1))) >1e-16 || fabs(interpolate_points.at(1)-interpolate_points.at(2*(num_pts-1)+1)) >1e-16)
+  {
+	interpolate_points.resize(2*(num_pts+1));
+	interpolate_points.at(2*num_pts) = interpolate_points[0];
+	interpolate_points.at(2*num_pts+1) = interpolate_points[1];
+	num_pts++;
+  }
+
   mid[0]=(bdbox[0]+bdbox[2])/2.+offsetX;
   mid[1]=(bdbox[1]+bdbox[3])/2.+offsetY;
 
@@ -510,7 +516,10 @@ void get_multi_rgn()
     //create inner wall bdry
     create_vtx(&gv1_id,&(interpolate_points.at(0)));
     create_edge(&ge1_id, &gv1_id, &gv1_id);
-    attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    
+    //attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+
     // now set the loop closed
     int innerWallEdges[]={ge1_id};
     num_ge = 1;

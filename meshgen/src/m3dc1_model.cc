@@ -1224,6 +1224,20 @@ void save_multi_rgn_model(const char* filename, vector< vector<int> >& face_bdry
     }
     ++idx; 
   }  // loopContainer
+
+  // Write number of faces, and topological relation between loops and faces
+  int numFaces = face_bdry.size();
+  fprintf(fp,"%d\n", numFaces);
+  for (int i=0; i<face_bdry.size(); ++i)  
+  {
+	int faceNum = i+1;
+	int numLoops = face_bdry[i].size();
+	fprintf(fp,"%d %d ", faceNum, numLoops);
+	for (int j=0; j < face_bdry[i].size(); ++j)
+		fprintf(fp,"%d ", face_bdry[i][j]);
+	fprintf(fp, "\n");
+  }
+
   fclose(fp);
 }
 
