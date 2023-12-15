@@ -1130,7 +1130,27 @@ void save_model(const char* filename)
                  throw 1; break;
       }
     }
-  } 
+  }
+ 
+  // Write the faces and bounding loop information in the model (.txt) file
+  int numFaces = numL;		// For every loop, one face will be added
+  fprintf(fp,"%d\n", numFaces);
+  for (int i=1; i<=numFaces; ++i)
+  {
+    int faceNum = i;
+    int numLoops;
+    if (i == 1)
+    {
+      numLoops = 1;	
+      fprintf(fp,"%d %d %d\n", faceNum, numLoops,i);
+    }
+    else if (i == 2 || i == 3)
+    {
+      int numLoops = 2;
+      fprintf(fp,"%d %d %d %d\n", faceNum, numLoops, i-1,i);
+    }
+  }
+ 
   fclose(fp);
 }
 

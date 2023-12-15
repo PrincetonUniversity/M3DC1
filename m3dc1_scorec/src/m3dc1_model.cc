@@ -324,20 +324,20 @@ void load_model(const char* filename)
   int facePeriodic[2] = {0, 0};
   double faceRanges[2][2] = {{0,0},{0,0}};
 
-  // Delete this block of code in if statement when snapping is set to default
+  // Delete this block of code in first if statement when snapping is set to default
   // for every case
-  if (!m3dc1_model::instance()->snapping)
+  int numFaces;
+  fscanf(fp,"%d\n", &numFaces);
+  if (!numFaces)	// Faces actually exist but not provided in output model file (.txt file)
   {
     for (int i=1; i<=numL; ++i)
       gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
                      faceFunction, facePeriodic, faceRanges, NULL);
   }
 
-  if (m3dc1_model::instance()->snapping)  
+  if (numFaces>0)  
   {
     std::vector <int> edgeIdsOnFace;
-    int numFaces;
-    fscanf(fp,"%d\n", &numFaces);
     std::cout << "Number of Faces = " << numFaces << "\n";
     for (int i = 1; i <= numFaces; ++i)
     {
