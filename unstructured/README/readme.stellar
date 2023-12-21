@@ -48,7 +48,7 @@
    /projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/17.0-220903/bin
 
    mesh utility (partioning, merging, etc.)
-   /projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/petsc3.13.5/bin
+   $SCOREC_UTIL_DIR/bin
 
 6. run a job 
 
