@@ -324,7 +324,7 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
     angle_1[2] = angle[(i*3)+2];
 
  // Calculate the second unit vector
-    double a, b;
+/*    double a, b;
     double frac_1, frac_2;
     frac_1 = (angle_1[0])*(angle_1[0]);
     frac_2 = (angle_1[0])*(angle_1[0]) + (angle_1[1])*(angle_1[1]);
@@ -337,7 +337,12 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
     double dir_2[3];
     dir_2[0] = a /mag;
     dir_2[1] = b /mag;
-    dir_2[2] = 0.0;
+    dir_2[2] = 0.0; */
+
+    double dir_2[3];
+    dir_2[0] = -angle_1[1];
+    dir_2[1] =  angle_1[0];
+    dir_2[2] =  0.0;
 
     ma::Vector h(h1, h2, h2);
     ma::Matrix r;
@@ -355,7 +360,7 @@ void compute_size_and_frame_fields(apf::Mesh2* m, double* size_1, double* size_2
 
     apf::setVector(sizefield, e, 0, h);
     apf::setMatrix(framefield, e, 0, r);
-//  apf::setMatrix(framefield, e, 0, apf::transpose(r));	// For Shock Test Case
+ // apf::setMatrix(framefield, e, 0, apf::transpose(r));	// For Shock Test Case
     i++;    
   }
   m->end(ent_it);
