@@ -9,8 +9,132 @@ module transport_coefficients
   type(spline1d), private :: particlesource_spline
   type(spline1d), private :: prad_nz_spline
   type(spline1d), private :: cd_spline         ! current drive 
-
+  type(spline1d), private :: coef_spline_L31
+  type(spline1d), private :: coef_spline_L32
+  type(spline1d), private :: coef_spline_L34
+  type(spline1d), private :: coef_spline_alpha
+  type(spline1d), private :: coef_spline_fluxavgB
 contains
+
+! bootstrap model coeffcients L31, L32, L34, alpha 
+! ~~~~~~~~~~~
+function bootstrapCoeff_func(col_number)
+   use basic
+   use m3dc1_nint
+   use diagnostics
+   use math
+   use read_ascii
+   use resistive_wall
+ 
+   implicit none
+ 
+   vectype, dimension(dofs_per_element) :: bootstrapCoeff_func
+   integer, intent(in) :: col_number
+   real :: tmin
+   integer :: nvals, j, mr
+   real, allocatable :: xvals(:), yvals(:)
+   real :: val, valp, valpp, pso, psib
+   integer :: izone
+   integer, dimension(MAX_PTS) :: izarr
+ 
+   
+ 
+   if(ibootstrap.eq.1) then
+     if(col_number==2)then
+         if(.not.allocated(coef_spline_L31%x)) then
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> from col number 2,3,4,5,or6
+            nvals = 0
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', xvals, nvals,skip=1, icol=1)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', yvals, nvals,skip=1, icol=col_number)
+            if(nvals.eq.0) call safestop(6)
+            !print*,'Reading L31,32,34,alpha from column number',col_number
+            !print*,'Reading X',xvals
+            !print*,'Reading Y',yvals
+            call create_spline(coef_spline_L31, nvals, xvals, yvals)
+            deallocate(xvals, yvals)
+         end if
+      elseif(col_number==3)then
+         if(.not.allocated(coef_spline_L32%x)) then
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> from col number 2,3,4,5,or6
+            nvals = 0
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', xvals, nvals,skip=1, icol=1)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', yvals, nvals,skip=1, icol=col_number)
+            if(nvals.eq.0) call safestop(6)
+            !print*,'Reading L31,32,34,alpha from column number',col_number
+            !print*,'Reading X',xvals
+            !print*,'Reading Y',yvals
+            call create_spline(coef_spline_L32, nvals, xvals, yvals)
+            deallocate(xvals, yvals)
+         end if
+      elseif(col_number==4)then        
+        if(.not.allocated(coef_spline_L34%x)) then
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> from col number 2,3,4,5,or6
+            nvals = 0
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', xvals, nvals,skip=1, icol=1)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', yvals, nvals,skip=1, icol=col_number)
+            if(nvals.eq.0) call safestop(6)
+            !print*,'Reading L31,32,34,alpha from column number',col_number
+            !print*,'Reading X',xvals
+            !print*,'Reading Y',yvals
+            call create_spline(coef_spline_L34, nvals, xvals, yvals)
+            deallocate(xvals, yvals)
+         end if
+      elseif(col_number==5)then    
+         if(.not.allocated(coef_spline_alpha%x)) then
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> from col number 2,3,4,5,or6
+            nvals = 0
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', xvals, nvals,skip=1, icol=1)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', yvals, nvals,skip=1, icol=col_number)
+            if(nvals.eq.0) call safestop(6)
+            !print*,'Reading L31,32,34,alpha from column number',col_number
+            !print*,'Reading X',xvals
+            !print*,'Reading Y',yvals
+            call create_spline(coef_spline_alpha, nvals, xvals, yvals)
+            deallocate(xvals, yvals) 
+         end if
+      elseif(col_number==6)then    
+            if(.not.allocated(coef_spline_fluxavgB%x)) then
+               ! Read in L31 or L32 or L34 or alpha or 1/<B^2> from col number 2,3,4,5,or6
+               nvals = 0
+               call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', xvals, nvals,skip=1, icol=1)
+               call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', yvals, nvals,skip=1, icol=col_number)
+               if(nvals.eq.0) call safestop(6)
+               !print*,'Reading L31,32,34,alpha,B from column number',col_number
+               !print*,'Reading X',xvals
+               !print*,'Reading Y',yvals
+               call create_spline(coef_spline_fluxavgB, nvals, xvals, yvals)
+               deallocate(xvals, yvals) 
+            end if
+      end if
+         
+         do j=1, npoints
+            call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
+                 x_79(j),z_79(j),mr,psib)
+            if(mr.eq.REGION_PF) then
+               pso = 2.*psib - pso
+            end if
+            pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
+ 
+            if(col_number==2)then  
+               call evaluate_spline(coef_spline_L31,pso,val,valp,valpp)
+            elseif(col_number==3)then  
+               call evaluate_spline(coef_spline_L32,pso,val,valp,valpp)
+            elseif(col_number==4)then  
+               call evaluate_spline(coef_spline_L34,pso,val,valp,valpp)
+            elseif(col_number==5)then 
+               call evaluate_spline(coef_spline_alpha,pso,val,valp,valpp) 
+            elseif(col_number==6)then 
+               call evaluate_spline(coef_spline_fluxavgB,pso,val,valp,valpp) 
+            endif
+            
+            temp79a(j) = val
+            !if(myrank.eq.0) print *,'pso,val', pso, val
+         end do
+         
+         bootstrapCoeff_func = intx2(mu79(:,:,OP_1),temp79a)
+   end if
+ 
+ end function bootstrapCoeff_func
 
 ! Density Sources/Sinks
 ! ~~~~~~~~~~~~~~~~~~~~~
@@ -1333,16 +1457,16 @@ subroutine define_transport_coefficients()
   logical :: solve_sigma, solve_kappa, solve_kappar, solve_visc, solve_resistivity, &
        solve_visc_e, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
        solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
-       solve_fp, solve_denm
+       solve_fp, solve_denm, solve_L31,solve_L32,solve_L34,solve_alpha,solve_fluxavgB
 
-  integer, parameter :: num_scalars = 17
+  integer, parameter :: num_scalars = 22
   integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
   ! transport coefficients are only calculated once in linear mode
   if((linear.eq.1).and.(.not.first_time)) return
   first_time = .false.
-
+  
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating transport coefficients"
 
@@ -1364,6 +1488,12 @@ subroutine define_transport_coefficients()
   solve_recprad = .false.
   solve_cd = .false.
   solve_fp = .false.
+  solve_L31 = .false.
+  solve_L32 = .false.
+  solve_L34 = .false.
+  solve_alpha = .false.
+  solve_fluxavgB = .false.
+
 
   ! clear variables
   resistivity_field = 0.
@@ -1384,7 +1514,14 @@ subroutine define_transport_coefficients()
      Recprad_field = 0.
   end if
   if(icd_source .gt. 0) cd_field = 0.
-  if(ibootstrap.ne.0) visc_e_field = 0.
+  if(ibootstrap.ne.0) then
+   visc_e_field = 0.
+   Jbs_L31_field = 0. 
+   Jbs_L32_field = 0.
+   Jbs_L34_field = 0.
+   Jbs_alpha_field = 0.
+   Jbs_fluxavgB_field = 0.
+  end if
   if(ipforce.gt.0) pforce_field = 0.
   if(ipforce.gt.0) pmach_field = 0.
 
@@ -1404,6 +1541,8 @@ subroutine define_transport_coefficients()
   if(ipforce.gt.0) def_fields = def_fields + FIELD_PHI + FIELD_CHI + FIELD_NI
 
   if(iarc_source.ne.0) def_fields = def_fields + FIELD_WALL
+
+  if(ibootstrap.ne.0) def_fields = def_fields + FIELD_JBS
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  defining...'
 
@@ -1562,6 +1701,47 @@ subroutine define_transport_coefficients()
              call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL
      end if
+
+    !Adding bootstrap coefficients
+     if(ibootstrap.ne.0) then
+      !Adding L31
+      dofs = bootstrapCoeff_func(2)
+      if(.not.solve_L31) solve_L31 = .true. !any(dofs.ne.0.)
+!$OMP CRITICAL
+      if(solve_L31) &
+           call vector_insert_block(Jbs_L31_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+    
+      dofs = bootstrapCoeff_func(3)
+      if(.not.solve_L32) solve_L32 = .true. !any(dofs.ne.0.)
+!$OMP CRITICAL
+      if(solve_L32) &
+            call vector_insert_block(Jbs_L32_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+
+      dofs = bootstrapCoeff_func(4)
+      if(.not.solve_L34) solve_L34 = .true. !any(dofs.ne.0.)
+!$OMP CRITICAL
+      if(solve_L34) &
+            call vector_insert_block(Jbs_L34_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+
+      dofs = bootstrapCoeff_func(5)
+      if(.not.solve_alpha) solve_alpha = .true. !any(dofs.ne.0.)
+!$OMP CRITICAL
+      if(solve_alpha) &
+            call vector_insert_block(Jbs_alpha_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+     
+      dofs = bootstrapCoeff_func(6)
+      if(.not.solve_fluxavgB) solve_fluxavgB = .true. !any(dofs.ne.0.)
+!$OMP CRITICAL
+      if(solve_fluxavgB) &
+            call vector_insert_block(Jbs_fluxavgB_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL         
+    end if
+
+   
   end do
 !$OMP END PARALLEL DO
 
@@ -1590,6 +1770,11 @@ subroutine define_transport_coefficients()
      if(solve_recprad)     temp(15) = 1
      if(solve_denm)        temp(16) = 1
      if(solve_kappar)      temp(17) = 1
+     if(solve_L31)         temp(18) = 1
+     if(solve_L32)         temp(19) = 1
+     if(solve_L34)         temp(20) = 1
+     if(solve_alpha)       temp(21) = 1
+     if(solve_fluxavgB)    temp(22) = 1
 
      call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
           MPI_MAX, MPI_COMM_WORLD, ier)
@@ -1611,6 +1796,11 @@ subroutine define_transport_coefficients()
      solve_recprad     = temp2(15).eq.1
      solve_denm        = temp2(16).eq.1
      solve_kappar      = temp2(17).eq.1
+     solve_L31         = temp2(18).eq.1
+     solve_L32         = temp2(19).eq.1
+     solve_L34         = temp2(20).eq.1
+     solve_alpha       = temp2(21).eq.1
+     solve_fluxavgB    = temp2(22).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -1704,6 +1894,30 @@ subroutine define_transport_coefficients()
 
   endif
 
+  if(solve_L31) then
+   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_L31'
+   call newvar_solve(Jbs_L31_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_L32) then
+   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_L32'
+   call newvar_solve(Jbs_L32_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_L34) then
+   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_L34'
+   call newvar_solve(Jbs_L34_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_alpha) then
+   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_alpha'
+   call newvar_solve(Jbs_alpha_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_fluxavgB) then
+   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_fluxavgB'
+   call newvar_solve(Jbs_fluxavgB_field%vec, mass_mat_lhs)
+  endif
 
   ! the "compressible" viscosity is the same as the "incompressible"
   ! viscosity up to a constant
@@ -1728,7 +1942,7 @@ subroutine define_transport_coefficients()
 
   if(myrank.eq.0 .and. iprint.ge.2) &
        print *, 'done define_transport_coefficients'
-
+       
 end subroutine define_transport_coefficients
 
 end module transport_coefficients

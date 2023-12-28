@@ -76,6 +76,7 @@ module m3dc1_nint
   integer, parameter :: FIELD_RE   =67108864 
   integer, parameter :: FIELD_WALL =134217728  ! 2^27
   integer, parameter :: FIELD_DENM =268435456  ! 2^28
+  integer, parameter :: FIELD_JBS = 536870912  ! 2^29
 
 ! NOTE: All element-specific variables should be declared OMP THREADPRIVATE
 
@@ -147,6 +148,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(wall79)
   vectype, dimension(MAX_PTS) :: qd79
 !$OMP THREADPRIVATE(qd79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavgB79
+!$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavgB79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -1582,6 +1585,25 @@ contains
      call eval_ops(itri, cd_field, cd79)
   else
      cd79 = 0.
+  end if
+
+
+  ! Jbs Coefs
+  ! ~
+  if((iand(fields, FIELD_JBS).eq.FIELD_JBS) &
+       .and. ibootstrap.gt.0) then
+     if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Jbs_coefs..."
+     call eval_ops(itri, Jbs_L31_field, jbsl3179)
+     call eval_ops(itri, Jbs_L32_field, jbsl3279)
+     call eval_ops(itri, Jbs_L34_field, jbsl3479)
+     call eval_ops(itri, Jbs_alpha_field, jbsalpha79)
+     call eval_ops(itri, Jbs_fluxavgB_field, jbsfluxavgB79)
+  else
+     jbsl3179 = 0.
+     jbsl3279 = 0.
+     jbsl3479 = 0.
+     jbsalpha79 = 0.
+     jbsfluxavgB79 = 0.
   end if
 
   ! Wall dist field

@@ -34,7 +34,7 @@ module diagnostics
 
   ! scalars integrated within lcfs
   real :: pflux, parea, pcur, pcur_co, pcur_sn, pden, pmom, pvol, m_iz, m_iz_co, m_iz_sn
-
+  real :: jbs
   real :: chierror, psi0
 
   ! density diagnostics
@@ -242,6 +242,7 @@ contains
     pinj = 0.
     totkprad = 0.
     totkprad0 = 0.
+    jbs = 0.
 
     tau_em = 0.
     tau_sol = 0.
@@ -296,7 +297,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 80
+    integer, parameter :: num_scalars = 81
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, allocatable  :: ptemp(:)
@@ -383,6 +384,7 @@ contains
        temp(78) = emagtc
        temp(79) = emagpv
        temp(80) = emagtv
+       temp(81) = jbs
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -468,6 +470,7 @@ contains
        emagtc          = temp2(78)
        emagpv          = temp2(79)
        emagtv          = temp2(80)
+       jbs             = temp2(81)
 
        if(ipellet_abl.gt.0) then
           allocate(ptemp(npellets))
@@ -780,6 +783,10 @@ subroutine calculate_scalars()
      if(irunaway.gt.0) then 
         def_fields = def_fields + FIELD_RE
      end if
+
+     if(ibootstrap.eq.1) then
+        def_fields = def_fields + FIELD_JBS
+     endif
   endif
 
 !  tm79 = 0.
@@ -796,7 +803,7 @@ subroutine calculate_scalars()
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,izone_ind,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv,jbs)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -918,7 +925,13 @@ subroutine calculate_scalars()
      pcur_co = pcur_co - int4(ri2_79,pst79(:,OP_GS),mr,co)/tpirzero * 2.
      pcur_sn = pcur_sn - int4(ri2_79,pst79(:,OP_GS),mr,sn)/tpirzero * 2.
 #endif
-
+    ! bootstrap current
+    if (ibootstrap.eq.1)then
+      call calculate_Jp_BS(temp79a)
+     ! Jp_BS_Phi = intx3(ri_79,bzt79(:,OP_1),temp79a) 
+      
+      jbs = jbs + int4(ri3_79,bzt79(:,OP_1),temp79a,mr) 
+    endif
      ! M_iz = int(dV Z*J)
      ! This is used for calculating the vertical "center" of the plasma current
      temp79a = z_79
@@ -1161,6 +1174,60 @@ subroutine calculate_scalars()
 
 end subroutine calculate_scalars
 
+!calculating bootstrap current
+subroutine calculate_Jp_BS(temp)
+    !Sauter & Angioni (1999) 
+    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
+    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+
+    !Redl et al (2021)  
+    !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+    !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+
+
+    !temp = eta 1/|Bp|^2 1/R F / <B^2>  (tempD) (1/r^2 (psi_z mu_z + psi_r mu_r))
+    !temp = 1 / <B^2> eta bootsrap_alpha F/R (tempD) (1/r^3 ( mu_z f'_r - mu_r f'_z))
+    !bootsrap_alpha = 1/|Bp|^2  
+
+   use basic
+   use m3dc1_nint
+   use bootstrap
+
+   implicit none
+
+   vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp
+
+   temp = 0.
+
+
+   tempBB = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+           + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+
+   tempCC =  (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+           + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+
+   if(ibootstrap_model.eq.1)then !Sauter & Angioni (1999) 
+       tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*pt79(:,OP_DZ) &
+               + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*pt79(:,OP_DR)
+
+       tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
+                jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+   else if (ibootstrap_model.eq.2)then !Redl et al (2021) 
+       tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+                +  (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+
+       tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
+                (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+   end if
+
+   temp=tempDD*jbsfluxavgB79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha 
+
+
+end subroutine calculate_Jp_BS
 
 subroutine calculate_Lor_vol()
 

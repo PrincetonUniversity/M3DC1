@@ -6,150 +6,27 @@ module bootstrap
 
   integer :: ibootstrap_model
   ! 1 : add -eta*J_BS term to Ohm's law
-  !     where J_BS = alpha I <p, psi> B
-  !     In Sauter model, alpha = L31 / (p B^2 |Grad(psi)|^2)
+  !     where J_BS = 1/|Bp|^2 1/R F / <B^2>  (tempD)
+    
+    !ibootstrap_model=1: Sauter & Angioni (1999) 
+    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
+    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
 
+    !ibootstrap_model=2: Redl et al (2021)  
+    !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+    !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+
+
+    ! L31,L32,L34,alpha,1/ <B^2> * 1/|Bp|^2 are input as a function of psi
+    !via an external file named ProfileJBSCoeff_Psi_L31_32_34_alpha_B2
+ 
   real :: bootstrap_alpha
 
 contains
 
-  subroutine bootstrap_flux(trial, lin, ssterm, ddterm, r_bf, q_bf, thimpf, thimp_bf)
-    use basic
-    use arrays
-    use m3dc1_nint
 
-    implicit none
-
-    vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
-    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
-    vectype, dimension(dofs_per_element, num_fields), intent(inout) :: ssterm, ddterm
-    vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
-    real, intent(in) :: thimpf, thimp_bf
-
-    vectype, dimension(dofs_per_element) :: temp
-    
-    if(numvar.eq.1) then
-       temp = bs_b1psipsib(trial,lin,pst79,bzt79) &
-            + bs_b1psipsib(trial,pst79,lin,bzt79)
-       ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
-       ddterm(:,psi_g) = ddterm(:,psi_g) + (1./2. - thimpf*bdf)*dt*temp
-       
-       temp = bs_b1psibb  (trial,lin,bzt79,bzt79) &
-            + bs_b1psibf  (trial,lin,bzt79,bfpt79)
-       ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
-       ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*temp
-    else
-       temp = bs_b1psipsib(trial,lin,pst79,bzt79) &
-            + bs_b1psipsib(trial,pst79,lin,bzt79) &
-            + bs_b1psibb  (trial,lin,bzt79,bzt79) &
-            + bs_b1psibf  (trial,lin,bzt79,bfpt79)
-       ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
-       ddterm(:,psi_g) = ddterm(:,psi_g) + (1./3. - thimpf*bdf)*dt*temp
-       
-       temp = bs_b1psipsib(trial,pst79,pst79,lin) &
-            + bs_b1psibb  (trial,pst79,lin,bzt79) &
-            + bs_b1psibb  (trial,pst79,bzt79,lin) &
-            + bs_b1psibf  (trial,pst79,lin,bfpt79)
-       ssterm(:,bz_g) = ssterm(:,bz_g) -          thimpf     *dt*temp
-       ddterm(:,bz_g) = ddterm(:,bz_g) + (1./3. - thimpf*bdf)*dt*temp
-       
-       temp = bs_b1psibf  (trial,pst79,bzt79,lin)
-       r_bf = r_bf -          thimp_bf     *dt*temp
-       q_bf = q_bf + (1./3. - thimp_bf*bdf)*dt*temp
-       
-       if(eqsubtract.eq.1) then
-          temp = bs_b1psipsib(trial,lin,pst79,bz079) &
-               + bs_b1psipsib(trial,lin,ps079,bzt79) &
-               + bs_b1psipsib(trial,lin,ps079,bz079)*2. &
-               + bs_b1psipsib(trial,pst79,lin,bz079) &
-               + bs_b1psipsib(trial,ps079,lin,bzt79) &
-               + bs_b1psipsib(trial,ps079,lin,bz079)*2. &
-               + bs_b1psibb  (trial,lin,bzt79,bz079) &
-               + bs_b1psibb  (trial,lin,bz079,bzt79) &
-               + bs_b1psibb  (trial,lin,bz079,bz079)*2. &
-               + bs_b1psibf  (trial,lin,bzt79,bfp079) &
-               + bs_b1psibf  (trial,lin,bz079,bfpt79) &
-               + bs_b1psibf  (trial,lin,bz079,bfp079)*2.
-          ddterm(:,psi_g) = ddterm(:,psi_g) + (1./6.)*dt*temp
-          
-          temp = bs_b1psipsib(trial,pst79,ps079,lin) &
-               + bs_b1psipsib(trial,ps079,pst79,lin) &
-               + bs_b1psipsib(trial,ps079,ps079,lin)*2. &
-               + bs_b1psibb  (trial,pst79,lin,bz079) &
-               + bs_b1psibb  (trial,ps079,lin,bzt79) &
-               + bs_b1psibb  (trial,ps079,lin,bz079)*2. &
-               + bs_b1psibb  (trial,pst79,bz079,lin) &
-               + bs_b1psibb  (trial,ps079,bzt79,lin) &
-               + bs_b1psibb  (trial,ps079,bz079,lin)*2. &
-               + bs_b1psibf  (trial,pst79,lin,bfp079) &
-               + bs_b1psibf  (trial,ps079,lin,bfpt79) &
-               + bs_b1psibf  (trial,ps079,lin,bfp079)*2.
-          ddterm(:,bz_g) = ddterm(:,bz_g) + (1./6.)*dt*temp
-          
-          temp = bs_b1psibf  (trial,pst79,bz079,lin) &
-               + bs_b1psibf  (trial,ps079,bzt79,lin) &
-               + bs_b1psibf  (trial,ps079,bz079,lin)*2.
-          q_bf = q_bf + (1./6.)*dt*temp
-       end if
-    end if
-  end subroutine bootstrap_flux
-
-  subroutine bootstrap_axial_field(trial, lin, ssterm, ddterm, r_bf, q_bf, thimpf, thimp_bf)
-    use basic
-    use arrays
-    use m3dc1_nint
-
-    implicit none
-
-    vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
-    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
-    vectype, dimension(dofs_per_element, num_fields), intent(inout) :: ssterm, ddterm
-    vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
-    real, intent(in) :: thimpf, thimp_bf
-
-    vectype, dimension(dofs_per_element) :: temp
-
-    temp = bs_b2psipsib(trial,lin,pst79,bzt79) &
-         + bs_b2psipsib(trial,pst79,lin,bzt79) &
-         + bs_b2psibf  (trial,lin,bzt79,bfpt79)
-    ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
-    ddterm(:,psi_g) = ddterm(:,psi_g) + (1./3. - thimpf*bdf)*dt*temp
-    
-    temp = bs_b2psipsib(trial,pst79,pst79,lin) &
-         + bs_b2psibf  (trial,pst79,lin,bfpt79)
-    ssterm(:,bz_g) = ssterm(:,bz_g) -          thimpf     *dt*temp
-    ddterm(:,bz_g) = ddterm(:,bz_g) + (1./3. - thimpf*bdf)*dt*temp
-    
-    temp = bs_b2psibf  (trial,pst79,bzt79,lin)
-    r_bf = r_bf -          thimp_bf     *dt*temp
-    q_bf = q_bf + (1./3. - thimp_bf*bdf)*dt*temp
-    
-    if(eqsubtract.eq.1) then
-       temp = bs_b2psipsib(trial,lin,pst79,bz079) &
-            + bs_b2psipsib(trial,lin,ps079,bzt79) &
-            + bs_b2psipsib(trial,lin,ps079,bz079)*2. &
-            + bs_b2psipsib(trial,pst79,lin,bz079) &
-            + bs_b2psipsib(trial,ps079,lin,bzt79) &
-            + bs_b2psipsib(trial,ps079,lin,bz079)*2. &
-            + bs_b2psibf  (trial,lin,bzt79,bfp079) &
-            + bs_b2psibf  (trial,lin,bz079,bfpt79) &
-            + bs_b2psibf  (trial,lin,bz079,bfp079)*2.
-       ddterm(:,psi_g) = ddterm(:,psi_g) + (1./6.)*dt*temp
-       
-       temp = bs_b2psipsib(trial,pst79,ps079,lin) &
-            + bs_b2psipsib(trial,ps079,pst79,lin) &
-            + bs_b2psipsib(trial,ps079,ps079,lin)*2. &
-            + bs_b2psibf  (trial,pst79,lin,bfp079) &
-            + bs_b2psibf  (trial,ps079,lin,bfpt79) &
-            + bs_b2psibf  (trial,ps079,lin,bfp079)*2.
-       ddterm(:,bz_g) = ddterm(:,bz_g) + (1./6.)*dt*temp
-       
-       temp = bs_b2psibf  (trial,pst79,bz079,lin) &
-            + bs_b2psibf  (trial,ps079,bzt79,lin) &
-            + bs_b2psibf  (trial,ps079,bz079,lin)*2.
-       q_bf = q_bf + (1./6.)*dt*temp
-    end if
-  end subroutine bootstrap_axial_field
 
   subroutine bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimpi)
     use basic
@@ -172,178 +49,6 @@ contains
   end subroutine bootstrap_pressure
 
   
-  ! B1psipsib
-  ! =========
-  function bs_b1psipsib(e,f,g,h)
-    use basic
-    use m3dc1_nint
-
-    implicit none
-    
-    vectype, dimension(dofs_per_element) :: bs_b1psipsib
-    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-    vectype, dimension(dofs_per_element) :: temp
-
-    temp = 0.
-
-#if defined(USECOMPLEX) || defined(USE3D)
-    if(jadv.eq.0) then
-       temp = 0.
-    else 
-       if(surface_int) then
-          temp = 0.
-       else
-          temp79a = eta79(:,OP_1)*h(:,OP_1)* &
-               (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
-
-          temp = intx4(e(:,:,OP_DRP),ri3_79,temp79a,g(:,OP_DZ)) &
-               - intx4(e(:,:,OP_DZP),ri3_79,temp79a,g(:,OP_DR))
-
-#ifdef USECOMPLEX
-          temp = temp - rfac* &
-               (intx4(e(:,:,OP_DR),ri3_79,temp79a,g(:,OP_DZ)) &
-               -intx4(e(:,:,OP_DZ),ri3_79,temp79a,g(:,OP_DR))) 
-#endif
-
-       endif
-    endif
-#endif
-
-    bs_b1psipsib = bootstrap_alpha*temp
-  end function bs_b1psipsib
-
- 
-  ! B1psibb
-  ! =======
-  function bs_b1psibb(e,f,g,h)
-    use basic
-    use m3dc1_nint
-
-    implicit none
-    
-    vectype, dimension(dofs_per_element) :: bs_b1psibb
-    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-    vectype, dimension(dofs_per_element) :: temp
-
-    if(jadv.eq.0) then
-       if(surface_int) then
-          temp = 0.
-       else
-          temp79a = eta79(:,OP_1)*g(:,OP_1)* &
-               (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
-          temp = intx3(e(:,:,OP_1),temp79a,h(:,OP_1))
-       end if
-    else 
-       if(surface_int) then
-          temp = 0.
-       else
-          temp79a = eta79(:,OP_1)*g(:,OP_1)* &
-               (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
-
-          temp = intx4(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1))
-
-          if(itor.eq.1) then
-             temp = temp - 2.*intx4(e(:,:,OP_DR),ri3_79,temp79a,h(:,OP_1))
-          end if
-       endif
-    endif
-
-    bs_b1psibb = bootstrap_alpha*temp
-  end function bs_b1psibb
-
-
-  ! B1psibf
-  ! =======
-  function bs_b1psibf(e,f,g,h)
-    use basic
-    use m3dc1_nint
-
-    implicit none
-    
-    vectype, dimension(dofs_per_element) :: bs_b1psibf
-    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-    vectype, dimension(dofs_per_element) :: temp
-
-    temp = 0.
-
-#if defined(USECOMPLEX) || defined(USE3D)
-    if(jadv.eq.0) then
-       temp = 0.
-    else 
-       if(surface_int) then
-          temp = 0.
-       else
-          temp79a = eta79(:,OP_1)*g(:,OP_1)* &
-               (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
-
-          temp = intx4(e(:,:,OP_DRP),ri2_79,temp79a,h(:,OP_DR)) &
-               + intx4(e(:,:,OP_DZP),ri2_79,temp79a,h(:,OP_DZ))
-
-#ifdef USECOMPLEX
-          temp = temp - rfac* &
-               (intx4(e(:,:,OP_DR),ri2_79,temp79a,h(:,OP_DR)) &
-               +intx4(e(:,:,OP_DZ),ri2_79,temp79a,h(:,OP_DZ)))
-#endif
-
-       endif
-    endif
-#endif
-
-    bs_b1psibf = bootstrap_alpha*temp
-  end function bs_b1psibf
-
-
-  ! B2psipsib
-  ! =========
-  function bs_b2psipsib(e,f,g,h)
-    use basic
-    use m3dc1_nint
-
-    implicit none
-
-    vectype, dimension(dofs_per_element) :: bs_b2psipsib
-    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-    vectype, dimension(dofs_per_element) :: temp
-
-    temp79a = eta79(:,OP_1)*h(:,OP_1)* &
-         (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
-
-    temp = intx4(e(:,:,OP_DR),ri2_79,g(:,OP_DR),temp79a) &
-         + intx4(e(:,:,OP_DZ),ri2_79,g(:,OP_DZ),temp79a)
-
-    bs_b2psipsib = bootstrap_alpha*temp
-  end function bs_b2psipsib
-
-  ! B2psibf
-  ! =======
-  function bs_b2psibf(e,f,g,h)
-    use basic
-    use m3dc1_nint
-
-    implicit none
-
-    vectype, dimension(dofs_per_element) :: bs_b2psibf
-    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
-    vectype, dimension(dofs_per_element) :: temp
-
-#if defined(USECOMPLEX) || defined(USE3D)
-    temp79a = eta79(:,OP_1)*g(:,OP_1)* &
-         (pt79(:,OP_DZ)*f(:,OP_DZ) + pt79(:,OP_DR)*f(:,OP_DR))
-
-    temp = intx4(e(:,:,OP_DZ),ri3_79,h(:,OP_DR),temp79a) &
-         - intx4(e(:,:,OP_DR),ri3_79,h(:,OP_DZ),temp79a)
-#else 
-    temp = 0.
-#endif
-
-    bs_b2psibf = bootstrap_alpha*temp
-  end function bs_b2psibf
-
   ! B3pe
   ! ====
   function bs_b3pe(e,f)
@@ -378,4 +83,662 @@ contains
   end function bs_b3pe
 
 
+
+        ! B1psifpsib
+   ! =========
+   function bs_b1psifpsib(e,f,g,h,i)
+    use basic
+    use m3dc1_nint
+
+    implicit none
+    
+    vectype, dimension(dofs_per_element) :: bs_b1psifpsib
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(dofs_per_element) :: temp
+    
+    temp = 0.
+
+#if defined(USECOMPLEX) || defined(USE3D)
+    if(jadv.eq.0) then
+       temp = 0.
+    else 
+       if(surface_int) then
+        temp = 0.
+       else          
+
+          tempBB = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+        
+          tempCC =  (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+
+          if(ibootstrap_model.eq.1)then !Sauter & Angioni (1999)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*pt79(:,OP_DZ) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*pt79(:,OP_DR)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+          else if (ibootstrap_model.eq.2)then !Redl et al (2021)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+                   + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
+                     (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+          end if
+
+          temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+
+          temp = intx4(e(:,:,OP_DRP),ri4_79,h(:,OP_DZ),temp79a) &
+               - intx4(e(:,:,OP_DZP),ri4_79,h(:,OP_DR),temp79a)
+
+#ifdef USECOMPLEX
+          temp = temp - rfac* &
+                (intx4(e(:,:,OP_DR),ri4_79,h(:,OP_DZ),temp79a) &
+               - intx4(e(:,:,OP_DZ),ri4_79,h(:,OP_DR),temp79a)) 
+#endif
+
+       endif
+    endif
+#endif
+
+    bs_b1psifpsib = bootstrap_alpha*temp
+
+
+
+end function bs_b1psifpsib
+
+
+  ! B1psifbb
+! =======
+function bs_b1psifbb(e,f,g,h,i)
+    use basic
+    use m3dc1_nint
+
+    implicit none
+    
+    vectype, dimension(dofs_per_element) :: bs_b1psifbb
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(dofs_per_element) :: temp
+
+    temp = 0.
+
+    if(jadv.eq.0) then
+       if(surface_int) then
+          temp = 0.
+       else
+
+          tempBB = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+        
+          tempCC =  (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+                 
+          if(ibootstrap_model.eq.1)then !Sauter & Angioni (1999)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*pt79(:,OP_DZ) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*pt79(:,OP_DR)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+          else if (ibootstrap_model.eq.2)then !Redl et al (2021)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+                   + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
+                     (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+          end if
+
+          temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+          temp = intx4(e(:,:,OP_1),ri_79,temp79a,h(:,OP_1))
+
+       end if
+    else 
+       if(surface_int) then
+          temp = 0.
+       else
+
+          tempBB = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+        
+          tempCC =  (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+                 
+          if(ibootstrap_model.eq.1)then !Sauter & Angioni (1999)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*pt79(:,OP_DZ) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*pt79(:,OP_DR)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+          else if (ibootstrap_model.eq.2)then !Redl et al (2021)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+                   + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
+                     (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+          end if
+
+          temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+          temp = intx4(e(:,:,OP_GS),ri3_79,temp79a,h(:,OP_1))
+ 
+          if(itor.eq.1) then
+             temp = temp - 2.*intx4(e(:,:,OP_GS),ri3_79,temp79a,h(:,OP_1))
+          end if
+       endif
+    endif
+
+    bs_b1psifbb = bootstrap_alpha*temp
+  end function bs_b1psifbb
+
+
+ ! B1psiffb
+! =======
+  function bs_b1psiffb(e,f,g,h,i)
+    use basic
+    use m3dc1_nint
+
+    implicit none
+    
+    vectype, dimension(dofs_per_element) :: bs_b1psiffb
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(dofs_per_element) :: temp
+
+
+    temp = 0.
+
+#if defined(USECOMPLEX) || defined(USE3D)
+    if(jadv.eq.0) then
+       temp = 0.
+    else 
+       if(surface_int) then
+          temp = 0.
+       else
+
+        tempBB = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+        
+        tempCC =  (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+
+        if(ibootstrap_model.eq.1)then !Sauter & Angioni (1999)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*pt79(:,OP_DZ) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*pt79(:,OP_DR)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+        else if (ibootstrap_model.eq.2)then !Redl et al (2021)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+                   + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
+                     (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+        end if
+        
+        temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+
+        temp = intx4(e(:,:,OP_DRP),ri3_79,temp79a,h(:,OP_DR)) &
+             + intx4(e(:,:,OP_DZP),ri3_79,temp79a,h(:,OP_DZ))
+
+#ifdef USECOMPLEX
+        temp = temp - rfac* &
+               (intx4(e(:,:,OP_DR),ri3_79,temp79a,h(:,OP_DR)) &
+               +intx4(e(:,:,OP_DZ),ri3_79,temp79a,h(:,OP_DZ)))
+#endif
+
+       endif
+    endif
+#endif
+
+    bs_b1psiffb = bootstrap_alpha*temp
+  end function bs_b1psiffb
+
+
+
+      ! B2psifpsib
+   ! =========
+  function bs_b2psifpsib(e,f,g,h,i)
+    !mu,psi,f',psi,F
+
+    !Sauter & Angioni (1999) 
+    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
+    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+
+    !Redl et al (2021)  
+    !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+    !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+
+
+    !temp = eta 1/|Bp|^2 1/R F / <B^2>  (tempD) (1/r^2 (psi_z mu_z + psi_r mu_r))
+    !temp = 1 / <B^2> eta bootsrap_alpha F/R (tempD) (1/r^3 ( mu_z f'_r - mu_r f'_z))
+    !bootsrap_alpha = 1/|Bp|^2  
+
+    use basic
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, dimension(dofs_per_element) :: bs_b2psifpsib
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(dofs_per_element) :: temp
+
+
+    temp = 0.
+
+    tempBB = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+        
+    tempCC =  (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+
+    if(ibootstrap_model.eq.1)then !Sauter & Angioni (1999)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*pt79(:,OP_DZ) &
+                 + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*pt79(:,OP_DR)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+    else if (ibootstrap_model.eq.2)then !Redl et al (2021)
+            tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+                   + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+
+            tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                     (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
+                     (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+    end if
+
+    
+    temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+
+    temp = intx4(e(:,:,OP_DZ),ri3_79,h(:,OP_DZ),temp79a) &
+         + intx4(e(:,:,OP_DR),ri3_79,h(:,OP_DR),temp79a)
+
+    bs_b2psifpsib = bootstrap_alpha*temp
+  end function bs_b2psifpsib
+
+
+
+
+! B2psiffb
+ ! =======
+ function bs_b2psiffb(e,f,g,h,i)
+
+    !mu,psi,f',f',F
+    !Sauter & Angioni (1999) 
+    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
+    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+
+    !Redl et al (2021)  
+    !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+    !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+
+
+    !temp = eta 1/|Bp|^2 1/R F / <B^2>  (tempD) (1/r^2 (psi_z mu_z + psi_r mu_r))
+    !temp = 1 / <B^2> eta bootsrap_alpha F/R (tempD) (1/r^3 ( mu_z f'_r - mu_r f'_z))
+    !bootsrap_alpha = 1/|Bp|^2  
+
+    use basic
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, dimension(dofs_per_element) :: bs_b2psiffb
+    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(dofs_per_element) :: temp
+
+    temp = 0.
+
+#if defined(USECOMPLEX) || defined(USE3D)
+    tempBB = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+            + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+
+    tempCC =  (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+            + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+
+    if(ibootstrap_model.eq.1)then !Sauter & Angioni (1999) 
+        tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*pt79(:,OP_DZ) &
+                + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*pt79(:,OP_DR)
+
+        tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                 jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
+                 jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+    else if (ibootstrap_model.eq.2)then !Redl et al (2021) 
+        tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+                 +  (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+
+        tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                 (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
+                 (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+    end if
+
+    temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)*tempDD 
+
+    temp = intx4(e(:,:,OP_DZ),ri2_79,h(:,OP_DR),temp79a) &
+         - intx4(e(:,:,OP_DR),ri2_79,h(:,OP_DZ),temp79a)
+#else 
+    temp = 0.
+#endif 
+    bs_b2psiffb = bootstrap_alpha*temp
+
+
+  end function bs_b2psiffb
+
+
+
+
+
+  subroutine bootstrap_flux(trial, lin, ssterm, ddterm, r_bf, q_bf, thimpf, thimp_bf)
+    use basic
+    use arrays
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
+    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
+    vectype, dimension(dofs_per_element, num_fields), intent(inout) :: ssterm, ddterm
+    vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
+    real, intent(in) :: thimpf, thimp_bf
+
+    vectype, dimension(dofs_per_element) :: temp
+    
+    if(numvar.eq.1) then
+       ! linearizing in psi  
+       temp = bs_b1psifpsib(trial,lin,bfpt79,pst79,bzt79) &
+            + bs_b1psifpsib(trial,pst79,bfpt79,lin,bzt79) 
+       
+
+        ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1./2. - thimpf*bdf)*dt*temp
+       
+        ! linearizing in psi
+       temp = bs_b1psifbb(trial,lin,bfpt79,bzt79,bzt79) &
+            + bs_b1psiffb(trial,lin,bfpt79,bfpt79,bzt79) 
+
+       ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*temp
+    else     
+        ! linearizing in psi
+       temp = bs_b1psifpsib(trial,lin,bfpt79,pst79,bzt79) &
+            + bs_b1psifpsib(trial,pst79,bfpt79,lin,bzt79) &
+            + bs_b1psifbb(trial,lin,bfpt79,bzt79,bzt79) &
+            + bs_b1psiffb(trial,lin,bfpt79,bfpt79,bzt79) 
+
+       ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (3./12. - thimpf*bdf)*dt*temp
+  
+         ! linearizing in b  
+       temp = bs_b1psifpsib(trial,pst79,bfpt79,pst79,lin) &
+            + bs_b1psifbb(trial,pst79,bfpt79,lin,bzt79) &
+            + bs_b1psifbb(trial,pst79,bfpt79,bzt79,lin) &
+            + bs_b1psiffb(trial,pst79,bfpt79,bfpt79,lin) 
+
+       
+       ssterm(:,bz_g) = ssterm(:,bz_g) -          thimpf     *dt*temp
+       ddterm(:,bz_g) = ddterm(:,bz_g) + (3./12. - thimpf*bdf)*dt*temp
+       
+
+     ! linearizing in f'  
+       temp = bs_b1psifpsib(trial,pst79,lin,pst79,bzt79) &
+            + bs_b1psifbb(trial,pst79,lin,bzt79,bzt79) &
+            + bs_b1psiffb(trial,pst79,lin,bfpt79,bzt79) &
+            + bs_b1psiffb(trial,pst79,bfpt79,lin,bzt79) 
+       r_bf = r_bf -          thimp_bf     *dt*temp
+       q_bf = q_bf + (3./12. - thimp_bf*bdf)*dt*temp            
+       
+       if(eqsubtract.eq.1) then
+        !(at+a0)(bt+b0)(ct+c0)=(at bt + at b0 + a0 bt + a0 b0)(ct + c0)=
+       != (at bt ct + at b0 ct + a0 bt ct + a0 b0 ct) + (at bt c0 + at b0 c0 + a0 bt c0 + a0 b0 c0)
+
+        temp = bs_b1psifpsib(trial,lin,bfpt79,pst79,bz079) & !at bt c0  
+             + bs_b1psifpsib(trial,lin,bfp079,pst79,bz079) & !a0 bt c0
+             + bs_b1psifpsib(trial,lin,bfpt79,ps079,bz079) & !at b0 c0
+             + bs_b1psifpsib(trial,lin,bfp079,ps079,bz079)*6 & !a0 b0 c0
+             + bs_b1psifpsib(trial,lin,bfp079,pst79,bzt79) & !a0 bt ct
+             + bs_b1psifpsib(trial,lin,bfpt79,ps079,bzt79) & !at b0 ct 
+             + bs_b1psifpsib(trial,lin,bfp079,ps079,bzt79) & !a0 b0 ct
+        !--------------------------------------------------------!
+             + bs_b1psifpsib(trial,pst79,bfpt79,lin,bz079) & !at bt c0  
+             + bs_b1psifpsib(trial,ps079,bfpt79,lin,bz079) & !a0 bt c0
+             + bs_b1psifpsib(trial,pst79,bfp079,lin,bz079) & !at b0 c0
+             + bs_b1psifpsib(trial,ps079,bfp079,lin,bz079)*6 & !a0 b0 c0
+             + bs_b1psifpsib(trial,ps079,bfpt79,lin,bzt79) & !a0 bt ct
+             + bs_b1psifpsib(trial,pst79,bfp079,lin,bzt79) & !at b0 ct 
+             + bs_b1psifpsib(trial,ps079,bfp079,lin,bzt79) & !a0 b0 ct
+         !--------------------------------------------------------!
+             + bs_b1psifbb  (trial,lin,bfpt79,bzt79,bz079) & !at bt c0  
+             + bs_b1psifbb  (trial,lin,bfp079,bzt79,bz079) & !a0 bt c0
+             + bs_b1psifbb  (trial,lin,bfpt79,bz079,bz079) & !at b0 c0
+             + bs_b1psifbb  (trial,lin,bfp079,bz079,bz079)*6 & !a0 b0 c0
+             + bs_b1psifbb  (trial,lin,bfp079,bzt79,bzt79) & !a0 bt ct
+             + bs_b1psifbb  (trial,lin,bfpt79,bz079,bzt79) & !at b0 ct   
+             + bs_b1psifbb  (trial,lin,bfp079,bz079,bzt79) &  !a0 b0 ct
+         !--------------------------------------------------------! 
+             + bs_b1psiffb  (trial,lin,bfpt79,bfpt79,bz079) & !at bt c0  
+             + bs_b1psiffb  (trial,lin,bfp079,bfpt79,bz079) & !a0 bt c0
+             + bs_b1psiffb  (trial,lin,bfpt79,bfp079,bz079) & !at b0 c0
+             + bs_b1psiffb  (trial,lin,bfp079,bfp079,bz079)*6 & !a0 b0 c0
+             + bs_b1psiffb  (trial,lin,bfp079,bfpt79,bzt79) & !a0 bt ct
+             + bs_b1psiffb  (trial,lin,bfpt79,bfp079,bzt79) & !at b0 ct   
+             + bs_b1psiffb  (trial,lin,bfp079,bfp079,bzt79)   !a0 b0 ct
+         !--------------------------------------------------------!  
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1./12.)*dt*temp      
+          
+
+        temp = bs_b1psifpsib(trial,pst79,bfpt79,ps079,lin) & !at bt c0  
+             + bs_b1psifpsib(trial,ps079,bfpt79,ps079,lin) & !a0 bt c0
+             + bs_b1psifpsib(trial,pst79,bfp079,ps079,lin) & !at b0 c0
+             + bs_b1psifpsib(trial,ps079,bfp079,ps079,lin)*6 & !a0 b0 c0
+             + bs_b1psifpsib(trial,ps079,bfpt79,pst79,lin) & !a0 bt ct
+             + bs_b1psifpsib(trial,pst79,bfp079,pst79,lin) & !at b0 ct 
+             + bs_b1psifpsib(trial,ps079,bfp079,pst79,lin) & !a0 b0 ct
+        !--------------------------------------------------------!
+             + bs_b1psifbb  (trial,pst79,bfpt79,lin,bz079) & !at bt c0  
+             + bs_b1psifbb  (trial,ps079,bfpt79,lin,bz079) & !a0 bt c0
+             + bs_b1psifbb  (trial,pst79,bfp079,lin,bz079) & !at b0 c0
+             + bs_b1psifbb  (trial,ps079,bfp079,lin,bz079)*6 & !a0 b0 c0
+             + bs_b1psifbb  (trial,ps079,bfpt79,lin,bzt79) & !a0 bt ct
+             + bs_b1psifbb  (trial,pst79,bfp079,lin,bzt79) & !at b0 ct   
+             + bs_b1psifbb  (trial,ps079,bfp079,lin,bzt79) &  !a0 b0 ct
+         !--------------------------------------------------------!
+             + bs_b1psifbb  (trial,pst79,bfpt79,bz079,lin) & !at bt c0  
+             + bs_b1psifbb  (trial,ps079,bfpt79,bz079,lin) & !a0 bt c0
+             + bs_b1psifbb  (trial,pst79,bfp079,bz079,lin) & !at b0 c0
+             + bs_b1psifbb  (trial,ps079,bfp079,bz079,lin)*6 & !a0 b0 c0
+             + bs_b1psifbb  (trial,ps079,bfpt79,bzt79,lin) & !a0 bt ct
+             + bs_b1psifbb  (trial,pst79,bfp079,bzt79,lin) & !at b0 ct   
+             + bs_b1psifbb  (trial,ps079,bfp079,bzt79,lin) &  !a0 b0 ct
+         !--------------------------------------------------------! 
+             + bs_b1psiffb  (trial,pst79,bfpt79,bfp079,lin) & !at bt c0  
+             + bs_b1psiffb  (trial,ps079,bfpt79,bfp079,lin) & !a0 bt c0
+             + bs_b1psiffb  (trial,pst79,bfp079,bfp079,lin) & !at b0 c0
+             + bs_b1psiffb  (trial,ps079,bfp079,bfp079,lin)*6 & !a0 b0 c0
+             + bs_b1psiffb  (trial,ps079,bfpt79,bfpt79,lin) & !a0 bt ct
+             + bs_b1psiffb  (trial,pst79,bfp079,bfpt79,lin) & !at b0 ct   
+             + bs_b1psiffb  (trial,ps079,bfp079,bfpt79,lin)   !a0 b0 ct
+         !--------------------------------------------------------!  
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (1./12.)*dt*temp    
+
+        temp = bs_b1psifpsib(trial,pst79,lin,pst79,bz079) & !at bt c0  
+             + bs_b1psifpsib(trial,ps079,lin,pst79,bz079) & !a0 bt c0
+             + bs_b1psifpsib(trial,pst79,lin,ps079,bz079) & !at b0 c0
+             + bs_b1psifpsib(trial,ps079,lin,ps079,bz079)*6 & !a0 b0 c0
+             + bs_b1psifpsib(trial,ps079,lin,pst79,bzt79) & !a0 bt ct
+             + bs_b1psifpsib(trial,pst79,lin,ps079,bzt79) & !at b0 ct 
+             + bs_b1psifpsib(trial,ps079,lin,ps079,bzt79) & !a0 b0 ct
+        !--------------------------------------------------------!
+             + bs_b1psifbb  (trial,pst79,lin,pst79,bz079) & !at bt c0  
+             + bs_b1psifbb  (trial,ps079,lin,pst79,bz079) & !a0 bt c0
+             + bs_b1psifbb  (trial,pst79,lin,ps079,bz079) & !at b0 c0
+             + bs_b1psifbb  (trial,ps079,lin,ps079,bz079)*6 & !a0 b0 c0
+             + bs_b1psifbb  (trial,ps079,lin,pst79,bzt79) & !a0 bt ct
+             + bs_b1psifbb  (trial,pst79,lin,ps079,bzt79) & !at b0 ct   
+             + bs_b1psifbb  (trial,ps079,lin,ps079,bzt79) &  !a0 b0 ct
+         !--------------------------------------------------------!
+             + bs_b1psiffb  (trial,pst79,lin,bfpt79,bz079) & !at bt c0  
+             + bs_b1psiffb  (trial,ps079,lin,bfpt79,bz079) & !a0 bt c0
+             + bs_b1psiffb  (trial,pst79,lin,bfp079,bz079) & !at b0 c0
+             + bs_b1psiffb  (trial,ps079,lin,bfp079,bz079)*6 & !a0 b0 c0
+             + bs_b1psiffb  (trial,ps079,lin,bfpt79,bzt79) & !a0 bt ct
+             + bs_b1psiffb  (trial,pst79,lin,bfp079,bzt79) & !at b0 ct   
+             + bs_b1psiffb  (trial,ps079,lin,bfp079,bzt79) &  !a0 b0 ct
+         !--------------------------------------------------------! 
+             + bs_b1psiffb  (trial,pst79,bfpt79,lin,bz079) & !at bt c0  
+             + bs_b1psiffb  (trial,ps079,bfpt79,lin,bz079) & !a0 bt c0
+             + bs_b1psiffb  (trial,pst79,bfp079,lin,bz079) & !at b0 c0
+             + bs_b1psiffb  (trial,ps079,bfp079,lin,bz079)*6 & !a0 b0 c0
+             + bs_b1psiffb  (trial,ps079,bfpt79,lin,bzt79) & !a0 bt ct
+             + bs_b1psiffb  (trial,pst79,bfp079,lin,bzt79) & !at b0 ct   
+             + bs_b1psiffb  (trial,ps079,bfp079,lin,bzt79)   !a0 b0 ct
+         !--------------------------------------------------------!      
+         q_bf = q_bf + (1./12.)*dt*temp    
+       end if
+    end if
+  end subroutine bootstrap_flux
+
+
+
+
+
+
+
+   subroutine bootstrap_axial_field(trial, lin, ssterm, ddterm, r_bf, q_bf, thimpf, thimp_bf)
+    use basic
+    use arrays
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
+    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
+    vectype, dimension(dofs_per_element, num_fields), intent(inout) :: ssterm, ddterm
+    vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
+    real, intent(in) :: thimpf, thimp_bf
+
+    vectype, dimension(dofs_per_element) :: temp
+
+
+  ! linearizing in psi
+    temp = bs_b2psifpsib(trial,lin,bfpt79,pst79,bzt79) &
+         + bs_b2psifpsib(trial,pst79,bfpt79,lin,bzt79) &
+         + bs_b2psiffb  (trial,lin,bfpt79,bfpt79,bzt79)
+    ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+    ddterm(:,psi_g) = ddterm(:,psi_g) + (3./12. - thimpf*bdf)*dt*temp
+    
+
+  ! linearizing in F
+    temp = bs_b2psifpsib(trial,pst79,bfpt79,pst79,lin) &
+         + bs_b2psiffb  (trial,pst79,bfpt79,bfpt79,lin)
+    ssterm(:,bz_g) = ssterm(:,bz_g) -          thimpf     *dt*temp
+    ddterm(:,bz_g) = ddterm(:,bz_g) + (3./12. - thimpf*bdf)*dt*temp
+    
+  ! linearizing in f'
+    temp = bs_b2psifpsib(trial,pst79,lin,pst79,bzt79) &
+         + bs_b2psiffb  (trial,pst79,lin,bfpt79,bzt79) &
+         + bs_b2psiffb  (trial,pst79,bfpt79,lin,bzt79)
+
+    r_bf = r_bf -          thimp_bf     *dt*temp
+    q_bf = q_bf + (3./12. - thimp_bf*bdf)*dt*temp
+
+    if(eqsubtract.eq.1) then
+
+       !(at+a0)(bt+b0)(ct+c0)=(at bt + at b0 + a0 bt + a0 b0)(ct + c0)=
+       != (at bt ct + at b0 ct + a0 bt ct + a0 b0 ct) + (at bt c0 + at b0 c0 + a0 bt c0 + a0 b0 c0)
+
+       temp = bs_b2psifpsib(trial,lin,bfpt79,pst79,bz079) & !at bt c0
+            + bs_b2psifpsib(trial,lin,bfp079,pst79,bz079) & !a0 bt c0
+            + bs_b2psifpsib(trial,lin,bfpt79,ps079,bz079) & !at b0 c0
+            + bs_b2psifpsib(trial,lin,bfp079,ps079,bz079)*6 & !a0 b0 c0
+            + bs_b2psifpsib(trial,lin,bfp079,pst79,bzt79) & !a0 bt ct
+            + bs_b2psifpsib(trial,lin,bfpt79,ps079,bzt79) & !at b0 ct
+            + bs_b2psifpsib(trial,lin,bfp079,ps079,bzt79) & !a0 b0 ct
+            !--------------------------------------------------------!
+            + bs_b2psifpsib(trial,pst79,bfpt79,lin,bz079) & !at bt c0
+            + bs_b2psifpsib(trial,ps079,bfpt79,lin,bz079) & !a0 bt c0
+            + bs_b2psifpsib(trial,pst79,bfp079,lin,bz079) & !at b0 c0
+            + bs_b2psifpsib(trial,ps079,bfp079,lin,bz079)*6 & !a0 b0 c0
+            + bs_b2psifpsib(trial,ps079,bfpt79,lin,bzt79) & !a0 bt ct
+            + bs_b2psifpsib(trial,pst79,bfp079,lin,bzt79) & !at b0 ct
+            + bs_b2psifpsib(trial,ps079,bfp079,lin,bzt79) & !a0 b0 ct
+             !--------------------------------------------------------!
+            + bs_b2psiffb  (trial,lin,bfpt79,bfpt79,bz079) & !at bt c0
+            + bs_b2psiffb  (trial,lin,bfp079,bfpt79,bz079) & !a0 bt c0
+            + bs_b2psiffb  (trial,lin,bfpt79,bfp079,bz079)*6 & !at b0 c0
+            + bs_b2psiffb  (trial,lin,bfp079,bfp079,bz079) & !a0 b0 c0
+            + bs_b2psiffb  (trial,lin,bfp079,bfpt79,bzt79) & !a0 bt ct
+            + bs_b2psiffb  (trial,lin,bfpt79,bfp079,bzt79) & !at b0 ct
+            + bs_b2psiffb  (trial,lin,bfp079,bfp079,bzt79)   !a0 b0 ct
+             !--------------------------------------------------------!
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1./12.)*dt*temp
+
+
+        temp = bs_b2psifpsib(trial,pst79,bfpt79,ps079,lin) & !at bt c0
+             + bs_b2psifpsib(trial,ps079,bfpt79,ps079,lin) & !a0 bt c0
+             + bs_b2psifpsib(trial,pst79,bfp079,ps079,lin) & !at b0 c0
+             + bs_b2psifpsib(trial,ps079,bfp079,ps079,lin)*6 & !a0 b0 c0
+             + bs_b2psifpsib(trial,ps079,bfpt79,pst79,lin) & !a0 bt ct
+             + bs_b2psifpsib(trial,pst79,bfp079,pst79,lin) & !at b0 ct
+             + bs_b2psifpsib(trial,ps079,bfp079,pst79,lin) & !a0 b0 ct
+             !--------------------------------------------------------!
+             + bs_b2psiffb  (trial,pst79,bfpt79,bfp079,lin) & !at bt c0
+             + bs_b2psiffb  (trial,ps079,bfpt79,bfp079,lin) & !a0 bt c0
+             + bs_b2psiffb  (trial,pst79,bfp079,bfp079,lin) & !at b0 c0
+             + bs_b2psiffb  (trial,ps079,bfp079,bfp079,lin)*6 & !a0 b0 c0
+             + bs_b2psiffb  (trial,ps079,bfpt79,bfpt79,lin) & !a0 bt ct
+             + bs_b2psiffb  (trial,pst79,bfp079,bfpt79,lin) & !at b0 ct
+             + bs_b2psiffb  (trial,ps079,bfp079,bfpt79,lin)   !a0 b0 ct
+       ddterm(:,bz_g) = ddterm(:,bz_g) + (1./12.)*dt*temp
+
+
+
+       temp = bs_b2psifpsib(trial,pst79,lin,pst79,bz079) & !at bt c0
+            + bs_b2psifpsib(trial,ps079,lin,pst79,bz079) & !a0 bt c0
+            + bs_b2psifpsib(trial,pst79,lin,ps079,bz079) & !at b0 c0
+            + bs_b2psifpsib(trial,ps079,lin,ps079,bz079)*6 & !a0 b0 c0
+            + bs_b2psifpsib(trial,ps079,lin,pst79,bzt79) & !a0 bt ct
+            + bs_b2psifpsib(trial,pst79,lin,ps079,bzt79) & !at b0 ct
+            + bs_b2psifpsib(trial,ps079,lin,ps079,bzt79) & !a0 b0 ct
+            !--------------------------------------------------------!
+            + bs_b2psiffb  (trial,pst79,lin,bfpt79,bz079) & !at bt c0
+            + bs_b2psiffb  (trial,ps079,lin,bfpt79,bz079) & !a0 bt c0
+            + bs_b2psiffb  (trial,pst79,lin,bfp079,bz079) & !at b0 c0
+            + bs_b2psiffb  (trial,ps079,lin,bfp079,bz079)*6 & !a0 b0 c0
+            + bs_b2psiffb  (trial,ps079,lin,bfpt79,bzt79) & !a0 bt ct
+            + bs_b2psiffb  (trial,pst79,lin,bfp079,bzt79) & !at b0 ct
+            + bs_b2psiffb  (trial,ps079,lin,bfp079,bzt79) & !a0 b0 ct
+            !--------------------------------------------------------!
+            + bs_b2psiffb  (trial,pst79,bfpt79,lin,bz079) & !at bt c0
+            + bs_b2psiffb  (trial,ps079,bfpt79,lin,bz079) & !a0 bt c0
+            + bs_b2psiffb  (trial,pst79,bfp079,lin,bz079) & !at b0 c0
+            + bs_b2psiffb  (trial,ps079,bfp079,lin,bz079)*6 & !a0 b0 c0
+            + bs_b2psiffb  (trial,ps079,bfpt79,lin,bzt79) & !a0 bt ct
+            + bs_b2psiffb  (trial,pst79,bfp079,lin,bzt79) & !at b0 ct
+            + bs_b2psiffb  (trial,ps079,bfp079,lin,bzt79)   !a0 b0 ct
+       q_bf = q_bf + (1./12.)*dt*temp
+    end if
+  end subroutine bootstrap_axial_field
+
+
+
 end module bootstrap
+
+

@@ -500,7 +500,9 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "kprad_n0", totkprad0, ntime, error)
   call output_scalar(scalar_group_id, "kprad_dt", kprad_dt, ntime, error)
 
-
+  if(ibootstrap.eq.1) then 
+   call output_scalar(scalar_group_id, "bootstrap_current", jbs, ntime, error)
+  endif
   if(xray_detector_enabled.eq.1) then
      call output_scalar(scalar_group_id,"xray_signal",xray_signal,ntime,error)
   end if
@@ -1176,6 +1178,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
      
      if(ibootstrap.gt.0) then
         call write_field(group_id, "visc_e", visc_e_field, nelms, error,.true.)
+          !Bootstrap Coeff Fields
+        call write_field(group_id, "Jbs_L31", Jbs_L31_field, nelms, error,.true.)
+        call write_field(group_id, "Jbs_L32", Jbs_L32_field, nelms, error,.true.)
+        call write_field(group_id, "Jbs_L34", Jbs_L34_field, nelms, error,.true.)
+        call write_field(group_id, "Jbs_alpha", Jbs_alpha_field, nelms, error,.true.)
+        call write_field(group_id, "Jbs_fluxavgB", Jbs_fluxavgB_field, nelms, error,.true.)
      endif
   end if !(iwrite_transport_coeffs.eq.1)
 
@@ -1220,6 +1228,13 @@ subroutine output_fields(time_group_id, equilibrium, error)
           call write_field(group_id, "vlbdgp", vlbdgp, nelms, error, .true.)
        endif
 
+    endif
+   
+    if(ibootstrap.eq.1) then
+      !Bootstrap Field
+       call write_field(group_id, "Jp_BS_r",Jp_BS_r, nelms, error)
+       call write_field(group_id, "Jp_BS_z",Jp_BS_z, nelms, error)
+       call write_field(group_id, "Jp_BS_phi",Jp_BS_phi, nelms, error)
     endif
     
     ! sigma
@@ -1447,6 +1462,12 @@ subroutine mark_fields(equilibrium)
      if(ibootstrap.gt.0) then
         ! visc_e_field
         call mark_field_for_solutiontransfer(visc_e_field)
+        !Bootstrap Coeff Fields
+        call mark_field_for_solutiontransfer(Jbs_L31_field)
+        call mark_field_for_solutiontransfer(Jbs_L32_field)
+        call mark_field_for_solutiontransfer(Jbs_L34_field)
+        call mark_field_for_solutiontransfer(Jbs_alpha_field)
+        call mark_field_for_solutiontransfer(Jbs_fluxavgB_field)
      endif
   end if !(iwrite_transport_coeffs.eq.1)
 
@@ -1504,6 +1525,13 @@ subroutine mark_fields(equilibrium)
           call mark_field_for_solutiontransfer(vlbdgp)
        endif
 
+    endif
+
+    ! bootstrap components
+    if(ibootstrap .eq.1) then
+        call mark_field_for_solutiontransfer(Jp_BS_r)
+        call mark_field_for_solutiontransfer(Jp_BS_z)
+        call mark_field_for_solutiontransfer(Jp_BS_phi)
     endif
 
     ! sigma

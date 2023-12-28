@@ -366,6 +366,11 @@ module adapt
     bfp_field(0) = 0.
     bfp_field(1) = 0.
     if(ibootstrap.gt.0) visc_e_field = 0.
+    if(ibootstrap.gt.0) Jbs_L31_field = 0.
+    if(ibootstrap.gt.0) Jbs_L32_field = 0.
+    if(ibootstrap.gt.0) Jbs_L34_field = 0.
+    if(ibootstrap.gt.0) Jbs_alpha_field = 0.
+    if(ibootstrap.gt.0) Jbs_fluxavgB_field = 0.
     psi_coil_field = 0.
     !call destroy_auxiliary_fields
     !call create_auxiliary_fields
@@ -553,6 +558,11 @@ iadapt_max_node, adapt_control);
        bfp_field(0) = 0.
        bfp_field(1) = 0.
        if(ibootstrap.gt.0) visc_e_field = 0.
+       if(ibootstrap.gt.0) Jbs_L31_field = 0.
+       if(ibootstrap.gt.0) Jbs_L32_field = 0.
+       if(ibootstrap.gt.0) Jbs_L34_field = 0.
+       if(ibootstrap.gt.0) Jbs_alpha_field = 0.
+       if(ibootstrap.gt.0) Jbs_fluxavgB_field = 0.
        psi_coil_field = 0.
        !call destroy_auxiliary_fields
        !call create_auxiliary_fields

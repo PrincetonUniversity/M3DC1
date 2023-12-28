@@ -90,6 +90,17 @@ function read_scalar, scalarname, filename=filename, title=title, $
        symbol = '!8I!D!9P!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)
    endif else $
+     if(strcmp("bootstrap current", scalarname, /fold_case) eq 1) or $
+       (strcmp("jbs", scalarname, /fold_case) eq 1) then begin
+       data = s.bootstrap_current._data
+       if(itor eq 0 and version lt 36) then begin
+          print, 'WARNING: correcting for incorrect bootstrap current definition with itor=0 and version<36'
+          data = data/rzero
+       end
+       title = 'Bootstrap Current'
+       symbol = '!8I!DP!N!X'
+       d = dimensions(/j0, l0=2, _EXTRA=extra)    
+   endif else $
      if(strcmp("volume", scalarname, /fold_case) eq 1) then begin
        data = s.volume_p._data
        title = 'Plasma Volume'
