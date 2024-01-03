@@ -17,8 +17,9 @@ rc('text', usetex=True)
 
 
 
-def plot_line(field, coord='scalar', angle=0, filename='C1.h5', sim=None, time=None,
-              phi=0, linear=False, diff=False, tor_av=1, units='mks', quiet=False, shortlbl=False):
+def plot_line(field, coord='scalar', angle=0, dist_from_magax=False, filename='C1.h5',
+              sim=None, time=None, phi=0, linear=False, diff=False, tor_av=1, units='mks',
+              c=None,ls='-',shortlbl=False, show_legend=False, leglbl=None, quiet=False, fignum=None, pub=False):
     """
     Plots the values of a field on a line.
     
@@ -36,9 +37,16 @@ def plot_line(field, coord='scalar', angle=0, filename='C1.h5', sim=None, time=N
     Radial also takes the magnetic axis as the origin.
 
     **angle**
-    Angle in degrees between the Z=0 line going through the magnetic axis,
-    and the line on which the field is evaluated. Anti-clockwise
-    are positive angles.
+    Angle in degrees between the midplane and the line on which the field
+    is evaluated. Positive angles are anti-clockwise.
+
+    **dist_from_magax**
+    Determines radial variable for plot. Default: False
+    If True, field will be plotted vs. signed distance from magnetic axis.
+    If False, field will plotted vs. major radius.
+
+    **sim**
+    Simulation object.
 
     **filename**
     File name which will be read, i.e. "../../C1.h5"
@@ -53,7 +61,7 @@ def plot_line(field, coord='scalar', angle=0, filename='C1.h5', sim=None, time=N
     **linear**
     Plot the linear part of the field (so the equilibrium is subtracted).
     True/False
-    
+
     **diff**
     Plot the difference of two fields. 
     This could be the difference of two files (filename=['a/C1.h5','b/C1.h5']),
@@ -63,6 +71,21 @@ def plot_line(field, coord='scalar', angle=0, filename='C1.h5', sim=None, time=N
 
     **tor_av**
     Calculates the average field over tor_av number of toroidal planes
+
+    **units**
+    units in which the result will be calculated
+
+    **shortlbl**
+    True/False. If True, axis labels will be shortened.
+
+    **quiet**
+    If True, suppress output to terminal.
+
+    **fignum**
+    Figure number.
+
+    **pub**
+    If True, format figure for publication (larger labels and thicker lines)
     """
 
     angle = np.radians(angle)
@@ -77,13 +100,17 @@ def plot_line(field, coord='scalar', angle=0, filename='C1.h5', sim=None, time=N
     Z_mag        = sim[0].get_time_trace('zmag').values[0]
     R_range      = [np.amin(mesh_pts[:,4]), np.amax(mesh_pts[:,4])]
     Z_range      = [np.amin(mesh_pts[:,5]), np.amax(mesh_pts[:,5])]
-    R_straight   = (np.linspace(R_range[0], R_range[1], 10000, endpoint=True)-R_mag) 
-    R_linspace   = (np.linspace(R_range[0], R_range[1], 10000, endpoint=True)-R_mag)*np.cos(angle) + R_mag   
+    R_pts        = np.linspace(R_range[0], R_range[1], 10000, endpoint=True)
+    R_straight   = R_pts-R_mag
+    R_linspace   = (R_pts-R_mag)*np.cos(angle) + R_mag   
     Z_linspace   = (np.linspace(Z_range[0], Z_range[1], 10000, endpoint=True)-Z_mag)*np.sin(angle) + Z_mag
     phi_linspace = np.linspace(phi,      (360+phi), tor_av, endpoint=False)
     R, phi       = np.meshgrid(R_linspace, phi_linspace)
     Z, phi       = np.meshgrid(Z_linspace, phi_linspace)
-    L_signed     = np.sign(R_straight)*np.sqrt((R_linspace-R_mag)**2 + (Z_linspace-Z_mag)**2)
+    if dist_from_magax:
+        xvar = np.sign(R_straight)*np.sqrt((R_linspace-R_mag)**2 + (Z_linspace-Z_mag)**2)
+    else:
+        xvar = R_linspace
 
 
     # Evaluate usual vector components
@@ -133,13 +160,38 @@ def plot_line(field, coord='scalar', angle=0, filename='C1.h5', sim=None, time=N
         field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
-    if units.lower()=='m3dc1':
-        unitlabel = fieldlabel + ' (' + unitlabel + ')'
+    ylbl = fieldlabel + ' (' + unitlabel + ')'
 
+    if pub:
+        axlblfs = 20
+        #titlefs = 20
+        ticklblfs = 18
+        linew = 2
+        legfs = 12
+    else:
+        axlblfs = None
+        #titlefs = None
+        ticklblfs = None
+        linew = 1
+        legfs = None
 
     # Plot routines
-    plt.plot(L_signed, field1_ave)
-    plt.xlabel('Signed distance from magnetic axis [m]')
-    plt.ylabel(fieldlabel + ' [' + unitlabel + ']')
-    
+    plt.figure(num=fignum)
+    if ls==':' and linew is not None:
+        linew = linew+1
+    plt.plot(xvar, field1_ave,lw=linew,label=leglbl,c=c,ls=ls)
+    if dist_from_magax:
+        xlbl = 'Signed distance from magnetic axis [m]'
+    else:
+        xlbl = 'R / m'
+    plt.xlabel(xlbl,fontsize=axlblfs)
+    plt.ylabel(ylbl,fontsize=axlblfs)
+    if show_legend and leglbl is not None:
+        plt.legend(loc=0, fontsize=legfs)
+    ax = plt.gca()
+    ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
+    plt.grid(True)
+    plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     plt.show()
+
+    return

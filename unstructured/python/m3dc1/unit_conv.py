@@ -12,7 +12,7 @@ import math
 import fpy
 from m3dc1.read_h5 import readParameter
 
-def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length=0, particles=0, magnetic_field=0, current=0, current_density=0, diffusion=0, energy=0, force=0, pressure=0, resistivity=0, temperature=0, velocity=0, voltage=0, viscosity=0, thermal_conductivity=0, electric_field=0):
+def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length=0, particles=0, magnetic_field=0, current=0, current_density=0, diffusion=0, energy=0, force=0, magnetic_flux=0, pressure=0, resistivity=0, temperature=0, velocity=0, voltage=0, viscosity=0, thermal_conductivity=0, electric_field=0):
     """
     Converts an array from M3DC1 units to mks or vice versa. arr_dim
     contains the type of dimension the array is in (so 'M3DC1', or 
@@ -33,6 +33,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
     ureg.define('SquareMeterPerSecond = [diffusion]')
     ureg.define('Joules = [energy] = J')
     ureg.define('Newton = [force] = N')
+    ureg.define('Weber = [magnetic_flux] = Wb')
     ureg.define('Pascal = [pressure] = Pa')
     ureg.define('OhmMeter = [resistivity]')
     ureg.define('eV = [temperature]')
@@ -76,6 +77,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
     E0 = V0*B0/c
     energy0 = B0**2*L0**3 / (4.0*math.pi)
     force0 = B0**2*L0**2 / (4.0*math.pi)
+    magflux0 = B0*L0**2
     pressure0 = B0**2 / (4.0*math.pi)
     eta0 = 4.0*math.pi*T0*V0**2 / c**2
     temp0 = B0**2/(4.0*math.pi*N0*e)
@@ -92,6 +94,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
     E0 = E0/(1/3*1E-4)
     energy0 = energy0/1.0E7
     force0 = force0/1.0E5
+    magflux0 = magflux0/1.0E8
     pressure0 = pressure0/10
     eta0 = eta0/(1/9*1.0E-9)
     temp0 = temp0
@@ -126,6 +129,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
     ureg.define('M3DC1diffusion = ('+str(diffus0)+') * SquareMeterPerSecond')
     ureg.define('M3DC1energy = ('+str(energy0)+') * Joules')
     ureg.define('M3DC1force = ('+str(force0)+') * Newton')
+    ureg.define('M3DC1magflux = ('+str(magflux0)+') * Weber')
     ureg.define('M3DC1pressure = ('+str(pressure0)+') * Pascal')
     ureg.define('M3DC1resistivity = ('+str(eta0)+') * OhmMeter')
     ureg.define('M3DC1temperature = ('+str(temp0)+') * eV')
@@ -146,6 +150,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
                         ureg.M3DC1diffusion**diffusion * \
                         ureg.M3DC1energy**energy * \
                         ureg.M3DC1force**force * \
+                        ureg.M3DC1magflux**magnetic_flux * \
                         ureg.M3DC1pressure**pressure * \
                         ureg.M3DC1resistivity**resistivity * \
                         ureg.M3DC1temperature**temperature * \
@@ -164,6 +169,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
                         ureg.SquareMeterPerSecond**diffusion * \
                         ureg.Joules**energy * \
                         ureg.Newton**force * \
+                        ureg.Weber**magnetic_flux * \
                         ureg.Pascal**pressure * \
                         ureg.OhmMeter**resistivity * \
                         ureg.eV**temperature * \
@@ -184,6 +190,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
                         ureg.SquareMeterPerSecond**diffusion * \
                         ureg.Joules**energy * \
                         ureg.Newton**force * \
+                        ureg.Weber**magnetic_flux * \
                         ureg.Pascal**pressure * \
                         ureg.OhmMeter**resistivity * \
                         ureg.eV**temperature * \
@@ -202,6 +209,7 @@ def unit_conv(array, arr_dim='M3DC1', filename='C1.h5', sim=None, time=0, length
                         ureg.M3DC1diffusion**diffusion * \
                         ureg.M3DC1energy**energy * \
                         ureg.M3DC1force**force * \
+                        ureg.M3DC1magflux**magnetic_flux * \
                         ureg.M3DC1pressure**pressure * \
                         ureg.M3DC1resistivity**resistivity * \
                         ureg.M3DC1temperature**temperature * \

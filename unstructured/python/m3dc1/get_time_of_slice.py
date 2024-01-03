@@ -35,11 +35,16 @@ def get_time_of_slice(time,sim=None,filename='C1.h5',units='mks',millisec=False,
     """
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename,time=time)
+    else:
+        time = sim.timeslice
     
     ts = sim.timeslice
     
-    h5name = 'time_' + str(time).zfill(3) + '.h5' if time > -1 else 'equilibrium.h5'
+    h5name = 'time_' + str(ts).zfill(3) + '.h5' if time > -1 else 'equilibrium.h5'
     #print(h5name)
+    #Append path to directory to h5name, in case a C1.h5 file in a different directory was specified
+    if len(filename)>5:
+        h5name = filename[:-5] + h5name
     time = readParameter('time',fname=h5name) #Don't pass sim, because it expects C1.h5 file instead of time slice
     if units == 'mks':
         time = unit_conv(time, sim=sim,time=1)

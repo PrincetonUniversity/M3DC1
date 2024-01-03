@@ -76,7 +76,8 @@ def setup_sims(sim,filename,time,linear,diff):
         if not isinstance(sim,fpy.sim_data):
             sim = np.empty(0)
             filename = np.atleast_1d(filename)
-            
+            time = np.atleast_1d(time)
+
             if len(filename)>1 or (len(time)<2):
                 for f in filename:
                     sim = np.append(sim,fpy.sim_data(f,time=time))
@@ -91,6 +92,7 @@ def setup_sims(sim,filename,time,linear,diff):
             sim = np.atleast_1d(sim)
             time = np.atleast_1d(time)
 
+    #At this point time should a list
     if len(time)==1 and len(sim)>1:
         time = np.repeat(time,len(sim))
     elif len(sim)==1 and len(time)>1:
@@ -417,9 +419,9 @@ def get_tracelabel(units,trace,label=None,unitlabel=None,fac=1):
               'Flux_thermal':('Heat flux to wall','W'),
               'IP_co':('Plasma current (cosine-component)','A'),
               'IP_sn':('Plasma current (sine-component)','A'),
-              'M_IZ':('Plasma current centroid',r'A$\cdot$m'),
-              'M_IZ_co':('Plasma current (cosine-component) centroid',r'A$\cdot$m'),
-              'M_IZ_sn':('Plasma current (sine-component) centroid',r'A$\cdot$m'),
+              'M_IZ':('Plasma current centroid',r'm'),
+              'M_IZ_co':('Plasma current (cosine-component) centroid',r'm'),
+              'M_IZ_sn':('Plasma current (sine-component) centroid',r'm'),
               'Parallel_viscous_heating':('Parallel viscous heating','W'),
               'Particle_Flux_convective':('Convective particle flux to wall','particles/s'),
               'Particle_Flux_diffusive':('Diffusive particle flux to wall','particles/s'),
@@ -569,9 +571,9 @@ def get_conv_trace(units,trace,trace_arr,filename='C1.h5',sim=None,itor=1,custom
               'Flux_poynting':{'energy':1,'time':-1},
               'Flux_pressure':{'energy':1,'time':-1},
               'Flux_thermal':{'energy':1,'time':-1}, 'IP_co':{'current':1},
-              'IP_sn':{'current':1}, 'M_IZ':{'current':1,'length':1},
-              'M_IZ_co':{'current':1,'length':1},
-              'M_IZ_sn':{'current':1,'length':1},
+              'IP_sn':{'current':1}, 'M_IZ':{'length':1},
+              'M_IZ_co':{'length':1},
+              'M_IZ_sn':{'length':1},
               'Parallel_viscous_heating':{'energy':1,'time':-1},
               'Particle_Flux_convective':{'particles':1,'time':-1},
               'Particle_Flux_diffusive':{'particles':1,'time':-1},
@@ -696,6 +698,7 @@ def find_nearest(arr, val):
     return arr.flat[ind]
 
 
+# Find index of array element closest to specified value
 def get_ind_near_val(arr, val,unique=True):
     nearest = find_nearest(arr, val)
     ind = get_ind_at_val(arr, nearest, unique=unique)

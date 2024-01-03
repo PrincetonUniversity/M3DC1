@@ -91,7 +91,7 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils
     if pub:
         axlblfs = 20
         ticklblfs = 18
-        linew = 1
+        linew = 2
         bdlw = 1
     else:
         axlblfs = 12
@@ -100,8 +100,11 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils
         bdlw = 1
     
     if not isinstance(ax, (np.ndarray, mplax._axes.Axes)):
-        fig, ax = plt.subplots(num=fignum)
-        fig.set_figheight(8)
+        if (fignum is None) or (fignum is not None and not plt.fignum_exists(fignum)):
+            fig, ax = plt.subplots(num=fignum)
+            fig.set_figheight(8)
+        else:
+            ax = plt.gca()
         if phys:
             plt.plot(rst,zst,lw=0,marker='.',ms=0)
         else:

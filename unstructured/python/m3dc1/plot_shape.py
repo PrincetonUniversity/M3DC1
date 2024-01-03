@@ -171,6 +171,8 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         
         #Plot magnetic axis
         #try:
+        #print(times[i])
+        #print(si.get_time_trace('xmag'))
         R_magax = si.get_time_trace('xmag').values[times[i]]
         Z_magax = si.get_time_trace('zmag').values[times[i]]
         axs.plot(R_magax,Z_magax,lw=0,marker='+',markersize=10,color=pltcol)
@@ -189,6 +191,8 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         axs.plot(gfdat.rmaxis,gfdat.zmaxis,lw=0,marker='+',markersize=10,color='k')
         if lcfs:
             axs.plot(gfdat.rbbbs,gfdat.zbbbs,color='k',zorder=10)
+        if bound:
+            axs.plot(gfdat.rlim,gfdat.zlim,color='m',zorder=10)
     
     if ax is None:
         axs.set_xlim(fpyl.get_axlim(np.amin(R),'min'),fpyl.get_axlim(np.amax(R),'max'))
