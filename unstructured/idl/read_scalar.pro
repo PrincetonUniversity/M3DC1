@@ -98,7 +98,7 @@ function read_scalar, scalarname, filename=filename, title=title, $
           data = data/rzero
        end
        title = 'Bootstrap Current'
-       symbol = '!8I!DP!N!X'
+       symbol = '!8I!DBS!N!X'
        d = dimensions(/j0, l0=2, _EXTRA=extra)    
    endif else $
      if(strcmp("volume", scalarname, /fold_case) eq 1) then begin
