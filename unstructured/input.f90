@@ -866,6 +866,8 @@ subroutine set_defaults
   call add_var_double("vloop", vloop, 0., "", source_grp)
   call add_var_double("vloopRZ", vloopRZ, 0., "", source_grp)
   call add_var_double("tcur", tcur, 0., "", source_grp)
+  call add_var_double("vloop_freq", vloop_freq, 0., &
+       "Loop voltage frequency", source_grp)
 
   call add_var_double("tcuri", tcuri, 0., "", source_grp)
   call add_var_double("tcurf", tcurf, 0., "", source_grp)

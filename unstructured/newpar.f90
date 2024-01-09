@@ -269,6 +269,7 @@ Program Reducedquintic
   end if
 
   ntime0 = ntime
+  vloop0 = vloop
 
   ! zero-out scalar data
   call reset_scalars
@@ -388,7 +389,8 @@ Program Reducedquintic
  1002 format(" LOOP TIME",i5, "   Tot",1pe12.4, "   compute",1pe12.4,"   solve",1pe12.4)
      endif
 
-     if(linear.eq.0 .and. eqsubtract.eq.0 .and. i_control%icontrol_type .ge. 0) then
+     if(linear.eq.0 .and. eqsubtract.eq.0) then
+        if(i_control%icontrol_type .ge. 0) then
      ! feedback control on toroidal current
           if(tcurf .ne. tcuri) then
           ! time varying target current
@@ -407,6 +409,9 @@ Program Reducedquintic
              print *, " After current feedback", &
              vloop, totcur, i_control%p, &
              i_control%target_val, i_control%err_p_old, i_control%err_i
+       else
+          vloop = vloop0*cos(2.*pi*vloop_freq*time)
+       endif
      endif
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .ge. 0) then
