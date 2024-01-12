@@ -660,6 +660,7 @@ subroutine calculate_auxiliary_fields(ilin)
   use kprad_m3dc1
   use arrays
   use diagnostics
+  use bootstrap
 
   implicit none
 
@@ -1058,8 +1059,9 @@ subroutine calculate_auxiliary_fields(ilin)
      end if  ! on itemp_plot.eq.1
      
      if(ibootstrap.eq.1) then
-
-      call calculate_Jp_BS(temp79a)
+      !B=-(1/R psi_z + f'_r) r^ + F/r phi^ +(1/R psi_r - f'_z) z^
+      !J_p_BS=jbscommon B
+      call calculate_CommonTerm_Lambda(temp79a)
       dofs = -intx4(mu79(:,:,OP_1),ri_79,pst79(:,OP_DZ),temp79a) &
              -intx3(mu79(:,:,OP_1),bfpt79(:,OP_DR),temp79a)
       call vector_insert_block(Jp_BS_r%vec,itri,1,dofs,VEC_ADD)
@@ -1069,7 +1071,7 @@ subroutine calculate_auxiliary_fields(ilin)
       call vector_insert_block(Jp_BS_phi%vec,itri,1,dofs,VEC_ADD)
       
       
-      dofs = -intx4(mu79(:,:,OP_1),ri_79,pst79(:,OP_DR),temp79a) &
+      dofs =  intx4(mu79(:,:,OP_1),ri_79,pst79(:,OP_DR),temp79a) &
              -intx3(mu79(:,:,OP_1),bfpt79(:,OP_DZ),temp79a)
       call vector_insert_block(Jp_BS_z%vec,itri,1,dofs,VEC_ADD)
 

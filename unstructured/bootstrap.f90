@@ -6,7 +6,7 @@ module bootstrap
 
   integer :: ibootstrap_model
   ! 1 : add -eta*J_BS term to Ohm's law
-  !     where J_BS = 1/|Bp|^2 1/R F / <B^2>  (tempD)
+  !     where J_BS = jbscommon * B
     
     !ibootstrap_model=1: Sauter & Angioni (1999) 
     !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
@@ -14,14 +14,23 @@ module bootstrap
     !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
     !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
 
-    !ibootstrap_model=2: Redl et al (2021)  
+    !ibootstrap_model=2: Redl et al (2021) 
     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
     !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
 
 
+    
+
+    !jbscommon   = -  F / <B^2>   [ L31 (dlnp/dpsi) + L32 Pe (dlnTe/dpsi) + L34 Pe alpha (dlnTi/dpsi) ]
+    ! but d/dpsi = - del phi . (B x del)/||Bp||^2
+    !     d/dpsi = - 1/||Bp||^2 1/R ( (1/R psi_z + f'_r) d/dz + (1/R psi_r - f'_z) d/dr)
+    ! which gives
+    !jbscommon   =  tempD 1/|Bp|^2  1 / <B^2> 1/R F
+
+
     ! L31,L32,L34,alpha,1/ <B^2> * 1/|Bp|^2 are input as a function of psi
     !via an external file named ProfileJBSCoeff_Psi_L31_32_34_alpha_B2
- 
+    !bootsrap_alpha = amplification factor  
   real :: bootstrap_alpha
 
 contains
@@ -87,6 +96,23 @@ contains
         ! B1psifpsib
    ! =========
    function bs_b1psifpsib(e,f,g,h,i)
+    !mu,psi,f',psi,F
+     !Sauter & Angioni (1999) 
+    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
+    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+
+    !Redl et al (2021)  
+    !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+    !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+
+
+    !jbscommon=  tempD 1/|Bp|^2  1 / <B^2> 1/R F
+
+    !temp = eta jbscommon ( (-1/r^3) (mu'_z psi_r - mu'_r psi_z) )
+    !bootsrap_alpha = amplification factor  
+
     use basic
     use m3dc1_nint
 
@@ -155,6 +181,23 @@ end function bs_b1psifpsib
   ! B1psifbb
 ! =======
 function bs_b1psifbb(e,f,g,h,i)
+   !mu,psi,f',F,F
+
+    !Sauter & Angioni (1999) 
+    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
+    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+
+    !Redl et al (2021)  
+    !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+    !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+
+
+    !jbscommon=  tempD 1/|Bp|^2  1 / <B^2> 1/R F
+
+    !temp = eta jbscommon (1/r^2 F (del* mu ))
+    !bootsrap_alpha = amplification factor  
     use basic
     use m3dc1_nint
 
@@ -242,6 +285,23 @@ function bs_b1psifbb(e,f,g,h,i)
  ! B1psiffb
 ! =======
   function bs_b1psiffb(e,f,g,h,i)
+    !mu,psi,f',f',F
+
+    !Sauter & Angioni (1999) 
+    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
+    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+
+    !Redl et al (2021)  
+    !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+    !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+
+
+    !jbscommon=  tempD 1/|Bp|^2  1 / <B^2> 1/R F
+
+    !temp = eta jbscommon (1/r^2 (psi_z mu'_z + psi_r mu'_r))
+    !bootsrap_alpha = amplification factor  
     use basic
     use m3dc1_nint
 
@@ -322,9 +382,10 @@ function bs_b1psifbb(e,f,g,h,i)
     !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
 
 
-    !temp = eta 1/|Bp|^2 1/R F / <B^2>  (tempD) (1/r^2 (psi_z mu_z + psi_r mu_r))
-    !temp = 1 / <B^2> eta bootsrap_alpha F/R (tempD) (1/r^3 ( mu_z f'_r - mu_r f'_z))
-    !bootsrap_alpha = 1/|Bp|^2  
+    !jbscommon=  tempD 1/|Bp|^2  1 / <B^2> 1/R F
+
+    !temp = eta jbscommon (1/r^2 (psi_z mu_z + psi_r mu_r))
+    !bootsrap_alpha = amplification factor  
 
     use basic
     use m3dc1_nint
@@ -388,11 +449,11 @@ function bs_b1psifbb(e,f,g,h,i)
     !Redl et al (2021)  
     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
     !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+    
+    !jbscommon=  tempD 1/|Bp|^2  1 / <B^2> 1/R F
 
-
-    !temp = eta 1/|Bp|^2 1/R F / <B^2>  (tempD) (1/r^2 (psi_z mu_z + psi_r mu_r))
-    !temp = 1 / <B^2> eta bootsrap_alpha F/R (tempD) (1/r^3 ( mu_z f'_r - mu_r f'_z))
-    !bootsrap_alpha = 1/|Bp|^2  
+    !temp = eta jbscommon (1/r   ( mu_z f'_r - mu_r f'_z))
+    !bootsrap_alpha = amplification factor  
 
     use basic
     use m3dc1_nint
@@ -738,6 +799,388 @@ function bs_b1psifbb(e,f,g,h,i)
   end subroutine bootstrap_axial_field
 
 
+
+!-------------------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------------------
+! See simplified version of the Bootstrap models below where the terms within jbscommon term 
+! that contains psi,f',F are not linearized and computed in a separate subroutine  
+!-------------------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------------------  
+
+   !calculating bootstrap current
+  subroutine calculate_CommonTerm_Lambda(temp)
+     !ibootstrap_model=3: Sauter & Angioni (1999) ! equivalent to 1 but a simplified version
+     !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
+     !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+     !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+     !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+   
+     !ibootstrap_model=4: Redl et al (2021) ! equivalent to 2 but a simplified version
+     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+     !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+   
+   
+    !jbscommon   = -  F / <B^2>   [ L31 (dlnp/dpsi) + L32 Pe (dlnTe/dpsi) + L34 Pe alpha (dlnTi/dpsi) ]
+    ! but d/dpsi = - del phi . (B x del)/||Bp||^2
+    !     d/dpsi = - 1/||Bp||^2 1/R ( (1/R psi_z + f'_r) d/dz + (1/R psi_r - f'_z) d/dr)
+    ! which gives
+    !jbscommon   =  tempD 1/|Bp|^2  1 / <B^2> 1/R F
+   
+      !temp =  jbscommon * bootsrap_alpha
+   
+     use basic
+     use m3dc1_nint
+   
+     implicit none
+   
+     vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp
+   
+     temp = 0.
+   
+   
+     tempBB = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+             + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+   
+     tempCC =  (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+             + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+   
+     if(ibootstrap_model.eq.1 .or. ibootstrap_model.eq.3)then !Sauter & Angioni (1999) 
+         tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*pt79(:,OP_DZ) &
+                 + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*pt79(:,OP_DR)
+   
+         tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                  jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
+                  jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+     else if (ibootstrap_model.eq.2 .or. ibootstrap_model.eq.4)then !Redl et al (2021) 
+         tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+                  +  (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+   
+         tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+                  (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
+                  (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+     end if
+   
+     temp=tempDD*jbsfluxavgB79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+    
+   
+    end subroutine calculate_CommonTerm_Lambda
+   
+   
+   
+   
+   
+         ! B1psi
+    ! =========
+    function bs_b1psi(e,h)
+      !temp = eta jbscommon ( (-1/r^3) (mu'_z psi_r - mu'_r psi_z) )
+     use basic
+     use m3dc1_nint
+   
+     implicit none
+     
+     vectype, dimension(dofs_per_element) :: bs_b1psi
+     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: h
+     vectype, dimension(dofs_per_element) :: temp
+     temp = 0.
+#if defined(USECOMPLEX) || defined (USE3D)
+         if(jadv.eq.0) then
+            temp = 0.
+         else 
+            if(surface_int) then
+             temp = 0.
+            else          
+     
+             call calculate_CommonTerm_Lambda(temp79a)
+     
+             temp = intx5(e(:,:,OP_DRP),ri3_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
+                    - intx5(e(:,:,OP_DZP),ri3_79,h(:,OP_DR),temp79a,eta79(:,OP_1))
+#ifdef USECOMPLES
+             temp = temp - rfac* &
+                     (intx5(e(:,:,OP_DR),ri3_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
+                    - intx5(e(:,:,OP_DZ),ri3_79,h(:,OP_DR),temp79a,eta79(:,OP_1))) 
+       
+#endif
+            endif
+         endif
+     
+#endif  
+     bs_b1psi = temp
+         
+         
+   end function bs_b1psi
+   
+   
+   ! B1b
+   ! =======
+   function bs_b1b(e,h)
+      !temp = eta jbscommon (1/r^2 F (del* mu ))
+     use basic
+     use m3dc1_nint
+   
+     implicit none
+     
+     vectype, dimension(dofs_per_element) :: bs_b1b
+     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: h
+     vectype, dimension(dofs_per_element) :: temp
+   
+     temp = 0.
+   
+     if(jadv.eq.0) then
+        if(surface_int) then
+           temp = 0.
+        else
+   
+           call calculate_CommonTerm_Lambda(temp79a)
+           temp = intx4(e(:,:,OP_1),temp79a,h(:,OP_1),eta79(:,OP_1))
+   
+        end if
+     else 
+        if(surface_int) then
+           temp = 0.
+        else
+   
+           call calculate_CommonTerm_Lambda(temp79a)
+           temp = intx5(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1),eta79(:,OP_1))
+   
+           if(itor.eq.1) then
+              temp = temp - 2.*intx5(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1),eta79(:,OP_1))
+           end if
+        endif
+     endif
+   
+     bs_b1b = temp
+   end function bs_b1b
+   
+   
+   ! B1f
+   ! =======
+   function bs_b1f(e,h)
+      !temp = eta jbscommon (1/r^2 (psi_z mu'_z + psi_r mu'_r))
+      
+     use basic
+     use m3dc1_nint
+   
+     implicit none
+     
+     vectype, dimension(dofs_per_element) :: bs_b1f
+     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: h
+     vectype, dimension(dofs_per_element) :: temp
+   
+   
+     temp = 0.
+   
+#if defined(USECOMPLEX) || defined(USE3D)
+      if(jadv.eq.0) then
+        temp = 0.
+      else 
+        if(surface_int) then
+           temp = 0.
+        else
+   
+         call calculate_CommonTerm_Lambda(temp79a)
+   
+         temp = intx5(e(:,:,OP_DRP),ri2_79,temp79a,h(:,OP_DR),eta79(:,OP_1)) &
+              + intx5(e(:,:,OP_DZP),ri2_79,temp79a,h(:,OP_DZ),eta79(:,OP_1))
+#ifdef USECOMPLEX
+         temp = temp - rfac* &
+                (intx5(e(:,:,OP_DR),ri2_79,temp79a,h(:,OP_DR),eta79(:,OP_1)) &
+                +intx5(e(:,:,OP_DZ),ri2_79,temp79a,h(:,OP_DZ),eta79(:,OP_1)))
+#endif
+   
+        endif
+      endif
+#endif
+   
+     bs_b1f = temp
+   end function bs_b1f
+   
+   
+   
+       ! B2psi
+    ! =========
+   function bs_b2psi(e,h)
+     !temp = eta jbscommon (1/r^2 (psi_z mu_z + psi_r mu_r))
+   
+     use basic
+     use m3dc1_nint
+   
+     implicit none
+   
+     vectype, dimension(dofs_per_element) :: bs_b2psi
+     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: h
+     vectype, dimension(dofs_per_element) :: temp
+   
+   
+     temp = 0.
+   
+     call calculate_CommonTerm_Lambda(temp79a)
+   
+     temp = intx5(e(:,:,OP_DZ),ri2_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
+          + intx5(e(:,:,OP_DR),ri2_79,h(:,OP_DR),temp79a,eta79(:,OP_1))
+   
+     bs_b2psi = temp
+   end function bs_b2psi
+   
+   
+   
+   
+   ! B2f
+   ! =======
+   function bs_b2f(e,h)
+   
+     !temp = eta jbscommon ( 1/r (mu_z f'_r - mu_r f'_z) )
+   
+     use basic
+     use m3dc1_nint
+   
+     implicit none
+   
+     vectype, dimension(dofs_per_element) :: bs_b2f
+     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: h
+     vectype, dimension(dofs_per_element) :: temp
+   
+     temp = 0.
+   
+#if defined(USECOMPLEX) || defined(USE3D)
+     call calculate_CommonTerm_Lambda(temp79a)
+   
+     temp = intx5(e(:,:,OP_DZ),ri_79,h(:,OP_DR),temp79a,eta79(:,OP_1)) &
+          - intx5(e(:,:,OP_DR),ri_79,h(:,OP_DZ),temp79a,eta79(:,OP_1))
+#else 
+     temp = 0.
+#endif 
+     bs_b2f = temp
+   
+   
+   end function bs_b2f
+   
+   
+   
+   
+   
+   subroutine bootstrap_flux_simplified(trial, lin, ssterm, ddterm, r_bf, q_bf, thimpf, thimp_bf)
+     use basic
+     use arrays
+     use m3dc1_nint
+   
+     implicit none
+   
+     vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
+     vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin 
+     vectype, dimension(dofs_per_element, num_fields), intent(inout) :: ssterm, ddterm
+     vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
+     real, intent(in) :: thimpf, thimp_bf
+   
+     vectype, dimension(dofs_per_element) :: temp
+     
+     if(numvar.eq.1) then
+        ! linearizing in psi  
+        temp = bs_b1psi(trial,lin) 
+        
+         ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+         ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*temp
+        
+     else     
+         ! linearizing in psi
+        temp = bs_b1psi(trial,lin) 
+   
+        ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.    - thimpf*bdf)*dt*temp
+   
+          ! linearizing in b  
+        temp = bs_b1b(trial,lin) 
+        
+        ssterm(:,bz_g) = ssterm(:,bz_g) -          thimpf     *dt*temp
+        ddterm(:,bz_g) = ddterm(:,bz_g) + (1.    - thimpf*bdf)*dt*temp
+        
+   
+      ! linearizing in f'  
+        temp = bs_b1f(trial,lin) 
+        r_bf = r_bf -          thimp_bf     *dt*temp
+        q_bf = q_bf + (1. - thimp_bf*bdf)*dt*temp            
+        
+        if(eqsubtract.eq.1) then
+         !at=(a1+a0)
+         !temp = bs_b1psi(trial,lin) 
+         !--------------------------------------------------------!
+         !ddterm(:,psi_g) = ddterm(:,psi_g) + (1.)*dt*temp      
+           
+   
+         !temp = bs_b1b(trial,lin) 
+         !--------------------------------------------------------!  
+         !ddterm(:,bz_g) = ddterm(:,bz_g) + (1.)*dt*temp    
+   
+         !temp = bs_b1f(trial,lin) 
+         !--------------------------------------------------------!      
+         !q_bf = q_bf + (1.)*dt*temp    
+        end if
+     end if
+   end subroutine bootstrap_flux_simplified
+   
+   
+   
+   
+   
+   
+   
+    subroutine bootstrap_axial_field_simplified(trial, lin, ssterm, ddterm, r_bf, q_bf, thimpf, thimp_bf)
+     use basic
+     use arrays
+     use m3dc1_nint
+   
+     implicit none
+   
+     vectype, dimension(dofs_per_element, MAX_PTS, OP_NUM), intent(in) :: trial
+     vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
+     vectype, dimension(dofs_per_element, num_fields), intent(inout) :: ssterm, ddterm
+     vectype, dimension(dofs_per_element), intent(out) :: r_bf, q_bf
+     real, intent(in) :: thimpf, thimp_bf
+   
+     vectype, dimension(dofs_per_element) :: temp
+   
+   
+   ! linearizing in psi
+     temp = bs_b2psi(trial,lin)
+          
+     ssterm(:,psi_g) = ssterm(:,psi_g) -          thimpf     *dt*temp
+     ddterm(:,psi_g) = ddterm(:,psi_g) + (1.    - thimpf*bdf)*dt*temp
+     
+   
+   ! linearizing in F - No F term
+   !  temp = bs_b2b(trial,lin)
+   !  ssterm(:,bz_g) = ssterm(:,bz_g) -          thimpf     *dt*temp
+   !  ddterm(:,bz_g) = ddterm(:,bz_g) + (1.    - thimpf*bdf)*dt*temp
+     
+   ! linearizing in f'
+     temp = bs_b2f(trial,lin)
+   
+     r_bf = r_bf -          thimp_bf     *dt*temp
+     q_bf = q_bf + (1. - thimp_bf*bdf)*dt*temp
+   
+     if(eqsubtract.eq.1) then
+   
+        !at=a1+a0
+   
+      !  temp = bs_b2psi(trial,lin) 
+      !  ddterm(:,psi_g) = ddterm(:,psi_g) + (1.)*dt*temp
+   
+      ! linearizing in F - No F term
+      !  temp = bs_b2b(trial,lin) 
+      !  ddterm(:,bz_g) = ddterm(:,bz_g) + (1.)*dt*temp
+   
+   
+   
+      !  temp = bs_b2f(trial,lin) 
+      !  q_bf = q_bf + (1..)*dt*temp
+     end if
+   end subroutine bootstrap_axial_field_simplified
 
 end module bootstrap
 

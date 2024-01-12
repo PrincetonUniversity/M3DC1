@@ -47,9 +47,9 @@ function bootstrapCoeff_func(col_number)
             call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', xvals, nvals,skip=1, icol=1)
             call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
-            !print*,'Reading L31,32,34,alpha from column number',col_number
-            !print*,'Reading X',xvals
-            !print*,'Reading Y',yvals
+           ! print*,'Reading L31,32,34,alpha from column number',col_number
+           ! print*,'Reading X',xvals
+           ! print*,'Reading Y',yvals
             call create_spline(coef_spline_L31, nvals, xvals, yvals)
             deallocate(xvals, yvals)
          end if

@@ -2491,6 +2491,9 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
   if((ibootstrap_model.eq.1) .or. (ibootstrap_model.eq.2)) then
      call bootstrap_flux(trialx, lin, ssterm, ddterm, r_bf, q_bf, &
           thimpf, thimp_bf)
+  elseif((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4)) then
+     call bootstrap_flux_simplified(trialx, lin, ssterm, ddterm, r_bf, q_bf, &
+          thimpf, thimp_bf)
   end if
 
   if(itwofluid.eq.1 .and. harned_mikic.ne.0) then
@@ -2846,6 +2849,9 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   if((ibootstrap_model.eq.1) .or. (ibootstrap_model.eq.2)) then
      call bootstrap_axial_field(trialx, lin, ssterm, ddterm, r_bf, q_bf, &
           thimpf, thimp_bf)
+  elseif((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4)) then
+     call bootstrap_axial_field_simplified(trialx, lin, ssterm, ddterm, &
+          r_bf, q_bf,thimpf, thimp_bf)
 end if
 
 
@@ -3848,6 +3854,8 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
   !if((ibootstrap_model.eq.1) .or. (ibootstrap_model.eq.2)) then
   !   call bootstrap_pressure(trialx, lin, ssterm, ddterm, pp_g, thimp)
+  !elseif((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4)) then
+  !   call bootstrap_pressure_simplified(trialx, lin, ssterm, ddterm, pp_g, thimp)
   !end if
 end subroutine pressure_lin
 
