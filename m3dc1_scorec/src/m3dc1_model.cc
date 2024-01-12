@@ -326,7 +326,7 @@ void load_model(const char* filename)
 
   // Delete this block of code in first if statement when snapping is set to default
   // for every case
-  int numFaces;
+  int numFaces = 0;
   fscanf(fp,"%d\n", &numFaces);
   if (!numFaces)	// Faces actually exist but not provided in output model file (.txt file)
   {
@@ -338,7 +338,8 @@ void load_model(const char* filename)
   if (numFaces>0)  
   {
     std::vector <int> edgeIdsOnFace;
-    std::cout << "Number of Faces = " << numFaces << "\n";
+    if (!PCU_Comm_Self())
+    	std::cout << "Number of Faces = " << numFaces << "\n";
     for (int i = 1; i <= numFaces; ++i)
     {
       int faceNumber, numLoops;
