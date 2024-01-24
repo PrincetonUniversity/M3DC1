@@ -705,6 +705,7 @@ subroutine calculate_auxiliary_fields(ilin)
   if(jadv.eq.0) def_fields = def_fields + FIELD_ES
   if(heat_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_Q
   if(rad_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_RAD
+  if (irunaway.ge.1) def_fields = def_fields + FIELD_RE
 
   numelms = local_elements()
 
@@ -1128,6 +1129,7 @@ subroutine calculate_auxiliary_fields(ilin)
   def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
   def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
   def_fields = def_fields + FIELD_MU + FIELD_B2I
+  if (irunaway.ge.1) def_fields = def_fields + FIELD_RE
 
   numelms = local_elements()
 

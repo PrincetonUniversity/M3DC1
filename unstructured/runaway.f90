@@ -108,7 +108,7 @@ contains
              
 !   based on formula in Stahl, et al, PRL 114 115002 (2015)
     teval = max(1.,Temp)   ! note: this sets a minimum temperature of 1 eV for runaway production
-    esign = sign(1., epar)
+    esign = sign(1., -epar)
        jpar = nre!*ec*cre*va
        nra = nre/ec/cre/va 
        re_epar = epar! - 1.0*abs(eta*jpar/b1/bz/ri)
@@ -127,8 +127,13 @@ contains
           if(abs(re_epar).gt.Ecrit) then
               sd = Dens1*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
                  *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x))
-              sa = nra/tau/Clog*sqrt(pi*gamma/3/(Zeff+5))*(Ed-1)* &
-                 1/sqrt(1-1/Ed+4*pi*(Zeff+1)**2/3/gamma/(Zeff+5)/(Ed**2+4/gamma**2-1)) 
+              !write(0,*) re_epar, Ecrit
+              if (re_epar*nre<0) then
+                 sa = nra/tau/Clog*sqrt(pi*gamma/3/(Zeff+5))*(Ed-1)* &
+                    1/sqrt(1-1/Ed+4*pi*(Zeff+1)**2/3/gamma/(Zeff+5)/(Ed**2+4/gamma**2-1)) 
+              else
+                 sa = 0.
+              endif
               dndt = (sd*esign + sa)*cre*ec*va
                  nrel = nre + dndt*dt_si
           else
@@ -146,7 +151,7 @@ contains
        if (abs(re_j79) .ge. abs(ri*bz)) then
             dndt = 0.
        endif
-      
+
   end subroutine runaway_current
 
   subroutine eval_runaway(itri,izone)

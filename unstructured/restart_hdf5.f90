@@ -406,6 +406,7 @@ contains
     if(irunaway.gt.0) then
       call h5r_read_field(group_id, "nre", nre_field(ilin), nelms, error)
     endif
+    call mult(nre_field(ilin), -1.)
 
     if(icsubtract.eq.1) then
        call h5r_read_field(group_id, "psi_coil", psi_coil_field, nelms, error, .true.)

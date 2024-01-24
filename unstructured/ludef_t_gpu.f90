@@ -6251,7 +6251,7 @@ subroutine ludefphi_n(itri)
            if(jadv.eq.0) then
               do i=1,dofs_per_element
                  call potential_lin(mu79(i,:,:),nu79(j,:,:), &
-                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j))
+                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j),izone)
               end do
            else   !jadv.eq.1
               do i=1,dofs_per_element

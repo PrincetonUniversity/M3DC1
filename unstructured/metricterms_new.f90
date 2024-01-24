@@ -8700,6 +8700,9 @@ function nre1nrediff(e,f)
        - intx4(e(:,:,OP_DR),ri_79,-temp79a,pstx79(:,OP_DZ))
 #endif
 
+  !temp = temp -(intx2(e(:,:,OP_DZ),f(:,OP_DZ)) &
+  !     +   intx2(e(:,:,OP_DR),f(:,OP_DR)))*1.e-4
+
   nre1nrediff = temp
 end function nre1nrediff
 
