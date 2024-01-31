@@ -105,10 +105,10 @@
 7.1 specify which solve is the mg target solve, for example, 
 
     use mg for solve #5
-            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mymatrixid 5
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mgsolve 5
 
     use mg for solve #5
-            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mymatrixid 17
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mgsolve 17
 
 7.2 the 1st part is the block jacobi preconditioner, the same as what has been using
 
