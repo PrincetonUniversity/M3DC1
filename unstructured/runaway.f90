@@ -108,6 +108,8 @@ contains
              
 !   based on formula in Stahl, et al, PRL 114 115002 (2015)
     teval = max(1.,Temp)   ! note: this sets a minimum temperature of 1 eV for runaway production
+!   Note that nre is the density of RE flowing in the direction of B field,
+!   thus their growth is linked to -epar (due to the negative charge)
     esign = sign(1., -epar)
        jpar = nre!*ec*cre*va
        nra = nre/ec/cre/va 
@@ -127,7 +129,7 @@ contains
           if(abs(re_epar).gt.Ecrit) then
               sd = Dens1*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
                  *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x))
-              !write(0,*) re_epar, Ecrit
+              ! avalanche growth only when epar and nre have opposite sign
               if (re_epar*nre<0) then
                  sa = nra/tau/Clog*sqrt(pi*gamma/3/(Zeff+5))*(Ed-1)* &
                     1/sqrt(1-1/Ed+4*pi*(Zeff+1)**2/3/gamma/(Zeff+5)/(Ed**2+4/gamma**2-1)) 

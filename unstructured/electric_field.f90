@@ -480,12 +480,13 @@ subroutine electric_field_par(ilin,o, izone)
   ! ~~~~~~~~
   if(irunaway .gt. 0) then
       !ere = abs(eta79(:,OP_1)*nre179(:,OP_1) )
-      !osign = sign(1.0,o)
+      osign = sign(1.0,o)
       !o = osign*(abs(o) - ere)
       !where (sign(1.,o) .ne. osign) 
       !o = 0.
       !end where
       ere = eta79(:,OP_1)*nre179(:,OP_1)
+      ! only include RE term when RE current has the same sign as total current
       where (sign(1.,ere) .ne. osign) 
          o = o + ere
       end where
