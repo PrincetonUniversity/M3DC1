@@ -1182,7 +1182,7 @@ int matrix_solve:: setKspType()
   PetscInt       whichsolve=-1;
   ierr = PetscOptionsGetInt(NULL,NULL,"-mgsolve",&whichsolve,NULL); CHKERRQ(ierr);
   if(mymatrix_id==whichsolve) {
-          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<whichsolve<<" is going to use BMG"<<"\n";
+          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<whichsolve<<" is going to use BGMG"<<"\n";
           if(!BgmgSet) setBgmgType();
   }
 
