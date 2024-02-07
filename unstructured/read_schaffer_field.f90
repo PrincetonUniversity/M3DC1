@@ -670,6 +670,7 @@ contains
 
   subroutine load_mgrid_field(sf, mgrid_filename, vmec_filename, error)
     use netcdf
+    use math
     implicit none
 
     type(schaffer_field), intent(inout) :: sf
@@ -679,7 +680,7 @@ contains
     integer :: ll, ii, kk
     integer :: ncid, ncid_vmec
     real :: curfac, dr, dz, dphi
-    real :: twopi, per
+    real :: per
 
 ! Dimension IDs
     integer :: radDimID, phiDimID, zeeDimID
@@ -771,47 +772,34 @@ contains
        end do
        deallocate(temp)
 
+! Schaffer field needs 1 more toroidal grid point than MGRID! 
+       sf%nphi = sf%nphi + 1
+       if(.not. sf%initialized) then
+         allocate(sf%br(sf%nphi,sf%nr,sf%nz))
+         allocate(sf%bphi(sf%nphi,sf%nr,sf%nz))
+         allocate(sf%bz(sf%nphi,sf%nr,sf%nz))
+         allocate(sf%r(sf%nr))
+         allocate(sf%z(sf%nz))
+         allocate(sf%phi(sf%nphi))
+       end if
+
 ! Transpose (r,z,phi) -> (phi,r,z)      
-       allocate(sf%br(sf%nphi,sf%nr,sf%nz))
-       allocate(sf%bphi(sf%nphi,sf%nr,sf%nz))
-       allocate(sf%bz(sf%nphi,sf%nr,sf%nz))
-
-       allocate(temp(sf%nr,sf%nphi,sf%nz))
-       ! (r,z,phi) -> (r,phi,z)
-       do kk = 1, sf%nr, 1
-          temp(kk,:,:) = transpose(brtemp(kk,:,:))
+       do kk = 1, sf%nphi-1
+          sf%br(kk,:,:) = brtemp(:,:,kk)
+          sf%bphi(kk,:,:) = bphitemp(:,:,kk)
+          sf%bz(kk,:,:) = bztemp(:,:,kk)
        end do 
-       ! (r,phi,z) -> (phi,r,z)
-       do kk = 1, sf%nz, 1
-          sf%br(:,:,kk) = transpose(temp(:,:,kk))
-       end do 
-
-       do kk = 1, sf%nr, 1
-          temp(kk,:,:) = transpose(bphitemp(kk,:,:))
-       end do 
-       do kk = 1, sf%nz, 1
-          sf%bphi(:,:,kk) = transpose(temp(:,:,kk))
-       end do 
-
-       do kk = 1, sf%nr, 1
-          temp(kk,:,:) = transpose(bztemp(kk,:,:))
-       end do 
-       do kk = 1, sf%nz, 1
-          sf%bz(:,:,kk) = transpose(temp(:,:,kk))
-       end do 
-       deallocate(temp)
-       deallocate(brtemp,bphitemp,bztemp)
+! Data on extra toroidal grid point
+       sf%br(sf%nphi,:,:) = brtemp(:,:,1)
+       sf%bphi(sf%nphi,:,:) = bphitemp(:,:,1)
+       sf%bz(sf%nphi,:,:) = bztemp(:,:,1)
+       deallocate(brtemp,bztemp,bphitemp)
 
 ! Make grid
        dr = (rmax-rmin)/(sf%nr-1)
        dz = (zmax-zmin)/(sf%nz-1)
-       twopi = 6.283185307 ! Change to atan definition
        per = twopi/nfp
        dphi = per/(sf%nphi-1)
-
-       allocate(sf%r(sf%nr))
-       allocate(sf%z(sf%nz))
-       allocate(sf%phi(sf%nphi))
 
        do kk = 1, sf%nr, 1
           sf%r(kk) = rmin + (kk-1)*dr
@@ -822,9 +810,6 @@ contains
        do kk = 1, sf%nz, 1
           sf%z(kk) = zmin + (kk-1)*dz
        end do
-! Pressure
-       allocate(sf%p(sf%nphi,sf%nr,sf%nz))
-       sf%p = 0.0
        sf%initialized = .true.
     else
        print *, 'ERROR: Invalid extension. MGRID must be .nc'
