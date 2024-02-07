@@ -35,9 +35,12 @@ if { ! [ is-loaded gcc/12.2.0-x86_64 ] } {
   module load gcc/12.2.0-x86_64
 }
 
-module use /orcd/nese/psfc/001/software/modulefiles/spack-modules
-module load openmpi-4.1.4-gcc-12.2.0-3r4zaih
-module load netcdf-c-4.9.2-gcc-12.2.0-kogljzt netcdf-fortran-4.6.0-gcc-12.2.0-cylyrw3
+module use /orcd/data/psfc/001/software/modulefiles/spack-admin
+#module load openmpi-4.1.4-gcc-12.2.0-3r4zaih
+#module load netcdf-c-4.9.2-gcc-12.2.0-kogljzt netcdf-fortran-4.6.0-gcc-12.2.0-cylyrw3
+module load openmpi/4.1.4-pmi-cuda-ucx-x86_64
+module load netcdf-c/4.9.0-x86_64
+module load netcdf-fortran/4.6.0-x86_64
 
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
