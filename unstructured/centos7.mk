@@ -53,8 +53,8 @@ else
 PETSC_ARCH=real-rhel7-$(MPIVER)
 endif
 
-#SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/centos7
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
+#SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/centos7
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 
 PUMI_DIR=$(SCOREC_BASE_DIR)
