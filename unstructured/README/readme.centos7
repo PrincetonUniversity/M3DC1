@@ -19,10 +19,6 @@
 	3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=centos7
 	3D ST: make 3D=1 OPT=1 MAX_PTS=60 ARCH=greene ST=1
    
-        2D with a new mesh adaptation capability:
-           make OPT=1 MAX_PTS=25 ARCH=centos7 SCORECVER=adapt ADAPT=1
-           (examples available in /p/tsc/m3dc1/lib/SCORECLib/adapt-examples/pellet-*p)
-        
 5. mesh utility
    - mesh generation (m3dc1_meshgen, m3dc1_mfmgen) and convert_polar: 
      module load simmodsuite/17.0-220903
