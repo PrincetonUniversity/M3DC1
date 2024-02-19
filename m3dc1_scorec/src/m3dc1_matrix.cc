@@ -1121,20 +1121,20 @@ int matrix_solve::solve(FieldID field_id)
 
           if(BgmgSet==-1) {
       PC pc;
-      PetscCall( KSPGetPC(*ksp,&pc) );
+      ierr = KSPGetPC(*ksp,&pc); CHKERRQ(ierr);
       KSP coarse_ksp;
       Mat coarse_mat;
-      PetscCall( PCMGGetCoarseSolve(pc,&coarse_ksp));
-      PetscCall( KSPGetOperators(coarse_ksp,NULL, &coarse_mat));
-      PetscCall(MatViewFromOptions(coarse_mat, NULL, "-S_view"));
+      ierr = PCMGGetCoarseSolve(pc,&coarse_ksp); CHKERRQ(ierr);
+      ierr = KSPGetOperators(coarse_ksp,NULL, &coarse_mat); CHKERRQ(ierr);
+      ierr = MatViewFromOptions(coarse_mat, NULL, "-S_view"); CHKERRQ(ierr);
 
       Vec btmp;
-      PetscCall(KSPGetSolution(coarse_ksp, &btmp));
-      PetscCall(VecViewFromOptions(btmp, NULL, "-b_view"));
+      ierr = KSPGetSolution(coarse_ksp, &btmp); CHKERRQ(ierr);
+      ierr = VecViewFromOptions(btmp, NULL, "-b_view"); CHKERRQ(ierr);
 
       Vec xtmp;
-      PetscCall(KSPGetRhs(coarse_ksp, &xtmp));
-      PetscCall(VecViewFromOptions(xtmp, NULL, "-x_view"));
+      ierr = KSPGetRhs(coarse_ksp, &xtmp); CHKERRQ(ierr);
+      ierr = VecViewFromOptions(xtmp, NULL, "-x_view"); CHKERRQ(ierr);
 	  }
 
   if (PCU_Comm_Self() == 0)
