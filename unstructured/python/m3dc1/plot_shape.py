@@ -23,7 +23,8 @@ from m3dc1.plot_coils import plot_coils
 
 
 def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, Nlvl_in=10, Nlvl_out=1,
-               mesh=False, bound=False, lcfs=False, coils=False, phys=False, ax=None, pub=False, quiet=False):
+               mesh=False, bound=False, lcfs=False, coils=False, phys=False, ax=None, pub=False,
+               fignum=None, quiet=False):
     """
     Plot flux surfaces in poloidal plane
     
@@ -67,6 +68,9 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
     **phys**
     Use True for plotting in physical (stellarator) geometry.
 
+    **fignum**
+    Figure number
+
     **quiet**
     If True, suppress output to terminal.
     """
@@ -86,7 +90,7 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         legfs = None
     
     if ax is None:
-        fig, axs = plt.subplots(1, 1)
+        fig, axs = plt.subplots(1, 1, num=fignum)
         fig.set_figheight(7)
     else:
         axs = ax
@@ -101,12 +105,19 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
             times = [s.timeslice for s in sims]
         else:
             if isinstance(filename,(tuple,list)):
-                sims = [fpy.sim_data(fn) for fn in filename]
+                #print(time)
                 if (isinstance(time,(tuple,list)) and len(time)==len(filename)):
                     times = time
-                else:
-                    times = [None for fn in filename]
-                    fpyl.printnote('No time provided. Plotting at timeslice = 0')
+                elif isinstance(time,int):
+                    times = np.full(len(filename),time)
+                sims = []
+                print(times)
+                for i,fn in enumerate(filename):
+                    print(times[i])
+                    sims.append(fpy.sim_data(fn,time=times[i]))
+                #else:
+                #    times = [None for fn in filename]
+                #    fpyl.printnote('No time provided. Plotting at timeslice = 0')
             else:
                 sims = [fpy.sim_data(filename)]
                 times = [time]

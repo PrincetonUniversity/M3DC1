@@ -14,8 +14,9 @@ from m3dc1.get_time_of_slice import get_time_of_slice
 
 def input_vs_t(param,wd=None,units='m3dc1',millisec=False,makeplot=True,fignum=None):
     """
-    Reads M3D-C1 input parameters from all Slurm log files within simulation directory
-    and plots it vs. time.
+    Reads M3D-C1 input parameter from all Slurm log files within simulation directory
+    and plots it vs. time. This is useful to track the value of input parameters
+    that are not written to the HDF5 output in restarted simulations.
     
     Arguments:
 

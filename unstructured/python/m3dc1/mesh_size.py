@@ -48,7 +48,7 @@ def mesh_size(filename='sizefieldParam',params=[],outfile='sizefieldParam.new'):
             with open(filename, 'r') as f:
                 for line in f:
                     data_str = np.array(line.split())
-                    data = data_str.astype(np.float)
+                    data = data_str.astype(float)
                     break
             print(data)
 

@@ -231,29 +231,9 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
     #Determine toroidal mode number n if not specified via argument
     if n is None:
         path = sims[0].filename[:-6]
-        print(path)
-        slurmfiles = glob.glob(path+"/slurm*.out")
-        if len(slurmfiles) < 1:
-            C1infile = glob.glob(path+"/C1input")
-            if len(C1infile) < 1:
-                fpyl.printwarn('WARNING: No Slurm output or C1input file found. Please provide value for n in function call!')
-                return
-            else:
-                slurmfiles = C1infile
-            #os.chdir(pwd)
-        
-        if len(slurmfiles) > 1:
-            fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
-            slurmfiles.sort(key=os.path.getmtime,reverse=True)
-        slurmfile = slurmfiles[0]
-    
-        with open(slurmfile, 'r') as sf:
-            for line in sf:
-                if 'ntor ' in line:
-                    ntorline = line.split()
-                    print(ntorline)
-                    n = int(ntorline[2])
-                    break
+        paramfile = fpyl.get_input_parameter_file(directory=path)
+        #print(slurmfile)
+        n = int(fpyl.get_parameter_from_ascii('ntor',paramfile,quiet=True))
     
     
     # Plot eigenfunction in R-Z plane

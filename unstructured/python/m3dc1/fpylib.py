@@ -877,3 +877,89 @@ def get_run_dirs(dirname):
     for dirname in list(subfolders0):
         subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and not 'base_' in f.path)])
     return subfolders
+
+
+#-------------------------------------------
+# Read data from Slurm log files
+#-------------------------------------------
+def get_input_parameter_file(directory=None,use_C1input=True):
+    """
+    Return path to most recent Slurm log file in directory based on
+    file modification time. If no Slurm log can be found, function
+    can return path to C1input file instead.
+
+    Arguments:
+
+    **directory**
+    Path to directory
+
+    **use_C1input**
+    True/False. If True, path to C1input file will be returned.
+    """
+    if directory is None:
+        directory = os.getcwd()
+    slurmfiles = glob.glob(directory+"/slurm*.out")
+
+    #if len(slurmfiles) < 1:
+    #    slurmfiles = glob.glob(cwd+'/n'+str(nmin).zfill(2)+"/slurm*.out")
+    #    if len(slurmfiles) < 1:
+    #        printerr('ERROR: No Slurm output file found!')
+    #        os.chdir(cwd)
+    #        return
+
+    # If no slurm file can be found, read from C1input instead
+    if len(slurmfiles) < 1 and use_C1input:
+        printwarn('WARNING: No Slurm output file found. Looking for C1input file instead.')
+        C1infile = glob.glob(directory+"/C1input")
+        if len(C1infile) < 1:
+            printerr('ERROR: Cannot find Slurm output or C1input file.')
+            return
+        else:
+            slurmfiles = C1infile
+
+    if len(slurmfiles) > 1:
+        printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
+        slurmfiles.sort(key=os.path.getmtime,reverse=True)
+    elif len(slurmfiles) < 1:
+        printerr('ERROR: Cannot find Slurm output file.')
+        return
+
+    input_parameter_file = slurmfiles[0]
+    return input_parameter_file
+
+
+
+def get_parameter_from_ascii(param,filename,quiet=False):
+    """
+    Read M3D-C1 input parameter from Slurm log file or C1input
+
+    Arguments:
+
+    **param**
+    Name of parameter, e.g. amu
+
+    **filename**
+    Path to Slurm log file.
+
+    **quiet**
+    If True, suppress output to terminal.
+    """
+    with open(filename, 'r') as sf:
+        search_str = param+'   ' if 'slurm' in filename else param #More robust with spaces after param, but if reading from C1input there might be no spaces
+        found = False
+        for line in sf:
+            if search_str in line:
+                iline = line.split()
+                value = iline[2:]
+                found = True
+    if not found:
+        printerr('ERROR: '+param+' not found in file '+filename)
+        return None
+
+    if not quiet:
+        print(param+'='+str(value))
+
+    if len(value)==1:
+        return value[0]
+    elif len(value)>1:
+        return value

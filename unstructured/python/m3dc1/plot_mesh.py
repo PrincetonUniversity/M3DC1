@@ -15,9 +15,10 @@ from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 import fpy
 import m3dc1.fpylib as fpyl
 from m3dc1.plot_coils import plot_coils
+from m3dc1.plot_mag_probes import plot_mag_probes
 
 
-def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils=False,ax=None,fignum=None,meshcol='C0',zoom=False,pub=False,quiet=False,phys=False,phi=0.,save=False):
+def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils=False,mag_probes=False,ax=None,fignum=None,meshcol='C0',zoom=False,pub=False,quiet=False,phys=False,phi=0.,save=False):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
@@ -111,6 +112,9 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils
             plt.plot(mesh[:,4],mesh[:,5],lw=0,marker='.',ms=0)
         if coils:
             plot_coils(ax=ax)
+        if mag_probes:
+            plot_mag_probes(ax=ax)
+
         plt.grid(True)
         ax.set_aspect('equal',adjustable='box')
         plt.xlabel(r'$R$',fontsize=axlblfs)
