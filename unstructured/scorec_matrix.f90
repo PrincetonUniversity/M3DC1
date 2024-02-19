@@ -101,6 +101,61 @@ module scorec_matrix_mod
 
 contains
 
+
+  !====================================================================
+  ! -memory_view - Print memory usage at end of run
+  ! -log_view_memory - Display memory information for each logged event
+  ! -malloc_view - Print usage of PetscMalloc() in PetscFinalize()
+  ! PetscMemorySetGetMaximumUsage
+
+  ! PETSc provides a number of tools to aid in detection of problems with memory allocation, 
+  ! including leaks and use of uninitialized space. We briefly describe these below.
+
+  !• The PETSc memory allocation (which collects statistics and performs error checking), 
+  !  is employed by default for codes compiled in a debug-mode (configured with --with-debugging=1). 
+  !  PETSc memory allocation can be activated for optimized-mode (configured with --with-debugging=0)
+  !  using the option -malloc_debug. The option -malloc_debug 0 forces the use of conventional memory
+  !  allocation when debugging is enabled. When running timing tests, one should build libraries in optimized mode.
+
+  !• When the PETSc memory allocation routines are used, the option -malloc_dump will print a list of
+  !  unfreed memory at the conclusion of a program. If all memory has been freed, only a message stating the
+  !  maximum allocated space will be printed. However, if some memory remains unfreed, this information
+  !  will be printed. Note that the option -malloc_dump activates a call to PetscMallocDump() during
+  !  PetscFinalize() the user can also call PetscMallocDump() elsewhere in a program.
+
+  !• Another useful option for use with PETSc memory allocation routines is -malloc_view, 
+  !  which activates logging of all calls to malloc and reports memory usage, including all Fortran arrays. 
+  !  This option provides a more complete picture than -malloc_dump for codes that employ Fortran with hardwired arrays. 
+  !  The option -malloc_view activates logging by calling PetscMallocViewSet() in PetscInitialize() and then 
+  !  prints the log by calling PetscMallocView() in PetscFinalize(). 
+  !  The user can also call these routines elsewhere in a program. When finer granularity is desired,
+  !  the user should call PetscMallocGetCurrentUsage() and PetscMallocGetMaximumUsage() for memory 
+  !  allocated by PETSc, or PetscMemoryGetCurrentUsage() and PetscMemoryGetMaximumUsage() for the total memory 
+  !  used by the program. Note that PetscMemorySetGetMaximumUsage() must be called before 
+  !  PetscMemoryGetMaximumUsage() (typically at the beginning of the program).
+
+  !• When running with -log_view the additional option -log_view_memory causes the display of additional
+  !  columns of information about how much memory was allocated and freed during each logged event.
+  !  This is useful to understand what phases of a computation require the most memory.
+  !====================================================================
+  subroutine printMemStatTotalStart
+    integer :: ierr
+    call PetscMemorySetGetMaximumUsage(ierr);
+  end subroutine printMemStatTotalStart
+  subroutine printMemStatTotal
+    !call cc_printMemStatTotal
+    use petsc
+    implicit none
+    real :: mem, mem_max
+    integer :: myrank, ierr
+
+    call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
+    call PetscMemoryGetCurrentUsage(mem,ierr)
+    call PetscMemoryGetMaximumUsage(mem_max,ierr);
+    if(mod(myrank,10)==0) &
+    write(*,'(A,2x,i4,2x,F14.2,2x, F14.2)') "Memory usage (MB) reported by Petsc:",myrank,mem/1e6,mem_max/1e6
+  end subroutine printMemStatTotal
+
   !====================================================================
   ! set_matrix_index
   ! ~~~~~~~~~~~~~~~~
@@ -200,6 +255,7 @@ contains
   ! zeroes out a scorec solve matrix
   !====================================================================
   subroutine scorec_matrix_clear(mat)
+!    use basic, ONLY: myrank
     implicit none
 
     type(scorec_matrix), intent(inout) :: mat
@@ -209,6 +265,8 @@ contains
     call m3dc1_matrix_delete (mat%imatrix)
 #endif
     call create_mat(mat,mat%m,mat%n,mat%icomplex,mat%lhs)
+!    if(myrank==0) &
+!    write(*,'(A,2x,i4)') "matrix deleted and re-created:",mat%imatrix
   end subroutine scorec_matrix_clear
 
 
@@ -218,6 +276,7 @@ contains
   ! destroys and scorec solve matrix
   !====================================================================
   subroutine scorec_matrix_destroy(mat)
+!    use basic, ONLY: myrank
     implicit none
     
     type(scorec_matrix) :: mat
@@ -226,6 +285,8 @@ contains
 #else
     call m3dc1_matrix_delete (mat%imatrix)
 #endif
+!    if(myrank==0) &
+!    write(*,'(A,2x,i4)') "matrix deleted:",mat%imatrix
   end subroutine scorec_matrix_destroy
 
 

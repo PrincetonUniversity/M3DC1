@@ -742,25 +742,25 @@ matrix_solve::matrix_solve(int i, int s, FieldID f): m3dc1_matrix(i,s,f)
 
 matrix_solve::~matrix_solve()
 {
-  if (kspSet)
-    KSPDestroy(ksp);
-  delete ksp;
-
   if (BgmgSet) {
 //  PCDestroy(pc);
 //  delete pc;
 
-//    for (int level=0;level<mg_nlevels-1;level++) {
-//      MatDestroy(&(mg_interp_mat[level]));
+    for (int level=0;level<mg_nlevels-1;level++) {
+      MatDestroy(&(mg_interp_mat[level]));
 //      KSPDestroy(&(mg_level_ksp[level]));
 //      PCDestroy(&(mg_level_pc[level]));
-//    }
+    }
     delete [] mg_interp_mat;
     delete [] mg_level_ksp;
     delete [] mg_level_pc;
 
     BgmgSet=0;
   }
+
+  if (kspSet)
+    KSPDestroy(ksp);
+  delete ksp;
 
   MatDestroy(&remoteA);
 }
@@ -1119,6 +1119,24 @@ int matrix_solve::solve(FieldID field_id)
   ierr = KSPGetIterationNumber(*ksp, &its);
   CHKERRQ(ierr);
 
+          if(BgmgSet==-1) {
+      PC pc;
+      PetscCall( KSPGetPC(*ksp,&pc) );
+      KSP coarse_ksp;
+      Mat coarse_mat;
+      PetscCall( PCMGGetCoarseSolve(pc,&coarse_ksp));
+      PetscCall( KSPGetOperators(coarse_ksp,NULL, &coarse_mat));
+      PetscCall(MatViewFromOptions(coarse_mat, NULL, "-S_view"));
+
+      Vec btmp;
+      PetscCall(KSPGetSolution(coarse_ksp, &btmp));
+      PetscCall(VecViewFromOptions(btmp, NULL, "-b_view"));
+
+      Vec xtmp;
+      PetscCall(KSPGetRhs(coarse_ksp, &xtmp));
+      PetscCall(VecViewFromOptions(xtmp, NULL, "-x_view"));
+	  }
+
   if (PCU_Comm_Self() == 0)
     std::cout <<"\t-- # solver iterations " << its << std::endl;
   //iterNum = its;
@@ -1179,10 +1197,12 @@ int matrix_solve:: setKspType()
   ierr = KSPCreate(MPI_COMM_WORLD, ksp);
   CHKERRQ(ierr);
 
-  PetscInt       whichsolve=-1;
-  ierr = PetscOptionsGetInt(NULL,NULL,"-mgsolve",&whichsolve,NULL); CHKERRQ(ierr);
-  if(mymatrix_id==whichsolve) {
-          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<whichsolve<<" is going to use BGMG"<<"\n";
+  //mgsolve is turned on only if the solve is 5 or 17
+  PetscInt ss=2, mgsolve[2];
+  mgsolve[0]=-1;mgsolve[1]=-1;
+  ierr = PetscOptionsGetIntArray(NULL,NULL,"-mgsolve",mgsolve,&ss,NULL); CHKERRQ(ierr);
+  if(mymatrix_id==mgsolve[0] || mymatrix_id==mgsolve[1]) {
+          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use BGMG preconditioner"<<"\n";
           if(!BgmgSet) setBgmgType();
   }
 
