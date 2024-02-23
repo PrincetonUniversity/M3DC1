@@ -544,8 +544,8 @@ void adapt_mesh (int field_id_h1, int field_id_h2, double* dir)
   ma::Input* in = ma::makeAdvanced(ma::configure(mesh, size_field, frame_field, &slnTransfer));
 #endif
 	
-  in->shouldSnap = 0;
-  in->shouldTransferParametric = 0;
+  in->shouldSnap = 1;
+  in->shouldTransferParametric = 1;
   in->shouldRunMidZoltan = 1;
   in->shouldRunPreZoltan = 1;
   in->shouldRunPostZoltan = 1;
