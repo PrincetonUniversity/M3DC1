@@ -2009,10 +2009,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
       apf::Vector3 param(0,0,0);
       m3dc1_mesh::instance()->mesh->getParam(vt,param);
       M3DC1::Expression** pn=(M3DC1::Expression**) gmi_analytic_data(m3dc1_model::instance()->model,gent);
-      if (m3dc1_model::instance()->snapping && param[0] == 0)
-	m3dc1_node_getNormVecOnNewVert(vt, xyzt);
-      else
-        evalNormalVector(pn[0],pn[1], param[0], xyzt);
+      evalNormalVector(pn[0],pn[1], param[0], xyzt);
     }
   }
   return M3DC1_SUCCESS;
