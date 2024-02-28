@@ -1,0 +1,68 @@
+#%Module1.0
+##
+
+## Required internal variables
+
+set             name            m3dc1
+set             version         devel
+set             root            $env(M3DC1_CODE_DIR)
+
+## List conflicting modules here
+
+conflict $name
+
+## List prerequisite modules here
+
+set             fullname        M3D-C1
+set             externalurl     http://w3.pppl.gov/~nferraro/m3dc1.html
+set             description     "M3D-C1 is an extended-MHD code"
+
+## Required for "module help ..."
+
+proc ModulesHelp { } {
+  global description externalurl
+  puts stderr "Description - $description"
+  puts stderr "Other Docs  - $externalurl"
+}
+
+## Required for "module display ..." and SWDB
+
+module-whatis                   "$description"
+
+## Software-specific settings exported to user environment
+
+#if { ! [ is-loaded PrgEnv-nvhpc/8.3.3 ] } {
+#  module load PrgEnv-nvhpc/8.3.3  darshan
+#}
+if { ! [ is-loaded PrgEnv-nvidia/8.3.3 ] } {
+  module load PrgEnv-nvidia/8.3.3 darshan
+}
+#if { ! [ is-loaded cray-mpich/8.1.11 ] } {
+#  module load cray-mpich/8.1.11
+#}
+#if { ! [ is-loaded cray-hdf5-parallel/1.12.0.7 ] } {
+#  module load cray-hdf5-parallel/1.12.0.7
+#}
+#if { ! [ is-loaded cray-parallel-netcdf/1.12.1.7 ] } {
+#  module load cray-parallel-netcdf/1.12.1.7
+#}
+#if { ! [ is-loaded cray-fftw/3.3.8.12 ] } {
+#  module load cray-fftw/3.3.8.12
+#}
+#if { ! [ is-loaded gsl/2.5 ] } {
+#  module load gsl/2.5
+#}
+#if { ! [ is-loaded idl ] } {
+#  module load idl
+#}
+if { ! [ is-loaded fast-mkl-amd ] } {
+  module load fast-mkl-amd
+}
+
+setenv          M3DC1_VERSION   $version
+setenv          M3DC1_DIR       $root
+setenv		M3DC1_ARCH	perlmutter_gpu
+setenv		M3DC1_MPIRUN	srun
+
+prepend-path    PATH             $root/unstructured/_perlmutter_gpu/bin
+prepend-path    IDL_PATH         $root/unstructured/idl

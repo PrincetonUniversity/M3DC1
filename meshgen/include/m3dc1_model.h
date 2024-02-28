@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2016 Scientific Computation Research Center, 
+  (c) 2005-2023 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -15,6 +15,7 @@
 #include <mpi.h>
 #include <map>
 #include <vector>
+#include <MeshSim.h>
 
 int get_prev_plane_partid(int plane_id);
 int get_next_plane_partid(int plane_id);
@@ -70,7 +71,12 @@ void set_outer_wall_boundary ( int * loopId );
 void set_vacuum_boundary ( int * loopId );
 void set_separatrix ( int * loopId );
 void finalize_model();
+// write a single region model file
 void save_model(const char* filename);
+// write a multi region model file
+void save_multi_rgn_model(const char* filename, std::vector< std::vector<int> >& face_bdry,
+                std::map<int, std::vector<pGEdge> >& edgesOnLoop,
+                std::map<pGEdge, int>& getag_edgeid);
 void load_model(const char* filename);
 void offset_point (double * src, double * normal, double * thickness, double * des);
 

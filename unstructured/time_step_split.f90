@@ -86,6 +86,61 @@ contains
     if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) &
                     vecsize_phi = vecsize_phi + 1
   
+if (ispradapt .eq. 1) then
+    call create_vector(phi_vec,      vecsize_phi, "phi_vec")
+    call create_vector(phip_vec,     vecsize_phi, "phip_vec")
+    call create_vector(q4_vec,       vecsize_phi, "q4_vec")
+    call mark_vector_for_solutiontransfer(phi_vec)
+    call mark_vector_for_solutiontransfer(phip_vec)
+    call mark_vector_for_solutiontransfer(q4_vec)
+
+    call create_vector(b1_phi, vecsize_phi, "b1_phi")
+    call create_vector(b2_phi, vecsize_phi, "b2_phi")
+    call mark_vector_for_solutiontransfer(b1_phi)
+    call mark_vector_for_solutiontransfer(b2_phi)
+
+    call create_vector(vel_vec,      vecsize_vel, "vel_vec")
+    call create_vector(veln_vec,     vecsize_vel, "veln_vec")
+    call create_vector(r4_vec,       vecsize_vel, "r4_vec")
+    call mark_vector_for_solutiontransfer(vel_vec)
+    call mark_vector_for_solutiontransfer(veln_vec)
+    call mark_vector_for_solutiontransfer(r4_vec)
+
+    if(ipres.eq.1 .or. ipressplit.eq.1) then
+       call create_vector(pres_vec,    vecsize_p, "pres_vec")
+       call create_vector(qp4_vec,     vecsize_p, "qp4_vec")
+       call mark_vector_for_solutiontransfer(pres_vec)
+       call mark_vector_for_solutiontransfer(qp4_vec)
+    endif
+
+    call create_vector(den_vec,    vecsize_n, "den_vec")
+    call create_vector(denold_vec, vecsize_n, "denold_vec")
+    call create_vector(ne_vec,     1, "ne_vec")
+    call create_vector(neold_vec,  1, "neold_vec")
+    call create_vector(qn4_vec,    vecsize_n, "qn4_vec")
+    call mark_vector_for_solutiontransfer(den_vec)
+    call mark_vector_for_solutiontransfer(denold_vec)
+    call mark_vector_for_solutiontransfer(ne_vec)
+    call mark_vector_for_solutiontransfer(neold_vec)
+    call mark_vector_for_solutiontransfer(qn4_vec)
+
+    if(irunaway .gt. 0) then
+      call create_vector(nre_vec,    vecsize_n, "nre_vec")
+      call create_vector(nreold_vec, vecsize_n, "nreold_vec")
+      call create_vector(qn5_vec,    vecsize_n, "qn5_vec")
+      call mark_vector_for_solutiontransfer(nre_vec)
+      call mark_vector_for_solutiontransfer(nreold_vec)
+      call mark_vector_for_solutiontransfer(qn5_vec)
+    endif
+
+    call create_vector(b1_vel, vecsize_vel, "b1_vel")
+    call create_vector(b2_vel, vecsize_vel, "b2_vel")
+    call mark_vector_for_solutiontransfer(b1_vel)
+    call mark_vector_for_solutiontransfer(b2_vel)
+
+    call create_vector(pret_vec,    vecsize_t, "pret_vec")
+    call mark_vector_for_solutiontransfer(pret_vec)
+else
 
     ! Vectors
     call create_vector(phi_vec,      vecsize_phi)
@@ -120,6 +175,7 @@ contains
     call create_vector(b2_vel, vecsize_vel)
 
     call create_vector(pret_vec,    vecsize_t)
+endif
 
 call PetscLogStagePush(stageA,jer)
     ! Matrices associated with velocity advance
@@ -768,15 +824,12 @@ subroutine step_split(calc_matrices)
 
   implicit none
 
-#ifdef CJ_MATRIX_DUMP
-  integer :: counter
-#endif
-
 
   integer, intent(in) :: calc_matrices
   real :: tstart, tend, t_bound
   integer :: jer, i 
   type(vector_type) :: temp, temp2
+  type(vector_type) :: xVec_guess
 
   type(field_type) :: phip_1, phip_2, phip_3
   call associate_field(phip_1, phip_vec, 1)
@@ -852,15 +905,22 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-     call get_counter( s1_mat%imatrix, counter) 
-     if(counter.le.0) then 
+     if(ntime.eq.ntimemax) then 
+        write ( *, * ) "print matrix s1_mat", s1_mat%imatrix, ntime
         call write_matrix(s1_mat,'s1_mat')
         call write_vector(b1_vel, 's1_mat_rhs.out')
      endif
 #endif
 
 call PetscLogStagePush(stageS,jer)
-     call newsolve(s1_mat, b1_vel, jer)
+     if(isolve_with_guess==1) then
+        call create_vector(xVec_guess, vecsize_vel)
+        xVec_guess = vel_vec ! Set the value from the previous step as the initial guess.
+        call newsolve_with_guess(s1_mat, b1_vel, xVec_guess, jer)
+        call destroy_vector(xVec_guess)
+     else
+        call newsolve(s1_mat, b1_vel, jer)
+     endif 
 call PetscLogStagePop(jer)
      !if(linear.eq.0) call clear_mat(s1_mat)
 
@@ -869,7 +929,7 @@ call PetscLogStagePop(jer)
      endif
 
 #ifdef CJ_MATRIX_DUMP
-     if(counter.le.0) then 
+     if(ntime.eq.ntimemax) then 
         call write_vector(b1_vel, 's1_mat_sol.out')
      endif
 #endif 
@@ -932,13 +992,20 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s8_mat", s8_mat%imatrix, ntime
      call write_matrix(s8_mat,'s8_mat')
      call write_vector(temp, 's8_mat_rhs.out')
   endif
 #endif 
-
-     call newsolve(s8_mat, temp, jer)
+     if(isolve_with_guess==1) then
+        call create_vector(xVec_guess, vecsize_n)
+        xVec_guess = den_vec ! Set the value from the previous step as the initial guess.
+        call newsolve_with_guess(s8_mat, temp, xVec_guess, jer)
+        call destroy_vector(xVec_guess)
+     else
+        call newsolve(s8_mat, temp, jer)
+     endif
 
      if(idiff .gt. 0) then
          call add(temp,den_vec)  ! add time n density to increment to get time n+1 value
@@ -947,7 +1014,7 @@ call PetscLogStagePop(jer)
      !if(linear.eq.0) call clear_mat(s8_mat)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(temp, 's8_mat_sol.out')
   endif
 #endif 
@@ -1017,7 +1084,14 @@ call PetscLogStagePop(jer)
         ! solve linear system...LU decomposition done first time
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
-        call newsolve(s15_mat, temp, jer)
+        if(isolve_with_guess==1) then
+           call create_vector(xVec_guess, vecsize_n)
+           xVec_guess = nreold_vec ! Set the value from the previous step as the initial guess.
+           call newsolve_with_guess(s15_mat, temp, xVec_guess, jer)
+           call destroy_vector(xVec_guess)
+        else
+           call newsolve(s15_mat, temp, jer)
+        endif    
 
         if(myrank.eq.0 .and. itimer.eq.1) then
            call second(tend)
@@ -1110,23 +1184,31 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s9_mat", s9_mat%imatrix, ntime
      call write_matrix(s9_mat,'s9_mat')
      call write_vector(temp, 's9_mat_rhs.out')
   endif
 #endif 
 
      if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing Pressure--before newsolve"
-     call newsolve(s9_mat, temp, jer)
+     if(isolve_with_guess==1) then
+        call create_vector(xVec_guess, vecsize_p)
+        xVec_guess = pres_vec ! Set the value from the previous step as the initial guess.
+        call newsolve_with_guess(s9_mat, temp, xVec_guess, jer)
+        call destroy_vector(xVec_guess)
+     else
+        call newsolve(s9_mat, temp, jer)
+     endif    
+
      !if(linear.eq.0) call clear_mat(s9_mat)
 
     if(idiff .gt. 0) then
          call add(temp,pres_vec)
      endif
 
-
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(temp, 's9_mat_sol.out')
   endif
 #endif 
@@ -1206,17 +1288,24 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s9_mat", s9_mat%imatrix, ntime
      call write_matrix(s9_mat,'s9_mat')
      call write_vector(temp, 's9_mat_rhs.out')
   endif
 #endif 
-
-     call newsolve(s9_mat, temp, jer)
+     if(isolve_with_guess==1) then
+       call create_vector(xVec_guess, vecsize_p)
+       xVec_guess = pret_vec ! Set the value from the previous step as the initial guess.
+       call newsolve_with_guess(s9_mat, temp, xVec_guess, jer)
+       call destroy_vector(xVec_guess)
+     else
+       call newsolve(s9_mat, temp, jer)
+     endif   
      !if(linear.eq.0) call clear_mat(s9_mat)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(temp, 's9_mat_sol.out')
   endif
 #endif 
@@ -1284,6 +1373,7 @@ call PetscLogStagePop(jer)
      ! Include RE density terms
      if(irunaway .gt. 0) then
         call matvecmult(r43_mat,nre_vec,b2_phi)
+        call mult(b2_phi,-1.)
         call add(b1_phi, b2_phi)
         call matvecmult(q43_mat,nreold_vec,b2_phi)
         call add(b1_phi, b2_phi)
@@ -1331,13 +1421,20 @@ call PetscLogStagePop(jer)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s2_mat", s2_mat%imatrix, ntime
      call write_matrix(s2_mat,'s2_mat')
      call write_vector(b1_phi, 's2_mat_rhs.out')
   endif
 #endif 
-
-     call newsolve(s2_mat, b1_phi, jer)
+     if(isolve_with_guess==1) then
+        call create_vector(xVec_guess, vecsize_phi)
+        xVec_guess = phi_vec ! Set the value from the previous step as the initial guess.
+        call newsolve_with_guess(s2_mat, b1_phi, xVec_guess, jer)
+        call destroy_vector(xVec_guess)
+     else
+        call newsolve(s2_mat, b1_phi, jer)
+     endif    
      !if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s2_mat)
 
 
@@ -1346,7 +1443,7 @@ call PetscLogStagePop(jer)
    endif
 
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(b1_phi, 's2_mat_sol.out')
   endif
 #endif 
@@ -1417,6 +1514,7 @@ call PetscLogStagePop(jer)
         ! Include RE density terms
         if(irunaway .gt. 0) then
            call matvecmult(r43_mat,nre_vec,b2_phi)
+           call mult(b2_phi,-1.)
            call add(b1_phi, b2_phi)
            call matvecmult(q43_mat,nreold_vec,b2_phi)
            call add(b1_phi, b2_phi)
@@ -1457,17 +1555,25 @@ call PetscLogStagePop(jer)
         if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
         
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then 
+  if(ntime.eq.ntimemax) then 
+     write ( *, * ) "print matrix s2_mat", s2_mat%imatrix, ntime
      call write_matrix(s2_mat,'s2_mat')
      call write_vector(b1_phi, 's2_mat_rhs.out')
   endif
 #endif 
 
-        call newsolve(s2_mat, b1_phi, jer)
         !if(linear.eq.0) call clear_mat(s2_mat)
+        if(isolve_with_guess==1) then
+            call create_vector(xVec_guess, vecsize_phi)
+            xVec_guess = phi_vec ! Set the value from the previous step as the initial guess.
+            call newsolve_with_guess(s2_mat, b1_phi, xVec_guess, jer)
+            call destroy_vector(xVec_guess)
+        else
+            call newsolve(s2_mat, b1_phi, jer)
+        endif    
         
 #ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.2) then
+  if(ntime.eq.ntimemax) then
      call write_vector(b1_phi, 's2_mat_sol.out')
   endif
 #endif 

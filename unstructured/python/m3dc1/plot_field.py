@@ -25,8 +25,8 @@ from m3dc1.plot_coils import plot_coils
 
 def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
                diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',res=250,
-               prange=None, cmap='viridis', cmap_midpt=None, quiet=False,
-               save=False, savedir=None, pub=False, showtitle=True, shortlbl=False, ntor=None, phys=False):
+               prange=None, cmap='viridis', cmap_midpt=None, clvl=100, quiet=False,
+               save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False):
     """
     Plots a field in the R,Z plane.
     
@@ -82,7 +82,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
 
     **bound**
     True/False
-    Only plot boundary. Only works when mesh is true
+    Plot boundary (wall and domain boundary) without the mesh itself.
 
     **lcfs**
     True/False
@@ -98,9 +98,26 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     **cmap**
     Color map to use for the contour plot, e.g. viridis, seismic, jet, nipy_spectral
 
+    **clvl**
+    Number of contour levels.
+
+    **prange**
+    Plot range to renormalize color map. Should be a list of length 2, defining the
+    minimum and maximum values of the field. Values outside of this range will have
+    the same color as the endpoints of the colormap.
+
     **cmap_midpt**
     If not None, set midpoint of colormap to cmap_midpt.
-    
+
+    **titlestr**
+    Plot title. If None, a default title will be generated.
+
+    **showtitle**
+    True/False. Show plot title.
+
+    **shortlbl**
+    True/False. If True, axis labels will be shortened.
+
     **save**
     True/False
     Save plot as png file.
@@ -113,7 +130,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     If True, format figure for publication (larger labels and thicker lines)
 
     **phys**
-    Use True for plotting in physical (stellarator) geometry
+    Use True for plotting in physical (stellarator) geometry.
 
     **quiet**
     If True, suppress output to terminal.
@@ -152,21 +169,22 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         fig, axs = plt.subplots(1, 3, sharey=True,figsize=(14,7))
         comp = ['R','\phi','Z']
     
-    if coord in ['vector', 'tensor']:
-        titlestr = field + ' at time=' + str(sim[0].timeslice)
-    else:
-        titlestr = field + ' at time=' + str(sim[0].timeslice)
-    if linear:
-        titlestr = titlestr + ' linear'
-    elif diff:
-        titlestr = titlestr + ' - time=' + str(sim[1].timeslice)
-    try:
-        species = sim[0].available_fields[field][2]
-    except:
-        species = None
-        fpyl.printwarn('WARNING: Field not found in available_fields!')
-    if species is not None:
-        titlestr = titlestr+' - Species: '+str(species)
+    if titlestr is None:
+        if coord in ['vector', 'tensor']:
+            titlestr = field + ' at time=' + str(sim[0].timeslice)
+        else:
+            titlestr = field + ' at time=' + str(sim[0].timeslice)
+        if linear:
+            titlestr = titlestr + ' linear'
+        elif diff:
+            titlestr = titlestr + ' - time=' + str(sim[1].timeslice)
+        try:
+            species = sim[0].available_fields[field][2]
+        except:
+            species = None
+            fpyl.printwarn('WARNING: Field not found in available_fields!')
+        if species is not None:
+            titlestr = titlestr+' - Species: '+str(species)
     # ToDo: Main title does not show up in vector plot
     if showtitle:
         plt.title(titlestr,fontsize=titlefs)
@@ -185,16 +203,16 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
                 norm = colors.DivergingNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
             else:
                 norm = colors.TwoSlopeNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
-            cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
+            cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap,norm=norm)
         else:
             if isinstance(prange,(tuple,list)):
-                if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
-                    norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
-                else:
-                    norm = colors.TwoSlopeNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
-                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
+                #if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
+                #    norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
+                #else:
+                #    norm = colors.TwoSlopeNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
+                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap,vmin=prange[0], vmax=prange[1])
             else:
-                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
+                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap)
         # Set and format axes limits and labels
         if phys:
             ax.set_xlim([fpyl.get_axlim(np.amin(R_mesh),'min',0.1),fpyl.get_axlim(np.amax(R_mesh),'max',0.1)])

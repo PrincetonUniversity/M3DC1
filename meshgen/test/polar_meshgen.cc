@@ -1,6 +1,6 @@
 /****************************************************************************** 
 
-  (c) 2005-2016 Scientific Computation Research Center, 
+  (c) 2005-2023 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -19,7 +19,6 @@
 #include "m3dc1_model.h"
 #include "SimUtil.h"
 #include "SimModel.h"
-#include "SimError.h"
 #include "SimAdvModel.h"
 #include "MeshSim.h"
 #include "BSpline.h"
@@ -41,11 +40,18 @@
 
 void save_sim_model ();
 
-#ifdef PPPL
+#ifdef LICENSE
 #include <SimLicense.h>
+#ifdef STELLAR
+char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
+#endif
+#ifdef MIT
+char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
+#endif
+#ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
+#endif
 #else
-// for SCOREC
 char simLic[128]="/net/common/meshSim/license/license.txt";
 #endif
 
@@ -478,7 +484,7 @@ int make_sim_model (pGModel& sim_model)
   std::map<int, pGEdge> edges;
   gmi_model* model = m3dc1_model::instance()->model;
 
-#ifdef PPPL // SIMMODSUITE_MAJOR_VERSION >= 15
+#ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
   pGIPart part = GM_rootPart(sim_model);
 #else
   pGIPart part = GM_part(sim_model);
@@ -576,9 +582,8 @@ void save_sim_model ()
   char model_filename[128];
   char mesh_filename[128];
 
-#ifdef PPPL
-  // for PPPL
-  SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adapt,meshsim_adv",simLic);
+#ifdef LICENSE
+  SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adv",simLic);
 #else
   // for SCOREC
   Sim_readLicenseFile(simLic);
@@ -749,8 +754,7 @@ void save_sim_model ()
   Sim_logOff();
   Sim_unregisterAllKeys();
 
-#ifdef PPPL
-  // for PPPL
+#ifdef LICENSE
   SimLicense_stop();
 #endif
 }

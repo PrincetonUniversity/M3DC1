@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A mp288
+#SBATCH -A mp288_g
 #SBATCH -p debug
 #SBATCH -C gpu
 #SBATCH -n 128
@@ -9,6 +9,8 @@
 
 export SLURM_CPU_BIND="cores"
 echo $SLURM_CPUS_ON_NODE
+
+export MPICH_GPU_SUPPORT_ENABLED=0
 
 touch started
 

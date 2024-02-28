@@ -86,6 +86,8 @@ subroutine onestep
   use runaway_mod
   use kprad_m3dc1
   use transport_coefficients
+  use particles
+  use boundary_conditions
 
   implicit none
 
@@ -137,6 +139,17 @@ subroutine onestep
        if(myrank.eq.0 .and. iprint.ge.1) print *, "Done defining matrices."
     endif
 
+#ifdef USEPARTICLES
+    if ((kinetic .eq. 1) .and. (linear .eq. 1)) then
+       if (myrank .eq. 0 .and. itimer .eq. 1) call second(tstart)
+       call ludefvel_nolin
+       if (myrank .eq. 0 .and. itimer .eq. 1) then
+          call second(tend)
+          t_ludefall = t_ludefall + tend - tstart
+       end if
+    end if
+#endif
+
     ! copy field data to time-advance vectors
     if(myrank.eq.0 .and. iprint.ge.1) print *,"Importing time advance vectors.."
     call import_time_advance_vectors
@@ -186,12 +199,23 @@ subroutine onestep
 
 ! if(eqsubtract.eq.0) call subtract_axi    !DEBUG
   call export_time_advance_vectors
-  if (irunaway .eq. 2) then
-     call runaway_advance
-  endif
+  !if (irunaway .eq. 2) then
+  !   call smooth_runaway
+  !endif
 
   ! Calculate all quantities derived from basic fields
+  call find_lcfs()
   call derived_quantities(1)
+
+#ifdef USEPARTICLES
+  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+  if(kinetic.eq.1) call particle_step(dt*t0_norm)
+  if(myrank.eq.0 .and. itimer.eq.1) then
+     call second(tend)
+     t_particle = t_particle + tend - tstart
+  endif
+#endif
+
   if(ipellet_abl.gt.0) call pellet_shrink
 
   ! Advect impurity charge states

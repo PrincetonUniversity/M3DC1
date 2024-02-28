@@ -58,7 +58,9 @@ public:
   void restore3D();
 
   void build3d(int num_field, int* field_id, int* num_dofs_per_value);
-  void initialize(); 
+  void initialize();
+  void rebuildPointersOnNonMasterPlane(std::vector<std::vector<apf::Field*> >& pFields,
+              std::vector<apf::Field*>& zFields);
   void set_mcount(); // fill in # local, own, global mesh entity count
   void update_partbdry(apf::MeshEntity** remote_vertices, apf::MeshEntity** remote_edges, 
               apf::MeshEntity** remote_faces, std::vector<apf::MeshEntity*>& btw_plane_edges, 

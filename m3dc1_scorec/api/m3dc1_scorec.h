@@ -1,6 +1,7 @@
 /****************************************************************************** 
 
-  (c) 2005-2017 Scientific Computation Research Center, 
+
+  (c) 2005-2023 Scientific Computation Research Center, 
       Rensselaer Polytechnic Institute. All rights reserved.
   
   This work is open source software, licensed under the terms of the
@@ -18,7 +19,8 @@
 
 #include "name_convert.h"
 #include "mpi.h"
-
+#include <apf.h>
+#include "m3dc1_sizeField.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +48,7 @@ bool m3dc1_double_isequal(double A, double B);
 
 int m3dc1_scorec_init();
 int m3dc1_scorec_finalize();
+void m3dc1_scorec_verbosity(int*);
 
 /** plane functions */
 int m3dc1_plane_setnum(int*);
@@ -60,7 +63,7 @@ int m3dc1_model_load(char* /* in */ model_file);
 int m3dc1_model_print();
 int m3dc1_model_setnumplane(int*);
 int m3dc1_model_getnumplane(int*);
-
+void m3dc1_model_settopo();
 int m3dc1_model_getmincoord(double* /* out */ x_min, double* /* out */ y_min); //getmincoord2_
 int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); //getmaxcoord2_
 
@@ -69,7 +72,9 @@ int m3dc1_model_getmaxcoord(double* /* out */ x_max, double* /* out */ y_max); /
 int m3dc1_mesh_load(char* mesh_file);
 void m3dc1_mesh_load_3d(char* mesh_file, int* num_plane);
 
-int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/); // 0: vtk file with field; 1:smb file
+// option 0: vtk file with field; 1:smb file
+int m3dc1_mesh_write(char* filename, int *option, int* /*time step*/);
+void m3dc1_mesh_verify();
 
 int m3dc1_mesh_build3d(int* num_field, int* field_id, int* num_dofs_per_value);
 
@@ -123,6 +128,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyz);
 int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv);
 int m3dc1_node_isongeombdry (int* /* in */ node_id, int* /* out */ on_geom_bdry); 
 int m3dc1_node_write (const char* filename, int* start_index);
+void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec);
 
 // region-specific function
 int m3dc1_region_getoriginalface( int * /* in */ elm_id, int * /* out */ fac_id);
@@ -172,11 +178,12 @@ void m3dc1_field_export(int*, int*);
 void m3dc1_field_importall();
 void m3dc1_field_exportall();
 int m3dc1_field_print(FieldID* field);
-int m3dc1_field_sum_plane (FieldID* /* in */ field_id);
+int m3dc1_field_sum_plane(FieldID* /* in */ field_id);
 int m3dc1_field_printcompnorm(FieldID* /* in */ field_id, char* info);
-int m3dc1_field_max (FieldID* field_id, double * max_val, double * min_val);
+int m3dc1_field_max(FieldID* field_id, double * max_val, double * min_val);
 
 void m3dc1_field_verify();
+void m3dc1_field_mark4tx(FieldID* /*in*/ field_id); //mark for solution transfer
 
 int m3dc1_model_getplaneid(int * /* out */ plane_id);
 
@@ -205,7 +212,9 @@ int m3dc1_matrix_setbc(int* matrix_id, int* row);
 int m3dc1_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *columns, double * values);
 
 int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol); //solveSysEqu_
+
 int m3dc1_matrix_getnumiter(int* matrix_id, int * iter_num);
+void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xVec_guess);
 int m3dc1_matrix_multiply(int* matrix_id, FieldID* inputvecid, FieldID* outputvecid); //matrixvectormult_
 
 // for performance test
@@ -217,15 +226,21 @@ int m3dc1_matrix_print(int* matrix_id);
 // adaptation
 int adapt_by_field (int * fieldId, double* psi0, double * psil);
 int set_adapt_p (double * pp);
-int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, int* option); // option 0: local error control; 1 global
+int adapt_by_error_field (double * errorField, double * errorAimed, int* max_node, 
+		int* option); // option 0: local error control; 1 global
+// adapt the mesh on specific model faces based on psi field
+int adapt_model_face(int * fieldId, double* psi0, double * psil, int* iadaptFaceNumber);
 
 // 3D Adaptation
+void m3dc1_spr_adapt (int * fieldId, int * index, int * ts,
+    double * ar, double * max_size, int * refine_level, int * coarsen_level, 
+    bool* update);
 int node_error_3d_mesh (double* elm_data, int* size, double* nod_data);
 int find_sizefield(double* node_error, double * errorAimed, int * max_adapt_node, int * option);
 // for adaptation
 int set_mesh_size_bound (double* abs_size, double * rel_size);
 int set_adapt_smooth_factor (double* fac);
-int output_face_data (int * size, double * data, char * vtkfile);
+void output_face_data (int * size, double * data, char * vtkfile);
 int sum_edge_data (double * data, int * size);
 int get_node_error_from_elm (double * elm_data, int * size, double* nod_data);
 

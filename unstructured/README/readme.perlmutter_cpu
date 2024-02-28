@@ -1,8 +1,5 @@
-1. login: login from cori 
-   ssh -P cori.nersc.gov -l [username]
-   ssh perlmutter
+1. login: 
 
-   direct login
    ssh -P perlmutter-p1.nersc.gov -l [username]
    or
    ssh -P saul-p1.nersc.gov -l [username]
@@ -26,11 +23,11 @@
 
    make ARCH=perlmutter_cpu all
     (make OPT=1 RL=1 MAX_PTS=25 ARCH=perlmutter_cpu
-     make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter_cpu
-     make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu
-     make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu ST=1
-     (These modules crashes at restart: cray-hdf5-parallel/1.12.0.7 cray-netcdf-hdf5parallel/4.7.4.7
-      So rebuilt hdf5, netcdf-c, netcdf-fortran on 2/15/2022.)
+   make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter_cpu
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu
+   make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu ST=1
+    (These modules crashes at restart: cray-hdf5-parallel/1.12.0.7 cray-netcdf-hdf5parallel/4.7.4.7
+     So rebuilt hdf5, netcdf-c, netcdf-fortran on 2/15/2022.)
     )
 
 5. mesh utility
@@ -42,6 +39,7 @@
         -pc_bjacobi_blocks 4
         -sub_pc_type lu
         -sub_pc_factor_mat_solver_type mumps
+        -sub_mat_mumps_icntl_14 100
         -sub_ksp_type preonly
         -ksp_type fgmres
         -ksp_gmres_restart 220
@@ -53,6 +51,7 @@
         -hard_pc_bjacobi_blocks 4
         -hard_sub_pc_type lu
         -hard_sub_pc_factor_mat_solver_type mumps
+        -hard_sub_mat_mumps_icntl_14 100
         -hard_sub_ksp_type preonly
         -hard_ksp_type fgmres
         -hard_ksp_gmres_restart 220
@@ -70,7 +69,7 @@
 7. run job
 
 7.1 interactive mode
-  salloc -A m3984_g -C gpu -n 48 -t 00:30:00
+  salloc -A mp288 -C cpu -n 48 -t 00:30:00
   export SLURM_CPU_BIND="cores"
   srun ... (see 7.2)
 
@@ -78,7 +77,7 @@
    sample slurm script "batchjob.perlmutter_cpu"
 
    #!/bin/bash
-   #SBATCH -A m3984
+   #SBATCH -A mp288 
    #SBATCH -q debug
    #SBATCH -C cpu
    #SBATCH -n 48

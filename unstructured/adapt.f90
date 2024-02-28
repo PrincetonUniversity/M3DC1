@@ -17,13 +17,13 @@ module adapt
 
   real :: adapt_coil_delta
   real :: adapt_pellet_length, adapt_pellet_delta
-
+  
   real :: adapt_zlow, adapt_zup
   logical :: do_z_coarsen
-
+  integer :: iadaptFaceNumber
   integer, parameter :: maxqs = 32
   real, dimension(maxqs) :: adapt_qs
-  
+ 
   contains
 
   subroutine adapt_by_psi
@@ -62,8 +62,12 @@ module adapt
     integer :: ip
 
     real :: psib
-
     call create_field(temporary_field)
+
+    if (ispradapt .eq. 1) then
+     call m3dc1_field_mark4tx(temporary_field)
+    endif
+
     temporary_field = 0.
 
     if(adapt_pellet_delta.gt.0) then
@@ -93,6 +97,11 @@ module adapt
              zp_adapt(j,ip) = pellet_z(ip) + pellet_velz(ip)*(j-1)*p_dt
           end do
        end do
+    end if
+
+    if(adapt_coil_delta.gt.0) then
+       call load_coils(xc_adapt,zc_adapt,ic_adapt,numcoils_adapt, &
+            'adapt_coil.dat','adapt_current.dat')
     end if
 
     numelms = local_elements()
@@ -201,15 +210,15 @@ module adapt
 
        ! do adaptation around coils
        if(adapt_coil_delta.gt.0) then
-          call load_coils(xc_adapt,zc_adapt,ic_adapt,numcoils_adapt, &
-               'adapt_coil.dat','adapt_current.dat')
           temp79c = 0.
           do j=1, numcoils_adapt
              temp79c = temp79c + &
                   exp(-((x_79 - xc_adapt(j))**2 + (z_79 - zc_adapt(j))**2) / &
                        (2.*adapt_coil_delta**2))
           end do
+          where(temp79c.ne.temp79c) temp79c = 0.
           where(real(temp79c).gt.1.) temp79c = 1.
+          where(real(temp79c).lt.0.) temp79c = 0.
           temp79b = temp79b*(1.-temp79c) + temp79c
        end if
 
@@ -247,9 +256,13 @@ module adapt
     call newvar_solve(temporary_field%vec,mass_mat_lhs)
 
     call straighten_fields()
-    !write(mesh_file_name,"(A7,I0,A)") 'initial', ntime,0
-    !call m3dc1_mesh_write (mesh_file_name, 0)
-    call adapt_by_field(temporary_field%vec%id,psimin,psibound)
+
+    if (iadaptFaceNumber.gt.0) then
+        call adapt_model_face(temporary_field%vec%id,psimin,psibound,iadaptFaceNumber)
+    else
+        call adapt_by_field(temporary_field%vec%id,psimin,psibound)
+    endif
+
     write(mesh_file_name,"(A7,A)") 'adapted', 0
     if(iadapt_writevtk .eq. 1) call m3dc1_mesh_write (mesh_file_name,0,ntime)
     if(iadapt_writesmb .eq. 1) call m3dc1_mesh_write (mesh_file_name,1,ntime)
@@ -286,6 +299,97 @@ module adapt
     !ke_previous = ekin
   end subroutine adapt_by_psi
 
+! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  subroutine adapt_by_spr(fid,idx,t,ar,maxsize,refinelevel,coarsenlevel,update)
+! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    use diagnostics
+    use basic
+    use error_estimate
+    use scorec_mesh_mod
+    use basic
+    use mesh_mod
+    use arrays
+    use newvar_mod
+    use sparse
+    use time_step
+    use auxiliary_fields
+    use scorec_mesh_mod
+    use transport_coefficients
+
+    character(len=32) :: mesh_file_name
+    integer, intent(in) :: fid
+    integer, intent(in) :: idx
+    real, intent(in) :: ar
+    real, intent(in) :: maxsize
+    integer, intent(in) :: t
+    integer, intent(in) :: refinelevel
+    integer, intent(in) :: coarsenlevel
+    logical, intent(in) :: update
+
+
+  !  if (myrank .eq. 0) print *, " error exceeds tolerance, start adapting mesh"
+    call straighten_fields()
+    call m3dc1_spr_adapt(fid,idx,t,ar,maxsize,refinelevel,coarsenlevel,update)
+    call space(0)
+    call update_nodes_owned()
+    call reset_itris()
+    call tridef
+    call unstraighten_fields()
+
+    call create_newvar_matrices
+    if(irestart .ne. 0 .or. linear .eq. 0) return
+    if (myrank .eq. 0) print *, "reset simulation after adapt .."
+    field_vec = 0.
+    field0_vec = 0.
+    jphi_field = 0.
+    !vor_field = 0.
+    !com_field = 0.
+    !resistivity_field = 0.
+    !kappa_field = 0.
+    !visc_field = 0.
+    !visc_c_field = 0.
+    if(ipforce.gt.0) pforce_field = 0.
+    if(ipforce.gt.0) pmach_field = 0.
+    if(momentum_source) Fphi_field = 0.
+    if(heat_source) Q_field = 0.
+    if(rad_source) then
+      Totrad_field = 0.
+      Linerad_field = 0.
+      Bremrad_field = 0.
+      Ionrad_field = 0.
+      Reckrad_field = 0.
+      Recprad_field = 0.
+    endif
+    if(icd_source.gt.0) cd_field = 0.
+    bf_field(0) = 0.
+    bf_field(1) = 0.
+    bfp_field(0) = 0.
+    bfp_field(1) = 0.
+    if(ibootstrap.gt.0) visc_e_field = 0.
+    psi_coil_field = 0.
+    !call destroy_auxiliary_fields
+    !call create_auxiliary_fields
+
+    call initial_conditions
+    ! combine the equilibrium and perturbed fields of linear=0
+    ! unless eqsubtract = 1
+    if(eqsubtract.eq.0) then
+      call add(field_vec, field0_vec)
+      field0_vec = 0.
+    endif
+    i_control%err_i = 0.
+    i_control%err_p_old = 0.
+    n_control%err_i = 0.
+    n_control%err_p_old = 0.
+    call reset_scalars
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+    call define_transport_coefficients
+    if(eqsubtract.eq.1) then
+      call derived_quantities(0)
+    end if
+    call derived_quantities(1)
+    meshAdapted =1
+  end subroutine adapt_by_spr
 
 ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   subroutine adapt_by_error

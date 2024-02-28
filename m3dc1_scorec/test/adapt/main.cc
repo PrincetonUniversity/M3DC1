@@ -133,8 +133,12 @@ int main( int argc, char* argv[])
     // write the mesh before adapt
     // for this one will only have 2 .vtk files
     apf::writeVtkFiles("02_mesh_2d_before_adapt", m);
+#ifdef OLDMA
+    ma::Input* in = ma::configure(m, sfld);
+#else
     ma::Input* in = ma::makeAdvanced(ma::configure(m, sfld));
-    /* ma::Input* in = ma::makeAdvanced(ma::configureUniformRefine(m, 1)); */
+#endif
+
     in->shouldSnap = false;
     in->shouldTransferParametric = false;
     ma::adapt(in);

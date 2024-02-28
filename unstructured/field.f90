@@ -78,15 +78,32 @@ contains
   ! ~~~~~~~~~~~~
   ! creates a field and allocates its associated size-1 vector 
   !====================================================================== 
-   subroutine create_field(f)
+  subroutine create_field(f,prefix)
     implicit none
 
     type(field_type), intent(inout) :: f
+    character(len=*), intent(in), optional :: prefix
 
     allocate(f%vec)
-    call create_vector(f%vec, 1)
+    if (present(prefix)) then
+      call create_vector(f%vec, 1, prefix)
+    else
+      call create_vector(f%vec, 1)
+    end if
     f%index = 1
   end subroutine create_field
+
+  !======================================================================
+  ! mark_field_for_solutiontransfer
+  ! ~~~~~~~~~~~~
+  ! creates a field and allocates its associated size-1 vector
+  !======================================================================
+   subroutine mark_field_for_solutiontransfer(f)
+    implicit none
+
+    type(field_type), intent(inout) :: f
+    call mark_vector_for_solutiontransfer(f%vec)
+  end subroutine mark_field_for_solutiontransfer
 
   !======================================================================
   ! destroy_field

@@ -1255,9 +1255,15 @@ and the truncation error is
     1: apply nonaxisymmetric fields throughout plasma.  
        reads rmp\_coil.dat for (R,Z) of window pane coils.  
        reads rmp\_current.dat for (+-) currents in kA and phases in degrees.  
-       toroidal mode number of current specified by ntor  \\
-    2: apply nonaxisymmetric fields only at aoundaries. 
-  \end{minipage}\\
+       toroidal mode number of current specified by ntor.
+       requires \texttt{type\_ext\_field} = 0.  \\
+    2: apply nonaxisymmetric fields only at boundaries. 
+   \end{minipage}\\
+   \texttt{type\_ext\_field}    &  -1 & External field type
+    \begin{minipage}[t]{2.5in}
+    0: RMP or error field for tokamak geometry.
+    1: For free boundary stellarator only: FIELDLINES or MGRID.
+   \end{minipage}\\
 
  \texttt{rmp\_atten}  &  0  & additional exponential decay of RMP field from r=1 for irmp=2 \\
  \texttt{iread\_ext\_field} & 0 & 1: read external field \\
@@ -2158,8 +2164,18 @@ current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
 \begin{tabular}{llp{4.5in}}
   \textbf{Option}&\textbf{Default}&\textbf{Description}\\
   \hline
- \texttt{type\_ext\_field}        & 0 & 1: read either  VMEC or MGRID file \\ 
- \texttt{file\_ext\_field}        &   & (string) FIELDLINE/MGRID file.  Must start with 'fieldlines' or 'mgrid' \\
+ \texttt{type\_ext\_field}        & -1& External fields to be read in.. \\
+				  &   &	0: Axisymmetric only. For RMP and error fields. \\
+				  &   &	1: Free-boundary stellarator (\texttt{itaylor=41}) data. \\
+				  &   &	2: Free-boundary stellarator (\texttt{itaylor=41}) data with \texttt{extsubtract=1}. \\
+ \texttt{file\_ext\_field}        &   & (string) Vacuum/external field to be subtracted for \texttt{itaylor=41}.\\
+				  &   & Currently supported: FIELDLINES, MGRID. \\
+				  &   & Must start with `fieldlines' or `mgrid'. \\
+                                  &   & Must have \texttt{type\_ext\_field=2}.\\
+ \texttt{file\_total\_field}      &   & (string) Total field for free-boundary stellarator (\texttt{itaylor=41}).\\
+				  &   & Currently supported: FIELDLINES, MGRID. \\
+				  &   & Must start with `fieldlines' or `mgrid'. \\
+                                  &   & Must have \texttt{type\_ext\_field=1,2}.\\
  \texttt{iread\_vmec}             & 0 & 1: read VMEC file to determine geometry. Must be 1 for stellarator. \\
  \texttt{vmec\_filename}          &   & (string) VMEC output .nc file \\
  \texttt{bloat\_factor}           & 0 & Free boundary only:  Scale factor to bloat computational boundary using input geometry. \\
@@ -2170,10 +2186,10 @@ current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
                                         per field period) x nperiods \\
  \texttt{ifull\_torus}            & 0 & 0:  Solve on one field period \\
                                   &   & 1:  Solve on full torus \\
- \texttt{nzer\_factor}            &-1&  (integer) Scale factor for resolution of Zernike polynomial
+ \texttt{nzer\_factor}            & -1& (integer) Scale factor for resolution of Zernike polynomial
                                                   (used for interpolation of VMEC) \\
-                                  &  &  -1: n\_zeri= 2 x mpol (fixed boundary) and 1 x mpol (free boundary). \\
-                                  &  &  Otherwise: n\_zer = nzer\_factor x mpol where mpol is poloidal resolution in VMEC \\
- \texttt{nzer\_manual}             &-1& (int) Resolution of Zernike polynomial (mainly for testing)
+                                  &   &-1: n\_zeri= 2 x mpol (fixed boundary) and 1 x mpol (free boundary). \\
+                                  &   &Otherwise: n\_zer = nzer\_factor x mpol where mpol is poloidal resolution in VMEC \\
+ \texttt{nzer\_manual}            & -1&(int) Resolution of Zernike polynomial (mainly for testing)
 
 \end{tabular}

@@ -36,6 +36,48 @@ subroutine create_auxiliary_fields
   use kprad_m3dc1
   implicit none
 
+if (ispradapt .eq. 1) then
+  call create_field(bdotgradp, "bdotgradp")
+  call create_field(bdotgradt, "bdotgradt")
+  call create_field(torque_density_em, "torque_density_em")
+  call create_field(torque_density_ntv, "torque_density_ntv")
+  call create_field(chord_mask, "chord_mask")
+  call create_field(mag_reg, "mag_reg")
+  call create_field(ef_r, "ef_r")
+  call create_field(ef_phi, "ef_phi")
+  call create_field(ef_z, "ef_z")
+  call create_field(ef_par, "ef_par")
+  call create_field(eta_j, "eta_j")
+  call create_field(mesh_zone, "mesh_zone")
+  call create_field(z_effective, "z_effective")
+
+  if(ikprad.eq.1) call create_field(kprad_totden, "kprad_totden")
+  if(jadv.eq.0) then
+     call create_field(psidot, "psidot")
+     call create_field(veldif, "veldif")
+     call create_field(eta_jdb, "eta_jdb")
+     call create_field(bdgp, "bdgp")
+     call create_field(vlbdgp, "vlbdgp")
+  endif
+  if(itemp_plot.eq.1) then
+     call create_field(vdotgradt, "vdotgradt")
+     call create_field(adv1, "adv1")
+     call create_field(adv2, "adv2")
+     call create_field(adv3, "adv3")
+     call create_field(deldotq_perp, "deldotq_perp")
+     call create_field(deldotq_par, "deldotq_par")
+     call create_field(eta_jsq, "eta_jsq")
+     call create_field(pot2_field, "pot2_field")
+     call create_field(vpar_field, "vpar_field")
+     call create_field(f1vplot, "f1vplot")
+     call create_field(f1eplot, "f1eplot")
+     call create_field(f2vplot, "f2vplot")
+     call create_field(f2eplot, "f2eplot")
+     call create_field(f3vplot, "f3vplot")
+     call create_field(f3eplot, "f3eplot")
+     call create_field(jdbobs, "jdbobs")
+   endif
+else
   call create_field(bdotgradp)
   call create_field(bdotgradt)
   call create_field(torque_density_em)
@@ -75,6 +117,7 @@ subroutine create_auxiliary_fields
      call create_field(f3eplot)
      call create_field(jdbobs)
   endif
+endif
   initialized = .true.
 end subroutine create_auxiliary_fields
 
@@ -150,8 +193,13 @@ subroutine calculate_pressures(ilin, pe, p, ne, nion, te, ti, ieqsub)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating pressures'
 
+if (ispradapt .eq. 1) then 
+  call create_field(pe_f, " pe_f")
+  call create_field(p_f, "p_f")
+else
   call create_field(pe_f)
   call create_field(p_f)
+endif
 
   pe_f = 0.
   p_f = 0.
@@ -268,9 +316,13 @@ subroutine calculate_temperatures(ilin, te, ti, pe, p, ne, nion, ieqsub)
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating Temperatures'
 
+if (ispradapt .eq. 1) then
+  call create_field(te_f, "te_f")
+  call create_field(ti_f, "ti_f")
+else
   call create_field(te_f)
   call create_field(ti_f)
-
+endif
   te_f = 0.
   ti_f = 0.
 
@@ -410,8 +462,12 @@ subroutine calculate_ne(ilin, nion, ne, ieqsub)
      call mult(ne, z_ion)
      return
   end if
-  
+ 
+if (ispradapt .eq. 1) then
+  call create_field(ne_f, "ne_f")
+else
   call create_field(ne_f)
+endif
   ne_f = 0.
 
   numelms = local_elements()
@@ -649,6 +705,7 @@ subroutine calculate_auxiliary_fields(ilin)
   if(jadv.eq.0) def_fields = def_fields + FIELD_ES
   if(heat_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_Q
   if(rad_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_RAD
+  if (irunaway.ge.1) def_fields = def_fields + FIELD_RE
 
   numelms = local_elements()
 
@@ -1038,5 +1095,71 @@ subroutine calculate_auxiliary_fields(ilin)
   
   end subroutine calculate_auxiliary_fields
 
+#ifdef USEPARTICLES
+  subroutine calculate_electric_fields(ilin)
+  use math
+  use basic
+  use m3dc1_nint
+  use newvar_mod
+  use diagnostics
+  use metricterms_new
+  use electric_field
+  use temperature_plots
+  use kprad_m3dc1
+
+  implicit none
+
+  integer, intent(in) :: ilin
+
+  integer :: def_fields
+  integer :: numelms
+  integer :: i, itri, izone
+  vectype, dimension(dofs_per_element) :: dofs
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Calculating electric fields'
+  
+  ef_r = 0.
+  ef_phi = 0.
+  ef_z = 0.
+  !if (ilin==0) b0f = 0.
+  !b1f = 0.
+
+  ! specify which fields are to be evalulated
+  def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
+  def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
+  def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
+  def_fields = def_fields + FIELD_MU + FIELD_B2I
+  if (irunaway.ge.1) def_fields = def_fields + FIELD_RE
+
+  numelms = local_elements()
+
+  do itri=1,numelms
+     call define_element_quadrature(itri, int_pts_aux, 5)
+     call define_fields(itri, def_fields, 1, 0)
+
+     ! electric_field
+     call electric_field_r(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(ef_r%vec,itri,1,dofs,VEC_ADD)
+
+     call electric_field_phi(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(ef_phi%vec,itri,1,dofs,VEC_ADD)
+
+     call electric_field_z(ilin,temp79a,izone)
+     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(ef_z%vec,itri,1,dofs,VEC_ADD)
+    
+  end do
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' before ef solve'
+  call newvar_solve(ef_r%vec, mass_mat_lhs)
+  call newvar_solve(ef_phi%vec, mass_mat_lhs)
+  call newvar_solve(ef_z%vec, mass_mat_lhs)
+
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating electric fields'
+  
+  end subroutine calculate_electric_fields
+#endif
 
 end module auxiliary_fields

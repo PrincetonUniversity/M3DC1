@@ -1,11 +1,12 @@
-
-
 ******************************************************************************
  NOTE: please add the following runtime options at your srun line:
 
  -sub_mat_superlu_dist_rowperm norowperm (when using superlu_dist for 3D run)
  -sub_mat_mumps_icntl_14 100 (when using mumps for 3D run)
 ******************************************************************************
+
+0. documentation
+   https://researchcomputing.princeton.edu/systems/stellar
 
 1. login 
 	ssh your_id@stellar.princeton.edu
@@ -43,15 +44,18 @@
    3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=stellar
    after compiling, run "make bin"
 
-5. mesh utility
-   /projects/M3DC1/scorec/intel2021.1.2-intelmpi/petsc3.13.5/bin
+5. mesh generator
+   /projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/17.0-220903/bin
+
+   mesh utility (partioning, merging, etc.)
+   $SCOREC_UTIL_DIR/bin
 
 6. run a job 
 
 6.1 interactive mode
   
   $salloc -n N -t HH:MM:SS 
-  $module load module load intel/2021.1 intel-mpi/intel/2021.1.1
+  $module load module load intel/2021.1 intel-mpi/intel/2021.3.1
   (complex) $srun -n N ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps
   (2D real) $srun -n N  ./m3dc1_2d
   (3D real) $srun -n N ./m3dc1_3d -ipetsc -options_file options_bjacobi
@@ -88,10 +92,58 @@
 
 	setenv M3DC1_MPIRUN srun
 	setenv M3DC1_VERSION local
-	setenv M3DC1_ARCH stellar (openmpi) OR  setenv M3DC1_ARCH stellar-intelmpi-sg (intelmpi)
+	setenv M3DC1_ARCH stellar (intelmpi)
 	make bin ARCH=$M3DC1_ARCH
-	cd _traverse/bin/
+	cd _stellar/bin/
 	setenv PATH `pwd`:$PATH
 	cd ../../regtest/
 	./run $M3DC1_ARCH
 	./check $M3DC1_ARCH
+
+7. solver options for mg in the toroidal direction
+
+7.1 specify which solve is the mg target solve, for example, 
+
+    use mg for solve #5
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mgsolve 5
+
+    use mg for solve #5
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mgsolve 17
+
+7.2 the 1st part is the block jacobi preconditioner, the same as what has been using
+
+-pc_type bjacobi
+-pc_bjacobi_blocks 16
+-sub_pc_type lu
+-sub_pc_factor_mat_solver_type mumps
+-sub_mat_mumps_icntl_14 100
+-sub_ksp_type preonly
+-ksp_type fgmres
+-ksp_gmres_restart 220
+-ksp_max_it 40000
+-ksp_rtol 1.e-9
+-ksp_atol 1.e-20
+
+7.3 the 2nd part is the block geometry multigrid  preconditioner, new
+
+-mg_nlevels 2
+-hard_ksp_type fgmres
+-hard_ksp_norm_type unpreconditioned
+-hard_pc_type mg
+
+-hard_mg_levels_1_ksp_type fgmres
+-hard_mg_levels_1_pc_type bjacobi
+-hard_mg_levels_1_pc_bjacobi_blocks 16 [this number should be the same as the number in "-pc_bjacobi_blocks 16"]
+-hard_mg_levels_1_sub_pc_type lu
+-hard_mg_levels_1_sub_pc_factor_mat_solver_type mumps
+-hard_mg_levels_1_sub_mat_mumps_icntl_14 100
+-hard_mg_levels_1_sub_ksp_type preonly
+
+-hard_mg_coarse_ksp_type fgmres
+-hard_mg_coarse_pc_type bjacobi
+-hard_mg_coarse_pc_bjacobi_blocks 8 [this number should be the half of the number in "-pc_bjacobi_blocks 16"]
+-hard_mg_coarse_sub_pc_type lu
+-hard_mg_coarse_sub_pc_factor_mat_solver_type mumps
+-hard_mg_coarse_sub_mat_mumps_icntl_14 100
+-hard_mg_coarse_sub_ksp_type preonly
+-hard_mg_coarse_ksp_max_it 3

@@ -29,6 +29,7 @@ module scorec_mesh_mod
   integer :: ipartitioned
   integer :: imatassemble  
   integer :: imulti_region
+  integer :: iadapt_snap
 
   real :: toroidal_pack_factor
   real :: toroidal_pack_angle
@@ -68,6 +69,10 @@ contains
     integer :: nvals
 #endif
 
+    ! load mesh
+    call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
+    call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
+
     ! Define boundary types and zone types
     if(imulti_region.eq.1) then
        if(boundary_type(1).eq.BOUND_UNKNOWN) then
@@ -93,11 +98,6 @@ contains
        zone_type(1) = ZONE_PLASMA
     end if
 
-
-    ! load mesh
-    call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
-    call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
-
 #ifdef USEST
     ilog = -1  ! before reading in geometry
     if (igeometry.gt.0) then ! do nothing when igeometry==0 
@@ -117,6 +117,8 @@ contains
     else if(ifull_torus.eq.1) then
        if(myrank.eq.0) print *, 'full torus...'
     end if
+
+    if (iadapt_snap.eq.1) call m3dc1_model_settopo()
 
 #ifdef USE3D   
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes
@@ -833,12 +835,6 @@ contains
     itri = itri+1
 #else
     itri = itrin
-#endif
-#ifdef ADAPT
-    call m3dc1_mesh_getnument(2, numelm)
-    if (itri-1 .ge. numelm) then
-       print *, "itri ", itri, " should be equal to or less than ", numelm
-    endif
 #endif
     !call nodfac(itri,inode)
     !call edgfac(itri,iedge)

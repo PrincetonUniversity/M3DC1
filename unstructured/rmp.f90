@@ -21,7 +21,7 @@ module rmp
 contains
 
 !==============================================================================
-subroutine rmp_per(init)
+subroutine rmp_per(ilin)
   use basic
   use arrays
   use coils
@@ -32,65 +32,146 @@ subroutine rmp_per(init)
 
   integer :: l, ierr
   character(len=13) :: ext_field_name
-  logical, intent(in) :: init 
+  integer, intent(in), optional :: ilin
 
-  ! load external field data from schaffer file
-  ! for itaylor = 41  
-  if(init) then 
-     allocate(sf(iread_ext_field))
-     call load_fieldlines_field(sf(iread_ext_field), fieldlines_filename,isample_ext_field, &
-                   isample_ext_field_pol,ierr)
-  else if(iread_ext_field.ge.1) then
-     if(type_ext_field.eq.1) then
-        allocate(sf(iread_ext_field))
-        if(file_ext_field(1:10).eq.'fieldlines') then
-           call load_fieldlines_field(sf(iread_ext_field), file_ext_field,isample_ext_field, &
-                   isample_ext_field_pol,ierr)
-#ifdef USEST
-        else if(file_ext_field(1:5).eq.'mgrid') then
-           call load_mgrid_field(sf(iread_ext_field), file_ext_field, vmec_filename, ierr)
+  if(type_ext_field.le.0) then ! RMP field
+     if(iread_ext_field.ge.1) allocate(sf(iread_ext_field))
+     do l=1, iread_ext_field
+        if(iread_ext_field.eq.1) then
+           ext_field_name = 'error_field'
         else
-           print *, 'ERROR: Invalid ext_field'
-           call safestop(51)
-#endif
+           write(ext_field_name, '("error_field",I2.2)') l
         end if
-     else if(type_ext_field.eq.0) then
-        allocate(sf(iread_ext_field))
-        do l=1, iread_ext_field
-   
-           if(iread_ext_field.eq.1) then
-              ext_field_name = 'error_field'
-           else
-              write(ext_field_name, '("error_field",I2.2)') l
-           end if
-           call load_schaffer_field(sf(l),ext_field_name,isample_ext_field, &
+        call load_schaffer_field(sf(l),ext_field_name,isample_ext_field, &
                 isample_ext_field_pol,ierr)
-           if(ierr.ne.0) call safestop(6)
-   
+        if(ierr.ne.0) call safestop(6)
 #ifdef USECOMPLEX
-           if(myrank.eq.0 .and. iprint.gt.2) then
-              print *, 'Calculating field FT'
-           end if
-           call calculate_external_field_ft(sf(l), ntor)
+        if(myrank.eq.0 .and. iprint.gt.2) then
+           print *, 'Calculating field FT'
+        end if
+        call calculate_external_field_ft(sf(l), ntor)
 #endif
-        end do
-     else 
-        return
-     end if
+     end do
+  else if(type_ext_field.eq.2) then ! Stellarator/3D vacuum field 
+    allocate(sf(iread_ext_field))
+    call read_stellarator_field(file_ext_field)
+  else
+    if(myrank.eq.1) print *, &
+      'ERROR: RMP fields require type_ext_field < 0 or =2.'
+    call safestop(58)
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
-  call calculate_external_fields(init)
+  call calculate_external_fields(ilin)
 
   ! unload data
+  call deallocate_sf
+
+end subroutine rmp_per
+
+!==============================================================================
+! For free boundary stellarator and 3D fields 
+
+subroutine load_stellarator_field
+  use basic
+  use arrays
+  use coils
+  use init_common 
+  use boundary_conditions
+  use read_schaffer_field
+
+  implicit none
+  integer :: ierr
+
+  allocate(sf(iread_ext_field))
+
+  if(type_ext_field.eq.1) then ! Free boundary stellarator (no field subtraction)
+
+    call read_stellarator_field(file_total_field)
+    call calculate_external_fields
+    call deallocate_sf
+
+  else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! With field substraction 
+
+    ! First load the total field while temporarily setting extsubtract=0
+    extsubtract = 0
+    call read_stellarator_field(file_total_field)
+    call calculate_external_fields
+    call deallocate_sf
+    ! Then reset extsubtract=1
+    extsubtract = 1
+
+  else if(type_ext_field.eq.2 .and. extsubtract.eq.0) then
+    if(myrank.eq.0) print *, &
+      'ERROR: type_ext_field=2 requires extsubtract=1 when itaylor=41'
+    call safestop(57)
+  else
+    if(myrank.eq.0) print *, &
+      'ERORR: Invalid external field options for stellarator.' 
+    call safestop(57)
+
+  end if
+  call init_perturbations
+
+end subroutine load_stellarator_field
+
+! Select stellarator data to read
+subroutine read_stellarator_field(field_name)
+  use basic
+  use arrays
+  use coils
+  use boundary_conditions
+  use read_schaffer_field
+
+  implicit none
+
+  character(len=256), intent(in) :: field_name
+  integer :: ierr
+
+  if(field_name(1:10).eq.'fieldlines') then
+    call load_fieldlines_field(sf(iread_ext_field), field_name,ierr)
+  else if(field_name(1:4).eq.'mips') then
+    call load_mips_field(sf(iread_ext_field), field_name, ierr)
+#ifdef USEST
+  else if(field_name(1:4).eq.'hint') then
+    call load_hint_field(sf(iread_ext_field), field_name, ierr)
+  else if(field_name(1:5).eq.'mgrid') then
+    call load_mgrid_field(sf(iread_ext_field), field_name, vmec_filename, ierr)
+#endif
+  else
+    if(myrank.eq.0) print *, &
+      'ERROR: Invalid ext_field. Currently only FIELDLINES and MGRID supported'
+    call safestop(51)
+  end if
+  if(ierr.lt.0) then 
+     if(myrank.eq.0) then 
+        print *, "Error: could not open file: ", field_name
+     end if
+     call safestop(50)
+  end if
+
+end subroutine read_stellarator_field
+
+
+!==============================================================================
+! Deallocate sf field
+subroutine deallocate_sf
+  use basic
+
+  implicit none
+
+  integer :: l
+
   if(iread_ext_field.ge.1) then
      do l=1, iread_ext_field
         call unload_schaffer_field(sf(l))
      end do
      deallocate(sf)
   end if
-end subroutine rmp_per
 
+end subroutine deallocate_sf
+
+!==============================================================================
 subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   use math
   use basic
@@ -310,7 +391,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 end subroutine rmp_field
 
 
-subroutine calculate_external_fields(init)
+subroutine calculate_external_fields(ilin)
   use basic
   use math
   use mesh_mod
@@ -323,13 +404,14 @@ subroutine calculate_external_fields(init)
   use gradshafranov
 
   implicit none
-  logical, intent(in) :: init 
 
   include 'mpif.h'
 
   type(matrix_type) :: br_mat, bf_mat
   type(vector_type) :: psi_vec, bz_vec, p_vec, bf_vec
   integer :: i, itri, nelms, ier, ibound, ipsibound
+  integer, intent(in), optional :: ilin
+  integer :: il
 
   vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
   vectype, dimension(dofs_per_element,2) :: temp2
@@ -339,6 +421,12 @@ subroutine calculate_external_fields(init)
   type(field_type) :: psi_f, bz_f, p_f, bf_f, bfp_f
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
+
+  if(.not.present(ilin)) then
+     il = 1
+  else 
+     il = ilin
+  end if
 
   if(irmp.eq.1) then
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
@@ -402,13 +490,6 @@ subroutine calculate_external_fields(init)
           x_79, phi_79, z_79, &
           temp79a, temp79b, temp79c, temp79d)
 
-!#ifdef USEST
-!     if(iread_vmec.eq.2) then
-!        call vmec_fields(xl_79, phi_79, zl_79, &
-!             temp79a, temp79b, temp79c, temp79d, temp79e)
-!        read_p = .true.
-!     end if
-!#endif
      ! psi_equation
      ! ~~~~~~~~~~~~
      ! Minimize BR, BZ
@@ -516,15 +597,9 @@ subroutine calculate_external_fields(init)
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."
 
      call newsolve(mass_mat_lhs%mat,p_vec,ier)
-     if(itaylor.eq.41) then
-        p_field(0) = p_f
-        pe_field(0) = p_f
-        call mult(pe_field(0), pefac) 
-     else 
-        p_field(1) = p_f
-        pe_field(1) = p_f
-        call mult(pe_field(1), pefac) 
-     end if
+     p_field(il) = p_f
+     pe_field(il) = p_f
+     call mult(pe_field(il), pefac) 
   end if
 
   call boundary_dc(bf_vec,mat=bf_mat)
@@ -537,24 +612,19 @@ subroutine calculate_external_fields(init)
      ! Solve for f
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving bf..."
      call newsolve(bf_mat,bf_vec,ier)
-     if((extsubtract.eq.1).and.(.not.init)) then
-        bz_ext = bz_f     
-        bf_ext = bf_f     
-        if(itaylor.eq.40) then
-           call mult(bz_f, -1.)
-           call mult(bf_f, -1.)
-           call add(bz_field(0), bz_f)
-           call add(bf_field(0), bf_f)
-        end if
-        if(itaylor.eq.41) then
-           call mult(bz_f, -1.)
-           call mult(bf_f, -1.)
-           call add(bz_field(1), bz_f)
-           call add(bf_field(1), bf_f)
+     if(extsubtract.eq.1) then
+        bz_ext = bz_f  ! For all cases: RMP, error fields, ST
+        bf_ext = bf_f
+        if (type_ext_field.ge.1 .and. (itaylor.eq.40 .or. itaylor.eq.41)) then 
+        ! subtract vacuum from total field
+          call mult(bz_f, -1.)
+          call mult(bf_f, -1.)
+          call add(bz_field(0), bz_f)
+          call add(bf_field(0), bf_f)
         end if
      else
-        bz_field(1) = bz_f
-        bf_field(1) = bf_f
+        bz_field(il) = bz_f
+        bf_field(il) = bf_f
      end if
   end if
 
@@ -564,46 +634,28 @@ subroutine calculate_external_fields(init)
   call finalize(br_mat)
   call newsolve(br_mat,psi_vec,ier)
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
-  if((extsubtract.eq.1).and.(.not.init)) then
-     psi_ext = psi_f
+  if(extsubtract.eq.1) then
+     psi_ext = psi_f ! For all cases: RMP, error fields, ST
      bfp_ext = bfp_f
-     if(itaylor.eq.40) then
-        call mult(psi_f, -1.)
-        call mult(bfp_f, -1.)
-        call add(psi_field(0), psi_f)
-        call add(bfp_field(0), bfp_f)
-     end if
-     if(itaylor.eq.41) then
-        call mult(psi_f, -1.)
-        call mult(bfp_f, -1.)
-        call add(psi_field(1), psi_f)
-        call add(bfp_field(1), bfp_f)
+     if (type_ext_field.ge.1 .and. (itaylor.eq.40 .or. itaylor.eq.41)) then 
+     ! subtract vacuum from total field
+       call mult(psi_f, -1.)
+       call mult(bfp_f, -1.)
+       call add(psi_field(0), psi_f)
+       call add(bfp_field(0), bfp_f) 
      end if
   else
-     psi_field(1) = psi_f
-     bfp_field(1) = bfp_f
+     psi_field(il) = psi_f
+     bfp_field(il) = bfp_f
   end if
-  if(iflip_b.eq.1) call mult(bz_field(1), -1.)
-  if(iflip_j.eq.1) then
-     call mult(psi_field(1), -1.)
-     call mult(bfp_field(1), -1.)
-  end if
-  !psi_field(1) = 0.
-  !bfp_field(1) = 0. 
-  !bfp_field(1) = p_f
-  !p_field(1) = 0. 
-  !pe_field(1) = 0. 
-  !call add(p_field(1), pedge) 
-  !call add(pe_field(1), pedge*pefac) 
-  !bz_field(1) = bf_f
-  !call mult(bz_field(1), -1.) 
-  !call add(bz_field(1), p_field(1))
-  !p_field(1) = bfp_field(1)
-  !call pow(p_field(1), 2.) 
 
-  !call add(bfp_field(1), p_field(1))
-  !call add(bfp_field(1), p_field(1))
-  !bfp_field(1) = 0.
+  if(iflip_b.eq.1) then 
+     call mult(bz_field(il), -1.)
+  end if
+  if(iflip_j.eq.1) then
+     call mult(psi_field(il), -1.)
+     call mult(bfp_field(il), -1.)
+  end if
 
   call destroy_vector(psi_vec)
   call destroy_vector(bz_vec)

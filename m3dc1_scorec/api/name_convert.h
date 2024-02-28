@@ -1,4 +1,5 @@
 #define m3dc1_scorec_init m3dc1_domain_init_
+#define m3dc1_scorec_verbosity m3dc1_domain_verbosity_
 #define m3dc1_scorec_finalize m3dc1_domain_finalize_
 #define m3dc1_plane_setnum m3dc1_plane_setnum_
 #define m3dc1_plane_getnum m3dc1_plane_getnum_
@@ -10,14 +11,17 @@
 #define m3dc1_model_print m3dc1_model_print_
 #define m3dc1_model_setnumplane m3dc1_model_setnumplane_
 #define m3dc1_model_getnumplane m3dc1_model_getnumplane_
+#define m3dc1_model_settopo m3dc1_model_settopo_
 #define m3dc1_model_getmincoord m3dc1_model_getmincoord_
 #define m3dc1_model_getmaxcoord m3dc1_model_getmaxcoord_
 #define m3dc1_model_getplaneid m3dc1_model_getplaneid_
 #define m3dc1_mesh_load m3dc1_mesh_load_
 #define m3dc1_mesh_load_3d m3dc1_mesh_load_3d_
 #define m3dc1_mesh_build3d m3dc1_mesh_build3d_
+#define m3dc1_spr_adapt m3dc1_spr_adapt_
 #define m3dc1_mesh_adapt m3dc1_mesh_adapt_
 #define m3dc1_mesh_write m3dc1_mesh_write_
+#define m3dc1_mesh_verify m3dc1_mesh_verify
 #define m3dc1_mesh_getnument m3dc1_mesh_getnument_
 #define m3dc1_mesh_getnumghostent m3dc1_mesh_getnumghostent_
 #define m3dc1_mesh_getnumownent m3dc1_mesh_getnumownent_
@@ -30,6 +34,7 @@
 #define adapt_by_error_field adapt_by_error_field_
 #define set_mesh_size_bound set_mesh_size_bound_
 #define set_adapt_smooth_factor set_adapt_smooth_factor_
+#define adapt_model_face adapt_model_face_
 #define output_face_data output_face_data_
 #define sum_edge_data sum_edge_data_
 #define m3dc1_ent_getlocalid m3dc1_ent_getlocalid_
@@ -59,6 +64,7 @@
 #define m3dc1_region_getoriginalface m3dc1_region_getoriginalface_
 #define m3dc1_field_getnewid m3dc1_field_genid_
 #define m3dc1_field_create m3dc1_field_create_
+#define m3dc1_field_mark4tx m3dc1_field_mark4tx_
 #define m3dc1_field_delete m3dc1_field_delete_
 #define m3dc1_field_exist m3dc1_field_exist_
 #define m3dc1_field_sync m3dc1_field_sync_
@@ -98,8 +104,10 @@
 #define m3dc1_matrix_add m3dc1_matrix_add_
 #define m3dc1_matrix_setbc m3dc1_matrix_setbc_
 #define m3dc1_matrix_solve m3dc1_matrix_solve_
+#define m3dc1_matrix_solve_with_guess m3dc1_matrix_solve_with_guess_
 #define m3dc1_matrix_multiply m3dc1_matrix_multiply_
 #define m3dc1_matrix_getnumiter m3dc1_matrix_getiternum_
+#define m3dc1_matrix_solve_with_guess m3dc1_matrix_solve_with_guess_
 #define m3dc1_matrix_getlocalnumdof m3dc1_matrix_getlocalnumdof_
 #define m3dc1_matrix_getglobalnumdof m3dc1_matrix_getglobalnumdof_
 #define m3dc1_matrix_insertblock m3dc1_matrix_insertblock_

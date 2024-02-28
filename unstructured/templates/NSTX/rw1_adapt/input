@@ -9,7 +9,7 @@ simVer 90
 !            3 - three-regions  
 modelType 3
 
-inFile first_wall.pts
+inFile nstx_lim_refined.pts
 outFile nstx
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum

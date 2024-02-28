@@ -80,7 +80,8 @@ contains
     end if
 
     ! calculate Gauss quadradure
-    call gaussquad(n_quad,quad) 
+    call gaussquad(n_quad,quad)
+
     ! perform Zernike transform
     call zernike_transform(mn_mode,mb,rmnc,rmncz)
     if(myrank.eq.0) print *, 'rmnc transformed'
@@ -129,7 +130,6 @@ contains
 !          end do
 !       end do
 !    end do
-
 
   end subroutine process_vmec
 
@@ -286,10 +286,10 @@ contains
     ierr = ierr + nf90_get_var(ncid, id, phiv)
     if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'phiv read'
-    ierr = nf90_inq_varid(ncid, "chi", id)
-    ierr = ierr + nf90_get_var(ncid, id, chiv)
-    if(ierr.ne.0) call safestop(5) 
-    if(myrank.eq.0) print *, 'chiv read'
+    !ierr = nf90_inq_varid(ncid, "chi", id)
+    !ierr = ierr + nf90_get_var(ncid, id, chiv)
+    !if(ierr.ne.0) call safestop(5) 
+    !if(myrank.eq.0) print *, 'chiv read'
 
     ! Get 2D array rmnc, zmns, lmns 
     ierr = nf90_inq_varid(ncid, "rmnc", id)
@@ -611,8 +611,8 @@ contains
     else if (mod(n-m, 2) .eq. 0) then
        call zernike_polynomial(r,n-2,m,z1)
        call zernike_polynomial(r,n-4,m,z2)
-       z = ((4*(n-1)*r**2-(n-2.+m)**2/(n-2)-(n-m+0.)**2/n)*z1&
-           -((n-2.)**2-m**2)/(n-2)*z2)*n/(n**2-m**2)
+       z = ((4*(n-1)*r**2-(n-2.+m)**2/(n-2)-(n-m+0.)**2/n)*z1 &
+            -((n-2.)**2-m**2)/(n-2)*z2)*n/(n**2-m**2)
     else 
        z = 0.
     end if    
@@ -644,13 +644,13 @@ contains
     real, dimension(mn) :: df, df0, df1 
     real, dimension(mn,4) :: a 
 
-    if (r.eq.0) then
+    if (r.eq.0.) then
        fout = fmn(:,1)
     else
-       do i = 0, ns-1
-          f(:,i+1) = fmn(:,i+1)*(1.*i/(ns-1))**(-.5*m+1) 
+       f(:,1) = 0.
+       do i = 1, ns-1
+          f(:,i+1) = fmn(:,i+1)*(1.*i/(ns-1))**(-.5*m+1.)
        end do
-       !f(:,1)=fmn(:,1)
        do i = 1, mn
           if(m(i).ne.0.) f(i,1) = 0.
        end do
@@ -661,13 +661,13 @@ contains
        df = (f(:,js+1) - f(:,js))
        if(js.eq.1) then
           df0 = df
-          df1 = (f(:,js+2) - f(:,js  ))/2
+          df1 = (f(:,js+2) - f(:,js  ))/2.
        else if(js.eq.ns-1) then
-          df0 = (f(:,js+1) - f(:,js-1))/2
+          df0 = (f(:,js+1) - f(:,js-1))/2.
           df1 = df
        else
-          df0 = (f(:,js+1) - f(:,js-1))/2
-          df1 = (f(:,js+2) - f(:,js  ))/2
+          df0 = (f(:,js+1) - f(:,js-1))/2.
+          df1 = (f(:,js+2) - f(:,js  ))/2.
        end if
        a(:,1) = f(:,js)
        a(:,2) = df0
@@ -675,7 +675,8 @@ contains
        a(:,4) = (-2.*df + (df0+df1))
        fout = a(:,1) + a(:,2)*ds + a(:,3)*ds**2 + a(:,4)*ds**3
        fout = fout*r**(m-2)
-    end if 
+    end if
+
   end subroutine vmec_interpl
 
   ! half mesh VMEC data to full mesh
@@ -736,10 +737,10 @@ contains
         end do
         dx =  f / df
         x = x - dx
-        if (abs(dx)<10*epsilon(dx)) exit
+        if (abs(dx) .lt. 10.*epsilon(dx)) exit
       end do
       quad(1,i) = x
-      quad(2,i) = 2/((1-x**2)*df**2)
+      quad(2,i) = 2./((1.-x**2)*df**2)
     end do
 
     !integer, parameter :: p = 8 ! quadruple precision

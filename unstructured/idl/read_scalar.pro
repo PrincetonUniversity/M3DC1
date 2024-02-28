@@ -363,7 +363,19 @@ function read_scalar, scalarname, filename=filename, title=title, $
          data = 0.
       end
        title = 'Electron Thermal Energy'
-       symbol = '!8TE!X'
+       symbol = '!8W!de!N!X'
+       d = dimensions(/energy, _EXTRA=extra)
+    endif else if $
+       (strcmp("ion thermal energy", scalarname, /fold_case) eq 1) or $
+       (strcmp("pi", scalarname, /fold_case) eq 1)then begin
+       if(version ge 20) then begin
+          data = s.E_P._data - s.E_PE._data 
+       endif else begin
+          print, 'Error, this data is not present in this version of M3D-C1.'
+          data = 0.
+       end
+       title = 'Ion Thermal Energy'
+       symbol = '!8W!di!N!X'
        d = dimensions(/energy, _EXTRA=extra)
    endif else if $
      (strcmp("energy", scalarname, /fold_case) eq 1) then begin
@@ -537,16 +549,22 @@ function read_scalar, scalarname, filename=filename, title=title, $
        data = s.kprad_n0._data
        title = '!6Neutral Impurities!X'
        symbol = '!8n!DI!60!N!X'
-       d = dimensions(/n0,_EXTRA=extra)
+       d = dimensions(/n0,l0=3,_EXTRA=extra)
    endif else if (strcmp("kprad_n", scalarname, /fold_case) eq 1) then begin
        data = s.kprad_n._data
        title = '!6Total Impurities!6'
        symbol = '!8n!DI!N!X'
-       d = dimensions(/n0,_EXTRA=extra)
+       d = dimensions(/n0,l0=3,_EXTRA=extra)
    endif else if (strcmp("kprad_ion_frac", scalarname, /fold_case) eq 1) then begin
        data = 1. - s.kprad_n0._data / s.kprad_n._data
        title = '!6Impurity Ionization Fraction!X'
        symbol = title
+       d = dimensions(_EXTRA=extra)
+   endif else if (strcmp("zeff", scalarname, /fold_case) eq 1) then begin
+       data = s.electron_number._data / $
+             (s.particle_number._data + s.kprad_n._data)
+       title = '!6Free electrons per nucleus!X'
+       symbol = '!8Z!Deff!N!X'
        d = dimensions(_EXTRA=extra)
 
    endif else begin

@@ -1,7 +1,7 @@
 module restart_hdf5
   implicit none
 
-  integer, private :: icomplex_in, eqsubtract_in, ifin, nplanes_in
+  integer, private :: icomplex_in, eqsubtract_in, extsubtract_in, ifin, nplanes_in
   integer, private :: ikprad_in, kprad_z_in, ipellet_in
   real, private, allocatable :: phi_in(:)
   real, private :: toroidal_period_in
@@ -16,6 +16,7 @@ contains
     use arrays
     use kprad_m3dc1
     use init_common
+    use rmp
 
     implicit none
 
@@ -72,6 +73,7 @@ contains
     end if
     
     call read_int_attr(root_id, "eqsubtract", eqsubtract_in, error)
+    call read_int_attr(root_id, "extsubtract", extsubtract_in, error)
     call read_int_attr(root_id, "icomplex", icomplex_in, error)
     call read_int_attr(root_id, "3d", i3d_in, error)
 
@@ -340,7 +342,21 @@ contains
        if(eqsubtract.eq.0) then
          call add_field_to_field(nre_field(1),nre_field(0))
          nre_field(0) = 0.
-       endif
+      endif
+
+      ! For RMP and error fields
+      if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
+           tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
+           any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) then
+         ! External fields already loaded for itaylor = 41
+         if(itaylor.eq.41) then
+            if(myrank.eq.0 .and. iprint.ge.2) print *, &
+                 "Skipping: RMP specification not currently implemented for ST."
+         else
+            call rmp_per
+         end if
+      end if
+
     end if
 
     if(allocated(phi_in)) deallocate(phi_in)
@@ -390,19 +406,20 @@ contains
     if(irunaway.gt.0) then
       call h5r_read_field(group_id, "nre", nre_field(ilin), nelms, error)
     endif
+    call mult(nre_field(ilin), -1.)
 
     if(icsubtract.eq.1) then
        call h5r_read_field(group_id, "psi_coil", psi_coil_field, nelms, error, .true.)
     end if
     
     if(icsubtract.eq.1 .or. &
-         (extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0))) then
+         (extsubtract_in.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0))) then
        call h5r_read_field(group_id, "psi_plasma", psi_field(ilin), nelms, error)
     else
        call h5r_read_field(group_id, "psi", psi_field(ilin), nelms, error)
     end if
 
-    if(extsubtract.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0)) then
+    if(extsubtract_in.eq.1 .and. (ilin.eq.1 .or. eqsubtract_in.eq.0)) then
        call h5r_read_field(group_id, "I_plasma", bz_field(ilin), nelms, error)
        if(ifin.eq.1) then
           call h5r_read_field(group_id, "f_plasma", bf_field(ilin), nelms, error)
@@ -420,7 +437,7 @@ contains
        end if
     end if
 
-    if (use_external_fields) then
+    if (extsubtract_in.eq.1) then
        call h5r_read_field(group_id, "psi_ext", psi_ext, nelms, error)
        call h5r_read_field(group_id,   "I_ext",  bz_ext, nelms, error)
        call h5r_read_field(group_id,   "f_ext",  bf_ext, nelms, error)       
@@ -439,6 +456,30 @@ contains
     call h5r_read_field(group_id, "ne",  ne_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "te",  te_field(ilin),  nelms, error)
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
+
+#ifdef USEPARTICLES
+    if ((kinetic.eq.1).and.(ilin.eq.1)) then
+       call h5r_read_field(group_id, "p_f_par",   p_f_par, nelms, error)
+       call h5r_read_field(group_id, "p_f_perp",  p_f_perp, nelms, error)
+       call h5r_read_field(group_id, "den_f_0",   den_f_0, nelms, error)
+       call h5r_read_field(group_id, "den_f_1",   den_f_1, nelms, error)
+       !call h5r_read_field(group_id, "p_i_par",   p_i_par, nelms, error)
+       !call h5r_read_field(group_id, "p_i_perp",  p_i_perp, nelms, error)
+       !call h5r_read_field(group_id, "den_i_0",   den_i_0, nelms, error)
+       !call h5r_read_field(group_id, "den_i_1",   den_i_1, nelms, error)
+       call h5r_read_field(group_id, "rhof", rho_field, nelms, error)
+       call h5r_read_field(group_id, "nf",   nf_field, nelms, error)
+       call h5r_read_field(group_id, "tf",   tf_field, nelms, error)
+       call h5r_read_field(group_id, "pf",   pf_field, nelms, error)
+       ! call mult(pf_field,-0.75)
+       ! call add(p_field(0),pf_field)
+       ! call mult(pf_field,-4.0/3.0)
+       ! den_field(1)=0.
+       call h5r_read_field(group_id, "nfi",  nfi_field, nelms, error)
+       call h5r_read_field(group_id, "tfi",  tfi_field, nelms, error)
+       call h5r_read_field(group_id, "pfi",  pfi_field, nelms, error)
+    endif
+#endif
 
     if(ikprad.ge.1 .and. ikprad_in.ge.1) then
        do i=0, kprad_z

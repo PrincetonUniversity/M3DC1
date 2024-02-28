@@ -46,7 +46,7 @@ module diagnostics
        ekinp,emagp,ekinpd,emagpd,ekinpo,emagpo,ekinpdo,emagpdo,        &
        ekinph,ekinth,emagph,emagth,ekinpho,ekintho,emagpho,emagtho,    &
        ekin3,ekin3d,ekin3h,emag3,ekin3o,ekin3do,ekin3ho,emag3o,        &
-       emag3h,emag3d,emag3ho,emag3do, avep
+       emag3h,emag3d,emag3ho,emag3do, avep,emagpv,emagtv,emagpc,emagtc
   real :: efluxp,efluxk,efluxs,efluxt,epotg,etot,ptot,eerr,ptoto
 
   ! in subroutine calculate_ke()
@@ -70,6 +70,9 @@ module diagnostics
   real :: t_solve_v, t_solve_n, t_solve_p, t_solve_b, t_mvm
   real :: t_output_cgm, t_output_hdf5, t_output_reset
   real :: t_gs, t_kprad
+#ifdef USEPARTICLES
+  real :: t_particle
+#endif
 
   integer, parameter :: imag_probes_max = 100
   integer :: imag_probes
@@ -203,6 +206,10 @@ contains
     efluxs = 0.
     efluxt = 0.
     epotg = 0.
+    emagpc = 0.
+    emagtc = 0.
+    emagpv = 0.
+    emagtv = 0.
 
     ptot = 0.
 
@@ -289,7 +296,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 76
+    integer, parameter :: num_scalars = 80
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, allocatable  :: ptemp(:)
@@ -372,6 +379,10 @@ contains
        temp(74) = pinj
        temp(75) = totkprad
        temp(76) = totkprad0
+       temp(77) = emagpc
+       temp(78) = emagtc
+       temp(79) = emagpv
+       temp(80) = emagtv
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -453,6 +464,10 @@ contains
        pinj            = temp2(74)
        totkprad        = temp2(75)
        totkprad0       = temp2(76)
+       emagpc          = temp2(77)
+       emagtc          = temp2(78)
+       emagpv          = temp2(79)
+       emagtv          = temp2(80)
 
        if(ipellet_abl.gt.0) then
           allocate(ptemp(npellets))
@@ -699,7 +714,7 @@ subroutine calculate_scalars()
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac,tpirzero, t0
-  integer :: iedge, idim(3), izone, izonedim, i, j
+  integer :: iedge, idim(3), izone, izonedim, izone_ind, i, j
   real, dimension(OP_NUM) :: dum1
   vectype, dimension(MAX_PTS) :: mr
   vectype, dimension(MAX_PTS) :: co, sn
@@ -780,12 +795,13 @@ subroutine calculate_scalars()
 
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
-!$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0)
+!$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,izone_ind,i) &
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
-     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+     izone = zone_type(izone_ind)
 
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, def_fields, 0, 0)
@@ -802,7 +818,7 @@ subroutine calculate_scalars()
      end if
 #endif
 
-     if(imulti_region.eq.1 .and. izone.eq.2) then
+     if(imulti_region.eq.1 .and. izone.eq.ZONE_CONDUCTOR) then
         wallcur = wallcur - int2(ri2_79,pst79(:,OP_GS))/tpirzero
 
         call jxb_r(temp79a, temp79d)
@@ -828,7 +844,17 @@ subroutine calculate_scalars()
 #endif
      end if
 
-     if(izone.ne.1) cycle
+     if(izone.eq.ZONE_CONDUCTOR) then
+        emagpc  = emagpc + twopi*energy_mp()/tpifac
+        emagtc  = emagtc + twopi*energy_mt()/tpifac
+     end if
+
+     if(izone.eq.ZONE_VACUUM) then
+        emagpv  = emagpv + twopi*energy_mp()/tpifac
+        emagtv  = emagtv + twopi*energy_mt()/tpifac
+     end if
+
+     if(izone.ne.ZONE_PLASMA) cycle
 
      do i=1, npoints
         if(linear.eq.1) then
@@ -867,7 +893,6 @@ subroutine calculate_scalars()
      if(ike_only.eq.1) cycle
 
      emagp  = emagp  + twopi*energy_mp ()/tpifac
-     w_m    = w_m    + twopi*energy_mp (mr)/tpifac
      emagpd = emagpd + twopi*energy_mpd()/tpifac
 !     emagph = emagph - twopi*qpsipsieta(tm79)/tpifac
 
@@ -878,6 +903,7 @@ subroutine calculate_scalars()
      emag3 = emag3 + twopi*energy_p()/tpifac
      w_pe = w_pe + twopi*energy_pe()/tpifac
      w_p  = w_p +  twopi*energy_p(mr)/tpifac
+     w_m  = w_m + twopi*energy_mp(mr)/tpifac
 
      ! Calculate Scalars
      ! ~~~~~~~~~~~~~~~~~
@@ -1004,7 +1030,7 @@ subroutine calculate_scalars()
      end if
 
      ! add surface terms
-     call boundary_edge(itri, is_edge, n, idim)
+     call boundary_edge(itri, is_edge, n, idim, BOUND_FIRSTWALL)
 
      do iedge=1,3
         if(is_edge(iedge).eq.0) cycle
@@ -1151,7 +1177,7 @@ subroutine calculate_Lor_vol()
   integer :: itri, numelms, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: tpifac,tpirzero
-  integer :: izone, izonedim
+  integer :: izone, izonedim, izone_ind
   real, allocatable :: temp(:)
   integer :: ip
 
@@ -1164,7 +1190,9 @@ subroutine calculate_Lor_vol()
 
   do itri=1,numelms
 
-     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+     izone = zone_type(izone_ind)
+         
      if(izone.ne.1) cycle
      call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
      call define_fields(itri, FIELD_P, 0, 0)
@@ -2104,7 +2132,7 @@ subroutine calculate_ke()
   integer :: itri, numelms, def_fields
   real :: ke_N, ketotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
-  integer :: izone, izonedim
+  integer :: izone, izonedim, izone_ind
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -2356,7 +2384,9 @@ subroutine calculate_ke()
      
 !$OMP PARALLEL DO REDUCTION(+:ke_N)
      do itri=1,numelms
-        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+        izone = zone_type(izone_ind)
+
         if(izone.ne.1) cycle
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
@@ -2469,7 +2499,7 @@ subroutine calculate_bh()
   integer :: itri, numelms, def_fields
   real:: bh_N, bhtotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
-  integer :: izone, izonedim
+  integer :: izone, izonedim, izone_ind
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
@@ -2722,7 +2752,9 @@ subroutine calculate_bh()
      
 !$OMP PARALLEL DO REDUCTION(+:bh_N)
      do itri=1,numelms
-        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone)
+        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+        izone = zone_type(izone_ind)
+
         if(izone.ne.1) cycle
 
         call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
@@ -3160,15 +3192,25 @@ end subroutine te_max_dev
        
        ! Read toroidal field
        if(mag_probe_nphi(i).ne.0.) then
+#ifdef USEPARTICLES
+          ! phi
+          call evaluate(mag_probe_x(i),mag_probe_phi(i),mag_probe_z(i), &
+               val,u_field(1),mag_probe_itri(i),ierr)
+#else
           ! bz
           call evaluate(mag_probe_x(i),mag_probe_phi(i),mag_probe_z(i), &
                val,bz_field(1),mag_probe_itri(i),ierr)
+#endif
           if(ierr.ne.0) then
              if(myrank.eq.0) print *, 'Error evaluating flux loop ', i
              cycle
           end if
 
+#ifdef USEPARTICLES
+          mag_probe_val(i) = mag_probe_val(i) + mag_probe_nphi(i)*val(OP_1)
+#else
           mag_probe_val(i) = mag_probe_val(i) + mag_probe_nphi(i)*val(OP_1)*r
+#endif
        end if
     end do
   end subroutine evaluate_mag_probes

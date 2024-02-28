@@ -33,6 +33,10 @@ module scorec_vector_mod
      module procedure scorec_vector_create
   end interface
 
+  interface mark_vector_for_solutiontransfer
+     module procedure scorec_vector_mark_for_solutiontransfer
+  end interface
+
   interface destroy_vector
      module procedure scorec_vector_destroy
   end interface
@@ -482,17 +486,24 @@ contains
   !======================================================================
   ! create
   ! ~~~~~~
-  ! creates a vector of size n
+  ! creates a vector of size n with name prefix (optional)
   !======================================================================
-  subroutine scorec_vector_create(f,n)
+  subroutine scorec_vector_create(f,n,prefix)
     implicit none
 
     type(scorec_vector), intent(inout) :: f
     integer, intent(in) :: n
+    character(len=*), intent(in), optional :: prefix
     integer :: dataType
     character(len=32) :: field_name
     call m3dc1_field_genid (f%id)
-    write(field_name,"(I0,A)") f%id, 0
+
+    if(present(prefix)) then
+      write(field_name,"(A16,A)") prefix, 0
+      field_name = adjustl(field_name)
+    else
+      write(field_name,"(I0,A)") f%id, 0
+    end if
     dataType = 0
 #ifdef USECOMPLEX
     dataType = 1
@@ -500,6 +511,13 @@ contains
     call m3dc1_field_create (f%id, trim(field_name), n, dataType, dofs_per_node);
     f%isize = n
   end subroutine scorec_vector_create
+
+  subroutine scorec_vector_mark_for_solutiontransfer(f)
+    implicit none
+
+    type(scorec_vector), intent(inout) :: f
+    call m3dc1_field_mark4tx(f%id)
+  end subroutine scorec_vector_mark_for_solutiontransfer
 
   !======================================================================
   ! destroy

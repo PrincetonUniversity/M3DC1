@@ -36,7 +36,7 @@ function sigma_func(izone)
   integer :: ip, mr
 
   ! Don't allow particle source in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      sigma_func = 0.
      return
   end if
@@ -193,7 +193,7 @@ function force_func(izone)
   vectype, dimension(dofs_per_element) :: temp
 
   ! Don't allow momentum source in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      force_func = 0.
      return
   end if
@@ -322,7 +322,7 @@ function q_func(izone)
   real, dimension(MAX_PTS) :: r
 
   ! Don't allow heating in wall or vacuum region
-  if(izone.ne.1) then
+  if(izone.ne.ZONE_PLASMA) then
      q_func = 0.
      return
   end if
@@ -819,6 +819,7 @@ function resistivity_func(izone_index)
                 (1. + tanh((temp79b-(1.+etaoff))/etadelt))
         else
            if(myrank.eq.0) print *, 'iresfunc = 21 requires igeometry = 1'
+           call safestop(73)
         end if
 #endif     
 
@@ -827,10 +828,10 @@ function resistivity_func(izone_index)
         call safestop(73)
 
      end select
-  else if(izone.eq.2) then
+  else if(izone.eq.ZONE_CONDUCTOR) then
      izarr = iz
      temp79a = wall_resistivity(x_79,phi_79,z_79,izarr) - etar*eta_fac
-  else if(izone.eq.3) then
+  else if(izone.eq.ZONE_VACUUM) then
      temp79a = eta_vac - etar*eta_fac
   end if
 
@@ -871,8 +872,8 @@ function viscosity_func()
      
      do j=1, npoints
         call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
-             x_79(j), z_79(j), iregion, psib)
-        if(iregion.eq.REGION_PF) temp79b(j) = 2.*psib - temp79b(j)
+             x_79(j), z_79(j), iregion)
+        if(iregion.eq.REGION_PF) temp79b(j) = 2. - temp79b(j)
      end do
      
      temp79a = amu_edge*.5* &
@@ -882,7 +883,7 @@ function viscosity_func()
              (1. + tanh((real(temp79b) - amuoff2)/amudelt2))
         temp79a = temp79a / 2.
      endif
-     
+
   case(3,4)
      temp79a = vis79(:,OP_1) - amu
      
@@ -930,6 +931,7 @@ function viscosity_func()
              (1. + tanh((temp79b-(1.+amuoff))/amudelt))
      else
         if(myrank.eq.0) print *, 'ivisfunc = 21 requires igeometry = 1'
+        call safestop(73)
      end if
 #endif     
 
@@ -938,6 +940,11 @@ function viscosity_func()
      call safestop(73)
      
   end select
+
+  if(amu_wall.ne.0) then
+     temp79a = temp79a + amu_wall* &
+          2.*(1. - tanh((wall79(:,OP_1) - amu_wall_off)/amu_wall_delt))
+  end if
 
   viscosity_func = intx2(mu79(:,:,OP_1),temp79a)
 end function viscosity_func
@@ -1068,6 +1075,18 @@ function kappa_func()
         end if
         temp79a(j) = val
      end do
+
+#ifdef USEST
+  case(21)
+     if(igeometry.eq.1) then
+        temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2 + regular**2)
+        temp79a = kappa0 * &
+             (1. + tanh((temp79b-(1.+kappaoff))/kappadelt))
+     else
+        if(myrank.eq.0) print *, 'ikappafunc = 21 requires igeometry = 1'
+        call safestop(73)
+     end if
+#endif
 
   case default
      if(myrank.eq.0) print *, 'Error: invalid value for ikappafunc: ', ikappafunc

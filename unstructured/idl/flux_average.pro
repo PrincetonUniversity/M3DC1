@@ -357,6 +357,110 @@ function flux_average, field, psi=psi, i0=i0, x=x, z=z, t=t, r0=r0, $
           ;;  name = '!3|!6B!3|!6!U2!N!X'
 
           ;;  return, b2_fa
+        endif else $
+           if((strcmp(field, 'd_i', /fold_case) eq 1) or $
+              (strcmp(field, 'd_r', /fold_case) eq 1) or $
+              (strcmp(field, 'd_h', /fold_case) eq 1)) then begin
+
+           i = read_field('i',x,z,t,points=points, $
+                          last=last,filename=filename,_EXTRA=extra)
+           psi = read_field('psi',x,z,t,points=points, $
+                            last=last,filename=filename,_EXTRA=extra)
+           psi_r = read_field('psi',x,z,t,points=points, $
+                            last=last,filename=filename,op=2,_EXTRA=extra)
+           psi_z = read_field('psi',x,z,t,points=points, $
+                            last=last,filename=filename,op=3,_EXTRA=extra)
+           p_r = read_field('p',x,z,t,points=points, $
+                            last=last,filename=filename,op=2,_EXTRA=extra)
+           p_z = read_field('p',x,z,t,points=points, $
+                            last=last,filename=filename,op=3,_EXTRA=extra)
+
+           if(itor eq 1) then begin
+              r = radius_matrix(x,z,t)
+           endif else begin
+              r = 1.
+           end
+
+           psi2 = psi_r^2 + psi_z^2
+           b2 = psi2/r^2 + i^2/r^2
+           pprime = (psi_r*p_r + psi_z*p_z)/psi2
+
+           b2_av = $
+              flux_average_field(b2, psi, x, z, t, psi=psi, i0=i, $
+                                 r0=r0, flux=flux, $
+                                 nflux=nflux, area=area, fc=fc, $
+                                 bins=bins, filename=filename, $
+                                 _EXTRA=extra)
+           b2_psi2_av = $
+              flux_average_field(b2/psi2, psi, x, z, t, psi=psi, i0=i, $
+                                 r0=r0, flux=flux, $
+                                 nflux=nflux, area=area, fc=fc, $
+                                 bins=bins, filename=filename, $
+                                 _EXTRA=extra)
+           inv_b2psi2_av = $
+              flux_average_field(1./(b2*psi2), psi, x, z, t, psi=psi, i0=i, $
+                                 r0=r0, flux=flux, $
+                                 nflux=nflux, area=area, fc=fc, $
+                                 bins=bins, filename=filename, $
+                                 _EXTRA=extra)
+           inv_psi2_av = $
+              flux_average_field(1./psi2, psi, x, z, t, psi=psi, i0=i, $
+                                 r0=r0, flux=flux, $
+                                 nflux=nflux, area=area, fc=fc, $
+                                 bins=bins, filename=filename, $
+                                 _EXTRA=extra)
+           inv_b2_av = $
+              flux_average_field(1./b2, psi, x, z, t, psi=psi, i0=i, $
+                                 r0=r0, flux=flux, $
+                                 nflux=nflux, area=area, fc=fc, $
+                                 bins=bins, filename=filename, $
+                                 _EXTRA=extra)
+           pp = $
+              flux_average_field(pprime, psi, x, z, t, psi=psi, i0=i, $
+                                 r0=r0, flux=flux, $
+                                 nflux=nflux, area=area, fc=fc, $
+                                 bins=bins, filename=filename, $
+                                 _EXTRA=extra)
+           g = $
+              flux_average_field(i, psi, x, z, t, psi=psi, i0=i, $
+                                 r0=r0, flux=flux, $
+                                 nflux=nflux, area=area, fc=fc, $
+                                 bins=bins, filename=filename, $
+                                 _EXTRA=extra)
+
+           Vp_2pi2 = fc.dV_dchi / fc.dpsi_dchi / (2.*!pi)^2
+           Vpp_2pi2 = deriv(fc.psi, Vp_2pi2)
+           q = fc.q
+           qp = deriv(fc.psi,q)
+
+           ; here the first term of E and all of H have the opposite
+           ; sign of the standard derivation because M3D-C1 defines
+           ; B = grad(psi) x grad(phi) rather than grad(phi)xgrad(psi)
+           ; but q is still defined as positive when IP and BT are in
+           ; the same direction
+           e = -pp*Vp_2pi2/(qp^2) * b2_psi2_av *$
+               (qp*g / b2_av + Vpp_2pi2)
+           f = (pp*Vp_2pi2/qp)^2 * $
+               (g^2*(b2_psi2_av*inv_b2psi2_av - inv_psi2_av^2) $
+                + b2_psi2_av*inv_b2_av)
+           h = -g*pp*Vp_2pi2/qp * (inv_psi2_av - b2_psi2_av / b2_av)
+
+           d = dimensions()
+           units = parse_units(d, _EXTRA=extra)
+
+           if(strcmp(field, 'd_i', /fold_case) eq 1) then begin
+              symbol = '!8D!DI!N!X'
+              name = '!6Ideal Interchange Criterion!X'
+              return, e + f + h - 1./4.
+           endif else if(strcmp(field, 'd_r', /fold_case) eq 1) then begin
+              symbol = '!8D!DR!N!X'
+              name = '!6Resistive Interchange Criterion!X'
+              return, e + f + h^2
+           endif else begin
+              symbol = '!8D!DH!N!X'
+              name = '!6H-Term of Interchange Criterion!X'
+              return, h
+           endelse
 
        endif else begin
            field = read_field(field, x, z, t, points=points, complex=complex, $

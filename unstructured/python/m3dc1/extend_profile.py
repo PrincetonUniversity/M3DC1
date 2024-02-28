@@ -15,7 +15,7 @@ import m3dc1.fpylib as fpyl
 
 
 
-def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smooth=0,weighted=True,suffix='.extended'):
+def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,match=True,smooth=0,weighted=True,suffix='.extended',back_to_maindir=False):
     """
     Extends profile beyond the last closed flux surface (psi_n=1) based on a tanh fit. If desired,
     the fit parameters are adjusted such that the profile and its first derivative are continuous
@@ -56,6 +56,12 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     elif not isinstance(fitrange, (tuple, list,float,int)):
         fitrange = [0.95,max(x)]
     
+    #Identify index of psi value where extended profile begins.
+    if psimatch>0:
+        x_match = fpyl.get_ind_near_val(x, psimatch,unique=True)
+    else:
+        x_match = len(x)-1
+    
     print('Fitting points in range '+str(fitrange))
         
     if psimax <= max(x):
@@ -74,20 +80,26 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     
     # Fit profile
     w = yf
-
-    if minval is None:
-        a = [0.98, 1./0.01, max(yf), 0., min(yf)]
-        if weighted:
-            yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a, sigma=w, absolute_sigma=True)
+    try:
+        if minval is None:
+            a = [0.98, 1./0.01, max(yf), 0., min(yf)]
+            if weighted:
+                yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a, sigma=w, absolute_sigma=True)
+            else:
+                yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a)
         else:
-            yfit,yerr = curve_fit(tanhfit2, xf, yf, p0=a)
-    else:
-        a = [0.98, 1./0.01, max(yf), 0.]
-        if weighted:
-            yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a, sigma=w, absolute_sigma=True)
-        else:
-            yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a)
-
+            a = [0.98, 1./0.01, max(yf), 0.]
+            if weighted:
+                yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a, sigma=w, absolute_sigma=True)
+            else:
+                yfit,yerr = curve_fit(tanhfit, xf, yf-minval, p0=a)
+    except Exception as e:
+        if back_to_maindir:
+            dirs = os.getcwd().split('/')
+            os.chdir('../../')
+            os.system('rm -rf '+'/'.join(dirs[-2:]))
+        raise Exception(e)
+        return
         
     #print(yfit)
     
@@ -98,22 +110,27 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     if minval is None:
         print('Fit floor: '+str(yfit[4]))
         if yfit[4]<=0:
-            fpyl.printerr('ERROR: fit asymptotes to negative values')
-            fpyl.printerr('Please enter a larger minval')
+            fpyl.printerr('ERROR: fit approaches negative values for large psi_n')
+            fpyl.printerr('Please provide a value for minval!')
+            if back_to_maindir:
+                dirs = os.getcwd().split('/')
+                os.chdir('../../')
+                os.system('rm -rf '+'/'.join(dirs[-2:]))
+            raise Exception(e)
             return
     print('---------------------------------------------------------')
     
     if minval is None:
         minval = yfit[4]
     
-    x_bd = x[-1]
+    x_bd = x[x_match]
     yp = fpyl.deriv(y,x)
-    yp_bd = yp[-1]
+    yp_bd = yp[x_match]
     
     if match:
         print('\nMatching profile and its derivative with fit at boundary value...')
         
-        b_new,c_new = fsolve(equations,(yfit[1],yfit[2]),args=(x_bd,yfit[0],yfit[3],y[-1],yp_bd,minval),xtol=1.0e-10)
+        b_new,c_new = fsolve(equations,(yfit[1],yfit[2]),args=(x_bd,yfit[0],yfit[3],y[x_match],yp_bd,minval),xtol=1.0e-10)
         yfit[1] = b_new
         yfit[2] = c_new
         
@@ -128,19 +145,28 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     # Extend profile
     print('Extending profile to psi_n='+str(psimax))
     n = len(x)
-    dx = x[-1]-x[-2]
-    m = int(round((psimax - x[-1])/dx))
-    #print(m)
-    x_ext = x[-1] + (np.arange(m)+1)*dx
+    dx = x[x_match]-x[x_match-1]
     
+    #print(m)
+    
+    m = int(round((psimax - x[x_match])/dx))
+    x_ext = x[x_match] + (np.arange(m)+1)*dx
+    
+    #Truncate 
+    if psimatch>0:
+        x_in = x[:x_match+1]
+        y_in = y[:x_match+1]
+    else:
+        x_in = x
+        y_in = y
     
     if minval is None:
         y_ext = tanhfit(x_ext, yfit[0],yfit[1],yfit[2],yfit[3],yfit[4])+minval
     else:
         y_ext = tanhfit(x_ext, yfit[0],yfit[1],yfit[2],yfit[3])+minval
     
-    xnew = np.concatenate((x,x_ext))
-    ynew = np.concatenate((y,y_ext))
+    xnew = np.concatenate((x_in,x_ext))
+    ynew = np.concatenate((y_in,y_ext))
     if smooth > 0:
         if not match:
             ynew = fpyl.smooth(ynew,w=smooth,nan='replace')
@@ -167,18 +193,27 @@ def extend_profile(filename,psimax=1.05,fitrange=None,minval=None,match=True,smo
     f2_ax4 = fig.add_subplot(spec2[1, 1])
     
     
-    f2_ax1.plot(x,y,c='C0')
+    f2_ax1.plot(x_in,y_in,c='C0')
     f2_ax1.plot(xnew,ynew,c='C1',ls='--')
+    if psimatch>0:
+        f2_ax1.plot(x[x_match+1:],y[x_match+1:],c='C7',ls='--')
     f2_ax1.plot(xf,yf,c='C1',lw=0,marker='.')
     
-    f2_ax3.plot(x,y,c='C0')
+    f2_ax3.plot(x_in,y_in,c='C0')
     f2_ax3.plot(xnew,ynew,c='C1',ls='--')
     f2_ax3.plot(xf,yf,c='C1',lw=0,marker='.')
     
-    f2_ax2.plot(x,yp,c='C0')
+    
+    if psimatch>0:
+        pltbd = x_match+1
+    else:
+        pltbd = None
+    print(x_in)
+    print(yp[:pltbd])
+    f2_ax2.plot(x_in,yp[:pltbd],c='C0')
     f2_ax2.plot(xnew,ynewp,c='C1',ls='--')
     
-    f2_ax4.plot(x,yp,c='C0')
+    f2_ax4.plot(x_in,yp[:pltbd],c='C0')
     f2_ax4.plot(xnew,ynewp,c='C1',ls='--')
     
     f2_ax1.set_xlabel(r'$\psi_N$')

@@ -527,6 +527,10 @@ subroutine initial_conditions()
 
   integer :: ierr
 
+  integer :: iext_is_perturbation
+
+  iext_is_perturbation = 1
+
   if(iread_neo.eq.1) then
      call read_neo(ierr)
      if(ierr.ne.0) return
@@ -637,17 +641,24 @@ subroutine initial_conditions()
         case(29,31)
            call basicj_init()
 #ifdef USEST
-        case(40)
-           if (igeometry.eq.1 .and. iread_vmec.ge.1 .and. bloat_factor.eq.0) then
+        case(40) ! Fixed boundary stellarator
+           if (igeometry.eq.1 .and. iread_vmec.eq.1 .and. bloat_factor.eq.0) then
               call vmec_init()
            else
               if(myrank.eq.0) print *, &
-                'VMEC equilibrium needs igeometry=1, iread_vmec>1, and bloat_factor=0!'
+                'VMEC equilibrium needs igeometry=1, iread_vmec=1, and bloat_factor=0!'
               call safestop(1)
            end if
-        case(41)
-           call rmp_per(init=.true.)
 #endif
+        case(41) ! Free boundary stellarator or 3D fields
+           iext_is_perturbation = 0
+           if(iread_ext_field.eq.0) then  
+              if(myrank.eq.0) print *, &
+                "Invalid input: Free boundary stellarator needs external field."
+              call safestop(1)
+           end if
+           if(type_ext_field.ge.1) &
+                call load_stellarator_field
         end select
      end if
   end if
@@ -669,12 +680,20 @@ subroutine initial_conditions()
      call nre_per
   endif
 
+  ! For RMP, 3D vacuum, and error fields
   if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
-       any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) call rmp_per(init=.false.)
-
+       any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) then
+     ! External fields already loaded for itaylor = 41
+!     if(itaylor.eq.41 .and. extsubtract.eq.0) then
+!        if(myrank.eq.0 .and. iprint.ge.2) print *, &
+!           "Skipping: RMP specification not currently implemented for ST."
+!     else
+        call rmp_per(iext_is_perturbation)
+!     end if
+  end if
 #ifdef USEST
-  if(igeometry.eq.1.and.iread_vmec.ge.1) then
+  if(igeometry.eq.1 .and. iread_vmec.ge.1) then
      call destroy_vmec
   end if   
 #endif

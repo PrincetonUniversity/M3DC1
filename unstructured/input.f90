@@ -279,6 +279,8 @@ subroutine set_defaults
        "Minimum elec. temperature for KPRAD evolution", kprad_grp)
   call add_var_int("ikprad_max_dt", ikprad_max_dt, 0, &
        "Use maximum value of dt for KPRAD ionization", kprad_grp)
+  call add_var_double("kprad_max_dt", kprad_max_dt, -1., &
+       "Specify maximum value of dt for KPRAD ionization", kprad_grp)
   call add_var_int("ikprad_evolve_internal", ikprad_evolve_internal, 0, &
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
   call add_var_double("kprad_n0_denm_fac", kprad_n0_denm_fac, 1., &
@@ -298,6 +300,9 @@ subroutine set_defaults
   call add_var_double("amupar", amupar, 0., &
        "Parallel viscosity", transp_grp)
   call add_var_double("amu_edge", amu_edge, 0., "", transp_grp)
+  call add_var_double("amu_wall", amu_wall, 0., "", transp_grp)
+  call add_var_double("amu_wall_off", amu_wall_off, 0., "", transp_grp)
+  call add_var_double("amu_wall_delt", amu_wall_delt, 0.1, "", transp_grp)
 
   call add_var_int("iresfunc", iresfunc, 0, "", transp_grp)
   call add_var_double("etaoff", etaoff, 0., "", transp_grp)
@@ -583,8 +588,8 @@ subroutine set_defaults
        "type of external field file", eq_grp)
   call add_var_string("file_ext_field", file_ext_field, 256, "error_field", &
        "name of external field file", eq_grp)
-  call add_var_string("fieldlines_filename", fieldlines_filename, 256, "fieldlines.h5", &
-       "name of fieldlines file", eq_grp)
+  call add_var_string("file_total_field", file_total_field, 256, "total_field", &
+       "name of total field file for ST", eq_grp)
   call add_var_double("beta", beta, 0., "", eq_grp)
   call add_var_double("ln", ln, 0., "", eq_grp)
   call add_var_double("elongation", elongation, 1., "", eq_grp)
@@ -755,7 +760,6 @@ subroutine set_defaults
   call add_var_double("hyperv", hyperv, 0., "", hyper_grp)
   call add_var_int("ihypdx", ihypdx, 0, "", hyper_grp)
   call add_var_int("ihypeta", ihypeta, 1, "", hyper_grp)
-  call add_var_int("ihypamu", ihypamu, 1, "", hyper_grp)
   call add_var_int("ihypkappa", ihypkappa, 1, "", hyper_grp)
   call add_var_int("imp_hyper", imp_hyper, 0,     &
         "1: implicit hyper-resistivity in psi equation", hyper_grp)
@@ -862,6 +866,8 @@ subroutine set_defaults
   call add_var_double("vloop", vloop, 0., "", source_grp)
   call add_var_double("vloopRZ", vloopRZ, 0., "", source_grp)
   call add_var_double("tcur", tcur, 0., "", source_grp)
+  call add_var_double("vloop_freq", vloop_freq, 0., &
+       "Loop voltage frequency", source_grp)
 
   call add_var_double("tcuri", tcuri, 0., "", source_grp)
   call add_var_double("tcurf", tcurf, 0., "", source_grp)
@@ -1085,7 +1091,13 @@ subroutine set_defaults
 
   ! Mesh adaptation
   call add_var_int("iadapt", iadapt, 0, "", adapt_grp)
-
+  ! SPR based adapt parameters
+  call add_var_int("ispradapt", ispradapt, 0, "", adapt_grp);
+  call add_var_int("isprntime", isprntime, 10, "", adapt_grp);
+  call add_var_double("isprweight", isprweight, 0.1,"", adapt_grp)
+  call add_var_double("isprmaxsize", isprmaxsize, 0.05,"", adapt_grp)
+  call add_var_int("isprrefinelevel", isprrefinelevel, 1, "", adapt_grp);
+  call add_var_int("isprcoarsenlevel", isprcoarsenlevel, -1, "", adapt_grp);
 
   !Micellaneous parameters or mesh adaptation
   call add_var_int("iadapt_writevtk", iadapt_writevtk, 0, "", adapt_grp)
@@ -1100,6 +1112,8 @@ subroutine set_defaults
   call add_var_int("iadapt_max_node", iadapt_max_node, 10000,"",adapt_grp)
   call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
   call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
+  call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! (prereq: iadapt = 1) adapt elements classified on model face  
+  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp) !support snapping
 
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
@@ -1139,7 +1153,7 @@ subroutine set_defaults
   call add_var_int("ifull_torus", ifull_torus, 0, &
        "0 = one field period; 1 = full torus", mesh_grp)
   call add_var_int("iread_vmec",iread_vmec,0,&
-       "1 = read geometry from VMEC file, 2 = read both geometry and fields", mesh_grp)
+       "1 = read geometry from VMEC file", mesh_grp)
   call add_var_string("vmec_filename",vmec_filename,256,"geometry.nc",&
        "name of vmec data file", mesh_grp)
   call add_var_int("igeometry", igeometry, 0, "0: default, identity", mesh_grp)
@@ -1186,6 +1200,7 @@ subroutine set_defaults
        "solver tolerance", solver_grp) 
   call add_var_int("solver_type", solver_type, 0, "Solver type", solver_grp)
   call add_var_int("num_iter", num_iter, 100, "Maximum number of iterations", solver_grp)
+  call add_var_int("isolve_with_guess",isolve_with_guess,0, "newsolve with nonzero initial guess", solver_grp)
 
   ! Trilinos options
   call add_var_string("krylov_solver", krylov_solver, 50,&
@@ -1265,8 +1280,8 @@ subroutine validate_input
   
 !...check if correct code version is being used
 #if defined(USE3D)
-    if(linear.eq.1 .or. nplanes.le.1) then
-      if(myrank.eq.0) print *, "must have linear=0 and nplanes>1 for 3D version"
+    if(nplanes.le.1) then
+      if(myrank.eq.0) print *, "must have nplanes>1 for 3D version"
       call safestop(1)
     endif
 #endif
@@ -1337,6 +1352,10 @@ subroutine validate_input
      call safestop(1)
   endif
 
+  if(itemp.eq.0 .and. ikapparfunc.eq.2) then
+     if(myrank.eq.0) print *, "ikapparfunc=2 not allowed with itemp=0"
+     call safestop(1)
+  endif
   
   ! calculate pfac (pe*pfac = electron pressure)
   if(kinetic.eq.0) then

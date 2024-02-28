@@ -9,9 +9,36 @@
 import fpy
 import numpy as np
 import m3dc1.fpylib as fpyl
+from m3dc1.get_time_of_slice import get_time_of_slice
+from m3dc1.unit_conv  import unit_conv
 
 
 def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5', time=None,quiet=False):
+    """
+    Evaluates the field at the locations specified by the 
+    R, Z, phi arrays. The output will be array/arrays of the same size.
+    
+    Arguments:
+
+    **field_name**
+    The field that is to be evaluated, i.e. 'B' or 'j', etc..
+
+    **R, phi, Z**
+    Scalars or arrays representing points where the field will be evaluated;
+    e.g. R=1.2, phi=0.0, Z=0.0
+    or
+    R, phi, Z = np.meshgrid(R_linspace, phi_linspace, Z_linspace)
+
+    **coord**
+    The chosen part of a field to be plotted, options are:
+    'phi', 'R', 'Z', 'scalar', 'vector'. 'vector' will return three arrays.
+
+    **filename**
+    File name which will be read, i.e. "../C1.h5"
+
+    **time**
+    The time-slice which will be used for the field plot
+    """
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename,time=time)
     if not quiet:
@@ -26,6 +53,15 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
     elif field_name=='psi':
         Aphi = eval_m3dc1_field('A', R=R, phi=phi, Z=Z, coord='phi', sim=sim, filename=filename, time=time)
         field_array = np.asarray(R)*Aphi
+    elif field_name=='psin':
+        psi = eval_field('psi', R=R, phi=phi, Z=Z, coord='scalar', sim=sim, filename=filename, time=time)
+        ts_time_ind = fpyl.get_ind_near_val(sim.get_time_trace('psi_lcfs').values, get_time_of_slice(time,sim=sim,units='m3dc1'))
+        print(sim.get_time_trace('psi_lcfs').values)
+        print(get_time_of_slice(time,sim=sim,units='m3dc1'))
+        print(ts_time_ind)
+        psi_lcfs = unit_conv(sim.get_time_trace('psi_lcfs').values[ts_time_ind],arr_dim='m3dc1',sim=sim,magnetic_flux=1)
+        psi_0 = unit_conv(sim.get_time_trace('psimin').values[ts_time_ind],arr_dim='m3dc1',sim=sim,magnetic_flux=1)
+        field_array = (psi - psi_0) / (psi_lcfs - psi_0)
     elif field_name in ['f','I']:
         Bphi = eval_m3dc1_field('B', R=R, phi=phi, Z=Z, coord='phi', sim=sim, filename=filename, time=time)
         field_array = np.asarray(R)*Bphi
@@ -95,7 +131,9 @@ def eval_m3dc1_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='
     check_coord = (R.flatten()[0], phi.flatten()[0], Z.flatten()[0]) 
     length = len(field.evaluate(check_coord))
     if length == 1 and coord != 'scalar':
-        raise Exception('You\'re trying to evaluate a component of a scalar field! Please set coord to \'scalar\' if you want to evaluate a scalar field')
+        #raise Exception('You\'re trying to evaluate a component of a scalar field! Please set coord to \'scalar\' if you want to evaluate a scalar field')
+        coord = 'scalar'
+        print(field_name + " is a scalar field. Setting coord='scalar'...")
     if length == 3 and coord == 'scalar':
         raise Exception('You\'re trying to evaluate a vector field as a scalar! Please set coord to \'R\', \'phi\', \'Z\', or \'vector\'.')
         

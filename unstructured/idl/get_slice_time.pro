@@ -6,7 +6,10 @@
 ;========================================================
 function get_slice_time, filename=filename, slice=slice, _EXTRA=extra
    if(n_elements(filename) eq 0) then filename='C1.h5'
-   if(n_elements(slice) eq 0) then slice=0
+   if(n_elements(slice) eq 0) then begin
+      nt = read_parameter('ntime', filename=filename)
+      slice = indgen(nt)
+   end
 
    n = n_elements(slice)
 

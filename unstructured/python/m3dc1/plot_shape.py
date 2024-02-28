@@ -23,7 +23,8 @@ from m3dc1.plot_coils import plot_coils
 
 
 def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, Nlvl_in=10, Nlvl_out=1,
-               mesh=False, bound=False, lcfs=False, coils=False, phys=False, ax=None, pub=False, quiet=False):
+               mesh=False, bound=False, lcfs=False, coils=False, phys=False, ax=None, pub=False,
+               fignum=None, quiet=False):
     """
     Plot flux surfaces in poloidal plane
     
@@ -60,9 +61,18 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
 
     **ax**
     matplotlib axes object to plot into. If None, new figure and axes are created.
-    
+
     **pub**
-    If True, plot will be formatted for publication
+    If True, plot will be formatted for publication.
+
+    **phys**
+    Use True for plotting in physical (stellarator) geometry.
+
+    **fignum**
+    Figure number
+
+    **quiet**
+    If True, suppress output to terminal.
     """
     
     # Set font sizes and plot style parameters
@@ -80,7 +90,7 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         legfs = None
     
     if ax is None:
-        fig, axs = plt.subplots(1, 1)
+        fig, axs = plt.subplots(1, 1, num=fignum)
         fig.set_figheight(7)
     else:
         axs = ax
@@ -95,12 +105,19 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
             times = [s.timeslice for s in sims]
         else:
             if isinstance(filename,(tuple,list)):
-                sims = [fpy.sim_data(fn) for fn in filename]
+                #print(time)
                 if (isinstance(time,(tuple,list)) and len(time)==len(filename)):
                     times = time
-                else:
-                    times = [None for fn in filename]
-                    fpyl.printnote('No time provided. Plotting at timeslice = 0')
+                elif isinstance(time,int):
+                    times = np.full(len(filename),time)
+                sims = []
+                print(times)
+                for i,fn in enumerate(filename):
+                    print(times[i])
+                    sims.append(fpy.sim_data(fn,time=times[i]))
+                #else:
+                #    times = [None for fn in filename]
+                #    fpyl.printnote('No time provided. Plotting at timeslice = 0')
             else:
                 sims = [fpy.sim_data(filename)]
                 times = [time]
@@ -165,6 +182,8 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         
         #Plot magnetic axis
         #try:
+        #print(times[i])
+        #print(si.get_time_trace('xmag'))
         R_magax = si.get_time_trace('xmag').values[times[i]]
         Z_magax = si.get_time_trace('zmag').values[times[i]]
         axs.plot(R_magax,Z_magax,lw=0,marker='+',markersize=10,color=pltcol)
@@ -183,6 +202,8 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         axs.plot(gfdat.rmaxis,gfdat.zmaxis,lw=0,marker='+',markersize=10,color='k')
         if lcfs:
             axs.plot(gfdat.rbbbs,gfdat.zbbbs,color='k',zorder=10)
+        if bound:
+            axs.plot(gfdat.rlim,gfdat.zlim,color='m',zorder=10)
     
     if ax is None:
         axs.set_xlim(fpyl.get_axlim(np.amin(R),'min'),fpyl.get_axlim(np.amax(R),'max'))

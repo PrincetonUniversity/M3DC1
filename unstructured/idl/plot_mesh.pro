@@ -45,7 +45,7 @@ pro plot_mesh, mesh=mesh, oplot=oplot, boundary=boundary, _EXTRA=ex
    maxr = [max(elm_data[4,*]), max(elm_data[5,*])]*fac
    minr = [min(elm_data[4,*]), min(elm_data[5,*])]*fac
 
-   czone = [1, 2, 2, 3, 3, 4, 4]
+   czone = indgen(10)
    
    sz = size(elm_data, /dim)
    if(sz[0] gt 8) then begin

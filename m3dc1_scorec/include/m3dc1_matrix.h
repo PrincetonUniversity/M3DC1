@@ -31,8 +31,9 @@ public:
   int destroy(); // delete a matrix and solver object
   int set_value(int row, int col, int operation, double real_val, double imag_val); //insertion/addition with global numbering
   // values use column-wise, size * size block
-  int add_values(int rsize, int * rows, int csize, int * columns, double* values);
-  int get_values(std::vector<int>& rows, std::vector<int>& n_columns, std::vector<int>& columns, std::vector<double>& values);
+  int add_values(int rsize, PetscInt* rows, int csize, PetscInt* columns, double* values);
+  int get_values(std::vector<PetscInt>& rows, std::vector<int>& n_columns,
+		 std::vector<PetscInt>& columns, std::vector<double>& values);
 
   int get_status() {return mat_status;}
   int get_scalar_type() { return scalar_type; }
@@ -43,7 +44,8 @@ public:
   virtual int assemble() = 0;
   virtual int setupMat() =0;
   virtual int preAllocate() =0;
-  int printInfo();
+  void printInfo();
+  PetscInt mymatrix_id;
   // PETSc data structures
   Mat* A;
   int fieldOrdering; // the field that provide numbering
@@ -70,7 +72,7 @@ public:
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
   int multiply(FieldID in_field, FieldID out_field);
-  int reset_values() { MatZeroEntries(*A);   mat_status=M3DC1_NOT_FIXED; };
+  int reset_values() { MatZeroEntries(*A); mat_status=M3DC1_NOT_FIXED; return M3DC1_SUCCESS; };
   virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
@@ -86,9 +88,10 @@ public:
   virtual int initialize();
   virtual ~matrix_solve();
   int solve(FieldID field_id);
+  int solve_with_guess(FieldID field_id, FieldID xVec_guess);
   int set_bc( int row);
   int set_row( int row, int numVals, int* colums, double * vals);
-  int add_blockvalues( int rbsize, int * rows, int cbsize, int * columns, double* values);
+  int add_blockvalues( int rbsize, PetscInt* rows, int cbsize, PetscInt* columns, double* values);
   int reset_values();
   virtual int get_type() const {return 1; }
   virtual int assemble(); 
@@ -101,6 +104,17 @@ private:
   int kspSet;
   KSP* ksp; 
   Mat remoteA;
+
+  //block mg in toroidal direction
+  int BgmgSet; //only for mymatrix_id=5 or 17, the hard ones
+  PetscInt mg_nlevels;  //default = 2
+  //PC *pc;
+  Mat *mg_interp_mat;
+  KSP *mg_level_ksp;
+  PC *mg_level_pc;
+  int setBgmgType(); 
+  int mapping(int, int, int, int, int, int, int, int, int *, int *, int *);
+
   // remoteA related data
   std::set<int>* remotePidOwned;
   std::map<int, std::map<int, int> >* remoteNodeRow; // <pid, <locnode>, numAdj >

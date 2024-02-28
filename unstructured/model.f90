@@ -665,7 +665,7 @@ subroutine boundary_nre(rhs, nre_v, mat)
      end if
      if(1.eq.1) then
         call get_node_data(nre_field(1), i, temp)
-        if(idiff .gt. 0) temp = 0.   ! this is for change in density from n to n+1
+        temp = 0.
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
 

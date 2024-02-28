@@ -7,7 +7,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 42
+  integer, parameter :: version = 44
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -51,6 +51,9 @@ module basic
   real :: amuc        ! compressible viscosity
   real :: amue        ! bootstrap viscosity coefficient
   real :: amupar      ! parallel viscosity coefficient
+  real :: amu_wall
+  real :: amu_wall_off
+  real :: amu_wall_delt
   integer :: iresfunc   ! if 1, use new resistivity function
   integer :: ivisfunc   ! if 1, use new resistivity function
   integer :: ikappafunc ! select electron thermal conductivity function
@@ -100,8 +103,10 @@ module basic
   real :: db_fac      ! factor to scale physical value of db
   real :: gam         ! ratio of specific heats
   real :: gravr,gravz ! gravitational acceleration
+  real :: vloop0      ! initial loop voltage
   real :: vloop       ! loop voltage
   real :: vloopRZ     ! rate at which boundary TF changes
+  real :: vloop_freq  ! frequency of loop voltage
   real :: mass_ratio  ! me/mi (in units of me/mp)
   real :: z_ion       ! Z of main ion species
   real :: ion_mass    ! Effective mass of ions (in proton mass/particle)
@@ -206,9 +211,9 @@ module basic
   integer :: isample_ext_field_pol
 
   real :: scale_ext_field
-  integer :: type_ext_field ! 0 = text schaffer field; 1 = fieldlines or mgrid file.
-  character(len=256) :: file_ext_field
-  character(len=256) :: fieldlines_filename 
+  integer :: type_ext_field ! 0 = text schaffer field; 1,2 = fieldlines or mgrid file.
+  character(len=256) :: file_ext_field ! External field (to be subtracted for ST)
+  character(len=256) :: file_total_field ! Stellarator field (plasma+coils) to be read for itaylor=41
   real, dimension(8) :: shift_ext_field
   integer :: maxn     ! maximum frequency in random initial conditions
 
@@ -277,7 +282,6 @@ module basic
                          ! 2 = scale hyper-resistivity with pressure for imp_hyper=2
                          ! >2 hyper-resistivity also scaled by keharmonic(ihypeta)
   real :: bharhypeta    ! bharmonic(ihypeta)
-  integer :: ihypamu     ! 1 = scale hyper-viscosity with visc
   integer :: ihypkappa   ! 1 = scale hyper-diffusivity with kappa
   integer :: ihypdx      ! scale hyper-resistivity with dx**ihypdx
   integer :: imp_hyper   ! 1 = include hyper-resistivity implicitly in psi equation
@@ -304,6 +308,11 @@ module basic
   integer :: kinetic     ! 1 = use kinetic PIC hot ion pressure tensor
                          ! 2 = CGL form for the pressure tensor (incompressible)
                          ! 3 = CGL form for pressure tensor (full)
+#ifdef USEPARTICLES
+  integer :: kinetic_thermal
+  logical :: gyroaverage
+#endif
+
   integer :: iohmic_heating  ! 1 = include ohmic heating
   integer :: irad_heating  ! 1 = include radiation heat source
 
@@ -436,6 +445,13 @@ module basic
   integer :: iadapt_pack_rationals
   real :: adapt_pack_factor
 
+  integer :: ispradapt
+  integer :: isprrefinelevel
+  integer :: isprcoarsenlevel
+  integer :: isprntime
+  real :: isprmaxsize
+  real :: isprweight
+
   real :: beta
   real :: pefac
 
@@ -462,6 +478,8 @@ module basic
   integer :: mod_null_rs, mod_null_rs2  ! if 1, modify xnull,znull or xnull2,znull2 at restart
   real :: temax            ! maximum temperature
 
+  integer :: isolve_with_guess=0 ! (=0; use zero initial guess); (=1; use previous step value as non-zero initial guess)
+
   ! PID controllers
   type(pid_control), save :: i_control, n_control
 
@@ -472,8 +490,8 @@ module basic
 
   ! MPI variable(s)
   integer myrank, maxrank
-#ifdef _OPENACC
-  integer igpu
+#if defined(_OPENACC) || defined(_OPENMP)
+  integer :: num_devices, igpu
 #endif
 
   type(spline1d) :: q_spline
@@ -537,8 +555,15 @@ module arrays
   type(field_type) :: rst, zst ! Stellarator geometry field
 #endif
 #ifdef USEPARTICLES
-   type(field_type) :: p_hot0  ! [scalar] equilibrium hot ion pressure field, for delta-f
-   type(field_type) :: p_i_par, p_i_par_n, p_i_perp, p_i_perp_n  !Kinetic pressure tensor components
+  type(field_type) :: rho_field, nf_field, tf_field, pf_field, vfpar0_field
+  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field, bzsmooth_field, psismooth_field, bz1_field, psi1_field, u0_field, chi0_field,vz0_field
+  type(field_type) :: epar_field, den2_field
+
+  type(field_type) :: p_f_par, p_f_perp  !Kinetic pressure tensor components
+  type(field_type) :: p_i_par, p_i_perp  !Kinetic pressure tensor components
+  type(field_type) :: den_i_0, den_i_1, den_f_0, den_f_1
+  type(field_type) :: v_i_par
+  type(field_type) :: v_f_par
 #endif
 
   ! the following pointers point to the locations of the named field within

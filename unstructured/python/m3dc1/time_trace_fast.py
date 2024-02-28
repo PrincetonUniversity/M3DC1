@@ -38,7 +38,7 @@ plt.rcParams.update({'figure.max_open_warning': 40})
 
 
 def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
-                  growth=False,renorm=False,quiet=False,returnas='tuple'):
+                  growth=False,renorm=False,quiet=False,returnas='tuple',unitlabel=None,fac=1):
     """
     Read a time trace directly from an hdf5 file. This function does not use fusion-io.
     
@@ -253,15 +253,21 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
         label = r'Internal inductance: $l_i(3)$'
         unitlabel = None
 
+    elif trace in ['kprad_n0','kprad_n']:
+        scalar = sim.get_time_trace(trace)*1.0E20
+        label = None
+        unitlabel = None
+        custom = None
+
     elif trace in combos:
         # trace is linear combination of native scalars
         combo, custom, label, unitlabel = combos[trace]
-        for i, (name, fac) in enumerate(combo):
+        for i, (name, fact) in enumerate(combo):
             y = sim.get_time_trace(name)
             if i==0:
-                scalar = fac*y
+                scalar = fact*y
             else:
-                scalar += fac*y
+                scalar += fact*y
 
     else:
         # trace is a native scalar
@@ -275,7 +281,7 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
         if (ipellet != 'all') and (scalar.values.ndim==2):
             scalar.values = scalar.values[:,ipellet]
 
-    label, unitlabel = fpyl.get_tracelabel(units, trace, label=label, unitlabel=unitlabel)
+    label, unitlabel = fpyl.get_tracelabel(units, trace, label=label, unitlabel=unitlabel,fac=fac)
     if units=='mks':
         scalar = fpyl.get_conv_trace('mks',trace,scalar,sim=sim,itor=itor,custom=custom)
         
@@ -309,6 +315,7 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
         if not quiet:
             if len(renormstr) > 0:
                 print('Renormalization found at '+renormstr)
+    
     if returnas=='tuple':
         return time, values, label, unitlabel
     elif returnas=='time_trace':
@@ -439,7 +446,7 @@ def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
     flat = 1
     perform_manual_check = False
     
-    if abs(dgamma/gamma) > 0.2: #Original value was 0.1
+    if abs(dgamma/gamma) > 0.5: #Original value was 0.1
         fpyl.printwarn('WARNING: gamma is not constant for n='+str(n)+'!')
         flat = 0
         
@@ -572,7 +579,7 @@ def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
             #plot_time_trace_fast('ke',units=units,filename=filename,growth=True,renorm=True,yscale='linear',save=False)
             stability = colored('UNSTABLE','yellow') if gamma > 0 else colored('STABLE','green')
             print(stability + ' with gamma='+str(gamma))
-            mono_input = fpyl.prompt('Is the calculated growth rate acceptable? (y/n) : ',['y','n'])
+            mono_input = fpyl.prompt('Is the calculated growth rate correct? (y/n) : ',['y','n'])
             if mono_input == 'y':
                 gamma_set_manu = 1
             else:
@@ -711,6 +718,7 @@ def scan_n(nmin=1,nmax=10,nstep=1,units='m3dc1',filename='C1.h5',time_low_lim=50
     gsconvgd_list = []
     finalerrgs_list = []
     pblist = []
+    ped_loc = []
     print('Calculating growth rates for n='+str(nmin)+' to n='+str(nmax))
     
     for n in np.arange(nmin,nmax+1,nstep):
@@ -726,7 +734,11 @@ def scan_n(nmin=1,nmax=10,nstep=1,units='m3dc1',filename='C1.h5',time_low_lim=50
         print('----------------------------------------------')
         print('Directory '+os.getcwd().split('/')[-1])
 
-        gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = growth_rate(n,units=units,sim=None,filename=filename,time_low_lim=time_low_lim,slurm=slurm,plottrace=plottrace)
+        try:
+            gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = growth_rate(n,units=units,sim=None,filename=filename,time_low_lim=time_low_lim,slurm=slurm,plottrace=plottrace)
+        except:
+            gamma, dgamma, n, flat, not_noisy, gamma_set_manu, gsconvgd, finalerrgs = (0.0,0.0,n,0,0,0,0,0)
+            fpyl.printwarn('WARNING: Did not determine growth rate for n='+str(n))
         
         gamma_list.append(gamma)
         dgamma_list.append(dgamma)
@@ -737,22 +749,27 @@ def scan_n(nmin=1,nmax=10,nstep=1,units='m3dc1',filename='C1.h5',time_low_lim=50
         gsconvgd_list.append(gsconvgd)
         finalerrgs_list.append(finalerrgs)
         pblist.append(-100)
+        ped_loc.append(-100.)
         
         
         if n==nmax:
             print('----------------------------------------------')
             os.chdir('../')
             
-    results = Gamma_data(n_list, gamma_list, dgamma_list, flat_list, not_noisy_list, gamma_manual_list, gsconvgd_list, finalerrgs_list, pblist)
+    results = Gamma_data(n_list, gamma_list, dgamma_list, flat_list, not_noisy_list, gamma_manual_list, gsconvgd_list, finalerrgs_list, pblist, ped_loc)
     return results
 
 
 
 def create_plot_gamma_n(n_list, gamma_list,fignum=None,figsize=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1',legfs=None,leglblspace=None,leghandlen=None,title=None):
     plt.figure(num=fignum,figsize=figsize)
-    if marker=='s':
-        ms = int(ms/2)
-    if ls==':':
+    #print(ms)
+    if marker in ['s','d','D']:
+        ms = int(ms*0.75)
+    elif marker == 'v':
+        ms = int(ms*0.7)
+        print(ms)
+    if ls==':' and lw is not None:
         lw = lw+1
     plt.plot(n_list,gamma_list,lw=lw,c=c,ls=ls,marker=marker,ms=ms,label=lbl)
     plt.grid(True)
@@ -769,12 +786,23 @@ def create_plot_gamma_n(n_list, gamma_list,fignum=None,figsize=None,lw=1,c=None,
         plt.title(title,fontsize=12)
     if lbl is not None:
         plt.legend(loc=0,fontsize=legfs,labelspacing=leglblspace,handlelength=leghandlen)
+    else:
+        
+        artistnorot = plt.Line2D((0,1),(0,0), color='k', marker='v', linestyle='-')
+        artistrot = plt.Line2D((0,1),(0,0), color='k', marker='s', linestyle=':')
+        artisteta01 = plt.Line2D((0,1),(0,0), color='C0',ls='-')
+        artisteta1 = plt.Line2D((0,1),(0,0), color='C1',ls='-')
+        artisteta2 = plt.Line2D((0,1),(0,0), color='C2',ls='-')
+        artisteta10 = plt.Line2D((0,1),(0,0), color='C3',ls='-')
+
+        #Create legend from custom artist/label lists
+        #ax.legend([artistnorot,artistrot,artisteta01,artisteta1,artisteta2,artisteta10],[r'$\omega_0 = 0$', r'$\omega_0 =\omega_i$',r'$\eta \times 0.1$',r'$\eta \times 1$',r'$\eta \times 2$',r'$\eta \times 10$'])
     plt.tight_layout()
     return
 
 
 
-def plot_gamma_n(nmin=1,nmax=10,nstep=1,units='m3dc1',fignum=None,figsize=None,c=None,ls=None,mark='.',lbl=None,slurm=True,plottrace=False,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None):
+def plot_gamma_n(nmin=1,nmax=10,nstep=1,units='m3dc1',fignum=None,figsize=None,c=None,lw=None,ls=None,mark='.',plot_crosses=True,lbl=None,slurm=True,plottrace=False,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None):
     # Plot gamma as a function of n
     # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
     print(os.getcwd())
@@ -808,8 +836,8 @@ def plot_gamma_n(nmin=1,nmax=10,nstep=1,units='m3dc1',fignum=None,figsize=None,c
             n_okay.append(results.n_list[n_ind])
             gamma_okay.append(results.gamma_list[n_ind])
     
-    create_plot_gamma_n(results.n_list, results.gamma_list, fignum, figsize=figsize,c=c, ls=ls, marker=mark, ms=8, lbl=lbl, units=units,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,title=title)
-    if len(n_bad)>0:
+    create_plot_gamma_n(results.n_list, results.gamma_list, fignum, figsize=figsize,c=c, lw=lw, ls=ls, marker=mark, ms=10, lbl=lbl, units=units,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,title=title)
+    if len(n_bad)>0 and plot_crosses:
         cfn = plt.gcf().number #Current figure number
         create_plot_gamma_n(n_bad, gamma_bad, fignum=cfn, figsize=figsize, lw=0, marker='x', ms=10, c='r', units=units,legfs=None,leglblspace=None,title=title)
     
@@ -853,7 +881,7 @@ def plot_gamma_n(nmin=1,nmax=10,nstep=1,units='m3dc1',fignum=None,figsize=None,c
     #return
 
 
-def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,units='m3dc1',labels=None,col=None,lsty=None,markers=None,fignum=None,figsize=None,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None):
+def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,units='m3dc1',labels=None,plot_crosses=True,col=None,lwid=None,lsty=None,markers=None,fignum=None,figsize=None,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None):
     if isinstance(labels, (tuple, list)):
         if len(dirs)!=len(labels):
             fpyl.printerr('ERROR: Number of directories not equal to number of labels.')
@@ -872,6 +900,10 @@ def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,units='m3dc1',labels=None,col=No
             c = col[i]
         else:
             c = None
+        if isinstance(lwid, (tuple, list)):
+            lw = lwid[i]
+        else:
+            lw = None
         if isinstance(lsty, (tuple, list)):
             ls = lsty[i]
         else:
@@ -880,7 +912,7 @@ def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,units='m3dc1',labels=None,col=No
             mark = markers[i]
         else:
             mark = '.'
-        plot_gamma_n(nmin,nmax,nstep,units=units,fignum=fignum,figsize=figsize,c=c,ls=ls,mark=mark,lbl=lbl,slurm=True,plottrace=False,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,ylimits=ylimits,title=title)
+        plot_gamma_n(nmin,nmax,nstep,units=units,fignum=fignum,figsize=figsize,c=c,lw=lw,ls=ls,mark=mark,plot_crosses=plot_crosses,lbl=lbl,slurm=True,plottrace=False,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,ylimits=ylimits,title=title)
         os.chdir(pwd)
     
     return
@@ -1195,9 +1227,10 @@ def eval_growth_n(dirs=['./'],nmin=1,nmax=10,nstep=1,plotef=False,mtype=False,ps
 
 
 
-def create_plot_time_trace_fast(time,scalar,trace,units='mks',sim=None,filename='C1.h5',
-                                growth=False,yscale='linear',rescale=False,save=False,
-                                savedir=None,pub=False):
+def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim=None,filename='C1.h5',
+                                growth=False,yscale='linear',rescale=False,save=False,in_plot_txt=None,
+                                savedir=None,title=False,pub=False,ylbl=None,show_legend=False,leglbl=None,
+                                fignum=None,figsize=None):
 
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
@@ -1213,25 +1246,31 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',sim=None,filename=
     
     ntor = readParameter('ntor',sim=sim)
     
-    plt.figure()
+    plt.figure(num=fignum,figsize=figsize)
     
     # Set font sizes and plot style parameters
     if pub:
         axlblfs = 20
         titlefs = 18
-        ticklblfs = 18
+        ticklblfs = 16
         linew = 2
+        legfs = 12
     else:
         axlblfs = None
         titlefs = None
         ticklblfs = None
         linew = 1
+        legfs = None
     
     if units=='mks':
         #time = unit_conv(time,filename=filename,time=1)
-        plt.xlabel(r'time $[s]$',fontsize=axlblfs)
+        if millisec:
+            time = time*1000
+            plt.xlabel(r'time $(ms)$',fontsize=axlblfs)
+        else:
+            plt.xlabel(r'time $(s)$',fontsize=axlblfs)
     else:
-        plt.xlabel(r'time $[\tau_A]$',fontsize=axlblfs)
+        plt.xlabel(r'time $(\tau_A)$',fontsize=axlblfs)
     
     if trace == 'ke':
         if units=='mks':
@@ -1246,9 +1285,22 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',sim=None,filename=
             else:
                 plt.ylabel(r'Kinetic energy (M3DC1 units)')
     else:
-        plt.ylabel(trace,fontsize=axlblfs)
+        plt.ylabel(ylbl,fontsize=axlblfs)
     
-    plt.plot(time,scalar,lw=linew)
+    if len(scalar.shape)>1:
+        leglabels = ["n={:2}".format(n) for n in range(scalar.shape[1])]
+        for i in range(scalar.shape[1]):
+            plt.plot(time,scalar[:,i],lw=linew,label=leglabels[i])
+        
+        ncol = 2 if scalar.shape[1] > 5 else 1
+        if show_legend and leglbl is not None:
+            plt.legend(loc=0, ncol=ncol,fontsize=legfs)
+        labelLines(plt.gca().get_lines(), zorder=2.5)
+    else:
+        plt.plot(time,scalar,lw=linew,label=leglbl)
+    
+    if show_legend and leglbl is not None:
+            plt.legend(loc=0,fontsize=legfs)
     plt.grid(True)
     #Determine y-axis limits
     if rescale:
@@ -1259,11 +1311,20 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',sim=None,filename=
             start_ind = int(fpyl.find_nearest(time,start_time))
             top_lim=1.1*np.amax(scalar[start_ind:])
             plt.ylim([0,top_lim])
+    
+    if in_plot_txt is not None:
+        plt.text(0.06, 0.95,in_plot_txt, ha='center', va='center', transform=ax.transAxes,fontsize=16)
+    
     plt.yscale(yscale)
     ax = plt.gca()
     ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
-    plt.ticklabel_format( axis='y', style='sci',useOffset=False)
-    plt.title('n='+str(ntor),fontsize=titlefs)
+    if pub:
+        yaxis_magn = ax.yaxis.get_offset_text()
+        yaxis_magn.set_size(ticklblfs)
+    if yscale == 'linear':
+        plt.ticklabel_format( axis='y', style='sci',useOffset=False)
+    if title:
+        plt.title('n='+str(ntor),fontsize=titlefs)
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     plt.show()
     
@@ -1377,8 +1438,70 @@ def double_plot_time_trace_fast(trace,sim=None,filename='C1.h5',renorm=False,res
     return
 
 
-def plot_time_trace_fast(trace,units='mks',sim=None,filename='C1.h5',
-                         growth=False,renorm=False,yscale='linear',
+def plot_time_trace_fast(trace,units='mks',millisec=False,sim=None,filename='C1.h5',
+                         growth=False,renorm=False,yscale='linear',unitlabel=None,fac=1,
+                         show_legend=False,leglbl=None,in_plot_txt=None,
+                         rescale=False,save=False,savedir=None,pub=False,fignum=None,figsize=None):
+    """
+    Plots the time trace of some quantity. All available
+    time traces can be found in the M3DC1 documentation.
+    
+    Arguments:
+
+    **trace**
+    String containing the trace to be plotted
+
+    **units**
+    The units in which the trace will be plotted
+
+    **filename**
+    Contains the path to the C1.h5 file.
+
+    **growth**
+    Determines wether to calculate the derivative.
+    True/False
+
+    **renorm**
+    Removes spikes that are caused by renormalizations
+    in linear stability calculations. Interpolates at
+    the locations of the spike. Should only be used if
+    growth=True.
+
+    **yscale**
+    Scale of y axis, e.g. linear, log
+
+    **rescale**
+    Rescale y-axis such that noise in the beginning of the simulation is not considered for axis limits,
+    i.e. plot is zoomed in to show relevant values.
+
+    **fac**
+    Factor to apply to field when using mks units. fac=1.0E-3 converts to kilo..., fac=1.0E-6 to Mega...
+
+    **save**
+    If True, save plot to file
+
+    **savedir**
+    Directory where plot will be saved
+
+    **pub**
+    If True, format figure for publication (larger labels and thicker lines)
+    """
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename)
+    time,y_axis,label, unitlabel = get_timetrace(trace,sim=sim,units=units,growth=growth,renorm=renorm,unitlabel=unitlabel,fac=fac)
+    if unitlabel is None or unitlabel == '':
+        ylbl = label
+    else:
+        ylbl = label+' ('+unitlabel+')'
+    create_plot_time_trace_fast(time,y_axis*fac,trace,units=units,millisec=millisec,sim=sim,growth=growth,show_legend=show_legend,
+                                leglbl=leglbl,yscale=yscale,rescale=rescale,save=save,savedir=savedir,pub=pub,
+                                ylbl=ylbl,fignum=fignum,figsize=figsize)
+    return
+
+
+
+def integrate_time_trace(trace,units='mks',sim=None,filename='C1.h5',
+                         growth=False,renorm=False,yscale='linear',nts=None,
                          rescale=False,save=False,savedir=None,pub=False):
     """
     Plots the time trace of some quantity. All available
@@ -1424,154 +1547,15 @@ def plot_time_trace_fast(trace,units='mks',sim=None,filename='C1.h5',
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     time,y_axis,_,_ = get_timetrace(trace,sim=sim,units=units,growth=growth,renorm=renorm)
-    create_plot_time_trace_fast(time,scalar,trace,units=units,sim=sim,growth=growth,
+    
+    create_plot_time_trace_fast(time,y_axis,trace,units=units,sim=sim,growth=growth,
                                 yscale=yscale,rescale=rescale,save=save,savedir=savedir,pub=pub)
-    return
-
-
-
-
-
-
-# ---------------------------------------------------------------------
-# Routines to update growth rate files
-# These are useful to get all growth rate files to contain the same
-# data, after information has been added to write_gamma_n.
-# ---------------------------------------------------------------------
-
-# Update the second line of the the growth rate file, containing pedestal-related quantities
-def update_pedestal_in_gamma_files(points=400,pion=False,psin_ped_top=0.86,fcoords='pest',device='nstx',doall=False):
-    cwd = os.getcwd()
     
-    for path in Path('./').rglob('growth_rates_*.dat'):
-        
-        print(path)
-        if path.name[-1]!='~' and 'growth_rates' not in path.parts:
-            simdir = '/'.join(path.parts[:-1])+'/n01' #ToDo : replace 1 by nmin
-            f = open(path, 'r')
-            data = f.readlines()
-            f.close()
-            #datal1 = data[0].split()
-            datal2 = data[1].split()
-            if len(datal2)<3:
-                fpyl.printwarn('WARNING: Not all of the old pedestal parameters where calculated.')
-            if len(datal2)<4 or doall:# or len(datal2)==3:
-                os.chdir(simdir)
-                sim0 = fpy.sim_data(time=-1)
-                ped_param = get_ped_param(sim0,points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
-                alpha_max,j_max,jelite_N,omegsti_max=ped_param
-                
-                os.chdir(cwd)
-                fpyl.printerr('Replaced:\n'+data[1].replace('\n','')+'\nby:\n'+str(alpha_max)+'    '+str(j_max)+'    '+str(jelite_N)+'    '+str(omegsti_max))
-                os.system('sed -i -e "s/'+data[1].replace('\n','')+'/'+str(alpha_max)+'    '+str(j_max)+'    '+str(jelite_N)+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
-    return
-
-
-
-# Update the second line of the the growth rate file, containing pedestal-related quantities
-def update_omegastar_in_gamma_files(ped=False,points=400,pion=False,psin_ped_top=0.86,fcoords='pest',device='nstx'):
-    pwd = os.getcwd()
+    trace_integrated = trapz(y_axis[:nts],time[:nts])
+    print(time[:nts])
+    print('Integrating from t=0 to t='+str(time[nts]))
+    print('Integral of '+trace+' in '+units+' units: '+str(trace_integrated))
     
-    for path in Path('./').rglob('growth_rates_*.dat'):
-        
-        print(path)
-        if path.name[-1]!='~' and 'growth_rates' not in path.parts:
-            simdir = '/'.join(path.parts[:-1])+'/n01' #ToDo : replace 1 by nmin
-            f = open(path, 'r')
-            data = f.readlines()
-            f.close()
-            #datal1 = data[0].split()
-            datal2 = data[1].split()
-            if len(datal2)==2 or ped:# or len(datal2)==3:
-                os.chdir(simdir)
-                sim0 = fpy.sim_data(time=-1)
-                if ped:
-                    ped_param = get_ped_param(sim0,points,pion=pion,fcoords=fcoords,psin_ped_top=psin_ped_top,device=device)
-                    alpha_max,j_max,omegsti_max=ped_param
-                else:
-                    psi_o,omegsti = omegastari(sim=sim0,units='m3dc1',n=1,makeplot=False)
-                    psinedge = fpyl.find_nearest(psi_o,psin_ped_top)
-                    psinedge_ind = fpyl.get_ind_at_val(psi_o,psinedge)
-                    omegsti_max = np.amax(omegsti[psinedge_ind:]) #ToDo: Check if it's really a local maximum
-                
-                print(omegsti_max)
-                os.chdir(pwd)
-                #print(data[1].replace('\n','')+'    '+str(omegsti_max))
-                if ped:
-                    os.system('sed -i -e "s/'+data[1].replace('\n','')+'/'+str(j_max)+'    '+str(alpha_max)+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
-                    #print('sed -i -e "s/'+data[1].replace('\n','')+'/'+str(j_max)+'    '+str(alpha_max)+'    '+str(omegsti_max)+'\n'+'/g" '+'/'.join(path.parts))
-                else:
-                    if len(datal2)==2:
-                        #print('sed -i -e "s/'+data[1].replace('\n','')+'/'+data[1].replace('\n','')+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
-                        os.system('sed -i -e "s/'+data[1].replace('\n','')+'/'+data[1].replace('\n','')+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
-                        fpyl.printnote('File updated!')
-                    elif len(datal2)==3:
-                        #print('sed -i -e "s/'+data[1].replace('\n','')+'/'+'    '.join(data[1].replace('\n','').split()[:-1])+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
-                        os.system('sed -i -e "s/'+data[1].replace('\n','')+'/'+'    '.join(data[1].replace('\n','').split()[:-1])+'    '+str(omegsti_max)+'/g" '+'/'.join(path.parts))
-    return
+    return trace_integrated
 
 
-
-# Update the first line of the the growth rate file to add ipres and also change the filename in case of a 2-fluid run
-def update_ipres_in_gamma_files():
-    pwd = os.getcwd()
-    
-    rename_list = []
-    
-    for path in Path('./').rglob('growth_rates_*.dat'):
-        if path.name[-1]!='~' and 'growth_rates' not in path.parts:
-            simdir = '/'.join(path.parts[:-1])+'/n01' #ToDo : replace 1 by nmin
-            f = open(path, 'r')
-            data = f.readlines()
-            f.close()
-            datal1 = data[0].split()
-            if len(datal1)==5:
-                # Determine ipres based on slurm log file
-                os.chdir(simdir)
-                slurmfiles = glob.glob(os.getcwd()+"/slurm*.out")
-                if len(slurmfiles) < 1:
-                    fpyl.printerr('ERROR: No Slurm output file found!')
-                else:
-                    if len(slurmfiles) > 1:
-                        fpyl.printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
-                        slurmfiles.sort(key=os.path.getmtime,reverse=True)
-                    slurmfile = slurmfiles[0]
-                    # Read ipres from Slurm log file
-                    with open(slurmfile, 'r') as sf:
-                        for line in sf:
-                            if 'ipres   ' in line:
-                                ipresline = line.split()
-                                ipres = int(ipresline[2])
-                #print('ipres='+str(ipres))
-                os.chdir(pwd)
-                # Add ipres to growth rate file
-                os.system('sed -i -e "s/'+data[0].replace('\n','')+'/'+data[0].replace('\n','')+'    '+str(ipres)+'/g" '+'/'.join(path.parts))
-                #print('sed -i -e "s/'+data[0].replace('\n','')+'/'+data[0].replace('\n','')+'    '+str(ipres)+'/g" '+'/'.join(path.parts))
-                fpyl.printnote(path.parts[-1]+' updated!')
-                #print(data[0].replace('\n',''))
-                #print(data[0].replace('\n','')+'    '+str(ipres))
-                
-                
-                # Rename growth rate file in case of 2F run and ipres=0
-                if ipres==0:
-                    if '_2f_' in path.parts[-1] and 'ipres' not in path.parts[-1]:
-                        newfilename = path.parts[-1].split('.dat')[0] + '_ipres0'+'.dat'
-                        os.system('mv ' + '/'.join(path.parts) + ' ' + '/'.join(path.parts[:-1])+'/' + newfilename)
-                        fpyl.printnote(path.parts[-1]+' renamed to ' + newfilename)
-                        #print('mv ' + '/'.join(path.parts) + ' ' + '/'.join(path.parts[:-1])+'/' + newfilename)
-                    
-                    # Create list of directories to rename. Renaming is done below, because renaming within the loop causes an error
-                    if '2f_' in path.parts[-2] and 'ipres' not in path.parts[-2]:
-                        newdirname = path.parts[-2] + '_ipres0'
-                        rename_list.append('mv ' + '/'.join(path.parts[:-1]) + ' ' + '/'.join(path.parts[:-2])+'/' + newdirname)
-                        #os.system('mv ' + '/'.join(path.parts[:-1]) + ' ' + '/'.join(path.parts[:-2])+'/' + newdirname)
-                        
-                        #print('mv ' + '/'.join(path.parts[:-1]) + ' ' + '/'.join(path.parts[:-2])+'/' + newdirname)
-    
-    # Rename run directory
-    if len(rename_list)>0:
-        for rename in rename_list:
-            os.system(rename)
-            fpyl.printnote(rename)
-    
-    return
