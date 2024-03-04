@@ -148,8 +148,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(wall79)
   vectype, dimension(MAX_PTS) :: qd79
 !$OMP THREADPRIVATE(qd79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavgB79
-!$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavgB79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavg_iBsq_B79,jbsfluxavg_iBpsq_B79
+!$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,,jbsfluxavg_iBsq_B79,jbsfluxavg_iBpsq_B79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -1597,13 +1597,16 @@ contains
      call eval_ops(itri, Jbs_L32_field, jbsl3279)
      call eval_ops(itri, Jbs_L34_field, jbsl3479)
      call eval_ops(itri, Jbs_alpha_field, jbsalpha79)
-     call eval_ops(itri, Jbs_fluxavgB_field, jbsfluxavgB79)
+     call eval_ops(itri, Jbs_fluxavg_iBsq_field, jbsfluxavg_iBsq_B79)
+     call eval_ops(itri, Jbs_fluxavg_iBpsq_field, jbsfluxavg_iBpsq_B79)
+     
   else
      jbsl3179 = 0.
      jbsl3279 = 0.
      jbsl3479 = 0.
      jbsalpha79 = 0.
-     jbsfluxavgB79 = 0.
+     jbsfluxavg_iBsq_B79 = 0.
+     jbsfluxavg_iBpsq_B79 = 0.
   end if
 
   ! Wall dist field

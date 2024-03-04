@@ -26,7 +26,7 @@ module auxiliary_fields
   type(field_type) :: mesh_zone
   type(field_type) :: z_effective
   type(field_type) :: kprad_totden
-  type(field_type) :: Jp_BS_r,Jp_BS_z,Jp_BS_phi
+  type(field_type) :: Jp_BS_r,Jp_BS_z,Jp_BS_phi,JpdotB
 
   logical, private :: initialized = .false.
 
@@ -82,6 +82,7 @@ if (ispradapt .eq. 1) then
     call create_field(Jp_BS_r, "Jp_BS_r")
     call create_field(Jp_BS_z, "Jp_BS_z")
     call create_field(Jp_BS_phi, "Jp_BS_phi")
+    call create_field(JpdotB, "JpdotB")
    endif
 else
   call create_field(bdotgradp)
@@ -127,6 +128,7 @@ else
     call create_field(Jp_BS_r)
     call create_field(Jp_BS_z)
     call create_field(Jp_BS_phi)
+    call create_field(JpdotB)
   endif
 endif
   initialized = .true.
@@ -181,6 +183,7 @@ subroutine destroy_auxiliary_fields
     call destroy_field(Jp_BS_r)
     call destroy_field(Jp_BS_z)
     call destroy_field(Jp_BS_phi)
+    call destroy_field(JpdotB)
   endif
 end subroutine destroy_auxiliary_fields
   
@@ -718,6 +721,7 @@ subroutine calculate_auxiliary_fields(ilin)
     Jp_BS_r = 0.
     Jp_BS_z = 0.
     Jp_BS_phi = 0.
+    JpdotB = 0.
   endif
 
   ! specify which fields are to be evalulated
@@ -1061,7 +1065,11 @@ subroutine calculate_auxiliary_fields(ilin)
      if(ibootstrap.eq.1) then
       !B=-(1/R psi_z + f'_r) r^ + F/r phi^ +(1/R psi_r - f'_z) z^
       !J_p_BS=jbscommon B
-      call calculate_CommonTerm_Lambda(temp79a)
+
+      !temp79a =  jbscommon * bootsrap_alpha = tempD 1/|Bp|^2  1 / <B^2>* 1/R * F * bootsrap_alpha
+      !FOr <J.B> output
+      !temp79b =                             = tempD 1/|Bp|^2           * 1/R * F * bootsrap_alpha
+      call calculate_CommonTerm_Lambda(temp79a,temp79b)
       dofs = -intx4(mu79(:,:,OP_1),ri_79,pst79(:,OP_DZ),temp79a) &
              -intx3(mu79(:,:,OP_1),bfpt79(:,OP_DR),temp79a)
       call vector_insert_block(Jp_BS_r%vec,itri,1,dofs,VEC_ADD)
@@ -1074,6 +1082,10 @@ subroutine calculate_auxiliary_fields(ilin)
       dofs =  intx4(mu79(:,:,OP_1),ri_79,pst79(:,OP_DR),temp79a) &
              -intx3(mu79(:,:,OP_1),bfpt79(:,OP_DZ),temp79a)
       call vector_insert_block(Jp_BS_z%vec,itri,1,dofs,VEC_ADD)
+
+      
+      dofs = intx2(mu79(:,:,OP_1),temp79b) 
+      call vector_insert_block(JpdotB%vec,itri,1,dofs,VEC_ADD)
 
      end if
   end do
@@ -1136,6 +1148,7 @@ subroutine calculate_auxiliary_fields(ilin)
     call newvar_solve(Jp_BS_r%vec, mass_mat_lhs)
     call newvar_solve(Jp_BS_z%vec, mass_mat_lhs)
     call newvar_solve(Jp_BS_phi%vec, mass_mat_lhs)
+    call newvar_solve(JpdotB%vec, mass_mat_lhs)
    endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating diagnostic fields'
   

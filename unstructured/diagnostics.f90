@@ -928,7 +928,7 @@ subroutine calculate_scalars()
 #endif
     ! bootstrap current
     if (ibootstrap.eq.1)then
-      call calculate_CommonTerm_Lambda(temp79a)
+      call calculate_CommonTerm_Lambda(temp79a,temp79b)
      ! Jp_BS_Phi = intx3(ri_79,bzt79(:,OP_1),temp79a) 
       
       jbs = jbs + int4(ri3_79,bzt79(:,OP_1),temp79a,mr) 

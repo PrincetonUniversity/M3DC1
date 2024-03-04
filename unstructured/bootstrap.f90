@@ -156,7 +156,7 @@ contains
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           end if
 
-          temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
 
           temp = intx4(e(:,:,OP_DRP),ri4_79,h(:,OP_DZ),temp79a) &
                - intx4(e(:,:,OP_DZP),ri4_79,h(:,OP_DR),temp79a)
@@ -238,7 +238,7 @@ function bs_b1psifbb(e,f,g,h,i)
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           end if
 
-          temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
           temp = intx4(e(:,:,OP_1),ri_79,temp79a,h(:,OP_1))
 
        end if
@@ -269,7 +269,7 @@ function bs_b1psifbb(e,f,g,h,i)
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           end if
 
-          temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
           temp = intx4(e(:,:,OP_GS),ri3_79,temp79a,h(:,OP_1))
  
           if(itor.eq.1) then
@@ -346,7 +346,7 @@ function bs_b1psifbb(e,f,g,h,i)
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
         end if
         
-        temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+        temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
 
         temp = intx4(e(:,:,OP_DRP),ri3_79,temp79a,h(:,OP_DR)) &
              + intx4(e(:,:,OP_DZP),ri3_79,temp79a,h(:,OP_DZ))
@@ -424,7 +424,7 @@ function bs_b1psifbb(e,f,g,h,i)
     end if
 
     
-    temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+    temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
 
     temp = intx4(e(:,:,OP_DZ),ri3_79,h(:,OP_DZ),temp79a) &
          + intx4(e(:,:,OP_DR),ri3_79,h(:,OP_DR),temp79a)
@@ -491,7 +491,7 @@ function bs_b1psifbb(e,f,g,h,i)
                  (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
     end if
 
-    temp79a = jbsfluxavgB79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)*tempDD 
+    temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)*tempDD 
 
     temp = intx4(e(:,:,OP_DZ),ri2_79,h(:,OP_DR),temp79a) &
          - intx4(e(:,:,OP_DR),ri2_79,h(:,OP_DZ),temp79a)
@@ -810,7 +810,7 @@ function bs_b1psifbb(e,f,g,h,i)
 !-------------------------------------------------------------------------------------------  
 
    !calculating bootstrap current
-  subroutine calculate_CommonTerm_Lambda(temp)
+  subroutine calculate_CommonTerm_Lambda(temp1,temp2)
      !ibootstrap_model=3: Sauter & Angioni (1999) ! equivalent to 1 but a simplified version
      !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
      !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
@@ -828,17 +828,18 @@ function bs_b1psifbb(e,f,g,h,i)
     ! which gives
     !jbscommon   =  tempD 1/|Bp|^2  1 / <B^2> 1/R F
    
-      !temp =  jbscommon * bootsrap_alpha
-   
+      !temp1 =  jbscommon * bootsrap_alpha = tempD 1/|Bp|^2  1 / <B^2>* 1/R * F * bootsrap_alpha
+      !FOr <J.B> output
+      !temp2 =                             = tempD 1/|Bp|^2           * 1/R * F * bootsrap_alpha
      use basic
      use m3dc1_nint
    
      implicit none
    
-     vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp
+     vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp1, temp2
    
-     temp = 0.
-   
+     temp1 = 0.
+     temp2 = 0.
    
      tempBB = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
              + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
@@ -861,9 +862,10 @@ function bs_b1psifbb(e,f,g,h,i)
                   (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
                   (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
      end if
-   
-     temp=tempDD*jbsfluxavgB79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
     
+     
+     temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+     temp2=tempDD*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
    
     end subroutine calculate_CommonTerm_Lambda
    
@@ -893,7 +895,7 @@ function bs_b1psifbb(e,f,g,h,i)
              temp = 0.
             else          
      
-             call calculate_CommonTerm_Lambda(temp79a)
+             call calculate_CommonTerm_Lambda(temp79a,temp79b)
      
              temp = intx5(e(:,:,OP_DRP),ri3_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
                     - intx5(e(:,:,OP_DZP),ri3_79,h(:,OP_DR),temp79a,eta79(:,OP_1))
@@ -934,7 +936,7 @@ function bs_b1psifbb(e,f,g,h,i)
            temp = 0.
         else
    
-           call calculate_CommonTerm_Lambda(temp79a)
+           call calculate_CommonTerm_Lambda(temp79a,temp79b)
            temp = intx4(e(:,:,OP_1),temp79a,h(:,OP_1),eta79(:,OP_1))
    
         end if
@@ -943,7 +945,7 @@ function bs_b1psifbb(e,f,g,h,i)
            temp = 0.
         else
    
-           call calculate_CommonTerm_Lambda(temp79a)
+           call calculate_CommonTerm_Lambda(temp79a,temp79b)
            temp = intx5(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1),eta79(:,OP_1))
    
            if(itor.eq.1) then
@@ -982,7 +984,7 @@ function bs_b1psifbb(e,f,g,h,i)
            temp = 0.
         else
    
-         call calculate_CommonTerm_Lambda(temp79a)
+         call calculate_CommonTerm_Lambda(temp79a,temp79b)
    
          temp = intx5(e(:,:,OP_DRP),ri2_79,temp79a,h(:,OP_DR),eta79(:,OP_1)) &
               + intx5(e(:,:,OP_DZP),ri2_79,temp79a,h(:,OP_DZ),eta79(:,OP_1))
@@ -1019,7 +1021,7 @@ function bs_b1psifbb(e,f,g,h,i)
    
      temp = 0.
    
-     call calculate_CommonTerm_Lambda(temp79a)
+     call calculate_CommonTerm_Lambda(temp79a,temp79b)
    
      temp = intx5(e(:,:,OP_DZ),ri2_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
           + intx5(e(:,:,OP_DR),ri2_79,h(:,OP_DR),temp79a,eta79(:,OP_1))
@@ -1049,7 +1051,7 @@ function bs_b1psifbb(e,f,g,h,i)
      temp = 0.
    
 #if defined(USECOMPLEX) || defined(USE3D)
-     call calculate_CommonTerm_Lambda(temp79a)
+     call calculate_CommonTerm_Lambda(temp79a,temp79b)
    
      temp = intx5(e(:,:,OP_DZ),ri_79,h(:,OP_DR),temp79a,eta79(:,OP_1)) &
           - intx5(e(:,:,OP_DR),ri_79,h(:,OP_DZ),temp79a,eta79(:,OP_1))
