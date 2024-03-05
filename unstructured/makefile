@@ -55,13 +55,6 @@ else
   USEST = 0 
 endif
 
-ifeq ($(ADAS), 1)
-  OPTS := $(OPTS) -DUSEADAS
-  USEADAS = 1
-else 
-  USEADAS = 0 
-endif
-
 ifeq ($(REORDERED), 1)
   OPTS := $(OPTS) -DREORDERED
 endif
@@ -135,6 +128,8 @@ else
 
 VPATH=$(SRCDIR)
 
+USEADAS = 0
+
 include $(SRCDIR)/$(ARCH).mk
 BIN = m3dc1
 
@@ -159,12 +154,16 @@ endif
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
+ifeq ($(USEADAS), 1)
+  ADAS_OBJ = adas_m3dc1.o
+endif
+
 OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	random.o spline.o region.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
 	element.o read_vmec.o physical_mesh.o $(V_OBJ) field.o nintegrate_mod.o \
-	M3Dmodules.o resistive_wall.o kprad.o \
+	M3Dmodules.o resistive_wall.o $(ADAS_OBJ) kprad.o \
 	 m3dc1_nint.o boundary.o gyroviscosity.o bootstrap.o \
 	metricterms_new.o two_fluid.o harned_mikic.o biharmonic.o \
 	electric_field.o pellet.o parallel_heat_flux.o \
@@ -196,10 +195,6 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 ifneq (,$(findstring gpu,$(ARCH)))
 	OBJS := $(OBJS:metricterms_new.o=metricterms_new_gpu.o)
 	OBJS := $(OBJS:ludef_t.o=ludef_t_gpu.o)
-endif
-
-ifeq ($(ADAS), 1)
-  OBJS += adas_m3dc1.o
 endif
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o

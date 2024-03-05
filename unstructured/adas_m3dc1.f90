@@ -240,33 +240,3 @@ contains
   end subroutine interp_adf11
 
 end module adas_m3dc1
-
-program adas_cr
-  use adas_m3dc1
-  implicit none
-  integer, parameter :: K = 100, N = 3
-  real(8) :: te(N), dens(N), coeff(N)
-  character(len=255) :: dsname
-  integer :: iclass, z, i, j
-
-
-  ! Set the file name (replace 'your_file_name' with the actual file name)
-
-  call load_adf11(10)
-  dens = [1.2e13, 1.2e14, 5.5e11]
-  te = [232., 3.2, 3140.]
-
-
-  do z = 0, 9
-     call interp_adf11(8, N, z+1, te, dens, coeff)
-     print *, z, coeff
-     !do i = 0, K
-     !   dens = 10 ** (10. + 5. * i / K)
-     !   do j = 0, K
-     !      te = 10 ** (-1. + 5. * i / K)
-     !      call interp_adf11(z+1, te, dens, coeff)
-     !   end do
-     !end do
-  end do
-end program adas_cr
-

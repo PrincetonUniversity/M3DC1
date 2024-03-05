@@ -1,9 +1,13 @@
 module kprad
 
+  use adas_m3dc1
+
   ! All densities in cm^-3
   ! All temperatures in eV
 
   implicit none
+
+  integer :: ikprad     ! 1 = use kprad model, -1 = use ADAS
 
   real, allocatable, private, dimension(:) :: z_ei, zed
   real, allocatable, private, dimension(:,:) :: c, sion_coeff
@@ -286,8 +290,10 @@ contains
           ! KPRAD polynomial fit
           call DPOLY_VAL(M2,N,sion_coeff(:,i+1),log10(TE),siont)
        elseif (ikprad.eq.-1) then
+#ifdef USEADAS
           ! ADAS interpolation - iclass = 2 is ionization
           call interp_adf11(2, N, i+1, TE, NE, siont)
+#endif
        end if
        sion(:,i) = ne*10**siont
        if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
@@ -366,9 +372,11 @@ contains
           ! KPRAD polynomial fit
           call DPOLY_VAL(M1,N,C(:,L),LOG10(TE*1.0e-3),impradt)
        elseif (ikprad.eq.-1) then
+#ifdef USEADAS
           ! ADAS interpolation - iclass=8 is line radiation
           ! ***BCL 3/4/24: Maybe L+1? but I doubt it***
           call interp_adf11(8, N, L, TE, NE, impradt)
+#endif
        end if
 
        IMP_RAD(:,L) = (10.0**impradt)*(NE/1.0E13)*NZ(:,L-1)

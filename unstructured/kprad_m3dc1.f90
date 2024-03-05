@@ -18,7 +18,6 @@ module kprad_m3dc1
   type(field_type) :: kprad_sigma_e  ! electron source / sink due to ionization / recomb
   type(field_type) :: kprad_sigma_i  ! total ion source / sink due to ionization / recomb
 
-  integer :: ikprad     ! 1 = use kprad model
   integer :: kprad_z    ! Z of impurity species
 
   ! Model for advection/diffusion of neutrals
