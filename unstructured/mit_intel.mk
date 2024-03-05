@@ -3,7 +3,7 @@ CCOPTS  = -c -O -DPETSC_VERSION=313
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -w -O2 #-qopt-report=5 -qopt-report-phase=vec,loop
+  FOPTS  := $(FOPTS) -w -O3 #-qopt-report=5 -qopt-report-phase=vec,loop
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g 

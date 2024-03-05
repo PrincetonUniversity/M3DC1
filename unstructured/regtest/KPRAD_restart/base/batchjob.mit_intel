@@ -4,6 +4,7 @@
 ##SBATCH --gres=gpu:4
 #SBATCH --time=00:30:00
 #SBATCH -p sched_mit_psfc_r8
+#SBATCH --mem-per-cpu=7500M
 #SBATCH -o C1stdout
 
 touch started
