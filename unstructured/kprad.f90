@@ -1,7 +1,7 @@
 module kprad
-
+#ifdef USEADAS
   use adas_m3dc1
-
+#endif
   ! All densities in cm^-3
   ! All temperatures in eV
 
@@ -35,6 +35,13 @@ module kprad
   real, allocatable, private, dimension(:) :: ne_int, te_int
 
 contains
+
+  subroutine kprad_allocate(Z)
+    implicit none
+    integer, intent(in) :: Z
+    if(.not. allocated(Z_EI)) allocate(Z_EI(1:Z+1))
+    if(.not. allocated(ZED)) allocate(ZED(1:Z+1))
+  end subroutine kprad_allocate
 
   subroutine kprad_rebase_dt()
     implicit none
@@ -272,7 +279,7 @@ contains
 ! kprad_ionization_rates gets the ionization rates for each charge state
 !-----------------------------------------------------------------------
   subroutine KPRAD_IONIZATION_RATE(N,NE,TE,Z,sion)
-
+    use basic
     !CALCULATE ionization rate for each charge state and both electr
     !       populations in s-1
 
@@ -292,6 +299,7 @@ contains
        elseif (ikprad.eq.-1) then
 #ifdef USEADAS
           ! ADAS interpolation - iclass = 2 is ionization
+          if(myrank.eq.0) print *, "USING ADAS"
           call interp_adf11(2, N, i+1, TE, NE, siont)
 #endif
        end if
@@ -441,8 +449,6 @@ contains
     case (1) !DUMMY ARRAYS FOR ZIMP=1
        allocate(C(10,1))
        allocate(SION_COEFF(7,1))
-       allocate(Z_EI(1:Z+1))
-       allocate(ZED(1:Z+1))
 
        C=transpose(reshape((/          &
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0,        &
@@ -462,8 +468,6 @@ contains
     case (2) !SET HELIUM FOR IMPURITY
        allocate(C(10,2))
        allocate(SION_COEFF(7,2))
-       allocate(Z_EI(1:Z+1))
-       allocate(ZED(1:Z+1))
        m1 = 10
        m2 = 7
 
@@ -498,8 +502,6 @@ contains
 
        allocate(C(8,4))
        allocate(SION_COEFF(8,4))
-       allocate(Z_EI(1:Z+1))
-       allocate(ZED(1:Z+1))
        m1 = 8
        m2 = 8
 
@@ -530,8 +532,6 @@ contains
 
        allocate(C(9,5))
        allocate(SION_COEFF(9,5))
-       allocate(Z_EI(1:Z+1))
-       allocate(ZED(1:Z+1))
        m1 = 9
        m2 = 9
        C=RESHAPE((/ -1.192132e+01, -4.967397e-01,  5.043827e-05,  8.960577e-03, &
@@ -568,8 +568,6 @@ contains
 
        allocate(C(8,6))
        allocate(SION_COEFF(10,6))
-       allocate(Z_EI(1:Z+1))
-       allocate(ZED(1:Z+1))
        m1 = 8
        m2 = 10
 
@@ -616,8 +614,6 @@ contains
 
        allocate(C(10,10))
        allocate(SION_COEFF(10,10))
-       allocate(Z_EI(1:Z+1))
-       allocate(ZED(1:Z+1))
        m1 = 10
        m2 = 10
 
@@ -700,8 +696,6 @@ contains
 
        allocate(C(8,18))
        allocate(SION_COEFF(10,18))
-       allocate(Z_EI(1:Z+1))
-       allocate(ZED(1:Z+1))
        m1 = 8
        m2 = 10
 

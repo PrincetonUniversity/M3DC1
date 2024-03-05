@@ -45,6 +45,9 @@ contains
   !==================================
   subroutine kprad_init(ierr)
     use basic
+#ifdef USEADAS
+    use adas_m3dc1
+#endif
     implicit none
     integer, intent(out) :: ierr
     integer :: i
@@ -52,8 +55,16 @@ contains
 
     ierr = 0
     if (ikprad.eq.0) return
+
+    call kprad_allocate(kprad_z)
     
-    call kprad_atomic_data_sub(kprad_z, ierr)
+    if (ikprad.eq.1) then
+       call kprad_atomic_data_sub(kprad_z, ierr)
+    elseif (ikprad.eq.-1) then
+#ifdef USEADAS
+       call load_adf11(kprad_z)
+#endif
+    end if
     if(ierr.ne.0) return
     
     allocate(kprad_n(0:kprad_z))
@@ -63,44 +74,44 @@ contains
     allocate(lp_source_rate(0:kprad_z))
 
     if (ispradapt .eq. 1) then
-    do i=0, kprad_z
-       write(fname,"(A5,I2.2,A)")  "kprn", i, 0
-       call create_field(kprad_n(i), trim(fname))
-       write(fname,"(A5,I2.2,A)")  "kprt", i, 0
-       call create_field(kprad_temp(i), trim(fname))
-       write(fname,"(A5,I2.2,A)")  "kprp", i, 0
-       call create_field(kprad_particle_source(i), trim(fname))
-       kprad_particle_source(i) = 0.
-    end do
-    call create_field(kprad_rad, "kprad_rad")
-    call create_field(kprad_brem, "kprad_brem")
-    call create_field(kprad_ion, "kprad_ion")
-    call create_field(kprad_reck, "kprad_reck")
-    call create_field(kprad_recp, "kprad_recp")
-    call create_field(kprad_sigma_e,"kprad_sigma_e")
-    call create_field(kprad_sigma_i, "kprad_sigma_i")
-else
-    do i=0, kprad_z
-       call create_field(kprad_n(i))
-       call create_field(kprad_temp(i))
-       call create_field(kprad_particle_source(i))
-       kprad_particle_source(i) = 0.
-    end do
+       do i=0, kprad_z
+          write(fname,"(A5,I2.2,A)")  "kprn", i, 0
+          call create_field(kprad_n(i), trim(fname))
+          write(fname,"(A5,I2.2,A)")  "kprt", i, 0
+          call create_field(kprad_temp(i), trim(fname))
+          write(fname,"(A5,I2.2,A)")  "kprp", i, 0
+          call create_field(kprad_particle_source(i), trim(fname))
+          kprad_particle_source(i) = 0.
+       end do
+       call create_field(kprad_rad, "kprad_rad")
+       call create_field(kprad_brem, "kprad_brem")
+       call create_field(kprad_ion, "kprad_ion")
+       call create_field(kprad_reck, "kprad_reck")
+       call create_field(kprad_recp, "kprad_recp")
+       call create_field(kprad_sigma_e,"kprad_sigma_e")
+       call create_field(kprad_sigma_i, "kprad_sigma_i")
+    else
+       do i=0, kprad_z
+          call create_field(kprad_n(i))
+          call create_field(kprad_temp(i))
+          call create_field(kprad_particle_source(i))
+          kprad_particle_source(i) = 0.
+       end do
 
-    if(isolve_with_guess==1) then
-      do i=0, kprad_z
-         call create_field(kprad_n_prev(i))
-      enddo
+       if(isolve_with_guess==1) then
+          do i=0, kprad_z
+             call create_field(kprad_n_prev(i))
+          enddo
+       endif
+
+       call create_field(kprad_rad)
+       call create_field(kprad_brem)
+       call create_field(kprad_ion)
+       call create_field(kprad_reck)
+       call create_field(kprad_recp)
+       call create_field(kprad_sigma_e)
+       call create_field(kprad_sigma_i)
     endif
-
-    call create_field(kprad_rad)
-    call create_field(kprad_brem)
-    call create_field(kprad_ion)
-    call create_field(kprad_reck)
-    call create_field(kprad_recp)
-    call create_field(kprad_sigma_e)
-    call create_field(kprad_sigma_i)
-endif
     if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
        kprad_nemin = kprad_nemin*n0_norm
        kprad_temin = kprad_temin*p0_norm/n0_norm / 1.6022e-12
@@ -508,7 +519,7 @@ endif
     vectype, dimension(dofs_per_element) :: dofs
     integer :: ip
 
-    if(ikprad.ne.1) return
+    if(ikprad.eq.0) return
 
     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Advancing KPRAD.'
 

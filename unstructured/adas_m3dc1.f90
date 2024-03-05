@@ -11,16 +11,17 @@ module adas_m3dc1
   ! for radiation from plt data
   integer :: iblmx_plt, itmax_plt, idmax_plt
   integer :: isstgr_plt(izdimd)
-  real(8) :: ddens_plt(iddimd), dtev_plt(itdimd), drcof_plt(izdimd, itdimd, iddimd)
+  real :: ddens_plt(iddimd), dtev_plt(itdimd), drcof_plt(izdimd, itdimd, iddimd)
 
   ! for ionization from scd data
   integer :: iblmx_scd, itmax_scd, idmax_scd
   integer :: isstgr_scd(izdimd)
-  real(8) :: ddens_scd(iddimd), dtev_scd(itdimd), drcof_scd(izdimd, itdimd, iddimd)
+  real :: ddens_scd(iddimd), dtev_scd(itdimd), drcof_scd(izdimd, itdimd, iddimd)
 
 contains
 
   subroutine load_adf11(Z)
+    use basic
     implicit none
     integer, intent(in) :: Z
 
@@ -36,7 +37,7 @@ contains
     integer :: icnctv(idcnct), iptnla(idptnl), iptna(idptnl, idptn)
     integer :: nptn(idptnl), nptnc(idptnl, idptn)
     character(len=12) :: dnr_ele
-    real(8) :: dnr_ams
+    real :: dnr_ams
 
     ! using high quality data unless otherwise noted by necessity
     select case (Z)
@@ -60,8 +61,8 @@ contains
        pltname = '/plt89/plt89_ar.dat' ! low quality (only available)
        scdname = '/scd85/scd85_ar.dat' ! medium quality (could use Summers [scd74] or this one)
     case DEFAULT
-       write(*,*) 'THIS ELEMENT NOT YET IMPLEMENTED WITH ADAS'
-       stop
+       if(myrank.eq.0) write(*,*) 'THIS ELEMENT NOT YET IMPLEMENTED WITH ADAS'
+       call safestop(1001)
     end select
 
     call xx0000
@@ -72,10 +73,11 @@ contains
     
     inquire(FILE=dsname, EXIST=lexist)
     if (lexist) then
+       if(myrank.eq.0) print *, trim(dsname), " Found!"
        open(unit=iunit, file=dsname, status='old')
     else
-       print *, dsname, " does not exist"
-       stop
+       if(myrank.eq.0) print *, trim(dsname), " does not exist"
+       call safestop(1001)
     endif
 
     call xxdata_11(iunit, iclass, izdimd, iddimd, itdimd, idptnl, idptn, &
@@ -92,10 +94,11 @@ contains
     
     inquire(FILE=dsname, EXIST=lexist)
     if (lexist) then
+       if(myrank.eq.0) print *, trim(dsname), " Found!"
        open(unit=iunit, file=dsname, status='old')
     else
-       print *, dsname, " does not exist"
-       stop
+       if(myrank.eq.0) print *, trim(dsname), " does not exist"
+       call safestop(1001)
     endif
 
     call xxdata_11(iunit, iclass, izdimd, iddimd, itdimd, idptnl, idptn, &
@@ -111,43 +114,44 @@ contains
 
 
   subroutine interp_adf11(iclass, N, iz1, te, dens, coeff)
+    use basic
     implicit none
     integer, parameter :: lck = 2001
     integer, intent(in) :: iclass, N, iz1
-    real(8), intent(in) :: te(N), dens(N)
-    real(8), intent(out) :: coeff(N)
+    real, intent(in) :: te(N), dens(N)
+    real, intent(out) :: coeff(N)
 
     integer :: it, id, isel, indsel, isdat
     integer :: nin
     logical :: lsetx
-    real(8) :: ytot
+    real :: ytot
     logical :: ltrng(lck), ldrng(lck)
-    real(8) :: dtev(lck), ddens(lck)
-    real(8) :: yin(lck), yout(lck), ypass(lck,lck), dy(lck), xin(lck)
-    real(8) :: r8fun1
+    real :: dtev(lck), ddens(lck)
+    real :: yin(lck), yout(lck), ypass(lck,lck), dy(lck), xin(lck)
+    real :: r8fun1
 
     integer :: iblmx, itmax, idmax
     integer :: isstgr(izdimd)
-    real(8) :: ddens_arr(iddimd), dtev_arr(itdimd), drcof_arr(izdimd, itdimd, iddimd)
+    real :: ddens_arr(iddimd), dtev_arr(itdimd), drcof_arr(izdimd, itdimd, iddimd)
     external :: r8fun1
 
     if (N.gt.lck) then
-       print *, 'ADAS ERROR: N > LCK - INCREASE LCK'
-       stop
+       if(myrank.eq.0) print *, 'ADAS ERROR: N > LCK - INCREASE LCK'
+       call safestop(1002)
     endif
     if (iz1 > iz0 + 1) then
-       print *, 'ADAS ERROR: charge requested > nuclear charge'
-       stop
+       if(myrank.eq.0) print *, 'ADAS ERROR: charge requested > nuclear charge'
+       call safestop(1002)
     endif
 
     if (iz1 < iz1min) then
-       print *, 'ADAS ERROR: charge outside range (too low)'
-       stop
+       if(myrank.eq.0) print *, 'ADAS ERROR: charge outside range (too low)'
+       call safestop(1002)
     endif
 
     if (iz1 > iz1max) then
-       print *, 'ADAS ERROR: charge outside range (too high)'
-       stop
+       if(myrank.eq.0) print *, 'ADAS ERROR: charge outside range (too high)'
+       call safestop(1002)
     endif
 
     ! ionization from scd data
@@ -170,8 +174,8 @@ contains
        dtev_arr   = dtev_plt
        drcof_arr  = drcof_plt
     else
-       print *, 'ADAS ERROR: invalid ADAS class type. Must be 2 (scd) or 8 (plt)'
-       stop
+       if(myrank.eq.0) print *, 'ADAS ERROR: invalid ADAS class type. Must be 2 (scd) or 8 (plt)'
+       call safestop(1002)
     end if
 
     indsel = 0
@@ -181,8 +185,8 @@ contains
     end do
 
     if (indsel == 0) then
-       print *, 'ADAS ERROR: no valid data block'
-       stop
+       if(myrank.eq.0) print *, 'ADAS ERROR: no valid data block'
+       call safestop(1002)
     endif
 
     ! Transform to log space
