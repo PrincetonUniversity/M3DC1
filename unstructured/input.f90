@@ -1745,6 +1745,16 @@ subroutine validate_input
         call safestop(1)
      end if
   end if
+#ifndef USEADAS
+  if(ikprad.eq.-1) then
+     if(myrank.eq.0) print *, 'Error: ikprad = -1 but did not compile with ADAS'
+     call safestop(1)
+  end if
+#endif
+  if(ikprad.lt.-1 .or. ikprad.gt.1) then
+     if(myrank.eq.0) print *, 'Error: ikprad != -1, 0, or 1'
+     call safestop(1)
+  end if
   if(iread_lp_source.gt.0 .and. npellets.gt.1) then
      if(myrank.eq.0) print *, "Error: Can't use multiple pellets iread_lp_source"
      call safestop(1)

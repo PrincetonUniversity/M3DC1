@@ -55,6 +55,13 @@ else
   USEST = 0 
 endif
 
+ifeq ($(ADAS), 1)
+  OPTS := $(OPTS) -DUSEADAS
+  USEADAS = 1
+else 
+  USEADAS = 0 
+endif
+
 ifeq ($(REORDERED), 1)
   OPTS := $(OPTS) -DREORDERED
 endif
@@ -189,6 +196,10 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 ifneq (,$(findstring gpu,$(ARCH)))
 	OBJS := $(OBJS:metricterms_new.o=metricterms_new_gpu.o)
 	OBJS := $(OBJS:ludef_t.o=ludef_t_gpu.o)
+endif
+
+ifeq ($(ADAS), 1)
+  OBJS += adas_m3dc1.o
 endif
 
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
