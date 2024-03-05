@@ -1236,7 +1236,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
        call write_field(group_id, "Jp_BS_r",Jp_BS_r, nelms, error)
        call write_field(group_id, "Jp_BS_z",Jp_BS_z, nelms, error)
        call write_field(group_id, "Jp_BS_phi",Jp_BS_phi, nelms, error)
-       call write_field(group_id, "JpdotB",Jp_BS_phi, nelms, error)
+       call write_field(group_id, "JpdotB",JpdotB, nelms, error)
     endif
     
     ! sigma
