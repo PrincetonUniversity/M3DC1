@@ -21,10 +21,10 @@
    
 5. mesh utility
    - mesh generation (m3dc1_meshgen, m3dc1_mfmgen) and convert_polar: 
-     module load simmodsuite/17.0-220903
-     /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/17.0-220903/bin/m3dc1_mfmgen
-   - the rest: see $SCOREC_UTIL_DIR in ARCH.mk file.
-     /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/petsc-3.13.5/bin
+     module load simmodsuite/2023.1-240113
+     /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/2023.1-240113/bin
+   - the rest: see $SCOREC_UTIL_DIR in ARCH.mk file
+     /p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/petsc3.13.5/bin
 
 6. run a job 
    use superlu_dist for real 2D and 3D runs
