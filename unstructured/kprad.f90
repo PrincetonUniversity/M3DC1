@@ -39,8 +39,47 @@ contains
   subroutine kprad_allocate(Z)
     implicit none
     integer, intent(in) :: Z
+    integer :: I
+
     if(.not. allocated(Z_EI)) allocate(Z_EI(1:Z+1))
     if(.not. allocated(ZED)) allocate(ZED(1:Z+1))
+
+    ZED=(/(real(I),I=0,Z)/)
+
+    ! select IMPURITY SPECIES
+    select case (Z)
+
+    case (1) !DUMMY ARRAYS FOR ZIMP=1
+       Z_EI = (/0.0, 0.0/)
+       kprad_mz = 2.0
+       write(*,*)  'NO IMPURITY SPECIES WITH ZIMP=1.'
+    case (2) !SET HELIUM FOR IMPURITY
+       Z_EI = (/24.5876,54.416,1.0E6/)
+       kprad_mz = 4.0
+    case (4) !SET BERYLLIUM FOR IMPURITY
+       Z_EI= (/9.3227,   18.21114,   153.89661, 217.71865,1.0E6/)
+       kprad_mz = 9.012
+    case (5) !SET BORON FOR IMPURITY
+       Z_EI= (/8.2980, 25.1548, 37.93064, 259.37521, 340.22580,1.0E6/)
+       kprad_mz = 10.81
+    case (6) !CARBON
+       Z_EI= (/11.26, 24.384, 47.888, 64.5, 392.1, 490.0, 1.0E6/)
+       kprad_mz = 12.0
+    case (10)
+       z_ei =                          &
+            (/21.6,41.0,63.5,97.0,126.3,157.9,207.2 ,239.0,1195.0,1362.3,1.0e6/)
+       kprad_mz = 20.0
+    case (18)
+       z_ei = (/15.76,27.63,40.74,59.81,75.02,91.0,124.324,143.5,  &
+            422.5,478.7,618.3,538.96,686.11,755.75,854.78,918.05,   &
+            4120.87,4426.24,1.0e6/)
+       kprad_mz = 40.0
+    case DEFAULT
+       write(*,*) 'NO DATA FOR THIS ELEMENT EXISTS!'
+       call safestop(1001)
+    end select
+
+
   end subroutine kprad_allocate
 
   subroutine kprad_rebase_dt()
@@ -275,11 +314,10 @@ contains
 
 
 
-!-----------------------------------------------------------------------
-! kprad_ionization_rates gets the ionization rates for each charge state
-!-----------------------------------------------------------------------
+  !-----------------------------------------------------------------------
+  ! kprad_ionization_rates gets the ionization rates for each charge state
+  !-----------------------------------------------------------------------
   subroutine KPRAD_IONIZATION_RATE(N,NE,TE,Z,sion)
-    use basic
     !CALCULATE ionization rate for each charge state and both electr
     !       populations in s-1
 
@@ -292,6 +330,7 @@ contains
     real, dimension(N) :: siont
     integer :: i
 
+
     do i=0,Z-1
        if (ikprad.eq.1) then
           ! KPRAD polynomial fit
@@ -299,7 +338,6 @@ contains
        elseif (ikprad.eq.-1) then
 #ifdef USEADAS
           ! ADAS interpolation - iclass = 2 is ionization
-          if(myrank.eq.0) print *, "USING ADAS"
           call interp_adf11(2, N, i+1, TE, NE, siont)
 #endif
        end if
@@ -357,7 +395,6 @@ contains
   !-----------------------------------------------------------------------
   subroutine KPRAD_ENERGY_LOSSES(N,Z,TE,NE,SION,             &
        SREC,NZ,nZeff,pion,preck,precp,IMP_RAD,PBREM)
-
     implicit none
 
     integer, intent(in) :: N,Z
@@ -384,6 +421,7 @@ contains
           ! ADAS interpolation - iclass=8 is line radiation
           ! ***BCL 3/4/24: Maybe L+1? but I doubt it***
           call interp_adf11(8, N, L, TE, NE, impradt)
+          impradt = impradt + 13.0 ! to get on same scale as KPRAD
 #endif
        end if
 
@@ -410,23 +448,23 @@ contains
     !sum of all charge states
     IMP_RAD(:,Z+1)=sum(IMP_RAD(:,1:Z),DIM=2)
 
-!       for radiation
+    !for radiation
     !CALCULATE instaneous power loss/gain due to ionization/recombinatio
     ! assume radiative recombination is dominant...so we lose electron
-!       energy
-       !to radiation during recombination...this means we are neglecting
-       !three-body recombination
-       !totals -- ionization
+    !energy
+    !to radiation during recombination...this means we are neglecting
+    !three-body recombination
+    !totals -- ionization
 
-       !CALCULATE average charge state of impurity and Zeff
-       ![ZED,NE]=meshgrid(zed,ne);
+    !CALCULATE average charge state of impurity and Zeff
+    ![ZED,NE]=meshgrid(zed,ne);
 
-       !ZZ(:,1)=sum(ZED*NZ,2)/sum(NZ,DIM=2)
+    !ZZ(:,1)=sum(ZED*NZ,2)/sum(NZ,DIM=2)
     !ZZ(:,2)=1.0+ sum( (ZED**2-ZED)*( NZ/NE ),DIM=2 ) + 30.*0.03*NE0/NE
 
-       ! note...we have added in a guess at typical carbon density for
-!       initial Zeff ~ 2
-       !CALCULATE radiative losses to bremsstrahlung
+    ! note...we have added in a guess at typical carbon density for
+    !       initial Zeff ~ 2
+    !CALCULATE radiative losses to bremsstrahlung
     ! This appears to be in units of W / cm^3, with ne in cm^-3 (-NF)
     PBREM = 1.69E-32*NE**2.0*SQRT(TE)*nZeff(:,2)
     if(ikprad_min_option.eq.2 .or. ikprad_min_option.eq.3) then
@@ -440,8 +478,6 @@ contains
 
     integer, intent(in) :: Z
     integer, intent(out) :: ierr
-
-    integer :: I
 
     ierr = 0
     select case (Z)
@@ -459,9 +495,6 @@ contains
        SION_COEFF=transpose(reshape((/0.0, 0.0, 0.0, 0.0,         &
             0.0, 0.0, 0.0/),(/1,7/)))
 
-       Z_EI = (/0.0, 0.0/)
-       ZED=(/(real(I),I=0,Z)/)
-       kprad_mz = 2.0
        write(*,*)  'NO IMPURITY SPECIES WITH ZIMP=1.'
 
        ! select IMPURITY SPECIES
@@ -494,10 +527,6 @@ contains
             0.196651, 0.359153,                                     &
             -0.0109806,   -0.0191983/),(/2,7/)))
 
-       Z_EI = (/24.5876,54.416,1.0E6/)
-       ZED=(/(real(I),I=0,Z)/)
-       kprad_mz = 4.0
-
     case (4) !SET BERYLLIUM FOR IMPURITY
 
        allocate(C(8,4))
@@ -524,9 +553,6 @@ contains
             0.591508269,    -0.029873915,   0.0,                             &
             -69.67385101,99.21066284,-70.1591568,27.06711578,-5.950128555,   &
             0.701139331,-0.034435261,0.0/),(/8,4/))
-       Z_EI= (/9.3227,   18.21114,   153.89661, 217.71865,1.0E6/)
-       ZED=(/(real(I),I=0,Z)/)
-       kprad_mz = 9.012
 
     case (5) !SET BORON FOR IMPURITY
 
@@ -535,34 +561,29 @@ contains
        m1 = 9
        m2 = 9
        C=RESHAPE((/ -1.192132e+01, -4.967397e-01,  5.043827e-05,  8.960577e-03, &
-                    -8.693015e-03, -7.489224e-04,  1.166458e-03,  5.175516e-04, &
-                    -1.962665e-04, -1.208493e+01, -4.815787e-01, -1.395910e-02, &
-                    -1.374892e-02, -1.608155e-03,  1.194821e-02, -1.608300e-04, &
-                    -1.128394e-03, -3.192678e-04, -1.259333e+01, -4.941146e-01, &
-                    -7.179767e-04,  1.163202e-02, -1.347079e-02,  1.174152e-04, &
-                     2.328052e-03,  3.779181e-04, -3.167863e-04, -1.252475e+01, &
-                    -2.948459e-01, -2.393933e-01,  1.938396e-01, -1.055447e-01, &
-                     3.702422e-02, -1.731613e-02,  1.032923e-02, -2.446645e-03, &
-                    -1.285255e+01, -2.366438e-01, -3.069907e-01,  2.439879e-01, &
-                    -1.318474e-01,  4.906848e-02, -2.254865e-02,  1.183835e-02, &
-                    -2.623528e-03/), (/9,5/))
+            -8.693015e-03, -7.489224e-04,  1.166458e-03,  5.175516e-04, &
+            -1.962665e-04, -1.208493e+01, -4.815787e-01, -1.395910e-02, &
+            -1.374892e-02, -1.608155e-03,  1.194821e-02, -1.608300e-04, &
+            -1.128394e-03, -3.192678e-04, -1.259333e+01, -4.941146e-01, &
+            -7.179767e-04,  1.163202e-02, -1.347079e-02,  1.174152e-04, &
+            2.328052e-03,  3.779181e-04, -3.167863e-04, -1.252475e+01, &
+            -2.948459e-01, -2.393933e-01,  1.938396e-01, -1.055447e-01, &
+            3.702422e-02, -1.731613e-02,  1.032923e-02, -2.446645e-03, &
+            -1.285255e+01, -2.366438e-01, -3.069907e-01,  2.439879e-01, &
+            -1.318474e-01,  4.906848e-02, -2.254865e-02,  1.183835e-02, &
+            -2.623528e-03/), (/9,5/))
        SION_COEFF=RESHAPE((/ -1.152575e+01,  8.755813e+00, -8.383173e+00,  5.520414e+00, &
-                             -2.551776e+00,  7.772134e-01, -1.459613e-01,  1.520845e-02, &
-                             -6.704090e-04, -1.900611e+01,  2.421069e+01, -2.471980e+01, &
-                              1.557728e+01, -6.381716e+00,  1.690138e+00, -2.782783e-01, &
-                              2.584187e-02, -1.032499e-03, -2.444181e+01,  3.411982e+01, &
-                             -3.320268e+01,  1.931898e+01, -7.189498e+00,  1.725666e+00, &
-                             -2.589333e-01,  2.211362e-02, -8.208679e-04, -1.013409e+02, &
-                              1.776986e+02, -1.564890e+02,  8.132509e+01, -2.698106e+01, &
-                              5.805324e+00, -7.868877e-01,  6.119722e-02, -2.084705e-03, &
-                             -1.266743e+02,  2.228490e+02, -1.934931e+02,  9.902706e+01, &
-                             -3.235052e+01,  6.857843e+00, -9.166120e-01,  7.036009e-02, &
-                              -2.367897e-03/), (/9,5/))
-
-       Z_EI= (/8.2980, 25.1548, 37.93064, 259.37521, 340.22580,1.0E6/)
-
-       ZED=(/(real(I),I=0,Z)/)
-       kprad_mz = 10.81
+            -2.551776e+00,  7.772134e-01, -1.459613e-01,  1.520845e-02, &
+            -6.704090e-04, -1.900611e+01,  2.421069e+01, -2.471980e+01, &
+            1.557728e+01, -6.381716e+00,  1.690138e+00, -2.782783e-01, &
+            2.584187e-02, -1.032499e-03, -2.444181e+01,  3.411982e+01, &
+            -3.320268e+01,  1.931898e+01, -7.189498e+00,  1.725666e+00, &
+            -2.589333e-01,  2.211362e-02, -8.208679e-04, -1.013409e+02, &
+            1.776986e+02, -1.564890e+02,  8.132509e+01, -2.698106e+01, &
+            5.805324e+00, -7.868877e-01,  6.119722e-02, -2.084705e-03, &
+            -1.266743e+02,  2.228490e+02, -1.934931e+02,  9.902706e+01, &
+            -3.235052e+01,  6.857843e+00, -9.166120e-01,  7.036009e-02, &
+            -2.367897e-03/), (/9,5/))
 
     case (6) !CARBON
 
@@ -606,10 +627,6 @@ contains
             ,0.00000/),                                                      &
             (/6,10/)))
 
-       Z_EI= (/11.26, 24.384, 47.888, 64.5, 392.1, 490.0, 1.0E6/)
-       ZED=(/(real(I),I=0,Z)/)
-       kprad_mz = 12.0
-
     case (10)
 
        allocate(C(10,10))
@@ -648,7 +665,7 @@ contains
             -0.52044842, 0.22250819,                                         &
             -0.063636605,0.023730279,-0.015142696, 0.0042680263,             &
             -13.281673 ,0.79175595, -1.1343042, 0.88148321 ,                 &
-             -0.52384009,0.21989544,                                         &
+            -0.52384009,0.21989544,                                         &
             -0.067363452,0.027969167,-0.015372851,                           &
             0.0038092913/),(/10,10/))
 
@@ -674,7 +691,7 @@ contains
             0.293157,     0.343692,   0.388672,     0.113323,                &
             0.0726658,    0.00000,  0.00000,                                 &
             -0.00977938,   -0.0106844,   -0.0143345,                         &
-           -0.0137726,   -0.0160197, -0.0178211,  -0.00296459,               &
+            -0.0137726,   -0.0160197, -0.0178211,  -0.00296459,               &
             0.00000  ,0.00000,    0.00000,                                   &
             0.00000  ,0.00000,    0.00000,     0.00000   ,                   &
             0.00000,      0.00000,      0.00000,                             &
@@ -685,12 +702,6 @@ contains
             0.00000  ,0.00000,    0.00000,      0.00000,                     &
             0.00000,    0.00000,    0.00000,                                 &
             0.00000  ,0.00000,    0.00000/),(/10,10/)))
-
-       z_ei =                          &
-            (/21.6,41.0,63.5,97.0,126.3,157.9,207.2 ,239.0,1195.0,1362.3,1.0e6/)
-       ZED=(/(real(I),I=0,Z)/)
-       kprad_mz = 20.0
-
 
     case (18)
 
@@ -790,12 +801,6 @@ contains
             0.00000,  0.00000,    0.00000,  0.00000,                         &
             0.00000,0.00000,    0.00000,                                     &
             0.00000,  0.00000,    0.00000,  0.00000/),(/18,10/)))
-
-       z_ei = (/15.76,27.63,40.74,59.81,75.02,91.0,124.324,143.5,  &
-            422.5,478.7,618.3,538.96,686.11,755.75,854.78,918.05,   &
-            4120.87,4426.24,1.0e6/)
-       ZED=(/(real(I),I=0,Z)/)
-       kprad_mz = 40.0
 
     case DEFAULT
        write(*,*) 'NO DATA FOR THIS ELEMENT EXISTS!'

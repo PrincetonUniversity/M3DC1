@@ -518,10 +518,17 @@ contains
     integer :: i, itri, nelms, def_fields, izone
     vectype, dimension(dofs_per_element) :: dofs
     integer :: ip
+    character(len=5):: imp_model
 
     if(ikprad.eq.0) return
 
-    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Advancing KPRAD.'
+    if(ikprad.eq.1) then
+       imp_model = 'KPRAD'
+    elseif(ikprad.eq.-1) then
+       imp_model = 'ADAS'
+    end if
+
+    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Advancing ', trim(imp_model)
 
     do i=0, kprad_z
        kprad_temp(i) = 0.
@@ -710,7 +717,7 @@ contains
 
     call kprad_rebase_dt
 
-    if(myrank.eq.0) print *, ' Done advancing KPRAD'
+    if(myrank.eq.0) print *, ' Done advancing ', trim(imp_model)
   end subroutine kprad_ionize
 
   subroutine read_lp_source(filename, ierr)

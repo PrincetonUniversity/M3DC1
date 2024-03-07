@@ -5,7 +5,7 @@ module adas_m3dc1
 
   character(len=256) :: adas_adf11 ! root folder location to ADAS adf11 data
 
-  integer, parameter :: izdimd = 200, itdimd = 2001, iddimd = 40
+  integer, parameter :: izdimd = 20, itdimd = 50, iddimd = 50
   integer :: iz0, iz1min, iz1max
 
   ! for radiation from plt data
@@ -116,7 +116,7 @@ contains
   subroutine interp_adf11(iclass, N, iz1, te, dens, coeff)
     use basic
     implicit none
-    integer, parameter :: lck = 2001
+    integer, parameter :: lck = 51
     integer, intent(in) :: iclass, N, iz1
     real, intent(in) :: te(N), dens(N)
     real, intent(out) :: coeff(N)
@@ -237,10 +237,10 @@ contains
        end do
        call xxsple(lsetx, 0, r8fun1, idmax, ddens_arr, yin, 1, ddens(it), yout(it), dy, ldrng(it))
     end do
-
-    coeff = 10.0d0 ** yout(1:N)
+    coeff = yout(1:N)
     return
 
-  end subroutine interp_adf11
+  end subroutine
+  
 
 end module adas_m3dc1
