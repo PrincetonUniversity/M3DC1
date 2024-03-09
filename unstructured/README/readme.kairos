@@ -1,0 +1,88 @@
+******************************************************************************
+ NOTE: please add the following runtime options at your srun line:
+
+ -sub_mat_superlu_dist_rowperm norowperm (when using superlu_dist for 3D run)
+ -sub_mat_mumps_icntl_14 100 (when using mumps for 3D run)
+******************************************************************************
+
+0. documentation
+   ask Park Jinseop at linupark@kfe.re.kr
+
+1. login 
+	ssh username@kairos.hpc.nfri.re.kr -p 2201 -XY
+	Then "Passwd + OTP"
+
+2. code
+   scp -P 2201 YourCode username@kairos.hpc.nfri.re.kr:/opt/nfri/lib/m3dc1
+
+3. load modules
+
+   export M3DC1_CODE_DIR=/opt/nfri/lib/m3dc1/SRC/M3DC1_20240308
+   module use $M3DC1_CODE_DIR/unstructured/modules/kairos
+   module load m3dc1/devel
+   cd /opt/nfri/lib/m3dc1/
+
+4. compile code
+   make all ARCH=kairos
+
+   OR
+
+   2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=kairos
+   2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=kairos
+           - add PAR=1 to run PIC
+   3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=kairos
+   3D stellarator : make 3D=1 OPT=1 MAX_PTS=60 ST=1 ARCH=kairos
+   after compiling, run "make bin"
+
+5. mesh generator & mesh utility (partioning, merging, etc.)
+   /opt/nfri/lib/m3dc1/LIB/core-trunk/KAIROS/bin
+
+6. run a job 
+
+   only run on /scratch/username
+
+   aprun -n pes -N pes_per_node
+   qsub batchjob.kairos
+
+   sample batch job scripts are in M3DC1/unstructured/regtest/*/base/batchjob.kairos
+
+   regression test
+	cp -rfp $ $M3DC1_CODE_DIR/unstructured/regtest /scratch/username
+	cd /scratch/username
+	./run
+	./check
+   to compare C1ke data against $M3DC1_CODE_DIR/unstructured/regtest/*/base/C1ke data
+
+7. solver options for mg in the toroidal direction
+
+7.1 specify which solve is the mg target solve, for example, 
+
+    use mg for solve #5
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mgsolve 5
+
+    use mg for solve #17
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mgsolve 17
+
+    use mg for solve #5 and #17
+            srun -n 256 ./m3dc1_3d -options_file options_bjacobi.type_mg -mgsolve 5,17
+
+7.2 append the following lines in your solver option file: options_bjacobi.xxx
+
+    -hard_ksp_type fgmres
+    -hard_ksp_norm_type unpreconditioned
+    -hard_pc_type mg
+    -hard_ksp_rtol 1.e-03
+
+    -hard_mg_levels_ksp_type gmres
+    -hard_mg_levels_pc_type bjacobi
+    -hard_mg_levels_sub_pc_type lu
+    -hard_mg_levels_sub_pc_factor_mat_solver_type mumps
+    -hard_mg_levels_sub_mat_mumps_icntl_14 100
+    -hard_mg_levels_sub_ksp_type preonly
+
+    -hard_mg_coarse_ksp_type gmres
+    -hard_mg_coarse_pc_type bjacobi
+    -hard_mg_coarse_sub_pc_type lu
+    -hard_mg_coarse_sub_pc_factor_mat_solver_type mumps
+    -hard_mg_coarse_sub_mat_mumps_icntl_14 100
+    -hard_mg_coarse_sub_ksp_type preonly
