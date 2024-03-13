@@ -125,6 +125,7 @@ contains
   !==================================
   subroutine kprad_destroy
     use basic, only:isolve_with_guess
+
     implicit none
 
     integer :: i
@@ -154,6 +155,9 @@ contains
     end if
 
     call kprad_deallocate()
+#ifdef USEADAS
+    call adas_deallocate()
+#endif
 
   end subroutine kprad_destroy
 
