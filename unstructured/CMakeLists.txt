@@ -159,7 +159,25 @@ list(APPEND PKG_CONFIG_EXECUTABLE "--static")
 # pkg_check_modules (PETSC REQUIRED PETSc)
 pkg_search_module(PETSC PETSc IMPORTED_TARGET REQUIRED)
 message(STATUS "Found PETSc ${PETSC_VERSION}")
-message(STATUS "Found PETSc ${PETSC_LIBRARIES}")
+
+# foreach(ITR ${PETSC_LINK_LIBRARIES})
+#     if(ITR MATCHES "liblapack\.a")
+#       set(LAPACK_LIBRARY ${ITR})
+#     endif()
+# endforeach()
+# list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "liblapack\.a")
+# foreach(ITR ${PETSC_LINK_LIBRARIES})
+#     if(ITR MATCHES "libblas\.a")
+#       list(FIND PETSC_LINK_LIBRARIES ${ITR} IDX)
+#     endif()
+# endforeach()
+# list(INSERT PETSC_LINK_LIBRARIES ${IDX} ${LAPACK_LIBRARY})
+# message(STATUS "Found PETSc ${PETSC_LINK_LIBRARIES}")
+
+list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libpthread")
+set_property(TARGET PkgConfig::PETSC PROPERTY
+  INTERFACE_LINK_LIBRARIES "${PETSC_LINK_LIBRARIES}")
+
 pkg_search_module(FFTW fftw3 IMPORTED_TARGET REQUIRED)
 pkg_search_module(GSL gsl IMPORTED_TARGET REQUIRED)
 
@@ -214,6 +232,7 @@ endif ()
 # find_package(GSL REQUIRED)
 # find_package(FFTW REQUIRED)
 
+set(M3DC1_SCOREC_LIB_NAME m3dc1_scorec)
 if(ENABLE_3D)
   set(BIN_NAME "${BIN_NAME}_3d")
   list(APPEND DEFS -DUSE3D -Dvectype=real -DMAX_PTS=125)
@@ -225,6 +244,7 @@ else()
   if(ENABLE_COMPLEX)
     set(BIN_NAME "${BIN_NAME}_complex")
     list(APPEND DEFS -Dvectype=complex -DUSECOMPLEX)
+    set(M3DC1_SCOREC_LIB_NAME ${M3DC1_SCOREC_LIB_NAME}_complex)
     # if(PAR)
     #   set(POSTFIX "${POSTFIX}-pix")
     # else()
@@ -245,7 +265,7 @@ message(STATUS "Build date : ${DATE}")
 execute_process(COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/release_version OUTPUT_VARIABLE VERSION)
 string(REGEX REPLACE "\n$" "" VERSION "${VERSION}")
 message(STATUS "Release version : ${VERSION}")
-list(APPEND DEFS -DUSESCOREC -Dmesh_mod=scorec_mesh_mod -Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod -Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector -Dvectype=real -DPETSC_VERSION=990 -DUSEBLAS -DDATE_BUILT='${DATE}' -DRELEASE_VERSION='${VERSION}')
+list(APPEND DEFS -DUSESCOREC -Dmesh_mod=scorec_mesh_mod -Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod -Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector -DPETSC_VERSION=990 -DUSEBLAS -DDATE_BUILT='${DATE}' -DRELEASE_VERSION='${VERSION}')
 
 # if(NOT ARCH)
 #   if(M3DC1_ARCH)
@@ -291,18 +311,23 @@ set_source_files_properties(
   OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_mesh.f90.o
   )
 
+set_source_files_properties(
+  nintegrate_mod.f90
+  PROPERTIES
+  OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_mesh.f90.o
+  )
+
 add_executable(${BIN_NAME} ${SOURCES})
 # set_target_properties(${BIN_NAME} PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BIN_NAME}_mods)
-message(${CMAKE_CURRENT_BINARY_DIR})
 set_property(TARGET ${BIN_NAME} PROPERTY LINKER_LANGUAGE Fortran)
 target_include_directories(${BIN_NAME} PRIVATE ${SCOREC_INCLUDE_DIRS})
 target_link_libraries(${BIN_NAME} HDF5::HDF5
-                           m3dc1_scorec ${SCOREC_LIBRARIES} ${ZOLTAN_LIBRARIES}
-                           PkgConfig::PETSC PkgConfig::FFTW PkgConfig::GSL)
+  ${M3DC1_SCOREC_LIB_NAME} ${SCOREC_LIBRARIES} ${ZOLTAN_LIBRARIES}
+  PkgConfig::PETSC PkgConfig::FFTW PkgConfig::GSL)
 # target_link_directories(m3dc1_2d ${PETSC_STATIC_LIBRARY_DIRECTORIES})
 target_compile_definitions(${BIN_NAME} PRIVATE ${DEFS})
 target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-r8>)
-install(TARGETS ${BIN_NAME} DESTINATION bin)
+install(TARGETS ${BIN_NAME} DESTINATION ".")
 
 #find_package(PSPLINE)
 #add_executable(readgato polar.f90 readgato.f90)
