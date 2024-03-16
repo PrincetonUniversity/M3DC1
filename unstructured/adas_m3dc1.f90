@@ -273,8 +273,6 @@ contains
        ddens(it) = dlog10(dens(it))
     end do
 
-    lsetx = .true.
-
     ! At every density location in the file, do a 1D temperature interpolation
     do id = 1, idmax
 
@@ -286,6 +284,8 @@ contains
              nin = nin + 1
           endif
        end do
+
+       lsetx = .true.
 
        if (nin > 1) then
           call xxsple(lsetx, 0, r8fun1, nin, xin, yin, N, dtev, yout, dy, ltrng)
