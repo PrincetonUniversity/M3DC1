@@ -1,0 +1,157 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  # add package specs to the `specs` list
+  specs:
+  - cray-mpich%nvhpc
+  - zlib%nvhpc~shared
+  - hdf5%nvhpc+fortran+hl+mpi~shared
+  - gsl%nvhpc~shared
+  - fftw%nvhpc
+  - netcdf-c%nvhpc+mpi~shared
+  - netcdf-fortran%nvhpc~shared
+  - metis%nvhpc~shared
+  - parmetis%nvhpc~shared
+  - netlib-scalapack~shared
+  - mumps%nvhpc+metis+parmetis~openmp~shared
+  - superlu-dist%nvhpc~shared
+  - petsc%nvhpc+fortran~complex~fftw~hypre~hdf5+mumps+scalapack~shared
+  - petsc%nvhpc+fortran+complex~fftw~hypre~hdf5+mumps+scalapack~shared
+  - zoltan%nvhpc~fortran+parmetis~shared
+  - pumi%nvhpc+zoltan~shared
+  - m3dc1%nvhpc~3d~complex
+  - m3dc1%nvhpc+3d~complex
+  - m3dc1%nvhpc~3d+complex
+  view:
+    default:
+      root: .spack-env/view
+      projections:
+        petsc~complex: petsc-real
+        petsc+complex: petsc-complex
+        m3dc1~3d~complex: m3dc1_2d
+        m3dc1+3d: m3dc1_3d
+        m3dc1+complex: m3dc1_2d_complex
+  concretizer:
+    unify: when_possible
+  modules:
+    default:
+      enable: [tcl]
+  packages:
+    all:
+      compiler: [gcc@12.3.0, nvhpc@23.9]
+      providers:
+        lapack: [cray-libsci%nvhpc]
+        blas: [cray-libsci%nvhpc]
+        mpi: [cray-mpich%nvhpc]
+        pkgconfig: [pkg-config]
+    cray-libsci:
+      buildable: false
+      externals:
+      - spec: cray-libsci@23.12.5%gcc@12.3.0
+        modules: [cray-libsci/23.12.5]
+        prefix: /opt/cray/pe/libsci/23.12.5/gnu/12.3/x86_64
+      - spec: cray-libsci@23.12.5%nvhpc@23.9
+        modules: [cray-libsci/23.12.5]
+        prefix: /opt/cray/pe/libsci/23.12.5/nvidia/23.3/x86_64
+      - spec: cray-libsci@23.12.5%cce@17.0.0
+        modules: [cray-libsci/23.12.5]
+        prefix: /opt/cray/pe/libsci/23.12.5/cray/17.0/x86_64
+    cray-mpich:
+      buildable: false
+      externals:
+      - spec: cray-mpich@8.1.28%gcc@12.3.0
+        prefix: /opt/cray/pe/mpich/8.1.28/ofi/gnu/12.3
+        modules: [cray-mpich/8.1.28]
+      - spec: cray-mpich@8.1.28%nvhpc@23.9
+        prefix: /opt/cray/pe/mpich/8.1.28/ofi/nvidia/23.3
+        modules: [cray-mpich/8.1.28]
+      - spec: cray-mpich@8.1.28%cce@17.0.0
+        prefix: /opt/cray/pe/mpich/8.1.28/ofi/cray/17.0
+        modules: [cray-mpich/8.1.28]
+    # cuda:
+    #   externals:
+    #   - spec: cuda@11.7%nvhpc
+    #     prefix: /opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/cuda/11.7
+    cmake:
+      externals:
+      - spec: cmake@3.24.3
+        prefix: /global/common/software/nersc/pm-2022q4/spack/linux-sles15-zen/cmake-3.24.3-k5msymx/
+        modules: [cmake/3.24.3]
+    gmake:
+      externals:
+      - spec: gmake@4.2.1
+        prefix: /usr
+    pkg-config:
+      externals:
+      - spec: pkg-config@0.29.2
+        prefix: /usr
+    autoconf:
+      externals:
+      - spec: autoconf@2.69
+        prefix: /usr
+    python:
+      externals:
+      - spec: python@3.6.15
+        prefix: /usr
+    diffutils:
+      externals:
+      - spec: diffutils@3.6
+        prefix: /usr
+    automake:
+      externals:
+      - spec: automake@1.15.1
+        prefix: /usr
+    m4:
+      externals:
+      - spec: m4@1.4.18
+        prefix: /usr
+  compilers:
+  - compiler:
+      spec: gcc@=12.3.0
+      paths:
+        cc: /usr/bin/gcc
+        cxx: /usr/bin/g++
+        f77: /usr/bin/gfortran
+        fc: /usr/bin/gfortran
+      flags: {}
+      operating_system: sles15
+      target: x86_64
+      modules: []
+      environment: {}
+      extra_rpaths: []
+  - compiler:
+      spec: nvhpc@=23.9
+      paths:
+        cc: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/compilers/bin/nvc
+        cxx: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/compilers/bin/nvc++
+        f77: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/compilers/bin/nvfortran
+        fc: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/compilers/bin/nvfortran
+      flags: {}
+      operating_system: sles15
+      target: x86_64
+      modules:
+      - PrgEnv-nvhpc
+      - nvhpc/23.9
+      - craype-x86-milan
+      - libfabric
+      environment: {}
+      extra_rpaths: []
+  - compiler:
+      spec: cce@=17.0.0
+      paths:
+        cc: /opt/cray/pe/cce/17.0.0/bin/craycc
+        cxx: /opt/cray/pe/cce/17.0.0/bin/crayCC
+        f77: /opt/cray/pe/cce/17.0.0/bin/crayftn
+        fc: /opt/cray/pe/cce/17.0.0/bin/crayftn
+      flags: {}
+      operating_system: sles15
+      target: x86_64
+      modules:
+      - PrgEnv-cray
+      - cce/17.0.0
+      - craype-x86-milan
+      - libfabric
+      environment: {}
+      extra_rpaths: []
