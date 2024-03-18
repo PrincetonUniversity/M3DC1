@@ -172,7 +172,35 @@ message(STATUS "Found PETSc ${PETSC_VERSION}")
 #     endif()
 # endforeach()
 # list(INSERT PETSC_LINK_LIBRARIES ${IDX} ${LAPACK_LIBRARY})
-# message(STATUS "Found PETSc ${PETSC_LINK_LIBRARIES}")
+# message(STATUS "Found PETSc ${PETSC_STATIC_LIBRARIES}")
+set(PETSC_LINK_LIBRARIES "")
+ # message(STATUS "Found PETSc ${PETSC_LINK_LIBRARIES}")
+message(STATUS "Found PETSc ${PETSC_STATIC_LDFLAGS}")
+foreach (flag IN LISTS PETSC_STATIC_LDFLAGS)
+  if (flag MATCHES "^-L(.*)")
+    list(APPEND _search_paths ${CMAKE_MATCH_1})
+    continue()
+  endif()
+  if (flag MATCHES "^-l(.*)")
+    set(_pkg_search "${CMAKE_MATCH_1}")
+  endif()
+
+  if(_search_paths)
+      # Firstly search in -L paths
+      find_library(pkgcfg_lib_PETSC_${_pkg_search}
+                   NAMES ${_pkg_search}
+                   HINTS ${_search_paths} NO_DEFAULT_PATH)
+  endif()
+  find_library(pkgcfg_lib_PETSC_${_pkg_search}
+               NAMES ${_pkg_search})
+  if(pkgcfg_lib_PETSC_${_pkg_search})
+    list(APPEND PETSC_LINK_LIBRARIES "${pkgcfg_lib_PETSC_${_pkg_search}}")
+  else()
+    list(APPEND PETSC_LINK_LIBRARIES ${_pkg_search})
+  endif()
+endforeach()
+# message(STATUS "Found PETSc ${PETSC_LIBRARIES}")
+message(STATUS "Found PETSc ${PETSC_LINK_LIBRARIES}")
 
 list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libpthread")
 set_property(TARGET PkgConfig::PETSC PROPERTY

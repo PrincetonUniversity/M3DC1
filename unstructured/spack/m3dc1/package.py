@@ -45,14 +45,17 @@ class M3dc1(CMakePackage):
 
     conflicts("+complex", when="+3d")
 
-    depends_on("pumi")
     depends_on("cmake@3:", type="build")
-    depends_on("zoltan")
-    depends_on("petsc~complex", when="~complex")
-    depends_on("petsc+complex", when="+complex")
-    depends_on("hdf5")
+    depends_on("hdf5+fortran+hl+mpi")
+    depends_on("netcdf-c+mpi")
+    depends_on("netcdf-fortran")
+    depends_on("superlu-dist")
+    depends_on("petsc~complex+fortran~fftw~hypre~hdf5+mumps+scalapack+superlu-dist", when="~complex")
+    depends_on("petsc+complex+fortran~fftw~hypre~hdf5+mumps+scalapack+superlu-dist", when="+complex")
     depends_on("gsl")
     depends_on("fftw")
+    depends_on("zoltan~fortran+parmetis")
+    depends_on("pumi+zoltan")
 
     def cmake_args(self):
         spec = self.spec
