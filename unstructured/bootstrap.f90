@@ -9,10 +9,11 @@ module bootstrap
   !     where J_BS = jbscommon * B
     
     !ibootstrap_model=1: Sauter & Angioni (1999) 
-    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
-    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
-    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
-    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+
+    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
 
     !ibootstrap_model=2: Redl et al (2021) 
     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
@@ -36,60 +37,115 @@ module bootstrap
 contains
 
 
+!calculation of the bootstrap term in the pressure eq remains the same since it is linearized only in pe
+subroutine bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimpi)
+  use basic
+  use arrays
+  use m3dc1_nint
 
-  subroutine bootstrap_pressure(trial, lin, ssterm, ddterm, pp_g, thimpi)
-    use basic
-    use arrays
-    use m3dc1_nint
+  implicit none
 
-    implicit none
+  vectype, dimension(dofs_per_element,MAX_PTS, OP_NUM), intent(in) :: trial
+  vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
+  vectype, dimension(dofs_per_element,num_fields), intent(inout) :: ssterm, ddterm
+  integer, intent(in) :: pp_g
+  real, intent(in) :: thimpi
 
-    vectype, dimension(dofs_per_element,MAX_PTS, OP_NUM), intent(in) :: trial
-    vectype, dimension(MAX_PTS, OP_NUM), intent(in) :: lin
-    vectype, dimension(dofs_per_element,num_fields), intent(inout) :: ssterm, ddterm
-    integer, intent(in) :: pp_g
-    real, intent(in) :: thimpi
+  vectype, dimension(dofs_per_element) :: temp
 
-    vectype, dimension(dofs_per_element) :: temp
+  temp = bs_b3pe(trial,lin)
+  ssterm(:,pp_g) = ssterm(:,pp_g) -       thimpi     *dt*temp
+  ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimpi*bdf)*dt*temp
+end subroutine bootstrap_pressure
 
-    temp = bs_b3pe(trial,lin)
-    ssterm(:,pp_g) = ssterm(:,pp_g) -       thimpi     *dt*temp
-    ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimpi*bdf)*dt*temp
-  end subroutine bootstrap_pressure
+
+
 
   
   ! B3pe
   ! ====
-  function bs_b3pe(e,f)
-    use basic
-    use m3dc1_nint
+function bs_b3pe(e,f)
+  use basic
+  use m3dc1_nint
 
-    implicit none
+  implicit none
 
-    vectype, dimension(dofs_per_element) :: bs_b3pe
-    vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
-    vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
-    vectype, dimension(dofs_per_element) :: temp
+  vectype, dimension(dofs_per_element) :: bs_b3pe
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
+  vectype, dimension(dofs_per_element) :: temp
+  vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
 
-    temp79a = eta79(:,OP_1)*bzt79(:,OP_1)* &
-         (f(:,OP_DZ)*pst79(:,OP_DZ) + f(:,OP_DR)*pst79(:,OP_DR))
 
-    ! J.B
-    temp79b = -ri2_79*bzt79(:,OP_1)*pst79(:,OP_GS) &
-         + ri2_79*(bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR))
+
+   
+     !ibootstrap_model=1,3: Sauter & Angioni (1999) ! equivalent to 1 but a simplified version
+    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
+   
+     !ibootstrap_model=2,4: Redl et al (2021) ! equivalent to 2 but a simplified version
+     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
+     !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
+   
+   
+    !jbscommon   = -  F / <B^2>   [ L31 (dlnp/dpsi) + L32 Pe (dlnTe/dpsi) + L34 Pe alpha (dlnTi/dpsi) ]
+    ! but d/dpsi = - del phi . (B x del)/||Bp||^2
+    !     d/dpsi = - 1/||Bp||^2 1/R ( (1/R psi_z + f'_r) d/dz + (1/R psi_r - f'_z) d/dr)
+    ! which gives
+    !jbscommon   =  tempD 1/|Bp|^2  1 / <B^2> 1/R F
+   
+    !temp79a =  jbscommon * bootsrap_alpha = tempD 1/|Bp|^2  1 / <B^2>* 1/R * F * bootsrap_alpha
+    
+
+
+!linearizing in pe
+
+  tempBB = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
+          + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
+
+  tempCC =  (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*tit79(:,OP_DZ)/tit79(:,OP_1) &
+          + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*tit79(:,OP_DR)/tit79(:,OP_1)
+
+  if(ibootstrap_model.eq.1 .or. ibootstrap_model.eq.3)then !Sauter & Angioni (1999) 
+      tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*pt79(:,OP_DZ) &
+              + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*pt79(:,OP_DR)
+
+      tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+               jbsl3279(:,OP_1)*f(:,OP_1)*(tempBB) + &
+               jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-f(:,OP_1))*(tempCC)
+  else if (ibootstrap_model.eq.2 .or. ibootstrap_model.eq.4)then !Redl et al (2021) 
+      tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
+               +  (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
+
+      tempDD = jbsl3179(:,OP_1)*(tempAA) + &
+               (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*f(:,OP_1)*(tempBB) + &
+               (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-f(:,OP_1))*(tempCC)
+  end if
+ 
+  
+  temp79a=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+
+
+  ! J.B
+  temp79b = -ri2_79*bzt79(:,OP_1)*pst79(:,OP_GS) &
+       + ri2_79*(bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR))
 #if defined(USE3D) || defined(USECOMPLEX)
-    temp79b = temp79b &
-         + ri2_79*(bfpt79(:,OP_DZP)*pst79(:,OP_DZ)  + bfpt79(:,OP_DRP)*pst79(:,OP_DR)) &
-         + ri_79 *(bzt79(:,OP_DZ)*  bfpt79(:,OP_DR) - bzt79(:,OP_DR)*  bfpt79(:,OP_DZ)) &
-         + ri_79 *(bfpt79(:,OP_DZP)*bfpt79(:,OP_DR) - bfpt79(:,OP_DRP)*bfpt79(:,OP_DZ)) &
-         - ri3_79*(pst79(:,OP_DZ)*  pst79(:,OP_DRP) - pst79(:,OP_DR)*  pst79(:,OP_DZP)) &
-         - ri2_79*(bfpt79(:,OP_DZ)* pst79(:,OP_DZP) + bfpt79(:,OP_DR)* pst79(:,OP_DRP))
+  temp79b = temp79b &
+       + ri2_79*(bfpt79(:,OP_DZP)*pst79(:,OP_DZ)  + bfpt79(:,OP_DRP)*pst79(:,OP_DR)) &
+       + ri_79 *(bzt79(:,OP_DZ)*  bfpt79(:,OP_DR) - bzt79(:,OP_DR)*  bfpt79(:,OP_DZ)) &
+       + ri_79 *(bfpt79(:,OP_DZP)*bfpt79(:,OP_DR) - bfpt79(:,OP_DRP)*bfpt79(:,OP_DZ)) &
+       - ri3_79*(pst79(:,OP_DZ)*  pst79(:,OP_DRP) - pst79(:,OP_DR)*  pst79(:,OP_DZP)) &
+       - ri2_79*(bfpt79(:,OP_DZ)* pst79(:,OP_DZP) + bfpt79(:,OP_DR)* pst79(:,OP_DRP))
 #endif
 
-    temp = intx3(e(:,:,OP_1),temp79a, temp79b)
+  temp = intx3(e(:,:,OP_1),temp79a, temp79b)
 
-    bs_b3pe = -(gam-1.)*bootstrap_alpha*temp
-  end function bs_b3pe
+  bs_b3pe = -(gam-1.)*temp
+
+end function bs_b3pe
+
 
 
 
@@ -98,10 +154,10 @@ contains
    function bs_b1psifpsib(e,f,g,h,i)
     !mu,psi,f',psi,F
      !Sauter & Angioni (1999) 
-    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
-    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
-    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
-    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
 
     !Redl et al (2021)  
     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
@@ -146,7 +202,7 @@ contains
 
             tempDD = jbsl3179(:,OP_1)*(tempAA) + &
                      jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
-                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           else if (ibootstrap_model.eq.2)then !Redl et al (2021)
             tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
                    + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
@@ -184,10 +240,10 @@ function bs_b1psifbb(e,f,g,h,i)
    !mu,psi,f',F,F
 
     !Sauter & Angioni (1999) 
-    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
-    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
-    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
-    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
 
     !Redl et al (2021)  
     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
@@ -228,7 +284,7 @@ function bs_b1psifbb(e,f,g,h,i)
 
             tempDD = jbsl3179(:,OP_1)*(tempAA) + &
                      jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
-                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           else if (ibootstrap_model.eq.2)then !Redl et al (2021)
             tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
                    + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
@@ -259,7 +315,7 @@ function bs_b1psifbb(e,f,g,h,i)
 
             tempDD = jbsl3179(:,OP_1)*(tempAA) + &
                      jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
-                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           else if (ibootstrap_model.eq.2)then !Redl et al (2021)
             tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
                    + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
@@ -288,10 +344,10 @@ function bs_b1psifbb(e,f,g,h,i)
     !mu,psi,f',f',F
 
     !Sauter & Angioni (1999) 
-    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
-    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
-    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
-    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
 
     !Redl et al (2021)  
     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
@@ -336,7 +392,7 @@ function bs_b1psifbb(e,f,g,h,i)
 
             tempDD = jbsl3179(:,OP_1)*(tempAA) + &
                      jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
-                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
         else if (ibootstrap_model.eq.2)then !Redl et al (2021)
             tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
                    + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
@@ -372,10 +428,10 @@ function bs_b1psifbb(e,f,g,h,i)
     !mu,psi,f',psi,F
 
     !Sauter & Angioni (1999) 
-    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
-    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
-    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
-    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
 
     !Redl et al (2021)  
     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
@@ -413,7 +469,7 @@ function bs_b1psifbb(e,f,g,h,i)
 
             tempDD = jbsl3179(:,OP_1)*(tempAA) + &
                      jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
-                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+                     jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
     else if (ibootstrap_model.eq.2)then !Redl et al (2021)
             tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
                    + (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
@@ -441,10 +497,10 @@ function bs_b1psifbb(e,f,g,h,i)
 
     !mu,psi,f',f',F
     !Sauter & Angioni (1999) 
-    !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
-    !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
-    !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
-    !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
 
     !Redl et al (2021)  
     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
@@ -481,7 +537,7 @@ function bs_b1psifbb(e,f,g,h,i)
 
         tempDD = jbsl3179(:,OP_1)*(tempAA) + &
                  jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
-                 jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+                 jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
     else if (ibootstrap_model.eq.2)then !Redl et al (2021) 
         tempAA = (f(:,OP_DZ)*ri_79 + g(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
                  +  (f(:,OP_DR)*ri_79 - g(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
@@ -812,10 +868,10 @@ function bs_b1psifbb(e,f,g,h,i)
    !calculating bootstrap current
   subroutine calculate_CommonTerm_Lambda(temp1,temp2)
      !ibootstrap_model=3: Sauter & Angioni (1999) ! equivalent to 1 but a simplified version
-     !tempD =  L31 (A) + L32 Pe (B) + L34 Pe alpha (C)
-     !A    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
-     !B    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
-     !C    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
+    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
+    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
+    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
    
      !ibootstrap_model=4: Redl et al (2021) ! equivalent to 2 but a simplified version
      !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
@@ -831,6 +887,7 @@ function bs_b1psifbb(e,f,g,h,i)
       !temp1 =  jbscommon * bootsrap_alpha = tempD 1/|Bp|^2  1 / <B^2>* 1/R * F * bootsrap_alpha
       !FOr <J.B> output
       !temp2 =                             = tempD 1/|Bp|^2           * 1/R * F * bootsrap_alpha
+      !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
      use basic
      use m3dc1_nint
    
@@ -853,7 +910,7 @@ function bs_b1psifbb(e,f,g,h,i)
    
          tempDD = jbsl3179(:,OP_1)*(tempAA) + &
                   jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
-                  jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*pet79(:,OP_1)*(tempCC)
+                  jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
      else if (ibootstrap_model.eq.2 .or. ibootstrap_model.eq.4)then !Redl et al (2021) 
          tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
                   +  (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
@@ -1183,6 +1240,7 @@ function bs_b1psifbb(e,f,g,h,i)
       !  q_bf = q_bf + (1..)*dt*temp
      end if
    end subroutine bootstrap_axial_field_simplified
+
 
 end module bootstrap
 
