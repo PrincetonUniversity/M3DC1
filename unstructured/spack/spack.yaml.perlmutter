@@ -5,7 +5,6 @@
 spack:
   # add package specs to the `specs` list
   specs:
-  - cray-mpich%nvhpc
   - zlib%nvhpc~shared
   - hdf5%nvhpc+fortran+hl+mpi~shared
   - gsl%nvhpc~shared
@@ -14,7 +13,6 @@ spack:
   - netcdf-fortran%nvhpc~shared
   - metis%nvhpc~shared
   - parmetis%nvhpc~shared
-  - netlib-scalapack~shared
   - mumps%nvhpc+metis+parmetis~openmp~shared
   - superlu-dist%nvhpc~shared
   - petsc%nvhpc+fortran~complex~fftw~hypre~hdf5+mumps+scalapack~shared
@@ -42,11 +40,13 @@ spack:
     all:
       compiler: [gcc@12.3.0, nvhpc@23.9]
       providers:
+        scalapack: [cray-libsci%nvhpc]
         lapack: [cray-libsci%nvhpc]
         blas: [cray-libsci%nvhpc]
         mpi: [cray-mpich%nvhpc]
         pkgconfig: [pkg-config]
     cray-libsci:
+      variants: +openmp+mpi
       buildable: false
       externals:
       - spec: cray-libsci@23.12.5%gcc@12.3.0
@@ -59,17 +59,18 @@ spack:
         modules: [cray-libsci/23.12.5]
         prefix: /opt/cray/pe/libsci/23.12.5/cray/17.0/x86_64
     cray-mpich:
+      variants: ~wrappers
       buildable: false
       externals:
       - spec: cray-mpich@8.1.28%gcc@12.3.0
         prefix: /opt/cray/pe/mpich/8.1.28/ofi/gnu/12.3
-        modules: [cray-mpich/8.1.28]
+        modules: [cray-mpich/8.1.28 cudatoolkit/12.2]
       - spec: cray-mpich@8.1.28%nvhpc@23.9
         prefix: /opt/cray/pe/mpich/8.1.28/ofi/nvidia/23.3
-        modules: [cray-mpich/8.1.28]
+        modules: [cray-mpich/8.1.28 cudatoolkit/12.2]
       - spec: cray-mpich@8.1.28%cce@17.0.0
         prefix: /opt/cray/pe/mpich/8.1.28/ofi/cray/17.0
-        modules: [cray-mpich/8.1.28]
+        modules: [cray-mpich/8.1.28 cudatoolkit/12.2]
     # cuda:
     #   externals:
     #   - spec: cuda@11.7%nvhpc
@@ -124,10 +125,10 @@ spack:
   - compiler:
       spec: nvhpc@=23.9
       paths:
-        cc: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/compilers/bin/nvc
-        cxx: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/compilers/bin/nvc++
-        f77: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/compilers/bin/nvfortran
-        fc: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/compilers/bin/nvfortran
+        cc: /opt/cray/pe/craype/default/bin/cc
+        cxx: /opt/cray/pe/craype/default/bin/CC
+        f77: /opt/cray/pe/craype/default/bin/ftn
+        fc: /opt/cray/pe/craype/default/bin/ftn
       flags: {}
       operating_system: sles15
       target: x86_64
@@ -136,15 +137,17 @@ spack:
       - nvhpc/23.9
       - craype-x86-milan
       - libfabric
-      environment: {}
+      environment:
+        prepend_path:
+          LD_LIBRARY_PATH: /opt/nvidia/hpc_sdk/Linux_x86_64/23.9/cuda/12.2/extras/CUPTI/lib64
       extra_rpaths: []
   - compiler:
       spec: cce@=17.0.0
       paths:
-        cc: /opt/cray/pe/cce/17.0.0/bin/craycc
-        cxx: /opt/cray/pe/cce/17.0.0/bin/crayCC
-        f77: /opt/cray/pe/cce/17.0.0/bin/crayftn
-        fc: /opt/cray/pe/cce/17.0.0/bin/crayftn
+        cc: /opt/cray/pe/craype/default/bin/cc
+        cxx: /opt/cray/pe/craype/default/bin/CC
+        f77: /opt/cray/pe/craype/default/bin/ftn
+        fc: /opt/cray/pe/craype/default/bin/ftn
       flags: {}
       operating_system: sles15
       target: x86_64

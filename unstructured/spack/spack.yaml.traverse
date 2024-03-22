@@ -5,10 +5,9 @@
 spack:
   # add package specs to the `specs` list
   specs:
-  - nvhpc%gcc
   - zlib%nvhpc~shared
-  # - cmake arch=linux-rhel8-power9le%gcc
-  # - openmpi arch=linux-rhel8-power9le%nvhpc
+  # # - cmake arch=linux-rhel8-power9le%gcc
+  # # - openmpi arch=linux-rhel8-power9le%nvhpc
   - hdf5%nvhpc+fortran+hl+mpi~shared
   - gsl%nvhpc~shared
   - fftw%nvhpc

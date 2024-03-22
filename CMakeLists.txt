@@ -21,10 +21,10 @@ message(STATUS "Configuring to build on: ${HOST}")
 # set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE)
 
 # prefer static libraries unless we explicitly specify no to
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")
-if(BUILD_SHARED_LIBS)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
-endif()
+# set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")
+# if(BUILD_SHARED_LIBS)
+#   set(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
+# endif()
 
 # set the build type logically
  # default is Debug if .git directory exists

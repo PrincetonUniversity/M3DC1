@@ -5,8 +5,6 @@
 spack:
   # add package specs to the `specs` list
   specs:
-  - cray-mpich%cce
-  - cray-libsci%cce
   - zlib%cce~shared
   - gsl%cce~shared
   - fftw%cce
@@ -15,7 +13,7 @@ spack:
   - netcdf-fortran%cce~shared
   - metis%cce~shared
   - parmetis%cce~shared
-  - netlib-scalapack%cce~shared
+  # # - netlib-scalapack%cce~shared
   - mumps%cce+metis+parmetis~openmp~shared
   - superlu-dist ldlibs=-ldl %cce~shared
   - petsc%cce+fortran~complex~fftw~hypre~hdf5+mumps+scalapack~shared
@@ -44,10 +42,10 @@ spack:
   - compiler:
       spec: cce@=15.0.0
       paths:
-        cc: /opt/cray/pe/cce/15.0.0/bin/craycc
-        cxx: /opt/cray/pe/cce/15.0.0/bin/crayCC
-        f77: /opt/cray/pe/cce/15.0.0/bin/crayftn
-        fc: /opt/cray/pe/cce/15.0.0/bin/crayftn
+        cc: /opt/cray/pe/craype/2.7.19/bin/cc
+        cxx: /opt/cray/pe/craype/2.7.19/bin/CC
+        f77: /opt/cray/pe/craype/2.7.19/bin/ftn
+        fc: /opt/cray/pe/craype/2.7.19/bin/ftn
       flags: {}
       operating_system: sles15
       target: x86_64
@@ -76,10 +74,10 @@ spack:
   - compiler:
       spec: rocmcc@=5.3.0
       paths:
-        cc: /opt/rocm-5.3.0/bin/amdclang
-        cxx: /opt/rocm-5.3.0/bin/amdclang++
-        f77: /opt/rocm-5.3.0/bin/amdflang
-        fc: /opt/rocm-5.3.0/bin/amdflang
+        cc: /opt/cray/pe/craype/2.7.19/bin/cc
+        cxx: /opt/cray/pe/craype/2.7.19/bin/CC
+        f77: /opt/cray/pe/craype/2.7.19/bin/ftn
+        fc: /opt/cray/pe/craype/2.7.19/bin/ftn
       flags: {}
       operating_system: sles15
       target: x86_64
@@ -94,11 +92,13 @@ spack:
     all:
       compiler: [cce@15.0.0, gcc@12.3.0, rocmcc@5.3.0]
       providers:
+        scalapack: [cray-libsci%cce]
         lapack: [cray-libsci%cce]
         blas: [cray-libsci%cce]
         mpi: [cray-mpich%cce]
         pkgconfig: [pkg-config]
     cray-libsci:
+      variants: +openmp+mpi
       buildable: false
       externals:
       - spec: cray-libsci@22.12.1.1%gcc@7.5.0
@@ -111,6 +111,7 @@ spack:
         modules: [cray-libsci/23.12.1.1]
         prefix: /opt/cray/pe/libsci/22.12.1.1/cray/9.0/x86_64
     cray-mpich:
+      variants: ~wrappers
       buildable: false
       externals:
       - spec: cray-mpich@8.1.23%gcc@7.5.0
