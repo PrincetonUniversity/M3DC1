@@ -153,7 +153,7 @@ subroutine set_defaults
   use matrix_mod
 #endif
 #ifdef USEADAS
-  use adas_adf11
+  use adas_m3dc1
 #endif
 
   implicit none
