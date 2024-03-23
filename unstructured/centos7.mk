@@ -88,9 +88,8 @@ INCLUDE = -I$(PETSC_DIR)/include \
         -I$(HDF5_HOME)/include \
 	-I$(NETCDF_FORTRAN_HOME)/include
 
-# ADAS available
+# Full ADAS available
 USEADAS = 1
-OPTS := $(OPTS) -DUSEADAS
 LIBS += -L/p/adas/4.0/ifort/lib -ladaslib
 
 %.o : %.c
@@ -100,6 +99,9 @@ LIBS += -L/p/adas/4.0/ifort/lib -ladaslib
 	$(CPP) $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f
+	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
+
+%.o: %.for
 	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
 
 %.o: %.F

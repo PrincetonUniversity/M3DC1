@@ -2,6 +2,7 @@
 ! M3D-C1 ADAS connection
 !========================
 module adas_m3dc1
+  use spline
 
   character(len=256) :: adas_adf11 ! root folder location to ADAS adf11 data
   integer, private :: iz0, iz1min, iz1max
@@ -21,6 +22,7 @@ module adas_m3dc1
   ! for interpolation
   real, allocatable, dimension(:), private :: yin, dy, xin
   real, allocatable, dimension(:,:), private :: ypass
+  type(spline1d), private :: yspline 
 
 
 contains
@@ -75,8 +77,6 @@ contains
        if(myrank.eq.0) write(*,*) 'THIS ELEMENT NOT YET IMPLEMENTED WITH ADAS'
        call safestop(1001)
     end select
-
-    call xx0000
 
     !=========================
     ! Load radiation data
@@ -196,6 +196,7 @@ contains
 
   subroutine interp_adf11(iclass, N, iz1, te, dens, coeff)
     use basic
+    use spline
     implicit none
     integer, intent(in) :: iclass, N, iz1
     real, intent(in) :: te(N), dens(N)
@@ -277,7 +278,7 @@ contains
     do id = 1, idmax
 
        nin = 0
-       do it =1, itmax
+       do it = 1, itmax
           if (drcof_arr(indsel,it,id).GT.-40) then
              xin(nin+1) = dtev_arr(it)
              yin(nin+1) = drcof_arr(indsel,it,id)
@@ -285,10 +286,15 @@ contains
           endif
        end do
 
-       lsetx = .true.
+!       lsetx = .true.
 
        if (nin > 1) then
-          call xxsple(lsetx, 0, r8fun1, nin, xin, yin, N, dtev, yout, dy, ltrng)
+!          call xxsple(lsetx, 0, r8fun1, nin, xin, yin, N, dtev, yout, dy, ltrng)
+          call create_spline(yspline, nin, xin, yin)
+          do it = 1, N
+             call evaluate_spline(yspline, dtev(it), yout(it), extrapolate=1)
+          end do
+          call destroy_spline(yspline)
        else
           yout = -74.0d0
        endif
@@ -306,7 +312,10 @@ contains
        do id = 1, idmax
           yin(id) = ypass(it,id)
        end do
-       call xxsple(lsetx, 0, r8fun1, idmax, ddens_arr, yin, 1, ddens(it), yout(it), dy, ldrng(it))
+       !call xxsple(lsetx, 0, r8fun1, idmax, ddens_arr, yin, 1, ddens(it), yout(it), dy, ldrng(it))
+       call create_spline(yspline, idmax, ddens_arr, yin)
+       call evaluate_spline(yspline, ddens(it), yout(it), extrapolate=1)
+       call destroy_spline(yspline)
     end do
     coeff = yout(1:N)
     return

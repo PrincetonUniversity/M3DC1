@@ -83,6 +83,8 @@ ifeq ($(TAU), 1)
   BIN_POSTFIX := $(BIN_POSTFIX)-tau
 endif
 
+
+
 # Define the size of sampling point arrays.
 # This sets the upper limit for number of points used
 # in numerical integrations
@@ -154,7 +156,15 @@ endif
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
+ifeq ($(ADAS), 1)
+  ifeq  ($(USEADAS), 0)
+    USEADAS = 1
+    LIBS += -L$(SRCDIR)/_$(ARCH) -ladaslib
+  endif
+endif
+
 ifeq ($(USEADAS), 1)
+  OPTS := $(OPTS) -DUSEADAS
   ADAS_OBJ = adas_m3dc1.o
 endif
 
@@ -226,6 +236,38 @@ kprad : kprad.f90 kprad_test.f90
 
 test_region : region.o test_region.o
 	$(F90) $^ -o $@
+
+OA_DATA = https://open.adas.ac.uk/download/adf11
+OA_OBJS = xxrptn.o xfelem.o i4unit.o i4fctn.o xxword.o xxcase.o \
+	xxslen.o xxdata_11.o
+.PHONY : download_open_adas
+download_open_adas :
+	rm -rf adf11
+	mkdir -p adf11/scd85 adf11/plt89 adf11/scd89 adf11/plt96 adf11/scd96
+	wget https://open.adas.ac.uk/code/xxdata_11.tar.gz
+	tar -zxf xxdata_11.tar.gz -C $(SRCDIR) --strip-components=1 --wildcards '*.for' --transform 's/\.for/.f/'
+	rm -rf xxdata_11.tar.gz
+	cd adf11/scd85 && \
+		wget $(OA_DATA)/scd85/scd85_ar.dat
+	cd adf11/scd89 && \
+		wget $(OA_DATA)/scd89/scd89_b.dat
+	cd adf11/plt89 && \
+		wget $(OA_DATA)/plt89/plt89_b.dat && \
+		wget $(OA_DATA)/plt89/plt89_ar.dat
+	cd adf11/scd96 && \
+		wget $(OA_DATA)/scd96/scd96_he.dat && \
+		wget $(OA_DATA)/scd96/scd96_be.dat && \
+		wget $(OA_DATA)/scd96/scd96_c.dat && \
+		wget $(OA_DATA)/scd96/scd96_ne.dat
+	cd adf11/plt96 && \
+		wget $(OA_DATA)/plt96/plt96_he.dat && \
+		wget $(OA_DATA)/plt96/plt96_be.dat && \
+		wget $(OA_DATA)/plt96/plt96_c.dat && \
+		wget $(OA_DATA)/plt96/plt96_ne.dat
+
+.PHONY : open_adas
+open_adas : download_open_adas $(OA_OBJS)
+	ar rcs libadaslib.a $(OA_OBJS)
 
 .PHONY : bin
 bin : a2cc mackenbach_profiles
