@@ -136,10 +136,6 @@ ifeq ($(ADAS), 1)
 else
   USEADAS = 0
 endif
-export USEADAS
-ifdef ADAS_LIB
-  export ADAS_LIB
-endif
 
 
 include $(SRCDIR)/$(ARCH).mk
@@ -166,14 +162,10 @@ endif
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
-$(info USEADAS has value: $(USEADAS))
-
 ifeq ($(USEADAS), 1)
   LIBS += $(ADAS_LIB)
   ADAS_OBJ = adas_m3dc1.o
 endif
-
-$(info ADAS_OBJ has value: $(ADAS_OBJ))
 
 OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	random.o spline.o region.o \
