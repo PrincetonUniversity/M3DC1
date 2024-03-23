@@ -119,7 +119,6 @@ export USE3D
 export USERW
 export TAU
 export HPCTK
-
 include target.mk
 
 else
@@ -130,7 +129,18 @@ else
 
 VPATH=$(SRCDIR)
 
-USEADAS = 0
+ifeq ($(ADAS), 1)
+  USEADAS = 1
+  OPTS := $(OPTS) -DUSEADAS
+  ADAS_LIB := -L$(SRCDIR)/_$(ARCH) -ladaslib
+else
+  USEADAS = 0
+endif
+export USEADAS
+ifdef ADAS_LIB
+  export ADAS_LIB
+endif
+
 
 include $(SRCDIR)/$(ARCH).mk
 BIN = m3dc1
@@ -156,17 +166,14 @@ endif
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
 
-ifeq ($(ADAS), 1)
-  ifeq  ($(USEADAS), 0)
-    USEADAS = 1
-    LIBS += -L$(SRCDIR)/_$(ARCH) -ladaslib
-  endif
-endif
+$(info USEADAS has value: $(USEADAS))
 
 ifeq ($(USEADAS), 1)
-  OPTS := $(OPTS) -DUSEADAS
+  LIBS += $(ADAS_LIB)
   ADAS_OBJ = adas_m3dc1.o
 endif
+
+$(info ADAS_OBJ has value: $(ADAS_OBJ))
 
 OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	random.o spline.o region.o \
@@ -264,6 +271,10 @@ download_open_adas :
 		wget $(OA_DATA)/plt96/plt96_be.dat && \
 		wget $(OA_DATA)/plt96/plt96_c.dat && \
 		wget $(OA_DATA)/plt96/plt96_ne.dat
+
+
+$(OA_OBJS) : %.o : $(SRCDIR)/%.f
+	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
 
 .PHONY : open_adas
 open_adas : download_open_adas $(OA_OBJS)
