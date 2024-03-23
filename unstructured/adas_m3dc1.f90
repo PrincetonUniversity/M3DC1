@@ -4,6 +4,8 @@
 module adas_m3dc1
   use spline
 
+  implicit none
+
   character(len=256) :: adas_adf11 ! root folder location to ADAS adf11 data
   integer, private :: iz0, iz1min, iz1max
   integer, private  :: izdimd, itdimd, iddimd

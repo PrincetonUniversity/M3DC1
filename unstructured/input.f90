@@ -152,6 +152,9 @@ subroutine set_defaults
 #ifdef REORDERED
   use matrix_mod
 #endif
+#ifdef USEADAS
+  use adas_adf11
+#endif
 
   implicit none
 
@@ -285,9 +288,10 @@ subroutine set_defaults
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
   call add_var_double("kprad_n0_denm_fac", kprad_n0_denm_fac, 1., &
        "Scaling factor for neutral impurity diffusion", kprad_grp)
+#ifdef USEADAS
   call add_var_string("adas_adf11", adas_adf11, 256,&
        "", "Path to ADAS folder with ADF11 data", kprad_grp)
-  
+#endif
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)

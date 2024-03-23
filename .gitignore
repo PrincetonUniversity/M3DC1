@@ -24,6 +24,18 @@ unstructured/regtest/*/*
 !unstructured/*/base/*
 slurm*
 
+#ADAS
+unstructured/i4fctn.f
+unstructured/i4unit.f
+unstructured/test.f
+unstructured/xfelem.f
+unstructured/xxcase.f
+unstructured/xxdata_11.f
+unstructured/xxrptn.f
+unstructured/xxslen.f
+unstructured/xxword.f
+
+
 #Documentation
 unstructured/doc/*.aux
 unstructured/doc/*.dvi
