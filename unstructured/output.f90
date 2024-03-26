@@ -1184,7 +1184,6 @@ subroutine output_fields(time_group_id, equilibrium, error)
         call write_field(group_id, "Jbs_L34", Jbs_L34_field, nelms, error,.true.)
         call write_field(group_id, "Jbs_alpha", Jbs_alpha_field, nelms, error,.true.)
         call write_field(group_id, "Jbs_fluxavg_iBsq", Jbs_fluxavg_iBsq_field, nelms, error,.true.)
-        call write_field(group_id, "Jbs_fluxavg_iBpsq", Jbs_fluxavg_iBpsq_field, nelms, error,.true.)
      endif
   end if !(iwrite_transport_coeffs.eq.1)
 
@@ -1470,7 +1469,6 @@ subroutine mark_fields(equilibrium)
         call mark_field_for_solutiontransfer(Jbs_L34_field)
         call mark_field_for_solutiontransfer(Jbs_alpha_field)
         call mark_field_for_solutiontransfer(Jbs_fluxavg_iBsq_field)
-        call mark_field_for_solutiontransfer(Jbs_fluxavg_iBpsq_field)
      endif
   end if !(iwrite_transport_coeffs.eq.1)
 

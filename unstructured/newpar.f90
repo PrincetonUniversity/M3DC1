@@ -1415,7 +1415,6 @@ if (ispradapt .eq. 1) then
      if(ibootstrap.gt.0) call create_field(Jbs_L34_field, "Jbs_L34")
      if(ibootstrap.gt.0) call create_field(Jbs_alpha_field, "Jbs_alpha")
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBsq_field, "Jbs_fluxavg_iBsq")
-     if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBpsq_field, "Jbs_fluxavg_iBpsq")
 
      call create_field(psi_coil_field, "psi_coil")
 
@@ -1467,7 +1466,6 @@ else
      if(ibootstrap.gt.0) call create_field(Jbs_L34_field)
      if(ibootstrap.gt.0) call create_field(Jbs_alpha_field)
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBsq_field)
-     if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBpsq_field)
 
      call create_field(psi_coil_field)
 

@@ -14,7 +14,6 @@ module transport_coefficients
   type(spline1d), private :: coef_spline_L34
   type(spline1d), private :: coef_spline_alpha
   type(spline1d), private :: coef_spline_fluxavg_iBsq
-  type(spline1d), private :: coef_spline_fluxavg_iBpsq
 contains
 
 ! bootstrap model coeffcients L31, L32, L34, alpha 
@@ -43,10 +42,10 @@ function bootstrapCoeff_func(col_number)
    if(ibootstrap.eq.1) then
      if(col_number==2)then
          if(.not.allocated(coef_spline_L31%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or 1/<Bp^2> from col number 2,3,4,5,6, or 7
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
             nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', yvals, nvals,skip=1, icol=col_number)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', xvals, nvals,skip=1, icol=1)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
            ! print*,'Reading L31,32,34,alpha from column number',col_number
            ! print*,'Reading X',xvals
@@ -56,10 +55,10 @@ function bootstrapCoeff_func(col_number)
          end if
       elseif(col_number==3)then
          if(.not.allocated(coef_spline_L32%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or 1/<Bp^2> from col number 2,3,4,5,6, or 7
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
             nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', yvals, nvals,skip=1, icol=col_number)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', xvals, nvals,skip=1, icol=1)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
             !print*,'Reading L31,32,34,alpha from column number',col_number
             !print*,'Reading X',xvals
@@ -69,10 +68,10 @@ function bootstrapCoeff_func(col_number)
          end if
       elseif(col_number==4)then        
         if(.not.allocated(coef_spline_L34%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or 1/<Bp^2> from col number 2,3,4,5,6, or 7
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
             nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', yvals, nvals,skip=1, icol=col_number)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', xvals, nvals,skip=1, icol=1)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
             !print*,'Reading L31,32,34,alpha from column number',col_number
             !print*,'Reading X',xvals
@@ -82,10 +81,10 @@ function bootstrapCoeff_func(col_number)
          end if
       elseif(col_number==5)then    
          if(.not.allocated(coef_spline_alpha%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or 1/<Bp^2> from col number 2,3,4,5,6, or 7
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
             nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', yvals, nvals,skip=1, icol=col_number)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', xvals, nvals,skip=1, icol=1)
+            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
             !print*,'Reading L31,32,34,alpha from column number',col_number
             !print*,'Reading X',xvals
@@ -95,10 +94,10 @@ function bootstrapCoeff_func(col_number)
          end if
       elseif(col_number==6)then    
             if(.not.allocated(coef_spline_fluxavg_iBsq%x)) then
-               ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or 1/<Bp^2> from col number 2,3,4,5,6, or 7
+               ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
                nvals = 0
-               call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', xvals, nvals,skip=1, icol=1)
-               call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', yvals, nvals,skip=1, icol=col_number)
+               call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', xvals, nvals,skip=1, icol=1)
+               call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', yvals, nvals,skip=1, icol=col_number)
                if(nvals.eq.0) call safestop(6)
                !print*,'Reading L31,32,34,alpha,B from column number',col_number
                !print*,'Reading X',xvals
@@ -106,19 +105,6 @@ function bootstrapCoeff_func(col_number)
                call create_spline(coef_spline_fluxavg_iBsq, nvals, xvals, yvals)
                deallocate(xvals, yvals) 
             end if
-      elseif(col_number==7)then    
-         if(.not.allocated(coef_spline_fluxavg_iBpsq%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or 1/<Bp^2> from col number 2,3,4,5,6, or 7
-            nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_Bp2', yvals, nvals,skip=1, icol=col_number)
-            if(nvals.eq.0) call safestop(6)
-            !print*,'Reading L31,32,34,alpha,1/B2,1/Bp2 from column number',col_number
-            !print*,'Reading X',xvals
-            !print*,'Reading Y',yvals
-            call create_spline(coef_spline_fluxavg_iBpsq, nvals, xvals, yvals)
-            deallocate(xvals, yvals) 
-         end if
       end if
          
          do j=1, npoints
@@ -139,8 +125,6 @@ function bootstrapCoeff_func(col_number)
                call evaluate_spline(coef_spline_alpha,pso,val,valp,valpp) 
             elseif(col_number==6)then 
                call evaluate_spline(coef_spline_fluxavg_iBsq,pso,val,valp,valpp) 
-            elseif(col_number==7)then 
-               call evaluate_spline(coef_spline_fluxavg_iBpsq,pso,val,valp,valpp) 
             endif
             
             temp79a(j) = val
@@ -1474,9 +1458,9 @@ subroutine define_transport_coefficients()
        solve_visc_e, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
        solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
        solve_fp, solve_denm, solve_L31,solve_L32,solve_L34,solve_alpha,&
-       solve_fluxavg_iBsq,solve_fluxavg_iBpsq
+       solve_fluxavg_iBsq
 
-  integer, parameter :: num_scalars = 23
+  integer, parameter :: num_scalars = 22
   integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -1510,7 +1494,6 @@ subroutine define_transport_coefficients()
   solve_L34 = .false.
   solve_alpha = .false.
   solve_fluxavg_iBsq = .false.
-  solve_fluxavg_iBpsq = .false. 
 
   ! clear variables
   resistivity_field = 0.
@@ -1538,7 +1521,6 @@ subroutine define_transport_coefficients()
    Jbs_L34_field = 0.
    Jbs_alpha_field = 0.
    Jbs_fluxavg_iBsq_field = 0.
-   Jbs_fluxavg_iBpsq_field = 0.
   end if
   if(ipforce.gt.0) pforce_field = 0.
   if(ipforce.gt.0) pmach_field = 0.
@@ -1757,13 +1739,6 @@ subroutine define_transport_coefficients()
       if(solve_fluxavg_iBsq) &
             call vector_insert_block(Jbs_fluxavg_iBsq_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL   
-            
-      dofs = bootstrapCoeff_func(7)
-      if(.not.solve_fluxavg_iBpsq) solve_fluxavg_iBpsq = .true. !any(dofs.ne.0.)
-!$OMP CRITICAL
-      if(solve_fluxavg_iBpsq) &
-            call vector_insert_block(Jbs_fluxavg_iBpsq_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL  
     end if
 
    
@@ -1800,7 +1775,6 @@ subroutine define_transport_coefficients()
      if(solve_L34)         temp(20) = 1
      if(solve_alpha)       temp(21) = 1
      if(solve_fluxavg_iBsq)temp(22) = 1
-     if(solve_fluxavg_iBpsq)temp(23) = 1
 
      call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
           MPI_MAX, MPI_COMM_WORLD, ier)
@@ -1827,7 +1801,6 @@ subroutine define_transport_coefficients()
      solve_L34         = temp2(20).eq.1
      solve_alpha       = temp2(21).eq.1
      solve_fluxavg_iBsq= temp2(22).eq.1
-     solve_fluxavg_iBpsq= temp2(23).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -1944,11 +1917,6 @@ subroutine define_transport_coefficients()
   if(solve_fluxavg_iBsq) then
    if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_fluxavg_iBsq'
    call newvar_solve(Jbs_fluxavg_iBsq_field%vec, mass_mat_lhs)
-  endif
-
-  if(solve_fluxavg_iBpsq) then
-   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_fluxavg_iBpsq'
-   call newvar_solve(Jbs_fluxavg_iBpsq_field%vec, mass_mat_lhs)
   endif
 
   ! the "compressible" viscosity is the same as the "incompressible"

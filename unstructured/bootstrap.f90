@@ -29,7 +29,7 @@ module bootstrap
     !jbscommon   =  tempD 1/|Bp|^2  1 / <B^2> 1/R F
 
 
-    ! L31,L32,L34,alpha,1/ <B^2> * 1/|Bp|^2 are input as a function of psi
+    ! L31,L32,L34,alpha,1/ <B^2> are input as a function of psi
     !via an external file named ProfileJBSCoeff_Psi_L31_32_34_alpha_B2
     !bootsrap_alpha = amplification factor  
   real :: bootstrap_alpha
@@ -74,7 +74,7 @@ function bs_b3pe(e,f)
   vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
   vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f
   vectype, dimension(dofs_per_element) :: temp
-  vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+  vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, iBpsq
 
 
 
@@ -124,8 +124,10 @@ function bs_b3pe(e,f)
                (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-f(:,OP_1))*(tempCC)
   end if
  
-  
-  temp79a=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+  iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
+
+  temp79a=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
 
 
   ! J.B
@@ -177,7 +179,7 @@ end function bs_b3pe
     vectype, dimension(dofs_per_element) :: bs_b1psifpsib
     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, iBpsq
     vectype, dimension(dofs_per_element) :: temp
     
     temp = 0.
@@ -212,7 +214,10 @@ end function bs_b3pe
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           end if
 
-          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+          iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
+
+          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
 
           temp = intx4(e(:,:,OP_DRP),ri4_79,h(:,OP_DZ),temp79a) &
                - intx4(e(:,:,OP_DZP),ri4_79,h(:,OP_DR),temp79a)
@@ -262,7 +267,7 @@ function bs_b1psifbb(e,f,g,h,i)
     vectype, dimension(dofs_per_element) :: bs_b1psifbb
     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, iBpsq
     vectype, dimension(dofs_per_element) :: temp
 
     temp = 0.
@@ -294,7 +299,10 @@ function bs_b1psifbb(e,f,g,h,i)
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           end if
 
-          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+          iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
+
+          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
           temp = intx4(e(:,:,OP_1),ri_79,temp79a,h(:,OP_1))
 
        end if
@@ -325,7 +333,10 @@ function bs_b1psifbb(e,f,g,h,i)
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
           end if
 
-          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+          iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
+
+          temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
           temp = intx4(e(:,:,OP_GS),ri3_79,temp79a,h(:,OP_1))
  
           if(itor.eq.1) then
@@ -366,7 +377,7 @@ function bs_b1psifbb(e,f,g,h,i)
     vectype, dimension(dofs_per_element) :: bs_b1psiffb
     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, iBpsq
     vectype, dimension(dofs_per_element) :: temp
 
 
@@ -401,8 +412,11 @@ function bs_b1psifbb(e,f,g,h,i)
                      (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
         end if
+
+        iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
         
-        temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+        temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
 
         temp = intx4(e(:,:,OP_DRP),ri3_79,temp79a,h(:,OP_DR)) &
              + intx4(e(:,:,OP_DZP),ri3_79,temp79a,h(:,OP_DZ))
@@ -451,7 +465,7 @@ function bs_b1psifbb(e,f,g,h,i)
     vectype, dimension(dofs_per_element) :: bs_b2psifpsib
     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, iBpsq
     vectype, dimension(dofs_per_element) :: temp
 
 
@@ -479,8 +493,10 @@ function bs_b1psifbb(e,f,g,h,i)
                      (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
     end if
 
-    
-    temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
+    iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
+
+    temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*eta79(:,OP_1)*i(:,OP_1)* tempDD 
 
     temp = intx4(e(:,:,OP_DZ),ri3_79,h(:,OP_DZ),temp79a) &
          + intx4(e(:,:,OP_DR),ri3_79,h(:,OP_DR),temp79a)
@@ -519,7 +535,7 @@ function bs_b1psifbb(e,f,g,h,i)
     vectype, dimension(dofs_per_element) :: bs_b2psiffb
     vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
     vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i
-    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, iBpsq
     vectype, dimension(dofs_per_element) :: temp
 
     temp = 0.
@@ -547,7 +563,10 @@ function bs_b1psifbb(e,f,g,h,i)
                  (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
     end if
 
-    temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*eta79(:,OP_1)*i(:,OP_1)*tempDD 
+    iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
+
+    temp79a = jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*eta79(:,OP_1)*i(:,OP_1)*tempDD 
 
     temp = intx4(e(:,:,OP_DZ),ri2_79,h(:,OP_DR),temp79a) &
          - intx4(e(:,:,OP_DR),ri2_79,h(:,OP_DZ),temp79a)
@@ -893,7 +912,7 @@ function bs_b1psifbb(e,f,g,h,i)
    
      implicit none
    
-     vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp1, temp2
+     vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp1, temp2, iBpsq
    
      temp1 = 0.
      temp2 = 0.
@@ -921,8 +940,14 @@ function bs_b1psifbb(e,f,g,h,i)
      end if
     
      
-     temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
-     temp2=tempDD*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+     !temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+     !temp2=tempDD*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+
+     iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
+
+     temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+     temp2=tempDD*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
    
     end subroutine calculate_CommonTerm_Lambda
    
