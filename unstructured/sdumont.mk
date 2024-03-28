@@ -1,6 +1,5 @@
-FOPTS = -c -r8 -implicitnone -fpp -warn all -DPETSC_VERSION=318 $(OPTS)
-CCOPTS  = -c -DPETSC_VERSION=318 $(OPTS)
-
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPETSC_VERSION=39 $(OPTS)
+CCOPTS  = -c -DPETSC_VERSION=39 $(OPTS)
 ifeq ($(OPT), 0)
   FOPTS := $(FOPTS) -g -O0 -Mbounds -check all -fpe0 -warn -traceback -debug extended
   CCOPTS := $(CCOPTS)
@@ -12,9 +11,6 @@ ifeq ($(OMP), 1)
   CCOPTS := $(CCOPTS) -openmp
 endif
 
-F90OPTS = $(F90FLAGS) $(FOPTS)
-F77OPTS = $(F77FLAGS) $(FOPTS)
-
 ifeq ($(TAU), 1)
   TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=select.tau
   CPP    = tau_cxx.sh $(TAU_OPTIONS)
@@ -23,11 +19,11 @@ ifeq ($(TAU), 1)
   F77    = tau_f90.sh $(TAU_OPTIONS)
   LOADER = tau_f90.sh $(TAU_OPTIONS)
 else
-  CPP = /scratch/app/openmpi/icc/4.1.4/bin/mpicxx
-  CC = /scratch/app/openmpi/icc/4.1.4/bin/mpicc 
-  F90 = /scratch/app/openmpi/icc/4.1.4/bin/mpif90
-  F77 = /scratch/app/openmpi/icc/4.1.4/bin/mpif90
-  LOADER = /scratch/app/openmpi/icc/4.1.4/bin/mpif90
+  CPP = mpicxx
+  CC = mpicc 
+  F90 = mpif90
+  F77 = mpif90
+  LOADER = mpif90
 endif
 
 #NEWSOLVERDEVELOPMENT needs more tests.
@@ -36,46 +32,42 @@ ifeq ($(HPCTK), 1)
   LOADER := hpclink $(LOADER)
 endif
 
-MPIVER=intel-psxe2020-openmpiicc4.1.4
-PETSCVER=3.18.2
+MPIVER=intel-psxe2019-openmpiicc4.0.4
+PETSCVER=3.9.4
 PETSC_DIR=/scratch/ntm/software/petsc/petsc-$(PETSCVER)
-GSL_DIR=/scratch/app/gsl/2.7_intel_2020
+
+GSL_DIR=/scratch/app/gsl/2.5_gnu
+SCOREC_DIR=/scratch/ntm/software/scorec/intel2019-openmpi4.0.4/petsc$(PETSCVER)
+SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
 ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+  M3DC1_SCOREC_LIB=m3dc1_scorec_complex
   PETSC_ARCH=cplx-$(MPIVER)
+  MUMPS_LIBS=-lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord
 else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  M3DC1_SCOREC_LIB=m3dc1_scorec
   PETSC_ARCH=real-$(MPIVER)
+  MUMPS_LIBS=
 endif
 
-SCOREC_BASE_DIR=/scratch/ntm/software/scorec/$(MPIVER)/petsc-$(PETSCVER)
-SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(MPI_ROOT)/lib -L$(I_MPI_ROOT)/intel64/libfabric/lib -L/opt/intel/parallel_studio_xe_2019/intelpython3/lib/libfabric -L/opt/intel/parallel_studio_xe_2019/clck/2019.2.1/lib/intel64 -L$(IPPROOR)/lib/intel64 -L/opt/intel/parallel_studio_xe_2019/compilers_and_libraries_2019.3.199/linux/compiler/lib/intel64_lin -L$(MKLROOT)/lib/intel64_lin -L$(TBBROOT)/lib/intel64/gcc4.7 -L$(DAALROOT)/lib/intel64_lin -L$(TBBROOT)/lib/intel64_lin/gcc4.4 -L/usr/lib/gcc/x86_64-redhat-linux/4.8.5 -Wl,-rpath,$(MPI_ROOT)/lib -lpetsc $(MUMPS_LIBS) -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lzoltan -lparmetis -lmetis -ldl -lstdc++ -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lpthread -lgcc_s -lirc_s -ldl -lstdc++
 
-PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
 
-ifdef SCORECVER
-  SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
-else
-  SCOREC_DIR=$(SCOREC_BASE_DIR)
-endif
-
-PETSC_WITH_EXTERNAL_LIB = -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -Wl,-rpath,$(PETSC_DIR)/$(PETSC_ARCH)/lib -L$(PETSC_DIR)/$(PETSC_ARCH)/lib -L/scratch/app/openmpi/icc/4.1.4/lib -L/scratch/app/ucx/1.13/lib -L/scratch/app/xpmem/2.6.5/lib -L/scratch/app/openpmix/4.2.1/lib -L/opt/intel/parallel_studio_xe_2020/clck/2019.10/lib/intel64 -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020.4.304/linux/ipp/lib/intel64 -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020.4.304/linux/tbb/lib/intel64/gcc4.8 -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020.4.304/linux/daal/lib/intel64_lin -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020.4.304/linux/tbb/lib/intel64_lin/gcc4.4 -L/opt/intel/parallel_studio_xe_2020/compilers_and_libraries_2020.4.304/linux/tbb/lib/intel64_lin/gcc4.8 -L/scratch/app/gcc/9.3/lib/gcc/x86_64-pc-linux-gnu/9.3.0 -L/scratch/app/gcc/9.3/lib64 -L/scratch/app/gcc/9.3/lib -Wl,-rpath,/scratch/app/openmpi/icc/4.1.4/lib -Wl,-rpath,/scratch/app/ucx/1.13/lib -Wl,-rpath,/scratch/app/xpmem/2.6.5/lib -Wl,-rpath,/scratch/app/openpmix/4.2.1/lib -lpetsc -lcmumps -ldmumps -lsmumps -lzmumps -lmumps_common -lpord -lscalapack -lsuperlu -lsuperlu_dist -lfftw3_mpi -lfftw3 -lflapack -lfblas -lzoltan -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lparmetis -lmetis -lz -ldl -lstdc++ -lmpi_cxx -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lpthread -lgcc_s -lirc_s -lquadmath -ldl -lstdc++
-
-SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
-            -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \
-           $(PUMI_LIB) -Wl,--end-group
+SCOREC_LIB = -Wl,--start-group,-rpath,$(SCOREC_DIR)/lib -L$(SCOREC_DIR)/lib \
+           -l$(M3DC1_SCOREC_LIB) $(PUMI_LIB) -Wl,--end-group
 
 LIBS =  $(SCOREC_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
         -L$(GSL_DIR)/lib -lgsl -lgslcblas
 
 INCLUDE = -I$(SCOREC_DIR)/include \
-        -I$(PUMI_DIR)/include \
         -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
         -I$(GSL_DIR)/include
+
+F90OPTS = $(F90FLAGS) $(FOPTS)
+F77OPTS = $(F77FLAGS) $(FOPTS)
 
 %.o : %.cpp
 	$(CPP)  $(CCOPTS) $(INCLUDE) $< -o $@

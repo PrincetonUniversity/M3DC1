@@ -7,8 +7,8 @@
    pdflatex M3DC1.tex
 
 3. load modules
-   source /scratch/app/modulos/intel-psxe-2020.sh
-   module load openmpi/icc/4.1.4 intel_psxe/2020
+   source /scratch/app/modulos/intel-psxe-2019.sh
+   module load openmpi/icc/4.0.4 cmake git intel_psxe/2019
    export HOST=sdumont
 
 4. compile code
@@ -18,10 +18,10 @@
 
 5. mesh utility
 (1) mesh generation 
-    /scratch/ntm/software/scorec/intel-psxe2020-openmpiicc4.1.4/sim12.0-181027/bin
+    /scratch/ntm/software/scorec/intel2019-openmpi4.0.4/sim12.0-181027/bin
     See User's Guide Chapter 3 for details
 (2) other binaries 
-    /scratch/ntm/software/scorec/intel-psxe2020-openmpiicc4.1.4/petsc-3.18.2/bin 
+    /scratch/ntm/software/scorec/intel2019-openmpi4.0.4/petsc3.9.4/bin/
     (See $SCOREC_UTIL_DIR)
 
 6. run 
