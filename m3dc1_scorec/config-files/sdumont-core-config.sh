@@ -1,25 +1,20 @@
-#export RLM_LICENSE=sdumont12@2800
-#export LD_LIBRARY_PATH=/scratch/ntm/software/Simmetrix/extra-libs:$LD_LIBRARY_PATH
-#source /scratch/app/modulos/intel-psxe-2019.sh
-#module load openmpi/icc/4.0.4
-SWTYPE=debug
-CMAKETYPE=Debug
-PETSCVER=3.9.4
-MPIVER=intel-psxe2019-openmpiicc4.0.4
+CMAKETYPE=Release
+PETSCVER=3.18.2
+MPIVER=intel-psxe2020-openmpiicc4.1.4
 PETSC_DIR=/scratch/ntm/software/petsc/petsc-$PETSCVER
 PETSC_ARCH=real-$MPIVER
 SCOREC_DIR=/scratch/ntm/software/scorec/$MPIVER
 PARMETIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_DIR=$PETSC_DIR/$PETSC_ARCH
-SIM_VER=12.0-181027
+SIMVER=12.0-181027
 SIM_DIR=/scratch/ntm/software/Simmetrix/$SIMVER
-#/scratch/ntm/software/Simmetrix/12.0-181027
 SIM_ARCHOS=x64_rhel6_gcc44
-PREFIX=$SCOREC_DIR/petsc$PETSCVER
-#PREFIX=$SCOREC_DIR/sim$SIM_VER
+PREFIX=$SCOREC_DIR/petsc-$PETSCVER
+#source /scratch/app/modulos/intel-psxe-2020.sh
+#module load openmpi/icc/4.1.4 intel_psxe/2020 git cmake/3.23.2 
 cmake .. \
-  -DCMAKE_C_COMPILER=mpicc \
-  -DCMAKE_CXX_COMPILER=mpicxx \
+  -DCMAKE_C_COMPILER="/scratch/app/openmpi/icc/4.1.4/bin/mpicc" \
+  -DCMAKE_CXX_COMPILER="/scratch/app/openmpi/icc/4.1.4/bin/mpicxx" \
   -DCMAKE_C_FLAGS="-ftz -fPIC -O" \
   -DCMAKE_CXX_FLAGS="-shared-intel -ftz -fPIC -O" \
   -DZOLTAN_INCLUDE_DIR="$ZOLTAN_DIR/include" \

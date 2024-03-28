@@ -32,6 +32,9 @@ char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic
 #ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 #endif
+#ifdef SDUMONT
+char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
+#endif
 #else
 char simLic[128]="/net/common/meshSim/license/license.txt";
 #endif

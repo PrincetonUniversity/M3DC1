@@ -2,25 +2,28 @@
 	ssh your_id@ntm.acesso.lncc.br
         ssh -P login.sdumont.lncc.br -l your_id
 
-2. code
+2. generate User's Guide
+   cd M3DC1/doc
+   pdflatex M3DC1.tex
 
 3. load modules
-	source /scratch/app/modulos/intel-psxe-2019.sh
-	module load openmpi/icc/4.0.4 intel_psxe/2019
-        export HOST=sdumont
+   source /scratch/app/modulos/intel-psxe-2020.sh
+   module load openmpi/icc/4.1.4 intel_psxe/2020
+   export HOST=sdumont
 
 4. compile code
-	for 2D real, make OPT=1
-        for 2D complex, make OPT=1 COM=1
-        for 3D real, make 3D=1 OPT=1 MAX_PTS=60
+   for 2D real, make OPT=1
+   for 2D complex, make OPT=1 COM=1
+   for 3D real, make 3D=1 OPT=1 MAX_PTS=60
 
 5. mesh utility
 (1) mesh generation 
-	/scratch/ntm/software/scorec/intel-psxe2019-openmpiicc4.0.4/sim_ver/bin/m3dc1_meshgen
-        see readme.m3dc1_meshgen for details
+    /scratch/ntm/software/scorec/intel-psxe2020-openmpiicc4.1.4/sim12.0-181027/bin
+    See User's Guide Chapter 3 for details
 (2) other binaries 
-	/scratch/ntm/software/scorec/intel-psxe2019-openmpiicc4.0.4/petsc_ver/bin
-        see readme.binary for details
+    /scratch/ntm/software/scorec/intel-psxe2020-openmpiicc4.1.4/petsc-3.18.2/bin 
+    (See $SCOREC_UTIL_DIR)
+
 6. run 
 (1) interactive mode
    cd your test folder in /prj/ntm/your_id/scratch
