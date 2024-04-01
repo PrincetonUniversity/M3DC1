@@ -77,7 +77,7 @@ function read_neo_input, filename
   a = { npsi:npsi, nr:nr, np:np, nt:nt, $
         version:version, psi_0:psi_0, psi_1:psi_1, ion_mass:ion_mass, $
         q:q, psi:psi, Phi:Phi, psi0:psi0, Te0:Te0, Ti0:Ti0, ni0:ni0, ne0:ne0, $
-        R:R, Z:Z, B_R:BR, B_PHI:BPhi, B_Z:BZ, Jac:Jac, $
+        R:R, Z:Z, B_R:BR, B_Phi:BPhi, B_Z:BZ, Jac:Jac, $
         axis_R:axis_R, axis_Z:axis_Z, dPsi_p:dPsi_p, dPsi_t:dPsi_t }
 
 
