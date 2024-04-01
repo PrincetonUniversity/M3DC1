@@ -18,7 +18,6 @@ module kprad_m3dc1
   type(field_type) :: kprad_sigma_e  ! electron source / sink due to ionization / recomb
   type(field_type) :: kprad_sigma_i  ! total ion source / sink due to ionization / recomb
 
-  integer :: ikprad     ! 1 = use kprad model
   integer :: kprad_z    ! Z of impurity species
 
   ! Model for advection/diffusion of neutrals
@@ -509,7 +508,7 @@ endif
     vectype, dimension(dofs_per_element) :: dofs
     integer :: ip
 
-    if(ikprad.ne.1) return
+    if(ikprad.eq.0) return
 
     if(myrank.eq.0 .and. iprint.ge.1) print *, 'Advancing KPRAD.'
 

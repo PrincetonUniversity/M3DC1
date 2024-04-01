@@ -1579,7 +1579,7 @@ subroutine validate_input
 
   rad_source = linear.eq.0 .and. &
        (numvar.ge.3 .or. ipres.eq.1) .and. &
-       (iprad.ne.0 .or. ikprad.ne.0)
+       (iprad.ne.0 .or. ikprad.ge.1)
 
   if(myrank.eq.0 .and. iprint.ge.1) then 
      print *, 'Density source: ', density_source

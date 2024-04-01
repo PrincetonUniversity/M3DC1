@@ -953,7 +953,7 @@ subroutine calculate_scalars()
      reckrad = reckrad + twopi*int1(reckrad79(:,OP_1))/tpifac
      recprad = recprad + twopi*int1(recprad79(:,OP_1))/tpifac
 
-     if(ikprad.ne.0) then
+     if(ikprad.ge.1) then
         call eval_ops(itri, kprad_n(0), tm79, rfac)
         t0 = twopi*int1(tm79(:,OP_1))/tpifac
         totkprad0 = totkprad0 + t0
@@ -2079,7 +2079,7 @@ subroutine calculate_rho(itri)
 
   rho79 = nt79
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ge.1) then 
      do i=1, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         rho79 = rho79 + tm79*kprad_mz/ion_mass

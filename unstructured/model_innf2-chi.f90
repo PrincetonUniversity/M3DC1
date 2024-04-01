@@ -42,7 +42,7 @@ subroutine get_den_mask(itri, imask)
   if(inograd_n.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(iconst_n.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_den_mask
 
 subroutine get_nre_mask(itri, imask)
@@ -58,7 +58,7 @@ subroutine get_nre_mask(itri, imask)
   if(0.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
   if(1.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
 
-  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_nre_mask
 
 subroutine get_temp_mask(itri, imask)
@@ -72,9 +72,9 @@ subroutine get_temp_mask(itri, imask)
 
   ibound = 0
   if(inograd_t.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(iconst_t.eq.1 .or. iconst_p.ge.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  if(iconst_t.eq.1 .or. iconst_p.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_temp_mask
 
 subroutine get_pres_mask(itri, imask)
@@ -88,9 +88,9 @@ subroutine get_pres_mask(itri, imask)
 
   ibound = 0
   if(inograd_p.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(iconst_p.ge.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  if(iconst_p.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
   
-  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_pres_mask
 
 
@@ -199,11 +199,8 @@ subroutine get_vor_mask(itri, imask)
 
   ibound = 0
 
-  if(inonormalflow.eq.1) then
-     ibound = ior(ibound, BOUNDARY_DIRICHLET)
-  elseif(inonormalflow.eq.2) then
-     ibound = ior(ibound, BOUNDARY_MULTI_DT)
-  end if
+  if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  ! inonormalflow=2 conditions are included in chi equation
 
   if(inoslip_pol.eq.1) then
      ibound = ior(ibound, BOUNDARY_NEUMANN)
@@ -213,7 +210,7 @@ subroutine get_vor_mask(itri, imask)
 
   if(vor_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
 
-  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 
 end subroutine get_vor_mask
 
@@ -229,7 +226,7 @@ subroutine get_vz_mask(itri, imask)
   ibound = 0
   if(inoslip_tor.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
   if(inostress_tor.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_vz_mask
 
 subroutine get_chi_mask(itri, imask)
@@ -243,13 +240,17 @@ subroutine get_chi_mask(itri, imask)
 
   ibound = 0
 
-  if(inonormalflow.eq.1) ibound = ior(ibound, BOUNDARY_NEUMANN)
-  if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  if(inonormalflow.eq.1) then
+     ibound = ior(ibound, BOUNDARY_NEUMANN)
+  elseif(inonormalflow.eq.2) then
+     ibound = ior(ibound, BOUNDARY_MULTI_DN)
+  end if
 
-  ! inonormalflow=2 and inoslip_pol=2 conditions are included in U equation
+  if(inoslip_pol.eq.1)   ibound = ior(ibound, BOUNDARY_DIRICHLET)
+  ! inoslip_pol=2 conditions are included in U equation
 
   if(com_bc.eq.1)        ibound = ior(ibound, BOUNDARY_LAPLACIAN)
-  call get_boundary_mask(itri, ibound, imask, BOUND_ANY)
+  call get_boundary_mask(itri, ibound, imask, all_boundaries)
 end subroutine get_chi_mask
 
 
@@ -293,7 +294,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_ANY)
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_u = node_index(u_v, i)
@@ -311,17 +312,17 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
 
         temp = 0.
 
-        ! U
-        ibegin(1) = i_u
-        ibc(1) = BOUND_DT
-        coeff(1) = -1.0
-        xp(1) = itor
-
         ! chi
-        ibegin(2) = i_chi
-        ibc(2) = BOUND_DN
-        coeff(2) = 1.0
-        xp(2) = -2*itor
+        ibegin(1) = i_chi
+        ibc(1) = BOUND_DN
+        coeff(1) = 1.0
+        xp(1) = -2*itor
+
+        ! U
+        ibegin(2) = i_u
+        ibc(2) = BOUND_DT
+        coeff(2) = -1.0
+        xp(2) = itor
 
         call set_multi_bc(2,ibegin,ibc,coeff,xp,rhs,temp,normal,curv,izonedim,x,mat)
 
@@ -420,7 +421,7 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
      i = nodes_owned(icounter_t)
 
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_ANY)
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_u = node_index(u_v, i)
@@ -603,7 +604,7 @@ subroutine boundary_den(rhs, den_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_ANY)
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_n = node_index(den_v, i)
@@ -654,7 +655,7 @@ subroutine boundary_nre(rhs, nre_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_ANY)
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_n = node_index(nre_v, i)
@@ -665,7 +666,7 @@ subroutine boundary_nre(rhs, nre_v, mat)
      end if
      if(1.eq.1) then
         call get_node_data(nre_field(1), i, temp)
-        temp = 0.
+        if(idiff .gt. 0) temp = 0.   ! this is for change in density from n to n+1
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
 
@@ -706,10 +707,10 @@ subroutine boundary_te(rhs, te_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_ANY)
+          all_boundaries)
      if(.not.is_boundary) cycle
      call boundary_node(i,is_inner,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_FIRSTWALL)
+          inner_wall)
      
      i_n = node_index(te_v, i)
 
@@ -728,7 +729,7 @@ subroutine boundary_te(rhs, te_v, mat)
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
-     else if(iconst_p.ge.1) then
+     else if(iconst_p.eq.1) then
         call get_node_data(pe_field(1), i, temp)
         call get_node_data(ne_field(1), i, temp2)
         if(eqsubtract.eq.1) then
@@ -738,8 +739,8 @@ subroutine boundary_te(rhs, te_v, mat)
 
         temp3 = 0.
         temp3(1) = temp(1) / temp2(1)
-        temp3(2) = temp(2) / temp2(1) - temp2(2) * temp(1) / temp2(1)**2
-        temp3(3) = temp(3) / temp2(1) - temp2(3) * temp(1) / temp2(1)**2
+        temp3(2) = temp(2) / temp2(1) - temp2(2) * temp(1) / temp2(1)**2 
+        temp3(3) = temp(3) / temp2(1) - temp2(3) * temp(1) / temp2(1)**2 
 
         if(eqsubtract.eq.1 .and. idiff.eq.0) then
            call get_node_data(te_field(0),i,temp2)
@@ -781,10 +782,10 @@ subroutine boundary_ti(rhs, ti_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_ANY)
+          all_boundaries)
      if(.not.is_boundary) cycle
      call boundary_node(i,is_inner,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_FIRSTWALL)
+          inner_wall)
      
      i_n = node_index(ti_v, i)
 
@@ -792,7 +793,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
         temp = 0.
         call set_normal_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      end if
-     if(iconst_t.eq.1 .or. iconst_p.ge.1) then
+     if(iconst_t.eq.1 .or. iconst_p.eq.1) then
         if((tibound.gt.0.) .and. is_inner) then
            temp = 0.
            temp(1) = tibound
@@ -813,7 +814,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
 !!$           call get_node_data(den_field(0), i, temp3)
 !!$           temp2 = temp2 + temp3
 !!$        end if
-!!$        if(ikprad.ge.1) then
+!!$        if(ikprad.eq.1) then
 !!$           do i=1, kprad_z
 !!$              call get_node_data(kprad_n(i), i, temp3)
 !!$              temp2 = temp2 + temp3
@@ -870,7 +871,7 @@ subroutine boundary_p(rhs, p_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_ANY)
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_p = node_index(p_v, i)
@@ -885,13 +886,7 @@ subroutine boundary_p(rhs, p_v, mat)
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_p,rhs,temp,normal,curv,izonedim,mat)
-     else if(iconst_p.eq.2) then
-        temp = 0.
-        if(eqsubtract.eq.0 .and. idiff.eq.0) temp(1) = pedge
-
-        call set_dirichlet_bc(i_p,rhs,temp,normal,curv,izonedim,mat)
      end if
-
    end do
 
  end subroutine boundary_p
@@ -928,7 +923,7 @@ subroutine boundary_pe(rhs, pe_v, mat)
   do icounter_t=1,numnodes
      i = nodes_owned(icounter_t)
      call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z, &
-          BOUND_ANY)
+          all_boundaries)
      if(.not.is_boundary) cycle
 
      i_pe = node_index(pe_v, i)
@@ -942,9 +937,6 @@ subroutine boundary_pe(rhs, pe_v, mat)
         if(idiff .gt. 0) temp = 0.
 
         call set_dirichlet_bc(i_pe,rhs,temp,normal,curv,izonedim,mat)
-     else if(iconst_p.eq.2) then
-        temp = 0.
-        if(eqsubtract.eq.0 .and. idiff.eq.0) temp(1) = pedge*pefac
      end if
   end do
 

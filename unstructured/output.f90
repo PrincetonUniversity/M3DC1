@@ -1140,7 +1140,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call write_field(group_id, "fp_ext", bfp_ext, nelms, error)
   endif
 
-  if(ikprad.eq.1) then
+  if(ikprad.ge.1) then
      do i=0, kprad_z
         write(field_name, '(A,I2.2)') "kprad_n_", i
         call write_field(group_id, trim(field_name), kprad_n(i), nelms, error)
@@ -1191,7 +1191,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
     call write_field(group_id, "bdotgradp", bdotgradp, nelms, error)
     call write_field(group_id, "bdotgradt", bdotgradt, nelms, error)
     call write_field(group_id, "zeff", z_effective, nelms, error)
-    if(ikprad.eq.1) then
+    if(ikprad.ge.1) then
        call write_field(group_id, "kprad_totden", kprad_totden, nelms, error)
     end if
     if(itemp_plot .eq. 1) then
