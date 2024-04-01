@@ -30,8 +30,8 @@ endmacro(petscLibCheck)
 set(PETSC_LIBS "")
 set(PETSC_LIB_NAMES
   petsc
-  metis
   parmetis
+  metis
 )
 
 petscLibCheck("${PETSC_LIB_NAMES}" TRUE)
