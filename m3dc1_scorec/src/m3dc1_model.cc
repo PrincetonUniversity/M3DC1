@@ -328,18 +328,19 @@ void load_model(const char* filename)
   // for every case
   int numFaces = 0;
   fscanf(fp,"%d\n", &numFaces);
-  if (!numFaces)	// Faces actually exist but not provided in output model file (.txt file)
+  if (!PCU_Comm_Self()) cout<<"numFaces in model file "<<numFaces<<"\n";
+
+  if (!numFaces) // Faces actually exist but not provided in output model file (.txt file)
   {
     for (int i=1; i<=numL; ++i)
       gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
                      faceFunction, facePeriodic, faceRanges, NULL);
+      cout<<"M3DC1_INFO: For adaptation, regenerate the model (.txt) and mesh files using the latest mesh generation program\n";  
   }
 
   if (numFaces>0)  
   {
     std::vector <int> edgeIdsOnFace;
-    if (!PCU_Comm_Self())
-    	std::cout << "Number of Faces = " << numFaces << "\n";
     for (int i = 1; i <= numFaces; ++i)
     {
       int faceNumber, numLoops;
