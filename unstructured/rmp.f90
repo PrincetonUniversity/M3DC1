@@ -88,7 +88,7 @@ subroutine load_stellarator_field
   if(type_ext_field.eq.1) then ! Free boundary stellarator (no field subtraction)
 
     call read_stellarator_field(file_total_field)
-    call calculate_external_fields
+    call calculate_external_fields(0)
     call deallocate_sf
 
   else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! With field substraction 
@@ -96,7 +96,7 @@ subroutine load_stellarator_field
     ! First load the total field while temporarily setting extsubtract=0
     extsubtract = 0
     call read_stellarator_field(file_total_field)
-    call calculate_external_fields
+    call calculate_external_fields(0)
     call deallocate_sf
     ! Then reset extsubtract=1
     extsubtract = 1
@@ -139,13 +139,18 @@ subroutine read_stellarator_field(field_name)
     call load_mgrid_field(sf(iread_ext_field), field_name, vmec_filename, ierr)
 #endif
   else
-    if(myrank.eq.0) print *, &
-      'ERROR: Invalid ext_field. Currently only FIELDLINES and MGRID supported'
-    call safestop(51)
+! Use Schaffer field as fall back
+    call load_schaffer_field(sf(iread_ext_field),field_name,isample_ext_field, &
+            isample_ext_field_pol,ierr)
   end if
   if(ierr.lt.0) then 
      if(myrank.eq.0) then 
         print *, "Error: could not open file: ", field_name
+        print *, "FIELDLINES filename should begin with fieldlines"
+        print *, "HINT filename should begin with hint"
+        print *, "MGRID filename should begin with mgrid"
+        print *, "MIPS filename should begin with mips"
+        print *, "Other filenames will be treated as Schaffer format"
      end if
      call safestop(50)
   end if
