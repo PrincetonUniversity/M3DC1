@@ -564,6 +564,12 @@ contains
        call h5dopen_f(file_id, 'PRES', dset_id, error)
        call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, p1, dim3, error)
        call h5dclose_f(dset_id, error)
+
+       if(error .lt. 0) then
+          print *, 'ERROR: lpres = 1 but PRES not found'
+          sf%vmec = .false.
+          error = 0
+       end if
     end if
     do k = 1, sf%nz
        sf%br(:,:,k) = transpose(br1(:,:,k))
