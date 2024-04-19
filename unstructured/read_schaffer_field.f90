@@ -684,14 +684,14 @@ contains
     integer, intent(out) :: error
 
     integer :: ll, ii, kk
-    integer :: ncid, ncid_vmec
+    integer :: ncid, ncid_vmec, istatus
     real :: curfac, dr, dz, dphi
     real :: per
 
 ! Dimension IDs
     integer :: radDimID, phiDimID, zeeDimID
 ! Variable IDs
-    integer :: rminID, rmaxID, zminID, zmaxID, nfpID, nextcurID, modeID, extcurID
+    integer :: rminID, rmaxID, zminID, zmaxID, nfpID, nextcurID, modeID, extcurID, rawcurID
 ! Variable values
     real :: rmin, rmax, zmin, zmax
     real, allocatable :: extcur(:)
@@ -709,7 +709,7 @@ contains
     if (mgrid_filename(ll-2:ll).eq.'.nc') then
        call check(nf90_open(trim(mgrid_filename), nf90_nowrite, ncid))
 
-! Get dimensions
+       ! Get dimensions
        call check(nf90_inq_dimid(ncid, "rad", radDimID))
        call check(nf90_inq_dimid(ncid, "phi", phiDimID))
        call check(nf90_inq_dimid(ncid, "zee", zeeDimID))
@@ -717,7 +717,7 @@ contains
        call check(nf90_inquire_dimension(ncid, phiDimID, len=sf%nphi))
        call check(nf90_inquire_dimension(ncid, zeeDimID, len=sf%nz))
 
-! Get variable values
+       ! Get variable values
        call check(nf90_inq_varid(ncid, "rmin", rminID))
        call check(nf90_inq_varid(ncid, "rmax", rmaxID))
        call check(nf90_inq_varid(ncid, "zmin", zminID))
@@ -734,15 +734,26 @@ contains
        call check(nf90_get_var(ncid,nextcurID,nextcur))
        call check(nf90_get_var(ncid,modeID,mgrid_mode))
 
-! Check mgrid_mode
+       ! Check mgrid_mode
        allocate(extcur(nextcur))
        if (mgrid_mode.eq.'S') then
-!          print *, 'Coil currents are SCALED...'
+          print *, 'Coil currents are SCALED...'
+          print *, 'Opening vmec file'
           call check(nf90_open(trim(vmec_filename), nf90_nowrite, ncid_vmec))
-          call check(nf90_inq_varid(ncid_vmec, "extcur", extcurID))
-          call check(nf90_get_var(ncid_vmec,extcurID,extcur))
+          istatus = nf90_inq_varid(ncid_vmec, "extcur", extcurID)
+          if(istatus.eq.nf90_noerr) then
+             print *, 'Reading external currents from VMEC file.'
+             call check(nf90_get_var(ncid_vmec,extcurID,extcur))
+          else
+             print *, 'External currents not found in VMEC file.'
+             print *, 'Looking for external currents in MGRID file.'
+             call check(nf90_inq_varid(ncid, "raw_coil_cur", rawcurID))
+             print *, 'Reading external currents from MGRID file.'
+             call check(nf90_get_var(ncid,rawcurID,extcur))
+             print *, 'extcur = ', extcur
+          end if
        else if (mgrid_mode.eq.'R') then
-!          print *, 'Actual currents supplied'
+          print *, 'Actual currents supplied'
           extcur = 1.0
        else
           print *, 'ERROR: Invalid coil currents'
