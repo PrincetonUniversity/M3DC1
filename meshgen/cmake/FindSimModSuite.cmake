@@ -27,7 +27,6 @@ macro(simmetrixLibCheck libs isRequired)
   endforeach()
 endmacro(simmetrixLibCheck)
 
-set(SIMMETRIX_LIBS "")
 set(SIMMETRIX_LIB_NAMES
   SimLicense  #-- valid for PPPL
   SimPartitionedMesh #-mpi
@@ -36,7 +35,7 @@ set(SIMMETRIX_LIB_NAMES
   SimModel
   SimPartitionWrapper #-${SIM_MPI}
   SimAdvMeshing
-  #tirpc #for Stellar or MIT Rhel7
+  #tirpc #for Stellar, MIT Rhel7
   #SimField -- not valid for PPPL
 )
 

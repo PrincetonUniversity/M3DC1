@@ -39,6 +39,7 @@ endif()
 set(SCOREC_LIBS "")
 if(ENABLE_SIMMETRIX)
 set(SCOREC_LIB_NAMES
+  pumi
   ma
   mds
   apf_sim
@@ -57,6 +58,7 @@ set(SCOREC_LIB_NAMES
   )
 else()
 set(SCOREC_LIB_NAMES
+pumi
 crv
 ph
 sam
@@ -92,7 +94,7 @@ set(SCOREC_INCLUDE_DIRS ${SCOREC_INCLUDE_DIR})
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set PARMETIS_FOUND to TRUE
 # if all listed variables are TRUE
-find_package_handle_standard_args(SCOREC  DEFAULT_MSG
+find_package_handle_standard_args(Scorec  DEFAULT_MSG
                                   SCOREC_LIBS SCOREC_INCLUDE_DIR)
 
 mark_as_advanced(SCOREC_INCLUDE_DIR SCOREC_LIBS ${ZOLTAN_LIBRARY} ${PARMETIS_LIBRARY} ${METIS_LIBRARY})
@@ -101,14 +103,4 @@ set(SCOREC_LINK_LIBS "")
 foreach(lib ${SCOREC_LIB_NAMES})
   set(SCOREC_LINK_LIBS "${SCOREC_LINK_LIBS} -l${lib}")
 endforeach()
-
-#pkgconfig  
-set(prefix "${SCOREC_INSTALL_DIR}")
-set(includedir "${SCOREC_INCLUDE_DIR}")
-configure_file(
-  "cmake/libScorec.pc.in"
-  "${CMAKE_BINARY_DIR}/libScorec.pc"
-  @ONLY)
-
-INSTALL(FILES "${CMAKE_BINARY_DIR}/libScorec.pc" DESTINATION lib/pkgconfig)
 

@@ -1,0 +1,125 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  # add package specs to the `specs` list
+  specs:
+  - zlib%nvhpc~shared
+  # # - cmake arch=linux-rhel8-power9le%gcc
+  # # - openmpi arch=linux-rhel8-power9le%nvhpc
+  - hdf5%nvhpc+fortran+hl+mpi~shared
+  - gsl%nvhpc~shared
+  - fftw%nvhpc
+  - netcdf-c%nvhpc+mpi~shared
+  - netcdf-fortran%nvhpc~shared
+  - metis%nvhpc~shared
+  - parmetis%nvhpc~shared
+  - netlib-scalapack~shared
+  - mumps%nvhpc+metis+parmetis~openmp~shared
+  - superlu-dist%nvhpc~shared
+  - petsc%nvhpc+fortran~complex~fftw~hypre~hdf5+mumps+scalapack~shared
+  - petsc%nvhpc+fortran+complex~fftw~hypre~hdf5+mumps+scalapack~shared
+  - zoltan%nvhpc~fortran+parmetis~shared
+  - pumi%nvhpc+zoltan~shared
+  # - kokkos arch=linux-rhel8-power9le cuda_arch=70%nvhpc+cuda+openmp+wrapper~shared
+  - m3dc1%nvhpc~3d~complex
+  - m3dc1%nvhpc+3d~complex
+  - m3dc1%nvhpc~3d+complex
+  view:
+    default:
+      root: .spack-env/view
+      projections:
+        petsc~complex: petsc-real
+        petsc+complex: petsc-complex
+        m3dc1~3d~complex: m3dc1_2d
+        m3dc1+3d: m3dc1_3d
+        m3dc1+complex: m3dc1_2d_complex
+  concretizer:
+    unify: when_possible
+  modules:
+    default:
+      enable: [tcl]
+  packages:
+    all:
+      compiler: [gcc@8.5.0, nvhpc@22.5]
+      providers:
+        lapack: [nvhpc]
+        blas: [nvhpc]
+        mpi: [openmpi]
+        pkgconfig: [pkgconf]
+    nvhpc:
+      externals:
+      - spec: nvhpc@22.5%gcc
+        prefix: /opt/nvidia/hpc_sdk/
+        modules:
+        - nvhpc/22.5
+    openmpi:
+      externals:
+      - spec: openmpi@4.1.3
+        prefix: /usr/local/openmpi/4.1.3/nvhpc225/ppc64le
+        modules:
+        - openmpi/nvhpc-22.5/4.1.3/64
+    cuda:
+      externals:
+      - spec: cuda@11.7%nvhpc
+        prefix: /opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/cuda/11.7
+    cmake:
+      externals:
+      - spec: cmake@3.26.5
+        prefix: /usr
+    gmake:
+      externals:
+      - spec: gmake@4.2.1
+        prefix: /usr
+    pkgconf:
+      externals:
+      - spec: pkgconf@1.4.2
+        prefix: /usr
+    autoconf:
+      externals:
+      - spec: autoconf@2.69
+        prefix: /usr
+    python:
+      externals:
+      - spec: python@3.6.8
+        prefix: /usr
+    diffutils:
+      externals:
+      - spec: diffutils@3.10
+        prefix: /usr
+    automake:
+      externals:
+      - spec: automake@1.16.1
+        prefix: /usr
+    m4:
+      externals:
+      - spec: m4@1.4.18
+        prefix: /usr
+  compilers:
+  - compiler:
+      spec: gcc@=8.5.0
+      paths:
+        cc: /usr/bin/gcc
+        cxx: /usr/bin/g++
+        f77: /usr/bin/gfortran
+        fc: /usr/bin/gfortran
+      flags: {}
+      operating_system: rhel8
+      target: ppc64le
+      modules: []
+      environment: {}
+      extra_rpaths: []
+  - compiler:
+      spec: nvhpc@=22.5
+      paths:
+        cc: /opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/bin/nvc
+        cxx: /opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/bin/nvc++
+        f77: /opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/bin/nvfortran
+        fc: /opt/nvidia/hpc_sdk/Linux_ppc64le/22.5/compilers/bin/nvfortran
+      flags: {}
+      operating_system: rhel8
+      target: ppc64le
+      modules: []
+      environment: {}
+      extra_rpaths: []

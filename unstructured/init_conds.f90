@@ -527,10 +527,6 @@ subroutine initial_conditions()
 
   integer :: ierr
 
-  integer :: iext_is_perturbation
-
-  iext_is_perturbation = 1
-
   if(iread_neo.eq.1) then
      call read_neo(ierr)
      if(ierr.ne.0) return
@@ -651,7 +647,6 @@ subroutine initial_conditions()
            end if
 #endif
         case(41) ! Free boundary stellarator or 3D fields
-           iext_is_perturbation = 0
            if(iread_ext_field.eq.0) then  
               if(myrank.eq.0) print *, &
                 "Invalid input: Free boundary stellarator needs external field."
@@ -685,12 +680,12 @@ subroutine initial_conditions()
        tf_tilt.ne.0. .or. tf_shift.ne.0. .or. &
        any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) then
      ! External fields already loaded for itaylor = 41
-!     if(itaylor.eq.41 .and. extsubtract.eq.0) then
-!        if(myrank.eq.0 .and. iprint.ge.2) print *, &
-!           "Skipping: RMP specification not currently implemented for ST."
-!     else
-        call rmp_per(iext_is_perturbation)
-!     end if
+     if(itaylor.eq.41 .and. extsubtract.eq.0) then
+        if(myrank.eq.0 .and. iprint.ge.2) print *, &
+           "Skipping: RMP specification not currently implemented for ST."
+     else
+        call rmp_per(1)
+     end if
   end if
 #ifdef USEST
   if(igeometry.eq.1 .and. iread_vmec.ge.1) then
