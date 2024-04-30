@@ -981,7 +981,7 @@ function bs_b1psifbb(e,f,g,h,i)
      
              temp = intx5(e(:,:,OP_DRP),ri3_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
                     - intx5(e(:,:,OP_DZP),ri3_79,h(:,OP_DR),temp79a,eta79(:,OP_1))
-#ifdef USECOMPLES
+#ifdef USECOMPLEX
              temp = temp - rfac* &
                      (intx5(e(:,:,OP_DR),ri3_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
                     - intx5(e(:,:,OP_DZ),ri3_79,h(:,OP_DR),temp79a,eta79(:,OP_1))) 
