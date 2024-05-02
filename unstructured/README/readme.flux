@@ -6,10 +6,10 @@
 ******************************************************************************
 
 0. documentation
-   https://hpc.git.pppl.gov/spark/user-docs/#computing-resources
+   https://hpc.git.pppl.gov/flux/user-docs/#computing-resources
 
 1. login 
-	ssh your_id@spark.pppl.gov
+	ssh your_id@flux.pppl.gov
 
 	20 Nodes, each has 2x AMD EPYC 9354 32-Core, 256GB Memory.
 	dual 25Gpbs ethernet.
@@ -24,8 +24,8 @@
 
    for development modules:
        setenv M3DC1_CODE_DIR $HOME/src/M3DC1  [for example]
-       module use $M3DC1_CODE_DIR/unstructured/modules/spark
-       module load m3dc1/devel-spark
+       module use $M3DC1_CODE_DIR/unstructured/modules/flux
+       module load m3dc1/devel
 
    if you want to forgo the above modules and load the modules necessary
    for the latest code version individually:   
@@ -37,11 +37,11 @@
 
 4. compile code
 
-   2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=spark
-   2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=spark
+   2D real: make OPT=1 RL=1 MAX_PTS=25 ARCH=flux
+   2D complex: make OPT=1 COM=1 MAX_PTS=25 ARCH=flux
            - add PAR=1 to run PIC
-   3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=spark
-   3D stellarator : make 3D=1 OPT=1 MAX_PTS=60 ST=1 ARCH=spark
+   3D real: make 3D=1 OPT=1 MAX_PTS=60 ARCH=flux
+   3D stellarator : make 3D=1 OPT=1 MAX_PTS=60 ST=1 ARCH=flux
    after compiling, run "make bin"
 
 5. mesh generator
@@ -52,15 +52,15 @@
 
 6. run a job 
 
-   sample batch job scripts are in M3DC1/unstructured/regtest/*/base/batchjob.spark
+   sample batch job scripts are in M3DC1/unstructured/regtest/*/base/batchjob.flux
 
    regression test
 
 	setenv M3DC1_MPIRUN srun
 	setenv M3DC1_VERSION local
-	setenv M3DC1_ARCH spark
+	setenv M3DC1_ARCH flux
 	make bin ARCH=$M3DC1_ARCH
-	cd _spark/bin/
+	cd _flux/bin/
 	setenv PATH `pwd`:$PATH
 	cd ../../regtest/
 	./run $M3DC1_ARCH
