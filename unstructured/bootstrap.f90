@@ -1043,7 +1043,7 @@ function bs_b1psifbb(e,f,g,h,i)
    ! B1f
    ! =======
    function bs_b1f(e,h)
-      !temp = eta jbscommon (1/r^2 (psi_z mu'_z + psi_r mu'_r))
+      !temp = eta jbscommon (1/r^2 (f'_z mu'_z + f'_r mu'_r))
       
      use basic
      use m3dc1_nint
