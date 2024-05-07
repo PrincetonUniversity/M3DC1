@@ -68,7 +68,7 @@ if { ! [ is-loaded openmpi-4.1.5/intel-2023.2.0/netcdf-fortran/4.6.0-hz3b2 ] } {
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
 setenv		M3DC1_ARCH	$arch
-setenv		M3DC1_MPIRUN	srun
+setenv		M3DC1_MPIRUN	mpirun
 setenv		M3DC1_PETSC_PT	type
 
 prepend-path    PATH             $root/unstructured/_$arch/bin
