@@ -1,3 +1,16 @@
+FOPTS = -c -r8 -implicitnone -fpp -warn all -DPETSC_VERSION=39 $(OPTS)
+CCOPTS  = -c -DPETSC_VERSION=39 $(OPTS)
+ifeq ($(OPT), 0)
+  FOPTS := $(FOPTS) -g -O0 -Mbounds -check all -fpe0 -warn -traceback -debug extended
+  CCOPTS := $(CCOPTS)
+endif
+
+ifeq ($(OMP), 1)
+  LDOPTS := $(LDOPTS) -openmp
+  FOPTS  := $(FOPTS)  -openmp
+  CCOPTS := $(CCOPTS) -openmp
+endif
+
 ifeq ($(TAU), 1)
   TAU_OPTIONS = -optCPPOpts=-DUSETAU -optVerbose -optPreProcess -optMpi -optTauSelectFile=select.tau
   CPP    = tau_cxx.sh $(TAU_OPTIONS)
@@ -20,11 +33,11 @@ ifeq ($(HPCTK), 1)
 endif
 
 MPIVER=intel-psxe2019-openmpiicc4.0.4
-PETSCVER=39
-PETSC_DIR=/scratch/ntm/software/petsc/petsc-3.9.4
+PETSCVER=3.9.4
+PETSC_DIR=/scratch/ntm/software/petsc/petsc-$(PETSCVER)
 
 GSL_DIR=/scratch/app/gsl/2.5_gnu
-SCOREC_DIR=/scratch/ntm/software/scorec/$(MPIVER)/petsc3.9.4
+SCOREC_DIR=/scratch/ntm/software/scorec/intel2019-openmpi4.0.4/petsc$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_DIR)/bin
 
 ifeq ($(COM), 1)
@@ -52,22 +65,6 @@ INCLUDE = -I$(SCOREC_DIR)/include \
         -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
         -I$(GSL_DIR)/include
-
-# Optimization flags
-FOPTS = -c -r8 -implicitnone -fpp -warn all \
-        -DPETSC_VERSION=$(PETSCVER) $(OPTS)
-CCOPTS  = -c \
-        -DPETSC_VERSION=$(PETSCVER) $(OPTS)
-ifeq ($(OPT), 0)
-  FOPTS := $(FOPTS) -g -O0 -Mbounds -check all -fpe0 -warn -traceback -debug extended
-  CCOPTS := $(CCOPTS)
-endif
-
-ifeq ($(OMP), 1)
-  LDOPTS := $(LDOPTS) -openmp 
-  FOPTS  := $(FOPTS)  -openmp 
-  CCOPTS := $(CCOPTS) -openmp 
-endif
 
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)

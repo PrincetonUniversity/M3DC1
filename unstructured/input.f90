@@ -152,6 +152,9 @@ subroutine set_defaults
 #ifdef REORDERED
   use matrix_mod
 #endif
+#ifdef USEADAS
+  use adas_m3dc1
+#endif
 
   implicit none
 
@@ -285,9 +288,10 @@ subroutine set_defaults
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
   call add_var_double("kprad_n0_denm_fac", kprad_n0_denm_fac, 1., &
        "Scaling factor for neutral impurity diffusion", kprad_grp)
+#ifdef USEADAS
   call add_var_string("adas_adf11", adas_adf11, 256,&
        "", "Path to ADAS folder with ADF11 data", kprad_grp)
-  
+#endif
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -1116,7 +1120,7 @@ subroutine set_defaults
   call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
   call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
   call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! (prereq: iadapt = 1) adapt elements classified on model face  
-  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp) !support snapping
+  call add_var_int("iadapt_snap", iadapt_snap, 1, "", adapt_grp) !support snapping
 
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)

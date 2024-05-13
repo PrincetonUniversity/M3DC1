@@ -106,7 +106,7 @@ endforeach()
 set(prefix "${SCOREC_INSTALL_DIR}")
 set(includedir "${SCOREC_INCLUDE_DIR}")
 configure_file(
-  "${CMAKE_HOME_DIRECTORY}/cmake/libScorec.pc.in"
+  "cmake/libScorec.pc.in"
   "${CMAKE_BINARY_DIR}/libScorec.pc"
   @ONLY)
 

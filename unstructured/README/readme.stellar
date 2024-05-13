@@ -45,7 +45,13 @@
    after compiling, run "make bin"
 
 5. mesh generator
-   /projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/17.0-220903/bin
+   # intelmpi
+   module load intel/2021.1.2 intel-mpi/intel/2021.3.1 simmodsuite/pppl/2023.1-240113
+   /projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/2023.1-240113/bin
+
+   #openmpi
+   module load intel/2021.1.2 openmpi/intel-2021.1/4.1.0 simmodsuite/pppl/2023.1-240113
+   /projects/M3DC1/scorec/stellar/intel2021.1.2-openmpi4.1.0/2023.1-240113/bin
 
    mesh utility (partioning, merging, etc.)
    $SCOREC_UTIL_DIR/bin

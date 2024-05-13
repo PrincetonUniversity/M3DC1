@@ -1,0 +1,26 @@
+#!/bin/sh
+#PBS -q debug
+#PBS -l nodes=1:ppn=16
+#PBS -l walltime=00:10:00
+##PBS -l mem=126GB
+#PBS -o C1stdout
+
+
+cd $PBS_O_WORKDIR
+
+touch started
+
+# partition mesh
+PARTS=16
+$M3DC1_MPIRUN -n $PARTS split_smb circle-0.02-0.0-0.0-2K.smb part.smb $PARTS
+echo $? > mesh_partitioned
+
+# Run M3D-C1
+$M3DC1_MPIRUN -n $PARTS m3dc1_2d
+$M3DC1_MPIRUN -n $PARTS collapse circle-0.02-0.0-0.0.dmg ts0-adapted.smb mesh.smb $PARTS
+
+if ! [ -f mesh0.smb ]; then
+    echo 0 > C1ke
+fi
+
+touch finished

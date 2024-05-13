@@ -1,5 +1,5 @@
 FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
-CCOPTS  = -c -O -DPETSC_VERSION=313
+CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(OPT), 1)
@@ -29,16 +29,21 @@ FOPTS := $(FOPTS)
 F90OPTS = $(F90FLAGS) $(FOPTS) 
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
-PETSC_DIR=/orcd/data/psfc/001/jinchen/petsc/petsc20230918
+PETSC_DIR=/orcd/nese/psfc/001/jinchen/petsc/petsc20230612
 ifeq ($(COM), 1)
-  PETSC_ARCH=mit-intel-openmpi-cplx
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/orcd/data/psfc/001/jinchen/petsc/petsc20230918/mit-intel-openmpi-cplx/lib -L/orcd/data/psfc/001/jinchen/petsc/petsc20230918/mit-intel-openmpi-cplx/lib -Wl,-rpath,/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -L/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -lpetsc -lzmumps -lmumps_common -lpord -lpthread -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -lfftw3_mpi -lfftw3 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lzoltan -lparmetis -lmetis -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lgsl -lgslcblas -lgfortran -lstdc++ -lquadmath
+  PETSC_ARCH=mit-intel-impi-cplx
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/orcd/nese/psfc/001/jinchen/petsc/petsc20230612/mit-intel-impi-cplx/lib -L/orcd/nese/psfc/001/jinchen/petsc/petsc20230612/mit-intel-impi-cplx/lib -Wl,-rpath,/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -L/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -lpetsc -lzmumps -lmumps_common -lpord -lpthread -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -lfftw3_mpi -lfftw3 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lzoltan -lparmetis -lmetis -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lgsl -lgslcblas -lgfortran -lstdc++ -lquadmath
 else
-  PETSC_ARCH=mit-intel-openmpi
-  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/orcd/data/psfc/001/jinchen/petsc/petsc20230918/mit-intel-openmpi/lib -L/orcd/data/psfc/001/jinchen/petsc/petsc20230918/mit-intel-openmpi/lib -Wl,-rpath,/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -L/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -lpetsc -ldmumps -lmumps_common -lpord -lpthread -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -lfftw3_mpi -lfftw3 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lzoltan -lparmetis -lmetis -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lgsl -lgslcblas -lgfortran -lstdc++ -lquadmath
+  ifeq ($(ST), 1)
+  PETSC_ARCH=mit-intel-impi-st
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/orcd/nese/psfc/001/jinchen/petsc/petsc20230612/mit-intel-impi/lib -L/orcd/nese/psfc/001/jinchen/petsc/petsc20230612/mit-intel-impi/lib -Wl,-rpath,/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -L/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -lpetsc -ldmumps -lmumps_common -lpord -lpthread -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -lfftw3_mpi -lfftw3 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lzoltan -lparmetis -lmetis -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lgsl -lgslcblas -lgfortran -lstdc++ -lquadmath
+  else
+  PETSC_ARCH=mit-intel-impi
+  PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib -Wl,-rpath,/orcd/nese/psfc/001/jinchen/petsc/petsc20230612/mit-intel-impi/lib -L/orcd/nese/psfc/001/jinchen/petsc/petsc20230612/mit-intel-impi/lib -Wl,-rpath,/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -L/orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/opt/spack/linux-rocky8-x86_64/gcc-12.2.0/intel-oneapi-mkl-2023.1.0-seow5nciajy2dbojmltvs7abacdaudve/mkl/2023.1.0/lib/intel64 -lpetsc -ldmumps -lmumps_common -lpord -lpthread -lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64 -lfftw3_mpi -lfftw3 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lzoltan -lparmetis -lmetis -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lgsl -lgslcblas -lgfortran -lstdc++ -lquadmath
+  endif
 endif
 
-SCOREC_BASE_DIR=/orcd/data/psfc/001/jinchen/pumi/mit-intel
+SCOREC_BASE_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
@@ -68,10 +73,9 @@ INCLUDE = -I$(PETSC_DIR)/include \
         -I$(PETSC_DIR)/$(PETSC_ARCH)/include \
 
 ifeq ($(ST), 1)
-  NETCDF_CDIR=$(PETSC_DIR)/mit-intel-openmpi-st
-  NETCDF_FDIR=$(PETSC_DIR)/mit-intel-openmpi-st
-  LIBS += -Wl,--start-group -L$(NETCDF_FDIR)/lib -Wl,-rpath,$(NETCDF_FDIR)/lib -lnetcdff -lz -Wl,--end-group \
-	  -Wl,--start-group -L$(NETCDF_CDIR)/lib -Wl,-rpath,$(NETCDF_CDIR)/lib -lnetcdf -Wl,--end-group \
+  NETCDF_CDIR=$(PETSC_DIR)/$(PETSC_ARCH)
+  NETCDF_FDIR=$(PETSC_DIR)/$(PETSC_ARCH)
+  LIBS += -Wl,--start-group -L$(NETCDF_FDIR)/lib -Wl,-rpath,$(NETCDF_FDIR)/lib -lnetcdff -lz -Wl,--end-group -Wl,--start-group -L$(NETCDF_CDIR)/lib -Wl,-rpath,$(NETCDF_CDIR)/lib -lnetcdf -Wl,--end-group \
           -Wl,--start-group -L$(NETCDF_FDIR)/lib -Wl,-rpath,$(NETCDF_FDIR)/lib -lnetcdff -lhdf5hl_fortran -lhdf5_fortran -lhdf5_hl -lhdf5 -lz -Wl,--end-group
   INCLUDE += -I$(NETCDF_CDIR)/include \
              -I$(NETCDF_FDIR)/include
