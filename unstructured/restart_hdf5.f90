@@ -480,7 +480,7 @@ contains
     endif
 #endif
 
-    if(ikprad.eq.1 .and. ikprad_in.eq.1) then
+    if(ikprad.ne.0 .and. ikprad_in.ne.0) then
        do i=0, kprad_z
           write(field_name, '(A,I2.2)') "kprad_n_", i
           call h5r_read_field(group_id,trim(field_name),kprad_n(i),nelms,error)

@@ -1140,7 +1140,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call write_field(group_id, "fp_ext", bfp_ext, nelms, error)
   endif
 
-  if(ikprad.eq.1) then
+  if(ikprad.ne.0) then
      do i=0, kprad_z
         write(field_name, '(A,I2.2)') "kprad_n_", i
         call write_field(group_id, trim(field_name), kprad_n(i), nelms, error)
@@ -1191,7 +1191,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
     call write_field(group_id, "bdotgradp", bdotgradp, nelms, error)
     call write_field(group_id, "bdotgradt", bdotgradt, nelms, error)
     call write_field(group_id, "zeff", z_effective, nelms, error)
-    if(ikprad.eq.1) then
+    if(ikprad.ne.0) then
        call write_field(group_id, "kprad_totden", kprad_totden, nelms, error)
     end if
     if(itemp_plot .eq. 1) then
@@ -1403,7 +1403,7 @@ subroutine mark_fields(equilibrium)
      call mark_field_for_solutiontransfer(bfp_ext)
   endif
 
-  if(ikprad.eq.1) then
+  if(ikprad.ne.0) then
      do i=0, kprad_z
         ! kprad_n(i)
         ! kprad_particle_source(i)
@@ -1469,7 +1469,7 @@ subroutine mark_fields(equilibrium)
     call mark_field_for_solutiontransfer(bdotgradp)
     call mark_field_for_solutiontransfer(bdotgradt)
     call mark_field_for_solutiontransfer(z_effective)
-    if(ikprad.eq.1) then
+    if(ikprad.ne.0) then
        ! kprad_totden
        call mark_field_for_solutiontransfer(kprad_totden)
     end if

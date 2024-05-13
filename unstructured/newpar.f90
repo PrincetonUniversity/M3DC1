@@ -1571,7 +1571,7 @@ subroutine calculate_zeff(itri, z)
 
   z = z_ion**2*nt79(:,OP_1)
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      do i=1, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         z = z + i**2*tm79(:,OP_1)
@@ -1597,7 +1597,7 @@ subroutine calculate_qdfac(itri, z)
 
   z = z_ion**2 * nt79(:,OP_1) / ion_mass
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      do i=1, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         z = z + i**2 * tm79(:,OP_1) / kprad_mz

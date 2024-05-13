@@ -2079,7 +2079,7 @@ subroutine calculate_rho(itri)
 
   rho79 = nt79
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      do i=1, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         rho79 = rho79 + tm79*kprad_mz/ion_mass
