@@ -2315,7 +2315,7 @@ subroutine fundef2(error)
      call get_zone(itri, izone)
 
 !     if(izone.ne.1) then
-     if(izone.eq.ZONE_VACUUM) then
+     if(izone.ne.ZONE_PLASMA) then
         temp3 = 0.
         temp4 = 0.
         call vector_insert_block(fun1_vec%vec,itri,1,temp3,VEC_ADD)
@@ -2923,7 +2923,7 @@ subroutine calc_pressure(ps0, pres, x, z, izone)
 
   integer :: mr
 
-  if(izone.eq.ZONE_VACUUM) then 
+  if(izone.ne.ZONE_PLASMA) then 
      pres = p0_spline%y(p0_spline%n)
      return
   end if
@@ -2981,7 +2981,7 @@ subroutine calc_density(ps0, dens, x, z, izone)
 
   integer :: mr
 
-  if(izone.eq.ZONE_VACUUM) then
+  if(izone.ne.ZONE_PLASMA) then
      dens = n0_spline%y(n0_spline%n)
      return
   end if
@@ -3098,7 +3098,7 @@ subroutine calc_ftemp(ps0, tf, x, z, izone)
 
   if(allocated(tf_spline%y)) then
 !     if(izone.ne.1) then 
-     if(izone.eq.ZONE_VACUUM) then 
+     if(izone.ne.ZONE_PLASMA) then 
         tf0 = tf_spline%y(tf_spline%n)
      else
         psii = (real(ps0(1)) - psimin)/(psibound - psimin)
@@ -3136,7 +3136,7 @@ subroutine calc_electron_pressure(ps0, pe, x, z, izone)
 
   if(allocated(te_spline%y)) then
 !     if(izone.ne.1) then 
-     if(izone.eq.ZONE_VACUUM) then 
+     if(izone.ne.ZONE_PLASMA) then 
         te0 = te_spline%y(te_spline%n)
      else
         psii = (real(ps0(1)) - psimin)/(psibound - psimin)
