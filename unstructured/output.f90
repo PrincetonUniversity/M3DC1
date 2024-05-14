@@ -5,6 +5,7 @@ module m3dc1_output
 
   integer :: iwrite_transport_coeffs
   integer :: iwrite_aux_vars
+  integer :: iwrite_adjacency
 
 contains
 
@@ -819,14 +820,15 @@ subroutine output_mesh(time_group_id, nelms, error)
        nelms, error)
 
   ! Output adjacency info
-  if(iprint.ge.1 .and. myrank.eq.0) then
-     print *, 'Calculating mesh adjacency'
+  if(iwrite_adjacency.eq.1) then
+     if(iprint.ge.1 .and. myrank.eq.0) then
+        print *, 'Calculating mesh adjacency'
+     end if
+     call populate_adjacency_matrix()
+     call output_field_int(mesh_group_id, "adjacency", adjacent, max_adj, &
+          nelms, error)
+     call clear_adjacency_matrix()
   end if
-  call populate_adjacency_matrix()
-  call output_field_int(mesh_group_id, "adjacency", adjacent, max_adj, &
-       nelms, error)
-  call clear_adjacency_matrix()
-
 
 #ifdef USE3D
   ! Output toroidal planes

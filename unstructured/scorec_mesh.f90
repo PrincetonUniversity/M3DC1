@@ -403,20 +403,20 @@ contains
              adjacent(j,i) = -1
           endif
        end do
-#ifdef USE3D
-       ! Manually add toroidal adjacencies
-       if(n_adjacent(i)+2 .gt. max_adj) then
-          print *, 'Error: adding toroidal adjacencies results in n_adjacent > max_adj'
-       else
-          j = i-1-elms_per_plane
-          if(j .lt. 0) j = j + global_elms
-          adjacent(n_adjacent(i)+1,i) = j
-
-          j = i-1+elms_per_plane
-          if(j .ge. global_elms) j = j - global_elms
-          adjacent(n_adjacent(i)+2,i) = j
-       end if
-#endif
+!!$#ifdef USE3D
+!!$       ! Manually add toroidal adjacencies
+!!$       if(n_adjacent(i)+2 .gt. max_adj) then
+!!$          print *, 'Error: adding toroidal adjacencies results in n_adjacent > max_adj'
+!!$       else
+!!$          j = i-1-elms_per_plane
+!!$          if(j .lt. 0) j = j + global_elms
+!!$          adjacent(n_adjacent(i)+1,i) = j
+!!$
+!!$          j = i-1+elms_per_plane
+!!$          if(j .ge. global_elms) j = j - global_elms
+!!$          adjacent(n_adjacent(i)+2,i) = j
+!!$       end if
+!!$#endif
     end do
 
     deallocate(local_id, pids, gids)
