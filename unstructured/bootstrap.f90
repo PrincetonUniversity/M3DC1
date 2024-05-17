@@ -340,7 +340,7 @@ function bs_b1psifbb(e,f,g,h,i)
           temp = intx4(e(:,:,OP_GS),ri3_79,temp79a,h(:,OP_1))
  
           if(itor.eq.1) then
-             temp = temp - 2.*intx4(e(:,:,OP_GS),ri3_79,temp79a,h(:,OP_1))
+             temp = temp - 2.*intx4(e(:,:,OP_DR),ri4_79,temp79a,h(:,OP_1))
           end if
        endif
     endif
@@ -946,8 +946,14 @@ function bs_b1psifbb(e,f,g,h,i)
      iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
               + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
 
-     temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
-     temp2=tempDD*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+     if(ibootstrap_model.eq.5)then !Constant Lambda =1/ jbscommon   = -  F / <B^2>   [ L31 (dlnp/dpsi) + L32 Pe (dlnTe/dpsi) + L34 Pe alpha (dlnTi/dpsi) ] = 1
+      temp1=1.0
+      temp2=1.0
+     else !if (ibootstrap_model = 1,2,3,4)
+      temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+      temp2=tempDD*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+     endif
+
    
     end subroutine calculate_CommonTerm_Lambda
    
@@ -1031,7 +1037,7 @@ function bs_b1psifbb(e,f,g,h,i)
            temp = intx5(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1),eta79(:,OP_1))
    
            if(itor.eq.1) then
-              temp = temp - 2.*intx5(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1),eta79(:,OP_1))
+              temp = temp - 2.*intx5(e(:,:,OP_DR),ri3_79,temp79a,h(:,OP_1),eta79(:,OP_1))
            end if
         endif
      endif
