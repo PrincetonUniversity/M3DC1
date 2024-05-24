@@ -281,6 +281,8 @@ endif ()
 # find_package(GSL REQUIRED)
 # find_package(FFTW REQUIRED)
 
+find_package(MPI)
+
 set(M3DC1_SCOREC_LIB_NAME m3dc1_scorec)
 if(ENABLE_3D)
   set(BIN_NAME "${BIN_NAME}_3d")
@@ -380,7 +382,7 @@ set_property(TARGET ${BIN_NAME} PROPERTY LINKER_LANGUAGE Fortran)
 target_include_directories(${BIN_NAME} PRIVATE ${SCOREC_INCLUDE_DIRS})
 target_link_libraries(${BIN_NAME} ${HDF5_HL_LIBRARIES} ${HDF5_LIBRARIES}
   ${M3DC1_SCOREC_LIB_NAME} ${SCOREC_LIBRARIES} ${ZOLTAN_LIBRARIES}
-  PkgConfig::PETSC PkgConfig::FFTW PkgConfig::GSL stdc++)
+  PkgConfig::PETSC PkgConfig::FFTW PkgConfig::GSL MPI::MPI_Fortran stdc++)
 # target_link_directories(m3dc1_2d ${PETSC_STATIC_LIBRARY_DIRECTORIES})
 target_compile_definitions(${BIN_NAME} PRIVATE ${DEFS})
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray")

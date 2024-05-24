@@ -152,6 +152,9 @@ subroutine set_defaults
 #ifdef REORDERED
   use matrix_mod
 #endif
+#ifdef USEADAS
+  use adas_m3dc1
+#endif
 
   implicit none
 
@@ -285,6 +288,10 @@ subroutine set_defaults
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
   call add_var_double("kprad_n0_denm_fac", kprad_n0_denm_fac, 1., &
        "Scaling factor for neutral impurity diffusion", kprad_grp)
+#ifdef USEADAS
+  call add_var_string("adas_adf11", adas_adf11, 256,&
+       "", "Path to ADAS folder with ADF11 data", kprad_grp)
+#endif
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -1034,6 +1041,8 @@ subroutine set_defaults
        "1: Output transport coefficient fields", output_grp)
   call add_var_int("iwrite_aux_vars", iwrite_aux_vars, 1, &
        "1: Output auxiliary variable fields", output_grp)
+  call add_var_int("iwrite_adjacency", iwrite_adjacency, 1, &
+       "1: Output mesh adjacency info", output_grp)
   call add_var_int("itemp_plot", itemp_plot, 0, &
        "1: Output additional temperature plots", output_grp)
   call add_var_int("ibdgp", ibdgp, 0, &
@@ -1744,6 +1753,16 @@ subroutine validate_input
         if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
         call safestop(1)
      end if
+  end if
+#ifndef USEADAS
+  if(ikprad.eq.-1) then
+     if(myrank.eq.0) print *, 'Error: ikprad = -1 but did not compile with ADAS'
+     call safestop(1)
+  end if
+#endif
+  if(ikprad.lt.-1 .or. ikprad.gt.1) then
+     if(myrank.eq.0) print *, 'Error: ikprad != -1, 0, or 1'
+     call safestop(1)
   end if
   if(iread_lp_source.gt.0 .and. npellets.gt.1) then
      if(myrank.eq.0) print *, "Error: Can't use multiple pellets iread_lp_source"

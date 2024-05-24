@@ -813,7 +813,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
 !!$           call get_node_data(den_field(0), i, temp3)
 !!$           temp2 = temp2 + temp3
 !!$        end if
-!!$        if(ikprad.eq.1) then
+!!$        if(ikprad.ne.0) then
 !!$           do i=1, kprad_z
 !!$              call get_node_data(kprad_n(i), i, temp3)
 !!$              temp2 = temp2 + temp3
