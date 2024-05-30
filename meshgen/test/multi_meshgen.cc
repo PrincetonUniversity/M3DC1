@@ -617,6 +617,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
   // Now we'll add loops
   for (std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
   {
+    int loopNumber = it->first;
     int numE=it->second.size();
     // First we'll add the vertices on the loop
     for( int i=0; i<numE; i++)
@@ -681,7 +682,10 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 	    bool clockwise = curveOrientation(ctrlPts3D);
             if (clockwise)
 		edgeDir = 0;
-            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+	    if (numPts < 10 || loopNumber == vacuumLoopId)
+            	curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+	    else
+		curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
            if (numE == 1)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, startVert, curve, edgeDir, outerRegion);
