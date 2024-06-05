@@ -1113,6 +1113,7 @@ contains
     if(igeometry.eq.1.and.ilog.eq.0) then
        call get_element_nodes(itri, inode)
     end if
+    l2p_mat = 0.
 #endif
     do i=1, nodes_per_element
        j = (i-1)*dofs_per_node+1

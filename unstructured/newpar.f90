@@ -1074,6 +1074,7 @@ end subroutine rotation
        call get_element_nodes(itri, inode)
 
 #ifdef USEST
+       p2l_mat=0.
        do i=1, nodes_per_element 
           k = (i-1)*dofs_per_node + 1
 
