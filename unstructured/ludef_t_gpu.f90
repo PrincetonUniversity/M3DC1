@@ -296,7 +296,7 @@ subroutine vorticity_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
      ! Split time-step
      if(advfield.eq.1) then
         !ddterm(:,p_g) = ddterm(:,p_g) + dt*v1p(trialx,lin)
-        temp = v1p1
+        temp = v1p1()
         ADDTERM(p_g,temp,0,dt)
 
         ! "Parabolization" terms
@@ -328,7 +328,7 @@ subroutine vorticity_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
         !tempx = v1p(trialx,lin)
         !ssterm(:,p_g) = ssterm(:,p_g) -     thimp     *dt*tempx
         !ddterm(:,p_g) = ddterm(:,p_g) + (1.-thimp*bdf)*dt*tempx
-        temp = v1p1
+        temp = v1p1()
         ADDTERM(p_g,temp,-thimp*dt,(1-thimp*bdf)*dt)
 
         !! CGL (anisotropic pressure)
@@ -1165,7 +1165,7 @@ subroutine axial_vel_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
      if(advfield.eq.1) then
         !ddterm(:,p_g) = ddterm(:,p_g) + dt* &
              !v2p(trialx,lin)
-        temp = v2p1
+        temp = v2p1()
         ADDTERM(p_g,temp,0,dt)
 
         ! parabolization terms
@@ -1195,7 +1195,7 @@ subroutine axial_vel_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
            !tempx = v2p(trialx,lin)
            !ssterm(:,p_g) = ssterm(:,p_g) -     thimp     *dt*tempx
            !ddterm(:,p_g) = ddterm(:,p_g) + (1.-thimp*bdf)*dt*tempx
-           temp = v2p1
+           temp = v2p1()
            ADDTERM(p_g,temp,-thimp*dt,(1.-thimp*bdf)*dt)
         !elseif(kinetic.eq.3) then  ! full CGL model
            !tempx = v2parpb2ipsipsi(trialx,lin,b2i79,pstx79,pstx79)   &
@@ -1717,7 +1717,7 @@ subroutine compression_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
   if(advfield.eq.1) then
      !ddterm(:,p_g) = ddterm(:,p_g) + dt*  &
      !     v3p(trialx,lin)
-     temp = v3p1
+     temp = v3p1()
      ADDTERM(p_g,temp,0,dt)
 
      ! parabolization terms
@@ -1744,7 +1744,7 @@ subroutine compression_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
         !tempx = v3p(trialx,lin) 
         !ssterm(:,p_g) = ssterm(:,p_g) -     thimp     *dt*tempx
         !ddterm(:,p_g) = ddterm(:,p_g) + (1.-thimp*bdf)*dt*tempx
-        temp = v3p1
+        temp = v3p1()
         ADDTERM(p_g,temp,-thimp*dt,(1-thimp*bdf)*dt)
 
         !! CGL (anisotropic pressure)
@@ -3988,7 +3988,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = b3pe(trialx,lin)
      !ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      !ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
-     temp = b3pe
+     temp = b3pe()
      ADDTERM(pp_g,temp,1,bdf)
      return
   end if
@@ -3998,7 +3998,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
   !tempx = b3pe(trialx,lin)*freq_fac
   !ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
   !if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
-  temp = b3pe
+  temp = b3pe()
   if(itime_independent.eq.0) then
      ADDTERM(pp_g,temp,freq_fac,freq_fac*bdf)
   else
@@ -4024,7 +4024,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = kappat_lin_p(trialx,lin)
      !ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
      !ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
-     temp = kappat_lin_p1
+     temp = kappat_lin_p1()
      ADDTERM(pp_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
 
      if(idens.eq.1) then
@@ -4039,7 +4039,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = kappat_p(trialx,lin)
      !ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
      !ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
-     temp = kappat_p1
+     temp = kappat_p1()
      ADDTERM(pp_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
 
      !if(idens.eq.0) then
@@ -4696,7 +4696,7 @@ subroutine temperature_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = t3t(trialx,lin)
      !ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      !ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
-     temp = t3t
+     temp = t3t()
      ADDTERM(pp_g,temp,1.,bdf)
      return
   end if
@@ -4715,7 +4715,7 @@ subroutine temperature_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = t3t(trialx,lin)*freq_fac
      !ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      !if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
-     temp = t3t
+     temp = t3t()
      ADDTERM(pp_g,temp,1.,bdf)
   endif
 
@@ -5666,7 +5666,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
      call define_fields(itri, def_fields, 1, linear)
-     !$acc update device(mu79,nu79) async(igpu)
+     !$acc update device(mu79,nu79)
      call calculate_rho(itri)
      call calculate_sigma_e(itri)
      call calculate_sigma_i(itri)
@@ -5692,30 +5692,30 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
         telm = telm + tend - tstart
      endif
 
-     if(isurface.eq.0) cycle
-     if(nonrect.eq.0) cycle
-
-     ! add surface terms
-     call boundary_edge(itri, is_edge, n, idim)
-     
-     do iedge=1,3
-        if(is_edge(iedge).eq.0) cycle
-
-        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
-        call define_fields(itri, def_fields, 1, linear)
-        !$acc update device(mu79,nu79) async(igpu)
-
-!        write(*,'(A,8F10.4)') 'EDGE: ', x_79(1), z_79(1), x_79(5), z_79(5), &
-!           norm79(3,1), norm79(3,2)
-
-        if(gyro.eq.1) call gyro_common
-
-        if(ivel_def.eq.1) call ludefvel_n(itri)
-        if(ifield_def.eq.1) call ludefphi_n(itri)
-        if(idens_def.eq.1) call ludefden_n(itri)
-        if(irunaway.gt.0) call ludefnre_n(itri)
-        if(ipres_def.eq.1 .or. ipressplit_def.eq.1) call ludefpres_n(itri)
-     end do
+!     if(isurface.eq.0) cycle
+!     if(nonrect.eq.0) cycle
+!
+!     ! add surface terms
+!     call boundary_edge(itri, is_edge, n, idim)
+!
+!     do iedge=1,3
+!        if(is_edge(iedge).eq.0) cycle
+!
+!        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
+!        call define_fields(itri, def_fields, 1, linear)
+!        !$acc update device(mu79,nu79)
+!
+!!        write(*,'(A,8F10.4)') 'EDGE: ', x_79(1), z_79(1), x_79(5), z_79(5), &
+!!           norm79(3,1), norm79(3,2)
+!
+!        if(gyro.eq.1) call gyro_common
+!
+!        if(ivel_def.eq.1) call ludefvel_n(itri)
+!        if(ifield_def.eq.1) call ludefphi_n(itri)
+!        if(idens_def.eq.1) call ludefden_n(itri)
+!        if(irunaway.gt.0) call ludefnre_n(itri)
+!        if(ipres_def.eq.1 .or. ipressplit_def.eq.1) call ludefpres_n(itri)
+!     end do
   end do
 !$OMP END PARALLEL DO
 
@@ -5947,8 +5947,8 @@ subroutine ludefvel_n(itri)
         !end do
         call compression_lin(nterm, term, op1, op2, ssarray, ddarray, advfield,izone)
      end select
-        !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf) async(igpu)
-        !$acc parallel loop gang collapse(2) private(tempss,tempdd) async(igpu)
+        !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf)
+        !$acc parallel loop gang collapse(2) private(tempss,tempdd)
         do iterm=1,nterm
            do j=1,dofs_per_element
               tempss=ssarray(:,iterm)*nu79(j,:,op2(iterm))
@@ -5960,7 +5960,7 @@ subroutine ludefvel_n(itri)
               end do
            end do
         end do
-        !$acc parallel loop gang collapse(2) async(igpu)
+        !$acc parallel loop gang collapse(2)
         do i=1,dofs_per_element
            do j=1,dofs_per_element
               !$acc loop seq
@@ -5976,7 +5976,6 @@ subroutine ludefvel_n(itri)
            end do
         end do
         !$acc end data
-        !$acc wait(igpu)
 
      if(izone.eq.1) then 
         select case(k)
@@ -6198,8 +6197,8 @@ subroutine ludefphi_n(itri)
         call pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
              ipres.eq.0, thimp, izone)
      endif
-           !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf) async(igpu)
-           !$acc parallel loop gang collapse(2) private(tempss,tempdd) async(igpu)
+           !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf)
+           !$acc parallel loop gang collapse(2) private(tempss,tempdd)
            do iterm=1,nterm
               do j=1,dofs_per_element
                  tempss=ssarray(:,iterm)*nu79(j,:,op2(iterm))
@@ -6211,7 +6210,7 @@ subroutine ludefphi_n(itri)
                  end do
               end do
            end do
-           !$acc parallel loop gang collapse(2) async(igpu)
+           !$acc parallel loop gang collapse(2)
            do i=1,dofs_per_element
               do j=1,dofs_per_element
                  !$acc loop seq
@@ -6227,7 +6226,6 @@ subroutine ludefphi_n(itri)
               end do
            end do
            !$acc end data
-           !$acc wait(igpu)
      do j=1,dofs_per_element
         if     (ieq(k).eq.psi_i) then
            !if(.not.surface_int) then
@@ -6511,11 +6509,11 @@ subroutine ludefpres_n(itri)
                 .false., thimpf, izone)
         end select
      endif ! on ipressplit
-           !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf) async(1)
+           !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf)
            !!$acc kernels async(1)
            !!$acc loop gang collapse(2) private(tempss,tempdd)
            !!$acc kernels loop gang collapse(2) private(tempss,tempdd) async(1)
-           !$acc parallel loop gang collapse(2) private(tempss,tempdd) async(1)
+           !$acc parallel loop gang collapse(2) private(tempss,tempdd)
            do iterm=1,nterm
               do j=1,dofs_per_element
                  tempss=ssarray(:,iterm)*nu79(j,:,op2(iterm))
@@ -6529,7 +6527,7 @@ subroutine ludefpres_n(itri)
            end do
            !!$acc loop gang collapse(2)
            !!$acc kernels loop gang collapse(2) async(1)
-           !$acc parallel loop gang collapse(2) async(1)
+           !$acc parallel loop gang collapse(2)
            do i=1,dofs_per_element
               do j=1,dofs_per_element
                  !$acc loop seq
@@ -6546,7 +6544,6 @@ subroutine ludefpres_n(itri)
            end do
            !!$acc end kernels
            !$acc end data
-           !$acc wait(1)
             
      do j=1,dofs_per_element
         if(ipressplit.eq.0) then

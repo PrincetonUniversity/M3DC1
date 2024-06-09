@@ -935,7 +935,7 @@ contains
     real :: x, phi, z, c(3)
     logical :: is_bound(3), found_edge
 
-    integer :: iedge(3), izonedim, itri, ifaczone,ifaczonedim
+    integer :: iedge(3), iedge2(3), izonedim, itri, ifaczone,ifaczonedim
     integer :: num_adj_ent, numelm
     integer, intent(in), optional :: tags
 
@@ -965,6 +965,7 @@ contains
     end do
 
     is_edge = 0
+    iedge2 = iedge
     do i=1,3
        !call zonedg(iedge(i),izone,izonedim)
        call m3dc1_ent_getgeomclass(1, iedge(i)-1, izonedim, izone)
