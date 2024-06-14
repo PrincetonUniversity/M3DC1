@@ -5,6 +5,7 @@ module bootstrap
   implicit none
 
   integer :: ibootstrap_model
+  integer :: ibootstrap_map_te  ! Switch for bootstrap current coefficients mapping either as a function of (0) Psi_normal or (1) Te 
   ! 1 : add -eta*J_BS term to Ohm's law
   !     where J_BS = jbscommon * B
     

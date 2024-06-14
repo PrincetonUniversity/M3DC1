@@ -25,18 +25,26 @@ function bootstrapCoeff_func(col_number)
    use math
    use read_ascii
    use resistive_wall
+   use bootstrap
  
    implicit none
  
    vectype, dimension(dofs_per_element) :: bootstrapCoeff_func
    integer, intent(in) :: col_number
    real :: tmin
-   integer :: nvals, j, mr
+   integer :: nvals, j, mr, bootstrap_coef_0flag
    real, allocatable :: xvals(:), yvals(:)
    real :: val, valp, valpp, pso, psib
    integer :: izone
    integer, dimension(MAX_PTS) :: izarr
- 
+   character(len=256) :: Coeff_filename
+
+   bootstrap_coef_0flag = 0
+   if (ibootstrap_map_te == 0) then
+      Coeff_filename='ProfileJBSCoeff_Psi_L31_32_34_alpha_B2'
+   elseif (ibootstrap_map_te == 1) then
+      Coeff_filename='ProfileJBSCoeff_Te_L31_32_34_alpha_B2'
+   endif
    
  
    if(ibootstrap.eq.1) then
@@ -44,8 +52,8 @@ function bootstrapCoeff_func(col_number)
          if(.not.allocated(coef_spline_L31%x)) then
             ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
             nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', yvals, nvals,skip=1, icol=col_number)
+            call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+            call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
            ! print*,'Reading L31,32,34,alpha from column number',col_number
            ! print*,'Reading X',xvals
@@ -57,8 +65,8 @@ function bootstrapCoeff_func(col_number)
          if(.not.allocated(coef_spline_L32%x)) then
             ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
             nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', yvals, nvals,skip=1, icol=col_number)
+            call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+            call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
             !print*,'Reading L31,32,34,alpha from column number',col_number
             !print*,'Reading X',xvals
@@ -70,8 +78,8 @@ function bootstrapCoeff_func(col_number)
         if(.not.allocated(coef_spline_L34%x)) then
             ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
             nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', yvals, nvals,skip=1, icol=col_number)
+            call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+            call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
             !print*,'Reading L31,32,34,alpha from column number',col_number
             !print*,'Reading X',xvals
@@ -83,8 +91,8 @@ function bootstrapCoeff_func(col_number)
          if(.not.allocated(coef_spline_alpha%x)) then
             ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
             nvals = 0
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', xvals, nvals,skip=1, icol=1)
-            call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2 ', yvals, nvals,skip=1, icol=col_number)
+            call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+            call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
             !print*,'Reading L31,32,34,alpha from column number',col_number
             !print*,'Reading X',xvals
@@ -96,8 +104,8 @@ function bootstrapCoeff_func(col_number)
             if(.not.allocated(coef_spline_fluxavg_iBsq%x)) then
                ! Read in L31 or L32 or L34 or alpha or 1/<B^2>  from col number 2,3,4,5,6
                nvals = 0
-               call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', xvals, nvals,skip=1, icol=1)
-               call read_ascii_column('ProfileJBSCoeff_Psi_L31_32_34_alpha_B2', yvals, nvals,skip=1, icol=col_number)
+               call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+               call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
                if(nvals.eq.0) call safestop(6)
                !print*,'Reading L31,32,34,alpha,B from column number',col_number
                !print*,'Reading X',xvals
@@ -105,33 +113,49 @@ function bootstrapCoeff_func(col_number)
                call create_spline(coef_spline_fluxavg_iBsq, nvals, xvals, yvals)
                deallocate(xvals, yvals) 
             end if
-      end if
+     end if
          
-         do j=1, npoints
+        
+     
+      do j=1, npoints
+         if (ibootstrap_map_te == 0) then
             call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
                  x_79(j),z_79(j),mr,psib)
             if(mr.eq.REGION_PF) then
                pso = 2.*psib - pso
             end if
             pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
- 
-            if(col_number==2)then  
-               call evaluate_spline(coef_spline_L31,pso,val,valp,valpp)
-            elseif(col_number==3)then  
-               call evaluate_spline(coef_spline_L32,pso,val,valp,valpp)
-            elseif(col_number==4)then  
-               call evaluate_spline(coef_spline_L34,pso,val,valp,valpp)
-            elseif(col_number==5)then 
-               call evaluate_spline(coef_spline_alpha,pso,val,valp,valpp) 
-            elseif(col_number==6)then 
-               call evaluate_spline(coef_spline_fluxavg_iBsq,pso,val,valp,valpp) 
+         else if (ibootstrap_map_te == 1) then
+            if(itemp == 1) then
+               pso = real(tet79(j,OP_1))
+            else
+               pso=pet79(j,OP_1)/net79(j,OP_1)
             endif
-            
+            !convert to pso to eV
+            pso=pso * (p0_norm / n0_norm) / 1.6022e-12
+         endif 
+         if(bootstrap_coef_0flag==1)then
+            temp79a(j) = 0
+         else
+            if(col_number==2)then  
+               call evaluate_spline(coef_spline_L31,pso,val,valp,valpp,extrapolate=1)
+            elseif(col_number==3)then  
+               call evaluate_spline(coef_spline_L32,pso,val,valp,valpp,extrapolate=1)
+            elseif(col_number==4)then  
+               call evaluate_spline(coef_spline_L34,pso,val,valp,valpp,extrapolate=1)
+            elseif(col_number==5)then 
+               call evaluate_spline(coef_spline_alpha,pso,val,valp,valpp,extrapolate=1) 
+            elseif(col_number==6)then 
+               call evaluate_spline(coef_spline_fluxavg_iBsq,pso,val,valp,valpp,extrapolate=1) 
+            endif
             temp79a(j) = val
             !if(myrank.eq.0) print *,'pso,val', pso, val
-         end do
+         endif
+      end do
+                 
+            
          
-         bootstrapCoeff_func = intx2(mu79(:,:,OP_1),temp79a)
+      bootstrapCoeff_func = intx2(mu79(:,:,OP_1),temp79a)
    end if
  
  end function bootstrapCoeff_func

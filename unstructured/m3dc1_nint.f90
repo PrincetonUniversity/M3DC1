@@ -1078,7 +1078,7 @@ contains
      end if
 
   endif
-  
+
   ! TI
   ! ~~~
   if(iand(fields, FIELD_TI).eq.FIELD_TI) then
