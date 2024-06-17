@@ -276,6 +276,9 @@ open_adas : download_open_adas $(OA_OBJS)
 bin : a2cc mackenbach_profiles
 	rm -fr bin
 	mkdir -p bin
+	if [ -z $(PUMI_UTIL_DIR) ]; then \
+		PUMI_UTIL_DIR=$(SCOREC_UTIL_DIR) ; \
+	fi
 	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin ; \
@@ -287,9 +290,9 @@ bin : a2cc mackenbach_profiles
 		ln -s $(SCOREC_UTIL_DIR)/seed0.smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/collapse bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/m3dc1_mfmgen bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/convert_sim_sms bin ; \
+		ln -s $(PUMI_UTIL_DIR)/m3dc1_meshgen bin ; \
+		ln -s $(PUMI_UTIL_DIR)/m3dc1_mfmgen bin ; \
+		ln -s $(PUMI_UTIL_DIR)/convert_sms bin ; \
 	fi
 	if [ -f $(SCOREC_UTIL_DIR)/split_smb/make_model ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
