@@ -86,7 +86,8 @@ Program Reducedquintic
   num_devices = acc_get_num_devices(acc_device_nvidia)
   if (num_devices == 0) num_devices = 1
   igpu=mod(myrank,num_devices)
-  !$acc set device_num(igpu)
+  !!$acc set device_num(igpu)
+  call acc_set_device_num(igpu,acc_device_default)
 #endif
 
   print_help = .false.
@@ -1074,6 +1075,7 @@ end subroutine rotation
        call get_element_nodes(itri, inode)
 
 #ifdef USEST
+       p2l_mat=0.
        do i=1, nodes_per_element 
           k = (i-1)*dofs_per_node + 1
 

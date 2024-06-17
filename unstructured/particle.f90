@@ -1596,7 +1596,7 @@ subroutine particle_step(pdt)
    integer :: istep, ierr, ipart
 
    !Advance particle positions
-   call calculate_electric_fields(linear_particle)
+   call calculate_electric_fields(linear)
    call get_field_coefs(0)
    call mpi_barrier(mpi_comm_world, ierr)
    !call MPI_Win_fence(0, win_elfieldcoefs)

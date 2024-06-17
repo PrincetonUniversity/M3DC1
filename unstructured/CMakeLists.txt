@@ -65,6 +65,7 @@ set(SOURCES
     gyroviscosity.f90
     bootstrap.f90
     metricterms_new.f90
+    # metricterms_new_gpu.f90
     two_fluid.f90
     harned_mikic.f90
     biharmonic.f90
@@ -130,6 +131,7 @@ set(SOURCES
     adapt.f90
     input.f90
     ludef_t.f90
+    # ludef_t_gpu.f90
     init_conds.f90
     # get_pc_skip_count.f90
     hypervisc.f90
@@ -277,16 +279,39 @@ else ()
     message(FATAL_ERROR "HDF5 not found.")
 endif ()
 
+pkg_search_module(NETCDF netcdf IMPORTED_TARGET REQUIRED)
+message(STATUS "Found NetCDF ${NETCDF_VERSION}")
+pkg_search_module(NETCDF-Fortran netcdf-fortran IMPORTED_TARGET REQUIRED)
+message(STATUS "Found NetCDF-Fortran ${NETCDF-Fortran_VERSION}")
+
+# find_package(netCDF-Fortran REQUIRED)
+# if (netCDF_FOUND)
+#     message(STATUS "netCDF found: ${netCDF_VERSION}")
+# else ()
+#     message(FATAL_ERROR "netCDF not found.")
+# endif ()
+
 #find_package(ZLIB)
 # find_package(GSL REQUIRED)
 # find_package(FFTW REQUIRED)
 
-find_package(MPI)
+find_package(MPI REQUIRED)
 
 set(M3DC1_SCOREC_LIB_NAME m3dc1_scorec)
 if(ENABLE_3D)
   set(BIN_NAME "${BIN_NAME}_3d")
   list(APPEND DEFS -DUSE3D -Dvectype=real -DMAX_PTS=125)
+  if(ENABLE_ST)
+    set(BIN_NAME "${BIN_NAME}_st")
+    list(APPEND DEFS -DUSEST)
+    # if(PAR)
+    #   set(POSTFIX "${POSTFIX}-pix")
+    # else()
+    #   set(POSTFIX "${POSTFIX}-complex")
+    # endif()
+  else()
+    list(APPEND DEFS -Dvectype=real)
+  endif()
   # set(POSTFIX "${POSTFIX}-125")
 else()
   set(BIN_NAME "${BIN_NAME}_2d")
@@ -373,24 +398,40 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray")
   set_source_files_properties( scorec_mesh.f90 PROPERTIES COMPILE_FLAGS -O0 )
   set_source_files_properties( transport.f90 PROPERTIES COMPILE_FLAGS -O0 )
   set_source_files_properties( particle.f90 PROPERTIES COMPILE_FLAGS -O1 )
-  set_source_files_properties( ludef_t.f90 PROPERTIES COMPILE_FLAGS -O0 )
-  set_source_files_properties( ludef_t_gpu.f90 PROPERTIES COMPILE_FLAGS -O0 )
+  set_source_files_properties( ludef_t.f90 PROPERTIES COMPILE_FLAGS -O1 )
+  set_source_files_properties( ludef_t_gpu.f90 PROPERTIES COMPILE_FLAGS -O1 )
 endif()
 add_executable(${BIN_NAME} ${SOURCES})
 # set_target_properties(${BIN_NAME} PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BIN_NAME}_mods)
 set_property(TARGET ${BIN_NAME} PROPERTY LINKER_LANGUAGE Fortran)
 target_include_directories(${BIN_NAME} PRIVATE ${SCOREC_INCLUDE_DIRS})
-target_link_libraries(${BIN_NAME} ${HDF5_HL_LIBRARIES} ${HDF5_LIBRARIES}
+target_link_libraries(${BIN_NAME} PkgConfig::NETCDF-Fortran PkgConfig::NETCDF
+  ${HDF5_HL_LIBRARIES} ${HDF5_LIBRARIES}
+ # netCDF::netcdff
   ${M3DC1_SCOREC_LIB_NAME} ${SCOREC_LIBRARIES} ${ZOLTAN_LIBRARIES}
   PkgConfig::PETSC PkgConfig::FFTW PkgConfig::GSL MPI::MPI_Fortran stdc++)
 # target_link_directories(m3dc1_2d ${PETSC_STATIC_LIBRARY_DIRECTORIES})
 target_compile_definitions(${BIN_NAME} PRIVATE ${DEFS})
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray")
   target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-s real64>)
+elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-fdefault-real-8>)
 else()
   target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-r8>)
 endif()
 install(TARGETS ${BIN_NAME} DESTINATION ".")
+# get_property(TTT TARGET m3dc1_3d PROPERTY
+#   INTERFACE_LINK_LIBRARIES)
+list(FILTER CMAKE_C_IMPLICIT_LINK_LIBRARIES EXCLUDE REGEX "^c$")
+list(FILTER CMAKE_CXX_IMPLICIT_LINK_LIBRARIES EXCLUDE REGEX "^c$")
+message(STATUS ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES})
+message(STATUS ${CMAKE_C_IMPLICIT_LINK_LIBRARIES})
+message(STATUS ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES})
+# set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES "")
+# set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
+# set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
+
+
 
 #find_package(PSPLINE)
 #add_executable(readgato polar.f90 readgato.f90)
