@@ -113,20 +113,23 @@ contains
 #ifdef USEST
     ilog = -1  ! before reading in geometry
     if (igeometry.gt.0) then ! do nothing when igeometry==0 
-        if (iread_vmec.ge.1) then ! read geometry from VMEC file
-            call process_vmec(myrank)
-            nperiods = nfp ! nfp may be read from VMEC geometry
-        else ! read boudary geometry
-            call read_boundary_geometry(myrank)
-        end if
-        ilog = 1       ! use logical basis funtions first
-        call physical_mesh_setup(toroidal_period)
+       if (iread_vmec.ge.1) then ! read geometry from VMEC file
+          call process_vmec(myrank)
+          if (mod(nfp, nperiods).ne.0 .and. ifull_torus.eq.0) then
+             if(myrank.eq.0) print *, 'Error: nfp must be divisible by nperiods'
+             call safestop(7)
+          end if 
+       else ! read boudary geometry
+          call read_boundary_geometry(myrank)
+       end if
+       ilog = 1       ! use logical basis funtions first
+       call physical_mesh_setup(toroidal_period)
     end if
 #endif
-    if(ifull_torus.eq.0) then
+    if(ifull_torus.eq.0 .and. nperiods.ne.1) then
        toroidal_period = toroidal_period/nperiods 
-       if(myrank.eq.0) print *, 'one field period...'
-    else if(ifull_torus.eq.1) then
+       if(myrank.eq.0) print *, '1/', nperiods, ' of a torus...'
+    else if(ifull_torus.eq.1 .or. nperiods.eq.1) then
        if(myrank.eq.0) print *, 'full torus...'
     end if
 
