@@ -55,6 +55,7 @@ endif
 
 SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+PUMI_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/2023.1-240113/bin
 
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
