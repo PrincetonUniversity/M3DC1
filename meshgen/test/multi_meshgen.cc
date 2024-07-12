@@ -682,10 +682,14 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 	    bool clockwise = curveOrientation(ctrlPts3D);
             if (clockwise)
 		edgeDir = 0;
+#ifndef SIM12
 	    if (numPts < 10 || loopNumber == vacuumLoopId)
+#endif
             	curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+#ifndef SIM12
 	    else
 		curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
+#endif
            if (numE == 1)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, startVert, curve, edgeDir, outerRegion);

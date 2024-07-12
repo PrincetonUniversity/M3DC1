@@ -7,22 +7,30 @@
    pdflatex M3DC1.tex
 
 3. load modules
-   source /scratch/app/modulos/intel-psxe-2019.sh
-   module load openmpi/icc/4.0.4 cmake git intel_psxe/2019
+   source /scratch/app/modulos/intel-psxe-2020.sh
+   module load intel_psxe/2020 gsl/2.7_intel_2020 gcc/8.4 zlib/1.2.11 
    export HOST=sdumont
 
 4. compile code
    for 2D real, make OPT=1
    for 2D complex, make OPT=1 COM=1
    for 3D real, make 3D=1 OPT=1 MAX_PTS=60
+   for 3D real with stellarator, 
+      module load netcdf/4.7_intel_2020 
+      make 3D=1 OPT=1 MAX_PTS=60 ST=1
 
 5. mesh utility
 (1) mesh generation 
-    /scratch/ntm/software/scorec/intel2019-openmpi4.0.4/sim12.0-181027/bin
+    module load intel_psxe/2020 
+    export LD_LIBRARY_PATH=/scratch/app/gcc/8.4/lib64:$LD_LIBRARY_PATH
+
+    then run m3dc1_meshgen or m3dc1_mfmgen in /scratch/ntm/software/scorec/intel-psxe2020/sim12.0-181027/bin
+
     See User's Guide Chapter 3 for details
+
 (2) other binaries 
-    /scratch/ntm/software/scorec/intel2019-openmpi4.0.4/petsc3.9.4/bin/
-    (See $SCOREC_UTIL_DIR)
+    /scratch/ntm/software/scorec/intel-psxe2020/petsc3.21.2/bin
+    (or $SCOREC_UTIL_DIR in sdumont.mk)
 
 6. run 
 (1) interactive mode
