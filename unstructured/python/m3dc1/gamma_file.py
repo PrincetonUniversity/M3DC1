@@ -12,7 +12,7 @@ class Gamma_file:
         datal2 = data[1].split()
         
         for l,line in enumerate(data):
-            print(l,line)
+            #print(l,line)
             if 'gamma' in line:
                 ind = l
                 break
@@ -65,6 +65,10 @@ class Gamma_file:
             print('WARNING: jelite not found!')
         if len(datal2)>=4:
             self.omegsti_max = float(datal2[3]) #Diamagnetic frequency NOT mulitplied by n, i.e. d pi / d psi / (ei ni)
+        if ind > 2:
+            datal3 = data[2].split()
+            self.ped_height = datal3[0]
+            self.ped_width = datal3[1]
         self.n_list = np.asarray(n_list,dtype=int)
         self.gamma_list = np.asarray(gamma_list)
         self.dgamma_list = np.asarray(dgamma_list)

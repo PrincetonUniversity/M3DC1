@@ -22,6 +22,7 @@ pro plot_br, bins=bins, q_val=q_val, $
      scale = replicate(scale, n_elements(filename))
 
    threed = read_parameter('3d', _EXTRA=extra, filename=filename[0])
+   version = read_parameter('version', _EXTRA=extra, filename=filename[0])
    print, '3D = ', threed
 
    if(n_elements(filename) gt 1 and n_elements(linfac) eq 0 and $
@@ -34,10 +35,21 @@ pro plot_br, bins=bins, q_val=q_val, $
                              filename=filename[0],tpoints=tpts)
       psi_z = read_field('psi',x,z,t,slice=slice,_EXTRA=extra,op=3, $
                          filename=filename[0],tpoints=tpts)
-      f_rp = read_field('f',x,z,t,slice=slice,_EXTRA=extra,op=12, $
-                             filename=filename[0],tpoints=tpts)
-      f_zp = read_field('f',x,z,t,slice=slice,_EXTRA=extra,op=13, $
-                             filename=filename[0],tpoints=tpts)
+      print, 'version = ', version
+      if(version lt 35) then begin
+         print, 'reading f'
+         f_rp = read_field('f',x,z,t,slice=slice,_EXTRA=extra,op=12, $
+                           filename=filename[0],tpoints=tpts)
+         f_zp = read_field('f',x,z,t,slice=slice,_EXTRA=extra,op=13, $
+                           filename=filename[0],tpoints=tpts)
+      endif else begin
+         print, 'reading fp'
+         f_rp = read_field('fp',x,z,t,slice=slice,_EXTRA=extra,op=2, $
+                           filename=filename[0],tpoints=tpts)
+         f_zp = read_field('fp',x,z,t,slice=slice,_EXTRA=extra,op=3, $
+                           filename=filename[0],tpoints=tpts)
+      end
+      
       i   = read_field('i'  ,x,z,t,slice=slice,_EXTRA=extra, $
                            filename=filename[0],tpoints=tpts)
 

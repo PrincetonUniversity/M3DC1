@@ -25,7 +25,7 @@ from m3dc1.plot_coils import plot_coils
 
 def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
                diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',res=250,
-               prange=None, cmap='viridis', cmap_midpt=None, quiet=False,
+               prange=None, cmap='viridis', cmap_midpt=None, clvl=100, quiet=False,
                save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False):
     """
     Plots a field in the R,Z plane.
@@ -97,6 +97,14 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
 
     **cmap**
     Color map to use for the contour plot, e.g. viridis, seismic, jet, nipy_spectral
+
+    **clvl**
+    Number of contour levels.
+
+    **prange**
+    Plot range to renormalize color map. Should be a list of length 2, defining the
+    minimum and maximum values of the field. Values outside of this range will have
+    the same color as the endpoints of the colormap.
 
     **cmap_midpt**
     If not None, set midpoint of colormap to cmap_midpt.
@@ -195,16 +203,16 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
                 norm = colors.DivergingNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
             else:
                 norm = colors.TwoSlopeNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
-            cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
+            cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap,norm=norm)
         else:
             if isinstance(prange,(tuple,list)):
-                if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
-                    norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
-                else:
-                    norm = colors.TwoSlopeNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
-                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap,norm=norm)
+                #if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
+                #    norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
+                #else:
+                #    norm = colors.TwoSlopeNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
+                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap,vmin=prange[0], vmax=prange[1])
             else:
-                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],100, cmap=cmap)
+                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap)
         # Set and format axes limits and labels
         if phys:
             ax.set_xlim([fpyl.get_axlim(np.amin(R_mesh),'min',0.1),fpyl.get_axlim(np.amax(R_mesh),'max',0.1)])

@@ -42,9 +42,6 @@ Program Reducedquintic
   integer :: ip
   character(len=32) :: mesh_file_name
   logical :: update_mesh
-#ifdef _OPENACC
-  integer :: num_devices
-#endif
 
   ! Initialize MPI
 #ifdef _OPENMP
@@ -81,7 +78,8 @@ Program Reducedquintic
   num_devices = acc_get_num_devices(acc_device_nvidia)
   if (num_devices == 0) num_devices = 1
   igpu=mod(myrank,num_devices)
-  !$acc set device_num(igpu)
+  !!$acc set device_num(igpu)
+  call acc_set_device_num(igpu,acc_device_default)
 #endif
 
   print_help = .false.
@@ -160,7 +158,7 @@ Program Reducedquintic
 
   ! load mesh
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Loading mesh nplane='
-  if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
+  !if(myrank==0 .and. nplanes.gt.1) call parse_solver_options(nplanes, trim(solveroption_filename)//PETSC_NULL_CHARACTER)
 
 #ifndef M3DC1_TRILINOS
   call m3dc1_matrix_setassembleoption(imatassemble)
@@ -264,6 +262,7 @@ Program Reducedquintic
   end if
 
   ntime0 = ntime
+  vloop0 = vloop
 
   ! zero-out scalar data
   call reset_scalars
@@ -335,6 +334,14 @@ Program Reducedquintic
 
   ! mark the fields necessary for solution transfer
   if (ispradapt .eq. 1) call marker
+  
+#ifdef USEPARTICLES
+  linear=1
+  if (kinetic.eq.1) then
+     call particle_test
+     !call safestop(0)
+  endif
+#endif
 
   ! output initial conditions
   call output
@@ -344,13 +351,6 @@ Program Reducedquintic
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
   call initialize_timestep
-
-#ifdef USEPARTICLES
-  if (kinetic.eq.1) then
-     call particle_test
-     !call safestop(0)
-  endif
-#endif
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
@@ -382,7 +382,8 @@ Program Reducedquintic
  1002 format(" LOOP TIME",i5, "   Tot",1pe12.4, "   compute",1pe12.4,"   solve",1pe12.4)
      endif
 
-     if(linear.eq.0 .and. eqsubtract.eq.0 .and. i_control%icontrol_type .ge. 0) then
+     if(linear.eq.0 .and. eqsubtract.eq.0) then
+        if(i_control%icontrol_type .ge. 0) then
      ! feedback control on toroidal current
           if(tcurf .ne. tcuri) then
           ! time varying target current
@@ -401,6 +402,9 @@ Program Reducedquintic
              print *, " After current feedback", &
              vloop, totcur, i_control%p, &
              i_control%target_val, i_control%err_p_old, i_control%err_i
+       else
+          vloop = vloop0*cos(2.*pi*vloop_freq*time)
+       endif
      endif
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .ge. 0) then
@@ -1063,6 +1067,7 @@ end subroutine rotation
        call get_element_nodes(itri, inode)
 
 #ifdef USEST
+       p2l_mat=0.
        do i=1, nodes_per_element 
           k = (i-1)*dofs_per_node + 1
 
@@ -1461,6 +1466,26 @@ else
         use_external_fields = .true.
      end if
 endif
+
+#ifdef USEPARTICLES
+     call create_field(p_f_par)
+     call create_field(p_f_perp)
+     call create_field(den_f_0)
+     call create_field(den_f_1)
+     call create_field(v_f_par)
+     call create_field(p_i_par)
+     call create_field(p_i_perp)
+     call create_field(den_i_0)
+     call create_field(den_i_1)
+     call create_field(rho_field)
+     call create_field(nf_field)
+     call create_field(tf_field)
+     call create_field(pf_field)
+     call create_field(nfi_field)
+     call create_field(tfi_field)
+     call create_field(pfi_field)
+#endif
+
      call create_auxiliary_fields
   endif
 
@@ -1540,7 +1565,7 @@ subroutine calculate_zeff(itri, z)
 
   z = z_ion**2*nt79(:,OP_1)
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      do i=1, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         z = z + i**2*tm79(:,OP_1)
@@ -1566,7 +1591,7 @@ subroutine calculate_qdfac(itri, z)
 
   z = z_ion**2 * nt79(:,OP_1) / ion_mass
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      do i=1, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         z = z + i**2 * tm79(:,OP_1) / kprad_mz

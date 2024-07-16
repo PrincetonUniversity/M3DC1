@@ -106,13 +106,14 @@ private:
   Mat remoteA;
 
   //block mg in toroidal direction
-  int BmgSet; //only for mymatrix_id=5 or 17, the hard ones
+  int BgmgSet; //only for mymatrix_id=5 or 17, the hard ones
   PetscInt mg_nlevels;  //default = 2
   //PC *pc;
   Mat *mg_interp_mat;
   KSP *mg_level_ksp;
   PC *mg_level_pc;
-  int setBmgType(); 
+  int setBgmgType(); 
+  int mapping(int, int, int, int, int, int, int, int, int *, int *, int *);
 
   // remoteA related data
   std::set<int>* remotePidOwned;

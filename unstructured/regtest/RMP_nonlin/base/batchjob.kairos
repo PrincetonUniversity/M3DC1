@@ -1,0 +1,21 @@
+#!/bin/sh
+#PBS -q debug
+#PBS -l nodes=2:ppn=32
+#PBS -l walltime=00:10:00
+##PBS -l mem=126GB
+#PBS -o C1stdout
+
+
+cd $PBS_O_WORKDIR
+
+touch started
+
+# partition mesh
+PARTS=16
+aprun -n $PARTS split_smb circle-0.10-0.0-0.0-1K.smb part.smb $PARTS
+echo $? > mesh_partitioned
+
+# Run M3D-C1
+aprun -n 64 m3dc1_3d -options_file options_bjacobi.type_superludist
+
+touch finished

@@ -171,7 +171,11 @@ subroutine init_perturbations
 
      ! calculate perturbed fields
 #ifdef USEST
-     call init_random(xl_79, phi_79, zl_79, ph179(:,OP_1))
+     if(igeometry.eq.1) then
+        call init_random(xl_79, phi_79, zl_79, ph179(:,OP_1))
+     else
+        call init_random(x_79-xmag, phi_79, z_79, ph179(:,OP_1))
+     endif
 #else
      call init_random(x_79-xmag, phi_79, z_79, ph179(:,OP_1))
 #endif
@@ -183,7 +187,11 @@ subroutine init_perturbations
         call magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ), &
              x_79(:), z_79(:), imr)
 
+#ifdef USEPARTICLES
+        where((imr.eq.REGION_PLASMA).and.(pt79(:,OP_1)>10*pedge))
+#else
         where(imr.eq.REGION_PLASMA)
+#endif
            temp79a(:) = (pt79(:,OP_1) - pedge)/p0
         elsewhere
            temp79a(:) = 0.
@@ -245,12 +253,12 @@ subroutine den_eq
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
   
-  def_fields = FIELD_PSI + FIELD_N
+  def_fields = FIELD_PSI + FIELD_N + FIELD_P
 
   numelms = local_elements()
   do itri=1,numelms
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-     call define_fields(itri,def_fields,1,0)
+     call define_fields(itri,def_fields,1,0,1)
      call get_zone(itri, izone)
 
      if(iread_ne.eq.0) then 
@@ -269,7 +277,19 @@ subroutine den_eq
               n079(:,OP_1) = n079(:,OP_1) &
                    + .5*(den_edge-den0)*(1. + tanh(real(temp79a)))
            end if
-   
+
+        ! idenfunc = 20 in lieu of 0 (unclear why 0 is disabled here). YZ
+        case(20) 
+           if(expn.eq.0.) then
+              n079(:,OP_1) = den0 + den_edge
+           else
+#ifndef USECOMPLEX
+              do ip = 1, MAX_PTS
+                 temp79a(ip) = max(p079(ip,OP_1), 0.)
+              end do
+#endif     
+              n079(:,OP_1) = den0*(temp79a/p0)**expn + den_edge
+           end if
 #ifdef USEST
         case(21)
            if(igeometry.eq.1) then
@@ -302,6 +322,50 @@ subroutine den_eq
 
   call newvar_solve(den_vec%vec,mass_mat_lhs)
   den_field(0) = den_vec
+
+#ifdef USEPARTICLES
+  den_vec=0.
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+     call get_zone(itri, izone)
+#ifdef USEST
+           if(igeometry.eq.1) then
+              temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+              n079(:,OP_1) = exp(-(temp79b/0.4**2))
+           else
+              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
+           end if
+#endif     
+     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  nf_field = den_vec
+
+  den_vec=0.
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+     call get_zone(itri, izone)
+#ifdef USEST
+           if(igeometry.eq.1) then
+              temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2+1e-8)
+              n079(:,OP_1) = 1-temp79b
+           else
+              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
+           end if
+#endif     
+     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  rho_field = den_vec
+   
+  tf_field=0.
+#endif
 
   call destroy_field(den_vec)
 

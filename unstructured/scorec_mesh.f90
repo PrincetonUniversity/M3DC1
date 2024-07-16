@@ -52,6 +52,18 @@ module scorec_mesh_mod
   integer, parameter :: max_zones = 20
   integer :: boundary_type(max_bounds)
   integer :: zone_type(max_zones)
+
+  integer :: offset_elms, global_elms, elms_per_plane
+
+  ! adjacency matrix info
+  integer, allocatable, dimension(:) :: n_adjacent ! num of adjacent elements
+  integer, allocatable, dimension(:,:) :: adjacent ! adjacent elements
+#ifdef USE3D
+  integer, parameter :: max_adj = 5
+#else
+  integer, parameter :: max_adj = 3
+#endif
+
 contains
 
   subroutine load_mesh
@@ -101,26 +113,27 @@ contains
 #ifdef USEST
     ilog = -1  ! before reading in geometry
     if (igeometry.gt.0) then ! do nothing when igeometry==0 
-        if (iread_vmec.ge.1) then ! read geometry from VMEC file
-            call process_vmec(myrank)
-            nperiods = nfp ! nfp may be read from VMEC geometry
-        else ! read boudary geometry
-            call read_boundary_geometry(myrank)
-        end if
-        ilog = 1       ! use logical basis funtions first
-        call physical_mesh_setup(toroidal_period)
+       if (iread_vmec.ge.1) then ! read geometry from VMEC file
+          call process_vmec(myrank)
+          if (mod(nfp, nperiods).ne.0 .and. ifull_torus.eq.0) then
+             if(myrank.eq.0) print *, 'Error: nfp must be divisible by nperiods'
+             call safestop(7)
+          end if 
+       else ! read boudary geometry
+          call read_boundary_geometry(myrank)
+       end if
+       ilog = 1       ! use logical basis funtions first
+       call physical_mesh_setup(toroidal_period)
     end if
 #endif
-    if(ifull_torus.eq.0) then
+    if(ifull_torus.eq.0 .and. nperiods.ne.1) then
        toroidal_period = toroidal_period/nperiods 
-       if(myrank.eq.0) print *, 'one field period...'
-    else if(ifull_torus.eq.1) then
+       if(myrank.eq.0) print *, '1/', nperiods, ' of a torus...'
+    else if(ifull_torus.eq.1 .or. nperiods.eq.1) then
        if(myrank.eq.0) print *, 'full torus...'
     end if
 
-#ifdef SNAP 
     if (iadapt_snap.eq.1) call m3dc1_model_settopo()
-#endif
 
 #ifdef USE3D   
     if(myrank.eq.0) print *, 'setting number of planes = ', nplanes
@@ -202,6 +215,9 @@ contains
     call m3dc1_mesh_load (name_buff)
 #endif
     call update_nodes_owned
+
+    call get_global_dims
+
     initialized = .true.
   end subroutine load_mesh
 
@@ -244,6 +260,33 @@ contains
        write(*,'(7f12.4)') x, z, normal(1), normal(2), curv
     end do
   end subroutine print_node_data
+
+  subroutine get_global_dims
+
+    implicit none
+
+    include 'mpif.h'
+
+    integer :: nelms, error
+
+    nelms = local_elements()
+
+  ! Calculate offset of current process
+    call mpi_scan(nelms, offset_elms, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, error)
+
+    offset_elms = offset_elms - nelms
+    ! print *, "[",myrank,"] hdf5_get_local_elms Offset ", offset
+
+!  call numglobalents(global_nodes, gobal_edges, global_elms, global_regions)
+!  print *, 'myrank, local_elms, global_elms, offset', &
+!       myrank, nelms, global_elms, offset
+    call mpi_allreduce(nelms, global_elms, 1, MPI_INTEGER, &
+         MPI_SUM, MPI_COMM_WORLD, error)
+
+    elms_per_plane = global_elms / nplanes
+
+  end subroutine get_global_dims
+
 
   !======================================================================
   ! local_plane
@@ -320,6 +363,74 @@ contains
     n(:)=n(:)+1
   end subroutine get_element_nodes
 
+  !==============================================================
+  subroutine populate_adjacency_matrix()
+    implicit none
+
+    integer :: nelms, gid_sz
+    integer :: i, j, k
+    integer, allocatable :: gids(:), pids(:), local_id(:)
+    integer :: adj_sz
+
+    nelms = local_elements()
+
+    gid_sz = max_adj*nelms
+
+    allocate(n_adjacent(nelms))
+    allocate(adjacent(max_adj, nelms))
+
+    allocate(local_id(nelms))
+    allocate(pids(gid_sz))
+    allocate(gids(gid_sz))
+
+    do i=1, nelms
+       local_id(i) = i-1
+    end do
+
+    n_adjacent = 0
+#ifdef USE3D
+    call m3dc1_ent_getglobaladj(3, local_id, nelms, 3, &
+         n_adjacent, pids, gids, gid_sz, adj_sz)
+#else
+    call m3dc1_ent_getglobaladj(2, local_id, nelms, 2, &
+         n_adjacent, pids, gids, gid_sz, adj_sz)
+#endif
+
+    k = 1
+    do i=1, nelms
+       do j=1, max_adj
+          if(j.le.n_adjacent(i)) then
+             adjacent(j,i) = gids(k)
+             k = k+1
+          else
+             adjacent(j,i) = -1
+          endif
+       end do
+!!$#ifdef USE3D
+!!$       ! Manually add toroidal adjacencies
+!!$       if(n_adjacent(i)+2 .gt. max_adj) then
+!!$          print *, 'Error: adding toroidal adjacencies results in n_adjacent > max_adj'
+!!$       else
+!!$          j = i-1-elms_per_plane
+!!$          if(j .lt. 0) j = j + global_elms
+!!$          adjacent(n_adjacent(i)+1,i) = j
+!!$
+!!$          j = i-1+elms_per_plane
+!!$          if(j .ge. global_elms) j = j - global_elms
+!!$          adjacent(n_adjacent(i)+2,i) = j
+!!$       end if
+!!$#endif
+    end do
+
+    deallocate(local_id, pids, gids)
+  end subroutine populate_adjacency_matrix
+
+  subroutine clear_adjacency_matrix
+    implicit none
+
+    deallocate(n_adjacent)
+    deallocate(adjacent)
+  end subroutine clear_adjacency_matrix
 
   !==============================================================
   ! get_bounding_box
@@ -827,7 +938,7 @@ contains
     real :: x, phi, z, c(3)
     logical :: is_bound(3), found_edge
 
-    integer :: iedge(3), izonedim, itri, ifaczone,ifaczonedim
+    integer :: iedge(3), iedge2(3), izonedim, itri, ifaczone,ifaczonedim
     integer :: num_adj_ent, numelm
     integer, intent(in), optional :: tags
 
@@ -857,6 +968,7 @@ contains
     end do
 
     is_edge = 0
+    iedge2 = iedge
     do i=1,3
        !call zonedg(iedge(i),izone,izonedim)
        call m3dc1_ent_getgeomclass(1, iedge(i)-1, izonedim, izone)
@@ -1005,6 +1117,7 @@ contains
     if(igeometry.eq.1.and.ilog.eq.0) then
        call get_element_nodes(itri, inode)
     end if
+    l2p_mat = 0.
 #endif
     do i=1, nodes_per_element
        j = (i-1)*dofs_per_node+1

@@ -315,6 +315,7 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,
         if not quiet:
             if len(renormstr) > 0:
                 print('Renormalization found at '+renormstr)
+    
     if returnas=='tuple':
         return time, values, label, unitlabel
     elif returnas=='time_trace':
@@ -445,7 +446,7 @@ def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
     flat = 1
     perform_manual_check = False
     
-    if abs(dgamma/gamma) > 0.2: #Original value was 0.1
+    if abs(dgamma/gamma) > 0.5: #Original value was 0.1
         fpyl.printwarn('WARNING: gamma is not constant for n='+str(n)+'!')
         flat = 0
         
@@ -578,7 +579,7 @@ def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
             #plot_time_trace_fast('ke',units=units,filename=filename,growth=True,renorm=True,yscale='linear',save=False)
             stability = colored('UNSTABLE','yellow') if gamma > 0 else colored('STABLE','green')
             print(stability + ' with gamma='+str(gamma))
-            mono_input = fpyl.prompt('Is the calculated growth rate acceptable? (y/n) : ',['y','n'])
+            mono_input = fpyl.prompt('Is the calculated growth rate correct? (y/n) : ',['y','n'])
             if mono_input == 'y':
                 gamma_set_manu = 1
             else:

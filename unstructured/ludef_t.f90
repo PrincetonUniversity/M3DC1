@@ -588,14 +588,18 @@ subroutine vorticity_nolin(trialx, r4term)
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
-                 (v1par(trialx,ppar79)    &
-                + v1parb2ipsipsi(trialx,ppar79,b2i79,pstx79,pstx79)  &
-                + v1parb2ipsib(trialx,ppar79,b2i79,pstx79,bztx79)    &
-                - v1par(trialx,pper79)    &
-                - v1parb2ipsipsi(trialx,pper79,b2i79,pstx79,pstx79)  &
-                - v1parb2ipsib(trialx,pper79,b2i79,pstx79,bztx79))
-  endif
+     r4term = r4term + 1.0*dt*(( &
+                 v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                -0.5*v1p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
+                + v1jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+               ) &
+            )  
+    endif
 #endif
 
   if(linear.eq.1) return
@@ -1113,17 +1117,22 @@ subroutine axial_vel_nolin(trialx, r4term)
      end if
   end if
 
-
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
-                 (v2parpb2ipsipsi(trialx,pper79,b2i79,pstx79,pstx79)   &
-                - v2parpb2ipsib  (trialx,pper79,b2i79,pstx79,bztx79)   &
-                + v2parpb2ibb    (trialx,ppar79,b2i79,bztx79,bztx79)   &
-                + v2parpb2ipsib  (trialx,ppar79,b2i79,pstx79,bztx79))
-  endif
+     r4term = r4term + 1.0*dt*(( &
+                 v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
+                + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+             ) &
+            )  
+   endif
 #endif
 
   ! density terms
@@ -1698,14 +1707,18 @@ subroutine compression_nolin(trialx, r4term)
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
-                 (v3par(trialx,ppar79)    &
-                + v3parb2ipsipsi(trialx,ppar79,b2i79,pstx79,pstx79)  &
-                + v3parb2ipsib(trialx,ppar79,b2i79,pstx79,bztx79)    &
-                - v3par(trialx,pper79)    &
-                - v3parb2ipsipsi(trialx,pper79,b2i79,pstx79,pstx79)  &
-                - v3parb2ipsib(trialx,pper79,b2i79,pstx79,bztx79))
-  endif
+     r4term = r4term + 1.0*dt*(( &
+                 v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 + v3p(trialx,pfper79) -v3pbb(trialx,pfper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
+                + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+             ) &
+            )  
+   endif
 #endif
 
 end subroutine compression_nolin
@@ -1828,6 +1841,13 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      end if
   endif
 
+  if(jadv.eq.0) then
+     ! electrostatic potential
+     ! ~~~~~~~~~~~~~~~~~~~~~~~
+     tempx = b1e(trialx,lin)
+     ssterm(:,e_g) = ssterm(:,e_g)       - thimpe     *dt*tempx
+     ddterm(:,e_g) = ddterm(:,e_g) + (1. - thimpe*bdf)*dt*tempx
+  endif
 
   ! Zone 3: eta J = 0.
   if(izone.eq.ZONE_VACUUM) return
@@ -2079,14 +2099,6 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
      end if
   end if
 
-
-  if(jadv.eq.0) then
-     ! electrostatic potential
-     ! ~~~~~~~~~~~~~~~~~~~~~~~
-     tempx = b1e(trialx,lin)
-     ssterm(:,e_g) = ssterm(:,e_g)       - thimpe     *dt*tempx
-     ddterm(:,e_g) = ddterm(:,e_g) + (1. - thimpe*bdf)*dt*tempx
-  endif
 
 
   select case (itwofluid)
@@ -2722,18 +2734,18 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
      if (irunaway .gt. 0) then
        tempx = b2jrepsieta  (trialx,nre179,lin,eta79,bi79)
        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpb     *dt*tempx
-       ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpb*bdf)*dt*tempx
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpb*bdf)*dt*tempx
        tempx = b2jrepsieta  (trialx,lin,ps179,eta79,bi79)
        ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
-       ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+       ddterm(:,nre_g) = ddterm(:,nre_g) + (.5-thimpb*bdf)*dt*tempx
 
         if (i3d == 1) then
           tempx = b2jrefeta       (trialx,lin,bfp179,eta79,bi79)
           ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
-          ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+          ddterm(:,nre_g) = ddterm(:,nre_g) + (.5-thimpb*bdf)*dt*tempx
           tempx = b2jrefeta       (trialx,nre179,lin,eta79,bi79)
           r_bf = r_bf -     thimpb     *dt*tempx
-          q_bf = q_bf + (1.-thimpb*bdf)*dt*tempx
+          q_bf = q_bf + (.5-thimpb*bdf)*dt*tempx
         endif
      endif
 
@@ -2764,18 +2776,18 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
 
      !NRE term
      if (irunaway .gt. 0) then
-       tempx = b2jrepsieta  (trialx,nre179,lin,eta79,bi79)
+       tempx = b2jrepsieta  (trialx,nre079,lin,eta79,bi79)
        ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpb     *dt*tempx
        ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpb*bdf)*dt*tempx
-       tempx = b2jrepsieta  (trialx,lin,ps179,eta79,bi79)
+       tempx = b2jrepsieta  (trialx,lin,ps079,eta79,bi79)
        ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
        ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
 
         if (i3d == 1) then
-          tempx = b2jrefeta       (trialx,lin,bfp179,eta79,bi79)
+          tempx = b2jrefeta       (trialx,lin,bfp079,eta79,bi79)
           ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
           ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
-          tempx = b2jrefeta       (trialx,nre179,lin,eta79,bi79)
+          tempx = b2jrefeta       (trialx,nre079,lin,eta79,bi79)
           r_bf = r_bf -     thimpb     *dt*tempx
           q_bf = q_bf + (1.-thimpb*bdf)*dt*tempx
         endif
@@ -3486,7 +3498,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
   endif
 
   if(eqsubtract.eq.1) then
-     if(kinetic.eq.0) then
+     if(kinetic.le.1) then
         tempx = p1pu(trialx,pp079,lin)
         ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
@@ -3509,7 +3521,7 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
         ssterm(:,pp_g) = ssterm(:,pp_g) -     thimp     *dt*tempx
         ddterm(:,pp_g) = ddterm(:,pp_g) + (1.-thimp*bdf)*dt*tempx
 
-     else   ! on kinetic.eq.0
+     else   ! on kinetic.le.1
         if(total_pressure) then
            tempx = pperpu(trialx,ppt79,lin)  &
                 + pperpupsipsib2(trialx,ppt79,lin,pstx79,pstx79,b2i79)  &
@@ -4823,6 +4835,77 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 
 end subroutine ludefall
 
+#ifdef USEPARTICLES
+subroutine ludefvel_nolin
+
+   use mesh_mod
+   use basic
+   use arrays
+   use sparse
+   use m3dc1_nint
+   use diagnostics
+   use boundary_conditions
+   use time_step
+   use matrix_mod
+   use transport_coefficients
+   use gyroviscosity
+   use runaway_mod
+   use auxiliary_fields
+
+   implicit none
+
+   vectype, dimension(dofs_per_element) :: r4
+   integer :: k, itri, izone
+   integer :: ieq(3)
+   integer, dimension(dofs_per_element) :: imask
+   type(vector_type), pointer :: vsource
+
+   ieq(1) = u_i
+   ieq(2) = vz_i
+   ieq(3) = chi_i
+
+   if (isplitstep .ge. 1) then
+      vsource => r4_vec
+   else
+      vsource => q4_vec
+   end if
+   vsource = 0.
+   do itri = 1, local_elements()
+
+      call get_zone(itri, izone)
+
+      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+      call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_P + FIELD_B2I + FIELD_KIN, 1, linear)
+      !call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_P + FIELD_PHI + FIELD_V + FIELD_CHI + FIELD_ETA + FIELD_MU + FIELD_N + FIELD_NI+FIELD_B2I+FIELD_KIN, 1, 1)
+
+      do k = 1, numvar
+         r4 = 0.
+         if (izone .eq. ZONE_PLASMA) then
+            select case (k)
+            case (1)
+               call vorticity_nolin(mu79, r4)
+            case (2)
+               call axial_vel_nolin(mu79, r4)
+            case (3)
+               call compression_nolin(mu79, r4)
+            end select
+            select case (k)
+            case (1)
+               call get_vor_mask(itri, imask)
+            case (2)
+               call get_vz_mask(itri, imask)
+            case (3)
+               call get_chi_mask(itri, imask)
+            end select
+         end if
+         call apply_boundary_mask_vec(itri, 0, r4, imask)
+         call vector_insert_block(vsource, itri, ieq(k), r4, VEC_ADD)
+      end do
+
+   end do
+   call sum_shared(vsource)
+end subroutine ludefvel_nolin
+#endif
 
 !======================================================================
 ! ludefvel_n
@@ -5167,7 +5250,7 @@ subroutine ludefphi_n(itri)
            if(jadv.eq.0) then
               do i=1,dofs_per_element
                  call potential_lin(mu79(i,:,:),nu79(j,:,:), &
-                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j))
+                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j),izone)
               end do
            else   !jadv.eq.1
               do i=1,dofs_per_element

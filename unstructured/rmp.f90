@@ -21,7 +21,7 @@ module rmp
 contains
 
 !==============================================================================
-subroutine rmp_per
+subroutine rmp_per(ilin)
   use basic
   use arrays
   use coils
@@ -32,6 +32,7 @@ subroutine rmp_per
 
   integer :: l, ierr
   character(len=13) :: ext_field_name
+  integer, intent(in), optional :: ilin
 
   if(type_ext_field.le.0) then ! RMP field
      if(iread_ext_field.ge.1) allocate(sf(iread_ext_field))
@@ -61,7 +62,7 @@ subroutine rmp_per
   end if
 
   ! calculate external fields from non-axisymmetric coils and external field
-  call calculate_external_fields
+  call calculate_external_fields(ilin)
 
   ! unload data
   call deallocate_sf
@@ -75,6 +76,7 @@ subroutine load_stellarator_field
   use basic
   use arrays
   use coils
+  use init_common 
   use boundary_conditions
   use read_schaffer_field
 
@@ -86,7 +88,7 @@ subroutine load_stellarator_field
   if(type_ext_field.eq.1) then ! Free boundary stellarator (no field subtraction)
 
     call read_stellarator_field(file_total_field)
-    call calculate_external_fields
+    call calculate_external_fields(0)
     call deallocate_sf
 
   else if(type_ext_field.eq.2 .and. extsubtract.eq.1) then ! With field substraction 
@@ -94,7 +96,7 @@ subroutine load_stellarator_field
     ! First load the total field while temporarily setting extsubtract=0
     extsubtract = 0
     call read_stellarator_field(file_total_field)
-    call calculate_external_fields
+    call calculate_external_fields(0)
     call deallocate_sf
     ! Then reset extsubtract=1
     extsubtract = 1
@@ -109,6 +111,7 @@ subroutine load_stellarator_field
     call safestop(57)
 
   end if
+  call init_perturbations
 
 end subroutine load_stellarator_field
 
@@ -127,18 +130,27 @@ subroutine read_stellarator_field(field_name)
 
   if(field_name(1:10).eq.'fieldlines') then
     call load_fieldlines_field(sf(iread_ext_field), field_name,ierr)
+  else if(field_name(1:4).eq.'mips') then
+    call load_mips_field(sf(iread_ext_field), field_name, ierr)
 #ifdef USEST
+  else if(field_name(1:4).eq.'hint') then
+    call load_hint_field(sf(iread_ext_field), field_name, ierr)
   else if(field_name(1:5).eq.'mgrid') then
     call load_mgrid_field(sf(iread_ext_field), field_name, vmec_filename, ierr)
 #endif
   else
-    if(myrank.eq.0) print *, &
-      'ERROR: Invalid ext_field. Currently only FIELDLINES and MGRID supported'
-    call safestop(51)
+! Use Schaffer field as fall back
+    call load_schaffer_field(sf(iread_ext_field),field_name,isample_ext_field, &
+            isample_ext_field_pol,ierr)
   end if
   if(ierr.lt.0) then 
      if(myrank.eq.0) then 
         print *, "Error: could not open file: ", field_name
+        print *, "FIELDLINES filename should begin with fieldlines"
+        print *, "HINT filename should begin with hint"
+        print *, "MGRID filename should begin with mgrid"
+        print *, "MIPS filename should begin with mips"
+        print *, "Other filenames will be treated as Schaffer format"
      end if
      call safestop(50)
   end if
@@ -384,7 +396,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 end subroutine rmp_field
 
 
-subroutine calculate_external_fields
+subroutine calculate_external_fields(ilin)
   use basic
   use math
   use mesh_mod
@@ -403,6 +415,8 @@ subroutine calculate_external_fields
   type(matrix_type) :: br_mat, bf_mat
   type(vector_type) :: psi_vec, bz_vec, p_vec, bf_vec
   integer :: i, itri, nelms, ier, ibound, ipsibound
+  integer, intent(in), optional :: ilin
+  integer :: il
 
   vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
   vectype, dimension(dofs_per_element,2) :: temp2
@@ -412,6 +426,12 @@ subroutine calculate_external_fields
   type(field_type) :: psi_f, bz_f, p_f, bf_f, bfp_f
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
+
+  if(.not.present(ilin)) then
+     il = 1
+  else 
+     il = ilin
+  end if
 
   if(irmp.eq.1) then
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
@@ -582,15 +602,9 @@ subroutine calculate_external_fields
      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."
 
      call newsolve(mass_mat_lhs%mat,p_vec,ier)
-     if(itaylor.eq.41) then
-        p_field(0) = p_f
-        pe_field(0) = p_f
-        call mult(pe_field(0), pefac) 
-     else 
-        p_field(1) = p_f
-        pe_field(1) = p_f
-        call mult(pe_field(1), pefac) 
-     end if
+     p_field(il) = p_f
+     pe_field(il) = p_f
+     call mult(pe_field(il), pefac) 
   end if
 
   call boundary_dc(bf_vec,mat=bf_mat)
@@ -611,14 +625,11 @@ subroutine calculate_external_fields
           call mult(bz_f, -1.)
           call mult(bf_f, -1.)
           call add(bz_field(0), bz_f)
-          call add(bf_field(0), bf_f) 
+          call add(bf_field(0), bf_f)
         end if
-     else if(itaylor.eq.41) then
-        bz_field(0) = bz_f
-        bf_field(0) = bf_f
      else
-        bz_field(1) = bz_f
-        bf_field(1) = bf_f
+        bz_field(il) = bz_f
+        bf_field(il) = bf_f
      end if
   end if
 
@@ -638,29 +649,17 @@ subroutine calculate_external_fields
        call add(psi_field(0), psi_f)
        call add(bfp_field(0), bfp_f) 
      end if
-  else if(itaylor.eq.41) then
-     psi_field(0) = psi_f
-     bfp_field(0) = bfp_f
   else
-     psi_field(1) = psi_f
-     bfp_field(1) = bfp_f
+     psi_field(il) = psi_f
+     bfp_field(il) = bfp_f
   end if
 
   if(iflip_b.eq.1) then 
-     if(itaylor.eq.41) then
-        call mult(bz_field(0), -1.)
-     else
-        call mult(bz_field(1), -1.)
-     end if
+     call mult(bz_field(il), -1.)
   end if
   if(iflip_j.eq.1) then
-     if(itaylor.eq.41) then
-        call mult(psi_field(0), -1.)
-        call mult(bfp_field(0), -1.)
-     else 
-        call mult(psi_field(1), -1.)
-        call mult(bfp_field(1), -1.)
-     end if
+     call mult(psi_field(il), -1.)
+     call mult(bfp_field(il), -1.)
   end if
 
   call destroy_vector(psi_vec)
@@ -745,8 +744,6 @@ subroutine tf_shift_tilt
   call newvar_solve(ff%vec, mass_mat_lhs)
   if(extsubtract.eq.1) then 
      call add(bf_ext, ff)
-  else if(itaylor.eq.41) then
-     call add(bf_field(0), ff)
   else
      call add(bf_field(1), ff)
   end if
@@ -755,8 +752,6 @@ subroutine tf_shift_tilt
   call newsolve(mass_mat_lhs%mat, fpf%vec, ier)
   if(extsubtract.eq.1) then
      call add(bfp_ext, fpf)
-  else if(itaylor.eq.41) then
-     call add(bfp_field(0), fpf)
   else
      call add(bfp_field(1), fpf)
   end if
@@ -765,8 +760,6 @@ subroutine tf_shift_tilt
   call newsolve(mass_mat_lhs%mat, bzf%vec, ier)
   if(extsubtract.eq.1) then
      call add(bz_ext, bzf)
-  else if(itaylor.eq.41) then
-     call add(bz_field(0), bzf)
   else 
      call add(bz_field(1), bzf)
   end if

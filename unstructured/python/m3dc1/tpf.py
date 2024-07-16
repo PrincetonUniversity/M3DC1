@@ -30,6 +30,11 @@ def tpf(field, method='sum', coord='scalar', row=1, sim=None, filename='C1.h5', 
     **field**
     The field that is to be plotted, i.e. 'B', 'j', etc.
 
+    **method**
+    Method for integration. Options are 'sum' and 'spline'.
+    'sum' integrates by summing up array elements/
+    'spline' uses the integral method of RectBivariateSpline.
+
     **coord**
     The chosen part of a vector field to be plotted, options are:
     'phi', 'R', 'Z', 'poloidal', 'radial', 'scalar', 'vector', 'tensor'.
@@ -186,6 +191,11 @@ def tpf_vs_t(field, method='sum', coord='scalar', row=1, filename='C1.h5', phi_r
     **field**
     The field that is to be plotted, i.e. 'B', 'j', etc.
 
+    **method**
+    Method for integration. Options are 'sum' and 'spline'.
+    'sum' integrates by summing up array elements/
+    'spline' uses the integral method of RectBivariateSpline.
+
     **coord**
     The chosen part of a vector field to be plotted, options are:
     'phi', 'R', 'Z', 'poloidal', 'radial', 'scalar', 'vector', 'tensor'.
@@ -206,6 +216,10 @@ def tpf_vs_t(field, method='sum', coord='scalar', row=1, filename='C1.h5', phi_r
 
     **phi_res**
     Number of points in direction of the toroidal angle.
+
+    **ts_range**
+    Range of time slices. Can be a tupel/list of two or three numbers:
+    (start, end) or (start, end, step).
 
     **linear**
     Plot the linear part of the field (so the equilibrium is subtracted).
@@ -236,6 +250,12 @@ def tpf_vs_t(field, method='sum', coord='scalar', row=1, filename='C1.h5', phi_r
     **phys**
     Use True for plotting in physical (stellarator) geometry.
 
+    **write_to_file**
+    If True, write TPF as function of time to ASCII file.
+
+    **filepath**
+    Directory where TPF output is written. Default is current working directory.
+
     **quiet**
     If True, suppress output to terminal.
     """
@@ -261,6 +281,7 @@ def tpf_vs_t(field, method='sum', coord='scalar', row=1, filename='C1.h5', phi_r
     if write_to_file:
         outfile = filepath + 'TPF_'+field+'_t_'+str(ts_list[0])+'-'+str(ts_list[-1])+'.dat'
         f = open(outfile, 'w')
+        f.close()
     
     #Calculate TPF for each chosen time slice
     for ts in ts_list:
@@ -273,10 +294,12 @@ def tpf_vs_t(field, method='sum', coord='scalar', row=1, filename='C1.h5', phi_r
         time_at_ts.append(t)
         tpf_list.append(pf)
         if write_to_file:
+            f = open(outfile, 'a')
             f.write(str(t) + '    ' + str(pf) + '\n')
+            f.close()
     
-    if write_to_file:
-        f.close()
+    #if write_to_file:
+    #    f.close()
     
     ### Plot the field ###
     # Set font sizes and plot style parameters

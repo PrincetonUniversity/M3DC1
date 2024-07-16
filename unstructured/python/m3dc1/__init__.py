@@ -46,9 +46,16 @@ from m3dc1.tpf                  import tpf
 from m3dc1.tpf                  import tpf_vs_t
 from m3dc1                      import read_h5
 from m3dc1.compare_kinetic_profiles         import compare_kinetic_profiles
+from m3dc1.injection_rate       import injection_rate
+
+from m3dc1.get_time_of_slice    import get_time_of_slice
 
 from m3dc1.extract_profiles     import extract_profiles
 from m3dc1.extract_profiles     import convert_p
+
+from m3dc1.poincare             import run_trace
+from m3dc1.poincare             import plot_poincare
+from m3dc1.poincare             import poincare_movie
 
 from m3dc1.gfile                import read_gfile
 from m3dc1.gfile                import plot_gfile
@@ -57,9 +64,11 @@ from m3dc1.gfile                import plot_jphi
 
 from m3dc1.plot_coils           import plot_coils
 
-from m3dc1.get_time_of_slice    import get_time_of_slice
+from m3dc1.plot_mag_probes      import plot_mag_probes
+
+from m3dc1.write_field          import write_field
 from m3dc1.reduce_ts            import reduce_ts
-from m3dc1.input_vs_t       import input_vs_t
+from m3dc1.input_vs_t           import input_vs_t
 
 #Modules in development
 try:

@@ -23,8 +23,7 @@ else
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
 endif
 
-#SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)
-SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSC_VER)
+SCOREC_BASE_DIR=/projects/M3DC1/scorec/traverse/$(MPIVER)/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)

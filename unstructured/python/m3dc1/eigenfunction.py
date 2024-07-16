@@ -7,6 +7,7 @@ Created on February 29 2020
 """
 import math
 import numpy as np
+import glob
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from scipy.fft import rfft
@@ -25,7 +26,7 @@ from m3dc1.plot_coils import plot_coils
 
 def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,show_res=False,
                   device='nstx',norm_to_unity=False,drop_low_m=-1,nummodes=10,cmap='jet',coils=False,mesh=False,bound=False,quiet=False, phys=False,pub=False,n=None,titlestr=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither',
-                  export=False):
+                  in_plot_txt=None,export=False,figsize=None):
     """
     Calculates the linear eigenfunction ~(p1-p0)
 
@@ -226,6 +227,15 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
             spec[:,i] = np.abs(spec[:,i])
         spec_abs = np.abs(spec)
     
+    
+    #Determine toroidal mode number n if not specified via argument
+    if n is None:
+        path = sims[0].filename[:-6]
+        paramfile = fpyl.get_input_parameter_file(directory=path)
+        #print(slurmfile)
+        n = int(fpyl.get_parameter_from_ascii('ntor',paramfile,quiet=True))
+    
+    
     # Plot eigenfunction in R-Z plane
     if makeplot:
         # Set font sizes and plot style parameters
@@ -245,7 +255,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
             ticklblfs = None
             legfs = None
             linew = 1
-        fig = plt.figure()
+        fig = plt.figure(figsize=figsize)
         
         ef_field = np.concatenate((ef,np.reshape(ef[0,:],(1,len(ef[0,:])))))
         
@@ -322,7 +332,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
                 fac = 1.0/specmax
             else:
                 fac = 1.0
-            plt.figure()
+            plt.figure(figsize=figsize)
             #print(mmax_ind[-nummodes:])
             if export:
                 np.savetxt('ef_spectrum.txt', np.insert(fac*spec_abs,0,fc.psi_norm,0))
@@ -355,6 +365,9 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
             if n is not None and titlestr is None:
                 titlestr = 'n='+str(int(n))
             plt.title(titlestr,fontsize=titlefs)
+            
+            if in_plot_txt is not None:
+                plt.text(0.06, 0.9,in_plot_txt, ha='center', va='center', transform=ax.transAxes,fontsize=titlefs+2)
             
             if nummodes>0:
                 plt.legend(ncol=2,fontsize=legfs)

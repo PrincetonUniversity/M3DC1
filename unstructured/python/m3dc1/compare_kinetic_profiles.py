@@ -16,7 +16,9 @@ from m3dc1.flux_average import flux_average
 from m3dc1.flux_coordinates import flux_coordinates
 #rc('text', usetex=True)
 
-def compare_kinetic_profiles(sim=None, coord='scalar', fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, units='mks', fac=1, phit=0, rms=False,pub=False,ls='-',xlimits=[None,None],ylimits=[None,None],show_legend=False,leglbl=None, fignum=None,figsize=None):
+def compare_kinetic_profiles(sim=None, fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, units='mks',
+                             fac=1, phit=0, pub=False, ls='-', xlimits=[None,None], ylimits=[None,None],
+                             show_legend=True, leglbl=None, fignum=None, figsize=None):
     """
     Plots flux average of total pressure, electron pressure and ion pressure
     
@@ -25,9 +27,6 @@ def compare_kinetic_profiles(sim=None, coord='scalar', fcoords='pest', deriv=0, 
     **sim**
     simulation sim_data objects. If none is provided, plot_field will read a file and create
     an object.
-
-    **coord**
-    For vector fields, component of field to flux average, e.g. R, phi, Z
 
     **fcoords**
     Name of desired flux coordinate system : 'pest', 'boozer', 'hamada', canonical, ''
@@ -92,11 +91,11 @@ def compare_kinetic_profiles(sim=None, coord='scalar', fcoords='pest', deriv=0, 
             print("FCOORDS SET TO NOTHING")
         sim = flux_coordinates(sim=sim, fcoords=fcoords, filename=filename, time=time, points=points, phit=phit,psin_range=None)
     
-    flux_ptot, ptot = flux_average('p',coord=coord,sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
-    flux_ne, ne = flux_average('ne',coord=coord,sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
-    flux_te, te = flux_average('te',coord=coord,sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
-    flux_ni, ni = flux_average('ni',coord=coord,sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
-    flux_ti, ti = flux_average('ti',coord=coord,sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
+    flux_ptot, ptot = flux_average('p',coord='scalar',sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
+    flux_ne, ne = flux_average('ne',coord='scalar',sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
+    flux_te, te = flux_average('te',coord='scalar',sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
+    flux_ni, ni = flux_average('ni',coord='scalar',sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
+    flux_ti, ti = flux_average('ti',coord='scalar',sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
     
     if not np.all(flux_ne==flux_te):
         fpyl.printwarn('WARNING: fluxes for ne and te are not identical!')
@@ -125,6 +124,7 @@ def compare_kinetic_profiles(sim=None, coord='scalar', fcoords='pest', deriv=0, 
         legfs = None
         leghandlen = 2.0
     
+    # Plot pressure
     plt.figure(num=fignum,figsize=figsize)
     plt.plot(flux_ptot, ptot*fac, lw=linew,ls=ls,label='total pressure')
     plt.plot(flux_ne, pe*fac, lw=linew,ls=ls,label='electron pressure')
@@ -139,7 +139,7 @@ def compare_kinetic_profiles(sim=None, coord='scalar', fcoords='pest', deriv=0, 
     ylbl = 'pressure'
     if units=='mks':
         ylbl = ylbl + ' (Pa)'
-        
+    plt.ylabel(ylbl,fontsize=axlblfs)
     #plt.ylabel(ylbl,fontsize=axlblfs)
     ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
     
@@ -147,5 +147,38 @@ def compare_kinetic_profiles(sim=None, coord='scalar', fcoords='pest', deriv=0, 
         plt.legend(loc=0,fontsize=legfs,handlelength=leghandlen)
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
+    
+    fig2num = plt.gcf().number+1 if fignum is None else fignum+1
+    
+    # Plot density
+    plt.figure(num=fig2num,figsize=figsize)
+    #plt.plot(flux_ni, ne+ni, lw=linew,ls=ls,label='total density')
+    plt.plot(flux_ne, ne, lw=linew,ls=ls,label='electron density')
+    plt.plot(flux_ni, ni, lw=linew,ls=ls,label='ion density')
+    ax = plt.gca()
+    plt.grid(True)
+    plt.xlabel(r'$\psi_N$',fontsize=axlblfs)
+    ylbl = 'density'
+    plt.ylabel(ylbl,fontsize=axlblfs)
+    ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
+    if show_legend:
+        plt.legend(loc=0,fontsize=legfs,handlelength=leghandlen)
+    plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
+    
+    # Plot temperature
+    plt.figure(num=fig2num+1,figsize=figsize)
+    plt.plot(flux_te, te, lw=linew,ls=ls,label='electron temperature')
+    plt.plot(flux_ti, ti, lw=linew,ls=ls,label='ion temperature')
+    ax = plt.gca()
+    plt.grid(True)
+    plt.xlabel(r'$\psi_N$',fontsize=axlblfs)
+    ylbl = 'temperature'
+    plt.ylabel(ylbl,fontsize=axlblfs)
+    if units=='mks':
+        ylbl = ylbl + ' (eV)'
+    ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
+    if show_legend:
+        plt.legend(loc=0,fontsize=legfs,handlelength=leghandlen)
+    plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
     return

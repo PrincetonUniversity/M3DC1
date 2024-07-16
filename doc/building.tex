@@ -2,6 +2,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{License Agreement}
+\label{sec:license}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 M3D-C1 is a code developed with funding from the US Department of
@@ -34,19 +35,16 @@ including:
 \begin{description}
 \item{GA Iris}:\\
   \texttt{module use /fusion/projects/codes/m3dc1/modules}\\
-  \texttt{module load m3dc1/1.13}
-\item{NERSC Cori}:\\
-  \texttt{module use /global/cfs/projectdirs/mp288/C1/modules/cori}\\
-  \texttt{module load m3dc1/1.13-haswell}\quad
-  for Phase I (Haswell) partition\\
-  \texttt{module load m3dc1/1.13-knl}\quad
-  for Phase II (KNL) partition
+  \texttt{module load m3dc1/1.14}
+\item{NERSC Perlmutter}:\\
+  \texttt{module use /global/cfs/projectdirs/mp288/C1/modules/perlmutter}\\
+  \texttt{module load m3dc1/1.14-cpu}
 \item{PPPL Cluster}:\\
   \texttt{module use /p/m3dc1/modules}\\
-  \texttt{module load m3dc1/1.13}
+  \texttt{module load m3dc1/1.14}
 \item{PU Stellar}:\\
   \texttt{module use /projects/M3DC1/modules}\\
-  \texttt{module load m3dc1/1.13}
+  \texttt{module load m3dc1/1.14}
 \end{description}
 
 These modules will modify the user's enviroment variables
@@ -62,9 +60,9 @@ IDL routines.
 If you choose to build the code yourself, either to use an unreleased
 version or to do code development yourself, you will need access to
 the M3D-C1 code repository.  The M3D-C1 source code is located in the
-Github repository: \texttt{PrincetonUniversity/M3DC1}. Access to this
-repository requires a Github account and permission from
-\href{mailto:nferraro@pppl.gov}{Dr. Nate Ferraro}.
+Github repository: \texttt{PrincetonUniversity/M3DC1}. To get access
+to this repository, please complete the license form and software
+access request form as described in section~\ref{sec:license}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,12 +89,6 @@ repository.  These modules will load the appropriate software modules
 for building on that particular system, and can be loaded using:
 
 \begin{description}
-\item{NERSC Cori}:\\
-  \texttt{module use \$M3DC1\_DIR/modules/cori}\\
-  \texttt{module load m3dc1/devel-haswell}\quad
-  for Phase I (Haswell) partition\\
-  \texttt{module load m3dc1/devel-knl}\quad
-  for Phase II (KNL) partition
 \item{NERSC Perlmutter}:\\
   \texttt{module use \$M3DC1\_DIR/modules/perlmutter}\\
   \texttt{module load m3dc1/devel}

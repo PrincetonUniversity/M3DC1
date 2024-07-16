@@ -110,7 +110,7 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
         mu0 = 4.0E-7*np.pi
         #R0 = sim.fc.r0
         #R0 is taken as the center of the vacuum vessel, as described in Tom Osborne's notes
-        deviceR0 = {'nstx': 0.85, 'diiid': 1.6955}
+        deviceR0 = {'nstx': 0.85, 'diiid': 1.6955, 'sparc': 1.85}
         R0=deviceR0[device.lower()]
         s = np.sign(fc.current[-1])
         #print(s)

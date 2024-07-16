@@ -320,18 +320,50 @@ void load_model(const char* filename)
       loopContainer[loop].push_back(edges[i]);
     delete [] edges;
   }
-  fclose(fp);
 
   int facePeriodic[2] = {0, 0};
   double faceRanges[2][2] = {{0,0},{0,0}};
-  for (int i=1; i<=numL; ++i)
-  {
-    gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
-                     faceFunction, facePeriodic, faceRanges, NULL);
 
-    if (m3dc1_model::instance()->snapping) 
-      make_face_topo(gf, loopContainer[loop_ids[i-1]]);
+  // Delete this block of code in first if statement when snapping is set to default
+  // for every case
+  int numFaces = 0;
+  fscanf(fp,"%d\n", &numFaces);
+  
+  //if (!PCU_Comm_Self()) cout<<"numFaces in model file "<<numFaces<<"\n";
+
+  if (!numFaces) // Faces actually exist but not provided in output model file (.txt file)
+  {
+    for (int i=1; i<=numL; ++i)
+      gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
+                     faceFunction, facePeriodic, faceRanges, NULL);
+      if (!PCU_Comm_Self()) cout<<"[M3DC1_INFO] Regenerate model/mesh files using the latest mesh generation program\n";  
   }
+
+  if (numFaces>0)  
+  {
+    std::vector <int> edgeIdsOnFace;
+    for (int i = 1; i <= numFaces; ++i)
+    {
+      int faceNumber, numLoops;
+      fscanf(fp,"%d %d", &faceNumber, &numLoops);
+      gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, faceNumber,
+                      faceFunction, facePeriodic, faceRanges, NULL);
+      std::vector <int> edgeIdsOnLoop;
+      for (int j = 0;j < numLoops; ++j)
+      {
+        int loopNumber;
+        fscanf(fp,"%d", &loopNumber);
+        for (int k = 0; k < loopContainer[loopNumber].size(); ++k)
+          edgeIdsOnFace.push_back(loopContainer[loopNumber][k]);
+      }
+      fscanf(fp, "\n");
+
+      make_face_topo(gf, edgeIdsOnFace);
+      edgeIdsOnFace.clear();
+    }
+  }
+  fclose(fp);
+
 }
 
 // **********************************************

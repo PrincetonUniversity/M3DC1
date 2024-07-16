@@ -152,6 +152,9 @@ subroutine set_defaults
 #ifdef REORDERED
   use matrix_mod
 #endif
+#ifdef USEADAS
+  use adas_m3dc1
+#endif
 
   implicit none
 
@@ -285,6 +288,10 @@ subroutine set_defaults
        "Internally evolve ne and Te within KPRAD ionization", kprad_grp)
   call add_var_double("kprad_n0_denm_fac", kprad_n0_denm_fac, 1., &
        "Scaling factor for neutral impurity diffusion", kprad_grp)
+#ifdef USEADAS
+  call add_var_string("adas_adf11", adas_adf11, 256,&
+       "", "Path to ADAS folder with ADF11 data", kprad_grp)
+#endif
 
   ! Transport parameters
   call add_var_int("ivisfunc", ivisfunc, 0, "", transp_grp)
@@ -866,6 +873,8 @@ subroutine set_defaults
   call add_var_double("vloop", vloop, 0., "", source_grp)
   call add_var_double("vloopRZ", vloopRZ, 0., "", source_grp)
   call add_var_double("tcur", tcur, 0., "", source_grp)
+  call add_var_double("vloop_freq", vloop_freq, 0., &
+       "Loop voltage frequency", source_grp)
 
   call add_var_double("tcuri", tcuri, 0., "", source_grp)
   call add_var_double("tcurf", tcurf, 0., "", source_grp)
@@ -1032,6 +1041,8 @@ subroutine set_defaults
        "1: Output transport coefficient fields", output_grp)
   call add_var_int("iwrite_aux_vars", iwrite_aux_vars, 1, &
        "1: Output auxiliary variable fields", output_grp)
+  call add_var_int("iwrite_adjacency", iwrite_adjacency, 1, &
+       "1: Output mesh adjacency info", output_grp)
   call add_var_int("itemp_plot", itemp_plot, 0, &
        "1: Output additional temperature plots", output_grp)
   call add_var_int("ibdgp", ibdgp, 0, &
@@ -1111,7 +1122,7 @@ subroutine set_defaults
   call add_var_int("adapt_control", adapt_control, 1, "",adapt_grp)
   call add_var_double("iadapt_order_p", iadapt_order_p, 3.0, "",adapt_grp) ! convergence rate in H2 space 
   call add_var_int("iadaptFaceNumber", iadaptFaceNumber, -1, "",adapt_grp)   ! (prereq: iadapt = 1) adapt elements classified on model face  
-  call add_var_int("iadapt_snap", iadapt_snap, 0, "", adapt_grp) !support snapping
+  call add_var_int("iadapt_snap", iadapt_snap, 1, "", adapt_grp) !support snapping
 
   call add_var_double("adapt_factor", adapt_factor, 1., "", adapt_grp)
   call add_var_double("adapt_hmin", adapt_hmin, 0.001, "", adapt_grp)
@@ -1270,8 +1281,8 @@ subroutine validate_input
   
 !...check if correct code version is being used
 #if defined(USE3D)
-    if(linear.eq.1 .or. nplanes.le.1) then
-      if(myrank.eq.0) print *, "must have linear=0 and nplanes>1 for 3D version"
+    if(nplanes.le.1) then
+      if(myrank.eq.0) print *, "must have nplanes>1 for 3D version"
       call safestop(1)
     endif
 #endif
@@ -1348,15 +1359,15 @@ subroutine validate_input
   endif
   
   ! calculate pfac (pe*pfac = electron pressure)
-  if(kinetic.eq.0) then
+  !if(kinetic.eq.0) then
      if(p0.gt.0.) then
         pefac = (p0-pi0)/p0
      else
         pefac = 0.
      endif
-  else
-     pefac = 1.    ! perp and parallel equilibrium pressures equal
-  endif
+  !else
+  !   pefac = 1.    ! perp and parallel equilibrium pressures equal
+  !endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, "pefac = ", pefac
 
   if(iadapt.gt.0) then
@@ -1734,6 +1745,16 @@ subroutine validate_input
         if(myrank.eq.0) print *, 'Error: ipellet_z != kprad_z'
         call safestop(1)
      end if
+  end if
+#ifndef USEADAS
+  if(ikprad.eq.-1) then
+     if(myrank.eq.0) print *, 'Error: ikprad = -1 but did not compile with ADAS'
+     call safestop(1)
+  end if
+#endif
+  if(ikprad.lt.-1 .or. ikprad.gt.1) then
+     if(myrank.eq.0) print *, 'Error: ikprad != -1, 0, or 1'
+     call safestop(1)
   end if
   if(iread_lp_source.gt.0 .and. npellets.gt.1) then
      if(myrank.eq.0) print *, "Error: Can't use multiple pellets iread_lp_source"

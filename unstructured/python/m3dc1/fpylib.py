@@ -76,7 +76,8 @@ def setup_sims(sim,filename,time,linear,diff):
         if not isinstance(sim,fpy.sim_data):
             sim = np.empty(0)
             filename = np.atleast_1d(filename)
-            
+            time = np.atleast_1d(time)
+
             if len(filename)>1 or (len(time)<2):
                 for f in filename:
                     sim = np.append(sim,fpy.sim_data(f,time=time))
@@ -91,6 +92,7 @@ def setup_sims(sim,filename,time,linear,diff):
             sim = np.atleast_1d(sim)
             time = np.atleast_1d(time)
 
+    #At this point time should a list
     if len(time)==1 and len(sim)>1:
         time = np.repeat(time,len(sim))
     elif len(sim)==1 and len(time)>1:
@@ -417,9 +419,9 @@ def get_tracelabel(units,trace,label=None,unitlabel=None,fac=1):
               'Flux_thermal':('Heat flux to wall','W'),
               'IP_co':('Plasma current (cosine-component)','A'),
               'IP_sn':('Plasma current (sine-component)','A'),
-              'M_IZ':('Plasma current centroid',r'A$\cdot$m'),
-              'M_IZ_co':('Plasma current (cosine-component) centroid',r'A$\cdot$m'),
-              'M_IZ_sn':('Plasma current (sine-component) centroid',r'A$\cdot$m'),
+              'M_IZ':('Plasma current centroid',r'm'),
+              'M_IZ_co':('Plasma current (cosine-component) centroid',r'm'),
+              'M_IZ_sn':('Plasma current (sine-component) centroid',r'm'),
               'Parallel_viscous_heating':('Parallel viscous heating','W'),
               'Particle_Flux_convective':('Convective particle flux to wall','particles/s'),
               'Particle_Flux_diffusive':('Diffusive particle flux to wall','particles/s'),
@@ -569,9 +571,9 @@ def get_conv_trace(units,trace,trace_arr,filename='C1.h5',sim=None,itor=1,custom
               'Flux_poynting':{'energy':1,'time':-1},
               'Flux_pressure':{'energy':1,'time':-1},
               'Flux_thermal':{'energy':1,'time':-1}, 'IP_co':{'current':1},
-              'IP_sn':{'current':1}, 'M_IZ':{'current':1,'length':1},
-              'M_IZ_co':{'current':1,'length':1},
-              'M_IZ_sn':{'current':1,'length':1},
+              'IP_sn':{'current':1}, 'M_IZ':{'length':1},
+              'M_IZ_co':{'length':1},
+              'M_IZ_sn':{'length':1},
               'Parallel_viscous_heating':{'energy':1,'time':-1},
               'Particle_Flux_convective':{'particles':1,'time':-1},
               'Particle_Flux_diffusive':{'particles':1,'time':-1},
@@ -696,6 +698,7 @@ def find_nearest(arr, val):
     return arr.flat[ind]
 
 
+# Find index of array element closest to specified value
 def get_ind_near_val(arr, val,unique=True):
     nearest = find_nearest(arr, val)
     ind = get_ind_at_val(arr, nearest, unique=unique)
@@ -874,3 +877,89 @@ def get_run_dirs(dirname):
     for dirname in list(subfolders0):
         subfolders.extend([f.path for f in os.scandir(dirname) if (f.is_dir() and not 'base_' in f.path)])
     return subfolders
+
+
+#-------------------------------------------
+# Read data from Slurm log files
+#-------------------------------------------
+def get_input_parameter_file(directory=None,use_C1input=True):
+    """
+    Return path to most recent Slurm log file in directory based on
+    file modification time. If no Slurm log can be found, function
+    can return path to C1input file instead.
+
+    Arguments:
+
+    **directory**
+    Path to directory
+
+    **use_C1input**
+    True/False. If True, path to C1input file will be returned.
+    """
+    if directory is None:
+        directory = os.getcwd()
+    slurmfiles = glob.glob(directory+"/slurm*.out")
+
+    #if len(slurmfiles) < 1:
+    #    slurmfiles = glob.glob(cwd+'/n'+str(nmin).zfill(2)+"/slurm*.out")
+    #    if len(slurmfiles) < 1:
+    #        printerr('ERROR: No Slurm output file found!')
+    #        os.chdir(cwd)
+    #        return
+
+    # If no slurm file can be found, read from C1input instead
+    if len(slurmfiles) < 1 and use_C1input:
+        printwarn('WARNING: No Slurm output file found. Looking for C1input file instead.')
+        C1infile = glob.glob(directory+"/C1input")
+        if len(C1infile) < 1:
+            printerr('ERROR: Cannot find Slurm output or C1input file.')
+            return
+        else:
+            slurmfiles = C1infile
+
+    if len(slurmfiles) > 1:
+        printwarn('WARNING: More than 1 Slurm log file found. Using the latest one.')
+        slurmfiles.sort(key=os.path.getmtime,reverse=True)
+    elif len(slurmfiles) < 1:
+        printerr('ERROR: Cannot find Slurm output file.')
+        return
+
+    input_parameter_file = slurmfiles[0]
+    return input_parameter_file
+
+
+
+def get_parameter_from_ascii(param,filename,quiet=False):
+    """
+    Read M3D-C1 input parameter from Slurm log file or C1input
+
+    Arguments:
+
+    **param**
+    Name of parameter, e.g. amu
+
+    **filename**
+    Path to Slurm log file.
+
+    **quiet**
+    If True, suppress output to terminal.
+    """
+    with open(filename, 'r') as sf:
+        search_str = param+'   ' if 'slurm' in filename else param #More robust with spaces after param, but if reading from C1input there might be no spaces
+        found = False
+        for line in sf:
+            if search_str in line:
+                iline = line.split()
+                value = iline[2:]
+                found = True
+    if not found:
+        printerr('ERROR: '+param+' not found in file '+filename)
+        return None
+
+    if not quiet:
+        print(param+'='+str(value))
+
+    if len(value)==1:
+        return value[0]
+    elif len(value)>1:
+        return value

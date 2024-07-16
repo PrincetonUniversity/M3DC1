@@ -6,7 +6,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                  cgs=cgs,mks=mks,linestyle=ls, color=co, outfile=outfile, $
                  smooth=sm, compensate_renorm=comp, integrate=integrate, $
                  xscale=xscale, ipellet=ipellet, factor=fac, versus=versus, $
-                 _EXTRA=extra
+                 xabs=xabs, _EXTRA=extra
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
   if(n_elements(xscale) eq 0) then xscale=1.
@@ -34,7 +34,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 growth_rate=growth_rate, linestyle=ls[i], nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff, $
                 comp=comp, integrate=integrate, xscale=xscale, ipellet=ipellet, $
-                factor=fac, versus=versus
+                factor=fac, versus=versus, xabs=xabs
           endif else begin
               plot_scalar, scalarname, x[i], filename=filename[i], $
                 overplot=((i gt 0) or keyword_set(overplot)), $
@@ -43,7 +43,7 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
                 growth_rate=growth_rate, nolegend=nolegend, $
                 absolute_value=absolute,cgs=cgs,mks=mks,difference=diff, $
                 comp=comp, integrate=integrate, xscale=xscale, ipellet=ipellet, $
-                factor=fac, versus=versus
+                factor=fac, versus=versus, xabs=xabs
           endelse
       end
 
@@ -77,7 +77,12 @@ pro plot_scalar, scalarname, x, filename=filename, names=names, $
 
   if(n_elements(versus) eq 1) then begin
      tdata = read_scalar(versus, filename=filename, time=time, ipellet=ipellet, $
-                     title=vtitle, symbol=vsymbol, units=vunits, cgs=cgs, mks=mks)
+                         title=vtitle, symbol=vsymbol, units=vunits, cgs=cgs, mks=mks)
+     if(keyword_set(xabs)) then begin
+        tdata = abs(tdata)
+        vsymbol = '!3|' + vsymbol + '!3|!X'
+     end
+
      xtitle = vsymbol + ' !6(' + vunits + ')!X'
   end
 

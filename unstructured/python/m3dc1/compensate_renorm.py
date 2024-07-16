@@ -3,6 +3,14 @@ import numpy as np
 
 
 def compensate_renorm(x):
+    """
+    Compensate for energy renormalization in linear simulations.
+
+    Arguments:
+
+    **x**
+    The array to be renormalized.
+    """
     y = np.asarray(x)
     y = y.astype(np.float64)
     

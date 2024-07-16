@@ -57,7 +57,7 @@ subroutine vorticity_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*0.9
   case(2)
      ththm = -bdf*thimp
   case default
@@ -296,7 +296,7 @@ subroutine vorticity_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
      ! Split time-step
      if(advfield.eq.1) then
         !ddterm(:,p_g) = ddterm(:,p_g) + dt*v1p(trialx,lin)
-        temp = v1p1
+        temp = v1p1()
         ADDTERM(p_g,temp,0,dt)
 
         ! "Parabolization" terms
@@ -328,7 +328,7 @@ subroutine vorticity_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
         !tempx = v1p(trialx,lin)
         !ssterm(:,p_g) = ssterm(:,p_g) -     thimp     *dt*tempx
         !ddterm(:,p_g) = ddterm(:,p_g) + (1.-thimp*bdf)*dt*tempx
-        temp = v1p1
+        temp = v1p1()
         ADDTERM(p_g,temp,-thimp*dt,(1-thimp*bdf)*dt)
 
         !! CGL (anisotropic pressure)
@@ -750,14 +750,18 @@ subroutine vorticity_nolin(trialx, r4term)
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
-                 (v1par(trialx,ppar79)    &
-                + v1parb2ipsipsi(trialx,ppar79,b2i79,pstx79,pstx79)  &
-                + v1parb2ipsib(trialx,ppar79,b2i79,pstx79,bztx79)    &
-                - v1par(trialx,pper79)    &
-                - v1parb2ipsipsi(trialx,pper79,b2i79,pstx79,pstx79)  &
-                - v1parb2ipsib(trialx,pper79,b2i79,pstx79,bztx79))
-  endif
+     r4term = r4term + 1.0*dt*(( &
+                 !v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 !v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                -0.5*v1p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
+                + v1jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+               ) &
+            )  
+    endif
 #endif
 
   if(linear.eq.1) return
@@ -814,7 +818,7 @@ subroutine axial_vel_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*0.9
   case(2)
      ththm = -bdf*thimp
   case default
@@ -1161,7 +1165,7 @@ subroutine axial_vel_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
      if(advfield.eq.1) then
         !ddterm(:,p_g) = ddterm(:,p_g) + dt* &
              !v2p(trialx,lin)
-        temp = v2p1
+        temp = v2p1()
         ADDTERM(p_g,temp,0,dt)
 
         ! parabolization terms
@@ -1191,7 +1195,7 @@ subroutine axial_vel_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
            !tempx = v2p(trialx,lin)
            !ssterm(:,p_g) = ssterm(:,p_g) -     thimp     *dt*tempx
            !ddterm(:,p_g) = ddterm(:,p_g) + (1.-thimp*bdf)*dt*tempx
-           temp = v2p1
+           temp = v2p1()
            ADDTERM(p_g,temp,-thimp*dt,(1.-thimp*bdf)*dt)
         !elseif(kinetic.eq.3) then  ! full CGL model
            !tempx = v2parpb2ipsipsi(trialx,lin,b2i79,pstx79,pstx79)   &
@@ -1411,17 +1415,22 @@ subroutine axial_vel_nolin(trialx, r4term)
      end if
   end if
 
-
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
-                 (v2parpb2ipsipsi(trialx,pper79,b2i79,pstx79,pstx79)   &
-                - v2parpb2ipsib  (trialx,pper79,b2i79,pstx79,bztx79)   &
-                + v2parpb2ibb    (trialx,ppar79,b2i79,bztx79,bztx79)   &
-                + v2parpb2ipsib  (trialx,ppar79,b2i79,pstx79,bztx79))
-  endif
+     r4term = r4term + 1.0*dt*(( &
+                 !v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 !v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
+                + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+             ) &
+            )  
+   endif
 #endif
 
   ! density terms
@@ -1476,7 +1485,7 @@ subroutine compression_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*0.9
   case(2)
      ththm = -bdf*thimp
   case default
@@ -1708,7 +1717,7 @@ subroutine compression_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
   if(advfield.eq.1) then
      !ddterm(:,p_g) = ddterm(:,p_g) + dt*  &
      !     v3p(trialx,lin)
-     temp = v3p1
+     temp = v3p1()
      ADDTERM(p_g,temp,0,dt)
 
      ! parabolization terms
@@ -1735,7 +1744,7 @@ subroutine compression_lin(nterm, term, op1, op2, ssarray, ddarray, advfield, &
         !tempx = v3p(trialx,lin) 
         !ssterm(:,p_g) = ssterm(:,p_g) -     thimp     *dt*tempx
         !ddterm(:,p_g) = ddterm(:,p_g) + (1.-thimp*bdf)*dt*tempx
-        temp = v3p1
+        temp = v3p1()
         ADDTERM(p_g,temp,-thimp*dt,(1-thimp*bdf)*dt)
 
         !! CGL (anisotropic pressure)
@@ -2151,19 +2160,22 @@ subroutine compression_nolin(trialx, r4term)
      end if
   endif
 
-
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
-     r4term = r4term + dt* &
-                 (v3par(trialx,ppar79)    &
-                + v3parb2ipsipsi(trialx,ppar79,b2i79,pstx79,pstx79)  &
-                + v3parb2ipsib(trialx,ppar79,b2i79,pstx79,bztx79)    &
-                - v3par(trialx,pper79)    &
-                - v3parb2ipsipsi(trialx,pper79,b2i79,pstx79,pstx79)  &
-                - v3parb2ipsib(trialx,pper79,b2i79,pstx79,bztx79))
-  endif
+     r4term = r4term + 1.0*dt*(( &
+                 !v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 + v3p(trialx,pfper79) -v3pbb(trialx,pfper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 !v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
+                + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+             ) &
+            )  
+   endif
 #endif
 
 end subroutine compression_nolin
@@ -2373,16 +2385,20 @@ subroutine flux_lin(nterm, term, op1, op2, ssarray, ddarray, izone)
 
      ! NRE term numvar=1
 
-     !if(irunaway .gt. 0) then
+     if(irunaway .gt. 0) then
        !tempx = b1jrepsieta  (trialx,nre179,lin,eta79,bi79)
        !ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpb     *dt*tempx
        !ddterm(:,psi_g) = ddterm(:,psi_g) + (.5-thimpb*bdf)*dt*tempx
+       temp = b1jrepsieta2  (nre179,eta79,bi79)
+       ADDTERM(psi_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
 
        !tempx = b1jrepsieta  (trialx,lin,ps179,eta79,bi79)
        !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
        !ddterm(:,nre_g) = ddterm(:,nre_g) + (.5-thimpb*bdf)*dt*tempx
+       temp = b1jrepsieta1  (ps179,eta79,bi79)
+       ADDTERM(nre_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
 
-     !endif
+     endif
 
      if(numvar.ge.2) then
         !tempx = b1bu  (trialx,lin,ph179) &
@@ -2402,23 +2418,31 @@ subroutine flux_lin(nterm, term, op1, op2, ssarray, ddarray, izone)
         temp = b1psiv2(ps179) &
              + b1bv2  (bz179)
         ADDTERM(vz_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
-        !!NRE numvar=2
-        !if(irunaway .gt. 0) then
+        !NRE numvar=2
+        if(irunaway .gt. 0) then
           !tempx = b1jrebeta    (trialx,nre179,lin,eta79,bi79)
           !ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpb     *dt*tempx
           !ddterm(:,bz_g) = ddterm(:,bz_g) + (.5-thimpb*bdf)*dt*tempx
+          temp = b1jrebeta2  (nre179,eta79,bi79)
+          ADDTERM(bz_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
           !tempx = b1jrebeta    (trialx,lin,bz179,eta79,bi79)
           !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
           !ddterm(:,nre_g) = ddterm(:,nre_g) + (.5-thimpb*bdf)*dt*tempx
-          !if (i3d == 1) then
+          temp = b1jrebeta1  (bz179,eta79,bi79)
+          ADDTERM(nre_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
+          if (i3d == 1) then
              !tempx = b1jrefeta    (trialx,lin,bfp179,eta79,bi79)
              !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
              !ddterm(:,nre_g) = ddterm(:,nre_g) + (.5-thimpb*bdf)*dt*tempx
+             temp = b1jrefeta1  (bfp179,eta79,bi79)
+             ADDTERM(nre_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
              !tempx = b1jrefeta    (trialx,nre179,lin,eta79,bi79)
              !r_bf = r_bf -     thimpb     *dt*tempx
              !q_bf = q_bf + (.5-thimpb*bdf)*dt*tempx
-          !endif
-       !endif
+             temp = b1jrefeta2  (nre179,eta79,bi79)
+             ADDTERM(20,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
+          endif
+        endif
 
      end if
 
@@ -2452,21 +2476,27 @@ subroutine flux_lin(nterm, term, op1, op2, ssarray, ddarray, izone)
           + b1bu2    (bz079)
      ADDTERM(u_g,temp,-thimpb*dt,(1-thimpb*bdf)*dt)
 
-     !! NRE term numvar=1
+     ! NRE term numvar=1
 
-     !if(irunaway .gt. 0) then
+     if(irunaway .gt. 0) then
        !tempx = b1jrepsieta (trialx,nre079,lin,eta79,bi79)
        !ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpb     *dt*tempx
        !ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpb*bdf)*dt*tempx
+       temp = b1jrepsieta2  (nre079,eta79,bi79)
+       ADDTERM(psi_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
 
        !tempx = b1jrepsieta (trialx,lin,ps079,eta79,bi79)
        !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
        !ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+       temp = b1jrepsieta1  (ps079,eta79,bi79)
+       ADDTERM(nre_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
 
        !tempx = b1jrebeta    (trialx,lin,bz079,eta79,bi79)
        !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
        !ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
-     !endif
+       temp = b1jrebeta1  (bz079,eta79,bi79)
+       ADDTERM(nre_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
+     endif
 
      if(numvar.ge.2) then
         !tempx = b1bu  (trialx,lin,ph079) &
@@ -2486,20 +2516,26 @@ subroutine flux_lin(nterm, term, op1, op2, ssarray, ddarray, izone)
         temp = b1psiv2  (ps079) &
              + b1bv2    (bz079)
         ADDTERM(vz_g,temp,-thimpb*dt,(1-thimpb*bdf)*dt)
-        !!NRE numvar=2
-        !if(irunaway .gt. 0) then
+        !NRE numvar=2
+        if(irunaway .gt. 0) then
           !tempx = b1jrebeta    (trialx,nre079,lin,eta79,bi79)
           !ssterm(:,bz_g) = ssterm(:,bz_g) -     thimpb     *dt*tempx
           !ddterm(:,bz_g) = ddterm(:,bz_g) + (1.-thimpb*bdf)*dt*tempx
-          !if (i3d == 1) then
+          temp = b1jrebeta2  (nre079,eta79,bi79)
+          ADDTERM(bz_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
+          if (i3d == 1) then
              !tempx = b1jrefeta    (trialx,lin,bfp079,eta79,bi79)
              !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
              !ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+             temp = b1jrefeta1  (bfp079,eta79,bi79)
+             ADDTERM(nre_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
              !tempx = b1jrefeta    (trialx,nre079,lin,eta79,bi79)
              !r_bf = r_bf -     thimpb     *dt*tempx
              !q_bf = q_bf + (1.-thimpb*bdf)*dt*tempx
-          !endif
-        !endif
+             temp = b1jrefeta2  (nre079,eta79,bi79)
+             ADDTERM(20,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
+          endif
+        endif
      end if
 
      if(numvar.ge.3) then
@@ -3302,23 +3338,31 @@ subroutine axial_field_lin(nterm, term, op1, op2, ssarray, ddarray, &
      ADDTERM(vz_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
 
      !NRE term
-     !if (irunaway .gt. 0) then
+     if (irunaway .gt. 0) then
        !tempx = b2jrepsieta  (trialx,nre179,lin,eta79,bi79)
        !ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpb     *dt*tempx
        !ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpb*bdf)*dt*tempx
+       temp = b2jrepsieta2  (nre179,eta79,bi79)
+       ADDTERM(psi_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
        !tempx = b2jrepsieta  (trialx,lin,ps179,eta79,bi79)
        !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
        !ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+       temp = b2jrepsieta2  (ps179,eta79,bi79)
+       ADDTERM(nre_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
 
-        !if (i3d == 1) then
+        if (i3d == 1) then
           !tempx = b2jrefeta       (trialx,lin,bfp179,eta79,bi79)
           !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
           !ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+          temp = b2jrefeta1  (bfp179,eta79,bi79)
+          ADDTERM(nre_g,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
           !tempx = b2jrefeta       (trialx,nre179,lin,eta79,bi79)
           !r_bf = r_bf -     thimpb     *dt*tempx
           !q_bf = q_bf + (1.-thimpb*bdf)*dt*tempx
-        !endif
-     !endif
+          temp = b2jrefeta2  (nre179,eta79,bi79)
+          ADDTERM(20,temp,-thimpb*dt,(.5-thimpb*bdf)*dt)
+        endif
+     endif
 
      if(numvar.ge.3) then
         !tempx = b2bchi(trialx,bz179,lin)                  
@@ -3357,23 +3401,31 @@ subroutine axial_field_lin(nterm, term, op1, op2, ssarray, ddarray, &
      ADDTERM(vz_g,temp,-thimpb*dt,(1-thimpb*bdf)*dt)
 
      !NRE term
-     !if (irunaway .gt. 0) then
+     if (irunaway .gt. 0) then
        !tempx = b2jrepsieta  (trialx,nre179,lin,eta79,bi79)
        !ssterm(:,psi_g) = ssterm(:,psi_g) -     thimpb     *dt*tempx
        !ddterm(:,psi_g) = ddterm(:,psi_g) + (1.-thimpb*bdf)*dt*tempx
+       temp = b2jrepsieta2  (nre079,eta79,bi79)
+       ADDTERM(psi_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
        !tempx = b2jrepsieta  (trialx,lin,ps179,eta79,bi79)
        !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
        !ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+       temp = b2jrepsieta1  (ps079,eta79,bi79)
+       ADDTERM(nre_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
 
-        !if (i3d == 1) then
+        if (i3d == 1) then
           !tempx = b2jrefeta       (trialx,lin,bfp179,eta79,bi79)
           !ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
           !ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
+          temp = b2jrefeta1  (bfp079,eta79,bi79)
+          ADDTERM(nre_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
           !tempx = b2jrefeta       (trialx,nre179,lin,eta79,bi79)
           !r_bf = r_bf -     thimpb     *dt*tempx
           !q_bf = q_bf + (1.-thimpb*bdf)*dt*tempx
-        !endif
-     !endif
+          temp = b2jrefeta2  (nre079,eta79,bi79)
+          ADDTERM(20,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
+        endif
+     endif
 
      if(numvar.ge.3) then
         !tempx = b2bchi(trialx,bz079,lin)
@@ -3936,7 +3988,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = b3pe(trialx,lin)
      !ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      !ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
-     temp = b3pe
+     temp = b3pe()
      ADDTERM(pp_g,temp,1,bdf)
      return
   end if
@@ -3946,7 +3998,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
   !tempx = b3pe(trialx,lin)*freq_fac
   !ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
   !if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
-  temp = b3pe
+  temp = b3pe()
   if(itime_independent.eq.0) then
      ADDTERM(pp_g,temp,freq_fac,freq_fac*bdf)
   else
@@ -3972,7 +4024,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = kappat_lin_p(trialx,lin)
      !ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
      !ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
-     temp = kappat_lin_p1
+     temp = kappat_lin_p1()
      ADDTERM(pp_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
 
      if(idens.eq.1) then
@@ -3987,7 +4039,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = kappat_p(trialx,lin)
      !ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx
      !ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx
-     temp = kappat_p1
+     temp = kappat_p1()
      ADDTERM(pp_g,temp,-thimpb*dt,(1.-thimpb*bdf)*dt)
 
      !if(idens.eq.0) then
@@ -4159,7 +4211,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
   endif
 
   if(eqsubtract.eq.1) then
-     if(kinetic.eq.0) then
+     if(kinetic.le.1) then
         !tempx = p1pu(trialx,pp079,lin)
         !ssterm(:,u_g) = ssterm(:,u_g) -     thimpb     *dt*tempx
         !ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimpb*bdf)*dt*tempx
@@ -4192,7 +4244,7 @@ subroutine pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
              + p1pchi1(ch079)
         ADDTERM(pp_g,temp,-thimpb*dt,(1-thimpb*bdf)*dt)
         
-     else   ! on kinetic.eq.0
+     else   ! on kinetic.le.1
         !if(total_pressure) then
            !tempx = pperpu(trialx,ppt79,lin)  &
                 !+ pperpupsipsib2(trialx,ppt79,lin,pstx79,pstx79,b2i79)  &
@@ -4644,7 +4696,7 @@ subroutine temperature_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = t3t(trialx,lin)
      !ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      !ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
-     temp = t3t
+     temp = t3t()
      ADDTERM(pp_g,temp,1.,bdf)
      return
   end if
@@ -4663,7 +4715,7 @@ subroutine temperature_lin(nterm, term, op1, op2, ssarray, ddarray, &
      !tempx = t3t(trialx,lin)*freq_fac
      !ssterm(:,pp_g) = ssterm(:,pp_g) + tempx
      !if(itime_independent.eq.0) ddterm(:,pp_g) = ddterm(:,pp_g) + tempx*bdf
-     temp = t3t
+     temp = t3t()
      ADDTERM(pp_g,temp,1.,bdf)
   endif
 
@@ -5614,7 +5666,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
      call define_fields(itri, def_fields, 1, linear)
-     !$acc update device(mu79,nu79) async(igpu)
+     !$acc update device(mu79,nu79)
      call calculate_rho(itri)
      call calculate_sigma_e(itri)
      call calculate_sigma_i(itri)
@@ -5640,30 +5692,30 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
         telm = telm + tend - tstart
      endif
 
-     if(isurface.eq.0) cycle
-     if(nonrect.eq.0) cycle
-
-     ! add surface terms
-     call boundary_edge(itri, is_edge, n, idim)
-     
-     do iedge=1,3
-        if(is_edge(iedge).eq.0) cycle
-
-        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
-        call define_fields(itri, def_fields, 1, linear)
-        !$acc update device(mu79,nu79) async(igpu)
-
-!        write(*,'(A,8F10.4)') 'EDGE: ', x_79(1), z_79(1), x_79(5), z_79(5), &
-!           norm79(3,1), norm79(3,2)
-
-        if(gyro.eq.1) call gyro_common
-
-        if(ivel_def.eq.1) call ludefvel_n(itri)
-        if(ifield_def.eq.1) call ludefphi_n(itri)
-        if(idens_def.eq.1) call ludefden_n(itri)
-        if(irunaway.gt.0) call ludefnre_n(itri)
-        if(ipres_def.eq.1 .or. ipressplit_def.eq.1) call ludefpres_n(itri)
-     end do
+!     if(isurface.eq.0) cycle
+!     if(nonrect.eq.0) cycle
+!
+!     ! add surface terms
+!     call boundary_edge(itri, is_edge, n, idim)
+!
+!     do iedge=1,3
+!        if(is_edge(iedge).eq.0) cycle
+!
+!        call define_boundary_quadrature(itri, iedge, 5, 5, n, idim)
+!        call define_fields(itri, def_fields, 1, linear)
+!        !$acc update device(mu79,nu79)
+!
+!!        write(*,'(A,8F10.4)') 'EDGE: ', x_79(1), z_79(1), x_79(5), z_79(5), &
+!!           norm79(3,1), norm79(3,2)
+!
+!        if(gyro.eq.1) call gyro_common
+!
+!        if(ivel_def.eq.1) call ludefvel_n(itri)
+!        if(ifield_def.eq.1) call ludefphi_n(itri)
+!        if(idens_def.eq.1) call ludefden_n(itri)
+!        if(irunaway.gt.0) call ludefnre_n(itri)
+!        if(ipres_def.eq.1 .or. ipressplit_def.eq.1) call ludefpres_n(itri)
+!     end do
   end do
 !$OMP END PARALLEL DO
 
@@ -5696,6 +5748,77 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 
 end subroutine ludefall
 
+#ifdef USEPARTICLES
+subroutine ludefvel_nolin
+
+   use mesh_mod
+   use basic
+   use arrays
+   use sparse
+   use m3dc1_nint
+   use diagnostics
+   use boundary_conditions
+   use time_step
+   use matrix_mod
+   use transport_coefficients
+   use gyroviscosity
+   use runaway_mod
+   use auxiliary_fields
+
+   implicit none
+
+   vectype, dimension(dofs_per_element) :: r4
+   integer :: k, itri, izone
+   integer :: ieq(3)
+   integer, dimension(dofs_per_element) :: imask
+   type(vector_type), pointer :: vsource
+
+   ieq(1) = u_i
+   ieq(2) = vz_i
+   ieq(3) = chi_i
+
+   if (isplitstep .ge. 1) then
+      vsource => r4_vec
+   else
+      vsource => q4_vec
+   end if
+   vsource = 0.
+   do itri = 1, local_elements()
+
+      call get_zone(itri, izone)
+
+      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+      call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_P + FIELD_B2I + FIELD_KIN, 1, linear)
+      !call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_P + FIELD_PHI + FIELD_V + FIELD_CHI + FIELD_ETA + FIELD_MU + FIELD_N + FIELD_NI+FIELD_B2I+FIELD_KIN, 1, 1)
+
+      do k = 1, numvar
+         r4 = 0.
+         if (izone .eq. ZONE_PLASMA) then
+            select case (k)
+            case (1)
+               call vorticity_nolin(mu79, r4)
+            case (2)
+               call axial_vel_nolin(mu79, r4)
+            case (3)
+               call compression_nolin(mu79, r4)
+            end select
+            select case (k)
+            case (1)
+               call get_vor_mask(itri, imask)
+            case (2)
+               call get_vz_mask(itri, imask)
+            case (3)
+               call get_chi_mask(itri, imask)
+            end select
+         end if
+         call apply_boundary_mask_vec(itri, 0, r4, imask)
+         call vector_insert_block(vsource, itri, ieq(k), r4, VEC_ADD)
+      end do
+
+   end do
+   call sum_shared(vsource)
+end subroutine ludefvel_nolin
+#endif
 
 !======================================================================
 ! ludefvel_n
@@ -5824,8 +5947,8 @@ subroutine ludefvel_n(itri)
         !end do
         call compression_lin(nterm, term, op1, op2, ssarray, ddarray, advfield,izone)
      end select
-        !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf) async(igpu)
-        !$acc parallel loop gang collapse(2) private(tempss,tempdd) async(igpu)
+        !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf)
+        !$acc parallel loop gang collapse(2) private(tempss,tempdd)
         do iterm=1,nterm
            do j=1,dofs_per_element
               tempss=ssarray(:,iterm)*nu79(j,:,op2(iterm))
@@ -5837,7 +5960,7 @@ subroutine ludefvel_n(itri)
               end do
            end do
         end do
-        !$acc parallel loop gang collapse(2) async(igpu)
+        !$acc parallel loop gang collapse(2)
         do i=1,dofs_per_element
            do j=1,dofs_per_element
               !$acc loop seq
@@ -5853,7 +5976,6 @@ subroutine ludefvel_n(itri)
            end do
         end do
         !$acc end data
-        !$acc wait(igpu)
 
      if(izone.eq.1) then 
         select case(k)
@@ -6075,8 +6197,8 @@ subroutine ludefphi_n(itri)
         call pressure_lin(nterm, term, op1, op2, ssarray, ddarray, &
              ipres.eq.0, thimp, izone)
      endif
-           !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf) async(igpu)
-           !$acc parallel loop gang collapse(2) private(tempss,tempdd) async(igpu)
+           !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf)
+           !$acc parallel loop gang collapse(2) private(tempss,tempdd)
            do iterm=1,nterm
               do j=1,dofs_per_element
                  tempss=ssarray(:,iterm)*nu79(j,:,op2(iterm))
@@ -6088,7 +6210,7 @@ subroutine ludefphi_n(itri)
                  end do
               end do
            end do
-           !$acc parallel loop gang collapse(2) async(igpu)
+           !$acc parallel loop gang collapse(2)
            do i=1,dofs_per_element
               do j=1,dofs_per_element
                  !$acc loop seq
@@ -6104,7 +6226,6 @@ subroutine ludefphi_n(itri)
               end do
            end do
            !$acc end data
-           !$acc wait(igpu)
      do j=1,dofs_per_element
         if     (ieq(k).eq.psi_i) then
            !if(.not.surface_int) then
@@ -6128,7 +6249,7 @@ subroutine ludefphi_n(itri)
            if(jadv.eq.0) then
               do i=1,dofs_per_element
                  call potential_lin(mu79(i,:,:),nu79(j,:,:), &
-                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j))
+                      ss(i,j,:),dd(i,j,:),q_ni(i,j,1),r_bf(i,j),q_bf(i,j),izone)
               end do
            else   !jadv.eq.1
               do i=1,dofs_per_element
@@ -6388,11 +6509,11 @@ subroutine ludefpres_n(itri)
                 .false., thimpf, izone)
         end select
      endif ! on ipressplit
-           !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf) async(1)
+           !$acc data copyin(term,op1,op2,ssarray,ddarray) create(ssterm,ddterm) copy(ss,dd,r_bf,q_bf)
            !!$acc kernels async(1)
            !!$acc loop gang collapse(2) private(tempss,tempdd)
            !!$acc kernels loop gang collapse(2) private(tempss,tempdd) async(1)
-           !$acc parallel loop gang collapse(2) private(tempss,tempdd) async(1)
+           !$acc parallel loop gang collapse(2) private(tempss,tempdd)
            do iterm=1,nterm
               do j=1,dofs_per_element
                  tempss=ssarray(:,iterm)*nu79(j,:,op2(iterm))
@@ -6406,7 +6527,7 @@ subroutine ludefpres_n(itri)
            end do
            !!$acc loop gang collapse(2)
            !!$acc kernels loop gang collapse(2) async(1)
-           !$acc parallel loop gang collapse(2) async(1)
+           !$acc parallel loop gang collapse(2)
            do i=1,dofs_per_element
               do j=1,dofs_per_element
                  !$acc loop seq
@@ -6423,7 +6544,6 @@ subroutine ludefpres_n(itri)
            end do
            !!$acc end kernels
            !$acc end data
-           !$acc wait(1)
             
      do j=1,dofs_per_element
         if(ipressplit.eq.0) then
