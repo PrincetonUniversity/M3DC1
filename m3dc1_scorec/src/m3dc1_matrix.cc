@@ -26,12 +26,29 @@ using std::complex;
 
 using std::vector;
 
-int mapping(int, int, int, int, int, int, int, int, int *, int *, int *);
-int mapping2(int, int, int, int, int, int, int, int, int *, int *, int *);
-
 // ***********************************
 // 		HELPER
 // ***********************************
+PetscErrorCode MyKSPMonitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy)
+{
+  Vec x,r;
+  PetscReal norms[3];
+  int stride=12,ierr;
+
+  PetscFunctionBeginUser;
+  /* Build the solution vector */
+  ierr=KSPBuildSolution(ksp, NULL, &x);
+  ierr=KSPBuildResidual(ksp, NULL, NULL, &r);
+
+  PetscCall(VecStrideNorm(r, 0*stride, NORM_2, &norms[0]));
+  PetscCall(VecStrideNorm(r, 1*stride, NORM_2, &norms[1]));
+  PetscCall(VecStrideNorm(r, 2*stride, NORM_2, &norms[2]));
+
+  ierr=PetscPrintf(PETSC_COMM_WORLD, 
+		  "solve 5 %" PetscInt_FMT "th iteration: KSP Residual norm [ %1.12e  %1.12e  %1.12e  %1.12e ]\n", 
+		  n, (double)norms[0], (double)norms[1], (double)norms[2], rnorm);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
 
 void printMemStat()
 {
@@ -49,11 +66,12 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
   int dofPerEnt=0;
   if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
 
-/*PetscCall( VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec); */
-  PetscCall( VecCreate(MPI_COMM_WORLD, &petscVec) );
-  PetscCall( VecSetSizes(petscVec, num_own_dof, PETSC_DECIDE) );
-  PetscCall( VecSetFromOptions(petscVec) );
-  PetscCall( VecAssemblyBegin(petscVec) );
+/*int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec); */
+  int ierr = VecCreate(MPI_COMM_WORLD, &petscVec); CHKERRQ(ierr);
+  ierr=VecSetBlockSize(petscVec, dofPerEnt); // the blocksize=dofPerEnt, but the stridesize=dofPerEnt/3
+  ierr = VecSetSizes(petscVec, num_own_dof, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(petscVec);CHKERRQ(ierr);
+  VecAssemblyBegin(petscVec);
 
   int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
 
@@ -91,13 +109,15 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
 #endif
         startIdx+=1;
       } 
-      PetscCall( VecSetValue(petscVec, start_global_dof_id+i, value, INSERT_VALUES) );
+      ierr = VecSetValue(petscVec, start_global_dof_id+i, value, INSERT_VALUES);
+      CHKERRQ(ierr);
     }
   }
   mesh->end(ent_it);
 
   assert(nodeCounter==num_own_ent);
-  PetscCall( VecAssemblyEnd(petscVec) );
+  ierr=VecAssemblyEnd(petscVec);
+  CHKERRQ(ierr);
   return 0;
 }
 
@@ -113,7 +133,7 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
   std::vector<double> dof_data(dofPerEnt*(1+scalar_type));
   int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
 
-  int inode;
+  int ierr, inode;
 
   apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
   apf::MeshEntity* ent;
@@ -128,7 +148,7 @@ int copyPetscVec2Field(Vec& petscVec, FieldID field_id, int scalar_type)
     
     for (int i=0; i<dofPerEnt; ++i)
       ix.at(i)=startIdx+i;
-    PetscCall( VecGetValues(petscVec, dofPerEnt, &ix[0], &values[0]) );
+    ierr=VecGetValues(petscVec, dofPerEnt, &ix[0], &values[0]); CHKERRQ(ierr);
     startIdx=0;
     for (int i=0; i<dofPerEnt; ++i)
     {
@@ -208,7 +228,8 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, FieldID f)
 
 int m3dc1_matrix::destroy()
 {
-  PetscCall( MatDestroy(A) );
+  PetscErrorCode ierr = MatDestroy(A);
+  CHKERRQ(ierr);    
   return M3DC1_SUCCESS;
 }
 
@@ -233,14 +254,17 @@ int m3dc1_matrix::get_values(vector<PetscInt>& rows, vector<int>& n_columns,
      std::cout<<"[M3DC1 ERROR] "<<__func__<<": not supported for complex\n";
    return M3DC1_FAILURE;
 #else
+  PetscErrorCode ierr;
   PetscInt rstart, rend, ncols;
   const PetscInt *cols;
   const PetscScalar *vals;
 
-  PetscCall( MatGetOwnershipRange(*A, &rstart, &rend) );
+  ierr = MatGetOwnershipRange(*A, &rstart, &rend);
+  CHKERRQ(ierr);
   for (PetscInt row=rstart; row<rend; ++row)
   { 
-    PetscCall( MatGetRow(*A, row, &ncols, &cols, &vals) );
+    ierr = MatGetRow(*A, row, &ncols, &cols, &vals);
+    CHKERRQ(ierr);
     rows.push_back(row);
     n_columns.push_back(ncols);
     for (int i=0; i<ncols; ++i)
@@ -248,7 +272,8 @@ int m3dc1_matrix::get_values(vector<PetscInt>& rows, vector<int>& n_columns,
       columns.push_back(cols[i]);
       values.push_back(vals[i]);
     }
-    PetscCall( MatRestoreRow(*A, row, &ncols, &cols, &vals) );
+    ierr = MatRestoreRow(*A, row, &ncols, &cols, &vals);
+    CHKERRQ(ierr);
   }
   assert(rows.size()==rend-rstart);
   return M3DC1_SUCCESS;
@@ -264,27 +289,30 @@ int m3dc1_matrix::set_value(int row, int col, int operation, double real_val, do
     return M3DC1_FAILURE;
   }
 
+  PetscErrorCode ierr;
+  
   if (scalar_type==M3DC1_REAL) // real
   {
     if (operation)
-      PetscCall( MatSetValue(*A, row, col, real_val, ADD_VALUES) );
+      ierr = MatSetValue(*A, row, col, real_val, ADD_VALUES);
     else
-      PetscCall( MatSetValue(*A, row, col, real_val, INSERT_VALUES) );
+      ierr = MatSetValue(*A, row, col, real_val, INSERT_VALUES);
   }
   else // complex
   {
 #ifdef PETSC_USE_COMPLEX
     PetscScalar value = complex<double>(real_val,imag_val);
     if (operation)
-      PetscCall( MatSetValue(*A, row, col, value, ADD_VALUES) );
+      ierr = MatSetValue(*A, row, col, value, ADD_VALUES);
     else
-      PetscCall( MatSetValue(*A, row, col, value, INSERT_VALUES) );
+      ierr = MatSetValue(*A, row, col, value, INSERT_VALUES);
 #else
     if (!PCU_Comm_Self())
       std::cout<<"[M3DC1 ERROR] "<<__func__<<": PETSc is not configured with --with-scalar-type=complex\n";
       abort();
 #endif
   }
+  CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
 
@@ -297,6 +325,7 @@ int m3dc1_matrix::add_values(int rsize, PetscInt* rows, int csize, PetscInt* col
     return M3DC1_FAILURE;
   }
 
+  PetscErrorCode ierr;
 #if defined(DEBUG) || defined(PETSC_USE_COMPLEX)
   vector<PetscScalar> petscValues(rsize*csize);
   for (int i=0; i<rsize; ++i)
@@ -317,10 +346,11 @@ int m3dc1_matrix::add_values(int rsize, PetscInt* rows, int csize, PetscInt* col
     }
   }
 
-  PetscCall( MatSetValues(*A, rsize, rows, csize, columns, &petscValues[0], ADD_VALUES) );
+  ierr = MatSetValues(*A, rsize, rows, csize, columns, &petscValues[0], ADD_VALUES);
 #else
-  PetscCall( MatSetValues(*A, rsize, rows, csize, columns, (PetscScalar*)values, ADD_VALUES) );
+  ierr = MatSetValues(*A, rsize, rows, csize, columns, (PetscScalar*)values, ADD_VALUES);
 #endif
+  CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
 
@@ -466,12 +496,14 @@ int matrix_solve::setUpRemoteAStruct()
   }
   mesh->end(ent_it);
 
-  PetscCall( MatCreate(PETSC_COMM_SELF,&remoteA) );
-  PetscCall( MatSetType(remoteA, MATSEQBAIJ) );
-  PetscCall( MatSetBlockSize(remoteA, dofPerVar) );
-  PetscCall( MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE) ); 
-  PetscCall( MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]) );
-  PetscCall( MatSetUp (remoteA) );
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF,&remoteA);
+  CHKERRQ(ierr);
+  ierr = MatSetType(remoteA, MATSEQBAIJ); CHKERRQ(ierr);
+  ierr = MatSetBlockSize(remoteA, dofPerVar); CHKERRQ(ierr);
+  ierr = MatSetSizes(remoteA, total_num_dof*num_vtx, total_num_dof*num_vtx, PETSC_DECIDE, PETSC_DECIDE); 
+  CHKERRQ(ierr);
+  MatSeqBAIJSetPreallocation(remoteA, dofPerVar, 0, &nnz_remote[0]);
+  ierr = MatSetUp (remoteA); CHKERRQ(ierr);
 //cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreate remoteA bs="<<dofPerVar<<" total_num_dof="<<total_num_dof<<" num_vtx="<<num_vtx<<" mat_dim="<<total_num_dof*num_vtx<<" num_values="<<num_values<<" total_num_dof="<<total_num_dof<<"\n";
   return M3DC1_SUCCESS;
 }
@@ -544,13 +576,13 @@ int m3dc1_matrix::setupParaMat()
   PetscInt mat_dim = num_own_dof;
 
   // create matrix
-  PetscCall( MatCreate(MPI_COMM_WORLD, A) );
+  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, A);
+  CHKERRQ(ierr);
   // set matrix size
-  PetscCall( MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE) );
+  ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
 
-  PetscCall( MatSetType(*A, MATMPIAIJ) );
-//PetscCall( MatSetBlockSize(*A, dofPerEnt) );
-  PetscCall( MatSetFromOptions(*A) );
+  ierr = MatSetType(*A, MATMPIAIJ); CHKERRQ(ierr);
+  ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
 //cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreate A num_own_dof="<<num_own_dof<<" num_own_ent="<<num_own_ent<<" dofPerEnt="<<dofPerEnt<<" mat_dim="<<mat_dim<<"\n";
   return M3DC1_SUCCESS;
 }
@@ -568,30 +600,32 @@ int m3dc1_matrix::setupSeqMat()
   PetscInt mat_dim = num_dof;
 
   // create matrix
-  PetscCall( MatCreate(PETSC_COMM_SELF, A) );
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, A);
+  CHKERRQ(ierr);
   // set matrix size
-  PetscCall( MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE) );
-  PetscCall( MatSetFromOptions(*A) );
+  ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
 //cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreate A num_local_dof="<<num_dof<<" num_local_ent="<<num_ent<<" dofPerEnt="<<dofPerEnt<<" mat_dim="<<mat_dim<<"\n";
   return M3DC1_SUCCESS;
 }
 
 int m3dc1_matrix::write (const char* file_name)
 {
+  PetscErrorCode ierr;
   PetscViewer lab;
   if (get_type()==0)
   {
     char name_buff[256];
     sprintf(name_buff, "%s-%d.m",file_name,PCU_Comm_Self());
-    PetscCall( PetscViewerASCIIOpen(PETSC_COMM_SELF, name_buff, &lab) );
+    ierr = PetscViewerASCIIOpen(PETSC_COMM_SELF, name_buff, &lab); CHKERRQ(ierr);
   }
   else
   {
-    PetscCall( PetscViewerASCIIOpen(MPI_COMM_WORLD, file_name, &lab) );
+    ierr = PetscViewerASCIIOpen(MPI_COMM_WORLD, file_name, &lab); CHKERRQ(ierr);
   }
-  PetscCall( PetscViewerPushFormat(lab, PETSC_VIEWER_ASCII_MATLAB) );
-  PetscCall( MatView(*A, lab) );
-  PetscCall( PetscViewerDestroy(&lab) );
+  ierr = PetscViewerPushFormat(lab, PETSC_VIEWER_ASCII_MATLAB); CHKERRQ(ierr);
+  ierr = MatView(*A, lab); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&lab); CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
 
@@ -620,17 +654,20 @@ int matrix_mult::initialize()
   // initialize matrix
   setupMat();
   preAllocate();
-  PetscCall( MatSetUp (*A) ); // "MatSetUp" sets up internal matrix data structure for the later use
+  int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough
-  PetscCall( MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE) );
-  PetscCall( MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE) );
+  ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
+  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
 
 int matrix_mult::assemble()
 {
-  PetscCall( MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY) ); 
-  PetscCall( MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY) );
+  PetscErrorCode ierr;
+  ierr = MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY); 
+  CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY);
+  CHKERRQ(ierr);
   mat_status = M3DC1_FIXED;
   return M3DC1_SUCCESS;
 }
@@ -641,11 +678,11 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
   {
     Vec b, c;
     copyField2PetscVec(in_field, b, get_scalar_type());
-    PetscCall( VecDuplicate(b, &c) );
+    int ierr = VecDuplicate(b, &c); CHKERRQ(ierr);
     MatMult(*A, b, c);
     copyPetscVec2Field(c, out_field, get_scalar_type());
-    PetscCall( VecDestroy(&b) );
-    PetscCall( VecDestroy(&c) );
+    ierr = VecDestroy(&b); CHKERRQ(ierr);
+    ierr = VecDestroy(&c); CHKERRQ(ierr);
     return 0;
   }
   else
@@ -660,6 +697,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     assert(num_dof==num_dof2);
 #endif
     PetscInt bs;
+    int ierr;
     MatGetBlockSize(*A, &bs);
     PetscScalar * array[2];
     m3dc1_field_getdataptr(&in_field, (double**)array);
@@ -672,7 +710,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
         array[0][i]=array_org[i];
     }
 #endif
-    PetscCall( VecCreateSeqWithArray(PETSC_COMM_SELF, bs, num_dof, (PetscScalar*) array[0],&b) );
+    ierr = VecCreateSeqWithArray(PETSC_COMM_SELF, bs, num_dof, (PetscScalar*) array[0],&b); CHKERRQ(ierr);
     m3dc1_field_getdataptr(&out_field, (double**)array+1);
 #ifdef PETSC_USE_COMPLEX
     if (!get_scalar_type())
@@ -683,14 +721,14 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
         array[1][i]=array_org[i];
     }
 #endif
-    PetscCall( VecCreateSeqWithArray(PETSC_COMM_SELF, bs, num_dof, (PetscScalar*) array[1],&c) );
-    PetscCall( VecAssemblyBegin(b) );
-    PetscCall( VecAssemblyEnd(b) );
-    PetscCall( VecAssemblyBegin(c) );
-    PetscCall( VecAssemblyEnd(c) );
+    ierr = VecCreateSeqWithArray(PETSC_COMM_SELF, bs, num_dof, (PetscScalar*) array[1],&c); CHKERRQ(ierr);
+    ierr=VecAssemblyBegin(b);  CHKERRQ(ierr);
+    ierr=VecAssemblyEnd(b);  CHKERRQ(ierr);
+    ierr=VecAssemblyBegin(c);  CHKERRQ(ierr);
+    ierr=VecAssemblyEnd(c);  CHKERRQ(ierr);
     MatMult(*A, b, c);
-    PetscCall( VecDestroy(&b) );
-    PetscCall( VecDestroy(&c) );
+    ierr = VecDestroy(&b); CHKERRQ(ierr);
+    ierr = VecDestroy(&c); CHKERRQ(ierr);
 #ifdef PETSC_USE_COMPLEX
     if (!get_scalar_type())
     {
@@ -716,7 +754,11 @@ matrix_solve::matrix_solve(int i, int s, FieldID f): m3dc1_matrix(i,s,f)
   ksp = new KSP;
 //pc = new PC;
   BgmgSet=0;
+  BgmgfsSet=0;
   kspSet=0;
+  fsSet=0;
+  fsBgmgSet=0;
+  LineSet=0;
   remotePidOwned=NULL;
   remoteNodeRow=NULL; // <pid, <locnode>, numAdj>
   remoteNodeRowSize=NULL;
@@ -725,20 +767,54 @@ matrix_solve::matrix_solve(int i, int s, FieldID f): m3dc1_matrix(i,s,f)
 
 matrix_solve::~matrix_solve()
 {
-  if (BgmgSet) {
-//  PCDestroy(pc);
-//  delete pc;
+  if (BgmgSet) { 
+	  //  PCDestroy(pc); 
+	  //  delete pc;
+	  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": BgmgSet="<<BgmgSet<<"\n";
+	  for (int level=0;level<mg_nlevels-1;level++) {
+		  MatDestroy(&(mg_interp_mat[level])); 
+		  //      KSPDestroy(&(mg_level_ksp[level])); 
+		  //      PCDestroy(&(mg_level_pc[level]));
+	  }
+	  delete [] mg_interp_mat;
+	  delete [] mg_level_ksp;
+	  delete [] mg_level_pc;
+	  BgmgSet=0;
+	  if(BgmgfsSet) {
+		  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": BgmgfsSet="<<BgmgfsSet<<"\n";
+		  for (int level=0;level<mg_nlevels-1;level++) {
+			  ISDestroy(&mg_field0[level]);
+			  ISDestroy(&mg_field1[level]);
+			  ISDestroy(&mg_field1[level]);
+		  }
+		  delete [] mg_field0;
+		  delete [] mg_field1;
+		  delete [] mg_field2;
+	  BgmgfsSet=0;
+	  }
+  }
 
-    for (int level=0;level<mg_nlevels-1;level++) {
-      MatDestroy(&(mg_interp_mat[level]));
-//      KSPDestroy(&(mg_level_ksp[level]));
-//      PCDestroy(&(mg_level_pc[level]));
-    }
-    delete [] mg_interp_mat;
-    delete [] mg_level_ksp;
-    delete [] mg_level_pc;
-
-    BgmgSet=0;
+  if(fsSet) {
+	  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": fsSet="<<fsSet<<"\n";
+	  int ierr;
+	  ierr=ISDestroy(&field0);
+	  ierr=ISDestroy(&field1);
+	  ierr=ISDestroy(&field2);
+	  fsSet=0;
+	  if (fsBgmgSet) {
+		  //  PCDestroy(pc);
+		  //  delete pc;
+		  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": fsBgmgSet="<<fsBgmgSet<<"\n";
+		  for (int level=0;level<mg_nlevels-1;level++) {
+			  MatDestroy(&(mg_interp_mat[level])); 
+			  //      KSPDestroy(&(mg_level_ksp[level]));
+			  //      PCDestroy(&(mg_level_pc[level]));
+		  }
+		  delete [] mg_interp_mat;
+		  delete [] mg_level_ksp;
+		  delete [] mg_level_pc;
+		  fsBgmgSet=0;
+	  }
   }
 
   if (kspSet)
@@ -754,12 +830,13 @@ int matrix_solve::initialize()
   setupMat();
   preAllocate();
   if (!m3dc1_solver::instance()->assembleOption) setUpRemoteAStruct();
-  PetscCall( MatSetUp (*A) ); // "MatSetUp" sets up internal matrix data structure for the later use
+  int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough 
-  PetscCall( MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE) );
+  ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
   //commented per Jin's request on Nov 9, 2017
-  //PetscCall( MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE) );
-  PetscCall( MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE) ); 
+  //ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr); 
+  CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
 
@@ -777,12 +854,12 @@ int matrix_solve::preAllocate ()
 
 int matrix_solve::reset_values() 
 { 
-  PetscCall( MatZeroEntries(*A) ); 
+  int ierr = MatZeroEntries(*A); 
   //MatZeroEntries(remoteA); 
     delete remotePidOwned;
     delete remoteNodeRow;
     delete remoteNodeRowSize;
-    PetscCall(MatDestroy(&remoteA) );
+    ierr =MatDestroy(&remoteA);
     if (!m3dc1_solver::instance()->assembleOption) setUpRemoteAStruct();
 
   mat_status = M3DC1_NOT_FIXED; // allow matrix value modification
@@ -793,7 +870,7 @@ int matrix_solve::reset_values()
     // Set operators, keeping the identical preconditioner matrix for
     // all linear solves.  This approach is often effective when the
     // linear systems do not change very much between successive steps.
-    PetscCall( KSPSetReusePreconditioner(*ksp,PETSC_TRUE) );
+    ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
   }
   
   if (!PCU_Comm_Self())
@@ -851,19 +928,21 @@ int matrix_solve::add_blockvalues(int rbsize, PetscInt* rows, int cbsize, PetscI
       }
     }
   }
-  PetscCall( MatSetValuesBlocked(remoteA,rbsize, rows, cbsize, columns, &petscValues[0], ADD_VALUES) );
+  int ierr = MatSetValuesBlocked(remoteA,rbsize, rows, cbsize, columns, &petscValues[0], ADD_VALUES);
 #else
-  PetscCall( MatSetValuesBlocked(remoteA,rbsize, rows, cbsize, columns, (PetscScalar*)values, ADD_VALUES) );
+  int ierr = MatSetValuesBlocked(remoteA,rbsize, rows, cbsize, columns, (PetscScalar*)values, ADD_VALUES);
 #endif
   return M3DC1_SUCCESS;
 }
 
 int matrix_solve::assemble()
 {
+  PetscErrorCode ierr;
   if (!m3dc1_solver::instance()->assembleOption)
   {
-    PetscCall( MatAssemblyBegin(remoteA, MAT_FINAL_ASSEMBLY) );
-    PetscCall( MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY) );
+    ierr = MatAssemblyBegin(remoteA, MAT_FINAL_ASSEMBLY);
+    CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(remoteA, MAT_FINAL_ASSEMBLY);
     //pass remoteA to ownnering process
     int brgType = mesh->getDimension();
 
@@ -875,7 +954,7 @@ int matrix_solve::assemble()
  
     int num_vtx = m3dc1_mesh::instance()->num_local_ent[0];
     PetscInt firstRow, lastRowPlusOne;
-    PetscCall( MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne) );
+    ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
 
     std::map<int, std::vector<int> >* idxSendBuff = new  std::map<int, std::vector<int> >;
     std::map<int, std::vector<int> >* idxRecvBuff = new  std::map<int, std::vector<int> >;
@@ -926,14 +1005,14 @@ int matrix_solve::assemble()
           for (int j=0; j<total_num_dof; ++j)
             columns.at(offset++)=startColumn+j;
         }
-        PetscCall( MatGetValues(remoteA, total_num_dof, &columns.at(total_num_dof*(numAdj-1)), 
-               total_num_dof*numAdj, &columns[0], &(*valuesSendBuff)[it->first].at(valueOffset)) );
+        ierr = MatGetValues(remoteA, total_num_dof, &columns.at(total_num_dof*(numAdj-1)), 
+               total_num_dof*numAdj, &columns[0], &(*valuesSendBuff)[it->first].at(valueOffset));
         valueOffset+=it2->second*blockMatSize;
       }
       assert(idxOffset==(*idxSendBuff)[it->first].size());
       assert(valueOffset==(*valuesSendBuff)[it->first].size());
     }
-    // PetscCall( MatDestroy(&remoteA) ); // seol: shall destroy in destructor
+    // ierr = MatDestroy(&remoteA); // seol: shall destroy in destructor
 
     //send and receive message size
     int sendTag=2020;
@@ -1020,8 +1099,8 @@ int matrix_solve::assemble()
           for (int j=0; j<total_num_dof; ++j)
             columns.at(offset++)=idx.at(idxOffset)+j;
 
-        PetscCall( MatSetValues(*A, total_num_dof, &columns.at(total_num_dof*(numAdj-1)), 
-               total_num_dof*numAdj, &columns[0], &values.at(valueOffset),ADD_VALUES) );
+        ierr = MatSetValues(*A, total_num_dof, &columns.at(total_num_dof*(numAdj-1)), 
+               total_num_dof*numAdj, &columns[0], &values.at(valueOffset),ADD_VALUES);
 
         valueOffset+=blockMatSize*numAdj;
       }
@@ -1034,8 +1113,9 @@ int matrix_solve::assemble()
     idxRecvBuff=NULL;
   }
 
-  PetscCall( MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY) ); 
-  PetscCall( MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY) );
+  ierr = MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY); 
+  CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
   // clean up auxiliary data
   remotePidOwned->clear();
@@ -1054,7 +1134,7 @@ int matrix_solve::set_bc(int row)
 {
 #ifdef DEBUG
   PetscInt firstRow, lastRowPlusOne;
-  PetscCall( MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne) );
+  int ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
   assert (row>=firstRow && row<lastRowPlusOne);
 #endif
   MatSetValue(*A, row, row, 1.0, ADD_VALUES);
@@ -1065,7 +1145,7 @@ int matrix_solve::set_row(int row, int numVals, int* columns, double * vals)
 {
 #ifdef DEBUG
   PetscInt firstRow, lastRowPlusOne;
-  PetscCall( MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne) );
+  int ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
   assert (row>=firstRow && row<lastRowPlusOne);
 #endif
   for (int i=0; i<numVals; ++i)
@@ -1080,21 +1160,50 @@ int matrix_solve::solve(FieldID field_id)
 {
   Vec x, b;
   copyField2PetscVec(field_id, b, get_scalar_type());
-  PetscCall( VecDuplicate(b, &x) );
+  int ierr = VecDuplicate(b, &x); CHKERRQ(ierr);
+
+  int ScaleAb=0;
+         ierr= PetscOptionsGetInt(NULL,NULL,"-ScaleAb",&ScaleAb,NULL);
+	 if(ScaleAb==1 && mymatrix_id==5) {
+          Vec Adiag, b2;
+          ierr=VecDuplicate(b, &Adiag); CHKERRQ(ierr);
+          ierr=VecDuplicate(b, &b2); CHKERRQ(ierr);
+          ierr=MatGetDiagonal(*A, Adiag); CHKERRQ(ierr);
+          ierr=VecReciprocal(Adiag); CHKERRQ(ierr);
+          ierr=MatDiagonalScale(*A, Adiag, NULL); CHKERRQ(ierr);
+          ierr=VecPointwiseMult(b2, b, Adiag); CHKERRQ(ierr);
+          ierr=VecCopy(b2, b); CHKERRQ(ierr);
+         if (!PCU_Comm_Self())
+           std::cout <<"\t-- Scale A b" << std::endl;
+	  ierr = VecDestroy(&b2); CHKERRQ(ierr);
+	  ierr = VecDestroy(&Adiag); CHKERRQ(ierr);
+  }
+
+    /* static variable
+    static int count = 0;
+          if(count==30) {
+      ierr=MatViewFromOptions(*A, NULL, "-A_view");
+      ierr = VecViewFromOptions(b, NULL, "-b_view"); CHKERRQ(ierr);
+      ierr = VecViewFromOptions(x, NULL, "-x_view"); CHKERRQ(ierr);
+	  }
+	  if(mymatrix_id==5) count++;
+	  */
 
   if(!kspSet) setKspType();
   if(kspSet==2) {
-         PetscCall( KSPSetOperators(*ksp,*A,*A) );
+         ierr= KSPSetOperators(*ksp,*A,*A); CHKERRQ(ierr);
          if (!PCU_Comm_Self())
            std::cout <<"\t-- Update A, Reuse Preconditioner" << std::endl;
   }
 
   //KSPSetUp(*ksp);
- // KSPSetUpOnBlocks(*ksp) );
+ // KSPSetUpOnBlocks(*ksp); CHKERRQ(ierr);
 
-  PetscCall( KSPSolve(*ksp, b, x) ); 
+  ierr = KSPSolve(*ksp, b, x); 
+  CHKERRQ(ierr);
 //  PetscInt its;
-  PetscCall( KSPGetIterationNumber(*ksp, &its) );
+  ierr = KSPGetIterationNumber(*ksp, &its);
+  CHKERRQ(ierr);
 
           if(BgmgSet==-1) {
       PC pc;
@@ -1120,8 +1229,8 @@ int matrix_solve::solve(FieldID field_id)
  
   copyPetscVec2Field(x, field_id, get_scalar_type());
 
-  PetscCall( VecDestroy(&b) );
-  PetscCall( VecDestroy(&x) );
+  ierr = VecDestroy(&b); CHKERRQ(ierr);
+  ierr = VecDestroy(&x); CHKERRQ(ierr);
   mat_status = M3DC1_SOLVED;
   return M3DC1_SUCCESS;
 }
@@ -1133,41 +1242,46 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess)
   Vec x, b;
   copyField2PetscVec(field_id, b, get_scalar_type());
   copyField2PetscVec(xVec_guess,x, get_scalar_type());
+  int ierr;
   KSPType ksptype;
 
   if(!kspSet) setKspType();
   if(kspSet==2) {
-         PetscCall( KSPSetOperators(*ksp,*A,*A) );
+         ierr= KSPSetOperators(*ksp,*A,*A); CHKERRQ(ierr);
          if (!PCU_Comm_Self())
            std::cout <<"\t-- Update A, Reuse Preconditioner" << std::endl;
 
   }
 
-  PetscCall( KSPGetType(*ksp, &ksptype) );
+  ierr = KSPGetType(*ksp, &ksptype); CHKERRQ(ierr);
   if( strcmp(ksptype,"preonly")==0 ){
-    PetscCall( KSPSetInitialGuessNonzero(*ksp, PETSC_FALSE) );
+    ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_FALSE); CHKERRQ(ierr);
     if (PCU_Comm_Self() == 0)
       std::cout <<"\t Due to ksptype=\"preonly\", the initial guess is set to be Zero."<< std::endl; 
   }
   else{
-    PetscCall( KSPSetInitialGuessNonzero(*ksp, PETSC_TRUE) );
+    ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_TRUE); CHKERRQ(ierr);
   }
-  PetscCall( KSPSolve(*ksp, b, x) ); 
-  PetscCall( KSPGetIterationNumber(*ksp, &its) );
+  ierr = KSPSolve(*ksp, b, x); 
+  CHKERRQ(ierr);
+  ierr = KSPGetIterationNumber(*ksp, &its);
+  CHKERRQ(ierr);
 
   if (PCU_Comm_Self() == 0)
     std::cout <<"\t-- # solver iterations " << its << std::endl;
  
   copyPetscVec2Field(x, field_id, get_scalar_type());
 
-  PetscCall( VecDestroy(&b) );
-  PetscCall( VecDestroy(&x) );
+  ierr = VecDestroy(&b); CHKERRQ(ierr);
+  ierr = VecDestroy(&x); CHKERRQ(ierr);
   mat_status = M3DC1_SOLVED;
 }
 
 int matrix_solve:: setKspType()
 {
-  PetscCall( KSPCreate(MPI_COMM_WORLD, ksp) );
+  PetscErrorCode ierr;
+  ierr = KSPCreate(MPI_COMM_WORLD, ksp);
+  CHKERRQ(ierr);
 
   //mgsolve is turned on only if the solve is 5 or 17
   PetscInt ss=2, mgsolve[2];
@@ -1178,14 +1292,28 @@ int matrix_solve:: setKspType()
           if(!BgmgSet) setBgmgType();
   }
 
+  //mgfss is turned on only if the solve is 5 or 17
+  PetscInt mgfs=-1;
+  ierr = PetscOptionsGetInt(NULL,NULL,"-mgfs",&mgfs,NULL); CHKERRQ(ierr);
+  if(mymatrix_id==mgfs) {
+          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use BGMGFieldSplit preconditioner"<<"\n";
+          if(!BgmgSet) setBgmgFSType();
+  }
+
          // Set operators, keeping the identical preconditioner matrix for
          // all linear solves.  This approach is often effective when the
          // linear systems do not change very much between successive steps.
-         //PetscCall( KSPSetReusePreconditioner(*ksp,PETSC_TRUE) );
+         //ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
          //if (!PCU_Comm_Self())
          //  std::cout <<"\t-- Reuse Preconditioner" << std::endl;
-  PetscCall( KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/) ); 
-  PetscCall( KSPSetTolerances(*ksp, .000001, .000000001, PETSC_DEFAULT, 1000) );
+  ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/); 
+  CHKERRQ(ierr);
+  ierr = KSPSetTolerances(*ksp, .000001, .000000001, PETSC_DEFAULT, 1000);
+  CHKERRQ(ierr);
+
+  PetscBool flg = PETSC_FALSE;
+  PetscCall(PetscOptionsGetBool(NULL, NULL, "-ksp_monitor_5", &flg, NULL));
+  if (flg && mymatrix_id==5) ierr=KSPMonitorSet(*ksp, MyKSPMonitor, NULL, 0);
 
   int num_values, value_type, total_num_dof;
   char field_name[FIXSIZEBUFF];
@@ -1195,7 +1323,7 @@ int matrix_solve:: setKspType()
   // if 2D problem use superlu
   if (mesh->getDimension()==2)
   {
-    PetscCall( KSPSetType(*ksp, KSPPREONLY) );
+    ierr=KSPSetType(*ksp, KSPPREONLY); CHKERRQ(ierr);
     PC pc;
     ierr=KSPGetPC(*ksp, &pc); CHKERRQ(ierr);
     ierr=PCSetType(pc,PCLU); CHKERRQ(ierr);
@@ -1219,9 +1347,25 @@ int matrix_solve:: setKspType()
 	  for (int i = 0; i < nplane; i++) blks[i] = plane_dim;
 	  ierr=PCBJacobiSetTotalBlocks(pc, nplane, blks);
 	  ierr=PetscFree(blks);
-  */}
+	  */
 
-  PetscCall( KSPSetFromOptions(*ksp) );
+	  //fssolve is turned on only if the solve is 5 or 17
+	  PetscInt fssolve=-1;
+	  ierr = PetscOptionsGetInt(NULL,NULL,"-fssolve",&fssolve,NULL); CHKERRQ(ierr);
+	  if(mymatrix_id==fssolve) {
+	          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use FieldSplit preconditioner"<<"\n";
+	          if(!fsSet) setFSType();
+	  }
+
+	  PetscInt lsolve=-1;
+	  ierr = PetscOptionsGetInt(NULL,NULL,"-lsolve",&lsolve,NULL); CHKERRQ(ierr);
+	  if(mymatrix_id==lsolve) {
+	          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use LineSolve preconditioner"<<"\n";
+	          if(!LineSet) setLSType();
+	  }
+  }
+
+  ierr = KSPSetFromOptions(*ksp); CHKERRQ(ierr);
   kspSet=1;
   return M3DC1_SUCCESS;
 }
@@ -1367,7 +1511,7 @@ int matrix_solve:: setBgmgType()
 	ierr= MatSetSizes(mg_interp_mat[level], mg_num_own_ent[level+1]*dofPerEnt, mg_num_own_ent[level]*dofPerEnt, plane_dim*mg_nplanes[level+1], plane_dim*mg_nplanes[level]);
 
 	ierr= MatSetType(mg_interp_mat[level], MATMPIAIJ);
-//	ierr= MatSetBlockSize(mg_interp_mat[level], dofPerEnt);
+  	ierr= MatSetBlockSize(mg_interp_mat[level], dofPerEnt);
 	ierr= MatSetFromOptions(mg_interp_mat[level]);
         ierr= MatSetUp(mg_interp_mat[level]);
         ierr= MatZeroEntries(mg_interp_mat[level]);
@@ -1402,59 +1546,6 @@ int matrix_solve:: setBgmgType()
 			    }
 	    }
 	}
-		    } else {//mg_nlevels==2 or fine grid
-	for(iv=0;iv<num_own_ent;iv++) {
-	    for(idof=0;idof<dofPerEnt;idof++) {
-			    irow=iv*dofPerEnt+idof+start_ent*dofPerEnt /*Istart*/;
-	                    irow_end=num_own_ent*dofPerEnt+start_ent*dofPerEnt;
-			    icol =irow - plane_dim * offset;
-	                    icol_end=irow_end - plane_dim*offset;
-			    icol2=icol+plane_dim;
-			    icol2_end=icol_end+plane_dim;
-			    if((planeid+1)==mg_nplanes[level+1]) icol2=icol2%plane_dim;
-			    if((planeid+1)==mg_nplanes[level+1]) icol2_end=1+(icol2_end-1)%plane_dim;
-			    if( !(planeid%2) ) {
-				    PetscCall( MatSetValue(mg_interp_mat[level],irow, icol,1., ADD_VALUES) );
-				    if(iv==0 && idof==0)
-					    std::cout<<"[M3DC1 INFO] "<<__func__
-						    <<" level="<<level
-						    <<" myrank="<<myrank
-						    <<" global_dim="<<global_dim
-						    <<" mat_dim="<<num_own_ent*dofPerEnt
-						    <<" partitionid="<<partitionid
-						    <<" planeid="<<planeid
-						    <<" row_start="<<irow<<" row_end="<<irow_end
-						    <<" col_start="<<icol<<" col_end="<<icol_end
-						    <<" offset="<<offset
-						    <<"\n";
-			    } else {
-				    PetscCall( MatSetValue(mg_interp_mat[level],irow, icol,.5, ADD_VALUES) );
-				    PetscCall( MatSetValue(mg_interp_mat[level],irow, icol2,.5, ADD_VALUES) );
-				    if(iv==0 && idof==0)
-					    std::cout<<"[M3DC1 INFO] "<<__func__
-						    <<" level="<<level
-						    <<" myrank="<<myrank
-						    <<" global_dim="<<global_dim
-						    <<" mat_dim="<<num_own_ent*dofPerEnt
-						    <<" partitionid="<<partitionid
-						    <<" planeid="<<planeid
-						    <<" row_start="<<irow<<" row_end="<<irow_end
-						    <<" col_start="<<icol<<" col_end="<<icol_end
-						    <<" 2col_start="<<icol2<<" 2col_end="<<icol2_end
-						    <<" offset="<<offset
-						    <<"\n";
-				    /*
-				    if(irow%36>=0  && irow%36<=5 ||
-						    irow%36>=12 && irow%36<=17 ||
-						    irow%36>=24 && irow%36<=29)  {
-					    PetscCall( MatSetValue(mg_interp_mat[level],irow, 6+icol,hc, ADD_VALUES) );
-					    PetscCall( MatSetValue(mg_interp_mat[level],irow, 6+icol2,-hc, ADD_VALUES) );
-				    }
-				     */
-			    }
-	    }
-	}
-		    }
 
         ierr= MatAssemblyBegin(mg_interp_mat[level],MAT_FINAL_ASSEMBLY);
         ierr= MatAssemblyEnd(mg_interp_mat[level],MAT_FINAL_ASSEMBLY);
@@ -1467,7 +1558,6 @@ int matrix_solve:: setBgmgType()
         //   -A_view binary[:[filename][:[ascii_info][:append]]]
         //   -A_view binary[:[filename][:[ascii_info_detail][:append]]]
         //   -A_view binary[:[filename][:[ascii_matlab][:append]]]
-        ierr=MatViewFromOptions(*A, NULL, "-A_view");
         if(level==0) ierr=MatViewFromOptions(mg_interp_mat[level], NULL, "-I0_view");
         if(level==1) ierr=MatViewFromOptions(mg_interp_mat[level], NULL, "-I1_view");
 
@@ -1509,6 +1599,579 @@ int matrix_solve:: setBgmgType()
       ierr= PetscFree(mg_planeid);
       ierr= PetscFree(mg_nplanes);
   BgmgSet=1;
+  return M3DC1_SUCCESS;
+}
+
+int matrix_solve:: setBgmgFSType()
+{
+//if (mesh->getDimension()!=3 || mymatrix_id!=5) return 0;
+  if (mesh->getDimension()!=3 ) return 0;
+
+  PetscInt ierr;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//          Setup Level Data
+// 0 is always the coarsest level; n-1 is the finest.  This is backward compared to what some people do.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+  int nplane,nlevels;//=16;
+  m3dc1_plane_getnum(&nplane);
+  if(nplane%2) {
+	  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": odd number of planes "<<nplane<<" could not be coarsened "<<"\n";
+	  return 0;
+  }
+
+  //set default bgmg levels to 2
+         nlevels=2;
+  //or to many levels defined by the size of nplanes
+         nlevels = PetscInt(log(PetscReal(nplane))/log(2.));
+         nlevels++;
+  //or to levels given as the srun command line option, for example "-mg_nlevels 3"
+         ierr= PetscOptionsGetInt(NULL,NULL,"-mg_nlevels",&nlevels,NULL);
+  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": f requested total_mg_nlevels="<<nlevels<<"\n";
+
+  int *nplanes, *mg_nplanes; //number of planes per mg level
+      // number of planes for each level
+      ierr= PetscMalloc1(nlevels,&nplanes);
+      // finest level
+      mg_nlevels=2;
+      nplanes[nlevels-1] = nplane;
+      if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": fine level "<<nlevels-1<<" has "<<nplanes[nlevels-1]<<" planes"<<"\n";
+      // rest of the levels
+      for (int level=nlevels-2; level>=0; --level) {
+	      nplanes[level] = nplanes[level+1]/2;
+	      if( (mg_nlevels>=nlevels) || (nplanes[level]%2) ) {
+		      if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": odd number of planes "<<nplanes[level]<<" could not be coarsened "<<"\n";
+		      break;
+	      } else {
+		      mg_nlevels++;
+		      if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": level "<<level<<" has "<<nplanes[level]<<" planes"<<"\n";
+	      }
+      }
+  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": f actual total_mg_nlevels="<<mg_nlevels<<"\n";
+      ierr= PetscMalloc1(mg_nlevels,&mg_nplanes);
+      for (int level=mg_nlevels-1; level>=0; --level) {
+	      mg_nplanes[level] = nplanes[level+(nlevels-mg_nlevels)];
+      }
+      ierr= PetscFree(nplanes);
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//          Create KSP and set multigrid options in PC
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    PC pc;
+//    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
+      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+      ierr= KSPGetPC(*ksp,&pc);
+      ierr= PCSetType(pc,PCMG);
+      ierr= PCMGSetLevels(pc,mg_nlevels,NULL);
+      ierr= PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
+      ierr= PCMGSetGalerkin(pc,PC_MG_GALERKIN_PMAT);
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//          Create Interpolation Operators from level-1 to level
+//          mat_dim=endDofPlusOne-startDof=Iend-Istartnum_own_dof=Iendc-Istartc
+//          global_dim=mglobal=nglobal
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   PetscInt       Istart,Iend;
+   PetscInt       Istartc,Iendc;
+    PetscInt       mglobal, nglobal;
+   ierr= MatGetOwnershipRange(*A,&Istart,&Iend);
+   ierr= MatGetOwnershipRangeColumn(*A,&Istartc,&Iendc);
+   //debug ierr= MatGetSize(*A, &mglobal, &nglobal);
+   //num_own_ent is the number of vertices owned by each process
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
+      m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
+   //dof pet ent of num_own_ent
+  int dofPerEnt=0; //=12,24,36
+      if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+  PetscInt mat_dim = num_own_dof, global_dim, plane_dim;
+   int startDof, endDofPlusOne;
+   m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
+  // equivalent to mat_dim=endDofPlusOne-startDof=Iend-Istart (local dim)
+	MPI_Allreduce(&mat_dim, &global_dim, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD );
+	plane_dim=global_dim/nplane;
+
+   PetscInt myrank,maxrank,npart,planeid,partitionid;
+   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+   MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
+   npart=maxrank/nplane;
+ //planeid equivalent to PetscInt(myrank/npart);
+   m3dc1_plane_getid(&planeid);
+   partitionid=myrank%npart;
+
+   //reset runtime solver options on the finest level
+   //this is the first place to check
+  char mg_pcbj[64], mg_pcbjblocknumber[8];
+  {int level=mg_nlevels-1;
+          sprintf(mg_pcbj, "%s%d%s", "-hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
+          PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+  }
+
+      int irow, icol, icol2, irow_end, icol_end, icol2_end;
+
+      mg_interp_mat = new Mat[mg_nlevels-1];
+      mg_level_ksp = new KSP[mg_nlevels-1];
+      mg_level_pc = new PC[mg_nlevels-1];
+
+      int *mg_planeid, factor;
+      ierr= PetscMalloc1(mg_nlevels-1,&mg_planeid);
+      for (int level=mg_nlevels-2; level>=0; --level) {
+              factor=pow(2,mg_nlevels-2-level);
+              mg_planeid[level]=planeid/factor;
+      }
+
+      int *mg_offset;
+      ierr= PetscMalloc1(mg_nlevels-1,&mg_offset);
+      for (int level=mg_nlevels-2; level>=0; --level) {
+        mg_offset[level]=PetscInt((mg_planeid[level]+1)/2);
+      }
+
+      int *mg_num_own_ent; /*example 5 levels: 0 1 2 3 4 */
+      int *mg_start_ent, *mg_start_entx; /*example 5 levels: 0 1 2 3 */
+      ierr= PetscMalloc1(mg_nlevels,&mg_num_own_ent);
+      ierr= PetscMalloc1(mg_nlevels-1,&mg_start_ent);
+      ierr= PetscMalloc1(mg_nlevels-1,&mg_start_entx);
+      mg_num_own_ent[mg_nlevels-1]=num_own_ent;
+      for (int level=mg_nlevels-2; level>=0; --level) {
+	      mapping(maxrank, myrank, mg_nlevels-1-level, mg_num_own_ent[level+1], mg_nplanes[level], planeid, npart, partitionid, &mg_num_own_ent[level], &mg_start_ent[level], &mg_start_entx[level]);
+      }
+
+      mg_field0 = new IS[mg_nlevels-1];
+      mg_field1 = new IS[mg_nlevels-1];
+      mg_field2 = new IS[mg_nlevels-1];
+
+      for(int level=0; level<mg_nlevels-1;level++) {
+	ierr= MatCreate(PETSC_COMM_WORLD,&mg_interp_mat[level]);
+
+	ierr= MatSetSizes(mg_interp_mat[level], mg_num_own_ent[level+1]*dofPerEnt, mg_num_own_ent[level]*dofPerEnt, plane_dim*mg_nplanes[level+1], plane_dim*mg_nplanes[level]);
+
+	ierr= MatSetType(mg_interp_mat[level], MATMPIAIJ);
+  	ierr= MatSetBlockSize(mg_interp_mat[level], dofPerEnt);
+	ierr= MatSetFromOptions(mg_interp_mat[level]);
+        ierr= MatSetUp(mg_interp_mat[level]);
+        ierr= MatZeroEntries(mg_interp_mat[level]);
+	ierr= MatGetOwnershipRangeColumn(mg_interp_mat[level],&Istartc,&Iendc);
+
+	//hermite cubic extra term 1/8 delta (the span of elements on the coarse mesh)
+	PetscReal hc=M_PI/nplane/2.;
+	int iv, idof;
+	for(iv=0;iv<mg_num_own_ent[level+1];iv++) {
+	    for(idof=0;idof<dofPerEnt;idof++) {
+			    irow=mg_start_ent[level]*dofPerEnt+iv*dofPerEnt+idof /*Istart*/;
+	                    irow_end=mg_start_ent[level]*dofPerEnt+mg_num_own_ent[level+1]*dofPerEnt;
+			    icol =irow - plane_dim * mg_offset[level];
+	                    icol_end=irow_end - plane_dim*mg_offset[level];
+			    icol2=icol+plane_dim;
+			    icol2_end=icol_end+plane_dim;
+			    if((mg_planeid[level]+1)==mg_nplanes[level+1]) icol2=icol2%plane_dim;
+			    if((mg_planeid[level]+1)==mg_nplanes[level+1]) icol2_end=1+(icol2_end-1)%plane_dim;
+			    if( !(mg_planeid[level]%2) ) {
+				    ierr= MatSetValue(mg_interp_mat[level],irow, icol,1., ADD_VALUES);
+			    } else {
+				    ierr= MatSetValue(mg_interp_mat[level],irow, icol,.5, ADD_VALUES);
+				    ierr= MatSetValue(mg_interp_mat[level],irow, icol2,.5, ADD_VALUES);
+				    /*
+				    if(irow%36>=0  && irow%36<=5 ||
+						    irow%36>=12 && irow%36<=17 ||
+						    irow%36>=24 && irow%36<=29)  {
+					    ierr= MatSetValue(mg_interp_mat[level],irow, 6+icol,hc, ADD_VALUES);
+					    ierr= MatSetValue(mg_interp_mat[level],irow, 6+icol2,-hc, ADD_VALUES);
+				    }
+				     */
+			    }
+	    }
+	}
+
+        ierr= MatAssemblyBegin(mg_interp_mat[level],MAT_FINAL_ASSEMBLY);
+        ierr= MatAssemblyEnd(mg_interp_mat[level],MAT_FINAL_ASSEMBLY);
+
+	//   runtime options:
+	//   -A_view ascii:stdout
+        //   -A_view ascii[:[filename][:[ascii_info][:append]]]
+        //   -A_view ascii[:[filename][:[ascii_info_detail][:append]]]
+        //   -A_view ascii[:[filename][:[ascii_matlab][:append]]]
+        //   -A_view binary[:[filename][:[ascii_info][:append]]]
+        //   -A_view binary[:[filename][:[ascii_info_detail][:append]]]
+        //   -A_view binary[:[filename][:[ascii_matlab][:append]]]
+        if(level==0) ierr=MatViewFromOptions(mg_interp_mat[level], NULL, "-I0_view");
+        if(level==1) ierr=MatViewFromOptions(mg_interp_mat[level], NULL, "-I1_view");
+
+	// Set Interpolation Operators
+
+	int ilevel=level+1;
+        ierr= PCMGSetInterpolation(pc,ilevel,mg_interp_mat[level]);
+
+        // Set Smoothers on each level
+
+        ierr= PCMGGetSmoother(pc,level,&(mg_level_ksp[level]));
+        ierr= KSPGetPC(mg_level_ksp[level],&(mg_level_pc[level]));
+        ierr= KSPSetType(mg_level_ksp[level],KSPGMRES);
+	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+        //ierr= PCSetType(mg_level_pc[level],PCBJACOBI);
+
+//  ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/); 
+//  CHKERRQ(ierr);
+        ierr= PCSetType(mg_level_pc[level],PCFIELDSPLIT);
+	    //PetscCall(PCSetUp(pc));
+
+//------
+  // the global parameters
+  PetscInt k, stride=dofPerEnt/3; //U 0->11, Omega 12->23, Chi 24->35
+
+  // the 3 fields for PCFIELDSPLIT
+  //IS field0, field1, field2;
+  PetscInt *idx0, *idx1, *idx2;
+  ierr=PetscMalloc1(mg_num_own_ent[level], &idx0);
+  ierr=PetscMalloc1(mg_num_own_ent[level], &idx1);
+  ierr=PetscMalloc1(mg_num_own_ent[level], &idx2);
+
+  	    //if (!PCU_Comm_Self()) 
+	//	    std::cout<<"[M3DC1 INFO] "<<__func__<<": rank "<<myrank
+	//		    <<" is going to use FS nplanes="<<mg_nplanes[level]<<" stride="<<stride
+	//		    <<" mg_num_own_ent="<<mg_num_own_ent[level]<<" mg_start_ent[level]="<<mg_start_entx[level]<<"\n";
+  // ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
+  // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
+  // bs   - number of elements in each block
+  // n    - the length of the index set (the number of blocks)
+  // idx  - the list of integers, one for each block, the integers contain the index of the first entry of each block divided by the block size
+  // mode - see PetscCopyMode, only PETSC_COPY_VALUES and PETSC_OWN_POINTER are supported in this routine
+  for (k=0; k<mg_num_own_ent[level]; k++) idx0[k]=0+k*dofPerEnt/stride + mg_start_entx[level]*dofPerEnt/stride;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, mg_num_own_ent[level], idx0, PETSC_COPY_VALUES, &mg_field0[level]);
+
+  for (k=0; k<mg_num_own_ent[level]; k++) idx1[k]=1+k*dofPerEnt/stride + mg_start_entx[level]*dofPerEnt/stride;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, mg_num_own_ent[level], idx1, PETSC_COPY_VALUES, &mg_field1[level]);
+
+  for (k=0; k<mg_num_own_ent[level]; k++) idx2[k]=2+k*dofPerEnt/stride + mg_start_entx[level]*dofPerEnt/stride;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, mg_num_own_ent[level], idx2, PETSC_COPY_VALUES, &mg_field2[level]);
+
+//#ifdef TODO
+  ierr=PCFieldSplitSetIS(mg_level_pc[level], NULL, mg_field0[level]);
+  ierr=PCFieldSplitSetIS(mg_level_pc[level], NULL, mg_field1[level]);
+  ierr=PCFieldSplitSetIS(mg_level_pc[level], NULL, mg_field2[level]);
+//#endif
+
+  ierr=PetscFree(idx0);
+  ierr=PetscFree(idx1);
+  ierr=PetscFree(idx2);
+
+//------
+
+  KSP               *subksp,ksp_u,ksp_o,ksp_c;    /* linear solver context */
+  PC                pc_u,pc_o,pc_c;
+  PetscInt          nsplit=3;
+  PetscBool is_pcfs;
+ 	int *blks;
+ 	ierr=PetscMalloc1(mg_nplanes[level], &blks);
+ 	for (int i = 0; i < mg_nplanes[level]; i++) blks[i] = plane_dim;
+	//ierr=PCBJacobiSetTotalBlocks(mg_level_pc[level], mg_nplanes[level], blks);
+
+//#ifdef TODO
+    is_pcfs = PETSC_FALSE;
+    PetscCall(PetscObjectTypeCompare((PetscObject)mg_level_pc[level], PCFIELDSPLIT, &is_pcfs));
+    if (is_pcfs) {
+	    //PetscCall(PCSetUp(mg_level_pc[level]));
+	    PetscCall(PCFieldSplitGetSubKSP(mg_level_pc[level], &nsplit, &subksp));
+	    ksp_u = subksp[0];
+	    ksp_o = subksp[1];
+	    ksp_c = subksp[2];
+	    PetscCall(PetscFree(subksp));
+
+            //setFSBgmgType(&ksp_u, nsplit);
+	    PetscCall(KSPGetPC(ksp_u, &pc_u));
+	    //PetscCall(PCSetFromOptions(pc_u));
+            ierr= KSPSetType(ksp_u,KSPGMRES);
+	    ierr= KSPSetTolerances(ksp_u, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= PCSetType(pc_u,PCBJACOBI);
+	    //PetscCall(PCSetUp(pc_u));
+ 	    ierr=PCBJacobiSetTotalBlocks(pc_u, mg_nplanes[level], blks);
+
+            //setFSBgmgType(&ksp_o, nsplit);
+	    PetscCall(KSPGetPC(ksp_o, &pc_o));
+	    //PetscCall(PCSetFromOptions(pc_o));
+            ierr= KSPSetType(ksp_o,KSPGMRES);
+	    ierr= KSPSetTolerances(ksp_o, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= PCSetType(pc_o,PCBJACOBI);
+	    //PetscCall(PCSetUp(pc_o));
+ 	    ierr=PCBJacobiSetTotalBlocks(pc_o, mg_nplanes[level], blks);
+
+            //setFSBgmgType(&ksp_c, nsplit);
+	    PetscCall(KSPGetPC(ksp_c, &pc_c));
+	    //PetscCall(PCSetFromOptions(pc_c));
+            ierr= KSPSetType(ksp_c,KSPGMRES);
+	    ierr= KSPSetTolerances(ksp_c, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= PCSetType(pc_c,PCBJACOBI);
+	    //PetscCall(PCSetUp(pc_c));
+ 	    ierr=PCBJacobiSetTotalBlocks(pc_c, mg_nplanes[level], blks);
+    }
+//#endif
+
+ 	ierr=PetscFree(blks);
+
+	//todo
+        //KSP        *subksp;  /* array of local KSP contexts on this processor */
+        //PC          subpc;   /* PC context for subdomain */
+        //ierr=KSPSetUp(mg_level_ksp[level]);
+        //ierr=PCBJacobiGetSubKSP(mg_level_pc[level], NULL, NULL, &subksp);
+        /*for (int i = 0; i < mg_nplanes[level]; i++) {
+	    ierr=KSPGetPC(subksp[i], &subpc);
+	    ierr=PCSetType(subpc, PCLU);
+	    ierr=PCFactorSetMatSolverType(subpc, MATSOLVERMUMPS);
+	    ierr=KSPSetType(subksp[i], KSPPREONLY);
+        }*/
+      }
+
+      ierr= PetscFree(mg_start_ent);
+      ierr= PetscFree(mg_num_own_ent);
+      ierr= PetscFree(mg_start_entx);
+      ierr= PetscFree(mg_offset);
+      ierr= PetscFree(mg_planeid);
+      ierr= PetscFree(mg_nplanes);
+
+      BgmgSet=1;
+      BgmgfsSet=1;
+  return M3DC1_SUCCESS;
+}
+
+int matrix_solve:: setFSBgmgType(KSP *ksp, int nsplit)
+{
+//if (mesh->getDimension()!=3 || mymatrix_id!=5) return 0;
+  if (mesh->getDimension()!=3 ) return 0;
+
+  PetscInt ierr;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//          Setup Level Data
+// 0 is always the coarsest level; n-1 is the finest.  This is backward compared to what some people do.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": nsplit="<<nsplit<<"\n";
+
+  int nplane,nlevels;//=16;
+  m3dc1_plane_getnum(&nplane);
+  if(nplane%2) {
+	  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": odd number of planes "<<nplane<<" could not be coarsened "<<"\n";
+	  return 0;
+  }
+
+  //set default bgmg levels to 2
+         nlevels=2;
+  //or to many levels defined by the size of nplanes
+         nlevels = PetscInt(log(PetscReal(nplane))/log(2.));
+         nlevels++;
+  //or to levels given as the srun command line option, for example "-mg_nlevels 3"
+         ierr= PetscOptionsGetInt(NULL,NULL,"-mg_nlevels",&nlevels,NULL);
+  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": f requested total_mg_nlevels="<<nlevels<<"\n";
+
+  int *nplanes, *mg_nplanes; //number of planes per mg level
+      // number of planes for each level
+      ierr= PetscMalloc1(nlevels,&nplanes);
+      // finest level
+      mg_nlevels=2;
+      nplanes[nlevels-1] = nplane;
+      if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": fine level "<<nlevels-1<<" has "<<nplanes[nlevels-1]<<" planes"<<"\n";
+      // rest of the levels
+      for (int level=nlevels-2; level>=0; --level) {
+	      nplanes[level] = nplanes[level+1]/2;
+	      if( (mg_nlevels>=nlevels) || (nplanes[level]%2) ) {
+		      if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": odd number of planes "<<nplanes[level]<<" could not be coarsened "<<"\n";
+		      break;
+	      } else {
+		      mg_nlevels++;
+		      if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": level "<<level<<" has "<<nplanes[level]<<" planes"<<"\n";
+	      }
+      }
+  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": f actual total_mg_nlevels="<<mg_nlevels<<"\n";
+      ierr= PetscMalloc1(mg_nlevels,&mg_nplanes);
+      for (int level=mg_nlevels-1; level>=0; --level) {
+	      mg_nplanes[level] = nplanes[level+(nlevels-mg_nlevels)];
+      }
+      ierr= PetscFree(nplanes);
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//          Create KSP and set multigrid options in PC
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    PC pc;
+//    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
+      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+      ierr= KSPGetPC(*ksp,&pc);
+      ierr= PCSetType(pc,PCMG);
+      ierr= PCMGSetLevels(pc,mg_nlevels,NULL);
+      ierr= PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
+      ierr= PCMGSetGalerkin(pc,PC_MG_GALERKIN_PMAT);
+//      PetscCall(PCSetFromOptions(pc));
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//          Create Interpolation Operators from level-1 to level
+//          mat_dim=endDofPlusOne-startDof=Iend-Istartnum_own_dof=Iendc-Istartc
+//          global_dim=mglobal=nglobal
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//x   PetscInt       Istart,Iend;
+   PetscInt       Istartc,Iendc;
+    PetscInt       mglobal, nglobal;
+//x   ierr= MatGetOwnershipRange(*A,&Istart,&Iend);
+//x   ierr= MatGetOwnershipRangeColumn(*A,&Istartc,&Iendc);
+   //debug ierr= MatGetSize(*A, &mglobal, &nglobal);
+   //num_own_ent is the number of vertices owned by each process
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
+      m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
+   //dof pet ent of num_own_ent
+  int dofPerEnt=0; //=12,24,36
+      if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent/nsplit;
+  PetscInt mat_dim = num_own_dof/nsplit, global_dim, plane_dim;
+//x   int startDof, endDofPlusOne;
+//x   m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
+  // equivalent to mat_dim=endDofPlusOne-startDof=Iend-Istart (local dim)
+	MPI_Allreduce(&mat_dim, &global_dim, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD );
+	plane_dim=global_dim/nplane;
+
+   PetscInt myrank,maxrank,npart,planeid,partitionid;
+   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+   MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
+   npart=maxrank/nplane;
+ //planeid equivalent to PetscInt(myrank/npart);
+   m3dc1_plane_getid(&planeid);
+   partitionid=myrank%npart;
+
+   //reset runtime solver options on the finest level
+   //this is the first place to check
+  char mg_pcbj[64], mg_pcbjblocknumber[8];
+  {int level=mg_nlevels-1;
+          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_0_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
+          PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_1_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
+          PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_2_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
+          PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+  }
+
+      int irow, icol, icol2, irow_end, icol_end, icol2_end;
+
+      mg_interp_mat = new Mat[mg_nlevels-1];
+      mg_level_ksp = new KSP[mg_nlevels-1];
+      mg_level_pc = new PC[mg_nlevels-1];
+
+      int *mg_planeid, factor;
+      ierr= PetscMalloc1(mg_nlevels-1,&mg_planeid);
+      for (int level=mg_nlevels-2; level>=0; --level) {
+              factor=pow(2,mg_nlevels-2-level);
+              mg_planeid[level]=planeid/factor;
+      }
+
+      int *mg_offset;
+      ierr= PetscMalloc1(mg_nlevels-1,&mg_offset);
+      for (int level=mg_nlevels-2; level>=0; --level) {
+        mg_offset[level]=PetscInt((mg_planeid[level]+1)/2);
+      }
+
+      int *mg_num_own_ent; /*example 5 levels: 0 1 2 3 4 */
+      int *mg_start_ent, mg_start_entx; /*example 5 levels: 0 1 2 3 */
+      ierr= PetscMalloc1(mg_nlevels,&mg_num_own_ent);
+      ierr= PetscMalloc1(mg_nlevels-1,&mg_start_ent);
+      mg_num_own_ent[mg_nlevels-1]=num_own_ent;
+      for (int level=mg_nlevels-2; level>=0; --level) {
+	      mapping(maxrank, myrank, mg_nlevels-1-level, mg_num_own_ent[level+1], mg_nplanes[level], planeid, npart, partitionid, &mg_num_own_ent[level], &mg_start_ent[level], &mg_start_entx);
+      }
+
+      for(int level=0; level<mg_nlevels-1;level++) {
+	ierr= MatCreate(PETSC_COMM_WORLD,&mg_interp_mat[level]);
+
+	ierr= MatSetSizes(mg_interp_mat[level], mg_num_own_ent[level+1]*dofPerEnt, mg_num_own_ent[level]*dofPerEnt, plane_dim*mg_nplanes[level+1], plane_dim*mg_nplanes[level]);
+
+	ierr= MatSetType(mg_interp_mat[level], MATMPIAIJ);
+  	ierr= MatSetBlockSize(mg_interp_mat[level], dofPerEnt);
+	ierr= MatSetFromOptions(mg_interp_mat[level]);
+        ierr= MatSetUp(mg_interp_mat[level]);
+        ierr= MatZeroEntries(mg_interp_mat[level]);
+	ierr= MatGetOwnershipRangeColumn(mg_interp_mat[level],&Istartc,&Iendc);
+std::cout<<"[M3DC1 INFO] "<<__func__<<": plane_id="<<planeid<<" partitionid="<<partitionid<<" dofPerEnt="<<dofPerEnt<<" plane_dim="<<plane_dim<<" Istartc="<<Istartc<<" Iendc="<<Iendc<<"\n";
+
+	//hermite cubic extra term 1/8 delta (the span of elements on the coarse mesh)
+	PetscReal hc=M_PI/nplane/2.;
+	int iv, idof;
+	for(iv=0;iv<mg_num_own_ent[level+1];iv++) {
+	    for(idof=0;idof<dofPerEnt;idof++) {
+			    irow=mg_start_ent[level]*dofPerEnt+iv*dofPerEnt+idof /*Istart*/;
+	                    irow_end=mg_start_ent[level]*dofPerEnt+mg_num_own_ent[level+1]*dofPerEnt;
+			    icol =irow - plane_dim * mg_offset[level];
+	                    icol_end=irow_end - plane_dim*mg_offset[level];
+			    icol2=icol+plane_dim;
+			    icol2_end=icol_end+plane_dim;
+			    if((mg_planeid[level]+1)==mg_nplanes[level+1]) icol2=icol2%plane_dim;
+			    if((mg_planeid[level]+1)==mg_nplanes[level+1]) icol2_end=1+(icol2_end-1)%plane_dim;
+			    if( !(mg_planeid[level]%2) ) {
+				    ierr= MatSetValue(mg_interp_mat[level],irow, icol,1., ADD_VALUES);
+			    } else {
+				    ierr= MatSetValue(mg_interp_mat[level],irow, icol,.5, ADD_VALUES);
+				    ierr= MatSetValue(mg_interp_mat[level],irow, icol2,.5, ADD_VALUES);
+				    /*
+				    if(irow%36>=0  && irow%36<=5 ||
+						    irow%36>=12 && irow%36<=17 ||
+						    irow%36>=24 && irow%36<=29)  {
+					    ierr= MatSetValue(mg_interp_mat[level],irow, 6+icol,hc, ADD_VALUES);
+					    ierr= MatSetValue(mg_interp_mat[level],irow, 6+icol2,-hc, ADD_VALUES);
+				    }
+				     */
+			    }
+	    }
+	}
+
+        ierr= MatAssemblyBegin(mg_interp_mat[level],MAT_FINAL_ASSEMBLY);
+        ierr= MatAssemblyEnd(mg_interp_mat[level],MAT_FINAL_ASSEMBLY);
+
+	//   runtime options:
+	//   -A_view ascii:stdout
+        //   -A_view ascii[:[filename][:[ascii_info][:append]]]
+        //   -A_view ascii[:[filename][:[ascii_info_detail][:append]]]
+        //   -A_view ascii[:[filename][:[ascii_matlab][:append]]]
+        //   -A_view binary[:[filename][:[ascii_info][:append]]]
+        //   -A_view binary[:[filename][:[ascii_info_detail][:append]]]
+        //   -A_view binary[:[filename][:[ascii_matlab][:append]]]
+        if(level==0) ierr=MatViewFromOptions(mg_interp_mat[level], NULL, "-I0_view");
+        if(level==1) ierr=MatViewFromOptions(mg_interp_mat[level], NULL, "-I1_view");
+
+	// Set Interpolation Operators
+
+	int ilevel=level+1;
+        ierr= PCMGSetInterpolation(pc,ilevel,mg_interp_mat[level]);
+
+        // Set Smoothers on each level
+
+        ierr= PCMGGetSmoother(pc,level,&(mg_level_ksp[level]));
+        ierr= KSPGetPC(mg_level_ksp[level],&(mg_level_pc[level]));
+        ierr= KSPSetType(mg_level_ksp[level],KSPGMRES);
+	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+        ierr= PCSetType(mg_level_pc[level],PCBJACOBI);
+
+ 	int *blks;
+ 	ierr=PetscMalloc1(mg_nplanes[level], &blks);
+ 	for (int i = 0; i < mg_nplanes[level]; i++) blks[i] = plane_dim;
+ 	ierr=PCBJacobiSetTotalBlocks(mg_level_pc[level], mg_nplanes[level], blks);
+ 	ierr=PetscFree(blks);
+
+	//todo
+        //KSP        *subksp;  /* array of local KSP contexts on this processor */
+        //PC          subpc;   /* PC context for subdomain */
+        //ierr=KSPSetUp(mg_level_ksp[level]);
+        //ierr=PCBJacobiGetSubKSP(mg_level_pc[level], NULL, NULL, &subksp);
+        /*for (int i = 0; i < mg_nplanes[level]; i++) {
+	    ierr=KSPGetPC(subksp[i], &subpc);
+	    ierr=PCSetType(subpc, PCLU);
+	    ierr=PCFactorSetMatSolverType(subpc, MATSOLVERMUMPS);
+	    ierr=KSPSetType(subksp[i], KSPPREONLY);
+        }*/
+      }
+
+      ierr= PetscFree(mg_start_ent);
+      ierr= PetscFree(mg_num_own_ent);
+      ierr= PetscFree(mg_offset);
+      ierr= PetscFree(mg_planeid);
+      ierr= PetscFree(mg_nplanes);
+  fsBgmgSet=1;
   return M3DC1_SUCCESS;
 }
 
@@ -1561,6 +2224,234 @@ int matrix_solve:: mapping(int maxrank, int myrank, int factor, int num_own_ent,
   free(num_all_ent_level);
   free(num_all_ent);
   return 0;
+}
+
+#ifdef TODO
+int matrix_solve:: setFSType()
+{
+  // the global parameters
+  PetscInt ierr, dofPerEnt,stride,k;
+  int startDof, endDofPlusOne;
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
+  m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
+  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+  stride=dofPerEnt/3; //U 0->11, Omega 12->23, Chi 24->35
+  m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
+  startDof=startDof/stride;
+
+  // the 3 fields for PCFIELDSPLIT
+  //IS field0, field1, field2;
+  PetscInt *idx0, *idx1, *idx2;
+  ierr=PetscMalloc1(num_own_ent, &idx0);
+  ierr=PetscMalloc1(num_own_ent, &idx1);
+  ierr=PetscMalloc1(num_own_ent, &idx2);
+
+  // ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
+  // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
+  // bs   - number of elements in each block
+  // n    - the length of the index set (the number of blocks)
+  // idx  - the list of integers, one for each block, the integers contain the index of the first entry of each block divided by the block size
+  // mode - see PetscCopyMode, only PETSC_COPY_VALUES and PETSC_OWN_POINTER are supported in this routine
+  for (k=0; k<num_own_ent; k++) idx0[k]=k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx0, PETSC_COPY_VALUES, &field0);
+
+  for (k=0; k<num_own_ent; k++) idx1[k]=1+k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx1, PETSC_COPY_VALUES, &field1);
+
+  for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &field2);
+
+  PC pc;
+  //PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+  //PetscCall(KSPSetOperators(ksp, A, A));
+  ierr= KSPAppendOptionsPrefix(*ksp,"fs_");
+  ierr=KSPGetPC(*ksp, &pc);
+  ierr=PCSetType(pc, PCFIELDSPLIT);
+  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
+  ierr=PCFieldSplitSetIS(pc, NULL, field0);
+  ierr=PCFieldSplitSetIS(pc, NULL, field1);
+  ierr=PCFieldSplitSetIS(pc, NULL, field2);
+  //PetscCall(KSPSetFromOptions(ksp));
+  //PetscCall(KSPSolve(ksp, b, x));
+
+  ierr=PetscFree(idx0);
+  ierr=PetscFree(idx1);
+  ierr=PetscFree(idx2);
+  fsSet=1;
+  return 0;
+}
+#endif
+
+int matrix_solve:: setFSType()
+{
+  // the global parameters
+  PetscInt ierr, dofPerEnt,stride,k;
+  int startDof, endDofPlusOne;
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
+  m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
+  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+  stride=dofPerEnt/3; //U 0->11, Omega 12->23, Chi 24->35
+  m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
+  startDof=startDof/stride;
+
+  // the 3 fields for PCFIELDSPLIT
+  //IS field0, field1, field2;
+  PetscInt *idx0, *idx1, *idx2;
+  ierr=PetscMalloc1(num_own_ent, &idx0);
+  ierr=PetscMalloc1(num_own_ent, &idx1);
+  ierr=PetscMalloc1(num_own_ent, &idx2);
+
+  // ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
+  // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
+  // bs   - number of elements in each block
+  // n    - the length of the index set (the number of blocks)
+  // idx  - the list of integers, one for each block, the integers contain the index of the first entry of each block divided by the block size
+  // mode - see PetscCopyMode, only PETSC_COPY_VALUES and PETSC_OWN_POINTER are supported in this routine
+  for (k=0; k<num_own_ent; k++) idx0[k]=k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx0, PETSC_COPY_VALUES, &field0);
+
+  for (k=0; k<num_own_ent; k++) idx1[k]=1+k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx1, PETSC_COPY_VALUES, &field1);
+
+  for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &field2);
+
+  PC pc;
+  //PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+  //PetscCall(KSPSetOperators(ksp, A, A));
+  ierr= KSPAppendOptionsPrefix(*ksp,"fs_");
+  ierr=KSPGetPC(*ksp, &pc);
+  ierr=PCSetType(pc, PCFIELDSPLIT);
+  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
+  ierr=PCFieldSplitSetIS(pc, NULL, field0);
+  ierr=PCFieldSplitSetIS(pc, NULL, field1);
+  ierr=PCFieldSplitSetIS(pc, NULL, field2);
+  //PetscCall(KSPSetFromOptions(ksp));
+  //PetscCall(KSPSolve(ksp, b, x));
+
+	  PetscInt fsmg=-1;
+	  ierr = PetscOptionsGetInt(NULL,NULL,"-fsmg",&fsmg,NULL); CHKERRQ(ierr);
+	  if(mymatrix_id==fsmg) {
+	          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use FieldSplitBgmg preconditioner"<<"\n";
+  KSP               *subksp,ksp_u,ksp_o,ksp_c;    /* linear solver context */
+  PC                pc_u,pc_o,pc_c;
+  PetscInt          nsplit;
+  PetscBool is_pcfs;
+
+    is_pcfs = PETSC_FALSE;
+    PetscCall(PetscObjectTypeCompare((PetscObject)pc, PCFIELDSPLIT, &is_pcfs));
+    if (is_pcfs) {
+	    PetscCall(PCSetUp(pc));
+	    PetscCall(PCFieldSplitGetSubKSP(pc, &nsplit, &subksp));
+	    ksp_u = subksp[0];
+	    ksp_o = subksp[1];
+	    ksp_c = subksp[2];
+	    PetscCall(PetscFree(subksp));
+
+            //setFSBgmgType(&ksp_u, nsplit);
+	    //PetscCall(KSPGetPC(ksp_u, &pc_u));
+	    //PetscCall(PCSetFromOptions(pc_u));
+
+            setFSBgmgType(&ksp_o, nsplit);
+	    //PetscCall(KSPGetPC(ksp_o, &pc_o));
+	    //PetscCall(PCSetFromOptions(pc_o));
+
+            //setFSBgmgType(&ksp_c, nsplit);
+	    //PetscCall(KSPGetPC(ksp_c, &pc_c));
+	    //PetscCall(PCSetFromOptions(pc_c));
+
+	    ierr=PetscPrintf(PETSC_COMM_WORLD, "PCFIELDSPLIT 5 has %" PetscInt_FMT " splits\n", nsplit);
+    }
+	  }
+
+  ierr=PetscFree(idx0);
+  ierr=PetscFree(idx1);
+  ierr=PetscFree(idx2);
+  fsSet=1;
+  return 0;
+}
+
+int matrix_solve:: setLSType()
+{
+	int ierr, itmp=2;
+	int num_own_ent, num_all_ent, num_plane_ent, num_own_dof;
+	PC pc;
+
+	//PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+	////PetscCall(KSPSetOperators(ksp, A, A));
+	
+	ierr=KSPAppendOptionsPrefix(*ksp,"line_");
+	ierr=KSPGetPC(*ksp, &pc);
+	ierr=PCSetType(pc, PCFIELDSPLIT);
+
+	// the global parameters
+        PetscInt dofPerEnt,i,k,nplane;
+	num_own_ent=m3dc1_mesh::instance()->num_own_ent[0];
+	ierr = PetscOptionsGetInt(NULL,NULL,"-itmp",&itmp,NULL); CHKERRQ(ierr);
+	if(itmp > num_own_ent) itmp=num_own_ent;
+	ierr=PetscMalloc1(itmp, &Line);
+
+	m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
+	if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+	m3dc1_plane_getnum(&nplane);
+
+	//the number of ent per plane
+	MPI_Allreduce(&num_own_ent, &num_all_ent, 1, MPI_INT, MPI_SUM, PETSC_COMM_WORLD);
+	num_plane_ent=num_all_ent/nplane;
+
+	//the start global index of each block
+	PetscInt myrank,maxrank,npart,planeid,partitionid;
+	MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+	MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
+
+	int *num_all_ent_array, startDof_on_each_partition, startDof_on_each_plane;
+	num_all_ent_array= (int*) malloc(maxrank*sizeof(int));
+	MPI_Allgather( &num_own_ent, 1, MPI_INT, num_all_ent_array, 1, MPI_INT, PETSC_COMM_WORLD);
+
+	m3dc1_plane_getid(&planeid);
+	npart=maxrank/nplane;
+	partitionid=myrank%npart;
+	startDof_on_each_partition=0;
+        for (i=0; i<partitionid; i++) {
+		startDof_on_each_partition=startDof_on_each_partition+num_all_ent_array[i];
+	}
+	//int startDof_on_each_partition=(myrank%npartition)*num_own_ent;
+	startDof_on_each_plane=(planeid)*(num_plane_ent);
+	//if (!PCU_Comm_Self()) 
+	//	std::cout<<"[M3DC1 INFO] "<<__func__
+	//		<<myrank
+	//		<<": num_own_ent="<<num_own_ent
+	//		<<" startDof_on_each_partition="<<startDof_on_each_partition
+	//		<<" startDof_on_each_plane="<<startDof_on_each_plane
+	//		<<"\n";
+
+	// the num_own_ent of fields for PCFIELDSPLIT, and each one of num_own_ent has nplane blocks
+	// IS : Line[0], Line[1], ..., Line[num_own_ent]
+        int idx;
+
+	// ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
+        // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
+        // bs   - number of elements in each block
+        // n    - the length of the index set (the number of blocks)
+        // idx  - the list of integers, one for each block, the integers contain the index of the first entry of each block divided by the block size
+        // mode - see PetscCopyMode, only PETSC_COPY_VALUES and PETSC_OWN_POINTER are supported in this routine
+        for (i=0; i<itmp; i++) {
+		idx=i+startDof_on_each_partition+startDof_on_each_plane;
+		//if (!PCU_Comm_Self()) 
+			std::cout<<"[M3DC1 INFO] "<<__func__ <<myrank <<": idx="<<idx <<"\n";
+		ierr=ISCreateBlock(PETSC_COMM_WORLD, dofPerEnt, 1, &idx, PETSC_COPY_VALUES, &Line[i]);
+		//note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
+	        ierr=PCFieldSplitSetIS(pc, NULL, Line[i]);
+	}
+
+	for (i=0; i<itmp; i++) {
+                ierr=ISDestroy(&Line[i]);
+        }
+	ierr= PetscFree(num_all_ent_array);
+	ierr=PetscFree(Line);
+	
+	LineSet=1;
+	return 0;
 }
 
 #endif //#ifdef M3DC1_PETSC

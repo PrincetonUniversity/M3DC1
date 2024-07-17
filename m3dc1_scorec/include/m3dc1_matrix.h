@@ -21,6 +21,7 @@
 int copyField2PetscVec(FieldID field, Vec& petscVec, int scalar_type);
 int copyPetscVec2Field(Vec& petscVec, FieldID field, int scalar_type);
 void printMemStat();
+PetscErrorCode MyKSPMonitor(KSP, PetscInt, PetscReal, void *);
 // NOTE: all field realted interaction is done through m3dc1 api rather than apf
 class m3dc1_matrix
 {
@@ -107,13 +108,29 @@ private:
 
   //block mg in toroidal direction
   int BgmgSet; //only for mymatrix_id=5 or 17, the hard ones
+  int BgmgfsSet; //only for mymatrix_id=5
   PetscInt mg_nlevels;  //default = 2
   //PC *pc;
   Mat *mg_interp_mat;
   KSP *mg_level_ksp;
   PC *mg_level_pc;
   int setBgmgType(); 
+  int setBgmgFSType(); 
+  int setBgmgFSType2(); 
   int mapping(int, int, int, int, int, int, int, int, int *, int *, int *);
+  IS *mg_field0, *mg_field1, *mg_field2;
+
+  //plane solver: FieldSplit 20240311
+  int fsSet; //only for mymatrix_id=5
+  int fsBgmgSet; //only for mymatrix_id=5 or 17, the hard ones
+  IS field0, field1, field2;
+  int setFSType();
+  int setFSBgmgType(KSP *, int); 
+
+  //Line solver: Line 20240313
+  int LineSet;
+  IS *Line;
+  int setLSType();
 
   // remoteA related data
   std::set<int>* remotePidOwned;
