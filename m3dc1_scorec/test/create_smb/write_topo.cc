@@ -1,6 +1,7 @@
 #include <apf.h>
 #include <apfMesh.h>
 #include <apfMDS.h>
+#include <gmi.h>
 #include <gmi_mesh.h>
 #include <PCU.h>
 #include <lionPrint.h>
@@ -69,10 +70,26 @@ void write_topo(apf::Mesh2* m, const char* filename, int start_index)
   int id, dim=2;
   if (m->count(3)) dim=3;
 
+  // find vacuum model edge
+  int bdry_gedge_id=0;
+  gmi_model* gm = m->getModel();
+  gmi_iter* git = gmi_begin(gm, 1);
+  gmi_ent* ge;
+ // pGEdge gedge;
+  while ((ge = gmi_next(gm, git)))
+  {
+    // todo: use GEN_closest
+    if (bdry_gedge_id<gmi_tag(gm, ge))
+      bdry_gedge_id = gmi_tag(gm, ge);
+  }
+  gmi_end(gm, git);
+
+  if (!PCU_Comm_Self()) std::cout<<"bdry_gedge_id = "<<bdry_gedge_id<<"\n";
+
   sprintf(filename_buff, "%s",filename);
   FILE * fp =fopen(filename_buff, "w");
 
-  fprintf(fp, "%d\t%d\t%d\n", dim, m->count(0), m->count(dim));
+  fprintf(fp, "%d\t%d\t%d\t%d\n", dim, m->count(0), m->count(dim), bdry_gedge_id);
 
   it = m->begin(0);
   while ((e = m->iterate(it)))
