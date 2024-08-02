@@ -523,6 +523,14 @@ subroutine set_defaults
        "1: Do not let pi drop below pi_floor", num_grp)
   call add_var_double("pi_floor", pi_floor, 0., &
        "Minimum allowed value for pi when iset_pi_floor=1", num_grp)
+  call add_var_int("iset_ne_floor", iset_ne_floor, 0, &
+       "1: Do not let ne drop below ne_floor", num_grp)
+  call add_var_double("ne_floor", ne_floor, 0., &
+       "Minimum allowed value for ne when iset_ne_floor=1", num_grp)
+  call add_var_int("iset_ni_floor", iset_ni_floor, 0, &
+       "1: Do not let ni drop below ni_floor", num_grp)
+  call add_var_double("ni_floor", ni_floor, 0., &
+       "Minimum allowed value for ni when iset_ni_floor=1", num_grp)
   call add_var_int("iset_te_floor", iset_te_floor, 0, &
        "1: Do not let Te drop below te_floor", num_grp)
   call add_var_double("te_floor", te_floor, 0., &

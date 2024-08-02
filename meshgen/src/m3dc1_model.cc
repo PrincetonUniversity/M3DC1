@@ -33,6 +33,35 @@ void interpolateCubicBSpline( vector<double>& points,vector<double>& knots, vect
 void faceFunction(double const p[2], double x[3], void * data) {}
 void vertexFunction(double const p[2], double x[3], void * data) {}
 
+int get_vacuum_geid(pGModel sim_model)
+{
+  int index = -1;
+  int max_index=-1;
+  double minDist = 1e16;
+  double pt[3] = 	{10000000.0,0.0,0.0};
+
+  GEIter gedges = GM_edgeIter(sim_model);
+  int ngedge=GM_numEdges(sim_model);
+  while (pGEdge ge=GEIter_next(gedges))
+  {
+    double outPt[3], outPar;
+    GE_closestPoint(ge, pt, outPt, &outPar);
+    GE_closestPoint(ge, pt, outPt, &outPar);
+    double dist = getDist2D (pt, outPt);
+    assert (outPt[0] < pt[0]);
+    if (dist < minDist)
+    {
+      minDist = dist;
+      index = GEN_tag(ge);
+      if (GEN_tag(ge)>max_index)
+        max_index=GEN_tag(ge);
+    }
+  }
+  assert (max_index==index);
+  return index;
+}
+
+
 // **********************************************
 void export_model_data(std::map<int, std::vector<double> >& out_vtxContainer, 
                        std::map<int, int>& out_edgeType, 

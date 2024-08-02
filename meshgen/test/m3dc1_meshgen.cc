@@ -657,7 +657,7 @@ int main(int argc, char *argv[])
   SurfaceMesher_delete(surfMesh);
 
   std::cout<<"\n[INFO] # model entities: V "<<GM_numVertices(sim_model)
-                          <<", E "<<GM_numEdges(sim_model)
+                          <<", E "<<GM_numEdges(sim_model)<<" (vacuum "<<get_vacuum_geid(sim_model)<<")"
                           <<", F "<<GM_numFaces(sim_model)<<"\n";
   std::cout<<"[INFO] # mesh  entities: V "<<M_numVertices(sim_mesh)
                           <<", E "<<M_numEdges(sim_mesh)

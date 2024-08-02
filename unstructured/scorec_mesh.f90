@@ -216,8 +216,6 @@ contains
 #endif
     call update_nodes_owned
 
-    call get_global_dims
-
     initialized = .true.
   end subroutine load_mesh
 
@@ -237,6 +235,8 @@ contains
        end if
     end do
     if(inode2-1 .ne. owned_nodes()) call abort()
+
+    call get_global_dims
   end subroutine update_nodes_owned
   subroutine unload_mesh
     if(.not. initialized) return

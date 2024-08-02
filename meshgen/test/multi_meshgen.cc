@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
   SurfaceMesher_delete(surfMesh);
 
   std::cout<<"\n[INFO] # model entities: V "<<GM_numVertices(sim_model)
-                          <<", E "<<GM_numEdges(sim_model)
+	                  <<", E "<<GM_numEdges(sim_model)<<" (vacuum "<<get_vacuum_geid(sim_model)<<")"
                           <<", F "<<GM_numFaces(sim_model)<<"\n";
   std::cout<<"[INFO] # mesh  entities: V "<<M_numVertices(sim_mesh)
                           <<", E "<<M_numEdges(sim_mesh)
@@ -457,7 +457,6 @@ int main(int argc, char *argv[])
   apf::destroyMesh(simApfMesh);
 
   cout<<"\n<< Continue with \"simmodeler\" for more meshing control! >>\n\n";
-
   mesh->destroyNative();
   apf::destroyMesh(mesh);
   gmi_sim_stop();
@@ -524,8 +523,8 @@ void get_multi_rgn()
     create_vtx(&gv1_id,&(interpolate_points.at(0)));
     create_edge(&ge1_id, &gv1_id, &gv1_id);
     
-    //attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
-    attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    //attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
 
     // now set the loop closed
     int innerWallEdges[]={ge1_id};
@@ -577,10 +576,10 @@ void inner_outer_wall_pts()
       create_vtx(&gv1_id,&(out_pts.at(0)));
       create_edge(&ge1_id, &gv1_id, &gv1_id);
        
-      if (num_out_pts <= 10)
+      //if (num_out_pts <= 10)
       	attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
-      else
-	attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+      //else
+//	attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
 
       int outerWallEdges[]={ge1_id};
       num_ge = 1;
@@ -682,10 +681,14 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 	    bool clockwise = curveOrientation(ctrlPts3D);
             if (clockwise)
 		edgeDir = 0;
-	    if (numPts < 10 || loopNumber == vacuumLoopId)
+#ifndef SIM12
+	    //if (numPts < 10 || loopNumber == vacuumLoopId)
+#endif
             	curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
-	    else
-		curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
+#ifndef SIM12
+	    //else
+	//	curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
+#endif
            if (numE == 1)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, startVert, curve, edgeDir, outerRegion);

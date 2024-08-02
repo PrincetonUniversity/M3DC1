@@ -988,6 +988,28 @@ contains
           net79 = ne179
        endif
 
+     if(iset_ne_floor.eq.1) then
+        if(ilin.eq.0) then
+           where(real(net79(:,OP_1)).lt.ne_floor)
+              ne179(:,OP_1) = ne_floor - ne079(:,OP_1)
+           end where
+        end if
+        where(real(net79(:,OP_1)).lt.ne_floor)
+           net79(:,OP_1) = ne_floor
+        end where
+     end if
+     
+     if(iset_ni_floor.eq.1) then
+        if(ilin.eq.0) then
+           where(real(nt79(:,OP_1)).lt.ni_floor)
+              n179(:,OP_1) = ni_floor - n079(:,OP_1)
+           end where
+        end if
+        where(real(nt79(:,OP_1)).lt.ni_floor)
+           nt79(:,OP_1) = ni_floor
+        end where
+     end if
+
     endif
 
   ! NI
