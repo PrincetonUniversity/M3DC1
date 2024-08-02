@@ -607,6 +607,11 @@ subroutine calculate_external_fields(ilin)
      call mult(pe_field(il), pefac) 
   end if
 
+  if(il.eq.0) then
+     call add(p_field(il),pedge)
+     call add(pe_field(il),pedge*pefac)
+  end if
+
   call boundary_dc(bf_vec,mat=bf_mat)
   !call boundary_dc(bf_vec,p_vec,bf_mat)
   call finalize(bf_mat)
