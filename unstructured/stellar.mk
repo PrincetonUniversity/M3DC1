@@ -50,7 +50,7 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
 
 SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-PUMI_UTIL_DIR=/projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/2023.1-240113/bin
+PUMI_UTIL_DIR=/projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/2023.1-240113/073024/bin
 
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
