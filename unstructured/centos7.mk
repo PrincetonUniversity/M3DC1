@@ -53,7 +53,7 @@ else
 PETSC_ARCH=real-rhel7-$(MPIVER)
 endif
 
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/2023.1-240113/bin
 
