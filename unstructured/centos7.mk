@@ -53,8 +53,9 @@ else
 PETSC_ARCH=real-rhel7-$(MPIVER)
 endif
 
-SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSCVER)
+SCOREC_BASE_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/$(MPIVER)/$(PETSC_VER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
+PUMI_UTIL_DIR=/p/tsc/m3dc1/lib/SCORECLib/rhel7/intel2019u3-openmpi4.0.3/2023.1-240113/bin
 
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
@@ -88,6 +89,13 @@ INCLUDE = -I$(PETSC_DIR)/include \
         -I$(HDF5_HOME)/include \
 	-I$(NETCDF_FORTRAN_HOME)/include
 
+# Full ADAS available
+ifneq ($(USEADAS), 1)
+  USEADAS = 1
+  OPTS := $(OPTS) -DUSEADAS
+endif
+ADAS_LIB = -L/p/adas/4.0/ifort/lib -ladaslib
+
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
 
@@ -95,6 +103,9 @@ INCLUDE = -I$(PETSC_DIR)/include \
 	$(CPP) $(CCOPTS) $(INCLUDE) $< -o $@
 
 %.o: %.f
+	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
+
+%.o: %.for
 	$(F77) $(F77OPTS) $(INCLUDE) $< -o $@
 
 %.o: %.F

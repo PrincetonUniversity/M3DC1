@@ -1683,7 +1683,7 @@ In all cases, the angular velocity is then determined by:
 
   \texttt{iread\_vmec}    & 0 & 1: read geometry from VMEC file \\
   \texttt{vmec\_filename} & geometry.nc& name of vmec data file \\
-  \texttt{nperiods} & 1 & number of field periods \\
+  \texttt{nperiods} & 1 & model 1/nperiods of a torus when ifull\_torus=0 \\
   \texttt{iread\_planes} & 0 & Read positions of toroidal planes from plane\_positions \\
   \texttt{bloat\_distance} & 0 & factor to expand VMEC domain \\
   \texttt{bloat\_factor}   & 0 & factor to expand VMEC domain \\
@@ -1748,7 +1748,11 @@ In all cases, the angular velocity is then determined by:
  \texttt{iset\_ti\_floor} & 0 & 1: do not let ti drop below ti\_floor \\
   \texttt{ti\_floor}	   & 0 & minimum value for ti when iset\_ti\_floor=1 \\
 
+ \texttt{iset\_ne\_floor} & 0 & 1: do not let ne drop below ne\_floor \\
+  \texttt{ne\_floor}	   & 0 & minimum value for ne when iset\_ne\_floor=1 \\
 
+ \texttt{iset\_ni\_floor} & 0 & 1: do not let ni drop below ni\_floor \\
+  \texttt{ni\_floor}	   & 0 & minimum value for ni when iset\_ni\_floor=1 \\
 
 
 
@@ -2181,7 +2185,7 @@ current drive source & & $\dot{\psi} = ... + \eta(\Delta^* \psi - J_{CD}) $ \\
  \texttt{bloat\_factor}           & 0 & Free boundary only:  Scale factor to bloat computational boundary using input geometry. \\
  \texttt{bloat\_distance}         & 0 & Free boundary only:  Distance to expand computational boundary from input geometry. \\
  \texttt{igeometry}               & 0 & 1: must be set to use stellarator version \\
- \texttt{nperiods}                & 1 & Number of field periods (stellarator geometry).    Note nplanes
+ \texttt{nperiods}                & 1 & Number of field periods (stellarator geometry; VMEC nfp must be divisible by nperiods).    Note nplanes
                                         should be equal to at least 2 x (number of toroidal modes 
                                         per field period) x nperiods \\
  \texttt{ifull\_torus}            & 0 & 0:  Solve on one field period \\

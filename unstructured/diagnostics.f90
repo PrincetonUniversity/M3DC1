@@ -33,7 +33,7 @@ module diagnostics
   real :: wall_force_n1_x, wall_force_n1_y, wall_force_n1_z
 
   ! scalars integrated within lcfs
-  real :: pflux, parea, pcur, pcur_co, pcur_sn, pden, pmom, pvol, m_iz, m_iz_co, m_iz_sn
+  real :: pflux, parea, pcur, pcur_co, pcur_sn, pden, pmom, pvol, m_iz, m_iz_co, m_iz_sn, volpd
   real :: jbs
   real :: chierror, psi0
 
@@ -243,6 +243,7 @@ contains
     totkprad = 0.
     totkprad0 = 0.
     jbs = 0.
+    volpd = 0.
 
     tau_em = 0.
     tau_sol = 0.
@@ -297,7 +298,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 81
+    integer, parameter :: num_scalars = 82
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, allocatable  :: ptemp(:)
@@ -385,6 +386,7 @@ contains
        temp(79) = emagpv
        temp(80) = emagtv
        temp(81) = jbs
+       temp(81) = volpd
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -471,6 +473,7 @@ contains
        emagpv          = temp2(79)
        emagtv          = temp2(80)
        jbs             = temp2(81)
+       volpd           = temp2(82)
 
        if(ipellet_abl.gt.0) then
           allocate(ptemp(npellets))
@@ -684,6 +687,7 @@ subroutine tpi_factors(tpifac,tpirzero)
         tpirzero = twopi*rzero
      endif
      if(ifull_torus.eq.0) then
+        tpifac = twopi/nperiods
         tpirzero = tpirzero/nperiods
      endif
   endif
@@ -804,7 +808,7 @@ subroutine calculate_scalars()
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
 !$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,izone_ind,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv,jbs)
+!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,volpd,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv,jbs)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -954,6 +958,7 @@ subroutine calculate_scalars()
      ! volume
      volume = volume + twopi*int0()/tpifac
      pvol = pvol + twopi*int1(mr)/tpifac
+     volpd = volpd + twopi*volume_pd(mr)/tpifac
 
      ! particle number
      totden = totden + twopi*int1(nt79(:,OP_1))/tpifac
@@ -2093,7 +2098,7 @@ subroutine calculate_rho(itri)
 
   rho79 = nt79
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      do i=1, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         rho79 = rho79 + tm79*kprad_mz/ion_mass

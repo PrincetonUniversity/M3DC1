@@ -58,6 +58,9 @@ char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic
 #ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 #endif
+#ifdef SDUMONT
+char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
+#endif
 #else // scorec
 char simLic[128]="/net/common/meshSim/license/license.txt";
 #endif
@@ -305,7 +308,11 @@ int main(int argc, char *argv[])
   pProgress progress = Progress_new();
   Progress_setDefaultCallback(progress);
 
+#ifdef SIM12
+  pGModel sim_model = GM_new();
+#else
   pGModel sim_model = GM_new(1);
+#endif
   make_sim_model(sim_model, face_bdry);
 
   // write simmetrix model file
@@ -354,7 +361,7 @@ int main(int argc, char *argv[])
   SurfaceMesher_delete(surfMesh);
 
   std::cout<<"\n[INFO] # model entities: V "<<GM_numVertices(sim_model)
-                          <<", E "<<GM_numEdges(sim_model)
+	                  <<", E "<<GM_numEdges(sim_model)<<" (vacuum "<<get_vacuum_geid(sim_model)<<")"
                           <<", F "<<GM_numFaces(sim_model)<<"\n";
   std::cout<<"[INFO] # mesh  entities: V "<<M_numVertices(sim_mesh)
                           <<", E "<<M_numEdges(sim_mesh)
@@ -450,7 +457,6 @@ int main(int argc, char *argv[])
   apf::destroyMesh(simApfMesh);
 
   cout<<"\n<< Continue with \"simmodeler\" for more meshing control! >>\n\n";
-
   mesh->destroyNative();
   apf::destroyMesh(mesh);
   gmi_sim_stop();
@@ -517,8 +523,8 @@ void get_multi_rgn()
     create_vtx(&gv1_id,&(interpolate_points.at(0)));
     create_edge(&ge1_id, &gv1_id, &gv1_id);
     
-    //attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
-    attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    //attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
 
     // now set the loop closed
     int innerWallEdges[]={ge1_id};
@@ -570,10 +576,10 @@ void inner_outer_wall_pts()
       create_vtx(&gv1_id,&(out_pts.at(0)));
       create_edge(&ge1_id, &gv1_id, &gv1_id);
        
-      if (num_out_pts <= 10)
+      //if (num_out_pts <= 10)
       	attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
-      else
-	attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+      //else
+//	attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
 
       int outerWallEdges[]={ge1_id};
       num_ge = 1;
@@ -600,16 +606,17 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
   std::map<int, pGVertex> vertices;
   gmi_model* model = m3dc1_model::instance()->model;  
  
-  #ifdef LICENSE // SIMMODSUITE_MAJOR_VERSION >= 15
-    pGIPart part = GM_rootPart(sim_model);
-  #else
+  #ifdef SIM12
     pGIPart part = GM_part(sim_model);
+  #else // SIMMODSUITE_MAJOR_VERSION >= 15
+    pGIPart part = GM_rootPart(sim_model);
   #endif
 
   pGRegion outerRegion = GIP_outerRegion(part);
   // Now we'll add loops
   for (std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
   {
+    int loopNumber = it->first;
     int numE=it->second.size();
     // First we'll add the vertices on the loop
     for( int i=0; i<numE; i++)
@@ -617,7 +624,11 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
       int edge=it->second[i];
       std::pair<int, int> vtx=edgeContainer[edge];
       std::vector<double>& xyz= vtxContainer.at(vtx.first);
+#ifdef SIM12
+      vertices[vtx.first] = GIP_insertVertexInRegion(part, &xyz[0], outerRegion);
+#else
       vertices[vtx.first] = GR_createVertex(GIP_outerRegion(part), &xyz[0]); 
+#endif
     }
     for( int j=0; j<numE; j++)
     {
@@ -638,7 +649,11 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
             GV_point(startVert,xyz1);
             GV_point(endVert,xyz2);
             curve = SCurve_createLine(xyz1, xyz2);
+#ifdef SIM12
+            pGEdge pe= GIP_insertEdgeInRegion(part, startVert, endVert, curve, 1, outerRegion);
+#else
             pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
+#endif
 	    ge_edgeid[pe] = edge;
           }
           break;
@@ -666,11 +681,26 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 	    bool clockwise = curveOrientation(ctrlPts3D);
             if (clockwise)
 		edgeDir = 0;
-            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+#ifndef SIM12
+	    //if (numPts < 10 || loopNumber == vacuumLoopId)
+#endif
+            	curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+#ifndef SIM12
+	    //else
+	//	curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
+#endif
            if (numE == 1)
+#ifdef SIM12
+                pe = GIP_insertEdgeInRegion(part, startVert, startVert, curve, edgeDir, outerRegion);
+#else
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
+#endif
 	   else if (numE == 2)
+#ifdef SIM12
+                pe = GIP_insertEdgeInRegion(part, startVert, endVert, curve, edgeDir, outerRegion);
+#else
 		pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, edgeDir);
+#endif
 	   ge_edgeid[pe] = edge;
           }
           break;
@@ -719,8 +749,13 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
     } 
     pSurface planarSurface;
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
+#ifdef SIM12
+    pGFace gf = GIP_insertFaceInRegion(part, faceEdges.size(), &(faceEdges[0]), &(faceDirs[0]),
+                  numLoops, &(loopDef[0]), planarSurface, 1, outerRegion);
+#else
     pGFace gf = GR_createFace(GIP_outerRegion(part), faceEdges.size(),
                   &(faceEdges[0]),&(faceDirs[0]),numLoops,&(loopDef[0]),planarSurface,1);
+#endif
     GEN_setNativeIntAttribute(gf, i+1, "faceType");
   }
   

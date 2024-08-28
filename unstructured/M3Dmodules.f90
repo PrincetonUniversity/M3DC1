@@ -7,7 +7,7 @@ module basic
 
   integer, parameter :: ijacobian = 1
 
-  integer, parameter :: version = 44
+  integer, parameter :: version = 45
 
 #if defined(USE3D) || defined(USECOMPLEX)
   integer, parameter :: i3d = 1
@@ -103,8 +103,10 @@ module basic
   real :: db_fac      ! factor to scale physical value of db
   real :: gam         ! ratio of specific heats
   real :: gravr,gravz ! gravitational acceleration
+  real :: vloop0      ! initial loop voltage
   real :: vloop       ! loop voltage
   real :: vloopRZ     ! rate at which boundary TF changes
+  real :: vloop_freq  ! frequency of loop voltage
   real :: mass_ratio  ! me/mi (in units of me/mp)
   real :: z_ion       ! Z of main ion species
   real :: ion_mass    ! Effective mass of ions (in proton mass/particle)
@@ -337,6 +339,7 @@ module basic
   integer :: itime_independent ! 1 = exclude d/dt terms
   integer :: iset_pe_floor, iset_pi_floor
   integer :: iset_te_floor, iset_ti_floor
+  integer :: iset_ne_floor, iset_ni_floor
   integer :: idiff       ! 1 = solve for difference in solution in B,p from n to n+1
   integer :: idifv       ! 1 = solve for difference in solution in v from n to n+1
   integer :: ksp_max     ! if.gt.0  max number of petsc iterations before time step is repeated
@@ -355,6 +358,7 @@ module basic
   real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
   real :: pe_floor, pi_floor
   real :: te_floor, ti_floor
+  real :: ne_floor, ni_floor
   real :: frequency      ! frequency in time-independent calculation
 
   ! poloidal force parameters

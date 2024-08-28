@@ -1,0 +1,328 @@
+!========================
+! M3D-C1 ADAS connection
+!========================
+module adas_m3dc1
+  use spline
+
+  implicit none
+
+  character(len=256) :: adas_adf11 ! root folder location to ADAS adf11 data
+  integer, private :: iz0, iz1min, iz1max
+  integer, private  :: izdimd, itdimd, iddimd
+  ! for radiation from plt data
+  integer, private  :: iblmx_plt, itmax_plt, idmax_plt
+  integer, allocatable, dimension(:), target, private  :: isstgr_plt
+  real, allocatable, dimension(:), target, private  :: ddens_plt, dtev_plt
+  real, allocatable, dimension(:,:,:), target, private  :: drcof_plt
+
+  ! for ionization from scd data
+  integer, private  :: iblmx_scd, itmax_scd, idmax_scd
+  integer, allocatable, dimension(:), target, private  :: isstgr_scd
+  real, allocatable, dimension(:), target, private  :: ddens_scd, dtev_scd
+  real, allocatable, dimension(:,:,:), target, private  :: drcof_scd
+
+  ! for interpolation
+  real, allocatable, dimension(:), private :: yin, dy, xin
+  real, allocatable, dimension(:,:), private :: ypass
+  type(spline1d), private :: yspline 
+
+
+contains
+
+  subroutine load_adf11(Z)
+    use basic
+    implicit none
+    integer, intent(in) :: Z
+
+    integer :: iclass
+    character(len=19) :: pltname, scdname
+    character(len=255) :: dsname
+
+    integer, parameter :: iunit = 67
+
+    ! BCL 3/12/24: I'm not sure what these are & they're never outside xxdata_11
+    !              I'm just keeping them. This only gets called once anyway
+    integer, parameter :: idptn = 128, idptnc = 256, idcnct = 100, idptnl = 4
+
+    logical :: lexist, lres, lstan, lptn
+    integer :: nptnl, ncnct, ismax
+    integer :: iptnca(idptnl, idptn, idptnc)
+    integer, allocatable, dimension(:) :: ispbr, isppr
+    integer :: icnctv(idcnct), iptnla(idptnl), iptna(idptnl, idptn)
+    integer :: nptn(idptnl), nptnc(idptnl, idptn)
+    character(len=12) :: dnr_ele
+    real :: dnr_ams
+    integer :: itmax, idmax
+
+    ! using high quality data unless otherwise noted by necessity
+    select case (Z)
+
+    case (2) ! HELIUM
+       pltname = '/plt96/plt96_he.dat'
+       scdname = '/scd96/scd96_he.dat'
+    case (4) ! BERYLLIUM
+       pltname = '/plt96/plt96_be.dat'
+       scdname = '/scd96/scd96_be.dat'
+    case (5) ! BORON
+       pltname = '/plt89/plt89_b.dat' ! low quality (only available)
+       scdname = '/scd89/scd89_b.dat' ! low quality (only available)
+    case (6) ! CARBON
+       pltname = '/plt96/plt96_c.dat'
+       scdname = '/scd96/scd96_c.dat'
+    case (10) ! NEON
+       pltname = '/plt96/plt96_ne.dat'
+       scdname = '/scd96/scd96_ne.dat'
+    case (18) ! ARGON
+       pltname = '/plt89/plt89_ar.dat' ! low quality (only available)
+       scdname = '/scd85/scd85_ar.dat' ! medium quality (could use Summers [scd74] or this one)
+    case DEFAULT
+       if(myrank.eq.0) write(*,*) 'THIS ELEMENT NOT YET IMPLEMENTED WITH ADAS'
+       call safestop(1001)
+    end select
+
+    !=========================
+    ! Load radiation data
+    !=========================
+    dsname = trim(adas_adf11) // trim(pltname)
+    iclass = 8
+
+    inquire(FILE=dsname, EXIST=lexist)
+    if (.not. lexist) then
+       if(myrank.eq.0) print *, trim(dsname), " does not exist"
+       call safestop(1001)
+    endif
+
+    ! first get size of file and allocate
+    open(unit=iunit, file=dsname, status='old')
+    read(iunit, *) izdimd, iddimd, itdimd
+
+    allocate(isstgr_plt(izdimd))
+    allocate(ddens_plt(iddimd))
+    allocate(dtev_plt(itdimd))
+    allocate(drcof_plt(izdimd, itdimd, iddimd))
+    allocate(ispbr(izdimd))
+    allocate(isppr(izdimd))
+
+
+    ! now read the data
+    rewind(iunit)
+
+    call xxdata_11(iunit, iclass, izdimd, iddimd, itdimd, idptnl, idptn, &
+         idptnc, idcnct, iz0, iz1min, iz1max, nptnl, nptn, nptnc, &
+         iptnla, iptna, iptnca, ncnct, icnctv, iblmx_plt, ismax, dnr_ele, &
+         dnr_ams, isppr, ispbr, isstgr_plt, idmax_plt, itmax_plt, ddens_plt, &
+         dtev_plt, drcof_plt, lres, lstan, lptn)
+
+    close(iunit)
+    deallocate(ispbr)
+    deallocate(isppr)
+
+    !=========================
+    ! Load ionization data
+    !=========================
+    dsname = trim(adas_adf11) // trim(scdname)
+    iclass = 2
+
+    inquire(FILE=dsname, EXIST=lexist)
+    if (.not. lexist) then
+       if(myrank.eq.0) print *, trim(dsname), " does not exist"
+       call safestop(1001)
+    endif
+
+
+    ! first get size of file and allocate
+    open(unit=iunit, file=dsname, status='old')
+    read(iunit, *) izdimd, iddimd, itdimd
+
+    allocate(isstgr_scd(izdimd))
+    allocate(ddens_scd(iddimd))
+    allocate(dtev_scd(itdimd))
+    allocate(drcof_scd(izdimd, itdimd, iddimd))
+    allocate(ispbr(izdimd))
+    allocate(isppr(izdimd))
+
+
+    rewind(iunit)
+
+    call xxdata_11(iunit, iclass, izdimd, iddimd, itdimd, idptnl, idptn, &
+         idptnc, idcnct, iz0, iz1min, iz1max, nptnl, nptn, nptnc, &
+         iptnla, iptna, iptnca, ncnct, icnctv, iblmx_scd, ismax, dnr_ele, &
+         dnr_ams, isppr, ispbr, isstgr_scd, idmax_scd, itmax_scd, ddens_scd, &
+         dtev_scd, drcof_scd, lres, lstan, lptn)
+
+    close(iunit)
+    deallocate(ispbr)
+    deallocate(isppr)
+
+
+    ! allocate arrays for interpolation
+    itmax = MAX(itmax_plt, itmax_scd)
+    idmax = MAX(idmax_plt, idmax_scd)
+
+
+    allocate(xin(itmax))
+    allocate(yin(MAX(itmax, idmax)))
+    allocate(dy(MAX(itmax, idmax)))
+    allocate(ypass(MAX_PTS, idmax))
+
+
+    return
+  end subroutine load_adf11
+
+  subroutine adas_deallocate()
+    implicit none
+
+    if(allocated(isstgr_plt)) then
+       deallocate(isstgr_plt)
+       deallocate(ddens_plt)
+       deallocate(dtev_plt)
+       deallocate(drcof_plt)
+    end if
+
+    if(allocated(isstgr_scd)) then
+       deallocate(isstgr_scd)
+       deallocate(ddens_scd)
+       deallocate(dtev_scd)
+       deallocate(drcof_scd)
+    end if
+
+    if(allocated(ypass)) then
+       deallocate(xin)
+       deallocate(yin)
+       deallocate(dy)
+       deallocate(ypass)
+    end if
+
+  end subroutine adas_deallocate
+
+
+  subroutine interp_adf11(iclass, N, iz1, te, dens, coeff)
+    use basic
+    use spline
+    implicit none
+    integer, intent(in) :: iclass, N, iz1
+    real, intent(in) :: te(N), dens(N)
+    real, intent(out) :: coeff(N)
+
+    integer :: it, id, isel, indsel, isdat
+    integer :: nin
+    logical :: lsetx
+    logical :: ltrng(MAX_PTS), ldrng(MAX_PTS)
+    real :: dtev(MAX_PTS), ddens(MAX_PTS), yout(MAX_PTS)
+    real :: r8fun1
+
+    integer :: iblmx, itmax, idmax
+    integer, pointer :: isstgr(:)
+    real, pointer :: ddens_arr(:), dtev_arr(:), drcof_arr(:,:,:)
+    external :: r8fun1
+
+    if (N.gt.MAX_PTS) then
+       if(myrank.eq.0) print *, 'ADAS ERROR: N > MAX_PTS'
+       call safestop(1002)
+    endif
+    if (iz1 > iz0 + 1) then
+       if(myrank.eq.0) print *, 'ADAS ERROR: charge requested > nuclear charge'
+       call safestop(1002)
+    endif
+
+    if (iz1 < iz1min) then
+       if(myrank.eq.0) print *, 'ADAS ERROR: charge outside range (too low)'
+       call safestop(1002)
+    endif
+
+    if (iz1 > iz1max) then
+       if(myrank.eq.0) print *, 'ADAS ERROR: charge outside range (too high)'
+       call safestop(1002)
+    endif
+
+    ! ionization from scd data
+    if (iclass == 2) then
+       iblmx  = iblmx_scd
+       itmax  = itmax_scd
+       idmax  = idmax_scd
+       isstgr => isstgr_scd
+       ddens_arr  => ddens_scd
+       dtev_arr   => dtev_scd
+       drcof_arr  => drcof_scd
+
+    ! line radiation from plt data
+    elseif (iclass == 8) then
+       iblmx  = iblmx_plt
+       itmax  = itmax_plt
+       idmax  = idmax_plt
+       isstgr => isstgr_plt
+       ddens_arr  => ddens_plt
+       dtev_arr   => dtev_plt
+       drcof_arr  => drcof_plt
+    else
+       if(myrank.eq.0) print *, 'ADAS ERROR: invalid ADAS class type. Must be 2 (scd) or 8 (plt)'
+       call safestop(1002)
+    end if
+
+    indsel = 0
+    do isel = 1, iblmx
+       isdat = isstgr(isel)
+       if (isdat == iz1) indsel = isel
+    end do
+
+    if (indsel == 0) then
+       if(myrank.eq.0) print *, 'ADAS ERROR: no valid data block'
+       call safestop(1002)
+    endif
+
+    ! Transform to log space
+    do it = 1, N
+       dtev(it) = dlog10(te(it))
+       ddens(it) = dlog10(dens(it))
+    end do
+
+    ! At every density location in the file, do a 1D temperature interpolation
+    do id = 1, idmax
+
+       nin = 0
+       do it = 1, itmax
+          if (drcof_arr(indsel,it,id).GT.-40) then
+             xin(nin+1) = dtev_arr(it)
+             yin(nin+1) = drcof_arr(indsel,it,id)
+             nin = nin + 1
+          endif
+       end do
+
+!       lsetx = .true.
+
+       if (nin > 1) then
+!          call xxsple(lsetx, 0, r8fun1, nin, xin, yin, N, dtev, yout, dy, ltrng)
+          call create_spline(yspline, nin, xin, yin)
+          do it = 1, N
+             call evaluate_spline(yspline, dtev(it), yout(it), extrapolate=1)
+          end do
+          call destroy_spline(yspline)
+       else
+          yout = -74.0d0
+       endif
+
+       do it = 1, N
+          ypass(it,id) = yout(it)
+       end do
+
+    end do
+
+    lsetx = .true.
+
+    ! Now do the 1D density interpolation
+    do it = 1, N
+       do id = 1, idmax
+          yin(id) = ypass(it,id)
+       end do
+       !call xxsple(lsetx, 0, r8fun1, idmax, ddens_arr, yin, 1, ddens(it), yout(it), dy, ldrng(it))
+       call create_spline(yspline, idmax, ddens_arr, yin)
+       call evaluate_spline(yspline, ddens(it), yout(it), extrapolate=1)
+       call destroy_spline(yspline)
+    end do
+    coeff = yout(1:N)
+    return
+
+  end subroutine
+
+
+end module adas_m3dc1

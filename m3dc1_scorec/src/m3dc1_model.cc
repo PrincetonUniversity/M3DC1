@@ -326,19 +326,22 @@ void load_model(const char* filename)
 
   // Delete this block of code in first if statement when snapping is set to default
   // for every case
-  int numFaces;
+  int numFaces = 0;
   fscanf(fp,"%d\n", &numFaces);
-  if (!numFaces)	// Faces actually exist but not provided in output model file (.txt file)
+  
+  //if (!PCU_Comm_Self()) cout<<"numFaces in model file "<<numFaces<<"\n";
+
+  if (!numFaces) // Faces actually exist but not provided in output model file (.txt file)
   {
     for (int i=1; i<=numL; ++i)
       gmi_ent* gf=gmi_add_analytic(m3dc1_model::instance()->model, 2, i,
                      faceFunction, facePeriodic, faceRanges, NULL);
+      if (!PCU_Comm_Self()) cout<<"[M3DC1_INFO] Regenerate model/mesh files using the latest mesh generation program\n";  
   }
 
   if (numFaces>0)  
   {
     std::vector <int> edgeIdsOnFace;
-    std::cout << "Number of Faces = " << numFaces << "\n";
     for (int i = 1; i <= numFaces; ++i)
     {
       int faceNumber, numLoops;

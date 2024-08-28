@@ -23,7 +23,7 @@ from m3dc1.plot_mesh import plot_mesh
 
 
 def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, linear=False,
-               diff=False, phi_res=100, res=250, mesh=False, bound=False, planes=True, units='mks',cont_levels=100,
+               diff=False, phi_res=100, res=250, mesh=False, bound=False, planes=False, units='mks',cont_levels=100,
                prange=None, cmap='viridis', cmap_midpt=None, quiet=False,
                save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False):
     """

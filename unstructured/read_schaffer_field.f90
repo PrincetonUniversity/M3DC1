@@ -564,6 +564,12 @@ contains
        call h5dopen_f(file_id, 'PRES', dset_id, error)
        call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, p1, dim3, error)
        call h5dclose_f(dset_id, error)
+
+       if(error .lt. 0) then
+          print *, 'ERROR: lpres = 1 but PRES not found'
+          sf%vmec = .false.
+          error = 0
+       end if
     end if
     do k = 1, sf%nz
        sf%br(:,:,k) = transpose(br1(:,:,k))
@@ -670,6 +676,7 @@ contains
 
   subroutine load_mgrid_field(sf, mgrid_filename, vmec_filename, error)
     use netcdf
+    use math
     implicit none
 
     type(schaffer_field), intent(inout) :: sf
@@ -677,14 +684,14 @@ contains
     integer, intent(out) :: error
 
     integer :: ll, ii, kk
-    integer :: ncid, ncid_vmec
+    integer :: ncid, ncid_vmec, istatus
     real :: curfac, dr, dz, dphi
-    real :: twopi, per
+    real :: per
 
 ! Dimension IDs
     integer :: radDimID, phiDimID, zeeDimID
 ! Variable IDs
-    integer :: rminID, rmaxID, zminID, zmaxID, nfpID, nextcurID, modeID, extcurID
+    integer :: rminID, rmaxID, zminID, zmaxID, nfpID, nextcurID, modeID, extcurID, rawcurID
 ! Variable values
     real :: rmin, rmax, zmin, zmax
     real, allocatable :: extcur(:)
@@ -702,7 +709,7 @@ contains
     if (mgrid_filename(ll-2:ll).eq.'.nc') then
        call check(nf90_open(trim(mgrid_filename), nf90_nowrite, ncid))
 
-! Get dimensions
+       ! Get dimensions
        call check(nf90_inq_dimid(ncid, "rad", radDimID))
        call check(nf90_inq_dimid(ncid, "phi", phiDimID))
        call check(nf90_inq_dimid(ncid, "zee", zeeDimID))
@@ -710,7 +717,7 @@ contains
        call check(nf90_inquire_dimension(ncid, phiDimID, len=sf%nphi))
        call check(nf90_inquire_dimension(ncid, zeeDimID, len=sf%nz))
 
-! Get variable values
+       ! Get variable values
        call check(nf90_inq_varid(ncid, "rmin", rminID))
        call check(nf90_inq_varid(ncid, "rmax", rmaxID))
        call check(nf90_inq_varid(ncid, "zmin", zminID))
@@ -727,15 +734,26 @@ contains
        call check(nf90_get_var(ncid,nextcurID,nextcur))
        call check(nf90_get_var(ncid,modeID,mgrid_mode))
 
-! Check mgrid_mode
+       ! Check mgrid_mode
        allocate(extcur(nextcur))
        if (mgrid_mode.eq.'S') then
-!          print *, 'Coil currents are SCALED...'
+          print *, 'Coil currents are SCALED...'
+          print *, 'Opening vmec file'
           call check(nf90_open(trim(vmec_filename), nf90_nowrite, ncid_vmec))
-          call check(nf90_inq_varid(ncid_vmec, "extcur", extcurID))
-          call check(nf90_get_var(ncid_vmec,extcurID,extcur))
+          istatus = nf90_inq_varid(ncid_vmec, "extcur", extcurID)
+          if(istatus.eq.nf90_noerr) then
+             print *, 'Reading external currents from VMEC file.'
+             call check(nf90_get_var(ncid_vmec,extcurID,extcur))
+          else
+             print *, 'External currents not found in VMEC file.'
+             print *, 'Looking for external currents in MGRID file.'
+             call check(nf90_inq_varid(ncid, "raw_coil_cur", rawcurID))
+             print *, 'Reading external currents from MGRID file.'
+             call check(nf90_get_var(ncid,rawcurID,extcur))
+             print *, 'extcur = ', extcur
+          end if
        else if (mgrid_mode.eq.'R') then
-!          print *, 'Actual currents supplied'
+          print *, 'Actual currents supplied'
           extcur = 1.0
        else
           print *, 'ERROR: Invalid coil currents'
@@ -771,47 +789,34 @@ contains
        end do
        deallocate(temp)
 
+! Schaffer field needs 1 more toroidal grid point than MGRID! 
+       sf%nphi = sf%nphi + 1
+       if(.not. sf%initialized) then
+         allocate(sf%br(sf%nphi,sf%nr,sf%nz))
+         allocate(sf%bphi(sf%nphi,sf%nr,sf%nz))
+         allocate(sf%bz(sf%nphi,sf%nr,sf%nz))
+         allocate(sf%r(sf%nr))
+         allocate(sf%z(sf%nz))
+         allocate(sf%phi(sf%nphi))
+       end if
+
 ! Transpose (r,z,phi) -> (phi,r,z)      
-       allocate(sf%br(sf%nphi,sf%nr,sf%nz))
-       allocate(sf%bphi(sf%nphi,sf%nr,sf%nz))
-       allocate(sf%bz(sf%nphi,sf%nr,sf%nz))
-
-       allocate(temp(sf%nr,sf%nphi,sf%nz))
-       ! (r,z,phi) -> (r,phi,z)
-       do kk = 1, sf%nr, 1
-          temp(kk,:,:) = transpose(brtemp(kk,:,:))
+       do kk = 1, sf%nphi-1
+          sf%br(kk,:,:) = brtemp(:,:,kk)
+          sf%bphi(kk,:,:) = bphitemp(:,:,kk)
+          sf%bz(kk,:,:) = bztemp(:,:,kk)
        end do 
-       ! (r,phi,z) -> (phi,r,z)
-       do kk = 1, sf%nz, 1
-          sf%br(:,:,kk) = transpose(temp(:,:,kk))
-       end do 
-
-       do kk = 1, sf%nr, 1
-          temp(kk,:,:) = transpose(bphitemp(kk,:,:))
-       end do 
-       do kk = 1, sf%nz, 1
-          sf%bphi(:,:,kk) = transpose(temp(:,:,kk))
-       end do 
-
-       do kk = 1, sf%nr, 1
-          temp(kk,:,:) = transpose(bztemp(kk,:,:))
-       end do 
-       do kk = 1, sf%nz, 1
-          sf%bz(:,:,kk) = transpose(temp(:,:,kk))
-       end do 
-       deallocate(temp)
-       deallocate(brtemp,bphitemp,bztemp)
+! Data on extra toroidal grid point
+       sf%br(sf%nphi,:,:) = brtemp(:,:,1)
+       sf%bphi(sf%nphi,:,:) = bphitemp(:,:,1)
+       sf%bz(sf%nphi,:,:) = bztemp(:,:,1)
+       deallocate(brtemp,bztemp,bphitemp)
 
 ! Make grid
        dr = (rmax-rmin)/(sf%nr-1)
        dz = (zmax-zmin)/(sf%nz-1)
-       twopi = 6.283185307 ! Change to atan definition
        per = twopi/nfp
        dphi = per/(sf%nphi-1)
-
-       allocate(sf%r(sf%nr))
-       allocate(sf%z(sf%nz))
-       allocate(sf%phi(sf%nphi))
 
        do kk = 1, sf%nr, 1
           sf%r(kk) = rmin + (kk-1)*dr
@@ -822,9 +827,6 @@ contains
        do kk = 1, sf%nz, 1
           sf%z(kk) = zmin + (kk-1)*dz
        end do
-! Pressure
-       allocate(sf%p(sf%nphi,sf%nr,sf%nz))
-       sf%p = 0.0
        sf%initialized = .true.
     else
        print *, 'ERROR: Invalid extension. MGRID must be .nc'

@@ -385,14 +385,8 @@ contains
 
     ilin = 1 - equilibrium
     error = 0
-    call hdf5_get_local_elms(nelms, error)
 
-!    if(nplanes.ne.nplanes_in) then
-!       if(myrank.eq.0) print *, '3D gloabl_nelms: ', global_elms
-!       global_elms = global_elms * nplanes_in / nplanes
-!       if(myrank.eq.0) print *, '2D global_nelms: ', global_elms
-!       offset = modulo(offset, global_elms)
-!    end if
+    nelms = local_elements()
 
     call h5gopen_f(time_group_id, "fields", group_id, error)
 
@@ -480,7 +474,7 @@ contains
     endif
 #endif
 
-    if(ikprad.eq.1 .and. ikprad_in.eq.1) then
+    if(ikprad.ne.0 .and. ikprad_in.ne.0) then
        do i=0, kprad_z
           write(field_name, '(A,I2.2)') "kprad_n_", i
           call h5r_read_field(group_id,trim(field_name),kprad_n(i),nelms,error)
@@ -510,6 +504,7 @@ contains
     use hdf5
     use field
     use hdf5_output
+    use mesh_mod
 
     implicit none
 
@@ -525,7 +520,7 @@ contains
     vectype, dimension(coeffs_per_element) :: kdum
     integer :: i, coefs
     logical :: ir
-    integer :: elms_per_plane, new_plane, old_plane, plane_fac, k
+    integer :: new_plane, old_plane, plane_fac, k
     integer :: offset_in, global_elms_in
     real :: dphi, shift, phi_new
     logical :: transform
@@ -544,7 +539,7 @@ contains
     if(nplanes_in.eq.1) then
        coefs = coeffs_per_tri
        global_elms_in = global_elms * nplanes_in / nplanes
-       offset_in = modulo(offset, global_elms_in)
+       offset_in = modulo(offset_elms, global_elms_in)
        dum = 0.
        transform = .false.
     else if(nplanes_in .ne. nplanes) then 
@@ -559,8 +554,7 @@ contains
        end if
        coefs = coeffs_per_element
        plane_fac = nplanes / nplanes_in
-       elms_per_plane = global_elms / nplanes
-       new_plane = offset / elms_per_plane
+       new_plane = offset_elms / elms_per_plane
        global_elms_in = global_elms / plane_fac
 
        if(version_in.lt.34) then
@@ -576,11 +570,11 @@ contains
           call find_plane_and_shift(nplanes_in, phi_in, phi_new, old_plane, shift)
           old_plane = old_plane - 1    ! switch to 0-based indexing
        end if
-       offset_in = offset - elms_per_plane*(new_plane - old_plane)
+       offset_in = offset_elms - elms_per_plane*(new_plane - old_plane)
        transform = .true.
     else
        coefs = coeffs_per_element
-       offset_in = offset
+       offset_in = offset_elms
        global_elms_in = global_elms
        transform = .false.
     end if

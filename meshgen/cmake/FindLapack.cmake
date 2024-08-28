@@ -37,6 +37,11 @@ set(LAPACK_LIB_NAMES
   lapack #lapack should come first since it references routines in the BLAS library
   cblas
 )	
+elseif (ENABLE_SDUMONT)
+set(LAPACK_LIB_NAMES
+  lapack #lapack should come first since it references routines in the BLAS library
+  blas
+)
 else()
 set(LAPACK_LIB_NAMES
   flapack #lapack should come first since it references routines in the BLAS library

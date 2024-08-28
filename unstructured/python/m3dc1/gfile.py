@@ -91,8 +91,8 @@ def read_gfile(fname,quiet=False):
     if len(temp)>5:
         gfile_data.date = temp[1]
         if gfile_data.fittype == 'FREEGS':
-            gfile_data.shot = int(temp[3])
-            gfile_data.time = float(temp[4][:-2]) #in ms
+            gfile_data.shot = 0#int(temp[3])
+            gfile_data.time = float(temp[-4][:-2]) #in ms
             gfile_data.idum = int(temp[-3])
             gfile_data.nw = int(temp[-2])
             gfile_data.nh = int(temp[-1])
@@ -107,8 +107,8 @@ def read_gfile(fname,quiet=False):
                 gfile_data.shot = int(temp[2][1:])
                 gfile_data.time = float(temp[3][:-2]) #in ms
                 gfile_data.idum = int(temp[4])
-                gfile_data.nw = int(temp[5])
-                gfile_data.nh = int(temp[6])
+                gfile_data.nw = int(temp[-2])
+                gfile_data.nh = int(temp[-1])
     else:
         if gfile_data.fittype == 'EFIT++':
             date_shot_time = temp[1]
@@ -121,8 +121,8 @@ def read_gfile(fname,quiet=False):
             gfile_data.time = float(timestr.group(1)) #in ms
             
             gfile_data.idum = int(temp[2])
-            gfile_data.nw = int(temp[3])
-            gfile_data.nh = int(temp[4])
+            gfile_data.nw = int(temp[-2])
+            gfile_data.nh = int(temp[-1])
             if not quiet:
                 print(timestr.group(1), shotnum.group(1), gfile_data.date)
             
@@ -143,10 +143,11 @@ def read_gfile(fname,quiet=False):
     gfile_data.rleft =  float(temp[3])
     gfile_data.zmid =  float(temp[4])
     gfile_data.rg = np.linspace(gfile_data.rleft, gfile_data.rleft+gfile_data.rdim, gfile_data.nw)
-    gfile_data.zg = np.linspace(-gfile_data.zdim/2.0 - gfile_data.zmid, gfile_data.zdim/2.0 + gfile_data.zmid, gfile_data.nw)
+    gfile_data.zg = np.linspace(-gfile_data.zdim/2.0 - gfile_data.zmid, gfile_data.zdim/2.0 + gfile_data.zmid, gfile_data.nh)
     
-    print('rmin: '+str(gfile_data.rleft)+' , rmax: '+str(gfile_data.rleft+gfile_data.rdim))
-    print('zmin: '+str(-gfile_data.zdim/2.0 - gfile_data.zmid)+' , zmax: '+str(gfile_data.zdim/2.0 + gfile_data.zmid))
+    if not quiet:
+        print('rmin: '+str(gfile_data.rleft)+' , rmax: '+str(gfile_data.rleft+gfile_data.rdim))
+        print('zmin: '+str(-gfile_data.zdim/2.0 - gfile_data.zmid)+' , zmax: '+str(gfile_data.zdim/2.0 + gfile_data.zmid))
     
     temp=fpyl.read_floats(data[2])
     
@@ -177,9 +178,11 @@ def read_gfile(fname,quiet=False):
     gfile_data.ffprim = read_list(5+2*nl,nl)
     gfile_data.pprim = read_list(5+3*nl,nl)
     
+    #read psi on R-Z grid:
     nlbig = int(math.ceil(gfile_data.nw*gfile_data.nh/5)) # number of lines in g-file containing nw*nh values
     psirz = read_list(5+4*nl,nlbig)
-    psirz = np.reshape(psirz,(gfile_data.nw,gfile_data.nh))
+    #print(psirz)
+    psirz = np.reshape(psirz,(gfile_data.nh,gfile_data.nw))
     gfile_data.psirz = psirz#.transpose()
     gfile_data.psirzn = (gfile_data.psirz - gfile_data.simag)/(gfile_data.sibry - gfile_data.simag) # Normalized stream function
     

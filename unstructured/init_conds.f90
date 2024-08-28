@@ -647,13 +647,13 @@ subroutine initial_conditions()
            end if
 #endif
         case(41) ! Free boundary stellarator or 3D fields
-           if (iread_ext_field.ge.1 .and. type_ext_field.ge.1) then
-              call load_stellarator_field
-           else 
+           if(iread_ext_field.eq.0) then  
               if(myrank.eq.0) print *, &
                 "Invalid input: Free boundary stellarator needs external field."
               call safestop(1)
            end if
+           if(type_ext_field.ge.1) &
+                call load_stellarator_field
         end select
      end if
   end if
@@ -684,7 +684,7 @@ subroutine initial_conditions()
         if(myrank.eq.0 .and. iprint.ge.2) print *, &
            "Skipping: RMP specification not currently implemented for ST."
      else
-        call rmp_per
+        call rmp_per(1)
      end if
   end if
 #ifdef USEST

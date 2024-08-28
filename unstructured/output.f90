@@ -5,6 +5,7 @@ module m3dc1_output
 
   integer :: iwrite_transport_coeffs
   integer :: iwrite_aux_vars
+  integer :: iwrite_adjacency
 
 contains
 
@@ -446,6 +447,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "particle_number_p" , pden ,ntime, error)
   call output_scalar(scalar_group_id, "angular_momentum_p", pmom ,ntime, error)
   call output_scalar(scalar_group_id, "volume_p"          , pvol ,ntime, error)
+  call output_scalar(scalar_group_id, "volume_pd"         , volpd ,ntime, error)
   call output_scalar(scalar_group_id, "M_IZ"              , m_iz ,ntime, error)
   call output_scalar(scalar_group_id, "M_IZ_co"           , m_iz_co ,ntime, error)
   call output_scalar(scalar_group_id, "M_IZ_sn"           , m_iz_sn ,ntime, error)
@@ -631,7 +633,7 @@ subroutine hdf5_write_time_slice(equilibrium, error)
   integer :: info
   logical :: link_exists
 
-  call hdf5_get_local_elms(nelms, error)
+  nelms = local_elements()
 
   ! create the name of the group
   if(equilibrium.eq.1) then
@@ -781,8 +783,10 @@ subroutine output_mesh(time_group_id, nelms, error)
   call write_int_attr(mesh_group_id, "3D", 0, error)
 #endif
   call write_int_attr(mesh_group_id, "nplanes", nplanes, error)
+
   call write_int_attr(mesh_group_id, "nperiods", nperiods, error)
   call write_int_attr(mesh_group_id, "ifull_torus", ifull_torus, error)
+  call write_int_attr(mesh_group_id, "version", version, error)
   call write_real_attr(mesh_group_id, "period", toroidal_period, error)
 
   ! Output the mesh data
@@ -819,8 +823,19 @@ subroutine output_mesh(time_group_id, nelms, error)
   call output_field(mesh_group_id, "elements", elm_data, vals_per_elm, &
        nelms, error)
 
+  ! Output adjacency info
+  if(iwrite_adjacency.eq.1) then
+     if(iprint.ge.1 .and. myrank.eq.0) then
+        print *, 'Calculating mesh adjacency'
+     end if
+     call populate_adjacency_matrix()
+     call output_field_int(mesh_group_id, "adjacency", adjacent, max_adj, &
+          nelms, error)
+     call clear_adjacency_matrix()
+  end if
 
 #ifdef USE3D
+  ! Output toroidal planes
   allocate(phi(nplanes))
   do i=1, nplanes
      call m3dc1_plane_getphi(i-1, phi(i))
@@ -1143,7 +1158,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call write_field(group_id, "fp_ext", bfp_ext, nelms, error)
   endif
 
-  if(ikprad.eq.1) then
+  if(ikprad.ne.0) then
      do i=0, kprad_z
         write(field_name, '(A,I2.2)') "kprad_n_", i
         call write_field(group_id, trim(field_name), kprad_n(i), nelms, error)
@@ -1200,7 +1215,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
     call write_field(group_id, "bdotgradp", bdotgradp, nelms, error)
     call write_field(group_id, "bdotgradt", bdotgradt, nelms, error)
     call write_field(group_id, "zeff", z_effective, nelms, error)
-    if(ikprad.eq.1) then
+    if(ikprad.ne.0) then
        call write_field(group_id, "kprad_totden", kprad_totden, nelms, error)
     end if
     if(itemp_plot .eq. 1) then
@@ -1420,7 +1435,7 @@ subroutine mark_fields(equilibrium)
      call mark_field_for_solutiontransfer(bfp_ext)
   endif
 
-  if(ikprad.eq.1) then
+  if(ikprad.ne.0) then
      do i=0, kprad_z
         ! kprad_n(i)
         ! kprad_particle_source(i)
@@ -1492,7 +1507,7 @@ subroutine mark_fields(equilibrium)
     call mark_field_for_solutiontransfer(bdotgradp)
     call mark_field_for_solutiontransfer(bdotgradt)
     call mark_field_for_solutiontransfer(z_effective)
-    if(ikprad.eq.1) then
+    if(ikprad.ne.0) then
        ! kprad_totden
        call mark_field_for_solutiontransfer(kprad_totden)
     end if

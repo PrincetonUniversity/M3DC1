@@ -17,6 +17,7 @@
 #include <vector>
 #include <MeshSim.h>
 
+int get_vacuum_geid(pGModel sim_model);
 int get_prev_plane_partid(int plane_id);
 int get_next_plane_partid(int plane_id);
 const double tol=1e-4;

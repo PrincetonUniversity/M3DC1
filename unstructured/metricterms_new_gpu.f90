@@ -4516,7 +4516,7 @@ function v1p(e,f)
   v1p = temp
 end function v1p
 
-function v1p1
+function v1p1()
   use basic
   use arrays
   use m3dc1_nint
@@ -4724,7 +4724,7 @@ function v1pbb(e,f,g)
               + intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DZ),pst79(:,OP_DR),pst79(:,OP_DZ)) &
               - intx5(e(:,:,OP_DR),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DR)) &
               - intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DZ))
-  #if defined(USE3D) || defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79a = - f(:,OP_DP)*bzt79(:,OP_1)*g*ri2_79
         temp = temp +intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DR)) &
               +  intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZ))
@@ -4746,7 +4746,7 @@ function v1pbb(e,f,g)
               +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
               -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZP),f(:,OP_DR),bfpt79(:,OP_DR)) &
               -intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DZP),f(:,OP_DZ),bfpt79(:,OP_DZ)) 
-        #endif
+#endif
     end if
 
   v1pbb = temp
@@ -4783,7 +4783,7 @@ function v1jxb(e,f)
      temp79a = f*pst79(:,OP_GS)
      temp = temp+intx3(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DR)) &
           +  intx3(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ))
-     #endif
+#endif
     end if
 
   v1jxb = temp
@@ -5422,7 +5422,7 @@ function v2p(e,f)
 
 end function v2p
 
-function v2p1
+function v2p1()
   use basic
   use arrays
   use m3dc1_nint
@@ -7669,7 +7669,7 @@ function v2pbb(e,f,g)
   temp79a = g*bzt79(:,OP_1)
   temp = temp + intx4(e(:,:,OP_1),temp79a,f(:,OP_DR),bfpt79(:,OP_DR))    &
        +  intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ),bfpt79(:,OP_DZ)) 
-   #endif
+#endif
   temp79a = -g*bzt79(:,OP_1)*ri_79
   temp = temp + intx4(e(:,:,OP_1),temp79a,f(:,OP_DZ),pst79(:,OP_DR))    &
        -          intx4(e(:,:,OP_1),temp79a,f(:,OP_DR),pst79(:,OP_DZ)) 
@@ -8256,7 +8256,7 @@ function v3p(e,f)
   v3p = temp
 end function v3p
 
-function v3p1
+function v3p1()
 
   use basic
   use m3dc1_nint
@@ -12137,7 +12137,7 @@ function v3pbb(e,f,g)
              -  intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DR)) &
              +  intx5(e(:,:,OP_DR),temp79b,f(:,OP_DR),pst79(:,OP_DZ),pst79(:,OP_DZ))
 
-  #if defined(USE3D) || defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = f(:,OP_DP)*g*bzt79(:,OP_1)*ri5_79
      temp = temp + intx3(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR)) &
           - intx3(e(:,:,OP_DR),temp79a,pst79(:,OP_DZ))
@@ -12159,7 +12159,7 @@ function v3pbb(e,f,g)
               +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DR)) &
               +intx5(e(:,:,OP_DR),temp79a,pst79(:,OP_DRP),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
               +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DZP),f(:,OP_DZ),bfpt79(:,OP_DZ)) 
-      #endif
+#endif
     end if
 
   v3pbb = temp
@@ -12196,7 +12196,7 @@ function v3jxb(e,f)
      temp79a = -f*pst79(:,OP_GS)*ri3_79
      temp = temp+intx3(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DR)) &
           -  intx3(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DZ))
-     #endif
+#endif
     end if
 
   v3jxb = temp
@@ -12254,7 +12254,7 @@ end function v3jxb
   !b1psi = temp
 !end function b1psi
 
-function b1psi
+function b1psi()
 
   use basic
   use m3dc1_nint
@@ -13565,6 +13565,7 @@ function b1psieta2(g,h,imod)
 #endif
      else
 
+        temp%len = 0
 #if defined(USECOMPLEX)
         if(.not.imod) then
            temp = &
@@ -15664,7 +15665,7 @@ end function b1psi2bfpe
   !b2b = temp
 !end function b2b
 
-function b2b
+function b2b()
   use basic
   use m3dc1_nint
 
@@ -17167,7 +17168,7 @@ end function b2psi2bfpe
   !b3pe = temp
 !end function b3pe
 
-function b3pe
+function b3pe()
   use basic
   use m3dc1_nint
 
@@ -17186,7 +17187,7 @@ function b3pe
   b3pe = temp
 end function b3pe
 
-  function kappat_p1
+  function kappat_p1()
     use basic
     use m3dc1_nint
 
@@ -17238,7 +17239,7 @@ end function b3pe
     kappat_p1 = temp*temp79b
   end function kappat_p1
 
-  function kappat_lin_p1
+  function kappat_lin_p1()
     use basic
     use m3dc1_nint
 
@@ -23904,7 +23905,7 @@ end function t3tn
 !   t3t = temp
 ! end function t3t
 
-function t3t
+function t3t()
   use basic
   use m3dc1_nint
 

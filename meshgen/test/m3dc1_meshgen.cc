@@ -56,6 +56,9 @@ char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic
 #ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 #endif
+#ifdef SDUMONT
+char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
+#endif
 #else // scorec
 char simLic[128]="/net/common/meshSim/license/license.txt";
 #endif
@@ -606,7 +609,11 @@ int main(int argc, char *argv[])
   pProgress progress = Progress_new();
   Progress_setDefaultCallback(progress);
 
+#ifdef SIM12
+  pGModel sim_model = GM_new();
+#else
   pGModel sim_model = GM_new(1);
+#endif
   make_sim_model (sim_model);
   sprintf(model_filename,"%s.smd",filename);
   GM_write(sim_model,model_filename,0,0);
@@ -650,7 +657,7 @@ int main(int argc, char *argv[])
   SurfaceMesher_delete(surfMesh);
 
   std::cout<<"\n[INFO] # model entities: V "<<GM_numVertices(sim_model)
-                          <<", E "<<GM_numEdges(sim_model)
+                          <<", E "<<GM_numEdges(sim_model)<<" (vacuum "<<get_vacuum_geid(sim_model)<<")"
                           <<", F "<<GM_numFaces(sim_model)<<"\n";
   std::cout<<"[INFO] # mesh  entities: V "<<M_numVertices(sim_mesh)
                           <<", E "<<M_numEdges(sim_mesh)
@@ -781,10 +788,10 @@ int make_sim_model (pGModel& sim_model)
   std::map<int, pGEdge> edges;
   gmi_model* model = m3dc1_model::instance()->model;  
   int numL=loopContainer.size();
-#ifdef LICENSE
-  pGIPart part = GM_rootPart(sim_model);
-#else
+#ifdef SIM12
   pGIPart part = GM_part(sim_model);
+#else
+  pGIPart part = GM_rootPart(sim_model);
 #endif
 
   pGRegion outerRegion = GIP_outerRegion(part);
@@ -800,8 +807,11 @@ int make_sim_model (pGModel& sim_model)
       int edge=it->second[i];
       std::pair<int, int> vtx=edgeContainer[edge];
       std::vector<double>& xyz= vtxContainer.at(vtx.first);
-      //vertices[vtx.first] = GIP_insertVertexInRegion(part,&xyz[0],outerRegion);
+#ifdef SIM12
+      vertices[vtx.first] = GIP_insertVertexInRegion(part,&xyz[0],outerRegion);
+#else
       vertices[vtx.first] = GR_createVertex(GIP_outerRegion(part), &xyz[0]);
+#endif
     }
     for( int j=0; j<numE; j++)
     {
@@ -852,8 +862,11 @@ int make_sim_model (pGModel& sim_model)
           throw 1;
           break;
       }
-      //pGEdge pe= GIP_insertEdgeInRegion(part, startVert, endVert, curve, 1, outerRegion);
+#ifdef SIM12
+      pGEdge pe= GIP_insertEdgeInRegion(part, startVert, endVert, curve, 1, outerRegion);
+#else
       pGEdge pe = GR_createEdge(GIP_outerRegion(part), startVert, endVert, curve, 1);
+#endif
       edges[edge]=pe;
       currentLoop.push_back( pe);
     }
@@ -886,8 +899,11 @@ int make_sim_model (pGModel& sim_model)
     pSurface planarSurface;
     
     planarSurface = SSurface_createPlane(corner,xPt,yPt);
+#ifdef SIM12
+    GIP_insertFaceInRegion(part,faceEdges.size(),&(faceEdges[0]),&(faceDirs[0]),numloops,loopDef,planarSurface,1,outerRegion);
+#else
     GR_createFace(GIP_outerRegion(part), faceEdges.size(),&(faceEdges[0]),&(faceDirs[0]),numloops,loopDef,planarSurface,1);
-   // GIP_insertFaceInRegion(part,faceEdges.size(),&(faceEdges[0]),&(faceDirs[0]),numloops,loopDef,planarSurface,1,outerRegion);
+#endif
   }
   printf("Number of vertices in Simmetrix model: %d\n",GM_numVertices(sim_model));
   printf("Number of edges in Simmetrix model: %d\n",GM_numEdges(sim_model));

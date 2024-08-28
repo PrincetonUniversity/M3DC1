@@ -15,23 +15,21 @@
 -ksp_error_if_not_converged 
 -options_left
 
-
--mg_nlevels 2 
+-xmg_nlevels 2 
 -hard_ksp_type fgmres 
 -hard_ksp_norm_type unpreconditioned 
 -hard_pc_type mg 
 
--hard_mg_levels_1_ksp_type fgmres 
--hard_mg_levels_1_pc_type bjacobi 
--hard_mg_levels_1_pc_bjacobi_blocks 4
--hard_mg_levels_1_sub_pc_type lu 
--hard_mg_levels_1_sub_pc_factor_mat_solver_type mumps 
--hard_mg_levels_1_sub_mat_mumps_icntl_14 100
--hard_mg_levels_1_sub_ksp_type preonly
+-hard_mg_levels_ksp_type fgmres 
+-hard_mg_levels_pc_type bjacobi 
+-hard_mg_levels_sub_pc_type lu 
+-hard_mg_levels_sub_pc_factor_mat_solver_type mumps 
+-hard_mg_levels_sub_mat_mumps_icntl_14 100
+-hard_mg_levels_sub_ksp_type preonly
+-xhard_mg_levels_ksp_max_it 3
 
 -hard_mg_coarse_ksp_type fgmres 
 -hard_mg_coarse_pc_type bjacobi 
--hard_mg_coarse_pc_bjacobi_blocks 2
 -hard_mg_coarse_sub_pc_type lu 
 -hard_mg_coarse_sub_pc_factor_mat_solver_type mumps 
 -hard_mg_coarse_sub_mat_mumps_icntl_14 100

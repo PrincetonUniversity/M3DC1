@@ -52,7 +52,7 @@ if (ispradapt .eq. 1) then
   call create_field(mesh_zone, "mesh_zone")
   call create_field(z_effective, "z_effective")
 
-  if(ikprad.eq.1) call create_field(kprad_totden, "kprad_totden")
+  if(ikprad.ne.0) call create_field(kprad_totden, "kprad_totden")
   if(jadv.eq.0) then
      call create_field(psidot, "psidot")
      call create_field(veldif, "veldif")
@@ -98,7 +98,7 @@ else
   call create_field(eta_j)
   call create_field(mesh_zone)
   call create_field(z_effective)
-  if(ikprad.eq.1) call create_field(kprad_totden)
+  if(ikprad.ne.0) call create_field(kprad_totden)
   if(jadv.eq.0) then
      call create_field(psidot)
      call create_field(veldif)
@@ -153,7 +153,7 @@ subroutine destroy_auxiliary_fields
   call destroy_field(eta_j)
   call destroy_field(mesh_zone)
   call destroy_field(z_effective)
-  if(ikprad.eq.1) call destroy_field(kprad_totden)
+  if(ikprad.ne.0) call destroy_field(kprad_totden)
   if(jadv.eq.0) then
      call destroy_field(psidot)
      call destroy_field(veldif)
@@ -257,7 +257,7 @@ endif
         temp79a = nt79(:,OP_1)*tit79(:,OP_1)
 
         ! Add impurity pressure
-        if(ikprad.eq.1) then
+        if(ikprad.ne.0) then
            do i=1, kprad_z
               call eval_ops(itri, kprad_n(i), n079, rfac)
               temp79a = temp79a + n079(:,OP_1)*tit79(:,OP_1)
@@ -402,7 +402,7 @@ endif
         ! ion density
         temp79c = nt79(:,OP_1)
         ! Add impurity density
-        if(ikprad.eq.1) then
+        if(ikprad.ne.0) then
            do i=1, kprad_z
               call eval_ops(itri, kprad_n(i), n079, rfac)
               temp79c = temp79c + n079(:,OP_1)
@@ -507,7 +507,7 @@ endif
 
      temp79a = nt79(:,OP_1)*z_ion
 
-     if(ikprad.eq.1) then
+     if(ikprad.ne.0) then
         do i=1, kprad_z
            call eval_ops(itri, kprad_n(i), n079, rfac)
            temp79a = temp79a + i*n079(:,OP_1)
@@ -548,7 +548,7 @@ subroutine calculate_sigma_e(itri)
 
   sie79 = sig79
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      call eval_ops(itri, kprad_sigma_e, tm79, rfac)
 
      sie79 = sie79 + tm79
@@ -569,7 +569,7 @@ subroutine calculate_sigma_i(itri)
 
   sii79 = sig79
 
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      call eval_ops(itri, kprad_sigma_i, tm79, rfac)
 
      sii79 = sii79 + tm79
@@ -589,7 +589,7 @@ subroutine calculate_sigma_rho(itri)
 
   sir79 = sig79
 
-  if(ikprad.eq.1) then
+  if(ikprad.ne.0) then
      call eval_ops(itri, kprad_sigma_i, tm79, rfac)
 
      sir79 = sir79 + tm79*kprad_mz/ion_mass
@@ -612,7 +612,7 @@ subroutine calculate_weighted_density(itri)
   ! Ion density
   nw79 = nt79
 
-  if(ikprad.eq.1) then
+  if(ikprad.ne.0) then
      do i=1, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         nw79 = nw79 + tm79
@@ -642,7 +642,7 @@ subroutine calculate_kprad_totden(itri, z)
   vectype, dimension(MAX_PTS), intent(out) :: z
 
   z = 0.
-  if(ikprad.eq.1) then 
+  if(ikprad.ne.0) then 
      do i=0, kprad_z
         call eval_ops(itri, kprad_n(i), tm79, rfac)
         z = z + tm79(:,OP_1)
@@ -691,7 +691,7 @@ subroutine calculate_auxiliary_fields(ilin)
   eta_j = 0.
   mesh_zone = 0.
   z_effective = 0.
-  if(ikprad.eq.1) kprad_totden = 0.
+  if(ikprad.ne.0) kprad_totden = 0.
   if(jadv.eq.0) then
      psidot = 0.
      veldif = 0.
@@ -733,6 +733,7 @@ subroutine calculate_auxiliary_fields(ilin)
   if(heat_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_Q
   if(rad_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_RAD
   if(ibootstrap.eq.1) def_fields = def_fields + FIELD_JBS
+  if (irunaway.ge.1) def_fields = def_fields + FIELD_RE
 
   numelms = local_elements()
 
@@ -973,7 +974,7 @@ subroutine calculate_auxiliary_fields(ilin)
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(z_effective%vec,itri,1,dofs,VEC_ADD)
 
-     if(ikprad.eq.1) then
+     if(ikprad.ne.0) then
         call calculate_kprad_totden(itri, temp79a)
         dofs = intx2(mu79(:,:,OP_1),temp79a)
         call vector_insert_block(kprad_totden%vec,itri,1,dofs,VEC_ADD)
@@ -1114,7 +1115,7 @@ subroutine calculate_auxiliary_fields(ilin)
   call newvar_solve(eta_j%vec, mass_mat_lhs)
   call newvar_solve(mesh_zone%vec, mass_mat_lhs)
   call newvar_solve(z_effective%vec, mass_mat_lhs)
-  if(ikprad.eq.1) call newvar_solve(kprad_totden%vec, mass_mat_lhs)
+  if(ikprad.ne.0) call newvar_solve(kprad_totden%vec, mass_mat_lhs)
   if(jadv.eq.0) then
      call newvar_solve(psidot%vec, mass_mat_lhs)
      call newvar_solve(veldif%vec, mass_mat_lhs)
@@ -1188,6 +1189,7 @@ subroutine calculate_auxiliary_fields(ilin)
   def_fields = def_fields + FIELD_PHI + FIELD_V + FIELD_CHI
   def_fields = def_fields + FIELD_ETA + FIELD_TE + FIELD_KAP
   def_fields = def_fields + FIELD_MU + FIELD_B2I
+  if (irunaway.ge.1) def_fields = def_fields + FIELD_RE
 
   numelms = local_elements()
 

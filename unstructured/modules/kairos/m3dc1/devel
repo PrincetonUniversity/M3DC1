@@ -1,0 +1,66 @@
+#%Module1.0
+##
+
+## Required internal variables
+
+set             name            m3dc1
+set             version         devel
+set             root            $env(M3DC1_CODE_DIR)
+
+## List conflicting modules here
+
+conflict $name
+
+## List prerequisite modules here
+
+set             fullname        M3D-C1
+set             externalurl     http://w3.pppl.gov/~nferraro/m3dc1.html
+set             description     "M3D-C1 is an extended-MHD code"
+
+## Required for "module help ..."
+
+proc ModulesHelp { } {
+  global description externalurl
+  puts stderr "Description - $description"
+  puts stderr "Other Docs  - $externalurl"
+}
+
+## Required for "module display ..." and SWDB
+
+module-whatis                   "$description"
+
+## Software-specific settings exported to user environment
+module load craype-hugepages512M
+
+
+if { ! [ is-loaded PrgEnv-intel/6.0.5 ] } {
+   module swap PrgEnv-cray PrgEnv-intel/6.0.5
+}
+
+if { ! [ is-loaded cray-mpich/7.7.11 ] } {
+   module load cray-mpich/7.7.11
+}
+
+if { ! [ is-loaded cray-fftw/3.3.8.4 ] } {
+   module load cray-fftw/3.3.8.4
+}
+
+if { ! [ is-loaded cray-hdf5-parallel/1.10.5.2 ] } {
+   module load cray-hdf5-parallel/1.10.5.2
+}
+
+if { ! [ is-loaded gsl/2.6 ] } {
+   module load gsl/2.6
+}
+if { ! [ is-loaded cray-netcdf-hdf5parallel/4.6.3.2 ] } {
+   module load cray-netcdf-hdf5parallel/4.6.3.2
+}
+
+setenv          M3DC1_VERSION   $version
+setenv          M3DC1_DIR       $root
+setenv		M3DC1_ARCH	kairos
+setenv		M3DC1_MPIRUN	aprun
+
+prepend-path    PATH             $root/unstructured/_kairos/bin
+prepend-path    IDL_PATH         $root/unstructured/idl:<IDL_DEFAULT>
+
