@@ -24,7 +24,7 @@ from m3dc1.plot_coils import plot_coils
 
 
 def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
-               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',res=250,
+               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',points=250,
                prange=None, cmap='viridis', cmap_midpt=None, clvl=100, quiet=False,
                save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False):
     """
@@ -92,7 +92,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     True/False
     Overlay coils from coil.dat file on top of the plot.
 
-    **res**
+    **points**
     Resolution in R and Z direction.
 
     **cmap**
@@ -137,7 +137,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     """
     
     sim, time, mesh_ob, R, phi_list, Z, R_mesh, Z_mesh, R_ave, Z_ave, field1_ave = get_field(field=field, coord=coord, row=row, sim=sim, filename=filename, time=time, phi=phi, linear=linear,
-               diff=diff, tor_av=tor_av, units=units, res=res, quiet=quiet, phys=phys)
+               diff=diff, tor_av=tor_av, units=units, res=points, quiet=quiet, phys=phys)
     
 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)

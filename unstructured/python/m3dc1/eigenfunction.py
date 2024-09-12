@@ -25,8 +25,8 @@ from m3dc1.plot_mesh import plot_mesh
 from m3dc1.plot_coils import plot_coils
 
 def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,show_res=False,
-                  device='nstx',norm_to_unity=False,drop_low_m=-1,nummodes=10,cmap='jet',coils=False,mesh=False,bound=False,quiet=False, phys=False,pub=False,n=None,titlestr=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither',
-                  in_plot_txt=None,export=False,figsize=None):
+                  device='nstx',norm_to_unity=False,drop_low_m=-1,nummodes=10,cmap='jet',coils=False,mesh=False,bound=False, phys=False,pub=False,n=None,titlestr=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither',
+                  in_plot_txt=None,export=False,figsize=None,quiet=False):
     """
     Calculates the linear eigenfunction ~(p1-p0)
 
@@ -37,13 +37,13 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
     Can bei either the object itself, or a list of two objects. Order does not matter.
 
     **time**
-    If sim=None, time slice to read
+    If sim=None, time slice to read.
 
     **phit**
     Toroidal angle where eigenfunction will be calculated
 
     **filename**
-    If sim=None, name of file to read
+    If sim=None, name of file to read.
 
     **fcoords**
     Name of flux coordinate system: 'pest', 'boozer', 'hamada', or '' (geometric angle)
@@ -122,43 +122,13 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
 
     **export**
     Export plot data to text file.
+
+    **quiet**
+    If True, suppress most output to terminal.
     """
     
     # make simulation object iterable if it is a single object and not if it is list of objects
-    if sim is not None:
-        if not isinstance(sim, (tuple, list)):
-            if isinstance(sim,fpy.sim_data):
-                if sim.timeslice==-1 or sim.timeslice==0:
-                    simlin = fpy.sim_data(filename,time=time)
-                    sims = [sim,simlin]
-                else:
-                    simeq = fpy.sim_data(filename,time=-1)
-                    sims = [simeq,sim]
-            else:
-                raise Exception('sim is not a fpy.sim_data object.')
-        else:
-            if len(sim)>2:
-                raise Exception('Please provide not more than 2 simulation objects.')
-            else:
-                if isinstance(sim[0],fpy.sim_data) and isinstance(sim[1],fpy.sim_data):
-                    if sim[0].timeslice==-1 or sim[0].timeslice==0:
-                        sims=sim
-                    elif sim[1].timeslice==-1 or sim[1].timeslice==0:
-                        sims = []
-                        sims.append(sim[1])
-                        sims.append(sim[0])
-                        sims = np.asarray(sims)
-                    else:
-                        raise Exception('Please provide 1 simulation at time=-1!')
-                else:
-                    raise Exception('sim is not a list of fpy.sim_data objects.')
-    else:
-        simeq = fpy.sim_data(filename,time=-1)
-        if (isinstance(time, str) and time=='last') or (isinstance(time, int) and time > 0):
-            simlin = fpy.sim_data(filename,time=time)
-        else:
-            raise Exception('Please provide a time slice larger than 0.')
-        sims = [simeq,simlin]
+    sims = check_sim_object(sim,time,filename)
     
     # Calculate flux coodinates if it was not calculated yet or a different flux coordinate system than sim.fc.fcoords is desired
     
@@ -389,7 +359,7 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
     #for i in fs:
     #plt.plot(fc.theta,ef[:,-1])
     
-    # For test purposes plot flux surfaces
+    # For testing purposes plot flux surfaces
     #plt.figure()
     #plt.plot(fc.rpath,fc.zpath,marker='.')
     #plt.axis('equal')
@@ -400,9 +370,129 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
 
 
 
-def mode_type(spec,sim,psin_ped_top=0.86):
+def check_sim_object(sim,time,filename):
     """
-    Determines whether a mode is an edge or code mode
+    Checks simulation object and makes simulation object iterable
+    if it is a single object but not if it is list of objects.
+
+    Arguments:
+
+    **sim**
+    Simulation object(s) at equilibrium and/or time where the eigenfunction shall be calculated.
+    Can bei either the object itself, or a list of two objects. Order does not matter.
+
+    **time**
+    If sim=None, time slice to read.
+
+    **filename**
+    If sim=None, name of file to read.
+    """
+    if sim is not None:
+        if not isinstance(sim, (tuple, list,np.ndarray)):
+            
+            if isinstance(sim,fpy.sim_data):
+                if sim.timeslice==-1 or sim.timeslice==0:
+                    simlin = fpy.sim_data(filename,time=time)
+                    sims = [sim,simlin]
+                else:
+                    simeq = fpy.sim_data(filename,time=-1)
+                    sims = [simeq,sim]
+            else:
+                raise Exception('sim is not a fpy.sim_data object.')
+        else:
+            if len(sim)>2:
+                raise Exception('Please provide not more than 2 simulation objects.')
+            else:
+                if isinstance(sim[0],fpy.sim_data) and isinstance(sim[1],fpy.sim_data):
+                    if sim[0].timeslice==-1 or sim[0].timeslice==0:
+                        sims=sim
+                    elif sim[1].timeslice==-1 or sim[1].timeslice==0:
+                        sims = []
+                        sims.append(sim[1])
+                        sims.append(sim[0])
+                        sims = np.asarray(sims)
+                    else:
+                        raise Exception('Please provide 1 simulation at time=-1!')
+                else:
+                    raise Exception('sim is not a list of fpy.sim_data objects.')
+    else:
+        simeq = fpy.sim_data(filename,time=-1)
+        if (isinstance(time, str) and time=='last') or (isinstance(time, int) and time > 0):
+            simlin = fpy.sim_data(filename,time=time)
+        else:
+            raise Exception('Please provide a time slice larger than 0.')
+        sims = [simeq,simlin]
+    return sims
+
+
+def eigenfunction_vs_psin(sim=None,time=1,filename='C1.h5',fcoords=None,points=801,units='m3dc1',psin_ped_top=0.86,phys=False,
+                          norm_to_unity=False,drop_low_m=-1,makeplot=True,quiet=False, n=None,titlestr=None,save=False,
+                          savedir=None,in_plot_txt=None,figsize=None):
+    """
+    Returns and optionally plots the total pressure perturbation
+    as a function of psin_n.
+
+    Arguments:
+
+    **sim**
+    Simulation object(s) at equilibrium and/or time where the eigenfunction shall be calculated.
+    Can bei either the object itself, or a list of two objects. Order does not matter.
+
+    **time**
+    If sim=None, time slice to read.
+
+    **filename**
+    If sim=None, name of file to read.
+
+    **fcoords**
+    Name of flux coordinate system: 'pest', 'boozer', 'hamada', or '' (geometric angle)
+
+    **points**
+    Number of points in theta and psi_n considered for flux coordinate calculation
+
+    **units**
+    units in which the result will be calculated
+
+    **psin_ped_top**
+    Value of normalized psi where pedestal top is assumed.
+
+    **phys**
+    Use True for plotting in physical (stellarator) geometry.
+
+    **norm_to_unity**
+    Normalize eigenfunction such that the maximum is in the order of unity.
+
+    **drop_low_m**
+    Removes poloidal modes from m = 0 to value of drop_low_m from poloidal spectrum and plots
+    the eigenfunction with these modes subtracted (by dropping from the inverse Fourier transform).
+    Can be useful, when n=0 modes are so strong that higher n/m perturbations are not visible in plot.
+
+    **makeplot**
+    If True, show radial plot of total perturbation.
+
+    **quiet**
+    If True, suppress most output to terminal.
+
+    **titlestr**
+    Plot title. If None, a default title will be generated.
+    """
+    sims = check_sim_object(sim,time,filename)
+    
+    spec = eigenfunction(sim=sims,time=time,filename=filename,fcoords=fcoords,points=points,units=units,fourier=True,norm_to_unity=norm_to_unity,drop_low_m=drop_low_m,quiet=quiet,phys=phys,makeplot=False)
+    
+    _,_,efsum = mode_type(spec,sims[0],psin_ped_top=psin_ped_top,makeplot=makeplot)
+    
+    fc = sims[0].fc
+    
+    return fc.psi_norm, efsum
+
+
+def mode_type(spec,sim,psin_ped_top=0.86,makeplot=False):
+    """
+    Determines whether a mode is an edge or code mode.
+    Classification is done based on radial peak of the
+    perturbation and comparing how much of the integral of
+    the perturbation lies in the pedestal and the core.
 
     Arguments:
 
@@ -414,6 +504,9 @@ def mode_type(spec,sim,psin_ped_top=0.86):
 
     **psin_ped_top**
     Value of normalized psi where pedestal top is assumed.
+
+    **makeplot**
+    If True, plot total perturbation.
     """
     
     spec_abs = np.abs(spec)
@@ -427,14 +520,15 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     for i in range(pathshape[1]):
         efsum[i] = np.sum(spec_abs[:,i])
     # Plot sum of Fourier components:
-    plt.figure()
-    plt.plot(fc.psi_norm,efsum,lw=2,c='C2')
-    plt.xlabel(r'$\psi_N$',fontsize=20)
-    plt.ylabel(r'$\sum_{m} |\xi_{m}|(r)$ (a.u.)',fontsize=20)
-    ax = plt.gca()
-    ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
-    ax.tick_params(axis='both', which='major', labelsize=18)
-    plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
+    if makeplot:
+        plt.figure()
+        plt.plot(fc.psi_norm,efsum,lw=2,c='C2')
+        plt.xlabel(r'$\psi_N$',fontsize=20)
+        plt.ylabel(r'$\sum_{m} |\xi_{m}|(r)$ (a.u.)',fontsize=20)
+        ax = plt.gca()
+        ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
+        ax.tick_params(axis='both', which='major', labelsize=18)
+        plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
     # Calculate derivative of sum of modes
     #efsumprime = fpyl.deriv(efsum,fc.psi_norm)
@@ -449,8 +543,6 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     #print(efmax)
     #print(psinatmax)
     
-    
-    #psin_ped_top = 0.86 #Min value of psin that is considered edge region
     
     # Determine maximum value in edge region
     
@@ -500,10 +592,6 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     else:
         mtype = 0
         fpyl.printwarn('Mode is not a PB mode.')
-    
-    
-    #ToDO: Analyze individual Fourier modes and see where they peak
-    
     
     
     
@@ -557,4 +645,4 @@ def mode_type(spec,sim,psin_ped_top=0.86):
     
     #Subtract all modes with peak at edge from total.
 
-    return mtype,ped_loc
+    return mtype,ped_loc,efsum

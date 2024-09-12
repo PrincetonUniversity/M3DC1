@@ -108,8 +108,8 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
     print('Using FC resolution '+str(tbins)+' , '+str(fbins))
 
     mp = sim.get_mesh(quiet=quiet).elements
-    R_linspace_grid = mp[:,4]
-    R_linspace = R_linspace_grid
+    R_linspace = mp[:,4]
+    Z_linspace = mp[:,5]
 
 
     # Read fields
@@ -181,7 +181,9 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
     
     
     if psin_range is None:
-        psi = (dpsi)*(np.arange(float(n))+0.5)/n + psi_0
+        #psi = (dpsi)*(np.arange(float(n))+0.5)/n + psi_0
+        #psi = (dpsi)*(np.arange(float(n))+1)/n + psi_0
+        psi = (dpsi)*np.linspace(0.0001,1,n,endpoint=True) + psi_0
     else:
         p0 = psi_0 + (dpsi)*psin_range[0]
         p1 = psi_0 + (dpsi)*psin_range[1]
@@ -204,9 +206,9 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
     polarea = np.zeros(n)
     current = np.zeros(n)
 
-    tol_psin = 6e-5
+    tol_psin = 1e-4  #9e-3#1e-4#6e-5#1e-4#6e-5
     tol_r = 1e-4*(np.amax(R_linspace) - np.amin(R_linspace))
-    maxits = 30
+    maxits = 50000
     rho_old = 0.
     psin_old = 0.
 
@@ -215,23 +217,28 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
     if not quiet:
         print('Finding points on magnetic surfaces...', end=' ', flush=True)
     # find points on magnetic surfaces
+    
+    #plt.figure(116)
+    
     for i in range(m):
         # minus sign is because theta increases clockwise about axis
         co = np.cos(-theta[i])
         sn = np.sin(-theta[i])
         dpsin_drho = 0.
+        max_drho = np.sqrt(((R_linspace[-1] - R_linspace[0])*co)**2 + ((Z_linspace[1] - Z_linspace[0])*sn)**2) * 0.1
         
         for j in range(n):
             # do newton iterations to find (R,Z) at (psin, theta)
             converged = False
             if(j == 0 or dpsin_drho == 0.):
-                rho = 0.01
+                rho = 0.2#0.01
             else:
                 rho = rho + (psin[j]-psin[j-1])/dpsin_drho
             
             for k in range(maxits):
                 rpath[i,j] = rho*co + axis[0]
                 zpath[i,j] = rho*sn + axis[1]
+                #plt.plot(rpath[i,j],zpath[i,j],marker='+')
                 psin_x = field_at_point('psin0',rpath[i,j],phit,zpath[i,j])
 
                 if abs(psin_x - psin[j]) < tol_psin:
@@ -257,17 +264,23 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
                     dpsin_drho = psin_r*co + psin_z*sn
 
                 drho = (psin[j] - psin_x)/dpsin_drho
+                #print(psin[j],psin_x,dpsin_drho,psin_r, co, psin_z,sn)
                 if(rho + drho < 0.):
                     rho = rho / 2.
+                elif drho > max_drho:
+                    rho = rho + max_drho
                 else:
                     rho = rho + drho
                 #print('rho = '+str(rho))
-            tot = tot + kk
+            #print(i,j)
             if not converged:
                 print('Error at (psi_n, theta) = '+str(psin[j])+' , '+str(theta[i]))
                 print('Did not converge after '+str(maxits)+' iterations. , '+str(rho)+' , '+str(rpath[i,j])+' , '+str(zpath[i,j]))
-                rho = 0.01
+                rho = 0.2
                 return
+            
+            tot = tot + kk
+            
     if not quiet:
         print('[Done]')
         print('Total Newton iterations '+str(tot))

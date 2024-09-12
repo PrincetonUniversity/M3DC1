@@ -8,6 +8,7 @@ class Gamma_file:
     def __init__(self,filename):
         f = open(filename, 'r')
         data = f.readlines()
+        f.close()
         datal1 = data[0].split()
         datal2 = data[1].split()
         
@@ -71,6 +72,7 @@ class Gamma_file:
             self.ped_width = datal3[1]
         self.n_list = np.asarray(n_list,dtype=int)
         self.gamma_list = np.asarray(gamma_list)
+        self.gamma_dia_list = self.gamma_list / (self.n_list * self.omegsti_max/4)
         self.dgamma_list = np.asarray(dgamma_list)
         self.flat_list = np.asarray(flat_list,dtype=int)
         self.not_noisy_list = np.asarray(not_noisy_list,dtype=int)
